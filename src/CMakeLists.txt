@@ -7,6 +7,8 @@ qt_add_qml_module(openauto-prodigy
     VERSION 1.0
     QML_FILES
         ../qml/main.qml
+    RESOURCES
+        ../resources/resources.qrc
 )
 
 target_link_libraries(openauto-prodigy PRIVATE
