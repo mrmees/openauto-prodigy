@@ -6,6 +6,7 @@
 #include <memory>
 #include "core/Configuration.hpp"
 #include "ui/ThemeController.hpp"
+#include "ui/ApplicationController.hpp"
 
 int main(int argc, char *argv[])
 {
@@ -22,9 +23,11 @@ int main(int argc, char *argv[])
         config->load(configPath);
 
     auto theme = new oap::ThemeController(config, &app);
+    auto appController = new oap::ApplicationController(&app);
 
     QQmlApplicationEngine engine;
     engine.rootContext()->setContextProperty("ThemeController", theme);
+    engine.rootContext()->setContextProperty("ApplicationController", appController);
     engine.loadFromModule("OpenAutoProdigy", "Main");
 
     if (engine.rootObjects().isEmpty())

@@ -6,8 +6,8 @@ set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(CMAKE_AUTOMOC ON)
 set(CMAKE_AUTORCC ON)
 
-# Qt 6 — only Core and Quick needed for Phase 1 skeleton
-find_package(Qt6 REQUIRED COMPONENTS Core Quick)
+# Qt 6 — Core, Quick, and QuickControls2 for UI shell
+find_package(Qt6 REQUIRED COMPONENTS Core Quick QuickControls2)
 qt_standard_project_setup()
 
 add_subdirectory(src)
