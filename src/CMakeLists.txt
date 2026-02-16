@@ -1,5 +1,6 @@
 qt_add_executable(openauto-prodigy
     main.cpp
+    core/Configuration.cpp
 )
 
 qt_add_qml_module(openauto-prodigy

@@ -1,0 +1,25 @@
+find_package(Qt6 REQUIRED COMPONENTS Test)
+
+add_executable(test_configuration
+    test_configuration.cpp
+    ${CMAKE_SOURCE_DIR}/src/core/Configuration.cpp
+)
+
+target_include_directories(test_configuration PRIVATE
+    ${CMAKE_SOURCE_DIR}/src
+)
+
+target_compile_definitions(test_configuration PRIVATE
+    TEST_DATA_DIR="${CMAKE_CURRENT_BINARY_DIR}/data"
+)
+
+target_link_libraries(test_configuration PRIVATE
+    Qt6::Core
+    Qt6::Test
+)
+
+# Copy test data
+configure_file(data/test_config.ini ${CMAKE_CURRENT_BINARY_DIR}/data/test_config.ini COPYONLY)
+
+enable_testing()
+add_test(NAME test_configuration COMMAND test_configuration)

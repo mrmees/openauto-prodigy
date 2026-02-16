@@ -11,3 +11,4 @@ find_package(Qt6 REQUIRED COMPONENTS Core Quick)
 qt_standard_project_setup()
 
 add_subdirectory(src)
+add_subdirectory(tests)
