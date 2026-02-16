@@ -28,7 +28,13 @@ int main(int argc, char *argv[])
     QQmlApplicationEngine engine;
     engine.rootContext()->setContextProperty("ThemeController", theme);
     engine.rootContext()->setContextProperty("ApplicationController", appController);
-    engine.loadFromModule("OpenAutoProdigy", "Main");
+
+    // Qt 6.5+ uses /qt/qml/ prefix, Qt 6.4 uses direct URI prefix
+    QUrl url(QStringLiteral("qrc:/OpenAutoProdigy/main.qml"));
+    if (QFile::exists(QStringLiteral(":/qt/qml/OpenAutoProdigy/main.qml")))
+        url = QUrl(QStringLiteral("qrc:/qt/qml/OpenAutoProdigy/main.qml"));
+
+    engine.load(url);
 
     if (engine.rootObjects().isEmpty())
         return -1;

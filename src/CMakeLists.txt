@@ -5,6 +5,59 @@ qt_add_executable(openauto-prodigy
     ui/ApplicationController.cpp
 )
 
+# Tell Qt the QML type name for each file (override subdirectory-based naming)
+set_source_files_properties(../qml/main.qml PROPERTIES
+    QT_RESOURCE_ALIAS "main.qml"
+)
+set_source_files_properties(../qml/controls/NormalText.qml PROPERTIES
+    QT_QML_SOURCE_TYPENAME "NormalText"
+    QT_RESOURCE_ALIAS "NormalText.qml"
+)
+set_source_files_properties(../qml/controls/SpecialText.qml PROPERTIES
+    QT_QML_SOURCE_TYPENAME "SpecialText"
+    QT_RESOURCE_ALIAS "SpecialText.qml"
+)
+set_source_files_properties(../qml/controls/Icon.qml PROPERTIES
+    QT_QML_SOURCE_TYPENAME "Icon"
+    QT_RESOURCE_ALIAS "Icon.qml"
+)
+set_source_files_properties(../qml/controls/Tile.qml PROPERTIES
+    QT_QML_SOURCE_TYPENAME "Tile"
+    QT_RESOURCE_ALIAS "Tile.qml"
+)
+set_source_files_properties(../qml/components/Clock.qml PROPERTIES
+    QT_QML_SOURCE_TYPENAME "Clock"
+    QT_RESOURCE_ALIAS "Clock.qml"
+)
+set_source_files_properties(../qml/components/Wallpaper.qml PROPERTIES
+    QT_QML_SOURCE_TYPENAME "Wallpaper"
+    QT_RESOURCE_ALIAS "Wallpaper.qml"
+)
+set_source_files_properties(../qml/components/TopBar.qml PROPERTIES
+    QT_QML_SOURCE_TYPENAME "TopBar"
+    QT_RESOURCE_ALIAS "TopBar.qml"
+)
+set_source_files_properties(../qml/components/BottomBar.qml PROPERTIES
+    QT_QML_SOURCE_TYPENAME "BottomBar"
+    QT_RESOURCE_ALIAS "BottomBar.qml"
+)
+set_source_files_properties(../qml/applications/launcher/LauncherMenu.qml PROPERTIES
+    QT_QML_SOURCE_TYPENAME "LauncherMenu"
+    QT_RESOURCE_ALIAS "LauncherMenu.qml"
+)
+set_source_files_properties(../qml/applications/android_auto/AndroidAutoMenu.qml PROPERTIES
+    QT_QML_SOURCE_TYPENAME "AndroidAutoMenu"
+    QT_RESOURCE_ALIAS "AndroidAutoMenu.qml"
+)
+set_source_files_properties(../qml/applications/settings/SettingsMenu.qml PROPERTIES
+    QT_QML_SOURCE_TYPENAME "SettingsMenu"
+    QT_RESOURCE_ALIAS "SettingsMenu.qml"
+)
+set_source_files_properties(../qml/applications/home/HomeMenu.qml PROPERTIES
+    QT_QML_SOURCE_TYPENAME "HomeMenu"
+    QT_RESOURCE_ALIAS "HomeMenu.qml"
+)
+
 qt_add_qml_module(openauto-prodigy
     URI OpenAutoProdigy
     VERSION 1.0

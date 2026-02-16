@@ -2,6 +2,7 @@
 
 #include <QString>
 #include <QColor>
+#include <QSettings>
 
 namespace oap {
 
@@ -129,8 +130,8 @@ private:
     const ColorSet& colorSet(ThemeMode mode) const;
     ColorSet& colorSet(ThemeMode mode);
 
-    void loadColorSet(class QSettings& settings, const QString& group, ColorSet& cs);
-    void saveColorSet(class QSettings& settings, const QString& group, const ColorSet& cs) const;
+    void loadColorSet(QSettings& settings, const QString& group, ColorSet& cs);
+    void saveColorSet(QSettings& settings, const QString& group, const ColorSet& cs) const;
 
     // AndroidAuto
     bool m_dayNightModeController = true;

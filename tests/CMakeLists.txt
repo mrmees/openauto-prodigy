@@ -15,6 +15,7 @@ target_compile_definitions(test_configuration PRIVATE
 
 target_link_libraries(test_configuration PRIVATE
     Qt6::Core
+    Qt6::Gui
     Qt6::Test
 )
 
@@ -33,6 +34,7 @@ target_include_directories(test_theme_controller PRIVATE
 
 target_link_libraries(test_theme_controller PRIVATE
     Qt6::Core
+    Qt6::Gui
     Qt6::Test
 )
 
