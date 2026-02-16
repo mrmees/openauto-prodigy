@@ -1,0 +1,8 @@
+build/
+.cache/
+CMakeLists.txt.user
+*.o
+*.so
+*.a
+*.deb
+.DS_Store
