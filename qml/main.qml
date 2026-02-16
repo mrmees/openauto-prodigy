@@ -7,12 +7,18 @@ Window {
     height: 600
     visible: true
     title: "OpenAuto Prodigy"
-    color: "#1a1a2e"
+    color: ThemeController.backgroundColor
 
     Text {
         anchors.centerIn: parent
         text: "OpenAuto Prodigy v0.1.0"
-        color: "#e94560"
+        color: ThemeController.specialFontColor
         font.pixelSize: 32
+    }
+
+    // Temporary: keyboard shortcut to toggle theme
+    Shortcut {
+        sequence: "Ctrl+D"
+        onActivated: ThemeController.toggleMode()
     }
 }
