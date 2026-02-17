@@ -10,6 +10,20 @@ set(CMAKE_AUTORCC ON)
 find_package(Qt6 REQUIRED COMPONENTS Core Gui Quick QuickControls2)
 qt_standard_project_setup()
 
+# Android Auto dependencies
+find_package(Boost REQUIRED COMPONENTS system log log_setup)
+find_package(Protobuf REQUIRED)
+find_package(OpenSSL REQUIRED)
+include(FindPkgConfig)
+pkg_check_modules(LIBUSB REQUIRED libusb-1.0)
+
+# aasdk — Android Auto protocol library
+# Save our flags before aasdk overwrites them
+set(_saved_cxx_flags "${CMAKE_CXX_FLAGS}")
+add_subdirectory(libs/aasdk)
+# Restore our flags (aasdk sets -Wall -pedantic globally)
+set(CMAKE_CXX_FLAGS "${_saved_cxx_flags}")
+
 enable_testing()
 
 add_subdirectory(src)

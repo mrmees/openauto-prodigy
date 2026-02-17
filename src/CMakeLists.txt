@@ -1,6 +1,9 @@
 qt_add_executable(openauto-prodigy
     main.cpp
     core/Configuration.cpp
+    core/aa/AndroidAutoService.cpp
+    core/aa/AndroidAutoEntity.cpp
+    core/aa/ServiceFactory.cpp
     ui/ThemeController.cpp
     ui/ApplicationController.cpp
 )
@@ -79,8 +82,24 @@ qt_add_qml_module(openauto-prodigy
         ../resources/resources.qrc
 )
 
+target_include_directories(openauto-prodigy PRIVATE
+    ${CMAKE_CURRENT_SOURCE_DIR}
+    ${CMAKE_SOURCE_DIR}/libs/aasdk/include
+    ${CMAKE_BINARY_DIR}/libs/aasdk
+    ${LIBUSB_INCLUDE_DIRS}
+)
+
 target_link_libraries(openauto-prodigy PRIVATE
     Qt6::Core
     Qt6::Quick
     Qt6::QuickControls2
+    aasdk
+    aasdk_proto
+    Boost::system
+    Boost::log
+    Boost::log_setup
+    OpenSSL::SSL
+    OpenSSL::Crypto
+    protobuf::libprotobuf
+    ${LIBUSB_LIBRARIES}
 )

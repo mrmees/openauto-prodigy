@@ -1,0 +1,6 @@
+# Android Open Accessory Protocol (AOAP) — Google vendor ID
+# Install to /etc/udev/rules.d/ on the Pi
+SUBSYSTEM=="usb", ATTR{idVendor}=="18d1", ATTR{idProduct}=="2d00", MODE="0666", GROUP="plugdev"
+SUBSYSTEM=="usb", ATTR{idVendor}=="18d1", ATTR{idProduct}=="2d01", MODE="0666", GROUP="plugdev"
+# Also allow all Google USB devices (for AOAP mode switching)
+SUBSYSTEM=="usb", ATTR{idVendor}=="18d1", MODE="0666", GROUP="plugdev"
