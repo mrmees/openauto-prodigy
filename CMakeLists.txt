@@ -10,5 +10,7 @@ set(CMAKE_AUTORCC ON)
 find_package(Qt6 REQUIRED COMPONENTS Core Gui Quick QuickControls2)
 qt_standard_project_setup()
 
+enable_testing()
+
 add_subdirectory(src)
 add_subdirectory(tests)
