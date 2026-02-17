@@ -144,6 +144,7 @@ void AndroidAutoEntity::onServiceDiscoveryRequest(
     BOOST_LOG_TRIVIAL(info) << "[AndroidAutoEntity] Service discovery from "
                             << request.device_name()
                             << " (" << request.device_brand() << ")";
+    BOOST_LOG_TRIVIAL(debug) << "[AndroidAutoEntity] Phone request: " << request.DebugString();
 
     aasdk::proto::messages::ServiceDiscoveryResponse response;
     response.set_head_unit_name("OpenAuto Prodigy");
@@ -163,7 +164,9 @@ void AndroidAutoEntity::onServiceDiscoveryRequest(
     }
 
     BOOST_LOG_TRIVIAL(info) << "[AndroidAutoEntity] Responding with "
-                            << response.channels_size() << " channels";
+                            << response.channels_size() << " channels"
+                            << " (serialized size: " << response.ByteSizeLong() << " bytes)";
+    BOOST_LOG_TRIVIAL(debug) << "[AndroidAutoEntity] Response: " << response.DebugString();
 
     auto promise = aasdk::channel::SendPromise::defer(strand_);
     promise->then([this, self = this->shared_from_this()]() {
