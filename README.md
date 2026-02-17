@@ -4,7 +4,7 @@
 
 Open-source replacement for OpenAuto Pro — a Raspberry Pi-based Android Auto head unit application.
 
-**Status: Phase 1 — Core AA Functionality (In Progress)**
+**Status: Phase 1 — Core AA Functionality (In Progress, Wireless-Only)**
 
 ## What Is This?
 
@@ -18,15 +18,15 @@ Open-source replacement for OpenAuto Pro — a Raspberry Pi-based Android Auto h
 | 2 | Configuration system | Done |
 | 3 | Theme engine | Done |
 | 4 | QML UI shell | Done |
-| 5 | AA service layer (USB/TCP, handshake, 8 channels) | Done |
-| 6 | Video pipeline (FFmpeg H.264 → QVideoSink) | Code complete, debugging |
+| 5 | AA service layer (TCP, handshake, 8 channels) | Done |
+| 6 | Video pipeline (FFmpeg H.264 → QVideoSink) | Code complete, untested |
 | 7 | Audio pipeline | Pending |
-| 8 | Wireless AA | Pending |
+| 8 | Wireless AA (BT discovery + WiFi AP + TCP) | Code complete, untested |
 | 9 | Settings UI | Pending |
 | 10 | Integration & polish | Pending |
 
-### Current Blocker (Task 6)
-Phone connects and completes the full handshake (version → SSL → auth → service discovery) but never opens service channels. This predates the video pipeline code — same behavior with stub services. See [docs/debugging-notes.md](docs/debugging-notes.md) for detailed troubleshooting history.
+### Wireless-Only Architecture
+USB transport was abandoned after service channels consistently failed to open despite successful handshakes. The project now uses wireless-only AA: Bluetooth discovery → WiFi credential exchange → TCP on port 5288. See [docs/wireless-setup.md](docs/wireless-setup.md) for Pi setup and [PICKUP.md](PICKUP.md) for full project state.
 
 ## Architecture
 
@@ -36,7 +36,7 @@ src/
 ├── core/
 │   ├── Configuration.hpp/cpp         # INI config (backward-compatible with OAP)
 │   └── aa/
-│       ├── AndroidAutoService.hpp/cpp  # AA lifecycle, USB/TCP transport
+│       ├── AndroidAutoService.hpp/cpp  # AA lifecycle, TCP transport, BT integration
 │       ├── AndroidAutoEntity.hpp/cpp   # Protocol entity, control channel, handshake
 │       ├── ServiceFactory.hpp/cpp      # Creates all 8 service instances
 │       ├── VideoService.hpp/cpp        # H.264 data → Qt main thread
