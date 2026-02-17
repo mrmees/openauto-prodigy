@@ -74,6 +74,19 @@ public:
     BluetoothAdapterType bluetoothAdapterType() const { return m_btAdapterType; }
     void setBluetoothAdapterType(BluetoothAdapterType v) { m_btAdapterType = v; }
 
+    // --- Wireless ---
+    bool wirelessEnabled() const { return m_wirelessEnabled; }
+    void setWirelessEnabled(bool v) { m_wirelessEnabled = v; }
+
+    QString wifiSsid() const { return m_wifiSsid; }
+    void setWifiSsid(const QString& v) { m_wifiSsid = v; }
+
+    QString wifiPassword() const { return m_wifiPassword; }
+    void setWifiPassword(const QString& v) { m_wifiPassword = v; }
+
+    uint16_t tcpPort() const { return m_tcpPort; }
+    void setTcpPort(uint16_t v) { m_tcpPort = v; }
+
     // --- System ---
     QString language() const { return m_language; }
     void setLanguage(const QString& v) { m_language = v; }
@@ -148,6 +161,12 @@ private:
 
     // Bluetooth
     BluetoothAdapterType m_btAdapterType = BluetoothAdapterType::Local;
+
+    // Wireless
+    bool m_wirelessEnabled = true;
+    QString m_wifiSsid = QStringLiteral("OpenAutoProdigy");
+    QString m_wifiPassword = QStringLiteral("prodigy1234");
+    uint16_t m_tcpPort = 5288;
 
     // System
     QString m_language = QStringLiteral("en_US");

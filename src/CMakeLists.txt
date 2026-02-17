@@ -88,7 +88,6 @@ target_include_directories(openauto-prodigy PRIVATE
     ${CMAKE_CURRENT_SOURCE_DIR}
     ${CMAKE_SOURCE_DIR}/libs/aasdk/include
     ${CMAKE_BINARY_DIR}/libs/aasdk
-    ${LIBUSB_INCLUDE_DIRS}
     ${LIBAV_INCLUDE_DIRS}
 )
 
@@ -97,6 +96,7 @@ target_link_libraries(openauto-prodigy PRIVATE
     Qt6::Quick
     Qt6::QuickControls2
     Qt6::Multimedia
+    Qt6::Network
     aasdk
     aasdk_proto
     Boost::system
@@ -105,6 +105,17 @@ target_link_libraries(openauto-prodigy PRIVATE
     OpenSSL::SSL
     OpenSSL::Crypto
     protobuf::libprotobuf
-    ${LIBUSB_LIBRARIES}
     ${LIBAV_LIBRARIES}
 )
+
+# Bluetooth discovery — optional, not available on all dev platforms (e.g. WSL2)
+if(TARGET Qt6::Bluetooth)
+    target_sources(openauto-prodigy PRIVATE
+        core/aa/BluetoothDiscoveryService.cpp
+    )
+    target_link_libraries(openauto-prodigy PRIVATE Qt6::Bluetooth)
+    target_compile_definitions(openauto-prodigy PRIVATE HAS_BLUETOOTH)
+    message(STATUS "Qt6::Bluetooth found — Bluetooth discovery enabled")
+else()
+    message(STATUS "Qt6::Bluetooth NOT found — Bluetooth discovery disabled (wireless requires manual TCP)")
+endif()

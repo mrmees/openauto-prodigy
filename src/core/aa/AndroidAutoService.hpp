@@ -6,18 +6,19 @@
 #include <thread>
 #include <vector>
 #include <boost/asio.hpp>
-#include <libusb.h>
 
 #include "AndroidAutoEntity.hpp"
 #include "IService.hpp"
 #include "VideoDecoder.hpp"
 #include "../../core/Configuration.hpp"
 
-#include <aasdk/USB/IUSBWrapper.hpp>
 #include <aasdk/Transport/ITransport.hpp>
 
+#ifdef HAS_BLUETOOTH
+class BluetoothDiscoveryService;
+#endif
+
 namespace aasdk {
-namespace usb { class IAccessoryModeQueryFactory; class IAccessoryModeQueryChainFactory; class IUSBHub; }
 namespace tcp { class ITCPWrapper; }
 namespace transport { class ISSLWrapper; }
 }
@@ -62,8 +63,6 @@ signals:
 
 private:
     void setState(ConnectionState state, const QString& message);
-    void startUSBHub();
-    void onUSBDeviceConnected(aasdk::usb::DeviceHandle handle);
     void startTCPListener();
     void onTCPConnection(std::shared_ptr<boost::asio::ip::tcp::socket> socket);
     void startEntity(aasdk::transport::ITransport::Pointer transport);
@@ -75,17 +74,6 @@ private:
     std::unique_ptr<boost::asio::io_service> ioService_;
     std::unique_ptr<boost::asio::io_service::work> ioWork_;
     std::vector<std::thread> asioThreads_;
-
-    // libusb
-    libusb_context* usbContext_ = nullptr;
-    std::vector<std::thread> usbThreads_;
-    bool usbRunning_ = false;
-
-    // USB detection
-    std::shared_ptr<aasdk::usb::IUSBWrapper> usbWrapper_;
-    std::shared_ptr<aasdk::usb::IAccessoryModeQueryFactory> queryFactory_;
-    std::shared_ptr<aasdk::usb::IAccessoryModeQueryChainFactory> queryChainFactory_;
-    std::shared_ptr<aasdk::usb::IUSBHub> usbHub_;
 
     // TCP listener
     std::shared_ptr<aasdk::tcp::ITCPWrapper> tcpWrapper_;
@@ -99,6 +87,10 @@ private:
 
     ConnectionState state_ = Disconnected;
     QString statusMessage_;
+
+#ifdef HAS_BLUETOOTH
+    BluetoothDiscoveryService* btService_ = nullptr;
+#endif
 };
 
 } // namespace aa

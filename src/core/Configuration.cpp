@@ -134,6 +134,14 @@ void Configuration::load(const QString& filePath) {
     m_language   = settings.value(QStringLiteral("language"), m_language).toString();
     m_timeFormat = timeFormatFromString(settings.value(QStringLiteral("time_format"), timeFormatToString(m_timeFormat)).toString());
     settings.endGroup();
+
+    // [Wireless]
+    settings.beginGroup(QStringLiteral("Wireless"));
+    m_wirelessEnabled = settings.value(QStringLiteral("enabled"), m_wirelessEnabled).toBool();
+    m_wifiSsid        = settings.value(QStringLiteral("wifi_ssid"), m_wifiSsid).toString();
+    m_wifiPassword     = settings.value(QStringLiteral("wifi_password"), m_wifiPassword).toString();
+    m_tcpPort          = static_cast<uint16_t>(settings.value(QStringLiteral("tcp_port"), m_tcpPort).toUInt());
+    settings.endGroup();
 }
 
 void Configuration::save(const QString& filePath) const {
@@ -171,6 +179,14 @@ void Configuration::save(const QString& filePath) const {
     settings.beginGroup(QStringLiteral("System"));
     settings.setValue(QStringLiteral("language"), m_language);
     settings.setValue(QStringLiteral("time_format"), timeFormatToString(m_timeFormat));
+    settings.endGroup();
+
+    // [Wireless]
+    settings.beginGroup(QStringLiteral("Wireless"));
+    settings.setValue(QStringLiteral("enabled"), m_wirelessEnabled);
+    settings.setValue(QStringLiteral("wifi_ssid"), m_wifiSsid);
+    settings.setValue(QStringLiteral("wifi_password"), m_wifiPassword);
+    settings.setValue(QStringLiteral("tcp_port"), m_tcpPort);
     settings.endGroup();
 
     settings.sync();
