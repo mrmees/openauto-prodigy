@@ -10,9 +10,17 @@ Window {
     title: "OpenAuto Prodigy"
     color: ThemeController.backgroundColor
 
-    // Hide bars when Android Auto is active and connected
+    // Go fullscreen when Android Auto is active and connected
     property bool aaFullscreen: ApplicationController.currentApplication === 2
                                 && AndroidAutoService.connectionState === 3
+
+    onAaFullscreenChanged: {
+        if (aaFullscreen) {
+            root.visibility = Window.FullScreen;
+        } else {
+            root.visibility = Window.Windowed;
+        }
+    }
 
     ColumnLayout {
         anchors.fill: parent
