@@ -638,7 +638,8 @@ IService::ServiceList ServiceFactory::create(
     services.push_back(std::make_shared<BluetoothServiceStub>(ioService, messenger, btMac));
     services.push_back(std::make_shared<WIFIServiceStub>(ioService, messenger, config));
     services.push_back(std::make_shared<AVInputServiceStub>(ioService, messenger));
-    services.push_back(std::make_shared<MediaInfoServiceStub>());
+    // NOTE: MediaInfoServiceStub (channel 9) removed — aasdk has no ChannelId for 9,
+    // so the phone's ChannelOpenRequest for it goes unanswered, stalling the connection.
 
     BOOST_LOG_TRIVIAL(info) << "[ServiceFactory] Created " << services.size() << " services";
     return services;
