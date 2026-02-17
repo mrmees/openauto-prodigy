@@ -5,6 +5,7 @@
 #include <QBluetoothSocket>
 #include <QBluetoothServiceInfo>
 #include <memory>
+#include <google/protobuf/message.h>
 #include "../../core/Configuration.hpp"
 
 class BluetoothDiscoveryService : public QObject
