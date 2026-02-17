@@ -43,6 +43,19 @@ int main(int argc, char *argv[])
     if (engine.rootObjects().isEmpty())
         return -1;
 
+    // Auto-switch to AA view on connect, back to launcher on disconnect
+    QObject::connect(aaService, &oap::aa::AndroidAutoService::connectionStateChanged,
+                     appController, [aaService, appController]() {
+        if (aaService->connectionState() == oap::aa::AndroidAutoService::Connected) {
+            appController->navigateTo(oap::ApplicationTypes::AndroidAuto);
+        } else if (aaService->connectionState() == oap::aa::AndroidAutoService::Disconnected
+                   || aaService->connectionState() == oap::aa::AndroidAutoService::WaitingForDevice) {
+            if (appController->currentApplication() == oap::ApplicationTypes::AndroidAuto) {
+                appController->navigateTo(oap::ApplicationTypes::Launcher);
+            }
+        }
+    });
+
     // Start AA service after QML is loaded
     aaService->start();
 
