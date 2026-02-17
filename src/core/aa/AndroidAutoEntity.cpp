@@ -8,7 +8,6 @@
 #include <aasdk_proto/AudioFocusResponseMessage.pb.h>
 #include <aasdk_proto/AudioFocusStateEnum.pb.h>
 #include <aasdk_proto/NavigationFocusResponseMessage.pb.h>
-#include <aasdk_proto/NavigationFocusTypeEnum.pb.h>
 #include <aasdk_proto/PingResponseMessage.pb.h>
 #include <aasdk_proto/PingRequestMessage.pb.h>
 #include <aasdk_proto/ShutdownResponseMessage.pb.h>
@@ -226,7 +225,7 @@ void AndroidAutoEntity::onNavigationFocusRequest(
     BOOST_LOG_TRIVIAL(info) << "[AndroidAutoEntity] Navigation focus request";
 
     aasdk::proto::messages::NavigationFocusResponse response;
-    response.set_type(aasdk::proto::enums::NavigationFocusType::NAVIGATION_FOCUS_PROJECTED);
+    response.set_type(1); // 1 = projected/focused
 
     auto promise = aasdk::channel::SendPromise::defer(strand_);
     promise->then([]() {},
