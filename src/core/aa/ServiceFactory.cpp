@@ -1,4 +1,5 @@
 #include "ServiceFactory.hpp"
+#include "VideoService.hpp"
 
 #include <boost/log/trivial.hpp>
 
@@ -50,132 +51,6 @@
 
 namespace oap {
 namespace aa {
-
-// ============================================================================
-// Video Service (stub — responds to open/setup, logs frames, no decoding)
-// ============================================================================
-class VideoServiceStub
-    : public IService
-    , public aasdk::channel::av::IVideoServiceChannelEventHandler
-    , public std::enable_shared_from_this<VideoServiceStub>
-{
-public:
-    VideoServiceStub(boost::asio::io_service& ioService,
-                     aasdk::messenger::IMessenger::Pointer messenger,
-                     std::shared_ptr<oap::Configuration> config)
-        : strand_(ioService)
-        , channel_(std::make_shared<aasdk::channel::av::VideoServiceChannel>(strand_, std::move(messenger)))
-        , config_(std::move(config))
-    {}
-
-    void start() override {
-        strand_.dispatch([this, self = shared_from_this()]() {
-            BOOST_LOG_TRIVIAL(info) << "[VideoService] Started (stub)";
-            channel_->receive(shared_from_this());
-        });
-    }
-
-    void stop() override {
-        BOOST_LOG_TRIVIAL(info) << "[VideoService] Stopped";
-    }
-
-    void fillFeatures(aasdk::proto::messages::ServiceDiscoveryResponse& response) override {
-        auto* desc = response.add_channels();
-        desc->set_channel_id(static_cast<uint32_t>(aasdk::messenger::ChannelId::VIDEO));
-
-        auto* avChannel = desc->mutable_av_channel();
-        avChannel->set_stream_type(aasdk::proto::enums::AVStreamType::VIDEO);
-
-        auto* videoConfig = avChannel->add_video_configs();
-        videoConfig->set_video_resolution(aasdk::proto::enums::VideoResolution::_480p);
-        videoConfig->set_video_fps(aasdk::proto::enums::VideoFPS::_30);
-        videoConfig->set_margin_width(0);
-        videoConfig->set_margin_height(0);
-        videoConfig->set_dpi(config_->screenDpi());
-    }
-
-    void onChannelOpenRequest(const aasdk::proto::messages::ChannelOpenRequest& request) override {
-        BOOST_LOG_TRIVIAL(info) << "[VideoService] Channel open request";
-        aasdk::proto::messages::ChannelOpenResponse response;
-        response.set_status(aasdk::proto::enums::Status::OK);
-
-        auto promise = aasdk::channel::SendPromise::defer(strand_);
-        promise->then([]() {}, [](const aasdk::error::Error& e) {
-            BOOST_LOG_TRIVIAL(error) << "[VideoService] Send error: " << e.what();
-        });
-        channel_->sendChannelOpenResponse(response, std::move(promise));
-        channel_->receive(shared_from_this());
-    }
-
-    void onAVChannelSetupRequest(const aasdk::proto::messages::AVChannelSetupRequest& request) override {
-        BOOST_LOG_TRIVIAL(info) << "[VideoService] AV setup request";
-        aasdk::proto::messages::AVChannelSetupResponse response;
-        response.set_media_status(aasdk::proto::enums::AVChannelSetupStatus::OK);
-        response.set_max_unacked(1);
-        response.add_configs(0);
-
-        auto promise = aasdk::channel::SendPromise::defer(strand_);
-        promise->then([this, self = shared_from_this()]() {
-            // Send video focus indication
-            aasdk::proto::messages::VideoFocusIndication indication;
-            indication.set_focus_mode(aasdk::proto::enums::VideoFocusMode::FOCUSED);
-            indication.set_unrequested(true);
-
-            auto p = aasdk::channel::SendPromise::defer(strand_);
-            p->then([]() {}, [](const aasdk::error::Error& e) {
-                BOOST_LOG_TRIVIAL(error) << "[VideoService] Focus send error: " << e.what();
-            });
-            channel_->sendVideoFocusIndication(indication, std::move(p));
-        }, [](const aasdk::error::Error& e) {
-            BOOST_LOG_TRIVIAL(error) << "[VideoService] Setup send error: " << e.what();
-        });
-        channel_->sendAVChannelSetupResponse(response, std::move(promise));
-        channel_->receive(shared_from_this());
-    }
-
-    void onAVChannelStartIndication(const aasdk::proto::messages::AVChannelStartIndication& indication) override {
-        BOOST_LOG_TRIVIAL(info) << "[VideoService] AV channel start (session=" << indication.session() << ")";
-        session_ = indication.session();
-        channel_->receive(shared_from_this());
-    }
-
-    void onAVChannelStopIndication(const aasdk::proto::messages::AVChannelStopIndication& indication) override {
-        BOOST_LOG_TRIVIAL(info) << "[VideoService] AV channel stop";
-        channel_->receive(shared_from_this());
-    }
-
-    void onAVMediaWithTimestampIndication(aasdk::messenger::Timestamp::ValueType timestamp,
-                                           const aasdk::common::DataConstBuffer& buffer) override {
-        // Stub: just ACK, don't decode
-        aasdk::proto::messages::AVMediaAckIndication ack;
-        ack.set_session(session_);
-        ack.set_value(1);
-
-        auto promise = aasdk::channel::SendPromise::defer(strand_);
-        promise->then([]() {}, [](const aasdk::error::Error& e) {});
-        channel_->sendAVMediaAckIndication(ack, std::move(promise));
-        channel_->receive(shared_from_this());
-    }
-
-    void onAVMediaIndication(const aasdk::common::DataConstBuffer& buffer) override {
-        channel_->receive(shared_from_this());
-    }
-
-    void onVideoFocusRequest(const aasdk::proto::messages::VideoFocusRequest& request) override {
-        BOOST_LOG_TRIVIAL(info) << "[VideoService] Video focus request";
-        channel_->receive(shared_from_this());
-    }
-
-    void onChannelError(const aasdk::error::Error& e) override {
-        BOOST_LOG_TRIVIAL(error) << "[VideoService] Channel error: " << e.what();
-    }
-
-private:
-    boost::asio::io_service::strand strand_;
-    std::shared_ptr<aasdk::channel::av::VideoServiceChannel> channel_;
-    std::shared_ptr<oap::Configuration> config_;
-    int32_t session_ = -1;
-};
 
 // ============================================================================
 // Audio Service (stub — works for Media, Speech, System audio channels)
@@ -556,11 +431,12 @@ private:
 IService::ServiceList ServiceFactory::create(
     boost::asio::io_service& ioService,
     aasdk::messenger::IMessenger::Pointer messenger,
-    std::shared_ptr<oap::Configuration> config)
+    std::shared_ptr<oap::Configuration> config,
+    VideoDecoder* videoDecoder)
 {
     IService::ServiceList services;
 
-    services.push_back(std::make_shared<VideoServiceStub>(ioService, messenger, config));
+    services.push_back(std::make_shared<VideoService>(ioService, messenger, config, videoDecoder));
     services.push_back(std::make_shared<MediaAudioServiceStub>(ioService, messenger));
     services.push_back(std::make_shared<SpeechAudioServiceStub>(ioService, messenger));
     services.push_back(std::make_shared<SystemAudioServiceStub>(ioService, messenger));

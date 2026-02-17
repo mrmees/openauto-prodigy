@@ -8,13 +8,16 @@
 namespace oap {
 namespace aa {
 
+class VideoDecoder;
+
 class ServiceFactory
 {
 public:
     static IService::ServiceList create(
         boost::asio::io_service& ioService,
         aasdk::messenger::IMessenger::Pointer messenger,
-        std::shared_ptr<oap::Configuration> config);
+        std::shared_ptr<oap::Configuration> config,
+        VideoDecoder* videoDecoder);
 };
 
 } // namespace aa

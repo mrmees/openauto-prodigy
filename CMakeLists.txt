@@ -6,8 +6,8 @@ set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(CMAKE_AUTOMOC ON)
 set(CMAKE_AUTORCC ON)
 
-# Qt 6 — Core, Quick, and QuickControls2 for UI shell
-find_package(Qt6 REQUIRED COMPONENTS Core Gui Quick QuickControls2)
+# Qt 6 — Core, Quick, QuickControls2 for UI shell, Multimedia for video output
+find_package(Qt6 REQUIRED COMPONENTS Core Gui Quick QuickControls2 Multimedia)
 qt_standard_project_setup()
 
 # Android Auto dependencies
@@ -16,6 +16,7 @@ find_package(Protobuf REQUIRED)
 find_package(OpenSSL REQUIRED)
 include(FindPkgConfig)
 pkg_check_modules(LIBUSB REQUIRED libusb-1.0)
+pkg_check_modules(LIBAV REQUIRED libavcodec libavutil)
 
 # aasdk — Android Auto protocol library
 # Save our flags before aasdk overwrites them

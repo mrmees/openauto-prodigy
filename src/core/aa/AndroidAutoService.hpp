@@ -10,6 +10,7 @@
 
 #include "AndroidAutoEntity.hpp"
 #include "IService.hpp"
+#include "VideoDecoder.hpp"
 #include "../../core/Configuration.hpp"
 
 #include <aasdk/USB/IUSBWrapper.hpp>
@@ -45,6 +46,8 @@ public:
     Q_INVOKABLE void start();
     Q_INVOKABLE void stop();
 
+    VideoDecoder* videoDecoder() { return videoDecoder_; }
+
     int connectionState() const { return state_; }
     QString statusMessage() const { return statusMessage_; }
 
@@ -66,6 +69,7 @@ private:
     void startEntity(aasdk::transport::ITransport::Pointer transport);
 
     std::shared_ptr<oap::Configuration> config_;
+    VideoDecoder* videoDecoder_ = nullptr;
 
     // ASIO
     std::unique_ptr<boost::asio::io_service> ioService_;

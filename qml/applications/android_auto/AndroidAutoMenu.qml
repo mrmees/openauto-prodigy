@@ -1,14 +1,32 @@
 import QtQuick
 import QtQuick.Layouts
+import QtMultimedia
 
 Item {
     id: androidAutoMenu
 
     Component.onCompleted: ApplicationController.setTitle("Android Auto")
 
+    // Video output — fills entire area when projecting
+    VideoOutput {
+        id: videoOutput
+        anchors.fill: parent
+        visible: AndroidAutoService.connectionState === 3
+        fillMode: VideoOutput.Stretch
+    }
+
+    // Bind the video sink to C++ decoder
+    Binding {
+        target: VideoDecoder
+        property: "videoSink"
+        value: videoOutput.videoSink
+    }
+
+    // Status overlay — hidden when projecting video
     ColumnLayout {
         anchors.centerIn: parent
         spacing: 16
+        visible: AndroidAutoService.connectionState !== 3
 
         Text {
             Layout.alignment: Qt.AlignHCenter

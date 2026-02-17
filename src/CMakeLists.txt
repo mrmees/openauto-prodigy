@@ -4,6 +4,8 @@ qt_add_executable(openauto-prodigy
     core/aa/AndroidAutoService.cpp
     core/aa/AndroidAutoEntity.cpp
     core/aa/ServiceFactory.cpp
+    core/aa/VideoDecoder.cpp
+    core/aa/VideoService.cpp
     ui/ThemeController.cpp
     ui/ApplicationController.cpp
 )
@@ -87,12 +89,14 @@ target_include_directories(openauto-prodigy PRIVATE
     ${CMAKE_SOURCE_DIR}/libs/aasdk/include
     ${CMAKE_BINARY_DIR}/libs/aasdk
     ${LIBUSB_INCLUDE_DIRS}
+    ${LIBAV_INCLUDE_DIRS}
 )
 
 target_link_libraries(openauto-prodigy PRIVATE
     Qt6::Core
     Qt6::Quick
     Qt6::QuickControls2
+    Qt6::Multimedia
     aasdk
     aasdk_proto
     Boost::system
@@ -102,4 +106,5 @@ target_link_libraries(openauto-prodigy PRIVATE
     OpenSSL::Crypto
     protobuf::libprotobuf
     ${LIBUSB_LIBRARIES}
+    ${LIBAV_LIBRARIES}
 )

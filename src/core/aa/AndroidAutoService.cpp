@@ -32,6 +32,7 @@ AndroidAutoService::AndroidAutoService(
     : QObject(parent)
     , config_(std::move(config))
 {
+    videoDecoder_ = new VideoDecoder(this);
 }
 
 AndroidAutoService::~AndroidAutoService()
@@ -290,7 +291,7 @@ void AndroidAutoService::startEntity(aasdk::transport::ITransport::Pointer trans
         *ioService_, std::move(messageInStream), std::move(messageOutStream));
 
     // Create services via factory
-    auto serviceList = ServiceFactory::create(*ioService_, messenger, config_);
+    auto serviceList = ServiceFactory::create(*ioService_, messenger, config_, videoDecoder_);
 
     // Create entity (it creates its own control channel from its strand)
     entity_ = std::make_shared<AndroidAutoEntity>(
