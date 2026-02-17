@@ -185,9 +185,9 @@ void AndroidAutoService::onTCPConnection(std::shared_ptr<boost::asio::ip::tcp::s
                             << ":" << remoteEndpoint.port();
 
     if (entity_) {
-        BOOST_LOG_TRIVIAL(warning) << "[AAService] Already have active connection, rejecting TCP";
-        socket->close();
-        return;
+        BOOST_LOG_TRIVIAL(warning) << "[AAService] Already have active connection — tearing down old session for reconnect";
+        entity_->stop();
+        entity_.reset();
     }
 
     setState(Connecting, QString("Wireless connection from %1...")
