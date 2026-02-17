@@ -6,6 +6,7 @@ qt_add_executable(openauto-prodigy
     core/aa/ServiceFactory.cpp
     core/aa/VideoDecoder.cpp
     core/aa/VideoService.cpp
+    core/aa/TouchHandler.cpp
     ui/ThemeController.cpp
     ui/ApplicationController.cpp
 )
