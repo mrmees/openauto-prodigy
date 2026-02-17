@@ -46,6 +46,10 @@
 #include <aasdk_proto/VideoFocusModeEnum.pb.h>
 #include <aasdk_proto/BindingResponseMessage.pb.h>
 #include <aasdk_proto/SensorStartResponseMessage.pb.h>
+#include <aasdk_proto/SensorEventIndicationMessage.pb.h>
+#include <aasdk_proto/NightModeData.pb.h>
+#include <aasdk_proto/DrivingStatusData.pb.h>
+#include <aasdk_proto/DrivingStatusEnum.pb.h>
 
 #include <aasdk/Messenger/ChannelId.hpp>
 #include <aasdk/Channel/Promise.hpp>
@@ -301,10 +305,41 @@ public:
         aasdk::proto::messages::SensorStartResponseMessage response;
         response.set_status(aasdk::proto::enums::Status::OK);
 
+        auto self = shared_from_this();
+        auto sensorType = request.sensor_type();
+
         auto promise = aasdk::channel::SendPromise::defer(strand_);
-        promise->then([]() {}, [](const aasdk::error::Error& e) {});
+        promise->then([this, self, sensorType]() {
+            sendInitialSensorData(sensorType);
+        }, [](const aasdk::error::Error& e) {
+            BOOST_LOG_TRIVIAL(error) << "[SensorService] Sensor start response error: " << e.what();
+        });
         channel_->sendSensorStartResponse(response, std::move(promise));
         channel_->receive(shared_from_this());
+    }
+
+    void sendInitialSensorData(int32_t sensorType) {
+        aasdk::proto::messages::SensorEventIndication indication;
+
+        if (sensorType == static_cast<int32_t>(aasdk::proto::enums::SensorType::NIGHT_DATA)) {
+            auto* nightMode = indication.add_night_mode();
+            nightMode->set_is_night(false);
+            BOOST_LOG_TRIVIAL(info) << "[SensorService] Sending night mode: day";
+        } else if (sensorType == static_cast<int32_t>(aasdk::proto::enums::SensorType::DRIVING_STATUS)) {
+            auto* drivingStatus = indication.add_driving_status();
+            drivingStatus->set_status(
+                static_cast<int32_t>(aasdk::proto::enums::DrivingStatus::UNRESTRICTED));
+            BOOST_LOG_TRIVIAL(info) << "[SensorService] Sending driving status: UNRESTRICTED";
+        } else {
+            BOOST_LOG_TRIVIAL(warning) << "[SensorService] Unknown sensor type: " << sensorType;
+            return;
+        }
+
+        auto promise = aasdk::channel::SendPromise::defer(strand_);
+        promise->then([]() {}, [](const aasdk::error::Error& e) {
+            BOOST_LOG_TRIVIAL(error) << "[SensorService] Sensor event send error: " << e.what();
+        });
+        channel_->sendSensorEventIndication(indication, std::move(promise));
     }
 
     void onChannelError(const aasdk::error::Error& e) override {
