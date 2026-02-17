@@ -7,6 +7,7 @@
 #include <aasdk_proto/ServiceDiscoveryResponseMessage.pb.h>
 #include <aasdk_proto/AudioFocusResponseMessage.pb.h>
 #include <aasdk_proto/AudioFocusStateEnum.pb.h>
+#include <aasdk_proto/AudioFocusTypeEnum.pb.h>
 #include <aasdk_proto/NavigationFocusResponseMessage.pb.h>
 #include <aasdk_proto/PingResponseMessage.pb.h>
 #include <aasdk_proto/PingRequestMessage.pb.h>
@@ -183,10 +184,30 @@ void AndroidAutoEntity::onServiceDiscoveryRequest(
 void AndroidAutoEntity::onAudioFocusRequest(
     const aasdk::proto::messages::AudioFocusRequest& request)
 {
-    BOOST_LOG_TRIVIAL(info) << "[AndroidAutoEntity] Audio focus request";
+    BOOST_LOG_TRIVIAL(info) << "[AndroidAutoEntity] Audio focus request (type="
+                            << request.audio_focus_type() << ")";
 
     aasdk::proto::messages::AudioFocusResponse response;
-    response.set_audio_focus_state(aasdk::proto::enums::AudioFocusState::GAIN);
+
+    // Grant the focus type the phone requests
+    switch (request.audio_focus_type()) {
+    case aasdk::proto::enums::AudioFocusType::GAIN:
+        response.set_audio_focus_state(aasdk::proto::enums::AudioFocusState::GAIN);
+        break;
+    case aasdk::proto::enums::AudioFocusType::GAIN_TRANSIENT:
+        response.set_audio_focus_state(aasdk::proto::enums::AudioFocusState::GAIN_TRANSIENT);
+        break;
+    case aasdk::proto::enums::AudioFocusType::GAIN_NAVI:
+        response.set_audio_focus_state(
+            aasdk::proto::enums::AudioFocusState::GAIN_TRANSIENT_GUIDANCE_ONLY);
+        break;
+    case aasdk::proto::enums::AudioFocusType::RELEASE:
+        response.set_audio_focus_state(aasdk::proto::enums::AudioFocusState::LOSS);
+        break;
+    default:
+        response.set_audio_focus_state(aasdk::proto::enums::AudioFocusState::GAIN);
+        break;
+    }
 
     auto promise = aasdk::channel::SendPromise::defer(strand_);
     promise->then([]() {},
