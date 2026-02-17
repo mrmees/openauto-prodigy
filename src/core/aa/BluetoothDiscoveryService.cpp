@@ -57,10 +57,19 @@ void BluetoothDiscoveryService::start()
     serviceInfo_.setAttribute(QBluetoothServiceInfo::ServiceProvider,
                               QStringLiteral("OpenAutoProdigy"));
 
-    // Set the AA Wireless UUID
+    // Bluetooth profile: Serial Port
     QBluetoothServiceInfo::Sequence classId;
-    classId << QVariant::fromValue(kAAWirelessUuid);
+    classId << QVariant::fromValue(QBluetoothUuid(QBluetoothUuid::ServiceClassUuid::SerialPort));
+    serviceInfo_.setAttribute(QBluetoothServiceInfo::BluetoothProfileDescriptorList, classId);
+
+    // Service class: AA Wireless UUID + SerialPort
+    classId.prepend(QVariant::fromValue(kAAWirelessUuid));
     serviceInfo_.setAttribute(QBluetoothServiceInfo::ServiceClassIds, classId);
+
+    // Make discoverable via public browse group
+    QBluetoothServiceInfo::Sequence publicBrowse;
+    publicBrowse << QVariant::fromValue(QBluetoothUuid(QBluetoothUuid::ServiceClassUuid::PublicBrowseGroup));
+    serviceInfo_.setAttribute(QBluetoothServiceInfo::BrowseGroupList, publicBrowse);
 
     // Protocol descriptor (L2CAP + RFCOMM)
     QBluetoothServiceInfo::Sequence protocolDescriptorList;
