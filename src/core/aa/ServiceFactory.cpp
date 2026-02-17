@@ -206,10 +206,10 @@ public:
         touchConfig->set_width(1024);
         touchConfig->set_height(600);
 
-        // Basic keycodes: HOME, BACK, SCROLL_WHEEL
-        inputChannel->add_supported_keycodes(0);   // HOME
-        inputChannel->add_supported_keycodes(3);   // HOME (Android)
-        inputChannel->add_supported_keycodes(4);   // BACK
+        // Android keycodes: HOME, BACK, MICROPHONE
+        inputChannel->add_supported_keycodes(3);   // KEYCODE_HOME
+        inputChannel->add_supported_keycodes(4);   // KEYCODE_BACK
+        inputChannel->add_supported_keycodes(84);  // KEYCODE_MICROPHONE_1 (voice commands)
     }
 
     void onChannelOpenRequest(const aasdk::proto::messages::ChannelOpenRequest& request) override {
