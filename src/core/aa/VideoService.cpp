@@ -146,7 +146,9 @@ void VideoService::onAVMediaWithTimestampIndication(
 
 void VideoService::onAVMediaIndication(const aasdk::common::DataConstBuffer& buffer)
 {
-    // Non-timestamped media — unlikely for video but handle it
+    // SPS/PPS codec configuration data arrives here (no timestamp)
+    // Must forward to decoder or it will never be able to decode frames
+    emit videoFrameData(QByteArray(reinterpret_cast<const char*>(buffer.cdata), buffer.size));
     channel_->receive(shared_from_this());
 }
 
