@@ -12,8 +12,11 @@
 #include "IService.hpp"
 #include "../../core/Configuration.hpp"
 
+#include <aasdk/USB/IUSBWrapper.hpp>
+#include <aasdk/Transport/ITransport.hpp>
+
 namespace aasdk {
-namespace usb { class IUSBWrapper; class IAccessoryModeQueryFactory; class IAccessoryModeQueryChainFactory; class IUSBHub; }
+namespace usb { class IAccessoryModeQueryFactory; class IAccessoryModeQueryChainFactory; class IUSBHub; }
 namespace tcp { class ITCPWrapper; }
 namespace transport { class ISSLWrapper; }
 }
