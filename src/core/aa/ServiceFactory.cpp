@@ -465,10 +465,11 @@ public:
         aasdk::proto::messages::WifiSecurityResponse response;
         response.set_ssid(config_->wifiSsid().toStdString());
         response.set_key(config_->wifiPassword().toStdString());
+        response.set_bssid("00:00:00:00:00:00");  // In-session WiFi channel — BSSID not critical here
         response.set_security_mode(
             aasdk::proto::messages::WifiSecurityResponse_SecurityMode_WPA2_PERSONAL);
         response.set_access_point_type(
-            aasdk::proto::messages::WifiSecurityResponse_AccessPointType_STATIC);
+            aasdk::proto::messages::WifiSecurityResponse_AccessPointType_DYNAMIC);
 
         auto promise = aasdk::channel::SendPromise::defer(strand_);
         promise->then([]() {

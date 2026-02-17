@@ -237,10 +237,26 @@ void BluetoothDiscoveryService::handleWifiCredentialRequest()
     response.set_security_mode(
         aasdk::proto::messages::WifiSecurityResponse_SecurityMode_WPA2_PERSONAL);
     response.set_access_point_type(
-        aasdk::proto::messages::WifiSecurityResponse_AccessPointType_STATIC);
+        aasdk::proto::messages::WifiSecurityResponse_AccessPointType_DYNAMIC);
+
+    // BSSID is required — phone uses it to identify which AP to auto-connect to.
+    // Read MAC address of the WiFi interface (wlan0).
+    QString bssid;
+    for (const auto& iface : QNetworkInterface::allInterfaces()) {
+        if (iface.name() == "wlan0") {
+            bssid = iface.hardwareAddress();
+            break;
+        }
+    }
+    if (bssid.isEmpty()) {
+        BOOST_LOG_TRIVIAL(warning) << "[BTDiscovery] Could not read wlan0 MAC, using default";
+        bssid = "00:00:00:00:00:00";
+    }
+    response.set_bssid(bssid.toStdString());
 
     BOOST_LOG_TRIVIAL(info) << "[BTDiscovery] Sending WifiInfoResponse (creds): ssid="
-                            << config_->wifiSsid().toStdString();
+                            << config_->wifiSsid().toStdString()
+                            << " bssid=" << bssid.toStdString();
     sendMessage(response, kMsgWifiInfoResponse);
 }
 
