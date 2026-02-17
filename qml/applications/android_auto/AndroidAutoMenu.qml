@@ -15,6 +15,9 @@ Item {
         fillMode: VideoOutput.Stretch
     }
 
+    // Touch point visualization model
+    ListModel { id: touchPointModel }
+
     // Multi-touch input — forward to phone via AA input channel
     MultiPointTouchArea {
         anchors.fill: videoOutput
@@ -28,6 +31,7 @@ Item {
                 var nx = Math.round(tp.x / width * 1024);
                 var ny = Math.round(tp.y / height * 600);
                 TouchHandler.sendMultiTouchEvent(nx, ny, tp.pointId, i === 0 ? 0 : 5);
+                touchPointModel.append({ ptId: tp.pointId, ptX: tp.x, ptY: tp.y });
             }
         }
         onReleased: function(touchPoints) {
@@ -36,6 +40,10 @@ Item {
                 var nx = Math.round(tp.x / width * 1024);
                 var ny = Math.round(tp.y / height * 600);
                 TouchHandler.sendMultiTouchEvent(nx, ny, tp.pointId, i === 0 ? 1 : 6);
+                for (var j = touchPointModel.count - 1; j >= 0; j--) {
+                    if (touchPointModel.get(j).ptId === tp.pointId)
+                        touchPointModel.remove(j);
+                }
             }
         }
         onUpdated: function(touchPoints) {
@@ -44,6 +52,43 @@ Item {
                 var nx = Math.round(tp.x / width * 1024);
                 var ny = Math.round(tp.y / height * 600);
                 TouchHandler.sendMultiTouchEvent(nx, ny, tp.pointId, 2);
+                for (var j = 0; j < touchPointModel.count; j++) {
+                    if (touchPointModel.get(j).ptId === tp.pointId) {
+                        touchPointModel.set(j, { ptId: tp.pointId, ptX: tp.x, ptY: tp.y });
+                        break;
+                    }
+                }
+            }
+        }
+    }
+
+    // Touch debug overlay — shows circles where touches are detected
+    Repeater {
+        model: touchPointModel
+        delegate: Rectangle {
+            x: model.ptX - 25
+            y: model.ptY - 25
+            width: 50
+            height: 50
+            radius: 25
+            color: "transparent"
+            border.color: "#00FF00"
+            border.width: 3
+            opacity: 0.8
+
+            // Crosshair
+            Rectangle { anchors.centerIn: parent; width: 1; height: 20; color: "#00FF00"; opacity: 0.6 }
+            Rectangle { anchors.centerIn: parent; width: 20; height: 1; color: "#00FF00"; opacity: 0.6 }
+
+            // Coordinate label
+            Text {
+                anchors.top: parent.bottom
+                anchors.topMargin: 4
+                anchors.horizontalCenter: parent.horizontalCenter
+                text: Math.round(model.ptX / androidAutoMenu.width * 1024) + "," + Math.round(model.ptY / androidAutoMenu.height * 600)
+                color: "#00FF00"
+                font.pixelSize: 10
+                font.family: "monospace"
             }
         }
     }
