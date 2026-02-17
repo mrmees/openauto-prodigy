@@ -33,6 +33,7 @@
 #include <aasdk_proto/BluetoothChannelData.pb.h>
 #include <aasdk_proto/BluetoothPairingMethodEnum.pb.h>
 #include <aasdk_proto/WifiChannelData.pb.h>
+#include <aasdk_proto/WifiSecurityResponseMessage.pb.h>
 #include <aasdk_proto/AVStreamTypeEnum.pb.h>
 #include <aasdk_proto/AudioTypeEnum.pb.h>
 #include <aasdk_proto/VideoResolutionEnum.pb.h>
@@ -423,9 +424,11 @@ class WIFIServiceStub
 {
 public:
     WIFIServiceStub(boost::asio::io_service& ioService,
-                    aasdk::messenger::IMessenger::Pointer messenger)
+                    aasdk::messenger::IMessenger::Pointer messenger,
+                    std::shared_ptr<oap::Configuration> config)
         : strand_(ioService)
         , channel_(std::make_shared<aasdk::channel::wifi::WIFIServiceChannel>(strand_, std::move(messenger)))
+        , config_(std::move(config))
     {}
 
     void start() override {
@@ -442,7 +445,7 @@ public:
         desc->set_channel_id(static_cast<uint32_t>(aasdk::messenger::ChannelId::WIFI));
 
         auto* wifiChannel = desc->mutable_wifi_channel();
-        wifiChannel->set_ssid("OpenAutoProdigy");
+        wifiChannel->set_ssid(config_->wifiSsid().toStdString());
     }
 
     void onChannelOpenRequest(const aasdk::proto::messages::ChannelOpenRequest& request) override {
@@ -457,7 +460,23 @@ public:
     }
 
     void onWifiSecurityRequest() override {
-        BOOST_LOG_TRIVIAL(info) << "[WIFIService] WiFi security request";
+        BOOST_LOG_TRIVIAL(info) << "[WIFIService] WiFi security request — sending credentials";
+
+        aasdk::proto::messages::WifiSecurityResponse response;
+        response.set_ssid(config_->wifiSsid().toStdString());
+        response.set_key(config_->wifiPassword().toStdString());
+        response.set_security_mode(
+            aasdk::proto::messages::WifiSecurityResponse_SecurityMode_WPA2_PERSONAL);
+        response.set_access_point_type(
+            aasdk::proto::messages::WifiSecurityResponse_AccessPointType_STATIC);
+
+        auto promise = aasdk::channel::SendPromise::defer(strand_);
+        promise->then([]() {
+            BOOST_LOG_TRIVIAL(info) << "[WIFIService] WiFi security response sent";
+        }, [](const aasdk::error::Error& e) {
+            BOOST_LOG_TRIVIAL(error) << "[WIFIService] WiFi security response error: " << e.what();
+        });
+        channel_->sendWifiSecurityResponse(response, std::move(promise));
         channel_->receive(shared_from_this());
     }
 
@@ -468,6 +487,7 @@ public:
 private:
     boost::asio::io_service::strand strand_;
     std::shared_ptr<aasdk::channel::wifi::WIFIServiceChannel> channel_;
+    std::shared_ptr<oap::Configuration> config_;
 };
 
 // ============================================================================
@@ -500,7 +520,7 @@ IService::ServiceList ServiceFactory::create(
     }
 #endif
     services.push_back(std::make_shared<BluetoothServiceStub>(ioService, messenger, btMac));
-    services.push_back(std::make_shared<WIFIServiceStub>(ioService, messenger));
+    services.push_back(std::make_shared<WIFIServiceStub>(ioService, messenger, config));
 
     BOOST_LOG_TRIVIAL(info) << "[ServiceFactory] Created " << services.size() << " services";
     return services;
