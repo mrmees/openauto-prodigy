@@ -12,6 +12,9 @@
 #include <aasdk_proto/PingResponseMessage.pb.h>
 #include <aasdk_proto/PingRequestMessage.pb.h>
 #include <aasdk_proto/ShutdownResponseMessage.pb.h>
+#include <aasdk_proto/ConnectionConfigurationData.pb.h>
+#include <aasdk_proto/PingConfigurationData.pb.h>
+#include <aasdk_proto/HeadUnitInfoData.pb.h>
 
 namespace oap {
 namespace aa {
@@ -148,6 +151,29 @@ void AndroidAutoEntity::onServiceDiscoveryRequest(
     BOOST_LOG_TRIVIAL(info) << "[AndroidAutoEntity] Phone request: " << request.ShortDebugString();
 
     aasdk::proto::messages::ServiceDiscoveryResponse response;
+
+    // Modern fields (required by newer Android Auto versions)
+    response.set_display_name("OpenAuto Prodigy");
+    response.set_probe_for_support(false);
+
+    auto* connConfig = response.mutable_connection_configuration();
+    auto* pingConfig = connConfig->mutable_ping_configuration();
+    pingConfig->set_timeout_ms(3000);
+    pingConfig->set_interval_ms(1000);
+    pingConfig->set_high_latency_threshold_ms(200);
+    pingConfig->set_tracked_ping_count(5);
+
+    auto* huInfo = response.mutable_headunit_info();
+    huInfo->set_make("OpenAuto");
+    huInfo->set_model("Universal");
+    huInfo->set_year("2026");
+    huInfo->set_vehicle_id("OAP-0001");
+    huInfo->set_head_unit_make("OpenAuto");
+    huInfo->set_head_unit_model("Prodigy");
+    huInfo->set_head_unit_software_build("0.1.0");
+    huInfo->set_head_unit_software_version("0.1.0");
+
+    // Legacy fields (deprecated but included for older AA versions)
     response.set_head_unit_name("OpenAuto Prodigy");
     response.set_car_model("Universal");
     response.set_car_year("2026");
