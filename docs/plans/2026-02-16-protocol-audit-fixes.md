@@ -760,24 +760,28 @@ Run on Pi, connect phone, check logs. If first bytes are already `00 00 00 01`, 
 
 ---
 
-## Summary
+## Summary (Updated 2026-02-17)
 
-| Tier | Task | Finding | Severity |
-|------|------|---------|----------|
-| 1 | 1 | hostapd 2.4GHz → 5GHz | CRITICAL |
-| 1 | 2 | RFCOMM handshake rewrite | CRITICAL |
-| 1 | 3 | TCP port consistency check | CRITICAL |
-| 2 | 4 | VideoFocusRequest response | IMPORTANT |
-| 2 | 5 | BT adapter MAC placeholder | IMPORTANT |
-| 2 | 6 | 720p video resolution | IMPORTANT |
-| 2 | 7 | max_unacked too low | IMPORTANT |
-| 3 | 8 | Audio focus always GAIN | IMPORTANT |
-| 3 | 9 | Sensors never send data | IMPORTANT |
-| 3 | 10 | Input keycodes wrong | IMPORTANT |
-| 3 | 11 | WiFi stub no response | IMPORTANT |
-| 3 | 12 | BT pairing methods missing | MINOR |
-| 4 | 13 | BLE advertisement | MINOR |
-| 4 | 14 | Doc channel count | MINOR |
-| 4 | 15 | AnnexB investigation | MINOR |
+| Tier | Task | Finding | Severity | Status |
+|------|------|---------|----------|--------|
+| 1 | 1 | hostapd 2.4GHz → 5GHz | CRITICAL | **DONE** — wireless-setup.md updated, 5GHz working |
+| 1 | 2 | RFCOMM handshake rewrite | CRITICAL | **DONE** — handshake works, phone connects |
+| 1 | 3 | TCP port consistency check | CRITICAL | **DONE** — port 5288 consistent |
+| 2 | 4 | VideoFocusRequest response | IMPORTANT | **DONE** — VideoService handles focus requests |
+| 2 | 5 | BT adapter MAC placeholder | IMPORTANT | Pending |
+| 2 | 6 | 720p video resolution | IMPORTANT | **DONE** — phone sends 1280x720, working |
+| 2 | 7 | max_unacked too low | IMPORTANT | Pending — video works fine at current setting |
+| 3 | 8 | Audio focus always GAIN | IMPORTANT | Pending |
+| 3 | 9 | Sensors never send data | IMPORTANT | Pending |
+| 3 | 10 | Input keycodes wrong | IMPORTANT | Pending |
+| 3 | 11 | WiFi stub no response | IMPORTANT | Pending |
+| 3 | 12 | BT pairing methods missing | MINOR | Pending |
+| 4 | 13 | BLE advertisement | MINOR | Pending |
+| 4 | 14 | Doc channel count | MINOR | **DONE** — CLAUDE.md updated |
+| 4 | 15 | AnnexB investigation | MINOR | **DONE** — confirmed data has start codes, removed prepend |
 
-**Estimated total: ~15 tasks, Tiers 1-3 are code changes, Tier 4 is investigation/future.**
+**Additional discoveries not in original audit:**
+- SPS/PPS arrives via `AV_MEDIA_INDICATION` (msg ID 0x0001) — must forward to decoder (fixed)
+- Touch input implemented via TouchHandler QObject + MultiPointTouchArea
+- Fullscreen mode via Window.FullScreen when AA connected
+- Auto-navigation to AA screen on connect, back to launcher on disconnect

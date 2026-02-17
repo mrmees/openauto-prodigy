@@ -1,56 +1,22 @@
 # Debugging Notes
 
-Active troubleshooting log for issues encountered during development.
+Troubleshooting log for issues encountered during development.
 
 ---
 
-## Service Channel Issue (Task 6 — Active)
+## USB Service Channel Issue (RESOLVED — abandoned USB)
 
-**Status:** Unresolved as of 2026-02-16
+**Status:** Won't fix — switched to wireless-only
 
 ### Problem
 
-Phone connects and completes the full AA handshake but **never opens any service channels**. After ~15 seconds of silence, a USB write (ping) times out.
+Phone connects and completes the full AA handshake over USB but **never opens any service channels**. After ~15 seconds of silence, a USB write (ping) times out.
 
-This is NOT a video pipeline issue — the same behavior occurs with the old stub services.
+### Resolution
 
-### What Works
+Abandoned USB transport entirely. Wireless AA (BT discovery → WiFi AP → TCP) works reliably on first connection. Service channels open immediately after service discovery over TCP.
 
-- FFmpeg H.264 software decoder initializes successfully
-- All 8 services start and call `channel_->receive()`
-- Full handshake completes: version 1.7 → SSL → auth → service discovery
-- Phone identified as Samsung SM-S938U (Galaxy S24 Ultra)
-- ServiceDiscoveryResponse sends 253 bytes across 8 channels
-- Phone sometimes sends AudioFocusRequest (we respond with GAIN)
-
-### What Doesn't Work
-
-- After service discovery response, phone NEVER opens any service channels
-- Zero non-control frames observed in the entire session
-- After ~15s, our ping write times out (`USB_TRANSFER` / `LIBUSB_TRANSFER_TIMEOUT`)
-- Sometimes handshake doesn't even start (stale AOAP state from prior startup)
-
-### Things Ruled Out
-
-1. **ServiceDiscoveryResponse format** — compared field-by-field with f1xpl and SonOfGib upstream. All 12 required fields match.
-2. **Channel descriptors** — all 8 channels properly configured (VIDEO 480p/30fps, 3 audio, input, sensor, BT, WiFi)
-3. **`available_while_in_call`** — added to video + all audio channels, no effect
-4. **`unrequested` flag** — corrected from `true` to `false` in VideoFocusIndication, no effect
-5. **Phone reboot** — same behavior after fresh reboot
-6. **Code regression** — same behavior confirmed with old VideoServiceStub binary
-
-### Things Still To Try
-
-1. **Clear Android Auto cache/data on phone** — Settings → Apps → Android Auto → Clear Data
-2. **Try a different USB cable** — rule out signal integrity
-3. **Try a different phone** — rule out Samsung-specific behavior
-4. **Build upstream openauto directly on the Pi** — verify that known-working code actually works on this hardware + OS combination
-5. **Hex-dump the serialized ServiceDiscoveryResponse** — compare byte-for-byte with upstream's output
-6. **Check for unhandled control messages** — phone may send something between auth and service discovery that we're silently dropping
-7. **Check ControlServiceChannel message dispatch** — messages may be arriving but getting dropped by the channel dispatcher
-8. **Wireshark/usbmon USB traffic capture** — compare with a known-working session
-
-### Typical Log Pattern
+### Original Log Pattern
 
 ```
 VideoDecoder initialized
@@ -67,14 +33,109 @@ Service discovery sent — connected!
 Send error: USB_TRANSFER / LIBUSB_TRANSFER_TIMEOUT
 ```
 
-### Diagnostic Logging In Place
+---
 
-- `ShortDebugString()` for both ServiceDiscoveryRequest and ServiceDiscoveryResponse
-- Serialized response size logged
-- All service start/stop logged
-- All channel errors logged with error codes
+## Video Not Displaying (RESOLVED)
 
-### Files Modified for Debugging
+**Status:** Fixed — commit `579152b`
 
-- `src/core/aa/AndroidAutoEntity.cpp` — proto diagnostic logging
-- Three debug commits: `42ee155`, `1f53b77`, `00edf26`
+### Problem
+
+Phone connected wirelessly, AA protocol completed, video data was flowing, but every frame failed to decode with:
+```
+[h264] non-existing PPS 0 referenced
+Send packet error: -1094995529 (AVERROR_INVALIDDATA)
+```
+
+### Root Cause
+
+**SPS/PPS codec configuration data was being discarded.** Android Auto sends SPS/PPS as `AV_MEDIA_INDICATION` (message ID 0x0001, no timestamp), but `VideoService::onAVMediaIndication()` was ignoring the data with a comment "Non-timestamped media — unlikely for video but handle it."
+
+Without SPS/PPS, the H.264 decoder has no codec parameters and cannot decode any frames.
+
+### Fix
+
+Forward buffer data from `onAVMediaIndication` to the decoder, same as `onAVMediaWithTimestampIndication`:
+
+```cpp
+void VideoService::onAVMediaIndication(const aasdk::common::DataConstBuffer& buffer)
+{
+    emit videoFrameData(QByteArray(reinterpret_cast<const char*>(buffer.cdata), buffer.size));
+    channel_->receive(shared_from_this());
+}
+```
+
+### How We Found It
+
+Hex-dumped the first few video messages after "AV channel start":
+1. First message: VideoFocusRequest (not media data)
+2. Second message: msg ID 0x0001, payload `00 00 00 01 67 42 80 1F ...` — SPS NAL (0x67) + PPS NAL (0x68)
+3. Third message: msg ID 0x0000, payload with 8-byte timestamp + IDR frame (0x65)
+
+Message ID 0x0001 is `AV_MEDIA_INDICATION` (no timestamp) vs 0x0000 is `AV_MEDIA_WITH_TIMESTAMP_INDICATION`.
+
+---
+
+## AnnexB Start Code Double-Prepend (RESOLVED)
+
+**Status:** Fixed — commit `579152b` (same session)
+
+### Problem
+
+`VideoDecoder::processData()` was prepending `00 00 00 01` AnnexB start codes before feeding data to FFmpeg's parser.
+
+### Root Cause
+
+Original assumption was that aasdk delivered raw NAL units without start codes. In reality, the data already contains AnnexB start codes. Double-prepending corrupted the bitstream.
+
+### Fix
+
+Removed the start code prepend. Feed raw data directly to `av_parser_parse2()`.
+
+---
+
+## Touch Calibration (ACTIVE)
+
+**Status:** Under investigation
+
+### Problem
+
+Touch input is working (events reach the phone, UI responds) but the user reports it "seems like we need to calibrate" — touches may not be landing exactly where expected.
+
+### Current State
+
+- Touch debug overlay added showing green crosshair circles at each touch point
+- Each circle displays the mapped AA-space coordinates (1024x600)
+- Coordinate mapping: `nx = Math.round(tp.x / width * 1024)`, `ny = Math.round(tp.y / height * 600)`
+- The display is 1024x600, video is 1280x720, AA touch config is 1024x600
+
+### Next Steps
+
+1. Use the debug overlay to observe where touches register vs where they should land
+2. Check if the offset is consistent (translation) or proportional (scaling)
+3. Verify the `VideoOutput.Stretch` fill mode doesn't create an aspect ratio mismatch between touch area and video area (1280x720 ≠ 1024x600 aspect ratio)
+
+---
+
+## vtable Undefined Reference for QObject Subclasses (RESOLVED)
+
+**Status:** Fixed — commits `e2b3c6a`, `3f03b4e`
+
+### Problem
+
+```
+undefined reference to `vtable for oap::aa::TouchHandler'
+```
+
+### Root Cause
+
+`TouchHandler` was a header-only QObject (had `Q_OBJECT` macro but no `.cpp` file). Qt's AUTOMOC needs a `.cpp` file listed in `CMakeLists.txt` to trigger MOC processing.
+
+### Fix
+
+1. Created `TouchHandler.cpp` containing just `#include "TouchHandler.hpp"`
+2. Added `core/aa/TouchHandler.cpp` to `qt_add_executable` in `src/CMakeLists.txt`
+
+### Lesson
+
+Any class with `Q_OBJECT` needs a `.cpp` file in the CMake source list. Header-only QObjects don't work with AUTOMOC.

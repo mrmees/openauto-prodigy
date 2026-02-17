@@ -4,7 +4,7 @@
 
 Open-source replacement for OpenAuto Pro — a Raspberry Pi-based Android Auto head unit application.
 
-**Status: Phase 1 — Core AA Functionality (In Progress, Wireless-Only)**
+**Status: Phase 1 — Core AA Functionality (Video + Touch Working)**
 
 ## What Is This?
 
@@ -19,11 +19,12 @@ Open-source replacement for OpenAuto Pro — a Raspberry Pi-based Android Auto h
 | 3 | Theme engine | Done |
 | 4 | QML UI shell | Done |
 | 5 | AA service layer (TCP, handshake, 8 channels) | Done |
-| 6 | Video pipeline (FFmpeg H.264 → QVideoSink) | Code complete, untested |
-| 7 | Audio pipeline | Pending |
-| 8 | Wireless AA (BT discovery + WiFi AP + TCP) | Code complete, untested |
-| 9 | Settings UI | Pending |
-| 10 | Integration & polish | Pending |
+| 6 | Video pipeline (FFmpeg H.264 → QVideoSink) | **Working** — 1280x720 @ 30fps on Pi 4 |
+| 7 | Touch input | **Working** — multi-touch with debug overlay |
+| 8 | Fullscreen mode | **Working** — OS-level fullscreen on Wayland/labwc |
+| 9 | Audio pipeline | Pending |
+| 10 | Settings UI | Pending |
+| 11 | Integration & polish | In progress |
 
 ### Wireless-Only Architecture
 USB transport was abandoned after service channels consistently failed to open despite successful handshakes. The project now uses wireless-only AA: Bluetooth discovery → WiFi credential exchange → TCP on port 5288. See [docs/wireless-setup.md](docs/wireless-setup.md) for Pi setup and [PICKUP.md](PICKUP.md) for full project state.
@@ -32,24 +33,26 @@ USB transport was abandoned after service channels consistently failed to open d
 
 ```
 src/
-├── main.cpp                          # Entry point, QML engine setup
+├── main.cpp                          # Entry point, QML engine, context properties, auto-nav
 ├── core/
 │   ├── Configuration.hpp/cpp         # INI config (backward-compatible with OAP)
 │   └── aa/
 │       ├── AndroidAutoService.hpp/cpp  # AA lifecycle, TCP transport, BT integration
 │       ├── AndroidAutoEntity.hpp/cpp   # Protocol entity, control channel, handshake
-│       ├── ServiceFactory.hpp/cpp      # Creates all 8 service instances
+│       ├── ServiceFactory.hpp/cpp      # Creates all service instances
 │       ├── VideoService.hpp/cpp        # H.264 data → Qt main thread
 │       ├── VideoDecoder.hpp/cpp        # FFmpeg H.264 → QVideoFrame (YUV420P)
+│       ├── TouchHandler.hpp/cpp        # QML touch → AA InputEventIndication protobuf
+│       ├── BluetoothDiscoveryService.hpp/cpp  # BT RFCOMM, WiFi cred handshake
 │       └── IService.hpp               # Service interface
 ├── ui/
 │   ├── ThemeController.hpp/cpp       # Day/night theme, QML context property
 │   ├── ApplicationController.hpp/cpp # Navigation stack
 │   └── ApplicationTypes.hpp          # App type enum
 qml/
-├── main.qml                          # Root window
+├── main.qml                          # Root window, fullscreen toggle
 ├── applications/
-│   ├── android_auto/AndroidAutoMenu.qml  # VideoOutput + status overlay
+│   ├── android_auto/AndroidAutoMenu.qml  # VideoOutput + touch input + debug overlay
 │   ├── home/HomeMenu.qml
 │   ├── launcher/LauncherMenu.qml
 │   └── settings/SettingsMenu.qml
@@ -66,7 +69,7 @@ tests/
 
 - **Hardware:** Raspberry Pi 4 (primary), Pi 5 (secondary)
 - **OS:** RPi OS Trixie (Debian 13, 64-bit)
-- **Display:** Qt 6.8 + Wayland (labwc)
+- **Display:** DFRobot 7" 1024x600 touchscreen, Qt 6.8 + Wayland (labwc)
 - **AA Protocol:** [SonOfGib's aasdk fork](https://github.com/nicka-2) (git submodule)
 
 ## Building
@@ -78,11 +81,13 @@ See [docs/development.md](docs/development.md) for full setup instructions inclu
 ```bash
 # Install dependencies
 sudo apt install cmake qt6-base-dev qt6-declarative-dev qt6-wayland \
+  qt6-connectivity-dev qt6-multimedia-dev \
   qml6-module-qtquick-controls qml6-module-qtquick-layouts \
   qml6-module-qtquick-window qml6-module-qtqml-workerscript \
-  libboost-system-dev libboost-log-dev libusb-1.0-0-dev \
+  libboost-system-dev libboost-log-dev \
   libprotobuf-dev protobuf-compiler libssl-dev \
-  libavcodec-dev libavutil-dev qt6-multimedia-dev
+  libavcodec-dev libavutil-dev \
+  hostapd dnsmasq
 
 # Build
 git clone --recurse-submodules https://github.com/mrmees/openauto-prodigy.git
@@ -107,12 +112,14 @@ cd build && ctest --output-on-failure
 - **FFmpeg software decode** over V4L2 hardware (kernel 6.x regression, see [docs/design-decisions.md](docs/design-decisions.md))
 - **QVideoSink + VideoOutput** for rendering (canonical Qt 6 approach)
 - **INI config format** backward-compatible with original OAP config files
-- **Plugin API** will be 100% backward-compatible with BlueWave's published API (TCP + protobuf)
+- **Wireless-only** — USB AOAP never reliably opened service channels; wireless works first try
+- **5GHz WiFi AP** — mandatory for Pi 4/5 due to BT/WiFi coexistence on shared CYW43455 antenna
 
 ## Related Resources
 
 - [openauto-pro-community](https://github.com/mrmees/openauto-pro-community) — Recovered specs, QML, protos, icons, and research
 - [aasdk (SonOfGib)](https://github.com/nicka-2) — Android Auto protocol SDK
+- [uglyoldbob/android-auto](https://github.com/uglyoldbob/android-auto) — Rust AA implementation (useful protocol reference)
 - [f1xpl/openauto](https://github.com/nicka-2/openauto) — Original open-source AA implementation
 
 ## License

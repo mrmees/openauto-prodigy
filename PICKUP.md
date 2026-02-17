@@ -8,7 +8,7 @@ Everything you need to pick this project back up from any machine on the network
 
 Clean-room open-source rebuild of OpenAuto Pro (defunct BlueWave Studio). Wireless-only Android Auto head unit for Raspberry Pi. Qt 6 + QML frontend, SonOfGib's aasdk for AA protocol, FFmpeg for video decode.
 
-**Phase 1 is ~60% done.** Core protocol, config, theme, UI shell, and video pipeline are written. Audio, settings UI, and integration testing remain. The wireless pivot (BT discovery + WiFi AP + TCP) is code-complete but untested on real hardware.
+**Phase 1 is ~75% done.** Video, touch input, and fullscreen are working on real hardware. Audio pipeline and settings UI remain.
 
 ---
 
@@ -16,8 +16,8 @@ Clean-room open-source rebuild of OpenAuto Pro (defunct BlueWave Studio). Wirele
 
 | Repo | Location | Purpose |
 |------|----------|---------|
-| **openauto-prodigy** | `E:/claude/personal/openautopro/openauto-prodigy/` | Implementation (this repo) |
-| **openauto-pro-community** | `E:/claude/personal/openautopro/openauto-pro-community/` | Recovered specs, QML, protos, RE notes |
+| **openauto-prodigy** | `/home/matt/claude/personal/openautopro/openauto-prodigy/` | Implementation (this repo) |
+| **openauto-pro-community** | `/home/matt/claude/personal/openautopro/openauto-pro-community/` | Recovered specs, QML, protos, RE notes |
 | **GitHub** | `https://github.com/mrmees/openauto-prodigy` (PRIVATE) | Remote origin |
 
 The community repo has the design doc, phase 1 plan, RE notes, and ABI analysis. It's the "why" — this repo is the "what."
@@ -30,24 +30,25 @@ The community repo has the design doc, phase 1 plan, RE notes, and ABI analysis.
 |--------|-------|
 | **Hostname** | `prodigy.local` |
 | **IP** | `192.168.1.149` |
-| **SSH** | `matt@prodigy.local` — key auth configured |
+| **SSH** | `matt@192.168.1.149` — key auth configured |
 | **OS** | RPi OS Trixie (Debian 13, 64-bit) |
 | **Qt** | 6.8.2 |
 | **Hardware** | Raspberry Pi 4 |
-| **Display** | DFRobot 7" 1024x600 |
+| **Display** | DFRobot 7" 1024x600 touchscreen |
 | **Display server** | labwc (Wayland) |
 | **sudo** | Works over SSH, full root access |
 | **Build path** | `~/openauto-prodigy/` (cloned from GitHub) |
+| **Phone tested** | Samsung Galaxy S24 Ultra (SM-S938U) |
 
 ### SSH Access
 
 ```bash
-ssh matt@prodigy.local
-# or
 ssh matt@192.168.1.149
 ```
 
-Key auth is set up — no password needed (assuming your SSH key is deployed).
+Key auth is set up — no password needed.
+
+**Note:** The `claude-dev` VM (192.168.189.x) is on VMware NAT and can reach this IP via the host's routing. mDNS (`prodigy.local`) may not resolve from the VM.
 
 ### Build on Pi
 
@@ -55,17 +56,23 @@ Key auth is set up — no password needed (assuming your SSH key is deployed).
 cd ~/openauto-prodigy
 git pull --recurse-submodules
 cd build
-cmake ..
-make -j$(nproc)
+cmake --build . -j3    # -j3 recommended on Pi 4 (leaves headroom)
 ```
 
 ### Run on Pi
 
 ```bash
+# From a local terminal or SSH with DISPLAY forwarding:
 export XDG_RUNTIME_DIR=/run/user/1000
 export WAYLAND_DISPLAY=wayland-0
 export QT_QPA_PLATFORM=wayland
 ./src/openauto-prodigy
+
+# Or via SSH (backgrounded):
+ssh matt@192.168.1.149 'DISPLAY=:0 XDG_RUNTIME_DIR=/run/user/1000 nohup /home/matt/openauto-prodigy/build/src/openauto-prodigy </dev/null >/tmp/oap.log 2>&1 & sleep 1; pgrep -f openauto-prodigy && echo running'
+
+# Kill running instance:
+ssh matt@192.168.1.149 'pkill -f openauto-prodigy'
 ```
 
 ### Pi Dependencies (all should already be installed)
@@ -75,7 +82,7 @@ sudo apt install cmake qt6-base-dev qt6-declarative-dev qt6-wayland \
   qt6-connectivity-dev qt6-multimedia-dev \
   qml6-module-qtquick-controls qml6-module-qtquick-layouts \
   qml6-module-qtquick-window qml6-module-qtqml-workerscript \
-  libboost-system-dev libboost-log-dev libusb-1.0-0-dev \
+  libboost-system-dev libboost-log-dev \
   libprotobuf-dev protobuf-compiler libssl-dev \
   libavcodec-dev libavutil-dev \
   hostapd dnsmasq
@@ -83,37 +90,28 @@ sudo apt install cmake qt6-base-dev qt6-declarative-dev qt6-wayland \
 
 ---
 
-## Dev Build (WSL2)
+## Dev Build (claude-dev VM)
 
 | Detail | Value |
 |--------|-------|
-| **Distro** | Ubuntu 24.04 (NOT docker-desktop — use `wsl -d Ubuntu`) |
+| **Machine** | VMware VM on MINIMEES (Windows host) |
+| **IP** | 192.168.189.129 |
+| **OS** | Ubuntu 24.04 |
 | **Qt** | 6.4.2 |
 | **Bluetooth** | Not available (no qt6-connectivity-dev) |
 | **Purpose** | Fast code iteration, unit tests |
 
-### WSL2 Gotcha
-
-Default WSL distro may be docker-desktop. Always specify:
-```bash
-wsl -d Ubuntu
-```
-
-### Build in WSL2
-
-Same as Pi, minus Bluetooth. The `#ifdef HAS_BLUETOOTH` guards let it compile without qt6-connectivity-dev.
+### Build on VM
 
 ```bash
-cd ~/openauto-prodigy   # or wherever you clone it
+cd ~/claude/personal/openautopro/openauto-prodigy
 mkdir -p build && cd build
 cmake ..
 make -j$(nproc)
 ctest --output-on-failure   # run tests
 ```
 
-### Can't sudo in WSL2 from Claude's shell
-
-Password prompt blocks. Install deps manually or use a terminal.
+The `#ifdef HAS_BLUETOOTH` guards let it compile without qt6-connectivity-dev.
 
 ---
 
@@ -126,22 +124,28 @@ Password prompt blocks. Install deps manually or use a terminal.
 | 3 | Theme engine | **DONE** | Day/night toggle, QML context property |
 | 4 | QML UI shell | **DONE** | Launcher, home, AA, settings screens |
 | 5 | AA service layer | **DONE** | TCP transport, handshake, 8 service channels |
-| 6 | Video pipeline | **CODE COMPLETE** | FFmpeg H.264 → QVideoSink — untested on live video |
-| 7 | Audio pipeline | **PENDING** | 3 channels (media, speech, system) via PipeWire |
-| 8 | Settings UI | **PENDING** | QML settings screens |
-| 9 | Integration testing | **PENDING** | End-to-end with real phone |
-| 10 | Polish | **PENDING** | Error handling, UX, systemd service |
+| 6 | Video pipeline | **WORKING** | FFmpeg H.264 → QVideoSink, 1280x720 @ 30fps on Pi 4 |
+| 7 | Touch input | **WORKING** | Multi-touch via InputServiceChannel, debug overlay |
+| 8 | Fullscreen | **WORKING** | OS-level Window.FullScreen when AA connected |
+| 9 | Audio pipeline | **PENDING** | 3 channels (media, speech, system) via PipeWire |
+| 10 | Settings UI | **PENDING** | QML settings screens |
+| 11 | Integration & polish | **IN PROGRESS** | Touch calibration, error handling, systemd service |
 
-### Wireless Pivot (crosses tasks 5 & 8)
+### Wireless Connection (Verified Working)
 
-We pivoted from USB to wireless-only after USB connections consistently completed the handshake but never opened service channels. The wireless architecture is:
-
+The full wireless flow works end-to-end:
 1. **Bluetooth Discovery** — Pi runs RFCOMM server with AA Wireless UUID
-2. **WiFi Credential Exchange** — Phone sends WifiInfoRequest, Pi responds with SSID/password via protobuf
-3. **WiFi AP** — hostapd + dnsmasq on wlan0 (10.0.0.1/24)
-4. **TCP Connection** — Phone connects to Pi on port 5288 for AA protocol
+2. **WiFi Credential Exchange** — Phone sends WifiInfoRequest, Pi responds with SSID/password
+3. **WiFi AP** — hostapd on wlan0 at 5GHz (10.0.0.1/24)
+4. **TCP Connection** — Phone connects to Pi on port 5288
+5. **AA Protocol** — Handshake, service discovery, video/input channels open
 
-This is **code-complete but never tested on hardware.** First real test will tell us if service channels open over TCP (they never did over USB).
+### Key Discoveries (from first hardware test)
+
+- **SPS/PPS delivery:** Android Auto sends H.264 SPS/PPS codec config as `AV_MEDIA_INDICATION` (message ID 0x0001, no timestamp), NOT as `AV_MEDIA_WITH_TIMESTAMP_INDICATION`. Both message types must be forwarded to the video decoder. Without SPS/PPS, the decoder fails with `non-existing PPS 0 referenced`.
+- **AnnexB start codes:** aasdk already delivers NAL units WITH AnnexB start codes (`00 00 00 01`). The VideoDecoder was incorrectly prepending additional start codes — removed.
+- **Video resolution:** Phone sends 1280x720 video. Software decode handles this easily on Pi 4 (~12% CPU per core).
+- **Touch coordinate space:** AA touch config is 1024x600 (matching the display). QML maps screen coordinates to this space.
 
 ---
 
@@ -151,14 +155,15 @@ This is **code-complete but never tested on hardware.** First real test will tel
 
 | File | What It Does |
 |------|-------------|
-| `src/main.cpp` | Entry point, QML engine setup |
+| `src/main.cpp` | Entry point, QML engine, exposes C++ objects to QML, auto-nav on AA connect/disconnect |
 | `src/core/Configuration.hpp/cpp` | INI config parser, all settings, backward-compatible with OAP |
 | `src/core/aa/AndroidAutoService.hpp/cpp` | AA lifecycle manager, TCP transport, BT integration |
 | `src/core/aa/BluetoothDiscoveryService.hpp/cpp` | BT RFCOMM server, WiFi credential handshake protocol |
 | `src/core/aa/AndroidAutoEntity.hpp/cpp` | Protocol entity, control channel, version/SSL/auth/discovery handshake |
-| `src/core/aa/ServiceFactory.hpp/cpp` | Creates all 8 AA service instances |
-| `src/core/aa/VideoService.hpp/cpp` | Receives H.264 NALUs, marshals to Qt main thread |
+| `src/core/aa/ServiceFactory.hpp/cpp` | Creates all AA service instances, wires TouchHandler to input channel |
+| `src/core/aa/VideoService.hpp/cpp` | Receives H.264 NALUs (both timestamped and non-timestamped), marshals to Qt main thread |
 | `src/core/aa/VideoDecoder.hpp/cpp` | FFmpeg H.264 software decode → QVideoFrame (YUV420P) |
+| `src/core/aa/TouchHandler.hpp/cpp` | QObject bridge: QML touch events → AA InputEventIndication protobuf via InputServiceChannel |
 | `src/ui/ThemeController.hpp/cpp` | Day/night theme colors, exposed as QML context property |
 | `src/ui/ApplicationController.hpp/cpp` | Navigation stack, app type enum |
 
@@ -166,10 +171,10 @@ This is **code-complete but never tested on hardware.** First real test will tel
 
 | Screen | File |
 |--------|------|
-| Root window | `qml/main.qml` |
+| Root window | `qml/main.qml` — fullscreen toggle, TopBar/BottomBar visibility |
 | Home | `qml/applications/home/HomeMenu.qml` |
 | Launcher | `qml/applications/launcher/LauncherMenu.qml` |
-| Android Auto | `qml/applications/android_auto/AndroidAutoMenu.qml` |
+| Android Auto | `qml/applications/android_auto/AndroidAutoMenu.qml` — VideoOutput, MultiPointTouchArea, touch debug overlay |
 | Settings | `qml/applications/settings/SettingsMenu.qml` |
 | Components | `qml/components/` — TopBar, BottomBar, Clock, Wallpaper |
 | Controls | `qml/controls/` — Icon, Tile, NormalText, SpecialText |
@@ -181,21 +186,21 @@ Phone ←→ [Bluetooth RFCOMM] ←→ BluetoothDiscoveryService (WiFi creds)
 Phone ←→ [WiFi AP / TCP:5288] ←→ AndroidAutoService → AndroidAutoEntity
                                     ↓
                               ServiceFactory creates:
-                                VideoService (channel 0)
-                                MediaAudioService (channel 1)
-                                SpeechAudioService (channel 2)
-                                SystemAudioService (channel 3)
-                                InputService (channel 4)
-                                SensorService (channel 5)
-                                BluetoothService (channel 6)
-                                WifiService (channel 7)
+                                VideoService     → VideoDecoder → QVideoSink
+                                InputService     ← TouchHandler ← QML MultiPointTouchArea
+                                MediaAudioService (stub)
+                                SpeechAudioService (stub)
+                                SystemAudioService (stub)
+                                SensorService (stub)
+                                BluetoothService (stub)
+                                WifiService (stub)
 ```
 
 ### Threading Model
 
-- **ASIO thread** — AA protocol (aasdk), TCP transport
-- **Qt main thread** — QML UI, video frames
-- **Bridge** — `QMetaObject::invokeMethod(Qt::QueuedConnection)` to marshal between threads
+- **ASIO thread pool (4 threads)** — AA protocol (aasdk), TCP transport
+- **Qt main thread** — QML UI, video decode, video frame display
+- **Bridge** — `QMetaObject::invokeMethod(Qt::QueuedConnection)` to marshal ASIO → Qt; `strand_.dispatch()` for Qt → ASIO (touch events)
 
 ---
 
@@ -203,51 +208,11 @@ Phone ←→ [WiFi AP / TCP:5288] ←→ AndroidAutoService → AndroidAutoEntit
 
 Full details in `docs/wireless-setup.md`. Summary:
 
-### hostapd config (`/etc/hostapd/hostapd.conf`)
-
-```ini
-interface=wlan0
-driver=nl80211
-ssid=OpenAutoProdigy
-hw_mode=g
-channel=6
-wpa=2
-wpa_passphrase=prodigy1234
-wpa_key_mgmt=WPA-PSK
-rsn_pairwise=CCMP
-```
-
-### dnsmasq config (`/etc/dnsmasq.d/openauto.conf`)
-
-```ini
-interface=wlan0
-dhcp-range=10.0.0.10,10.0.0.50,255.255.255.0,24h
-```
-
-### Static IP on wlan0
-
-10.0.0.1/24 — configured via dhcpcd or NetworkManager (see wireless-setup.md for options).
-
-### App config (`~/.config/openauto_system.ini`)
-
-```ini
-[Wireless]
-enabled=true
-wifi_ssid=OpenAutoProdigy
-wifi_password=prodigy1234
-tcp_port=5288
-```
-
-**SSID and password must match between hostapd.conf and openauto_system.ini exactly.**
-
-### BT Handshake Message IDs
-
-| ID | Message | Direction |
-|----|---------|-----------|
-| 1 | WifiInfoRequest | Phone → Pi |
-| 2 | WifiSecurityRequest | Phone → Pi |
-| 3 | WifiSecurityResponse | Pi → Phone |
-| 7 | WifiInfoResponse | Pi → Phone |
+- **hostapd:** 5GHz (channel 36), WPA2-PSK, SSID `OpenAutoProdigy`
+- **dnsmasq:** DHCP on wlan0, range 10.0.0.10-50
+- **Static IP:** wlan0 = 10.0.0.1/24
+- **App config:** `~/.config/openauto_system.ini` — SSID/password must match hostapd exactly
+- **5GHz is mandatory** — Pi 4/5 CYW43455 shares one antenna for WiFi + BT, 2.4GHz causes coexistence interference
 
 ---
 
@@ -282,12 +247,15 @@ Code must compile on both. Known landmines:
 
 ## Known Issues & Gotchas
 
-- **USB never worked fully** — Handshake completes but service channels never open. That's why we went wireless-only.
-- **Video pipeline untested** — Code written, compiles, but no live video has ever flowed through it.
+- **USB never worked fully** — Handshake completes but service channels never open. Wireless works first try.
+- **SPS/PPS in wrong handler** — Must forward `AV_MEDIA_INDICATION` data to decoder (not just `AV_MEDIA_WITH_TIMESTAMP_INDICATION`). This was the root cause of "no video" — now fixed.
+- **AnnexB start codes already present** — aasdk delivers H.264 data WITH start codes. Do NOT prepend additional ones.
+- **Touch calibration** — May need adjustment. Debug overlay shows mapped coordinates for diagnosis.
 - **Proto2 aasdk** — SonOfGib's fork uses proto2. No `device_model` in ServiceDiscoveryRequest.
 - **Boost.Log truncation** — Use `ShortDebugString()` for protobuf logging, not `DebugString()`.
-- **BT conditional compile** — `#ifdef HAS_BLUETOOTH` guards. WSL2 builds without Bluetooth support.
-- **WSL2 default distro** — May be docker-desktop, always use `wsl -d Ubuntu`.
+- **BT conditional compile** — `#ifdef HAS_BLUETOOTH` guards. VM builds without Bluetooth support.
+- **Q_OBJECT MOC** — Header-only QObjects need a .cpp listed in CMakeLists.txt for MOC generation.
+- **pkill long names** — `pkill openauto-prodigy` silently fails (>15 chars). Use `pkill -f openauto-prodigy`.
 
 ---
 
@@ -312,17 +280,15 @@ Run from build dir: `ctest --output-on-failure`
 | ABI analysis | `docs/abi-compatibility-analysis.md` |
 | Recovered QML (162 files) | `original/qml/` |
 | Recovered proto (34 messages) | `original/proto/Api.proto` |
-| SonOfGib BT reference | `upstream/sonofgib-openauto/src/btservice/AndroidBluetoothServer.cpp` |
 
 ---
 
 ## What's Next
 
-1. **Test wireless connection on Pi** — Does BT discovery work? Do WiFi creds exchange? Does TCP connect? Do service channels open?
-2. **Audio pipeline (Task 7)** — 3 channels: media, speech, system. PipeWire output.
-3. **Settings UI (Task 8)** — QML screens for all config options.
-4. **Integration testing (Task 9)** — End-to-end with real phone, real video, real audio.
-5. **Polish (Task 10)** — Error handling, systemd service, first-run experience.
+1. **Touch calibration** — Test with debug overlay, fix any coordinate mapping offset
+2. **Audio pipeline** — 3 channels: media, speech, system. PipeWire output.
+3. **Settings UI** — QML screens for all config options.
+4. **Integration polish** — Error handling, reconnect logic, systemd service, first-run experience.
 
 ---
 
