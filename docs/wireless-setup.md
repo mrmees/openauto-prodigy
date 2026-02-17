@@ -23,9 +23,22 @@ Create/edit `/etc/hostapd/hostapd.conf`:
 interface=wlan0
 driver=nl80211
 ssid=OpenAutoProdigy
-hw_mode=g
-channel=6
-wmm_enabled=0
+
+# 5GHz is MANDATORY for wireless Android Auto on Pi 4/5.
+# The CYW43455 combo chip shares one antenna for WiFi and Bluetooth.
+# Running on 2.4GHz causes severe BT coexistence interference — the phone
+# can't maintain BT RFCOMM and WiFi simultaneously on the same radio band.
+hw_mode=a
+channel=36
+ieee80211n=1
+ieee80211ac=1
+wmm_enabled=1
+
+# 5GHz requires a country code or hostapd will refuse to start.
+# Channel 36 is non-DFS in most regions, so no radar detection needed.
+country_code=US
+ieee80211d=1
+
 macaddr_acl=0
 auth_algs=1
 ignore_broadcast_ssid=0
