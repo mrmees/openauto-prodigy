@@ -10,17 +10,22 @@ Window {
     title: "OpenAuto Prodigy"
     color: ThemeController.backgroundColor
 
+    // Hide bars when Android Auto is active and connected
+    property bool aaFullscreen: ApplicationController.currentApplication === 2
+                                && AndroidAutoService.connectionState === 3
+
     ColumnLayout {
         anchors.fill: parent
         spacing: 0
 
-        // Top bar — 10% height
+        // Top bar — 10% height (hidden in AA fullscreen)
         TopBar {
             Layout.fillWidth: true
-            Layout.preferredHeight: root.height * 0.10
+            Layout.preferredHeight: root.aaFullscreen ? 0 : root.height * 0.10
+            visible: !root.aaFullscreen
         }
 
-        // Content area — fills remaining space (78%)
+        // Content area — fills remaining space
         StackView {
             id: contentStack
             Layout.fillWidth: true
@@ -30,10 +35,11 @@ Window {
             initialItem: launcherComponent
         }
 
-        // Bottom bar — 12% height
+        // Bottom bar — 12% height (hidden in AA fullscreen)
         BottomBar {
             Layout.fillWidth: true
-            Layout.preferredHeight: root.height * 0.12
+            Layout.preferredHeight: root.aaFullscreen ? 0 : root.height * 0.12
+            visible: !root.aaFullscreen
         }
     }
 

@@ -32,6 +32,7 @@ int main(int argc, char *argv[])
     engine.rootContext()->setContextProperty("ApplicationController", appController);
     engine.rootContext()->setContextProperty("AndroidAutoService", aaService);
     engine.rootContext()->setContextProperty("VideoDecoder", aaService->videoDecoder());
+    engine.rootContext()->setContextProperty("TouchHandler", aaService->touchHandler());
 
     // Qt 6.5+ uses /qt/qml/ prefix, Qt 6.4 uses direct URI prefix
     QUrl url(QStringLiteral("qrc:/OpenAutoProdigy/main.qml"));

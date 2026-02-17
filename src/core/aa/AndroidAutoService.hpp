@@ -10,6 +10,7 @@
 #include "AndroidAutoEntity.hpp"
 #include "IService.hpp"
 #include "VideoDecoder.hpp"
+#include "TouchHandler.hpp"
 #include "../../core/Configuration.hpp"
 
 #include <aasdk/Transport/ITransport.hpp>
@@ -48,6 +49,7 @@ public:
     Q_INVOKABLE void stop();
 
     VideoDecoder* videoDecoder() { return videoDecoder_; }
+    TouchHandler* touchHandler() { return touchHandler_; }
 
     int connectionState() const { return state_; }
     QString statusMessage() const { return statusMessage_; }
@@ -69,6 +71,7 @@ private:
 
     std::shared_ptr<oap::Configuration> config_;
     VideoDecoder* videoDecoder_ = nullptr;
+    TouchHandler* touchHandler_ = nullptr;
 
     // ASIO
     std::unique_ptr<boost::asio::io_service> ioService_;

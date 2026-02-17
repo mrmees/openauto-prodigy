@@ -1,5 +1,6 @@
 #include "ServiceFactory.hpp"
 #include "VideoService.hpp"
+#include "TouchHandler.hpp"
 
 #include <boost/log/trivial.hpp>
 
@@ -195,11 +196,17 @@ class InputServiceStub
 public:
     InputServiceStub(boost::asio::io_service& ioService,
                      aasdk::messenger::IMessenger::Pointer messenger,
-                     std::shared_ptr<oap::Configuration> config)
+                     std::shared_ptr<oap::Configuration> config,
+                     TouchHandler* touchHandler)
         : strand_(ioService)
         , channel_(std::make_shared<aasdk::channel::input::InputServiceChannel>(strand_, std::move(messenger)))
         , config_(std::move(config))
-    {}
+        , touchHandler_(touchHandler)
+    {
+        if (touchHandler_) {
+            touchHandler_->setChannel(channel_, &strand_);
+        }
+    }
 
     void start() override {
         strand_.dispatch([this, self = shared_from_this()]() {
@@ -256,6 +263,7 @@ private:
     boost::asio::io_service::strand strand_;
     std::shared_ptr<aasdk::channel::input::InputServiceChannel> channel_;
     std::shared_ptr<oap::Configuration> config_;
+    TouchHandler* touchHandler_ = nullptr;
 };
 
 // ============================================================================
@@ -614,7 +622,8 @@ IService::ServiceList ServiceFactory::create(
     boost::asio::io_service& ioService,
     aasdk::messenger::IMessenger::Pointer messenger,
     std::shared_ptr<oap::Configuration> config,
-    VideoDecoder* videoDecoder)
+    VideoDecoder* videoDecoder,
+    TouchHandler* touchHandler)
 {
     IService::ServiceList services;
 
@@ -622,7 +631,7 @@ IService::ServiceList ServiceFactory::create(
     services.push_back(std::make_shared<MediaAudioServiceStub>(ioService, messenger));
     services.push_back(std::make_shared<SpeechAudioServiceStub>(ioService, messenger));
     services.push_back(std::make_shared<SystemAudioServiceStub>(ioService, messenger));
-    services.push_back(std::make_shared<InputServiceStub>(ioService, messenger, config));
+    services.push_back(std::make_shared<InputServiceStub>(ioService, messenger, config, touchHandler));
     services.push_back(std::make_shared<SensorServiceStub>(ioService, messenger));
     // Read real BT adapter MAC if available, else use placeholder
     std::string btMac = "00:00:00:00:00:00";

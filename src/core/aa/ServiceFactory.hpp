@@ -9,6 +9,7 @@ namespace oap {
 namespace aa {
 
 class VideoDecoder;
+class TouchHandler;
 
 class ServiceFactory
 {
@@ -17,7 +18,8 @@ public:
         boost::asio::io_service& ioService,
         aasdk::messenger::IMessenger::Pointer messenger,
         std::shared_ptr<oap::Configuration> config,
-        VideoDecoder* videoDecoder);
+        VideoDecoder* videoDecoder,
+        TouchHandler* touchHandler = nullptr);
 };
 
 } // namespace aa
