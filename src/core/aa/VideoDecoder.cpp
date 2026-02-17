@@ -6,9 +6,6 @@
 namespace oap {
 namespace aa {
 
-// AnnexB start code prepended to each NAL unit from aasdk
-static const uint8_t kStartCode[] = {0x00, 0x00, 0x00, 0x01};
-
 VideoDecoder::VideoDecoder(QObject* parent)
     : QObject(parent)
 {
@@ -75,14 +72,9 @@ void VideoDecoder::decodeFrame(QByteArray h264Data)
 {
     if (!codecCtx_ || !parser_ || !packet_ || !frame_) return;
 
-    // Prepend AnnexB start code — aasdk delivers raw NAL units without it
-    QByteArray annexBData;
-    annexBData.reserve(4 + h264Data.size());
-    annexBData.append(reinterpret_cast<const char*>(kStartCode), 4);
-    annexBData.append(h264Data);
-
-    const uint8_t* data = reinterpret_cast<const uint8_t*>(annexBData.constData());
-    int dataSize = annexBData.size();
+    // Android Auto sends H.264 in AnnexB format (start codes already present)
+    const uint8_t* data = reinterpret_cast<const uint8_t*>(h264Data.constData());
+    int dataSize = h264Data.size();
 
     while (dataSize > 0) {
         int consumed = av_parser_parse2(
