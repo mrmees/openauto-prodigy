@@ -43,7 +43,7 @@ Video pipeline code is written but untested on live video (same state as before 
 - **AA protocol:** ASIO threads for protocol, Qt main thread for UI. Bridged via `QMetaObject::invokeMethod(Qt::QueuedConnection)`.
 - **Video:** FFmpeg software H.264 decode → `QVideoSink::setVideoFrame()` → QML `VideoOutput`
 - **Config:** QSettings INI format, backward-compatible with original OAP files
-- **Services:** 8 AA channels (video, 3 audio, input, sensor, bluetooth, wifi)
+- **Services:** 10 AA channels — CONTROL(0), INPUT(1), SENSOR(2), VIDEO(3), MEDIA_AUDIO(4), SPEECH_AUDIO(5), SYSTEM_AUDIO(6), AV_INPUT(7), BLUETOOTH(8), WIFI(14)
 - **BT discovery:** Conditional compile (`#ifdef HAS_BLUETOOTH`), Qt6::Bluetooth RFCOMM server
 
 ## Key Files
