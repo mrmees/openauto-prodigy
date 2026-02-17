@@ -31,6 +31,7 @@
 #include <aasdk_proto/SensorChannelData.pb.h>
 #include <aasdk_proto/SensorData.pb.h>
 #include <aasdk_proto/BluetoothChannelData.pb.h>
+#include <aasdk_proto/BluetoothPairingMethodEnum.pb.h>
 #include <aasdk_proto/WifiChannelData.pb.h>
 #include <aasdk_proto/AVStreamTypeEnum.pb.h>
 #include <aasdk_proto/AudioTypeEnum.pb.h>
@@ -48,6 +49,10 @@
 
 #include <aasdk/Messenger/ChannelId.hpp>
 #include <aasdk/Channel/Promise.hpp>
+
+#ifdef HAS_BLUETOOTH
+#include <QBluetoothLocalDevice>
+#endif
 
 namespace oap {
 namespace aa {
@@ -321,9 +326,11 @@ class BluetoothServiceStub
 {
 public:
     BluetoothServiceStub(boost::asio::io_service& ioService,
-                         aasdk::messenger::IMessenger::Pointer messenger)
+                         aasdk::messenger::IMessenger::Pointer messenger,
+                         std::string btMacAddress)
         : strand_(ioService)
         , channel_(std::make_shared<aasdk::channel::bluetooth::BluetoothServiceChannel>(strand_, std::move(messenger)))
+        , btMacAddress_(std::move(btMacAddress))
     {}
 
     void start() override {
@@ -340,7 +347,9 @@ public:
         desc->set_channel_id(static_cast<uint32_t>(aasdk::messenger::ChannelId::BLUETOOTH));
 
         auto* btChannel = desc->mutable_bluetooth_channel();
-        btChannel->set_adapter_address("00:00:00:00:00:00"); // Placeholder
+        btChannel->set_adapter_address(btMacAddress_);
+        btChannel->add_supported_pairing_methods(
+            aasdk::proto::enums::BluetoothPairingMethod::HFP);
     }
 
     void onChannelOpenRequest(const aasdk::proto::messages::ChannelOpenRequest& request) override {
@@ -366,6 +375,7 @@ public:
 private:
     boost::asio::io_service::strand strand_;
     std::shared_ptr<aasdk::channel::bluetooth::BluetoothServiceChannel> channel_;
+    std::string btMacAddress_;
 };
 
 // ============================================================================
@@ -443,7 +453,18 @@ IService::ServiceList ServiceFactory::create(
     services.push_back(std::make_shared<SystemAudioServiceStub>(ioService, messenger));
     services.push_back(std::make_shared<InputServiceStub>(ioService, messenger, config));
     services.push_back(std::make_shared<SensorServiceStub>(ioService, messenger));
-    services.push_back(std::make_shared<BluetoothServiceStub>(ioService, messenger));
+    // Read real BT adapter MAC if available, else use placeholder
+    std::string btMac = "00:00:00:00:00:00";
+#ifdef HAS_BLUETOOTH
+    {
+        QBluetoothLocalDevice localDevice;
+        if (localDevice.isValid()) {
+            btMac = localDevice.address().toString().toStdString();
+            BOOST_LOG_TRIVIAL(info) << "[ServiceFactory] BT adapter MAC: " << btMac;
+        }
+    }
+#endif
+    services.push_back(std::make_shared<BluetoothServiceStub>(ioService, messenger, btMac));
     services.push_back(std::make_shared<WIFIServiceStub>(ioService, messenger));
 
     BOOST_LOG_TRIVIAL(info) << "[ServiceFactory] Created " << services.size() << " services";
