@@ -87,6 +87,7 @@ public:
         auto* avChannel = desc->mutable_av_channel();
         avChannel->set_stream_type(aasdk::proto::enums::AVStreamType::AUDIO);
         avChannel->set_audio_type(AudioTypeValue);
+        avChannel->set_available_while_in_call(true);
 
         auto* audioConfig = avChannel->add_audio_configs();
         audioConfig->set_sample_rate(SampleRate);

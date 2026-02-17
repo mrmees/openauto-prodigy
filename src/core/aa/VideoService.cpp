@@ -55,6 +55,7 @@ void VideoService::fillFeatures(aasdk::proto::messages::ServiceDiscoveryResponse
 
     auto* avChannel = desc->mutable_av_channel();
     avChannel->set_stream_type(aasdk::proto::enums::AVStreamType::VIDEO);
+    avChannel->set_available_while_in_call(true);
 
     auto* videoConfig = avChannel->add_video_configs();
     videoConfig->set_video_resolution(aasdk::proto::enums::VideoResolution::_480p);
@@ -93,7 +94,7 @@ void VideoService::onAVChannelSetupRequest(const aasdk::proto::messages::AVChann
         // Send video focus indication — tells the phone to start sending video
         aasdk::proto::messages::VideoFocusIndication indication;
         indication.set_focus_mode(aasdk::proto::enums::VideoFocusMode::FOCUSED);
-        indication.set_unrequested(true);
+        indication.set_unrequested(false);
 
         auto p = aasdk::channel::SendPromise::defer(strand_);
         p->then([]() {
