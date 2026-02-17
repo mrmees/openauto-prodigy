@@ -58,7 +58,7 @@ void VideoService::fillFeatures(aasdk::proto::messages::ServiceDiscoveryResponse
     avChannel->set_available_while_in_call(true);
 
     auto* videoConfig = avChannel->add_video_configs();
-    videoConfig->set_video_resolution(aasdk::proto::enums::VideoResolution::_480p);
+    videoConfig->set_video_resolution(aasdk::proto::enums::VideoResolution::_720p);
     videoConfig->set_video_fps(aasdk::proto::enums::VideoFPS::_30);
     videoConfig->set_margin_width(0);
     videoConfig->set_margin_height(0);
@@ -86,7 +86,7 @@ void VideoService::onAVChannelSetupRequest(const aasdk::proto::messages::AVChann
 
     aasdk::proto::messages::AVChannelSetupResponse response;
     response.set_media_status(aasdk::proto::enums::AVChannelSetupStatus::OK);
-    response.set_max_unacked(1);
+    response.set_max_unacked(10);
     response.add_configs(0);
 
     auto promise = aasdk::channel::SendPromise::defer(strand_);
@@ -154,6 +154,17 @@ void VideoService::onVideoFocusRequest(const aasdk::proto::messages::VideoFocusR
 {
     BOOST_LOG_TRIVIAL(info) << "[VideoService] Video focus request (mode="
                             << request.focus_mode() << ")";
+
+    // Must respond with VideoFocusIndication or phone may stop sending frames
+    aasdk::proto::messages::VideoFocusIndication indication;
+    indication.set_focus_mode(aasdk::proto::enums::VideoFocusMode::FOCUSED);
+    indication.set_unrequested(false);
+
+    auto promise = aasdk::channel::SendPromise::defer(strand_);
+    promise->then([]() {}, [](const aasdk::error::Error& e) {
+        BOOST_LOG_TRIVIAL(error) << "[VideoService] VideoFocusIndication send error: " << e.what();
+    });
+    channel_->sendVideoFocusIndication(indication, std::move(promise));
     channel_->receive(shared_from_this());
 }
 
