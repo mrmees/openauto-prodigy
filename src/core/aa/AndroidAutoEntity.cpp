@@ -183,7 +183,7 @@ void AndroidAutoEntity::onAudioFocusRequest(
     BOOST_LOG_TRIVIAL(info) << "[AndroidAutoEntity] Audio focus request";
 
     aasdk::proto::messages::AudioFocusResponse response;
-    response.set_focus_state(aasdk::proto::enums::AudioFocusState::GAIN);
+    response.set_audio_focus_state(aasdk::proto::enums::AudioFocusState::GAIN);
 
     auto promise = aasdk::channel::SendPromise::defer(strand_);
     promise->then([]() {},
