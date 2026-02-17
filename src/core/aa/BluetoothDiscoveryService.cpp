@@ -15,11 +15,18 @@
 static const QBluetoothUuid kAAWirelessUuid(
     QStringLiteral("4de17a00-52cb-11e6-bdf4-0800200c9a66"));
 
-// BT handshake message IDs
-static constexpr uint16_t kMsgWifiInfoRequest = 1;
-static constexpr uint16_t kMsgWifiSecurityRequest = 2;
-static constexpr uint16_t kMsgWifiSecurityResponse = 3;
-static constexpr uint16_t kMsgWifiInfoResponse = 7;
+// RFCOMM handshake message IDs (protocol standard names).
+// SonOfGib's aasdk proto types use different names but matching fields:
+//   Protocol WifiStartRequest  (1) → aasdk WifiInfoRequest      {ip_address, port}
+//   Protocol WifiInfoRequest   (2) → aasdk WifiSecurityRequest   {empty}
+//   Protocol WifiInfoResponse  (3) → aasdk WifiSecurityResponse  {ssid, key, security_mode, ...}
+//   Protocol WifiStartResponse (6) → (no proto — empty acknowledgement)
+//   Protocol WifiConnectionStatus(7) → aasdk WifiInfoResponse    {status}
+static constexpr uint16_t kMsgWifiStartRequest = 1;      // HU -> Phone: IP + port
+static constexpr uint16_t kMsgWifiInfoRequest = 2;        // Phone -> HU: "give me credentials"
+static constexpr uint16_t kMsgWifiInfoResponse = 3;       // HU -> Phone: SSID + key + security
+static constexpr uint16_t kMsgWifiStartResponse = 6;      // Phone -> HU: acknowledgement
+static constexpr uint16_t kMsgWifiConnectionStatus = 7;   // Phone -> HU: WiFi connected
 
 BluetoothDiscoveryService::BluetoothDiscoveryService(
     std::shared_ptr<oap::Configuration> config,
@@ -164,13 +171,15 @@ void BluetoothDiscoveryService::onClientConnected()
         return;
     }
 
+    // Send WifiStartRequest (msgId=1) with our IP and TCP port
+    // (aasdk proto type: WifiInfoRequest — same fields, different name)
     aasdk::proto::messages::WifiInfoRequest request;
     request.set_ip_address(localIp);
     request.set_port(config_->tcpPort());
 
-    BOOST_LOG_TRIVIAL(info) << "[BTDiscovery] Sending WifiInfoRequest: ip=" << localIp
+    BOOST_LOG_TRIVIAL(info) << "[BTDiscovery] Sending WifiStartRequest: ip=" << localIp
                             << " port=" << config_->tcpPort();
-    sendMessage(request, kMsgWifiInfoRequest);
+    sendMessage(request, kMsgWifiStartRequest);
 }
 
 void BluetoothDiscoveryService::readSocket()
@@ -196,11 +205,14 @@ void BluetoothDiscoveryService::readSocket()
                                 << " length=" << length;
 
         switch (messageId) {
-        case kMsgWifiSecurityRequest:
-            handleWifiSecurityRequest(buffer_, length);
+        case kMsgWifiInfoRequest:        // Phone asks for WiFi credentials
+            handleWifiCredentialRequest();
             break;
-        case kMsgWifiInfoResponse:
-            handleWifiInfoResponse(buffer_, length);
+        case kMsgWifiStartResponse:      // Phone acknowledges, connecting to WiFi
+            BOOST_LOG_TRIVIAL(info) << "[BTDiscovery] Phone acknowledged WifiStartRequest";
+            break;
+        case kMsgWifiConnectionStatus:   // Phone reports WiFi connection result
+            handleWifiConnectionStatus(buffer_, length);
             break;
         default:
             BOOST_LOG_TRIVIAL(warning) << "[BTDiscovery] Unknown message ID: " << messageId;
@@ -212,12 +224,13 @@ void BluetoothDiscoveryService::readSocket()
     }
 }
 
-void BluetoothDiscoveryService::handleWifiSecurityRequest(
-    const QByteArray& data, uint16_t length)
+void BluetoothDiscoveryService::handleWifiCredentialRequest()
 {
-    // Phone is asking for WiFi credentials
+    // Phone is asking for WiFi credentials (msgId=2, empty payload)
     BOOST_LOG_TRIVIAL(info) << "[BTDiscovery] Phone requested WiFi credentials";
 
+    // Send WifiInfoResponse (msgId=3) with AP credentials
+    // (aasdk proto type: WifiSecurityResponse — same fields, different name)
     aasdk::proto::messages::WifiSecurityResponse response;
     response.set_ssid(config_->wifiSsid().toStdString());
     response.set_key(config_->wifiPassword().toStdString());
@@ -226,30 +239,32 @@ void BluetoothDiscoveryService::handleWifiSecurityRequest(
     response.set_access_point_type(
         aasdk::proto::messages::WifiSecurityResponse_AccessPointType_STATIC);
 
-    BOOST_LOG_TRIVIAL(info) << "[BTDiscovery] Sending WifiSecurityResponse: ssid="
+    BOOST_LOG_TRIVIAL(info) << "[BTDiscovery] Sending WifiInfoResponse (creds): ssid="
                             << config_->wifiSsid().toStdString();
-    sendMessage(response, kMsgWifiSecurityResponse);
+    sendMessage(response, kMsgWifiInfoResponse);
 }
 
-void BluetoothDiscoveryService::handleWifiInfoResponse(
+void BluetoothDiscoveryService::handleWifiConnectionStatus(
     const QByteArray& data, uint16_t length)
 {
+    // Phone reports WiFi connection result (msgId=7)
+    // (aasdk proto type: WifiInfoResponse — has status field)
     aasdk::proto::messages::WifiInfoResponse msg;
     if (!msg.ParseFromArray(data.data() + 4, length)) {
-        BOOST_LOG_TRIVIAL(error) << "[BTDiscovery] Failed to parse WifiInfoResponse";
+        BOOST_LOG_TRIVIAL(error) << "[BTDiscovery] Failed to parse WifiConnectionStatus";
         return;
     }
 
-    BOOST_LOG_TRIVIAL(info) << "[BTDiscovery] WifiInfoResponse: "
+    BOOST_LOG_TRIVIAL(info) << "[BTDiscovery] WifiConnectionStatus: "
                             << msg.ShortDebugString();
 
     if (msg.status() == aasdk::proto::messages::WifiInfoResponse_Status_STATUS_SUCCESS) {
-        BOOST_LOG_TRIVIAL(info) << "[BTDiscovery] Phone will connect via WiFi!";
+        BOOST_LOG_TRIVIAL(info) << "[BTDiscovery] Phone connected to WiFi!";
         emit phoneWillConnect();
     } else {
-        BOOST_LOG_TRIVIAL(error) << "[BTDiscovery] Phone reported error status: "
+        BOOST_LOG_TRIVIAL(error) << "[BTDiscovery] Phone WiFi connection failed: "
                                  << msg.status();
-        emit error(QString("Phone WiFi handshake failed (status %1)").arg(msg.status()));
+        emit error(QString("Phone WiFi connection failed (status %1)").arg(msg.status()));
     }
 }
 

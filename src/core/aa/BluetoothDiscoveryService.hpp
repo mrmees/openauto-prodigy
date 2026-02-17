@@ -31,8 +31,8 @@ private slots:
 
 private:
     void sendMessage(const google::protobuf::Message& message, uint16_t type);
-    void handleWifiSecurityRequest(const QByteArray& data, uint16_t length);
-    void handleWifiInfoResponse(const QByteArray& data, uint16_t length);
+    void handleWifiCredentialRequest();
+    void handleWifiConnectionStatus(const QByteArray& data, uint16_t length);
 
     std::string getLocalIP(const QString& interfaceName) const;
 
