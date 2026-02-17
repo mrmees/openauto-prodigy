@@ -11,11 +11,13 @@
 #include <aasdk/Channel/Input/InputServiceChannel.hpp>
 #include <aasdk/Channel/Sensor/SensorServiceChannel.hpp>
 #include <aasdk/Channel/Bluetooth/BluetoothServiceChannel.hpp>
+#include <aasdk/Channel/AV/AVInputServiceChannel.hpp>
 #include <aasdk/Channel/WIFI/WIFIServiceChannel.hpp>
 
 // Event handler interfaces
 #include <aasdk/Channel/AV/IVideoServiceChannelEventHandler.hpp>
 #include <aasdk/Channel/AV/IAudioServiceChannelEventHandler.hpp>
+#include <aasdk/Channel/AV/IAVInputServiceChannelEventHandler.hpp>
 #include <aasdk/Channel/Input/IInputServiceChannelEventHandler.hpp>
 #include <aasdk/Channel/Sensor/ISensorServiceChannelEventHandler.hpp>
 #include <aasdk/Channel/Bluetooth/IBluetoothServiceChannelEventHandler.hpp>
@@ -33,6 +35,8 @@
 #include <aasdk_proto/BluetoothChannelData.pb.h>
 #include <aasdk_proto/BluetoothPairingMethodEnum.pb.h>
 #include <aasdk_proto/WifiChannelData.pb.h>
+#include <aasdk_proto/AVInputChannelData.pb.h>
+#include <aasdk_proto/AVInputOpenResponseMessage.pb.h>
 #include <aasdk_proto/WifiSecurityResponseMessage.pb.h>
 #include <aasdk_proto/AVStreamTypeEnum.pb.h>
 #include <aasdk_proto/AudioTypeEnum.pb.h>
@@ -492,6 +496,117 @@ private:
 };
 
 // ============================================================================
+// AVInput (Microphone) Service (stub — required for AA connection)
+// ============================================================================
+class AVInputServiceStub
+    : public IService
+    , public aasdk::channel::av::IAVInputServiceChannelEventHandler
+    , public std::enable_shared_from_this<AVInputServiceStub>
+{
+public:
+    AVInputServiceStub(boost::asio::io_service& ioService,
+                       aasdk::messenger::IMessenger::Pointer messenger)
+        : strand_(ioService)
+        , channel_(std::make_shared<aasdk::channel::av::AVInputServiceChannel>(strand_, std::move(messenger)))
+    {}
+
+    void start() override {
+        strand_.dispatch([this, self = shared_from_this()]() {
+            BOOST_LOG_TRIVIAL(info) << "[AVInputService] Started (microphone stub)";
+            channel_->receive(shared_from_this());
+        });
+    }
+
+    void stop() override {}
+
+    void fillFeatures(aasdk::proto::messages::ServiceDiscoveryResponse& response) override {
+        auto* desc = response.add_channels();
+        desc->set_channel_id(static_cast<uint32_t>(aasdk::messenger::ChannelId::AV_INPUT));
+
+        auto* avInputChannel = desc->mutable_av_input_channel();
+        avInputChannel->set_stream_type(aasdk::proto::enums::AVStreamType::AUDIO);
+        avInputChannel->set_available_while_in_call(true);
+
+        auto* audioConfig = avInputChannel->mutable_audio_config();
+        audioConfig->set_sample_rate(16000);
+        audioConfig->set_bit_depth(16);
+        audioConfig->set_channel_count(1);
+    }
+
+    void onChannelOpenRequest(const aasdk::proto::messages::ChannelOpenRequest& request) override {
+        BOOST_LOG_TRIVIAL(info) << "[AVInputService] Channel open";
+        aasdk::proto::messages::ChannelOpenResponse response;
+        response.set_status(aasdk::proto::enums::Status::OK);
+
+        auto promise = aasdk::channel::SendPromise::defer(strand_);
+        promise->then([]() {}, [](const aasdk::error::Error& e) {});
+        channel_->sendChannelOpenResponse(response, std::move(promise));
+        channel_->receive(shared_from_this());
+    }
+
+    void onAVChannelSetupRequest(const aasdk::proto::messages::AVChannelSetupRequest& request) override {
+        BOOST_LOG_TRIVIAL(info) << "[AVInputService] AV setup request";
+        aasdk::proto::messages::AVChannelSetupResponse response;
+        response.set_media_status(aasdk::proto::enums::AVChannelSetupStatus::OK);
+        response.set_max_unacked(1);
+        response.add_configs(0);
+
+        auto promise = aasdk::channel::SendPromise::defer(strand_);
+        promise->then([]() {}, [](const aasdk::error::Error& e) {});
+        channel_->sendAVChannelSetupResponse(response, std::move(promise));
+        channel_->receive(shared_from_this());
+    }
+
+    void onAVInputOpenRequest(const aasdk::proto::messages::AVInputOpenRequest& request) override {
+        BOOST_LOG_TRIVIAL(info) << "[AVInputService] Input open request (open=" << request.open() << ")";
+        aasdk::proto::messages::AVInputOpenResponse response;
+        response.set_session(0);
+        response.set_value(0);  // 0 = success
+
+        auto promise = aasdk::channel::SendPromise::defer(strand_);
+        promise->then([]() {}, [](const aasdk::error::Error& e) {});
+        channel_->sendAVInputOpenResponse(response, std::move(promise));
+        channel_->receive(shared_from_this());
+    }
+
+    void onAVMediaAckIndication(const aasdk::proto::messages::AVMediaAckIndication& indication) override {
+        // Phone ACKed our mic data (we don't actually send any yet)
+        channel_->receive(shared_from_this());
+    }
+
+    void onChannelError(const aasdk::error::Error& e) override {
+        BOOST_LOG_TRIVIAL(error) << "[AVInputService] Error: " << e.what();
+    }
+
+private:
+    boost::asio::io_service::strand strand_;
+    std::shared_ptr<aasdk::channel::av::AVInputServiceChannel> channel_;
+};
+
+// ============================================================================
+// MediaInfo Service (stub — advertises media playback status channel)
+// ============================================================================
+class MediaInfoServiceStub
+    : public IService
+    , public std::enable_shared_from_this<MediaInfoServiceStub>
+{
+public:
+    MediaInfoServiceStub() = default;
+
+    void start() override {
+        BOOST_LOG_TRIVIAL(info) << "[MediaInfoService] Started (stub — advertise only)";
+    }
+
+    void stop() override {}
+
+    void fillFeatures(aasdk::proto::messages::ServiceDiscoveryResponse& response) override {
+        auto* desc = response.add_channels();
+        desc->set_channel_id(9);  // MediaPlaybackStatus channel
+        desc->mutable_media_infochannel();  // Empty message — just needs to exist
+    }
+};
+
+// ============================================================================
 // Factory
 // ============================================================================
 
@@ -522,6 +637,8 @@ IService::ServiceList ServiceFactory::create(
 #endif
     services.push_back(std::make_shared<BluetoothServiceStub>(ioService, messenger, btMac));
     services.push_back(std::make_shared<WIFIServiceStub>(ioService, messenger, config));
+    services.push_back(std::make_shared<AVInputServiceStub>(ioService, messenger));
+    services.push_back(std::make_shared<MediaInfoServiceStub>());
 
     BOOST_LOG_TRIVIAL(info) << "[ServiceFactory] Created " << services.size() << " services";
     return services;
