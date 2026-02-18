@@ -6,6 +6,8 @@
 #include <QVideoFrame>
 #include <QVideoFrameFormat>
 
+#include "PerfStats.hpp"
+
 // FFmpeg C headers
 extern "C" {
 #include <libavcodec/avcodec.h>
@@ -31,7 +33,7 @@ signals:
     void videoSinkChanged();
 
 public slots:
-    void decodeFrame(QByteArray h264Data);
+    void decodeFrame(QByteArray h264Data, qint64 enqueueTimeNs = 0);
 
 private:
     void cleanup();
@@ -46,6 +48,15 @@ private:
     AVFrame* frame_ = nullptr;
 
     uint64_t frameCount_ = 0;
+
+    // Performance instrumentation
+    PerfStats::Metric metricQueue_;    // signal emit → decode start
+    PerfStats::Metric metricDecode_;   // decode start → avcodec_receive_frame
+    PerfStats::Metric metricCopy_;     // receive_frame → copy done
+    PerfStats::Metric metricTotal_;    // signal emit → setVideoFrame
+    PerfStats::TimePoint lastLogTime_ = PerfStats::Clock::now();
+    uint64_t framesSinceLog_ = 0;
+    static constexpr double LOG_INTERVAL_SEC = 5.0;
 };
 
 } // namespace aa

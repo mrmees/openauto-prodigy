@@ -1,5 +1,6 @@
 #include "VideoService.hpp"
 
+#include <chrono>
 #include <boost/log/trivial.hpp>
 
 #include <aasdk/Messenger/ChannelId.hpp>
@@ -139,7 +140,8 @@ void VideoService::onAVMediaWithTimestampIndication(
     // Marshal H.264 data to Qt thread for decoding
     // QByteArray performs a deep copy here which is fine — the ASIO buffer
     // is only valid for the duration of this callback
-    emit videoFrameData(QByteArray(reinterpret_cast<const char*>(buffer.cdata), buffer.size));
+    emit videoFrameData(QByteArray(reinterpret_cast<const char*>(buffer.cdata), buffer.size),
+                        std::chrono::steady_clock::now().time_since_epoch().count());
 
     channel_->receive(shared_from_this());
 }
@@ -148,7 +150,8 @@ void VideoService::onAVMediaIndication(const aasdk::common::DataConstBuffer& buf
 {
     // SPS/PPS codec configuration data arrives here (no timestamp)
     // Must forward to decoder or it will never be able to decode frames
-    emit videoFrameData(QByteArray(reinterpret_cast<const char*>(buffer.cdata), buffer.size));
+    emit videoFrameData(QByteArray(reinterpret_cast<const char*>(buffer.cdata), buffer.size),
+                        std::chrono::steady_clock::now().time_since_epoch().count());
     channel_->receive(shared_from_this());
 }
 
