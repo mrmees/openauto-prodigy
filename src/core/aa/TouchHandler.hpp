@@ -119,6 +119,15 @@ public:
                 location->set_pointer_id(map["pointerId"].toInt());
             }
 
+            // Debug: log multi-touch details
+            if (allPoints.size() > 1 || action != 2) {
+                BOOST_LOG_TRIVIAL(info)
+                    << "[Touch] action=" << action
+                    << " actionPtr=" << actionPointerId
+                    << " points=" << allPoints.size()
+                    << " locs=" << touchEvent->touch_location_size();
+            }
+
             auto promise = aasdk::channel::SendPromise::defer(*strand_);
             promise->then([]() {}, [](const aasdk::error::Error&) {});
             channel_->sendInputEventIndication(indication, std::move(promise));
