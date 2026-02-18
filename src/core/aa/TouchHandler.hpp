@@ -1,7 +1,7 @@
 #pragma once
 
 #include <QObject>
-#include <QVariant>
+#include <vector>
 #include <chrono>
 #include <iomanip>
 #include <boost/asio.hpp>
@@ -21,6 +21,8 @@ class TouchHandler : public QObject {
     Q_OBJECT
 
 public:
+    struct Pointer { int x; int y; int id; };
+
     explicit TouchHandler(QObject* parent = nullptr)
         : QObject(parent) {}
 
@@ -30,18 +32,17 @@ public:
         strand_ = strand;
     }
 
-    // Single touch: action 0=PRESS, 1=RELEASE, 2=DRAG
-    Q_INVOKABLE void sendTouchEvent(int x, int y, int action) {
-        sendMultiTouchEvent(x, y, 0, action);
-    }
+    // Send a complete touch event with all active pointers.
+    // action: 0=DOWN, 1=UP, 2=MOVE, 5=POINTER_DOWN, 6=POINTER_UP
+    // actionIndex: index into pointers[] of the finger that triggered the action
+    void sendTouchIndication(int count, const Pointer* pointers, int actionIndex, int action) {
+        if (!channel_ || !strand_ || count <= 0) return;
 
-    // Multi-touch: action 0=PRESS, 1=RELEASE, 2=DRAG, 5=POINTER_DOWN, 6=POINTER_UP
-    Q_INVOKABLE void sendMultiTouchEvent(int x, int y, int pointerId, int action) {
-        if (!channel_ || !strand_) return;
+        // Copy pointer data for the lambda capture
+        std::vector<Pointer> pts(pointers, pointers + count);
+        auto t_start = PerfStats::Clock::now().time_since_epoch().count();
 
-        auto t_qml = PerfStats::Clock::now().time_since_epoch().count();
-
-        strand_->dispatch([this, x, y, pointerId, action, t_qml]() {
+        strand_->dispatch([this, pts = std::move(pts), actionIndex, action, t_start]() {
             auto t_dispatch = PerfStats::Clock::now();
 
             aasdk::proto::messages::InputEventIndication indication;
@@ -53,89 +54,13 @@ public:
             auto* touchEvent = indication.mutable_touch_event();
             touchEvent->set_touch_action(
                 static_cast<aasdk::proto::enums::TouchAction::Enum>(action));
-            touchEvent->set_action_index(pointerId);
+            touchEvent->set_action_index(actionIndex);
 
-            auto* location = touchEvent->add_touch_location();
-            location->set_x(x);
-            location->set_y(y);
-            location->set_pointer_id(pointerId);
-
-            auto promise = aasdk::channel::SendPromise::defer(*strand_);
-            promise->then([]() {}, [](const aasdk::error::Error&) {});
-            channel_->sendInputEventIndication(indication, std::move(promise));
-
-            auto t_send = PerfStats::Clock::now();
-            auto t_qmlPoint = PerfStats::TimePoint(std::chrono::nanoseconds(t_qml));
-
-            metricDispatch_.record(PerfStats::msElapsed(t_qmlPoint, t_dispatch));
-            metricSend_.record(PerfStats::msElapsed(t_dispatch, t_send));
-            metricTotal_.record(PerfStats::msElapsed(t_qmlPoint, t_send));
-            ++eventsSinceLog_;
-
-            double secSinceLog = PerfStats::msElapsed(lastLogTime_, t_send) / 1000.0;
-            if (secSinceLog >= 5.0) {
-                double eventsPerSec = eventsSinceLog_ / secSinceLog;
-                BOOST_LOG_TRIVIAL(info)
-                    << "[Perf] Touch: qml->dispatch=" << std::fixed << std::setprecision(1)
-                    << metricDispatch_.avg() << "ms"
-                    << " send=" << metricSend_.avg() << "ms"
-                    << " total=" << metricTotal_.avg() << "ms"
-                    << " (p99~" << metricTotal_.max << "ms)"
-                    << " | " << std::setprecision(1) << eventsPerSec << " events/sec";
-                metricDispatch_.reset();
-                metricSend_.reset();
-                metricTotal_.reset();
-                eventsSinceLog_ = 0;
-                lastLogTime_ = t_send;
-            }
-        });
-    }
-
-    // Full multi-touch: sends ALL active touch locations + action + which pointer triggered it
-    Q_INVOKABLE void sendBatchTouchEvent(QVariantList allPoints, int actionPointerId, int action) {
-        if (!channel_ || !strand_ || allPoints.isEmpty()) return;
-
-        auto t_qml = PerfStats::Clock::now().time_since_epoch().count();
-
-        strand_->dispatch([this, allPoints = std::move(allPoints), actionPointerId, action, t_qml]() {
-            auto t_dispatch = PerfStats::Clock::now();
-
-            aasdk::proto::messages::InputEventIndication indication;
-            indication.set_timestamp(
-                std::chrono::duration_cast<std::chrono::microseconds>(
-                    std::chrono::steady_clock::now().time_since_epoch()).count());
-            indication.set_disp_channel(0);
-
-            auto* touchEvent = indication.mutable_touch_event();
-            touchEvent->set_touch_action(
-                static_cast<aasdk::proto::enums::TouchAction::Enum>(action));
-
-            // action_index is the ARRAY INDEX of the pointer that triggered the action,
-            // not the pointer ID itself
-            int actionIdx = 0;
-            for (int i = 0; i < allPoints.size(); ++i) {
-                if (allPoints[i].toMap()["pointerId"].toInt() == actionPointerId) {
-                    actionIdx = i;
-                    break;
-                }
-            }
-            touchEvent->set_action_index(actionIdx);
-
-            for (const auto& pt : allPoints) {
-                auto map = pt.toMap();
+            for (const auto& pt : pts) {
                 auto* location = touchEvent->add_touch_location();
-                location->set_x(map["x"].toInt());
-                location->set_y(map["y"].toInt());
-                location->set_pointer_id(map["pointerId"].toInt());
-            }
-
-            // Debug: log multi-touch details
-            if (allPoints.size() > 1 || action != 2) {
-                BOOST_LOG_TRIVIAL(info)
-                    << "[Touch] action=" << action
-                    << " actionIdx=" << actionIdx
-                    << " points=" << allPoints.size()
-                    << " locs=" << touchEvent->touch_location_size();
+                location->set_x(pt.x);
+                location->set_y(pt.y);
+                location->set_pointer_id(pt.id);
             }
 
             auto promise = aasdk::channel::SendPromise::defer(*strand_);
@@ -143,18 +68,18 @@ public:
             channel_->sendInputEventIndication(indication, std::move(promise));
 
             auto t_send = PerfStats::Clock::now();
-            auto t_qmlPoint = PerfStats::TimePoint(std::chrono::nanoseconds(t_qml));
+            auto t_startPt = PerfStats::TimePoint(std::chrono::nanoseconds(t_start));
 
-            metricDispatch_.record(PerfStats::msElapsed(t_qmlPoint, t_dispatch));
+            metricDispatch_.record(PerfStats::msElapsed(t_startPt, t_dispatch));
             metricSend_.record(PerfStats::msElapsed(t_dispatch, t_send));
-            metricTotal_.record(PerfStats::msElapsed(t_qmlPoint, t_send));
+            metricTotal_.record(PerfStats::msElapsed(t_startPt, t_send));
             ++eventsSinceLog_;
 
             double secSinceLog = PerfStats::msElapsed(lastLogTime_, t_send) / 1000.0;
             if (secSinceLog >= 5.0) {
                 double eventsPerSec = eventsSinceLog_ / secSinceLog;
                 BOOST_LOG_TRIVIAL(info)
-                    << "[Perf] Touch: qml->dispatch=" << std::fixed << std::setprecision(1)
+                    << "[Perf] Touch: dispatch=" << std::fixed << std::setprecision(1)
                     << metricDispatch_.avg() << "ms"
                     << " send=" << metricSend_.avg() << "ms"
                     << " total=" << metricTotal_.avg() << "ms"
@@ -167,13 +92,18 @@ public:
                 lastLogTime_ = t_send;
             }
         });
+    }
+
+    // Convenience for QML single-touch (fallback if evdev not available)
+    Q_INVOKABLE void sendTouchEvent(int x, int y, int action) {
+        Pointer pt{x, y, 0};
+        sendTouchIndication(1, &pt, 0, action);
     }
 
 private:
     std::shared_ptr<aasdk::channel::input::InputServiceChannel> channel_;
     boost::asio::io_service::strand* strand_ = nullptr;
 
-    // Performance instrumentation
     PerfStats::Metric metricDispatch_;
     PerfStats::Metric metricSend_;
     PerfStats::Metric metricTotal_;

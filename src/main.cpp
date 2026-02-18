@@ -6,6 +6,7 @@
 #include <memory>
 #include "core/Configuration.hpp"
 #include "core/aa/AndroidAutoService.hpp"
+#include "core/aa/EvdevTouchReader.hpp"
 #include "ui/ThemeController.hpp"
 #include "ui/ApplicationController.hpp"
 
@@ -57,8 +58,28 @@ int main(int argc, char *argv[])
         }
     });
 
+    // Start evdev touch reader if device exists (Pi only, not dev VM)
+    oap::aa::EvdevTouchReader* touchReader = nullptr;
+    QString touchDevice = "/dev/input/event4";  // TODO: make configurable
+    if (QFile::exists(touchDevice)) {
+        touchReader = new oap::aa::EvdevTouchReader(
+            aaService->touchHandler(),
+            touchDevice.toStdString(),
+            4095, 4095,   // evdev axis range (read from device at runtime)
+            1024, 600,    // AA touch coordinate space
+            &app);
+        touchReader->start();
+    }
+
     // Start AA service after QML is loaded
     aaService->start();
 
-    return app.exec();
+    int ret = app.exec();
+
+    if (touchReader) {
+        touchReader->requestStop();
+        touchReader->wait();
+    }
+
+    return ret;
 }
