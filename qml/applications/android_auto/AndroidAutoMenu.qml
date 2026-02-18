@@ -26,43 +26,32 @@ Item {
         maximumTouchPoints: 10
 
         onPressed: function(touchPoints) {
-            var points = [];
             for (var i = 0; i < touchPoints.length; i++) {
                 var tp = touchPoints[i];
-                points.push({
-                    "x": Math.round(tp.x / width * 1024),
-                    "y": Math.round(tp.y / height * 600),
-                    "pointerId": tp.pointId
-                });
+                var nx = Math.round(tp.x / width * 1024);
+                var ny = Math.round(tp.y / height * 600);
+                TouchHandler.sendMultiTouchEvent(nx, ny, tp.pointId, i === 0 ? 0 : 5);
                 touchPointModel.append({ ptId: tp.pointId, ptX: tp.x, ptY: tp.y });
             }
-            TouchHandler.sendBatchTouchEvent(points, points.length === 1 ? 0 : 5);
         }
         onReleased: function(touchPoints) {
-            var points = [];
             for (var i = 0; i < touchPoints.length; i++) {
                 var tp = touchPoints[i];
-                points.push({
-                    "x": Math.round(tp.x / width * 1024),
-                    "y": Math.round(tp.y / height * 600),
-                    "pointerId": tp.pointId
-                });
+                var nx = Math.round(tp.x / width * 1024);
+                var ny = Math.round(tp.y / height * 600);
+                TouchHandler.sendMultiTouchEvent(nx, ny, tp.pointId, i === 0 ? 1 : 6);
                 for (var j = touchPointModel.count - 1; j >= 0; j--) {
                     if (touchPointModel.get(j).ptId === tp.pointId)
                         touchPointModel.remove(j);
                 }
             }
-            TouchHandler.sendBatchTouchEvent(points, points.length === 1 ? 1 : 6);
         }
         onUpdated: function(touchPoints) {
-            var points = [];
             for (var i = 0; i < touchPoints.length; i++) {
                 var tp = touchPoints[i];
-                points.push({
-                    "x": Math.round(tp.x / width * 1024),
-                    "y": Math.round(tp.y / height * 600),
-                    "pointerId": tp.pointId
-                });
+                var nx = Math.round(tp.x / width * 1024);
+                var ny = Math.round(tp.y / height * 600);
+                TouchHandler.sendMultiTouchEvent(nx, ny, tp.pointId, 2);
                 for (var j = 0; j < touchPointModel.count; j++) {
                     if (touchPointModel.get(j).ptId === tp.pointId) {
                         touchPointModel.set(j, { ptId: tp.pointId, ptX: tp.x, ptY: tp.y });
@@ -70,7 +59,6 @@ Item {
                     }
                 }
             }
-            TouchHandler.sendBatchTouchEvent(points, 2);
         }
     }
 
