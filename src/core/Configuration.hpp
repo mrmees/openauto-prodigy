@@ -87,6 +87,10 @@ public:
     uint16_t tcpPort() const { return m_tcpPort; }
     void setTcpPort(uint16_t v) { m_tcpPort = v; }
 
+    // --- Video ---
+    int videoFps() const { return m_videoFps; }
+    void setVideoFps(int v) { m_videoFps = (v == 30) ? 30 : 60; }
+
     // --- System ---
     QString language() const { return m_language; }
     void setLanguage(const QString& v) { m_language = v; }
@@ -167,6 +171,9 @@ private:
     QString m_wifiSsid = QStringLiteral("OpenAutoProdigy");
     QString m_wifiPassword = QStringLiteral("prodigy1234");
     uint16_t m_tcpPort = 5288;
+
+    // Video
+    int m_videoFps = 60;
 
     // System
     QString m_language = QStringLiteral("en_US");

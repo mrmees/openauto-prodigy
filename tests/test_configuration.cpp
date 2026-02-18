@@ -12,6 +12,7 @@ private slots:
     void testLoadFromFile();
     void testDayNightColors();
     void testSaveRoundTrip();
+    void testVideoFps();
 };
 
 void TestConfiguration::testLoadDefaults() {
@@ -150,6 +151,18 @@ void TestConfiguration::testSaveRoundTrip() {
     };
     compareColors(ThemeMode::Day);
     compareColors(ThemeMode::Night);
+}
+
+void TestConfiguration::testVideoFps()
+{
+    oap::Configuration config;
+    QCOMPARE(config.videoFps(), 60);
+
+    config.setVideoFps(30);
+    QCOMPARE(config.videoFps(), 30);
+
+    config.setVideoFps(45);
+    QCOMPARE(config.videoFps(), 60);
 }
 
 QTEST_GUILESS_MAIN(TestConfiguration)

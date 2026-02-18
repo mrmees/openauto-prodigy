@@ -60,7 +60,10 @@ void VideoService::fillFeatures(aasdk::proto::messages::ServiceDiscoveryResponse
 
     auto* videoConfig = avChannel->add_video_configs();
     videoConfig->set_video_resolution(aasdk::proto::enums::VideoResolution::_720p);
-    videoConfig->set_video_fps(aasdk::proto::enums::VideoFPS::_30);
+    videoConfig->set_video_fps(
+        config_->videoFps() == 60
+            ? aasdk::proto::enums::VideoFPS::_60
+            : aasdk::proto::enums::VideoFPS::_30);
     videoConfig->set_margin_width(0);
     videoConfig->set_margin_height(0);
     videoConfig->set_dpi(config_->screenDpi());
