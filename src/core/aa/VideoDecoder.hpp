@@ -5,6 +5,7 @@
 #include <QVideoSink>
 #include <QVideoFrame>
 #include <QVideoFrameFormat>
+#include <optional>
 
 #include "PerfStats.hpp"
 
@@ -57,6 +58,11 @@ private:
     PerfStats::TimePoint lastLogTime_ = PerfStats::Clock::now();
     uint64_t framesSinceLog_ = 0;
     static constexpr double LOG_INTERVAL_SEC = 5.0;
+
+    // Cached video frame format + double-buffered frames
+    std::optional<QVideoFrameFormat> cachedFormat_;
+    QVideoFrame frameBuffers_[2];
+    int currentBuffer_ = 0;
 };
 
 } // namespace aa

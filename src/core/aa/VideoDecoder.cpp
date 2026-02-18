@@ -118,38 +118,64 @@ void VideoDecoder::decodeFrame(QByteArray h264Data, qint64 enqueueTimeNs)
 
             // Got a decoded frame — convert to QVideoFrame
             if (videoSink_ && frame_->format == AV_PIX_FMT_YUV420P) {
-                QVideoFrameFormat format(
-                    QSize(frame_->width, frame_->height),
-                    QVideoFrameFormat::Format_YUV420P);
+                // Cache format on first frame or resolution change
+                if (!cachedFormat_ ||
+                    cachedFormat_->frameWidth() != frame_->width ||
+                    cachedFormat_->frameHeight() != frame_->height) {
+                    cachedFormat_ = QVideoFrameFormat(
+                        QSize(frame_->width, frame_->height),
+                        QVideoFrameFormat::Format_YUV420P);
+                    frameBuffers_[0] = QVideoFrame();
+                    frameBuffers_[1] = QVideoFrame();
+                }
 
-                QVideoFrame videoFrame(format);
+                // Double-buffered: alternate between two pre-allocated frames
+                int bufIdx = currentBuffer_;
+                currentBuffer_ = 1 - currentBuffer_;
+
+                if (!frameBuffers_[bufIdx].isValid()) {
+                    frameBuffers_[bufIdx] = QVideoFrame(*cachedFormat_);
+                }
+
+                QVideoFrame& videoFrame = frameBuffers_[bufIdx];
                 if (videoFrame.map(QVideoFrame::WriteOnly)) {
-                    // Copy Y plane
-                    const int yStride = videoFrame.bytesPerLine(0);
-                    const uint8_t* ySrc = frame_->data[0];
-                    uint8_t* yDst = videoFrame.bits(0);
-                    for (int y = 0; y < frame_->height; ++y) {
-                        std::memcpy(yDst + y * yStride, ySrc + y * frame_->linesize[0],
-                                    std::min(yStride, frame_->linesize[0]));
+                    const int h = frame_->height;
+                    const int chromaH = h / 2;
+
+                    // Y plane — bulk copy if strides match
+                    const int yDstStride = videoFrame.bytesPerLine(0);
+                    const int ySrcStride = frame_->linesize[0];
+                    if (yDstStride == ySrcStride) {
+                        std::memcpy(videoFrame.bits(0), frame_->data[0], ySrcStride * h);
+                    } else {
+                        const int yRowBytes = std::min(yDstStride, ySrcStride);
+                        for (int y = 0; y < h; ++y)
+                            std::memcpy(videoFrame.bits(0) + y * yDstStride,
+                                        frame_->data[0] + y * ySrcStride, yRowBytes);
                     }
 
-                    // Copy U plane
-                    const int uStride = videoFrame.bytesPerLine(1);
-                    const uint8_t* uSrc = frame_->data[1];
-                    uint8_t* uDst = videoFrame.bits(1);
-                    const int chromaHeight = frame_->height / 2;
-                    for (int y = 0; y < chromaHeight; ++y) {
-                        std::memcpy(uDst + y * uStride, uSrc + y * frame_->linesize[1],
-                                    std::min(uStride, frame_->linesize[1]));
+                    // U plane
+                    const int uDstStride = videoFrame.bytesPerLine(1);
+                    const int uSrcStride = frame_->linesize[1];
+                    if (uDstStride == uSrcStride) {
+                        std::memcpy(videoFrame.bits(1), frame_->data[1], uSrcStride * chromaH);
+                    } else {
+                        const int uRowBytes = std::min(uDstStride, uSrcStride);
+                        for (int y = 0; y < chromaH; ++y)
+                            std::memcpy(videoFrame.bits(1) + y * uDstStride,
+                                        frame_->data[1] + y * uSrcStride, uRowBytes);
                     }
 
-                    // Copy V plane
-                    const int vStride = videoFrame.bytesPerLine(2);
-                    const uint8_t* vSrc = frame_->data[2];
-                    uint8_t* vDst = videoFrame.bits(2);
-                    for (int y = 0; y < chromaHeight; ++y) {
-                        std::memcpy(vDst + y * vStride, vSrc + y * frame_->linesize[2],
-                                    std::min(vStride, frame_->linesize[2]));
+                    // V plane
+                    const int vDstStride = videoFrame.bytesPerLine(2);
+                    const int vSrcStride = frame_->linesize[2];
+                    if (vDstStride == vSrcStride) {
+                        std::memcpy(videoFrame.bits(2), frame_->data[2], vSrcStride * chromaH);
+                    } else {
+                        const int vRowBytes = std::min(vDstStride, vSrcStride);
+                        for (int y = 0; y < chromaH; ++y)
+                            std::memcpy(videoFrame.bits(2) + y * vDstStride,
+                                        frame_->data[2] + y * vSrcStride, vRowBytes);
                     }
 
                     videoFrame.unmap();
