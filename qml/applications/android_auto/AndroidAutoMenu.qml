@@ -30,7 +30,9 @@ Item {
                 var tp = touchPoints[i];
                 var nx = Math.round(tp.x / width * 1024);
                 var ny = Math.round(tp.y / height * 600);
-                TouchHandler.sendMultiTouchEvent(nx, ny, tp.pointId, i === 0 ? 0 : 5);
+                // First finger ever = DOWN(0), additional fingers = POINTER_DOWN(5)
+                var action = (touchPointModel.count === 0 && i === 0) ? 0 : 5;
+                TouchHandler.sendMultiTouchEvent(nx, ny, tp.pointId, action);
                 touchPointModel.append({ ptId: tp.pointId, ptX: tp.x, ptY: tp.y });
             }
         }
@@ -39,7 +41,10 @@ Item {
                 var tp = touchPoints[i];
                 var nx = Math.round(tp.x / width * 1024);
                 var ny = Math.round(tp.y / height * 600);
-                TouchHandler.sendMultiTouchEvent(nx, ny, tp.pointId, i === 0 ? 1 : 6);
+                // Last finger leaving = UP(1), others = POINTER_UP(6)
+                var remaining = touchPointModel.count - 1;  // after removing this one
+                var action = (remaining === 0 && i === touchPoints.length - 1) ? 1 : 6;
+                TouchHandler.sendMultiTouchEvent(nx, ny, tp.pointId, action);
                 for (var j = touchPointModel.count - 1; j >= 0; j--) {
                     if (touchPointModel.get(j).ptId === tp.pointId)
                         touchPointModel.remove(j);
