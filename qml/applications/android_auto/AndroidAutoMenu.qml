@@ -18,7 +18,20 @@ Item {
     // Touch point visualization model
     ListModel { id: touchPointModel }
 
+    // Build list of ALL active touch locations (in AA coordinates) for protocol messages
+    function allActiveTouches() {
+        var pts = [];
+        for (var i = 0; i < touchPointModel.count; i++) {
+            var p = touchPointModel.get(i);
+            pts.push({ x: Math.round(p.ptX / width * 1024),
+                        y: Math.round(p.ptY / height * 600),
+                        pointerId: p.ptId });
+        }
+        return pts;
+    }
+
     // Multi-touch input — forward to phone via AA input channel
+    // AA protocol requires ALL active touch locations in every message
     MultiPointTouchArea {
         anchors.fill: videoOutput
         visible: videoOutput.visible
@@ -28,23 +41,28 @@ Item {
         onPressed: function(touchPoints) {
             for (var i = 0; i < touchPoints.length; i++) {
                 var tp = touchPoints[i];
-                var nx = Math.round(tp.x / width * 1024);
-                var ny = Math.round(tp.y / height * 600);
-                // First finger ever = DOWN(0), additional fingers = POINTER_DOWN(5)
+                // First finger = DOWN(0), additional = POINTER_DOWN(5)
                 var action = (touchPointModel.count === 0 && i === 0) ? 0 : 5;
-                TouchHandler.sendMultiTouchEvent(nx, ny, tp.pointId, action);
+                // Add to model FIRST so it's included in allActiveTouches
                 touchPointModel.append({ ptId: tp.pointId, ptX: tp.x, ptY: tp.y });
+                TouchHandler.sendBatchTouchEvent(allActiveTouches(), tp.pointId, action);
             }
         }
         onReleased: function(touchPoints) {
             for (var i = 0; i < touchPoints.length; i++) {
                 var tp = touchPoints[i];
-                var nx = Math.round(tp.x / width * 1024);
-                var ny = Math.round(tp.y / height * 600);
-                // Last finger leaving = UP(1), others = POINTER_UP(6)
-                var remaining = touchPointModel.count - 1;  // after removing this one
+                // Update position of released point in model
+                for (var j = 0; j < touchPointModel.count; j++) {
+                    if (touchPointModel.get(j).ptId === tp.pointId) {
+                        touchPointModel.set(j, { ptId: tp.pointId, ptX: tp.x, ptY: tp.y });
+                        break;
+                    }
+                }
+                var remaining = touchPointModel.count - 1;
                 var action = (remaining === 0 && i === touchPoints.length - 1) ? 1 : 6;
-                TouchHandler.sendMultiTouchEvent(nx, ny, tp.pointId, action);
+                // Send with ALL touches INCLUDING the one being released
+                TouchHandler.sendBatchTouchEvent(allActiveTouches(), tp.pointId, action);
+                // NOW remove from model
                 for (var j = touchPointModel.count - 1; j >= 0; j--) {
                     if (touchPointModel.get(j).ptId === tp.pointId)
                         touchPointModel.remove(j);
@@ -52,11 +70,9 @@ Item {
             }
         }
         onUpdated: function(touchPoints) {
+            // Update all moved positions in model first
             for (var i = 0; i < touchPoints.length; i++) {
                 var tp = touchPoints[i];
-                var nx = Math.round(tp.x / width * 1024);
-                var ny = Math.round(tp.y / height * 600);
-                TouchHandler.sendMultiTouchEvent(nx, ny, tp.pointId, 2);
                 for (var j = 0; j < touchPointModel.count; j++) {
                     if (touchPointModel.get(j).ptId === tp.pointId) {
                         touchPointModel.set(j, { ptId: tp.pointId, ptX: tp.x, ptY: tp.y });
@@ -64,6 +80,9 @@ Item {
                     }
                 }
             }
+            // Send ONE move event with ALL active touches
+            if (touchPointModel.count > 0)
+                TouchHandler.sendBatchTouchEvent(allActiveTouches(), touchPoints[0].pointId, 2);
         }
     }
 

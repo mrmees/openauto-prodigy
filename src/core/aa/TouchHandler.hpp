@@ -91,12 +91,13 @@ public:
         });
     }
 
-    Q_INVOKABLE void sendBatchTouchEvent(QVariantList points, int action) {
-        if (!channel_ || !strand_ || points.isEmpty()) return;
+    // Full multi-touch: sends ALL active touch locations + action + which pointer triggered it
+    Q_INVOKABLE void sendBatchTouchEvent(QVariantList allPoints, int actionPointerId, int action) {
+        if (!channel_ || !strand_ || allPoints.isEmpty()) return;
 
         auto t_qml = PerfStats::Clock::now().time_since_epoch().count();
 
-        strand_->dispatch([this, points = std::move(points), action, t_qml]() {
+        strand_->dispatch([this, allPoints = std::move(allPoints), actionPointerId, action, t_qml]() {
             auto t_dispatch = PerfStats::Clock::now();
 
             aasdk::proto::messages::InputEventIndication indication;
@@ -108,13 +109,9 @@ public:
             auto* touchEvent = indication.mutable_touch_event();
             touchEvent->set_touch_action(
                 static_cast<aasdk::proto::enums::TouchAction::Enum>(action));
+            touchEvent->set_action_index(actionPointerId);
 
-            if (!points.isEmpty()) {
-                auto firstPt = points[0].toMap();
-                touchEvent->set_action_index(firstPt["pointerId"].toInt());
-            }
-
-            for (const auto& pt : points) {
+            for (const auto& pt : allPoints) {
                 auto map = pt.toMap();
                 auto* location = touchEvent->add_touch_location();
                 location->set_x(map["x"].toInt());
