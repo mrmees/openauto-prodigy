@@ -32,7 +32,7 @@ VideoService::VideoService(
     if (decoder_) {
         connect(this, &VideoService::videoFrameData,
                 decoder_, &VideoDecoder::decodeFrame,
-                Qt::QueuedConnection);
+                Qt::DirectConnection);
     }
 }
 

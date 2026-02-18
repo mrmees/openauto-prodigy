@@ -1,5 +1,6 @@
 #include "VideoDecoder.hpp"
 
+#include <QMetaObject>
 #include <boost/log/trivial.hpp>
 #include <cstring>
 #include <iomanip>
@@ -44,6 +45,10 @@ VideoDecoder::VideoDecoder(QObject* parent)
     frame_ = av_frame_alloc();
 
     BOOST_LOG_TRIVIAL(info) << "[VideoDecoder] Initialized (H.264 software decode)";
+
+    worker_ = new DecodeWorker(this);
+    worker_->start();
+    BOOST_LOG_TRIVIAL(info) << "[VideoDecoder] Decode worker thread started";
 }
 
 VideoDecoder::~VideoDecoder()
@@ -53,6 +58,13 @@ VideoDecoder::~VideoDecoder()
 
 void VideoDecoder::cleanup()
 {
+    if (worker_) {
+        worker_->requestStop();
+        worker_->wait();
+        delete worker_;
+        worker_ = nullptr;
+    }
+
     if (frame_) { av_frame_free(&frame_); frame_ = nullptr; }
     if (packet_) { av_packet_free(&packet_); packet_ = nullptr; }
     if (parser_) { av_parser_close(parser_); parser_ = nullptr; }
@@ -70,6 +82,12 @@ void VideoDecoder::setVideoSink(QVideoSink* sink)
 }
 
 void VideoDecoder::decodeFrame(QByteArray h264Data, qint64 enqueueTimeNs)
+{
+    if (worker_)
+        worker_->enqueue(std::move(h264Data), enqueueTimeNs);
+}
+
+void VideoDecoder::processFrame(const QByteArray& h264Data, qint64 enqueueTimeNs)
 {
     if (!codecCtx_ || !parser_ || !packet_ || !frame_) return;
 
@@ -182,7 +200,11 @@ void VideoDecoder::decodeFrame(QByteArray h264Data, qint64 enqueueTimeNs)
 
                     auto t_copyDone = PerfStats::Clock::now();
 
-                    videoSink_->setVideoFrame(videoFrame);
+                    // Marshal setVideoFrame back to Qt main thread
+                    QVideoFrame frameCopy = videoFrame;
+                    QMetaObject::invokeMethod(videoSink_, [this, frameCopy]() {
+                        videoSink_->setVideoFrame(frameCopy);
+                    }, Qt::QueuedConnection);
 
                     auto t_display = PerfStats::Clock::now();
 
@@ -229,6 +251,37 @@ void VideoDecoder::decodeFrame(QByteArray h264Data, qint64 enqueueTimeNs)
 
             av_frame_unref(frame_);
         }
+    }
+}
+
+void VideoDecoder::DecodeWorker::enqueue(QByteArray data, qint64 enqueueTimeNs)
+{
+    QMutexLocker locker(&mutex_);
+    queue_.push({std::move(data), enqueueTimeNs});
+    condition_.wakeOne();
+}
+
+void VideoDecoder::DecodeWorker::requestStop()
+{
+    QMutexLocker locker(&mutex_);
+    stopRequested_ = true;
+    condition_.wakeOne();
+}
+
+void VideoDecoder::DecodeWorker::run()
+{
+    while (true) {
+        WorkItem item;
+        {
+            QMutexLocker locker(&mutex_);
+            while (queue_.empty() && !stopRequested_)
+                condition_.wait(&mutex_);
+            if (stopRequested_ && queue_.empty())
+                return;
+            item = std::move(queue_.front());
+            queue_.pop();
+        }
+        decoder_->processFrame(item.data, item.enqueueTimeNs);
     }
 }
 

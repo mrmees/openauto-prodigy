@@ -5,7 +5,11 @@
 #include <QVideoSink>
 #include <QVideoFrame>
 #include <QVideoFrameFormat>
+#include <QThread>
+#include <QMutex>
+#include <QWaitCondition>
 #include <optional>
+#include <queue>
 
 #include "PerfStats.hpp"
 
@@ -37,6 +41,25 @@ public slots:
     void decodeFrame(QByteArray h264Data, qint64 enqueueTimeNs = 0);
 
 private:
+    // Decode worker thread
+    class DecodeWorker : public QThread {
+    public:
+        explicit DecodeWorker(VideoDecoder* decoder) : decoder_(decoder) {}
+        void run() override;
+        void enqueue(QByteArray data, qint64 enqueueTimeNs);
+        void requestStop();
+    private:
+        VideoDecoder* decoder_;
+        QMutex mutex_;
+        QWaitCondition condition_;
+        struct WorkItem { QByteArray data; qint64 enqueueTimeNs; };
+        std::queue<WorkItem> queue_;
+        bool stopRequested_ = false;
+    };
+
+    DecodeWorker* worker_ = nullptr;
+    void processFrame(const QByteArray& h264Data, qint64 enqueueTimeNs);
+
     void cleanup();
 
     QVideoSink* videoSink_ = nullptr;
