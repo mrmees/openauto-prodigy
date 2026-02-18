@@ -1,6 +1,7 @@
 #pragma once
 
 #include <QObject>
+#include <QVariant>
 #include <chrono>
 #include <iomanip>
 #include <boost/asio.hpp>
@@ -58,6 +59,68 @@ public:
             location->set_x(x);
             location->set_y(y);
             location->set_pointer_id(pointerId);
+
+            auto promise = aasdk::channel::SendPromise::defer(*strand_);
+            promise->then([]() {}, [](const aasdk::error::Error&) {});
+            channel_->sendInputEventIndication(indication, std::move(promise));
+
+            auto t_send = PerfStats::Clock::now();
+            auto t_qmlPoint = PerfStats::TimePoint(std::chrono::nanoseconds(t_qml));
+
+            metricDispatch_.record(PerfStats::msElapsed(t_qmlPoint, t_dispatch));
+            metricSend_.record(PerfStats::msElapsed(t_dispatch, t_send));
+            metricTotal_.record(PerfStats::msElapsed(t_qmlPoint, t_send));
+            ++eventsSinceLog_;
+
+            double secSinceLog = PerfStats::msElapsed(lastLogTime_, t_send) / 1000.0;
+            if (secSinceLog >= 5.0) {
+                double eventsPerSec = eventsSinceLog_ / secSinceLog;
+                BOOST_LOG_TRIVIAL(info)
+                    << "[Perf] Touch: qml->dispatch=" << std::fixed << std::setprecision(1)
+                    << metricDispatch_.avg() << "ms"
+                    << " send=" << metricSend_.avg() << "ms"
+                    << " total=" << metricTotal_.avg() << "ms"
+                    << " (p99~" << metricTotal_.max << "ms)"
+                    << " | " << std::setprecision(1) << eventsPerSec << " events/sec";
+                metricDispatch_.reset();
+                metricSend_.reset();
+                metricTotal_.reset();
+                eventsSinceLog_ = 0;
+                lastLogTime_ = t_send;
+            }
+        });
+    }
+
+    Q_INVOKABLE void sendBatchTouchEvent(QVariantList points, int action) {
+        if (!channel_ || !strand_ || points.isEmpty()) return;
+
+        auto t_qml = PerfStats::Clock::now().time_since_epoch().count();
+
+        strand_->dispatch([this, points = std::move(points), action, t_qml]() {
+            auto t_dispatch = PerfStats::Clock::now();
+
+            aasdk::proto::messages::InputEventIndication indication;
+            indication.set_timestamp(
+                std::chrono::duration_cast<std::chrono::microseconds>(
+                    std::chrono::steady_clock::now().time_since_epoch()).count());
+            indication.set_disp_channel(0);
+
+            auto* touchEvent = indication.mutable_touch_event();
+            touchEvent->set_touch_action(
+                static_cast<aasdk::proto::enums::TouchAction::Enum>(action));
+
+            if (!points.isEmpty()) {
+                auto firstPt = points[0].toMap();
+                touchEvent->set_action_index(firstPt["pointerId"].toInt());
+            }
+
+            for (const auto& pt : points) {
+                auto map = pt.toMap();
+                auto* location = touchEvent->add_touch_location();
+                location->set_x(map["x"].toInt());
+                location->set_y(map["y"].toInt());
+                location->set_pointer_id(map["pointerId"].toInt());
+            }
 
             auto promise = aasdk::channel::SendPromise::defer(*strand_);
             promise->then([]() {}, [](const aasdk::error::Error&) {});
