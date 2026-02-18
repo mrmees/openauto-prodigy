@@ -2,7 +2,10 @@
 
 #include <QObject>
 #include <chrono>
+#include <iomanip>
 #include <boost/asio.hpp>
+#include <boost/log/trivial.hpp>
+#include "PerfStats.hpp"
 #include <aasdk/Channel/Input/InputServiceChannel.hpp>
 #include <aasdk/Channel/Promise.hpp>
 #include <aasdk_proto/InputEventIndicationMessage.pb.h>
@@ -35,7 +38,11 @@ public:
     Q_INVOKABLE void sendMultiTouchEvent(int x, int y, int pointerId, int action) {
         if (!channel_ || !strand_) return;
 
-        strand_->dispatch([this, x, y, pointerId, action]() {
+        auto t_qml = PerfStats::Clock::now().time_since_epoch().count();
+
+        strand_->dispatch([this, x, y, pointerId, action, t_qml]() {
+            auto t_dispatch = PerfStats::Clock::now();
+
             aasdk::proto::messages::InputEventIndication indication;
             indication.set_timestamp(
                 std::chrono::duration_cast<std::chrono::microseconds>(
@@ -55,12 +62,44 @@ public:
             auto promise = aasdk::channel::SendPromise::defer(*strand_);
             promise->then([]() {}, [](const aasdk::error::Error&) {});
             channel_->sendInputEventIndication(indication, std::move(promise));
+
+            auto t_send = PerfStats::Clock::now();
+            auto t_qmlPoint = PerfStats::TimePoint(std::chrono::nanoseconds(t_qml));
+
+            metricDispatch_.record(PerfStats::msElapsed(t_qmlPoint, t_dispatch));
+            metricSend_.record(PerfStats::msElapsed(t_dispatch, t_send));
+            metricTotal_.record(PerfStats::msElapsed(t_qmlPoint, t_send));
+            ++eventsSinceLog_;
+
+            double secSinceLog = PerfStats::msElapsed(lastLogTime_, t_send) / 1000.0;
+            if (secSinceLog >= 5.0) {
+                double eventsPerSec = eventsSinceLog_ / secSinceLog;
+                BOOST_LOG_TRIVIAL(info)
+                    << "[Perf] Touch: qml->dispatch=" << std::fixed << std::setprecision(1)
+                    << metricDispatch_.avg() << "ms"
+                    << " send=" << metricSend_.avg() << "ms"
+                    << " total=" << metricTotal_.avg() << "ms"
+                    << " (p99~" << metricTotal_.max << "ms)"
+                    << " | " << std::setprecision(1) << eventsPerSec << " events/sec";
+                metricDispatch_.reset();
+                metricSend_.reset();
+                metricTotal_.reset();
+                eventsSinceLog_ = 0;
+                lastLogTime_ = t_send;
+            }
         });
     }
 
 private:
     std::shared_ptr<aasdk::channel::input::InputServiceChannel> channel_;
     boost::asio::io_service::strand* strand_ = nullptr;
+
+    // Performance instrumentation
+    PerfStats::Metric metricDispatch_;
+    PerfStats::Metric metricSend_;
+    PerfStats::Metric metricTotal_;
+    PerfStats::TimePoint lastLogTime_ = PerfStats::Clock::now();
+    uint64_t eventsSinceLog_ = 0;
 };
 
 } // namespace aa
