@@ -109,7 +109,17 @@ public:
             auto* touchEvent = indication.mutable_touch_event();
             touchEvent->set_touch_action(
                 static_cast<aasdk::proto::enums::TouchAction::Enum>(action));
-            touchEvent->set_action_index(actionPointerId);
+
+            // action_index is the ARRAY INDEX of the pointer that triggered the action,
+            // not the pointer ID itself
+            int actionIdx = 0;
+            for (int i = 0; i < allPoints.size(); ++i) {
+                if (allPoints[i].toMap()["pointerId"].toInt() == actionPointerId) {
+                    actionIdx = i;
+                    break;
+                }
+            }
+            touchEvent->set_action_index(actionIdx);
 
             for (const auto& pt : allPoints) {
                 auto map = pt.toMap();
@@ -123,7 +133,7 @@ public:
             if (allPoints.size() > 1 || action != 2) {
                 BOOST_LOG_TRIVIAL(info)
                     << "[Touch] action=" << action
-                    << " actionPtr=" << actionPointerId
+                    << " actionIdx=" << actionIdx
                     << " points=" << allPoints.size()
                     << " locs=" << touchEvent->touch_location_size();
             }
