@@ -16,19 +16,33 @@ The codebase must compile cleanly on both. See the Qt compatibility section belo
 ### Raspberry Pi OS Trixie (Debian 13)
 
 ```bash
-sudo apt install cmake qt6-base-dev qt6-declarative-dev qt6-wayland \
+sudo apt install cmake g++ git pkg-config \
+  qt6-base-dev qt6-declarative-dev qt6-wayland \
   qt6-connectivity-dev qt6-multimedia-dev \
   qml6-module-qtquick-controls qml6-module-qtquick-layouts \
   qml6-module-qtquick-window qml6-module-qtqml-workerscript \
   libboost-system-dev libboost-log-dev \
   libprotobuf-dev protobuf-compiler libssl-dev \
   libavcodec-dev libavutil-dev \
-  hostapd dnsmasq
+  libpipewire-0.3-dev libspa-0.2-dev \
+  libyaml-cpp-dev \
+  hostapd dnsmasq bluez \
+  python3-flask
 ```
 
 ### Ubuntu 24.04 (Dev VM)
 
-Same packages minus `qt6-connectivity-dev` (Bluetooth), `qt6-wayland`, `hostapd`, and `dnsmasq`. Build/test still works.
+Same packages minus `qt6-connectivity-dev` (Bluetooth), `qt6-wayland`, `hostapd`, `dnsmasq`, and `bluez`. Build/test still works — Bluetooth features are `#ifdef HAS_BLUETOOTH` guarded, PipeWire tests handle missing daemon gracefully.
+
+### New Dependencies (v0.2.0)
+
+| Package | Purpose |
+|---------|---------|
+| `libyaml-cpp-dev` | YAML configuration parsing |
+| `libpipewire-0.3-dev` + `libspa-0.2-dev` | Audio pipeline (PipeWire streams) |
+| `bluez` | Bluetooth stack (D-Bus API for A2DP/AVRCP/HFP) |
+| `python3-flask` | Web configuration panel |
+| Qt6::DBus | BlueZ D-Bus integration (part of qt6-base-dev) |
 
 ## Building
 
@@ -41,6 +55,16 @@ make -j$(nproc)
 ```
 
 **Important:** Don't forget `--recurse-submodules` — the aasdk library lives in `libs/aasdk/` as a git submodule.
+
+### Interactive Install (RPi OS Trixie)
+
+For a fresh Raspberry Pi, the install script handles everything:
+
+```bash
+bash install.sh
+```
+
+This installs dependencies, builds from source, generates config, and creates systemd services.
 
 ## Running
 
@@ -65,13 +89,33 @@ Kill with: `ssh matt@192.168.1.149 'pkill -f openauto-prodigy'`
 
 **Note:** Use `pkill -f` not `pkill` — the binary name exceeds 15 characters, and `pkill` silently matches nothing for long names.
 
+### Web Config Panel
+
+```bash
+cd web-config && python3 server.py
+# Access at http://<pi-ip>:8080
+```
+
+Or via the systemd service created by `install.sh`:
+```bash
+sudo systemctl start openauto-prodigy-web
+```
+
 ## Running Tests
 
 ```bash
 cd build && ctest --output-on-failure
 ```
 
-Currently 2 tests: `test_configuration` and `test_theme_controller`.
+Currently 8 tests:
+- `test_configuration` — INI config compatibility
+- `test_yaml_config` — YAML config loading and deep merge
+- `test_theme_controller` — Legacy theme controller
+- `test_theme_service` — YAML theme loading and day/night mode
+- `test_audio_service` — PipeWire stream lifecycle (graceful without daemon)
+- `test_plugin_discovery` — Plugin manifest scanning and validation
+- `test_plugin_manager` — Plugin lifecycle orchestration with mocks
+- `test_plugin_model` — QML list model for plugin navigation
 
 ## Qt 6.4 vs 6.8 Compatibility
 
@@ -119,26 +163,64 @@ The `qml6-module-qtqml-workerscript` package is required at runtime for QtQuick.
 
 ```
 openauto-prodigy/
-├── CMakeLists.txt          # Top-level CMake
+├── CMakeLists.txt              # Top-level CMake
+├── install.sh                  # Interactive RPi installer
 ├── src/
-│   ├── CMakeLists.txt      # App target + QML module
-│   ├── main.cpp
+│   ├── CMakeLists.txt          # App target + QML module
+│   ├── main.cpp                # Entry point, plugin registration, IPC
 │   ├── core/
-│   │   ├── Configuration.hpp/cpp
-│   │   └── aa/             # Android Auto protocol implementation
-│   │       ├── AndroidAutoService.hpp/cpp
-│   │       ├── AndroidAutoEntity.hpp/cpp
-│   │       ├── ServiceFactory.hpp/cpp
-│   │       ├── VideoService.hpp/cpp
-│   │       ├── VideoDecoder.hpp/cpp
-│   │       ├── TouchHandler.hpp/cpp
-│   │       └── BluetoothDiscoveryService.hpp/cpp
-│   └── ui/                 # Qt/QML controllers
-├── qml/                    # QML UI files
+│   │   ├── Configuration.hpp/cpp    # Legacy INI config
+│   │   ├── YamlConfig.hpp/cpp       # YAML config with deep merge
+│   │   ├── aa/                      # Android Auto protocol
+│   │   │   ├── AndroidAutoService.hpp/cpp
+│   │   │   ├── AndroidAutoEntity.hpp/cpp
+│   │   │   ├── ServiceFactory.hpp/cpp
+│   │   │   ├── VideoService.hpp/cpp
+│   │   │   ├── VideoDecoder.hpp/cpp
+│   │   │   ├── TouchHandler.hpp/cpp
+│   │   │   ├── EvdevTouchReader.hpp/cpp  # Multi-touch + 3-finger gesture
+│   │   │   ├── AaBootstrap.hpp/cpp       # AA init extraction
+│   │   │   └── BluetoothDiscoveryService.hpp/cpp
+│   │   ├── plugin/                  # Plugin infrastructure
+│   │   │   ├── IPlugin.hpp          # Plugin interface
+│   │   │   ├── IHostContext.hpp      # Service access interface
+│   │   │   ├── HostContext.hpp/cpp   # IHostContext implementation
+│   │   │   ├── PluginManifest.hpp/cpp
+│   │   │   ├── PluginDiscovery.hpp/cpp
+│   │   │   ├── PluginLoader.hpp/cpp
+│   │   │   └── PluginManager.hpp/cpp
+│   │   └── services/               # Shared services
+│   │       ├── ConfigService.hpp/cpp
+│   │       ├── ThemeService.hpp/cpp
+│   │       ├── AudioService.hpp/cpp
+│   │       └── IpcServer.hpp/cpp
+│   ├── plugins/                     # Static plugins
+│   │   ├── android_auto/AndroidAutoPlugin.hpp/cpp
+│   │   ├── bt_audio/BtAudioPlugin.hpp/cpp
+│   │   └── phone/PhonePlugin.hpp/cpp
+│   └── ui/                          # Qt/QML controllers
+│       ├── ApplicationController.hpp/cpp
+│       ├── PluginModel.hpp/cpp
+│       └── PluginRuntimeContext.hpp/cpp
+├── qml/                             # QML UI files
+│   ├── main.qml
+│   ├── controls/                    # Tile, Icon, NormalText, SpecialText
+│   ├── components/                  # Shell, TopBar, BottomBar, Clock, Wallpaper, GestureOverlay
+│   └── applications/               # Plugin views
+│       ├── launcher/LauncherMenu.qml
+│       ├── android_auto/AndroidAutoMenu.qml
+│       ├── settings/SettingsMenu.qml
+│       ├── home/HomeMenu.qml
+│       ├── bt_audio/BtAudioView.qml
+│       └── phone/PhoneView.qml, IncomingCallOverlay.qml
+├── web-config/                      # Web config panel
+│   ├── server.py                    # Flask server + IPC client
+│   ├── requirements.txt
+│   └── templates/                   # HTML templates (base, index, settings, themes, plugins)
 ├── libs/
-│   └── aasdk/              # Android Auto SDK (git submodule)
-├── tests/                  # Unit tests
-└── docs/                   # Design docs, debugging notes
+│   └── aasdk/                       # Android Auto SDK (git submodule)
+├── tests/                           # Unit tests (8 tests)
+└── docs/                            # Design docs, plans
 ```
 
 ## Debugging Tips
@@ -156,6 +238,38 @@ ssh matt@192.168.1.149 'tail -f /tmp/oap.log'
 ### Q_OBJECT and MOC
 
 If you add a `Q_OBJECT` macro to a header-only class, you **must** create a corresponding `.cpp` file (even if it only contains `#include "Header.hpp"`) and list it in `src/CMakeLists.txt`. Otherwise MOC won't process the header and you'll get `undefined reference to vtable` linker errors.
+
+### BlueZ D-Bus Debugging
+
+```bash
+# List all BlueZ managed objects
+busctl call org.bluez / org.freedesktop.DBus.ObjectManager GetManagedObjects
+
+# Monitor D-Bus signals
+dbus-monitor --system "sender='org.bluez'"
+
+# Check paired devices
+bluetoothctl devices
+```
+
+### QDBusArgument Deserialization
+
+The `QDBusArgument::operator>>` cannot extract `QVariantMap` directly. Use manual deserialization:
+
+```cpp
+QDBusArgument arg = ...;
+QVariantMap props;
+arg.beginMap();
+while (!arg.atEnd()) {
+    arg.beginMapEntry();
+    QString key;
+    QDBusVariant val;
+    arg >> key >> val;
+    props[key] = val.variant();
+    arg.endMapEntry();
+}
+arg.endMap();
+```
 
 ### Phone Behavior
 

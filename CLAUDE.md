@@ -2,21 +2,30 @@
 
 ## What This Is
 
-Clean-room open-source rebuild of OpenAuto Pro (BlueWave Studio, defunct). Raspberry Pi-based **wireless-only** Android Auto head unit app using Qt 6 + QML.
+Clean-room open-source rebuild of OpenAuto Pro (BlueWave Studio, defunct). Raspberry Pi-based **wireless-only** Android Auto head unit app using Qt 6 + QML, with a plugin-based architecture supporting BT audio, phone calls, and extensible third-party plugins.
 
 ## Repository Layout
 
-- `src/` — C++ source (core AA protocol + Qt UI controllers)
+- `src/` — C++ source (plugin system, core services, AA protocol)
+  - `src/core/` — Configuration, services (Audio, Theme, IPC, Config), AA protocol
+  - `src/core/plugin/` — Plugin infrastructure (IPlugin, HostContext, PluginManager, Discovery, Loader)
+  - `src/plugins/` — Static plugins (android_auto, bt_audio, phone)
+  - `src/ui/` — Qt/QML controllers (ApplicationController, PluginModel, PluginRuntimeContext)
 - `qml/` — QML UI files
+  - `qml/components/` — Shell, TopBar, BottomBar, Clock, Wallpaper, GestureOverlay
+  - `qml/controls/` — Reusable controls (Tile, Icon, NormalText, SpecialText)
+  - `qml/applications/` — Plugin views (launcher, android_auto, settings, home, bt_audio, phone)
 - `libs/aasdk/` — Android Auto SDK (git submodule, SonOfGib's fork)
-- `tests/` — Unit tests (currently 2: configuration, theme_controller)
-- `docs/` — Design decisions, development guide, wireless setup
+- `tests/` — Unit tests (8 tests: configuration, yaml_config, theme_controller, theme_service, audio_service, plugin_discovery, plugin_manager, plugin_model)
+- `web-config/` — Flask web config panel (Python, HTML/CSS/JS)
+- `docs/` — Design decisions, development guide, wireless setup, plans
+- `install.sh` — Interactive installer for RPi OS Trixie
 
 ## Build & Test
 
 ```bash
 mkdir build && cd build && cmake .. && make -j$(nproc)
-ctest --output-on-failure  # from build dir
+ctest --output-on-failure  # from build dir (8 tests)
 ```
 
 **Dependencies:** See `docs/development.md` for full package list. Bluetooth requires `qt6-connectivity-dev` (Pi only, optional on dev).
@@ -42,58 +51,103 @@ ssh matt@192.168.1.149 'cd /home/matt/openauto-prodigy && nohup env WAYLAND_DISP
 
 ## Current Status
 
-**Video, touch input, and fullscreen are working on real hardware.**
+**v0.2.0 — Plugin architecture milestone complete.**
 
-- Wireless AA connection working (BT discovery → WiFi AP → TCP)
-- H.264 video decoding and display at 1280x720 @ 60fps (negotiated)
-- Actual throughput: ~50-60fps decode, 4.5-8.5ms per frame on Pi 4
-- Multi-touch input via direct evdev reader (bypasses Qt/Wayland entirely)
-- Touch latency: 0.2-0.4ms (evdev → AA protocol send)
-- Proper aspect ratio with letterboxing (PreserveAspectFit, black bars)
-- Debug touch overlay (green crosshair circles with AA coordinates)
-- OS-level fullscreen when AA is connected (hides labwc taskbar)
-- Auto-navigation to AA screen on connect, back to launcher on disconnect
+Working features:
+- Wireless AA connection (BT discovery → WiFi AP → TCP)
+- H.264 video decoding and display at 1280x720 @ 60fps
+- Multi-touch input via direct evdev reader (bypasses Qt/Wayland)
+- Plugin system with lifecycle management (Discover → Load → Init → Activate ↔ Deactivate → Shutdown)
+- YAML configuration with deep merge and hot-reload
+- Theme system (day/night mode, YAML-based color definitions)
+- Audio pipeline via PipeWire (AA media/nav/phone streams)
+- Bluetooth audio plugin (A2DP sink monitoring, AVRCP metadata + controls via BlueZ D-Bus)
+- Phone plugin (HFP via BlueZ D-Bus, dialer, incoming call overlay)
+- Web config panel (Flask, Unix socket IPC, settings/theme/plugin management)
+- 3-finger gesture overlay (volume, brightness, home, day/night toggle)
+- Interactive install script for RPi OS Trixie
 
-**Active issues / TODO:**
-- Audio pipeline not yet implemented
-- Settings UI not yet implemented
-- Touch device path hardcoded to `/dev/input/event4` (should be configurable)
+**Known limitations / TODO:**
+- HFP call audio routing not yet wired through PipeWire
+- Phone contacts not yet synced (PBAP profile)
+- Touch device path still configurable but defaults to `/dev/input/event4`
 - `wlan0` IP (10.0.0.1) doesn't survive reboot — needs permanent config
-- Debug touch overlay is always on (should be togglable from settings)
+- Dynamic plugin loading (.so) untested — only static plugins currently
 
-## Architecture Notes
+## Architecture
+
+### Plugin System
+
+Plugins implement `IPlugin` interface with lifecycle hooks:
+- `initialize(IHostContext*)` — one-time setup, access to shared services
+- `onActivated(QQmlContext*)` — expose QML bindings, start plugin-specific work
+- `onDeactivated()` — cleanup before context destruction
+- `shutdown()` — final teardown
+
+Three static plugins compiled into binary:
+- **AndroidAutoPlugin** (`org.openauto.android-auto`) — fullscreen AA with video/touch/audio
+- **BtAudioPlugin** (`org.openauto.bt-audio`) — A2DP sink + AVRCP controls via BlueZ D-Bus
+- **PhonePlugin** (`org.openauto.phone`) — HFP dialer + incoming call overlay via BlueZ D-Bus
+
+Dynamic plugins loaded from `~/.openauto/plugins/` (each needs `plugin.yaml` manifest + `.so`).
+
+### Core Services (via IHostContext)
+
+- **ConfigService** — YAML config read/write
+- **ThemeService** — Day/night theme colors, Q_PROPERTY bindings for QML
+- **AudioService** — PipeWire stream creation, volume, audio focus
+- **IpcServer** — QLocalServer Unix socket for web config panel communication
+
+### AA Protocol
 
 - **Transport:** Wireless only — BT discovery → WiFi AP → TCP. No USB/libusb.
-- **AA protocol:** ASIO threads for protocol, Qt main thread for UI. Bridged via `QMetaObject::invokeMethod(Qt::QueuedConnection)`.
-- **Video pipeline:** FFmpeg software H.264 decode on dedicated worker thread → fresh `QVideoFrame` per decode → `QVideoSink::setVideoFrame()` via QueuedConnection → QML `VideoOutput` (PreserveAspectFit).
-- **Video data delivery:** SPS/PPS codec config arrives as `AV_MEDIA_INDICATION` (msg ID 0x0001, no timestamp). Regular frames arrive as `AV_MEDIA_WITH_TIMESTAMP_INDICATION` (msg ID 0x0000, 8-byte timestamp). Both must be forwarded to the decoder.
-- **Touch input:** `EvdevTouchReader` (QThread) reads `/dev/input/event4` directly with `EVIOCGRAB` → tracks MT Type B slot state → `TouchHandler::sendTouchIndication()` → ASIO strand → `InputServiceChannel::sendInputEventIndication()`. No QML touch handling.
-- **Touch coordinate mapping:** Evdev (0-4095) → AA coordinates (1280x720, matching video resolution). Letterbox-aware: computes video area within physical display (1024x600) and maps touches only to the video region.
-- **Aspect ratio:** Video is 1280x720 (16:9), display is 1024x600 (~17:10). `PreserveAspectFit` renders at 1024x576 with 12px black bars top/bottom.
-- **Fullscreen:** `Window.FullScreen` visibility mode when AA is connected. TopBar/BottomBar hidden with `Layout.preferredHeight: 0`.
-- **Config:** QSettings INI format, backward-compatible with original OAP files
-- **Services:** 10 AA channels — CONTROL(0), INPUT(1), SENSOR(2), VIDEO(3), MEDIA_AUDIO(4), SPEECH_AUDIO(5), SYSTEM_AUDIO(6), AV_INPUT(7), BLUETOOTH(8), WIFI(14)
-- **BT discovery:** Conditional compile (`#ifdef HAS_BLUETOOTH`), Qt6::Bluetooth RFCOMM server
-- **Performance instrumentation:** `PerfStats.hpp` utility, 5-second rolling averages logged for video decode and touch pipelines.
+- **Protocol threading:** ASIO threads for protocol, Qt main thread for UI. Bridged via `QMetaObject::invokeMethod(Qt::QueuedConnection)`.
+- **Video pipeline:** FFmpeg software H.264 decode on worker thread → `QVideoFrame` → `QVideoSink::setVideoFrame()` → QML `VideoOutput`.
+- **Touch input:** `EvdevTouchReader` (QThread) reads `/dev/input/event4` with `EVIOCGRAB` → MT Type B slot tracking → `TouchHandler` → AA `InputEventIndication` protobuf.
+- **Touch coordinate mapping:** Evdev (0-4095) → AA coordinates (1280x720). Letterbox-aware for 1024x600 display.
+- **Audio:** 3 PipeWire streams (media, navigation, phone) with audio focus management.
+- **3-finger gesture:** EvdevTouchReader detects 3 simultaneous touches within 200ms, suppresses AA forwarding, emits signal for overlay.
+
+### BlueZ D-Bus Integration
+
+Both BtAudioPlugin and PhonePlugin use BlueZ D-Bus directly (no ofono):
+- `org.bluez.MediaTransport1` — A2DP connection state
+- `org.bluez.MediaPlayer1` — AVRCP metadata + playback commands
+- `org.bluez.Device1` — HFP device detection (UUID 0000111e/0000111f)
+- `org.freedesktop.DBus.ObjectManager.GetManagedObjects` — scan for existing connections
+- `org.freedesktop.DBus.Properties.PropertiesChanged` — live state updates
+
+**D-Bus deserialization gotcha:** `QDBusArgument::operator>>` cannot extract `QVariantMap` directly. Must use manual `beginMap()/endMap()` with `QDBusVariant` for property values.
+
+### Web Config Panel
+
+Flask server (`web-config/server.py`) communicates with Qt app via Unix domain socket (`/tmp/openauto-prodigy.sock`). JSON request/response protocol. Routes: dashboard, settings, themes, plugins.
 
 ## Key Files
 
 | File | Purpose |
 |------|---------|
-| `src/main.cpp` | Entry point, QML engine, context properties, EvdevTouchReader startup, auto-nav on connect |
+| `src/main.cpp` | Entry point, plugin registration, QML engine, IPC server |
+| `src/core/plugin/IPlugin.hpp` | Plugin interface — lifecycle, metadata, QML component |
+| `src/core/plugin/PluginManager.cpp` | Plugin lifecycle orchestration |
+| `src/core/plugin/HostContext.cpp` | Shared service access for plugins |
+| `src/ui/PluginRuntimeContext.cpp` | Scoped QML context per plugin activation |
+| `src/ui/PluginModel.cpp` | QAbstractListModel for QML nav strip |
+| `src/core/YamlConfig.cpp` | YAML config with deep merge |
+| `src/core/services/ThemeService.cpp` | Day/night theme, color Q_PROPERTYs |
+| `src/core/services/AudioService.cpp` | PipeWire stream management |
+| `src/core/services/IpcServer.cpp` | Unix socket IPC for web config |
+| `src/plugins/android_auto/AndroidAutoPlugin.cpp` | AA plugin (wraps all AA protocol code) |
+| `src/plugins/bt_audio/BtAudioPlugin.cpp` | BT audio with BlueZ D-Bus A2DP/AVRCP |
+| `src/plugins/phone/PhonePlugin.cpp` | Phone with BlueZ D-Bus HFP |
 | `src/core/aa/AndroidAutoService.cpp` | AA lifecycle, TCP transport, BT integration |
-| `src/core/aa/BluetoothDiscoveryService.cpp` | BT RFCOMM server, WiFi credential handshake |
-| `src/core/aa/AndroidAutoEntity.cpp` | Protocol handshake, control channel |
-| `src/core/aa/ServiceFactory.cpp` | Creates all service instances, wires TouchHandler to input channel |
-| `src/core/aa/VideoService.cpp` | Marshals H.264 data to decode worker thread |
-| `src/core/aa/VideoDecoder.cpp` | FFmpeg decode worker thread → QVideoFrame |
-| `src/core/aa/EvdevTouchReader.cpp` | Direct Linux evdev multi-touch reader (MT Type B) |
-| `src/core/aa/EvdevTouchReader.hpp` | Slot tracking, letterbox-aware coordinate mapping |
-| `src/core/aa/TouchHandler.hpp` | Bridge: touch events → AA InputEventIndication protobuf, debug overlay properties |
-| `src/core/aa/PerfStats.hpp` | Lightweight timing metrics (rolling min/max/avg) |
-| `src/core/Configuration.cpp` | INI config with 6 enums, 13 colors, wireless settings |
-| `qml/main.qml` | Root window, fullscreen toggle, TopBar/BottomBar visibility |
-| `qml/applications/android_auto/AndroidAutoMenu.qml` | VideoOutput (PreserveAspectFit), debug touch overlay, status display |
+| `src/core/aa/VideoDecoder.cpp` | FFmpeg H.264 decode worker → QVideoFrame |
+| `src/core/aa/EvdevTouchReader.cpp` | Direct evdev multi-touch + 3-finger gesture |
+| `src/core/aa/TouchHandler.hpp` | Touch → AA protobuf bridge |
+| `qml/components/Shell.qml` | App shell (status bar + content area + nav strip) |
+| `qml/components/GestureOverlay.qml` | 3-finger tap quick controls overlay |
+| `web-config/server.py` | Flask web config server |
+| `install.sh` | Interactive RPi OS Trixie installer |
 
 ## AA Protocol: Touch Events
 
@@ -103,19 +157,14 @@ Based on Android MotionEvent. Critical details learned the hard way:
 - **ALL active pointers** must be included in every message (not just the changed finger)
 - **`action_index`** is the ARRAY INDEX into the pointers list, not the pointer ID
 - **`pointer_id`** is a stable per-finger identifier (we use slot index)
-- **Touch coordinates must be in VIDEO RESOLUTION space** (1280x720), NOT the `touch_screen_config` dimensions (1024x600). The phone maps touch coords to the video it's rendering.
+- **Touch coordinates must be in VIDEO RESOLUTION space** (1280x720), NOT the `touch_screen_config` dimensions (1024x600)
 - **For UP events:** include the lifted finger in the pointer array at its last position
-- **Reference implementation:** harryjph/android-auto-headunit (confirmed protocol format)
 
 ## AA Protocol: Video Resolutions
 
-AA supports fixed resolutions only (from `VideoResolutionEnum.proto`):
-- `_480p` (800x480)
-- `_720p` (1280x720) — current default
-- `_1080p` (1920x1080)
-- `_720p_p`, `_1080pp` — portrait variants
-
-No custom resolutions (e.g. 1024x600) available.
+AA supports fixed resolutions only:
+- `_480p` (800x480), `_720p` (1280x720) — current default, `_1080p` (1920x1080)
+- Portrait variants: `_720p_p`, `_1080pp`
 
 ## Gotchas
 
@@ -125,15 +174,17 @@ No custom resolutions (e.g. 1024x600) available.
 - SonOfGib aasdk is proto2 — no `device_model` field in ServiceDiscoveryRequest
 - BT code is `#ifdef HAS_BLUETOOTH` guarded — builds without qt6-connectivity-dev
 - WiFi SSID/password in config must match hostapd.conf exactly
-- SPS/PPS arrives as `AV_MEDIA_INDICATION` (no timestamp) — must forward to decoder, not discard
+- SPS/PPS arrives as `AV_MEDIA_INDICATION` (no timestamp) — must forward to decoder
 - H.264 data from aasdk already has AnnexB start codes — do NOT prepend additional ones
 - Q_OBJECT in header-only classes needs a .cpp file listed in CMakeLists.txt for MOC
-- `pkill` on names >15 chars silently matches nothing — use `pkill -f` for long binary names
-- **QVideoFrame is ref-counted** — do NOT reuse frame buffers (double-buffer scheme). Qt's render thread holds read mappings; allocate fresh frames each decode to avoid "Cannot map in ReadOnly mode" crashes.
-- **labwc `mouseEmulation="yes"`** destroys multi-touch — converts to single mouse pointer. Must be `"no"` in `~/.config/labwc/rc.xml` on the Pi.
-- **Qt evdevtouch plugin** (`QT_QPA_GENERIC_PLUGINS`) causes duplicate events even with `grab=1`. Don't use it — use direct evdev reading with EVIOCGRAB instead.
-- **WAYLAND_DISPLAY** on Pi is `wayland-0` (not `wayland-1`). Check `ls /run/user/1000/wayland-*` if unsure.
-- **DFRobot USB Multi Touch** (vendor 3343:5710): 10 touch points, MT Type B, axis range 0-4095 for X and Y.
+- `pkill` on names >15 chars silently matches nothing — use `pkill -f`
+- **QVideoFrame is ref-counted** — do NOT reuse frame buffers. Allocate fresh frames each decode.
+- **labwc `mouseEmulation="yes"`** destroys multi-touch — must be `"no"` in `~/.config/labwc/rc.xml`
+- **Qt evdevtouch plugin** causes duplicate events — use direct evdev with EVIOCGRAB instead
+- **WAYLAND_DISPLAY** on Pi is `wayland-0` (not `wayland-1`)
+- **DFRobot USB Multi Touch** (vendor 3343:5710): 10 points, MT Type B, 0-4095 range
+- **QDBusArgument `>>` operator** cannot extract QVariantMap directly — use manual `beginMap()/endMap()` with `QDBusVariant`
+- **QTimer needs `#include <QTimer>`** — forward declaration alone causes "not declared in scope" errors
 
 ## Hardware (Pi Target)
 
@@ -143,6 +194,6 @@ No custom resolutions (e.g. 1024x600) available.
 | Display | 1024x600 @ 60Hz (LTM LONTIUM, HDMI) |
 | Touch | DFRobot USB Multi Touch (10-point, MT Type B, 0-4095 range) |
 | WiFi | Built-in (used as AP for phone connection) |
-| BT | Built-in (RFCOMM for AA discovery) |
+| BT | Built-in (RFCOMM for AA discovery, A2DP sink, HFP) |
 | IP | 192.168.1.149 (LAN), 10.0.0.1 (wlan0 AP) |
 | OS | RPi OS Trixie, labwc compositor |
