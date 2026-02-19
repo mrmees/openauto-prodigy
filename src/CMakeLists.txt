@@ -11,6 +11,7 @@ qt_add_executable(openauto-prodigy
     core/aa/EvdevTouchReader.cpp
     ui/ThemeController.cpp
     ui/ApplicationController.cpp
+    core/plugin/HostContext.cpp
 )
 
 # Tell Qt the QML type name for each file (override subdirectory-based naming)
