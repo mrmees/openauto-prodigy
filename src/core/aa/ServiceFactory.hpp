@@ -6,6 +6,9 @@
 #include "../../core/Configuration.hpp"
 
 namespace oap {
+
+class IAudioService;
+
 namespace aa {
 
 class VideoDecoder;
@@ -19,7 +22,8 @@ public:
         aasdk::messenger::IMessenger::Pointer messenger,
         std::shared_ptr<oap::Configuration> config,
         VideoDecoder* videoDecoder,
-        TouchHandler* touchHandler = nullptr);
+        TouchHandler* touchHandler = nullptr,
+        IAudioService* audioService = nullptr);
 };
 
 } // namespace aa

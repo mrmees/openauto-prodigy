@@ -1,5 +1,6 @@
 #include "AudioService.hpp"
 #include <QDebug>
+#include <cstring>
 
 namespace oap {
 

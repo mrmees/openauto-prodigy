@@ -1,6 +1,8 @@
 #include "ServiceFactory.hpp"
 #include "VideoService.hpp"
 #include "TouchHandler.hpp"
+#include "../../core/services/IAudioService.hpp"
+#include "../../core/services/AudioService.hpp"
 
 #include <boost/log/trivial.hpp>
 
@@ -81,10 +83,25 @@ class AudioServiceStub
     using Self = AudioServiceStub<ChannelType, ChannelIdValue, AudioTypeValue, SampleRate, ChannelCount>;
 public:
     AudioServiceStub(boost::asio::io_service& ioService,
-                     aasdk::messenger::IMessenger::Pointer messenger)
+                     aasdk::messenger::IMessenger::Pointer messenger,
+                     oap::IAudioService* audioService = nullptr,
+                     const QString& streamName = {},
+                     int streamPriority = 50)
         : strand_(ioService)
         , channel_(std::make_shared<ChannelType>(strand_, std::move(messenger)))
-    {}
+        , audioService_(audioService)
+    {
+        if (audioService_) {
+            audioStream_ = audioService_->createStream(
+                streamName.isEmpty() ? QString("AA Channel %1").arg(static_cast<int>(ChannelIdValue)) : streamName,
+                streamPriority);
+        }
+    }
+
+    ~AudioServiceStub() {
+        if (audioService_ && audioStream_)
+            audioService_->destroyStream(audioStream_);
+    }
 
     void start() override {
         strand_.dispatch([this, self = this->shared_from_this()]() {
@@ -146,7 +163,12 @@ public:
 
     void onAVMediaWithTimestampIndication(aasdk::messenger::Timestamp::ValueType,
                                            const aasdk::common::DataConstBuffer& buffer) override {
-        // ACK but don't play
+        // Write PCM data to PipeWire stream if available
+        if (audioService_ && audioStream_ && buffer.cdata && buffer.size > 0) {
+            audioService_->writeAudio(audioStream_, buffer.cdata, buffer.size);
+        }
+
+        // ACK
         aasdk::proto::messages::AVMediaAckIndication ack;
         ack.set_session(session_);
         ack.set_value(1);
@@ -157,6 +179,10 @@ public:
     }
 
     void onAVMediaIndication(const aasdk::common::DataConstBuffer& buffer) override {
+        // Write PCM data to PipeWire stream if available
+        if (audioService_ && audioStream_ && buffer.cdata && buffer.size > 0) {
+            audioService_->writeAudio(audioStream_, buffer.cdata, buffer.size);
+        }
         channel_->receive(this->shared_from_this());
     }
 
@@ -168,6 +194,8 @@ private:
     boost::asio::io_service::strand strand_;
     std::shared_ptr<ChannelType> channel_;
     int32_t session_ = -1;
+    oap::IAudioService* audioService_ = nullptr;
+    oap::AudioStreamHandle* audioStream_ = nullptr;
 };
 
 using MediaAudioServiceStub = AudioServiceStub<
@@ -623,14 +651,15 @@ IService::ServiceList ServiceFactory::create(
     aasdk::messenger::IMessenger::Pointer messenger,
     std::shared_ptr<oap::Configuration> config,
     VideoDecoder* videoDecoder,
-    TouchHandler* touchHandler)
+    TouchHandler* touchHandler,
+    IAudioService* audioService)
 {
     IService::ServiceList services;
 
     services.push_back(std::make_shared<VideoService>(ioService, messenger, config, videoDecoder));
-    services.push_back(std::make_shared<MediaAudioServiceStub>(ioService, messenger));
-    services.push_back(std::make_shared<SpeechAudioServiceStub>(ioService, messenger));
-    services.push_back(std::make_shared<SystemAudioServiceStub>(ioService, messenger));
+    services.push_back(std::make_shared<MediaAudioServiceStub>(ioService, messenger, audioService, "AA Media", 50));
+    services.push_back(std::make_shared<SpeechAudioServiceStub>(ioService, messenger, audioService, "AA Navigation", 80));
+    services.push_back(std::make_shared<SystemAudioServiceStub>(ioService, messenger, audioService, "AA System", 60));
     services.push_back(std::make_shared<InputServiceStub>(ioService, messenger, config, touchHandler));
     services.push_back(std::make_shared<SensorServiceStub>(ioService, messenger));
     // Read real BT adapter MAC if available, else use placeholder

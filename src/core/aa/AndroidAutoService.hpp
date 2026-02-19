@@ -25,6 +25,9 @@ namespace transport { class ISSLWrapper; }
 }
 
 namespace oap {
+
+class IAudioService;
+
 namespace aa {
 
 class AndroidAutoService : public QObject, public IAndroidAutoEntityEventHandler
@@ -42,7 +45,9 @@ public:
     };
     Q_ENUM(ConnectionState)
 
-    explicit AndroidAutoService(std::shared_ptr<oap::Configuration> config, QObject* parent = nullptr);
+    explicit AndroidAutoService(std::shared_ptr<oap::Configuration> config,
+                               oap::IAudioService* audioService = nullptr,
+                               QObject* parent = nullptr);
     ~AndroidAutoService() override;
 
     Q_INVOKABLE void start();
@@ -88,6 +93,7 @@ private:
     // Active entity
     AndroidAutoEntity::Pointer entity_;
 
+    oap::IAudioService* audioService_ = nullptr;
     ConnectionState state_ = Disconnected;
     QString statusMessage_;
 

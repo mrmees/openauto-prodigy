@@ -29,8 +29,9 @@ bool AndroidAutoPlugin::initialize(IHostContext* context)
 {
     hostContext_ = context;
 
-    // Create AA service (uses legacy Configuration — will migrate to IConfigService)
-    aaService_ = new oap::aa::AndroidAutoService(config_, this);
+    // Create AA service with audio routing through PipeWire
+    auto* audioService = context ? context->audioService() : nullptr;
+    aaService_ = new oap::aa::AndroidAutoService(config_, audioService, this);
 
     // Connect navigation: auto-switch to AA on connect, back to launcher on disconnect.
     // TODO: Replace ApplicationController dependency with IEventBus publish.
