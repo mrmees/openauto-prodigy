@@ -1,6 +1,6 @@
 import QtQuick
 
 Text {
-    color: ThemeController.normalFontColor
+    color: ThemeService.normalFontColor
     font.pixelSize: 16
 }

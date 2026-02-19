@@ -1,7 +1,7 @@
 import QtQuick
 
 Text {
-    color: ThemeController.specialFontColor
+    color: ThemeService.specialFontColor
     font.pixelSize: 16
     font.bold: true
 }

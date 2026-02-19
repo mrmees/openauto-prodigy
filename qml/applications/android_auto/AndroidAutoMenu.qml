@@ -88,7 +88,7 @@ Item {
                 default: return "Android Auto";
                 }
             }
-            color: ThemeController.specialFontColor
+            color: ThemeService.specialFontColor
             font.pixelSize: 28
             font.bold: true
         }
@@ -96,7 +96,7 @@ Item {
         Text {
             Layout.alignment: Qt.AlignHCenter
             text: AndroidAutoService.statusMessage
-            color: ThemeController.descriptionFontColor
+            color: ThemeService.descriptionFontColor
             font.pixelSize: 18
             wrapMode: Text.WordWrap
             horizontalAlignment: Text.AlignHCenter

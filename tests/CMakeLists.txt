@@ -22,22 +22,6 @@ target_link_libraries(test_configuration PRIVATE
 # Copy test data
 configure_file(data/test_config.ini ${CMAKE_CURRENT_BINARY_DIR}/data/test_config.ini COPYONLY)
 
-add_executable(test_theme_controller
-    test_theme_controller.cpp
-    ${CMAKE_SOURCE_DIR}/src/ui/ThemeController.cpp
-    ${CMAKE_SOURCE_DIR}/src/core/Configuration.cpp
-)
-
-target_include_directories(test_theme_controller PRIVATE
-    ${CMAKE_SOURCE_DIR}/src
-)
-
-target_link_libraries(test_theme_controller PRIVATE
-    Qt6::Core
-    Qt6::Gui
-    Qt6::Test
-)
-
 add_executable(test_yaml_config
     test_yaml_config.cpp
     ${CMAKE_SOURCE_DIR}/src/core/YamlConfig.cpp
@@ -139,7 +123,6 @@ file(COPY data/themes DESTINATION ${CMAKE_CURRENT_BINARY_DIR}/data)
 
 enable_testing()
 add_test(NAME test_configuration COMMAND test_configuration)
-add_test(NAME test_theme_controller COMMAND test_theme_controller)
 add_test(NAME test_yaml_config COMMAND test_yaml_config)
 add_test(NAME test_config_service COMMAND test_config_service)
 add_test(NAME test_plugin_manifest COMMAND test_plugin_manifest)

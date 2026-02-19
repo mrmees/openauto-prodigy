@@ -12,8 +12,8 @@ Rectangle {
 
     radius: 8
     color: mouseArea.containsMouse && tileEnabled
-           ? ThemeController.highlightColor
-           : ThemeController.controlBackgroundColor
+           ? ThemeService.highlightColor
+           : ThemeService.controlBackgroundColor
     opacity: tileEnabled ? 1.0 : 0.5
 
     ColumnLayout {
@@ -33,7 +33,7 @@ Rectangle {
         Text {
             Layout.alignment: Qt.AlignHCenter
             text: tile.tileName
-            color: ThemeController.normalFontColor
+            color: ThemeService.normalFontColor
             font.pixelSize: 14
             horizontalAlignment: Text.AlignHCenter
         }

@@ -24,7 +24,7 @@ Item {
             Layout.preferredHeight: settingsMenu.width * 0.18
             tileName: "Day/Night"
             tileEnabled: true
-            onClicked: ThemeController.toggleMode()
+            onClicked: ThemeService.toggleMode()
         }
 
         Tile {

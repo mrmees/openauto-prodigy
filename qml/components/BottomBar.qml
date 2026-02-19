@@ -5,7 +5,7 @@ import QtQuick.Controls
 Rectangle {
     id: bottomBar
 
-    color: ThemeController.barBackgroundColor
+    color: ThemeService.barBackgroundColor
 
     RowLayout {
         anchors.fill: parent
@@ -20,7 +20,7 @@ Rectangle {
                 : volumeSlider.value > 0  ? "\uD83D\uDD09"
                 :                           "\uD83D\uDD07"
             font.pixelSize: 22
-            color: ThemeController.normalFontColor
+            color: ThemeService.normalFontColor
         }
 
         Slider {
@@ -40,12 +40,12 @@ Rectangle {
                 width: volumeSlider.availableWidth
                 height: implicitHeight
                 radius: 3
-                color: ThemeController.controlBackgroundColor
+                color: ThemeService.controlBackgroundColor
 
                 Rectangle {
                     width: volumeSlider.visualPosition * parent.width
                     height: parent.height
-                    color: ThemeController.highlightColor
+                    color: ThemeService.highlightColor
                     radius: 3
                 }
             }
@@ -56,9 +56,9 @@ Rectangle {
                 implicitWidth: 22
                 implicitHeight: 22
                 radius: 11
-                color: volumeSlider.pressed ? Qt.lighter(ThemeController.highlightColor, 1.2)
-                                            : ThemeController.highlightColor
-                border.color: ThemeController.controlForegroundColor
+                color: volumeSlider.pressed ? Qt.lighter(ThemeService.highlightColor, 1.2)
+                                            : ThemeService.highlightColor
+                border.color: ThemeService.controlForegroundColor
                 border.width: 1
             }
         }

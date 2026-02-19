@@ -4,7 +4,7 @@ import QtQuick.Layouts
 Rectangle {
     id: topBar
 
-    color: ThemeController.barBackgroundColor
+    color: ThemeService.barBackgroundColor
 
     RowLayout {
         anchors.fill: parent
@@ -17,7 +17,7 @@ Rectangle {
             Layout.preferredWidth: 48
             Layout.preferredHeight: 48
             Layout.alignment: Qt.AlignVCenter
-            color: backMouse.containsMouse ? ThemeController.highlightColor : "transparent"
+            color: backMouse.containsMouse ? ThemeService.highlightColor : "transparent"
             radius: 8
             visible: ApplicationController.currentApplication !== 0  // Not on Launcher
             opacity: visible ? 1.0 : 0.0
@@ -25,7 +25,7 @@ Rectangle {
             Text {
                 anchors.centerIn: parent
                 text: "\u25C0"  // Left-pointing triangle
-                color: ThemeController.normalFontColor
+                color: ThemeService.normalFontColor
                 font.pixelSize: 22
             }
 
@@ -48,7 +48,7 @@ Rectangle {
         Text {
             Layout.fillWidth: true
             text: ApplicationController.currentTitle
-            color: ThemeController.specialFontColor
+            color: ThemeService.specialFontColor
             font.pixelSize: 22
             font.bold: true
             horizontalAlignment: Text.AlignHCenter

@@ -8,7 +8,7 @@ Window {
     height: 600
     visible: true
     title: "OpenAuto Prodigy"
-    color: ThemeController.backgroundColor
+    color: ThemeService.backgroundColor
 
     // Fullscreen mode driven by Shell
     property bool aaFullscreen: shell.fullscreenMode
@@ -28,6 +28,6 @@ Window {
     // Keyboard shortcut: Ctrl+D toggles day/night theme
     Shortcut {
         sequence: "Ctrl+D"
-        onActivated: ThemeController.toggleMode()
+        onActivated: ThemeService.toggleMode()
     }
 }

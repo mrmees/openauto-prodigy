@@ -3,7 +3,7 @@ import QtQuick
 Text {
     id: clock
 
-    color: ThemeController.normalFontColor
+    color: ThemeService.normalFontColor
     font.pixelSize: 18
 
     Timer {
