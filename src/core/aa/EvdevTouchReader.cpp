@@ -76,11 +76,8 @@ void EvdevTouchReader::run()
         return;
     }
 
-    // Exclusive grab — prevents libinput/Wayland from seeing these events
-    if (::ioctl(fd_, EVIOCGRAB, 1) < 0) {
-        BOOST_LOG_TRIVIAL(warning) << "[EvdevTouch] EVIOCGRAB failed: " << strerror(errno)
-                                   << " (multi-touch may duplicate)";
-    }
+    // Don't grab on startup — let Wayland/libinput handle touch for the launcher UI.
+    // The grab will be activated when AA connects via grab().
 
     // Read axis ranges for coordinate scaling
     struct input_absinfo absX{}, absY{};
@@ -109,6 +106,9 @@ void EvdevTouchReader::run()
         struct input_event ev;
         ssize_t n = ::read(fd_, &ev, sizeof(ev));
         if (n != sizeof(ev)) continue;
+
+        // When not grabbed, discard events — Wayland/libinput is handling touch
+        if (!grabbed_.load(std::memory_order_relaxed)) continue;
 
         switch (ev.type) {
         case EV_ABS:
@@ -139,7 +139,8 @@ void EvdevTouchReader::run()
         }
     }
 
-    ::ioctl(fd_, EVIOCGRAB, 0);
+    if (grabbed_.load())
+        ::ioctl(fd_, EVIOCGRAB, 0);
     ::close(fd_);
     fd_ = -1;
     BOOST_LOG_TRIVIAL(info) << "[EvdevTouch] Reader thread stopped";
@@ -293,6 +294,36 @@ void EvdevTouchReader::processSync()
     for (int i = 0; i < MAX_SLOTS; ++i)
         slots_[i].dirty = false;
     prevSlots_ = slots_;
+}
+
+void EvdevTouchReader::grab()
+{
+    if (fd_ < 0 || grabbed_.load()) return;
+
+    if (::ioctl(fd_, EVIOCGRAB, 1) < 0) {
+        BOOST_LOG_TRIVIAL(warning) << "[EvdevTouch] EVIOCGRAB failed: " << strerror(errno);
+        return;
+    }
+    grabbed_.store(true);
+    BOOST_LOG_TRIVIAL(info) << "[EvdevTouch] Device grabbed — touch events routed to AA";
+}
+
+void EvdevTouchReader::ungrab()
+{
+    if (fd_ < 0 || !grabbed_.load()) return;
+
+    ::ioctl(fd_, EVIOCGRAB, 0);
+    grabbed_.store(false);
+
+    // Reset slot state so stale touches don't fire when re-grabbed
+    slots_.fill(Slot{});
+    prevSlots_ = slots_;
+    currentSlot_ = 0;
+    gestureActive_ = false;
+    gestureMaxFingers_ = 0;
+    prevActiveCount_ = 0;
+
+    BOOST_LOG_TRIVIAL(info) << "[EvdevTouch] Device ungrabbed — touch returned to Wayland";
 }
 
 } // namespace aa

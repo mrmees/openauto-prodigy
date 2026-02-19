@@ -2,6 +2,7 @@
 
 #include <QObject>
 #include <QString>
+#include <QTimer>
 #include <memory>
 #include <thread>
 #include <vector>
@@ -73,6 +74,8 @@ private:
     void startTCPListener();
     void onTCPConnection(std::shared_ptr<boost::asio::ip::tcp::socket> socket);
     void startEntity(aasdk::transport::ITransport::Pointer transport);
+    void startConnectionWatchdog();
+    void stopConnectionWatchdog();
 
     std::shared_ptr<oap::Configuration> config_;
     VideoDecoder* videoDecoder_ = nullptr;
@@ -92,6 +95,10 @@ private:
 
     // Active entity
     AndroidAutoEntity::Pointer entity_;
+
+    // Connection watchdog
+    QTimer watchdogTimer_;
+    std::shared_ptr<boost::asio::ip::tcp::socket> activeSocket_;
 
     oap::IAudioService* audioService_ = nullptr;
     ConnectionState state_ = Disconnected;

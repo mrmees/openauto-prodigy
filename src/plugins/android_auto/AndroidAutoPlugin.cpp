@@ -39,9 +39,13 @@ bool AndroidAutoPlugin::initialize(IHostContext* context)
                      appController_, [this]() {
         using CS = oap::aa::AndroidAutoService;
         if (aaService_->connectionState() == CS::Connected) {
+            // Grab touch device for AA coordinate mapping
+            if (touchReader_) touchReader_->grab();
             appController_->navigateTo(oap::ApplicationTypes::AndroidAuto);
         } else if (aaService_->connectionState() == CS::Disconnected
                    || aaService_->connectionState() == CS::WaitingForDevice) {
+            // Release touch device back to Wayland for normal UI
+            if (touchReader_) touchReader_->ungrab();
             if (appController_->currentApplication() == oap::ApplicationTypes::AndroidAuto) {
                 appController_->navigateTo(oap::ApplicationTypes::Launcher);
             }

@@ -13,6 +13,9 @@
 #include <aasdk/Messenger/MessageOutStream.hpp>
 #include <aasdk/Messenger/Messenger.hpp>
 
+#include <netinet/tcp.h>
+#include <sys/socket.h>
+
 #ifdef HAS_BLUETOOTH
 #include "BluetoothDiscoveryService.hpp"
 #endif
@@ -197,6 +200,25 @@ void AndroidAutoService::onTCPConnection(std::shared_ptr<boost::asio::ip::tcp::s
     setState(Connecting, QString("Wireless connection from %1...")
              .arg(QString::fromStdString(remoteEndpoint.address().to_string())));
 
+    // Enable TCP keepalive so we detect dead connections (e.g. phone WiFi killed)
+    try {
+        auto fd = socket->native_handle();
+        int yes = 1;
+        ::setsockopt(fd, SOL_SOCKET, SO_KEEPALIVE, &yes, sizeof(yes));
+        int idle = 5;     // seconds before first keepalive probe
+        int interval = 3; // seconds between probes
+        int count = 3;    // failed probes before connection is dead
+        ::setsockopt(fd, IPPROTO_TCP, TCP_KEEPIDLE, &idle, sizeof(idle));
+        ::setsockopt(fd, IPPROTO_TCP, TCP_KEEPINTVL, &interval, sizeof(interval));
+        ::setsockopt(fd, IPPROTO_TCP, TCP_KEEPCNT, &count, sizeof(count));
+        BOOST_LOG_TRIVIAL(debug) << "[AAService] TCP keepalive enabled (idle=5s, interval=3s, count=3)";
+    } catch (...) {
+        BOOST_LOG_TRIVIAL(warning) << "[AAService] Failed to set TCP keepalive";
+    }
+
+    // Keep a reference so the watchdog can check socket health
+    activeSocket_ = socket;
+
     try {
         auto tcpEndpoint = std::make_shared<aasdk::tcp::TCPEndpoint>(*tcpWrapper_, std::move(socket));
         auto transport = std::make_shared<aasdk::transport::TCPTransport>(*ioService_, std::move(tcpEndpoint));
@@ -239,26 +261,114 @@ void AndroidAutoService::onConnected()
 {
     BOOST_LOG_TRIVIAL(info) << "[AAService] Android Auto connected!";
     setState(Connected, "Android Auto active");
+    // Must start watchdog on the main thread — QTimer requires a Qt event loop
+    QMetaObject::invokeMethod(this, [this]() { startConnectionWatchdog(); },
+                              Qt::QueuedConnection);
 }
 
 void AndroidAutoService::onDisconnected()
 {
     BOOST_LOG_TRIVIAL(info) << "[AAService] Android Auto disconnected";
+    QMetaObject::invokeMethod(this, [this]() { stopConnectionWatchdog(); },
+                              Qt::QueuedConnection);
 
     if (entity_) {
         entity_->stop();
         entity_.reset();
     }
+    activeSocket_.reset();
 
     uint16_t port = config_->tcpPort();
     setState(WaitingForDevice,
              QString("Waiting for wireless connection on port %1...").arg(port));
+
+    // Restart TCP listener so we can accept a new connection
+    startTCPListener();
 }
 
 void AndroidAutoService::onError(const std::string& message)
 {
     BOOST_LOG_TRIVIAL(error) << "[AAService] Error: " << message;
-    setState(Disconnected, QString("Error: %1").arg(QString::fromStdString(message)));
+    QMetaObject::invokeMethod(this, [this]() { stopConnectionWatchdog(); },
+                              Qt::QueuedConnection);
+
+    if (entity_) {
+        entity_->stop();
+        entity_.reset();
+    }
+    activeSocket_.reset();
+
+    setState(WaitingForDevice, QString("Error: %1").arg(QString::fromStdString(message)));
+
+    // Restart TCP listener so we can accept a reconnection
+    startTCPListener();
+}
+
+void AndroidAutoService::startConnectionWatchdog()
+{
+    stopConnectionWatchdog();
+
+    connect(&watchdogTimer_, &QTimer::timeout, this, [this]() {
+        if (state_ != Connected || !activeSocket_) {
+            stopConnectionWatchdog();
+            return;
+        }
+
+        // Check if socket is still alive using TCP_INFO
+        struct tcp_info info{};
+        socklen_t len = sizeof(info);
+        int fd = activeSocket_->native_handle();
+
+        if (::getsockopt(fd, IPPROTO_TCP, TCP_INFO, &info, &len) < 0) {
+            BOOST_LOG_TRIVIAL(warning) << "[AAService] Watchdog: getsockopt failed, forcing disconnect";
+            onDisconnected();
+            return;
+        }
+
+        // TCP_ESTABLISHED = 1, anything else means it's dying or dead
+        if (info.tcpi_state != 1) {
+            BOOST_LOG_TRIVIAL(info) << "[AAService] Watchdog: TCP state=" << (int)info.tcpi_state
+                                    << " (not ESTABLISHED), forcing disconnect";
+            onDisconnected();
+            return;
+        }
+
+        // Check retransmit backoff — exponential backoff level stays high when
+        // the peer is unreachable. backoff >= 3 means multiple retransmit rounds
+        // have failed (typically 15+ seconds of no response).
+        bool dead = false;
+        if (info.tcpi_backoff >= 3) {
+            BOOST_LOG_TRIVIAL(info) << "[AAService] Watchdog: retransmit backoff="
+                                    << (int)info.tcpi_backoff
+                                    << ", peer unreachable — closing socket";
+            dead = true;
+        } else if (info.tcpi_retransmits > 4) {
+            BOOST_LOG_TRIVIAL(info) << "[AAService] Watchdog: " << (int)info.tcpi_retransmits
+                                    << " retransmits — closing socket";
+            dead = true;
+        }
+
+        if (dead) {
+            // Close the socket — this causes ASIO read errors which trigger
+            // onDisconnected() through the normal aasdk error path.
+            boost::system::error_code ec;
+            activeSocket_->close(ec);
+            stopConnectionWatchdog();
+            return;
+        }
+    });
+
+    watchdogTimer_.start(2000);  // check every 2 seconds
+    BOOST_LOG_TRIVIAL(debug) << "[AAService] Connection watchdog started";
+}
+
+void AndroidAutoService::stopConnectionWatchdog()
+{
+    if (watchdogTimer_.isActive()) {
+        watchdogTimer_.stop();
+        disconnect(&watchdogTimer_, nullptr, this, nullptr);
+        BOOST_LOG_TRIVIAL(debug) << "[AAService] Connection watchdog stopped";
+    }
 }
 
 } // namespace aa

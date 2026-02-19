@@ -54,8 +54,9 @@ int main(int argc, char *argv[])
     auto themeService = new oap::ThemeService(&app);
     QString themePath = QDir::homePath() + "/.openauto/themes/default";
     if (!themeService->loadTheme(themePath)) {
-        // No user theme installed — ThemeService returns transparent for all colors.
-        // On Pi, the install script will deploy the default theme.
+        // Fall back to bundled theme next to the executable
+        QString bundledTheme = QCoreApplication::applicationDirPath() + "/../../config/themes/default";
+        themeService->loadTheme(bundledTheme);
     }
 
     // --- Audio service (PipeWire) ---

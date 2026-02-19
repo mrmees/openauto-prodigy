@@ -2,6 +2,7 @@
 
 #include <QThread>
 #include <array>
+#include <atomic>
 #include <vector>
 #include <string>
 #include <chrono>
@@ -58,6 +59,11 @@ public:
 
     void requestStop() { stopRequested_ = true; }
 
+    /// Grab/ungrab the evdev device. When ungrabbed, events are discarded and
+    /// Wayland/libinput can handle the touch device for normal UI interaction.
+    void grab();
+    void ungrab();
+
 signals:
     /// Emitted when a 3-finger tap gesture is detected (thread-safe, queued).
     void gestureDetected();
@@ -95,6 +101,7 @@ private:
     std::array<Slot, MAX_SLOTS> prevSlots_;  // state before this SYN
     int currentSlot_ = 0;
     bool stopRequested_ = false;
+    std::atomic<bool> grabbed_{false};
     int fd_ = -1;
 
     // Gesture detection state
