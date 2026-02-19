@@ -1,5 +1,6 @@
 #include "VideoService.hpp"
 
+#include <chrono>
 #include <boost/log/trivial.hpp>
 
 #include <aasdk/Messenger/ChannelId.hpp>
@@ -31,7 +32,7 @@ VideoService::VideoService(
     if (decoder_) {
         connect(this, &VideoService::videoFrameData,
                 decoder_, &VideoDecoder::decodeFrame,
-                Qt::QueuedConnection);
+                Qt::DirectConnection);
     }
 }
 
@@ -59,7 +60,10 @@ void VideoService::fillFeatures(aasdk::proto::messages::ServiceDiscoveryResponse
 
     auto* videoConfig = avChannel->add_video_configs();
     videoConfig->set_video_resolution(aasdk::proto::enums::VideoResolution::_720p);
-    videoConfig->set_video_fps(aasdk::proto::enums::VideoFPS::_30);
+    videoConfig->set_video_fps(
+        config_->videoFps() == 60
+            ? aasdk::proto::enums::VideoFPS::_60
+            : aasdk::proto::enums::VideoFPS::_30);
     videoConfig->set_margin_width(0);
     videoConfig->set_margin_height(0);
     videoConfig->set_dpi(config_->screenDpi());
@@ -139,7 +143,8 @@ void VideoService::onAVMediaWithTimestampIndication(
     // Marshal H.264 data to Qt thread for decoding
     // QByteArray performs a deep copy here which is fine — the ASIO buffer
     // is only valid for the duration of this callback
-    emit videoFrameData(QByteArray(reinterpret_cast<const char*>(buffer.cdata), buffer.size));
+    emit videoFrameData(QByteArray(reinterpret_cast<const char*>(buffer.cdata), buffer.size),
+                        std::chrono::steady_clock::now().time_since_epoch().count());
 
     channel_->receive(shared_from_this());
 }
@@ -148,7 +153,8 @@ void VideoService::onAVMediaIndication(const aasdk::common::DataConstBuffer& buf
 {
     // SPS/PPS codec configuration data arrives here (no timestamp)
     // Must forward to decoder or it will never be able to decode frames
-    emit videoFrameData(QByteArray(reinterpret_cast<const char*>(buffer.cdata), buffer.size));
+    emit videoFrameData(QByteArray(reinterpret_cast<const char*>(buffer.cdata), buffer.size),
+                        std::chrono::steady_clock::now().time_since_epoch().count());
     channel_->receive(shared_from_this());
 }
 

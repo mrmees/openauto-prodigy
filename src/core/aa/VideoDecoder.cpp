@@ -1,7 +1,9 @@
 #include "VideoDecoder.hpp"
 
+#include <QMetaObject>
 #include <boost/log/trivial.hpp>
 #include <cstring>
+#include <iomanip>
 
 namespace oap {
 namespace aa {
@@ -43,6 +45,10 @@ VideoDecoder::VideoDecoder(QObject* parent)
     frame_ = av_frame_alloc();
 
     BOOST_LOG_TRIVIAL(info) << "[VideoDecoder] Initialized (H.264 software decode)";
+
+    worker_ = new DecodeWorker(this);
+    worker_->start();
+    BOOST_LOG_TRIVIAL(info) << "[VideoDecoder] Decode worker thread started";
 }
 
 VideoDecoder::~VideoDecoder()
@@ -52,6 +58,13 @@ VideoDecoder::~VideoDecoder()
 
 void VideoDecoder::cleanup()
 {
+    if (worker_) {
+        worker_->requestStop();
+        worker_->wait();
+        delete worker_;
+        worker_ = nullptr;
+    }
+
     if (frame_) { av_frame_free(&frame_); frame_ = nullptr; }
     if (packet_) { av_packet_free(&packet_); packet_ = nullptr; }
     if (parser_) { av_parser_close(parser_); parser_ = nullptr; }
@@ -68,9 +81,17 @@ void VideoDecoder::setVideoSink(QVideoSink* sink)
     }
 }
 
-void VideoDecoder::decodeFrame(QByteArray h264Data)
+void VideoDecoder::decodeFrame(QByteArray h264Data, qint64 enqueueTimeNs)
+{
+    if (worker_)
+        worker_->enqueue(std::move(h264Data), enqueueTimeNs);
+}
+
+void VideoDecoder::processFrame(const QByteArray& h264Data, qint64 enqueueTimeNs)
 {
     if (!codecCtx_ || !parser_ || !packet_ || !frame_) return;
+
+    auto t_decodeStart = PerfStats::Clock::now();
 
     // Android Auto sends H.264 in AnnexB format (start codes already present)
     const uint8_t* data = reinterpret_cast<const uint8_t*>(h264Data.constData());
@@ -111,57 +132,147 @@ void VideoDecoder::decodeFrame(QByteArray h264Data)
                 break;
             }
 
+            auto t_decodeDone = PerfStats::Clock::now();
+
             // Got a decoded frame — convert to QVideoFrame
             if (videoSink_ && frame_->format == AV_PIX_FMT_YUV420P) {
-                QVideoFrameFormat format(
-                    QSize(frame_->width, frame_->height),
-                    QVideoFrameFormat::Format_YUV420P);
+                // Cache format on first frame or resolution change
+                if (!cachedFormat_ ||
+                    cachedFormat_->frameWidth() != frame_->width ||
+                    cachedFormat_->frameHeight() != frame_->height) {
+                    cachedFormat_ = QVideoFrameFormat(
+                        QSize(frame_->width, frame_->height),
+                        QVideoFrameFormat::Format_YUV420P);
+                }
 
-                QVideoFrame videoFrame(format);
+                // Fresh frame each decode — QVideoFrame is ref-counted so reusing
+                // buffers races with Qt's render thread holding a read mapping
+                QVideoFrame videoFrame(*cachedFormat_);
                 if (videoFrame.map(QVideoFrame::WriteOnly)) {
-                    // Copy Y plane
-                    const int yStride = videoFrame.bytesPerLine(0);
-                    const uint8_t* ySrc = frame_->data[0];
-                    uint8_t* yDst = videoFrame.bits(0);
-                    for (int y = 0; y < frame_->height; ++y) {
-                        std::memcpy(yDst + y * yStride, ySrc + y * frame_->linesize[0],
-                                    std::min(yStride, frame_->linesize[0]));
+                    const int h = frame_->height;
+                    const int chromaH = h / 2;
+
+                    // Y plane — bulk copy if strides match
+                    const int yDstStride = videoFrame.bytesPerLine(0);
+                    const int ySrcStride = frame_->linesize[0];
+                    if (yDstStride == ySrcStride) {
+                        std::memcpy(videoFrame.bits(0), frame_->data[0], ySrcStride * h);
+                    } else {
+                        const int yRowBytes = std::min(yDstStride, ySrcStride);
+                        for (int y = 0; y < h; ++y)
+                            std::memcpy(videoFrame.bits(0) + y * yDstStride,
+                                        frame_->data[0] + y * ySrcStride, yRowBytes);
                     }
 
-                    // Copy U plane
-                    const int uStride = videoFrame.bytesPerLine(1);
-                    const uint8_t* uSrc = frame_->data[1];
-                    uint8_t* uDst = videoFrame.bits(1);
-                    const int chromaHeight = frame_->height / 2;
-                    for (int y = 0; y < chromaHeight; ++y) {
-                        std::memcpy(uDst + y * uStride, uSrc + y * frame_->linesize[1],
-                                    std::min(uStride, frame_->linesize[1]));
+                    // U plane
+                    const int uDstStride = videoFrame.bytesPerLine(1);
+                    const int uSrcStride = frame_->linesize[1];
+                    if (uDstStride == uSrcStride) {
+                        std::memcpy(videoFrame.bits(1), frame_->data[1], uSrcStride * chromaH);
+                    } else {
+                        const int uRowBytes = std::min(uDstStride, uSrcStride);
+                        for (int y = 0; y < chromaH; ++y)
+                            std::memcpy(videoFrame.bits(1) + y * uDstStride,
+                                        frame_->data[1] + y * uSrcStride, uRowBytes);
                     }
 
-                    // Copy V plane
-                    const int vStride = videoFrame.bytesPerLine(2);
-                    const uint8_t* vSrc = frame_->data[2];
-                    uint8_t* vDst = videoFrame.bits(2);
-                    for (int y = 0; y < chromaHeight; ++y) {
-                        std::memcpy(vDst + y * vStride, vSrc + y * frame_->linesize[2],
-                                    std::min(vStride, frame_->linesize[2]));
+                    // V plane
+                    const int vDstStride = videoFrame.bytesPerLine(2);
+                    const int vSrcStride = frame_->linesize[2];
+                    if (vDstStride == vSrcStride) {
+                        std::memcpy(videoFrame.bits(2), frame_->data[2], vSrcStride * chromaH);
+                    } else {
+                        const int vRowBytes = std::min(vDstStride, vSrcStride);
+                        for (int y = 0; y < chromaH; ++y)
+                            std::memcpy(videoFrame.bits(2) + y * vDstStride,
+                                        frame_->data[2] + y * vSrcStride, vRowBytes);
                     }
 
                     videoFrame.unmap();
-                    videoSink_->setVideoFrame(videoFrame);
+
+                    auto t_copyDone = PerfStats::Clock::now();
+
+                    // Marshal setVideoFrame back to Qt main thread
+                    QMetaObject::invokeMethod(videoSink_, [this, videoFrame]() {
+                        videoSink_->setVideoFrame(videoFrame);
+                    }, Qt::QueuedConnection);
+
+                    auto t_display = PerfStats::Clock::now();
+
+                    // Record timing metrics
+                    if (enqueueTimeNs > 0) {
+                        auto t_enqueue = PerfStats::TimePoint(std::chrono::nanoseconds(enqueueTimeNs));
+                        metricQueue_.record(PerfStats::msElapsed(t_enqueue, t_decodeStart));
+                        metricTotal_.record(PerfStats::msElapsed(t_enqueue, t_display));
+                    }
+                    metricDecode_.record(PerfStats::msElapsed(t_decodeStart, t_decodeDone));
+                    metricCopy_.record(PerfStats::msElapsed(t_decodeDone, t_copyDone));
                 }
 
                 ++frameCount_;
+                ++framesSinceLog_;
+
                 if (frameCount_ == 1) {
                     BOOST_LOG_TRIVIAL(info) << "[VideoDecoder] First frame decoded: "
                                             << frame_->width << "x" << frame_->height;
-                } else if (frameCount_ % 300 == 0) {
-                    BOOST_LOG_TRIVIAL(info) << "[VideoDecoder] Frames decoded: " << frameCount_;
+                }
+
+                // Rolling stats every LOG_INTERVAL_SEC seconds
+                auto now = PerfStats::Clock::now();
+                double elapsed = PerfStats::msElapsed(lastLogTime_, now) / 1000.0;
+                if (elapsed >= LOG_INTERVAL_SEC) {
+                    double fps = framesSinceLog_ / elapsed;
+                    BOOST_LOG_TRIVIAL(info)
+                        << "[Perf] Video: queue=" << std::fixed << std::setprecision(1)
+                        << metricQueue_.avg() << "ms"
+                        << " decode=" << metricDecode_.avg() << "ms"
+                        << " copy=" << metricCopy_.avg() << "ms"
+                        << " total=" << metricTotal_.avg() << "ms"
+                        << " (p99\u2248" << metricTotal_.max << "ms)"
+                        << " | " << std::setprecision(1) << fps << " fps";
+
+                    metricQueue_.reset();
+                    metricDecode_.reset();
+                    metricCopy_.reset();
+                    metricTotal_.reset();
+                    framesSinceLog_ = 0;
+                    lastLogTime_ = now;
                 }
             }
 
             av_frame_unref(frame_);
         }
+    }
+}
+
+void VideoDecoder::DecodeWorker::enqueue(QByteArray data, qint64 enqueueTimeNs)
+{
+    QMutexLocker locker(&mutex_);
+    queue_.push({std::move(data), enqueueTimeNs});
+    condition_.wakeOne();
+}
+
+void VideoDecoder::DecodeWorker::requestStop()
+{
+    QMutexLocker locker(&mutex_);
+    stopRequested_ = true;
+    condition_.wakeOne();
+}
+
+void VideoDecoder::DecodeWorker::run()
+{
+    while (true) {
+        WorkItem item;
+        {
+            QMutexLocker locker(&mutex_);
+            while (queue_.empty() && !stopRequested_)
+                condition_.wait(&mutex_);
+            if (stopRequested_ && queue_.empty())
+                return;
+            item = std::move(queue_.front());
+            queue_.pop();
+        }
+        decoder_->processFrame(item.data, item.enqueueTimeNs);
     }
 }
 

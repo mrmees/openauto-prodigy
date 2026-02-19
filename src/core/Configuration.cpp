@@ -142,6 +142,12 @@ void Configuration::load(const QString& filePath) {
     m_wifiPassword     = settings.value(QStringLiteral("wifi_password"), m_wifiPassword).toString();
     m_tcpPort          = static_cast<uint16_t>(settings.value(QStringLiteral("tcp_port"), m_tcpPort).toUInt());
     settings.endGroup();
+
+    // [Video]
+    settings.beginGroup(QStringLiteral("Video"));
+    m_videoFps = settings.value(QStringLiteral("fps"), m_videoFps).toInt();
+    if (m_videoFps != 30 && m_videoFps != 60) m_videoFps = 60;
+    settings.endGroup();
 }
 
 void Configuration::save(const QString& filePath) const {
@@ -187,6 +193,11 @@ void Configuration::save(const QString& filePath) const {
     settings.setValue(QStringLiteral("wifi_ssid"), m_wifiSsid);
     settings.setValue(QStringLiteral("wifi_password"), m_wifiPassword);
     settings.setValue(QStringLiteral("tcp_port"), m_tcpPort);
+    settings.endGroup();
+
+    // [Video]
+    settings.beginGroup(QStringLiteral("Video"));
+    settings.setValue(QStringLiteral("fps"), m_videoFps);
     settings.endGroup();
 
     settings.sync();

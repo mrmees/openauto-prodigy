@@ -7,92 +7,62 @@ Item {
 
     Component.onCompleted: ApplicationController.setTitle("Android Auto")
 
+    // Black background for letterbox bars
+    Rectangle {
+        anchors.fill: parent
+        color: "black"
+        visible: AndroidAutoService.connectionState === 3
+    }
+
     // Video output — fills entire area when projecting
     VideoOutput {
         id: videoOutput
         anchors.fill: parent
         visible: AndroidAutoService.connectionState === 3
-        fillMode: VideoOutput.Stretch
+        fillMode: VideoOutput.PreserveAspectFit
     }
 
-    // Touch point visualization model
-    ListModel { id: touchPointModel }
+    // Touch input is handled by EvdevTouchReader in C++ — reads directly from
+    // /dev/input/event4 for reliable multi-touch. No QML touch handling needed.
 
-    // Multi-touch input — forward to phone via AA input channel
-    MultiPointTouchArea {
-        anchors.fill: videoOutput
-        visible: videoOutput.visible
-        minimumTouchPoints: 1
-        maximumTouchPoints: 10
-
-        onPressed: function(touchPoints) {
-            for (var i = 0; i < touchPoints.length; i++) {
-                var tp = touchPoints[i];
-                var nx = Math.round(tp.x / width * 1024);
-                var ny = Math.round(tp.y / height * 600);
-                TouchHandler.sendMultiTouchEvent(nx, ny, tp.pointId, i === 0 ? 0 : 5);
-                touchPointModel.append({ ptId: tp.pointId, ptX: tp.x, ptY: tp.y });
-            }
-        }
-        onReleased: function(touchPoints) {
-            for (var i = 0; i < touchPoints.length; i++) {
-                var tp = touchPoints[i];
-                var nx = Math.round(tp.x / width * 1024);
-                var ny = Math.round(tp.y / height * 600);
-                TouchHandler.sendMultiTouchEvent(nx, ny, tp.pointId, i === 0 ? 1 : 6);
-                for (var j = touchPointModel.count - 1; j >= 0; j--) {
-                    if (touchPointModel.get(j).ptId === tp.pointId)
-                        touchPointModel.remove(j);
-                }
-            }
-        }
-        onUpdated: function(touchPoints) {
-            for (var i = 0; i < touchPoints.length; i++) {
-                var tp = touchPoints[i];
-                var nx = Math.round(tp.x / width * 1024);
-                var ny = Math.round(tp.y / height * 600);
-                TouchHandler.sendMultiTouchEvent(nx, ny, tp.pointId, 2);
-                for (var j = 0; j < touchPointModel.count; j++) {
-                    if (touchPointModel.get(j).ptId === tp.pointId) {
-                        touchPointModel.set(j, { ptId: tp.pointId, ptX: tp.x, ptY: tp.y });
-                        break;
-                    }
-                }
-            }
-        }
-    }
-
-    // Touch debug overlay — shows circles where touches are detected
+    // Debug touch overlay — shows green crosshair circles at AA touch coordinates
+    // Accounts for letterboxing (video is PreserveAspectFit within display)
     Repeater {
-        model: touchPointModel
-        delegate: Rectangle {
-            x: model.ptX - 25
-            y: model.ptY - 25
-            width: 50
-            height: 50
-            radius: 25
-            color: "transparent"
-            border.color: "#00FF00"
-            border.width: 3
-            opacity: 0.8
+        model: TouchHandler.debugOverlay ? TouchHandler.debugTouches : []
+        delegate: Item {
+            // Compute video area within display (same logic as C++ letterbox)
+            readonly property real videoAspect: 1280 / 720
+            readonly property real displayAspect: androidAutoMenu.width / androidAutoMenu.height
+            readonly property real videoW: videoAspect > displayAspect ? androidAutoMenu.width : androidAutoMenu.height * videoAspect
+            readonly property real videoH: videoAspect > displayAspect ? androidAutoMenu.width / videoAspect : androidAutoMenu.height
+            readonly property real videoX0: (androidAutoMenu.width - videoW) / 2
+            readonly property real videoY0: (androidAutoMenu.height - videoH) / 2
 
+            x: videoX0 + modelData.x / 1280 * videoW - 15
+            y: videoY0 + modelData.y / 720 * videoH - 15
+            width: 30; height: 30
+            z: 100
+
+            Rectangle {
+                anchors.fill: parent
+                radius: 15
+                color: "transparent"
+                border.color: "#00FF00"
+                border.width: 2
+            }
             // Crosshair
-            Rectangle { anchors.centerIn: parent; width: 1; height: 20; color: "#00FF00"; opacity: 0.6 }
-            Rectangle { anchors.centerIn: parent; width: 20; height: 1; color: "#00FF00"; opacity: 0.6 }
-
+            Rectangle { anchors.centerIn: parent; width: 1; height: 20; color: "#00FF00" }
+            Rectangle { anchors.centerIn: parent; width: 20; height: 1; color: "#00FF00" }
             // Coordinate label
             Text {
                 anchors.top: parent.bottom
-                anchors.topMargin: 4
                 anchors.horizontalCenter: parent.horizontalCenter
-                text: Math.round(model.ptX / androidAutoMenu.width * 1024) + "," + Math.round(model.ptY / androidAutoMenu.height * 600)
+                text: modelData.x + "," + modelData.y
                 color: "#00FF00"
                 font.pixelSize: 10
-                font.family: "monospace"
             }
         }
     }
-
 
     // Bind the video sink to C++ decoder
     Binding {

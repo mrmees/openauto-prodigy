@@ -46,7 +46,7 @@ public:
     void onChannelError(const aasdk::error::Error& e) override;
 
 signals:
-    void videoFrameData(QByteArray data);
+    void videoFrameData(QByteArray data, qint64 enqueueTimeNs);
 
 private:
     boost::asio::io_service::strand strand_;
