@@ -12,6 +12,7 @@
 #include "core/plugin/HostContext.hpp"
 #include "core/plugin/PluginManager.hpp"
 #include "plugins/android_auto/AndroidAutoPlugin.hpp"
+#include "plugins/bt_audio/BtAudioPlugin.hpp"
 #include "ui/ApplicationController.hpp"
 #include "ui/PluginModel.hpp"
 
@@ -67,9 +68,12 @@ int main(int argc, char *argv[])
 
     oap::PluginManager pluginManager(&app);
 
-    // Register AA as a static (compiled-in) plugin
+    // Register static (compiled-in) plugins
     auto aaPlugin = new oap::plugins::AndroidAutoPlugin(config, appController, &app);
     pluginManager.registerStaticPlugin(aaPlugin);
+
+    auto btAudioPlugin = new oap::plugins::BtAudioPlugin(&app);
+    pluginManager.registerStaticPlugin(btAudioPlugin);
 
     // Discover dynamic plugins from user directory
     pluginManager.discoverPlugins(QDir::homePath() + "/.openauto/plugins");
