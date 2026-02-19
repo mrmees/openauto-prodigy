@@ -66,7 +66,8 @@ int main(int argc, char *argv[])
             aaService->touchHandler(),
             touchDevice.toStdString(),
             4095, 4095,   // evdev axis range (read from device at runtime)
-            1024, 600,    // AA touch coordinate space
+            1280, 720,    // AA touch coordinate space (must match video resolution)
+            1024, 600,    // physical display resolution
             &app);
         touchReader->start();
     }

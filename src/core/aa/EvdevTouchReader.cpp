@@ -5,9 +5,67 @@
 #include <sys/ioctl.h>
 #include <poll.h>
 #include <cstring>
+#include <algorithm>
 
 namespace oap {
 namespace aa {
+
+void EvdevTouchReader::computeLetterbox()
+{
+    // Compute where the video (aaWidth x aaHeight) fits within the physical
+    // display (displayWidth x displayHeight), PreserveAspectFit style.
+    // Then map that region into evdev coordinate space (0..screenWidth, 0..screenHeight).
+
+    float displayAspect = static_cast<float>(displayWidth_) / displayHeight_;
+    float videoAspect = static_cast<float>(aaWidth_) / aaHeight_;
+
+    float videoPixelW, videoPixelH, videoPixelX0, videoPixelY0;
+
+    if (videoAspect > displayAspect) {
+        // Video is wider than display — pillarbox (bars top/bottom... wait, wider = fit to width)
+        videoPixelW = displayWidth_;
+        videoPixelH = displayWidth_ / videoAspect;
+        videoPixelX0 = 0;
+        videoPixelY0 = (displayHeight_ - videoPixelH) / 2.0f;
+    } else {
+        // Video is taller than display — fit to height, bars on sides
+        videoPixelH = displayHeight_;
+        videoPixelW = displayHeight_ * videoAspect;
+        videoPixelX0 = (displayWidth_ - videoPixelW) / 2.0f;
+        videoPixelY0 = 0;
+    }
+
+    // Convert pixel positions to evdev coordinate space
+    // evdev 0..screenWidth maps to display 0..displayWidth
+    float evdevPerPixelX = static_cast<float>(screenWidth_) / displayWidth_;
+    float evdevPerPixelY = static_cast<float>(screenHeight_) / displayHeight_;
+
+    videoEvdevX0_ = videoPixelX0 * evdevPerPixelX;
+    videoEvdevY0_ = videoPixelY0 * evdevPerPixelY;
+    videoEvdevW_ = videoPixelW * evdevPerPixelX;
+    videoEvdevH_ = videoPixelH * evdevPerPixelY;
+
+    BOOST_LOG_TRIVIAL(info) << "[EvdevTouch] Letterbox: video " << aaWidth_ << "x" << aaHeight_
+                            << " in display " << displayWidth_ << "x" << displayHeight_
+                            << " -> pixel area " << videoPixelW << "x" << videoPixelH
+                            << " at (" << videoPixelX0 << "," << videoPixelY0 << ")"
+                            << " | evdev area (" << videoEvdevX0_ << "," << videoEvdevY0_
+                            << ") " << videoEvdevW_ << "x" << videoEvdevH_;
+}
+
+int EvdevTouchReader::mapX(int rawX) const
+{
+    float rel = (rawX - videoEvdevX0_) / videoEvdevW_;
+    rel = std::clamp(rel, 0.0f, 1.0f);
+    return static_cast<int>(rel * aaWidth_);
+}
+
+int EvdevTouchReader::mapY(int rawY) const
+{
+    float rel = (rawY - videoEvdevY0_) / videoEvdevH_;
+    rel = std::clamp(rel, 0.0f, 1.0f);
+    return static_cast<int>(rel * aaHeight_);
+}
 
 void EvdevTouchReader::run()
 {
@@ -31,8 +89,11 @@ void EvdevTouchReader::run()
     if (::ioctl(fd_, EVIOCGABS(ABS_MT_POSITION_Y), &absY) == 0)
         screenHeight_ = absY.maximum;
 
+    // Recompute letterbox with actual axis ranges
+    computeLetterbox();
+
     BOOST_LOG_TRIVIAL(info) << "[EvdevTouch] Opened " << devicePath_
-                            << " (range: " << screenWidth_ << "x" << screenHeight_
+                            << " (evdev: " << screenWidth_ << "x" << screenHeight_
                             << " -> AA " << aaWidth_ << "x" << aaHeight_ << ")";
 
     prevSlots_ = slots_;
@@ -115,9 +176,7 @@ void EvdevTouchReader::processSync()
     std::vector<Pointer> pointers;
     for (int i = 0; i < MAX_SLOTS; ++i) {
         if (slots_[i].trackingId >= 0) {
-            int ax = static_cast<int>(static_cast<float>(slots_[i].x) / screenWidth_ * aaWidth_);
-            int ay = static_cast<int>(static_cast<float>(slots_[i].y) / screenHeight_ * aaHeight_);
-            pointers.push_back({ax, ay, i});  // pointer_id = slot index (stable per finger)
+            pointers.push_back({mapX(slots_[i].x), mapY(slots_[i].y), i});
         }
     }
 
@@ -139,19 +198,18 @@ void EvdevTouchReader::processSync()
 
             BOOST_LOG_TRIVIAL(info) << "[EvdevTouch] DOWN slot=" << i
                                     << " actionIdx=" << actionIdx
-                                    << " active=" << nowActive;
+                                    << " active=" << nowActive
+                                    << " raw=(" << slots_[i].x << "," << slots_[i].y << ")"
+                                    << " aa=(" << pointers[actionIdx].x << "," << pointers[actionIdx].y << ")";
         }
         else if (wasActive && !isActive) {
             // Finger lifted — need to include this pointer in the array at its last position
-            // Rebuild pointers INCLUDING the lifted finger
-            std::vector<TouchHandler::Pointer> withLifted;
+            std::vector<Pointer> withLifted;
             for (int j = 0; j < MAX_SLOTS; ++j) {
                 if (slots_[j].trackingId >= 0 || (j == i && prevSlots_[j].trackingId >= 0)) {
                     int sx = (j == i) ? prevSlots_[j].x : slots_[j].x;
                     int sy = (j == i) ? prevSlots_[j].y : slots_[j].y;
-                    int ax = static_cast<int>(static_cast<float>(sx) / screenWidth_ * aaWidth_);
-                    int ay = static_cast<int>(static_cast<float>(sy) / screenHeight_ * aaHeight_);
-                    withLifted.push_back({ax, ay, j});
+                    withLifted.push_back({mapX(sx), mapY(sy), j});
                 }
             }
 
