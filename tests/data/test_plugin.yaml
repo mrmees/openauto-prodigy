@@ -1,0 +1,28 @@
+id: org.test.example
+name: "Test Plugin"
+version: "1.0.0"
+api_version: 1
+type: full
+description: "A test plugin"
+author: "Test"
+icon: icons/test.svg
+requires:
+  services:
+    - AudioService
+    - ConfigService
+settings:
+  - key: enabled
+    type: bool
+    default: true
+    label: "Enabled"
+  - key: quality
+    type: enum
+    default: high
+    label: "Quality"
+    options:
+      - low
+      - medium
+      - high
+nav_strip:
+  order: 1
+  visible: true
