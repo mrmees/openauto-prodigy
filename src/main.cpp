@@ -12,6 +12,8 @@
 #include "core/services/IThemeService.hpp"
 #include "core/services/IDisplayService.hpp"
 #include "core/services/IEventBus.hpp"
+#include "core/plugin/IPlugin.hpp"
+#include "core/plugin/IHostContext.hpp"
 #include "core/aa/AndroidAutoService.hpp"
 #include "core/aa/EvdevTouchReader.hpp"
 #include "ui/ThemeController.hpp"
