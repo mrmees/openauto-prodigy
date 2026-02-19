@@ -1,0 +1,35 @@
+hardware_profile: rpi4
+
+display:
+  brightness: 80
+  theme: default
+  orientation: landscape
+
+connection:
+  auto_connect_aa: true
+  bt_discoverable: true
+  wifi_ap:
+    ssid: "TestSSID"
+    password: "TestPassword"
+    channel: 36
+    band: a
+
+audio:
+  master_volume: 75
+  output_device: auto
+
+video:
+  fps: 60
+  resolution: 720p
+
+nav_strip:
+  order:
+    - org.openauto.android-auto
+    - org.openauto.bt-audio
+  show_labels: true
+
+plugins:
+  enabled:
+    - org.openauto.android-auto
+    - org.openauto.bt-audio
+  disabled: []

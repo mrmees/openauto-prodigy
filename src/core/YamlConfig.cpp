@@ -1,0 +1,251 @@
+#include "core/YamlConfig.hpp"
+#include "core/YamlMerge.hpp"
+#include <QFile>
+#include <QDir>
+#include <fstream>
+
+namespace oap {
+
+YamlConfig::YamlConfig()
+{
+    initDefaults();
+}
+
+void YamlConfig::initDefaults()
+{
+    root_ = YAML::Node(YAML::NodeType::Map);
+
+    root_["hardware_profile"] = "rpi4";
+
+    root_["display"]["brightness"] = 80;
+    root_["display"]["theme"] = "default";
+    root_["display"]["orientation"] = "landscape";
+
+    root_["connection"]["auto_connect_aa"] = true;
+    root_["connection"]["bt_discoverable"] = true;
+    root_["connection"]["wifi_ap"]["ssid"] = "OpenAutoProdigy";
+    root_["connection"]["wifi_ap"]["password"] = "changeme123";
+    root_["connection"]["wifi_ap"]["channel"] = 36;
+    root_["connection"]["wifi_ap"]["band"] = "a";
+    root_["connection"]["tcp_port"] = 5288;
+
+    root_["audio"]["master_volume"] = 80;
+    root_["audio"]["output_device"] = "auto";
+
+    root_["video"]["fps"] = 60;
+    root_["video"]["resolution"] = "720p";
+
+    root_["nav_strip"]["order"] = YAML::Node(YAML::NodeType::Sequence);
+    root_["nav_strip"]["order"].push_back("org.openauto.android-auto");
+    root_["nav_strip"]["show_labels"] = true;
+
+    root_["plugins"]["enabled"] = YAML::Node(YAML::NodeType::Sequence);
+    root_["plugins"]["enabled"].push_back("org.openauto.android-auto");
+    root_["plugins"]["disabled"] = YAML::Node(YAML::NodeType::Sequence);
+
+    root_["plugin_config"] = YAML::Node(YAML::NodeType::Map);
+}
+
+void YamlConfig::load(const QString& filePath)
+{
+    YAML::Node defaults;
+    initDefaults();
+    defaults = YAML::Clone(root_);
+
+    YAML::Node loaded = YAML::LoadFile(filePath.toStdString());
+    root_ = mergeYaml(defaults, loaded);
+}
+
+void YamlConfig::save(const QString& filePath) const
+{
+    std::ofstream fout(filePath.toStdString());
+    fout << root_;
+}
+
+// --- Hardware profile ---
+
+QString YamlConfig::hardwareProfile() const
+{
+    return QString::fromStdString(root_["hardware_profile"].as<std::string>("rpi4"));
+}
+
+void YamlConfig::setHardwareProfile(const QString& v)
+{
+    root_["hardware_profile"] = v.toStdString();
+}
+
+// --- Display ---
+
+int YamlConfig::displayBrightness() const
+{
+    return root_["display"]["brightness"].as<int>(80);
+}
+
+void YamlConfig::setDisplayBrightness(int v)
+{
+    root_["display"]["brightness"] = v;
+}
+
+QString YamlConfig::theme() const
+{
+    return QString::fromStdString(root_["display"]["theme"].as<std::string>("default"));
+}
+
+void YamlConfig::setTheme(const QString& v)
+{
+    root_["display"]["theme"] = v.toStdString();
+}
+
+// --- Connection ---
+
+bool YamlConfig::autoConnectAA() const
+{
+    return root_["connection"]["auto_connect_aa"].as<bool>(true);
+}
+
+void YamlConfig::setAutoConnectAA(bool v)
+{
+    root_["connection"]["auto_connect_aa"] = v;
+}
+
+QString YamlConfig::wifiSsid() const
+{
+    return QString::fromStdString(
+        root_["connection"]["wifi_ap"]["ssid"].as<std::string>("OpenAutoProdigy"));
+}
+
+void YamlConfig::setWifiSsid(const QString& v)
+{
+    root_["connection"]["wifi_ap"]["ssid"] = v.toStdString();
+}
+
+QString YamlConfig::wifiPassword() const
+{
+    return QString::fromStdString(
+        root_["connection"]["wifi_ap"]["password"].as<std::string>("changeme123"));
+}
+
+void YamlConfig::setWifiPassword(const QString& v)
+{
+    root_["connection"]["wifi_ap"]["password"] = v.toStdString();
+}
+
+uint16_t YamlConfig::tcpPort() const
+{
+    return static_cast<uint16_t>(root_["connection"]["tcp_port"].as<int>(5288));
+}
+
+void YamlConfig::setTcpPort(uint16_t v)
+{
+    root_["connection"]["tcp_port"] = static_cast<int>(v);
+}
+
+// --- Audio ---
+
+int YamlConfig::masterVolume() const
+{
+    return root_["audio"]["master_volume"].as<int>(80);
+}
+
+void YamlConfig::setMasterVolume(int v)
+{
+    root_["audio"]["master_volume"] = v;
+}
+
+// --- Video ---
+
+int YamlConfig::videoFps() const
+{
+    return root_["video"]["fps"].as<int>(60);
+}
+
+void YamlConfig::setVideoFps(int v)
+{
+    root_["video"]["fps"] = v;
+}
+
+// --- Plugins ---
+
+QStringList YamlConfig::enabledPlugins() const
+{
+    QStringList result;
+    if (root_["plugins"]["enabled"].IsSequence()) {
+        for (const auto& node : root_["plugins"]["enabled"])
+            result.append(QString::fromStdString(node.as<std::string>()));
+    }
+    return result;
+}
+
+void YamlConfig::setEnabledPlugins(const QStringList& plugins)
+{
+    root_["plugins"]["enabled"] = YAML::Node(YAML::NodeType::Sequence);
+    for (const auto& p : plugins)
+        root_["plugins"]["enabled"].push_back(p.toStdString());
+}
+
+// --- Plugin-scoped config ---
+
+QVariant YamlConfig::pluginValue(const QString& pluginId, const QString& key) const
+{
+    auto pluginNode = root_["plugin_config"][pluginId.toStdString()];
+    if (!pluginNode.IsDefined() || pluginNode.IsNull())
+        return {};
+
+    auto valNode = pluginNode[key.toStdString()];
+    if (!valNode.IsDefined() || valNode.IsNull())
+        return {};
+
+    // Try to return the most specific type
+    try {
+        if (valNode.IsScalar()) {
+            // Try bool first
+            try {
+                bool b = valNode.as<bool>();
+                auto s = valNode.as<std::string>();
+                if (s == "true" || s == "false")
+                    return QVariant(b);
+            } catch (...) {}
+
+            // Try int
+            try {
+                int i = valNode.as<int>();
+                return QVariant(i);
+            } catch (...) {}
+
+            // Try double
+            try {
+                double d = valNode.as<double>();
+                return QVariant(d);
+            } catch (...) {}
+
+            // Fall back to string
+            return QVariant(QString::fromStdString(valNode.as<std::string>()));
+        }
+    } catch (...) {}
+
+    return {};
+}
+
+void YamlConfig::setPluginValue(const QString& pluginId, const QString& key, const QVariant& value)
+{
+    auto idStr = pluginId.toStdString();
+    auto keyStr = key.toStdString();
+
+    switch (value.typeId()) {
+    case QMetaType::Bool:
+        root_["plugin_config"][idStr][keyStr] = value.toBool();
+        break;
+    case QMetaType::Int:
+        root_["plugin_config"][idStr][keyStr] = value.toInt();
+        break;
+    case QMetaType::Double:
+    case QMetaType::Float:
+        root_["plugin_config"][idStr][keyStr] = value.toDouble();
+        break;
+    default:
+        root_["plugin_config"][idStr][keyStr] = value.toString().toStdString();
+        break;
+    }
+}
+
+} // namespace oap
