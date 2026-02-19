@@ -9,8 +9,7 @@
 #include "core/services/ConfigService.hpp"
 #include "core/plugin/HostContext.hpp"
 #include "core/plugin/PluginManager.hpp"
-#include "core/aa/AndroidAutoService.hpp"
-#include "core/aa/EvdevTouchReader.hpp"
+#include "core/aa/AaBootstrap.hpp"
 #include "ui/ThemeController.hpp"
 #include "ui/ApplicationController.hpp"
 #include "ui/PluginModel.hpp"
@@ -50,8 +49,6 @@ int main(int argc, char *argv[])
     auto hostContext = std::make_unique<oap::HostContext>();
     hostContext->setConfigService(configService.get());
 
-    // PluginManager must be destroyed BEFORE plugins it manages
-    // (but static plugins are destroyed by QObject parent, so order matters less)
     oap::PluginManager pluginManager(&app);
     pluginManager.discoverPlugins(QDir::homePath() + "/.openauto/plugins");
     pluginManager.initializeAll(hostContext.get());
@@ -60,9 +57,6 @@ int main(int argc, char *argv[])
     auto theme = new oap::ThemeController(config, &app);
     auto appController = new oap::ApplicationController(&app);
 
-    // --- AA service (will become AndroidAutoPlugin in Phase E) ---
-    auto aaService = new oap::aa::AndroidAutoService(config, &app);
-
     // Plugin model for QML nav strip
     auto pluginModel = new oap::PluginModel(&pluginManager, &app);
 
@@ -70,58 +64,25 @@ int main(int argc, char *argv[])
     engine.rootContext()->setContextProperty("ThemeController", theme);
     engine.rootContext()->setContextProperty("ApplicationController", appController);
     engine.rootContext()->setContextProperty("PluginModel", pluginModel);
-    engine.rootContext()->setContextProperty("AndroidAutoService", aaService);
-    engine.rootContext()->setContextProperty("VideoDecoder", aaService->videoDecoder());
-    engine.rootContext()->setContextProperty("TouchHandler", aaService->touchHandler());
 
     // Qt 6.5+ uses /qt/qml/ prefix, Qt 6.4 uses direct URI prefix
     QUrl url(QStringLiteral("qrc:/OpenAutoProdigy/main.qml"));
     if (QFile::exists(QStringLiteral(":/qt/qml/OpenAutoProdigy/main.qml")))
         url = QUrl(QStringLiteral("qrc:/qt/qml/OpenAutoProdigy/main.qml"));
 
+    // AA bootstrap: creates service, touch reader, connects signals,
+    // sets QML context properties, starts the service.
+    // Will be replaced by AndroidAutoPlugin in Phase E.
+    auto aaRuntime = oap::aa::startAa(config, appController, &engine, &app);
+
     engine.load(url);
 
     if (engine.rootObjects().isEmpty())
         return -1;
 
-    // Auto-switch to AA view on connect, back to launcher on disconnect
-    QObject::connect(aaService, &oap::aa::AndroidAutoService::connectionStateChanged,
-                     appController, [aaService, appController]() {
-        if (aaService->connectionState() == oap::aa::AndroidAutoService::Connected) {
-            appController->navigateTo(oap::ApplicationTypes::AndroidAuto);
-        } else if (aaService->connectionState() == oap::aa::AndroidAutoService::Disconnected
-                   || aaService->connectionState() == oap::aa::AndroidAutoService::WaitingForDevice) {
-            if (appController->currentApplication() == oap::ApplicationTypes::AndroidAuto) {
-                appController->navigateTo(oap::ApplicationTypes::Launcher);
-            }
-        }
-    });
-
-    // Start evdev touch reader if device exists (Pi only, not dev VM)
-    oap::aa::EvdevTouchReader* touchReader = nullptr;
-    QString touchDevice = "/dev/input/event4";  // TODO: make configurable
-    if (QFile::exists(touchDevice)) {
-        touchReader = new oap::aa::EvdevTouchReader(
-            aaService->touchHandler(),
-            touchDevice.toStdString(),
-            4095, 4095,   // evdev axis range (read from device at runtime)
-            1280, 720,    // AA touch coordinate space (must match video resolution)
-            1024, 600,    // physical display resolution
-            &app);
-        touchReader->start();
-    }
-
-    // Start AA service after QML is loaded
-    aaService->start();
-
     int ret = app.exec();
 
-    if (touchReader) {
-        touchReader->requestStop();
-        touchReader->wait();
-    }
-
-    // Explicit shutdown before automatic destruction
+    oap::aa::stopAa(aaRuntime);
     pluginManager.shutdownAll();
 
     return ret;
