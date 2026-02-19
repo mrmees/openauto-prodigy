@@ -17,19 +17,26 @@
 | Phase | Tasks | Description | Dependency |
 |-------|-------|-------------|------------|
 | **A** | 1-3 | YAML config migration | None |
-| **B** | 4-7 | Service interfaces + plugin boundary | Phase A |
+| **B** | 4-7.5 | Service interfaces + plugin boundary + HFP spike | Phase A |
 | **C** | 8-10 | Plugin manager + discovery | Phase B |
 | **D** | 11-13 | QML shell refactor | Phase B |
-| **E** | 14-16 | AA static plugin wrapping | Phases C + D |
-| **F** | 17-19 | Theme system | Phase D |
-| **G** | 20-22 | Audio pipeline (PipeWire) | Phase B |
-| **H** | 23-25 | BT Audio plugin | Phases C + G |
-| **I** | 26-28 | Phone (HFP) plugin | Phases C + G |
-| **J** | 29-31 | Web config panel | Phase A |
-| **K** | 32-33 | 3-finger gesture overlay | Phase E |
-| **L** | 34-35 | Install script + polish | All |
+| **D.5** | 14-15 | Plugin context lifecycle + AA bootstrap extraction | Phases C + D |
+| **E** | 16-18 | AA static plugin wrapping | Phase D.5 |
+| **F** | 19-21 | Theme system | Phase D |
+| **G** | 22-24 | Audio pipeline (PipeWire) | Phase B |
+| **H** | 25-27 | BT Audio plugin | Phases C + G |
+| **I** | 28-30 | Phone (HFP) plugin | Phases C + G + HFP spike |
+| **J** | 31-33 | Web config panel | Phase A |
+| **K** | 34-35 | 3-finger gesture overlay | Phase E |
+| **L** | 36-37 | Install script + polish | All |
 
-**Critical path:** A → B → C + D → E (AA must keep working throughout)
+**Critical path:** A → B → D + C → D.5 (plugin context + AA bootstrap) → E (AA must keep working throughout)
+
+**Pre-Phase E gate:** These MUST be complete before wrapping AA as a plugin:
+- Plugin-specific QQmlContext lifecycle (Task 14)
+- AA bootstrap extracted and stable (Task 15)
+- Config system is single-source-of-truth (Task 2, no split-brain)
+- Fullscreen capability on IPlugin (Task 5)
 
 ---
 
@@ -81,12 +88,21 @@ git commit -m "build: add yaml-cpp dependency"
 **Files:**
 - Create: `src/core/YamlConfig.hpp`
 - Create: `src/core/YamlConfig.cpp`
+- Create: `src/core/YamlMerge.hpp` (deep merge utility)
 - Create: `tests/test_yaml_config.cpp`
 - Create: `tests/data/test_config.yaml`
 - Modify: `tests/CMakeLists.txt`
 - Modify: `src/CMakeLists.txt`
 
 **Context:** We build the new YAML config system alongside the existing INI system. Both coexist until migration is complete. The YAML config follows the schema from the design doc Section 7.
+
+**IMPORTANT:** yaml-cpp does NOT provide deep merge. We need a `mergeYaml()` utility for overlaying hardware profiles and user config over defaults.
+
+**Deep Merge Rules:**
+- Mapping nodes: recurse into children
+- Sequence nodes: override entirely (no append)
+- Scalar nodes: override
+- Missing keys in override: preserve defaults
 
 **Step 1: Create test config YAML file**
 
@@ -208,7 +224,26 @@ QTEST_MAIN(TestYamlConfig)
 #include "test_yaml_config.moc"
 ```
 
-**Step 3: Write YamlConfig header**
+**Step 3: Create deep merge utility**
+
+Create `src/core/YamlMerge.hpp`:
+
+```cpp
+#pragma once
+
+#include <yaml-cpp/yaml.h>
+
+namespace oap {
+
+// Deep merge: overlay values override base values.
+// Mappings recurse, sequences and scalars override entirely,
+// missing keys in overlay preserve base defaults.
+YAML::Node mergeYaml(const YAML::Node& base, const YAML::Node& overlay);
+
+} // namespace oap
+```
+
+**Step 4: Write YamlConfig header**
 
 Create `src/core/YamlConfig.hpp`:
 
@@ -218,7 +253,6 @@ Create `src/core/YamlConfig.hpp`:
 #include <QString>
 #include <QStringList>
 #include <QVariant>
-#include <QMap>
 #include <yaml-cpp/yaml.h>
 
 namespace oap {
@@ -262,13 +296,13 @@ public:
     QStringList enabledPlugins() const;
     void setEnabledPlugins(const QStringList& plugins);
 
-    // Plugin-scoped config
+    // Plugin-scoped config — single source of truth in root_ YAML tree.
+    // NO separate cache. All reads/writes go through root_["plugin_config"].
     QVariant pluginValue(const QString& pluginId, const QString& key) const;
     void setPluginValue(const QString& pluginId, const QString& key, const QVariant& value);
 
 private:
-    YAML::Node root_;
-    QMap<QString, QMap<QString, QVariant>> pluginConfigs_;
+    YAML::Node root_;  // Single source of truth — NO shadow state
 
     void initDefaults();
 };
@@ -276,18 +310,22 @@ private:
 } // namespace oap
 ```
 
-**Step 4: Write YamlConfig implementation**
+**IMPORTANT:** No `pluginConfigs_` QMap. All plugin config lives under `root_["plugin_config"][pluginId][key]`. Single source of truth, no split-brain.
 
-Create `src/core/YamlConfig.cpp` — implements load/save using yaml-cpp, getters/setters read from/write to the `root_` YAML node. Plugin-scoped config stored in `pluginConfigs_` map.
+**Step 5: Write YamlConfig implementation**
+
+Create `src/core/YamlConfig.cpp` — implements load/save using yaml-cpp, getters/setters read from/write to the `root_` YAML node.
 
 The implementation should:
-- `initDefaults()` populates `root_` with the default config schema
-- `load()` parses YAML file, merges over defaults
+- `initDefaults()` populates `root_` with the default config schema (including empty `plugin_config:` map)
+- `load()` parses YAML file, uses `mergeYaml(defaults, loaded)` to overlay user values over defaults
 - `save()` writes `root_` to file
 - Getters navigate the YAML tree: `root_["connection"]["wifi_ap"]["ssid"]`
-- Plugin config stored separately in `pluginConfigs_` and serialized under `plugin_config:` key
+- `pluginValue()` reads `root_["plugin_config"][pluginId][key]` directly
+- `setPluginValue()` writes `root_["plugin_config"][pluginId][key]` directly
+- No shadow state, no separate cache
 
-**Step 5: Add to build system**
+**Step 6: Add to build system**
 
 In `src/CMakeLists.txt`, add `core/YamlConfig.cpp` to the `qt_add_executable` source list.
 
@@ -313,16 +351,16 @@ configure_file(data/test_config.yaml ${CMAKE_CURRENT_BINARY_DIR}/data/test_confi
 add_test(NAME test_yaml_config COMMAND test_yaml_config)
 ```
 
-**Step 6: Build and run tests**
+**Step 7: Build and run tests**
 
 Run: `cd build && cmake .. && cmake --build . -j$(nproc) && ctest --output-on-failure`
 Expected: All tests pass including new `test_yaml_config`
 
-**Step 7: Commit**
+**Step 8: Commit**
 
 ```bash
-git add src/core/YamlConfig.hpp src/core/YamlConfig.cpp tests/test_yaml_config.cpp tests/data/test_config.yaml src/CMakeLists.txt tests/CMakeLists.txt
-git commit -m "feat: add YAML configuration system (YamlConfig)"
+git add src/core/YamlConfig.hpp src/core/YamlConfig.cpp src/core/YamlMerge.hpp tests/test_yaml_config.cpp tests/data/test_config.yaml src/CMakeLists.txt tests/CMakeLists.txt
+git commit -m "feat: add YAML configuration system (YamlConfig) with deep merge"
 ```
 
 ---
@@ -392,6 +430,12 @@ git commit -m "feat: wire YAML config with INI fallback and auto-migration"
 
 Each header is a pure abstract class (all virtual methods = 0). No implementation, no dependencies beyond Qt types.
 
+**Contract documentation:** Every method must have a doxygen comment specifying:
+- Thread affinity (UI thread only? background allowed?)
+- Ownership rules (who deletes returned objects? `std::unique_ptr` = caller owns)
+- Error handling (bool return? nullptr on failure? signal?)
+- Example: `// createStream() — must be called from UI thread. Returns unique_ptr (caller owns). Returns nullptr on failure.`
+
 Key interfaces to define:
 
 - `IAudioService`: `createStream()`, `destroyStream()`, `setMasterVolume()`, `requestAudioFocus()`, `releaseAudioFocus()`
@@ -458,7 +502,11 @@ public:
 
     // Capabilities
     virtual QStringList requiredServices() const = 0;
+    virtual bool wantsFullscreen() const { return false; }
 };
+
+// Shell behavior: if activePlugin->wantsFullscreen(), hide status bar + nav strip.
+// Do NOT hardcode AA-specific fullscreen logic into Shell.
 
 } // namespace oap
 
@@ -604,6 +652,40 @@ git commit -m "feat: implement ConfigService wrapping YamlConfig"
 
 ---
 
+### Task 7.5: HFP Stack Spike — Validate ofono vs BlueZ on RPi OS Trixie
+
+**Files:** None (research spike)
+
+**Context:** The Phone plugin (Phase I) needs HFP (Hands-Free Profile). Two options: ofono or BlueZ native HF role. This spike validates which stack actually works on RPi OS Trixie before we commit to an implementation.
+
+**Step 1: Check ofono availability on Trixie**
+
+```bash
+ssh matt@192.168.1.149 'apt-cache show ofono && systemctl status ofono'
+```
+
+**Step 2: Check BlueZ HFP support**
+
+```bash
+ssh matt@192.168.1.149 'bluetoothctl show | grep -i profile'
+```
+
+**Step 3: Test ofono HFP registration (if available)**
+
+Try registering as HFP Audio Gateway via D-Bus. Document what works, what doesn't.
+
+**Step 4: Document findings**
+
+Write results to `docs/hfp-stack-spike.md`. Recommend one approach.
+
+**Step 5: Commit**
+
+```bash
+git commit -m "docs: HFP stack spike results (ofono vs BlueZ on Trixie)"
+```
+
+---
+
 ## Phase C: Plugin Manager + Discovery
 
 ### Task 8: Create PluginManifest parser
@@ -630,7 +712,8 @@ author: "Test"
 icon: icons/test.svg
 requires:
   services:
-    - AudioService >= 1.0
+    - AudioService
+    - ConfigService
 settings:
   - key: enabled
     type: bool
@@ -641,9 +724,11 @@ nav_strip:
   visible: true
 ```
 
+**NOTE:** Service requirements are presence-only checks (no semantic version constraints). We only enforce API version compatibility and service presence. Semantic version parsing is deferred until post-1.0 when third-party plugins exist.
+
 **Step 2: Write failing test, implement parser, test, commit**
 
-PluginManifest stores: id, name, version, apiVersion, type (full/qml-only), requiredServices, settings schema, nav strip config.
+PluginManifest stores: id, name, version, apiVersion, type (full/qml-only), requiredServices (presence-only), settings schema, nav strip config.
 
 ```bash
 git commit -m "feat: implement PluginManifest YAML parser"
@@ -651,42 +736,52 @@ git commit -m "feat: implement PluginManifest YAML parser"
 
 ---
 
-### Task 9: Create PluginManager
+### Task 9: Create PluginManager (split: Discovery / Loader / Manager)
 
 **Files:**
-- Create: `src/core/plugin/PluginManager.hpp`
-- Create: `src/core/plugin/PluginManager.cpp`
+- Create: `src/core/plugin/PluginDiscovery.hpp` / `.cpp`
+- Create: `src/core/plugin/PluginLoader.hpp` / `.cpp`
+- Create: `src/core/plugin/PluginManager.hpp` / `.cpp`
+- Create: `tests/test_plugin_discovery.cpp`
 - Create: `tests/test_plugin_manager.cpp`
 - Modify: `src/CMakeLists.txt`
 - Modify: `tests/CMakeLists.txt`
 
-**Context:** Discovers, validates, loads, and manages plugin lifecycle. Design doc Section 4 defines the lifecycle: Discovered → Validated → Loaded → Initialized → Running → Shutdown.
+**Context:** Split into three classes for testability. Design doc Section 4 defines the lifecycle: Discovered → Validated → Loaded → Initialized → Running → Shutdown.
 
-**Responsibilities:**
-- Scan `~/.openauto/plugins/` for directories containing `plugin.yaml`
-- Parse manifests, check API version compatibility
-- For full plugins: load `.so` via `QPluginLoader`
-- For QML-only plugins: locate QML component path
-- Call `initialize(IHostContext*)` on each loaded plugin
-- Expose list of loaded plugins (for nav strip population)
-- Handle failures gracefully (log and disable failed plugins)
+**Architecture:**
+- **PluginDiscovery** — file scanning + manifest parsing. Scans `~/.openauto/plugins/` for directories containing `plugin.yaml`. Returns list of validated `PluginManifest` objects. Fully unit-testable.
+- **PluginLoader** — dynamic `.so` loading via `QPluginLoader`. Thin wrapper. Integration-test only (fragile to unit test).
+- **PluginManager** — lifecycle orchestration. Uses Discovery and Loader, manages init/shutdown sequence, exposes loaded plugin list.
 
-**Step 1: Write failing tests**
+**Step 1: Write failing tests for PluginDiscovery**
 
-Test discovery (finds plugins in a temp directory), validation (rejects wrong API version), loading (loads a test manifest), failure handling (bad manifest doesn't crash).
+Test discovery (finds plugins in a temp directory), validation (rejects wrong API version), manifest parsing, failure handling (bad manifest doesn't crash). These are pure unit tests — no `.so` loading involved.
 
-**Step 2: Implement PluginManager**
+**Step 2: Implement PluginDiscovery**
 
 Key methods:
-- `discoverPlugins(const QString& pluginsDir)`
-- `loadPlugins(IHostContext* context)`
-- `shutdownPlugins()`
-- `QList<PluginManifest> loadedPlugins() const`
+- `QList<PluginManifest> discover(const QString& pluginsDir)`
+- `bool validateManifest(const PluginManifest& manifest, int hostApiVersion)`
+
+**Step 3: Implement PluginLoader (thin wrapper)**
+
+- `IPlugin* load(const QString& soPath)` — wraps QPluginLoader
+- Integration-test only
+
+**Step 4: Implement PluginManager (lifecycle orchestration)**
+
+Key methods:
+- `void registerStaticPlugin(IPlugin* plugin)` — for core plugins compiled into binary
+- `void discoverAndLoad(const QString& pluginsDir, IHostContext* context)`
+- `void initializeAll(IHostContext* context)`
+- `void shutdownAll()`
+- `QList<IPlugin*> loadedPlugins() const`
 - `IPlugin* plugin(const QString& id) const`
 
-**Step 3: Register static plugins**
+**Step 5: Write PluginManager tests with mock plugins**
 
-Add a method `registerStaticPlugin(IPlugin* plugin)` for core plugins that are compiled into the binary. These skip the `.so` loading step but go through the same validation and initialization.
+Test lifecycle orchestration: register mock IPlugin, verify init called, verify shutdown called, verify failure handling (init returns false → plugin disabled, logged, continue).
 
 **Step 4: Build, test, commit**
 
@@ -824,9 +919,163 @@ git commit -m "feat: wire PluginModel to Shell nav strip for plugin navigation"
 
 ---
 
+## Phase D.5: Plugin Context Lifecycle + AA Bootstrap Extraction
+
+> **These tasks are REQUIRED before Phase E.** Without them, plugin QML context will leak and AA wrapping will be unsafe.
+
+### Task 14: Implement Plugin-Specific QML Context + Activation Lifecycle
+
+**Files:**
+- Create: `src/ui/PluginRuntimeContext.hpp`
+- Create: `src/ui/PluginRuntimeContext.cpp`
+- Modify: `src/main.cpp`
+- Modify: `qml/Shell.qml`
+- Modify: `src/CMakeLists.txt`
+
+**Context:** Current architecture uses global `engine.rootContext()->setContextProperty()` for everything. Plugins need scoped QML contexts that are created on activation and destroyed on deactivation.
+
+**Step 1: Create PluginRuntimeContext**
+
+```cpp
+// Manages a plugin's QML lifecycle: child context, loader, activation state
+class PluginRuntimeContext : public QObject {
+    Q_OBJECT
+public:
+    PluginRuntimeContext(IPlugin* plugin, QQmlEngine* engine, QObject* parent = nullptr);
+    ~PluginRuntimeContext();
+
+    // Create child QQmlContext, expose plugin-owned objects, prepare for QML loading
+    void activate();
+
+    // Destroy child context, call plugin shutdown hooks, prevent QObject leaks
+    void deactivate();
+
+    QQmlContext* qmlContext() const;
+    bool isActive() const;
+
+private:
+    IPlugin* plugin_;
+    QQmlEngine* engine_;
+    QQmlContext* childContext_ = nullptr;
+    bool active_ = false;
+};
+```
+
+**Step 2: Implement activation/deactivation**
+
+On activate:
+1. Create child `QQmlContext` from `engine->rootContext()`
+2. Let plugin expose its objects to the child context
+3. Load plugin QML into Shell's `Loader` using that context
+
+On deactivate:
+1. Call plugin's deactivation hook
+2. Destroy child context (prevents QObject leaks)
+3. Clear Loader source
+
+**Step 3: Add `onActivated()` / `onDeactivated()` lifecycle hooks to IPlugin**
+
+```cpp
+// In IPlugin:
+virtual void onActivated(QQmlContext* context) {}   // Plugin exposes QML bindings here
+virtual void onDeactivated() {}                      // Cleanup before context destruction
+```
+
+**Lifecycle model:** Discover → Load → Initialize → (Activate ↔ Deactivate)* → Shutdown
+Activation ≠ Initialization. AA starts protocol in `onActivated()`, not `initialize()`.
+
+**Ownership rules:**
+- Plugin owns its internal services
+- Shell owns the QML context (via PluginRuntimeContext)
+- PluginManager coordinates activation and shutdown
+
+**Step 4: Update Shell.qml Loader to accept plugin context**
+
+**Step 5: Build, verify context creation/destruction, commit**
+
+```bash
+git commit -m "feat: implement PluginRuntimeContext for scoped QML plugin contexts"
+```
+
+---
+
+### Task 15: Extract AA Bootstrap from main.cpp
+
+**Files:**
+- Create: `src/core/aa/AaBootstrap.hpp`
+- Create: `src/core/aa/AaBootstrap.cpp`
+- Modify: `src/main.cpp`
+- Modify: `src/CMakeLists.txt`
+
+**Context:** Before wrapping AA as a plugin, extract ALL AA initialization logic from main.cpp into a standalone bootstrap function. This is a pure extraction — NO behavior change. Reference: `docs/plans/main-cpp-pre-refactor.cpp`
+
+**Step 1: Create AaBootstrap**
+
+```cpp
+namespace oap::aa {
+
+struct AaRuntime {
+    AndroidAutoService* service;
+    EvdevTouchReader* touchReader;  // may be nullptr (no touch device)
+};
+
+// Moves all AA init from main.cpp into one callable function.
+// No behavior change from the monolithic version.
+AaRuntime startAa(std::shared_ptr<oap::Configuration> config,
+                  oap::ApplicationController* appController,
+                  QQmlApplicationEngine* engine,
+                  QObject* parent);
+
+// Clean shutdown
+void stopAa(AaRuntime& runtime);
+
+} // namespace oap::aa
+```
+
+**Step 2: Move ALL AA wiring from main.cpp into `startAa()`**
+
+This includes:
+- Creating AndroidAutoService
+- Setting context properties (AndroidAutoService, VideoDecoder, TouchHandler)
+- Connecting navigation signals (connectionStateChanged → navigateTo)
+- Creating EvdevTouchReader if touch device exists
+- Starting AA service
+
+**Step 3: Update main.cpp to call `AaBootstrap::startAa()`**
+
+main.cpp should shrink significantly. The AA section becomes:
+
+```cpp
+auto aaRuntime = oap::aa::startAa(config, appController, &engine, &app);
+```
+
+And cleanup:
+
+```cpp
+oap::aa::stopAa(aaRuntime);
+```
+
+**Step 4: Build, verify AA still works identically, commit**
+
+```bash
+git commit -m "refactor: extract AA initialization into AaBootstrap (no behavior change)"
+```
+
+**Step 5: Preserve startup order**
+
+Verify that `startAa()` maintains the exact ordering:
+1. `engine.load()` (already happened before call)
+2. Connect navigation signals
+3. Start touch reader
+4. `aaService->start()`
+
+If plugin migration changes this order, the `onActivated()` hook is where AA should start.
+
+---
+
 ## Phase E: Wrap AA as Static Plugin
 
-### Task 14: Create AndroidAutoPlugin implementing IPlugin
+### Task 16: Create AndroidAutoPlugin implementing IPlugin (wraps AaBootstrap)
 
 **Files:**
 - Create: `src/plugins/android_auto/AndroidAutoPlugin.hpp`
@@ -854,6 +1103,11 @@ public:
     QUrl qmlComponent() const override;
     QUrl iconSource() const override;
     QStringList requiredServices() const override;
+    bool wantsFullscreen() const override { return true; }
+
+    // Activation lifecycle
+    void onActivated(QQmlContext* context) override;
+    void onDeactivated() override;
 
 private:
     IHostContext* context_ = nullptr;
@@ -862,13 +1116,16 @@ private:
 };
 ```
 
-**Step 2: Move AA initialization from main.cpp into plugin's initialize()**
+**Step 2: Move AA initialization from AaBootstrap into plugin lifecycle**
 
-The `initialize()` method does everything that main.cpp currently does:
+The `initialize()` method sets up AA using the already-extracted `AaBootstrap` logic, but adapted to use `IHostContext` services:
 - Creates `AndroidAutoService` (using config from `context->configService()`)
-- Creates `EvdevTouchReader` if touch device exists
-- Connects state change signals
-- Starts the AA service
+- Prepares `EvdevTouchReader` (but does NOT start until `onActivated()`)
+
+The `onActivated()` method:
+- Exposes VideoDecoder, TouchHandler to the plugin's child QQmlContext
+- Starts the AA service and touch reader
+- Connects navigation state signals
 
 **Step 3: Move AA cleanup into plugin's shutdown()**
 
@@ -880,7 +1137,7 @@ git commit -m "feat: wrap Android Auto code as static plugin (AndroidAutoPlugin)
 
 ---
 
-### Task 15: Register AndroidAutoPlugin as static plugin
+### Task 17: Register AndroidAutoPlugin as static plugin
 
 **Files:**
 - Modify: `src/main.cpp`
@@ -914,7 +1171,7 @@ git commit -m "refactor: remove AA-specific code from main.cpp, use static plugi
 
 ---
 
-### Task 16: Create AndroidAutoMenu.qml as plugin's QML view
+### Task 18: Create AndroidAutoMenu.qml as plugin's QML view
 
 **Files:**
 - Move: `qml/applications/android_auto/AndroidAutoMenu.qml` → plugin's QML directory
@@ -938,7 +1195,7 @@ git commit -m "refactor: move AndroidAutoMenu.qml under AA plugin ownership"
 
 ## Phase F: Theme System
 
-### Task 17: Implement ThemeService
+### Task 19: Implement ThemeService
 
 **Files:**
 - Create: `src/core/services/ThemeService.hpp`
@@ -963,7 +1220,7 @@ git commit -m "feat: implement ThemeService with YAML theme loading"
 
 ---
 
-### Task 18: Wire ThemeService into HostContext and QML
+### Task 20: Wire ThemeService into HostContext and QML
 
 **Files:**
 - Modify: `src/main.cpp`
@@ -979,7 +1236,7 @@ git commit -m "feat: wire ThemeService into HostContext and QML context"
 
 ---
 
-### Task 19: Migrate QML from old ThemeController to new ThemeService
+### Task 21: Migrate QML from old ThemeController to new ThemeService
 
 **Files:**
 - Modify: All QML files that reference `ThemeController`
@@ -1000,7 +1257,7 @@ git commit -m "refactor: migrate QML from ThemeController to ThemeService"
 
 ## Phase G: Audio Pipeline
 
-### Task 20: Implement AudioService wrapping PipeWire
+### Task 22: Implement AudioService wrapping PipeWire
 
 **Files:**
 - Create: `src/core/services/AudioService.hpp`
@@ -1025,7 +1282,13 @@ pkg_check_modules(PIPEWIRE REQUIRED libpipewire-0.3)
 - `setMasterVolume()` controls the PipeWire sink volume
 - `requestAudioFocus()` / `releaseAudioFocus()` configure ducking policy
 
-**Step 3: Build, test (at minimum: create/destroy stream without crash), commit**
+**Step 3: Build and test**
+
+**IMPORTANT:** Unit tests must NOT assume a running PipeWire daemon. Mock the PipeWire API for unit tests. Integration tests (on Pi with running PipeWire) are separate. AudioService should gracefully handle PipeWire being unavailable (log warning, return nullptr from createStream).
+
+At minimum: create/destroy stream without crash, verify nullptr return when no daemon.
+
+**Step 4: Commit**
 
 ```bash
 git commit -m "feat: implement AudioService wrapping PipeWire"
@@ -1033,7 +1296,7 @@ git commit -m "feat: implement AudioService wrapping PipeWire"
 
 ---
 
-### Task 21: Wire AA audio channels through AudioService
+### Task 23: Wire AA audio channels through AudioService
 
 **Files:**
 - Modify: `src/plugins/android_auto/AndroidAutoPlugin.cpp`
@@ -1062,7 +1325,7 @@ git commit -m "feat: wire AA audio channels through PipeWire AudioService"
 
 ---
 
-### Task 22: Implement audio focus routing
+### Task 24: Implement audio focus routing
 
 **Files:**
 - Modify: `src/core/aa/AndroidAutoEntity.cpp`
@@ -1084,7 +1347,7 @@ git commit -m "feat: implement audio focus routing with PipeWire ducking"
 
 ## Phase H: Bluetooth Audio Plugin
 
-### Task 23: Create BtAudioPlugin skeleton
+### Task 25: Create BtAudioPlugin skeleton
 
 **Files:**
 - Create: `src/plugins/bt_audio/BtAudioPlugin.hpp`
@@ -1092,7 +1355,7 @@ git commit -m "feat: implement audio focus routing with PipeWire ducking"
 - Create: `src/plugins/bt_audio/qml/BtAudioView.qml`
 - Modify: `src/CMakeLists.txt`
 
-**Context:** A2DP sink — the Pi acts as a Bluetooth speaker. Uses BlueZ D-Bus API for A2DP profile registration and PipeWire for audio output.
+**Context:** A2DP sink — the Pi acts as a Bluetooth speaker. PipeWire + BlueZ already handle A2DP endpoint negotiation and SBC/AAC codec decode. This plugin is a UI wrapper + AVRCP transport controls, NOT a custom audio endpoint.
 
 **Step 1: Create plugin skeleton implementing IPlugin**
 
@@ -1108,16 +1371,20 @@ git commit -m "feat: add BtAudioPlugin skeleton (A2DP sink)"
 
 ---
 
-### Task 24: Implement A2DP sink via BlueZ D-Bus
+### Task 26: Implement A2DP sink monitoring via PipeWire/BlueZ
 
 **Files:**
 - Modify: `src/plugins/bt_audio/BtAudioPlugin.cpp`
 
-**Context:** Register as A2DP sink with BlueZ via D-Bus. Receive audio stream, forward to PipeWire via AudioService.
+**Context:** PipeWire + BlueZ handle A2DP sink negotiation and codec decode. We do NOT implement a custom A2DP endpoint or do SBC/AAC decoding ourselves. The plugin monitors connection state via BlueZ D-Bus and audio routing via PipeWire.
 
-**Step 1: Register A2DP Sink endpoint with BlueZ via D-Bus**
+**Step 1: Monitor BlueZ D-Bus for A2DP connection state**
 
-**Step 2: Handle incoming audio data, decode SBC/AAC, write to PipeWire stream**
+Watch for `org.bluez.MediaTransport1` property changes to detect when a phone connects/disconnects as audio source.
+
+**Step 2: Monitor PipeWire for active BT audio stream**
+
+Detect when PipeWire has an active BT A2DP source node. Update UI state (connected, playing, paused).
 
 **Step 3: Test with phone playing music over Bluetooth**
 
@@ -1127,7 +1394,7 @@ git commit -m "feat: implement A2DP sink via BlueZ D-Bus"
 
 ---
 
-### Task 25: Implement BT audio metadata (AVRCP)
+### Task 27: Implement BT audio metadata (AVRCP)
 
 **Files:**
 - Modify: `src/plugins/bt_audio/BtAudioPlugin.cpp`
@@ -1149,7 +1416,7 @@ git commit -m "feat: add AVRCP metadata and playback controls to BT Audio plugin
 
 ## Phase I: Phone Plugin
 
-### Task 26: Create PhonePlugin skeleton
+### Task 28: Create PhonePlugin skeleton
 
 **Files:**
 - Create: `src/plugins/phone/PhonePlugin.hpp`
@@ -1169,7 +1436,7 @@ git commit -m "feat: add PhonePlugin skeleton (HFP dialer)"
 
 ---
 
-### Task 27: Implement HFP profile via ofono
+### Task 29: Implement HFP profile via ofono (or BlueZ — see spike results)
 
 **Files:**
 - Modify: `src/plugins/phone/PhonePlugin.cpp`
@@ -1188,7 +1455,7 @@ git commit -m "feat: implement HFP phone calls via ofono"
 
 ---
 
-### Task 28: Implement incoming call notification
+### Task 30: Implement incoming call notification
 
 **Files:**
 - Modify: `src/plugins/phone/PhonePlugin.cpp`
@@ -1210,7 +1477,7 @@ git commit -m "feat: add incoming call overlay notification"
 
 ## Phase J: Web Config Panel
 
-### Task 29: Create web config server skeleton
+### Task 31: Create web config server skeleton
 
 **Files:**
 - Create: `web-config/` directory
@@ -1236,7 +1503,7 @@ git commit -m "feat: add web config panel skeleton (Flask)"
 
 ---
 
-### Task 30: Add Unix socket IPC to main app
+### Task 32: Add Unix socket IPC to main app
 
 **Files:**
 - Create: `src/core/services/IpcServer.hpp`
@@ -1256,7 +1523,7 @@ git commit -m "feat: add Unix socket IPC server for web config panel"
 
 ---
 
-### Task 31: Build web config UI
+### Task 33: Build web config UI
 
 **Files:**
 - Modify: `web-config/templates/` (HTML/CSS/JS)
@@ -1279,7 +1546,7 @@ git commit -m "feat: build web config panel UI"
 
 ## Phase K: 3-Finger Gesture Overlay
 
-### Task 32: Add gesture detection to EvdevTouchReader
+### Task 34: Add gesture detection to EvdevTouchReader
 
 **Files:**
 - Modify: `src/core/aa/EvdevTouchReader.cpp`
@@ -1299,7 +1566,7 @@ git commit -m "feat: detect 3-finger tap gesture in EvdevTouchReader"
 
 ---
 
-### Task 33: Create gesture overlay QML component
+### Task 35: Create gesture overlay QML component
 
 **Files:**
 - Create: `qml/components/GestureOverlay.qml`
@@ -1323,7 +1590,7 @@ git commit -m "feat: add 3-finger tap gesture overlay for AA quick controls"
 
 ## Phase L: Install Script + Polish
 
-### Task 34: Create interactive install script
+### Task 36: Create interactive install script
 
 **Files:**
 - Create: `install.sh`
@@ -1340,7 +1607,16 @@ Script flow:
 5. Create systemd service
 6. Configure labwc
 7. Generate `~/.openauto/config.yaml`
-8. Print completion summary
+8. Run diagnostics and print summary:
+   - Qt version detected
+   - PipeWire status (running / not found)
+   - BlueZ status (running / not found)
+   - ofono status (running / not found)
+   - Detected touch device(s) and their paths
+   - Audio output devices
+   - Plugin directory status
+   - WiFi AP configuration
+   This reduces support burden significantly.
 
 **Step 2: Test on fresh RPi OS Trixie install**
 
@@ -1350,7 +1626,7 @@ git commit -m "feat: add interactive install script for RPi OS Trixie"
 
 ---
 
-### Task 35: Final integration testing and CLAUDE.md update
+### Task 37: Final integration testing and CLAUDE.md update
 
 **Files:**
 - Modify: `CLAUDE.md`
@@ -1376,18 +1652,25 @@ git tag -a v0.2.0 -m "Architecture migration: plugin system, themes, audio, BT, 
 ## Task Dependency Graph
 
 ```
-Phase A (YAML Config)
-  └─→ Phase B (Service Interfaces)
-        ├─→ Phase C (Plugin Manager) ─────────┐
-        ├─→ Phase D (QML Shell) ──────────────┤
-        │                                      ├─→ Phase E (AA Plugin)
-        └─→ Phase G (Audio/PipeWire)           │     └─→ Phase K (Gestures)
-              ├─→ Phase H (BT Audio) ◄─── Phase C
-              └─→ Phase I (Phone) ◄──── Phase C
+Phase A (YAML Config + Deep Merge)
+  └─→ Phase B (Service Interfaces + HFP Spike)
+        ├─→ Phase C (Plugin Discovery/Loader/Manager) ──┐
+        ├─→ Phase D (QML Shell) ────────────────────────┤
+        │                                                ├─→ Phase D.5 (Plugin Context + AA Bootstrap)
+        │                                                │     └─→ Phase E (Wrap AA as Plugin)
+        └─→ Phase G (Audio/PipeWire)                     │           └─→ Phase K (Gestures)
+              ├─→ Phase H (BT Audio) ◄─── Phase C       │
+              └─→ Phase I (Phone) ◄──── Phase C + HFP Spike
   └─→ Phase J (Web Config) ← independent after Phase A
-                                               └─→ Phase L (Install + Polish)
+                                                         └─→ Phase L (Install + Polish)
 ```
 
-**Estimated total: ~35 tasks across 12 phases.**
+**Pre-Phase E gate (MUST be complete before wrapping AA):**
+- [ ] Plugin-specific QQmlContext lifecycle (Task 14)
+- [ ] AA bootstrap extracted and stable (Task 15)
+- [ ] Config system is single-source-of-truth (Task 2, no split-brain)
+- [ ] Fullscreen capability on IPlugin (Task 5)
 
-Phases A-E are the critical path (config + interfaces + plugins + shell + AA wrapping). This is where the most risk lives. Phases F-K can be parallelized once the plugin infrastructure is in place. Phase L is the capstone.
+**Estimated total: ~37 tasks across 13 phases.**
+
+Phases A through D.5 are the critical path (config + interfaces + plugins + shell + context lifecycle + AA bootstrap). This is where the most risk lives. Phases F-K can be parallelized once the plugin infrastructure is in place. Phase L is the capstone.
