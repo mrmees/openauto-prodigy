@@ -7,6 +7,7 @@
 #include "core/Configuration.hpp"
 #include "core/YamlConfig.hpp"
 #include "core/services/ConfigService.hpp"
+#include "core/services/ThemeService.hpp"
 #include "core/plugin/HostContext.hpp"
 #include "core/plugin/PluginManager.hpp"
 #include "plugins/android_auto/AndroidAutoPlugin.hpp"
@@ -48,10 +49,20 @@ int main(int argc, char *argv[])
     auto theme = new oap::ThemeController(config, &app);
     auto appController = new oap::ApplicationController(&app);
 
+    // --- Theme service ---
+    auto themeService = new oap::ThemeService(&app);
+    QString themePath = QDir::homePath() + "/.openauto/themes/default";
+    if (!themeService->loadTheme(themePath)) {
+        // No user theme installed — use built-in defaults
+        // ThemeService will return transparent for all colors until a theme is loaded,
+        // but QML still falls back to ThemeController (legacy) during transition.
+    }
+
     // --- Plugin infrastructure ---
     auto configService = std::make_unique<oap::ConfigService>(yamlConfig.get(), yamlPath);
     auto hostContext = std::make_unique<oap::HostContext>();
     hostContext->setConfigService(configService.get());
+    hostContext->setThemeService(themeService);
 
     oap::PluginManager pluginManager(&app);
 
@@ -70,6 +81,7 @@ int main(int argc, char *argv[])
 
     QQmlApplicationEngine engine;
     engine.rootContext()->setContextProperty("ThemeController", theme);
+    engine.rootContext()->setContextProperty("ThemeService", themeService);
     engine.rootContext()->setContextProperty("ApplicationController", appController);
     engine.rootContext()->setContextProperty("PluginModel", pluginModel);
 
