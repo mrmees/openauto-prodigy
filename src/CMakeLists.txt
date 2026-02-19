@@ -14,6 +14,9 @@ qt_add_executable(openauto-prodigy
     core/plugin/HostContext.cpp
     core/services/ConfigService.cpp
     core/plugin/PluginManifest.cpp
+    core/plugin/PluginDiscovery.cpp
+    core/plugin/PluginLoader.cpp
+    core/plugin/PluginManager.cpp
 )
 
 # Tell Qt the QML type name for each file (override subdirectory-based naming)
