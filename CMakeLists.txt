@@ -17,6 +17,7 @@ find_package(Protobuf REQUIRED)
 find_package(OpenSSL REQUIRED)
 include(FindPkgConfig)
 pkg_check_modules(LIBAV REQUIRED libavcodec libavutil)
+find_package(yaml-cpp REQUIRED)
 
 # aasdk — Android Auto protocol library
 # Save our flags before aasdk overwrites them

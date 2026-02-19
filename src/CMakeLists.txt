@@ -108,6 +108,7 @@ target_link_libraries(openauto-prodigy PRIVATE
     OpenSSL::Crypto
     protobuf::libprotobuf
     ${LIBAV_LIBRARIES}
+    yaml-cpp::yaml-cpp
 )
 
 # Bluetooth discovery — optional, not available on all dev platforms (e.g. WSL2)
