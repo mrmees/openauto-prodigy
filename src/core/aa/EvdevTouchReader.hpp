@@ -4,6 +4,7 @@
 #include <array>
 #include <vector>
 #include <string>
+#include <chrono>
 #include <linux/input.h>
 #include <boost/log/trivial.hpp>
 #include "TouchHandler.hpp"
@@ -17,11 +18,16 @@ namespace aa {
 //
 // Supports letterboxed video: if the AA video aspect ratio doesn't match the
 // physical display, touches in the black bar area are clamped to the video edge.
+//
+// 3-finger gesture: When 3 simultaneous touches are detected within a 200ms
+// window, emits gestureDetected() and suppresses those touches from AA.
 class EvdevTouchReader : public QThread {
     Q_OBJECT
 
 public:
     static constexpr int MAX_SLOTS = 10;
+    static constexpr int GESTURE_FINGER_COUNT = 3;
+    static constexpr int GESTURE_WINDOW_MS = 200;
 
     struct Slot {
         int trackingId = -1;  // -1 = inactive
@@ -52,6 +58,10 @@ public:
 
     void requestStop() { stopRequested_ = true; }
 
+signals:
+    /// Emitted when a 3-finger tap gesture is detected (thread-safe, queued).
+    void gestureDetected();
+
 protected:
     void run() override;
 
@@ -60,6 +70,7 @@ private:
     int countActive() const;
     int slotToArrayIndex(int slot) const;
     void computeLetterbox();
+    bool checkGesture();
 
     // Map raw evdev coordinate to AA coordinate, accounting for letterbox
     int mapX(int rawX) const;
@@ -85,6 +96,12 @@ private:
     int currentSlot_ = 0;
     bool stopRequested_ = false;
     int fd_ = -1;
+
+    // Gesture detection state
+    bool gestureActive_ = false;  // suppressing touches during gesture
+    int gestureMaxFingers_ = 0;   // max simultaneous fingers in current gesture window
+    std::chrono::steady_clock::time_point firstFingerTime_;
+    int prevActiveCount_ = 0;
 };
 
 } // namespace aa

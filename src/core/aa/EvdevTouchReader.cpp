@@ -162,8 +162,53 @@ int EvdevTouchReader::slotToArrayIndex(int slot) const
     return idx;
 }
 
+bool EvdevTouchReader::checkGesture()
+{
+    int nowActive = countActive();
+
+    // Track max fingers in the current gesture window
+    if (nowActive > 0 && prevActiveCount_ == 0) {
+        // First finger down — start gesture window
+        firstFingerTime_ = std::chrono::steady_clock::now();
+        gestureMaxFingers_ = 1;
+        gestureActive_ = false;
+    } else if (nowActive > gestureMaxFingers_) {
+        gestureMaxFingers_ = nowActive;
+    }
+
+    prevActiveCount_ = nowActive;
+
+    // Check if we've reached the finger threshold within the time window
+    if (gestureMaxFingers_ >= GESTURE_FINGER_COUNT && !gestureActive_) {
+        auto elapsed = std::chrono::steady_clock::now() - firstFingerTime_;
+        auto ms = std::chrono::duration_cast<std::chrono::milliseconds>(elapsed).count();
+        if (ms <= GESTURE_WINDOW_MS) {
+            gestureActive_ = true;
+            BOOST_LOG_TRIVIAL(info) << "[EvdevTouch] 3-finger gesture detected (" << ms << "ms)";
+            emit gestureDetected();
+        }
+    }
+
+    // When all fingers lift, end gesture suppression
+    if (nowActive == 0 && gestureActive_) {
+        gestureActive_ = false;
+        gestureMaxFingers_ = 0;
+    }
+
+    return gestureActive_;
+}
+
 void EvdevTouchReader::processSync()
 {
+    // Check for 3-finger gesture — suppress touches if active
+    if (checkGesture()) {
+        // Clear dirty flags and save state, but don't forward to AA
+        for (int i = 0; i < MAX_SLOTS; ++i)
+            slots_[i].dirty = false;
+        prevSlots_ = slots_;
+        return;
+    }
+
     // Determine what changed: new fingers, lifted fingers, moved fingers
     int prevActive = 0, nowActive = 0;
     for (int i = 0; i < MAX_SLOTS; ++i) {
