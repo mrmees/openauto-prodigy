@@ -143,19 +143,11 @@ void VideoDecoder::processFrame(const QByteArray& h264Data, qint64 enqueueTimeNs
                     cachedFormat_ = QVideoFrameFormat(
                         QSize(frame_->width, frame_->height),
                         QVideoFrameFormat::Format_YUV420P);
-                    frameBuffers_[0] = QVideoFrame();
-                    frameBuffers_[1] = QVideoFrame();
                 }
 
-                // Double-buffered: alternate between two pre-allocated frames
-                int bufIdx = currentBuffer_;
-                currentBuffer_ = 1 - currentBuffer_;
-
-                if (!frameBuffers_[bufIdx].isValid()) {
-                    frameBuffers_[bufIdx] = QVideoFrame(*cachedFormat_);
-                }
-
-                QVideoFrame& videoFrame = frameBuffers_[bufIdx];
+                // Fresh frame each decode — QVideoFrame is ref-counted so reusing
+                // buffers races with Qt's render thread holding a read mapping
+                QVideoFrame videoFrame(*cachedFormat_);
                 if (videoFrame.map(QVideoFrame::WriteOnly)) {
                     const int h = frame_->height;
                     const int chromaH = h / 2;
@@ -201,9 +193,8 @@ void VideoDecoder::processFrame(const QByteArray& h264Data, qint64 enqueueTimeNs
                     auto t_copyDone = PerfStats::Clock::now();
 
                     // Marshal setVideoFrame back to Qt main thread
-                    QVideoFrame frameCopy = videoFrame;
-                    QMetaObject::invokeMethod(videoSink_, [this, frameCopy]() {
-                        videoSink_->setVideoFrame(frameCopy);
+                    QMetaObject::invokeMethod(videoSink_, [this, videoFrame]() {
+                        videoSink_->setVideoFrame(videoFrame);
                     }, Qt::QueuedConnection);
 
                     auto t_display = PerfStats::Clock::now();

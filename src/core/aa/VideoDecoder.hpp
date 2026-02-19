@@ -82,10 +82,8 @@ private:
     uint64_t framesSinceLog_ = 0;
     static constexpr double LOG_INTERVAL_SEC = 5.0;
 
-    // Cached video frame format + double-buffered frames
+    // Cached video frame format (fresh frame allocated each decode)
     std::optional<QVideoFrameFormat> cachedFormat_;
-    QVideoFrame frameBuffers_[2];
-    int currentBuffer_ = 0;
 };
 
 } // namespace aa
