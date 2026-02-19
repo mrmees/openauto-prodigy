@@ -1,6 +1,8 @@
 #pragma once
 
 #include <QObject>
+#include <QVariantList>
+#include <QVariantMap>
 #include <vector>
 #include <chrono>
 #include <iomanip>
@@ -19,9 +21,15 @@ namespace aa {
 
 class TouchHandler : public QObject {
     Q_OBJECT
+    Q_PROPERTY(QVariantList debugTouches READ debugTouches NOTIFY debugTouchesChanged)
+    Q_PROPERTY(bool debugOverlay READ debugOverlay WRITE setDebugOverlay NOTIFY debugOverlayChanged)
 
 public:
     struct Pointer { int x; int y; int id; };
+
+    QVariantList debugTouches() const { return debugTouches_; }
+    bool debugOverlay() const { return debugOverlay_; }
+    void setDebugOverlay(bool v) { if (debugOverlay_ != v) { debugOverlay_ = v; emit debugOverlayChanged(); } }
 
     explicit TouchHandler(QObject* parent = nullptr)
         : QObject(parent) {}
@@ -35,8 +43,29 @@ public:
     // Send a complete touch event with all active pointers.
     // action: 0=DOWN, 1=UP, 2=MOVE, 5=POINTER_DOWN, 6=POINTER_UP
     // actionIndex: index into pointers[] of the finger that triggered the action
+    // Called from EvdevTouchReader thread — updates debug overlay via Qt main thread
     void sendTouchIndication(int count, const Pointer* pointers, int actionIndex, int action) {
-        if (!channel_ || !strand_ || count <= 0) return;
+        if (count <= 0) return;
+
+        // Update debug overlay (marshal to Qt main thread)
+        if (debugOverlay_) {
+            QVariantList touches;
+            for (int i = 0; i < count; ++i) {
+                QVariantMap pt;
+                pt["x"] = pointers[i].x;
+                pt["y"] = pointers[i].y;
+                pt["id"] = pointers[i].id;
+                touches.append(pt);
+            }
+            // action 1=UP: if last finger lifted, clear overlay
+            if (action == 1) touches.clear();
+            QMetaObject::invokeMethod(this, [this, touches]() {
+                debugTouches_ = touches;
+                emit debugTouchesChanged();
+            }, Qt::QueuedConnection);
+        }
+
+        if (!channel_ || !strand_) return;
 
         // Copy pointer data for the lambda capture
         std::vector<Pointer> pts(pointers, pointers + count);
@@ -100,7 +129,14 @@ public:
         sendTouchIndication(1, &pt, 0, action);
     }
 
+signals:
+    void debugTouchesChanged();
+    void debugOverlayChanged();
+
 private:
+    QVariantList debugTouches_;
+    bool debugOverlay_ = true;
+
     std::shared_ptr<aasdk::channel::input::InputServiceChannel> channel_;
     boost::asio::io_service::strand* strand_ = nullptr;
 

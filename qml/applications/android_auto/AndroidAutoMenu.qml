@@ -7,16 +7,62 @@ Item {
 
     Component.onCompleted: ApplicationController.setTitle("Android Auto")
 
+    // Black background for letterbox bars
+    Rectangle {
+        anchors.fill: parent
+        color: "black"
+        visible: AndroidAutoService.connectionState === 3
+    }
+
     // Video output — fills entire area when projecting
     VideoOutput {
         id: videoOutput
         anchors.fill: parent
         visible: AndroidAutoService.connectionState === 3
-        fillMode: VideoOutput.Stretch
+        fillMode: VideoOutput.PreserveAspectFit
     }
 
     // Touch input is handled by EvdevTouchReader in C++ — reads directly from
     // /dev/input/event4 for reliable multi-touch. No QML touch handling needed.
+
+    // Debug touch overlay — shows green crosshair circles at AA touch coordinates
+    // Accounts for letterboxing (video is PreserveAspectFit within display)
+    Repeater {
+        model: TouchHandler.debugOverlay ? TouchHandler.debugTouches : []
+        delegate: Item {
+            // Compute video area within display (same logic as C++ letterbox)
+            readonly property real videoAspect: 1280 / 720
+            readonly property real displayAspect: androidAutoMenu.width / androidAutoMenu.height
+            readonly property real videoW: videoAspect > displayAspect ? androidAutoMenu.width : androidAutoMenu.height * videoAspect
+            readonly property real videoH: videoAspect > displayAspect ? androidAutoMenu.width / videoAspect : androidAutoMenu.height
+            readonly property real videoX0: (androidAutoMenu.width - videoW) / 2
+            readonly property real videoY0: (androidAutoMenu.height - videoH) / 2
+
+            x: videoX0 + modelData.x / 1280 * videoW - 15
+            y: videoY0 + modelData.y / 720 * videoH - 15
+            width: 30; height: 30
+            z: 100
+
+            Rectangle {
+                anchors.fill: parent
+                radius: 15
+                color: "transparent"
+                border.color: "#00FF00"
+                border.width: 2
+            }
+            // Crosshair
+            Rectangle { anchors.centerIn: parent; width: 1; height: 20; color: "#00FF00" }
+            Rectangle { anchors.centerIn: parent; width: 20; height: 1; color: "#00FF00" }
+            // Coordinate label
+            Text {
+                anchors.top: parent.bottom
+                anchors.horizontalCenter: parent.horizontalCenter
+                text: modelData.x + "," + modelData.y
+                color: "#00FF00"
+                font.pixelSize: 10
+            }
+        }
+    }
 
     // Bind the video sink to C++ decoder
     Binding {
