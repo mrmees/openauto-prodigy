@@ -5,6 +5,7 @@
 #include <QFile>
 #include <memory>
 #include "core/Configuration.hpp"
+#include "core/YamlConfig.hpp"
 #include "core/aa/AndroidAutoService.hpp"
 #include "core/aa/EvdevTouchReader.hpp"
 #include "ui/ThemeController.hpp"
@@ -23,6 +24,22 @@ int main(int argc, char *argv[])
     QString configPath = QDir::homePath() + "/.openauto/openauto_system.ini";
     if (QFile::exists(configPath))
         config->load(configPath);
+
+    // Try YAML config first, fall back to INI
+    QString yamlPath = QDir::homePath() + "/.openauto/config.yaml";
+    auto yamlConfig = std::make_shared<oap::YamlConfig>();
+    if (QFile::exists(yamlPath)) {
+        yamlConfig->load(yamlPath);
+    } else if (QFile::exists(configPath)) {
+        // Legacy INI — migrate values to YamlConfig
+        yamlConfig->setWifiSsid(config->wifiSsid());
+        yamlConfig->setWifiPassword(config->wifiPassword());
+        yamlConfig->setTcpPort(config->tcpPort());
+        yamlConfig->setVideoFps(config->videoFps());
+        // Save as YAML for next boot
+        QDir().mkpath(QDir::homePath() + "/.openauto");
+        yamlConfig->save(yamlPath);
+    }
 
     auto theme = new oap::ThemeController(config, &app);
     auto appController = new oap::ApplicationController(&app);
