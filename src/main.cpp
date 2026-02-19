@@ -13,6 +13,7 @@
 #include "core/plugin/PluginManager.hpp"
 #include "plugins/android_auto/AndroidAutoPlugin.hpp"
 #include "plugins/bt_audio/BtAudioPlugin.hpp"
+#include "plugins/phone/PhonePlugin.hpp"
 #include "ui/ApplicationController.hpp"
 #include "ui/PluginModel.hpp"
 
@@ -75,6 +76,9 @@ int main(int argc, char *argv[])
     auto btAudioPlugin = new oap::plugins::BtAudioPlugin(&app);
     pluginManager.registerStaticPlugin(btAudioPlugin);
 
+    auto phonePlugin = new oap::plugins::PhonePlugin(&app);
+    pluginManager.registerStaticPlugin(phonePlugin);
+
     // Discover dynamic plugins from user directory
     pluginManager.discoverPlugins(QDir::homePath() + "/.openauto/plugins");
 
@@ -92,6 +96,9 @@ int main(int argc, char *argv[])
     // Transition: expose AA objects globally for Shell.qml fullscreen check.
     // TODO: Remove once Shell uses PluginModel.activePluginFullscreen.
     aaPlugin->setGlobalContextProperties(engine.rootContext());
+
+    // Expose PhonePlugin globally for IncomingCallOverlay in Shell.qml
+    engine.rootContext()->setContextProperty("PhonePlugin", phonePlugin);
 
     // Qt 6.5+ uses /qt/qml/ prefix, Qt 6.4 uses direct URI prefix
     QUrl url(QStringLiteral("qrc:/OpenAutoProdigy/main.qml"));

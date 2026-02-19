@@ -22,6 +22,7 @@ qt_add_executable(openauto-prodigy
     core/plugin/PluginManager.cpp
     plugins/android_auto/AndroidAutoPlugin.cpp
     plugins/bt_audio/BtAudioPlugin.cpp
+    plugins/phone/PhonePlugin.cpp
 )
 
 # Tell Qt the QML type name for each file (override subdirectory-based naming)
@@ -84,6 +85,14 @@ set_source_files_properties(../qml/applications/bt_audio/BtAudioView.qml PROPERT
     QT_QML_SOURCE_TYPENAME "BtAudioView"
     QT_RESOURCE_ALIAS "BtAudioView.qml"
 )
+set_source_files_properties(../qml/applications/phone/PhoneView.qml PROPERTIES
+    QT_QML_SOURCE_TYPENAME "PhoneView"
+    QT_RESOURCE_ALIAS "PhoneView.qml"
+)
+set_source_files_properties(../qml/applications/phone/IncomingCallOverlay.qml PROPERTIES
+    QT_QML_SOURCE_TYPENAME "IncomingCallOverlay"
+    QT_RESOURCE_ALIAS "IncomingCallOverlay.qml"
+)
 
 qt_add_qml_module(openauto-prodigy
     URI OpenAutoProdigy
@@ -104,6 +113,8 @@ qt_add_qml_module(openauto-prodigy
         ../qml/applications/settings/SettingsMenu.qml
         ../qml/applications/home/HomeMenu.qml
         ../qml/applications/bt_audio/BtAudioView.qml
+        ../qml/applications/phone/PhoneView.qml
+        ../qml/applications/phone/IncomingCallOverlay.qml
     RESOURCES
         ../resources/resources.qrc
 )
