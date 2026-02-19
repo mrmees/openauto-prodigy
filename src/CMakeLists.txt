@@ -11,6 +11,7 @@ qt_add_executable(openauto-prodigy
     core/aa/EvdevTouchReader.cpp
     ui/ThemeController.cpp
     ui/ApplicationController.cpp
+    ui/PluginModel.cpp
     core/plugin/HostContext.cpp
     core/services/ConfigService.cpp
     core/plugin/PluginManifest.cpp
