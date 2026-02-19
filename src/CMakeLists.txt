@@ -20,6 +20,7 @@ qt_add_executable(openauto-prodigy
     core/plugin/PluginDiscovery.cpp
     core/plugin/PluginLoader.cpp
     core/plugin/PluginManager.cpp
+    plugins/android_auto/AndroidAutoPlugin.cpp
 )
 
 # Tell Qt the QML type name for each file (override subdirectory-based naming)
