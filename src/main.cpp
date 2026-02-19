@@ -8,6 +8,7 @@
 #include "core/YamlConfig.hpp"
 #include "core/services/ConfigService.hpp"
 #include "core/services/ThemeService.hpp"
+#include "core/services/AudioService.hpp"
 #include "core/plugin/HostContext.hpp"
 #include "core/plugin/PluginManager.hpp"
 #include "plugins/android_auto/AndroidAutoPlugin.hpp"
@@ -54,11 +55,15 @@ int main(int argc, char *argv[])
         // On Pi, the install script will deploy the default theme.
     }
 
+    // --- Audio service (PipeWire) ---
+    auto audioService = new oap::AudioService(&app);
+
     // --- Plugin infrastructure ---
     auto configService = std::make_unique<oap::ConfigService>(yamlConfig.get(), yamlPath);
     auto hostContext = std::make_unique<oap::HostContext>();
     hostContext->setConfigService(configService.get());
     hostContext->setThemeService(themeService);
+    hostContext->setAudioService(audioService);
 
     oap::PluginManager pluginManager(&app);
 
