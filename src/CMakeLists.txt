@@ -15,6 +15,7 @@ qt_add_executable(openauto-prodigy
     core/plugin/HostContext.cpp
     core/services/ConfigService.cpp
     core/services/ThemeService.cpp
+    core/services/AudioService.cpp
     core/plugin/PluginManifest.cpp
     core/plugin/PluginDiscovery.cpp
     core/plugin/PluginLoader.cpp
@@ -106,6 +107,7 @@ target_include_directories(openauto-prodigy PRIVATE
     ${CMAKE_SOURCE_DIR}/libs/aasdk/include
     ${CMAKE_BINARY_DIR}/libs/aasdk
     ${LIBAV_INCLUDE_DIRS}
+    ${PIPEWIRE_INCLUDE_DIRS}
 )
 
 target_link_libraries(openauto-prodigy PRIVATE
@@ -123,6 +125,7 @@ target_link_libraries(openauto-prodigy PRIVATE
     OpenSSL::Crypto
     protobuf::libprotobuf
     ${LIBAV_LIBRARIES}
+    ${PIPEWIRE_LIBRARIES}
     yaml-cpp::yaml-cpp
 )
 

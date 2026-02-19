@@ -121,6 +121,20 @@ target_link_libraries(test_theme_service PRIVATE
 )
 file(COPY data/themes DESTINATION ${CMAKE_CURRENT_BINARY_DIR}/data)
 
+add_executable(test_audio_service
+    test_audio_service.cpp
+    ${CMAKE_SOURCE_DIR}/src/core/services/AudioService.cpp
+)
+target_include_directories(test_audio_service PRIVATE
+    ${CMAKE_SOURCE_DIR}/src
+    ${PIPEWIRE_INCLUDE_DIRS}
+)
+target_link_libraries(test_audio_service PRIVATE
+    Qt6::Core
+    Qt6::Test
+    ${PIPEWIRE_LIBRARIES}
+)
+
 enable_testing()
 add_test(NAME test_configuration COMMAND test_configuration)
 add_test(NAME test_yaml_config COMMAND test_yaml_config)
@@ -129,3 +143,4 @@ add_test(NAME test_plugin_manifest COMMAND test_plugin_manifest)
 add_test(NAME test_plugin_discovery COMMAND test_plugin_discovery)
 add_test(NAME test_plugin_manager COMMAND test_plugin_manager)
 add_test(NAME test_theme_service COMMAND test_theme_service)
+add_test(NAME test_audio_service COMMAND test_audio_service)
