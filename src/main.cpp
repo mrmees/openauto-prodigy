@@ -6,14 +6,9 @@
 #include <memory>
 #include "core/Configuration.hpp"
 #include "core/YamlConfig.hpp"
-#include "core/services/IAudioService.hpp"
-#include "core/services/IBluetoothService.hpp"
-#include "core/services/IConfigService.hpp"
-#include "core/services/IThemeService.hpp"
-#include "core/services/IDisplayService.hpp"
-#include "core/services/IEventBus.hpp"
-#include "core/plugin/IPlugin.hpp"
-#include "core/plugin/IHostContext.hpp"
+#include "core/services/ConfigService.hpp"
+#include "core/plugin/HostContext.hpp"
+#include "core/plugin/PluginManager.hpp"
 #include "core/aa/AndroidAutoService.hpp"
 #include "core/aa/EvdevTouchReader.hpp"
 #include "ui/ThemeController.hpp"
@@ -49,8 +44,22 @@ int main(int argc, char *argv[])
         yamlConfig->save(yamlPath);
     }
 
+    // --- Plugin infrastructure ---
+    auto configService = std::make_unique<oap::ConfigService>(yamlConfig.get(), yamlPath);
+    auto hostContext = std::make_unique<oap::HostContext>();
+    hostContext->setConfigService(configService.get());
+
+    // PluginManager must be destroyed BEFORE plugins it manages
+    // (but static plugins are destroyed by QObject parent, so order matters less)
+    oap::PluginManager pluginManager(&app);
+    pluginManager.discoverPlugins(QDir::homePath() + "/.openauto/plugins");
+    pluginManager.initializeAll(hostContext.get());
+
+    // --- Legacy UI controllers (will be replaced by plugin system) ---
     auto theme = new oap::ThemeController(config, &app);
     auto appController = new oap::ApplicationController(&app);
+
+    // --- AA service (will become AndroidAutoPlugin in Phase E) ---
     auto aaService = new oap::aa::AndroidAutoService(config, &app);
 
     QQmlApplicationEngine engine;
@@ -106,6 +115,9 @@ int main(int argc, char *argv[])
         touchReader->requestStop();
         touchReader->wait();
     }
+
+    // Explicit shutdown before automatic destruction
+    pluginManager.shutdownAll();
 
     return ret;
 }
