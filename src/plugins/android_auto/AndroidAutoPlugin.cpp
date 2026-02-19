@@ -107,5 +107,16 @@ QUrl AndroidAutoPlugin::iconSource() const
     return QUrl(QStringLiteral("qrc:/icons/android-auto.svg"));
 }
 
+void AndroidAutoPlugin::setGlobalContextProperties(QQmlContext* rootContext)
+{
+    if (!rootContext || !aaService_) return;
+
+    // Transition: Shell.qml references AndroidAutoService.connectionState globally.
+    // Once Shell uses PluginModel.activePluginFullscreen, these can be removed.
+    rootContext->setContextProperty("AndroidAutoService", aaService_);
+    rootContext->setContextProperty("VideoDecoder", aaService_->videoDecoder());
+    rootContext->setContextProperty("TouchHandler", aaService_->touchHandler());
+}
+
 } // namespace plugins
 } // namespace oap

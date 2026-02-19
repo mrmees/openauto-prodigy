@@ -64,6 +64,11 @@ public:
     QStringList requiredServices() const override { return {}; }
     bool wantsFullscreen() const override { return true; }
 
+    /// Transition helper: exposes AA objects as global QML context properties.
+    /// Shell.qml currently references AndroidAutoService.connectionState globally.
+    /// TODO: Remove once Shell uses PluginModel.activePluginFullscreen instead.
+    void setGlobalContextProperties(QQmlContext* rootContext);
+
 private:
     std::shared_ptr<oap::Configuration> config_;
     oap::ApplicationController* appController_ = nullptr;

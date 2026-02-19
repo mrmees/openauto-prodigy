@@ -9,7 +9,7 @@
 #include "core/services/ConfigService.hpp"
 #include "core/plugin/HostContext.hpp"
 #include "core/plugin/PluginManager.hpp"
-#include "core/aa/AaBootstrap.hpp"
+#include "plugins/android_auto/AndroidAutoPlugin.hpp"
 #include "ui/ThemeController.hpp"
 #include "ui/ApplicationController.hpp"
 #include "ui/PluginModel.hpp"
@@ -44,18 +44,26 @@ int main(int argc, char *argv[])
         yamlConfig->save(yamlPath);
     }
 
+    // --- Legacy UI controllers (will be replaced by plugin system) ---
+    auto theme = new oap::ThemeController(config, &app);
+    auto appController = new oap::ApplicationController(&app);
+
     // --- Plugin infrastructure ---
     auto configService = std::make_unique<oap::ConfigService>(yamlConfig.get(), yamlPath);
     auto hostContext = std::make_unique<oap::HostContext>();
     hostContext->setConfigService(configService.get());
 
     oap::PluginManager pluginManager(&app);
-    pluginManager.discoverPlugins(QDir::homePath() + "/.openauto/plugins");
-    pluginManager.initializeAll(hostContext.get());
 
-    // --- Legacy UI controllers (will be replaced by plugin system) ---
-    auto theme = new oap::ThemeController(config, &app);
-    auto appController = new oap::ApplicationController(&app);
+    // Register AA as a static (compiled-in) plugin
+    auto aaPlugin = new oap::plugins::AndroidAutoPlugin(config, appController, &app);
+    pluginManager.registerStaticPlugin(aaPlugin);
+
+    // Discover dynamic plugins from user directory
+    pluginManager.discoverPlugins(QDir::homePath() + "/.openauto/plugins");
+
+    // Initialize all plugins (static + dynamic)
+    pluginManager.initializeAll(hostContext.get());
 
     // Plugin model for QML nav strip
     auto pluginModel = new oap::PluginModel(&pluginManager, &app);
@@ -65,15 +73,14 @@ int main(int argc, char *argv[])
     engine.rootContext()->setContextProperty("ApplicationController", appController);
     engine.rootContext()->setContextProperty("PluginModel", pluginModel);
 
+    // Transition: expose AA objects globally for Shell.qml fullscreen check.
+    // TODO: Remove once Shell uses PluginModel.activePluginFullscreen.
+    aaPlugin->setGlobalContextProperties(engine.rootContext());
+
     // Qt 6.5+ uses /qt/qml/ prefix, Qt 6.4 uses direct URI prefix
     QUrl url(QStringLiteral("qrc:/OpenAutoProdigy/main.qml"));
     if (QFile::exists(QStringLiteral(":/qt/qml/OpenAutoProdigy/main.qml")))
         url = QUrl(QStringLiteral("qrc:/qt/qml/OpenAutoProdigy/main.qml"));
-
-    // AA bootstrap: creates service, touch reader, connects signals,
-    // sets QML context properties, starts the service.
-    // Will be replaced by AndroidAutoPlugin in Phase E.
-    auto aaRuntime = oap::aa::startAa(config, appController, &engine, &app);
 
     engine.load(url);
 
@@ -82,7 +89,6 @@ int main(int argc, char *argv[])
 
     int ret = app.exec();
 
-    oap::aa::stopAa(aaRuntime);
     pluginManager.shutdownAll();
 
     return ret;
