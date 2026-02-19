@@ -6,6 +6,12 @@
 #include <memory>
 #include "core/Configuration.hpp"
 #include "core/YamlConfig.hpp"
+#include "core/services/IAudioService.hpp"
+#include "core/services/IBluetoothService.hpp"
+#include "core/services/IConfigService.hpp"
+#include "core/services/IThemeService.hpp"
+#include "core/services/IDisplayService.hpp"
+#include "core/services/IEventBus.hpp"
 #include "core/aa/AndroidAutoService.hpp"
 #include "core/aa/EvdevTouchReader.hpp"
 #include "ui/ThemeController.hpp"
