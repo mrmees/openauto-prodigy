@@ -55,7 +55,22 @@ target_link_libraries(test_yaml_config PRIVATE
 )
 configure_file(data/test_config.yaml ${CMAKE_CURRENT_BINARY_DIR}/data/test_config.yaml COPYONLY)
 
+add_executable(test_config_service
+    test_config_service.cpp
+    ${CMAKE_SOURCE_DIR}/src/core/YamlConfig.cpp
+    ${CMAKE_SOURCE_DIR}/src/core/services/ConfigService.cpp
+)
+target_include_directories(test_config_service PRIVATE
+    ${CMAKE_SOURCE_DIR}/src
+)
+target_link_libraries(test_config_service PRIVATE
+    Qt6::Core
+    Qt6::Test
+    yaml-cpp::yaml-cpp
+)
+
 enable_testing()
 add_test(NAME test_configuration COMMAND test_configuration)
 add_test(NAME test_theme_controller COMMAND test_theme_controller)
 add_test(NAME test_yaml_config COMMAND test_yaml_config)
+add_test(NAME test_config_service COMMAND test_config_service)
