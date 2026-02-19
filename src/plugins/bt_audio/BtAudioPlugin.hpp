@@ -2,8 +2,11 @@
 
 #include "core/plugin/IPlugin.hpp"
 #include <QObject>
+#include <QString>
+#include <QDBusObjectPath>
 
 class QQmlContext;
+class QDBusServiceWatcher;
 
 namespace oap {
 
@@ -19,10 +22,10 @@ namespace plugins {
 ///   - Playback controls (play/pause/next/prev via AVRCP)
 ///   - Connection state monitoring via BlueZ D-Bus
 ///
-/// Lifecycle:
-///   initialize() — starts BlueZ D-Bus monitoring for A2DP connections.
-///   onActivated() — exposes plugin state to QML view.
-///   shutdown() — stops monitoring.
+/// D-Bus interfaces used:
+///   org.bluez.MediaTransport1  — A2DP connection state
+///   org.bluez.MediaPlayer1     — AVRCP metadata + playback control
+///   org.freedesktop.DBus.ObjectManager — interface add/remove signals
 class BtAudioPlugin : public QObject, public IPlugin {
     Q_OBJECT
     Q_INTERFACES(oap::IPlugin)
@@ -34,6 +37,7 @@ class BtAudioPlugin : public QObject, public IPlugin {
     Q_PROPERTY(QString trackAlbum READ trackAlbum NOTIFY metadataChanged)
     Q_PROPERTY(int trackDuration READ trackDuration NOTIFY metadataChanged)
     Q_PROPERTY(int trackPosition READ trackPosition NOTIFY positionChanged)
+    Q_PROPERTY(QString deviceName READ deviceName NOTIFY connectionStateChanged)
 
 public:
     enum ConnectionState {
@@ -83,6 +87,7 @@ public:
     QString trackAlbum() const { return trackAlbum_; }
     int trackDuration() const { return trackDuration_; }
     int trackPosition() const { return trackPosition_; }
+    QString deviceName() const { return deviceName_; }
 
     // Playback controls (invokable from QML)
     Q_INVOKABLE void play();
@@ -97,7 +102,21 @@ signals:
     void positionChanged();
 
 private:
+    void startDBusMonitoring();
+    void stopDBusMonitoring();
+    void scanExistingObjects();
+    void onInterfacesAdded(const QDBusObjectPath& path, const QVariantMap& interfaces);
+    void onInterfacesRemoved(const QDBusObjectPath& path, const QStringList& interfaces);
+    void onPropertiesChanged(const QString& interface, const QVariantMap& changed,
+                             const QStringList& invalidated);
+    void updateTransportState(const QString& state);
+    void updatePlayerProperties(const QVariantMap& props);
+    void sendPlayerCommand(const QString& command);
+
     IHostContext* hostContext_ = nullptr;
+    QDBusServiceWatcher* bluezWatcher_ = nullptr;
+    bool monitoring_ = false;
+
     ConnectionState connectionState_ = Disconnected;
     PlaybackState playbackState_ = Stopped;
 
@@ -106,6 +125,11 @@ private:
     QString trackAlbum_;
     int trackDuration_ = 0;   // milliseconds
     int trackPosition_ = 0;   // milliseconds
+    QString deviceName_;
+
+    // D-Bus object paths for the active transport and player
+    QString transportPath_;
+    QString playerPath_;
 };
 
 } // namespace plugins

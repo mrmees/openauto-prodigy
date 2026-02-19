@@ -122,6 +122,7 @@ target_link_libraries(openauto-prodigy PRIVATE
     Qt6::QuickControls2
     Qt6::Multimedia
     Qt6::Network
+    Qt6::DBus
     aasdk
     aasdk_proto
     Boost::system

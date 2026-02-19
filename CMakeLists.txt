@@ -7,7 +7,7 @@ set(CMAKE_AUTOMOC ON)
 set(CMAKE_AUTORCC ON)
 
 # Qt 6 — Core, Quick, QuickControls2 for UI shell, Multimedia for video output
-find_package(Qt6 REQUIRED COMPONENTS Core Gui Quick QuickControls2 Multimedia Network)
+find_package(Qt6 REQUIRED COMPONENTS Core Gui Quick QuickControls2 Multimedia Network DBus)
 find_package(Qt6 OPTIONAL_COMPONENTS Bluetooth)
 qt_standard_project_setup()
 
