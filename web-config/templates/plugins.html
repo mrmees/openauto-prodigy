@@ -1,0 +1,31 @@
+{% extends "base.html" %}
+{% block title %}Plugins{% endblock %}
+{% block content %}
+<h1>Plugins</h1>
+
+<div id="pluginList">
+    {% if plugins.get('error') %}
+    <div class="card">
+        <p style="color:#F44336;">{{ plugins.error }}</p>
+    </div>
+    {% elif plugins.get('plugins') %}
+        {% for plugin in plugins.plugins %}
+        <div class="card">
+            <div style="display:flex;justify-content:space-between;align-items:center;">
+                <div>
+                    <h3>{{ plugin.name }}</h3>
+                    <p style="color:#a0a0c0;font-size:13px;">
+                        {{ plugin.id }} — v{{ plugin.version }}
+                    </p>
+                </div>
+                <span class="status-dot green"></span>
+            </div>
+        </div>
+        {% endfor %}
+    {% else %}
+    <div class="card">
+        <p>No plugins loaded.</p>
+    </div>
+    {% endif %}
+</div>
+{% endblock %}

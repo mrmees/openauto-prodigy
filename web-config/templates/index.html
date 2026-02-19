@@ -1,0 +1,47 @@
+{% extends "base.html" %}
+{% block title %}Dashboard{% endblock %}
+{% block content %}
+<h1>Dashboard</h1>
+
+<div class="grid">
+    <div class="card">
+        <h3>System</h3>
+        <p>
+            <span class="status-dot {{ 'green' if not status.get('error') else 'red' }}"></span>
+            {{ 'Connected to app' if not status.get('error') else status.get('error', 'Unknown') }}
+        </p>
+        {% if status.get('version') %}
+        <p style="margin-top:8px;color:#a0a0c0;">Version: {{ status.version }}</p>
+        {% endif %}
+    </div>
+
+    <div class="card">
+        <h3>Android Auto</h3>
+        <p>
+            {% set aa_state = status.get('aa_state', 'unknown') %}
+            <span class="status-dot {{ 'green' if aa_state == 'connected' else 'yellow' if aa_state == 'waiting' else 'red' }}"></span>
+            {{ aa_state | title }}
+        </p>
+    </div>
+
+    <div class="card">
+        <h3>Bluetooth</h3>
+        <p>
+            {% set bt_connected = status.get('bt_connected', false) %}
+            <span class="status-dot {{ 'green' if bt_connected else 'red' }}"></span>
+            {{ status.get('bt_device', 'No device') if bt_connected else 'Disconnected' }}
+        </p>
+    </div>
+
+    <div class="card">
+        <h3>Plugins</h3>
+        <p>{{ status.get('plugin_count', '?') }} loaded</p>
+    </div>
+</div>
+
+<h2>Quick Actions</h2>
+<div class="card">
+    <button onclick="location.href='/settings'">Edit Settings</button>
+    <button onclick="location.href='/themes'" class="btn-secondary" style="margin-left:8px;">Edit Theme</button>
+</div>
+{% endblock %}

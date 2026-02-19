@@ -9,6 +9,7 @@
 #include "core/services/ConfigService.hpp"
 #include "core/services/ThemeService.hpp"
 #include "core/services/AudioService.hpp"
+#include "core/services/IpcServer.hpp"
 #include "core/plugin/HostContext.hpp"
 #include "core/plugin/PluginManager.hpp"
 #include "plugins/android_auto/AndroidAutoPlugin.hpp"
@@ -84,6 +85,13 @@ int main(int argc, char *argv[])
 
     // Initialize all plugins (static + dynamic)
     pluginManager.initializeAll(hostContext.get());
+
+    // --- IPC server for web config panel ---
+    auto ipcServer = new oap::IpcServer(&app);
+    ipcServer->setConfig(yamlConfig.get(), yamlPath);
+    ipcServer->setThemeService(themeService);
+    ipcServer->setPluginManager(&pluginManager);
+    ipcServer->start();
 
     // Plugin model for QML nav strip
     auto pluginModel = new oap::PluginModel(&pluginManager, &app);

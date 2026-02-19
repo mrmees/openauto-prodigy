@@ -1,0 +1,74 @@
+{% extends "base.html" %}
+{% block title %}Themes{% endblock %}
+{% block content %}
+<h1>Theme Editor</h1>
+
+<form id="themeForm">
+    <div class="card">
+        <h3>Day Colors</h3>
+        <div class="grid" id="dayColors"></div>
+    </div>
+
+    <div class="card">
+        <h3>Night Colors</h3>
+        <div class="grid" id="nightColors"></div>
+    </div>
+
+    <button type="submit">Save Theme</button>
+    <button type="button" class="btn-secondary" style="margin-left:8px;" onclick="loadTheme()">Reset</button>
+</form>
+{% endblock %}
+
+{% block scripts %}
+<script>
+const colorKeys = [
+    'background', 'highlight', 'control_background', 'primary_text',
+    'secondary_text', 'border', 'warning', 'success', 'error',
+    'status_bar', 'nav_strip', 'dialog_background', 'overlay'
+];
+
+function createColorPicker(container, prefix, colors) {
+    container.innerHTML = '';
+    colorKeys.forEach(key => {
+        const div = document.createElement('div');
+        div.className = 'form-group';
+        const label = document.createElement('label');
+        label.textContent = key.replace(/_/g, ' ');
+        label.setAttribute('for', prefix + '_' + key);
+        const input = document.createElement('input');
+        input.type = 'color';
+        input.id = prefix + '_' + key;
+        input.value = colors[key] || '#000000';
+        div.appendChild(label);
+        div.appendChild(input);
+        container.appendChild(div);
+    });
+}
+
+async function loadTheme() {
+    const result = await apiCall('GET', '/api/theme');
+    if (result && !result.error) {
+        createColorPicker(document.getElementById('dayColors'), 'day', result.day || {});
+        createColorPicker(document.getElementById('nightColors'), 'night', result.night || {});
+    }
+}
+
+document.getElementById('themeForm').addEventListener('submit', async (e) => {
+    e.preventDefault();
+    const data = { day: {}, night: {} };
+    colorKeys.forEach(key => {
+        const dayInput = document.getElementById('day_' + key);
+        const nightInput = document.getElementById('night_' + key);
+        if (dayInput) data.day[key] = dayInput.value;
+        if (nightInput) data.night[key] = nightInput.value;
+    });
+    const result = await apiCall('POST', '/api/theme', data);
+    if (result && !result.error) {
+        showToast('Theme saved');
+    }
+});
+
+// Load on page load
+loadTheme();
+</script>
+{% endblock %}

@@ -1,0 +1,82 @@
+{% extends "base.html" %}
+{% block title %}Settings{% endblock %}
+{% block content %}
+<h1>Settings</h1>
+
+<form id="settingsForm">
+    <div class="card">
+        <h3>Wi-Fi Hotspot</h3>
+        <div class="form-group">
+            <label for="wifi_ssid">SSID</label>
+            <input type="text" id="wifi_ssid" value="{{ config.get('wifi_ssid', 'OpenAutoProdigy') }}">
+        </div>
+        <div class="form-group">
+            <label for="wifi_password">Password</label>
+            <input type="password" id="wifi_password" value="{{ config.get('wifi_password', '') }}">
+        </div>
+    </div>
+
+    <div class="card">
+        <h3>Android Auto</h3>
+        <div class="form-group">
+            <label for="tcp_port">TCP Port</label>
+            <input type="number" id="tcp_port" value="{{ config.get('tcp_port', 5277) }}" min="1024" max="65535">
+        </div>
+        <div class="form-group">
+            <label for="video_fps">Video FPS</label>
+            <select id="video_fps">
+                {% for fps in [30, 60] %}
+                <option value="{{ fps }}" {{ 'selected' if config.get('video_fps', 30) == fps }}>{{ fps }}</option>
+                {% endfor %}
+            </select>
+        </div>
+        <div class="form-group">
+            <label for="video_resolution">Video Resolution</label>
+            <select id="video_resolution">
+                {% for res in ['480p', '720p', '1080p'] %}
+                <option value="{{ res }}" {{ 'selected' if config.get('video_resolution', '480p') == res }}>{{ res }}</option>
+                {% endfor %}
+            </select>
+        </div>
+    </div>
+
+    <div class="card">
+        <h3>Display</h3>
+        <div class="form-group">
+            <label for="brightness">Brightness</label>
+            <input type="range" id="brightness" min="10" max="100" value="{{ config.get('brightness', 80) }}">
+        </div>
+        <div class="form-group">
+            <label for="night_mode">Night Mode</label>
+            <select id="night_mode">
+                <option value="auto" {{ 'selected' if config.get('night_mode', 'auto') == 'auto' }}>Auto (sunset)</option>
+                <option value="on" {{ 'selected' if config.get('night_mode') == 'on' }}>Always On</option>
+                <option value="off" {{ 'selected' if config.get('night_mode') == 'off' }}>Always Off</option>
+            </select>
+        </div>
+    </div>
+
+    <button type="submit">Save Settings</button>
+</form>
+{% endblock %}
+
+{% block scripts %}
+<script>
+document.getElementById('settingsForm').addEventListener('submit', async (e) => {
+    e.preventDefault();
+    const data = {
+        wifi_ssid: document.getElementById('wifi_ssid').value,
+        wifi_password: document.getElementById('wifi_password').value,
+        tcp_port: parseInt(document.getElementById('tcp_port').value),
+        video_fps: parseInt(document.getElementById('video_fps').value),
+        video_resolution: document.getElementById('video_resolution').value,
+        brightness: parseInt(document.getElementById('brightness').value),
+        night_mode: document.getElementById('night_mode').value,
+    };
+    const result = await apiCall('POST', '/api/config', data);
+    if (result && !result.error) {
+        showToast('Settings saved');
+    }
+});
+</script>
+{% endblock %}
