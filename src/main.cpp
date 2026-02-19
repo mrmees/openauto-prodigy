@@ -13,6 +13,7 @@
 #include "core/aa/EvdevTouchReader.hpp"
 #include "ui/ThemeController.hpp"
 #include "ui/ApplicationController.hpp"
+#include "ui/PluginModel.hpp"
 
 int main(int argc, char *argv[])
 {
@@ -62,9 +63,13 @@ int main(int argc, char *argv[])
     // --- AA service (will become AndroidAutoPlugin in Phase E) ---
     auto aaService = new oap::aa::AndroidAutoService(config, &app);
 
+    // Plugin model for QML nav strip
+    auto pluginModel = new oap::PluginModel(&pluginManager, &app);
+
     QQmlApplicationEngine engine;
     engine.rootContext()->setContextProperty("ThemeController", theme);
     engine.rootContext()->setContextProperty("ApplicationController", appController);
+    engine.rootContext()->setContextProperty("PluginModel", pluginModel);
     engine.rootContext()->setContextProperty("AndroidAutoService", aaService);
     engine.rootContext()->setContextProperty("VideoDecoder", aaService->videoDecoder());
     engine.rootContext()->setContextProperty("TouchHandler", aaService->touchHandler());
