@@ -55,6 +55,10 @@ set_source_files_properties(../qml/components/BottomBar.qml PROPERTIES
     QT_QML_SOURCE_TYPENAME "BottomBar"
     QT_RESOURCE_ALIAS "BottomBar.qml"
 )
+set_source_files_properties(../qml/components/Shell.qml PROPERTIES
+    QT_QML_SOURCE_TYPENAME "Shell"
+    QT_RESOURCE_ALIAS "Shell.qml"
+)
 set_source_files_properties(../qml/applications/launcher/LauncherMenu.qml PROPERTIES
     QT_QML_SOURCE_TYPENAME "LauncherMenu"
     QT_RESOURCE_ALIAS "LauncherMenu.qml"
@@ -85,6 +89,7 @@ qt_add_qml_module(openauto-prodigy
         ../qml/components/Wallpaper.qml
         ../qml/components/TopBar.qml
         ../qml/components/BottomBar.qml
+        ../qml/components/Shell.qml
         ../qml/applications/launcher/LauncherMenu.qml
         ../qml/applications/android_auto/AndroidAutoMenu.qml
         ../qml/applications/settings/SettingsMenu.qml
