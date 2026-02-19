@@ -1,0 +1,36 @@
+id: default
+name: Default Theme
+version: 1.0.0
+font_family: "Lato"
+
+# Day mode colors
+day:
+  background: "#1a1a2e"
+  highlight: "#e94560"
+  control_background: "#16213e"
+  control_foreground: "#e0e0e0"
+  normal_font: "#ffffff"
+  special_font: "#e94560"
+  description_font: "#a0a0a0"
+  bar_background: "#0f3460"
+  control_box_background: "#16213e"
+  gauge_indicator: "#e94560"
+  icon: "#ffffff"
+  side_widget_background: "#16213e"
+  bar_shadow: "#000000"
+
+# Night mode colors — dimmer, less eye strain
+night:
+  background: "#0a0a14"
+  highlight: "#c73650"
+  control_background: "#0e1729"
+  control_foreground: "#b0b0b0"
+  normal_font: "#c0c0c0"
+  special_font: "#c73650"
+  description_font: "#707070"
+  bar_background: "#0a2240"
+  control_box_background: "#0e1729"
+  gauge_indicator: "#c73650"
+  icon: "#c0c0c0"
+  side_widget_background: "#0e1729"
+  bar_shadow: "#000000"

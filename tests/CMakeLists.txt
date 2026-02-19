@@ -119,6 +119,24 @@ target_link_libraries(test_plugin_manager PRIVATE
     Boost::log
 )
 
+add_executable(test_theme_service
+    test_theme_service.cpp
+    ${CMAKE_SOURCE_DIR}/src/core/services/ThemeService.cpp
+)
+target_include_directories(test_theme_service PRIVATE
+    ${CMAKE_SOURCE_DIR}/src
+)
+target_compile_definitions(test_theme_service PRIVATE
+    TEST_DATA_DIR="${CMAKE_CURRENT_BINARY_DIR}/data"
+)
+target_link_libraries(test_theme_service PRIVATE
+    Qt6::Core
+    Qt6::Gui
+    Qt6::Test
+    yaml-cpp::yaml-cpp
+)
+file(COPY data/themes DESTINATION ${CMAKE_CURRENT_BINARY_DIR}/data)
+
 enable_testing()
 add_test(NAME test_configuration COMMAND test_configuration)
 add_test(NAME test_theme_controller COMMAND test_theme_controller)
@@ -127,3 +145,4 @@ add_test(NAME test_config_service COMMAND test_config_service)
 add_test(NAME test_plugin_manifest COMMAND test_plugin_manifest)
 add_test(NAME test_plugin_discovery COMMAND test_plugin_discovery)
 add_test(NAME test_plugin_manager COMMAND test_plugin_manager)
+add_test(NAME test_theme_service COMMAND test_theme_service)
