@@ -7,19 +7,9 @@ Window {
     width: 1024
     height: 600
     visible: true
+    visibility: Window.FullScreen
     title: "OpenAuto Prodigy"
     color: ThemeService.backgroundColor
-
-    // Fullscreen mode driven by Shell
-    property bool aaFullscreen: shell.fullscreenMode
-
-    onAaFullscreenChanged: {
-        if (aaFullscreen) {
-            root.visibility = Window.FullScreen;
-        } else {
-            root.visibility = Window.Windowed;
-        }
-    }
 
     Shell {
         id: shell
@@ -29,5 +19,11 @@ Window {
     Shortcut {
         sequence: "Ctrl+D"
         onActivated: ThemeService.toggleMode()
+    }
+
+    // Keyboard shortcut: Ctrl+Q quit
+    Shortcut {
+        sequence: "Ctrl+Q"
+        onActivated: Qt.quit()
     }
 }

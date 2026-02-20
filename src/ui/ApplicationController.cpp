@@ -1,4 +1,6 @@
 #include "ui/ApplicationController.hpp"
+#include <QGuiApplication>
+#include <QWindow>
 
 namespace oap {
 
@@ -32,6 +34,18 @@ void ApplicationController::setTitle(const QString &title)
         return;
     currentTitle_ = title;
     emit currentTitleChanged();
+}
+
+void ApplicationController::quit()
+{
+    QGuiApplication::quit();
+}
+
+void ApplicationController::minimize()
+{
+    auto windows = QGuiApplication::topLevelWindows();
+    if (!windows.isEmpty())
+        windows.first()->showMinimized();
 }
 
 } // namespace oap

@@ -22,6 +22,8 @@ public:
     Q_INVOKABLE void navigateTo(int appType);
     Q_INVOKABLE void navigateBack();
     Q_INVOKABLE void setTitle(const QString &title);
+    Q_INVOKABLE void quit();
+    Q_INVOKABLE void minimize();
 
 signals:
     void currentApplicationChanged();
