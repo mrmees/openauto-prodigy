@@ -5,6 +5,9 @@
 #include "ui/ApplicationController.hpp"
 #include "ui/ApplicationTypes.hpp"
 #include "core/Configuration.hpp"
+#include "core/InputDeviceScanner.hpp"
+#include "core/services/IConfigService.hpp"
+#include <boost/log/trivial.hpp>
 #include <QQmlContext>
 #include <QFile>
 
@@ -54,17 +57,41 @@ bool AndroidAutoPlugin::initialize(IHostContext* context)
         }
     });
 
-    // Start evdev touch reader if device exists (Pi only, not dev VM)
-    QString touchDevice = QStringLiteral("/dev/input/event4");  // TODO: configurable
-    if (QFile::exists(touchDevice)) {
+    // Auto-detect or read touch device from config
+    QString touchDevice;
+    if (hostContext_ && hostContext_->configService()) {
+        touchDevice = hostContext_->configService()->value("touch.device").toString();
+    }
+    if (touchDevice.isEmpty()) {
+        touchDevice = oap::InputDeviceScanner::findTouchDevice();
+        if (!touchDevice.isEmpty()) {
+            BOOST_LOG_TRIVIAL(info) << "[AAPlugin] Auto-detected touch device: "
+                                    << touchDevice.toStdString();
+        }
+    }
+
+    // Read display resolution from config (default: 1024x600)
+    int displayW = 1024, displayH = 600;
+    if (hostContext_ && hostContext_->configService()) {
+        QVariant w = hostContext_->configService()->value("display.width");
+        QVariant h = hostContext_->configService()->value("display.height");
+        if (w.isValid()) displayW = w.toInt();
+        if (h.isValid()) displayH = h.toInt();
+    }
+
+    if (!touchDevice.isEmpty() && QFile::exists(touchDevice)) {
         touchReader_ = new oap::aa::EvdevTouchReader(
             aaService_->touchHandler(),
             touchDevice.toStdString(),
-            4095, 4095,   // evdev axis range
-            1280, 720,    // AA touch coordinate space
-            1024, 600,    // physical display resolution
+            4095, 4095,   // evdev axis range (overridden by EVIOCGABS in reader)
+            1280, 720,    // AA touch coordinate space (matches video resolution)
+            displayW, displayH,
             this);
         touchReader_->start();
+        BOOST_LOG_TRIVIAL(info) << "[AAPlugin] Touch: " << touchDevice.toStdString()
+                                << " display=" << displayW << "x" << displayH;
+    } else {
+        BOOST_LOG_TRIVIAL(info) << "[AAPlugin] No touch device found — touch input disabled";
     }
 
     // Start AA service — it needs to listen for connections immediately
