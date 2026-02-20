@@ -27,6 +27,18 @@ add_subdirectory(libs/aasdk)
 # Restore our flags (aasdk sets -Wall -pedantic globally)
 set(CMAKE_CXX_FLAGS "${_saved_cxx_flags}")
 
+# Capture git hash at configure time for version identification
+execute_process(
+    COMMAND git rev-parse --short HEAD
+    WORKING_DIRECTORY ${CMAKE_SOURCE_DIR}
+    OUTPUT_VARIABLE OAP_GIT_HASH
+    OUTPUT_STRIP_TRAILING_WHITESPACE
+    ERROR_QUIET
+)
+if(NOT OAP_GIT_HASH)
+    set(OAP_GIT_HASH "unknown")
+endif()
+
 enable_testing()
 
 add_subdirectory(src)

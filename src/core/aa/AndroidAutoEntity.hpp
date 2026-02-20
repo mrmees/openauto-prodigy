@@ -9,6 +9,7 @@
 #include "IService.hpp"
 
 namespace oap {
+class YamlConfig;
 namespace aa {
 
 class IAndroidAutoEntityEventHandler
@@ -30,7 +31,8 @@ public:
     AndroidAutoEntity(boost::asio::io_service& ioService,
                       aasdk::messenger::ICryptor::Pointer cryptor,
                       aasdk::messenger::IMessenger::Pointer messenger,
-                      IService::ServiceList serviceList);
+                      IService::ServiceList serviceList,
+                      oap::YamlConfig* yamlConfig = nullptr);
 
     void start(IAndroidAutoEntityEventHandler& eventHandler);
     void stop();
@@ -58,6 +60,7 @@ private:
     aasdk::channel::control::IControlServiceChannel::Pointer controlChannel_;
     IService::ServiceList serviceList_;
     IAndroidAutoEntityEventHandler* eventHandler_ = nullptr;
+    oap::YamlConfig* yamlConfig_ = nullptr;
     boost::asio::deadline_timer pingTimer_;
 };
 

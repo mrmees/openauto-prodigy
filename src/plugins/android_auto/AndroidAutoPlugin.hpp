@@ -9,6 +9,7 @@ class QQmlContext;
 namespace oap {
 
 class Configuration;
+class YamlConfig;
 class ApplicationController;
 class IHostContext;
 
@@ -38,6 +39,7 @@ class AndroidAutoPlugin : public QObject, public IPlugin {
 public:
     explicit AndroidAutoPlugin(std::shared_ptr<oap::Configuration> config,
                                oap::ApplicationController* appController,
+                               oap::YamlConfig* yamlConfig = nullptr,
                                QObject* parent = nullptr);
     ~AndroidAutoPlugin() override;
 
@@ -71,6 +73,7 @@ public:
 
 private:
     std::shared_ptr<oap::Configuration> config_;
+    oap::YamlConfig* yamlConfig_ = nullptr;
     oap::ApplicationController* appController_ = nullptr;
     IHostContext* hostContext_ = nullptr;
 

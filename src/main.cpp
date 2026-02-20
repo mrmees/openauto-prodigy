@@ -72,7 +72,7 @@ int main(int argc, char *argv[])
     oap::PluginManager pluginManager(&app);
 
     // Register static (compiled-in) plugins
-    auto aaPlugin = new oap::plugins::AndroidAutoPlugin(config, appController, &app);
+    auto aaPlugin = new oap::plugins::AndroidAutoPlugin(config, appController, yamlConfig.get(), &app);
     pluginManager.registerStaticPlugin(aaPlugin);
 
     auto btAudioPlugin = new oap::plugins::BtAudioPlugin(&app);

@@ -13,9 +13,11 @@ namespace plugins {
 
 AndroidAutoPlugin::AndroidAutoPlugin(std::shared_ptr<oap::Configuration> config,
                                      oap::ApplicationController* appController,
+                                     oap::YamlConfig* yamlConfig,
                                      QObject* parent)
     : QObject(parent)
     , config_(std::move(config))
+    , yamlConfig_(yamlConfig)
     , appController_(appController)
 {
 }
@@ -31,7 +33,7 @@ bool AndroidAutoPlugin::initialize(IHostContext* context)
 
     // Create AA service with audio routing through PipeWire
     auto* audioService = context ? context->audioService() : nullptr;
-    aaService_ = new oap::aa::AndroidAutoService(config_, audioService, this);
+    aaService_ = new oap::aa::AndroidAutoService(config_, audioService, yamlConfig_, this);
 
     // Connect navigation: auto-switch to AA on connect, back to launcher on disconnect.
     // TODO: Replace ApplicationController dependency with IEventBus publish.

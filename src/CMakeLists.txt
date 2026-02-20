@@ -153,6 +153,11 @@ target_link_libraries(openauto-prodigy PRIVATE
     yaml-cpp::yaml-cpp
 )
 
+# Git hash for ServiceDiscoveryResponse sw_build field
+target_compile_definitions(openauto-prodigy PRIVATE
+    OAP_GIT_HASH="${OAP_GIT_HASH}"
+)
+
 # Bluetooth discovery — optional, not available on all dev platforms (e.g. WSL2)
 if(TARGET Qt6::Bluetooth)
     target_sources(openauto-prodigy PRIVATE

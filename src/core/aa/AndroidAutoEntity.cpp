@@ -1,4 +1,5 @@
 #include "AndroidAutoEntity.hpp"
+#include "../../core/YamlConfig.hpp"
 
 #include <boost/log/trivial.hpp>
 #include <aasdk_proto/ControlMessageIdsEnum.pb.h>
@@ -23,11 +24,13 @@ AndroidAutoEntity::AndroidAutoEntity(
     boost::asio::io_service& ioService,
     aasdk::messenger::ICryptor::Pointer cryptor,
     aasdk::messenger::IMessenger::Pointer messenger,
-    IService::ServiceList serviceList)
+    IService::ServiceList serviceList,
+    oap::YamlConfig* yamlConfig)
     : strand_(ioService)
     , cryptor_(std::move(cryptor))
     , controlChannel_(std::make_shared<aasdk::channel::control::ControlServiceChannel>(strand_, messenger))
     , serviceList_(std::move(serviceList))
+    , yamlConfig_(yamlConfig)
     , pingTimer_(ioService)
 {
 }
@@ -163,27 +166,44 @@ void AndroidAutoEntity::onServiceDiscoveryRequest(
     pingConfig->set_high_latency_threshold_ms(200);
     pingConfig->set_tracked_ping_count(5);
 
+    // Identity fields — driven by YamlConfig with sensible defaults
+    const std::string huName = yamlConfig_ ? yamlConfig_->headUnitName().toStdString() : "OpenAuto Prodigy";
+    const std::string mfr = yamlConfig_ ? yamlConfig_->manufacturer().toStdString() : "OpenAuto";
+    const std::string mdl = yamlConfig_ ? yamlConfig_->model().toStdString() : "Prodigy";
+    const std::string swVer = yamlConfig_ ? yamlConfig_->swVersion().toStdString() : "0.1.0";
+    const std::string carMdl = yamlConfig_ && !yamlConfig_->carModel().isEmpty()
+                                   ? yamlConfig_->carModel().toStdString() : "Universal";
+    const std::string carYr = yamlConfig_ && !yamlConfig_->carYear().isEmpty()
+                                  ? yamlConfig_->carYear().toStdString() : "2026";
+    const bool lhd = yamlConfig_ ? yamlConfig_->leftHandDrive() : true;
+
+    // Git hash compiled in via CMake — falls back to "unknown"
+#ifndef OAP_GIT_HASH
+#define OAP_GIT_HASH "unknown"
+#endif
+    const std::string swBuild = OAP_GIT_HASH;
+
     auto* huInfo = response.mutable_headunit_info();
-    huInfo->set_make("OpenAuto");
-    huInfo->set_model("Universal");
-    huInfo->set_year("2026");
+    huInfo->set_make(mfr);
+    huInfo->set_model(carMdl);
+    huInfo->set_year(carYr);
     huInfo->set_vehicle_id("OAP-0001");
-    huInfo->set_head_unit_make("OpenAuto");
-    huInfo->set_head_unit_model("Prodigy");
-    huInfo->set_head_unit_software_build("0.1.0");
-    huInfo->set_head_unit_software_version("0.1.0");
+    huInfo->set_head_unit_make(mfr);
+    huInfo->set_head_unit_model(mdl);
+    huInfo->set_head_unit_software_build(swBuild);
+    huInfo->set_head_unit_software_version(swVer);
 
     // Legacy fields (deprecated but included for older AA versions)
-    response.set_head_unit_name("OpenAuto Prodigy");
-    response.set_car_model("Universal");
-    response.set_car_year("2026");
+    response.set_head_unit_name(huName);
+    response.set_car_model(carMdl);
+    response.set_car_year(carYr);
     response.set_car_serial("OAP-0001");
-    response.set_left_hand_drive_vehicle(true);
-    response.set_headunit_manufacturer("OpenAuto");
-    response.set_headunit_model("Prodigy");
-    response.set_sw_build("0.1.0");
-    response.set_sw_version("0.1.0");
-    response.set_can_play_native_media_during_vr(false);
+    response.set_left_hand_drive_vehicle(lhd);
+    response.set_headunit_manufacturer(mfr);
+    response.set_headunit_model(mdl);
+    response.set_sw_build(swBuild);
+    response.set_sw_version(swVer);
+    response.set_can_play_native_media_during_vr(true);
     response.set_hide_clock(false);
 
     for (auto& service : serviceList_) {

@@ -16,6 +16,8 @@
 
 #include <aasdk/Transport/ITransport.hpp>
 
+namespace oap { class YamlConfig; }
+
 #ifdef HAS_BLUETOOTH
 class BluetoothDiscoveryService;
 #endif
@@ -48,6 +50,7 @@ public:
 
     explicit AndroidAutoService(std::shared_ptr<oap::Configuration> config,
                                oap::IAudioService* audioService = nullptr,
+                               oap::YamlConfig* yamlConfig = nullptr,
                                QObject* parent = nullptr);
     ~AndroidAutoService() override;
 
@@ -101,6 +104,7 @@ private:
     std::shared_ptr<boost::asio::ip::tcp::socket> activeSocket_;
 
     oap::IAudioService* audioService_ = nullptr;
+    oap::YamlConfig* yamlConfig_ = nullptr;
     ConnectionState state_ = Disconnected;
     QString statusMessage_;
 

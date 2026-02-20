@@ -28,10 +28,12 @@ static constexpr int kAsioThreadCount = 4;
 AndroidAutoService::AndroidAutoService(
     std::shared_ptr<oap::Configuration> config,
     oap::IAudioService* audioService,
+    oap::YamlConfig* yamlConfig,
     QObject* parent)
     : QObject(parent)
     , config_(std::move(config))
     , audioService_(audioService)
+    , yamlConfig_(yamlConfig)
 {
     videoDecoder_ = new VideoDecoder(this);
     touchHandler_ = new TouchHandler(this);
@@ -250,7 +252,7 @@ void AndroidAutoService::startEntity(aasdk::transport::ITransport::Pointer trans
 
     // Create entity (it creates its own control channel from its strand)
     entity_ = std::make_shared<AndroidAutoEntity>(
-        *ioService_, std::move(cryptor), messenger, std::move(serviceList));
+        *ioService_, std::move(cryptor), messenger, std::move(serviceList), yamlConfig_);
 
     entity_->start(*this);
 }
