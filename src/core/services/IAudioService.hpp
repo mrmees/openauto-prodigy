@@ -2,6 +2,7 @@
 
 #include <QString>
 #include <cstdint>
+#include <functional>
 
 namespace oap {
 
@@ -50,6 +51,24 @@ public:
     /// Release audio focus. Previously ducked streams are restored.
     /// Thread-safe.
     virtual void releaseAudioFocus(AudioStreamHandle* handle) = 0;
+
+    // ---- Capture (microphone input) ----
+    // Default implementations so existing code/tests don't break.
+
+    /// Callback invoked from PipeWire thread with captured PCM data.
+    using CaptureCallback = std::function<void(const uint8_t* data, int size)>;
+
+    /// Open a PipeWire capture stream. Returns nullptr on failure.
+    virtual AudioStreamHandle* openCaptureStream(const QString& name,
+                                                  int sampleRate, int channels, int bitDepth) { (void)name; (void)sampleRate; (void)channels; (void)bitDepth; return nullptr; }
+
+    /// Close and destroy a capture stream. Safe to call with nullptr.
+    virtual void closeCaptureStream(AudioStreamHandle* handle) { (void)handle; }
+
+    /// Set the callback that receives captured audio buffers.
+    /// The callback may be invoked from a PipeWire thread — callers must
+    /// handle thread safety (e.g., dispatch to their own strand).
+    virtual void setCaptureCallback(AudioStreamHandle* handle, CaptureCallback cb) { (void)handle; (void)cb; }
 };
 
 } // namespace oap

@@ -34,7 +34,7 @@ public:
     /// Whether PipeWire was successfully initialized.
     bool isAvailable() const { return mainLoop_ != nullptr; }
 
-    // IAudioService
+    // IAudioService — output
     AudioStreamHandle* createStream(const QString& name, int priority) override;
     void destroyStream(AudioStreamHandle* handle) override;
     int writeAudio(AudioStreamHandle* handle, const uint8_t* data, int size) override;
@@ -43,8 +43,17 @@ public:
     void requestAudioFocus(AudioStreamHandle* handle, AudioFocusType type) override;
     void releaseAudioFocus(AudioStreamHandle* handle) override;
 
+    // IAudioService — capture
+    AudioStreamHandle* openCaptureStream(const QString& name,
+                                          int sampleRate, int channels, int bitDepth) override;
+    void closeCaptureStream(AudioStreamHandle* handle) override;
+    void setCaptureCallback(AudioStreamHandle* handle, CaptureCallback cb) override;
+
 private:
     void applyDucking();
+
+    /// PipeWire process callback for capture streams.
+    static void onCaptureProcess(void* userdata);
 
     struct pw_main_loop* mainLoop_ = nullptr;
     struct pw_context* context_ = nullptr;
@@ -53,6 +62,15 @@ private:
     mutable QMutex mutex_;
     QList<AudioStreamHandle*> streams_;
     int masterVolume_ = 80;
+
+    // Capture state — one capture stream at a time (mic)
+    struct CaptureState {
+        AudioStreamHandle* handle = nullptr;
+        CaptureCallback callback;
+        pw_stream_events events{};
+    };
+    CaptureState capture_;
+    struct spa_hook captureListener_{};
 };
 
 } // namespace oap

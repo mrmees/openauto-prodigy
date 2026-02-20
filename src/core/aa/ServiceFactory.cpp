@@ -6,6 +6,7 @@
 #include "../../core/services/AudioService.hpp"
 
 #include <boost/log/trivial.hpp>
+#include <chrono>
 
 // Channel headers
 #include <aasdk/Channel/AV/VideoServiceChannel.hpp>
@@ -589,19 +590,34 @@ class AVInputServiceStub
 {
 public:
     AVInputServiceStub(boost::asio::io_service& ioService,
-                       aasdk::messenger::IMessenger::Pointer messenger)
+                       aasdk::messenger::IMessenger::Pointer messenger,
+                       oap::IAudioService* audioService = nullptr)
         : strand_(ioService)
         , channel_(std::make_shared<aasdk::channel::av::AVInputServiceChannel>(strand_, std::move(messenger)))
+        , audioService_(audioService)
     {}
+
+    ~AVInputServiceStub() {
+        if (audioService_ && captureStream_) {
+            audioService_->closeCaptureStream(captureStream_);
+            captureStream_ = nullptr;
+        }
+    }
 
     void start() override {
         strand_.dispatch([this, self = shared_from_this()]() {
-            BOOST_LOG_TRIVIAL(info) << "[AVInputService] Started (microphone stub)";
+            BOOST_LOG_TRIVIAL(info) << "[AVInputService] Started"
+                << (audioService_ ? " (PipeWire capture available)" : " (no audio service — mic disabled)");
             channel_->receive(shared_from_this());
         });
     }
 
-    void stop() override {}
+    void stop() override {
+        if (audioService_ && captureStream_) {
+            audioService_->closeCaptureStream(captureStream_);
+            captureStream_ = nullptr;
+        }
+    }
 
     void fillFeatures(aasdk::proto::messages::ServiceDiscoveryResponse& response) override {
         auto* desc = response.add_channels();
@@ -643,6 +659,37 @@ public:
 
     void onAVInputOpenRequest(const aasdk::proto::messages::AVInputOpenRequest& request) override {
         BOOST_LOG_TRIVIAL(info) << "[AVInputService] Input open request (open=" << request.open() << ")";
+
+        if (request.open() && audioService_) {
+            // Open PipeWire capture stream for microphone
+            captureStream_ = audioService_->openCaptureStream("AA Microphone", 16000, 1, 16);
+            if (captureStream_) {
+                // Set capture callback — copies data and dispatches to ASIO strand
+                // to send mic frames to the phone.
+                auto weak = std::weak_ptr<AVInputServiceStub>(shared_from_this());
+                audioService_->setCaptureCallback(captureStream_,
+                    [weak](const uint8_t* data, int size) {
+                        auto self = weak.lock();
+                        if (!self) return;
+                        // Copy data (callback is on PipeWire thread)
+                        aasdk::common::Data micData(data, data + size);
+                        self->strand_.dispatch([self, micData = std::move(micData)]() {
+                            self->sendMicData(micData);
+                        });
+                    });
+                BOOST_LOG_TRIVIAL(info) << "[AVInputService] PipeWire capture opened";
+            } else {
+                BOOST_LOG_TRIVIAL(warning) << "[AVInputService] Failed to open PipeWire capture";
+            }
+        } else if (!request.open()) {
+            // Close capture
+            if (audioService_ && captureStream_) {
+                audioService_->closeCaptureStream(captureStream_);
+                captureStream_ = nullptr;
+                BOOST_LOG_TRIVIAL(info) << "[AVInputService] PipeWire capture closed";
+            }
+        }
+
         aasdk::proto::messages::AVInputOpenResponse response;
         response.set_session(0);
         response.set_value(0);  // 0 = success
@@ -654,7 +701,7 @@ public:
     }
 
     void onAVMediaAckIndication(const aasdk::proto::messages::AVMediaAckIndication& indication) override {
-        // Phone ACKed our mic data (we don't actually send any yet)
+        // Phone ACKed our mic data
         channel_->receive(shared_from_this());
     }
 
@@ -663,8 +710,23 @@ public:
     }
 
 private:
+    void sendMicData(const aasdk::common::Data& data) {
+        auto timestamp = static_cast<uint64_t>(
+            std::chrono::duration_cast<std::chrono::microseconds>(
+                std::chrono::steady_clock::now().time_since_epoch()).count());
+
+        auto promise = aasdk::channel::SendPromise::defer(strand_);
+        promise->then([]() {},
+            [](const aasdk::error::Error& e) {
+                BOOST_LOG_TRIVIAL(error) << "[AVInputService] Mic send error: " << e.what();
+            });
+        channel_->sendAVMediaWithTimestampIndication(timestamp, data, std::move(promise));
+    }
+
     boost::asio::io_service::strand strand_;
     std::shared_ptr<aasdk::channel::av::AVInputServiceChannel> channel_;
+    oap::IAudioService* audioService_ = nullptr;
+    oap::AudioStreamHandle* captureStream_ = nullptr;
 };
 
 // ============================================================================
@@ -725,7 +787,7 @@ IService::ServiceList ServiceFactory::create(
 #endif
     services.push_back(std::make_shared<BluetoothServiceStub>(ioService, messenger, btMac));
     services.push_back(std::make_shared<WIFIServiceStub>(ioService, messenger, config));
-    services.push_back(std::make_shared<AVInputServiceStub>(ioService, messenger));
+    services.push_back(std::make_shared<AVInputServiceStub>(ioService, messenger, audioService));
     // NOTE: MediaInfoServiceStub (channel 9) removed — aasdk has no ChannelId for 9,
     // so the phone's ChannelOpenRequest for it goes unanswered, stalling the connection.
 
