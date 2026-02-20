@@ -318,7 +318,7 @@ QUrl PhonePlugin::qmlComponent() const
 
 QUrl PhonePlugin::iconSource() const
 {
-    return QUrl(QStringLiteral("qrc:/icons/phone.svg"));
+    return {};  // Font-based icons — see MaterialIcon.qml (\uf0d4 phone)
 }
 
 void PhonePlugin::dial(const QString& number)

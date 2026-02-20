@@ -14,13 +14,13 @@ Rectangle {
         spacing: 12
 
         // Volume icon
-        Text {
+        MaterialIcon {
             Layout.alignment: Qt.AlignVCenter
-            text: volumeSlider.value > 50 ? "\uD83D\uDD0A"
-                : volumeSlider.value > 0  ? "\uD83D\uDD09"
-                :                           "\uD83D\uDD07"
-            font.pixelSize: 22
+            icon: volumeSlider.value > 50 ? "\ue050"   // volume_up
+                : volumeSlider.value > 0  ? "\ue04d"   // volume_down
+                :                           "\ue04f"   // volume_off
             color: ThemeService.normalFontColor
+            size: 24
         }
 
         Slider {

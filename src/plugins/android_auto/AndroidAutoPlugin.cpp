@@ -111,7 +111,7 @@ QUrl AndroidAutoPlugin::qmlComponent() const
 
 QUrl AndroidAutoPlugin::iconSource() const
 {
-    return QUrl(QStringLiteral("qrc:/icons/android-auto.svg"));
+    return {};  // Font-based icons — see MaterialIcon.qml (\ueff7 directions_car)
 }
 
 void AndroidAutoPlugin::setGlobalContextProperties(QQmlContext* rootContext)

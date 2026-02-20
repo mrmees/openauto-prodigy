@@ -128,13 +128,10 @@ Rectangle {
                 Layout.preferredWidth: 80
                 Layout.preferredHeight: 80
                 onClicked: if (PhonePlugin) PhonePlugin.hangup()
-                contentItem: Text {
-                    text: "\u260E"
-                    font.pixelSize: 36
+                contentItem: MaterialIcon {
+                    icon: "\uf0bc"  // call_end
+                    size: 36
                     color: "white"
-                    horizontalAlignment: Text.AlignHCenter
-                    verticalAlignment: Text.AlignVCenter
-                    rotation: 135
                 }
                 background: Rectangle {
                     color: parent.pressed ? "#D32F2F" : "#F44336"
@@ -148,12 +145,10 @@ Rectangle {
                 Layout.preferredHeight: 80
                 visible: callState === 2  // Ringing
                 onClicked: if (PhonePlugin) PhonePlugin.answer()
-                contentItem: Text {
-                    text: "\u260E"
-                    font.pixelSize: 36
+                contentItem: MaterialIcon {
+                    icon: "\uf0d4"  // phone
+                    size: 36
                     color: "white"
-                    horizontalAlignment: Text.AlignHCenter
-                    verticalAlignment: Text.AlignVCenter
                 }
                 background: Rectangle {
                     color: parent.pressed ? "#388E3C" : "#4CAF50"
@@ -175,16 +170,12 @@ Rectangle {
             Button {
                 Layout.preferredWidth: 64
                 Layout.fillHeight: true
-                text: "\u232B"
-                font.pixelSize: 20
                 enabled: isConnected && PhonePlugin && PhonePlugin.dialedNumber.length > 0
                 onClicked: if (PhonePlugin) PhonePlugin.clearDialed()
-                contentItem: Text {
-                    text: parent.text
-                    font: parent.font
+                contentItem: MaterialIcon {
+                    icon: "\ue14a"  // backspace
+                    size: 22
                     color: ThemeService.primaryTextColor
-                    horizontalAlignment: Text.AlignHCenter
-                    verticalAlignment: Text.AlignVCenter
                 }
                 background: Rectangle {
                     color: parent.pressed ? ThemeService.highlightColor : ThemeService.controlBackgroundColor
@@ -198,13 +189,21 @@ Rectangle {
                 Layout.fillHeight: true
                 enabled: isConnected && PhonePlugin && PhonePlugin.dialedNumber.length > 0
                 onClicked: if (PhonePlugin) PhonePlugin.dial(PhonePlugin.dialedNumber)
-                contentItem: Text {
-                    text: "\u260E  Call"
-                    font.pixelSize: 20
-                    font.bold: true
-                    color: "white"
-                    horizontalAlignment: Text.AlignHCenter
-                    verticalAlignment: Text.AlignVCenter
+                contentItem: RowLayout {
+                    spacing: 8
+                    Item { Layout.fillWidth: true }
+                    MaterialIcon {
+                        icon: "\uf0d4"  // phone
+                        size: 22
+                        color: "white"
+                    }
+                    Text {
+                        text: "Call"
+                        font.pixelSize: 20
+                        font.bold: true
+                        color: "white"
+                    }
+                    Item { Layout.fillWidth: true }
                 }
                 background: Rectangle {
                     color: parent.enabled

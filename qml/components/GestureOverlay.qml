@@ -73,9 +73,9 @@ Rectangle {
                 Layout.fillWidth: true
                 spacing: 12
 
-                Text {
-                    text: "\uD83D\uDD0A"
-                    font.pixelSize: 20
+                MaterialIcon {
+                    icon: "\ue050"  // volume_up
+                    size: 22
                     color: "#e0e0e0"
                 }
 
@@ -104,9 +104,9 @@ Rectangle {
                 Layout.fillWidth: true
                 spacing: 12
 
-                Text {
-                    text: "\u2600"
-                    font.pixelSize: 20
+                MaterialIcon {
+                    icon: "\ue1ac"  // brightness_high
+                    size: 22
                     color: "#e0e0e0"
                 }
 
@@ -136,18 +136,24 @@ Rectangle {
                 spacing: 24
 
                 Button {
-                    text: "\u2302 Home"
                     font.pixelSize: 14
                     onClicked: {
                         if (ApplicationController)
                             ApplicationController.navigateTo(0)  // Launcher
                         overlay.dismiss()
                     }
-                    contentItem: Text {
-                        text: parent.text
-                        font: parent.font
-                        color: "#e0e0e0"
-                        horizontalAlignment: Text.AlignHCenter
+                    contentItem: RowLayout {
+                        spacing: 6
+                        MaterialIcon {
+                            icon: "\ue9b2"  // home
+                            size: 18
+                            color: "#e0e0e0"
+                        }
+                        Text {
+                            text: "Home"
+                            font.pixelSize: 14
+                            color: "#e0e0e0"
+                        }
                     }
                     background: Rectangle {
                         color: parent.pressed ? "#e94560" : "#0f3460"
@@ -158,17 +164,23 @@ Rectangle {
                 }
 
                 Button {
-                    text: ThemeService.nightMode ? "\u263C Day" : "\u263E Night"
                     font.pixelSize: 14
                     onClicked: {
                         if (ThemeService) ThemeService.toggleMode()
                         dismissTimer.restart()
                     }
-                    contentItem: Text {
-                        text: parent.text
-                        font: parent.font
-                        color: "#e0e0e0"
-                        horizontalAlignment: Text.AlignHCenter
+                    contentItem: RowLayout {
+                        spacing: 6
+                        MaterialIcon {
+                            icon: ThemeService.nightMode ? "\ue518" : "\ue51c"  // light_mode / dark_mode
+                            size: 18
+                            color: "#e0e0e0"
+                        }
+                        Text {
+                            text: ThemeService.nightMode ? "Day" : "Night"
+                            font.pixelSize: 14
+                            color: "#e0e0e0"
+                        }
                     }
                     background: Rectangle {
                         color: parent.pressed ? "#e94560" : "#0f3460"
@@ -179,14 +191,20 @@ Rectangle {
                 }
 
                 Button {
-                    text: "\u2715 Close"
                     font.pixelSize: 14
                     onClicked: overlay.dismiss()
-                    contentItem: Text {
-                        text: parent.text
-                        font: parent.font
-                        color: "#e0e0e0"
-                        horizontalAlignment: Text.AlignHCenter
+                    contentItem: RowLayout {
+                        spacing: 6
+                        MaterialIcon {
+                            icon: "\ue5cd"  // close
+                            size: 18
+                            color: "#e0e0e0"
+                        }
+                        Text {
+                            text: "Close"
+                            font.pixelSize: 14
+                            color: "#e0e0e0"
+                        }
                     }
                     background: Rectangle {
                         color: parent.pressed ? "#e94560" : "#0f3460"

@@ -57,13 +57,10 @@ Rectangle {
                 Layout.preferredWidth: 72
                 Layout.preferredHeight: 72
                 onClicked: if (PhonePlugin) PhonePlugin.hangup()
-                contentItem: Text {
-                    text: "\u260E"
-                    font.pixelSize: 32
+                contentItem: MaterialIcon {
+                    icon: "\uf0bc"  // call_end
+                    size: 32
                     color: "white"
-                    horizontalAlignment: Text.AlignHCenter
-                    verticalAlignment: Text.AlignVCenter
-                    rotation: 135
                 }
                 background: Rectangle {
                     color: parent.pressed ? "#D32F2F" : "#F44336"
@@ -76,12 +73,10 @@ Rectangle {
                 Layout.preferredWidth: 72
                 Layout.preferredHeight: 72
                 onClicked: if (PhonePlugin) PhonePlugin.answer()
-                contentItem: Text {
-                    text: "\u260E"
-                    font.pixelSize: 32
+                contentItem: MaterialIcon {
+                    icon: "\uf0d4"  // phone
+                    size: 32
                     color: "white"
-                    horizontalAlignment: Text.AlignHCenter
-                    verticalAlignment: Text.AlignVCenter
                 }
                 background: Rectangle {
                     color: parent.pressed ? "#388E3C" : "#4CAF50"

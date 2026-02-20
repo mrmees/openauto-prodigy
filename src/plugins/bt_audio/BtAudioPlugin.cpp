@@ -422,7 +422,7 @@ QUrl BtAudioPlugin::qmlComponent() const
 
 QUrl BtAudioPlugin::iconSource() const
 {
-    return QUrl(QStringLiteral("qrc:/icons/bluetooth-audio.svg"));
+    return {};  // Font-based icons — see MaterialIcon.qml (\uf01f headphones)
 }
 
 void BtAudioPlugin::play()

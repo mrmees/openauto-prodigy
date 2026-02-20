@@ -35,10 +35,10 @@ Rectangle {
             border.color: ThemeService.borderColor
             border.width: 1
 
-            Text {
+            MaterialIcon {
                 anchors.centerIn: parent
-                text: "\u266B"
-                font.pixelSize: 72
+                icon: "\ue405"  // music_note
+                size: 72
                 color: ThemeService.primaryTextColor
                 opacity: 0.3
             }
@@ -132,27 +132,23 @@ Rectangle {
             opacity: isConnected ? 1.0 : 0.4
 
             Button {
-                text: "\u23EE"
-                font.pixelSize: 28
                 flat: true
                 enabled: isConnected
                 onClicked: if (BtAudioPlugin) BtAudioPlugin.previous()
-                contentItem: Text {
-                    text: parent.text
-                    font: parent.font
+                contentItem: MaterialIcon {
+                    icon: "\ue045"  // skip_previous
+                    size: 32
                     color: ThemeService.primaryTextColor
-                    horizontalAlignment: Text.AlignHCenter
-                    verticalAlignment: Text.AlignVCenter
                 }
                 background: Rectangle {
                     color: parent.pressed ? ThemeService.highlightColor : "transparent"
                     radius: width / 2
+                    implicitWidth: 56
+                    implicitHeight: 56
                 }
             }
 
             Button {
-                text: isPlaying ? "\u23F8" : "\u25B6"
-                font.pixelSize: 40
                 flat: true
                 enabled: isConnected
                 onClicked: {
@@ -162,35 +158,33 @@ Rectangle {
                     else
                         BtAudioPlugin.play()
                 }
-                contentItem: Text {
-                    text: parent.text
-                    font: parent.font
+                contentItem: MaterialIcon {
+                    icon: isPlaying ? "\ue034" : "\ue037"  // pause / play_arrow
+                    size: 48
                     color: ThemeService.primaryTextColor
-                    horizontalAlignment: Text.AlignHCenter
-                    verticalAlignment: Text.AlignVCenter
                 }
                 background: Rectangle {
                     color: parent.pressed ? ThemeService.highlightColor : "transparent"
                     radius: width / 2
+                    implicitWidth: 72
+                    implicitHeight: 72
                 }
             }
 
             Button {
-                text: "\u23ED"
-                font.pixelSize: 28
                 flat: true
                 enabled: isConnected
                 onClicked: if (BtAudioPlugin) BtAudioPlugin.next()
-                contentItem: Text {
-                    text: parent.text
-                    font: parent.font
+                contentItem: MaterialIcon {
+                    icon: "\ue044"  // skip_next
+                    size: 32
                     color: ThemeService.primaryTextColor
-                    horizontalAlignment: Text.AlignHCenter
-                    verticalAlignment: Text.AlignVCenter
                 }
                 background: Rectangle {
                     color: parent.pressed ? ThemeService.highlightColor : "transparent"
                     radius: width / 2
+                    implicitWidth: 56
+                    implicitHeight: 56
                 }
             }
         }

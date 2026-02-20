@@ -22,11 +22,11 @@ Rectangle {
             visible: ApplicationController.currentApplication !== 0  // Not on Launcher
             opacity: visible ? 1.0 : 0.0
 
-            Text {
+            MaterialIcon {
                 anchors.centerIn: parent
-                text: "\u25C0"  // Left-pointing triangle
+                icon: "\ue5c4"  // arrow_back
                 color: ThemeService.normalFontColor
-                font.pixelSize: 22
+                size: 24
             }
 
             MouseArea {

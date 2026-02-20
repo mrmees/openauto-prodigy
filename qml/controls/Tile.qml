@@ -20,13 +20,11 @@ Rectangle {
         anchors.centerIn: parent
         spacing: 8
 
-        Image {
+        MaterialIcon {
             Layout.alignment: Qt.AlignHCenter
-            source: tile.tileIcon
-            sourceSize.width: tile.width * 0.4
-            sourceSize.height: tile.height * 0.4
-            fillMode: Image.PreserveAspectFit
-            smooth: true
+            icon: tile.tileIcon
+            size: Math.min(tile.width, tile.height) * 0.35
+            color: ThemeService.normalFontColor
             visible: tile.tileIcon !== ""
         }
 

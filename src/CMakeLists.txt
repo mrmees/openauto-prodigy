@@ -46,6 +46,10 @@ set_source_files_properties(../qml/controls/Icon.qml PROPERTIES
     QT_QML_SOURCE_TYPENAME "Icon"
     QT_RESOURCE_ALIAS "Icon.qml"
 )
+set_source_files_properties(../qml/controls/MaterialIcon.qml PROPERTIES
+    QT_QML_SOURCE_TYPENAME "MaterialIcon"
+    QT_RESOURCE_ALIAS "MaterialIcon.qml"
+)
 set_source_files_properties(../qml/controls/Tile.qml PROPERTIES
     QT_QML_SOURCE_TYPENAME "Tile"
     QT_RESOURCE_ALIAS "Tile.qml"
@@ -111,6 +115,7 @@ qt_add_qml_module(openauto-prodigy
         ../qml/controls/NormalText.qml
         ../qml/controls/SpecialText.qml
         ../qml/controls/Icon.qml
+        ../qml/controls/MaterialIcon.qml
         ../qml/controls/Tile.qml
         ../qml/components/Clock.qml
         ../qml/components/Wallpaper.qml
