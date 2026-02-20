@@ -15,6 +15,7 @@ class BluetoothDiscoveryService : public QObject
 public:
     explicit BluetoothDiscoveryService(
         std::shared_ptr<oap::Configuration> config,
+        const QString& wifiInterface = QStringLiteral("wlan0"),
         QObject* parent = nullptr);
     ~BluetoothDiscoveryService() override;
 
@@ -41,4 +42,5 @@ private:
     QBluetoothSocket* socket_ = nullptr;
     QBluetoothServiceInfo serviceInfo_;
     QByteArray buffer_;
+    QString wifiInterface_;
 };

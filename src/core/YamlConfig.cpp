@@ -149,6 +149,17 @@ void YamlConfig::setWifiPassword(const QString& v)
     root_["connection"]["wifi_ap"]["password"] = v.toStdString();
 }
 
+QString YamlConfig::wifiInterface() const
+{
+    return QString::fromStdString(
+        root_["connection"]["wifi_ap"]["interface"].as<std::string>("wlan0"));
+}
+
+void YamlConfig::setWifiInterface(const QString& v)
+{
+    root_["connection"]["wifi_ap"]["interface"] = v.toStdString();
+}
+
 uint16_t YamlConfig::tcpPort() const
 {
     return static_cast<uint16_t>(root_["connection"]["tcp_port"].as<int>(5288));

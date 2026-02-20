@@ -30,9 +30,11 @@ static constexpr uint16_t kMsgWifiConnectionStatus = 7;   // Phone -> HU: WiFi c
 
 BluetoothDiscoveryService::BluetoothDiscoveryService(
     std::shared_ptr<oap::Configuration> config,
+    const QString& wifiInterface,
     QObject* parent)
     : QObject(parent)
     , config_(std::move(config))
+    , wifiInterface_(wifiInterface)
     , rfcommServer_(std::make_unique<QBluetoothServer>(
           QBluetoothServiceInfo::RfcommProtocol, this))
 {
@@ -142,8 +144,8 @@ void BluetoothDiscoveryService::onClientConnected()
             this, &BluetoothDiscoveryService::readSocket);
 
     // Step 1: Send WifiInfoRequest with our IP and TCP port
-    std::string localIp = getLocalIP(QStringLiteral("wlan0"));
-    if (localIp.empty()) {
+    std::string localIp = getLocalIP(wifiInterface_);
+    if (localIp.empty() && wifiInterface_ == "wlan0") {
         // Fallback: try common AP interface names
         localIp = getLocalIP(QStringLiteral("ap0"));
     }
@@ -243,7 +245,7 @@ void BluetoothDiscoveryService::handleWifiCredentialRequest()
     // Read MAC address of the WiFi interface (wlan0).
     QString bssid;
     for (const auto& iface : QNetworkInterface::allInterfaces()) {
-        if (iface.name() == "wlan0") {
+        if (iface.name() == wifiInterface_) {
             bssid = iface.hardwareAddress();
             break;
         }

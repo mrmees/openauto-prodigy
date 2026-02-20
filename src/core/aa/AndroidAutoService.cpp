@@ -79,7 +79,11 @@ void AndroidAutoService::start()
 #ifdef HAS_BLUETOOTH
     // Start Bluetooth discovery service
     if (config_->wirelessEnabled()) {
-        btService_ = new BluetoothDiscoveryService(config_, this);
+        QString wifiIface = QStringLiteral("wlan0");
+        if (yamlConfig_) {
+            wifiIface = yamlConfig_->wifiInterface();
+        }
+        btService_ = new BluetoothDiscoveryService(config_, wifiIface, this);
         connect(btService_, &BluetoothDiscoveryService::phoneWillConnect,
                 this, [this]() {
                     setState(Connecting, "Phone connecting via WiFi...");

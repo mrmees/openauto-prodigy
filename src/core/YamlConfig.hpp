@@ -31,6 +31,8 @@ public:
     void setWifiSsid(const QString& v);
     QString wifiPassword() const;
     void setWifiPassword(const QString& v);
+    QString wifiInterface() const;
+    void setWifiInterface(const QString& v);
     uint16_t tcpPort() const;
     void setTcpPort(uint16_t v);
 
