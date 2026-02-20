@@ -3,6 +3,7 @@
 #include "NightModeProvider.hpp"
 #include <QTime>
 #include <QTimer>
+#include <atomic>
 
 namespace oap {
 namespace aa {
@@ -29,7 +30,7 @@ private:
     QTime dayStart_;
     QTime nightStart_;
     QTimer timer_;
-    bool currentState_ = false;
+    std::atomic<bool> currentState_{false};
 };
 
 } // namespace aa

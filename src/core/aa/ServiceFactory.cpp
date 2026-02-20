@@ -319,16 +319,21 @@ public:
             channel_->receive(shared_from_this());
         });
 
-        // Connect to live night mode updates from provider
+        // Connect to live night mode updates from provider.
+        // Must marshal to Qt main thread since QObject::connect with Qt-thread
+        // objects is not safe from ASIO threads.
         if (nightProvider_) {
-            // Use QueuedConnection since the provider lives on the Qt thread
-            // and sendNightModeUpdate posts to the ASIO strand
-            nightConn_ = QObject::connect(nightProvider_, &NightModeProvider::nightModeChanged,
-                [this, weak = std::weak_ptr<SensorServiceStub>()](bool isNight) {
-                    auto self = weak.lock();
-                    if (!self) return;
-                    sendNightModeUpdate(isNight);
-                });
+            auto weak = std::weak_ptr<SensorServiceStub>(shared_from_this());
+            QMetaObject::invokeMethod(nightProvider_, [this, weak]() {
+                auto self = weak.lock();
+                if (!self || !nightProvider_) return;
+                nightConn_ = QObject::connect(nightProvider_, &NightModeProvider::nightModeChanged,
+                    [weak](bool isNight) {
+                        auto self = weak.lock();
+                        if (!self) return;
+                        self->sendNightModeUpdate(isNight);
+                    });
+            }, Qt::QueuedConnection);
         }
     }
 

@@ -282,7 +282,11 @@ void AndroidAutoService::startEntity(aasdk::transport::ITransport::Pointer trans
                 yamlConfig_->nightModeDayStart(),
                 yamlConfig_->nightModeNightStart());
         }
-        nightProvider_->start();
+        // nightProvider_ is a QObject with a QTimer — must start on the Qt
+        // main thread or QTimer::start() silently does nothing.
+        QMetaObject::invokeMethod(nightProvider_.get(), [this]() {
+            nightProvider_->start();
+        }, Qt::QueuedConnection);
         BOOST_LOG_TRIVIAL(info) << "[AAService] Night mode provider created (source="
                                 << nightSource.toStdString() << ")";
     }

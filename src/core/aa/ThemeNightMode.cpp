@@ -9,14 +9,6 @@ ThemeNightMode::ThemeNightMode(oap::ThemeService* themeService, QObject* parent)
     : NightModeProvider(parent)
     , themeService_(themeService)
 {
-    if (themeService_) {
-        connect(themeService_, &oap::ThemeService::modeChanged, this, [this]() {
-            bool night = themeService_->nightMode();
-            BOOST_LOG_TRIVIAL(info) << "[ThemeNightMode] Theme mode changed to "
-                                    << (night ? "NIGHT" : "DAY");
-            emit nightModeChanged(night);
-        });
-    }
 }
 
 bool ThemeNightMode::isNight() const
@@ -28,11 +20,20 @@ void ThemeNightMode::start()
 {
     BOOST_LOG_TRIVIAL(info) << "[ThemeNightMode] Starting — following ThemeService (current="
                             << (isNight() ? "NIGHT" : "DAY") << ")";
+
+    if (themeService_) {
+        themeConn_ = connect(themeService_, &oap::ThemeService::modeChanged, this, [this]() {
+            bool night = themeService_->nightMode();
+            BOOST_LOG_TRIVIAL(info) << "[ThemeNightMode] Theme mode changed to "
+                                    << (night ? "NIGHT" : "DAY");
+            emit nightModeChanged(night);
+        });
+    }
 }
 
 void ThemeNightMode::stop()
 {
-    // Nothing to stop — signal connection is managed by QObject lifetime
+    disconnect(themeConn_);
 }
 
 } // namespace aa

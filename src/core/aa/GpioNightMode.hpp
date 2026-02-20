@@ -2,6 +2,7 @@
 
 #include "NightModeProvider.hpp"
 #include <QTimer>
+#include <atomic>
 
 namespace oap {
 namespace aa {
@@ -28,7 +29,7 @@ private:
     int gpioPin_;
     bool activeHigh_;
     QTimer timer_;
-    bool currentState_ = false;
+    std::atomic<bool> currentState_{false};
     bool exported_ = false;
 };
 

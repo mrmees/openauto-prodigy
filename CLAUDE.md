@@ -68,11 +68,13 @@ Working features:
 - Interactive install script for RPi OS Trixie
 
 **Known limitations / TODO:**
+- D-Bus signal connection warnings for BT audio and phone plugins (non-fatal, but plugins don't receive live state updates)
 - HFP call audio routing not yet wired through PipeWire
 - Phone contacts not yet synced (PBAP profile)
-- Touch device path still configurable but defaults to `/dev/input/event4`
+- Touch device path hardcoded to `/dev/input/event4` — should auto-discover by VID/PID (3343:5710)
 - `wlan0` IP (10.0.0.1) doesn't survive reboot — needs permanent config
 - Dynamic plugin loading (.so) untested — only static plugins currently
+- Launcher QML has no background when theme file is missing — bundled fallback added but UI is still bare
 
 ## Architecture
 
@@ -185,6 +187,11 @@ AA supports fixed resolutions only:
 - **DFRobot USB Multi Touch** (vendor 3343:5710): 10 points, MT Type B, 0-4095 range
 - **QDBusArgument `>>` operator** cannot extract QVariantMap directly — use manual `beginMap()/endMap()` with `QDBusVariant`
 - **QTimer needs `#include <QTimer>`** — forward declaration alone causes "not declared in scope" errors
+- **QTimer only works on threads with a Qt event loop** — starting a QTimer from a Boost.ASIO thread silently does nothing. Use `QMetaObject::invokeMethod(obj, lambda, Qt::QueuedConnection)` to marshal to the main thread.
+- **TCP keepalive alone won't detect dead connections on a local WiFi AP** — when the Pi IS the AP, there's no router to send RST. Must actively poll `tcp_info` via `getsockopt(IPPROTO_TCP, TCP_INFO)` and check `tcpi_backoff >= 3` (~16s detection).
+- **`tcpi_retransmits` resets between polls** — use `tcpi_backoff` instead for reliable dead peer detection.
+- **`<netinet/tcp.h>` and `<linux/tcp.h>` conflict** — only include `<netinet/tcp.h>` for `tcp_info`.
+- **EVIOCGRAB must be toggled with AA connection state** — grab on AA connect (route touch to AA), ungrab on disconnect (return touch to Wayland/libinput). Permanent grab steals touch from the launcher UI.
 
 ## Hardware (Pi Target)
 

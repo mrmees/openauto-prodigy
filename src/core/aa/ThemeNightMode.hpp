@@ -22,6 +22,7 @@ public:
 
 private:
     oap::ThemeService* themeService_;
+    QMetaObject::Connection themeConn_;
 };
 
 } // namespace aa

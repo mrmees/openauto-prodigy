@@ -294,6 +294,10 @@ void AudioService::closeCaptureStream(AudioStreamHandle* handle)
 
     if (capture_.handle == handle) {
         capture_.callback = nullptr;
+        // Remove the spa_hook BEFORE destroying the stream — otherwise the
+        // hook's list pointers dangle and the next openCaptureStream triggers
+        // a use-after-free when pw_stream_add_listener reuses captureListener_.
+        spa_hook_remove(&captureListener_);
         capture_.handle = nullptr;
     }
 
