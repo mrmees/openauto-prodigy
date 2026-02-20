@@ -248,7 +248,7 @@ void AndroidAutoService::startEntity(aasdk::transport::ITransport::Pointer trans
         *ioService_, std::move(messageInStream), std::move(messageOutStream));
 
     // Create services via factory
-    auto serviceList = ServiceFactory::create(*ioService_, messenger, config_, videoDecoder_, touchHandler_, audioService_);
+    auto serviceList = ServiceFactory::create(*ioService_, messenger, config_, videoDecoder_, touchHandler_, audioService_, yamlConfig_);
 
     // Create entity (it creates its own control channel from its strand)
     entity_ = std::make_shared<AndroidAutoEntity>(

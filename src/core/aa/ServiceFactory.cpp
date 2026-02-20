@@ -652,11 +652,12 @@ IService::ServiceList ServiceFactory::create(
     std::shared_ptr<oap::Configuration> config,
     VideoDecoder* videoDecoder,
     TouchHandler* touchHandler,
-    IAudioService* audioService)
+    IAudioService* audioService,
+    oap::YamlConfig* yamlConfig)
 {
     IService::ServiceList services;
 
-    services.push_back(std::make_shared<VideoService>(ioService, messenger, config, videoDecoder));
+    services.push_back(std::make_shared<VideoService>(ioService, messenger, config, videoDecoder, yamlConfig));
     services.push_back(std::make_shared<MediaAudioServiceStub>(ioService, messenger, audioService, "AA Media", 50));
     services.push_back(std::make_shared<SpeechAudioServiceStub>(ioService, messenger, audioService, "AA Navigation", 80));
     services.push_back(std::make_shared<SystemAudioServiceStub>(ioService, messenger, audioService, "AA System", 60));

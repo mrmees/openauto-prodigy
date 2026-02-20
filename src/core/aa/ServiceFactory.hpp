@@ -8,6 +8,7 @@
 namespace oap {
 
 class IAudioService;
+class YamlConfig;
 
 namespace aa {
 
@@ -23,7 +24,8 @@ public:
         std::shared_ptr<oap::Configuration> config,
         VideoDecoder* videoDecoder,
         TouchHandler* touchHandler = nullptr,
-        IAudioService* audioService = nullptr);
+        IAudioService* audioService = nullptr,
+        oap::YamlConfig* yamlConfig = nullptr);
 };
 
 } // namespace aa

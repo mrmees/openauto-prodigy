@@ -12,6 +12,8 @@
 #include <aasdk/Channel/AV/VideoServiceChannel.hpp>
 #include <aasdk/Channel/AV/IVideoServiceChannelEventHandler.hpp>
 
+namespace oap { class YamlConfig; }
+
 namespace oap {
 namespace aa {
 
@@ -27,7 +29,8 @@ public:
     VideoService(boost::asio::io_service& ioService,
                  aasdk::messenger::IMessenger::Pointer messenger,
                  std::shared_ptr<oap::Configuration> config,
-                 VideoDecoder* decoder);
+                 VideoDecoder* decoder,
+                 oap::YamlConfig* yamlConfig = nullptr);
 
     // IService
     void start() override;
@@ -52,6 +55,7 @@ private:
     boost::asio::io_service::strand strand_;
     std::shared_ptr<aasdk::channel::av::VideoServiceChannel> channel_;
     std::shared_ptr<oap::Configuration> config_;
+    oap::YamlConfig* yamlConfig_ = nullptr;
     VideoDecoder* decoder_;
     int32_t session_ = -1;
 };

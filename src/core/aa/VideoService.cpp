@@ -1,4 +1,5 @@
 #include "VideoService.hpp"
+#include "../../core/YamlConfig.hpp"
 
 #include <chrono>
 #include <boost/log/trivial.hpp>
@@ -22,10 +23,12 @@ VideoService::VideoService(
     boost::asio::io_service& ioService,
     aasdk::messenger::IMessenger::Pointer messenger,
     std::shared_ptr<oap::Configuration> config,
-    VideoDecoder* decoder)
+    VideoDecoder* decoder,
+    oap::YamlConfig* yamlConfig)
     : strand_(ioService)
     , channel_(std::make_shared<aasdk::channel::av::VideoServiceChannel>(strand_, std::move(messenger)))
     , config_(std::move(config))
+    , yamlConfig_(yamlConfig)
     , decoder_(decoder)
 {
     // Connect signal→slot across threads (ASIO thread → Qt main thread)
@@ -58,15 +61,39 @@ void VideoService::fillFeatures(aasdk::proto::messages::ServiceDiscoveryResponse
     avChannel->set_stream_type(aasdk::proto::enums::AVStreamType::VIDEO);
     avChannel->set_available_while_in_call(true);
 
-    auto* videoConfig = avChannel->add_video_configs();
-    videoConfig->set_video_resolution(aasdk::proto::enums::VideoResolution::_720p);
-    videoConfig->set_video_fps(
-        config_->videoFps() == 60
-            ? aasdk::proto::enums::VideoFPS::_60
-            : aasdk::proto::enums::VideoFPS::_30);
-    videoConfig->set_margin_width(0);
-    videoConfig->set_margin_height(0);
-    videoConfig->set_dpi(config_->screenDpi());
+    // Resolve preferred resolution from YAML config (fall back to legacy config)
+    QString res = yamlConfig_ ? yamlConfig_->videoResolution() : QStringLiteral("720p");
+    int dpi = yamlConfig_ ? yamlConfig_->videoDpi() : config_->screenDpi();
+    int fps = yamlConfig_ ? yamlConfig_->videoFps() : config_->videoFps();
+    auto fpsEnum = (fps == 60) ? aasdk::proto::enums::VideoFPS::_60
+                               : aasdk::proto::enums::VideoFPS::_30;
+
+    // Primary video config — preferred resolution
+    auto* primaryConfig = avChannel->add_video_configs();
+    if (res == "1080p")
+        primaryConfig->set_video_resolution(aasdk::proto::enums::VideoResolution::_1080p);
+    else if (res == "480p")
+        primaryConfig->set_video_resolution(aasdk::proto::enums::VideoResolution::_480p);
+    else
+        primaryConfig->set_video_resolution(aasdk::proto::enums::VideoResolution::_720p);
+    primaryConfig->set_video_fps(fpsEnum);
+    primaryConfig->set_margin_width(0);
+    primaryConfig->set_margin_height(0);
+    primaryConfig->set_dpi(dpi);
+
+    // Mandatory 480p fallback — production AA SDKs always include this
+    if (res != "480p") {
+        auto* fallbackConfig = avChannel->add_video_configs();
+        fallbackConfig->set_video_resolution(aasdk::proto::enums::VideoResolution::_480p);
+        fallbackConfig->set_video_fps(aasdk::proto::enums::VideoFPS::_30);
+        fallbackConfig->set_margin_width(0);
+        fallbackConfig->set_margin_height(0);
+        fallbackConfig->set_dpi(dpi);
+    }
+
+    BOOST_LOG_TRIVIAL(info) << "[VideoService] Advertised video: " << res.toStdString()
+                            << " @ " << fps << "fps, " << dpi << "dpi"
+                            << (res != "480p" ? " + 480p fallback" : "");
 }
 
 void VideoService::onChannelOpenRequest(const aasdk::proto::messages::ChannelOpenRequest& request)
