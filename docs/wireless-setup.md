@@ -7,6 +7,17 @@ OpenAuto Prodigy uses wireless-only Android Auto. The phone discovers the Pi via
 - Raspberry Pi 4 with built-in WiFi + Bluetooth
 - Phone with Android Auto wireless support (Android 11+ recommended)
 
+## Automated Setup
+
+The install script (`install.sh`) handles WiFi AP configuration automatically:
+- Detects available wireless interfaces
+- Lets you choose which interface to use for the AP
+- Configures systemd-networkd for static IP + DHCP server
+- Writes hostapd.conf with your SSID/password
+- Sets up 5GHz (channel 36) with your country code
+
+Run `bash install.sh` for the guided setup. The sections below are for manual configuration or troubleshooting.
+
 ## 1. WiFi Access Point (hostapd + dnsmasq)
 
 ### Install packages
@@ -54,31 +65,32 @@ Tell hostapd to use this config — edit `/etc/default/hostapd`:
 DAEMON_CONF="/etc/hostapd/hostapd.conf"
 ```
 
-### Configure static IP on wlan0
+### Configure static IP
 
-Create `/etc/network/interfaces.d/wlan0`:
-
-```
-auto wlan0
-iface wlan0 inet static
-    address 10.0.0.1
-    netmask 255.255.255.0
-```
-
-Or if using NetworkManager, create `/etc/NetworkManager/conf.d/unmanage-wlan0.conf`:
+The install script creates `/etc/systemd/network/10-openauto-ap.network`:
 
 ```ini
-[keyfile]
-unmanaged-devices=interface-name:wlan0
+[Match]
+Name=wlan0
+
+[Network]
+Address=10.0.0.1/24
+DHCPServer=yes
+
+[DHCPServer]
+PoolOffset=10
+PoolSize=40
+EmitDNS=no
 ```
 
-Then configure with systemd-networkd or `/etc/dhcpcd.conf`:
+This replaces dnsmasq — systemd-networkd has a built-in DHCP server. Enable it:
 
+```bash
+sudo systemctl enable systemd-networkd
+sudo systemctl start systemd-networkd
 ```
-interface wlan0
-static ip_address=10.0.0.1/24
-nohook wpa_supplicant
-```
+
+For manual setup without the install script, create this file and adjust the interface name and IP.
 
 ### Configure dnsmasq
 
@@ -96,6 +108,14 @@ sudo systemctl unmask hostapd
 sudo systemctl enable hostapd dnsmasq
 sudo systemctl start hostapd dnsmasq
 ```
+
+### Multiple wireless interfaces
+
+If your Pi has both built-in WiFi and a USB wireless adapter, the install script
+detects all wireless interfaces and lets you choose which one runs the AP.
+The selected interface is stored in `~/.openauto/config.yaml` under
+`connection.wifi_ap.interface`. The app reads this to know which interface's IP
+to advertise during Bluetooth discovery.
 
 ## 2. Bluetooth
 
@@ -120,14 +140,15 @@ AutoEnable=true
 
 ## 3. OpenAuto Prodigy Configuration
 
-Edit `~/.config/openauto_system.ini`:
+Edit `~/.openauto/config.yaml`:
 
-```ini
-[Wireless]
-enabled=true
-wifi_ssid=OpenAutoProdigy
-wifi_password=prodigy1234
-tcp_port=5288
+```yaml
+connection:
+  wifi_ap:
+    interface: "wlan0"
+    ssid: "OpenAutoProdigy"
+    password: "prodigy1234"
+  tcp_port: 5288
 ```
 
 The SSID and password here **must match** your hostapd configuration.
@@ -145,4 +166,4 @@ The SSID and password here **must match** your hostapd configuration.
 - **Phone doesn't see Pi:** Check `bluetoothctl show` — adapter must be powered and discoverable
 - **WiFi connection fails:** Verify hostapd is running (`systemctl status hostapd`), check channel compatibility
 - **TCP connection fails:** Ensure the app is running and port 5288 is not blocked (`ss -tlnp | grep 5288`)
-- **"Incorrect credentials" error:** SSID/password in `openauto_system.ini` must exactly match `hostapd.conf`
+- **"Incorrect credentials" error:** SSID/password in `config.yaml` must exactly match `hostapd.conf`
