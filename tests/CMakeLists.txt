@@ -135,7 +135,23 @@ target_link_libraries(test_audio_service PRIVATE
     ${PIPEWIRE_LIBRARIES}
 )
 
+add_executable(test_night_mode
+    test_night_mode.cpp
+    ${CMAKE_SOURCE_DIR}/src/core/aa/NightModeProvider.cpp
+    ${CMAKE_SOURCE_DIR}/src/core/aa/TimedNightMode.cpp
+)
+target_include_directories(test_night_mode PRIVATE
+    ${CMAKE_SOURCE_DIR}/src
+)
+target_link_libraries(test_night_mode PRIVATE
+    Qt6::Core
+    Qt6::Test
+    Boost::log
+    Boost::log_setup
+)
+
 enable_testing()
+add_test(NAME test_night_mode COMMAND test_night_mode)
 add_test(NAME test_configuration COMMAND test_configuration)
 add_test(NAME test_yaml_config COMMAND test_yaml_config)
 add_test(NAME test_config_service COMMAND test_config_service)

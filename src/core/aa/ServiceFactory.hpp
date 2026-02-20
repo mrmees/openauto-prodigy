@@ -14,6 +14,7 @@ namespace aa {
 
 class VideoDecoder;
 class TouchHandler;
+class NightModeProvider;
 
 class ServiceFactory
 {
@@ -25,7 +26,8 @@ public:
         VideoDecoder* videoDecoder,
         TouchHandler* touchHandler = nullptr,
         IAudioService* audioService = nullptr,
-        oap::YamlConfig* yamlConfig = nullptr);
+        oap::YamlConfig* yamlConfig = nullptr,
+        NightModeProvider* nightProvider = nullptr);
 };
 
 } // namespace aa

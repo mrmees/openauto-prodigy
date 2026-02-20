@@ -9,6 +9,10 @@ qt_add_executable(openauto-prodigy
     core/aa/VideoService.cpp
     core/aa/TouchHandler.cpp
     core/aa/EvdevTouchReader.cpp
+    core/aa/NightModeProvider.cpp
+    core/aa/TimedNightMode.cpp
+    core/aa/ThemeNightMode.cpp
+    core/aa/GpioNightMode.cpp
     ui/ApplicationController.cpp
     ui/PluginModel.cpp
     ui/PluginRuntimeContext.cpp

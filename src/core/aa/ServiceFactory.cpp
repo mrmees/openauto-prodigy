@@ -1,6 +1,7 @@
 #include "ServiceFactory.hpp"
 #include "VideoService.hpp"
 #include "TouchHandler.hpp"
+#include "NightModeProvider.hpp"
 #include "../../core/services/IAudioService.hpp"
 #include "../../core/services/AudioService.hpp"
 
@@ -295,7 +296,7 @@ private:
 };
 
 // ============================================================================
-// Sensor Service (stub — advertises NIGHT_DATA for day/night switching)
+// Sensor Service (stub — advertises NIGHT_DATA, DRIVING_STATUS, LOCATION_DATA)
 // ============================================================================
 class SensorServiceStub
     : public IService
@@ -304,29 +305,51 @@ class SensorServiceStub
 {
 public:
     SensorServiceStub(boost::asio::io_service& ioService,
-                      aasdk::messenger::IMessenger::Pointer messenger)
+                      aasdk::messenger::IMessenger::Pointer messenger,
+                      NightModeProvider* nightProvider = nullptr)
         : strand_(ioService)
         , channel_(std::make_shared<aasdk::channel::sensor::SensorServiceChannel>(strand_, std::move(messenger)))
+        , nightProvider_(nightProvider)
     {}
 
     void start() override {
         strand_.dispatch([this, self = shared_from_this()]() {
-            BOOST_LOG_TRIVIAL(info) << "[SensorService] Started (stub)";
+            BOOST_LOG_TRIVIAL(info) << "[SensorService] Started";
             channel_->receive(shared_from_this());
         });
+
+        // Connect to live night mode updates from provider
+        if (nightProvider_) {
+            // Use QueuedConnection since the provider lives on the Qt thread
+            // and sendNightModeUpdate posts to the ASIO strand
+            nightConn_ = QObject::connect(nightProvider_, &NightModeProvider::nightModeChanged,
+                [this, weak = std::weak_ptr<SensorServiceStub>()](bool isNight) {
+                    auto self = weak.lock();
+                    if (!self) return;
+                    sendNightModeUpdate(isNight);
+                });
+        }
     }
 
-    void stop() override {}
+    void stop() override {
+        QObject::disconnect(nightConn_);
+    }
 
     void fillFeatures(aasdk::proto::messages::ServiceDiscoveryResponse& response) override {
         auto* desc = response.add_channels();
         desc->set_channel_id(static_cast<uint32_t>(aasdk::messenger::ChannelId::SENSOR));
 
         auto* sensorChannel = desc->mutable_sensor_channel();
+
         auto* nightSensor = sensorChannel->add_sensors();
         nightSensor->set_type(aasdk::proto::enums::SensorType::NIGHT_DATA);
+
         auto* drivingSensor = sensorChannel->add_sensors();
         drivingSensor->set_type(aasdk::proto::enums::SensorType::DRIVING_STATUS);
+
+        // Advertise GPS/location capability (no-fix by default — just tells AA we support it)
+        auto* locationSensor = sensorChannel->add_sensors();
+        locationSensor->set_type(aasdk::proto::enums::SensorType::LOCATION);
     }
 
     void onChannelOpenRequest(const aasdk::proto::messages::ChannelOpenRequest& request) override {
@@ -363,14 +386,19 @@ public:
         aasdk::proto::messages::SensorEventIndication indication;
 
         if (sensorType == static_cast<int32_t>(aasdk::proto::enums::SensorType::NIGHT_DATA)) {
+            bool night = nightProvider_ ? nightProvider_->isNight() : false;
             auto* nightMode = indication.add_night_mode();
-            nightMode->set_is_night(false);
-            BOOST_LOG_TRIVIAL(info) << "[SensorService] Sending night mode: day";
+            nightMode->set_is_night(night);
+            BOOST_LOG_TRIVIAL(info) << "[SensorService] Sending night mode: " << (night ? "NIGHT" : "DAY");
         } else if (sensorType == static_cast<int32_t>(aasdk::proto::enums::SensorType::DRIVING_STATUS)) {
             auto* drivingStatus = indication.add_driving_status();
             drivingStatus->set_status(
                 static_cast<int32_t>(aasdk::proto::enums::DrivingStatus::UNRESTRICTED));
             BOOST_LOG_TRIVIAL(info) << "[SensorService] Sending driving status: UNRESTRICTED";
+        } else if (sensorType == static_cast<int32_t>(aasdk::proto::enums::SensorType::LOCATION)) {
+            // Location sensor started — no GPS fix to report yet, just log
+            BOOST_LOG_TRIVIAL(info) << "[SensorService] Location sensor started (no fix to report)";
+            return;  // Don't send empty indication
         } else {
             BOOST_LOG_TRIVIAL(warning) << "[SensorService] Unknown sensor type: " << sensorType;
             return;
@@ -383,6 +411,24 @@ public:
         channel_->sendSensorEventIndication(indication, std::move(promise));
     }
 
+    /// Send a live night mode update to the phone.
+    void sendNightModeUpdate(bool isNight) {
+        strand_.dispatch([this, self = shared_from_this(), isNight]() {
+            aasdk::proto::messages::SensorEventIndication indication;
+            auto* nightMode = indication.add_night_mode();
+            nightMode->set_is_night(isNight);
+
+            BOOST_LOG_TRIVIAL(info) << "[SensorService] Sending live night mode update: "
+                                    << (isNight ? "NIGHT" : "DAY");
+
+            auto promise = aasdk::channel::SendPromise::defer(strand_);
+            promise->then([]() {}, [](const aasdk::error::Error& e) {
+                BOOST_LOG_TRIVIAL(error) << "[SensorService] Night mode update send error: " << e.what();
+            });
+            channel_->sendSensorEventIndication(indication, std::move(promise));
+        });
+    }
+
     void onChannelError(const aasdk::error::Error& e) override {
         BOOST_LOG_TRIVIAL(error) << "[SensorService] Error: " << e.what();
     }
@@ -390,6 +436,8 @@ public:
 private:
     boost::asio::io_service::strand strand_;
     std::shared_ptr<aasdk::channel::sensor::SensorServiceChannel> channel_;
+    NightModeProvider* nightProvider_ = nullptr;
+    QMetaObject::Connection nightConn_;
 };
 
 // ============================================================================
@@ -653,7 +701,8 @@ IService::ServiceList ServiceFactory::create(
     VideoDecoder* videoDecoder,
     TouchHandler* touchHandler,
     IAudioService* audioService,
-    oap::YamlConfig* yamlConfig)
+    oap::YamlConfig* yamlConfig,
+    NightModeProvider* nightProvider)
 {
     IService::ServiceList services;
 
@@ -662,7 +711,7 @@ IService::ServiceList ServiceFactory::create(
     services.push_back(std::make_shared<SpeechAudioServiceStub>(ioService, messenger, audioService, "AA Navigation", 80));
     services.push_back(std::make_shared<SystemAudioServiceStub>(ioService, messenger, audioService, "AA System", 60));
     services.push_back(std::make_shared<InputServiceStub>(ioService, messenger, config, touchHandler));
-    services.push_back(std::make_shared<SensorServiceStub>(ioService, messenger));
+    services.push_back(std::make_shared<SensorServiceStub>(ioService, messenger, nightProvider));
     // Read real BT adapter MAC if available, else use placeholder
     std::string btMac = "00:00:00:00:00:00";
 #ifdef HAS_BLUETOOTH
