@@ -17,10 +17,34 @@ connection:
 audio:
   master_volume: 75
   output_device: auto
+  microphone:
+    device: "hw:1,0"
+    gain: 1.5
 
 video:
   fps: 60
   resolution: 720p
+  dpi: 160
+
+identity:
+  head_unit_name: "Test Unit"
+  manufacturer: "Test Manufacturer"
+  model: "Test Model X"
+  sw_version: "9.9.9"
+  car_model: "Miata"
+  car_year: "2000"
+  left_hand_drive: false
+
+sensors:
+  night_mode:
+    source: "gpio"
+    day_start: "06:30"
+    night_start: "20:00"
+    gpio_pin: 22
+    gpio_active_high: false
+  gps:
+    enabled: false
+    source: "gpsd"
 
 nav_strip:
   order:

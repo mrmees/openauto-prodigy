@@ -41,6 +41,50 @@ public:
     // Video
     int videoFps() const;
     void setVideoFps(int v);
+    QString videoResolution() const;
+    void setVideoResolution(const QString& v);
+    int videoDpi() const;
+    void setVideoDpi(int v);
+
+    // Identity
+    QString headUnitName() const;
+    void setHeadUnitName(const QString& v);
+    QString manufacturer() const;
+    void setManufacturer(const QString& v);
+    QString model() const;
+    void setModel(const QString& v);
+    QString swVersion() const;
+    void setSwVersion(const QString& v);
+    QString carModel() const;
+    void setCarModel(const QString& v);
+    QString carYear() const;
+    void setCarYear(const QString& v);
+    bool leftHandDrive() const;
+    void setLeftHandDrive(bool v);
+
+    // Sensors — night mode
+    QString nightModeSource() const;
+    void setNightModeSource(const QString& v);
+    QString nightModeDayStart() const;
+    void setNightModeDayStart(const QString& v);
+    QString nightModeNightStart() const;
+    void setNightModeNightStart(const QString& v);
+    int nightModeGpioPin() const;
+    void setNightModeGpioPin(int v);
+    bool nightModeGpioActiveHigh() const;
+    void setNightModeGpioActiveHigh(bool v);
+
+    // Sensors — GPS
+    bool gpsEnabled() const;
+    void setGpsEnabled(bool v);
+    QString gpsSource() const;
+    void setGpsSource(const QString& v);
+
+    // Audio — microphone
+    QString microphoneDevice() const;
+    void setMicrophoneDevice(const QString& v);
+    double microphoneGain() const;
+    void setMicrophoneGain(double v);
 
     // Plugins
     QStringList enabledPlugins() const;

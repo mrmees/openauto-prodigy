@@ -31,9 +31,28 @@ void YamlConfig::initDefaults()
 
     root_["audio"]["master_volume"] = 80;
     root_["audio"]["output_device"] = "auto";
+    root_["audio"]["microphone"]["device"] = "auto";
+    root_["audio"]["microphone"]["gain"] = 1.0;
 
     root_["video"]["fps"] = 60;
     root_["video"]["resolution"] = "720p";
+    root_["video"]["dpi"] = 140;
+
+    root_["identity"]["head_unit_name"] = "OpenAuto Prodigy";
+    root_["identity"]["manufacturer"] = "OpenAuto Project";
+    root_["identity"]["model"] = "Raspberry Pi 4";
+    root_["identity"]["sw_version"] = "0.3.0";
+    root_["identity"]["car_model"] = "";
+    root_["identity"]["car_year"] = "";
+    root_["identity"]["left_hand_drive"] = true;
+
+    root_["sensors"]["night_mode"]["source"] = "time";
+    root_["sensors"]["night_mode"]["day_start"] = "07:00";
+    root_["sensors"]["night_mode"]["night_start"] = "19:00";
+    root_["sensors"]["night_mode"]["gpio_pin"] = 17;
+    root_["sensors"]["night_mode"]["gpio_active_high"] = true;
+    root_["sensors"]["gps"]["enabled"] = true;
+    root_["sensors"]["gps"]["source"] = "none";
 
     root_["nav_strip"]["order"] = YAML::Node(YAML::NodeType::Sequence);
     root_["nav_strip"]["order"].push_back("org.openauto.android-auto");
@@ -162,6 +181,194 @@ int YamlConfig::videoFps() const
 void YamlConfig::setVideoFps(int v)
 {
     root_["video"]["fps"] = v;
+}
+
+QString YamlConfig::videoResolution() const
+{
+    return QString::fromStdString(root_["video"]["resolution"].as<std::string>("720p"));
+}
+
+void YamlConfig::setVideoResolution(const QString& v)
+{
+    root_["video"]["resolution"] = v.toStdString();
+}
+
+int YamlConfig::videoDpi() const
+{
+    return root_["video"]["dpi"].as<int>(140);
+}
+
+void YamlConfig::setVideoDpi(int v)
+{
+    root_["video"]["dpi"] = v;
+}
+
+// --- Identity ---
+
+QString YamlConfig::headUnitName() const
+{
+    return QString::fromStdString(root_["identity"]["head_unit_name"].as<std::string>("OpenAuto Prodigy"));
+}
+
+void YamlConfig::setHeadUnitName(const QString& v)
+{
+    root_["identity"]["head_unit_name"] = v.toStdString();
+}
+
+QString YamlConfig::manufacturer() const
+{
+    return QString::fromStdString(root_["identity"]["manufacturer"].as<std::string>("OpenAuto Project"));
+}
+
+void YamlConfig::setManufacturer(const QString& v)
+{
+    root_["identity"]["manufacturer"] = v.toStdString();
+}
+
+QString YamlConfig::model() const
+{
+    return QString::fromStdString(root_["identity"]["model"].as<std::string>("Raspberry Pi 4"));
+}
+
+void YamlConfig::setModel(const QString& v)
+{
+    root_["identity"]["model"] = v.toStdString();
+}
+
+QString YamlConfig::swVersion() const
+{
+    return QString::fromStdString(root_["identity"]["sw_version"].as<std::string>("0.3.0"));
+}
+
+void YamlConfig::setSwVersion(const QString& v)
+{
+    root_["identity"]["sw_version"] = v.toStdString();
+}
+
+QString YamlConfig::carModel() const
+{
+    return QString::fromStdString(root_["identity"]["car_model"].as<std::string>(""));
+}
+
+void YamlConfig::setCarModel(const QString& v)
+{
+    root_["identity"]["car_model"] = v.toStdString();
+}
+
+QString YamlConfig::carYear() const
+{
+    return QString::fromStdString(root_["identity"]["car_year"].as<std::string>(""));
+}
+
+void YamlConfig::setCarYear(const QString& v)
+{
+    root_["identity"]["car_year"] = v.toStdString();
+}
+
+bool YamlConfig::leftHandDrive() const
+{
+    return root_["identity"]["left_hand_drive"].as<bool>(true);
+}
+
+void YamlConfig::setLeftHandDrive(bool v)
+{
+    root_["identity"]["left_hand_drive"] = v;
+}
+
+// --- Sensors: night mode ---
+
+QString YamlConfig::nightModeSource() const
+{
+    return QString::fromStdString(root_["sensors"]["night_mode"]["source"].as<std::string>("time"));
+}
+
+void YamlConfig::setNightModeSource(const QString& v)
+{
+    root_["sensors"]["night_mode"]["source"] = v.toStdString();
+}
+
+QString YamlConfig::nightModeDayStart() const
+{
+    return QString::fromStdString(root_["sensors"]["night_mode"]["day_start"].as<std::string>("07:00"));
+}
+
+void YamlConfig::setNightModeDayStart(const QString& v)
+{
+    root_["sensors"]["night_mode"]["day_start"] = v.toStdString();
+}
+
+QString YamlConfig::nightModeNightStart() const
+{
+    return QString::fromStdString(root_["sensors"]["night_mode"]["night_start"].as<std::string>("19:00"));
+}
+
+void YamlConfig::setNightModeNightStart(const QString& v)
+{
+    root_["sensors"]["night_mode"]["night_start"] = v.toStdString();
+}
+
+int YamlConfig::nightModeGpioPin() const
+{
+    return root_["sensors"]["night_mode"]["gpio_pin"].as<int>(17);
+}
+
+void YamlConfig::setNightModeGpioPin(int v)
+{
+    root_["sensors"]["night_mode"]["gpio_pin"] = v;
+}
+
+bool YamlConfig::nightModeGpioActiveHigh() const
+{
+    return root_["sensors"]["night_mode"]["gpio_active_high"].as<bool>(true);
+}
+
+void YamlConfig::setNightModeGpioActiveHigh(bool v)
+{
+    root_["sensors"]["night_mode"]["gpio_active_high"] = v;
+}
+
+// --- Sensors: GPS ---
+
+bool YamlConfig::gpsEnabled() const
+{
+    return root_["sensors"]["gps"]["enabled"].as<bool>(true);
+}
+
+void YamlConfig::setGpsEnabled(bool v)
+{
+    root_["sensors"]["gps"]["enabled"] = v;
+}
+
+QString YamlConfig::gpsSource() const
+{
+    return QString::fromStdString(root_["sensors"]["gps"]["source"].as<std::string>("none"));
+}
+
+void YamlConfig::setGpsSource(const QString& v)
+{
+    root_["sensors"]["gps"]["source"] = v.toStdString();
+}
+
+// --- Audio: microphone ---
+
+QString YamlConfig::microphoneDevice() const
+{
+    return QString::fromStdString(root_["audio"]["microphone"]["device"].as<std::string>("auto"));
+}
+
+void YamlConfig::setMicrophoneDevice(const QString& v)
+{
+    root_["audio"]["microphone"]["device"] = v.toStdString();
+}
+
+double YamlConfig::microphoneGain() const
+{
+    return root_["audio"]["microphone"]["gain"].as<double>(1.0);
+}
+
+void YamlConfig::setMicrophoneGain(double v)
+{
+    root_["audio"]["microphone"]["gain"] = v;
 }
 
 // --- Plugins ---
