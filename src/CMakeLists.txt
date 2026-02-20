@@ -2,6 +2,7 @@ qt_add_executable(openauto-prodigy
     main.cpp
     core/Configuration.cpp
     core/YamlConfig.cpp
+    core/InputDeviceScanner.cpp
     core/aa/AndroidAutoService.cpp
     core/aa/AndroidAutoEntity.cpp
     core/aa/ServiceFactory.cpp
