@@ -150,6 +150,18 @@ target_link_libraries(test_night_mode PRIVATE
     Boost::log_setup
 )
 
+add_executable(test_input_device_scanner
+    test_input_device_scanner.cpp
+    ${CMAKE_SOURCE_DIR}/src/core/InputDeviceScanner.cpp
+)
+target_include_directories(test_input_device_scanner PRIVATE
+    ${CMAKE_SOURCE_DIR}/src
+)
+target_link_libraries(test_input_device_scanner PRIVATE
+    Qt6::Core
+    Qt6::Test
+)
+
 enable_testing()
 add_test(NAME test_night_mode COMMAND test_night_mode)
 add_test(NAME test_configuration COMMAND test_configuration)
@@ -160,3 +172,4 @@ add_test(NAME test_plugin_discovery COMMAND test_plugin_discovery)
 add_test(NAME test_plugin_manager COMMAND test_plugin_manager)
 add_test(NAME test_theme_service COMMAND test_theme_service)
 add_test(NAME test_audio_service COMMAND test_audio_service)
+add_test(NAME test_input_device_scanner COMMAND test_input_device_scanner)
