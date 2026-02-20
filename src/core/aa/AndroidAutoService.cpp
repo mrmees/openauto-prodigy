@@ -1,5 +1,9 @@
 #include "AndroidAutoService.hpp"
 #include "ServiceFactory.hpp"
+#include "TimedNightMode.hpp"
+#include "GpioNightMode.hpp"
+
+#include "../../core/YamlConfig.hpp"
 
 #include <QMetaObject>
 #include <boost/log/trivial.hpp>
@@ -98,6 +102,12 @@ void AndroidAutoService::stop()
 {
     BOOST_LOG_TRIVIAL(info) << "[AAService] Stopping Android Auto service";
 
+    // Stop night mode provider
+    if (nightProvider_) {
+        nightProvider_->stop();
+        nightProvider_.reset();
+    }
+
     // Stop entity
     if (entity_) {
         entity_->stop();
@@ -195,6 +205,10 @@ void AndroidAutoService::onTCPConnection(std::shared_ptr<boost::asio::ip::tcp::s
 
     if (entity_) {
         BOOST_LOG_TRIVIAL(warning) << "[AAService] Already have active connection — tearing down old session for reconnect";
+        if (nightProvider_) {
+            nightProvider_->stop();
+            nightProvider_.reset();
+        }
         entity_->stop();
         entity_.reset();
     }
@@ -247,8 +261,34 @@ void AndroidAutoService::startEntity(aasdk::transport::ITransport::Pointer trans
     auto messenger = std::make_shared<aasdk::messenger::Messenger>(
         *ioService_, std::move(messageInStream), std::move(messageOutStream));
 
+    // Create night mode provider based on config
+    nightProvider_.reset();
+    if (yamlConfig_) {
+        QString nightSource = yamlConfig_->nightModeSource();
+        if (nightSource == "theme") {
+            // ThemeNightMode requires ThemeService* which isn't accessible here.
+            // Fall back to time-based and log a warning.
+            BOOST_LOG_TRIVIAL(warning) << "[AAService] Night mode source 'theme' not yet wired — falling back to 'time'";
+            nightProvider_ = std::make_unique<aa::TimedNightMode>(
+                yamlConfig_->nightModeDayStart(),
+                yamlConfig_->nightModeNightStart());
+        } else if (nightSource == "gpio") {
+            nightProvider_ = std::make_unique<aa::GpioNightMode>(
+                yamlConfig_->nightModeGpioPin(),
+                yamlConfig_->nightModeGpioActiveHigh());
+        } else {
+            // Default: time-based (covers "time" and any unknown value)
+            nightProvider_ = std::make_unique<aa::TimedNightMode>(
+                yamlConfig_->nightModeDayStart(),
+                yamlConfig_->nightModeNightStart());
+        }
+        nightProvider_->start();
+        BOOST_LOG_TRIVIAL(info) << "[AAService] Night mode provider created (source="
+                                << nightSource.toStdString() << ")";
+    }
+
     // Create services via factory
-    auto serviceList = ServiceFactory::create(*ioService_, messenger, config_, videoDecoder_, touchHandler_, audioService_, yamlConfig_);
+    auto serviceList = ServiceFactory::create(*ioService_, messenger, config_, videoDecoder_, touchHandler_, audioService_, yamlConfig_, nightProvider_.get());
 
     // Create entity (it creates its own control channel from its strand)
     entity_ = std::make_shared<AndroidAutoEntity>(
@@ -274,6 +314,11 @@ void AndroidAutoService::onDisconnected()
     QMetaObject::invokeMethod(this, [this]() { stopConnectionWatchdog(); },
                               Qt::QueuedConnection);
 
+    if (nightProvider_) {
+        nightProvider_->stop();
+        nightProvider_.reset();
+    }
+
     if (entity_) {
         entity_->stop();
         entity_.reset();
@@ -293,6 +338,11 @@ void AndroidAutoService::onError(const std::string& message)
     BOOST_LOG_TRIVIAL(error) << "[AAService] Error: " << message;
     QMetaObject::invokeMethod(this, [this]() { stopConnectionWatchdog(); },
                               Qt::QueuedConnection);
+
+    if (nightProvider_) {
+        nightProvider_->stop();
+        nightProvider_.reset();
+    }
 
     if (entity_) {
         entity_->stop();

@@ -13,6 +13,7 @@
 #include "VideoDecoder.hpp"
 #include "TouchHandler.hpp"
 #include "../../core/Configuration.hpp"
+#include "NightModeProvider.hpp"
 
 #include <aasdk/Transport/ITransport.hpp>
 
@@ -105,6 +106,7 @@ private:
 
     oap::IAudioService* audioService_ = nullptr;
     oap::YamlConfig* yamlConfig_ = nullptr;
+    std::unique_ptr<NightModeProvider> nightProvider_;
     ConnectionState state_ = Disconnected;
     QString statusMessage_;
 
