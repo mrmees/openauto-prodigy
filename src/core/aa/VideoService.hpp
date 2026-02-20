@@ -17,6 +17,14 @@ namespace oap { class YamlConfig; }
 namespace oap {
 namespace aa {
 
+// Internal video focus mode — maps to AA proto VideoFocusMode for wire protocol.
+// Projection and NativeTransient both map to proto FOCUSED; Native maps to UNFOCUSED.
+enum class VideoFocusMode {
+    Projection,         // AA active, phone renders → proto FOCUSED
+    Native,             // HU's own UI, AA paused → proto UNFOCUSED
+    NativeTransient     // Brief interruption (e.g. reverse camera), phone keeps rendering → proto FOCUSED
+};
+
 class VideoService
     : public QObject
     , public IService
@@ -36,6 +44,9 @@ public:
     void start() override;
     void stop() override;
     void fillFeatures(aasdk::proto::messages::ServiceDiscoveryResponse& response) override;
+
+    // Video focus control — callable by other plugins (e.g. PhonePlugin, reverse camera)
+    void setVideoFocus(VideoFocusMode mode);
 
     // IVideoServiceChannelEventHandler
     void onChannelOpenRequest(const aasdk::proto::messages::ChannelOpenRequest& request) override;
@@ -58,6 +69,7 @@ private:
     oap::YamlConfig* yamlConfig_ = nullptr;
     VideoDecoder* decoder_;
     int32_t session_ = -1;
+    VideoFocusMode currentFocusMode_ = VideoFocusMode::Projection;
 };
 
 } // namespace aa

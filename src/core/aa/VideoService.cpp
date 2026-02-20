@@ -190,9 +190,13 @@ void VideoService::onVideoFocusRequest(const aasdk::proto::messages::VideoFocusR
     BOOST_LOG_TRIVIAL(info) << "[VideoService] Video focus request (mode="
                             << request.focus_mode() << ")";
 
-    // Must respond with VideoFocusIndication or phone may stop sending frames
+    // Respond based on our current internal focus state
+    auto protoMode = (currentFocusMode_ == VideoFocusMode::Native)
+        ? aasdk::proto::enums::VideoFocusMode::UNFOCUSED
+        : aasdk::proto::enums::VideoFocusMode::FOCUSED;
+
     aasdk::proto::messages::VideoFocusIndication indication;
-    indication.set_focus_mode(aasdk::proto::enums::VideoFocusMode::FOCUSED);
+    indication.set_focus_mode(protoMode);
     indication.set_unrequested(false);
 
     auto promise = aasdk::channel::SendPromise::defer(strand_);
@@ -201,6 +205,29 @@ void VideoService::onVideoFocusRequest(const aasdk::proto::messages::VideoFocusR
     });
     channel_->sendVideoFocusIndication(indication, std::move(promise));
     channel_->receive(shared_from_this());
+}
+
+void VideoService::setVideoFocus(VideoFocusMode mode)
+{
+    currentFocusMode_ = mode;
+
+    auto protoMode = (mode == VideoFocusMode::Native)
+        ? aasdk::proto::enums::VideoFocusMode::UNFOCUSED
+        : aasdk::proto::enums::VideoFocusMode::FOCUSED;
+
+    BOOST_LOG_TRIVIAL(info) << "[VideoService] Setting video focus: "
+        << (mode == VideoFocusMode::Projection ? "Projection" :
+            mode == VideoFocusMode::Native ? "Native" : "NativeTransient");
+
+    aasdk::proto::messages::VideoFocusIndication indication;
+    indication.set_focus_mode(protoMode);
+    indication.set_unrequested(true);  // HU-initiated, not responding to phone request
+
+    auto promise = aasdk::channel::SendPromise::defer(strand_);
+    promise->then([]() {}, [](const aasdk::error::Error& e) {
+        BOOST_LOG_TRIVIAL(error) << "[VideoService] setVideoFocus send error: " << e.what();
+    });
+    channel_->sendVideoFocusIndication(indication, std::move(promise));
 }
 
 void VideoService::onChannelError(const aasdk::error::Error& e)
