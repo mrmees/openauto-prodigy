@@ -91,7 +91,7 @@ Item {
         background: Rectangle {
             color: ThemeService.controlBackgroundColor
             radius: 12
-            border.color: ThemeService.borderColor
+            border.color: ThemeService.controlForegroundColor
             border.width: 1
         }
 
@@ -102,7 +102,7 @@ Item {
                 text: "Exit OpenAuto Prodigy?"
                 font.pixelSize: 18
                 font.bold: true
-                color: ThemeService.primaryTextColor
+                color: ThemeService.normalFontColor
             }
         }
 
@@ -122,12 +122,12 @@ Item {
                     MaterialIcon {
                         icon: "\ue5cd"  // close (minimize)
                         size: 20
-                        color: ThemeService.primaryTextColor
+                        color: ThemeService.normalFontColor
                     }
                     Text {
                         text: "Minimize"
                         font.pixelSize: 16
-                        color: ThemeService.primaryTextColor
+                        color: ThemeService.normalFontColor
                     }
                     Item { Layout.fillWidth: true }
                 }
@@ -169,7 +169,7 @@ Item {
                 contentItem: Text {
                     text: "Cancel"
                     font.pixelSize: 14
-                    color: ThemeService.secondaryTextColor
+                    color: ThemeService.descriptionFontColor
                     horizontalAlignment: Text.AlignHCenter
                 }
                 background: Rectangle {

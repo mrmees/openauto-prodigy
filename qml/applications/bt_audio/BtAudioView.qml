@@ -20,7 +20,7 @@ Rectangle {
             Layout.alignment: Qt.AlignHCenter
             text: BtAudioPlugin ? (BtAudioPlugin.deviceName || "Bluetooth Audio") : "Bluetooth Audio"
             font.pixelSize: 14
-            color: ThemeService.secondaryTextColor
+            color: ThemeService.descriptionFontColor
             opacity: 0.7
             visible: isConnected
         }
@@ -32,14 +32,14 @@ Rectangle {
             height: 200
             radius: 12
             color: ThemeService.controlBackgroundColor
-            border.color: ThemeService.borderColor
+            border.color: ThemeService.controlForegroundColor
             border.width: 1
 
             MaterialIcon {
                 anchors.centerIn: parent
                 icon: "\ue405"  // music_note
                 size: 72
-                color: ThemeService.primaryTextColor
+                color: ThemeService.normalFontColor
                 opacity: 0.3
             }
         }
@@ -54,7 +54,7 @@ Rectangle {
                 text: BtAudioPlugin ? (BtAudioPlugin.trackTitle || "No Track") : "No Track"
                 font.pixelSize: 22
                 font.bold: true
-                color: ThemeService.primaryTextColor
+                color: ThemeService.normalFontColor
                 elide: Text.ElideRight
                 Layout.maximumWidth: btAudioView.width * 0.7
             }
@@ -63,7 +63,7 @@ Rectangle {
                 Layout.alignment: Qt.AlignHCenter
                 text: BtAudioPlugin ? (BtAudioPlugin.trackArtist || "Unknown Artist") : "Unknown Artist"
                 font.pixelSize: 16
-                color: ThemeService.secondaryTextColor
+                color: ThemeService.descriptionFontColor
                 elide: Text.ElideRight
                 Layout.maximumWidth: btAudioView.width * 0.7
             }
@@ -72,7 +72,7 @@ Rectangle {
                 Layout.alignment: Qt.AlignHCenter
                 text: BtAudioPlugin ? (BtAudioPlugin.trackAlbum || "") : ""
                 font.pixelSize: 14
-                color: ThemeService.secondaryTextColor
+                color: ThemeService.descriptionFontColor
                 opacity: 0.7
                 elide: Text.ElideRight
                 Layout.maximumWidth: btAudioView.width * 0.7
@@ -90,7 +90,7 @@ Rectangle {
             Text {
                 text: formatTime(BtAudioPlugin ? BtAudioPlugin.trackPosition : 0)
                 font.pixelSize: 12
-                color: ThemeService.secondaryTextColor
+                color: ThemeService.descriptionFontColor
             }
 
             Rectangle {
@@ -112,7 +112,7 @@ Rectangle {
             Text {
                 text: formatTime(BtAudioPlugin ? BtAudioPlugin.trackDuration : 0)
                 font.pixelSize: 12
-                color: ThemeService.secondaryTextColor
+                color: ThemeService.descriptionFontColor
             }
         }
 
@@ -121,7 +121,7 @@ Rectangle {
             Layout.alignment: Qt.AlignHCenter
             text: "No device connected"
             font.pixelSize: 14
-            color: ThemeService.warningColor
+            color: ThemeService.highlightColor
             visible: !isConnected
         }
 
@@ -138,7 +138,7 @@ Rectangle {
                 contentItem: MaterialIcon {
                     icon: "\ue045"  // skip_previous
                     size: 32
-                    color: ThemeService.primaryTextColor
+                    color: ThemeService.normalFontColor
                 }
                 background: Rectangle {
                     color: parent.pressed ? ThemeService.highlightColor : "transparent"
@@ -161,7 +161,7 @@ Rectangle {
                 contentItem: MaterialIcon {
                     icon: isPlaying ? "\ue034" : "\ue037"  // pause / play_arrow
                     size: 48
-                    color: ThemeService.primaryTextColor
+                    color: ThemeService.normalFontColor
                 }
                 background: Rectangle {
                     color: parent.pressed ? ThemeService.highlightColor : "transparent"
@@ -178,7 +178,7 @@ Rectangle {
                 contentItem: MaterialIcon {
                     icon: "\ue044"  // skip_next
                     size: 32
-                    color: ThemeService.primaryTextColor
+                    color: ThemeService.normalFontColor
                 }
                 background: Rectangle {
                     color: parent.pressed ? ThemeService.highlightColor : "transparent"

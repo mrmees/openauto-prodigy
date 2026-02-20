@@ -24,7 +24,7 @@ Rectangle {
             Text {
                 text: PhonePlugin ? (PhonePlugin.deviceName || "Phone") : "Phone"
                 font.pixelSize: 14
-                color: ThemeService.secondaryTextColor
+                color: ThemeService.descriptionFontColor
                 opacity: 0.7
             }
 
@@ -40,7 +40,7 @@ Rectangle {
             Text {
                 text: isConnected ? "Connected" : "No phone"
                 font.pixelSize: 12
-                color: ThemeService.secondaryTextColor
+                color: ThemeService.descriptionFontColor
             }
         }
 
@@ -67,7 +67,7 @@ Rectangle {
                 }
                 font.pixelSize: inCall ? 18 : 28
                 font.bold: true
-                color: ThemeService.primaryTextColor
+                color: ThemeService.normalFontColor
                 elide: Text.ElideRight
                 width: parent.width - 32
                 horizontalAlignment: Text.AlignHCenter
@@ -98,7 +98,7 @@ Rectangle {
                     contentItem: Text {
                         text: parent.text
                         font: parent.font
-                        color: ThemeService.primaryTextColor
+                        color: ThemeService.normalFontColor
                         horizontalAlignment: Text.AlignHCenter
                         verticalAlignment: Text.AlignVCenter
                     }
@@ -107,7 +107,7 @@ Rectangle {
                                ? ThemeService.highlightColor
                                : ThemeService.controlBackgroundColor
                         radius: 8
-                        border.color: ThemeService.borderColor
+                        border.color: ThemeService.controlForegroundColor
                         border.width: 1
                     }
                 }
@@ -175,7 +175,7 @@ Rectangle {
                 contentItem: MaterialIcon {
                     icon: "\ue14a"  // backspace
                     size: 22
-                    color: ThemeService.primaryTextColor
+                    color: ThemeService.normalFontColor
                 }
                 background: Rectangle {
                     color: parent.pressed ? ThemeService.highlightColor : ThemeService.controlBackgroundColor
