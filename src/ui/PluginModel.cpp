@@ -1,12 +1,15 @@
 #include "PluginModel.hpp"
+#include "PluginRuntimeContext.hpp"
 #include "core/plugin/PluginManager.hpp"
 #include "core/plugin/IPlugin.hpp"
+#include <QQmlEngine>
 
 namespace oap {
 
-PluginModel::PluginModel(PluginManager* manager, QObject* parent)
+PluginModel::PluginModel(PluginManager* manager, QQmlEngine* engine, QObject* parent)
     : QAbstractListModel(parent)
     , manager_(manager)
+    , engine_(engine)
 {
     // Refresh model when plugins change
     connect(manager_, &PluginManager::pluginInitialized, this, [this]() {
@@ -73,7 +76,39 @@ void PluginModel::setActivePlugin(const QString& pluginId)
 {
     if (activePluginId_ == pluginId) return;
 
+    // Empty ID = go home (deactivate current, show launcher)
+    if (pluginId.isEmpty()) {
+        if (activeContext_) {
+            activeContext_->deactivate();
+            delete activeContext_;
+            activeContext_ = nullptr;
+        }
+        activePluginId_.clear();
+        manager_->deactivateCurrentPlugin();
+        emit activePluginChanged();
+        emit dataChanged(index(0), index(rowCount() - 1), {IsActiveRole});
+        return;
+    }
+
+    // Validate: only update state if manager accepts the activation
+    if (!manager_->activatePlugin(pluginId)) return;
+
+    // Deactivate current context
+    if (activeContext_) {
+        activeContext_->deactivate();
+        delete activeContext_;
+        activeContext_ = nullptr;
+    }
+
     activePluginId_ = pluginId;
+
+    // Activate new plugin's runtime context
+    auto* plugin = manager_->plugin(pluginId);
+    if (plugin && engine_) {
+        activeContext_ = new PluginRuntimeContext(plugin, engine_, this);
+        activeContext_->activate();
+    }
+
     emit activePluginChanged();
     emit dataChanged(index(0), index(rowCount() - 1), {IsActiveRole});
 }

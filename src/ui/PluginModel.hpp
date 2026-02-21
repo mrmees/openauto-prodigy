@@ -3,13 +3,16 @@
 #include <QAbstractListModel>
 #include <QString>
 
+class QQmlEngine;
+
 namespace oap {
 
 class PluginManager;
+class PluginRuntimeContext;
 class IPlugin;
 
 /// QAbstractListModel exposing loaded plugins to QML for the nav strip.
-/// Backed by PluginManager::plugins().
+/// Backed by PluginManager::plugins(). Manages PluginRuntimeContext lifecycle.
 class PluginModel : public QAbstractListModel {
     Q_OBJECT
     Q_PROPERTY(QString activePluginId READ activePluginId NOTIFY activePluginChanged)
@@ -26,7 +29,7 @@ public:
         WantsFullscreenRole
     };
 
-    explicit PluginModel(PluginManager* manager, QObject* parent = nullptr);
+    explicit PluginModel(PluginManager* manager, QQmlEngine* engine, QObject* parent = nullptr);
 
     int rowCount(const QModelIndex& parent = QModelIndex()) const override;
     QVariant data(const QModelIndex& index, int role) const override;
@@ -43,6 +46,8 @@ signals:
 
 private:
     PluginManager* manager_;
+    QQmlEngine* engine_;
+    PluginRuntimeContext* activeContext_ = nullptr;
     QString activePluginId_;
 
     IPlugin* activePlugin() const;

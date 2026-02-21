@@ -94,10 +94,11 @@ int main(int argc, char *argv[])
     ipcServer->setPluginManager(&pluginManager);
     ipcServer->start();
 
-    // Plugin model for QML nav strip
-    auto pluginModel = new oap::PluginModel(&pluginManager, &app);
-
     QQmlApplicationEngine engine;
+
+    // Plugin model for QML nav strip (needs engine for PluginRuntimeContext)
+    auto pluginModel = new oap::PluginModel(&pluginManager, &engine, &app);
+
     engine.rootContext()->setContextProperty("ThemeService", themeService);
     engine.rootContext()->setContextProperty("ApplicationController", appController);
     engine.rootContext()->setContextProperty("PluginModel", pluginModel);
