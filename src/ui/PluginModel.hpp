@@ -2,6 +2,7 @@
 
 #include <QAbstractListModel>
 #include <QString>
+#include <QUrl>
 
 class QQmlEngine;
 

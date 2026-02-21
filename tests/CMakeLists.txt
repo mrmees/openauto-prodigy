@@ -162,6 +162,19 @@ target_link_libraries(test_input_device_scanner PRIVATE
     Qt6::Test
 )
 
+add_executable(test_plugin_model
+    test_plugin_model.cpp
+    ${CMAKE_SOURCE_DIR}/src/ui/PluginModel.cpp
+    ${CMAKE_SOURCE_DIR}/src/ui/PluginRuntimeContext.cpp
+    ${CMAKE_SOURCE_DIR}/src/core/plugin/PluginManager.cpp
+    ${CMAKE_SOURCE_DIR}/src/core/plugin/PluginDiscovery.cpp
+    ${CMAKE_SOURCE_DIR}/src/core/plugin/PluginLoader.cpp
+    ${CMAKE_SOURCE_DIR}/src/core/plugin/PluginManifest.cpp
+)
+target_include_directories(test_plugin_model PRIVATE ${CMAKE_SOURCE_DIR}/src)
+target_link_libraries(test_plugin_model PRIVATE
+    Qt6::Core Qt6::Quick Qt6::Test yaml-cpp::yaml-cpp Boost::log)
+
 enable_testing()
 add_test(NAME test_night_mode COMMAND test_night_mode)
 add_test(NAME test_configuration COMMAND test_configuration)
@@ -173,3 +186,4 @@ add_test(NAME test_plugin_manager COMMAND test_plugin_manager)
 add_test(NAME test_theme_service COMMAND test_theme_service)
 add_test(NAME test_audio_service COMMAND test_audio_service)
 add_test(NAME test_input_device_scanner COMMAND test_input_device_scanner)
+add_test(NAME test_plugin_model COMMAND test_plugin_model)
