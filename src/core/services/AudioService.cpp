@@ -128,14 +128,9 @@ void AudioService::onPlaybackProcess(void* userdata)
 
     uint32_t read = handle->ringBuffer->read(static_cast<uint8_t*>(d.data), maxSize);
 
-    // Zero-fill remainder on underrun (silence)
-    if (read < maxSize) {
-        memset(static_cast<uint8_t*>(d.data) + read, 0, maxSize - read);
-    }
-
     d.chunk->offset = 0;
     d.chunk->stride = handle->bytesPerFrame;
-    d.chunk->size = maxSize;
+    d.chunk->size = read; // Only report actual audio bytes to PipeWire
 
     pw_stream_queue_buffer(handle->stream, buf);
 }
