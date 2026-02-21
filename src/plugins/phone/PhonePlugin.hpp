@@ -127,6 +127,7 @@ private:
     bool phoneConnected_ = false;
     QString deviceName_;
     QString devicePath_;
+    QString activeCallNotificationId_;
 };
 
 } // namespace plugins

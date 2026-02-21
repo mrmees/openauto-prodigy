@@ -1,5 +1,6 @@
 #include "PhonePlugin.hpp"
 #include "core/plugin/IHostContext.hpp"
+#include "core/services/INotificationService.hpp"
 #include <QQmlContext>
 #include <QDBusConnection>
 #include <QDBusInterface>
@@ -287,8 +288,25 @@ void PhonePlugin::setCallState(CallState state)
         callTimer_->stop();
     }
 
+    // Dismiss incoming call notification when no longer ringing
+    if (state != Ringing && !activeCallNotificationId_.isEmpty()) {
+        if (hostContext_ && hostContext_->notificationService())
+            hostContext_->notificationService()->dismiss(activeCallNotificationId_);
+        activeCallNotificationId_.clear();
+    }
+
     if (state == Ringing) {
         emit incomingCall(callerNumber_, callerName_);
+        // Post notification via NotificationService
+        if (hostContext_ && hostContext_->notificationService()) {
+            QString displayName = callerName_.isEmpty() ? callerNumber_ : callerName_;
+            activeCallNotificationId_ = hostContext_->notificationService()->post({
+                {"kind", "incoming_call"},
+                {"message", displayName},
+                {"sourcePluginId", id()},
+                {"priority", 90}
+            });
+        }
     }
 
     emit callStateChanged();
