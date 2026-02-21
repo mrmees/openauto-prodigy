@@ -23,6 +23,7 @@ qt_add_executable(openauto-prodigy
     core/services/ConfigService.cpp
     core/services/ThemeService.cpp
     core/services/AudioService.cpp
+    core/audio/PipeWireDeviceRegistry.cpp
     core/services/IpcServer.cpp
     core/services/EventBus.cpp
     core/services/ActionRegistry.cpp

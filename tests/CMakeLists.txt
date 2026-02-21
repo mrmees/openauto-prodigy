@@ -211,6 +211,20 @@ target_link_libraries(test_audio_ring_buffer PRIVATE
     ${PIPEWIRE_LIBRARIES}
 )
 
+add_executable(test_device_registry
+    test_device_registry.cpp
+    ${CMAKE_SOURCE_DIR}/src/core/audio/PipeWireDeviceRegistry.cpp
+)
+target_include_directories(test_device_registry PRIVATE
+    ${CMAKE_SOURCE_DIR}/src
+    ${PIPEWIRE_INCLUDE_DIRS}
+)
+target_link_libraries(test_device_registry PRIVATE
+    Qt6::Core
+    Qt6::Test
+    ${PIPEWIRE_LIBRARIES}
+)
+
 add_executable(test_config_key_coverage
     test_config_key_coverage.cpp
     ${CMAKE_SOURCE_DIR}/src/core/YamlConfig.cpp
@@ -241,6 +255,7 @@ add_test(NAME test_event_bus COMMAND test_event_bus)
 add_test(NAME test_action_registry COMMAND test_action_registry)
 add_test(NAME test_notification_service COMMAND test_notification_service)
 add_test(NAME test_audio_ring_buffer COMMAND test_audio_ring_buffer)
+add_test(NAME test_device_registry COMMAND test_device_registry)
 add_test(NAME test_config_key_coverage COMMAND test_config_key_coverage)
 
 # GUI/Quick tests need offscreen platform when no display is available
