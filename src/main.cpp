@@ -125,6 +125,7 @@ int main(int argc, char *argv[])
         themeService->toggleMode();
     });
 
+    engine.rootContext()->setContextProperty("ActionRegistry", actionRegistry);
     engine.rootContext()->setContextProperty("ThemeService", themeService);
     engine.rootContext()->setContextProperty("ApplicationController", appController);
     engine.rootContext()->setContextProperty("PluginModel", pluginModel);

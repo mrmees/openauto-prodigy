@@ -138,8 +138,7 @@ Rectangle {
                 Button {
                     font.pixelSize: 14
                     onClicked: {
-                        if (ApplicationController)
-                            ApplicationController.navigateTo(0)  // Launcher
+                        ActionRegistry.dispatch("app.home")
                         overlay.dismiss()
                     }
                     contentItem: RowLayout {
@@ -166,7 +165,7 @@ Rectangle {
                 Button {
                     font.pixelSize: 14
                     onClicked: {
-                        if (ThemeService) ThemeService.toggleMode()
+                        ActionRegistry.dispatch("theme.toggle")
                         dismissTimer.restart()
                     }
                     contentItem: RowLayout {
