@@ -39,17 +39,17 @@ void TestYamlConfig::testValueByPath()
     oap::YamlConfig config;
     // Top-level key
     QCOMPARE(config.valueByPath("hardware_profile").toString(), QString("rpi4"));
-    // Nested key
-    QCOMPARE(config.valueByPath("connection.tcp_port").toInt(), 5277);
-    QCOMPARE(config.valueByPath("video.fps").toInt(), 30);
+    // Nested key — use CURRENT defaults (5288/60), Task 3 will change these
+    QCOMPARE(config.valueByPath("connection.tcp_port").toInt(), 5288);
+    QCOMPARE(config.valueByPath("video.fps").toInt(), 60);
 }
 
 void TestYamlConfig::testValueByPathNested()
 {
     oap::YamlConfig config;
-    // Deeply nested
+    // Deeply nested — use CURRENT defaults, Task 3 will change password
     QCOMPARE(config.valueByPath("connection.wifi_ap.ssid").toString(), QString("OpenAutoProdigy"));
-    QCOMPARE(config.valueByPath("connection.wifi_ap.password").toString(), QString("prodigy"));
+    QCOMPARE(config.valueByPath("connection.wifi_ap.password").toString(), QString("changeme123"));
     QCOMPARE(config.valueByPath("sensors.night_mode.source").toString(), QString("time"));
     QCOMPARE(config.valueByPath("sensors.gps.enabled").toBool(), true);
 }
@@ -101,9 +101,18 @@ In `src/core/YamlConfig.hpp`, add to the public section:
     QVariant valueByPath(const QString& dottedKey) const;
 
     /// Generic dot-path config write.
-    /// Only writes to paths that already exist in the config tree (rejects typos).
+    /// Only writes to paths that exist in the DEFAULT config schema (rejects typos/unknown keys).
     /// Returns true if the path existed and was set, false otherwise.
     bool setValueByPath(const QString& dottedKey, const QVariant& value);
+```
+
+And add a private static helper:
+
+```cpp
+private:
+    /// Build an immutable defaults tree for path validation.
+    /// Used by setValueByPath() to reject writes to unknown paths.
+    static YAML::Node buildDefaultsNode();
 ```
 
 In `src/core/YamlConfig.cpp`, add a static helper and the two methods. Place them after the `setPluginValue()` method:
@@ -152,23 +161,30 @@ QVariant YamlConfig::valueByPath(const QString& dottedKey) const
     return yamlScalarToVariant(node);
 }
 
+// Build a fresh defaults tree for schema validation (not the merged runtime tree)
+YAML::Node YamlConfig::buildDefaultsNode()
+{
+    YamlConfig tmp;
+    return YAML::Clone(tmp.root_);
+}
+
 bool YamlConfig::setValueByPath(const QString& dottedKey, const QVariant& value)
 {
     if (dottedKey.isEmpty()) return false;
 
     QStringList parts = dottedKey.split('.');
 
-    // First, verify the path exists (read-only check via Clone)
+    // Validate against DEFAULTS tree, not merged root_ (which may contain user garbage)
     {
-        YAML::Node check = YAML::Clone(root_);
+        YAML::Node defaults = buildDefaultsNode();
         for (const auto& part : parts) {
-            if (!check.IsMap()) return false;
-            check.reset(check[part.toStdString()]);
-            if (!check.IsDefined()) return false;
+            if (!defaults.IsMap()) return false;
+            defaults.reset(defaults[part.toStdString()]);
+            if (!defaults.IsDefined()) return false;
         }
     }
 
-    // Path exists — navigate the real tree and set the value
+    // Path exists in schema — navigate the real tree and set the value
     YAML::Node node = root_;
     for (int i = 0; i < parts.size() - 1; ++i) {
         node.reset(node[parts[i].toStdString()]);
@@ -322,7 +338,15 @@ QCOMPARE(config.tcpPort(), static_cast<uint16_t>(5277));  // was 5288
 QCOMPARE(config.videoFps(), 30);  // was 60
 ```
 
-And `testValueByPath()` and `testValueByPathNested()` — update expected values for `tcp_port`, `fps`, and `password` to match new defaults.
+In `tests/test_yaml_config.cpp`, also update `testValueByPath()` and `testValueByPathNested()` (added in Task 1 with old defaults):
+```cpp
+// testValueByPath:
+QCOMPARE(config.valueByPath("connection.tcp_port").toInt(), 5277);  // was 5288
+QCOMPARE(config.valueByPath("video.fps").toInt(), 30);  // was 60
+
+// testValueByPathNested:
+QCOMPARE(config.valueByPath("connection.wifi_ap.password").toString(), QString("prodigy"));  // was "changeme123"
+```
 
 In `tests/test_config_service.cpp`, update `testReadTopLevelValues()`:
 ```cpp
@@ -360,7 +384,20 @@ git commit -m "fix: align config defaults (port 5277, fps 30, password prodigy)"
 ### Task 4: Implement IPC Theme Endpoint
 
 **Files:**
+- Modify: `src/core/services/ThemeService.hpp` (add read-only color map accessors)
 - Modify: `src/core/services/IpcServer.cpp` (two methods: handleGetTheme + handleSetTheme)
+
+**Step 0: Add read-only color map accessors to ThemeService**
+
+In `src/core/services/ThemeService.hpp`, add to the public section:
+
+```cpp
+    /// Read-only access to color maps (for IPC export without signal side-effects)
+    const QMap<QString, QColor>& dayColors() const { return dayColors_; }
+    const QMap<QString, QColor>& nightColors() const { return nightColors_; }
+```
+
+This avoids the need to toggle nightMode (which emits signals) just to read colors.
 
 **Step 1: Implement handleGetTheme()**
 
@@ -376,35 +413,16 @@ QByteArray IpcServer::handleGetTheme()
     obj["font_family"] = themeService_->fontFamily();
     obj["night_mode"] = themeService_->nightMode();
 
-    // Export current colors
-    static const QStringList colorKeys = {
-        "background", "highlight", "control_background", "control_foreground",
-        "normal_font", "special_font", "description_font", "bar_background",
-        "control_box_background", "gauge_indicator", "icon", "side_widget_background",
-        "bar_shadow"
-    };
-
-    QJsonObject dayObj, nightObj;
-    bool wasNight = themeService_->nightMode();
-
-    // Read day colors
-    themeService_->setNightMode(false);
-    for (const auto& key : colorKeys) {
-        QColor c = themeService_->color(key);
-        if (c.isValid() && c != Qt::transparent)
-            dayObj[key] = c.name();
+    // Read color maps directly — no mode toggling, no signal emission
+    QJsonObject dayObj;
+    for (auto it = themeService_->dayColors().begin(); it != themeService_->dayColors().end(); ++it) {
+        dayObj[it.key()] = it.value().name();
     }
 
-    // Read night colors
-    themeService_->setNightMode(true);
-    for (const auto& key : colorKeys) {
-        QColor c = themeService_->color(key);
-        if (c.isValid() && c != Qt::transparent)
-            nightObj[key] = c.name();
+    QJsonObject nightObj;
+    for (auto it = themeService_->nightColors().begin(); it != themeService_->nightColors().end(); ++it) {
+        nightObj[it.key()] = it.value().name();
     }
-
-    // Restore original mode
-    themeService_->setNightMode(wasNight);
 
     obj["day"] = dayObj;
     obj["night"] = nightObj;
@@ -422,8 +440,11 @@ QByteArray IpcServer::handleSetTheme(const QVariantMap& data)
 {
     if (!themeService_) return R"({"ok":false,"error":"Theme service not available"})";
 
-    // Determine theme directory
+    // Determine theme directory (with path traversal protection)
     QString themeId = data.value("id", "default").toString();
+    static QRegularExpression validId("^[A-Za-z0-9._-]{1,64}$");
+    if (!validId.match(themeId).hasMatch())
+        return R"({"ok":false,"error":"Invalid theme ID"})";
     QString themeDir = QDir::homePath() + "/.openauto/themes/" + themeId;
     QDir().mkpath(themeDir);
     QString yamlPath = themeDir + "/theme.yaml";
@@ -469,6 +490,7 @@ At the top of `IpcServer.cpp`, add if not already present:
 ```cpp
 #include <yaml-cpp/yaml.h>
 #include <QDir>
+#include <QRegularExpression>
 #include <fstream>
 ```
 
@@ -493,7 +515,7 @@ Ask Codex to review the handleSetTheme implementation for correctness and securi
 **Step 8: Commit**
 
 ```bash
-git add src/core/services/IpcServer.cpp
+git add src/core/services/ThemeService.hpp src/core/services/IpcServer.cpp
 git commit -m "feat: implement IPC theme get/set endpoints"
 ```
 
@@ -517,8 +539,8 @@ PLUGIN_COUNT=$(find "$CONFIG_DIR/plugins" -name "plugin.yaml" 2>/dev/null | wc -
 In `tests/CMakeLists.txt`, after the `add_test()` calls at the bottom, add:
 
 ```cmake
-# GUI tests need offscreen platform when no display is available
-set_tests_properties(test_configuration test_theme_service
+# GUI/Quick tests need offscreen platform when no display is available
+set_tests_properties(test_configuration test_theme_service test_plugin_model
     PROPERTIES ENVIRONMENT "QT_QPA_PLATFORM=offscreen"
 )
 ```
