@@ -61,6 +61,30 @@ set_source_files_properties(../qml/controls/Tile.qml PROPERTIES
     QT_QML_SOURCE_TYPENAME "Tile"
     QT_RESOURCE_ALIAS "Tile.qml"
 )
+set_source_files_properties(../qml/controls/SectionHeader.qml PROPERTIES
+    QT_QML_SOURCE_TYPENAME "SectionHeader"
+    QT_RESOURCE_ALIAS "SectionHeader.qml"
+)
+set_source_files_properties(../qml/controls/SettingsToggle.qml PROPERTIES
+    QT_QML_SOURCE_TYPENAME "SettingsToggle"
+    QT_RESOURCE_ALIAS "SettingsToggle.qml"
+)
+set_source_files_properties(../qml/controls/SettingsSlider.qml PROPERTIES
+    QT_QML_SOURCE_TYPENAME "SettingsSlider"
+    QT_RESOURCE_ALIAS "SettingsSlider.qml"
+)
+set_source_files_properties(../qml/controls/SettingsComboBox.qml PROPERTIES
+    QT_QML_SOURCE_TYPENAME "SettingsComboBox"
+    QT_RESOURCE_ALIAS "SettingsComboBox.qml"
+)
+set_source_files_properties(../qml/controls/SettingsTextField.qml PROPERTIES
+    QT_QML_SOURCE_TYPENAME "SettingsTextField"
+    QT_RESOURCE_ALIAS "SettingsTextField.qml"
+)
+set_source_files_properties(../qml/controls/SettingsSpinBox.qml PROPERTIES
+    QT_QML_SOURCE_TYPENAME "SettingsSpinBox"
+    QT_RESOURCE_ALIAS "SettingsSpinBox.qml"
+)
 set_source_files_properties(../qml/components/Clock.qml PROPERTIES
     QT_QML_SOURCE_TYPENAME "Clock"
     QT_RESOURCE_ALIAS "Clock.qml"
@@ -132,6 +156,12 @@ qt_add_qml_module(openauto-prodigy
         ../qml/controls/Icon.qml
         ../qml/controls/MaterialIcon.qml
         ../qml/controls/Tile.qml
+        ../qml/controls/SectionHeader.qml
+        ../qml/controls/SettingsToggle.qml
+        ../qml/controls/SettingsSlider.qml
+        ../qml/controls/SettingsComboBox.qml
+        ../qml/controls/SettingsTextField.qml
+        ../qml/controls/SettingsSpinBox.qml
         ../qml/components/Clock.qml
         ../qml/components/Wallpaper.qml
         ../qml/components/TopBar.qml
