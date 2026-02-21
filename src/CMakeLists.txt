@@ -77,6 +77,10 @@ set_source_files_properties(../qml/components/Shell.qml PROPERTIES
     QT_QML_SOURCE_TYPENAME "Shell"
     QT_RESOURCE_ALIAS "Shell.qml"
 )
+set_source_files_properties(../qml/components/NavStrip.qml PROPERTIES
+    QT_QML_SOURCE_TYPENAME "NavStrip"
+    QT_RESOURCE_ALIAS "NavStrip.qml"
+)
 set_source_files_properties(../qml/components/GestureOverlay.qml PROPERTIES
     QT_QML_SOURCE_TYPENAME "GestureOverlay"
     QT_RESOURCE_ALIAS "GestureOverlay.qml"
@@ -125,6 +129,7 @@ qt_add_qml_module(openauto-prodigy
         ../qml/components/TopBar.qml
         ../qml/components/BottomBar.qml
         ../qml/components/Shell.qml
+        ../qml/components/NavStrip.qml
         ../qml/components/GestureOverlay.qml
         ../qml/applications/launcher/LauncherMenu.qml
         ../qml/applications/android_auto/AndroidAutoMenu.qml

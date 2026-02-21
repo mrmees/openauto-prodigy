@@ -6,10 +6,8 @@ Item {
     id: shell
     anchors.fill: parent
 
-    // Fullscreen mode: active plugin requested fullscreen AND is connected
-    // Currently hardcoded to AA; will be generic once plugin system drives this
-    property bool fullscreenMode: ApplicationController.currentApplication === 2
-                                  && AndroidAutoService.connectionState === 3
+    // Fullscreen: active plugin requested it (generic — not AA-specific)
+    property bool fullscreenMode: PluginModel.activePluginFullscreen
 
     ColumnLayout {
         anchors.fill: parent
@@ -22,64 +20,37 @@ Item {
             visible: !shell.fullscreenMode
         }
 
-        // Content area — fills remaining space
-        StackView {
-            id: contentStack
+        // Content area — C++ manages plugin views via PluginViewHost
+        Item {
+            id: pluginContentHost
+            objectName: "pluginContentHost"
             Layout.fillWidth: true
             Layout.fillHeight: true
             clip: true
 
-            initialItem: launcherComponent
+            // Launcher is shown when no plugin view is loaded
+            LauncherMenu {
+                id: launcherView
+                anchors.fill: parent
+                visible: !PluginModel.activePluginId
+            }
         }
 
-        // Nav strip — ~12% height, hidden in fullscreen
-        // Currently uses the old BottomBar; will be replaced by
-        // PluginModel-driven nav strip in Task 13
-        BottomBar {
+        // Nav strip — plugin-model driven, hidden in fullscreen
+        NavStrip {
             Layout.fillWidth: true
             Layout.preferredHeight: shell.fullscreenMode ? 0 : shell.height * 0.12
             visible: !shell.fullscreenMode
         }
     }
 
-    // Application screen components (will be replaced by plugin QML loader)
-    Component {
-        id: launcherComponent
-        LauncherMenu {}
+    // Gesture overlay (on top of everything)
+    GestureOverlay {
+        id: gestureOverlay
     }
 
-    Component {
-        id: homeComponent
-        HomeMenu {}
-    }
-
-    Component {
-        id: androidAutoComponent
-        AndroidAutoMenu {}
-    }
-
-    Component {
-        id: settingsComponent
-        SettingsMenu {}
-    }
-
-    function componentForApp(appType) {
-        switch (appType) {
-        case 0: return launcherComponent;   // Launcher
-        case 1: return homeComponent;       // Home
-        case 2: return androidAutoComponent; // AndroidAuto
-        case 6: return settingsComponent;   // Settings
-        default: return launcherComponent;
-        }
-    }
-
-    // React to navigation changes
-    Connections {
-        target: ApplicationController
-        function onCurrentApplicationChanged() {
-            var appType = ApplicationController.currentApplication;
-            var component = componentForApp(appType);
-            contentStack.replace(component);
-        }
+    // Incoming call overlay (still uses global PhonePlugin until Priority 3)
+    IncomingCallOverlay {
+        id: callOverlay
     }
 }

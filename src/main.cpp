@@ -1,6 +1,7 @@
 #include <QGuiApplication>
 #include <QQmlApplicationEngine>
 #include <QQmlContext>
+#include <QQuickItem>
 #include <QDir>
 #include <QFile>
 #include <memory>
@@ -17,6 +18,7 @@
 #include "plugins/phone/PhonePlugin.hpp"
 #include "ui/ApplicationController.hpp"
 #include "ui/PluginModel.hpp"
+#include "ui/PluginViewHost.hpp"
 
 int main(int argc, char *argv[])
 {
@@ -119,6 +121,12 @@ int main(int argc, char *argv[])
 
     if (engine.rootObjects().isEmpty())
         return -1;
+
+    // Wire PluginViewHost to the QML host item
+    auto* rootObj = engine.rootObjects().first();
+    auto* hostItem = rootObj->findChild<QQuickItem*>("pluginContentHost");
+    if (hostItem)
+        pluginModel->viewHost()->setHostItem(hostItem);
 
     int ret = app.exec();
 
