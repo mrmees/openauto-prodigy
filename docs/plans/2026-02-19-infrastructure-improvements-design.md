@@ -1,4 +1,5 @@
 # Infrastructure Improvements Design
+> **Status:** COMPLETED
 
 ## Goal
 

@@ -24,6 +24,7 @@
 #include "ui/PluginModel.hpp"
 #include "ui/PluginViewHost.hpp"
 #include "ui/LauncherModel.hpp"
+#include "ui/AudioDeviceModel.hpp"
 
 int main(int argc, char *argv[])
 {
@@ -69,6 +70,13 @@ int main(int argc, char *argv[])
     // --- Audio service (PipeWire) ---
     auto audioService = new oap::AudioService(&app);
 
+    // Apply initial audio config from YAML
+    auto outputDev = yamlConfig->valueByPath("audio.output_device").toString();
+    if (outputDev.isEmpty()) outputDev = "auto";
+    audioService->setOutputDevice(outputDev);
+    audioService->setInputDevice(yamlConfig->microphoneDevice());
+    audioService->setMasterVolume(yamlConfig->masterVolume());
+
     // --- Plugin infrastructure ---
     auto configService = std::make_unique<oap::ConfigService>(yamlConfig.get(), yamlPath);
     auto hostContext = std::make_unique<oap::HostContext>();
@@ -110,6 +118,7 @@ int main(int argc, char *argv[])
     auto ipcServer = new oap::IpcServer(&app);
     ipcServer->setConfig(yamlConfig.get(), yamlPath);
     ipcServer->setThemeService(themeService);
+    ipcServer->setAudioService(audioService);
     ipcServer->setPluginManager(&pluginManager);
     ipcServer->start();
 
@@ -142,6 +151,15 @@ int main(int argc, char *argv[])
 
     // Expose PhonePlugin globally for IncomingCallOverlay in Shell.qml
     engine.rootContext()->setContextProperty("PhonePlugin", phonePlugin);
+
+    engine.rootContext()->setContextProperty("AudioService", audioService);
+
+    auto* outputDeviceModel = new oap::AudioDeviceModel(
+        oap::AudioDeviceModel::Output, audioService->deviceRegistry(), audioService);
+    auto* inputDeviceModel = new oap::AudioDeviceModel(
+        oap::AudioDeviceModel::Input, audioService->deviceRegistry(), audioService);
+    engine.rootContext()->setContextProperty("AudioOutputDeviceModel", outputDeviceModel);
+    engine.rootContext()->setContextProperty("AudioInputDeviceModel", inputDeviceModel);
 
     engine.rootContext()->setContextProperty("ConfigService", configService.get());
 

@@ -1,7 +1,7 @@
 #include "AudioService.hpp"
 #include <QDebug>
 #include <cstring>
-#include <spa/param/audio/format-utils.h>
+#include <spa/param/props.h>
 
 namespace oap {
 
@@ -10,19 +10,20 @@ AudioService::AudioService(QObject* parent)
 {
     pw_init(nullptr, nullptr);
 
-    // Try to connect to PipeWire daemon.
-    // This may fail on dev VM where PipeWire is not running as a session daemon.
-    mainLoop_ = pw_main_loop_new(nullptr);
-    if (!mainLoop_) {
-        qWarning() << "AudioService: Failed to create PipeWire main loop";
+    threadLoop_ = pw_thread_loop_new("openauto-audio", nullptr);
+    if (!threadLoop_) {
+        qWarning() << "AudioService: Failed to create PipeWire thread loop";
         return;
     }
 
-    context_ = pw_context_new(pw_main_loop_get_loop(mainLoop_), nullptr, 0);
+    pw_thread_loop_lock(threadLoop_);
+
+    context_ = pw_context_new(pw_thread_loop_get_loop(threadLoop_), nullptr, 0);
     if (!context_) {
         qWarning() << "AudioService: Failed to create PipeWire context";
-        pw_main_loop_destroy(mainLoop_);
-        mainLoop_ = nullptr;
+        pw_thread_loop_unlock(threadLoop_);
+        pw_thread_loop_destroy(threadLoop_);
+        threadLoop_ = nullptr;
         return;
     }
 
@@ -30,39 +31,115 @@ AudioService::AudioService(QObject* parent)
     if (!core_) {
         qWarning() << "AudioService: Failed to connect to PipeWire daemon"
                     << " — audio will be unavailable";
+        pw_thread_loop_unlock(threadLoop_);
         pw_context_destroy(context_);
         context_ = nullptr;
-        pw_main_loop_destroy(mainLoop_);
-        mainLoop_ = nullptr;
+        pw_thread_loop_destroy(threadLoop_);
+        threadLoop_ = nullptr;
+        return;
+    }
+
+    pw_thread_loop_unlock(threadLoop_);
+
+    if (pw_thread_loop_start(threadLoop_) < 0) {
+        qWarning() << "AudioService: Failed to start PipeWire thread loop";
+        pw_core_disconnect(core_); core_ = nullptr;
+        pw_context_destroy(context_); context_ = nullptr;
+        pw_thread_loop_destroy(threadLoop_); threadLoop_ = nullptr;
         return;
     }
 
     qInfo() << "AudioService: Connected to PipeWire daemon";
+
+    // Start device registry under PW lock (loop is now running)
+    pw_thread_loop_lock(threadLoop_);
+    deviceRegistry_.start(threadLoop_, core_);
+    pw_thread_loop_unlock(threadLoop_);
+
+    connect(&deviceRegistry_, &PipeWireDeviceRegistry::deviceRemoved,
+            this, &AudioService::onDeviceRemoved);
 }
 
 AudioService::~AudioService()
 {
-    // Destroy all remaining streams
-    QMutexLocker lock(&mutex_);
-    for (auto* handle : streams_) {
-        if (handle->stream)
-            pw_stream_destroy(handle->stream);
-        delete handle;
+    if (threadLoop_) {
+        // All PW object teardown must happen under the PW lock while
+        // the loop is still running.  Acquire PW lock FIRST, then mutex_
+        // — same order as setMasterVolume() to prevent ABBA deadlock.
+        pw_thread_loop_lock(threadLoop_);
+
+        // Stop device registry (removes PW listener + proxy)
+        deviceRegistry_.stop();
+
+        // Disable capture callback before tearing down capture stream
+        capture_.callbackActive.store(false, std::memory_order_release);
+
+        // Destroy capture stream if active
+        if (capture_.handle) {
+            spa_hook_remove(&captureListener_);
+            if (capture_.handle->stream)
+                pw_stream_destroy(capture_.handle->stream);
+            delete capture_.handle;
+            capture_.handle = nullptr;
+            capture_.callback = nullptr;
+        }
+
+        {
+            QMutexLocker lock(&mutex_);
+            for (auto* handle : streams_) {
+                if (handle->stream) {
+                    spa_hook_remove(&handle->listener);
+                    pw_stream_destroy(handle->stream);
+                }
+                delete handle;
+            }
+            streams_.clear();
+        }
+
+        pw_thread_loop_unlock(threadLoop_);
+
+        // Now safe to stop the loop (no PW objects left to callback into)
+        pw_thread_loop_stop(threadLoop_);
     }
-    streams_.clear();
-    lock.unlock();
 
     if (core_)
         pw_core_disconnect(core_);
     if (context_)
         pw_context_destroy(context_);
-    if (mainLoop_)
-        pw_main_loop_destroy(mainLoop_);
+    if (threadLoop_)
+        pw_thread_loop_destroy(threadLoop_);
 
     pw_deinit();
 }
 
-AudioStreamHandle* AudioService::createStream(const QString& name, int priority)
+// ---- Playback process callback (PipeWire RT thread) ----
+
+void AudioService::onPlaybackProcess(void* userdata)
+{
+    auto* handle = static_cast<AudioStreamHandle*>(userdata);
+    if (!handle || !handle->stream || !handle->ringBuffer)
+        return;
+
+    struct pw_buffer* buf = pw_stream_dequeue_buffer(handle->stream);
+    if (!buf) return;
+
+    struct spa_data& d = buf->buffer->datas[0];
+    uint32_t maxSize = d.maxsize;
+
+    uint32_t read = handle->ringBuffer->read(static_cast<uint8_t*>(d.data), maxSize);
+
+    d.chunk->offset = 0;
+    d.chunk->stride = handle->bytesPerFrame;
+    d.chunk->size = read; // Only report actual audio bytes to PipeWire
+
+    pw_stream_queue_buffer(handle->stream, buf);
+}
+
+// ---- Stream creation / destruction ----
+
+AudioStreamHandle* AudioService::createStream(
+    const QString& name, int priority,
+    int sampleRate, int channels, const QString& targetDevice)
 {
     if (!isAvailable()) {
         qWarning() << "AudioService::createStream: PipeWire not available, returning nullptr";
@@ -72,27 +149,91 @@ AudioStreamHandle* AudioService::createStream(const QString& name, int priority)
     auto* handle = new AudioStreamHandle();
     handle->name = name;
     handle->priority = priority;
+    handle->sampleRate = sampleRate;
+    handle->channels = channels;
+    handle->bytesPerFrame = channels * 2; // 16-bit PCM
 
-    // Create PipeWire stream
+    // Ring buffer: ~100ms of audio, rounded up to power of 2
+    uint32_t rbSize = static_cast<uint32_t>(sampleRate * channels * 2 * 0.1);
+    uint32_t pow2 = 1;
+    while (pow2 < rbSize) pow2 <<= 1;
+    handle->ringBuffer = std::make_unique<AudioRingBuffer>(pow2);
+
+    // Determine PipeWire role based on stream name
+    const char* role = "Music";
+    if (name.contains("Navigation") || name.contains("Speech"))
+        role = "Communication";
+    else if (name.contains("System"))
+        role = "Notification";
+
+    pw_thread_loop_lock(threadLoop_);
+
     auto props = pw_properties_new(
         PW_KEY_MEDIA_TYPE, "Audio",
         PW_KEY_MEDIA_CATEGORY, "Playback",
-        PW_KEY_MEDIA_ROLE, "Music",
+        PW_KEY_MEDIA_ROLE, role,
         PW_KEY_NODE_NAME, name.toUtf8().constData(),
         PW_KEY_APP_NAME, "OpenAuto Prodigy",
         nullptr);
 
+    // Target specific device if not "auto"
+    QString device = targetDevice == "auto" ? outputDevice_ : targetDevice;
+    if (device != "auto" && !device.isEmpty()) {
+        pw_properties_set(props, PW_KEY_TARGET_OBJECT, device.toUtf8().constData());
+    }
+
     handle->stream = pw_stream_new(core_, name.toUtf8().constData(), props);
     if (!handle->stream) {
         qWarning() << "AudioService: Failed to create PipeWire stream:" << name;
+        pw_thread_loop_unlock(threadLoop_);
         delete handle;
         return nullptr;
     }
 
+    // Set up process callback — userdata is the handle itself
+    handle->events = {};
+    handle->events.version = PW_VERSION_STREAM_EVENTS;
+    handle->events.process = &AudioService::onPlaybackProcess;
+    pw_stream_add_listener(handle->stream, &handle->listener, &handle->events, handle);
+
+    // Build format params
+    uint8_t paramBuf[1024];
+    struct spa_pod_builder b = SPA_POD_BUILDER_INIT(paramBuf, sizeof(paramBuf));
+
+    struct spa_audio_info_raw rawInfo{};
+    rawInfo.format = SPA_AUDIO_FORMAT_S16_LE;
+    rawInfo.rate = static_cast<uint32_t>(sampleRate);
+    rawInfo.channels = static_cast<uint32_t>(channels);
+
+    const struct spa_pod* params[1];
+    params[0] = spa_format_audio_raw_build(&b, SPA_PARAM_EnumFormat, &rawInfo);
+
+    int ret = pw_stream_connect(handle->stream,
+        PW_DIRECTION_OUTPUT,
+        PW_ID_ANY,
+        static_cast<pw_stream_flags>(
+            PW_STREAM_FLAG_AUTOCONNECT |
+            PW_STREAM_FLAG_MAP_BUFFERS |
+            PW_STREAM_FLAG_RT_PROCESS),
+        params, 1);
+
+    if (ret < 0) {
+        qWarning() << "AudioService: Failed to connect stream:" << name << "error:" << ret;
+        spa_hook_remove(&handle->listener);
+        pw_stream_destroy(handle->stream);
+        pw_thread_loop_unlock(threadLoop_);
+        delete handle;
+        return nullptr;
+    }
+
+    pw_thread_loop_unlock(threadLoop_);
+
     QMutexLocker lock(&mutex_);
     streams_.append(handle);
 
-    qInfo() << "AudioService: Created stream" << name << "priority:" << priority;
+    qInfo() << "AudioService: Created stream" << name
+            << sampleRate << "Hz" << channels << "ch"
+            << "priority:" << priority;
     return handle;
 }
 
@@ -104,8 +245,12 @@ void AudioService::destroyStream(AudioStreamHandle* handle)
     streams_.removeOne(handle);
     lock.unlock();
 
-    if (handle->stream)
+    if (handle->stream && threadLoop_) {
+        pw_thread_loop_lock(threadLoop_);
+        spa_hook_remove(&handle->listener);
         pw_stream_destroy(handle->stream);
+        pw_thread_loop_unlock(threadLoop_);
+    }
 
     qInfo() << "AudioService: Destroyed stream" << handle->name;
     delete handle;
@@ -113,28 +258,42 @@ void AudioService::destroyStream(AudioStreamHandle* handle)
 
 int AudioService::writeAudio(AudioStreamHandle* handle, const uint8_t* data, int size)
 {
-    if (!handle || !handle->stream || !data || size <= 0)
+    if (!handle || !handle->ringBuffer || !data || size <= 0)
         return -1;
 
-    // Get a buffer from PipeWire stream
-    struct pw_buffer* buf = pw_stream_dequeue_buffer(handle->stream);
-    if (!buf) return 0;  // No buffer available, not an error
-
-    struct spa_data& d = buf->buffer->datas[0];
-    int written = qMin(size, static_cast<int>(d.maxsize));
-    memcpy(d.data, data, written);
-    d.chunk->offset = 0;
-    d.chunk->stride = 4;  // Assuming stereo 16-bit (2 channels * 2 bytes)
-    d.chunk->size = written;
-
-    pw_stream_queue_buffer(handle->stream, buf);
-    return written;
+    return static_cast<int>(handle->ringBuffer->write(data, static_cast<uint32_t>(size)));
 }
+
+// ---- Volume & Audio Focus ----
 
 void AudioService::setMasterVolume(int volume)
 {
-    QMutexLocker lock(&mutex_);
-    masterVolume_ = qBound(0, volume, 100);
+    // Lock ordering: PW lock first, then mutex_ (same as destructor)
+    if (!threadLoop_) {
+        QMutexLocker lock(&mutex_);
+        masterVolume_ = qBound(0, volume, 100);
+        return;
+    }
+
+    pw_thread_loop_lock(threadLoop_);
+    {
+        QMutexLocker lock(&mutex_);
+        masterVolume_ = qBound(0, volume, 100);
+
+        // Cubic curve for perceptual volume scaling
+        float vol = static_cast<float>(masterVolume_) / 100.0f;
+        vol = vol * vol * vol;
+
+        for (auto* handle : streams_) {
+            if (handle->stream) {
+                float volumes[] = {vol, vol}; // up to stereo
+                pw_stream_set_control(handle->stream,
+                    SPA_PROP_channelVolumes,
+                    static_cast<uint32_t>(handle->channels), volumes, 0);
+            }
+        }
+    }
+    pw_thread_loop_unlock(threadLoop_);
 }
 
 int AudioService::masterVolume() const
@@ -193,6 +352,34 @@ void AudioService::applyDucking()
     }
 }
 
+// ---- Device Selection ----
+
+void AudioService::setOutputDevice(const QString& deviceName)
+{
+    QMutexLocker lock(&mutex_);
+    outputDevice_ = deviceName.isEmpty() ? "auto" : deviceName;
+    qInfo() << "AudioService: Output device set to" << outputDevice_;
+}
+
+void AudioService::setInputDevice(const QString& deviceName)
+{
+    QMutexLocker lock(&mutex_);
+    inputDevice_ = deviceName.isEmpty() ? "auto" : deviceName;
+    qInfo() << "AudioService: Input device set to" << inputDevice_;
+}
+
+QString AudioService::outputDevice() const
+{
+    QMutexLocker lock(&mutex_);
+    return outputDevice_;
+}
+
+QString AudioService::inputDevice() const
+{
+    QMutexLocker lock(&mutex_);
+    return inputDevice_;
+}
+
 // ---- Capture (microphone input) ----
 
 void AudioService::onCaptureProcess(void* userdata)
@@ -206,7 +393,10 @@ void AudioService::onCaptureProcess(void* userdata)
     if (!buf) return;
 
     struct spa_data& d = buf->buffer->datas[0];
-    if (d.data && d.chunk->size > 0 && self->capture_.callback) {
+    // Use atomic guard to safely check callback — avoids race with
+    // closeCaptureStream() clearing the std::function on another thread.
+    if (d.data && d.chunk->size > 0 &&
+        self->capture_.callbackActive.load(std::memory_order_acquire)) {
         auto* ptr = static_cast<const uint8_t*>(d.data) + d.chunk->offset;
         int size = static_cast<int>(d.chunk->size);
         self->capture_.callback(ptr, size);
@@ -233,6 +423,8 @@ AudioStreamHandle* AudioService::openCaptureStream(const QString& name,
     handle->name = name;
     handle->priority = 0;
 
+    pw_thread_loop_lock(threadLoop_);
+
     auto props = pw_properties_new(
         PW_KEY_MEDIA_TYPE, "Audio",
         PW_KEY_MEDIA_CATEGORY, "Capture",
@@ -241,9 +433,18 @@ AudioStreamHandle* AudioService::openCaptureStream(const QString& name,
         PW_KEY_APP_NAME, "OpenAuto Prodigy",
         nullptr);
 
+    // Target specific input device if not "auto"
+    {
+        QMutexLocker lock(&mutex_);
+        if (inputDevice_ != "auto" && !inputDevice_.isEmpty()) {
+            pw_properties_set(props, PW_KEY_TARGET_OBJECT, inputDevice_.toUtf8().constData());
+        }
+    }
+
     handle->stream = pw_stream_new(core_, name.toUtf8().constData(), props);
     if (!handle->stream) {
         qWarning() << "AudioService: Failed to create PipeWire capture stream:" << name;
+        pw_thread_loop_unlock(threadLoop_);
         delete handle;
         return nullptr;
     }
@@ -277,11 +478,15 @@ AudioStreamHandle* AudioService::openCaptureStream(const QString& name,
 
     if (ret < 0) {
         qWarning() << "AudioService: Failed to connect capture stream:" << name << "error:" << ret;
+        spa_hook_remove(&captureListener_);
         pw_stream_destroy(handle->stream);
+        pw_thread_loop_unlock(threadLoop_);
         capture_.handle = nullptr;
         delete handle;
         return nullptr;
     }
+
+    pw_thread_loop_unlock(threadLoop_);
 
     qInfo() << "AudioService: Opened capture stream" << name
             << sampleRate << "Hz" << channels << "ch" << bitDepth << "bit";
@@ -293,16 +498,26 @@ void AudioService::closeCaptureStream(AudioStreamHandle* handle)
     if (!handle) return;
 
     if (capture_.handle == handle) {
+        // Disable callback atomically first — stops RT thread from invoking it
+        capture_.callbackActive.store(false, std::memory_order_release);
         capture_.callback = nullptr;
-        // Remove the spa_hook BEFORE destroying the stream — otherwise the
-        // hook's list pointers dangle and the next openCaptureStream triggers
-        // a use-after-free when pw_stream_add_listener reuses captureListener_.
-        spa_hook_remove(&captureListener_);
+
+        if (threadLoop_) {
+            pw_thread_loop_lock(threadLoop_);
+            // Remove the spa_hook BEFORE destroying the stream — otherwise the
+            // hook's list pointers dangle and the next openCaptureStream triggers
+            // a use-after-free when pw_stream_add_listener reuses captureListener_.
+            spa_hook_remove(&captureListener_);
+            if (handle->stream)
+                pw_stream_destroy(handle->stream);
+            pw_thread_loop_unlock(threadLoop_);
+        } else {
+            if (handle->stream)
+                pw_stream_destroy(handle->stream);
+        }
+
         capture_.handle = nullptr;
     }
-
-    if (handle->stream)
-        pw_stream_destroy(handle->stream);
 
     qInfo() << "AudioService: Closed capture stream" << handle->name;
     delete handle;
@@ -312,7 +527,20 @@ void AudioService::setCaptureCallback(AudioStreamHandle* handle, CaptureCallback
 {
     if (handle && capture_.handle == handle) {
         capture_.callback = std::move(cb);
+        capture_.callbackActive.store(capture_.callback != nullptr, std::memory_order_release);
     }
+}
+
+// ---- Device disconnect handling ----
+
+void AudioService::onDeviceRemoved(uint32_t registryId)
+{
+    Q_UNUSED(registryId);
+    // PipeWire/WirePlumber handles the actual rerouting when a target device
+    // disappears. Active streams will automatically fall back to the default
+    // sink/source. We just log it for diagnostics.
+    qWarning() << "AudioService: Audio device removed (registry id:" << registryId
+               << ") — PipeWire will reroute active streams to default";
 }
 
 } // namespace oap

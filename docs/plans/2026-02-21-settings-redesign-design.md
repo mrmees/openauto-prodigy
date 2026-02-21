@@ -1,4 +1,5 @@
 # Settings Page Redesign — Design Document
+> **Status:** COMPLETED
 
 ## Goal
 

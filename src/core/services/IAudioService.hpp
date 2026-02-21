@@ -25,7 +25,10 @@ public:
     /// Higher priority streams may duck or mute lower ones.
     /// Must be called from the main thread. Returns nullptr on failure
     /// (e.g., PipeWire daemon not available). Caller owns the handle.
-    virtual AudioStreamHandle* createStream(const QString& name, int priority) = 0;
+    virtual AudioStreamHandle* createStream(
+        const QString& name, int priority,
+        int sampleRate = 48000, int channels = 2,
+        const QString& targetDevice = "auto") = 0;
 
     /// Destroy a previously created stream. Safe to call with nullptr.
     /// Must be called from the main thread.
@@ -51,6 +54,18 @@ public:
     /// Release audio focus. Previously ducked streams are restored.
     /// Thread-safe.
     virtual void releaseAudioFocus(AudioStreamHandle* handle) = 0;
+
+    /// Set the default output device for new streams.
+    virtual void setOutputDevice(const QString& deviceName) = 0;
+
+    /// Set the default input device for capture streams.
+    virtual void setInputDevice(const QString& deviceName) = 0;
+
+    /// Get the current output device name ("auto" for default).
+    virtual QString outputDevice() const = 0;
+
+    /// Get the current input device name ("auto" for default).
+    virtual QString inputDevice() const = 0;
 
     // ---- Capture (microphone input) ----
     // Default implementations so existing code/tests don't break.

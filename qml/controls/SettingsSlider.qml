@@ -10,6 +10,8 @@ Item {
     property real to: 100
     property real stepSize: 1
     property bool restartRequired: false
+    property alias value: slider.value
+    signal moved()
 
     Layout.fillWidth: true
     implicitHeight: 48
@@ -60,7 +62,7 @@ Item {
             from: root.from
             to: root.to
             stepSize: root.stepSize
-            onMoved: debounce.restart()
+            onMoved: { debounce.restart(); root.moved() }
         }
 
         Text {

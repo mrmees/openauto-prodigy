@@ -1,4 +1,5 @@
 # Settings Page Redesign Implementation Plan
+> **Status:** COMPLETED
 
 > **For Claude:** REQUIRED SUB-SKILL: Use superpowers:executing-plans to implement this plan task-by-task.
 

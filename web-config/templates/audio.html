@@ -1,0 +1,66 @@
+{% extends "base.html" %}
+{% block title %}Audio{% endblock %}
+{% block content %}
+<h1>Audio Settings</h1>
+
+<form id="audioForm">
+    <div class="card">
+        <h3>Output Device</h3>
+        <div class="form-group">
+            <label for="output_device">Playback Device</label>
+            <select id="output_device">
+                <option value="auto" {{ 'selected' if audio_config.get('output_device', 'auto') == 'auto' }}>Auto (default)</option>
+                {% for dev in devices.get('outputs', []) %}
+                <option value="{{ dev.nodeName }}" {{ 'selected' if audio_config.get('output_device') == dev.nodeName }}>{{ dev.description or dev.nodeName }}</option>
+                {% endfor %}
+            </select>
+        </div>
+    </div>
+
+    <div class="card">
+        <h3>Input Device</h3>
+        <div class="form-group">
+            <label for="input_device">Microphone</label>
+            <select id="input_device">
+                <option value="auto" {{ 'selected' if audio_config.get('input_device', 'auto') == 'auto' }}>Auto (default)</option>
+                {% for dev in devices.get('inputs', []) %}
+                <option value="{{ dev.nodeName }}" {{ 'selected' if audio_config.get('input_device') == dev.nodeName }}>{{ dev.description or dev.nodeName }}</option>
+                {% endfor %}
+            </select>
+        </div>
+    </div>
+
+    <div class="card">
+        <h3>Volume</h3>
+        <div class="form-group">
+            <label for="master_volume">Master Volume: <span id="volume_label">{{ audio_config.get('master_volume', 80) }}</span>%</label>
+            <input type="range" id="master_volume" min="0" max="100" value="{{ audio_config.get('master_volume', 80) }}">
+        </div>
+    </div>
+
+    <button type="submit">Save Audio Settings</button>
+</form>
+{% endblock %}
+
+{% block scripts %}
+<script>
+const volumeSlider = document.getElementById('master_volume');
+const volumeLabel = document.getElementById('volume_label');
+volumeSlider.addEventListener('input', () => {
+    volumeLabel.textContent = volumeSlider.value;
+});
+
+document.getElementById('audioForm').addEventListener('submit', async (e) => {
+    e.preventDefault();
+    const data = {
+        output_device: document.getElementById('output_device').value,
+        input_device: document.getElementById('input_device').value,
+        master_volume: parseInt(document.getElementById('master_volume').value),
+    };
+    const result = await apiCall('POST', '/api/audio/config', data);
+    if (result && !result.error) {
+        showToast('Audio settings saved');
+    }
+});
+</script>
+{% endblock %}

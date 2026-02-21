@@ -18,12 +18,12 @@ The install script (`install.sh`) handles WiFi AP configuration automatically:
 
 Run `bash install.sh` for the guided setup. The sections below are for manual configuration or troubleshooting.
 
-## 1. WiFi Access Point (hostapd + dnsmasq)
+## 1. WiFi Access Point (hostapd + systemd-networkd)
 
 ### Install packages
 
 ```bash
-sudo apt install hostapd dnsmasq
+sudo apt install hostapd
 ```
 
 ### Configure hostapd
@@ -92,21 +92,12 @@ sudo systemctl start systemd-networkd
 
 For manual setup without the install script, create this file and adjust the interface name and IP.
 
-### Configure dnsmasq
-
-Create `/etc/dnsmasq.d/openauto.conf`:
-
-```ini
-interface=wlan0
-dhcp-range=10.0.0.10,10.0.0.50,255.255.255.0,24h
-```
-
 ### Enable and start
 
 ```bash
 sudo systemctl unmask hostapd
-sudo systemctl enable hostapd dnsmasq
-sudo systemctl start hostapd dnsmasq
+sudo systemctl enable hostapd systemd-networkd
+sudo systemctl start hostapd systemd-networkd
 ```
 
 ### Multiple wireless interfaces

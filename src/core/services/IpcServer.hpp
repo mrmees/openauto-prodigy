@@ -9,6 +9,7 @@ namespace oap {
 
 class YamlConfig;
 class ThemeService;
+class AudioService;
 class PluginManager;
 
 /// Unix domain socket IPC server for the web config panel.
@@ -30,6 +31,7 @@ public:
     // Inject dependencies
     void setConfig(YamlConfig* config, const QString& configPath);
     void setThemeService(ThemeService* themeService);
+    void setAudioService(AudioService* audioService);
     void setPluginManager(PluginManager* pluginManager);
 
 private slots:
@@ -45,11 +47,15 @@ private:
     QByteArray handleSetTheme(const QVariantMap& data);
     QByteArray handleListPlugins();
     QByteArray handleStatus();
+    QByteArray handleGetAudioDevices();
+    QByteArray handleGetAudioConfig();
+    QByteArray handleSetAudioConfig(const QVariantMap& data);
 
     QLocalServer* server_ = nullptr;
     YamlConfig* config_ = nullptr;
     QString configPath_;
     ThemeService* themeService_ = nullptr;
+    AudioService* audioService_ = nullptr;
     PluginManager* pluginManager_ = nullptr;
 };
 

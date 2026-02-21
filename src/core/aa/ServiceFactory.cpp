@@ -96,7 +96,7 @@ public:
         if (audioService_) {
             audioStream_ = audioService_->createStream(
                 streamName.isEmpty() ? QString("AA Channel %1").arg(static_cast<int>(ChannelIdValue)) : streamName,
-                streamPriority);
+                streamPriority, SampleRate, ChannelCount);
         }
     }
 

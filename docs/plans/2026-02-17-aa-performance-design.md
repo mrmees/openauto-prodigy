@@ -1,4 +1,5 @@
 # Android Auto Wireless Performance Optimization — Design
+> **Status:** COMPLETED
 
 **Goal:** Make AA video streaming and touch input feel as responsive as a commercial head unit. Measure first, fix in priority order, stop when good enough.
 

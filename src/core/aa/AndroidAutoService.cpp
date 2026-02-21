@@ -20,6 +20,9 @@
 
 #include <netinet/tcp.h>
 #include <sys/socket.h>
+#include <fcntl.h>
+#include <thread>
+#include <chrono>
 
 #ifdef HAS_BLUETOOTH
 #include "BluetoothDiscoveryService.hpp"
@@ -107,6 +110,14 @@ void AndroidAutoService::stop()
 {
     BOOST_LOG_TRIVIAL(info) << "[AAService] Stopping Android Auto service";
 
+    // If connected, send graceful AA shutdown so the phone knows we're leaving.
+    // ASIO threads are still alive here so the strand can dispatch the send.
+    if (entity_ && (state_ == Connected || state_ == Backgrounded)) {
+        BOOST_LOG_TRIVIAL(info) << "[AAService] Sending graceful shutdown to phone";
+        entity_->requestShutdown();
+        std::this_thread::sleep_for(std::chrono::milliseconds(300));
+    }
+
     // Stop night mode provider
     if (nightProvider_) {
         nightProvider_->stop();
@@ -177,8 +188,22 @@ void AndroidAutoService::startTCPListener()
             auto endpoint = boost::asio::ip::tcp::endpoint(
                 boost::asio::ip::tcp::v4(), port);
 
-            tcpAcceptor_ = std::make_unique<boost::asio::ip::tcp::acceptor>(*ioService_, endpoint);
+            // Must set SO_REUSEADDR BEFORE bind — the 2-arg constructor
+            // does open+bind+listen in one shot, which is too late.
+            tcpAcceptor_ = std::make_unique<boost::asio::ip::tcp::acceptor>(*ioService_);
+            tcpAcceptor_->open(endpoint.protocol());
+
+            // Prevent forked processes (e.g. restart shell) from inheriting
+            // this socket FD — without this, QProcess::startDetached keeps
+            // the port occupied and the new instance can't bind.
+            int fd = tcpAcceptor_->native_handle();
+            int flags = ::fcntl(fd, F_GETFD);
+            if (flags >= 0)
+                ::fcntl(fd, F_SETFD, flags | FD_CLOEXEC);
+
             tcpAcceptor_->set_option(boost::asio::ip::tcp::acceptor::reuse_address(true));
+            tcpAcceptor_->bind(endpoint);
+            tcpAcceptor_->listen();
 
             BOOST_LOG_TRIVIAL(info) << "[AAService] TCP listener started on port " << port;
         }

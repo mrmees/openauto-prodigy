@@ -4,65 +4,66 @@
 
 Open-source replacement for OpenAuto Pro — a Raspberry Pi-based Android Auto head unit application.
 
-**Status: Phase 1 — Core AA Functionality (Video + Touch Working)**
+**Status: v0.3.0 — Wireless AA with audio, settings, and plugin architecture**
 
 ## What Is This?
 
 [OpenAuto Pro](https://bluewavestudio.io/) was a commercial Android Auto head unit app for Raspberry Pi by BlueWave Studio. The company went defunct, leaving users with no updates and no path forward. OpenAuto Prodigy is a clean-room rebuild using recovered QML layouts and protobuf definitions as specifications — not copying code.
 
-## Phase 1 Progress
+## Features
 
-| # | Task | Status |
-|---|------|--------|
-| 1 | Repository & build system | Done |
-| 2 | Configuration system | Done |
-| 3 | Theme engine | Done |
-| 4 | QML UI shell | Done |
-| 5 | AA service layer (TCP, handshake, 8 channels) | Done |
-| 6 | Video pipeline (FFmpeg H.264 → QVideoSink) | **Working** — 1280x720 @ 30fps on Pi 4 |
-| 7 | Touch input | **Working** — multi-touch with debug overlay |
-| 8 | Fullscreen mode | **Working** — OS-level fullscreen on Wayland/labwc |
-| 9 | Audio pipeline | Pending |
-| 10 | Settings UI | Pending |
-| 11 | Integration & polish | In progress |
-
-### Wireless-Only Architecture
-USB transport was abandoned after service channels consistently failed to open despite successful handshakes. The project now uses wireless-only AA: Bluetooth discovery → WiFi credential exchange → TCP on port 5288. See [docs/wireless-setup.md](docs/wireless-setup.md) for Pi setup and [PICKUP.md](PICKUP.md) for full project state.
+- **Wireless Android Auto** — BT discovery → WiFi AP → TCP (no USB)
+- **H.264 video** at 1280x720 @ 30fps (FFmpeg software decode)
+- **Multi-touch input** via direct evdev (auto-detected, bypasses Qt/Wayland)
+- **Audio pipeline** — PipeWire with lock-free ring buffers for AA media/nav/phone streams
+- **Audio device selection** — hot-plug USB audio detection, output/input device selection in Settings
+- **Plugin architecture** — lifecycle-managed plugins with shared services via IHostContext
+- **Bluetooth audio** — A2DP sink + AVRCP controls via BlueZ D-Bus
+- **Phone** — HFP dialer + incoming call overlay via BlueZ D-Bus
+- **Settings UI** — Audio, Display, Connection, Video, System, About pages
+- **Theme system** — day/night mode with YAML-based color definitions
+- **YAML configuration** — deep merge, hot-reload, web config panel (Flask)
+- **3-finger gesture overlay** — volume, brightness, home, day/night toggle
+- **Connection watchdog** — TCP_INFO polling detects dead peers on local WiFi AP
+- **Graceful AA shutdown** — sends ShutdownRequest to phone before exit/restart
 
 ## Architecture
 
 ```
 src/
-├── main.cpp                          # Entry point, QML engine, context properties, auto-nav
+├── main.cpp                            # Entry point, QML engine, plugin registration
 ├── core/
-│   ├── Configuration.hpp/cpp         # INI config (backward-compatible with OAP)
+│   ├── YamlConfig.hpp/cpp              # YAML config with deep merge
+│   ├── InputDeviceScanner.hpp/cpp      # Touch device auto-detection
+│   ├── plugin/                         # Plugin infrastructure (IPlugin, PluginManager, Discovery)
+│   ├── services/
+│   │   ├── AudioService.hpp/cpp        # PipeWire stream management + ring buffer bridge
+│   │   ├── PipeWireDeviceRegistry.hpp/cpp  # Hot-plug device enumeration
+│   │   ├── ThemeService.hpp/cpp        # Day/night theme colors
+│   │   ├── ConfigService.hpp/cpp       # QML-accessible config read/write
+│   │   └── IpcServer.hpp/cpp           # Unix socket IPC for web config
 │   └── aa/
 │       ├── AndroidAutoService.hpp/cpp  # AA lifecycle, TCP transport, BT integration
 │       ├── AndroidAutoEntity.hpp/cpp   # Protocol entity, control channel, handshake
-│       ├── ServiceFactory.hpp/cpp      # Creates all service instances
-│       ├── VideoService.hpp/cpp        # H.264 data → Qt main thread
-│       ├── VideoDecoder.hpp/cpp        # FFmpeg H.264 → QVideoFrame (YUV420P)
-│       ├── TouchHandler.hpp/cpp        # QML touch → AA InputEventIndication protobuf
-│       ├── BluetoothDiscoveryService.hpp/cpp  # BT RFCOMM, WiFi cred handshake
-│       └── IService.hpp               # Service interface
-├── ui/
-│   ├── ThemeController.hpp/cpp       # Day/night theme, QML context property
-│   ├── ApplicationController.hpp/cpp # Navigation stack
-│   └── ApplicationTypes.hpp          # App type enum
+│       ├── VideoDecoder.hpp/cpp        # FFmpeg H.264 → QVideoFrame
+│       ├── EvdevTouchReader.hpp/cpp    # Direct evdev multi-touch + 3-finger gesture
+│       └── TouchHandler.hpp/cpp        # Touch → AA protobuf bridge
+├── plugins/
+│   ├── android_auto/                   # AA plugin (video, touch, audio channels)
+│   ├── bt_audio/                       # Bluetooth A2DP + AVRCP via BlueZ D-Bus
+│   └── phone/                          # HFP dialer + incoming call overlay
+└── ui/
+    ├── ApplicationController.hpp/cpp   # Navigation, restart, quit
+    ├── PluginModel.hpp/cpp             # QAbstractListModel for nav strip
+    └── AudioDeviceModel.hpp/cpp        # Device selection for QML ComboBoxes
 qml/
-├── main.qml                          # Root window, fullscreen toggle
-├── applications/
-│   ├── android_auto/AndroidAutoMenu.qml  # VideoOutput + touch input + debug overlay
-│   ├── home/HomeMenu.qml
-│   ├── launcher/LauncherMenu.qml
-│   └── settings/SettingsMenu.qml
-├── components/                       # TopBar, BottomBar, Clock, Wallpaper
-└── controls/                         # Icon, Tile, NormalText, SpecialText
+├── components/                         # Shell, TopBar, BottomBar, NavStrip, GestureOverlay
+├── controls/                           # Tile, Icon, SettingsSlider, SettingsToggle, etc.
+└── applications/                       # Plugin views (launcher, android_auto, settings, etc.)
 libs/
-└── aasdk/                            # SonOfGib's aasdk fork (git submodule)
-tests/
-├── test_configuration.cpp            # 2 tests passing
-└── test_theme_controller.cpp
+└── aasdk/                              # SonOfGib's aasdk fork (git submodule)
+tests/                                  # 17 unit tests
+web-config/                             # Flask web config panel
 ```
 
 ## Target Platform
@@ -87,7 +88,8 @@ sudo apt install cmake qt6-base-dev qt6-declarative-dev qt6-wayland \
   libboost-system-dev libboost-log-dev \
   libprotobuf-dev protobuf-compiler libssl-dev \
   libavcodec-dev libavutil-dev \
-  hostapd dnsmasq
+  libpipewire-0.3-dev \
+  hostapd
 
 # Build
 git clone --recurse-submodules https://github.com/mrmees/openauto-prodigy.git
@@ -104,16 +106,22 @@ export XDG_RUNTIME_DIR=/run/user/1000 WAYLAND_DISPLAY=wayland-0 QT_QPA_PLATFORM=
 ### Tests
 
 ```bash
-cd build && ctest --output-on-failure
+cd build && ctest --output-on-failure  # 17 tests
 ```
 
 ## Key Design Decisions
 
 - **FFmpeg software decode** over V4L2 hardware (kernel 6.x regression, see [docs/design-decisions.md](docs/design-decisions.md))
 - **QVideoSink + VideoOutput** for rendering (canonical Qt 6 approach)
-- **INI config format** backward-compatible with original OAP config files
+- **YAML configuration** with deep merge and hot-reload via ConfigService
 - **Wireless-only** — USB AOAP never reliably opened service channels; wireless works first try
 - **5GHz WiFi AP** — mandatory for Pi 4/5 due to BT/WiFi coexistence on shared CYW43455 antenna
+- **PipeWire C API** with lock-free SPSC ring buffers bridging ASIO threads to PipeWire RT thread
+- **Direct evdev** for touch input — Qt/Wayland touch stack causes duplicate events and breaks multi-touch
+
+## Documentation
+
+See [docs/INDEX.md](docs/INDEX.md) for a map of all project documentation.
 
 ## Related Resources
 
