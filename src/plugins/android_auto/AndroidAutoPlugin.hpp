@@ -10,7 +10,6 @@ namespace oap {
 
 class Configuration;
 class YamlConfig;
-class ApplicationController;
 class IHostContext;
 
 namespace aa {
@@ -38,7 +37,6 @@ class AndroidAutoPlugin : public QObject, public IPlugin {
 
 public:
     explicit AndroidAutoPlugin(std::shared_ptr<oap::Configuration> config,
-                               oap::ApplicationController* appController,
                                oap::YamlConfig* yamlConfig = nullptr,
                                QObject* parent = nullptr);
     ~AndroidAutoPlugin() override;
@@ -66,15 +64,13 @@ public:
     QStringList requiredServices() const override { return {}; }
     bool wantsFullscreen() const override { return true; }
 
-    /// Transition helper: exposes AA objects as global QML context properties.
-    /// Shell.qml currently references AndroidAutoService.connectionState globally.
-    /// TODO: Remove once Shell uses PluginModel.activePluginFullscreen instead.
-    void setGlobalContextProperties(QQmlContext* rootContext);
+signals:
+    void requestActivation();
+    void requestDeactivation();
 
 private:
     std::shared_ptr<oap::Configuration> config_;
     oap::YamlConfig* yamlConfig_ = nullptr;
-    oap::ApplicationController* appController_ = nullptr;
     IHostContext* hostContext_ = nullptr;
 
     oap::aa::AndroidAutoService* aaService_ = nullptr;

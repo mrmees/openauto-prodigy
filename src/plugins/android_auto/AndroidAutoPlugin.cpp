@@ -2,8 +2,6 @@
 #include "core/aa/AndroidAutoService.hpp"
 #include "core/aa/EvdevTouchReader.hpp"
 #include "core/plugin/IHostContext.hpp"
-#include "ui/ApplicationController.hpp"
-#include "ui/ApplicationTypes.hpp"
 #include "core/Configuration.hpp"
 #include "core/InputDeviceScanner.hpp"
 #include "core/services/IConfigService.hpp"
@@ -15,13 +13,11 @@ namespace oap {
 namespace plugins {
 
 AndroidAutoPlugin::AndroidAutoPlugin(std::shared_ptr<oap::Configuration> config,
-                                     oap::ApplicationController* appController,
                                      oap::YamlConfig* yamlConfig,
                                      QObject* parent)
     : QObject(parent)
     , config_(std::move(config))
     , yamlConfig_(yamlConfig)
-    , appController_(appController)
 {
 }
 
@@ -38,22 +34,17 @@ bool AndroidAutoPlugin::initialize(IHostContext* context)
     auto* audioService = context ? context->audioService() : nullptr;
     aaService_ = new oap::aa::AndroidAutoService(config_, audioService, yamlConfig_, this);
 
-    // Connect navigation: auto-switch to AA on connect, back to launcher on disconnect.
-    // TODO: Replace ApplicationController dependency with IEventBus publish.
+    // Connect navigation: emit signals for PluginModel to handle activation/deactivation.
     QObject::connect(aaService_, &oap::aa::AndroidAutoService::connectionStateChanged,
-                     appController_, [this]() {
+                     this, [this]() {
         using CS = oap::aa::AndroidAutoService;
         if (aaService_->connectionState() == CS::Connected) {
-            // Grab touch device for AA coordinate mapping
             if (touchReader_) touchReader_->grab();
-            appController_->navigateTo(oap::ApplicationTypes::AndroidAuto);
+            emit requestActivation();
         } else if (aaService_->connectionState() == CS::Disconnected
                    || aaService_->connectionState() == CS::WaitingForDevice) {
-            // Release touch device back to Wayland for normal UI
             if (touchReader_) touchReader_->ungrab();
-            if (appController_->currentApplication() == oap::ApplicationTypes::AndroidAuto) {
-                appController_->navigateTo(oap::ApplicationTypes::Launcher);
-            }
+            emit requestDeactivation();
         }
     });
 
@@ -139,17 +130,6 @@ QUrl AndroidAutoPlugin::qmlComponent() const
 QUrl AndroidAutoPlugin::iconSource() const
 {
     return {};  // Font-based icons — see MaterialIcon.qml (\ueff7 directions_car)
-}
-
-void AndroidAutoPlugin::setGlobalContextProperties(QQmlContext* rootContext)
-{
-    if (!rootContext || !aaService_) return;
-
-    // Transition: Shell.qml references AndroidAutoService.connectionState globally.
-    // Once Shell uses PluginModel.activePluginFullscreen, these can be removed.
-    rootContext->setContextProperty("AndroidAutoService", aaService_);
-    rootContext->setContextProperty("VideoDecoder", aaService_->videoDecoder());
-    rootContext->setContextProperty("TouchHandler", aaService_->touchHandler());
 }
 
 } // namespace plugins

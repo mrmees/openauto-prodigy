@@ -75,7 +75,7 @@ int main(int argc, char *argv[])
     oap::PluginManager pluginManager(&app);
 
     // Register static (compiled-in) plugins
-    auto aaPlugin = new oap::plugins::AndroidAutoPlugin(config, appController, yamlConfig.get(), &app);
+    auto aaPlugin = new oap::plugins::AndroidAutoPlugin(config, yamlConfig.get(), &app);
     pluginManager.registerStaticPlugin(aaPlugin);
 
     auto btAudioPlugin = new oap::plugins::BtAudioPlugin(&app);
@@ -109,12 +109,19 @@ int main(int argc, char *argv[])
     engine.rootContext()->setContextProperty("PluginModel", pluginModel);
     engine.rootContext()->setContextProperty("LauncherModel", launcherModel);
 
-    // Transition: expose AA objects globally for Shell.qml fullscreen check.
-    // TODO: Remove once Shell uses PluginModel.activePluginFullscreen.
-    aaPlugin->setGlobalContextProperties(engine.rootContext());
-
     // Expose PhonePlugin globally for IncomingCallOverlay in Shell.qml
     engine.rootContext()->setContextProperty("PhonePlugin", phonePlugin);
+
+    // Wire AA plugin activation/deactivation to PluginModel
+    QObject::connect(aaPlugin, &oap::plugins::AndroidAutoPlugin::requestActivation,
+                     pluginModel, [pluginModel]() {
+        pluginModel->setActivePlugin("org.openauto.android-auto");
+    });
+    QObject::connect(aaPlugin, &oap::plugins::AndroidAutoPlugin::requestDeactivation,
+                     pluginModel, [pluginModel]() {
+        if (pluginModel->activePluginId() == "org.openauto.android-auto")
+            pluginModel->setActivePlugin(QString());
+    });
 
     // Qt 6.5+ uses /qt/qml/ prefix, Qt 6.4 uses direct URI prefix
     QUrl url(QStringLiteral("qrc:/OpenAutoProdigy/main.qml"));
