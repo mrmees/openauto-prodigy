@@ -19,6 +19,8 @@ public:
     int currentApplication() const { return currentApp_; }
     QString currentTitle() const { return currentTitle_; }
 
+    /// @deprecated Use PluginModel::setActivePlugin() for plugin navigation.
+    /// Kept for built-in screens (settings) that aren't yet plugins.
     Q_INVOKABLE void navigateTo(int appType);
     Q_INVOKABLE void navigateBack();
     Q_INVOKABLE void setTitle(const QString &title);
