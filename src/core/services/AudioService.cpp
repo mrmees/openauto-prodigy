@@ -52,6 +52,9 @@ AudioService::AudioService(QObject* parent)
     qInfo() << "AudioService: Connected to PipeWire daemon";
 
     deviceRegistry_.start(threadLoop_, core_);
+
+    connect(&deviceRegistry_, &PipeWireDeviceRegistry::deviceRemoved,
+            this, &AudioService::onDeviceRemoved);
 }
 
 AudioService::~AudioService()
@@ -505,6 +508,18 @@ void AudioService::setCaptureCallback(AudioStreamHandle* handle, CaptureCallback
     if (handle && capture_.handle == handle) {
         capture_.callback = std::move(cb);
     }
+}
+
+// ---- Device disconnect handling ----
+
+void AudioService::onDeviceRemoved(uint32_t registryId)
+{
+    Q_UNUSED(registryId);
+    // PipeWire/WirePlumber handles the actual rerouting when a target device
+    // disappears. Active streams will automatically fall back to the default
+    // sink/source. We just log it for diagnostics.
+    qWarning() << "AudioService: Audio device removed (registry id:" << registryId
+               << ") — PipeWire will reroute active streams to default";
 }
 
 } // namespace oap

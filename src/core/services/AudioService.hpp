@@ -76,6 +76,12 @@ public:
     void closeCaptureStream(AudioStreamHandle* handle) override;
     void setCaptureCallback(AudioStreamHandle* handle, CaptureCallback cb) override;
 
+signals:
+    void deviceFallback(const QString& lostDevice);
+
+private slots:
+    void onDeviceRemoved(uint32_t registryId);
+
 private:
     void applyDucking();
     static void onPlaybackProcess(void* userdata);
