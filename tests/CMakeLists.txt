@@ -176,6 +176,13 @@ target_include_directories(test_plugin_model PRIVATE ${CMAKE_SOURCE_DIR}/src)
 target_link_libraries(test_plugin_model PRIVATE
     Qt6::Core Qt6::Quick Qt6::Test yaml-cpp::yaml-cpp Boost::log)
 
+add_executable(test_action_registry
+    test_action_registry.cpp
+    ${CMAKE_SOURCE_DIR}/src/core/services/ActionRegistry.cpp
+)
+target_include_directories(test_action_registry PRIVATE ${CMAKE_SOURCE_DIR}/src)
+target_link_libraries(test_action_registry PRIVATE Qt6::Core Qt6::Test Boost::log)
+
 add_executable(test_event_bus
     test_event_bus.cpp
     ${CMAKE_SOURCE_DIR}/src/core/services/EventBus.cpp
@@ -196,3 +203,4 @@ add_test(NAME test_audio_service COMMAND test_audio_service)
 add_test(NAME test_input_device_scanner COMMAND test_input_device_scanner)
 add_test(NAME test_plugin_model COMMAND test_plugin_model)
 add_test(NAME test_event_bus COMMAND test_event_bus)
+add_test(NAME test_action_registry COMMAND test_action_registry)

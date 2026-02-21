@@ -25,6 +25,7 @@ qt_add_executable(openauto-prodigy
     core/services/AudioService.cpp
     core/services/IpcServer.cpp
     core/services/EventBus.cpp
+    core/services/ActionRegistry.cpp
     core/plugin/PluginManifest.cpp
     core/plugin/PluginDiscovery.cpp
     core/plugin/PluginLoader.cpp
