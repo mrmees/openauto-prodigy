@@ -160,8 +160,8 @@ setup_hardware() {
         read -p "WiFi hotspot SSID [OpenAutoProdigy]: " WIFI_SSID
         WIFI_SSID=${WIFI_SSID:-OpenAutoProdigy}
 
-        read -p "WiFi hotspot password [openauto123]: " WIFI_PASS
-        WIFI_PASS=${WIFI_PASS:-openauto123}
+        read -p "WiFi hotspot password [prodigy]: " WIFI_PASS
+        WIFI_PASS=${WIFI_PASS:-prodigy}
 
         read -p "AP static IP [10.0.0.1]: " AP_IP
         AP_IP=${AP_IP:-10.0.0.1}

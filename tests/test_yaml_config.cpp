@@ -29,8 +29,8 @@ void TestYamlConfig::testLoadDefaults()
     QCOMPARE(config.hardwareProfile(), QString("rpi4"));
     QCOMPARE(config.displayBrightness(), 80);
     QCOMPARE(config.wifiSsid(), QString("OpenAutoProdigy"));
-    QCOMPARE(config.tcpPort(), static_cast<uint16_t>(5288));
-    QCOMPARE(config.videoFps(), 60);
+    QCOMPARE(config.tcpPort(), static_cast<uint16_t>(5277));
+    QCOMPARE(config.videoFps(), 30);
     QCOMPARE(config.autoConnectAA(), true);
     QCOMPARE(config.masterVolume(), 80);
 }
@@ -185,15 +185,15 @@ void TestYamlConfig::testValueByPath()
 {
     oap::YamlConfig config;
     QCOMPARE(config.valueByPath("hardware_profile").toString(), QString("rpi4"));
-    QCOMPARE(config.valueByPath("connection.tcp_port").toInt(), 5288);
-    QCOMPARE(config.valueByPath("video.fps").toInt(), 60);
+    QCOMPARE(config.valueByPath("connection.tcp_port").toInt(), 5277);
+    QCOMPARE(config.valueByPath("video.fps").toInt(), 30);
 }
 
 void TestYamlConfig::testValueByPathNested()
 {
     oap::YamlConfig config;
     QCOMPARE(config.valueByPath("connection.wifi_ap.ssid").toString(), QString("OpenAutoProdigy"));
-    QCOMPARE(config.valueByPath("connection.wifi_ap.password").toString(), QString("changeme123"));
+    QCOMPARE(config.valueByPath("connection.wifi_ap.password").toString(), QString("prodigy"));
     QCOMPARE(config.valueByPath("sensors.night_mode.source").toString(), QString("time"));
     QCOMPARE(config.valueByPath("sensors.gps.enabled").toBool(), true);
 }

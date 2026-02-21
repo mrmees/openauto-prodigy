@@ -24,17 +24,17 @@ void YamlConfig::initDefaults()
     root_["connection"]["auto_connect_aa"] = true;
     root_["connection"]["bt_discoverable"] = true;
     root_["connection"]["wifi_ap"]["ssid"] = "OpenAutoProdigy";
-    root_["connection"]["wifi_ap"]["password"] = "changeme123";
+    root_["connection"]["wifi_ap"]["password"] = "prodigy";
     root_["connection"]["wifi_ap"]["channel"] = 36;
     root_["connection"]["wifi_ap"]["band"] = "a";
-    root_["connection"]["tcp_port"] = 5288;
+    root_["connection"]["tcp_port"] = 5277;
 
     root_["audio"]["master_volume"] = 80;
     root_["audio"]["output_device"] = "auto";
     root_["audio"]["microphone"]["device"] = "auto";
     root_["audio"]["microphone"]["gain"] = 1.0;
 
-    root_["video"]["fps"] = 60;
+    root_["video"]["fps"] = 30;
     root_["video"]["resolution"] = "720p";
     root_["video"]["dpi"] = 140;
 
@@ -174,7 +174,7 @@ void YamlConfig::setWifiSsid(const QString& v)
 QString YamlConfig::wifiPassword() const
 {
     return QString::fromStdString(
-        root_["connection"]["wifi_ap"]["password"].as<std::string>("changeme123"));
+        root_["connection"]["wifi_ap"]["password"].as<std::string>("prodigy"));
 }
 
 void YamlConfig::setWifiPassword(const QString& v)
@@ -195,7 +195,7 @@ void YamlConfig::setWifiInterface(const QString& v)
 
 uint16_t YamlConfig::tcpPort() const
 {
-    return static_cast<uint16_t>(root_["connection"]["tcp_port"].as<int>(5288));
+    return static_cast<uint16_t>(root_["connection"]["tcp_port"].as<int>(5277));
 }
 
 void YamlConfig::setTcpPort(uint16_t v)
@@ -219,7 +219,7 @@ void YamlConfig::setMasterVolume(int v)
 
 int YamlConfig::videoFps() const
 {
-    return root_["video"]["fps"].as<int>(60);
+    return root_["video"]["fps"].as<int>(30);
 }
 
 void YamlConfig::setVideoFps(int v)
