@@ -35,6 +35,10 @@ public:
     virtual QUrl iconSource() const = 0;
     virtual QUrl settingsComponent() const { return {}; }
 
+    /// Material icon codepoint for nav strip (e.g. "\ue88a" for home).
+    /// Preferred over iconSource() for font-based icons.
+    virtual QString iconText() const { return {}; }
+
     // Capabilities
     virtual QStringList requiredServices() const = 0;
 

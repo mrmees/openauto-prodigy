@@ -292,15 +292,23 @@ void AndroidAutoEntity::onShutdownResponse(
 void AndroidAutoEntity::onNavigationFocusRequest(
     const aasdk::proto::messages::NavigationFocusRequest& request)
 {
-    BOOST_LOG_TRIVIAL(info) << "[AndroidAutoEntity] Navigation focus request";
+    BOOST_LOG_TRIVIAL(info) << "[AndroidAutoEntity] Navigation focus request (type="
+                            << request.type() << ")";
 
     aasdk::proto::messages::NavigationFocusResponse response;
-    response.set_type(1); // 1 = projected/focused
+    response.set_type(request.type());
+
+    // type 1 = gain projection focus, type 2 = release (exit to car)
+    bool exitToCar = (request.type() != 1);
 
     auto promise = aasdk::channel::SendPromise::defer(strand_);
-    promise->then([]() {},
-        std::bind(&AndroidAutoEntity::onChannelSendError,
-                  this->shared_from_this(), std::placeholders::_1));
+    promise->then([this, self = this->shared_from_this(), exitToCar]() {
+        if (exitToCar && eventHandler_) {
+            BOOST_LOG_TRIVIAL(info) << "[AndroidAutoEntity] Projection focus released — exit to car";
+            eventHandler_->onProjectionFocusLost();
+        }
+    }, std::bind(&AndroidAutoEntity::onChannelSendError,
+                 this->shared_from_this(), std::placeholders::_1));
 
     controlChannel_->sendNavigationFocusResponse(response, std::move(promise));
     controlChannel_->receive(this->shared_from_this());

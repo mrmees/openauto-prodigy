@@ -34,6 +34,8 @@ class IAudioService;
 
 namespace aa {
 
+class VideoService;
+
 class AndroidAutoService : public QObject, public IAndroidAutoEntityEventHandler
 {
     Q_OBJECT
@@ -45,7 +47,8 @@ public:
         Disconnected = 0,
         WaitingForDevice,
         Connecting,
-        Connected
+        Connected,
+        Backgrounded   // AA session alive but user exited to head unit UI
     };
     Q_ENUM(ConnectionState)
 
@@ -57,6 +60,7 @@ public:
 
     Q_INVOKABLE void start();
     Q_INVOKABLE void stop();
+    void requestVideoFocus();
 
     VideoDecoder* videoDecoder() { return videoDecoder_; }
     TouchHandler* touchHandler() { return touchHandler_; }
@@ -67,6 +71,7 @@ public:
     // IAndroidAutoEntityEventHandler
     void onConnected() override;
     void onDisconnected() override;
+    void onProjectionFocusLost() override;
     void onError(const std::string& message) override;
 
 signals:
@@ -107,6 +112,7 @@ private:
     oap::IAudioService* audioService_ = nullptr;
     oap::YamlConfig* yamlConfig_ = nullptr;
     std::unique_ptr<NightModeProvider> nightProvider_;
+    std::shared_ptr<VideoService> videoService_;
     ConnectionState state_ = Disconnected;
     QString statusMessage_;
 

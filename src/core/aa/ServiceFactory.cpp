@@ -761,7 +761,7 @@ public:
 // Factory
 // ============================================================================
 
-IService::ServiceList ServiceFactory::create(
+ServiceFactoryResult ServiceFactory::create(
     boost::asio::io_service& ioService,
     aasdk::messenger::IMessenger::Pointer messenger,
     std::shared_ptr<oap::Configuration> config,
@@ -773,7 +773,8 @@ IService::ServiceList ServiceFactory::create(
 {
     IService::ServiceList services;
 
-    services.push_back(std::make_shared<VideoService>(ioService, messenger, config, videoDecoder, yamlConfig));
+    auto videoService = std::make_shared<VideoService>(ioService, messenger, config, videoDecoder, yamlConfig);
+    services.push_back(videoService);
     services.push_back(std::make_shared<MediaAudioServiceStub>(ioService, messenger, audioService, "AA Media", 50));
     services.push_back(std::make_shared<SpeechAudioServiceStub>(ioService, messenger, audioService, "AA Navigation", 80));
     services.push_back(std::make_shared<SystemAudioServiceStub>(ioService, messenger, audioService, "AA System", 60));
@@ -797,7 +798,7 @@ IService::ServiceList ServiceFactory::create(
     // so the phone's ChannelOpenRequest for it goes unanswered, stalling the connection.
 
     BOOST_LOG_TRIVIAL(info) << "[ServiceFactory] Created " << services.size() << " services";
-    return services;
+    return {std::move(services), std::move(videoService)};
 }
 
 } // namespace aa

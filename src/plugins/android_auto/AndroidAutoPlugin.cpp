@@ -38,11 +38,16 @@ bool AndroidAutoPlugin::initialize(IHostContext* context)
     QObject::connect(aaService_, &oap::aa::AndroidAutoService::connectionStateChanged,
                      this, [this]() {
         using CS = oap::aa::AndroidAutoService;
-        if (aaService_->connectionState() == CS::Connected) {
+        auto state = static_cast<CS::ConnectionState>(aaService_->connectionState());
+        if (state == CS::Connected) {
             if (touchReader_) touchReader_->grab();
             emit requestActivation();
-        } else if (aaService_->connectionState() == CS::Disconnected
-                   || aaService_->connectionState() == CS::WaitingForDevice) {
+        } else if (state == CS::Backgrounded) {
+            // Exit to car: hide AA view but keep session alive
+            if (touchReader_) touchReader_->ungrab();
+            emit requestDeactivation();
+        } else if (state == CS::Disconnected
+                   || state == CS::WaitingForDevice) {
             if (touchReader_) touchReader_->ungrab();
             emit requestDeactivation();
         }
@@ -113,11 +118,23 @@ void AndroidAutoPlugin::onActivated(QQmlContext* context)
     context->setContextProperty("AndroidAutoService", aaService_);
     context->setContextProperty("VideoDecoder", aaService_->videoDecoder());
     context->setContextProperty("TouchHandler", aaService_->touchHandler());
+
+    // Re-grab touch and request video focus if returning from backgrounded state
+    using CS = oap::aa::AndroidAutoService;
+    if (static_cast<CS::ConnectionState>(aaService_->connectionState()) == CS::Backgrounded) {
+        if (touchReader_) touchReader_->grab();
+        aaService_->requestVideoFocus();
+        BOOST_LOG_TRIVIAL(info) << "[AAPlugin] Re-entering AA projection from background";
+    }
 }
 
 void AndroidAutoPlugin::onDeactivated()
 {
-    // Child context is destroyed by PluginRuntimeContext — no cleanup needed here
+    // Null out the video sink BEFORE the child QML context is destroyed.
+    // The ASIO threads may still be pushing frames — without this, the
+    // decoder writes to a dangling QVideoSink pointer and crashes.
+    if (aaService_ && aaService_->videoDecoder())
+        aaService_->videoDecoder()->setVideoSink(nullptr);
 }
 
 QUrl AndroidAutoPlugin::qmlComponent() const

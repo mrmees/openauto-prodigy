@@ -26,6 +26,7 @@ public:
         PluginIdRole = Qt::UserRole + 1,
         PluginNameRole,
         PluginIconRole,
+        PluginIconTextRole,
         PluginQmlRole,
         IsActiveRole,
         WantsFullscreenRole

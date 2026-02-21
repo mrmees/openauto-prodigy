@@ -48,6 +48,11 @@ public:
     // Video focus control — callable by other plugins (e.g. PhonePlugin, reverse camera)
     void setVideoFocus(VideoFocusMode mode);
 
+    /// Suppress phone-initiated focus requests (user exited to car).
+    /// While suppressed, FOCUSED requests from phone are responded with UNFOCUSED.
+    /// Cleared when the user explicitly re-enters AA via setVideoFocus(Projection).
+    void setFocusSuppressed(bool suppressed);
+
     // IVideoServiceChannelEventHandler
     void onChannelOpenRequest(const aasdk::proto::messages::ChannelOpenRequest& request) override;
     void onAVChannelSetupRequest(const aasdk::proto::messages::AVChannelSetupRequest& request) override;
@@ -61,6 +66,7 @@ public:
 
 signals:
     void videoFrameData(QByteArray data, qint64 enqueueTimeNs);
+    void videoFocusChanged(bool focused);
 
 private:
     boost::asio::io_service::strand strand_;
@@ -70,6 +76,7 @@ private:
     VideoDecoder* decoder_;
     int32_t session_ = -1;
     VideoFocusMode currentFocusMode_ = VideoFocusMode::Projection;
+    bool focusSuppressed_ = false;
 };
 
 } // namespace aa

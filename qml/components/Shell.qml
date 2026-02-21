@@ -28,11 +28,20 @@ Item {
             Layout.fillHeight: true
             clip: true
 
-            // Launcher is shown when no plugin view is loaded
+            // Launcher is shown when no plugin view is loaded and not in a built-in screen
             LauncherMenu {
                 id: launcherView
                 anchors.fill: parent
                 visible: !PluginModel.activePluginId
+                         && ApplicationController.currentApplication !== 6
+            }
+
+            // Settings (built-in screen, not a plugin)
+            SettingsMenu {
+                id: settingsView
+                anchors.fill: parent
+                visible: !PluginModel.activePluginId
+                         && ApplicationController.currentApplication === 6
             }
         }
 

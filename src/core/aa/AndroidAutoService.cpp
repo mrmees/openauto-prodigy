@@ -1,5 +1,6 @@
 #include "AndroidAutoService.hpp"
 #include "ServiceFactory.hpp"
+#include "VideoService.hpp"
 #include "TimedNightMode.hpp"
 #include "GpioNightMode.hpp"
 
@@ -296,11 +297,26 @@ void AndroidAutoService::startEntity(aasdk::transport::ITransport::Pointer trans
     }
 
     // Create services via factory
-    auto serviceList = ServiceFactory::create(*ioService_, messenger, config_, videoDecoder_, touchHandler_, audioService_, yamlConfig_, nightProvider_.get());
+    auto result = ServiceFactory::create(*ioService_, messenger, config_, videoDecoder_, touchHandler_, audioService_, yamlConfig_, nightProvider_.get());
+    videoService_ = result.videoService;
+
+    // Connect video focus changes (ASIO thread → Qt main thread)
+    if (videoService_) {
+        connect(videoService_.get(), &VideoService::videoFocusChanged,
+                this, [this](bool focused) {
+            if (!focused) {
+                BOOST_LOG_TRIVIAL(info) << "[AAService] Video focus lost — exit to car";
+                setState(Backgrounded, "Android Auto running in background");
+            } else if (state_ == Backgrounded) {
+                BOOST_LOG_TRIVIAL(info) << "[AAService] Video focus gained — returning to projection";
+                setState(Connected, "Android Auto active");
+            }
+        }, Qt::QueuedConnection);
+    }
 
     // Create entity (it creates its own control channel from its strand)
     entity_ = std::make_shared<AndroidAutoEntity>(
-        *ioService_, std::move(cryptor), messenger, std::move(serviceList), yamlConfig_);
+        *ioService_, std::move(cryptor), messenger, std::move(result.services), yamlConfig_);
 
     entity_->start(*this);
 }
@@ -314,6 +330,21 @@ void AndroidAutoService::onConnected()
     // Must start watchdog on the main thread — QTimer requires a Qt event loop
     QMetaObject::invokeMethod(this, [this]() { startConnectionWatchdog(); },
                               Qt::QueuedConnection);
+}
+
+void AndroidAutoService::requestVideoFocus()
+{
+    if (videoService_ && state_ == Backgrounded) {
+        BOOST_LOG_TRIVIAL(info) << "[AAService] Requesting video focus (returning from background)";
+        videoService_->setVideoFocus(VideoFocusMode::Projection);
+        setState(Connected, "Android Auto active");
+    }
+}
+
+void AndroidAutoService::onProjectionFocusLost()
+{
+    BOOST_LOG_TRIVIAL(info) << "[AAService] Projection focus lost — exit to car (session stays alive)";
+    setState(Backgrounded, "Android Auto running in background");
 }
 
 void AndroidAutoService::onDisconnected()
@@ -331,6 +362,7 @@ void AndroidAutoService::onDisconnected()
         entity_->stop();
         entity_.reset();
     }
+    videoService_.reset();
     activeSocket_.reset();
 
     uint16_t port = config_->tcpPort();
@@ -356,6 +388,7 @@ void AndroidAutoService::onError(const std::string& message)
         entity_->stop();
         entity_.reset();
     }
+    videoService_.reset();
     activeSocket_.reset();
 
     setState(WaitingForDevice, QString("Error: %1").arg(QString::fromStdString(message)));
@@ -369,7 +402,7 @@ void AndroidAutoService::startConnectionWatchdog()
     stopConnectionWatchdog();
 
     connect(&watchdogTimer_, &QTimer::timeout, this, [this]() {
-        if (state_ != Connected || !activeSocket_) {
+        if ((state_ != Connected && state_ != Backgrounded) || !activeSocket_) {
             stopConnectionWatchdog();
             return;
         }

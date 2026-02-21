@@ -187,28 +187,73 @@ void VideoService::onAVMediaIndication(const aasdk::common::DataConstBuffer& buf
 
 void VideoService::onVideoFocusRequest(const aasdk::proto::messages::VideoFocusRequest& request)
 {
+    bool phoneFocused = (request.focus_mode() == aasdk::proto::enums::VideoFocusMode::FOCUSED);
+
+    // When user has exited to car, reject the phone's FOCUSED requests.
+    // The phone will keep trying — always respond UNFOCUSED until the user
+    // explicitly re-enters AA (which clears focusSuppressed_ via setVideoFocus).
+    if (phoneFocused && focusSuppressed_) {
+        BOOST_LOG_TRIVIAL(info) << "[VideoService] Video focus request (mode=FOCUSED) — "
+                                   "suppressed (user exited to car)";
+
+        aasdk::proto::messages::VideoFocusIndication indication;
+        indication.set_focus_mode(aasdk::proto::enums::VideoFocusMode::UNFOCUSED);
+        indication.set_unrequested(false);
+
+        auto promise = aasdk::channel::SendPromise::defer(strand_);
+        promise->then([]() {}, [](const aasdk::error::Error& e) {
+            BOOST_LOG_TRIVIAL(error) << "[VideoService] VideoFocusIndication send error: " << e.what();
+        });
+        channel_->sendVideoFocusIndication(indication, std::move(promise));
+        channel_->receive(shared_from_this());
+        return;
+    }
+
     BOOST_LOG_TRIVIAL(info) << "[VideoService] Video focus request (mode="
                             << request.focus_mode() << ")";
 
-    // Respond based on our current internal focus state
-    auto protoMode = (currentFocusMode_ == VideoFocusMode::Native)
-        ? aasdk::proto::enums::VideoFocusMode::UNFOCUSED
-        : aasdk::proto::enums::VideoFocusMode::FOCUSED;
+    VideoFocusMode oldMode = currentFocusMode_;
+    currentFocusMode_ = phoneFocused ? VideoFocusMode::Projection : VideoFocusMode::Native;
+
+    // Phone requests UNFOCUSED = user hit exit — suppress future FOCUSED requests
+    if (!phoneFocused) {
+        focusSuppressed_ = true;
+    }
+
+    auto protoMode = phoneFocused
+        ? aasdk::proto::enums::VideoFocusMode::FOCUSED
+        : aasdk::proto::enums::VideoFocusMode::UNFOCUSED;
 
     aasdk::proto::messages::VideoFocusIndication indication;
     indication.set_focus_mode(protoMode);
     indication.set_unrequested(false);
 
     auto promise = aasdk::channel::SendPromise::defer(strand_);
-    promise->then([]() {}, [](const aasdk::error::Error& e) {
+    promise->then([this, self = shared_from_this(), phoneFocused, oldMode]() {
+        bool wasFocused = (oldMode == VideoFocusMode::Projection || oldMode == VideoFocusMode::NativeTransient);
+        if (phoneFocused != wasFocused) {
+            BOOST_LOG_TRIVIAL(info) << "[VideoService] Focus changed: "
+                                    << (phoneFocused ? "FOCUSED" : "UNFOCUSED");
+            emit videoFocusChanged(phoneFocused);
+        }
+    }, [](const aasdk::error::Error& e) {
         BOOST_LOG_TRIVIAL(error) << "[VideoService] VideoFocusIndication send error: " << e.what();
     });
     channel_->sendVideoFocusIndication(indication, std::move(promise));
     channel_->receive(shared_from_this());
 }
 
+void VideoService::setFocusSuppressed(bool suppressed)
+{
+    focusSuppressed_ = suppressed;
+    BOOST_LOG_TRIVIAL(info) << "[VideoService] Focus suppression "
+                            << (suppressed ? "enabled" : "disabled");
+}
+
 void VideoService::setVideoFocus(VideoFocusMode mode)
 {
+    // User-initiated focus change clears suppression
+    focusSuppressed_ = false;
     currentFocusMode_ = mode;
 
     auto protoMode = (mode == VideoFocusMode::Native)

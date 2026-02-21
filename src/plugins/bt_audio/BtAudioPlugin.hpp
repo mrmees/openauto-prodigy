@@ -73,6 +73,7 @@ public:
     // IPlugin — UI
     QUrl qmlComponent() const override;
     QUrl iconSource() const override;
+    QString iconText() const override { return QString(QChar(0xf01f)); }  // headphones
     QUrl settingsComponent() const override { return {}; }
 
     // IPlugin — Capabilities

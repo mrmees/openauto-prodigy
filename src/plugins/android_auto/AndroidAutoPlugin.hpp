@@ -58,6 +58,7 @@ public:
     // IPlugin — UI
     QUrl qmlComponent() const override;
     QUrl iconSource() const override;
+    QString iconText() const override { return QString(QChar(0xeff7)); }  // directions_car
     QUrl settingsComponent() const override { return {}; }
 
     // IPlugin — Capabilities

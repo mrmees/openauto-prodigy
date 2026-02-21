@@ -13,13 +13,19 @@ class YamlConfig;
 namespace aa {
 
 class VideoDecoder;
+class VideoService;
 class TouchHandler;
 class NightModeProvider;
+
+struct ServiceFactoryResult {
+    IService::ServiceList services;
+    std::shared_ptr<VideoService> videoService;
+};
 
 class ServiceFactory
 {
 public:
-    static IService::ServiceList create(
+    static ServiceFactoryResult create(
         boost::asio::io_service& ioService,
         aasdk::messenger::IMessenger::Pointer messenger,
         std::shared_ptr<oap::Configuration> config,

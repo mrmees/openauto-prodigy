@@ -18,6 +18,7 @@ public:
     virtual ~IAndroidAutoEntityEventHandler() = default;
     virtual void onConnected() = 0;
     virtual void onDisconnected() = 0;
+    virtual void onProjectionFocusLost() = 0;
     virtual void onError(const std::string& message) = 0;
 };
 
