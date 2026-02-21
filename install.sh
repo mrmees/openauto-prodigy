@@ -445,7 +445,7 @@ run_diagnostics() {
     fi
 
     # Plugins
-    PLUGIN_COUNT=$(find "$CONFIG_DIR/plugins" -name "manifest.yaml" 2>/dev/null | wc -l)
+    PLUGIN_COUNT=$(find "$CONFIG_DIR/plugins" -name "plugin.yaml" 2>/dev/null | wc -l)
     info "Plugins: $PLUGIN_COUNT dynamic plugins in $CONFIG_DIR/plugins/"
     info "  + 3 static plugins (Android Auto, Bluetooth Audio, Phone)"
 

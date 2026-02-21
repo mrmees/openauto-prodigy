@@ -213,3 +213,8 @@ add_test(NAME test_plugin_model COMMAND test_plugin_model)
 add_test(NAME test_event_bus COMMAND test_event_bus)
 add_test(NAME test_action_registry COMMAND test_action_registry)
 add_test(NAME test_notification_service COMMAND test_notification_service)
+
+# GUI/Quick tests need offscreen platform when no display is available
+set_tests_properties(test_configuration test_theme_service test_plugin_model
+    PROPERTIES ENVIRONMENT "QT_QPA_PLATFORM=offscreen"
+)
