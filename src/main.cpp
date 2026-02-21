@@ -11,6 +11,7 @@
 #include "core/services/ThemeService.hpp"
 #include "core/services/AudioService.hpp"
 #include "core/services/IpcServer.hpp"
+#include "core/services/EventBus.hpp"
 #include "core/plugin/HostContext.hpp"
 #include "core/plugin/PluginManager.hpp"
 #include "plugins/android_auto/AndroidAutoPlugin.hpp"
@@ -71,6 +72,10 @@ int main(int argc, char *argv[])
     hostContext->setConfigService(configService.get());
     hostContext->setThemeService(themeService);
     hostContext->setAudioService(audioService);
+
+    // --- EventBus ---
+    auto eventBus = new oap::EventBus(&app);
+    hostContext->setEventBus(eventBus);
 
     oap::PluginManager pluginManager(&app);
 
