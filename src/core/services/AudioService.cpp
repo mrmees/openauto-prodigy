@@ -51,7 +51,10 @@ AudioService::AudioService(QObject* parent)
 
     qInfo() << "AudioService: Connected to PipeWire daemon";
 
+    // Start device registry under PW lock (loop is now running)
+    pw_thread_loop_lock(threadLoop_);
     deviceRegistry_.start(threadLoop_, core_);
+    pw_thread_loop_unlock(threadLoop_);
 
     connect(&deviceRegistry_, &PipeWireDeviceRegistry::deviceRemoved,
             this, &AudioService::onDeviceRemoved);
@@ -60,8 +63,16 @@ AudioService::AudioService(QObject* parent)
 AudioService::~AudioService()
 {
     if (threadLoop_) {
+        // All PW object teardown must happen under the PW lock while
+        // the loop is still running.  Acquire PW lock FIRST, then mutex_
+        // — same order as setMasterVolume() to prevent ABBA deadlock.
         pw_thread_loop_lock(threadLoop_);
-        QMutexLocker lock(&mutex_);
+
+        // Stop device registry (removes PW listener + proxy)
+        deviceRegistry_.stop();
+
+        // Disable capture callback before tearing down capture stream
+        capture_.callbackActive.store(false, std::memory_order_release);
 
         // Destroy capture stream if active
         if (capture_.handle) {
@@ -73,22 +84,24 @@ AudioService::~AudioService()
             capture_.callback = nullptr;
         }
 
-        for (auto* handle : streams_) {
-            if (handle->stream) {
-                spa_hook_remove(&handle->listener);
-                pw_stream_destroy(handle->stream);
+        {
+            QMutexLocker lock(&mutex_);
+            for (auto* handle : streams_) {
+                if (handle->stream) {
+                    spa_hook_remove(&handle->listener);
+                    pw_stream_destroy(handle->stream);
+                }
+                delete handle;
             }
-            delete handle;
+            streams_.clear();
         }
-        streams_.clear();
-        lock.unlock();
+
         pw_thread_loop_unlock(threadLoop_);
+
+        // Now safe to stop the loop (no PW objects left to callback into)
+        pw_thread_loop_stop(threadLoop_);
     }
 
-    deviceRegistry_.stop();
-
-    if (threadLoop_)
-        pw_thread_loop_stop(threadLoop_);
     if (core_)
         pw_core_disconnect(core_);
     if (context_)
@@ -260,22 +273,29 @@ int AudioService::writeAudio(AudioStreamHandle* handle, const uint8_t* data, int
 
 void AudioService::setMasterVolume(int volume)
 {
-    QMutexLocker lock(&mutex_);
-    masterVolume_ = qBound(0, volume, 100);
-
-    if (!threadLoop_) return;
-
-    // Cubic curve for perceptual volume scaling
-    float vol = static_cast<float>(masterVolume_) / 100.0f;
-    vol = vol * vol * vol;
+    // Lock ordering: PW lock first, then mutex_ (same as destructor)
+    if (!threadLoop_) {
+        QMutexLocker lock(&mutex_);
+        masterVolume_ = qBound(0, volume, 100);
+        return;
+    }
 
     pw_thread_loop_lock(threadLoop_);
-    for (auto* handle : streams_) {
-        if (handle->stream) {
-            float volumes[] = {vol, vol}; // up to stereo
-            pw_stream_set_control(handle->stream,
-                SPA_PROP_channelVolumes,
-                static_cast<uint32_t>(handle->channels), volumes, 0);
+    {
+        QMutexLocker lock(&mutex_);
+        masterVolume_ = qBound(0, volume, 100);
+
+        // Cubic curve for perceptual volume scaling
+        float vol = static_cast<float>(masterVolume_) / 100.0f;
+        vol = vol * vol * vol;
+
+        for (auto* handle : streams_) {
+            if (handle->stream) {
+                float volumes[] = {vol, vol}; // up to stereo
+                pw_stream_set_control(handle->stream,
+                    SPA_PROP_channelVolumes,
+                    static_cast<uint32_t>(handle->channels), volumes, 0);
+            }
         }
     }
     pw_thread_loop_unlock(threadLoop_);
@@ -378,7 +398,10 @@ void AudioService::onCaptureProcess(void* userdata)
     if (!buf) return;
 
     struct spa_data& d = buf->buffer->datas[0];
-    if (d.data && d.chunk->size > 0 && self->capture_.callback) {
+    // Use atomic guard to safely check callback — avoids race with
+    // closeCaptureStream() clearing the std::function on another thread.
+    if (d.data && d.chunk->size > 0 &&
+        self->capture_.callbackActive.load(std::memory_order_acquire)) {
         auto* ptr = static_cast<const uint8_t*>(d.data) + d.chunk->offset;
         int size = static_cast<int>(d.chunk->size);
         self->capture_.callback(ptr, size);
@@ -480,6 +503,8 @@ void AudioService::closeCaptureStream(AudioStreamHandle* handle)
     if (!handle) return;
 
     if (capture_.handle == handle) {
+        // Disable callback atomically first — stops RT thread from invoking it
+        capture_.callbackActive.store(false, std::memory_order_release);
         capture_.callback = nullptr;
 
         if (threadLoop_) {
@@ -507,6 +532,7 @@ void AudioService::setCaptureCallback(AudioStreamHandle* handle, CaptureCallback
 {
     if (handle && capture_.handle == handle) {
         capture_.callback = std::move(cb);
+        capture_.callbackActive.store(capture_.callback != nullptr, std::memory_order_release);
     }
 }
 

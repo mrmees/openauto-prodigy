@@ -6,6 +6,7 @@
 #include <QObject>
 #include <QMutex>
 #include <QList>
+#include <atomic>
 #include <memory>
 #include <pipewire/pipewire.h>
 #include <spa/param/audio/format-utils.h>
@@ -102,6 +103,7 @@ private:
     struct CaptureState {
         AudioStreamHandle* handle = nullptr;
         CaptureCallback callback;
+        std::atomic<bool> callbackActive{false}; // RT-safe guard for callback access
         struct pw_stream_events events{};
     };
     CaptureState capture_;
