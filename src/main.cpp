@@ -24,6 +24,7 @@
 #include "ui/PluginModel.hpp"
 #include "ui/PluginViewHost.hpp"
 #include "ui/LauncherModel.hpp"
+#include "ui/AudioDeviceModel.hpp"
 
 int main(int argc, char *argv[])
 {
@@ -151,6 +152,14 @@ int main(int argc, char *argv[])
     engine.rootContext()->setContextProperty("PhonePlugin", phonePlugin);
 
     engine.rootContext()->setContextProperty("AudioService", audioService);
+
+    auto* outputDeviceModel = new oap::AudioDeviceModel(
+        oap::AudioDeviceModel::Output, audioService->deviceRegistry(), audioService);
+    auto* inputDeviceModel = new oap::AudioDeviceModel(
+        oap::AudioDeviceModel::Input, audioService->deviceRegistry(), audioService);
+    engine.rootContext()->setContextProperty("AudioOutputDeviceModel", outputDeviceModel);
+    engine.rootContext()->setContextProperty("AudioInputDeviceModel", inputDeviceModel);
+
     engine.rootContext()->setContextProperty("ConfigService", configService.get());
 
     // Qt 6.5+ uses /qt/qml/ prefix, Qt 6.4 uses direct URI prefix
