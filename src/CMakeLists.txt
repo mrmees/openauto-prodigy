@@ -89,6 +89,10 @@ set_source_files_properties(../qml/components/GestureOverlay.qml PROPERTIES
     QT_QML_SOURCE_TYPENAME "GestureOverlay"
     QT_RESOURCE_ALIAS "GestureOverlay.qml"
 )
+set_source_files_properties(../qml/components/NotificationArea.qml PROPERTIES
+    QT_QML_SOURCE_TYPENAME "NotificationArea"
+    QT_RESOURCE_ALIAS "NotificationArea.qml"
+)
 set_source_files_properties(../qml/applications/launcher/LauncherMenu.qml PROPERTIES
     QT_QML_SOURCE_TYPENAME "LauncherMenu"
     QT_RESOURCE_ALIAS "LauncherMenu.qml"
@@ -135,6 +139,7 @@ qt_add_qml_module(openauto-prodigy
         ../qml/components/Shell.qml
         ../qml/components/NavStrip.qml
         ../qml/components/GestureOverlay.qml
+        ../qml/components/NotificationArea.qml
         ../qml/applications/launcher/LauncherMenu.qml
         ../qml/applications/android_auto/AndroidAutoMenu.qml
         ../qml/applications/settings/SettingsMenu.qml

@@ -44,6 +44,11 @@ Item {
         }
     }
 
+    // Toast notifications
+    NotificationArea {
+        id: notificationArea
+    }
+
     // Gesture overlay (on top of everything)
     GestureOverlay {
         id: gestureOverlay
