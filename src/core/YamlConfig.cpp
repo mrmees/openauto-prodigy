@@ -20,9 +20,12 @@ void YamlConfig::initDefaults()
     root_["display"]["brightness"] = 80;
     root_["display"]["theme"] = "default";
     root_["display"]["orientation"] = "landscape";
+    root_["display"]["width"] = 1024;
+    root_["display"]["height"] = 600;
 
     root_["connection"]["auto_connect_aa"] = true;
     root_["connection"]["bt_discoverable"] = true;
+    root_["connection"]["wifi_ap"]["interface"] = "wlan0";
     root_["connection"]["wifi_ap"]["ssid"] = "OpenAutoProdigy";
     root_["connection"]["wifi_ap"]["password"] = "prodigy";
     root_["connection"]["wifi_ap"]["channel"] = 36;
@@ -33,6 +36,8 @@ void YamlConfig::initDefaults()
     root_["audio"]["output_device"] = "auto";
     root_["audio"]["microphone"]["device"] = "auto";
     root_["audio"]["microphone"]["gain"] = 1.0;
+
+    root_["touch"]["device"] = "";
 
     root_["video"]["fps"] = 30;
     root_["video"]["resolution"] = "720p";
@@ -146,6 +151,38 @@ QString YamlConfig::theme() const
 void YamlConfig::setTheme(const QString& v)
 {
     root_["display"]["theme"] = v.toStdString();
+}
+
+int YamlConfig::displayWidth() const
+{
+    return root_["display"]["width"].as<int>(1024);
+}
+
+void YamlConfig::setDisplayWidth(int v)
+{
+    root_["display"]["width"] = v;
+}
+
+int YamlConfig::displayHeight() const
+{
+    return root_["display"]["height"].as<int>(600);
+}
+
+void YamlConfig::setDisplayHeight(int v)
+{
+    root_["display"]["height"] = v;
+}
+
+// --- Touch ---
+
+QString YamlConfig::touchDevice() const
+{
+    return QString::fromStdString(root_["touch"]["device"].as<std::string>(""));
+}
+
+void YamlConfig::setTouchDevice(const QString& v)
+{
+    root_["touch"]["device"] = v.toStdString();
 }
 
 // --- Connection ---

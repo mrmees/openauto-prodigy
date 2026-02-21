@@ -198,6 +198,20 @@ add_executable(test_event_bus
 target_include_directories(test_event_bus PRIVATE ${CMAKE_SOURCE_DIR}/src)
 target_link_libraries(test_event_bus PRIVATE Qt6::Core Qt6::Test)
 
+add_executable(test_config_key_coverage
+    test_config_key_coverage.cpp
+    ${CMAKE_SOURCE_DIR}/src/core/YamlConfig.cpp
+    ${CMAKE_SOURCE_DIR}/src/core/services/ConfigService.cpp
+)
+target_include_directories(test_config_key_coverage PRIVATE
+    ${CMAKE_SOURCE_DIR}/src
+)
+target_link_libraries(test_config_key_coverage PRIVATE
+    Qt6::Core
+    Qt6::Test
+    yaml-cpp::yaml-cpp
+)
+
 enable_testing()
 add_test(NAME test_night_mode COMMAND test_night_mode)
 add_test(NAME test_configuration COMMAND test_configuration)
@@ -213,6 +227,7 @@ add_test(NAME test_plugin_model COMMAND test_plugin_model)
 add_test(NAME test_event_bus COMMAND test_event_bus)
 add_test(NAME test_action_registry COMMAND test_action_registry)
 add_test(NAME test_notification_service COMMAND test_notification_service)
+add_test(NAME test_config_key_coverage COMMAND test_config_key_coverage)
 
 # GUI/Quick tests need offscreen platform when no display is available
 set_tests_properties(test_configuration test_theme_service test_plugin_model
