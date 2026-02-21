@@ -18,6 +18,7 @@ qt_add_executable(openauto-prodigy
     ui/PluginModel.cpp
     ui/PluginRuntimeContext.cpp
     ui/PluginViewHost.cpp
+    ui/LauncherModel.cpp
     core/plugin/HostContext.cpp
     core/services/ConfigService.cpp
     core/services/ThemeService.cpp
