@@ -124,6 +124,7 @@ file(COPY data/themes DESTINATION ${CMAKE_CURRENT_BINARY_DIR}/data)
 add_executable(test_audio_service
     test_audio_service.cpp
     ${CMAKE_SOURCE_DIR}/src/core/services/AudioService.cpp
+    ${CMAKE_SOURCE_DIR}/src/core/audio/PipeWireDeviceRegistry.cpp
 )
 target_include_directories(test_audio_service PRIVATE
     ${CMAKE_SOURCE_DIR}/src

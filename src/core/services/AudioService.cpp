@@ -49,6 +49,8 @@ AudioService::AudioService(QObject* parent)
     }
 
     qInfo() << "AudioService: Connected to PipeWire daemon";
+
+    deviceRegistry_.start(threadLoop_, core_);
 }
 
 AudioService::~AudioService()
@@ -78,6 +80,8 @@ AudioService::~AudioService()
         lock.unlock();
         pw_thread_loop_unlock(threadLoop_);
     }
+
+    deviceRegistry_.stop();
 
     if (threadLoop_)
         pw_thread_loop_stop(threadLoop_);

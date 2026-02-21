@@ -69,6 +69,13 @@ int main(int argc, char *argv[])
     // --- Audio service (PipeWire) ---
     auto audioService = new oap::AudioService(&app);
 
+    // Apply initial audio config from YAML
+    auto outputDev = yamlConfig->valueByPath("audio.output_device").toString();
+    if (outputDev.isEmpty()) outputDev = "auto";
+    audioService->setOutputDevice(outputDev);
+    audioService->setInputDevice(yamlConfig->microphoneDevice());
+    audioService->setMasterVolume(yamlConfig->masterVolume());
+
     // --- Plugin infrastructure ---
     auto configService = std::make_unique<oap::ConfigService>(yamlConfig.get(), yamlPath);
     auto hostContext = std::make_unique<oap::HostContext>();
@@ -143,6 +150,7 @@ int main(int argc, char *argv[])
     // Expose PhonePlugin globally for IncomingCallOverlay in Shell.qml
     engine.rootContext()->setContextProperty("PhonePlugin", phonePlugin);
 
+    engine.rootContext()->setContextProperty("AudioService", audioService);
     engine.rootContext()->setContextProperty("ConfigService", configService.get());
 
     // Qt 6.5+ uses /qt/qml/ prefix, Qt 6.4 uses direct URI prefix

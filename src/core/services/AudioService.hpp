@@ -2,6 +2,7 @@
 
 #include "IAudioService.hpp"
 #include "core/audio/AudioRingBuffer.hpp"
+#include "core/audio/PipeWireDeviceRegistry.hpp"
 #include <QObject>
 #include <QMutex>
 #include <QList>
@@ -66,6 +67,9 @@ public:
     Q_INVOKABLE QString outputDevice() const override;
     Q_INVOKABLE QString inputDevice() const override;
 
+    /// Device registry — enumerates PipeWire sinks/sources
+    PipeWireDeviceRegistry* deviceRegistry() { return &deviceRegistry_; }
+
     // IAudioService — capture
     AudioStreamHandle* openCaptureStream(const QString& name,
                                           int sampleRate, int channels, int bitDepth) override;
@@ -96,6 +100,8 @@ private:
     };
     CaptureState capture_;
     struct spa_hook captureListener_{};
+
+    PipeWireDeviceRegistry deviceRegistry_{this};
 };
 
 } // namespace oap
