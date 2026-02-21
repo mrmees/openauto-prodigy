@@ -58,6 +58,39 @@ void YamlConfig::initDefaults()
     root_["nav_strip"]["order"].push_back("org.openauto.android-auto");
     root_["nav_strip"]["show_labels"] = true;
 
+    // Launcher tiles
+    YAML::Node tiles;
+
+    YAML::Node aaTile;
+    aaTile["id"] = "org.openauto.android-auto";
+    aaTile["label"] = "Android Auto";
+    aaTile["icon"] = QString(QChar(0xeff7)).toStdString();  // directions_car
+    aaTile["action"] = "plugin:org.openauto.android-auto";
+    tiles.push_back(aaTile);
+
+    YAML::Node btTile;
+    btTile["id"] = "org.openauto.bt-audio";
+    btTile["label"] = "Music";
+    btTile["icon"] = QString(QChar(0xf01f)).toStdString();  // headphones
+    btTile["action"] = "plugin:org.openauto.bt-audio";
+    tiles.push_back(btTile);
+
+    YAML::Node phoneTile;
+    phoneTile["id"] = "org.openauto.phone";
+    phoneTile["label"] = "Phone";
+    phoneTile["icon"] = QString(QChar(0xf0d4)).toStdString();  // phone
+    phoneTile["action"] = "plugin:org.openauto.phone";
+    tiles.push_back(phoneTile);
+
+    YAML::Node settingsTile;
+    settingsTile["id"] = "settings";
+    settingsTile["label"] = "Settings";
+    settingsTile["icon"] = QString(QChar(0xe8b8)).toStdString();  // settings
+    settingsTile["action"] = "navigate:settings";
+    tiles.push_back(settingsTile);
+
+    root_["launcher"]["tiles"] = tiles;
+
     root_["plugins"]["enabled"] = YAML::Node(YAML::NodeType::Sequence);
     root_["plugins"]["enabled"].push_back("org.openauto.android-auto");
     root_["plugins"]["disabled"] = YAML::Node(YAML::NodeType::Sequence);
@@ -380,6 +413,39 @@ double YamlConfig::microphoneGain() const
 void YamlConfig::setMicrophoneGain(double v)
 {
     root_["audio"]["microphone"]["gain"] = v;
+}
+
+// --- Launcher tiles ---
+
+QList<QVariantMap> YamlConfig::launcherTiles() const
+{
+    QList<QVariantMap> result;
+    auto tiles = root_["launcher"]["tiles"];
+    if (!tiles.IsSequence()) return result;
+
+    for (const auto& tile : tiles) {
+        QVariantMap map;
+        if (tile["id"]) map["id"] = QString::fromStdString(tile["id"].as<std::string>());
+        if (tile["label"]) map["label"] = QString::fromStdString(tile["label"].as<std::string>());
+        if (tile["icon"]) map["icon"] = QString::fromStdString(tile["icon"].as<std::string>());
+        if (tile["action"]) map["action"] = QString::fromStdString(tile["action"].as<std::string>());
+        result.append(map);
+    }
+    return result;
+}
+
+void YamlConfig::setLauncherTiles(const QList<QVariantMap>& tiles)
+{
+    YAML::Node node;
+    for (const auto& tile : tiles) {
+        YAML::Node t;
+        if (tile.contains("id")) t["id"] = tile["id"].toString().toStdString();
+        if (tile.contains("label")) t["label"] = tile["label"].toString().toStdString();
+        if (tile.contains("icon")) t["icon"] = tile["icon"].toString().toStdString();
+        if (tile.contains("action")) t["action"] = tile["action"].toString().toStdString();
+        node.push_back(t);
+    }
+    root_["launcher"]["tiles"] = node;
 }
 
 // --- Plugins ---

@@ -3,6 +3,7 @@
 #include <QString>
 #include <QStringList>
 #include <QVariant>
+#include <QVariantMap>
 #include <yaml-cpp/yaml.h>
 
 namespace oap {
@@ -87,6 +88,10 @@ public:
     void setMicrophoneDevice(const QString& v);
     double microphoneGain() const;
     void setMicrophoneGain(double v);
+
+    // Launcher tiles — each tile is a QVariantMap with {id, label, icon, action}
+    QList<QVariantMap> launcherTiles() const;
+    void setLauncherTiles(const QList<QVariantMap>& tiles);
 
     // Plugins
     QStringList enabledPlugins() const;
