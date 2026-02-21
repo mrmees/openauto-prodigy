@@ -220,9 +220,14 @@ void TestYamlConfig::testSetValueByPath()
 void TestYamlConfig::testSetValueByPathRejectsUnknown()
 {
     oap::YamlConfig config;
+    // Unknown paths rejected
     QVERIFY(!config.setValueByPath("bogus.key", 42));
     QVERIFY(!config.setValueByPath("connection.bogus", 42));
     QVERIFY(!config.valueByPath("bogus.key").isValid());
+    // Non-leaf (map) paths rejected — prevents overwriting subtrees
+    QVERIFY(!config.setValueByPath("audio", QString("x")));
+    QVERIFY(!config.setValueByPath("connection", QString("x")));
+    QVERIFY(!config.setValueByPath("connection.wifi_ap", QString("x")));
 }
 
 QTEST_MAIN(TestYamlConfig)

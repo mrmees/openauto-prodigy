@@ -583,6 +583,7 @@ bool YamlConfig::setValueByPath(const QString& dottedKey, const QVariant& value)
     QStringList parts = dottedKey.split('.');
 
     // Validate against DEFAULTS tree, not merged root_
+    // Path must exist AND resolve to a scalar (leaf) node — reject writes to maps/sequences
     {
         YAML::Node defaults = buildDefaultsNode();
         for (const auto& part : parts) {
@@ -590,6 +591,7 @@ bool YamlConfig::setValueByPath(const QString& dottedKey, const QVariant& value)
             defaults.reset(defaults[part.toStdString()]);
             if (!defaults.IsDefined()) return false;
         }
+        if (!defaults.IsScalar()) return false;
     }
 
     // Path exists in schema — navigate the real tree and set the value

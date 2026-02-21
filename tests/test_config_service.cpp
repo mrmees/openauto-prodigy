@@ -11,6 +11,7 @@ private slots:
     void testPluginScopedConfig();
     void testPluginIsolation();
     void testSaveAndReload();
+    void testPreviouslyUnmappedKeys();
 };
 
 void TestConfigService::testReadTopLevelValues()
@@ -82,6 +83,20 @@ void TestConfigService::testSaveAndReload()
     }
 
     QFile::remove(path);
+}
+
+void TestConfigService::testPreviouslyUnmappedKeys()
+{
+    oap::YamlConfig yaml;
+    oap::ConfigService svc(&yaml, "/tmp/oap_test_cs.yaml");
+
+    // These keys were previously silently ignored by ConfigService
+    QCOMPARE(svc.value("display.brightness").toInt(), 80);
+    QCOMPARE(svc.value("connection.wifi_ap.channel").toInt(), 36);
+    QCOMPARE(svc.value("sensors.night_mode.source").toString(), QString("time"));
+    QCOMPARE(svc.value("identity.head_unit_name").toString(), QString("OpenAuto Prodigy"));
+    QCOMPARE(svc.value("video.resolution").toString(), QString("720p"));
+    QCOMPARE(svc.value("video.dpi").toInt(), 140);
 }
 
 QTEST_MAIN(TestConfigService)
