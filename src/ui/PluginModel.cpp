@@ -1,5 +1,6 @@
 #include "PluginModel.hpp"
 #include "PluginRuntimeContext.hpp"
+#include "PluginViewHost.hpp"
 #include "core/plugin/PluginManager.hpp"
 #include "core/plugin/IPlugin.hpp"
 #include <QQmlEngine>
@@ -10,6 +11,7 @@ PluginModel::PluginModel(PluginManager* manager, QQmlEngine* engine, QObject* pa
     : QAbstractListModel(parent)
     , manager_(manager)
     , engine_(engine)
+    , viewHost_(new PluginViewHost(engine, this))
 {
     // Refresh model when plugins change
     connect(manager_, &PluginManager::pluginInitialized, this, [this]() {
@@ -78,6 +80,7 @@ void PluginModel::setActivePlugin(const QString& pluginId)
 
     // Empty ID = go home (deactivate current, show launcher)
     if (pluginId.isEmpty()) {
+        viewHost_->clearView();  // destroy QML item before context
         if (activeContext_) {
             activeContext_->deactivate();
             delete activeContext_;
@@ -93,7 +96,8 @@ void PluginModel::setActivePlugin(const QString& pluginId)
     // Validate: only update state if manager accepts the activation
     if (!manager_->activatePlugin(pluginId)) return;
 
-    // Deactivate current context
+    // Deactivate current: clear view first, then context
+    viewHost_->clearView();
     if (activeContext_) {
         activeContext_->deactivate();
         delete activeContext_;
@@ -107,6 +111,18 @@ void PluginModel::setActivePlugin(const QString& pluginId)
     if (plugin && engine_) {
         activeContext_ = new PluginRuntimeContext(plugin, engine_, this);
         activeContext_->activate();
+
+        // Load the plugin's QML view with the correct child context
+        if (!plugin->qmlComponent().isEmpty()) {
+            if (!viewHost_->loadView(plugin->qmlComponent(), activeContext_->qmlContext())) {
+                // Fallback: deactivate and go home
+                activeContext_->deactivate();
+                delete activeContext_;
+                activeContext_ = nullptr;
+                activePluginId_.clear();
+                manager_->deactivateCurrentPlugin();
+            }
+        }
     }
 
     emit activePluginChanged();

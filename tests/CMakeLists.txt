@@ -166,6 +166,7 @@ add_executable(test_plugin_model
     test_plugin_model.cpp
     ${CMAKE_SOURCE_DIR}/src/ui/PluginModel.cpp
     ${CMAKE_SOURCE_DIR}/src/ui/PluginRuntimeContext.cpp
+    ${CMAKE_SOURCE_DIR}/src/ui/PluginViewHost.cpp
     ${CMAKE_SOURCE_DIR}/src/core/plugin/PluginManager.cpp
     ${CMAKE_SOURCE_DIR}/src/core/plugin/PluginDiscovery.cpp
     ${CMAKE_SOURCE_DIR}/src/core/plugin/PluginLoader.cpp

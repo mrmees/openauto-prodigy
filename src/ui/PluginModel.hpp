@@ -10,6 +10,7 @@ namespace oap {
 
 class PluginManager;
 class PluginRuntimeContext;
+class PluginViewHost;
 class IPlugin;
 
 /// QAbstractListModel exposing loaded plugins to QML for the nav strip.
@@ -42,12 +43,16 @@ public:
 
     Q_INVOKABLE void setActivePlugin(const QString& pluginId);
 
+    /// Access the view host for wiring the QML host item from main.cpp.
+    PluginViewHost* viewHost() const { return viewHost_; }
+
 signals:
     void activePluginChanged();
 
 private:
     PluginManager* manager_;
     QQmlEngine* engine_;
+    PluginViewHost* viewHost_;
     PluginRuntimeContext* activeContext_ = nullptr;
     QString activePluginId_;
 
