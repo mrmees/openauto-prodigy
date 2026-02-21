@@ -145,4 +145,35 @@ PluginManifest PluginManager::manifest(const QString& id) const
     return entries_[it.value()].manifest;
 }
 
+bool PluginManager::activatePlugin(const QString& pluginId)
+{
+    auto it = idIndex_.find(pluginId);
+    if (it == idIndex_.end()) return false;
+    auto& entry = entries_[it.value()];
+    if (!entry.initialized) return false;
+
+    if (activePluginId_ == pluginId) return true;
+
+    // Deactivate current
+    deactivateCurrentPlugin();
+
+    activePluginId_ = pluginId;
+    // onActivated() is called by the UI layer (PluginRuntimeContext) which owns the QML context
+    emit pluginActivated(pluginId);
+    return true;
+}
+
+void PluginManager::deactivateCurrentPlugin()
+{
+    if (activePluginId_.isEmpty()) return;
+    QString prev = activePluginId_;
+    activePluginId_.clear();
+    emit pluginDeactivated(prev);
+}
+
+QString PluginManager::activePluginId() const
+{
+    return activePluginId_;
+}
+
 } // namespace oap

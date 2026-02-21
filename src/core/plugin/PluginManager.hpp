@@ -41,10 +41,22 @@ public:
     /// Get the manifest for a plugin (static plugins get a synthetic manifest).
     PluginManifest manifest(const QString& id) const;
 
+    /// Activate a plugin by ID. Deactivates any currently active plugin first.
+    /// Returns false if plugin not found or not initialized.
+    bool activatePlugin(const QString& pluginId);
+
+    /// Deactivate the currently active plugin.
+    void deactivateCurrentPlugin();
+
+    /// Get the currently active plugin ID (empty if none).
+    QString activePluginId() const;
+
 signals:
     void pluginLoaded(const QString& pluginId);
     void pluginInitialized(const QString& pluginId);
     void pluginFailed(const QString& pluginId, const QString& reason);
+    void pluginActivated(const QString& pluginId);
+    void pluginDeactivated(const QString& pluginId);
 
 private:
     struct PluginEntry {
@@ -56,6 +68,7 @@ private:
 
     QList<PluginEntry> entries_;
     QMap<QString, int> idIndex_;  // plugin ID -> index in entries_
+    QString activePluginId_;
 };
 
 } // namespace oap

@@ -50,6 +50,7 @@ private slots:
     void testFailedInitDisablesPlugin();
     void testLookupById();
     void testMultiplePlugins();
+    void testActivateDeactivate();
 };
 
 void TestPluginManager::testRegisterStaticPlugin()
@@ -135,6 +136,45 @@ void TestPluginManager::testMultiplePlugins()
     QCOMPARE(mgr.plugins().size(), 2);
     QCOMPARE(mgr.plugin("org.test.first"), &p1);
     QCOMPARE(mgr.plugin("org.test.second"), &p2);
+}
+
+void TestPluginManager::testActivateDeactivate()
+{
+    // Plugins declared BEFORE manager so they outlive mgr's destructor
+    MockPlugin plugin;
+    plugin.id_ = "test.activate";
+    MockPlugin plugin2;
+    plugin2.id_ = "test.other";
+    MockHostContext ctx;
+    oap::PluginManager mgr;
+
+    mgr.registerStaticPlugin(&plugin);
+    mgr.registerStaticPlugin(&plugin2);
+    mgr.initializeAll(&ctx);
+
+    QSignalSpy activatedSpy(&mgr, &oap::PluginManager::pluginActivated);
+    QSignalSpy deactivatedSpy(&mgr, &oap::PluginManager::pluginDeactivated);
+
+    // Activate
+    QVERIFY(mgr.activatePlugin("test.activate"));
+    QCOMPARE(mgr.activePluginId(), QString("test.activate"));
+    QCOMPARE(activatedSpy.count(), 1);
+    QCOMPARE(activatedSpy.first().first().toString(), QString("test.activate"));
+
+    // Activate different plugin deactivates previous
+    QVERIFY(mgr.activatePlugin("test.other"));
+    QCOMPARE(mgr.activePluginId(), QString("test.other"));
+    QCOMPARE(deactivatedSpy.count(), 1);  // previous was deactivated
+    QCOMPARE(activatedSpy.count(), 2);
+
+    // Deactivate
+    mgr.deactivateCurrentPlugin();
+    QCOMPARE(mgr.activePluginId(), QString());
+    QCOMPARE(deactivatedSpy.count(), 2);
+
+    // Activate nonexistent plugin fails
+    QVERIFY(!mgr.activatePlugin("nonexistent"));
+    QCOMPARE(mgr.activePluginId(), QString());
 }
 
 QTEST_MAIN(TestPluginManager)
