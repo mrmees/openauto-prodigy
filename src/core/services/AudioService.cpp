@@ -1,6 +1,7 @@
 #include "AudioService.hpp"
 #include <QDebug>
 #include <cstring>
+#include <spa/param/props.h>
 
 namespace oap {
 
@@ -258,6 +259,23 @@ void AudioService::setMasterVolume(int volume)
 {
     QMutexLocker lock(&mutex_);
     masterVolume_ = qBound(0, volume, 100);
+
+    if (!threadLoop_) return;
+
+    // Cubic curve for perceptual volume scaling
+    float vol = static_cast<float>(masterVolume_) / 100.0f;
+    vol = vol * vol * vol;
+
+    pw_thread_loop_lock(threadLoop_);
+    for (auto* handle : streams_) {
+        if (handle->stream) {
+            float volumes[] = {vol, vol}; // up to stereo
+            pw_stream_set_control(handle->stream,
+                SPA_PROP_channelVolumes,
+                static_cast<uint32_t>(handle->channels), volumes, 0);
+        }
+    }
+    pw_thread_loop_unlock(threadLoop_);
 }
 
 int AudioService::masterVolume() const

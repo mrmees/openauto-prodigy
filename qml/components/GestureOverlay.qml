@@ -85,9 +85,14 @@ Rectangle {
                     from: 0
                     to: 100
                     value: 80
+                    Component.onCompleted: {
+                        if (typeof AudioService !== "undefined")
+                            value = AudioService.masterVolume()
+                    }
                     onValueChanged: {
-                        // TODO: Wire to AudioService.setMasterVolume()
                         dismissTimer.restart()
+                        if (typeof AudioService !== "undefined")
+                            AudioService.setMasterVolume(Math.round(value))
                     }
                 }
 
