@@ -12,6 +12,7 @@
 #include "core/services/AudioService.hpp"
 #include "core/services/IpcServer.hpp"
 #include "core/services/EventBus.hpp"
+#include "core/services/ActionRegistry.hpp"
 #include "core/plugin/HostContext.hpp"
 #include "core/plugin/PluginManager.hpp"
 #include "plugins/android_auto/AndroidAutoPlugin.hpp"
@@ -77,6 +78,10 @@ int main(int argc, char *argv[])
     auto eventBus = new oap::EventBus(&app);
     hostContext->setEventBus(eventBus);
 
+    // --- ActionRegistry ---
+    auto actionRegistry = new oap::ActionRegistry(&app);
+    hostContext->setActionRegistry(actionRegistry);
+
     oap::PluginManager pluginManager(&app);
 
     // Register static (compiled-in) plugins
@@ -108,6 +113,17 @@ int main(int argc, char *argv[])
     auto pluginModel = new oap::PluginModel(&pluginManager, &engine, &app);
 
     auto launcherModel = new oap::LauncherModel(yamlConfig.get(), &app);
+
+    // Register built-in actions (after pluginModel exists)
+    actionRegistry->registerAction("app.quit", [](const QVariant&) {
+        QGuiApplication::quit();
+    });
+    actionRegistry->registerAction("app.home", [pluginModel](const QVariant&) {
+        pluginModel->setActivePlugin(QString());
+    });
+    actionRegistry->registerAction("theme.toggle", [themeService](const QVariant&) {
+        themeService->toggleMode();
+    });
 
     engine.rootContext()->setContextProperty("ThemeService", themeService);
     engine.rootContext()->setContextProperty("ApplicationController", appController);

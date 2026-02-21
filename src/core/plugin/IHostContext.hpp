@@ -10,6 +10,7 @@ class IConfigService;
 class IThemeService;
 class IDisplayService;
 class IEventBus;
+class ActionRegistry;
 
 enum class LogLevel { Debug, Info, Warning, Error };
 
@@ -23,6 +24,7 @@ public:
     virtual IThemeService* themeService() = 0;
     virtual IDisplayService* displayService() = 0;
     virtual IEventBus* eventBus() = 0;
+    virtual ActionRegistry* actionRegistry() = 0;
 
     /// Log a message through the host's logging system.
     /// Thread-safe.
