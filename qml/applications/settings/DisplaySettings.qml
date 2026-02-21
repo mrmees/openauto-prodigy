@@ -30,6 +30,12 @@ Flickable {
             from: 0; to: 100; stepSize: 1
         }
 
+        SettingsTextField {
+            label: "Theme"
+            configPath: "display.theme"
+            placeholder: "default"
+        }
+
         SettingsComboBox {
             label: "Orientation"
             configPath: "display.orientation"

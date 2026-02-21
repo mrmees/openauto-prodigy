@@ -73,5 +73,16 @@ Flickable {
             configPath: "touch.device"
             placeholder: "(auto-detect)"
         }
+
+        SectionHeader { text: "Plugins" }
+
+        Text {
+            text: "Plugin management coming in a future update."
+            font.pixelSize: 13
+            font.italic: true
+            color: ThemeService.descriptionFontColor
+            Layout.fillWidth: true
+            Layout.leftMargin: 8
+        }
     }
 }
