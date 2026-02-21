@@ -25,7 +25,7 @@ Flickable {
             label: "Master Volume"
             configPath: "audio.master_volume"
             from: 0; to: 100; stepSize: 1
-            onValueChanged: {
+            onMoved: {
                 if (typeof AudioService !== "undefined")
                     AudioService.setMasterVolume(value)
             }
