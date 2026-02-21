@@ -7,7 +7,11 @@
 #include <QJsonObject>
 #include <QJsonArray>
 #include <QFile>
+#include <QDir>
+#include <QRegularExpression>
 #include <QDebug>
+#include <yaml-cpp/yaml.h>
+#include <fstream>
 
 namespace oap {
 
@@ -155,17 +159,74 @@ QByteArray IpcServer::handleSetConfig(const QVariantMap& data)
 
 QByteArray IpcServer::handleGetTheme()
 {
-    // Return current theme as JSON (placeholder — theme file reading)
+    if (!themeService_) return R"({"error":"Theme service not available"})";
+
     QJsonObject obj;
-    obj["day"] = QJsonObject();
-    obj["night"] = QJsonObject();
+    obj["id"] = themeService_->currentThemeId();
+    obj["font_family"] = themeService_->fontFamily();
+    obj["night_mode"] = themeService_->nightMode();
+
+    // Read color maps directly — no mode toggling, no signal emission
+    QJsonObject dayObj;
+    for (auto it = themeService_->dayColors().begin(); it != themeService_->dayColors().end(); ++it) {
+        dayObj[it.key()] = it.value().name();
+    }
+
+    QJsonObject nightObj;
+    for (auto it = themeService_->nightColors().begin(); it != themeService_->nightColors().end(); ++it) {
+        nightObj[it.key()] = it.value().name();
+    }
+
+    obj["day"] = dayObj;
+    obj["night"] = nightObj;
+
     return QJsonDocument(obj).toJson(QJsonDocument::Compact);
 }
 
 QByteArray IpcServer::handleSetTheme(const QVariantMap& data)
 {
-    Q_UNUSED(data)
-    // TODO: Write theme YAML and reload ThemeService
+    if (!themeService_) return R"({"ok":false,"error":"Theme service not available"})";
+
+    // Determine theme directory (with path traversal protection)
+    QString themeId = data.value("id", "default").toString();
+    static QRegularExpression validId("^[A-Za-z0-9._-]{1,64}$");
+    if (!validId.match(themeId).hasMatch() || themeId == "." || themeId == "..")
+        return R"({"ok":false,"error":"Invalid theme ID"})";
+
+    QString themeDir = QDir::homePath() + "/.openauto/themes/" + themeId;
+    QDir().mkpath(themeDir);
+    QString yamlPath = themeDir + "/theme.yaml";
+
+    // Build YAML content
+    YAML::Node root;
+    root["id"] = themeId.toStdString();
+    root["name"] = data.value("name", themeId).toString().toStdString();
+    if (data.contains("font_family"))
+        root["font_family"] = data.value("font_family").toString().toStdString();
+
+    // Day colors
+    QVariantMap dayColors = data.value("day").toMap();
+    for (auto it = dayColors.begin(); it != dayColors.end(); ++it) {
+        root["day"][it.key().toStdString()] = it.value().toString().toStdString();
+    }
+
+    // Night colors
+    QVariantMap nightColors = data.value("night").toMap();
+    for (auto it = nightColors.begin(); it != nightColors.end(); ++it) {
+        root["night"][it.key().toStdString()] = it.value().toString().toStdString();
+    }
+
+    // Write YAML file
+    std::ofstream fout(yamlPath.toStdString());
+    if (!fout.is_open())
+        return R"({"ok":false,"error":"Cannot write theme file"})";
+    fout << root;
+    fout.close();
+
+    // Reload theme
+    if (!themeService_->loadTheme(themeDir))
+        return R"({"ok":false,"error":"Theme reload failed"})";
+
     return R"({"ok":true})";
 }
 

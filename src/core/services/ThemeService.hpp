@@ -81,6 +81,10 @@ public:
     QColor sideWidgetBackgroundColor() const { return activeColor("side_widget_background"); }
     QColor barShadowColor() const { return activeColor("bar_shadow"); }
 
+    /// Read-only access to color maps (for IPC export without signal side-effects)
+    const QMap<QString, QColor>& dayColors() const { return dayColors_; }
+    const QMap<QString, QColor>& nightColors() const { return nightColors_; }
+
 signals:
     void colorsChanged();
     void modeChanged();
