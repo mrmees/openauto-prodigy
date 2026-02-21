@@ -176,6 +176,14 @@ target_include_directories(test_plugin_model PRIVATE ${CMAKE_SOURCE_DIR}/src)
 target_link_libraries(test_plugin_model PRIVATE
     Qt6::Core Qt6::Quick Qt6::Test yaml-cpp::yaml-cpp Boost::log)
 
+add_executable(test_notification_service
+    test_notification_service.cpp
+    ${CMAKE_SOURCE_DIR}/src/core/services/NotificationService.cpp
+    ${CMAKE_SOURCE_DIR}/src/ui/NotificationModel.cpp
+)
+target_include_directories(test_notification_service PRIVATE ${CMAKE_SOURCE_DIR}/src)
+target_link_libraries(test_notification_service PRIVATE Qt6::Core Qt6::Test)
+
 add_executable(test_action_registry
     test_action_registry.cpp
     ${CMAKE_SOURCE_DIR}/src/core/services/ActionRegistry.cpp
@@ -204,3 +212,4 @@ add_test(NAME test_input_device_scanner COMMAND test_input_device_scanner)
 add_test(NAME test_plugin_model COMMAND test_plugin_model)
 add_test(NAME test_event_bus COMMAND test_event_bus)
 add_test(NAME test_action_registry COMMAND test_action_registry)
+add_test(NAME test_notification_service COMMAND test_notification_service)
