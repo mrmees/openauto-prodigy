@@ -145,6 +145,30 @@ set_source_files_properties(../qml/applications/phone/IncomingCallOverlay.qml PR
     QT_QML_SOURCE_TYPENAME "IncomingCallOverlay"
     QT_RESOURCE_ALIAS "IncomingCallOverlay.qml"
 )
+set_source_files_properties(../qml/applications/settings/DisplaySettings.qml PROPERTIES
+    QT_QML_SOURCE_TYPENAME "DisplaySettings"
+    QT_RESOURCE_ALIAS "DisplaySettings.qml"
+)
+set_source_files_properties(../qml/applications/settings/AudioSettings.qml PROPERTIES
+    QT_QML_SOURCE_TYPENAME "AudioSettings"
+    QT_RESOURCE_ALIAS "AudioSettings.qml"
+)
+set_source_files_properties(../qml/applications/settings/ConnectionSettings.qml PROPERTIES
+    QT_QML_SOURCE_TYPENAME "ConnectionSettings"
+    QT_RESOURCE_ALIAS "ConnectionSettings.qml"
+)
+set_source_files_properties(../qml/applications/settings/VideoSettings.qml PROPERTIES
+    QT_QML_SOURCE_TYPENAME "VideoSettings"
+    QT_RESOURCE_ALIAS "VideoSettings.qml"
+)
+set_source_files_properties(../qml/applications/settings/SystemSettings.qml PROPERTIES
+    QT_QML_SOURCE_TYPENAME "SystemSettings"
+    QT_RESOURCE_ALIAS "SystemSettings.qml"
+)
+set_source_files_properties(../qml/applications/settings/AboutSettings.qml PROPERTIES
+    QT_QML_SOURCE_TYPENAME "AboutSettings"
+    QT_RESOURCE_ALIAS "AboutSettings.qml"
+)
 
 qt_add_qml_module(openauto-prodigy
     URI OpenAutoProdigy
@@ -177,6 +201,12 @@ qt_add_qml_module(openauto-prodigy
         ../qml/applications/bt_audio/BtAudioView.qml
         ../qml/applications/phone/PhoneView.qml
         ../qml/applications/phone/IncomingCallOverlay.qml
+        ../qml/applications/settings/DisplaySettings.qml
+        ../qml/applications/settings/AudioSettings.qml
+        ../qml/applications/settings/ConnectionSettings.qml
+        ../qml/applications/settings/VideoSettings.qml
+        ../qml/applications/settings/SystemSettings.qml
+        ../qml/applications/settings/AboutSettings.qml
     RESOURCES
         ../resources/resources.qrc
 )

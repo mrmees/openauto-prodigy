@@ -7,179 +7,100 @@ Item {
 
     Component.onCompleted: ApplicationController.setTitle("Settings")
 
-    GridLayout {
-        anchors.centerIn: parent
-        columns: 4
-        rowSpacing: 20
-        columnSpacing: 20
+    StackView {
+        id: settingsStack
+        anchors.fill: parent
+        initialItem: tileGrid
 
-        Tile {
-            Layout.preferredWidth: settingsMenu.width * 0.18
-            Layout.preferredHeight: settingsMenu.width * 0.18
-            tileName: "Display"
-            tileIcon: "\ueb97"  // display_settings
-            tileEnabled: false
-        }
-
-        Tile {
-            Layout.preferredWidth: settingsMenu.width * 0.18
-            Layout.preferredHeight: settingsMenu.width * 0.18
-            tileName: "Day/Night"
-            tileIcon: ThemeService.nightMode ? "\ue518" : "\ue51c"  // light_mode / dark_mode
-            tileEnabled: true
-            onClicked: ThemeService.toggleMode()
-        }
-
-        Tile {
-            Layout.preferredWidth: settingsMenu.width * 0.18
-            Layout.preferredHeight: settingsMenu.width * 0.18
-            tileName: "Colors"
-            tileIcon: "\ue40a"  // palette
-            tileEnabled: false
-        }
-
-        Tile {
-            Layout.preferredWidth: settingsMenu.width * 0.18
-            Layout.preferredHeight: settingsMenu.width * 0.18
-            tileName: "Audio"
-            tileIcon: "\ue050"  // volume_up
-            tileEnabled: false
-        }
-
-        Tile {
-            Layout.preferredWidth: settingsMenu.width * 0.18
-            Layout.preferredHeight: settingsMenu.width * 0.18
-            tileName: "Bluetooth"
-            tileIcon: "\ue1a7"  // bluetooth
-            tileEnabled: false
-        }
-
-        Tile {
-            Layout.preferredWidth: settingsMenu.width * 0.18
-            Layout.preferredHeight: settingsMenu.width * 0.18
-            tileName: "System"
-            tileIcon: "\uf8cd"  // build
-            tileEnabled: false
-        }
-
-        Tile {
-            Layout.preferredWidth: settingsMenu.width * 0.18
-            Layout.preferredHeight: settingsMenu.width * 0.18
-            tileName: "About"
-            tileIcon: "\ue88e"  // info
-            tileEnabled: false
-        }
-
-        Tile {
-            Layout.preferredWidth: settingsMenu.width * 0.18
-            Layout.preferredHeight: settingsMenu.width * 0.18
-            tileName: "Exit"
-            tileIcon: "\ue5cd"  // close
-            tileEnabled: true
-            onClicked: exitDialog.open()
+        onCurrentItemChanged: {
+            if (depth === 1)
+                ApplicationController.setTitle("Settings")
         }
     }
 
-    // Exit confirmation dialog
-    Dialog {
-        id: exitDialog
-        anchors.centerIn: parent
-        width: 320
-        modal: true
-        title: "Exit"
+    Component {
+        id: tileGrid
 
-        background: Rectangle {
-            color: ThemeService.controlBackgroundColor
-            radius: 12
-            border.color: ThemeService.controlForegroundColor
-            border.width: 1
-        }
-
-        header: Item {
-            height: 48
-            Text {
+        Item {
+            GridLayout {
                 anchors.centerIn: parent
-                text: "Exit OpenAuto Prodigy?"
-                font.pixelSize: 18
-                font.bold: true
-                color: ThemeService.normalFontColor
-            }
-        }
+                columns: 3
+                rowSpacing: 20
+                columnSpacing: 20
 
-        contentItem: ColumnLayout {
-            spacing: 12
+                Tile {
+                    Layout.preferredWidth: settingsMenu.width * 0.22
+                    Layout.preferredHeight: settingsMenu.width * 0.18
+                    tileName: "Display"
+                    tileIcon: "\ueb97"
+                    onClicked: {
+                        ApplicationController.setTitle("Settings > Display")
+                        settingsStack.push(displayPage)
+                    }
+                }
 
-            Button {
-                Layout.fillWidth: true
-                Layout.preferredHeight: 48
-                onClicked: {
-                    exitDialog.close()
-                    ApplicationController.minimize()
-                }
-                contentItem: RowLayout {
-                    spacing: 10
-                    Item { Layout.fillWidth: true }
-                    MaterialIcon {
-                        icon: "\ue5cd"  // close (minimize)
-                        size: 20
-                        color: ThemeService.normalFontColor
+                Tile {
+                    Layout.preferredWidth: settingsMenu.width * 0.22
+                    Layout.preferredHeight: settingsMenu.width * 0.18
+                    tileName: "Audio"
+                    tileIcon: "\ue050"
+                    onClicked: {
+                        ApplicationController.setTitle("Settings > Audio")
+                        settingsStack.push(audioPage)
                     }
-                    Text {
-                        text: "Minimize"
-                        font.pixelSize: 16
-                        color: ThemeService.normalFontColor
-                    }
-                    Item { Layout.fillWidth: true }
                 }
-                background: Rectangle {
-                    color: parent.pressed ? ThemeService.highlightColor : ThemeService.barBackgroundColor
-                    radius: 8
-                }
-            }
 
-            Button {
-                Layout.fillWidth: true
-                Layout.preferredHeight: 48
-                onClicked: ApplicationController.quit()
-                contentItem: RowLayout {
-                    spacing: 10
-                    Item { Layout.fillWidth: true }
-                    MaterialIcon {
-                        icon: "\ue5cd"  // close
-                        size: 20
-                        color: "#F44336"
+                Tile {
+                    Layout.preferredWidth: settingsMenu.width * 0.22
+                    Layout.preferredHeight: settingsMenu.width * 0.18
+                    tileName: "Connection"
+                    tileIcon: "\ue63e"
+                    onClicked: {
+                        ApplicationController.setTitle("Settings > Connection")
+                        settingsStack.push(connectionPage)
                     }
-                    Text {
-                        text: "Close App"
-                        font.pixelSize: 16
-                        color: "#F44336"
-                    }
-                    Item { Layout.fillWidth: true }
                 }
-                background: Rectangle {
-                    color: parent.pressed ? "#F44336" : ThemeService.barBackgroundColor
-                    radius: 8
-                }
-            }
 
-            Button {
-                Layout.fillWidth: true
-                Layout.preferredHeight: 40
-                onClicked: exitDialog.close()
-                contentItem: Text {
-                    text: "Cancel"
-                    font.pixelSize: 14
-                    color: ThemeService.descriptionFontColor
-                    horizontalAlignment: Text.AlignHCenter
+                Tile {
+                    Layout.preferredWidth: settingsMenu.width * 0.22
+                    Layout.preferredHeight: settingsMenu.width * 0.18
+                    tileName: "Video"
+                    tileIcon: "\ue04b"
+                    onClicked: {
+                        ApplicationController.setTitle("Settings > Video")
+                        settingsStack.push(videoPage)
+                    }
                 }
-                background: Rectangle {
-                    color: "transparent"
-                    radius: 8
+
+                Tile {
+                    Layout.preferredWidth: settingsMenu.width * 0.22
+                    Layout.preferredHeight: settingsMenu.width * 0.18
+                    tileName: "System"
+                    tileIcon: "\uf8cd"
+                    onClicked: {
+                        ApplicationController.setTitle("Settings > System")
+                        settingsStack.push(systemPage)
+                    }
+                }
+
+                Tile {
+                    Layout.preferredWidth: settingsMenu.width * 0.22
+                    Layout.preferredHeight: settingsMenu.width * 0.18
+                    tileName: "About"
+                    tileIcon: "\ue88e"
+                    onClicked: {
+                        ApplicationController.setTitle("Settings > About")
+                        settingsStack.push(aboutPage)
+                    }
                 }
             }
         }
-
-        // Remove default dialog footer/buttons
-        footer: Item { height: 0 }
     }
+
+    Component { id: displayPage; DisplaySettings {} }
+    Component { id: audioPage; AudioSettings {} }
+    Component { id: connectionPage; ConnectionSettings {} }
+    Component { id: videoPage; VideoSettings {} }
+    Component { id: systemPage; SystemSettings {} }
+    Component { id: aboutPage; AboutSettings {} }
 }
