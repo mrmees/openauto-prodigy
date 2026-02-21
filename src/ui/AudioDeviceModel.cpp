@@ -77,17 +77,20 @@ void AudioDeviceModel::rebuild()
 {
     devices_.clear();
 
-    // Synthetic "auto" entry at index 0
+    // Get real devices from registry
+    const auto devs = (type_ == Output) ? registry_->outputDevices()
+                                        : registry_->inputDevices();
+
+    // Synthetic "auto" entry at index 0, showing which device PipeWire will use
     AudioDeviceInfo autoEntry;
     autoEntry.registryId = 0;
     autoEntry.nodeName = "auto";
-    autoEntry.description = "Default (auto)";
+    autoEntry.description = devs.isEmpty()
+        ? QStringLiteral("Default (no devices)")
+        : QStringLiteral("Default (%1)").arg(devs.first().description);
     autoEntry.mediaClass = (type_ == Output) ? "Audio/Sink" : "Audio/Source";
     devices_.append(autoEntry);
 
-    // Append real devices from registry
-    const auto devs = (type_ == Output) ? registry_->outputDevices()
-                                        : registry_->inputDevices();
     devices_.append(devs);
 }
 

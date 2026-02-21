@@ -12,7 +12,9 @@
 #include <aasdk_proto/NavigationFocusResponseMessage.pb.h>
 #include <aasdk_proto/PingResponseMessage.pb.h>
 #include <aasdk_proto/PingRequestMessage.pb.h>
+#include <aasdk_proto/ShutdownRequestMessage.pb.h>
 #include <aasdk_proto/ShutdownResponseMessage.pb.h>
+#include <aasdk_proto/ShutdownReasonEnum.pb.h>
 #include <aasdk_proto/ConnectionConfigurationData.pb.h>
 #include <aasdk_proto/PingConfigurationData.pb.h>
 #include <aasdk_proto/HeadUnitInfoData.pb.h>
@@ -66,6 +68,26 @@ void AndroidAutoEntity::stop()
         }
 
         eventHandler_ = nullptr;
+    });
+}
+
+void AndroidAutoEntity::requestShutdown()
+{
+    strand_.dispatch([this, self = this->shared_from_this()]() {
+        BOOST_LOG_TRIVIAL(info) << "[AndroidAutoEntity] Sending shutdown request to phone";
+        pingTimer_.cancel();
+
+        aasdk::proto::messages::ShutdownRequest request;
+        request.set_reason(aasdk::proto::enums::ShutdownReason::QUIT);
+
+        auto promise = aasdk::channel::SendPromise::defer(strand_);
+        promise->then([]() {
+            BOOST_LOG_TRIVIAL(info) << "[AndroidAutoEntity] Shutdown request sent";
+        }, std::bind(&AndroidAutoEntity::onChannelSendError,
+                     this->shared_from_this(), std::placeholders::_1));
+
+        controlChannel_->sendShutdownRequest(request, std::move(promise));
+        controlChannel_->receive(this->shared_from_this());
     });
 }
 

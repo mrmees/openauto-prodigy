@@ -37,6 +37,7 @@ public:
 
     void start(IAndroidAutoEntityEventHandler& eventHandler);
     void stop();
+    void requestShutdown();
 
     // IControlServiceChannelEventHandler
     void onVersionResponse(uint16_t majorCode, uint16_t minorCode,

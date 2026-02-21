@@ -114,5 +114,17 @@ Flickable {
             configPath: "audio.microphone.gain"
             from: 0.5; to: 4.0; stepSize: 0.1
         }
+
+        // Restart button — device changes take effect on restart
+        Item {
+            Layout.fillWidth: true
+            Layout.topMargin: 12
+            implicitHeight: 44
+            Button {
+                anchors.centerIn: parent
+                text: "Restart to Apply Device Changes"
+                onClicked: ApplicationController.restart()
+            }
+        }
     }
 }
