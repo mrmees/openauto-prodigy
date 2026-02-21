@@ -85,6 +85,10 @@ set_source_files_properties(../qml/controls/SettingsSpinBox.qml PROPERTIES
     QT_QML_SOURCE_TYPENAME "SettingsSpinBox"
     QT_RESOURCE_ALIAS "SettingsSpinBox.qml"
 )
+set_source_files_properties(../qml/controls/SettingsPageHeader.qml PROPERTIES
+    QT_QML_SOURCE_TYPENAME "SettingsPageHeader"
+    QT_RESOURCE_ALIAS "SettingsPageHeader.qml"
+)
 set_source_files_properties(../qml/components/Clock.qml PROPERTIES
     QT_QML_SOURCE_TYPENAME "Clock"
     QT_RESOURCE_ALIAS "Clock.qml"
@@ -186,6 +190,7 @@ qt_add_qml_module(openauto-prodigy
         ../qml/controls/SettingsComboBox.qml
         ../qml/controls/SettingsTextField.qml
         ../qml/controls/SettingsSpinBox.qml
+        ../qml/controls/SettingsPageHeader.qml
         ../qml/components/Clock.qml
         ../qml/components/Wallpaper.qml
         ../qml/components/TopBar.qml
