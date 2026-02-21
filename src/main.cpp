@@ -143,6 +143,8 @@ int main(int argc, char *argv[])
     // Expose PhonePlugin globally for IncomingCallOverlay in Shell.qml
     engine.rootContext()->setContextProperty("PhonePlugin", phonePlugin);
 
+    engine.rootContext()->setContextProperty("ConfigService", configService.get());
+
     // Qt 6.5+ uses /qt/qml/ prefix, Qt 6.4 uses direct URI prefix
     QUrl url(QStringLiteral("qrc:/OpenAutoProdigy/main.qml"));
     if (QFile::exists(QStringLiteral(":/qt/qml/OpenAutoProdigy/main.qml")))

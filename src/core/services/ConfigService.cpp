@@ -4,7 +4,7 @@
 namespace oap {
 
 ConfigService::ConfigService(YamlConfig* config, const QString& configPath)
-    : config_(config), configPath_(configPath)
+    : QObject(nullptr), config_(config), configPath_(configPath)
 {
 }
 
@@ -15,7 +15,9 @@ QVariant ConfigService::value(const QString& key) const
 
 void ConfigService::setValue(const QString& key, const QVariant& val)
 {
-    config_->setValueByPath(key, val);
+    if (config_->setValueByPath(key, val)) {
+        emit configChanged(key, val);
+    }
 }
 
 QVariant ConfigService::pluginValue(const QString& pluginId, const QString& key) const
@@ -26,6 +28,7 @@ QVariant ConfigService::pluginValue(const QString& pluginId, const QString& key)
 void ConfigService::setPluginValue(const QString& pluginId, const QString& key, const QVariant& value)
 {
     config_->setPluginValue(pluginId, key, value);
+    // TODO: emit pluginConfigChanged signal when plugin settings UI exists
 }
 
 void ConfigService::save()
