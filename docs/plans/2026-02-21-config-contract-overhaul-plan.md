@@ -1,4 +1,5 @@
 # Config Contract Overhaul — Implementation Plan
+> **Status:** NOT STARTED
 
 > **For Claude:** REQUIRED SUB-SKILL: Use superpowers:executing-plans to implement this plan task-by-task.
 

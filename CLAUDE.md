@@ -16,7 +16,7 @@ Clean-room open-source rebuild of OpenAuto Pro (BlueWave Studio, defunct). Raspb
   - `qml/controls/` — Reusable controls (Tile, Icon, NormalText, SpecialText)
   - `qml/applications/` — Plugin views (launcher, android_auto, settings, home, bt_audio, phone)
 - `libs/aasdk/` — Android Auto SDK (git submodule, SonOfGib's fork)
-- `tests/` — Unit tests (8 tests: configuration, yaml_config, theme_controller, theme_service, audio_service, plugin_discovery, plugin_manager, plugin_model)
+- `tests/` — Unit tests (17 tests covering config, plugins, theme, audio, events, notifications, device registry)
 - `web-config/` — Flask web config panel (Python, HTML/CSS/JS)
 - `docs/` — Design decisions, development guide, wireless setup, plans
 - `install.sh` — Interactive installer for RPi OS Trixie
@@ -25,7 +25,7 @@ Clean-room open-source rebuild of OpenAuto Pro (BlueWave Studio, defunct). Raspb
 
 ```bash
 mkdir build && cd build && cmake .. && make -j$(nproc)
-ctest --output-on-failure  # from build dir (8 tests)
+ctest --output-on-failure  # from build dir (17 tests)
 ```
 
 **Dependencies:** See `docs/development.md` for full package list. Bluetooth requires `qt6-connectivity-dev` (Pi only, optional on dev).
@@ -51,30 +51,37 @@ ssh matt@192.168.1.149 'cd /home/matt/openauto-prodigy && nohup env WAYLAND_DISP
 
 ## Current Status
 
-**v0.2.0 — Plugin architecture milestone complete.**
+**v0.3.0 — Audio pipeline and settings complete.**
 
 Working features:
 - Wireless AA connection (BT discovery → WiFi AP → TCP)
-- H.264 video decoding and display at 1280x720 @ 60fps
-- Multi-touch input via direct evdev reader (bypasses Qt/Wayland)
+- H.264 video decoding and display at 1280x720 @ 30fps on Pi 4
+- Multi-touch input via direct evdev reader (auto-detected by INPUT_PROP_DIRECT, bypasses Qt/Wayland)
 - Plugin system with lifecycle management (Discover → Load → Init → Activate ↔ Deactivate → Shutdown)
-- YAML configuration with deep merge and hot-reload
+- YAML configuration with deep merge, hot-reload, and ConfigService for QML
 - Theme system (day/night mode, YAML-based color definitions)
-- Audio pipeline via PipeWire (AA media/nav/phone streams)
+- Audio pipeline via PipeWire (AA media/nav/phone streams with lock-free ring buffers)
+- PipeWire device registry with hot-plug detection (USB audio adapters appear in QML dropdowns)
+- Audio device selection (output + input) via Settings UI (requires restart to apply)
+- Graceful AA shutdown (sends ShutdownRequest to phone before app exit/restart)
+- App restart from Settings with PID-based wait and FD_CLOEXEC for clean port rebind
 - Bluetooth audio plugin (A2DP sink monitoring, AVRCP metadata + controls via BlueZ D-Bus)
 - Phone plugin (HFP via BlueZ D-Bus, dialer, incoming call overlay)
+- Settings pages: Audio, Display, Connection, Video, System, About
 - Web config panel (Flask, Unix socket IPC, settings/theme/plugin management)
 - 3-finger gesture overlay (volume, brightness, home, day/night toggle)
+- Connection watchdog using TCP_INFO polling (detects dead peers on local WiFi AP)
 - Interactive install script for RPi OS Trixie
 
 **Known limitations / TODO:**
 - D-Bus signal connection warnings for BT audio and phone plugins (non-fatal, but plugins don't receive live state updates)
 - HFP call audio routing not yet wired through PipeWire
 - Phone contacts not yet synced (PBAP profile)
-- Touch device path hardcoded to `/dev/input/event4` — should auto-discover by VID/PID (3343:5710)
 - `wlan0` IP (10.0.0.1) doesn't survive reboot — needs permanent config
 - Dynamic plugin loading (.so) untested — only static plugins currently
-- Launcher QML has no background when theme file is missing — bundled fallback added but UI is still bare
+- Audio device switching requires app restart (live PipeWire stream re-routing didn't work reliably)
+- Phone doesn't cleanly reconnect after app restart — user must manually cycle BT/WiFi
+- "Default" device label shows first registry device, not PipeWire's actual default sink
 
 ## Architecture
 
@@ -105,7 +112,7 @@ Dynamic plugins loaded from `~/.openauto/plugins/` (each needs `plugin.yaml` man
 - **Transport:** Wireless only — BT discovery → WiFi AP → TCP. No USB/libusb.
 - **Protocol threading:** ASIO threads for protocol, Qt main thread for UI. Bridged via `QMetaObject::invokeMethod(Qt::QueuedConnection)`.
 - **Video pipeline:** FFmpeg software H.264 decode on worker thread → `QVideoFrame` → `QVideoSink::setVideoFrame()` → QML `VideoOutput`.
-- **Touch input:** `EvdevTouchReader` (QThread) reads `/dev/input/event4` with `EVIOCGRAB` → MT Type B slot tracking → `TouchHandler` → AA `InputEventIndication` protobuf.
+- **Touch input:** `EvdevTouchReader` (QThread) reads auto-detected touch device (INPUT_PROP_DIRECT scan) with `EVIOCGRAB` → MT Type B slot tracking → `TouchHandler` → AA `InputEventIndication` protobuf.
 - **Touch coordinate mapping:** Evdev (0-4095) → AA coordinates (1280x720). Letterbox-aware for 1024x600 display.
 - **Audio:** 3 PipeWire streams (media, navigation, phone) with audio focus management.
 - **3-finger gesture:** EvdevTouchReader detects 3 simultaneous touches within 200ms, suppresses AA forwarding, emits signal for overlay.
@@ -137,7 +144,10 @@ Flask server (`web-config/server.py`) communicates with Qt app via Unix domain s
 | `src/ui/PluginModel.cpp` | QAbstractListModel for QML nav strip |
 | `src/core/YamlConfig.cpp` | YAML config with deep merge |
 | `src/core/services/ThemeService.cpp` | Day/night theme, color Q_PROPERTYs |
-| `src/core/services/AudioService.cpp` | PipeWire stream management |
+| `src/core/services/AudioService.cpp` | PipeWire stream management, ring buffer bridge |
+| `src/core/services/PipeWireDeviceRegistry.cpp` | Hot-plug device enumeration via pw_registry |
+| `src/ui/AudioDeviceModel.cpp` | QAbstractListModel for device selection ComboBoxes |
+| `src/core/InputDeviceScanner.cpp` | Touch device auto-detection via INPUT_PROP_DIRECT |
 | `src/core/services/IpcServer.cpp` | Unix socket IPC for web config |
 | `src/plugins/android_auto/AndroidAutoPlugin.cpp` | AA plugin (wraps all AA protocol code) |
 | `src/plugins/bt_audio/BtAudioPlugin.cpp` | BT audio with BlueZ D-Bus A2DP/AVRCP |
@@ -192,6 +202,10 @@ AA supports fixed resolutions only:
 - **`tcpi_retransmits` resets between polls** — use `tcpi_backoff` instead for reliable dead peer detection.
 - **`<netinet/tcp.h>` and `<linux/tcp.h>` conflict** — only include `<netinet/tcp.h>` for `tcp_info`.
 - **EVIOCGRAB must be toggled with AA connection state** — grab on AA connect (route touch to AA), ungrab on disconnect (return touch to Wayland/libinput). Permanent grab steals touch from the launcher UI.
+- **PipeWire `d.chunk->size` must report actual bytes read** — reporting `maxSize` (with zero-fill) causes choppy audio. Only report bytes actually read from the ring buffer.
+- **Boost.ASIO sockets don't set SOCK_CLOEXEC** — forked processes (e.g. QProcess::startDetached for restart) inherit the TCP acceptor FD, preventing port rebind. Must `fcntl(fd, F_SETFD, FD_CLOEXEC)` after socket open.
+- **SO_REUSEADDR must be set before bind** — the Boost.ASIO 2-arg acceptor constructor does open+bind+listen in one shot, too late for socket options. Use separate open/set_option/bind/listen.
+- **`SPA_DICT_INIT_ARRAY` inline syntax** causes "taking address of temporary array" — use named `spa_dict_item` arrays with `SPA_DICT_INIT` instead.
 
 ## Hardware (Pi Target)
 
