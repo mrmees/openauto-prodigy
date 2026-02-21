@@ -1,10 +1,13 @@
 #pragma once
 
 #include "IAudioService.hpp"
+#include "core/audio/AudioRingBuffer.hpp"
 #include <QObject>
 #include <QMutex>
 #include <QList>
+#include <memory>
 #include <pipewire/pipewire.h>
+#include <spa/param/audio/format-utils.h>
 
 namespace oap {
 
@@ -18,6 +21,18 @@ struct AudioStreamHandle {
     bool hasFocus = false;
     float volume = 1.0f;  // 0.0 - 1.0 (current, may be ducked)
     float baseVolume = 1.0f;  // Volume before ducking
+
+    // Format info for process callback
+    int sampleRate = 48000;
+    int channels = 2;
+    int bytesPerFrame = 4; // channels * sizeof(int16_t)
+
+    // Ring buffer for ASIO → PipeWire bridging
+    std::unique_ptr<oap::AudioRingBuffer> ringBuffer;
+
+    // PipeWire listener (must outlive stream)
+    struct spa_hook listener{};
+    struct pw_stream_events events{};
 };
 
 /// PipeWire-based audio service.
@@ -32,16 +47,24 @@ public:
     ~AudioService() override;
 
     /// Whether PipeWire was successfully initialized.
-    bool isAvailable() const { return mainLoop_ != nullptr; }
+    bool isAvailable() const { return threadLoop_ != nullptr; }
 
     // IAudioService — output
-    AudioStreamHandle* createStream(const QString& name, int priority) override;
+    AudioStreamHandle* createStream(const QString& name, int priority,
+                                     int sampleRate = 48000, int channels = 2,
+                                     const QString& targetDevice = "auto") override;
     void destroyStream(AudioStreamHandle* handle) override;
     int writeAudio(AudioStreamHandle* handle, const uint8_t* data, int size) override;
-    void setMasterVolume(int volume) override;
-    int masterVolume() const override;
+    Q_INVOKABLE void setMasterVolume(int volume) override;
+    Q_INVOKABLE int masterVolume() const override;
     void requestAudioFocus(AudioStreamHandle* handle, AudioFocusType type) override;
     void releaseAudioFocus(AudioStreamHandle* handle) override;
+
+    // IAudioService — device selection
+    Q_INVOKABLE void setOutputDevice(const QString& deviceName) override;
+    Q_INVOKABLE void setInputDevice(const QString& deviceName) override;
+    Q_INVOKABLE QString outputDevice() const override;
+    Q_INVOKABLE QString inputDevice() const override;
 
     // IAudioService — capture
     AudioStreamHandle* openCaptureStream(const QString& name,
@@ -51,13 +74,15 @@ public:
 
 private:
     void applyDucking();
-
-    /// PipeWire process callback for capture streams.
+    static void onPlaybackProcess(void* userdata);
     static void onCaptureProcess(void* userdata);
 
-    struct pw_main_loop* mainLoop_ = nullptr;
+    struct pw_thread_loop* threadLoop_ = nullptr;
     struct pw_context* context_ = nullptr;
     struct pw_core* core_ = nullptr;
+
+    QString outputDevice_ = "auto";
+    QString inputDevice_ = "auto";
 
     mutable QMutex mutex_;
     QList<AudioStreamHandle*> streams_;
@@ -67,7 +92,7 @@ private:
     struct CaptureState {
         AudioStreamHandle* handle = nullptr;
         CaptureCallback callback;
-        pw_stream_events events{};
+        struct pw_stream_events events{};
     };
     CaptureState capture_;
     struct spa_hook captureListener_{};
