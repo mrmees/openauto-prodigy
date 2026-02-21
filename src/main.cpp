@@ -19,6 +19,7 @@
 #include "ui/ApplicationController.hpp"
 #include "ui/PluginModel.hpp"
 #include "ui/PluginViewHost.hpp"
+#include "ui/LauncherModel.hpp"
 
 int main(int argc, char *argv[])
 {
@@ -101,9 +102,12 @@ int main(int argc, char *argv[])
     // Plugin model for QML nav strip (needs engine for PluginRuntimeContext)
     auto pluginModel = new oap::PluginModel(&pluginManager, &engine, &app);
 
+    auto launcherModel = new oap::LauncherModel(yamlConfig.get(), &app);
+
     engine.rootContext()->setContextProperty("ThemeService", themeService);
     engine.rootContext()->setContextProperty("ApplicationController", appController);
     engine.rootContext()->setContextProperty("PluginModel", pluginModel);
+    engine.rootContext()->setContextProperty("LauncherModel", launcherModel);
 
     // Transition: expose AA objects globally for Shell.qml fullscreen check.
     // TODO: Remove once Shell uses PluginModel.activePluginFullscreen.
