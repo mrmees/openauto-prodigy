@@ -13,6 +13,7 @@ public:
     void setDisplayService(IDisplayService* svc) { display_ = svc; }
     void setEventBus(IEventBus* bus) { eventBus_ = bus; }
     void setActionRegistry(ActionRegistry* reg) { actions_ = reg; }
+    void setNotificationService(INotificationService* svc) { notifications_ = svc; }
 
     IAudioService* audioService() override { return audio_; }
     IBluetoothService* bluetoothService() override { return bt_; }
@@ -21,6 +22,7 @@ public:
     IDisplayService* displayService() override { return display_; }
     IEventBus* eventBus() override { return eventBus_; }
     ActionRegistry* actionRegistry() override { return actions_; }
+    INotificationService* notificationService() override { return notifications_; }
 
     void log(LogLevel level, const QString& message) override;
 
@@ -32,6 +34,7 @@ private:
     IDisplayService* display_ = nullptr;
     IEventBus* eventBus_ = nullptr;
     ActionRegistry* actions_ = nullptr;
+    INotificationService* notifications_ = nullptr;
 };
 
 } // namespace oap

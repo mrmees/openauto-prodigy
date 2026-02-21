@@ -13,6 +13,8 @@
 #include "core/services/IpcServer.hpp"
 #include "core/services/EventBus.hpp"
 #include "core/services/ActionRegistry.hpp"
+#include "core/services/NotificationService.hpp"
+#include "ui/NotificationModel.hpp"
 #include "core/plugin/HostContext.hpp"
 #include "core/plugin/PluginManager.hpp"
 #include "plugins/android_auto/AndroidAutoPlugin.hpp"
@@ -82,6 +84,10 @@ int main(int argc, char *argv[])
     auto actionRegistry = new oap::ActionRegistry(&app);
     hostContext->setActionRegistry(actionRegistry);
 
+    // --- NotificationService ---
+    auto notificationService = new oap::NotificationService(&app);
+    hostContext->setNotificationService(notificationService);
+
     oap::PluginManager pluginManager(&app);
 
     // Register static (compiled-in) plugins
@@ -113,6 +119,7 @@ int main(int argc, char *argv[])
     auto pluginModel = new oap::PluginModel(&pluginManager, &engine, &app);
 
     auto launcherModel = new oap::LauncherModel(yamlConfig.get(), &app);
+    auto notificationModel = new oap::NotificationModel(notificationService, &app);
 
     // Register built-in actions (after pluginModel exists)
     actionRegistry->registerAction("app.quit", [](const QVariant&) {
@@ -130,6 +137,8 @@ int main(int argc, char *argv[])
     engine.rootContext()->setContextProperty("ApplicationController", appController);
     engine.rootContext()->setContextProperty("PluginModel", pluginModel);
     engine.rootContext()->setContextProperty("LauncherModel", launcherModel);
+    engine.rootContext()->setContextProperty("NotificationModel", notificationModel);
+    engine.rootContext()->setContextProperty("NotificationService", notificationService);
 
     // Expose PhonePlugin globally for IncomingCallOverlay in Shell.qml
     engine.rootContext()->setContextProperty("PhonePlugin", phonePlugin);
