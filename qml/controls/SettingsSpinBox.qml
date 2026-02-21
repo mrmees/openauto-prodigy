@@ -40,6 +40,7 @@ Item {
             editable: true
             Layout.preferredWidth: 140
             onValueModified: {
+                if (root.configPath === "") return
                 ConfigService.setValue(root.configPath, value)
                 ConfigService.save()
             }

@@ -12,7 +12,13 @@ Item {
 
     // Expose current index so parent pages can drive conditional visibility
     property alias currentIndex: combo.currentIndex
-    readonly property var currentValue: root.values.length > 0 ? root.values[combo.currentIndex] : root.options[combo.currentIndex]
+    readonly property var currentValue: {
+        if (root.values.length > 0 && combo.currentIndex >= 0 && combo.currentIndex < root.values.length)
+            return root.values[combo.currentIndex]
+        if (combo.currentIndex >= 0 && combo.currentIndex < root.options.length)
+            return root.options[combo.currentIndex]
+        return undefined
+    }
 
     Layout.fillWidth: true
     implicitHeight: 48
@@ -42,7 +48,9 @@ Item {
             model: root.options
             Layout.preferredWidth: 160
             onActivated: {
-                var writeVal = root.values.length > 0 ? root.values[currentIndex] : currentText
+                if (root.configPath === "") return
+                var writeVal = (root.values.length > 0 && currentIndex < root.values.length)
+                    ? root.values[currentIndex] : currentText
                 ConfigService.setValue(root.configPath, writeVal)
                 ConfigService.save()
             }

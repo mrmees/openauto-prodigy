@@ -33,8 +33,8 @@ Item {
 
         Switch {
             id: toggle
-            checked: ConfigService.value(root.configPath) === true
             onToggled: {
+                if (root.configPath === "") return
                 ConfigService.setValue(root.configPath, checked)
                 ConfigService.save()
             }
@@ -42,7 +42,9 @@ Item {
     }
 
     Component.onCompleted: {
-        if (root.configPath !== "")
-            toggle.checked = ConfigService.value(root.configPath) === true
+        if (root.configPath !== "") {
+            var v = ConfigService.value(root.configPath)
+            toggle.checked = (v === true || v === 1 || v === "true")
+        }
     }
 }

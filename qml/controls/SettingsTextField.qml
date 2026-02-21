@@ -47,7 +47,7 @@ Item {
                 radius: 4
             }
             onEditingFinished: {
-                if (!root.readOnly) {
+                if (!root.readOnly && root.configPath !== "") {
                     ConfigService.setValue(root.configPath, text)
                     ConfigService.save()
                 }

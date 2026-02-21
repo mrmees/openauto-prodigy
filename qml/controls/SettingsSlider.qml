@@ -18,8 +18,19 @@ Item {
         id: debounce
         interval: 300
         onTriggered: {
+            if (root.configPath === "") return
             ConfigService.setValue(root.configPath, slider.value)
             ConfigService.save()
+        }
+    }
+
+    Component.onDestruction: {
+        if (debounce.running) {
+            debounce.stop()
+            if (root.configPath !== "") {
+                ConfigService.setValue(root.configPath, slider.value)
+                ConfigService.save()
+            }
         }
     }
 
