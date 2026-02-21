@@ -108,10 +108,10 @@ Named command dispatch. Actions are synchronous.
 
 | Method | Thread Safety | Description |
 |--------|---------------|-------------|
-| `registerAction(id, handler)` | Main thread | Register a named action handler. |
-| `unregisterAction(id)` | Main thread | Remove an action handler. |
-| `dispatch(id, payload)` | Main thread | Execute an action. Returns `false` if unknown. |
-| `registeredActions()` | Main thread | List all registered action IDs. |
+| `registerAction(id, handler)` | Main thread only | Register a named action handler. |
+| `unregisterAction(id)` | Main thread only | Remove an action handler. |
+| `dispatch(id, payload)` | Main thread only | Execute an action. Returns `false` if unknown. |
+| `registeredActions()` | Main thread only | List all registered action IDs. |
 
 **Built-in actions:**
 

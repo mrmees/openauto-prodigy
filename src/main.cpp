@@ -143,17 +143,6 @@ int main(int argc, char *argv[])
     // Expose PhonePlugin globally for IncomingCallOverlay in Shell.qml
     engine.rootContext()->setContextProperty("PhonePlugin", phonePlugin);
 
-    // Wire AA plugin activation/deactivation to PluginModel
-    QObject::connect(aaPlugin, &oap::plugins::AndroidAutoPlugin::requestActivation,
-                     pluginModel, [pluginModel]() {
-        pluginModel->setActivePlugin("org.openauto.android-auto");
-    });
-    QObject::connect(aaPlugin, &oap::plugins::AndroidAutoPlugin::requestDeactivation,
-                     pluginModel, [pluginModel]() {
-        if (pluginModel->activePluginId() == "org.openauto.android-auto")
-            pluginModel->setActivePlugin(QString());
-    });
-
     // Qt 6.5+ uses /qt/qml/ prefix, Qt 6.4 uses direct URI prefix
     QUrl url(QStringLiteral("qrc:/OpenAutoProdigy/main.qml"));
     if (QFile::exists(QStringLiteral(":/qt/qml/OpenAutoProdigy/main.qml")))
@@ -170,7 +159,23 @@ int main(int argc, char *argv[])
     if (hostItem)
         pluginModel->viewHost()->setHostItem(hostItem);
 
+    // Wire AA plugin activation/deactivation to PluginModel
+    // NOTE: Must be after host item wiring — loadView requires hostItem_ to be set.
+    QObject::connect(aaPlugin, &oap::plugins::AndroidAutoPlugin::requestActivation,
+                     pluginModel, [pluginModel]() {
+        pluginModel->setActivePlugin("org.openauto.android-auto");
+    });
+    QObject::connect(aaPlugin, &oap::plugins::AndroidAutoPlugin::requestDeactivation,
+                     pluginModel, [pluginModel]() {
+        if (pluginModel->activePluginId() == "org.openauto.android-auto")
+            pluginModel->setActivePlugin(QString());
+    });
+
     int ret = app.exec();
+
+    // Teardown order matters: deactivate plugin view (uses QML engine)
+    // BEFORE engine is destroyed (stack-local), BEFORE plugin shutdown.
+    pluginModel->setActivePlugin(QString());
 
     pluginManager.shutdownAll();
 

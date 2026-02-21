@@ -11,7 +11,7 @@ namespace oap {
 
 /// Registry for named actions. Actions are synchronous command handlers
 /// (as opposed to EventBus topics which are async notifications).
-/// Thread-safe for registration; dispatch must happen on the main thread.
+/// All methods must be called on the main thread.
 class ActionRegistry : public QObject {
     Q_OBJECT
 public:
