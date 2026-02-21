@@ -16,6 +16,11 @@ private slots:
     void testMicDefaults();
     void testMicFromFile();
     void testLauncherTiles();
+    void testValueByPath();
+    void testValueByPathNested();
+    void testValueByPathMissing();
+    void testSetValueByPath();
+    void testSetValueByPathRejectsUnknown();
 };
 
 void TestYamlConfig::testLoadDefaults()
@@ -174,6 +179,50 @@ void TestYamlConfig::testLauncherTiles()
     QVERIFY(!first.value("label").toString().isEmpty());
     QVERIFY(!first.value("icon").toString().isEmpty());
     QVERIFY(!first.value("action").toString().isEmpty());
+}
+
+void TestYamlConfig::testValueByPath()
+{
+    oap::YamlConfig config;
+    QCOMPARE(config.valueByPath("hardware_profile").toString(), QString("rpi4"));
+    QCOMPARE(config.valueByPath("connection.tcp_port").toInt(), 5288);
+    QCOMPARE(config.valueByPath("video.fps").toInt(), 60);
+}
+
+void TestYamlConfig::testValueByPathNested()
+{
+    oap::YamlConfig config;
+    QCOMPARE(config.valueByPath("connection.wifi_ap.ssid").toString(), QString("OpenAutoProdigy"));
+    QCOMPARE(config.valueByPath("connection.wifi_ap.password").toString(), QString("changeme123"));
+    QCOMPARE(config.valueByPath("sensors.night_mode.source").toString(), QString("time"));
+    QCOMPARE(config.valueByPath("sensors.gps.enabled").toBool(), true);
+}
+
+void TestYamlConfig::testValueByPathMissing()
+{
+    oap::YamlConfig config;
+    QVERIFY(!config.valueByPath("nonexistent").isValid());
+    QVERIFY(!config.valueByPath("connection.nonexistent").isValid());
+    QVERIFY(!config.valueByPath("").isValid());
+}
+
+void TestYamlConfig::testSetValueByPath()
+{
+    oap::YamlConfig config;
+    QVERIFY(config.setValueByPath("connection.tcp_port", 9999));
+    QCOMPARE(config.tcpPort(), static_cast<uint16_t>(9999));
+    QCOMPARE(config.valueByPath("connection.tcp_port").toInt(), 9999);
+
+    QVERIFY(config.setValueByPath("connection.wifi_ap.ssid", QString("NewSSID")));
+    QCOMPARE(config.wifiSsid(), QString("NewSSID"));
+}
+
+void TestYamlConfig::testSetValueByPathRejectsUnknown()
+{
+    oap::YamlConfig config;
+    QVERIFY(!config.setValueByPath("bogus.key", 42));
+    QVERIFY(!config.setValueByPath("connection.bogus", 42));
+    QVERIFY(!config.valueByPath("bogus.key").isValid());
 }
 
 QTEST_MAIN(TestYamlConfig)

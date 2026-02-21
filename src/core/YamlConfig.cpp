@@ -532,4 +532,91 @@ void YamlConfig::setPluginValue(const QString& pluginId, const QString& key, con
     }
 }
 
+// --- Generic dot-path access ---
+
+static QVariant yamlScalarToVariant(const YAML::Node& node)
+{
+    if (!node.IsScalar()) return {};
+
+    const std::string s = node.Scalar();
+
+    if (s == "true") return QVariant(true);
+    if (s == "false") return QVariant(false);
+
+    bool intOk = false;
+    int i = QString::fromStdString(s).toInt(&intOk);
+    if (intOk) return QVariant(i);
+
+    bool dblOk = false;
+    double d = QString::fromStdString(s).toDouble(&dblOk);
+    if (dblOk) return QVariant(d);
+
+    return QVariant(QString::fromStdString(s));
+}
+
+QVariant YamlConfig::valueByPath(const QString& dottedKey) const
+{
+    if (dottedKey.isEmpty()) return {};
+
+    QStringList parts = dottedKey.split('.');
+
+    YAML::Node node = YAML::Clone(root_);
+    for (const auto& part : parts) {
+        if (!node.IsMap()) return {};
+        node.reset(node[part.toStdString()]);
+        if (!node.IsDefined() || node.IsNull()) return {};
+    }
+
+    return yamlScalarToVariant(node);
+}
+
+YAML::Node YamlConfig::buildDefaultsNode()
+{
+    YamlConfig tmp;
+    return YAML::Clone(tmp.root_);
+}
+
+bool YamlConfig::setValueByPath(const QString& dottedKey, const QVariant& value)
+{
+    if (dottedKey.isEmpty()) return false;
+
+    QStringList parts = dottedKey.split('.');
+
+    // Validate against DEFAULTS tree, not merged root_
+    {
+        YAML::Node defaults = buildDefaultsNode();
+        for (const auto& part : parts) {
+            if (!defaults.IsMap()) return false;
+            defaults.reset(defaults[part.toStdString()]);
+            if (!defaults.IsDefined()) return false;
+        }
+    }
+
+    // Path exists in schema — navigate the real tree and set the value
+    YAML::Node node = root_;
+    for (int i = 0; i < parts.size() - 1; ++i) {
+        if (!node.IsMap()) return false;
+        node.reset(node[parts[i].toStdString()]);
+    }
+
+    std::string leafKey = parts.last().toStdString();
+    switch (value.typeId()) {
+    case QMetaType::Bool:
+        node[leafKey] = value.toBool();
+        break;
+    case QMetaType::Int:
+        node[leafKey] = value.toInt();
+        break;
+    case QMetaType::Double:
+    case QMetaType::Float:
+        node[leafKey] = value.toDouble();
+        break;
+    default:
+        node[leafKey] = value.toString().toStdString();
+        break;
+    }
+
+    return true;
+}
+
 } // namespace oap

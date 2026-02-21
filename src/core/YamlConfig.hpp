@@ -102,10 +102,15 @@ public:
     QVariant pluginValue(const QString& pluginId, const QString& key) const;
     void setPluginValue(const QString& pluginId, const QString& key, const QVariant& value);
 
+    // Generic dot-path access (e.g. "connection.wifi_ap.ssid")
+    QVariant valueByPath(const QString& dottedKey) const;
+    bool setValueByPath(const QString& dottedKey, const QVariant& value);
+
 private:
     YAML::Node root_;  // Single source of truth — NO shadow state
 
     void initDefaults();
+    static YAML::Node buildDefaultsNode();
 };
 
 } // namespace oap
