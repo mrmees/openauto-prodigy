@@ -1,6 +1,7 @@
 #include "IpcServer.hpp"
 #include "../YamlConfig.hpp"
 #include "ThemeService.hpp"
+#include "AudioService.hpp"
 #include "../plugin/PluginManager.hpp"
 #include "../plugin/IPlugin.hpp"
 #include <QJsonDocument>
@@ -69,6 +70,11 @@ void IpcServer::setThemeService(ThemeService* themeService)
     themeService_ = themeService;
 }
 
+void IpcServer::setAudioService(AudioService* audioService)
+{
+    audioService_ = audioService;
+}
+
 void IpcServer::setPluginManager(PluginManager* pluginManager)
 {
     pluginManager_ = pluginManager;
@@ -123,6 +129,12 @@ QByteArray IpcServer::handleRequest(const QByteArray& request)
         return handleListPlugins();
     if (command == QLatin1String("status"))
         return handleStatus();
+    if (command == QLatin1String("get_audio_devices"))
+        return handleGetAudioDevices();
+    if (command == QLatin1String("get_audio_config"))
+        return handleGetAudioConfig();
+    if (command == QLatin1String("set_audio_config"))
+        return handleSetAudioConfig(data);
 
     return R"({"error":"Unknown command"})";
 }
@@ -253,6 +265,69 @@ QByteArray IpcServer::handleStatus()
     obj["version"] = QStringLiteral("0.1.0");
     obj["plugin_count"] = pluginManager_ ? pluginManager_->plugins().count() : 0;
     return QJsonDocument(obj).toJson(QJsonDocument::Compact);
+}
+
+QByteArray IpcServer::handleGetAudioDevices()
+{
+    if (!audioService_) return R"({"error":"Audio service not available"})";
+
+    QJsonArray outputs, inputs;
+    auto* registry = audioService_->deviceRegistry();
+    if (registry) {
+        for (const auto& dev : registry->outputDevices()) {
+            QJsonObject d;
+            d["nodeName"] = dev.nodeName;
+            d["description"] = dev.description;
+            outputs.append(d);
+        }
+        for (const auto& dev : registry->inputDevices()) {
+            QJsonObject d;
+            d["nodeName"] = dev.nodeName;
+            d["description"] = dev.description;
+            inputs.append(d);
+        }
+    }
+
+    QJsonObject obj;
+    obj["outputs"] = outputs;
+    obj["inputs"] = inputs;
+    return QJsonDocument(obj).toJson(QJsonDocument::Compact);
+}
+
+QByteArray IpcServer::handleGetAudioConfig()
+{
+    if (!audioService_) return R"({"error":"Audio service not available"})";
+
+    QJsonObject obj;
+    obj["output_device"] = audioService_->outputDevice();
+    obj["input_device"] = audioService_->inputDevice();
+    obj["master_volume"] = audioService_->masterVolume();
+    return QJsonDocument(obj).toJson(QJsonDocument::Compact);
+}
+
+QByteArray IpcServer::handleSetAudioConfig(const QVariantMap& data)
+{
+    if (!audioService_) return R"({"error":"Audio service not available"})";
+
+    if (data.contains("output_device"))
+        audioService_->setOutputDevice(data.value("output_device").toString());
+    if (data.contains("input_device"))
+        audioService_->setInputDevice(data.value("input_device").toString());
+    if (data.contains("master_volume"))
+        audioService_->setMasterVolume(data.value("master_volume").toInt());
+
+    // Persist to config if available
+    if (config_) {
+        if (data.contains("output_device"))
+            config_->setValueByPath("audio.output_device", data.value("output_device").toString());
+        if (data.contains("input_device"))
+            config_->setValueByPath("audio.input_device", data.value("input_device").toString());
+        if (data.contains("master_volume"))
+            config_->setMasterVolume(data.value("master_volume").toInt());
+        config_->save(configPath_);
+    }
+
+    return R"({"ok":true})";
 }
 
 } // namespace oap

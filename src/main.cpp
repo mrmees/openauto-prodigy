@@ -118,6 +118,7 @@ int main(int argc, char *argv[])
     auto ipcServer = new oap::IpcServer(&app);
     ipcServer->setConfig(yamlConfig.get(), yamlPath);
     ipcServer->setThemeService(themeService);
+    ipcServer->setAudioService(audioService);
     ipcServer->setPluginManager(&pluginManager);
     ipcServer->start();
 

@@ -77,6 +77,14 @@ def themes():
     return render_template("themes.html", page="themes", theme=theme)
 
 
+@app.route("/audio")
+def audio():
+    """Audio settings — device selection, volume control."""
+    devices = ipc_request("get_audio_devices")
+    config = ipc_request("get_audio_config")
+    return render_template("audio.html", page="audio", devices=devices, audio_config=config)
+
+
 @app.route("/plugins")
 def plugins():
     """Plugin management — enable/disable, view info."""
@@ -110,6 +118,24 @@ def api_set_theme():
     if not data:
         return jsonify({"error": "No JSON data"}), 400
     return jsonify(ipc_request("set_theme", data))
+
+
+@app.route("/api/audio/devices", methods=["GET"])
+def api_get_audio_devices():
+    return jsonify(ipc_request("get_audio_devices"))
+
+
+@app.route("/api/audio/config", methods=["GET"])
+def api_get_audio_config():
+    return jsonify(ipc_request("get_audio_config"))
+
+
+@app.route("/api/audio/config", methods=["POST"])
+def api_set_audio_config():
+    data = request.get_json()
+    if not data:
+        return jsonify({"error": "No JSON data"}), 400
+    return jsonify(ipc_request("set_audio_config", data))
 
 
 @app.route("/api/plugins", methods=["GET"])
