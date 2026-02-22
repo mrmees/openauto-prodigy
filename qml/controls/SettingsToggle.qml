@@ -9,24 +9,24 @@ Item {
     property bool restartRequired: false
 
     Layout.fillWidth: true
-    implicitHeight: 48
+    implicitHeight: UiMetrics.rowH
 
     RowLayout {
         anchors.fill: parent
-        anchors.leftMargin: 8
-        anchors.rightMargin: 8
-        spacing: 12
+        anchors.leftMargin: UiMetrics.marginRow
+        anchors.rightMargin: UiMetrics.marginRow
+        spacing: UiMetrics.gap
 
         Text {
             text: root.label
-            font.pixelSize: 15
+            font.pixelSize: UiMetrics.fontBody
             color: ThemeService.normalFontColor
             Layout.fillWidth: true
         }
 
         MaterialIcon {
             icon: "\ue86a"  // restart_alt
-            size: 16
+            size: UiMetrics.iconSmall
             color: ThemeService.descriptionFontColor
             visible: root.restartRequired
         }

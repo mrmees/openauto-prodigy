@@ -25,8 +25,8 @@ Item {
             GridLayout {
                 anchors.centerIn: parent
                 columns: 3
-                rowSpacing: 20
-                columnSpacing: 20
+                rowSpacing: UiMetrics.gridGap
+                columnSpacing: UiMetrics.gridGap
 
                 Tile {
                     Layout.preferredWidth: settingsMenu.width * 0.22

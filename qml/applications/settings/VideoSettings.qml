@@ -4,7 +4,7 @@ import QtQuick.Controls
 
 Flickable {
     id: root
-    contentHeight: content.implicitHeight + 32
+    contentHeight: content.implicitHeight + UiMetrics.marginPage * 2
     clip: true
     boundsBehavior: Flickable.StopAtBounds
     property StackView stackRef: StackView.view
@@ -13,8 +13,8 @@ Flickable {
         id: content
         anchors.left: parent.left
         anchors.right: parent.right
-        anchors.margins: 16
-        spacing: 4
+        anchors.margins: UiMetrics.marginPage
+        spacing: UiMetrics.spacing
 
         SettingsPageHeader {
             title: "Video"
@@ -46,10 +46,10 @@ Flickable {
         // Sidebar section header
         Text {
             text: "Sidebar"
-            font.pixelSize: 17
+            font.pixelSize: UiMetrics.fontTitle
             font.bold: true
             color: ThemeService.normalFontColor
-            Layout.topMargin: 16
+            Layout.topMargin: UiMetrics.sectionGap
         }
 
         SettingsToggle {
@@ -75,10 +75,10 @@ Flickable {
 
         Text {
             text: "Sidebar changes take effect on next app restart."
-            font.pixelSize: 12
+            font.pixelSize: UiMetrics.fontTiny
             color: ThemeService.descriptionFontColor
             font.italic: true
-            Layout.leftMargin: 8
+            Layout.leftMargin: UiMetrics.marginRow
         }
     }
 }

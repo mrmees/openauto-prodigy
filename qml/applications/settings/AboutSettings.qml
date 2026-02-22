@@ -10,8 +10,8 @@ Item {
         anchors.left: parent.left
         anchors.right: parent.right
         anchors.top: parent.top
-        anchors.margins: 16
-        spacing: 12
+        anchors.margins: UiMetrics.marginPage
+        spacing: UiMetrics.gap
 
         SettingsPageHeader {
             title: "About"
@@ -20,60 +20,60 @@ Item {
 
         ColumnLayout {
             Layout.fillWidth: true
-            Layout.topMargin: 16
-            spacing: 8
+            Layout.topMargin: UiMetrics.sectionGap
+            spacing: UiMetrics.marginRow
 
             Text {
                 text: "OpenAuto Prodigy"
-                font.pixelSize: 22
+                font.pixelSize: UiMetrics.fontHeading
                 font.bold: true
                 color: ThemeService.normalFontColor
             }
 
             Text {
                 text: "Version " + (ConfigService.value("identity.sw_version") || "0.0.0")
-                font.pixelSize: 15
+                font.pixelSize: UiMetrics.fontBody
                 color: ThemeService.descriptionFontColor
             }
 
             Text {
                 text: "Open-source Android Auto head unit"
-                font.pixelSize: 13
+                font.pixelSize: UiMetrics.fontSmall
                 color: ThemeService.descriptionFontColor
             }
 
             Text {
                 text: "License: GPLv3"
-                font.pixelSize: 13
+                font.pixelSize: UiMetrics.fontSmall
                 color: ThemeService.descriptionFontColor
             }
         }
 
-        Item { Layout.fillWidth: true; Layout.preferredHeight: 24 }
+        Item { Layout.fillWidth: true; Layout.preferredHeight: UiMetrics.marginPage + UiMetrics.marginRow }
 
         Button {
             Layout.alignment: Qt.AlignHCenter
-            Layout.preferredWidth: 200
-            Layout.preferredHeight: 48
+            Layout.preferredWidth: parent.width * 0.3
+            Layout.preferredHeight: UiMetrics.rowH
             onClicked: exitDialog.open()
             contentItem: RowLayout {
-                spacing: 8
+                spacing: UiMetrics.marginRow
                 Item { Layout.fillWidth: true }
                 MaterialIcon {
                     icon: "\ue5cd"
-                    size: 20
+                    size: UiMetrics.iconSize
                     color: ThemeService.normalFontColor
                 }
                 Text {
                     text: "Exit App"
-                    font.pixelSize: 16
+                    font.pixelSize: UiMetrics.fontBody
                     color: ThemeService.normalFontColor
                 }
                 Item { Layout.fillWidth: true }
             }
             background: Rectangle {
                 color: parent.pressed ? ThemeService.highlightColor : ThemeService.barBackgroundColor
-                radius: 8
+                radius: UiMetrics.radius
             }
         }
     }
@@ -81,34 +81,34 @@ Item {
     Dialog {
         id: exitDialog
         anchors.centerIn: parent
-        width: 320
+        width: parent.width * 0.4
         modal: true
         title: "Exit"
 
         background: Rectangle {
             color: ThemeService.controlBackgroundColor
-            radius: 12
+            radius: UiMetrics.gap
             border.color: ThemeService.controlForegroundColor
             border.width: 1
         }
 
         header: Item {
-            height: 48
+            height: UiMetrics.rowH
             Text {
                 anchors.centerIn: parent
                 text: "Exit OpenAuto Prodigy?"
-                font.pixelSize: 18
+                font.pixelSize: UiMetrics.fontTitle
                 font.bold: true
                 color: ThemeService.normalFontColor
             }
         }
 
         contentItem: ColumnLayout {
-            spacing: 12
+            spacing: UiMetrics.gap
 
             Button {
                 Layout.fillWidth: true
-                Layout.preferredHeight: 48
+                Layout.preferredHeight: UiMetrics.rowH
                 onClicked: {
                     exitDialog.close()
                     ApplicationController.minimize()
@@ -118,60 +118,60 @@ Item {
                     Item { Layout.fillWidth: true }
                     MaterialIcon {
                         icon: "\ue5cd"
-                        size: 20
+                        size: UiMetrics.iconSize
                         color: ThemeService.normalFontColor
                     }
                     Text {
                         text: "Minimize"
-                        font.pixelSize: 16
+                        font.pixelSize: UiMetrics.fontBody
                         color: ThemeService.normalFontColor
                     }
                     Item { Layout.fillWidth: true }
                 }
                 background: Rectangle {
                     color: parent.pressed ? ThemeService.highlightColor : ThemeService.barBackgroundColor
-                    radius: 8
+                    radius: UiMetrics.radius
                 }
             }
 
             Button {
                 Layout.fillWidth: true
-                Layout.preferredHeight: 48
+                Layout.preferredHeight: UiMetrics.rowH
                 onClicked: ApplicationController.quit()
                 contentItem: RowLayout {
                     spacing: 10
                     Item { Layout.fillWidth: true }
                     MaterialIcon {
                         icon: "\ue5cd"
-                        size: 20
+                        size: UiMetrics.iconSize
                         color: "#F44336"
                     }
                     Text {
                         text: "Close App"
-                        font.pixelSize: 16
+                        font.pixelSize: UiMetrics.fontBody
                         color: "#F44336"
                     }
                     Item { Layout.fillWidth: true }
                 }
                 background: Rectangle {
                     color: parent.pressed ? "#F44336" : ThemeService.barBackgroundColor
-                    radius: 8
+                    radius: UiMetrics.radius
                 }
             }
 
             Button {
                 Layout.fillWidth: true
-                Layout.preferredHeight: 40
+                Layout.preferredHeight: UiMetrics.headerH
                 onClicked: exitDialog.close()
                 contentItem: Text {
                     text: "Cancel"
-                    font.pixelSize: 14
+                    font.pixelSize: UiMetrics.fontSmall
                     color: ThemeService.descriptionFontColor
                     horizontalAlignment: Text.AlignHCenter
                 }
                 background: Rectangle {
                     color: "transparent"
-                    radius: 8
+                    radius: UiMetrics.radius
                 }
             }
         }

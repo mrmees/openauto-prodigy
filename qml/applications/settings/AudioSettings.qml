@@ -4,7 +4,7 @@ import QtQuick.Controls
 
 Flickable {
     id: root
-    contentHeight: content.implicitHeight + 32
+    contentHeight: content.implicitHeight + UiMetrics.marginPage * 2
     clip: true
     boundsBehavior: Flickable.StopAtBounds
     property StackView stackRef: StackView.view
@@ -13,8 +13,8 @@ Flickable {
         id: content
         anchors.left: parent.left
         anchors.right: parent.right
-        anchors.margins: 16
-        spacing: 4
+        anchors.margins: UiMetrics.marginPage
+        spacing: UiMetrics.spacing
 
         SettingsPageHeader {
             title: "Audio"
@@ -34,15 +34,15 @@ Flickable {
         // Output device selector
         Item {
             Layout.fillWidth: true
-            implicitHeight: 48
+            implicitHeight: UiMetrics.rowH
             RowLayout {
                 anchors.fill: parent
-                anchors.leftMargin: 8
-                anchors.rightMargin: 8
-                spacing: 12
+                anchors.leftMargin: UiMetrics.marginRow
+                anchors.rightMargin: UiMetrics.marginRow
+                spacing: UiMetrics.gap
                 Text {
                     text: "Output Device"
-                    font.pixelSize: 15
+                    font.pixelSize: UiMetrics.fontBody
                     color: ThemeService.normalFontColor
                     Layout.fillWidth: true
                 }
@@ -50,7 +50,7 @@ Flickable {
                     id: outputCombo
                     model: typeof AudioOutputDeviceModel !== "undefined" ? AudioOutputDeviceModel : []
                     textRole: "description"
-                    Layout.preferredWidth: 220
+                    Layout.preferredWidth: root.width * 0.45
                     onActivated: function(index) {
                         var nodeName = AudioOutputDeviceModel.data(
                             AudioOutputDeviceModel.index(index, 0), Qt.UserRole + 1)
@@ -73,15 +73,15 @@ Flickable {
         // Input device selector
         Item {
             Layout.fillWidth: true
-            implicitHeight: 48
+            implicitHeight: UiMetrics.rowH
             RowLayout {
                 anchors.fill: parent
-                anchors.leftMargin: 8
-                anchors.rightMargin: 8
-                spacing: 12
+                anchors.leftMargin: UiMetrics.marginRow
+                anchors.rightMargin: UiMetrics.marginRow
+                spacing: UiMetrics.gap
                 Text {
                     text: "Input Device"
-                    font.pixelSize: 15
+                    font.pixelSize: UiMetrics.fontBody
                     color: ThemeService.normalFontColor
                     Layout.fillWidth: true
                 }
@@ -89,7 +89,7 @@ Flickable {
                     id: inputCombo
                     model: typeof AudioInputDeviceModel !== "undefined" ? AudioInputDeviceModel : []
                     textRole: "description"
-                    Layout.preferredWidth: 220
+                    Layout.preferredWidth: root.width * 0.45
                     onActivated: function(index) {
                         var nodeName = AudioInputDeviceModel.data(
                             AudioInputDeviceModel.index(index, 0), Qt.UserRole + 1)
@@ -118,8 +118,8 @@ Flickable {
         // Restart button — device changes take effect on restart
         Item {
             Layout.fillWidth: true
-            Layout.topMargin: 12
-            implicitHeight: 44
+            Layout.topMargin: UiMetrics.gap
+            implicitHeight: UiMetrics.touchMin
             Button {
                 anchors.centerIn: parent
                 text: "Restart to Apply Device Changes"
