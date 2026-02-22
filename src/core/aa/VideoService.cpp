@@ -2,6 +2,7 @@
 #include "../../core/YamlConfig.hpp"
 
 #include <chrono>
+#include <cmath>
 #include <boost/log/trivial.hpp>
 
 #include <aasdk/Messenger/ChannelId.hpp>
@@ -68,6 +69,39 @@ void VideoService::fillFeatures(aasdk::proto::messages::ServiceDiscoveryResponse
     auto fpsEnum = (fps == 60) ? aasdk::proto::enums::VideoFPS::_60
                                : aasdk::proto::enums::VideoFPS::_30;
 
+    // Resolve remote (AA protocol) dimensions for the preferred resolution
+    int remoteW = 1280, remoteH = 720;
+    if (res == "1080p") { remoteW = 1920; remoteH = 1080; }
+    else if (res == "480p") { remoteW = 800; remoteH = 480; }
+
+    // Calculate margins from sidebar config so AA renders in the remaining viewport
+    auto calcMargins = [&](int rW, int rH, int& marginW, int& marginH) {
+        marginW = 0;
+        marginH = 0;
+        bool sidebarOn = yamlConfig_ && yamlConfig_->sidebarEnabled();
+        int sidebarW = (yamlConfig_ && sidebarOn) ? yamlConfig_->sidebarWidth() : 0;
+
+        if (sidebarOn && sidebarW > 0) {
+            int displayW = yamlConfig_->displayWidth();
+            int displayH = yamlConfig_->displayHeight();
+            int aaViewportW = displayW - sidebarW;
+            float screenRatio = static_cast<float>(aaViewportW) / displayH;
+            float remoteRatio = static_cast<float>(rW) / rH;
+            if (screenRatio < remoteRatio)
+                marginW = std::round(rW - (rH * screenRatio));
+            else
+                marginH = std::round(rH - (rW / screenRatio));
+
+            BOOST_LOG_TRIVIAL(info) << "[VideoService] Sidebar: " << sidebarW << "px, "
+                                    << "AA viewport: " << aaViewportW << "x" << displayH
+                                    << ", margins (" << rW << "x" << rH << "): "
+                                    << marginW << "x" << marginH;
+        }
+    };
+
+    int marginW = 0, marginH = 0;
+    calcMargins(remoteW, remoteH, marginW, marginH);
+
     // Primary video config — preferred resolution
     auto* primaryConfig = avChannel->add_video_configs();
     if (res == "1080p")
@@ -77,22 +111,26 @@ void VideoService::fillFeatures(aasdk::proto::messages::ServiceDiscoveryResponse
     else
         primaryConfig->set_video_resolution(aasdk::proto::enums::VideoResolution::_720p);
     primaryConfig->set_video_fps(fpsEnum);
-    primaryConfig->set_margin_width(0);
-    primaryConfig->set_margin_height(0);
+    primaryConfig->set_margin_width(marginW);
+    primaryConfig->set_margin_height(marginH);
     primaryConfig->set_dpi(dpi);
 
     // Mandatory 480p fallback — production AA SDKs always include this
     if (res != "480p") {
+        int fbMarginW = 0, fbMarginH = 0;
+        calcMargins(800, 480, fbMarginW, fbMarginH);
+
         auto* fallbackConfig = avChannel->add_video_configs();
         fallbackConfig->set_video_resolution(aasdk::proto::enums::VideoResolution::_480p);
         fallbackConfig->set_video_fps(aasdk::proto::enums::VideoFPS::_30);
-        fallbackConfig->set_margin_width(0);
-        fallbackConfig->set_margin_height(0);
+        fallbackConfig->set_margin_width(fbMarginW);
+        fallbackConfig->set_margin_height(fbMarginH);
         fallbackConfig->set_dpi(dpi);
     }
 
     BOOST_LOG_TRIVIAL(info) << "[VideoService] Advertised video: " << res.toStdString()
                             << " @ " << fps << "fps, " << dpi << "dpi"
+                            << ", margins: " << marginW << "x" << marginH
                             << (res != "480p" ? " + 480p fallback" : "");
 }
 
