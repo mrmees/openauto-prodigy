@@ -99,7 +99,7 @@ Item {
                         anchors.centerIn: parent
                         text: modelData
                         font.pixelSize: UiMetrics.fontSmall
-                        color: segment.isSelected ? "#ffffff" : ThemeService.normalFontColor
+                        color: segment.isSelected ? ThemeService.backgroundColor : ThemeService.normalFontColor
                     }
 
                     MouseArea {
