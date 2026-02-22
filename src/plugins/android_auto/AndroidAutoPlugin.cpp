@@ -77,12 +77,20 @@ bool AndroidAutoPlugin::initialize(IHostContext* context)
         if (h.isValid()) displayH = h.toInt();
     }
 
+    // Resolve AA touch coordinate space from configured video resolution
+    int aaW = 1280, aaH = 720;
+    if (hostContext_ && hostContext_->configService()) {
+        QString res = hostContext_->configService()->value("video.resolution").toString();
+        if (res == "1080p") { aaW = 1920; aaH = 1080; }
+        else if (res == "480p") { aaW = 800; aaH = 480; }
+    }
+
     if (!touchDevice.isEmpty() && QFile::exists(touchDevice)) {
         touchReader_ = new oap::aa::EvdevTouchReader(
             aaService_->touchHandler(),
             touchDevice.toStdString(),
             4095, 4095,   // evdev axis range (overridden by EVIOCGABS in reader)
-            1280, 720,    // AA touch coordinate space (matches video resolution)
+            aaW, aaH,     // AA touch coordinate space (matches configured video resolution)
             displayW, displayH,
             this);
         touchReader_->start();

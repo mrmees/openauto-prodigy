@@ -259,7 +259,13 @@ public:
         // Touch screen config — must match content dimensions (after margins).
         // The phone maps touch coordinates to its content region using these dims.
         // With sidebar margins, content is smaller than video resolution.
-        int touchW = 1280, touchH = 720;  // defaults = video resolution
+        // Resolve base dimensions from configured resolution (must match VideoService).
+        int touchW = 1280, touchH = 720;
+        if (yamlConfig_) {
+            QString res = yamlConfig_->videoResolution();
+            if (res == "1080p") { touchW = 1920; touchH = 1080; }
+            else if (res == "480p") { touchW = 800; touchH = 480; }
+        }
         if (yamlConfig_ && yamlConfig_->sidebarEnabled() && yamlConfig_->sidebarWidth() > 0) {
             int displayW = yamlConfig_->displayWidth();
             int displayH = yamlConfig_->displayHeight();
