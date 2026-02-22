@@ -7,15 +7,21 @@ Item {
 
     Component.onCompleted: ApplicationController.setTitle("Settings")
 
+    Connections {
+        target: ApplicationController
+        function onBackRequested() {
+            if (settingsStack.depth > 1) {
+                settingsStack.pop()
+                ApplicationController.setTitle("Settings")
+                ApplicationController.setBackHandled(true)
+            }
+        }
+    }
+
     StackView {
         id: settingsStack
         anchors.fill: parent
         initialItem: tileGrid
-
-        onCurrentItemChanged: {
-            if (depth === 1)
-                ApplicationController.setTitle("Settings")
-        }
     }
 
     Component {
@@ -54,7 +60,7 @@ Item {
                     Layout.preferredWidth: settingsMenu.width * 0.22
                     Layout.preferredHeight: settingsMenu.width * 0.18
                     tileName: "Connection"
-                    tileIcon: "\ue63e"
+                    tileIcon: "\ue1d8"  // wifi
                     onClicked: {
                         ApplicationController.setTitle("Settings > Connection")
                         settingsStack.push(connectionPage)

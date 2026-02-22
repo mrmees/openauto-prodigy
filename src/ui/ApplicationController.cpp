@@ -29,6 +29,14 @@ void ApplicationController::navigateBack()
     emit currentApplicationChanged();
 }
 
+void ApplicationController::requestBack()
+{
+    backHandled_ = false;
+    emit backRequested();
+    if (!backHandled_)
+        navigateBack();
+}
+
 void ApplicationController::setTitle(const QString &title)
 {
     if (currentTitle_ == title)

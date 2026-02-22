@@ -23,6 +23,8 @@ public:
     /// Kept for built-in screens (settings) that aren't yet plugins.
     Q_INVOKABLE void navigateTo(int appType);
     Q_INVOKABLE void navigateBack();
+    Q_INVOKABLE void requestBack();
+    Q_INVOKABLE void setBackHandled(bool handled) { backHandled_ = handled; }
     Q_INVOKABLE void setTitle(const QString &title);
     Q_INVOKABLE void quit();
     Q_INVOKABLE void restart();
@@ -31,11 +33,13 @@ public:
 signals:
     void currentApplicationChanged();
     void currentTitleChanged();
+    void backRequested();
 
 private:
     int currentApp_ = ApplicationTypes::Launcher;
     QString currentTitle_ = QStringLiteral("OpenAuto Prodigy");
     QStack<int> navigationStack_;
+    bool backHandled_ = false;
 };
 
 } // namespace oap

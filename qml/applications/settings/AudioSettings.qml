@@ -7,19 +7,12 @@ Flickable {
     contentHeight: content.implicitHeight + UiMetrics.marginPage * 2
     clip: true
     boundsBehavior: Flickable.StopAtBounds
-    property StackView stackRef: StackView.view
-
     ColumnLayout {
         id: content
         anchors.left: parent.left
         anchors.right: parent.right
         anchors.margins: UiMetrics.marginPage
         spacing: UiMetrics.spacing
-
-        SettingsPageHeader {
-            title: "Audio"
-            stack: root.stackRef
-        }
 
         SectionHeader { text: "Volume" }
 

@@ -8,19 +8,12 @@ Flickable {
     clip: true
     boundsBehavior: Flickable.StopAtBounds
 
-    property StackView stackRef: StackView.view
-
     ColumnLayout {
         id: content
         anchors.left: parent.left
         anchors.right: parent.right
         anchors.margins: UiMetrics.marginPage
         spacing: UiMetrics.spacing
-
-        SettingsPageHeader {
-            title: "Display"
-            stack: root.stackRef
-        }
 
         SectionHeader { text: "General" }
 

@@ -4,7 +4,7 @@ Text {
     id: clock
 
     color: ThemeService.normalFontColor
-    font.pixelSize: 18
+    font.pixelSize: UiMetrics.fontHeading
 
     Timer {
         interval: 1000

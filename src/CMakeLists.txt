@@ -75,10 +75,6 @@ set_source_files_properties(../qml/controls/SettingsSlider.qml PROPERTIES
     QT_QML_SOURCE_TYPENAME "SettingsSlider"
     QT_RESOURCE_ALIAS "SettingsSlider.qml"
 )
-set_source_files_properties(../qml/controls/SettingsPageHeader.qml PROPERTIES
-    QT_QML_SOURCE_TYPENAME "SettingsPageHeader"
-    QT_RESOURCE_ALIAS "SettingsPageHeader.qml"
-)
 set_source_files_properties(../qml/controls/FullScreenPicker.qml PROPERTIES
     QT_QML_SOURCE_TYPENAME "FullScreenPicker"
     QT_RESOURCE_ALIAS "FullScreenPicker.qml"
@@ -131,6 +127,10 @@ set_source_files_properties(../qml/components/GestureOverlay.qml PROPERTIES
 set_source_files_properties(../qml/components/NotificationArea.qml PROPERTIES
     QT_QML_SOURCE_TYPENAME "NotificationArea"
     QT_RESOURCE_ALIAS "NotificationArea.qml"
+)
+set_source_files_properties(../qml/components/ExitDialog.qml PROPERTIES
+    QT_QML_SOURCE_TYPENAME "ExitDialog"
+    QT_RESOURCE_ALIAS "ExitDialog.qml"
 )
 set_source_files_properties(../qml/applications/launcher/LauncherMenu.qml PROPERTIES
     QT_QML_SOURCE_TYPENAME "LauncherMenu"
@@ -202,7 +202,6 @@ qt_add_qml_module(openauto-prodigy
         ../qml/controls/SectionHeader.qml
         ../qml/controls/SettingsToggle.qml
         ../qml/controls/SettingsSlider.qml
-        ../qml/controls/SettingsPageHeader.qml
         ../qml/controls/FullScreenPicker.qml
         ../qml/controls/SegmentedButton.qml
         ../qml/controls/ReadOnlyField.qml
@@ -216,6 +215,7 @@ qt_add_qml_module(openauto-prodigy
         ../qml/components/NavStrip.qml
         ../qml/components/GestureOverlay.qml
         ../qml/components/NotificationArea.qml
+        ../qml/components/ExitDialog.qml
         ../qml/applications/launcher/LauncherMenu.qml
         ../qml/applications/android_auto/AndroidAutoMenu.qml
         ../qml/applications/android_auto/Sidebar.qml
