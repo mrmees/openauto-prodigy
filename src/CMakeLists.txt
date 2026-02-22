@@ -75,18 +75,6 @@ set_source_files_properties(../qml/controls/SettingsSlider.qml PROPERTIES
     QT_QML_SOURCE_TYPENAME "SettingsSlider"
     QT_RESOURCE_ALIAS "SettingsSlider.qml"
 )
-set_source_files_properties(../qml/controls/SettingsComboBox.qml PROPERTIES
-    QT_QML_SOURCE_TYPENAME "SettingsComboBox"
-    QT_RESOURCE_ALIAS "SettingsComboBox.qml"
-)
-set_source_files_properties(../qml/controls/SettingsTextField.qml PROPERTIES
-    QT_QML_SOURCE_TYPENAME "SettingsTextField"
-    QT_RESOURCE_ALIAS "SettingsTextField.qml"
-)
-set_source_files_properties(../qml/controls/SettingsSpinBox.qml PROPERTIES
-    QT_QML_SOURCE_TYPENAME "SettingsSpinBox"
-    QT_RESOURCE_ALIAS "SettingsSpinBox.qml"
-)
 set_source_files_properties(../qml/controls/SettingsPageHeader.qml PROPERTIES
     QT_QML_SOURCE_TYPENAME "SettingsPageHeader"
     QT_RESOURCE_ALIAS "SettingsPageHeader.qml"
@@ -214,9 +202,6 @@ qt_add_qml_module(openauto-prodigy
         ../qml/controls/SectionHeader.qml
         ../qml/controls/SettingsToggle.qml
         ../qml/controls/SettingsSlider.qml
-        ../qml/controls/SettingsComboBox.qml
-        ../qml/controls/SettingsTextField.qml
-        ../qml/controls/SettingsSpinBox.qml
         ../qml/controls/SettingsPageHeader.qml
         ../qml/controls/FullScreenPicker.qml
         ../qml/controls/SegmentedButton.qml
