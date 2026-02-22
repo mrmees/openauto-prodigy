@@ -30,45 +30,46 @@ Flickable {
             from: 0; to: 100; stepSize: 1
         }
 
-        SettingsTextField {
+        ReadOnlyField {
             label: "Theme"
             configPath: "display.theme"
             placeholder: "default"
         }
 
-        SettingsComboBox {
+        SegmentedButton {
             label: "Orientation"
             configPath: "display.orientation"
-            options: ["landscape", "portrait"]
+            options: ["Landscape", "Portrait"]
+            values: ["landscape", "portrait"]
         }
 
         SectionHeader { text: "Day / Night Mode" }
 
-        SettingsComboBox {
+        FullScreenPicker {
             id: nightSource
             label: "Source"
             configPath: "sensors.night_mode.source"
             options: ["time", "gpio", "none"]
         }
 
-        SettingsTextField {
+        ReadOnlyField {
             label: "Day starts at"
             configPath: "sensors.night_mode.day_start"
             placeholder: "HH:MM"
             visible: nightSource.currentValue === "time"
         }
 
-        SettingsTextField {
+        ReadOnlyField {
             label: "Night starts at"
             configPath: "sensors.night_mode.night_start"
             placeholder: "HH:MM"
             visible: nightSource.currentValue === "time"
         }
 
-        SettingsSpinBox {
+        SettingsSlider {
             label: "GPIO Pin"
             configPath: "sensors.night_mode.gpio_pin"
-            from: 0; to: 40
+            from: 0; to: 40; stepSize: 1
             visible: nightSource.currentValue === "gpio"
         }
 
