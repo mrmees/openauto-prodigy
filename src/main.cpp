@@ -2,6 +2,7 @@
 #include <QQmlApplicationEngine>
 #include <QQmlContext>
 #include <QQuickItem>
+#include <QQuickStyle>
 #include <QDir>
 #include <QFile>
 #include <memory>
@@ -121,6 +122,8 @@ int main(int argc, char *argv[])
     ipcServer->setAudioService(audioService);
     ipcServer->setPluginManager(&pluginManager);
     ipcServer->start();
+
+    QQuickStyle::setStyle("Material");
 
     QQmlApplicationEngine engine;
 
