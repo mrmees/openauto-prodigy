@@ -11,33 +11,33 @@ QtObject {
     }
 
     // Touch targets
-    readonly property int rowH:     Math.round(48 * scale)
-    readonly property int touchMin: Math.round(44 * scale)
+    readonly property int rowH:     Math.round(64 * scale)
+    readonly property int touchMin: Math.round(56 * scale)
 
     // Spacing
-    readonly property int marginPage: Math.round(16 * scale)
-    readonly property int marginRow:  Math.round(8 * scale)
-    readonly property int spacing:    Math.round(4 * scale)
-    readonly property int gap:        Math.round(12 * scale)
-    readonly property int sectionGap: Math.round(16 * scale)
+    readonly property int marginPage: Math.round(20 * scale)
+    readonly property int marginRow:  Math.round(12 * scale)
+    readonly property int spacing:    Math.round(8 * scale)
+    readonly property int gap:        Math.round(16 * scale)
+    readonly property int sectionGap: Math.round(20 * scale)
 
     // Fonts
-    readonly property int fontTitle:   Math.round(18 * scale)
-    readonly property int fontBody:    Math.round(15 * scale)
-    readonly property int fontSmall:   Math.round(13 * scale)
-    readonly property int fontTiny:    Math.round(12 * scale)
-    readonly property int fontHeading: Math.round(22 * scale)
+    readonly property int fontTitle:   Math.round(22 * scale)
+    readonly property int fontBody:    Math.round(20 * scale)
+    readonly property int fontSmall:   Math.round(16 * scale)
+    readonly property int fontTiny:    Math.round(14 * scale)
+    readonly property int fontHeading: Math.round(28 * scale)
 
     // Component sizing
-    readonly property int headerH:     Math.round(40 * scale)
-    readonly property int sectionH:    Math.round(32 * scale)
-    readonly property int backBtnSize: Math.round(36 * scale)
-    readonly property int iconSize:    Math.round(24 * scale)
-    readonly property int iconSmall:   Math.round(16 * scale)
+    readonly property int headerH:     Math.round(56 * scale)
+    readonly property int sectionH:    Math.round(36 * scale)
+    readonly property int backBtnSize: Math.round(44 * scale)
+    readonly property int iconSize:    Math.round(28 * scale)
+    readonly property int iconSmall:   Math.round(20 * scale)
 
     // Radii
-    readonly property int radius: Math.round(8 * scale)
+    readonly property int radius: Math.round(10 * scale)
 
     // Grid (settings menu tiles)
-    readonly property int gridGap: Math.round(20 * scale)
+    readonly property int gridGap: Math.round(24 * scale)
 }
