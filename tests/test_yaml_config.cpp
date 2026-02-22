@@ -21,6 +21,7 @@ private slots:
     void testValueByPathMissing();
     void testSetValueByPath();
     void testSetValueByPathRejectsUnknown();
+    void testSidebarDefaults();
 };
 
 void TestYamlConfig::testLoadDefaults()
@@ -228,6 +229,21 @@ void TestYamlConfig::testSetValueByPathRejectsUnknown()
     QVERIFY(!config.setValueByPath("audio", QString("x")));
     QVERIFY(!config.setValueByPath("connection", QString("x")));
     QVERIFY(!config.setValueByPath("connection.wifi_ap", QString("x")));
+}
+
+void TestYamlConfig::testSidebarDefaults()
+{
+    oap::YamlConfig config;
+    QCOMPARE(config.sidebarEnabled(), false);
+    QCOMPARE(config.sidebarWidth(), 150);
+    QCOMPARE(config.sidebarPosition(), QString("right"));
+
+    config.setSidebarEnabled(true);
+    config.setSidebarWidth(200);
+    config.setSidebarPosition("left");
+    QCOMPARE(config.sidebarEnabled(), true);
+    QCOMPARE(config.sidebarWidth(), 200);
+    QCOMPARE(config.sidebarPosition(), QString("left"));
 }
 
 QTEST_MAIN(TestYamlConfig)
