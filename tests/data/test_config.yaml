@@ -25,6 +25,10 @@ video:
   fps: 60
   resolution: 720p
   dpi: 160
+  sidebar:
+    enabled: true
+    width: 180
+    position: left
 
 identity:
   head_unit_name: "Test Unit"

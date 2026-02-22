@@ -272,6 +272,7 @@ void AudioService::setMasterVolume(int volume)
     if (!threadLoop_) {
         QMutexLocker lock(&mutex_);
         masterVolume_ = qBound(0, volume, 100);
+        emit masterVolumeChanged();
         return;
     }
 
@@ -294,6 +295,7 @@ void AudioService::setMasterVolume(int volume)
         }
     }
     pw_thread_loop_unlock(threadLoop_);
+    emit masterVolumeChanged();
 }
 
 int AudioService::masterVolume() const

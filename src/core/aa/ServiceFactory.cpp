@@ -4,9 +4,11 @@
 #include "NightModeProvider.hpp"
 #include "../../core/services/IAudioService.hpp"
 #include "../../core/services/AudioService.hpp"
+#include "../../core/YamlConfig.hpp"
 
 #include <boost/log/trivial.hpp>
 #include <chrono>
+#include <cmath>
 
 // Channel headers
 #include <aasdk/Channel/AV/VideoServiceChannel.hpp>
@@ -227,11 +229,13 @@ public:
     InputServiceStub(boost::asio::io_service& ioService,
                      aasdk::messenger::IMessenger::Pointer messenger,
                      std::shared_ptr<oap::Configuration> config,
-                     TouchHandler* touchHandler)
+                     TouchHandler* touchHandler,
+                     oap::YamlConfig* yamlConfig = nullptr)
         : strand_(ioService)
         , channel_(std::make_shared<aasdk::channel::input::InputServiceChannel>(strand_, std::move(messenger)))
         , config_(std::move(config))
         , touchHandler_(touchHandler)
+        , yamlConfig_(yamlConfig)
     {
         if (touchHandler_) {
             touchHandler_->setChannel(channel_, &strand_);
@@ -252,10 +256,33 @@ public:
         desc->set_channel_id(static_cast<uint32_t>(aasdk::messenger::ChannelId::INPUT));
 
         auto* inputChannel = desc->mutable_input_channel();
-        // Touch screen config — 1024x600 for DFRobot 7" display
+        // Touch screen config — must match content dimensions (after margins).
+        // The phone maps touch coordinates to its content region using these dims.
+        // With sidebar margins, content is smaller than video resolution.
+        int touchW = 1280, touchH = 720;  // defaults = video resolution
+        if (yamlConfig_ && yamlConfig_->sidebarEnabled() && yamlConfig_->sidebarWidth() > 0) {
+            int displayW = yamlConfig_->displayWidth();
+            int displayH = yamlConfig_->displayHeight();
+            int sidebarW = yamlConfig_->sidebarWidth();
+            QString pos = yamlConfig_->sidebarPosition();
+            bool horizontal = (pos == "top" || pos == "bottom");
+
+            int aaViewportW = horizontal ? displayW : (displayW - sidebarW);
+            int aaViewportH = horizontal ? (displayH - sidebarW) : displayH;
+            float screenRatio = static_cast<float>(aaViewportW) / aaViewportH;
+            float remoteRatio = static_cast<float>(touchW) / touchH;
+            if (screenRatio < remoteRatio) {
+                int marginW = std::round(touchW - (touchH * screenRatio));
+                touchW -= marginW;
+            } else {
+                int marginH = std::round(touchH - (touchW / screenRatio));
+                touchH -= marginH;
+            }
+        }
         auto* touchConfig = inputChannel->mutable_touch_screen_config();
-        touchConfig->set_width(1024);
-        touchConfig->set_height(600);
+        touchConfig->set_width(touchW);
+        touchConfig->set_height(touchH);
+        BOOST_LOG_TRIVIAL(info) << "[InputService] touch_screen_config: " << touchW << "x" << touchH;
 
         // Android keycodes: HOME, BACK, MICROPHONE
         inputChannel->add_supported_keycodes(3);   // KEYCODE_HOME
@@ -294,6 +321,7 @@ private:
     std::shared_ptr<aasdk::channel::input::InputServiceChannel> channel_;
     std::shared_ptr<oap::Configuration> config_;
     TouchHandler* touchHandler_ = nullptr;
+    oap::YamlConfig* yamlConfig_ = nullptr;
 };
 
 // ============================================================================
@@ -778,7 +806,7 @@ ServiceFactoryResult ServiceFactory::create(
     services.push_back(std::make_shared<MediaAudioServiceStub>(ioService, messenger, audioService, "AA Media", 50));
     services.push_back(std::make_shared<SpeechAudioServiceStub>(ioService, messenger, audioService, "AA Navigation", 80));
     services.push_back(std::make_shared<SystemAudioServiceStub>(ioService, messenger, audioService, "AA System", 60));
-    services.push_back(std::make_shared<InputServiceStub>(ioService, messenger, config, touchHandler));
+    services.push_back(std::make_shared<InputServiceStub>(ioService, messenger, config, touchHandler, yamlConfig));
     services.push_back(std::make_shared<SensorServiceStub>(ioService, messenger, nightProvider));
     // Read real BT adapter MAC if available, else use placeholder
     std::string btMac = "00:00:00:00:00:00";

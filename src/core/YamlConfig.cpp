@@ -42,6 +42,9 @@ void YamlConfig::initDefaults()
     root_["video"]["fps"] = 30;
     root_["video"]["resolution"] = "720p";
     root_["video"]["dpi"] = 140;
+    root_["video"]["sidebar"]["enabled"] = false;
+    root_["video"]["sidebar"]["width"] = 150;
+    root_["video"]["sidebar"]["position"] = "right";
 
     root_["identity"]["head_unit_name"] = "OpenAuto Prodigy";
     root_["identity"]["manufacturer"] = "OpenAuto Project";
@@ -282,6 +285,36 @@ int YamlConfig::videoDpi() const
 void YamlConfig::setVideoDpi(int v)
 {
     root_["video"]["dpi"] = v;
+}
+
+bool YamlConfig::sidebarEnabled() const
+{
+    return root_["video"]["sidebar"]["enabled"].as<bool>(false);
+}
+
+void YamlConfig::setSidebarEnabled(bool v)
+{
+    root_["video"]["sidebar"]["enabled"] = v;
+}
+
+int YamlConfig::sidebarWidth() const
+{
+    return root_["video"]["sidebar"]["width"].as<int>(150);
+}
+
+void YamlConfig::setSidebarWidth(int v)
+{
+    root_["video"]["sidebar"]["width"] = v;
+}
+
+QString YamlConfig::sidebarPosition() const
+{
+    return QString::fromStdString(root_["video"]["sidebar"]["position"].as<std::string>("right"));
+}
+
+void YamlConfig::setSidebarPosition(const QString& v)
+{
+    root_["video"]["sidebar"]["position"] = v.toStdString();
 }
 
 // --- Identity ---

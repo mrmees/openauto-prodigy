@@ -23,6 +23,8 @@ class TouchHandler : public QObject {
     Q_OBJECT
     Q_PROPERTY(QVariantList debugTouches READ debugTouches NOTIFY debugTouchesChanged)
     Q_PROPERTY(bool debugOverlay READ debugOverlay WRITE setDebugOverlay NOTIFY debugOverlayChanged)
+    Q_PROPERTY(int contentWidth READ contentWidth NOTIFY contentDimsChanged)
+    Q_PROPERTY(int contentHeight READ contentHeight NOTIFY contentDimsChanged)
 
 public:
     struct Pointer { int x; int y; int id; };
@@ -30,6 +32,14 @@ public:
     QVariantList debugTouches() const { return debugTouches_; }
     bool debugOverlay() const { return debugOverlay_; }
     void setDebugOverlay(bool v) { if (debugOverlay_ != v) { debugOverlay_ = v; emit debugOverlayChanged(); } }
+    int contentWidth() const { return contentWidth_; }
+    int contentHeight() const { return contentHeight_; }
+    void setContentDims(int w, int h) {
+        if (contentWidth_ != w || contentHeight_ != h) {
+            contentWidth_ = w; contentHeight_ = h;
+            emit contentDimsChanged();
+        }
+    }
 
     explicit TouchHandler(QObject* parent = nullptr)
         : QObject(parent) {}
@@ -132,10 +142,13 @@ public:
 signals:
     void debugTouchesChanged();
     void debugOverlayChanged();
+    void contentDimsChanged();
 
 private:
     QVariantList debugTouches_;
-    bool debugOverlay_ = true;
+    bool debugOverlay_ = false;
+    int contentWidth_ = 1280;
+    int contentHeight_ = 720;
 
     std::shared_ptr<aasdk::channel::input::InputServiceChannel> channel_;
     boost::asio::io_service::strand* strand_ = nullptr;
