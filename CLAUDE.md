@@ -72,6 +72,7 @@ Working features:
 - 3-finger gesture overlay (volume, brightness, home, day/night toggle)
 - Connection watchdog using TCP_INFO polling (detects dead peers on local WiFi AP)
 - Interactive install script for RPi OS Trixie
+- Configurable sidebar during AA (volume, home) using protocol-level margin negotiation
 
 **Known limitations / TODO:**
 - D-Bus signal connection warnings for BT audio and phone plugins (non-fatal, but plugins don't receive live state updates)
@@ -82,6 +83,9 @@ Working features:
 - Audio device switching requires app restart (live PipeWire stream re-routing didn't work reliably)
 - Phone doesn't cleanly reconnect after app restart — user must manually cycle BT/WiFi
 - "Default" device label shows first registry device, not PipeWire's actual default sink
+- Sidebar touch zones use evdev hit detection — QML MouseAreas are visual fallback only (EVIOCGRAB blocks Qt input on Pi)
+- Sidebar config changes require app restart (margins locked at AA session start)
+- Sidebar volume slider in QML won't respond to evdev-driven volume changes (no live binding back from C++)
 
 ## Architecture
 
@@ -206,6 +210,8 @@ AA supports fixed resolutions only:
 - **Boost.ASIO sockets don't set SOCK_CLOEXEC** — forked processes (e.g. QProcess::startDetached for restart) inherit the TCP acceptor FD, preventing port rebind. Must `fcntl(fd, F_SETFD, FD_CLOEXEC)` after socket open.
 - **SO_REUSEADDR must be set before bind** — the Boost.ASIO 2-arg acceptor constructor does open+bind+listen in one shot, too late for socket options. Use separate open/set_option/bind/listen.
 - **`SPA_DICT_INIT_ARRAY` inline syntax** causes "taking address of temporary array" — use named `spa_dict_item` arrays with `SPA_DICT_INIT` instead.
+- **AA `VideoConfig.margin_width/height` actually works** — the phone renders UI in a centered sub-region with black bar margins. Use this for non-standard screen ratios and sidebar layouts. Margins are locked at session start (set during `ServiceDiscoveryResponse`). See `docs/aa-video-resolution.md`.
+- **Sidebar QML MouseArea vs EVIOCGRAB** — during AA, EVIOCGRAB steals all touch from Qt. Sidebar touch actions are handled via evdev hit zones in `EvdevTouchReader`, not QML `MouseArea`. The QML controls are visual only on Pi.
 
 ## Hardware (Pi Target)
 
