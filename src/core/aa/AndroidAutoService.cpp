@@ -366,6 +366,15 @@ void AndroidAutoService::requestVideoFocus()
     }
 }
 
+void AndroidAutoService::requestExitToCar()
+{
+    if (videoService_ && state_ == Connected) {
+        BOOST_LOG_TRIVIAL(info) << "[AAService] Requesting exit to car (sidebar home)";
+        videoService_->setVideoFocus(VideoFocusMode::Native);
+        // State transition to Backgrounded happens in the videoFocusChanged handler
+    }
+}
+
 void AndroidAutoService::onProjectionFocusLost()
 {
     BOOST_LOG_TRIVIAL(info) << "[AAService] Projection focus lost — exit to car (session stays alive)";

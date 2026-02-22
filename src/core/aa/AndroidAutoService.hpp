@@ -61,6 +61,7 @@ public:
     Q_INVOKABLE void start();
     Q_INVOKABLE void stop();
     void requestVideoFocus();
+    void requestExitToCar();
 
     VideoDecoder* videoDecoder() { return videoDecoder_; }
     TouchHandler* touchHandler() { return touchHandler_; }

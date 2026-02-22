@@ -4,7 +4,9 @@
 #include "core/plugin/IHostContext.hpp"
 #include "core/Configuration.hpp"
 #include "core/InputDeviceScanner.hpp"
+#include "core/services/IAudioService.hpp"
 #include "core/services/IConfigService.hpp"
+#include <algorithm>
 #include <boost/log/trivial.hpp>
 #include <QQmlContext>
 #include <QFile>
@@ -101,6 +103,32 @@ bool AndroidAutoPlugin::initialize(IHostContext* context)
                 touchReader_->computeLetterbox();  // recompute with sidebar offset
                 BOOST_LOG_TRIVIAL(info) << "[AAPlugin] Sidebar touch zones: "
                                         << pos.toStdString() << " " << sidebarW << "px";
+
+                // Connect sidebar touch signals to actions
+                connect(touchReader_, &oap::aa::EvdevTouchReader::sidebarVolumeUp,
+                        this, [this]() {
+                    if (hostContext_ && hostContext_->audioService()) {
+                        int vol = std::min(100, hostContext_->audioService()->masterVolume() + 5);
+                        hostContext_->audioService()->setMasterVolume(vol);
+                        BOOST_LOG_TRIVIAL(debug) << "[AAPlugin] Sidebar vol up: " << vol;
+                    }
+                }, Qt::QueuedConnection);
+
+                connect(touchReader_, &oap::aa::EvdevTouchReader::sidebarVolumeDown,
+                        this, [this]() {
+                    if (hostContext_ && hostContext_->audioService()) {
+                        int vol = std::max(0, hostContext_->audioService()->masterVolume() - 5);
+                        hostContext_->audioService()->setMasterVolume(vol);
+                        BOOST_LOG_TRIVIAL(debug) << "[AAPlugin] Sidebar vol down: " << vol;
+                    }
+                }, Qt::QueuedConnection);
+
+                connect(touchReader_, &oap::aa::EvdevTouchReader::sidebarHome,
+                        this, [this]() {
+                    BOOST_LOG_TRIVIAL(info) << "[AAPlugin] Sidebar home — requesting exit to car";
+                    if (aaService_)
+                        aaService_->requestExitToCar();
+                }, Qt::QueuedConnection);
             }
         }
     } else {
