@@ -131,6 +131,10 @@ set_source_files_properties(../qml/applications/android_auto/AndroidAutoMenu.qml
     QT_QML_SOURCE_TYPENAME "AndroidAutoMenu"
     QT_RESOURCE_ALIAS "AndroidAutoMenu.qml"
 )
+set_source_files_properties(../qml/applications/android_auto/Sidebar.qml PROPERTIES
+    QT_QML_SOURCE_TYPENAME "Sidebar"
+    QT_RESOURCE_ALIAS "Sidebar.qml"
+)
 set_source_files_properties(../qml/applications/settings/SettingsMenu.qml PROPERTIES
     QT_QML_SOURCE_TYPENAME "SettingsMenu"
     QT_RESOURCE_ALIAS "SettingsMenu.qml"
@@ -203,6 +207,7 @@ qt_add_qml_module(openauto-prodigy
         ../qml/components/NotificationArea.qml
         ../qml/applications/launcher/LauncherMenu.qml
         ../qml/applications/android_auto/AndroidAutoMenu.qml
+        ../qml/applications/android_auto/Sidebar.qml
         ../qml/applications/settings/SettingsMenu.qml
         ../qml/applications/home/HomeMenu.qml
         ../qml/applications/bt_audio/BtAudioView.qml
