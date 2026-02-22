@@ -99,6 +99,14 @@ set_source_files_properties(../qml/controls/SegmentedButton.qml PROPERTIES
     QT_QML_SOURCE_TYPENAME "SegmentedButton"
     QT_RESOURCE_ALIAS "SegmentedButton.qml"
 )
+set_source_files_properties(../qml/controls/ReadOnlyField.qml PROPERTIES
+    QT_QML_SOURCE_TYPENAME "ReadOnlyField"
+    QT_RESOURCE_ALIAS "ReadOnlyField.qml"
+)
+set_source_files_properties(../qml/controls/InfoBanner.qml PROPERTIES
+    QT_QML_SOURCE_TYPENAME "InfoBanner"
+    QT_RESOURCE_ALIAS "InfoBanner.qml"
+)
 set_source_files_properties(../qml/controls/UiMetrics.qml PROPERTIES
     QT_QML_SOURCE_TYPENAME "UiMetrics"
     QT_QML_SINGLETON_TYPE TRUE
@@ -212,6 +220,8 @@ qt_add_qml_module(openauto-prodigy
         ../qml/controls/SettingsPageHeader.qml
         ../qml/controls/FullScreenPicker.qml
         ../qml/controls/SegmentedButton.qml
+        ../qml/controls/ReadOnlyField.qml
+        ../qml/controls/InfoBanner.qml
         ../qml/controls/UiMetrics.qml
         ../qml/components/Clock.qml
         ../qml/components/Wallpaper.qml
