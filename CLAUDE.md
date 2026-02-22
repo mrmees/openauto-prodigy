@@ -212,6 +212,8 @@ AA supports fixed resolutions only:
 - **`SPA_DICT_INIT_ARRAY` inline syntax** causes "taking address of temporary array" — use named `spa_dict_item` arrays with `SPA_DICT_INIT` instead.
 - **AA `VideoConfig.margin_width/height` actually works** — the phone renders UI in a centered sub-region with black bar margins. Use this for non-standard screen ratios and sidebar layouts. Margins are locked at session start (set during `ServiceDiscoveryResponse`). See `docs/aa-video-resolution.md`.
 - **Sidebar QML MouseArea vs EVIOCGRAB** — during AA, EVIOCGRAB steals all touch from Qt. Sidebar touch actions are handled via evdev hit zones in `EvdevTouchReader`, not QML `MouseArea`. The QML controls are visual only on Pi.
+- **`touch_screen_config` must be video resolution (1280x720), not display resolution (1024x600)** — the phone interprets touch coordinates relative to `touch_screen_config`. Since we send coordinates in video resolution space, this field must match. Mismatch causes touch misalignment.
+- **Phone sends `config_index=3` in `AVChannelSetupRequest`** — despite our video config list only having indices 0-1. This is the phone's internal reference, not an index into our list. We always respond with `add_configs(0)` (720p primary).
 
 ## Hardware (Pi Target)
 

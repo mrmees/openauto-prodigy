@@ -44,6 +44,7 @@ struct AudioStreamHandle {
 /// logs warning). Safe for dev VM where PipeWire may not be running.
 class AudioService : public QObject, public IAudioService {
     Q_OBJECT
+    Q_PROPERTY(int masterVolume READ masterVolume NOTIFY masterVolumeChanged)
 public:
     explicit AudioService(QObject* parent = nullptr);
     ~AudioService() override;
@@ -78,6 +79,7 @@ public:
     void setCaptureCallback(AudioStreamHandle* handle, CaptureCallback cb) override;
 
 signals:
+    void masterVolumeChanged();
     void deviceFallback(const QString& lostDevice);
 
 private slots:

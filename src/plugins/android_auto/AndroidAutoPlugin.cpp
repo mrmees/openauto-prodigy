@@ -105,21 +105,11 @@ bool AndroidAutoPlugin::initialize(IHostContext* context)
                                         << pos.toStdString() << " " << sidebarW << "px";
 
                 // Connect sidebar touch signals to actions
-                connect(touchReader_, &oap::aa::EvdevTouchReader::sidebarVolumeUp,
-                        this, [this]() {
+                connect(touchReader_, &oap::aa::EvdevTouchReader::sidebarVolumeSet,
+                        this, [this](int level) {
                     if (hostContext_ && hostContext_->audioService()) {
-                        int vol = std::min(100, hostContext_->audioService()->masterVolume() + 5);
-                        hostContext_->audioService()->setMasterVolume(vol);
-                        BOOST_LOG_TRIVIAL(debug) << "[AAPlugin] Sidebar vol up: " << vol;
-                    }
-                }, Qt::QueuedConnection);
-
-                connect(touchReader_, &oap::aa::EvdevTouchReader::sidebarVolumeDown,
-                        this, [this]() {
-                    if (hostContext_ && hostContext_->audioService()) {
-                        int vol = std::max(0, hostContext_->audioService()->masterVolume() - 5);
-                        hostContext_->audioService()->setMasterVolume(vol);
-                        BOOST_LOG_TRIVIAL(debug) << "[AAPlugin] Sidebar vol down: " << vol;
+                        hostContext_->audioService()->setMasterVolume(level);
+                        BOOST_LOG_TRIVIAL(debug) << "[AAPlugin] Sidebar vol: " << level;
                     }
                 }, Qt::QueuedConnection);
 

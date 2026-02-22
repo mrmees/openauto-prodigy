@@ -84,16 +84,21 @@ void VideoService::fillFeatures(aasdk::proto::messages::ServiceDiscoveryResponse
         if (sidebarOn && sidebarW > 0) {
             int displayW = yamlConfig_->displayWidth();
             int displayH = yamlConfig_->displayHeight();
-            int aaViewportW = displayW - sidebarW;
-            float screenRatio = static_cast<float>(aaViewportW) / displayH;
+            QString pos = yamlConfig_->sidebarPosition();
+            bool horizontal = (pos == "top" || pos == "bottom");
+
+            int aaViewportW = horizontal ? displayW : (displayW - sidebarW);
+            int aaViewportH = horizontal ? (displayH - sidebarW) : displayH;
+            float screenRatio = static_cast<float>(aaViewportW) / aaViewportH;
             float remoteRatio = static_cast<float>(rW) / rH;
             if (screenRatio < remoteRatio)
                 marginW = std::round(rW - (rH * screenRatio));
             else
                 marginH = std::round(rH - (rW / screenRatio));
 
-            BOOST_LOG_TRIVIAL(info) << "[VideoService] Sidebar: " << sidebarW << "px, "
-                                    << "AA viewport: " << aaViewportW << "x" << displayH
+            BOOST_LOG_TRIVIAL(info) << "[VideoService] Sidebar: " << pos.toStdString()
+                                    << " " << sidebarW << "px, "
+                                    << "AA viewport: " << aaViewportW << "x" << aaViewportH
                                     << ", margins (" << rW << "x" << rH << "): "
                                     << marginW << "x" << marginH;
         }
@@ -150,8 +155,10 @@ void VideoService::onChannelOpenRequest(const aasdk::proto::messages::ChannelOpe
 
 void VideoService::onAVChannelSetupRequest(const aasdk::proto::messages::AVChannelSetupRequest& request)
 {
-    BOOST_LOG_TRIVIAL(info) << "[VideoService] AV setup request (config index: "
-                            << request.config_index() << ")";
+    int configIdx = request.config_index();
+    const char* resLabel = (configIdx == 0) ? "PRIMARY (720p)" : (configIdx == 1) ? "FALLBACK (480p)" : "UNKNOWN";
+    BOOST_LOG_TRIVIAL(info) << "[VideoService] AV setup request — phone selected config "
+                            << configIdx << " = " << resLabel;
 
     aasdk::proto::messages::AVChannelSetupResponse response;
     response.set_media_status(aasdk::proto::enums::AVChannelSetupStatus::OK);

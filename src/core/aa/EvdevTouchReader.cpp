@@ -12,44 +12,111 @@ namespace aa {
 
 void EvdevTouchReader::computeLetterbox()
 {
+    bool horizontal = sidebarHorizontal_;
+
     int effectiveDisplayW = displayWidth_;
+    int effectiveDisplayH = displayHeight_;
     int effectiveDisplayX0 = 0;
+    int effectiveDisplayY0 = 0;
+
     if (sidebarEnabled_ && sidebarPixelWidth_ > 0) {
-        effectiveDisplayW = displayWidth_ - sidebarPixelWidth_;
-        if (sidebarPosition_ == "left")
-            effectiveDisplayX0 = sidebarPixelWidth_;
+        if (horizontal) {
+            effectiveDisplayH = displayHeight_ - sidebarPixelWidth_;
+            if (sidebarPosition_ == "top")
+                effectiveDisplayY0 = sidebarPixelWidth_;
+        } else {
+            effectiveDisplayW = displayWidth_ - sidebarPixelWidth_;
+            if (sidebarPosition_ == "left")
+                effectiveDisplayX0 = sidebarPixelWidth_;
+        }
     }
 
     float videoAspect = static_cast<float>(aaWidth_) / aaHeight_;
-    float displayAspect = static_cast<float>(effectiveDisplayW) / displayHeight_;
-
-    float videoPixelW, videoPixelH, videoPixelX0, videoPixelY0;
-
-    if (videoAspect > displayAspect) {
-        videoPixelW = effectiveDisplayW;
-        videoPixelH = effectiveDisplayW / videoAspect;
-        videoPixelX0 = effectiveDisplayX0;
-        videoPixelY0 = (displayHeight_ - videoPixelH) / 2.0f;
-    } else {
-        videoPixelH = displayHeight_;
-        videoPixelW = displayHeight_ * videoAspect;
-        videoPixelX0 = effectiveDisplayX0 + (effectiveDisplayW - videoPixelW) / 2.0f;
-        videoPixelY0 = 0;
-    }
+    float displayAspect = static_cast<float>(effectiveDisplayW) / effectiveDisplayH;
 
     float evdevPerPixelX = static_cast<float>(screenWidth_) / displayWidth_;
     float evdevPerPixelY = static_cast<float>(screenHeight_) / displayHeight_;
+
+    float videoPixelW, videoPixelH, videoPixelX0, videoPixelY0;
+
+    // Reset crop offset defaults
+    cropAAOffsetX_ = 0;
+    visibleAAWidth_ = aaWidth_;
+    cropAAOffsetY_ = 0;
+    visibleAAHeight_ = aaHeight_;
+
+    if (sidebarEnabled_ && !horizontal && videoAspect > displayAspect) {
+        // X-crop mode (side sidebar): video fills height, X gets cropped
+        videoPixelH = effectiveDisplayH;
+        float scale = static_cast<float>(effectiveDisplayH) / aaHeight_;
+        float totalVideoWidthPx = aaWidth_ * scale;
+        float cropPx = (totalVideoWidthPx - effectiveDisplayW) / 2.0f;
+
+        cropAAOffsetX_ = cropPx / scale;
+        visibleAAWidth_ = effectiveDisplayW / scale;
+
+        videoPixelW = effectiveDisplayW;
+        videoPixelX0 = effectiveDisplayX0;
+        videoPixelY0 = effectiveDisplayY0;
+
+        BOOST_LOG_TRIVIAL(info) << "[EvdevTouch] X-crop mode: video " << aaWidth_ << "x" << aaHeight_
+                                << " in " << effectiveDisplayW << "x" << effectiveDisplayH
+                                << " | AA visible X: " << cropAAOffsetX_
+                                << " to " << (cropAAOffsetX_ + visibleAAWidth_)
+                                << " (" << visibleAAWidth_ << " wide)";
+    } else if (sidebarEnabled_ && horizontal && displayAspect > videoAspect) {
+        // Y-crop mode (top/bottom sidebar): video fills width, Y gets cropped
+        videoPixelW = effectiveDisplayW;
+        float scale = static_cast<float>(effectiveDisplayW) / aaWidth_;
+        float totalVideoHeightPx = aaHeight_ * scale;
+        float cropPy = (totalVideoHeightPx - effectiveDisplayH) / 2.0f;
+
+        cropAAOffsetY_ = cropPy / scale;
+        visibleAAHeight_ = effectiveDisplayH / scale;
+
+        videoPixelH = effectiveDisplayH;
+        videoPixelX0 = effectiveDisplayX0;
+        videoPixelY0 = effectiveDisplayY0;
+
+        BOOST_LOG_TRIVIAL(info) << "[EvdevTouch] Y-crop mode: video " << aaWidth_ << "x" << aaHeight_
+                                << " in " << effectiveDisplayW << "x" << effectiveDisplayH
+                                << " | AA visible Y: " << cropAAOffsetY_
+                                << " to " << (cropAAOffsetY_ + visibleAAHeight_)
+                                << " (" << visibleAAHeight_ << " tall)";
+    } else if (videoAspect > displayAspect) {
+        // Fit mode: video fills width, letterbox top/bottom
+        videoPixelW = effectiveDisplayW;
+        videoPixelH = effectiveDisplayW / videoAspect;
+        videoPixelX0 = effectiveDisplayX0;
+        videoPixelY0 = effectiveDisplayY0 + (effectiveDisplayH - videoPixelH) / 2.0f;
+    } else {
+        // Fit mode: video fills height, letterbox left/right
+        videoPixelH = effectiveDisplayH;
+        videoPixelW = effectiveDisplayH * videoAspect;
+        videoPixelX0 = effectiveDisplayX0 + (effectiveDisplayW - videoPixelW) / 2.0f;
+        videoPixelY0 = effectiveDisplayY0;
+    }
 
     videoEvdevX0_ = videoPixelX0 * evdevPerPixelX;
     videoEvdevY0_ = videoPixelY0 * evdevPerPixelY;
     videoEvdevW_ = videoPixelW * evdevPerPixelX;
     videoEvdevH_ = videoPixelH * evdevPerPixelY;
 
-    BOOST_LOG_TRIVIAL(info) << "[EvdevTouch] Letterbox: video " << aaWidth_ << "x" << aaHeight_
-                            << " in display " << effectiveDisplayW << "x" << displayHeight_
+    BOOST_LOG_TRIVIAL(info) << "[EvdevTouch] Mapping: display " << effectiveDisplayW << "x" << effectiveDisplayH
                             << " at pixel (" << videoPixelX0 << "," << videoPixelY0 << ")"
                             << " | evdev (" << videoEvdevX0_ << "," << videoEvdevY0_
                             << ") " << videoEvdevW_ << "x" << videoEvdevH_;
+    // Push content dimensions to TouchHandler for debug overlay
+    if (handler_)
+        handler_->setContentDims(static_cast<int>(visibleAAWidth_), static_cast<int>(visibleAAHeight_));
+
+    BOOST_LOG_TRIVIAL(info) << "[EvdevTouch] Diagnostic: sidebar=" << (sidebarEnabled_ ? sidebarPosition_ : "off")
+                            << " " << sidebarPixelWidth_ << "px"
+                            << " | contentW=" << visibleAAWidth_ << " contentH=" << visibleAAHeight_
+                            << " | touch range: X=[" << mapX(static_cast<int>(videoEvdevX0_))
+                            << "," << mapX(static_cast<int>(videoEvdevX0_ + videoEvdevW_))
+                            << "] Y=[" << mapY(static_cast<int>(videoEvdevY0_))
+                            << "," << mapY(static_cast<int>(videoEvdevY0_ + videoEvdevH_)) << "]";
 }
 
 void EvdevTouchReader::setSidebar(bool enabled, int width, const std::string& position)
@@ -57,45 +124,73 @@ void EvdevTouchReader::setSidebar(bool enabled, int width, const std::string& po
     sidebarEnabled_ = enabled;
     sidebarPixelWidth_ = width;
     sidebarPosition_ = position;
+    sidebarHorizontal_ = (position == "top" || position == "bottom");
 
     if (!enabled || width <= 0) return;
 
     float evdevPerPixelX = static_cast<float>(screenWidth_) / displayWidth_;
     float evdevPerPixelY = static_cast<float>(screenHeight_) / displayHeight_;
 
-    if (position == "right") {
-        int sidebarStartPx = displayWidth_ - width;
-        sidebarEvdevX0_ = sidebarStartPx * evdevPerPixelX;
-        sidebarEvdevX1_ = screenWidth_;
+    sidebarDragSlot_ = -1;
+
+    if (sidebarHorizontal_) {
+        // Horizontal sidebar (top/bottom): Y band, X sub-zones
+        if (position == "bottom") {
+            int sidebarStartPx = displayHeight_ - width;
+            sidebarEvdevY0_ = sidebarStartPx * evdevPerPixelY;
+            sidebarEvdevY1_ = screenHeight_;
+        } else {
+            sidebarEvdevY0_ = 0;
+            sidebarEvdevY1_ = width * evdevPerPixelY;
+        }
+        // Sub-zones along X: volume takes most of the width, small home button at end
+        // Matches QML layout where home icon is ~56px at right edge
+        sidebarVolX0_ = 0;
+        sidebarVolX1_ = (displayWidth_ - 100.0f) * evdevPerPixelX;  // volume up to ~100px from right
+        sidebarHomeX0_ = (displayWidth_ - 80.0f) * evdevPerPixelX;  // home zone ~80px at right
+        sidebarHomeX1_ = screenWidth_;
+
+        BOOST_LOG_TRIVIAL(info) << "[EvdevTouch] Sidebar: " << position << " " << width << "px"
+                                << ", evdev Y: " << sidebarEvdevY0_ << "-" << sidebarEvdevY1_;
     } else {
-        sidebarEvdevX0_ = 0;
-        sidebarEvdevX1_ = width * evdevPerPixelX;
+        // Vertical sidebar (left/right): X band, Y sub-zones
+        if (position == "right") {
+            int sidebarStartPx = displayWidth_ - width;
+            sidebarEvdevX0_ = sidebarStartPx * evdevPerPixelX;
+            sidebarEvdevX1_ = screenWidth_;
+        } else {
+            sidebarEvdevX0_ = 0;
+            sidebarEvdevX1_ = width * evdevPerPixelX;
+        }
+        // Sub-zones along Y: top 70% = volume, gap 5%, bottom 25% = home
+        sidebarVolY0_ = 0;
+        sidebarVolY1_ = displayHeight_ * 0.70f * evdevPerPixelY;
+        sidebarHomeY0_ = displayHeight_ * 0.75f * evdevPerPixelY;
+        sidebarHomeY1_ = screenHeight_;
+
+        BOOST_LOG_TRIVIAL(info) << "[EvdevTouch] Sidebar: " << position << " " << width << "px"
+                                << ", evdev X: " << sidebarEvdevX0_ << "-" << sidebarEvdevX1_;
     }
-
-    // Hit zones: top 40% = vol up, next 20% = vol down, bottom 25% = home
-    sidebarVolUpY0_ = 0;
-    sidebarVolUpY1_ = displayHeight_ * 0.40f * evdevPerPixelY;
-    sidebarVolDownY0_ = sidebarVolUpY1_;
-    sidebarVolDownY1_ = displayHeight_ * 0.60f * evdevPerPixelY;
-    sidebarHomeY0_ = displayHeight_ * 0.75f * evdevPerPixelY;
-    sidebarHomeY1_ = screenHeight_;
-
-    BOOST_LOG_TRIVIAL(info) << "[EvdevTouch] Sidebar: " << position << " " << width << "px"
-                            << ", evdev X: " << sidebarEvdevX0_ << "-" << sidebarEvdevX1_;
 }
 
 int EvdevTouchReader::mapX(int rawX) const
 {
     float rel = (rawX - videoEvdevX0_) / videoEvdevW_;
     rel = std::clamp(rel, 0.0f, 1.0f);
-    return static_cast<int>(rel * aaWidth_);
+    // Map to content coordinate space (0 to visibleAAWidth_).
+    // The phone handles margin offset internally — we should NOT add cropAAOffsetX_.
+    // touch_screen_config is set to content dimensions to match.
+    return static_cast<int>(rel * visibleAAWidth_);
 }
 
 int EvdevTouchReader::mapY(int rawY) const
 {
     float rel = (rawY - videoEvdevY0_) / videoEvdevH_;
     rel = std::clamp(rel, 0.0f, 1.0f);
-    return static_cast<int>(rel * aaHeight_);
+    // Map to content coordinate space (0 to visibleAAHeight_).
+    // For top/bottom sidebar, visibleAAHeight_ < aaHeight_ (Y-crop active).
+    // For side sidebar or no sidebar, visibleAAHeight_ == aaHeight_.
+    return static_cast<int>(rel * visibleAAHeight_);
 }
 
 void EvdevTouchReader::run()
@@ -112,10 +207,18 @@ void EvdevTouchReader::run()
 
     // Read axis ranges for coordinate scaling
     struct input_absinfo absX{}, absY{};
-    if (::ioctl(fd_, EVIOCGABS(ABS_MT_POSITION_X), &absX) == 0)
+    if (::ioctl(fd_, EVIOCGABS(ABS_MT_POSITION_X), &absX) == 0) {
         screenWidth_ = absX.maximum;
-    if (::ioctl(fd_, EVIOCGABS(ABS_MT_POSITION_Y), &absY) == 0)
+        if (absX.minimum != 0)
+            BOOST_LOG_TRIVIAL(warning) << "[EvdevTouch] X axis min=" << absX.minimum
+                                       << " (non-zero — coordinate normalization may be off)";
+    }
+    if (::ioctl(fd_, EVIOCGABS(ABS_MT_POSITION_Y), &absY) == 0) {
         screenHeight_ = absY.maximum;
+        if (absY.minimum != 0)
+            BOOST_LOG_TRIVIAL(warning) << "[EvdevTouch] Y axis min=" << absY.minimum
+                                       << " (non-zero — coordinate normalization may be off)";
+    }
 
     // Recompute letterbox with actual axis ranges
     computeLetterbox();
@@ -247,21 +350,61 @@ void EvdevTouchReader::processSync()
         for (int i = 0; i < MAX_SLOTS; ++i) {
             if (slots_[i].trackingId >= 0 && slots_[i].dirty) {
                 float rawX = slots_[i].x;
-                if (rawX >= sidebarEvdevX0_ && rawX <= sidebarEvdevX1_) {
-                    // Touch is in sidebar — check hit zones on finger DOWN only
-                    if (prevSlots_[i].trackingId < 0) {
-                        float rawY = slots_[i].y;
-                        if (rawY >= sidebarVolUpY0_ && rawY < sidebarVolUpY1_)
-                            emit sidebarVolumeUp();
-                        else if (rawY >= sidebarVolDownY0_ && rawY < sidebarVolDownY1_)
-                            emit sidebarVolumeDown();
-                        else if (rawY >= sidebarHomeY0_ && rawY <= sidebarHomeY1_)
-                            emit sidebarHome();
+                float rawY = slots_[i].y;
+                bool inSidebar = false;
+
+                if (sidebarHorizontal_) {
+                    // Horizontal sidebar: check Y band
+                    inSidebar = (rawY >= sidebarEvdevY0_ && rawY <= sidebarEvdevY1_);
+                } else {
+                    // Vertical sidebar: check X band
+                    inSidebar = (rawX >= sidebarEvdevX0_ && rawX <= sidebarEvdevX1_);
+                }
+
+                if (inSidebar) {
+                    bool isDown = prevSlots_[i].trackingId < 0;
+
+                    if (sidebarHorizontal_) {
+                        // Horizontal: volume along X (left=0%, right=100%), home on right
+                        if (isDown) {
+                            if (rawX >= sidebarVolX0_ && rawX < sidebarVolX1_) {
+                                sidebarDragSlot_ = i;
+                                float rel = (rawX - sidebarVolX0_) / (sidebarVolX1_ - sidebarVolX0_);
+                                int vol = std::clamp(static_cast<int>(rel * 100), 0, 100);
+                                emit sidebarVolumeSet(vol);
+                            } else if (rawX >= sidebarHomeX0_ && rawX <= sidebarHomeX1_) {
+                                emit sidebarHome();
+                            }
+                        } else if (i == sidebarDragSlot_) {
+                            float rel = (rawX - sidebarVolX0_) / (sidebarVolX1_ - sidebarVolX0_);
+                            int vol = std::clamp(static_cast<int>(rel * 100), 0, 100);
+                            emit sidebarVolumeSet(vol);
+                        }
+                    } else {
+                        // Vertical: volume along Y (top=100%, bottom=0%), home on bottom
+                        if (isDown) {
+                            if (rawY >= sidebarVolY0_ && rawY < sidebarVolY1_) {
+                                sidebarDragSlot_ = i;
+                                float rel = 1.0f - (rawY - sidebarVolY0_) / (sidebarVolY1_ - sidebarVolY0_);
+                                int vol = std::clamp(static_cast<int>(rel * 100), 0, 100);
+                                emit sidebarVolumeSet(vol);
+                            } else if (rawY >= sidebarHomeY0_ && rawY <= sidebarHomeY1_) {
+                                emit sidebarHome();
+                            }
+                        } else if (i == sidebarDragSlot_) {
+                            float rel = 1.0f - (rawY - sidebarVolY0_) / (sidebarVolY1_ - sidebarVolY0_);
+                            int vol = std::clamp(static_cast<int>(rel * 100), 0, 100);
+                            emit sidebarVolumeSet(vol);
+                        }
                     }
+
                     slots_[i].dirty = false;  // consume — don't forward to AA
                     anySidebarTouch = true;
                 }
             }
+            // End drag when finger lifts
+            if (slots_[i].trackingId < 0 && i == sidebarDragSlot_)
+                sidebarDragSlot_ = -1;
         }
         // If ALL touches in this sync are sidebar touches, skip AA processing
         bool anyDirty = false;

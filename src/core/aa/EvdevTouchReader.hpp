@@ -70,8 +70,7 @@ public:
 signals:
     /// Emitted when a 3-finger tap gesture is detected (thread-safe, queued).
     void gestureDetected();
-    void sidebarVolumeUp();
-    void sidebarVolumeDown();
+    void sidebarVolumeSet(int level);  // 0-100 continuous volume from drag
     void sidebarHome();
 
 protected:
@@ -96,11 +95,17 @@ private:
     int displayWidth_;  // physical display pixels
     int displayHeight_;
 
-    // Letterbox: video area within evdev coordinate space
+    // Letterbox/crop: video area within evdev coordinate space
     float videoEvdevX0_ = 0;  // left edge of video in evdev coords
     float videoEvdevY0_ = 0;  // top edge of video in evdev coords
     float videoEvdevW_ = 0;   // width of video area in evdev coords
     float videoEvdevH_ = 0;   // height of video area in evdev coords
+
+    // Crop mode (sidebar active): AA coordinate offset for cropped video
+    float cropAAOffsetX_ = 0;   // AA X offset due to horizontal crop (side sidebar)
+    float visibleAAWidth_ = 0;  // visible AA width after crop
+    float cropAAOffsetY_ = 0;   // AA Y offset due to vertical crop (top/bottom sidebar)
+    float visibleAAHeight_ = 0; // visible AA height after crop
 
     std::array<Slot, MAX_SLOTS> slots_;
     std::array<Slot, MAX_SLOTS> prevSlots_;  // state before this SYN
@@ -117,13 +122,20 @@ private:
 
     // Sidebar touch exclusion
     bool sidebarEnabled_ = false;
+    bool sidebarHorizontal_ = false;  // top/bottom = horizontal band
     int sidebarPixelWidth_ = 0;
     std::string sidebarPosition_ = "right";
+    // Vertical sidebar (left/right): X band with Y sub-zones
     float sidebarEvdevX0_ = 0;
     float sidebarEvdevX1_ = 0;
-    float sidebarVolUpY0_ = 0, sidebarVolUpY1_ = 0;
-    float sidebarVolDownY0_ = 0, sidebarVolDownY1_ = 0;
+    float sidebarVolY0_ = 0, sidebarVolY1_ = 0;
     float sidebarHomeY0_ = 0, sidebarHomeY1_ = 0;
+    // Horizontal sidebar (top/bottom): Y band with X sub-zones
+    float sidebarEvdevY0_ = 0;
+    float sidebarEvdevY1_ = 0;
+    float sidebarVolX0_ = 0, sidebarVolX1_ = 0;
+    float sidebarHomeX0_ = 0, sidebarHomeX1_ = 0;
+    int sidebarDragSlot_ = -1;  // slot currently dragging in volume zone
 };
 
 } // namespace aa

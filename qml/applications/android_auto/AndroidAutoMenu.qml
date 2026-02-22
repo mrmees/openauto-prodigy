@@ -15,17 +15,23 @@ Item {
     readonly property int sidebarWidth: ConfigService.value("video.sidebar.width") || 150
     readonly property string sidebarPosition: ConfigService.value("video.sidebar.position") || "right"
     readonly property bool projecting: AndroidAutoService.connectionState === 3
+    readonly property bool isVerticalSidebar: sidebarPosition === "left" || sidebarPosition === "right"
+    readonly property bool showSidebar: sidebarEnabled && projecting
 
-    RowLayout {
+    Item {
         anchors.fill: parent
-        spacing: 0
-        layoutDirection: androidAutoMenu.sidebarPosition === "left" ? Qt.RightToLeft : Qt.LeftToRight
 
-        // AA Video area
+        // AA Video area — positioned around the sidebar
         Item {
             id: videoArea
-            Layout.fillWidth: true
-            Layout.fillHeight: true
+            x: (androidAutoMenu.sidebarPosition === "left" && androidAutoMenu.showSidebar)
+               ? androidAutoMenu.sidebarWidth : 0
+            y: (androidAutoMenu.sidebarPosition === "top" && androidAutoMenu.showSidebar)
+               ? androidAutoMenu.sidebarWidth : 0
+            width: parent.width - (androidAutoMenu.isVerticalSidebar && androidAutoMenu.showSidebar
+                   ? androidAutoMenu.sidebarWidth : 0)
+            height: parent.height - (!androidAutoMenu.isVerticalSidebar && androidAutoMenu.showSidebar
+                    ? androidAutoMenu.sidebarWidth : 0)
 
             // Black background for letterbox bars
             Rectangle {
@@ -44,19 +50,22 @@ Item {
                          : VideoOutput.PreserveAspectFit
             }
 
-            // Debug touch overlay
+            // Debug touch overlay — maps content-space coordinates back to screen
             Repeater {
                 model: TouchHandler.debugOverlay ? TouchHandler.debugTouches : []
                 delegate: Item {
-                    readonly property real videoAspect: 1280 / 720
+                    // Use content dimensions (accounts for sidebar margins)
+                    readonly property real contentW: TouchHandler.contentWidth || 1280
+                    readonly property real contentH: TouchHandler.contentHeight || 720
+                    readonly property real contentAspect: contentW / contentH
                     readonly property real displayAspect: videoArea.width / videoArea.height
-                    readonly property real videoW: videoAspect > displayAspect ? videoArea.width : videoArea.height * videoAspect
-                    readonly property real videoH: videoAspect > displayAspect ? videoArea.width / videoAspect : videoArea.height
+                    readonly property real videoW: contentAspect > displayAspect ? videoArea.width : videoArea.height * contentAspect
+                    readonly property real videoH: contentAspect > displayAspect ? videoArea.width / contentAspect : videoArea.height
                     readonly property real videoX0: (videoArea.width - videoW) / 2
                     readonly property real videoY0: (videoArea.height - videoH) / 2
 
-                    x: videoX0 + modelData.x / 1280 * videoW - 15
-                    y: videoY0 + modelData.y / 720 * videoH - 15
+                    x: videoX0 + modelData.x / contentW * videoW - 15
+                    y: videoY0 + modelData.y / contentH * videoH - 15
                     width: 30; height: 30
                     z: 100
 
@@ -133,12 +142,22 @@ Item {
             }
         }
 
-        // Sidebar — only when enabled and projecting
+        // Sidebar — positioned based on config
         Sidebar {
             id: sidebarPanel
-            Layout.preferredWidth: androidAutoMenu.sidebarWidth
-            Layout.fillHeight: true
-            visible: androidAutoMenu.sidebarEnabled && androidAutoMenu.projecting
+            x: {
+                if (androidAutoMenu.sidebarPosition === "right") return videoArea.width;
+                if (androidAutoMenu.sidebarPosition === "left") return 0;
+                return 0;  // top/bottom: full width, starts at left
+            }
+            y: {
+                if (androidAutoMenu.sidebarPosition === "bottom") return videoArea.y + videoArea.height;
+                if (androidAutoMenu.sidebarPosition === "top") return 0;
+                return videoArea.y;  // left/right: starts at video top
+            }
+            width: androidAutoMenu.isVerticalSidebar ? androidAutoMenu.sidebarWidth : parent.width
+            height: androidAutoMenu.isVerticalSidebar ? videoArea.height : androidAutoMenu.sidebarWidth
+            visible: androidAutoMenu.showSidebar
             position: androidAutoMenu.sidebarPosition
         }
     }

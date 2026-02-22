@@ -371,7 +371,8 @@ void AndroidAutoService::requestExitToCar()
     if (videoService_ && state_ == Connected) {
         BOOST_LOG_TRIVIAL(info) << "[AAService] Requesting exit to car (sidebar home)";
         videoService_->setVideoFocus(VideoFocusMode::Native);
-        // State transition to Backgrounded happens in the videoFocusChanged handler
+        videoService_->setFocusSuppressed(true);  // Reject phone's re-focus attempts
+        setState(Backgrounded, "Exited to car");
     }
 }
 

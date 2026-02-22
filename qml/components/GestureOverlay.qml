@@ -87,7 +87,7 @@ Rectangle {
                     value: 80
                     Component.onCompleted: {
                         if (typeof AudioService !== "undefined")
-                            value = AudioService.masterVolume()
+                            value = AudioService.masterVolume
                     }
                     onValueChanged: {
                         dismissTimer.restart()
