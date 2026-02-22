@@ -7,8 +7,6 @@ Flickable {
     contentHeight: content.implicitHeight + UiMetrics.marginPage * 2
     clip: true
     boundsBehavior: Flickable.StopAtBounds
-    property StackView stackRef: StackView.view
-
     ColumnLayout {
         id: content
         anchors.left: parent.left
@@ -16,41 +14,36 @@ Flickable {
         anchors.margins: UiMetrics.marginPage
         spacing: UiMetrics.spacing
 
-        SettingsPageHeader {
-            title: "System"
-            stack: root.stackRef
-        }
-
         SectionHeader { text: "Identity" }
 
-        SettingsTextField {
+        ReadOnlyField {
             label: "Head Unit Name"
             configPath: "identity.head_unit_name"
         }
 
-        SettingsTextField {
+        ReadOnlyField {
             label: "Manufacturer"
             configPath: "identity.manufacturer"
         }
 
-        SettingsTextField {
+        ReadOnlyField {
             label: "Model"
             configPath: "identity.model"
         }
 
-        SettingsTextField {
+        ReadOnlyField {
             label: "Software Version"
             configPath: "identity.sw_version"
-            readOnly: true
+            showWebHint: false
         }
 
-        SettingsTextField {
+        ReadOnlyField {
             label: "Car Model"
             configPath: "identity.car_model"
             placeholder: "(optional)"
         }
 
-        SettingsTextField {
+        ReadOnlyField {
             label: "Car Year"
             configPath: "identity.car_year"
             placeholder: "(optional)"
@@ -63,12 +56,12 @@ Flickable {
 
         SectionHeader { text: "Hardware" }
 
-        SettingsTextField {
+        ReadOnlyField {
             label: "Hardware Profile"
             configPath: "hardware_profile"
         }
 
-        SettingsTextField {
+        ReadOnlyField {
             label: "Touch Device"
             configPath: "touch.device"
             placeholder: "(auto-detect)"

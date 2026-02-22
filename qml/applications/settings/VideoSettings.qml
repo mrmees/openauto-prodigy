@@ -7,8 +7,6 @@ Flickable {
     contentHeight: content.implicitHeight + UiMetrics.marginPage * 2
     clip: true
     boundsBehavior: Flickable.StopAtBounds
-    property StackView stackRef: StackView.view
-
     ColumnLayout {
         id: content
         anchors.left: parent.left
@@ -16,12 +14,9 @@ Flickable {
         anchors.margins: UiMetrics.marginPage
         spacing: UiMetrics.spacing
 
-        SettingsPageHeader {
-            title: "Video"
-            stack: root.stackRef
-        }
+        SectionHeader { text: "Playback" }
 
-        SettingsComboBox {
+        SegmentedButton {
             label: "FPS"
             configPath: "video.fps"
             options: ["30", "60"]
@@ -29,28 +24,23 @@ Flickable {
             restartRequired: true
         }
 
-        SettingsComboBox {
+        FullScreenPicker {
             label: "Resolution"
             configPath: "video.resolution"
             options: ["480p", "720p", "1080p"]
+            values: ["480p", "720p", "1080p"]
             restartRequired: true
         }
 
-        SettingsSpinBox {
+        SettingsSlider {
             label: "DPI"
             configPath: "video.dpi"
             from: 80; to: 400
+            stepSize: 10
             restartRequired: true
         }
 
-        // Sidebar section header
-        Text {
-            text: "Sidebar"
-            font.pixelSize: UiMetrics.fontTitle
-            font.bold: true
-            color: ThemeService.normalFontColor
-            Layout.topMargin: UiMetrics.sectionGap
-        }
+        SectionHeader { text: "Sidebar" }
 
         SettingsToggle {
             label: "Show sidebar during Android Auto"
@@ -58,18 +48,19 @@ Flickable {
             restartRequired: true
         }
 
-        SettingsComboBox {
-            label: "Sidebar Position"
+        SegmentedButton {
+            label: "Position"
             configPath: "video.sidebar.position"
-            options: ["Right", "Left"]
-            values: ["right", "left"]
+            options: ["Left", "Right"]
+            values: ["left", "right"]
             restartRequired: true
         }
 
-        SettingsSpinBox {
+        SettingsSlider {
             label: "Sidebar Width (px)"
             configPath: "video.sidebar.width"
             from: 80; to: 300
+            stepSize: 10
             restartRequired: true
         }
 

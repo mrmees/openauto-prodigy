@@ -1,5 +1,6 @@
 import QtQuick
 import QtQuick.Layouts
+import QtQuick.Controls
 
 Rectangle {
     id: navStrip
@@ -70,6 +71,27 @@ Rectangle {
         // Spacer
         Item { Layout.fillWidth: true }
 
+        // Back button (visible when not on launcher)
+        Rectangle {
+            Layout.fillHeight: true
+            Layout.preferredWidth: navStrip.height * 1.2
+            color: "transparent"
+            radius: 8
+            visible: ApplicationController.currentApplication !== 0
+
+            MaterialIcon {
+                anchors.centerIn: parent
+                icon: "\ue5c4"  // arrow_back
+                size: parent.height * 0.5
+                color: ThemeService.normalFontColor
+            }
+
+            MouseArea {
+                anchors.fill: parent
+                onClicked: ApplicationController.requestBack()
+            }
+        }
+
         // Settings button
         Rectangle {
             Layout.fillHeight: true
@@ -92,7 +114,14 @@ Rectangle {
                     PluginModel.setActivePlugin("")
                     ApplicationController.navigateTo(6)
                 }
+                onPressAndHold: exitDialog.open()
             }
         }
+    }
+
+    ExitDialog {
+        id: exitDialog
+        parent: Overlay.overlay
+        anchors.centerIn: parent
     }
 }

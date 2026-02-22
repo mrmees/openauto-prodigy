@@ -1,6 +1,7 @@
 import QtQuick
 import QtQuick.Layouts
 import QtQuick.Controls
+import QtQuick.Controls.Material
 
 Window {
     id: root
@@ -10,6 +11,10 @@ Window {
     visibility: Window.FullScreen
     title: "OpenAuto Prodigy"
     color: ThemeService.backgroundColor
+
+    Material.theme: ThemeService.nightMode ? Material.Dark : Material.Light
+    Material.accent: ThemeService.highlightColor
+    Material.background: ThemeService.backgroundColor
 
     Shell {
         id: shell

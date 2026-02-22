@@ -32,7 +32,7 @@ Rectangle {
             Layout.alignment: Qt.AlignHCenter
             text: tile.tileName
             color: ThemeService.normalFontColor
-            font.pixelSize: 14
+            font.pixelSize: UiMetrics.fontSmall
             horizontalAlignment: Text.AlignHCenter
         }
     }
