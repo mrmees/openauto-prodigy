@@ -28,44 +28,36 @@ Flickable {
             configPath: "connection.auto_connect_aa"
         }
 
-        SettingsSpinBox {
+        ReadOnlyField {
             label: "TCP Port"
             configPath: "connection.tcp_port"
-            from: 1024; to: 65535
-            restartRequired: true
+            placeholder: "5277"
         }
 
         SectionHeader { text: "WiFi Access Point" }
 
-        SettingsTextField {
-            label: "Interface"
-            configPath: "connection.wifi_ap.interface"
-            restartRequired: true
+        Text {
+            text: "SSID, password, and interface are configured via web panel"
+            font.pixelSize: UiMetrics.fontTiny
+            font.italic: true
+            color: ThemeService.descriptionFontColor
+            Layout.fillWidth: true
+            Layout.leftMargin: UiMetrics.marginRow
         }
 
-        SettingsTextField {
-            label: "SSID"
-            configPath: "connection.wifi_ap.ssid"
-            restartRequired: true
-        }
-
-        SettingsTextField {
-            label: "Password"
-            configPath: "connection.wifi_ap.password"
-            restartRequired: true
-        }
-
-        SettingsSpinBox {
+        FullScreenPicker {
             label: "Channel"
             configPath: "connection.wifi_ap.channel"
-            from: 1; to: 165
+            options: ["1","2","3","4","5","6","7","8","9","10","11","36","40","44","48"]
+            values: [1,2,3,4,5,6,7,8,9,10,11,36,40,44,48]
             restartRequired: true
         }
 
-        SettingsComboBox {
+        SegmentedButton {
             label: "Band"
             configPath: "connection.wifi_ap.band"
-            options: ["a", "g"]
+            options: ["2.4 GHz", "5 GHz"]
+            values: ["g", "a"]
             restartRequired: true
         }
 
