@@ -4,7 +4,7 @@ import QtQuick.Controls
 
 Flickable {
     id: root
-    contentHeight: content.implicitHeight + 32
+    contentHeight: content.implicitHeight + UiMetrics.marginPage * 2
     clip: true
     boundsBehavior: Flickable.StopAtBounds
     property StackView stackRef: StackView.view
@@ -13,8 +13,8 @@ Flickable {
         id: content
         anchors.left: parent.left
         anchors.right: parent.right
-        anchors.margins: 16
-        spacing: 4
+        anchors.margins: UiMetrics.marginPage
+        spacing: UiMetrics.spacing
 
         SettingsPageHeader {
             title: "Connection"

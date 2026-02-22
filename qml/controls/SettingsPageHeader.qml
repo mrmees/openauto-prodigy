@@ -8,23 +8,23 @@ Item {
     property StackView stack: null
 
     Layout.fillWidth: true
-    implicitHeight: 40
+    implicitHeight: UiMetrics.headerH
 
     RowLayout {
         anchors.fill: parent
-        anchors.leftMargin: 8
-        spacing: 8
+        anchors.leftMargin: UiMetrics.marginRow
+        spacing: UiMetrics.marginRow
 
         Rectangle {
-            width: 36
-            height: 36
-            radius: 18
+            width: UiMetrics.backBtnSize
+            height: UiMetrics.backBtnSize
+            radius: UiMetrics.backBtnSize / 2
             color: backMouse.containsMouse ? ThemeService.highlightColor : "transparent"
 
             MaterialIcon {
                 anchors.centerIn: parent
                 icon: "\ue5c4"  // arrow_back
-                size: 24
+                size: UiMetrics.iconSize
                 color: ThemeService.normalFontColor
             }
 
@@ -40,7 +40,7 @@ Item {
 
         Text {
             text: root.title
-            font.pixelSize: 18
+            font.pixelSize: UiMetrics.fontTitle
             font.bold: true
             color: ThemeService.normalFontColor
             Layout.fillWidth: true

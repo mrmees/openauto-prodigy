@@ -14,7 +14,7 @@ Item {
     signal moved()
 
     Layout.fillWidth: true
-    implicitHeight: 48
+    implicitHeight: UiMetrics.rowH
 
     Timer {
         id: debounce
@@ -38,20 +38,20 @@ Item {
 
     RowLayout {
         anchors.fill: parent
-        anchors.leftMargin: 8
-        anchors.rightMargin: 8
-        spacing: 12
+        anchors.leftMargin: UiMetrics.marginRow
+        anchors.rightMargin: UiMetrics.marginRow
+        spacing: UiMetrics.gap
 
         Text {
             text: root.label
-            font.pixelSize: 15
+            font.pixelSize: UiMetrics.fontBody
             color: ThemeService.normalFontColor
             Layout.preferredWidth: root.width * 0.3
         }
 
         MaterialIcon {
             icon: "\ue86a"
-            size: 16
+            size: UiMetrics.iconSmall
             color: ThemeService.descriptionFontColor
             visible: root.restartRequired
         }
@@ -67,9 +67,9 @@ Item {
 
         Text {
             text: Math.round(slider.value * 100) / 100
-            font.pixelSize: 14
+            font.pixelSize: UiMetrics.fontSmall
             color: ThemeService.descriptionFontColor
-            Layout.preferredWidth: 40
+            Layout.preferredWidth: UiMetrics.rowH
             horizontalAlignment: Text.AlignRight
         }
     }

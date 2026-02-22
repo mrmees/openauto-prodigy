@@ -6,16 +6,16 @@ Item {
     property string text: ""
 
     Layout.fillWidth: true
-    Layout.topMargin: 16
-    Layout.bottomMargin: 4
-    implicitHeight: 32
+    Layout.topMargin: UiMetrics.sectionGap
+    Layout.bottomMargin: UiMetrics.spacing
+    implicitHeight: UiMetrics.sectionH
 
     Text {
         anchors.left: parent.left
         anchors.bottom: parent.bottom
-        anchors.bottomMargin: 4
+        anchors.bottomMargin: UiMetrics.spacing
         text: root.text
-        font.pixelSize: 13
+        font.pixelSize: UiMetrics.fontSmall
         font.bold: true
         font.capitalization: Font.AllUppercase
         color: ThemeService.descriptionFontColor

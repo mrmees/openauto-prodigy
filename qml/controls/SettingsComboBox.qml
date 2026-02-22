@@ -21,24 +21,24 @@ Item {
     }
 
     Layout.fillWidth: true
-    implicitHeight: 48
+    implicitHeight: UiMetrics.rowH
 
     RowLayout {
         anchors.fill: parent
-        anchors.leftMargin: 8
-        anchors.rightMargin: 8
-        spacing: 12
+        anchors.leftMargin: UiMetrics.marginRow
+        anchors.rightMargin: UiMetrics.marginRow
+        spacing: UiMetrics.gap
 
         Text {
             text: root.label
-            font.pixelSize: 15
+            font.pixelSize: UiMetrics.fontBody
             color: ThemeService.normalFontColor
             Layout.fillWidth: true
         }
 
         MaterialIcon {
             icon: "\ue86a"
-            size: 16
+            size: UiMetrics.iconSmall
             color: ThemeService.descriptionFontColor
             visible: root.restartRequired
         }
@@ -46,7 +46,7 @@ Item {
         ComboBox {
             id: combo
             model: root.options
-            Layout.preferredWidth: 160
+            Layout.preferredWidth: root.width * 0.35
             onActivated: {
                 if (root.configPath === "") return
                 var writeVal = (root.values.length > 0 && currentIndex < root.values.length)

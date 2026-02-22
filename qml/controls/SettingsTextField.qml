@@ -11,24 +11,24 @@ Item {
     property bool readOnly: false
 
     Layout.fillWidth: true
-    implicitHeight: 48
+    implicitHeight: UiMetrics.rowH
 
     RowLayout {
         anchors.fill: parent
-        anchors.leftMargin: 8
-        anchors.rightMargin: 8
-        spacing: 12
+        anchors.leftMargin: UiMetrics.marginRow
+        anchors.rightMargin: UiMetrics.marginRow
+        spacing: UiMetrics.gap
 
         Text {
             text: root.label
-            font.pixelSize: 15
+            font.pixelSize: UiMetrics.fontBody
             color: ThemeService.normalFontColor
             Layout.preferredWidth: root.width * 0.35
         }
 
         MaterialIcon {
             icon: "\ue86a"
-            size: 16
+            size: UiMetrics.iconSmall
             color: ThemeService.descriptionFontColor
             visible: root.restartRequired
         }
@@ -39,12 +39,12 @@ Item {
             placeholderText: root.placeholder
             readOnly: root.readOnly
             color: ThemeService.normalFontColor
-            font.pixelSize: 14
+            font.pixelSize: UiMetrics.fontSmall
             background: Rectangle {
                 color: ThemeService.controlBackgroundColor
                 border.color: field.activeFocus ? ThemeService.highlightColor : ThemeService.controlForegroundColor
                 border.width: 1
-                radius: 4
+                radius: UiMetrics.radius / 2
             }
             onEditingFinished: {
                 if (!root.readOnly && root.configPath !== "") {
