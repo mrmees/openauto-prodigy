@@ -86,6 +86,23 @@ bool AndroidAutoPlugin::initialize(IHostContext* context)
         touchReader_->start();
         BOOST_LOG_TRIVIAL(info) << "[AAPlugin] Touch: " << touchDevice.toStdString()
                                 << " display=" << displayW << "x" << displayH;
+
+        // Configure sidebar touch exclusion
+        if (hostContext_ && hostContext_->configService()) {
+            QVariant sidebarEnabledVar = hostContext_->configService()->value("video.sidebar.enabled");
+            bool sidebarEnabled = (sidebarEnabledVar == true || sidebarEnabledVar.toInt() == 1
+                                   || sidebarEnabledVar.toString() == "true");
+            if (sidebarEnabled) {
+                int sidebarW = hostContext_->configService()->value("video.sidebar.width").toInt();
+                QString pos = hostContext_->configService()->value("video.sidebar.position").toString();
+                if (sidebarW <= 0) sidebarW = 150;
+                if (pos.isEmpty()) pos = "right";
+                touchReader_->setSidebar(true, sidebarW, pos.toStdString());
+                touchReader_->computeLetterbox();  // recompute with sidebar offset
+                BOOST_LOG_TRIVIAL(info) << "[AAPlugin] Sidebar touch zones: "
+                                        << pos.toStdString() << " " << sidebarW << "px";
+            }
+        }
     } else {
         BOOST_LOG_TRIVIAL(info) << "[AAPlugin] No touch device found — touch input disabled";
     }

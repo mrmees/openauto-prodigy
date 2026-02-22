@@ -64,9 +64,15 @@ public:
     void grab();
     void ungrab();
 
+    void setSidebar(bool enabled, int width, const std::string& position);
+    void computeLetterbox();
+
 signals:
     /// Emitted when a 3-finger tap gesture is detected (thread-safe, queued).
     void gestureDetected();
+    void sidebarVolumeUp();
+    void sidebarVolumeDown();
+    void sidebarHome();
 
 protected:
     void run() override;
@@ -75,7 +81,6 @@ private:
     void processSync();
     int countActive() const;
     int slotToArrayIndex(int slot) const;
-    void computeLetterbox();
     bool checkGesture();
 
     // Map raw evdev coordinate to AA coordinate, accounting for letterbox
@@ -109,6 +114,16 @@ private:
     int gestureMaxFingers_ = 0;   // max simultaneous fingers in current gesture window
     std::chrono::steady_clock::time_point firstFingerTime_;
     int prevActiveCount_ = 0;
+
+    // Sidebar touch exclusion
+    bool sidebarEnabled_ = false;
+    int sidebarPixelWidth_ = 0;
+    std::string sidebarPosition_ = "right";
+    float sidebarEvdevX0_ = 0;
+    float sidebarEvdevX1_ = 0;
+    float sidebarVolUpY0_ = 0, sidebarVolUpY1_ = 0;
+    float sidebarVolDownY0_ = 0, sidebarVolDownY1_ = 0;
+    float sidebarHomeY0_ = 0, sidebarHomeY1_ = 0;
 };
 
 } // namespace aa

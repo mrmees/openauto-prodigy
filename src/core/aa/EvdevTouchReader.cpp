@@ -12,31 +12,31 @@ namespace aa {
 
 void EvdevTouchReader::computeLetterbox()
 {
-    // Compute where the video (aaWidth x aaHeight) fits within the physical
-    // display (displayWidth x displayHeight), PreserveAspectFit style.
-    // Then map that region into evdev coordinate space (0..screenWidth, 0..screenHeight).
+    int effectiveDisplayW = displayWidth_;
+    int effectiveDisplayX0 = 0;
+    if (sidebarEnabled_ && sidebarPixelWidth_ > 0) {
+        effectiveDisplayW = displayWidth_ - sidebarPixelWidth_;
+        if (sidebarPosition_ == "left")
+            effectiveDisplayX0 = sidebarPixelWidth_;
+    }
 
-    float displayAspect = static_cast<float>(displayWidth_) / displayHeight_;
     float videoAspect = static_cast<float>(aaWidth_) / aaHeight_;
+    float displayAspect = static_cast<float>(effectiveDisplayW) / displayHeight_;
 
     float videoPixelW, videoPixelH, videoPixelX0, videoPixelY0;
 
     if (videoAspect > displayAspect) {
-        // Video is wider than display — pillarbox (bars top/bottom... wait, wider = fit to width)
-        videoPixelW = displayWidth_;
-        videoPixelH = displayWidth_ / videoAspect;
-        videoPixelX0 = 0;
+        videoPixelW = effectiveDisplayW;
+        videoPixelH = effectiveDisplayW / videoAspect;
+        videoPixelX0 = effectiveDisplayX0;
         videoPixelY0 = (displayHeight_ - videoPixelH) / 2.0f;
     } else {
-        // Video is taller than display — fit to height, bars on sides
         videoPixelH = displayHeight_;
         videoPixelW = displayHeight_ * videoAspect;
-        videoPixelX0 = (displayWidth_ - videoPixelW) / 2.0f;
+        videoPixelX0 = effectiveDisplayX0 + (effectiveDisplayW - videoPixelW) / 2.0f;
         videoPixelY0 = 0;
     }
 
-    // Convert pixel positions to evdev coordinate space
-    // evdev 0..screenWidth maps to display 0..displayWidth
     float evdevPerPixelX = static_cast<float>(screenWidth_) / displayWidth_;
     float evdevPerPixelY = static_cast<float>(screenHeight_) / displayHeight_;
 
@@ -46,11 +46,42 @@ void EvdevTouchReader::computeLetterbox()
     videoEvdevH_ = videoPixelH * evdevPerPixelY;
 
     BOOST_LOG_TRIVIAL(info) << "[EvdevTouch] Letterbox: video " << aaWidth_ << "x" << aaHeight_
-                            << " in display " << displayWidth_ << "x" << displayHeight_
-                            << " -> pixel area " << videoPixelW << "x" << videoPixelH
-                            << " at (" << videoPixelX0 << "," << videoPixelY0 << ")"
-                            << " | evdev area (" << videoEvdevX0_ << "," << videoEvdevY0_
+                            << " in display " << effectiveDisplayW << "x" << displayHeight_
+                            << " at pixel (" << videoPixelX0 << "," << videoPixelY0 << ")"
+                            << " | evdev (" << videoEvdevX0_ << "," << videoEvdevY0_
                             << ") " << videoEvdevW_ << "x" << videoEvdevH_;
+}
+
+void EvdevTouchReader::setSidebar(bool enabled, int width, const std::string& position)
+{
+    sidebarEnabled_ = enabled;
+    sidebarPixelWidth_ = width;
+    sidebarPosition_ = position;
+
+    if (!enabled || width <= 0) return;
+
+    float evdevPerPixelX = static_cast<float>(screenWidth_) / displayWidth_;
+    float evdevPerPixelY = static_cast<float>(screenHeight_) / displayHeight_;
+
+    if (position == "right") {
+        int sidebarStartPx = displayWidth_ - width;
+        sidebarEvdevX0_ = sidebarStartPx * evdevPerPixelX;
+        sidebarEvdevX1_ = screenWidth_;
+    } else {
+        sidebarEvdevX0_ = 0;
+        sidebarEvdevX1_ = width * evdevPerPixelX;
+    }
+
+    // Hit zones: top 40% = vol up, next 20% = vol down, bottom 25% = home
+    sidebarVolUpY0_ = 0;
+    sidebarVolUpY1_ = displayHeight_ * 0.40f * evdevPerPixelY;
+    sidebarVolDownY0_ = sidebarVolUpY1_;
+    sidebarVolDownY1_ = displayHeight_ * 0.60f * evdevPerPixelY;
+    sidebarHomeY0_ = displayHeight_ * 0.75f * evdevPerPixelY;
+    sidebarHomeY1_ = screenHeight_;
+
+    BOOST_LOG_TRIVIAL(info) << "[EvdevTouch] Sidebar: " << position << " " << width << "px"
+                            << ", evdev X: " << sidebarEvdevX0_ << "-" << sidebarEvdevX1_;
 }
 
 int EvdevTouchReader::mapX(int rawX) const
@@ -208,6 +239,38 @@ void EvdevTouchReader::processSync()
             slots_[i].dirty = false;
         prevSlots_ = slots_;
         return;
+    }
+
+    // Check for sidebar touches — detect hits and suppress AA forwarding
+    if (sidebarEnabled_) {
+        bool anySidebarTouch = false;
+        for (int i = 0; i < MAX_SLOTS; ++i) {
+            if (slots_[i].trackingId >= 0 && slots_[i].dirty) {
+                float rawX = slots_[i].x;
+                if (rawX >= sidebarEvdevX0_ && rawX <= sidebarEvdevX1_) {
+                    // Touch is in sidebar — check hit zones on finger DOWN only
+                    if (prevSlots_[i].trackingId < 0) {
+                        float rawY = slots_[i].y;
+                        if (rawY >= sidebarVolUpY0_ && rawY < sidebarVolUpY1_)
+                            emit sidebarVolumeUp();
+                        else if (rawY >= sidebarVolDownY0_ && rawY < sidebarVolDownY1_)
+                            emit sidebarVolumeDown();
+                        else if (rawY >= sidebarHomeY0_ && rawY <= sidebarHomeY1_)
+                            emit sidebarHome();
+                    }
+                    slots_[i].dirty = false;  // consume — don't forward to AA
+                    anySidebarTouch = true;
+                }
+            }
+        }
+        // If ALL touches in this sync are sidebar touches, skip AA processing
+        bool anyDirty = false;
+        for (int i = 0; i < MAX_SLOTS; ++i)
+            if (slots_[i].dirty) { anyDirty = true; break; }
+        if (anySidebarTouch && !anyDirty) {
+            prevSlots_ = slots_;
+            return;
+        }
     }
 
     // Determine what changed: new fingers, lifted fingers, moved fingers
