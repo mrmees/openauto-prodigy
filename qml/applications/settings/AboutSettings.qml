@@ -5,6 +5,7 @@ import QtQuick.Controls
 Item {
     id: root
     property StackView stackRef: StackView.view
+    readonly property color dangerColor: "#F44336"
 
     ColumnLayout {
         anchors.left: parent.left
@@ -114,7 +115,7 @@ Item {
                     ApplicationController.minimize()
                 }
                 contentItem: RowLayout {
-                    spacing: 10
+                    spacing: UiMetrics.marginRow
                     Item { Layout.fillWidth: true }
                     MaterialIcon {
                         icon: "\ue5cd"
@@ -139,29 +140,29 @@ Item {
                 Layout.preferredHeight: UiMetrics.rowH
                 onClicked: ApplicationController.quit()
                 contentItem: RowLayout {
-                    spacing: 10
+                    spacing: UiMetrics.marginRow
                     Item { Layout.fillWidth: true }
                     MaterialIcon {
                         icon: "\ue5cd"
                         size: UiMetrics.iconSize
-                        color: "#F44336"
+                        color: root.dangerColor
                     }
                     Text {
                         text: "Close App"
                         font.pixelSize: UiMetrics.fontBody
-                        color: "#F44336"
+                        color: root.dangerColor
                     }
                     Item { Layout.fillWidth: true }
                 }
                 background: Rectangle {
-                    color: parent.pressed ? "#F44336" : ThemeService.barBackgroundColor
+                    color: parent.pressed ? root.dangerColor : ThemeService.barBackgroundColor
                     radius: UiMetrics.radius
                 }
             }
 
             Button {
                 Layout.fillWidth: true
-                Layout.preferredHeight: UiMetrics.headerH
+                Layout.preferredHeight: UiMetrics.rowH
                 onClicked: exitDialog.close()
                 contentItem: Text {
                     text: "Cancel"
