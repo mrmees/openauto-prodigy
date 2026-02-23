@@ -92,6 +92,17 @@ Item {
                 Tile {
                     Layout.preferredWidth: settingsMenu.width * 0.22
                     Layout.preferredHeight: settingsMenu.width * 0.18
+                    tileName: "Companion"
+                    tileIcon: "\ue324"
+                    onClicked: {
+                        ApplicationController.setTitle("Settings > Companion")
+                        settingsStack.push(companionPage)
+                    }
+                }
+
+                Tile {
+                    Layout.preferredWidth: settingsMenu.width * 0.22
+                    Layout.preferredHeight: settingsMenu.width * 0.18
                     tileName: "About"
                     tileIcon: "\ue88e"
                     onClicked: {
@@ -108,5 +119,6 @@ Item {
     Component { id: connectionPage; ConnectionSettings {} }
     Component { id: videoPage; VideoSettings {} }
     Component { id: systemPage; SystemSettings {} }
+    Component { id: companionPage; CompanionSettings {} }
     Component { id: aboutPage; AboutSettings {} }
 }
