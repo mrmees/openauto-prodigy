@@ -22,6 +22,7 @@ qt_add_executable(openauto-prodigy
     core/aa/handlers/WiFiChannelHandler.cpp
     core/aa/handlers/AudioChannelHandler.cpp
     core/aa/handlers/VideoChannelHandler.cpp
+    core/aa/handlers/AVInputChannelHandler.cpp
     ui/ApplicationController.cpp
     ui/PluginModel.cpp
     ui/PluginRuntimeContext.cpp
