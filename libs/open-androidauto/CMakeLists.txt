@@ -28,6 +28,9 @@ add_library(open-androidauto STATIC
     include/oaa/Channel/IChannelHandler.hpp
     include/oaa/Channel/IAVChannelHandler.hpp
     include/oaa/Channel/ControlChannel.hpp
+    include/oaa/Session/SessionState.hpp
+    include/oaa/Session/SessionConfig.hpp
+    include/oaa/Session/AASession.hpp
     src/Channel/IChannelHandler.cpp
     src/Channel/IAVChannelHandler.cpp
     src/Channel/ControlChannel.cpp
@@ -41,6 +44,7 @@ add_library(open-androidauto STATIC
     src/Messenger/Cryptor.cpp
     src/Messenger/EncryptionPolicy.cpp
     src/Messenger/Messenger.cpp
+    src/Session/AASession.cpp
 )
 
 target_include_directories(open-androidauto PUBLIC
