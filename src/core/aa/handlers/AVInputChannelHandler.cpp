@@ -2,6 +2,8 @@
 
 #include <QDebug>
 
+#include <QtEndian>
+
 #include "AVInputOpenRequestMessage.pb.h"
 #include "AVInputOpenResponseMessage.pb.h"
 
@@ -87,9 +89,15 @@ void AVInputChannelHandler::sendMicData(const QByteArray& data, uint64_t timesta
     if (!channelOpen_ || !capturing_)
         return;
 
-    // AV_MEDIA_WITH_TIMESTAMP sends raw mic audio upstream to phone
-    // The timestamp and data are packed by the messenger layer
-    emit sendRequested(channelId(), oaa::AVMessageId::AV_MEDIA_WITH_TIMESTAMP, data);
+    // AV_MEDIA_WITH_TIMESTAMP wire format: [8-byte BE timestamp][raw audio]
+    // Messenger only prepends the messageId, so we must pack the timestamp here.
+    QByteArray payload;
+    payload.reserve(8 + data.size());
+    uint64_t tsBE = qToBigEndian(timestamp);
+    payload.append(reinterpret_cast<const char*>(&tsBE), 8);
+    payload.append(data);
+
+    emit sendRequested(channelId(), oaa::AVMessageId::AV_MEDIA_WITH_TIMESTAMP, payload);
 }
 
 } // namespace aa

@@ -1,5 +1,6 @@
 #include <QTest>
 #include <QSignalSpy>
+#include <QtEndian>
 #include "core/aa/handlers/AVInputChannelHandler.hpp"
 #include <oaa/Channel/ChannelId.hpp>
 #include "AVInputOpenRequestMessage.pb.h"
@@ -78,12 +79,22 @@ private slots:
         QSignalSpy sendSpy(&handler, &oaa::IChannelHandler::sendRequested);
 
         QByteArray micData(320, '\x42'); // 320 bytes of mic PCM
-        handler.sendMicData(micData, 1234567890);
+        uint64_t timestamp = 1234567890;
+        handler.sendMicData(micData, timestamp);
 
         QCOMPARE(sendSpy.count(), 1);
         QCOMPARE(sendSpy[0][0].value<uint8_t>(), oaa::ChannelId::AVInput);
         QCOMPARE(sendSpy[0][1].value<uint16_t>(),
                  static_cast<uint16_t>(oaa::AVMessageId::AV_MEDIA_WITH_TIMESTAMP));
+
+        // Verify timestamp is prepended as 8-byte big-endian
+        QByteArray sentPayload = sendSpy[0][2].toByteArray();
+        QCOMPARE(sentPayload.size(), 8 + 320);
+        uint64_t tsBE;
+        memcpy(&tsBE, sentPayload.constData(), 8);
+        QCOMPARE(qFromBigEndian(tsBE), timestamp);
+        // Verify audio data follows the timestamp
+        QCOMPARE(sentPayload.mid(8), micData);
     }
 
     void testMicDataIgnoredWhenNotCapturing() {
