@@ -383,6 +383,23 @@ target_link_libraries(test_oaa_integration PRIVATE
 )
 add_test(NAME test_oaa_integration COMMAND test_oaa_integration)
 
+# Audio channel handler — generic AV handler for media/speech/system
+add_executable(test_audio_channel_handler
+    test_audio_channel_handler.cpp
+    ${CMAKE_SOURCE_DIR}/src/core/aa/handlers/AudioChannelHandler.cpp
+)
+target_include_directories(test_audio_channel_handler PRIVATE
+    ${CMAKE_SOURCE_DIR}/src
+    ${CMAKE_SOURCE_DIR}/libs/open-androidauto/include
+    ${CMAKE_BINARY_DIR}/libs/open-androidauto
+)
+target_link_libraries(test_audio_channel_handler PRIVATE
+    Qt6::Core
+    Qt6::Test
+    open-androidauto
+)
+add_test(NAME test_audio_channel_handler COMMAND test_audio_channel_handler)
+
 # GUI/Quick tests need offscreen platform when no display is available
 set_tests_properties(test_configuration test_theme_service test_plugin_model
     PROPERTIES ENVIRONMENT "QT_QPA_PLATFORM=offscreen"
