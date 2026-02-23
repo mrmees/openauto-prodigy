@@ -1,0 +1,9 @@
+syntax="proto2";
+
+import "PingConfigurationData.proto";
+
+package oaa.proto.data;
+
+message ConnectionConfiguration {
+    optional PingConfiguration ping_configuration = 1;
+}

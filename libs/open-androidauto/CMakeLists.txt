@@ -7,8 +7,13 @@ set(CMAKE_AUTOMOC ON)
 
 find_package(Qt6 REQUIRED COMPONENTS Core Network)
 find_package(OpenSSL REQUIRED)
+find_package(Protobuf REQUIRED)
+
+file(GLOB PROTO_FILES ${CMAKE_CURRENT_SOURCE_DIR}/proto/*.proto)
+protobuf_generate_cpp(PROTO_SRCS PROTO_HDRS ${PROTO_FILES})
 
 add_library(open-androidauto STATIC
+    ${PROTO_SRCS}
     include/oaa/Transport/ITransport.hpp
     include/oaa/Transport/TCPTransport.hpp
     include/oaa/Transport/ReplayTransport.hpp
@@ -34,6 +39,7 @@ add_library(open-androidauto STATIC
 
 target_include_directories(open-androidauto PUBLIC
     ${CMAKE_CURRENT_SOURCE_DIR}/include
+    ${CMAKE_CURRENT_BINARY_DIR}
 )
 
 target_link_libraries(open-androidauto PUBLIC
@@ -41,6 +47,7 @@ target_link_libraries(open-androidauto PUBLIC
     Qt6::Network
     OpenSSL::SSL
     OpenSSL::Crypto
+    protobuf::libprotobuf
 )
 
 # Tests
