@@ -54,6 +54,9 @@ void AndroidAutoOrchestrator::start()
     // Start TCP listener
     uint16_t port = config_ ? config_->tcpPort() : 5288;
 
+    // Disconnect first to prevent accumulation if start() is called multiple times
+    disconnect(&tcpServer_, &QTcpServer::newConnection,
+               this, &AndroidAutoOrchestrator::onNewConnection);
     connect(&tcpServer_, &QTcpServer::newConnection,
             this, &AndroidAutoOrchestrator::onNewConnection);
 
@@ -199,6 +202,13 @@ void AndroidAutoOrchestrator::onNewConnection()
     connect(session_, &oaa::AASession::disconnected,
             this, &AndroidAutoOrchestrator::onSessionDisconnected);
 
+    // Disconnect handler signals from previous session (prevents duplicates on reconnect)
+    videoHandler_.disconnect(&videoDecoder_);
+    videoHandler_.disconnect(this);
+    mediaAudioHandler_.disconnect(this);
+    speechAudioHandler_.disconnect(this);
+    systemAudioHandler_.disconnect(this);
+
     // Wire video frames to decoder
     connect(&videoHandler_, &VideoChannelHandler::videoFrameData,
             &videoDecoder_, &VideoDecoder::decodeFrame, Qt::QueuedConnection);
@@ -325,11 +335,11 @@ void AndroidAutoOrchestrator::teardownSession()
         systemAudioHandler_.disconnect(this);
         videoHandler_.disconnect(&videoDecoder_);
 
-        session_->deleteLater();
+        delete session_;
         session_ = nullptr;
     }
     if (transport_) {
-        transport_->deleteLater();
+        delete transport_;
         transport_ = nullptr;
     }
     activeSocket_ = nullptr;  // owned by transport
@@ -374,7 +384,9 @@ void AndroidAutoOrchestrator::setState(ConnectionState state, const QString& mes
 
 void AndroidAutoOrchestrator::startConnectionWatchdog()
 {
-    stopConnectionWatchdog();
+    // Unconditionally disconnect to prevent lambda accumulation across reconnects
+    disconnect(&watchdogTimer_, nullptr, this, nullptr);
+    watchdogTimer_.stop();
 
     connect(&watchdogTimer_, &QTimer::timeout, this, [this]() {
         if ((state_ != Connected && state_ != Backgrounded) || !activeSocket_) {
@@ -423,7 +435,7 @@ void AndroidAutoOrchestrator::startConnectionWatchdog()
 
         if (dead) {
             activeSocket_->abort();
-            stopConnectionWatchdog();
+            onSessionDisconnected(oaa::DisconnectReason::TransportError);
         }
     });
 

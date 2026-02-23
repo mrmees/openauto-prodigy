@@ -145,7 +145,10 @@ void AndroidAutoPlugin::shutdown()
         touchReader_->wait();
         touchReader_ = nullptr;
     }
-    aaService_ = nullptr;
+    if (aaService_) {
+        aaService_->stop();
+        aaService_ = nullptr;
+    }
 }
 
 void AndroidAutoPlugin::onActivated(QQmlContext* context)
