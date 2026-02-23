@@ -27,8 +27,10 @@ add_library(open-androidauto STATIC
     include/oaa/Messenger/Messenger.hpp
     include/oaa/Channel/IChannelHandler.hpp
     include/oaa/Channel/IAVChannelHandler.hpp
+    include/oaa/Channel/ControlChannel.hpp
     src/Channel/IChannelHandler.cpp
     src/Channel/IAVChannelHandler.cpp
+    src/Channel/ControlChannel.cpp
     src/Transport/ITransport.cpp
     src/Transport/TCPTransport.cpp
     src/Transport/ReplayTransport.cpp
