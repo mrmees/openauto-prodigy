@@ -1,0 +1,15 @@
+# Phase 04: Probes 1-3 — Version Bump, 48kHz Speech, Night Mode
+
+> **Context:** Running single-variable protocol probes. Each probe makes one code/config change, deploys to Pi, captures, and diffs against baseline.
+>
+> **Reference:** `docs/plans/2026-02-23-protocol-exploration-implementation.md` (Tasks 7-9)
+>
+> **Prerequisites:** Phase 03 complete (baseline capture exists in `Testing/captures/baseline/`).
+>
+> **IMPORTANT:** Each probe requires Pi hardware + interactive capture. The agent does code changes and deploy/build; captures are interactive.
+
+- [x] **Probe 1: Version bump v1.1 → v1.7.** *(Phone always responds v1.7, but stores HU's requested version internally. v1.7 ServiceDiscoveryRequest is 40 bytes larger. Channel open order changes. No audio changes from version alone. Keeping v1.7.)* Modify `libs/aasdk/include/aasdk/Version.hpp` line 24: change `AASDK_MINOR` from `1` to `7`. Rsync to Pi (same rsync command as Phase 03, excluding `build/`, `.git/`, `libs/aasdk/lib/`). Build on Pi: `ssh matt@192.168.1.149 "cd /home/matt/openauto-prodigy/build && cmake .. && cmake --build . -j3"`. Run `./Testing/capture.sh probe-1-version-bump`. After capture, diff: `diff Testing/captures/baseline/pi-protocol.log Testing/captures/probe-1-version-bump/pi-protocol.log > Testing/captures/probe-1-version-bump/diff-raw.txt`. Create `Testing/captures/probe-1-version-bump/findings.md` documenting: what version the phone negotiated, any new messages, changed contents, whether 48kHz TTS is now active. Keep version at 1.7 if it works. Commit: `probe: version bump v1.1→v1.7 — capture and findings`
+
+- [x] **Probe 2: 48kHz speech audio.** *(SUCCESS — frame size doubled to 4106 bytes, phone captures at 48kHz. Misleading "fallback to 16KHz" log is config lookup only. Keeping 48kHz.)* Modify `src/core/aa/ServiceFactory.cpp` (~line 210): change SpeechAudioServiceStub sample rate from `16000` to `48000` (the template parameter). Rsync to Pi and rebuild. Run `./Testing/capture.sh probe-2-48khz-speech`. Diff against baseline (or post-version-bump if that's the new baseline). Check phone logs for different audio config selection, changed `CAR.AUDIO.TTS` messages, any "48Khz guidance" entries. Create `Testing/captures/probe-2-48khz-speech/findings.md`. Commit: `probe: 48kHz speech audio — capture and findings`
+
+- [x] **Probe 3: Night mode sensor push.** *(Night mode sensor works — phone reads SENSOR_EVENT_INDICATION and applies day/night. Bonus: discovered phone expects palette version 2 but we report 0. Live toggle test deferred — needs user interaction.)* No code changes needed — night mode sending already exists. Run `./Testing/capture.sh probe-3-night-mode`. During the interactive period, toggle night mode via the NavStrip day/night button (sun/moon icon) 2-3 times with ~5s between toggles. Check phone logs for `SysChromeController` theme changes, `ThemingManager` updates, any `NIGHT` or `DARK` related entries. Create `Testing/captures/probe-3-night-mode/findings.md`. Commit: `probe: night mode sensor push — capture and findings`
