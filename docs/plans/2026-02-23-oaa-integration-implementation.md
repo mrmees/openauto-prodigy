@@ -10,6 +10,8 @@
 
 **Design doc:** `docs/plans/2026-02-23-oaa-integration-design.md`
 
+**APK decompilation reference:** `~/claude/personal/openautopro/openauto-pro-community/docs/android-auto-apk-decompilation.md` — AA v16.1 APK analysis revealing expanded enums, new message IDs, and complete service type catalog.
+
 **Channel ID reference (from aasdk ChannelId enum):**
 
 | Name | ID | Handler Type |
@@ -26,8 +28,8 @@
 | WIFI | 14 | IChannelHandler |
 
 **Message ID enums (from proto files):**
-- Control: `ControlMessageIdsEnum.proto` (0x0001–0x0013)
-- AV: `AVChannelMessageIdsEnum.proto` (0x0000–0x8008)
+- Control: `ControlMessageIdsEnum.proto` (0x0001–0x0013, **+0x0018, 0x001A from APK**)
+- AV: `AVChannelMessageIdsEnum.proto` (0x0000–0x8008, **+0x8009–0x8014 from APK**)
 - Input: `InputChannelMessageIdsEnum.proto` (0x8001–0x8003)
 - Sensor: `SensorChannelMessageIdsEnum.proto` (0x8001–0x8003)
 - Bluetooth: `BluetoothChannelMessageIdsEnum.proto` (0x8001–0x8003)
@@ -35,11 +37,376 @@
 
 ---
 
+## Phase 0: Protocol Compatibility Hardening
+
+APK decompilation of Android Auto v16.1 revealed that many of our proto enums are incomplete — missing values that real phones may send or expect. Since these are proto2 enums, an unrecognized value causes parse failure and field-level data loss. We expand all narrow enums **now**, before building channel handlers that depend on them.
+
+**Guiding principle:** Don't restructure proto wire format (field numbers, message structure). Our current protos produce bytes that phones accept. Only expand enum value sets and add new message ID constants.
+
+### Task 1: Expand VideoFocus Enums
+
+**Source:** APK `VideoFocusType` (4 values) and `VideoFocusReason` (5 values)
+
+**Files:**
+- Modify: `libs/open-androidauto/proto/VideoFocusModeEnum.proto`
+- Modify: `libs/open-androidauto/proto/VideoFocusReasonEnum.proto`
+
+**Step 1: Update VideoFocusModeEnum.proto**
+
+Current has NONE(0), FOCUSED(1), UNFOCUSED(2). The APK uses a different naming scheme (PROJECTED/NATIVE/etc.) but maps to the same wire values. Keep our naming convention but add the missing value:
+
+```proto
+enum Enum
+{
+    NONE = 0;
+    FOCUSED = 1;           // APK: VIDEO_FOCUS_PROJECTED
+    UNFOCUSED = 2;         // APK: VIDEO_FOCUS_NATIVE
+    FOCUSED_TRANSIENT = 3; // APK: VIDEO_FOCUS_NATIVE_TRANSIENT (phone still renders)
+    FOCUSED_NO_INPUT = 4;  // APK: VIDEO_FOCUS_PROJECTED_NO_INPUT_FOCUS (AA video, HU touch)
+}
+```
+
+Wait — the APK mapping is: PROJECTED=1, NATIVE=2, NATIVE_TRANSIENT=3, PROJECTED_NO_INPUT_FOCUS=4. Our existing code maps FOCUSED→PROJECTED and UNFOCUSED→NATIVE. Value 3 in APK is "NATIVE_TRANSIENT" which means HU has temporary focus but phone keeps rendering (think reverse camera). Value 4 is AA video displayed but HU handles touch. Let's use names that match the semantic meaning:
+
+```proto
+enum Enum
+{
+    NONE = 0;
+    FOCUSED = 1;               // AA projected, AA handles input
+    UNFOCUSED = 2;             // HU native UI, AA paused
+    UNFOCUSED_TRANSIENT = 3;   // HU native temporarily (reverse cam), phone keeps rendering
+    FOCUSED_NO_INPUT = 4;      // AA video displayed, HU handles touch (split-screen/PIP)
+}
+```
+
+**Step 2: Update VideoFocusReasonEnum.proto**
+
+```proto
+enum Enum
+{
+    NONE = 0;               // APK: UNKNOWN
+    PHONE_SCREEN_OFF = 1;   // Phone screen turned off
+    LAUNCH_NATIVE = 2;      // User switched to HU native UI
+    LAST_MODE = 3;          // Restore previous focus state
+    USER_SELECTION = 4;     // User explicitly switched views
+}
+```
+
+**Step 3: Build and test**
+
+```bash
+cd libs/open-androidauto/build && cmake --build . -j$(nproc) && ctest --output-on-failure
+```
+
+**Step 4: Commit**
+
+```bash
+git add libs/open-androidauto/proto/VideoFocus*.proto
+git commit -m "proto: expand VideoFocusMode and VideoFocusReason with APK-confirmed values"
+```
+
+---
+
+### Task 2: Expand ShutdownReason (ByeBye) Enum
+
+**Source:** APK `ByeByeReason` — 8 values vs our 2 (NONE, QUIT)
+
+**Files:**
+- Modify: `libs/open-androidauto/proto/ShutdownReasonEnum.proto`
+
+**Step 1: Update enum**
+
+```proto
+enum Enum
+{
+    NONE = 0;
+    QUIT = 1;                          // APK: USER_SELECTION
+    DEVICE_SWITCH = 2;                 // Switching to different phone
+    NOT_SUPPORTED = 3;                 // Feature not supported
+    NOT_CURRENTLY_SUPPORTED = 4;       // Feature temporarily unavailable
+    PROBE_SUPPORTED = 5;               // Probe connection (capability check)
+    WIRELESS_PROJECTION_DISABLED = 6;  // WiFi AA disabled
+    POWER_DOWN = 7;                    // HU shutting down
+    USER_PROFILE_SWITCH = 8;           // Switching user profiles
+}
+```
+
+**Step 2: Build, test, commit**
+
+```bash
+cd libs/open-androidauto/build && cmake --build . -j$(nproc) && ctest --output-on-failure
+git add libs/open-androidauto/proto/ShutdownReasonEnum.proto
+git commit -m "proto: expand ShutdownReason with all 8 APK-confirmed ByeBye reasons"
+```
+
+---
+
+### Task 3: Expand Status Enum
+
+**Source:** APK `StatusCode` — 30+ values vs our 2 (OK, FAIL)
+
+**Files:**
+- Modify: `libs/open-androidauto/proto/StatusEnum.proto`
+
+**Step 1: Update enum**
+
+```proto
+enum Enum
+{
+    OK = 0;                                        // APK: STATUS_SUCCESS
+    FAIL = 1;                                      // APK: STATUS_UNSOLICITED_MESSAGE
+    NO_COMPATIBLE_VERSION = -1;
+    CERTIFICATE_ERROR = -2;
+    AUTHENTICATION_FAILURE = -3;
+    INVALID_SERVICE = -4;
+    INVALID_CHANNEL = -5;
+    INVALID_PRIORITY = -6;
+    INTERNAL_ERROR = -7;
+    MEDIA_CONFIG_MISMATCH = -8;
+    INVALID_SENSOR = -9;
+    BLUETOOTH_PAIRING_DELAYED = -10;
+    BLUETOOTH_UNAVAILABLE = -11;
+    BLUETOOTH_INVALID_ADDRESS = -12;
+    BLUETOOTH_INVALID_PAIRING_METHOD = -13;
+    BLUETOOTH_INVALID_AUTH_DATA = -14;
+    BLUETOOTH_AUTH_DATA_MISMATCH = -15;
+    BLUETOOTH_HFP_ANOTHER_CONNECTION = -16;
+    BLUETOOTH_HFP_CONNECTION_FAILURE = -17;
+    KEYCODE_NOT_BOUND = -18;
+    RADIO_INVALID_STATION = -19;
+    INVALID_INPUT = -20;
+    RADIO_STATION_PRESETS_NOT_SUPPORTED = -21;
+    RADIO_COMM_ERROR = -22;
+    AUTHENTICATION_FAILURE_CERT_NOT_YET_VALID = -23;
+    AUTHENTICATION_FAILURE_CERT_EXPIRED = -24;
+    PING_TIMEOUT = -25;
+    CAR_PROPERTY_SET_REQUEST_FAILED = -26;
+    CAR_PROPERTY_LISTENER_REGISTRATION_FAILED = -27;
+    COMMAND_NOT_SUPPORTED = -250;
+    FRAMING_ERROR = -251;
+    UNEXPECTED_MESSAGE = -253;
+    BUSY = -254;
+    OUT_OF_MEMORY = -255;
+}
+```
+
+**Note:** proto2 supports negative enum values. Verify protobuf compiler accepts this; if not, use `sint32` field type and constants instead.
+
+**Step 2: Build, test, commit**
+
+```bash
+cd libs/open-androidauto/build && cmake --build . -j$(nproc) && ctest --output-on-failure
+git add libs/open-androidauto/proto/StatusEnum.proto
+git commit -m "proto: expand Status enum with all 30+ APK-confirmed status codes"
+```
+
+---
+
+### Task 4: Fix AudioFocusType Naming + Expand BluetoothPairingMethod
+
+**Source:** APK `AudioFocusRequestType` confirms value 3 is `GAIN_TRANSIENT_MAY_DUCK` (not `GAIN_NAVI`). APK `BluetoothPairingMethod` has proper names for all values.
+
+**Files:**
+- Modify: `libs/open-androidauto/proto/AudioFocusTypeEnum.proto`
+- Modify: `libs/open-androidauto/proto/BluetoothPairingMethodEnum.proto`
+
+**Step 1: Fix AudioFocusTypeEnum.proto**
+
+```proto
+enum Enum
+{
+    NONE = 0;
+    GAIN = 1;
+    GAIN_TRANSIENT = 2;
+    GAIN_TRANSIENT_MAY_DUCK = 3;   // Was: GAIN_NAVI (misleading name from aasdk)
+    RELEASE = 4;
+}
+```
+
+**Step 2: Fix BluetoothPairingMethodEnum.proto**
+
+```proto
+enum Enum
+{
+    NONE = 0;
+    OOB = 1;                    // Was: UNK_1 — Out-of-Band pairing
+    NUMERIC_COMPARISON = 2;     // Was: A2DP (misleading name from aasdk)
+    PASSKEY_ENTRY = 3;          // Was: UNK_3
+    PIN = 4;                    // Was: HFP (misleading name from aasdk)
+}
+```
+
+Also add the APK's `-1` value if proto2 supports it:
+```proto
+    UNAVAILABLE = -1;           // APK: BLUETOOTH_PAIRING_UNAVAILABLE
+```
+
+**Step 3: Build, test, commit**
+
+```bash
+cd libs/open-androidauto/build && cmake --build . -j$(nproc) && ctest --output-on-failure
+git add libs/open-androidauto/proto/AudioFocusTypeEnum.proto libs/open-androidauto/proto/BluetoothPairingMethodEnum.proto
+git commit -m "proto: fix AudioFocusType/BluetoothPairingMethod naming from APK decompilation"
+```
+
+---
+
+### Task 5: Expand SensorType Enum
+
+**Source:** APK has 26 sensor types vs our 21. Missing: TOLL_CARD(22), VEHICLE_ENERGY_MODEL(23), TRAILER(24), RAW_VEHICLE_ENERGY_MODEL(25), RAW_EV_TRIP_SETTINGS(26).
+
+**Files:**
+- Modify: `libs/open-androidauto/proto/SensorTypeEnum.proto`
+
+**Step 1: Add missing values**
+
+```proto
+    // Existing values 0-21 unchanged...
+    TOLL_CARD = 22;
+    VEHICLE_ENERGY_MODEL = 23;
+    TRAILER = 24;
+    RAW_VEHICLE_ENERGY_MODEL = 25;
+    RAW_EV_TRIP_SETTINGS = 26;
+```
+
+**Step 2: Build, test, commit**
+
+```bash
+cd libs/open-androidauto/build && cmake --build . -j$(nproc) && ctest --output-on-failure
+git add libs/open-androidauto/proto/SensorTypeEnum.proto
+git commit -m "proto: add 5 EV/trailer sensor types from APK decompilation"
+```
+
+---
+
+### Task 6: Add New Message IDs to Enums
+
+**Source:** APK shows control messages 24 (CALL_AVAILABILITY_STATUS) and 26 (SERVICE_DISCOVERY_UPDATE), plus AV messages 0x8009-0x8014.
+
+**Files:**
+- Modify: `libs/open-androidauto/proto/ControlMessageIdsEnum.proto`
+- Modify: `libs/open-androidauto/proto/AVChannelMessageIdsEnum.proto`
+
+**Step 1: Add to ControlMessageIdsEnum.proto**
+
+```proto
+    // After AUDIO_FOCUS_RESPONSE = 0x0013:
+    CALL_AVAILABILITY_STATUS = 0x0018;     // Car → Phone: boolean is_call_available
+    SERVICE_DISCOVERY_UPDATE = 0x001A;     // Car → Phone: updated ServiceDescriptor
+```
+
+**Note:** APK message IDs 24 and 26 are decimal. 24 = 0x0018, 26 = 0x001A.
+
+**Step 2: Add to AVChannelMessageIdsEnum.proto**
+
+```proto
+    // After VIDEO_FOCUS_INDICATION = 0x8008:
+    UPDATE_UI_CONFIG_REQUEST = 0x8009;
+    UPDATE_UI_CONFIG_REPLY = 0x800A;
+    AUDIO_UNDERFLOW_NOTIFICATION = 0x800B;
+    ACTION_TAKEN_NOTIFICATION = 0x800C;
+    OVERLAY_PARAMETERS = 0x800D;
+    OVERLAY_START = 0x800E;
+    OVERLAY_STOP = 0x800F;
+    OVERLAY_SESSION_DATA = 0x8010;
+    UPDATE_HU_UI_CONFIG_REQUEST = 0x8011;
+    UPDATE_HU_UI_CONFIG_RESPONSE = 0x8012;
+    MEDIA_STATS = 0x8013;
+    MEDIA_OPTIONS = 0x8014;
+```
+
+**Step 3: Build, test, commit**
+
+```bash
+cd libs/open-androidauto/build && cmake --build . -j$(nproc) && ctest --output-on-failure
+git add libs/open-androidauto/proto/ControlMessageIdsEnum.proto libs/open-androidauto/proto/AVChannelMessageIdsEnum.proto
+git commit -m "proto: add new control and AV message IDs from APK decompilation"
+```
+
+---
+
+### Task 7: Add MediaCodecType and ServiceType Enums (New Files)
+
+**Source:** APK reveals full video codec catalog and 21 service types.
+
+**Files:**
+- Create: `libs/open-androidauto/proto/MediaCodecTypeEnum.proto`
+- Create: `libs/open-androidauto/proto/ServiceTypeEnum.proto`
+- Modify: `libs/open-androidauto/CMakeLists.txt` (add to proto compilation list)
+
+**Step 1: Create MediaCodecTypeEnum.proto**
+
+```proto
+syntax="proto2";
+package oaa.proto.enums;
+
+message MediaCodecType
+{
+    enum Enum
+    {
+        NONE = 0;
+        AUDIO_PCM = 1;
+        AUDIO_AAC_LC = 2;
+        VIDEO_H264_BP = 3;
+        AUDIO_AAC_LC_ADTS = 4;
+        VIDEO_VP9 = 5;
+        VIDEO_AV1 = 6;
+        VIDEO_H265 = 7;
+    }
+}
+```
+
+**Step 2: Create ServiceTypeEnum.proto**
+
+```proto
+syntax="proto2";
+package oaa.proto.enums;
+
+message ServiceType
+{
+    enum Enum
+    {
+        UNKNOWN = 0;
+        CONTROL = 1;
+        VIDEO_SINK = 2;
+        AUDIO_SINK_GUIDANCE = 3;
+        AUDIO_SINK_SYSTEM = 4;
+        AUDIO_SINK_MEDIA = 5;
+        AUDIO_SOURCE = 6;
+        SENSOR_SOURCE = 7;
+        INPUT_SOURCE = 8;
+        BLUETOOTH = 9;
+        NAVIGATION_STATUS = 10;
+        MEDIA_PLAYBACK_STATUS = 11;
+        MEDIA_BROWSER = 12;
+        PHONE_STATUS = 13;
+        NOTIFICATION = 14;
+        RADIO = 15;
+        VENDOR_EXTENSION = 16;
+        WIFI_PROJECTION = 17;
+        WIFI_DISCOVERY = 18;
+        CAR_CONTROL = 19;
+        CAR_LOCAL_MEDIA = 20;
+        BUFFERED_MEDIA_SINK = 21;
+    }
+}
+```
+
+**Step 3: Add to CMakeLists.txt, build, test, commit**
+
+```bash
+cd libs/open-androidauto/build && cmake --build . -j$(nproc) && ctest --output-on-failure
+git add libs/open-androidauto/proto/MediaCodecTypeEnum.proto libs/open-androidauto/proto/ServiceTypeEnum.proto libs/open-androidauto/CMakeLists.txt
+git commit -m "proto: add MediaCodecType and ServiceType enums from APK decompilation"
+```
+
+---
+
 ## Phase 1: Close Library Parity Gaps
 
 Before touching the app, fix gaps in `libs/open-androidauto/` identified during design review.
 
-### Task 1: Channel Descriptor API
+### Task 8: Channel Descriptor API
 
 Add a method to `IChannelHandler` so each handler can contribute its service discovery descriptor.
 
@@ -107,7 +474,7 @@ git commit -m "feat(oaa): add channel descriptor API and rich service discovery 
 
 ---
 
-### Task 2: Wire Control-Plane Signals Through AASession
+### Task 9: Wire Control-Plane Signals Through AASession
 
 Currently `ControlChannel` emits `audioFocusRequested`, `navigationFocusRequested`, `voiceSessionRequested` but `AASession` doesn't handle them.
 
@@ -161,7 +528,7 @@ git commit -m "feat(oaa): wire audio/nav/voice focus signals through AASession"
 
 ---
 
-### Task 3: Add Native Socket Descriptor to Transport
+### Task 10: Add Native Socket Descriptor to Transport
 
 The connection watchdog needs the raw FD for `tcp_info` polling.
 
@@ -209,7 +576,7 @@ git commit -m "feat(oaa): expose native socket descriptor for connection watchdo
 
 ---
 
-### Task 4: Add ChannelId Constants
+### Task 11: Add ChannelId Constants
 
 Create a header with the channel ID constants so app code doesn't need magic numbers.
 
@@ -250,7 +617,7 @@ git commit -m "feat(oaa): add ChannelId constants header"
 
 ## Phase 2: Create Feature Branch and Scaffold
 
-### Task 5: Create Feature Branch
+### Task 12: Create Feature Branch
 
 **Step 1: Branch from main**
 
@@ -271,7 +638,7 @@ ctest --output-on-failure
 
 These are the simplest channels — no media data, just request/response message patterns.
 
-### Task 6: SensorChannelHandler
+### Task 13: SensorChannelHandler
 
 Replaces `SensorServiceStub` from `ServiceFactory.cpp:336-495`. Handles night mode, driving status, GPS, compass, accelerometer, gyroscope.
 
@@ -311,7 +678,7 @@ git commit -m "feat(aa): add SensorChannelHandler using oaa::IChannelHandler"
 
 ---
 
-### Task 7: InputChannelHandler
+### Task 14: InputChannelHandler
 
 Replaces `InputServiceStub` from `ServiceFactory.cpp:223-331`. Handles touch input binding and provides a send interface for `TouchHandler`.
 
@@ -338,7 +705,7 @@ git commit -m "feat(aa): add InputChannelHandler using oaa::IChannelHandler"
 
 ---
 
-### Task 8: BluetoothChannelHandler
+### Task 15: BluetoothChannelHandler
 
 Replaces `BluetoothServiceStub` from `ServiceFactory.cpp:500-557`. Simple — just handles pairing requests.
 
@@ -363,7 +730,7 @@ git commit -m "feat(aa): add BluetoothChannelHandler using oaa::IChannelHandler"
 
 ---
 
-### Task 9: WifiChannelHandler
+### Task 16: WifiChannelHandler
 
 Replaces `WIFIServiceStub` from `ServiceFactory.cpp:559-634`. Sends WiFi credentials when phone requests them.
 
@@ -391,7 +758,7 @@ git commit -m "feat(aa): add WifiChannelHandler using oaa::IChannelHandler"
 
 These channels have a setup phase (SETUP_REQUEST → SETUP_RESPONSE, START/STOP) plus media data flow.
 
-### Task 10: AudioChannelHandler (Template)
+### Task 17: AudioChannelHandler (Template)
 
 Replaces the templated `AudioServiceStub` from `ServiceFactory.cpp:79-218`. Handles media, speech, and system audio via template parameters.
 
@@ -433,7 +800,7 @@ git commit -m "feat(aa): add AudioChannelHandler template using oaa::IAVChannelH
 
 ---
 
-### Task 11: AVInputChannelHandler (Microphone)
+### Task 18: AVInputChannelHandler (Microphone)
 
 Replaces `AVInputServiceStub` from `ServiceFactory.cpp:639-783`. Sends captured audio from PipeWire to the phone.
 
@@ -464,7 +831,7 @@ git commit -m "feat(aa): add AVInputChannelHandler for microphone capture"
 
 ---
 
-### Task 12: VideoChannelHandler
+### Task 19: VideoChannelHandler
 
 Replaces `VideoService.hpp/cpp`. Most complex handler — H.264 video reception, video focus management, decode pipeline integration.
 
@@ -500,7 +867,7 @@ git commit -m "feat(aa): add VideoChannelHandler using oaa::IAVChannelHandler"
 
 ## Phase 5: Adapt TouchHandler
 
-### Task 13: Port TouchHandler from aasdk to oaa
+### Task 20: Port TouchHandler from aasdk to oaa
 
 **Files:**
 - Modify: `src/core/aa/TouchHandler.hpp`
@@ -540,7 +907,7 @@ git commit -m "refactor(aa): port TouchHandler from aasdk to oaa"
 
 This is the big one — replacing the core orchestration.
 
-### Task 14: Rewrite AndroidAutoService
+### Task 21: Rewrite AndroidAutoService
 
 **Files:**
 - Rewrite: `src/core/aa/AndroidAutoService.hpp`
@@ -651,7 +1018,7 @@ git commit -m "feat(aa): rewrite AndroidAutoService with oaa::AASession and QTcp
 
 ## Phase 7: CMake and Cleanup
 
-### Task 15: Update CMakeLists.txt
+### Task 22: Update CMakeLists.txt
 
 **Files:**
 - Modify: `CMakeLists.txt` (top-level)
@@ -686,7 +1053,7 @@ git commit -m "build: replace aasdk with open-androidauto in CMake"
 
 ---
 
-### Task 16: Remove aasdk Submodule
+### Task 23: Remove aasdk Submodule
 
 Only do this after everything compiles and tests pass.
 
@@ -717,7 +1084,7 @@ git commit -m "chore: remove aasdk submodule, replaced by open-androidauto"
 
 ## Phase 8: Testing and Validation
 
-### Task 17: Dev VM Build Verification
+### Task 24: Dev VM Build Verification
 
 ```bash
 cd build && cmake .. && cmake --build . -j$(nproc)
@@ -727,7 +1094,7 @@ cd libs/open-androidauto/build && ctest --output-on-failure  # library tests
 
 All tests must pass on Qt 6.4 (Ubuntu 24.04).
 
-### Task 18: Pi Build and Smoke Test
+### Task 25: Pi Build and Smoke Test
 
 **Step 1: Rsync source to Pi**
 
@@ -774,11 +1141,12 @@ ssh matt@192.168.1.149 "cat /tmp/oap.log | grep -i 'error\|warning\|crash'"
 
 | Phase | Tasks | Description |
 |-------|-------|-------------|
-| 1 | 1–4 | Library parity gaps (descriptor API, control signals, native FD, channel IDs) |
-| 2 | 5 | Create feature branch |
-| 3 | 6–9 | Non-AV channel handlers (sensor, input, BT, WiFi) |
-| 4 | 10–12 | AV channel handlers (audio, mic, video) |
-| 5 | 13 | Port TouchHandler |
-| 6 | 14 | Rewrite AndroidAutoService |
-| 7 | 15–16 | CMake update, remove aasdk submodule |
-| 8 | 17–18 | Build verification and Pi smoke test |
+| 0 | 1–7 | **Protocol compatibility hardening** — expand enums, add message IDs from APK decompilation |
+| 1 | 8–11 | Library parity gaps (descriptor API, control signals, native FD, channel IDs) |
+| 2 | 12 | Create feature branch |
+| 3 | 13–16 | Non-AV channel handlers (sensor, input, BT, WiFi) |
+| 4 | 17–19 | AV channel handlers (audio, mic, video) |
+| 5 | 20 | Port TouchHandler |
+| 6 | 21 | Rewrite AndroidAutoService |
+| 7 | 22–23 | CMake update, remove aasdk submodule |
+| 8 | 24–25 | Build verification and Pi smoke test |
