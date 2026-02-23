@@ -104,14 +104,27 @@ int main(int argc, char *argv[])
     bool companionEnabled = companionEnabledVar.isValid() ? companionEnabledVar.toBool() : true;
     QVariant companionPortVar = yamlConfig->valueByPath("companion.port");
     int companionPort = companionPortVar.isValid() ? companionPortVar.toInt() : 9876;
+    qInfo() << "Companion: enabled=" << companionEnabled << "port=" << companionPort;
     if (companionEnabled) {
         companionListener = new oap::CompanionListenerService(&app);
         QFile secretFile(QDir::homePath() + "/.openauto/companion.key");
         if (secretFile.open(QIODevice::ReadOnly)) {
-            companionListener->setSharedSecret(QString::fromUtf8(secretFile.readAll().trimmed()));
+            QByteArray secret = secretFile.readAll().trimmed();
+            companionListener->setSharedSecret(QString::fromUtf8(secret));
+            qInfo() << "Companion: loaded secret from" << secretFile.fileName()
+                     << "(" << secret.length() << "bytes)";
+        } else {
+            qWarning() << "Companion: no secret file at" << secretFile.fileName()
+                        << "— pairing required";
         }
-        companionListener->start(companionPort);
+        if (companionListener->start(companionPort)) {
+            qInfo() << "Companion: listening on port" << companionPort;
+        } else {
+            qWarning() << "Companion: FAILED to bind port" << companionPort;
+        }
         hostContext->setCompanionListenerService(companionListener);
+    } else {
+        qInfo() << "Companion: disabled in config";
     }
 
     oap::PluginManager pluginManager(&app);

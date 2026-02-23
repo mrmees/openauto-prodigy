@@ -80,7 +80,7 @@ QString CompanionListenerService::generatePairingPin()
 
     // Derive shared secret: SHA256(PIN + fixed salt)
     // Both Pi and phone use this same derivation so they arrive at the same secret.
-    QByteArray material = pinStr.toUtf8() + QByteArray("openauto-companion-v1");
+    QByteArray material = pinStr.toUtf8() + QByteArray(":openauto-companion-v1");
     QByteArray secret = QCryptographicHash::hash(material, QCryptographicHash::Sha256).toHex();
 
     // Save to file
@@ -144,20 +144,34 @@ void CompanionListenerService::sendChallenge()
     challenge["nonce"] = QString::fromLatin1(currentNonce_);
     challenge["version"] = 1;
 
-    client_->write(QJsonDocument(challenge).toJson(QJsonDocument::Compact) + "\n");
+    QByteArray challengeJson = QJsonDocument(challenge).toJson(QJsonDocument::Compact) + "\n";
+    qInfo() << "Companion: sending challenge, nonce=" << currentNonce_.left(16) << "...";
+    client_->write(challengeJson);
     client_->flush();
 }
 
 bool CompanionListenerService::validateHello(const QJsonObject& msg)
 {
     if (msg["type"].toString() != "hello") return false;
-    if (sharedSecret_.isEmpty()) return false;
+    if (sharedSecret_.isEmpty()) {
+        qWarning() << "Companion: auth failed — no shared secret set";
+        return false;
+    }
 
     QString token = msg["token"].toString();
     QByteArray expected = computeHmac(
         sharedSecret_.toUtf8(), currentNonce_);
+    QString expectedHex = QString::fromLatin1(expected.toHex());
 
-    return token == QString::fromLatin1(expected.toHex());
+    qInfo() << "Companion auth:"
+            << "secret_len=" << sharedSecret_.length()
+            << "secret_prefix=" << sharedSecret_.left(8)
+            << "nonce=" << currentNonce_.left(16) << "..."
+            << "received_token=" << token.left(16) << "..."
+            << "expected_token=" << expectedHex.left(16) << "..."
+            << "match=" << (token == expectedHex);
+
+    return token == expectedHex;
 }
 
 void CompanionListenerService::onClientReadyRead()
@@ -199,25 +213,62 @@ void CompanionListenerService::onClientReadyRead()
                 client_->flush();
             }
         } else if (type == "status") {
-            if (sessionKey_.isEmpty()) continue;  // Not authenticated
-            if (!verifyMac(msg)) continue;         // Bad MAC
+            if (sessionKey_.isEmpty()) {
+                qWarning() << "Companion: status msg but no session key";
+                continue;
+            }
+            if (!verifyMac(msg, line)) {
+                qWarning() << "Companion: status msg MAC failed";
+                continue;
+            }
+            qInfo() << "Companion: valid status message received";
             handleStatus(msg);
         }
     }
 }
 
-bool CompanionListenerService::verifyMac(const QJsonObject& msg)
+bool CompanionListenerService::verifyMac(const QJsonObject& msg, const QByteArray& rawLine)
 {
     QString mac = msg["mac"].toString();
-    if (mac.isEmpty()) return false;
+    if (mac.isEmpty()) {
+        qWarning() << "Companion: MAC empty in status message";
+        return false;
+    }
 
-    // Rebuild payload without mac field
-    QJsonObject payload = msg;
-    payload.remove("mac");
-    QByteArray payloadBytes = QJsonDocument(payload).toJson(QJsonDocument::Compact);
+    // Strip the "mac" field from the raw JSON bytes to get the payload
+    // that the sender computed the MAC over.
+    // Strategy: parse, remove mac, re-serialize — but use sender's key order
+    // by stripping the mac k/v from the raw bytes instead.
+    //
+    // Find and remove ,"mac":"<hex>" from the raw line.
+    // This preserves the sender's exact serialization (key order, number format).
+    QByteArray macPattern = ",\"mac\":\"" + mac.toLatin1() + "\"";
+    QByteArray payloadBytes = rawLine;
+    int macPos = payloadBytes.indexOf(macPattern);
+    if (macPos < 0) {
+        // Try alternate position: "mac" might be first key
+        macPattern = "\"mac\":\"" + mac.toLatin1() + "\",";
+        macPos = payloadBytes.indexOf(macPattern);
+    }
+    if (macPos >= 0) {
+        payloadBytes.remove(macPos, macPattern.size());
+    } else {
+        qWarning() << "Companion: could not strip mac from raw payload";
+        return false;
+    }
 
     QByteArray expected = computeHmac(sessionKey_, payloadBytes);
-    return mac == QString::fromLatin1(expected.toHex());
+    QString expectedHex = QString::fromLatin1(expected.toHex());
+
+    bool ok = (mac == expectedHex);
+    if (!ok) {
+        qWarning() << "Companion: MAC mismatch"
+                    << "received=" << mac.left(16) << "..."
+                    << "expected=" << expectedHex.left(16) << "..."
+                    << "payload_len=" << payloadBytes.size()
+                    << "payload_prefix=" << payloadBytes.left(80);
+    }
+    return ok;
 }
 
 void CompanionListenerService::handleStatus(const QJsonObject& msg)
@@ -293,7 +344,11 @@ void CompanionListenerService::adjustClock(qint64 phoneTimeMs)
     lastBackwardTarget_ = 0;
 
     // Set via timedatectl (polkit-authorized)
+    // Qt 6.4: Qt::UTC, Qt 6.5+: QTimeZone::UTC (suppress deprecation on 6.8)
+    QT_WARNING_PUSH
+    QT_WARNING_DISABLE_DEPRECATED
     QDateTime newTime = QDateTime::fromMSecsSinceEpoch(phoneTimeMs, Qt::UTC);
+    QT_WARNING_POP
     QString timeStr = newTime.toString("yyyy-MM-dd hh:mm:ss");
 
     QProcess proc;

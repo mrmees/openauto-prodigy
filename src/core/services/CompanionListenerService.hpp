@@ -64,7 +64,7 @@ private:
     void sendChallenge();
     bool validateHello(const QJsonObject& msg);
     void handleStatus(const QJsonObject& msg);
-    bool verifyMac(const QJsonObject& msg);
+    bool verifyMac(const QJsonObject& msg, const QByteArray& rawLine);
     void adjustClock(qint64 phoneTimeMs);
     QByteArray computeHmac(const QByteArray& key, const QByteArray& data);
 
