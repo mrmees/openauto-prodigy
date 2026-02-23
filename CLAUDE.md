@@ -4,6 +4,26 @@
 
 Clean-room open-source rebuild of OpenAuto Pro (BlueWave Studio, defunct). Raspberry Pi-based **wireless-only** Android Auto head unit app using Qt 6 + QML, with a plugin-based architecture supporting BT audio, phone calls, and extensible third-party plugins.
 
+## Design Philosophy
+
+This project exists because BlueWave Studio stopped developing OpenAuto Pro, the source was never open, and time moved on — dependencies broke, the Pi ecosystem evolved, and users were left stranded. Prodigy is a **fresh start for everyone**, built on current software, with no legacy baggage.
+
+### Core Principles
+
+1. **Open source, GPL v3.** No closed-source dependencies, no proprietary blobs, no "contact us for licensing." Anyone can build, modify, and redistribute.
+
+2. **Raspberry Pi 4 is the reference hardware.** Every feature must work on a Pi 4 with a basic touchscreen. If it doesn't run well on a Pi 4, it doesn't ship. Other SBCs and x86 are welcome but Pi 4 is the floor.
+
+3. **Current software stack.** RPi OS Trixie (Debian 13) is the base OS. Qt 6, PipeWire, labwc (Wayland), modern C++17. No backporting to ancient distros.
+
+4. **Android 12+ minimum, Android 14+ primary target.** Android 12 is the floor because that's when wireless AA became mandatory on new devices. We optimize for Android 14+ and don't bend over backwards for older quirks. AA protocol version: request v1.7 (current negotiated maximum).
+
+5. **Wireless only.** USB AA adds complexity (AOAP, libusb, USB permissions) for a use case that's increasingly irrelevant. Wireless is the future, and it's what the Pi's built-in WiFi/BT supports natively.
+
+6. **Plugin architecture for extensibility.** Core AA functionality is a plugin. BT audio is a plugin. Phone is a plugin. OBD-II, dashcam, backup camera — all future plugins. The shell and plugin system are the product; AA is just the killer app.
+
+7. **Installable by normal humans.** One script, minimal prerequisites, clear error messages. If someone can flash an SD card and SSH in, they should be able to install Prodigy.
+
 ## Repository Layout
 
 - `src/` — C++ source (plugin system, core services, AA protocol)
@@ -214,6 +234,8 @@ AA supports fixed resolutions only:
 - **Sidebar QML MouseArea vs EVIOCGRAB** — during AA, EVIOCGRAB steals all touch from Qt. Sidebar touch actions are handled via evdev hit zones in `EvdevTouchReader`, not QML `MouseArea`. The QML controls are visual only on Pi.
 - **`touch_screen_config` must be video resolution (1280x720), not display resolution (1024x600)** — the phone interprets touch coordinates relative to `touch_screen_config`. Since we send coordinates in video resolution space, this field must match. Mismatch causes touch misalignment.
 - **Phone sends `config_index=3` in `AVChannelSetupRequest`** — despite our video config list only having indices 0-1. This is the phone's internal reference, not an index into our list. We always respond with `add_configs(0)` (720p primary).
+- **FFmpeg `thread_count` must be 1 for real-time AA decode** — `thread_count=2` causes multi-threaded H.264 decoders to buffer frames internally before producing output, resulting in permanent EAGAIN on phones that send small P-frames. Single-threaded decode produces frames immediately.
+- **Some phones output `AV_PIX_FMT_YUVJ420P` (fmt=12) instead of `AV_PIX_FMT_YUV420P` (fmt=0)** — JPEG full-range vs limited-range YUV420. Identical pixel layout, different color range flag. Must accept both formats in the decoder or frames will be silently discarded (black screen). Moto G Play 2024 outputs YUVJ420P; Samsung S25 Ultra outputs YUV420P.
 
 ## Hardware (Pi Target)
 

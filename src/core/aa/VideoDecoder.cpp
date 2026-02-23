@@ -26,7 +26,7 @@ VideoDecoder::VideoDecoder(QObject* parent)
     // Low-latency settings for real-time streaming
     codecCtx_->flags |= AV_CODEC_FLAG_LOW_DELAY;
     codecCtx_->flags2 |= AV_CODEC_FLAG2_FAST;
-    codecCtx_->thread_count = 2;
+    codecCtx_->thread_count = 1;  // Single-threaded for immediate output (no frame reordering delay)
 
     if (avcodec_open2(codecCtx_, codec_, nullptr) < 0) {
         BOOST_LOG_TRIVIAL(error) << "[VideoDecoder] Failed to open codec";
@@ -112,21 +112,21 @@ void VideoDecoder::processFrame(const QByteArray& h264Data, qint64 enqueueTimeNs
         data += consumed;
         dataSize -= consumed;
 
-        if (packet_->size == 0) continue;
+        if (packet_->size == 0)
+            continue;
 
         // Send packet to decoder
         int ret = avcodec_send_packet(codecCtx_, packet_);
         if (ret < 0) {
-            if (ret != AVERROR(EAGAIN) && ret != AVERROR_EOF) {
-                BOOST_LOG_TRIVIAL(warning) << "[VideoDecoder] Send packet error: " << ret;
-            }
+            BOOST_LOG_TRIVIAL(warning) << "[VideoDecoder] Send packet error: " << ret;
             continue;
         }
 
         // Receive decoded frames
         while (true) {
             ret = avcodec_receive_frame(codecCtx_, frame_);
-            if (ret == AVERROR(EAGAIN) || ret == AVERROR_EOF) break;
+            if (ret == AVERROR(EAGAIN) || ret == AVERROR_EOF)
+                break;
             if (ret < 0) {
                 BOOST_LOG_TRIVIAL(warning) << "[VideoDecoder] Receive frame error: " << ret;
                 break;
@@ -135,7 +135,10 @@ void VideoDecoder::processFrame(const QByteArray& h264Data, qint64 enqueueTimeNs
             auto t_decodeDone = PerfStats::Clock::now();
 
             // Got a decoded frame — convert to QVideoFrame
-            if (videoSink_ && frame_->format == AV_PIX_FMT_YUV420P) {
+            // Accept both YUV420P (limited range) and YUVJ420P (full/JPEG range) —
+            // same pixel layout, different color range convention
+            if (videoSink_ && (frame_->format == AV_PIX_FMT_YUV420P ||
+                               frame_->format == AV_PIX_FMT_YUVJ420P)) {
                 // Cache format on first frame or resolution change
                 if (!cachedFormat_ ||
                     cachedFormat_->frameWidth() != frame_->width ||
