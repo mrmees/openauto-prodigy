@@ -44,6 +44,9 @@ void WiFiChannelHandler::onMessage(uint16_t messageId, const QByteArray& payload
 
 void WiFiChannelHandler::handleSecurityRequest(const QByteArray& payload)
 {
+    if (!channelOpen_)
+        return;
+
     Q_UNUSED(payload);
     qDebug() << "[WiFiChannel] security request — sending credentials for SSID:" << ssid_;
 

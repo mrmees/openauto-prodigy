@@ -41,6 +41,9 @@ void BluetoothChannelHandler::onMessage(uint16_t messageId, const QByteArray& pa
 
 void BluetoothChannelHandler::handlePairingRequest(const QByteArray& payload)
 {
+    if (!channelOpen_)
+        return;
+
     oaa::proto::messages::BluetoothPairingRequest req;
     if (!req.ParseFromArray(payload.constData(), payload.size())) {
         qWarning() << "[BluetoothChannel] failed to parse PairingRequest";

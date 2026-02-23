@@ -3,6 +3,7 @@
 #include <oaa/Channel/IChannelHandler.hpp>
 #include <oaa/Channel/ChannelId.hpp>
 #include <oaa/Channel/MessageIds.hpp>
+#include <atomic>
 
 namespace oap {
 namespace aa {
@@ -25,7 +26,7 @@ public:
 
 private:
     void handleBindingRequest(const QByteArray& payload);
-    bool channelOpen_ = false;
+    std::atomic<bool> channelOpen_{false};
 };
 
 } // namespace aa
