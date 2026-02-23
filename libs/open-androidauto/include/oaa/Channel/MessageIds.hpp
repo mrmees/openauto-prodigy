@@ -43,6 +43,8 @@ namespace BluetoothMessageId {
 namespace WiFiMessageId {
     constexpr uint16_t CREDENTIALS_REQUEST     = 0x8001;
     constexpr uint16_t CREDENTIALS_RESPONSE    = 0x8002;
+    constexpr uint16_t SECURITY_REQUEST        = 0x8001;
+    constexpr uint16_t SECURITY_RESPONSE       = 0x8002;
 }
 
 } // namespace oaa
