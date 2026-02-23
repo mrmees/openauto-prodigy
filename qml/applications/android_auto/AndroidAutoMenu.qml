@@ -91,7 +91,7 @@ Item {
             // Status overlay — hidden when projecting video
             ColumnLayout {
                 anchors.centerIn: parent
-                spacing: 16
+                spacing: UiMetrics.gap
                 visible: !androidAutoMenu.projecting
 
                 Text {
@@ -106,7 +106,7 @@ Item {
                         }
                     }
                     color: ThemeService.specialFontColor
-                    font.pixelSize: 28
+                    font.pixelSize: Math.round(40 * UiMetrics.scale)
                     font.bold: true
                 }
 
@@ -114,7 +114,7 @@ Item {
                     Layout.alignment: Qt.AlignHCenter
                     text: AndroidAutoService.statusMessage
                     color: ThemeService.descriptionFontColor
-                    font.pixelSize: 18
+                    font.pixelSize: UiMetrics.fontTitle
                     wrapMode: Text.WordWrap
                     horizontalAlignment: Text.AlignHCenter
                     Layout.maximumWidth: videoArea.width * 0.8
@@ -122,7 +122,8 @@ Item {
 
                 Rectangle {
                     Layout.alignment: Qt.AlignHCenter
-                    width: 12; height: 12; radius: 6
+                    width: UiMetrics.iconSmall; height: UiMetrics.iconSmall
+                    radius: width / 2
                     color: {
                         switch (AndroidAutoService.connectionState) {
                         case 0: return "#666666";
@@ -137,6 +138,36 @@ Item {
                         loops: Animation.Infinite
                         NumberAnimation { to: 0.3; duration: 800 }
                         NumberAnimation { to: 1.0; duration: 800 }
+                    }
+                }
+
+                // Cancel button — lets user escape the waiting/connecting screen
+                Rectangle {
+                    Layout.alignment: Qt.AlignHCenter
+                    Layout.topMargin: UiMetrics.sectionGap
+                    width: cancelText.implicitWidth + UiMetrics.touchMin
+                    height: UiMetrics.touchMin
+                    radius: height / 2
+                    color: cancelMouse.pressed ? Qt.darker(ThemeService.barBackgroundColor, 1.3)
+                                              : ThemeService.barBackgroundColor
+                    border.color: ThemeService.descriptionFontColor
+                    border.width: 1
+
+                    Text {
+                        id: cancelText
+                        anchors.centerIn: parent
+                        text: "Back"
+                        color: ThemeService.normalFontColor
+                        font.pixelSize: UiMetrics.fontBody
+                    }
+
+                    MouseArea {
+                        id: cancelMouse
+                        anchors.fill: parent
+                        onClicked: Qt.callLater(function() {
+                            PluginModel.setActivePlugin("")
+                            ApplicationController.navigateTo(0)
+                        })
                     }
                 }
             }

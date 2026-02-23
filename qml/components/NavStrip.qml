@@ -92,6 +92,26 @@ Rectangle {
             }
         }
 
+        // Day/night mode toggle
+        Rectangle {
+            Layout.fillHeight: true
+            Layout.preferredWidth: navStrip.height * 1.2
+            color: "transparent"
+            radius: 8
+
+            MaterialIcon {
+                anchors.centerIn: parent
+                icon: ThemeService.nightMode ? "\ue518" : "\ue430"  // dark_mode / light_mode
+                size: parent.height * 0.5
+                color: ThemeService.normalFontColor
+            }
+
+            MouseArea {
+                anchors.fill: parent
+                onClicked: ThemeService.toggleMode()
+            }
+        }
+
         // Settings button
         Rectangle {
             Layout.fillHeight: true
