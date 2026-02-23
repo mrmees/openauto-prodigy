@@ -257,7 +257,21 @@ add_test(NAME test_action_registry COMMAND test_action_registry)
 add_test(NAME test_notification_service COMMAND test_notification_service)
 add_test(NAME test_audio_ring_buffer COMMAND test_audio_ring_buffer)
 add_test(NAME test_device_registry COMMAND test_device_registry)
+add_executable(test_companion_listener
+    test_companion_listener.cpp
+    ${CMAKE_SOURCE_DIR}/src/core/services/CompanionListenerService.cpp
+)
+target_include_directories(test_companion_listener PRIVATE
+    ${CMAKE_SOURCE_DIR}/src
+)
+target_link_libraries(test_companion_listener PRIVATE
+    Qt6::Core
+    Qt6::Test
+    Qt6::Network
+)
+
 add_test(NAME test_config_key_coverage COMMAND test_config_key_coverage)
+add_test(NAME test_companion_listener COMMAND test_companion_listener)
 
 # GUI/Quick tests need offscreen platform when no display is available
 set_tests_properties(test_configuration test_theme_service test_plugin_model
