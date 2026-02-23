@@ -59,15 +59,15 @@ oaa::SessionConfig ServiceDiscoveryBuilder::build() const
         config.channels.append({id, std::move(descriptor)});
     };
 
-    addChannel(1,  buildVideoDescriptor());
-    addChannel(3,  buildMediaAudioDescriptor());
-    addChannel(4,  buildSpeechAudioDescriptor());
-    addChannel(5,  buildSystemAudioDescriptor());
-    addChannel(2,  buildInputDescriptor());
-    addChannel(6,  buildSensorDescriptor());
-    addChannel(7,  buildBluetoothDescriptor());
-    addChannel(8,  buildWifiDescriptor());
-    addChannel(10, buildAVInputDescriptor());
+    addChannel(3,  buildVideoDescriptor());
+    addChannel(4,  buildMediaAudioDescriptor());
+    addChannel(5,  buildSpeechAudioDescriptor());
+    addChannel(6,  buildSystemAudioDescriptor());
+    addChannel(1,  buildInputDescriptor());
+    addChannel(2,  buildSensorDescriptor());
+    addChannel(8,  buildBluetoothDescriptor());
+    addChannel(14, buildWifiDescriptor());
+    addChannel(7,  buildAVInputDescriptor());
 
     return config;
 }
@@ -103,7 +103,7 @@ void ServiceDiscoveryBuilder::calcMargins(int remoteW, int remoteH,
 QByteArray ServiceDiscoveryBuilder::buildVideoDescriptor() const
 {
     oaa::proto::data::ChannelDescriptor desc;
-    desc.set_channel_id(1);
+    desc.set_channel_id(3);
 
     auto* avChannel = desc.mutable_av_channel();
     avChannel->set_stream_type(oaa::proto::enums::AVStreamType::VIDEO);
@@ -160,7 +160,7 @@ QByteArray ServiceDiscoveryBuilder::buildVideoDescriptor() const
 QByteArray ServiceDiscoveryBuilder::buildMediaAudioDescriptor() const
 {
     oaa::proto::data::ChannelDescriptor desc;
-    desc.set_channel_id(3);
+    desc.set_channel_id(4);
 
     auto* avChannel = desc.mutable_av_channel();
     avChannel->set_stream_type(oaa::proto::enums::AVStreamType::AUDIO);
@@ -180,7 +180,7 @@ QByteArray ServiceDiscoveryBuilder::buildMediaAudioDescriptor() const
 QByteArray ServiceDiscoveryBuilder::buildSpeechAudioDescriptor() const
 {
     oaa::proto::data::ChannelDescriptor desc;
-    desc.set_channel_id(4);
+    desc.set_channel_id(5);
 
     auto* avChannel = desc.mutable_av_channel();
     avChannel->set_stream_type(oaa::proto::enums::AVStreamType::AUDIO);
@@ -200,7 +200,7 @@ QByteArray ServiceDiscoveryBuilder::buildSpeechAudioDescriptor() const
 QByteArray ServiceDiscoveryBuilder::buildSystemAudioDescriptor() const
 {
     oaa::proto::data::ChannelDescriptor desc;
-    desc.set_channel_id(5);
+    desc.set_channel_id(6);
 
     auto* avChannel = desc.mutable_av_channel();
     avChannel->set_stream_type(oaa::proto::enums::AVStreamType::AUDIO);
@@ -220,7 +220,7 @@ QByteArray ServiceDiscoveryBuilder::buildSystemAudioDescriptor() const
 QByteArray ServiceDiscoveryBuilder::buildInputDescriptor() const
 {
     oaa::proto::data::ChannelDescriptor desc;
-    desc.set_channel_id(2);
+    desc.set_channel_id(1);
 
     auto* inputChannel = desc.mutable_input_channel();
 
@@ -270,7 +270,7 @@ QByteArray ServiceDiscoveryBuilder::buildInputDescriptor() const
 QByteArray ServiceDiscoveryBuilder::buildSensorDescriptor() const
 {
     oaa::proto::data::ChannelDescriptor desc;
-    desc.set_channel_id(6);
+    desc.set_channel_id(2);
 
     auto* sensorChannel = desc.mutable_sensor_channel();
 
@@ -293,7 +293,7 @@ QByteArray ServiceDiscoveryBuilder::buildSensorDescriptor() const
 QByteArray ServiceDiscoveryBuilder::buildBluetoothDescriptor() const
 {
     oaa::proto::data::ChannelDescriptor desc;
-    desc.set_channel_id(7);
+    desc.set_channel_id(8);
 
     auto* btChannel = desc.mutable_bluetooth_channel();
     btChannel->set_adapter_address(btMacAddress_.toStdString());
@@ -308,7 +308,7 @@ QByteArray ServiceDiscoveryBuilder::buildBluetoothDescriptor() const
 QByteArray ServiceDiscoveryBuilder::buildWifiDescriptor() const
 {
     oaa::proto::data::ChannelDescriptor desc;
-    desc.set_channel_id(8);
+    desc.set_channel_id(14);
 
     auto* wifiChannel = desc.mutable_wifi_channel();
     wifiChannel->set_ssid(wifiSsid_.toStdString());
@@ -321,7 +321,7 @@ QByteArray ServiceDiscoveryBuilder::buildWifiDescriptor() const
 QByteArray ServiceDiscoveryBuilder::buildAVInputDescriptor() const
 {
     oaa::proto::data::ChannelDescriptor desc;
-    desc.set_channel_id(10);
+    desc.set_channel_id(7);
 
     auto* avInputChannel = desc.mutable_av_input_channel();
     avInputChannel->set_stream_type(oaa::proto::enums::AVStreamType::AUDIO);

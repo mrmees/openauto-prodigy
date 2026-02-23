@@ -20,15 +20,15 @@ private slots:
         oap::aa::ServiceDiscoveryBuilder builder;
         auto config = builder.build();
 
-        // Find video channel (id=1)
+        // Find video channel (id=3)
         bool found = false;
         for (const auto& ch : config.channels) {
-            if (ch.channelId == 1) {
+            if (ch.channelId == 3) {
                 found = true;
                 oaa::proto::data::ChannelDescriptor desc;
                 QVERIFY(desc.ParseFromArray(ch.descriptor.constData(),
                                             ch.descriptor.size()));
-                QCOMPARE(desc.channel_id(), 1u);
+                QCOMPARE(desc.channel_id(), 3u);
                 QVERIFY(desc.has_av_channel());
                 QCOMPARE(desc.av_channel().stream_type(),
                          static_cast<int>(oaa::proto::enums::AVStreamType::VIDEO));
@@ -43,7 +43,7 @@ private slots:
         auto config = builder.build();
 
         for (const auto& ch : config.channels) {
-            if (ch.channelId == 6) { // Sensor
+            if (ch.channelId == 2) { // Sensor
                 oaa::proto::data::ChannelDescriptor desc;
                 desc.ParseFromArray(ch.descriptor.constData(),
                                     ch.descriptor.size());
@@ -62,7 +62,7 @@ private slots:
 
         int audioChannelCount = 0;
         for (const auto& ch : config.channels) {
-            if (ch.channelId == 3 || ch.channelId == 4 || ch.channelId == 5) {
+            if (ch.channelId == 4 || ch.channelId == 5 || ch.channelId == 6) {
                 oaa::proto::data::ChannelDescriptor desc;
                 desc.ParseFromArray(ch.descriptor.constData(),
                                     ch.descriptor.size());
@@ -81,7 +81,7 @@ private slots:
         auto config = builder.build();
 
         for (const auto& ch : config.channels) {
-            if (ch.channelId == 8) { // WiFi
+            if (ch.channelId == 14) { // WiFi
                 oaa::proto::data::ChannelDescriptor desc;
                 desc.ParseFromArray(ch.descriptor.constData(),
                                     ch.descriptor.size());
