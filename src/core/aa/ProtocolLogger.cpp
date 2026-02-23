@@ -91,6 +91,10 @@ std::string ProtocolLogger::channelName(aasdk::messenger::ChannelId id) {
 std::string ProtocolLogger::messageName(aasdk::messenger::ChannelId channelId, uint16_t msgId) {
     using CI = aasdk::messenger::ChannelId;
 
+    // Universal messages (appear on any channel)
+    if (msgId == 0x0007) return "CHANNEL_OPEN_REQUEST";
+    if (msgId == 0x0008) return "CHANNEL_OPEN_RESPONSE";
+
     if (channelId == CI::CONTROL) {
         switch (msgId) {
             case 0x0001: return "VERSION_REQUEST";
