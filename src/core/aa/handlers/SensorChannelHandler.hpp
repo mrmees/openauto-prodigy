@@ -23,7 +23,6 @@ public:
 
 private:
     void handleSensorStartRequest(const QByteArray& payload);
-    void sendSensorEvent(uint16_t messageId, const QByteArray& serialized);
 
     bool channelOpen_ = false;
     QSet<int> activeSensors_;

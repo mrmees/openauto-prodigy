@@ -39,9 +39,17 @@ private slots:
 
     void testNightModeUpdate() {
         oap::aa::SensorChannelHandler handler;
-        QSignalSpy sendSpy(&handler, &oaa::IChannelHandler::sendRequested);
-
         handler.onChannelOpened();
+
+        // Subscribe to NIGHT_DATA first
+        oaa::proto::messages::SensorStartRequestMessage req;
+        req.set_sensor_type(oaa::proto::enums::SensorType::NIGHT_DATA);
+        req.set_refresh_interval(1000);
+        QByteArray payload(req.ByteSizeLong(), '\0');
+        req.SerializeToArray(payload.data(), payload.size());
+        handler.onMessage(oaa::SensorMessageId::SENSOR_START_REQUEST, payload);
+
+        QSignalSpy sendSpy(&handler, &oaa::IChannelHandler::sendRequested);
         handler.pushNightMode(true);
 
         QCOMPARE(sendSpy.count(), 1);
@@ -59,11 +67,29 @@ private slots:
         QCOMPARE(sendSpy.count(), 0);
     }
 
-    void testDrivingStatusUpdate() {
+    void testNightModeNotSentWithoutSubscription() {
         oap::aa::SensorChannelHandler handler;
         QSignalSpy sendSpy(&handler, &oaa::IChannelHandler::sendRequested);
 
+        // Channel open but no SENSOR_START_REQUEST for NIGHT_DATA
         handler.onChannelOpened();
+        handler.pushNightMode(true);
+        QCOMPARE(sendSpy.count(), 0);
+    }
+
+    void testDrivingStatusUpdate() {
+        oap::aa::SensorChannelHandler handler;
+        handler.onChannelOpened();
+
+        // Subscribe to DRIVING_STATUS first
+        oaa::proto::messages::SensorStartRequestMessage req;
+        req.set_sensor_type(oaa::proto::enums::SensorType::DRIVING_STATUS);
+        req.set_refresh_interval(1000);
+        QByteArray payload(req.ByteSizeLong(), '\0');
+        req.SerializeToArray(payload.data(), payload.size());
+        handler.onMessage(oaa::SensorMessageId::SENSOR_START_REQUEST, payload);
+
+        QSignalSpy sendSpy(&handler, &oaa::IChannelHandler::sendRequested);
         handler.pushDrivingStatus(0); // UNRESTRICTED
 
         QCOMPARE(sendSpy.count(), 1);

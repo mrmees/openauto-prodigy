@@ -76,7 +76,8 @@ void SensorChannelHandler::handleSensorStartRequest(const QByteArray& payload)
 
 void SensorChannelHandler::pushNightMode(bool isNight)
 {
-    if (!channelOpen_)
+    if (!channelOpen_ || !activeSensors_.contains(
+            static_cast<int>(oaa::proto::enums::SensorType::NIGHT_DATA)))
         return;
 
     oaa::proto::messages::SensorEventIndication indication;
@@ -90,7 +91,8 @@ void SensorChannelHandler::pushNightMode(bool isNight)
 
 void SensorChannelHandler::pushDrivingStatus(int status)
 {
-    if (!channelOpen_)
+    if (!channelOpen_ || !activeSensors_.contains(
+            static_cast<int>(oaa::proto::enums::SensorType::DRIVING_STATUS)))
         return;
 
     oaa::proto::messages::SensorEventIndication indication;
@@ -100,11 +102,6 @@ void SensorChannelHandler::pushDrivingStatus(int status)
     QByteArray data(indication.ByteSizeLong(), '\0');
     indication.SerializeToArray(data.data(), data.size());
     emit sendRequested(channelId(), oaa::SensorMessageId::SENSOR_EVENT_INDICATION, data);
-}
-
-void SensorChannelHandler::sendSensorEvent(uint16_t messageId, const QByteArray& serialized)
-{
-    emit sendRequested(channelId(), messageId, serialized);
 }
 
 } // namespace aa

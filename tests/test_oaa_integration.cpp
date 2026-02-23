@@ -8,6 +8,8 @@
 #include "core/aa/handlers/BluetoothChannelHandler.hpp"
 #include "core/aa/handlers/WiFiChannelHandler.hpp"
 #include "core/aa/ServiceDiscoveryBuilder.hpp"
+#include "SensorStartRequestMessage.pb.h"
+#include "SensorTypeEnum.pb.h"
 
 class TestOAAIntegration : public QObject {
     Q_OBJECT
@@ -61,7 +63,7 @@ private slots:
         QCOMPARE(config.channels.size(), 9);
     }
 
-    void testHandlerSendRoutesToTransport() {
+    void testHandlerEmitsSendRequested() {
         oaa::ReplayTransport transport;
         oap::aa::ServiceDiscoveryBuilder builder;
         oaa::SessionConfig config = builder.build();
@@ -70,12 +72,20 @@ private slots:
         oap::aa::SensorChannelHandler sensorHandler;
         session.registerChannel(oaa::ChannelId::Sensor, &sensorHandler);
 
-        // Open the channel and push data
+        // Open the channel and subscribe to NIGHT_DATA
         sensorHandler.onChannelOpened();
+
+        oaa::proto::messages::SensorStartRequestMessage req;
+        req.set_sensor_type(oaa::proto::enums::SensorType::NIGHT_DATA);
+        req.set_refresh_interval(1000);
+        QByteArray payload(req.ByteSizeLong(), '\0');
+        req.SerializeToArray(payload.data(), payload.size());
+        sensorHandler.onMessage(oaa::SensorMessageId::SENSOR_START_REQUEST, payload);
+
+        // Now push night mode — should emit sendRequested
         QSignalSpy sendSpy(&sensorHandler, &oaa::IChannelHandler::sendRequested);
         sensorHandler.pushNightMode(true);
 
-        // Handler should have emitted sendRequested
         QCOMPARE(sendSpy.count(), 1);
         QCOMPARE(sendSpy[0][0].value<uint8_t>(), oaa::ChannelId::Sensor);
     }
