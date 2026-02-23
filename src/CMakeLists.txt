@@ -23,6 +23,7 @@ qt_add_executable(openauto-prodigy
     core/aa/handlers/AudioChannelHandler.cpp
     core/aa/handlers/VideoChannelHandler.cpp
     core/aa/handlers/AVInputChannelHandler.cpp
+    core/aa/AndroidAutoOrchestrator.cpp
     ui/ApplicationController.cpp
     ui/PluginModel.cpp
     ui/PluginRuntimeContext.cpp

@@ -434,6 +434,43 @@ target_link_libraries(test_avinput_channel_handler PRIVATE
 )
 add_test(NAME test_avinput_channel_handler COMMAND test_avinput_channel_handler)
 
+# AndroidAutoOrchestrator — lifecycle + state management
+add_executable(test_aa_orchestrator
+    test_aa_orchestrator.cpp
+    ${CMAKE_SOURCE_DIR}/src/core/aa/AndroidAutoOrchestrator.cpp
+    ${CMAKE_SOURCE_DIR}/src/core/aa/ServiceDiscoveryBuilder.cpp
+    ${CMAKE_SOURCE_DIR}/src/core/aa/VideoDecoder.cpp
+    ${CMAKE_SOURCE_DIR}/src/core/aa/NightModeProvider.cpp
+    ${CMAKE_SOURCE_DIR}/src/core/aa/TimedNightMode.cpp
+    ${CMAKE_SOURCE_DIR}/src/core/aa/GpioNightMode.cpp
+    ${CMAKE_SOURCE_DIR}/src/core/aa/handlers/VideoChannelHandler.cpp
+    ${CMAKE_SOURCE_DIR}/src/core/aa/handlers/AudioChannelHandler.cpp
+    ${CMAKE_SOURCE_DIR}/src/core/aa/handlers/InputChannelHandler.cpp
+    ${CMAKE_SOURCE_DIR}/src/core/aa/handlers/SensorChannelHandler.cpp
+    ${CMAKE_SOURCE_DIR}/src/core/aa/handlers/BluetoothChannelHandler.cpp
+    ${CMAKE_SOURCE_DIR}/src/core/aa/handlers/WiFiChannelHandler.cpp
+    ${CMAKE_SOURCE_DIR}/src/core/aa/handlers/AVInputChannelHandler.cpp
+    ${CMAKE_SOURCE_DIR}/src/core/YamlConfig.cpp
+    ${CMAKE_SOURCE_DIR}/src/core/Configuration.cpp
+)
+target_include_directories(test_aa_orchestrator PRIVATE
+    ${CMAKE_SOURCE_DIR}/src
+    ${CMAKE_SOURCE_DIR}/libs/open-androidauto/include
+    ${CMAKE_BINARY_DIR}/libs/open-androidauto
+    ${LIBAV_INCLUDE_DIRS}
+)
+target_link_libraries(test_aa_orchestrator PRIVATE
+    Qt6::Core
+    Qt6::Network
+    Qt6::Multimedia
+    Qt6::Test
+    open-androidauto
+    yaml-cpp::yaml-cpp
+    Boost::log
+    ${LIBAV_LIBRARIES}
+)
+add_test(NAME test_aa_orchestrator COMMAND test_aa_orchestrator)
+
 # GUI/Quick tests need offscreen platform when no display is available
 set_tests_properties(test_configuration test_theme_service test_plugin_model
     PROPERTIES ENVIRONMENT "QT_QPA_PLATFORM=offscreen"
