@@ -15,6 +15,7 @@ qt_add_executable(openauto-prodigy
     core/aa/ThemeNightMode.cpp
     core/aa/GpioNightMode.cpp
     core/aa/ProtocolLogger.cpp
+    core/aa/ServiceDiscoveryBuilder.cpp
     ui/ApplicationController.cpp
     ui/PluginModel.cpp
     ui/PluginRuntimeContext.cpp
@@ -245,6 +246,8 @@ target_include_directories(openauto-prodigy PRIVATE
     ${CMAKE_CURRENT_SOURCE_DIR}
     ${CMAKE_SOURCE_DIR}/libs/aasdk/include
     ${CMAKE_BINARY_DIR}/libs/aasdk
+    ${CMAKE_SOURCE_DIR}/libs/open-androidauto/include
+    ${CMAKE_BINARY_DIR}/libs/open-androidauto
     ${LIBAV_INCLUDE_DIRS}
     ${PIPEWIRE_INCLUDE_DIRS}
 )
@@ -258,6 +261,7 @@ target_link_libraries(openauto-prodigy PRIVATE
     Qt6::DBus
     aasdk
     aasdk_proto
+    open-androidauto
     Boost::system
     Boost::log
     Boost::log_setup

@@ -273,6 +273,25 @@ target_link_libraries(test_companion_listener PRIVATE
 add_test(NAME test_config_key_coverage COMMAND test_config_key_coverage)
 add_test(NAME test_companion_listener COMMAND test_companion_listener)
 
+# Service discovery builder — uses oaa protos + YamlConfig for resolution/sidebar config
+add_executable(test_service_discovery_builder
+    test_service_discovery_builder.cpp
+    ${CMAKE_SOURCE_DIR}/src/core/aa/ServiceDiscoveryBuilder.cpp
+    ${CMAKE_SOURCE_DIR}/src/core/YamlConfig.cpp
+)
+target_include_directories(test_service_discovery_builder PRIVATE
+    ${CMAKE_SOURCE_DIR}/src
+    ${CMAKE_SOURCE_DIR}/libs/open-androidauto/include
+    ${CMAKE_BINARY_DIR}/libs/open-androidauto
+)
+target_link_libraries(test_service_discovery_builder PRIVATE
+    Qt6::Core
+    Qt6::Test
+    open-androidauto
+    yaml-cpp::yaml-cpp
+)
+add_test(NAME test_service_discovery_builder COMMAND test_service_discovery_builder)
+
 # GUI/Quick tests need offscreen platform when no display is available
 set_tests_properties(test_configuration test_theme_service test_plugin_model
     PROPERTIES ENVIRONMENT "QT_QPA_PLATFORM=offscreen"
