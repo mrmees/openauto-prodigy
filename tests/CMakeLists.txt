@@ -472,6 +472,20 @@ target_link_libraries(test_aa_orchestrator PRIVATE
 )
 add_test(NAME test_aa_orchestrator COMMAND test_aa_orchestrator)
 
+add_executable(test_oap_protocol_logger
+    test_oap_protocol_logger.cpp
+    ${CMAKE_SOURCE_DIR}/src/core/aa/ProtocolLogger.cpp
+)
+target_include_directories(test_oap_protocol_logger PRIVATE
+    ${CMAKE_SOURCE_DIR}/src
+    ${CMAKE_SOURCE_DIR}/libs/open-androidauto/include
+)
+target_link_libraries(test_oap_protocol_logger PRIVATE
+    Qt6::Core
+    Qt6::Test
+)
+add_test(NAME test_oap_protocol_logger COMMAND test_oap_protocol_logger)
+
 # GUI/Quick tests need offscreen platform when no display is available
 set_tests_properties(test_configuration test_theme_service test_plugin_model
     PROPERTIES ENVIRONMENT "QT_QPA_PLATFORM=offscreen"

@@ -1,8 +1,10 @@
 #include "ProtocolLogger.hpp"
+#include <oaa/Channel/ChannelId.hpp>
 #include <iomanip>
 #include <sstream>
 
-namespace openauto {
+namespace oap {
+namespace aa {
 
 ProtocolLogger& ProtocolLogger::instance() {
     static ProtocolLogger inst;
@@ -27,7 +29,7 @@ void ProtocolLogger::close() {
 }
 
 void ProtocolLogger::log(const std::string& direction,
-                          aasdk::messenger::ChannelId channelId,
+                          uint8_t channelId,
                           uint16_t messageId,
                           const uint8_t* payload, size_t payloadSize) {
     std::lock_guard<std::mutex> lock(mutex_);
@@ -36,27 +38,26 @@ void ProtocolLogger::log(const std::string& direction,
     auto now = std::chrono::steady_clock::now();
     auto elapsed = std::chrono::duration<double>(now - startTime_).count();
 
-    // Hex preview of first 64 payload bytes (skip the 2-byte message ID prefix)
+    // Hex preview of first 64 payload bytes
     std::ostringstream hex;
-    const size_t previewStart = 2;
     const size_t previewMax = 64;
     bool isDataMsg = (messageId == 0x0000 || messageId == 0x0001) &&
-        (channelId == aasdk::messenger::ChannelId::VIDEO ||
-         channelId == aasdk::messenger::ChannelId::MEDIA_AUDIO ||
-         channelId == aasdk::messenger::ChannelId::SPEECH_AUDIO ||
-         channelId == aasdk::messenger::ChannelId::SYSTEM_AUDIO);
+        (channelId == oaa::ChannelId::Video ||
+         channelId == oaa::ChannelId::MediaAudio ||
+         channelId == oaa::ChannelId::SpeechAudio ||
+         channelId == oaa::ChannelId::SystemAudio);
 
     if (isDataMsg) {
-        hex << "[" << (channelId == aasdk::messenger::ChannelId::VIDEO ? "video" : "audio")
+        hex << "[" << (channelId == oaa::ChannelId::Video ? "video" : "audio")
             << " data]";
-    } else if (payloadSize > previewStart) {
-        size_t previewLen = std::min(payloadSize - previewStart, previewMax);
+    } else if (payloadSize > 0) {
+        size_t previewLen = std::min(payloadSize, previewMax);
         for (size_t i = 0; i < previewLen; ++i) {
             if (i > 0) hex << ' ';
             hex << std::hex << std::setfill('0') << std::setw(2)
-                << static_cast<int>(payload[previewStart + i]);
+                << static_cast<int>(payload[i]);
         }
-        if (payloadSize - previewStart > previewMax) hex << "...";
+        if (payloadSize > previewMax) hex << "...";
     }
 
     std::ostringstream line;
@@ -71,31 +72,31 @@ void ProtocolLogger::log(const std::string& direction,
     file_.flush();
 }
 
-std::string ProtocolLogger::channelName(aasdk::messenger::ChannelId id) {
-    using CI = aasdk::messenger::ChannelId;
+std::string ProtocolLogger::channelName(uint8_t id) {
+    using namespace oaa::ChannelId;
     switch (id) {
-        case CI::CONTROL:      return "CONTROL";
-        case CI::INPUT:        return "INPUT";
-        case CI::SENSOR:       return "SENSOR";
-        case CI::VIDEO:        return "VIDEO";
-        case CI::MEDIA_AUDIO:  return "MEDIA_AUDIO";
-        case CI::SPEECH_AUDIO: return "SPEECH_AUDIO";
-        case CI::SYSTEM_AUDIO: return "SYSTEM_AUDIO";
-        case CI::AV_INPUT:     return "AV_INPUT";
-        case CI::BLUETOOTH:    return "BLUETOOTH";
-        case CI::WIFI:         return "WIFI";
-        default:               return "UNKNOWN(" + std::to_string(static_cast<int>(id)) + ")";
+        case Control:      return "CONTROL";
+        case Input:        return "INPUT";
+        case Sensor:       return "SENSOR";
+        case Video:        return "VIDEO";
+        case MediaAudio:   return "MEDIA_AUDIO";
+        case SpeechAudio:  return "SPEECH_AUDIO";
+        case SystemAudio:  return "SYSTEM_AUDIO";
+        case AVInput:      return "AV_INPUT";
+        case Bluetooth:    return "BLUETOOTH";
+        case WiFi:         return "WIFI";
+        default:           return "UNKNOWN(" + std::to_string(id) + ")";
     }
 }
 
-std::string ProtocolLogger::messageName(aasdk::messenger::ChannelId channelId, uint16_t msgId) {
-    using CI = aasdk::messenger::ChannelId;
+std::string ProtocolLogger::messageName(uint8_t channelId, uint16_t msgId) {
+    using namespace oaa::ChannelId;
 
     // Universal messages (appear on any channel)
     if (msgId == 0x0007) return "CHANNEL_OPEN_REQUEST";
     if (msgId == 0x0008) return "CHANNEL_OPEN_RESPONSE";
 
-    if (channelId == CI::CONTROL) {
+    if (channelId == Control) {
         switch (msgId) {
             case 0x0001: return "VERSION_REQUEST";
             case 0x0002: return "VERSION_RESPONSE";
@@ -118,10 +119,10 @@ std::string ProtocolLogger::messageName(aasdk::messenger::ChannelId channelId, u
         }
     }
 
-    // AV channels (VIDEO, MEDIA_AUDIO, SPEECH_AUDIO, SYSTEM_AUDIO, AV_INPUT)
-    if (channelId == CI::VIDEO || channelId == CI::MEDIA_AUDIO ||
-        channelId == CI::SPEECH_AUDIO || channelId == CI::SYSTEM_AUDIO ||
-        channelId == CI::AV_INPUT) {
+    // AV channels
+    if (channelId == Video || channelId == MediaAudio ||
+        channelId == SpeechAudio || channelId == SystemAudio ||
+        channelId == AVInput) {
         switch (msgId) {
             case 0x0000: return "AV_MEDIA_WITH_TIMESTAMP";
             case 0x0001: return "AV_MEDIA_INDICATION";
@@ -138,7 +139,7 @@ std::string ProtocolLogger::messageName(aasdk::messenger::ChannelId channelId, u
         }
     }
 
-    if (channelId == CI::INPUT) {
+    if (channelId == Input) {
         switch (msgId) {
             case 0x8001: return "INPUT_EVENT_INDICATION";
             case 0x8002: return "BINDING_REQUEST";
@@ -147,7 +148,7 @@ std::string ProtocolLogger::messageName(aasdk::messenger::ChannelId channelId, u
         }
     }
 
-    if (channelId == CI::SENSOR) {
+    if (channelId == Sensor) {
         switch (msgId) {
             case 0x8001: return "SENSOR_START_REQUEST";
             case 0x8002: return "SENSOR_START_RESPONSE";
@@ -156,7 +157,7 @@ std::string ProtocolLogger::messageName(aasdk::messenger::ChannelId channelId, u
         }
     }
 
-    if (channelId == CI::BLUETOOTH) {
+    if (channelId == Bluetooth) {
         switch (msgId) {
             case 0x8001: return "BT_PAIRING_REQUEST";
             case 0x8002: return "BT_PAIRING_RESPONSE";
@@ -165,7 +166,7 @@ std::string ProtocolLogger::messageName(aasdk::messenger::ChannelId channelId, u
         }
     }
 
-    if (channelId == CI::WIFI) {
+    if (channelId == WiFi) {
         switch (msgId) {
             case 0x8001: return "WIFI_CREDENTIALS_REQUEST";
             case 0x8002: return "WIFI_CREDENTIALS_RESPONSE";
@@ -178,4 +179,5 @@ std::string ProtocolLogger::messageName(aasdk::messenger::ChannelId channelId, u
     return oss.str();
 }
 
-} // namespace openauto
+} // namespace aa
+} // namespace oap

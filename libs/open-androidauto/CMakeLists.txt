@@ -25,6 +25,7 @@ add_library(open-androidauto STATIC
     include/oaa/Messenger/Cryptor.hpp
     include/oaa/Messenger/EncryptionPolicy.hpp
     include/oaa/Messenger/Messenger.hpp
+    include/oaa/Messenger/ProtocolLogger.hpp
     include/oaa/Channel/IChannelHandler.hpp
     include/oaa/Channel/IAVChannelHandler.hpp
     include/oaa/Channel/ControlChannel.hpp
@@ -44,6 +45,7 @@ add_library(open-androidauto STATIC
     src/Messenger/Cryptor.cpp
     src/Messenger/EncryptionPolicy.cpp
     src/Messenger/Messenger.cpp
+    src/Messenger/ProtocolLogger.cpp
     src/Session/AASession.cpp
 )
 

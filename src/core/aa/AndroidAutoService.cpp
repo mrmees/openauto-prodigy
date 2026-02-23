@@ -3,7 +3,6 @@
 #include "VideoService.hpp"
 #include "TimedNightMode.hpp"
 #include "GpioNightMode.hpp"
-#include "ProtocolLogger.hpp"
 
 #include "../../core/YamlConfig.hpp"
 
@@ -111,8 +110,7 @@ void AndroidAutoService::stop()
 {
     BOOST_LOG_TRIVIAL(info) << "[AAService] Stopping Android Auto service";
 
-    // Close protocol logger
-    openauto::ProtocolLogger::instance().close();
+    // Protocol logger migrated to oaa::ProtocolLogger
 
     // If connected, send graceful AA shutdown so the phone knows we're leaving.
     // ASIO threads are still alive here so the strand can dispatch the send.
@@ -237,8 +235,7 @@ void AndroidAutoService::onTCPConnection(std::shared_ptr<boost::asio::ip::tcp::s
                             << remoteEndpoint.address().to_string()
                             << ":" << remoteEndpoint.port();
 
-    // Start protocol message logger for this session
-    openauto::ProtocolLogger::instance().open();
+    // Protocol logger migrated to oaa::ProtocolLogger
 
     if (entity_) {
         BOOST_LOG_TRIVIAL(warning) << "[AAService] Already have active connection — tearing down old session for reconnect";

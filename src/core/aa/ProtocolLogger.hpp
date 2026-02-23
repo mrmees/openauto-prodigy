@@ -5,9 +5,9 @@
 #include <chrono>
 #include <string>
 #include <cstdint>
-#include <aasdk/Messenger/ChannelId.hpp>
 
-namespace openauto {
+namespace oap {
+namespace aa {
 
 class ProtocolLogger {
 public:
@@ -18,12 +18,12 @@ public:
 
     // direction: "HU->Phone" or "Phone->HU"
     void log(const std::string& direction,
-             aasdk::messenger::ChannelId channelId,
+             uint8_t channelId,
              uint16_t messageId,
              const uint8_t* payload, size_t payloadSize);
 
-    static std::string channelName(aasdk::messenger::ChannelId id);
-    static std::string messageName(aasdk::messenger::ChannelId channelId, uint16_t msgId);
+    static std::string channelName(uint8_t id);
+    static std::string messageName(uint8_t channelId, uint16_t msgId);
 
 private:
     ProtocolLogger() = default;
@@ -33,4 +33,5 @@ private:
     bool open_ = false;
 };
 
-} // namespace openauto
+} // namespace aa
+} // namespace oap

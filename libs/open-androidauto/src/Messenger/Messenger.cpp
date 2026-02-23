@@ -39,6 +39,8 @@ void Messenger::stop()
 void Messenger::sendMessage(uint8_t channelId, uint16_t messageId,
                              const QByteArray& payload)
 {
+    emit messageSent(channelId, messageId, payload);
+
     // Prepend 2-byte big-endian messageId
     QByteArray fullPayload;
     fullPayload.reserve(2 + payload.size());
