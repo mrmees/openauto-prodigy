@@ -1,5 +1,9 @@
 <RCC>
     <qresource prefix="/">
         <file>fonts/MaterialSymbolsOutlined.ttf</file>
+        <file>icons/prodigy-64.png</file>
+        <file>icons/prodigy-128.png</file>
+        <file>icons/prodigy-256.png</file>
+        <file>icons/prodigy-logo.svg</file>
     </qresource>
 </RCC>

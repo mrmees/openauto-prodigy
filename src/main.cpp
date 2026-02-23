@@ -1,4 +1,5 @@
 #include <QGuiApplication>
+#include <QIcon>
 #include <QQmlApplicationEngine>
 #include <QQmlContext>
 #include <QQuickItem>
@@ -34,6 +35,7 @@ int main(int argc, char *argv[])
     app.setApplicationName("OpenAuto Prodigy");
     app.setApplicationVersion("0.1.0");
     app.setOrganizationName("OpenAutoProdigy");
+    app.setWindowIcon(QIcon(":/icons/prodigy-64.png"));
 
     auto config = std::make_shared<oap::Configuration>();
 
