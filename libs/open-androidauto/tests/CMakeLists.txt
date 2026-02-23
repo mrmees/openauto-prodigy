@@ -8,3 +8,4 @@ endfunction()
 
 oaa_add_test(test_version test_version.cpp)
 oaa_add_test(test_tcp_transport test_tcp_transport.cpp)
+oaa_add_test(test_replay_transport test_replay_transport.cpp)

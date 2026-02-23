@@ -11,8 +11,10 @@ find_package(OpenSSL REQUIRED)
 add_library(open-androidauto STATIC
     include/oaa/Transport/ITransport.hpp
     include/oaa/Transport/TCPTransport.hpp
+    include/oaa/Transport/ReplayTransport.hpp
     src/Transport/ITransport.cpp
     src/Transport/TCPTransport.cpp
+    src/Transport/ReplayTransport.cpp
 )
 
 target_include_directories(open-androidauto PUBLIC
