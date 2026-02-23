@@ -1,6 +1,7 @@
 #pragma once
 
 #include <cstdint>
+#include <QMetaType>
 
 namespace oaa {
 
@@ -22,3 +23,5 @@ enum class MessageType : uint8_t {
 };
 
 } // namespace oaa
+
+Q_DECLARE_METATYPE(oaa::MessageType)
