@@ -390,6 +390,16 @@ public:
         // Advertise GPS/location capability (no-fix by default — just tells AA we support it)
         auto* locationSensor = sensorChannel->add_sensors();
         locationSensor->set_type(aasdk::proto::enums::SensorType::LOCATION);
+
+        // Extra sensors — probe for phone reaction to extended sensor capabilities
+        auto* compassSensor = sensorChannel->add_sensors();
+        compassSensor->set_type(aasdk::proto::enums::SensorType::COMPASS);
+
+        auto* accelSensor = sensorChannel->add_sensors();
+        accelSensor->set_type(aasdk::proto::enums::SensorType::ACCEL);
+
+        auto* gyroSensor = sensorChannel->add_sensors();
+        gyroSensor->set_type(aasdk::proto::enums::SensorType::GYRO);
     }
 
     void onChannelOpenRequest(const aasdk::proto::messages::ChannelOpenRequest& request) override {
@@ -436,9 +446,13 @@ public:
                 static_cast<int32_t>(aasdk::proto::enums::DrivingStatus::UNRESTRICTED));
             BOOST_LOG_TRIVIAL(info) << "[SensorService] Sending driving status: UNRESTRICTED";
         } else if (sensorType == static_cast<int32_t>(aasdk::proto::enums::SensorType::LOCATION)) {
-            // Location sensor started — no GPS fix to report yet, just log
             BOOST_LOG_TRIVIAL(info) << "[SensorService] Location sensor started (no fix to report)";
             return;  // Don't send empty indication
+        } else if (sensorType == static_cast<int32_t>(aasdk::proto::enums::SensorType::COMPASS) ||
+                   sensorType == static_cast<int32_t>(aasdk::proto::enums::SensorType::ACCEL) ||
+                   sensorType == static_cast<int32_t>(aasdk::proto::enums::SensorType::GYRO)) {
+            BOOST_LOG_TRIVIAL(info) << "[SensorService] Sensor type " << sensorType << " started (no data to report)";
+            return;  // Advertised but no real data source — just ACK the start
         } else {
             BOOST_LOG_TRIVIAL(warning) << "[SensorService] Unknown sensor type: " << sensorType;
             return;
