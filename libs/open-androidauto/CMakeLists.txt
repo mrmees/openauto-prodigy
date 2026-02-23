@@ -14,10 +14,12 @@ add_library(open-androidauto STATIC
     include/oaa/Transport/ReplayTransport.hpp
     include/oaa/Messenger/FrameType.hpp
     include/oaa/Messenger/FrameHeader.hpp
+    include/oaa/Messenger/FrameSerializer.hpp
     src/Transport/ITransport.cpp
     src/Transport/TCPTransport.cpp
     src/Transport/ReplayTransport.cpp
     src/Messenger/FrameHeader.cpp
+    src/Messenger/FrameSerializer.cpp
 )
 
 target_include_directories(open-androidauto PUBLIC
