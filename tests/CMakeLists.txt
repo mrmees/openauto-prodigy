@@ -360,6 +360,29 @@ target_link_libraries(test_wifi_channel_handler PRIVATE
 )
 add_test(NAME test_wifi_channel_handler COMMAND test_wifi_channel_handler)
 
+# Integration test — non-AV channels with AASession + ReplayTransport
+add_executable(test_oaa_integration
+    test_oaa_integration.cpp
+    ${CMAKE_SOURCE_DIR}/src/core/aa/ServiceDiscoveryBuilder.cpp
+    ${CMAKE_SOURCE_DIR}/src/core/YamlConfig.cpp
+    ${CMAKE_SOURCE_DIR}/src/core/aa/handlers/SensorChannelHandler.cpp
+    ${CMAKE_SOURCE_DIR}/src/core/aa/handlers/InputChannelHandler.cpp
+    ${CMAKE_SOURCE_DIR}/src/core/aa/handlers/BluetoothChannelHandler.cpp
+    ${CMAKE_SOURCE_DIR}/src/core/aa/handlers/WiFiChannelHandler.cpp
+)
+target_include_directories(test_oaa_integration PRIVATE
+    ${CMAKE_SOURCE_DIR}/src
+    ${CMAKE_SOURCE_DIR}/libs/open-androidauto/include
+    ${CMAKE_BINARY_DIR}/libs/open-androidauto
+)
+target_link_libraries(test_oaa_integration PRIVATE
+    Qt6::Core
+    Qt6::Test
+    open-androidauto
+    yaml-cpp::yaml-cpp
+)
+add_test(NAME test_oaa_integration COMMAND test_oaa_integration)
+
 # GUI/Quick tests need offscreen platform when no display is available
 set_tests_properties(test_configuration test_theme_service test_plugin_model
     PROPERTIES ENVIRONMENT "QT_QPA_PLATFORM=offscreen"
