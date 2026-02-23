@@ -100,7 +100,7 @@ void AudioChannelHandler::handleStopIndication()
 
 void AudioChannelHandler::onMediaData(const QByteArray& data, uint64_t timestamp)
 {
-    if (!streaming_)
+    if (!channelOpen_ || !streaming_)
         return;
 
     emit audioDataReceived(data, timestamp);

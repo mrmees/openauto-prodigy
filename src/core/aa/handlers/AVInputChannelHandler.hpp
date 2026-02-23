@@ -1,5 +1,7 @@
 #pragma once
 
+#include <atomic>
+
 #include <oaa/Channel/IChannelHandler.hpp>
 #include <oaa/Channel/ChannelId.hpp>
 #include <oaa/Channel/MessageIds.hpp>
@@ -27,8 +29,8 @@ private:
     void handleInputOpenRequest(const QByteArray& payload);
     void handleAckIndication(const QByteArray& payload);
 
-    bool channelOpen_ = false;
-    bool capturing_ = false;
+    std::atomic<bool> channelOpen_{false};
+    std::atomic<bool> capturing_{false};
     int32_t session_ = 0;
     int32_t maxUnacked_ = 1;
 };
