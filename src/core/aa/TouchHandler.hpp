@@ -3,18 +3,11 @@
 #include <QObject>
 #include <QVariantList>
 #include <QVariantMap>
-#include <vector>
+#include <QDebug>
 #include <chrono>
 #include <iomanip>
-#include <boost/asio.hpp>
-#include <boost/log/trivial.hpp>
 #include "PerfStats.hpp"
-#include <aasdk/Channel/Input/InputServiceChannel.hpp>
-#include <aasdk/Channel/Promise.hpp>
-#include <aasdk_proto/InputEventIndicationMessage.pb.h>
-#include <aasdk_proto/TouchEventData.pb.h>
-#include <aasdk_proto/TouchLocationData.pb.h>
-#include <aasdk_proto/TouchActionEnum.pb.h>
+#include "handlers/InputChannelHandler.hpp"
 
 namespace oap {
 namespace aa {
@@ -27,7 +20,7 @@ class TouchHandler : public QObject {
     Q_PROPERTY(int contentHeight READ contentHeight NOTIFY contentDimsChanged)
 
 public:
-    struct Pointer { int x; int y; int id; };
+    using Pointer = InputChannelHandler::Pointer;
 
     QVariantList debugTouches() const { return debugTouches_; }
     bool debugOverlay() const { return debugOverlay_; }
@@ -44,11 +37,13 @@ public:
     explicit TouchHandler(QObject* parent = nullptr)
         : QObject(parent) {}
 
-    void setChannel(std::shared_ptr<aasdk::channel::input::InputServiceChannel> channel,
-                    boost::asio::io_service::strand* strand) {
-        channel_ = std::move(channel);
-        strand_ = strand;
+    void setHandler(InputChannelHandler* handler) {
+        handler_ = handler;
     }
+
+    // Legacy compat — ServiceFactory still calls this. Will be removed in Phase 5.
+    template<typename Channel, typename Strand>
+    void setChannel(Channel, Strand) {}
 
     // Send a complete touch event with all active pointers.
     // action: 0=DOWN, 1=UP, 2=MOVE, 5=POINTER_DOWN, 6=POINTER_UP
@@ -75,62 +70,33 @@ public:
             }, Qt::QueuedConnection);
         }
 
-        if (!channel_ || !strand_) return;
+        if (!handler_) return;
 
-        // Copy pointer data for the lambda capture
-        std::vector<Pointer> pts(pointers, pointers + count);
-        auto t_start = PerfStats::Clock::now().time_since_epoch().count();
+        auto t_start = PerfStats::Clock::now();
 
-        strand_->dispatch([this, pts = std::move(pts), actionIndex, action, t_start]() {
-            auto t_dispatch = PerfStats::Clock::now();
+        // Generate timestamp in microseconds (matches AA protocol expectation)
+        uint64_t timestamp = static_cast<uint64_t>(
+            std::chrono::duration_cast<std::chrono::microseconds>(
+                std::chrono::steady_clock::now().time_since_epoch()).count());
 
-            aasdk::proto::messages::InputEventIndication indication;
-            indication.set_timestamp(
-                std::chrono::duration_cast<std::chrono::microseconds>(
-                    std::chrono::steady_clock::now().time_since_epoch()).count());
-            indication.set_disp_channel(0);
+        // InputChannelHandler builds the protobuf and emits sendRequested
+        handler_->sendTouchIndication(count, pointers, actionIndex, action, timestamp);
 
-            auto* touchEvent = indication.mutable_touch_event();
-            touchEvent->set_touch_action(
-                static_cast<aasdk::proto::enums::TouchAction::Enum>(action));
-            touchEvent->set_action_index(actionIndex);
+        auto t_send = PerfStats::Clock::now();
 
-            for (const auto& pt : pts) {
-                auto* location = touchEvent->add_touch_location();
-                location->set_x(pt.x);
-                location->set_y(pt.y);
-                location->set_pointer_id(pt.id);
-            }
+        metricTotal_.record(PerfStats::msElapsed(t_start, t_send));
+        ++eventsSinceLog_;
 
-            auto promise = aasdk::channel::SendPromise::defer(*strand_);
-            promise->then([]() {}, [](const aasdk::error::Error&) {});
-            channel_->sendInputEventIndication(indication, std::move(promise));
-
-            auto t_send = PerfStats::Clock::now();
-            auto t_startPt = PerfStats::TimePoint(std::chrono::nanoseconds(t_start));
-
-            metricDispatch_.record(PerfStats::msElapsed(t_startPt, t_dispatch));
-            metricSend_.record(PerfStats::msElapsed(t_dispatch, t_send));
-            metricTotal_.record(PerfStats::msElapsed(t_startPt, t_send));
-            ++eventsSinceLog_;
-
-            double secSinceLog = PerfStats::msElapsed(lastLogTime_, t_send) / 1000.0;
-            if (secSinceLog >= 5.0) {
-                double eventsPerSec = eventsSinceLog_ / secSinceLog;
-                BOOST_LOG_TRIVIAL(info)
-                    << "[Perf] Touch: dispatch=" << std::fixed << std::setprecision(1)
-                    << metricDispatch_.avg() << "ms"
-                    << " send=" << metricSend_.avg() << "ms"
-                    << " total=" << metricTotal_.avg() << "ms"
-                    << " (p99~" << metricTotal_.max << "ms)"
-                    << " | " << std::setprecision(1) << eventsPerSec << " events/sec";
-                metricDispatch_.reset();
-                metricSend_.reset();
-                metricTotal_.reset();
-                eventsSinceLog_ = 0;
-                lastLogTime_ = t_send;
-            }
-        });
+        double secSinceLog = PerfStats::msElapsed(lastLogTime_, t_send) / 1000.0;
+        if (secSinceLog >= 5.0) {
+            double eventsPerSec = eventsSinceLog_ / secSinceLog;
+            qDebug() << "[Perf] Touch: total=" << QString::number(metricTotal_.avg(), 'f', 1) << "ms"
+                     << "(p99~" << QString::number(metricTotal_.max, 'f', 1) << "ms)"
+                     << "|" << QString::number(eventsPerSec, 'f', 1) << "events/sec";
+            metricTotal_.reset();
+            eventsSinceLog_ = 0;
+            lastLogTime_ = t_send;
+        }
     }
 
     // Convenience for QML single-touch (fallback if evdev not available)
@@ -150,11 +116,8 @@ private:
     int contentWidth_ = 1280;
     int contentHeight_ = 720;
 
-    std::shared_ptr<aasdk::channel::input::InputServiceChannel> channel_;
-    boost::asio::io_service::strand* strand_ = nullptr;
+    InputChannelHandler* handler_ = nullptr;
 
-    PerfStats::Metric metricDispatch_;
-    PerfStats::Metric metricSend_;
     PerfStats::Metric metricTotal_;
     PerfStats::TimePoint lastLogTime_ = PerfStats::Clock::now();
     uint64_t eventsSinceLog_ = 0;
