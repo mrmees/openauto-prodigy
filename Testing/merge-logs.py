@@ -41,7 +41,7 @@ def find_tcp_connect(entries, source):
     for ts, src, line in entries:
         if src != source:
             continue
-        if source == "PI" and "Phone->HU" in line and "VERSION_RESPONSE" in line:
+        if source == "PI" and "VERSION_REQUEST" in line:
             return ts
         if source == "PHONE" and "Socket connected" in line:
             return ts
