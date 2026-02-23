@@ -11,6 +11,7 @@ class YamlConfig;
 class ThemeService;
 class AudioService;
 class PluginManager;
+class CompanionListenerService;
 
 /// Unix domain socket IPC server for the web config panel.
 ///
@@ -33,6 +34,7 @@ public:
     void setThemeService(ThemeService* themeService);
     void setAudioService(AudioService* audioService);
     void setPluginManager(PluginManager* pluginManager);
+    void setCompanionListenerService(CompanionListenerService* svc);
 
 private slots:
     void onNewConnection();
@@ -50,6 +52,7 @@ private:
     QByteArray handleGetAudioDevices();
     QByteArray handleGetAudioConfig();
     QByteArray handleSetAudioConfig(const QVariantMap& data);
+    QByteArray handleCompanionStatus();
 
     QLocalServer* server_ = nullptr;
     YamlConfig* config_ = nullptr;
@@ -57,6 +60,7 @@ private:
     ThemeService* themeService_ = nullptr;
     AudioService* audioService_ = nullptr;
     PluginManager* pluginManager_ = nullptr;
+    CompanionListenerService* companion_ = nullptr;
 };
 
 } // namespace oap

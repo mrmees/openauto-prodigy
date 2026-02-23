@@ -2,6 +2,7 @@
 #include "../YamlConfig.hpp"
 #include "ThemeService.hpp"
 #include "AudioService.hpp"
+#include "CompanionListenerService.hpp"
 #include "../plugin/PluginManager.hpp"
 #include "../plugin/IPlugin.hpp"
 #include <QJsonDocument>
@@ -80,6 +81,11 @@ void IpcServer::setPluginManager(PluginManager* pluginManager)
     pluginManager_ = pluginManager;
 }
 
+void IpcServer::setCompanionListenerService(CompanionListenerService* svc)
+{
+    companion_ = svc;
+}
+
 void IpcServer::onNewConnection()
 {
     while (auto* socket = server_->nextPendingConnection()) {
@@ -135,6 +141,8 @@ QByteArray IpcServer::handleRequest(const QByteArray& request)
         return handleGetAudioConfig();
     if (command == QLatin1String("set_audio_config"))
         return handleSetAudioConfig(data);
+    if (command == QLatin1String("companion_status"))
+        return handleCompanionStatus();
 
     return R"({"error":"Unknown command"})";
 }
@@ -328,6 +336,22 @@ QByteArray IpcServer::handleSetAudioConfig(const QVariantMap& data)
     }
 
     return R"({"ok":true})";
+}
+
+QByteArray IpcServer::handleCompanionStatus()
+{
+    if (!companion_) return R"({"error":"Companion service not available"})";
+
+    QJsonObject obj;
+    obj["connected"] = companion_->isConnected();
+    obj["gps_lat"] = companion_->gpsLat();
+    obj["gps_lon"] = companion_->gpsLon();
+    obj["gps_speed"] = companion_->gpsSpeed();
+    obj["battery"] = companion_->phoneBattery();
+    obj["charging"] = companion_->isPhoneCharging();
+    obj["internet"] = companion_->isInternetAvailable();
+    obj["proxy"] = companion_->proxyAddress();
+    return QJsonDocument(obj).toJson(QJsonDocument::Compact);
 }
 
 } // namespace oap

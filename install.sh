@@ -305,11 +305,21 @@ display:
 
 touch:
   device: ""
+
+companion:
+  enabled: true
+  port: 9876
 YAML
 
     # Install default theme
     if [[ -f "$INSTALL_DIR/tests/data/themes/default/theme.yaml" ]]; then
         cp "$INSTALL_DIR/tests/data/themes/default/theme.yaml" "$CONFIG_DIR/themes/default/"
+    fi
+
+    # Companion app polkit rule (allows timedatectl set-time without sudo)
+    if [[ -f "$INSTALL_DIR/config/companion-polkit.rules" ]]; then
+        sudo cp "$INSTALL_DIR/config/companion-polkit.rules" /etc/polkit-1/rules.d/50-openauto-time.rules
+        ok "Companion polkit rule installed"
     fi
 
     ok "Configuration written to $CONFIG_DIR/config.yaml"

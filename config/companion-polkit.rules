@@ -1,0 +1,6 @@
+polkit.addRule(function(action, subject) {
+    if (action.id === "org.freedesktop.timedate1.set-time" &&
+        subject.user === "matt") {
+        return polkit.Result.YES;
+    }
+});

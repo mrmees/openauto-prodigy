@@ -1,9 +1,13 @@
 #include "CompanionListenerService.hpp"
 #include <QJsonDocument>
 #include <QMessageAuthenticationCode>
+#include <QCryptographicHash>
 #include <QRandomGenerator>
 #include <QDateTime>
 #include <QProcess>
+#include <QDir>
+#include <QFile>
+#include <QFileInfo>
 
 namespace oap {
 
@@ -67,6 +71,31 @@ bool CompanionListenerService::isListening() const
 void CompanionListenerService::setSharedSecret(const QString& secret)
 {
     sharedSecret_ = secret;
+}
+
+QString CompanionListenerService::generatePairingPin()
+{
+    int pin = QRandomGenerator::global()->bounded(100000, 999999);
+    QString pinStr = QString::number(pin);
+
+    // Derive shared secret: SHA256(PIN + fixed salt)
+    // Both Pi and phone use this same derivation so they arrive at the same secret.
+    QByteArray material = pinStr.toUtf8() + QByteArray("openauto-companion-v1");
+    QByteArray secret = QCryptographicHash::hash(material, QCryptographicHash::Sha256).toHex();
+
+    // Save to file
+    QString dir = QDir::homePath() + "/.openauto";
+    QDir().mkpath(dir);
+    QString path = dir + "/companion.key";
+    QFile file(path);
+    if (file.open(QIODevice::WriteOnly | QIODevice::Truncate)) {
+        file.write(secret);
+        file.setPermissions(QFileDevice::ReadOwner | QFileDevice::WriteOwner);
+    }
+
+    setSharedSecret(QString::fromUtf8(secret));
+    qInfo() << "Companion: pairing PIN generated, secret saved to" << path;
+    return pinStr;
 }
 
 bool CompanionListenerService::isConnected() const { return client_ != nullptr; }

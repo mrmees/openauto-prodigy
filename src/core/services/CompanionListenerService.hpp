@@ -31,6 +31,10 @@ public:
 
     void setSharedSecret(const QString& secret);
 
+    /// Generate a 6-digit pairing PIN and derive+store shared secret.
+    /// Returns the PIN string for display to the user.
+    Q_INVOKABLE QString generatePairingPin();
+
     // Q_PROPERTY getters
     bool isConnected() const;
     double gpsLat() const;

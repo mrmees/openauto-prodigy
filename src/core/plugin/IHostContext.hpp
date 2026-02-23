@@ -12,6 +12,7 @@ class IDisplayService;
 class IEventBus;
 class ActionRegistry;
 class INotificationService;
+class CompanionListenerService;
 
 enum class LogLevel { Debug, Info, Warning, Error };
 
@@ -27,6 +28,7 @@ public:
     virtual IEventBus* eventBus() = 0;
     virtual ActionRegistry* actionRegistry() = 0;
     virtual INotificationService* notificationService() = 0;
+    virtual CompanionListenerService* companionListenerService() = 0;
 
     /// Log a message through the host's logging system.
     /// Thread-safe.

@@ -14,6 +14,7 @@ public:
     void setEventBus(IEventBus* bus) { eventBus_ = bus; }
     void setActionRegistry(ActionRegistry* reg) { actions_ = reg; }
     void setNotificationService(INotificationService* svc) { notifications_ = svc; }
+    void setCompanionListenerService(CompanionListenerService* svc) { companion_ = svc; }
 
     IAudioService* audioService() override { return audio_; }
     IBluetoothService* bluetoothService() override { return bt_; }
@@ -23,6 +24,7 @@ public:
     IEventBus* eventBus() override { return eventBus_; }
     ActionRegistry* actionRegistry() override { return actions_; }
     INotificationService* notificationService() override { return notifications_; }
+    CompanionListenerService* companionListenerService() override { return companion_; }
 
     void log(LogLevel level, const QString& message) override;
 
@@ -35,6 +37,7 @@ private:
     IEventBus* eventBus_ = nullptr;
     ActionRegistry* actions_ = nullptr;
     INotificationService* notifications_ = nullptr;
+    CompanionListenerService* companion_ = nullptr;
 };
 
 } // namespace oap

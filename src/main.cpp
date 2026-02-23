@@ -15,6 +15,7 @@
 #include "core/services/EventBus.hpp"
 #include "core/services/ActionRegistry.hpp"
 #include "core/services/NotificationService.hpp"
+#include "core/services/CompanionListenerService.hpp"
 #include "ui/NotificationModel.hpp"
 #include "core/plugin/HostContext.hpp"
 #include "core/plugin/PluginManager.hpp"
@@ -97,6 +98,22 @@ int main(int argc, char *argv[])
     auto notificationService = new oap::NotificationService(&app);
     hostContext->setNotificationService(notificationService);
 
+    // --- Companion Listener ---
+    oap::CompanionListenerService* companionListener = nullptr;
+    QVariant companionEnabledVar = yamlConfig->valueByPath("companion.enabled");
+    bool companionEnabled = companionEnabledVar.isValid() ? companionEnabledVar.toBool() : true;
+    QVariant companionPortVar = yamlConfig->valueByPath("companion.port");
+    int companionPort = companionPortVar.isValid() ? companionPortVar.toInt() : 9876;
+    if (companionEnabled) {
+        companionListener = new oap::CompanionListenerService(&app);
+        QFile secretFile(QDir::homePath() + "/.openauto/companion.key");
+        if (secretFile.open(QIODevice::ReadOnly)) {
+            companionListener->setSharedSecret(QString::fromUtf8(secretFile.readAll().trimmed()));
+        }
+        companionListener->start(companionPort);
+        hostContext->setCompanionListenerService(companionListener);
+    }
+
     oap::PluginManager pluginManager(&app);
 
     // Register static (compiled-in) plugins
@@ -121,6 +138,8 @@ int main(int argc, char *argv[])
     ipcServer->setThemeService(themeService);
     ipcServer->setAudioService(audioService);
     ipcServer->setPluginManager(&pluginManager);
+    if (companionListener)
+        ipcServer->setCompanionListenerService(companionListener);
     ipcServer->start();
 
     QQuickStyle::setStyle("Material");
@@ -165,6 +184,9 @@ int main(int argc, char *argv[])
     engine.rootContext()->setContextProperty("AudioInputDeviceModel", inputDeviceModel);
 
     engine.rootContext()->setContextProperty("ConfigService", configService.get());
+
+    if (companionListener)
+        engine.rootContext()->setContextProperty("CompanionService", companionListener);
 
     // Qt 6.5+ uses /qt/qml/ prefix, Qt 6.4 uses direct URI prefix
     QUrl url(QStringLiteral("qrc:/OpenAutoProdigy/main.qml"));
