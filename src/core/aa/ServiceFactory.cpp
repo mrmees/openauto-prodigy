@@ -210,7 +210,7 @@ using MediaAudioServiceStub = AudioServiceStub<
 using SpeechAudioServiceStub = AudioServiceStub<
     aasdk::channel::av::SpeechAudioServiceChannel,
     aasdk::messenger::ChannelId::SPEECH_AUDIO,
-    aasdk::proto::enums::AudioType::SPEECH, 16000, 1>;
+    aasdk::proto::enums::AudioType::SPEECH, 48000, 1>;
 
 using SystemAudioServiceStub = AudioServiceStub<
     aasdk::channel::av::SystemAudioServiceChannel,
