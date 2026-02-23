@@ -18,6 +18,8 @@ qt_add_executable(openauto-prodigy
     core/aa/ServiceDiscoveryBuilder.cpp
     core/aa/handlers/SensorChannelHandler.cpp
     core/aa/handlers/InputChannelHandler.cpp
+    core/aa/handlers/BluetoothChannelHandler.cpp
+    core/aa/handlers/WiFiChannelHandler.cpp
     ui/ApplicationController.cpp
     ui/PluginModel.cpp
     ui/PluginRuntimeContext.cpp
