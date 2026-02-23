@@ -1,5 +1,5 @@
 #include "ActionRegistry.hpp"
-#include <boost/log/trivial.hpp>
+#include <QDebug>
 
 namespace oap {
 
@@ -19,8 +19,8 @@ bool ActionRegistry::dispatch(const QString& actionId, const QVariant& payload)
 {
     auto it = handlers_.find(actionId);
     if (it == handlers_.end()) {
-        BOOST_LOG_TRIVIAL(debug) << "ActionRegistry: unknown action '"
-                                  << actionId.toStdString() << "'";
+        qDebug() << "ActionRegistry: unknown action '"
+                                  << actionId << "'";
         return false;
     }
     it.value()(payload);

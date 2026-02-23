@@ -3,7 +3,7 @@
 #include <QQmlComponent>
 #include <QQmlContext>
 #include <QQuickItem>
-#include <boost/log/trivial.hpp>
+#include <QDebug>
 
 namespace oap {
 
@@ -24,9 +24,9 @@ bool PluginViewHost::loadView(const QUrl& qmlUrl, QQmlContext* pluginContext)
     QQmlComponent component(engine_, qmlUrl);
     if (component.isError()) {
         auto err = component.errorString();
-        BOOST_LOG_TRIVIAL(error) << "[PluginViewHost] Failed to load "
-                                  << qmlUrl.toString().toStdString() << ": "
-                                  << err.toStdString();
+        qCritical() << "[PluginViewHost] Failed to load "
+                                  << qmlUrl.toString() << ": "
+                                  << err;
         emit viewLoadFailed(err);
         return false;
     }

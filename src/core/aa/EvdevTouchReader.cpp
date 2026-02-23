@@ -59,7 +59,7 @@ void EvdevTouchReader::computeLetterbox()
         videoPixelX0 = effectiveDisplayX0;
         videoPixelY0 = effectiveDisplayY0;
 
-        BOOST_LOG_TRIVIAL(info) << "[EvdevTouch] X-crop mode: video " << aaWidth_ << "x" << aaHeight_
+        qInfo() << "[EvdevTouch] X-crop mode: video " << aaWidth_ << "x" << aaHeight_
                                 << " in " << effectiveDisplayW << "x" << effectiveDisplayH
                                 << " | AA visible X: " << cropAAOffsetX_
                                 << " to " << (cropAAOffsetX_ + visibleAAWidth_)
@@ -78,7 +78,7 @@ void EvdevTouchReader::computeLetterbox()
         videoPixelX0 = effectiveDisplayX0;
         videoPixelY0 = effectiveDisplayY0;
 
-        BOOST_LOG_TRIVIAL(info) << "[EvdevTouch] Y-crop mode: video " << aaWidth_ << "x" << aaHeight_
+        qInfo() << "[EvdevTouch] Y-crop mode: video " << aaWidth_ << "x" << aaHeight_
                                 << " in " << effectiveDisplayW << "x" << effectiveDisplayH
                                 << " | AA visible Y: " << cropAAOffsetY_
                                 << " to " << (cropAAOffsetY_ + visibleAAHeight_)
@@ -102,7 +102,7 @@ void EvdevTouchReader::computeLetterbox()
     videoEvdevW_ = videoPixelW * evdevPerPixelX;
     videoEvdevH_ = videoPixelH * evdevPerPixelY;
 
-    BOOST_LOG_TRIVIAL(info) << "[EvdevTouch] Mapping: display " << effectiveDisplayW << "x" << effectiveDisplayH
+    qInfo() << "[EvdevTouch] Mapping: display " << effectiveDisplayW << "x" << effectiveDisplayH
                             << " at pixel (" << videoPixelX0 << "," << videoPixelY0 << ")"
                             << " | evdev (" << videoEvdevX0_ << "," << videoEvdevY0_
                             << ") " << videoEvdevW_ << "x" << videoEvdevH_;
@@ -110,7 +110,7 @@ void EvdevTouchReader::computeLetterbox()
     if (handler_)
         handler_->setContentDims(static_cast<int>(visibleAAWidth_), static_cast<int>(visibleAAHeight_));
 
-    BOOST_LOG_TRIVIAL(info) << "[EvdevTouch] Diagnostic: sidebar=" << (sidebarEnabled_ ? sidebarPosition_ : "off")
+    qInfo() << "[EvdevTouch] Diagnostic: sidebar=" << (sidebarEnabled_ ? sidebarPosition_.c_str() : "off")
                             << " " << sidebarPixelWidth_ << "px"
                             << " | contentW=" << visibleAAWidth_ << " contentH=" << visibleAAHeight_
                             << " | touch range: X=[" << mapX(static_cast<int>(videoEvdevX0_))
@@ -150,7 +150,7 @@ void EvdevTouchReader::setSidebar(bool enabled, int width, const std::string& po
         sidebarHomeX0_ = (displayWidth_ - 80.0f) * evdevPerPixelX;  // home zone ~80px at right
         sidebarHomeX1_ = screenWidth_;
 
-        BOOST_LOG_TRIVIAL(info) << "[EvdevTouch] Sidebar: " << position << " " << width << "px"
+        qInfo() << "[EvdevTouch] Sidebar: " << position.c_str() << " " << width << "px"
                                 << ", evdev Y: " << sidebarEvdevY0_ << "-" << sidebarEvdevY1_;
     } else {
         // Vertical sidebar (left/right): X band, Y sub-zones
@@ -168,7 +168,7 @@ void EvdevTouchReader::setSidebar(bool enabled, int width, const std::string& po
         sidebarHomeY0_ = displayHeight_ * 0.75f * evdevPerPixelY;
         sidebarHomeY1_ = screenHeight_;
 
-        BOOST_LOG_TRIVIAL(info) << "[EvdevTouch] Sidebar: " << position << " " << width << "px"
+        qInfo() << "[EvdevTouch] Sidebar: " << position.c_str() << " " << width << "px"
                                 << ", evdev X: " << sidebarEvdevX0_ << "-" << sidebarEvdevX1_;
     }
 }
@@ -197,7 +197,7 @@ void EvdevTouchReader::run()
 {
     fd_ = ::open(devicePath_.c_str(), O_RDONLY);
     if (fd_ < 0) {
-        BOOST_LOG_TRIVIAL(error) << "[EvdevTouch] Failed to open " << devicePath_
+        qCritical() << "[EvdevTouch] Failed to open " << devicePath_.c_str()
                                  << ": " << strerror(errno);
         return;
     }
@@ -210,20 +210,20 @@ void EvdevTouchReader::run()
     if (::ioctl(fd_, EVIOCGABS(ABS_MT_POSITION_X), &absX) == 0) {
         screenWidth_ = absX.maximum;
         if (absX.minimum != 0)
-            BOOST_LOG_TRIVIAL(warning) << "[EvdevTouch] X axis min=" << absX.minimum
+            qWarning() << "[EvdevTouch] X axis min=" << absX.minimum
                                        << " (non-zero — coordinate normalization may be off)";
     }
     if (::ioctl(fd_, EVIOCGABS(ABS_MT_POSITION_Y), &absY) == 0) {
         screenHeight_ = absY.maximum;
         if (absY.minimum != 0)
-            BOOST_LOG_TRIVIAL(warning) << "[EvdevTouch] Y axis min=" << absY.minimum
+            qWarning() << "[EvdevTouch] Y axis min=" << absY.minimum
                                        << " (non-zero — coordinate normalization may be off)";
     }
 
     // Recompute letterbox with actual axis ranges
     computeLetterbox();
 
-    BOOST_LOG_TRIVIAL(info) << "[EvdevTouch] Opened " << devicePath_
+    qInfo() << "[EvdevTouch] Opened " << devicePath_.c_str()
                             << " (evdev: " << screenWidth_ << "x" << screenHeight_
                             << " -> AA " << aaWidth_ << "x" << aaHeight_ << ")";
 
@@ -277,7 +277,7 @@ void EvdevTouchReader::run()
         ::ioctl(fd_, EVIOCGRAB, 0);
     ::close(fd_);
     fd_ = -1;
-    BOOST_LOG_TRIVIAL(info) << "[EvdevTouch] Reader thread stopped";
+    qInfo() << "[EvdevTouch] Reader thread stopped";
 }
 
 int EvdevTouchReader::countActive() const
@@ -319,7 +319,7 @@ bool EvdevTouchReader::checkGesture()
         auto ms = std::chrono::duration_cast<std::chrono::milliseconds>(elapsed).count();
         if (ms <= GESTURE_WINDOW_MS) {
             gestureActive_ = true;
-            BOOST_LOG_TRIVIAL(info) << "[EvdevTouch] 3-finger gesture detected (" << ms << "ms)";
+            qInfo() << "[EvdevTouch] 3-finger gesture detected (" << ms << "ms)";
             emit gestureDetected();
         }
     }
@@ -448,7 +448,7 @@ void EvdevTouchReader::processSync()
                                           actionIdx, action);
             prevActive = nowActive;  // update for subsequent events in same SYN
 
-            BOOST_LOG_TRIVIAL(info) << "[EvdevTouch] DOWN slot=" << i
+            qInfo() << "[EvdevTouch] DOWN slot=" << i
                                     << " actionIdx=" << actionIdx
                                     << " active=" << nowActive
                                     << " raw=(" << slots_[i].x << "," << slots_[i].y << ")"
@@ -475,7 +475,7 @@ void EvdevTouchReader::processSync()
             handler_->sendTouchIndication(withLifted.size(), withLifted.data(),
                                           actionIdx, action);
 
-            BOOST_LOG_TRIVIAL(info) << "[EvdevTouch] UP slot=" << i
+            qInfo() << "[EvdevTouch] UP slot=" << i
                                     << " actionIdx=" << actionIdx
                                     << " active=" << nowActive;
         }
@@ -507,11 +507,11 @@ void EvdevTouchReader::grab()
     if (fd_ < 0 || grabbed_.load()) return;
 
     if (::ioctl(fd_, EVIOCGRAB, 1) < 0) {
-        BOOST_LOG_TRIVIAL(warning) << "[EvdevTouch] EVIOCGRAB failed: " << strerror(errno);
+        qWarning() << "[EvdevTouch] EVIOCGRAB failed: " << strerror(errno);
         return;
     }
     grabbed_.store(true);
-    BOOST_LOG_TRIVIAL(info) << "[EvdevTouch] Device grabbed — touch events routed to AA";
+    qInfo() << "[EvdevTouch] Device grabbed — touch events routed to AA";
 }
 
 void EvdevTouchReader::ungrab()
@@ -529,7 +529,7 @@ void EvdevTouchReader::ungrab()
     gestureMaxFingers_ = 0;
     prevActiveCount_ = 0;
 
-    BOOST_LOG_TRIVIAL(info) << "[EvdevTouch] Device ungrabbed — touch returned to Wayland";
+    qInfo() << "[EvdevTouch] Device ungrabbed — touch returned to Wayland";
 }
 
 } // namespace aa

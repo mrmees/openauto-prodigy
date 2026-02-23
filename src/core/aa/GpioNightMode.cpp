@@ -1,7 +1,7 @@
 #include "GpioNightMode.hpp"
 #include <QFile>
 #include <QTextStream>
-#include <boost/log/trivial.hpp>
+#include <QDebug>
 
 namespace oap {
 namespace aa {
@@ -21,11 +21,11 @@ bool GpioNightMode::isNight() const
 
 void GpioNightMode::start()
 {
-    BOOST_LOG_TRIVIAL(info) << "[GpioNightMode] Starting — pin=" << gpioPin_
+    qInfo() << "[GpioNightMode] Starting — pin=" << gpioPin_
                             << " activeHigh=" << (activeHigh_ ? "true" : "false");
 
     if (!exportGpio()) {
-        BOOST_LOG_TRIVIAL(error) << "[GpioNightMode] Failed to export GPIO " << gpioPin_
+        qCritical() << "[GpioNightMode] Failed to export GPIO " << gpioPin_
                                  << " — night mode will remain " << (currentState_ ? "NIGHT" : "DAY");
         return;
     }
@@ -46,7 +46,7 @@ void GpioNightMode::poll()
     QFile file(valuePath);
 
     if (!file.open(QIODevice::ReadOnly | QIODevice::Text)) {
-        BOOST_LOG_TRIVIAL(warning) << "[GpioNightMode] Cannot read " << valuePath.toStdString();
+        qWarning() << "[GpioNightMode] Cannot read " << valuePath;
         return;
     }
 
@@ -59,7 +59,7 @@ void GpioNightMode::poll()
 
     if (night != currentState_) {
         currentState_ = night;
-        BOOST_LOG_TRIVIAL(info) << "[GpioNightMode] Pin " << gpioPin_ << " = " << val.toStdString()
+        qInfo() << "[GpioNightMode] Pin " << gpioPin_ << " = " << val
                                 << " -> " << (night ? "NIGHT" : "DAY");
         emit nightModeChanged(night);
     }
@@ -70,13 +70,13 @@ bool GpioNightMode::exportGpio()
     // Check if already exported
     QString dirPath = QString("/sys/class/gpio/gpio%1").arg(gpioPin_);
     if (QFile::exists(dirPath + "/value")) {
-        BOOST_LOG_TRIVIAL(debug) << "[GpioNightMode] GPIO " << gpioPin_ << " already exported";
+        qDebug() << "[GpioNightMode] GPIO " << gpioPin_ << " already exported";
         exported_ = true;
     } else {
         // Export the GPIO
         QFile exportFile("/sys/class/gpio/export");
         if (!exportFile.open(QIODevice::WriteOnly | QIODevice::Text)) {
-            BOOST_LOG_TRIVIAL(error) << "[GpioNightMode] Cannot open /sys/class/gpio/export (permission denied?)";
+            qCritical() << "[GpioNightMode] Cannot open /sys/class/gpio/export (permission denied?)";
             return false;
         }
         QTextStream out(&exportFile);
@@ -93,7 +93,7 @@ bool GpioNightMode::exportGpio()
         out << "in";
         dirFile.close();
     } else {
-        BOOST_LOG_TRIVIAL(warning) << "[GpioNightMode] Cannot set direction for GPIO " << gpioPin_;
+        qWarning() << "[GpioNightMode] Cannot set direction for GPIO " << gpioPin_;
     }
 
     return true;

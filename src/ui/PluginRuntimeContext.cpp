@@ -1,7 +1,7 @@
 #include "PluginRuntimeContext.hpp"
 #include "core/plugin/IPlugin.hpp"
 #include <QQmlEngine>
-#include <boost/log/trivial.hpp>
+#include <QDebug>
 
 namespace oap {
 
@@ -22,7 +22,7 @@ void PluginRuntimeContext::activate()
 {
     if (active_) return;
 
-    BOOST_LOG_TRIVIAL(debug) << "Activating plugin context: " << plugin_->id().toStdString();
+    qDebug() << "Activating plugin context: " << plugin_->id();
 
     // Create a child context so plugin bindings don't pollute the root context
     childContext_ = new QQmlContext(engine_->rootContext(), this);
@@ -37,7 +37,7 @@ void PluginRuntimeContext::deactivate()
 {
     if (!active_) return;
 
-    BOOST_LOG_TRIVIAL(debug) << "Deactivating plugin context: " << plugin_->id().toStdString();
+    qDebug() << "Deactivating plugin context: " << plugin_->id();
 
     // Let the plugin clean up before we destroy the context
     plugin_->onDeactivated();

@@ -1,6 +1,6 @@
 #include "PluginDiscovery.hpp"
 #include <QDir>
-#include <boost/log/trivial.hpp>
+#include <QDebug>
 
 namespace oap {
 
@@ -10,7 +10,7 @@ QList<PluginManifest> PluginDiscovery::discover(const QString& pluginsDir) const
     QDir dir(pluginsDir);
 
     if (!dir.exists()) {
-        BOOST_LOG_TRIVIAL(debug) << "Plugin directory does not exist: " << pluginsDir.toStdString();
+        qDebug() << "Plugin directory does not exist: " << pluginsDir;
         return results;
     }
 
@@ -21,19 +21,19 @@ QList<PluginManifest> PluginDiscovery::discover(const QString& pluginsDir) const
 
         auto manifest = PluginManifest::fromFile(manifestPath);
         if (!manifest.isValid()) {
-            BOOST_LOG_TRIVIAL(warning) << "Invalid plugin manifest in " << entry.toStdString();
+            qWarning() << "Invalid plugin manifest in " << entry;
             continue;
         }
 
         if (!validateManifest(manifest)) {
-            BOOST_LOG_TRIVIAL(warning) << "Plugin " << manifest.id.toStdString()
+            qWarning() << "Plugin " << manifest.id
                                         << " requires API v" << manifest.apiVersion
                                         << " (host is v" << HOST_API_VERSION << "), skipping";
             continue;
         }
 
-        BOOST_LOG_TRIVIAL(info) << "Discovered plugin: " << manifest.id.toStdString()
-                                 << " v" << manifest.version.toStdString();
+        qInfo() << "Discovered plugin: " << manifest.id
+                                 << " v" << manifest.version;
         results.append(manifest);
     }
 

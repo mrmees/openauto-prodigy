@@ -1,7 +1,7 @@
 #include "VideoDecoder.hpp"
 
 #include <QMetaObject>
-#include <boost/log/trivial.hpp>
+#include <QDebug>
 #include <cstring>
 #include <iomanip>
 
@@ -13,13 +13,13 @@ VideoDecoder::VideoDecoder(QObject* parent)
 {
     codec_ = avcodec_find_decoder(AV_CODEC_ID_H264);
     if (!codec_) {
-        BOOST_LOG_TRIVIAL(error) << "[VideoDecoder] H.264 decoder not found";
+        qCritical() << "[VideoDecoder] H.264 decoder not found";
         return;
     }
 
     codecCtx_ = avcodec_alloc_context3(codec_);
     if (!codecCtx_) {
-        BOOST_LOG_TRIVIAL(error) << "[VideoDecoder] Failed to allocate codec context";
+        qCritical() << "[VideoDecoder] Failed to allocate codec context";
         return;
     }
 
@@ -29,14 +29,14 @@ VideoDecoder::VideoDecoder(QObject* parent)
     codecCtx_->thread_count = 1;  // Single-threaded for immediate output (no frame reordering delay)
 
     if (avcodec_open2(codecCtx_, codec_, nullptr) < 0) {
-        BOOST_LOG_TRIVIAL(error) << "[VideoDecoder] Failed to open codec";
+        qCritical() << "[VideoDecoder] Failed to open codec";
         avcodec_free_context(&codecCtx_);
         return;
     }
 
     parser_ = av_parser_init(AV_CODEC_ID_H264);
     if (!parser_) {
-        BOOST_LOG_TRIVIAL(error) << "[VideoDecoder] Failed to init parser";
+        qCritical() << "[VideoDecoder] Failed to init parser";
         avcodec_free_context(&codecCtx_);
         return;
     }
@@ -44,11 +44,11 @@ VideoDecoder::VideoDecoder(QObject* parent)
     packet_ = av_packet_alloc();
     frame_ = av_frame_alloc();
 
-    BOOST_LOG_TRIVIAL(info) << "[VideoDecoder] Initialized (H.264 software decode)";
+    qInfo() << "[VideoDecoder] Initialized (H.264 software decode)";
 
     worker_ = new DecodeWorker(this);
     worker_->start();
-    BOOST_LOG_TRIVIAL(info) << "[VideoDecoder] Decode worker thread started";
+    qInfo() << "[VideoDecoder] Decode worker thread started";
 }
 
 VideoDecoder::~VideoDecoder()
@@ -76,7 +76,7 @@ void VideoDecoder::setVideoSink(QVideoSink* sink)
     if (videoSink_ != sink) {
         videoSink_ = sink;
         emit videoSinkChanged();
-        BOOST_LOG_TRIVIAL(info) << "[VideoDecoder] Video sink "
+        qInfo() << "[VideoDecoder] Video sink "
                                 << (sink ? "connected" : "disconnected");
     }
 }
@@ -105,7 +105,7 @@ void VideoDecoder::processFrame(const QByteArray& h264Data, qint64 enqueueTimeNs
             AV_NOPTS_VALUE, AV_NOPTS_VALUE, 0);
 
         if (consumed < 0) {
-            BOOST_LOG_TRIVIAL(error) << "[VideoDecoder] Parse error";
+            qCritical() << "[VideoDecoder] Parse error";
             break;
         }
 
@@ -118,7 +118,7 @@ void VideoDecoder::processFrame(const QByteArray& h264Data, qint64 enqueueTimeNs
         // Send packet to decoder
         int ret = avcodec_send_packet(codecCtx_, packet_);
         if (ret < 0) {
-            BOOST_LOG_TRIVIAL(warning) << "[VideoDecoder] Send packet error: " << ret;
+            qWarning() << "[VideoDecoder] Send packet error: " << ret;
             continue;
         }
 
@@ -128,7 +128,7 @@ void VideoDecoder::processFrame(const QByteArray& h264Data, qint64 enqueueTimeNs
             if (ret == AVERROR(EAGAIN) || ret == AVERROR_EOF)
                 break;
             if (ret < 0) {
-                BOOST_LOG_TRIVIAL(warning) << "[VideoDecoder] Receive frame error: " << ret;
+                qWarning() << "[VideoDecoder] Receive frame error: " << ret;
                 break;
             }
 
@@ -216,7 +216,7 @@ void VideoDecoder::processFrame(const QByteArray& h264Data, qint64 enqueueTimeNs
                 ++framesSinceLog_;
 
                 if (frameCount_ == 1) {
-                    BOOST_LOG_TRIVIAL(info) << "[VideoDecoder] First frame decoded: "
+                    qInfo() << "[VideoDecoder] First frame decoded: "
                                             << frame_->width << "x" << frame_->height;
                 }
 
@@ -225,14 +225,13 @@ void VideoDecoder::processFrame(const QByteArray& h264Data, qint64 enqueueTimeNs
                 double elapsed = PerfStats::msElapsed(lastLogTime_, now) / 1000.0;
                 if (elapsed >= LOG_INTERVAL_SEC) {
                     double fps = framesSinceLog_ / elapsed;
-                    BOOST_LOG_TRIVIAL(info)
-                        << "[Perf] Video: queue=" << std::fixed << std::setprecision(1)
-                        << metricQueue_.avg() << "ms"
-                        << " decode=" << metricDecode_.avg() << "ms"
-                        << " copy=" << metricCopy_.avg() << "ms"
-                        << " total=" << metricTotal_.avg() << "ms"
-                        << " (p99\u2248" << metricTotal_.max << "ms)"
-                        << " | " << std::setprecision(1) << fps << " fps";
+                    qInfo() << "[Perf] Video: queue="
+                        << QString::number(metricQueue_.avg(), 'f', 1) << "ms"
+                        << "decode=" << QString::number(metricDecode_.avg(), 'f', 1) << "ms"
+                        << "copy=" << QString::number(metricCopy_.avg(), 'f', 1) << "ms"
+                        << "total=" << QString::number(metricTotal_.avg(), 'f', 1) << "ms"
+                        << "(p99\u2248" << QString::number(metricTotal_.max, 'f', 1) << "ms)"
+                        << "|" << QString::number(fps, 'f', 1) << "fps";
 
                     metricQueue_.reset();
                     metricDecode_.reset();

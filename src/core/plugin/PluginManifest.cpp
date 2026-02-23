@@ -1,7 +1,7 @@
 #include "PluginManifest.hpp"
 #include <yaml-cpp/yaml.h>
 #include <QFileInfo>
-#include <boost/log/trivial.hpp>
+#include <QDebug>
 
 namespace oap {
 
@@ -67,7 +67,7 @@ PluginManifest PluginManifest::fromFile(const QString& filePath)
         m.dirPath = QFileInfo(filePath).absolutePath();
 
     } catch (const YAML::Exception& e) {
-        BOOST_LOG_TRIVIAL(error) << "Failed to parse plugin manifest " << filePath.toStdString()
+        qCritical() << "Failed to parse plugin manifest " << filePath
                                   << ": " << e.what();
         return {};
     }

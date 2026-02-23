@@ -6,7 +6,7 @@
 #include <string>
 #include <sstream>
 #include <iomanip>
-#include <boost/log/trivial.hpp>
+#include <QDebug>
 
 namespace oap {
 namespace aa {

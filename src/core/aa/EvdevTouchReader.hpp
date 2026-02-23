@@ -7,7 +7,7 @@
 #include <string>
 #include <chrono>
 #include <linux/input.h>
-#include <boost/log/trivial.hpp>
+#include <QDebug>
 #include "TouchHandler.hpp"
 
 namespace oap {

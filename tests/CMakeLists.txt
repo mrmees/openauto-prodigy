@@ -67,7 +67,7 @@ target_link_libraries(test_plugin_manifest PRIVATE
     Qt6::Core
     Qt6::Test
     yaml-cpp::yaml-cpp
-    Boost::log
+
 )
 configure_file(data/test_plugin.yaml ${CMAKE_CURRENT_BINARY_DIR}/data/test_plugin.yaml COPYONLY)
 
@@ -83,7 +83,7 @@ target_link_libraries(test_plugin_discovery PRIVATE
     Qt6::Core
     Qt6::Test
     yaml-cpp::yaml-cpp
-    Boost::log
+
 )
 
 add_executable(test_plugin_manager
@@ -100,7 +100,7 @@ target_link_libraries(test_plugin_manager PRIVATE
     Qt6::Core
     Qt6::Test
     yaml-cpp::yaml-cpp
-    Boost::log
+
 )
 
 add_executable(test_theme_service
@@ -147,8 +147,7 @@ target_include_directories(test_night_mode PRIVATE
 target_link_libraries(test_night_mode PRIVATE
     Qt6::Core
     Qt6::Test
-    Boost::log
-    Boost::log_setup
+
 )
 
 add_executable(test_input_device_scanner
@@ -175,7 +174,7 @@ add_executable(test_plugin_model
 )
 target_include_directories(test_plugin_model PRIVATE ${CMAKE_SOURCE_DIR}/src)
 target_link_libraries(test_plugin_model PRIVATE
-    Qt6::Core Qt6::Quick Qt6::Test yaml-cpp::yaml-cpp Boost::log)
+    Qt6::Core Qt6::Quick Qt6::Test yaml-cpp::yaml-cpp)
 
 add_executable(test_notification_service
     test_notification_service.cpp
@@ -190,7 +189,7 @@ add_executable(test_action_registry
     ${CMAKE_SOURCE_DIR}/src/core/services/ActionRegistry.cpp
 )
 target_include_directories(test_action_registry PRIVATE ${CMAKE_SOURCE_DIR}/src)
-target_link_libraries(test_action_registry PRIVATE Qt6::Core Qt6::Test Boost::log)
+target_link_libraries(test_action_registry PRIVATE Qt6::Core Qt6::Test)
 
 add_executable(test_event_bus
     test_event_bus.cpp
@@ -467,7 +466,7 @@ target_link_libraries(test_aa_orchestrator PRIVATE
     Qt6::Test
     open-androidauto
     yaml-cpp::yaml-cpp
-    Boost::log
+
     ${LIBAV_LIBRARIES}
 )
 add_test(NAME test_aa_orchestrator COMMAND test_aa_orchestrator)

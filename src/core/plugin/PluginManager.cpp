@@ -3,7 +3,7 @@
 #include "PluginLoader.hpp"
 #include "IPlugin.hpp"
 #include "IHostContext.hpp"
-#include <boost/log/trivial.hpp>
+#include <QDebug>
 
 namespace oap {
 
@@ -37,7 +37,7 @@ void PluginManager::registerStaticPlugin(IPlugin* plugin)
     entries_.append(entry);
     idIndex_[plugin->id()] = idx;
 
-    BOOST_LOG_TRIVIAL(info) << "Registered static plugin: " << plugin->id().toStdString();
+    qInfo() << "Registered static plugin: " << plugin->id();
     emit pluginLoaded(plugin->id());
 }
 
@@ -49,7 +49,7 @@ void PluginManager::discoverPlugins(const QString& pluginsDir)
     for (const auto& manifest : manifests) {
         // Skip if already registered (e.g., static plugin with same ID)
         if (idIndex_.contains(manifest.id)) {
-            BOOST_LOG_TRIVIAL(debug) << "Skipping discovered plugin " << manifest.id.toStdString()
+            qDebug() << "Skipping discovered plugin " << manifest.id
                                       << " — already registered (static)";
             continue;
         }
@@ -71,7 +71,7 @@ void PluginManager::discoverPlugins(const QString& pluginsDir)
         entries_.append(entry);
         idIndex_[manifest.id] = idx;
 
-        BOOST_LOG_TRIVIAL(info) << "Loaded dynamic plugin: " << manifest.id.toStdString();
+        qInfo() << "Loaded dynamic plugin: " << manifest.id;
         emit pluginLoaded(manifest.id);
     }
 }
@@ -81,22 +81,22 @@ void PluginManager::initializeAll(IHostContext* context)
     for (auto& entry : entries_) {
         if (entry.initialized) continue;
 
-        BOOST_LOG_TRIVIAL(info) << "Initializing plugin: " << entry.manifest.id.toStdString();
+        qInfo() << "Initializing plugin: " << entry.manifest.id;
 
         bool ok = false;
         try {
             ok = entry.plugin->initialize(context);
         } catch (const std::exception& e) {
-            BOOST_LOG_TRIVIAL(error) << "Plugin " << entry.manifest.id.toStdString()
+            qCritical() << "Plugin " << entry.manifest.id
                                       << " threw during initialize(): " << e.what();
         }
 
         if (ok) {
             entry.initialized = true;
-            BOOST_LOG_TRIVIAL(info) << "Plugin initialized: " << entry.manifest.id.toStdString();
+            qInfo() << "Plugin initialized: " << entry.manifest.id;
             emit pluginInitialized(entry.manifest.id);
         } else {
-            BOOST_LOG_TRIVIAL(error) << "Plugin " << entry.manifest.id.toStdString()
+            qCritical() << "Plugin " << entry.manifest.id
                                       << " failed to initialize — disabled";
             emit pluginFailed(entry.manifest.id, "initialize() returned false");
         }
@@ -110,11 +110,11 @@ void PluginManager::shutdownAll()
         auto& entry = entries_[i];
         if (!entry.initialized) continue;
 
-        BOOST_LOG_TRIVIAL(info) << "Shutting down plugin: " << entry.manifest.id.toStdString();
+        qInfo() << "Shutting down plugin: " << entry.manifest.id;
         try {
             entry.plugin->shutdown();
         } catch (const std::exception& e) {
-            BOOST_LOG_TRIVIAL(error) << "Plugin " << entry.manifest.id.toStdString()
+            qCritical() << "Plugin " << entry.manifest.id
                                       << " threw during shutdown(): " << e.what();
         }
         entry.initialized = false;

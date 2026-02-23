@@ -12,7 +12,6 @@ find_package(Qt6 OPTIONAL_COMPONENTS Bluetooth)
 qt_standard_project_setup()
 
 # Android Auto dependencies
-find_package(Boost REQUIRED COMPONENTS system log log_setup)
 find_package(Protobuf REQUIRED)
 find_package(OpenSSL REQUIRED)
 include(FindPkgConfig)
@@ -20,14 +19,7 @@ pkg_check_modules(LIBAV REQUIRED libavcodec libavutil)
 pkg_check_modules(PIPEWIRE REQUIRED libpipewire-0.3)
 find_package(yaml-cpp REQUIRED)
 
-# aasdk — Android Auto protocol library
-# Save our flags before aasdk overwrites them
-set(_saved_cxx_flags "${CMAKE_CXX_FLAGS}")
-add_subdirectory(libs/aasdk)
-# Restore our flags (aasdk sets -Wall -pedantic globally)
-set(CMAKE_CXX_FLAGS "${_saved_cxx_flags}")
-
-# open-androidauto — Qt-native AA protocol library (replacing aasdk)
+# open-androidauto — Qt-native AA protocol library
 add_subdirectory(libs/open-androidauto)
 
 # Capture git hash at configure time for version identification

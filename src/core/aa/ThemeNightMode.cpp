@@ -1,6 +1,6 @@
 #include "ThemeNightMode.hpp"
 #include "../../core/services/ThemeService.hpp"
-#include <boost/log/trivial.hpp>
+#include <QDebug>
 
 namespace oap {
 namespace aa {
@@ -18,13 +18,13 @@ bool ThemeNightMode::isNight() const
 
 void ThemeNightMode::start()
 {
-    BOOST_LOG_TRIVIAL(info) << "[ThemeNightMode] Starting — following ThemeService (current="
+    qInfo() << "[ThemeNightMode] Starting — following ThemeService (current="
                             << (isNight() ? "NIGHT" : "DAY") << ")";
 
     if (themeService_) {
         themeConn_ = connect(themeService_, &oap::ThemeService::modeChanged, this, [this]() {
             bool night = themeService_->nightMode();
-            BOOST_LOG_TRIVIAL(info) << "[ThemeNightMode] Theme mode changed to "
+            qInfo() << "[ThemeNightMode] Theme mode changed to "
                                     << (night ? "NIGHT" : "DAY");
             emit nightModeChanged(night);
         });

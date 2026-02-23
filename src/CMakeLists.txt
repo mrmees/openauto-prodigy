@@ -3,11 +3,7 @@ qt_add_executable(openauto-prodigy
     core/Configuration.cpp
     core/YamlConfig.cpp
     core/InputDeviceScanner.cpp
-    core/aa/AndroidAutoService.cpp
-    core/aa/AndroidAutoEntity.cpp
-    core/aa/ServiceFactory.cpp
     core/aa/VideoDecoder.cpp
-    core/aa/VideoService.cpp
     core/aa/TouchHandler.cpp
     core/aa/EvdevTouchReader.cpp
     core/aa/NightModeProvider.cpp
@@ -252,8 +248,6 @@ qt_add_qml_module(openauto-prodigy
 
 target_include_directories(openauto-prodigy PRIVATE
     ${CMAKE_CURRENT_SOURCE_DIR}
-    ${CMAKE_SOURCE_DIR}/libs/aasdk/include
-    ${CMAKE_BINARY_DIR}/libs/aasdk
     ${CMAKE_SOURCE_DIR}/libs/open-androidauto/include
     ${CMAKE_BINARY_DIR}/libs/open-androidauto
     ${LIBAV_INCLUDE_DIRS}
@@ -267,12 +261,7 @@ target_link_libraries(openauto-prodigy PRIVATE
     Qt6::Multimedia
     Qt6::Network
     Qt6::DBus
-    aasdk
-    aasdk_proto
     open-androidauto
-    Boost::system
-    Boost::log
-    Boost::log_setup
     OpenSSL::SSL
     OpenSSL::Crypto
     protobuf::libprotobuf
