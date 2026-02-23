@@ -1,0 +1,119 @@
+#include <QTest>
+#include <QSignalSpy>
+#include "core/aa/handlers/AVInputChannelHandler.hpp"
+#include <oaa/Channel/ChannelId.hpp>
+#include "AVInputOpenRequestMessage.pb.h"
+#include "AVInputOpenResponseMessage.pb.h"
+
+class TestAVInputChannelHandler : public QObject {
+    Q_OBJECT
+private slots:
+    void testChannelId() {
+        oap::aa::AVInputChannelHandler handler;
+        QCOMPARE(handler.channelId(), oaa::ChannelId::AVInput);
+    }
+
+    void testInputOpenRequestStartsCapture() {
+        oap::aa::AVInputChannelHandler handler;
+        QSignalSpy sendSpy(&handler, &oaa::IChannelHandler::sendRequested);
+        QSignalSpy captureSpy(&handler, &oap::aa::AVInputChannelHandler::micCaptureRequested);
+
+        handler.onChannelOpened();
+
+        oaa::proto::messages::AVInputOpenRequest req;
+        req.set_open(true);
+        req.set_anc(false);
+        req.set_ec(true);
+        req.set_max_unacked(3);
+        QByteArray payload(req.ByteSizeLong(), '\0');
+        req.SerializeToArray(payload.data(), payload.size());
+
+        handler.onMessage(oaa::AVMessageId::INPUT_OPEN_REQUEST, payload);
+
+        // Should send INPUT_OPEN_RESPONSE
+        QCOMPARE(sendSpy.count(), 1);
+        QCOMPARE(sendSpy[0][1].value<uint16_t>(),
+                 static_cast<uint16_t>(oaa::AVMessageId::INPUT_OPEN_RESPONSE));
+
+        // Should emit micCaptureRequested(true)
+        QCOMPARE(captureSpy.count(), 1);
+        QCOMPARE(captureSpy[0][0].toBool(), true);
+    }
+
+    void testInputOpenRequestStopsCapture() {
+        oap::aa::AVInputChannelHandler handler;
+        handler.onChannelOpened();
+
+        // First open
+        oaa::proto::messages::AVInputOpenRequest openReq;
+        openReq.set_open(true);
+        QByteArray openPayload(openReq.ByteSizeLong(), '\0');
+        openReq.SerializeToArray(openPayload.data(), openPayload.size());
+        handler.onMessage(oaa::AVMessageId::INPUT_OPEN_REQUEST, openPayload);
+
+        QSignalSpy captureSpy(&handler, &oap::aa::AVInputChannelHandler::micCaptureRequested);
+
+        // Then close
+        oaa::proto::messages::AVInputOpenRequest closeReq;
+        closeReq.set_open(false);
+        QByteArray closePayload(closeReq.ByteSizeLong(), '\0');
+        closeReq.SerializeToArray(closePayload.data(), closePayload.size());
+        handler.onMessage(oaa::AVMessageId::INPUT_OPEN_REQUEST, closePayload);
+
+        QCOMPARE(captureSpy.count(), 1);
+        QCOMPARE(captureSpy[0][0].toBool(), false);
+    }
+
+    void testSendMicData() {
+        oap::aa::AVInputChannelHandler handler;
+        handler.onChannelOpened();
+
+        // Open mic
+        oaa::proto::messages::AVInputOpenRequest req;
+        req.set_open(true);
+        QByteArray payload(req.ByteSizeLong(), '\0');
+        req.SerializeToArray(payload.data(), payload.size());
+        handler.onMessage(oaa::AVMessageId::INPUT_OPEN_REQUEST, payload);
+
+        QSignalSpy sendSpy(&handler, &oaa::IChannelHandler::sendRequested);
+
+        QByteArray micData(320, '\x42'); // 320 bytes of mic PCM
+        handler.sendMicData(micData, 1234567890);
+
+        QCOMPARE(sendSpy.count(), 1);
+        QCOMPARE(sendSpy[0][0].value<uint8_t>(), oaa::ChannelId::AVInput);
+        QCOMPARE(sendSpy[0][1].value<uint16_t>(),
+                 static_cast<uint16_t>(oaa::AVMessageId::AV_MEDIA_WITH_TIMESTAMP));
+    }
+
+    void testMicDataIgnoredWhenNotCapturing() {
+        oap::aa::AVInputChannelHandler handler;
+        QSignalSpy sendSpy(&handler, &oaa::IChannelHandler::sendRequested);
+
+        handler.onChannelOpened();
+        // No INPUT_OPEN_REQUEST — mic data should be ignored
+        handler.sendMicData(QByteArray(320, '\x42'), 0);
+        QCOMPARE(sendSpy.count(), 0);
+    }
+
+    void testChannelCloseStopsCapture() {
+        oap::aa::AVInputChannelHandler handler;
+        handler.onChannelOpened();
+
+        // Open mic
+        oaa::proto::messages::AVInputOpenRequest req;
+        req.set_open(true);
+        QByteArray payload(req.ByteSizeLong(), '\0');
+        req.SerializeToArray(payload.data(), payload.size());
+        handler.onMessage(oaa::AVMessageId::INPUT_OPEN_REQUEST, payload);
+
+        QSignalSpy captureSpy(&handler, &oap::aa::AVInputChannelHandler::micCaptureRequested);
+        handler.onChannelClosed();
+
+        QCOMPARE(captureSpy.count(), 1);
+        QCOMPARE(captureSpy[0][0].toBool(), false);
+    }
+};
+
+QTEST_MAIN(TestAVInputChannelHandler)
+#include "test_avinput_channel_handler.moc"
