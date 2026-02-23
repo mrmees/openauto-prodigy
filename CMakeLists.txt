@@ -27,6 +27,9 @@ add_subdirectory(libs/aasdk)
 # Restore our flags (aasdk sets -Wall -pedantic globally)
 set(CMAKE_CXX_FLAGS "${_saved_cxx_flags}")
 
+# open-androidauto — Qt-native AA protocol library (replacing aasdk)
+add_subdirectory(libs/open-androidauto)
+
 # Capture git hash at configure time for version identification
 execute_process(
     COMMAND git rev-parse --short HEAD

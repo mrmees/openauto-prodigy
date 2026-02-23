@@ -307,11 +307,11 @@ QByteArray AASession::buildServiceDiscoveryResponse() const {
     resp.set_sw_version(config_.swVersion.toStdString());
     resp.set_can_play_native_media_during_vr(config_.canPlayNativeMediaDuringVr);
 
-    // Add channel descriptors for registered handlers
-    // Channel 0 (control) is implicit — not listed
-    for (auto it = channels_.cbegin(); it != channels_.cend(); ++it) {
+    // Insert pre-built channel descriptors from config
+    // These are fully populated by Prodigy's ServiceDiscoveryBuilder
+    for (const auto& ch : config_.channels) {
         auto* desc = resp.add_channels();
-        desc->set_channel_id(it.key());
+        desc->ParseFromArray(ch.descriptor.constData(), ch.descriptor.size());
     }
 
     QByteArray data(resp.ByteSizeLong(), '\0');
