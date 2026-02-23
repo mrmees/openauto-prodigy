@@ -1,0 +1,47 @@
+#pragma once
+
+#include <oaa/Channel/IAVChannelHandler.hpp>
+#include <oaa/Channel/ChannelId.hpp>
+#include <oaa/Channel/MessageIds.hpp>
+
+namespace oap {
+namespace aa {
+
+class VideoChannelHandler : public oaa::IAVChannelHandler {
+    Q_OBJECT
+public:
+    explicit VideoChannelHandler(QObject* parent = nullptr);
+
+    uint8_t channelId() const override { return oaa::ChannelId::Video; }
+    void onChannelOpened() override;
+    void onChannelClosed() override;
+    void onMessage(uint16_t messageId, const QByteArray& payload) override;
+
+    // IAVChannelHandler
+    void onMediaData(const QByteArray& data, uint64_t timestamp) override;
+    bool canAcceptMedia() const override { return channelOpen_ && streaming_; }
+
+    // Video focus control — called by orchestrator
+    void requestVideoFocus(bool focused);
+
+signals:
+    void videoFrameData(const QByteArray& data, uint64_t timestamp);
+    void streamStarted(int32_t session, uint32_t configIndex);
+    void streamStopped();
+    void videoFocusChanged(int focusMode, bool unrequested);
+
+private:
+    void handleSetupRequest(const QByteArray& payload);
+    void handleStartIndication(const QByteArray& payload);
+    void handleStopIndication();
+    void handleVideoFocusIndication(const QByteArray& payload);
+    void sendAck();
+
+    int32_t session_ = -1;
+    uint32_t ackCounter_ = 0;
+    bool channelOpen_ = false;
+    bool streaming_ = false;
+};
+
+} // namespace aa
+} // namespace oap
