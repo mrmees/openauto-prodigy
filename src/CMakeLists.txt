@@ -14,6 +14,7 @@ qt_add_executable(openauto-prodigy
     core/aa/TimedNightMode.cpp
     core/aa/ThemeNightMode.cpp
     core/aa/GpioNightMode.cpp
+    core/aa/ProtocolLogger.cpp
     ui/ApplicationController.cpp
     ui/PluginModel.cpp
     ui/PluginRuntimeContext.cpp
