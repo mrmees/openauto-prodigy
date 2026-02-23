@@ -17,6 +17,7 @@ qt_add_executable(openauto-prodigy
     core/aa/ProtocolLogger.cpp
     core/aa/ServiceDiscoveryBuilder.cpp
     core/aa/handlers/SensorChannelHandler.cpp
+    core/aa/handlers/InputChannelHandler.cpp
     ui/ApplicationController.cpp
     ui/PluginModel.cpp
     ui/PluginRuntimeContext.cpp

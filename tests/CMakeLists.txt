@@ -309,6 +309,23 @@ target_link_libraries(test_sensor_channel_handler PRIVATE
 )
 add_test(NAME test_sensor_channel_handler COMMAND test_sensor_channel_handler)
 
+# Input channel handler — touch events + binding requests
+add_executable(test_input_channel_handler
+    test_input_channel_handler.cpp
+    ${CMAKE_SOURCE_DIR}/src/core/aa/handlers/InputChannelHandler.cpp
+)
+target_include_directories(test_input_channel_handler PRIVATE
+    ${CMAKE_SOURCE_DIR}/src
+    ${CMAKE_SOURCE_DIR}/libs/open-androidauto/include
+    ${CMAKE_BINARY_DIR}/libs/open-androidauto
+)
+target_link_libraries(test_input_channel_handler PRIVATE
+    Qt6::Core
+    Qt6::Test
+    open-androidauto
+)
+add_test(NAME test_input_channel_handler COMMAND test_input_channel_handler)
+
 # GUI/Quick tests need offscreen platform when no display is available
 set_tests_properties(test_configuration test_theme_service test_plugin_model
     PROPERTIES ENVIRONMENT "QT_QPA_PLATFORM=offscreen"
