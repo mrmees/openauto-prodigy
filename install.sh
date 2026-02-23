@@ -157,8 +157,15 @@ setup_hardware() {
     fi
 
     if [[ -n "$WIFI_IFACE" ]]; then
-        read -p "WiFi hotspot SSID [OpenAutoProdigy]: " WIFI_SSID
-        WIFI_SSID=${WIFI_SSID:-OpenAutoProdigy}
+        VEHICLE_UUID=$(head -c 2 /dev/urandom | xxd -p | tr '[:lower:]' '[:upper:]')
+        DEFAULT_SSID="OpenAutoProdigy-${VEHICLE_UUID}"
+        echo ""
+        info "The companion app uses the WiFi SSID to identify this vehicle."
+        info "The default includes a unique suffix to avoid conflicts with multiple vehicles."
+        info "If you enter a custom name, make sure it's unique across your vehicles."
+        echo ""
+        read -p "WiFi hotspot SSID [$DEFAULT_SSID]: " WIFI_SSID
+        WIFI_SSID=${WIFI_SSID:-$DEFAULT_SSID}
 
         read -p "WiFi hotspot password [prodigy]: " WIFI_PASS
         WIFI_PASS=${WIFI_PASS:-prodigy}
