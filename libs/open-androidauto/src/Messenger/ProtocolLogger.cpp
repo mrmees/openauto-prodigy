@@ -146,8 +146,7 @@ std::string ProtocolLogger::messageName(uint8_t channelId, uint16_t msgId)
             case 0x0004: return "AUTH_COMPLETE";
             case 0x0005: return "SERVICE_DISCOVERY_REQUEST";
             case 0x0006: return "SERVICE_DISCOVERY_RESPONSE";
-            case 0x0007: return "CHANNEL_OPEN_REQUEST";
-            case 0x0008: return "CHANNEL_OPEN_RESPONSE";
+            // 0x0007/0x0008 handled as universal messages above
             case 0x000b: return "PING_REQUEST";
             case 0x000c: return "PING_RESPONSE";
             case 0x000d: return "NAVIGATION_FOCUS_REQUEST";

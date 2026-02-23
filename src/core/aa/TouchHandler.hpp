@@ -4,6 +4,7 @@
 #include <QVariantList>
 #include <QVariantMap>
 #include <QDebug>
+#include <atomic>
 #include <chrono>
 #include <iomanip>
 #include "PerfStats.hpp"
@@ -37,8 +38,10 @@ public:
     explicit TouchHandler(QObject* parent = nullptr)
         : QObject(parent) {}
 
+    // Thread safety: handler_ is written once from main thread before
+    // EvdevTouchReader starts, then read from the evdev thread.
     void setHandler(InputChannelHandler* handler) {
-        handler_ = handler;
+        handler_.store(handler, std::memory_order_release);
     }
 
     // Legacy compat — ServiceFactory still calls this. Will be removed in Phase 5.
@@ -70,7 +73,8 @@ public:
             }, Qt::QueuedConnection);
         }
 
-        if (!handler_) return;
+        auto* h = handler_.load(std::memory_order_acquire);
+        if (!h) return;
 
         auto t_start = PerfStats::Clock::now();
 
@@ -80,7 +84,7 @@ public:
                 std::chrono::steady_clock::now().time_since_epoch()).count());
 
         // InputChannelHandler builds the protobuf and emits sendRequested
-        handler_->sendTouchIndication(count, pointers, actionIndex, action, timestamp);
+        h->sendTouchIndication(count, pointers, actionIndex, action, timestamp);
 
         auto t_send = PerfStats::Clock::now();
 
@@ -116,7 +120,7 @@ private:
     int contentWidth_ = 1280;
     int contentHeight_ = 720;
 
-    InputChannelHandler* handler_ = nullptr;
+    std::atomic<InputChannelHandler*> handler_{nullptr};
 
     PerfStats::Metric metricTotal_;
     PerfStats::TimePoint lastLogTime_ = PerfStats::Clock::now();
