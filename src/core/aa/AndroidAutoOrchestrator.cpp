@@ -28,6 +28,9 @@ AndroidAutoOrchestrator::AndroidAutoOrchestrator(
     , audioService_(audioService)
     , yamlConfig_(yamlConfig)
 {
+    // Wire TouchHandler to InputChannelHandler
+    touchHandler_.setHandler(&inputHandler_);
+
     // WiFi handler needs SSID/password from config
     if (yamlConfig_) {
         wifiHandler_ = std::make_unique<WiFiChannelHandler>(

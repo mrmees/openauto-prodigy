@@ -1,5 +1,5 @@
 #include "AndroidAutoPlugin.hpp"
-#include "core/aa/AndroidAutoService.hpp"
+#include "core/aa/AndroidAutoOrchestrator.hpp"
 #include "core/aa/EvdevTouchReader.hpp"
 #include "core/plugin/IHostContext.hpp"
 #include "core/Configuration.hpp"
@@ -7,7 +7,7 @@
 #include "core/services/IAudioService.hpp"
 #include "core/services/IConfigService.hpp"
 #include <algorithm>
-#include <boost/log/trivial.hpp>
+#include <QDebug>
 #include <QQmlContext>
 #include <QFile>
 
@@ -32,20 +32,19 @@ bool AndroidAutoPlugin::initialize(IHostContext* context)
 {
     hostContext_ = context;
 
-    // Create AA service with audio routing through PipeWire
+    // Create AA orchestrator with audio routing through PipeWire
     auto* audioService = context ? context->audioService() : nullptr;
-    aaService_ = new oap::aa::AndroidAutoService(config_, audioService, yamlConfig_, this);
+    aaService_ = new oap::aa::AndroidAutoOrchestrator(config_, audioService, yamlConfig_, this);
 
     // Connect navigation: emit signals for PluginModel to handle activation/deactivation.
-    QObject::connect(aaService_, &oap::aa::AndroidAutoService::connectionStateChanged,
+    QObject::connect(aaService_, &oap::aa::AndroidAutoOrchestrator::connectionStateChanged,
                      this, [this]() {
-        using CS = oap::aa::AndroidAutoService;
+        using CS = oap::aa::AndroidAutoOrchestrator;
         auto state = static_cast<CS::ConnectionState>(aaService_->connectionState());
         if (state == CS::Connected) {
             if (touchReader_) touchReader_->grab();
             emit requestActivation();
         } else if (state == CS::Backgrounded) {
-            // Exit to car: hide AA view but keep session alive
             if (touchReader_) touchReader_->ungrab();
             emit requestDeactivation();
         } else if (state == CS::Disconnected
@@ -63,8 +62,7 @@ bool AndroidAutoPlugin::initialize(IHostContext* context)
     if (touchDevice.isEmpty()) {
         touchDevice = oap::InputDeviceScanner::findTouchDevice();
         if (!touchDevice.isEmpty()) {
-            BOOST_LOG_TRIVIAL(info) << "[AAPlugin] Auto-detected touch device: "
-                                    << touchDevice.toStdString();
+            qInfo() << "[AAPlugin] Auto-detected touch device:" << touchDevice;
         }
     }
 
@@ -89,13 +87,13 @@ bool AndroidAutoPlugin::initialize(IHostContext* context)
         touchReader_ = new oap::aa::EvdevTouchReader(
             aaService_->touchHandler(),
             touchDevice.toStdString(),
-            4095, 4095,   // evdev axis range (overridden by EVIOCGABS in reader)
-            aaW, aaH,     // AA touch coordinate space (matches configured video resolution)
+            4095, 4095,
+            aaW, aaH,
             displayW, displayH,
             this);
         touchReader_->start();
-        BOOST_LOG_TRIVIAL(info) << "[AAPlugin] Touch: " << touchDevice.toStdString()
-                                << " display=" << displayW << "x" << displayH;
+        qInfo() << "[AAPlugin] Touch:" << touchDevice
+                << "display=" << displayW << "x" << displayH;
 
         // Configure sidebar touch exclusion
         if (hostContext_ && hostContext_->configService()) {
@@ -108,32 +106,30 @@ bool AndroidAutoPlugin::initialize(IHostContext* context)
                 if (sidebarW <= 0) sidebarW = 150;
                 if (pos.isEmpty()) pos = "right";
                 touchReader_->setSidebar(true, sidebarW, pos.toStdString());
-                touchReader_->computeLetterbox();  // recompute with sidebar offset
-                BOOST_LOG_TRIVIAL(info) << "[AAPlugin] Sidebar touch zones: "
-                                        << pos.toStdString() << " " << sidebarW << "px";
+                touchReader_->computeLetterbox();
+                qInfo() << "[AAPlugin] Sidebar touch zones:" << pos << sidebarW << "px";
 
-                // Connect sidebar touch signals to actions
                 connect(touchReader_, &oap::aa::EvdevTouchReader::sidebarVolumeSet,
                         this, [this](int level) {
                     if (hostContext_ && hostContext_->audioService()) {
                         hostContext_->audioService()->setMasterVolume(level);
-                        BOOST_LOG_TRIVIAL(debug) << "[AAPlugin] Sidebar vol: " << level;
+                        qDebug() << "[AAPlugin] Sidebar vol:" << level;
                     }
                 }, Qt::QueuedConnection);
 
                 connect(touchReader_, &oap::aa::EvdevTouchReader::sidebarHome,
                         this, [this]() {
-                    BOOST_LOG_TRIVIAL(info) << "[AAPlugin] Sidebar home — requesting exit to car";
+                    qInfo() << "[AAPlugin] Sidebar home — requesting exit to car";
                     if (aaService_)
                         aaService_->requestExitToCar();
                 }, Qt::QueuedConnection);
             }
         }
     } else {
-        BOOST_LOG_TRIVIAL(info) << "[AAPlugin] No touch device found — touch input disabled";
+        qInfo() << "[AAPlugin] No touch device found — touch input disabled";
     }
 
-    // Start AA service — it needs to listen for connections immediately
+    // Start AA orchestrator — it needs to listen for connections immediately
     aaService_->start();
 
     if (hostContext_)
@@ -149,7 +145,6 @@ void AndroidAutoPlugin::shutdown()
         touchReader_->wait();
         touchReader_ = nullptr;
     }
-    // AndroidAutoService cleanup happens via QObject parent deletion
     aaService_ = nullptr;
 }
 
@@ -163,33 +158,28 @@ void AndroidAutoPlugin::onActivated(QQmlContext* context)
     context->setContextProperty("TouchHandler", aaService_->touchHandler());
 
     // Re-grab touch and request video focus if returning from backgrounded state
-    using CS = oap::aa::AndroidAutoService;
+    using CS = oap::aa::AndroidAutoOrchestrator;
     if (static_cast<CS::ConnectionState>(aaService_->connectionState()) == CS::Backgrounded) {
         if (touchReader_) touchReader_->grab();
         aaService_->requestVideoFocus();
-        BOOST_LOG_TRIVIAL(info) << "[AAPlugin] Re-entering AA projection from background";
+        qInfo() << "[AAPlugin] Re-entering AA projection from background";
     }
 }
 
 void AndroidAutoPlugin::onDeactivated()
 {
-    // Null out the video sink BEFORE the child QML context is destroyed.
-    // The ASIO threads may still be pushing frames — without this, the
-    // decoder writes to a dangling QVideoSink pointer and crashes.
     if (aaService_ && aaService_->videoDecoder())
         aaService_->videoDecoder()->setVideoSink(nullptr);
 }
 
 QUrl AndroidAutoPlugin::qmlComponent() const
 {
-    // Points to the AA QML view in the app's resource bundle.
-    // In the future this could come from the plugin's own resources.
     return QUrl(QStringLiteral("qrc:/OpenAutoProdigy/AndroidAutoMenu.qml"));
 }
 
 QUrl AndroidAutoPlugin::iconSource() const
 {
-    return {};  // Font-based icons — see MaterialIcon.qml (\ueff7 directions_car)
+    return {};
 }
 
 } // namespace plugins

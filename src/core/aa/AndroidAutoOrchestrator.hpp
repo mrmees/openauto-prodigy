@@ -19,6 +19,7 @@
 #include "handlers/AVInputChannelHandler.hpp"
 #include "ServiceDiscoveryBuilder.hpp"
 #include "VideoDecoder.hpp"
+#include "TouchHandler.hpp"
 #include "NightModeProvider.hpp"
 
 namespace oap {
@@ -57,6 +58,7 @@ public:
     void requestExitToCar();
 
     VideoDecoder* videoDecoder() { return &videoDecoder_; }
+    TouchHandler* touchHandler() { return &touchHandler_; }
     InputChannelHandler* inputHandler() { return &inputHandler_; }
 
     int connectionState() const { return state_; }
@@ -100,6 +102,7 @@ private:
     AVInputChannelHandler avInputHandler_;
 
     // Shared resources
+    TouchHandler touchHandler_;
     VideoDecoder videoDecoder_;
     std::unique_ptr<NightModeProvider> nightProvider_;
     QTimer watchdogTimer_;

@@ -13,7 +13,7 @@ class YamlConfig;
 class IHostContext;
 
 namespace aa {
-class AndroidAutoService;
+class AndroidAutoOrchestrator;
 class EvdevTouchReader;
 }
 
@@ -74,7 +74,7 @@ private:
     oap::YamlConfig* yamlConfig_ = nullptr;
     IHostContext* hostContext_ = nullptr;
 
-    oap::aa::AndroidAutoService* aaService_ = nullptr;
+    oap::aa::AndroidAutoOrchestrator* aaService_ = nullptr;
     oap::aa::EvdevTouchReader* touchReader_ = nullptr;
 };
 
