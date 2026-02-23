@@ -8,7 +8,12 @@ set(CMAKE_AUTOMOC ON)
 find_package(Qt6 REQUIRED COMPONENTS Core Network)
 find_package(OpenSSL REQUIRED)
 
-add_library(open-androidauto STATIC)
+add_library(open-androidauto STATIC
+    include/oaa/Transport/ITransport.hpp
+    include/oaa/Transport/TCPTransport.hpp
+    src/Transport/ITransport.cpp
+    src/Transport/TCPTransport.cpp
+)
 
 target_include_directories(open-androidauto PUBLIC
     ${CMAKE_CURRENT_SOURCE_DIR}/include
