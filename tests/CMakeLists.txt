@@ -438,6 +438,7 @@ add_test(NAME test_avinput_channel_handler COMMAND test_avinput_channel_handler)
 add_executable(test_aa_orchestrator
     test_aa_orchestrator.cpp
     ${CMAKE_SOURCE_DIR}/src/core/aa/AndroidAutoOrchestrator.cpp
+    ${CMAKE_SOURCE_DIR}/src/core/aa/TouchHandler.cpp
     ${CMAKE_SOURCE_DIR}/src/core/aa/ServiceDiscoveryBuilder.cpp
     ${CMAKE_SOURCE_DIR}/src/core/aa/VideoDecoder.cpp
     ${CMAKE_SOURCE_DIR}/src/core/aa/NightModeProvider.cpp
