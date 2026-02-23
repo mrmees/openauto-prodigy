@@ -18,6 +18,7 @@ add_library(open-androidauto STATIC
     include/oaa/Messenger/FrameAssembler.hpp
     include/oaa/Messenger/FrameParser.hpp
     include/oaa/Messenger/Cryptor.hpp
+    include/oaa/Messenger/EncryptionPolicy.hpp
     src/Transport/ITransport.cpp
     src/Transport/TCPTransport.cpp
     src/Transport/ReplayTransport.cpp
@@ -26,6 +27,7 @@ add_library(open-androidauto STATIC
     src/Messenger/FrameAssembler.cpp
     src/Messenger/FrameParser.cpp
     src/Messenger/Cryptor.cpp
+    src/Messenger/EncryptionPolicy.cpp
 )
 
 target_include_directories(open-androidauto PUBLIC
