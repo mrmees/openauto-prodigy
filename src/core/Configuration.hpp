@@ -169,7 +169,7 @@ private:
     // Wireless
     bool m_wirelessEnabled = true;
     QString m_wifiSsid = QStringLiteral("OpenAutoProdigy");
-    QString m_wifiPassword = QStringLiteral("prodigy1234");
+    QString m_wifiPassword = QStringLiteral("prodigy1");
     uint16_t m_tcpPort = 5288;
 
     // Video

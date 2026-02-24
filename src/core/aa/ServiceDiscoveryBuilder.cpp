@@ -43,15 +43,17 @@ oaa::SessionConfig ServiceDiscoveryBuilder::build() const
     oaa::SessionConfig config;
 
     // Head unit identity
-    config.headUnitName = "OpenAuto Prodigy";
+    // Identity must match aasdk/Crankshaft-NG values for phone vehicle DB lookup
+    // Phone matches on: manufacturer + model + modelyear + vehicleid
+    config.headUnitName = "Crankshaft-NG";
     config.carModel = "Universal";
-    config.carYear = "2025";
-    config.carSerial = "0000000000000001";
+    config.carYear = "2018";
+    config.carSerial = "20180301";
     config.leftHandDrive = true;
-    config.manufacturer = "OpenAuto";
-    config.model = "Prodigy";
-    config.swBuild = "dev";
-    config.swVersion = "0.4.0";
+    config.manufacturer = "f1x";
+    config.model = "Crankshaft-NG Autoapp";
+    config.swBuild = "1";
+    config.swVersion = "1.0";
     config.canPlayNativeMediaDuringVr = true;
 
     // Build channel descriptors

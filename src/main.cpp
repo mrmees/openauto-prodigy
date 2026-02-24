@@ -49,6 +49,11 @@ int main(int argc, char *argv[])
     auto yamlConfig = std::make_shared<oap::YamlConfig>();
     if (QFile::exists(yamlPath)) {
         yamlConfig->load(yamlPath);
+        // Sync YAML values into legacy Configuration (used by BT service, etc.)
+        config->setWifiSsid(yamlConfig->wifiSsid());
+        config->setWifiPassword(yamlConfig->wifiPassword());
+        config->setTcpPort(yamlConfig->tcpPort());
+        config->setVideoFps(yamlConfig->videoFps());
     } else if (QFile::exists(configPath)) {
         // Legacy INI — migrate values to YamlConfig
         yamlConfig->setWifiSsid(config->wifiSsid());

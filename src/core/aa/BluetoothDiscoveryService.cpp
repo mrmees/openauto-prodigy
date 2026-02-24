@@ -5,7 +5,23 @@
 #include <QBluetoothUuid>
 #include <QDataStream>
 #include <QNetworkInterface>
+#include <QDBusConnection>
+#include <QDBusMessage>
+#include <QDBusVariant>
+#include <QDBusUnixFileDescriptor>
 #include <QDebug>
+
+#include <unistd.h>
+
+// BlueZ SDP C library for direct SDP record registration.
+// The AA RFCOMM record is registered via the legacy SDP socket (--compat mode)
+// because ProfileManager1 would conflict with QBluetoothServer on the same channel.
+// HFP AG and HSP HS profiles use ProfileManager1 (different UUIDs, no conflict).
+extern "C" {
+#include <bluetooth/bluetooth.h>
+#include <bluetooth/sdp.h>
+#include <bluetooth/sdp_lib.h>
+}
 
 #include "WifiInfoRequestMessage.pb.h"
 #include "WifiInfoResponseMessage.pb.h"
@@ -53,60 +69,29 @@ void BluetoothDiscoveryService::start()
         return;
     }
 
-    qInfo() << "[BTDiscovery] RFCOMM listening on port"
-            << rfcommServer_->serverPort();
+    quint16 port = rfcommServer_->serverPort();
+    qInfo() << "[BTDiscovery] RFCOMM listening on port" << port;
 
-    // Register SDP service so the phone can discover us
-    serviceInfo_.setAttribute(QBluetoothServiceInfo::ServiceName,
-                              QStringLiteral("OpenAutoProdigy"));
-    serviceInfo_.setAttribute(QBluetoothServiceInfo::ServiceDescription,
-                              QStringLiteral("Android Auto Wireless"));
-    serviceInfo_.setAttribute(QBluetoothServiceInfo::ServiceProvider,
-                              QStringLiteral("OpenAutoProdigy"));
-
-    // Bluetooth profile: Serial Port
-    QBluetoothServiceInfo::Sequence classId;
-    classId << QVariant::fromValue(QBluetoothUuid(QBluetoothUuid::ServiceClassUuid::SerialPort));
-    serviceInfo_.setAttribute(QBluetoothServiceInfo::BluetoothProfileDescriptorList, classId);
-
-    // Service class: AA Wireless UUID + SerialPort
-    classId.prepend(QVariant::fromValue(kAAWirelessUuid));
-    serviceInfo_.setAttribute(QBluetoothServiceInfo::ServiceClassIds, classId);
-
-    // Make discoverable via public browse group
-    QBluetoothServiceInfo::Sequence publicBrowse;
-    publicBrowse << QVariant::fromValue(QBluetoothUuid(QBluetoothUuid::ServiceClassUuid::PublicBrowseGroup));
-    serviceInfo_.setAttribute(QBluetoothServiceInfo::BrowseGroupList, publicBrowse);
-
-    // Protocol descriptor (L2CAP + RFCOMM)
-    QBluetoothServiceInfo::Sequence protocolDescriptorList;
-    QBluetoothServiceInfo::Sequence protocol;
-    protocol << QVariant::fromValue(QBluetoothUuid(QBluetoothUuid::ProtocolUuid::L2cap));
-    protocolDescriptorList.append(QVariant::fromValue(protocol));
-    protocol.clear();
-    protocol << QVariant::fromValue(QBluetoothUuid(QBluetoothUuid::ProtocolUuid::Rfcomm))
-             << QVariant::fromValue(quint8(rfcommServer_->serverPort()));
-    protocolDescriptorList.append(QVariant::fromValue(protocol));
-    serviceInfo_.setAttribute(QBluetoothServiceInfo::ProtocolDescriptorList,
-                              protocolDescriptorList);
-
-    // Service UUID
-    serviceInfo_.setServiceUuid(kAAWirelessUuid);
-
-    if (!serviceInfo_.registerService()) {
-        qCritical() << "[BTDiscovery] Failed to register SDP service";
+    // Register SDP record via BlueZ's legacy SDP socket (requires --compat).
+    // We can't use ProfileManager1 D-Bus because it tries to bind its own
+    // RFCOMM socket on the same channel, conflicting with QBluetoothServer.
+    if (!registerSdpRecord(static_cast<uint8_t>(port))) {
+        qCritical() << "[BTDiscovery] Failed to register SDP record";
         emit error("Failed to register Bluetooth SDP service");
         return;
     }
 
     qInfo() << "[BTDiscovery] SDP service registered (AA Wireless)";
+
+    // Register HFP AG and HSP HS profiles via D-Bus so the phone sees
+    // standard profiles and doesn't disconnect with "No profiles".
+    registerBluetoothProfiles();
 }
 
 void BluetoothDiscoveryService::stop()
 {
-    if (serviceInfo_.isRegistered()) {
-        serviceInfo_.unregisterService();
-    }
+    unregisterBluetoothProfiles();
+    unregisterSdpRecord();
 
     if (socket_) {
         socket_->disconnectFromService();
@@ -124,6 +109,246 @@ QString BluetoothDiscoveryService::localAddress() const
 {
     QBluetoothLocalDevice localDevice;
     return localDevice.address().toString();
+}
+
+bool BluetoothDiscoveryService::registerSdpRecord(uint8_t rfcommChannel)
+{
+    // Connect to local SDP server (legacy socket at /var/run/sdp)
+    bdaddr_t anyAddr = {{0, 0, 0, 0, 0, 0}};
+    bdaddr_t localAddr = {{0, 0, 0, 0xff, 0xff, 0xff}};
+    sdp_session_t* session = sdp_connect(&anyAddr, &localAddr, SDP_RETRY_IF_BUSY);
+    if (!session) {
+        qCritical() << "[BTDiscovery] sdp_connect failed:" << strerror(errno)
+                     << "- is bluetoothd running with --compat?";
+        return false;
+    }
+
+    // Remove BlueZ core SDP records (handles 0x10000-0x10003: PnP, GAP, GATT, DevInfo).
+    // These records contain mixed 16-bit/128-bit UUIDs that trigger Android's
+    // sdpu_compare_uuid_with_attr() size mismatch bug during SDP browse.
+    for (uint32_t handle = 0x10000; handle <= 0x10003; ++handle) {
+        if (sdp_device_record_unregister_binary(session, &localAddr, handle) < 0) {
+            sdp_record_t coreRec;
+            memset(&coreRec, 0, sizeof(coreRec));
+            coreRec.handle = handle;
+            if (sdp_record_unregister(session, &coreRec) < 0) {
+                qDebug() << "[BTDiscovery] Could not remove core SDP record"
+                         << Qt::hex << handle << "(may not exist)";
+            } else {
+                qInfo() << "[BTDiscovery] Removed core SDP record" << Qt::hex << handle;
+            }
+        } else {
+            qInfo() << "[BTDiscovery] Removed core SDP record" << Qt::hex << handle;
+        }
+    }
+
+    sdp_record_t* record = sdp_record_alloc();
+
+    // AA Wireless UUID: 4de17a00-52cb-11e6-bdf4-0800200c9a66
+    // Network byte order (big-endian)
+    uint128_t uuid128 = {{
+        0x4d, 0xe1, 0x7a, 0x00, 0x52, 0xcb, 0x11, 0xe6,
+        0xbd, 0xf4, 0x08, 0x00, 0x20, 0x0c, 0x9a, 0x66
+    }};
+    uuid_t aaUuid;
+    sdp_uuid128_create(&aaUuid, &uuid128);
+
+    // Attribute 0x0001: ServiceClassIDList = [AA UUID] only.
+    // DO NOT include SerialPort (16-bit UUID) — Android's sdpu_compare_uuid_with_attr()
+    // does strict size comparison and rejects records mixing 16-bit and 128-bit UUIDs.
+    sdp_list_t* classList = sdp_list_append(nullptr, &aaUuid);
+    sdp_set_service_classes(record, classList);
+
+    // Attribute 0x0004: ProtocolDescriptorList = [[L2CAP], [RFCOMM, channel]]
+    uuid_t l2capUuid, rfcommUuid;
+    sdp_uuid16_create(&l2capUuid, L2CAP_UUID);
+    sdp_uuid16_create(&rfcommUuid, RFCOMM_UUID);
+
+    sdp_list_t* l2capList = sdp_list_append(nullptr, &l2capUuid);
+
+    sdp_data_t* channelData = sdp_data_alloc(SDP_UINT8, &rfcommChannel);
+    sdp_list_t* rfcommList = sdp_list_append(nullptr, &rfcommUuid);
+    rfcommList = sdp_list_append(rfcommList, channelData);
+
+    sdp_list_t* protoList = sdp_list_append(nullptr, l2capList);
+    protoList = sdp_list_append(protoList, rfcommList);
+
+    sdp_list_t* accessProtoList = sdp_list_append(nullptr, protoList);
+    sdp_set_access_protos(record, accessProtoList);
+
+    // Attribute 0x0005: BrowseGroupList = [PublicBrowseGroup]
+    uuid_t browseUuid;
+    sdp_uuid16_create(&browseUuid, PUBLIC_BROWSE_GROUP);
+    sdp_list_t* browseList = sdp_list_append(nullptr, &browseUuid);
+    sdp_set_browse_groups(record, browseList);
+
+    // No ProfileDescriptorList — SerialPort profile descriptor uses a 16-bit UUID
+    // which triggers the same Android UUID size mismatch bug.
+
+    // Attribute 0x0100: ServiceName
+    sdp_set_info_attr(record, "Android Auto Wireless", nullptr, nullptr);
+
+    // Register with SDP server
+    if (sdp_record_register(session, record, 0) < 0) {
+        qCritical() << "[BTDiscovery] sdp_record_register failed:" << strerror(errno);
+        sdp_record_free(record);
+        sdp_close(session);
+        return false;
+    }
+
+    sdpRecordHandle_ = record->handle;
+    qInfo() << "[BTDiscovery] SDP record handle:" << Qt::hex << sdpRecordHandle_;
+
+    // Free lists (record data is now owned by SDP server)
+    sdp_data_free(channelData);
+    sdp_list_free(classList, nullptr);
+    sdp_list_free(l2capList, nullptr);
+    sdp_list_free(rfcommList, nullptr);
+    sdp_list_free(protoList, nullptr);
+    sdp_list_free(accessProtoList, nullptr);
+    sdp_list_free(browseList, nullptr);
+
+    // Keep session open — closing it would unregister the record
+    // Store the session pointer so we can close it in stop()
+    // Actually, sdp_record_register with SDP_SERVER_RECORD_PERSIST would
+    // persist across session close, but that flag requires root.
+    // Instead we just leak the session — it closes when the process exits.
+    // This is fine for a long-running app.
+
+    sdp_record_free(record);
+    // Don't close session — record is unregistered when session closes
+    // sdp_close(session) would remove the record!
+
+    return true;
+}
+
+void BluetoothDiscoveryService::unregisterSdpRecord()
+{
+    // Record is automatically unregistered when the SDP session closes,
+    // which happens when the process exits. For explicit cleanup,
+    // we'd need to keep the session handle, but this is fine for our use case.
+    sdpRecordHandle_ = 0;
+}
+
+// --- BluezProfile1Adaptor implementation ---
+
+void BluezProfile1Adaptor::NewConnection(
+    const QDBusObjectPath& device,
+    const QDBusUnixFileDescriptor& fd,
+    const QVariantMap& /*properties*/)
+{
+    // Dup the fd so it stays alive after BlueZ closes its end.
+    // This keeps the profile connection open — without it, the phone
+    // sees a disconnect and may drop the BT link.
+    if (fd.isValid()) {
+        int dupFd = ::dup(fd.fileDescriptor());
+        if (dupFd >= 0) {
+            fdStore_.push_back(dupFd);
+            qInfo() << "[BTDiscovery] Profile NewConnection from"
+                     << device.path() << "— holding fd" << dupFd;
+        }
+    }
+}
+
+void BluezProfile1Adaptor::RequestDisconnection(const QDBusObjectPath& device)
+{
+    qInfo() << "[BTDiscovery] Profile RequestDisconnection:" << device.path();
+}
+
+void BluezProfile1Adaptor::Release()
+{
+    qInfo() << "[BTDiscovery] Profile released";
+}
+
+// --- BluetoothDiscoveryService profile registration ---
+
+void BluetoothDiscoveryService::registerBluetoothProfiles()
+{
+    // Register dummy HFP AG and HSP HS profiles via BlueZ ProfileManager1.
+    // Required because:
+    // 1. Android requires HFP AG or logs WIRELESS_SETUP_FAILED_TO_START_NO_HFP_FROM_HU_PRESENCE
+    // 2. Without a standard profile, phone shows "No profiles" and disconnects
+    //
+    // These don't conflict with QBluetoothServer — different UUIDs, different channels.
+
+    struct ProfileInfo {
+        const char* uuid;
+        const char* path;
+        const char* name;
+    };
+
+    static const ProfileInfo profiles[] = {
+        {"0000111f-0000-1000-8000-00805f9b34fb", "/org/openauto/hfp_ag", "HFP AG"},
+        {"00001108-0000-1000-8000-00805f9b34fb", "/org/openauto/hsp_hs", "HSP HS"},
+    };
+
+    auto bus = QDBusConnection::systemBus();
+
+    for (const auto& prof : profiles) {
+        // Create a QObject to live at the D-Bus path, with a Profile1 adaptor
+        // that handles NewConnection/Release/RequestDisconnection.
+        auto obj = std::make_unique<QObject>();
+        new BluezProfile1Adaptor(obj.get(), profileFds_);
+
+        if (!bus.registerObject(prof.path, obj.get(),
+                QDBusConnection::ExportAdaptors)) {
+            qWarning() << "[BTDiscovery] Failed to register D-Bus object at"
+                        << prof.path;
+            continue;
+        }
+
+        profileObjects_.push_back(std::move(obj));
+
+        // Now tell BlueZ to register this profile
+        QVariantMap options;
+        options["Role"] = QVariant::fromValue(QDBusVariant(QString("server")));
+        options["RequireAuthentication"] = QVariant::fromValue(QDBusVariant(false));
+        options["RequireAuthorization"] = QVariant::fromValue(QDBusVariant(false));
+        options["AutoConnect"] = QVariant::fromValue(QDBusVariant(true));
+
+        QDBusMessage call = QDBusMessage::createMethodCall(
+            "org.bluez",
+            "/org/bluez",
+            "org.bluez.ProfileManager1",
+            "RegisterProfile");
+        call << QVariant::fromValue(QDBusObjectPath(prof.path))
+             << QString(prof.uuid)
+             << options;
+
+        QDBusMessage reply = bus.call(call, QDBus::Block, 5000);
+        if (reply.type() == QDBusMessage::ErrorMessage) {
+            qWarning() << "[BTDiscovery] Failed to register" << prof.name
+                        << "profile:" << reply.errorMessage();
+        } else {
+            qInfo() << "[BTDiscovery] Registered" << prof.name
+                     << "profile via ProfileManager1";
+            registeredProfilePaths_.append(prof.path);
+        }
+    }
+}
+
+void BluetoothDiscoveryService::unregisterBluetoothProfiles()
+{
+    auto bus = QDBusConnection::systemBus();
+
+    for (const auto& path : registeredProfilePaths_) {
+        QDBusMessage call = QDBusMessage::createMethodCall(
+            "org.bluez",
+            "/org/bluez",
+            "org.bluez.ProfileManager1",
+            "UnregisterProfile");
+        call << QVariant::fromValue(QDBusObjectPath(path));
+        bus.call(call, QDBus::Block, 2000);  // Best-effort
+        bus.unregisterObject(path);
+    }
+    registeredProfilePaths_.clear();
+    profileObjects_.clear();  // Destroys QObjects (and their adaptors)
+
+    // Close held profile fds
+    for (int fd : profileFds_) {
+        ::close(fd);
+    }
+    profileFds_.clear();
 }
 
 void BluetoothDiscoveryService::onClientConnected()
@@ -298,6 +523,8 @@ void BluetoothDiscoveryService::sendMessage(
 
     qDebug() << "[BTDiscovery] Sending" << message.GetTypeName().c_str()
              << "(msgId=" << type << ", size=" << byteSize << ")";
+    qDebug() << "[BTDiscovery] Payload hex:" << out.mid(4).toHex(' ');
+    qDebug() << "[BTDiscovery] Proto debug:" << message.ShortDebugString().c_str();
 
     qint64 written = socket_->write(out);
     if (written < 0) {

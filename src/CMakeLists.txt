@@ -280,7 +280,15 @@ if(TARGET Qt6::Bluetooth)
     target_sources(openauto-prodigy PRIVATE
         core/aa/BluetoothDiscoveryService.cpp
     )
-    target_link_libraries(openauto-prodigy PRIVATE Qt6::Bluetooth)
+    # BlueZ C library for direct SDP record registration via legacy SDP socket.
+    # ProfileManager1 D-Bus API conflicts with QBluetoothServer's RFCOMM binding.
+    find_library(BLUEZ_LIB bluetooth)
+    if(BLUEZ_LIB)
+        target_link_libraries(openauto-prodigy PRIVATE Qt6::Bluetooth ${BLUEZ_LIB})
+    else()
+        target_link_libraries(openauto-prodigy PRIVATE Qt6::Bluetooth)
+        message(WARNING "libbluetooth not found — SDP registration will fail at runtime")
+    endif()
     target_compile_definitions(openauto-prodigy PRIVATE HAS_BLUETOOTH)
     message(STATUS "Qt6::Bluetooth found — Bluetooth discovery enabled")
 else()
