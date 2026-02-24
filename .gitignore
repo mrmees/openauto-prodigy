@@ -6,3 +6,4 @@ CMakeLists.txt.user
 *.a
 *.deb
 .DS_Store
+.worktrees/
