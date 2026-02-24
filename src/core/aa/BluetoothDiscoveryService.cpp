@@ -1,6 +1,7 @@
 #include "BluetoothDiscoveryService.hpp"
 
 #include <QBluetoothAddress>
+#include <QBluetoothLocalDevice>
 #include <QBluetoothUuid>
 #include <QDataStream>
 #include <QNetworkInterface>
@@ -11,17 +12,14 @@
 #include "WifiSecurityRequestMessage.pb.h"
 #include "WifiSecurityResponseMessage.pb.h"
 
+namespace oap {
+namespace aa {
+
 // Android Auto Wireless projection UUID
 static const QBluetoothUuid kAAWirelessUuid(
     QStringLiteral("4de17a00-52cb-11e6-bdf4-0800200c9a66"));
 
-// RFCOMM handshake message IDs (protocol standard names).
-// SonOfGib's aasdk proto types use different names but matching fields:
-//   Protocol WifiStartRequest  (1) → aasdk WifiInfoRequest      {ip_address, port}
-//   Protocol WifiInfoRequest   (2) → aasdk WifiSecurityRequest   {empty}
-//   Protocol WifiInfoResponse  (3) → aasdk WifiSecurityResponse  {ssid, key, security_mode, ...}
-//   Protocol WifiStartResponse (6) → (no proto — empty acknowledgement)
-//   Protocol WifiConnectionStatus(7) → aasdk WifiInfoResponse    {status}
+// RFCOMM handshake message IDs (AA wireless projection protocol)
 static constexpr uint16_t kMsgWifiStartRequest = 1;      // HU -> Phone: IP + port
 static constexpr uint16_t kMsgWifiInfoRequest = 2;        // Phone -> HU: "give me credentials"
 static constexpr uint16_t kMsgWifiInfoResponse = 3;       // HU -> Phone: SSID + key + security
@@ -55,8 +53,8 @@ void BluetoothDiscoveryService::start()
         return;
     }
 
-    qInfo() << "[BTDiscovery] RFCOMM listening on port "
-                            << rfcommServer_->serverPort();
+    qInfo() << "[BTDiscovery] RFCOMM listening on port"
+            << rfcommServer_->serverPort();
 
     // Register SDP service so the phone can discover us
     serviceInfo_.setAttribute(QBluetoothServiceInfo::ServiceName,
@@ -122,6 +120,12 @@ void BluetoothDiscoveryService::stop()
     qInfo() << "[BTDiscovery] Stopped";
 }
 
+QString BluetoothDiscoveryService::localAddress() const
+{
+    QBluetoothLocalDevice localDevice;
+    return localDevice.address().toString();
+}
+
 void BluetoothDiscoveryService::onClientConnected()
 {
     if (socket_) {
@@ -137,13 +141,13 @@ void BluetoothDiscoveryService::onClientConnected()
 
     buffer_.clear();
 
-    qInfo() << "[BTDiscovery] Phone connected via BT: "
-                            << socket_->peerName();
+    qInfo() << "[BTDiscovery] Phone connected via BT:"
+            << socket_->peerName();
 
     connect(socket_, &QBluetoothSocket::readyRead,
             this, &BluetoothDiscoveryService::readSocket);
 
-    // Step 1: Send WifiInfoRequest with our IP and TCP port
+    // Step 1: Send WifiStartRequest with our IP and TCP port
     std::string localIp = getLocalIP(wifiInterface_);
     if (localIp.empty() && wifiInterface_ == "wlan0") {
         // Fallback: try common AP interface names
@@ -157,9 +161,8 @@ void BluetoothDiscoveryService::onClientConnected()
             for (const auto& entry : iface.addressEntries()) {
                 if (entry.ip().protocol() == QAbstractSocket::IPv4Protocol) {
                     localIp = entry.ip().toString().toStdString();
-                    qInfo() << "[BTDiscovery] Using IP from "
-                                            << iface.name()
-                                            << ": " << localIp.c_str();
+                    qInfo() << "[BTDiscovery] Using IP from"
+                            << iface.name() << ":" << localIp.c_str();
                     break;
                 }
             }
@@ -174,13 +177,12 @@ void BluetoothDiscoveryService::onClientConnected()
     }
 
     // Send WifiStartRequest (msgId=1) with our IP and TCP port
-    // (aasdk proto type: WifiInfoRequest — same fields, different name)
     oaa::proto::messages::WifiInfoRequest request;
     request.set_ip_address(localIp);
     request.set_port(config_->tcpPort());
 
     qInfo() << "[BTDiscovery] Sending WifiStartRequest: ip=" << localIp.c_str()
-                            << " port=" << config_->tcpPort();
+            << "port=" << config_->tcpPort();
     sendMessage(request, kMsgWifiStartRequest);
 }
 
@@ -204,7 +206,7 @@ void BluetoothDiscoveryService::readSocket()
         stream >> messageId;
 
         qInfo() << "[BTDiscovery] Received msgId=" << messageId
-                                << " length=" << length;
+                << "length=" << length;
 
         switch (messageId) {
         case kMsgWifiInfoRequest:        // Phone asks for WiFi credentials
@@ -217,7 +219,7 @@ void BluetoothDiscoveryService::readSocket()
             handleWifiConnectionStatus(buffer_, length);
             break;
         default:
-            qWarning() << "[BTDiscovery] Unknown message ID: " << messageId;
+            qWarning() << "[BTDiscovery] Unknown message ID:" << messageId;
             break;
         }
 
@@ -232,7 +234,6 @@ void BluetoothDiscoveryService::handleWifiCredentialRequest()
     qInfo() << "[BTDiscovery] Phone requested WiFi credentials";
 
     // Send WifiInfoResponse (msgId=3) with AP credentials
-    // (aasdk proto type: WifiSecurityResponse — same fields, different name)
     oaa::proto::messages::WifiSecurityResponse response;
     response.set_ssid(config_->wifiSsid().toStdString());
     response.set_key(config_->wifiPassword().toStdString());
@@ -257,8 +258,7 @@ void BluetoothDiscoveryService::handleWifiCredentialRequest()
     response.set_bssid(bssid.toStdString());
 
     qInfo() << "[BTDiscovery] Sending WifiInfoResponse (creds): ssid="
-                            << config_->wifiSsid()
-                            << " bssid=" << bssid;
+            << config_->wifiSsid() << "bssid=" << bssid;
     sendMessage(response, kMsgWifiInfoResponse);
 }
 
@@ -266,22 +266,21 @@ void BluetoothDiscoveryService::handleWifiConnectionStatus(
     const QByteArray& data, uint16_t length)
 {
     // Phone reports WiFi connection result (msgId=7)
-    // (aasdk proto type: WifiInfoResponse — has status field)
     oaa::proto::messages::WifiInfoResponse msg;
     if (!msg.ParseFromArray(data.data() + 4, length)) {
         qCritical() << "[BTDiscovery] Failed to parse WifiConnectionStatus";
         return;
     }
 
-    qInfo() << "[BTDiscovery] WifiConnectionStatus: "
-                            << msg.ShortDebugString().c_str();
+    qInfo() << "[BTDiscovery] WifiConnectionStatus:"
+            << msg.ShortDebugString().c_str();
 
     if (msg.status() == oaa::proto::messages::WifiInfoResponse_Status_STATUS_SUCCESS) {
         qInfo() << "[BTDiscovery] Phone connected to WiFi!";
         emit phoneWillConnect();
     } else {
-        qCritical() << "[BTDiscovery] Phone WiFi connection failed: "
-                                 << msg.status();
+        qCritical() << "[BTDiscovery] Phone WiFi connection failed:"
+                     << msg.status();
         emit error(QString("Phone WiFi connection failed (status %1)").arg(msg.status()));
     }
 }
@@ -297,8 +296,8 @@ void BluetoothDiscoveryService::sendMessage(
     ds << type;
     message.SerializeToArray(out.data() + 4, byteSize);
 
-    qDebug() << "[BTDiscovery] Sending " << message.GetTypeName().c_str()
-                             << " (msgId=" << type << ", size=" << byteSize << ")";
+    qDebug() << "[BTDiscovery] Sending" << message.GetTypeName().c_str()
+             << "(msgId=" << type << ", size=" << byteSize << ")";
 
     qint64 written = socket_->write(out);
     if (written < 0) {
@@ -318,3 +317,6 @@ std::string BluetoothDiscoveryService::getLocalIP(const QString& interfaceName) 
     }
     return "";
 }
+
+} // namespace aa
+} // namespace oap

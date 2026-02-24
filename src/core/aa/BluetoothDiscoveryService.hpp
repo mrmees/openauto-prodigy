@@ -8,6 +8,9 @@
 #include <google/protobuf/message.h>
 #include "../../core/Configuration.hpp"
 
+namespace oap {
+namespace aa {
+
 class BluetoothDiscoveryService : public QObject
 {
     Q_OBJECT
@@ -21,6 +24,8 @@ public:
 
     void start();
     void stop();
+
+    QString localAddress() const;
 
 signals:
     void phoneWillConnect();
@@ -44,3 +49,6 @@ private:
     QByteArray buffer_;
     QString wifiInterface_;
 };
+
+} // namespace aa
+} // namespace oap
