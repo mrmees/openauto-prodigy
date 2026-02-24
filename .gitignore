@@ -1,4 +1,5 @@
 build/
+build-pi/
 .cache/
 CMakeLists.txt.user
 *.o
@@ -7,3 +8,20 @@ CMakeLists.txt.user
 *.deb
 .DS_Store
 .worktrees/
+
+# Android SDK tools (local install)
+build-tools/
+cmdline-tools/
+platform-tools/
+platforms/
+.knownPackages
+
+# Local config
+.mcp.json
+
+# Test artifacts
+Testing/Temporary/
+Testing/__pycache__/
+
+# Archive (old docs/plans/assets kept for reference)
+archive/

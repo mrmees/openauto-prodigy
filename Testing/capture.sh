@@ -1,4 +1,11 @@
 #!/bin/bash
+# ============================================================
+# WARNING: DEPENDS ON reconnect.sh WHICH IS BROKEN
+# See reconnect.sh header for details. The log collection
+# steps (3/4, 4/4) are still valid — it's the reconnect
+# step that needs fixing first.
+# ============================================================
+#
 # OpenAuto Prodigy — AA Protocol Capture Script
 #
 # Wraps reconnect.sh, then collects Pi-side protocol log + phone-side logcat.
