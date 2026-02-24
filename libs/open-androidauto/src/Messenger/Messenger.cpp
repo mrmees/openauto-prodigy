@@ -48,13 +48,18 @@ void Messenger::sendMessage(uint8_t channelId, uint16_t messageId,
     fullPayload.append(reinterpret_cast<const char*>(&msgIdBE), 2);
     fullPayload.append(payload);
 
-    // Channel 0 (control) messages use MessageType::Specific (bit 2 = 0).
-    // Non-zero (service) channel messages use MessageType::Control (bit 2 = 1).
-    // This matches aasdk behavior: ControlServiceChannel sends SPECIFIC,
-    // all other service channels (Video, Audio, Input, etc.) send CONTROL.
-    MessageType msgType = (channelId == 0)
-        ? MessageType::Specific
-        : MessageType::Control;
+    // Message type follows aasdk convention:
+    // - Channel 0 (control): always Specific
+    // - Non-zero channels, msg 0x0008 (ChannelOpenResponse): Control
+    // - Non-zero channels, everything else: Specific
+    MessageType msgType;
+    if (channelId == 0) {
+        msgType = MessageType::Specific;
+    } else if (messageId == 0x0008) {
+        msgType = MessageType::Control;  // ChannelOpenResponse
+    } else {
+        msgType = MessageType::Specific;
+    }
 
     // Determine encryption
     EncryptionType encType = encryptionPolicy_.shouldEncrypt(

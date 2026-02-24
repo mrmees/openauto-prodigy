@@ -34,6 +34,7 @@ private:
     void handleSetupRequest(const QByteArray& payload);
     void handleStartIndication(const QByteArray& payload);
     void handleStopIndication();
+    void handleVideoFocusRequest(const QByteArray& payload);
     void handleVideoFocusIndication(const QByteArray& payload);
     void sendAck();
 

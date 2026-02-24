@@ -49,6 +49,9 @@ void VideoChannelHandler::onMessage(uint16_t messageId, const QByteArray& payloa
     case oaa::AVMessageId::STOP_INDICATION:
         handleStopIndication();
         break;
+    case oaa::AVMessageId::VIDEO_FOCUS_REQUEST:
+        handleVideoFocusRequest(payload);
+        break;
     case oaa::AVMessageId::VIDEO_FOCUS_INDICATION:
         handleVideoFocusIndication(payload);
         break;
@@ -76,15 +79,21 @@ void VideoChannelHandler::handleSetupRequest(const QByteArray& payload)
 
     QByteArray data(resp.ByteSizeLong(), '\0');
     resp.SerializeToArray(data.data(), data.size());
+    qDebug() << "[VideoChannel] sending SETUP_RESPONSE, ch:" << channelId()
+             << "msgId:" << Qt::hex << oaa::AVMessageId::SETUP_RESPONSE
+             << "size:" << data.size();
     emit sendRequested(channelId(), oaa::AVMessageId::SETUP_RESPONSE, data);
 
-    // Send VIDEO_FOCUS_INDICATION (FOCUSED) to tell the phone to start rendering.
-    // Without this, the phone won't send AV_START_INDICATION.
+    // Send unsolicited VIDEO_FOCUS_INDICATION — some phones (e.g. Moto G Play)
+    // won't send VIDEO_FOCUS_REQUEST and expect the HU to indicate focus first.
     oaa::proto::messages::VideoFocusIndication focus;
     focus.set_focus_mode(oaa::proto::enums::VideoFocusMode::FOCUSED);
     focus.set_unrequested(false);
     QByteArray focusData(focus.ByteSizeLong(), '\0');
     focus.SerializeToArray(focusData.data(), focusData.size());
+    qDebug() << "[VideoChannel] sending VIDEO_FOCUS_INDICATION, ch:" << channelId()
+             << "msgId:" << Qt::hex << oaa::AVMessageId::VIDEO_FOCUS_INDICATION
+             << "size:" << focusData.size();
     emit sendRequested(channelId(), oaa::AVMessageId::VIDEO_FOCUS_INDICATION, focusData);
 }
 
@@ -109,6 +118,24 @@ void VideoChannelHandler::handleStopIndication()
     streaming_ = false;
     qDebug() << "[VideoChannel] stream stopped";
     emit streamStopped();
+}
+
+void VideoChannelHandler::handleVideoFocusRequest(const QByteArray& payload)
+{
+    oaa::proto::messages::VideoFocusRequest req;
+    if (!req.ParseFromArray(payload.constData(), payload.size())) {
+        qWarning() << "[VideoChannel] failed to parse VideoFocusRequest";
+        return;
+    }
+
+    qDebug() << "[VideoChannel] focus request, mode:" << (int)req.focus_mode();
+
+    oaa::proto::messages::VideoFocusIndication resp;
+    resp.set_focus_mode(oaa::proto::enums::VideoFocusMode::FOCUSED);
+    resp.set_unrequested(false);
+    QByteArray data(resp.ByteSizeLong(), '\0');
+    resp.SerializeToArray(data.data(), data.size());
+    emit sendRequested(channelId(), oaa::AVMessageId::VIDEO_FOCUS_INDICATION, data);
 }
 
 void VideoChannelHandler::handleVideoFocusIndication(const QByteArray& payload)
