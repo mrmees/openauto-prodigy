@@ -58,16 +58,41 @@ Code must compile on both:
 
 Key incompatibilities are documented in `docs/development.md` (QML loading, resource paths, type flattening).
 
-## Pi Deployment
+## Cross-Compilation (Pi 4)
+
+A cross-compiler toolchain is set up on claude-dev for building aarch64 binaries locally:
+
+- **Toolchain file:** `toolchain-pi4.cmake`
+- **Sysroot:** `~/pi-sysroot` (rsync'd from the Pi — re-sync if Pi libraries are updated)
+- **Build dir:** `build-pi/` (separate from the x86 `build/` dir)
 
 ```bash
-# Copy changed source files to Pi, then:
-ssh matt@192.168.1.149 "cd /home/matt/openauto-prodigy/build && cmake --build . -j3"
-# Launch:
-ssh matt@192.168.1.149 'cd /home/matt/openauto-prodigy && nohup env WAYLAND_DISPLAY=wayland-0 XDG_RUNTIME_DIR=/run/user/1000 ./build/src/openauto-prodigy > /tmp/oap.log 2>&1 &'
+mkdir build-pi && cd build-pi
+cmake -DCMAKE_TOOLCHAIN_FILE=../toolchain-pi4.cmake ..
+make -j$(nproc)
 ```
 
-**IMPORTANT:** Do NOT scp the x86 binary from the dev VM to the Pi. Copy source files and build natively on Pi (ARM64).
+When asked to "build for the Pi" or "cross-compile", use the toolchain file and `build-pi/` directory. Rsync the resulting binary to the Pi instead of source files.
+
+## Pi Deployment
+
+**Option A — Cross-compiled binary** (faster builds):
+```bash
+rsync -av build-pi/src/openauto-prodigy matt@192.168.1.152:~/openauto-prodigy/build/src/
+```
+
+**Option B — Source copy + native build** (guaranteed compatibility):
+```bash
+# Copy changed source files to Pi, then:
+ssh matt@192.168.1.152 "cd /home/matt/openauto-prodigy/build && cmake --build . -j3"
+```
+
+**Launch:**
+```bash
+ssh matt@192.168.1.152 'cd /home/matt/openauto-prodigy && nohup env WAYLAND_DISPLAY=wayland-0 XDG_RUNTIME_DIR=/run/user/1000 ./build/src/openauto-prodigy > /tmp/oap.log 2>&1 &'
+```
+
+**Note:** If cross-compiled binaries have issues (missing libs, ABI mismatch), fall back to Option B.
 
 ## Current Status
 
