@@ -128,14 +128,19 @@ void VideoChannelHandler::handleVideoFocusRequest(const QByteArray& payload)
         return;
     }
 
-    qDebug() << "[VideoChannel] focus request, mode:" << (int)req.focus_mode();
+    auto mode = req.focus_mode();
+    qDebug() << "[VideoChannel] focus request, mode:" << (int)mode;
 
+    // Echo back the phone's requested focus mode
     oaa::proto::messages::VideoFocusIndication resp;
-    resp.set_focus_mode(oaa::proto::enums::VideoFocusMode::FOCUSED);
+    resp.set_focus_mode(mode);
     resp.set_unrequested(false);
     QByteArray data(resp.ByteSizeLong(), '\0');
     resp.SerializeToArray(data.data(), data.size());
     emit sendRequested(channelId(), oaa::AVMessageId::VIDEO_FOCUS_INDICATION, data);
+
+    // Notify orchestrator of focus change
+    emit videoFocusChanged(static_cast<int>(mode), false);
 }
 
 void VideoChannelHandler::handleVideoFocusIndication(const QByteArray& payload)
@@ -167,14 +172,17 @@ void VideoChannelHandler::requestVideoFocus(bool focused)
     if (!channelOpen_)
         return;
 
-    oaa::proto::messages::VideoFocusRequest req;
-    req.set_focus_mode(focused ? oaa::proto::enums::VideoFocusMode::FOCUSED
-                               : oaa::proto::enums::VideoFocusMode::UNFOCUSED);
-    req.set_focus_reason(oaa::proto::enums::VideoFocusReason::NONE);
+    // HU tells the phone about focus via VIDEO_FOCUS_INDICATION (unsolicited),
+    // NOT VIDEO_FOCUS_REQUEST (that's phone→HU only).
+    oaa::proto::messages::VideoFocusIndication indication;
+    indication.set_focus_mode(focused ? oaa::proto::enums::VideoFocusMode::FOCUSED
+                                      : oaa::proto::enums::VideoFocusMode::UNFOCUSED);
+    indication.set_unrequested(true);  // HU-initiated
 
-    QByteArray data(req.ByteSizeLong(), '\0');
-    req.SerializeToArray(data.data(), data.size());
-    emit sendRequested(channelId(), oaa::AVMessageId::VIDEO_FOCUS_REQUEST, data);
+    QByteArray data(indication.ByteSizeLong(), '\0');
+    indication.SerializeToArray(data.data(), data.size());
+    qDebug() << "[VideoChannel] sending unsolicited focus indication, focused:" << focused;
+    emit sendRequested(channelId(), oaa::AVMessageId::VIDEO_FOCUS_INDICATION, data);
 }
 
 void VideoChannelHandler::sendAck()
