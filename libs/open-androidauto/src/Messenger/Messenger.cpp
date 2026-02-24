@@ -48,9 +48,13 @@ void Messenger::sendMessage(uint8_t channelId, uint16_t messageId,
     fullPayload.append(reinterpret_cast<const char*>(&msgIdBE), 2);
     fullPayload.append(payload);
 
-    // Determine message type: Control for ch0, Specific otherwise
-    MessageType msgType = (channelId == 0) ? MessageType::Control
-                                           : MessageType::Specific;
+    // Channel 0 (control) messages use MessageType::Specific (bit 2 = 0).
+    // Non-zero (service) channel messages use MessageType::Control (bit 2 = 1).
+    // This matches aasdk behavior: ControlServiceChannel sends SPECIFIC,
+    // all other service channels (Video, Audio, Input, etc.) send CONTROL.
+    MessageType msgType = (channelId == 0)
+        ? MessageType::Specific
+        : MessageType::Control;
 
     // Determine encryption
     EncryptionType encType = encryptionPolicy_.shouldEncrypt(
@@ -180,11 +184,10 @@ void Messenger::driveHandshake()
 {
     bool complete = cryptor_.doHandshake();
 
-    // Send any outgoing handshake bytes
+    // Send any outgoing handshake bytes as SSL_HANDSHAKE messages (msgId 0x0003)
     QByteArray outgoing = cryptor_.readHandshakeBuffer();
     if (!outgoing.isEmpty()) {
-        sendRaw(0, outgoing, FrameType::Bulk, MessageType::Control,
-                EncryptionType::Plain);
+        sendMessage(0, 0x0003, outgoing);
     }
 
     if (complete) {

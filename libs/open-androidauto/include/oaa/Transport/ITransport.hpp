@@ -10,7 +10,7 @@ class ITransport : public QObject {
     Q_OBJECT
 public:
     using QObject::QObject;
-    ~ITransport() override = default;
+    ~ITransport() override;
 
     virtual void start() = 0;
     virtual void stop() = 0;

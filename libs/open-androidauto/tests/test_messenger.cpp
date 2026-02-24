@@ -68,8 +68,10 @@ private slots:
         // Header byte 0 = 0x00 (channel 0)
         QCOMPARE(static_cast<uint8_t>(frame[0]), uint8_t(0x00));
 
-        // Header byte 1 = Bulk(0x03) | Control(0x04) | Plain(0x00) = 0x07
-        QCOMPARE(static_cast<uint8_t>(frame[1]), uint8_t(0x07));
+        // Header byte 1 = Bulk(0x03) | Specific(0x00) | Plain(0x00) = 0x03
+        // AA wire protocol uses MessageType::Specific for all messages,
+        // including those on channel 0 (control channel).
+        QCOMPARE(static_cast<uint8_t>(frame[1]), uint8_t(0x03));
 
         // Size field = 6 (2-byte msgId + 4-byte payload)
         QCOMPARE(parseFrameSize(frame), uint16_t(6));
@@ -80,6 +82,30 @@ private slots:
         QCOMPARE(static_cast<uint8_t>(framePayload[0]), uint8_t(0x00));
         QCOMPARE(static_cast<uint8_t>(framePayload[1]), uint8_t(0x01));
         QCOMPARE(framePayload.mid(2), versionPayload);
+    }
+
+    void testSendServiceChannelUsesControlBit() {
+        oaa::ReplayTransport transport;
+        oaa::Messenger messenger(&transport);
+
+        transport.simulateConnect();
+        messenger.start();
+
+        // Send CHANNEL_OPEN_RESPONSE (ch3, msgId 0x0008) — service channel
+        QByteArray payload(2, '\x00'); // Status::OK protobuf
+        messenger.sendMessage(3, 0x0008, payload);
+
+        auto written = transport.writtenData();
+        QCOMPARE(written.size(), 1);
+
+        QByteArray frame = written[0];
+
+        // Header byte 0 = 0x03 (channel 3)
+        QCOMPARE(static_cast<uint8_t>(frame[0]), uint8_t(0x03));
+
+        // Header byte 1 = Bulk(0x03) | Control(0x04) | Plain(0x00) = 0x07
+        // Non-zero channels use MessageType::Control in aasdk.
+        QCOMPARE(static_cast<uint8_t>(frame[1]), uint8_t(0x07));
     }
 
     void testReceivePlainControlMessage() {

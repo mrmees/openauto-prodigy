@@ -28,9 +28,12 @@ private slots:
 
         handler.onMessage(oaa::AVMessageId::SETUP_REQUEST, payload);
 
-        QCOMPARE(sendSpy.count(), 1);
+        // Expect 2 sends: SETUP_RESPONSE + VIDEO_FOCUS_INDICATION (FOCUSED)
+        QCOMPARE(sendSpy.count(), 2);
         QCOMPARE(sendSpy[0][1].value<uint16_t>(),
                  static_cast<uint16_t>(oaa::AVMessageId::SETUP_RESPONSE));
+        QCOMPARE(sendSpy[1][1].value<uint16_t>(),
+                 static_cast<uint16_t>(oaa::AVMessageId::VIDEO_FOCUS_INDICATION));
     }
 
     void testStartIndicationEmitsSignal() {

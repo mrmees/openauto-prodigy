@@ -470,6 +470,9 @@ target_link_libraries(test_aa_orchestrator PRIVATE
     ${LIBAV_LIBRARIES}
 )
 add_test(NAME test_aa_orchestrator COMMAND test_aa_orchestrator)
+set_tests_properties(test_aa_orchestrator PROPERTIES
+    ENVIRONMENT "QT_QPA_PLATFORM=offscreen"
+)
 
 add_executable(test_oap_protocol_logger
     test_oap_protocol_logger.cpp

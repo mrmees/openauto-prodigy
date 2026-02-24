@@ -6,6 +6,13 @@
 #include "ServiceDiscoveryRequestMessage.pb.h"
 #include "ServiceDiscoveryResponseMessage.pb.h"
 #include "ChannelDescriptorData.pb.h"
+#include "ChannelOpenRequestMessage.pb.h"
+#include "ChannelOpenResponseMessage.pb.h"
+#include "StatusEnum.pb.h"
+#include "AudioFocusRequestMessage.pb.h"
+#include "AudioFocusResponseMessage.pb.h"
+#include "AudioFocusTypeEnum.pb.h"
+#include "AudioFocusStateEnum.pb.h"
 
 namespace oaa {
 
@@ -48,6 +55,43 @@ AASession::AASession(ITransport* transport, const SessionConfig& config,
             this, &AASession::onShutdownRequested);
     connect(controlChannel_, &ControlChannel::shutdownAcknowledged,
             this, &AASession::onShutdownAcknowledged);
+
+    // Auto-respond to audio focus and nav focus requests.
+    // Maps AudioFocusType → AudioFocusState:
+    //   GAIN(1)→GAIN(1), GAIN_TRANSIENT(2)→GAIN_TRANSIENT(2),
+    //   GAIN_NAVI(3)→GAIN_TRANSIENT_GUIDANCE_ONLY(7), RELEASE(4)→LOSS(3)
+    connect(controlChannel_, &ControlChannel::audioFocusRequested,
+            this, [this](const QByteArray& payload) {
+                proto::messages::AudioFocusRequest req;
+                if (!req.ParseFromArray(payload.constData(), payload.size()))
+                    return;
+                auto type = req.audio_focus_type();
+                proto::enums::AudioFocusState::Enum state;
+                switch (type) {
+                case proto::enums::AudioFocusType::GAIN:
+                    state = proto::enums::AudioFocusState::GAIN; break;
+                case proto::enums::AudioFocusType::GAIN_TRANSIENT:
+                    state = proto::enums::AudioFocusState::GAIN_TRANSIENT; break;
+                case proto::enums::AudioFocusType::GAIN_NAVI:
+                    state = proto::enums::AudioFocusState::GAIN_TRANSIENT_GUIDANCE_ONLY; break;
+                case proto::enums::AudioFocusType::RELEASE:
+                    state = proto::enums::AudioFocusState::LOSS; break;
+                default:
+                    state = proto::enums::AudioFocusState::NONE; break;
+                }
+                qDebug() << "[AASession] Audio focus request type:" << (int)type
+                         << "→ state:" << (int)state;
+                proto::messages::AudioFocusResponse resp;
+                resp.set_audio_focus_state(state);
+                QByteArray data(resp.ByteSizeLong(), '\0');
+                resp.SerializeToArray(data.data(), data.size());
+                controlChannel_->sendAudioFocusResponse(data);
+            });
+    connect(controlChannel_, &ControlChannel::navigationFocusRequested,
+            this, [this](const QByteArray& payload) {
+                qDebug() << "[AASession] Nav focus request, auto-granting";
+                controlChannel_->sendNavigationFocusResponse(payload);
+            });
 
     // Route ControlChannel sends through Messenger
     connect(controlChannel_, &IChannelHandler::sendRequested,
@@ -216,9 +260,45 @@ void AASession::onChannelOpenRequested(uint8_t channelId, const QByteArray& /*pa
 
 void AASession::onMessage(uint8_t channelId, uint16_t messageId,
                           const QByteArray& payload) {
+    // Log ALL incoming messages for debugging
+    qDebug() << "[AASession] RX ch" << channelId << "msgId" << Qt::hex << messageId
+             << "len" << payload.size();
+
     // Channel 0 → ControlChannel
     if (channelId == 0) {
         controlChannel_->onMessage(messageId, payload);
+        return;
+    }
+
+    // CHANNEL_OPEN_REQUEST (0x0007) arrives on the TARGET channel, not ch0.
+    // Handle it here and respond on the same channel.
+    if (messageId == 0x0007) {
+        if (state_ != SessionState::Active) return;
+
+        proto::messages::ChannelOpenRequest req;
+        if (req.ParseFromArray(payload.constData(), payload.size())) {
+            uint8_t targetCh = static_cast<uint8_t>(req.channel_id());
+            if (channels_.contains(targetCh)) {
+                qDebug() << "[AASession] Opening channel" << targetCh;
+                // Response goes on the target channel, not ch0
+                proto::messages::ChannelOpenResponse resp;
+                resp.set_status(proto::enums::Status::OK);
+                QByteArray respData(resp.ByteSizeLong(), '\0');
+                resp.SerializeToArray(respData.data(), respData.size());
+                messenger_->sendMessage(targetCh, 0x0008, respData);
+                channels_[targetCh]->onChannelOpened();
+                emit channelOpened(targetCh);
+            } else {
+                qDebug() << "[AASession] Rejecting channel" << targetCh
+                         << "(not registered)";
+                proto::messages::ChannelOpenResponse resp;
+                resp.set_status(proto::enums::Status::FAIL);
+                QByteArray respData(resp.ByteSizeLong(), '\0');
+                resp.SerializeToArray(respData.data(), respData.size());
+                messenger_->sendMessage(targetCh, 0x0008, respData);
+                emit channelOpenRejected(targetCh);
+            }
+        }
         return;
     }
 

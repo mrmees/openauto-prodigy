@@ -71,12 +71,21 @@ void VideoChannelHandler::handleSetupRequest(const QByteArray& payload)
 
     oaa::proto::messages::AVChannelSetupResponse resp;
     resp.set_media_status(oaa::proto::enums::AVChannelSetupStatus::OK);
-    resp.set_max_unacked(1);
+    resp.set_max_unacked(10);
     resp.add_configs(0); // Always use primary config
 
     QByteArray data(resp.ByteSizeLong(), '\0');
     resp.SerializeToArray(data.data(), data.size());
     emit sendRequested(channelId(), oaa::AVMessageId::SETUP_RESPONSE, data);
+
+    // Send VIDEO_FOCUS_INDICATION (FOCUSED) to tell the phone to start rendering.
+    // Without this, the phone won't send AV_START_INDICATION.
+    oaa::proto::messages::VideoFocusIndication focus;
+    focus.set_focus_mode(oaa::proto::enums::VideoFocusMode::FOCUSED);
+    focus.set_unrequested(false);
+    QByteArray focusData(focus.ByteSizeLong(), '\0');
+    focus.SerializeToArray(focusData.data(), focusData.size());
+    emit sendRequested(channelId(), oaa::AVMessageId::VIDEO_FOCUS_INDICATION, focusData);
 }
 
 void VideoChannelHandler::handleStartIndication(const QByteArray& payload)

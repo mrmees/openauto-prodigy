@@ -170,6 +170,7 @@ void AndroidAutoOrchestrator::onNewConnection()
     // Create transport
     transport_ = new oaa::TCPTransport(this);
     transport_->setSocket(socket);
+    transport_->start();
 
     // Build session config from YAML
     QString btMac = "00:00:00:00:00:00";

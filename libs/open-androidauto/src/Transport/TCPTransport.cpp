@@ -55,7 +55,13 @@ void TCPTransport::stop()
 void TCPTransport::write(const QByteArray& data)
 {
     if (socket_ && socket_->state() == QAbstractSocket::ConnectedState) {
+        qDebug() << "[TCPTransport] write:" << data.size() << "bytes,"
+                 << "hex:" << data.toHex(' ');
         socket_->write(data);
+        socket_->flush();
+    } else {
+        qWarning() << "[TCPTransport] write DROPPED:" << data.size()
+                    << "bytes (socket state:" << (socket_ ? (int)socket_->state() : -1) << ")";
     }
 }
 
@@ -67,7 +73,9 @@ bool TCPTransport::isConnected() const
 void TCPTransport::connectSocketSignals()
 {
     connect(socket_, &QTcpSocket::readyRead, this, [this]() {
-        emit dataReceived(socket_->readAll());
+        QByteArray data = socket_->readAll();
+        qDebug() << "[TCPTransport] readyRead:" << data.size() << "bytes";
+        emit dataReceived(data);
     });
     connect(socket_, &QTcpSocket::connected, this, &TCPTransport::connected);
     connect(socket_, &QTcpSocket::disconnected, this, &TCPTransport::disconnected);
