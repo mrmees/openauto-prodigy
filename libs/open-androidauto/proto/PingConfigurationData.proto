@@ -1,10 +1,17 @@
+/*
+ * PingConfiguration — connection keepalive parameters.
+ *
+ * APK class: zyd.java (AA v16.1)
+ * Sub-message of ConnectionConfiguration field 1.
+ * Only 2 fields (was incorrectly 4 in previous version).
+ */
+
 syntax="proto2";
 
 package oaa.proto.data;
 
 message PingConfiguration {
-    optional uint32 timeout_ms = 1;
-    optional uint32 interval_ms = 2;
-    optional uint32 high_latency_threshold_ms = 3;
-    optional uint32 tracked_ping_count = 4;
+    optional int64 ping_interval_ns = 1;    // APK: long b — was uint32 timeout_ms
+    optional uint32 ping_timeout_ms = 2;    // APK: int c
+    // fields 3-4 removed — do not exist in APK zyd.java
 }

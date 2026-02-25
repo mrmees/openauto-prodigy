@@ -1,21 +1,25 @@
 syntax = "proto2";
 
+import "PhoneCallStateEnum.proto";
+
 package oaa.proto.messages;
 
 // Phone status update (msgId 0x8001 on Phone Status channel)
 // Sent by phone to report call state changes
+// APK class: waf.java (AA v16.1)
 message PhoneStatusUpdate {
     // Active calls (empty = no calls / idle)
     repeated PhoneCall calls = 1;
-    // Unknown field — possibly signal strength or global state
-    optional int32 state = 2;
+    optional uint32 signal_strength = 2;  // APK: uint32, set from CarPhoneStatus.b
 }
 
+// APK class: wad.java (AA v16.1)
 message PhoneCall {
-    // 1=ACTIVE (in-call), 4=RINGING (incoming), others TBD
-    optional int32 call_state = 1;
-    // 0 observed — possibly direction (0=incoming, 1=outgoing?)
-    optional int32 direction = 2;
+    // APK: required enum wae — see PhoneCallStateEnum.proto
+    required enums.PhoneCallState.Enum call_state = 1;
+    // APK: required uint32 — elapsed seconds since call connected
+    // Previously misidentified as "direction" (0 = just connected)
+    required uint32 call_duration_seconds = 2;
     // Phone number (e.g. "+1 858-225-7702")
     optional string phone_number = 3;
     // Caller display name (e.g. "Spam Risk", contact name)

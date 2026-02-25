@@ -1,10 +1,10 @@
 {
   "summary": {
     "date": "2026-02-25",
-    "total": 178,
-    "verified": 31,
-    "partial": 56,
-    "unmatched": 91,
+    "total": 187,
+    "verified": 45,
+    "partial": 54,
+    "unmatched": 88,
     "error": 0
   },
   "results": [
@@ -903,6 +903,23 @@
       "comparison": null
     },
     {
+      "message": "ChargingStationDetails",
+      "file": "NavigationStepMessage.proto",
+      "status": "verified",
+      "apk_class": "vwz",
+      "match_source": "manual",
+      "match_score": 1.0,
+      "comparison": {
+        "status": "verified",
+        "mismatches": [],
+        "matched_count": 3,
+        "our_field_count": 3,
+        "apk_field_count": 3,
+        "our_only": [],
+        "apk_only": []
+      }
+    },
+    {
       "message": "Compass",
       "file": "CompassData.proto",
       "status": "partial",
@@ -933,16 +950,16 @@
       "file": "ConnectionConfigurationData.proto",
       "status": "partial",
       "apk_class": "aajk",
-      "match_source": "auto",
+      "match_source": "manual",
       "match_score": 1.0,
       "comparison": {
         "status": "partial",
         "mismatches": [
           {
             "field": 2,
-            "issue": "cardinality mismatch",
-            "our_value": "optional",
-            "apk_value": "oneof"
+            "issue": "missing field (exists in APK)",
+            "our_value": null,
+            "apk_value": "message"
           },
           {
             "field": 3,
@@ -952,9 +969,9 @@
           },
           {
             "field": 4,
-            "issue": "cardinality mismatch",
-            "our_value": "optional",
-            "apk_value": "oneof"
+            "issue": "missing field (exists in APK)",
+            "our_value": null,
+            "apk_value": "message"
           },
           {
             "field": 5,
@@ -967,35 +984,70 @@
             "issue": "missing field (exists in APK)",
             "our_value": null,
             "apk_value": "message"
-          },
-          {
-            "field": 60,
-            "issue": "extra field in our proto (not in APK)",
-            "our_value": "protocol_version",
-            "apk_value": null
           }
         ],
         "matched_count": 1,
-        "our_field_count": 4,
+        "our_field_count": 1,
         "apk_field_count": 6,
-        "our_only": [
-          60
-        ],
+        "our_only": [],
         "apk_only": [
+          2,
           3,
+          4,
           5,
           6
         ]
       }
     },
     {
-      "message": "ConnectionSecurityConfig",
+      "message": "ConnectionFeatureFlags",
+      "file": "ConnectionConfigurationData.proto",
+      "status": "verified",
+      "apk_class": "aaja",
+      "match_source": "manual",
+      "match_score": 1.0,
+      "comparison": {
+        "status": "verified",
+        "mismatches": [],
+        "matched_count": 1,
+        "our_field_count": 1,
+        "apk_field_count": 1,
+        "our_only": [],
+        "apk_only": []
+      }
+    },
+    {
+      "message": "ConnectionReservedConfig",
       "file": "ConnectionConfigurationData.proto",
       "status": "unmatched",
       "apk_class": null,
       "match_source": null,
       "match_score": 0,
       "comparison": null
+    },
+    {
+      "message": "ConnectionSecurityConfig",
+      "file": "ConnectionConfigurationData.proto",
+      "status": "partial",
+      "apk_class": "aajj",
+      "match_source": "manual",
+      "match_score": 1.0,
+      "comparison": {
+        "status": "partial",
+        "mismatches": [
+          {
+            "field": 1,
+            "issue": "type mismatch",
+            "our_value": "int32",
+            "apk_value": "enum"
+          }
+        ],
+        "matched_count": 0,
+        "our_field_count": 1,
+        "apk_field_count": 1,
+        "our_only": [],
+        "apk_only": []
+      }
     },
     {
       "message": "ConnectionState",
@@ -1007,13 +1059,39 @@
       "comparison": null
     },
     {
-      "message": "ConnectionTuningConfig",
+      "message": "ConnectionTransportConfig",
       "file": "ConnectionConfigurationData.proto",
       "status": "unmatched",
       "apk_class": null,
       "match_source": null,
       "match_score": 0,
       "comparison": null
+    },
+    {
+      "message": "ConnectionTuningConfig",
+      "file": "ConnectionConfigurationData.proto",
+      "status": "partial",
+      "apk_class": "aajg",
+      "match_source": "manual",
+      "match_score": 1.0,
+      "comparison": {
+        "status": "partial",
+        "mismatches": [
+          {
+            "field": 60,
+            "issue": "missing field (exists in APK)",
+            "our_value": null,
+            "apk_value": "double"
+          }
+        ],
+        "matched_count": 1,
+        "our_field_count": 1,
+        "apk_field_count": 5,
+        "our_only": [],
+        "apk_only": [
+          60
+        ]
+      }
     },
     {
       "message": "ControlMessage",
@@ -1494,6 +1572,15 @@
       "comparison": null
     },
     {
+      "message": "LaneShape",
+      "file": "LaneShapeEnum.proto",
+      "status": "unmatched",
+      "apk_class": null,
+      "match_source": null,
+      "match_score": 0,
+      "comparison": null
+    },
+    {
       "message": "Light",
       "file": "LightData.proto",
       "status": "verified",
@@ -1509,6 +1596,15 @@
         "our_only": [],
         "apk_only": []
       }
+    },
+    {
+      "message": "ManeuverType",
+      "file": "ManeuverTypeEnum.proto",
+      "status": "unmatched",
+      "apk_class": null,
+      "match_source": null,
+      "match_score": 0,
+      "comparison": null
     },
     {
       "message": "MediaCodec",
@@ -1610,21 +1706,14 @@
     {
       "message": "NavigationChannel",
       "file": "NavigationChannelData.proto",
-      "status": "partial",
+      "status": "verified",
       "apk_class": "vzr",
       "match_source": "manual",
       "match_score": 1.0,
       "comparison": {
-        "status": "partial",
-        "mismatches": [
-          {
-            "field": 2,
-            "issue": "type mismatch",
-            "our_value": "int32",
-            "apk_value": "enum"
-          }
-        ],
-        "matched_count": 2,
+        "status": "verified",
+        "mismatches": [],
+        "matched_count": 3,
         "our_field_count": 3,
         "apk_field_count": 3,
         "our_only": [],
@@ -1643,11 +1732,19 @@
     {
       "message": "NavigationDestination",
       "file": "NavigationStepMessage.proto",
-      "status": "unmatched",
-      "apk_class": null,
-      "match_source": null,
-      "match_score": 0,
-      "comparison": null
+      "status": "verified",
+      "apk_class": "vze",
+      "match_source": "manual",
+      "match_score": 1.0,
+      "comparison": {
+        "status": "verified",
+        "mismatches": [],
+        "matched_count": 2,
+        "our_field_count": 2,
+        "apk_field_count": 2,
+        "our_only": [],
+        "apk_only": []
+      }
     },
     {
       "message": "NavigationDistance",
@@ -1841,13 +1938,89 @@
       }
     },
     {
+      "message": "NavigationLane",
+      "file": "NavigationStepMessage.proto",
+      "status": "verified",
+      "apk_class": "vzj",
+      "match_source": "manual",
+      "match_score": 1.0,
+      "comparison": {
+        "status": "verified",
+        "mismatches": [],
+        "matched_count": 1,
+        "our_field_count": 1,
+        "apk_field_count": 1,
+        "our_only": [],
+        "apk_only": []
+      }
+    },
+    {
+      "message": "NavigationLaneDirection",
+      "file": "NavigationStepMessage.proto",
+      "status": "verified",
+      "apk_class": "vzi",
+      "match_source": "manual",
+      "match_score": 1.0,
+      "comparison": {
+        "status": "verified",
+        "mismatches": [],
+        "matched_count": 2,
+        "our_field_count": 2,
+        "apk_field_count": 2,
+        "our_only": [],
+        "apk_only": []
+      }
+    },
+    {
       "message": "NavigationManeuver",
       "file": "NavigationStepMessage.proto",
-      "status": "unmatched",
-      "apk_class": null,
-      "match_source": null,
-      "match_score": 0,
-      "comparison": null
+      "status": "verified",
+      "apk_class": "vzk",
+      "match_source": "manual",
+      "match_score": 1.0,
+      "comparison": {
+        "status": "verified",
+        "mismatches": [],
+        "matched_count": 3,
+        "our_field_count": 3,
+        "apk_field_count": 3,
+        "our_only": [],
+        "apk_only": []
+      }
+    },
+    {
+      "message": "NavigationNotification",
+      "file": "NavigationStepMessage.proto",
+      "status": "verified",
+      "apk_class": "vzo",
+      "match_source": "manual",
+      "match_score": 1.0,
+      "comparison": {
+        "status": "verified",
+        "mismatches": [],
+        "matched_count": 2,
+        "our_field_count": 2,
+        "apk_field_count": 2,
+        "our_only": [],
+        "apk_only": []
+      }
+    },
+    {
+      "message": "NavigationRoadInfo",
+      "file": "NavigationStepMessage.proto",
+      "status": "verified",
+      "apk_class": "vzc",
+      "match_source": "manual",
+      "match_score": 1.0,
+      "comparison": {
+        "status": "verified",
+        "mismatches": [],
+        "matched_count": 1,
+        "our_field_count": 1,
+        "apk_field_count": 1,
+        "our_only": [],
+        "apk_only": []
+      }
     },
     {
       "message": "NavigationState",
@@ -1892,67 +2065,40 @@
     {
       "message": "NavigationStep",
       "file": "NavigationStepMessage.proto",
-      "status": "partial",
-      "apk_class": "utj",
-      "match_source": "auto",
-      "match_score": 0.667,
+      "status": "verified",
+      "apk_class": "vzu",
+      "match_source": "manual",
+      "match_score": 1.0,
       "comparison": {
-        "status": "partial",
-        "mismatches": [
-          {
-            "field": 1,
-            "issue": "type mismatch",
-            "our_value": "NavigationStepInfo (\u2192message)",
-            "apk_value": "string"
-          },
-          {
-            "field": 2,
-            "issue": "type mismatch",
-            "our_value": "NavigationDestination (\u2192message)",
-            "apk_value": "bytes"
-          },
-          {
-            "field": 3,
-            "issue": "missing field (exists in APK)",
-            "our_value": null,
-            "apk_value": "string"
-          },
-          {
-            "field": 4,
-            "issue": "missing field (exists in APK)",
-            "our_value": null,
-            "apk_value": "int64"
-          },
-          {
-            "field": 5,
-            "issue": "missing field (exists in APK)",
-            "our_value": null,
-            "apk_value": "message"
-          }
-        ],
-        "matched_count": 0,
-        "our_field_count": 2,
-        "apk_field_count": 5,
+        "status": "verified",
+        "mismatches": [],
+        "matched_count": 4,
+        "our_field_count": 4,
+        "apk_field_count": 4,
         "our_only": [],
-        "apk_only": [
-          3,
-          4,
-          5
-        ]
+        "apk_only": []
       }
-    },
-    {
-      "message": "NavigationStepInfo",
-      "file": "NavigationStepMessage.proto",
-      "status": "unmatched",
-      "apk_class": null,
-      "match_source": null,
-      "match_score": 0,
-      "comparison": null
     },
     {
       "message": "NavigationText",
       "file": "NavigationStepMessage.proto",
+      "status": "verified",
+      "apk_class": "vzn",
+      "match_source": "manual",
+      "match_score": 1.0,
+      "comparison": {
+        "status": "verified",
+        "mismatches": [],
+        "matched_count": 1,
+        "our_field_count": 1,
+        "apk_field_count": 1,
+        "our_only": [],
+        "apk_only": []
+      }
+    },
+    {
+      "message": "NavigationType",
+      "file": "NavigationTypeEnum.proto",
       "status": "unmatched",
       "apk_class": null,
       "match_source": null,
@@ -2074,11 +2220,19 @@
     {
       "message": "PhoneCall",
       "file": "PhoneStatusMessage.proto",
-      "status": "unmatched",
-      "apk_class": null,
-      "match_source": null,
-      "match_score": 0,
-      "comparison": null
+      "status": "verified",
+      "apk_class": "wad",
+      "match_source": "manual",
+      "match_score": 1.0,
+      "comparison": {
+        "status": "verified",
+        "mismatches": [],
+        "matched_count": 6,
+        "our_field_count": 6,
+        "apk_field_count": 6,
+        "our_only": [],
+        "apk_only": []
+      }
     },
     {
       "message": "PhoneCallState",
@@ -2127,60 +2281,18 @@
     {
       "message": "PhoneStatusUpdate",
       "file": "PhoneStatusMessage.proto",
-      "status": "partial",
-      "apk_class": "wad",
-      "match_source": "auto",
-      "match_score": 0.833,
+      "status": "verified",
+      "apk_class": "waf",
+      "match_source": "manual",
+      "match_score": 1.0,
       "comparison": {
-        "status": "partial",
-        "mismatches": [
-          {
-            "field": 1,
-            "issue": "type mismatch",
-            "our_value": "PhoneCall (\u2192message)",
-            "apk_value": "enum"
-          },
-          {
-            "field": 1,
-            "issue": "cardinality mismatch",
-            "our_value": "repeated",
-            "apk_value": "singular"
-          },
-          {
-            "field": 3,
-            "issue": "missing field (exists in APK)",
-            "our_value": null,
-            "apk_value": "string"
-          },
-          {
-            "field": 4,
-            "issue": "missing field (exists in APK)",
-            "our_value": null,
-            "apk_value": "string"
-          },
-          {
-            "field": 5,
-            "issue": "missing field (exists in APK)",
-            "our_value": null,
-            "apk_value": "string"
-          },
-          {
-            "field": 6,
-            "issue": "missing field (exists in APK)",
-            "our_value": null,
-            "apk_value": "bytes"
-          }
-        ],
-        "matched_count": 1,
+        "status": "verified",
+        "mismatches": [],
+        "matched_count": 2,
         "our_field_count": 2,
-        "apk_field_count": 6,
+        "apk_field_count": 2,
         "our_only": [],
-        "apk_only": [
-          3,
-          4,
-          5,
-          6
-        ]
+        "apk_only": []
       }
     },
     {
@@ -2204,17 +2316,32 @@
     {
       "message": "PingConfiguration",
       "file": "PingConfigurationData.proto",
-      "status": "verified",
-      "apk_class": "vzy",
-      "match_source": "auto",
+      "status": "partial",
+      "apk_class": "zyd",
+      "match_source": "manual",
       "match_score": 1.0,
       "comparison": {
-        "status": "verified",
-        "mismatches": [],
-        "matched_count": 4,
-        "our_field_count": 4,
-        "apk_field_count": 4,
-        "our_only": [],
+        "status": "partial",
+        "mismatches": [
+          {
+            "field": -1,
+            "issue": "malformed APK field entry",
+            "our_value": null,
+            "apk_value": "Ran out of descriptor data at pos 13"
+          },
+          {
+            "field": 2,
+            "issue": "extra field in our proto (not in APK)",
+            "our_value": "ping_timeout_ms",
+            "apk_value": null
+          }
+        ],
+        "matched_count": 1,
+        "our_field_count": 2,
+        "apk_field_count": 2,
+        "our_only": [
+          2
+        ],
         "apk_only": []
       }
     },
@@ -2421,27 +2548,14 @@
     {
       "message": "SensorChannel",
       "file": "SensorChannelData.proto",
-      "status": "partial",
+      "status": "verified",
       "apk_class": "wbu",
       "match_source": "manual",
       "match_score": 1.0,
       "comparison": {
-        "status": "partial",
-        "mismatches": [
-          {
-            "field": 3,
-            "issue": "type mismatch",
-            "our_value": "int32",
-            "apk_value": "enum"
-          },
-          {
-            "field": 4,
-            "issue": "type mismatch",
-            "our_value": "int32",
-            "apk_value": "enum"
-          }
-        ],
-        "matched_count": 2,
+        "status": "verified",
+        "mismatches": [],
+        "matched_count": 4,
         "our_field_count": 4,
         "apk_field_count": 4,
         "our_only": [],
@@ -2478,61 +2592,46 @@
         "mismatches": [
           {
             "field": 21,
-            "issue": "missing field (exists in APK)",
-            "our_value": null,
+            "issue": "type mismatch",
+            "our_value": "bytes",
             "apk_value": "message"
           },
           {
             "field": 22,
-            "issue": "missing field (exists in APK)",
-            "our_value": null,
+            "issue": "type mismatch",
+            "our_value": "bytes",
             "apk_value": "message"
           },
           {
             "field": 23,
-            "issue": "missing field (exists in APK)",
-            "our_value": null,
+            "issue": "type mismatch",
+            "our_value": "bytes",
             "apk_value": "message"
           },
           {
             "field": 24,
-            "issue": "missing field (exists in APK)",
-            "our_value": null,
+            "issue": "type mismatch",
+            "our_value": "bytes",
             "apk_value": "message"
           },
           {
             "field": 25,
-            "issue": "missing field (exists in APK)",
-            "our_value": null,
+            "issue": "type mismatch",
+            "our_value": "bytes",
             "apk_value": "message"
           },
           {
             "field": 26,
-            "issue": "missing field (exists in APK)",
-            "our_value": null,
+            "issue": "type mismatch",
+            "our_value": "bytes",
             "apk_value": "message"
-          },
-          {
-            "field": 27,
-            "issue": "extra field in our proto (not in APK)",
-            "our_value": "extended_sensor_data",
-            "apk_value": null
           }
         ],
         "matched_count": 20,
-        "our_field_count": 21,
+        "our_field_count": 26,
         "apk_field_count": 26,
-        "our_only": [
-          27
-        ],
-        "apk_only": [
-          21,
-          22,
-          23,
-          24,
-          25,
-          26
-        ]
+        "our_only": [],
+        "apk_only": []
       }
     },
     {
@@ -2613,73 +2712,18 @@
     {
       "message": "ServiceDiscoveryRequest",
       "file": "ServiceDiscoveryRequestMessage.proto",
-      "status": "partial",
-      "apk_class": "aahi",
+      "status": "verified",
+      "apk_class": "wbx",
       "match_source": "manual",
       "match_score": 1.0,
       "comparison": {
-        "status": "partial",
-        "mismatches": [
-          {
-            "field": -1,
-            "issue": "malformed APK field entry",
-            "our_value": null,
-            "apk_value": "Ran out of descriptor data at pos 22"
-          },
-          {
-            "field": 1,
-            "issue": "type mismatch",
-            "our_value": "bytes",
-            "apk_value": "message"
-          },
-          {
-            "field": 2,
-            "issue": "type mismatch",
-            "our_value": "bytes",
-            "apk_value": "message"
-          },
-          {
-            "field": 3,
-            "issue": "type mismatch",
-            "our_value": "bytes",
-            "apk_value": "string"
-          },
-          {
-            "field": 4,
-            "issue": "extra field in our proto (not in APK)",
-            "our_value": "device_name",
-            "apk_value": null
-          },
-          {
-            "field": 5,
-            "issue": "extra field in our proto (not in APK)",
-            "our_value": "device_brand",
-            "apk_value": null
-          },
-          {
-            "field": 6,
-            "issue": "extra field in our proto (not in APK)",
-            "our_value": "session_info",
-            "apk_value": null
-          },
-          {
-            "field": 44,
-            "issue": "missing field (exists in APK)",
-            "our_value": null,
-            "apk_value": "fixed64"
-          }
-        ],
-        "matched_count": 0,
+        "status": "verified",
+        "mismatches": [],
+        "matched_count": 6,
         "our_field_count": 6,
-        "apk_field_count": 5,
-        "our_only": [
-          4,
-          5,
-          6
-        ],
-        "apk_only": [
-          44
-        ]
+        "apk_field_count": 6,
+        "our_only": [],
+        "apk_only": []
       }
     },
     {
@@ -2709,27 +2753,18 @@
       "comparison": null
     },
     {
-      "message": "SessionHistoryEntry",
-      "file": "SessionInfoData.proto",
-      "status": "unmatched",
-      "apk_class": null,
-      "match_source": null,
-      "match_score": 0,
-      "comparison": null
-    },
-    {
       "message": "SessionInfo",
       "file": "SessionInfoData.proto",
       "status": "verified",
-      "apk_class": "utj",
-      "match_source": "auto",
+      "apk_class": "vvf",
+      "match_source": "manual",
       "match_score": 1.0,
       "comparison": {
         "status": "verified",
         "mismatches": [],
-        "matched_count": 5,
-        "our_field_count": 5,
-        "apk_field_count": 5,
+        "matched_count": 4,
+        "our_field_count": 4,
+        "apk_field_count": 4,
         "our_only": [],
         "apk_only": []
       }

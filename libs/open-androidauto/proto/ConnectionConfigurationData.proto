@@ -1,7 +1,13 @@
 /*
- * Updated via APK proto decoder (aajk.java, AA v16.1)
+ * ConnectionConfiguration — connection setup parameters.
+ *
+ * APK class: aajk.java (AA v16.1)
  * Embedded in ServiceDiscoveryResponse field 16.
- * Tells the phone about HU connection capabilities.
+ * Fields 2-6 form a oneof (previously decoded as flat fields at 1/2/4/60).
+ *
+ * NOTE: Sub-messages of ConnectionTransportConfig (aajt, aakd) and
+ * ConnectionTuningConfig's oneof members (aajf, aajb, aajd, aajc) have
+ * not been fully decoded — kept as bytes until we have live captures.
  */
 
 syntax="proto2";
@@ -11,23 +17,45 @@ import "PingConfigurationData.proto";
 package oaa.proto.data;
 
 message ConnectionConfiguration {
-    optional PingConfiguration ping_configuration = 1;
+    optional PingConfiguration ping_configuration = 1;  // APK: zyd
 
-    // Fields 2-60 discovered via APK proto decoder (aajk.java, AA v16.1)
-    optional ConnectionSecurityConfig security_config = 2;  // APK: aajj — security/auth negotiation
-    optional ConnectionTuningConfig tuning_config = 4;      // APK: aajg — connection tuning params
-    optional double protocol_version = 60;                  // APK: aaja — possibly protocol version number
+    oneof config_type {
+        ConnectionSecurityConfig security_config = 2;   // APK: aajj
+        ConnectionTransportConfig transport_config = 3;  // APK: aajh
+        ConnectionFeatureFlags feature_flags = 4;        // APK: aaja
+        ConnectionTuningConfig tuning_config = 5;        // APK: aajg
+        ConnectionReservedConfig reserved_config = 6;    // APK: aaji (empty)
+    }
 }
 
-// APK class: aajj — single enum field, likely connection security mode
+// APK class: aajj — 1 enum field
 message ConnectionSecurityConfig {
-    optional int32 security_mode = 1;
+    optional int32 security_mode = 1;   // enum type in APK, values TBD
 }
 
-// APK class: aajg — nested connection tuning parameters
+// APK class: aajh — 2 sub-message fields (fields 2-3, no field 1)
+message ConnectionTransportConfig {
+    optional bytes transport_params_a = 2;   // APK: aajt — sub-message, fields TBD
+    optional bytes transport_params_b = 3;   // APK: aakd — sub-message, fields TBD
+}
+
+// APK class: aaja — single bool
+message ConnectionFeatureFlags {
+    optional bool enabled = 1;
+}
+
+// APK class: aajg — uint32 + oneof with 4 sub-messages
 message ConnectionTuningConfig {
     optional uint32 timeout_ms = 1;
-    optional bytes tuning_params_a = 2;   // APK: aajf — sub-message, purpose unknown
-    optional bytes tuning_params_b = 4;   // APK: aajc — sub-message, purpose unknown
-    optional double tuning_value = 60;    // APK: aajd — timing/threshold value
+
+    oneof tuning_params {
+        bytes tuning_a = 2;    // APK: aajf — sub-message, fields TBD
+        bytes tuning_b = 3;    // APK: aajb — sub-message, fields TBD
+        bytes tuning_c = 4;    // APK: aajd — sub-message, fields TBD
+        bytes tuning_d = 5;    // APK: aajc — sub-message, fields TBD
+    }
+}
+
+// APK class: aaji — empty message
+message ConnectionReservedConfig {
 }

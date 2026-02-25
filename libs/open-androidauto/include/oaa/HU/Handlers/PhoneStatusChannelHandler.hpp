@@ -17,9 +17,15 @@ public:
     void onChannelClosed() override;
     void onMessage(uint16_t messageId, const QByteArray& payload) override;
 
+    // PhoneCallState values from APK wae.java
     enum CallState {
-        Active  = 1,
-        Ringing = 4
+        Unknown     = 0,
+        Active      = 1,   // IN_CALL
+        OnHold      = 2,
+        Inactive    = 3,
+        Ringing     = 4,   // INCOMING
+        Conferenced = 5,
+        Muted       = 6
     };
 
 signals:

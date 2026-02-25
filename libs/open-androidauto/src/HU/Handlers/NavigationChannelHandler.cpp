@@ -68,9 +68,9 @@ void NavigationChannelHandler::handleNavState(const QByteArray& payload)
 
 void NavigationChannelHandler::handleNavStep(const QByteArray& payload)
 {
-    oaa::proto::messages::NavigationStep msg;
+    oaa::proto::messages::NavigationNotification msg;
     if (!msg.ParseFromArray(payload.constData(), payload.size())) {
-        qWarning() << "[NavChannel] failed to parse NavigationStep";
+        qWarning() << "[NavChannel] failed to parse NavigationNotification";
         return;
     }
 
@@ -78,14 +78,15 @@ void NavigationChannelHandler::handleNavStep(const QByteArray& payload)
     int maneuverType = 0;
     QString destination;
 
-    if (msg.has_step()) {
-        if (msg.step().has_instruction())
-            instruction = QString::fromStdString(msg.step().instruction().text());
-        if (msg.step().has_maneuver())
-            maneuverType = msg.step().maneuver().type();
+    if (msg.steps_size() > 0) {
+        const auto& step = msg.steps(0);
+        if (step.has_instruction())
+            instruction = QString::fromStdString(step.instruction().text());
+        if (step.has_maneuver())
+            maneuverType = step.maneuver().type();
     }
-    if (msg.has_destination())
-        destination = QString::fromStdString(msg.destination().address());
+    if (msg.destinations_size() > 0)
+        destination = QString::fromStdString(msg.destinations(0).address());
 
     qInfo() << "[NavChannel] step:" << instruction << "→" << destination
             << "maneuver:" << maneuverType;

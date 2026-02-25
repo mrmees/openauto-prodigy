@@ -60,9 +60,94 @@
     "note": "Top-level response"
   },
   "ServiceDiscoveryRequest": {
-    "apk_class": "aahi",
+    "apk_class": "wbx",
     "score": 1.0,
-    "note": "Top-level request"
+    "note": "Corrected from aahi (wrong match) via manual APK trace 2026-02-25"
+  },
+  "SessionInfo": {
+    "apk_class": "vvf",
+    "score": 1.0,
+    "note": "Corrected from utj (collision match) — vvf has 4 strings, traced from wbx field 6"
+  },
+  "PhoneStatusUpdate": {
+    "apk_class": "waf",
+    "score": 1.0,
+    "note": "Manual APK trace 2026-02-25 — outer message, repeated PhoneCall + uint32"
+  },
+  "PhoneCall": {
+    "apk_class": "wad",
+    "score": 1.0,
+    "note": "Manual APK trace 2026-02-25 — inner message of PhoneStatusUpdate"
+  },
+  "NavigationNotification": {
+    "apk_class": "vzo",
+    "score": 1.0,
+    "note": "Manual APK trace 2026-02-25 — NOT utj (collision). Outer nav step message"
+  },
+  "NavigationStep": {
+    "apk_class": "vzu",
+    "score": 1.0,
+    "note": "Manual APK trace — inner step of NavigationNotification"
+  },
+  "NavigationManeuver": {
+    "apk_class": "vzk",
+    "score": 1.0,
+    "note": "Manual APK trace — maneuver type + roundabout params"
+  },
+  "NavigationText": {
+    "apk_class": "vzn",
+    "score": 1.0,
+    "note": "Manual APK trace — instruction text"
+  },
+  "NavigationLane": {
+    "apk_class": "vzj",
+    "score": 1.0,
+    "note": "Manual APK trace — lane guidance container"
+  },
+  "NavigationLaneDirection": {
+    "apk_class": "vzi",
+    "score": 1.0,
+    "note": "Manual APK trace — lane direction + recommended flag"
+  },
+  "NavigationRoadInfo": {
+    "apk_class": "vzc",
+    "score": 1.0,
+    "note": "Manual APK trace — road name segments"
+  },
+  "NavigationDestination": {
+    "apk_class": "vze",
+    "score": 1.0,
+    "note": "Manual APK trace — destination with optional charging station"
+  },
+  "ChargingStationDetails": {
+    "apk_class": "vwz",
+    "score": 1.0,
+    "note": "Manual APK trace — EV charging station details"
+  },
+  "ConnectionConfiguration": {
+    "apk_class": "aajk",
+    "score": 1.0,
+    "note": "Manual APK trace 2026-02-25 — oneof structure, corrected from flat fields"
+  },
+  "PingConfiguration": {
+    "apk_class": "zyd",
+    "score": 1.0,
+    "note": "Manual APK trace — 2 fields (int64 + uint32), corrected from 4 fields"
+  },
+  "ConnectionSecurityConfig": {
+    "apk_class": "aajj",
+    "score": 1.0,
+    "note": "Manual APK trace — 1 enum field"
+  },
+  "ConnectionFeatureFlags": {
+    "apk_class": "aaja",
+    "score": 1.0,
+    "note": "Manual APK trace — 1 bool field (was incorrectly double protocol_version=60)"
+  },
+  "ConnectionTuningConfig": {
+    "apk_class": "aajg",
+    "score": 1.0,
+    "note": "Manual APK trace — uint32 + oneof with 4 sub-messages"
   },
   "PhoneStatusChannel": {
     "apk_class": "vyr",

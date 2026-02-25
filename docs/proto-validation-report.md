@@ -6,11 +6,11 @@ Generated: 2026-02-25
 
 | Status | Count |
 |--------|-------|
-| Verified | 31 |
-| Partial (diffs) | 56 |
-| Unmatched | 91 |
+| Verified | 45 |
+| Partial (diffs) | 54 |
+| Unmatched | 88 |
 | Error | 0 |
-| **Total** | **178** |
+| **Total** | **187** |
 
 ## Verified (all fields match)
 
@@ -23,22 +23,36 @@ Generated: 2026-02-25
 - **BluetoothPairingRequest** (BluetoothPairingRequestMessage.proto) -> `kay` [auto]
 - **ButtonEvent** (ButtonEventData.proto) -> `vyi` [auto]
 - **CallAvailabilityStatus** (CallAvailabilityMessage.proto) -> `poe` [auto]
+- **ChargingStationDetails** (NavigationStepMessage.proto) -> `vwz` [manual]
+- **ConnectionFeatureFlags** (ConnectionConfigurationData.proto) -> `aaja` [manual]
 - **Door** (DoorData.proto) -> `vxh` [auto]
 - **FuelLevel** (FuelLevelData.proto) -> `vxn` [auto]
 - **HeadUnitInfo** (HeadUnitInfoData.proto) -> `aacd` [auto]
 - **InputChannel** (InputChannelData.proto) -> `vya` [manual]
 - **Light** (LightData.proto) -> `vyk` [auto]
 - **MediaPlaybackMetadata** (MediaPlaybackMetadataMessage.proto) -> `nmi` [auto]
+- **NavigationChannel** (NavigationChannelData.proto) -> `vzr` [manual]
+- **NavigationDestination** (NavigationStepMessage.proto) -> `vze` [manual]
+- **NavigationLane** (NavigationStepMessage.proto) -> `vzj` [manual]
+- **NavigationLaneDirection** (NavigationStepMessage.proto) -> `vzi` [manual]
+- **NavigationManeuver** (NavigationStepMessage.proto) -> `vzk` [manual]
+- **NavigationNotification** (NavigationStepMessage.proto) -> `vzo` [manual]
+- **NavigationRoadInfo** (NavigationStepMessage.proto) -> `vzc` [manual]
+- **NavigationStep** (NavigationStepMessage.proto) -> `vzu` [manual]
+- **NavigationText** (NavigationStepMessage.proto) -> `vzn` [manual]
 - **NightMode** (NightModeData.proto) -> `poe` [auto]
 - **ParkingBrake** (ParkingBrakeData.proto) -> `poe` [auto]
 - **Passenger** (PassengerData.proto) -> `poe` [auto]
+- **PhoneCall** (PhoneStatusMessage.proto) -> `wad` [manual]
 - **PhoneStatusChannel** (PhoneStatusChannelData.proto) -> `vyr` [manual]
-- **PingConfiguration** (PingConfigurationData.proto) -> `vzy` [auto]
+- **PhoneStatusUpdate** (PhoneStatusMessage.proto) -> `waf` [manual]
 - **PingRequest** (PingRequestMessage.proto) -> `zrz` [auto]
 - **PingResponse** (PingResponseMessage.proto) -> `zrz` [auto]
+- **SensorChannel** (SensorChannelData.proto) -> `wbu` [manual]
 - **SensorStartRequestMessage** (SensorStartRequestMessage.proto) -> `war` [auto]
+- **ServiceDiscoveryRequest** (ServiceDiscoveryRequestMessage.proto) -> `wbx` [manual]
 - **ServiceDiscoveryResponse** (ServiceDiscoveryResponseMessage.proto) -> `wby` [manual]
-- **SessionInfo** (SessionInfoData.proto) -> `utj` [auto]
+- **SessionInfo** (SessionInfoData.proto) -> `vvf` [manual]
 - **TirePressure** (TirePressureData.proto) -> `vzy` [auto]
 - **TouchEvent** (TouchEventData.proto) -> `wcj` [auto]
 - **VendorExtensionChannel** (VendorExtensionChannelData.proto) -> `wcv` [auto]
@@ -209,18 +223,33 @@ Matched: 3/3 our fields, APK has 4 fields
 |-------|-------|------|-----|
 | 4 | missing field (exists in APK) | None | int32 |
 
-### ConnectionConfiguration (ConnectionConfigurationData.proto) -> `aajk` [auto]
+### ConnectionConfiguration (ConnectionConfigurationData.proto) -> `aajk` [manual]
 
-Matched: 1/4 our fields, APK has 6 fields
+Matched: 1/1 our fields, APK has 6 fields
 
 | Field | Issue | Ours | APK |
 |-------|-------|------|-----|
-| 2 | cardinality mismatch | optional | oneof |
+| 2 | missing field (exists in APK) | None | message |
 | 3 | missing field (exists in APK) | None | message |
-| 4 | cardinality mismatch | optional | oneof |
+| 4 | missing field (exists in APK) | None | message |
 | 5 | missing field (exists in APK) | None | message |
 | 6 | missing field (exists in APK) | None | message |
-| 60 | extra field in our proto (not in APK) | protocol_version | None |
+
+### ConnectionSecurityConfig (ConnectionConfigurationData.proto) -> `aajj` [manual]
+
+Matched: 0/1 our fields, APK has 1 fields
+
+| Field | Issue | Ours | APK |
+|-------|-------|------|-----|
+| 1 | type mismatch | int32 | enum |
+
+### ConnectionTuningConfig (ConnectionConfigurationData.proto) -> `aajg` [manual]
+
+Matched: 1/1 our fields, APK has 5 fields
+
+| Field | Issue | Ours | APK |
+|-------|-------|------|-----|
+| 60 | missing field (exists in APK) | None | double |
 
 ### Diagnostics (DiagnosticsData.proto) -> `xss` [auto]
 
@@ -308,14 +337,6 @@ Matched: 17/18 our fields, APK has 22 fields
 | 23 | missing field (exists in APK) | None | int64 |
 | 24 | missing field (exists in APK) | None | int64 |
 
-### NavigationChannel (NavigationChannelData.proto) -> `vzr` [manual]
-
-Matched: 2/3 our fields, APK has 3 fields
-
-| Field | Issue | Ours | APK |
-|-------|-------|------|-----|
-| 2 | type mismatch | int32 | enum |
-
 ### NavigationDistance (NavigationDistanceMessage.proto) -> `xnb` [auto]
 
 Matched: 1/1 our fields, APK has 4 fields
@@ -364,18 +385,6 @@ Matched: 1/1 our fields, APK has 4 fields
 | 3 | missing field (exists in APK) | None | enum |
 | 4 | missing field (exists in APK) | None | enum |
 
-### NavigationStep (NavigationStepMessage.proto) -> `utj` [auto]
-
-Matched: 0/2 our fields, APK has 5 fields
-
-| Field | Issue | Ours | APK |
-|-------|-------|------|-----|
-| 1 | type mismatch | NavigationStepInfo (→message) | string |
-| 2 | type mismatch | NavigationDestination (→message) | bytes |
-| 3 | missing field (exists in APK) | None | string |
-| 4 | missing field (exists in APK) | None | int64 |
-| 5 | missing field (exists in APK) | None | message |
-
 ### NotificationChannel (NotificationChannelData.proto) -> `wah` [manual]
 
 Matched: 0/1 our fields, APK has 0 fields
@@ -392,18 +401,14 @@ Matched: 2/2 our fields, APK has 3 fields
 |-------|-------|------|-----|
 | 3 | missing field (exists in APK) | None | bool |
 
-### PhoneStatusUpdate (PhoneStatusMessage.proto) -> `wad` [auto]
+### PingConfiguration (PingConfigurationData.proto) -> `zyd` [manual]
 
-Matched: 1/2 our fields, APK has 6 fields
+Matched: 1/2 our fields, APK has 2 fields
 
 | Field | Issue | Ours | APK |
 |-------|-------|------|-----|
-| 1 | type mismatch | PhoneCall (→message) | enum |
-| 1 | cardinality mismatch | repeated | singular |
-| 3 | missing field (exists in APK) | None | string |
-| 4 | missing field (exists in APK) | None | string |
-| 5 | missing field (exists in APK) | None | string |
-| 6 | missing field (exists in APK) | None | bytes |
+| -1 | malformed APK field entry | None | Ran out of descriptor data at pos 13 |
+| 2 | extra field in our proto (not in APK) | ping_timeout_ms | None |
 
 ### RPM (RPMData.proto) -> `aagl` [auto]
 
@@ -442,28 +447,18 @@ Matched: 1/1 our fields, APK has 4 fields
 | 3 | missing field (exists in APK) | None | string |
 | 4 | missing field (exists in APK) | None | string |
 
-### SensorChannel (SensorChannelData.proto) -> `wbu` [manual]
-
-Matched: 2/4 our fields, APK has 4 fields
-
-| Field | Issue | Ours | APK |
-|-------|-------|------|-----|
-| 3 | type mismatch | int32 | enum |
-| 4 | type mismatch | int32 | enum |
-
 ### SensorEventIndication (SensorEventIndicationMessage.proto) -> `wbo` [auto]
 
-Matched: 20/21 our fields, APK has 26 fields
+Matched: 20/26 our fields, APK has 26 fields
 
 | Field | Issue | Ours | APK |
 |-------|-------|------|-----|
-| 21 | missing field (exists in APK) | None | message |
-| 22 | missing field (exists in APK) | None | message |
-| 23 | missing field (exists in APK) | None | message |
-| 24 | missing field (exists in APK) | None | message |
-| 25 | missing field (exists in APK) | None | message |
-| 26 | missing field (exists in APK) | None | message |
-| 27 | extra field in our proto (not in APK) | extended_sensor_data | None |
+| 21 | type mismatch | bytes | message |
+| 22 | type mismatch | bytes | message |
+| 23 | type mismatch | bytes | message |
+| 24 | type mismatch | bytes | message |
+| 25 | type mismatch | bytes | message |
+| 26 | type mismatch | bytes | message |
 
 ### SensorStartResponseMessage (SensorStartResponseMessage.proto) -> `aass` [auto]
 
@@ -474,21 +469,6 @@ Matched: 1/1 our fields, APK has 4 fields
 | 2 | missing field (exists in APK) | None | message |
 | 3 | missing field (exists in APK) | None | string |
 | 4 | missing field (exists in APK) | None | string |
-
-### ServiceDiscoveryRequest (ServiceDiscoveryRequestMessage.proto) -> `aahi` [manual]
-
-Matched: 0/6 our fields, APK has 5 fields
-
-| Field | Issue | Ours | APK |
-|-------|-------|------|-----|
-| -1 | malformed APK field entry | None | Ran out of descriptor data at pos 22 |
-| 1 | type mismatch | bytes | message |
-| 2 | type mismatch | bytes | message |
-| 3 | type mismatch | bytes | string |
-| 4 | extra field in our proto (not in APK) | device_name | None |
-| 5 | extra field in our proto (not in APK) | device_brand | None |
-| 6 | extra field in our proto (not in APK) | session_info | None |
-| 44 | missing field (exists in APK) | None | fixed64 |
 
 ### ShutdownRequest (ShutdownRequestMessage.proto) -> `aass` [auto]
 
@@ -596,9 +576,9 @@ Matched: 11/11 our fields, APK has 13 fields
 - CapabilityPair (PhoneCapabilitiesData.proto)
 - ChannelErrorCode (ChannelErrorCodeEnum.proto)
 - ChannelType (ChannelTypeEnum.proto)
-- ConnectionSecurityConfig (ConnectionConfigurationData.proto)
+- ConnectionReservedConfig (ConnectionConfigurationData.proto)
 - ConnectionState (ConnectionStateEnum.proto)
-- ConnectionTuningConfig (ConnectionConfigurationData.proto)
+- ConnectionTransportConfig (ConnectionConfigurationData.proto)
 - ControlMessage (ControlMessageIdsEnum.proto)
 - DeviceInfo (PhoneCapabilitiesData.proto)
 - DisconnectReason (DisconnectReasonEnum.proto)
@@ -614,21 +594,19 @@ Matched: 11/11 our fields, APK has 13 fields
 - InputChannelDescriptor (InputChannelDescriptorData.proto)
 - InputChannelMessage (InputChannelMessageIdsEnum.proto)
 - KeyEvent (KeyEventData.proto)
+- LaneShape (LaneShapeEnum.proto)
+- ManeuverType (ManeuverTypeEnum.proto)
 - MediaCodec (MediaCodecEnum.proto)
 - MediaCodecType (MediaCodecTypeEnum.proto)
 - MediaInfoChannel (MediaChannelData.proto)
 - NavigationChannelConfig (NavigationChannelConfigData.proto)
-- NavigationDestination (NavigationStepMessage.proto)
 - NavigationDistanceDisplay (NavigationDistanceDisplayData.proto)
 - NavigationDistanceInfo (NavigationDistanceMessage.proto)
 - NavigationDistanceUnit (NavigationDistanceDisplayData.proto)
 - NavigationDistanceValue (NavigationDistanceMessage.proto)
 - NavigationImageDimensions (NavigationChannelConfigData.proto)
-- NavigationManeuver (NavigationStepMessage.proto)
-- NavigationStepInfo (NavigationStepMessage.proto)
-- NavigationText (NavigationStepMessage.proto)
+- NavigationType (NavigationTypeEnum.proto)
 - NotificationType (NotificationTypeEnum.proto)
-- PhoneCall (PhoneStatusMessage.proto)
 - PhoneCallState (PhoneCallStateEnum.proto)
 - PhoneCapabilities (PhoneCapabilitiesData.proto)
 - PhoneConnectionConfig (PhoneCapabilitiesData.proto)
@@ -642,7 +620,6 @@ Matched: 11/11 our fields, APK has 13 fields
 - SensorType (SensorTypeEnum.proto)
 - SensorTypeEntry (SensorChannelConfigData.proto)
 - SessionError (SessionErrorEnum.proto)
-- SessionHistoryEntry (SessionInfoData.proto)
 - ShutdownReason (ShutdownReasonEnum.proto)
 - ShutdownResponse (ShutdownResponseMessage.proto)
 - Status (StatusEnum.proto)

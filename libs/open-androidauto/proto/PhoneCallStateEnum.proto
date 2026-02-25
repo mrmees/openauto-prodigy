@@ -1,6 +1,9 @@
 /*
- * Discovered via APK analysis (wae.java, AA v16.1)
- * Telephony state machine for the phone status channel.
+ * PhoneCallState — call state enum for PhoneStatusUpdate.
+ *
+ * APK class: wae.java (AA v16.1)
+ * Used in PhoneCall field 1 (required).
+ * Telecom state mapping in vuk.java.
  */
 
 syntax="proto2";
