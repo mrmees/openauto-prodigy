@@ -13,8 +13,8 @@ message NavigationDistance {
 
 message NavigationDistanceInfo {
     optional NavigationDistanceValue distance = 1;
-    optional bytes alternate_display = 2;   // APK: sub-message, not yet decoded
-    optional bytes oneof_display = 4;       // APK: sub-message, not yet decoded
+    repeated bytes alternate_display = 2;   // APK: repeated message (xnd = NavigationDistanceDisplay)
+    optional bytes oneof_display = 4;       // APK: oneof message (xne), not yet decoded
 }
 
 message NavigationDistanceValue {

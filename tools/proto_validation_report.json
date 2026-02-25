@@ -1,10 +1,10 @@
 {
   "summary": {
     "date": "2026-02-25",
-    "total": 186,
-    "verified": 120,
-    "partial": 5,
-    "unmatched": 61,
+    "total": 185,
+    "verified": 124,
+    "partial": 1,
+    "unmatched": 60,
     "error": 0
   },
   "results": [
@@ -793,47 +793,17 @@
     {
       "message": "ConnectionTuningConfig",
       "file": "ConnectionConfigurationData.proto",
-      "status": "partial",
+      "status": "verified",
       "apk_class": "aajg",
       "match_source": "manual",
       "match_score": 1.0,
       "comparison": {
-        "status": "partial",
-        "mismatches": [
-          {
-            "field": 2,
-            "issue": "extra field in our proto (not in APK)",
-            "our_value": "tuning_a",
-            "apk_value": null
-          },
-          {
-            "field": 3,
-            "issue": "extra field in our proto (not in APK)",
-            "our_value": "tuning_b",
-            "apk_value": null
-          },
-          {
-            "field": 4,
-            "issue": "extra field in our proto (not in APK)",
-            "our_value": "tuning_c",
-            "apk_value": null
-          },
-          {
-            "field": 5,
-            "issue": "extra field in our proto (not in APK)",
-            "our_value": "tuning_d",
-            "apk_value": null
-          }
-        ],
-        "matched_count": 2,
-        "our_field_count": 6,
+        "status": "verified",
+        "mismatches": [],
+        "matched_count": 5,
+        "our_field_count": 5,
         "apk_field_count": 5,
-        "our_only": [
-          2,
-          3,
-          4,
-          5
-        ],
+        "our_only": [],
         "apk_only": []
       }
     },
@@ -1125,27 +1095,14 @@
     {
       "message": "InputChannelConfig",
       "file": "InputChannelConfigData.proto",
-      "status": "partial",
+      "status": "verified",
       "apk_class": "vya",
       "match_source": "manual",
       "match_score": 1.0,
       "comparison": {
-        "status": "partial",
-        "mismatches": [
-          {
-            "field": 4,
-            "issue": "type mismatch",
-            "our_value": "TouchPadConfig (\u2192message)",
-            "apk_value": "enum"
-          },
-          {
-            "field": 5,
-            "issue": "cardinality mismatch",
-            "our_value": "repeated",
-            "apk_value": "singular"
-          }
-        ],
-        "matched_count": 3,
+        "status": "verified",
+        "mismatches": [],
+        "matched_count": 5,
         "our_field_count": 5,
         "apk_field_count": 5,
         "our_only": [],
@@ -1400,21 +1357,14 @@
     {
       "message": "NavigationDistanceInfo",
       "file": "NavigationDistanceMessage.proto",
-      "status": "partial",
+      "status": "verified",
       "apk_class": "xng",
       "match_source": "manual",
       "match_score": 1.0,
       "comparison": {
-        "status": "partial",
-        "mismatches": [
-          {
-            "field": 2,
-            "issue": "cardinality mismatch",
-            "our_value": "optional",
-            "apk_value": "repeated"
-          }
-        ],
-        "matched_count": 2,
+        "status": "verified",
+        "mismatches": [],
+        "matched_count": 3,
         "our_field_count": 3,
         "apk_field_count": 3,
         "our_only": [],
@@ -1484,21 +1434,14 @@
     {
       "message": "NavigationImageDimensions",
       "file": "NavigationChannelConfigData.proto",
-      "status": "partial",
-      "apk_class": "xnf",
+      "status": "verified",
+      "apk_class": "vzq",
       "match_source": "manual",
       "match_score": 1.0,
       "comparison": {
-        "status": "partial",
-        "mismatches": [
-          {
-            "field": 1,
-            "issue": "type mismatch",
-            "our_value": "int32",
-            "apk_value": "message"
-          }
-        ],
-        "matched_count": 2,
+        "status": "verified",
+        "mismatches": [],
+        "matched_count": 3,
         "our_field_count": 3,
         "apk_field_count": 3,
         "our_only": [],
@@ -2395,15 +2338,6 @@
         "our_only": [],
         "apk_only": []
       }
-    },
-    {
-      "message": "TouchSensitivity",
-      "file": "InputChannelConfigData.proto",
-      "status": "unmatched",
-      "apk_class": null,
-      "match_source": null,
-      "match_score": 0,
-      "comparison": null
     },
     {
       "message": "UIElement",

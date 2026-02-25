@@ -55,7 +55,9 @@ message ConnectionTuningConfig {
         bytes tuning_d = 5;    // APK: aajc — sub-message, fields TBD
     }
 
-    optional double timeout_factor = 60;    // APK field 60
+    // Note: timeout_factor at field 60 was previously here, but APK descriptor
+    // only shows 5 fields (1 + oneof 2-5). High field numbers may not be encoded
+    // in proto-lite descriptors. Removed to match APK exactly.
 }
 
 // APK class: aaji — empty message

@@ -6,11 +6,11 @@ Generated: 2026-02-25
 
 | Status | Count |
 |--------|-------|
-| Verified | 120 |
-| Partial (diffs) | 5 |
-| Unmatched | 61 |
+| Verified | 124 |
+| Partial (diffs) | 1 |
+| Unmatched | 60 |
 | Error | 0 |
-| **Total** | **186** |
+| **Total** | **185** |
 
 ## Verified (all fields match)
 
@@ -51,6 +51,7 @@ Generated: 2026-02-25
 - **ConnectionReservedConfig** (ConnectionConfigurationData.proto) -> `aaji` [manual]
 - **ConnectionSecurityConfig** (ConnectionConfigurationData.proto) -> `aajj` [manual]
 - **ConnectionTransportConfig** (ConnectionConfigurationData.proto) -> `aajh` [manual]
+- **ConnectionTuningConfig** (ConnectionConfigurationData.proto) -> `aajg` [manual]
 - **DeviceInfo** (PhoneCapabilitiesData.proto) -> `vve` [manual]
 - **Diagnostics** (DiagnosticsData.proto) -> `vxf` [manual]
 - **Door** (DoorData.proto) -> `vxh` [manual]
@@ -63,6 +64,7 @@ Generated: 2026-02-25
 - **HVAC** (HVACData.proto) -> `vxv` [manual]
 - **HeadUnitInfo** (HeadUnitInfoData.proto) -> `aacd` [manual]
 - **InputChannel** (InputChannelData.proto) -> `vya` [manual]
+- **InputChannelConfig** (InputChannelConfigData.proto) -> `vya` [manual]
 - **InputEventIndication** (InputEventIndicationMessage.proto) -> `vxx` [manual]
 - **KeyEvent** (KeyEventData.proto) -> `vyi` [manual]
 - **Light** (LightData.proto) -> `vyk` [manual]
@@ -73,9 +75,11 @@ Generated: 2026-02-25
 - **NavigationChannelConfig** (NavigationChannelConfigData.proto) -> `vzr` [manual]
 - **NavigationDestination** (NavigationStepMessage.proto) -> `vze` [manual]
 - **NavigationDistance** (NavigationDistanceMessage.proto) -> `xnb` [manual]
+- **NavigationDistanceInfo** (NavigationDistanceMessage.proto) -> `xng` [manual]
 - **NavigationDistanceValue** (NavigationDistanceMessage.proto) -> `xmw` [manual]
 - **NavigationFocusRequest** (NavigationFocusRequestMessage.proto) -> `vza` [manual]
 - **NavigationFocusResponse** (NavigationFocusResponseMessage.proto) -> `vyz` [manual]
+- **NavigationImageDimensions** (NavigationChannelConfigData.proto) -> `vzq` [manual]
 - **NavigationImageOptions** (NavigationImageOptionsData.proto) -> `vzq` [manual]
 - **NavigationLane** (NavigationStepMessage.proto) -> `vzj` [manual]
 - **NavigationLaneDirection** (NavigationStepMessage.proto) -> `vzi` [manual]
@@ -137,26 +141,6 @@ Generated: 2026-02-25
 
 ## Partial (field diffs)
 
-### ConnectionTuningConfig (ConnectionConfigurationData.proto) -> `aajg` [manual]
-
-Matched: 2/6 our fields, APK has 5 fields
-
-| Field | Issue | Ours | APK |
-|-------|-------|------|-----|
-| 2 | extra field in our proto (not in APK) | tuning_a | None |
-| 3 | extra field in our proto (not in APK) | tuning_b | None |
-| 4 | extra field in our proto (not in APK) | tuning_c | None |
-| 5 | extra field in our proto (not in APK) | tuning_d | None |
-
-### InputChannelConfig (InputChannelConfigData.proto) -> `vya` [manual]
-
-Matched: 3/5 our fields, APK has 5 fields
-
-| Field | Issue | Ours | APK |
-|-------|-------|------|-----|
-| 4 | type mismatch | TouchPadConfig (→message) | enum |
-| 5 | cardinality mismatch | repeated | singular |
-
 ### NavigationDistanceDisplay (NavigationDistanceDisplayData.proto) -> `xnd` [manual]
 
 Matched: 3/4 our fields, APK has 4 fields
@@ -165,22 +149,6 @@ Matched: 3/4 our fields, APK has 4 fields
 |-------|-------|------|-----|
 | 4 | type mismatch | bytes | unknown(-1) |
 | 4 | cardinality mismatch | optional | map |
-
-### NavigationDistanceInfo (NavigationDistanceMessage.proto) -> `xng` [manual]
-
-Matched: 2/3 our fields, APK has 3 fields
-
-| Field | Issue | Ours | APK |
-|-------|-------|------|-----|
-| 2 | cardinality mismatch | optional | repeated |
-
-### NavigationImageDimensions (NavigationChannelConfigData.proto) -> `xnf` [manual]
-
-Matched: 2/3 our fields, APK has 3 fields
-
-| Field | Issue | Ours | APK |
-|-------|-------|------|-----|
-| 1 | type mismatch | int32 | message |
 
 ## Unmatched (no APK class found)
 
@@ -230,7 +198,6 @@ Matched: 2/3 our fields, APK has 3 fields
 - ShutdownReason (ShutdownReasonEnum.proto)
 - Status (StatusEnum.proto)
 - TouchAction (TouchActionEnum.proto)
-- TouchSensitivity (InputChannelConfigData.proto)
 - UIElement (AdditionalVideoConfigData.proto)
 - UITheme (AdditionalVideoConfigData.proto)
 - VersionResponseStatus (VersionResponseStatusEnum.proto)

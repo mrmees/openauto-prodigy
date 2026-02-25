@@ -261,7 +261,14 @@ def decode_descriptor(data):
             "bit12_no_hasbits": bool(type_flags & 4096),
         }
 
-        # Oneof fields (i88 >= 51)
+        # Determine oneof style:
+        # - Old-style (all versions): type_code >= 51, base = type_code - 51
+        # - New-style (version >= 2): bit12 (4096) set on singular field (i88 <= 17)
+        is_new_style_oneof = (
+            version_prefix >= 2 and i88 < 51 and i88 <= 17 and bool(type_flags & 4096)
+        )
+
+        # Oneof fields — old-style (i88 >= 51)
         if i88 >= 51:
             # Oneof: read oneof discriminator varint
             oneof_idx = codepoints[pos]; pos += 1
@@ -278,7 +285,7 @@ def decode_descriptor(data):
                     field_info["enum_verifier"] = _obj_str(obj_arr[obj_idx])
                 obj_idx += 1
         else:
-            # Normal field: read field name from Object[]
+            # Normal field (or new-style oneof): read field name from Object[]
             if obj_idx < len(obj_arr):
                 entry = obj_arr[obj_idx]
                 field_info["java_field"] = _obj_str(entry)
@@ -314,17 +321,34 @@ def decode_descriptor(data):
                 if type_flags & 2048:
                     obj_idx += 1
 
-            # Singular fields normally carry a has-bits varint. Version-0
-            # descriptors can omit that payload when has_bits_count == 0.
-            should_read_has_bits = i88 <= 17 and not (version_prefix == 0 and charAt16 == 0)
-            if should_read_has_bits:
+            # New-style oneof: read oneof_idx after Object[] consumption
+            if is_new_style_oneof:
                 if pos < len(codepoints):
-                    has_bits_val = codepoints[pos]; pos += 1
-                    field_info["has_bits"] = {
-                        "word": has_bits_val // 32,
-                        "bit": has_bits_val % 32,
-                        "raw": has_bits_val,
-                    }
+                    oneof_idx = codepoints[pos]; pos += 1
+                    field_info["oneof_idx"] = oneof_idx
+                field_info["cardinality"] = "oneof"
+
+            # Has-bits handling varies by descriptor version:
+            # - Version >= 2: has_bits are NEVER inline (stored differently)
+            # - Version 0 with has_bits_count == 0: no has_bits
+            # - Version 1: has_bits ALWAYS present for singular fields (i88 <= 17)
+            #   (bit12 has different meaning in v1; does NOT control has_bits)
+            if not is_new_style_oneof:
+                if version_prefix >= 2:
+                    should_read_has_bits = False
+                elif version_prefix == 0 and charAt16 == 0:
+                    should_read_has_bits = False
+                else:
+                    should_read_has_bits = i88 <= 17
+
+                if should_read_has_bits:
+                    if pos < len(codepoints):
+                        has_bits_val = codepoints[pos]; pos += 1
+                        field_info["has_bits"] = {
+                            "word": has_bits_val // 32,
+                            "bit": has_bits_val % 32,
+                            "raw": has_bits_val,
+                        }
 
         fields.append(field_info)
 
