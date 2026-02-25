@@ -121,7 +121,7 @@ void AASession::stop() {
 
     if (state_ == SessionState::Active) {
         // Graceful shutdown
-        controlChannel_->sendShutdownRequest(1); // QUIT
+        controlChannel_->sendShutdownRequest(1); // USER_SELECTION
         setState(SessionState::ShuttingDown);
         startStateTimer(5000); // 5s shutdown timeout
     } else {
@@ -292,7 +292,7 @@ void AASession::onMessage(uint8_t channelId, uint16_t messageId,
                 qDebug() << "[AASession] Rejecting channel" << targetCh
                          << "(not registered)";
                 proto::messages::ChannelOpenResponse resp;
-                resp.set_status(proto::enums::Status::FAIL);
+                resp.set_status(proto::enums::Status::INVALID_CHANNEL);
                 QByteArray respData(resp.ByteSizeLong(), '\0');
                 resp.SerializeToArray(respData.data(), respData.size());
                 messenger_->sendMessage(targetCh, 0x0008, respData);

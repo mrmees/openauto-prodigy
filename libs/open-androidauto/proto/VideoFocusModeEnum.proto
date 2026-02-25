@@ -25,7 +25,9 @@ message VideoFocusMode
     enum Enum
     {
         NONE = 0;
-        FOCUSED = 1;
-        UNFOCUSED = 2;
+        PROJECTED = 1;
+        NATIVE = 2;
+        NATIVE_TRANSIENT = 3;
+        PROJECTED_NO_INPUT_FOCUS = 4;
     }
 }

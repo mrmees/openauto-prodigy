@@ -1,0 +1,11 @@
+syntax="proto2";
+
+package oaa.proto.data;
+
+message TirePressure
+{
+    optional int32 front_left = 1;
+    optional int32 front_right = 2;
+    optional int32 rear_left = 3;
+    optional int32 rear_right = 4;
+}

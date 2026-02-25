@@ -25,6 +25,13 @@ message ShutdownReason
     enum Enum
     {
         NONE = 0;
-        QUIT = 1;
+        USER_SELECTION = 1;
+        DEVICE_SWITCH = 2;
+        NOT_SUPPORTED = 3;
+        NOT_CURRENTLY_SUPPORTED = 4;
+        PROBE_SUPPORTED = 5;
+        WIRELESS_PROJECTION_DISABLED = 6;
+        POWER_DOWN = 7;
+        USER_PROFILE_SWITCH = 8;
     }
 }

@@ -164,7 +164,7 @@ private slots:
         QByteArray respPayload = sendSpy[0][2].toByteArray();
         oaa::proto::messages::ChannelOpenResponse resp;
         QVERIFY(resp.ParseFromArray(respPayload.constData(), respPayload.size()));
-        QCOMPARE(resp.status(), oaa::proto::enums::Status::FAIL);
+        QCOMPARE(resp.status(), oaa::proto::enums::Status::INVALID_CHANNEL);
     }
 
     void testShutdownRequest() {
@@ -172,14 +172,14 @@ private slots:
         QSignalSpy shutdownSpy(&ctrl, &oaa::ControlChannel::shutdownRequested);
 
         oaa::proto::messages::ShutdownRequest req;
-        req.set_reason(oaa::proto::enums::ShutdownReason::QUIT);
+        req.set_reason(oaa::proto::enums::ShutdownReason::USER_SELECTION);
         QByteArray payload(req.ByteSizeLong(), '\0');
         req.SerializeToArray(payload.data(), payload.size());
 
         ctrl.onMessage(0x000f, payload);
 
         QCOMPARE(shutdownSpy.count(), 1);
-        QCOMPARE(shutdownSpy[0][0].toInt(), int(oaa::proto::enums::ShutdownReason::QUIT));
+        QCOMPARE(shutdownSpy[0][0].toInt(), int(oaa::proto::enums::ShutdownReason::USER_SELECTION));
     }
 
     void testShutdownAcknowledged() {
@@ -228,7 +228,7 @@ private slots:
         oaa::ControlChannel ctrl;
         QSignalSpy sendSpy(&ctrl, &oaa::IChannelHandler::sendRequested);
 
-        ctrl.sendShutdownRequest(1); // QUIT
+        ctrl.sendShutdownRequest(1); // USER_SELECTION
 
         QCOMPARE(sendSpy.count(), 1);
         QCOMPARE(sendSpy[0][1].value<uint16_t>(), uint16_t(0x000f));
@@ -236,7 +236,7 @@ private slots:
         QByteArray respPayload = sendSpy[0][2].toByteArray();
         oaa::proto::messages::ShutdownRequest req;
         QVERIFY(req.ParseFromArray(respPayload.constData(), respPayload.size()));
-        QCOMPARE(req.reason(), oaa::proto::enums::ShutdownReason::QUIT);
+        QCOMPARE(req.reason(), oaa::proto::enums::ShutdownReason::USER_SELECTION);
     }
 
     void testAudioFocusRequested() {

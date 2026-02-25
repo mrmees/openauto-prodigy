@@ -89,7 +89,7 @@ private slots:
         handler.onChannelOpened();
 
         oaa::proto::messages::VideoFocusIndication indication;
-        indication.set_focus_mode(oaa::proto::enums::VideoFocusMode::FOCUSED);
+        indication.set_focus_mode(oaa::proto::enums::VideoFocusMode::PROJECTED);
         indication.set_unrequested(false);
         QByteArray payload(indication.ByteSizeLong(), '\0');
         indication.SerializeToArray(payload.data(), payload.size());
@@ -97,7 +97,7 @@ private slots:
         handler.onMessage(oaa::AVMessageId::VIDEO_FOCUS_INDICATION, payload);
 
         QCOMPARE(focusSpy.count(), 1);
-        QCOMPARE(focusSpy[0][0].toInt(), 1); // FOCUSED
+        QCOMPARE(focusSpy[0][0].toInt(), 1); // PROJECTED
         QCOMPARE(focusSpy[0][1].toBool(), false);
     }
 

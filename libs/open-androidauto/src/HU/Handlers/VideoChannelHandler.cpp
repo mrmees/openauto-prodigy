@@ -55,6 +55,22 @@ void VideoChannelHandler::onMessage(uint16_t messageId, const QByteArray& payloa
     case oaa::AVMessageId::VIDEO_FOCUS_INDICATION:
         handleVideoFocusIndication(payload);
         break;
+    case oaa::AVMessageId::VIDEO_FOCUS_NOTIFICATION:
+    case oaa::AVMessageId::UPDATE_UI_CONFIG_REQUEST:
+    case oaa::AVMessageId::UPDATE_UI_CONFIG_REPLY:
+    case oaa::AVMessageId::AUDIO_UNDERFLOW:
+    case oaa::AVMessageId::ACTION_TAKEN:
+    case oaa::AVMessageId::OVERLAY_PARAMETERS:
+    case oaa::AVMessageId::OVERLAY_START:
+    case oaa::AVMessageId::OVERLAY_STOP:
+    case oaa::AVMessageId::OVERLAY_SESSION_UPDATE:
+    case oaa::AVMessageId::UPDATE_HU_UI_CONFIG_REQUEST:
+    case oaa::AVMessageId::UPDATE_HU_UI_CONFIG_RESPONSE:
+    case oaa::AVMessageId::MEDIA_STATS:
+    case oaa::AVMessageId::MEDIA_OPTIONS:
+        qDebug() << "[VideoChannel] newer AV message:" << Qt::hex << messageId
+                 << "size:" << payload.size();
+        break;
     default:
         qWarning() << "[VideoChannel] unknown message id:" << Qt::hex << messageId;
         emit unknownMessage(messageId, payload);
@@ -87,7 +103,7 @@ void VideoChannelHandler::handleSetupRequest(const QByteArray& payload)
     // Send unsolicited VIDEO_FOCUS_INDICATION — some phones (e.g. Moto G Play)
     // won't send VIDEO_FOCUS_REQUEST and expect the HU to indicate focus first.
     oaa::proto::messages::VideoFocusIndication focus;
-    focus.set_focus_mode(oaa::proto::enums::VideoFocusMode::FOCUSED);
+    focus.set_focus_mode(oaa::proto::enums::VideoFocusMode::PROJECTED);
     focus.set_unrequested(false);
     QByteArray focusData(focus.ByteSizeLong(), '\0');
     focus.SerializeToArray(focusData.data(), focusData.size());
@@ -175,8 +191,8 @@ void VideoChannelHandler::requestVideoFocus(bool focused)
     // HU tells the phone about focus via VIDEO_FOCUS_INDICATION (unsolicited),
     // NOT VIDEO_FOCUS_REQUEST (that's phone→HU only).
     oaa::proto::messages::VideoFocusIndication indication;
-    indication.set_focus_mode(focused ? oaa::proto::enums::VideoFocusMode::FOCUSED
-                                      : oaa::proto::enums::VideoFocusMode::UNFOCUSED);
+    indication.set_focus_mode(focused ? oaa::proto::enums::VideoFocusMode::PROJECTED
+                                      : oaa::proto::enums::VideoFocusMode::NONE);
     indication.set_unrequested(true);  // HU-initiated
 
     QByteArray data(indication.ByteSizeLong(), '\0');

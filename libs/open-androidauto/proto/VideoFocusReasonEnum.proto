@@ -24,8 +24,10 @@ message VideoFocusReason
 {
     enum Enum
     {
-        NONE = 0;
-        UNK_1 = 1;
-        UNK_2 = 2;
+        UNKNOWN = 0;
+        PHONE_SCREEN_OFF = 1;
+        LAUNCH_NATIVE = 2;
+        LAST_MODE = 3;
+        USER_SELECTION = 4;
     }
 }

@@ -246,7 +246,7 @@ void AndroidAutoOrchestrator::onNewConnection()
     // Wire video focus changes
     connect(&videoHandler_, &oaa::hu::VideoChannelHandler::videoFocusChanged,
             this, [this](int focusMode, bool) {
-                // Focus mode 1 = FOCUSED (projection), 2 = UNFOCUSED (native/car)
+                // Focus mode 1 = PROJECTED, 2 = NATIVE, 3 = NATIVE_TRANSIENT, 4 = PROJECTED_NO_INPUT_FOCUS
                 if (focusMode == 2 && state_ == Connected) {
                     qInfo() << "[AAOrchestrator] Video focus lost — exit to car";
                     setState(Backgrounded, "Android Auto running in background");

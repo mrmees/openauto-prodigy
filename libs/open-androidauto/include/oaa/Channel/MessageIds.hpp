@@ -16,6 +16,19 @@ namespace AVMessageId {
     constexpr uint16_t INPUT_OPEN_RESPONSE     = 0x8006;
     constexpr uint16_t VIDEO_FOCUS_REQUEST     = 0x8007;
     constexpr uint16_t VIDEO_FOCUS_INDICATION  = 0x8008;
+    constexpr uint16_t VIDEO_FOCUS_NOTIFICATION       = 0x8009;
+    constexpr uint16_t UPDATE_UI_CONFIG_REQUEST        = 0x800A;
+    constexpr uint16_t UPDATE_UI_CONFIG_REPLY          = 0x800B;
+    constexpr uint16_t AUDIO_UNDERFLOW                 = 0x800C;
+    constexpr uint16_t ACTION_TAKEN                    = 0x800D;
+    constexpr uint16_t OVERLAY_PARAMETERS              = 0x800E;
+    constexpr uint16_t OVERLAY_START                   = 0x800F;
+    constexpr uint16_t OVERLAY_STOP                    = 0x8010;
+    constexpr uint16_t OVERLAY_SESSION_UPDATE          = 0x8011;
+    constexpr uint16_t UPDATE_HU_UI_CONFIG_REQUEST     = 0x8012;
+    constexpr uint16_t UPDATE_HU_UI_CONFIG_RESPONSE    = 0x8013;
+    constexpr uint16_t MEDIA_STATS                     = 0x8014;
+    constexpr uint16_t MEDIA_OPTIONS                   = 0x8015;
 }
 
 /// Input channel messages

@@ -7,6 +7,7 @@
 #include "SensorEventIndicationMessage.pb.h"
 #include "NightModeData.pb.h"
 #include "DrivingStatusData.pb.h"
+#include "ParkingBrakeData.pb.h"
 #include "StatusEnum.pb.h"
 #include "SensorTypeEnum.pb.h"
 
@@ -71,6 +72,8 @@ void SensorChannelHandler::handleSensorStartRequest(const QByteArray& payload)
         pushNightMode(false); // Default: day mode
     } else if (sensorType == oaa::proto::enums::SensorType::DRIVING_STATUS) {
         pushDrivingStatus(0); // UNRESTRICTED
+    } else if (sensorType == oaa::proto::enums::SensorType::PARKING_BRAKE) {
+        pushParkingBrake(true); // Default: parked
     }
 }
 
@@ -98,6 +101,21 @@ void SensorChannelHandler::pushDrivingStatus(int status)
     oaa::proto::messages::SensorEventIndication indication;
     auto* drivingStatus = indication.add_driving_status();
     drivingStatus->set_status(status);
+
+    QByteArray data(indication.ByteSizeLong(), '\0');
+    indication.SerializeToArray(data.data(), data.size());
+    emit sendRequested(channelId(), oaa::SensorMessageId::SENSOR_EVENT_INDICATION, data);
+}
+
+void SensorChannelHandler::pushParkingBrake(bool engaged)
+{
+    if (!channelOpen_ || !activeSensors_.contains(
+            static_cast<int>(oaa::proto::enums::SensorType::PARKING_BRAKE)))
+        return;
+
+    oaa::proto::messages::SensorEventIndication indication;
+    auto* brake = indication.add_parking_brake();
+    brake->set_parking_brake(engaged);
 
     QByteArray data(indication.ByteSizeLong(), '\0');
     indication.SerializeToArray(data.data(), data.size());

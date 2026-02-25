@@ -46,6 +46,23 @@ void AudioChannelHandler::onMessage(uint16_t messageId, const QByteArray& payloa
     case oaa::AVMessageId::STOP_INDICATION:
         handleStopIndication();
         break;
+    case oaa::AVMessageId::VIDEO_FOCUS_NOTIFICATION:
+    case oaa::AVMessageId::UPDATE_UI_CONFIG_REQUEST:
+    case oaa::AVMessageId::UPDATE_UI_CONFIG_REPLY:
+    case oaa::AVMessageId::AUDIO_UNDERFLOW:
+    case oaa::AVMessageId::ACTION_TAKEN:
+    case oaa::AVMessageId::OVERLAY_PARAMETERS:
+    case oaa::AVMessageId::OVERLAY_START:
+    case oaa::AVMessageId::OVERLAY_STOP:
+    case oaa::AVMessageId::OVERLAY_SESSION_UPDATE:
+    case oaa::AVMessageId::UPDATE_HU_UI_CONFIG_REQUEST:
+    case oaa::AVMessageId::UPDATE_HU_UI_CONFIG_RESPONSE:
+    case oaa::AVMessageId::MEDIA_STATS:
+    case oaa::AVMessageId::MEDIA_OPTIONS:
+        qDebug() << "[AudioChannel" << channelId_
+                 << "] newer AV message:" << Qt::hex << messageId
+                 << "size:" << payload.size();
+        break;
     default:
         qWarning() << "[AudioChannel" << channelId_
                    << "] unknown message id:" << Qt::hex << messageId;

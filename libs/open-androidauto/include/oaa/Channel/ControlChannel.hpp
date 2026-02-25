@@ -26,6 +26,7 @@ public:
     void sendShutdownResponse();
     void sendAudioFocusResponse(const QByteArray& payload);
     void sendNavigationFocusResponse(const QByteArray& payload);
+    void sendCallAvailability(bool available);
 
 signals:
     void versionReceived(uint16_t major, uint16_t minor, bool match);

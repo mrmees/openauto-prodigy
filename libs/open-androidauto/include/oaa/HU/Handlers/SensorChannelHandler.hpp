@@ -20,6 +20,7 @@ public:
 
     void pushNightMode(bool isNight);
     void pushDrivingStatus(int status);
+    void pushParkingBrake(bool engaged);
 
 private:
     void handleSensorStartRequest(const QByteArray& payload);

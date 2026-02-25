@@ -11,6 +11,7 @@
 #include "ShutdownResponseMessage.pb.h"
 #include "StatusEnum.pb.h"
 #include "ShutdownReasonEnum.pb.h"
+#include "CallAvailabilityMessage.pb.h"
 
 namespace oaa {
 
@@ -31,6 +32,10 @@ constexpr uint16_t MSG_SHUTDOWN_REQUEST          = 0x000f;
 constexpr uint16_t MSG_SHUTDOWN_RESPONSE         = 0x0010;
 constexpr uint16_t MSG_VOICE_SESSION_REQUEST     = 0x0011;
 constexpr uint16_t MSG_AUDIO_FOCUS_REQUEST       = 0x0012;
+constexpr uint16_t MSG_AUDIO_FOCUS_RESPONSE      = 0x0013;
+constexpr uint16_t MSG_CHANNEL_CLOSE             = 0x0009;
+constexpr uint16_t MSG_CALL_AVAILABILITY         = 0x0018;
+constexpr uint16_t MSG_SERVICE_DISCOVERY_UPDATE  = 0x001a;
 } // namespace
 
 ControlChannel::ControlChannel(QObject* parent)
@@ -133,6 +138,18 @@ void ControlChannel::onMessage(uint16_t messageId, const QByteArray& payload) {
         emit audioFocusRequested(payload);
         break;
 
+    case MSG_CHANNEL_CLOSE:
+        qDebug() << "[ControlChannel] channel close notification";
+        break;
+
+    case MSG_CALL_AVAILABILITY:
+        qDebug() << "[ControlChannel] call availability (unexpected direction)";
+        break;
+
+    case MSG_SERVICE_DISCOVERY_UPDATE:
+        qDebug() << "[ControlChannel] service discovery update";
+        break;
+
     default:
         emit unknownMessage(messageId, payload);
         break;
@@ -149,7 +166,7 @@ void ControlChannel::sendVersionRequest(uint16_t major, uint16_t minor) {
 void ControlChannel::sendAuthComplete(bool success) {
     proto::messages::AuthCompleteIndication msg;
     msg.set_status(success ? proto::enums::Status::OK
-                           : proto::enums::Status::FAIL);
+                           : proto::enums::Status::AUTHENTICATION_FAILURE);
     QByteArray payload(msg.ByteSizeLong(), '\0');
     msg.SerializeToArray(payload.data(), payload.size());
     emit sendRequested(0, MSG_AUTH_COMPLETE, payload);
@@ -158,7 +175,7 @@ void ControlChannel::sendAuthComplete(bool success) {
 void ControlChannel::sendChannelOpenResponse(uint8_t targetChannelId, bool accepted) {
     proto::messages::ChannelOpenResponse msg;
     msg.set_status(accepted ? proto::enums::Status::OK
-                            : proto::enums::Status::FAIL);
+                            : proto::enums::Status::INVALID_CHANNEL);
     QByteArray payload(msg.ByteSizeLong(), '\0');
     msg.SerializeToArray(payload.data(), payload.size());
     emit sendRequested(0, MSG_CHANNEL_OPEN_RESPONSE, payload);
@@ -201,6 +218,14 @@ void ControlChannel::sendAudioFocusResponse(const QByteArray& payload) {
 
 void ControlChannel::sendNavigationFocusResponse(const QByteArray& payload) {
     emit sendRequested(0, 0x000e, payload);
+}
+
+void ControlChannel::sendCallAvailability(bool available) {
+    proto::messages::CallAvailabilityStatus msg;
+    msg.set_call_available(available);
+    QByteArray payload(msg.ByteSizeLong(), '\0');
+    msg.SerializeToArray(payload.data(), payload.size());
+    emit sendRequested(0, MSG_CALL_AVAILABILITY, payload);
 }
 
 } // namespace oaa
