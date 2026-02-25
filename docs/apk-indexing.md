@@ -38,6 +38,7 @@ analysis/android_auto_<versionName>_<versionCode>/
       uuids.json
       constants.json
       proto_accesses.json
+      proto_writes.json
       call_edges.json
     reports/summary.md
 ```

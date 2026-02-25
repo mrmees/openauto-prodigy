@@ -37,6 +37,22 @@ def test_extract_call_edge_like_invocation(tmp_path):
     assert result["call_edges"][0]["target"] == "transport.sendMessage"
 
 
+def test_extract_proto_write_patterns(tmp_path):
+    sample = tmp_path / "E.java"
+    sample.write_text(
+        "xhqVar.b |= 16;\n"
+        "xhqVar.g = i7;\n"
+        "if (!o.b.H()) { o.t(); }\n"
+        "defpackage.xhq xhqVar6 = (defpackage.xhq) o.q();\n"
+    )
+
+    result = extract_signals(tmp_path)
+
+    ops = {(row["target"], row["op"]) for row in result["proto_writes"]}
+    assert ("xhqVar.b", "|=") in ops
+    assert ("xhqVar.g", "=") in ops
+
+
 def test_extract_projection_scope_filters_non_projection(tmp_path):
     projection = tmp_path / "sources" / "com" / "google" / "android" / "projection" / "A.java"
     projection.parent.mkdir(parents=True)

@@ -38,6 +38,15 @@ def write_summary_report(
             _top_rows([str(row["accessor"]) for row in signals.get("proto_accesses", [])]),
         ),
         _render_section(
+            "Top Proto Writes",
+            _top_rows(
+                [
+                    f"{row['target']} {row['op']}"
+                    for row in signals.get("proto_writes", [])
+                ]
+            ),
+        ),
+        _render_section(
             "Top Call Targets",
             _top_rows([str(row["target"]) for row in signals.get("call_edges", [])]),
         ),

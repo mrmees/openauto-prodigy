@@ -22,6 +22,13 @@ def _create_schema(conn: sqlite3.Connection) -> None:
             line INTEGER NOT NULL,
             accessor TEXT NOT NULL
         );
+        CREATE TABLE IF NOT EXISTS proto_writes (
+            file TEXT NOT NULL,
+            line INTEGER NOT NULL,
+            target TEXT NOT NULL,
+            op TEXT NOT NULL,
+            value TEXT NOT NULL
+        );
         CREATE TABLE IF NOT EXISTS call_edges (
             file TEXT NOT NULL,
             line INTEGER NOT NULL,
@@ -30,6 +37,7 @@ def _create_schema(conn: sqlite3.Connection) -> None:
         CREATE INDEX IF NOT EXISTS idx_uuids_value ON uuids(value);
         CREATE INDEX IF NOT EXISTS idx_constants_value ON constants(value);
         CREATE INDEX IF NOT EXISTS idx_proto_accessor ON proto_accesses(accessor);
+        CREATE INDEX IF NOT EXISTS idx_proto_writes_target ON proto_writes(target);
         CREATE INDEX IF NOT EXISTS idx_call_target ON call_edges(target);
         """
     )
@@ -42,6 +50,7 @@ def write_sqlite(db_path: Path, signals: dict[str, list[dict[str, object]]]) -> 
         conn.execute("DELETE FROM uuids")
         conn.execute("DELETE FROM constants")
         conn.execute("DELETE FROM proto_accesses")
+        conn.execute("DELETE FROM proto_writes")
         conn.execute("DELETE FROM call_edges")
 
         conn.executemany(
@@ -57,6 +66,13 @@ def write_sqlite(db_path: Path, signals: dict[str, list[dict[str, object]]]) -> 
             [
                 (row["file"], row["line"], row["accessor"])
                 for row in signals.get("proto_accesses", [])
+            ],
+        )
+        conn.executemany(
+            "INSERT INTO proto_writes(file, line, target, op, value) VALUES (?, ?, ?, ?, ?)",
+            [
+                (row["file"], row["line"], row["target"], row["op"], row["value"])
+                for row in signals.get("proto_writes", [])
             ],
         )
         conn.executemany(

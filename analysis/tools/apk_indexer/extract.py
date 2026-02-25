@@ -10,6 +10,12 @@ UUID_RE = re.compile(
 HEX_RE = re.compile(r"\b0x[0-9A-Fa-f]{4,}\b")
 PROTO_ACCESS_RE = re.compile(r"\b(set|get|has|clear)[A-Z][A-Za-z0-9_]*\s*\(")
 CALL_EDGE_RE = re.compile(r"\b([A-Za-z_][A-Za-z0-9_]*)\.([A-Za-z_][A-Za-z0-9_]*)\s*\(")
+PROTO_WRITE_OR_RE = re.compile(
+    r"\b([A-Za-z_][A-Za-z0-9_]*\.[A-Za-z_][A-Za-z0-9_]*)\s*(\|=)\s*([^;]+);"
+)
+PROTO_WRITE_ASSIGN_RE = re.compile(
+    r"\b([A-Za-z_][A-Za-z0-9_]*\.[A-Za-z_][A-Za-z0-9_]*)\s*(?<![=!<>])=(?!=)\s*([^;]+);"
+)
 
 
 def _in_scope(path: Path, root: Path, scope: str) -> bool:
@@ -31,6 +37,7 @@ def extract_signals(root: Path, scope: str = "all") -> dict[str, list[dict[str, 
     uuids: list[dict[str, object]] = []
     constants: list[dict[str, object]] = []
     proto_accesses: list[dict[str, object]] = []
+    proto_writes: list[dict[str, object]] = []
     call_edges: list[dict[str, object]] = []
 
     for path in _iter_text_files(root, scope):
@@ -65,6 +72,26 @@ def extract_signals(root: Path, scope: str = "all") -> dict[str, list[dict[str, 
                         "accessor": accessor,
                     }
                 )
+            for match in PROTO_WRITE_OR_RE.finditer(line):
+                proto_writes.append(
+                    {
+                        "file": str(path),
+                        "line": line_no,
+                        "target": match.group(1),
+                        "op": match.group(2),
+                        "value": match.group(3).strip(),
+                    }
+                )
+            for match in PROTO_WRITE_ASSIGN_RE.finditer(line):
+                proto_writes.append(
+                    {
+                        "file": str(path),
+                        "line": line_no,
+                        "target": match.group(1),
+                        "op": "=",
+                        "value": match.group(2).strip(),
+                    }
+                )
             for match in CALL_EDGE_RE.finditer(line):
                 target = f"{match.group(1)}.{match.group(2)}"
                 call_edges.append(
@@ -82,6 +109,10 @@ def extract_signals(root: Path, scope: str = "all") -> dict[str, list[dict[str, 
         ),
         "proto_accesses": sorted(
             proto_accesses, key=lambda row: (row["accessor"], row["file"], row["line"])
+        ),
+        "proto_writes": sorted(
+            proto_writes,
+            key=lambda row: (row["target"], row["op"], row["file"], row["line"]),
         ),
         "call_edges": sorted(
             call_edges, key=lambda row: (row["target"], row["file"], row["line"])

@@ -7,6 +7,7 @@ def test_summary_report_contains_top_sections(tmp_path):
         "constants": [{"file": "B.java", "line": 2, "value": "0x1A2B"}],
         "proto_accesses": [{"file": "C.java", "line": 3, "accessor": "setChannelId"}],
         "call_edges": [{"file": "D.java", "line": 4, "target": "transport.sendMessage"}],
+        "proto_writes": [{"file": "E.java", "line": 5, "target": "xhqVar.b", "op": "|=", "value": "16"}],
     }
     out = tmp_path / "summary.md"
     write_summary_report(out, signals)
@@ -15,4 +16,5 @@ def test_summary_report_contains_top_sections(tmp_path):
     assert "Top UUIDs" in text
     assert "Top Constants" in text
     assert "Top Proto Accessors" in text
+    assert "Top Proto Writes" in text
     assert "Top Call Targets" in text
