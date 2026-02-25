@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from pathlib import Path
+import json
 import re
 
 
@@ -19,6 +20,22 @@ PROTO_WRITE_ASSIGN_RE = re.compile(
 ENUM_CLASS_RE = re.compile(r"\b(?:public\s+)?enum\s+([A-Za-z_][A-Za-z0-9_]*)\b")
 SWITCH_RE = re.compile(r"\bswitch\s*\(([^)]+)\)")
 CASE_RE = re.compile(r"\bcase\s+([^:]+):")
+
+# Proto-lite class patterns
+EXTENDS_ZYT_RE = re.compile(r"\bextends\s+defpackage\.zyt\b")
+DEPRECATED_RE = re.compile(r"@Deprecated")
+# Field declarations: public <type> <name>
+FIELD_DECL_RE = re.compile(
+    r"^\s+public\s+(?!static|final)(\S+)\s+([a-z][a-zA-Z0-9]*)\s*[;=]",
+    re.MULTILINE,
+)
+# aaaj constructor with descriptor string and field name array
+AAAJ_RE = re.compile(
+    r'new\s+defpackage\.aaaj\s*\(\s*a\s*,\s*"([^"]*?)"\s*,\s*'
+    r"new\s+java\.lang\.Object\[\]\s*\{([^}]*)\}\s*\)"
+)
+# References to defpackage classes (e.g. defpackage.vvh, defpackage.aafs)
+DEFPACKAGE_REF_RE = re.compile(r"\bdefpackage\.([a-z][a-z0-9]*)\b")
 
 
 def _in_scope(path: Path, root: Path, scope: str) -> bool:
@@ -110,6 +127,92 @@ def _extract_switch_maps_from_text(path: Path, text: str) -> list[dict[str, obje
     return rows
 
 
+def _extract_proto_class_from_text(
+    path: Path, text: str
+) -> dict[str, object] | None:
+    """Extract metadata from protobuf-lite classes (extend zyt, implement aaaa)."""
+    if not EXTENDS_ZYT_RE.search(text):
+        return None
+
+    class_name = path.stem  # e.g. "vvh" from "vvh.java"
+    deprecated = bool(DEPRECATED_RE.search(text))
+
+    # Extract field declarations (type + name)
+    fields: list[dict[str, str]] = []
+    for m in FIELD_DECL_RE.finditer(text):
+        field_type = m.group(1)
+        field_name = m.group(2)
+        # Normalize defpackage types to just the class name
+        if field_type.startswith("defpackage."):
+            field_type = field_type.replace("defpackage.", "")
+        elif field_type == "java.lang.String":
+            field_type = "String"
+        fields.append({"type": field_type, "name": field_name})
+
+    # Extract aaaj descriptor string and field name array
+    descriptor = ""
+    field_names: list[str] = []
+    aaaj_match = AAAJ_RE.search(text)
+    if aaaj_match:
+        descriptor = aaaj_match.group(1)
+        names_raw = aaaj_match.group(2)
+        field_names = [
+            n.strip().strip('"') for n in names_raw.split(",") if n.strip().strip('"')
+        ]
+
+    # Extract sub-message type references from field declarations
+    sub_message_refs: list[str] = []
+    for f in fields:
+        ft = f["type"]
+        if ft not in ("int", "long", "boolean", "float", "double", "byte", "String",
+                       "byte[]") and not ft.startswith("zzb") and not ft.startswith("zzf"):
+            # Likely a sub-message reference (another proto class)
+            sub_message_refs.append(ft)
+
+    return {
+        "file": str(path),
+        "class_name": class_name,
+        "deprecated": deprecated,
+        "field_count": len(fields),
+        "field_names": json.dumps(field_names),
+        "field_types": json.dumps([f["type"] for f in fields]),
+        "field_decls": json.dumps(fields),
+        "sub_message_refs": json.dumps(sub_message_refs),
+        "descriptor": descriptor,
+    }
+
+
+def _extract_class_references_from_text(
+    path: Path, text: str, root: Path
+) -> list[dict[str, object]]:
+    """Find references to defpackage classes from all files."""
+    rel = path.relative_to(root).as_posix()
+    source_class = path.stem  # For defpackage files, this is the class name
+    is_defpackage = "defpackage/" in rel
+
+    rows: list[dict[str, object]] = []
+    seen: set[str] = set()  # Dedupe per file
+    for line_no, line in enumerate(text.splitlines(), 1):
+        for m in DEFPACKAGE_REF_RE.finditer(line):
+            target_class = m.group(1)
+            # Skip self-references in defpackage files
+            if is_defpackage and target_class == source_class:
+                continue
+            if target_class not in seen:
+                seen.add(target_class)
+                if is_defpackage:
+                    source_pkg = f"defpackage.{source_class}"
+                else:
+                    source_pkg = rel.replace("sources/", "").replace("/", ".").rsplit(".", 1)[0]
+                rows.append({
+                    "file": str(path),
+                    "line": line_no,
+                    "source_package": source_pkg,
+                    "target_class": target_class,
+                })
+    return rows
+
+
 def extract_signals(root: Path, scope: str = "all") -> dict[str, list[dict[str, object]]]:
     uuids: list[dict[str, object]] = []
     constants: list[dict[str, object]] = []
@@ -118,6 +221,8 @@ def extract_signals(root: Path, scope: str = "all") -> dict[str, list[dict[str, 
     call_edges: list[dict[str, object]] = []
     enum_maps: list[dict[str, object]] = []
     switch_maps: list[dict[str, object]] = []
+    proto_classes: list[dict[str, object]] = []
+    class_references: list[dict[str, object]] = []
 
     for path in _iter_text_files(root, scope):
         try:
@@ -126,6 +231,16 @@ def extract_signals(root: Path, scope: str = "all") -> dict[str, list[dict[str, 
             continue
         enum_maps.extend(_extract_enum_maps_from_text(path, text))
         switch_maps.extend(_extract_switch_maps_from_text(path, text))
+
+        # Proto class metadata (defpackage proto-lite classes)
+        proto_meta = _extract_proto_class_from_text(path, text)
+        if proto_meta is not None:
+            proto_classes.append(proto_meta)
+
+        # Cross-references from named gearhead files to defpackage classes
+        class_references.extend(
+            _extract_class_references_from_text(path, text, root)
+        )
 
         for line_no, line in enumerate(text.splitlines(), 1):
             for match in UUID_RE.finditer(line):
@@ -205,5 +320,12 @@ def extract_signals(root: Path, scope: str = "all") -> dict[str, list[dict[str, 
         ),
         "call_edges": sorted(
             call_edges, key=lambda row: (row["target"], row["file"], row["line"])
+        ),
+        "proto_classes": sorted(
+            proto_classes, key=lambda row: (row["class_name"],)
+        ),
+        "class_references": sorted(
+            class_references,
+            key=lambda row: (row["target_class"], row["source_package"], row["file"]),
         ),
     }
