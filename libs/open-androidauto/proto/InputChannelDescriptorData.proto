@@ -1,0 +1,50 @@
+/*
+ * Discovered via APK analysis (vya.java, AA v16.1)
+ * Input channel descriptor with touchscreen and button configs.
+ */
+
+syntax="proto2";
+
+package oaa.proto.data;
+
+// APK class: vya — input channel descriptor (ChannelDescriptor field 4)
+message InputChannelDescriptor
+{
+    optional uint64 supported_input_types = 1;       // Bitmask of supported input types
+    repeated TouchScreenConfig touchscreens = 2;     // APK: vxz — touchscreen configs
+    repeated ButtonConfig buttons = 3;               // APK: vxy — button/key configs
+    repeated HapticFeedbackType haptic_types = 4;    // APK: vxm — supported haptic feedback
+    optional uint32 max_pointer_count = 5;           // Max simultaneous touch points
+}
+
+// APK class: vxz — touchscreen configuration
+message TouchScreenConfig
+{
+    required int32 width = 1;
+    required int32 height = 2;
+    optional int32 display_id = 3;
+}
+
+// APK class: vxy — physical/virtual button configuration
+message ButtonConfig
+{
+    required int32 keycode = 1;            // ButtonCode enum value
+    required int32 long_press_support = 2; // Whether long-press is supported
+    optional bool is_virtual = 3;
+    optional int32 display_id = 4;
+    optional int32 key_group = 5;
+    optional bool repeatable = 6;
+    optional bool wake_device = 7;
+    optional int32 key_location = 8;       // Physical location on HU
+}
+
+// APK class: vxm — haptic feedback types
+enum HapticFeedbackType
+{
+    FEEDBACK_UNKNOWN = 0;
+    FEEDBACK_SELECT = 1;
+    FEEDBACK_FOCUS_CHANGE = 2;
+    FEEDBACK_DRAG_SELECT = 3;
+    FEEDBACK_DRAG_START = 4;
+    FEEDBACK_DRAG_END = 5;
+}
