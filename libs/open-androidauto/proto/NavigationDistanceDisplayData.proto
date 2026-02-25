@@ -8,12 +8,15 @@ syntax="proto3";
 package oaa.proto.data;
 
 // APK class: xnd — single distance display (primary/secondary text + timestamp)
+// Field 4 is MAP type (code 49) in proto-lite with xnc as entry class.
+// xnc has fields at wire 5-8 (not standard map key=1/value=2), so this is
+// effectively a repeated message with map-like runtime dedup semantics.
 message NavigationDistanceDisplay
 {
     optional string primary_text = 1;           // APK: required string
     optional string secondary_text = 2;         // APK: optional string
     optional int64 update_timestamp = 3;        // APK: optional int64
-    optional sfixed32 formatting = 4;           // APK: optional sfixed32 (no has_bit)
+    repeated DistanceLabel labels = 4;          // APK: MAP(xnc) — repeated with map semantics
 }
 
 // APK class: xmw — distance value with unit info

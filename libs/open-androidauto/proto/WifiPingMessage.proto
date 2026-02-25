@@ -10,8 +10,7 @@ syntax = "proto3";
 package oaa.proto.messages;
 
 message WifiPingRequest {
-    optional int32 sequence = 1;        // APK: b (int)
-    optional int64 timestamp_ns = 2;    // APK: c (long)
+    optional int64 timestamp_ns = 1;    // APK: b — descriptor says int64 (1 field only)
 }
 
 message WifiPingResponse {

@@ -11,7 +11,7 @@ syntax = "proto3";
 package oaa.proto.messages;
 
 message WifiStartResponse {
-    optional int32 status = 1;          // APK: b (int)
-    optional string ip_address = 2;     // APK: c (String)
-    optional sint32 error_code = 3;     // APK: d (int, enum via viz.au/wck.p)
+    optional string ip_address = 1;     // APK: b — descriptor says string
+    optional int32 port = 2;            // APK: c — descriptor says int32
+    optional sint32 status = 3;         // APK: d (int, enum via viz.au/wck.p)
 }

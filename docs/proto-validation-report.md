@@ -6,15 +6,17 @@ Generated: 2026-02-25
 
 | Status | Count |
 |--------|-------|
-| Verified | 124 |
-| Partial (diffs) | 1 |
-| Unmatched | 60 |
+| Verified | 133 |
+| Partial (diffs) | 10 |
+| Unmatched | 61 |
 | Error | 0 |
-| **Total** | **185** |
+| **Total** | **204** |
 
 ## Verified (all fields match)
 
 - **AVChannel** (AVChannelData.proto) -> `vys` [manual]
+- **AVChannelMediaConfig** (AVChannelMediaConfigMessage.proto) -> `vyo` [manual]
+- **AVChannelMediaStats** (AVChannelMediaStatsMessage.proto) -> `vyu` [manual]
 - **AVChannelSetupRequest** (AVChannelSetupRequestMessage.proto) -> `wcc` [manual]
 - **AVChannelSetupResponse** (AVChannelSetupResponseMessage.proto) -> `vxb` [manual]
 - **AVChannelStartIndication** (AVChannelStartIndicationMessage.proto) -> `wce` [manual]
@@ -54,6 +56,7 @@ Generated: 2026-02-25
 - **ConnectionTuningConfig** (ConnectionConfigurationData.proto) -> `aajg` [manual]
 - **DeviceInfo** (PhoneCapabilitiesData.proto) -> `vve` [manual]
 - **Diagnostics** (DiagnosticsData.proto) -> `vxf` [manual]
+- **DistanceLabel** (NavigationDistanceDisplayData.proto) -> `xnc` [manual]
 - **Door** (DoorData.proto) -> `vxh` [manual]
 - **DrivingStatus** (DrivingStatusEnum.proto) -> `vxj` [manual]
 - **Environment** (EnvironmentData.proto) -> `vxk` [manual]
@@ -76,7 +79,8 @@ Generated: 2026-02-25
 - **NavigationDestination** (NavigationStepMessage.proto) -> `vze` [manual]
 - **NavigationDistance** (NavigationDistanceMessage.proto) -> `xnb` [manual]
 - **NavigationDistanceInfo** (NavigationDistanceMessage.proto) -> `xng` [manual]
-- **NavigationDistanceValue** (NavigationDistanceMessage.proto) -> `xmw` [manual]
+- **NavigationDistanceOneof** (NavigationDistanceMessage.proto) -> `xne` [manual]
+- **NavigationDistanceValue** (NavigationDistanceDisplayData.proto) -> `xmw` [manual]
 - **NavigationFocusRequest** (NavigationFocusRequestMessage.proto) -> `vza` [manual]
 - **NavigationFocusResponse** (NavigationFocusResponseMessage.proto) -> `vyz` [manual]
 - **NavigationImageDimensions** (NavigationChannelConfigData.proto) -> `vzq` [manual]
@@ -102,6 +106,7 @@ Generated: 2026-02-25
 - **PingRequest** (PingRequestMessage.proto) -> `wdo` [manual]
 - **PingResponse** (PingResponseMessage.proto) -> `wdp` [manual]
 - **RPM** (RPMData.proto) -> `wbn` [manual]
+- **RadioBand** (RadioChannelData.proto) -> `wbe` [manual]
 - **RadioChannel** (RadioChannelData.proto) -> `way` [manual]
 - **RelativeInputEvent** (RelativeInputEventData.proto) -> `wbl` [manual]
 - **RelativeInputEvents** (RelativeInputEventsData.proto) -> `wbm` [manual]
@@ -117,6 +122,7 @@ Generated: 2026-02-25
 - **ShutdownRequest** (ShutdownRequestMessage.proto) -> `vwf` [manual]
 - **ShutdownResponse** (ShutdownResponseMessage.proto) -> `vwg` [manual]
 - **Speed** (SpeedData.proto) -> `wcd` [manual]
+- **StatsEntry** (AVChannelMediaStatsMessage.proto) -> `vvo` [manual]
 - **SteeringWheel** (SteeringWheelData.proto) -> `vxe` [manual]
 - **TirePressure** (TirePressureData.proto) -> `wcg` [manual]
 - **TouchConfig** (TouchConfigData.proto) -> `vxn` [manual]
@@ -134,10 +140,13 @@ Generated: 2026-02-25
 - **VoiceSessionRequest** (VoiceSessionRequestMessage.proto) -> `wde` [manual]
 - **WiFiProjectionChannel** (WiFiProjectionChannelData.proto) -> `wdh` [manual]
 - **WifiChannel** (WifiChannelData.proto) -> `wdh` [manual]
+- **WifiConnectionRejection** (WifiConnectionRejectionMessage.proto) -> `wdk` [manual]
 - **WifiDirectConfig** (WifiDirectConfigData.proto) -> `wbb` [manual]
 - **WifiInfoRequest** (WifiInfoRequestMessage.proto) -> `wdl` [manual]
 - **WifiInfoResponse** (WifiInfoResponseMessage.proto) -> `wdm` [manual]
+- **WifiPingResponse** (WifiPingMessage.proto) -> `wdp` [manual]
 - **WifiSecurityResponse** (WifiSecurityResponseMessage.proto) -> `wan` [manual]
+- **WifiVersionResponse** (WifiVersionResponseMessage.proto) -> `wdw` [manual]
 
 ## Partial (field diffs)
 
@@ -147,8 +156,90 @@ Matched: 3/4 our fields, APK has 4 fields
 
 | Field | Issue | Ours | APK |
 |-------|-------|------|-----|
-| 4 | type mismatch | bytes | unknown(-1) |
+| 4 | type mismatch | sfixed32 | unknown(-1) |
 | 4 | cardinality mismatch | optional | map |
+
+### NavigationDistanceEntry (NavigationDistanceMessage.proto) -> `xnf` [manual]
+
+Matched: 2/3 our fields, APK has 3 fields
+
+| Field | Issue | Ours | APK |
+|-------|-------|------|-----|
+| 3 | type mismatch | uint64 | int32 |
+
+### NavigationTurnEvent (NavigationTurnEventMessage.proto) -> `vzm` [manual]
+
+Matched: 3/6 our fields, APK has 6 fields
+
+| Field | Issue | Ours | APK |
+|-------|-------|------|-----|
+| 1 | type mismatch | bytes | string |
+| 2 | type mismatch | string | enum |
+| 4 | type mismatch | Enum (→enum) | bytes |
+
+### RadioStation (RadioChannelData.proto) -> `wax` [manual]
+
+Matched: 12/14 our fields, APK has 14 fields
+
+| Field | Issue | Ours | APK |
+|-------|-------|------|-----|
+| 2 | type mismatch | bytes | enum |
+| 4 | type mismatch | bytes | int32 |
+| 4 | cardinality mismatch | optional | repeated |
+
+### WifiConnectStatus (WifiConnectStatusMessage.proto) -> `wdj` [manual]
+
+Matched: 1/2 our fields, APK has 2 fields
+
+| Field | Issue | Ours | APK |
+|-------|-------|------|-----|
+| 2 | type mismatch | sint32 | string |
+
+### WifiNetworkInfo (WifiSetupInfoMessage.proto) -> `wdi` [manual]
+
+Matched: 4/5 our fields, APK has 5 fields
+
+| Field | Issue | Ours | APK |
+|-------|-------|------|-----|
+| 5 | extra field in our proto (not in APK) | extra | None |
+| 6 | missing field (exists in APK) | None | int32 |
+
+### WifiPingRequest (WifiPingMessage.proto) -> `wdo` [manual]
+
+Matched: 0/2 our fields, APK has 1 fields
+
+| Field | Issue | Ours | APK |
+|-------|-------|------|-----|
+| 1 | type mismatch | int32 | int64 |
+| 2 | extra field in our proto (not in APK) | timestamp_ns | None |
+
+### WifiSetupInfo (WifiSetupInfoMessage.proto) -> `wds` [manual]
+
+Matched: 3/5 our fields, APK has 5 fields
+
+| Field | Issue | Ours | APK |
+|-------|-------|------|-----|
+| 1 | missing field (exists in APK) | None | int32 |
+| 3 | type mismatch | int32 | bytes |
+| 6 | extra field in our proto (not in APK) | network_info | None |
+
+### WifiStartResponse (WifiStartResponseMessage.proto) -> `wdu` [manual]
+
+Matched: 1/3 our fields, APK has 3 fields
+
+| Field | Issue | Ours | APK |
+|-------|-------|------|-----|
+| 1 | type mismatch | int32 | string |
+| 2 | type mismatch | string | int32 |
+
+### WifiVersionRequest (WifiVersionRequestMessage.proto) -> `wdv` [manual]
+
+Matched: 5/6 our fields, APK has 6 fields
+
+| Field | Issue | Ours | APK |
+|-------|-------|------|-----|
+| 4 | type mismatch | bytes | int32 |
+| 4 | cardinality mismatch | optional | repeated |
 
 ## Unmatched (no APK class found)
 
@@ -183,7 +274,6 @@ Matched: 3/4 our fields, APK has 4 fields
 - ManeuverType (ManeuverTypeEnum.proto)
 - MediaCodec (MediaCodecEnum.proto)
 - MediaCodecType (MediaCodecTypeEnum.proto)
-- NavigationDistanceUnit (NavigationDistanceDisplayData.proto)
 - NavigationType (NavigationTypeEnum.proto)
 - NotificationType (NotificationTypeEnum.proto)
 - PhoneCallState (PhoneCallStateEnum.proto)
@@ -198,6 +288,7 @@ Matched: 3/4 our fields, APK has 4 fields
 - ShutdownReason (ShutdownReasonEnum.proto)
 - Status (StatusEnum.proto)
 - TouchAction (TouchActionEnum.proto)
+- TurnSide (TurnSideEnum.proto)
 - UIElement (AdditionalVideoConfigData.proto)
 - UITheme (AdditionalVideoConfigData.proto)
 - VersionResponseStatus (VersionResponseStatusEnum.proto)
@@ -212,3 +303,4 @@ Matched: 3/4 our fields, APK has 4 fields
 - WifiSecurityRequest (WifiSecurityRequestMessage.proto)
 - WifiSetupMessage (WifiSetupMessageEnum.proto)
 - WifiStartRequest (WifiStartRequestMessage.proto)
+- WifiVersionStatus (WifiVersionStatusEnum.proto)

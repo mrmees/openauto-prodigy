@@ -29,5 +29,5 @@ message NavigationDistanceOneof {
 message NavigationDistanceEntry {
     optional data.NavigationDistanceDisplay display = 1;  // APK: xnd
     optional int32 value = 2;
-    optional uint64 metadata = 3;
+    optional int32 metadata = 3;
 }

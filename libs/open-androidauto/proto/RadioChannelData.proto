@@ -20,9 +20,9 @@ message RadioChannel {
 // APK class: wax — individual radio station/tuner descriptor (14 fields)
 message RadioStation {
     optional int32 station_id = 1;         // APK: b (int)
-    optional bytes identifier = 2;         // APK: c (zzb/ByteString)
+    optional int32 identifier_type = 2;    // APK: c — descriptor says enum (int32 wire)
     repeated RadioBand bands = 3;          // APK: d (repeated wbe)
-    optional bytes config_data = 4;        // APK: e (zzb/ByteString, oneof-adjacent)
+    repeated int32 channel_list = 4;       // APK: e — descriptor says repeated int32
     optional int32 tuner_type = 5;         // APK: (int, from oneof group)
     optional bool enabled = 6;             // APK: f (bool)
     optional int32 codec_type = 7;         // APK: g (int, enum via vvs.s)

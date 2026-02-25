@@ -18,10 +18,10 @@ import "TurnSideEnum.proto";
 package oaa.proto.messages;
 
 message NavigationTurnEvent {
-    optional bytes turn_icon = 1;                    // APK: b (zxq/ByteString) — turn icon image data
-    optional string road_name = 2;                   // APK: c (String) — road/street name
-    optional enums.ManeuverType.Enum maneuver_type = 3; // APK: d (int, default=1) — validated by vyv.h/vee.Q()
-    optional enums.TurnSide.Enum turn_side = 4;      // APK: e (int) — validated by vyv.i/viz.M()
-    optional int32 distance_meters = 5;              // APK: g (int) — distance to turn
-    optional int32 distance_unit = 6;                // APK: h (int) — distance display unit
+    optional string road_name = 1;                   // APK: b — descriptor says string (not bytes)
+    optional int32 maneuver_type = 2;                // APK: c — descriptor says enum (int32 wire)
+    optional int32 turn_direction = 3;               // APK: d (int, default=1) — validated by vyv.h/vee.Q()
+    optional bytes turn_icon = 4;                    // APK: e — descriptor says bytes
+    optional int32 distance_meters = 5;              // APK: f (int) — distance to turn
+    optional int32 distance_unit = 6;                // APK: g (int) — distance display unit
 }

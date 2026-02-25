@@ -643,5 +643,90 @@
     "apk_class": "wan",
     "note": "Codex verified \u2014 13 fields! Much larger than our proto",
     "score": 1.0
+  },
+  "AVChannelMediaConfig": {
+    "apk_class": "vyo",
+    "note": "Codex + DB agent \u2014 AV channel media config, msg 0x8014 outbound, nested in wce field 4",
+    "score": 1.0
+  },
+  "AVChannelMediaStats": {
+    "apk_class": "vyu",
+    "note": "Codex + DB agent \u2014 AV channel media stats, msg 0x8014 inbound, 15 fields with vvo sub-messages",
+    "score": 1.0
+  },
+  "StatsEntry": {
+    "apk_class": "vvo",
+    "note": "DB agent \u2014 sub-message of AVChannelMediaStats, 4 int64 (avg/min/max/count)",
+    "score": 1.0
+  },
+  "NavigationTurnEvent": {
+    "apk_class": "vzm",
+    "note": "Codex + DB agent \u2014 nav turn event, msg 0x8004 on nav channel, 6 fields",
+    "score": 1.0
+  },
+  "WifiVersionRequest": {
+    "apk_class": "wdv",
+    "note": "Codex + DB agent \u2014 BT WiFi version request, RFCOMM ordinal 3, 6 fields",
+    "score": 1.0
+  },
+  "WifiVersionResponse": {
+    "apk_class": "wdw",
+    "note": "Codex + DB agent \u2014 BT WiFi version response, RFCOMM ordinal 4, 7 fields",
+    "score": 1.0
+  },
+  "WifiStartResponse": {
+    "apk_class": "wdu",
+    "note": "DB agent \u2014 BT WiFi start response, RFCOMM ordinal 6, 3 fields",
+    "score": 1.0
+  },
+  "WifiConnectStatus": {
+    "apk_class": "wdj",
+    "note": "DB agent \u2014 BT WiFi connect status (deprecated), RFCOMM ordinal 5, 2 fields",
+    "score": 1.0
+  },
+  "WifiPingRequest": {
+    "apk_class": "wdo",
+    "note": "DB agent \u2014 BT WiFi ping request, RFCOMM ordinal 7. NOTE: also matched as PingRequest",
+    "score": 1.0
+  },
+  "WifiPingResponse": {
+    "apk_class": "wdp",
+    "note": "DB agent \u2014 BT WiFi ping response, RFCOMM ordinal 8. NOTE: also matched as PingResponse",
+    "score": 1.0
+  },
+  "WifiConnectionRejection": {
+    "apk_class": "wdk",
+    "note": "DB agent \u2014 BT WiFi connection rejection, RFCOMM ordinal 9, 1 field",
+    "score": 1.0
+  },
+  "WifiSetupInfo": {
+    "apk_class": "wds",
+    "note": "DB agent \u2014 BT WiFi setup info, RFCOMM ordinal 10, 5 fields with wdi + wdq sub-messages",
+    "score": 1.0
+  },
+  "WifiNetworkInfo": {
+    "apk_class": "wdi",
+    "note": "DB agent \u2014 sub-message of WifiSetupInfo, WiFi creds with SecurityMode enum",
+    "score": 1.0
+  },
+  "RadioStation": {
+    "apk_class": "wax",
+    "note": "Codex + DB agent \u2014 radio station entry, 14 fields with wbe sub-message",
+    "score": 1.0
+  },
+  "RadioBand": {
+    "apk_class": "wbe",
+    "note": "DB agent \u2014 sub-message of RadioStation, 2 int32 (lower/upper bound)",
+    "score": 1.0
+  },
+  "NavigationDistanceOneof": {
+    "apk_class": "xne",
+    "note": "Codex via xnb hierarchy \u2014 wrapper for repeated NavigationDistanceEntry",
+    "score": 1.0
+  },
+  "NavigationDistanceEntry": {
+    "apk_class": "xnf",
+    "note": "Codex via xnb hierarchy \u2014 display + value + metadata",
+    "score": 1.0
   }
 }

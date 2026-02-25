@@ -20,13 +20,15 @@ message WifiNetworkInfo {
     optional string bssid = 2;            // APK: c (String)
     optional string passphrase = 3;       // APK: d (String)
     optional int32 security_mode = 4;     // APK: e (int, enum via wck.s/wdr — SecurityMode)
-    optional bytes extra = 5;             // APK: f (zzb/ByteString)
+    // field 5: gap (not in APK)
+    repeated int32 supported_channels = 6; // APK: f (repeated int32, zzb)
 }
 
 message WifiSetupInfo {
-    optional int32 setup_state = 2;       // APK: b (int) — note: starts at field 2
-    optional int32 setup_flags = 3;       // APK: c (int)
-    optional bytes setup_data = 4;        // APK: d (zxq/ByteString)
+    optional int32 setup_type = 1;        // APK: field 1 exists — was missing
+    optional int32 setup_state = 2;       // APK: b (int)
+    optional bytes setup_data = 3;        // APK: c — descriptor says bytes (not int32)
+    optional bytes setup_payload = 4;     // APK: d (zxq/ByteString)
     optional data.VersionFeatureFlags feature_flags = 5; // APK: e (wdq)
-    optional WifiNetworkInfo network_info = 6;           // APK: f (wdi)
+    // field 6 not in APK descriptor — removed
 }

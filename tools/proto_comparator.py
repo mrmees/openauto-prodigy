@@ -23,6 +23,7 @@ COMPATIBLE_CARDINALITY = {
     frozenset({"repeated", "packed"}),
     frozenset({"singular", "packed"}),  # singular enum in APK can be packed
     frozenset({"oneof", "singular"}),
+    frozenset({"repeated", "map"}),     # proto map is wire-encoded as repeated message
 }
 
 
@@ -56,6 +57,9 @@ def types_compatible(our_type: str, apk_type: str) -> bool:
         return True
     # bytes/message both encode as length-delimited (wire type 2)
     if our_type in LENGTH_DELIMITED_COMPATIBLE_TYPES and apk_type in LENGTH_DELIMITED_COMPATIBLE_TYPES:
+        return True
+    # MAP type reports as unknown(-1) — compatible with message (map entries are messages)
+    if apk_type == "unknown(-1)" and our_type == "message":
         return True
     return False
 
