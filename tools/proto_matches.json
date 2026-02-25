@@ -1,0 +1,77 @@
+{
+  "ChannelDescriptor": {
+    "apk_class": "wbw",
+    "score": 1.0,
+    "note": "Verified via wire dump 2026-02-25"
+  },
+  "AVChannel": {
+    "apk_class": "vys",
+    "score": 1.0,
+    "note": "Verified via wire dump"
+  },
+  "InputChannel": {
+    "apk_class": "vya",
+    "score": 1.0,
+    "note": "Verified via wire dump"
+  },
+  "SensorChannel": {
+    "apk_class": "wbu",
+    "score": 1.0,
+    "note": "Verified via wire dump"
+  },
+  "BluetoothChannel": {
+    "apk_class": "vwc",
+    "score": 1.0,
+    "note": "Verified via wire dump"
+  },
+  "NavigationChannel": {
+    "apk_class": "vzr",
+    "score": 1.0,
+    "note": "Verified via wire dump"
+  },
+  "WifiChannel": {
+    "apk_class": "wdh",
+    "score": 1.0,
+    "note": "Verified via wire dump"
+  },
+  "AVInputChannel": {
+    "apk_class": "vyt",
+    "score": 1.0,
+    "note": "Verified via wire dump"
+  },
+  "AudioConfig": {
+    "apk_class": "vvp",
+    "score": 1.0,
+    "note": "Field-perfect match"
+  },
+  "VideoConfig": {
+    "apk_class": "wcz",
+    "score": 1.0,
+    "note": "11 fields match"
+  },
+  "TouchConfig": {
+    "apk_class": "vxn",
+    "score": 0.8,
+    "note": "2/3 fields match (missing bool)"
+  },
+  "ServiceDiscoveryResponse": {
+    "apk_class": "wby",
+    "score": 1.0,
+    "note": "Top-level response"
+  },
+  "ServiceDiscoveryRequest": {
+    "apk_class": "aahi",
+    "score": 1.0,
+    "note": "Top-level request"
+  },
+  "PhoneStatusChannel": {
+    "apk_class": "vyr",
+    "score": 1.0,
+    "note": "Empty message, confirmed"
+  },
+  "NotificationChannel": {
+    "apk_class": "wah",
+    "score": 1.0,
+    "note": "Empty message, confirmed"
+  }
+}
