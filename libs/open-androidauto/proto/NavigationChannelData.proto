@@ -24,7 +24,7 @@ package oaa.proto.data;
 
 message NavigationChannel
 {
-    required uint32 minimum_interval_ms = 1;
-    required uint32 type = 2;
+    required int32 minimum_interval_ms = 1;
+    required int32 type = 2;
     required NavigationImageOptions image_options = 3;
 }

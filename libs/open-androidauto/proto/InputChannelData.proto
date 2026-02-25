@@ -25,6 +25,6 @@ package oaa.proto.data;
 message InputChannel
 {
     repeated uint32 supported_keycodes = 1;
-    optional TouchConfig touch_screen_config = 2;
-    optional TouchConfig touch_pad_config = 3;
+    repeated TouchConfig touch_screen_config = 2;
+    repeated TouchConfig touch_pad_config = 3;
 }

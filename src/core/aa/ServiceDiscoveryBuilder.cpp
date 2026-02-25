@@ -118,7 +118,7 @@ QByteArray ServiceDiscoveryBuilder::buildVideoDescriptor() const
 
     auto* avChannel = desc.mutable_av_channel();
     avChannel->set_stream_type(oaa::proto::enums::AVStreamType::VIDEO);
-    avChannel->set_available_while_in_call(true);
+    // Field 5 in APK is uint32, not bool. Omitting has no effect on session.
 
     // Resolve preferred resolution from config
     QString res = yamlConfig_ ? yamlConfig_->videoResolution() : QStringLiteral("720p");
@@ -189,7 +189,7 @@ QByteArray ServiceDiscoveryBuilder::buildMediaAudioDescriptor() const
     auto* avChannel = desc.mutable_av_channel();
     avChannel->set_stream_type(oaa::proto::enums::AVStreamType::AUDIO);
     avChannel->set_audio_type(oaa::proto::enums::AudioType::MEDIA);
-    avChannel->set_available_while_in_call(true);
+    // Field 5 in APK is uint32, not bool. Omitting has no effect on session.
 
     auto* audioConfig = avChannel->add_audio_configs();
     audioConfig->set_sample_rate(48000);
@@ -209,7 +209,7 @@ QByteArray ServiceDiscoveryBuilder::buildSpeechAudioDescriptor() const
     auto* avChannel = desc.mutable_av_channel();
     avChannel->set_stream_type(oaa::proto::enums::AVStreamType::AUDIO);
     avChannel->set_audio_type(oaa::proto::enums::AudioType::SPEECH);
-    avChannel->set_available_while_in_call(true);
+    // Field 5 in APK is uint32, not bool. Omitting has no effect on session.
 
     auto* audioConfig = avChannel->add_audio_configs();
     audioConfig->set_sample_rate(48000);  // Upgraded from 16kHz per probe findings
@@ -229,7 +229,7 @@ QByteArray ServiceDiscoveryBuilder::buildSystemAudioDescriptor() const
     auto* avChannel = desc.mutable_av_channel();
     avChannel->set_stream_type(oaa::proto::enums::AVStreamType::AUDIO);
     avChannel->set_audio_type(oaa::proto::enums::AudioType::SYSTEM);
-    avChannel->set_available_while_in_call(true);
+    // Field 5 in APK is uint32, not bool. Omitting has no effect on session.
 
     auto* audioConfig = avChannel->add_audio_configs();
     audioConfig->set_sample_rate(16000);
@@ -275,7 +275,7 @@ QByteArray ServiceDiscoveryBuilder::buildInputDescriptor() const
         }
     }
 
-    auto* touchConfig = inputChannel->mutable_touch_screen_config();
+    auto* touchConfig = inputChannel->add_touch_screen_config();
     touchConfig->set_width(touchW);
     touchConfig->set_height(touchH);
 
@@ -349,7 +349,7 @@ QByteArray ServiceDiscoveryBuilder::buildAVInputDescriptor() const
 
     auto* avInputChannel = desc.mutable_av_input_channel();
     avInputChannel->set_stream_type(oaa::proto::enums::AVStreamType::AUDIO);
-    avInputChannel->set_available_while_in_call(true);
+    // Field 3 in APK is uint32, not bool. Omitting has no effect on session.
 
     auto* audioConfig = avInputChannel->mutable_audio_config();
     audioConfig->set_sample_rate(16000);

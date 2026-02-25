@@ -1,30 +1,22 @@
 /*
  * ChannelDescriptor — per-channel capability advertisement.
  *
- * Field numbers are from aasdk (f1x.studio, 2018) and DO NOT match the
- * APK's internal protobuf-lite descriptor (wbw.java, AA v16.1). However,
- * these numbers work on the wire because the phone's protobuf parser
- * silently discards fields with mismatched wire types, and all real
- * channel configuration is negotiated per-channel during setup — not
- * from ServiceDiscoveryResponse.
+ * Field numbers verified against both the wire protocol (hex dump of working
+ * ServiceDiscoveryResponse, 2026-02-25) and direct inspection of wbw.java
+ * member declarations in AA APK v16.1.660414. The aasdk (f1x.studio, 2018)
+ * field numbers are correct and match the APK.
  *
- * Tested 2026-02-25:
- *   - wbw field numbers + channel_id only → phone connects, opens control
- *     channel, disconnects ("incompatible" = no video/audio capability)
- *   - wbw field numbers + aasdk sub-channel data → phone connects but
- *     never opens service channels (garbled inner message field numbers)
- *   - aasdk field numbers + aasdk sub-channel data → works perfectly
+ * NOTE: A previous comment here listed wrong field numbers (inserting a
+ * phantom "channel_type" at field 2, shifting everything +1). This was
+ * human error, not a decoder bug — descriptor_decoder.py outputs the
+ * correct field numbers for wbw.
  *
- * Conclusion: wbw numbers ARE the correct v16.1 wire format, but a full
- * migration requires also fixing field numbers in every sub-channel proto
- * (AVChannel/vys, SensorChannel/wbu, InputChannel/vya, etc.). No
- * functional benefit since aasdk numbers work via graceful degradation.
- *
- * APK internal (wbw) field mapping for reference:
- *   1=channel_id, 2=channel_type, 3=sensor, 4=av, 5=input,
- *   6=av_input, 7=bluetooth, 8=wifi_projection, 9=navigation,
- *   10=phone_status, 11=notification, 12=media_browser,
- *   13=media_info, 14=audio_focus, 15=wifi, 16=car_control, 17=radio
+ * APK class mapping (wbw.java, confirmed by Codex + wire dump):
+ *   1=channel_id, 2=sensor(wbu), 3=av(vys), 4=input(vya),
+ *   5=av_input(vyt), 6=bluetooth(vwc), 7=radio(way), 8=navigation(vzr),
+ *   9=media_info(o), 10=phone_status(p), 11=media_browser(q),
+ *   12=vendor_ext(wcv), 13=notification(r), 14=wifi(wdh), 15=car_control(vwo)
+ *   Fields 16-17 exist in APK but are not used by aasdk.
  *
  * Original aasdk copyright (field names/structure):
  * Copyright (C) 2018 f1x.studio (Michal Szwaj), GPLv3

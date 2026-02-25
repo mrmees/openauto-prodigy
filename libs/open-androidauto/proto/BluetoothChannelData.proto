@@ -25,5 +25,5 @@ package oaa.proto.data;
 message BluetoothChannel
 {
     required string adapter_address = 1;
-    repeated enums.BluetoothPairingMethod.Enum supported_pairing_methods = 2;
+    repeated enums.BluetoothPairingMethod.Enum supported_pairing_methods = 2 [packed=true];
 }

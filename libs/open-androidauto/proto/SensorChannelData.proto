@@ -25,4 +25,7 @@ package oaa.proto.data;
 message SensorChannel
 {
     repeated Sensor sensors = 1;
+    optional uint32 unknown_field_2 = 2;
+    repeated int32 unknown_field_3 = 3;
+    repeated int32 unknown_field_4 = 4;
 }
