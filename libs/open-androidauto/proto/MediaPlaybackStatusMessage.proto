@@ -8,11 +8,12 @@ syntax = "proto2";
 
 package oaa.proto.messages;
 
+// APK class: ahdz
 message MediaPlaybackStatus {
     // Playback state: 2=PLAYING, 3=PAUSED (1=STOPPED?)
     optional int32 playback_state = 1;
-    // Source app name (e.g. "YouTube Music", "Spotify")
-    optional string app_name = 2;
+    // APK field 2 is int32 (not string) — source app identifier
+    optional int32 source_id = 2;
     // Elapsed seconds in current track (resets to 0 on track change)
     optional int32 position_seconds = 3;
 
@@ -25,7 +26,8 @@ message MediaPlaybackStatus {
     optional int32 playback_speed = 9;         // Playback speed (1000 = 1x)
     // field 10: gap (not present in APK)
     optional int32 media_type = 11;            // Type of media content
-    // fields 12-13: gap
+    optional int32 field_12 = 12;              // APK: int32
+    optional int32 field_13 = 13;              // APK: int32
     optional int32 actions_flags = 14;         // Available transport actions bitmask
     optional int32 rating_type = 15;           // Rating system type
     optional int32 rating_value = 16;          // Current rating value
@@ -35,4 +37,6 @@ message MediaPlaybackStatus {
     optional int64 utc_time_ms = 20;           // UTC timestamp of this update
     optional int64 elapsed_realtime_ns = 21;   // Elapsed realtime nanos
     optional int64 position_update_time = 22;  // When position was last updated
+    optional int64 field_23 = 23;              // APK: int64
+    optional int64 field_24 = 24;              // APK: int64
 }

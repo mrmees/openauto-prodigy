@@ -22,7 +22,10 @@ import "AbsoluteInputEventData.proto";
 
 package oaa.proto.data;
 
+// APK class: wcj — absolute input events container (3 fields)
 message AbsoluteInputEvents
 {
     repeated AbsoluteInputEvent absolute_input_events = 1;
+    optional uint32 display_id = 2;
+    optional int32 action = 3;
 }

@@ -1,0 +1,17 @@
+/*
+ * AudioFocusChannel — audio focus management channel for AA v16.1+.
+ *
+ * APK class: vxq.java (AA v16.1)
+ * Field numbers decoded from protobuf-lite RawMessageInfo descriptor.
+ *
+ * Empty message in the APK — used as a presence indicator in
+ * ChannelDescriptor to advertise audio focus support.
+ */
+
+syntax="proto2";
+
+package oaa.proto.data;
+
+message AudioFocusChannel
+{
+}

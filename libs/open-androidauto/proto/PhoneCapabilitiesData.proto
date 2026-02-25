@@ -25,13 +25,18 @@ message CapabilityFlag
     optional string name = 2;
 }
 
-// APK class: aafs — phone device information
+// APK class: vve — phone device information (9 fields)
 message DeviceInfo
 {
     optional string manufacturer = 1;
     optional string model = 2;
     optional string android_version = 3;
     optional string build_fingerprint = 4;
+    optional string field_5 = 5;
+    optional string field_6 = 6;
+    optional string field_7 = 7;
+    optional string field_8 = 8;
+    optional int32 device_type = 9;
 }
 
 // APK class: aafu — phone connection preferences

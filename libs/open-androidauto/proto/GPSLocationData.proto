@@ -20,30 +20,14 @@ syntax="proto2";
 
 package oaa.proto.data;
 
+// APK class: vyl — GPS location data (6 fields, fields 2-7)
+// NOTE: No field 1 (timestamp) in APK vyl. Fields 8-22 belong to ahdz, not vyl.
 message GPSLocation
 {
-    required uint64 timestamp = 1;
     required int32 latitude = 2;
     required int32 longitude = 3;
     required uint32 accuracy = 4;
     optional int32 altitude = 5;
     optional int32 speed = 6;
     optional int32 bearing = 7;
-
-    // Fields 8-22 discovered via APK proto decoder (ahdz.java, AA v16.1)
-    // Extended GPS data — field purposes inferred from type/position
-    optional int32 pdop = 8;               // Position dilution of precision
-    optional int32 hdop = 9;               // Horizontal dilution of precision
-    // field 10: gap (not present in APK)
-    optional int32 vdop = 11;              // Vertical dilution of precision
-    // fields 12-13: gap
-    optional int32 satellites_used = 14;   // Number of satellites in fix
-    optional int32 fix_type = 15;          // GPS fix type (2D/3D)
-    optional int32 dgps_age = 16;          // Age of DGPS correction
-    optional int32 dgps_station = 17;      // DGPS reference station ID
-    optional int32 magnetic_variation = 18;// Magnetic variation from true north
-    // field 19: gap
-    optional int64 utc_time = 20;          // UTC time (separate from timestamp)
-    optional int64 elapsed_realtime = 21;  // Elapsed realtime nanos
-    optional int64 elapsed_realtime_uncertainty = 22; // Uncertainty nanos
 }

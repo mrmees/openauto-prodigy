@@ -1,0 +1,22 @@
+/*
+ * TouchPadConfig — touch pad capability descriptor (vxy.java, AA v16.1).
+ *
+ * Used as repeated field in InputChannel (vya) field 3.
+ * Extended config with 8 fields for trackpad/touchpad devices.
+ */
+
+syntax="proto2";
+
+package oaa.proto.data;
+
+message TouchPadConfig
+{
+    optional int32 width = 1;
+    optional int32 height = 2;
+    optional bool field3 = 3;
+    optional int32 field4 = 4;
+    optional int32 field5 = 5;
+    optional bool field6 = 6;
+    optional bool field7 = 7;
+    optional int32 field8 = 8;
+}

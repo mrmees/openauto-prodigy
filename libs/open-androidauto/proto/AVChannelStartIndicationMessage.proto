@@ -20,8 +20,11 @@ syntax="proto2";
 
 package oaa.proto.messages;
 
+// APK class: wce — AV channel start (4 fields)
 message AVChannelStartIndication
 {
     required int32 session = 1;
     required uint32 config = 2;
+    optional int32 unknown_3 = 3;
+    optional bytes media_config = 4;
 }

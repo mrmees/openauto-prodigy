@@ -20,8 +20,9 @@ syntax="proto2";
 
 package oaa.proto.data;
 
+// APK: field 2 is repeated (not required/optional)
 message SteeringWheel
 {
     required int32 steering_angle = 1;
-    required int32 wheel_speed = 2;
+    repeated int32 wheel_speed = 2;
 }

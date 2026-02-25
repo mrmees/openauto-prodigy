@@ -49,7 +49,7 @@ void MediaStatusChannelHandler::handlePlaybackStatus(const QByteArray& payload)
     }
 
     int state = msg.playback_state();
-    QString appName = QString::fromStdString(msg.app_name());
+    int sourceId = msg.source_id();
 
     const char* stateStr = (state == Playing) ? "PLAYING"
                          : (state == Paused)  ? "PAUSED"
@@ -57,9 +57,9 @@ void MediaStatusChannelHandler::handlePlaybackStatus(const QByteArray& payload)
                          : "UNKNOWN";
 
     qDebug() << "[MediaStatusChannel] playback:" << stateStr
-             << "app:" << appName << "pos:" << msg.position_seconds() << "s";
+             << "source:" << sourceId << "pos:" << msg.position_seconds() << "s";
 
-    emit playbackStateChanged(state, appName);
+    emit playbackStateChanged(state, QString::number(sourceId));
 }
 
 void MediaStatusChannelHandler::handlePlaybackMetadata(const QByteArray& payload)

@@ -7,31 +7,8 @@ syntax="proto2";
 
 package oaa.proto.data;
 
+// APK class: way — radio channel config container (1 field)
 message RadioChannel
 {
-    repeated RadioChannelConfig configs = 1;
-}
-
-// APK class: wax — radio band/station configuration (14 fields)
-message RadioChannelConfig
-{
-    required int32 band_type = 1;
-    required int32 tuner_type = 2;
-    repeated RadioStationData presets = 3;
-    repeated int32 supported_frequencies = 4;
-    required int32 min_frequency = 5;
-    optional bool hd_radio_supported = 6;
-    optional int32 frequency_step = 7;
-    optional int32 signal_quality_type = 8;
-    optional bool rds_supported = 9;
-    optional bool rbds_supported = 10;
-    optional int32 region = 11;
-    optional bool dab_supported = 13;
-}
-
-// APK class: wbe — radio station preset
-message RadioStationData
-{
-    required int32 frequency = 1;
-    required int32 sub_channel = 2;
+    repeated bytes radio_stations = 1;  // APK: wax sub-message
 }

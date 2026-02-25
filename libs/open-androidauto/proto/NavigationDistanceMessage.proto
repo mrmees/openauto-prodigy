@@ -2,10 +2,13 @@ syntax = "proto2";
 
 package oaa.proto.messages;
 
-// Navigation distance/ETA update (msgId 0x8007 on Nav channel)
+// APK class: xnb — Navigation distance/ETA update (msgId 0x8007 on Nav channel)
 // Sent periodically by phone during active navigation
 message NavigationDistance {
     optional NavigationDistanceInfo info = 1;
+    optional string eta_text = 2;
+    optional int32 eta_seconds = 3;
+    optional bytes distance_display = 8;
 }
 
 message NavigationDistanceInfo {

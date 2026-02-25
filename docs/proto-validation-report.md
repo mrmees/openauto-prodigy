@@ -6,11 +6,11 @@ Generated: 2026-02-25
 
 | Status | Count |
 |--------|-------|
-| Verified | 80 |
-| Partial (diffs) | 48 |
-| Unmatched | 60 |
+| Verified | 86 |
+| Partial (diffs) | 41 |
+| Unmatched | 59 |
 | Error | 0 |
-| **Total** | **188** |
+| **Total** | **186** |
 
 ## Verified (all fields match)
 
@@ -19,6 +19,7 @@ Generated: 2026-02-25
 - **AVInputOpenRequest** (AVInputOpenRequestMessage.proto) -> `vyx` [manual]
 - **AVInputOpenResponse** (AVInputOpenResponseMessage.proto) -> `vyy` [manual]
 - **Accel** (AccelData.proto) -> `vvj` [manual]
+- **AssistantFeatureFlags** (FeatureFlagsData.proto) -> `nlq` [manual]
 - **AudioConfig** (AudioConfigData.proto) -> `vvp` [manual]
 - **AudioFocusChannel** (AudioFocusChannelData.proto) -> `vyr` [manual]
 - **AudioFocusRequest** (AudioFocusRequestMessage.proto) -> `vvr` [manual]
@@ -35,9 +36,12 @@ Generated: 2026-02-25
 - **Compass** (CompassData.proto) -> `vxa` [manual]
 - **ConnectionFeatureFlags** (ConnectionConfigurationData.proto) -> `aaja` [manual]
 - **ConnectionReservedConfig** (ConnectionConfigurationData.proto) -> `aaji` [manual]
+- **DeviceInfo** (PhoneCapabilitiesData.proto) -> `vve` [manual]
+- **DistanceLabel** (NavigationDistanceDisplayData.proto) -> `xnc` [manual]
 - **Door** (DoorData.proto) -> `vxh` [manual]
 - **Environment** (EnvironmentData.proto) -> `vxk` [manual]
 - **FuelLevel** (FuelLevelData.proto) -> `vxn` [manual]
+- **GPSLocation** (GPSLocationData.proto) -> `vyl` [manual]
 - **Gyro** (GyroData.proto) -> `vxt` [manual]
 - **HVAC** (HVACData.proto) -> `vxv` [manual]
 - **HeadUnitInfo** (HeadUnitInfoData.proto) -> `aacd` [manual]
@@ -47,6 +51,7 @@ Generated: 2026-02-25
 - **Light** (LightData.proto) -> `vyk` [manual]
 - **MediaInfoChannel** (MediaChannelData.proto) -> `vym` [manual]
 - **MediaPlaybackMetadata** (MediaPlaybackMetadataMessage.proto) -> `nmi` [manual]
+- **MediaPlaybackStatus** (MediaPlaybackStatusMessage.proto) -> `ahdz` [manual]
 - **NavigationChannel** (NavigationChannelData.proto) -> `vzr` [manual]
 - **NavigationDestination** (NavigationStepMessage.proto) -> `vze` [manual]
 - **NavigationImageOptions** (NavigationImageOptionsData.proto) -> `vzq` [manual]
@@ -68,7 +73,6 @@ Generated: 2026-02-25
 - **PingRequest** (PingRequestMessage.proto) -> `wdo` [manual]
 - **PingResponse** (PingResponseMessage.proto) -> `wdp` [manual]
 - **RPM** (RPMData.proto) -> `wbn` [manual]
-- **RadioChannel** (RadioChannelData.proto) -> `way` [manual]
 - **RelativeInputEvent** (RelativeInputEventData.proto) -> `wbl` [manual]
 - **RelativeInputEvents** (RelativeInputEventsData.proto) -> `wbm` [manual]
 - **Sensor** (SensorData.proto) -> `wbt` [manual]
@@ -81,6 +85,7 @@ Generated: 2026-02-25
 - **ShutdownRequest** (ShutdownRequestMessage.proto) -> `vwf` [manual]
 - **ShutdownResponse** (ShutdownResponseMessage.proto) -> `vwg` [manual]
 - **Speed** (SpeedData.proto) -> `wcd` [manual]
+- **SteeringWheel** (SteeringWheelData.proto) -> `vxe` [manual]
 - **TirePressure** (TirePressureData.proto) -> `wcg` [manual]
 - **TouchConfig** (TouchConfigData.proto) -> `vxn` [manual]
 - **TouchEvent** (TouchEventData.proto) -> `wcj` [manual]
@@ -88,6 +93,7 @@ Generated: 2026-02-25
 - **TouchPadConfig** (TouchPadConfigData.proto) -> `vxy` [manual]
 - **TouchScreenConfig** (TouchScreenConfigData.proto) -> `vxz` [manual]
 - **VendorExtensionChannel** (VendorExtensionChannelData.proto) -> `wcv` [manual]
+- **VersionFeatureFlags** (FeatureFlagsData.proto) -> `wdq` [manual]
 - **VideoFocusIndication** (VideoFocusIndicationMessage.proto) -> `wdb` [manual]
 - **VideoInsets** (AdditionalVideoConfigData.proto) -> `vyb` [manual]
 - **WiFiProjectionChannel** (WiFiProjectionChannelData.proto) -> `wdh` [manual]
@@ -115,20 +121,20 @@ Matched: 0/1 our fields, APK has 1 fields
 
 ### AVChannelStartIndication (AVChannelStartIndicationMessage.proto) -> `wce` [manual]
 
-Matched: 2/2 our fields, APK has 4 fields
+Matched: 2/4 our fields, APK has 4 fields
 
 | Field | Issue | Ours | APK |
 |-------|-------|------|-----|
-| 3 | missing field (exists in APK) | None | enum |
-| 4 | missing field (exists in APK) | None | message |
+| 3 | type mismatch | int32 | enum |
+| 4 | type mismatch | bytes | message |
 
 ### AVMediaAckIndication (AVMediaAckIndicationMessage.proto) -> `vvk` [manual]
 
-Matched: 2/2 our fields, APK has 3 fields
+Matched: 2/3 our fields, APK has 3 fields
 
 | Field | Issue | Ours | APK |
 |-------|-------|------|-----|
-| 3 | missing field (exists in APK) | None | uint64 |
+| 3 | cardinality mismatch | optional | repeated |
 
 ### AbsoluteInputEvent (AbsoluteInputEventData.proto) -> `wci` [manual]
 
@@ -140,12 +146,11 @@ Matched: 2/2 our fields, APK has 3 fields
 
 ### AbsoluteInputEvents (AbsoluteInputEventsData.proto) -> `wcj` [manual]
 
-Matched: 1/1 our fields, APK has 3 fields
+Matched: 2/3 our fields, APK has 3 fields
 
 | Field | Issue | Ours | APK |
 |-------|-------|------|-----|
-| 2 | missing field (exists in APK) | None | uint32 |
-| 3 | missing field (exists in APK) | None | enum |
+| 3 | type mismatch | int32 | enum |
 
 ### AdditionalVideoConfig (AdditionalVideoConfigData.proto) -> `wcm` [manual]
 
@@ -155,18 +160,6 @@ Matched: 5/7 our fields, APK has 7 fields
 |-------|-------|------|-----|
 | 4 | type mismatch | UITheme (→message) | enum |
 | 5 | type mismatch | UIElement (→message) | enum |
-
-### AssistantFeatureFlags (FeatureFlagsData.proto) -> `nlq` [manual]
-
-Matched: 10/12 our fields, APK has 13 fields
-
-| Field | Issue | Ours | APK |
-|-------|-------|------|-----|
-| 4 | extra field in our proto (not in APK) | continued_conversation | None |
-| 9 | extra field in our proto (not in APK) | interpreter_mode | None |
-| 12 | missing field (exists in APK) | None | bool |
-| 14 | missing field (exists in APK) | None | bool |
-| 15 | missing field (exists in APK) | None | bool |
 
 ### AuthCompleteIndication (AuthCompleteIndicationMessage.proto) -> `vvv` [manual]
 
@@ -248,18 +241,6 @@ Matched: 1/1 our fields, APK has 5 fields
 |-------|-------|------|-----|
 | 60 | missing field (exists in APK) | None | double |
 
-### DeviceInfo (PhoneCapabilitiesData.proto) -> `vve` [manual]
-
-Matched: 4/4 our fields, APK has 9 fields
-
-| Field | Issue | Ours | APK |
-|-------|-------|------|-----|
-| 5 | missing field (exists in APK) | None | string |
-| 6 | missing field (exists in APK) | None | string |
-| 7 | missing field (exists in APK) | None | string |
-| 8 | missing field (exists in APK) | None | string |
-| 9 | missing field (exists in APK) | None | int32 |
-
 ### Diagnostics (DiagnosticsData.proto) -> `vxf` [manual]
 
 Matched: 0/1 our fields, APK has 1 fields
@@ -268,21 +249,6 @@ Matched: 0/1 our fields, APK has 1 fields
 |-------|-------|------|-----|
 | 1 | type mismatch | int32 | bytes |
 
-### DistanceLabel (NavigationDistanceDisplayData.proto) -> `xnc` [manual]
-
-Matched: 0/4 our fields, APK has 4 fields
-
-| Field | Issue | Ours | APK |
-|-------|-------|------|-----|
-| 1 | extra field in our proto (not in APK) | value | None |
-| 2 | extra field in our proto (not in APK) | unit_label | None |
-| 3 | extra field in our proto (not in APK) | distance_meters | None |
-| 4 | extra field in our proto (not in APK) | format_flags | None |
-| 5 | missing field (exists in APK) | None | string |
-| 6 | missing field (exists in APK) | None | string |
-| 7 | missing field (exists in APK) | None | string |
-| 8 | missing field (exists in APK) | None | int32 |
-
 ### DrivingStatus (DrivingStatusEnum.proto) -> `vxj` [manual]
 
 Matched: 0/0 our fields, APK has 1 fields
@@ -290,25 +256,6 @@ Matched: 0/0 our fields, APK has 1 fields
 | Field | Issue | Ours | APK |
 |-------|-------|------|-----|
 | 1 | missing field (exists in APK) | None | int32 |
-
-### GPSLocation (GPSLocationData.proto) -> `vyl` [manual]
-
-Matched: 6/18 our fields, APK has 6 fields
-
-| Field | Issue | Ours | APK |
-|-------|-------|------|-----|
-| 1 | extra field in our proto (not in APK) | timestamp | None |
-| 8 | extra field in our proto (not in APK) | pdop | None |
-| 9 | extra field in our proto (not in APK) | hdop | None |
-| 11 | extra field in our proto (not in APK) | vdop | None |
-| 14 | extra field in our proto (not in APK) | satellites_used | None |
-| 15 | extra field in our proto (not in APK) | fix_type | None |
-| 16 | extra field in our proto (not in APK) | dgps_age | None |
-| 17 | extra field in our proto (not in APK) | dgps_station | None |
-| 18 | extra field in our proto (not in APK) | magnetic_variation | None |
-| 20 | extra field in our proto (not in APK) | utc_time | None |
-| 21 | extra field in our proto (not in APK) | elapsed_realtime | None |
-| 22 | extra field in our proto (not in APK) | elapsed_realtime_uncertainty | None |
 
 ### Gear (GearEnum.proto) -> `vxp` [manual]
 
@@ -353,18 +300,6 @@ Matched: 0/5 our fields, APK has 17 fields
 | 16 | missing field (exists in APK) | None | message |
 | 17 | missing field (exists in APK) | None | message |
 
-### MediaPlaybackStatus (MediaPlaybackStatusMessage.proto) -> `ahdz` [manual]
-
-Matched: 17/18 our fields, APK has 22 fields
-
-| Field | Issue | Ours | APK |
-|-------|-------|------|-----|
-| 2 | type mismatch | string | int32 |
-| 12 | missing field (exists in APK) | None | int32 |
-| 13 | missing field (exists in APK) | None | int32 |
-| 23 | missing field (exists in APK) | None | int64 |
-| 24 | missing field (exists in APK) | None | int64 |
-
 ### NavigationChannelConfig (NavigationChannelConfigData.proto) -> `vzr` [manual]
 
 Matched: 2/3 our fields, APK has 3 fields
@@ -375,13 +310,11 @@ Matched: 2/3 our fields, APK has 3 fields
 
 ### NavigationDistance (NavigationDistanceMessage.proto) -> `xnb` [manual]
 
-Matched: 1/1 our fields, APK has 4 fields
+Matched: 3/4 our fields, APK has 4 fields
 
 | Field | Issue | Ours | APK |
 |-------|-------|------|-----|
-| 2 | missing field (exists in APK) | None | string |
-| 3 | missing field (exists in APK) | None | int32 |
-| 8 | missing field (exists in APK) | None | message |
+| 8 | type mismatch | bytes | message |
 
 ### NavigationDistanceDisplay (NavigationDistanceDisplayData.proto) -> `xnd` [manual]
 
@@ -467,25 +400,13 @@ Matched: 1/2 our fields, APK has 2 fields
 | -1 | malformed APK field entry | None | Ran out of descriptor data at pos 13 |
 | 2 | extra field in our proto (not in APK) | ping_timeout_ms | None |
 
-### RadioChannelConfig (RadioChannelData.proto) -> `way` [manual]
+### RadioChannel (RadioChannelData.proto) -> `way` [manual]
 
-Matched: 0/12 our fields, APK has 1 fields
+Matched: 0/1 our fields, APK has 1 fields
 
 | Field | Issue | Ours | APK |
 |-------|-------|------|-----|
-| 1 | type mismatch | int32 | message |
-| 1 | cardinality mismatch | required | repeated |
-| 2 | extra field in our proto (not in APK) | tuner_type | None |
-| 3 | extra field in our proto (not in APK) | presets | None |
-| 4 | extra field in our proto (not in APK) | supported_frequencies | None |
-| 5 | extra field in our proto (not in APK) | min_frequency | None |
-| 6 | extra field in our proto (not in APK) | hd_radio_supported | None |
-| 7 | extra field in our proto (not in APK) | frequency_step | None |
-| 8 | extra field in our proto (not in APK) | signal_quality_type | None |
-| 9 | extra field in our proto (not in APK) | rds_supported | None |
-| 10 | extra field in our proto (not in APK) | rbds_supported | None |
-| 11 | extra field in our proto (not in APK) | region | None |
-| 13 | extra field in our proto (not in APK) | dab_supported | None |
+| 1 | type mismatch | bytes | message |
 
 ### SensorChannelConfig (SensorChannelConfigData.proto) -> `wbu` [manual]
 
@@ -509,14 +430,6 @@ Matched: 20/26 our fields, APK has 26 fields
 | 25 | type mismatch | bytes | message |
 | 26 | type mismatch | bytes | message |
 
-### SteeringWheel (SteeringWheelData.proto) -> `vxe` [manual]
-
-Matched: 1/2 our fields, APK has 2 fields
-
-| Field | Issue | Ours | APK |
-|-------|-------|------|-----|
-| 2 | cardinality mismatch | required | repeated |
-
 ### TouchCoordinate (TouchCoordinateData.proto) -> `wci` [manual]
 
 Matched: 2/2 our fields, APK has 3 fields
@@ -524,23 +437,6 @@ Matched: 2/2 our fields, APK has 3 fields
 | Field | Issue | Ours | APK |
 |-------|-------|------|-----|
 | 3 | missing field (exists in APK) | None | uint32 |
-
-### VersionFeatureFlags (FeatureFlagsData.proto) -> `wdq` [manual]
-
-Matched: 0/10 our fields, APK has 2 fields
-
-| Field | Issue | Ours | APK |
-|-------|-------|------|-----|
-| 1 | type mismatch | bool | string |
-| 2 | type mismatch | bool | int32 |
-| 3 | extra field in our proto (not in APK) | feature_c | None |
-| 5 | extra field in our proto (not in APK) | feature_d | None |
-| 6 | extra field in our proto (not in APK) | feature_e | None |
-| 7 | extra field in our proto (not in APK) | feature_f | None |
-| 8 | extra field in our proto (not in APK) | feature_g | None |
-| 10 | extra field in our proto (not in APK) | feature_h | None |
-| 11 | extra field in our proto (not in APK) | feature_i | None |
-| 13 | extra field in our proto (not in APK) | feature_j | None |
 
 ### VideoConfig (VideoConfigData.proto) -> `wcz` [manual]
 
@@ -625,7 +521,6 @@ Matched: 3/5 our fields, APK has 5 fields
 - PhoneCapabilities (PhoneCapabilitiesData.proto)
 - PingConfigEntry (PhoneCapabilitiesData.proto)
 - PingConfigPair (PhoneCapabilitiesData.proto)
-- RadioStationData (RadioChannelData.proto)
 - SensorChannelMessage (SensorChannelMessageIdsEnum.proto)
 - SensorType (SensorTypeEnum.proto)
 - SensorTypeEntry (SensorChannelConfigData.proto)
