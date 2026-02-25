@@ -7,21 +7,13 @@ syntax="proto2";
 
 package oaa.proto.data;
 
-// APK class: xng — distance display with primary label and alternatives
+// APK class: xng — distance display (fields are strings, not sub-messages)
 message NavigationDistanceDisplay
 {
-    required DistanceLabel primary_label = 1;
-    repeated DistanceLabel alternative_labels = 2;
-    // field 4: sub-message (xne) — list of additional display entries
-}
-
-// APK class: xnc — formatted distance label (fields 5-8)
-message DistanceLabel
-{
-    optional string label_text = 5;      // Distance as string (e.g. "0.5")
-    optional string label_unit = 6;      // Unit display text (e.g. "mi", "km")
-    optional string label_format = 7;    // Display format string
-    optional int32 label_flags = 8;      // Display formatting flags
+    optional string primary_text = 1;           // Primary display text
+    optional string secondary_text = 2;         // Secondary display text
+    optional int64 update_timestamp = 3;        // Timestamp of update
+    optional bytes formatting = 4;              // Unknown type in APK — raw bytes for safety
 }
 
 // APK class: xmw — distance unit definition

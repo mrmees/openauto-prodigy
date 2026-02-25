@@ -25,5 +25,5 @@ message AVMediaAckIndication
 {
     required int32 session = 1;
     required uint32 value = 2;
-    optional uint64 ack_timestamp = 3;
+    repeated uint64 ack_timestamps = 3;
 }

@@ -24,4 +24,5 @@ message AbsoluteInputEvent
 {
     required uint32 scan_code = 1;
     required int32 value = 2;
+    optional uint32 pointer_id = 3;
 }

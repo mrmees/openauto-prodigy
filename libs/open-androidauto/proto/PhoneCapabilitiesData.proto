@@ -39,11 +39,14 @@ message DeviceInfo
     optional int32 device_type = 9;
 }
 
-// APK class: aafu — phone connection preferences
+// APK class: wdm — phone connection config (WiFi info, same structure as WifiInfoResponse)
 message PhoneConnectionConfig
 {
-    optional PingConfigPair ping_config = 1;
-    // field 3: unknown sub-message
+    optional string ssid = 1;
+    optional string bssid = 2;
+    optional string passphrase = 3;
+    optional int32 security_mode = 4;
+    optional int32 ap_type = 5;
 }
 
 // APK class: aaft — paired ping configurations

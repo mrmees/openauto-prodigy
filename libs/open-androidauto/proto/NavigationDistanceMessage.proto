@@ -13,11 +13,12 @@ message NavigationDistance {
 
 message NavigationDistanceInfo {
     optional NavigationDistanceValue distance = 1;
+    optional bytes alternate_display = 2;   // APK: sub-message, not yet decoded
+    optional bytes oneof_display = 4;       // APK: sub-message, not yet decoded
 }
 
 message NavigationDistanceValue {
-    // Distance as string (e.g. "0", "1.2")
-    optional string value = 2;
-    // Unit enum (6 observed — possibly miles, feet, km, m, etc.)
-    optional int32 unit = 3;
+    optional int64 raw_meters = 1;          // APK: int64, raw distance in meters
+    optional fixed32 value = 2;             // APK: fixed32 (was string — wire type mismatch)
+    optional fixed32 unit = 3;              // APK: fixed32 (was int32 — wire type mismatch)
 }

@@ -6,11 +6,11 @@ Generated: 2026-02-25
 
 | Status | Count |
 |--------|-------|
-| Verified | 86 |
-| Partial (diffs) | 41 |
+| Verified | 88 |
+| Partial (diffs) | 38 |
 | Unmatched | 59 |
 | Error | 0 |
-| **Total** | **186** |
+| **Total** | **185** |
 
 ## Verified (all fields match)
 
@@ -18,6 +18,8 @@ Generated: 2026-02-25
 - **AVInputChannel** (AVInputChannelData.proto) -> `vyt` [manual]
 - **AVInputOpenRequest** (AVInputOpenRequestMessage.proto) -> `vyx` [manual]
 - **AVInputOpenResponse** (AVInputOpenResponseMessage.proto) -> `vyy` [manual]
+- **AVMediaAckIndication** (AVMediaAckIndicationMessage.proto) -> `vvk` [manual]
+- **AbsoluteInputEvent** (AbsoluteInputEventData.proto) -> `wci` [manual]
 - **Accel** (AccelData.proto) -> `vvj` [manual]
 - **AssistantFeatureFlags** (FeatureFlagsData.proto) -> `nlq` [manual]
 - **AudioConfig** (AudioConfigData.proto) -> `vvp` [manual]
@@ -37,7 +39,6 @@ Generated: 2026-02-25
 - **ConnectionFeatureFlags** (ConnectionConfigurationData.proto) -> `aaja` [manual]
 - **ConnectionReservedConfig** (ConnectionConfigurationData.proto) -> `aaji` [manual]
 - **DeviceInfo** (PhoneCapabilitiesData.proto) -> `vve` [manual]
-- **DistanceLabel** (NavigationDistanceDisplayData.proto) -> `xnc` [manual]
 - **Door** (DoorData.proto) -> `vxh` [manual]
 - **Environment** (EnvironmentData.proto) -> `vxk` [manual]
 - **FuelLevel** (FuelLevelData.proto) -> `vxn` [manual]
@@ -54,7 +55,7 @@ Generated: 2026-02-25
 - **MediaPlaybackStatus** (MediaPlaybackStatusMessage.proto) -> `ahdz` [manual]
 - **NavigationChannel** (NavigationChannelData.proto) -> `vzr` [manual]
 - **NavigationDestination** (NavigationStepMessage.proto) -> `vze` [manual]
-- **NavigationImageOptions** (NavigationImageOptionsData.proto) -> `vzq` [manual]
+- **NavigationDistanceValue** (NavigationDistanceMessage.proto) -> `xmw` [manual]
 - **NavigationLane** (NavigationStepMessage.proto) -> `vzj` [manual]
 - **NavigationLaneDirection** (NavigationStepMessage.proto) -> `vzi` [manual]
 - **NavigationManeuver** (NavigationStepMessage.proto) -> `vzk` [manual]
@@ -95,6 +96,7 @@ Generated: 2026-02-25
 - **VendorExtensionChannel** (VendorExtensionChannelData.proto) -> `wcv` [manual]
 - **VersionFeatureFlags** (FeatureFlagsData.proto) -> `wdq` [manual]
 - **VideoFocusIndication** (VideoFocusIndicationMessage.proto) -> `wdb` [manual]
+- **VideoFocusRequest** (VideoFocusRequestMessage.proto) -> `wdd` [manual]
 - **VideoInsets** (AdditionalVideoConfigData.proto) -> `vyb` [manual]
 - **WiFiProjectionChannel** (WiFiProjectionChannelData.proto) -> `wdh` [manual]
 - **WifiChannel** (WifiChannelData.proto) -> `wdh` [manual]
@@ -128,22 +130,6 @@ Matched: 2/4 our fields, APK has 4 fields
 | 3 | type mismatch | int32 | enum |
 | 4 | type mismatch | bytes | message |
 
-### AVMediaAckIndication (AVMediaAckIndicationMessage.proto) -> `vvk` [manual]
-
-Matched: 2/3 our fields, APK has 3 fields
-
-| Field | Issue | Ours | APK |
-|-------|-------|------|-----|
-| 3 | cardinality mismatch | optional | repeated |
-
-### AbsoluteInputEvent (AbsoluteInputEventData.proto) -> `wci` [manual]
-
-Matched: 2/2 our fields, APK has 3 fields
-
-| Field | Issue | Ours | APK |
-|-------|-------|------|-----|
-| 3 | missing field (exists in APK) | None | uint32 |
-
 ### AbsoluteInputEvents (AbsoluteInputEventsData.proto) -> `wcj` [manual]
 
 Matched: 2/3 our fields, APK has 3 fields
@@ -158,8 +144,8 @@ Matched: 5/7 our fields, APK has 7 fields
 
 | Field | Issue | Ours | APK |
 |-------|-------|------|-----|
-| 4 | type mismatch | UITheme (→message) | enum |
-| 5 | type mismatch | UIElement (→message) | enum |
+| 4 | type mismatch | int32 | enum |
+| 5 | type mismatch | int32 | enum |
 
 ### AuthCompleteIndication (AuthCompleteIndicationMessage.proto) -> `vvv` [manual]
 
@@ -183,7 +169,7 @@ Matched: 2/3 our fields, APK has 3 fields
 
 | Field | Issue | Ours | APK |
 |-------|-------|------|-----|
-| 3 | type mismatch | string | enum |
+| 3 | type mismatch | int32 | enum |
 
 ### ChannelDescriptor (ChannelDescriptorData.proto) -> `wbw` [manual]
 
@@ -318,34 +304,23 @@ Matched: 3/4 our fields, APK has 4 fields
 
 ### NavigationDistanceDisplay (NavigationDistanceDisplayData.proto) -> `xnd` [manual]
 
-Matched: 0/2 our fields, APK has 4 fields
+Matched: 3/4 our fields, APK has 4 fields
 
 | Field | Issue | Ours | APK |
 |-------|-------|------|-----|
-| 1 | type mismatch | DistanceLabel (→message) | string |
-| 2 | type mismatch | DistanceLabel (→message) | string |
-| 2 | cardinality mismatch | repeated | singular |
-| 3 | missing field (exists in APK) | None | int64 |
-| 4 | missing field (exists in APK) | None | unknown(-1) |
+| 4 | type mismatch | bytes | unknown(-1) |
+| 4 | cardinality mismatch | optional | map |
 
 ### NavigationDistanceInfo (NavigationDistanceMessage.proto) -> `xng` [manual]
 
-Matched: 1/1 our fields, APK has 3 fields
+Matched: 1/3 our fields, APK has 3 fields
 
 | Field | Issue | Ours | APK |
 |-------|-------|------|-----|
-| 2 | missing field (exists in APK) | None | message |
-| 4 | missing field (exists in APK) | None | message |
-
-### NavigationDistanceValue (NavigationDistanceMessage.proto) -> `xmw` [manual]
-
-Matched: 0/2 our fields, APK has 3 fields
-
-| Field | Issue | Ours | APK |
-|-------|-------|------|-----|
-| 1 | missing field (exists in APK) | None | int64 |
-| 2 | type mismatch | string | fixed32 |
-| 3 | type mismatch | int32 | fixed32 |
+| 2 | type mismatch | bytes | message |
+| 2 | cardinality mismatch | optional | repeated |
+| 4 | type mismatch | bytes | message |
+| 4 | cardinality mismatch | optional | oneof |
 
 ### NavigationFocusRequest (NavigationFocusRequestMessage.proto) -> `vza` [manual]
 
@@ -371,6 +346,14 @@ Matched: 2/3 our fields, APK has 3 fields
 |-------|-------|------|-----|
 | 1 | type mismatch | int32 | message |
 
+### NavigationImageOptions (NavigationImageOptionsData.proto) -> `vzq` [manual]
+
+Matched: 2/3 our fields, APK has 3 fields
+
+| Field | Issue | Ours | APK |
+|-------|-------|------|-----|
+| 1 | type mismatch | bytes | int32 |
+
 ### NavigationState (NavigationStateMessage.proto) -> `vzp` [manual]
 
 Matched: 0/1 our fields, APK has 1 fields
@@ -381,15 +364,12 @@ Matched: 0/1 our fields, APK has 1 fields
 
 ### PhoneConnectionConfig (PhoneCapabilitiesData.proto) -> `wdm` [manual]
 
-Matched: 0/1 our fields, APK has 5 fields
+Matched: 3/5 our fields, APK has 5 fields
 
 | Field | Issue | Ours | APK |
 |-------|-------|------|-----|
-| 1 | type mismatch | PingConfigPair (→message) | string |
-| 2 | missing field (exists in APK) | None | string |
-| 3 | missing field (exists in APK) | None | string |
-| 4 | missing field (exists in APK) | None | enum |
-| 5 | missing field (exists in APK) | None | enum |
+| 4 | type mismatch | int32 | enum |
+| 5 | type mismatch | int32 | enum |
 
 ### PingConfiguration (PingConfigurationData.proto) -> `zyd` [manual]
 
@@ -445,15 +425,6 @@ Matched: 10/11 our fields, APK has 11 fields
 | Field | Issue | Ours | APK |
 |-------|-------|------|-----|
 | 11 | type mismatch | bytes | message |
-
-### VideoFocusRequest (VideoFocusRequestMessage.proto) -> `wdd` [manual]
-
-Matched: 1/2 our fields, APK has 2 fields
-
-| Field | Issue | Ours | APK |
-|-------|-------|------|-----|
-| 1 | extra field in our proto (not in APK) | focus_mode | None |
-| 3 | missing field (exists in APK) | None | enum |
 
 ### VoiceSessionRequest (VoiceSessionRequestMessage.proto) -> `wde` [manual]
 

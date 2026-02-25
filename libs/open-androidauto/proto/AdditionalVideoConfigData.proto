@@ -13,8 +13,8 @@ message AdditionalVideoConfig
     optional VideoResolutionRange min_resolution = 1;   // APK: vyb — minimum supported resolution
     optional VideoResolutionRange max_resolution = 2;   // APK: vyb — maximum supported resolution
     optional VideoResolutionRange preferred_resolution = 3; // APK: vyb — preferred resolution
-    optional UITheme ui_theme = 4;                      // APK: wcr — light/dark/auto
-    repeated UIElement hidden_ui_elements = 5;          // APK: wcn — elements phone should hide
+    optional int32 ui_theme = 4;                         // APK: wcr enum — light/dark/auto (0=auto, 1=light, 2=dark)
+    repeated int32 hidden_ui_elements = 5;              // APK: wcn enum — elements phone should hide
     repeated VideoResizeAction resize_actions = 6;      // APK: vvl — supported resize behaviors
     repeated VideoMarginConfig margin_configs = 7;      // APK: vxd — margin/inset configs
 }

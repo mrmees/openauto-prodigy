@@ -371,7 +371,7 @@ QByteArray ServiceDiscoveryBuilder::buildNavigationDescriptor() const
     navChannel->set_minimum_interval_ms(500);
     navChannel->set_type(oaa::proto::enums::NavigationType::TURN_BY_TURN);
     auto* imageOpts = navChannel->mutable_image_options();
-    imageOpts->set_width(64);
+    // Field 1 is a sub-message (image_config) in APK — skip for now (not decoded)
     imageOpts->set_height(64);
     imageOpts->set_colour_depth_bits(32);
 

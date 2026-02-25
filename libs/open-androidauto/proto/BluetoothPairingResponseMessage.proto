@@ -28,5 +28,6 @@ message BluetoothPairingResponse
     required enums.BluetoothPairingStatus.Enum status = 2;
 
     // Discovered via APK proto decoder (xgq.java, AA v16.1)
-    optional string error_message = 3;  // Error details on pairing failure
+    // APK has this as an enum, not a string
+    optional int32 error_code = 3;
 }

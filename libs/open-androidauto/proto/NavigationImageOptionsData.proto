@@ -22,7 +22,7 @@ package oaa.proto.data;
 
 message NavigationImageOptions
 {
-    required int32 width = 1;
+    optional bytes image_config = 1;    // APK: sub-message type (not decoded yet)
     required int32 height = 2;
     required int32 colour_depth_bits = 3;
 }
