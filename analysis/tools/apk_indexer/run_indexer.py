@@ -5,6 +5,7 @@ import argparse
 
 from analysis.tools.apk_indexer.config import IndexerConfig
 from analysis.tools.apk_indexer.extract import extract_signals
+from analysis.tools.apk_indexer.report import write_summary_report
 from analysis.tools.apk_indexer.relocate_source import relocate_source
 from analysis.tools.apk_indexer.resolve_version import resolve_version
 from analysis.tools.apk_indexer.write_json import write_json_exports
@@ -25,6 +26,7 @@ def run_indexer(source_root: Path, analysis_root: Path) -> Path:
 
     write_sqlite(sqlite_dir / "apk_index.db", signals)
     write_json_exports(json_dir, signals)
+    write_summary_report(reports_dir / "summary.md", signals)
     return base
 
 

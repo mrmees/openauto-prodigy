@@ -14,3 +14,4 @@ def test_run_indexer_builds_versioned_outputs(tmp_path):
     assert (base / "apk-source").exists()
     assert (base / "apk-index" / "sqlite" / "apk_index.db").exists()
     assert (base / "apk-index" / "json" / "uuids.json").exists()
+    assert (base / "apk-index" / "reports" / "summary.md").exists()
