@@ -15,10 +15,14 @@ COMPATIBLE_INT_PAIRS = {
     frozenset({"uint64", "int64"}),
 }
 
+VARINT_COMPATIBLE_TYPES = {"int32", "uint32", "sint32", "enum"}
+LENGTH_DELIMITED_COMPATIBLE_TYPES = {"bytes", "message"}
+
 # Cardinality pairs that are wire-compatible (repeated and packed carry same data)
 COMPATIBLE_CARDINALITY = {
     frozenset({"repeated", "packed"}),
     frozenset({"singular", "packed"}),  # singular enum in APK can be packed
+    frozenset({"oneof", "singular"}),
 }
 
 
@@ -46,6 +50,12 @@ def types_compatible(our_type: str, apk_type: str) -> bool:
         return True
     # Wire-compatible integer pairs
     if frozenset({our_type, apk_type}) in COMPATIBLE_INT_PAIRS:
+        return True
+    # int32/uint32/sint32/enum all encode as varint (wire type 0)
+    if our_type in VARINT_COMPATIBLE_TYPES and apk_type in VARINT_COMPATIBLE_TYPES:
+        return True
+    # bytes/message both encode as length-delimited (wire type 2)
+    if our_type in LENGTH_DELIMITED_COMPATIBLE_TYPES and apk_type in LENGTH_DELIMITED_COMPATIBLE_TYPES:
         return True
     return False
 

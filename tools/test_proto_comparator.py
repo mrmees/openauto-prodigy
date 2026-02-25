@@ -59,6 +59,44 @@ def test_compatible_int_types():
     assert len(result["mismatches"]) == 0
 
 
+def test_compatible_varint_enum_types():
+    """sint32 and enum share varint wire type."""
+    our_fields = [
+        {
+            "number": 1,
+            "name": "mode",
+            "type": "sint32",
+            "cardinality": "optional",
+            "message_type": None,
+        },
+    ]
+    apk_fields = [
+        {"wire_field": 1, "type": "enum", "cardinality": "singular", "flags": {"bit8_required": False}},
+    ]
+    result = compare_fields(our_fields, apk_fields)
+    assert result["status"] == "verified"
+    assert len(result["mismatches"]) == 0
+
+
+def test_compatible_bytes_message_types():
+    """bytes and message are both length-delimited and should be wire-compatible."""
+    our_fields = [
+        {
+            "number": 2,
+            "name": "payload",
+            "type": "bytes",
+            "cardinality": "optional",
+            "message_type": None,
+        },
+    ]
+    apk_fields = [
+        {"wire_field": 2, "type": "message", "cardinality": "singular", "flags": {"bit8_required": False}},
+    ]
+    result = compare_fields(our_fields, apk_fields)
+    assert result["status"] == "verified"
+    assert len(result["mismatches"]) == 0
+
+
 def test_incompatible_type_mismatch():
     """string vs int32 should be a real type mismatch."""
     our_fields = [
@@ -142,6 +180,24 @@ def test_cardinality_mismatch():
     result = compare_fields(our_fields, apk_fields)
     assert result["status"] == "partial"
     assert any("cardinality" in m["issue"] for m in result["mismatches"])
+
+
+def test_oneof_and_singular_cardinality_are_compatible():
+    our_fields = [
+        {
+            "number": 3,
+            "name": "choice",
+            "type": "bytes",
+            "cardinality": "oneof",
+            "message_type": None,
+        },
+    ]
+    apk_fields = [
+        {"wire_field": 3, "type": "message", "cardinality": "singular", "flags": {"bit8_required": False}},
+    ]
+    result = compare_fields(our_fields, apk_fields)
+    assert result["status"] == "verified"
+    assert len(result["mismatches"]) == 0
 
 
 def test_malformed_apk_field_entry():

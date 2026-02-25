@@ -187,6 +187,7 @@ def decode_descriptor(data):
     java_fields = data.get("java_fields", {})
 
     pos = 0
+    version_prefix = codepoints[0] if codepoints else 0
 
     # Skip version/flags prefix.
     # aaah.java: charAt(0) is consumed. If >= 0xD800, read continuation chars.
@@ -313,8 +314,10 @@ def decode_descriptor(data):
                 if type_flags & 2048:
                     obj_idx += 1
 
-            # Has-bits varint: present ONLY for singular fields (i88 <= 17)
-            if i88 <= 17:
+            # Singular fields normally carry a has-bits varint. Version-0
+            # descriptors can omit that payload when has_bits_count == 0.
+            should_read_has_bits = i88 <= 17 and not (version_prefix == 0 and charAt16 == 0)
+            if should_read_has_bits:
                 if pos < len(codepoints):
                     has_bits_val = codepoints[pos]; pos += 1
                     field_info["has_bits"] = {

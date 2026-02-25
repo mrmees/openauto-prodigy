@@ -69,6 +69,58 @@ def _extract_blocks(content: str, kind: str) -> list[tuple[str, str]]:
     return blocks
 
 
+def _extract_top_level_blocks(content: str, kind: str) -> list[tuple[str, str]]:
+    """Extract only top-level blocks of a given kind (not nested in braces)."""
+    blocks: list[tuple[str, str]] = []
+    marker = f"{kind} "
+    pos = 0
+    depth = 0
+
+    while pos < len(content):
+        ch = content[pos]
+        if ch == "{":
+            depth += 1
+            pos += 1
+            continue
+        if ch == "}":
+            depth = max(0, depth - 1)
+            pos += 1
+            continue
+
+        if depth == 0 and content.startswith(marker, pos):
+            name_match = re.match(rf"{kind}\s+(\w+)\s*\{{", content[pos:])
+            if not name_match:
+                pos += len(marker)
+                continue
+
+            name = name_match.group(1)
+            open_idx = pos + name_match.end() - 1
+            block_depth = 0
+            end_idx = open_idx
+            while end_idx < len(content):
+                block_ch = content[end_idx]
+                if block_ch == "{":
+                    block_depth += 1
+                elif block_ch == "}":
+                    block_depth -= 1
+                    if block_depth == 0:
+                        break
+                end_idx += 1
+
+            if block_depth != 0:
+                pos += len(marker)
+                continue
+
+            body = content[open_idx + 1 : end_idx]
+            blocks.append((name, body))
+            pos = end_idx + 1
+            continue
+
+        pos += 1
+
+    return blocks
+
+
 def parse_proto_file(filepath: str) -> dict:
     """Parse a .proto file, returning package, imports, and messages."""
     content = _strip_comments(Path(filepath).read_text(encoding="utf-8"))
@@ -117,7 +169,58 @@ def parse_proto_file(filepath: str) -> dict:
                 }
             )
 
+        oneof_field_pattern = re.compile(r"\b([\w.]+)\s+(\w+)\s*=\s*(\d+)\s*(\[[^\]]*\])?\s*;")
+        for _, oneof_body in _extract_blocks(msg_body, "oneof"):
+            for match in oneof_field_pattern.finditer(oneof_body):
+                field_type = match.group(1)
+                field_name = match.group(2)
+                field_num = int(match.group(3))
+
+                clean_type = field_type.split(".")[-1]
+                message_type = None if clean_type in BASE_TYPES else clean_type
+                fields.append(
+                    {
+                        "number": field_num,
+                        "name": field_name,
+                        "type": clean_type,
+                        "cardinality": "oneof",
+                        "message_type": message_type,
+                    }
+                )
+
+        if not fields and enums:
+            fields.append(
+                {
+                    "number": 1,
+                    "name": "value",
+                    "type": "int32",
+                    "cardinality": "optional",
+                    "message_type": None,
+                }
+            )
+
         result["messages"][msg_name] = {"fields": fields, "enums": enums}
+
+    # Enum-only files are represented in APK as a synthetic wrapper message:
+    # message <EnumName> { optional int32 value = 1; }
+    for enum_name, enum_body in _extract_top_level_blocks(content, "enum"):
+        if enum_name in result["messages"]:
+            continue
+        values = {}
+        for value_name, number in re.findall(r"\b(\w+)\s*=\s*(-?\d+)\s*;", enum_body):
+            values[value_name] = int(number)
+        result["messages"][enum_name] = {
+            "fields": [
+                {
+                    "number": 1,
+                    "name": "value",
+                    "type": "int32",
+                    "cardinality": "optional",
+                    "message_type": None,
+                }
+            ],
+            "enums": {enum_name: values},
+        }
 
     return result
 
