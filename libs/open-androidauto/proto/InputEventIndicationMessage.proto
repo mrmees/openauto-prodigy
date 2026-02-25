@@ -25,10 +25,10 @@ import "RelativeInputEventsData.proto";
 
 package oaa.proto.messages;
 
+// APK class: vxx — no field 2 (disp_channel)
 message InputEventIndication
 {
     required uint64 timestamp = 1;
-    optional int32 disp_channel = 2 [deprecated = true];  // Not in APK v16.1; kept for older protocol compat
     optional data.TouchEvent touch_event = 3;
     optional data.ButtonEvents button_event = 4;
     optional data.AbsoluteInputEvents absolute_input_event = 5;

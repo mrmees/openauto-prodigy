@@ -7,9 +7,11 @@ syntax="proto2";
 
 package oaa.proto.data;
 
-// APK class: vvh — key event with keycode and scan code
+// APK class: vyi — key event with keycode and down/pressed state
 message KeyEvent
 {
     required uint32 keycode = 1;
-    required int32 scan_code = 2;
+    required bool is_pressed = 2;
+    optional uint32 meta_state = 3;
+    optional bool long_press = 4;
 }

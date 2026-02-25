@@ -20,23 +20,11 @@ syntax = "proto2";
 
 package oaa.proto.messages;
 
+// APK class: wdm — WiFi connection status response (phone sends as msgId=7)
 message WifiInfoResponse {
-    optional string ip_address = 1;
-    optional uint32 port = 2;
-    required Status status = 3;
-
-    enum Status {
-        STATUS_UNSOLICITED_MESSAGE = 1;
-        STATUS_SUCCESS = 0;
-        STATUS_NO_COMPATIBLE_VERSION = -1;
-        STATUS_WIFI_INACCESSIBLE_CHANNEL = -2;
-        STATUS_WIFI_INCORRECT_CREDENTIALS = -3;
-        STATUS_PROJECTION_ALREADY_STARTED = -4;
-        STATUS_WIFI_DISABLED = -5;
-        STATUS_WIFI_NOT_YET_STARTED = -6;
-        STATUS_INVALID_HOST = -7;
-        STATUS_NO_SUPPORTED_WIFI_CHANNELS = -8;
-        STATUS_INSTRUCT_USER_TO_CHECK_THE_PHONE = -9;
-        STATUS_PHONE_WIFI_DISABLED = -10;
-    }
-} 
+    optional string ssid = 1;
+    optional string bssid = 2;
+    optional string passphrase = 3;
+    optional int32 security_mode = 4;   // enum in APK (SecurityMode)
+    optional int32 ap_type = 5;         // enum in APK (AccessPointType)
+}

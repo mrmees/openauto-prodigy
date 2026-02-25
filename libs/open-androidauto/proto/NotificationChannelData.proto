@@ -7,7 +7,7 @@ syntax="proto2";
 
 package oaa.proto.data;
 
+// APK class: wah — empty message
 message NotificationChannel
 {
-    optional string notification_filter = 1;  // Notification category filter
 }

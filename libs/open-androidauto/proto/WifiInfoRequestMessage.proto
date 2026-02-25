@@ -20,8 +20,7 @@ syntax="proto2";
 
 package oaa.proto.messages;
 
+// APK class: wdl — empty message (phone sends this as msgId=2 to request credentials)
 message WifiInfoRequest
 {
-    required string ip_address = 1;
-    optional uint32 port = 2;
-} 
+}

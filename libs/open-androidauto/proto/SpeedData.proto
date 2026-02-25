@@ -20,9 +20,10 @@ syntax="proto2";
 
 package oaa.proto.data;
 
+// APK class: wcd — fields 1(int32), 2(bool), 4(int32); no field 3
 message Speed
 {
     required int32 speed = 1;
     optional bool cruise_engaged = 2;
-    optional bool cruise_set_speed = 3;
+    optional int32 unknown_4 = 4;
 }

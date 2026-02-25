@@ -2,10 +2,8 @@ syntax="proto2";
 
 package oaa.proto.data;
 
+// APK class: wcg — 1 repeated int32 field
 message TirePressure
 {
-    optional int32 front_left = 1;
-    optional int32 front_right = 2;
-    optional int32 rear_left = 3;
-    optional int32 rear_right = 4;
+    repeated int32 tire_pressures = 1;
 }

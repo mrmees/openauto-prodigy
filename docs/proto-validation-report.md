@@ -6,11 +6,11 @@ Generated: 2026-02-25
 
 | Status | Count |
 |--------|-------|
-| Verified | 69 |
-| Partial (diffs) | 59 |
-| Unmatched | 59 |
+| Verified | 80 |
+| Partial (diffs) | 48 |
+| Unmatched | 60 |
 | Error | 0 |
-| **Total** | **187** |
+| **Total** | **188** |
 
 ## Verified (all fields match)
 
@@ -22,7 +22,9 @@ Generated: 2026-02-25
 - **AudioConfig** (AudioConfigData.proto) -> `vvp` [manual]
 - **AudioFocusChannel** (AudioFocusChannelData.proto) -> `vyr` [manual]
 - **AudioFocusRequest** (AudioFocusRequestMessage.proto) -> `vvr` [manual]
+- **AudioFocusResponse** (AudioFocusResponseMessage.proto) -> `vvq` [manual]
 - **BindingRequest** (BindingRequestMessage.proto) -> `wcg` [auto]
+- **BindingResponse** (BindingResponseMessage.proto) -> `vwb` [manual]
 - **BluetoothChannel** (BluetoothChannelData.proto) -> `vwc` [manual]
 - **BluetoothPairingRequest** (BluetoothPairingRequestMessage.proto) -> `kay` [manual]
 - **ButtonEvent** (ButtonEventData.proto) -> `vyi` [manual]
@@ -40,6 +42,8 @@ Generated: 2026-02-25
 - **HVAC** (HVACData.proto) -> `vxv` [manual]
 - **HeadUnitInfo** (HeadUnitInfoData.proto) -> `aacd` [manual]
 - **InputChannel** (InputChannelData.proto) -> `vya` [manual]
+- **InputEventIndication** (InputEventIndicationMessage.proto) -> `vxx` [manual]
+- **KeyEvent** (KeyEventData.proto) -> `vyi` [manual]
 - **Light** (LightData.proto) -> `vyk` [manual]
 - **MediaInfoChannel** (MediaChannelData.proto) -> `vym` [manual]
 - **MediaPlaybackMetadata** (MediaPlaybackMetadataMessage.proto) -> `nmi` [manual]
@@ -54,6 +58,7 @@ Generated: 2026-02-25
 - **NavigationStep** (NavigationStepMessage.proto) -> `vzu` [manual]
 - **NavigationText** (NavigationStepMessage.proto) -> `vzn` [manual]
 - **NightMode** (NightModeData.proto) -> `vzw` [manual]
+- **NotificationChannel** (NotificationChannelData.proto) -> `wah` [manual]
 - **Odometer** (OdometerData.proto) -> `vzx` [manual]
 - **ParkingBrake** (ParkingBrakeData.proto) -> `wab` [manual]
 - **Passenger** (PassengerData.proto) -> `wac` [manual]
@@ -75,6 +80,9 @@ Generated: 2026-02-25
 - **SessionInfo** (SessionInfoData.proto) -> `vvf` [manual]
 - **ShutdownRequest** (ShutdownRequestMessage.proto) -> `vwf` [manual]
 - **ShutdownResponse** (ShutdownResponseMessage.proto) -> `vwg` [manual]
+- **Speed** (SpeedData.proto) -> `wcd` [manual]
+- **TirePressure** (TirePressureData.proto) -> `wcg` [manual]
+- **TouchConfig** (TouchConfigData.proto) -> `vxn` [manual]
 - **TouchEvent** (TouchEventData.proto) -> `wcj` [manual]
 - **TouchLocation** (TouchLocationData.proto) -> `wci` [manual]
 - **TouchPadConfig** (TouchPadConfigData.proto) -> `vxy` [manual]
@@ -82,7 +90,10 @@ Generated: 2026-02-25
 - **VendorExtensionChannel** (VendorExtensionChannelData.proto) -> `wcv` [manual]
 - **VideoFocusIndication** (VideoFocusIndicationMessage.proto) -> `wdb` [manual]
 - **VideoInsets** (AdditionalVideoConfigData.proto) -> `vyb` [manual]
+- **WiFiProjectionChannel** (WiFiProjectionChannelData.proto) -> `wdh` [manual]
 - **WifiChannel** (WifiChannelData.proto) -> `wdh` [manual]
+- **WifiInfoRequest** (WifiInfoRequestMessage.proto) -> `wdl` [manual]
+- **WifiSecurityResponse** (WifiSecurityResponseMessage.proto) -> `wan` [manual]
 
 ## Partial (field diffs)
 
@@ -157,14 +168,6 @@ Matched: 10/12 our fields, APK has 13 fields
 | 14 | missing field (exists in APK) | None | bool |
 | 15 | missing field (exists in APK) | None | bool |
 
-### AudioFocusResponse (AudioFocusResponseMessage.proto) -> `vvq` [manual]
-
-Matched: 1/1 our fields, APK has 2 fields
-
-| Field | Issue | Ours | APK |
-|-------|-------|------|-----|
-| 2 | missing field (exists in APK) | None | bool |
-
 ### AuthCompleteIndication (AuthCompleteIndicationMessage.proto) -> `vvv` [manual]
 
 Matched: 0/1 our fields, APK has 1 fields
@@ -172,14 +175,6 @@ Matched: 0/1 our fields, APK has 1 fields
 | Field | Issue | Ours | APK |
 |-------|-------|------|-----|
 | 1 | type mismatch | Enum (→enum) | int32 |
-
-### BindingResponse (BindingResponseMessage.proto) -> `vwb` [manual]
-
-Matched: 1/1 our fields, APK has 2 fields
-
-| Field | Issue | Ours | APK |
-|-------|-------|------|-----|
-| 2 | missing field (exists in APK) | None | bool |
 
 ### BluetoothChannelConfig (BluetoothChannelConfigData.proto) -> `vwc` [manual]
 
@@ -267,12 +262,11 @@ Matched: 4/4 our fields, APK has 9 fields
 
 ### Diagnostics (DiagnosticsData.proto) -> `vxf` [manual]
 
-Matched: 1/3 our fields, APK has 1 fields
+Matched: 0/1 our fields, APK has 1 fields
 
 | Field | Issue | Ours | APK |
 |-------|-------|------|-----|
-| 2 | extra field in our proto (not in APK) | extended_diagnostics | None |
-| 3 | extra field in our proto (not in APK) | diagnostics_supported | None |
+| 1 | type mismatch | int32 | bytes |
 
 ### DistanceLabel (NavigationDistanceDisplayData.proto) -> `xnc` [manual]
 
@@ -358,24 +352,6 @@ Matched: 0/5 our fields, APK has 17 fields
 | 15 | missing field (exists in APK) | None | message |
 | 16 | missing field (exists in APK) | None | message |
 | 17 | missing field (exists in APK) | None | message |
-
-### InputEventIndication (InputEventIndicationMessage.proto) -> `vxx` [manual]
-
-Matched: 6/7 our fields, APK has 6 fields
-
-| Field | Issue | Ours | APK |
-|-------|-------|------|-----|
-| 2 | extra field in our proto (not in APK) | disp_channel | None |
-
-### KeyEvent (KeyEventData.proto) -> `vyi` [manual]
-
-Matched: 1/2 our fields, APK has 4 fields
-
-| Field | Issue | Ours | APK |
-|-------|-------|------|-----|
-| 2 | type mismatch | int32 | bool |
-| 3 | missing field (exists in APK) | None | uint32 |
-| 4 | missing field (exists in APK) | None | bool |
 
 ### MediaPlaybackStatus (MediaPlaybackStatusMessage.proto) -> `ahdz` [manual]
 
@@ -470,14 +446,6 @@ Matched: 0/1 our fields, APK has 1 fields
 |-------|-------|------|-----|
 | 1 | type mismatch | int32 | enum |
 
-### NotificationChannel (NotificationChannelData.proto) -> `wah` [manual]
-
-Matched: 0/1 our fields, APK has 0 fields
-
-| Field | Issue | Ours | APK |
-|-------|-------|------|-----|
-| 1 | extra field in our proto (not in APK) | notification_filter | None |
-
 ### PhoneConnectionConfig (PhoneCapabilitiesData.proto) -> `wdm` [manual]
 
 Matched: 0/1 our fields, APK has 5 fields
@@ -541,15 +509,6 @@ Matched: 20/26 our fields, APK has 26 fields
 | 25 | type mismatch | bytes | message |
 | 26 | type mismatch | bytes | message |
 
-### Speed (SpeedData.proto) -> `wcd` [manual]
-
-Matched: 2/3 our fields, APK has 3 fields
-
-| Field | Issue | Ours | APK |
-|-------|-------|------|-----|
-| 3 | extra field in our proto (not in APK) | cruise_set_speed | None |
-| 4 | missing field (exists in APK) | None | int32 |
-
 ### SteeringWheel (SteeringWheelData.proto) -> `vxe` [manual]
 
 Matched: 1/2 our fields, APK has 2 fields
@@ -557,25 +516,6 @@ Matched: 1/2 our fields, APK has 2 fields
 | Field | Issue | Ours | APK |
 |-------|-------|------|-----|
 | 2 | cardinality mismatch | required | repeated |
-
-### TirePressure (TirePressureData.proto) -> `wcg` [manual]
-
-Matched: 0/4 our fields, APK has 1 fields
-
-| Field | Issue | Ours | APK |
-|-------|-------|------|-----|
-| 1 | cardinality mismatch | optional | repeated |
-| 2 | extra field in our proto (not in APK) | front_right | None |
-| 3 | extra field in our proto (not in APK) | rear_left | None |
-| 4 | extra field in our proto (not in APK) | rear_right | None |
-
-### TouchConfig (TouchConfigData.proto) -> `vxn` [manual]
-
-Matched: 2/2 our fields, APK has 3 fields
-
-| Field | Issue | Ours | APK |
-|-------|-------|------|-----|
-| 3 | missing field (exists in APK) | None | bool |
 
 ### TouchCoordinate (TouchCoordinateData.proto) -> `wci` [manual]
 
@@ -612,27 +552,20 @@ Matched: 10/11 our fields, APK has 11 fields
 
 ### VideoFocusRequest (VideoFocusRequestMessage.proto) -> `wdd` [manual]
 
-Matched: 2/3 our fields, APK has 2 fields
+Matched: 1/2 our fields, APK has 2 fields
 
 | Field | Issue | Ours | APK |
 |-------|-------|------|-----|
-| 1 | extra field in our proto (not in APK) | disp_index | None |
+| 1 | extra field in our proto (not in APK) | focus_mode | None |
+| 3 | missing field (exists in APK) | None | enum |
 
 ### VoiceSessionRequest (VoiceSessionRequestMessage.proto) -> `wde` [manual]
 
-Matched: 0/0 our fields, APK has 1 fields
+Matched: 0/1 our fields, APK has 1 fields
 
 | Field | Issue | Ours | APK |
 |-------|-------|------|-----|
-| 1 | missing field (exists in APK) | None | enum |
-
-### WiFiProjectionChannel (WiFiProjectionChannelData.proto) -> `wdh` [manual]
-
-Matched: 0/0 our fields, APK has 1 fields
-
-| Field | Issue | Ours | APK |
-|-------|-------|------|-----|
-| 1 | missing field (exists in APK) | None | string |
+| 1 | type mismatch | int32 | enum |
 
 ### WifiDirectConfig (WifiDirectConfigData.proto) -> `wbb` [manual]
 
@@ -642,34 +575,14 @@ Matched: 5/6 our fields, APK has 6 fields
 |-------|-------|------|-----|
 | 5 | type mismatch | bytes | message |
 
-### WifiInfoRequest (WifiInfoRequestMessage.proto) -> `wdl` [manual]
-
-Matched: 0/2 our fields, APK has 0 fields
-
-| Field | Issue | Ours | APK |
-|-------|-------|------|-----|
-| 1 | extra field in our proto (not in APK) | ip_address | None |
-| 2 | extra field in our proto (not in APK) | port | None |
-
 ### WifiInfoResponse (WifiInfoResponseMessage.proto) -> `wdm` [manual]
 
-Matched: 1/3 our fields, APK has 5 fields
+Matched: 3/5 our fields, APK has 5 fields
 
 | Field | Issue | Ours | APK |
 |-------|-------|------|-----|
-| 2 | type mismatch | uint32 | string |
-| 3 | type mismatch | Status (→message) | string |
-| 4 | missing field (exists in APK) | None | enum |
-| 5 | missing field (exists in APK) | None | enum |
-
-### WifiSecurityResponse (WifiSecurityResponseMessage.proto) -> `wan` [manual]
-
-Matched: 11/11 our fields, APK has 13 fields
-
-| Field | Issue | Ours | APK |
-|-------|-------|------|-----|
-| 12 | missing field (exists in APK) | None | string |
-| 13 | missing field (exists in APK) | None | bool |
+| 4 | type mismatch | int32 | enum |
+| 5 | type mismatch | int32 | enum |
 
 ## Unmatched (no APK class found)
 
@@ -732,3 +645,4 @@ Matched: 11/11 our fields, APK has 13 fields
 - WifiChannelMessage (WifiChannelMessageIdsEnum.proto)
 - WifiSecurityRequest (WifiSecurityRequestMessage.proto)
 - WifiSetupMessage (WifiSetupMessageEnum.proto)
+- WifiStartRequest (WifiStartRequestMessage.proto)

@@ -69,7 +69,6 @@ void InputChannelHandler::sendTouchIndication(int pointerCount, const Pointer* p
 
     oaa::proto::messages::InputEventIndication indication;
     indication.set_timestamp(timestamp);
-    indication.set_disp_channel(0);
 
     auto* touchEvent = indication.mutable_touch_event();
     touchEvent->set_touch_action(static_cast<oaa::proto::enums::TouchAction::Enum>(action));

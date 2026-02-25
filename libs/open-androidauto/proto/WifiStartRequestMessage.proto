@@ -1,0 +1,15 @@
+/*
+*  WifiStartRequest — HU sends this to phone as msgId=1 during BT RFCOMM handshake.
+*  Contains the HU's IP address and TCP port for the phone to connect to.
+*  This is NOT the same as WifiInfoRequest (msgId=2, which is empty).
+*/
+
+syntax="proto2";
+
+package oaa.proto.messages;
+
+message WifiStartRequest
+{
+    required string ip_address = 1;
+    optional uint32 port = 2;
+}

@@ -1,0 +1,20 @@
+/*
+ * WiFiProjectionChannel — WiFi projection capability for AA v16.1+.
+ *
+ * APK class: way.java (AA v16.1)
+ * Field numbers decoded from protobuf-lite RawMessageInfo descriptor.
+ *
+ * Contains repeated WiFiProjectionConfig entries, but the internal
+ * structure (wax.java, 14 fields) is complex and not yet needed.
+ * Declared as an empty message for ChannelDescriptor presence.
+ */
+
+syntax="proto2";
+
+package oaa.proto.data;
+
+// APK class: wdh — 1 field (string at field 1)
+message WiFiProjectionChannel
+{
+    optional string ssid = 1;
+}

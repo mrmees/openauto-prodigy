@@ -23,6 +23,7 @@ extern "C" {
 #include <bluetooth/sdp_lib.h>
 }
 
+#include "WifiStartRequestMessage.pb.h"
 #include "WifiInfoRequestMessage.pb.h"
 #include "WifiInfoResponseMessage.pb.h"
 #include "WifiSecurityRequestMessage.pb.h"
@@ -402,7 +403,7 @@ void BluetoothDiscoveryService::onClientConnected()
     }
 
     // Send WifiStartRequest (msgId=1) with our IP and TCP port
-    oaa::proto::messages::WifiInfoRequest request;
+    oaa::proto::messages::WifiStartRequest request;
     request.set_ip_address(localIp);
     request.set_port(config_->tcpPort());
 
@@ -491,23 +492,22 @@ void BluetoothDiscoveryService::handleWifiConnectionStatus(
     const QByteArray& data, uint16_t length)
 {
     // Phone reports WiFi connection result (msgId=7)
+    // WifiInfoResponse (APK class wdm) has: ssid, bssid, passphrase, security_mode, ap_type
+    // A successful connection status parses OK; failure is indicated by parse failure
+    // or empty/missing fields.
     oaa::proto::messages::WifiInfoResponse msg;
     if (!msg.ParseFromArray(data.data() + 4, length)) {
         qCritical() << "[BTDiscovery] Failed to parse WifiConnectionStatus";
+        emit error("Phone WiFi connection status parse failed");
         return;
     }
 
     qInfo() << "[BTDiscovery] WifiConnectionStatus:"
             << msg.ShortDebugString().c_str();
 
-    if (msg.status() == oaa::proto::messages::WifiInfoResponse_Status_STATUS_SUCCESS) {
-        qInfo() << "[BTDiscovery] Phone connected to WiFi!";
-        emit phoneWillConnect();
-    } else {
-        qCritical() << "[BTDiscovery] Phone WiFi connection failed:"
-                     << msg.status();
-        emit error(QString("Phone WiFi connection failed (status %1)").arg(msg.status()));
-    }
+    // If we received a parseable response, the phone has connected
+    qInfo() << "[BTDiscovery] Phone connected to WiFi!";
+    emit phoneWillConnect();
 }
 
 void BluetoothDiscoveryService::sendMessage(

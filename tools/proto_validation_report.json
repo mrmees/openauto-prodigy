@@ -1,10 +1,10 @@
 {
   "summary": {
     "date": "2026-02-25",
-    "total": 187,
-    "verified": 69,
-    "partial": 59,
-    "unmatched": 59,
+    "total": 188,
+    "verified": 80,
+    "partial": 48,
+    "unmatched": 60,
     "error": 0
   },
   "results": [
@@ -434,27 +434,18 @@
     {
       "message": "AudioFocusResponse",
       "file": "AudioFocusResponseMessage.proto",
-      "status": "partial",
+      "status": "verified",
       "apk_class": "vvq",
       "match_source": "manual",
       "match_score": 1.0,
       "comparison": {
-        "status": "partial",
-        "mismatches": [
-          {
-            "field": 2,
-            "issue": "missing field (exists in APK)",
-            "our_value": null,
-            "apk_value": "bool"
-          }
-        ],
-        "matched_count": 1,
-        "our_field_count": 1,
+        "status": "verified",
+        "mismatches": [],
+        "matched_count": 2,
+        "our_field_count": 2,
         "apk_field_count": 2,
         "our_only": [],
-        "apk_only": [
-          2
-        ]
+        "apk_only": []
       }
     },
     {
@@ -528,27 +519,18 @@
     {
       "message": "BindingResponse",
       "file": "BindingResponseMessage.proto",
-      "status": "partial",
+      "status": "verified",
       "apk_class": "vwb",
       "match_source": "manual",
       "match_score": 1.0,
       "comparison": {
-        "status": "partial",
-        "mismatches": [
-          {
-            "field": 2,
-            "issue": "missing field (exists in APK)",
-            "our_value": null,
-            "apk_value": "bool"
-          }
-        ],
-        "matched_count": 1,
-        "our_field_count": 1,
+        "status": "verified",
+        "mismatches": [],
+        "matched_count": 2,
+        "our_field_count": 2,
         "apk_field_count": 2,
         "our_only": [],
-        "apk_only": [
-          2
-        ]
+        "apk_only": []
       }
     },
     {
@@ -1142,25 +1124,16 @@
         "status": "partial",
         "mismatches": [
           {
-            "field": 2,
-            "issue": "extra field in our proto (not in APK)",
-            "our_value": "extended_diagnostics",
-            "apk_value": null
-          },
-          {
-            "field": 3,
-            "issue": "extra field in our proto (not in APK)",
-            "our_value": "diagnostics_supported",
-            "apk_value": null
+            "field": 1,
+            "issue": "type mismatch",
+            "our_value": "int32",
+            "apk_value": "bytes"
           }
         ],
-        "matched_count": 1,
-        "our_field_count": 3,
+        "matched_count": 0,
+        "our_field_count": 1,
         "apk_field_count": 1,
-        "our_only": [
-          2,
-          3
-        ],
+        "our_only": [],
         "apk_only": []
       }
     },
@@ -1777,66 +1750,35 @@
     {
       "message": "InputEventIndication",
       "file": "InputEventIndicationMessage.proto",
-      "status": "partial",
+      "status": "verified",
       "apk_class": "vxx",
       "match_source": "manual",
       "match_score": 1.0,
       "comparison": {
-        "status": "partial",
-        "mismatches": [
-          {
-            "field": 2,
-            "issue": "extra field in our proto (not in APK)",
-            "our_value": "disp_channel",
-            "apk_value": null
-          }
-        ],
+        "status": "verified",
+        "mismatches": [],
         "matched_count": 6,
-        "our_field_count": 7,
+        "our_field_count": 6,
         "apk_field_count": 6,
-        "our_only": [
-          2
-        ],
+        "our_only": [],
         "apk_only": []
       }
     },
     {
       "message": "KeyEvent",
       "file": "KeyEventData.proto",
-      "status": "partial",
+      "status": "verified",
       "apk_class": "vyi",
       "match_source": "manual",
       "match_score": 1.0,
       "comparison": {
-        "status": "partial",
-        "mismatches": [
-          {
-            "field": 2,
-            "issue": "type mismatch",
-            "our_value": "int32",
-            "apk_value": "bool"
-          },
-          {
-            "field": 3,
-            "issue": "missing field (exists in APK)",
-            "our_value": null,
-            "apk_value": "uint32"
-          },
-          {
-            "field": 4,
-            "issue": "missing field (exists in APK)",
-            "our_value": null,
-            "apk_value": "bool"
-          }
-        ],
-        "matched_count": 1,
-        "our_field_count": 2,
+        "status": "verified",
+        "mismatches": [],
+        "matched_count": 4,
+        "our_field_count": 4,
         "apk_field_count": 4,
         "our_only": [],
-        "apk_only": [
-          3,
-          4
-        ]
+        "apk_only": []
       }
     },
     {
@@ -2469,26 +2411,17 @@
     {
       "message": "NotificationChannel",
       "file": "NotificationChannelData.proto",
-      "status": "partial",
+      "status": "verified",
       "apk_class": "wah",
       "match_source": "manual",
       "match_score": 1.0,
       "comparison": {
-        "status": "partial",
-        "mismatches": [
-          {
-            "field": 1,
-            "issue": "extra field in our proto (not in APK)",
-            "our_value": "notification_filter",
-            "apk_value": null
-          }
-        ],
+        "status": "verified",
+        "mismatches": [],
         "matched_count": 0,
-        "our_field_count": 1,
+        "our_field_count": 0,
         "apk_field_count": 0,
-        "our_only": [
-          1
-        ],
+        "our_only": [],
         "apk_only": []
       }
     },
@@ -3228,35 +3161,18 @@
     {
       "message": "Speed",
       "file": "SpeedData.proto",
-      "status": "partial",
+      "status": "verified",
       "apk_class": "wcd",
       "match_source": "manual",
       "match_score": 1.0,
       "comparison": {
-        "status": "partial",
-        "mismatches": [
-          {
-            "field": 3,
-            "issue": "extra field in our proto (not in APK)",
-            "our_value": "cruise_set_speed",
-            "apk_value": null
-          },
-          {
-            "field": 4,
-            "issue": "missing field (exists in APK)",
-            "our_value": null,
-            "apk_value": "int32"
-          }
-        ],
-        "matched_count": 2,
+        "status": "verified",
+        "mismatches": [],
+        "matched_count": 3,
         "our_field_count": 3,
         "apk_field_count": 3,
-        "our_only": [
-          3
-        ],
-        "apk_only": [
-          4
-        ]
+        "our_only": [],
+        "apk_only": []
       }
     },
     {
@@ -3295,46 +3211,17 @@
     {
       "message": "TirePressure",
       "file": "TirePressureData.proto",
-      "status": "partial",
+      "status": "verified",
       "apk_class": "wcg",
       "match_source": "manual",
       "match_score": 1.0,
       "comparison": {
-        "status": "partial",
-        "mismatches": [
-          {
-            "field": 1,
-            "issue": "cardinality mismatch",
-            "our_value": "optional",
-            "apk_value": "repeated"
-          },
-          {
-            "field": 2,
-            "issue": "extra field in our proto (not in APK)",
-            "our_value": "front_right",
-            "apk_value": null
-          },
-          {
-            "field": 3,
-            "issue": "extra field in our proto (not in APK)",
-            "our_value": "rear_left",
-            "apk_value": null
-          },
-          {
-            "field": 4,
-            "issue": "extra field in our proto (not in APK)",
-            "our_value": "rear_right",
-            "apk_value": null
-          }
-        ],
-        "matched_count": 0,
-        "our_field_count": 4,
+        "status": "verified",
+        "mismatches": [],
+        "matched_count": 1,
+        "our_field_count": 1,
         "apk_field_count": 1,
-        "our_only": [
-          2,
-          3,
-          4
-        ],
+        "our_only": [],
         "apk_only": []
       }
     },
@@ -3350,27 +3237,18 @@
     {
       "message": "TouchConfig",
       "file": "TouchConfigData.proto",
-      "status": "partial",
+      "status": "verified",
       "apk_class": "vxn",
       "match_source": "manual",
       "match_score": 0.8,
       "comparison": {
-        "status": "partial",
-        "mismatches": [
-          {
-            "field": 3,
-            "issue": "missing field (exists in APK)",
-            "our_value": null,
-            "apk_value": "bool"
-          }
-        ],
-        "matched_count": 2,
-        "our_field_count": 2,
+        "status": "verified",
+        "mismatches": [],
+        "matched_count": 3,
+        "our_field_count": 3,
         "apk_field_count": 3,
         "our_only": [],
-        "apk_only": [
-          3
-        ]
+        "apk_only": []
       }
     },
     {
@@ -3670,17 +3548,25 @@
           {
             "field": 1,
             "issue": "extra field in our proto (not in APK)",
-            "our_value": "disp_index",
+            "our_value": "focus_mode",
             "apk_value": null
+          },
+          {
+            "field": 3,
+            "issue": "missing field (exists in APK)",
+            "our_value": null,
+            "apk_value": "enum"
           }
         ],
-        "matched_count": 2,
-        "our_field_count": 3,
+        "matched_count": 1,
+        "our_field_count": 2,
         "apk_field_count": 2,
         "our_only": [
           1
         ],
-        "apk_only": []
+        "apk_only": [
+          3
+        ]
       }
     },
     {
@@ -3748,44 +3634,33 @@
         "mismatches": [
           {
             "field": 1,
-            "issue": "missing field (exists in APK)",
-            "our_value": null,
+            "issue": "type mismatch",
+            "our_value": "int32",
             "apk_value": "enum"
           }
         ],
         "matched_count": 0,
-        "our_field_count": 0,
+        "our_field_count": 1,
         "apk_field_count": 1,
         "our_only": [],
-        "apk_only": [
-          1
-        ]
+        "apk_only": []
       }
     },
     {
       "message": "WiFiProjectionChannel",
       "file": "WiFiProjectionChannelData.proto",
-      "status": "partial",
+      "status": "verified",
       "apk_class": "wdh",
       "match_source": "manual",
       "match_score": 1.0,
       "comparison": {
-        "status": "partial",
-        "mismatches": [
-          {
-            "field": 1,
-            "issue": "missing field (exists in APK)",
-            "our_value": null,
-            "apk_value": "string"
-          }
-        ],
-        "matched_count": 0,
-        "our_field_count": 0,
+        "status": "verified",
+        "mismatches": [],
+        "matched_count": 1,
+        "our_field_count": 1,
         "apk_field_count": 1,
         "our_only": [],
-        "apk_only": [
-          1
-        ]
+        "apk_only": []
       }
     },
     {
@@ -3841,33 +3716,17 @@
     {
       "message": "WifiInfoRequest",
       "file": "WifiInfoRequestMessage.proto",
-      "status": "partial",
+      "status": "verified",
       "apk_class": "wdl",
       "match_source": "manual",
       "match_score": 1.0,
       "comparison": {
-        "status": "partial",
-        "mismatches": [
-          {
-            "field": 1,
-            "issue": "extra field in our proto (not in APK)",
-            "our_value": "ip_address",
-            "apk_value": null
-          },
-          {
-            "field": 2,
-            "issue": "extra field in our proto (not in APK)",
-            "our_value": "port",
-            "apk_value": null
-          }
-        ],
+        "status": "verified",
+        "mismatches": [],
         "matched_count": 0,
-        "our_field_count": 2,
+        "our_field_count": 0,
         "apk_field_count": 0,
-        "our_only": [
-          1,
-          2
-        ],
+        "our_only": [],
         "apk_only": []
       }
     },
@@ -3882,38 +3741,23 @@
         "status": "partial",
         "mismatches": [
           {
-            "field": 2,
-            "issue": "type mismatch",
-            "our_value": "uint32",
-            "apk_value": "string"
-          },
-          {
-            "field": 3,
-            "issue": "type mismatch",
-            "our_value": "Status (\u2192message)",
-            "apk_value": "string"
-          },
-          {
             "field": 4,
-            "issue": "missing field (exists in APK)",
-            "our_value": null,
+            "issue": "type mismatch",
+            "our_value": "int32",
             "apk_value": "enum"
           },
           {
             "field": 5,
-            "issue": "missing field (exists in APK)",
-            "our_value": null,
+            "issue": "type mismatch",
+            "our_value": "int32",
             "apk_value": "enum"
           }
         ],
-        "matched_count": 1,
-        "our_field_count": 3,
+        "matched_count": 3,
+        "our_field_count": 5,
         "apk_field_count": 5,
         "our_only": [],
-        "apk_only": [
-          4,
-          5
-        ]
+        "apk_only": []
       }
     },
     {
@@ -3928,39 +3772,32 @@
     {
       "message": "WifiSecurityResponse",
       "file": "WifiSecurityResponseMessage.proto",
-      "status": "partial",
+      "status": "verified",
       "apk_class": "wan",
       "match_source": "manual",
       "match_score": 1.0,
       "comparison": {
-        "status": "partial",
-        "mismatches": [
-          {
-            "field": 12,
-            "issue": "missing field (exists in APK)",
-            "our_value": null,
-            "apk_value": "string"
-          },
-          {
-            "field": 13,
-            "issue": "missing field (exists in APK)",
-            "our_value": null,
-            "apk_value": "bool"
-          }
-        ],
-        "matched_count": 11,
-        "our_field_count": 11,
+        "status": "verified",
+        "mismatches": [],
+        "matched_count": 13,
+        "our_field_count": 13,
         "apk_field_count": 13,
         "our_only": [],
-        "apk_only": [
-          12,
-          13
-        ]
+        "apk_only": []
       }
     },
     {
       "message": "WifiSetupMessage",
       "file": "WifiSetupMessageEnum.proto",
+      "status": "unmatched",
+      "apk_class": null,
+      "match_source": null,
+      "match_score": 0,
+      "comparison": null
+    },
+    {
+      "message": "WifiStartRequest",
+      "file": "WifiStartRequestMessage.proto",
       "status": "unmatched",
       "apk_class": null,
       "match_source": null,

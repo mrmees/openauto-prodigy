@@ -40,6 +40,8 @@ message WifiSecurityResponse {
     optional uint32 prefix_length = 9;      // Network prefix length (e.g. 24)
     optional bool hidden_network = 10;      // Whether AP is hidden (no SSID broadcast)
     optional bool band_5ghz = 11;           // Whether to use 5GHz band
+    optional string unknown_12 = 12;        // Discovered via APK proto decoder (wan.java)
+    optional bool unknown_13 = 13;          // Discovered via APK proto decoder (wan.java)
 
     enum SecurityMode {
         UNKNOWN_SECURITY_MODE = 0;

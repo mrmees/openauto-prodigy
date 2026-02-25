@@ -1,8 +1,9 @@
-syntax="proto3";
+syntax="proto2";
 
 package oaa.proto.messages;
 
+// APK class: wde — 1 field (enum at field 1)
 message VoiceSessionRequest
 {
-    uint32 type = 1; // 1 = start, 2 = stop
+    optional int32 session_type = 1;
 }

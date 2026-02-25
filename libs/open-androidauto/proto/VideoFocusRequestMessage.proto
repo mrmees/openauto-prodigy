@@ -23,9 +23,9 @@ import "VideoFocusReasonEnum.proto";
 
 package oaa.proto.messages;
 
+// APK class: wdd — only 2 fields (focus_mode enum, focus_reason enum), no disp_index
 message VideoFocusRequest
 {
-    optional int32 disp_index = 1 [deprecated = true];
-    optional enums.VideoFocusMode.Enum focus_mode = 2;
-    optional enums.VideoFocusReason.Enum focus_reason = 3;
+    optional enums.VideoFocusMode.Enum focus_mode = 1;
+    optional enums.VideoFocusReason.Enum focus_reason = 2;
 }
