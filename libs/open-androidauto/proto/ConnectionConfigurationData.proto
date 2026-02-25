@@ -54,6 +54,8 @@ message ConnectionTuningConfig {
         bytes tuning_c = 4;    // APK: aajd — sub-message, fields TBD
         bytes tuning_d = 5;    // APK: aajc — sub-message, fields TBD
     }
+
+    optional double timeout_factor = 60;    // APK field 60
 }
 
 // APK class: aaji — empty message

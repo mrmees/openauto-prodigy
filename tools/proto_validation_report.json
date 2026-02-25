@@ -1,10 +1,10 @@
 {
   "summary": {
     "date": "2026-02-25",
-    "total": 185,
-    "verified": 88,
-    "partial": 38,
-    "unmatched": 59,
+    "total": 183,
+    "verified": 91,
+    "partial": 34,
+    "unmatched": 58,
     "error": 0
   },
   "results": [
@@ -495,7 +495,7 @@
           {
             "field": 2,
             "issue": "type mismatch",
-            "our_value": "string",
+            "our_value": "int32",
             "apk_value": "enum"
           }
         ],
@@ -577,15 +577,6 @@
     {
       "message": "ButtonCode",
       "file": "ButtonCodeEnum.proto",
-      "status": "unmatched",
-      "apk_class": null,
-      "match_source": null,
-      "match_score": 0,
-      "comparison": null
-    },
-    {
-      "message": "ButtonConfig",
-      "file": "InputChannelDescriptorData.proto",
       "status": "unmatched",
       "apk_class": null,
       "match_source": null,
@@ -959,27 +950,18 @@
     {
       "message": "ConnectionTuningConfig",
       "file": "ConnectionConfigurationData.proto",
-      "status": "partial",
+      "status": "verified",
       "apk_class": "aajg",
       "match_source": "manual",
       "match_score": 1.0,
       "comparison": {
-        "status": "partial",
-        "mismatches": [
-          {
-            "field": 60,
-            "issue": "missing field (exists in APK)",
-            "our_value": null,
-            "apk_value": "double"
-          }
-        ],
-        "matched_count": 1,
-        "our_field_count": 1,
+        "status": "verified",
+        "mismatches": [],
+        "matched_count": 2,
+        "our_field_count": 2,
         "apk_field_count": 5,
         "our_only": [],
-        "apk_only": [
-          60
-        ]
+        "apk_only": []
       }
     },
     {
@@ -1011,21 +993,14 @@
     {
       "message": "Diagnostics",
       "file": "DiagnosticsData.proto",
-      "status": "partial",
+      "status": "verified",
       "apk_class": "vxf",
       "match_source": "manual",
       "match_score": 1.0,
       "comparison": {
-        "status": "partial",
-        "mismatches": [
-          {
-            "field": 1,
-            "issue": "type mismatch",
-            "our_value": "int32",
-            "apk_value": "bytes"
-          }
-        ],
-        "matched_count": 0,
+        "status": "verified",
+        "mismatches": [],
+        "matched_count": 1,
         "our_field_count": 1,
         "apk_field_count": 1,
         "our_only": [],
@@ -1303,172 +1278,35 @@
         "status": "partial",
         "mismatches": [
           {
-            "field": 2,
+            "field": 3,
+            "issue": "type mismatch",
+            "our_value": "bytes",
+            "apk_value": "message"
+          },
+          {
+            "field": 3,
             "issue": "cardinality mismatch",
             "our_value": "optional",
             "apk_value": "repeated"
           },
           {
-            "field": 3,
-            "issue": "missing field (exists in APK)",
-            "our_value": null,
-            "apk_value": "message"
-          },
-          {
             "field": 4,
-            "issue": "missing field (exists in APK)",
-            "our_value": null,
+            "issue": "type mismatch",
+            "our_value": "int32",
             "apk_value": "enum"
           },
           {
-            "field": 5,
-            "issue": "missing field (exists in APK)",
-            "our_value": null,
-            "apk_value": "uint32"
-          }
-        ],
-        "matched_count": 1,
-        "our_field_count": 2,
-        "apk_field_count": 5,
-        "our_only": [],
-        "apk_only": [
-          3,
-          4,
-          5
-        ]
-      }
-    },
-    {
-      "message": "InputChannelDescriptor",
-      "file": "InputChannelDescriptorData.proto",
-      "status": "partial",
-      "apk_class": "wbw",
-      "match_source": "manual",
-      "match_score": 1.0,
-      "comparison": {
-        "status": "partial",
-        "mismatches": [
-          {
-            "field": 1,
-            "issue": "type mismatch",
-            "our_value": "uint64",
-            "apk_value": "int32"
-          },
-          {
-            "field": 2,
-            "issue": "cardinality mismatch",
-            "our_value": "repeated",
-            "apk_value": "singular"
-          },
-          {
-            "field": 3,
-            "issue": "cardinality mismatch",
-            "our_value": "repeated",
-            "apk_value": "singular"
-          },
-          {
             "field": 4,
             "issue": "cardinality mismatch",
-            "our_value": "repeated",
-            "apk_value": "singular"
-          },
-          {
-            "field": 5,
-            "issue": "type mismatch",
-            "our_value": "uint32",
-            "apk_value": "message"
-          },
-          {
-            "field": 6,
-            "issue": "missing field (exists in APK)",
-            "our_value": null,
-            "apk_value": "message"
-          },
-          {
-            "field": 7,
-            "issue": "missing field (exists in APK)",
-            "our_value": null,
-            "apk_value": "message"
-          },
-          {
-            "field": 8,
-            "issue": "missing field (exists in APK)",
-            "our_value": null,
-            "apk_value": "message"
-          },
-          {
-            "field": 9,
-            "issue": "missing field (exists in APK)",
-            "our_value": null,
-            "apk_value": "message"
-          },
-          {
-            "field": 10,
-            "issue": "missing field (exists in APK)",
-            "our_value": null,
-            "apk_value": "message"
-          },
-          {
-            "field": 11,
-            "issue": "missing field (exists in APK)",
-            "our_value": null,
-            "apk_value": "message"
-          },
-          {
-            "field": 12,
-            "issue": "missing field (exists in APK)",
-            "our_value": null,
-            "apk_value": "message"
-          },
-          {
-            "field": 13,
-            "issue": "missing field (exists in APK)",
-            "our_value": null,
-            "apk_value": "message"
-          },
-          {
-            "field": 14,
-            "issue": "missing field (exists in APK)",
-            "our_value": null,
-            "apk_value": "message"
-          },
-          {
-            "field": 15,
-            "issue": "missing field (exists in APK)",
-            "our_value": null,
-            "apk_value": "message"
-          },
-          {
-            "field": 16,
-            "issue": "missing field (exists in APK)",
-            "our_value": null,
-            "apk_value": "message"
-          },
-          {
-            "field": 17,
-            "issue": "missing field (exists in APK)",
-            "our_value": null,
-            "apk_value": "message"
+            "our_value": "optional",
+            "apk_value": "repeated"
           }
         ],
-        "matched_count": 0,
+        "matched_count": 3,
         "our_field_count": 5,
-        "apk_field_count": 17,
+        "apk_field_count": 5,
         "our_only": [],
-        "apk_only": [
-          6,
-          7,
-          8,
-          9,
-          10,
-          11,
-          12,
-          13,
-          14,
-          15,
-          16,
-          17
-        ]
+        "apk_only": []
       }
     },
     {
@@ -2769,27 +2607,18 @@
     {
       "message": "TouchCoordinate",
       "file": "TouchCoordinateData.proto",
-      "status": "partial",
+      "status": "verified",
       "apk_class": "wci",
       "match_source": "manual",
       "match_score": 1.0,
       "comparison": {
-        "status": "partial",
-        "mismatches": [
-          {
-            "field": 3,
-            "issue": "missing field (exists in APK)",
-            "our_value": null,
-            "apk_value": "uint32"
-          }
-        ],
-        "matched_count": 2,
-        "our_field_count": 2,
+        "status": "verified",
+        "mismatches": [],
+        "matched_count": 3,
+        "our_field_count": 3,
         "apk_field_count": 3,
         "our_only": [],
-        "apk_only": [
-          3
-        ]
+        "apk_only": []
       }
     },
     {

@@ -12,4 +12,5 @@ message TouchCoordinate
 {
     required uint32 x = 1;
     required int32 y = 2;
+    optional uint32 pointer_id = 3;
 }

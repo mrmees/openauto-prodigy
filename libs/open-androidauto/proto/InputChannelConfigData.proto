@@ -11,7 +11,10 @@ package oaa.proto.data;
 message InputChannelConfig
 {
     optional int32 input_type = 1;           // Input device type
-    optional TouchSensitivity sensitivity = 2;
+    repeated TouchSensitivity sensitivity = 2;
+    optional bytes touchpad_config = 3;
+    optional int32 key_config = 4;
+    optional uint32 max_touches = 5;
 }
 
 // APK class: zli — touch sensitivity setting

@@ -6,11 +6,11 @@ Generated: 2026-02-25
 
 | Status | Count |
 |--------|-------|
-| Verified | 88 |
-| Partial (diffs) | 38 |
-| Unmatched | 59 |
+| Verified | 91 |
+| Partial (diffs) | 34 |
+| Unmatched | 58 |
 | Error | 0 |
-| **Total** | **185** |
+| **Total** | **183** |
 
 ## Verified (all fields match)
 
@@ -38,7 +38,9 @@ Generated: 2026-02-25
 - **Compass** (CompassData.proto) -> `vxa` [manual]
 - **ConnectionFeatureFlags** (ConnectionConfigurationData.proto) -> `aaja` [manual]
 - **ConnectionReservedConfig** (ConnectionConfigurationData.proto) -> `aaji` [manual]
+- **ConnectionTuningConfig** (ConnectionConfigurationData.proto) -> `aajg` [manual]
 - **DeviceInfo** (PhoneCapabilitiesData.proto) -> `vve` [manual]
+- **Diagnostics** (DiagnosticsData.proto) -> `vxf` [manual]
 - **Door** (DoorData.proto) -> `vxh` [manual]
 - **Environment** (EnvironmentData.proto) -> `vxk` [manual]
 - **FuelLevel** (FuelLevelData.proto) -> `vxn` [manual]
@@ -89,6 +91,7 @@ Generated: 2026-02-25
 - **SteeringWheel** (SteeringWheelData.proto) -> `vxe` [manual]
 - **TirePressure** (TirePressureData.proto) -> `wcg` [manual]
 - **TouchConfig** (TouchConfigData.proto) -> `vxn` [manual]
+- **TouchCoordinate** (TouchCoordinateData.proto) -> `wci` [manual]
 - **TouchEvent** (TouchEventData.proto) -> `wcj` [manual]
 - **TouchLocation** (TouchLocationData.proto) -> `wci` [manual]
 - **TouchPadConfig** (TouchPadConfigData.proto) -> `vxy` [manual]
@@ -161,7 +164,7 @@ Matched: 1/2 our fields, APK has 2 fields
 
 | Field | Issue | Ours | APK |
 |-------|-------|------|-----|
-| 2 | type mismatch | string | enum |
+| 2 | type mismatch | int32 | enum |
 
 ### BluetoothPairingResponse (BluetoothPairingResponseMessage.proto) -> `xgq` [manual]
 
@@ -219,22 +222,6 @@ Matched: 0/2 our fields, APK has 2 fields
 | 2 | type mismatch | bytes | message |
 | 3 | type mismatch | bytes | message |
 
-### ConnectionTuningConfig (ConnectionConfigurationData.proto) -> `aajg` [manual]
-
-Matched: 1/1 our fields, APK has 5 fields
-
-| Field | Issue | Ours | APK |
-|-------|-------|------|-----|
-| 60 | missing field (exists in APK) | None | double |
-
-### Diagnostics (DiagnosticsData.proto) -> `vxf` [manual]
-
-Matched: 0/1 our fields, APK has 1 fields
-
-| Field | Issue | Ours | APK |
-|-------|-------|------|-----|
-| 1 | type mismatch | int32 | bytes |
-
 ### DrivingStatus (DrivingStatusEnum.proto) -> `vxj` [manual]
 
 Matched: 0/0 our fields, APK has 1 fields
@@ -253,38 +240,14 @@ Matched: 0/0 our fields, APK has 1 fields
 
 ### InputChannelConfig (InputChannelConfigData.proto) -> `vya` [manual]
 
-Matched: 1/2 our fields, APK has 5 fields
+Matched: 3/5 our fields, APK has 5 fields
 
 | Field | Issue | Ours | APK |
 |-------|-------|------|-----|
-| 2 | cardinality mismatch | optional | repeated |
-| 3 | missing field (exists in APK) | None | message |
-| 4 | missing field (exists in APK) | None | enum |
-| 5 | missing field (exists in APK) | None | uint32 |
-
-### InputChannelDescriptor (InputChannelDescriptorData.proto) -> `wbw` [manual]
-
-Matched: 0/5 our fields, APK has 17 fields
-
-| Field | Issue | Ours | APK |
-|-------|-------|------|-----|
-| 1 | type mismatch | uint64 | int32 |
-| 2 | cardinality mismatch | repeated | singular |
-| 3 | cardinality mismatch | repeated | singular |
-| 4 | cardinality mismatch | repeated | singular |
-| 5 | type mismatch | uint32 | message |
-| 6 | missing field (exists in APK) | None | message |
-| 7 | missing field (exists in APK) | None | message |
-| 8 | missing field (exists in APK) | None | message |
-| 9 | missing field (exists in APK) | None | message |
-| 10 | missing field (exists in APK) | None | message |
-| 11 | missing field (exists in APK) | None | message |
-| 12 | missing field (exists in APK) | None | message |
-| 13 | missing field (exists in APK) | None | message |
-| 14 | missing field (exists in APK) | None | message |
-| 15 | missing field (exists in APK) | None | message |
-| 16 | missing field (exists in APK) | None | message |
-| 17 | missing field (exists in APK) | None | message |
+| 3 | type mismatch | bytes | message |
+| 3 | cardinality mismatch | optional | repeated |
+| 4 | type mismatch | int32 | enum |
+| 4 | cardinality mismatch | optional | repeated |
 
 ### NavigationChannelConfig (NavigationChannelConfigData.proto) -> `vzr` [manual]
 
@@ -410,14 +373,6 @@ Matched: 20/26 our fields, APK has 26 fields
 | 25 | type mismatch | bytes | message |
 | 26 | type mismatch | bytes | message |
 
-### TouchCoordinate (TouchCoordinateData.proto) -> `wci` [manual]
-
-Matched: 2/2 our fields, APK has 3 fields
-
-| Field | Issue | Ours | APK |
-|-------|-------|------|-----|
-| 3 | missing field (exists in APK) | None | uint32 |
-
 ### VideoConfig (VideoConfigData.proto) -> `wcz` [manual]
 
 Matched: 10/11 our fields, APK has 11 fields
@@ -464,7 +419,6 @@ Matched: 3/5 our fields, APK has 5 fields
 - BluetoothPairingMethod (BluetoothPairingMethodEnum.proto)
 - BluetoothPairingStatus (BluetoothPairingStatusEnum.proto)
 - ButtonCode (ButtonCodeEnum.proto)
-- ButtonConfig (InputChannelDescriptorData.proto)
 - CapabilityEntry (PhoneCapabilitiesData.proto)
 - CapabilityFlag (PhoneCapabilitiesData.proto)
 - CapabilityPair (PhoneCapabilitiesData.proto)

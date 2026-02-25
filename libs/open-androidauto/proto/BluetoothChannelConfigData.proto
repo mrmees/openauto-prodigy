@@ -11,6 +11,6 @@ message BluetoothChannelConfig
 {
     // BT adapter address (e.g. "DC:A6:32:E7:5A:FE")
     required string adapter_address = 1;
-    // Supported BT pairing methods bitmask
-    repeated string supported_pairing_methods = 2;
+    // Supported BT pairing methods (enum values in APK)
+    repeated int32 supported_pairing_methods = 2;
 }

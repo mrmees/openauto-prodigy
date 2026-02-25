@@ -20,8 +20,8 @@ syntax="proto2";
 
 package oaa.proto.data;
 
-// APK class: vxf — 1 field only (field 1 int32)
+// APK class: vxf — 1 field only (field 1 bytes)
 message Diagnostics
 {
-    required int32 diagnostics = 1;
+    required bytes diagnostics = 1;
 }
