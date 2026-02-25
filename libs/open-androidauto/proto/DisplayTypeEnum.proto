@@ -1,0 +1,18 @@
+/*
+ * Discovered via APK decompilation (vxg.java, AA v16.1)
+ * Specifies which vehicle display the AV channel targets.
+ */
+
+syntax="proto2";
+
+package oaa.proto.enums;
+
+message DisplayType
+{
+    enum Enum
+    {
+        MAIN = 0;
+        CLUSTER = 1;
+        AUXILIARY = 2;
+    }
+}
