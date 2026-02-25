@@ -12,6 +12,7 @@
 #include "StatusEnum.pb.h"
 #include "ShutdownReasonEnum.pb.h"
 #include "CallAvailabilityMessage.pb.h"
+#include "ServiceDiscoveryRequestMessage.pb.h"
 
 namespace oaa {
 
@@ -76,13 +77,21 @@ void ControlChannel::onMessage(uint16_t messageId, const QByteArray& payload) {
         emit sslHandshakeData(payload);
         break;
 
-    case MSG_SERVICE_DISCOVERY_REQUEST:
+    case MSG_SERVICE_DISCOVERY_REQUEST: {
+        proto::messages::ServiceDiscoveryRequest sdReq;
+        if (sdReq.ParseFromArray(payload.constData(), payload.size())) {
+            qInfo() << "[ControlChannel] ServiceDiscoveryRequest:"
+                     << QString::fromStdString(sdReq.ShortDebugString());
+        }
         emit serviceDiscoveryRequested(payload);
         break;
+    }
 
     case MSG_CHANNEL_OPEN_REQUEST: {
         proto::messages::ChannelOpenRequest req;
         if (req.ParseFromArray(payload.constData(), payload.size())) {
+            qInfo() << "[ControlChannel] ChannelOpenRequest:"
+                     << QString::fromStdString(req.ShortDebugString());
             emit channelOpenRequested(
                 static_cast<uint8_t>(req.channel_id()), payload);
         } else {

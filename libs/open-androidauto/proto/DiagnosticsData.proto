@@ -23,4 +23,8 @@ package oaa.proto.data;
 message Diagnostics
 {
     required bytes diagnostics = 1;
+
+    // Discovered via APK proto decoder (xss.java, AA v16.1)
+    optional bytes extended_diagnostics = 2;  // Additional diagnostic data
+    optional bool diagnostics_supported = 3;  // Whether HU supports diagnostics
 }

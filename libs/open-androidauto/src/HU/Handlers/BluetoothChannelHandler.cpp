@@ -53,6 +53,8 @@ void BluetoothChannelHandler::handlePairingRequest(const QByteArray& payload)
     QString phoneAddr = QString::fromStdString(req.phone_address());
     qDebug() << "[BluetoothChannel] pairing request from" << phoneAddr
              << "method:" << req.pairing_method();
+    if (req.has_phone_name())
+        qInfo() << "[BluetoothChannel]   phone_name:" << QString::fromStdString(req.phone_name());
 
     emit pairingRequested(phoneAddr);
 

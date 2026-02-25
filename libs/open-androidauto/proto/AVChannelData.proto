@@ -22,7 +22,8 @@ import "AVStreamTypeEnum.proto";
 import "AudioTypeEnum.proto";
 import "AudioConfigData.proto";
 import "VideoConfigData.proto";
-
+import "DisplayTypeEnum.proto";
+import "VideoFocusReasonEnum.proto";
 package oaa.proto.data;
 
 message AVChannel
@@ -31,5 +32,13 @@ message AVChannel
     optional enums.AudioType.Enum audio_type = 2;
     repeated AudioConfig audio_configs = 3;
     repeated VideoConfig video_configs = 4;
-    optional bool available_while_in_call = 5;
+    optional bool available_while_in_call = 5;  // Removed in AA v16.1, kept for backward compat
+
+    // Fields 6-9 discovered via APK decompilation (vys.java, AA v16.1).
+    // Field numbers confirmed by decoding protobuf-lite RawMessageInfo descriptor.
+    // Field 5 (available_while_in_call) removed in v16.1; gap preserved.
+    optional uint32 channel_id = 6;                             // Display/channel identifier (assigned by phone)
+    optional enums.DisplayType.Enum display_type = 7;           // MAIN, CLUSTER, AUXILIARY
+    optional uint32 keycode = 8;                                // Android keycode or AA-specific (65536+)
+    optional enums.VideoFocusReason.Enum focus_reason = 9;      // Why video focus was set
 }

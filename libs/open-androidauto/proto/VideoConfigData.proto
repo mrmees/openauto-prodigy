@@ -38,4 +38,8 @@ message VideoConfig
     optional uint32 field9 = 9;
     // Codec type — discovered via APK decompilation (wcz.java field 10, vyn.java enum)
     optional enums.MediaCodecType.Enum codec = 10;
+
+    // Discovered via APK proto decoder (wcz.java → wcm sub-message)
+    // Purpose unknown — possibly additional video config params
+    optional bytes additional_config = 11;
 }

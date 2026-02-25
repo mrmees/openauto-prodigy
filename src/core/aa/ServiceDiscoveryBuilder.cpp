@@ -27,6 +27,7 @@
 #include "VideoResolutionEnum.pb.h"
 #include "VideoFPSEnum.pb.h"
 #include "SensorTypeEnum.pb.h"
+#include "DisplayTypeEnum.pb.h"
 
 namespace oap {
 namespace aa {

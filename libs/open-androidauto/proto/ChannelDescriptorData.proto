@@ -41,12 +41,13 @@ message ChannelDescriptor
     optional InputChannel input_channel = 4;
     optional AVInputChannel av_input_channel = 5;
     optional BluetoothChannel bluetooth_channel = 6;
-    // optional RadioChannel radio_channel = 7;
+    optional bytes radio_channel = 7;  // Present in APK (way.java) — was commented out, now bytes placeholder
     optional NavigationChannel navigation_channel = 8;
     optional MediaInfoChannel media_infoChannel = 9;
     optional PhoneStatusChannel phone_status_channel = 10;
     // optional MediaBrowserChannel media_browser_channel = 11;
-    optional VendorExtensionChannel vendor_extension_channel = 12;
-    // optional GenericNotificationChannel generic_notification_channel = 13;
-    optional WifiChannel wifi_channel = 14;
+    optional VendorExtensionChannel vendor_extension_channel = 12;  // Removed in APK v16.1, kept for compat
+    optional bytes notification_channel = 13;  // Present in APK (wdh.java) — GenericNotificationChannel
+    optional WifiChannel wifi_channel = 14;  // Removed in APK v16.1, kept for compat — still works
+    optional bytes unknown_channel_15 = 15;  // Present in APK v16.1, purpose unknown
 }

@@ -54,6 +54,9 @@ message SensorEventIndication
     repeated data.Diagnostics diagnostics = 9;
     repeated data.NightMode night_mode = 10;
     repeated data.Environment enviorment = 11;
+
+    // Fields 12-20: Removed in AA v16.1 APK (wbo.java only has fields 1-11).
+    // Kept for backward compatibility — phone silently ignores unknown fields.
     repeated data.HVAC hvac = 12;
     repeated data.DrivingStatus driving_status = 13;
     repeated data.SteeringWheel steering_wheel = 14;
@@ -63,4 +66,7 @@ message SensorEventIndication
     repeated data.TirePressure tire_pressure = 18;
     repeated data.Accel accel = 19;
     repeated data.Gyro gyro = 20;
+
+    // Discovered via APK proto decoder (wbo.java, AA v16.1)
+    optional string extended_sensor_data = 27;  // Purpose unknown — possibly JSON sensor blob
 }

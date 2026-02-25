@@ -81,6 +81,12 @@ void MediaStatusChannelHandler::handlePlaybackMetadata(const QByteArray& payload
     qInfo() << "[MediaStatusChannel] metadata:" << title << "—" << artist
             << "—" << album << "art:" << albumArt.size() << "bytes";
 
+    // Log new v16.1 fields if present
+    if (msg.has_is_playing())
+        qInfo() << "[MediaStatusChannel]   is_playing:" << msg.is_playing();
+    if (msg.has_album_art_url())
+        qInfo() << "[MediaStatusChannel]   album_art_url:" << QString::fromStdString(msg.album_art_url());
+
     emit metadataChanged(title, artist, album, albumArt);
 }
 

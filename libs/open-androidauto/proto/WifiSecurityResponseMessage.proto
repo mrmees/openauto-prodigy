@@ -31,6 +31,14 @@ message WifiSecurityResponse {
     optional SecurityMode security_mode = 4;
     optional AccessPointType access_point_type = 5;
 
+    // Fields 6-11 discovered via APK proto decoder (wan.java, AA v16.1)
+    optional bytes wifi_direct_config = 6;  // Sub-message (APK class: wbb) — WiFi Direct params
+    optional string ip_address = 7;         // HU IP address for direct connection
+    optional string gateway = 8;            // Gateway IP
+    optional uint32 prefix_length = 9;      // Network prefix length (e.g. 24)
+    optional bool hidden_network = 10;      // Whether AP is hidden (no SSID broadcast)
+    optional bool band_5ghz = 11;           // Whether to use 5GHz band
+
     enum SecurityMode {
         UNKNOWN_SECURITY_MODE = 0;
         OPEN = 1;

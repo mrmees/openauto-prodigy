@@ -79,8 +79,10 @@ void AudioChannelHandler::handleSetupRequest(const QByteArray& payload)
         return;
     }
 
-    qDebug() << "[AudioChannel" << channelId_
-             << "] setup request, config_index:" << req.config_index();
+    qInfo() << "[AudioChannel" << channelId_
+            << "] setup request, config_index:" << req.config_index()
+            << "raw:" << payload.toHex(' ')
+            << "debug:" << QString::fromStdString(req.ShortDebugString());
 
     oaa::proto::messages::AVChannelSetupResponse resp;
     resp.set_media_status(oaa::proto::enums::AVChannelSetupStatus::OK);
