@@ -83,11 +83,11 @@ Session management, service discovery, auth, ping, shutdown, audio/nav focus
 | # | Name | Type | Notes |
 |---|------|------|-------|
 | 1 | channel_id | **int32** (required) |  |
-| 2 | sensor_channel | message | → `wbu` |
+| 2 | sensor_channel | message | → SensorChannelConfig (`wbu`) |
 | 3 | av_channel | message | → AVChannel (`vys`) |
-| 4 | input_channel | message | → `vya` |
+| 4 | input_channel | message | → InputChannelDescriptor (`vya`) |
 | 5 | av_input_channel | message | → AVInputChannel (`vyt`) |
-| 6 | bluetooth_channel | message | → `vwc` |
+| 6 | bluetooth_channel | message | → BluetoothChannelConfig (`vwc`) |
 | 7 | radio_channel | message | → RadioChannel (`way`) |
 | 8 | navigation_channel | message | → NavigationChannelConfig (`vzr`) |
 | 9 | media_infoChannel | message |  |
@@ -141,11 +141,11 @@ Session management, service discovery, auth, ping, shutdown, audio/nav focus
 
 | # | Name | Type | Notes |
 |---|------|------|-------|
-| 1 | c | message | → `aagh` |
-| 2 | d | message | → `aafs` |
-| 3 | e | message | → `aafu` |
-| 4 | f | message | → `aags` |
-| 5 | g | repeated message | → `aagv` |
+| 1 | c | message | → CapabilityFlag (`aagh`) |
+| 2 | d | message | → DeviceInfo (`aafs`) |
+| 3 | e | message | → ConnectionConfig (`aafu`) |
+| 4 | f | message | → CapabilityPair (`aags`) |
+| 5 | g | repeated message | → CapabilityEntry (`aagv`) |
 | 7 | h | string |  |
 
 ### SessionInfo (`aahd`)
@@ -167,13 +167,13 @@ Session management, service discovery, auth, ping, shutdown, audio/nav focus
 | 2 | bit_depth | **uint32** (required) |  |
 | 3 | channel_count | **uint32** (required) |  |
 
-### `vwc`
+### BluetoothChannelConfig (`vwc`)
 
 *Referenced by: `wbw` (ChannelDescriptor) | depth 1*
 
 *(empty message)*
 
-### `vya`
+### InputChannelDescriptor (`vya`)
 
 *Referenced by: `wbw` (ChannelDescriptor) | depth 1*
 
@@ -196,7 +196,7 @@ Session management, service discovery, auth, ping, shutdown, audio/nav focus
 |---|------|------|-------|
 | 1 | c | **int32** (required) |  |
 | 2 | d | **enum** (required) | *VideoFPS (NONE=0, _60=1, _30=2) — builder/helper class, not proto enum* |
-| 3 | e | message | → `vzq` |
+| 3 | e | message | → NavigationImageDimensions (`vzq`) |
 
 ### RadioChannel (`way`)
 
@@ -204,9 +204,9 @@ Session management, service discovery, auth, ping, shutdown, audio/nav focus
 
 | # | Name | Type | Notes |
 |---|------|------|-------|
-| 1 | b | repeated message | → `wax` |
+| 1 | b | repeated message | → RadioChannelConfig (`wax`) |
 
-### `wbu`
+### SensorChannelConfig (`wbu`)
 
 *Referenced by: `wbw` (ChannelDescriptor) | depth 1*
 
@@ -222,14 +222,14 @@ Session management, service discovery, auth, ping, shutdown, audio/nav focus
 
 ### PingConfiguration (`zyd`)
 
-*Referenced by: `aaft`, `aajk` (ConnectionConfiguration) | depth 1*
+*Referenced by: `aaft` (PingConfigPair), `aajk` (ConnectionConfiguration) | depth 1*
 
 | # | Name | Type | Notes |
 |---|------|------|-------|
 | 1 | timeout_ms | int64 |  |
 | 2 | interval_ms | int32 |  |
 
-### `aafs`
+### DeviceInfo (`aafs`)
 
 *Referenced by: `aagr` (PhoneCapabilities) | depth 2*
 
@@ -240,16 +240,16 @@ Session management, service discovery, auth, ping, shutdown, audio/nav focus
 | 3 | d | string |  |
 | 4 | e | string |  |
 
-### `aafu`
+### ConnectionConfig (`aafu`)
 
 *Referenced by: `aagr` (PhoneCapabilities) | depth 2*
 
 | # | Name | Type | Notes |
 |---|------|------|-------|
-| 1 | c | message | → `aaft` |
+| 1 | c | message | → PingConfigPair (`aaft`) |
 | 3 | d | unknown_41 |  |
 
-### `aagh`
+### CapabilityFlag (`aagh`)
 
 *Referenced by: `aagr` (PhoneCapabilities) | depth 2*
 
@@ -258,7 +258,7 @@ Session management, service discovery, auth, ping, shutdown, audio/nav focus
 | 1 | b | bool |  |
 | 2 | c | string |  |
 
-### `aags`
+### CapabilityPair (`aags`)
 
 *Referenced by: `aagr` (PhoneCapabilities) | depth 2*
 
@@ -267,7 +267,7 @@ Session management, service discovery, auth, ping, shutdown, audio/nav focus
 | 1 | b | bool |  |
 | 2 | c | bool |  |
 
-### `aagv`
+### CapabilityEntry (`aagv`)
 
 *Referenced by: `aagr` (PhoneCapabilities) | depth 2*
 
@@ -281,7 +281,7 @@ Session management, service discovery, auth, ping, shutdown, audio/nav focus
 | 5 | aagw.class | message |  |
 | 7 | f | message |  |
 
-### `vzq`
+### NavigationImageDimensions (`vzq`)
 
 *Referenced by: `vzr` (NavigationChannelConfig) | depth 2*
 
@@ -291,7 +291,7 @@ Session management, service discovery, auth, ping, shutdown, audio/nav focus
 | 2 | d | **int32** (required) |  |
 | 3 | e | **int32** (required) |  |
 
-### `wax`
+### RadioChannelConfig (`wax`)
 
 *Referenced by: `way` (RadioChannel) | depth 2*
 
@@ -299,7 +299,7 @@ Session management, service discovery, auth, ping, shutdown, audio/nav focus
 |---|------|------|-------|
 | 1 | b | **int32** (required) |  |
 | 2 | c | **enum** (required) | *AudioStreamType (TELEPHONY=0, SYSTEM_AUDIO=1, MEDIA=3, GUIDANCE=5) — utility class, not proto enum* |
-| 3 | d | repeated message | → `wbe` |
+| 3 | d | repeated message | → RadioStationData (`wbe`) |
 | 4 | e | repeated int32 |  |
 | 5 | q | **int32** (required) |  |
 | 6 | f | bool |  |
@@ -310,18 +310,18 @@ Session management, service discovery, auth, ping, shutdown, audio/nav focus
 | 11 | k | enum | *AudioStreamType (TELEPHONY=0, SYSTEM_AUDIO=1, MEDIA=3, GUIDANCE=5) — utility class, not proto enum* |
 | 13 | n | bool |  |
 
-### `aaft`
+### PingConfigPair (`aaft`)
 
-*Referenced by: `aafu` | depth 3*
+*Referenced by: `aafu` (ConnectionConfig) | depth 3*
 
 | # | Name | Type | Notes |
 |---|------|------|-------|
 | 1 | c | message | → PingConfiguration (`zyd`) |
 | 2 | d | message | → PingConfiguration (`zyd`) |
 
-### `wbe`
+### RadioStationData (`wbe`)
 
-*Referenced by: `wax` | depth 3*
+*Referenced by: `wax` (RadioChannelConfig) | depth 3*
 
 | # | Name | Type | Notes |
 |---|------|------|-------|
@@ -407,7 +407,7 @@ Video streaming config, codec negotiation, focus management, AV setup
 | 8 | field8 | uint32 |  |
 | 9 | field9 | uint32 |  |
 | 10 | codec | enum | enum `vyn`: MEDIA_CODEC_AUDIO_PCM=1, MEDIA_CODEC_AUDIO_AAC_LC=2, MEDIA_CODEC_VIDEO_H264_BP=3, MEDIA_CODEC_AUDIO_AAC_LC_ADTS=4, MEDIA_CODEC_VIDEO_VP9=5, ...+2 |
-| 11 | additional_config | message | → `wcm` |
+| 11 | additional_config | message | → AdditionalVideoConfig (`wcm`) |
 
 ### VideoFocusIndication (`wdb`)
 
@@ -428,7 +428,7 @@ Video streaming config, codec negotiation, focus management, AV setup
 | 2 | bit_depth | **uint32** (required) |  |
 | 3 | channel_count | **uint32** (required) |  |
 
-### `wcm`
+### AdditionalVideoConfig (`wcm`)
 
 *Referenced by: `wcz` (VideoConfig) | depth 1*
 
@@ -807,7 +807,7 @@ Touch events, button events, relative/absolute input
 
 | # | Name | Type | Notes |
 |---|------|------|-------|
-| 1 | scan_code | repeated message | → `vvh` |
+| 1 | scan_code | repeated message | → KeyEvent (`vvh`) |
 
 ### RelativeInputEvent (`vyj`)
 
@@ -823,7 +823,7 @@ Touch events, button events, relative/absolute input
 
 | # | Name | Type | Notes |
 |---|------|------|-------|
-| 1 | scan_code | repeated message | → `wbl` |
+| 1 | scan_code | repeated message | → TouchCoordinate (`wbl`) |
 
 ### TouchLocation (`wci`)
 
@@ -842,9 +842,9 @@ Touch events, button events, relative/absolute input
 | # | Name | Type | Notes |
 |---|------|------|-------|
 | 1 | c | int32 |  |
-| 2 | d | message | → `zli` |
+| 2 | d | message | → TouchSensitivity (`zli`) |
 
-### `vvh`
+### KeyEvent (`vvh`)
 
 *Referenced by: `vvi` (ButtonEvent) | depth 2*
 
@@ -853,7 +853,7 @@ Touch events, button events, relative/absolute input
 | 1 | b | **uint32** (required) |  |
 | 2 | c | **int32** (required) |  |
 
-### `wbl`
+### TouchCoordinate (`wbl`)
 
 *Referenced by: `wbm` (AbsoluteInputEvent) | depth 2*
 
@@ -862,7 +862,7 @@ Touch events, button events, relative/absolute input
 | 1 | c | **uint32** (required) |  |
 | 2 | d | **int32** (required) |  |
 
-### `zli`
+### TouchSensitivity (`zli`)
 
 *Referenced by: `zpn` (InputChannelConfig) | depth 2*
 
@@ -1204,7 +1204,7 @@ Turn-by-turn steps, distance/ETA, navigation state
 | 1 | distance | **message** (required) | → NavigationDistanceUnit (`xmw`) |
 | 2 | value | **string** (required) |  |
 | 3 | unit | **int32** (required) |  |
-| 8 | f | message | → `xng` |
+| 8 | f | message | → NavigationDistanceDisplay (`xng`) |
 
 ### NavigationImageOptions (`ahdl`)
 
@@ -1237,19 +1237,19 @@ Turn-by-turn steps, distance/ETA, navigation state
 | 2 | d | **fixed32** (required) |  |
 | 3 | e | **fixed32** (required) |  |
 
-### `xng`
+### NavigationDistanceDisplay (`xng`)
 
 *Referenced by: `xnb` (NavigationDistance) | depth 1*
 
 | # | Name | Type | Notes |
 |---|------|------|-------|
-| 1 | e | **message** (required) | → `xnd` |
-| 2 | f | repeated message | → `xnd` |
+| 1 | e | **message** (required) | → DistanceLabel (`xnd`) |
+| 2 | f | repeated message | → DistanceLabel (`xnd`) |
 | 4 | xne.class | message |  |
 
-### `xnd`
+### DistanceLabel (`xnd`)
 
-*Referenced by: `xng` | depth 2*
+*Referenced by: `xng` (NavigationDistanceDisplay) | depth 2*
 
 | # | Name | Type | Notes |
 |---|------|------|-------|
@@ -1313,7 +1313,7 @@ Call state, signal strength, battery
 
 ## Gearhead
 
-### `nll`
+### AssistantFeatureFlags (`nll`)
 
 ***gearhead root***
 
@@ -1332,7 +1332,7 @@ Call state, signal strength, battery
 | 11 | m | bool |  |
 | 13 | p | bool |  |
 
-### `nlq`
+### VersionFeatureFlags (`nlq`)
 
 ***gearhead root***
 

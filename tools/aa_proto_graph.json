@@ -89,7 +89,7 @@
     },
     "aafs": {
       "apk_class": "aafs",
-      "our_name": "",
+      "our_name": "DeviceInfo",
       "channels": [
         "control"
       ],
@@ -138,7 +138,7 @@
     },
     "aaft": {
       "apk_class": "aaft",
-      "our_name": "",
+      "our_name": "PingConfigPair",
       "channels": [
         "control"
       ],
@@ -177,7 +177,7 @@
     },
     "aafu": {
       "apk_class": "aafu",
-      "our_name": "",
+      "our_name": "ConnectionConfig",
       "channels": [
         "control"
       ],
@@ -196,7 +196,8 @@
           "type": "message",
           "repeated": false,
           "required": false,
-          "message_class": "aaft"
+          "message_class": "aaft",
+          "message_name": "PingConfigPair"
         },
         {
           "number": 3,
@@ -213,7 +214,7 @@
     },
     "aagh": {
       "apk_class": "aagh",
-      "our_name": "",
+      "our_name": "CapabilityFlag",
       "channels": [
         "control"
       ],
@@ -265,7 +266,8 @@
           "type": "message",
           "repeated": false,
           "required": false,
-          "message_class": "aagh"
+          "message_class": "aagh",
+          "message_name": "CapabilityFlag"
         },
         {
           "number": 2,
@@ -274,7 +276,8 @@
           "type": "message",
           "repeated": false,
           "required": false,
-          "message_class": "aafs"
+          "message_class": "aafs",
+          "message_name": "DeviceInfo"
         },
         {
           "number": 3,
@@ -283,7 +286,8 @@
           "type": "message",
           "repeated": false,
           "required": false,
-          "message_class": "aafu"
+          "message_class": "aafu",
+          "message_name": "ConnectionConfig"
         },
         {
           "number": 4,
@@ -292,7 +296,8 @@
           "type": "message",
           "repeated": false,
           "required": false,
-          "message_class": "aags"
+          "message_class": "aags",
+          "message_name": "CapabilityPair"
         },
         {
           "number": 5,
@@ -301,7 +306,8 @@
           "type": "message",
           "repeated": true,
           "required": false,
-          "message_class": "aagv"
+          "message_class": "aagv",
+          "message_name": "CapabilityEntry"
         },
         {
           "number": 7,
@@ -322,7 +328,7 @@
     },
     "aags": {
       "apk_class": "aags",
-      "our_name": "",
+      "our_name": "CapabilityPair",
       "channels": [
         "control"
       ],
@@ -355,7 +361,7 @@
     },
     "aagv": {
       "apk_class": "aagv",
-      "our_name": "",
+      "our_name": "CapabilityEntry",
       "channels": [
         "control"
       ],
@@ -857,7 +863,7 @@
     },
     "nll": {
       "apk_class": "nll",
-      "our_name": "",
+      "our_name": "AssistantFeatureFlags",
       "channels": [
         "gearhead"
       ],
@@ -968,7 +974,7 @@
     },
     "nlq": {
       "apk_class": "nlq",
-      "our_name": "",
+      "our_name": "VersionFeatureFlags",
       "channels": [
         "gearhead"
       ],
@@ -1242,7 +1248,7 @@
     },
     "vvh": {
       "apk_class": "vvh",
-      "our_name": "",
+      "our_name": "KeyEvent",
       "channels": [
         "input"
       ],
@@ -1294,7 +1300,8 @@
           "type": "message",
           "repeated": true,
           "required": false,
-          "message_class": "vvh"
+          "message_class": "vvh",
+          "message_name": "KeyEvent"
         }
       ],
       "references": [
@@ -1346,7 +1353,7 @@
     },
     "vwc": {
       "apk_class": "vwc",
-      "our_name": "",
+      "our_name": "BluetoothChannelConfig",
       "channels": [
         "control"
       ],
@@ -1695,7 +1702,7 @@
     },
     "vya": {
       "apk_class": "vya",
-      "our_name": "",
+      "our_name": "InputChannelDescriptor",
       "channels": [
         "control"
       ],
@@ -2082,7 +2089,7 @@
     },
     "vzq": {
       "apk_class": "vzq",
-      "our_name": "",
+      "our_name": "NavigationImageDimensions",
       "channels": [
         "control"
       ],
@@ -2160,7 +2167,8 @@
           "type": "message",
           "repeated": false,
           "required": false,
-          "message_class": "vzq"
+          "message_class": "vzq",
+          "message_name": "NavigationImageDimensions"
         }
       ],
       "references": [
@@ -2524,7 +2532,7 @@
     },
     "wax": {
       "apk_class": "wax",
-      "our_name": "",
+      "our_name": "RadioChannelConfig",
       "channels": [
         "control"
       ],
@@ -2561,7 +2569,8 @@
           "type": "message",
           "repeated": true,
           "required": false,
-          "message_class": "wbe"
+          "message_class": "wbe",
+          "message_name": "RadioStationData"
         },
         {
           "number": 4,
@@ -2667,7 +2676,8 @@
           "type": "message",
           "repeated": true,
           "required": false,
-          "message_class": "wax"
+          "message_class": "wax",
+          "message_name": "RadioChannelConfig"
         }
       ],
       "references": [
@@ -2745,7 +2755,7 @@
     },
     "wbe": {
       "apk_class": "wbe",
-      "our_name": "",
+      "our_name": "RadioStationData",
       "channels": [
         "control"
       ],
@@ -2778,7 +2788,7 @@
     },
     "wbl": {
       "apk_class": "wbl",
-      "our_name": "",
+      "our_name": "TouchCoordinate",
       "channels": [
         "input"
       ],
@@ -2830,7 +2840,8 @@
           "type": "message",
           "repeated": true,
           "required": false,
-          "message_class": "wbl"
+          "message_class": "wbl",
+          "message_name": "TouchCoordinate"
         }
       ],
       "references": [
@@ -3089,7 +3100,7 @@
     },
     "wbu": {
       "apk_class": "wbu",
-      "our_name": "",
+      "our_name": "SensorChannelConfig",
       "channels": [
         "control"
       ],
@@ -3132,7 +3143,8 @@
           "type": "message",
           "repeated": false,
           "required": false,
-          "message_class": "wbu"
+          "message_class": "wbu",
+          "message_name": "SensorChannelConfig"
         },
         {
           "number": 3,
@@ -3151,7 +3163,8 @@
           "type": "message",
           "repeated": false,
           "required": false,
-          "message_class": "vya"
+          "message_class": "vya",
+          "message_name": "InputChannelDescriptor"
         },
         {
           "number": 5,
@@ -3170,7 +3183,8 @@
           "type": "message",
           "repeated": false,
           "required": false,
-          "message_class": "vwc"
+          "message_class": "vwc",
+          "message_name": "BluetoothChannelConfig"
         },
         {
           "number": 7,
@@ -3533,7 +3547,7 @@
     },
     "wcm": {
       "apk_class": "wcm",
-      "our_name": "",
+      "our_name": "AdditionalVideoConfig",
       "channels": [
         "video"
       ],
@@ -3693,7 +3707,8 @@
           "type": "message",
           "repeated": false,
           "required": false,
-          "message_class": "wcm"
+          "message_class": "wcm",
+          "message_name": "AdditionalVideoConfig"
         }
       ],
       "references": [
@@ -3884,7 +3899,8 @@
           "type": "message",
           "repeated": false,
           "required": false,
-          "message_class": "xng"
+          "message_class": "xng",
+          "message_name": "NavigationDistanceDisplay"
         }
       ],
       "references": [
@@ -3894,7 +3910,7 @@
     },
     "xnd": {
       "apk_class": "xnd",
-      "our_name": "",
+      "our_name": "DistanceLabel",
       "channels": [
         "navigation"
       ],
@@ -3943,7 +3959,7 @@
     },
     "xng": {
       "apk_class": "xng",
-      "our_name": "",
+      "our_name": "NavigationDistanceDisplay",
       "channels": [
         "navigation"
       ],
@@ -3962,7 +3978,8 @@
           "type": "message",
           "repeated": false,
           "required": true,
-          "message_class": "xnd"
+          "message_class": "xnd",
+          "message_name": "DistanceLabel"
         },
         {
           "number": 2,
@@ -3971,7 +3988,8 @@
           "type": "message",
           "repeated": true,
           "required": false,
-          "message_class": "xnd"
+          "message_class": "xnd",
+          "message_name": "DistanceLabel"
         },
         {
           "number": 4,
@@ -4027,7 +4045,7 @@
     },
     "zli": {
       "apk_class": "zli",
-      "our_name": "",
+      "our_name": "TouchSensitivity",
       "channels": [
         "input"
       ],
@@ -4126,7 +4144,8 @@
           "type": "message",
           "repeated": false,
           "required": false,
-          "message_class": "zli"
+          "message_class": "zli",
+          "message_name": "TouchSensitivity"
         }
       ],
       "references": [

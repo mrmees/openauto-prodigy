@@ -118,9 +118,13 @@ SUB_MESSAGE_NAMES = {
     "vvi": "ButtonEvent",
     "vyj": "RelativeInputEvent",
     "wbm": "AbsoluteInputEvent",
+    "vvh": "KeyEvent",               # child of ButtonEvent — keycode + action
+    "wbl": "TouchCoordinate",         # child of AbsoluteInputEvent — x, y, pressure
+    "zli": "TouchSensitivity",        # child of InputChannelConfig — sensitivity values
     # Audio/Video
     "vvp": "AudioConfig",
     "vyt": "AVInputChannel",
+    "wcm": "AdditionalVideoConfig",   # child of VideoConfig — extended codec/resolution params
     # WiFi
     "waw": "WifiSecurity",
     "wbb": "WifiDirectConfig",
@@ -130,15 +134,33 @@ SUB_MESSAGE_NAMES = {
     "utk": "NavigationStepData",
     "ahdl": "NavigationImageOptions",
     "xmw": "NavigationDistanceUnit",
+    "vzq": "NavigationImageDimensions",  # child of NavigationChannelConfig — image width/height
+    "xnd": "DistanceLabel",           # child of NavigationDistanceDisplay — value + unit strings
+    "xng": "NavigationDistanceDisplay",  # child of NavigationDistance — distance + labels
     # Control
     "zyd": "PingConfiguration",
     "wdh": "NotificationChannel",
     "way": "RadioChannel",
+    "wax": "RadioChannelConfig",      # child of RadioChannel [DEPRECATED] — station config
+    "wbe": "RadioStationData",        # child of RadioChannelConfig [DEPRECATED] — station data
     # ServiceDiscoveryRequest
     "aahd": "SessionInfo",
     "aagr": "PhoneCapabilities",
+    "aafs": "DeviceInfo",             # child of PhoneCapabilities — phone brand/model/device strings
+    "aafu": "ConnectionConfig",       # child of PhoneCapabilities — connection params + ping config
+    "aaft": "PingConfigPair",         # child of ConnectionConfig — request/response ping timeouts
+    "aagh": "CapabilityFlag",         # child of PhoneCapabilities — named bool flag
+    "aags": "CapabilityPair",         # child of PhoneCapabilities — two bool flags
+    "aagv": "CapabilityEntry",        # child of PhoneCapabilities — detailed capability descriptor
     # Input channel config
     "zpn": "InputChannelConfig",
+    # Channel descriptor sub-configs (ChannelDescriptor field-specific configs)
+    "vwc": "BluetoothChannelConfig",  # ChannelDescriptor field #6 — BT channel config
+    "vya": "InputChannelDescriptor",  # ChannelDescriptor field #4 — input channel config
+    "wbu": "SensorChannelConfig",     # ChannelDescriptor field #2 — sensor channel config
+    # Gearhead SDK (not AA protocol, but discovered via graph walk)
+    "nll": "AssistantFeatureFlags",   # ClientRegistrationConfig — 14 bool feature flags
+    "nlq": "VersionFeatureFlags",     # SupportedVersionInfo — 13 bool feature flags
 }
 
 UNRESOLVED_ENUM_NOTES = {
@@ -405,7 +427,7 @@ def gearhead_scan(messages, discovered_messages, discovered_enums):
         queue = deque()
         for class_name in new_roots:
             discovered_messages[class_name] = {
-                "our_name": "",
+                "our_name": SUB_MESSAGE_NAMES.get(class_name, ""),
                 "channels": {"gearhead"},
                 "depth": 0,
                 "referenced_by": set(),
@@ -425,7 +447,7 @@ def gearhead_scan(messages, discovered_messages, discovered_enums):
                 if msg_class and msg_class in messages:
                     if msg_class not in discovered_messages:
                         discovered_messages[msg_class] = {
-                            "our_name": "",
+                            "our_name": SUB_MESSAGE_NAMES.get(msg_class, ""),
                             "channels": {channel},
                             "depth": depth + 1,
                             "referenced_by": {class_name},
