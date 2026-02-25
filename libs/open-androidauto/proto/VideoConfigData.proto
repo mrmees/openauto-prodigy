@@ -20,6 +20,7 @@ syntax="proto2";
 
 import "VideoResolutionEnum.proto";
 import "VideoFPSEnum.proto";
+import "MediaCodecTypeEnum.proto";
 
 package oaa.proto.data;
 
@@ -31,4 +32,10 @@ message VideoConfig
     required uint32 margin_height = 4;
     required uint32 dpi = 5;
     optional uint32 additional_depth = 6;
+    // Fields 7-9 exist in APK but purpose unknown (7=500, 8=10000 in captures)
+    optional uint32 field7 = 7;
+    optional uint32 field8 = 8;
+    optional uint32 field9 = 9;
+    // Codec type — discovered via APK decompilation (wcz.java field 10, vyn.java enum)
+    optional enums.MediaCodecType.Enum codec = 10;
 }

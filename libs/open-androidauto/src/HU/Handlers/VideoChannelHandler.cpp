@@ -86,12 +86,14 @@ void VideoChannelHandler::handleSetupRequest(const QByteArray& payload)
         return;
     }
 
-    qDebug() << "[VideoChannel] setup request, config_index:" << req.config_index();
+    qInfo() << "[VideoChannel] setup request, config_index:" << req.config_index();
 
     oaa::proto::messages::AVChannelSetupResponse resp;
     resp.set_media_status(oaa::proto::enums::AVChannelSetupStatus::OK);
     resp.set_max_unacked(10);
-    resp.add_configs(0); // Always use primary config
+    // Accept all our advertised configs (phone picks best match)
+    for (uint32_t i = 0; i < numVideoConfigs_; ++i)
+        resp.add_configs(i);
 
     QByteArray data(resp.ByteSizeLong(), '\0');
     resp.SerializeToArray(data.data(), data.size());
@@ -124,8 +126,9 @@ void VideoChannelHandler::handleStartIndication(const QByteArray& payload)
     session_ = start.session();
     streaming_ = true;
     ackCounter_ = 0;
-    qDebug() << "[VideoChannel] stream started, session:" << session_
-             << "config:" << start.config();
+    qInfo() << "[VideoChannel] stream started, session:" << session_
+            << "config:" << start.config()
+            << "(of" << numVideoConfigs_ << "offered)";
     emit streamStarted(session_, start.config());
 }
 

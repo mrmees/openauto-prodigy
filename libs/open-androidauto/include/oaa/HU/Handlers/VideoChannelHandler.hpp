@@ -24,6 +24,9 @@ public:
     // Video focus control — called by orchestrator
     void requestVideoFocus(bool focused);
 
+    /// Set how many video configs were advertised (for setup response)
+    void setNumVideoConfigs(uint32_t n) { numVideoConfigs_ = n; }
+
 signals:
     void videoFrameData(const QByteArray& data, uint64_t timestamp);
     void streamStarted(int32_t session, uint32_t configIndex);
@@ -40,6 +43,7 @@ private:
 
     int32_t session_ = -1;
     uint32_t ackCounter_ = 0;
+    uint32_t numVideoConfigs_ = 1;
     bool channelOpen_ = false;
     bool streaming_ = false;
 };

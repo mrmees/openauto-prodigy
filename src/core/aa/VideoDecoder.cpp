@@ -11,16 +11,35 @@ namespace aa {
 VideoDecoder::VideoDecoder(QObject* parent)
     : QObject(parent)
 {
-    codec_ = avcodec_find_decoder(AV_CODEC_ID_H264);
-    if (!codec_) {
-        qCritical() << "[VideoDecoder] H.264 decoder not found";
+    packet_ = av_packet_alloc();
+    frame_ = av_frame_alloc();
+
+    if (!initCodec(AV_CODEC_ID_H264)) {
+        qCritical() << "[VideoDecoder] Failed to initialize H.264 decoder";
         return;
+    }
+
+    worker_ = new DecodeWorker(this);
+    worker_->start();
+    qInfo() << "[VideoDecoder] Decode worker thread started";
+}
+
+bool VideoDecoder::initCodec(AVCodecID codecId)
+{
+    cleanupCodec();
+
+    const char* codecName = (codecId == AV_CODEC_ID_H265) ? "H.265" : "H.264";
+
+    codec_ = avcodec_find_decoder(codecId);
+    if (!codec_) {
+        qCritical() << "[VideoDecoder]" << codecName << "decoder not found";
+        return false;
     }
 
     codecCtx_ = avcodec_alloc_context3(codec_);
     if (!codecCtx_) {
         qCritical() << "[VideoDecoder] Failed to allocate codec context";
-        return;
+        return false;
     }
 
     // Low-latency settings for real-time streaming
@@ -29,26 +48,61 @@ VideoDecoder::VideoDecoder(QObject* parent)
     codecCtx_->thread_count = 1;  // Single-threaded for immediate output (no frame reordering delay)
 
     if (avcodec_open2(codecCtx_, codec_, nullptr) < 0) {
-        qCritical() << "[VideoDecoder] Failed to open codec";
+        qCritical() << "[VideoDecoder] Failed to open" << codecName << "codec";
         avcodec_free_context(&codecCtx_);
-        return;
+        return false;
     }
 
-    parser_ = av_parser_init(AV_CODEC_ID_H264);
+    parser_ = av_parser_init(codecId);
     if (!parser_) {
-        qCritical() << "[VideoDecoder] Failed to init parser";
+        qCritical() << "[VideoDecoder] Failed to init" << codecName << "parser";
         avcodec_free_context(&codecCtx_);
-        return;
+        return false;
     }
 
-    packet_ = av_packet_alloc();
-    frame_ = av_frame_alloc();
+    activeCodecId_ = codecId;
+    qInfo() << "[VideoDecoder] Initialized (" << codecName << "software decode)";
+    return true;
+}
 
-    qInfo() << "[VideoDecoder] Initialized (H.264 software decode)";
+void VideoDecoder::cleanupCodec()
+{
+    if (parser_) { av_parser_close(parser_); parser_ = nullptr; }
+    if (codecCtx_) { avcodec_free_context(&codecCtx_); codecCtx_ = nullptr; }
+    codec_ = nullptr;
+}
 
-    worker_ = new DecodeWorker(this);
-    worker_->start();
-    qInfo() << "[VideoDecoder] Decode worker thread started";
+AVCodecID VideoDecoder::detectCodec(const QByteArray& data) const
+{
+    // Find first AnnexB start code and check NAL unit type
+    const uint8_t* p = reinterpret_cast<const uint8_t*>(data.constData());
+    int len = data.size();
+
+    for (int i = 0; i < len - 4; ++i) {
+        if (p[i] == 0 && p[i+1] == 0 && p[i+2] == 0 && p[i+3] == 1) {
+            uint8_t nalByte = p[i+4];
+            // H.264: NAL type = byte & 0x1F (SPS=7, PPS=8, IDR=5)
+            // H.265: NAL type = (byte >> 1) & 0x3F (VPS=32, SPS=33, PPS=34)
+            int h264Type = nalByte & 0x1F;
+            int h265Type = (nalByte >> 1) & 0x3F;
+
+            if (h265Type >= 32 && h265Type <= 34) {
+                return AV_CODEC_ID_H265;
+            }
+            if (h264Type == 7 || h264Type == 8 || h264Type == 5 || h264Type == 1) {
+                return AV_CODEC_ID_H264;
+            }
+            // Ambiguous — check forbidden_zero_bit for H.265
+            // H.265 NAL header: forbidden(1) + type(6) + layer_id(6) + tid(3) = 2 bytes
+            // H.264 NAL header: forbidden(1) + nal_ref_idc(2) + type(5) = 1 byte
+            // H.265 forbidden bit is always 0, same as H.264
+            // If type > 23 in H.264 space, it's likely H.265
+            if (h264Type > 23) {
+                return AV_CODEC_ID_H265;
+            }
+        }
+    }
+    return AV_CODEC_ID_H264; // default
 }
 
 VideoDecoder::~VideoDecoder()
@@ -67,8 +121,7 @@ void VideoDecoder::cleanup()
 
     if (frame_) { av_frame_free(&frame_); frame_ = nullptr; }
     if (packet_) { av_packet_free(&packet_); packet_ = nullptr; }
-    if (parser_) { av_parser_close(parser_); parser_ = nullptr; }
-    if (codecCtx_) { avcodec_free_context(&codecCtx_); codecCtx_ = nullptr; }
+    cleanupCodec();
 }
 
 void VideoDecoder::setVideoSink(QVideoSink* sink)
@@ -91,9 +144,30 @@ void VideoDecoder::processFrame(const QByteArray& h264Data, qint64 enqueueTimeNs
 {
     if (!codecCtx_ || !parser_ || !packet_ || !frame_) return;
 
+    // Auto-detect codec from first packet's NAL headers (run exactly once)
+    if (!codecDetected_) {
+        codecDetected_ = true;
+        QByteArray prefix = h264Data.left(16);
+        qInfo() << "[VideoDecoder] First packet:" << prefix.size() << "bytes, hex:"
+                << prefix.toHex(' ');
+        AVCodecID detected = detectCodec(h264Data);
+        if (detected != activeCodecId_) {
+            const char* name = (detected == AV_CODEC_ID_H265) ? "H.265" : "H.264";
+            qInfo() << "[VideoDecoder] Phone is sending" << name << "— switching decoder";
+            if (!initCodec(detected)) {
+                qCritical() << "[VideoDecoder] Failed to switch to" << name;
+                return;
+            }
+        } else {
+            qInfo() << "[VideoDecoder] Phone is sending"
+                    << ((detected == AV_CODEC_ID_H265) ? "H.265" : "H.264")
+                    << "(matches current decoder)";
+        }
+    }
+
     auto t_decodeStart = PerfStats::Clock::now();
 
-    // Android Auto sends H.264 in AnnexB format (start codes already present)
+    // Android Auto sends video in AnnexB format (start codes already present)
     const uint8_t* data = reinterpret_cast<const uint8_t*>(h264Data.constData());
     int dataSize = h264Data.size();
 

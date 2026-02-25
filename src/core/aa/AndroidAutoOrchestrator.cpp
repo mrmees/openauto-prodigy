@@ -186,6 +186,9 @@ void AndroidAutoOrchestrator::onNewConnection()
     // Create session
     session_ = new oaa::AASession(transport_, config, this);
 
+    // Tell video handler how many configs we advertised (3 resolutions × 4 codecs)
+    videoHandler_.setNumVideoConfigs(12);
+
     // Register all channel handlers
     session_->registerChannel(oaa::ChannelId::Video, &videoHandler_);
     session_->registerChannel(oaa::ChannelId::MediaAudio, &mediaAudioHandler_);

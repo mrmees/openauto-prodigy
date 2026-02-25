@@ -70,6 +70,12 @@ private:
     AVCodecParserContext* parser_ = nullptr;
     AVPacket* packet_ = nullptr;
     AVFrame* frame_ = nullptr;
+    AVCodecID activeCodecId_ = AV_CODEC_ID_H264;
+    bool codecDetected_ = false;
+
+    bool initCodec(AVCodecID codecId);
+    void cleanupCodec();
+    AVCodecID detectCodec(const QByteArray& data) const;
 
     uint64_t frameCount_ = 0;
 

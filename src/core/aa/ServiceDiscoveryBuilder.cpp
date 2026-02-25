@@ -8,6 +8,7 @@
 #include "ChannelDescriptorData.pb.h"
 #include "AVChannelData.pb.h"
 #include "VideoConfigData.pb.h"
+#include "MediaCodecTypeEnum.pb.h"
 #include "AudioConfigData.pb.h"
 #include "InputChannelData.pb.h"
 #include "TouchConfigData.pb.h"
@@ -132,34 +133,47 @@ QByteArray ServiceDiscoveryBuilder::buildVideoDescriptor() const
     int marginW = 0, marginH = 0;
     calcMargins(remoteW, remoteH, marginW, marginH);
 
-    // Primary video config
-    auto* primaryConfig = avChannel->add_video_configs();
-    if (res == "1080p")
-        primaryConfig->set_video_resolution(oaa::proto::enums::VideoResolution::_1080p);
-    else if (res == "480p")
-        primaryConfig->set_video_resolution(oaa::proto::enums::VideoResolution::_480p);
-    else
-        primaryConfig->set_video_resolution(oaa::proto::enums::VideoResolution::_720p);
-    primaryConfig->set_video_fps(fpsEnum);
-    primaryConfig->set_margin_width(marginW);
-    primaryConfig->set_margin_height(marginH);
-    primaryConfig->set_dpi(dpi);
+    // Codec test: advertise every codec at every resolution to see phone's priority
+    using Res = oaa::proto::enums::VideoResolution;
+    using Codec = oaa::proto::enums::MediaCodecType;
 
-    // Mandatory 480p fallback
-    if (res != "480p") {
-        int fbMarginW = 0, fbMarginH = 0;
-        calcMargins(800, 480, fbMarginW, fbMarginH);
+    struct ResInfo {
+        Res::Enum res; int w; int h; const char* label;
+    };
+    ResInfo resolutions[] = {
+        { Res::_1080p, 1920, 1080, "1080p" },
+        { Res::_720p,  1280,  720, "720p"  },
+        { Res::_480p,   800,  480, "480p"  },
+    };
 
-        auto* fallbackConfig = avChannel->add_video_configs();
-        fallbackConfig->set_video_resolution(oaa::proto::enums::VideoResolution::_480p);
-        fallbackConfig->set_video_fps(oaa::proto::enums::VideoFPS::_30);
-        fallbackConfig->set_margin_width(fbMarginW);
-        fallbackConfig->set_margin_height(fbMarginH);
-        fallbackConfig->set_dpi(dpi);
+    struct CodecInfo {
+        Codec::Enum codec; const char* label;
+    };
+    CodecInfo codecs[] = {
+        { Codec::MEDIA_CODEC_VIDEO_AV1,     "AV1"   },
+        { Codec::MEDIA_CODEC_VIDEO_H265,    "H.265" },
+        { Codec::MEDIA_CODEC_VIDEO_VP9,     "VP9"   },
+        { Codec::MEDIA_CODEC_VIDEO_H264_BP, "H.264" },
+    };
+
+    int configIdx = 0;
+    for (const auto& r : resolutions) {
+        int mW = 0, mH = 0;
+        calcMargins(r.w, r.h, mW, mH);
+        for (const auto& c : codecs) {
+            auto* cfg = avChannel->add_video_configs();
+            cfg->set_video_resolution(r.res);
+            cfg->set_video_fps(fpsEnum);
+            cfg->set_margin_width(mW);
+            cfg->set_margin_height(mH);
+            cfg->set_dpi(dpi);
+            cfg->set_codec(c.codec);
+            qInfo() << "[ServiceDiscoveryBuilder] config[" << configIdx++ << "]:"
+                    << r.label << c.label << "margins:" << mW << "x" << mH;
+        }
     }
 
-    qDebug() << "[ServiceDiscoveryBuilder] Video:" << res << "@" << fps << "fps,"
-             << dpi << "dpi, margins:" << marginW << "x" << marginH;
+    qInfo() << "[ServiceDiscoveryBuilder] Advertised" << configIdx << "video configs";
 
     QByteArray data(desc.ByteSizeLong(), '\0');
     desc.SerializeToArray(data.data(), data.size());
