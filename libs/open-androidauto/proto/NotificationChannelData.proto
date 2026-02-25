@@ -1,0 +1,13 @@
+/*
+ * Discovered via APK proto decoder (wdh.java, AA v16.1)
+ * Generic notification channel descriptor for ChannelDescriptor field 13.
+ */
+
+syntax="proto2";
+
+package oaa.proto.data;
+
+message NotificationChannel
+{
+    optional string notification_filter = 1;  // Notification category filter
+}

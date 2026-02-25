@@ -1,9 +1,13 @@
+/*
+ * Updated via APK proto decoder (matched to ahdz, AA v16.1)
+ * Media playback status update (msgId 0x8001 on Media channel)
+ * Sent every ~1s by phone during media playback
+ */
+
 syntax = "proto2";
 
 package oaa.proto.messages;
 
-// Media playback status update (msgId 0x8001 on Media channel)
-// Sent every ~1s by phone during media playback
 message MediaPlaybackStatus {
     // Playback state: 2=PLAYING, 3=PAUSED (1=STOPPED?)
     optional int32 playback_state = 1;
@@ -11,8 +15,24 @@ message MediaPlaybackStatus {
     optional string app_name = 2;
     // Elapsed seconds in current track (resets to 0 on track change)
     optional int32 position_seconds = 3;
-    // Unknown fields — always 0 in captures so far
-    optional int32 field4 = 4;
-    optional int32 field5 = 5;
-    optional int32 field6 = 6;
+
+    // Fields 4-22 discovered via APK proto decoder (AA v16.1)
+    optional int32 duration_seconds = 4;       // Total track duration
+    optional int32 shuffle_mode = 5;           // Shuffle state
+    optional int32 repeat_mode = 6;            // Repeat mode (none/one/all)
+    optional int32 queue_position = 7;         // Position in play queue
+    optional int32 queue_size = 8;             // Total items in queue
+    optional int32 playback_speed = 9;         // Playback speed (1000 = 1x)
+    // field 10: gap (not present in APK)
+    optional int32 media_type = 11;            // Type of media content
+    // fields 12-13: gap
+    optional int32 actions_flags = 14;         // Available transport actions bitmask
+    optional int32 rating_type = 15;           // Rating system type
+    optional int32 rating_value = 16;          // Current rating value
+    optional int32 active_queue_item_id = 17;  // Active queue item identifier
+    optional int32 playback_error = 18;        // Playback error code
+    // field 19: gap
+    optional int64 utc_time_ms = 20;           // UTC timestamp of this update
+    optional int64 elapsed_realtime_ns = 21;   // Elapsed realtime nanos
+    optional int64 position_update_time = 22;  // When position was last updated
 }

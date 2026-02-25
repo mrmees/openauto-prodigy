@@ -26,13 +26,17 @@ import "InputChannelData.proto";
 import "AVInputChannelData.proto";
 import "BluetoothChannelData.proto";
 import "NavigationChannelData.proto";
+import "RadioChannelData.proto";
 import "VendorExtensionChannelData.proto";
 import "MediaChannelData.proto";
 import "PhoneStatusChannelData.proto";
+import "NotificationChannelData.proto";
 import "WifiChannelData.proto";
 
 package oaa.proto.data;
 
+// Updated via APK proto decoder (wbw.java, AA v16.1)
+// 17 fields decoded — channels 1-15 plus extension fields
 message ChannelDescriptor
 {
     required uint32 channel_id = 1;
@@ -41,13 +45,13 @@ message ChannelDescriptor
     optional InputChannel input_channel = 4;
     optional AVInputChannel av_input_channel = 5;
     optional BluetoothChannel bluetooth_channel = 6;
-    optional bytes radio_channel = 7;  // Present in APK (way.java) — was commented out, now bytes placeholder
+    optional RadioChannel radio_channel = 7;
     optional NavigationChannel navigation_channel = 8;
-    optional MediaInfoChannel media_infoChannel = 9;
+    optional MediaInfoChannel media_info_channel = 9;
     optional PhoneStatusChannel phone_status_channel = 10;
-    // optional MediaBrowserChannel media_browser_channel = 11;
+    optional bytes media_browser_channel = 11;   // APK field 11 — media library browsing
     optional VendorExtensionChannel vendor_extension_channel = 12;  // Removed in APK v16.1, kept for compat
-    optional bytes notification_channel = 13;  // Present in APK (wdh.java) — GenericNotificationChannel
+    optional NotificationChannel notification_channel = 13;  // APK: wdh — generic notifications
     optional WifiChannel wifi_channel = 14;  // Removed in APK v16.1, kept for compat — still works
-    optional bytes unknown_channel_15 = 15;  // Present in APK v16.1, purpose unknown
+    optional bytes car_control_channel = 15;     // APK field 15 — HVAC/vehicle controls
 }

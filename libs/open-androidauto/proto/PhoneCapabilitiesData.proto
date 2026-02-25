@@ -1,0 +1,74 @@
+/*
+ * Discovered via APK proto decoder (aagr.java, AA v16.1)
+ * Sub-message of ServiceDiscoveryRequest field 2.
+ * Describes phone capabilities, device info, and connection preferences.
+ */
+
+syntax="proto2";
+
+package oaa.proto.data;
+
+message PhoneCapabilities
+{
+    optional CapabilityFlag feature_flags = 1;
+    optional DeviceInfo device_info = 2;
+    optional PhoneConnectionConfig connection_config = 3;
+    optional CapabilityPair display_capabilities = 4;
+    repeated CapabilityEntry capabilities = 5;
+    optional string phone_identifier = 7;
+}
+
+// APK class: aagh — boolean flag + name
+message CapabilityFlag
+{
+    optional bool enabled = 1;
+    optional string name = 2;
+}
+
+// APK class: aafs — phone device information
+message DeviceInfo
+{
+    optional string manufacturer = 1;
+    optional string model = 2;
+    optional string android_version = 3;
+    optional string build_fingerprint = 4;
+}
+
+// APK class: aafu — phone connection preferences
+message PhoneConnectionConfig
+{
+    optional PingConfigPair ping_config = 1;
+    // field 3: unknown sub-message
+}
+
+// APK class: aaft — paired ping configurations
+message PingConfigPair
+{
+    optional PingConfigEntry phone_to_hu = 1;
+    optional PingConfigEntry hu_to_phone = 2;
+}
+
+// Re-use existing PingConfiguration (zyd) structure
+message PingConfigEntry
+{
+    optional uint32 timeout_ms = 1;
+    optional uint32 interval_ms = 2;
+    optional uint32 high_latency_threshold_ms = 3;
+    optional uint32 tracked_ping_count = 4;
+}
+
+// APK class: aags — boolean pair
+message CapabilityPair
+{
+    optional bool value_a = 1;
+    optional bool value_b = 2;
+}
+
+// APK class: aagv — individual capability entry
+message CapabilityEntry
+{
+    optional uint32 capability_id = 1;
+    optional string capability_name = 2;
+    optional bytes capability_data = 3;
+    optional bytes capability_config = 7;
+}

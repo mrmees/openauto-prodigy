@@ -1,0 +1,15 @@
+/*
+ * Discovered via APK proto decoder (wbl.java, AA v16.1)
+ * Touch coordinate pair used in touch events.
+ */
+
+syntax="proto2";
+
+package oaa.proto.data;
+
+// APK class: wbl — touch coordinate
+message TouchCoordinate
+{
+    required uint32 x = 1;
+    required int32 y = 2;
+}

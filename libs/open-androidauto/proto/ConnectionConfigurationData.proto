@@ -1,3 +1,9 @@
+/*
+ * Updated via APK proto decoder (aajk.java, AA v16.1)
+ * Embedded in ServiceDiscoveryResponse field 16.
+ * Tells the phone about HU connection capabilities.
+ */
+
 syntax="proto2";
 
 import "PingConfigurationData.proto";
@@ -6,4 +12,22 @@ package oaa.proto.data;
 
 message ConnectionConfiguration {
     optional PingConfiguration ping_configuration = 1;
+
+    // Fields 2-60 discovered via APK proto decoder (aajk.java, AA v16.1)
+    optional ConnectionSecurityConfig security_config = 2;  // APK: aajj — security/auth negotiation
+    optional ConnectionTuningConfig tuning_config = 4;      // APK: aajg — connection tuning params
+    optional double protocol_version = 60;                  // APK: aaja — possibly protocol version number
+}
+
+// APK class: aajj — single enum field, likely connection security mode
+message ConnectionSecurityConfig {
+    optional int32 security_mode = 1;
+}
+
+// APK class: aajg — nested connection tuning parameters
+message ConnectionTuningConfig {
+    optional uint32 timeout_ms = 1;
+    optional bytes tuning_params_a = 2;   // APK: aajf — sub-message, purpose unknown
+    optional bytes tuning_params_b = 4;   // APK: aajc — sub-message, purpose unknown
+    optional double tuning_value = 60;    // APK: aajd — timing/threshold value
 }

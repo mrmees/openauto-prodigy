@@ -1,0 +1,40 @@
+/*
+ * Discovered via APK proto decoder (nll.java / nlq.java, AA v16.1)
+ * Feature flags from the Gearhead SDK — capabilities negotiation.
+ */
+
+syntax="proto2";
+
+package oaa.proto.data;
+
+// APK class: nll — Google Assistant feature flags (14 fields)
+message AssistantFeatureFlags
+{
+    optional bool assistant_available = 1;
+    optional bool voice_trigger = 2;
+    optional bool assistant_shortcuts = 3;
+    optional bool continued_conversation = 4;
+    optional bool device_assistant = 5;
+    optional bool assistant_on_lockscreen = 6;
+    optional bool smart_display = 7;
+    optional bool routine_suggestions = 8;
+    optional bool interpreter_mode = 9;
+    optional bool multi_modal = 10;
+    optional bool settings_support = 11;
+    optional bool proactive_suggestions = 13;
+}
+
+// APK class: nlq — version/protocol feature flags (13 fields)
+message VersionFeatureFlags
+{
+    optional bool feature_a = 1;
+    optional bool feature_b = 2;
+    optional bool feature_c = 3;
+    optional bool feature_d = 5;
+    optional bool feature_e = 6;
+    optional bool feature_f = 7;
+    optional bool feature_g = 8;
+    optional bool feature_h = 10;
+    optional bool feature_i = 11;
+    optional bool feature_j = 13;
+}

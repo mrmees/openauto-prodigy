@@ -1,0 +1,15 @@
+/*
+ * Discovered via APK proto decoder (vvh.java, AA v16.1)
+ * Sub-message for keyboard/button key event with scan code.
+ */
+
+syntax="proto2";
+
+package oaa.proto.data;
+
+// APK class: vvh — key event with keycode and scan code
+message KeyEvent
+{
+    required uint32 keycode = 1;
+    required int32 scan_code = 2;
+}

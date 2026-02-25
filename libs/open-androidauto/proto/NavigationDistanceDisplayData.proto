@@ -1,0 +1,33 @@
+/*
+ * Discovered via APK proto decoder (xng.java / xnd.java / xmw.java, AA v16.1)
+ * Navigation distance display with formatted labels and unit info.
+ */
+
+syntax="proto2";
+
+package oaa.proto.data;
+
+// APK class: xng — distance display with primary label and alternatives
+message NavigationDistanceDisplay
+{
+    required DistanceLabel primary_label = 1;
+    repeated DistanceLabel alternative_labels = 2;
+    // field 4: sub-message (xne) — list of additional display entries
+}
+
+// APK class: xnd — formatted distance label
+message DistanceLabel
+{
+    required string value = 1;        // Distance as string (e.g. "0.5")
+    optional string unit_label = 2;   // Unit display text (e.g. "mi", "km")
+    optional int64 distance_meters = 3;  // Raw distance in meters
+    optional int32 format_flags = 4;  // Display formatting flags
+}
+
+// APK class: xmw — distance unit definition
+message NavigationDistanceUnit
+{
+    required int64 conversion_factor = 1;
+    required fixed32 unit_type = 2;
+    required fixed32 display_format = 3;
+}

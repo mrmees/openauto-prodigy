@@ -1,8 +1,10 @@
 /*
-*  Discovered via APK proto decoder (aahd.java, AA v16.1) and live capture.
-*  Sub-message of ServiceDiscoveryRequest field 6.
-*  Contains a UUID string used for session/device tracking.
-*/
+ * Discovered via APK proto decoder (aahd.java, AA v16.1) and live capture.
+ * Sub-message of ServiceDiscoveryRequest field 6.
+ * Contains session tracking data for reconnection.
+ *
+ * Full structure decoded from utj.java (5 fields) — aahd is the builder.
+ */
 
 syntax="proto2";
 
@@ -11,9 +13,23 @@ package oaa.proto.data;
 message SessionInfo
 {
     // UUID string, e.g. "13504ec4-0e63-4e0f-a4d6-38472b4c39f7"
-    // Likely used for reconnection tracking
+    // Used for reconnection tracking
     optional string session_uuid = 1;
 
-    // Purpose unknown — possibly a session token or key
+    // Session token or key
     optional bytes session_token = 2;
+
+    // Fields 3-5 discovered via APK proto decoder (utj.java, AA v16.1)
+    optional string device_identifier = 3;  // Possibly device serial or Android ID
+    optional int64 session_timestamp = 4;   // Session creation time (epoch ms)
+    repeated SessionHistoryEntry session_history = 5;  // Previous session records
+}
+
+// APK class: utk — sub-message of SessionInfo field 5
+// Possibly records of previous AA sessions for fast reconnection
+message SessionHistoryEntry
+{
+    optional string session_id = 1;
+    optional int64 timestamp = 2;
+    optional double duration = 4;
 }

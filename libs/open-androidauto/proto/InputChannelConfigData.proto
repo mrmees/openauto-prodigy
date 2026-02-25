@@ -1,0 +1,21 @@
+/*
+ * Discovered via APK proto decoder (zpn.java / zli.java, AA v16.1)
+ * Input channel configuration with touch sensitivity.
+ */
+
+syntax="proto2";
+
+package oaa.proto.data;
+
+// APK class: zpn — input channel config
+message InputChannelConfig
+{
+    optional int32 input_type = 1;           // Input device type
+    optional TouchSensitivity sensitivity = 2;
+}
+
+// APK class: zli — touch sensitivity setting
+message TouchSensitivity
+{
+    optional double sensitivity_value = 1;
+}

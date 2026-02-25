@@ -384,7 +384,7 @@ QByteArray ServiceDiscoveryBuilder::buildMediaStatusDescriptor() const
     oaa::proto::data::ChannelDescriptor desc;
     desc.set_channel_id(10);
 
-    desc.mutable_media_infochannel(); // empty — just advertise support
+    desc.mutable_media_info_channel(); // empty — just advertise support
 
     QByteArray data(desc.ByteSizeLong(), '\0');
     desc.SerializeToArray(data.data(), data.size());
