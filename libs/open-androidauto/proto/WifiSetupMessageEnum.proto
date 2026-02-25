@@ -1,0 +1,27 @@
+/*
+ * Discovered via APK analysis (wdn.java, AA v16.1)
+ * Message types exchanged over BT RFCOMM during wireless AA setup.
+ */
+
+syntax="proto2";
+
+package oaa.proto.enums;
+
+message WifiSetupMessage
+{
+    enum Enum
+    {
+        NONE = 0;
+        REQUEST_START = 1;
+        REQUEST_INFO = 2;
+        RESPONSE_INFO = 3;
+        VERSION_REQUEST = 4;
+        VERSION_RESPONSE = 5;
+        CONNECT_STATUS = 6;
+        RESPONSE_START = 7;
+        PING_REQUEST = 8;
+        PING_RESPONSE = 9;
+        CONNECTION_REJECTION = 10;
+        SETUP_INFO = 11;
+    }
+}

@@ -31,6 +31,6 @@ message VideoResolution
        _1440p = 4;
        _720p_p = 5;
        _1080pp = 6;
-       _108s0p_p = 7;
+       _1080p_p = 7;
     }
 }

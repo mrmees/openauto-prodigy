@@ -46,5 +46,10 @@ message SensorType
         ACCEL = 19;
         GYRO = 20;
         GPS = 21;
+        TOLL_CARD = 22;
+        VEHICLE_ENERGY_MODEL = 23;
+        TRAILER = 24;
+        RAW_VEHICLE_ENERGY_MODEL = 25;
+        RAW_EV_TRIP_SETTINGS = 26;
     }
 }

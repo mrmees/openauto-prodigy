@@ -1,0 +1,26 @@
+/*
+ * Discovered via APK analysis (vxl.java, AA v16.1)
+ * EV charging connector types.
+ */
+
+syntax="proto2";
+
+package oaa.proto.enums;
+
+message EVConnectorType
+{
+    enum Enum
+    {
+        UNKNOWN = 0;
+        J1772 = 1;
+        MENNEKES = 2;
+        CHADEMO = 3;
+        CCS_COMBO_1 = 4;
+        CCS_COMBO_2 = 5;
+        TESLA_ROADSTER = 6;
+        TESLA_HPWC = 7;
+        TESLA_SUPERCHARGER = 8;
+        GBT = 9;
+        OTHER = 10;
+    }
+}

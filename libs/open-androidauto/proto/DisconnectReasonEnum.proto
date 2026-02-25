@@ -1,0 +1,30 @@
+/*
+ * Discovered via APK analysis (xkh.java, AA v16.1)
+ * Reasons the phone disconnects from the head unit.
+ */
+
+syntax="proto2";
+
+package oaa.proto.enums;
+
+message DisconnectReason
+{
+    enum Enum
+    {
+        UNKNOWN = 0;
+        INCOMPATIBLE_VERSION = 1;
+        WRONG_CONFIGURATION = 2;
+        IO_ERROR = 3;
+        BYEBYE_REQUESTED_BY_CAR = 4;
+        BYEBYE_REQUESTED_BY_USER = 5;
+        WRONG_MESSAGE = 6;
+        AUTH_FAILED = 7;
+        AUTH_FAILED_BY_CAR = 8;
+        TIMEOUT = 9;
+        CAR_NOT_RESPONDING = 12;
+        AUTH_CERT_NOT_YET_VALID = 13;
+        AUTH_CERT_EXPIRED = 14;
+        AUDIO_ERROR = 24;
+        PROJECTION_PROCESS_CRASH_LOOP = 26;
+    }
+}

@@ -1,0 +1,28 @@
+/*
+ * Discovered via APK analysis (vxo.java, AA v16.1)
+ * Vehicle fuel types for energy/range reporting.
+ */
+
+syntax="proto2";
+
+package oaa.proto.enums;
+
+message FuelType
+{
+    enum Enum
+    {
+        UNKNOWN = 0;
+        UNLEADED = 1;
+        LEADED = 2;
+        DIESEL_1 = 3;
+        DIESEL_2 = 4;
+        BIODIESEL = 5;
+        E85 = 6;
+        LPG = 7;
+        CNG = 8;
+        LNG = 9;
+        ELECTRIC = 10;
+        HYDROGEN = 11;
+        OTHER = 12;
+    }
+}

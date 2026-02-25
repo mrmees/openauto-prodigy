@@ -1,0 +1,22 @@
+/*
+ * Discovered via APK analysis (wae.java, AA v16.1)
+ * Telephony state machine for the phone status channel.
+ */
+
+syntax="proto2";
+
+package oaa.proto.enums;
+
+message PhoneCallState
+{
+    enum Enum
+    {
+        UNKNOWN = 0;
+        IN_CALL = 1;
+        ON_HOLD = 2;
+        INACTIVE = 3;
+        INCOMING = 4;
+        CONFERENCED = 5;
+        MUTED = 6;
+    }
+}

@@ -24,6 +24,7 @@ message ButtonCode
 {
     enum Enum
     {
+        option allow_alias = true;
         NONE = 0x00;
         MICROPHONE_2 = 0x01;
         MENU = 0x02;
@@ -36,13 +37,26 @@ message ButtonCode
         LEFT = 0x15;
         RIGHT = 0x16;
         ENTER = 0x17;
+        VOLUME_UP = 0x18;
+        VOLUME_DOWN = 0x19;
+        VOLUME_MUTE = 0xA4;
         MICROPHONE_1 = 0x54;
         TOGGLE_PLAY = 0x55;
+        STOP = 0x56;
         NEXT = 0x57;
         PREV = 0x58;
+        HEADSETHOOK = 0x4F;
+        SEARCH = 0x54;
         PLAY = 0x7E;
         PAUSE = 0x7F;
         MUSIC = 0xD1;
+        ASSIST = 0xDB;
+        VOICE_ASSIST = 0xE7;
+        NAVIGATE_PREVIOUS = 0x104;
+        NAVIGATE_NEXT = 0x105;
+        NAVIGATE_IN = 0x106;
+        NAVIGATE_OUT = 0x107;
+        SENTINEL = 0xFFFF;
         SCROLL_WHEEL = 0x10000;
         MEDIA = 0x10001;
         NAVIGATION = 0x10002;
@@ -51,5 +65,6 @@ message ButtonCode
         PRIMARY_BUTTON = 0x10005;
         SECONDARY_BUTTON = 0x10006;
         TERTIARY_BUTTON = 0x10007;
+        TURN_CARD = 0x10008;
     }
 }

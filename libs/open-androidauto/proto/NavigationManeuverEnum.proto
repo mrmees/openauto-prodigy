@@ -1,0 +1,25 @@
+/*
+ * Discovered via APK analysis (vzh.java, AA v16.1)
+ * Turn-by-turn navigation instruction types.
+ */
+
+syntax="proto2";
+
+package oaa.proto.enums;
+
+message NavigationManeuver
+{
+    enum Enum
+    {
+        UNKNOWN = 0;
+        STRAIGHT = 1;
+        SLIGHT_LEFT = 2;
+        SLIGHT_RIGHT = 3;
+        NORMAL_LEFT = 4;
+        NORMAL_RIGHT = 5;
+        SHARP_LEFT = 6;
+        SHARP_RIGHT = 7;
+        U_TURN_LEFT = 8;
+        U_TURN_RIGHT = 9;
+    }
+}
