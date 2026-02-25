@@ -28,6 +28,7 @@
 #include "VideoFPSEnum.pb.h"
 #include "SensorTypeEnum.pb.h"
 #include "DisplayTypeEnum.pb.h"
+#include "NavigationTypeEnum.pb.h"
 
 namespace oap {
 namespace aa {
@@ -368,7 +369,7 @@ QByteArray ServiceDiscoveryBuilder::buildNavigationDescriptor() const
 
     auto* navChannel = desc.mutable_navigation_channel();
     navChannel->set_minimum_interval_ms(500);
-    navChannel->set_type(1); // Turn-by-turn
+    navChannel->set_type(oaa::proto::enums::NavigationType::TURN_BY_TURN);
     auto* imageOpts = navChannel->mutable_image_options();
     imageOpts->set_width(64);
     imageOpts->set_height(64);

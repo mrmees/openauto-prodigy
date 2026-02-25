@@ -1,0 +1,19 @@
+/*
+ * NavigationType — navigation display mode for NavigationChannel config.
+ *
+ * APK validator: viz.M() (AA v16.1) — accepts values 1 and 2.
+ * Used in NavigationChannel field 2.
+ */
+
+syntax="proto2";
+
+package oaa.proto.enums;
+
+message NavigationType
+{
+    enum Enum
+    {
+        TURN_BY_TURN = 1;
+        NEXT_TURN_IMAGE = 2;
+    }
+}

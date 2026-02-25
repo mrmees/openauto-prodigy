@@ -19,6 +19,8 @@
 syntax="proto2";
 
 import "SensorData.proto";
+import "FuelTypeEnum.proto";
+import "EVConnectorTypeEnum.proto";
 
 package oaa.proto.data;
 
@@ -26,6 +28,6 @@ message SensorChannel
 {
     repeated Sensor sensors = 1;
     optional uint32 unknown_field_2 = 2;
-    repeated int32 unknown_field_3 = 3;
-    repeated int32 unknown_field_4 = 4;
+    repeated enums.FuelType.Enum fuel_types = 3;           // APK: vxo.java (was int32)
+    repeated enums.EVConnectorType.Enum ev_connectors = 4; // APK: vxl.java (was int32)
 }

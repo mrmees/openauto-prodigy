@@ -1,6 +1,8 @@
 /*
- * Discovered via APK analysis (vxo.java, AA v16.1)
- * Vehicle fuel types for energy/range reporting.
+ * FuelType — vehicle fuel type for SensorChannel config.
+ *
+ * APK class: vxo.java (AA v16.1)
+ * Used in SensorChannel field 3 (repeated).
  */
 
 syntax="proto2";

@@ -1,6 +1,8 @@
 /*
- * Discovered via APK analysis (vxl.java, AA v16.1)
- * EV charging connector types.
+ * EVConnectorType — electric vehicle connector type for SensorChannel config.
+ *
+ * APK class: vxl.java (AA v16.1)
+ * Used in SensorChannel field 4 (repeated).
  */
 
 syntax="proto2";
@@ -15,12 +17,14 @@ message EVConnectorType
         J1772 = 1;
         MENNEKES = 2;
         CHADEMO = 3;
-        CCS_COMBO_1 = 4;
-        CCS_COMBO_2 = 5;
+        COMBO_1 = 4;
+        COMBO_2 = 5;
         TESLA_ROADSTER = 6;
         TESLA_HPWC = 7;
         TESLA_SUPERCHARGER = 8;
         GBT = 9;
-        OTHER = 10;
+        GBT_DC = 10;
+        LECCS = 11;
+        NACS = 14;
     }
 }

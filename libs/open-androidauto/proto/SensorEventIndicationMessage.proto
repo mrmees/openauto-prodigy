@@ -67,6 +67,13 @@ message SensorEventIndication
     repeated data.Accel accel = 19;
     repeated data.Gyro gyro = 20;
 
-    // Discovered via APK proto decoder (wbo.java, AA v16.1)
-    optional string extended_sensor_data = 27;  // Purpose unknown — possibly JSON sensor blob
+    // Fields 21-26 discovered via APK proto decoder (wbo.java, AA v16.1).
+    // Sub-message structures are mostly empty or trivial — kept as bytes.
+    repeated bytes toll_road = 21;          // APK: vxs (3 fields: int32, int32, message)
+    repeated bytes range_remaining = 22;    // APK: wch (1 field: bool)
+    repeated bytes fuel_type_info = 23;     // APK: vvg (empty)
+    repeated bytes ev_battery_info = 24;    // APK: wcl (empty)
+    repeated bytes ev_charge_info = 25;     // APK: wbh (1 field: bytes)
+    repeated bytes ev_charge_status = 26;   // APK: wbf (1 field: bytes)
+    // Field 27 (extended_sensor_data) NOT in APK v16.1 — removed.
 }
