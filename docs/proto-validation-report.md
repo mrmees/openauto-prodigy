@@ -6,8 +6,8 @@ Generated: 2026-02-25
 
 | Status | Count |
 |--------|-------|
-| Verified | 91 |
-| Partial (diffs) | 34 |
+| Verified | 93 |
+| Partial (diffs) | 32 |
 | Unmatched | 58 |
 | Error | 0 |
 | **Total** | **183** |
@@ -33,6 +33,7 @@ Generated: 2026-02-25
 - **ButtonEvent** (ButtonEventData.proto) -> `vyi` [manual]
 - **ButtonEvents** (ButtonEventsData.proto) -> `vyj` [manual]
 - **CallAvailabilityStatus** (CallAvailabilityMessage.proto) -> `vwh` [manual]
+- **ChannelOpenRequest** (ChannelOpenRequestMessage.proto) -> `vwx` [manual]
 - **ChannelOpenResponse** (ChannelOpenResponseMessage.proto) -> `vwy` [manual]
 - **ChargingStationDetails** (NavigationStepMessage.proto) -> `vwz` [manual]
 - **Compass** (CompassData.proto) -> `vxa` [manual]
@@ -58,6 +59,7 @@ Generated: 2026-02-25
 - **NavigationChannel** (NavigationChannelData.proto) -> `vzr` [manual]
 - **NavigationDestination** (NavigationStepMessage.proto) -> `vze` [manual]
 - **NavigationDistanceValue** (NavigationDistanceMessage.proto) -> `xmw` [manual]
+- **NavigationImageOptions** (NavigationImageOptionsData.proto) -> `vzq` [manual]
 - **NavigationLane** (NavigationStepMessage.proto) -> `vzj` [manual]
 - **NavigationLaneDirection** (NavigationStepMessage.proto) -> `vzi` [manual]
 - **NavigationManeuver** (NavigationStepMessage.proto) -> `vzk` [manual]
@@ -185,14 +187,6 @@ Matched: 13/17 our fields, APK has 17 fields
 | 16 | type mismatch | bytes | message |
 | 17 | type mismatch | bytes | message |
 
-### ChannelOpenRequest (ChannelOpenRequestMessage.proto) -> `vwx` [manual]
-
-Matched: 1/2 our fields, APK has 2 fields
-
-| Field | Issue | Ours | APK |
-|-------|-------|------|-----|
-| 1 | type mismatch | int32 | sint32 |
-
 ### ConnectionConfiguration (ConnectionConfigurationData.proto) -> `aajk` [manual]
 
 Matched: 1/1 our fields, APK has 6 fields
@@ -244,10 +238,8 @@ Matched: 3/5 our fields, APK has 5 fields
 
 | Field | Issue | Ours | APK |
 |-------|-------|------|-----|
-| 3 | type mismatch | bytes | message |
-| 3 | cardinality mismatch | optional | repeated |
-| 4 | type mismatch | int32 | enum |
-| 4 | cardinality mismatch | optional | repeated |
+| 4 | type mismatch | TouchPadConfig (→message) | enum |
+| 5 | cardinality mismatch | repeated | singular |
 
 ### NavigationChannelConfig (NavigationChannelConfigData.proto) -> `vzr` [manual]
 
@@ -308,14 +300,6 @@ Matched: 2/3 our fields, APK has 3 fields
 | Field | Issue | Ours | APK |
 |-------|-------|------|-----|
 | 1 | type mismatch | int32 | message |
-
-### NavigationImageOptions (NavigationImageOptionsData.proto) -> `vzq` [manual]
-
-Matched: 2/3 our fields, APK has 3 fields
-
-| Field | Issue | Ours | APK |
-|-------|-------|------|-----|
-| 1 | type mismatch | bytes | int32 |
 
 ### NavigationState (NavigationStateMessage.proto) -> `vzp` [manual]
 

@@ -1,20 +1,26 @@
 /*
- * Discovered via APK proto decoder (zpn.java / zli.java, AA v16.1)
  * Input channel configuration with touch sensitivity.
+ *
+ * APK class: vya.java (AA v16.1)
+ * Object[] refs: vxz (TouchScreenConfig), vxy (TouchPadConfig), vvs.m (enum verifier)
+ * Note: zpn.java is a simpler variant with only 2 fields — vya is the full version.
  */
 
 syntax="proto2";
 
+import "TouchScreenConfigData.proto";
+import "TouchPadConfigData.proto";
+
 package oaa.proto.data;
 
-// APK class: zpn — input channel config
+// APK class: vya — full input channel config (5 fields)
 message InputChannelConfig
 {
-    optional int32 input_type = 1;           // Input device type
-    repeated TouchSensitivity sensitivity = 2;
-    optional bytes touchpad_config = 3;
-    optional int32 key_config = 4;
-    optional uint32 max_touches = 5;
+    optional int32 input_type = 1;                          // Input device type
+    repeated TouchSensitivity sensitivity = 2;              // APK: zli
+    repeated TouchScreenConfig touch_screen_configs = 3;    // APK: vxz.class
+    repeated TouchPadConfig touchpad_configs = 4;           // APK: vxy.class
+    repeated int32 key_configs = 5;                         // APK: enum (vvs.m verifier, enum TBD)
 }
 
 // APK class: zli — touch sensitivity setting

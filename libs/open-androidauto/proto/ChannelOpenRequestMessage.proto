@@ -22,6 +22,6 @@ package oaa.proto.messages;
 
 message ChannelOpenRequest
 {
-    required int32 priority = 1;
+    required sint32 priority = 1;   // APK: sint32 (zigzag encoded), not int32
     required int32 channel_id = 2;
 }

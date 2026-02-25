@@ -2,8 +2,8 @@
   "summary": {
     "date": "2026-02-25",
     "total": 183,
-    "verified": 91,
-    "partial": 34,
+    "verified": 93,
+    "partial": 32,
     "unmatched": 58,
     "error": 0
   },
@@ -715,21 +715,14 @@
     {
       "message": "ChannelOpenRequest",
       "file": "ChannelOpenRequestMessage.proto",
-      "status": "partial",
+      "status": "verified",
       "apk_class": "vwx",
       "match_source": "manual",
       "match_score": 1.0,
       "comparison": {
-        "status": "partial",
-        "mismatches": [
-          {
-            "field": 1,
-            "issue": "type mismatch",
-            "our_value": "int32",
-            "apk_value": "sint32"
-          }
-        ],
-        "matched_count": 1,
+        "status": "verified",
+        "mismatches": [],
+        "matched_count": 2,
         "our_field_count": 2,
         "apk_field_count": 2,
         "our_only": [],
@@ -1278,28 +1271,16 @@
         "status": "partial",
         "mismatches": [
           {
-            "field": 3,
-            "issue": "type mismatch",
-            "our_value": "bytes",
-            "apk_value": "message"
-          },
-          {
-            "field": 3,
-            "issue": "cardinality mismatch",
-            "our_value": "optional",
-            "apk_value": "repeated"
-          },
-          {
             "field": 4,
             "issue": "type mismatch",
-            "our_value": "int32",
+            "our_value": "TouchPadConfig (\u2192message)",
             "apk_value": "enum"
           },
           {
-            "field": 4,
+            "field": 5,
             "issue": "cardinality mismatch",
-            "our_value": "optional",
-            "apk_value": "repeated"
+            "our_value": "repeated",
+            "apk_value": "singular"
           }
         ],
         "matched_count": 3,
@@ -1711,21 +1692,14 @@
     {
       "message": "NavigationImageOptions",
       "file": "NavigationImageOptionsData.proto",
-      "status": "partial",
+      "status": "verified",
       "apk_class": "vzq",
       "match_source": "manual",
       "match_score": 1.0,
       "comparison": {
-        "status": "partial",
-        "mismatches": [
-          {
-            "field": 1,
-            "issue": "type mismatch",
-            "our_value": "bytes",
-            "apk_value": "int32"
-          }
-        ],
-        "matched_count": 2,
+        "status": "verified",
+        "mismatches": [],
+        "matched_count": 3,
         "our_field_count": 3,
         "apk_field_count": 3,
         "our_only": [],
