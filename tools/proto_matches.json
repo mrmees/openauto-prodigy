@@ -158,5 +158,490 @@
     "apk_class": "wah",
     "score": 1.0,
     "note": "Empty message, confirmed"
+  },
+  "SensorStartResponse": {
+    "apk_class": "wbs",
+    "score": 1.0,
+    "note": "Codex batch + manual verify — 1 enum field (Status)"
+  },
+  "Sensor": {
+    "apk_class": "wbt",
+    "score": 1.0,
+    "note": "Codex batch + manual verify — 1 enum field (SensorType)"
+  },
+  "GPSLocation": {
+    "apk_class": "vyl",
+    "score": 1.0,
+    "note": "Codex batch + manual verify — wbo field 1, 7 core fields"
+  },
+  "Speed": {
+    "apk_class": "wcd",
+    "score": 1.0,
+    "note": "Codex batch + manual verify — wbo field 3, 3-4 fields"
+  },
+  "Compass": {
+    "apk_class": "vxa",
+    "score": 1.0,
+    "note": "Codex batch + manual verify — wbo field 2, 3 int32 fields"
+  },
+  "Accel": {
+    "apk_class": "vvj",
+    "score": 1.0,
+    "note": "Codex batch + manual verify — wbo field 19, 3 int32 (x/y/z)"
+  },
+  "Gyro": {
+    "apk_class": "vxt",
+    "score": 1.0,
+    "note": "Codex batch + manual verify — wbo field 20, 3 int32 (x/y/z)"
+  },
+  "DrivingStatus": {
+    "apk_class": "vxj",
+    "score": 1.0,
+    "note": "Codex batch + manual verify — wbo field 13, 1 int32 field"
+  },
+  "Odometer": {
+    "apk_class": "vzx",
+    "score": 1.0,
+    "note": "Codex batch + manual verify — wbo field 5, 2 int32 fields"
+  },
+  "Gear": {
+    "apk_class": "vxp",
+    "score": 1.0,
+    "note": "Codex batch + manual verify — wbo field 8, 1 enum field"
+  },
+  "RPM": {
+    "apk_class": "wbn",
+    "score": 1.0,
+    "note": "Codex batch + manual verify — wbo field 4, 1 int32 field"
+  },
+  "FuelLevel": {
+    "apk_class": "vxn",
+    "score": 1.0,
+    "note": "wbo Object[] field 6 — 3 fields, despite vxn being collision class for others"
+  },
+  "ParkingBrake": {
+    "apk_class": "wab",
+    "score": 1.0,
+    "note": "wbo Object[] field 7 — NOT poe (collision). Confirmed via wbo trace"
+  },
+  "Diagnostics": {
+    "apk_class": "vxf",
+    "score": 1.0,
+    "note": "wbo Object[] field 9 — NOT xss (collision). Confirmed via wbo trace"
+  },
+  "NightMode": {
+    "apk_class": "vzw",
+    "score": 1.0,
+    "note": "wbo Object[] field 10 — NOT poe (collision). Confirmed via wbo trace"
+  },
+  "Environment": {
+    "apk_class": "vxk",
+    "score": 1.0,
+    "note": "wbo Object[] field 11 — confirmed via wbo trace"
+  },
+  "HVAC": {
+    "apk_class": "vxv",
+    "score": 1.0,
+    "note": "wbo Object[] field 12 — NOT vxn (collision). Confirmed via wbo trace"
+  },
+  "SteeringWheel": {
+    "apk_class": "vxe",
+    "score": 1.0,
+    "note": "wbo Object[] field 14 — NOT vxn (collision). Confirmed via wbo trace"
+  },
+  "Passenger": {
+    "apk_class": "wac",
+    "score": 1.0,
+    "note": "wbo Object[] field 15 — NOT poe (collision). Confirmed via wbo trace"
+  },
+  "Door": {
+    "apk_class": "vxh",
+    "score": 1.0,
+    "note": "wbo Object[] field 16 — 3 fields, confirmed via wbo trace"
+  },
+  "Light": {
+    "apk_class": "vyk",
+    "score": 1.0,
+    "note": "wbo Object[] field 17 — 3 fields, confirmed via wbo trace"
+  },
+  "TirePressure": {
+    "apk_class": "wcg",
+    "score": 1.0,
+    "note": "wbo Object[] field 18 — NOT vzy (collision). Confirmed via wbo trace"
+  },
+  "SensorEventIndication": {
+    "apk_class": "wbo",
+    "score": 1.0,
+    "note": "Outer sensor container — 26 fields confirmed via Object[] array trace"
+  },
+  "AVChannelStartIndication": {
+    "apk_class": "wce",
+    "score": 1.0,
+    "note": "Codex — traced via ikz/icg media start flow. 4 fields (3 ints + nested vyo)"
+  },
+  "AVInputOpenResponse": {
+    "apk_class": "vyy",
+    "score": 1.0,
+    "note": "Codex — traced via ice mic channel. 2 scalars + bitmask"
+  },
+  "AVMediaAckIndication": {
+    "apk_class": "vvk",
+    "score": 1.0,
+    "note": "Codex — traced via qnx/icg msgId 32773. Ack counters + repeated detail"
+  },
+  "AbsoluteInputEvent": {
+    "apk_class": "wci",
+    "score": 1.0,
+    "note": "Codex — traced via vxx→wcj→wci input path. 3 ints (x/y/action)"
+  },
+  "ChannelOpenRequest": {
+    "apk_class": "vwx",
+    "score": 1.0,
+    "note": "Codex — traced via hye control channel. 2 ints + bitmask"
+  },
+  "RelativeInputEvent": {
+    "apk_class": "wbl",
+    "score": 1.0,
+    "note": "Codex — traced via hzp relative input. 2 ints + bitmask"
+  },
+  "AudioFocusRequest": {
+    "apk_class": "vvr",
+    "score": 1.0,
+    "note": "Codex — traced via ply control sender type 18. Single enum field"
+  },
+  "AudioFocusResponse": {
+    "apk_class": "vvq",
+    "score": 1.0,
+    "note": "Codex — traced via qmy/hys control parser type 19. Enum + bool"
+  },
+  "AuthCompleteIndication": {
+    "apk_class": "vvv",
+    "score": 1.0,
+    "note": "Codex — traced via qmy/hys control parser type 4. Single int/enum field"
+  },
+  "BindingResponse": {
+    "apk_class": "vwb",
+    "score": 1.0,
+    "note": "Codex — traced via qly BT channel. Status enum + alreadyPaired bool"
+  },
+  "ChannelOpenResponse": {
+    "apk_class": "vwy",
+    "score": 1.0,
+    "note": "Codex — traced via hya/qmi channel control. Single enum status"
+  },
+  "ShutdownRequest": {
+    "apk_class": "vwf",
+    "score": 1.0,
+    "note": "Codex — traced via qmy/hys case 15 ByeBye. Single enum reason"
+  },
+  "AVChannelSetupRequest": {
+    "apk_class": "wcc",
+    "score": 1.0,
+    "note": "Codex — traced via icg media setup msgId 32768. Single enum field"
+  },
+  "NavigationFocusRequest": {
+    "apk_class": "vza",
+    "score": 1.0,
+    "note": "Codex — traced via hvz control sender type 13. Single enum"
+  },
+  "NavigationFocusResponse": {
+    "apk_class": "vyz",
+    "score": 1.0,
+    "note": "Codex — traced via qmy/hys control parser type 14. Single enum"
+  },
+  "NavigationState": {
+    "apk_class": "vzp",
+    "score": 1.0,
+    "note": "Codex — traced via hkx/ikr nav status msgId 32771. Single enum state"
+  },
+  "VideoFocusRequest": {
+    "apk_class": "wdd",
+    "score": 1.0,
+    "note": "Codex — traced via idp video endpoint. Focus mode + reason enums"
+  },
+  "AbsoluteInputEvents": {
+    "apk_class": "wcj",
+    "score": 1.0,
+    "note": "Codex — traced via vxx input container. Repeated wci + metadata"
+  },
+  "ButtonEvents": {
+    "apk_class": "vyj",
+    "score": 1.0,
+    "note": "Codex — traced via vxx.e input report. Repeated vyi"
+  },
+  "RelativeInputEvents": {
+    "apk_class": "wbm",
+    "score": 1.0,
+    "note": "Codex — traced via vxx.g input report. Repeated wbl"
+  },
+  "NavigationImageOptions": {
+    "apk_class": "vzq",
+    "score": 1.0,
+    "note": "Codex — traced via hkx nav service-discovery. Width/height/colorDepth"
+  },
+  "TouchLocation": {
+    "apk_class": "wci",
+    "score": 1.0,
+    "note": "Codex — same class as AbsoluteInputEvent. Per-point x/y/z coords"
+  },
+  "AVChannelSetupResponse": {
+    "apk_class": "vxb",
+    "score": 1.0,
+    "note": "Codex verified — 3 fields (enum + int32 + repeated int32), our proto missing field 1 enum"
+  },
+  "AVInputOpenRequest": {
+    "apk_class": "vyx",
+    "score": 1.0,
+    "note": "Codex verified — 4 fields (3 bools + int32), our proto only has 2"
+  },
+  "BluetoothPairingRequest": {
+    "apk_class": "kay",
+    "score": 1.0,
+    "note": "Codex verified — field 1 is string not bytes"
+  },
+  "ButtonEvent": {
+    "apk_class": "vyi",
+    "score": 1.0,
+    "note": "Codex verified — 4 fields (2 ints + 2 bools), our proto only has 2"
+  },
+  "HeadUnitInfo": {
+    "apk_class": "aacd",
+    "score": 1.0,
+    "note": "Codex verified — 8 string fields, our proto only has 5"
+  },
+  "MediaPlaybackMetadata": {
+    "apk_class": "nmi",
+    "score": 1.0,
+    "note": "Codex verified — 6 fields but types differ from our proto"
+  },
+  "SensorStartRequest": {
+    "apk_class": "war",
+    "score": 1.0,
+    "note": "Codex verified — 2 fields (enum + int64), our proto only has enum"
+  },
+  "TouchEvent": {
+    "apk_class": "wcj",
+    "score": 1.0,
+    "note": "Codex verified — 3 fields (repeated wci + int32 + enum), no timestamp"
+  },
+  "VendorExtensionChannel": {
+    "apk_class": "wcv",
+    "score": 1.0,
+    "note": "Codex verified — string + repeated int + bytes, not 3 strings"
+  },
+  "VideoFocusIndication": {
+    "apk_class": "wdb",
+    "score": 1.0,
+    "note": "Codex verified — 2 fields (enum + bool), our proto has 3"
+  },
+  "BluetoothPairingResponse": {
+    "apk_class": "xgq",
+    "score": 1.0,
+    "note": "Codex verified — bool + enum + repeated enum"
+  },
+  "InputEventIndication": {
+    "apk_class": "vxx",
+    "score": 1.0,
+    "note": "Codex verified — 6 fields (int64 + 5 sub-messages), field 2 unused"
+  },
+  "MediaPlaybackStatus": {
+    "apk_class": "ahdz",
+    "score": 1.0,
+    "note": "Codex verified — many int32/int64 fields with gaps at 10/19"
+  },
+  "NavigationDistance": {
+    "apk_class": "xnb",
+    "score": 1.0,
+    "note": "Codex verified — 4 fields with sub-messages, gaps at 4-7"
+  },
+  "WifiDirectConfig": {
+    "apk_class": "wbb",
+    "score": 1.0,
+    "note": "Codex verified — 6 fields (4 strings + sub-message + int64)"
+  },
+  "WifiSecurityResponse": {
+    "apk_class": "wan",
+    "score": 1.0,
+    "note": "Codex verified — 13 fields! Much larger than our proto"
+  },
+  "WifiInfoRequest": {
+    "apk_class": "wdl",
+    "score": 1.0,
+    "note": "Codex — corrected from zui. Empty message (not 1-field string)"
+  },
+  "WifiInfoResponse": {
+    "apk_class": "wdm",
+    "score": 1.0,
+    "note": "Codex — corrected from zui. 5 fields (3 strings + 2 enums)"
+  },
+  "PingRequest": {
+    "apk_class": "wdo",
+    "score": 1.0,
+    "note": "Codex — corrected from zrz (collision). 1 int64 field"
+  },
+  "PingResponse": {
+    "apk_class": "wdp",
+    "score": 1.0,
+    "note": "Codex — corrected from zrz (collision). 1 int64 field"
+  },
+  "ShutdownResponse": {
+    "apk_class": "vwg",
+    "score": 1.0,
+    "note": "Codex — empty message"
+  },
+  "VoiceSessionRequest": {
+    "apk_class": "wde",
+    "score": 1.0,
+    "note": "Codex — 1 enum/int field"
+  },
+  "CallAvailabilityStatus": {
+    "apk_class": "vwh",
+    "score": 1.0,
+    "note": "Codex — NOT poe (collision). 1 bool field"
+  },
+  "KeyEvent": {
+    "apk_class": "vyi",
+    "score": 1.0,
+    "note": "Codex — same class as ButtonEvent (same concept). 4 fields"
+  },
+  "AdditionalVideoConfig": {
+    "apk_class": "wcm",
+    "score": 1.0,
+    "note": "Codex — complex with inset sub-messages (vyb) + enum + repeated"
+  },
+  "AssistantFeatureFlags": {
+    "apk_class": "nlq",
+    "score": 1.0,
+    "note": "Codex — many boolean feature toggle fields"
+  },
+  "DeviceInfo": {
+    "apk_class": "vve",
+    "score": 1.0,
+    "note": "Codex — strings c-j + enum/int type field k"
+  },
+  "VersionFeatureFlags": {
+    "apk_class": "wdq",
+    "score": 1.0,
+    "note": "Codex — string + int fields"
+  },
+  "VideoInsets": {
+    "apk_class": "vyb",
+    "score": 1.0,
+    "note": "Codex — 4 ints (top/bottom/left/right)"
+  },
+  "TouchScreenConfig": {
+    "apk_class": "vxz",
+    "score": 1.0,
+    "note": "Codex via wby — 3 fields (2 ints + enum). NOT vxn"
+  },
+  "TouchPadConfig": {
+    "apk_class": "vxy",
+    "score": 1.0,
+    "note": "Codex via wby — 8 fields (5 ints + 3 bools)"
+  },
+  "RadioChannelConfig": {
+    "apk_class": "way",
+    "score": 1.0,
+    "note": "Codex via wby — 1 repeated wax field"
+  },
+  "MediaInfoChannel": {
+    "apk_class": "vym",
+    "score": 1.0,
+    "note": "Codex via wby — empty marker message"
+  },
+  "NavigationDistanceInfo": {
+    "apk_class": "xng",
+    "score": 1.0,
+    "note": "Codex via xnb — 3 fields + oneof"
+  },
+  "NavigationDistanceValue": {
+    "apk_class": "xmw",
+    "score": 1.0,
+    "note": "Codex via xnb — int64 + 2 int32"
+  },
+  "NavigationDistanceDisplay": {
+    "apk_class": "xnd",
+    "score": 1.0,
+    "note": "Codex via xnb — 2 strings + int64 + repeated xnc"
+  },
+  "DistanceLabel": {
+    "apk_class": "xnc",
+    "score": 1.0,
+    "note": "Codex via xnb — 3 strings + int32"
+  },
+  "NavigationImageDimensions": {
+    "apk_class": "xnf",
+    "score": 1.0,
+    "note": "Codex via xnb — xnd + int32 + repeated int32"
+  },
+  "SensorStartRequestMessage": {
+    "apk_class": "war",
+    "score": 1.0,
+    "note": "Same as SensorStartRequest — naming variant"
+  },
+  "SensorStartResponseMessage": {
+    "apk_class": "wbs",
+    "score": 1.0,
+    "note": "Same as SensorStartResponse — naming variant"
+  },
+  "ConnectionReservedConfig": {
+    "apk_class": "aaji",
+    "score": 1.0,
+    "note": "Defined in ConnectionConfigurationData.proto — empty message"
+  },
+  "ConnectionTransportConfig": {
+    "apk_class": "aajh",
+    "score": 1.0,
+    "note": "Defined in ConnectionConfigurationData.proto — 2 sub-message fields"
+  },
+  "TouchCoordinate": {
+    "apk_class": "wci",
+    "score": 1.0,
+    "note": "Same class as AbsoluteInputEvent/TouchLocation — per-point coords"
+  },
+  "RadioChannel": {
+    "apk_class": "way",
+    "score": 1.0,
+    "note": "Same as RadioChannelConfig — channel descriptor type"
+  },
+  "PhoneConnectionConfig": {
+    "apk_class": "wdm",
+    "score": 1.0,
+    "note": "Codex — same structure as WifiInfoResponse (SSID/BSSID/pass/security/AP-type)"
+  },
+  "AudioFocusChannel": {
+    "apk_class": "vyr",
+    "score": 1.0,
+    "note": "Same class as PhoneStatusChannel — empty marker message"
+  },
+  "BluetoothChannelConfig": {
+    "apk_class": "vwc",
+    "score": 1.0,
+    "note": "Same class as BluetoothChannel — channel descriptor type"
+  },
+  "InputChannelConfig": {
+    "apk_class": "vya",
+    "score": 1.0,
+    "note": "Same class as InputChannel — channel descriptor type"
+  },
+  "InputChannelDescriptor": {
+    "apk_class": "wbw",
+    "score": 1.0,
+    "note": "Same class as ChannelDescriptor"
+  },
+  "NavigationChannelConfig": {
+    "apk_class": "vzr",
+    "score": 1.0,
+    "note": "Same class as NavigationChannel — channel descriptor type"
+  },
+  "SensorChannelConfig": {
+    "apk_class": "wbu",
+    "score": 1.0,
+    "note": "Same class as SensorChannel — channel descriptor type"
+  },
+  "WiFiProjectionChannel": {
+    "apk_class": "wdh",
+    "score": 1.0,
+    "note": "Same class as WifiChannel — channel descriptor type"
   }
 }
