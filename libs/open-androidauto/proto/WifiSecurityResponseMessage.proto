@@ -18,6 +18,8 @@
 
 syntax = "proto2";
 
+import "WifiDirectConfigData.proto";
+
 package oaa.proto.messages;
 
 // Wire format verified against WirelessAndroidAutoDongle (nisargjhaveri).
@@ -32,7 +34,7 @@ message WifiSecurityResponse {
     optional AccessPointType access_point_type = 5;
 
     // Fields 6-11 discovered via APK proto decoder (wan.java, AA v16.1)
-    optional bytes wifi_direct_config = 6;  // Sub-message (APK class: wbb) — WiFi Direct params
+    optional data.WifiDirectConfig wifi_direct_config = 6;  // WiFi Direct connection params (APK: wbb)
     optional string ip_address = 7;         // HU IP address for direct connection
     optional string gateway = 8;            // Gateway IP
     optional uint32 prefix_length = 9;      // Network prefix length (e.g. 24)

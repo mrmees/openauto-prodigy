@@ -1,0 +1,19 @@
+/*
+*  Discovered via APK proto decoder (aahd.java, AA v16.1) and live capture.
+*  Sub-message of ServiceDiscoveryRequest field 6.
+*  Contains a UUID string used for session/device tracking.
+*/
+
+syntax="proto2";
+
+package oaa.proto.data;
+
+message SessionInfo
+{
+    // UUID string, e.g. "13504ec4-0e63-4e0f-a4d6-38472b4c39f7"
+    // Likely used for reconnection tracking
+    optional string session_uuid = 1;
+
+    // Purpose unknown — possibly a session token or key
+    optional bytes session_token = 2;
+}

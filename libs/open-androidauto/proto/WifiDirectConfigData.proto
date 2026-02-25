@@ -1,0 +1,19 @@
+/*
+*  Discovered via APK proto decoder (wbb.java, AA v16.1).
+*  Sub-message of WifiSecurityResponse field 6.
+*  Contains WiFi Direct connection parameters.
+*/
+
+syntax="proto2";
+
+package oaa.proto.data;
+
+message WifiDirectConfig
+{
+    optional string device_name = 1;     // WiFi Direct device name
+    optional string device_address = 2;  // WiFi Direct device MAC
+    optional string ssid = 3;            // WiFi Direct SSID (if different from AP)
+    optional string passphrase = 4;      // WiFi Direct passphrase
+    optional bytes  group_owner_info = 5; // Sub-message (APK class: wam)
+    optional uint64 frequency = 6;       // Operating frequency in MHz
+}

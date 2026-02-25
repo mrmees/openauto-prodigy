@@ -18,6 +18,8 @@
 
 syntax="proto2";
 
+import "SessionInfoData.proto";
+
 package oaa.proto.messages;
 
 message ServiceDiscoveryRequest
@@ -32,8 +34,8 @@ message ServiceDiscoveryRequest
     required string device_name = 4;
     required string device_brand = 5;
 
-    // Field 6: sub-message with UUID string at sub-field 1 (seen in live capture)
-    // e.g. { 1: "13504ec4-0e63-4e0f-a4d6-38472b4c39f7" }
-    // Likely session/device UUID for reconnection tracking
-    optional bytes session_info = 6;
+    // Sub-message with UUID string (confirmed via live capture)
+    // e.g. { session_uuid: "13504ec4-0e63-4e0f-a4d6-38472b4c39f7" }
+    // Used for session/device reconnection tracking
+    optional data.SessionInfo session_info = 6;
 }

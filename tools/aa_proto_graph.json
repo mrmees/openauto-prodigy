@@ -157,7 +157,8 @@
           "type": "message",
           "repeated": false,
           "required": false,
-          "message_class": "zyd"
+          "message_class": "zyd",
+          "message_name": "PingConfiguration"
         },
         {
           "number": 2,
@@ -166,7 +167,8 @@
           "type": "message",
           "repeated": false,
           "required": false,
-          "message_class": "zyd"
+          "message_class": "zyd",
+          "message_name": "PingConfiguration"
         }
       ],
       "references": [
@@ -244,7 +246,7 @@
     },
     "aagr": {
       "apk_class": "aagr",
-      "our_name": "",
+      "our_name": "PhoneCapabilities",
       "channels": [
         "control"
       ],
@@ -426,7 +428,7 @@
     },
     "aahd": {
       "apk_class": "aahd",
-      "our_name": "",
+      "our_name": "SessionInfo",
       "channels": [
         "control"
       ],
@@ -476,7 +478,8 @@
           "type": "message",
           "repeated": false,
           "required": false,
-          "message_class": "aahd"
+          "message_class": "aahd",
+          "message_name": "SessionInfo"
         },
         {
           "number": 2,
@@ -485,7 +488,8 @@
           "type": "message",
           "repeated": false,
           "required": false,
-          "message_class": "aagr"
+          "message_class": "aagr",
+          "message_name": "PhoneCapabilities"
         },
         {
           "number": 3,
@@ -536,7 +540,8 @@
           "type": "message",
           "repeated": false,
           "required": false,
-          "message_class": "zyd"
+          "message_class": "zyd",
+          "message_name": "PingConfiguration"
         },
         {
           "number": 2,
@@ -577,7 +582,7 @@
     },
     "ahdl": {
       "apk_class": "ahdl",
-      "our_name": "",
+      "our_name": "NavigationImageOptions",
       "channels": [
         "navigation"
       ],
@@ -591,7 +596,7 @@
       "fields": [
         {
           "number": 1,
-          "name": "c",
+          "name": "width",
           "obfuscated_name": "c",
           "type": "fixed64",
           "repeated": false,
@@ -599,7 +604,7 @@
         },
         {
           "number": 2,
-          "name": "d",
+          "name": "height",
           "obfuscated_name": "d",
           "type": "string",
           "repeated": false,
@@ -643,7 +648,8 @@
           "type": "message",
           "repeated": false,
           "required": false,
-          "message_class": "ahdl"
+          "message_class": "ahdl",
+          "message_name": "NavigationImageOptions"
         }
       ],
       "references": [
@@ -1169,7 +1175,8 @@
           "type": "message",
           "repeated": true,
           "required": false,
-          "message_class": "utk"
+          "message_class": "utk",
+          "message_name": "NavigationStepData"
         }
       ],
       "references": [
@@ -1178,7 +1185,7 @@
     },
     "utk": {
       "apk_class": "utk",
-      "our_name": "",
+      "our_name": "NavigationStepData",
       "channels": [
         "navigation"
       ],
@@ -1268,7 +1275,7 @@
     },
     "vvi": {
       "apk_class": "vvi",
-      "our_name": "",
+      "our_name": "ButtonEvent",
       "channels": [
         "input"
       ],
@@ -1282,7 +1289,7 @@
       "fields": [
         {
           "number": 1,
-          "name": "b",
+          "name": "scan_code",
           "obfuscated_name": "b",
           "type": "message",
           "repeated": true,
@@ -1296,7 +1303,7 @@
     },
     "vvp": {
       "apk_class": "vvp",
-      "our_name": "",
+      "our_name": "AudioConfig",
       "channels": [
         "control",
         "video"
@@ -1312,7 +1319,7 @@
       "fields": [
         {
           "number": 1,
-          "name": "c",
+          "name": "sample_rate",
           "obfuscated_name": "c",
           "type": "uint32",
           "repeated": false,
@@ -1320,7 +1327,7 @@
         },
         {
           "number": 2,
-          "name": "d",
+          "name": "bit_depth",
           "obfuscated_name": "d",
           "type": "uint32",
           "repeated": false,
@@ -1328,7 +1335,7 @@
         },
         {
           "number": 3,
-          "name": "e",
+          "name": "channel_count",
           "obfuscated_name": "e",
           "type": "uint32",
           "repeated": false,
@@ -1355,7 +1362,7 @@
     },
     "vxa": {
       "apk_class": "vxa",
-      "our_name": "",
+      "our_name": "Compass",
       "channels": [
         "sensor"
       ],
@@ -1369,7 +1376,7 @@
       "fields": [
         {
           "number": 1,
-          "name": "c",
+          "name": "bearing",
           "obfuscated_name": "c",
           "type": "int32",
           "repeated": false,
@@ -1377,7 +1384,7 @@
         },
         {
           "number": 2,
-          "name": "d",
+          "name": "pitch",
           "obfuscated_name": "d",
           "type": "int32",
           "repeated": false,
@@ -1385,7 +1392,7 @@
         },
         {
           "number": 3,
-          "name": "e",
+          "name": "roll",
           "obfuscated_name": "e",
           "type": "int32",
           "repeated": false,
@@ -1437,7 +1444,7 @@
     },
     "vxf": {
       "apk_class": "vxf",
-      "our_name": "",
+      "our_name": "Diagnostics",
       "channels": [
         "sensor"
       ],
@@ -1451,7 +1458,7 @@
       "fields": [
         {
           "number": 1,
-          "name": "c",
+          "name": "diagnostics",
           "obfuscated_name": "c",
           "type": "bytes",
           "repeated": false,
@@ -1501,7 +1508,7 @@
     },
     "vxk": {
       "apk_class": "vxk",
-      "our_name": "",
+      "our_name": "Environment",
       "channels": [
         "sensor"
       ],
@@ -1515,7 +1522,7 @@
       "fields": [
         {
           "number": 1,
-          "name": "c",
+          "name": "temperature",
           "obfuscated_name": "c",
           "type": "int32",
           "repeated": false,
@@ -1523,7 +1530,7 @@
         },
         {
           "number": 2,
-          "name": "d",
+          "name": "pressure",
           "obfuscated_name": "d",
           "type": "int32",
           "repeated": false,
@@ -1531,7 +1538,7 @@
         },
         {
           "number": 3,
-          "name": "e",
+          "name": "rain",
           "obfuscated_name": "e",
           "type": "int32",
           "repeated": false,
@@ -1542,7 +1549,7 @@
     },
     "vxn": {
       "apk_class": "vxn",
-      "our_name": "",
+      "our_name": "FuelLevel",
       "channels": [
         "sensor"
       ],
@@ -1556,7 +1563,7 @@
       "fields": [
         {
           "number": 1,
-          "name": "c",
+          "name": "fuel_level",
           "obfuscated_name": "c",
           "type": "int32",
           "repeated": false,
@@ -1564,7 +1571,7 @@
         },
         {
           "number": 2,
-          "name": "d",
+          "name": "range",
           "obfuscated_name": "d",
           "type": "int32",
           "repeated": false,
@@ -1572,7 +1579,7 @@
         },
         {
           "number": 3,
-          "name": "e",
+          "name": "low_fuel",
           "obfuscated_name": "e",
           "type": "bool",
           "repeated": false,
@@ -1583,7 +1590,7 @@
     },
     "vxp": {
       "apk_class": "vxp",
-      "our_name": "",
+      "our_name": "Gear",
       "channels": [
         "sensor"
       ],
@@ -1597,7 +1604,7 @@
       "fields": [
         {
           "number": 1,
-          "name": "b",
+          "name": "gear",
           "obfuscated_name": "b",
           "type": "enum",
           "repeated": false,
@@ -1645,7 +1652,8 @@
           "type": "message",
           "repeated": false,
           "required": false,
-          "message_class": "vyj"
+          "message_class": "vyj",
+          "message_name": "RelativeInputEvent"
         },
         {
           "number": 5,
@@ -1654,7 +1662,8 @@
           "type": "message",
           "repeated": false,
           "required": false,
-          "message_class": "vvi"
+          "message_class": "vvi",
+          "message_name": "ButtonEvent"
         },
         {
           "number": 6,
@@ -1663,7 +1672,8 @@
           "type": "message",
           "repeated": false,
           "required": false,
-          "message_class": "wbm"
+          "message_class": "wbm",
+          "message_name": "AbsoluteInputEvent"
         },
         {
           "number": 7,
@@ -1750,7 +1760,7 @@
     },
     "vyj": {
       "apk_class": "vyj",
-      "our_name": "",
+      "our_name": "RelativeInputEvent",
       "channels": [
         "input"
       ],
@@ -1764,7 +1774,7 @@
       "fields": [
         {
           "number": 1,
-          "name": "b",
+          "name": "scan_code",
           "obfuscated_name": "b",
           "type": "message",
           "repeated": true,
@@ -1822,7 +1832,7 @@
     },
     "vyl": {
       "apk_class": "vyl",
-      "our_name": "",
+      "our_name": "GPSLocation",
       "channels": [
         "sensor"
       ],
@@ -1836,7 +1846,7 @@
       "fields": [
         {
           "number": 2,
-          "name": "c",
+          "name": "latitude",
           "obfuscated_name": "c",
           "type": "int32",
           "repeated": false,
@@ -1844,7 +1854,7 @@
         },
         {
           "number": 3,
-          "name": "d",
+          "name": "longitude",
           "obfuscated_name": "d",
           "type": "int32",
           "repeated": false,
@@ -1852,7 +1862,7 @@
         },
         {
           "number": 4,
-          "name": "e",
+          "name": "accuracy",
           "obfuscated_name": "e",
           "type": "uint32",
           "repeated": false,
@@ -1860,7 +1870,7 @@
         },
         {
           "number": 5,
-          "name": "f",
+          "name": "altitude",
           "obfuscated_name": "f",
           "type": "int32",
           "repeated": false,
@@ -1868,7 +1878,7 @@
         },
         {
           "number": 6,
-          "name": "g",
+          "name": "speed",
           "obfuscated_name": "g",
           "type": "int32",
           "repeated": false,
@@ -1876,7 +1886,7 @@
         },
         {
           "number": 7,
-          "name": "h",
+          "name": "bearing",
           "obfuscated_name": "h",
           "type": "int32",
           "repeated": false,
@@ -1927,7 +1937,8 @@
           "type": "message",
           "repeated": true,
           "required": false,
-          "message_class": "vvp"
+          "message_class": "vvp",
+          "message_name": "AudioConfig"
         },
         {
           "number": 4,
@@ -1985,7 +1996,7 @@
     },
     "vyt": {
       "apk_class": "vyt",
-      "our_name": "",
+      "our_name": "AVInputChannel",
       "channels": [
         "control"
       ],
@@ -1999,7 +2010,7 @@
       "fields": [
         {
           "number": 1,
-          "name": "c",
+          "name": "stream_type",
           "obfuscated_name": "c",
           "type": "enum",
           "repeated": false,
@@ -2009,12 +2020,13 @@
         },
         {
           "number": 2,
-          "name": "d",
+          "name": "audio_config",
           "obfuscated_name": "d",
           "type": "message",
           "repeated": false,
           "required": false,
-          "message_class": "vvp"
+          "message_class": "vvp",
+          "message_name": "AudioConfig"
         }
       ],
       "references": [
@@ -2111,7 +2123,7 @@
     },
     "vzr": {
       "apk_class": "vzr",
-      "our_name": "",
+      "our_name": "NavigationChannelConfig",
       "channels": [
         "control"
       ],
@@ -2157,7 +2169,7 @@
     },
     "vzw": {
       "apk_class": "vzw",
-      "our_name": "",
+      "our_name": "NightMode",
       "channels": [
         "sensor"
       ],
@@ -2171,7 +2183,7 @@
       "fields": [
         {
           "number": 1,
-          "name": "c",
+          "name": "is_night",
           "obfuscated_name": "c",
           "type": "bool",
           "repeated": false,
@@ -2182,7 +2194,7 @@
     },
     "vzx": {
       "apk_class": "vzx",
-      "our_name": "",
+      "our_name": "Odometer",
       "channels": [
         "sensor"
       ],
@@ -2196,7 +2208,7 @@
       "fields": [
         {
           "number": 1,
-          "name": "c",
+          "name": "total_mileage",
           "obfuscated_name": "c",
           "type": "int32",
           "repeated": false,
@@ -2204,7 +2216,7 @@
         },
         {
           "number": 2,
-          "name": "d",
+          "name": "trip_mileage",
           "obfuscated_name": "d",
           "type": "int32",
           "repeated": false,
@@ -2215,7 +2227,7 @@
     },
     "wab": {
       "apk_class": "wab",
-      "our_name": "",
+      "our_name": "ParkingBrake",
       "channels": [
         "sensor"
       ],
@@ -2229,7 +2241,7 @@
       "fields": [
         {
           "number": 1,
-          "name": "b",
+          "name": "parking_brake",
           "obfuscated_name": "b",
           "type": "bool",
           "repeated": false,
@@ -2305,7 +2317,7 @@
     },
     "wam": {
       "apk_class": "wam",
-      "our_name": "",
+      "our_name": "AccessPointType",
       "channels": [
         "wifi"
       ],
@@ -2372,7 +2384,8 @@
           "type": "message",
           "repeated": false,
           "required": false,
-          "message_class": "waw"
+          "message_class": "waw",
+          "message_name": "WifiSecurity"
         },
         {
           "number": 5,
@@ -2381,7 +2394,8 @@
           "type": "message",
           "repeated": false,
           "required": false,
-          "message_class": "wam"
+          "message_class": "wam",
+          "message_name": "AccessPointType"
         },
         {
           "number": 6,
@@ -2390,7 +2404,8 @@
           "type": "message",
           "repeated": false,
           "required": false,
-          "message_class": "wbb"
+          "message_class": "wbb",
+          "message_name": "WifiDirectConfig"
         },
         {
           "number": 7,
@@ -2474,7 +2489,7 @@
     },
     "waw": {
       "apk_class": "waw",
-      "our_name": "",
+      "our_name": "WifiSecurity",
       "channels": [
         "wifi"
       ],
@@ -2633,7 +2648,7 @@
     },
     "way": {
       "apk_class": "way",
-      "our_name": "",
+      "our_name": "RadioChannel",
       "channels": [
         "control"
       ],
@@ -2661,7 +2676,7 @@
     },
     "wbb": {
       "apk_class": "wbb",
-      "our_name": "",
+      "our_name": "WifiDirectConfig",
       "channels": [
         "wifi"
       ],
@@ -2712,7 +2727,8 @@
           "type": "message",
           "repeated": false,
           "required": false,
-          "message_class": "wam"
+          "message_class": "wam",
+          "message_name": "AccessPointType"
         },
         {
           "number": 6,
@@ -2795,7 +2811,7 @@
     },
     "wbm": {
       "apk_class": "wbm",
-      "our_name": "",
+      "our_name": "AbsoluteInputEvent",
       "channels": [
         "input"
       ],
@@ -2809,7 +2825,7 @@
       "fields": [
         {
           "number": 1,
-          "name": "b",
+          "name": "scan_code",
           "obfuscated_name": "b",
           "type": "message",
           "repeated": true,
@@ -2823,7 +2839,7 @@
     },
     "wbn": {
       "apk_class": "wbn",
-      "our_name": "",
+      "our_name": "RPM",
       "channels": [
         "sensor"
       ],
@@ -2837,7 +2853,7 @@
       "fields": [
         {
           "number": 1,
-          "name": "b",
+          "name": "rpm",
           "obfuscated_name": "b",
           "type": "int32",
           "repeated": false,
@@ -2865,7 +2881,8 @@
           "type": "message",
           "repeated": true,
           "required": false,
-          "message_class": "vyl"
+          "message_class": "vyl",
+          "message_name": "GPSLocation"
         },
         {
           "number": 2,
@@ -2874,7 +2891,8 @@
           "type": "message",
           "repeated": true,
           "required": false,
-          "message_class": "vxa"
+          "message_class": "vxa",
+          "message_name": "Compass"
         },
         {
           "number": 3,
@@ -2883,7 +2901,8 @@
           "type": "message",
           "repeated": true,
           "required": false,
-          "message_class": "wcd"
+          "message_class": "wcd",
+          "message_name": "Speed"
         },
         {
           "number": 4,
@@ -2892,7 +2911,8 @@
           "type": "message",
           "repeated": true,
           "required": false,
-          "message_class": "wbn"
+          "message_class": "wbn",
+          "message_name": "RPM"
         },
         {
           "number": 5,
@@ -2901,7 +2921,8 @@
           "type": "message",
           "repeated": true,
           "required": false,
-          "message_class": "vzx"
+          "message_class": "vzx",
+          "message_name": "Odometer"
         },
         {
           "number": 6,
@@ -2910,7 +2931,8 @@
           "type": "message",
           "repeated": true,
           "required": false,
-          "message_class": "vxn"
+          "message_class": "vxn",
+          "message_name": "FuelLevel"
         },
         {
           "number": 7,
@@ -2919,7 +2941,8 @@
           "type": "message",
           "repeated": true,
           "required": false,
-          "message_class": "wab"
+          "message_class": "wab",
+          "message_name": "ParkingBrake"
         },
         {
           "number": 8,
@@ -2928,7 +2951,8 @@
           "type": "message",
           "repeated": true,
           "required": false,
-          "message_class": "vxp"
+          "message_class": "vxp",
+          "message_name": "Gear"
         },
         {
           "number": 9,
@@ -2937,7 +2961,8 @@
           "type": "message",
           "repeated": true,
           "required": false,
-          "message_class": "vxf"
+          "message_class": "vxf",
+          "message_name": "Diagnostics"
         },
         {
           "number": 10,
@@ -2946,7 +2971,8 @@
           "type": "message",
           "repeated": true,
           "required": false,
-          "message_class": "vzw"
+          "message_class": "vzw",
+          "message_name": "NightMode"
         },
         {
           "number": 11,
@@ -2955,7 +2981,8 @@
           "type": "message",
           "repeated": true,
           "required": false,
-          "message_class": "vxk"
+          "message_class": "vxk",
+          "message_name": "Environment"
         },
         {
           "number": 27,
@@ -3133,7 +3160,8 @@
           "type": "message",
           "repeated": false,
           "required": false,
-          "message_class": "vyt"
+          "message_class": "vyt",
+          "message_name": "AVInputChannel"
         },
         {
           "number": 6,
@@ -3151,7 +3179,8 @@
           "type": "message",
           "repeated": false,
           "required": false,
-          "message_class": "way"
+          "message_class": "way",
+          "message_name": "RadioChannel"
         },
         {
           "number": 8,
@@ -3160,7 +3189,8 @@
           "type": "message",
           "repeated": false,
           "required": false,
-          "message_class": "vzr"
+          "message_class": "vzr",
+          "message_name": "NavigationChannelConfig"
         },
         {
           "number": 9,
@@ -3193,7 +3223,8 @@
           "type": "message",
           "repeated": false,
           "required": false,
-          "message_class": "wdh"
+          "message_class": "wdh",
+          "message_name": "NotificationChannel"
         },
         {
           "number": 15,
@@ -3350,7 +3381,7 @@
     },
     "wcd": {
       "apk_class": "wcd",
-      "our_name": "",
+      "our_name": "Speed",
       "channels": [
         "sensor"
       ],
@@ -3364,7 +3395,7 @@
       "fields": [
         {
           "number": 1,
-          "name": "c",
+          "name": "speed",
           "obfuscated_name": "c",
           "type": "int32",
           "repeated": false,
@@ -3372,7 +3403,7 @@
         },
         {
           "number": 2,
-          "name": "d",
+          "name": "cruise_engaged",
           "obfuscated_name": "d",
           "type": "bool",
           "repeated": false,
@@ -3414,7 +3445,7 @@
     },
     "wci": {
       "apk_class": "wci",
-      "our_name": "",
+      "our_name": "TouchLocation",
       "channels": [
         "input"
       ],
@@ -3428,7 +3459,7 @@
       "fields": [
         {
           "number": 1,
-          "name": "c",
+          "name": "x",
           "obfuscated_name": "c",
           "type": "uint32",
           "repeated": false,
@@ -3436,7 +3467,7 @@
         },
         {
           "number": 2,
-          "name": "d",
+          "name": "y",
           "obfuscated_name": "d",
           "type": "uint32",
           "repeated": false,
@@ -3444,7 +3475,7 @@
         },
         {
           "number": 3,
-          "name": "e",
+          "name": "pointer_id",
           "obfuscated_name": "e",
           "type": "uint32",
           "repeated": false,
@@ -3474,7 +3505,8 @@
           "type": "message",
           "repeated": true,
           "required": false,
-          "message_class": "wci"
+          "message_class": "wci",
+          "message_name": "TouchLocation"
         },
         {
           "number": 2,
@@ -3703,7 +3735,7 @@
     },
     "wdh": {
       "apk_class": "wdh",
-      "our_name": "",
+      "our_name": "NotificationChannel",
       "channels": [
         "control"
       ],
@@ -3768,7 +3800,7 @@
     },
     "xmw": {
       "apk_class": "xmw",
-      "our_name": "",
+      "our_name": "NavigationDistanceUnit",
       "channels": [
         "navigation"
       ],
@@ -3826,7 +3858,8 @@
           "type": "message",
           "repeated": false,
           "required": true,
-          "message_class": "xmw"
+          "message_class": "xmw",
+          "message_name": "NavigationDistanceUnit"
         },
         {
           "number": 2,
@@ -4036,7 +4069,8 @@
           "type": "message",
           "repeated": false,
           "required": false,
-          "message_class": "zpn"
+          "message_class": "zpn",
+          "message_name": "InputChannelConfig"
         },
         {
           "number": 2,
@@ -4045,7 +4079,8 @@
           "type": "message",
           "repeated": false,
           "required": false,
-          "message_class": "zpn"
+          "message_class": "zpn",
+          "message_name": "InputChannelConfig"
         },
         {
           "number": 3,
@@ -4054,7 +4089,8 @@
           "type": "message",
           "repeated": false,
           "required": false,
-          "message_class": "zpn"
+          "message_class": "zpn",
+          "message_name": "InputChannelConfig"
         }
       ],
       "references": [
@@ -4063,7 +4099,7 @@
     },
     "zpn": {
       "apk_class": "zpn",
-      "our_name": "",
+      "our_name": "InputChannelConfig",
       "channels": [
         "input"
       ],
@@ -4099,7 +4135,7 @@
     },
     "zyd": {
       "apk_class": "zyd",
-      "our_name": "",
+      "our_name": "PingConfiguration",
       "channels": [
         "control"
       ],
@@ -4114,7 +4150,7 @@
       "fields": [
         {
           "number": 1,
-          "name": "b",
+          "name": "timeout_ms",
           "obfuscated_name": "b",
           "type": "int64",
           "repeated": false,
@@ -4122,7 +4158,7 @@
         },
         {
           "number": 2,
-          "name": "c",
+          "name": "interval_ms",
           "obfuscated_name": "c",
           "type": "int32",
           "repeated": false,

@@ -97,6 +97,56 @@ OUR_FIELD_NAMES = {}  # Populated by load_our_field_names()
 # Map from APK class to our proto message name (reverse of SEED_MATCHES)
 APK_TO_OUR_NAME = {k: v["name"] for k, v in SEED_MATCHES.items() if v.get("name")}
 
+# Unresolved enum references — APK classes that aren't enums but were referenced as enum types.
+# Maps APK class → description of what enum it actually represents.
+# Sub-message name mappings — depth-1 APK classes matched to our proto types by structure
+SUB_MESSAGE_NAMES = {
+    # Sensor data types
+    "vyl": "GPSLocation",
+    "vxa": "Compass",
+    "wcd": "Speed",
+    "wbn": "RPM",
+    "vzx": "Odometer",
+    "vxn": "FuelLevel",
+    "wab": "ParkingBrake",
+    "vxp": "Gear",
+    "vxf": "Diagnostics",
+    "vzw": "NightMode",
+    "vxk": "Environment",
+    # Input types
+    "wci": "TouchLocation",
+    "vvi": "ButtonEvent",
+    "vyj": "RelativeInputEvent",
+    "wbm": "AbsoluteInputEvent",
+    # Audio/Video
+    "vvp": "AudioConfig",
+    "vyt": "AVInputChannel",
+    # WiFi
+    "waw": "WifiSecurity",
+    "wbb": "WifiDirectConfig",
+    "wam": "AccessPointType",
+    # Navigation
+    "vzr": "NavigationChannelConfig",
+    "utk": "NavigationStepData",
+    "ahdl": "NavigationImageOptions",
+    "xmw": "NavigationDistanceUnit",
+    # Control
+    "zyd": "PingConfiguration",
+    "wdh": "NotificationChannel",
+    "way": "RadioChannel",
+    # ServiceDiscoveryRequest
+    "aahd": "SessionInfo",
+    "aagr": "PhoneCapabilities",
+    # Input channel config
+    "zpn": "InputChannelConfig",
+}
+
+UNRESOLVED_ENUM_NOTES = {
+    "a": "AudioStreamType (TELEPHONY=0, SYSTEM_AUDIO=1, MEDIA=3, GUIDANCE=5) — utility class, not proto enum",
+    "vee": "Not a proto enum — UI utility class (View animations, scale types)",
+    "viz": "VideoFPS (NONE=0, _60=1, _30=2) — builder/helper class, not proto enum",
+}
+
 # ChannelDescriptor field→channel type mapping (field number → channel name)
 CHANNEL_DESCRIPTOR_FIELDS = {
     1: ("channel_id", ""),
@@ -198,8 +248,8 @@ def load_our_field_names():
 
 def infer_field_name(apk_class, field_num, field):
     """Try to infer a meaningful field name."""
-    # If this APK class maps to one of our protos, use our field name
-    our_name = APK_TO_OUR_NAME.get(apk_class, "")
+    # If this APK class maps to one of our protos (seed or sub-message), use our field name
+    our_name = APK_TO_OUR_NAME.get(apk_class, "") or SUB_MESSAGE_NAMES.get(apk_class, "")
     if our_name and our_name in OUR_FIELD_NAMES:
         our_fields = OUR_FIELD_NAMES[our_name]
         if field_num in our_fields:
@@ -289,8 +339,10 @@ def graph_walk(messages, enums):
             msg_class = field.get("message_class", "")
             if msg_class and msg_class in messages:
                 if msg_class not in discovered_messages:
+                    inferred_name = SEED_MATCHES.get(msg_class, {}).get("name", "") or \
+                                    SUB_MESSAGE_NAMES.get(msg_class, "")
                     discovered_messages[msg_class] = {
-                        "our_name": SEED_MATCHES.get(msg_class, {}).get("name", ""),
+                        "our_name": inferred_name,
                         "channels": {channel},
                         "depth": depth + 1,
                         "referenced_by": {class_name},
@@ -609,6 +661,8 @@ def generate_markdown(kb, enums_data):
                             if len(enum_vals) > 5:
                                 val_strs.append(f"...+{len(enum_vals)-5}")
                             notes.append(f"enum `{f['enum_class']}`: {', '.join(val_strs)}")
+                        elif f["enum_class"] in UNRESOLVED_ENUM_NOTES:
+                            notes.append(f"*{UNRESOLVED_ENUM_NOTES[f['enum_class']]}*")
                         else:
                             notes.append(f"enum `{f['enum_class']}`")
 
