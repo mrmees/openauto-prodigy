@@ -2,6 +2,10 @@ from __future__ import annotations
 
 from pathlib import Path
 import argparse
+import sys
+
+if __package__ in (None, ""):
+    sys.path.append(str(Path(__file__).resolve().parents[3]))
 
 from analysis.tools.apk_indexer.config import IndexerConfig
 from analysis.tools.apk_indexer.extract import extract_signals

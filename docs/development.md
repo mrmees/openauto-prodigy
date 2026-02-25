@@ -117,6 +117,18 @@ Currently 8 tests:
 - `test_plugin_manager` — Plugin lifecycle orchestration with mocks
 - `test_plugin_model` — QML list model for plugin navigation
 
+## APK Preprocessing Indexer
+
+For reverse-engineering workflows, use the APK indexer:
+
+```bash
+python3 analysis/tools/apk_indexer/run_indexer.py \
+  --source <path-to-decompiled-apk-root> \
+  --analysis-root analysis
+```
+
+See `docs/apk-indexing.md` for full output structure and query examples.
+
 ## Qt 6.4 vs 6.8 Compatibility
 
 These are the known gotchas when writing code that must compile on both versions:
