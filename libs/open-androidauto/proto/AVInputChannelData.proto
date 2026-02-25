@@ -27,5 +27,5 @@ message AVInputChannel
 {
     required enums.AVStreamType.Enum stream_type = 1;
     required AudioConfig audio_config = 2;
-    optional bool available_while_in_call = 3;
+    // Field 3: APK has uint32 here, not bool. Not present in phone-side proto. Removed.
 }

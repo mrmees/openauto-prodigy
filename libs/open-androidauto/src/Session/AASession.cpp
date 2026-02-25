@@ -13,6 +13,7 @@
 #include "AudioFocusResponseMessage.pb.h"
 #include "AudioFocusTypeEnum.pb.h"
 #include "AudioFocusStateEnum.pb.h"
+#include "DriverPositionEnum.pb.h"
 
 namespace oaa {
 
@@ -381,7 +382,9 @@ QByteArray AASession::buildServiceDiscoveryResponse() const {
     resp.set_car_model(config_.carModel.toStdString());
     resp.set_car_year(config_.carYear.toStdString());
     resp.set_car_serial(config_.carSerial.toStdString());
-    resp.set_left_hand_drive_vehicle(config_.leftHandDrive);
+    resp.set_driver_position(config_.leftHandDrive
+        ? proto::enums::DriverPosition::LEFT
+        : proto::enums::DriverPosition::RIGHT);
     resp.set_headunit_manufacturer(config_.manufacturer.toStdString());
     resp.set_headunit_model(config_.model.toStdString());
     resp.set_sw_build(config_.swBuild.toStdString());

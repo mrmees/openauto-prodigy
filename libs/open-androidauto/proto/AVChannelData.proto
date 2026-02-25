@@ -32,11 +32,11 @@ message AVChannel
     optional enums.AudioType.Enum audio_type = 2;
     repeated AudioConfig audio_configs = 3;
     repeated VideoConfig video_configs = 4;
-    optional bool available_while_in_call = 5;  // APK field 5 is uint32 (not bool). Not sent; omitting is safe.
+    // Field 5: APK has uint32 here, not bool. Not present in phone-side proto. Removed.
 
     // Fields 6-9 discovered via APK decompilation (vys.java, AA v16.1).
     optional uint32 channel_id = 6;                             // Display/channel identifier (assigned by phone)
     optional enums.DisplayType.Enum display_type = 7;           // MAIN, CLUSTER, AUXILIARY
-    optional uint32 keycode = 8;                                // Android keycode or AA-specific (65536+)
+    optional int32 keycode = 8;                                 // Android keycode (APK enum: vyh.java)
     optional enums.VideoFocusReason.Enum focus_reason = 9;      // Why video focus was set
 }

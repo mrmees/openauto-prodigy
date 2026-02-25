@@ -1,0 +1,22 @@
+/*
+ * HapticFeedbackType — input haptic feedback supported by head unit.
+ *
+ * APK class: vxm.java (AA v16.1)
+ * Used in InputChannel field 4 (repeated).
+ */
+
+syntax="proto2";
+
+package oaa.proto.enums;
+
+message HapticFeedbackType
+{
+    enum Enum
+    {
+        FEEDBACK_SELECT = 1;
+        FEEDBACK_FOCUS_CHANGE = 2;
+        FEEDBACK_DRAG_SELECT = 3;
+        FEEDBACK_DRAG_START = 4;
+        FEEDBACK_DRAG_END = 5;
+    }
+}

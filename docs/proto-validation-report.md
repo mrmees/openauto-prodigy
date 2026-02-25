@@ -6,15 +6,16 @@ Generated: 2026-02-25
 
 | Status | Count |
 |--------|-------|
-| Verified | 28 |
-| Partial (diffs) | 59 |
-| Unmatched | 89 |
+| Verified | 31 |
+| Partial (diffs) | 56 |
+| Unmatched | 91 |
 | Error | 0 |
-| **Total** | **176** |
+| **Total** | **178** |
 
 ## Verified (all fields match)
 
 - **AVChannelSetupResponse** (AVChannelSetupResponseMessage.proto) -> `vxb` [auto]
+- **AVInputChannel** (AVInputChannelData.proto) -> `vyt` [manual]
 - **AVInputOpenRequest** (AVInputOpenRequestMessage.proto) -> `vyx` [auto]
 - **AudioConfig** (AudioConfigData.proto) -> `vvp` [manual]
 - **BindingRequest** (BindingRequestMessage.proto) -> `wcg` [auto]
@@ -25,6 +26,7 @@ Generated: 2026-02-25
 - **Door** (DoorData.proto) -> `vxh` [auto]
 - **FuelLevel** (FuelLevelData.proto) -> `vxn` [auto]
 - **HeadUnitInfo** (HeadUnitInfoData.proto) -> `aacd` [auto]
+- **InputChannel** (InputChannelData.proto) -> `vya` [manual]
 - **Light** (LightData.proto) -> `vyk` [auto]
 - **MediaPlaybackMetadata** (MediaPlaybackMetadataMessage.proto) -> `nmi` [auto]
 - **NightMode** (NightModeData.proto) -> `poe` [auto]
@@ -35,6 +37,7 @@ Generated: 2026-02-25
 - **PingRequest** (PingRequestMessage.proto) -> `zrz` [auto]
 - **PingResponse** (PingResponseMessage.proto) -> `zrz` [auto]
 - **SensorStartRequestMessage** (SensorStartRequestMessage.proto) -> `war` [auto]
+- **ServiceDiscoveryResponse** (ServiceDiscoveryResponseMessage.proto) -> `wby` [manual]
 - **SessionInfo** (SessionInfoData.proto) -> `utj` [auto]
 - **TirePressure** (TirePressureData.proto) -> `vzy` [auto]
 - **TouchEvent** (TouchEventData.proto) -> `wcj` [auto]
@@ -47,12 +50,11 @@ Generated: 2026-02-25
 
 ### AVChannel (AVChannelData.proto) -> `vys` [manual]
 
-Matched: 7/9 our fields, APK has 8 fields
+Matched: 7/8 our fields, APK has 8 fields
 
 | Field | Issue | Ours | APK |
 |-------|-------|------|-----|
-| 5 | extra field in our proto (not in APK) | available_while_in_call | None |
-| 8 | type mismatch | uint32 | enum |
+| 8 | type mismatch | int32 | enum |
 
 ### AVChannelSetupRequest (AVChannelSetupRequestMessage.proto) -> `aagl` [auto]
 
@@ -71,14 +73,6 @@ Matched: 2/2 our fields, APK has 3 fields
 | Field | Issue | Ours | APK |
 |-------|-------|------|-----|
 | 3 | missing field (exists in APK) | None | bool |
-
-### AVInputChannel (AVInputChannelData.proto) -> `vyt` [manual]
-
-Matched: 2/3 our fields, APK has 2 fields
-
-| Field | Issue | Ours | APK |
-|-------|-------|------|-----|
-| 3 | extra field in our proto (not in APK) | available_while_in_call | None |
 
 ### AVInputOpenResponse (AVInputOpenResponseMessage.proto) -> `vxn` [auto]
 
@@ -180,14 +174,14 @@ Matched: 1/1 our fields, APK has 3 fields
 
 ### ChannelDescriptor (ChannelDescriptorData.proto) -> `wbw` [manual]
 
-Matched: 13/15 our fields, APK has 17 fields
+Matched: 13/17 our fields, APK has 17 fields
 
 | Field | Issue | Ours | APK |
 |-------|-------|------|-----|
 | 11 | type mismatch | bytes | message |
 | 15 | type mismatch | bytes | message |
-| 16 | missing field (exists in APK) | None | message |
-| 17 | missing field (exists in APK) | None | message |
+| 16 | type mismatch | bytes | message |
+| 17 | type mismatch | bytes | message |
 
 ### ChannelOpenRequest (ChannelOpenRequestMessage.proto) -> `vxn` [auto]
 
@@ -293,15 +287,6 @@ Matched: 2/2 our fields, APK has 3 fields
 | Field | Issue | Ours | APK |
 |-------|-------|------|-----|
 | 3 | missing field (exists in APK) | None | bool |
-
-### InputChannel (InputChannelData.proto) -> `vya` [manual]
-
-Matched: 3/3 our fields, APK has 5 fields
-
-| Field | Issue | Ours | APK |
-|-------|-------|------|-----|
-| 4 | missing field (exists in APK) | None | enum |
-| 5 | missing field (exists in APK) | None | uint32 |
 
 ### InputEventIndication (InputEventIndicationMessage.proto) -> `vxx` [auto]
 
@@ -505,16 +490,6 @@ Matched: 0/6 our fields, APK has 5 fields
 | 6 | extra field in our proto (not in APK) | session_info | None |
 | 44 | missing field (exists in APK) | None | fixed64 |
 
-### ServiceDiscoveryResponse (ServiceDiscoveryResponseMessage.proto) -> `wby` [manual]
-
-Matched: 14/17 our fields, APK has 15 fields
-
-| Field | Issue | Ours | APK |
-|-------|-------|------|-----|
-| 6 | type mismatch | bool | enum |
-| 12 | extra field in our proto (not in APK) | hide_clock | None |
-| 16 | extra field in our proto (not in APK) | connection_configuration | None |
-
 ### ShutdownRequest (ShutdownRequestMessage.proto) -> `aass` [auto]
 
 Matched: 1/1 our fields, APK has 4 fields
@@ -629,8 +604,10 @@ Matched: 11/11 our fields, APK has 13 fields
 - DisconnectReason (DisconnectReasonEnum.proto)
 - DisplayType (DisplayTypeEnum.proto)
 - DistanceLabel (NavigationDistanceDisplayData.proto)
+- DriverPosition (DriverPositionEnum.proto)
 - EVConnectorType (EVConnectorTypeEnum.proto)
 - FuelType (FuelTypeEnum.proto)
+- HapticFeedbackType (HapticFeedbackTypeEnum.proto)
 - HeadlightStatus (HeadlightStatusEnum.proto)
 - IndicatorStatus (IndicatorStatusEnum.proto)
 - InputChannelConfig (InputChannelConfigData.proto)

@@ -53,9 +53,11 @@ message ChannelDescriptor
     optional NavigationChannel navigation_channel = 8;
     optional MediaInfoChannel media_info_channel = 9;
     optional PhoneStatusChannel phone_status_channel = 10;
-    optional bytes media_browser_channel = 11;
+    optional bytes media_browser_channel = 11;       // APK: message vym (empty proto)
     optional VendorExtensionChannel vendor_extension_channel = 12;
     optional NotificationChannel notification_channel = 13;
     optional WifiChannel wifi_channel = 14;
-    optional bytes car_control_channel = 15;
+    optional bytes car_control_channel = 15;          // APK: message vwo (3 fields)
+    optional bytes generic_notification_channel = 16; // APK: message vwt (empty proto)
+    optional bytes voice_channel = 17;                // APK: message vwd (empty proto)
 }

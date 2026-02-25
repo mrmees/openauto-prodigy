@@ -28,7 +28,7 @@ package oaa.proto.messages;
 message InputEventIndication
 {
     required uint64 timestamp = 1;
-    optional int32 disp_channel = 2;  // Removed in AA v16.1 APK, kept for backward compat
+    optional int32 disp_channel = 2 [deprecated = true];  // Not in APK v16.1; kept for older protocol compat
     optional data.TouchEvent touch_event = 3;
     optional data.ButtonEvents button_event = 4;
     optional data.AbsoluteInputEvents absolute_input_event = 5;

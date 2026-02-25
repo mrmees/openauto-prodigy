@@ -19,6 +19,7 @@
 syntax="proto2";
 
 import "TouchConfigData.proto";
+import "HapticFeedbackTypeEnum.proto";
 
 package oaa.proto.data;
 
@@ -27,4 +28,6 @@ message InputChannel
     repeated uint32 supported_keycodes = 1;
     repeated TouchConfig touch_screen_config = 2;
     repeated TouchConfig touch_pad_config = 3;
+    repeated enums.HapticFeedbackType.Enum supported_haptic_feedback = 4; // APK: vxm.java
+    optional uint32 max_touchscreen_pointers = 5;  // APK: vya field 5, uint32
 }
