@@ -27,7 +27,7 @@ package oaa.proto.data;
 message SensorChannel
 {
     repeated Sensor sensors = 1;
-    optional uint32 unknown_field_2 = 2;
+    optional uint32 unknown_2 = 2;
     repeated enums.FuelType.Enum fuel_types = 3;           // APK: vxo.java (was int32)
     repeated enums.EVConnectorType.Enum ev_connectors = 4; // APK: vxl.java (was int32)
 }

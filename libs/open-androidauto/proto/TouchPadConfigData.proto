@@ -13,10 +13,10 @@ message TouchPadConfig
 {
     optional int32 width = 1;
     optional int32 height = 2;
-    optional bool field3 = 3;
-    optional int32 field4 = 4;
-    optional int32 field5 = 5;
-    optional bool field6 = 6;
-    optional bool field7 = 7;
-    optional int32 field8 = 8;
+    optional bool unknown_3 = 3;
+    optional int32 unknown_4 = 4;
+    optional int32 unknown_5 = 5;
+    optional bool unknown_6 = 6;
+    optional bool unknown_7 = 7;
+    optional int32 unknown_8 = 8;
 }

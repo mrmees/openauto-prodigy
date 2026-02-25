@@ -19,7 +19,6 @@
 syntax="proto3";
 
 import "ChannelDescriptorData.proto";
-import "ConnectionConfigurationData.proto";
 import "DriverPositionEnum.proto";
 import "HeadUnitInfoData.proto";
 
