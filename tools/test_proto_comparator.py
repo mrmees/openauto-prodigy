@@ -40,8 +40,8 @@ def test_perfect_match():
     assert len(result["mismatches"]) == 0
 
 
-def test_type_mismatch():
-    """Detect int32 vs uint32 difference."""
+def test_compatible_int_types():
+    """int32 vs uint32 are wire-compatible — should verify, not mismatch."""
     our_fields = [
         {
             "number": 1,
@@ -55,8 +55,46 @@ def test_type_mismatch():
         {"wire_field": 1, "type": "uint32", "cardinality": "singular", "flags": {"bit8_required": True}},
     ]
     result = compare_fields(our_fields, apk_fields)
+    assert result["status"] == "verified"
+    assert len(result["mismatches"]) == 0
+
+
+def test_incompatible_type_mismatch():
+    """string vs int32 should be a real type mismatch."""
+    our_fields = [
+        {
+            "number": 1,
+            "name": "value",
+            "type": "string",
+            "cardinality": "required",
+            "message_type": None,
+        },
+    ]
+    apk_fields = [
+        {"wire_field": 1, "type": "int32", "cardinality": "singular", "flags": {"bit8_required": True}},
+    ]
+    result = compare_fields(our_fields, apk_fields)
     assert result["status"] == "partial"
     assert any("type" in m["issue"] for m in result["mismatches"])
+
+
+def test_enum_type_compatibility():
+    """Our named enum type (Enum) should match APK's 'enum' wire type."""
+    our_fields = [
+        {
+            "number": 1,
+            "name": "focus_type",
+            "type": "Enum",
+            "cardinality": "required",
+            "message_type": "Enum",
+        },
+    ]
+    apk_fields = [
+        {"wire_field": 1, "type": "enum", "cardinality": "singular", "flags": {"bit8_required": True}},
+    ]
+    result = compare_fields(our_fields, apk_fields)
+    assert result["status"] == "verified"
+    assert len(result["mismatches"]) == 0
 
 
 def test_extra_apk_field():

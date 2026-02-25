@@ -9,16 +9,54 @@ CARDINALITY_MAP = {
     "packed": "packed",
 }
 
+# Wire-compatible integer pairs (same varint encoding for positive values)
+COMPATIBLE_INT_PAIRS = {
+    frozenset({"uint32", "int32"}),
+    frozenset({"uint64", "int64"}),
+}
 
-def _normalize_type(field_type: str) -> str:
-    return field_type.split(".")[-1] if "." in field_type else field_type
+# Cardinality pairs that are wire-compatible (repeated and packed carry same data)
+COMPATIBLE_CARDINALITY = {
+    frozenset({"repeated", "packed"}),
+    frozenset({"singular", "packed"}),  # singular enum in APK can be packed
+}
+
+
+def _resolve_our_type(field: dict) -> str:
+    """Resolve our proto field to a comparable type string.
+
+    Named enum references (message_type set, type ends in 'Enum' or is a known
+    enum pattern) become 'enum'. Other message_type references become 'message'.
+    Base types pass through unchanged.
+    """
+    if not field.get("message_type"):
+        return field["type"]
+    # Our parser stores enum references with type="Enum" (the last segment of
+    # e.g. enums.AudioFocusType.Enum). Actual message references have type
+    # equal to the message name (e.g. "SensorChannel", "TouchConfig").
+    type_name = field["type"]
+    if type_name == "Enum" or type_name.endswith("Enum"):
+        return "enum"
+    return "message"
 
 
 def types_compatible(our_type: str, apk_type: str) -> bool:
     """Check whether our type and APK type match semantically."""
-    our_clean = _normalize_type(our_type)
-    apk_clean = _normalize_type(apk_type)
-    return our_clean == apk_clean
+    if our_type == apk_type:
+        return True
+    # Wire-compatible integer pairs
+    if frozenset({our_type, apk_type}) in COMPATIBLE_INT_PAIRS:
+        return True
+    return False
+
+
+def cardinality_compatible(our_card: str, apk_card: str) -> bool:
+    """Check whether cardinalities are compatible."""
+    if our_card == apk_card:
+        return True
+    if frozenset({our_card, apk_card}) in COMPATIBLE_CARDINALITY:
+        return True
+    return False
 
 
 def compare_fields(our_fields: list[dict], apk_fields: list[dict]) -> dict:
@@ -43,20 +81,20 @@ def compare_fields(our_fields: list[dict], apk_fields: list[dict]) -> dict:
         apk = apk_by_num[num]
         field_ok = True
 
-        our_type = "message" if ours.get("message_type") else ours["type"]
+        our_type = _resolve_our_type(ours)
         if not types_compatible(our_type, apk["type"]):
             mismatches.append(
                 {
                     "field": num,
                     "issue": "type mismatch",
-                    "our_value": ours["type"],
+                    "our_value": f"{ours['type']} (→{our_type})" if our_type != ours["type"] else ours["type"],
                     "apk_value": apk["type"],
                 }
             )
             field_ok = False
 
         our_card = CARDINALITY_MAP.get(ours["cardinality"], ours["cardinality"])
-        if our_card != apk["cardinality"]:
+        if not cardinality_compatible(our_card, apk["cardinality"]):
             mismatches.append(
                 {
                     "field": num,
