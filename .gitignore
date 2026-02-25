@@ -23,5 +23,9 @@ platforms/
 Testing/Temporary/
 Testing/__pycache__/
 
+# Decompiled APK source + index database (367MB)
+analysis-projection/
+__pycache__/
+
 # Archive (old docs/plans/assets kept for reference)
 archive/

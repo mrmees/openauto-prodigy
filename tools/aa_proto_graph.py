@@ -30,9 +30,8 @@ OUTPUT_JSON = SCRIPT_DIR / "aa_proto_graph.json"
 OUTPUT_MD = PROJECT_ROOT / "docs" / "aa-protocol-reference.md"
 
 # Decompiled APK source location
-APK_SOURCE = PROJECT_ROOT / ".worktrees" / "feature" / "apk-preprocessing-indexer" / \
-    "analysis-projection" / "android_auto_16.1.660414-release_161660414" / \
-    "apk-source" / "sources"
+APK_SOURCE = PROJECT_ROOT / "analysis-projection" / \
+    "android_auto_16.1.660414-release_161660414" / "apk-source" / "sources"
 DEFPACKAGE = APK_SOURCE / "defpackage"
 GEARHEAD = APK_SOURCE / "com" / "google" / "android" / "gearhead"
 
