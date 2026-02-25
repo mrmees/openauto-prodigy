@@ -12,19 +12,28 @@ PROTO_ACCESS_RE = re.compile(r"\b(set|get|has|clear)[A-Z][A-Za-z0-9_]*\s*\(")
 CALL_EDGE_RE = re.compile(r"\b([A-Za-z_][A-Za-z0-9_]*)\.([A-Za-z_][A-Za-z0-9_]*)\s*\(")
 
 
-def _iter_text_files(root: Path):
+def _in_scope(path: Path, root: Path, scope: str) -> bool:
+    if scope == "all":
+        return True
+    rel = path.relative_to(root).as_posix()
+    if scope == "projection":
+        return rel.startswith("sources/com/google/android/projection/")
+    return True
+
+
+def _iter_text_files(root: Path, scope: str):
     for path in root.rglob("*"):
-        if path.is_file():
+        if path.is_file() and _in_scope(path, root, scope):
             yield path
 
 
-def extract_signals(root: Path) -> dict[str, list[dict[str, object]]]:
+def extract_signals(root: Path, scope: str = "all") -> dict[str, list[dict[str, object]]]:
     uuids: list[dict[str, object]] = []
     constants: list[dict[str, object]] = []
     proto_accesses: list[dict[str, object]] = []
     call_edges: list[dict[str, object]] = []
 
-    for path in _iter_text_files(root):
+    for path in _iter_text_files(root, scope):
         try:
             text = path.read_text(errors="ignore")
         except OSError:

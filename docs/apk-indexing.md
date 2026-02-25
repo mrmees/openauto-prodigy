@@ -10,6 +10,15 @@ python3 analysis/tools/apk_indexer/run_indexer.py \
   --analysis-root analysis
 ```
 
+Protocol-focused (reduced-noise) scope:
+
+```bash
+python3 analysis/tools/apk_indexer/run_indexer.py \
+  --source <path-to-decompiled-apk-root> \
+  --analysis-root analysis \
+  --scope projection
+```
+
 Or via make:
 
 ```bash

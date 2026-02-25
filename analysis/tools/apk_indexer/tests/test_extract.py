@@ -35,3 +35,18 @@ def test_extract_call_edge_like_invocation(tmp_path):
     result = extract_signals(tmp_path)
 
     assert result["call_edges"][0]["target"] == "transport.sendMessage"
+
+
+def test_extract_projection_scope_filters_non_projection(tmp_path):
+    projection = tmp_path / "sources" / "com" / "google" / "android" / "projection" / "A.java"
+    projection.parent.mkdir(parents=True)
+    projection.write_text('String u = "4de17a00-52cb-11e6-bdf4-0800200c9a66";\n')
+
+    non_projection = tmp_path / "sources" / "androidx" / "B.java"
+    non_projection.parent.mkdir(parents=True)
+    non_projection.write_text('String u = "669a0c20-0008-f4bd-e611-cb52007ae14d";\n')
+
+    result = extract_signals(tmp_path, scope="projection")
+
+    assert len(result["uuids"]) == 1
+    assert result["uuids"][0]["value"] == "4de17a00-52cb-11e6-bdf4-0800200c9a66"

@@ -8,3 +8,4 @@ from pathlib import Path
 class IndexerConfig:
     source_root: Path
     analysis_root: Path
+    scope: str = "all"

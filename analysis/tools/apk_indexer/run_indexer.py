@@ -16,12 +16,12 @@ from analysis.tools.apk_indexer.write_json import write_json_exports
 from analysis.tools.apk_indexer.write_sqlite import write_sqlite
 
 
-def run_indexer(source_root: Path, analysis_root: Path) -> Path:
+def run_indexer(source_root: Path, analysis_root: Path, scope: str = "all") -> Path:
     version_name, version_code = resolve_version(source_root)
     base = relocate_source(source_root, analysis_root, version_name, version_code)
     source = base / "apk-source"
 
-    signals = extract_signals(source)
+    signals = extract_signals(source, scope=scope)
 
     sqlite_dir = base / "apk-index" / "sqlite"
     json_dir = base / "apk-index" / "json"
@@ -45,13 +45,21 @@ def parse_args(argv: list[str] | None = None) -> IndexerConfig:
         type=Path,
         help="Root directory where versioned analysis outputs will be written",
     )
+    parser.add_argument(
+        "--scope",
+        choices=("all", "projection"),
+        default="all",
+        help="Optional filter scope for extracted files",
+    )
     args = parser.parse_args(argv)
-    return IndexerConfig(source_root=args.source, analysis_root=args.analysis_root)
+    return IndexerConfig(
+        source_root=args.source, analysis_root=args.analysis_root, scope=args.scope
+    )
 
 
 def main(argv: list[str] | None = None) -> int:
     cfg = parse_args(argv)
-    run_indexer(cfg.source_root, cfg.analysis_root)
+    run_indexer(cfg.source_root, cfg.analysis_root, scope=cfg.scope)
     return 0
 
 
