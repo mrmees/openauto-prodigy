@@ -1,4 +1,4 @@
-syntax="proto2";
+syntax="proto3";
 
 package oaa.proto.enums;
 
@@ -8,6 +8,7 @@ message MediaCodecType
 {
     enum Enum
     {
+        MEDIA_CODEC_UNKNOWN = 0;
         MEDIA_CODEC_AUDIO_PCM = 1;
         MEDIA_CODEC_AUDIO_AAC_LC = 2;
         MEDIA_CODEC_VIDEO_H264_BP = 3;

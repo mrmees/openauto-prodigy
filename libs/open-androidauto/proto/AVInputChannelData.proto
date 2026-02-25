@@ -16,7 +16,7 @@
 *  along with aasdk. If not, see <http://www.gnu.org/licenses/>.
 */
 
-syntax="proto2";
+syntax="proto3";
 
 import "AVStreamTypeEnum.proto";
 import "AudioConfigData.proto";
@@ -25,7 +25,7 @@ package oaa.proto.data;
 
 message AVInputChannel
 {
-    required enums.AVStreamType.Enum stream_type = 1;
-    required AudioConfig audio_config = 2;
+    optional enums.AVStreamType.Enum stream_type = 1;
+    optional AudioConfig audio_config = 2;
     // Field 3: APK has uint32 here, not bool. Not present in phone-side proto. Removed.
 }

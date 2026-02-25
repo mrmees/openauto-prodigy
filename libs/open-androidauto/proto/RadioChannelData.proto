@@ -3,7 +3,7 @@
  * Radio channel descriptor — deprecated but still in the protocol.
  */
 
-syntax="proto2";
+syntax="proto3";
 
 package oaa.proto.data;
 

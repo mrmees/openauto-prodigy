@@ -3,7 +3,7 @@
  * Validation errors the phone checks against our ServiceDiscoveryResponse.
  */
 
-syntax="proto2";
+syntax="proto3";
 
 package oaa.proto.enums;
 

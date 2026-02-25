@@ -9,7 +9,7 @@
  * Declared as an empty message for ChannelDescriptor presence.
  */
 
-syntax="proto2";
+syntax="proto3";
 
 package oaa.proto.data;
 

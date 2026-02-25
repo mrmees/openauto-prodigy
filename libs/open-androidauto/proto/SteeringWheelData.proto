@@ -16,13 +16,13 @@
 *  along with aasdk. If not, see <http://www.gnu.org/licenses/>.
 */
 
-syntax="proto2";
+syntax="proto3";
 
 package oaa.proto.data;
 
 // APK: field 2 is repeated (not required/optional)
 message SteeringWheel
 {
-    required int32 steering_angle = 1;
+    optional int32 steering_angle = 1;
     repeated int32 wheel_speed = 2;
 }

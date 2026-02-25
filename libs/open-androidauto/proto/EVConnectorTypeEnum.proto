@@ -5,7 +5,7 @@
  * Used in SensorChannel field 4 (repeated).
  */
 
-syntax="proto2";
+syntax="proto3";
 
 package oaa.proto.enums;
 

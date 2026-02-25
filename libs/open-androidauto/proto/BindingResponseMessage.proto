@@ -16,7 +16,7 @@
 *  along with aasdk. If not, see <http://www.gnu.org/licenses/>.
 */
 
-syntax="proto2";
+syntax="proto3";
 
 import "StatusEnum.proto";
 
@@ -25,6 +25,6 @@ package oaa.proto.messages;
 // APK class: vwb — 2 fields (status enum + already_paired bool)
 message BindingResponse
 {
-    required enums.Status.Enum status = 1;
+    optional enums.Status.Enum status = 1;
     optional bool already_paired = 2;
 }

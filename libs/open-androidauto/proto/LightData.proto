@@ -16,7 +16,7 @@
 *  along with aasdk. If not, see <http://www.gnu.org/licenses/>.
 */
 
-syntax="proto2";
+syntax="proto3";
 
 import "HeadlightStatusEnum.proto";
 import "IndicatorStatusEnum.proto";
@@ -25,7 +25,7 @@ package oaa.proto.data;
 
 message Light
 {
-    required enums.HeadlightStatus.Enum headlight = 1;
-    required enums.IndicatorStatus.Enum indicator = 2;
-    required bool hazard_light_on = 3;
+    optional enums.HeadlightStatus.Enum headlight = 1;
+    optional enums.IndicatorStatus.Enum indicator = 2;
+    optional bool hazard_light_on = 3;
 }

@@ -1,25 +1,34 @@
 /*
- * Discovered via APK proto decoder (xng.java / xnd.java / xmw.java, AA v16.1)
+ * Discovered via APK proto decoder (xnd.java / xmw.java / xnc.java, AA v16.1)
  * Navigation distance display with formatted labels and unit info.
  */
 
-syntax="proto2";
+syntax="proto3";
 
 package oaa.proto.data;
 
-// APK class: xng — distance display (fields are strings, not sub-messages)
+// APK class: xnd — single distance display (primary/secondary text + timestamp)
 message NavigationDistanceDisplay
 {
-    optional string primary_text = 1;           // Primary display text
-    optional string secondary_text = 2;         // Secondary display text
-    optional int64 update_timestamp = 3;        // Timestamp of update
-    optional bytes formatting = 4;              // Unknown type in APK — raw bytes for safety
+    optional string primary_text = 1;           // APK: required string
+    optional string secondary_text = 2;         // APK: optional string
+    optional int64 update_timestamp = 3;        // APK: optional int64
+    optional sfixed32 formatting = 4;           // APK: optional sfixed32 (no has_bit)
 }
 
-// APK class: xmw — distance unit definition
-message NavigationDistanceUnit
+// APK class: xmw — distance value with unit info
+message NavigationDistanceValue
 {
-    required int64 conversion_factor = 1;
-    required fixed32 unit_type = 2;
-    required fixed32 display_format = 3;
+    optional int64 raw_meters = 1;              // APK: int64
+    optional fixed32 value = 2;                 // APK: fixed32
+    optional fixed32 unit = 3;                  // APK: fixed32
+}
+
+// APK class: xnc — distance label (fields 5-8, likely part of a larger message)
+message DistanceLabel
+{
+    optional string label = 5;                  // APK: required string
+    optional string unit_text = 6;              // APK: required string
+    optional string extra = 7;                  // APK: optional string
+    optional int32 label_type = 8;              // APK: required int32
 }

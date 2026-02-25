@@ -16,7 +16,7 @@
 *  along with aasdk. If not, see <http://www.gnu.org/licenses/>.
 */
 
-syntax="proto2";
+syntax="proto3";
 
 import "BluetoothPairingMethodEnum.proto";
 
@@ -24,8 +24,8 @@ package oaa.proto.messages;
 
 message BluetoothPairingRequest
 {
-    required string phone_address = 1;
-    required enums.BluetoothPairingMethod.Enum pairing_method = 2;
+    optional string phone_address = 1;
+    optional enums.BluetoothPairingMethod.Enum pairing_method = 2;
 
     // Discovered via APK proto decoder (kay.java, AA v16.1)
     optional string phone_name = 3;  // Human-readable phone name

@@ -4,7 +4,7 @@
  * Wire channel IDs (0-14) are assigned at runtime via ServiceDiscoveryResponse.
  */
 
-syntax="proto2";
+syntax="proto3";
 
 package oaa.proto.enums;
 

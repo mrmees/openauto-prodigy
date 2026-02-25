@@ -22,7 +22,7 @@
  * Copyright (C) 2018 f1x.studio (Michal Szwaj), GPLv3
  */
 
-syntax="proto2";
+syntax="proto3";
 
 option optimize_for=SPEED;
 
@@ -43,7 +43,7 @@ package oaa.proto.data;
 
 message ChannelDescriptor
 {
-    required uint32 channel_id = 1;
+    optional uint32 channel_id = 1;
     optional SensorChannel sensor_channel = 2;
     optional AVChannel av_channel = 3;
     optional InputChannel input_channel = 4;

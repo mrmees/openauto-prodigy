@@ -16,7 +16,7 @@
 *  along with aasdk. If not, see <http://www.gnu.org/licenses/>.
 */
 
-syntax="proto2";
+syntax="proto3";
 
 import "AudioFocusStateEnum.proto";
 
@@ -25,6 +25,6 @@ package oaa.proto.messages;
 // APK class: vvq — 2 fields (enum + bool)
 message AudioFocusResponse
 {
-    required enums.AudioFocusState.Enum audio_focus_state = 1;
+    optional enums.AudioFocusState.Enum audio_focus_state = 1;
     optional bool granted = 2;
 }

@@ -16,11 +16,11 @@
 *  along with aasdk. If not, see <http://www.gnu.org/licenses/>.
 */
 
-syntax="proto2";
+syntax="proto3";
 
 package oaa.proto.data;
 
 message NightMode
 {
-    required bool is_night = 1;
+    optional bool is_night = 1;
 }

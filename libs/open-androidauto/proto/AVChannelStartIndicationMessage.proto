@@ -16,15 +16,15 @@
 *  along with aasdk. If not, see <http://www.gnu.org/licenses/>.
 */
 
-syntax="proto2";
+syntax="proto3";
 
 package oaa.proto.messages;
 
 // APK class: wce — AV channel start (4 fields)
 message AVChannelStartIndication
 {
-    required int32 session = 1;
-    required uint32 config = 2;
+    optional int32 session = 1;
+    optional uint32 config = 2;
     optional int32 unknown_3 = 3;
     optional bytes media_config = 4;
 }

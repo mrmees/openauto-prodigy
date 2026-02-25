@@ -16,7 +16,7 @@
 *  along with aasdk. If not, see <http://www.gnu.org/licenses/>.
 */
 
-syntax="proto2";
+syntax="proto3";
 
 import "VideoFocusModeEnum.proto";
 
@@ -24,6 +24,6 @@ package oaa.proto.messages;
 
 message VideoFocusIndication
 {
-    required enums.VideoFocusMode.Enum focus_mode = 1;
-    required bool unrequested = 2;
+    optional enums.VideoFocusMode.Enum focus_mode = 1;
+    optional bool unrequested = 2;
 }

@@ -10,7 +10,7 @@
  * not been fully decoded — kept as bytes until we have live captures.
  */
 
-syntax="proto2";
+syntax="proto3";
 
 import "PingConfigurationData.proto";
 

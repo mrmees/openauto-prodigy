@@ -16,14 +16,14 @@
 *  along with aasdk. If not, see <http://www.gnu.org/licenses/>.
 */
 
-syntax="proto2";
+syntax="proto3";
 
 package oaa.proto.data;
 
 // APK class: vxn — 3 fields including bool at field 3
 message TouchConfig
 {
-    required uint32 width = 1;
-    required uint32 height = 2;
+    optional uint32 width = 1;
+    optional uint32 height = 2;
     optional bool unknown_3 = 3;
 }

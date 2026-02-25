@@ -4,7 +4,7 @@
  * Describes phone capabilities, device info, and connection preferences.
  */
 
-syntax="proto2";
+syntax="proto3";
 
 package oaa.proto.data;
 

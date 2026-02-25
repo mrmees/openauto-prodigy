@@ -16,13 +16,13 @@
 *  along with aasdk. If not, see <http://www.gnu.org/licenses/>.
 */
 
-syntax="proto2";
+syntax="proto3";
 
 package oaa.proto.data;
 
 message Environment
 {
-    required int32 temperature =1;
-    required int32 pressure = 2;
-    required int32 rain = 3;
+    optional int32 temperature =1;
+    optional int32 pressure = 2;
+    optional int32 rain = 3;
 }

@@ -5,7 +5,7 @@
  * Used in NavigationLaneDirection field 1.
  */
 
-syntax="proto2";
+syntax="proto3";
 
 package oaa.proto.enums;
 

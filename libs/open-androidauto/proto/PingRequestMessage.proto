@@ -16,11 +16,11 @@
 *  along with aasdk. If not, see <http://www.gnu.org/licenses/>.
 */
 
-syntax="proto2";
+syntax="proto3";
 
 package oaa.proto.messages;
 
 message PingRequest
 {
-    required int64 timestamp = 1;
+    optional int64 timestamp = 1;
 }

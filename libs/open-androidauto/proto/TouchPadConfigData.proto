@@ -5,7 +5,7 @@
  * Extended config with 8 fields for trackpad/touchpad devices.
  */
 
-syntax="proto2";
+syntax="proto3";
 
 package oaa.proto.data;
 

@@ -4,7 +4,7 @@
  * Sent every ~1s by phone during media playback
  */
 
-syntax = "proto2";
+syntax = "proto3";
 
 package oaa.proto.messages;
 

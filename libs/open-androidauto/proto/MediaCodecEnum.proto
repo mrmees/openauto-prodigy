@@ -3,7 +3,7 @@
  * Media codec types for audio and video channels.
  */
 
-syntax="proto2";
+syntax="proto3";
 
 package oaa.proto.enums;
 

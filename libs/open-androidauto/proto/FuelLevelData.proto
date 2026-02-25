@@ -16,13 +16,13 @@
 *  along with aasdk. If not, see <http://www.gnu.org/licenses/>.
 */
 
-syntax="proto2";
+syntax="proto3";
 
 package oaa.proto.data;
 
 message FuelLevel
 {
-    required int32 fuel_level = 1;
-    required int32 range = 2;
-    required bool low_fuel = 3;
+    optional int32 fuel_level = 1;
+    optional int32 range = 2;
+    optional bool low_fuel = 3;
 }

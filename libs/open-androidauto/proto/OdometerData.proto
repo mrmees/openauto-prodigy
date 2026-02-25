@@ -16,12 +16,12 @@
 *  along with aasdk. If not, see <http://www.gnu.org/licenses/>.
 */
 
-syntax="proto2";
+syntax="proto3";
 
 package oaa.proto.data;
 
 message Odometer
 {
-    required int32 total_mileage = 1;
-    required int32 trip_mileage = 2;
+    optional int32 total_mileage = 1;
+    optional int32 trip_mileage = 2;
 }

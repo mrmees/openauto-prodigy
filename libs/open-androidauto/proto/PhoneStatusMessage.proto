@@ -1,4 +1,4 @@
-syntax = "proto2";
+syntax = "proto3";
 
 import "PhoneCallStateEnum.proto";
 
@@ -16,10 +16,10 @@ message PhoneStatusUpdate {
 // APK class: wad.java (AA v16.1)
 message PhoneCall {
     // APK: required enum wae — see PhoneCallStateEnum.proto
-    required enums.PhoneCallState.Enum call_state = 1;
+    optional enums.PhoneCallState.Enum call_state = 1;
     // APK: required uint32 — elapsed seconds since call connected
     // Previously misidentified as "direction" (0 = just connected)
-    required uint32 call_duration_seconds = 2;
+    optional uint32 call_duration_seconds = 2;
     // Phone number (e.g. "+1 858-225-7702")
     optional string phone_number = 3;
     // Caller display name (e.g. "Spam Risk", contact name)

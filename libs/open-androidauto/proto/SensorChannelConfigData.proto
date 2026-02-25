@@ -4,7 +4,7 @@
  * Lists supported sensor types and data formats.
  */
 
-syntax="proto2";
+syntax="proto3";
 
 package oaa.proto.data;
 
@@ -20,5 +20,5 @@ message SensorChannelConfig
 // APK class: wbt — individual sensor type entry
 message SensorTypeEntry
 {
-    required int32 sensor_type = 1;  // SensorType enum value
+    optional int32 sensor_type = 1;  // SensorType enum value
 }

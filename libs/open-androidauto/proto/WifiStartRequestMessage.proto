@@ -4,12 +4,12 @@
 *  This is NOT the same as WifiInfoRequest (msgId=2, which is empty).
 */
 
-syntax="proto2";
+syntax="proto3";
 
 package oaa.proto.messages;
 
 message WifiStartRequest
 {
-    required string ip_address = 1;
+    optional string ip_address = 1;
     optional uint32 port = 2;
 }

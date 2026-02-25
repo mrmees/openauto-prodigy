@@ -3,7 +3,7 @@
  * Turn-by-turn navigation instruction types.
  */
 
-syntax="proto2";
+syntax="proto3";
 
 package oaa.proto.enums;
 

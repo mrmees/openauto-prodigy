@@ -16,7 +16,7 @@
 *  along with aasdk. If not, see <http://www.gnu.org/licenses/>.
 */
 
-syntax="proto2";
+syntax="proto3";
 
 import "TouchEventData.proto";
 import "ButtonEventsData.proto";
@@ -28,7 +28,7 @@ package oaa.proto.messages;
 // APK class: vxx — no field 2 (disp_channel)
 message InputEventIndication
 {
-    required uint64 timestamp = 1;
+    optional uint64 timestamp = 1;
     optional data.TouchEvent touch_event = 3;
     optional data.ButtonEvents button_event = 4;
     optional data.AbsoluteInputEvents absolute_input_event = 5;

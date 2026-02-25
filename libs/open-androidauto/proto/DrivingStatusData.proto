@@ -16,11 +16,11 @@
 *  along with aasdk. If not, see <http://www.gnu.org/licenses/>.
 */
 
-syntax="proto2";
+syntax="proto3";
 
 package oaa.proto.data;
 
 message DrivingStatus
 {
-    required int32 status = 1;
+    optional int32 status = 1;
 }

@@ -3,14 +3,14 @@
  * Bluetooth channel configuration in ChannelDescriptor field 6.
  */
 
-syntax="proto2";
+syntax="proto3";
 
 package oaa.proto.data;
 
 message BluetoothChannelConfig
 {
     // BT adapter address (e.g. "DC:A6:32:E7:5A:FE")
-    required string adapter_address = 1;
+    optional string adapter_address = 1;
     // Supported BT pairing methods (enum values in APK)
     repeated int32 supported_pairing_methods = 2;
 }

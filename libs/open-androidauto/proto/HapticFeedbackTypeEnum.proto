@@ -5,7 +5,7 @@
  * Used in InputChannel field 4 (repeated).
  */
 
-syntax="proto2";
+syntax="proto3";
 
 package oaa.proto.enums;
 
@@ -13,6 +13,7 @@ message HapticFeedbackType
 {
     enum Enum
     {
+        FEEDBACK_UNKNOWN = 0;
         FEEDBACK_SELECT = 1;
         FEEDBACK_FOCUS_CHANGE = 2;
         FEEDBACK_DRAG_SELECT = 3;

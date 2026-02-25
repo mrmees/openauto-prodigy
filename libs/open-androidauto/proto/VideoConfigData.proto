@@ -16,7 +16,7 @@
 *  along with aasdk. If not, see <http://www.gnu.org/licenses/>.
 */
 
-syntax="proto2";
+syntax="proto3";
 
 import "VideoResolutionEnum.proto";
 import "VideoFPSEnum.proto";
@@ -26,11 +26,11 @@ package oaa.proto.data;
 
 message VideoConfig
 {
-    required enums.VideoResolution.Enum video_resolution = 1;
-    required enums.VideoFPS.Enum video_fps = 2;
-    required uint32 margin_width = 3;
-    required uint32 margin_height = 4;
-    required uint32 dpi = 5;
+    optional enums.VideoResolution.Enum video_resolution = 1;
+    optional enums.VideoFPS.Enum video_fps = 2;
+    optional uint32 margin_width = 3;
+    optional uint32 margin_height = 4;
+    optional uint32 dpi = 5;
     optional uint32 additional_depth = 6;
     // Fields 7-9 exist in APK but purpose unknown (7=500, 8=10000 in captures)
     optional uint32 field7 = 7;

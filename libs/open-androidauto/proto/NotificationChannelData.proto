@@ -3,7 +3,7 @@
  * Generic notification channel descriptor for ChannelDescriptor field 13.
  */
 
-syntax="proto2";
+syntax="proto3";
 
 package oaa.proto.data;
 

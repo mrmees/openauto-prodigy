@@ -16,7 +16,7 @@
 *  along with aasdk. If not, see <http://www.gnu.org/licenses/>.
 */
 
-syntax="proto2";
+syntax="proto3";
 
 import "SensorTypeEnum.proto";
 
@@ -24,6 +24,6 @@ package oaa.proto.messages;
 
 message SensorStartRequestMessage
 {
-    required enums.SensorType.Enum sensor_type = 1;
-    required int64 refresh_interval = 2;
+    optional enums.SensorType.Enum sensor_type = 1;
+    optional int64 refresh_interval = 2;
 }

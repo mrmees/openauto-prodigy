@@ -16,12 +16,12 @@
 *  along with aasdk. If not, see <http://www.gnu.org/licenses/>.
 */
 
-syntax="proto2";
+syntax="proto3";
 
 package oaa.proto.data;
 
 message HVAC
 {
-    required int32 target_temperature = 1;
-    required int32 current_temperature = 2;
+    optional int32 target_temperature = 1;
+    optional int32 current_temperature = 2;
 }

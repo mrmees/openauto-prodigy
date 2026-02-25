@@ -105,10 +105,9 @@ void NavigationChannelHandler::handleNavDistance(const QByteArray& payload)
     QString distance;
     int unit = 0;
 
-    if (msg.has_info() && msg.info().has_distance()) {
-        // value() is now fixed32 — convert to string for display
-        distance = QString::number(msg.info().distance().value());
-        unit = msg.info().distance().unit();
+    if (msg.has_distance()) {
+        distance = QString::number(msg.distance().value());
+        unit = msg.distance().unit();
     }
 
     qDebug() << "[NavChannel] distance:" << distance << "unit:" << unit;

@@ -16,7 +16,7 @@
 *  along with aasdk. If not, see <http://www.gnu.org/licenses/>.
 */
 
-syntax="proto2";
+syntax="proto3";
 
 import "TouchLocationData.proto";
 import "TouchActionEnum.proto";
@@ -27,5 +27,5 @@ message TouchEvent
 {
     repeated data.TouchLocation touch_location = 1;
     optional uint32 action_index = 2;
-    required enums.TouchAction.Enum touch_action = 3;
+    optional enums.TouchAction.Enum touch_action = 3;
 }

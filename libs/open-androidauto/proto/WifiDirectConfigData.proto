@@ -4,7 +4,7 @@
 *  Contains WiFi Direct connection parameters.
 */
 
-syntax="proto2";
+syntax="proto3";
 
 package oaa.proto.data;
 

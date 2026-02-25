@@ -16,12 +16,12 @@
 *  along with aasdk. If not, see <http://www.gnu.org/licenses/>.
 */
 
-syntax="proto2";
+syntax="proto3";
 
 package oaa.proto.data;
 
 message RelativeInputEvent
 {
-    required uint32 scan_code = 1;
-    required int32 delta = 2;
+    optional uint32 scan_code = 1;
+    optional int32 delta = 2;
 }

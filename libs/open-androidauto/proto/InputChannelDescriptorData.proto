@@ -11,6 +11,6 @@
  * This file is kept empty to avoid breaking the GLOB in CMakeLists.txt.
  */
 
-syntax="proto2";
+syntax="proto3";
 
 package oaa.proto.data.deprecated;

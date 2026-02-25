@@ -16,12 +16,12 @@
 *  along with aasdk. If not, see <http://www.gnu.org/licenses/>.
 */
 
-syntax="proto2";
+syntax="proto3";
 
 package oaa.proto.messages;
 
 message ChannelOpenRequest
 {
-    required sint32 priority = 1;   // APK: sint32 (zigzag encoded), not int32
-    required int32 channel_id = 2;
+    optional sint32 priority = 1;   // APK: sint32 (zigzag encoded), not int32
+    optional int32 channel_id = 2;
 }

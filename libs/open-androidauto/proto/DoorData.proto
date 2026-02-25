@@ -16,13 +16,13 @@
 *  along with aasdk. If not, see <http://www.gnu.org/licenses/>.
 */
 
-syntax="proto2";
+syntax="proto3";
 
 package oaa.proto.data;
 
 message Door
 {
-    required bool hood_open = 1;
-    required bool boot_open = 2;
+    optional bool hood_open = 1;
+    optional bool boot_open = 2;
     repeated bool door_open = 3;
 }

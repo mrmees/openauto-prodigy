@@ -5,7 +5,7 @@
  * Contains display dimensions and display type enum.
  */
 
-syntax="proto2";
+syntax="proto3";
 
 import "DisplayTypeEnum.proto";
 

@@ -3,14 +3,14 @@
  * Touch coordinate pair used in touch events.
  */
 
-syntax="proto2";
+syntax="proto3";
 
 package oaa.proto.data;
 
 // APK class: wbl — touch coordinate
 message TouchCoordinate
 {
-    required uint32 x = 1;
-    required int32 y = 2;
+    optional uint32 x = 1;
+    optional int32 y = 2;
     optional uint32 pointer_id = 3;
 }

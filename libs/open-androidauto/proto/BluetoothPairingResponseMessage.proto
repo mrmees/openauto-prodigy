@@ -16,7 +16,7 @@
 *  along with aasdk. If not, see <http://www.gnu.org/licenses/>.
 */
 
-syntax="proto2";
+syntax="proto3";
 
 import "BluetoothPairingStatusEnum.proto";
 
@@ -24,8 +24,8 @@ package oaa.proto.messages;
 
 message BluetoothPairingResponse
 {
-    required bool already_paired = 1;
-    required enums.BluetoothPairingStatus.Enum status = 2;
+    optional bool already_paired = 1;
+    optional enums.BluetoothPairingStatus.Enum status = 2;
 
     // Discovered via APK proto decoder (xgq.java, AA v16.1)
     // APK has this as an enum, not a string

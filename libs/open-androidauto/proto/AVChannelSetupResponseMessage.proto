@@ -16,7 +16,7 @@
 *  along with aasdk. If not, see <http://www.gnu.org/licenses/>.
 */
 
-syntax="proto2";
+syntax="proto3";
 
 import "AVChannelSetupStatusEnum.proto";
 
@@ -24,7 +24,7 @@ package oaa.proto.messages;
 
 message AVChannelSetupResponse
 {
-    required enums.AVChannelSetupStatus.Enum media_status = 1;
-    required uint32 max_unacked = 2;
+    optional enums.AVChannelSetupStatus.Enum media_status = 1;
+    optional uint32 max_unacked = 2;
     repeated uint32 configs = 3;
 }

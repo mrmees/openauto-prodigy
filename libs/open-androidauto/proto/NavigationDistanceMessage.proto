@@ -1,24 +1,33 @@
-syntax = "proto2";
+syntax = "proto3";
 
 package oaa.proto.messages;
+
+import "NavigationDistanceDisplayData.proto";
 
 // APK class: xnb — Navigation distance/ETA update (msgId 0x8007 on Nav channel)
 // Sent periodically by phone during active navigation
 message NavigationDistance {
-    optional NavigationDistanceInfo info = 1;
+    optional data.NavigationDistanceValue distance = 1;  // APK: xmw
     optional string eta_text = 2;
     optional int32 eta_seconds = 3;
-    optional bytes distance_display = 8;
+    optional NavigationDistanceInfo info = 8;             // APK: xng
 }
 
+// APK class: xng — groups distance displays and alternates
 message NavigationDistanceInfo {
-    optional NavigationDistanceValue distance = 1;
-    repeated bytes alternate_display = 2;   // APK: repeated message (xnd = NavigationDistanceDisplay)
-    optional bytes oneof_display = 4;       // APK: oneof message (xne), not yet decoded
+    optional data.NavigationDistanceDisplay display = 1;          // APK: xnd
+    repeated data.NavigationDistanceDisplay alternate_display = 2; // APK: repeated xnd
+    optional NavigationDistanceOneof oneof_display = 4;           // APK: xne
 }
 
-message NavigationDistanceValue {
-    optional int64 raw_meters = 1;          // APK: int64, raw distance in meters
-    optional fixed32 value = 2;             // APK: fixed32 (was string — wire type mismatch)
-    optional fixed32 unit = 3;              // APK: fixed32 (was int32 — wire type mismatch)
+// APK class: xne — wrapper for repeated distance entries
+message NavigationDistanceOneof {
+    repeated NavigationDistanceEntry entries = 1;  // APK: repeated xnf
+}
+
+// APK class: xnf — single distance entry (display + metadata)
+message NavigationDistanceEntry {
+    optional data.NavigationDistanceDisplay display = 1;  // APK: xnd
+    optional int32 value = 2;
+    optional uint64 metadata = 3;
 }

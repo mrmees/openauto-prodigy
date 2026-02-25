@@ -3,7 +3,7 @@
  * Error codes reported during channel operation.
  */
 
-syntax="proto2";
+syntax="proto3";
 
 package oaa.proto.enums;
 

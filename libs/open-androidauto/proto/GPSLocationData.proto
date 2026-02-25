@@ -16,7 +16,7 @@
 *  along with aasdk. If not, see <http://www.gnu.org/licenses/>.
 */
 
-syntax="proto2";
+syntax="proto3";
 
 package oaa.proto.data;
 
@@ -24,9 +24,9 @@ package oaa.proto.data;
 // NOTE: No field 1 (timestamp) in APK vyl. Fields 8-22 belong to ahdz, not vyl.
 message GPSLocation
 {
-    required int32 latitude = 2;
-    required int32 longitude = 3;
-    required uint32 accuracy = 4;
+    optional int32 latitude = 2;
+    optional int32 longitude = 3;
+    optional uint32 accuracy = 4;
     optional int32 altitude = 5;
     optional int32 speed = 6;
     optional int32 bearing = 7;

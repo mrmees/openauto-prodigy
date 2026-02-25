@@ -16,14 +16,14 @@
 *  along with aasdk. If not, see <http://www.gnu.org/licenses/>.
 */
 
-syntax="proto2";
+syntax="proto3";
 
 package oaa.proto.messages;
 
 // APK class: vvk — AV media ack (3 fields)
 message AVMediaAckIndication
 {
-    required int32 session = 1;
-    required uint32 value = 2;
+    optional int32 session = 1;
+    optional uint32 value = 2;
     repeated uint64 ack_timestamps = 3;
 }

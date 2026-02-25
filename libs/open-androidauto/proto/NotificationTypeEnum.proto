@@ -3,7 +3,7 @@
  * Notification categories the phone can send to the head unit.
  */
 
-syntax="proto2";
+syntax="proto3";
 
 package oaa.proto.enums;
 

@@ -16,7 +16,7 @@
 *  along with aasdk. If not, see <http://www.gnu.org/licenses/>.
 */
 
-syntax="proto2";
+syntax="proto3";
 
 option optimize_for=SPEED;
 
@@ -26,5 +26,5 @@ package oaa.proto.data;
 
 message WifiChannel
 {
-    required string ssid = 1;
+    optional string ssid = 1;
 } 

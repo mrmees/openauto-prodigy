@@ -3,7 +3,7 @@
  * Message types exchanged over BT RFCOMM during wireless AA setup.
  */
 
-syntax="proto2";
+syntax="proto3";
 
 package oaa.proto.enums;
 

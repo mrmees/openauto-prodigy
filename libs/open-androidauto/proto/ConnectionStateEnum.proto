@@ -3,7 +3,7 @@
  * Phone-side connection state machine.
  */
 
-syntax="proto2";
+syntax="proto3";
 
 package oaa.proto.enums;
 

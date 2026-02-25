@@ -3,7 +3,7 @@
  * Specifies which vehicle display the AV channel targets.
  */
 
-syntax="proto2";
+syntax="proto3";
 
 package oaa.proto.enums;
 
