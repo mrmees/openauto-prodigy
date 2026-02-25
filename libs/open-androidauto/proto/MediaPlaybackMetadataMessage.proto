@@ -1,0 +1,13 @@
+syntax = "proto2";
+
+package oaa.proto.messages;
+
+// Media playback metadata (msgId 0x8003 on Media channel)
+// Sent by phone when track changes — includes album art
+message MediaPlaybackMetadata {
+    optional string title = 1;
+    optional string artist = 2;
+    optional string album = 3;
+    // Album art as PNG image data
+    optional bytes album_art = 4;
+}

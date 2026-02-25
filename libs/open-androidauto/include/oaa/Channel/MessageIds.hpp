@@ -52,6 +52,24 @@ namespace BluetoothMessageId {
     constexpr uint16_t AUTH_DATA               = 0x8003;
 }
 
+/// Navigation channel messages
+namespace NavigationMessageId {
+    constexpr uint16_t NAV_STATE          = 0x8003;
+    constexpr uint16_t NAV_STEP           = 0x8006;
+    constexpr uint16_t NAV_DISTANCE       = 0x8007;
+}
+
+/// Media status channel messages
+namespace MediaStatusMessageId {
+    constexpr uint16_t PLAYBACK_STATUS    = 0x8001;
+    constexpr uint16_t PLAYBACK_METADATA  = 0x8003;
+}
+
+/// Phone status channel messages
+namespace PhoneStatusMessageId {
+    constexpr uint16_t PHONE_STATUS       = 0x8001;
+}
+
 /// WiFi channel messages
 namespace WiFiMessageId {
     constexpr uint16_t CREDENTIALS_REQUEST     = 0x8001;

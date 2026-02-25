@@ -196,6 +196,9 @@ void AndroidAutoOrchestrator::onNewConnection()
     session_->registerChannel(oaa::ChannelId::Bluetooth, &btHandler_);
     session_->registerChannel(oaa::ChannelId::WiFi, wifiHandler_.get());
     session_->registerChannel(oaa::ChannelId::AVInput, &avInputHandler_);
+    session_->registerChannel(oaa::ChannelId::Navigation, &navHandler_);
+    session_->registerChannel(oaa::ChannelId::MediaStatus, &mediaStatusHandler_);
+    session_->registerChannel(oaa::ChannelId::PhoneStatus, &phoneStatusHandler_);
 
     // Connect session signals
     connect(session_, &oaa::AASession::stateChanged,

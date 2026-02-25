@@ -30,6 +30,9 @@ private:
     QByteArray buildBluetoothDescriptor() const;
     QByteArray buildWifiDescriptor() const;
     QByteArray buildAVInputDescriptor() const;
+    QByteArray buildNavigationDescriptor() const;
+    QByteArray buildMediaStatusDescriptor() const;
+    QByteArray buildPhoneStatusDescriptor() const;
 
     // Shared margin calculation for video/input
     void calcMargins(int remoteW, int remoteH,

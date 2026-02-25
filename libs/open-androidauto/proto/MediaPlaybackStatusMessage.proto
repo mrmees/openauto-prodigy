@@ -1,0 +1,18 @@
+syntax = "proto2";
+
+package oaa.proto.messages;
+
+// Media playback status update (msgId 0x8001 on Media channel)
+// Sent every ~1s by phone during media playback
+message MediaPlaybackStatus {
+    // Playback state: 2=PLAYING, 3=PAUSED (1=STOPPED?)
+    optional int32 playback_state = 1;
+    // Source app name (e.g. "YouTube Music", "Spotify")
+    optional string app_name = 2;
+    // Elapsed seconds in current track (resets to 0 on track change)
+    optional int32 position_seconds = 3;
+    // Unknown fields — always 0 in captures so far
+    optional int32 field4 = 4;
+    optional int32 field5 = 5;
+    optional int32 field6 = 6;
+}

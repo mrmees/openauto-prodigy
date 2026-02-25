@@ -28,6 +28,7 @@ import "BluetoothChannelData.proto";
 import "NavigationChannelData.proto";
 import "VendorExtensionChannelData.proto";
 import "MediaChannelData.proto";
+import "PhoneStatusChannelData.proto";
 import "WifiChannelData.proto";
 
 package oaa.proto.data;
@@ -43,7 +44,7 @@ message ChannelDescriptor
     // optional RadioChannel radio_channel = 7;
     optional NavigationChannel navigation_channel = 8;
     optional MediaInfoChannel media_infoChannel = 9;
-    // optional PhoneStatusChannel phone_status_channel = 10;
+    optional PhoneStatusChannel phone_status_channel = 10;
     // optional MediaBrowserChannel media_browser_channel = 11;
     optional VendorExtensionChannel vendor_extension_channel = 12;
     // optional GenericNotificationChannel generic_notification_channel = 13;

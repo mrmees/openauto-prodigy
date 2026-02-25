@@ -17,6 +17,10 @@
 #include "BluetoothPairingMethodEnum.pb.h"
 #include "WifiChannelData.pb.h"
 #include "AVInputChannelData.pb.h"
+#include "NavigationChannelData.pb.h"
+#include "NavigationImageOptionsData.pb.h"
+#include "MediaChannelData.pb.h"
+#include "PhoneStatusChannelData.pb.h"
 #include "AVStreamTypeEnum.pb.h"
 #include "AudioTypeEnum.pb.h"
 #include "VideoResolutionEnum.pb.h"
@@ -70,6 +74,9 @@ oaa::SessionConfig ServiceDiscoveryBuilder::build() const
     addChannel(8,  buildBluetoothDescriptor());
     addChannel(14, buildWifiDescriptor());
     addChannel(7,  buildAVInputDescriptor());
+    addChannel(9,  buildNavigationDescriptor());
+    addChannel(10, buildMediaStatusDescriptor());
+    addChannel(11, buildPhoneStatusDescriptor());
 
     return config;
 }
@@ -333,6 +340,48 @@ QByteArray ServiceDiscoveryBuilder::buildAVInputDescriptor() const
     audioConfig->set_sample_rate(16000);
     audioConfig->set_bit_depth(16);
     audioConfig->set_channel_count(1);
+
+    QByteArray data(desc.ByteSizeLong(), '\0');
+    desc.SerializeToArray(data.data(), data.size());
+    return data;
+}
+
+QByteArray ServiceDiscoveryBuilder::buildNavigationDescriptor() const
+{
+    oaa::proto::data::ChannelDescriptor desc;
+    desc.set_channel_id(9);
+
+    auto* navChannel = desc.mutable_navigation_channel();
+    navChannel->set_minimum_interval_ms(500);
+    navChannel->set_type(1); // Turn-by-turn
+    auto* imageOpts = navChannel->mutable_image_options();
+    imageOpts->set_width(64);
+    imageOpts->set_height(64);
+    imageOpts->set_colour_depth_bits(32);
+
+    QByteArray data(desc.ByteSizeLong(), '\0');
+    desc.SerializeToArray(data.data(), data.size());
+    return data;
+}
+
+QByteArray ServiceDiscoveryBuilder::buildMediaStatusDescriptor() const
+{
+    oaa::proto::data::ChannelDescriptor desc;
+    desc.set_channel_id(10);
+
+    desc.mutable_media_infochannel(); // empty — just advertise support
+
+    QByteArray data(desc.ByteSizeLong(), '\0');
+    desc.SerializeToArray(data.data(), data.size());
+    return data;
+}
+
+QByteArray ServiceDiscoveryBuilder::buildPhoneStatusDescriptor() const
+{
+    oaa::proto::data::ChannelDescriptor desc;
+    desc.set_channel_id(11);
+
+    desc.mutable_phone_status_channel(); // empty — just advertise support
 
     QByteArray data(desc.ByteSizeLong(), '\0');
     desc.SerializeToArray(data.data(), data.size());

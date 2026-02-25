@@ -58,9 +58,9 @@ private slots:
         oap::aa::ServiceDiscoveryBuilder builder;
         oaa::SessionConfig config = builder.build();
 
-        // All 9 channels: Video, MediaAudio, SpeechAudio, SystemAudio,
-        // Input, Sensor, Bluetooth, WiFi, AVInput
-        QCOMPARE(config.channels.size(), 9);
+        // All 12 channels: Video, MediaAudio, SpeechAudio, SystemAudio,
+        // Input, Sensor, Bluetooth, WiFi, AVInput, Navigation, MediaStatus, PhoneStatus
+        QCOMPARE(config.channels.size(), 12);
     }
 
     void testHandlerEmitsSendRequested() {

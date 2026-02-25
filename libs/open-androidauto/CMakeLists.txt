@@ -54,6 +54,13 @@ add_library(open-androidauto STATIC
     include/oaa/HU/Handlers/SensorChannelHandler.hpp
     include/oaa/HU/Handlers/BluetoothChannelHandler.hpp
     include/oaa/HU/Handlers/WiFiChannelHandler.hpp
+    include/oaa/HU/Handlers/StubChannelHandler.hpp
+    include/oaa/HU/Handlers/NavigationChannelHandler.hpp
+    include/oaa/HU/Handlers/MediaStatusChannelHandler.hpp
+    include/oaa/HU/Handlers/PhoneStatusChannelHandler.hpp
+    src/HU/Handlers/NavigationChannelHandler.cpp
+    src/HU/Handlers/MediaStatusChannelHandler.cpp
+    src/HU/Handlers/PhoneStatusChannelHandler.cpp
     src/HU/Handlers/VideoChannelHandler.cpp
     src/HU/Handlers/AudioChannelHandler.cpp
     src/HU/Handlers/AVInputChannelHandler.cpp

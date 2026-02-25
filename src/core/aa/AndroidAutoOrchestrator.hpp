@@ -17,6 +17,10 @@
 #include <oaa/HU/Handlers/BluetoothChannelHandler.hpp>
 #include <oaa/HU/Handlers/WiFiChannelHandler.hpp>
 #include <oaa/HU/Handlers/AVInputChannelHandler.hpp>
+#include <oaa/HU/Handlers/StubChannelHandler.hpp>
+#include <oaa/HU/Handlers/NavigationChannelHandler.hpp>
+#include <oaa/HU/Handlers/MediaStatusChannelHandler.hpp>
+#include <oaa/HU/Handlers/PhoneStatusChannelHandler.hpp>
 #include "ServiceDiscoveryBuilder.hpp"
 #include "VideoDecoder.hpp"
 #include "TouchHandler.hpp"
@@ -100,6 +104,9 @@ private:
     oaa::hu::BluetoothChannelHandler btHandler_;
     std::unique_ptr<oaa::hu::WiFiChannelHandler> wifiHandler_;
     oaa::hu::AVInputChannelHandler avInputHandler_;
+    oaa::hu::NavigationChannelHandler navHandler_;
+    oaa::hu::MediaStatusChannelHandler mediaStatusHandler_;
+    oaa::hu::PhoneStatusChannelHandler phoneStatusHandler_;
 
     // Shared resources
     TouchHandler touchHandler_;

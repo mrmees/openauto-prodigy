@@ -12,6 +12,9 @@ namespace ChannelId {
     constexpr uint8_t SystemAudio  = 6;
     constexpr uint8_t AVInput      = 7;
     constexpr uint8_t Bluetooth    = 8;
+    constexpr uint8_t Navigation   = 9;
+    constexpr uint8_t MediaStatus  = 10;
+    constexpr uint8_t PhoneStatus  = 11;
     constexpr uint8_t WiFi         = 14;
 } // namespace ChannelId
 } // namespace oaa

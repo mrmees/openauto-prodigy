@@ -1,0 +1,36 @@
+syntax = "proto2";
+
+package oaa.proto.messages;
+
+// Navigation step/maneuver update (msgId 0x8006 on Nav channel)
+// Sent by phone with current turn-by-turn instruction
+message NavigationStep {
+    // Current step details
+    optional NavigationStepInfo step = 1;
+    // Destination info
+    optional NavigationDestination destination = 2;
+}
+
+message NavigationStepInfo {
+    // Maneuver type/direction
+    optional NavigationManeuver maneuver = 1;
+    // Human-readable instruction (e.g. "toward Hunter Rd")
+    optional NavigationText instruction = 2;
+    // Cue/TTS text (often same as instruction)
+    optional NavigationText cue = 4;
+}
+
+message NavigationManeuver {
+    // Maneuver type enum (1=continue/straight, others TBD)
+    optional int32 type = 1;
+    // Maneuver icon (TBD — need captures of turns)
+    optional bytes icon = 2;
+}
+
+message NavigationText {
+    optional string text = 1;
+}
+
+message NavigationDestination {
+    optional string address = 1;
+}

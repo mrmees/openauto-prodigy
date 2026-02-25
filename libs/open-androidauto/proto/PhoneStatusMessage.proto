@@ -1,0 +1,27 @@
+syntax = "proto2";
+
+package oaa.proto.messages;
+
+// Phone status update (msgId 0x8001 on Phone Status channel)
+// Sent by phone to report call state changes
+message PhoneStatusUpdate {
+    // Active calls (empty = no calls / idle)
+    repeated PhoneCall calls = 1;
+    // Unknown field — possibly signal strength or global state
+    optional int32 state = 2;
+}
+
+message PhoneCall {
+    // 1=ACTIVE (in-call), 4=RINGING (incoming), others TBD
+    optional int32 call_state = 1;
+    // 0 observed — possibly direction (0=incoming, 1=outgoing?)
+    optional int32 direction = 2;
+    // Phone number (e.g. "+1 858-225-7702")
+    optional string phone_number = 3;
+    // Caller display name (e.g. "Spam Risk", contact name)
+    optional string display_name = 4;
+    // Contact ID (empty for unknown contacts)
+    optional string contact_id = 5;
+    // Contact photo as PNG image (sent with ACTIVE state)
+    optional bytes contact_photo = 6;
+}

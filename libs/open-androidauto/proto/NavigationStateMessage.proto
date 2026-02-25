@@ -1,0 +1,10 @@
+syntax = "proto2";
+
+package oaa.proto.messages;
+
+// Navigation state notification (msgId 0x8003 on Nav channel)
+// Sent by phone when navigation starts/stops
+message NavigationState {
+    // 1 = navigation active, 2 = navigation ended
+    optional int32 state = 1;
+}
