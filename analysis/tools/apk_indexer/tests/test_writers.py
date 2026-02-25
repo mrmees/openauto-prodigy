@@ -12,6 +12,8 @@ def _sample_signals():
         "proto_accesses": [{"file": "C.java", "line": 3, "accessor": "setChannelId"}],
         "call_edges": [{"file": "D.java", "line": 4, "target": "transport.sendMessage"}],
         "proto_writes": [{"file": "E.java", "line": 5, "target": "xhqVar.b", "op": "|=", "value": "16"}],
+        "enum_maps": [{"file": "vyn.java", "line": 9, "enum_class": "vyn", "int_value": 1, "enum_name": "MEDIA_CODEC_AUDIO_PCM"}],
+        "switch_maps": [{"file": "Dispatch.java", "line": 2, "switch_expr": "messageId", "case_value": "7", "target": "handler.handleAudio"}],
     }
 
 
@@ -31,6 +33,8 @@ def test_sqlite_schema_created(tmp_path):
         assert "proto_accesses" in tables
         assert "call_edges" in tables
         assert "proto_writes" in tables
+        assert "enum_maps" in tables
+        assert "switch_maps" in tables
 
 
 def test_json_exports_created(tmp_path):

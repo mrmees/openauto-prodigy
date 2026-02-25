@@ -29,6 +29,20 @@ def _create_schema(conn: sqlite3.Connection) -> None:
             op TEXT NOT NULL,
             value TEXT NOT NULL
         );
+        CREATE TABLE IF NOT EXISTS enum_maps (
+            file TEXT NOT NULL,
+            line INTEGER NOT NULL,
+            enum_class TEXT NOT NULL,
+            int_value INTEGER NOT NULL,
+            enum_name TEXT NOT NULL
+        );
+        CREATE TABLE IF NOT EXISTS switch_maps (
+            file TEXT NOT NULL,
+            line INTEGER NOT NULL,
+            switch_expr TEXT NOT NULL,
+            case_value TEXT NOT NULL,
+            target TEXT NOT NULL
+        );
         CREATE TABLE IF NOT EXISTS call_edges (
             file TEXT NOT NULL,
             line INTEGER NOT NULL,
@@ -38,6 +52,8 @@ def _create_schema(conn: sqlite3.Connection) -> None:
         CREATE INDEX IF NOT EXISTS idx_constants_value ON constants(value);
         CREATE INDEX IF NOT EXISTS idx_proto_accessor ON proto_accesses(accessor);
         CREATE INDEX IF NOT EXISTS idx_proto_writes_target ON proto_writes(target);
+        CREATE INDEX IF NOT EXISTS idx_enum_maps_class ON enum_maps(enum_class);
+        CREATE INDEX IF NOT EXISTS idx_switch_maps_expr ON switch_maps(switch_expr);
         CREATE INDEX IF NOT EXISTS idx_call_target ON call_edges(target);
         """
     )
@@ -51,6 +67,8 @@ def write_sqlite(db_path: Path, signals: dict[str, list[dict[str, object]]]) -> 
         conn.execute("DELETE FROM constants")
         conn.execute("DELETE FROM proto_accesses")
         conn.execute("DELETE FROM proto_writes")
+        conn.execute("DELETE FROM enum_maps")
+        conn.execute("DELETE FROM switch_maps")
         conn.execute("DELETE FROM call_edges")
 
         conn.executemany(
@@ -73,6 +91,32 @@ def write_sqlite(db_path: Path, signals: dict[str, list[dict[str, object]]]) -> 
             [
                 (row["file"], row["line"], row["target"], row["op"], row["value"])
                 for row in signals.get("proto_writes", [])
+            ],
+        )
+        conn.executemany(
+            "INSERT INTO enum_maps(file, line, enum_class, int_value, enum_name) VALUES (?, ?, ?, ?, ?)",
+            [
+                (
+                    row["file"],
+                    row["line"],
+                    row["enum_class"],
+                    row["int_value"],
+                    row["enum_name"],
+                )
+                for row in signals.get("enum_maps", [])
+            ],
+        )
+        conn.executemany(
+            "INSERT INTO switch_maps(file, line, switch_expr, case_value, target) VALUES (?, ?, ?, ?, ?)",
+            [
+                (
+                    row["file"],
+                    row["line"],
+                    row["switch_expr"],
+                    row["case_value"],
+                    row["target"],
+                )
+                for row in signals.get("switch_maps", [])
             ],
         )
         conn.executemany(

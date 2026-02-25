@@ -66,3 +66,50 @@ def test_extract_projection_scope_filters_non_projection(tmp_path):
 
     assert len(result["uuids"]) == 1
     assert result["uuids"][0]["value"] == "4de17a00-52cb-11e6-bdf4-0800200c9a66"
+
+
+def test_extract_enum_maps(tmp_path):
+    sample = tmp_path / "vyn.java"
+    sample.write_text(
+        "public enum vyn {\n"
+        "  MEDIA_CODEC_AUDIO_PCM(1),\n"
+        "  MEDIA_CODEC_AUDIO_AAC_LC(2);\n"
+        "  public static vyn b(int i2) {\n"
+        "    switch (i2) {\n"
+        "      case 1:\n"
+        "        return MEDIA_CODEC_AUDIO_PCM;\n"
+        "      case 2:\n"
+        "        return MEDIA_CODEC_AUDIO_AAC_LC;\n"
+        "      default:\n"
+        "        return null;\n"
+        "    }\n"
+        "  }\n"
+        "}\n"
+    )
+
+    result = extract_signals(tmp_path)
+
+    rows = {(r["enum_class"], r["int_value"], r["enum_name"]) for r in result["enum_maps"]}
+    assert ("vyn", 1, "MEDIA_CODEC_AUDIO_PCM") in rows
+    assert ("vyn", 2, "MEDIA_CODEC_AUDIO_AAC_LC") in rows
+
+
+def test_extract_switch_maps(tmp_path):
+    sample = tmp_path / "Dispatch.java"
+    sample.write_text(
+        "switch (messageId) {\n"
+        "  case 7:\n"
+        "    handler.handleAudio(msg);\n"
+        "    break;\n"
+        "  case 9:\n"
+        "    return codec.select(h);\n"
+        "  default:\n"
+        "    return null;\n"
+        "}\n"
+    )
+
+    result = extract_signals(tmp_path)
+
+    rows = {(r["switch_expr"], r["case_value"], r["target"]) for r in result["switch_maps"]}
+    assert ("messageId", "7", "handler.handleAudio") in rows
+    assert ("messageId", "9", "codec.select") in rows

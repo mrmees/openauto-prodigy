@@ -47,6 +47,24 @@ def write_summary_report(
             ),
         ),
         _render_section(
+            "Top Enum Maps",
+            _top_rows(
+                [
+                    f"{row['enum_class']}:{row['int_value']}->{row['enum_name']}"
+                    for row in signals.get("enum_maps", [])
+                ]
+            ),
+        ),
+        _render_section(
+            "Top Switch Cases",
+            _top_rows(
+                [
+                    f"{row['switch_expr']} case {row['case_value']} -> {row['target']}"
+                    for row in signals.get("switch_maps", [])
+                ]
+            ),
+        ),
+        _render_section(
             "Top Call Targets",
             _top_rows([str(row["target"]) for row in signals.get("call_edges", [])]),
         ),

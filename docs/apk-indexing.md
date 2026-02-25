@@ -39,6 +39,8 @@ analysis/android_auto_<versionName>_<versionCode>/
       constants.json
       proto_accesses.json
       proto_writes.json
+      enum_maps.json
+      switch_maps.json
       call_edges.json
     reports/summary.md
 ```
