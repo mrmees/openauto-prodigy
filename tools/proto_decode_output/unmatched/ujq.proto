@@ -1,0 +1,11 @@
+// Decoded from APK class: ujq
+// Field count: 4, range: 1-4
+
+syntax = "proto2";
+
+message ujq {
+    optional bool b = 1;
+    optional int32 c = 2;
+    optional int32 d = 3;
+    optional int32 e = 4;
+}

@@ -1,0 +1,15 @@
+// Decoded from APK class: vvd
+// Field count: 8, range: 1-8
+
+syntax = "proto2";
+
+message vvd {
+    optional int64 vvc.class = 0;
+    optional int32  = 0;
+    optional fixed32  = 0;
+    optional int32 vvb.class = 1;
+    optional bool  = 3;
+    optional string  = 5;
+    optional double vva.class = 52;
+    optional double  = 53;
+}

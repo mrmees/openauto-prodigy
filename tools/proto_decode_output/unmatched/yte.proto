@@ -1,0 +1,13 @@
+// Decoded from APK class: yte
+// Field count: 6, range: 1-6
+
+syntax = "proto2";
+
+message yte {
+    optional yta c = 1;  // msg: yta
+    optional yta d = 2;  // msg: yta
+    optional unknown_41 e = 3;
+    repeated h ytd.class = 5;  // msg: h
+    optional int32 f = 102;
+    optional int64 g = 4105;
+}

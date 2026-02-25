@@ -1,0 +1,21 @@
+// Decoded from APK class: nll
+// Field count: 14, range: 1-14
+
+syntax = "proto2";
+
+message nll {
+    optional bool c = 1;
+    optional bool d = 2;
+    optional bool e = 3;
+    optional bool f = 4;
+    optional bool g = 5;
+    optional bool h = 6;
+    optional bool i = 7;
+    optional bool j = 8;
+    optional bool k = 9;
+    optional bool l = 10;
+    optional bool m = 11;
+    optional bool p = 13;
+    optional unknown_51 n = 92;
+    optional uint32 o = 4103;
+}

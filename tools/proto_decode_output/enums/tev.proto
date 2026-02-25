@@ -1,0 +1,9 @@
+// Decoded from APK class: tev
+
+syntax = "proto2";
+
+enum tev {
+    DEFAULT_LABEL_DRAW_ORDER = 0;
+    CLIENT_INJECTED_LABELS = 1;
+    CLIENT_INJECTED_LABELS_ABOVE_CALLOUTS = 2;
+}

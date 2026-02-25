@@ -1,0 +1,8 @@
+// Decoded from APK class: zwe
+// Field count: 1, range: 4-4
+
+syntax = "proto2";
+
+message zwe {
+    optional sfixed64 c = 4;
+}

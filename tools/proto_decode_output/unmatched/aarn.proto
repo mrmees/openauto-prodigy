@@ -1,0 +1,8 @@
+// Decoded from APK class: aarn
+// Field count: 1, range: 3-3
+
+syntax = "proto2";
+
+message aarn {
+    optional bytes /* message ? */ d = 3;
+}

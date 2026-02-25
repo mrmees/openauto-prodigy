@@ -1,0 +1,9 @@
+// Decoded from APK class: xlp
+// Field count: 2, range: 1-2
+
+syntax = "proto2";
+
+message xlp {
+    optional bytes /* message ? */ d = 1;
+    optional bytes /* message ? */ e = 2;
+}

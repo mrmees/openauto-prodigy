@@ -1,0 +1,12 @@
+// Decoded from APK class: aatn
+// Field count: 5, range: 1-63
+
+syntax = "proto2";
+
+message aatn {
+    required group c = 1;
+    required group d = 33;
+    required group e = 49;
+    optional group g = 58;
+    repeated aati f = 63;  // msg: aati
+}

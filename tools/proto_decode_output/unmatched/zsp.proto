@@ -1,0 +1,9 @@
+// Decoded from APK class: zsp
+// Field count: 2, range: 1-2
+
+syntax = "proto2";
+
+message zsp {
+    optional uint64 b = 1;
+    optional bool c = 2;
+}

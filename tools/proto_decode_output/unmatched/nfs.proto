@@ -1,0 +1,16 @@
+// Decoded from APK class: nfs
+// Field count: 9, range: 1-9
+
+syntax = "proto2";
+
+message nfs {
+    optional xiq d = 1;  // enum: xiq
+    optional string e = 2;
+    optional uint64 f = 3;
+    optional string g = 4;
+    optional string h = 5;
+    optional int32 /* enum a */ i = 6;  // enum: a
+    optional string c = 7;
+    optional bool j = 8;
+    optional string k = 9;
+}

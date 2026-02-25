@@ -1,0 +1,21 @@
+// Decoded from APK class: off
+// Field count: 14, range: 1-14
+
+syntax = "proto2";
+
+message off {
+    optional ofd c = 1;  // msg: ofd
+    optional int32 d = 2;
+    optional int32 e = 3;
+    optional int32 f = 4;
+    optional int32 g = 5;
+    optional int64 h = 6;
+    optional int64 i = 7;
+    optional int32 j = 8;
+    optional int32 k = 9;
+    optional string l = 10;
+    optional int64 m = 11;
+    optional bool p = 13;
+    optional unknown_51 n = 92;
+    optional uint32 o = 4106;
+}

@@ -1,0 +1,12 @@
+// Decoded from APK class: rti
+// Field count: 5, range: 1-5
+
+syntax = "proto2";
+
+message rti {
+    optional nls c = 1;  // msg: nls
+    optional nlp d = 2;  // msg: nlp
+    optional rsa e = 3;  // msg: rsa
+    optional bool f = 4;
+    optional rsr g = 5;  // msg: rsr
+}

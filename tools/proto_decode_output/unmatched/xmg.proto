@@ -1,0 +1,10 @@
+// Decoded from APK class: xmg
+// Field count: 3, range: 1-3
+
+syntax = "proto2";
+
+message xmg {
+    optional int32 /* enum a */ c = 1;  // enum: a
+    optional int32 /* enum a */ d = 2;  // enum: a
+    optional xlw e = 3;  // msg: xlw
+}

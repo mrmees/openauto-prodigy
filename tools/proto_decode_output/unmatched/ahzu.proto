@@ -1,0 +1,15 @@
+// Decoded from APK class: ahzu
+// Field count: 8, range: 1-8
+
+syntax = "proto2";
+
+message ahzu {
+    optional int32  = 0;
+    optional fixed32  = 0;
+    optional string e = 1;
+    optional string f = 2;
+    optional bool g = 3;
+    optional float  = 5;
+    optional double  = 53;
+    optional double  = 59;
+}

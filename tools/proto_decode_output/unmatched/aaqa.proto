@@ -1,0 +1,10 @@
+// Decoded from APK class: aaqa
+// Field count: 3, range: 1-4
+
+syntax = "proto2";
+
+message aaqa {
+    required int32 /* enum a */ b = 1;  // enum: a
+    repeated aaqb c = 2;  // msg: aaqb
+    optional bytes /* message ? */ f = 4;
+}

@@ -1,0 +1,9 @@
+// Decoded from APK class: sgv
+// Field count: 2, range: 1-2
+
+syntax = "proto2";
+
+message sgv {
+    optional int64 sgp.class = 0;
+    optional bytes /* message ? */ sgu.class = 1;
+}

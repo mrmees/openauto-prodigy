@@ -1,0 +1,9 @@
+// Decoded from APK class: nmu
+// Field count: 2, range: 5-6
+
+syntax = "proto2";
+
+message nmu {
+    optional int32 /* enum xdl */ c = 5;  // enum: xdl
+    optional int64 d = 6;
+}

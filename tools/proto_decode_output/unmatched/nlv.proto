@@ -1,0 +1,8 @@
+// Decoded from APK class: nlv
+// Field count: 1, range: 1-1
+
+syntax = "proto2";
+
+message nlv {
+    repeated nme b = 1;  // msg: nme
+}

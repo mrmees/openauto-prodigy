@@ -1,0 +1,11 @@
+// Decoded from APK class: piy
+// Field count: 4, range: 1-4
+
+syntax = "proto2";
+
+message piy {
+    optional bool b = 1;
+    optional string c = 2;
+    repeated string d = 3;
+    repeated string e = 4;
+}

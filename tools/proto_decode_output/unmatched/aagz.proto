@@ -1,0 +1,12 @@
+// Decoded from APK class: aagz
+// Field count: 5, range: 1-5
+
+syntax = "proto2";
+
+message aagz {
+    optional string b = 1;
+    optional string c = 2;
+    optional string d = 3;
+    optional string e = 4;
+    optional string f = 5;
+}

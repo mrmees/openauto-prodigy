@@ -1,0 +1,8 @@
+// Decoded from APK class: sfu
+// Field count: 1, range: 1-1
+
+syntax = "proto2";
+
+message sfu {
+    optional sgp b = 1;  // msg: sgp
+}

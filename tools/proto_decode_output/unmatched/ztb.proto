@@ -1,0 +1,35 @@
+// Decoded from APK class: ztb
+// Field count: 28, range: 1-40
+
+syntax = "proto2";
+
+message ztb {
+    optional int64 zsv.class = 0;
+    optional fixed64 f = 0;
+    optional uint32 l = 0;
+    optional group  = 0;
+    repeated float  = 0;
+    repeated int32  = 0;
+    optional bool zuc.class = 1;
+    optional boolean e = 4;  // msg: boolean
+    optional bool h = 6;
+    optional bool i = 7;
+    optional bool j = 9;
+    optional bool k = 10;
+    optional bool p = 14;
+    optional bool zur.class = 15;
+    optional bool q = 16;
+    optional bool  = 18;
+    optional bool  = 20;
+    optional bool  = 21;
+    optional bool  = 23;
+    optional bool  = 24;
+    optional double  = 58;
+    optional double  = 58;
+    optional double  = 58;
+    optional double ztt.class = 60;
+    optional double g = 60;
+    optional unknown_51 n = 92;
+    optional fixed64 o = 4103;
+    optional int32 m = 4105;
+}

@@ -1,0 +1,9 @@
+// Decoded from APK class: xzz
+// Field count: 2, range: 4-6
+
+syntax = "proto2";
+
+message xzz {
+    optional xzx c = 4;  // msg: xzx
+    optional unknown_41 d = 6;
+}

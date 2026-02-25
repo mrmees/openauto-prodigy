@@ -1,0 +1,13 @@
+// Decoded from APK class: wae
+
+syntax = "proto2";
+
+enum wae {
+    UNKNOWN = 0;
+    IN_CALL = 1;
+    ON_HOLD = 2;
+    INACTIVE = 3;
+    INCOMING = 4;
+    CONFERENCED = 5;
+    MUTED = 6;
+}

@@ -1,0 +1,13 @@
+// Decoded from APK class: znb
+// Field count: 6, range: 1-6
+
+syntax = "proto2";
+
+message znb {
+    optional int32 c = 1;
+    optional znc d = 2;  // msg: znc
+    optional zlr e = 3;  // msg: zlr
+    optional zna f = 4;  // msg: zna
+    repeated zmj g = 5;  // msg: zmj
+    optional zlo h = 6;  // msg: zlo
+}

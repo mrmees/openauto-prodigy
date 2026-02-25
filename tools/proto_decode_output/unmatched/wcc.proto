@@ -1,0 +1,8 @@
+// Decoded from APK class: wcc
+// Field count: 1, range: 1-1
+
+syntax = "proto2";
+
+message wcc {
+    required vyn c = 1;  // enum: vyn
+}

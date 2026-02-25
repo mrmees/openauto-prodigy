@@ -1,0 +1,9 @@
+// Decoded from APK class: zpj
+// Field count: 2, range: 2-3
+
+syntax = "proto2";
+
+message zpj {
+    optional uint64 b = 2;
+    optional uint64  = 3;
+}

@@ -1,0 +1,12 @@
+// Decoded from APK class: aato
+
+syntax = "proto2";
+
+enum aato {
+    FRONT = 1;
+    LEFT = 2;
+    BACK = 3;
+    RIGHT = 4;
+    UP = 5;
+    DOWN = 6;
+}

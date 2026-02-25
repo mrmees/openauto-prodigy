@@ -1,0 +1,9 @@
+// Decoded from APK class: sek
+// Field count: 2, range: 1-2
+
+syntax = "proto2";
+
+message sek {
+    optional int64 b = 1;
+    optional string c = 2;
+}

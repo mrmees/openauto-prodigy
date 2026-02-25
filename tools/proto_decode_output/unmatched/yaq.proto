@@ -1,0 +1,10 @@
+// Decoded from APK class: yaq
+// Field count: 3, range: 3-6
+
+syntax = "proto2";
+
+message yaq {
+    optional bytes /* message ? */ d = 3;
+    optional bytes /* message ? */ e = 4;
+    optional bytes /* message ? */ f = 6;
+}

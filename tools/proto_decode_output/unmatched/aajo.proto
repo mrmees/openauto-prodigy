@@ -1,0 +1,9 @@
+// Decoded from APK class: aajo
+// Field count: 2, range: 2-3
+
+syntax = "proto2";
+
+message aajo {
+    optional string b = 2;
+    optional string c = 3;
+}

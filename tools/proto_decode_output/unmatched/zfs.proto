@@ -1,0 +1,9 @@
+// Decoded from APK class: zfs
+// Field count: 2, range: 2-3
+
+syntax = "proto2";
+
+message zfs {
+    optional zre b = 2;  // msg: zre
+    optional string c = 3;
+}

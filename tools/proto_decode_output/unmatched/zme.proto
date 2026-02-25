@@ -1,0 +1,13 @@
+// Decoded from APK class: zme
+// Field count: 6, range: 1-7
+
+syntax = "proto2";
+
+message zme {
+    optional int32 c = 1;
+    optional int32 d = 2;
+    optional int32 e = 3;
+    optional int32 f = 4;
+    optional int32 g = 6;
+    optional int32 h = 7;
+}

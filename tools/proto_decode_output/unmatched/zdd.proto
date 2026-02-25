@@ -1,0 +1,18 @@
+// Decoded from APK class: zdd
+// Field count: 11, range: 1-435
+
+syntax = "proto2";
+
+message zdd {
+    optional bool d = 1;
+    optional bool e = 9;
+    optional bool g = 18;
+    optional bool i = 22;
+    optional bool h = 23;
+    optional bool j = 24;
+    optional bool f = 25;
+    optional int32 k = 230;
+    optional bool l = 288;
+    optional bool m = 414;
+    optional bool n = 435;
+}

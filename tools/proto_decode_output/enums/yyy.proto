@@ -1,0 +1,13 @@
+// Decoded from APK class: yyy
+
+syntax = "proto2";
+
+enum yyy {
+    OTHER_NETWORK = 0;
+    DISCONNECTED = 1;
+    WIFI = 2;
+    CELL = 3;
+    BLUETOOTH = 4;
+    ETHERNET = 5;
+    SATELLITE = 6;
+}

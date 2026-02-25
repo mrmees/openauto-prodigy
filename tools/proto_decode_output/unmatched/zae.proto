@@ -1,0 +1,9 @@
+// Decoded from APK class: zae
+// Field count: 2, range: 3-4
+
+syntax = "proto2";
+
+message zae {
+    optional bytes /* message ? */ e = 3;
+    optional bytes /* message ? */ d = 4;
+}

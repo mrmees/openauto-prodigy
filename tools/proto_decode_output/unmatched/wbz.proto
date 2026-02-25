@@ -1,0 +1,8 @@
+// Decoded from APK class: wbz
+// Field count: 1, range: 1-1
+
+syntax = "proto2";
+
+message wbz {
+    optional wbw c = 1;  // msg: wbw
+}

@@ -1,0 +1,12 @@
+// Decoded from APK class: yth
+// Field count: 5, range: 1-6
+
+syntax = "proto2";
+
+message yth {
+    optional yti c = 1;  // msg: yti
+    optional ytk d = 2;  // msg: ytk
+    optional ytl e = 3;  // msg: ytl
+    optional float f = 4;
+    optional ytj g = 6;  // msg: ytj
+}

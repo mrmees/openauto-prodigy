@@ -1,0 +1,9 @@
+// Decoded from APK class: zvw
+// Field count: 2, range: 3-13
+
+syntax = "proto2";
+
+message zvw {
+    optional bytes /* message ? */ d = 3;
+    optional bytes /* message ? */ e = 13;
+}

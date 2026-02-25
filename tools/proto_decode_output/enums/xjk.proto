@@ -1,0 +1,11 @@
+// Decoded from APK class: xjk
+
+syntax = "proto2";
+
+enum xjk {
+    UNKNOWN = 0;
+    ALPHA = 1;
+    BETA = 2;
+    PROD = 3;
+    INTERNAL_BETA = 4;
+}

@@ -1,0 +1,8 @@
+// Decoded from APK class: qbp
+// Field count: 1, range: 1-1
+
+syntax = "proto2";
+
+message qbp {
+    optional sfixed64 b = 1;
+}

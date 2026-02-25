@@ -1,0 +1,8 @@
+// Decoded from APK class: nnk
+// Field count: 1, range: 1-1
+
+syntax = "proto2";
+
+message nnk {
+    optional nlr b = 1;  // msg: nlr
+}

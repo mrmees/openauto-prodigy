@@ -1,0 +1,9 @@
+// Decoded from APK class: xjc
+// Field count: 2, range: 3-4
+
+syntax = "proto2";
+
+message xjc {
+    optional int64 c = 3;
+    optional xjb d = 4;  // msg: xjb
+}

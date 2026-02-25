@@ -1,0 +1,9 @@
+// Decoded from APK class: zku
+// Field count: 2, range: 1-2
+
+syntax = "proto2";
+
+message zku {
+    optional bool c = 1;
+    optional bool d = 2;
+}

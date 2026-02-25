@@ -1,0 +1,9 @@
+// Decoded from APK class: vvn
+
+syntax = "proto2";
+
+enum vvn {
+    ACTION_UNKNOWN = 0;
+    ACTION_RESIZE_TO_SMALLER = 1;
+    ACTION_RESIZE_TO_LARGER = 2;
+}

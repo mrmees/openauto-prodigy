@@ -1,0 +1,9 @@
+// Decoded from APK class: urq
+// Field count: 2, range: 1-2
+
+syntax = "proto2";
+
+message urq {
+    repeated string c = 1;
+    optional string d = 2;
+}

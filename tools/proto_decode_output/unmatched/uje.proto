@@ -1,0 +1,12 @@
+// Decoded from APK class: uje
+// Field count: 5, range: 1-5
+
+syntax = "proto2";
+
+message uje {
+    optional bool b = 1;
+    optional int32 c = 2;
+    optional int32 d = 3;
+    optional int32 e = 4;
+    optional float f = 5;
+}

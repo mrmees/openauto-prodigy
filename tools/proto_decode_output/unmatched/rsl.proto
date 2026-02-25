@@ -1,0 +1,8 @@
+// Decoded from APK class: rsl
+// Field count: 1, range: 1-1
+
+syntax = "proto2";
+
+message rsl {
+    optional rta c = 1;  // msg: rta
+}

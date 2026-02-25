@@ -1,0 +1,8 @@
+// Decoded from APK class: vvl
+// Field count: 1, range: 1-1
+
+syntax = "proto2";
+
+message vvl {
+    optional vvn b = 1;  // enum: vvn
+}

@@ -1,0 +1,9 @@
+// Decoded from APK class: nnt
+
+syntax = "proto2";
+
+enum nnt {
+    AUDIO_STREAMING_STATUS_UNSPECIFIED = 0;
+    STREAMING = 1;
+    NOT_STREAMING = 2;
+}

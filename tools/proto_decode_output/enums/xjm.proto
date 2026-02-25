@@ -1,0 +1,10 @@
+// Decoded from APK class: xjm
+
+syntax = "proto2";
+
+enum xjm {
+    UNKNOWN_PROCESS_TYPE = 0;
+    PROJECTION = 1;
+    CAR = 2;
+    SHARED = 3;
+}

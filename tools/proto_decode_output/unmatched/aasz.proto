@@ -1,0 +1,9 @@
+// Decoded from APK class: aasz
+// Field count: 2, range: 1-2
+
+syntax = "proto2";
+
+message aasz {
+    required int32 c = 1;
+    required int32 d = 2;
+}

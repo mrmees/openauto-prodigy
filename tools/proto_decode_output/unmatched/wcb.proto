@@ -1,0 +1,11 @@
+// Decoded from APK class: wcb
+// Field count: 4, range: 1-4
+
+syntax = "proto2";
+
+message wcb {
+    optional vuv c = 1;  // msg: vuv
+    optional vyw d = 2;  // enum: vyw
+    optional string e = 3;
+    optional int32 f = 4;
+}

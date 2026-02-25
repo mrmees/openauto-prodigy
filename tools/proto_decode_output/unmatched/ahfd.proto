@@ -1,0 +1,19 @@
+// Decoded from APK class: ahfd
+// Field count: 9, range: 1-92
+
+syntax = "proto2";
+
+message ahfd {
+    optional float c = 1;
+    optional bytes /* message ? */ e = 2;
+    optional string f = 3;
+    optional string g = 4;
+    optional int32 /* enum ? */ ahde.t = 5;
+    optional string i = 7;
+    optional ahff j = 9;  // msg: ahff
+    optional ahfc k = 11;  // msg: ahfc
+    optional unknown_51  = 92;
+    optional double d = 4103;
+    optional uint32  = 4105;
+}
+// PARSE ERROR: Entry parse error at field 11: read_varint: pos 39 past end of 39 chars

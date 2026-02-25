@@ -1,0 +1,23 @@
+// Decoded from APK class: zsi
+// Field count: 92, range: 1-1
+
+syntax = "proto2";
+
+message zsi {
+    optional int64  = 0;
+    optional float  = 0;
+    optional int32  = 2;
+    optional double  = 3;
+    optional double  = 4;
+    optional double  = 5;
+    optional double  = 6;
+    optional double  = 7;
+    optional double  = 8;
+    repeated group  = 9;
+    repeated group  = 10;
+    optional int32 /* enum ? */  = 11;
+    optional unknown_51  = 92;
+    optional sfixed64  = 4097;
+    optional double  = 4100;
+}
+// PARSE ERROR: Entry parse error at field 15: read_varint: pos 48 past end of 48 chars

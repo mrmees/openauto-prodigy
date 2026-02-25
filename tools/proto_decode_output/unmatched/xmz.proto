@@ -1,0 +1,20 @@
+// Decoded from APK class: xmz
+// Field count: 13, range: 3-126
+
+syntax = "proto2";
+
+message xmz {
+    optional int32 /* enum a */ f = 3;  // enum: a
+    optional bool g = 44;
+    optional xlu h = 47;  // msg: xlu
+    optional int32 /* enum ? */ i = 49;
+    optional string j = 52;
+    optional xmg k = 55;  // msg: xmg
+    optional int64 l = 57;
+    optional xmh m = 58;  // msg: xmh
+    optional bool n = 64;
+    optional int32 o = 66;
+    optional string p = 72;
+    optional ybo q = 96;  // msg: ybo
+    optional int32 /* enum a */ r = 126;  // enum: a
+}

@@ -1,0 +1,14 @@
+// Decoded from APK class: xmb
+// Field count: 7, range: 3-51
+
+syntax = "proto2";
+
+message xmb {
+    optional int32 c = 3;
+    optional bytes /* message ? */ i = 16;
+    optional bytes /* message ? */ h = 31;
+    optional bytes /* message ? */ k = 36;
+    repeated xma d = 102;  // msg: xma
+    repeated uint32 j = 1051;
+    repeated int32 e = 5129;
+}

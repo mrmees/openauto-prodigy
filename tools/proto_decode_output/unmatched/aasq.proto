@@ -1,0 +1,10 @@
+// Decoded from APK class: aasq
+// Field count: 3, range: 1-6
+
+syntax = "proto2";
+
+message aasq {
+    optional aasp c = 1;  // enum: aasp
+    optional string d = 5;
+    optional string e = 6;
+}

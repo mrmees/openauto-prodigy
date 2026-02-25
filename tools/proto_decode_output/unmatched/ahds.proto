@@ -1,0 +1,12 @@
+// Decoded from APK class: ahds
+// Field count: 5, range: 3-7
+
+syntax = "proto2";
+
+message ahds {
+    optional double c = 3;
+    optional int32 d = 4;
+    optional int32 e = 5;
+    optional int32 f = 6;
+    optional int32 g = 7;
+}

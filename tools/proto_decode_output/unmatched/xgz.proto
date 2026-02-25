@@ -1,0 +1,28 @@
+// Decoded from APK class: xgz
+// Field count: 21, range: 1-32
+
+syntax = "proto2";
+
+message xgz {
+    optional int32 c = 1;
+    optional string x = 2;
+    optional int32 /* enum a */ d = 3;  // enum: a
+    optional string e = 4;
+    optional int32 f = 5;
+    optional int32 g = 6;
+    optional int32 h = 7;
+    optional string i = 9;
+    optional int32 /* enum a */ j = 10;  // enum: a
+    optional int32 /* enum ? */ ysv.a = 13;
+    optional int32 n = 15;
+    optional int32 o = 16;
+    optional int32 p = 17;
+    optional int32 /* enum ? */ xgv.f = 18;
+    optional int32 /* enum ? */ zfi.b = 20;
+    optional int32 /* enum ? */ xmf.u = 21;
+    optional string t = 23;
+    optional bytes /* message ? */ u = 24;
+    repeated v xgx.class = 29;  // msg: v
+    optional unknown_51 k = 92;
+    optional uint32 l = 4103;
+}

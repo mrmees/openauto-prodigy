@@ -1,0 +1,9 @@
+// Decoded from APK class: aark
+// Field count: 2, range: 5-23
+
+syntax = "proto2";
+
+message aark {
+    optional bytes /* message ? */ d = 5;
+    optional bytes /* message ? */ e = 23;
+}

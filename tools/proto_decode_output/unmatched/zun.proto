@@ -1,0 +1,13 @@
+// Decoded from APK class: zun
+// Field count: 6, range: 1-6
+
+syntax = "proto2";
+
+message zun {
+    optional string b = 1;
+    optional float c = 2;
+    optional int32 /* enum ? */ d = 3;
+    optional int32 e = 4;
+    optional int32 f = 5;
+    optional bool g = 6;
+}

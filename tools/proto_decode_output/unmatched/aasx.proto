@@ -1,0 +1,11 @@
+// Decoded from APK class: aasx
+// Field count: 4, range: 1-14
+
+syntax = "proto2";
+
+message aasx {
+    required int32 /* enum a */ c = 1;  // enum: a
+    optional aasz d = 2;  // msg: aasz
+    optional bytes /* message ? */ f = 13;
+    optional bytes /* message ? */ g = 14;
+}

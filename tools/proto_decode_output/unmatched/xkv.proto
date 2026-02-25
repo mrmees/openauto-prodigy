@@ -1,0 +1,9 @@
+// Decoded from APK class: xkv
+// Field count: 2, range: 1-2
+
+syntax = "proto2";
+
+message xkv {
+    optional int32 c = 1;
+    optional int32 d = 2;
+}

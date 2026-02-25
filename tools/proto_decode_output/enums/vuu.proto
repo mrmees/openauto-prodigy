@@ -1,0 +1,8 @@
+// Decoded from APK class: vuu
+
+syntax = "proto2";
+
+enum vuu {
+    METADATA_UNKNOWN = 0;
+    METADATA_COMPACT_UI = 1;
+}

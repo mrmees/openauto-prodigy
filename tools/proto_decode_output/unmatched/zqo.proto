@@ -1,0 +1,12 @@
+// Decoded from APK class: zqo
+// Field count: 5, range: 1-7
+
+syntax = "proto2";
+
+message zqo {
+    optional int32 b = 1;
+    repeated zrs c = 2;  // msg: zrs
+    optional int32 /* enum ? */ d = 5;
+    optional string e = 6;
+    optional zqs f = 7;  // msg: zqs
+}

@@ -1,0 +1,21 @@
+// Decoded from APK class: wax
+// Field count: 14, range: 1-14
+
+syntax = "proto2";
+
+message wax {
+    required int32 b = 1;
+    required int32 /* enum a */ c = 2;  // enum: a
+    repeated wbe d = 3;  // msg: wbe
+    repeated int32 e = 4;
+    required int32 q = 5;
+    optional bool f = 6;
+    optional int32 /* enum a */ g = 7;  // enum: a
+    optional int32 /* enum a */ h = 8;  // enum: a
+    optional bool i = 9;
+    optional bool j = 10;
+    optional int32 /* enum a */ k = 11;  // enum: a
+    optional bool n = 13;
+    optional unknown_51 l = 92;
+    optional boolean m = 4103;  // msg: boolean
+}

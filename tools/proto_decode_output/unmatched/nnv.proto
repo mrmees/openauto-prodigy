@@ -1,0 +1,23 @@
+// Decoded from APK class: nnv
+// Field count: 16, range: 1-17
+
+syntax = "proto2";
+
+message nnv {
+    optional aaav c = 1;  // msg: aaav
+    optional aaav d = 2;  // msg: aaav
+    optional int32 e = 3;
+    optional int32 f = 4;
+    optional int32 g = 5;
+    optional int32 h = 6;
+    optional int32 i = 7;
+    optional noa l = 8;  // msg: noa
+    optional noa o = 9;  // msg: noa
+    optional bytes /* message ? */ r = 11;
+    optional int k = 14;  // msg: int
+    optional sfixed32 j = 27;
+    optional unknown_51 nok.class = 92;
+    optional bytes n = 102;
+    optional uint32 q = 4105;
+    optional bool m = 4105;
+}

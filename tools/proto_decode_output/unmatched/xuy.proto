@@ -1,0 +1,9 @@
+// Decoded from APK class: xuy
+// Field count: 2, range: 1-2
+
+syntax = "proto2";
+
+message xuy {
+    required fixed64 c = 1;
+    required fixed64 d = 2;
+}

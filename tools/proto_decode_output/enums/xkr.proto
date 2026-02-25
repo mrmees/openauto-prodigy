@@ -1,0 +1,10 @@
+// Decoded from APK class: xkr
+
+syntax = "proto2";
+
+enum xkr {
+    UNKNOWN_EXTRA = 0;
+    CALENDAR_ITEM_SOURCE_GSA_ACCOUNT_CAL_SYNC = 1;
+    CALENDAR_ITEM_SOURCE_NON_GSA_ACCOUNT_CAL_SYNC = 2;
+    CALENDAR_ITEM_SOURCE_CLOUD = 3;
+}

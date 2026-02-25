@@ -1,0 +1,8 @@
+// Decoded from APK class: abni
+// Field count: 1, range: 1-1
+
+syntax = "proto2";
+
+message abni {
+    repeated abnh b = 1;  // msg: abnh
+}

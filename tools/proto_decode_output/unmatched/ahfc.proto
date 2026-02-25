@@ -1,0 +1,9 @@
+// Decoded from APK class: ahfc
+// Field count: 2, range: 1-2
+
+syntax = "proto2";
+
+message ahfc {
+    optional int32 /* enum a */ c = 1;  // enum: a
+    optional int32 d = 2;
+}

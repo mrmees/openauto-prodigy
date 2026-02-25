@@ -1,0 +1,22 @@
+// Decoded from APK class: shq
+// Field count: 15, range: 1-15
+
+syntax = "proto2";
+
+message shq {
+    optional string c = 1;
+    optional string d = 2;
+    optional bytes e = 3;
+    optional string f = 4;
+    optional unknown_41 g = 5;
+    optional bytes j = 7;
+    optional int32 k = 8;
+    optional int64 l = 9;
+    optional bool m = 10;
+    optional bool n = 11;
+    optional shp q = 13;  // msg: shp
+    optional unknown_51 o = 92;
+    optional fixed32 h = 102;
+    optional bool p = 4103;
+    optional float i = 4616;
+}

@@ -1,0 +1,13 @@
+// Decoded from APK class: tuj
+
+syntax = "proto2";
+
+enum tuj {
+    UNKNOWN = 0;
+    GMM_API = 1;
+    PAINT = 2;
+    CHIME = 3;
+    NAV_SDK_USAGE_SERVER = 4;
+    HTTP = 5;
+    MAPS_MOBILE_SDKS = 6;
+}

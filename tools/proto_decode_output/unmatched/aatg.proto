@@ -1,0 +1,24 @@
+// Decoded from APK class: aatg
+// Field count: 17, range: 2-61
+
+syntax = "proto2";
+
+message aatg {
+    optional bool c = 2;
+    optional int32 d = 3;
+    required int32 f = 4;
+    required int32 g = 5;
+    optional int32 h = 6;
+    optional int32 i = 7;
+    required string j = 8;
+    optional int32 k = 9;
+    required aasz l = 10;  // msg: aasz
+    optional string m = 11;
+    optional string p = 13;
+    required int32 aaoo.n = 15;
+    optional int32 /* enum ? */ e = 16;
+    optional unknown_51 n = 92;
+    optional sfixed64 q = 102;
+    optional uint32 o = 4104;
+    optional sfixed32 r = 5380;
+}

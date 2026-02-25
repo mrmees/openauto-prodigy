@@ -1,0 +1,9 @@
+// Decoded from APK class: wcr
+
+syntax = "proto2";
+
+enum wcr {
+    UI_THEME_AUTOMATIC = 0;
+    UI_THEME_LIGHT = 1;
+    UI_THEME_DARK = 2;
+}

@@ -1,0 +1,8 @@
+// Decoded from APK class: wbc
+// Field count: 1, range: 1-1
+
+syntax = "proto2";
+
+message wbc {
+    optional wav c = 1;  // msg: wav
+}

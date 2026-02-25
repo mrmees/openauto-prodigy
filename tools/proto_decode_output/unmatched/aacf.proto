@@ -1,0 +1,9 @@
+// Decoded from APK class: aacf
+// Field count: 2, range: 1-2
+
+syntax = "proto2";
+
+message aacf {
+    repeated aacd b = 1;  // msg: aacd
+    optional int32 /* enum ? */ c = 2;
+}

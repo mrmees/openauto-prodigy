@@ -1,0 +1,9 @@
+// Decoded from APK class: xzw
+// Field count: 2, range: 3-6
+
+syntax = "proto2";
+
+message xzw {
+    optional unknown_41 b = 3;
+    optional fixed32 c = 102;
+}

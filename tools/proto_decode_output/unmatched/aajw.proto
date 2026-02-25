@@ -1,0 +1,9 @@
+// Decoded from APK class: aajw
+// Field count: 2, range: 1-2
+
+syntax = "proto2";
+
+message aajw {
+    optional uint64 b = 1;
+    optional bytes /* message ? */  = 2;
+}

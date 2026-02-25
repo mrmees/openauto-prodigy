@@ -1,0 +1,9 @@
+// Decoded from APK class: nfr
+// Field count: 2, range: 1-2
+
+syntax = "proto2";
+
+message nfr {
+    optional bool c = 1;
+    optional bool d = 2;
+}

@@ -1,0 +1,9 @@
+// Decoded from APK class: wbq
+
+syntax = "proto2";
+
+enum wbq {
+    SENSOR_OK = 1;
+    SENSOR_ERROR_TRANSIENT = 2;
+    SENSOR_ERROR_PERMANENT = 3;
+}

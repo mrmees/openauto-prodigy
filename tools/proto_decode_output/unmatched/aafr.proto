@@ -1,0 +1,11 @@
+// Decoded from APK class: aafr
+// Field count: 4, range: 1-7
+
+syntax = "proto2";
+
+message aafr {
+    optional aaav c = 1;  // msg: aaav
+    optional zyd d = 2;  // msg: zyd
+    optional aahm e = 4;  // msg: aahm
+    optional aafq f = 7;  // msg: aafq
+}

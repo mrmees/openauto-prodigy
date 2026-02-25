@@ -1,0 +1,8 @@
+// Decoded from APK class: aagp
+// Field count: 1, range: 1-1
+
+syntax = "proto2";
+
+message aagp {
+    optional aafm c = 1;  // msg: aafm
+}

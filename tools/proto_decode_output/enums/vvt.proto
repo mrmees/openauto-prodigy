@@ -1,0 +1,10 @@
+// Decoded from APK class: vvt
+
+syntax = "proto2";
+
+enum vvt {
+    AUDIO_FOCUS_GAIN = 1;
+    AUDIO_FOCUS_GAIN_TRANSIENT = 2;
+    AUDIO_FOCUS_GAIN_TRANSIENT_MAY_DUCK = 3;
+    AUDIO_FOCUS_RELEASE = 4;
+}

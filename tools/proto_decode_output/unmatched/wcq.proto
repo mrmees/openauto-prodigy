@@ -1,0 +1,9 @@
+// Decoded from APK class: wcq
+// Field count: 2, range: 1-2
+
+syntax = "proto2";
+
+message wcq {
+    optional string e = 1;
+    optional bytes /* message ? */ wcp.class = 2;
+}

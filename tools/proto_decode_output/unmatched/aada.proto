@@ -1,0 +1,12 @@
+// Decoded from APK class: aada
+// Field count: 5, range: 1-8
+
+syntax = "proto2";
+
+message aada {
+    optional string c = 1;
+    optional string d = 2;
+    optional yaa e = 6;  // msg: yaa
+    optional uint64 f = 7;
+    optional uint64 g = 8;
+}

@@ -1,0 +1,16 @@
+// Decoded from APK class: zre
+// Field count: 9, range: 1-9
+
+syntax = "proto2";
+
+message zre {
+    optional int32 /* enum ? */ c = 1;
+    optional zrd d = 2;  // msg: zrd
+    optional int32 e = 3;
+    optional uint64 f = 4;
+    repeated h zrw.class = 5;  // msg: h
+    optional int32 i = 6;
+    optional int32 j = 7;
+    optional bytes /* message ? */ k = 8;
+    optional string  = 9;
+}

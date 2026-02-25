@@ -1,0 +1,9 @@
+// Decoded from APK class: zqn
+
+syntax = "proto2";
+
+enum zqn {
+    MULTIZOOM_STYLE_TABLE = 0;
+    COMPACT_MULTIZOOM_STYLE_TABLE = 1;
+    COMPACT_MULTIZOOM_STYLE_TABLE_WITH_INLINING = 2;
+}

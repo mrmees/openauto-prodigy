@@ -1,0 +1,15 @@
+// Decoded from APK class: vup
+
+syntax = "proto2";
+
+enum vup {
+    DOOR_UNKNOWN = 0;
+    DOOR_ROW_1_LEFT = 1;
+    DOOR_ROW_1_RIGHT = 4;
+    DOOR_ROW_2_LEFT = 16;
+    DOOR_ROW_2_RIGHT = 64;
+    DOOR_ROW_3_LEFT = 256;
+    DOOR_ROW_3_RIGHT = 1024;
+    DOOR_HOOD = 268435456;
+    DOOR_REAR = 536870912;
+}

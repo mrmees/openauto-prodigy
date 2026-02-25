@@ -1,0 +1,13 @@
+// Decoded from APK class: xkb
+// Field count: 6, range: 1-6
+
+syntax = "proto2";
+
+message xkb {
+    optional string c = 1;
+    optional int32 /* enum a */ d = 2;  // enum: a
+    optional int32 e = 3;
+    optional int64 f = 4;
+    optional bool g = 5;
+    optional bool h = 6;
+}

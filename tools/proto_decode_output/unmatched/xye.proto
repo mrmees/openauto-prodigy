@@ -1,0 +1,10 @@
+// Decoded from APK class: xye
+// Field count: 3, range: 1-10
+
+syntax = "proto2";
+
+message xye {
+    optional xyb b = 1;  // msg: xyb
+    optional double c = 2;
+    optional int32 /* enum a */ d = 10;  // enum: a
+}

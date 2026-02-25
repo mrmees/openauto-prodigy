@@ -1,0 +1,9 @@
+// Decoded from APK class: vyt
+// Field count: 2, range: 1-2
+
+syntax = "proto2";
+
+message vyt {
+    optional vyn c = 1;  // enum: vyn
+    optional vvp d = 2;  // msg: vvp
+}

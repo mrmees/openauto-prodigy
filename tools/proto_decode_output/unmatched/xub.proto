@@ -1,0 +1,9 @@
+// Decoded from APK class: xub
+// Field count: 2, range: 2-3
+
+syntax = "proto2";
+
+message xub {
+    optional string c = 2;
+    optional int32 d = 3;
+}

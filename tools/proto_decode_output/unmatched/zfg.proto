@@ -1,0 +1,20 @@
+// Decoded from APK class: zfg
+// Field count: 13, range: 5-156
+
+syntax = "proto2";
+
+message zfg {
+    optional bool b = 5;
+    optional bool c = 120;
+    optional bool d = 121;
+    optional bool e = 124;
+    optional bool f = 126;
+    optional bool g = 127;
+    optional bool h = 130;
+    optional bool i = 131;
+    optional bool j = 134;
+    optional bool k = 135;
+    optional bool l = 141;
+    optional bool m = 143;
+    optional bool n = 156;
+}

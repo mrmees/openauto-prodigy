@@ -1,0 +1,10 @@
+// Decoded from APK class: vzd
+// Field count: 3, range: 1-3
+
+syntax = "proto2";
+
+message vzd {
+    optional vzv c = 1;  // msg: vzv
+    repeated vzf d = 2;  // msg: vzf
+    optional vzn e = 3;  // msg: vzn
+}

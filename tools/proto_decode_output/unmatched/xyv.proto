@@ -1,0 +1,12 @@
+// Decoded from APK class: xyv
+// Field count: 5, range: 1-6
+
+syntax = "proto2";
+
+message xyv {
+    required string b = 1;
+    required string c = 2;
+    repeated string d = 3;
+    optional string e = 4;
+    optional bool f = 6;
+}

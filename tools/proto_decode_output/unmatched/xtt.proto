@@ -1,0 +1,10 @@
+// Decoded from APK class: xtt
+// Field count: 3, range: 7-15
+
+syntax = "proto2";
+
+message xtt {
+    optional bytes /* message ? */ e = 7;
+    optional bytes /* message ? */ d = 14;
+    optional bytes /* message ? */ f = 15;
+}

@@ -1,0 +1,10 @@
+// Decoded from APK class: aatz
+// Field count: 3, range: 69-71
+
+syntax = "proto2";
+
+message aatz {
+    required int32 b = 69;
+    required int32 c = 70;
+    required bytes d = 71;
+}

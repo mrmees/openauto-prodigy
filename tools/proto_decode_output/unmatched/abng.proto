@@ -1,0 +1,10 @@
+// Decoded from APK class: abng
+// Field count: 3, range: 1-3
+
+syntax = "proto2";
+
+message abng {
+    optional abnf c = 1;  // msg: abnf
+    optional abnf d = 2;  // msg: abnf
+    optional sfixed64 e = 3;
+}

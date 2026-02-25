@@ -1,0 +1,21 @@
+// Decoded from APK class: zlv
+// Field count: 14, range: 1-14
+
+syntax = "proto2";
+
+message zlv {
+    repeated zpi c = 1;  // msg: zpi
+    optional fixed32 f = 2;
+    optional int32 g = 3;
+    optional bool h = 4;
+    optional bool i = 5;
+    repeated int32 d = 6;
+    optional string j = 7;
+    optional int32 k = 8;
+    optional int32 e = 9;
+    optional string l = 10;
+    optional int32 m = 11;
+    optional int32 /* enum a */ o = 13;  // enum: a
+    optional unknown_51 n = 92;
+    optional bytes /* message ? */ zfi.l = 6156;
+}

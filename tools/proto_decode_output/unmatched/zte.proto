@@ -1,0 +1,20 @@
+// Decoded from APK class: zte
+// Field count: 24, range: 3-63
+
+syntax = "proto2";
+
+message zte {
+    optional int32 /* enum ? */ d = 3;
+    optional bool f = 4;
+    optional bool g = 6;
+    optional int32 e = 8;
+    optional bool j = 13;
+    optional bool k = 14;
+    optional bool l = 18;
+    optional uint32 m = 22;
+    optional bool n = 28;
+    optional bool o = 31;
+    optional unknown_51 h = 92;
+    optional string i = 4103;
+}
+// PARSE ERROR: Entry parse error at field 12: read_varint: pos 45 past end of 45 chars

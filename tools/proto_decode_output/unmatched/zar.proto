@@ -1,0 +1,8 @@
+// Decoded from APK class: zar
+// Field count: 1, range: 5-5
+
+syntax = "proto2";
+
+message zar {
+    optional bytes /* message ? */ d = 5;
+}

@@ -1,0 +1,10 @@
+// Decoded from APK class: yza
+// Field count: 3, range: 2-22
+
+syntax = "proto2";
+
+message yza {
+    optional bytes /* message ? */ e = 2;
+    optional bytes /* message ? */ f = 3;
+    optional bytes /* message ? */ g = 22;
+}

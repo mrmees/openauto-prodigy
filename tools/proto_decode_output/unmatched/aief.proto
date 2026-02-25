@@ -1,0 +1,10 @@
+// Decoded from APK class: aief
+// Field count: 3, range: 1-3
+
+syntax = "proto2";
+
+message aief {
+    optional string c = 1;
+    optional string d = 2;
+    optional sdy e = 3;  // msg: sdy
+}

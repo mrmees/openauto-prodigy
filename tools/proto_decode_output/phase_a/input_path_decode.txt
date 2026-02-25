@@ -1,0 +1,32 @@
+
+======================================================================
+Class: vya  (5 fields)
+======================================================================
+  wire=  1  packed int32            field=d  java:defpackage.zzb
+  wire=  2  repeated message          field=e  [vxz.class]  java:defpackage.zzf
+  wire=  3  repeated message          field=f  [vxy.class]  java:defpackage.zzf
+  wire=  4  repeated enum             field=g  [vvs.m]  java:defpackage.zzb
+  wire=  5  uint32           field=h  (has_bit 0:0)
+
+======================================================================
+Class: zpl  (3 fields)
+======================================================================
+  wire=  1  message          field=c  (has_bit 0:0)  java:defpackage.zpn
+  wire=  2  message          field=d  (has_bit 0:1)  java:defpackage.zpn
+  wire=  3  message          field=e  (has_bit 0:2)  java:defpackage.zpn
+
+======================================================================
+Class: zpn  (2 fields)
+======================================================================
+  wire=  1  int32            field=c  (has_bit 0:0)
+  wire=  2  message          field=d  (has_bit 0:1)  java:defpackage.zli
+
+======================================================================
+Class: vxn  (3 fields)
+======================================================================
+  wire=  1  int32            field=c  (has_bit 0:0)
+  wire=  2  int32            field=d  (has_bit 0:1)
+  wire=  3  bool             field=e  (has_bit 0:2)
+
+======================================================================
+Decoded 4 classes

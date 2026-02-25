@@ -1,0 +1,17 @@
+// Decoded from APK class: aagv
+// Field count: 10, range: 1-10
+
+syntax = "proto2";
+
+message aagv {
+    optional fixed32 aagq.class = 0;
+    optional string g = 0;
+    optional uint32 d = 1;
+    optional string e = 2;
+    optional unknown_41 h = 3;
+    optional bytes /* message ? */ aagw.class = 5;
+    optional bytes /* message ? */ f = 7;
+    optional double aagp.class = 60;
+    optional double i = 60;
+    optional int32 aahe.class = 102;
+}

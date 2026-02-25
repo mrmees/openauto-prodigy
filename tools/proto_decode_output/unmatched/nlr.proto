@@ -1,0 +1,9 @@
+// Decoded from APK class: nlr
+// Field count: 2, range: 3-4
+
+syntax = "proto2";
+
+message nlr {
+    optional string c = 3;
+    optional string d = 4;
+}

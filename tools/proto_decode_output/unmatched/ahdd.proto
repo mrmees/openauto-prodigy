@@ -1,0 +1,10 @@
+// Decoded from APK class: ahdd
+// Field count: 3, range: 1-5
+
+syntax = "proto2";
+
+message ahdd {
+    optional fixed64  = 0;
+    optional string e = 1;
+    optional bytes  = 2;
+}

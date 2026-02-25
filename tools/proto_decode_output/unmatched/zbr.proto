@@ -1,0 +1,8 @@
+// Decoded from APK class: zbr
+// Field count: 1, range: 5-5
+
+syntax = "proto2";
+
+message zbr {
+    optional bytes /* message ? */ d = 5;
+}

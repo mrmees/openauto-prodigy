@@ -1,0 +1,8 @@
+// Decoded from APK class: zed
+// Field count: 1, range: 32-32
+
+syntax = "proto2";
+
+message zed {
+    optional bytes /* message ? */ d = 32;
+}

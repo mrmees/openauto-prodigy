@@ -1,0 +1,9 @@
+// Decoded from APK class: aake
+// Field count: 2, range: 1-2
+
+syntax = "proto2";
+
+message aake {
+    optional string b = 1;
+    optional bytes c = 2;
+}

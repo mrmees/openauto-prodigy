@@ -1,0 +1,9 @@
+// Decoded from APK class: zpo
+// Field count: 2, range: 1-2
+
+syntax = "proto2";
+
+message zpo {
+    optional zpn b = 1;  // msg: zpn
+    optional zpn c = 2;  // msg: zpn
+}

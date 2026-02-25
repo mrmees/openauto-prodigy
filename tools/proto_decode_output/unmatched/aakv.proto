@@ -1,0 +1,11 @@
+// Decoded from APK class: aakv
+// Field count: 4, range: 1-9
+
+syntax = "proto2";
+
+message aakv {
+    optional int32 b = 1;
+    optional int32 c = 3;
+    optional bool d = 8;
+    optional uint64 e = 9;
+}

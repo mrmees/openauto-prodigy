@@ -1,0 +1,9 @@
+// Decoded from APK class: zpk
+// Field count: 2, range: 1-2
+
+syntax = "proto2";
+
+message zpk {
+    optional uint64 b = 1;
+    optional uint64  = 2;
+}

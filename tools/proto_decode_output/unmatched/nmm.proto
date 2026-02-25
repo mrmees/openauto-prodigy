@@ -1,0 +1,9 @@
+// Decoded from APK class: nmm
+// Field count: 2, range: 1-2
+
+syntax = "proto2";
+
+message nmm {
+    optional int64 c = 1;
+    optional string d = 2;
+}

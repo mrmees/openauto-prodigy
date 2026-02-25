@@ -1,0 +1,9 @@
+// Decoded from APK class: aapl
+// Field count: 2, range: 1-3
+
+syntax = "proto2";
+
+message aapl {
+    optional bytes /* message ? */ d = 1;
+    optional bytes /* message ? */ e = 3;
+}

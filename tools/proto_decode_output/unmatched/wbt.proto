@@ -1,0 +1,8 @@
+// Decoded from APK class: wbt
+// Field count: 1, range: 1-1
+
+syntax = "proto2";
+
+message wbt {
+    required wbv b = 1;  // enum: wbv
+}

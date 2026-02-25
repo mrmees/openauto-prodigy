@@ -1,0 +1,13 @@
+// Decoded from APK class: zvd
+// Field count: 3, range: 1-92
+
+syntax = "proto2";
+
+message zvd {
+    optional float c = 3;
+    optional bytes /* message ? */ e = 8;
+    optional unknown_51  = 92;
+    optional sfixed64 f = 5129;
+    optional uint64  = 5129;
+}
+// PARSE ERROR: Entry parse error at field 5: read_varint: pos 21 past end of 21 chars

@@ -1,0 +1,9 @@
+// Decoded from APK class: zsw
+// Field count: 2, range: 1-2
+
+syntax = "proto2";
+
+message zsw {
+    optional int64  = 0;
+    optional string  = 1;
+}

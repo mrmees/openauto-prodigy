@@ -1,0 +1,21 @@
+// Decoded from APK class: ahdf
+// Field count: 14, range: 1-14
+
+syntax = "proto2";
+
+message ahdf {
+    optional string c = 1;
+    optional int32 /* enum agng */ d = 2;  // enum: agng
+    optional int32 e = 3;
+    optional int32 /* enum ? */ f = 4;
+    optional int64 g = 5;
+    optional int64 i = 6;
+    optional int64 j = 7;
+    optional bool k = 8;
+    optional ahdd l = 9;  // msg: ahdd
+    optional int64 h = 10;
+    optional ahdw m = 11;  // msg: ahdw
+    optional aadq p = 13;  // msg: aadq
+    optional unknown_51 n = 92;
+    optional uint32 o = 5129;
+}

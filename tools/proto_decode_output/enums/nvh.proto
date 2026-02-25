@@ -1,0 +1,13 @@
+// Decoded from APK class: nvh
+
+syntax = "proto2";
+
+enum nvh {
+    NOT_INJECTED = 0;
+    IO_EXCEPTION = 102;
+    NO_OP = 103;
+    IO_EXCEPTION_IF_NOT_PING_MESSAGE = 104;
+    WIFI_NETWORK_UNAVAILABLE = 105;
+    WIFI_NETWORK_LOST = 106;
+    WIFI_NETWORK_DELAY_AVAILABLE = 107;
+}

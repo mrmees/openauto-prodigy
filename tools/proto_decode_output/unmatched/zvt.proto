@@ -1,0 +1,12 @@
+// Decoded from APK class: zvt
+// Field count: 5, range: 4-27
+
+syntax = "proto2";
+
+message zvt {
+    optional bytes /* message ? */ h = 4;
+    optional string d = 9;
+    optional int32 e = 15;
+    optional string c = 17;
+    optional xmh f = 27;  // msg: xmh
+}

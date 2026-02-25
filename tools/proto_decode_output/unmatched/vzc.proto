@@ -1,0 +1,8 @@
+// Decoded from APK class: vzc
+// Field count: 1, range: 1-1
+
+syntax = "proto2";
+
+message vzc {
+    repeated string b = 1;
+}

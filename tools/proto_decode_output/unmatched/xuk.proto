@@ -1,0 +1,8 @@
+// Decoded from APK class: xuk
+// Field count: 1, range: 1-1
+
+syntax = "proto2";
+
+message xuk {
+    optional sfixed64 c = 1;
+}

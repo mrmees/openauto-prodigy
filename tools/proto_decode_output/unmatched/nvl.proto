@@ -1,0 +1,10 @@
+// Decoded from APK class: nvl
+// Field count: 3, range: 1-3
+
+syntax = "proto2";
+
+message nvl {
+    repeated nvq c = 1;  // msg: nvq
+    repeated nvq d = 2;  // msg: nvq
+    optional zyd e = 3;  // msg: zyd
+}

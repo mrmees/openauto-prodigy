@@ -1,0 +1,11 @@
+// Decoded from APK class: rtn
+// Field count: 4, range: 1-4
+
+syntax = "proto2";
+
+message rtn {
+    optional string c = 1;
+    optional bool d = 2;
+    optional string e = 3;
+    repeated rto f = 4;  // msg: rto
+}

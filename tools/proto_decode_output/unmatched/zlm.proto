@@ -1,0 +1,10 @@
+// Decoded from APK class: zlm
+// Field count: 3, range: 1-3
+
+syntax = "proto2";
+
+message zlm {
+    optional uint64 b = 1;
+    optional uint64 d = 2;
+    repeated bytes /* message ? */  = 3;
+}

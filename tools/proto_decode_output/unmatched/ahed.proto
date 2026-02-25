@@ -1,0 +1,8 @@
+// Decoded from APK class: ahed
+// Field count: 1, range: 1-1
+
+syntax = "proto2";
+
+message ahed {
+    optional int32 /* enum agnp */ c = 1;  // enum: agnp
+}

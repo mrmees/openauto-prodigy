@@ -1,0 +1,8 @@
+// Decoded from APK class: aatl
+
+syntax = "proto2";
+
+enum aatl {
+    SPHERICAL = 3;
+    CUBIC = 4;
+}

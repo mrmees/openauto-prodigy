@@ -1,0 +1,10 @@
+// Decoded from APK class: vzr
+// Field count: 3, range: 1-3
+
+syntax = "proto2";
+
+message vzr {
+    required int32 c = 1;
+    required int32 /* enum viz */ d = 2;  // enum: viz
+    optional vzq e = 3;  // msg: vzq
+}

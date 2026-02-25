@@ -1,0 +1,20 @@
+// Decoded from APK class: nls
+// Field count: 13, range: 1-14
+
+syntax = "proto2";
+
+message nls {
+    optional string nlu.class = 0;
+    optional bytes nlv.class = 0;
+    optional int32 /* enum ? */ e = 1;
+    optional int32 /* enum ? */ f = 2;
+    optional string g = 3;
+    optional int32 h = 4;
+    optional aaav i = 5;  // msg: aaav
+    optional string j = 6;
+    optional bytes /* message ? */ nlr.class = 7;
+    optional bytes /* message ? */ nlt.class = 9;
+    optional boolean k = 11;  // msg: boolean
+    optional double nly.class = 60;
+    optional double nlw.class = 60;
+}

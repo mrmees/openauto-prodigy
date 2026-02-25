@@ -1,0 +1,12 @@
+// Decoded from APK class: nog
+
+syntax = "proto2";
+
+enum nog {
+    AUDIO_BOTTOM_HALF_UNSPECIFIED = 0;
+    INIT = 1;
+    START = 2;
+    STOP = 3;
+    SEND_STREAM = 4;
+    SHUTDOWN = 5;
+}

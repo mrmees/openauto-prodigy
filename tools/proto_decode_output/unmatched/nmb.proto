@@ -1,0 +1,8 @@
+// Decoded from APK class: nmb
+// Field count: 1, range: 1-1
+
+syntax = "proto2";
+
+message nmb {
+    optional bool b = 1;
+}

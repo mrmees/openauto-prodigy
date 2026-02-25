@@ -1,0 +1,24 @@
+// Decoded from APK class: yts
+
+syntax = "proto2";
+
+enum yts {
+    OTHER_CELL_NETWORK = 0;
+    EDGE = 1;
+    GPRS = 2;
+    UMTS = 3;
+    CDMA = 4;
+    CDMA2000_1XRTT = 5;
+    CDMA2000_1XEVDO_0 = 6;
+    CDMA2000_1XEVDO_A = 7;
+    CDMA2000_1XEVDO_B = 8;
+    IDEN = 9;
+    HSPA = 10;
+    HSDPA = 11;
+    HSUPA = 12;
+    HSPAP = 13;
+    EHRPD = 14;
+    LTE = 15;
+    NRNSA = 16;
+    NR = 17;
+}

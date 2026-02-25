@@ -115,13 +115,14 @@ void AASession::start() {
     }
 }
 
-void AASession::stop() {
+void AASession::stop(int reason) {
     if (state_ == SessionState::Disconnected || state_ == SessionState::Idle)
         return;
 
     if (state_ == SessionState::Active) {
         // Graceful shutdown
-        controlChannel_->sendShutdownRequest(1); // USER_SELECTION
+        qInfo() << "[AASession] Sending ShutdownRequest reason:" << reason;
+        controlChannel_->sendShutdownRequest(reason);
         setState(SessionState::ShuttingDown);
         startStateTimer(5000); // 5s shutdown timeout
     } else {

@@ -1,0 +1,12 @@
+// Decoded from APK class: aatc
+// Field count: 5, range: 2-7
+
+syntax = "proto2";
+
+message aatc {
+    required string c = 2;
+    required int32 d = 3;
+    required fixed64 e = 4;
+    optional bytes f = 6;
+    required string g = 7;
+}

@@ -1,0 +1,10 @@
+// Decoded from APK class: ybd
+// Field count: 3, range: 1-7
+
+syntax = "proto2";
+
+message ybd {
+    optional bytes /* message ? */ d = 1;
+    optional sfixed64 f = 3;
+    optional bytes /* message ? */ e = 7;
+}

@@ -1,0 +1,11 @@
+// Decoded from APK class: sec
+// Field count: 4, range: 1-4
+
+syntax = "proto2";
+
+message sec {
+    optional string c = 1;
+    optional string d = 2;
+    optional sdy e = 3;  // msg: sdy
+    optional string f = 4;
+}

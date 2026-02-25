@@ -1,0 +1,16 @@
+// Decoded from APK class: vxx
+// Field count: 6, range: 1-7
+
+syntax = "proto2";
+
+message vxx {
+    required uint64 c = 1;
+    optional wcj d = 3;  // msg: wcj
+    optional vyj e = 4;  // msg: vyj
+    optional vvi f = 5;  // msg: vvi
+    optional wbm g = 6;  // msg: wbm
+    optional wcj h = 7;  // msg: wcj
+}
+
+// === DIFF vs our proto ===
+// - field 2: int32 disp_channel

@@ -1,0 +1,22 @@
+// Decoded from APK class: zmy
+// Field count: 15, range: 1-22
+
+syntax = "proto2";
+
+message zmy {
+    optional string c = 1;
+    optional string d = 2;
+    optional fixed64 f = 3;
+    optional fixed64 g = 4;
+    optional string i = 5;
+    optional bool k = 6;
+    optional bool m = 8;
+    optional string e = 9;
+    optional bool n = 10;
+    optional string j = 13;
+    optional int32 o = 14;
+    optional int32 p = 15;
+    optional bool l = 16;
+    repeated int64 h = 102;
+    optional bool q = 4105;
+}

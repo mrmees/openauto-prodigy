@@ -1,0 +1,9 @@
+// Decoded from APK class: wav
+// Field count: 2, range: 1-2
+
+syntax = "proto2";
+
+message wav {
+    optional war c = 1;  // msg: war
+    repeated war d = 2;  // msg: war
+}

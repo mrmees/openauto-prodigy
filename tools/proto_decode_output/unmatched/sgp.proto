@@ -1,0 +1,9 @@
+// Decoded from APK class: sgp
+// Field count: 2, range: 1-2
+
+syntax = "proto2";
+
+message sgp {
+    optional int64 b = 1;
+    optional bytes c = 2;
+}

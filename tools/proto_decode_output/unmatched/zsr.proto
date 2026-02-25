@@ -1,0 +1,13 @@
+// Decoded from APK class: zsr
+// Field count: 6, range: 1-8
+
+syntax = "proto2";
+
+message zsr {
+    optional zsf c = 1;  // msg: zsf
+    optional bytes /* message ? */ i = 2;
+    repeated znu e = 3;  // msg: znu
+    optional int32 /* enum ? */ g = 4;
+    optional zqs f = 7;  // msg: zqs
+    optional bytes d = 8;
+}

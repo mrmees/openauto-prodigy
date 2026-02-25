@@ -1,0 +1,12 @@
+// Decoded from APK class: nnz
+// Field count: 5, range: 1-5
+
+syntax = "proto2";
+
+message nnz {
+    optional string c = 1;
+    optional int32 /* enum ? */ d = 2;
+    optional int32 e = 3;
+    optional int32 f = 4;
+    optional aaav g = 5;  // msg: aaav
+}

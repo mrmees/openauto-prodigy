@@ -1,0 +1,9 @@
+// Decoded from APK class: aade
+// Field count: 2, range: 1-2
+
+syntax = "proto2";
+
+message aade {
+    optional int64 aadd.class = 0;
+    optional bytes /* message ? */ aadc.class = 1;
+}

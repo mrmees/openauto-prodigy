@@ -1,0 +1,10 @@
+// Decoded from APK class: nwe
+// Field count: 3, range: 1-3
+
+syntax = "proto2";
+
+message nwe {
+    optional sfixed64 b = 1;
+    optional sfixed64 c = 2;
+    optional sfixed64 d = 3;
+}

@@ -1,0 +1,8 @@
+// Decoded from APK class: xuw
+// Field count: 1, range: 4-4
+
+syntax = "proto2";
+
+message xuw {
+    optional string b = 4;
+}

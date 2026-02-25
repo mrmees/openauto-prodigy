@@ -1,0 +1,8 @@
+// Decoded from APK class: zvl
+// Field count: 1, range: 6-6
+
+syntax = "proto2";
+
+message zvl {
+    optional bytes /* message ? */ d = 6;
+}

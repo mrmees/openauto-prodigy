@@ -1,0 +1,10 @@
+// Decoded from APK class: aajm
+// Field count: 3, range: 1-3
+
+syntax = "proto2";
+
+message aajm {
+    optional string c = 1;
+    optional string d = 2;
+    optional string e = 3;
+}

@@ -1,0 +1,20 @@
+// Decoded from APK class: nlq
+// Field count: 13, range: 1-15
+
+syntax = "proto2";
+
+message nlq {
+    optional bool c = 1;
+    optional bool d = 2;
+    optional bool e = 3;
+    optional bool f = 5;
+    optional bool g = 6;
+    optional bool h = 7;
+    optional bool i = 8;
+    optional bool j = 10;
+    optional bool k = 11;
+    optional bool m = 13;
+    optional unknown_51 l = 92;
+    optional sfixed64 n = 102;
+    optional boolean o = 4103;  // msg: boolean
+}

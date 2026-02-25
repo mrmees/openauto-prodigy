@@ -1,0 +1,8 @@
+// Decoded from APK class: zob
+// Field count: 1, range: 2-2
+
+syntax = "proto2";
+
+message zob {
+    optional fixed64 b = 2;
+}

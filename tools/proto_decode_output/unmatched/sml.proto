@@ -1,0 +1,9 @@
+// Decoded from APK class: sml
+// Field count: 2, range: 1-2
+
+syntax = "proto2";
+
+message sml {
+    optional float c = 1;
+    optional int32 /* enum a */ d = 2;  // enum: a
+}

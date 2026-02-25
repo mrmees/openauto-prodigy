@@ -1,0 +1,9 @@
+// Decoded from APK class: ztp
+// Field count: 2, range: 1-2
+
+syntax = "proto2";
+
+message ztp {
+    repeated zto b = 1;  // msg: zto
+    optional int32 c = 2;
+}

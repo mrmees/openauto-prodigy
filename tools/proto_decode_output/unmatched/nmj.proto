@@ -1,0 +1,10 @@
+// Decoded from APK class: nmj
+// Field count: 3, range: 1-3
+
+syntax = "proto2";
+
+message nmj {
+    optional string c = 1;
+    optional nmi d = 2;  // msg: nmi
+    optional nmd e = 3;  // msg: nmd
+}

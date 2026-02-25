@@ -1,0 +1,11 @@
+// Decoded from APK class: abnh
+// Field count: 4, range: 1-4
+
+syntax = "proto2";
+
+message abnh {
+    optional int32 b = 1;
+    optional int32 c = 2;
+    optional string d = 3;
+    optional int64 e = 4;
+}

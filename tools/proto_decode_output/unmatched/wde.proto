@@ -1,0 +1,8 @@
+// Decoded from APK class: wde
+// Field count: 1, range: 1-1
+
+syntax = "proto2";
+
+message wde {
+    optional int32 /* enum viz */ c = 1;  // enum: viz
+}

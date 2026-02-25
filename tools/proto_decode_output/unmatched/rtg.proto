@@ -1,0 +1,18 @@
+// Decoded from APK class: rtg
+// Field count: 7, range: 1-92
+
+syntax = "proto2";
+
+message rtg {
+    optional float d = 0;
+    optional uint32  = 0;
+    optional int32 /* enum ? */ nvg.i = 2;
+    optional string g = 3;
+    optional double  = 4;
+    optional string  = 10;
+    optional double  = 59;
+    optional double  = 59;
+    optional unknown_51  = 92;
+    optional double e = 4104;
+}
+// PARSE ERROR: Entry parse error at field 10: read_varint: pos 33 past end of 33 chars

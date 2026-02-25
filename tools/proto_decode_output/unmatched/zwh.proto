@@ -1,0 +1,11 @@
+// Decoded from APK class: zwh
+// Field count: 2, range: 92-102
+
+syntax = "proto2";
+
+message zwh {
+    optional unknown_41 d = 0;
+    optional bytes /* message ? */  = 13;
+    optional bytes /* message ? */ e = 102;
+}
+// PARSE ERROR: Entry parse error at field 3: read_varint: pos 18 past end of 18 chars

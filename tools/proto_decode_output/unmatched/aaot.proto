@@ -1,0 +1,8 @@
+// Decoded from APK class: aaot
+// Field count: 1, range: 2-2
+
+syntax = "proto2";
+
+message aaot {
+    optional string b = 2;
+}

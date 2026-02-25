@@ -1,0 +1,11 @@
+// Decoded from APK class: xle
+// Field count: 4, range: 1-4
+
+syntax = "proto2";
+
+message xle {
+    optional int32 c = 1;
+    optional bool d = 2;
+    optional xlc e = 3;  // msg: xlc
+    optional int32 f = 4;
+}

@@ -1,0 +1,15 @@
+// Decoded from APK class: zri
+
+syntax = "proto2";
+
+enum zri {
+    STATUS_OK = 0;
+    STATUS_NOT_FOUND = 1;
+    STATUS_BAD_REQUEST = 2;
+    STATUS_SERVER_ERROR = 3;
+    STATUS_IVSERVER_AMBIGUOUS_RESPONSE = 4;
+    STATUS_OK_EMPTY = 5;
+    STATUS_OK_DATA_UNCHANGED = 6;
+    STATUS_SERVICE_UNAVAILABLE = 7;
+    STATUS_INVALID_EPOCH = 8;
+}

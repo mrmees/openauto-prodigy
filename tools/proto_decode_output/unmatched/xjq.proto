@@ -1,0 +1,11 @@
+// Decoded from APK class: xjq
+// Field count: 4, range: 1-4
+
+syntax = "proto2";
+
+message xjq {
+    optional int32 c = 1;
+    optional int32 d = 2;
+    optional int32 /* enum a */ e = 3;  // enum: a
+    optional sint32 f = 4;
+}

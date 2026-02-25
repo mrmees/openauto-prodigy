@@ -1,0 +1,32 @@
+// Decoded from APK class: wbw
+// Field count: 17, range: 1-17
+
+syntax = "proto2";
+
+message wbw {
+    required int32 c = 1;
+    optional wbu d = 2;  // msg: wbu
+    optional vys e = 3;  // msg: vys
+    optional vya f = 4;  // msg: vya
+    optional vyt g = 5;  // msg: vyt
+    optional vwc h = 6;  // msg: vwc
+    optional way i = 7;  // msg: way
+    optional vzr j = 8;  // msg: vzr
+    optional bytes /* message ? */ o = 9;
+    optional bytes /* message ? */ p = 10;
+    optional bytes /* message ? */ q = 11;
+    optional wdh l = 13;  // msg: wdh
+    optional bytes /* message ? */ t = 15;
+    optional unknown_51 k = 92;
+    optional sfixed64 m = 102;
+    optional sfixed32 s = 4105;
+    optional uint32 r = 5129;
+}
+
+// === DIFF vs our proto ===
+// + field 92: unknown_51 k
+// + field 102: sfixed64 m
+// + field 4105: sfixed32 s
+// + field 5129: uint32 r
+// - field 12: VendorExtensionChannel vendor_extension_channel
+// - field 14: WifiChannel wifi_channel

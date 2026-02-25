@@ -1,0 +1,11 @@
+// Decoded from APK class: xnc
+// Field count: 4, range: 5-8
+
+syntax = "proto2";
+
+message xnc {
+    required string c = 5;
+    required string d = 6;
+    optional string e = 7;
+    required int32 f = 8;
+}

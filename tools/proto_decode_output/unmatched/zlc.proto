@@ -1,0 +1,12 @@
+// Decoded from APK class: zlc
+// Field count: 5, range: 1-5
+
+syntax = "proto2";
+
+message zlc {
+    optional zld c = 1;  // msg: zld
+    optional zlb d = 2;  // enum: zlb
+    optional int32 /* enum a */ f = 3;  // enum: a
+    optional int32 e = 4;
+    optional bytes /* message ? */ h = 5;
+}

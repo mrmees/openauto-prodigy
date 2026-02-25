@@ -1,0 +1,8 @@
+// Decoded from APK class: vzb
+
+syntax = "proto2";
+
+enum vzb {
+    NAV_FOCUS_NATIVE = 1;
+    NAV_FOCUS_PROJECTED = 2;
+}

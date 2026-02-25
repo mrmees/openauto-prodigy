@@ -1,0 +1,11 @@
+// Decoded from APK class: zvs
+// Field count: 4, range: 2-13
+
+syntax = "proto2";
+
+message zvs {
+    repeated int32 /* enum ? */ b = 2;
+    repeated int32 /* enum ? */ c = 3;
+    optional bool d = 9;
+    repeated zvm e = 13;  // msg: zvm
+}

@@ -1,0 +1,12 @@
+// Decoded from APK class: nor
+
+syntax = "proto2";
+
+enum nor {
+    BATCH_KEY_UNSPECIFIED = 0;
+    BATCH_KEY_CONTEXT = 1;
+    BATCH_KEY_SCREEN = 2;
+    BATCH_KEY_APP_PACKAGE = 3;
+    BATCH_KEY_COMPONENT_NAME = 4;
+    BATCH_KEY_COMPONENT_NAMES = 5;
+}

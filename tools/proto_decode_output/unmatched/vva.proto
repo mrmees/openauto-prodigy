@@ -1,0 +1,8 @@
+// Decoded from APK class: vva
+// Field count: 1, range: 1-1
+
+syntax = "proto2";
+
+message vva {
+    optional double b = 1;
+}

@@ -1,0 +1,9 @@
+// Decoded from APK class: xhy
+// Field count: 2, range: 1-2
+
+syntax = "proto2";
+
+message xhy {
+    optional int64 c = 1;
+    optional bool d = 2;
+}

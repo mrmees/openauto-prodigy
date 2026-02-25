@@ -1,0 +1,11 @@
+// Decoded from APK class: ohd
+// Field count: 4, range: 1-4
+
+syntax = "proto2";
+
+message ohd {
+    optional string d = 1;
+    optional int64 e = 2;
+    optional aamq f = 3;  // msg: aamq
+    optional string c = 4;
+}

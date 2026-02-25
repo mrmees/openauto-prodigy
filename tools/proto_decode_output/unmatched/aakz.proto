@@ -1,0 +1,13 @@
+// Decoded from APK class: aakz
+// Field count: 6, range: 1-25
+
+syntax = "proto2";
+
+message aakz {
+    optional unknown_41 b = 1;
+    optional bytes d = 11;
+    optional string f = 14;
+    optional sfixed64 aaky.a = 16;
+    optional fixed32 c = 102;
+    optional double e = 4105;
+}

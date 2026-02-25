@@ -1,0 +1,23 @@
+// Decoded from APK class: zij
+// Field count: 16, range: 3-237
+
+syntax = "proto2";
+
+message zij {
+    optional bool d = 3;
+    optional bool e = 4;
+    optional bool f = 5;
+    optional bool g = 30;
+    optional bool h = 32;
+    optional bool i = 35;
+    optional bool j = 41;
+    optional bool k = 43;
+    optional bool l = 46;
+    optional bool m = 50;
+    optional bool n = 96;
+    optional int32 o = 136;
+    optional bool q = 166;
+    optional bool r = 182;
+    optional int32 s = 185;
+    optional int32 p = 237;
+}

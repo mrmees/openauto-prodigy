@@ -1,0 +1,30 @@
+// Decoded from APK class: ahef
+// Field count: 23, range: 1-28
+
+syntax = "proto2";
+
+message ahef {
+    optional string c = 1;
+    optional string d = 2;
+    optional int32 f = 3;
+    optional int32 g = 4;
+    optional int32 h = 5;
+    optional uint32 i = 6;
+    optional uint32 j = 7;
+    optional int32 /* enum a */ k = 8;  // enum: a
+    optional ahev l = 10;  // msg: ahev
+    optional ahed n = 11;  // msg: ahed
+    optional int64 p = 13;
+    optional int32 /* enum a */ q = 14;  // enum: a
+    optional int32 /* enum a */ r = 15;  // enum: a
+    optional int32 t = 16;
+    optional string u = 17;
+    optional int32 s = 19;
+    optional string w = 20;
+    optional int32 v = 21;
+    optional int m = 22;  // msg: int
+    optional int32 /* enum ? */ ahde.h = 24;
+    optional string o = 25;
+    optional int32 /* enum ? */ ahde.i = 27;
+    repeated bytes  = 102;
+}

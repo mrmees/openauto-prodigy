@@ -1,0 +1,16 @@
+// Decoded from APK class: rtp
+// Field count: 9, range: 1-9
+
+syntax = "proto2";
+
+message rtp {
+    optional rtr c = 1;  // msg: rtr
+    repeated bytes d = 2;
+    optional string e = 3;
+    repeated rtm f = 4;  // msg: rtm
+    optional string g = 5;
+    optional bool h = 6;
+    optional string i = 7;
+    optional string j = 8;
+    optional string k = 9;
+}

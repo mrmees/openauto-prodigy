@@ -1,0 +1,9 @@
+// Decoded from APK class: nni
+// Field count: 2, range: 1-2
+
+syntax = "proto2";
+
+message nni {
+    repeated string b = 1;
+    repeated nme c = 2;  // msg: nme
+}

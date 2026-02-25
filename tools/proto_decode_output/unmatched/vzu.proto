@@ -1,0 +1,11 @@
+// Decoded from APK class: vzu
+// Field count: 4, range: 1-4
+
+syntax = "proto2";
+
+message vzu {
+    optional vzk c = 1;  // msg: vzk
+    optional vzn d = 2;  // msg: vzn
+    repeated vzj e = 3;  // msg: vzj
+    optional vzc f = 4;  // msg: vzc
+}

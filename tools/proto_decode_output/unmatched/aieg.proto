@@ -1,0 +1,8 @@
+// Decoded from APK class: aieg
+// Field count: 1, range: 1-1
+
+syntax = "proto2";
+
+message aieg {
+    repeated aief b = 1;  // msg: aief
+}

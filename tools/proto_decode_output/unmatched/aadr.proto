@@ -1,0 +1,9 @@
+// Decoded from APK class: aadr
+// Field count: 2, range: 1-2
+
+syntax = "proto2";
+
+message aadr {
+    required fixed64 d = 1;
+    required fixed64 e = 2;
+}

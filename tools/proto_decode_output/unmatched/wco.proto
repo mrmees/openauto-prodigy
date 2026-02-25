@@ -1,0 +1,9 @@
+// Decoded from APK class: wco
+// Field count: 2, range: 1-2
+
+syntax = "proto2";
+
+message wco {
+    repeated wcq b = 1;  // msg: wcq
+    repeated wcq c = 2;  // msg: wcq
+}

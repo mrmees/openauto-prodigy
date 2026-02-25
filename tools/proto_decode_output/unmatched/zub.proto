@@ -1,0 +1,23 @@
+// Decoded from APK class: zub
+// Field count: 92, range: 1-1
+
+syntax = "proto2";
+
+message zub {
+    optional double  = 0;
+    optional float  = 0;
+    optional fixed32  = 2;
+    optional int32  = 3;
+    optional bytes /* message ? */  = 4;
+    optional int32 /* enum ? */  = 5;
+    optional int32  = 6;
+    optional int32  = 7;
+    optional int32  = 8;
+    optional int32  = 9;
+    optional fixed32  = 10;
+    optional float  = 11;
+    optional unknown_51  = 92;
+    optional sint64  = 4097;
+    optional double  = 4102;
+}
+// PARSE ERROR: Entry parse error at field 15: read_varint: pos 50 past end of 50 chars

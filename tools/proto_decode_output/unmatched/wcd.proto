@@ -1,0 +1,10 @@
+// Decoded from APK class: wcd
+// Field count: 3, range: 1-4
+
+syntax = "proto2";
+
+message wcd {
+    required int32 c = 1;
+    optional bool d = 2;
+    optional int32 e = 4;
+}

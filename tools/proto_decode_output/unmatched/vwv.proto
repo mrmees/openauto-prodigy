@@ -1,0 +1,9 @@
+// Decoded from APK class: vwv
+// Field count: 2, range: 1-2
+
+syntax = "proto2";
+
+message vwv {
+    optional vuv c = 1;  // msg: vuv
+    optional vyw d = 2;  // enum: vyw
+}

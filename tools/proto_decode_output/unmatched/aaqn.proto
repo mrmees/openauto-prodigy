@@ -1,0 +1,9 @@
+// Decoded from APK class: aaqn
+// Field count: 2, range: 1-4
+
+syntax = "proto2";
+
+message aaqn {
+    required string d = 1;
+    optional bytes /* message ? */ e = 4;
+}

@@ -1,0 +1,8 @@
+// Decoded from APK class: vwr
+// Field count: 1, range: 1-1
+
+syntax = "proto2";
+
+message vwr {
+    optional vwp c = 1;  // enum: vwp
+}

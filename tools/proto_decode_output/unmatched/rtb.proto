@@ -1,0 +1,8 @@
+// Decoded from APK class: rtb
+// Field count: 1, range: 1-1
+
+syntax = "proto2";
+
+message rtb {
+    optional bytes /* message ? */ rsu.class = 1;
+}

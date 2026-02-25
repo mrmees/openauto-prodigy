@@ -1,0 +1,8 @@
+// Decoded from APK class: xtx
+// Field count: 1, range: 16-16
+
+syntax = "proto2";
+
+message xtx {
+    optional sfixed64 c = 16;
+}

@@ -1,0 +1,11 @@
+// Decoded from APK class: xvl
+// Field count: 4, range: 1-7
+
+syntax = "proto2";
+
+message xvl {
+    optional xvk c = 1;  // msg: xvk
+    optional xvj d = 2;  // msg: xvj
+    optional xve e = 4;  // msg: xve
+    optional xvm f = 7;  // msg: xvm
+}

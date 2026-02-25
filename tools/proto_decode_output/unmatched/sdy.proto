@@ -1,0 +1,9 @@
+// Decoded from APK class: sdy
+// Field count: 2, range: 1-2
+
+syntax = "proto2";
+
+message sdy {
+    optional int64  = 0;
+    optional bytes sdx.class = 1;
+}

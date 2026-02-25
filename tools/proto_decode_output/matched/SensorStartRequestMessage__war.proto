@@ -1,0 +1,9 @@
+// Decoded from APK class: war
+// Field count: 2, range: 1-2
+
+syntax = "proto2";
+
+message war {
+    optional waq c = 1;  // enum: waq
+    optional uint64 d = 2;
+}

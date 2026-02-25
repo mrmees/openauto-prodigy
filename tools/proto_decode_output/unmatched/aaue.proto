@@ -1,0 +1,13 @@
+// Decoded from APK class: aaue
+// Field count: 8, range: 2-68
+
+syntax = "proto2";
+
+message aaue {
+    optional string c = 2;
+    optional aatn d = 3;  // msg: aatn
+    optional group f = 17;
+    optional group e = 27;
+    optional string i = 33;
+}
+// PARSE ERROR: Entry parse error at field 5: read_varint: pos 26 past end of 26 chars

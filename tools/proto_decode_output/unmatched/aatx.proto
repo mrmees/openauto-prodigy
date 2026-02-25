@@ -1,0 +1,21 @@
+// Decoded from APK class: aatx
+// Field count: 14, range: 1-64
+
+syntax = "proto2";
+
+message aatx {
+    optional string c = 1;
+    optional aasz d = 2;  // msg: aasz
+    optional group h = 17;
+    optional group j = 33;
+    optional bool l = 49;
+    optional bool m = 50;
+    optional bool n = 51;
+    optional int32 g = 52;
+    optional group k = 53;
+    optional int32 o = 58;
+    optional int32 e = 63;
+    optional string p = 102;
+    optional bytes aaoo.r = 2078;
+    optional fixed32 i = 4113;
+}

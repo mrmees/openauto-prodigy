@@ -1,0 +1,9 @@
+// Decoded from APK class: zsh
+// Field count: 2, range: 1-3
+
+syntax = "proto2";
+
+message zsh {
+    optional bytes /* message ? */ f = 1;
+    optional uint64 b = 3;
+}

@@ -1,0 +1,14 @@
+// Decoded from APK class: xni
+// Field count: 7, range: 1-88
+
+syntax = "proto2";
+
+message xni {
+    optional bytes /* message ? */ f = 1;
+    optional bytes /* message ? */ g = 30;
+    optional bytes /* message ? */ h = 57;
+    optional bytes /* message ? */ i = 60;
+    optional bytes /* message ? */ j = 62;
+    optional bytes /* message ? */ k = 79;
+    optional bytes /* message ? */ l = 88;
+}

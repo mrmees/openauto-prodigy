@@ -1,0 +1,12 @@
+// Decoded from APK class: zui
+// Field count: 2, range: 1-2
+
+syntax = "proto2";
+
+message zui {
+    optional string c = 1;
+    optional int32 d = 2;
+}
+
+// === DIFF vs our proto ===
+// - field 3: Status status

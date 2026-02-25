@@ -1,0 +1,13 @@
+// Decoded from APK class: wad
+// Field count: 6, range: 1-6
+
+syntax = "proto2";
+
+message wad {
+    required wae c = 1;  // enum: wae
+    required uint32 d = 2;
+    optional string e = 3;
+    optional string f = 4;
+    optional string g = 5;
+    optional bytes h = 6;
+}

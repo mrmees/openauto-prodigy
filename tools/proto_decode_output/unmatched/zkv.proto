@@ -1,0 +1,11 @@
+// Decoded from APK class: zkv
+// Field count: 4, range: 1-9
+
+syntax = "proto2";
+
+message zkv {
+    optional string b = 1;
+    optional string c = 6;
+    optional string d = 7;
+    optional unknown_41 e = 9;
+}

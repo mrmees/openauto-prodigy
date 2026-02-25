@@ -1,0 +1,9 @@
+// Decoded from APK class: aacs
+// Field count: 2, range: 1-2
+
+syntax = "proto2";
+
+message aacs {
+    repeated aacr b = 1;  // msg: aacr
+    optional sfixed64 c = 2;
+}

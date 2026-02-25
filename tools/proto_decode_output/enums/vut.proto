@@ -1,0 +1,17 @@
+// Decoded from APK class: vut
+
+syntax = "proto2";
+
+enum vut {
+    WINDOW_UNKNOWN = 0;
+    WINDOW_FRONT_WINDSHIELD = 1;
+    WINDOW_REAR_WINDSHIELD = 2;
+    WINDOW_ROW_1_LEFT = 16;
+    WINDOW_ROW_1_RIGHT = 64;
+    WINDOW_ROW_2_LEFT = 256;
+    WINDOW_ROW_2_RIGHT = 1024;
+    WINDOW_ROW_3_LEFT = 4096;
+    WINDOW_ROW_3_RIGHT = 16384;
+    WINDOW_ROOF_TOP_1 = 65536;
+    WINDOW_ROOF_TOP_2 = 131072;
+}

@@ -1,0 +1,13 @@
+// Decoded from APK class: wbb
+// Field count: 6, range: 1-6
+
+syntax = "proto2";
+
+message wbb {
+    optional string c = 1;
+    optional string d = 2;
+    optional string e = 3;
+    optional string f = 4;
+    optional wam g = 5;  // msg: wam
+    optional uint64 h = 6;
+}

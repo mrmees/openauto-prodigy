@@ -1,0 +1,9 @@
+// Decoded from APK class: aheg
+// Field count: 2, range: 1-3
+
+syntax = "proto2";
+
+message aheg {
+    repeated ahef b = 1;  // msg: ahef
+    repeated ahei c = 3;  // msg: ahei
+}

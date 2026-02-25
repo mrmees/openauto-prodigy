@@ -1,0 +1,15 @@
+// Decoded from APK class: seq
+// Field count: 8, range: 1-8
+
+syntax = "proto2";
+
+message seq {
+    optional int64 sep.class = 0;
+    optional int32  = 0;
+    optional fixed32  = 0;
+    optional string sek.class = 1;
+    optional double  = 3;
+    optional bool  = 5;
+    optional double sen.class = 53;
+    optional double  = 61;
+}

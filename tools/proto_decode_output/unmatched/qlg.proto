@@ -1,0 +1,9 @@
+// Decoded from APK class: qlg
+// Field count: 2, range: 1-2
+
+syntax = "proto2";
+
+message qlg {
+    optional uint32 c = 1;
+    optional uint32 d = 2;
+}

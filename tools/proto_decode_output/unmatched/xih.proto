@@ -1,0 +1,13 @@
+// Decoded from APK class: xih
+// Field count: 6, range: 1-6
+
+syntax = "proto2";
+
+message xih {
+    optional string c = 1;
+    optional int32 d = 2;
+    optional string e = 3;
+    optional uint32 f = 4;
+    optional int32 g = 5;
+    repeated xii h = 6;  // msg: xii
+}

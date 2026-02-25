@@ -1,0 +1,18 @@
+// Decoded from APK class: pjb
+// Field count: 11, range: 1-11
+
+syntax = "proto2";
+
+message pjb {
+    optional int64 pir.class = 0;
+    optional int32 piw.class = 0;
+    optional fixed32 pip.class = 0;
+    optional string piu.class = 0;
+    optional bytes /* message ? */ pis.class = 1;
+    optional bytes /* message ? */ pja.class = 3;
+    optional bytes /* message ? */ piv.class = 5;
+    optional bytes /* message ? */ piz.class = 7;
+    optional double pix.class = 60;
+    optional double piy.class = 60;
+    optional double piq.class = 60;
+}

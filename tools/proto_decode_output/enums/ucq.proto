@@ -1,0 +1,21 @@
+// Decoded from APK class: ucq
+
+syntax = "proto2";
+
+enum ucq {
+    EVENT_TYPE_UNKNOWN = 0;
+    MEMORY = 1;
+    TIMER = 2;
+    NETWORK = 3;
+    CRASH = 4;
+    JANK = 5;
+    BATTERY = 6;
+    PRIMES_INTERNAL = 7;
+    CPU = 8;
+    TRACE = 9;
+    CPU_PROFILING = 10;
+    STRICT_MODE = 11;
+    CLIENT_TRACING = 12;
+    CUI = 13;
+    DISK = 14;
+}

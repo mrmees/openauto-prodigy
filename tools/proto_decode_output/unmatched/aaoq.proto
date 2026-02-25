@@ -1,0 +1,11 @@
+// Decoded from APK class: aaoq
+// Field count: 4, range: 1-4
+
+syntax = "proto2";
+
+message aaoq {
+    optional aaop c = 1;  // enum: aaop
+    optional bool d = 2;
+    optional bool e = 3;
+    optional int32 /* enum a */ f = 4;  // enum: a
+}

@@ -1,0 +1,9 @@
+// Decoded from APK class: ybs
+// Field count: 2, range: 1-2
+
+syntax = "proto2";
+
+message ybs {
+    optional int32 /* enum a */ b = 1;  // enum: a
+    optional ybt c = 2;  // msg: ybt
+}

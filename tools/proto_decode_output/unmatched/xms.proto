@@ -1,0 +1,9 @@
+// Decoded from APK class: xms
+// Field count: 2, range: 4-16
+
+syntax = "proto2";
+
+message xms {
+    optional bytes /* message ? */ d = 4;
+    optional bytes /* message ? */ e = 16;
+}

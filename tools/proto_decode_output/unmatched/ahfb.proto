@@ -1,0 +1,8 @@
+// Decoded from APK class: ahfb
+// Field count: 1, range: 5-5
+
+syntax = "proto2";
+
+message ahfb {
+    optional bytes /* message ? */ d = 5;
+}

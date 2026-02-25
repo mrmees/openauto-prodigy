@@ -1,0 +1,8 @@
+// Decoded from APK class: zag
+// Field count: 1, range: 3-3
+
+syntax = "proto2";
+
+message zag {
+    optional bytes /* message ? */ d = 3;
+}

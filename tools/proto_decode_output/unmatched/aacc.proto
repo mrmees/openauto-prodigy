@@ -1,0 +1,9 @@
+// Decoded from APK class: aacc
+// Field count: 2, range: 1-2
+
+syntax = "proto2";
+
+message aacc {
+    optional xkz c = 1;  // enum: xkz
+    optional aaav d = 2;  // msg: aaav
+}

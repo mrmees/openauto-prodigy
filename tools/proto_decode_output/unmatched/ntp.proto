@@ -1,0 +1,14 @@
+// Decoded from APK class: ntp
+// Field count: 7, range: 1-7
+
+syntax = "proto2";
+
+message ntp {
+    optional string c = 1;
+    optional string d = 2;
+    optional string e = 3;
+    optional string f = 4;
+    optional int32 g = 5;
+    optional string h = 6;
+    optional wdr i = 7;  // enum: wdr
+}

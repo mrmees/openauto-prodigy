@@ -1,0 +1,8 @@
+// Decoded from APK class: jxk
+// Field count: 1, range: 1-1
+
+syntax = "proto2";
+
+message jxk {
+    optional bool c = 1;
+}

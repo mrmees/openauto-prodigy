@@ -1,0 +1,10 @@
+// Decoded from APK class: zmf
+// Field count: 3, range: 1-3
+
+syntax = "proto2";
+
+message zmf {
+    optional int64 c = 1;
+    repeated zme d = 2;  // msg: zme
+    optional int32 e = 3;
+}

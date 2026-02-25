@@ -1,0 +1,8 @@
+// Decoded from APK class: zug
+// Field count: 1, range: 1-1
+
+syntax = "proto2";
+
+message zug {
+    repeated zuf b = 1;  // msg: zuf
+}

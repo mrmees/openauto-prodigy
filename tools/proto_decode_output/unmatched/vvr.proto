@@ -1,0 +1,8 @@
+// Decoded from APK class: vvr
+// Field count: 1, range: 1-1
+
+syntax = "proto2";
+
+message vvr {
+    required vvt c = 1;  // enum: vvt
+}

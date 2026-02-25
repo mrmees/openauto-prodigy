@@ -1,0 +1,9 @@
+// Decoded from APK class: zmg
+// Field count: 2, range: 1-2
+
+syntax = "proto2";
+
+message zmg {
+    required float d = 1;
+    required float e = 2;
+}

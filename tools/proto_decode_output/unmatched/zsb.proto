@@ -1,0 +1,8 @@
+// Decoded from APK class: zsb
+// Field count: 1, range: 13-13
+
+syntax = "proto2";
+
+message zsb {
+    optional zsg c = 13;  // msg: zsg
+}

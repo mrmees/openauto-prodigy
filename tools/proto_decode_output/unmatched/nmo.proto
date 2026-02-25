@@ -1,0 +1,16 @@
+// Decoded from APK class: nmo
+// Field count: 9, range: 1-9
+
+syntax = "proto2";
+
+message nmo {
+    optional string c = 1;
+    optional string d = 2;
+    optional nmi e = 3;  // msg: nmi
+    optional nmd h = 4;  // msg: nmd
+    repeated nmj i = 5;  // msg: nmj
+    optional int32 /* enum ? */ j = 6;
+    optional aaav k = 7;  // msg: aaav
+    optional nmp f = 8;  // msg: nmp
+    optional nmp g = 9;  // msg: nmp
+}

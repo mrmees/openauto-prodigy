@@ -1,0 +1,8 @@
+// Decoded from APK class: ywr
+// Field count: 1, range: 1-1
+
+syntax = "proto2";
+
+message ywr {
+    optional bytes /* message ? */ d = 1;
+}

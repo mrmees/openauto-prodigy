@@ -1,0 +1,25 @@
+// Decoded from APK class: aadw
+// Field count: 18, range: 1-47
+
+syntax = "proto2";
+
+message aadw {
+    optional bytes /* message ? */ e = 1;
+    optional bytes /* message ? */ f = 2;
+    optional bytes /* message ? */ g = 3;
+    optional bytes /* message ? */ h = 6;
+    optional bytes /* message ? */ i = 15;
+    optional bytes /* message ? */ j = 16;
+    optional bytes /* message ? */ k = 18;
+    optional bytes /* message ? */ l = 21;
+    optional bytes /* message ? */ m = 23;
+    optional bytes /* message ? */ n = 24;
+    optional bytes /* message ? */ o = 30;
+    optional bytes /* message ? */ p = 31;
+    optional bytes /* message ? */ q = 33;
+    optional bytes /* message ? */ r = 39;
+    optional bytes /* message ? */ s = 43;
+    optional bytes /* message ? */ t = 44;
+    optional bytes /* message ? */ u = 45;
+    optional bytes /* message ? */ v = 47;
+}

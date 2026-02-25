@@ -1,0 +1,22 @@
+// Decoded from APK class: ztv
+// Field count: 11, range: 1-92
+
+syntax = "proto2";
+
+message ztv {
+    optional float c = 0;
+    optional int h = 2;  // msg: int
+    optional fixed32 i = 3;
+    optional fixed32 d = 4;
+    optional float j = 5;
+    optional int32 k = 6;
+    optional int32 l = 7;
+    optional int32 m = 8;
+    optional int32  = 11;
+    optional unknown_51  = 92;
+    optional int e = 102;  // msg: int
+    optional sfixed32 f = 4100;
+    optional uint64  = 4100;
+    optional double g = 4105;
+}
+// PARSE ERROR: Entry parse error at field 14: read_varint: pos 46 past end of 46 chars

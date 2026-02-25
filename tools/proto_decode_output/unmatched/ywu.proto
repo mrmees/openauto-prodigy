@@ -1,0 +1,8 @@
+// Decoded from APK class: ywu
+// Field count: 1, range: 1-1
+
+syntax = "proto2";
+
+message ywu {
+    optional bytes /* message ? */ d = 1;
+}

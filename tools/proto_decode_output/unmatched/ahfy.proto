@@ -1,0 +1,15 @@
+// Decoded from APK class: ahfy
+// Field count: 5, range: 1-92
+
+syntax = "proto2";
+
+message ahfy {
+    optional float c = 0;
+    optional int32 e = 3;
+    optional zyd f = 4;  // msg: zyd
+    optional long g = 5;  // msg: long
+    optional unknown_51  = 92;
+    optional uint32  = 4098;
+    optional double d = 4104;
+}
+// PARSE ERROR: Entry parse error at field 7: read_varint: pos 27 past end of 27 chars

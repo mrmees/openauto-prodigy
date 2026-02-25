@@ -1,0 +1,10 @@
+// Decoded from APK class: aard
+// Field count: 3, range: 5-19
+
+syntax = "proto2";
+
+message aard {
+    optional bytes /* message ? */ d = 5;
+    optional bytes /* message ? */ e = 9;
+    optional bytes /* message ? */ f = 19;
+}

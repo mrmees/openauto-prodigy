@@ -1,0 +1,8 @@
+// Decoded from APK class: zwa
+// Field count: 1, range: 3-3
+
+syntax = "proto2";
+
+message zwa {
+    optional bytes /* message ? */ d = 3;
+}

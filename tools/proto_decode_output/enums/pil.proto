@@ -1,0 +1,9 @@
+// Decoded from APK class: pil
+
+syntax = "proto2";
+
+enum pil {
+    UNKNOWN = 0;
+    STARTUP = 1;
+    TELEDOCTOR = 2;
+}

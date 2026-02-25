@@ -1,0 +1,9 @@
+// Decoded from APK class: was
+// Field count: 2, range: 1-2
+
+syntax = "proto2";
+
+message was {
+    optional wav c = 1;  // msg: wav
+    optional wan d = 2;  // msg: wan
+}

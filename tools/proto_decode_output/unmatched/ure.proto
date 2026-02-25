@@ -1,0 +1,12 @@
+// Decoded from APK class: ure
+// Field count: 5, range: 1-5
+
+syntax = "proto2";
+
+message ure {
+    optional string b = 1;
+    optional bytes c = 2;
+    optional string d = 3;
+    optional int64 e = 4;
+    optional sfixed64 f = 5;
+}

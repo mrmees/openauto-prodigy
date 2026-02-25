@@ -1,0 +1,8 @@
+// Decoded from APK class: ahdh
+// Field count: 1, range: 1-1
+
+syntax = "proto2";
+
+message ahdh {
+    repeated int32 /* enum agng */ b = 1;  // enum: agng
+}

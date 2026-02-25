@@ -1,0 +1,8 @@
+// Decoded from APK class: ziu
+// Field count: 1, range: 1-1
+
+syntax = "proto2";
+
+message ziu {
+    optional bytes /* message ? */ d = 1;
+}

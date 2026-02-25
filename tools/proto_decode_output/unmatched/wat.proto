@@ -1,0 +1,10 @@
+// Decoded from APK class: wat
+// Field count: 3, range: 1-3
+
+syntax = "proto2";
+
+message wat {
+    optional was b = 1;  // msg: was
+    optional bool c = 2;
+    optional bool d = 3;
+}

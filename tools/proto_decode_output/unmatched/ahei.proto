@@ -1,0 +1,9 @@
+// Decoded from APK class: ahei
+// Field count: 2, range: 1-3
+
+syntax = "proto2";
+
+message ahei {
+    optional string c = 1;
+    optional int32 d = 3;
+}

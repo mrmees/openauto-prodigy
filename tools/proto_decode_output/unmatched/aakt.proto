@@ -1,0 +1,14 @@
+// Decoded from APK class: aakt
+// Field count: 7, range: 1-32
+
+syntax = "proto2";
+
+message aakt {
+    optional sfixed64  = 0;
+    repeated fixed32  = 0;
+    optional string e = 1;
+    optional double  = 11;
+    optional bool  = 23;
+    optional double  = 53;
+    optional double  = 59;
+}

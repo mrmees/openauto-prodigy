@@ -1,0 +1,10 @@
+// Decoded from APK class: aatp
+// Field count: 3, range: 18-57
+
+syntax = "proto2";
+
+message aatp {
+    optional bool c = 18;
+    optional bool d = 56;
+    optional bool e = 57;
+}

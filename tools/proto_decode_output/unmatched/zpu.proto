@@ -1,0 +1,9 @@
+// Decoded from APK class: zpu
+// Field count: 2, range: 1-2
+
+syntax = "proto2";
+
+message zpu {
+    repeated zpt b = 1;  // msg: zpt
+    repeated zps c = 2;  // msg: zps
+}

@@ -1,0 +1,8 @@
+// Decoded from APK class: zsl
+// Field count: 1, range: 1-1
+
+syntax = "proto2";
+
+message zsl {
+    optional uint64 c = 1;
+}

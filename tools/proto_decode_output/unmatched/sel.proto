@@ -1,0 +1,9 @@
+// Decoded from APK class: sel
+// Field count: 2, range: 1-2
+
+syntax = "proto2";
+
+message sel {
+    optional int64  = 0;
+    optional bytes /* message ? */ ses.class = 1;
+}

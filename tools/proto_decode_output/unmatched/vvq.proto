@@ -1,0 +1,9 @@
+// Decoded from APK class: vvq
+// Field count: 2, range: 1-2
+
+syntax = "proto2";
+
+message vvq {
+    required vvu b = 1;  // enum: vvu
+    optional bool c = 2;
+}

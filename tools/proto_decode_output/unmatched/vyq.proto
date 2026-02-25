@@ -1,0 +1,13 @@
+// Decoded from APK class: vyq
+// Field count: 6, range: 1-6
+
+syntax = "proto2";
+
+message vyq {
+    optional int32 /* enum a */ c = 1;  // enum: a
+    optional string d = 2;
+    optional uint32 e = 3;
+    optional bool f = 4;
+    optional bool g = 5;
+    optional bool h = 6;
+}

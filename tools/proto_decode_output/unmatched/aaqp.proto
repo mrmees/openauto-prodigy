@@ -1,0 +1,15 @@
+// Decoded from APK class: aaqp
+// Field count: 8, range: 2-14
+
+syntax = "proto2";
+
+message aaqp {
+    optional int64 b = 2;
+    optional double c = 3;
+    optional double d = 4;
+    optional double e = 5;
+    optional int32 f = 7;
+    optional int64 g = 8;
+    optional bool h = 13;
+    optional sfixed64 i = 102;
+}

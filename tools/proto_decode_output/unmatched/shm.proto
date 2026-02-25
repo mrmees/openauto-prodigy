@@ -1,0 +1,11 @@
+// Decoded from APK class: shm
+// Field count: 4, range: 1-4
+
+syntax = "proto2";
+
+message shm {
+    optional int32 b = 1;
+    optional int32 c = 2;
+    optional int32 d = 3;
+    optional bool e = 4;
+}

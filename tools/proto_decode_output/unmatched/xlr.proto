@@ -1,0 +1,11 @@
+// Decoded from APK class: xlr
+// Field count: 4, range: 1-7
+
+syntax = "proto2";
+
+message xlr {
+    optional bytes /* message ? */ d = 1;
+    optional bytes /* message ? */ f = 2;
+    optional sfixed64 e = 6;
+    optional bytes /* message ? */ g = 7;
+}

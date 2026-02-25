@@ -1,0 +1,11 @@
+// Decoded from APK class: vwp
+
+syntax = "proto2";
+
+enum vwp {
+    CAR_LOCAL_MEDIA_PLAYBACK_PLAY = 0;
+    CAR_LOCAL_MEDIA_PLAYBACK_PAUSE = 1;
+    CAR_LOCAL_MEDIA_PLAYBACK_PREVIOUS = 2;
+    CAR_LOCAL_MEDIA_PLAYBACK_NEXT = 3;
+    CAR_LOCAL_MEDIA_PLAYBACK_STOP = 4;
+}

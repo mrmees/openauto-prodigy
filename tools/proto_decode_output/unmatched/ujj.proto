@@ -1,0 +1,8 @@
+// Decoded from APK class: ujj
+// Field count: 1, range: 1-1
+
+syntax = "proto2";
+
+message ujj {
+    optional int32 c = 1;
+}

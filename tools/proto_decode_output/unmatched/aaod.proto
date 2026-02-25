@@ -1,0 +1,22 @@
+// Decoded from APK class: aaod
+// Field count: 15, range: 4-154
+
+syntax = "proto2";
+
+message aaod {
+    optional int32 g = 4;
+    optional int32 h = 5;
+    repeated int32 i = 10;
+    optional aaoc k = 11;  // enum: aaoc
+    repeated int32 l = 25;
+    optional int32 m = 53;
+    optional int32 n = 58;
+    optional xlu o = 68;  // msg: xlu
+    optional bool p = 70;
+    optional bool q = 77;
+    optional bool r = 118;
+    optional aaob s = 119;  // enum: aaob
+    optional bool t = 129;
+    optional string j = 130;
+    optional bool u = 154;
+}

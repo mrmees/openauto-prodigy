@@ -1,0 +1,13 @@
+// Decoded from APK class: xmo
+// Field count: 6, range: 1-13
+
+syntax = "proto2";
+
+message xmo {
+    optional sfixed64 c = 1;
+    optional sfixed64 d = 2;
+    optional sfixed64 e = 3;
+    optional sfixed64 f = 11;
+    optional sfixed32 xml.a = 50;
+    optional unknown_51 g = 92;
+}

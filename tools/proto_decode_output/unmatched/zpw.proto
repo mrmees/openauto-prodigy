@@ -1,0 +1,8 @@
+// Decoded from APK class: zpw
+// Field count: 1, range: 1-1
+
+syntax = "proto2";
+
+message zpw {
+    repeated zpv b = 1;  // msg: zpv
+}

@@ -1,0 +1,9 @@
+// Decoded from APK class: xuz
+// Field count: 2, range: 1-2
+
+syntax = "proto2";
+
+message xuz {
+    required fixed32 c = 1;
+    required fixed32 d = 2;
+}

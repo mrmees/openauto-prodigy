@@ -1,0 +1,13 @@
+// Decoded from APK class: nob
+// Field count: 6, range: 1-6
+
+syntax = "proto2";
+
+message nob {
+    optional int32 c = 1;
+    optional int64 d = 2;
+    optional int64 e = 3;
+    optional int64 f = 4;
+    optional double g = 5;
+    optional double h = 6;
+}

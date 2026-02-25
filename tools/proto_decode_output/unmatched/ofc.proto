@@ -1,0 +1,12 @@
+// Decoded from APK class: ofc
+// Field count: 5, range: 1-6
+
+syntax = "proto2";
+
+message ofc {
+    optional ofb c = 1;  // msg: ofb
+    optional string d = 2;
+    optional int64 e = 4;
+    optional int64 f = 5;
+    optional int32 /* enum ? */ g = 6;
+}

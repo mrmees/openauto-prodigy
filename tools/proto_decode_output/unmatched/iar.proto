@@ -1,0 +1,19 @@
+// Decoded from APK class: iar
+// Field count: 92, range: 1-2
+
+syntax = "proto2";
+
+message iar {
+    optional double  = 0;
+    optional bool  = 2;
+    optional bool  = 3;
+    optional int64  = 5;
+    optional int64  = 6;
+    optional int64  = 7;
+    optional int64  = 8;
+    optional int64  = 13;
+    optional int64  = 14;
+    optional bool  = 32;
+    optional bool  = 33;
+}
+// PARSE ERROR: Entry parse error at field 11: read_varint: pos 43 past end of 43 chars

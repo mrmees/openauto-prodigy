@@ -1,0 +1,11 @@
+// Decoded from APK class: aaly
+// Field count: 4, range: 1-4
+
+syntax = "proto2";
+
+message aaly {
+    optional int32 c = 1;
+    optional string d = 2;
+    optional int64 e = 3;
+    optional int64 f = 4;
+}

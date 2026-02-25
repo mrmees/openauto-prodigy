@@ -1,0 +1,8 @@
+// Decoded from APK class: wab
+// Field count: 1, range: 1-1
+
+syntax = "proto2";
+
+message wab {
+    required bool b = 1;
+}

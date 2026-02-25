@@ -1,0 +1,13 @@
+// Decoded from APK class: nnu
+// Field count: 6, range: 1-6
+
+syntax = "proto2";
+
+message nnu {
+    optional nnx c = 1;  // msg: nnx
+    optional int32 d = 2;
+    optional int32 /* enum ? */ e = 3;
+    optional nnv f = 4;  // msg: nnv
+    repeated noq g = 5;  // msg: noq
+    optional int32 h = 6;
+}

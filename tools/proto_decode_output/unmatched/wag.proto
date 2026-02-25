@@ -1,0 +1,10 @@
+// Decoded from APK class: wag
+// Field count: 3, range: 1-3
+
+syntax = "proto2";
+
+message wag {
+    required vyc b = 1;  // msg: vyc
+    optional string c = 2;
+    optional string d = 3;
+}

@@ -1,0 +1,11 @@
+// Decoded from APK class: zmj
+// Field count: 4, range: 1-11
+
+syntax = "proto2";
+
+message zmj {
+    optional uint32 c = 1;
+    optional bytes d = 3;
+    optional fixed32 e = 4;
+    optional string f = 11;
+}

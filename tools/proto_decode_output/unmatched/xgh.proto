@@ -1,0 +1,14 @@
+// Decoded from APK class: xgh
+// Field count: 7, range: 1-7
+
+syntax = "proto2";
+
+message xgh {
+    optional int32 /* enum ? */ c = 1;
+    optional int32 /* enum ? */ e = 2;
+    optional int32 /* enum ? */ g = 3;
+    optional int32 /* enum ? */ i = 4;
+    optional int32 /* enum ? */  = 5;
+    optional int32 /* enum ? */  = 6;
+    optional int32 /* enum ? */  = 7;
+}

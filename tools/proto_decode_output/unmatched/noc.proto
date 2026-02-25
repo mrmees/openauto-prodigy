@@ -1,0 +1,13 @@
+// Decoded from APK class: noc
+// Field count: 6, range: 1-6
+
+syntax = "proto2";
+
+message noc {
+    optional int32 c = 1;
+    optional int32 d = 2;
+    optional int32 e = 3;
+    optional nof f = 4;  // msg: nof
+    repeated noe g = 5;  // msg: noe
+    optional int32 h = 6;
+}

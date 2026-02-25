@@ -1,0 +1,8 @@
+// Decoded from APK class: xme
+// Field count: 1, range: 1-1
+
+syntax = "proto2";
+
+message xme {
+    optional bytes /* message ? */ d = 1;
+}

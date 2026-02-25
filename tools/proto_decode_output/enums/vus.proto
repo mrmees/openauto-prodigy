@@ -1,0 +1,11 @@
+// Decoded from APK class: vus
+
+syntax = "proto2";
+
+enum vus {
+    WHEEL_UNKNOWN = 0;
+    WHEEL_LEFT_FRONT = 1;
+    WHEEL_RIGHT_FRONT = 2;
+    WHEEL_LEFT_REAR = 4;
+    WHEEL_RIGHT_REAR = 8;
+}

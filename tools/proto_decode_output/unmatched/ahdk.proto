@@ -1,0 +1,9 @@
+// Decoded from APK class: ahdk
+// Field count: 2, range: 1-2
+
+syntax = "proto2";
+
+message ahdk {
+    optional int32 c = 1;
+    optional ahdl d = 2;  // msg: ahdl
+}

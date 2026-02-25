@@ -1,0 +1,10 @@
+// Decoded from APK class: vxi
+
+syntax = "proto2";
+
+enum vxi {
+    DRIVER_POSITION_LEFT = 0;
+    DRIVER_POSITION_RIGHT = 1;
+    DRIVER_POSITION_CENTER = 2;
+    DRIVER_POSITION_UNKNOWN = 3;
+}

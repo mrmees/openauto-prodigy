@@ -1,0 +1,8 @@
+// Decoded from APK class: vzw
+// Field count: 1, range: 1-1
+
+syntax = "proto2";
+
+message vzw {
+    optional bool c = 1;
+}

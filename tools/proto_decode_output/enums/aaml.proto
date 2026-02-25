@@ -1,0 +1,10 @@
+// Decoded from APK class: aaml
+
+syntax = "proto2";
+
+enum aaml {
+    UNKNOWN_LOCATION_SHARING_STATE = 0;
+    NOT_SHARING = 1;
+    SHARING_BUT_NOT_REPORTING = 2;
+    SHARING_AND_REPORTING = 3;
+}

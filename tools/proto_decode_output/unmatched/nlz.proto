@@ -1,0 +1,11 @@
+// Decoded from APK class: nlz
+// Field count: 4, range: 1-4
+
+syntax = "proto2";
+
+message nlz {
+    optional string c = 1;
+    optional nlx d = 2;  // msg: nlx
+    optional string e = 3;
+    optional string f = 4;
+}

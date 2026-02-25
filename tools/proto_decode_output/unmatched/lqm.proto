@@ -1,0 +1,8 @@
+// Decoded from APK class: lqm
+// Field count: 1, range: 1-1
+
+syntax = "proto2";
+
+message lqm {
+    optional string c = 1;
+}

@@ -1,0 +1,9 @@
+// Decoded from APK class: yzz
+// Field count: 2, range: 1-11
+
+syntax = "proto2";
+
+message yzz {
+    optional bytes /* message ? */ d = 1;
+    optional sfixed64 e = 11;
+}

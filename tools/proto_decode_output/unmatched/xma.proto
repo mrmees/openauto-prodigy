@@ -1,0 +1,10 @@
+// Decoded from APK class: xma
+// Field count: 3, range: 1-3
+
+syntax = "proto2";
+
+message xma {
+    optional xmv c = 1;  // msg: xmv
+    optional bytes /* message ? */ e = 2;
+    optional bytes /* message ? */ f = 3;
+}

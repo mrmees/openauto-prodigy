@@ -1,0 +1,8 @@
+// Decoded from APK class: nnb
+// Field count: 1, range: 1-1
+
+syntax = "proto2";
+
+message nnb {
+    optional int32 /* enum ? */ b = 1;
+}

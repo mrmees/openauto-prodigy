@@ -1,0 +1,9 @@
+// Decoded from APK class: zbo
+// Field count: 2, range: 3-5
+
+syntax = "proto2";
+
+message zbo {
+    optional bytes /* message ? */ d = 3;
+    optional bytes /* message ? */ e = 5;
+}

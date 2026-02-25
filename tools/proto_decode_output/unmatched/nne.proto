@@ -1,0 +1,10 @@
+// Decoded from APK class: nne
+// Field count: 3, range: 1-3
+
+syntax = "proto2";
+
+message nne {
+    optional bool c = 1;
+    optional bool d = 2;
+    optional bool e = 3;
+}

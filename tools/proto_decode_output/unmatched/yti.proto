@@ -1,0 +1,10 @@
+// Decoded from APK class: yti
+// Field count: 3, range: 1-3
+
+syntax = "proto2";
+
+message yti {
+    optional double e = 1;
+    optional double c = 2;
+    optional double d = 3;
+}

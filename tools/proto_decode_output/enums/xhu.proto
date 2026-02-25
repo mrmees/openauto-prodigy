@@ -1,0 +1,9 @@
+// Decoded from APK class: xhu
+
+syntax = "proto2";
+
+enum xhu {
+    POOL_UNSPECIFIED = 0;
+    POOL_AUDIO = 1;
+    POOL_VIDEO = 2;
+}

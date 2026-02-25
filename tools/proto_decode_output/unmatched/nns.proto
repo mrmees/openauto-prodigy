@@ -1,0 +1,9 @@
+// Decoded from APK class: nns
+// Field count: 2, range: 1-2
+
+syntax = "proto2";
+
+message nns {
+    repeated nnu b = 1;  // msg: nnu
+    repeated noc c = 2;  // msg: noc
+}

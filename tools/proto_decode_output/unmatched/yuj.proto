@@ -1,0 +1,9 @@
+// Decoded from APK class: yuj
+// Field count: 2, range: 2-3
+
+syntax = "proto2";
+
+message yuj {
+    optional bytes /* message ? */ d = 2;
+    optional bytes /* message ? */ e = 3;
+}

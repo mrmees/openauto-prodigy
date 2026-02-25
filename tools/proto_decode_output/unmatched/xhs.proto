@@ -1,0 +1,12 @@
+// Decoded from APK class: xhs
+// Field count: 5, range: 1-5
+
+syntax = "proto2";
+
+message xhs {
+    optional int32 c = 1;
+    optional int32 d = 2;
+    optional int32 e = 3;
+    optional int32 f = 4;
+    optional int32 g = 5;
+}

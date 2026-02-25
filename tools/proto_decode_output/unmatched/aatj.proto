@@ -1,0 +1,9 @@
+// Decoded from APK class: aatj
+// Field count: 2, range: 59-60
+
+syntax = "proto2";
+
+message aatj {
+    optional bytes c = 59;
+    optional bytes d = 60;
+}

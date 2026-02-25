@@ -1,0 +1,8 @@
+// Decoded from APK class: aapx
+// Field count: 1, range: 7-7
+
+syntax = "proto2";
+
+message aapx {
+    optional bytes /* message ? */ d = 7;
+}

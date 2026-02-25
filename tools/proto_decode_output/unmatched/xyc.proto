@@ -1,0 +1,12 @@
+// Decoded from APK class: xyc
+// Field count: 5, range: 1-11
+
+syntax = "proto2";
+
+message xyc {
+    optional bytes /* message ? */ h = 1;
+    optional xye b = 2;  // msg: xye
+    repeated xvy c = 4;  // msg: xvy
+    optional aaav d = 8;  // msg: aaav
+    optional bool e = 11;
+}

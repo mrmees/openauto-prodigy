@@ -1,0 +1,8 @@
+// Decoded from APK class: zgi
+// Field count: 1, range: 235-235
+
+syntax = "proto2";
+
+message zgi {
+    optional bool b = 235;
+}

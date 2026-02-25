@@ -1,0 +1,9 @@
+// Decoded from APK class: vzx
+// Field count: 2, range: 1-2
+
+syntax = "proto2";
+
+message vzx {
+    required int32 c = 1;
+    optional int32 d = 2;
+}

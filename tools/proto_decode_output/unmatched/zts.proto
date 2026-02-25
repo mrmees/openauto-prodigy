@@ -1,0 +1,10 @@
+// Decoded from APK class: zts
+// Field count: 3, range: 1-3
+
+syntax = "proto2";
+
+message zts {
+    optional uint64 c = 1;
+    optional uint64 e = 2;
+    optional bytes /* message ? */  = 3;
+}

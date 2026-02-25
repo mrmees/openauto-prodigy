@@ -1,0 +1,9 @@
+// Decoded from APK class: xgu
+// Field count: 2, range: 1-2
+
+syntax = "proto2";
+
+message xgu {
+    optional xgt c = 1;  // msg: xgt
+    optional xgt d = 2;  // msg: xgt
+}

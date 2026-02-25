@@ -1,0 +1,14 @@
+// Decoded from APK class: xiv
+// Field count: 7, range: 1-7
+
+syntax = "proto2";
+
+message xiv {
+    optional xiu c = 1;  // msg: xiu
+    optional xis d = 2;  // msg: xis
+    optional int32 e = 3;
+    repeated xir f = 4;  // msg: xir
+    optional xit g = 5;  // msg: xit
+    optional int32 h = 6;
+    optional int32 i = 7;
+}

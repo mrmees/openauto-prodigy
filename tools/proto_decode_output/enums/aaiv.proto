@@ -1,0 +1,9 @@
+// Decoded from APK class: aaiv
+
+syntax = "proto2";
+
+enum aaiv {
+    COMPLETION_STYLE_UNKNOWN = 0;
+    COMPLETION_STYLE_CARD = 1;
+    COMPLETION_STYLE_TOAST = 2;
+}

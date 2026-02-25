@@ -1,0 +1,9 @@
+// Decoded from APK class: aaix
+// Field count: 2, range: 1-2
+
+syntax = "proto2";
+
+message aaix {
+    optional zyd b = 1;  // msg: zyd
+    optional zyd c = 2;  // msg: zyd
+}

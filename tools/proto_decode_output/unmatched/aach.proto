@@ -1,0 +1,10 @@
+// Decoded from APK class: aach
+// Field count: 3, range: 1-3
+
+syntax = "proto2";
+
+message aach {
+    optional xkz b = 1;  // enum: xkz
+    optional float c = 2;
+    optional uint64 d = 3;
+}

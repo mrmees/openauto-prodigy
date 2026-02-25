@@ -1,0 +1,10 @@
+// Decoded from APK class: aacb
+// Field count: 3, range: 1-3
+
+syntax = "proto2";
+
+message aacb {
+    repeated aacc c = 1;  // msg: aacc
+    optional aaav d = 2;  // msg: aaav
+    optional aaav e = 3;  // msg: aaav
+}

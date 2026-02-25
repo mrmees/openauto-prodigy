@@ -1,0 +1,10 @@
+// Decoded from APK class: sed
+// Field count: 3, range: 1-3
+
+syntax = "proto2";
+
+message sed {
+    optional string b = 1;
+    optional string c = 2;
+    repeated sec d = 3;  // msg: sec
+}

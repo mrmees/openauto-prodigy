@@ -1,0 +1,10 @@
+// Decoded from APK class: waj
+// Field count: 3, range: 1-3
+
+syntax = "proto2";
+
+message waj {
+    required int64 c = 1;
+    optional bool d = 2;
+    optional bytes e = 3;
+}

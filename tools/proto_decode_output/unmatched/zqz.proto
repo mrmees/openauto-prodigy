@@ -1,0 +1,26 @@
+// Decoded from APK class: zqz
+// Field count: 19, range: 1-26
+
+syntax = "proto2";
+
+message zqz {
+    optional string c = 1;
+    optional string d = 2;
+    optional string e = 4;
+    optional string f = 5;
+    optional string g = 6;
+    optional string k = 8;
+    optional float l = 9;
+    repeated int32 m = 10;
+    optional bool n = 11;
+    optional string o = 13;
+    optional int p = 14;  // msg: int
+    optional string q = 16;
+    repeated string r = 18;
+    optional string v = 19;
+    optional bool s = 22;
+    optional unknown_51 h = 92;
+    optional sint32 zpy.d = 102;
+    optional fixed32 i = 4104;
+    optional sfixed32 j = 6156;
+}

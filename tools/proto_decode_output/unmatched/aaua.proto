@@ -1,0 +1,8 @@
+// Decoded from APK class: aaua
+// Field count: 1, range: 28-28
+
+syntax = "proto2";
+
+message aaua {
+    required bytes b = 28;
+}

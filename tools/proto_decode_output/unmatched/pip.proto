@@ -1,0 +1,9 @@
+// Decoded from APK class: pip
+// Field count: 2, range: 1-3
+
+syntax = "proto2";
+
+message pip {
+    repeated pio b = 1;  // msg: pio
+    optional bool c = 3;
+}

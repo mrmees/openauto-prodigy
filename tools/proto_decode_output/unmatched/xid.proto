@@ -1,0 +1,26 @@
+// Decoded from APK class: xid
+// Field count: 58, range: 1-89
+
+syntax = "proto2";
+
+message xid {
+    optional xiv e = 1;  // msg: xiv
+    optional xiw f = 2;  // msg: xiw
+    optional xjc g = 3;  // msg: xjc
+    optional xjf h = 5;  // msg: xjf
+    optional xkp i = 6;  // msg: xkp
+    optional xku j = 7;  // msg: xku
+    optional xhp k = 8;  // msg: xhp
+    optional bool l = 9;
+    optional xif m = 10;  // msg: xif
+    optional xij n = 13;  // msg: xij
+    optional xlb o = 14;  // msg: xlb
+    optional xhl r = 16;  // msg: xhl
+    optional xkj s = 17;  // msg: xkj
+    optional int t = 18;  // msg: int
+    optional int32 u = 32;
+    optional bool v = 33;
+    optional sint32 p = 102;
+    optional sfixed32 q = 4105;
+}
+// PARSE ERROR: Entry parse error at field 18: read_varint: pos 63 past end of 63 chars

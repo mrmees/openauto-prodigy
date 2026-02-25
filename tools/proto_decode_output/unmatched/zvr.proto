@@ -1,0 +1,9 @@
+// Decoded from APK class: zvr
+// Field count: 2, range: 1-15
+
+syntax = "proto2";
+
+message zvr {
+    optional string d = 1;
+    optional zwn c = 15;  // msg: zwn
+}

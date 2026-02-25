@@ -1,0 +1,9 @@
+// Decoded from APK class: zrm
+// Field count: 2, range: 1-2
+
+syntax = "proto2";
+
+message zrm {
+    required uint32 c = 1;
+    required uint32 d = 2;
+}

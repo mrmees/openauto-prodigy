@@ -1,0 +1,11 @@
+// Decoded from APK class: wdg
+// Field count: 4, range: 1-5
+
+syntax = "proto2";
+
+message wdg {
+    optional string b = 1;
+    optional int32 /* enum a */ c = 2;  // enum: a
+    optional string d = 3;
+    optional int32 /* enum ? */ e = 5;
+}

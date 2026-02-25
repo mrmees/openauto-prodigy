@@ -1,0 +1,38 @@
+// Decoded from APK class: xhr
+// Field count: 31, range: 1-32
+
+syntax = "proto2";
+
+message xhr {
+    optional int32 c = 1;
+    optional int32 d = 2;
+    optional int32 e = 3;
+    optional int32 f = 4;
+    optional int32 g = 5;
+    optional int32 h = 6;
+    optional int32 i = 7;
+    optional int32 j = 8;
+    optional int32 k = 9;
+    optional int32 l = 10;
+    optional int32 m = 11;
+    optional int32 p = 13;
+    optional int32 s = 15;
+    optional int32 t = 16;
+    optional int32 u = 17;
+    optional int32 v = 18;
+    optional int32 w = 19;
+    optional int32 x = 20;
+    optional int32 y = 21;
+    optional int32 z = 22;
+    optional int32 A = 23;
+    optional xjs B = 25;  // msg: xjs
+    optional xjs C = 26;  // msg: xjs
+    optional xjs D = 27;  // msg: xjs
+    optional xjs E = 28;  // msg: xjs
+    optional xjs F = 29;  // msg: xjs
+    optional xjs G = 30;  // msg: xjs
+    optional unknown_51 n = 92;
+    optional sfixed64 q = 102;
+    optional uint32 o = 4100;
+    optional sfixed32 r = 4100;
+}

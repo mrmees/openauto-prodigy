@@ -1,0 +1,18 @@
+// Decoded from APK class: nmv
+// Field count: 11, range: 1-13
+
+syntax = "proto2";
+
+message nmv {
+    optional int32 c = 1;
+    optional int32 d = 2;
+    optional string e = 3;
+    optional string f = 4;
+    repeated nmu g = 7;  // msg: nmu
+    optional int64 h = 8;
+    optional int64 i = 9;
+    optional int32 /* enum a */ j = 10;  // enum: a
+    optional nns k = 11;  // msg: nns
+    optional unknown_51 l = 92;
+    optional string xgv.i = 6156;
+}

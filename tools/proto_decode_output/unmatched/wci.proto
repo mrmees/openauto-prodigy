@@ -1,0 +1,10 @@
+// Decoded from APK class: wci
+// Field count: 3, range: 1-3
+
+syntax = "proto2";
+
+message wci {
+    required uint32 c = 1;
+    required uint32 d = 2;
+    required uint32 e = 3;
+}

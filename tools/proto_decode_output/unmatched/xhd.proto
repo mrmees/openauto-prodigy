@@ -1,0 +1,15 @@
+// Decoded from APK class: xhd
+// Field count: 8, range: 4-47
+
+syntax = "proto2";
+
+message xhd {
+    optional xmc c = 4;  // msg: xmc
+    optional xly d = 10;  // msg: xly
+    optional bytes /* message ? */ g = 15;
+    optional bytes /* message ? */ h = 19;
+    optional bytes /* message ? */ i = 37;
+    optional bytes /* message ? */ j = 43;
+    optional bytes /* message ? */ k = 45;
+    optional bytes /* message ? */ l = 47;
+}

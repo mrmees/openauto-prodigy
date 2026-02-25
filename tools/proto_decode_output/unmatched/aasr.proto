@@ -1,0 +1,11 @@
+// Decoded from APK class: aasr
+// Field count: 4, range: 1-4
+
+syntax = "proto2";
+
+message aasr {
+    repeated aasq c = 1;  // msg: aasq
+    optional bytes /* message ? */ g = 2;
+    optional string d = 3;
+    optional bytes e = 4;
+}

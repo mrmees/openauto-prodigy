@@ -1,0 +1,10 @@
+// Decoded from APK class: aaop
+
+syntax = "proto2";
+
+enum aaop {
+    UNKNOWN_CAMERA_TYPE = 0;
+    CAMERA_3D = 1;
+    CAMERA_2D_NORTH_UP = 2;
+    CAMERA_2D_HEADING_UP = 3;
+}

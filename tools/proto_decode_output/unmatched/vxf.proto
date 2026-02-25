@@ -1,0 +1,8 @@
+// Decoded from APK class: vxf
+// Field count: 1, range: 1-1
+
+syntax = "proto2";
+
+message vxf {
+    optional bytes c = 1;
+}

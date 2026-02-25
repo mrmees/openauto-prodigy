@@ -1,0 +1,13 @@
+// Decoded from APK class: aasu
+// Field count: 6, range: 1-18
+
+syntax = "proto2";
+
+message aasu {
+    optional int32 c = 1;
+    optional int32 d = 2;
+    optional int32 e = 3;
+    repeated aast f = 16;  // enum: aast
+    optional bool g = 17;
+    optional bool h = 18;
+}

@@ -1,0 +1,8 @@
+// Decoded from APK class: rte
+// Field count: 1, range: 1-1
+
+syntax = "proto2";
+
+message rte {
+    repeated rtc b = 1;  // msg: rtc
+}

@@ -1,0 +1,9 @@
+// Decoded from APK class: xmv
+// Field count: 2, range: 1-2
+
+syntax = "proto2";
+
+message xmv {
+    optional xmw c = 1;  // msg: xmw
+    optional int64 d = 2;
+}

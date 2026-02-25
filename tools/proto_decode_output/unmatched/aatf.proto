@@ -1,0 +1,10 @@
+// Decoded from APK class: aatf
+// Field count: 3, range: 50-52
+
+syntax = "proto2";
+
+message aatf {
+    optional int32 c = 50;
+    optional int32 d = 51;
+    optional sfixed32 e = 52;
+}

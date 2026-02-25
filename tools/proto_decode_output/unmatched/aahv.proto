@@ -1,0 +1,8 @@
+// Decoded from APK class: aahv
+// Field count: 1, range: 42-42
+
+syntax = "proto2";
+
+message aahv {
+    optional sfixed64 c = 42;
+}

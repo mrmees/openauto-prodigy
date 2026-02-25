@@ -1,0 +1,9 @@
+// Decoded from APK class: ytc
+// Field count: 2, range: 2-3
+
+syntax = "proto2";
+
+message ytc {
+    optional ysx b = 2;  // msg: ysx
+    optional ytb c = 3;  // msg: ytb
+}

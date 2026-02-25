@@ -1,0 +1,9 @@
+// Decoded from APK class: nwf
+// Field count: 2, range: 1-2
+
+syntax = "proto2";
+
+message nwf {
+    optional string c = 1;
+    optional int32 d = 2;
+}

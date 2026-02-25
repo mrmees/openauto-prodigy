@@ -1,0 +1,9 @@
+// Decoded from APK class: zcf
+// Field count: 2, range: 1-10
+
+syntax = "proto2";
+
+message zcf {
+    optional bytes /* message ? */ d = 1;
+    optional bytes /* message ? */ e = 10;
+}

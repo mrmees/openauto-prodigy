@@ -1,0 +1,10 @@
+// Decoded from APK class: vuq
+
+syntax = "proto2";
+
+enum vuq {
+    MIRROR_UNKNOWN = 0;
+    MIRROR_DRIVER_LEFT = 1;
+    MIRROR_DRIVER_RIGHT = 2;
+    MIRROR_DRIVER_CENTER = 4;
+}

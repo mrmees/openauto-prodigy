@@ -1,0 +1,8 @@
+// Decoded from APK class: qlc
+// Field count: 1, range: 1-1
+
+syntax = "proto2";
+
+message qlc {
+    repeated qld b = 1;  // msg: qld
+}

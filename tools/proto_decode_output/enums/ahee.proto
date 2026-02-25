@@ -1,0 +1,8 @@
+// Decoded from APK class: ahee
+
+syntax = "proto2";
+
+enum ahee {
+    UNKNOWN = 0;
+    CRONET = 1;
+}

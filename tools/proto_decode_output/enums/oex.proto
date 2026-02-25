@@ -1,0 +1,9 @@
+// Decoded from APK class: oex
+
+syntax = "proto2";
+
+enum oex {
+    UNSPECIFIED = 0;
+    NONE = 1;
+    AES_GCM = 2;
+}

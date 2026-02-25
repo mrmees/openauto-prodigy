@@ -1,0 +1,11 @@
+// Decoded from APK class: noi
+
+syntax = "proto2";
+
+enum noi {
+    AUDIO_STREAM_TYPE_UNSPECIFIED = 0;
+    GUIDANCE = 1;
+    SYSTEM_AUDIO = 2;
+    MEDIA = 3;
+    TELEPHONY = 4;
+}

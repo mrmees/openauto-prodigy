@@ -1,0 +1,11 @@
+// Decoded from APK class: xut
+// Field count: 4, range: 1-5
+
+syntax = "proto2";
+
+message xut {
+    optional int32 /* enum a */ b = 1;  // enum: a
+    optional bool c = 2;
+    optional int32 /* enum a */ d = 4;  // enum: a
+    optional int32 /* enum xvh */ e = 5;  // enum: xvh
+}

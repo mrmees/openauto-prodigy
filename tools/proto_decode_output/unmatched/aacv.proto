@@ -1,0 +1,8 @@
+// Decoded from APK class: aacv
+// Field count: 1, range: 1-1
+
+syntax = "proto2";
+
+message aacv {
+    optional float b = 1;
+}

@@ -1,0 +1,12 @@
+// Decoded from APK class: ahec
+// Field count: 5, range: 1-5
+
+syntax = "proto2";
+
+message ahec {
+    optional aheb c = 1;  // msg: aheb
+    optional ahew d = 2;  // msg: ahew
+    optional int32 /* enum a */ e = 3;  // enum: a
+    optional ahea f = 4;  // msg: ahea
+    optional string g = 5;
+}

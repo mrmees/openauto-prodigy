@@ -1,0 +1,8 @@
+// Decoded from APK class: xkk
+// Field count: 1, range: 1-1
+
+syntax = "proto2";
+
+message xkk {
+    optional xkl c = 1;  // msg: xkl
+}

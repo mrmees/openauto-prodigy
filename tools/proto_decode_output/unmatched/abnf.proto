@@ -1,0 +1,9 @@
+// Decoded from APK class: abnf
+// Field count: 2, range: 1-2
+
+syntax = "proto2";
+
+message abnf {
+    optional int64  = 0;
+    optional string  = 1;
+}

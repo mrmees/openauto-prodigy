@@ -1,0 +1,9 @@
+// Decoded from APK class: vwm
+// Field count: 2, range: 1-2
+
+syntax = "proto2";
+
+message vwm {
+    optional int32 /* enum viz */ c = 1;  // enum: viz
+    repeated vwl d = 2;  // msg: vwl
+}

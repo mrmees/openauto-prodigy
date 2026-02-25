@@ -1,0 +1,12 @@
+// Decoded from APK class: xhq
+// Field count: 5, range: 1-5
+
+syntax = "proto2";
+
+message xhq {
+    required int32 c = 1;
+    required int32 d = 2;
+    required int32 e = 3;
+    required int32 f = 4;
+    optional int32 g = 5;
+}

@@ -1,0 +1,9 @@
+// Decoded from APK class: vwa
+// Field count: 2, range: 1-2
+
+syntax = "proto2";
+
+message vwa {
+    required string c = 1;
+    required vvz d = 2;  // enum: vvz
+}

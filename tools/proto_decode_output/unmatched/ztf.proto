@@ -1,0 +1,12 @@
+// Decoded from APK class: ztf
+// Field count: 5, range: 1-8
+
+syntax = "proto2";
+
+message ztf {
+    optional int32 b = 1;
+    optional int32 c = 2;
+    optional int32 d = 5;
+    optional int64 e = 7;
+    optional bytes /* message ? */  = 8;
+}

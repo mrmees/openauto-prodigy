@@ -1,0 +1,12 @@
+// Decoded from APK class: aain
+// Field count: 5, range: 1-6
+
+syntax = "proto2";
+
+message aain {
+    optional unknown_41 c = 1;
+    optional fixed32 g = 7;
+    optional uint64 e = 11;
+    optional int64 d = 102;
+    optional int32 f = 520;
+}

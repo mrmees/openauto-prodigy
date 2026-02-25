@@ -1,0 +1,11 @@
+// Decoded from APK class: nmr
+// Field count: 4, range: 1-4
+
+syntax = "proto2";
+
+message nmr {
+    optional string c = 1;
+    optional int32 /* enum ? */ d = 2;
+    optional string e = 3;
+    optional string f = 4;
+}

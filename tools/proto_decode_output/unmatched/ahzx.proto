@@ -1,0 +1,8 @@
+// Decoded from APK class: ahzx
+// Field count: 1, range: 1-1
+
+syntax = "proto2";
+
+message ahzx {
+    optional sfixed64 b = 1;
+}

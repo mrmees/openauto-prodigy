@@ -1,0 +1,9 @@
+// Decoded from APK class: aact
+
+syntax = "proto2";
+
+enum aact {
+    TRIGGER_TYPE_UNSPECIFIED = 0;
+    TRIGGER_TYPE_SESSION_END = 1;
+    TRIGGER_TYPE_LAPSE = 2;
+}

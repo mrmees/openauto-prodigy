@@ -1,0 +1,9 @@
+// Decoded from APK class: zrw
+// Field count: 2, range: 1-2
+
+syntax = "proto2";
+
+message zrw {
+    optional uint64 b = 1;
+    repeated bytes /* message ? */ zwq.class = 2;
+}

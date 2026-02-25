@@ -1,0 +1,17 @@
+// Decoded from APK class: nof
+// Field count: 10, range: 1-10
+
+syntax = "proto2";
+
+message nof {
+    optional aaav c = 1;  // msg: aaav
+    optional aaav d = 2;  // msg: aaav
+    optional int32 e = 3;
+    optional int32 f = 4;
+    optional noa g = 5;  // msg: noa
+    optional nob h = 6;  // msg: nob
+    optional int32 i = 7;
+    optional bytes j = 8;
+    optional int32 k = 9;
+    repeated nnz l = 10;  // msg: nnz
+}

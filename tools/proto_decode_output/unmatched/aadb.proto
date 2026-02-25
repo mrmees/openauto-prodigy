@@ -1,0 +1,8 @@
+// Decoded from APK class: aadb
+// Field count: 1, range: 2-2
+
+syntax = "proto2";
+
+message aadb {
+    optional aada c = 2;  // msg: aada
+}

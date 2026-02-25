@@ -1,0 +1,10 @@
+// Decoded from APK class: aafz
+// Field count: 3, range: 1-3
+
+syntax = "proto2";
+
+message aafz {
+    optional unknown_41 b = 1;
+    optional uint64 d = 11;
+    optional int64 c = 102;
+}

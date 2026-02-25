@@ -1,0 +1,10 @@
+// Decoded from APK class: nly
+// Field count: 3, range: 1-3
+
+syntax = "proto2";
+
+message nly {
+    optional string c = 1;
+    optional string d = 2;
+    optional bool e = 3;
+}

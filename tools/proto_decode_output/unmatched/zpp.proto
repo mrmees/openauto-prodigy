@@ -1,0 +1,9 @@
+// Decoded from APK class: zpp
+// Field count: 2, range: 1-2
+
+syntax = "proto2";
+
+message zpp {
+    optional int32 /* enum ? */ b = 1;
+    optional int32 /* enum ? */ c = 2;
+}

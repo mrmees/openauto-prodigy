@@ -1,0 +1,11 @@
+// Decoded from APK class: nmn
+// Field count: 4, range: 1-4
+
+syntax = "proto2";
+
+message nmn {
+    optional int32 /* enum ? */ c = 1;
+    repeated string d = 2;
+    repeated nmm e = 3;  // msg: nmm
+    optional nmh f = 4;  // msg: nmh
+}

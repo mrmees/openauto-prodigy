@@ -1,0 +1,11 @@
+// Decoded from APK class: yad
+// Field count: 4, range: 5-15
+
+syntax = "proto2";
+
+message yad {
+    optional bytes /* message ? */ d = 5;
+    optional bytes /* message ? */ g = 10;
+    optional sfixed64 e = 102;
+    optional bool f = 5129;
+}

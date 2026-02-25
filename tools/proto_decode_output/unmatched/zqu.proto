@@ -1,0 +1,8 @@
+// Decoded from APK class: zqu
+// Field count: 1, range: 1-1
+
+syntax = "proto2";
+
+message zqu {
+    optional bool b = 1;
+}

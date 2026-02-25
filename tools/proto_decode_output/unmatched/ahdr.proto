@@ -1,0 +1,43 @@
+// Decoded from APK class: ahdr
+// Field count: 63, range: 1-64
+
+syntax = "proto2";
+
+message ahdr {
+    optional int64 d = 1;
+    optional int64 e = 2;
+    optional int64 f = 3;
+    optional int64 g = 4;
+    repeated ahdq h = 5;  // msg: ahdq
+    repeated ahdq i = 6;  // msg: ahdq
+    repeated ahdq j = 7;  // msg: ahdq
+    repeated ahdq k = 8;  // msg: ahdq
+    repeated ahdq l = 9;  // msg: ahdq
+    repeated ahdq m = 10;  // msg: ahdq
+    optional ahdq n = 11;  // msg: ahdq
+    optional int64 r = 17;
+    optional int64 ahdm.class = 18;
+    optional int64 s = 19;
+    optional int64 t = 20;
+    optional int64 u = 21;
+    optional int64 v = 22;
+    optional int64 w = 23;
+    optional int64 z = 25;
+    optional int64 A = 26;
+    optional sfixed32 ahdq.class = 27;
+    optional sfixed64 p = 27;
+    optional sint32 ahdn.class = 27;
+    optional sint64 q = 27;
+    optional int64 B = 27;
+    optional int64 C = 28;
+    optional int64 D = 29;
+    optional long E = 30;  // msg: long
+    optional int64 F = 31;
+    optional ahdq G = 32;  // msg: ahdq
+    optional long H = 33;  // msg: long
+    optional unknown_51 o = 92;
+    repeated fixed32 x = 102;
+    optional fixed64 ahdo.class = 4098;
+    optional sfixed32 y = 4098;
+}
+// PARSE ERROR: Entry parse error at field 35: read_varint: pos 102 past end of 102 chars

@@ -1,0 +1,9 @@
+// Decoded from APK class: yvg
+// Field count: 2, range: 2-4
+
+syntax = "proto2";
+
+message yvg {
+    optional bytes /* message ? */ d = 2;
+    optional bytes /* message ? */ e = 4;
+}

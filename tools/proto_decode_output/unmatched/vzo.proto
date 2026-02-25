@@ -1,0 +1,9 @@
+// Decoded from APK class: vzo
+// Field count: 2, range: 1-2
+
+syntax = "proto2";
+
+message vzo {
+    repeated vzu b = 1;  // msg: vzu
+    repeated vze c = 2;  // msg: vze
+}

@@ -1,0 +1,16 @@
+// Decoded from APK class: zwk
+
+syntax = "proto2";
+
+enum zwk {
+    DRIVE = 0;
+    BICYCLE = 1;
+    WALK = 2;
+    TRANSIT = 3;
+    FLY = 4;
+    MIXED = 6;
+    TAXI = 8;
+    TWO_WHEELER = 9;
+    TAXICAB = 10;
+    BIKESHARING = 11;
+}

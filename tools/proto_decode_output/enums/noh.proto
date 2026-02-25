@@ -1,0 +1,11 @@
+// Decoded from APK class: noh
+
+syntax = "proto2";
+
+enum noh {
+    AUDIO_FORMAT_UNSPECIFIED = 0;
+    STEREO_48000 = 1;
+    MONO_16000 = 2;
+    MONO_48000 = 3;
+    AUDIO_FORMAT_UNKNOWN = 4;
+}

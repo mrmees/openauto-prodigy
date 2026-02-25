@@ -1,0 +1,8 @@
+// Decoded from APK class: zls
+// Field count: 1, range: 1-1
+
+syntax = "proto2";
+
+message zls {
+    optional int32 c = 1;
+}

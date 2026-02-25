@@ -1,0 +1,20 @@
+// Decoded from APK class: vyo
+// Field count: 13, range: 1-13
+
+syntax = "proto2";
+
+message vyo {
+    optional zyd c = 1;  // msg: zyd
+    optional bool d = 2;
+    optional zyd e = 3;  // msg: zyd
+    optional zyd f = 4;  // msg: zyd
+    optional zyd g = 5;  // msg: zyd
+    optional zyd h = 6;  // msg: zyd
+    optional uint32 i = 7;
+    optional zyd j = 8;  // msg: zyd
+    optional bool k = 9;
+    optional zyd l = 10;  // msg: zyd
+    optional bool m = 11;
+    optional unknown_51 n = 92;
+    optional uint32 o = 4105;
+}

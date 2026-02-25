@@ -1,0 +1,10 @@
+// Decoded from APK class: zpl
+// Field count: 3, range: 1-3
+
+syntax = "proto2";
+
+message zpl {
+    optional zpn c = 1;  // msg: zpn
+    optional zpn d = 2;  // msg: zpn
+    optional zpn e = 3;  // msg: zpn
+}

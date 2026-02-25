@@ -1,0 +1,17 @@
+// Decoded from APK class: utj
+// Field count: 5, range: 1-5
+
+syntax = "proto2";
+
+message utj {
+    optional string c = 1;
+    optional bytes d = 2;
+    optional string e = 3;
+    optional int64 f = 4;
+    repeated utk g = 5;  // msg: utk
+}
+
+// === DIFF vs our proto ===
+// + field 3: string e
+// + field 4: int64 f
+// + field 5: message g (msg: utk)

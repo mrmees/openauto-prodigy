@@ -1,0 +1,13 @@
+// Decoded from APK class: tta
+// Field count: 6, range: 1-6
+
+syntax = "proto2";
+
+message tta {
+    optional tth c = 1;  // msg: tth
+    optional ttc d = 2;  // msg: ttc
+    optional ttg e = 3;  // msg: ttg
+    optional tti f = 4;  // msg: tti
+    optional ttj g = 5;  // msg: ttj
+    optional ttb h = 6;  // msg: ttb
+}

@@ -1,0 +1,9 @@
+// Decoded from APK class: shn
+// Field count: 2, range: 1-2
+
+syntax = "proto2";
+
+message shn {
+    optional int64 zye.class = 0;
+    optional bytes /* message ? */ shq.class = 1;
+}

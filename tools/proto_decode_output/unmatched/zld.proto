@@ -1,0 +1,10 @@
+// Decoded from APK class: zld
+// Field count: 3, range: 1-1001
+
+syntax = "proto2";
+
+message zld {
+    optional bytes c = 1;
+    optional bytes /* message ? */ e = 1000;
+    optional bytes /* message ? */ f = 1001;
+}

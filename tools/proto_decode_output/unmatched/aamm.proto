@@ -1,0 +1,8 @@
+// Decoded from APK class: aamm
+// Field count: 1, range: 1-1
+
+syntax = "proto2";
+
+message aamm {
+    optional int32 c = 1;
+}

@@ -1,0 +1,9 @@
+// Decoded from APK class: yzd
+// Field count: 2, range: 6-8
+
+syntax = "proto2";
+
+message yzd {
+    optional bytes /* message ? */ d = 6;
+    optional bytes /* message ? */ e = 8;
+}

@@ -1,0 +1,9 @@
+// Decoded from APK class: zps
+// Field count: 2, range: 1-3
+
+syntax = "proto2";
+
+message zps {
+    optional zmv c = 1;  // msg: zmv
+    optional zpo d = 3;  // msg: zpo
+}

@@ -1,0 +1,9 @@
+// Decoded from APK class: zes
+// Field count: 2, range: 27-57
+
+syntax = "proto2";
+
+message zes {
+    optional bytes /* message ? */ e = 27;
+    optional bytes /* message ? */ f = 57;
+}

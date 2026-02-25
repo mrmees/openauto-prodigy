@@ -1,0 +1,17 @@
+// Decoded from APK class: aasl
+// Field count: 10, range: 7-167
+
+syntax = "proto2";
+
+message aasl {
+    optional int32 b = 7;
+    optional bool c = 8;
+    optional string d = 16;
+    optional string e = 17;
+    optional float f = 25;
+    optional sfixed64 k = 52;
+    optional bytes /* message ? */ aaoo.i = 57;
+    optional sfixed64 g = 92;
+    optional sfixed64 aasj.a = 94;
+    optional sfixed64 aash.a = 167;
+}

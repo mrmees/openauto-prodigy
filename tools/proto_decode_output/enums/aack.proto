@@ -1,0 +1,9 @@
+// Decoded from APK class: aack
+
+syntax = "proto2";
+
+enum aack {
+    DISPLAY_TYPE_MAIN = 0;
+    DISPLAY_TYPE_CLUSTER = 1;
+    DISPLAY_TYPE_AUXILIARY = 2;
+}

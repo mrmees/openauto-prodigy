@@ -1,0 +1,19 @@
+// Decoded from APK class: ofd
+// Field count: 9, range: 1-92
+
+syntax = "proto2";
+
+message ofd {
+    optional float c = 1;
+    optional string e = 2;
+    optional string f = 4;
+    optional bytes /* message ? */ g = 5;
+    optional string h = 6;
+    optional string i = 7;
+    optional string j = 10;
+    optional string k = 11;
+    optional unknown_51  = 92;
+    optional double d = 4104;
+    optional uint32  = 4104;
+}
+// PARSE ERROR: Entry parse error at field 11: read_varint: pos 39 past end of 39 chars

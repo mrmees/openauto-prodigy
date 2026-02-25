@@ -1,0 +1,13 @@
+// Decoded from APK class: xja
+
+syntax = "proto2";
+
+enum xja {
+    DOMAIN_UNSPECIFIED = 0;
+    GEARHEAD = 1;
+    CONNECTIVITY = 2;
+    FRX = 3;
+    CAR_SERVICE = 4;
+    BINDING = 5;
+    PROVIDER = 6;
+}

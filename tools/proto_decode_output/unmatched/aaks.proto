@@ -1,0 +1,9 @@
+// Decoded from APK class: aaks
+// Field count: 2, range: 1-4
+
+syntax = "proto2";
+
+message aaks {
+    optional uint64 c = 1;
+    repeated aakt d = 4;  // msg: aakt
+}

@@ -1,0 +1,8 @@
+// Decoded from APK class: yaa
+// Field count: 1, range: 5-5
+
+syntax = "proto2";
+
+message yaa {
+    optional xzx c = 5;  // msg: xzx
+}

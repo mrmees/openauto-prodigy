@@ -1,0 +1,8 @@
+// Decoded from APK class: ahzv
+// Field count: 1, range: 8-8
+
+syntax = "proto2";
+
+message ahzv {
+    repeated ahzu b = 8;  // msg: ahzu
+}

@@ -1,0 +1,12 @@
+// Decoded from APK class: ybk
+// Field count: 5, range: 1-5
+
+syntax = "proto2";
+
+message ybk {
+    optional uint64 ybj.class = 0;
+    optional ybm d = 1;  // enum: ybm
+    optional bytes /* message ? */ ybi.class = 2;
+    optional ybo e = 4;  // msg: ybo
+    optional double ybr.class = 60;
+}

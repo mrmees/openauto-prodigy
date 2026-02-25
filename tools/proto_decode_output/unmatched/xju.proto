@@ -1,0 +1,9 @@
+// Decoded from APK class: xju
+// Field count: 2, range: 2-3
+
+syntax = "proto2";
+
+message xju {
+    repeated string b = 2;
+    repeated string c = 3;
+}

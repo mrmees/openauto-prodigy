@@ -1,0 +1,13 @@
+// Decoded from APK class: vyl
+// Field count: 6, range: 2-7
+
+syntax = "proto2";
+
+message vyl {
+    required int32 c = 2;
+    required int32 d = 3;
+    optional uint32 e = 4;
+    optional int32 f = 5;
+    optional int32 g = 6;
+    optional int32 h = 7;
+}

@@ -1,0 +1,12 @@
+// Decoded from APK class: aauk
+// Field count: 5, range: 1-27
+
+syntax = "proto2";
+
+message aauk {
+    required int32 /* enum ? */ h = 1;
+    required int32 d = 2;
+    required int32 e = 3;
+    required int32 f = 4;
+    optional bytes /* message ? */ g = 27;
+}

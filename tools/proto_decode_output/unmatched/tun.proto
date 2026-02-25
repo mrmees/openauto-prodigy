@@ -1,0 +1,8 @@
+// Decoded from APK class: tun
+// Field count: 1, range: 1-1
+
+syntax = "proto2";
+
+message tun {
+    optional int32 b = 1;
+}

@@ -1,0 +1,8 @@
+// Decoded from APK class: vza
+// Field count: 1, range: 1-1
+
+syntax = "proto2";
+
+message vza {
+    optional vzb c = 1;  // enum: vzb
+}

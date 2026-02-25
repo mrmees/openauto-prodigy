@@ -1,0 +1,8 @@
+// Decoded from APK class: zuc
+// Field count: 1, range: 1-1
+
+syntax = "proto2";
+
+message zuc {
+    optional bool b = 1;
+}

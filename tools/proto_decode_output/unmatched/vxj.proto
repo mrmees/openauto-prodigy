@@ -1,0 +1,8 @@
+// Decoded from APK class: vxj
+// Field count: 1, range: 1-1
+
+syntax = "proto2";
+
+message vxj {
+    required int32 b = 1;
+}

@@ -1,0 +1,8 @@
+// Decoded from APK class: wac
+// Field count: 1, range: 1-1
+
+syntax = "proto2";
+
+message wac {
+    optional bool c = 1;
+}

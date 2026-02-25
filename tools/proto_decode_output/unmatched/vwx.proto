@@ -1,0 +1,9 @@
+// Decoded from APK class: vwx
+// Field count: 2, range: 1-2
+
+syntax = "proto2";
+
+message vwx {
+    required sint32 c = 1;
+    required int32 d = 2;
+}

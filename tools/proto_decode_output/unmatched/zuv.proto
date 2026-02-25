@@ -1,0 +1,9 @@
+// Decoded from APK class: zuv
+// Field count: 2, range: 1-2
+
+syntax = "proto2";
+
+message zuv {
+    optional double b = 1;
+    optional double c = 2;
+}

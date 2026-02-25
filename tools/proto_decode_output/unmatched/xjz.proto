@@ -1,0 +1,11 @@
+// Decoded from APK class: xjz
+// Field count: 4, range: 1-4
+
+syntax = "proto2";
+
+message xjz {
+    optional uint64  = 0;
+    optional int32 e = 1;
+    optional bool xjy.class = 2;
+    optional double  = 60;
+}

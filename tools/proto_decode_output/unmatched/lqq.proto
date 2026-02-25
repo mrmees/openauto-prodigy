@@ -1,0 +1,11 @@
+// Decoded from APK class: lqq
+// Field count: 4, range: 1-5
+
+syntax = "proto2";
+
+message lqq {
+    optional int32 lqm.class = 0;
+    optional string e = 1;
+    optional bytes /* message ? */ lqo.class = 3;
+    optional double f = 60;
+}

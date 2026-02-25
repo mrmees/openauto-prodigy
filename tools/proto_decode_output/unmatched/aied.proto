@@ -1,0 +1,9 @@
+// Decoded from APK class: aied
+// Field count: 2, range: 1-2
+
+syntax = "proto2";
+
+message aied {
+    optional string b = 1;
+    optional int32 /* enum ? */ c = 2;
+}

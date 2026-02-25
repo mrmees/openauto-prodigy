@@ -1,0 +1,10 @@
+// Decoded from APK class: ahdg
+// Field count: 3, range: 1-3
+
+syntax = "proto2";
+
+message ahdg {
+    repeated ahdf c = 1;  // msg: ahdf
+    optional ahdh d = 2;  // msg: ahdh
+    optional int32 e = 3;
+}

@@ -1,0 +1,22 @@
+// Decoded from APK class: vyu
+// Field count: 15, range: 1-15
+
+syntax = "proto2";
+
+message vyu {
+    optional zyd b = 1;  // msg: zyd
+    optional int64 c = 2;
+    optional int64 d = 3;
+    optional int64 e = 4;
+    optional vvo f = 5;  // msg: vvo
+    optional vvo g = 6;  // msg: vvo
+    optional vvo h = 7;  // msg: vvo
+    optional vvo i = 8;  // msg: vvo
+    optional int64 j = 9;
+    optional int64 k = 10;
+    optional vvo l = 11;  // msg: vvo
+    optional long o = 13;  // msg: long
+    optional unknown_51 m = 92;
+    optional sfixed64 p = 102;
+    optional uint32 n = 4105;
+}

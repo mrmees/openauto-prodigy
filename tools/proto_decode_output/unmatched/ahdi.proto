@@ -1,0 +1,20 @@
+// Decoded from APK class: ahdi
+// Field count: 10, range: 1-92
+
+syntax = "proto2";
+
+message ahdi {
+    optional float c = 1;
+    optional int32 /* enum ? */ i = 2;
+    optional int64 k = 3;
+    optional long d = 6;  // msg: long
+    optional int64 e = 7;
+    optional fixed64 f = 8;
+    optional string g = 9;
+    optional string l = 10;
+    optional bytes /* message ? */  = 11;
+    optional unknown_51  = 92;
+    optional bytes /* message ? */  = 4098;
+    optional double h = 6156;
+}
+// PARSE ERROR: Entry parse error at field 12: read_varint: pos 42 past end of 42 chars

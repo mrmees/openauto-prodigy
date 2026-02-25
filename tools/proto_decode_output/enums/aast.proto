@@ -1,0 +1,10 @@
+// Decoded from APK class: aast
+
+syntax = "proto2";
+
+enum aast {
+    PNG = 0;
+    GIF = 1;
+    JPEG = 2;
+    CJPEG = 3;
+}

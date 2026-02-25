@@ -1,0 +1,12 @@
+// Decoded from APK class: aaim
+// Field count: 5, range: 1-5
+
+syntax = "proto2";
+
+message aaim {
+    optional aake c = 1;  // msg: aake
+    optional aajp d = 2;  // msg: aajp
+    optional string e = 3;
+    repeated string f = 4;
+    optional string g = 5;
+}

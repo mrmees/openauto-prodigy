@@ -1,0 +1,15 @@
+// Decoded from APK class: xgx
+// Field count: 8, range: 1-8
+
+syntax = "proto2";
+
+message xgx {
+    optional int64 xgr.class = 0;
+    optional int32 xgq.class = 0;
+    optional fixed32 xhb.class = 0;
+    optional bytes /* message ? */ xgu.class = 1;
+    optional bytes /* message ? */ xgy.class = 3;
+    optional bytes /* message ? */ xhc.class = 5;
+    optional double xgs.class = 60;
+    optional double xgw.class = 60;
+}

@@ -1,0 +1,8 @@
+// Decoded from APK class: vyf
+// Field count: 1, range: 1-1
+
+syntax = "proto2";
+
+message vyf {
+    optional uint64 b = 1;
+}

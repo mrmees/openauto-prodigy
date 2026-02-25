@@ -1,0 +1,14 @@
+// Decoded from APK class: ahfa
+// Field count: 7, range: 1-8
+
+syntax = "proto2";
+
+message ahfa {
+    optional string c = 1;
+    optional string d = 2;
+    optional int32 /* enum a */ e = 3;  // enum: a
+    optional int64 f = 4;
+    optional string g = 5;
+    optional string i = 7;
+    optional bool h = 8;
+}

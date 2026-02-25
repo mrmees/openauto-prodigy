@@ -1,0 +1,14 @@
+// Decoded from APK class: xkn
+
+syntax = "proto2";
+
+enum xkn {
+    NOTIFICATION_SHOWN = 1;
+    NOTIFICATION_DISMISSED = 2;
+    PROMPT_SHOWN = 4;
+    PROMPT_DISMISSED = 8;
+    RESPONSE_ENJOYING = 16;
+    RESPONSE_NOT_ENJOYING = 32;
+    OPEN_PLAY_STORE = 64;
+    OPEN_HELP_FEEDBACK = 128;
+}

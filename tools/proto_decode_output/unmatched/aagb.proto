@@ -1,0 +1,12 @@
+// Decoded from APK class: aagb
+// Field count: 5, range: 1-5
+
+syntax = "proto2";
+
+message aagb {
+    optional uint64 aafw.class = 0;
+    optional uint32 d = 1;
+    optional bytes /* message ? */ aaga.class = 2;
+    optional bytes /* message ? */ aafx.class = 4;
+    optional double aafy.class = 60;
+}

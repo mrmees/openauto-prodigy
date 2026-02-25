@@ -1,0 +1,8 @@
+// Decoded from APK class: xyd
+// Field count: 1, range: 9-9
+
+syntax = "proto2";
+
+message xyd {
+    optional bytes /* message ? */ d = 9;
+}

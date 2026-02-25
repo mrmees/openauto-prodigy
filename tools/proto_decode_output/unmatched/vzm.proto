@@ -1,0 +1,13 @@
+// Decoded from APK class: vzm
+// Field count: 6, range: 1-6
+
+syntax = "proto2";
+
+message vzm {
+    required string c = 1;
+    optional int32 /* enum a */ d = 2;  // enum: a
+    optional int32 /* enum vee */ e = 3;  // enum: vee
+    optional bytes f = 4;
+    optional int32 g = 5;
+    optional int32 h = 6;
+}

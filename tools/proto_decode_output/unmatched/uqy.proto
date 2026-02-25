@@ -1,0 +1,14 @@
+// Decoded from APK class: uqy
+// Field count: 7, range: 1-9
+
+syntax = "proto2";
+
+message uqy {
+    optional string e = 1;
+    optional string c = 2;
+    optional bytes d = 3;
+    repeated uqz f = 4;  // msg: uqz
+    repeated string g = 5;
+    optional bool h = 8;
+    optional int64 i = 9;
+}

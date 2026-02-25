@@ -1,0 +1,31 @@
+// Decoded from APK class: ahfr
+// Field count: 28, range: 1-40
+
+syntax = "proto2";
+
+message ahfr {
+    optional ahec f = 1;  // msg: ahec
+    optional fixed64 c = 2;
+    optional string d = 3;
+    optional ahfs g = 4;  // msg: ahfs
+    optional ahfa y = 5;  // msg: ahfa
+    optional aheg h = 6;  // msg: aheg
+    optional ahfd i = 7;  // msg: ahfd
+    optional ahfp z = 8;  // msg: ahfp
+    optional ahfm j = 9;  // msg: ahfm
+    optional ahdj k = 10;  // msg: ahdj
+    optional ahej m = 14;  // msg: ahej
+    optional bytes /* message ? */ e = 16;
+    optional string C = 17;
+    optional ahfh A = 21;  // msg: ahfh
+    optional ahds p = 23;  // msg: ahds
+    optional ahfq q = 27;  // msg: ahfq
+    optional bytes /* message ? */ E = 28;
+    optional ahex t = 29;  // msg: ahex
+    optional ahfg v = 30;  // msg: ahfg
+    optional ahdg r = 31;  // msg: ahdg
+    optional zzf x = 32;  // msg: zzf
+    optional unknown_51 l = 92;
+    optional ahdw B = 5129;  // msg: ahdw
+}
+// PARSE ERROR: Entry parse error at field 23: read_varint: pos 78 past end of 78 chars

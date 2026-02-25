@@ -1,0 +1,23 @@
+// Decoded from APK class: rtr
+// Field count: 92, range: 1-1
+
+syntax = "proto2";
+
+message rtr {
+    optional double  = 0;
+    optional float  = 0;
+    optional int64  = 2;
+    optional string  = 3;
+    optional bool  = 4;
+    optional string  = 5;
+    optional string  = 6;
+    optional string  = 7;
+    optional int32  = 8;
+    optional bytes  = 9;
+    optional string  = 10;
+    optional bytes /* message ? */  = 11;
+    optional unknown_51  = 92;
+    optional uint32  = 4100;
+    optional double  = 4104;
+}
+// PARSE ERROR: Entry parse error at field 15: read_varint: pos 50 past end of 50 chars

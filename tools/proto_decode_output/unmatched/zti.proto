@@ -1,0 +1,9 @@
+// Decoded from APK class: zti
+// Field count: 2, range: 1-2
+
+syntax = "proto2";
+
+message zti {
+    optional uint64 b = 1;
+    optional float  = 2;
+}

@@ -1,0 +1,25 @@
+// Decoded from APK class: pit
+// Field count: 18, range: 1-18
+
+syntax = "proto2";
+
+message pit {
+    optional fixed64 i = 0;
+    optional bool l = 0;
+    optional bytes /* message ? */  = 0;
+    optional uint32  = 0;
+    optional string d = 1;
+    optional unknown_41 e = 2;
+    optional int32 h = 4;
+    optional int32 k = 6;
+    optional float  = 8;
+    optional bool  = 10;
+    optional uint64  = 13;
+    optional double  = 51;
+    optional double m = 53;
+    optional double j = 55;
+    optional uint64 f = 102;
+    optional uint64  = 102;
+    optional unknown_41  = 538;
+    optional double g = 571;
+}

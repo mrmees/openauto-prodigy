@@ -1,0 +1,8 @@
+// Decoded from APK class: vyw
+
+syntax = "proto2";
+
+enum vyw {
+    STATUS_SUCCESS = 0;
+    STATUS_UNSOLICITED_MESSAGE = 1;
+}

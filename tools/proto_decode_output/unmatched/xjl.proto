@@ -1,0 +1,10 @@
+// Decoded from APK class: xjl
+// Field count: 3, range: 1-3
+
+syntax = "proto2";
+
+message xjl {
+    optional int32 c = 1;
+    optional bool d = 2;
+    optional int32 e = 3;
+}

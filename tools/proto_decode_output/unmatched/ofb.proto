@@ -1,0 +1,9 @@
+// Decoded from APK class: ofb
+// Field count: 2, range: 1-2
+
+syntax = "proto2";
+
+message ofb {
+    optional int32 /* enum ngh */ c = 1;  // enum: ngh
+    optional string d = 2;
+}

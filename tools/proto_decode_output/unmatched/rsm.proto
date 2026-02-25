@@ -1,0 +1,10 @@
+// Decoded from APK class: rsm
+// Field count: 3, range: 1-3
+
+syntax = "proto2";
+
+message rsm {
+    optional int64 nmg.class = 0;
+    optional bytes /* message ? */ nmz.class = 1;
+    optional double nmf.class = 60;
+}

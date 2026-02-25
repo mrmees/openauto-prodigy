@@ -1,0 +1,33 @@
+// Decoded from APK class: aaos
+// Field count: 44, range: 1-261
+
+syntax = "proto2";
+
+message aaos {
+    optional int32 b = 1;
+    optional fixed32 c = 2;
+    optional int32 d = 3;
+    optional int32 e = 4;
+    optional int32 f = 5;
+    optional int32 h = 7;
+    optional fixed32 i = 8;
+    optional int32 k = 9;
+    optional int32 l = 10;
+    optional int32 o = 17;
+    optional int32 p = 18;
+    optional fixed32 q = 19;
+    optional int32 r = 20;
+    optional int32 s = 21;
+    optional int32 t = 22;
+    optional int32 u = 23;
+    optional int32 v = 24;
+    optional bool w = 25;
+    optional int32 x = 28;
+    optional int32 y = 30;
+    optional bool z = 31;
+    optional int32 A = 32;
+    optional bool B = 33;
+    optional unknown_41 m = 102;
+    optional int32 n = 102;
+}
+// PARSE ERROR: Entry parse error at field 25: read_varint: pos 85 past end of 85 chars

@@ -1,0 +1,10 @@
+// Decoded from APK class: ytk
+// Field count: 3, range: 1-3
+
+syntax = "proto2";
+
+message ytk {
+    optional float c = 1;
+    optional float d = 2;
+    optional float e = 3;
+}

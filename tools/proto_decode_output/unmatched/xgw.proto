@@ -1,0 +1,9 @@
+// Decoded from APK class: xgw
+// Field count: 2, range: 1-2
+
+syntax = "proto2";
+
+message xgw {
+    optional int32 /* enum a */ c = 1;  // enum: a
+    optional int32 /* enum a */ d = 2;  // enum: a
+}

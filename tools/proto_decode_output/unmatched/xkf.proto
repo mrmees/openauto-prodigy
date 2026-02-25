@@ -1,0 +1,11 @@
+// Decoded from APK class: xkf
+// Field count: 4, range: 1-4
+
+syntax = "proto2";
+
+message xkf {
+    repeated xig c = 1;  // msg: xig
+    optional int32 d = 2;
+    optional xke e = 3;  // msg: xke
+    optional xlf f = 4;  // msg: xlf
+}

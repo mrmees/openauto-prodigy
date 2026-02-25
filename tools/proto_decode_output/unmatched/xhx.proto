@@ -1,0 +1,23 @@
+// Decoded from APK class: xhx
+// Field count: 92, range: 1-1
+
+syntax = "proto2";
+
+message xhx {
+    optional double  = 0;
+    optional float  = 0;
+    optional int32  = 2;
+    optional int32  = 3;
+    optional int32  = 4;
+    optional int32  = 5;
+    optional int32  = 6;
+    optional bool  = 7;
+    optional int32  = 8;
+    optional int32  = 9;
+    optional int32  = 10;
+    optional int32  = 11;
+    optional unknown_51  = 92;
+    optional double  = 4100;
+    optional uint32  = 4100;
+}
+// PARSE ERROR: Entry parse error at field 15: read_varint: pos 50 past end of 50 chars

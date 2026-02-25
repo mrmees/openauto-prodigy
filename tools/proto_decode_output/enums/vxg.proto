@@ -1,0 +1,9 @@
+// Decoded from APK class: vxg
+
+syntax = "proto2";
+
+enum vxg {
+    DISPLAY_TYPE_MAIN = 0;
+    DISPLAY_TYPE_CLUSTER = 1;
+    DISPLAY_TYPE_AUXILIARY = 2;
+}

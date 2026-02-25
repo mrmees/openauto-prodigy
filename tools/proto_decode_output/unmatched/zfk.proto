@@ -1,0 +1,8 @@
+// Decoded from APK class: zfk
+// Field count: 1, range: 1-1
+
+syntax = "proto2";
+
+message zfk {
+    optional zfj b = 1;  // enum: zfj
+}

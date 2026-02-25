@@ -1,0 +1,14 @@
+// Decoded from APK class: aass
+// Field count: 4, range: 1-4
+
+syntax = "proto2";
+
+message aass {
+    optional int32 /* enum a */ c = 1;  // enum: a
+    optional bytes /* message ? */ g = 2;
+    optional string d = 3;
+    optional string e = 4;
+}
+
+// === DIFF vs our proto ===
+// + field 4: string e

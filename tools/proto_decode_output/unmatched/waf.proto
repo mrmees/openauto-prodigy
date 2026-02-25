@@ -1,0 +1,9 @@
+// Decoded from APK class: waf
+// Field count: 2, range: 1-2
+
+syntax = "proto2";
+
+message waf {
+    repeated wad c = 1;  // msg: wad
+    optional uint32 d = 2;
+}

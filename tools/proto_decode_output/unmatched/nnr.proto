@@ -1,0 +1,10 @@
+// Decoded from APK class: nnr
+// Field count: 3, range: 1-3
+
+syntax = "proto2";
+
+message nnr {
+    optional nme c = 1;  // msg: nme
+    optional nmd d = 2;  // msg: nmd
+    optional int32 e = 3;
+}

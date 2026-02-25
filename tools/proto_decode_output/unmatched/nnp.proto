@@ -1,0 +1,11 @@
+// Decoded from APK class: nnp
+// Field count: 4, range: 1-4
+
+syntax = "proto2";
+
+message nnp {
+    optional int64 nnm.class = 0;
+    optional bytes /* message ? */ nnl.class = 1;
+    optional bytes /* message ? */ nmr.class = 3;
+    optional double nnn.class = 60;
+}

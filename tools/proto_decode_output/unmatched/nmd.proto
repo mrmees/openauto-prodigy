@@ -1,0 +1,10 @@
+// Decoded from APK class: nmd
+// Field count: 3, range: 1-4
+
+syntax = "proto2";
+
+message nmd {
+    optional string c = 1;
+    optional bool d = 2;
+    optional bool e = 4;
+}

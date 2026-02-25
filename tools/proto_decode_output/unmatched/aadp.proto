@@ -1,0 +1,10 @@
+// Decoded from APK class: aadp
+// Field count: 3, range: 1-3
+
+syntax = "proto2";
+
+message aadp {
+    optional uint64 c = 1;
+    optional string d = 2;
+    optional int32 e = 3;
+}

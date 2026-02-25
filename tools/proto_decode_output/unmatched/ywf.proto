@@ -1,0 +1,9 @@
+// Decoded from APK class: ywf
+// Field count: 2, range: 9-10
+
+syntax = "proto2";
+
+message ywf {
+    optional bytes /* message ? */ d = 9;
+    optional bytes /* message ? */ e = 10;
+}

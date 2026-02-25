@@ -1,0 +1,11 @@
+// Decoded from APK class: tex
+
+syntax = "proto2";
+
+enum tex {
+    DEFAULT = 0;
+    DRAW_OVER_LABELS = 1;
+    DRAW_OVER_LABELS_AND_CALLOUTS = 2;
+    DRAW_OVER_BUILDINGS = 3;
+    MAGIC_CARPET = 5;
+}

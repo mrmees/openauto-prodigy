@@ -1,0 +1,10 @@
+// Decoded from APK class: vuy
+// Field count: 3, range: 1-3
+
+syntax = "proto2";
+
+message vuy {
+    optional vuv c = 1;  // msg: vuv
+    optional vun d = 2;  // msg: vun
+    optional vuv e = 3;  // msg: vuv
+}

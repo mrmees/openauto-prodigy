@@ -1,0 +1,8 @@
+// Decoded from APK class: vxp
+// Field count: 1, range: 1-1
+
+syntax = "proto2";
+
+message vxp {
+    required int32 /* enum vee */ b = 1;  // enum: vee
+}

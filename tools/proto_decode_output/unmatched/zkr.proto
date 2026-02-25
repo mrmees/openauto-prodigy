@@ -1,0 +1,9 @@
+// Decoded from APK class: zkr
+// Field count: 2, range: 9-10
+
+syntax = "proto2";
+
+message zkr {
+    optional int32 /* enum a */ c = 9;  // enum: a
+    optional bool d = 10;
+}

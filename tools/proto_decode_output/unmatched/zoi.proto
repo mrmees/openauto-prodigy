@@ -1,0 +1,9 @@
+// Decoded from APK class: zoi
+// Field count: 2, range: 1-2
+
+syntax = "proto2";
+
+message zoi {
+    repeated int32 /* enum ? */ b = 1;
+    repeated zmz c = 2;  // msg: zmz
+}

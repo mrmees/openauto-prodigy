@@ -1,0 +1,52 @@
+// Decoded from APK class: aapd
+// Field count: 287, range: 1-301
+
+syntax = "proto2";
+
+message aapd {
+    optional int32 zdd.class = 0;
+    optional fixed32 aarj.class = 0;
+    optional string aaoy.class = 0;
+    optional uint32 aaov.class = 0;
+    optional sfixed64 aaod.class = 0;
+    optional sint64 aasd.class = 0;
+    repeated double aaqi.class = 0;
+    repeated uint64 zjt.class = 0;
+    repeated fixed64 aapf.class = 0;
+    repeated bool aanj.class = 0;
+    repeated aaqv aaqj.class = 0;  // msg: aaqv
+    repeated uint32 aanr.class = 0;
+    repeated sfixed32 aapp.class = 0;
+    repeated sint32 aanu.class = 0;
+    optional aapc e = 1;  // enum: aapc
+    optional fixed64 f = 2;
+    optional bytes /* message ? */ aaos.class = 3;
+    optional bytes /* message ? */ aasn.class = 5;
+    optional bytes /* message ? */ aasl.class = 7;
+    optional bytes /* message ? */ aame.class = 10;
+    optional bytes /* message ? */ aand.class = 13;
+    optional bytes /* message ? */ aaps.class = 15;
+    optional bytes /* message ? */ aamt.class = 17;
+    optional bytes /* message ? */ aanb.class = 20;
+    optional bytes /* message ? */ aari.class = 22;
+    optional bytes /* message ? */ aaqu.class = 24;
+    optional bytes /* message ? */ aaog.class = 26;
+    optional bytes /* message ? */ aarg.class = 28;
+    optional bytes /* message ? */ aamv.class = 30;
+    optional bytes /* message ? */ aapi.class = 32;
+    optional double aaqk.class = 60;
+    optional double aapn.class = 60;
+    optional double aamc.class = 60;
+    optional double aank.class = 60;
+    optional double aanv.class = 60;
+    optional double aanh.class = 60;
+    optional double zhl.class = 60;
+    optional double zgs.class = 60;
+    optional double aaol.class = 60;
+    optional double aaox.class = 60;
+    optional double zrc.class = 60;
+    optional double yyx.class = 60;
+    optional double aamj.class = 60;
+    optional double zfo.class = 60;
+}
+// PARSE ERROR: Entry parse error at field 44: read_varint: pos 101 past end of 101 chars

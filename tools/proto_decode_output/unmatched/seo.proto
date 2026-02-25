@@ -1,0 +1,9 @@
+// Decoded from APK class: seo
+// Field count: 2, range: 1-2
+
+syntax = "proto2";
+
+message seo {
+    optional string b = 1;
+    repeated seq c = 2;  // msg: seq
+}

@@ -1,0 +1,8 @@
+// Decoded from APK class: xsr
+// Field count: 1, range: 3-3
+
+syntax = "proto2";
+
+message xsr {
+    repeated int32 b = 3;
+}

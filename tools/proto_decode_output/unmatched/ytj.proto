@@ -1,0 +1,9 @@
+// Decoded from APK class: ytj
+// Field count: 2, range: 1-2
+
+syntax = "proto2";
+
+message ytj {
+    optional float c = 1;
+    optional float d = 2;
+}

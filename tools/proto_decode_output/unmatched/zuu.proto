@@ -1,0 +1,13 @@
+// Decoded from APK class: zuu
+// Field count: 6, range: 1-10
+
+syntax = "proto2";
+
+message zuu {
+    optional yth c = 1;  // msg: yth
+    optional float e = 2;
+    optional bool f = 4;
+    optional zsi d = 5;  // msg: zsi
+    optional int32 /* enum ? */ g = 7;
+    optional int32 /* enum ? */ h = 10;
+}

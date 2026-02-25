@@ -1,0 +1,10 @@
+// Decoded from APK class: zul
+// Field count: 3, range: 1-1000
+
+syntax = "proto2";
+
+message zul {
+    optional int64  = 0;
+    optional int32  = 1;
+    optional double  = 58;
+}

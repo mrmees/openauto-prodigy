@@ -1,0 +1,21 @@
+// Decoded from APK class: xis
+// Field count: 14, range: 1-16
+
+syntax = "proto2";
+
+message xis {
+    optional string c = 1;
+    optional string d = 2;
+    optional string e = 3;
+    optional string f = 4;
+    optional string g = 5;
+    optional string h = 6;
+    optional string i = 7;
+    optional int32 j = 10;
+    optional int32 k = 11;
+    optional int32 n = 13;
+    optional sint32 p = 22;
+    optional unknown_51 l = 92;
+    optional sfixed64 o = 102;
+    optional uint32 m = 4104;
+}

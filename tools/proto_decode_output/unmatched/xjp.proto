@@ -1,0 +1,11 @@
+// Decoded from APK class: xjp
+// Field count: 4, range: 1-4
+
+syntax = "proto2";
+
+message xjp {
+    optional int32 c = 1;
+    optional int32 d = 2;
+    optional int32 e = 3;
+    optional int32 f = 4;
+}

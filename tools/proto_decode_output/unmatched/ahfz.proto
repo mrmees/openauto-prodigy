@@ -1,0 +1,10 @@
+// Decoded from APK class: ahfz
+// Field count: 3, range: 1-4
+
+syntax = "proto2";
+
+message ahfz {
+    optional fixed64 b = 1;
+    repeated ahfy c = 3;  // msg: ahfy
+    optional aaav d = 4;  // msg: aaav
+}

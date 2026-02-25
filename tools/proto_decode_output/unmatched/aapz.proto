@@ -1,0 +1,11 @@
+// Decoded from APK class: aapz
+// Field count: 4, range: 1-6
+
+syntax = "proto2";
+
+message aapz {
+    required aasx c = 1;  // msg: aasx
+    optional aasy d = 3;  // msg: aasy
+    optional bool e = 4;
+    optional bytes /* message ? */ g = 6;
+}

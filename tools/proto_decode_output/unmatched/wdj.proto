@@ -1,0 +1,9 @@
+// Decoded from APK class: wdj
+// Field count: 2, range: 1-2
+
+syntax = "proto2";
+
+message wdj {
+    optional int32 /* enum viz */ c = 1;  // enum: viz
+    optional string d = 2;
+}

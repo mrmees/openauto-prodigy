@@ -1,0 +1,8 @@
+// Decoded from APK class: zav
+// Field count: 1, range: 5-5
+
+syntax = "proto2";
+
+message zav {
+    optional bytes /* message ? */ d = 5;
+}

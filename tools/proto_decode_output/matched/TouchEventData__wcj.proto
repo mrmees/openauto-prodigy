@@ -1,0 +1,10 @@
+// Decoded from APK class: wcj
+// Field count: 3, range: 1-3
+
+syntax = "proto2";
+
+message wcj {
+    repeated wci c = 1;  // msg: wci
+    optional uint32 d = 2;
+    optional int32 /* enum vee */ e = 3;  // enum: vee
+}

@@ -1,0 +1,10 @@
+// Decoded from APK class: vxs
+// Field count: 3, range: 1-3
+
+syntax = "proto2";
+
+message vxs {
+    required int32 c = 1;
+    optional int32 d = 2;
+    repeated vxr e = 3;  // msg: vxr
+}

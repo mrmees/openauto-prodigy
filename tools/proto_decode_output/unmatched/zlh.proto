@@ -1,0 +1,10 @@
+// Decoded from APK class: zlh
+// Field count: 3, range: 1-3
+
+syntax = "proto2";
+
+message zlh {
+    optional zmr c = 1;  // msg: zmr
+    optional int32 e = 2;
+    optional zpl d = 3;  // msg: zpl
+}

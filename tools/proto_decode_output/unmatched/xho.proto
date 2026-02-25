@@ -1,0 +1,15 @@
+// Decoded from APK class: xho
+// Field count: 8, range: 1-8
+
+syntax = "proto2";
+
+message xho {
+    optional int32 c = 1;
+    optional int32 d = 2;
+    optional int32 e = 3;
+    optional int32 f = 4;
+    optional bool g = 5;
+    optional bool h = 6;
+    optional int32 i = 7;
+    optional string j = 8;
+}

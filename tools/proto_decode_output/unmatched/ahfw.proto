@@ -1,0 +1,10 @@
+// Decoded from APK class: ahfw
+// Field count: 3, range: 1-3
+
+syntax = "proto2";
+
+message ahfw {
+    optional int64 e = 0;
+    optional bytes /* message ? */ aheq.class = 1;
+    optional double ahfz.class = 5129;
+}

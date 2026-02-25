@@ -1,0 +1,9 @@
+// Decoded from APK class: zuh
+// Field count: 2, range: 1-2
+
+syntax = "proto2";
+
+message zuh {
+    optional int32 b = 1;
+    optional int32 /* enum ? */ c = 2;
+}

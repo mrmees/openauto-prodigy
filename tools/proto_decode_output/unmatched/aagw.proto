@@ -1,0 +1,12 @@
+// Decoded from APK class: aagw
+// Field count: 5, range: 1-5
+
+syntax = "proto2";
+
+message aagw {
+    optional unknown_41 b = 1;
+    optional uint64 d = 11;
+    optional int32 e = 43;
+    optional int64 c = 102;
+    optional fixed64 f = 520;
+}

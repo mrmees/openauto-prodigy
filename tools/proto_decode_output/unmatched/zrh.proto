@@ -1,0 +1,11 @@
+// Decoded from APK class: zrh
+// Field count: 2, range: 10-92
+
+syntax = "proto2";
+
+message zrh {
+    optional bytes b = 2;
+    optional unknown_51 zre.class = 92;
+    optional uint64 c = 5129;
+}
+// PARSE ERROR: Entry parse error at field 3: read_varint: pos 17 past end of 17 chars

@@ -1,0 +1,11 @@
+// Decoded from APK class: nma
+// Field count: 4, range: 1-4
+
+syntax = "proto2";
+
+message nma {
+    optional int64  = 0;
+    optional bool nlz.class = 1;
+    optional bytes /* message ? */  = 3;
+    optional double  = 58;
+}

@@ -1,0 +1,10 @@
+// Decoded from APK class: xvn
+// Field count: 3, range: 1-8
+
+syntax = "proto2";
+
+message xvn {
+    repeated xvi b = 1;  // msg: xvi
+    optional bytes /* message ? */ e = 5;
+    optional bytes /* message ? */ f = 8;
+}

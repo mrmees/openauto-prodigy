@@ -1,0 +1,9 @@
+// Decoded from APK class: xyo
+// Field count: 2, range: 21-22
+
+syntax = "proto2";
+
+message xyo {
+    optional sfixed64 c = 21;
+    optional sfixed64 d = 22;
+}

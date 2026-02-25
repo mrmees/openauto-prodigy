@@ -1,0 +1,8 @@
+// Decoded from APK class: wcx
+// Field count: 1, range: 1-1
+
+syntax = "proto2";
+
+message wcx {
+    optional vxc c = 1;  // msg: vxc
+}

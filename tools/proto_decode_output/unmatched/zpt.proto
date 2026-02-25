@@ -1,0 +1,10 @@
+// Decoded from APK class: zpt
+// Field count: 3, range: 1-3
+
+syntax = "proto2";
+
+message zpt {
+    optional int32 b = 1;
+    optional int32 c = 2;
+    optional int32 d = 3;
+}

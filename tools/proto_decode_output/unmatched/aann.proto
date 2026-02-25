@@ -1,0 +1,8 @@
+// Decoded from APK class: aann
+// Field count: 1, range: 3-3
+
+syntax = "proto2";
+
+message aann {
+    optional bytes /* message ? */ d = 3;
+}

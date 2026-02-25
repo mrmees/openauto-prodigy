@@ -1,0 +1,9 @@
+// Decoded from APK class: aatt
+
+syntax = "proto2";
+
+enum aatt {
+    DEFAULT_THUMBNAIL = 0;
+    HQ_THUMBNAIL = 1;
+    HQ_THUMBNAIL_REPROJECTED = 2;
+}

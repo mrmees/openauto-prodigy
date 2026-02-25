@@ -1,0 +1,13 @@
+// Decoded from APK class: utk
+// Field count: 6, range: 1-6
+
+syntax = "proto2";
+
+message utk {
+    optional uint64  = 0;
+    optional fixed64  = 0;
+    optional string e = 1;
+    optional int64  = 2;
+    optional double  = 4;
+    optional double  = 58;
+}

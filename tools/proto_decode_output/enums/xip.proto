@@ -1,0 +1,11 @@
+// Decoded from APK class: xip
+
+syntax = "proto2";
+
+enum xip {
+    UNKNOWN_DELEGATE_TYPE = 0;
+    NONE = 1;
+    GMS_CAR_CONNECTIONLESS = 2;
+    ESCAPE_POD_Q = 3;
+    ESCAPE_POD_R = 4;
+}

@@ -1,0 +1,12 @@
+// Decoded from APK class: aaho
+// Field count: 5, range: 1-5
+
+syntax = "proto2";
+
+message aaho {
+    optional string c = 1;
+    optional aafr d = 2;  // msg: aafr
+    optional aagg e = 3;  // msg: aagg
+    optional aahn f = 4;  // msg: aahn
+    optional aago g = 5;  // msg: aago
+}

@@ -1,0 +1,11 @@
+// Decoded from APK class: aasg
+// Field count: 4, range: 1-4
+
+syntax = "proto2";
+
+message aasg {
+    optional bool b = 1;
+    optional bool c = 2;
+    optional int32 d = 3;
+    optional float e = 4;
+}

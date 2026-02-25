@@ -1,0 +1,10 @@
+// Decoded from APK class: nmp
+// Field count: 3, range: 1-3
+
+syntax = "proto2";
+
+message nmp {
+    repeated string b = 1;
+    repeated nmi c = 2;  // msg: nmi
+    optional bool d = 3;
+}

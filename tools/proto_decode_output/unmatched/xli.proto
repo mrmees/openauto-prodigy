@@ -1,0 +1,12 @@
+// Decoded from APK class: xli
+// Field count: 5, range: 1-5
+
+syntax = "proto2";
+
+message xli {
+    optional bytes /* message ? */ d = 1;
+    optional bytes /* message ? */ e = 2;
+    optional bytes /* message ? */ f = 3;
+    optional bytes /* message ? */ g = 4;
+    optional bytes /* message ? */ h = 5;
+}

@@ -1,0 +1,9 @@
+// Decoded from APK class: wdb
+// Field count: 2, range: 1-2
+
+syntax = "proto2";
+
+message wdb {
+    optional wda c = 1;  // enum: wda
+    optional bool d = 2;
+}

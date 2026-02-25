@@ -1,0 +1,15 @@
+// Decoded from APK class: xzv
+// Field count: 8, range: 1-8
+
+syntax = "proto2";
+
+message xzv {
+    required int32 c = 1;
+    required uint64 d = 2;
+    optional string e = 3;
+    optional bool f = 4;
+    optional string h = 5;
+    optional int32 /* enum xvh */ i = 6;  // enum: xvh
+    optional string j = 7;
+    optional int32 g = 8;
+}

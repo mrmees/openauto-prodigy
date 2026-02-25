@@ -1,0 +1,9 @@
+// Decoded from APK class: xkm
+// Field count: 2, range: 1-2
+
+syntax = "proto2";
+
+message xkm {
+    optional uint64 c = 1;
+    optional uint64 d = 2;
+}

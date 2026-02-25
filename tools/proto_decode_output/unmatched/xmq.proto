@@ -1,0 +1,9 @@
+// Decoded from APK class: xmq
+// Field count: 2, range: 3-17
+
+syntax = "proto2";
+
+message xmq {
+    optional bytes /* message ? */ d = 3;
+    optional sfixed64 e = 17;
+}

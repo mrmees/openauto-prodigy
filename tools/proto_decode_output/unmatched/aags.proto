@@ -1,0 +1,9 @@
+// Decoded from APK class: aags
+// Field count: 2, range: 1-2
+
+syntax = "proto2";
+
+message aags {
+    optional bool b = 1;
+    optional bool c = 2;
+}

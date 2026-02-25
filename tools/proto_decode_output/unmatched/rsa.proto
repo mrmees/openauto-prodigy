@@ -1,0 +1,11 @@
+// Decoded from APK class: rsa
+// Field count: 4, range: 1-4
+
+syntax = "proto2";
+
+message rsa {
+    optional bool c = 1;
+    optional rsy d = 2;  // msg: rsy
+    optional rtp e = 3;  // msg: rtp
+    optional bool f = 4;
+}

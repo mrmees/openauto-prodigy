@@ -1,0 +1,8 @@
+// Decoded from APK class: aapa
+// Field count: 1, range: 11-11
+
+syntax = "proto2";
+
+message aapa {
+    optional bytes /* message ? */ e = 11;
+}

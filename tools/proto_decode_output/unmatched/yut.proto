@@ -1,0 +1,8 @@
+// Decoded from APK class: yut
+// Field count: 1, range: 1-1
+
+syntax = "proto2";
+
+message yut {
+    optional bytes /* message ? */ d = 1;
+}

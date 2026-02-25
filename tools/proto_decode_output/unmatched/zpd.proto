@@ -1,0 +1,8 @@
+// Decoded from APK class: zpd
+// Field count: 1, range: 1000-1000
+
+syntax = "proto2";
+
+message zpd {
+    optional bytes /* message ? */ d = 1000;
+}

@@ -1,0 +1,10 @@
+// Decoded from APK class: ufi
+// Field count: 3, range: 1-4
+
+syntax = "proto2";
+
+message ufi {
+    optional int64 c = 1;
+    optional aaav d = 2;  // msg: aaav
+    repeated ufe e = 4;  // msg: ufe
+}

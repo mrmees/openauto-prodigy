@@ -1,0 +1,8 @@
+// Decoded from APK class: wct
+// Field count: 1, range: 1-1
+
+syntax = "proto2";
+
+message wct {
+    optional wco c = 1;  // msg: wco
+}

@@ -1,0 +1,9 @@
+// Decoded from APK class: rsj
+// Field count: 2, range: 1-2
+
+syntax = "proto2";
+
+message rsj {
+    optional string c = 1;
+    optional int64 d = 2;
+}

@@ -1,0 +1,14 @@
+// Decoded from APK class: zfx
+// Field count: 7, range: 1-11
+
+syntax = "proto2";
+
+message zfx {
+    optional zfw b = 1;  // enum: zfw
+    optional string c = 5;
+    repeated zfl d = 7;  // msg: zfl
+    optional zfh e = 8;  // msg: zfh
+    optional string f = 9;
+    optional zfm g = 10;  // msg: zfm
+    repeated zfk h = 11;  // msg: zfk
+}

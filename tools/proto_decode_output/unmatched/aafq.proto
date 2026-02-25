@@ -1,0 +1,9 @@
+// Decoded from APK class: aafq
+// Field count: 2, range: 1-2
+
+syntax = "proto2";
+
+message aafq {
+    optional aafo c = 1;  // msg: aafo
+    optional aafp d = 2;  // msg: aafp
+}

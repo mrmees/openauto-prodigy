@@ -1,0 +1,10 @@
+// Decoded from APK class: aalw
+// Field count: 3, range: 1-4
+
+syntax = "proto2";
+
+message aalw {
+    optional uint64 aalv.class = 0;
+    optional fixed64 d = 1;
+    optional int32  = 27;
+}

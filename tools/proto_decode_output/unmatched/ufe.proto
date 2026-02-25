@@ -1,0 +1,11 @@
+// Decoded from APK class: ufe
+// Field count: 4, range: 1-4
+
+syntax = "proto2";
+
+message ufe {
+    optional int64 uff.class = 0;
+    optional bytes /* message ? */ ahdw.class = 1;
+    optional bytes /* message ? */ ufh.class = 3;
+    optional double ufg.class = 60;
+}

@@ -1,0 +1,12 @@
+// Decoded from APK class: nvr
+
+syntax = "proto2";
+
+enum nvr {
+    STATIC_INJECTION_UNSET = 0;
+    CLEAR_WIFI_DATA_STORE = 1;
+    CLEAR_BLUETOOTH_DATA_STORE = 2;
+    DISABLE_WIFI = 3;
+    SEVER_HFP = 4;
+    SIMULATE_WIFI_INTERFERENCE = 5;
+}

@@ -1,0 +1,10 @@
+// Decoded from APK class: xgq
+// Field count: 3, range: 1-3
+
+syntax = "proto2";
+
+message xgq {
+    optional bool c = 1;
+    optional int32 /* enum ? */ d = 2;
+    optional string  = 3;
+}

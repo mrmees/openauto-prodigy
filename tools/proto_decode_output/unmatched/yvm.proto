@@ -1,0 +1,8 @@
+// Decoded from APK class: yvm
+// Field count: 1, range: 6-6
+
+syntax = "proto2";
+
+message yvm {
+    optional bytes /* message ? */ d = 6;
+}

@@ -1,0 +1,10 @@
+// Decoded from APK class: wca
+// Field count: 3, range: 1-3
+
+syntax = "proto2";
+
+message wca {
+    optional vuv c = 1;  // msg: vuv
+    optional vvd d = 2;  // msg: vvd
+    optional string e = 3;
+}

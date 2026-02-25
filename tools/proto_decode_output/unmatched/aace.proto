@@ -1,0 +1,8 @@
+// Decoded from APK class: aace
+// Field count: 1, range: 1-1
+
+syntax = "proto2";
+
+message aace {
+    repeated aacd b = 1;  // msg: aacd
+}

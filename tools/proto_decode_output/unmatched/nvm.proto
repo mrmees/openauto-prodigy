@@ -1,0 +1,9 @@
+// Decoded from APK class: nvm
+// Field count: 2, range: 1-2
+
+syntax = "proto2";
+
+message nvm {
+    optional zyd b = 1;  // msg: zyd
+    optional zyd c = 2;  // msg: zyd
+}

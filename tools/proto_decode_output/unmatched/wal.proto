@@ -1,0 +1,8 @@
+// Decoded from APK class: wal
+// Field count: 1, range: 1-1
+
+syntax = "proto2";
+
+message wal {
+    repeated was b = 1;  // msg: was
+}

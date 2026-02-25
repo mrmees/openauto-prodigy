@@ -1,0 +1,9 @@
+// Decoded from APK class: zqs
+// Field count: 2, range: 1-2
+
+syntax = "proto2";
+
+message zqs {
+    optional bool b = 1;
+    repeated bytes /* message ? */ zqr.class = 2;
+}

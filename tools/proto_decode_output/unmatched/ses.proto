@@ -1,0 +1,8 @@
+// Decoded from APK class: ses
+// Field count: 1, range: 1-1
+
+syntax = "proto2";
+
+message ses {
+    optional seq c = 1;  // msg: seq
+}

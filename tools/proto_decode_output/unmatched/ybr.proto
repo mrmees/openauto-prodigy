@@ -1,0 +1,8 @@
+// Decoded from APK class: ybr
+// Field count: 1, range: 1-1
+
+syntax = "proto2";
+
+message ybr {
+    optional int64 b = 1;
+}

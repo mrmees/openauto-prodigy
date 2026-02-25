@@ -1,0 +1,10 @@
+// Decoded from APK class: aatb
+// Field count: 3, range: 2-9
+
+syntax = "proto2";
+
+message aatb {
+    optional fixed64 c = 2;
+    required string d = 4;
+    optional string e = 9;
+}

@@ -1,0 +1,9 @@
+// Decoded from APK class: nvi
+// Field count: 2, range: 1-2
+
+syntax = "proto2";
+
+message nvi {
+    repeated zyd b = 1;  // msg: zyd
+    optional bool c = 2;
+}

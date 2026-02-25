@@ -1,0 +1,10 @@
+// Decoded from APK class: zmn
+// Field count: 3, range: 1-3
+
+syntax = "proto2";
+
+message zmn {
+    optional zop b = 1;  // msg: zop
+    optional int32 c = 2;
+    optional int32 d = 3;
+}

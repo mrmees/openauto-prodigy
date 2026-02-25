@@ -1,0 +1,11 @@
+// Decoded from APK class: nny
+
+syntax = "proto2";
+
+enum nny {
+    DROPPED_MICROPHONE_FRAME_REASON_UNSPECIFIED = 0;
+    MICROPHONE_NOT_OPEN = 1;
+    CLIENT_QUEUE_LIMIT_EXCEEDED = 2;
+    MISSING_OUTPUT_STREAM = 3;
+    IO_ERROR_WRITING_TO_OUTPUT_STREAM = 4;
+}

@@ -1,0 +1,9 @@
+// Decoded from APK class: aasw
+// Field count: 2, range: 1-2
+
+syntax = "proto2";
+
+message aasw {
+    required sint32 d = 1;
+    required sint32 e = 2;
+}

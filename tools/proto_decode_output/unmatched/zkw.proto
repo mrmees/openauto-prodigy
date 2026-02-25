@@ -1,0 +1,8 @@
+// Decoded from APK class: zkw
+// Field count: 1, range: 1-1
+
+syntax = "proto2";
+
+message zkw {
+    optional bytes /* message ? */ d = 1;
+}

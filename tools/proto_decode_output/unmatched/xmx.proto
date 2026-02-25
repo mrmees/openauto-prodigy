@@ -1,0 +1,14 @@
+// Decoded from APK class: xmx
+// Field count: 7, range: 1-7
+
+syntax = "proto2";
+
+message xmx {
+    optional int32 /* enum ? */ c = 1;
+    optional int32 /* enum a */ d = 2;  // enum: a
+    optional int32 e = 3;
+    optional int64 f = 4;
+    optional int64 g = 5;
+    optional int32 /* enum ? */ h = 6;
+    optional int64 i = 7;
+}

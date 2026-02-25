@@ -1,0 +1,8 @@
+// Decoded from APK class: aatr
+
+syntax = "proto2";
+
+enum aatr {
+    UNKNOWN_SEARCH_FILTER = 0;
+    OUTDOOR = 1;
+}

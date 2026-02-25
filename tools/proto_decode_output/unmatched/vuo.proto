@@ -1,0 +1,8 @@
+// Decoded from APK class: vuo
+// Field count: 1, range: 1-1
+
+syntax = "proto2";
+
+message vuo {
+    optional vun c = 1;  // msg: vun
+}

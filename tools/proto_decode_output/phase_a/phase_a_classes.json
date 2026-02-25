@@ -1,0 +1,1886 @@
+[
+  {
+    "class_name": "wby",
+    "fields": [
+      {
+        "wire_field": 1,
+        "type": "message",
+        "cardinality": "repeated",
+        "flags": {
+          "bit8_required": false,
+          "bit10": true,
+          "bit11_packed": false,
+          "bit12_no_hasbits": false
+        },
+        "java_field": "c",
+        "java_type": "defpackage.zzf",
+        "message_class": "wbw.class"
+      },
+      {
+        "wire_field": 2,
+        "type": "string",
+        "cardinality": "singular",
+        "flags": {
+          "bit8_required": false,
+          "bit10": false,
+          "bit11_packed": false,
+          "bit12_no_hasbits": true
+        },
+        "java_field": "d",
+        "java_type": "java.lang.String",
+        "has_bits": {
+          "word": 0,
+          "bit": 0,
+          "raw": 0
+        }
+      },
+      {
+        "wire_field": 3,
+        "type": "string",
+        "cardinality": "singular",
+        "flags": {
+          "bit8_required": false,
+          "bit10": false,
+          "bit11_packed": false,
+          "bit12_no_hasbits": true
+        },
+        "java_field": "e",
+        "java_type": "java.lang.String",
+        "has_bits": {
+          "word": 0,
+          "bit": 1,
+          "raw": 1
+        }
+      },
+      {
+        "wire_field": 4,
+        "type": "string",
+        "cardinality": "singular",
+        "flags": {
+          "bit8_required": false,
+          "bit10": false,
+          "bit11_packed": false,
+          "bit12_no_hasbits": true
+        },
+        "java_field": "f",
+        "java_type": "java.lang.String",
+        "has_bits": {
+          "word": 0,
+          "bit": 2,
+          "raw": 2
+        }
+      },
+      {
+        "wire_field": 5,
+        "type": "string",
+        "cardinality": "singular",
+        "flags": {
+          "bit8_required": false,
+          "bit10": false,
+          "bit11_packed": false,
+          "bit12_no_hasbits": true
+        },
+        "java_field": "g",
+        "java_type": "java.lang.String",
+        "has_bits": {
+          "word": 0,
+          "bit": 3,
+          "raw": 3
+        }
+      },
+      {
+        "wire_field": 6,
+        "type": "enum",
+        "cardinality": "singular",
+        "flags": {
+          "bit8_required": false,
+          "bit10": false,
+          "bit11_packed": true,
+          "bit12_no_hasbits": true
+        },
+        "java_field": "h",
+        "java_type": "int",
+        "enum_verifier": "vvs.k",
+        "has_bits": {
+          "word": 0,
+          "bit": 4,
+          "raw": 4
+        }
+      },
+      {
+        "wire_field": 7,
+        "type": "string",
+        "cardinality": "singular",
+        "flags": {
+          "bit8_required": false,
+          "bit10": false,
+          "bit11_packed": false,
+          "bit12_no_hasbits": true
+        },
+        "java_field": "i",
+        "java_type": "java.lang.String",
+        "has_bits": {
+          "word": 0,
+          "bit": 5,
+          "raw": 5
+        }
+      },
+      {
+        "wire_field": 8,
+        "type": "string",
+        "cardinality": "singular",
+        "flags": {
+          "bit8_required": false,
+          "bit10": false,
+          "bit11_packed": false,
+          "bit12_no_hasbits": true
+        },
+        "java_field": "j",
+        "java_type": "java.lang.String",
+        "has_bits": {
+          "word": 0,
+          "bit": 6,
+          "raw": 6
+        }
+      },
+      {
+        "wire_field": 9,
+        "type": "string",
+        "cardinality": "singular",
+        "flags": {
+          "bit8_required": false,
+          "bit10": false,
+          "bit11_packed": false,
+          "bit12_no_hasbits": true
+        },
+        "java_field": "k",
+        "java_type": "java.lang.String",
+        "has_bits": {
+          "word": 0,
+          "bit": 7,
+          "raw": 7
+        }
+      },
+      {
+        "wire_field": 10,
+        "type": "string",
+        "cardinality": "singular",
+        "flags": {
+          "bit8_required": false,
+          "bit10": false,
+          "bit11_packed": false,
+          "bit12_no_hasbits": true
+        },
+        "java_field": "l",
+        "java_type": "java.lang.String",
+        "has_bits": {
+          "word": 0,
+          "bit": 8,
+          "raw": 8
+        }
+      },
+      {
+        "wire_field": 11,
+        "type": "bool",
+        "cardinality": "singular",
+        "flags": {
+          "bit8_required": false,
+          "bit10": false,
+          "bit11_packed": false,
+          "bit12_no_hasbits": true
+        },
+        "java_field": "m",
+        "java_type": "boolean",
+        "has_bits": {
+          "word": 0,
+          "bit": 9,
+          "raw": 9
+        }
+      },
+      {
+        "wire_field": 13,
+        "type": "int32",
+        "cardinality": "singular",
+        "flags": {
+          "bit8_required": false,
+          "bit10": false,
+          "bit11_packed": false,
+          "bit12_no_hasbits": true
+        },
+        "java_field": "n",
+        "java_type": "int",
+        "has_bits": {
+          "word": 0,
+          "bit": 10,
+          "raw": 10
+        }
+      },
+      {
+        "wire_field": 14,
+        "type": "string",
+        "cardinality": "singular",
+        "flags": {
+          "bit8_required": false,
+          "bit10": false,
+          "bit11_packed": false,
+          "bit12_no_hasbits": true
+        },
+        "java_field": "o",
+        "java_type": "java.lang.String",
+        "has_bits": {
+          "word": 0,
+          "bit": 11,
+          "raw": 11
+        }
+      },
+      {
+        "wire_field": 15,
+        "type": "bool",
+        "cardinality": "singular",
+        "flags": {
+          "bit8_required": false,
+          "bit10": false,
+          "bit11_packed": false,
+          "bit12_no_hasbits": true
+        },
+        "java_field": "p",
+        "java_type": "boolean",
+        "has_bits": {
+          "word": 0,
+          "bit": 12,
+          "raw": 12
+        }
+      },
+      {
+        "wire_field": 17,
+        "type": "message",
+        "cardinality": "singular",
+        "flags": {
+          "bit8_required": false,
+          "bit10": false,
+          "bit11_packed": false,
+          "bit12_no_hasbits": true
+        },
+        "java_field": "q",
+        "java_type": "defpackage.vve",
+        "has_bits": {
+          "word": 0,
+          "bit": 14,
+          "raw": 14
+        }
+      }
+    ],
+    "header": {
+      "field_count": 15,
+      "has_bits_count": 0,
+      "oneof_count": 1,
+      "check_init": 1,
+      "map_fields": 17,
+      "field_count2": 15,
+      "i36": 0,
+      "charAt20": 1,
+      "charAt21": 1
+    },
+    "obj_array": [
+      "b",
+      "c",
+      "wbw.class",
+      "d",
+      "e",
+      "f",
+      "g",
+      "h",
+      "vvs.k",
+      "i",
+      "j",
+      "k",
+      "l",
+      "m",
+      "n",
+      "o",
+      "p",
+      "q"
+    ],
+    "java_fields": {
+      "b": "int",
+      "h": "int",
+      "m": "boolean",
+      "n": "int",
+      "p": "boolean",
+      "q": "defpackage.vve",
+      "s": "byte",
+      "c": "defpackage.zzf",
+      "d": "java.lang.String",
+      "e": "java.lang.String",
+      "f": "java.lang.String",
+      "g": "java.lang.String",
+      "i": "java.lang.String",
+      "j": "java.lang.String",
+      "k": "java.lang.String",
+      "l": "java.lang.String",
+      "o": "java.lang.String"
+    }
+  },
+  {
+    "class_name": "wbw",
+    "fields": [
+      {
+        "wire_field": 1,
+        "type": "int32",
+        "cardinality": "singular",
+        "flags": {
+          "bit8_required": true,
+          "bit10": true,
+          "bit11_packed": false,
+          "bit12_no_hasbits": true
+        },
+        "java_field": "c",
+        "java_type": "int",
+        "has_bits": {
+          "word": 0,
+          "bit": 0,
+          "raw": 0
+        }
+      },
+      {
+        "wire_field": 2,
+        "type": "message",
+        "cardinality": "singular",
+        "flags": {
+          "bit8_required": false,
+          "bit10": true,
+          "bit11_packed": false,
+          "bit12_no_hasbits": true
+        },
+        "java_field": "d",
+        "java_type": "defpackage.wbu",
+        "has_bits": {
+          "word": 0,
+          "bit": 1,
+          "raw": 1
+        }
+      },
+      {
+        "wire_field": 3,
+        "type": "message",
+        "cardinality": "singular",
+        "flags": {
+          "bit8_required": false,
+          "bit10": true,
+          "bit11_packed": false,
+          "bit12_no_hasbits": true
+        },
+        "java_field": "e",
+        "java_type": "defpackage.vys",
+        "has_bits": {
+          "word": 0,
+          "bit": 2,
+          "raw": 2
+        }
+      },
+      {
+        "wire_field": 4,
+        "type": "message",
+        "cardinality": "singular",
+        "flags": {
+          "bit8_required": false,
+          "bit10": true,
+          "bit11_packed": false,
+          "bit12_no_hasbits": true
+        },
+        "java_field": "f",
+        "java_type": "defpackage.vya",
+        "has_bits": {
+          "word": 0,
+          "bit": 3,
+          "raw": 3
+        }
+      },
+      {
+        "wire_field": 5,
+        "type": "message",
+        "cardinality": "singular",
+        "flags": {
+          "bit8_required": false,
+          "bit10": true,
+          "bit11_packed": false,
+          "bit12_no_hasbits": true
+        },
+        "java_field": "g",
+        "java_type": "defpackage.vyt",
+        "has_bits": {
+          "word": 0,
+          "bit": 4,
+          "raw": 4
+        }
+      },
+      {
+        "wire_field": 6,
+        "type": "message",
+        "cardinality": "singular",
+        "flags": {
+          "bit8_required": false,
+          "bit10": true,
+          "bit11_packed": false,
+          "bit12_no_hasbits": true
+        },
+        "java_field": "h",
+        "java_type": "defpackage.vwc",
+        "has_bits": {
+          "word": 0,
+          "bit": 5,
+          "raw": 5
+        }
+      },
+      {
+        "wire_field": 7,
+        "type": "message",
+        "cardinality": "singular",
+        "flags": {
+          "bit8_required": false,
+          "bit10": true,
+          "bit11_packed": false,
+          "bit12_no_hasbits": true
+        },
+        "java_field": "i",
+        "java_type": "defpackage.way",
+        "has_bits": {
+          "word": 0,
+          "bit": 6,
+          "raw": 6
+        }
+      },
+      {
+        "wire_field": 8,
+        "type": "message",
+        "cardinality": "singular",
+        "flags": {
+          "bit8_required": false,
+          "bit10": true,
+          "bit11_packed": false,
+          "bit12_no_hasbits": true
+        },
+        "java_field": "j",
+        "java_type": "defpackage.vzr",
+        "has_bits": {
+          "word": 0,
+          "bit": 7,
+          "raw": 7
+        }
+      },
+      {
+        "wire_field": 9,
+        "type": "message",
+        "cardinality": "singular",
+        "flags": {
+          "bit8_required": false,
+          "bit10": false,
+          "bit11_packed": false,
+          "bit12_no_hasbits": true
+        },
+        "java_field": "o",
+        "java_type": "defpackage.vyr",
+        "has_bits": {
+          "word": 0,
+          "bit": 8,
+          "raw": 8
+        }
+      },
+      {
+        "wire_field": 10,
+        "type": "message",
+        "cardinality": "singular",
+        "flags": {
+          "bit8_required": false,
+          "bit10": false,
+          "bit11_packed": false,
+          "bit12_no_hasbits": true
+        },
+        "java_field": "p",
+        "java_type": "defpackage.wah",
+        "has_bits": {
+          "word": 0,
+          "bit": 9,
+          "raw": 9
+        }
+      },
+      {
+        "wire_field": 11,
+        "type": "message",
+        "cardinality": "singular",
+        "flags": {
+          "bit8_required": false,
+          "bit10": false,
+          "bit11_packed": false,
+          "bit12_no_hasbits": true
+        },
+        "java_field": "q",
+        "java_type": "defpackage.vym",
+        "has_bits": {
+          "word": 0,
+          "bit": 10,
+          "raw": 10
+        }
+      },
+      {
+        "wire_field": 12,
+        "type": "message",
+        "cardinality": "singular",
+        "flags": {
+          "bit8_required": false,
+          "bit10": true,
+          "bit11_packed": false,
+          "bit12_no_hasbits": true
+        },
+        "java_field": "k",
+        "java_type": "defpackage.wcv",
+        "has_bits": {
+          "word": 0,
+          "bit": 11,
+          "raw": 11
+        }
+      },
+      {
+        "wire_field": 13,
+        "type": "message",
+        "cardinality": "singular",
+        "flags": {
+          "bit8_required": false,
+          "bit10": false,
+          "bit11_packed": false,
+          "bit12_no_hasbits": true
+        },
+        "java_field": "r",
+        "java_type": "defpackage.vxq",
+        "has_bits": {
+          "word": 0,
+          "bit": 12,
+          "raw": 12
+        }
+      },
+      {
+        "wire_field": 14,
+        "type": "message",
+        "cardinality": "singular",
+        "flags": {
+          "bit8_required": false,
+          "bit10": false,
+          "bit11_packed": false,
+          "bit12_no_hasbits": true
+        },
+        "java_field": "l",
+        "java_type": "defpackage.wdh",
+        "has_bits": {
+          "word": 0,
+          "bit": 13,
+          "raw": 13
+        }
+      },
+      {
+        "wire_field": 15,
+        "type": "message",
+        "cardinality": "singular",
+        "flags": {
+          "bit8_required": false,
+          "bit10": false,
+          "bit11_packed": false,
+          "bit12_no_hasbits": true
+        },
+        "java_field": "m",
+        "java_type": "defpackage.vwo",
+        "has_bits": {
+          "word": 0,
+          "bit": 14,
+          "raw": 14
+        }
+      },
+      {
+        "wire_field": 16,
+        "type": "message",
+        "cardinality": "singular",
+        "flags": {
+          "bit8_required": false,
+          "bit10": false,
+          "bit11_packed": false,
+          "bit12_no_hasbits": true
+        },
+        "java_field": "s",
+        "java_type": "defpackage.vwt",
+        "has_bits": {
+          "word": 0,
+          "bit": 15,
+          "raw": 15
+        }
+      },
+      {
+        "wire_field": 17,
+        "type": "message",
+        "cardinality": "singular",
+        "flags": {
+          "bit8_required": false,
+          "bit10": false,
+          "bit11_packed": false,
+          "bit12_no_hasbits": true
+        },
+        "java_field": "t",
+        "java_type": "defpackage.vwd",
+        "has_bits": {
+          "word": 0,
+          "bit": 16,
+          "raw": 16
+        }
+      }
+    ],
+    "header": {
+      "field_count": 17,
+      "has_bits_count": 0,
+      "oneof_count": 1,
+      "check_init": 1,
+      "map_fields": 17,
+      "field_count2": 17,
+      "i36": 0,
+      "charAt20": 0,
+      "charAt21": 9
+    },
+    "obj_array": [
+      "b",
+      "c",
+      "d",
+      "e",
+      "f",
+      "g",
+      "h",
+      "i",
+      "j",
+      "o",
+      "p",
+      "q",
+      "k",
+      "r",
+      "l",
+      "m",
+      "s",
+      "t"
+    ],
+    "java_fields": {
+      "b": "int",
+      "c": "int",
+      "d": "defpackage.wbu",
+      "e": "defpackage.vys",
+      "f": "defpackage.vya",
+      "g": "defpackage.vyt",
+      "h": "defpackage.vwc",
+      "i": "defpackage.way",
+      "j": "defpackage.vzr",
+      "k": "defpackage.wcv",
+      "l": "defpackage.wdh",
+      "m": "defpackage.vwo",
+      "o": "defpackage.vyr",
+      "p": "defpackage.wah",
+      "q": "defpackage.vym",
+      "r": "defpackage.vxq",
+      "s": "defpackage.vwt",
+      "t": "defpackage.vwd",
+      "u": "byte"
+    }
+  },
+  {
+    "class_name": "wbu",
+    "fields": [
+      {
+        "wire_field": 1,
+        "type": "message",
+        "cardinality": "repeated",
+        "flags": {
+          "bit8_required": false,
+          "bit10": true,
+          "bit11_packed": false,
+          "bit12_no_hasbits": false
+        },
+        "java_field": "d",
+        "java_type": "defpackage.zzf",
+        "message_class": "wbt.class"
+      },
+      {
+        "wire_field": 2,
+        "type": "uint32",
+        "cardinality": "singular",
+        "flags": {
+          "bit8_required": false,
+          "bit10": false,
+          "bit11_packed": false,
+          "bit12_no_hasbits": true
+        },
+        "java_field": "e",
+        "java_type": "int",
+        "has_bits": {
+          "word": 0,
+          "bit": 0,
+          "raw": 0
+        }
+      },
+      {
+        "wire_field": 3,
+        "type": "enum",
+        "cardinality": "repeated",
+        "flags": {
+          "bit8_required": false,
+          "bit10": false,
+          "bit11_packed": true,
+          "bit12_no_hasbits": false
+        },
+        "java_field": "f",
+        "java_type": "defpackage.zzb",
+        "enum_verifier": "vvs.o"
+      },
+      {
+        "wire_field": 4,
+        "type": "enum",
+        "cardinality": "repeated",
+        "flags": {
+          "bit8_required": false,
+          "bit10": false,
+          "bit11_packed": true,
+          "bit12_no_hasbits": false
+        },
+        "java_field": "g",
+        "java_type": "defpackage.zzb",
+        "enum_verifier": "vvs.l"
+      }
+    ],
+    "header": {
+      "field_count": 4,
+      "has_bits_count": 0,
+      "oneof_count": 1,
+      "check_init": 1,
+      "map_fields": 4,
+      "field_count2": 4,
+      "i36": 0,
+      "charAt20": 3,
+      "charAt21": 1
+    },
+    "obj_array": [
+      "i",
+      "d",
+      "wbt.class",
+      "e",
+      "f",
+      "vvs.o",
+      "g",
+      "vvs.l"
+    ],
+    "java_fields": {
+      "e": "int",
+      "f": "defpackage.zzb",
+      "g": "defpackage.zzb",
+      "i": "int",
+      "j": "byte",
+      "d": "defpackage.zzf"
+    }
+  },
+  {
+    "class_name": "vys",
+    "fields": [
+      {
+        "wire_field": 1,
+        "type": "enum",
+        "cardinality": "singular",
+        "flags": {
+          "bit8_required": false,
+          "bit10": false,
+          "bit11_packed": true,
+          "bit12_no_hasbits": true
+        },
+        "java_field": "c",
+        "java_type": "int",
+        "enum_verifier": "vvs.u",
+        "has_bits": {
+          "word": 0,
+          "bit": 0,
+          "raw": 0
+        }
+      },
+      {
+        "wire_field": 2,
+        "type": "enum",
+        "cardinality": "singular",
+        "flags": {
+          "bit8_required": false,
+          "bit10": false,
+          "bit11_packed": true,
+          "bit12_no_hasbits": true
+        },
+        "java_field": "d",
+        "java_type": "int",
+        "enum_verifier": "vvs.d",
+        "has_bits": {
+          "word": 0,
+          "bit": 1,
+          "raw": 1
+        }
+      },
+      {
+        "wire_field": 3,
+        "type": "message",
+        "cardinality": "repeated",
+        "flags": {
+          "bit8_required": false,
+          "bit10": true,
+          "bit11_packed": false,
+          "bit12_no_hasbits": false
+        },
+        "java_field": "e",
+        "java_type": "defpackage.zzf",
+        "message_class": "vvp.class"
+      },
+      {
+        "wire_field": 4,
+        "type": "message",
+        "cardinality": "repeated",
+        "flags": {
+          "bit8_required": false,
+          "bit10": false,
+          "bit11_packed": false,
+          "bit12_no_hasbits": false
+        },
+        "java_field": "f",
+        "java_type": "defpackage.zzf",
+        "message_class": "wcz.class"
+      },
+      {
+        "wire_field": 6,
+        "type": "uint32",
+        "cardinality": "singular",
+        "flags": {
+          "bit8_required": false,
+          "bit10": false,
+          "bit11_packed": false,
+          "bit12_no_hasbits": true
+        },
+        "java_field": "g",
+        "java_type": "int",
+        "has_bits": {
+          "word": 0,
+          "bit": 3,
+          "raw": 3
+        }
+      },
+      {
+        "wire_field": 7,
+        "type": "enum",
+        "cardinality": "singular",
+        "flags": {
+          "bit8_required": false,
+          "bit10": false,
+          "bit11_packed": true,
+          "bit12_no_hasbits": true
+        },
+        "java_field": "h",
+        "java_type": "int",
+        "enum_verifier": "vvs.j",
+        "has_bits": {
+          "word": 0,
+          "bit": 4,
+          "raw": 4
+        }
+      },
+      {
+        "wire_field": 8,
+        "type": "enum",
+        "cardinality": "singular",
+        "flags": {
+          "bit8_required": false,
+          "bit10": false,
+          "bit11_packed": true,
+          "bit12_no_hasbits": true
+        },
+        "java_field": "i",
+        "java_type": "int",
+        "enum_verifier": "vvs.t",
+        "has_bits": {
+          "word": 0,
+          "bit": 5,
+          "raw": 5
+        }
+      },
+      {
+        "wire_field": 9,
+        "type": "enum",
+        "cardinality": "singular",
+        "flags": {
+          "bit8_required": false,
+          "bit10": false,
+          "bit11_packed": true,
+          "bit12_no_hasbits": true
+        },
+        "java_field": "j",
+        "java_type": "int",
+        "enum_verifier": "wck.f",
+        "has_bits": {
+          "word": 0,
+          "bit": 6,
+          "raw": 6
+        }
+      }
+    ],
+    "header": {
+      "field_count": 8,
+      "has_bits_count": 0,
+      "oneof_count": 1,
+      "check_init": 1,
+      "map_fields": 9,
+      "field_count2": 8,
+      "i36": 0,
+      "charAt20": 2,
+      "charAt21": 1
+    },
+    "obj_array": [
+      "b",
+      "c",
+      "vvs.u",
+      "d",
+      "vvs.d",
+      "e",
+      "vvp.class",
+      "f",
+      "wcz.class",
+      "g",
+      "h",
+      "vvs.j",
+      "i",
+      "vvs.t",
+      "j",
+      "wck.f"
+    ],
+    "java_fields": {
+      "b": "int",
+      "e": "defpackage.zzf",
+      "f": "defpackage.zzf",
+      "g": "int",
+      "h": "int",
+      "i": "int",
+      "j": "int",
+      "l": "byte",
+      "c": "int",
+      "d": "int"
+    }
+  },
+  {
+    "class_name": "vya",
+    "fields": [
+      {
+        "wire_field": 1,
+        "type": "int32",
+        "cardinality": "packed",
+        "flags": {
+          "bit8_required": false,
+          "bit10": false,
+          "bit11_packed": false,
+          "bit12_no_hasbits": false
+        },
+        "java_field": "d",
+        "java_type": "defpackage.zzb"
+      },
+      {
+        "wire_field": 2,
+        "type": "message",
+        "cardinality": "repeated",
+        "flags": {
+          "bit8_required": false,
+          "bit10": true,
+          "bit11_packed": false,
+          "bit12_no_hasbits": false
+        },
+        "java_field": "e",
+        "java_type": "defpackage.zzf",
+        "message_class": "vxz.class"
+      },
+      {
+        "wire_field": 3,
+        "type": "message",
+        "cardinality": "repeated",
+        "flags": {
+          "bit8_required": false,
+          "bit10": true,
+          "bit11_packed": false,
+          "bit12_no_hasbits": false
+        },
+        "java_field": "f",
+        "java_type": "defpackage.zzf",
+        "message_class": "vxy.class"
+      },
+      {
+        "wire_field": 4,
+        "type": "enum",
+        "cardinality": "repeated",
+        "flags": {
+          "bit8_required": false,
+          "bit10": false,
+          "bit11_packed": true,
+          "bit12_no_hasbits": false
+        },
+        "java_field": "g",
+        "java_type": "defpackage.zzb",
+        "enum_verifier": "vvs.m"
+      },
+      {
+        "wire_field": 5,
+        "type": "uint32",
+        "cardinality": "singular",
+        "flags": {
+          "bit8_required": false,
+          "bit10": false,
+          "bit11_packed": false,
+          "bit12_no_hasbits": true
+        },
+        "java_field": "h",
+        "java_type": "int",
+        "has_bits": {
+          "word": 0,
+          "bit": 0,
+          "raw": 0
+        }
+      }
+    ],
+    "header": {
+      "field_count": 5,
+      "has_bits_count": 0,
+      "oneof_count": 1,
+      "check_init": 1,
+      "map_fields": 5,
+      "field_count2": 5,
+      "i36": 0,
+      "charAt20": 4,
+      "charAt21": 2
+    },
+    "obj_array": [
+      "c",
+      "d",
+      "e",
+      "vxz.class",
+      "f",
+      "vxy.class",
+      "g",
+      "vvs.m",
+      "h"
+    ],
+    "java_fields": {
+      "c": "int",
+      "d": "defpackage.zzb",
+      "e": "defpackage.zzf",
+      "f": "defpackage.zzf",
+      "g": "defpackage.zzb",
+      "h": "int",
+      "j": "byte"
+    }
+  },
+  {
+    "class_name": "zpl",
+    "fields": [
+      {
+        "wire_field": 1,
+        "type": "message",
+        "cardinality": "singular",
+        "flags": {
+          "bit8_required": false,
+          "bit10": false,
+          "bit11_packed": false,
+          "bit12_no_hasbits": true
+        },
+        "java_field": "c",
+        "java_type": "defpackage.zpn",
+        "has_bits": {
+          "word": 0,
+          "bit": 0,
+          "raw": 0
+        }
+      },
+      {
+        "wire_field": 2,
+        "type": "message",
+        "cardinality": "singular",
+        "flags": {
+          "bit8_required": false,
+          "bit10": false,
+          "bit11_packed": false,
+          "bit12_no_hasbits": true
+        },
+        "java_field": "d",
+        "java_type": "defpackage.zpn",
+        "has_bits": {
+          "word": 0,
+          "bit": 1,
+          "raw": 1
+        }
+      },
+      {
+        "wire_field": 3,
+        "type": "message",
+        "cardinality": "singular",
+        "flags": {
+          "bit8_required": false,
+          "bit10": false,
+          "bit11_packed": false,
+          "bit12_no_hasbits": true
+        },
+        "java_field": "e",
+        "java_type": "defpackage.zpn",
+        "has_bits": {
+          "word": 0,
+          "bit": 2,
+          "raw": 2
+        }
+      }
+    ],
+    "header": {
+      "field_count": 3,
+      "has_bits_count": 0,
+      "oneof_count": 1,
+      "check_init": 1,
+      "map_fields": 3,
+      "field_count2": 3,
+      "i36": 0,
+      "charAt20": 0,
+      "charAt21": 0
+    },
+    "obj_array": [
+      "b",
+      "c",
+      "d",
+      "e"
+    ],
+    "java_fields": {
+      "b": "int",
+      "c": "defpackage.zpn",
+      "d": "defpackage.zpn",
+      "e": "defpackage.zpn"
+    }
+  },
+  {
+    "class_name": "zpn",
+    "fields": [
+      {
+        "wire_field": 1,
+        "type": "int32",
+        "cardinality": "singular",
+        "flags": {
+          "bit8_required": false,
+          "bit10": false,
+          "bit11_packed": false,
+          "bit12_no_hasbits": true
+        },
+        "java_field": "c",
+        "java_type": "int",
+        "has_bits": {
+          "word": 0,
+          "bit": 0,
+          "raw": 0
+        }
+      },
+      {
+        "wire_field": 2,
+        "type": "message",
+        "cardinality": "singular",
+        "flags": {
+          "bit8_required": false,
+          "bit10": false,
+          "bit11_packed": false,
+          "bit12_no_hasbits": true
+        },
+        "java_field": "d",
+        "java_type": "defpackage.zli",
+        "has_bits": {
+          "word": 0,
+          "bit": 1,
+          "raw": 1
+        }
+      }
+    ],
+    "header": {
+      "field_count": 2,
+      "has_bits_count": 0,
+      "oneof_count": 1,
+      "check_init": 1,
+      "map_fields": 2,
+      "field_count2": 2,
+      "i36": 0,
+      "charAt20": 0,
+      "charAt21": 0
+    },
+    "obj_array": [
+      "b",
+      "c",
+      "d"
+    ],
+    "java_fields": {
+      "b": "int",
+      "c": "int",
+      "d": "defpackage.zli"
+    }
+  },
+  {
+    "class_name": "vxn",
+    "fields": [
+      {
+        "wire_field": 1,
+        "type": "int32",
+        "cardinality": "singular",
+        "flags": {
+          "bit8_required": false,
+          "bit10": false,
+          "bit11_packed": false,
+          "bit12_no_hasbits": true
+        },
+        "java_field": "c",
+        "java_type": "int",
+        "has_bits": {
+          "word": 0,
+          "bit": 0,
+          "raw": 0
+        }
+      },
+      {
+        "wire_field": 2,
+        "type": "int32",
+        "cardinality": "singular",
+        "flags": {
+          "bit8_required": false,
+          "bit10": false,
+          "bit11_packed": false,
+          "bit12_no_hasbits": true
+        },
+        "java_field": "d",
+        "java_type": "int",
+        "has_bits": {
+          "word": 0,
+          "bit": 1,
+          "raw": 1
+        }
+      },
+      {
+        "wire_field": 3,
+        "type": "bool",
+        "cardinality": "singular",
+        "flags": {
+          "bit8_required": false,
+          "bit10": false,
+          "bit11_packed": false,
+          "bit12_no_hasbits": true
+        },
+        "java_field": "e",
+        "java_type": "boolean",
+        "has_bits": {
+          "word": 0,
+          "bit": 2,
+          "raw": 2
+        }
+      }
+    ],
+    "header": {
+      "field_count": 3,
+      "has_bits_count": 0,
+      "oneof_count": 1,
+      "check_init": 1,
+      "map_fields": 3,
+      "field_count2": 3,
+      "i36": 0,
+      "charAt20": 0,
+      "charAt21": 0
+    },
+    "obj_array": [
+      "b",
+      "c",
+      "d",
+      "e"
+    ],
+    "java_fields": {
+      "b": "int",
+      "c": "int",
+      "d": "int",
+      "e": "boolean"
+    }
+  },
+  {
+    "class_name": "vyt",
+    "fields": [
+      {
+        "wire_field": 1,
+        "type": "enum",
+        "cardinality": "singular",
+        "flags": {
+          "bit8_required": false,
+          "bit10": false,
+          "bit11_packed": true,
+          "bit12_no_hasbits": true
+        },
+        "java_field": "c",
+        "java_type": "int",
+        "enum_verifier": "vvs.u",
+        "has_bits": {
+          "word": 0,
+          "bit": 0,
+          "raw": 0
+        }
+      },
+      {
+        "wire_field": 2,
+        "type": "message",
+        "cardinality": "singular",
+        "flags": {
+          "bit8_required": false,
+          "bit10": true,
+          "bit11_packed": false,
+          "bit12_no_hasbits": true
+        },
+        "java_field": "d",
+        "java_type": "defpackage.vvp",
+        "has_bits": {
+          "word": 0,
+          "bit": 1,
+          "raw": 1
+        }
+      }
+    ],
+    "header": {
+      "field_count": 2,
+      "has_bits_count": 0,
+      "oneof_count": 1,
+      "check_init": 1,
+      "map_fields": 2,
+      "field_count2": 2,
+      "i36": 0,
+      "charAt20": 0,
+      "charAt21": 1
+    },
+    "obj_array": [
+      "b",
+      "c",
+      "vvs.u",
+      "d"
+    ],
+    "java_fields": {
+      "b": "int",
+      "d": "defpackage.vvp",
+      "f": "byte",
+      "c": "int"
+    }
+  },
+  {
+    "class_name": "vvp",
+    "fields": [
+      {
+        "wire_field": 1,
+        "type": "uint32",
+        "cardinality": "singular",
+        "flags": {
+          "bit8_required": true,
+          "bit10": true,
+          "bit11_packed": false,
+          "bit12_no_hasbits": true
+        },
+        "java_field": "c",
+        "java_type": "int",
+        "has_bits": {
+          "word": 0,
+          "bit": 0,
+          "raw": 0
+        }
+      },
+      {
+        "wire_field": 2,
+        "type": "uint32",
+        "cardinality": "singular",
+        "flags": {
+          "bit8_required": true,
+          "bit10": true,
+          "bit11_packed": false,
+          "bit12_no_hasbits": true
+        },
+        "java_field": "d",
+        "java_type": "int",
+        "has_bits": {
+          "word": 0,
+          "bit": 1,
+          "raw": 1
+        }
+      },
+      {
+        "wire_field": 3,
+        "type": "uint32",
+        "cardinality": "singular",
+        "flags": {
+          "bit8_required": true,
+          "bit10": true,
+          "bit11_packed": false,
+          "bit12_no_hasbits": true
+        },
+        "java_field": "e",
+        "java_type": "int",
+        "has_bits": {
+          "word": 0,
+          "bit": 2,
+          "raw": 2
+        }
+      }
+    ],
+    "header": {
+      "field_count": 3,
+      "has_bits_count": 0,
+      "oneof_count": 1,
+      "check_init": 1,
+      "map_fields": 3,
+      "field_count2": 3,
+      "i36": 0,
+      "charAt20": 0,
+      "charAt21": 3
+    },
+    "obj_array": [
+      "b",
+      "c",
+      "d",
+      "e"
+    ],
+    "java_fields": {
+      "b": "int",
+      "c": "int",
+      "d": "int",
+      "e": "int",
+      "g": "byte"
+    }
+  },
+  {
+    "class_name": "wcz",
+    "fields": [
+      {
+        "wire_field": 1,
+        "type": "enum",
+        "cardinality": "singular",
+        "flags": {
+          "bit8_required": false,
+          "bit10": false,
+          "bit11_packed": true,
+          "bit12_no_hasbits": true
+        },
+        "java_field": "c",
+        "java_type": "int",
+        "enum_verifier": "wck.h",
+        "has_bits": {
+          "word": 0,
+          "bit": 0,
+          "raw": 0
+        }
+      },
+      {
+        "wire_field": 2,
+        "type": "enum",
+        "cardinality": "singular",
+        "flags": {
+          "bit8_required": false,
+          "bit10": false,
+          "bit11_packed": true,
+          "bit12_no_hasbits": true
+        },
+        "java_field": "d",
+        "java_type": "int",
+        "enum_verifier": "wck.k",
+        "has_bits": {
+          "word": 0,
+          "bit": 1,
+          "raw": 1
+        }
+      },
+      {
+        "wire_field": 3,
+        "type": "uint32",
+        "cardinality": "singular",
+        "flags": {
+          "bit8_required": false,
+          "bit10": false,
+          "bit11_packed": false,
+          "bit12_no_hasbits": true
+        },
+        "java_field": "e",
+        "java_type": "int",
+        "has_bits": {
+          "word": 0,
+          "bit": 2,
+          "raw": 2
+        }
+      },
+      {
+        "wire_field": 4,
+        "type": "uint32",
+        "cardinality": "singular",
+        "flags": {
+          "bit8_required": false,
+          "bit10": false,
+          "bit11_packed": false,
+          "bit12_no_hasbits": true
+        },
+        "java_field": "f",
+        "java_type": "int",
+        "has_bits": {
+          "word": 0,
+          "bit": 3,
+          "raw": 3
+        }
+      },
+      {
+        "wire_field": 5,
+        "type": "uint32",
+        "cardinality": "singular",
+        "flags": {
+          "bit8_required": false,
+          "bit10": false,
+          "bit11_packed": false,
+          "bit12_no_hasbits": true
+        },
+        "java_field": "g",
+        "java_type": "int",
+        "has_bits": {
+          "word": 0,
+          "bit": 4,
+          "raw": 4
+        }
+      },
+      {
+        "wire_field": 6,
+        "type": "uint32",
+        "cardinality": "singular",
+        "flags": {
+          "bit8_required": false,
+          "bit10": false,
+          "bit11_packed": false,
+          "bit12_no_hasbits": true
+        },
+        "java_field": "h",
+        "java_type": "int",
+        "has_bits": {
+          "word": 0,
+          "bit": 5,
+          "raw": 5
+        }
+      },
+      {
+        "wire_field": 7,
+        "type": "uint32",
+        "cardinality": "singular",
+        "flags": {
+          "bit8_required": false,
+          "bit10": false,
+          "bit11_packed": false,
+          "bit12_no_hasbits": true
+        },
+        "java_field": "i",
+        "java_type": "int",
+        "has_bits": {
+          "word": 0,
+          "bit": 6,
+          "raw": 6
+        }
+      },
+      {
+        "wire_field": 8,
+        "type": "uint32",
+        "cardinality": "singular",
+        "flags": {
+          "bit8_required": false,
+          "bit10": false,
+          "bit11_packed": false,
+          "bit12_no_hasbits": true
+        },
+        "java_field": "j",
+        "java_type": "int",
+        "has_bits": {
+          "word": 0,
+          "bit": 7,
+          "raw": 7
+        }
+      },
+      {
+        "wire_field": 9,
+        "type": "uint32",
+        "cardinality": "singular",
+        "flags": {
+          "bit8_required": false,
+          "bit10": false,
+          "bit11_packed": false,
+          "bit12_no_hasbits": true
+        },
+        "java_field": "k",
+        "java_type": "int",
+        "has_bits": {
+          "word": 0,
+          "bit": 8,
+          "raw": 8
+        }
+      },
+      {
+        "wire_field": 10,
+        "type": "enum",
+        "cardinality": "singular",
+        "flags": {
+          "bit8_required": false,
+          "bit10": false,
+          "bit11_packed": true,
+          "bit12_no_hasbits": true
+        },
+        "java_field": "l",
+        "java_type": "int",
+        "enum_verifier": "vvs.u",
+        "has_bits": {
+          "word": 0,
+          "bit": 9,
+          "raw": 9
+        }
+      },
+      {
+        "wire_field": 11,
+        "type": "message",
+        "cardinality": "singular",
+        "flags": {
+          "bit8_required": false,
+          "bit10": false,
+          "bit11_packed": false,
+          "bit12_no_hasbits": true
+        },
+        "java_field": "m",
+        "java_type": "defpackage.wcm",
+        "has_bits": {
+          "word": 0,
+          "bit": 10,
+          "raw": 10
+        }
+      }
+    ],
+    "header": {
+      "field_count": 11,
+      "has_bits_count": 0,
+      "oneof_count": 1,
+      "check_init": 1,
+      "map_fields": 11,
+      "field_count2": 11,
+      "i36": 0,
+      "charAt20": 0,
+      "charAt21": 0
+    },
+    "obj_array": [
+      "b",
+      "c",
+      "wck.h",
+      "d",
+      "wck.k",
+      "e",
+      "f",
+      "g",
+      "h",
+      "i",
+      "j",
+      "k",
+      "l",
+      "vvs.u",
+      "m"
+    ],
+    "java_fields": {
+      "b": "int",
+      "e": "int",
+      "f": "int",
+      "g": "int",
+      "h": "int",
+      "i": "int",
+      "j": "int",
+      "k": "int",
+      "m": "defpackage.wcm",
+      "c": "int",
+      "d": "int",
+      "l": "int"
+    }
+  },
+  {
+    "class_name": "vwc",
+    "fields": [
+      {
+        "wire_field": 1,
+        "type": "string",
+        "cardinality": "singular",
+        "flags": {
+          "bit8_required": true,
+          "bit10": true,
+          "bit11_packed": false,
+          "bit12_no_hasbits": true
+        },
+        "java_field": "c",
+        "java_type": "java.lang.String",
+        "has_bits": {
+          "word": 0,
+          "bit": 0,
+          "raw": 0
+        }
+      },
+      {
+        "wire_field": 2,
+        "type": "enum",
+        "cardinality": "packed",
+        "flags": {
+          "bit8_required": false,
+          "bit10": false,
+          "bit11_packed": true,
+          "bit12_no_hasbits": false
+        },
+        "java_field": "d",
+        "java_type": "defpackage.zzb",
+        "enum_verifier": "vvs.e"
+      }
+    ],
+    "header": {
+      "field_count": 2,
+      "has_bits_count": 0,
+      "oneof_count": 1,
+      "check_init": 1,
+      "map_fields": 2,
+      "field_count2": 2,
+      "i36": 0,
+      "charAt20": 1,
+      "charAt21": 1
+    },
+    "obj_array": [
+      "f",
+      "c",
+      "d",
+      "vvs.e"
+    ],
+    "java_fields": {
+      "f": "int",
+      "g": "byte",
+      "c": "java.lang.String",
+      "d": "defpackage.zzb"
+    }
+  },
+  {
+    "class_name": "vzr",
+    "fields": [
+      {
+        "wire_field": 1,
+        "type": "int32",
+        "cardinality": "singular",
+        "flags": {
+          "bit8_required": true,
+          "bit10": true,
+          "bit11_packed": false,
+          "bit12_no_hasbits": true
+        },
+        "java_field": "c",
+        "java_type": "int",
+        "has_bits": {
+          "word": 0,
+          "bit": 0,
+          "raw": 0
+        }
+      },
+      {
+        "wire_field": 2,
+        "type": "enum",
+        "cardinality": "singular",
+        "flags": {
+          "bit8_required": true,
+          "bit10": true,
+          "bit11_packed": true,
+          "bit12_no_hasbits": true
+        },
+        "java_field": "d",
+        "java_type": "int",
+        "enum_verifier": "vyv.k",
+        "has_bits": {
+          "word": 0,
+          "bit": 1,
+          "raw": 1
+        }
+      },
+      {
+        "wire_field": 3,
+        "type": "message",
+        "cardinality": "singular",
+        "flags": {
+          "bit8_required": false,
+          "bit10": true,
+          "bit11_packed": false,
+          "bit12_no_hasbits": true
+        },
+        "java_field": "e",
+        "java_type": "defpackage.vzq",
+        "has_bits": {
+          "word": 0,
+          "bit": 2,
+          "raw": 2
+        }
+      }
+    ],
+    "header": {
+      "field_count": 3,
+      "has_bits_count": 0,
+      "oneof_count": 1,
+      "check_init": 1,
+      "map_fields": 3,
+      "field_count2": 3,
+      "i36": 0,
+      "charAt20": 0,
+      "charAt21": 3
+    },
+    "obj_array": [
+      "b",
+      "c",
+      "d",
+      "vyv.k",
+      "e"
+    ],
+    "java_fields": {
+      "b": "int",
+      "c": "int",
+      "e": "defpackage.vzq",
+      "g": "byte",
+      "d": "int"
+    }
+  },
+  {
+    "class_name": "wdh",
+    "fields": [
+      {
+        "wire_field": 1,
+        "type": "string",
+        "cardinality": "singular",
+        "flags": {
+          "bit8_required": false,
+          "bit10": false,
+          "bit11_packed": false,
+          "bit12_no_hasbits": true
+        },
+        "java_field": "b",
+        "java_type": "java.lang.String",
+        "has_bits": {
+          "word": 0,
+          "bit": 0,
+          "raw": 0
+        }
+      }
+    ],
+    "header": {
+      "field_count": 1,
+      "has_bits_count": 0,
+      "oneof_count": 1,
+      "check_init": 1,
+      "map_fields": 1,
+      "field_count2": 1,
+      "i36": 0,
+      "charAt20": 0,
+      "charAt21": 0
+    },
+    "obj_array": [
+      "d",
+      "b"
+    ],
+    "java_fields": {
+      "b": "java.lang.String",
+      "d": "int"
+    }
+  }
+]

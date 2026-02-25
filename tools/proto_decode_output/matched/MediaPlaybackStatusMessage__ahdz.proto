@@ -1,0 +1,46 @@
+// Decoded from APK class: ahdz
+// Field count: 22, range: 1-24
+
+syntax = "proto2";
+
+message ahdz {
+    optional int32 c = 1;
+    optional int32 d = 2;
+    optional int32 e = 3;
+    optional int32 f = 4;
+    optional int32 g = 5;
+    optional int32 h = 6;
+    optional int32 i = 7;
+    optional int32 j = 8;
+    optional int32 k = 9;
+    optional int32 l = 11;
+    optional int32 q = 14;
+    optional int32 r = 15;
+    optional int32 s = 16;
+    optional int32 t = 17;
+    optional int32 u = 18;
+    optional int64 v = 20;
+    optional int64 w = 21;
+    optional int64 x = 22;
+    optional unknown_51 m = 92;
+    optional sfixed32 o = 102;
+    optional unknown_41 n = 4100;
+    optional sfixed32 p = 4100;
+}
+
+// === DIFF vs our proto ===
+// + field 7: int32 i
+// + field 8: int32 j
+// + field 9: int32 k
+// + field 11: int32 l
+// + field 14: int32 q
+// + field 15: int32 r
+// + field 16: int32 s
+// + field 17: int32 t
+// + field 18: int32 u
+// + field 20: int64 v
+// + field 21: int64 w
+// + field 22: int64 x
+// + field 92: unknown_51 m
+// + field 102: sfixed32 o
+// + field 4100: sfixed32 p

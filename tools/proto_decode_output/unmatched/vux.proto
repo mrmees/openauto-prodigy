@@ -1,0 +1,14 @@
+// Decoded from APK class: vux
+// Field count: 7, range: 1-7
+
+syntax = "proto2";
+
+message vux {
+    optional int32 /* enum ? */ c = 1;
+    optional int32 /* enum ? */ e = 2;
+    optional int32 /* enum ? */ vuw.class = 3;
+    repeated i h = 4;  // msg: i
+    optional int32 /* enum ? */ vum.class = 5;
+    optional uint64  = 6;
+    repeated bytes /* message ? */  = 7;
+}

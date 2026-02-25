@@ -1,0 +1,16 @@
+// Decoded from APK class: noq
+// Field count: 6, range: 1-92
+
+syntax = "proto2";
+
+message noq {
+    optional float c = 0;
+    optional int e = 2;  // msg: int
+    optional int32 /* enum ? */ nln.u = 3;
+    optional non g = 10;  // msg: non
+    optional nol h = 11;  // msg: nol
+    optional unknown_51  = 92;
+    optional double d = 4104;
+    optional fixed64  = 4105;
+}
+// PARSE ERROR: Entry parse error at field 8: read_varint: pos 30 past end of 30 chars

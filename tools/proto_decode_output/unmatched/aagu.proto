@@ -1,0 +1,9 @@
+// Decoded from APK class: aagu
+// Field count: 2, range: 1-2
+
+syntax = "proto2";
+
+message aagu {
+    optional aagt c = 1;  // msg: aagt
+    optional string d = 2;
+}

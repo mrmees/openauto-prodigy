@@ -1,0 +1,11 @@
+// Decoded from APK class: ztl
+// Field count: 4, range: 1-4
+
+syntax = "proto2";
+
+message ztl {
+    optional uint64 c = 1;
+    optional zut d = 2;  // msg: zut
+    optional zts e = 3;  // msg: zts
+    optional int32 /* enum ? */ f = 4;
+}

@@ -1,0 +1,9 @@
+// Decoded from APK class: xvy
+// Field count: 2, range: 2-3
+
+syntax = "proto2";
+
+message xvy {
+    optional double b = 2;
+    optional double c = 3;
+}

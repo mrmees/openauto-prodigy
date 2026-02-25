@@ -1,0 +1,10 @@
+// Decoded from APK class: kay
+// Field count: 3, range: 1-3
+
+syntax = "proto2";
+
+message kay {
+    optional string b = 1;
+    optional int32 /* enum ? */ c = 2;
+    optional string d = 3;
+}

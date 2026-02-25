@@ -1,0 +1,8 @@
+// Decoded from APK class: xlz
+// Field count: 1, range: 11-11
+
+syntax = "proto2";
+
+message xlz {
+    optional bytes /* message ? */ d = 11;
+}

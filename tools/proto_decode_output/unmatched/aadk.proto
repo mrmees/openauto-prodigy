@@ -1,0 +1,14 @@
+// Decoded from APK class: aadk
+// Field count: 7, range: 1-25
+
+syntax = "proto2";
+
+message aadk {
+    optional int32 /* enum ? */ c = 1;
+    optional int32 /* enum ? */ d = 2;
+    optional int64 e = 3;
+    optional aadi f = 5;  // msg: aadi
+    optional float g = 7;
+    optional int32 /* enum ? */ h = 9;
+    optional int32 /* enum ? */ i = 25;
+}

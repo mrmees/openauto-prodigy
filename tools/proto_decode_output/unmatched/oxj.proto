@@ -1,0 +1,9 @@
+// Decoded from APK class: oxj
+// Field count: 2, range: 1-2
+
+syntax = "proto2";
+
+message oxj {
+    optional string b = 1;
+    optional int32 c = 2;
+}

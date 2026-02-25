@@ -1,0 +1,9 @@
+// Decoded from APK class: urn
+// Field count: 2, range: 1-2
+
+syntax = "proto2";
+
+message urn {
+    optional string b = 1;
+    optional int64 c = 2;
+}

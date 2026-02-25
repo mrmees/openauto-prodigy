@@ -1,0 +1,13 @@
+// Decoded from APK class: ybb
+// Field count: 6, range: 4-20
+
+syntax = "proto2";
+
+message ybb {
+    optional bytes /* message ? */ h = 4;
+    optional bytes /* message ? */ i = 5;
+    optional bytes /* message ? */ e = 11;
+    optional bytes /* message ? */ d = 14;
+    optional unknown_51 f = 92;
+    optional int32 g = 5129;
+}

@@ -1,0 +1,11 @@
+// Decoded from APK class: aagg
+// Field count: 4, range: 2-5
+
+syntax = "proto2";
+
+message aagg {
+    optional uint64 aahf.class = 0;
+    optional bytes /* message ? */ aahh.class = 2;
+    optional bytes /* message ? */ aahg.class = 4;
+    optional double aahi.class = 60;
+}

@@ -1,0 +1,9 @@
+// Decoded from APK class: vwb
+// Field count: 2, range: 1-2
+
+syntax = "proto2";
+
+message vwb {
+    required vyw b = 1;  // enum: vyw
+    required bool c = 2;
+}

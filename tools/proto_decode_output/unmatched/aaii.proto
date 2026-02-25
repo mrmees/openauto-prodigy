@@ -1,0 +1,8 @@
+// Decoded from APK class: aaii
+// Field count: 1, range: 1-1
+
+syntax = "proto2";
+
+message aaii {
+    optional fixed64 c = 1;
+}

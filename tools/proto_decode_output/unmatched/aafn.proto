@@ -1,0 +1,13 @@
+// Decoded from APK class: aafn
+// Field count: 6, range: 1-7
+
+syntax = "proto2";
+
+message aafn {
+    optional string b = 1;
+    optional unknown_41 c = 3;
+    optional int32 d = 102;
+    optional fixed64 e = 520;
+    optional fixed32 f = 520;
+    optional bool g = 520;
+}

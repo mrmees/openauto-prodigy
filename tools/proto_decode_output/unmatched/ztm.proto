@@ -1,0 +1,9 @@
+// Decoded from APK class: ztm
+// Field count: 2, range: 1-2
+
+syntax = "proto2";
+
+message ztm {
+    optional uint64 b = 1;
+    optional zun c = 2;  // msg: zun
+}

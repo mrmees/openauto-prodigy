@@ -1,0 +1,28 @@
+// Decoded from APK class: ahen
+// Field count: 21, range: 1-25
+
+syntax = "proto2";
+
+message ahen {
+    optional int64 c = 1;
+    optional int64 f = 3;
+    optional int64 i = 4;
+    optional int64 k = 5;
+    optional int64 l = 9;
+    optional int64 q = 10;
+    optional bool r = 11;
+    optional long d = 13;  // msg: long
+    optional int64 e = 14;
+    optional int64 w = 15;
+    optional sfixed64 ahem.a = 16;
+    optional int64 j = 17;
+    optional int64 h = 18;
+    optional int64 m = 19;
+    optional int64 n = 20;
+    optional int64 s = 21;
+    optional int64 p = 23;
+    optional unknown_51 u = 92;
+    repeated int32 ahde.o = 102;
+    repeated float v = 4105;
+    optional group o = 6156;
+}

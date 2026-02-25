@@ -1,0 +1,9 @@
+// Decoded from APK class: vzi
+// Field count: 2, range: 1-2
+
+syntax = "proto2";
+
+message vzi {
+    optional vzh c = 1;  // enum: vzh
+    optional bool d = 2;
+}

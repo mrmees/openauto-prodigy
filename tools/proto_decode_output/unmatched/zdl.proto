@@ -1,0 +1,8 @@
+// Decoded from APK class: zdl
+// Field count: 1, range: 6-6
+
+syntax = "proto2";
+
+message zdl {
+    optional sfixed64 c = 6;
+}

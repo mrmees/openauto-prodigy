@@ -1,0 +1,19 @@
+// Decoded from APK class: aajk
+// Field count: 6, range: 1-6
+
+syntax = "proto2";
+
+message aajk {
+    optional uint64 aajh.class = 0;
+    optional fixed64 aaji.class = 0;
+    optional zyd e = 1;  // msg: zyd
+    optional bytes /* message ? */ aajj.class = 2;
+    optional bytes /* message ? */ aajg.class = 4;
+    optional double aaja.class = 60;
+}
+
+// === DIFF vs our proto ===
+// + field 0: fixed64 aaji.class
+// + field 2: message aajj.class
+// + field 4: message aajg.class
+// + field 60: double aaja.class

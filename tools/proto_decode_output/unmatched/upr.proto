@@ -1,0 +1,16 @@
+// Decoded from APK class: upr
+// Field count: 9, range: 1-10
+
+syntax = "proto2";
+
+message upr {
+    optional ahdr c = 1;  // msg: ahdr
+    optional int64 d = 2;
+    optional int64 e = 3;
+    optional int64 f = 4;
+    optional fixed64 g = 5;
+    optional int32 h = 6;
+    optional string i = 7;
+    optional ahdw j = 9;  // msg: ahdw
+    optional int32 k = 10;
+}

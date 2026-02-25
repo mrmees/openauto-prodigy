@@ -1,0 +1,10 @@
+// Decoded from APK class: nna
+
+syntax = "proto2";
+
+enum nna {
+    LIVE_INACTIVE = 0;
+    LIVE_ACTIVE = 1;
+    LIVE_UNAVAILABLE = 2;
+    LIVE_HOLD = 3;
+}

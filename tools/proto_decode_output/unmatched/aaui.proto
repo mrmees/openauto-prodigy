@@ -1,0 +1,9 @@
+// Decoded from APK class: aaui
+// Field count: 2, range: 1-4
+
+syntax = "proto2";
+
+message aaui {
+    optional bytes /* message ? */ e = 1;
+    optional aaug c = 4;  // msg: aaug
+}

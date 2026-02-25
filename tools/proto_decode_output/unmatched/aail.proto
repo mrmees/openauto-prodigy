@@ -1,0 +1,9 @@
+// Decoded from APK class: aail
+// Field count: 2, range: 1-2
+
+syntax = "proto2";
+
+message aail {
+    optional aaki c = 1;  // msg: aaki
+    optional aaiu d = 2;  // msg: aaiu
+}

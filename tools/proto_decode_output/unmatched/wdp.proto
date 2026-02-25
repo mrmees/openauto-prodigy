@@ -1,0 +1,8 @@
+// Decoded from APK class: wdp
+// Field count: 1, range: 1-1
+
+syntax = "proto2";
+
+message wdp {
+    optional int64 b = 1;
+}

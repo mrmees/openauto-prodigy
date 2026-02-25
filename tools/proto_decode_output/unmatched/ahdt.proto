@@ -1,0 +1,15 @@
+// Decoded from APK class: ahdt
+// Field count: 8, range: 1-10
+
+syntax = "proto2";
+
+message ahdt {
+    optional string c = 1;
+    optional string d = 2;
+    optional string e = 3;
+    optional string f = 4;
+    optional string g = 5;
+    optional bool h = 7;
+    optional bool i = 8;
+    optional int32 j = 10;
+}

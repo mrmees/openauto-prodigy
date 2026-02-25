@@ -1,0 +1,11 @@
+// Decoded from APK class: nvj
+// Field count: 4, range: 1-4
+
+syntax = "proto2";
+
+message nvj {
+    optional uint64 e = 0;
+    optional nve d = 1;  // enum: nve
+    optional int32 /* enum ? */ nvg.a = 2;
+    optional double  = 60;
+}

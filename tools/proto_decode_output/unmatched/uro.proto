@@ -1,0 +1,9 @@
+// Decoded from APK class: uro
+// Field count: 2, range: 1-2
+
+syntax = "proto2";
+
+message uro {
+    optional url c = 1;  // msg: url
+    optional urm d = 2;  // msg: urm
+}

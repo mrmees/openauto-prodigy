@@ -1,0 +1,9 @@
+// Decoded from APK class: ulb
+// Field count: 2, range: 1-2
+
+syntax = "proto2";
+
+message ulb {
+    optional int32 /* enum a */ b = 1;  // enum: a
+    optional string c = 2;
+}

@@ -1,0 +1,13 @@
+// Decoded from APK class: usv
+// Field count: 6, range: 1-7
+
+syntax = "proto2";
+
+message usv {
+    optional string b = 1;
+    optional bool c = 2;
+    optional xst d = 4;  // enum: xst
+    optional bool e = 5;
+    optional bool g = 6;
+    optional bool f = 7;
+}

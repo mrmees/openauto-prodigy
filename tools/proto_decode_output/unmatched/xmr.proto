@@ -1,0 +1,11 @@
+// Decoded from APK class: xmr
+// Field count: 4, range: 1-4
+
+syntax = "proto2";
+
+message xmr {
+    optional bytes /* message ? */ d = 1;
+    optional bytes /* message ? */ e = 2;
+    optional bytes /* message ? */ f = 3;
+    optional bytes /* message ? */ g = 4;
+}

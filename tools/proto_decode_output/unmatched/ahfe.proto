@@ -1,0 +1,11 @@
+// Decoded from APK class: ahfe
+// Field count: 4, range: 1-4
+
+syntax = "proto2";
+
+message ahfe {
+    optional int32 c = 1;
+    optional int32 d = 2;
+    optional uint64 e = 3;
+    optional uint64  = 4;
+}

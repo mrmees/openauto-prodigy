@@ -1,0 +1,9 @@
+// Decoded from APK class: zlp
+// Field count: 2, range: 1-2
+
+syntax = "proto2";
+
+message zlp {
+    repeated zln b = 1;  // msg: zln
+    optional int32 /* enum a */ c = 2;  // enum: a
+}

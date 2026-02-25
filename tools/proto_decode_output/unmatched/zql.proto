@@ -1,0 +1,11 @@
+// Decoded from APK class: zql
+// Field count: 4, range: 4-7
+
+syntax = "proto2";
+
+message zql {
+    optional sfixed64 c = 4;
+    optional sfixed64 d = 5;
+    optional sfixed64 e = 6;
+    optional sfixed64 f = 7;
+}

@@ -1,0 +1,10 @@
+// Decoded from APK class: nnx
+// Field count: 3, range: 1-5
+
+syntax = "proto2";
+
+message nnx {
+    optional int32 c = 1;
+    optional int32 /* enum ? */ d = 4;
+    optional int32 /* enum ? */ e = 5;
+}

@@ -1,0 +1,12 @@
+// Decoded from APK class: ztu
+// Field count: 5, range: 2-6
+
+syntax = "proto2";
+
+message ztu {
+    optional int32 ztw.class = 0;
+    optional zsm e = 2;  // msg: zsm
+    optional bytes /* message ? */ zua.class = 3;
+    optional int f = 5;  // msg: int
+    optional double zub.class = 60;
+}

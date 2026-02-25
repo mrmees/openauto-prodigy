@@ -1,0 +1,9 @@
+// Decoded from APK class: rso
+// Field count: 2, range: 1-2
+
+syntax = "proto2";
+
+message rso {
+    repeated rtp c = 1;  // msg: rtp
+    optional rth d = 2;  // msg: rth
+}

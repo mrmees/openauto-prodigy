@@ -1,0 +1,9 @@
+// Decoded from APK class: yui
+// Field count: 2, range: 2-5
+
+syntax = "proto2";
+
+message yui {
+    optional bytes /* message ? */ d = 2;
+    optional bytes /* message ? */ e = 5;
+}

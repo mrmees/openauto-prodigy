@@ -1,0 +1,16 @@
+// Decoded from APK class: zmt
+// Field count: 9, range: 1-9
+
+syntax = "proto2";
+
+message zmt {
+    optional int32 c = 1;
+    optional float d = 2;
+    optional float e = 3;
+    optional zli f = 4;  // msg: zli
+    optional zli g = 5;  // msg: zli
+    optional zli h = 6;  // msg: zli
+    optional zli i = 7;  // msg: zli
+    optional zli j = 8;  // msg: zli
+    optional zli k = 9;  // msg: zli
+}

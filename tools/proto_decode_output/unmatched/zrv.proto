@@ -1,0 +1,8 @@
+// Decoded from APK class: zrv
+// Field count: 1, range: 10-10
+
+syntax = "proto2";
+
+message zrv {
+    optional bool c = 10;
+}

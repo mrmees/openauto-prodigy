@@ -1,0 +1,10 @@
+// Decoded from APK class: ulc
+// Field count: 3, range: 1-3
+
+syntax = "proto2";
+
+message ulc {
+    optional string b = 1;
+    repeated ulb c = 2;  // msg: ulb
+    optional bool d = 3;
+}

@@ -1,0 +1,18 @@
+// Decoded from APK class: yyx
+// Field count: 11, range: 22-64
+
+syntax = "proto2";
+
+message yyx {
+    optional bool g = 22;
+    optional string f = 36;
+    optional int32 j = 38;
+    optional bool k = 42;
+    optional bool h = 51;
+    repeated int32 l = 53;
+    optional bool i = 56;
+    optional int32 n = 57;
+    optional bool m = 59;
+    repeated string d = 102;
+    optional string e = 4104;
+}

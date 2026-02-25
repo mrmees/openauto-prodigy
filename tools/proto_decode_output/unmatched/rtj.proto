@@ -1,0 +1,8 @@
+// Decoded from APK class: rtj
+// Field count: 1, range: 1-1
+
+syntax = "proto2";
+
+message rtj {
+    optional rsy c = 1;  // msg: rsy
+}

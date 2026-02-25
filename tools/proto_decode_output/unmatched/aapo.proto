@@ -1,0 +1,8 @@
+// Decoded from APK class: aapo
+// Field count: 1, range: 8-8
+
+syntax = "proto2";
+
+message aapo {
+    optional bytes /* message ? */ d = 8;
+}

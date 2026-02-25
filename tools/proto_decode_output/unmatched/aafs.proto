@@ -1,0 +1,11 @@
+// Decoded from APK class: aafs
+// Field count: 4, range: 1-4
+
+syntax = "proto2";
+
+message aafs {
+    optional string b = 1;
+    optional string c = 2;
+    optional string d = 3;
+    optional string e = 4;
+}

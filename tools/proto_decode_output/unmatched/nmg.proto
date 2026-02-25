@@ -1,0 +1,11 @@
+// Decoded from APK class: nmg
+// Field count: 4, range: 1-5
+
+syntax = "proto2";
+
+message nmg {
+    optional aaav c = 1;  // msg: aaav
+    optional nmn d = 2;  // msg: nmn
+    optional nml e = 3;  // msg: nml
+    optional nmk f = 5;  // msg: nmk
+}

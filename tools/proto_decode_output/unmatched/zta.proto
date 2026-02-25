@@ -1,0 +1,15 @@
+// Decoded from APK class: zta
+// Field count: 8, range: 2-11
+
+syntax = "proto2";
+
+message zta {
+    optional zpa c = 2;  // msg: zpa
+    optional zsf d = 3;  // msg: zsf
+    optional zwq e = 4;  // msg: zwq
+    optional int32 /* enum ? */ f = 5;
+    repeated zoj i = 6;  // msg: zoj
+    optional int32 /* enum ? */ g = 7;
+    optional int32 /* enum ? */ h = 8;
+    optional int32 j = 11;
+}

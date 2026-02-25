@@ -1,0 +1,8 @@
+// Decoded from APK class: zvb
+// Field count: 1, range: 1-1
+
+syntax = "proto2";
+
+message zvb {
+    optional zvs c = 1;  // msg: zvs
+}

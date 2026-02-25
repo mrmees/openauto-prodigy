@@ -1,0 +1,13 @@
+// Decoded from APK class: zrn
+// Field count: 6, range: 1-26
+
+syntax = "proto2";
+
+message zrn {
+    optional zwq c = 1;  // msg: zwq
+    optional bytes /* message ? */ i = 3;
+    optional zqt d = 4;  // msg: zqt
+    optional bytes /* message ? */ h = 8;
+    optional string e = 25;
+    optional bool f = 26;
+}

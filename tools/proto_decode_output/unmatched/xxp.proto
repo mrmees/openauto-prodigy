@@ -1,0 +1,8 @@
+// Decoded from APK class: xxp
+// Field count: 1, range: 11-11
+
+syntax = "proto2";
+
+message xxp {
+    optional bytes /* message ? */ d = 11;
+}

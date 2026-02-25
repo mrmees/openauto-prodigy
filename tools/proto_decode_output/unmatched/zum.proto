@@ -1,0 +1,10 @@
+// Decoded from APK class: zum
+// Field count: 3, range: 1-3
+
+syntax = "proto2";
+
+message zum {
+    optional zni b = 1;  // msg: zni
+    repeated ztd c = 2;  // msg: ztd
+    optional sint32 d = 3;
+}

@@ -1,0 +1,9 @@
+// Decoded from APK class: zsm
+// Field count: 2, range: 1-2
+
+syntax = "proto2";
+
+message zsm {
+    optional zut c = 1;  // msg: zut
+    optional zut d = 2;  // msg: zut
+}

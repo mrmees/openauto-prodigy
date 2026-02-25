@@ -1,0 +1,9 @@
+// Decoded from APK class: sfa
+// Field count: 2, range: 1-2
+
+syntax = "proto2";
+
+message sfa {
+    optional int64 sgp.class = 0;
+    optional bytes /* message ? */ sen.class = 1;
+}

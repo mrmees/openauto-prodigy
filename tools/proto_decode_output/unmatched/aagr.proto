@@ -1,0 +1,13 @@
+// Decoded from APK class: aagr
+// Field count: 6, range: 1-7
+
+syntax = "proto2";
+
+message aagr {
+    optional aagh c = 1;  // msg: aagh
+    optional aafs d = 2;  // msg: aafs
+    optional aafu e = 3;  // msg: aafu
+    optional aags f = 4;  // msg: aags
+    repeated aagv g = 5;  // msg: aagv
+    optional string h = 7;
+}

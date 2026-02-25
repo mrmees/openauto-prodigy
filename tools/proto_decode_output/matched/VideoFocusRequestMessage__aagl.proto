@@ -1,0 +1,14 @@
+// Decoded from APK class: aagl
+// Field count: 4, range: 1-4
+
+syntax = "proto2";
+
+message aagl {
+    optional int32 c = 1;
+    optional string d = 2;
+    optional int32 /* enum ? */ f = 3;
+    optional int32 /* enum ? */  = 4;
+}
+
+// === DIFF vs our proto ===
+// + field 4: enum 

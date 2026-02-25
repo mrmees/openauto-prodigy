@@ -1,0 +1,9 @@
+// Decoded from APK class: znr
+// Field count: 2, range: 1-2
+
+syntax = "proto2";
+
+message znr {
+    optional string b = 1;
+    optional int32 c = 2;
+}

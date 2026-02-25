@@ -1,0 +1,12 @@
+// Decoded from APK class: aheq
+// Field count: 5, range: 1-8
+
+syntax = "proto2";
+
+message aheq {
+    optional fixed64 b = 1;
+    optional string c = 2;
+    optional aaav e = 4;  // msg: aaav
+    repeated aheu f = 7;  // msg: aheu
+    repeated ahep d = 8;  // msg: ahep
+}

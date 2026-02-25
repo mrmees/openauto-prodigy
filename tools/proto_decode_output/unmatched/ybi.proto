@@ -1,0 +1,9 @@
+// Decoded from APK class: ybi
+// Field count: 2, range: 1-2
+
+syntax = "proto2";
+
+message ybi {
+    optional int64 b = 1;
+    optional uint64 c = 2;
+}

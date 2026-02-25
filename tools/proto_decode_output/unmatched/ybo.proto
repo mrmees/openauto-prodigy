@@ -1,0 +1,8 @@
+// Decoded from APK class: ybo
+// Field count: 1, range: 7-7
+
+syntax = "proto2";
+
+message ybo {
+    optional ybn c = 7;  // msg: ybn
+}

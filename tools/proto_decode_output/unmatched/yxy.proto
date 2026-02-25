@@ -1,0 +1,8 @@
+// Decoded from APK class: yxy
+// Field count: 1, range: 1-1
+
+syntax = "proto2";
+
+message yxy {
+    optional bytes /* message ? */ d = 1;
+}

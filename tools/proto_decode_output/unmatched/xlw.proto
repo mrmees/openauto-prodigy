@@ -1,0 +1,9 @@
+// Decoded from APK class: xlw
+// Field count: 2, range: 1-2
+
+syntax = "proto2";
+
+message xlw {
+    optional int32 c = 1;
+    optional int32 /* enum a */ d = 2;  // enum: a
+}

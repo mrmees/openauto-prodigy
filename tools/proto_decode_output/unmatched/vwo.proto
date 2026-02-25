@@ -1,0 +1,10 @@
+// Decoded from APK class: vwo
+// Field count: 3, range: 1-3
+
+syntax = "proto2";
+
+message vwo {
+    repeated vux b = 1;  // msg: vux
+    repeated vwl c = 2;  // msg: vwl
+    repeated vuo d = 3;  // msg: vuo
+}

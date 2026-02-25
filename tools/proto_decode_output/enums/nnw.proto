@@ -1,0 +1,10 @@
+// Decoded from APK class: nnw
+
+syntax = "proto2";
+
+enum nnw {
+    AUDIO_CODEC_TYPE_UNSPECIFIED = 0;
+    PCM = 1;
+    AAC_LC = 2;
+    AAC_LC_ADTS = 3;
+}

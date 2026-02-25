@@ -1,0 +1,10 @@
+// Decoded from APK class: tte
+
+syntax = "proto2";
+
+enum tte {
+    UNKNOWN_UE3_REPORTER_FLUSH_STRATEGY = 0;
+    NONE = 1;
+    SEQUENTIAL_ON_UI_THREAD = 2;
+    WAIT_ON_UI_THREAD = 3;
+}

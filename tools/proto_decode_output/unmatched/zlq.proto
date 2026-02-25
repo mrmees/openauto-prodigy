@@ -1,0 +1,8 @@
+// Decoded from APK class: zlq
+// Field count: 1, range: 1-1
+
+syntax = "proto2";
+
+message zlq {
+    optional uint64 b = 1;
+}

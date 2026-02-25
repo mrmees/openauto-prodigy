@@ -1,0 +1,9 @@
+// Decoded from APK class: aakw
+// Field count: 2, range: 2-4
+
+syntax = "proto2";
+
+message aakw {
+    optional string b = 2;
+    repeated aaku c = 4;  // msg: aaku
+}

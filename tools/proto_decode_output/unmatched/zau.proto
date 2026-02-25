@@ -1,0 +1,9 @@
+// Decoded from APK class: zau
+// Field count: 2, range: 5-6
+
+syntax = "proto2";
+
+message zau {
+    optional bytes /* message ? */ d = 5;
+    optional bytes /* message ? */ e = 6;
+}

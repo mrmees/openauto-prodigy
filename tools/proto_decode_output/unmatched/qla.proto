@@ -1,0 +1,17 @@
+// Decoded from APK class: qla
+// Field count: 10, range: 1-10
+
+syntax = "proto2";
+
+message qla {
+    optional string c = 1;
+    optional qlb d = 2;  // msg: qlb
+    repeated qlb e = 3;  // msg: qlb
+    optional int32 f = 4;
+    optional int32 /* enum a */ g = 5;  // enum: a
+    optional int32 /* enum ? */ h = 6;
+    optional int32 /* enum ? */ j = 7;
+    repeated l k = 8;  // msg: l
+    optional bool  = 9;
+    optional string  = 10;
+}

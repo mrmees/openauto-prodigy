@@ -1,0 +1,10 @@
+// Decoded from APK class: xjs
+// Field count: 3, range: 1-3
+
+syntax = "proto2";
+
+message xjs {
+    repeated xjt c = 1;  // msg: xjt
+    optional int64 d = 2;
+    optional int64 e = 3;
+}

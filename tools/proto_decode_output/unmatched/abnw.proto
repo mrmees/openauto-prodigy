@@ -1,0 +1,10 @@
+// Decoded from APK class: abnw
+// Field count: 3, range: 1-3
+
+syntax = "proto2";
+
+message abnw {
+    optional uint64  = 0;
+    optional int32 /* enum ? */ e = 1;
+    optional int32  = 2;
+}

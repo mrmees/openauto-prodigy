@@ -1,0 +1,56 @@
+// Decoded from APK class: xlb
+// Field count: 49, range: 1-69
+
+syntax = "proto2";
+
+message xlb {
+    optional int32 d = 1;
+    optional int32 e = 2;
+    optional int64 f = 3;
+    optional string g = 4;
+    optional int32 h = 5;
+    optional int32 i = 6;
+    optional int32 j = 15;
+    optional xjn k = 16;  // msg: xjn
+    optional string l = 17;
+    optional int32 m = 18;
+    optional int32 n = 19;
+    optional int32 o = 20;
+    optional string p = 21;
+    optional string s = 23;
+    optional int32 t = 24;
+    optional int32 u = 25;
+    repeated string v = 26;
+    optional xkg w = 27;  // msg: xkg
+    optional xkb x = 28;  // msg: xkb
+    optional zzf y = 29;  // msg: zzf
+    repeated string z = 30;
+    optional int32 A = 31;
+    optional int32 B = 32;
+    optional string C = 33;
+    optional bytes /* message ? */ D = 36;
+    optional string E = 38;
+    optional string F = 39;
+    optional long I = 40;  // msg: long
+    optional int64 J = 42;
+    optional uint64 K = 44;
+    optional int32 M = 45;
+    optional string N = 46;
+    optional string O = 47;
+    optional int32 G = 48;
+    optional bool H = 50;
+    optional int32 P = 53;
+    optional xhy Q = 54;  // msg: xhy
+    optional xjo R = 55;  // msg: xjo
+    optional xiy S = 57;  // msg: xiy
+    optional xjp T = 58;  // msg: xjp
+    optional xjr U = 59;  // msg: xjr
+    optional int V = 60;  // msg: int
+    optional int W = 61;  // msg: int
+    optional int32 X = 62;
+    optional int32 Y = 63;
+    optional int32 xgv.m = 64;
+    optional int32 /* enum ? */ Z = 65;
+    repeated int32 q = 102;
+    optional sfixed32 r = 4100;
+}

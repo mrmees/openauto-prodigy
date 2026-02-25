@@ -1,0 +1,9 @@
+// Decoded from APK class: rsg
+// Field count: 2, range: 1-2
+
+syntax = "proto2";
+
+message rsg {
+    optional int64 rsf.class = 0;
+    optional bytes /* message ? */ rsz.class = 1;
+}

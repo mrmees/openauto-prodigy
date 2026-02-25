@@ -1,0 +1,8 @@
+// Decoded from APK class: vvb
+// Field count: 1, range: 1-1
+
+syntax = "proto2";
+
+message vvb {
+    optional uint64 b = 1;
+}

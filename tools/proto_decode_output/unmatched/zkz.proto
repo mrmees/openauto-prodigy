@@ -1,0 +1,8 @@
+// Decoded from APK class: zkz
+// Field count: 1, range: 1-1
+
+syntax = "proto2";
+
+message zkz {
+    optional int32 /* enum a */ c = 1;  // enum: a
+}

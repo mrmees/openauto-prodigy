@@ -1,0 +1,9 @@
+// Decoded from APK class: nvq
+// Field count: 2, range: 1-2
+
+syntax = "proto2";
+
+message nvq {
+    optional int64  = 0;
+    optional xik nvg.c = 1;  // enum: xik
+}

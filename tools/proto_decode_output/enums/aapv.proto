@@ -1,0 +1,12 @@
+// Decoded from APK class: aapv
+
+syntax = "proto2";
+
+enum aapv {
+    UNKNOWN_RELEASE_LEVEL = 0;
+    DEV = 100;
+    FISHFOOD = 200;
+    DOGFOOD = 300;
+    PREVIEW = 400;
+    RELEASE = 500;
+}

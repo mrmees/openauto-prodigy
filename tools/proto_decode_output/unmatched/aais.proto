@@ -1,0 +1,10 @@
+// Decoded from APK class: aais
+// Field count: 3, range: 1-3
+
+syntax = "proto2";
+
+message aais {
+    optional aaiq c = 1;  // msg: aaiq
+    optional aair d = 2;  // msg: aair
+    optional zyd e = 3;  // msg: zyd
+}

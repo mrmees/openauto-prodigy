@@ -1,0 +1,9 @@
+// Decoded from APK class: aamf
+// Field count: 2, range: 4-7
+
+syntax = "proto2";
+
+message aamf {
+    optional bytes /* message ? */ e = 4;
+    optional bytes /* message ? */ d = 7;
+}

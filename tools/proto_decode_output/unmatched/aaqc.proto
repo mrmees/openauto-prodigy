@@ -1,0 +1,8 @@
+// Decoded from APK class: aaqc
+// Field count: 1, range: 1-1
+
+syntax = "proto2";
+
+message aaqc {
+    required int32 /* enum ? */ d = 1;
+}

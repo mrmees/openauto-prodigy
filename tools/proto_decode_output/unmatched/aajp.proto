@@ -1,0 +1,14 @@
+// Decoded from APK class: aajp
+// Field count: 7, range: 1-9
+
+syntax = "proto2";
+
+message aajp {
+    optional aajl c = 1;  // msg: aajl
+    optional aaiw d = 2;  // msg: aaiw
+    optional aaiz e = 3;  // msg: aaiz
+    optional aajq f = 4;  // msg: aajq
+    repeated aajv g = 5;  // msg: aajv
+    optional string h = 7;
+    optional bytes /* message ? */  = 9;
+}

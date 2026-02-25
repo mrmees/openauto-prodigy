@@ -1,0 +1,10 @@
+// Decoded from APK class: aatv
+// Field count: 3, range: 39-60
+
+syntax = "proto2";
+
+message aatv {
+    required int32 c = 39;
+    required int32 d = 40;
+    optional aato e = 60;  // enum: aato
+}

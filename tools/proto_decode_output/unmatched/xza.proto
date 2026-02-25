@@ -1,0 +1,26 @@
+// Decoded from APK class: xza
+// Field count: 19, range: 1-28
+
+syntax = "proto2";
+
+message xza {
+    optional xzc c = 1;  // msg: xzc
+    optional xzc d = 2;  // msg: xzc
+    optional xzc e = 3;  // msg: xzc
+    optional xzc f = 4;  // msg: xzc
+    optional xzc g = 5;  // msg: xzc
+    optional xzc h = 6;  // msg: xzc
+    optional xzc i = 7;  // msg: xzc
+    optional xzc j = 8;  // msg: xzc
+    required string n = 9;
+    optional int32 o = 10;
+    optional string p = 11;
+    optional string q = 15;
+    optional string r = 16;
+    optional bool s = 18;
+    repeated xyv t = 19;  // msg: xyv
+    optional xzc k = 21;  // msg: xzc
+    optional string u = 23;
+    optional xzc l = 25;  // msg: xzc
+    optional xzc m = 28;  // msg: xzc
+}

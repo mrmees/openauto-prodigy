@@ -1,0 +1,9 @@
+// Decoded from APK class: xxo
+// Field count: 2, range: 10-11
+
+syntax = "proto2";
+
+message xxo {
+    optional bytes /* message ? */ d = 10;
+    optional bytes /* message ? */ e = 11;
+}

@@ -1,0 +1,10 @@
+// Decoded from APK class: aata
+// Field count: 3, range: 1-3
+
+syntax = "proto2";
+
+message aata {
+    required int32 d = 1;
+    required int32 e = 2;
+    required int32 f = 3;
+}

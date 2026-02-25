@@ -1,0 +1,22 @@
+// Decoded from APK class: zop
+// Field count: 92, range: 1-1
+
+syntax = "proto2";
+
+message zop {
+    optional fixed32  = 0;
+    optional float  = 0;
+    optional uint64  = 2;
+    optional uint64  = 3;
+    optional uint64  = 4;
+    optional int32  = 5;
+    optional int32  = 6;
+    optional int32  = 7;
+    optional bytes  = 8;
+    optional uint64  = 9;
+    optional bytes  = 10;
+    optional uint64  = 11;
+    optional unknown_51  = 92;
+    optional double  = 4106;
+}
+// PARSE ERROR: Entry parse error at field 14: read_varint: pos 44 past end of 44 chars

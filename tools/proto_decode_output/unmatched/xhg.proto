@@ -1,0 +1,8 @@
+// Decoded from APK class: xhg
+// Field count: 1, range: 3-3
+
+syntax = "proto2";
+
+message xhg {
+    optional sfixed64 c = 3;
+}

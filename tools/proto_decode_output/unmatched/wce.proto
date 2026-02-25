@@ -1,0 +1,11 @@
+// Decoded from APK class: wce
+// Field count: 4, range: 1-4
+
+syntax = "proto2";
+
+message wce {
+    required int32 c = 1;
+    required uint32 d = 2;
+    optional int32 /* enum a */ e = 3;  // enum: a
+    optional vyo f = 4;  // msg: vyo
+}

@@ -1,0 +1,8 @@
+// Decoded from APK class: zrz
+// Field count: 1, range: 1-1
+
+syntax = "proto2";
+
+message zrz {
+    optional uint64 c = 1;
+}

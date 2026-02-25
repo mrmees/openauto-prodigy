@@ -1,0 +1,9 @@
+// Decoded from APK class: aadm
+// Field count: 2, range: 1-2
+
+syntax = "proto2";
+
+message aadm {
+    optional aadn c = 1;  // msg: aadn
+    repeated aadp d = 2;  // msg: aadp
+}

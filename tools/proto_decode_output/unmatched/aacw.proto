@@ -1,0 +1,8 @@
+// Decoded from APK class: aacw
+// Field count: 1, range: 1-1
+
+syntax = "proto2";
+
+message aacw {
+    repeated string b = 1;
+}

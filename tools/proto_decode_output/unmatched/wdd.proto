@@ -1,0 +1,9 @@
+// Decoded from APK class: wdd
+// Field count: 2, range: 2-3
+
+syntax = "proto2";
+
+message wdd {
+    optional wda c = 2;  // enum: wda
+    optional wdc d = 3;  // enum: wdc
+}

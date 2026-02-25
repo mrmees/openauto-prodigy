@@ -1,0 +1,9 @@
+// Decoded from APK class: ofa
+// Field count: 2, range: 1-2
+
+syntax = "proto2";
+
+message ofa {
+    optional ofc b = 1;  // msg: ofc
+    optional bytes c = 2;
+}

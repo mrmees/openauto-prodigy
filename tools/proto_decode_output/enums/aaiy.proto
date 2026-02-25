@@ -1,0 +1,9 @@
+// Decoded from APK class: aaiy
+
+syntax = "proto2";
+
+enum aaiy {
+    PROMPT_STYLE_UNKNOWN = 0;
+    PROMPT_STYLE_FIRST_CARD_NON_MODAL = 1;
+    PROMPT_STYLE_FIRST_CARD_MODAL = 2;
+}

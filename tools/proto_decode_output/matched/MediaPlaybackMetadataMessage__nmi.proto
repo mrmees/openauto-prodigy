@@ -1,0 +1,13 @@
+// Decoded from APK class: nmi
+// Field count: 6, range: 1-6
+
+syntax = "proto2";
+
+message nmi {
+    optional string c = 1;
+    optional string e = 2;
+    optional string f = 3;
+    optional bytes d = 4;
+    optional bool g = 5;
+    optional string h = 6;
+}

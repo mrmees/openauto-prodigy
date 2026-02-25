@@ -1,0 +1,8 @@
+// Decoded from APK class: tey
+
+syntax = "proto2";
+
+enum tey {
+    WINDING_DEFAULT = 0;
+    WINDING_NON_ZERO = 1;
+}

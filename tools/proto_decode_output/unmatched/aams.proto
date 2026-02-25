@@ -1,0 +1,16 @@
+// Decoded from APK class: aams
+// Field count: 9, range: 1-11
+
+syntax = "proto2";
+
+message aams {
+    optional string c = 1;
+    optional string d = 3;
+    optional string e = 4;
+    repeated zws h = 5;  // msg: zws
+    optional int64 i = 6;
+    optional string g = 7;
+    optional xmh j = 8;  // msg: xmh
+    optional zkk k = 9;  // msg: zkk
+    optional yaa f = 11;  // msg: yaa
+}

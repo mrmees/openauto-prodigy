@@ -1,0 +1,9 @@
+// Decoded from APK class: rsr
+// Field count: 2, range: 1-3
+
+syntax = "proto2";
+
+message rsr {
+    optional aaav c = 1;  // msg: aaav
+    optional int32 /* enum ? */ d = 3;
+}

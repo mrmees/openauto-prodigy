@@ -1,0 +1,9 @@
+// Decoded from APK class: xiz
+// Field count: 2, range: 1-2
+
+syntax = "proto2";
+
+message xiz {
+    optional int32 c = 1;
+    optional xkm d = 2;  // msg: xkm
+}

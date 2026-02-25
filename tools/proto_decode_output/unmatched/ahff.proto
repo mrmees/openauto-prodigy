@@ -1,0 +1,9 @@
+// Decoded from APK class: ahff
+// Field count: 2, range: 1-2
+
+syntax = "proto2";
+
+message ahff {
+    repeated string c = 1;
+    optional ahfe d = 2;  // msg: ahfe
+}

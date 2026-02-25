@@ -1,0 +1,8 @@
+// Decoded from APK class: xyl
+// Field count: 1, range: 3-3
+
+syntax = "proto2";
+
+message xyl {
+    optional bytes /* message ? */ aadl.class = 3;
+}

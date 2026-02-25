@@ -1,0 +1,10 @@
+// Decoded from APK class: xls
+// Field count: 3, range: 1-4
+
+syntax = "proto2";
+
+message xls {
+    optional bytes /* message ? */ d = 1;
+    optional bytes /* message ? */ e = 3;
+    optional bytes /* message ? */ f = 4;
+}

@@ -1,0 +1,10 @@
+// Decoded from APK class: vum
+// Field count: 3, range: 1-3
+
+syntax = "proto2";
+
+message vum {
+    optional vuw c = 1;  // msg: vuw
+    optional vvd d = 2;  // msg: vvd
+    optional vvd e = 3;  // msg: vvd
+}

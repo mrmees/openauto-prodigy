@@ -1,0 +1,9 @@
+// Decoded from APK class: ahex
+// Field count: 2, range: 2-3
+
+syntax = "proto2";
+
+message ahex {
+    optional int64 c = 2;
+    optional int32 /* enum a */ d = 3;  // enum: a
+}

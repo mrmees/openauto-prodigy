@@ -1,0 +1,9 @@
+// Decoded from APK class: znj
+// Field count: 2, range: 1-2
+
+syntax = "proto2";
+
+message znj {
+    optional int32 /* enum aabe */ b = 1;  // enum: aabe
+    optional int32 /* enum a */ c = 2;  // enum: a
+}

@@ -1,0 +1,11 @@
+// Decoded from APK class: pix
+// Field count: 4, range: 1-4
+
+syntax = "proto2";
+
+message pix {
+    optional string c = 1;
+    optional string d = 2;
+    optional string e = 3;
+    repeated pit f = 4;  // msg: pit
+}

@@ -1,0 +1,8 @@
+// Decoded from APK class: zuj
+// Field count: 1, range: 3-3
+
+syntax = "proto2";
+
+message zuj {
+    optional zut c = 3;  // msg: zut
+}

@@ -1,0 +1,28 @@
+// Decoded from APK class: znp
+// Field count: 21, range: 1-21
+
+syntax = "proto2";
+
+message znp {
+    optional fixed32 c = 1;
+    optional fixed32 d = 2;
+    repeated zmu e = 3;  // msg: zmu
+    optional zmo g = 4;  // msg: zmo
+    optional zpm h = 5;  // msg: zpm
+    optional int32 i = 6;
+    optional bool l = 7;
+    optional uint64 f = 8;
+    optional int32 /* enum ? */ zfi.g = 9;
+    optional int32 /* enum ? */ zfi.p = 10;
+    optional sint32 n = 11;
+    optional sint32 zfi.q = 13;
+    optional int r = 15;  // msg: int
+    optional int32 t = 16;
+    optional int32 u = 17;
+    optional zzf w = 18;  // msg: zzf
+    optional int32 znj.class = 19;
+    optional unknown_51 o = 92;
+    optional sfixed64 q = 102;
+    optional uint32 p = 4111;
+    optional sint32 s = 6156;
+}

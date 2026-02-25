@@ -6,6 +6,7 @@
 #include "../../core/services/IAudioService.hpp"
 
 #include <QDebug>
+#include <QEventLoop>
 #include <netinet/in.h>
 #include <netinet/tcp.h>
 #include <sys/socket.h>
@@ -104,13 +105,28 @@ void AndroidAutoOrchestrator::stop()
 {
     qInfo() << "[AAOrchestrator] Stopping Android Auto service";
 
-    // Graceful shutdown if connected
+    stopConnectionWatchdog();
+
+    // Graceful shutdown: send ShutdownRequest and wait for phone to acknowledge
     if (session_ && (state_ == Connected || state_ == Backgrounded)) {
         qInfo() << "[AAOrchestrator] Sending graceful shutdown to phone";
-        session_->stop();
-    }
+        session_->stop(7);  // POWER_DOWN — app is exiting
 
-    stopConnectionWatchdog();
+        // Spin a local event loop so the message goes out and we get the response
+        QEventLoop loop;
+        QTimer timeout;
+        timeout.setSingleShot(true);
+        connect(session_, &oaa::AASession::disconnected, &loop, &QEventLoop::quit);
+        connect(&timeout, &QTimer::timeout, &loop, &QEventLoop::quit);
+        timeout.start(2000);  // 2s max wait
+        loop.exec();
+
+        if (timeout.isActive()) {
+            qInfo() << "[AAOrchestrator] Phone acknowledged shutdown";
+        } else {
+            qInfo() << "[AAOrchestrator] Shutdown timeout — proceeding with teardown";
+        }
+    }
 
     if (nightProvider_) {
         nightProvider_->stop();

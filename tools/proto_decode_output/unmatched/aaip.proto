@@ -1,0 +1,9 @@
+// Decoded from APK class: aaip
+// Field count: 2, range: 1-2
+
+syntax = "proto2";
+
+message aaip {
+    optional unknown_41 b = 1;
+    optional int64 c = 102;
+}

@@ -1,0 +1,21 @@
+// Decoded from APK class: aamo
+// Field count: 14, range: 1-15
+
+syntax = "proto2";
+
+message aamo {
+    optional bool c = 1;
+    optional bool d = 2;
+    optional bool f = 3;
+    optional zqz h = 4;  // msg: zqz
+    optional string i = 5;
+    optional bool g = 6;
+    optional zfp k = 8;  // msg: zfp
+    optional bool e = 9;
+    optional string l = 10;
+    optional string m = 11;
+    optional unknown_51 n = 92;
+    optional sfixed32 j = 102;
+    optional unknown_41 o = 4104;
+    optional sfixed32 p = 4104;
+}

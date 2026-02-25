@@ -1,0 +1,21 @@
+// Decoded from APK class: tul
+// Field count: 11, range: 2-92
+
+syntax = "proto2";
+
+message tul {
+    optional int64 c = 0;
+    optional bool i = 3;
+    optional bool e = 4;
+    optional bool f = 5;
+    optional bool g = 6;
+    optional bool m = 7;
+    optional bool k = 8;
+    optional int32 /* enum ? */ nvg.o = 9;
+    optional bool j = 10;
+    optional bool h = 11;
+    optional unknown_51  = 92;
+    optional double d = 4103;
+    optional fixed64  = 4104;
+}
+// PARSE ERROR: Entry parse error at field 13: read_varint: pos 45 past end of 45 chars

@@ -1,0 +1,46 @@
+// Decoded from APK class: wbo
+// Field count: 26, range: 1-26
+
+syntax = "proto2";
+
+message wbo {
+    repeated vyl b = 1;  // msg: vyl
+    repeated vxa c = 2;  // msg: vxa
+    repeated wcd d = 3;  // msg: wcd
+    repeated wbn e = 4;  // msg: wbn
+    repeated vzx f = 5;  // msg: vzx
+    repeated vxn g = 6;  // msg: vxn
+    repeated wab h = 7;  // msg: wab
+    repeated vxp i = 8;  // msg: vxp
+    repeated vxf j = 9;  // msg: vxf
+    repeated vzw k = 10;  // msg: vzw
+    repeated vxk l = 11;  // msg: vxk
+    optional sfixed32 vxv.class = 27;
+    optional sint32 vxj.class = 27;
+    optional sint64 o = 27;
+    optional group vxe.class = 27;
+    repeated double p = 27;
+    repeated float wac.class = 27;
+    repeated int64 q = 27;
+    repeated uint64 vxh.class = 27;
+    repeated fixed32 s = 27;
+    repeated bool wcg.class = 27;
+    repeated string t = 27;
+    optional unknown_51 m = 92;
+    optional sfixed64 n = 1051;
+    repeated int32 r = 1051;
+    repeated fixed64 vyk.class = 1051;
+}
+
+// === DIFF vs our proto ===
+// + field 92: unknown_51 m
+// + field 1051: fixed64 vyk.class
+// - field 12: HVAC hvac
+// - field 13: DrivingStatus driving_status
+// - field 14: SteeringWheel steering_wheel
+// - field 15: Passenger passenger
+// - field 16: Door door
+// - field 17: Light light
+// - field 18: TirePressure tire_pressure
+// - field 19: Accel accel
+// - field 20: Gyro gyro

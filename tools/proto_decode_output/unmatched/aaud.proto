@@ -1,0 +1,11 @@
+// Decoded from APK class: aaud
+// Field count: 4, range: 19-22
+
+syntax = "proto2";
+
+message aaud {
+    required int32 b = 19;
+    required int32 c = 20;
+    required int32 d = 21;
+    optional sfixed32 e = 22;
+}

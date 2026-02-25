@@ -1,0 +1,8 @@
+// Decoded from APK class: zdm
+// Field count: 1, range: 55-55
+
+syntax = "proto2";
+
+message zdm {
+    optional bytes /* message ? */ d = 55;
+}

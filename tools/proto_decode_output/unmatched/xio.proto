@@ -1,0 +1,13 @@
+// Decoded from APK class: xio
+// Field count: 6, range: 1-7
+
+syntax = "proto2";
+
+message xio {
+    optional int64 c = 1;
+    optional int32 d = 3;
+    repeated int32 e = 4;
+    optional int64 f = 5;
+    optional xin g = 6;  // msg: xin
+    optional int32 h = 7;
+}

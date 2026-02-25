@@ -1,0 +1,10 @@
+// Decoded from APK class: aanx
+// Field count: 3, range: 1-4
+
+syntax = "proto2";
+
+message aanx {
+    optional string c = 1;
+    optional sint32 d = 3;
+    optional string e = 4;
+}

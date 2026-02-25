@@ -1,0 +1,13 @@
+// Decoded from APK class: aago
+// Field count: 6, range: 1-6
+
+syntax = "proto2";
+
+message aago {
+    optional int64 aagi.class = 0;
+    optional int32 aagj.class = 0;
+    optional bytes /* message ? */ aagk.class = 1;
+    optional bytes /* message ? */ aagl.class = 3;
+    optional double aagn.class = 60;
+    optional double aagm.class = 60;
+}

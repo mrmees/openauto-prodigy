@@ -1,0 +1,13 @@
+// Decoded from APK class: zmr
+// Field count: 6, range: 1-6
+
+syntax = "proto2";
+
+message zmr {
+    repeated zmt c = 1;  // msg: zmt
+    repeated zmt d = 2;  // msg: zmt
+    repeated zmt e = 3;  // msg: zmt
+    optional zms f = 4;  // msg: zms
+    optional zms g = 5;  // msg: zms
+    optional zms h = 6;  // msg: zms
+}

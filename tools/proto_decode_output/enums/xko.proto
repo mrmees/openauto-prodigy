@@ -1,0 +1,14 @@
+// Decoded from APK class: xko
+
+syntax = "proto2";
+
+enum xko {
+    UNKNOWN_APPLICATION = 0;
+    GEARHEAD = 1;
+    GSA = 2;
+    GMM = 3;
+    GPM = 4;
+    TTS = 5;
+    KAKAO_NAVI = 6;
+    WAZE = 7;
+}

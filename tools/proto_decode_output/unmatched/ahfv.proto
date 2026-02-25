@@ -1,0 +1,8 @@
+// Decoded from APK class: ahfv
+// Field count: 1, range: 3-3
+
+syntax = "proto2";
+
+message ahfv {
+    optional bool d = 3;
+}

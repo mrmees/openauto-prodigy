@@ -1,0 +1,10 @@
+// Decoded from APK class: ahdv
+// Field count: 3, range: 1-3
+
+syntax = "proto2";
+
+message ahdv {
+    optional float c = 1;
+    optional float e = 2;
+    optional int64  = 3;
+}

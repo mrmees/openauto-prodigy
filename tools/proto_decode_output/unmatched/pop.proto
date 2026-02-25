@@ -1,0 +1,14 @@
+// Decoded from APK class: pop
+// Field count: 7, range: 1-7
+
+syntax = "proto2";
+
+message pop {
+    optional int32 c = 1;
+    optional int32 d = 2;
+    optional bool e = 3;
+    optional int32 f = 4;
+    optional poo g = 5;  // msg: poo
+    optional bool h = 6;
+    optional int32 i = 7;
+}

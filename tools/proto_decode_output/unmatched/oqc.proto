@@ -1,0 +1,9 @@
+// Decoded from APK class: oqc
+// Field count: 2, range: 1-2
+
+syntax = "proto2";
+
+message oqc {
+    optional bytes c = 1;
+    optional string d = 2;
+}

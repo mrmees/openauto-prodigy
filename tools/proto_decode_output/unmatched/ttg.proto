@@ -1,0 +1,21 @@
+// Decoded from APK class: ttg
+// Field count: 14, range: 1-14
+
+syntax = "proto2";
+
+message ttg {
+    optional uint64 c = 1;
+    optional int32 e = 2;
+    optional uint64 f = 3;
+    optional boolean h = 4;  // msg: boolean
+    optional bool i = 5;
+    optional bool nvg.l = 6;
+    optional int32 /* enum ? */ j = 7;
+    optional bool l = 8;
+    optional bool nvg.m = 9;
+    optional int32 /* enum ? */ m = 10;
+    optional int32 o = 11;
+    optional int32  = 13;
+    optional unknown_51 p = 92;
+    optional bytes /* message ? */  = 4100;
+}

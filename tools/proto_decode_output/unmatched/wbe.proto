@@ -1,0 +1,9 @@
+// Decoded from APK class: wbe
+// Field count: 2, range: 1-2
+
+syntax = "proto2";
+
+message wbe {
+    required int32 b = 1;
+    required int32 c = 2;
+}

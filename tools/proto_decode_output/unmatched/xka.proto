@@ -1,0 +1,25 @@
+// Decoded from APK class: xka
+// Field count: 18, range: 1-25
+
+syntax = "proto2";
+
+message xka {
+    optional int32 c = 1;
+    optional int32 d = 2;
+    optional int64 e = 3;
+    repeated string f = 4;
+    optional string g = 5;
+    optional string h = 9;
+    optional int32 i = 10;
+    optional string j = 11;
+    repeated m xkm.class = 13;  // msg: m
+    optional string n = 16;
+    optional zzf o = 19;  // msg: zzf
+    repeated p xjz.class = 20;  // msg: p
+    optional string q = 21;
+    optional int32 r = 22;
+    optional string s = 23;
+    optional int64 t = 24;
+    optional unknown_51 k = 92;
+    optional bytes l = 4105;
+}

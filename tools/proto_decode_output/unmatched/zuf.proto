@@ -1,0 +1,14 @@
+// Decoded from APK class: zuf
+// Field count: 7, range: 1-7
+
+syntax = "proto2";
+
+message zuf {
+    optional int64 zsl.class = 0;
+    optional int32 zsx.class = 0;
+    optional bytes /* message ? */ zsk.class = 1;
+    optional bytes /* message ? */ zuo.class = 3;
+    optional bytes /* message ? */ zuq.class = 5;
+    optional double zsy.class = 60;
+    optional double zth.class = 60;
+}

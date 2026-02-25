@@ -1,0 +1,9 @@
+// Decoded from APK class: pio
+// Field count: 2, range: 1-2
+
+syntax = "proto2";
+
+message pio {
+    optional string b = 1;
+    optional unknown_41 c = 2;
+}

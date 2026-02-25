@@ -1,0 +1,10 @@
+// Decoded from APK class: pjc
+// Field count: 3, range: 1-4
+
+syntax = "proto2";
+
+message pjc {
+    optional unknown_41 b = 1;
+    optional int64 c = 102;
+    optional double d = 4105;
+}

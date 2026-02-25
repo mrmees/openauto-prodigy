@@ -1,0 +1,8 @@
+// Decoded from APK class: xvj
+// Field count: 1, range: 1-1
+
+syntax = "proto2";
+
+message xvj {
+    optional bool c = 1;
+}

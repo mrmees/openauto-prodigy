@@ -1,0 +1,11 @@
+// Decoded from APK class: zpz
+
+syntax = "proto2";
+
+enum zpz {
+    WORLD_ENCODING_UNKNOWN = 0;
+    WORLD_ENCODING_LAT_LNG_E7 = 3;
+    WORLD_ENCODING_LAT_LNG_DOUBLE = 4;
+    SCREEN_SPACE_FLOAT = 5;
+    WORLD_ENCODING_MAX_PRECISION_DELTA_VARINT = 6;
+}

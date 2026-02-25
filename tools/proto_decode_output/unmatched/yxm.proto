@@ -1,0 +1,9 @@
+// Decoded from APK class: yxm
+// Field count: 2, range: 6-7
+
+syntax = "proto2";
+
+message yxm {
+    optional bytes /* message ? */ d = 6;
+    optional bytes /* message ? */ e = 7;
+}

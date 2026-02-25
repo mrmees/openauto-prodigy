@@ -1,0 +1,9 @@
+// Decoded from APK class: zdi
+// Field count: 2, range: 3-4
+
+syntax = "proto2";
+
+message zdi {
+    optional sfixed64 c = 3;
+    optional sfixed64 d = 4;
+}

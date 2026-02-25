@@ -1,0 +1,17 @@
+// Decoded from APK class: zpi
+// Field count: 10, range: 1-15
+
+syntax = "proto2";
+
+message zpi {
+    optional fixed32 c = 1;
+    optional int32 e = 2;
+    repeated int32 f = 3;
+    optional string h = 4;
+    optional sint32 g = 8;
+    optional zmi k = 10;  // msg: zmi
+    optional zmi l = 11;  // msg: zmi
+    optional int32 d = 14;
+    optional unknown_41 i = 102;
+    optional int32 j = 102;
+}

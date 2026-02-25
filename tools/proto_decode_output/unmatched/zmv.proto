@@ -1,0 +1,10 @@
+// Decoded from APK class: zmv
+// Field count: 3, range: 2-4
+
+syntax = "proto2";
+
+message zmv {
+    repeated zmt b = 2;  // msg: zmt
+    repeated zmt c = 3;  // msg: zmt
+    repeated int32 d = 4;
+}

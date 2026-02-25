@@ -1,0 +1,12 @@
+// Decoded from APK class: wds
+// Field count: 5, range: 1-5
+
+syntax = "proto2";
+
+message wds {
+    optional int32 b = 1;
+    optional int32 c = 2;
+    optional bytes d = 3;
+    optional wdq e = 4;  // msg: wdq
+    optional wdi f = 5;  // msg: wdi
+}

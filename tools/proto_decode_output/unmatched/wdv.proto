@@ -1,0 +1,13 @@
+// Decoded from APK class: wdv
+// Field count: 6, range: 1-6
+
+syntax = "proto2";
+
+message wdv {
+    optional int32 c = 1;
+    optional int32 d = 2;
+    optional int32 /* enum a */ e = 3;  // enum: a
+    repeated int32 f = 4;
+    optional vve g = 5;  // msg: vve
+    optional wdq h = 6;  // msg: wdq
+}

@@ -1,0 +1,9 @@
+// Decoded from APK class: ztd
+// Field count: 2, range: 1-2
+
+syntax = "proto2";
+
+message ztd {
+    optional int32 /* enum aabe */ c = 1;  // enum: aabe
+    optional int32 /* enum a */ d = 2;  // enum: a
+}

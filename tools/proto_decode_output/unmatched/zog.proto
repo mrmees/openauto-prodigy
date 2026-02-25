@@ -1,0 +1,11 @@
+// Decoded from APK class: zog
+// Field count: 4, range: 1-4
+
+syntax = "proto2";
+
+message zog {
+    optional int64 f = 0;
+    optional bool e = 1;
+    optional float  = 3;
+    optional double  = 53;
+}

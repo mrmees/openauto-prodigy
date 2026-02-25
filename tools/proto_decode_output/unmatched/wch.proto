@@ -1,0 +1,8 @@
+// Decoded from APK class: wch
+// Field count: 1, range: 1-1
+
+syntax = "proto2";
+
+message wch {
+    required bool b = 1;
+}

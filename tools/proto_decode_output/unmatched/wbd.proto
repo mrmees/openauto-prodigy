@@ -1,0 +1,8 @@
+// Decoded from APK class: wbd
+// Field count: 1, range: 1-1
+
+syntax = "proto2";
+
+message wbd {
+    optional int32 /* enum a */ b = 1;  // enum: a
+}

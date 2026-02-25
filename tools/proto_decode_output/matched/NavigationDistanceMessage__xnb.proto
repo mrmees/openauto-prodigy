@@ -1,0 +1,14 @@
+// Decoded from APK class: xnb
+// Field count: 4, range: 1-8
+
+syntax = "proto2";
+
+message xnb {
+    required xmw c = 1;  // msg: xmw
+    required string d = 2;
+    required int32 e = 3;
+    optional xng f = 8;  // msg: xng
+}
+
+// === DIFF vs our proto ===
+// + field 8: message f (msg: xng)

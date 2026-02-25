@@ -1,0 +1,9 @@
+// Decoded from APK class: shp
+// Field count: 2, range: 1-2
+
+syntax = "proto2";
+
+message shp {
+    optional string c = 1;
+    optional bytes d = 2;
+}

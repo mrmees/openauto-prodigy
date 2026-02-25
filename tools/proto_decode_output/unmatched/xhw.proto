@@ -1,0 +1,9 @@
+// Decoded from APK class: xhw
+// Field count: 2, range: 1-2
+
+syntax = "proto2";
+
+message xhw {
+    repeated xhv c = 1;  // msg: xhv
+    optional int32 d = 2;
+}

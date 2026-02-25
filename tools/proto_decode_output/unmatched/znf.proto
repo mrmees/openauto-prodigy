@@ -1,0 +1,8 @@
+// Decoded from APK class: znf
+// Field count: 1, range: 1-1
+
+syntax = "proto2";
+
+message znf {
+    repeated zne b = 1;  // msg: zne
+}

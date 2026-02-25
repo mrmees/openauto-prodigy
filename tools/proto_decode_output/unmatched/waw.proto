@@ -1,0 +1,9 @@
+// Decoded from APK class: waw
+// Field count: 2, range: 1-2
+
+syntax = "proto2";
+
+message waw {
+    optional int32 /* enum viz */ b = 1;  // enum: viz
+    optional uint32 c = 2;
+}

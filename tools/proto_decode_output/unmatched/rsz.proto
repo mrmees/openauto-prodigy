@@ -1,0 +1,9 @@
+// Decoded from APK class: rsz
+// Field count: 2, range: 1-2
+
+syntax = "proto2";
+
+message rsz {
+    optional rse c = 1;  // msg: rse
+    optional int32 d = 2;
+}

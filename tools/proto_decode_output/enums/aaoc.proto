@@ -1,0 +1,11 @@
+// Decoded from APK class: aaoc
+
+syntax = "proto2";
+
+enum aaoc {
+    GMM_SERVER_ONLY = 1;
+    CLEARCUT_SERVICE_ONLY = 2;
+    DUAL_WRITE = 3;
+    NON_LOG204_CLEARCUT_ONLY_LOG204_GMM_SERVER_ONLY = 4;
+    NON_LOG204_CLEARCUT_ONLY_LOG204_DUAL_WRITE = 5;
+}

@@ -1,0 +1,11 @@
+// Decoded from APK class: xjr
+// Field count: 4, range: 1-4
+
+syntax = "proto2";
+
+message xjr {
+    optional xjq c = 1;  // msg: xjq
+    repeated xjq d = 2;  // msg: xjq
+    optional int32 e = 3;
+    optional int32 f = 4;
+}

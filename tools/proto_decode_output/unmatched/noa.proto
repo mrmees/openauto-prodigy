@@ -1,0 +1,13 @@
+// Decoded from APK class: noa
+// Field count: 6, range: 1-6
+
+syntax = "proto2";
+
+message noa {
+    optional int32 c = 1;
+    optional zyd d = 2;  // msg: zyd
+    optional zyd e = 3;  // msg: zyd
+    optional zyd f = 4;  // msg: zyd
+    optional zyd g = 5;  // msg: zyd
+    optional zyd h = 6;  // msg: zyd
+}

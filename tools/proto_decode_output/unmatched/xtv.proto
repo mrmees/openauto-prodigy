@@ -1,0 +1,8 @@
+// Decoded from APK class: xtv
+// Field count: 1, range: 1-1
+
+syntax = "proto2";
+
+message xtv {
+    optional bytes /* message ? */ d = 1;
+}

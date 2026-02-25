@@ -1,0 +1,14 @@
+// Decoded from APK class: upd
+// Field count: 7, range: 1-8
+
+syntax = "proto2";
+
+message upd {
+    optional string c = 1;
+    optional bool d = 3;
+    optional string e = 4;
+    optional string f = 5;
+    optional uint64 g = 6;
+    optional bool i = 7;
+    repeated string  = 8;
+}

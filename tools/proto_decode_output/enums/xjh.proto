@@ -1,0 +1,16 @@
+// Decoded from APK class: xjh
+
+syntax = "proto2";
+
+enum xjh {
+    GEAR_NEUTRAL = 0;
+    GEAR_1 = 1;
+    GEAR_2 = 2;
+    GEAR_3 = 3;
+    GEAR_4 = 4;
+    GEAR_5 = 5;
+    GEAR_6 = 6;
+    GEAR_DRIVE = 10;
+    GEAR_PARK = 11;
+    GEAR_REVERSE = 12;
+}

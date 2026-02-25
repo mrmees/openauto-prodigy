@@ -1,0 +1,8 @@
+// Decoded from APK class: vzj
+// Field count: 1, range: 1-1
+
+syntax = "proto2";
+
+message vzj {
+    repeated vzi b = 1;  // msg: vzi
+}

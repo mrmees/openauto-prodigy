@@ -1,0 +1,8 @@
+// Decoded from APK class: xmc
+// Field count: 1, range: 1-1
+
+syntax = "proto2";
+
+message xmc {
+    optional int32 /* enum ? */ c = 1;
+}

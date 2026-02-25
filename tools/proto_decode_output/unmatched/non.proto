@@ -1,0 +1,23 @@
+// Decoded from APK class: non
+// Field count: 92, range: 1-1
+
+syntax = "proto2";
+
+message non {
+    optional double  = 0;
+    optional float  = 0;
+    optional bool  = 2;
+    optional bool  = 3;
+    optional bool  = 4;
+    optional int32 /* enum ? */  = 5;
+    optional int32 /* enum ? */  = 6;
+    optional int32 /* enum ? */  = 7;
+    optional int32  = 8;
+    optional sint32  = 9;
+    optional int32  = 10;
+    optional int32  = 11;
+    optional unknown_51  = 92;
+    optional double  = 4103;
+    optional uint32  = 6156;
+}
+// PARSE ERROR: Entry parse error at field 15: read_varint: pos 50 past end of 50 chars

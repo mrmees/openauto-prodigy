@@ -1,0 +1,10 @@
+// Decoded from APK class: vxh
+// Field count: 3, range: 1-3
+
+syntax = "proto2";
+
+message vxh {
+    optional bool c = 1;
+    optional bool d = 2;
+    repeated bool e = 3;
+}

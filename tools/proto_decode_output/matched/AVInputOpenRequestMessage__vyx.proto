@@ -1,0 +1,11 @@
+// Decoded from APK class: vyx
+// Field count: 4, range: 1-4
+
+syntax = "proto2";
+
+message vyx {
+    required bool c = 1;
+    optional bool d = 2;
+    optional bool e = 3;
+    optional int32 f = 4;
+}

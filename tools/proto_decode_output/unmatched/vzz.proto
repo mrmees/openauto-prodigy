@@ -1,0 +1,10 @@
+// Decoded from APK class: vzz
+// Field count: 3, range: 1-3
+
+syntax = "proto2";
+
+message vzz {
+    optional int32 c = 1;
+    optional vzy d = 2;  // msg: vzy
+    optional waa e = 3;  // msg: waa
+}

@@ -1,0 +1,10 @@
+// Decoded from APK class: noe
+// Field count: 3, range: 1-3
+
+syntax = "proto2";
+
+message noe {
+    optional string c = 1;
+    optional aaav d = 2;  // msg: aaav
+    optional int32 /* enum ? */ e = 3;
+}

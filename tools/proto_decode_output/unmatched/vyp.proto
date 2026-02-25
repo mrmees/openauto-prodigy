@@ -1,0 +1,14 @@
+// Decoded from APK class: vyp
+// Field count: 7, range: 1-7
+
+syntax = "proto2";
+
+message vyp {
+    optional string c = 1;
+    optional string d = 2;
+    optional string e = 3;
+    optional bytes f = 4;
+    optional string g = 5;
+    optional uint32 h = 6;
+    optional int32 i = 7;
+}

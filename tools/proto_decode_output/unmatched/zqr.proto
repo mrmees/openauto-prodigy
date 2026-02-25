@@ -1,0 +1,9 @@
+// Decoded from APK class: zqr
+// Field count: 2, range: 1-2
+
+syntax = "proto2";
+
+message zqr {
+    optional int32 c = 1;
+    optional int32 d = 2;
+}

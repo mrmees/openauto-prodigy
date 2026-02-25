@@ -1,0 +1,9 @@
+// Decoded from APK class: ytx
+// Field count: 2, range: 1-2
+
+syntax = "proto2";
+
+message ytx {
+    optional bytes /* message ? */ d = 1;
+    optional bytes /* message ? */ e = 2;
+}

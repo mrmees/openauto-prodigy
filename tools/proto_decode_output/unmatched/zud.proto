@@ -1,0 +1,8 @@
+// Decoded from APK class: zud
+// Field count: 1, range: 1-1
+
+syntax = "proto2";
+
+message zud {
+    optional uint64 b = 1;
+}

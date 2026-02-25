@@ -1,0 +1,8 @@
+// Decoded from APK class: aaqy
+// Field count: 1, range: 17-17
+
+syntax = "proto2";
+
+message aaqy {
+    optional bytes /* message ? */ d = 17;
+}

@@ -1,0 +1,10 @@
+// Decoded from APK class: xng
+// Field count: 3, range: 1-4
+
+syntax = "proto2";
+
+message xng {
+    required xnd e = 1;  // msg: xnd
+    repeated xnd f = 2;  // msg: xnd
+    optional bytes /* message ? */ xne.class = 4;
+}

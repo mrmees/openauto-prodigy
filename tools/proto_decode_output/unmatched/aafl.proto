@@ -1,0 +1,11 @@
+// Decoded from APK class: aafl
+// Field count: 4, range: 1-4
+
+syntax = "proto2";
+
+message aafl {
+    optional unknown_41 b = 1;
+    optional uint64 d = 11;
+    optional int64 c = 102;
+    optional int32 e = 520;
+}

@@ -1,0 +1,9 @@
+// Decoded from APK class: zrs
+// Field count: 2, range: 1-2
+
+syntax = "proto2";
+
+message zrs {
+    optional int32 /* enum ? */ c = 1;
+    optional string d = 2;
+}

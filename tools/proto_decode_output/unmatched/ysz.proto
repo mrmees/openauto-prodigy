@@ -1,0 +1,8 @@
+// Decoded from APK class: ysz
+// Field count: 1, range: 1-1
+
+syntax = "proto2";
+
+message ysz {
+    optional string b = 1;
+}

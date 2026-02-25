@@ -1,0 +1,8 @@
+// Decoded from APK class: aaja
+// Field count: 1, range: 1-1
+
+syntax = "proto2";
+
+message aaja {
+    optional bool b = 1;
+}

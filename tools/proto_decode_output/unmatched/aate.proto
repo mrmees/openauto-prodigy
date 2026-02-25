@@ -1,0 +1,13 @@
+// Decoded from APK class: aate
+// Field count: 6, range: 53-62
+
+syntax = "proto2";
+
+message aate {
+    optional int32 c = 53;
+    required string d = 54;
+    optional int32 e = 55;
+    optional string f = 56;
+    optional string g = 57;
+    optional aatm h = 62;  // enum: aatm
+}

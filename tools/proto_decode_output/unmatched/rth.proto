@@ -1,0 +1,9 @@
+// Decoded from APK class: rth
+// Field count: 2, range: 1-2
+
+syntax = "proto2";
+
+message rth {
+    optional int32 /* enum a */ c = 1;  // enum: a
+    repeated rsq d = 2;  // msg: rsq
+}

@@ -1,0 +1,8 @@
+// Decoded from APK class: aath
+
+syntax = "proto2";
+
+enum aath {
+    GOOGLE = 1;
+    IMMERSIVE = 2;
+}

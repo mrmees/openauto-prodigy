@@ -1,0 +1,8 @@
+// Decoded from APK class: zwg
+// Field count: 1, range: 5-5
+
+syntax = "proto2";
+
+message zwg {
+    optional sfixed64 c = 5;
+}

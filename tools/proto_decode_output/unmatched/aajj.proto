@@ -1,0 +1,8 @@
+// Decoded from APK class: aajj
+// Field count: 1, range: 1-1
+
+syntax = "proto2";
+
+message aajj {
+    optional int32 /* enum ? */ c = 1;
+}

@@ -1,0 +1,16 @@
+// Decoded from APK class: tti
+// Field count: 9, range: 1-9
+
+syntax = "proto2";
+
+message tti {
+    optional bool c = 1;
+    optional bool d = 2;
+    optional bool e = 3;
+    optional bool f = 4;
+    optional bool g = 5;
+    optional bool h = 6;
+    optional bool i = 7;
+    optional bool j = 8;
+    optional bool k = 9;
+}

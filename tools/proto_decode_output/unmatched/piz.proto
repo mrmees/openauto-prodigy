@@ -1,0 +1,12 @@
+// Decoded from APK class: piz
+// Field count: 5, range: 1-5
+
+syntax = "proto2";
+
+message piz {
+    optional string c = 1;
+    optional string d = 2;
+    repeated string e = 3;
+    repeated pit f = 4;  // msg: pit
+    optional bool g = 5;
+}

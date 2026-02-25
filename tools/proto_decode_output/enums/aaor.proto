@@ -1,0 +1,10 @@
+// Decoded from APK class: aaor
+
+syntax = "proto2";
+
+enum aaor {
+    UNKNOWN_NAVIGATION_SDK_LOG_MECHANISM = 0;
+    UE3_ONLY = 1;
+    CLEARCUT_ONLY = 2;
+    UE3_AND_CLEARCUT = 3;
+}

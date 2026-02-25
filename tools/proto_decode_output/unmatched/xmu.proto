@@ -1,0 +1,8 @@
+// Decoded from APK class: xmu
+// Field count: 1, range: 13-13
+
+syntax = "proto2";
+
+message xmu {
+    optional xmv c = 13;  // msg: xmv
+}

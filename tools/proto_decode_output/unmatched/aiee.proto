@@ -1,0 +1,9 @@
+// Decoded from APK class: aiee
+// Field count: 2, range: 1-2
+
+syntax = "proto2";
+
+message aiee {
+    optional int64  = 0;
+    optional string aied.class = 1;
+}

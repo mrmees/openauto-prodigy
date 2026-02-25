@@ -1,0 +1,9 @@
+// Decoded from APK class: xus
+// Field count: 2, range: 1-2
+
+syntax = "proto2";
+
+message xus {
+    optional float b = 1;
+    optional float c = 2;
+}

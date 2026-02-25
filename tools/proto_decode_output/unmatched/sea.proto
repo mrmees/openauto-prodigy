@@ -1,0 +1,8 @@
+// Decoded from APK class: sea
+// Field count: 1, range: 1-1
+
+syntax = "proto2";
+
+message sea {
+    optional bytes b = 1;
+}

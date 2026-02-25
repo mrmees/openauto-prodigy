@@ -1,0 +1,11 @@
+// Decoded from APK class: aacn
+// Field count: 4, range: 1-4
+
+syntax = "proto2";
+
+message aacn {
+    optional uint32 b = 1;
+    optional uint32 c = 2;
+    optional uint32 d = 3;
+    optional uint32 e = 4;
+}

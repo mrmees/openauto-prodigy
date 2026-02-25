@@ -1,0 +1,8 @@
+// Decoded from APK class: yaw
+// Field count: 1, range: 1-1
+
+syntax = "proto2";
+
+message yaw {
+    optional sfixed64 c = 1;
+}

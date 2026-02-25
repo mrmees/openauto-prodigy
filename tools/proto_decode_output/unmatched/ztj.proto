@@ -1,0 +1,12 @@
+// Decoded from APK class: ztj
+// Field count: 5, range: 1-5
+
+syntax = "proto2";
+
+message ztj {
+    optional uint64 c = 1;
+    optional zsw d = 2;  // msg: zsw
+    optional float e = 3;
+    optional int32 f = 4;
+    optional int32 g = 5;
+}

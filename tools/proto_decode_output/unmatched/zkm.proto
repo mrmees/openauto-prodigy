@@ -1,0 +1,12 @@
+// Decoded from APK class: zkm
+// Field count: 5, range: 1-5
+
+syntax = "proto2";
+
+message zkm {
+    optional string c = 1;
+    repeated zko d = 2;  // msg: zko
+    optional int32 e = 3;
+    optional bool f = 4;
+    optional xuz g = 5;  // msg: xuz
+}

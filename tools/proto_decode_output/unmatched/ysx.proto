@@ -1,0 +1,8 @@
+// Decoded from APK class: ysx
+// Field count: 1, range: 1-1
+
+syntax = "proto2";
+
+message ysx {
+    optional unknown_41 b = 1;
+}

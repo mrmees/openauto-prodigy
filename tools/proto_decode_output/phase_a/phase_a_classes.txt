@@ -1,0 +1,138 @@
+
+======================================================================
+Class: wby  (15 fields)
+======================================================================
+  wire=  1  repeated message          field=c  [wbw.class]  java:defpackage.zzf
+  wire=  2  string           field=d  (has_bit 0:0)  java:java.lang.String
+  wire=  3  string           field=e  (has_bit 0:1)  java:java.lang.String
+  wire=  4  string           field=f  (has_bit 0:2)  java:java.lang.String
+  wire=  5  string           field=g  (has_bit 0:3)  java:java.lang.String
+  wire=  6  enum             field=h  [vvs.k]  (has_bit 0:4)
+  wire=  7  string           field=i  (has_bit 0:5)  java:java.lang.String
+  wire=  8  string           field=j  (has_bit 0:6)  java:java.lang.String
+  wire=  9  string           field=k  (has_bit 0:7)  java:java.lang.String
+  wire= 10  string           field=l  (has_bit 0:8)  java:java.lang.String
+  wire= 11  bool             field=m  (has_bit 0:9)
+  wire= 13  int32            field=n  (has_bit 0:10)
+  wire= 14  string           field=o  (has_bit 0:11)  java:java.lang.String
+  wire= 15  bool             field=p  (has_bit 0:12)
+  wire= 17  message          field=q  (has_bit 0:14)  java:defpackage.vve
+
+======================================================================
+Class: wbw  (17 fields)
+======================================================================
+  wire=  1  int32            field=c  (has_bit 0:0)
+  wire=  2  message          field=d  (has_bit 0:1)  java:defpackage.wbu
+  wire=  3  message          field=e  (has_bit 0:2)  java:defpackage.vys
+  wire=  4  message          field=f  (has_bit 0:3)  java:defpackage.vya
+  wire=  5  message          field=g  (has_bit 0:4)  java:defpackage.vyt
+  wire=  6  message          field=h  (has_bit 0:5)  java:defpackage.vwc
+  wire=  7  message          field=i  (has_bit 0:6)  java:defpackage.way
+  wire=  8  message          field=j  (has_bit 0:7)  java:defpackage.vzr
+  wire=  9  message          field=o  (has_bit 0:8)  java:defpackage.vyr
+  wire= 10  message          field=p  (has_bit 0:9)  java:defpackage.wah
+  wire= 11  message          field=q  (has_bit 0:10)  java:defpackage.vym
+  wire= 12  message          field=k  (has_bit 0:11)  java:defpackage.wcv
+  wire= 13  message          field=r  (has_bit 0:12)  java:defpackage.vxq
+  wire= 14  message          field=l  (has_bit 0:13)  java:defpackage.wdh
+  wire= 15  message          field=m  (has_bit 0:14)  java:defpackage.vwo
+  wire= 16  message          field=s  (has_bit 0:15)  java:defpackage.vwt
+  wire= 17  message          field=t  (has_bit 0:16)  java:defpackage.vwd
+
+======================================================================
+Class: wbu  (4 fields)
+======================================================================
+  wire=  1  repeated message          field=d  [wbt.class]  java:defpackage.zzf
+  wire=  2  uint32           field=e  (has_bit 0:0)
+  wire=  3  repeated enum             field=f  [vvs.o]  java:defpackage.zzb
+  wire=  4  repeated enum             field=g  [vvs.l]  java:defpackage.zzb
+
+======================================================================
+Class: vys  (8 fields)
+======================================================================
+  wire=  1  enum             field=c  [vvs.u]  (has_bit 0:0)
+  wire=  2  enum             field=d  [vvs.d]  (has_bit 0:1)
+  wire=  3  repeated message          field=e  [vvp.class]  java:defpackage.zzf
+  wire=  4  repeated message          field=f  [wcz.class]  java:defpackage.zzf
+  wire=  6  uint32           field=g  (has_bit 0:3)
+  wire=  7  enum             field=h  [vvs.j]  (has_bit 0:4)
+  wire=  8  enum             field=i  [vvs.t]  (has_bit 0:5)
+  wire=  9  enum             field=j  [wck.f]  (has_bit 0:6)
+
+======================================================================
+Class: vya  (5 fields)
+======================================================================
+  wire=  1  packed int32            field=d  java:defpackage.zzb
+  wire=  2  repeated message          field=e  [vxz.class]  java:defpackage.zzf
+  wire=  3  repeated message          field=f  [vxy.class]  java:defpackage.zzf
+  wire=  4  repeated enum             field=g  [vvs.m]  java:defpackage.zzb
+  wire=  5  uint32           field=h  (has_bit 0:0)
+
+======================================================================
+Class: zpl  (3 fields)
+======================================================================
+  wire=  1  message          field=c  (has_bit 0:0)  java:defpackage.zpn
+  wire=  2  message          field=d  (has_bit 0:1)  java:defpackage.zpn
+  wire=  3  message          field=e  (has_bit 0:2)  java:defpackage.zpn
+
+======================================================================
+Class: zpn  (2 fields)
+======================================================================
+  wire=  1  int32            field=c  (has_bit 0:0)
+  wire=  2  message          field=d  (has_bit 0:1)  java:defpackage.zli
+
+======================================================================
+Class: vxn  (3 fields)
+======================================================================
+  wire=  1  int32            field=c  (has_bit 0:0)
+  wire=  2  int32            field=d  (has_bit 0:1)
+  wire=  3  bool             field=e  (has_bit 0:2)
+
+======================================================================
+Class: vyt  (2 fields)
+======================================================================
+  wire=  1  enum             field=c  [vvs.u]  (has_bit 0:0)
+  wire=  2  message          field=d  (has_bit 0:1)  java:defpackage.vvp
+
+======================================================================
+Class: vvp  (3 fields)
+======================================================================
+  wire=  1  uint32           field=c  (has_bit 0:0)
+  wire=  2  uint32           field=d  (has_bit 0:1)
+  wire=  3  uint32           field=e  (has_bit 0:2)
+
+======================================================================
+Class: wcz  (11 fields)
+======================================================================
+  wire=  1  enum             field=c  [wck.h]  (has_bit 0:0)
+  wire=  2  enum             field=d  [wck.k]  (has_bit 0:1)
+  wire=  3  uint32           field=e  (has_bit 0:2)
+  wire=  4  uint32           field=f  (has_bit 0:3)
+  wire=  5  uint32           field=g  (has_bit 0:4)
+  wire=  6  uint32           field=h  (has_bit 0:5)
+  wire=  7  uint32           field=i  (has_bit 0:6)
+  wire=  8  uint32           field=j  (has_bit 0:7)
+  wire=  9  uint32           field=k  (has_bit 0:8)
+  wire= 10  enum             field=l  [vvs.u]  (has_bit 0:9)
+  wire= 11  message          field=m  (has_bit 0:10)  java:defpackage.wcm
+
+======================================================================
+Class: vwc  (2 fields)
+======================================================================
+  wire=  1  string           field=c  (has_bit 0:0)  java:java.lang.String
+  wire=  2  packed enum             field=d  [vvs.e]  java:defpackage.zzb
+
+======================================================================
+Class: vzr  (3 fields)
+======================================================================
+  wire=  1  int32            field=c  (has_bit 0:0)
+  wire=  2  enum             field=d  [vyv.k]  (has_bit 0:1)
+  wire=  3  message          field=e  (has_bit 0:2)  java:defpackage.vzq
+
+======================================================================
+Class: wdh  (1 fields)
+======================================================================
+  wire=  1  string           field=b  (has_bit 0:0)  java:java.lang.String
+
+======================================================================
+Decoded 14 classes

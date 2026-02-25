@@ -1,0 +1,8 @@
+// Decoded from APK class: zli
+// Field count: 1, range: 1-1
+
+syntax = "proto2";
+
+message zli {
+    optional double b = 1;
+}

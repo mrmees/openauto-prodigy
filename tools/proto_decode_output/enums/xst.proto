@@ -1,0 +1,13 @@
+// Decoded from APK class: xst
+
+syntax = "proto2";
+
+enum xst {
+    UNKNOWN = 0;
+    SHARED_PREFS = 1;
+    CONTENT_PROVIDER = 2;
+    PROCESS_STABLE_CONTENT_PROVIDER = 3;
+    TIKTOK = 4;
+    DEVICE_CONFIG = 5;
+    FILE = 6;
+}

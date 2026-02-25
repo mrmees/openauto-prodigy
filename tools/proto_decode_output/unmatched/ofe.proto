@@ -1,0 +1,9 @@
+// Decoded from APK class: ofe
+// Field count: 2, range: 1-2
+
+syntax = "proto2";
+
+message ofe {
+    optional off b = 1;  // msg: off
+    optional bytes c = 2;
+}

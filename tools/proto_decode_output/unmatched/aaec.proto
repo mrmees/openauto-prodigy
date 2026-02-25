@@ -1,0 +1,11 @@
+// Decoded from APK class: aaec
+// Field count: 4, range: 1-1002
+
+syntax = "proto2";
+
+message aaec {
+    optional bytes /* message ? */ d = 1;
+    optional bytes /* message ? */ e = 2;
+    optional bytes /* message ? */ f = 5;
+    optional bytes /* message ? */ g = 1002;
+}

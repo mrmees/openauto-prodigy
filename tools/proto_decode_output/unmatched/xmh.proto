@@ -1,0 +1,8 @@
+// Decoded from APK class: xmh
+// Field count: 1, range: 1-1
+
+syntax = "proto2";
+
+message xmh {
+    repeated xmd b = 1;  // msg: xmd
+}

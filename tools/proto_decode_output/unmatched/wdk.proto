@@ -1,0 +1,8 @@
+// Decoded from APK class: wdk
+// Field count: 1, range: 1-1
+
+syntax = "proto2";
+
+message wdk {
+    optional int32 /* enum a */ b = 1;  // enum: a
+}

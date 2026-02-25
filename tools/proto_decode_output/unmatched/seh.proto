@@ -1,0 +1,10 @@
+// Decoded from APK class: seh
+// Field count: 3, range: 1-3
+
+syntax = "proto2";
+
+message seh {
+    optional int64 see.class = 0;
+    optional bytes /* message ? */ sef.class = 1;
+    optional double sgp.class = 60;
+}

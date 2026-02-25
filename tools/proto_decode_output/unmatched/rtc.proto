@@ -1,0 +1,11 @@
+// Decoded from APK class: rtc
+// Field count: 4, range: 1-4
+
+syntax = "proto2";
+
+message rtc {
+    optional uint64  = 0;
+    optional rtd d = 1;  // enum: rtd
+    optional bool  = 2;
+    optional double  = 55;
+}

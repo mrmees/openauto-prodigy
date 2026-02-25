@@ -1,0 +1,10 @@
+// Decoded from APK class: zfy
+// Field count: 3, range: 1-8
+
+syntax = "proto2";
+
+message zfy {
+    optional zfr c = 1;  // msg: zfr
+    optional sfixed64 f = 3;
+    optional sfixed64 d = 8;
+}

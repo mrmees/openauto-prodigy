@@ -1,0 +1,11 @@
+// Decoded from APK class: xtu
+// Field count: 4, range: 1-19
+
+syntax = "proto2";
+
+message xtu {
+    optional bytes /* message ? */ d = 1;
+    optional bytes /* message ? */ e = 4;
+    optional unknown_51 f = 92;
+    optional sfixed32 g = 5129;
+}

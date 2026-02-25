@@ -1,0 +1,8 @@
+// Decoded from APK class: aaql
+// Field count: 1, range: 24-24
+
+syntax = "proto2";
+
+message aaql {
+    repeated xuu b = 24;  // msg: xuu
+}

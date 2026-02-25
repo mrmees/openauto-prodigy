@@ -1,0 +1,11 @@
+// Decoded from APK class: wdc
+
+syntax = "proto2";
+
+enum wdc {
+    UNKNOWN = 0;
+    PHONE_SCREEN_OFF = 1;
+    LAUNCH_NATIVE = 2;
+    VIDEO_FOCUS_REASON_LAST_MODE = 3;
+    VIDEO_FOCUS_REASON_USER_SELECTION = 4;
+}

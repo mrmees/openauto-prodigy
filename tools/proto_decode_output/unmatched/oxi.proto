@@ -1,0 +1,8 @@
+// Decoded from APK class: oxi
+// Field count: 1, range: 1-1
+
+syntax = "proto2";
+
+message oxi {
+    repeated oxj b = 1;  // msg: oxj
+}

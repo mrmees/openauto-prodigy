@@ -1,0 +1,10 @@
+// Decoded from APK class: uqx
+// Field count: 3, range: 1-3
+
+syntax = "proto2";
+
+message uqx {
+    optional string c = 1;
+    optional uqw d = 2;  // msg: uqw
+    optional string e = 3;
+}

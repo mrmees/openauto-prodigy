@@ -1,0 +1,16 @@
+// Decoded from APK class: ahfm
+// Field count: 9, range: 1-10
+
+syntax = "proto2";
+
+message ahfm {
+    optional int64 c = 1;
+    optional int64 d = 2;
+    optional int64 e = 3;
+    optional int64 f = 4;
+    optional int64 g = 5;
+    optional int64 h = 6;
+    optional int64 i = 7;
+    optional int64 j = 8;
+    repeated ahfl k = 10;  // msg: ahfl
+}

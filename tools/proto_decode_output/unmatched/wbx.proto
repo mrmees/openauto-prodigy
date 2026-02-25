@@ -1,0 +1,13 @@
+// Decoded from APK class: wbx
+// Field count: 6, range: 1-6
+
+syntax = "proto2";
+
+message wbx {
+    optional bytes c = 1;
+    optional bytes d = 2;
+    optional bytes e = 3;
+    optional string f = 4;
+    optional string g = 5;
+    optional vvf h = 6;  // msg: vvf
+}

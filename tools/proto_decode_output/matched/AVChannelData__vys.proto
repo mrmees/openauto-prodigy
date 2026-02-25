@@ -1,0 +1,18 @@
+// Decoded from APK class: vys
+// Field count: 8, range: 1-9
+
+syntax = "proto2";
+
+message vys {
+    optional vyn c = 1;  // enum: vyn
+    optional int32 /* enum a */ d = 2;  // enum: a
+    repeated vvp e = 3;  // msg: vvp
+    repeated wcz f = 4;  // msg: wcz
+    optional uint32 g = 6;
+    optional vxg h = 7;  // enum: vxg
+    optional vyh i = 8;  // enum: vyh
+    optional int32 /* enum vee */ j = 9;  // enum: vee
+}
+
+// === DIFF vs our proto ===
+// - field 5: bool available_while_in_call

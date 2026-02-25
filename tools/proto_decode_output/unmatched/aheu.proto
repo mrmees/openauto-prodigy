@@ -1,0 +1,12 @@
+// Decoded from APK class: aheu
+// Field count: 5, range: 1-5
+
+syntax = "proto2";
+
+message aheu {
+    optional int32 ahet.class = 0;
+    optional uint64 c = 1;
+    optional zyd d = 2;  // msg: zyd
+    optional bytes /* message ? */ ahes.class = 3;
+    optional double aher.class = 60;
+}

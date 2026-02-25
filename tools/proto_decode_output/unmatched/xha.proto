@@ -1,0 +1,9 @@
+// Decoded from APK class: xha
+// Field count: 2, range: 1-4
+
+syntax = "proto2";
+
+message xha {
+    optional bool c = 1;
+    optional int32 /* enum a */ d = 4;  // enum: a
+}

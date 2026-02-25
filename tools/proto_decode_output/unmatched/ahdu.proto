@@ -1,0 +1,11 @@
+// Decoded from APK class: ahdu
+// Field count: 4, range: 1-4
+
+syntax = "proto2";
+
+message ahdu {
+    optional int32 c = 1;
+    optional zyd d = 2;  // msg: zyd
+    optional fixed64 e = 3;
+    optional int32 /* enum a */ f = 4;  // enum: a
+}

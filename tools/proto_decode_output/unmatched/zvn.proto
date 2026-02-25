@@ -1,0 +1,12 @@
+// Decoded from APK class: zvn
+// Field count: 5, range: 1-10
+
+syntax = "proto2";
+
+message zvn {
+    optional int32 /* enum ? */ d = 1;
+    optional int32 e = 3;
+    optional int32 f = 4;
+    optional int32 g = 5;
+    optional int32 c = 10;
+}

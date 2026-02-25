@@ -1,0 +1,9 @@
+// Decoded from APK class: xva
+// Field count: 2, range: 1-2
+
+syntax = "proto2";
+
+message xva {
+    required xuz b = 1;  // msg: xuz
+    required xuz c = 2;  // msg: xuz
+}

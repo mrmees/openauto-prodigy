@@ -1,0 +1,12 @@
+// Decoded from APK class: zrg
+// Field count: 3, range: 2-92
+
+syntax = "proto2";
+
+message zrg {
+    optional int64 c = 1;
+    optional string e = 3;
+    optional unknown_51 zru.class = 92;
+    optional double d = 4104;
+}
+// PARSE ERROR: Entry parse error at field 4: read_varint: pos 20 past end of 20 chars

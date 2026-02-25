@@ -1,0 +1,8 @@
+// Decoded from APK class: zrq
+// Field count: 1, range: 1-1
+
+syntax = "proto2";
+
+message zrq {
+    optional int32 b = 1;
+}

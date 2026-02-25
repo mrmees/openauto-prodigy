@@ -1,0 +1,20 @@
+// Decoded from APK class: aahy
+// Field count: 13, range: 1-15
+
+syntax = "proto2";
+
+message aahy {
+    optional string c = 1;
+    optional string d = 3;
+    optional int32 e = 4;
+    optional int32 f = 5;
+    optional int32 g = 6;
+    optional bool h = 7;
+    optional bytes /* message ? */ p = 8;
+    optional aaie i = 9;  // msg: aaie
+    optional aahy k = 11;  // msg: aahy
+    optional int n = 13;  // msg: int
+    optional int32 /* enum ? */ zve.o = 14;
+    optional unknown_51 j = 92;
+    optional aaib l = 4105;  // msg: aaib
+}

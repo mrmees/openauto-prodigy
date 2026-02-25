@@ -1,0 +1,22 @@
+// Decoded from APK class: xhl
+// Field count: 15, range: 1-15
+
+syntax = "proto2";
+
+message xhl {
+    optional int32 c = 1;
+    optional int32 d = 2;
+    optional int64 e = 3;
+    optional int32 f = 4;
+    optional string g = 5;
+    optional string h = 6;
+    optional int32 i = 7;
+    optional int32 j = 8;
+    optional int32 k = 9;
+    repeated xhk l = 10;  // msg: xhk
+    optional int32 m = 11;
+    optional bool p = 13;
+    optional string q = 14;
+    optional unknown_51 n = 92;
+    optional bytes o = 4100;
+}

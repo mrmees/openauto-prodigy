@@ -1,0 +1,8 @@
+// Decoded from APK class: aatm
+
+syntax = "proto2";
+
+enum aatm {
+    OUTDOOR = 0;
+    INDOOR = 1;
+}

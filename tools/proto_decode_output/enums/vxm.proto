@@ -1,0 +1,11 @@
+// Decoded from APK class: vxm
+
+syntax = "proto2";
+
+enum vxm {
+    FEEDBACK_SELECT = 1;
+    FEEDBACK_FOCUS_CHANGE = 2;
+    FEEDBACK_DRAG_SELECT = 3;
+    FEEDBACK_DRAG_START = 4;
+    FEEDBACK_DRAG_END = 5;
+}

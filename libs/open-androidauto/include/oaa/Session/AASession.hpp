@@ -22,7 +22,7 @@ public:
     ~AASession() override;
 
     void start();
-    void stop();
+    void stop(int reason = 1);  // ShutdownReason: 1=USER_SELECTION, 7=POWER_DOWN
 
     void registerChannel(uint8_t channelId, IChannelHandler* handler);
     SessionState state() const;

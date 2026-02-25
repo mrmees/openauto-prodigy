@@ -1,0 +1,23 @@
+// Decoded from APK class: aang
+// Field count: 92, range: 1-3
+
+syntax = "proto2";
+
+message aang {
+    optional uint32  = 0;
+    optional bytes /* message ? */  = 3;
+    optional bytes /* message ? */  = 4;
+    optional bytes /* message ? */  = 5;
+    optional bytes /* message ? */  = 6;
+    optional bytes /* message ? */  = 9;
+    optional bytes /* message ? */  = 10;
+    optional bytes /* message ? */  = 13;
+    optional bytes /* message ? */  = 15;
+    optional bytes /* message ? */  = 16;
+    optional bytes /* message ? */  = 18;
+    optional unknown_51  = 92;
+    optional sfixed64  = 102;
+    optional sfixed64  = 4105;
+    optional sfixed32  = 5129;
+}
+// PARSE ERROR: Entry parse error at field 15: read_varint: pos 50 past end of 50 chars

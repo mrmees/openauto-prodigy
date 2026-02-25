@@ -1,0 +1,9 @@
+// Decoded from APK class: aaha
+// Field count: 2, range: 1-2
+
+syntax = "proto2";
+
+message aaha {
+    optional aagz c = 1;  // msg: aagz
+    optional aagy d = 2;  // msg: aagy
+}

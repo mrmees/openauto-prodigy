@@ -1,0 +1,28 @@
+// Decoded from APK class: wby
+// Field count: 15, range: 1-17
+
+syntax = "proto2";
+
+message wby {
+    repeated wbw c = 1;  // msg: wbw
+    optional string d = 2;
+    optional string e = 3;
+    optional string f = 4;
+    optional string g = 5;
+    optional vxi h = 6;  // enum: vxi
+    optional string i = 7;
+    optional string j = 8;
+    optional string k = 9;
+    optional string l = 10;
+    optional bool m = 11;
+    optional int32 n = 13;
+    optional string o = 14;
+    optional bool p = 15;
+    optional group q = 102;
+}
+
+// === DIFF vs our proto ===
+// + field 102: group q
+// - field 12: bool hide_clock
+// - field 16: ConnectionConfiguration connection_configuration
+// - field 17: HeadUnitInfo headunit_info

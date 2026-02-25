@@ -1,0 +1,15 @@
+// Decoded from APK class: aair
+// Field count: 8, range: 1-8
+
+syntax = "proto2";
+
+message aair {
+    optional string b = 1;
+    optional string c = 2;
+    optional unknown_41 d = 3;
+    optional int32 e = 102;
+    optional fixed64 f = 520;
+    optional fixed32 g = 520;
+    optional bool h = 520;
+    optional string i = 520;
+}

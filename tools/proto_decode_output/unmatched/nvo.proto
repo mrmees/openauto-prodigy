@@ -1,0 +1,19 @@
+// Decoded from APK class: nvo
+// Field count: 7, range: 5-92
+
+syntax = "proto2";
+
+message nvo {
+    optional fixed64 g = 0;
+    optional bytes /* message ? */ nvj.class = 1;
+    optional uint32  = 1;
+    optional fixed32 nvl.class = 7;
+    optional bytes /* message ? */ nvn.class = 8;
+    optional bytes /* message ? */  = 10;
+    optional float nvg.d = 60;
+    optional double  = 60;
+    optional unknown_51  = 92;
+    optional double  = 2111;
+    optional double h = 4100;
+}
+// PARSE ERROR: Entry parse error at field 11: read_varint: pos 32 past end of 32 chars

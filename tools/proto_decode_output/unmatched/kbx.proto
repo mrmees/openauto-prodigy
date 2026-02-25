@@ -1,0 +1,21 @@
+// Decoded from APK class: kbx
+// Field count: 14, range: 1-22
+
+syntax = "proto2";
+
+message kbx {
+    optional string c = 1;
+    optional string d = 3;
+    optional uint64 e = 4;
+    optional string f = 5;
+    optional string i = 13;
+    optional string j = 14;
+    optional string k = 15;
+    repeated l kby.class = 17;  // msg: l
+    repeated m kbz.class = 18;  // msg: m
+    optional bool n = 19;
+    optional bool o = 20;
+    optional string p = 21;
+    optional unknown_51 g = 92;
+    optional int32 h = 4104;
+}

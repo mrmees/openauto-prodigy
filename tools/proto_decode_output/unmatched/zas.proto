@@ -1,0 +1,9 @@
+// Decoded from APK class: zas
+// Field count: 2, range: 6-13
+
+syntax = "proto2";
+
+message zas {
+    optional bytes /* message ? */ d = 6;
+    optional bytes /* message ? */ e = 13;
+}

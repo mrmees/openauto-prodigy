@@ -1,0 +1,12 @@
+// Decoded from APK class: nme
+// Field count: 5, range: 1-5
+
+syntax = "proto2";
+
+message nme {
+    optional string c = 1;
+    optional aaav d = 2;  // msg: aaav
+    optional nmo e = 3;  // msg: nmo
+    optional nmq f = 4;  // msg: nmq
+    optional int32 g = 5;
+}

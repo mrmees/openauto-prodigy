@@ -1,0 +1,9 @@
+// Decoded from APK class: aadi
+// Field count: 2, range: 1-2
+
+syntax = "proto2";
+
+message aadi {
+    optional sfixed32 c = 1;
+    optional sfixed32 d = 2;
+}

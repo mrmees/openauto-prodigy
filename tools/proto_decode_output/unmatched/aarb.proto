@@ -1,0 +1,9 @@
+// Decoded from APK class: aarb
+// Field count: 2, range: 17-18
+
+syntax = "proto2";
+
+message aarb {
+    optional bytes /* message ? */ e = 17;
+    optional bytes /* message ? */ d = 18;
+}

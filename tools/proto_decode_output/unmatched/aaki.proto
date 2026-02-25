@@ -1,0 +1,10 @@
+// Decoded from APK class: aaki
+// Field count: 3, range: 1-3
+
+syntax = "proto2";
+
+message aaki {
+    optional string b = 1;
+    repeated string c = 2;
+    optional bool d = 3;
+}

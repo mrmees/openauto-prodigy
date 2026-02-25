@@ -1,0 +1,16 @@
+// Decoded from APK class: ztz
+// Field count: 9, range: 1-11
+
+syntax = "proto2";
+
+message ztz {
+    repeated ztx b = 1;  // msg: ztx
+    optional float d = 2;
+    repeated g zlh.class = 3;  // msg: g
+    repeated h zps.class = 4;  // msg: h
+    optional zzf c = 5;  // msg: zzf
+    repeated e ztx.class = 8;  // msg: e
+    optional float i = 9;
+    optional uint64 zpy.m = 10;
+    optional int32 /* enum ? */  = 11;
+}

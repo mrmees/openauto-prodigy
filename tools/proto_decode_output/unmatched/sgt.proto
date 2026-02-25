@@ -1,0 +1,9 @@
+// Decoded from APK class: sgt
+// Field count: 2, range: 1-2
+
+syntax = "proto2";
+
+message sgt {
+    optional int64  = 0;
+    optional int32 /* enum ? */  = 1;
+}

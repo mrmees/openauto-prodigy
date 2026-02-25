@@ -1,0 +1,24 @@
+// Decoded from APK class: wan
+// Field count: 13, range: 1-13
+
+syntax = "proto2";
+
+message wan {
+    optional string c = 1;
+    optional string d = 2;
+    optional string e = 3;
+    optional waw f = 4;  // msg: waw
+    optional wam g = 5;  // msg: wam
+    optional wbb h = 6;  // msg: wbb
+    optional string i = 7;
+    optional string j = 8;
+    optional uint32 k = 9;
+    optional bool l = 10;
+    optional bool m = 11;
+    optional unknown_51 n = 92;
+    optional uint32 o = 4104;
+}
+
+// === DIFF vs our proto ===
+// + field 92: unknown_51 n
+// + field 4104: uint32 o

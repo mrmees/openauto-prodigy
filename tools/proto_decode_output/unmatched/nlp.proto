@@ -1,0 +1,14 @@
+// Decoded from APK class: nlp
+// Field count: 7, range: 1-7
+
+syntax = "proto2";
+
+message nlp {
+    repeated nlm c = 1;  // msg: nlm
+    optional bool d = 2;
+    optional int64 e = 3;
+    optional sfixed64 f = 4;
+    optional string g = 5;
+    optional int32 /* enum ? */ h = 6;
+    optional aadl i = 7;  // msg: aadl
+}

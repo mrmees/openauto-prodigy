@@ -1,0 +1,13 @@
+// Decoded from APK class: xlq
+// Field count: 6, range: 1-11
+
+syntax = "proto2";
+
+message xlq {
+    optional bytes /* message ? */ d = 1;
+    optional bytes /* message ? */ e = 2;
+    optional bytes /* message ? */ f = 3;
+    optional bytes /* message ? */ g = 4;
+    optional bytes /* message ? */ h = 10;
+    optional bytes /* message ? */ i = 11;
+}

@@ -1,0 +1,10 @@
+// Decoded from APK class: ahep
+// Field count: 3, range: 1-3
+
+syntax = "proto2";
+
+message ahep {
+    optional uint64  = 0;
+    optional int32 /* enum a */ d = 1;  // enum: a
+    optional fixed64 aheo.class = 2;
+}

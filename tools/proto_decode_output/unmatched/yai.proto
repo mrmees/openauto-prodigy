@@ -1,0 +1,8 @@
+// Decoded from APK class: yai
+// Field count: 1, range: 2-2
+
+syntax = "proto2";
+
+message yai {
+    optional sfixed64 c = 2;
+}

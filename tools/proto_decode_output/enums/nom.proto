@@ -1,0 +1,11 @@
+// Decoded from APK class: nom
+
+syntax = "proto2";
+
+enum nom {
+    FOCUS_CHANGE_COMMAND_UNSPECIFIED = 0;
+    NONE = 1;
+    FOCUS_GAIN = 2;
+    FOCUS_LOSS = 3;
+    BOTTOM_HALF_SWITCH = 4;
+}

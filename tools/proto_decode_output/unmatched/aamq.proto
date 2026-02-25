@@ -1,0 +1,11 @@
+// Decoded from APK class: aamq
+// Field count: 4, range: 1-4
+
+syntax = "proto2";
+
+message aamq {
+    repeated aapd c = 1;  // msg: aapd
+    optional bytes /* message ? */ g = 2;
+    optional bytes d = 3;
+    optional int64 e = 4;
+}

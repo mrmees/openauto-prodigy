@@ -1,0 +1,8 @@
+// Decoded from APK class: wbk
+// Field count: 1, range: 1-1
+
+syntax = "proto2";
+
+message wbk {
+    repeated vwv b = 1;  // msg: vwv
+}

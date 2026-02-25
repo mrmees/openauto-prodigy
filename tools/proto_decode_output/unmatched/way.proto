@@ -1,0 +1,8 @@
+// Decoded from APK class: way
+// Field count: 1, range: 1-1
+
+syntax = "proto2";
+
+message way {
+    repeated wax b = 1;  // msg: wax
+}

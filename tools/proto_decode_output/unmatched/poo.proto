@@ -1,0 +1,10 @@
+// Decoded from APK class: poo
+// Field count: 3, range: 1-3
+
+syntax = "proto2";
+
+message poo {
+    optional int32 /* enum a */ c = 1;  // enum: a
+    optional int32 d = 2;
+    optional int32 e = 3;
+}

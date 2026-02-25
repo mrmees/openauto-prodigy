@@ -1,0 +1,9 @@
+// Decoded from APK class: zbt
+// Field count: 2, range: 2-3
+
+syntax = "proto2";
+
+message zbt {
+    optional bytes /* message ? */ e = 2;
+    optional bytes /* message ? */ d = 3;
+}

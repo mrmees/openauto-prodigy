@@ -1,0 +1,9 @@
+// Decoded from APK class: yal
+// Field count: 2, range: 1-2
+
+syntax = "proto2";
+
+message yal {
+    optional sfixed64 c = 1;
+    optional sfixed64 d = 2;
+}

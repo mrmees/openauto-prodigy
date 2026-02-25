@@ -1,0 +1,12 @@
+// Decoded from APK class: xur
+
+syntax = "proto2";
+
+enum xur {
+    UNKNOWN_CAMERA_SURFACE = 0;
+    LEGACY_CAMERA_SURFACE = 1;
+    SHARED_CAMERA_SURFACE = 2;
+    IGMM_CARPLAY_SURFACE = 3;
+    AGMM_PROJECTED_SURFACE = 4;
+    EGMM_SURFACE = 5;
+}

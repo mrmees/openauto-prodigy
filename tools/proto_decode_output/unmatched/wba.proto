@@ -1,0 +1,8 @@
+// Decoded from APK class: wba
+// Field count: 1, range: 1-1
+
+syntax = "proto2";
+
+message wba {
+    optional int32 /* enum viz */ c = 1;  // enum: viz
+}

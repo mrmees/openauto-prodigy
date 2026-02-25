@@ -1,0 +1,10 @@
+// Decoded from APK class: aaub
+// Field count: 3, range: 36-38
+
+syntax = "proto2";
+
+message aaub {
+    required int32 b = 36;
+    required int32 c = 37;
+    required bytes d = 38;
+}

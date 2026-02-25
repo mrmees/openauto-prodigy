@@ -1,0 +1,8 @@
+// Decoded from APK class: sei
+// Field count: 1, range: 1-1
+
+syntax = "proto2";
+
+message sei {
+    optional bytes /* message ? */ sgp.class = 1;
+}

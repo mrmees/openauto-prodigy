@@ -1,0 +1,9 @@
+// Decoded from APK class: zsy
+// Field count: 2, range: 4-5
+
+syntax = "proto2";
+
+message zsy {
+    repeated string c = 4;
+    optional bool d = 5;
+}
