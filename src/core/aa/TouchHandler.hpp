@@ -8,7 +8,7 @@
 #include <chrono>
 #include <iomanip>
 #include "PerfStats.hpp"
-#include "handlers/InputChannelHandler.hpp"
+#include <oaa/HU/Handlers/InputChannelHandler.hpp>
 
 namespace oap {
 namespace aa {
@@ -21,7 +21,7 @@ class TouchHandler : public QObject {
     Q_PROPERTY(int contentHeight READ contentHeight NOTIFY contentDimsChanged)
 
 public:
-    using Pointer = InputChannelHandler::Pointer;
+    using Pointer = oaa::hu::InputChannelHandler::Pointer;
 
     QVariantList debugTouches() const { return debugTouches_; }
     bool debugOverlay() const { return debugOverlay_; }
@@ -40,7 +40,7 @@ public:
 
     // Thread safety: handler_ is written once from main thread before
     // EvdevTouchReader starts, then read from the evdev thread.
-    void setHandler(InputChannelHandler* handler) {
+    void setHandler(oaa::hu::InputChannelHandler* handler) {
         handler_.store(handler, std::memory_order_release);
     }
 
@@ -83,7 +83,7 @@ public:
             std::chrono::duration_cast<std::chrono::microseconds>(
                 std::chrono::steady_clock::now().time_since_epoch()).count());
 
-        // InputChannelHandler builds the protobuf and emits sendRequested
+        // oaa::hu::InputChannelHandler builds the protobuf and emits sendRequested
         h->sendTouchIndication(count, pointers, actionIndex, action, timestamp);
 
         auto t_send = PerfStats::Clock::now();
@@ -120,7 +120,7 @@ private:
     int contentWidth_ = 1280;
     int contentHeight_ = 720;
 
-    std::atomic<InputChannelHandler*> handler_{nullptr};
+    std::atomic<oaa::hu::InputChannelHandler*> handler_{nullptr};
 
     PerfStats::Metric metricTotal_;
     PerfStats::TimePoint lastLogTime_ = PerfStats::Clock::now();

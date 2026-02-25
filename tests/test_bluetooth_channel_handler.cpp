@@ -1,6 +1,6 @@
 #include <QTest>
 #include <QSignalSpy>
-#include "core/aa/handlers/BluetoothChannelHandler.hpp"
+#include <oaa/HU/Handlers/BluetoothChannelHandler.hpp>
 #include <oaa/Channel/ChannelId.hpp>
 #include "BluetoothPairingRequestMessage.pb.h"
 #include "BluetoothPairingMethodEnum.pb.h"
@@ -10,14 +10,14 @@ class TestBluetoothChannelHandler : public QObject {
     Q_OBJECT
 private slots:
     void testChannelId() {
-        oap::aa::BluetoothChannelHandler handler;
+        oaa::hu::BluetoothChannelHandler handler;
         QCOMPARE(handler.channelId(), oaa::ChannelId::Bluetooth);
     }
 
     void testPairingRequestEmitsSignalAndResponds() {
-        oap::aa::BluetoothChannelHandler handler;
+        oaa::hu::BluetoothChannelHandler handler;
         QSignalSpy sendSpy(&handler, &oaa::IChannelHandler::sendRequested);
-        QSignalSpy pairSpy(&handler, &oap::aa::BluetoothChannelHandler::pairingRequested);
+        QSignalSpy pairSpy(&handler, &oaa::hu::BluetoothChannelHandler::pairingRequested);
 
         handler.onChannelOpened();
 

@@ -47,6 +47,20 @@ add_library(open-androidauto STATIC
     src/Messenger/Messenger.cpp
     src/Messenger/ProtocolLogger.cpp
     src/Session/AASession.cpp
+    include/oaa/HU/Handlers/VideoChannelHandler.hpp
+    include/oaa/HU/Handlers/AudioChannelHandler.hpp
+    include/oaa/HU/Handlers/AVInputChannelHandler.hpp
+    include/oaa/HU/Handlers/InputChannelHandler.hpp
+    include/oaa/HU/Handlers/SensorChannelHandler.hpp
+    include/oaa/HU/Handlers/BluetoothChannelHandler.hpp
+    include/oaa/HU/Handlers/WiFiChannelHandler.hpp
+    src/HU/Handlers/VideoChannelHandler.cpp
+    src/HU/Handlers/AudioChannelHandler.cpp
+    src/HU/Handlers/AVInputChannelHandler.cpp
+    src/HU/Handlers/InputChannelHandler.cpp
+    src/HU/Handlers/SensorChannelHandler.cpp
+    src/HU/Handlers/BluetoothChannelHandler.cpp
+    src/HU/Handlers/WiFiChannelHandler.cpp
 )
 
 target_include_directories(open-androidauto PUBLIC

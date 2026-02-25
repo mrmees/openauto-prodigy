@@ -12,13 +12,6 @@ qt_add_executable(openauto-prodigy
     core/aa/GpioNightMode.cpp
     core/aa/ProtocolLogger.cpp
     core/aa/ServiceDiscoveryBuilder.cpp
-    core/aa/handlers/SensorChannelHandler.cpp
-    core/aa/handlers/InputChannelHandler.cpp
-    core/aa/handlers/BluetoothChannelHandler.cpp
-    core/aa/handlers/WiFiChannelHandler.cpp
-    core/aa/handlers/AudioChannelHandler.cpp
-    core/aa/handlers/VideoChannelHandler.cpp
-    core/aa/handlers/AVInputChannelHandler.cpp
     core/aa/AndroidAutoOrchestrator.cpp
     ui/ApplicationController.cpp
     ui/PluginModel.cpp

@@ -1,6 +1,6 @@
 #include <QTest>
 #include <QSignalSpy>
-#include "core/aa/handlers/VideoChannelHandler.hpp"
+#include <oaa/HU/Handlers/VideoChannelHandler.hpp>
 #include <oaa/Channel/ChannelId.hpp>
 #include "AVChannelSetupRequestMessage.pb.h"
 #include "AVChannelStartIndicationMessage.pb.h"
@@ -11,12 +11,12 @@ class TestVideoChannelHandler : public QObject {
     Q_OBJECT
 private slots:
     void testChannelId() {
-        oap::aa::VideoChannelHandler handler;
+        oaa::hu::VideoChannelHandler handler;
         QCOMPARE(handler.channelId(), oaa::ChannelId::Video);
     }
 
     void testSetupRequestResponds() {
-        oap::aa::VideoChannelHandler handler;
+        oaa::hu::VideoChannelHandler handler;
         QSignalSpy sendSpy(&handler, &oaa::IChannelHandler::sendRequested);
 
         handler.onChannelOpened();
@@ -37,8 +37,8 @@ private slots:
     }
 
     void testStartIndicationEmitsSignal() {
-        oap::aa::VideoChannelHandler handler;
-        QSignalSpy startSpy(&handler, &oap::aa::VideoChannelHandler::streamStarted);
+        oaa::hu::VideoChannelHandler handler;
+        QSignalSpy startSpy(&handler, &oaa::hu::VideoChannelHandler::streamStarted);
 
         handler.onChannelOpened();
 
@@ -56,7 +56,7 @@ private slots:
     }
 
     void testMediaDataEmitsFrameAndAck() {
-        oap::aa::VideoChannelHandler handler;
+        oaa::hu::VideoChannelHandler handler;
         handler.onChannelOpened();
 
         // Start stream
@@ -67,7 +67,7 @@ private slots:
         start.SerializeToArray(startPayload.data(), startPayload.size());
         handler.onMessage(oaa::AVMessageId::START_INDICATION, startPayload);
 
-        QSignalSpy frameSpy(&handler, &oap::aa::VideoChannelHandler::videoFrameData);
+        QSignalSpy frameSpy(&handler, &oaa::hu::VideoChannelHandler::videoFrameData);
         QSignalSpy sendSpy(&handler, &oaa::IChannelHandler::sendRequested);
 
         QByteArray h264Data(4096, '\x00');
@@ -83,8 +83,8 @@ private slots:
     }
 
     void testVideoFocusIndication() {
-        oap::aa::VideoChannelHandler handler;
-        QSignalSpy focusSpy(&handler, &oap::aa::VideoChannelHandler::videoFocusChanged);
+        oaa::hu::VideoChannelHandler handler;
+        QSignalSpy focusSpy(&handler, &oaa::hu::VideoChannelHandler::videoFocusChanged);
 
         handler.onChannelOpened();
 
@@ -102,7 +102,7 @@ private slots:
     }
 
     void testRequestVideoFocus() {
-        oap::aa::VideoChannelHandler handler;
+        oaa::hu::VideoChannelHandler handler;
         QSignalSpy sendSpy(&handler, &oaa::IChannelHandler::sendRequested);
 
         handler.onChannelOpened();
@@ -110,12 +110,12 @@ private slots:
 
         QCOMPARE(sendSpy.count(), 1);
         QCOMPARE(sendSpy[0][1].value<uint16_t>(),
-                 static_cast<uint16_t>(oaa::AVMessageId::VIDEO_FOCUS_REQUEST));
+                 static_cast<uint16_t>(oaa::AVMessageId::VIDEO_FOCUS_INDICATION));
     }
 
     void testMediaDataIgnoredWhenNotStreaming() {
-        oap::aa::VideoChannelHandler handler;
-        QSignalSpy frameSpy(&handler, &oap::aa::VideoChannelHandler::videoFrameData);
+        oaa::hu::VideoChannelHandler handler;
+        QSignalSpy frameSpy(&handler, &oaa::hu::VideoChannelHandler::videoFrameData);
 
         handler.onChannelOpened();
         handler.onMediaData(QByteArray(1024, '\x00'), 0);

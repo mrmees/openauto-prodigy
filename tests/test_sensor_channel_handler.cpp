@@ -1,6 +1,6 @@
 #include <QTest>
 #include <QSignalSpy>
-#include "core/aa/handlers/SensorChannelHandler.hpp"
+#include <oaa/HU/Handlers/SensorChannelHandler.hpp>
 #include <oaa/Channel/ChannelId.hpp>
 #include "SensorStartRequestMessage.pb.h"
 #include "SensorTypeEnum.pb.h"
@@ -9,12 +9,12 @@ class TestSensorChannelHandler : public QObject {
     Q_OBJECT
 private slots:
     void testChannelId() {
-        oap::aa::SensorChannelHandler handler;
+        oaa::hu::SensorChannelHandler handler;
         QCOMPARE(handler.channelId(), oaa::ChannelId::Sensor);
     }
 
     void testSensorStartRequestEmitsResponse() {
-        oap::aa::SensorChannelHandler handler;
+        oaa::hu::SensorChannelHandler handler;
         QSignalSpy sendSpy(&handler, &oaa::IChannelHandler::sendRequested);
 
         oaa::proto::messages::SensorStartRequestMessage req;
@@ -38,7 +38,7 @@ private slots:
     }
 
     void testNightModeUpdate() {
-        oap::aa::SensorChannelHandler handler;
+        oaa::hu::SensorChannelHandler handler;
         handler.onChannelOpened();
 
         // Subscribe to NIGHT_DATA first
@@ -59,7 +59,7 @@ private slots:
     }
 
     void testNightModeNotSentWhenClosed() {
-        oap::aa::SensorChannelHandler handler;
+        oaa::hu::SensorChannelHandler handler;
         QSignalSpy sendSpy(&handler, &oaa::IChannelHandler::sendRequested);
 
         // Channel not opened — pushNightMode should be silently ignored
@@ -68,7 +68,7 @@ private slots:
     }
 
     void testNightModeNotSentWithoutSubscription() {
-        oap::aa::SensorChannelHandler handler;
+        oaa::hu::SensorChannelHandler handler;
         QSignalSpy sendSpy(&handler, &oaa::IChannelHandler::sendRequested);
 
         // Channel open but no SENSOR_START_REQUEST for NIGHT_DATA
@@ -78,7 +78,7 @@ private slots:
     }
 
     void testDrivingStatusUpdate() {
-        oap::aa::SensorChannelHandler handler;
+        oaa::hu::SensorChannelHandler handler;
         handler.onChannelOpened();
 
         // Subscribe to DRIVING_STATUS first

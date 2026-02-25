@@ -10,13 +10,13 @@
 #include <oaa/Session/AASession.hpp>
 #include <oaa/Transport/TCPTransport.hpp>
 
-#include "handlers/VideoChannelHandler.hpp"
-#include "handlers/AudioChannelHandler.hpp"
-#include "handlers/InputChannelHandler.hpp"
-#include "handlers/SensorChannelHandler.hpp"
-#include "handlers/BluetoothChannelHandler.hpp"
-#include "handlers/WiFiChannelHandler.hpp"
-#include "handlers/AVInputChannelHandler.hpp"
+#include <oaa/HU/Handlers/VideoChannelHandler.hpp>
+#include <oaa/HU/Handlers/AudioChannelHandler.hpp>
+#include <oaa/HU/Handlers/InputChannelHandler.hpp>
+#include <oaa/HU/Handlers/SensorChannelHandler.hpp>
+#include <oaa/HU/Handlers/BluetoothChannelHandler.hpp>
+#include <oaa/HU/Handlers/WiFiChannelHandler.hpp>
+#include <oaa/HU/Handlers/AVInputChannelHandler.hpp>
 #include "ServiceDiscoveryBuilder.hpp"
 #include "VideoDecoder.hpp"
 #include "TouchHandler.hpp"
@@ -59,7 +59,7 @@ public:
 
     VideoDecoder* videoDecoder() { return &videoDecoder_; }
     TouchHandler* touchHandler() { return &touchHandler_; }
-    InputChannelHandler* inputHandler() { return &inputHandler_; }
+    oaa::hu::InputChannelHandler* inputHandler() { return &inputHandler_; }
 
     int connectionState() const { return state_; }
     QString statusMessage() const { return statusMessage_; }
@@ -90,16 +90,16 @@ private:
     oaa::TCPTransport* transport_ = nullptr;
     QTcpSocket* activeSocket_ = nullptr;
 
-    // Channel handlers
-    VideoChannelHandler videoHandler_;
-    AudioChannelHandler mediaAudioHandler_{oaa::ChannelId::MediaAudio};
-    AudioChannelHandler speechAudioHandler_{oaa::ChannelId::SpeechAudio};
-    AudioChannelHandler systemAudioHandler_{oaa::ChannelId::SystemAudio};
-    InputChannelHandler inputHandler_;
-    SensorChannelHandler sensorHandler_;
-    BluetoothChannelHandler btHandler_;
-    std::unique_ptr<WiFiChannelHandler> wifiHandler_;
-    AVInputChannelHandler avInputHandler_;
+    // Channel handlers (from open-androidauto library)
+    oaa::hu::VideoChannelHandler videoHandler_;
+    oaa::hu::AudioChannelHandler mediaAudioHandler_{oaa::ChannelId::MediaAudio};
+    oaa::hu::AudioChannelHandler speechAudioHandler_{oaa::ChannelId::SpeechAudio};
+    oaa::hu::AudioChannelHandler systemAudioHandler_{oaa::ChannelId::SystemAudio};
+    oaa::hu::InputChannelHandler inputHandler_;
+    oaa::hu::SensorChannelHandler sensorHandler_;
+    oaa::hu::BluetoothChannelHandler btHandler_;
+    std::unique_ptr<oaa::hu::WiFiChannelHandler> wifiHandler_;
+    oaa::hu::AVInputChannelHandler avInputHandler_;
 
     // Shared resources
     TouchHandler touchHandler_;

@@ -33,10 +33,10 @@ AndroidAutoOrchestrator::AndroidAutoOrchestrator(
 
     // WiFi handler needs SSID/password from config
     if (yamlConfig_) {
-        wifiHandler_ = std::make_unique<WiFiChannelHandler>(
+        wifiHandler_ = std::make_unique<oaa::hu::WiFiChannelHandler>(
             yamlConfig_->wifiSsid(), yamlConfig_->wifiPassword(), this);
     } else {
-        wifiHandler_ = std::make_unique<WiFiChannelHandler>(QString(), QString(), this);
+        wifiHandler_ = std::make_unique<oaa::hu::WiFiChannelHandler>(QString(), QString(), this);
     }
 }
 
@@ -211,7 +211,7 @@ void AndroidAutoOrchestrator::onNewConnection()
     systemAudioHandler_.disconnect(this);
 
     // Wire video frames to decoder
-    connect(&videoHandler_, &VideoChannelHandler::videoFrameData,
+    connect(&videoHandler_, &oaa::hu::VideoChannelHandler::videoFrameData,
             &videoDecoder_, &VideoDecoder::decodeFrame, Qt::QueuedConnection);
 
     // Create PipeWire audio streams and wire handler data
@@ -221,21 +221,21 @@ void AndroidAutoOrchestrator::onNewConnection()
         systemStream_ = audioService_->createStream("AA System", 40, 16000, 1);
 
         if (mediaStream_) {
-            connect(&mediaAudioHandler_, &AudioChannelHandler::audioDataReceived,
+            connect(&mediaAudioHandler_, &oaa::hu::AudioChannelHandler::audioDataReceived,
                     this, [this](const QByteArray& data, uint64_t) {
                         audioService_->writeAudio(mediaStream_,
                             reinterpret_cast<const uint8_t*>(data.constData()), data.size());
                     }, Qt::QueuedConnection);
         }
         if (speechStream_) {
-            connect(&speechAudioHandler_, &AudioChannelHandler::audioDataReceived,
+            connect(&speechAudioHandler_, &oaa::hu::AudioChannelHandler::audioDataReceived,
                     this, [this](const QByteArray& data, uint64_t) {
                         audioService_->writeAudio(speechStream_,
                             reinterpret_cast<const uint8_t*>(data.constData()), data.size());
                     }, Qt::QueuedConnection);
         }
         if (systemStream_) {
-            connect(&systemAudioHandler_, &AudioChannelHandler::audioDataReceived,
+            connect(&systemAudioHandler_, &oaa::hu::AudioChannelHandler::audioDataReceived,
                     this, [this](const QByteArray& data, uint64_t) {
                         audioService_->writeAudio(systemStream_,
                             reinterpret_cast<const uint8_t*>(data.constData()), data.size());
@@ -244,7 +244,7 @@ void AndroidAutoOrchestrator::onNewConnection()
     }
 
     // Wire video focus changes
-    connect(&videoHandler_, &VideoChannelHandler::videoFocusChanged,
+    connect(&videoHandler_, &oaa::hu::VideoChannelHandler::videoFocusChanged,
             this, [this](int focusMode, bool) {
                 // Focus mode 1 = FOCUSED (projection), 2 = UNFOCUSED (native/car)
                 if (focusMode == 2 && state_ == Connected) {
@@ -272,7 +272,7 @@ void AndroidAutoOrchestrator::onNewConnection()
 
         // Connect night mode to sensor handler
         connect(nightProvider_.get(), &NightModeProvider::nightModeChanged,
-                &sensorHandler_, &SensorChannelHandler::pushNightMode);
+                &sensorHandler_, &oaa::hu::SensorChannelHandler::pushNightMode);
 
         nightProvider_->start();
         qInfo() << "[AAOrchestrator] Night mode provider started (source=" << nightSource << ")";

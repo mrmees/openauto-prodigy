@@ -35,6 +35,7 @@ This project exists because BlueWave Studio stopped developing OpenAuto Pro, the
   - `qml/components/` — Shell, TopBar, BottomBar, Clock, Wallpaper, GestureOverlay
   - `qml/controls/` — Reusable controls (Tile, Icon, NormalText, SpecialText)
   - `qml/applications/` — Plugin views (launcher, android_auto, settings, home, bt_audio, phone)
+- `libs/open-androidauto/` — AA protocol library (Transport, Messenger, Session, Channel, HU handlers)
 - `libs/aasdk/` — Android Auto SDK (git submodule, SonOfGib's fork)
 - `tests/` — Unit tests (17 tests covering config, plugins, theme, audio, events, notifications, device registry)
 - `web-config/` — Flask web config panel (Python, HTML/CSS/JS)

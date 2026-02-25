@@ -1,6 +1,6 @@
 #include <QTest>
 #include <QSignalSpy>
-#include "core/aa/handlers/InputChannelHandler.hpp"
+#include <oaa/HU/Handlers/InputChannelHandler.hpp>
 #include <oaa/Channel/ChannelId.hpp>
 #include "BindingRequestMessage.pb.h"
 #include "InputEventIndicationMessage.pb.h"
@@ -9,17 +9,17 @@ class TestInputChannelHandler : public QObject {
     Q_OBJECT
 private slots:
     void testChannelId() {
-        oap::aa::InputChannelHandler handler;
+        oaa::hu::InputChannelHandler handler;
         QCOMPARE(handler.channelId(), oaa::ChannelId::Input);
     }
 
     void testSendTouchEvent() {
-        oap::aa::InputChannelHandler handler;
+        oaa::hu::InputChannelHandler handler;
         QSignalSpy sendSpy(&handler, &oaa::IChannelHandler::sendRequested);
 
         handler.onChannelOpened();
 
-        oap::aa::InputChannelHandler::Pointer pt{640, 360, 0};
+        oaa::hu::InputChannelHandler::Pointer pt{640, 360, 0};
         handler.sendTouchIndication(1, &pt, 0, 0, 12345); // action=PRESS(0)
 
         QCOMPARE(sendSpy.count(), 1);
@@ -39,12 +39,12 @@ private slots:
     }
 
     void testMultiTouchEvent() {
-        oap::aa::InputChannelHandler handler;
+        oaa::hu::InputChannelHandler handler;
         QSignalSpy sendSpy(&handler, &oaa::IChannelHandler::sendRequested);
 
         handler.onChannelOpened();
 
-        oap::aa::InputChannelHandler::Pointer pts[2] = {
+        oaa::hu::InputChannelHandler::Pointer pts[2] = {
             {100, 200, 0},
             {300, 400, 1}
         };
@@ -60,7 +60,7 @@ private slots:
     }
 
     void testBindingRequestResponds() {
-        oap::aa::InputChannelHandler handler;
+        oaa::hu::InputChannelHandler handler;
         QSignalSpy sendSpy(&handler, &oaa::IChannelHandler::sendRequested);
 
         handler.onChannelOpened();
@@ -79,11 +79,11 @@ private slots:
     }
 
     void testTouchNotSentWhenClosed() {
-        oap::aa::InputChannelHandler handler;
+        oaa::hu::InputChannelHandler handler;
         QSignalSpy sendSpy(&handler, &oaa::IChannelHandler::sendRequested);
 
         // Channel not opened
-        oap::aa::InputChannelHandler::Pointer pt{640, 360, 0};
+        oaa::hu::InputChannelHandler::Pointer pt{640, 360, 0};
         handler.sendTouchIndication(1, &pt, 0, 0, 12345);
         QCOMPARE(sendSpy.count(), 0);
     }

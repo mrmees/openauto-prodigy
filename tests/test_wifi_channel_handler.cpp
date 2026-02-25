@@ -1,6 +1,6 @@
 #include <QTest>
 #include <QSignalSpy>
-#include "core/aa/handlers/WiFiChannelHandler.hpp"
+#include <oaa/HU/Handlers/WiFiChannelHandler.hpp>
 #include <oaa/Channel/ChannelId.hpp>
 #include "WifiSecurityResponseMessage.pb.h"
 
@@ -8,12 +8,12 @@ class TestWiFiChannelHandler : public QObject {
     Q_OBJECT
 private slots:
     void testChannelId() {
-        oap::aa::WiFiChannelHandler handler;
+        oaa::hu::WiFiChannelHandler handler;
         QCOMPARE(handler.channelId(), oaa::ChannelId::WiFi);
     }
 
     void testSecurityRequestSendsCredentials() {
-        oap::aa::WiFiChannelHandler handler("OpenAutoProdigy", "secretpass123");
+        oaa::hu::WiFiChannelHandler handler("OpenAutoProdigy", "secretpass123");
         QSignalSpy sendSpy(&handler, &oaa::IChannelHandler::sendRequested);
 
         handler.onChannelOpened();

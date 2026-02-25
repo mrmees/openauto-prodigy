@@ -1,6 +1,6 @@
 #include <QTest>
 #include <QSignalSpy>
-#include "core/aa/handlers/AudioChannelHandler.hpp"
+#include <oaa/HU/Handlers/AudioChannelHandler.hpp>
 #include <oaa/Channel/ChannelId.hpp>
 #include "AVChannelSetupRequestMessage.pb.h"
 #include "AVChannelStartIndicationMessage.pb.h"
@@ -9,22 +9,22 @@ class TestAudioChannelHandler : public QObject {
     Q_OBJECT
 private slots:
     void testMediaChannelId() {
-        oap::aa::AudioChannelHandler handler(oaa::ChannelId::MediaAudio);
+        oaa::hu::AudioChannelHandler handler(oaa::ChannelId::MediaAudio);
         QCOMPARE(handler.channelId(), oaa::ChannelId::MediaAudio);
     }
 
     void testSpeechChannelId() {
-        oap::aa::AudioChannelHandler handler(oaa::ChannelId::SpeechAudio);
+        oaa::hu::AudioChannelHandler handler(oaa::ChannelId::SpeechAudio);
         QCOMPARE(handler.channelId(), oaa::ChannelId::SpeechAudio);
     }
 
     void testSystemChannelId() {
-        oap::aa::AudioChannelHandler handler(oaa::ChannelId::SystemAudio);
+        oaa::hu::AudioChannelHandler handler(oaa::ChannelId::SystemAudio);
         QCOMPARE(handler.channelId(), oaa::ChannelId::SystemAudio);
     }
 
     void testAVSetupRequestResponds() {
-        oap::aa::AudioChannelHandler handler(oaa::ChannelId::MediaAudio);
+        oaa::hu::AudioChannelHandler handler(oaa::ChannelId::MediaAudio);
         QSignalSpy sendSpy(&handler, &oaa::IChannelHandler::sendRequested);
 
         handler.onChannelOpened();
@@ -42,8 +42,8 @@ private slots:
     }
 
     void testStartIndicationEmitsSignal() {
-        oap::aa::AudioChannelHandler handler(oaa::ChannelId::MediaAudio);
-        QSignalSpy startSpy(&handler, &oap::aa::AudioChannelHandler::streamStarted);
+        oaa::hu::AudioChannelHandler handler(oaa::ChannelId::MediaAudio);
+        QSignalSpy startSpy(&handler, &oaa::hu::AudioChannelHandler::streamStarted);
 
         handler.onChannelOpened();
 
@@ -61,7 +61,7 @@ private slots:
     }
 
     void testMediaDataEmitsSignalAndAck() {
-        oap::aa::AudioChannelHandler handler(oaa::ChannelId::MediaAudio);
+        oaa::hu::AudioChannelHandler handler(oaa::ChannelId::MediaAudio);
         handler.onChannelOpened();
 
         // Start the stream
@@ -72,7 +72,7 @@ private slots:
         start.SerializeToArray(startPayload.data(), startPayload.size());
         handler.onMessage(oaa::AVMessageId::START_INDICATION, startPayload);
 
-        QSignalSpy dataSpy(&handler, &oap::aa::AudioChannelHandler::audioDataReceived);
+        QSignalSpy dataSpy(&handler, &oaa::hu::AudioChannelHandler::audioDataReceived);
         QSignalSpy sendSpy(&handler, &oaa::IChannelHandler::sendRequested);
 
         QByteArray pcmData(960, '\x42');
@@ -88,8 +88,8 @@ private slots:
     }
 
     void testMediaDataIgnoredWhenNotStreaming() {
-        oap::aa::AudioChannelHandler handler(oaa::ChannelId::MediaAudio);
-        QSignalSpy dataSpy(&handler, &oap::aa::AudioChannelHandler::audioDataReceived);
+        oaa::hu::AudioChannelHandler handler(oaa::ChannelId::MediaAudio);
+        QSignalSpy dataSpy(&handler, &oaa::hu::AudioChannelHandler::audioDataReceived);
 
         handler.onChannelOpened();
         // Not started — media data should be silently ignored

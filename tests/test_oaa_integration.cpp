@@ -3,10 +3,10 @@
 #include <oaa/Session/AASession.hpp>
 #include <oaa/Transport/ReplayTransport.hpp>
 #include <oaa/Channel/ChannelId.hpp>
-#include "core/aa/handlers/SensorChannelHandler.hpp"
-#include "core/aa/handlers/InputChannelHandler.hpp"
-#include "core/aa/handlers/BluetoothChannelHandler.hpp"
-#include "core/aa/handlers/WiFiChannelHandler.hpp"
+#include <oaa/HU/Handlers/SensorChannelHandler.hpp>
+#include <oaa/HU/Handlers/InputChannelHandler.hpp>
+#include <oaa/HU/Handlers/BluetoothChannelHandler.hpp>
+#include <oaa/HU/Handlers/WiFiChannelHandler.hpp>
 #include "core/aa/ServiceDiscoveryBuilder.hpp"
 #include "SensorStartRequestMessage.pb.h"
 #include "SensorTypeEnum.pb.h"
@@ -21,10 +21,10 @@ private slots:
 
         oaa::AASession session(&transport, config);
 
-        oap::aa::SensorChannelHandler sensorHandler;
-        oap::aa::InputChannelHandler inputHandler;
-        oap::aa::BluetoothChannelHandler btHandler;
-        oap::aa::WiFiChannelHandler wifiHandler("TestSSID", "TestPass");
+        oaa::hu::SensorChannelHandler sensorHandler;
+        oaa::hu::InputChannelHandler inputHandler;
+        oaa::hu::BluetoothChannelHandler btHandler;
+        oaa::hu::WiFiChannelHandler wifiHandler("TestSSID", "TestPass");
 
         session.registerChannel(oaa::ChannelId::Sensor, &sensorHandler);
         session.registerChannel(oaa::ChannelId::Input, &inputHandler);
@@ -69,7 +69,7 @@ private slots:
         oaa::SessionConfig config = builder.build();
         oaa::AASession session(&transport, config);
 
-        oap::aa::SensorChannelHandler sensorHandler;
+        oaa::hu::SensorChannelHandler sensorHandler;
         session.registerChannel(oaa::ChannelId::Sensor, &sensorHandler);
 
         // Open the channel and subscribe to NIGHT_DATA

@@ -294,7 +294,6 @@ add_test(NAME test_service_discovery_builder COMMAND test_service_discovery_buil
 # Sensor channel handler — uses oaa IChannelHandler + sensor protos
 add_executable(test_sensor_channel_handler
     test_sensor_channel_handler.cpp
-    ${CMAKE_SOURCE_DIR}/src/core/aa/handlers/SensorChannelHandler.cpp
 )
 target_include_directories(test_sensor_channel_handler PRIVATE
     ${CMAKE_SOURCE_DIR}/src
@@ -311,7 +310,6 @@ add_test(NAME test_sensor_channel_handler COMMAND test_sensor_channel_handler)
 # Input channel handler — touch events + binding requests
 add_executable(test_input_channel_handler
     test_input_channel_handler.cpp
-    ${CMAKE_SOURCE_DIR}/src/core/aa/handlers/InputChannelHandler.cpp
 )
 target_include_directories(test_input_channel_handler PRIVATE
     ${CMAKE_SOURCE_DIR}/src
@@ -328,7 +326,6 @@ add_test(NAME test_input_channel_handler COMMAND test_input_channel_handler)
 # Bluetooth channel handler — pairing requests
 add_executable(test_bluetooth_channel_handler
     test_bluetooth_channel_handler.cpp
-    ${CMAKE_SOURCE_DIR}/src/core/aa/handlers/BluetoothChannelHandler.cpp
 )
 target_include_directories(test_bluetooth_channel_handler PRIVATE
     ${CMAKE_SOURCE_DIR}/src
@@ -345,7 +342,6 @@ add_test(NAME test_bluetooth_channel_handler COMMAND test_bluetooth_channel_hand
 # WiFi channel handler — security/credential requests
 add_executable(test_wifi_channel_handler
     test_wifi_channel_handler.cpp
-    ${CMAKE_SOURCE_DIR}/src/core/aa/handlers/WiFiChannelHandler.cpp
 )
 target_include_directories(test_wifi_channel_handler PRIVATE
     ${CMAKE_SOURCE_DIR}/src
@@ -364,10 +360,6 @@ add_executable(test_oaa_integration
     test_oaa_integration.cpp
     ${CMAKE_SOURCE_DIR}/src/core/aa/ServiceDiscoveryBuilder.cpp
     ${CMAKE_SOURCE_DIR}/src/core/YamlConfig.cpp
-    ${CMAKE_SOURCE_DIR}/src/core/aa/handlers/SensorChannelHandler.cpp
-    ${CMAKE_SOURCE_DIR}/src/core/aa/handlers/InputChannelHandler.cpp
-    ${CMAKE_SOURCE_DIR}/src/core/aa/handlers/BluetoothChannelHandler.cpp
-    ${CMAKE_SOURCE_DIR}/src/core/aa/handlers/WiFiChannelHandler.cpp
 )
 target_include_directories(test_oaa_integration PRIVATE
     ${CMAKE_SOURCE_DIR}/src
@@ -385,7 +377,6 @@ add_test(NAME test_oaa_integration COMMAND test_oaa_integration)
 # Audio channel handler — generic AV handler for media/speech/system
 add_executable(test_audio_channel_handler
     test_audio_channel_handler.cpp
-    ${CMAKE_SOURCE_DIR}/src/core/aa/handlers/AudioChannelHandler.cpp
 )
 target_include_directories(test_audio_channel_handler PRIVATE
     ${CMAKE_SOURCE_DIR}/src
@@ -402,7 +393,6 @@ add_test(NAME test_audio_channel_handler COMMAND test_audio_channel_handler)
 # Video channel handler — H.264 frames + focus management
 add_executable(test_video_channel_handler
     test_video_channel_handler.cpp
-    ${CMAKE_SOURCE_DIR}/src/core/aa/handlers/VideoChannelHandler.cpp
 )
 target_include_directories(test_video_channel_handler PRIVATE
     ${CMAKE_SOURCE_DIR}/src
@@ -419,7 +409,6 @@ add_test(NAME test_video_channel_handler COMMAND test_video_channel_handler)
 # AVInput channel handler — microphone upstream
 add_executable(test_avinput_channel_handler
     test_avinput_channel_handler.cpp
-    ${CMAKE_SOURCE_DIR}/src/core/aa/handlers/AVInputChannelHandler.cpp
 )
 target_include_directories(test_avinput_channel_handler PRIVATE
     ${CMAKE_SOURCE_DIR}/src
@@ -443,13 +432,6 @@ add_executable(test_aa_orchestrator
     ${CMAKE_SOURCE_DIR}/src/core/aa/NightModeProvider.cpp
     ${CMAKE_SOURCE_DIR}/src/core/aa/TimedNightMode.cpp
     ${CMAKE_SOURCE_DIR}/src/core/aa/GpioNightMode.cpp
-    ${CMAKE_SOURCE_DIR}/src/core/aa/handlers/VideoChannelHandler.cpp
-    ${CMAKE_SOURCE_DIR}/src/core/aa/handlers/AudioChannelHandler.cpp
-    ${CMAKE_SOURCE_DIR}/src/core/aa/handlers/InputChannelHandler.cpp
-    ${CMAKE_SOURCE_DIR}/src/core/aa/handlers/SensorChannelHandler.cpp
-    ${CMAKE_SOURCE_DIR}/src/core/aa/handlers/BluetoothChannelHandler.cpp
-    ${CMAKE_SOURCE_DIR}/src/core/aa/handlers/WiFiChannelHandler.cpp
-    ${CMAKE_SOURCE_DIR}/src/core/aa/handlers/AVInputChannelHandler.cpp
     ${CMAKE_SOURCE_DIR}/src/core/YamlConfig.cpp
     ${CMAKE_SOURCE_DIR}/src/core/Configuration.cpp
 )
