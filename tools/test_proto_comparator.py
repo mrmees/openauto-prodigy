@@ -106,9 +106,29 @@ def test_cardinality_mismatch():
     assert any("cardinality" in m["issue"] for m in result["mismatches"])
 
 
+def test_malformed_apk_field_entry():
+    """Malformed decoded rows should not crash comparison."""
+    our_fields = [
+        {
+            "number": 1,
+            "name": "request_id",
+            "type": "uint32",
+            "cardinality": "optional",
+            "message_type": None,
+        }
+    ]
+    apk_fields = [
+        {"error": "Ran out of descriptor data at pos 22"},
+    ]
+    result = compare_fields(our_fields, apk_fields)
+    assert result["status"] == "partial"
+    assert any("malformed" in m["issue"] for m in result["mismatches"])
+
+
 if __name__ == "__main__":
     test_perfect_match()
     test_type_mismatch()
     test_extra_apk_field()
     test_cardinality_mismatch()
+    test_malformed_apk_field_entry()
     print("All proto_comparator tests passed")

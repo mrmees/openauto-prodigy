@@ -25,7 +25,14 @@ def compare_fields(our_fields: list[dict], apk_fields: list[dict]) -> dict:
     """Compare our proto fields against APK decoder fields."""
     mismatches = []
     our_by_num = {field["number"]: field for field in our_fields}
-    apk_by_num = {field["wire_field"]: field for field in apk_fields}
+    apk_by_num = {}
+    malformed_apk_entries = []
+    for field in apk_fields:
+        wire_field = field.get("wire_field")
+        if wire_field is None:
+            malformed_apk_entries.append(field)
+            continue
+        apk_by_num[wire_field] = field
 
     our_nums = set(our_by_num)
     apk_nums = set(apk_by_num)
@@ -80,6 +87,16 @@ def compare_fields(our_fields: list[dict], apk_fields: list[dict]) -> dict:
                 "issue": "missing field (exists in APK)",
                 "our_value": None,
                 "apk_value": apk_by_num[num]["type"],
+            }
+        )
+
+    for bad_entry in malformed_apk_entries:
+        mismatches.append(
+            {
+                "field": -1,
+                "issue": "malformed APK field entry",
+                "our_value": None,
+                "apk_value": bad_entry.get("error") or str(bad_entry),
             }
         )
 
