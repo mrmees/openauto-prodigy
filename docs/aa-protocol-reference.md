@@ -1,541 +1,1350 @@
-# Android Auto Protocol Reference — Empirical Findings
+# Android Auto Protocol Reference
 
-This document compiles empirical findings from protocol probing on a real Android 14 phone
-(Moto G Play 2024 / Samsung S25 Ultra, AA app 13.x) connecting to OpenAuto Prodigy on
-Raspberry Pi 4.
+*Auto-generated from AA APK v16.1.660414-release*
+*80 messages, 8 enums (of 1940 total in APK)*
 
-Generated from captures in `Testing/captures/` on 2026-02-23.
+## Table of Contents
 
----
-
-## Session Startup Sequence
-
-### Pre-TCP: Bluetooth Discovery
-
-Before TCP, the phone and HU negotiate via RFCOMM (see [Bluetooth Discovery](#bluetooth-discovery) below).
-The BT handshake provides the phone with WiFi AP credentials. The phone then connects to the
-HU's WiFi AP and initiates a TCP connection. Total BT→WiFi→TCP time: ~8-20s.
-
-### TCP Session Handshake
-
-Complete handshake from TCP connect to first video frame, observed from baseline capture:
-
-| Time (s) | Direction | Message | Notes |
-|-----------|-----------|---------|-------|
-| 0.000 | HU→Phone | VERSION_REQUEST | Raw binary, v1.7 |
-| 0.063 | Phone→HU | VERSION_RESPONSE | Phone responds v1.7 (STATUS_SUCCESS) |
-| 0.063 | Phone→HU | SSL_HANDSHAKE | TLS Client Hello |
-| 0.064 | HU→Phone | SSL_HANDSHAKE | TLS Server Hello + Cert |
-| 0.108 | Phone→HU | SSL_HANDSHAKE | TLS Client Key Exchange + Finished |
-| 0.109 | HU→Phone | AUTH_COMPLETE | TLS established |
-| 0.156 | Phone→HU | SERVICE_DISCOVERY_REQUEST | 881 bytes (v1.7) |
-| 0.157 | HU→Phone | SERVICE_DISCOVERY_RESPONSE | HU capabilities |
-| 0.21-0.28 | Both | CHANNEL_OPEN × 9 | See channel open order below |
-| 0.27-0.28 | Both | AV_SETUP × 4 | Video + 3 audio channels |
-| 0.28-0.34 | Both | SENSOR_START × 4-7 | Depends on advertised sensors |
-| 0.31 | Phone→HU | VIDEO_FOCUS_REQUEST | Requesting projection |
-| 0.31 | HU→Phone | VIDEO_FOCUS_INDICATION | Granting projection |
-| ~0.5 | Phone→HU | First video frame | H.264 IDR frame |
-
-**Total handshake: ~500ms from TCP to first video frame.**
-
-Note: Channel 0 (CONTROL) is implicit — it carries the handshake messages above and is never
-explicitly opened via CHANNEL_OPEN. The 9 explicit opens are for channels 1-8 and 14.
-
-### Shutdown Sequence
-
-**HU-initiated shutdown** (app exit/restart):
-1. HU sends `SHUTDOWN_REQUEST` with `reason=QUIT` on CONTROL channel
-2. Waits 300ms for phone's `SHUTDOWN_RESPONSE`
-3. Stops entity, closes TCP, shuts down BT discovery
-4. Code: `AndroidAutoService.cpp:117-123`, `AndroidAutoEntity.cpp:74-92`
-
-**Phone-initiated shutdown** (user exits AA on phone):
-1. Phone sends `SHUTDOWN_REQUEST(reason)` on CONTROL channel
-2. HU sends `SHUTDOWN_RESPONSE` (empty)
-3. HU calls disconnect handler → deactivates AA plugin, shows launcher
-4. Code: `AndroidAutoEntity.cpp:289-312`
-
-**Disconnect without shutdown** (connection loss, WiFi drop):
-- Connection watchdog detects via `tcp_info` polling (`tcpi_backoff >= 3`, ~16s)
-- No graceful shutdown exchange — entity is forcefully stopped
-
-### Channel Open Order (v1.7)
-
-1. INPUT (ch1)
-2. SENSOR (ch2)
-3. BLUETOOTH (ch8)
-4. WIFI (ch14)
-5. AV_INPUT (ch7) — microphone
-6. MEDIA_AUDIO (ch4)
-7. VIDEO (ch3)
-8. SPEECH_AUDIO (ch5)
-9. SYSTEM_AUDIO (ch6)
-
-Note: At v1.1, VIDEO opened first. v1.7 prioritizes control/input channels.
+- [Control Channel (0)](#control) — 28 messages, 2 enums
+- [Video Channel (3)](#video) — 7 messages, 5 enums
+- [Input Channel (1)](#input) — 12 messages, 0 enums
+- [Sensor Channel (2)](#sensor) — 17 messages, 1 enums
+- [Bluetooth Channel (8)](#bluetooth) — 2 messages, 0 enums
+- [WiFi Channel (14)](#wifi) — 4 messages, 0 enums
+- [Navigation Channel (9)](#navigation) — 8 messages, 0 enums
+- [Media Status Channel (10)](#media) — 1 messages, 0 enums
+- [Phone Status Channel (11)](#phone) — 1 messages, 1 enums
+- [Gearhead](#gearhead) — 2 messages, 0 enums
 
 ---
 
-## Channel Architecture
+## Control Channel (0)
 
-### Channel Map
+Session management, service discovery, auth, ping, shutdown, audio/nav focus
 
-| ID | Name | Direction | Purpose | Message Types |
-|----|------|-----------|---------|---------------|
-| 0 | CONTROL | Both | Protocol control, handshake, shutdown | VERSION_REQ/RSP, SSL, AUTH, SERVICE_DISCOVERY, CHANNEL_OPEN, PING, SHUTDOWN, NAV_FOCUS, VOICE_SESSION, AUDIO_FOCUS |
-| 1 | INPUT | Phone→HU (config), HU→Phone (events) | Touch + keycodes | BINDING_REQ/RSP, INPUT_EVENT_INDICATION |
-| 2 | SENSOR | Both | Environmental/vehicle sensors | SENSOR_START_REQ/RSP, SENSOR_EVENT_INDICATION |
-| 3 | VIDEO | Phone→HU (frames), HU→Phone (control) | H.264 video projection | AV_SETUP_REQ/RSP, AV_START/STOP, AV_MEDIA, VIDEO_FOCUS |
-| 4 | MEDIA_AUDIO | Phone→HU | Music/podcast playback | AV_SETUP_REQ/RSP, AV_START/STOP, AV_MEDIA, AV_MEDIA_ACK |
-| 5 | SPEECH_AUDIO | Phone→HU | Navigation voice + TTS | AV_SETUP_REQ/RSP, AV_START/STOP, AV_MEDIA, AV_MEDIA_ACK |
-| 6 | SYSTEM_AUDIO | Phone→HU | UI sounds, alerts | AV_SETUP_REQ/RSP, AV_START/STOP, AV_MEDIA, AV_MEDIA_ACK |
-| 7 | AV_INPUT | HU→Phone | Microphone capture | AV_INPUT_OPEN_REQ/RSP, AV_MEDIA |
-| 8 | BLUETOOTH | Both | HFP pairing method | BT_PAIRING_REQ/RSP, BT_AUTH_DATA |
-| 9-13 | Unknown | — | Reserved/production SDK | Not mapped in aasdk |
-| 14 | WIFI | Both | In-session WiFi credentials | WIFI_CREDENTIALS_REQ/RSP |
-| 255 | NONE | — | Sentinel | — |
+### HeadUnitInfo (`aacd`)
 
-### CONTROL Channel Message IDs
+***seed***
 
-| ID | Name | Direction |
-|----|------|-----------|
-| 0x0001 | VERSION_REQUEST | HU→Phone |
-| 0x0002 | VERSION_RESPONSE | Phone→HU |
-| 0x0003 | SSL_HANDSHAKE | Both |
-| 0x0004 | AUTH_COMPLETE | HU→Phone |
-| 0x0005 | SERVICE_DISCOVERY_REQUEST | Phone→HU |
-| 0x0006 | SERVICE_DISCOVERY_RESPONSE | HU→Phone |
-| 0x0007 | CHANNEL_OPEN_REQUEST | Phone→HU |
-| 0x0008 | CHANNEL_OPEN_RESPONSE | HU→Phone |
-| 0x000b | PING_REQUEST | Both |
-| 0x000c | PING_RESPONSE | Both |
-| 0x000d | NAVIGATION_FOCUS_REQUEST | Phone→HU |
-| 0x000e | NAVIGATION_FOCUS_RESPONSE | HU→Phone |
-| 0x000f | SHUTDOWN_REQUEST | Both |
-| 0x0010 | SHUTDOWN_RESPONSE | Both |
-| 0x0011 | VOICE_SESSION_REQUEST | Phone→HU |
-| 0x0012 | AUDIO_FOCUS_REQUEST | Phone→HU |
-| 0x0013 | AUDIO_FOCUS_RESPONSE | HU→Phone |
-| 0x0017 | Unknown | Phone→HU (observed in baseline) |
+| # | Name | Type | Notes |
+|---|------|------|-------|
+| 1 | make | string |  |
+| 2 | model | string |  |
+| 3 | year | string |  |
+| 4 | vehicle_id | string |  |
+| 5 | head_unit_make | string |  |
+| 6 | head_unit_model | string |  |
+| 7 | head_unit_software_build | string |  |
+| 8 | head_unit_software_version | string |  |
 
-### AV Channel Message IDs (shared by VIDEO, MEDIA_AUDIO, SPEECH_AUDIO, SYSTEM_AUDIO, AV_INPUT)
+### ServiceDiscoveryRequest (`aahi`)
 
-| ID | Name | Direction |
-|----|------|-----------|
-| 0x0000 | AV_MEDIA_WITH_TIMESTAMP | Phone→HU |
-| 0x0001 | AV_MEDIA_INDICATION | Phone→HU |
-| 0x8000 | AV_SETUP_REQUEST | Phone→HU |
-| 0x8001 | AV_START_INDICATION | Phone→HU |
-| 0x8002 | AV_STOP_INDICATION | Phone→HU |
-| 0x8003 | AV_SETUP_RESPONSE | HU→Phone |
-| 0x8004 | AV_MEDIA_ACK | HU→Phone |
-| 0x8005 | AV_INPUT_OPEN_REQUEST | Phone→HU |
-| 0x8006 | AV_INPUT_OPEN_RESPONSE | HU→Phone |
-| 0x8007 | VIDEO_FOCUS_REQUEST | Phone→HU |
-| 0x8008 | VIDEO_FOCUS_INDICATION | HU→Phone |
+***seed***
+
+| # | Name | Type | Notes |
+|---|------|------|-------|
+| 1 | phone_icon_small | message | → `aahd` |
+| 2 | phone_icon_medium | message | → `aagr` |
+| 3 | phone_icon_large | string |  |
+| 4 | device_name | string |  |
+| 5 | device_brand | string |  |
+
+### ConnectionConfiguration (`aajk`)
+
+***seed***
+
+| # | Name | Type | Notes |
+|---|------|------|-------|
+| 0 | aajh.class | uint64 |  |
+| 0 | aaji.class | fixed64 |  |
+| 1 | ping_configuration | message | → `zyd` |
+| 2 | aajj.class | message |  |
+| 4 | aajg.class | message |  |
+
+### AVChannel (`vys`)
+
+*Referenced by: `wbw` (ChannelDescriptor) | **seed***
+
+| # | Name | Type | Notes |
+|---|------|------|-------|
+| 1 | stream_type | enum | enum `vyn`: MEDIA_CODEC_AUDIO_PCM=1, MEDIA_CODEC_AUDIO_AAC_LC=2, MEDIA_CODEC_VIDEO_H264_BP=3, MEDIA_CODEC_AUDIO_AAC_LC_ADTS=4, MEDIA_CODEC_VIDEO_VP9=5, ...+2 |
+| 2 | audio_type | enum | enum `a` |
+| 3 | audio_configs | repeated message | → `vvp` |
+| 4 | video_configs | repeated message | → VideoConfig (`wcz`) |
+| 6 | channel_id | uint32 |  |
+| 7 | display_type | enum | enum `vxg`: DISPLAY_TYPE_MAIN=0, DISPLAY_TYPE_CLUSTER=1, DISPLAY_TYPE_AUXILIARY=2 |
+| 8 | keycode | enum | enum `vyh`: KEYCODE_UNKNOWN=0, KEYCODE_SOFT_LEFT=1, KEYCODE_SOFT_RIGHT=2, KEYCODE_HOME=3, KEYCODE_BACK=4, ...+267 |
+| 9 | focus_reason | enum | enum `vee` |
+
+### ChannelDescriptor (`wbw`)
+
+*Referenced by: `wby` (ServiceDiscoveryResponse) | **seed***
+
+| # | Name | Type | Notes |
+|---|------|------|-------|
+| 1 | channel_id | **int32** (required) |  |
+| 2 | sensor_channel | message | → `wbu` |
+| 3 | av_channel | message | → AVChannel (`vys`) |
+| 4 | input_channel | message | → `vya` |
+| 5 | av_input_channel | message | → `vyt` |
+| 6 | bluetooth_channel | message | → `vwc` |
+| 7 | radio_channel | message | → `way` |
+| 8 | navigation_channel | message | → `vzr` |
+| 9 | media_infoChannel | message |  |
+| 10 | phone_status_channel | message |  |
+| 11 | media_browser_channel | message |  |
+| 13 | notification_channel | message | → `wdh` |
+| 15 | unknown_channel_15 | message |  |
+
+### ServiceDiscoveryResponse (`wby`)
+
+***seed***
+
+| # | Name | Type | Notes |
+|---|------|------|-------|
+| 1 | channels | repeated message | → ChannelDescriptor (`wbw`) |
+| 2 | head_unit_name | string |  |
+| 3 | car_model | string |  |
+| 4 | car_year | string |  |
+| 5 | car_serial | string |  |
+| 6 | left_hand_drive_vehicle | enum | enum `vxi`: DRIVER_POSITION_LEFT=0, DRIVER_POSITION_RIGHT=1, DRIVER_POSITION_CENTER=2, DRIVER_POSITION_UNKNOWN=3 |
+| 7 | headunit_manufacturer | string |  |
+| 8 | headunit_model | string |  |
+| 9 | sw_build | string |  |
+| 10 | sw_version | string |  |
+| 11 | can_play_native_media_during_vr | bool |  |
+| 13 | session_configuration | int32 |  |
+| 14 | display_name | string |  |
+| 15 | probe_for_support | bool |  |
+
+### BindingRequest (`wcg`)
+
+***seed***
+
+| # | Name | Type | Notes |
+|---|------|------|-------|
+| 1 | scan_codes | repeated int32 |  |
+
+### VendorExtensionChannel (`wcv`)
+
+***seed***
+
+| # | Name | Type | Notes |
+|---|------|------|-------|
+| 1 | name | **string** (required) |  |
+| 2 | package_white_list | repeated string |  |
+| 3 | data | bytes |  |
+
+### `aagr`
+
+*Referenced by: `aahi` (ServiceDiscoveryRequest) | depth 1*
+
+| # | Name | Type | Notes |
+|---|------|------|-------|
+| 1 | c | message | → `aagh` |
+| 2 | d | message | → `aafs` |
+| 3 | e | message | → `aafu` |
+| 4 | f | message | → `aags` |
+| 5 | g | repeated message | → `aagv` |
+| 7 | h | string |  |
+
+### `aahd`
+
+*Referenced by: `aahi` (ServiceDiscoveryRequest) | depth 1*
+
+| # | Name | Type | Notes |
+|---|------|------|-------|
+| 1 | b | string |  |
+| 2 | c | bytes |  |
+
+### `vvp`
+
+*Referenced by: `vys` (AVChannel), `vyt` | depth 1*
+
+| # | Name | Type | Notes |
+|---|------|------|-------|
+| 1 | c | **uint32** (required) |  |
+| 2 | d | **uint32** (required) |  |
+| 3 | e | **uint32** (required) |  |
+
+### `vwc`
+
+*Referenced by: `wbw` (ChannelDescriptor) | depth 1*
+
+*(empty message)*
+
+### `vya`
+
+*Referenced by: `wbw` (ChannelDescriptor) | depth 1*
+
+*(empty message)*
+
+### `vyt`
+
+*Referenced by: `wbw` (ChannelDescriptor) | depth 1*
+
+| # | Name | Type | Notes |
+|---|------|------|-------|
+| 1 | c | enum | enum `vyn`: MEDIA_CODEC_AUDIO_PCM=1, MEDIA_CODEC_AUDIO_AAC_LC=2, MEDIA_CODEC_VIDEO_H264_BP=3, MEDIA_CODEC_AUDIO_AAC_LC_ADTS=4, MEDIA_CODEC_VIDEO_VP9=5, ...+2 |
+| 2 | d | message | → `vvp` |
+
+### `vzr`
+
+*Referenced by: `wbw` (ChannelDescriptor) | depth 1*
+
+| # | Name | Type | Notes |
+|---|------|------|-------|
+| 1 | c | **int32** (required) |  |
+| 2 | d | **enum** (required) | enum `viz` |
+| 3 | e | message | → `vzq` |
+
+### `way`
+
+*Referenced by: `wbw` (ChannelDescriptor) | depth 1*
+
+| # | Name | Type | Notes |
+|---|------|------|-------|
+| 1 | b | repeated message | → `wax` |
+
+### `wbu`
+
+*Referenced by: `wbw` (ChannelDescriptor) | depth 1*
+
+*(empty message)*
+
+### `wdh`
+
+*Referenced by: `wbw` (ChannelDescriptor) | depth 1*
+
+| # | Name | Type | Notes |
+|---|------|------|-------|
+| 1 | b | string |  |
+
+### `zyd`
+
+*Referenced by: `aaft`, `aajk` (ConnectionConfiguration) | depth 1*
+
+| # | Name | Type | Notes |
+|---|------|------|-------|
+| 1 | b | int64 |  |
+| 2 | c | int32 |  |
+
+### `aafs`
+
+*Referenced by: `aagr` | depth 2*
+
+| # | Name | Type | Notes |
+|---|------|------|-------|
+| 1 | b | string |  |
+| 2 | c | string |  |
+| 3 | d | string |  |
+| 4 | e | string |  |
+
+### `aafu`
+
+*Referenced by: `aagr` | depth 2*
+
+| # | Name | Type | Notes |
+|---|------|------|-------|
+| 1 | c | message | → `aaft` |
+| 3 | d | unknown_41 |  |
+
+### `aagh`
+
+*Referenced by: `aagr` | depth 2*
+
+| # | Name | Type | Notes |
+|---|------|------|-------|
+| 1 | b | bool |  |
+| 2 | c | string |  |
+
+### `aags`
+
+*Referenced by: `aagr` | depth 2*
+
+| # | Name | Type | Notes |
+|---|------|------|-------|
+| 1 | b | bool |  |
+| 2 | c | bool |  |
+
+### `aagv`
+
+*Referenced by: `aagr` | depth 2*
+
+| # | Name | Type | Notes |
+|---|------|------|-------|
+| 0 | aagq.class | fixed32 |  |
+| 0 | g | string |  |
+| 1 | d | uint32 |  |
+| 2 | e | string |  |
+| 3 | h | unknown_41 |  |
+| 5 | aagw.class | message |  |
+| 7 | f | message |  |
+
+### `vzq`
+
+*Referenced by: `vzr` | depth 2*
+
+| # | Name | Type | Notes |
+|---|------|------|-------|
+| 1 | c | **int32** (required) |  |
+| 2 | d | **int32** (required) |  |
+| 3 | e | **int32** (required) |  |
+
+### `wax`
+
+*Referenced by: `way` | depth 2*
+
+| # | Name | Type | Notes |
+|---|------|------|-------|
+| 1 | b | **int32** (required) |  |
+| 2 | c | **enum** (required) | enum `a` |
+| 3 | d | repeated message | → `wbe` |
+| 4 | e | repeated int32 |  |
+| 5 | q | **int32** (required) |  |
+| 6 | f | bool |  |
+| 7 | g | enum | enum `a` |
+| 8 | h | enum | enum `a` |
+| 9 | i | bool |  |
+| 10 | j | bool |  |
+| 11 | k | enum | enum `a` |
+| 13 | n | bool |  |
+
+### `aaft`
+
+*Referenced by: `aafu` | depth 3*
+
+| # | Name | Type | Notes |
+|---|------|------|-------|
+| 1 | c | message | → `zyd` |
+| 2 | d | message | → `zyd` |
+
+### `wbe`
+
+*Referenced by: `wax` | depth 3*
+
+| # | Name | Type | Notes |
+|---|------|------|-------|
+| 1 | b | **int32** (required) |  |
+| 2 | c | **int32** (required) |  |
+
+### Enums (control)
+
+**`vxi`**
+*Used by: `wby`*
+
+- `DRIVER_POSITION_LEFT` = 0
+- `DRIVER_POSITION_RIGHT` = 1
+- `DRIVER_POSITION_CENTER` = 2
+- `DRIVER_POSITION_UNKNOWN` = 3
+
+**`vyn`**
+*Used by: `vys`, `vyt`, `wcz`*
+
+- `MEDIA_CODEC_AUDIO_PCM` = 1
+- `MEDIA_CODEC_AUDIO_AAC_LC` = 2
+- `MEDIA_CODEC_VIDEO_H264_BP` = 3
+- `MEDIA_CODEC_AUDIO_AAC_LC_ADTS` = 4
+- `MEDIA_CODEC_VIDEO_VP9` = 5
+- `MEDIA_CODEC_VIDEO_AV1` = 6
+- `MEDIA_CODEC_VIDEO_H265` = 7
 
 ---
 
-## Bluetooth Discovery
+## Video Channel (3)
 
-### Overview
+Video streaming config, codec negotiation, focus management, AV setup
 
-Wireless AA uses Bluetooth for initial discovery and WiFi credential exchange, then switches
-to WiFi for the actual data connection. The sequence is: BT RFCOMM → WiFi credentials →
-phone joins AP → TCP connection → SSL → AA protocol.
+### AVChannelSetupResponse (`vxb`)
 
-### RFCOMM Handshake
+***seed***
 
-HU registers an SDP service with UUID `4de17a00-52cb-11e6-bdf4-0800200c9a66` (Android Auto
-Wireless) and listens on an RFCOMM channel. Phone discovers HU via BT and connects.
+| # | Name | Type | Notes |
+|---|------|------|-------|
+| 1 | media_status | **enum** (required) | enum `viz` |
+| 2 | max_unacked | uint32 |  |
+| 3 | configs | repeated uint32 |  |
 
-**Message framing:** `[2-byte length (BE)][2-byte msgId (BE)][protobuf payload]`
+### AVChannel (`vys`)
 
-| Step | MsgId | Direction | Proto Type | Content |
-|------|-------|-----------|------------|---------|
-| 1 | 1 | HU→Phone | WifiStartRequest | HU's WiFi AP IP address + TCP listener port |
-| 2 | 2 | Phone→HU | WifiInfoRequest | Phone requests WiFi credentials (empty) |
-| 3 | 3 | HU→Phone | WifiInfoResponse | SSID, password, BSSID (wlan0 MAC), WPA2_PERSONAL |
-| 4 | 6 | Phone→HU | WifiStartResponse | Phone acknowledges (empty) |
-| 5 | 7 | Phone→HU | WifiConnectionStatus | Phone reports WiFi join success/failure |
+*Referenced by: `wbw` (ChannelDescriptor) | **seed***
 
-**Critical details:**
-- BSSID (AP's MAC) is **required** — phone uses it to identify the correct WiFi AP
-- IP discovery order: wlan0 → ap0 → first non-loopback IPv4
-- Security mode: hardcoded WPA2_PERSONAL, access point type: DYNAMIC
-- Code: `BluetoothDiscoveryService.cpp:125-287`
+| # | Name | Type | Notes |
+|---|------|------|-------|
+| 1 | stream_type | enum | enum `vyn`: MEDIA_CODEC_AUDIO_PCM=1, MEDIA_CODEC_AUDIO_AAC_LC=2, MEDIA_CODEC_VIDEO_H264_BP=3, MEDIA_CODEC_AUDIO_AAC_LC_ADTS=4, MEDIA_CODEC_VIDEO_VP9=5, ...+2 |
+| 2 | audio_type | enum | enum `a` |
+| 3 | audio_configs | repeated message | → `vvp` |
+| 4 | video_configs | repeated message | → VideoConfig (`wcz`) |
+| 6 | channel_id | uint32 |  |
+| 7 | display_type | enum | enum `vxg`: DISPLAY_TYPE_MAIN=0, DISPLAY_TYPE_CLUSTER=1, DISPLAY_TYPE_AUXILIARY=2 |
+| 8 | keycode | enum | enum `vyh`: KEYCODE_UNKNOWN=0, KEYCODE_SOFT_LEFT=1, KEYCODE_SOFT_RIGHT=2, KEYCODE_HOME=3, KEYCODE_BACK=4, ...+267 |
+| 9 | focus_reason | enum | enum `vee` |
 
-### Distinction: BT Discovery vs In-Session WiFi Channel
+### AVInputOpenRequest (`vyx`)
 
-The RFCOMM handshake above happens **before TCP** — it bootstraps the WiFi connection.
-Channel 14 (WIFI) operates **during the active AA session** and handles WiFi credential
-updates (e.g., if the phone needs to re-authenticate to the AP). These are separate flows:
+***seed***
 
-| Flow | When | Transport | Purpose |
-|------|------|-----------|---------|
-| BT RFCOMM | Before TCP | Bluetooth | Initial WiFi AP credentials |
-| Ch14 WIFI | During session | TCP (AA protocol) | Credential refresh / status |
+| # | Name | Type | Notes |
+|---|------|------|-------|
+| 1 | open | **bool** (required) |  |
+| 2 | anc | bool |  |
+| 3 | ec | bool |  |
+| 4 | max_unacked | int32 |  |
+
+### VideoConfig (`wcz`)
+
+*Referenced by: `vys` (AVChannel) | **seed***
+
+| # | Name | Type | Notes |
+|---|------|------|-------|
+| 1 | video_resolution | enum | enum `wcy`: VIDEO_800x480=1, VIDEO_1280x720=2, VIDEO_1920x1080=3, VIDEO_2560x1440=4, VIDEO_3840x2160=5, ...+4 |
+| 2 | video_fps | enum | enum `viz` |
+| 3 | margin_width | uint32 |  |
+| 4 | margin_height | uint32 |  |
+| 5 | dpi | uint32 |  |
+| 6 | additional_depth | uint32 |  |
+| 7 | field7 | uint32 |  |
+| 8 | field8 | uint32 |  |
+| 9 | field9 | uint32 |  |
+| 10 | codec | enum | enum `vyn`: MEDIA_CODEC_AUDIO_PCM=1, MEDIA_CODEC_AUDIO_AAC_LC=2, MEDIA_CODEC_VIDEO_H264_BP=3, MEDIA_CODEC_AUDIO_AAC_LC_ADTS=4, MEDIA_CODEC_VIDEO_VP9=5, ...+2 |
+| 11 | additional_config | message | → `wcm` |
+
+### VideoFocusIndication (`wdb`)
+
+***seed***
+
+| # | Name | Type | Notes |
+|---|------|------|-------|
+| 1 | focus_mode | enum | enum `wda`: VIDEO_FOCUS_PROJECTED=1, VIDEO_FOCUS_NATIVE=2, VIDEO_FOCUS_NATIVE_TRANSIENT=3, VIDEO_FOCUS_PROJECTED_NO_INPUT_FOCUS=4 |
+| 2 | unrequested | bool |  |
+
+### `vvp`
+
+*Referenced by: `vys` (AVChannel), `vyt` | depth 1*
+
+| # | Name | Type | Notes |
+|---|------|------|-------|
+| 1 | c | **uint32** (required) |  |
+| 2 | d | **uint32** (required) |  |
+| 3 | e | **uint32** (required) |  |
+
+### `wcm`
+
+*Referenced by: `wcz` (VideoConfig) | depth 1*
+
+*(empty message)*
+
+### Enums (video)
+
+**`vxg`**
+*Used by: `vys`*
+
+- `DISPLAY_TYPE_MAIN` = 0
+- `DISPLAY_TYPE_CLUSTER` = 1
+- `DISPLAY_TYPE_AUXILIARY` = 2
+
+**`vyh`**
+*Used by: `vys`*
+
+- `KEYCODE_UNKNOWN` = 0
+- `KEYCODE_SOFT_LEFT` = 1
+- `KEYCODE_SOFT_RIGHT` = 2
+- `KEYCODE_HOME` = 3
+- `KEYCODE_BACK` = 4
+- `KEYCODE_CALL` = 5
+- `KEYCODE_ENDCALL` = 6
+- `KEYCODE_0` = 7
+- `KEYCODE_1` = 8
+- `KEYCODE_2` = 9
+- `KEYCODE_3` = 10
+- `KEYCODE_4` = 11
+- `KEYCODE_5` = 12
+- `KEYCODE_6` = 13
+- `KEYCODE_7` = 14
+- `KEYCODE_8` = 15
+- `KEYCODE_9` = 16
+- `KEYCODE_STAR` = 17
+- `KEYCODE_POUND` = 18
+- `KEYCODE_DPAD_UP` = 19
+- `KEYCODE_DPAD_DOWN` = 20
+- `KEYCODE_DPAD_LEFT` = 21
+- `KEYCODE_DPAD_RIGHT` = 22
+- `KEYCODE_DPAD_CENTER` = 23
+- `KEYCODE_VOLUME_UP` = 24
+- `KEYCODE_VOLUME_DOWN` = 25
+- `KEYCODE_POWER` = 26
+- `KEYCODE_CAMERA` = 27
+- `KEYCODE_CLEAR` = 28
+- `KEYCODE_A` = 29
+- `KEYCODE_B` = 30
+- `KEYCODE_C` = 31
+- `KEYCODE_D` = 32
+- `KEYCODE_E` = 33
+- `KEYCODE_F` = 34
+- `KEYCODE_G` = 35
+- `KEYCODE_H` = 36
+- `KEYCODE_I` = 37
+- `KEYCODE_J` = 38
+- `KEYCODE_K` = 39
+- `KEYCODE_L` = 40
+- `KEYCODE_M` = 41
+- `KEYCODE_N` = 42
+- `KEYCODE_O` = 43
+- `KEYCODE_P` = 44
+- `KEYCODE_Q` = 45
+- `KEYCODE_R` = 46
+- `KEYCODE_S` = 47
+- `KEYCODE_T` = 48
+- `KEYCODE_U` = 49
+- `KEYCODE_V` = 50
+- `KEYCODE_W` = 51
+- `KEYCODE_X` = 52
+- `KEYCODE_Y` = 53
+- `KEYCODE_Z` = 54
+- `KEYCODE_COMMA` = 55
+- `KEYCODE_PERIOD` = 56
+- `KEYCODE_ALT_LEFT` = 57
+- `KEYCODE_ALT_RIGHT` = 58
+- `KEYCODE_SHIFT_LEFT` = 59
+- `KEYCODE_SHIFT_RIGHT` = 60
+- `KEYCODE_TAB` = 61
+- `KEYCODE_SPACE` = 62
+- `KEYCODE_SYM` = 63
+- `KEYCODE_EXPLORER` = 64
+- `KEYCODE_ENVELOPE` = 65
+- `KEYCODE_ENTER` = 66
+- `KEYCODE_DEL` = 67
+- `KEYCODE_GRAVE` = 68
+- `KEYCODE_MINUS` = 69
+- `KEYCODE_EQUALS` = 70
+- `KEYCODE_LEFT_BRACKET` = 71
+- `KEYCODE_RIGHT_BRACKET` = 72
+- `KEYCODE_BACKSLASH` = 73
+- `KEYCODE_SEMICOLON` = 74
+- `KEYCODE_APOSTROPHE` = 75
+- `KEYCODE_SLASH` = 76
+- `KEYCODE_AT` = 77
+- `KEYCODE_NUM` = 78
+- `KEYCODE_HEADSETHOOK` = 79
+- `KEYCODE_FOCUS` = 80
+- `KEYCODE_PLUS` = 81
+- `KEYCODE_MENU` = 82
+- `KEYCODE_NOTIFICATION` = 83
+- `KEYCODE_SEARCH` = 84
+- `KEYCODE_MEDIA_PLAY_PAUSE` = 85
+- `KEYCODE_MEDIA_STOP` = 86
+- `KEYCODE_MEDIA_NEXT` = 87
+- `KEYCODE_MEDIA_PREVIOUS` = 88
+- `KEYCODE_MEDIA_REWIND` = 89
+- `KEYCODE_MEDIA_FAST_FORWARD` = 90
+- `KEYCODE_MUTE` = 91
+- `KEYCODE_PAGE_UP` = 92
+- `KEYCODE_PAGE_DOWN` = 93
+- `KEYCODE_PICTSYMBOLS` = 94
+- `KEYCODE_SWITCH_CHARSET` = 95
+- `KEYCODE_BUTTON_A` = 96
+- `KEYCODE_BUTTON_B` = 97
+- `KEYCODE_BUTTON_C` = 98
+- `KEYCODE_BUTTON_X` = 99
+- `KEYCODE_BUTTON_Y` = 100
+- `KEYCODE_BUTTON_L1` = 102
+- `KEYCODE_BUTTON_R1` = 103
+- `KEYCODE_BUTTON_L2` = 104
+- `KEYCODE_BUTTON_R2` = 105
+- `KEYCODE_BUTTON_THUMBL` = 106
+- `KEYCODE_BUTTON_THUMBR` = 107
+- `KEYCODE_BUTTON_START` = 108
+- `KEYCODE_BUTTON_SELECT` = 109
+- `KEYCODE_BUTTON_MODE` = 110
+- `KEYCODE_ESCAPE` = 111
+- `KEYCODE_FORWARD_DEL` = 112
+- `KEYCODE_CTRL_LEFT` = 113
+- `KEYCODE_CTRL_RIGHT` = 114
+- `KEYCODE_CAPS_LOCK` = 115
+- `KEYCODE_SCROLL_LOCK` = 116
+- `KEYCODE_META_LEFT` = 117
+- `KEYCODE_META_RIGHT` = 118
+- `KEYCODE_FUNCTION` = 119
+- `KEYCODE_SYSRQ` = 120
+- `KEYCODE_BREAK` = 121
+- `KEYCODE_MOVE_HOME` = 122
+- `KEYCODE_MOVE_END` = 123
+- `KEYCODE_INSERT` = 124
+- `KEYCODE_FORWARD` = 125
+- `KEYCODE_MEDIA_PLAY` = 126
+- `KEYCODE_MEDIA_PAUSE` = 127
+- `KEYCODE_MEDIA_CLOSE` = 128
+- `KEYCODE_MEDIA_EJECT` = 129
+- `KEYCODE_MEDIA_RECORD` = 130
+- `KEYCODE_F1` = 131
+- `KEYCODE_F2` = 132
+- `KEYCODE_F3` = 133
+- `KEYCODE_F4` = 134
+- `KEYCODE_F5` = 135
+- `KEYCODE_F6` = 136
+- `KEYCODE_F7` = 137
+- `KEYCODE_F8` = 138
+- `KEYCODE_F9` = 139
+- `KEYCODE_F10` = 140
+- `KEYCODE_F11` = 141
+- `KEYCODE_F12` = 142
+- `KEYCODE_NUM_LOCK` = 143
+- `KEYCODE_NUMPAD_0` = 144
+- `KEYCODE_NUMPAD_1` = 145
+- `KEYCODE_NUMPAD_2` = 146
+- `KEYCODE_NUMPAD_3` = 147
+- `KEYCODE_NUMPAD_4` = 148
+- `KEYCODE_NUMPAD_5` = 149
+- `KEYCODE_NUMPAD_6` = 150
+- `KEYCODE_NUMPAD_7` = 151
+- `KEYCODE_NUMPAD_8` = 152
+- `KEYCODE_NUMPAD_9` = 153
+- `KEYCODE_NUMPAD_DIVIDE` = 154
+- `KEYCODE_NUMPAD_MULTIPLY` = 155
+- `KEYCODE_NUMPAD_SUBTRACT` = 156
+- `KEYCODE_NUMPAD_ADD` = 157
+- `KEYCODE_NUMPAD_DOT` = 158
+- `KEYCODE_NUMPAD_COMMA` = 159
+- `KEYCODE_NUMPAD_ENTER` = 160
+- `KEYCODE_NUMPAD_EQUALS` = 161
+- `KEYCODE_NUMPAD_LEFT_PAREN` = 162
+- `KEYCODE_NUMPAD_RIGHT_PAREN` = 163
+- `KEYCODE_VOLUME_MUTE` = 164
+- `KEYCODE_INFO` = 165
+- `KEYCODE_CHANNEL_UP` = 166
+- `KEYCODE_CHANNEL_DOWN` = 167
+- `KEYCODE_ZOOM_IN` = 168
+- `KEYCODE_ZOOM_OUT` = 169
+- `KEYCODE_TV` = 170
+- `KEYCODE_WINDOW` = 171
+- `KEYCODE_GUIDE` = 172
+- `KEYCODE_DVR` = 173
+- `KEYCODE_BOOKMARK` = 174
+- `KEYCODE_CAPTIONS` = 175
+- `KEYCODE_SETTINGS` = 176
+- `KEYCODE_TV_POWER` = 177
+- `KEYCODE_TV_INPUT` = 178
+- `KEYCODE_STB_POWER` = 179
+- `KEYCODE_STB_INPUT` = 180
+- `KEYCODE_AVR_POWER` = 181
+- `KEYCODE_AVR_INPUT` = 182
+- `KEYCODE_PROG_RED` = 183
+- `KEYCODE_PROG_GREEN` = 184
+- `KEYCODE_PROG_YELLOW` = 185
+- `KEYCODE_PROG_BLUE` = 186
+- `KEYCODE_APP_SWITCH` = 187
+- `KEYCODE_BUTTON_1` = 188
+- `KEYCODE_BUTTON_2` = 189
+- `KEYCODE_BUTTON_3` = 190
+- `KEYCODE_BUTTON_4` = 191
+- `KEYCODE_BUTTON_5` = 192
+- `KEYCODE_BUTTON_6` = 193
+- `KEYCODE_BUTTON_7` = 194
+- `KEYCODE_BUTTON_8` = 195
+- `KEYCODE_BUTTON_9` = 196
+- `KEYCODE_BUTTON_10` = 197
+- `KEYCODE_BUTTON_11` = 198
+- `KEYCODE_BUTTON_12` = 199
+- `KEYCODE_BUTTON_13` = 200
+- `KEYCODE_BUTTON_14` = 201
+- `KEYCODE_BUTTON_15` = 202
+- `KEYCODE_BUTTON_16` = 203
+- `KEYCODE_LANGUAGE_SWITCH` = 204
+- `KEYCODE_MANNER_MODE` = 205
+- `KEYCODE_3D_MODE` = 206
+- `KEYCODE_CONTACTS` = 207
+- `KEYCODE_CALENDAR` = 208
+- `KEYCODE_MUSIC` = 209
+- `KEYCODE_CALCULATOR` = 210
+- `KEYCODE_ZENKAKU_HANKAKU` = 211
+- `KEYCODE_EISU` = 212
+- `KEYCODE_MUHENKAN` = 213
+- `KEYCODE_HENKAN` = 214
+- `KEYCODE_KATAKANA_HIRAGANA` = 215
+- `KEYCODE_YEN` = 216
+- `KEYCODE_RO` = 217
+- `KEYCODE_KANA` = 218
+- `KEYCODE_ASSIST` = 219
+- `KEYCODE_BRIGHTNESS_DOWN` = 220
+- `KEYCODE_BRIGHTNESS_UP` = 221
+- `KEYCODE_MEDIA_AUDIO_TRACK` = 222
+- `KEYCODE_SLEEP` = 223
+- `KEYCODE_WAKEUP` = 224
+- `KEYCODE_PAIRING` = 225
+- `KEYCODE_MEDIA_TOP_MENU` = 226
+- `KEYCODE_11` = 227
+- `KEYCODE_12` = 228
+- `KEYCODE_LAST_CHANNEL` = 229
+- `KEYCODE_TV_DATA_SERVICE` = 230
+- `KEYCODE_VOICE_ASSIST` = 231
+- `KEYCODE_TV_RADIO_SERVICE` = 232
+- `KEYCODE_TV_TELETEXT` = 233
+- `KEYCODE_TV_NUMBER_ENTRY` = 234
+- `KEYCODE_TV_TERRESTRIAL_ANALOG` = 235
+- `KEYCODE_TV_TERRESTRIAL_DIGITAL` = 236
+- `KEYCODE_TV_SATELLITE` = 237
+- `KEYCODE_TV_SATELLITE_BS` = 238
+- `KEYCODE_TV_SATELLITE_CS` = 239
+- `KEYCODE_TV_SATELLITE_SERVICE` = 240
+- `KEYCODE_TV_NETWORK` = 241
+- `KEYCODE_TV_ANTENNA_CABLE` = 242
+- `KEYCODE_TV_INPUT_HDMI_1` = 243
+- `KEYCODE_TV_INPUT_HDMI_2` = 244
+- `KEYCODE_TV_INPUT_HDMI_3` = 245
+- `KEYCODE_TV_INPUT_HDMI_4` = 246
+- `KEYCODE_TV_INPUT_COMPOSITE_1` = 247
+- `KEYCODE_TV_INPUT_COMPOSITE_2` = 248
+- `KEYCODE_TV_INPUT_COMPONENT_1` = 249
+- `KEYCODE_TV_INPUT_COMPONENT_2` = 250
+- `KEYCODE_TV_INPUT_VGA_1` = 251
+- `KEYCODE_TV_AUDIO_DESCRIPTION` = 252
+- `KEYCODE_TV_AUDIO_DESCRIPTION_MIX_UP` = 253
+- `KEYCODE_TV_AUDIO_DESCRIPTION_MIX_DOWN` = 254
+- `KEYCODE_TV_ZOOM_MODE` = 255
+- `KEYCODE_TV_CONTENTS_MENU` = 256
+- `KEYCODE_TV_MEDIA_CONTEXT_MENU` = 257
+- `KEYCODE_TV_TIMER_PROGRAMMING` = 258
+- `KEYCODE_HELP` = 259
+- `KEYCODE_NAVIGATE_PREVIOUS` = 260
+- `KEYCODE_NAVIGATE_NEXT` = 261
+- `KEYCODE_NAVIGATE_IN` = 262
+- `KEYCODE_NAVIGATE_OUT` = 263
+- `KEYCODE_DPAD_UP_LEFT` = 268
+- `KEYCODE_DPAD_DOWN_LEFT` = 269
+- `KEYCODE_DPAD_UP_RIGHT` = 270
+- `KEYCODE_DPAD_DOWN_RIGHT` = 271
+- `KEYCODE_SENTINEL` = 65535
+- `KEYCODE_ROTARY_CONTROLLER` = 65536
+- `KEYCODE_MEDIA` = 65537
+- `KEYCODE_TERTIARY_BUTTON` = 65543
+- `KEYCODE_TURN_CARD` = 65544
+
+**`vyn`**
+*Used by: `vys`, `vyt`, `wcz`*
+
+- `MEDIA_CODEC_AUDIO_PCM` = 1
+- `MEDIA_CODEC_AUDIO_AAC_LC` = 2
+- `MEDIA_CODEC_VIDEO_H264_BP` = 3
+- `MEDIA_CODEC_AUDIO_AAC_LC_ADTS` = 4
+- `MEDIA_CODEC_VIDEO_VP9` = 5
+- `MEDIA_CODEC_VIDEO_AV1` = 6
+- `MEDIA_CODEC_VIDEO_H265` = 7
+
+**`wcy`**
+*Used by: `wcz`*
+
+- `VIDEO_800x480` = 1
+- `VIDEO_1280x720` = 2
+- `VIDEO_1920x1080` = 3
+- `VIDEO_2560x1440` = 4
+- `VIDEO_3840x2160` = 5
+- `VIDEO_720x1280` = 6
+- `VIDEO_1080x1920` = 7
+- `VIDEO_1440x2560` = 8
+- `VIDEO_2160x3840` = 9
+
+**`wda`**
+*Used by: `wdb`*
+
+- `VIDEO_FOCUS_PROJECTED` = 1
+- `VIDEO_FOCUS_NATIVE` = 2
+- `VIDEO_FOCUS_NATIVE_TRANSIENT` = 3
+- `VIDEO_FOCUS_PROJECTED_NO_INPUT_FOCUS` = 4
 
 ---
 
-## Input Protocol
+## Input Channel (1)
 
-### Touch Events
+Touch events, button events, relative/absolute input
 
-Touch events are sent as `InputEventIndication` protobuf messages on channel 1. The format
-mirrors Android's `MotionEvent`.
+### InputEventIndication (`vxx`)
 
-**Action codes:**
+***seed***
 
-| Action | Value | Meaning |
-|--------|-------|---------|
-| DOWN | 0 | First finger touches screen |
-| UP | 1 | Last finger lifted |
-| MOVE | 2 | Any active finger moved |
-| POINTER_DOWN | 5 | Additional finger down (multi-touch) |
-| POINTER_UP | 6 | One finger lifted, others remain |
+| # | Name | Type | Notes |
+|---|------|------|-------|
+| 1 | timestamp | **uint64** (required) |  |
+| 3 | touch_event | message | → TouchEvent (`wcj`) |
+| 4 | button_event | message | → `vyj` |
+| 5 | absolute_input_event | message | → `vvi` |
+| 6 | relative_input_event | message | → `wbm` |
+| 7 | secondary_touch_event | message | → TouchEvent (`wcj`) |
 
-**Pointer format:** Each message includes ALL active pointers, not just the changed one.
+### ButtonEvent (`vyi`)
 
-```
-TouchEvent {
-  touch_action: <action code>
-  action_index: <array index of changed pointer>
-  pointer[]: { x, y, pointer_id }
-}
-```
+*Referenced by: `vyj` | **seed***
 
-- `action_index` = array index into pointer list, NOT the pointer ID
-- `pointer_id` = stable per-finger identifier (slot index from evdev MT Type B)
-- For UP events, the lifted finger must be included at its last position
+| # | Name | Type | Notes |
+|---|------|------|-------|
+| 1 | scan_code | **uint32** (required) |  |
+| 2 | is_pressed | **bool** (required) |  |
+| 3 | meta | **uint32** (required) |  |
+| 4 | long_press | bool |  |
 
-**Coordinate space:**
+### TouchEvent (`wcj`)
 
-Touch coordinates are sent in **content space** — the visible AA rendering area after
-margin/sidebar crops, NOT the full video frame resolution and NOT the physical display
-resolution.
+*Referenced by: `vxx` (InputEventIndication) | **seed***
 
-- Evdev raw range (0-4095) → normalized (0.0-1.0) → content dimensions
-- `touch_screen_config` in ServiceDiscoveryResponse must match content dimensions
-- If sidebar is active, content width/height are reduced by the sidebar margin
-- See `docs/aa-display-rendering.md` for detailed mapping math
+| # | Name | Type | Notes |
+|---|------|------|-------|
+| 1 | touch_location | repeated message | → `wci` |
+| 2 | action_index | uint32 |  |
+| 3 | touch_action | enum | enum `vee` |
 
-Code: `EvdevTouchReader.cpp:176-194` (mapping), `TouchHandler.hpp:30-103` (protobuf)
+### InputChannel (`zpl`)
 
-### Keycodes
+***seed***
 
-Supported keycodes advertised in Input service config:
+| # | Name | Type | Notes |
+|---|------|------|-------|
+| 1 | supported_keycodes | message | → `zpn` |
+| 2 | touch_screen_config | message | → `zpn` |
+| 3 | touch_pad_config | message | → `zpn` |
 
-| Keycode | Value | Purpose |
-|---------|-------|---------|
-| HOME | 3 | Return to AA home screen |
-| BACK | 4 | Navigate back |
-| MICROPHONE | 84 | Trigger Google Assistant |
+### `vvi`
 
-Code: `ServiceFactory.cpp:293-296`
+*Referenced by: `vxx` (InputEventIndication) | depth 1*
 
-### Input Binding
+| # | Name | Type | Notes |
+|---|------|------|-------|
+| 1 | b | repeated message | → `vvh` |
 
-Phone sends `BINDING_REQUEST` after input channel opens, containing touch configuration
-(touchpad vs touchscreen mode, supported actions). HU responds with `BINDING_RESPONSE`.
-Observed payload: `0a 03 03 04 54` — touchscreen mode with multi-touch support.
+### `vyj`
 
----
+*Referenced by: `vxx` (InputEventIndication) | depth 1*
 
-## Version Negotiation (Probe 1)
+| # | Name | Type | Notes |
+|---|------|------|-------|
+| 1 | b | repeated message | → ButtonEvent (`vyi`) |
 
-**Finding:** Phone always responds v1.7 regardless of what HU requests.
+### `wbm`
 
-| HU Request | Phone Response | Phone Stores |
-|------------|---------------|-------------|
-| v1.1 | v1.7 | headUnitProtocolVersion=1.1 |
-| v1.7 | v1.7 | headUnitProtocolVersion=1.7 |
+*Referenced by: `vxx` (InputEventIndication) | depth 1*
 
-- SERVICE_DISCOVERY_REQUEST grows from 841→881 bytes at v1.7 (+40 bytes)
-- Channel open order changes at v1.7 (control channels prioritized)
-- **Recommendation:** Always request v1.7
+| # | Name | Type | Notes |
+|---|------|------|-------|
+| 1 | b | repeated message | → `wbl` |
 
----
+### `wci`
 
-## Service Discovery
+*Referenced by: `wcj` (TouchEvent) | depth 1*
 
-### ServiceDiscoveryResponse Fields
+| # | Name | Type | Notes |
+|---|------|------|-------|
+| 1 | c | **uint32** (required) |  |
+| 2 | d | **uint32** (required) |  |
+| 3 | e | **uint32** (required) |  |
 
-| Field | # | Type | Status | Notes |
-|-------|---|------|--------|-------|
-| channels | 1 | repeated ChannelDescriptor | Active | Service advertisements |
-| head_unit_name | 2 | string | Deprecated | Phone reads headunit_info instead |
-| car_model | 3 | string | Deprecated | |
-| car_year | 4 | string | Deprecated | |
-| car_serial | 5 | string | Deprecated | |
-| left_hand_drive | 6 | bool | Active | |
-| headunit_manufacturer | 7 | string | Deprecated | |
-| headunit_model | 8 | string | Deprecated | |
-| sw_build | 9 | string | Deprecated | |
-| sw_version | 10 | string | Deprecated | |
-| can_play_native_media_during_vr | 11 | bool | Deprecated | |
-| hide_clock | 12 | bool | **DEAD** | No effect on modern AA (Probe 5) |
-| session_configuration | 13 | int32 | Unknown | Purpose unclear |
-| display_name | 14 | string | Active | |
-| probe_for_support | 15 | bool | Active | |
-| connection_configuration | 16 | ConnectionConfig | Active | Ping timeouts etc |
-| headunit_info | 17 | HeadUnitInfo | Active | Modern identity fields |
+### `zpn`
 
-### HeadUnitInfo Fields (all strings)
+*Referenced by: `zpl` (InputChannel) | depth 1*
 
-| Field | # | Description |
-|-------|---|-------------|
-| make | 1 | Vehicle manufacturer |
-| model | 2 | Vehicle model |
-| year | 3 | Vehicle year |
-| vehicle_id | 4 | Vehicle serial/ID |
-| head_unit_make | 5 | HU manufacturer |
-| head_unit_model | 6 | HU model |
-| head_unit_software_build | 7 | Git hash / build ID |
-| head_unit_software_version | 8 | Version string |
+| # | Name | Type | Notes |
+|---|------|------|-------|
+| 1 | c | int32 |  |
+| 2 | d | message | → `zli` |
 
-**Missing:** No theme_version or palette_version field in any known proto definition (fields
-1-17 in SDR, fields 1-8 in HeadUnitInfo). Phone logs imply HU palette version is read as 0;
-exact field source is still unknown. May be an undocumented field 18+ or set at runtime.
+### `vvh`
 
-### CarInfoInternal (Phone's Internal View)
+*Referenced by: `vvi` | depth 2*
 
-The phone maintains a `CarInfoInternal` object per paired HU, logged during BT setup:
+| # | Name | Type | Notes |
+|---|------|------|-------|
+| 1 | b | **uint32** (required) |  |
+| 2 | c | **int32** (required) |  |
 
-```
-CarInfoInternal[
-  manufacturer=OpenAuto Project,
-  model=Universal,
-  headUnitProtocolVersion=1.7,
-  modelYear=2026,
-  vehicleId=e29d78b9...,
-  bluetoothAllowed=true,
-  hideProjectedClock=false,    // NOT affected by hide_clock field
-  driverPosition=0,
-  headUnitMake=OpenAuto Project,
-  headUnitModel=Raspberry Pi 4,
-  headUnitSoftwareBuild=b6a5995,
-  headUnitSoftwareVersion=0.3.0,
-  canPlayNativeMediaDuringVr=false,
-  hidePhoneSignal=false,
-  hideBatteryLevel=false
-]
-```
+### `wbl`
 
-### CarDisplayUiFeatures
+*Referenced by: `wbm` | depth 2*
 
-Phone computes display UI features from the video config:
+| # | Name | Type | Notes |
+|---|------|------|-------|
+| 1 | c | **uint32** (required) |  |
+| 2 | d | **int32** (required) |  |
 
-```
-CarDisplayUiFeatures{
-  resizeType=0,
-  hasClock=false,              // HU doesn't have native clock
-  hasBatteryLevel=false,       // HU doesn't show battery
-  hasPhoneSignal=false,        // HU doesn't show signal
-  hasNativeUiAffordance=false,
-  hasClusterTurnCard=false
-}
-```
+### `zli`
 
-When `hasClock=false`, phone renders its own status bar with clock, battery, signal.
-This is controlled by the video config's UiConfig, NOT by the deprecated `hide_clock` field.
+*Referenced by: `zpn` | depth 2*
 
-### carModuleFeaturesCache
-
-Phone logs a feature set including:
-```
-HERO_THEMING, COOLWALK, INDEPENDENT_NIGHT_MODE, NATIVE_APPS,
-MULTI_DISPLAY, HERO_CAR_CONTROLS, HERO_CAR_LOCAL_MEDIA,
-ENHANCED_NAVIGATION_METADATA, ASSISTANT_Z, MULTI_REGION,
-PREFLIGHT, CONTENT_WINDOW_INSETS, GH_DRIVEN_RESIZING
-```
-
-These are phone-side feature flags, not HU-advertised. Useful for understanding what the
-phone thinks it supports.
+| # | Name | Type | Notes |
+|---|------|------|-------|
+| 1 | b | double |  |
 
 ---
 
-## Video Pipeline
+## Sensor Channel (2)
 
-### Resolution Support (Probe 7)
+GPS, compass, speed, RPM, night mode, driving status, diagnostics
 
-| Resolution | Enum | Dimensions | Phone Layout | Status |
-|------------|------|-----------|-------------|--------|
-| 480p | `_480p` | 800×480 | `sw750dp` | Tested, working |
-| 720p | `_720p` | 1280×720 | Not tested | Expected to work (default) |
-| 1080p | `_1080p` | 1920×1080 | `sw2194dp xlrg` | Tested, working |
+### GPSLocation (`ahdz`)
 
-**Key findings:**
-- 1080p triggers "xlrg" layout classification (vs "normal" at 480p)
-- Phone dynamically adjusts UI layout density for resolution
-- Display dimensions include margin calculations (e.g., 1920×984 with sidebar margins)
-- 480p fallback config is always advertised alongside preferred resolution
-- 1080p software decode on Pi 4 is CPU-intensive — 720p is the production sweet spot
+***seed***
 
-### Video Setup Exchange
+| # | Name | Type | Notes |
+|---|------|------|-------|
+| 1 | timestamp | int32 |  |
+| 2 | latitude | int32 |  |
+| 3 | longitude | int32 |  |
+| 4 | accuracy | int32 |  |
+| 5 | altitude | int32 |  |
+| 6 | speed | int32 |  |
+| 7 | bearing | int32 |  |
+| 8 | pdop | int32 |  |
+| 9 | hdop | int32 |  |
+| 11 | vdop | int32 |  |
+| 14 | satellites_used | int32 |  |
+| 15 | fix_type | int32 |  |
+| 16 | dgps_age | int32 |  |
+| 17 | dgps_station | int32 |  |
+| 18 | magnetic_variation | int32 |  |
+| 20 | utc_time | int64 |  |
+| 21 | elapsed_realtime | int64 |  |
+| 22 | elapsed_realtime_uncertainty | int64 |  |
 
-- Phone sends `AV_SETUP_REQUEST` with `config_index=3` — phone's internal reference, NOT our config list index
-- HU responds with `max_unacked=10` and `configs(0)` pointing to primary resolution
-- Video focus grant triggers first IDR frame within ~200ms
+### Door (`vxh`)
 
-### Margin Negotiation
+***seed***
 
-`VideoConfig.margin_width` / `margin_height` creates a centered AA content region with
-black bar margins. Used for sidebar layout on non-standard aspect ratios. Margins are
-locked at session start (part of ServiceDiscoveryResponse). See `docs/aa-display-rendering.md`.
+| # | Name | Type | Notes |
+|---|------|------|-------|
+| 1 | hood_open | bool |  |
+| 2 | boot_open | bool |  |
+| 3 | door_open | repeated bool |  |
+
+### Light (`vyk`)
+
+***seed***
+
+| # | Name | Type | Notes |
+|---|------|------|-------|
+| 1 | headlight | enum | enum `a` |
+| 2 | indicator | enum | enum `a` |
+| 3 | hazard_light_on | bool |  |
+
+### SensorStartRequest (`war`)
+
+***seed***
+
+| # | Name | Type | Notes |
+|---|------|------|-------|
+| 1 | c | enum | enum `waq`: IDENTIFIER_TYPE_INVALID=0, IDENTIFIER_TYPE_AMFM_FREQUENCY=1, IDENTIFIER_TYPE_RDS_PI=2, IDENTIFIER_TYPE_HD_STATION_ID_EXT=3, IDENTIFIER_TYPE_HD_STATION_NAME=4, ...+5 |
+| 2 | d | uint64 |  |
+
+### SensorEventIndication (`wbo`)
+
+***seed***
+
+| # | Name | Type | Notes |
+|---|------|------|-------|
+| 1 | gps_location | repeated message | → `vyl` |
+| 2 | compass | repeated message | → `vxa` |
+| 3 | speed | repeated message | → `wcd` |
+| 4 | rpm | repeated message | → `wbn` |
+| 5 | odometer | repeated message | → `vzx` |
+| 6 | fuel_level | repeated message | → `vxn` |
+| 7 | parking_brake | repeated message | → `wab` |
+| 8 | gear | repeated message | → `vxp` |
+| 9 | diagnostics | repeated message | → `vxf` |
+| 10 | night_mode | repeated message | → `vzw` |
+| 11 | enviorment | repeated message | → `vxk` |
+| 27 | extended_sensor_data | sfixed32 |  |
+| 27 | extended_sensor_data | sint32 |  |
+| 27 | extended_sensor_data | sint64 |  |
+| 27 | extended_sensor_data | group |  |
+| 27 | extended_sensor_data | repeated double |  |
+| 27 | extended_sensor_data | repeated float |  |
+| 27 | extended_sensor_data | repeated int64 |  |
+| 27 | extended_sensor_data | repeated uint64 |  |
+| 27 | extended_sensor_data | repeated fixed32 |  |
+| 27 | extended_sensor_data | repeated bool |  |
+| 27 | extended_sensor_data | repeated string |  |
+
+### Diagnostics (`xss`)
+
+***seed***
+
+| # | Name | Type | Notes |
+|---|------|------|-------|
+| 1 | diagnostics | bytes |  |
+| 2 | extended_diagnostics | repeated bytes |  |
+| 3 | diagnostics_supported | bool |  |
+
+### `vxa`
+
+*Referenced by: `wbo` (SensorEventIndication) | depth 1*
+
+| # | Name | Type | Notes |
+|---|------|------|-------|
+| 1 | c | **int32** (required) |  |
+| 2 | d | int32 |  |
+| 3 | e | int32 |  |
+
+### `vxf`
+
+*Referenced by: `wbo` (SensorEventIndication) | depth 1*
+
+| # | Name | Type | Notes |
+|---|------|------|-------|
+| 1 | c | bytes |  |
+
+### `vxk`
+
+*Referenced by: `wbo` (SensorEventIndication) | depth 1*
+
+| # | Name | Type | Notes |
+|---|------|------|-------|
+| 1 | c | int32 |  |
+| 2 | d | int32 |  |
+| 3 | e | int32 |  |
+
+### `vxn`
+
+*Referenced by: `wbo` (SensorEventIndication) | depth 1*
+
+| # | Name | Type | Notes |
+|---|------|------|-------|
+| 1 | c | int32 |  |
+| 2 | d | int32 |  |
+| 3 | e | bool |  |
+
+### `vxp`
+
+*Referenced by: `wbo` (SensorEventIndication) | depth 1*
+
+| # | Name | Type | Notes |
+|---|------|------|-------|
+| 1 | b | **enum** (required) | enum `vee` |
+
+### `vyl`
+
+*Referenced by: `wbo` (SensorEventIndication) | depth 1*
+
+| # | Name | Type | Notes |
+|---|------|------|-------|
+| 2 | c | **int32** (required) |  |
+| 3 | d | **int32** (required) |  |
+| 4 | e | uint32 |  |
+| 5 | f | int32 |  |
+| 6 | g | int32 |  |
+| 7 | h | int32 |  |
+
+### `vzw`
+
+*Referenced by: `wbo` (SensorEventIndication) | depth 1*
+
+| # | Name | Type | Notes |
+|---|------|------|-------|
+| 1 | c | bool |  |
+
+### `vzx`
+
+*Referenced by: `wbo` (SensorEventIndication) | depth 1*
+
+| # | Name | Type | Notes |
+|---|------|------|-------|
+| 1 | c | **int32** (required) |  |
+| 2 | d | int32 |  |
+
+### `wab`
+
+*Referenced by: `wbo` (SensorEventIndication) | depth 1*
+
+| # | Name | Type | Notes |
+|---|------|------|-------|
+| 1 | b | **bool** (required) |  |
+
+### `wbn`
+
+*Referenced by: `wbo` (SensorEventIndication) | depth 1*
+
+| # | Name | Type | Notes |
+|---|------|------|-------|
+| 1 | b | **int32** (required) |  |
+
+### `wcd`
+
+*Referenced by: `wbo` (SensorEventIndication) | depth 1*
+
+| # | Name | Type | Notes |
+|---|------|------|-------|
+| 1 | c | **int32** (required) |  |
+| 2 | d | bool |  |
+| 4 | e | int32 |  |
+
+### Enums (sensor)
+
+**`waq`**
+*Used by: `war`*
+
+- `IDENTIFIER_TYPE_INVALID` = 0
+- `IDENTIFIER_TYPE_AMFM_FREQUENCY` = 1
+- `IDENTIFIER_TYPE_RDS_PI` = 2
+- `IDENTIFIER_TYPE_HD_STATION_ID_EXT` = 3
+- `IDENTIFIER_TYPE_HD_STATION_NAME` = 4
+- `IDENTIFIER_TYPE_DAB_DMB_SID_EXT` = 5
+- `IDENTIFIER_TYPE_DAB_ENSEMBLE` = 6
+- `IDENTIFIER_TYPE_DAB_SCID` = 7
+- `IDENTIFIER_TYPE_DAB_FREQUENCY` = 8
+- `IDENTIFIER_TYPE_DAB_SID_EXT` = 9
 
 ---
 
-## Audio Pipeline
+## Bluetooth Channel (8)
 
-### Audio Configuration
+BT pairing requests/responses
 
-| Stream | Channel | Sample Rate | Channels | Bit Depth | Direction |
-|--------|---------|-------------|----------|-----------|-----------|
-| Media | 4 | 48kHz | Stereo | 16-bit | Phone→HU |
-| Speech/Nav | 5 | 48kHz | Mono | 16-bit | Phone→HU |
-| System | 6 | 16kHz | Mono | 16-bit | Phone→HU |
-| Microphone | 7 | 16kHz | Mono | 16-bit | HU→Phone |
+### BluetoothPairingRequest (`kay`)
 
-### 48kHz Speech Audio (Probe 2)
+***seed***
 
-- Frame size doubled: 2058→4106 bytes (exactly 2x for 48kHz vs 16kHz mono)
-- Phone logs misleading: "Failed to find 48kHz guidance config, fallback to 16KHz" — but ACTUALLY captures at 48kHz
-- Phone confirms: `Start capturing system audio with sampling rate: 48000`
-- TTS latency: `audioPipelineLatency: [196, 147.38] ms` — reasonable
-- MAX_UNACK: 1 (single outstanding frame, flow-controlled)
+| # | Name | Type | Notes |
+|---|------|------|-------|
+| 1 | phone_address | string |  |
+| 2 | pairing_method | enum |  |
+| 3 | phone_name | string |  |
 
-### ALARM Audio Type
+### BluetoothPairingResponse (`xgq`)
 
-`AudioType::ALARM` (4) exists in the proto but cannot be tested without knowing its
-channel ID (likely in 9-13 range, undocumented in aasdk). Wrong channel would break session.
+***seed***
 
----
-
-## Sensor Channel
-
-### Supported Sensors
-
-| Sensor | Enum Value | Requested by Phone | Reporting Mode | Data Source |
-|--------|-----------|-------------------|----------------|-------------|
-| LOCATION | 1 (0x01) | Yes (twice) | 0x00 + 0x01 | No GPS — placeholder |
-| COMPASS | 2 (0x02) | Yes (Probe 8) | 0x03 (IMU) | No data — placeholder |
-| NIGHT_DATA | 10 (0x0a) | Yes | 0x00 (standard) | ThemeService day/night |
-| DRIVING_STATUS | 13 (0x0d) | Yes | 0x00 (standard) | Always UNRESTRICTED |
-| ACCEL | 19 (0x13) | Yes (Probe 8) | 0x03 (IMU) | No data — placeholder |
-| GYRO | 20 (0x14) | Advertised, NOT requested | — | — |
-
-### Sensor Request Payload Format
-
-```
-08 <type> 10 <mode>
-```
-- `type`: SensorType enum value
-- `mode`: Reporting mode/interval
-  - `00` = standard (NIGHT_DATA, DRIVING_STATUS)
-  - `01` = high frequency (LOCATION first request)
-  - `03` = IMU mode (COMPASS, ACCEL)
-
-### Night Mode (Probe 3)
-
-Night mode sensor push works correctly:
-```
-SENSOR_EVENT_INDICATION: 6a 02 08 00   → night=false (day mode)
-```
-Phone processes:
-```
-CAR.SENSOR: isNightModeEnabled DAY_NIGHT_MODE_VAL_CAR returning car day night sensor night=false
-CAR.SYS: setting night mode false
-CAR.WM: Updating video configuration. isNightMode: false
-```
-
-Night mode and palette theming are related but separate paths — night mode controls
-light/dark theme switching, palette version controls Material You dynamic color application.
+| # | Name | Type | Notes |
+|---|------|------|-------|
+| 1 | already_paired | bool |  |
+| 2 | status | enum |  |
+| 3 | error_message | string |  |
 
 ---
 
-## Theming / Palette (Probe 4) — UNRESOLVED
+## WiFi Channel (14)
 
-Phone logs:
-```
-GH.CarThemeVersionLD: Updating theming version to: 0
-GH.ThemingManager: Not updating theme, palette version doesn't match.
-  Current version: 2, HU version: 0
-```
+WiFi credential exchange for wireless AA
 
-Phone logs imply HU palette version is read as 0 from an undiscovered field. No
-`theme_version` or `palette_version` field exists in any known proto definition (checked
-aasdk, GAL docs, aa-proxy-rs). Likely an undocumented extension to ServiceDiscoveryResponse
-(field 18+), HeadUnitInfo (field 9+), or set at runtime via UpdateUiConfigRequest.
+### WifiSecurityResponse (`wan`)
 
-Impact: Without palette v2, Material You dynamic colors from HU are not applied.
-Phone falls back to default Google Maps theming. Cosmetic, not functional.
+***seed***
 
----
+| # | Name | Type | Notes |
+|---|------|------|-------|
+| 1 | ssid | string |  |
+| 2 | key | string |  |
+| 3 | bssid | string |  |
+| 4 | security_mode | message | → `waw` |
+| 5 | access_point_type | message | → `wam` |
+| 6 | wifi_direct_config | message | → `wbb` |
+| 7 | ip_address | string |  |
+| 8 | gateway | string |  |
+| 9 | prefix_length | uint32 |  |
+| 10 | hidden_network | bool |  |
+| 11 | band_5ghz | bool |  |
 
-## Protocol Wire Format
+### `wam`
 
-### Message Size by Type
+*Referenced by: `wan` (WifiSecurityResponse), `wbb` | depth 1*
 
-| Message | Typical Size | Notes |
-|---------|-------------|-------|
-| VERSION_REQUEST | 6 bytes | Raw binary |
-| VERSION_RESPONSE | 6 bytes | Raw binary |
-| SSL_HANDSHAKE | 200-800 bytes | TLS records |
-| SERVICE_DISCOVERY_REQUEST | 881 bytes (v1.7) | Grows with version |
-| SERVICE_DISCOVERY_RESPONSE | ~600-800 bytes | Depends on services |
-| CHANNEL_OPEN_REQUEST | ~4 bytes | Minimal |
-| CHANNEL_OPEN_RESPONSE | ~4 bytes | Minimal |
-| SENSOR_START_REQUEST | 6 bytes | Type + mode |
-| SENSOR_START_RESPONSE | 4 bytes | Status only |
-| SENSOR_EVENT_INDICATION | 6 bytes | Sensor-specific payload |
-| AV_SETUP_REQUEST | 4 bytes | Config index |
-| AV_SETUP_RESPONSE | 8 bytes | Status + config |
-| Video frames | 1000-16000+ bytes | H.264, varies |
-| Audio frames | 2058-4106 bytes | PCM, rate-dependent |
+| # | Name | Type | Notes |
+|---|------|------|-------|
+| 1 | c | bytes |  |
 
----
+### `waw`
 
-## Probe Results Summary
+*Referenced by: `wan` (WifiSecurityResponse) | depth 1*
 
-| # | Probe | Change | Outcome | Capture |
-|---|-------|--------|---------|---------|
-| 1 | Version v1.7 | AASDK_MINOR=7 | Phone negotiates v1.7, +40B in SDR, channel order changes. **Kept.** | `probe-1-version-bump/` |
-| 2 | 48kHz Speech | Speech sample rate 16→48kHz | Frame size doubles, phone captures 48kHz despite "fallback" log. **Kept.** | `probe-2-48khz-speech/` |
-| 3 | Night Mode | Existing sensor push | Sensor works, phone applies day/night. Palette v2 mismatch discovered. | `probe-3-night-mode/` |
-| 4 | Palette v2 | Find theme_version field | **BLOCKED** — field not in any known proto. Needs raw proto capture from production HU. | `probe-4-palette-v2/` |
-| 5 | hide_clock | SDR field 12 = true | **DEAD** — no effect on modern AA. Use CarDisplayUiFeatures instead. | `probe-5-8-hideclock-sensors/` |
-| 6 | ALARM Audio | Find ALARM channel ID | **SKIPPED** — channel IDs 9-13 unmapped, wrong channel breaks session. | `probe-6-alarm-audio/` |
-| 7 | 1080p Video | Config change to 1080p | Works, phone renders xlrg layout at 1920x984. Pi 4 CPU-intensive. | `probe-7-1080p/` |
-| 8 | Extra Sensors | +COMPASS, +ACCEL, +GYRO | Phone requests COMPASS + ACCEL, ignores GYRO. IMU mode suffix 0x03. **Kept.** | `probe-5-8-hideclock-sensors/` |
+| # | Name | Type | Notes |
+|---|------|------|-------|
+| 1 | b | enum | enum `viz` |
+| 2 | c | uint32 |  |
+
+### `wbb`
+
+*Referenced by: `wan` (WifiSecurityResponse) | depth 1*
+
+| # | Name | Type | Notes |
+|---|------|------|-------|
+| 1 | c | string |  |
+| 2 | d | string |  |
+| 3 | e | string |  |
+| 4 | f | string |  |
+| 5 | g | message | → `wam` |
+| 6 | h | uint64 |  |
 
 ---
 
-## Permanent Code Changes
+## Navigation Channel (9)
 
-Changes from protocol exploration (now on main):
+Turn-by-turn steps, distance/ETA, navigation state
 
-| Change | File | Validated By |
-|--------|------|-------------|
-| Protocol version v1.7 | `libs/aasdk/include/aasdk/Version.hpp` | Probe 1 |
-| 48kHz speech audio | `src/core/aa/ServiceFactory.cpp` | Probe 2 |
-| Extra sensors (COMPASS, ACCEL, GYRO) | `src/core/aa/ServiceFactory.cpp` | Probe 8 |
-| ProtocolLogger | `src/core/aa/ProtocolLogger.{hpp,cpp}` | All captures |
-| Universal CHANNEL_OPEN recognition | `src/core/aa/ProtocolLogger.cpp` | Baseline |
+### NavigationChannel (`ahdp`)
+
+***seed***
+
+| # | Name | Type | Notes |
+|---|------|------|-------|
+| 1 | minimum_interval_ms | int32 |  |
+| 2 | type | int32 |  |
+| 3 | image_options | message | → `ahdl` |
+
+### NavigationStep (`utj`)
+
+***seed***
+
+| # | Name | Type | Notes |
+|---|------|------|-------|
+| 1 | address | string |  |
+| 2 | icon | bytes |  |
+| 3 | e | string |  |
+| 4 | cue | int64 |  |
+| 5 | g | repeated message | → `utk` |
+
+### NavigationDistance (`xnb`)
+
+***seed***
+
+| # | Name | Type | Notes |
+|---|------|------|-------|
+| 1 | distance | **message** (required) | → `xmw` |
+| 2 | value | **string** (required) |  |
+| 3 | unit | **int32** (required) |  |
+| 8 | f | message | → `xng` |
+
+### `ahdl`
+
+*Referenced by: `ahdp` (NavigationChannel) | depth 1*
+
+| # | Name | Type | Notes |
+|---|------|------|-------|
+| 1 | c | fixed64 |  |
+| 2 | d | string |  |
+
+### `utk`
+
+*Referenced by: `utj` (NavigationStep) | depth 1*
+
+| # | Name | Type | Notes |
+|---|------|------|-------|
+| 0 |  | uint64 |  |
+| 0 |  | fixed64 |  |
+| 1 | e | string |  |
+| 2 |  | int64 |  |
+| 4 |  | double |  |
+
+### `xmw`
+
+*Referenced by: `xnb` (NavigationDistance) | depth 1*
+
+| # | Name | Type | Notes |
+|---|------|------|-------|
+| 1 | c | **int64** (required) |  |
+| 2 | d | **fixed32** (required) |  |
+| 3 | e | **fixed32** (required) |  |
+
+### `xng`
+
+*Referenced by: `xnb` (NavigationDistance) | depth 1*
+
+| # | Name | Type | Notes |
+|---|------|------|-------|
+| 1 | e | **message** (required) | → `xnd` |
+| 2 | f | repeated message | → `xnd` |
+| 4 | xne.class | message |  |
+
+### `xnd`
+
+*Referenced by: `xng` | depth 2*
+
+| # | Name | Type | Notes |
+|---|------|------|-------|
+| 1 | c | **string** (required) |  |
+| 2 | d | string |  |
+| 3 | e | int64 |  |
+| 4 | f | sfixed32 |  |
 
 ---
 
-## Open Questions
+## Media Status Channel (10)
 
-1. **Palette version field number** — where does the phone read theme_version from? Needs raw protobuf unknown-field capture from production HU.
-2. **GYRO sensor** — advertised but never requested. May require accelerometer data first, or only used during active navigation (dead reckoning).
-3. **CarDisplayUiFeatures** — how to set `hasClock=true`. Likely via UiConfig in VideoConfig, not the deprecated hide_clock field.
-4. **Channels 9-13** — service-to-channel mapping for production SDK services. Needs passive channel-ID discovery from traces.
-5. **Session configuration** — purpose of field 13 (int32) in ServiceDiscoveryResponse.
-6. **Live night mode toggle** — need to test night=true push during active session and verify real-time theme switch.
-7. **ALARM audio channel** — which channel ID does it use? Cannot test without channel map.
-8. **UpdateUiConfigRequest** — runtime UI reconfiguration (post-session-start), untested.
-9. **1080p sustained performance** — short capture only. Need thermal/CPU profiling under load. Consider adaptive resolution policy.
-10. **48kHz system audio** — would bumping channel 6 to 48kHz also work? Low priority.
-11. **ACCEL/COMPASS data streaming** — phone requests these sensors but we send no data. Implement with realistic timing and conformance checks.
-12. **Control message 0x0017** — observed in baseline capture, unmapped. Purpose unknown.
+Playback state, track metadata, album art
+
+### MediaPlaybackMetadata (`nmi`)
+
+***seed***
+
+| # | Name | Type | Notes |
+|---|------|------|-------|
+| 1 | title | string |  |
+| 2 | artist | string |  |
+| 3 | album | string |  |
+| 4 | album_art | bytes |  |
+| 5 | is_playing | bool |  |
+| 6 | album_art_url | string |  |
+
+---
+
+## Phone Status Channel (11)
+
+Call state, signal strength, battery
+
+### PhoneStatus (`wad`)
+
+***seed***
+
+| # | Name | Type | Notes |
+|---|------|------|-------|
+| 1 | c | **enum** (required) | enum `wae`: UNKNOWN=0, IN_CALL=1, ON_HOLD=2, INACTIVE=3, INCOMING=4, ...+2 |
+| 2 | d | **uint32** (required) |  |
+| 3 | e | string |  |
+| 4 | f | string |  |
+| 5 | g | string |  |
+| 6 | h | bytes |  |
+
+### Enums (phone)
+
+**`wae`**
+*Used by: `wad`*
+
+- `UNKNOWN` = 0
+- `IN_CALL` = 1
+- `ON_HOLD` = 2
+- `INACTIVE` = 3
+- `INCOMING` = 4
+- `CONFERENCED` = 5
+- `MUTED` = 6
+
+---
+
+## Gearhead
+
+### `nll`
+
+***gearhead root***
+
+| # | Name | Type | Notes |
+|---|------|------|-------|
+| 1 | c | bool |  |
+| 2 | d | bool |  |
+| 3 | e | bool |  |
+| 4 | f | bool |  |
+| 5 | g | bool |  |
+| 6 | h | bool |  |
+| 7 | i | bool |  |
+| 8 | j | bool |  |
+| 9 | k | bool |  |
+| 10 | l | bool |  |
+| 11 | m | bool |  |
+| 13 | p | bool |  |
+
+### `nlq`
+
+***gearhead root***
+
+| # | Name | Type | Notes |
+|---|------|------|-------|
+| 1 | c | bool |  |
+| 2 | d | bool |  |
+| 3 | e | bool |  |
+| 5 | f | bool |  |
+| 6 | g | bool |  |
+| 7 | h | bool |  |
+| 8 | i | bool |  |
+| 10 | j | bool |  |
+| 11 | k | bool |  |
+| 13 | m | bool |  |

@@ -1,0 +1,5639 @@
+{
+  "metadata": {
+    "apk_version": "16.1.660414-release",
+    "total_apk_protos": 1940,
+    "total_apk_enums": 133,
+    "aa_relevant_messages": 80,
+    "aa_relevant_enums": 8,
+    "seed_count": 30
+  },
+  "messages": {
+    "aacd": {
+      "apk_class": "aacd",
+      "our_name": "HeadUnitInfo",
+      "channels": [
+        "control"
+      ],
+      "depth": 0,
+      "seed": true,
+      "gearhead_root": false,
+      "referenced_by": [],
+      "field_count": 8,
+      "fields": [
+        {
+          "number": 1,
+          "name": "make",
+          "obfuscated_name": "c",
+          "type": "string",
+          "repeated": false,
+          "required": false
+        },
+        {
+          "number": 2,
+          "name": "model",
+          "obfuscated_name": "d",
+          "type": "string",
+          "repeated": false,
+          "required": false
+        },
+        {
+          "number": 3,
+          "name": "year",
+          "obfuscated_name": "e",
+          "type": "string",
+          "repeated": false,
+          "required": false
+        },
+        {
+          "number": 4,
+          "name": "vehicle_id",
+          "obfuscated_name": "f",
+          "type": "string",
+          "repeated": false,
+          "required": false
+        },
+        {
+          "number": 5,
+          "name": "head_unit_make",
+          "obfuscated_name": "g",
+          "type": "string",
+          "repeated": false,
+          "required": false
+        },
+        {
+          "number": 6,
+          "name": "head_unit_model",
+          "obfuscated_name": "h",
+          "type": "string",
+          "repeated": false,
+          "required": false
+        },
+        {
+          "number": 7,
+          "name": "head_unit_software_build",
+          "obfuscated_name": "i",
+          "type": "string",
+          "repeated": false,
+          "required": false
+        },
+        {
+          "number": 8,
+          "name": "head_unit_software_version",
+          "obfuscated_name": "j",
+          "type": "string",
+          "repeated": false,
+          "required": false
+        }
+      ],
+      "references": []
+    },
+    "aafs": {
+      "apk_class": "aafs",
+      "our_name": "",
+      "channels": [
+        "control"
+      ],
+      "depth": 2,
+      "seed": false,
+      "gearhead_root": false,
+      "referenced_by": [
+        "aagr"
+      ],
+      "field_count": 4,
+      "fields": [
+        {
+          "number": 1,
+          "name": "b",
+          "obfuscated_name": "b",
+          "type": "string",
+          "repeated": false,
+          "required": false
+        },
+        {
+          "number": 2,
+          "name": "c",
+          "obfuscated_name": "c",
+          "type": "string",
+          "repeated": false,
+          "required": false
+        },
+        {
+          "number": 3,
+          "name": "d",
+          "obfuscated_name": "d",
+          "type": "string",
+          "repeated": false,
+          "required": false
+        },
+        {
+          "number": 4,
+          "name": "e",
+          "obfuscated_name": "e",
+          "type": "string",
+          "repeated": false,
+          "required": false
+        }
+      ],
+      "references": []
+    },
+    "aaft": {
+      "apk_class": "aaft",
+      "our_name": "",
+      "channels": [
+        "control"
+      ],
+      "depth": 3,
+      "seed": false,
+      "gearhead_root": false,
+      "referenced_by": [
+        "aafu"
+      ],
+      "field_count": 2,
+      "fields": [
+        {
+          "number": 1,
+          "name": "c",
+          "obfuscated_name": "c",
+          "type": "message",
+          "repeated": false,
+          "required": false,
+          "message_class": "zyd"
+        },
+        {
+          "number": 2,
+          "name": "d",
+          "obfuscated_name": "d",
+          "type": "message",
+          "repeated": false,
+          "required": false,
+          "message_class": "zyd"
+        }
+      ],
+      "references": [
+        "zyd"
+      ]
+    },
+    "aafu": {
+      "apk_class": "aafu",
+      "our_name": "",
+      "channels": [
+        "control"
+      ],
+      "depth": 2,
+      "seed": false,
+      "gearhead_root": false,
+      "referenced_by": [
+        "aagr"
+      ],
+      "field_count": 3,
+      "fields": [
+        {
+          "number": 1,
+          "name": "c",
+          "obfuscated_name": "c",
+          "type": "message",
+          "repeated": false,
+          "required": false,
+          "message_class": "aaft"
+        },
+        {
+          "number": 3,
+          "name": "d",
+          "obfuscated_name": "d",
+          "type": "unknown_41",
+          "repeated": false,
+          "required": false
+        }
+      ],
+      "references": [
+        "aaft"
+      ]
+    },
+    "aagh": {
+      "apk_class": "aagh",
+      "our_name": "",
+      "channels": [
+        "control"
+      ],
+      "depth": 2,
+      "seed": false,
+      "gearhead_root": false,
+      "referenced_by": [
+        "aagr"
+      ],
+      "field_count": 2,
+      "fields": [
+        {
+          "number": 1,
+          "name": "b",
+          "obfuscated_name": "b",
+          "type": "bool",
+          "repeated": false,
+          "required": false
+        },
+        {
+          "number": 2,
+          "name": "c",
+          "obfuscated_name": "c",
+          "type": "string",
+          "repeated": false,
+          "required": false
+        }
+      ],
+      "references": []
+    },
+    "aagr": {
+      "apk_class": "aagr",
+      "our_name": "",
+      "channels": [
+        "control"
+      ],
+      "depth": 1,
+      "seed": false,
+      "gearhead_root": false,
+      "referenced_by": [
+        "aahi"
+      ],
+      "field_count": 6,
+      "fields": [
+        {
+          "number": 1,
+          "name": "c",
+          "obfuscated_name": "c",
+          "type": "message",
+          "repeated": false,
+          "required": false,
+          "message_class": "aagh"
+        },
+        {
+          "number": 2,
+          "name": "d",
+          "obfuscated_name": "d",
+          "type": "message",
+          "repeated": false,
+          "required": false,
+          "message_class": "aafs"
+        },
+        {
+          "number": 3,
+          "name": "e",
+          "obfuscated_name": "e",
+          "type": "message",
+          "repeated": false,
+          "required": false,
+          "message_class": "aafu"
+        },
+        {
+          "number": 4,
+          "name": "f",
+          "obfuscated_name": "f",
+          "type": "message",
+          "repeated": false,
+          "required": false,
+          "message_class": "aags"
+        },
+        {
+          "number": 5,
+          "name": "g",
+          "obfuscated_name": "g",
+          "type": "message",
+          "repeated": true,
+          "required": false,
+          "message_class": "aagv"
+        },
+        {
+          "number": 7,
+          "name": "h",
+          "obfuscated_name": "h",
+          "type": "string",
+          "repeated": false,
+          "required": false
+        }
+      ],
+      "references": [
+        "aafs",
+        "aafu",
+        "aagh",
+        "aags",
+        "aagv"
+      ]
+    },
+    "aags": {
+      "apk_class": "aags",
+      "our_name": "",
+      "channels": [
+        "control"
+      ],
+      "depth": 2,
+      "seed": false,
+      "gearhead_root": false,
+      "referenced_by": [
+        "aagr"
+      ],
+      "field_count": 2,
+      "fields": [
+        {
+          "number": 1,
+          "name": "b",
+          "obfuscated_name": "b",
+          "type": "bool",
+          "repeated": false,
+          "required": false
+        },
+        {
+          "number": 2,
+          "name": "c",
+          "obfuscated_name": "c",
+          "type": "bool",
+          "repeated": false,
+          "required": false
+        }
+      ],
+      "references": []
+    },
+    "aagv": {
+      "apk_class": "aagv",
+      "our_name": "",
+      "channels": [
+        "control"
+      ],
+      "depth": 2,
+      "seed": false,
+      "gearhead_root": false,
+      "referenced_by": [
+        "aagr"
+      ],
+      "field_count": 10,
+      "fields": [
+        {
+          "number": 1,
+          "name": "d",
+          "obfuscated_name": "d",
+          "type": "uint32",
+          "repeated": false,
+          "required": false
+        },
+        {
+          "number": 2,
+          "name": "e",
+          "obfuscated_name": "e",
+          "type": "string",
+          "repeated": false,
+          "required": false
+        },
+        {
+          "number": 3,
+          "name": "h",
+          "obfuscated_name": "h",
+          "type": "unknown_41",
+          "repeated": false,
+          "required": false
+        },
+        {
+          "number": 5,
+          "name": "aagw.class",
+          "obfuscated_name": "aagw.class",
+          "type": "message",
+          "repeated": false,
+          "required": false
+        },
+        {
+          "number": 0,
+          "name": "aagq.class",
+          "obfuscated_name": "aagq.class",
+          "type": "fixed32",
+          "repeated": false,
+          "required": false
+        },
+        {
+          "number": 7,
+          "name": "f",
+          "obfuscated_name": "f",
+          "type": "message",
+          "repeated": false,
+          "required": false
+        },
+        {
+          "number": 0,
+          "name": "g",
+          "obfuscated_name": "g",
+          "type": "string",
+          "repeated": false,
+          "required": false
+        }
+      ],
+      "references": []
+    },
+    "aahd": {
+      "apk_class": "aahd",
+      "our_name": "",
+      "channels": [
+        "control"
+      ],
+      "depth": 1,
+      "seed": false,
+      "gearhead_root": false,
+      "referenced_by": [
+        "aahi"
+      ],
+      "field_count": 2,
+      "fields": [
+        {
+          "number": 1,
+          "name": "b",
+          "obfuscated_name": "b",
+          "type": "string",
+          "repeated": false,
+          "required": false
+        },
+        {
+          "number": 2,
+          "name": "c",
+          "obfuscated_name": "c",
+          "type": "bytes",
+          "repeated": false,
+          "required": false
+        }
+      ],
+      "references": []
+    },
+    "aahi": {
+      "apk_class": "aahi",
+      "our_name": "ServiceDiscoveryRequest",
+      "channels": [
+        "control"
+      ],
+      "depth": 0,
+      "seed": true,
+      "gearhead_root": false,
+      "referenced_by": [],
+      "field_count": 5,
+      "fields": [
+        {
+          "number": 1,
+          "name": "phone_icon_small",
+          "obfuscated_name": "c",
+          "type": "message",
+          "repeated": false,
+          "required": false,
+          "message_class": "aahd"
+        },
+        {
+          "number": 2,
+          "name": "phone_icon_medium",
+          "obfuscated_name": "d",
+          "type": "message",
+          "repeated": false,
+          "required": false,
+          "message_class": "aagr"
+        },
+        {
+          "number": 3,
+          "name": "phone_icon_large",
+          "obfuscated_name": "e",
+          "type": "string",
+          "repeated": false,
+          "required": false
+        },
+        {
+          "number": 4,
+          "name": "device_name",
+          "obfuscated_name": "f",
+          "type": "string",
+          "repeated": false,
+          "required": false
+        },
+        {
+          "number": 5,
+          "name": "device_brand",
+          "obfuscated_name": "",
+          "type": "string",
+          "repeated": false,
+          "required": false
+        }
+      ],
+      "references": [
+        "aagr",
+        "aahd"
+      ]
+    },
+    "aajk": {
+      "apk_class": "aajk",
+      "our_name": "ConnectionConfiguration",
+      "channels": [
+        "control"
+      ],
+      "depth": 0,
+      "seed": true,
+      "gearhead_root": false,
+      "referenced_by": [],
+      "field_count": 6,
+      "fields": [
+        {
+          "number": 1,
+          "name": "ping_configuration",
+          "obfuscated_name": "e",
+          "type": "message",
+          "repeated": false,
+          "required": false,
+          "message_class": "zyd"
+        },
+        {
+          "number": 2,
+          "name": "aajj.class",
+          "obfuscated_name": "aajj.class",
+          "type": "message",
+          "repeated": false,
+          "required": false
+        },
+        {
+          "number": 0,
+          "name": "aajh.class",
+          "obfuscated_name": "aajh.class",
+          "type": "uint64",
+          "repeated": false,
+          "required": false
+        },
+        {
+          "number": 4,
+          "name": "aajg.class",
+          "obfuscated_name": "aajg.class",
+          "type": "message",
+          "repeated": false,
+          "required": false
+        },
+        {
+          "number": 0,
+          "name": "aaji.class",
+          "obfuscated_name": "aaji.class",
+          "type": "fixed64",
+          "repeated": false,
+          "required": false
+        }
+      ],
+      "references": [
+        "zyd"
+      ]
+    },
+    "ahdl": {
+      "apk_class": "ahdl",
+      "our_name": "",
+      "channels": [
+        "navigation"
+      ],
+      "depth": 1,
+      "seed": false,
+      "gearhead_root": false,
+      "referenced_by": [
+        "ahdp"
+      ],
+      "field_count": 2,
+      "fields": [
+        {
+          "number": 1,
+          "name": "c",
+          "obfuscated_name": "c",
+          "type": "fixed64",
+          "repeated": false,
+          "required": false
+        },
+        {
+          "number": 2,
+          "name": "d",
+          "obfuscated_name": "d",
+          "type": "string",
+          "repeated": false,
+          "required": false
+        }
+      ],
+      "references": []
+    },
+    "ahdp": {
+      "apk_class": "ahdp",
+      "our_name": "NavigationChannel",
+      "channels": [
+        "navigation"
+      ],
+      "depth": 0,
+      "seed": true,
+      "gearhead_root": false,
+      "referenced_by": [],
+      "field_count": 3,
+      "fields": [
+        {
+          "number": 1,
+          "name": "minimum_interval_ms",
+          "obfuscated_name": "c",
+          "type": "int32",
+          "repeated": false,
+          "required": false
+        },
+        {
+          "number": 2,
+          "name": "type",
+          "obfuscated_name": "d",
+          "type": "int32",
+          "repeated": false,
+          "required": false
+        },
+        {
+          "number": 3,
+          "name": "image_options",
+          "obfuscated_name": "e",
+          "type": "message",
+          "repeated": false,
+          "required": false,
+          "message_class": "ahdl"
+        }
+      ],
+      "references": [
+        "ahdl"
+      ]
+    },
+    "ahdz": {
+      "apk_class": "ahdz",
+      "our_name": "GPSLocation",
+      "channels": [
+        "sensor"
+      ],
+      "depth": 0,
+      "seed": true,
+      "gearhead_root": false,
+      "referenced_by": [],
+      "field_count": 22,
+      "fields": [
+        {
+          "number": 1,
+          "name": "timestamp",
+          "obfuscated_name": "c",
+          "type": "int32",
+          "repeated": false,
+          "required": false
+        },
+        {
+          "number": 2,
+          "name": "latitude",
+          "obfuscated_name": "d",
+          "type": "int32",
+          "repeated": false,
+          "required": false
+        },
+        {
+          "number": 3,
+          "name": "longitude",
+          "obfuscated_name": "e",
+          "type": "int32",
+          "repeated": false,
+          "required": false
+        },
+        {
+          "number": 4,
+          "name": "accuracy",
+          "obfuscated_name": "f",
+          "type": "int32",
+          "repeated": false,
+          "required": false
+        },
+        {
+          "number": 5,
+          "name": "altitude",
+          "obfuscated_name": "g",
+          "type": "int32",
+          "repeated": false,
+          "required": false
+        },
+        {
+          "number": 6,
+          "name": "speed",
+          "obfuscated_name": "h",
+          "type": "int32",
+          "repeated": false,
+          "required": false
+        },
+        {
+          "number": 7,
+          "name": "bearing",
+          "obfuscated_name": "i",
+          "type": "int32",
+          "repeated": false,
+          "required": false
+        },
+        {
+          "number": 8,
+          "name": "pdop",
+          "obfuscated_name": "j",
+          "type": "int32",
+          "repeated": false,
+          "required": false
+        },
+        {
+          "number": 9,
+          "name": "hdop",
+          "obfuscated_name": "k",
+          "type": "int32",
+          "repeated": false,
+          "required": false
+        },
+        {
+          "number": 11,
+          "name": "vdop",
+          "obfuscated_name": "l",
+          "type": "int32",
+          "repeated": false,
+          "required": false
+        },
+        {
+          "number": 14,
+          "name": "satellites_used",
+          "obfuscated_name": "q",
+          "type": "int32",
+          "repeated": false,
+          "required": false
+        },
+        {
+          "number": 15,
+          "name": "fix_type",
+          "obfuscated_name": "r",
+          "type": "int32",
+          "repeated": false,
+          "required": false
+        },
+        {
+          "number": 16,
+          "name": "dgps_age",
+          "obfuscated_name": "s",
+          "type": "int32",
+          "repeated": false,
+          "required": false
+        },
+        {
+          "number": 17,
+          "name": "dgps_station",
+          "obfuscated_name": "t",
+          "type": "int32",
+          "repeated": false,
+          "required": false
+        },
+        {
+          "number": 18,
+          "name": "magnetic_variation",
+          "obfuscated_name": "u",
+          "type": "int32",
+          "repeated": false,
+          "required": false
+        },
+        {
+          "number": 20,
+          "name": "utc_time",
+          "obfuscated_name": "v",
+          "type": "int64",
+          "repeated": false,
+          "required": false
+        },
+        {
+          "number": 21,
+          "name": "elapsed_realtime",
+          "obfuscated_name": "w",
+          "type": "int64",
+          "repeated": false,
+          "required": false
+        },
+        {
+          "number": 22,
+          "name": "elapsed_realtime_uncertainty",
+          "obfuscated_name": "x",
+          "type": "int64",
+          "repeated": false,
+          "required": false
+        }
+      ],
+      "references": []
+    },
+    "kay": {
+      "apk_class": "kay",
+      "our_name": "BluetoothPairingRequest",
+      "channels": [
+        "bluetooth"
+      ],
+      "depth": 0,
+      "seed": true,
+      "gearhead_root": false,
+      "referenced_by": [],
+      "field_count": 3,
+      "fields": [
+        {
+          "number": 1,
+          "name": "phone_address",
+          "obfuscated_name": "b",
+          "type": "string",
+          "repeated": false,
+          "required": false
+        },
+        {
+          "number": 2,
+          "name": "pairing_method",
+          "obfuscated_name": "c",
+          "type": "enum",
+          "repeated": false,
+          "required": false,
+          "enum_verifier": "nln.b"
+        },
+        {
+          "number": 3,
+          "name": "phone_name",
+          "obfuscated_name": "d",
+          "type": "string",
+          "repeated": false,
+          "required": false
+        }
+      ],
+      "references": []
+    },
+    "nll": {
+      "apk_class": "nll",
+      "our_name": "",
+      "channels": [
+        "gearhead"
+      ],
+      "depth": 0,
+      "seed": false,
+      "gearhead_root": true,
+      "referenced_by": [],
+      "field_count": 14,
+      "fields": [
+        {
+          "number": 1,
+          "name": "c",
+          "obfuscated_name": "c",
+          "type": "bool",
+          "repeated": false,
+          "required": false
+        },
+        {
+          "number": 2,
+          "name": "d",
+          "obfuscated_name": "d",
+          "type": "bool",
+          "repeated": false,
+          "required": false
+        },
+        {
+          "number": 3,
+          "name": "e",
+          "obfuscated_name": "e",
+          "type": "bool",
+          "repeated": false,
+          "required": false
+        },
+        {
+          "number": 4,
+          "name": "f",
+          "obfuscated_name": "f",
+          "type": "bool",
+          "repeated": false,
+          "required": false
+        },
+        {
+          "number": 5,
+          "name": "g",
+          "obfuscated_name": "g",
+          "type": "bool",
+          "repeated": false,
+          "required": false
+        },
+        {
+          "number": 6,
+          "name": "h",
+          "obfuscated_name": "h",
+          "type": "bool",
+          "repeated": false,
+          "required": false
+        },
+        {
+          "number": 7,
+          "name": "i",
+          "obfuscated_name": "i",
+          "type": "bool",
+          "repeated": false,
+          "required": false
+        },
+        {
+          "number": 8,
+          "name": "j",
+          "obfuscated_name": "j",
+          "type": "bool",
+          "repeated": false,
+          "required": false
+        },
+        {
+          "number": 9,
+          "name": "k",
+          "obfuscated_name": "k",
+          "type": "bool",
+          "repeated": false,
+          "required": false
+        },
+        {
+          "number": 10,
+          "name": "l",
+          "obfuscated_name": "l",
+          "type": "bool",
+          "repeated": false,
+          "required": false
+        },
+        {
+          "number": 11,
+          "name": "m",
+          "obfuscated_name": "m",
+          "type": "bool",
+          "repeated": false,
+          "required": false
+        },
+        {
+          "number": 13,
+          "name": "p",
+          "obfuscated_name": "p",
+          "type": "bool",
+          "repeated": false,
+          "required": false
+        }
+      ],
+      "references": []
+    },
+    "nlq": {
+      "apk_class": "nlq",
+      "our_name": "",
+      "channels": [
+        "gearhead"
+      ],
+      "depth": 0,
+      "seed": false,
+      "gearhead_root": true,
+      "referenced_by": [],
+      "field_count": 13,
+      "fields": [
+        {
+          "number": 1,
+          "name": "c",
+          "obfuscated_name": "c",
+          "type": "bool",
+          "repeated": false,
+          "required": false
+        },
+        {
+          "number": 2,
+          "name": "d",
+          "obfuscated_name": "d",
+          "type": "bool",
+          "repeated": false,
+          "required": false
+        },
+        {
+          "number": 3,
+          "name": "e",
+          "obfuscated_name": "e",
+          "type": "bool",
+          "repeated": false,
+          "required": false
+        },
+        {
+          "number": 5,
+          "name": "f",
+          "obfuscated_name": "f",
+          "type": "bool",
+          "repeated": false,
+          "required": false
+        },
+        {
+          "number": 6,
+          "name": "g",
+          "obfuscated_name": "g",
+          "type": "bool",
+          "repeated": false,
+          "required": false
+        },
+        {
+          "number": 7,
+          "name": "h",
+          "obfuscated_name": "h",
+          "type": "bool",
+          "repeated": false,
+          "required": false
+        },
+        {
+          "number": 8,
+          "name": "i",
+          "obfuscated_name": "i",
+          "type": "bool",
+          "repeated": false,
+          "required": false
+        },
+        {
+          "number": 10,
+          "name": "j",
+          "obfuscated_name": "j",
+          "type": "bool",
+          "repeated": false,
+          "required": false
+        },
+        {
+          "number": 11,
+          "name": "k",
+          "obfuscated_name": "k",
+          "type": "bool",
+          "repeated": false,
+          "required": false
+        },
+        {
+          "number": 13,
+          "name": "m",
+          "obfuscated_name": "m",
+          "type": "bool",
+          "repeated": false,
+          "required": false
+        }
+      ],
+      "references": []
+    },
+    "nmi": {
+      "apk_class": "nmi",
+      "our_name": "MediaPlaybackMetadata",
+      "channels": [
+        "media"
+      ],
+      "depth": 0,
+      "seed": true,
+      "gearhead_root": false,
+      "referenced_by": [],
+      "field_count": 6,
+      "fields": [
+        {
+          "number": 1,
+          "name": "title",
+          "obfuscated_name": "c",
+          "type": "string",
+          "repeated": false,
+          "required": false
+        },
+        {
+          "number": 2,
+          "name": "artist",
+          "obfuscated_name": "e",
+          "type": "string",
+          "repeated": false,
+          "required": false
+        },
+        {
+          "number": 3,
+          "name": "album",
+          "obfuscated_name": "f",
+          "type": "string",
+          "repeated": false,
+          "required": false
+        },
+        {
+          "number": 4,
+          "name": "album_art",
+          "obfuscated_name": "d",
+          "type": "bytes",
+          "repeated": false,
+          "required": false
+        },
+        {
+          "number": 5,
+          "name": "is_playing",
+          "obfuscated_name": "g",
+          "type": "bool",
+          "repeated": false,
+          "required": false
+        },
+        {
+          "number": 6,
+          "name": "album_art_url",
+          "obfuscated_name": "h",
+          "type": "string",
+          "repeated": false,
+          "required": false
+        }
+      ],
+      "references": []
+    },
+    "utj": {
+      "apk_class": "utj",
+      "our_name": "NavigationStep",
+      "channels": [
+        "navigation"
+      ],
+      "depth": 0,
+      "seed": true,
+      "gearhead_root": false,
+      "referenced_by": [],
+      "field_count": 5,
+      "fields": [
+        {
+          "number": 1,
+          "name": "address",
+          "obfuscated_name": "c",
+          "type": "string",
+          "repeated": false,
+          "required": false
+        },
+        {
+          "number": 2,
+          "name": "icon",
+          "obfuscated_name": "d",
+          "type": "bytes",
+          "repeated": false,
+          "required": false
+        },
+        {
+          "number": 3,
+          "name": "e",
+          "obfuscated_name": "e",
+          "type": "string",
+          "repeated": false,
+          "required": false
+        },
+        {
+          "number": 4,
+          "name": "cue",
+          "obfuscated_name": "f",
+          "type": "int64",
+          "repeated": false,
+          "required": false
+        },
+        {
+          "number": 5,
+          "name": "g",
+          "obfuscated_name": "g",
+          "type": "message",
+          "repeated": true,
+          "required": false,
+          "message_class": "utk"
+        }
+      ],
+      "references": [
+        "utk"
+      ]
+    },
+    "utk": {
+      "apk_class": "utk",
+      "our_name": "",
+      "channels": [
+        "navigation"
+      ],
+      "depth": 1,
+      "seed": false,
+      "gearhead_root": false,
+      "referenced_by": [
+        "utj"
+      ],
+      "field_count": 6,
+      "fields": [
+        {
+          "number": 1,
+          "name": "e",
+          "obfuscated_name": "e",
+          "type": "string",
+          "repeated": false,
+          "required": false
+        },
+        {
+          "number": 2,
+          "name": "",
+          "obfuscated_name": "",
+          "type": "int64",
+          "repeated": false,
+          "required": false
+        },
+        {
+          "number": 0,
+          "name": "",
+          "obfuscated_name": "",
+          "type": "uint64",
+          "repeated": false,
+          "required": false
+        },
+        {
+          "number": 4,
+          "name": "",
+          "obfuscated_name": "",
+          "type": "double",
+          "repeated": false,
+          "required": false
+        },
+        {
+          "number": 0,
+          "name": "",
+          "obfuscated_name": "",
+          "type": "fixed64",
+          "repeated": false,
+          "required": false
+        }
+      ],
+      "references": []
+    },
+    "vvh": {
+      "apk_class": "vvh",
+      "our_name": "",
+      "channels": [
+        "input"
+      ],
+      "depth": 2,
+      "seed": false,
+      "gearhead_root": false,
+      "referenced_by": [
+        "vvi"
+      ],
+      "field_count": 2,
+      "fields": [
+        {
+          "number": 1,
+          "name": "b",
+          "obfuscated_name": "b",
+          "type": "uint32",
+          "repeated": false,
+          "required": true
+        },
+        {
+          "number": 2,
+          "name": "c",
+          "obfuscated_name": "c",
+          "type": "int32",
+          "repeated": false,
+          "required": true
+        }
+      ],
+      "references": []
+    },
+    "vvi": {
+      "apk_class": "vvi",
+      "our_name": "",
+      "channels": [
+        "input"
+      ],
+      "depth": 1,
+      "seed": false,
+      "gearhead_root": false,
+      "referenced_by": [
+        "vxx"
+      ],
+      "field_count": 1,
+      "fields": [
+        {
+          "number": 1,
+          "name": "b",
+          "obfuscated_name": "b",
+          "type": "message",
+          "repeated": true,
+          "required": false,
+          "message_class": "vvh"
+        }
+      ],
+      "references": [
+        "vvh"
+      ]
+    },
+    "vvp": {
+      "apk_class": "vvp",
+      "our_name": "",
+      "channels": [
+        "control",
+        "video"
+      ],
+      "depth": 1,
+      "seed": false,
+      "gearhead_root": false,
+      "referenced_by": [
+        "vys",
+        "vyt"
+      ],
+      "field_count": 3,
+      "fields": [
+        {
+          "number": 1,
+          "name": "c",
+          "obfuscated_name": "c",
+          "type": "uint32",
+          "repeated": false,
+          "required": true
+        },
+        {
+          "number": 2,
+          "name": "d",
+          "obfuscated_name": "d",
+          "type": "uint32",
+          "repeated": false,
+          "required": true
+        },
+        {
+          "number": 3,
+          "name": "e",
+          "obfuscated_name": "e",
+          "type": "uint32",
+          "repeated": false,
+          "required": true
+        }
+      ],
+      "references": []
+    },
+    "vwc": {
+      "apk_class": "vwc",
+      "our_name": "",
+      "channels": [
+        "control"
+      ],
+      "depth": 1,
+      "seed": false,
+      "gearhead_root": false,
+      "referenced_by": [
+        "wbw"
+      ],
+      "field_count": 0,
+      "fields": [],
+      "references": []
+    },
+    "vxa": {
+      "apk_class": "vxa",
+      "our_name": "",
+      "channels": [
+        "sensor"
+      ],
+      "depth": 1,
+      "seed": false,
+      "gearhead_root": false,
+      "referenced_by": [
+        "wbo"
+      ],
+      "field_count": 3,
+      "fields": [
+        {
+          "number": 1,
+          "name": "c",
+          "obfuscated_name": "c",
+          "type": "int32",
+          "repeated": false,
+          "required": true
+        },
+        {
+          "number": 2,
+          "name": "d",
+          "obfuscated_name": "d",
+          "type": "int32",
+          "repeated": false,
+          "required": false
+        },
+        {
+          "number": 3,
+          "name": "e",
+          "obfuscated_name": "e",
+          "type": "int32",
+          "repeated": false,
+          "required": false
+        }
+      ],
+      "references": []
+    },
+    "vxb": {
+      "apk_class": "vxb",
+      "our_name": "AVChannelSetupResponse",
+      "channels": [
+        "video"
+      ],
+      "depth": 0,
+      "seed": true,
+      "gearhead_root": false,
+      "referenced_by": [],
+      "field_count": 3,
+      "fields": [
+        {
+          "number": 1,
+          "name": "media_status",
+          "obfuscated_name": "c",
+          "type": "enum",
+          "repeated": false,
+          "required": true,
+          "enum_class": "viz",
+          "enum_verifier": "vvs.i"
+        },
+        {
+          "number": 2,
+          "name": "max_unacked",
+          "obfuscated_name": "d",
+          "type": "uint32",
+          "repeated": false,
+          "required": false
+        },
+        {
+          "number": 3,
+          "name": "configs",
+          "obfuscated_name": "e",
+          "type": "uint32",
+          "repeated": true,
+          "required": false
+        }
+      ],
+      "references": []
+    },
+    "vxf": {
+      "apk_class": "vxf",
+      "our_name": "",
+      "channels": [
+        "sensor"
+      ],
+      "depth": 1,
+      "seed": false,
+      "gearhead_root": false,
+      "referenced_by": [
+        "wbo"
+      ],
+      "field_count": 1,
+      "fields": [
+        {
+          "number": 1,
+          "name": "c",
+          "obfuscated_name": "c",
+          "type": "bytes",
+          "repeated": false,
+          "required": false
+        }
+      ],
+      "references": []
+    },
+    "vxh": {
+      "apk_class": "vxh",
+      "our_name": "Door",
+      "channels": [
+        "sensor"
+      ],
+      "depth": 0,
+      "seed": true,
+      "gearhead_root": false,
+      "referenced_by": [],
+      "field_count": 3,
+      "fields": [
+        {
+          "number": 1,
+          "name": "hood_open",
+          "obfuscated_name": "c",
+          "type": "bool",
+          "repeated": false,
+          "required": false
+        },
+        {
+          "number": 2,
+          "name": "boot_open",
+          "obfuscated_name": "d",
+          "type": "bool",
+          "repeated": false,
+          "required": false
+        },
+        {
+          "number": 3,
+          "name": "door_open",
+          "obfuscated_name": "e",
+          "type": "bool",
+          "repeated": true,
+          "required": false
+        }
+      ],
+      "references": []
+    },
+    "vxk": {
+      "apk_class": "vxk",
+      "our_name": "",
+      "channels": [
+        "sensor"
+      ],
+      "depth": 1,
+      "seed": false,
+      "gearhead_root": false,
+      "referenced_by": [
+        "wbo"
+      ],
+      "field_count": 3,
+      "fields": [
+        {
+          "number": 1,
+          "name": "c",
+          "obfuscated_name": "c",
+          "type": "int32",
+          "repeated": false,
+          "required": false
+        },
+        {
+          "number": 2,
+          "name": "d",
+          "obfuscated_name": "d",
+          "type": "int32",
+          "repeated": false,
+          "required": false
+        },
+        {
+          "number": 3,
+          "name": "e",
+          "obfuscated_name": "e",
+          "type": "int32",
+          "repeated": false,
+          "required": false
+        }
+      ],
+      "references": []
+    },
+    "vxn": {
+      "apk_class": "vxn",
+      "our_name": "",
+      "channels": [
+        "sensor"
+      ],
+      "depth": 1,
+      "seed": false,
+      "gearhead_root": false,
+      "referenced_by": [
+        "wbo"
+      ],
+      "field_count": 3,
+      "fields": [
+        {
+          "number": 1,
+          "name": "c",
+          "obfuscated_name": "c",
+          "type": "int32",
+          "repeated": false,
+          "required": false
+        },
+        {
+          "number": 2,
+          "name": "d",
+          "obfuscated_name": "d",
+          "type": "int32",
+          "repeated": false,
+          "required": false
+        },
+        {
+          "number": 3,
+          "name": "e",
+          "obfuscated_name": "e",
+          "type": "bool",
+          "repeated": false,
+          "required": false
+        }
+      ],
+      "references": []
+    },
+    "vxp": {
+      "apk_class": "vxp",
+      "our_name": "",
+      "channels": [
+        "sensor"
+      ],
+      "depth": 1,
+      "seed": false,
+      "gearhead_root": false,
+      "referenced_by": [
+        "wbo"
+      ],
+      "field_count": 1,
+      "fields": [
+        {
+          "number": 1,
+          "name": "b",
+          "obfuscated_name": "b",
+          "type": "enum",
+          "repeated": false,
+          "required": true,
+          "enum_class": "vee",
+          "enum_verifier": "vvs.p"
+        }
+      ],
+      "references": []
+    },
+    "vxx": {
+      "apk_class": "vxx",
+      "our_name": "InputEventIndication",
+      "channels": [
+        "input"
+      ],
+      "depth": 0,
+      "seed": true,
+      "gearhead_root": false,
+      "referenced_by": [],
+      "field_count": 6,
+      "fields": [
+        {
+          "number": 1,
+          "name": "timestamp",
+          "obfuscated_name": "c",
+          "type": "uint64",
+          "repeated": false,
+          "required": true
+        },
+        {
+          "number": 3,
+          "name": "touch_event",
+          "obfuscated_name": "d",
+          "type": "message",
+          "repeated": false,
+          "required": false,
+          "message_class": "wcj",
+          "message_name": "TouchEvent"
+        },
+        {
+          "number": 4,
+          "name": "button_event",
+          "obfuscated_name": "e",
+          "type": "message",
+          "repeated": false,
+          "required": false,
+          "message_class": "vyj"
+        },
+        {
+          "number": 5,
+          "name": "absolute_input_event",
+          "obfuscated_name": "f",
+          "type": "message",
+          "repeated": false,
+          "required": false,
+          "message_class": "vvi"
+        },
+        {
+          "number": 6,
+          "name": "relative_input_event",
+          "obfuscated_name": "g",
+          "type": "message",
+          "repeated": false,
+          "required": false,
+          "message_class": "wbm"
+        },
+        {
+          "number": 7,
+          "name": "secondary_touch_event",
+          "obfuscated_name": "h",
+          "type": "message",
+          "repeated": false,
+          "required": false,
+          "message_class": "wcj",
+          "message_name": "TouchEvent"
+        }
+      ],
+      "references": [
+        "vvi",
+        "vyj",
+        "wbm",
+        "wcj"
+      ]
+    },
+    "vya": {
+      "apk_class": "vya",
+      "our_name": "",
+      "channels": [
+        "control"
+      ],
+      "depth": 1,
+      "seed": false,
+      "gearhead_root": false,
+      "referenced_by": [
+        "wbw"
+      ],
+      "field_count": 0,
+      "fields": [],
+      "references": []
+    },
+    "vyi": {
+      "apk_class": "vyi",
+      "our_name": "ButtonEvent",
+      "channels": [
+        "input"
+      ],
+      "depth": 0,
+      "seed": true,
+      "gearhead_root": false,
+      "referenced_by": [
+        "vyj"
+      ],
+      "field_count": 4,
+      "fields": [
+        {
+          "number": 1,
+          "name": "scan_code",
+          "obfuscated_name": "c",
+          "type": "uint32",
+          "repeated": false,
+          "required": true
+        },
+        {
+          "number": 2,
+          "name": "is_pressed",
+          "obfuscated_name": "d",
+          "type": "bool",
+          "repeated": false,
+          "required": true
+        },
+        {
+          "number": 3,
+          "name": "meta",
+          "obfuscated_name": "e",
+          "type": "uint32",
+          "repeated": false,
+          "required": true
+        },
+        {
+          "number": 4,
+          "name": "long_press",
+          "obfuscated_name": "f",
+          "type": "bool",
+          "repeated": false,
+          "required": false
+        }
+      ],
+      "references": []
+    },
+    "vyj": {
+      "apk_class": "vyj",
+      "our_name": "",
+      "channels": [
+        "input"
+      ],
+      "depth": 1,
+      "seed": false,
+      "gearhead_root": false,
+      "referenced_by": [
+        "vxx"
+      ],
+      "field_count": 1,
+      "fields": [
+        {
+          "number": 1,
+          "name": "b",
+          "obfuscated_name": "b",
+          "type": "message",
+          "repeated": true,
+          "required": false,
+          "message_class": "vyi",
+          "message_name": "ButtonEvent"
+        }
+      ],
+      "references": [
+        "vyi"
+      ]
+    },
+    "vyk": {
+      "apk_class": "vyk",
+      "our_name": "Light",
+      "channels": [
+        "sensor"
+      ],
+      "depth": 0,
+      "seed": true,
+      "gearhead_root": false,
+      "referenced_by": [],
+      "field_count": 3,
+      "fields": [
+        {
+          "number": 1,
+          "name": "headlight",
+          "obfuscated_name": "c",
+          "type": "enum",
+          "repeated": false,
+          "required": false,
+          "enum_class": "a",
+          "enum_verifier": "vvs.q"
+        },
+        {
+          "number": 2,
+          "name": "indicator",
+          "obfuscated_name": "d",
+          "type": "enum",
+          "repeated": false,
+          "required": false,
+          "enum_class": "a",
+          "enum_verifier": "wck.c"
+        },
+        {
+          "number": 3,
+          "name": "hazard_light_on",
+          "obfuscated_name": "e",
+          "type": "bool",
+          "repeated": false,
+          "required": false
+        }
+      ],
+      "references": []
+    },
+    "vyl": {
+      "apk_class": "vyl",
+      "our_name": "",
+      "channels": [
+        "sensor"
+      ],
+      "depth": 1,
+      "seed": false,
+      "gearhead_root": false,
+      "referenced_by": [
+        "wbo"
+      ],
+      "field_count": 6,
+      "fields": [
+        {
+          "number": 2,
+          "name": "c",
+          "obfuscated_name": "c",
+          "type": "int32",
+          "repeated": false,
+          "required": true
+        },
+        {
+          "number": 3,
+          "name": "d",
+          "obfuscated_name": "d",
+          "type": "int32",
+          "repeated": false,
+          "required": true
+        },
+        {
+          "number": 4,
+          "name": "e",
+          "obfuscated_name": "e",
+          "type": "uint32",
+          "repeated": false,
+          "required": false
+        },
+        {
+          "number": 5,
+          "name": "f",
+          "obfuscated_name": "f",
+          "type": "int32",
+          "repeated": false,
+          "required": false
+        },
+        {
+          "number": 6,
+          "name": "g",
+          "obfuscated_name": "g",
+          "type": "int32",
+          "repeated": false,
+          "required": false
+        },
+        {
+          "number": 7,
+          "name": "h",
+          "obfuscated_name": "h",
+          "type": "int32",
+          "repeated": false,
+          "required": false
+        }
+      ],
+      "references": []
+    },
+    "vys": {
+      "apk_class": "vys",
+      "our_name": "AVChannel",
+      "channels": [
+        "control",
+        "video"
+      ],
+      "depth": 0,
+      "seed": true,
+      "gearhead_root": false,
+      "referenced_by": [
+        "wbw"
+      ],
+      "field_count": 8,
+      "fields": [
+        {
+          "number": 1,
+          "name": "stream_type",
+          "obfuscated_name": "c",
+          "type": "enum",
+          "repeated": false,
+          "required": false,
+          "enum_class": "vyn",
+          "enum_verifier": "vvs.u"
+        },
+        {
+          "number": 2,
+          "name": "audio_type",
+          "obfuscated_name": "d",
+          "type": "enum",
+          "repeated": false,
+          "required": false,
+          "enum_class": "a",
+          "enum_verifier": "vvs.d"
+        },
+        {
+          "number": 3,
+          "name": "audio_configs",
+          "obfuscated_name": "e",
+          "type": "message",
+          "repeated": true,
+          "required": false,
+          "message_class": "vvp"
+        },
+        {
+          "number": 4,
+          "name": "video_configs",
+          "obfuscated_name": "f",
+          "type": "message",
+          "repeated": true,
+          "required": false,
+          "message_class": "wcz",
+          "message_name": "VideoConfig"
+        },
+        {
+          "number": 6,
+          "name": "channel_id",
+          "obfuscated_name": "g",
+          "type": "uint32",
+          "repeated": false,
+          "required": false
+        },
+        {
+          "number": 7,
+          "name": "display_type",
+          "obfuscated_name": "h",
+          "type": "enum",
+          "repeated": false,
+          "required": false,
+          "enum_class": "vxg",
+          "enum_verifier": "vvs.j"
+        },
+        {
+          "number": 8,
+          "name": "keycode",
+          "obfuscated_name": "i",
+          "type": "enum",
+          "repeated": false,
+          "required": false,
+          "enum_class": "vyh",
+          "enum_verifier": "vvs.t"
+        },
+        {
+          "number": 9,
+          "name": "focus_reason",
+          "obfuscated_name": "j",
+          "type": "enum",
+          "repeated": false,
+          "required": false,
+          "enum_class": "vee",
+          "enum_verifier": "wck.f"
+        }
+      ],
+      "references": [
+        "vvp",
+        "wcz"
+      ]
+    },
+    "vyt": {
+      "apk_class": "vyt",
+      "our_name": "",
+      "channels": [
+        "control"
+      ],
+      "depth": 1,
+      "seed": false,
+      "gearhead_root": false,
+      "referenced_by": [
+        "wbw"
+      ],
+      "field_count": 2,
+      "fields": [
+        {
+          "number": 1,
+          "name": "c",
+          "obfuscated_name": "c",
+          "type": "enum",
+          "repeated": false,
+          "required": false,
+          "enum_class": "vyn",
+          "enum_verifier": "vvs.u"
+        },
+        {
+          "number": 2,
+          "name": "d",
+          "obfuscated_name": "d",
+          "type": "message",
+          "repeated": false,
+          "required": false,
+          "message_class": "vvp"
+        }
+      ],
+      "references": [
+        "vvp"
+      ]
+    },
+    "vyx": {
+      "apk_class": "vyx",
+      "our_name": "AVInputOpenRequest",
+      "channels": [
+        "video"
+      ],
+      "depth": 0,
+      "seed": true,
+      "gearhead_root": false,
+      "referenced_by": [],
+      "field_count": 4,
+      "fields": [
+        {
+          "number": 1,
+          "name": "open",
+          "obfuscated_name": "c",
+          "type": "bool",
+          "repeated": false,
+          "required": true
+        },
+        {
+          "number": 2,
+          "name": "anc",
+          "obfuscated_name": "d",
+          "type": "bool",
+          "repeated": false,
+          "required": false
+        },
+        {
+          "number": 3,
+          "name": "ec",
+          "obfuscated_name": "e",
+          "type": "bool",
+          "repeated": false,
+          "required": false
+        },
+        {
+          "number": 4,
+          "name": "max_unacked",
+          "obfuscated_name": "f",
+          "type": "int32",
+          "repeated": false,
+          "required": false
+        }
+      ],
+      "references": []
+    },
+    "vzq": {
+      "apk_class": "vzq",
+      "our_name": "",
+      "channels": [
+        "control"
+      ],
+      "depth": 2,
+      "seed": false,
+      "gearhead_root": false,
+      "referenced_by": [
+        "vzr"
+      ],
+      "field_count": 3,
+      "fields": [
+        {
+          "number": 1,
+          "name": "c",
+          "obfuscated_name": "c",
+          "type": "int32",
+          "repeated": false,
+          "required": true
+        },
+        {
+          "number": 2,
+          "name": "d",
+          "obfuscated_name": "d",
+          "type": "int32",
+          "repeated": false,
+          "required": true
+        },
+        {
+          "number": 3,
+          "name": "e",
+          "obfuscated_name": "e",
+          "type": "int32",
+          "repeated": false,
+          "required": true
+        }
+      ],
+      "references": []
+    },
+    "vzr": {
+      "apk_class": "vzr",
+      "our_name": "",
+      "channels": [
+        "control"
+      ],
+      "depth": 1,
+      "seed": false,
+      "gearhead_root": false,
+      "referenced_by": [
+        "wbw"
+      ],
+      "field_count": 3,
+      "fields": [
+        {
+          "number": 1,
+          "name": "c",
+          "obfuscated_name": "c",
+          "type": "int32",
+          "repeated": false,
+          "required": true
+        },
+        {
+          "number": 2,
+          "name": "d",
+          "obfuscated_name": "d",
+          "type": "enum",
+          "repeated": false,
+          "required": true,
+          "enum_class": "viz",
+          "enum_verifier": "vyv.k"
+        },
+        {
+          "number": 3,
+          "name": "e",
+          "obfuscated_name": "e",
+          "type": "message",
+          "repeated": false,
+          "required": false,
+          "message_class": "vzq"
+        }
+      ],
+      "references": [
+        "vzq"
+      ]
+    },
+    "vzw": {
+      "apk_class": "vzw",
+      "our_name": "",
+      "channels": [
+        "sensor"
+      ],
+      "depth": 1,
+      "seed": false,
+      "gearhead_root": false,
+      "referenced_by": [
+        "wbo"
+      ],
+      "field_count": 1,
+      "fields": [
+        {
+          "number": 1,
+          "name": "c",
+          "obfuscated_name": "c",
+          "type": "bool",
+          "repeated": false,
+          "required": false
+        }
+      ],
+      "references": []
+    },
+    "vzx": {
+      "apk_class": "vzx",
+      "our_name": "",
+      "channels": [
+        "sensor"
+      ],
+      "depth": 1,
+      "seed": false,
+      "gearhead_root": false,
+      "referenced_by": [
+        "wbo"
+      ],
+      "field_count": 2,
+      "fields": [
+        {
+          "number": 1,
+          "name": "c",
+          "obfuscated_name": "c",
+          "type": "int32",
+          "repeated": false,
+          "required": true
+        },
+        {
+          "number": 2,
+          "name": "d",
+          "obfuscated_name": "d",
+          "type": "int32",
+          "repeated": false,
+          "required": false
+        }
+      ],
+      "references": []
+    },
+    "wab": {
+      "apk_class": "wab",
+      "our_name": "",
+      "channels": [
+        "sensor"
+      ],
+      "depth": 1,
+      "seed": false,
+      "gearhead_root": false,
+      "referenced_by": [
+        "wbo"
+      ],
+      "field_count": 1,
+      "fields": [
+        {
+          "number": 1,
+          "name": "b",
+          "obfuscated_name": "b",
+          "type": "bool",
+          "repeated": false,
+          "required": true
+        }
+      ],
+      "references": []
+    },
+    "wad": {
+      "apk_class": "wad",
+      "our_name": "PhoneStatus",
+      "channels": [
+        "phone"
+      ],
+      "depth": 0,
+      "seed": true,
+      "gearhead_root": false,
+      "referenced_by": [],
+      "field_count": 6,
+      "fields": [
+        {
+          "number": 1,
+          "name": "c",
+          "obfuscated_name": "c",
+          "type": "enum",
+          "repeated": false,
+          "required": true,
+          "enum_class": "wae",
+          "enum_verifier": "vyv.l"
+        },
+        {
+          "number": 2,
+          "name": "d",
+          "obfuscated_name": "d",
+          "type": "uint32",
+          "repeated": false,
+          "required": true
+        },
+        {
+          "number": 3,
+          "name": "e",
+          "obfuscated_name": "e",
+          "type": "string",
+          "repeated": false,
+          "required": false
+        },
+        {
+          "number": 4,
+          "name": "f",
+          "obfuscated_name": "f",
+          "type": "string",
+          "repeated": false,
+          "required": false
+        },
+        {
+          "number": 5,
+          "name": "g",
+          "obfuscated_name": "g",
+          "type": "string",
+          "repeated": false,
+          "required": false
+        },
+        {
+          "number": 6,
+          "name": "h",
+          "obfuscated_name": "h",
+          "type": "bytes",
+          "repeated": false,
+          "required": false
+        }
+      ],
+      "references": []
+    },
+    "wam": {
+      "apk_class": "wam",
+      "our_name": "",
+      "channels": [
+        "wifi"
+      ],
+      "depth": 1,
+      "seed": false,
+      "gearhead_root": false,
+      "referenced_by": [
+        "wan",
+        "wbb"
+      ],
+      "field_count": 1,
+      "fields": [
+        {
+          "number": 1,
+          "name": "c",
+          "obfuscated_name": "c",
+          "type": "bytes",
+          "repeated": false,
+          "required": false
+        }
+      ],
+      "references": []
+    },
+    "wan": {
+      "apk_class": "wan",
+      "our_name": "WifiSecurityResponse",
+      "channels": [
+        "wifi"
+      ],
+      "depth": 0,
+      "seed": true,
+      "gearhead_root": false,
+      "referenced_by": [],
+      "field_count": 13,
+      "fields": [
+        {
+          "number": 1,
+          "name": "ssid",
+          "obfuscated_name": "c",
+          "type": "string",
+          "repeated": false,
+          "required": false
+        },
+        {
+          "number": 2,
+          "name": "key",
+          "obfuscated_name": "d",
+          "type": "string",
+          "repeated": false,
+          "required": false
+        },
+        {
+          "number": 3,
+          "name": "bssid",
+          "obfuscated_name": "e",
+          "type": "string",
+          "repeated": false,
+          "required": false
+        },
+        {
+          "number": 4,
+          "name": "security_mode",
+          "obfuscated_name": "f",
+          "type": "message",
+          "repeated": false,
+          "required": false,
+          "message_class": "waw"
+        },
+        {
+          "number": 5,
+          "name": "access_point_type",
+          "obfuscated_name": "g",
+          "type": "message",
+          "repeated": false,
+          "required": false,
+          "message_class": "wam"
+        },
+        {
+          "number": 6,
+          "name": "wifi_direct_config",
+          "obfuscated_name": "h",
+          "type": "message",
+          "repeated": false,
+          "required": false,
+          "message_class": "wbb"
+        },
+        {
+          "number": 7,
+          "name": "ip_address",
+          "obfuscated_name": "i",
+          "type": "string",
+          "repeated": false,
+          "required": false
+        },
+        {
+          "number": 8,
+          "name": "gateway",
+          "obfuscated_name": "j",
+          "type": "string",
+          "repeated": false,
+          "required": false
+        },
+        {
+          "number": 9,
+          "name": "prefix_length",
+          "obfuscated_name": "k",
+          "type": "uint32",
+          "repeated": false,
+          "required": false
+        },
+        {
+          "number": 10,
+          "name": "hidden_network",
+          "obfuscated_name": "l",
+          "type": "bool",
+          "repeated": false,
+          "required": false
+        },
+        {
+          "number": 11,
+          "name": "band_5ghz",
+          "obfuscated_name": "m",
+          "type": "bool",
+          "repeated": false,
+          "required": false
+        }
+      ],
+      "references": [
+        "wam",
+        "waw",
+        "wbb"
+      ]
+    },
+    "war": {
+      "apk_class": "war",
+      "our_name": "SensorStartRequest",
+      "channels": [
+        "sensor"
+      ],
+      "depth": 0,
+      "seed": true,
+      "gearhead_root": false,
+      "referenced_by": [],
+      "field_count": 2,
+      "fields": [
+        {
+          "number": 1,
+          "name": "c",
+          "obfuscated_name": "c",
+          "type": "enum",
+          "repeated": false,
+          "required": false,
+          "enum_class": "waq",
+          "enum_verifier": "vyv.n"
+        },
+        {
+          "number": 2,
+          "name": "d",
+          "obfuscated_name": "d",
+          "type": "uint64",
+          "repeated": false,
+          "required": false
+        }
+      ],
+      "references": []
+    },
+    "waw": {
+      "apk_class": "waw",
+      "our_name": "",
+      "channels": [
+        "wifi"
+      ],
+      "depth": 1,
+      "seed": false,
+      "gearhead_root": false,
+      "referenced_by": [
+        "wan"
+      ],
+      "field_count": 2,
+      "fields": [
+        {
+          "number": 1,
+          "name": "b",
+          "obfuscated_name": "b",
+          "type": "enum",
+          "repeated": false,
+          "required": false,
+          "enum_class": "viz",
+          "enum_verifier": "vyv.o"
+        },
+        {
+          "number": 2,
+          "name": "c",
+          "obfuscated_name": "c",
+          "type": "uint32",
+          "repeated": false,
+          "required": false
+        }
+      ],
+      "references": []
+    },
+    "wax": {
+      "apk_class": "wax",
+      "our_name": "",
+      "channels": [
+        "control"
+      ],
+      "depth": 2,
+      "seed": false,
+      "gearhead_root": false,
+      "referenced_by": [
+        "way"
+      ],
+      "field_count": 14,
+      "fields": [
+        {
+          "number": 1,
+          "name": "b",
+          "obfuscated_name": "b",
+          "type": "int32",
+          "repeated": false,
+          "required": true
+        },
+        {
+          "number": 2,
+          "name": "c",
+          "obfuscated_name": "c",
+          "type": "enum",
+          "repeated": false,
+          "required": true,
+          "enum_class": "a",
+          "enum_verifier": "vyv.r"
+        },
+        {
+          "number": 3,
+          "name": "d",
+          "obfuscated_name": "d",
+          "type": "message",
+          "repeated": true,
+          "required": false,
+          "message_class": "wbe"
+        },
+        {
+          "number": 4,
+          "name": "e",
+          "obfuscated_name": "e",
+          "type": "int32",
+          "repeated": true,
+          "required": false
+        },
+        {
+          "number": 5,
+          "name": "q",
+          "obfuscated_name": "q",
+          "type": "int32",
+          "repeated": false,
+          "required": true
+        },
+        {
+          "number": 6,
+          "name": "f",
+          "obfuscated_name": "f",
+          "type": "bool",
+          "repeated": false,
+          "required": false
+        },
+        {
+          "number": 7,
+          "name": "g",
+          "obfuscated_name": "g",
+          "type": "enum",
+          "repeated": false,
+          "required": false,
+          "enum_class": "a",
+          "enum_verifier": "vvs.s"
+        },
+        {
+          "number": 8,
+          "name": "h",
+          "obfuscated_name": "h",
+          "type": "enum",
+          "repeated": false,
+          "required": false,
+          "enum_class": "a",
+          "enum_verifier": "vyv.s"
+        },
+        {
+          "number": 9,
+          "name": "i",
+          "obfuscated_name": "i",
+          "type": "bool",
+          "repeated": false,
+          "required": false
+        },
+        {
+          "number": 10,
+          "name": "j",
+          "obfuscated_name": "j",
+          "type": "bool",
+          "repeated": false,
+          "required": false
+        },
+        {
+          "number": 11,
+          "name": "k",
+          "obfuscated_name": "k",
+          "type": "enum",
+          "repeated": false,
+          "required": false,
+          "enum_class": "a",
+          "enum_verifier": "wck.a"
+        },
+        {
+          "number": 13,
+          "name": "n",
+          "obfuscated_name": "n",
+          "type": "bool",
+          "repeated": false,
+          "required": false
+        }
+      ],
+      "references": [
+        "wbe"
+      ]
+    },
+    "way": {
+      "apk_class": "way",
+      "our_name": "",
+      "channels": [
+        "control"
+      ],
+      "depth": 1,
+      "seed": false,
+      "gearhead_root": false,
+      "referenced_by": [
+        "wbw"
+      ],
+      "field_count": 1,
+      "fields": [
+        {
+          "number": 1,
+          "name": "b",
+          "obfuscated_name": "b",
+          "type": "message",
+          "repeated": true,
+          "required": false,
+          "message_class": "wax"
+        }
+      ],
+      "references": [
+        "wax"
+      ]
+    },
+    "wbb": {
+      "apk_class": "wbb",
+      "our_name": "",
+      "channels": [
+        "wifi"
+      ],
+      "depth": 1,
+      "seed": false,
+      "gearhead_root": false,
+      "referenced_by": [
+        "wan"
+      ],
+      "field_count": 6,
+      "fields": [
+        {
+          "number": 1,
+          "name": "c",
+          "obfuscated_name": "c",
+          "type": "string",
+          "repeated": false,
+          "required": false
+        },
+        {
+          "number": 2,
+          "name": "d",
+          "obfuscated_name": "d",
+          "type": "string",
+          "repeated": false,
+          "required": false
+        },
+        {
+          "number": 3,
+          "name": "e",
+          "obfuscated_name": "e",
+          "type": "string",
+          "repeated": false,
+          "required": false
+        },
+        {
+          "number": 4,
+          "name": "f",
+          "obfuscated_name": "f",
+          "type": "string",
+          "repeated": false,
+          "required": false
+        },
+        {
+          "number": 5,
+          "name": "g",
+          "obfuscated_name": "g",
+          "type": "message",
+          "repeated": false,
+          "required": false,
+          "message_class": "wam"
+        },
+        {
+          "number": 6,
+          "name": "h",
+          "obfuscated_name": "h",
+          "type": "uint64",
+          "repeated": false,
+          "required": false
+        }
+      ],
+      "references": [
+        "wam"
+      ]
+    },
+    "wbe": {
+      "apk_class": "wbe",
+      "our_name": "",
+      "channels": [
+        "control"
+      ],
+      "depth": 3,
+      "seed": false,
+      "gearhead_root": false,
+      "referenced_by": [
+        "wax"
+      ],
+      "field_count": 2,
+      "fields": [
+        {
+          "number": 1,
+          "name": "b",
+          "obfuscated_name": "b",
+          "type": "int32",
+          "repeated": false,
+          "required": true
+        },
+        {
+          "number": 2,
+          "name": "c",
+          "obfuscated_name": "c",
+          "type": "int32",
+          "repeated": false,
+          "required": true
+        }
+      ],
+      "references": []
+    },
+    "wbl": {
+      "apk_class": "wbl",
+      "our_name": "",
+      "channels": [
+        "input"
+      ],
+      "depth": 2,
+      "seed": false,
+      "gearhead_root": false,
+      "referenced_by": [
+        "wbm"
+      ],
+      "field_count": 2,
+      "fields": [
+        {
+          "number": 1,
+          "name": "c",
+          "obfuscated_name": "c",
+          "type": "uint32",
+          "repeated": false,
+          "required": true
+        },
+        {
+          "number": 2,
+          "name": "d",
+          "obfuscated_name": "d",
+          "type": "int32",
+          "repeated": false,
+          "required": true
+        }
+      ],
+      "references": []
+    },
+    "wbm": {
+      "apk_class": "wbm",
+      "our_name": "",
+      "channels": [
+        "input"
+      ],
+      "depth": 1,
+      "seed": false,
+      "gearhead_root": false,
+      "referenced_by": [
+        "vxx"
+      ],
+      "field_count": 1,
+      "fields": [
+        {
+          "number": 1,
+          "name": "b",
+          "obfuscated_name": "b",
+          "type": "message",
+          "repeated": true,
+          "required": false,
+          "message_class": "wbl"
+        }
+      ],
+      "references": [
+        "wbl"
+      ]
+    },
+    "wbn": {
+      "apk_class": "wbn",
+      "our_name": "",
+      "channels": [
+        "sensor"
+      ],
+      "depth": 1,
+      "seed": false,
+      "gearhead_root": false,
+      "referenced_by": [
+        "wbo"
+      ],
+      "field_count": 1,
+      "fields": [
+        {
+          "number": 1,
+          "name": "b",
+          "obfuscated_name": "b",
+          "type": "int32",
+          "repeated": false,
+          "required": true
+        }
+      ],
+      "references": []
+    },
+    "wbo": {
+      "apk_class": "wbo",
+      "our_name": "SensorEventIndication",
+      "channels": [
+        "sensor"
+      ],
+      "depth": 0,
+      "seed": true,
+      "gearhead_root": false,
+      "referenced_by": [],
+      "field_count": 26,
+      "fields": [
+        {
+          "number": 1,
+          "name": "gps_location",
+          "obfuscated_name": "b",
+          "type": "message",
+          "repeated": true,
+          "required": false,
+          "message_class": "vyl"
+        },
+        {
+          "number": 2,
+          "name": "compass",
+          "obfuscated_name": "c",
+          "type": "message",
+          "repeated": true,
+          "required": false,
+          "message_class": "vxa"
+        },
+        {
+          "number": 3,
+          "name": "speed",
+          "obfuscated_name": "d",
+          "type": "message",
+          "repeated": true,
+          "required": false,
+          "message_class": "wcd"
+        },
+        {
+          "number": 4,
+          "name": "rpm",
+          "obfuscated_name": "e",
+          "type": "message",
+          "repeated": true,
+          "required": false,
+          "message_class": "wbn"
+        },
+        {
+          "number": 5,
+          "name": "odometer",
+          "obfuscated_name": "f",
+          "type": "message",
+          "repeated": true,
+          "required": false,
+          "message_class": "vzx"
+        },
+        {
+          "number": 6,
+          "name": "fuel_level",
+          "obfuscated_name": "g",
+          "type": "message",
+          "repeated": true,
+          "required": false,
+          "message_class": "vxn"
+        },
+        {
+          "number": 7,
+          "name": "parking_brake",
+          "obfuscated_name": "h",
+          "type": "message",
+          "repeated": true,
+          "required": false,
+          "message_class": "wab"
+        },
+        {
+          "number": 8,
+          "name": "gear",
+          "obfuscated_name": "i",
+          "type": "message",
+          "repeated": true,
+          "required": false,
+          "message_class": "vxp"
+        },
+        {
+          "number": 9,
+          "name": "diagnostics",
+          "obfuscated_name": "j",
+          "type": "message",
+          "repeated": true,
+          "required": false,
+          "message_class": "vxf"
+        },
+        {
+          "number": 10,
+          "name": "night_mode",
+          "obfuscated_name": "k",
+          "type": "message",
+          "repeated": true,
+          "required": false,
+          "message_class": "vzw"
+        },
+        {
+          "number": 11,
+          "name": "enviorment",
+          "obfuscated_name": "l",
+          "type": "message",
+          "repeated": true,
+          "required": false,
+          "message_class": "vxk"
+        },
+        {
+          "number": 27,
+          "name": "extended_sensor_data",
+          "obfuscated_name": "vxv.class",
+          "type": "sfixed32",
+          "repeated": false,
+          "required": false
+        },
+        {
+          "number": 27,
+          "name": "extended_sensor_data",
+          "obfuscated_name": "vxj.class",
+          "type": "sint32",
+          "repeated": false,
+          "required": false
+        },
+        {
+          "number": 27,
+          "name": "extended_sensor_data",
+          "obfuscated_name": "o",
+          "type": "sint64",
+          "repeated": false,
+          "required": false
+        },
+        {
+          "number": 27,
+          "name": "extended_sensor_data",
+          "obfuscated_name": "vxe.class",
+          "type": "group",
+          "repeated": false,
+          "required": false
+        },
+        {
+          "number": 27,
+          "name": "extended_sensor_data",
+          "obfuscated_name": "p",
+          "type": "double",
+          "repeated": true,
+          "required": false
+        },
+        {
+          "number": 27,
+          "name": "extended_sensor_data",
+          "obfuscated_name": "wac.class",
+          "type": "float",
+          "repeated": true,
+          "required": false
+        },
+        {
+          "number": 27,
+          "name": "extended_sensor_data",
+          "obfuscated_name": "q",
+          "type": "int64",
+          "repeated": true,
+          "required": false
+        },
+        {
+          "number": 27,
+          "name": "extended_sensor_data",
+          "obfuscated_name": "vxh.class",
+          "type": "uint64",
+          "repeated": true,
+          "required": false
+        },
+        {
+          "number": 27,
+          "name": "extended_sensor_data",
+          "obfuscated_name": "s",
+          "type": "fixed32",
+          "repeated": true,
+          "required": false
+        },
+        {
+          "number": 27,
+          "name": "extended_sensor_data",
+          "obfuscated_name": "wcg.class",
+          "type": "bool",
+          "repeated": true,
+          "required": false
+        },
+        {
+          "number": 27,
+          "name": "extended_sensor_data",
+          "obfuscated_name": "t",
+          "type": "string",
+          "repeated": true,
+          "required": false
+        }
+      ],
+      "references": [
+        "vxa",
+        "vxf",
+        "vxk",
+        "vxn",
+        "vxp",
+        "vyl",
+        "vzw",
+        "vzx",
+        "wab",
+        "wbn",
+        "wcd"
+      ]
+    },
+    "wbu": {
+      "apk_class": "wbu",
+      "our_name": "",
+      "channels": [
+        "control"
+      ],
+      "depth": 1,
+      "seed": false,
+      "gearhead_root": false,
+      "referenced_by": [
+        "wbw"
+      ],
+      "field_count": 0,
+      "fields": [],
+      "references": []
+    },
+    "wbw": {
+      "apk_class": "wbw",
+      "our_name": "ChannelDescriptor",
+      "channels": [
+        "control"
+      ],
+      "depth": 0,
+      "seed": true,
+      "gearhead_root": false,
+      "referenced_by": [
+        "wby"
+      ],
+      "field_count": 17,
+      "fields": [
+        {
+          "number": 1,
+          "name": "channel_id",
+          "obfuscated_name": "c",
+          "type": "int32",
+          "repeated": false,
+          "required": true
+        },
+        {
+          "number": 2,
+          "name": "sensor_channel",
+          "obfuscated_name": "d",
+          "type": "message",
+          "repeated": false,
+          "required": false,
+          "message_class": "wbu"
+        },
+        {
+          "number": 3,
+          "name": "av_channel",
+          "obfuscated_name": "e",
+          "type": "message",
+          "repeated": false,
+          "required": false,
+          "message_class": "vys",
+          "message_name": "AVChannel"
+        },
+        {
+          "number": 4,
+          "name": "input_channel",
+          "obfuscated_name": "f",
+          "type": "message",
+          "repeated": false,
+          "required": false,
+          "message_class": "vya"
+        },
+        {
+          "number": 5,
+          "name": "av_input_channel",
+          "obfuscated_name": "g",
+          "type": "message",
+          "repeated": false,
+          "required": false,
+          "message_class": "vyt"
+        },
+        {
+          "number": 6,
+          "name": "bluetooth_channel",
+          "obfuscated_name": "h",
+          "type": "message",
+          "repeated": false,
+          "required": false,
+          "message_class": "vwc"
+        },
+        {
+          "number": 7,
+          "name": "radio_channel",
+          "obfuscated_name": "i",
+          "type": "message",
+          "repeated": false,
+          "required": false,
+          "message_class": "way"
+        },
+        {
+          "number": 8,
+          "name": "navigation_channel",
+          "obfuscated_name": "j",
+          "type": "message",
+          "repeated": false,
+          "required": false,
+          "message_class": "vzr"
+        },
+        {
+          "number": 9,
+          "name": "media_infoChannel",
+          "obfuscated_name": "o",
+          "type": "message",
+          "repeated": false,
+          "required": false
+        },
+        {
+          "number": 10,
+          "name": "phone_status_channel",
+          "obfuscated_name": "p",
+          "type": "message",
+          "repeated": false,
+          "required": false
+        },
+        {
+          "number": 11,
+          "name": "media_browser_channel",
+          "obfuscated_name": "q",
+          "type": "message",
+          "repeated": false,
+          "required": false
+        },
+        {
+          "number": 13,
+          "name": "notification_channel",
+          "obfuscated_name": "l",
+          "type": "message",
+          "repeated": false,
+          "required": false,
+          "message_class": "wdh"
+        },
+        {
+          "number": 15,
+          "name": "unknown_channel_15",
+          "obfuscated_name": "t",
+          "type": "message",
+          "repeated": false,
+          "required": false
+        }
+      ],
+      "references": [
+        "vwc",
+        "vya",
+        "vys",
+        "vyt",
+        "vzr",
+        "way",
+        "wbu",
+        "wdh"
+      ]
+    },
+    "wby": {
+      "apk_class": "wby",
+      "our_name": "ServiceDiscoveryResponse",
+      "channels": [
+        "control"
+      ],
+      "depth": 0,
+      "seed": true,
+      "gearhead_root": false,
+      "referenced_by": [],
+      "field_count": 15,
+      "fields": [
+        {
+          "number": 1,
+          "name": "channels",
+          "obfuscated_name": "c",
+          "type": "message",
+          "repeated": true,
+          "required": false,
+          "message_class": "wbw",
+          "message_name": "ChannelDescriptor"
+        },
+        {
+          "number": 2,
+          "name": "head_unit_name",
+          "obfuscated_name": "d",
+          "type": "string",
+          "repeated": false,
+          "required": false
+        },
+        {
+          "number": 3,
+          "name": "car_model",
+          "obfuscated_name": "e",
+          "type": "string",
+          "repeated": false,
+          "required": false
+        },
+        {
+          "number": 4,
+          "name": "car_year",
+          "obfuscated_name": "f",
+          "type": "string",
+          "repeated": false,
+          "required": false
+        },
+        {
+          "number": 5,
+          "name": "car_serial",
+          "obfuscated_name": "g",
+          "type": "string",
+          "repeated": false,
+          "required": false
+        },
+        {
+          "number": 6,
+          "name": "left_hand_drive_vehicle",
+          "obfuscated_name": "h",
+          "type": "enum",
+          "repeated": false,
+          "required": false,
+          "enum_class": "vxi",
+          "enum_verifier": "vvs.k"
+        },
+        {
+          "number": 7,
+          "name": "headunit_manufacturer",
+          "obfuscated_name": "i",
+          "type": "string",
+          "repeated": false,
+          "required": false
+        },
+        {
+          "number": 8,
+          "name": "headunit_model",
+          "obfuscated_name": "j",
+          "type": "string",
+          "repeated": false,
+          "required": false
+        },
+        {
+          "number": 9,
+          "name": "sw_build",
+          "obfuscated_name": "k",
+          "type": "string",
+          "repeated": false,
+          "required": false
+        },
+        {
+          "number": 10,
+          "name": "sw_version",
+          "obfuscated_name": "l",
+          "type": "string",
+          "repeated": false,
+          "required": false
+        },
+        {
+          "number": 11,
+          "name": "can_play_native_media_during_vr",
+          "obfuscated_name": "m",
+          "type": "bool",
+          "repeated": false,
+          "required": false
+        },
+        {
+          "number": 13,
+          "name": "session_configuration",
+          "obfuscated_name": "n",
+          "type": "int32",
+          "repeated": false,
+          "required": false
+        },
+        {
+          "number": 14,
+          "name": "display_name",
+          "obfuscated_name": "o",
+          "type": "string",
+          "repeated": false,
+          "required": false
+        },
+        {
+          "number": 15,
+          "name": "probe_for_support",
+          "obfuscated_name": "p",
+          "type": "bool",
+          "repeated": false,
+          "required": false
+        }
+      ],
+      "references": [
+        "wbw"
+      ]
+    },
+    "wcd": {
+      "apk_class": "wcd",
+      "our_name": "",
+      "channels": [
+        "sensor"
+      ],
+      "depth": 1,
+      "seed": false,
+      "gearhead_root": false,
+      "referenced_by": [
+        "wbo"
+      ],
+      "field_count": 3,
+      "fields": [
+        {
+          "number": 1,
+          "name": "c",
+          "obfuscated_name": "c",
+          "type": "int32",
+          "repeated": false,
+          "required": true
+        },
+        {
+          "number": 2,
+          "name": "d",
+          "obfuscated_name": "d",
+          "type": "bool",
+          "repeated": false,
+          "required": false
+        },
+        {
+          "number": 4,
+          "name": "e",
+          "obfuscated_name": "e",
+          "type": "int32",
+          "repeated": false,
+          "required": false
+        }
+      ],
+      "references": []
+    },
+    "wcg": {
+      "apk_class": "wcg",
+      "our_name": "BindingRequest",
+      "channels": [
+        "control"
+      ],
+      "depth": 0,
+      "seed": true,
+      "gearhead_root": false,
+      "referenced_by": [],
+      "field_count": 1,
+      "fields": [
+        {
+          "number": 1,
+          "name": "scan_codes",
+          "obfuscated_name": "b",
+          "type": "int32",
+          "repeated": true,
+          "required": false
+        }
+      ],
+      "references": []
+    },
+    "wci": {
+      "apk_class": "wci",
+      "our_name": "",
+      "channels": [
+        "input"
+      ],
+      "depth": 1,
+      "seed": false,
+      "gearhead_root": false,
+      "referenced_by": [
+        "wcj"
+      ],
+      "field_count": 3,
+      "fields": [
+        {
+          "number": 1,
+          "name": "c",
+          "obfuscated_name": "c",
+          "type": "uint32",
+          "repeated": false,
+          "required": true
+        },
+        {
+          "number": 2,
+          "name": "d",
+          "obfuscated_name": "d",
+          "type": "uint32",
+          "repeated": false,
+          "required": true
+        },
+        {
+          "number": 3,
+          "name": "e",
+          "obfuscated_name": "e",
+          "type": "uint32",
+          "repeated": false,
+          "required": true
+        }
+      ],
+      "references": []
+    },
+    "wcj": {
+      "apk_class": "wcj",
+      "our_name": "TouchEvent",
+      "channels": [
+        "input"
+      ],
+      "depth": 0,
+      "seed": true,
+      "gearhead_root": false,
+      "referenced_by": [
+        "vxx"
+      ],
+      "field_count": 3,
+      "fields": [
+        {
+          "number": 1,
+          "name": "touch_location",
+          "obfuscated_name": "c",
+          "type": "message",
+          "repeated": true,
+          "required": false,
+          "message_class": "wci"
+        },
+        {
+          "number": 2,
+          "name": "action_index",
+          "obfuscated_name": "d",
+          "type": "uint32",
+          "repeated": false,
+          "required": false
+        },
+        {
+          "number": 3,
+          "name": "touch_action",
+          "obfuscated_name": "e",
+          "type": "enum",
+          "repeated": false,
+          "required": false,
+          "enum_class": "vee",
+          "enum_verifier": "vyv.m"
+        }
+      ],
+      "references": [
+        "wci"
+      ]
+    },
+    "wcm": {
+      "apk_class": "wcm",
+      "our_name": "",
+      "channels": [
+        "video"
+      ],
+      "depth": 1,
+      "seed": false,
+      "gearhead_root": false,
+      "referenced_by": [
+        "wcz"
+      ],
+      "field_count": 0,
+      "fields": [],
+      "references": []
+    },
+    "wcv": {
+      "apk_class": "wcv",
+      "our_name": "VendorExtensionChannel",
+      "channels": [
+        "control"
+      ],
+      "depth": 0,
+      "seed": true,
+      "gearhead_root": false,
+      "referenced_by": [],
+      "field_count": 3,
+      "fields": [
+        {
+          "number": 1,
+          "name": "name",
+          "obfuscated_name": "c",
+          "type": "string",
+          "repeated": false,
+          "required": true
+        },
+        {
+          "number": 2,
+          "name": "package_white_list",
+          "obfuscated_name": "d",
+          "type": "string",
+          "repeated": true,
+          "required": false
+        },
+        {
+          "number": 3,
+          "name": "data",
+          "obfuscated_name": "e",
+          "type": "bytes",
+          "repeated": false,
+          "required": false
+        }
+      ],
+      "references": []
+    },
+    "wcz": {
+      "apk_class": "wcz",
+      "our_name": "VideoConfig",
+      "channels": [
+        "video"
+      ],
+      "depth": 0,
+      "seed": true,
+      "gearhead_root": false,
+      "referenced_by": [
+        "vys"
+      ],
+      "field_count": 11,
+      "fields": [
+        {
+          "number": 1,
+          "name": "video_resolution",
+          "obfuscated_name": "c",
+          "type": "enum",
+          "repeated": false,
+          "required": false,
+          "enum_class": "wcy",
+          "enum_verifier": "wck.h"
+        },
+        {
+          "number": 2,
+          "name": "video_fps",
+          "obfuscated_name": "d",
+          "type": "enum",
+          "repeated": false,
+          "required": false,
+          "enum_class": "viz",
+          "enum_verifier": "wck.k"
+        },
+        {
+          "number": 3,
+          "name": "margin_width",
+          "obfuscated_name": "e",
+          "type": "uint32",
+          "repeated": false,
+          "required": false
+        },
+        {
+          "number": 4,
+          "name": "margin_height",
+          "obfuscated_name": "f",
+          "type": "uint32",
+          "repeated": false,
+          "required": false
+        },
+        {
+          "number": 5,
+          "name": "dpi",
+          "obfuscated_name": "g",
+          "type": "uint32",
+          "repeated": false,
+          "required": false
+        },
+        {
+          "number": 6,
+          "name": "additional_depth",
+          "obfuscated_name": "h",
+          "type": "uint32",
+          "repeated": false,
+          "required": false
+        },
+        {
+          "number": 7,
+          "name": "field7",
+          "obfuscated_name": "i",
+          "type": "uint32",
+          "repeated": false,
+          "required": false
+        },
+        {
+          "number": 8,
+          "name": "field8",
+          "obfuscated_name": "j",
+          "type": "uint32",
+          "repeated": false,
+          "required": false
+        },
+        {
+          "number": 9,
+          "name": "field9",
+          "obfuscated_name": "k",
+          "type": "uint32",
+          "repeated": false,
+          "required": false
+        },
+        {
+          "number": 10,
+          "name": "codec",
+          "obfuscated_name": "l",
+          "type": "enum",
+          "repeated": false,
+          "required": false,
+          "enum_class": "vyn",
+          "enum_verifier": "vvs.u"
+        },
+        {
+          "number": 11,
+          "name": "additional_config",
+          "obfuscated_name": "m",
+          "type": "message",
+          "repeated": false,
+          "required": false,
+          "message_class": "wcm"
+        }
+      ],
+      "references": [
+        "wcm"
+      ]
+    },
+    "wdb": {
+      "apk_class": "wdb",
+      "our_name": "VideoFocusIndication",
+      "channels": [
+        "video"
+      ],
+      "depth": 0,
+      "seed": true,
+      "gearhead_root": false,
+      "referenced_by": [],
+      "field_count": 2,
+      "fields": [
+        {
+          "number": 1,
+          "name": "focus_mode",
+          "obfuscated_name": "c",
+          "type": "enum",
+          "repeated": false,
+          "required": false,
+          "enum_class": "wda",
+          "enum_verifier": "wck.i"
+        },
+        {
+          "number": 2,
+          "name": "unrequested",
+          "obfuscated_name": "d",
+          "type": "bool",
+          "repeated": false,
+          "required": false
+        }
+      ],
+      "references": []
+    },
+    "wdh": {
+      "apk_class": "wdh",
+      "our_name": "",
+      "channels": [
+        "control"
+      ],
+      "depth": 1,
+      "seed": false,
+      "gearhead_root": false,
+      "referenced_by": [
+        "wbw"
+      ],
+      "field_count": 1,
+      "fields": [
+        {
+          "number": 1,
+          "name": "b",
+          "obfuscated_name": "b",
+          "type": "string",
+          "repeated": false,
+          "required": false
+        }
+      ],
+      "references": []
+    },
+    "xgq": {
+      "apk_class": "xgq",
+      "our_name": "BluetoothPairingResponse",
+      "channels": [
+        "bluetooth"
+      ],
+      "depth": 0,
+      "seed": true,
+      "gearhead_root": false,
+      "referenced_by": [],
+      "field_count": 3,
+      "fields": [
+        {
+          "number": 1,
+          "name": "already_paired",
+          "obfuscated_name": "c",
+          "type": "bool",
+          "repeated": false,
+          "required": false
+        },
+        {
+          "number": 2,
+          "name": "status",
+          "obfuscated_name": "d",
+          "type": "enum",
+          "repeated": false,
+          "required": false,
+          "enum_verifier": "e"
+        },
+        {
+          "number": 3,
+          "name": "error_message",
+          "obfuscated_name": "",
+          "type": "string",
+          "repeated": false,
+          "required": false
+        }
+      ],
+      "references": []
+    },
+    "xmw": {
+      "apk_class": "xmw",
+      "our_name": "",
+      "channels": [
+        "navigation"
+      ],
+      "depth": 1,
+      "seed": false,
+      "gearhead_root": false,
+      "referenced_by": [
+        "xnb"
+      ],
+      "field_count": 3,
+      "fields": [
+        {
+          "number": 1,
+          "name": "c",
+          "obfuscated_name": "c",
+          "type": "int64",
+          "repeated": false,
+          "required": true
+        },
+        {
+          "number": 2,
+          "name": "d",
+          "obfuscated_name": "d",
+          "type": "fixed32",
+          "repeated": false,
+          "required": true
+        },
+        {
+          "number": 3,
+          "name": "e",
+          "obfuscated_name": "e",
+          "type": "fixed32",
+          "repeated": false,
+          "required": true
+        }
+      ],
+      "references": []
+    },
+    "xnb": {
+      "apk_class": "xnb",
+      "our_name": "NavigationDistance",
+      "channels": [
+        "navigation"
+      ],
+      "depth": 0,
+      "seed": true,
+      "gearhead_root": false,
+      "referenced_by": [],
+      "field_count": 4,
+      "fields": [
+        {
+          "number": 1,
+          "name": "distance",
+          "obfuscated_name": "c",
+          "type": "message",
+          "repeated": false,
+          "required": true,
+          "message_class": "xmw"
+        },
+        {
+          "number": 2,
+          "name": "value",
+          "obfuscated_name": "d",
+          "type": "string",
+          "repeated": false,
+          "required": true
+        },
+        {
+          "number": 3,
+          "name": "unit",
+          "obfuscated_name": "e",
+          "type": "int32",
+          "repeated": false,
+          "required": true
+        },
+        {
+          "number": 8,
+          "name": "f",
+          "obfuscated_name": "f",
+          "type": "message",
+          "repeated": false,
+          "required": false,
+          "message_class": "xng"
+        }
+      ],
+      "references": [
+        "xmw",
+        "xng"
+      ]
+    },
+    "xnd": {
+      "apk_class": "xnd",
+      "our_name": "",
+      "channels": [
+        "navigation"
+      ],
+      "depth": 2,
+      "seed": false,
+      "gearhead_root": false,
+      "referenced_by": [
+        "xng"
+      ],
+      "field_count": 4,
+      "fields": [
+        {
+          "number": 1,
+          "name": "c",
+          "obfuscated_name": "c",
+          "type": "string",
+          "repeated": false,
+          "required": true
+        },
+        {
+          "number": 2,
+          "name": "d",
+          "obfuscated_name": "d",
+          "type": "string",
+          "repeated": false,
+          "required": false
+        },
+        {
+          "number": 3,
+          "name": "e",
+          "obfuscated_name": "e",
+          "type": "int64",
+          "repeated": false,
+          "required": false
+        },
+        {
+          "number": 4,
+          "name": "f",
+          "obfuscated_name": "f",
+          "type": "sfixed32",
+          "repeated": false,
+          "required": false
+        }
+      ],
+      "references": []
+    },
+    "xng": {
+      "apk_class": "xng",
+      "our_name": "",
+      "channels": [
+        "navigation"
+      ],
+      "depth": 1,
+      "seed": false,
+      "gearhead_root": false,
+      "referenced_by": [
+        "xnb"
+      ],
+      "field_count": 3,
+      "fields": [
+        {
+          "number": 1,
+          "name": "e",
+          "obfuscated_name": "e",
+          "type": "message",
+          "repeated": false,
+          "required": true,
+          "message_class": "xnd"
+        },
+        {
+          "number": 2,
+          "name": "f",
+          "obfuscated_name": "f",
+          "type": "message",
+          "repeated": true,
+          "required": false,
+          "message_class": "xnd"
+        },
+        {
+          "number": 4,
+          "name": "xne.class",
+          "obfuscated_name": "xne.class",
+          "type": "message",
+          "repeated": false,
+          "required": false
+        }
+      ],
+      "references": [
+        "xnd"
+      ]
+    },
+    "xss": {
+      "apk_class": "xss",
+      "our_name": "Diagnostics",
+      "channels": [
+        "sensor"
+      ],
+      "depth": 0,
+      "seed": true,
+      "gearhead_root": false,
+      "referenced_by": [],
+      "field_count": 3,
+      "fields": [
+        {
+          "number": 1,
+          "name": "diagnostics",
+          "obfuscated_name": "c",
+          "type": "bytes",
+          "repeated": false,
+          "required": false
+        },
+        {
+          "number": 2,
+          "name": "extended_diagnostics",
+          "obfuscated_name": "d",
+          "type": "bytes",
+          "repeated": true,
+          "required": false
+        },
+        {
+          "number": 3,
+          "name": "diagnostics_supported",
+          "obfuscated_name": "e",
+          "type": "bool",
+          "repeated": false,
+          "required": false
+        }
+      ],
+      "references": []
+    },
+    "zli": {
+      "apk_class": "zli",
+      "our_name": "",
+      "channels": [
+        "input"
+      ],
+      "depth": 2,
+      "seed": false,
+      "gearhead_root": false,
+      "referenced_by": [
+        "zpn"
+      ],
+      "field_count": 1,
+      "fields": [
+        {
+          "number": 1,
+          "name": "b",
+          "obfuscated_name": "b",
+          "type": "double",
+          "repeated": false,
+          "required": false
+        }
+      ],
+      "references": []
+    },
+    "zpl": {
+      "apk_class": "zpl",
+      "our_name": "InputChannel",
+      "channels": [
+        "input"
+      ],
+      "depth": 0,
+      "seed": true,
+      "gearhead_root": false,
+      "referenced_by": [],
+      "field_count": 3,
+      "fields": [
+        {
+          "number": 1,
+          "name": "supported_keycodes",
+          "obfuscated_name": "c",
+          "type": "message",
+          "repeated": false,
+          "required": false,
+          "message_class": "zpn"
+        },
+        {
+          "number": 2,
+          "name": "touch_screen_config",
+          "obfuscated_name": "d",
+          "type": "message",
+          "repeated": false,
+          "required": false,
+          "message_class": "zpn"
+        },
+        {
+          "number": 3,
+          "name": "touch_pad_config",
+          "obfuscated_name": "e",
+          "type": "message",
+          "repeated": false,
+          "required": false,
+          "message_class": "zpn"
+        }
+      ],
+      "references": [
+        "zpn"
+      ]
+    },
+    "zpn": {
+      "apk_class": "zpn",
+      "our_name": "",
+      "channels": [
+        "input"
+      ],
+      "depth": 1,
+      "seed": false,
+      "gearhead_root": false,
+      "referenced_by": [
+        "zpl"
+      ],
+      "field_count": 2,
+      "fields": [
+        {
+          "number": 1,
+          "name": "c",
+          "obfuscated_name": "c",
+          "type": "int32",
+          "repeated": false,
+          "required": false
+        },
+        {
+          "number": 2,
+          "name": "d",
+          "obfuscated_name": "d",
+          "type": "message",
+          "repeated": false,
+          "required": false,
+          "message_class": "zli"
+        }
+      ],
+      "references": [
+        "zli"
+      ]
+    },
+    "zyd": {
+      "apk_class": "zyd",
+      "our_name": "",
+      "channels": [
+        "control"
+      ],
+      "depth": 1,
+      "seed": false,
+      "gearhead_root": false,
+      "referenced_by": [
+        "aaft",
+        "aajk"
+      ],
+      "field_count": 2,
+      "fields": [
+        {
+          "number": 1,
+          "name": "b",
+          "obfuscated_name": "b",
+          "type": "int64",
+          "repeated": false,
+          "required": false
+        },
+        {
+          "number": 2,
+          "name": "c",
+          "obfuscated_name": "c",
+          "type": "int32",
+          "repeated": false,
+          "required": false
+        }
+      ],
+      "references": []
+    }
+  },
+  "enums": {
+    "vxg": {
+      "apk_class": "vxg",
+      "channels": [
+        "video"
+      ],
+      "used_by": [
+        "vys"
+      ],
+      "values": [
+        {
+          "name": "DISPLAY_TYPE_MAIN",
+          "number": 0
+        },
+        {
+          "name": "DISPLAY_TYPE_CLUSTER",
+          "number": 1
+        },
+        {
+          "name": "DISPLAY_TYPE_AUXILIARY",
+          "number": 2
+        }
+      ]
+    },
+    "vxi": {
+      "apk_class": "vxi",
+      "channels": [
+        "control"
+      ],
+      "used_by": [
+        "wby"
+      ],
+      "values": [
+        {
+          "name": "DRIVER_POSITION_LEFT",
+          "number": 0
+        },
+        {
+          "name": "DRIVER_POSITION_RIGHT",
+          "number": 1
+        },
+        {
+          "name": "DRIVER_POSITION_CENTER",
+          "number": 2
+        },
+        {
+          "name": "DRIVER_POSITION_UNKNOWN",
+          "number": 3
+        }
+      ]
+    },
+    "vyh": {
+      "apk_class": "vyh",
+      "channels": [
+        "video"
+      ],
+      "used_by": [
+        "vys"
+      ],
+      "values": [
+        {
+          "name": "KEYCODE_UNKNOWN",
+          "number": 0
+        },
+        {
+          "name": "KEYCODE_SOFT_LEFT",
+          "number": 1
+        },
+        {
+          "name": "KEYCODE_SOFT_RIGHT",
+          "number": 2
+        },
+        {
+          "name": "KEYCODE_HOME",
+          "number": 3
+        },
+        {
+          "name": "KEYCODE_BACK",
+          "number": 4
+        },
+        {
+          "name": "KEYCODE_CALL",
+          "number": 5
+        },
+        {
+          "name": "KEYCODE_ENDCALL",
+          "number": 6
+        },
+        {
+          "name": "KEYCODE_0",
+          "number": 7
+        },
+        {
+          "name": "KEYCODE_1",
+          "number": 8
+        },
+        {
+          "name": "KEYCODE_2",
+          "number": 9
+        },
+        {
+          "name": "KEYCODE_3",
+          "number": 10
+        },
+        {
+          "name": "KEYCODE_4",
+          "number": 11
+        },
+        {
+          "name": "KEYCODE_5",
+          "number": 12
+        },
+        {
+          "name": "KEYCODE_6",
+          "number": 13
+        },
+        {
+          "name": "KEYCODE_7",
+          "number": 14
+        },
+        {
+          "name": "KEYCODE_8",
+          "number": 15
+        },
+        {
+          "name": "KEYCODE_9",
+          "number": 16
+        },
+        {
+          "name": "KEYCODE_STAR",
+          "number": 17
+        },
+        {
+          "name": "KEYCODE_POUND",
+          "number": 18
+        },
+        {
+          "name": "KEYCODE_DPAD_UP",
+          "number": 19
+        },
+        {
+          "name": "KEYCODE_DPAD_DOWN",
+          "number": 20
+        },
+        {
+          "name": "KEYCODE_DPAD_LEFT",
+          "number": 21
+        },
+        {
+          "name": "KEYCODE_DPAD_RIGHT",
+          "number": 22
+        },
+        {
+          "name": "KEYCODE_DPAD_CENTER",
+          "number": 23
+        },
+        {
+          "name": "KEYCODE_VOLUME_UP",
+          "number": 24
+        },
+        {
+          "name": "KEYCODE_VOLUME_DOWN",
+          "number": 25
+        },
+        {
+          "name": "KEYCODE_POWER",
+          "number": 26
+        },
+        {
+          "name": "KEYCODE_CAMERA",
+          "number": 27
+        },
+        {
+          "name": "KEYCODE_CLEAR",
+          "number": 28
+        },
+        {
+          "name": "KEYCODE_A",
+          "number": 29
+        },
+        {
+          "name": "KEYCODE_B",
+          "number": 30
+        },
+        {
+          "name": "KEYCODE_C",
+          "number": 31
+        },
+        {
+          "name": "KEYCODE_D",
+          "number": 32
+        },
+        {
+          "name": "KEYCODE_E",
+          "number": 33
+        },
+        {
+          "name": "KEYCODE_F",
+          "number": 34
+        },
+        {
+          "name": "KEYCODE_G",
+          "number": 35
+        },
+        {
+          "name": "KEYCODE_H",
+          "number": 36
+        },
+        {
+          "name": "KEYCODE_I",
+          "number": 37
+        },
+        {
+          "name": "KEYCODE_J",
+          "number": 38
+        },
+        {
+          "name": "KEYCODE_K",
+          "number": 39
+        },
+        {
+          "name": "KEYCODE_L",
+          "number": 40
+        },
+        {
+          "name": "KEYCODE_M",
+          "number": 41
+        },
+        {
+          "name": "KEYCODE_N",
+          "number": 42
+        },
+        {
+          "name": "KEYCODE_O",
+          "number": 43
+        },
+        {
+          "name": "KEYCODE_P",
+          "number": 44
+        },
+        {
+          "name": "KEYCODE_Q",
+          "number": 45
+        },
+        {
+          "name": "KEYCODE_R",
+          "number": 46
+        },
+        {
+          "name": "KEYCODE_S",
+          "number": 47
+        },
+        {
+          "name": "KEYCODE_T",
+          "number": 48
+        },
+        {
+          "name": "KEYCODE_U",
+          "number": 49
+        },
+        {
+          "name": "KEYCODE_V",
+          "number": 50
+        },
+        {
+          "name": "KEYCODE_W",
+          "number": 51
+        },
+        {
+          "name": "KEYCODE_X",
+          "number": 52
+        },
+        {
+          "name": "KEYCODE_Y",
+          "number": 53
+        },
+        {
+          "name": "KEYCODE_Z",
+          "number": 54
+        },
+        {
+          "name": "KEYCODE_COMMA",
+          "number": 55
+        },
+        {
+          "name": "KEYCODE_PERIOD",
+          "number": 56
+        },
+        {
+          "name": "KEYCODE_ALT_LEFT",
+          "number": 57
+        },
+        {
+          "name": "KEYCODE_ALT_RIGHT",
+          "number": 58
+        },
+        {
+          "name": "KEYCODE_SHIFT_LEFT",
+          "number": 59
+        },
+        {
+          "name": "KEYCODE_SHIFT_RIGHT",
+          "number": 60
+        },
+        {
+          "name": "KEYCODE_TAB",
+          "number": 61
+        },
+        {
+          "name": "KEYCODE_SPACE",
+          "number": 62
+        },
+        {
+          "name": "KEYCODE_SYM",
+          "number": 63
+        },
+        {
+          "name": "KEYCODE_EXPLORER",
+          "number": 64
+        },
+        {
+          "name": "KEYCODE_ENVELOPE",
+          "number": 65
+        },
+        {
+          "name": "KEYCODE_ENTER",
+          "number": 66
+        },
+        {
+          "name": "KEYCODE_DEL",
+          "number": 67
+        },
+        {
+          "name": "KEYCODE_GRAVE",
+          "number": 68
+        },
+        {
+          "name": "KEYCODE_MINUS",
+          "number": 69
+        },
+        {
+          "name": "KEYCODE_EQUALS",
+          "number": 70
+        },
+        {
+          "name": "KEYCODE_LEFT_BRACKET",
+          "number": 71
+        },
+        {
+          "name": "KEYCODE_RIGHT_BRACKET",
+          "number": 72
+        },
+        {
+          "name": "KEYCODE_BACKSLASH",
+          "number": 73
+        },
+        {
+          "name": "KEYCODE_SEMICOLON",
+          "number": 74
+        },
+        {
+          "name": "KEYCODE_APOSTROPHE",
+          "number": 75
+        },
+        {
+          "name": "KEYCODE_SLASH",
+          "number": 76
+        },
+        {
+          "name": "KEYCODE_AT",
+          "number": 77
+        },
+        {
+          "name": "KEYCODE_NUM",
+          "number": 78
+        },
+        {
+          "name": "KEYCODE_HEADSETHOOK",
+          "number": 79
+        },
+        {
+          "name": "KEYCODE_FOCUS",
+          "number": 80
+        },
+        {
+          "name": "KEYCODE_PLUS",
+          "number": 81
+        },
+        {
+          "name": "KEYCODE_MENU",
+          "number": 82
+        },
+        {
+          "name": "KEYCODE_NOTIFICATION",
+          "number": 83
+        },
+        {
+          "name": "KEYCODE_SEARCH",
+          "number": 84
+        },
+        {
+          "name": "KEYCODE_MEDIA_PLAY_PAUSE",
+          "number": 85
+        },
+        {
+          "name": "KEYCODE_MEDIA_STOP",
+          "number": 86
+        },
+        {
+          "name": "KEYCODE_MEDIA_NEXT",
+          "number": 87
+        },
+        {
+          "name": "KEYCODE_MEDIA_PREVIOUS",
+          "number": 88
+        },
+        {
+          "name": "KEYCODE_MEDIA_REWIND",
+          "number": 89
+        },
+        {
+          "name": "KEYCODE_MEDIA_FAST_FORWARD",
+          "number": 90
+        },
+        {
+          "name": "KEYCODE_MUTE",
+          "number": 91
+        },
+        {
+          "name": "KEYCODE_PAGE_UP",
+          "number": 92
+        },
+        {
+          "name": "KEYCODE_PAGE_DOWN",
+          "number": 93
+        },
+        {
+          "name": "KEYCODE_PICTSYMBOLS",
+          "number": 94
+        },
+        {
+          "name": "KEYCODE_SWITCH_CHARSET",
+          "number": 95
+        },
+        {
+          "name": "KEYCODE_BUTTON_A",
+          "number": 96
+        },
+        {
+          "name": "KEYCODE_BUTTON_B",
+          "number": 97
+        },
+        {
+          "name": "KEYCODE_BUTTON_C",
+          "number": 98
+        },
+        {
+          "name": "KEYCODE_BUTTON_X",
+          "number": 99
+        },
+        {
+          "name": "KEYCODE_BUTTON_Y",
+          "number": 100
+        },
+        {
+          "name": "KEYCODE_BUTTON_L1",
+          "number": 102
+        },
+        {
+          "name": "KEYCODE_BUTTON_R1",
+          "number": 103
+        },
+        {
+          "name": "KEYCODE_BUTTON_L2",
+          "number": 104
+        },
+        {
+          "name": "KEYCODE_BUTTON_R2",
+          "number": 105
+        },
+        {
+          "name": "KEYCODE_BUTTON_THUMBL",
+          "number": 106
+        },
+        {
+          "name": "KEYCODE_BUTTON_THUMBR",
+          "number": 107
+        },
+        {
+          "name": "KEYCODE_BUTTON_START",
+          "number": 108
+        },
+        {
+          "name": "KEYCODE_BUTTON_SELECT",
+          "number": 109
+        },
+        {
+          "name": "KEYCODE_BUTTON_MODE",
+          "number": 110
+        },
+        {
+          "name": "KEYCODE_ESCAPE",
+          "number": 111
+        },
+        {
+          "name": "KEYCODE_FORWARD_DEL",
+          "number": 112
+        },
+        {
+          "name": "KEYCODE_CTRL_LEFT",
+          "number": 113
+        },
+        {
+          "name": "KEYCODE_CTRL_RIGHT",
+          "number": 114
+        },
+        {
+          "name": "KEYCODE_CAPS_LOCK",
+          "number": 115
+        },
+        {
+          "name": "KEYCODE_SCROLL_LOCK",
+          "number": 116
+        },
+        {
+          "name": "KEYCODE_META_LEFT",
+          "number": 117
+        },
+        {
+          "name": "KEYCODE_META_RIGHT",
+          "number": 118
+        },
+        {
+          "name": "KEYCODE_FUNCTION",
+          "number": 119
+        },
+        {
+          "name": "KEYCODE_SYSRQ",
+          "number": 120
+        },
+        {
+          "name": "KEYCODE_BREAK",
+          "number": 121
+        },
+        {
+          "name": "KEYCODE_MOVE_HOME",
+          "number": 122
+        },
+        {
+          "name": "KEYCODE_MOVE_END",
+          "number": 123
+        },
+        {
+          "name": "KEYCODE_INSERT",
+          "number": 124
+        },
+        {
+          "name": "KEYCODE_FORWARD",
+          "number": 125
+        },
+        {
+          "name": "KEYCODE_MEDIA_PLAY",
+          "number": 126
+        },
+        {
+          "name": "KEYCODE_MEDIA_PAUSE",
+          "number": 127
+        },
+        {
+          "name": "KEYCODE_MEDIA_CLOSE",
+          "number": 128
+        },
+        {
+          "name": "KEYCODE_MEDIA_EJECT",
+          "number": 129
+        },
+        {
+          "name": "KEYCODE_MEDIA_RECORD",
+          "number": 130
+        },
+        {
+          "name": "KEYCODE_F1",
+          "number": 131
+        },
+        {
+          "name": "KEYCODE_F2",
+          "number": 132
+        },
+        {
+          "name": "KEYCODE_F3",
+          "number": 133
+        },
+        {
+          "name": "KEYCODE_F4",
+          "number": 134
+        },
+        {
+          "name": "KEYCODE_F5",
+          "number": 135
+        },
+        {
+          "name": "KEYCODE_F6",
+          "number": 136
+        },
+        {
+          "name": "KEYCODE_F7",
+          "number": 137
+        },
+        {
+          "name": "KEYCODE_F8",
+          "number": 138
+        },
+        {
+          "name": "KEYCODE_F9",
+          "number": 139
+        },
+        {
+          "name": "KEYCODE_F10",
+          "number": 140
+        },
+        {
+          "name": "KEYCODE_F11",
+          "number": 141
+        },
+        {
+          "name": "KEYCODE_F12",
+          "number": 142
+        },
+        {
+          "name": "KEYCODE_NUM_LOCK",
+          "number": 143
+        },
+        {
+          "name": "KEYCODE_NUMPAD_0",
+          "number": 144
+        },
+        {
+          "name": "KEYCODE_NUMPAD_1",
+          "number": 145
+        },
+        {
+          "name": "KEYCODE_NUMPAD_2",
+          "number": 146
+        },
+        {
+          "name": "KEYCODE_NUMPAD_3",
+          "number": 147
+        },
+        {
+          "name": "KEYCODE_NUMPAD_4",
+          "number": 148
+        },
+        {
+          "name": "KEYCODE_NUMPAD_5",
+          "number": 149
+        },
+        {
+          "name": "KEYCODE_NUMPAD_6",
+          "number": 150
+        },
+        {
+          "name": "KEYCODE_NUMPAD_7",
+          "number": 151
+        },
+        {
+          "name": "KEYCODE_NUMPAD_8",
+          "number": 152
+        },
+        {
+          "name": "KEYCODE_NUMPAD_9",
+          "number": 153
+        },
+        {
+          "name": "KEYCODE_NUMPAD_DIVIDE",
+          "number": 154
+        },
+        {
+          "name": "KEYCODE_NUMPAD_MULTIPLY",
+          "number": 155
+        },
+        {
+          "name": "KEYCODE_NUMPAD_SUBTRACT",
+          "number": 156
+        },
+        {
+          "name": "KEYCODE_NUMPAD_ADD",
+          "number": 157
+        },
+        {
+          "name": "KEYCODE_NUMPAD_DOT",
+          "number": 158
+        },
+        {
+          "name": "KEYCODE_NUMPAD_COMMA",
+          "number": 159
+        },
+        {
+          "name": "KEYCODE_NUMPAD_ENTER",
+          "number": 160
+        },
+        {
+          "name": "KEYCODE_NUMPAD_EQUALS",
+          "number": 161
+        },
+        {
+          "name": "KEYCODE_NUMPAD_LEFT_PAREN",
+          "number": 162
+        },
+        {
+          "name": "KEYCODE_NUMPAD_RIGHT_PAREN",
+          "number": 163
+        },
+        {
+          "name": "KEYCODE_VOLUME_MUTE",
+          "number": 164
+        },
+        {
+          "name": "KEYCODE_INFO",
+          "number": 165
+        },
+        {
+          "name": "KEYCODE_CHANNEL_UP",
+          "number": 166
+        },
+        {
+          "name": "KEYCODE_CHANNEL_DOWN",
+          "number": 167
+        },
+        {
+          "name": "KEYCODE_ZOOM_IN",
+          "number": 168
+        },
+        {
+          "name": "KEYCODE_ZOOM_OUT",
+          "number": 169
+        },
+        {
+          "name": "KEYCODE_TV",
+          "number": 170
+        },
+        {
+          "name": "KEYCODE_WINDOW",
+          "number": 171
+        },
+        {
+          "name": "KEYCODE_GUIDE",
+          "number": 172
+        },
+        {
+          "name": "KEYCODE_DVR",
+          "number": 173
+        },
+        {
+          "name": "KEYCODE_BOOKMARK",
+          "number": 174
+        },
+        {
+          "name": "KEYCODE_CAPTIONS",
+          "number": 175
+        },
+        {
+          "name": "KEYCODE_SETTINGS",
+          "number": 176
+        },
+        {
+          "name": "KEYCODE_TV_POWER",
+          "number": 177
+        },
+        {
+          "name": "KEYCODE_TV_INPUT",
+          "number": 178
+        },
+        {
+          "name": "KEYCODE_STB_POWER",
+          "number": 179
+        },
+        {
+          "name": "KEYCODE_STB_INPUT",
+          "number": 180
+        },
+        {
+          "name": "KEYCODE_AVR_POWER",
+          "number": 181
+        },
+        {
+          "name": "KEYCODE_AVR_INPUT",
+          "number": 182
+        },
+        {
+          "name": "KEYCODE_PROG_RED",
+          "number": 183
+        },
+        {
+          "name": "KEYCODE_PROG_GREEN",
+          "number": 184
+        },
+        {
+          "name": "KEYCODE_PROG_YELLOW",
+          "number": 185
+        },
+        {
+          "name": "KEYCODE_PROG_BLUE",
+          "number": 186
+        },
+        {
+          "name": "KEYCODE_APP_SWITCH",
+          "number": 187
+        },
+        {
+          "name": "KEYCODE_BUTTON_1",
+          "number": 188
+        },
+        {
+          "name": "KEYCODE_BUTTON_2",
+          "number": 189
+        },
+        {
+          "name": "KEYCODE_BUTTON_3",
+          "number": 190
+        },
+        {
+          "name": "KEYCODE_BUTTON_4",
+          "number": 191
+        },
+        {
+          "name": "KEYCODE_BUTTON_5",
+          "number": 192
+        },
+        {
+          "name": "KEYCODE_BUTTON_6",
+          "number": 193
+        },
+        {
+          "name": "KEYCODE_BUTTON_7",
+          "number": 194
+        },
+        {
+          "name": "KEYCODE_BUTTON_8",
+          "number": 195
+        },
+        {
+          "name": "KEYCODE_BUTTON_9",
+          "number": 196
+        },
+        {
+          "name": "KEYCODE_BUTTON_10",
+          "number": 197
+        },
+        {
+          "name": "KEYCODE_BUTTON_11",
+          "number": 198
+        },
+        {
+          "name": "KEYCODE_BUTTON_12",
+          "number": 199
+        },
+        {
+          "name": "KEYCODE_BUTTON_13",
+          "number": 200
+        },
+        {
+          "name": "KEYCODE_BUTTON_14",
+          "number": 201
+        },
+        {
+          "name": "KEYCODE_BUTTON_15",
+          "number": 202
+        },
+        {
+          "name": "KEYCODE_BUTTON_16",
+          "number": 203
+        },
+        {
+          "name": "KEYCODE_LANGUAGE_SWITCH",
+          "number": 204
+        },
+        {
+          "name": "KEYCODE_MANNER_MODE",
+          "number": 205
+        },
+        {
+          "name": "KEYCODE_3D_MODE",
+          "number": 206
+        },
+        {
+          "name": "KEYCODE_CONTACTS",
+          "number": 207
+        },
+        {
+          "name": "KEYCODE_CALENDAR",
+          "number": 208
+        },
+        {
+          "name": "KEYCODE_MUSIC",
+          "number": 209
+        },
+        {
+          "name": "KEYCODE_CALCULATOR",
+          "number": 210
+        },
+        {
+          "name": "KEYCODE_ZENKAKU_HANKAKU",
+          "number": 211
+        },
+        {
+          "name": "KEYCODE_EISU",
+          "number": 212
+        },
+        {
+          "name": "KEYCODE_MUHENKAN",
+          "number": 213
+        },
+        {
+          "name": "KEYCODE_HENKAN",
+          "number": 214
+        },
+        {
+          "name": "KEYCODE_KATAKANA_HIRAGANA",
+          "number": 215
+        },
+        {
+          "name": "KEYCODE_YEN",
+          "number": 216
+        },
+        {
+          "name": "KEYCODE_RO",
+          "number": 217
+        },
+        {
+          "name": "KEYCODE_KANA",
+          "number": 218
+        },
+        {
+          "name": "KEYCODE_ASSIST",
+          "number": 219
+        },
+        {
+          "name": "KEYCODE_BRIGHTNESS_DOWN",
+          "number": 220
+        },
+        {
+          "name": "KEYCODE_BRIGHTNESS_UP",
+          "number": 221
+        },
+        {
+          "name": "KEYCODE_MEDIA_AUDIO_TRACK",
+          "number": 222
+        },
+        {
+          "name": "KEYCODE_SLEEP",
+          "number": 223
+        },
+        {
+          "name": "KEYCODE_WAKEUP",
+          "number": 224
+        },
+        {
+          "name": "KEYCODE_PAIRING",
+          "number": 225
+        },
+        {
+          "name": "KEYCODE_MEDIA_TOP_MENU",
+          "number": 226
+        },
+        {
+          "name": "KEYCODE_11",
+          "number": 227
+        },
+        {
+          "name": "KEYCODE_12",
+          "number": 228
+        },
+        {
+          "name": "KEYCODE_LAST_CHANNEL",
+          "number": 229
+        },
+        {
+          "name": "KEYCODE_TV_DATA_SERVICE",
+          "number": 230
+        },
+        {
+          "name": "KEYCODE_VOICE_ASSIST",
+          "number": 231
+        },
+        {
+          "name": "KEYCODE_TV_RADIO_SERVICE",
+          "number": 232
+        },
+        {
+          "name": "KEYCODE_TV_TELETEXT",
+          "number": 233
+        },
+        {
+          "name": "KEYCODE_TV_NUMBER_ENTRY",
+          "number": 234
+        },
+        {
+          "name": "KEYCODE_TV_TERRESTRIAL_ANALOG",
+          "number": 235
+        },
+        {
+          "name": "KEYCODE_TV_TERRESTRIAL_DIGITAL",
+          "number": 236
+        },
+        {
+          "name": "KEYCODE_TV_SATELLITE",
+          "number": 237
+        },
+        {
+          "name": "KEYCODE_TV_SATELLITE_BS",
+          "number": 238
+        },
+        {
+          "name": "KEYCODE_TV_SATELLITE_CS",
+          "number": 239
+        },
+        {
+          "name": "KEYCODE_TV_SATELLITE_SERVICE",
+          "number": 240
+        },
+        {
+          "name": "KEYCODE_TV_NETWORK",
+          "number": 241
+        },
+        {
+          "name": "KEYCODE_TV_ANTENNA_CABLE",
+          "number": 242
+        },
+        {
+          "name": "KEYCODE_TV_INPUT_HDMI_1",
+          "number": 243
+        },
+        {
+          "name": "KEYCODE_TV_INPUT_HDMI_2",
+          "number": 244
+        },
+        {
+          "name": "KEYCODE_TV_INPUT_HDMI_3",
+          "number": 245
+        },
+        {
+          "name": "KEYCODE_TV_INPUT_HDMI_4",
+          "number": 246
+        },
+        {
+          "name": "KEYCODE_TV_INPUT_COMPOSITE_1",
+          "number": 247
+        },
+        {
+          "name": "KEYCODE_TV_INPUT_COMPOSITE_2",
+          "number": 248
+        },
+        {
+          "name": "KEYCODE_TV_INPUT_COMPONENT_1",
+          "number": 249
+        },
+        {
+          "name": "KEYCODE_TV_INPUT_COMPONENT_2",
+          "number": 250
+        },
+        {
+          "name": "KEYCODE_TV_INPUT_VGA_1",
+          "number": 251
+        },
+        {
+          "name": "KEYCODE_TV_AUDIO_DESCRIPTION",
+          "number": 252
+        },
+        {
+          "name": "KEYCODE_TV_AUDIO_DESCRIPTION_MIX_UP",
+          "number": 253
+        },
+        {
+          "name": "KEYCODE_TV_AUDIO_DESCRIPTION_MIX_DOWN",
+          "number": 254
+        },
+        {
+          "name": "KEYCODE_TV_ZOOM_MODE",
+          "number": 255
+        },
+        {
+          "name": "KEYCODE_TV_CONTENTS_MENU",
+          "number": 256
+        },
+        {
+          "name": "KEYCODE_TV_MEDIA_CONTEXT_MENU",
+          "number": 257
+        },
+        {
+          "name": "KEYCODE_TV_TIMER_PROGRAMMING",
+          "number": 258
+        },
+        {
+          "name": "KEYCODE_HELP",
+          "number": 259
+        },
+        {
+          "name": "KEYCODE_NAVIGATE_PREVIOUS",
+          "number": 260
+        },
+        {
+          "name": "KEYCODE_NAVIGATE_NEXT",
+          "number": 261
+        },
+        {
+          "name": "KEYCODE_NAVIGATE_IN",
+          "number": 262
+        },
+        {
+          "name": "KEYCODE_NAVIGATE_OUT",
+          "number": 263
+        },
+        {
+          "name": "KEYCODE_DPAD_UP_LEFT",
+          "number": 268
+        },
+        {
+          "name": "KEYCODE_DPAD_DOWN_LEFT",
+          "number": 269
+        },
+        {
+          "name": "KEYCODE_DPAD_UP_RIGHT",
+          "number": 270
+        },
+        {
+          "name": "KEYCODE_DPAD_DOWN_RIGHT",
+          "number": 271
+        },
+        {
+          "name": "KEYCODE_SENTINEL",
+          "number": 65535
+        },
+        {
+          "name": "KEYCODE_ROTARY_CONTROLLER",
+          "number": 65536
+        },
+        {
+          "name": "KEYCODE_MEDIA",
+          "number": 65537
+        },
+        {
+          "name": "KEYCODE_TERTIARY_BUTTON",
+          "number": 65543
+        },
+        {
+          "name": "KEYCODE_TURN_CARD",
+          "number": 65544
+        }
+      ]
+    },
+    "vyn": {
+      "apk_class": "vyn",
+      "channels": [
+        "control",
+        "video"
+      ],
+      "used_by": [
+        "vys",
+        "vyt",
+        "wcz"
+      ],
+      "values": [
+        {
+          "name": "MEDIA_CODEC_AUDIO_PCM",
+          "number": 1
+        },
+        {
+          "name": "MEDIA_CODEC_AUDIO_AAC_LC",
+          "number": 2
+        },
+        {
+          "name": "MEDIA_CODEC_VIDEO_H264_BP",
+          "number": 3
+        },
+        {
+          "name": "MEDIA_CODEC_AUDIO_AAC_LC_ADTS",
+          "number": 4
+        },
+        {
+          "name": "MEDIA_CODEC_VIDEO_VP9",
+          "number": 5
+        },
+        {
+          "name": "MEDIA_CODEC_VIDEO_AV1",
+          "number": 6
+        },
+        {
+          "name": "MEDIA_CODEC_VIDEO_H265",
+          "number": 7
+        }
+      ]
+    },
+    "wae": {
+      "apk_class": "wae",
+      "channels": [
+        "phone"
+      ],
+      "used_by": [
+        "wad"
+      ],
+      "values": [
+        {
+          "name": "UNKNOWN",
+          "number": 0
+        },
+        {
+          "name": "IN_CALL",
+          "number": 1
+        },
+        {
+          "name": "ON_HOLD",
+          "number": 2
+        },
+        {
+          "name": "INACTIVE",
+          "number": 3
+        },
+        {
+          "name": "INCOMING",
+          "number": 4
+        },
+        {
+          "name": "CONFERENCED",
+          "number": 5
+        },
+        {
+          "name": "MUTED",
+          "number": 6
+        }
+      ]
+    },
+    "waq": {
+      "apk_class": "waq",
+      "channels": [
+        "sensor"
+      ],
+      "used_by": [
+        "war"
+      ],
+      "values": [
+        {
+          "name": "IDENTIFIER_TYPE_INVALID",
+          "number": 0
+        },
+        {
+          "name": "IDENTIFIER_TYPE_AMFM_FREQUENCY",
+          "number": 1
+        },
+        {
+          "name": "IDENTIFIER_TYPE_RDS_PI",
+          "number": 2
+        },
+        {
+          "name": "IDENTIFIER_TYPE_HD_STATION_ID_EXT",
+          "number": 3
+        },
+        {
+          "name": "IDENTIFIER_TYPE_HD_STATION_NAME",
+          "number": 4
+        },
+        {
+          "name": "IDENTIFIER_TYPE_DAB_DMB_SID_EXT",
+          "number": 5
+        },
+        {
+          "name": "IDENTIFIER_TYPE_DAB_ENSEMBLE",
+          "number": 6
+        },
+        {
+          "name": "IDENTIFIER_TYPE_DAB_SCID",
+          "number": 7
+        },
+        {
+          "name": "IDENTIFIER_TYPE_DAB_FREQUENCY",
+          "number": 8
+        },
+        {
+          "name": "IDENTIFIER_TYPE_DAB_SID_EXT",
+          "number": 9
+        }
+      ]
+    },
+    "wcy": {
+      "apk_class": "wcy",
+      "channels": [
+        "video"
+      ],
+      "used_by": [
+        "wcz"
+      ],
+      "values": [
+        {
+          "name": "VIDEO_800x480",
+          "number": 1
+        },
+        {
+          "name": "VIDEO_1280x720",
+          "number": 2
+        },
+        {
+          "name": "VIDEO_1920x1080",
+          "number": 3
+        },
+        {
+          "name": "VIDEO_2560x1440",
+          "number": 4
+        },
+        {
+          "name": "VIDEO_3840x2160",
+          "number": 5
+        },
+        {
+          "name": "VIDEO_720x1280",
+          "number": 6
+        },
+        {
+          "name": "VIDEO_1080x1920",
+          "number": 7
+        },
+        {
+          "name": "VIDEO_1440x2560",
+          "number": 8
+        },
+        {
+          "name": "VIDEO_2160x3840",
+          "number": 9
+        }
+      ]
+    },
+    "wda": {
+      "apk_class": "wda",
+      "channels": [
+        "video"
+      ],
+      "used_by": [
+        "wdb"
+      ],
+      "values": [
+        {
+          "name": "VIDEO_FOCUS_PROJECTED",
+          "number": 1
+        },
+        {
+          "name": "VIDEO_FOCUS_NATIVE",
+          "number": 2
+        },
+        {
+          "name": "VIDEO_FOCUS_NATIVE_TRANSIENT",
+          "number": 3
+        },
+        {
+          "name": "VIDEO_FOCUS_PROJECTED_NO_INPUT_FOCUS",
+          "number": 4
+        }
+      ]
+    }
+  },
+  "channels": {
+    "control": {
+      "messages": [
+        "aacd",
+        "aafs",
+        "aaft",
+        "aafu",
+        "aagh",
+        "aagr",
+        "aags",
+        "aagv",
+        "aahd",
+        "aahi",
+        "aajk",
+        "vvp",
+        "vwc",
+        "vya",
+        "vys",
+        "vyt",
+        "vzq",
+        "vzr",
+        "wax",
+        "way",
+        "wbe",
+        "wbu",
+        "wbw",
+        "wby",
+        "wcg",
+        "wcv",
+        "wdh",
+        "zyd"
+      ],
+      "enums": [
+        "vxi",
+        "vyn"
+      ]
+    },
+    "navigation": {
+      "messages": [
+        "ahdl",
+        "ahdp",
+        "utj",
+        "utk",
+        "xmw",
+        "xnb",
+        "xnd",
+        "xng"
+      ],
+      "enums": []
+    },
+    "sensor": {
+      "messages": [
+        "ahdz",
+        "vxa",
+        "vxf",
+        "vxh",
+        "vxk",
+        "vxn",
+        "vxp",
+        "vyk",
+        "vyl",
+        "vzw",
+        "vzx",
+        "wab",
+        "war",
+        "wbn",
+        "wbo",
+        "wcd",
+        "xss"
+      ],
+      "enums": [
+        "waq"
+      ]
+    },
+    "bluetooth": {
+      "messages": [
+        "kay",
+        "xgq"
+      ],
+      "enums": []
+    },
+    "gearhead": {
+      "messages": [
+        "nll",
+        "nlq"
+      ],
+      "enums": []
+    },
+    "media": {
+      "messages": [
+        "nmi"
+      ],
+      "enums": []
+    },
+    "input": {
+      "messages": [
+        "vvh",
+        "vvi",
+        "vxx",
+        "vyi",
+        "vyj",
+        "wbl",
+        "wbm",
+        "wci",
+        "wcj",
+        "zli",
+        "zpl",
+        "zpn"
+      ],
+      "enums": []
+    },
+    "video": {
+      "messages": [
+        "vvp",
+        "vxb",
+        "vys",
+        "vyx",
+        "wcm",
+        "wcz",
+        "wdb"
+      ],
+      "enums": [
+        "vxg",
+        "vyh",
+        "vyn",
+        "wcy",
+        "wda"
+      ]
+    },
+    "phone": {
+      "messages": [
+        "wad"
+      ],
+      "enums": [
+        "wae"
+      ]
+    },
+    "wifi": {
+      "messages": [
+        "wam",
+        "wan",
+        "waw",
+        "wbb"
+      ],
+      "enums": []
+    }
+  }
+}
