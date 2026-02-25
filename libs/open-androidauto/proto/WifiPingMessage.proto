@@ -1,0 +1,19 @@
+/*
+ * WifiPingRequest / WifiPingResponse — BT WiFi keepalive ping.
+ *
+ * APK classes: wdo.java / wdp.java (AA v16.1)
+ * BT RFCOMM message types: ordinal 7 (PING_REQUEST), ordinal 8 (PING_RESPONSE)
+ */
+
+syntax = "proto3";
+
+package oaa.proto.messages;
+
+message WifiPingRequest {
+    optional int32 sequence = 1;        // APK: b (int)
+    optional int64 timestamp_ns = 2;    // APK: c (long)
+}
+
+message WifiPingResponse {
+    optional int64 timestamp_ns = 1;    // APK: b (long)
+}

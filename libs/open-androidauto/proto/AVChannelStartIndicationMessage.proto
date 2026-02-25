@@ -21,10 +21,12 @@ syntax="proto3";
 package oaa.proto.messages;
 
 // APK class: wce — AV channel start (4 fields)
+// Field 4 is a nested AVChannelMediaConfig (vyo) — parsed as bytes here
+// for backward compatibility, but can be decoded as AVChannelMediaConfig.
 message AVChannelStartIndication
 {
     optional int32 session = 1;
     optional uint32 config = 2;
     optional int32 unknown_3 = 3;
-    optional bytes media_config = 4;
+    optional bytes media_config = 4;  // APK: vyo (AVChannelMediaConfig) — see AVChannelMediaConfigMessage.proto
 }

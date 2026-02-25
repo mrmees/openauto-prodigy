@@ -1,0 +1,43 @@
+/*
+ * WifiVersionStatus — status codes for BT WiFi version negotiation.
+ *
+ * APK validator: viz.au() / viz.at() (AA v16.1)
+ * viz.au() maps wire values to internal indices 1..13 (0 = unknown).
+ * viz.at() provides string names for each status.
+ * Used in WifiVersionResponse field 4.
+ *
+ * NOTE: The APK uses signed values internally (-11..1) but the wire
+ * format uses sint32 encoding. Proto3 doesn't allow negative enum
+ * values, so we use the raw sint32 field in WifiVersionResponse
+ * and document the mapping here for reference.
+ *
+ * Wire value → Status:
+ *   1  → STATUS_SUCCESS
+ *   0  → STATUS_UNSOLICITED_MESSAGE
+ *  -1  → STATUS_WIFI_NETWORK_UNAVAILABLE
+ *  -2  → STATUS_WIFI_INACCESSIBLE_CHANNEL
+ *  -3  → STATUS_WIFI_INCORRECT_CREDENTIALS
+ *  -4  → STATUS_PROJECTION_ALREADY_STARTED
+ *  -5  → STATUS_WIFI_DISABLED
+ *  -6  → STATUS_WIFI_NOT_YET_STARTED
+ *  -7  → STATUS_INVALID_HOST
+ *  -8  → STATUS_NO_SUPPORTED_WIFI_CHANNELS
+ *  -9  → STATUS_INSTRUCT_USER_TO_CHECK_PHONE
+ * -10  → STATUS_PHONE_WIFI_DISABLED
+ * -11  → STATUS_NO_COMPATIBLE_VERSION
+ */
+
+syntax = "proto3";
+
+package oaa.proto.enums;
+
+// Reference enum — actual wire values are sint32 (can be negative).
+// Use the int32 field directly and compare against these constants.
+message WifiVersionStatus {
+    enum Enum {
+        _UNKNOWN = 0;
+        STATUS_SUCCESS = 1;
+        // Negative values cannot be expressed as proto3 enum values.
+        // See header comment for full mapping.
+    }
+}

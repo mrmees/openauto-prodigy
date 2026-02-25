@@ -1,0 +1,16 @@
+/*
+ * WifiConnectStatus — WiFi connection status update (DEPRECATED).
+ *
+ * APK class: wdj.java (AA v16.1) — marked @Deprecated
+ * BT RFCOMM message type: ordinal 5 (MESSAGE_WIFI_CONNECT_STATUS_BT)
+ */
+
+syntax = "proto3";
+
+package oaa.proto.messages;
+
+// Deprecated in APK — kept for protocol completeness.
+message WifiConnectStatus {
+    optional int32 state = 1;           // APK: b (int)
+    optional sint32 status = 2;         // APK: c (int, enum via viz.au/wck.p)
+}

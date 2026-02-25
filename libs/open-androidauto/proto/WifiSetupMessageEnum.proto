@@ -1,9 +1,22 @@
 /*
- * Discovered via APK analysis (wdn.java, AA v16.1)
- * Message types exchanged over BT RFCOMM during wireless AA setup.
+ * WifiSetupMessage — BT RFCOMM message types for wireless AA setup.
+ *
+ * APK class: wdn.java (AA v16.1)
+ * Full dispatch table from ngh.java:
+ *   ordinal 0 → wdt (WifiStartRequest)
+ *   ordinal 1 → wdl (WifiInfoRequest)
+ *   ordinal 2 → wdm (WifiInfoResponse)
+ *   ordinal 3 → wdv (WifiVersionRequest)
+ *   ordinal 4 → wdw (WifiVersionResponse)
+ *   ordinal 5 → wdj (WifiConnectStatus) — DEPRECATED
+ *   ordinal 6 → wdu (WifiStartResponse)
+ *   ordinal 7 → wdo (WifiPingRequest)
+ *   ordinal 8 → wdp (WifiPingResponse)
+ *   ordinal 9 → wdk (WifiConnectionRejection)
+ *   ordinal 10 → wds (WifiSetupInfo)
  */
 
-syntax="proto3";
+syntax = "proto3";
 
 package oaa.proto.enums;
 
@@ -12,16 +25,16 @@ message WifiSetupMessage
     enum Enum
     {
         NONE = 0;
-        REQUEST_START = 1;
-        REQUEST_INFO = 2;
-        RESPONSE_INFO = 3;
-        VERSION_REQUEST = 4;
-        VERSION_RESPONSE = 5;
-        CONNECT_STATUS = 6;
-        RESPONSE_START = 7;
-        PING_REQUEST = 8;
-        PING_RESPONSE = 9;
-        CONNECTION_REJECTION = 10;
-        SETUP_INFO = 11;
+        REQUEST_START = 1;         // → WifiStartRequest (wdt)
+        REQUEST_INFO = 2;          // → WifiInfoRequest (wdl) — empty message
+        RESPONSE_INFO = 3;         // → WifiInfoResponse (wdm)
+        VERSION_REQUEST = 4;       // → WifiVersionRequest (wdv)
+        VERSION_RESPONSE = 5;      // → WifiVersionResponse (wdw)
+        CONNECT_STATUS = 6;        // → WifiConnectStatus (wdj) — DEPRECATED
+        RESPONSE_START = 7;        // → WifiStartResponse (wdu)
+        PING_REQUEST = 8;          // → WifiPingRequest (wdo)
+        PING_RESPONSE = 9;         // → WifiPingResponse (wdp)
+        CONNECTION_REJECTION = 10; // → WifiConnectionRejection (wdk)
+        SETUP_INFO = 11;           // → WifiSetupInfo (wds)
     }
 }

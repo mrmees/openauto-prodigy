@@ -1,14 +1,42 @@
 /*
- * Discovered via APK proto decoder (way.java / wax.java, AA v16.1)
- * Radio channel descriptor — deprecated but still in the protocol.
+ * RadioChannel — radio channel configuration for ServiceDiscovery.
+ *
+ * APK class: way.java (container) / wax.java (entry) / wbe.java (band)
+ * AA v16.1
+ *
+ * Contains repeated RadioStation entries, each describing a radio
+ * tuner capability with supported bands, codec types, and feature flags.
  */
 
-syntax="proto3";
+syntax = "proto3";
 
 package oaa.proto.data;
 
 // APK class: way — radio channel config container (1 field)
-message RadioChannel
-{
-    repeated bytes radio_stations = 1;  // APK: wax sub-message
+message RadioChannel {
+    repeated RadioStation stations = 1;  // APK: repeated wax
+}
+
+// APK class: wax — individual radio station/tuner descriptor (14 fields)
+message RadioStation {
+    optional int32 station_id = 1;         // APK: b (int)
+    optional bytes identifier = 2;         // APK: c (zzb/ByteString)
+    repeated RadioBand bands = 3;          // APK: d (repeated wbe)
+    optional bytes config_data = 4;        // APK: e (zzb/ByteString, oneof-adjacent)
+    optional int32 tuner_type = 5;         // APK: (int, from oneof group)
+    optional bool enabled = 6;             // APK: f (bool)
+    optional int32 codec_type = 7;         // APK: g (int, enum via vvs.s)
+    optional int32 band_type = 8;          // APK: h (int, enum via vyv.s)
+    optional bool supports_rds = 9;        // APK: i (bool)
+    optional bool supports_hd = 10;        // APK: j (bool)
+    optional int32 region = 11;            // APK: k (int, enum via wck.a)
+    optional bool dab_capable = 12;        // APK: l (bool)
+    optional bool drm_capable = 13;        // APK: m (bool)
+    optional int32 priority = 14;          // APK: n (int)
+}
+
+// APK class: wbe — radio frequency band descriptor (2 fields)
+message RadioBand {
+    optional int32 lower_bound = 1;   // APK: b (int) — lower frequency limit
+    optional int32 upper_bound = 2;   // APK: c (int) — upper frequency limit
 }

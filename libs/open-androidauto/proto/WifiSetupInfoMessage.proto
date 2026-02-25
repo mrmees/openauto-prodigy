@@ -1,0 +1,32 @@
+/*
+ * WifiSetupInfo — WiFi setup metadata exchanged during BT negotiation.
+ *
+ * APK class: wds.java (AA v16.1)
+ * BT RFCOMM message type: ordinal 10 (MESSAGE_WIFI_SETUP_INFO_BT)
+ *
+ * Contains network configuration details and feature flags.
+ * Sub-message wdi has SSID/BSSID/passphrase with SecurityMode enum.
+ */
+
+syntax = "proto3";
+
+import "FeatureFlagsData.proto";
+
+package oaa.proto.messages;
+
+// APK class: wdi — WiFi network credentials with security mode
+message WifiNetworkInfo {
+    optional string ssid = 1;              // APK: b (String)
+    optional string bssid = 2;            // APK: c (String)
+    optional string passphrase = 3;       // APK: d (String)
+    optional int32 security_mode = 4;     // APK: e (int, enum via wck.s/wdr — SecurityMode)
+    optional bytes extra = 5;             // APK: f (zzb/ByteString)
+}
+
+message WifiSetupInfo {
+    optional int32 setup_state = 2;       // APK: b (int) — note: starts at field 2
+    optional int32 setup_flags = 3;       // APK: c (int)
+    optional bytes setup_data = 4;        // APK: d (zxq/ByteString)
+    optional data.VersionFeatureFlags feature_flags = 5; // APK: e (wdq)
+    optional WifiNetworkInfo network_info = 6;           // APK: f (wdi)
+}

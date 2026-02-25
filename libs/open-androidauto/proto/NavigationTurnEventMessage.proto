@@ -1,0 +1,27 @@
+/*
+ * NavigationTurnEvent — turn-by-turn navigation detail.
+ *
+ * APK class: vzm.java (AA v16.1)
+ * Channel: Navigation (channel 10)
+ * Message ID: 0x8004 (32772) — sent by phone
+ * Dispatched by hkx.java line 1033: hzyVar.k(32772, o.q())
+ *
+ * Contains turn icon, maneuver type, turn side, and distance.
+ * Complements NavigationStep (0x8003) with richer turn detail.
+ */
+
+syntax = "proto3";
+
+import "ManeuverTypeEnum.proto";
+import "TurnSideEnum.proto";
+
+package oaa.proto.messages;
+
+message NavigationTurnEvent {
+    optional bytes turn_icon = 1;                    // APK: b (zxq/ByteString) — turn icon image data
+    optional string road_name = 2;                   // APK: c (String) — road/street name
+    optional enums.ManeuverType.Enum maneuver_type = 3; // APK: d (int, default=1) — validated by vyv.h/vee.Q()
+    optional enums.TurnSide.Enum turn_side = 4;      // APK: e (int) — validated by vyv.i/viz.M()
+    optional int32 distance_meters = 5;              // APK: g (int) — distance to turn
+    optional int32 distance_unit = 6;                // APK: h (int) — distance display unit
+}

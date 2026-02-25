@@ -1,0 +1,44 @@
+/*
+ * AVChannelMediaStats — AV channel media quality statistics.
+ *
+ * APK class: vyu.java (AA v16.1)
+ * Channel: AV (video/audio media channels)
+ * Message ID: 0x8014 (32788) — received by phone (inbound, same ID as MediaConfig)
+ * Parsed by icg.java line 461-476, logged by ife.java as "MediaStats".
+ *
+ * Sent by HU to phone as quality feedback. Contains frame timing,
+ * jitter, pacing delay, and overflow metrics. Each stats bucket
+ * uses a StatsEntry sub-message with avg/min/max/count.
+ */
+
+syntax = "proto3";
+
+import "PingConfigurationData.proto";
+
+package oaa.proto.messages;
+
+// APK class: vvo — statistics entry with aggregate values
+message StatsEntry {
+    optional int64 average = 1;    // APK: b (long)
+    optional int64 minimum = 2;    // APK: c (long)
+    optional int64 maximum = 3;    // APK: d (long)
+    optional int64 count = 4;      // APK: e (long)
+}
+
+message AVChannelMediaStats {
+    optional data.PingConfiguration duration = 1;   // APK: b (zyd) — session duration config
+    optional int64 total_frames = 2;                // APK: c (long)
+    optional int64 rendered_frames = 3;             // APK: d (long)
+    optional int64 dropped_frames = 4;              // APK: e (long)
+    optional StatsEntry video_frame_jitter = 5;     // APK: f (vvo)
+    optional StatsEntry video_pacing_delay = 6;     // APK: g (vvo)
+    optional StatsEntry decode_duration = 7;        // APK: h (vvo) — per-frame decode time
+    optional StatsEntry render_duration = 8;        // APK: i (vvo) — per-frame render time
+    optional int64 too_slow_count = 9;              // APK: j (long) — frames that arrived too late
+    optional int64 too_fast_count = 10;             // APK: k (long) — frames that arrived too early
+    optional StatsEntry overflow_duration = 11;     // APK: l (vvo) — buffer overflow stats
+    optional StatsEntry underflow_duration = 12;    // APK: m (vvo) — buffer underflow stats
+    optional StatsEntry pipeline_latency = 13;      // APK: n (vvo) — end-to-end pipeline latency
+    optional int64 total_bytes = 14;                // APK: o (long)
+    optional int64 session_duration_ns = 15;        // APK: p (long) — total session time in ns
+}
