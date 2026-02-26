@@ -76,6 +76,12 @@ private slots:
         QCOMPARE(frameSpy.count(), 1);
         QCOMPARE(frameSpy[0][0].toByteArray().size(), 4096);
 
+        // Timestamp should be a steady_clock value (nanoseconds > 0),
+        // NOT the AA protocol timestamp we passed in
+        qint64 emittedTs = frameSpy[0][1].value<qint64>();
+        QVERIFY(emittedTs > 0);
+        QVERIFY(emittedTs != 1234567890); // Must NOT be the protocol timestamp
+
         // Should send ACK
         QCOMPARE(sendSpy.count(), 1);
         QCOMPARE(sendSpy[0][1].value<uint16_t>(),

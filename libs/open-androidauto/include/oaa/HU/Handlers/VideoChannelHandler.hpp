@@ -28,7 +28,7 @@ public:
     void setNumVideoConfigs(uint32_t n) { numVideoConfigs_ = n; }
 
 signals:
-    void videoFrameData(const QByteArray& data, uint64_t timestamp);
+    void videoFrameData(const QByteArray& data, qint64 enqueueTimeNs);
     void streamStarted(int32_t session, uint32_t configIndex);
     void streamStopped();
     void videoFocusChanged(int focusMode, bool unrequested);
