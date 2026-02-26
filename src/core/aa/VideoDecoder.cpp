@@ -1,4 +1,5 @@
 #include "VideoDecoder.hpp"
+#include "../../core/YamlConfig.hpp"
 
 #include <QMetaObject>
 #include <QDebug>
@@ -24,44 +25,113 @@ VideoDecoder::VideoDecoder(QObject* parent)
     qInfo() << "[VideoDecoder] Decode worker thread started";
 }
 
-bool VideoDecoder::initCodec(AVCodecID codecId)
+bool VideoDecoder::isHardwareDecoder(const AVCodec* codec)
 {
-    cleanupCodec();
+    if (!codec) return false;
+    // AV_CODEC_CAP_HARDWARE is the official flag, but v4l2m2m often doesn't set it
+    // (reports as "wrapper" instead). Use name-based detection as reliable fallback.
+#ifdef AV_CODEC_CAP_HARDWARE
+    if (codec->capabilities & AV_CODEC_CAP_HARDWARE)
+        return true;
+#endif
+    const char* name = codec->name;
+    return (strstr(name, "v4l2m2m") || strstr(name, "vaapi") ||
+            strstr(name, "cuda") || strstr(name, "vdpau") ||
+            strstr(name, "videotoolbox") || strstr(name, "qsv"));
+}
 
-    const char* codecName = (codecId == AV_CODEC_ID_H265) ? "H.265" : "H.264";
-
-    codec_ = avcodec_find_decoder(codecId);
-    if (!codec_) {
-        qCritical() << "[VideoDecoder]" << codecName << "decoder not found";
-        return false;
-    }
-
-    codecCtx_ = avcodec_alloc_context3(codec_);
-    if (!codecCtx_) {
-        qCritical() << "[VideoDecoder] Failed to allocate codec context";
-        return false;
-    }
+bool VideoDecoder::tryOpenCodec(const AVCodec* codec, AVCodecID codecId)
+{
+    codecCtx_ = avcodec_alloc_context3(codec);
+    if (!codecCtx_) return false;
 
     // Low-latency settings for real-time streaming
     codecCtx_->flags |= AV_CODEC_FLAG_LOW_DELAY;
     codecCtx_->flags2 |= AV_CODEC_FLAG2_FAST;
     codecCtx_->thread_count = 1;  // Single-threaded for immediate output (no frame reordering delay)
 
-    if (avcodec_open2(codecCtx_, codec_, nullptr) < 0) {
-        qCritical() << "[VideoDecoder] Failed to open" << codecName << "codec";
+    if (avcodec_open2(codecCtx_, codec, nullptr) < 0) {
         avcodec_free_context(&codecCtx_);
         return false;
     }
 
     parser_ = av_parser_init(codecId);
     if (!parser_) {
-        qCritical() << "[VideoDecoder] Failed to init" << codecName << "parser";
         avcodec_free_context(&codecCtx_);
         return false;
     }
 
+    codec_ = codec;
     activeCodecId_ = codecId;
-    qInfo() << "[VideoDecoder] Initialized (" << codecName << "software decode)";
+    return true;
+}
+
+bool VideoDecoder::initCodec(AVCodecID codecId)
+{
+    cleanupCodec();
+    firstFrameDecoded_ = false;
+
+    const char* codecName = (codecId == AV_CODEC_ID_H265) ? "H.265" : "H.264";
+    QString codecKey = (codecId == AV_CODEC_ID_H265) ? "h265" : "h264";
+    QString decoderPref = yamlConfig_ ? yamlConfig_->videoDecoder(codecKey) : "auto";
+
+    const AVCodec* selectedCodec = nullptr;
+
+    // 1. Try user-specified decoder
+    if (decoderPref != "auto") {
+        selectedCodec = avcodec_find_decoder_by_name(decoderPref.toUtf8().constData());
+        if (selectedCodec)
+            qInfo() << "[VideoDecoder] Trying configured decoder:" << decoderPref;
+        else
+            qWarning() << "[VideoDecoder] Configured decoder" << decoderPref
+                       << "not found, falling back to auto";
+    }
+
+    // 2. Auto mode: try known hw decoders in order
+    if (!selectedCodec) {
+        static const char* hwH264[] = {"h264_v4l2m2m", "h264_vaapi", nullptr};
+        static const char* hwH265[] = {"hevc_v4l2m2m", "hevc_vaapi", nullptr};
+        const char** hwList = (codecId == AV_CODEC_ID_H264) ? hwH264 : hwH265;
+
+        for (int i = 0; hwList[i]; ++i) {
+            const AVCodec* hwCodec = avcodec_find_decoder_by_name(hwList[i]);
+            if (hwCodec) {
+                qInfo() << "[VideoDecoder] Auto-detected hw decoder:" << hwList[i];
+                selectedCodec = hwCodec;
+                break;
+            }
+        }
+    }
+
+    // 3. Fall back to default software decoder
+    if (!selectedCodec) {
+        selectedCodec = avcodec_find_decoder(codecId);
+        if (!selectedCodec) {
+            qCritical() << "[VideoDecoder] No" << codecName << "decoder found";
+            return false;
+        }
+    }
+
+    // Try to open the selected decoder
+    if (!tryOpenCodec(selectedCodec, codecId)) {
+        // If it was a non-software decoder, fall back to software
+        const AVCodec* swCodec = avcodec_find_decoder(codecId);
+        if (selectedCodec != swCodec) {
+            qWarning() << "[VideoDecoder]" << selectedCodec->name
+                       << "failed to open, falling back to software";
+            if (!swCodec || !tryOpenCodec(swCodec, codecId)) {
+                qCritical() << "[VideoDecoder] Software fallback also failed for" << codecName;
+                return false;
+            }
+        } else {
+            qCritical() << "[VideoDecoder] Failed to open" << codecName << "software decoder";
+            return false;
+        }
+    }
+
+    usingHardware_ = isHardwareDecoder(codec_);
+    qInfo() << "[VideoDecoder] Using" << codec_->name
+            << (usingHardware_ ? "(hardware)" : "(software)");
     return true;
 }
 
@@ -211,12 +281,36 @@ void VideoDecoder::processFrame(const QByteArray& h264Data, qint64 enqueueTimeNs
         // Receive decoded frames
         while (true) {
             ret = avcodec_receive_frame(codecCtx_, frame_);
+
+            // First-frame hw fallback: if hw decoder can't produce a frame,
+            // reinitialize with software and re-send the packet
+            if (ret < 0 && ret != AVERROR(EAGAIN) && ret != AVERROR_EOF
+                && usingHardware_ && !firstFrameDecoded_) {
+                qWarning() << "[VideoDecoder] HW decoder failed on first frame (err="
+                           << ret << "), falling back to software";
+                const AVCodec* swCodec = avcodec_find_decoder(activeCodecId_);
+                AVCodecID savedId = activeCodecId_;
+                cleanupCodec();
+                if (swCodec && tryOpenCodec(swCodec, savedId)) {
+                    usingHardware_ = false;
+                    qInfo() << "[VideoDecoder] Switched to" << swCodec->name << "(software)";
+                    // Re-send the current packet to the new decoder
+                    avcodec_send_packet(codecCtx_, packet_);
+                    ret = avcodec_receive_frame(codecCtx_, frame_);
+                } else {
+                    qCritical() << "[VideoDecoder] Software fallback failed during first-frame recovery";
+                    break;
+                }
+            }
+
             if (ret == AVERROR(EAGAIN) || ret == AVERROR_EOF)
                 break;
             if (ret < 0) {
                 qWarning() << "[VideoDecoder] Receive frame error: " << ret;
                 break;
             }
+
+            firstFrameDecoded_ = true;
 
             auto t_decodeDone = PerfStats::Clock::now();
 
@@ -231,18 +325,24 @@ void VideoDecoder::processFrame(const QByteArray& h264Data, qint64 enqueueTimeNs
             QVideoSink* sink = videoSink_.loadAcquire();
             if (sink && (frame_->format == AV_PIX_FMT_YUV420P ||
                                frame_->format == AV_PIX_FMT_YUVJ420P)) {
-                // Cache format on first frame or resolution change
-                if (!cachedFormat_ ||
-                    cachedFormat_->frameWidth() != frame_->width ||
-                    cachedFormat_->frameHeight() != frame_->height) {
-                    cachedFormat_ = QVideoFrameFormat(
+                // Create or reset frame pool on first frame or resolution change
+                if (!framePool_ ||
+                    framePool_->format().frameWidth() != frame_->width ||
+                    framePool_->format().frameHeight() != frame_->height) {
+                    QVideoFrameFormat fmt(
                         QSize(frame_->width, frame_->height),
                         QVideoFrameFormat::Format_YUV420P);
+                    if (framePool_) {
+                        framePool_->reset(fmt);
+                    } else {
+                        framePool_ = std::make_unique<VideoFramePool>(fmt, 5);
+                    }
                 }
 
                 // Fresh frame each decode — QVideoFrame is ref-counted so reusing
-                // buffers races with Qt's render thread holding a read mapping
-                QVideoFrame videoFrame(*cachedFormat_);
+                // buffers races with Qt's render thread holding a read mapping.
+                // The pool encapsulates format caching and allocation tracking.
+                QVideoFrame videoFrame = framePool_->acquire();
                 if (videoFrame.map(QVideoFrame::WriteOnly)) {
                     const int h = frame_->height;
                     const int chromaH = h / 2;

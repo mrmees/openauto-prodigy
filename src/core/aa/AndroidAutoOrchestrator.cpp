@@ -35,6 +35,9 @@ AndroidAutoOrchestrator::AndroidAutoOrchestrator(
     // Wire TouchHandler to InputChannelHandler
     touchHandler_.setHandler(&inputHandler_);
 
+    // Give VideoDecoder access to config for hw decoder selection
+    videoDecoder_.setYamlConfig(yamlConfig_);
+
     // WiFi handler needs SSID/password from config
     if (yamlConfig_) {
         wifiHandler_ = std::make_unique<oaa::hu::WiFiChannelHandler>(
