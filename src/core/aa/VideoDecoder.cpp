@@ -558,6 +558,12 @@ void VideoDecoder::DecodeWorker::enqueue(std::shared_ptr<const QByteArray> data,
         ++droppedFrames_;
     }
 
+    // If overflow just triggered awaitingKeyframe, don't enqueue non-keyframes
+    if (awaitingKeyframe_ && !keyframe) {
+        ++droppedFrames_;
+        return;
+    }
+
     queue_.push({std::move(data), enqueueTimeNs, keyframe});
     condition_.wakeOne();
 }
