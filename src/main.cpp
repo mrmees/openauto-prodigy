@@ -170,6 +170,8 @@ int main(int argc, char *argv[])
 
     // --- System service client (IPC to openauto-system daemon) ---
     auto* systemClient = new oap::SystemServiceClient(&app);
+    if (companionListener)
+        companionListener->setSystemServiceClient(systemClient);
 
     QQuickStyle::setStyle("Material");
 

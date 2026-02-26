@@ -397,8 +397,25 @@ void CompanionListenerService::handleStatus(const QJsonObject& msg)
         } else {
             proxyAddress_.clear();
         }
-        if (changed) emit internetChanged();
+        if (changed) {
+            emit internetChanged();
+            if (systemClient_) {
+                if (active && client_) {
+                    systemClient_->setProxyRoute(true,
+                        client_->peerAddress().toString(), port,
+                        socks5Password());
+                } else {
+                    systemClient_->setProxyRoute(false);
+                }
+            }
+        }
     }
+}
+
+QString CompanionListenerService::socks5Password() const
+{
+    // SOCKS5 password = first 8 hex chars of shared secret (companion app convention)
+    return sharedSecret_.left(8).toLower();
 }
 
 void CompanionListenerService::adjustClock(qint64 phoneTimeMs)
@@ -460,6 +477,8 @@ void CompanionListenerService::onClientDisconnected()
     gpsAccuracy_ = 0.0; gpsBearing_ = 0.0; gpsAgeMs_ = -1;
     phoneBattery_ = -1; phoneCharging_ = false;
     internetAvailable_ = false; proxyAddress_.clear();
+    if (systemClient_)
+        systemClient_->setProxyRoute(false);
 
     emit connectedChanged();
     emit gpsChanged();

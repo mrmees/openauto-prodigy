@@ -5,6 +5,7 @@
 #include <QJsonObject>
 #include <QByteArray>
 #include <QUuid>
+#include "SystemServiceClient.hpp"
 
 namespace oap {
 
@@ -33,6 +34,7 @@ public:
 
     void setSharedSecret(const QString& secret);
     void setWifiSsid(const QString& ssid) { wifiSsid_ = ssid; }
+    void setSystemServiceClient(SystemServiceClient* client) { systemClient_ = client; }
 
     /// Load vehicle_id from ~/.openauto/vehicle.id, or generate a new UUID v4.
     void loadOrGenerateVehicleId();
@@ -77,6 +79,7 @@ private:
     void adjustClock(qint64 phoneTimeMs);
     QByteArray computeHmac(const QByteArray& key, const QByteArray& data);
     QByteArray generateQrPng(const QString& payload);
+    QString socks5Password() const;
 
     QTcpServer* server_ = nullptr;
     QTcpSocket* client_ = nullptr;
@@ -98,6 +101,7 @@ private:
     QString proxyAddress_;
     QString qrCodeDataUri_;
     QString wifiSsid_ = QStringLiteral("OpenAutoProdigy");
+    SystemServiceClient* systemClient_ = nullptr;
     QString vehicleId_;
     int listenPort_ = 9876;
 
