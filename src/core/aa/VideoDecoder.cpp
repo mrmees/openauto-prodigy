@@ -451,45 +451,62 @@ void VideoDecoder::processFrame(const QByteArray& h264Data, qint64 enqueueTimeNs
                     }
                 }
 
+                const int w = frame_->width;
+                const int h = frame_->height;
+                const int chromaH = h / 2;
+                const int chromaW = w / 2;
+
+#if QT_VERSION >= QT_VERSION_CHECK(6,8,0)
+                // Qt 6.8+: Recycled buffer path — pool manages raw memory,
+                // destructor returns it when Qt's render thread is done.
+                // Tightly packed strides (no alignment padding).
+                QVideoFrame videoFrame = framePool_->acquireRecycled();
+                // map() to get our buffer pointer (no-op internally, just returns pointers)
+                if (videoFrame.map(QVideoFrame::WriteOnly)) {
+                    uint8_t* yDst = videoFrame.bits(0);
+                    uint8_t* uDst = videoFrame.bits(1);
+                    uint8_t* vDst = videoFrame.bits(2);
+                    const int yDstStride = videoFrame.bytesPerLine(0);  // == w
+                    const int uDstStride = videoFrame.bytesPerLine(1);  // == w/2
+                    const int vDstStride = videoFrame.bytesPerLine(2);  // == w/2
+#else
                 QVideoFrame videoFrame = framePool_->acquire();
                 if (videoFrame.map(QVideoFrame::WriteOnly)) {
-                    const int h = frame_->height;
-                    const int chromaH = h / 2;
-
-                    // Y plane
+                    uint8_t* yDst = videoFrame.bits(0);
+                    uint8_t* uDst = videoFrame.bits(1);
+                    uint8_t* vDst = videoFrame.bits(2);
                     const int yDstStride = videoFrame.bytesPerLine(0);
-                    const int ySrcStride = frame_->linesize[0];
-                    if (yDstStride == ySrcStride) {
-                        std::memcpy(videoFrame.bits(0), frame_->data[0], ySrcStride * h);
+                    const int uDstStride = videoFrame.bytesPerLine(1);
+                    const int vDstStride = videoFrame.bytesPerLine(2);
+#endif
+                    // Y plane — bulk copy if strides match
+                    if (yDstStride == frame_->linesize[0]) {
+                        std::memcpy(yDst, frame_->data[0], frame_->linesize[0] * h);
                     } else {
-                        const int yRowBytes = std::min(yDstStride, ySrcStride);
+                        const int rowBytes = std::min(yDstStride, frame_->linesize[0]);
                         for (int y = 0; y < h; ++y)
-                            std::memcpy(videoFrame.bits(0) + y * yDstStride,
-                                        frame_->data[0] + y * ySrcStride, yRowBytes);
+                            std::memcpy(yDst + y * yDstStride,
+                                        frame_->data[0] + y * frame_->linesize[0], rowBytes);
                     }
 
                     // U plane
-                    const int uDstStride = videoFrame.bytesPerLine(1);
-                    const int uSrcStride = frame_->linesize[1];
-                    if (uDstStride == uSrcStride) {
-                        std::memcpy(videoFrame.bits(1), frame_->data[1], uSrcStride * chromaH);
+                    if (uDstStride == frame_->linesize[1]) {
+                        std::memcpy(uDst, frame_->data[1], frame_->linesize[1] * chromaH);
                     } else {
-                        const int uRowBytes = std::min(uDstStride, uSrcStride);
+                        const int rowBytes = std::min(uDstStride, frame_->linesize[1]);
                         for (int y = 0; y < chromaH; ++y)
-                            std::memcpy(videoFrame.bits(1) + y * uDstStride,
-                                        frame_->data[1] + y * uSrcStride, uRowBytes);
+                            std::memcpy(uDst + y * uDstStride,
+                                        frame_->data[1] + y * frame_->linesize[1], rowBytes);
                     }
 
                     // V plane
-                    const int vDstStride = videoFrame.bytesPerLine(2);
-                    const int vSrcStride = frame_->linesize[2];
-                    if (vDstStride == vSrcStride) {
-                        std::memcpy(videoFrame.bits(2), frame_->data[2], vSrcStride * chromaH);
+                    if (vDstStride == frame_->linesize[2]) {
+                        std::memcpy(vDst, frame_->data[2], frame_->linesize[2] * chromaH);
                     } else {
-                        const int vRowBytes = std::min(vDstStride, vSrcStride);
+                        const int rowBytes = std::min(vDstStride, frame_->linesize[2]);
                         for (int y = 0; y < chromaH; ++y)
-                            std::memcpy(videoFrame.bits(2) + y * vDstStride,
-                                        frame_->data[2] + y * vSrcStride, vRowBytes);
+                            std::memcpy(vDst + y * vDstStride,
+                                        frame_->data[2] + y * frame_->linesize[2], rowBytes);
                     }
 
                     videoFrame.unmap();
@@ -540,7 +557,8 @@ void VideoDecoder::processFrame(const QByteArray& h264Data, qint64 enqueueTimeNs
                         << "total=" << QString::number(metricTotal_.avg(), 'f', 1) << "ms"
                         << "(p99\u2248" << QString::number(metricTotal_.max, 'f', 1) << "ms)"
                         << "|" << QString::number(fps, 'f', 1) << "fps"
-                        << (depth > 0 ? QString(" qdepth=%1").arg(depth) : "");
+                        << (depth > 0 ? QString(" qdepth=%1").arg(depth) : "")
+                        << (framePool_ ? QString(" pool=%1/%2").arg(framePool_->totalRecycled()).arg(framePool_->totalAllocated()) : "");
 
                     metricQueue_.reset();
                     metricDecode_.reset();
