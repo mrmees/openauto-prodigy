@@ -429,6 +429,7 @@ add_executable(test_aa_orchestrator
     ${CMAKE_SOURCE_DIR}/src/core/aa/TouchHandler.cpp
     ${CMAKE_SOURCE_DIR}/src/core/aa/ServiceDiscoveryBuilder.cpp
     ${CMAKE_SOURCE_DIR}/src/core/aa/VideoDecoder.cpp
+    ${CMAKE_SOURCE_DIR}/src/core/aa/DmaBufVideoBuffer.cpp
     ${CMAKE_SOURCE_DIR}/src/core/aa/NightModeProvider.cpp
     ${CMAKE_SOURCE_DIR}/src/core/aa/TimedNightMode.cpp
     ${CMAKE_SOURCE_DIR}/src/core/aa/GpioNightMode.cpp

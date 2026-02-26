@@ -55,13 +55,13 @@ QAbstractVideoBuffer::MapData DmaBufVideoBuffer::map(QVideoFrame::MapMode mode)
     }
 
     // Expose Y, U, V planes
-    data.nPlanes = 3;
+    data.planeCount = 3;
     for (int i = 0; i < 3; ++i) {
         data.data[i] = swFrame_->data[i];
         data.bytesPerLine[i] = swFrame_->linesize[i];
         // Size calculation: plane height * stride
         int h = (i == 0) ? swFrame_->height : swFrame_->height / 2;
-        data.size[i] = swFrame_->linesize[i] * h;
+        data.dataSize[i] = swFrame_->linesize[i] * h;
     }
 
     mapped_ = true;
