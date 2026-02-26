@@ -75,8 +75,22 @@ bool VideoDecoder::initCodec(AVCodecID codecId)
     cleanupCodec();
     firstFrameDecoded_ = false;
 
-    const char* codecName = (codecId == AV_CODEC_ID_H265) ? "H.265" : "H.264";
-    QString codecKey = (codecId == AV_CODEC_ID_H265) ? "h265" : "h264";
+    // Map codec IDs to display names, config keys, and hw decoder probe lists
+    struct CodecInfo {
+        const char* displayName;
+        const char* configKey;
+        const char* hwDecoders[4]; // null-terminated
+    };
+    static const QMap<AVCodecID, CodecInfo> codecInfoMap = {
+        { AV_CODEC_ID_H264, { "H.264", "h264", {"h264_v4l2m2m", "h264_vaapi", nullptr} } },
+        { AV_CODEC_ID_H265, { "H.265", "h265", {"hevc_v4l2m2m", "hevc_vaapi", nullptr} } },
+        { AV_CODEC_ID_VP9,  { "VP9",   "vp9",  {"vp9_v4l2m2m", "vp9_vaapi", nullptr} } },
+        { AV_CODEC_ID_AV1,  { "AV1",   "av1",  {"av1_v4l2m2m", "av1_vaapi", nullptr} } },
+    };
+
+    auto it = codecInfoMap.find(codecId);
+    const char* codecName = it != codecInfoMap.end() ? it->displayName : "unknown";
+    QString codecKey = it != codecInfoMap.end() ? it->configKey : "h264";
     QString decoderPref = yamlConfig_ ? yamlConfig_->videoDecoder(codecKey) : "auto";
 
     const AVCodec* selectedCodec = nullptr;
@@ -92,15 +106,11 @@ bool VideoDecoder::initCodec(AVCodecID codecId)
     }
 
     // 2. Auto mode: try known hw decoders in order
-    if (!selectedCodec) {
-        static const char* hwH264[] = {"h264_v4l2m2m", "h264_vaapi", nullptr};
-        static const char* hwH265[] = {"hevc_v4l2m2m", "hevc_vaapi", nullptr};
-        const char** hwList = (codecId == AV_CODEC_ID_H264) ? hwH264 : hwH265;
-
-        for (int i = 0; hwList[i]; ++i) {
-            const AVCodec* hwCodec = avcodec_find_decoder_by_name(hwList[i]);
+    if (!selectedCodec && it != codecInfoMap.end()) {
+        for (int i = 0; it->hwDecoders[i]; ++i) {
+            const AVCodec* hwCodec = avcodec_find_decoder_by_name(it->hwDecoders[i]);
             if (hwCodec) {
-                qInfo() << "[VideoDecoder] Auto-detected hw decoder:" << hwList[i];
+                qInfo() << "[VideoDecoder] Auto-detected hw decoder:" << it->hwDecoders[i];
                 selectedCodec = hwCodec;
                 break;
             }

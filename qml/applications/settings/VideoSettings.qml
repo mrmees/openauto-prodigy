@@ -414,9 +414,8 @@ Flickable {
         if (typeof CodecCapabilityModel === "undefined") return
         var enabled = []
         for (var i = 0; i < CodecCapabilityModel.rowCount(); i++) {
-            var idx = CodecCapabilityModel.index(i, 0)
-            if (CodecCapabilityModel.data(idx, 258)) { // EnabledRole
-                enabled.push(CodecCapabilityModel.data(idx, 257)) // CodecNameRole
+            if (CodecCapabilityModel.isEnabled(i)) {
+                enabled.push(CodecCapabilityModel.codecName(i))
             }
         }
         ConfigService.setValue("video.codecs", enabled)
@@ -436,8 +435,7 @@ Flickable {
         var enabledList = ConfigService.value("video.codecs")
         if (enabledList && Array.isArray(enabledList)) {
             for (var i = 0; i < CodecCapabilityModel.rowCount(); i++) {
-                var idx = CodecCapabilityModel.index(i, 0)
-                var name = CodecCapabilityModel.data(idx, 257) // CodecNameRole
+                var name = CodecCapabilityModel.codecName(i)
                 if (name === "h264") continue // always enabled
                 CodecCapabilityModel.setEnabled(i, enabledList.indexOf(name) >= 0)
             }
@@ -445,9 +443,8 @@ Flickable {
 
         // Load decoder selections from config and restore hw/sw mode
         for (var j = 0; j < CodecCapabilityModel.rowCount(); j++) {
-            var idx2 = CodecCapabilityModel.index(j, 0)
-            var codecName = CodecCapabilityModel.data(idx2, 257) // CodecNameRole
-            var decoder = ConfigService.value("video.decoder." + codecName)
+            var cName = CodecCapabilityModel.codecName(j)
+            var decoder = ConfigService.value("video.decoder." + cName)
             if (decoder && decoder !== "auto") {
                 if (CodecCapabilityModel.isHwDecoder(j, decoder)) {
                     CodecCapabilityModel.setHardwareMode(j, true)

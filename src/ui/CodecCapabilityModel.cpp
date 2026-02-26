@@ -109,6 +109,20 @@ QHash<int, QByteArray> CodecCapabilityModel::roleNames() const
     };
 }
 
+QString CodecCapabilityModel::codecName(int row) const
+{
+    if (row < 0 || row >= entries_.size())
+        return {};
+    return entries_.at(row).name;
+}
+
+bool CodecCapabilityModel::isEnabled(int row) const
+{
+    if (row < 0 || row >= entries_.size())
+        return false;
+    return entries_.at(row).enabled;
+}
+
 bool CodecCapabilityModel::isHwDecoder(int row, const QString& decoderName) const
 {
     if (row < 0 || row >= entries_.size())

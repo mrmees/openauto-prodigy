@@ -21,6 +21,8 @@ public:
 
     explicit CodecCapabilityModel(QObject* parent = nullptr);
 
+    Q_INVOKABLE QString codecName(int row) const;
+    Q_INVOKABLE bool isEnabled(int row) const;
     Q_INVOKABLE bool isHwDecoder(int row, const QString& decoderName) const;
     Q_INVOKABLE void setEnabled(int row, bool enabled);
     Q_INVOKABLE void setHardwareMode(int row, bool hw);

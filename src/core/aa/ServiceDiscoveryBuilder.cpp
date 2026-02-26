@@ -133,9 +133,6 @@ QByteArray ServiceDiscoveryBuilder::buildVideoDescriptor() const
     if (res == "1080p") { remoteW = 1920; remoteH = 1080; }
     else if (res == "480p") { remoteW = 800; remoteH = 480; }
 
-    int marginW = 0, marginH = 0;
-    calcMargins(remoteW, remoteH, marginW, marginH);
-
     // Advertise only the configured resolution with codecs from config.
     // Config populated by capability detection (Task 6) or defaults to H.264+H.265.
     using Res = oaa::proto::enums::VideoResolution;
