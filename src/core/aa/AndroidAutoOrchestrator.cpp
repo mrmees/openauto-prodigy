@@ -6,6 +6,7 @@
 #include "../../core/services/IAudioService.hpp"
 #include "../../core/services/IEventBus.hpp"
 
+#include <memory>
 #include <QDebug>
 #include <QEventLoop>
 #include <netinet/in.h>
@@ -261,6 +262,7 @@ void AndroidAutoOrchestrator::onNewConnection()
     systemAudioHandler_.disconnect(this);
 
     // Wire video frames to decoder
+    qRegisterMetaType<std::shared_ptr<const QByteArray>>();
     connect(&videoHandler_, &oaa::hu::VideoChannelHandler::videoFrameData,
             &videoDecoder_, &VideoDecoder::decodeFrame, Qt::QueuedConnection);
 
