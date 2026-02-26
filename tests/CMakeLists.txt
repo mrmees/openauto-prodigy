@@ -474,6 +474,22 @@ add_executable(test_circular_buffer test_circular_buffer.cpp)
 target_link_libraries(test_circular_buffer PRIVATE Qt6::Test open-androidauto)
 add_test(NAME test_circular_buffer COMMAND test_circular_buffer)
 
+# Codec capability detection — probes FFmpeg for hw/sw decoders
+add_executable(test_codec_capability
+    test_codec_capability.cpp
+    ${CMAKE_SOURCE_DIR}/src/core/aa/CodecCapability.cpp
+)
+target_include_directories(test_codec_capability PRIVATE
+    ${CMAKE_SOURCE_DIR}/src
+    ${LIBAV_INCLUDE_DIRS}
+)
+target_link_libraries(test_codec_capability PRIVATE
+    Qt6::Core
+    Qt6::Test
+    ${LIBAV_LIBRARIES}
+)
+add_test(NAME test_codec_capability COMMAND test_codec_capability)
+
 # GUI/Quick tests need offscreen platform when no display is available
 set_tests_properties(test_configuration test_theme_service test_plugin_model
     PROPERTIES ENVIRONMENT "QT_QPA_PLATFORM=offscreen"
