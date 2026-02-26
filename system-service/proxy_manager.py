@@ -127,12 +127,35 @@ redsocks {{
             return
 
         proc = self._redsocks_proc
-        proc.terminate()
+
+        if proc.returncode is not None:
+            self._redsocks_proc = None
+            return
+
+        try:
+            proc.terminate()
+        except ProcessLookupError:
+            logging.warning("redsocks process already exited before terminate")
+            self._redsocks_proc = None
+            return
+
         try:
             await asyncio.wait_for(proc.wait(), timeout=3)
+        except ProcessLookupError:
+            logging.warning("redsocks process exited before wait")
+            self._redsocks_proc = None
+            return
         except asyncio.TimeoutError:
-            proc.kill()
-            await proc.wait()
+            try:
+                proc.kill()
+            except ProcessLookupError:
+                logging.warning("redsocks process already exited before kill")
+                self._redsocks_proc = None
+                return
+            try:
+                await proc.wait()
+            except ProcessLookupError:
+                logging.warning("redsocks process exited before wait during kill")
         finally:
             self._redsocks_proc = None
 

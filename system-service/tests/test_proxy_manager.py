@@ -20,6 +20,7 @@ class ProxyManagerTests(unittest.IsolatedAsyncioTestCase):
     def _mock_proc(self):
         proc = MagicMock()
         proc.wait = AsyncMock(return_value=0)
+        proc.returncode = None
         proc.terminate = MagicMock()
         proc.kill = MagicMock()
         return proc
@@ -146,6 +147,21 @@ class ProxyManagerTests(unittest.IsolatedAsyncioTestCase):
         pm._run_cmd = AsyncMock(return_value=(0, ""))
 
         await pm.disable()
+
+        proc.terminate.assert_called_once()
+
+    async def test_disable_handles_stale_redsocks_process(self):
+        pm = ProxyManager(config_path="/tmp/test_redsocks.conf")
+        pm._set_state(ProxyState.ACTIVE)
+        proc = self._mock_proc()
+        proc.terminate.side_effect = ProcessLookupError(3, "No such process")
+        pm._redsocks_proc = proc
+        pm._run_cmd = AsyncMock(return_value=(0, ""))
+
+        await pm.disable()
+
+        self.assertEqual(pm.state, ProxyState.DISABLED)
+        self.assertIsNone(pm._redsocks_proc)
 
         proc.terminate.assert_called_once()
 
