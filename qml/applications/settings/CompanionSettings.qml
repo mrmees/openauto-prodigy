@@ -144,6 +144,63 @@ Flickable {
             }
         }
 
+        // Proxy route status (visible when internet available)
+        Item {
+            id: routeStatusRow
+            Layout.fillWidth: true
+            implicitHeight: UiMetrics.rowH
+            visible: root.hasService && CompanionService.internetAvailable
+
+            readonly property bool hasSysService: typeof SystemService !== "undefined"
+            readonly property string routeStateStr: hasSysService ? SystemService.routeState : "disabled"
+
+            RowLayout {
+                anchors.fill: parent
+                anchors.leftMargin: UiMetrics.marginRow
+                anchors.rightMargin: UiMetrics.marginRow
+                spacing: UiMetrics.gap
+
+                Text {
+                    text: "Route Active"
+                    font.pixelSize: UiMetrics.fontBody
+                    color: ThemeService.normalFontColor
+                    Layout.preferredWidth: parent.width * 0.35
+                }
+
+                Rectangle {
+                    width: UiMetrics.iconSmall
+                    height: UiMetrics.iconSmall
+                    radius: width / 2
+                    color: {
+                        var s = routeStatusRow.routeStateStr
+                        if (s === "active")   return "#4CAF50"
+                        if (s === "degraded") return "#FF9800"
+                        if (s === "failed")   return "#F44336"
+                        return ThemeService.descriptionFontColor
+                    }
+                }
+
+                Text {
+                    text: {
+                        var s = routeStatusRow.routeStateStr
+                        if (s === "active")   return "Routing via phone"
+                        if (s === "degraded") return "Degraded \u2014 retrying"
+                        if (s === "failed")   return "Failed"
+                        return "Inactive"
+                    }
+                    font.pixelSize: UiMetrics.fontBody
+                    color: {
+                        var s = routeStatusRow.routeStateStr
+                        if (s === "degraded") return "#FF9800"
+                        if (s === "failed")   return "#F44336"
+                        return ThemeService.normalFontColor
+                    }
+                    Layout.fillWidth: true
+                    horizontalAlignment: Text.AlignRight
+                }
+            }
+        }
+
         SectionHeader { text: "Pairing" }
 
         // Pairing button
