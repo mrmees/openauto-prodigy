@@ -42,6 +42,28 @@ void SystemServiceClient::restartService(const QString& name)
     sendRequest("restart_service", params);
 }
 
+QString SystemServiceClient::routeState() const { return routeState_; }
+QString SystemServiceClient::routeError() const { return routeError_; }
+
+void SystemServiceClient::setProxyRoute(bool active, const QString& host, int port,
+                                       const QString& password)
+{
+    QJsonObject params;
+    params["active"] = active;
+    if (active) {
+        params["host"] = host;
+        params["port"] = port;
+        params["user"] = QStringLiteral("oap");
+        params["password"] = password;
+    }
+    sendRequest("set_proxy_route", params);
+}
+
+void SystemServiceClient::getProxyStatus()
+{
+    sendRequest("get_proxy_status");
+}
+
 void SystemServiceClient::connectToService()
 {
     if (socket_->state() != QLocalSocket::UnconnectedState)
@@ -127,6 +149,15 @@ void SystemServiceClient::handleResponse(const QJsonObject& response)
         emit serviceRestarted(result["name"].toString(), result["ok"].toBool());
     } else if (method == "get_status") {
         emit statusReceived(response["result"].toObject());
+    } else if (method == "set_proxy_route" || method == "get_proxy_status") {
+        QJsonObject result = response["result"].toObject();
+        QString newState = result["state"].toString(routeState_);
+        QString newError = result.value("error").toString();
+        if (newState != routeState_ || newError != routeError_) {
+            routeState_ = newState;
+            routeError_ = newError;
+            emit routeChanged();
+        }
     }
 }
 
