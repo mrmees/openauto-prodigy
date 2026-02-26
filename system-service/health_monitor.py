@@ -96,6 +96,10 @@ class HealthMonitor:
                     )
                     task = asyncio.create_task(self._on_bt_restart_callback())
                     task.add_done_callback(self._bt_callback_done)
+
+                # Ensure /var/run/sdp is accessible (bluetoothd creates it root-only)
+                if name == "bluetooth":
+                    self._fix_sdp_socket_perms()
             else:
                 svc.state = ServiceState.FAILED if rc != 0 else ServiceState.DEGRADED
                 await self._attempt_recovery(svc)
@@ -168,6 +172,25 @@ class HealthMonitor:
                 await self.run_cmd(
                     "hciconfig", "hci0", "up", timeout=CMD_TIMEOUT
                 )
+
+            # Fix /var/run/sdp permissions so non-root apps can use legacy SDP
+            # (bluetoothd --compat creates this socket as root:root 0660)
+            self._fix_sdp_socket_perms()
+
+    @staticmethod
+    def _fix_sdp_socket_perms():
+        """Make /var/run/sdp world-accessible for non-root BT SDP clients."""
+        import os
+        sdp_path = "/var/run/sdp"
+        try:
+            st = os.stat(sdp_path)
+            if st.st_mode & 0o777 != 0o777:
+                os.chmod(sdp_path, 0o777)
+                log.info("Fixed /var/run/sdp permissions to 0777")
+        except FileNotFoundError:
+            log.warning("/var/run/sdp not found (bluetoothd not running with --compat?)")
+        except OSError as e:
+            log.warning("Failed to fix /var/run/sdp permissions: %s", e)
 
     async def _unblock_wifi_rfkill(self):
         """Unblock WiFi if rfkill soft-blocked (common at boot on Pi)."""
