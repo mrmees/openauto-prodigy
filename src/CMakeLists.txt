@@ -32,6 +32,7 @@ qt_add_executable(openauto-prodigy
     core/services/ActionRegistry.cpp
     core/services/NotificationService.cpp
     core/services/CompanionListenerService.cpp
+    core/services/SystemServiceClient.cpp
     ui/NotificationModel.cpp
     core/plugin/PluginManifest.cpp
     core/plugin/PluginDiscovery.cpp
