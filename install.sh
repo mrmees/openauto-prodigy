@@ -106,6 +106,9 @@ install_dependencies() {
 
         # Bluetooth
         bluez
+
+        # Transparent SOCKS5 proxy routing (companion internet sharing)
+        redsocks
     )
 
     sudo apt install -y "${PACKAGES[@]}"
