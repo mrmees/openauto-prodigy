@@ -40,7 +40,12 @@ private slots:
         QCoreApplication::processEvents();
 
         // Should receive a challenge
-        QVERIFY(client.waitForReadyRead(2000));
+        for (int i = 0; i < 10 && !client.bytesAvailable(); ++i) {
+            QCoreApplication::processEvents();
+            if (!client.bytesAvailable())
+                client.waitForReadyRead(1000);
+        }
+        QVERIFY(client.bytesAvailable() > 0);
         QByteArray challenge = client.readLine();
         QVERIFY(challenge.contains("\"type\":\"challenge\""));
         QVERIFY(challenge.contains("\"nonce\""));

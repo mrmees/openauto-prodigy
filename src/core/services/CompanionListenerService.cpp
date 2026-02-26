@@ -387,29 +387,74 @@ void CompanionListenerService::handleStatus(const QJsonObject& msg)
     QJsonObject socks = msg["socks5"].toObject();
     if (!socks.isEmpty()) {
         bool active = socks["active"].toBool();
-        int port = socks["port"].toInt();
-        bool changed = (active != internetAvailable_);
+        int port = socks["port"].toInt(-1);
+        QString host = client_ ? client_->peerAddress().toString() : QString();
+        bool routeInfoChanged = (active && (host != requestedProxyHost_ || port != requestedProxyPort_));
+
+        if (active && (port <= 0 || host.isEmpty())) {
+            qWarning() << "Companion: invalid SOCKS5 status payload"
+                       << "active=" << active << "port=" << port << "host=" << host;
+            // Force disable routing if we can't apply it safely.
+            if (internetAvailable_) {
+                internetAvailable_ = false;
+                proxyAddress_.clear();
+                syncProxyRouteFromStatus(false, QString(), 0, QString());
+                emit internetChanged();
+            }
+            return;
+        }
+
+        bool changed = (active != internetAvailable_) || routeInfoChanged;
         internetAvailable_ = active;
-        if (active && client_) {
-            proxyAddress_ = QString("socks5://%1:%2")
-                .arg(client_->peerAddress().toString())
-                .arg(port);
+        if (active && !host.isEmpty()) {
+            requestedProxyHost_ = host;
+            requestedProxyPort_ = port;
+            proxyAddress_ = QString("socks5://%1:%2").arg(host).arg(port);
+            syncProxyRouteFromStatus(true, host, port, socks5Password());
         } else {
             proxyAddress_.clear();
+            requestedProxyHost_.clear();
+            requestedProxyPort_ = 0;
+            syncProxyRouteFromStatus(false, QString(), 0, QString());
         }
         if (changed) {
             emit internetChanged();
-            if (systemClient_) {
-                if (active && client_) {
-                    systemClient_->setProxyRoute(true,
-                        client_->peerAddress().toString(), port,
-                        socks5Password());
-                } else {
-                    systemClient_->setProxyRoute(false);
-                }
-            }
         }
     }
+}
+
+void CompanionListenerService::syncProxyRouteFromStatus(
+    bool active, const QString& host, int port, const QString& password)
+{
+    if (!systemClient_)
+        return;
+
+    if (active) {
+        bool hostPortUnchanged = (proxyRouteApplied_
+                                 && host == requestedProxyHost_
+                                 && port == requestedProxyPort_);
+        if (!hostPortUnchanged) {
+            systemClient_->setProxyRoute(true, host, port, password);
+        }
+        proxyRouteApplied_ = true;
+        requestedProxyHost_ = host;
+        requestedProxyPort_ = port;
+        return;
+    }
+
+    if (proxyRouteApplied_) {
+        systemClient_->setProxyRoute(false);
+    }
+    proxyRouteApplied_ = false;
+    requestedProxyHost_.clear();
+    requestedProxyPort_ = 0;
+}
+
+void CompanionListenerService::syncProxyRoute()
+{
+    proxyRouteApplied_ = false;
+    syncProxyRouteFromStatus(internetAvailable_, requestedProxyHost_, requestedProxyPort_,
+                             socks5Password());
 }
 
 QString CompanionListenerService::socks5Password() const
@@ -477,6 +522,9 @@ void CompanionListenerService::onClientDisconnected()
     gpsAccuracy_ = 0.0; gpsBearing_ = 0.0; gpsAgeMs_ = -1;
     phoneBattery_ = -1; phoneCharging_ = false;
     internetAvailable_ = false; proxyAddress_.clear();
+    requestedProxyHost_.clear();
+    requestedProxyPort_ = 0;
+    proxyRouteApplied_ = false;
     if (systemClient_)
         systemClient_->setProxyRoute(false);
 

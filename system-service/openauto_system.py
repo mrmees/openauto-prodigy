@@ -7,6 +7,7 @@ import os
 import signal
 import socket
 import time
+from typing import Any, Dict
 
 from ipc_server import IpcServer
 from health_monitor import HealthMonitor
@@ -19,6 +20,46 @@ DEFAULT_CONFIG_PATH = os.path.expanduser("~matt/.openauto/config.yaml")
 ALLOWED_SERVICES = {"hostapd", "bluetooth", "systemd-networkd"}
 
 LOG = logging.getLogger("openauto-system")
+
+
+def parse_set_proxy_route_request(params: Dict[str, Any]) -> Dict[str, Any]:
+    """Normalize and validate set_proxy_route requests."""
+    if not isinstance(params, dict):
+        raise TypeError("params must be an object")
+
+    active = bool(params.get("active", False))
+    if not isinstance(params.get("active", False), bool):
+        raise TypeError("active must be a boolean")
+
+    if not active:
+        return {"active": False}
+
+    host = params.get("host")
+    if not isinstance(host, str) or not host:
+        raise ValueError("active proxy route requires a non-empty host")
+
+    try:
+        port = int(params.get("port", 0))
+    except (TypeError, ValueError):
+        raise ValueError("active proxy route requires integer port")
+    if not (1 <= port <= 65535):
+        raise ValueError("proxy port must be in [1, 65535]")
+
+    user = params.get("user", "oap")
+    if not isinstance(user, str) or not user:
+        raise ValueError("user must be a non-empty string")
+
+    password = params.get("password")
+    if not isinstance(password, str) or not password:
+        raise ValueError("password must be a non-empty string")
+
+    return {
+        "active": True,
+        "host": host,
+        "port": port,
+        "user": user,
+        "password": password,
+    }
 
 
 def _notify_systemd_ready() -> None:
@@ -98,14 +139,14 @@ async def main() -> None:
         return {"ok": rc == 0, "output": out.strip()}
 
     async def handle_set_proxy_route(params):
-        active = params.get("active", False)
         try:
-            if active:
+            normalized = parse_set_proxy_route_request(params)
+            if normalized["active"]:
                 await proxy.enable(
-                    host=params["host"],
-                    port=int(params["port"]),
-                    user=params.get("user", "oap"),
-                    password=params["password"],
+                    host=normalized["host"],
+                    port=normalized["port"],
+                    user=normalized["user"],
+                    password=normalized["password"],
                 )
             else:
                 await proxy.disable()
