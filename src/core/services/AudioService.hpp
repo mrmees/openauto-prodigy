@@ -23,6 +23,7 @@ struct AudioStreamHandle {
     bool hasFocus = false;
     float volume = 1.0f;  // 0.0 - 1.0 (current, may be ducked)
     float baseVolume = 1.0f;  // Volume before ducking
+    int bufferMs = 50;  // ring buffer size in milliseconds
 
     // Format info for process callback
     int sampleRate = 48000;
@@ -55,7 +56,8 @@ public:
     // IAudioService — output
     AudioStreamHandle* createStream(const QString& name, int priority,
                                      int sampleRate = 48000, int channels = 2,
-                                     const QString& targetDevice = "auto") override;
+                                     const QString& targetDevice = "auto",
+                                     int bufferMs = 50) override;
     void destroyStream(AudioStreamHandle* handle) override;
     int writeAudio(AudioStreamHandle* handle, const uint8_t* data, int size) override;
     Q_INVOKABLE void setMasterVolume(int volume) override;

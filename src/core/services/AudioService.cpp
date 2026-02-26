@@ -139,7 +139,8 @@ void AudioService::onPlaybackProcess(void* userdata)
 
 AudioStreamHandle* AudioService::createStream(
     const QString& name, int priority,
-    int sampleRate, int channels, const QString& targetDevice)
+    int sampleRate, int channels, const QString& targetDevice,
+    int bufferMs)
 {
     if (!isAvailable()) {
         qWarning() << "AudioService::createStream: PipeWire not available, returning nullptr";
@@ -152,9 +153,10 @@ AudioStreamHandle* AudioService::createStream(
     handle->sampleRate = sampleRate;
     handle->channels = channels;
     handle->bytesPerFrame = channels * 2; // 16-bit PCM
+    handle->bufferMs = bufferMs;
 
-    // Ring buffer: ~100ms of audio, rounded up to power of 2
-    uint32_t rbSize = static_cast<uint32_t>(sampleRate * channels * 2 * 0.1);
+    // Ring buffer: sized per-stream via bufferMs, rounded up to power of 2
+    uint32_t rbSize = static_cast<uint32_t>(sampleRate * channels * 2 * (bufferMs / 1000.0f));
     uint32_t pow2 = 1;
     while (pow2 < rbSize) pow2 <<= 1;
     handle->ringBuffer = std::make_unique<AudioRingBuffer>(pow2);

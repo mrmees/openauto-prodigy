@@ -28,7 +28,8 @@ public:
     virtual AudioStreamHandle* createStream(
         const QString& name, int priority,
         int sampleRate = 48000, int channels = 2,
-        const QString& targetDevice = "auto") = 0;
+        const QString& targetDevice = "auto",
+        int bufferMs = 50) = 0;
 
     /// Destroy a previously created stream. Safe to call with nullptr.
     /// Must be called from the main thread.

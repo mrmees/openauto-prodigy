@@ -261,11 +261,15 @@ void AndroidAutoOrchestrator::onNewConnection()
     connect(&videoHandler_, &oaa::hu::VideoChannelHandler::videoFrameData,
             &videoDecoder_, &VideoDecoder::decodeFrame, Qt::QueuedConnection);
 
-    // Create PipeWire audio streams and wire handler data
+    // Create PipeWire audio streams with per-stream buffer sizing from config
     if (audioService_) {
-        mediaStream_ = audioService_->createStream("AA Media", 50, 48000, 2);
-        speechStream_ = audioService_->createStream("AA Speech", 60, 48000, 1);
-        systemStream_ = audioService_->createStream("AA System", 40, 16000, 1);
+        int mediaBufMs  = yamlConfig_ ? yamlConfig_->audioBufferMs("media")  : 50;
+        int speechBufMs = yamlConfig_ ? yamlConfig_->audioBufferMs("speech") : 35;
+        int systemBufMs = yamlConfig_ ? yamlConfig_->audioBufferMs("system") : 35;
+
+        mediaStream_  = audioService_->createStream("AA Media",  50, 48000, 2, "auto", mediaBufMs);
+        speechStream_ = audioService_->createStream("AA Speech", 60, 48000, 1, "auto", speechBufMs);
+        systemStream_ = audioService_->createStream("AA System", 40, 16000, 1, "auto", systemBufMs);
 
         if (mediaStream_) {
             connect(&mediaAudioHandler_, &oaa::hu::AudioChannelHandler::audioDataReceived,

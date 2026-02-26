@@ -48,6 +48,7 @@ public:
     // Audio
     int masterVolume() const;
     void setMasterVolume(int v);
+    int audioBufferMs(const QString& streamType) const;
 
     // Video
     int videoFps() const;
