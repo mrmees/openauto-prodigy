@@ -208,6 +208,15 @@ void VideoDecoder::cleanup()
     cleanupCodec();
 }
 
+QVideoFrame VideoDecoder::takeLatestFrame()
+{
+    if (!hasLatestFrame_.load(std::memory_order_acquire))
+        return {};
+    hasLatestFrame_.store(false, std::memory_order_release);
+    std::lock_guard<std::mutex> lock(latestFrameMutex_);
+    return std::move(latestFrame_);
+}
+
 void VideoDecoder::setVideoSink(QVideoSink* sink)
 {
     // Atomically swap so the decode worker thread always sees a consistent pointer.
@@ -350,11 +359,11 @@ void VideoDecoder::processFrame(const QByteArray& h264Data, qint64 enqueueTimeNs
 
                 auto t_copyDone = PerfStats::Clock::now();
 
-                auto guard = sinkValid_;
-                QMetaObject::invokeMethod(sink, [sink, videoFrame, guard]() {
-                    if (guard->load())
-                        sink->setVideoFrame(videoFrame);
-                }, Qt::QueuedConnection);
+                {
+                    std::lock_guard<std::mutex> lock(latestFrameMutex_);
+                    latestFrame_ = std::move(videoFrame);
+                }
+                hasLatestFrame_.store(true, std::memory_order_release);
 
                 auto t_display = PerfStats::Clock::now();
 
@@ -433,15 +442,12 @@ void VideoDecoder::processFrame(const QByteArray& h264Data, qint64 enqueueTimeNs
 
                     auto t_copyDone = PerfStats::Clock::now();
 
-                    // Marshal setVideoFrame back to Qt main thread.
-                    // Capture `sink` and `guard` by value. If setVideoSink(nullptr)
-                    // is called before this lambda runs, guard will be false and we
-                    // skip the call — the QVideoSink may already be deleted by then.
-                    auto guard = sinkValid_;
-                    QMetaObject::invokeMethod(sink, [sink, videoFrame, guard]() {
-                        if (guard->load())
-                            sink->setVideoFrame(videoFrame);
-                    }, Qt::QueuedConnection);
+                    // Write to latest-frame slot — display timer on main thread reads it
+                    {
+                        std::lock_guard<std::mutex> lock(latestFrameMutex_);
+                        latestFrame_ = std::move(videoFrame);
+                    }
+                    hasLatestFrame_.store(true, std::memory_order_release);
 
                     auto t_display = PerfStats::Clock::now();
 

@@ -266,6 +266,21 @@ void AndroidAutoOrchestrator::onNewConnection()
     connect(&videoHandler_, &oaa::hu::VideoChannelHandler::videoFrameData,
             &videoDecoder_, &VideoDecoder::decodeFrame, Qt::QueuedConnection);
 
+    // Display tick — poll latest decoded frame at ~60Hz
+    if (!displayTimer_) {
+        displayTimer_ = new QTimer(this);
+        displayTimer_->setTimerType(Qt::PreciseTimer);
+        connect(displayTimer_, &QTimer::timeout, this, [this]() {
+            QVideoFrame frame = videoDecoder_.takeLatestFrame();
+            if (frame.isValid()) {
+                QVideoSink* sink = videoDecoder_.videoSink();
+                if (sink)
+                    sink->setVideoFrame(frame);
+            }
+        });
+    }
+    displayTimer_->start(16);  // ~60Hz
+
     // Create PipeWire audio streams with per-stream buffer sizing from config
     if (audioService_) {
         int mediaBufMs  = yamlConfig_ ? yamlConfig_->audioBufferMs("media")  : 200;
@@ -480,6 +495,9 @@ void AndroidAutoOrchestrator::onSessionDisconnected(oaa::DisconnectReason reason
 
 void AndroidAutoOrchestrator::teardownSession()
 {
+    if (displayTimer_)
+        displayTimer_->stop();
+
     if (session_) {
         // Disconnect all signals from session_ to us BEFORE scheduling deletion.
         // This prevents onSessionDisconnected from being called a second time if

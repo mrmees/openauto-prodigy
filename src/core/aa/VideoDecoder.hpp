@@ -11,6 +11,7 @@
 #include <QAtomicPointer>
 #include <atomic>
 #include <memory>
+#include <mutex>
 #include <queue>
 
 #include "PerfStats.hpp"
@@ -39,6 +40,9 @@ public:
     QVideoSink* videoSink() const { return videoSink_.loadRelaxed(); }
     void setVideoSink(QVideoSink* sink);
     void setYamlConfig(oap::YamlConfig* config) { yamlConfig_ = config; }
+
+    /// Returns the latest decoded frame if available, otherwise invalid QVideoFrame
+    QVideoFrame takeLatestFrame();
 
 signals:
     void videoSinkChanged();
@@ -79,6 +83,11 @@ private:
     // Shared across threads: set to false in setVideoSink(nullptr) so any
     // already-queued invokeMethod lambdas skip the setVideoFrame() call.
     std::shared_ptr<std::atomic<bool>> sinkValid_ = std::make_shared<std::atomic<bool>>(false);
+
+    // Latest-frame-wins slot — decode thread writes, display timer reads
+    std::mutex latestFrameMutex_;
+    QVideoFrame latestFrame_;
+    std::atomic<bool> hasLatestFrame_{false};
 
     // FFmpeg state
     const AVCodec* codec_ = nullptr;
