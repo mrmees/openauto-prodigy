@@ -119,6 +119,7 @@ int main(int argc, char *argv[])
     if (companionEnabled) {
         companionListener = new oap::CompanionListenerService(&app);
         companionListener->setWifiSsid(config->wifiSsid());
+        companionListener->loadOrGenerateVehicleId();
         QFile secretFile(QDir::homePath() + "/.openauto/companion.key");
         if (secretFile.open(QIODevice::ReadOnly)) {
             QByteArray secret = secretFile.readAll().trimmed();

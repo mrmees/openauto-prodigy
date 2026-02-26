@@ -10,6 +10,7 @@
 #include <QFileInfo>
 #include <QImage>
 #include <QBuffer>
+#include <QUuid>
 #include <qrcodegen.hpp>
 
 namespace oap {
@@ -77,6 +78,31 @@ void CompanionListenerService::setSharedSecret(const QString& secret)
     sharedSecret_ = secret;
 }
 
+void CompanionListenerService::loadOrGenerateVehicleId()
+{
+    QString dir = QDir::homePath() + "/.openauto";
+    QDir().mkpath(dir);
+    QString path = dir + "/vehicle.id";
+
+    QFile file(path);
+    if (file.open(QIODevice::ReadOnly)) {
+        vehicleId_ = QString::fromUtf8(file.readAll().trimmed());
+        if (!vehicleId_.isEmpty()) {
+            qInfo() << "Companion: loaded vehicle_id" << vehicleId_;
+            return;
+        }
+    }
+
+    // Generate new UUID v4 (strip braces)
+    vehicleId_ = QUuid::createUuid().toString(QUuid::WithoutBraces);
+
+    if (file.open(QIODevice::WriteOnly | QIODevice::Truncate)) {
+        file.write(vehicleId_.toUtf8());
+        file.setPermissions(QFileDevice::ReadOwner | QFileDevice::WriteOwner);
+    }
+    qInfo() << "Companion: generated new vehicle_id" << vehicleId_;
+}
+
 QString CompanionListenerService::generatePairingPin()
 {
     int pin = QRandomGenerator::global()->bounded(100000, 999999);
@@ -103,6 +129,8 @@ QString CompanionListenerService::generatePairingPin()
     QString payload = QString("openauto://pair?pin=%1&ssid=%2&host=10.0.0.1&port=%3")
         .arg(pinStr, wifiSsid_)
         .arg(listenPort_);
+    if (!vehicleId_.isEmpty())
+        payload += "&vehicle_id=" + vehicleId_;
 
     QByteArray pngData = generateQrPng(payload);
     qrCodeDataUri_ = "data:image/png;base64," + QString::fromLatin1(pngData.toBase64());
@@ -190,6 +218,8 @@ void CompanionListenerService::sendChallenge()
     challenge["type"] = "challenge";
     challenge["nonce"] = QString::fromLatin1(currentNonce_);
     challenge["version"] = 1;
+    if (!vehicleId_.isEmpty())
+        challenge["vehicle_id"] = vehicleId_;
 
     QByteArray challengeJson = QJsonDocument(challenge).toJson(QJsonDocument::Compact) + "\n";
     qInfo() << "Companion: sending challenge, nonce=" << currentNonce_.left(16) << "...";
@@ -248,6 +278,8 @@ void CompanionListenerService::onClientReadyRead()
                 ack["accepted"] = true;
                 // Session key encrypted with shared secret (XOR for v1, upgrade later)
                 ack["session_key"] = QString::fromLatin1(rawKey.toHex());
+                if (!vehicleId_.isEmpty())
+                    ack["vehicle_id"] = vehicleId_;
 
                 client_->write(QJsonDocument(ack).toJson(QJsonDocument::Compact) + "\n");
                 client_->flush();

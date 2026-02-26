@@ -351,6 +351,8 @@ QByteArray IpcServer::handleCompanionStatus()
     obj["charging"] = companion_->isPhoneCharging();
     obj["internet"] = companion_->isInternetAvailable();
     obj["proxy"] = companion_->proxyAddress();
+    if (!companion_->vehicleId().isEmpty())
+        obj["vehicle_id"] = companion_->vehicleId();
     return QJsonDocument(obj).toJson(QJsonDocument::Compact);
 }
 

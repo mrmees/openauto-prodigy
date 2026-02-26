@@ -4,6 +4,7 @@
 #include <QTcpSocket>
 #include <QJsonObject>
 #include <QByteArray>
+#include <QUuid>
 
 namespace oap {
 
@@ -32,6 +33,10 @@ public:
 
     void setSharedSecret(const QString& secret);
     void setWifiSsid(const QString& ssid) { wifiSsid_ = ssid; }
+
+    /// Load vehicle_id from ~/.openauto/vehicle.id, or generate a new UUID v4.
+    void loadOrGenerateVehicleId();
+    QString vehicleId() const { return vehicleId_; }
 
     /// Generate a 6-digit pairing PIN and derive+store shared secret.
     /// Returns the PIN string for display to the user.
@@ -93,6 +98,7 @@ private:
     QString proxyAddress_;
     QString qrCodeDataUri_;
     QString wifiSsid_ = QStringLiteral("OpenAutoProdigy");
+    QString vehicleId_;
     int listenPort_ = 9876;
 
     // Time safety
