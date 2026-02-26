@@ -15,7 +15,7 @@ public:
     virtual uint8_t channelId() const = 0;
     virtual void onChannelOpened() = 0;
     virtual void onChannelClosed() = 0;
-    virtual void onMessage(uint16_t messageId, const QByteArray& payload) = 0;
+    virtual void onMessage(uint16_t messageId, const QByteArray& payload, int dataOffset = 0) = 0;
 
 signals:
     void sendRequested(uint8_t channelId, uint16_t messageId,

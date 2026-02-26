@@ -54,46 +54,50 @@ void ControlChannel::onChannelClosed() {
     qDebug() << "[ControlChannel] closed";
 }
 
-void ControlChannel::onMessage(uint16_t messageId, const QByteArray& payload) {
+void ControlChannel::onMessage(uint16_t messageId, const QByteArray& payload, int dataOffset) {
+    const char* data = payload.constData() + dataOffset;
+    const int dataSize = payload.size() - dataOffset;
+
     switch (messageId) {
 
     case MSG_VERSION_RESPONSE: {
         // Raw binary: major(2B BE) + minor(2B BE) + status(2B BE)
-        if (payload.size() < 6) {
+        if (dataSize < 6) {
             emit versionReceived(0, 0, false);
             return;
         }
         uint16_t major = qFromBigEndian<uint16_t>(
-            reinterpret_cast<const uchar*>(payload.constData()));
+            reinterpret_cast<const uchar*>(data));
         uint16_t minor = qFromBigEndian<uint16_t>(
-            reinterpret_cast<const uchar*>(payload.constData() + 2));
+            reinterpret_cast<const uchar*>(data + 2));
         uint16_t status = qFromBigEndian<uint16_t>(
-            reinterpret_cast<const uchar*>(payload.constData() + 4));
+            reinterpret_cast<const uchar*>(data + 4));
         emit versionReceived(major, minor, status == 0x0000);
         break;
     }
 
     case MSG_SSL_HANDSHAKE:
-        emit sslHandshakeData(payload);
+        // SSL handshake data needs its own buffer for OpenSSL BIO
+        emit sslHandshakeData(QByteArray(data, dataSize));
         break;
 
     case MSG_SERVICE_DISCOVERY_REQUEST: {
         proto::messages::ServiceDiscoveryRequest sdReq;
-        if (sdReq.ParseFromArray(payload.constData(), payload.size())) {
+        if (sdReq.ParseFromArray(data, dataSize)) {
             qInfo() << "[ControlChannel] ServiceDiscoveryRequest:"
                      << QString::fromStdString(sdReq.ShortDebugString());
         }
-        emit serviceDiscoveryRequested(payload);
+        emit serviceDiscoveryRequested(QByteArray(data, dataSize));
         break;
     }
 
     case MSG_CHANNEL_OPEN_REQUEST: {
         proto::messages::ChannelOpenRequest req;
-        if (req.ParseFromArray(payload.constData(), payload.size())) {
+        if (req.ParseFromArray(data, dataSize)) {
             qInfo() << "[ControlChannel] ChannelOpenRequest:"
                      << QString::fromStdString(req.ShortDebugString());
             emit channelOpenRequested(
-                static_cast<uint8_t>(req.channel_id()), payload);
+                static_cast<uint8_t>(req.channel_id()), QByteArray(data, dataSize));
         } else {
             qWarning() << "[ControlChannel] Failed to parse ChannelOpenRequest";
         }
@@ -102,7 +106,7 @@ void ControlChannel::onMessage(uint16_t messageId, const QByteArray& payload) {
 
     case MSG_PING_REQUEST: {
         proto::messages::PingRequest req;
-        if (req.ParseFromArray(payload.constData(), payload.size())) {
+        if (req.ParseFromArray(data, dataSize)) {
             int64_t ts = req.timestamp();
             // Auto-respond with PingResponse
             sendPingResponse(ts);
@@ -115,19 +119,19 @@ void ControlChannel::onMessage(uint16_t messageId, const QByteArray& payload) {
 
     case MSG_PING_RESPONSE: {
         proto::messages::PingResponse resp;
-        if (resp.ParseFromArray(payload.constData(), payload.size())) {
+        if (resp.ParseFromArray(data, dataSize)) {
             emit pongReceived(resp.timestamp());
         }
         break;
     }
 
     case MSG_NAV_FOCUS_REQUEST:
-        emit navigationFocusRequested(payload);
+        emit navigationFocusRequested(QByteArray(data, dataSize));
         break;
 
     case MSG_SHUTDOWN_REQUEST: {
         proto::messages::ShutdownRequest req;
-        if (req.ParseFromArray(payload.constData(), payload.size())) {
+        if (req.ParseFromArray(data, dataSize)) {
             emit shutdownRequested(static_cast<int>(req.reason()));
         } else {
             emit shutdownRequested(0);
@@ -140,11 +144,11 @@ void ControlChannel::onMessage(uint16_t messageId, const QByteArray& payload) {
         break;
 
     case MSG_VOICE_SESSION_REQUEST:
-        emit voiceSessionRequested(payload);
+        emit voiceSessionRequested(QByteArray(data, dataSize));
         break;
 
     case MSG_AUDIO_FOCUS_REQUEST:
-        emit audioFocusRequested(payload);
+        emit audioFocusRequested(QByteArray(data, dataSize));
         break;
 
     case MSG_CHANNEL_CLOSE:
@@ -160,7 +164,7 @@ void ControlChannel::onMessage(uint16_t messageId, const QByteArray& payload) {
         break;
 
     default:
-        emit unknownMessage(messageId, payload);
+        emit unknownMessage(messageId, QByteArray(data, dataSize));
         break;
     }
 }

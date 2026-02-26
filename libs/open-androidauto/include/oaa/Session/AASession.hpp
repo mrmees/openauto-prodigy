@@ -53,7 +53,7 @@ private:
     void onServiceDiscoveryRequested(const QByteArray& payload);
     void onChannelOpenRequested(uint8_t channelId, const QByteArray& payload);
     void onMessage(uint8_t channelId, uint16_t messageId,
-                   const QByteArray& payload);
+                   const QByteArray& payload, int dataOffset);
     void onPingTick();
     void onPongReceived(int64_t timestamp);
     void onShutdownRequested(int reason);

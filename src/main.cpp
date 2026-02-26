@@ -30,6 +30,7 @@
 #include "ui/PluginViewHost.hpp"
 #include "ui/LauncherModel.hpp"
 #include "ui/AudioDeviceModel.hpp"
+#include "ui/CodecCapabilityModel.hpp"
 
 int main(int argc, char *argv[])
 {
@@ -204,6 +205,9 @@ int main(int argc, char *argv[])
         oap::AudioDeviceModel::Input, audioService->deviceRegistry(), audioService);
     engine.rootContext()->setContextProperty("AudioOutputDeviceModel", outputDeviceModel);
     engine.rootContext()->setContextProperty("AudioInputDeviceModel", inputDeviceModel);
+
+    auto* codecCapModel = new oap::CodecCapabilityModel(&app);
+    engine.rootContext()->setContextProperty("CodecCapabilityModel", codecCapModel);
 
     engine.rootContext()->setContextProperty("ConfigService", configService.get());
 

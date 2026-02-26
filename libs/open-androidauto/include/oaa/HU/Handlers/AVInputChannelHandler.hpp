@@ -17,7 +17,7 @@ public:
     uint8_t channelId() const override { return oaa::ChannelId::AVInput; }
     void onChannelOpened() override;
     void onChannelClosed() override;
-    void onMessage(uint16_t messageId, const QByteArray& payload) override;
+    void onMessage(uint16_t messageId, const QByteArray& payload, int dataOffset = 0) override;
 
     // Send mic data upstream to phone — called from PipeWire capture callback
     void sendMicData(const QByteArray& data, uint64_t timestamp);

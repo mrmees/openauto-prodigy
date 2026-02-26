@@ -35,7 +35,7 @@ public:
 
 signals:
     void messageReceived(uint8_t channelId, uint16_t messageId,
-                         const QByteArray& payload);
+                         const QByteArray& payload, int dataOffset);
     void messageSent(uint8_t channelId, uint16_t messageId,
                      const QByteArray& payload);
     void handshakeComplete();

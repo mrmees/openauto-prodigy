@@ -26,15 +26,19 @@ void BluetoothChannelHandler::onChannelClosed()
     qDebug() << "[BluetoothChannel] closed";
 }
 
-void BluetoothChannelHandler::onMessage(uint16_t messageId, const QByteArray& payload)
+void BluetoothChannelHandler::onMessage(uint16_t messageId, const QByteArray& payload, int dataOffset)
 {
+    // Zero-copy view of data past the message ID header
+    const QByteArray data = QByteArray::fromRawData(
+        payload.constData() + dataOffset, payload.size() - dataOffset);
+
     switch (messageId) {
     case oaa::BluetoothMessageId::PAIRING_REQUEST:
-        handlePairingRequest(payload);
+        handlePairingRequest(data);
         break;
     default:
         qWarning() << "[BluetoothChannel] unknown message id:" << Qt::hex << messageId;
-        emit unknownMessage(messageId, payload);
+        emit unknownMessage(messageId, data);
         break;
     }
 }

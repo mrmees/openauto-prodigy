@@ -34,6 +34,10 @@ void YamlConfig::initDefaults()
 
     root_["audio"]["master_volume"] = 80;
     root_["audio"]["output_device"] = "auto";
+    root_["audio"]["buffer_ms"]["media"] = 100;
+    root_["audio"]["buffer_ms"]["speech"] = 100;
+    root_["audio"]["buffer_ms"]["system"] = 100;
+    root_["audio"]["adaptive"] = true;
     root_["audio"]["microphone"]["device"] = "auto";
     root_["audio"]["microphone"]["gain"] = 1.0;
 
@@ -42,6 +46,17 @@ void YamlConfig::initDefaults()
     root_["video"]["fps"] = 30;
     root_["video"]["resolution"] = "720p";
     root_["video"]["dpi"] = 140;
+
+    root_["video"]["codecs"] = YAML::Node(YAML::NodeType::Sequence);
+    root_["video"]["codecs"].push_back("h264");
+    root_["video"]["codecs"].push_back("h265");
+
+    root_["video"]["decoder"] = YAML::Node(YAML::NodeType::Map);
+    root_["video"]["decoder"]["h264"] = "auto";
+    root_["video"]["decoder"]["h265"] = "auto";
+    root_["video"]["decoder"]["vp9"] = "auto";
+    root_["video"]["decoder"]["av1"] = "auto";
+
     root_["video"]["sidebar"]["enabled"] = false;
     root_["video"]["sidebar"]["width"] = 150;
     root_["video"]["sidebar"]["position"] = "right";
@@ -317,6 +332,28 @@ void YamlConfig::setSidebarPosition(const QString& v)
     root_["video"]["sidebar"]["position"] = v.toStdString();
 }
 
+// --- Video: codec config ---
+
+QStringList YamlConfig::videoCodecs() const
+{
+    QStringList result;
+    auto codecs = root_["video"]["codecs"];
+    if (codecs.IsSequence()) {
+        for (const auto& node : codecs)
+            result.append(QString::fromStdString(node.as<std::string>()));
+    }
+    if (result.isEmpty()) {
+        result << "h264" << "h265";
+    }
+    return result;
+}
+
+QString YamlConfig::videoDecoder(const QString& codec) const
+{
+    return QString::fromStdString(
+        root_["video"]["decoder"][codec.toStdString()].as<std::string>("auto"));
+}
+
 // --- Identity ---
 
 QString YamlConfig::headUnitName() const
@@ -461,6 +498,19 @@ QString YamlConfig::gpsSource() const
 void YamlConfig::setGpsSource(const QString& v)
 {
     root_["sensors"]["gps"]["source"] = v.toStdString();
+}
+
+// --- Audio: per-stream buffer sizing ---
+
+int YamlConfig::audioBufferMs(const QString& streamType) const
+{
+    int fallback = 200;
+    return root_["audio"]["buffer_ms"][streamType.toStdString()].as<int>(fallback);
+}
+
+bool YamlConfig::audioAdaptive() const
+{
+    return root_["audio"]["adaptive"].as<bool>(true);
 }
 
 // --- Audio: microphone ---

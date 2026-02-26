@@ -272,14 +272,16 @@ void AASession::onChannelOpenRequested(uint8_t channelId, const QByteArray& /*pa
 }
 
 void AASession::onMessage(uint8_t channelId, uint16_t messageId,
-                          const QByteArray& payload) {
+                          const QByteArray& payload, int dataOffset) {
+    const int dataSize = payload.size() - dataOffset;
+
     // Log ALL incoming messages for debugging
     qDebug() << "[AASession] RX ch" << channelId << "msgId" << Qt::hex << messageId
-             << "len" << payload.size();
+             << "len" << dataSize;
 
     // Channel 0 → ControlChannel
     if (channelId == 0) {
-        controlChannel_->onMessage(messageId, payload);
+        controlChannel_->onMessage(messageId, payload, dataOffset);
         return;
     }
 
@@ -289,7 +291,7 @@ void AASession::onMessage(uint8_t channelId, uint16_t messageId,
         if (state_ != SessionState::Active) return;
 
         proto::messages::ChannelOpenRequest req;
-        if (req.ParseFromArray(payload.constData(), payload.size())) {
+        if (req.ParseFromArray(payload.constData() + dataOffset, dataSize)) {
             uint8_t targetCh = static_cast<uint8_t>(req.channel_id());
             if (channels_.contains(targetCh)) {
                 qDebug() << "[AASession] Opening channel" << targetCh;
@@ -328,22 +330,23 @@ void AASession::onMessage(uint8_t channelId, uint16_t messageId,
     if (messageId == 0x0000 || messageId == 0x0001) {
         auto* avHandler = qobject_cast<IAVChannelHandler*>(handler);
         if (avHandler) {
-            if (messageId == 0x0000 && payload.size() >= 8) {
+            const char* data = payload.constData() + dataOffset;
+            if (messageId == 0x0000 && dataSize >= 8) {
                 // AV_MEDIA_WITH_TIMESTAMP: first 8 bytes = uint64 BE timestamp
                 uint64_t timestamp = 0;
                 for (int i = 0; i < 8; ++i)
-                    timestamp = (timestamp << 8) | static_cast<uint8_t>(payload[i]);
-                avHandler->onMediaData(payload.mid(8), timestamp);
+                    timestamp = (timestamp << 8) | static_cast<uint8_t>(data[i]);
+                avHandler->onMediaData(payload.mid(dataOffset + 8), timestamp);
             } else {
                 // AV_MEDIA_INDICATION: no timestamp
-                avHandler->onMediaData(payload, 0);
+                avHandler->onMediaData(payload.mid(dataOffset), 0);
             }
             return;
         }
     }
 
-    // Regular message dispatch
-    handler->onMessage(messageId, payload);
+    // Regular message dispatch — pass full payload with offset
+    handler->onMessage(messageId, payload, dataOffset);
 }
 
 void AASession::onPingTick() {

@@ -429,6 +429,7 @@ add_executable(test_aa_orchestrator
     ${CMAKE_SOURCE_DIR}/src/core/aa/TouchHandler.cpp
     ${CMAKE_SOURCE_DIR}/src/core/aa/ServiceDiscoveryBuilder.cpp
     ${CMAKE_SOURCE_DIR}/src/core/aa/VideoDecoder.cpp
+    ${CMAKE_SOURCE_DIR}/src/core/aa/DmaBufVideoBuffer.cpp
     ${CMAKE_SOURCE_DIR}/src/core/aa/NightModeProvider.cpp
     ${CMAKE_SOURCE_DIR}/src/core/aa/TimedNightMode.cpp
     ${CMAKE_SOURCE_DIR}/src/core/aa/GpioNightMode.cpp
@@ -469,6 +470,40 @@ target_link_libraries(test_oap_protocol_logger PRIVATE
     Qt6::Test
 )
 add_test(NAME test_oap_protocol_logger COMMAND test_oap_protocol_logger)
+
+add_executable(test_circular_buffer test_circular_buffer.cpp)
+target_link_libraries(test_circular_buffer PRIVATE Qt6::Test open-androidauto)
+add_test(NAME test_circular_buffer COMMAND test_circular_buffer)
+
+# Codec capability detection — probes FFmpeg for hw/sw decoders
+add_executable(test_codec_capability
+    test_codec_capability.cpp
+    ${CMAKE_SOURCE_DIR}/src/core/aa/CodecCapability.cpp
+)
+target_include_directories(test_codec_capability PRIVATE
+    ${CMAKE_SOURCE_DIR}/src
+    ${LIBAV_INCLUDE_DIRS}
+)
+target_link_libraries(test_codec_capability PRIVATE
+    Qt6::Core
+    Qt6::Test
+    ${LIBAV_LIBRARIES}
+)
+add_test(NAME test_codec_capability COMMAND test_codec_capability)
+
+# Video frame pool — format management and allocation tracking
+add_executable(test_video_frame_pool
+    test_video_frame_pool.cpp
+)
+target_include_directories(test_video_frame_pool PRIVATE
+    ${CMAKE_SOURCE_DIR}/src
+)
+target_link_libraries(test_video_frame_pool PRIVATE
+    Qt6::Core
+    Qt6::Multimedia
+    Qt6::Test
+)
+add_test(NAME test_video_frame_pool COMMAND test_video_frame_pool)
 
 # GUI/Quick tests need offscreen platform when no display is available
 set_tests_properties(test_configuration test_theme_service test_plugin_model

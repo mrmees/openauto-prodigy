@@ -11,16 +11,18 @@
 #include <QAtomicPointer>
 #include <atomic>
 #include <memory>
-#include <optional>
 #include <queue>
 
 #include "PerfStats.hpp"
+#include "VideoFramePool.hpp"
 
 // FFmpeg C headers
 extern "C" {
 #include <libavcodec/avcodec.h>
 #include <libavutil/imgutils.h>
 }
+
+namespace oap { class YamlConfig; }
 
 namespace oap {
 namespace aa {
@@ -36,6 +38,7 @@ public:
 
     QVideoSink* videoSink() const { return videoSink_.loadRelaxed(); }
     void setVideoSink(QVideoSink* sink);
+    void setYamlConfig(oap::YamlConfig* config) { yamlConfig_ = config; }
 
 signals:
     void videoSinkChanged();
@@ -78,10 +81,15 @@ private:
     AVFrame* frame_ = nullptr;
     AVCodecID activeCodecId_ = AV_CODEC_ID_H264;
     bool codecDetected_ = false;
+    bool usingHardware_ = false;
+    bool firstFrameDecoded_ = false;
+    oap::YamlConfig* yamlConfig_ = nullptr;
 
     bool initCodec(AVCodecID codecId);
+    bool tryOpenCodec(const AVCodec* codec, AVCodecID codecId);
     void cleanupCodec();
     AVCodecID detectCodec(const QByteArray& data) const;
+    static bool isHardwareDecoder(const AVCodec* codec);
 
     uint64_t frameCount_ = 0;
 
@@ -94,8 +102,8 @@ private:
     uint64_t framesSinceLog_ = 0;
     static constexpr double LOG_INTERVAL_SEC = 5.0;
 
-    // Cached video frame format (fresh frame allocated each decode)
-    std::optional<QVideoFrameFormat> cachedFormat_;
+    // Frame pool — owns the cached format and allocates QVideoFrames
+    std::unique_ptr<VideoFramePool> framePool_;
 };
 
 } // namespace aa

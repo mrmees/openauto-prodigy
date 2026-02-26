@@ -4,12 +4,14 @@ qt_add_executable(openauto-prodigy
     core/YamlConfig.cpp
     core/InputDeviceScanner.cpp
     core/aa/VideoDecoder.cpp
+    core/aa/DmaBufVideoBuffer.cpp
     core/aa/TouchHandler.cpp
     core/aa/EvdevTouchReader.cpp
     core/aa/NightModeProvider.cpp
     core/aa/TimedNightMode.cpp
     core/aa/ThemeNightMode.cpp
     core/aa/GpioNightMode.cpp
+    core/aa/CodecCapability.cpp
     core/aa/ProtocolLogger.cpp
     core/aa/ServiceDiscoveryBuilder.cpp
     core/aa/AndroidAutoOrchestrator.cpp
@@ -19,6 +21,7 @@ qt_add_executable(openauto-prodigy
     ui/PluginViewHost.cpp
     ui/LauncherModel.cpp
     ui/AudioDeviceModel.cpp
+    ui/CodecCapabilityModel.cpp
     core/plugin/HostContext.cpp
     core/services/ConfigService.cpp
     core/services/ThemeService.cpp

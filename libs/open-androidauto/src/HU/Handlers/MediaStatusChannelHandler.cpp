@@ -23,19 +23,23 @@ void MediaStatusChannelHandler::onChannelClosed()
     qInfo() << "[MediaStatusChannel] closed";
 }
 
-void MediaStatusChannelHandler::onMessage(uint16_t messageId, const QByteArray& payload)
+void MediaStatusChannelHandler::onMessage(uint16_t messageId, const QByteArray& payload, int dataOffset)
 {
+    // Zero-copy view of data past the message ID header
+    const QByteArray data = QByteArray::fromRawData(
+        payload.constData() + dataOffset, payload.size() - dataOffset);
+
     switch (messageId) {
     case oaa::MediaStatusMessageId::PLAYBACK_STATUS:
-        handlePlaybackStatus(payload);
+        handlePlaybackStatus(data);
         break;
     case oaa::MediaStatusMessageId::PLAYBACK_METADATA:
-        handlePlaybackMetadata(payload);
+        handlePlaybackMetadata(data);
         break;
     default:
         qInfo() << "[MediaStatusChannel] unknown msgId:" << QString("0x%1").arg(messageId, 4, 16, QChar('0'))
-                << "len:" << payload.size()
-                << "hex:" << payload.left(64).toHex(' ');
+                << "len:" << data.size()
+                << "hex:" << data.left(64).toHex(' ');
         break;
     }
 }

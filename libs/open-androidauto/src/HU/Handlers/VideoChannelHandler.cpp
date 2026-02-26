@@ -37,23 +37,27 @@ void VideoChannelHandler::onChannelClosed()
     qDebug() << "[VideoChannel] closed";
 }
 
-void VideoChannelHandler::onMessage(uint16_t messageId, const QByteArray& payload)
+void VideoChannelHandler::onMessage(uint16_t messageId, const QByteArray& payload, int dataOffset)
 {
+    // Zero-copy view of data past the message ID header
+    const QByteArray data = QByteArray::fromRawData(
+        payload.constData() + dataOffset, payload.size() - dataOffset);
+
     switch (messageId) {
     case oaa::AVMessageId::SETUP_REQUEST:
-        handleSetupRequest(payload);
+        handleSetupRequest(data);
         break;
     case oaa::AVMessageId::START_INDICATION:
-        handleStartIndication(payload);
+        handleStartIndication(data);
         break;
     case oaa::AVMessageId::STOP_INDICATION:
         handleStopIndication();
         break;
     case oaa::AVMessageId::VIDEO_FOCUS_REQUEST:
-        handleVideoFocusRequest(payload);
+        handleVideoFocusRequest(data);
         break;
     case oaa::AVMessageId::VIDEO_FOCUS_INDICATION:
-        handleVideoFocusIndication(payload);
+        handleVideoFocusIndication(data);
         break;
     case oaa::AVMessageId::VIDEO_FOCUS_NOTIFICATION:
     case oaa::AVMessageId::UPDATE_UI_CONFIG_REQUEST:
@@ -69,11 +73,11 @@ void VideoChannelHandler::onMessage(uint16_t messageId, const QByteArray& payloa
     case oaa::AVMessageId::MEDIA_STATS:
     case oaa::AVMessageId::MEDIA_OPTIONS:
         qDebug() << "[VideoChannel] newer AV message:" << Qt::hex << messageId
-                 << "size:" << payload.size();
+                 << "size:" << data.size();
         break;
     default:
         qWarning() << "[VideoChannel] unknown message id:" << Qt::hex << messageId;
-        emit unknownMessage(messageId, payload);
+        emit unknownMessage(messageId, data);
         break;
     }
 }

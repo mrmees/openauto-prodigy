@@ -6,6 +6,7 @@
 #include <QObject>
 #include <QMutex>
 #include <QList>
+#include <QTimer>
 #include <atomic>
 #include <memory>
 #include <pipewire/pipewire.h>
@@ -23,6 +24,18 @@ struct AudioStreamHandle {
     bool hasFocus = false;
     float volume = 1.0f;  // 0.0 - 1.0 (current, may be ducked)
     float baseVolume = 1.0f;  // Volume before ducking
+    int bufferMs = 50;  // ring buffer size in milliseconds
+    int maxBufferMs = 100;  // adaptive growth cap
+
+    // Underrun tracking (written on PW RT thread, read on Qt main thread)
+    std::atomic<uint32_t> underrunCount{0};
+
+    // Rate matching state (PW RT thread only, no atomics needed)
+    uint32_t rateCtlCount = 0;
+    uint32_t diagCount = 0;
+    uint32_t activeCallbacks = 0; // callbacks with data in current window
+    float filteredFill = 0.5f;    // EMA of normalized fill level
+    float rateIntegral = 0.0f;    // PI controller integral term
 
     // Format info for process callback
     int sampleRate = 48000;
@@ -55,7 +68,8 @@ public:
     // IAudioService — output
     AudioStreamHandle* createStream(const QString& name, int priority,
                                      int sampleRate = 48000, int channels = 2,
-                                     const QString& targetDevice = "auto") override;
+                                     const QString& targetDevice = "auto",
+                                     int bufferMs = 50) override;
     void destroyStream(AudioStreamHandle* handle) override;
     int writeAudio(AudioStreamHandle* handle, const uint8_t* data, int size) override;
     Q_INVOKABLE void setMasterVolume(int volume) override;
@@ -87,6 +101,7 @@ private slots:
 
 private:
     void applyDucking();
+    void checkAdaptiveBuffers();
     static void onPlaybackProcess(void* userdata);
     static void onCaptureProcess(void* userdata);
 
@@ -112,6 +127,10 @@ private:
     struct spa_hook captureListener_{};
 
     PipeWireDeviceRegistry deviceRegistry_{this};
+
+    // Adaptive buffer growth
+    bool adaptiveBuffers_ = true;
+    QTimer adaptiveTimer_;
 };
 
 } // namespace oap

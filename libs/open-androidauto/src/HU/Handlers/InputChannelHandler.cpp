@@ -30,15 +30,19 @@ void InputChannelHandler::onChannelClosed()
     qDebug() << "[InputChannel] closed";
 }
 
-void InputChannelHandler::onMessage(uint16_t messageId, const QByteArray& payload)
+void InputChannelHandler::onMessage(uint16_t messageId, const QByteArray& payload, int dataOffset)
 {
+    // Zero-copy view of data past the message ID header
+    const QByteArray data = QByteArray::fromRawData(
+        payload.constData() + dataOffset, payload.size() - dataOffset);
+
     switch (messageId) {
     case oaa::InputMessageId::BINDING_REQUEST:
-        handleBindingRequest(payload);
+        handleBindingRequest(data);
         break;
     default:
         qWarning() << "[InputChannel] unknown message id:" << Qt::hex << messageId;
-        emit unknownMessage(messageId, payload);
+        emit unknownMessage(messageId, data);
         break;
     }
 }

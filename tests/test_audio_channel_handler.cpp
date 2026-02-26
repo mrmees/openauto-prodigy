@@ -75,13 +75,15 @@ private slots:
         QSignalSpy dataSpy(&handler, &oaa::hu::AudioChannelHandler::audioDataReceived);
         QSignalSpy sendSpy(&handler, &oaa::IChannelHandler::sendRequested);
 
+        // Send 10 frames to trigger batched ACK (max_unacked=10)
         QByteArray pcmData(960, '\x42');
-        handler.onMediaData(pcmData, 1234567890);
+        for (int i = 0; i < 10; ++i)
+            handler.onMediaData(pcmData, 1234567890 + i);
 
-        QCOMPARE(dataSpy.count(), 1);
+        QCOMPARE(dataSpy.count(), 10);
         QCOMPARE(dataSpy[0][0].toByteArray().size(), 960);
 
-        // Should send ACK
+        // Should send one batched ACK after 10 frames
         QCOMPARE(sendSpy.count(), 1);
         QCOMPARE(sendSpy[0][1].value<uint16_t>(),
                  static_cast<uint16_t>(oaa::AVMessageId::ACK_INDICATION));

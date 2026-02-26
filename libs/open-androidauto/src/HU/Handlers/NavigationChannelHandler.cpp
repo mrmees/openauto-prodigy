@@ -3,7 +3,7 @@
 #include <QDebug>
 
 #include "NavigationStateMessage.pb.h"
-#include "NavigationStepMessage.pb.h"
+#include "NavigationNotificationMessage.pb.h"
 #include "NavigationDistanceMessage.pb.h"
 
 namespace oaa {
@@ -29,22 +29,26 @@ void NavigationChannelHandler::onChannelClosed()
     qInfo() << "[NavChannel] closed";
 }
 
-void NavigationChannelHandler::onMessage(uint16_t messageId, const QByteArray& payload)
+void NavigationChannelHandler::onMessage(uint16_t messageId, const QByteArray& payload, int dataOffset)
 {
+    // Zero-copy view of data past the message ID header
+    const QByteArray data = QByteArray::fromRawData(
+        payload.constData() + dataOffset, payload.size() - dataOffset);
+
     switch (messageId) {
     case oaa::NavigationMessageId::NAV_STATE:
-        handleNavState(payload);
+        handleNavState(data);
         break;
     case oaa::NavigationMessageId::NAV_STEP:
-        handleNavStep(payload);
+        handleNavStep(data);
         break;
     case oaa::NavigationMessageId::NAV_DISTANCE:
-        handleNavDistance(payload);
+        handleNavDistance(data);
         break;
     default:
         qInfo() << "[NavChannel] unknown msgId:" << QString("0x%1").arg(messageId, 4, 16, QChar('0'))
-                << "len:" << payload.size()
-                << "hex:" << payload.left(64).toHex(' ');
+                << "len:" << data.size()
+                << "hex:" << data.left(64).toHex(' ');
         break;
     }
 }

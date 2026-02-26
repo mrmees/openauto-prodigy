@@ -24,9 +24,9 @@ public:
     uint8_t channelId() const override { return id_; }
     void onChannelOpened() override { opened = true; }
     void onChannelClosed() override { closed = true; }
-    void onMessage(uint16_t messageId, const QByteArray& payload) override {
+    void onMessage(uint16_t messageId, const QByteArray& payload, int dataOffset = 0) override {
         lastMessageId = messageId;
-        lastPayload = payload;
+        lastPayload = payload.mid(dataOffset);
         messageCount++;
     }
 

@@ -48,6 +48,8 @@ public:
     // Audio
     int masterVolume() const;
     void setMasterVolume(int v);
+    int audioBufferMs(const QString& streamType) const;
+    bool audioAdaptive() const;
 
     // Video
     int videoFps() const;
@@ -62,6 +64,8 @@ public:
     void setSidebarWidth(int v);
     QString sidebarPosition() const;
     void setSidebarPosition(const QString& v);
+    QStringList videoCodecs() const;
+    QString videoDecoder(const QString& codec) const;
 
     // Identity
     QString headUnitName() const;
