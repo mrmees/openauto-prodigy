@@ -21,6 +21,7 @@
 extern "C" {
 #include <libavcodec/avcodec.h>
 #include <libavutil/imgutils.h>
+#include <libavutil/hwcontext.h>
 }
 
 namespace oap { class YamlConfig; }
@@ -104,6 +105,10 @@ private:
     void cleanupCodec();
     AVCodecID detectCodec(const QByteArray& data) const;
     static bool isHardwareDecoder(const AVCodec* codec);
+
+    // DRM hwaccel for HEVC V4L2 request API (rpi-hevc-dec)
+    AVBufferRef* hwDeviceCtx_ = nullptr;
+    static enum AVPixelFormat getHwFormat(AVCodecContext* ctx, const enum AVPixelFormat* pix_fmts);
 
     uint64_t frameCount_ = 0;
 

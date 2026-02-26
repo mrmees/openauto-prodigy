@@ -19,6 +19,16 @@ VideoDecoder::VideoDecoder(QObject* parent)
     packet_ = av_packet_alloc();
     frame_ = av_frame_alloc();
 
+    // Try to open DRM device for HEVC V4L2 request API hardware acceleration.
+    // On Pi 4, this routes to rpi-hevc-dec (/dev/video19) via the vc4 DRM driver.
+    // Fails gracefully on machines without DRM devices (dev VM, etc.).
+    if (av_hwdevice_ctx_create(&hwDeviceCtx_, AV_HWDEVICE_TYPE_DRM,
+                               "/dev/dri/card1", nullptr, 0) == 0) {
+        qInfo() << "[VideoDecoder] DRM device opened for HEVC hardware acceleration";
+    } else {
+        hwDeviceCtx_ = nullptr;
+    }
+
     if (!initCodec(AV_CODEC_ID_H264)) {
         qCritical() << "[VideoDecoder] Failed to initialize H.264 decoder";
         return;
@@ -44,6 +54,19 @@ bool VideoDecoder::isHardwareDecoder(const AVCodec* codec)
             strstr(name, "videotoolbox") || strstr(name, "qsv"));
 }
 
+enum AVPixelFormat VideoDecoder::getHwFormat(
+    AVCodecContext* /*ctx*/, const enum AVPixelFormat* pix_fmts)
+{
+    // Request DRM_PRIME (DMA buffer) output when offered by the hwaccel.
+    // FFmpeg's V4L2 request API hwaccel offers this when rpi-hevc-dec is available.
+    for (const enum AVPixelFormat* p = pix_fmts; *p != AV_PIX_FMT_NONE; p++) {
+        if (*p == AV_PIX_FMT_DRM_PRIME)
+            return AV_PIX_FMT_DRM_PRIME;
+    }
+    // DRM_PRIME not offered — fall back to first format (software decode)
+    return pix_fmts[0];
+}
+
 bool VideoDecoder::tryOpenCodec(const AVCodec* codec, AVCodecID codecId)
 {
     codecCtx_ = avcodec_alloc_context3(codec);
@@ -53,6 +76,16 @@ bool VideoDecoder::tryOpenCodec(const AVCodec* codec, AVCodecID codecId)
     codecCtx_->flags |= AV_CODEC_FLAG_LOW_DELAY;
     codecCtx_->flags2 |= AV_CODEC_FLAG2_FAST;
     codecCtx_->thread_count = 1;  // Single-threaded for immediate output (no frame reordering delay)
+
+    // For HEVC software decoder with DRM device available, enable V4L2 request
+    // API hwaccel.  FFmpeg's HEVC parser feeds parsed slices to rpi-hevc-dec
+    // hardware, which returns DRM_PRIME (DMA buffer) frames.
+    // Only attach to the software decoder — standalone hw decoders (v4l2m2m)
+    // manage their own hw context.
+    if (codecId == AV_CODEC_ID_H265 && hwDeviceCtx_ && !isHardwareDecoder(codec)) {
+        codecCtx_->hw_device_ctx = av_buffer_ref(hwDeviceCtx_);
+        codecCtx_->get_format = getHwFormat;
+    }
 
     if (avcodec_open2(codecCtx_, codec, nullptr) < 0) {
         avcodec_free_context(&codecCtx_);
@@ -105,7 +138,16 @@ bool VideoDecoder::initCodec(AVCodecID codecId)
                        << "not found, falling back to auto";
     }
 
-    // 2. Auto mode: try known hw decoders in order
+    // 2a. For HEVC with DRM device: use software decoder + V4L2 request hwaccel.
+    // This routes decode through rpi-hevc-dec hardware via the stateless API,
+    // which is faster and more reliable than hevc_v4l2m2m on Pi 4 (kernel 6.6+).
+    if (!selectedCodec && codecId == AV_CODEC_ID_H265 && hwDeviceCtx_) {
+        selectedCodec = avcodec_find_decoder(codecId);
+        if (selectedCodec)
+            qInfo() << "[VideoDecoder] HEVC: using software decoder with DRM hwaccel (V4L2 request)";
+    }
+
+    // 2b. Auto mode: try known standalone hw decoders in order
     if (!selectedCodec && it != codecInfoMap.end()) {
         for (int i = 0; it->hwDecoders[i]; ++i) {
             const AVCodec* hwCodec = avcodec_find_decoder_by_name(it->hwDecoders[i]);
@@ -143,9 +185,11 @@ bool VideoDecoder::initCodec(AVCodecID codecId)
         }
     }
 
-    usingHardware_ = isHardwareDecoder(codec_);
+    usingHardware_ = isHardwareDecoder(codec_) ||
+                     (codecCtx_ && codecCtx_->hw_device_ctx);
     qInfo() << "[VideoDecoder] Using" << codec_->name
-            << (usingHardware_ ? "(hardware)" : "(software)");
+            << (usingHardware_ ? "(hardware)" : "(software)")
+            << (codecCtx_->hw_device_ctx ? "[DRM hwaccel]" : "");
     return true;
 }
 
@@ -206,6 +250,7 @@ void VideoDecoder::cleanup()
     if (frame_) { av_frame_free(&frame_); frame_ = nullptr; }
     if (packet_) { av_packet_free(&packet_); packet_ = nullptr; }
     cleanupCodec();
+    if (hwDeviceCtx_) { av_buffer_unref(&hwDeviceCtx_); hwDeviceCtx_ = nullptr; }
 }
 
 QVideoFrame VideoDecoder::takeLatestFrame()
@@ -340,6 +385,25 @@ void VideoDecoder::processFrame(const QByteArray& h264Data, qint64 enqueueTimeNs
 
             auto t_decodeDone = PerfStats::Clock::now();
 
+            // Transfer DRM_PRIME (hw) frames to CPU when DmaBufVideoBuffer is
+            // unavailable (Qt < 6.8).  The RPi FFmpeg fork (--enable-sand) handles
+            // Sand/NC12 → YUV420P conversion during the transfer.
+#if QT_VERSION < QT_VERSION_CHECK(6,8,0)
+            if (frame_->format == AV_PIX_FMT_DRM_PRIME) {
+                AVFrame* swFrame = av_frame_alloc();
+                if (av_hwframe_transfer_data(swFrame, frame_, 0) >= 0) {
+                    av_frame_unref(frame_);
+                    av_frame_move_ref(frame_, swFrame);
+                    av_frame_free(&swFrame);
+                } else {
+                    qWarning() << "[VideoDecoder] Failed to transfer hw frame to CPU";
+                    av_frame_free(&swFrame);
+                    av_frame_unref(frame_);
+                    continue;
+                }
+            }
+#endif
+
             // Got a decoded frame — convert to QVideoFrame
             // Accept both YUV420P (limited range) and YUVJ420P (full/JPEG range) —
             // same pixel layout, different color range convention
@@ -349,6 +413,9 @@ void VideoDecoder::processFrame(const QByteArray& h264Data, qint64 enqueueTimeNs
             // Qt's QueuedConnection dispatch also uses `sink` as the context object,
             // so if QVideoSink is destroyed before the lambda runs, Qt discards the event.
             QVideoSink* sink = videoSink_.loadAcquire();
+            bool frameDelivered = false;
+            auto t_copyDone = t_decodeDone;  // default for zero-copy path
+
 #if QT_VERSION >= QT_VERSION_CHECK(6,8,0)
             if (sink && frame_->format == AV_PIX_FMT_DRM_PRIME) {
                 // Zero-copy hardware path: wrap DRM_PRIME frame in QAbstractVideoBuffer.
@@ -357,24 +424,14 @@ void VideoDecoder::processFrame(const QByteArray& h264Data, qint64 enqueueTimeNs
                     frame_, frame_->width, frame_->height);
                 QVideoFrame videoFrame(std::move(buffer));
 
-                auto t_copyDone = PerfStats::Clock::now();
+                t_copyDone = PerfStats::Clock::now();
 
                 {
                     std::lock_guard<std::mutex> lock(latestFrameMutex_);
                     latestFrame_ = std::move(videoFrame);
                 }
                 hasLatestFrame_.store(true, std::memory_order_release);
-
-                auto t_display = PerfStats::Clock::now();
-
-                // Record timing metrics
-                if (enqueueTimeNs > 0) {
-                    auto t_enqueue = PerfStats::TimePoint(std::chrono::nanoseconds(enqueueTimeNs));
-                    metricQueue_.record(PerfStats::msElapsed(t_enqueue, t_decodeStart));
-                    metricTotal_.record(PerfStats::msElapsed(t_enqueue, t_display));
-                }
-                metricDecode_.record(PerfStats::msElapsed(t_decodeStart, t_decodeDone));
-                metricCopy_.record(0.0);  // zero-copy
+                frameDelivered = true;
             }
             else
 #endif
@@ -394,15 +451,12 @@ void VideoDecoder::processFrame(const QByteArray& h264Data, qint64 enqueueTimeNs
                     }
                 }
 
-                // Fresh frame each decode — QVideoFrame is ref-counted so reusing
-                // buffers races with Qt's render thread holding a read mapping.
-                // The pool encapsulates format caching and allocation tracking.
                 QVideoFrame videoFrame = framePool_->acquire();
                 if (videoFrame.map(QVideoFrame::WriteOnly)) {
                     const int h = frame_->height;
                     const int chromaH = h / 2;
 
-                    // Y plane — bulk copy if strides match
+                    // Y plane
                     const int yDstStride = videoFrame.bytesPerLine(0);
                     const int ySrcStride = frame_->linesize[0];
                     if (yDstStride == ySrcStride) {
@@ -440,33 +494,37 @@ void VideoDecoder::processFrame(const QByteArray& h264Data, qint64 enqueueTimeNs
 
                     videoFrame.unmap();
 
-                    auto t_copyDone = PerfStats::Clock::now();
+                    t_copyDone = PerfStats::Clock::now();
 
-                    // Write to latest-frame slot — display timer on main thread reads it
                     {
                         std::lock_guard<std::mutex> lock(latestFrameMutex_);
                         latestFrame_ = std::move(videoFrame);
                     }
                     hasLatestFrame_.store(true, std::memory_order_release);
-
-                    auto t_display = PerfStats::Clock::now();
-
-                    // Record timing metrics
-                    if (enqueueTimeNs > 0) {
-                        auto t_enqueue = PerfStats::TimePoint(std::chrono::nanoseconds(enqueueTimeNs));
-                        metricQueue_.record(PerfStats::msElapsed(t_enqueue, t_decodeStart));
-                        metricTotal_.record(PerfStats::msElapsed(t_enqueue, t_display));
-                    }
-                    metricDecode_.record(PerfStats::msElapsed(t_decodeStart, t_decodeDone));
-                    metricCopy_.record(PerfStats::msElapsed(t_decodeDone, t_copyDone));
+                    frameDelivered = true;
                 }
+            }
+
+            // Shared instrumentation for all decode paths
+            if (frameDelivered) {
+                auto t_display = PerfStats::Clock::now();
+
+                if (enqueueTimeNs > 0) {
+                    auto t_enqueue = PerfStats::TimePoint(std::chrono::nanoseconds(enqueueTimeNs));
+                    metricQueue_.record(PerfStats::msElapsed(t_enqueue, t_decodeStart));
+                    metricTotal_.record(PerfStats::msElapsed(t_enqueue, t_display));
+                }
+                metricDecode_.record(PerfStats::msElapsed(t_decodeStart, t_decodeDone));
+                metricCopy_.record(PerfStats::msElapsed(t_decodeDone, t_copyDone));
 
                 ++frameCount_;
                 ++framesSinceLog_;
 
                 if (frameCount_ == 1) {
-                    qInfo() << "[VideoDecoder] First frame decoded: "
-                                            << frame_->width << "x" << frame_->height;
+                    qInfo() << "[VideoDecoder] First frame decoded:"
+                            << frame_->width << "x" << frame_->height
+                            << "fmt=" << frame_->format
+                            << (usingHardware_ ? "(hardware)" : "(software)");
                 }
 
                 // Rolling stats every LOG_INTERVAL_SEC seconds
