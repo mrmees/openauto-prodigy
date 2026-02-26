@@ -3,6 +3,7 @@
 
 #include <cmath>
 #include <QDebug>
+#include <QMap>
 
 // oaa proto headers
 #include "ChannelDescriptorData.pb.h"
@@ -135,37 +136,61 @@ QByteArray ServiceDiscoveryBuilder::buildVideoDescriptor() const
     int marginW = 0, marginH = 0;
     calcMargins(remoteW, remoteH, marginW, marginH);
 
-    // Advertise only the configured resolution with codecs we can actually decode.
-    // H.264 listed first (most compatible, best Pi 4 software-decode performance),
-    // H.265 second for phones that prefer it. AV1/VP9 omitted — not supported.
+    // Advertise only the configured resolution with codecs from config.
+    // Config populated by capability detection (Task 6) or defaults to H.264+H.265.
     using Res = oaa::proto::enums::VideoResolution;
     using Codec = oaa::proto::enums::MediaCodecType;
+
+    // Map codec name strings to protobuf enum values
+    static const QMap<QString, Codec::Enum> codecMap = {
+        { "h264", Codec::MEDIA_CODEC_VIDEO_H264_BP },
+        { "h265", Codec::MEDIA_CODEC_VIDEO_H265 },
+        { "vp9",  Codec::MEDIA_CODEC_VIDEO_VP9 },
+        { "av1",  Codec::MEDIA_CODEC_VIDEO_AV1 },
+    };
 
     struct ResInfo { Res::Enum res; int w; int h; const char* label; };
     ResInfo chosen = { Res::_720p, 1280, 720, "720p" };
     if (res == "1080p") chosen = { Res::_1080p, 1920, 1080, "1080p" };
     else if (res == "480p") chosen = { Res::_480p, 800, 480, "480p" };
 
-    struct CodecInfo { Codec::Enum codec; const char* label; };
-    CodecInfo codecs[] = {
-        { Codec::MEDIA_CODEC_VIDEO_H264_BP, "H.264" },
-        { Codec::MEDIA_CODEC_VIDEO_H265,    "H.265" },
-    };
-
     int mW = 0, mH = 0;
     calcMargins(chosen.w, chosen.h, mW, mH);
 
+    // Read enabled codecs from YAML config
+    QStringList enabledCodecs = yamlConfig_ ? yamlConfig_->videoCodecs()
+                                            : QStringList{"h264", "h265"};
+
     int configIdx = 0;
-    for (const auto& c : codecs) {
+    for (const auto& codecName : enabledCodecs) {
+        auto it = codecMap.find(codecName.toLower());
+        if (it == codecMap.end()) {
+            qWarning() << "[ServiceDiscoveryBuilder] Unknown codec in config:" << codecName
+                        << "— skipping";
+            continue;
+        }
         auto* cfg = avChannel->add_video_configs();
         cfg->set_video_resolution(chosen.res);
         cfg->set_video_fps(fpsEnum);
         cfg->set_margin_width(mW);
         cfg->set_margin_height(mH);
         cfg->set_dpi(dpi);
-        cfg->set_codec(c.codec);
+        cfg->set_codec(it.value());
         qInfo() << "[ServiceDiscoveryBuilder] config[" << configIdx++ << "]:"
-                << chosen.label << c.label << "margins:" << mW << "x" << mH;
+                << chosen.label << codecName << "margins:" << mW << "x" << mH;
+    }
+
+    if (configIdx == 0) {
+        // Fallback: if no valid codecs in config, always advertise H.264
+        auto* cfg = avChannel->add_video_configs();
+        cfg->set_video_resolution(chosen.res);
+        cfg->set_video_fps(fpsEnum);
+        cfg->set_margin_width(mW);
+        cfg->set_margin_height(mH);
+        cfg->set_dpi(dpi);
+        cfg->set_codec(Codec::MEDIA_CODEC_VIDEO_H264_BP);
+        qWarning() << "[ServiceDiscoveryBuilder] No valid codecs in config, falling back to H.264";
+        configIdx = 1;
     }
 
     qInfo() << "[ServiceDiscoveryBuilder] Advertised" << configIdx << "video configs";

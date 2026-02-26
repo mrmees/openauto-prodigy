@@ -64,6 +64,8 @@ public:
     void setSidebarWidth(int v);
     QString sidebarPosition() const;
     void setSidebarPosition(const QString& v);
+    QStringList videoCodecs() const;
+    QString videoDecoder(const QString& codec) const;
 
     // Identity
     QString headUnitName() const;
