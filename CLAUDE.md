@@ -37,7 +37,7 @@ This project exists because BlueWave Studio stopped developing OpenAuto Pro, the
   - `qml/applications/` — Plugin views (launcher, android_auto, settings, home, bt_audio, phone)
 - `libs/open-androidauto/` — AA protocol library (Transport, Messenger, Session, Channel, HU handlers)
 - `libs/aasdk/` — Android Auto SDK (git submodule, SonOfGib's fork)
-- `tests/` — Unit tests (17 tests covering config, plugins, theme, audio, events, notifications, device registry)
+- `tests/` — Unit tests (47 tests covering config, plugins, theme, audio, events, notifications, device registry, protocol, codecs, video)
 - `web-config/` — Flask web config panel (Python, HTML/CSS/JS)
 - `docs/` — Design decisions, development guide, wireless setup, plans
 - `install.sh` — Interactive installer for RPi OS Trixie
@@ -46,7 +46,7 @@ This project exists because BlueWave Studio stopped developing OpenAuto Pro, the
 
 ```bash
 mkdir build && cd build && cmake .. && make -j$(nproc)
-ctest --output-on-failure  # from build dir (17 tests)
+ctest --output-on-failure  # from build dir (47 tests)
 ```
 
 **Dependencies:** See `docs/development.md` for full package list. Bluetooth requires `qt6-connectivity-dev` (Pi only, optional on dev).
@@ -97,11 +97,23 @@ ssh matt@192.168.1.152 'cd /home/matt/openauto-prodigy && nohup env WAYLAND_DISP
 
 ## Current Status
 
-**v0.3.0 — Audio pipeline and settings complete.**
+**v0.4.0 — AV pipeline optimization complete.**
 
 Working features:
 - Wireless AA connection (BT discovery → WiFi AP → TCP)
 - H.264 video decoding and display at 1280x720 @ 30fps on Pi 4
+- Multi-codec support: H.264, H.265, VP9, AV1 (configurable via Settings UI)
+- FFmpeg hardware decoder selection with 3-tier fallback (user config → auto hw probe → software)
+- First-frame hw→sw fallback (automatic recovery if hw decoder fails on first frame)
+- DRM_PRIME zero-copy video buffer for Qt 6.8+ (DmaBufVideoBuffer, compile-time gated)
+- Video frame pool for efficient QVideoFrame allocation (format caching, allocation tracking)
+- Codec capability detection at startup (probes FFmpeg for available hw/sw decoders)
+- Video Settings UI with per-codec enable/disable, hw/sw toggle, and decoder picker
+- ServiceDiscovery codec list driven by config + runtime capabilities
+- Circular buffer frame parser (eliminates per-frame QByteArray allocation in protocol layer)
+- Zero-copy message ID extraction in Messenger (avoids QByteArray::mid() copies)
+- Adaptive audio buffer growth on underrun detection
+- Per-stream audio ring buffer sizing (media=50ms, speech/system=35ms)
 - Multi-touch input via direct evdev reader (auto-detected by INPUT_PROP_DIRECT, bypasses Qt/Wayland)
 - Plugin system with lifecycle management (Discover → Load → Init → Activate ↔ Deactivate → Shutdown)
 - YAML configuration with deep merge, hot-reload, and ConfigService for QML
@@ -121,6 +133,8 @@ Working features:
 - Configurable sidebar during AA (volume, home) using protocol-level margin negotiation
 
 **Known limitations / TODO:**
+- DmaBufVideoBuffer (Qt 6.8 zero-copy) needs real-world testing on Pi with v4l2m2m
+- Adaptive audio buffer growth needs stress testing under load
 - D-Bus signal connection warnings for BT audio and phone plugins (non-fatal, but plugins don't receive live state updates)
 - HFP call audio routing not yet wired through PipeWire
 - Phone contacts not yet synced (PBAP profile)
@@ -161,7 +175,7 @@ Dynamic plugins loaded from `~/.openauto/plugins/` (each needs `plugin.yaml` man
 
 - **Transport:** Wireless only — BT discovery → WiFi AP → TCP. No USB/libusb.
 - **Protocol threading:** ASIO threads for protocol, Qt main thread for UI. Bridged via `QMetaObject::invokeMethod(Qt::QueuedConnection)`.
-- **Video pipeline:** FFmpeg software H.264 decode on worker thread → `QVideoFrame` → `QVideoSink::setVideoFrame()` → QML `VideoOutput`.
+- **Video pipeline:** FFmpeg decode (hw or sw, auto-selected) on worker thread → `QVideoFrame` (via VideoFramePool or DmaBufVideoBuffer on Qt 6.8) → `QVideoSink::setVideoFrame()` → QML `VideoOutput`. Multi-codec (H.264/H.265/VP9/AV1) with per-codec decoder config.
 - **Touch input:** `EvdevTouchReader` (QThread) reads auto-detected touch device (INPUT_PROP_DIRECT scan) with `EVIOCGRAB` → MT Type B slot tracking → `TouchHandler` → AA `InputEventIndication` protobuf.
 - **Touch coordinate mapping:** Evdev (0-4095) → AA coordinates (1280x720). Letterbox-aware for 1024x600 display.
 - **Audio:** 3 PipeWire streams (media, navigation, phone) with audio focus management.
@@ -203,7 +217,10 @@ Flask server (`web-config/server.py`) communicates with Qt app via Unix domain s
 | `src/plugins/bt_audio/BtAudioPlugin.cpp` | BT audio with BlueZ D-Bus A2DP/AVRCP |
 | `src/plugins/phone/PhonePlugin.cpp` | Phone with BlueZ D-Bus HFP |
 | `src/core/aa/AndroidAutoService.cpp` | AA lifecycle, TCP transport, BT integration |
-| `src/core/aa/VideoDecoder.cpp` | FFmpeg H.264 decode worker → QVideoFrame |
+| `src/core/aa/VideoDecoder.cpp` | FFmpeg multi-codec decode worker with hw/sw fallback |
+| `src/core/aa/VideoFramePool.hpp` | QVideoFrame allocation pool with format caching |
+| `src/core/aa/DmaBufVideoBuffer.cpp` | Qt 6.8 zero-copy DRM_PRIME video buffer |
+| `src/ui/CodecCapabilityModel.cpp` | QAbstractListModel for codec/decoder selection UI |
 | `src/core/aa/EvdevTouchReader.cpp` | Direct evdev multi-touch + 3-finger gesture |
 | `src/core/aa/TouchHandler.hpp` | Touch → AA protobuf bridge |
 | `qml/components/Shell.qml` | App shell (status bar + content area + nav strip) |
