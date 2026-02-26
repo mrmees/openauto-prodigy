@@ -267,6 +267,7 @@ target_include_directories(test_companion_listener PRIVATE
 )
 target_link_libraries(test_companion_listener PRIVATE
     Qt6::Core
+    Qt6::Gui
     Qt6::Test
     Qt6::Network
 )

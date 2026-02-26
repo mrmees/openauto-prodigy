@@ -31,6 +31,7 @@ public:
     bool isListening() const;
 
     void setSharedSecret(const QString& secret);
+    void setWifiSsid(const QString& ssid) { wifiSsid_ = ssid; }
 
     /// Generate a 6-digit pairing PIN and derive+store shared secret.
     /// Returns the PIN string for display to the user.
@@ -70,7 +71,7 @@ private:
     bool verifyMac(const QJsonObject& msg, const QByteArray& rawLine);
     void adjustClock(qint64 phoneTimeMs);
     QByteArray computeHmac(const QByteArray& key, const QByteArray& data);
-    QString generateQrSvg(const QString& payload);
+    QByteArray generateQrPng(const QString& payload);
 
     QTcpServer* server_ = nullptr;
     QTcpSocket* client_ = nullptr;
@@ -91,6 +92,7 @@ private:
     bool internetAvailable_ = false;
     QString proxyAddress_;
     QString qrCodeDataUri_;
+    QString wifiSsid_ = QStringLiteral("OpenAutoProdigy");
     int listenPort_ = 9876;
 
     // Time safety

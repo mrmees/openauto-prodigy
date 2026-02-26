@@ -8,6 +8,8 @@
 #include <QDir>
 #include <QFile>
 #include <QFileInfo>
+#include <QImage>
+#include <QBuffer>
 #include <qrcodegen.hpp>
 
 namespace oap {
@@ -98,12 +100,12 @@ QString CompanionListenerService::generatePairingPin()
     setSharedSecret(QString::fromUtf8(secret));
 
     // Build QR payload with connection info
-    QString payload = QString("openauto://pair?pin=%1&host=10.0.0.1&port=%2")
-        .arg(pinStr)
+    QString payload = QString("openauto://pair?pin=%1&ssid=%2&host=10.0.0.1&port=%3")
+        .arg(pinStr, wifiSsid_)
         .arg(listenPort_);
 
-    QString svg = generateQrSvg(payload);
-    qrCodeDataUri_ = "data:image/svg+xml;base64," + QString::fromLatin1(svg.toUtf8().toBase64());
+    QByteArray pngData = generateQrPng(payload);
+    qrCodeDataUri_ = "data:image/png;base64," + QString::fromLatin1(pngData.toBase64());
     emit qrCodeChanged();
 
     qInfo() << "Companion: pairing PIN generated, secret saved to" << path;
@@ -123,7 +125,7 @@ bool CompanionListenerService::isInternetAvailable() const { return internetAvai
 QString CompanionListenerService::proxyAddress() const { return proxyAddress_; }
 QString CompanionListenerService::qrCodeDataUri() const { return qrCodeDataUri_; }
 
-QString CompanionListenerService::generateQrSvg(const QString& payload)
+QByteArray CompanionListenerService::generateQrPng(const QString& payload)
 {
     using namespace qrcodegen;
     QrCode qr = QrCode::encodeText(payload.toUtf8().constData(), QrCode::Ecc::MEDIUM);
@@ -131,24 +133,28 @@ QString CompanionListenerService::generateQrSvg(const QString& payload)
     int size = qr.getSize();
     int border = 2;
     int total = size + border * 2;
-    int scale = 4;
+    int scale = 8;  // pixels per module — crisp at 200x200 display
 
-    QString svg;
-    svg += QString("<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 %1 %1'>").arg(total * scale);
-    svg += QString("<rect width='%1' height='%1' fill='white'/>").arg(total * scale);
+    QImage image(total * scale, total * scale, QImage::Format_Mono);
+    image.fill(1);  // white
 
     for (int y = 0; y < size; y++) {
         for (int x = 0; x < size; x++) {
             if (qr.getModule(x, y)) {
-                svg += QString("<rect x='%1' y='%2' width='%3' height='%3' fill='black'/>")
-                    .arg((x + border) * scale)
-                    .arg((y + border) * scale)
-                    .arg(scale);
+                int px = (x + border) * scale;
+                int py = (y + border) * scale;
+                for (int dy = 0; dy < scale; dy++)
+                    for (int dx = 0; dx < scale; dx++)
+                        image.setPixel(px + dx, py + dy, 0);  // black
             }
         }
     }
-    svg += "</svg>";
-    return svg;
+
+    QByteArray pngData;
+    QBuffer buffer(&pngData);
+    buffer.open(QIODevice::WriteOnly);
+    image.save(&buffer, "PNG");
+    return pngData;
 }
 
 void CompanionListenerService::onNewConnection()
