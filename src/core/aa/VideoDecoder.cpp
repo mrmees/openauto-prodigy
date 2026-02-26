@@ -212,8 +212,10 @@ QVideoFrame VideoDecoder::takeLatestFrame()
 {
     if (!hasLatestFrame_.load(std::memory_order_acquire))
         return {};
-    hasLatestFrame_.store(false, std::memory_order_release);
     std::lock_guard<std::mutex> lock(latestFrameMutex_);
+    if (!hasLatestFrame_.load(std::memory_order_relaxed))
+        return {};  // Lost the race
+    hasLatestFrame_.store(false, std::memory_order_relaxed);
     return std::move(latestFrame_);
 }
 
