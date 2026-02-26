@@ -4,6 +4,7 @@
 #include "../../core/YamlConfig.hpp"
 #include "../../core/Configuration.hpp"
 #include "../../core/services/IAudioService.hpp"
+#include "../../core/services/IEventBus.hpp"
 
 #include <QDebug>
 #include <QEventLoop>
@@ -23,11 +24,13 @@ AndroidAutoOrchestrator::AndroidAutoOrchestrator(
     std::shared_ptr<oap::Configuration> config,
     oap::IAudioService* audioService,
     oap::YamlConfig* yamlConfig,
+    oap::IEventBus* eventBus,
     QObject* parent)
     : QObject(parent)
     , config_(std::move(config))
     , audioService_(audioService)
     , yamlConfig_(yamlConfig)
+    , eventBus_(eventBus)
 {
     // Wire TouchHandler to InputChannelHandler
     touchHandler_.setHandler(&inputHandler_);
@@ -145,6 +148,47 @@ void AndroidAutoOrchestrator::stop()
 
     tcpServer_.close();
     setState(Disconnected, "Stopped");
+}
+
+void AndroidAutoOrchestrator::disconnectSession()
+{
+    if (!session_ || (state_ != Connected && state_ != Backgrounded)) {
+        qInfo() << "[AAOrchestrator] disconnectSession: no active session";
+        return;
+    }
+
+    qInfo() << "[AAOrchestrator] Disconnecting AA session (USER_SELECTION)";
+
+    // Send ShutdownRequest with USER_SELECTION (reason 1)
+    session_->stop(1);
+
+    // Wait for phone acknowledgement
+    QEventLoop loop;
+    QTimer timeout;
+    timeout.setSingleShot(true);
+    connect(session_, &oaa::AASession::disconnected, &loop, &QEventLoop::quit);
+    connect(&timeout, &QTimer::timeout, &loop, &QEventLoop::quit);
+    timeout.start(2000);
+    loop.exec();
+
+    if (timeout.isActive()) {
+        qInfo() << "[AAOrchestrator] Phone acknowledged disconnect";
+    } else {
+        qInfo() << "[AAOrchestrator] Disconnect timeout — forcing teardown";
+    }
+
+    stopConnectionWatchdog();
+
+    if (nightProvider_) {
+        nightProvider_->stop();
+        nightProvider_.reset();
+    }
+
+    teardownSession();
+
+    uint16_t port = config_ ? config_->tcpPort() : 5288;
+    setState(WaitingForDevice,
+             QString("Waiting for wireless connection on port %1...").arg(port));
 }
 
 void AndroidAutoOrchestrator::onNewConnection()
@@ -265,6 +309,32 @@ void AndroidAutoOrchestrator::onNewConnection()
         }
     }
 
+    // Bridge AA audio focus requests to PipeWire stream ducking
+    if (audioService_) {
+        connect(session_, &oaa::AASession::audioFocusChanged,
+                this, [this](int focusType) {
+            // AudioFocusType enum: GAIN=1, GAIN_TRANSIENT=2, GAIN_NAVI=3, RELEASE=4
+            switch (focusType) {
+            case 1: // GAIN — media playback (exclusive)
+                if (mediaStream_)
+                    audioService_->requestAudioFocus(mediaStream_, oap::AudioFocusType::Gain);
+                break;
+            case 2: // GAIN_TRANSIENT — voice/speech (pause others)
+                if (speechStream_)
+                    audioService_->requestAudioFocus(speechStream_, oap::AudioFocusType::GainTransient);
+                break;
+            case 3: // GAIN_NAVI — navigation prompt (duck others)
+                if (speechStream_)
+                    audioService_->requestAudioFocus(speechStream_, oap::AudioFocusType::GainTransientMayDuck);
+                break;
+            case 4: // RELEASE — give up focus
+                if (mediaStream_)  audioService_->releaseAudioFocus(mediaStream_);
+                if (speechStream_) audioService_->releaseAudioFocus(speechStream_);
+                break;
+            }
+        }, Qt::QueuedConnection);
+    }
+
     // Wire video focus changes
     connect(&videoHandler_, &oaa::hu::VideoChannelHandler::videoFocusChanged,
             this, [this](int focusMode, bool) {
@@ -277,6 +347,63 @@ void AndroidAutoOrchestrator::onNewConnection()
                     setState(Connected, "Android Auto active");
                 }
             });
+
+    // Publish AA events to plugin event bus
+    if (eventBus_) {
+        // Navigation events
+        connect(&navHandler_, &oaa::hu::NavigationChannelHandler::navigationStateChanged,
+                this, [this](bool active) {
+            eventBus_->publish("aa.nav.state", QVariantMap{{"active", active}});
+        });
+        connect(&navHandler_, &oaa::hu::NavigationChannelHandler::navigationStepChanged,
+                this, [this](const QString& instruction, const QString& destination, int maneuverType) {
+            eventBus_->publish("aa.nav.step", QVariantMap{
+                {"instruction", instruction},
+                {"destination", destination},
+                {"maneuverType", maneuverType}
+            });
+        });
+        connect(&navHandler_, &oaa::hu::NavigationChannelHandler::navigationDistanceChanged,
+                this, [this](const QString& distance, int unit) {
+            eventBus_->publish("aa.nav.distance", QVariantMap{
+                {"distance", distance},
+                {"unit", unit}
+            });
+        });
+
+        // Phone status events
+        connect(&phoneStatusHandler_, &oaa::hu::PhoneStatusChannelHandler::callStateChanged,
+                this, [this](int callState, const QString& number,
+                              const QString& displayName, const QByteArray& /*contactPhoto*/) {
+            eventBus_->publish("aa.phone.call", QVariantMap{
+                {"callState", callState},
+                {"number", number},
+                {"displayName", displayName}
+            });
+        });
+        connect(&phoneStatusHandler_, &oaa::hu::PhoneStatusChannelHandler::callsIdle,
+                this, [this]() {
+            eventBus_->publish("aa.phone.idle");
+        });
+
+        // Media status events
+        connect(&mediaStatusHandler_, &oaa::hu::MediaStatusChannelHandler::playbackStateChanged,
+                this, [this](int state, const QString& appName) {
+            eventBus_->publish("aa.media.state", QVariantMap{
+                {"state", state},
+                {"appName", appName}
+            });
+        });
+        connect(&mediaStatusHandler_, &oaa::hu::MediaStatusChannelHandler::metadataChanged,
+                this, [this](const QString& title, const QString& artist, const QString& album,
+                              const QByteArray& /*albumArt*/) {
+            eventBus_->publish("aa.media.metadata", QVariantMap{
+                {"title", title},
+                {"artist", artist},
+                {"album", album}
+            });
+        });
+    }
 
     // Create and wire night mode provider
     nightProvider_.reset();

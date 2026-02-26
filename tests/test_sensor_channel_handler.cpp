@@ -77,6 +77,26 @@ private slots:
         QCOMPARE(sendSpy.count(), 0);
     }
 
+    void testParkingBrakeStartRequestSendsResponseAndInitialData() {
+        oaa::hu::SensorChannelHandler handler;
+        QSignalSpy sendSpy(&handler, &oaa::IChannelHandler::sendRequested);
+        handler.onChannelOpened();
+
+        oaa::proto::messages::SensorStartRequestMessage req;
+        req.set_sensor_type(oaa::proto::enums::SensorType::PARKING_BRAKE);
+        QByteArray payload(req.ByteSizeLong(), '\0');
+        req.SerializeToArray(payload.data(), payload.size());
+
+        handler.onMessage(oaa::SensorMessageId::SENSOR_START_REQUEST, payload);
+
+        // Should send: start response + initial parking brake data
+        QCOMPARE(sendSpy.count(), 2);
+        QCOMPARE(sendSpy[0][1].value<uint16_t>(),
+                 static_cast<uint16_t>(oaa::SensorMessageId::SENSOR_START_RESPONSE));
+        QCOMPARE(sendSpy[1][1].value<uint16_t>(),
+                 static_cast<uint16_t>(oaa::SensorMessageId::SENSOR_EVENT_INDICATION));
+    }
+
     void testDrivingStatusUpdate() {
         oaa::hu::SensorChannelHandler handler;
         handler.onChannelOpened();

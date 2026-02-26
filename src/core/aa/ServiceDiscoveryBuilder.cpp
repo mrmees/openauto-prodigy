@@ -303,12 +303,11 @@ QByteArray ServiceDiscoveryBuilder::buildSensorDescriptor() const
         sensorChannel->add_sensors()->set_type(type);
     };
 
+    // Only advertise sensors we can actually populate.
+    // Future sensor providers (OBD-II, GPS) will register dynamically.
     addSensor(oaa::proto::enums::SensorType::NIGHT_DATA);
     addSensor(oaa::proto::enums::SensorType::DRIVING_STATUS);
-    addSensor(oaa::proto::enums::SensorType::LOCATION);
-    addSensor(oaa::proto::enums::SensorType::COMPASS);
-    addSensor(oaa::proto::enums::SensorType::ACCEL);
-    addSensor(oaa::proto::enums::SensorType::GYRO);
+    addSensor(oaa::proto::enums::SensorType::PARKING_BRAKE);
 
     QByteArray data(desc.ByteSizeLong(), '\0');
     desc.SerializeToArray(data.data(), data.size());

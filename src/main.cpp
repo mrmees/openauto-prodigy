@@ -1,3 +1,4 @@
+#include <signal.h>
 #include <QGuiApplication>
 #include <QIcon>
 #include <QQmlApplicationEngine>
@@ -6,6 +7,7 @@
 #include <QQuickStyle>
 #include <QDir>
 #include <QFile>
+#include <QTimer>
 #include <memory>
 #include "core/Configuration.hpp"
 #include "core/YamlConfig.hpp"
@@ -234,6 +236,13 @@ int main(int argc, char *argv[])
                      pluginModel, [pluginModel]() {
         if (pluginModel->activePluginId() == "org.openauto.android-auto")
             pluginModel->setActivePlugin(QString());
+    });
+
+    // SIGUSR1 → disconnect AA session (ShutdownRequest + teardown, keep listening)
+    static oap::plugins::AndroidAutoPlugin* g_aaPlugin = aaPlugin;
+    signal(SIGUSR1, [](int) {
+        QMetaObject::invokeMethod(g_aaPlugin, [](){ g_aaPlugin->stopAA(); },
+                                   Qt::QueuedConnection);
     });
 
     int ret = app.exec();

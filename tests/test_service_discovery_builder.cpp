@@ -48,8 +48,8 @@ private slots:
                 desc.ParseFromArray(ch.descriptor.constData(),
                                     ch.descriptor.size());
                 QVERIFY(desc.has_sensor_channel());
-                // Night, driving, location, compass, accel, gyro = 6 sensors
-                QCOMPARE(desc.sensor_channel().sensors_size(), 6);
+                // Night, driving, parking brake = 3 sensors (only what we can populate)
+                QCOMPARE(desc.sensor_channel().sensors_size(), 3);
                 return;
             }
         }

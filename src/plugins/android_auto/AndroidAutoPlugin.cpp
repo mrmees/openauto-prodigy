@@ -34,7 +34,8 @@ bool AndroidAutoPlugin::initialize(IHostContext* context)
 
     // Create AA orchestrator with audio routing through PipeWire
     auto* audioService = context ? context->audioService() : nullptr;
-    aaService_ = new oap::aa::AndroidAutoOrchestrator(config_, audioService, yamlConfig_, this);
+    auto* eventBus = context ? context->eventBus() : nullptr;
+    aaService_ = new oap::aa::AndroidAutoOrchestrator(config_, audioService, yamlConfig_, eventBus, this);
 
     // Connect navigation: emit signals for PluginModel to handle activation/deactivation.
     QObject::connect(aaService_, &oap::aa::AndroidAutoOrchestrator::connectionStateChanged,
@@ -136,6 +137,14 @@ bool AndroidAutoPlugin::initialize(IHostContext* context)
         hostContext_->log(LogLevel::Info, QStringLiteral("Android Auto plugin initialized"));
 
     return true;
+}
+
+void AndroidAutoPlugin::stopAA()
+{
+    if (aaService_) {
+        qInfo() << "[AAPlugin] Graceful AA shutdown requested";
+        aaService_->disconnectSession();
+    }
 }
 
 void AndroidAutoPlugin::shutdown()

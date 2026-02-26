@@ -87,7 +87,18 @@ AASession::AASession(ITransport* transport, const SessionConfig& config,
                 QByteArray data(resp.ByteSizeLong(), '\0');
                 resp.SerializeToArray(data.data(), data.size());
                 controlChannel_->sendAudioFocusResponse(data);
+
+                // Notify app layer for PipeWire stream ducking
+                emit audioFocusChanged(static_cast<int>(type));
             });
+    // Log voice session requests (mic channel already streams audio —
+    // phone may just need audio focus, not a separate response)
+    connect(controlChannel_, &ControlChannel::voiceSessionRequested,
+            this, [](const QByteArray& payload) {
+                Q_UNUSED(payload)
+                qDebug() << "[AASession] Voice session requested — mic channel active";
+            });
+
     connect(controlChannel_, &ControlChannel::navigationFocusRequested,
             this, [this](const QByteArray& payload) {
                 qDebug() << "[AASession] Nav focus request, auto-granting";

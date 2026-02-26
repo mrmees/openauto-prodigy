@@ -30,6 +30,7 @@ namespace oap {
 
 class YamlConfig;
 class IAudioService;
+class IEventBus;
 class Configuration;
 struct AudioStreamHandle;
 
@@ -53,11 +54,13 @@ public:
     explicit AndroidAutoOrchestrator(std::shared_ptr<oap::Configuration> config,
                                       oap::IAudioService* audioService,
                                       oap::YamlConfig* yamlConfig,
+                                      oap::IEventBus* eventBus = nullptr,
                                       QObject* parent = nullptr);
     ~AndroidAutoOrchestrator() override;
 
     Q_INVOKABLE void start();
     Q_INVOKABLE void stop();
+    void disconnectSession();
     void requestVideoFocus();
     void requestExitToCar();
 
@@ -85,6 +88,7 @@ private:
     std::shared_ptr<oap::Configuration> config_;
     oap::IAudioService* audioService_;
     oap::YamlConfig* yamlConfig_;
+    oap::IEventBus* eventBus_;
 
     // TCP listener (Qt-native, replaces ASIO acceptor)
     QTcpServer tcpServer_;

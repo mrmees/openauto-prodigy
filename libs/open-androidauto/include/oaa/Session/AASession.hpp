@@ -35,6 +35,10 @@ signals:
     void channelOpenRejected(uint8_t channelId);
     void disconnected(oaa::DisconnectReason reason);
 
+    /// Emitted when phone requests audio focus change.
+    /// focusType values from AudioFocusType enum: GAIN(1), GAIN_TRANSIENT(2), GAIN_NAVI(3), RELEASE(4)
+    void audioFocusChanged(int focusType);
+
 private:
     void setState(SessionState newState);
     void startStateTimer(int timeoutMs);

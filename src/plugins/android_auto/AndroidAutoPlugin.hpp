@@ -65,6 +65,9 @@ public:
     QStringList requiredServices() const override { return {}; }
     bool wantsFullscreen() const override { return true; }
 
+    /// Gracefully disconnect the AA session (sends ShutdownRequest to phone)
+    void stopAA();
+
 signals:
     void requestActivation();
     void requestDeactivation();
