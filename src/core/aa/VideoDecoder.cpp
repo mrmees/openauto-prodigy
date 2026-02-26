@@ -1,6 +1,10 @@
 #include "VideoDecoder.hpp"
 #include "../../core/YamlConfig.hpp"
 
+#if QT_VERSION >= QT_VERSION_CHECK(6,8,0)
+#include "DmaBufVideoBuffer.hpp"
+#endif
+
 #include <QMetaObject>
 #include <QDebug>
 #include <cstring>
@@ -323,6 +327,35 @@ void VideoDecoder::processFrame(const QByteArray& h264Data, qint64 enqueueTimeNs
             // Qt's QueuedConnection dispatch also uses `sink` as the context object,
             // so if QVideoSink is destroyed before the lambda runs, Qt discards the event.
             QVideoSink* sink = videoSink_.loadAcquire();
+#if QT_VERSION >= QT_VERSION_CHECK(6,8,0)
+            if (sink && frame_->format == AV_PIX_FMT_DRM_PRIME) {
+                // Zero-copy hardware path: wrap DRM_PRIME frame in QAbstractVideoBuffer.
+                // Qt 6.8 takes ownership via unique_ptr; format() is provided by the buffer.
+                auto buffer = std::make_unique<DmaBufVideoBuffer>(
+                    frame_, frame_->width, frame_->height);
+                QVideoFrame videoFrame(std::move(buffer));
+
+                auto t_copyDone = PerfStats::Clock::now();
+
+                auto guard = sinkValid_;
+                QMetaObject::invokeMethod(sink, [sink, videoFrame, guard]() {
+                    if (guard->load())
+                        sink->setVideoFrame(videoFrame);
+                }, Qt::QueuedConnection);
+
+                auto t_display = PerfStats::Clock::now();
+
+                // Record timing metrics
+                if (enqueueTimeNs > 0) {
+                    auto t_enqueue = PerfStats::TimePoint(std::chrono::nanoseconds(enqueueTimeNs));
+                    metricQueue_.record(PerfStats::msElapsed(t_enqueue, t_decodeStart));
+                    metricTotal_.record(PerfStats::msElapsed(t_enqueue, t_display));
+                }
+                metricDecode_.record(PerfStats::msElapsed(t_decodeStart, t_decodeDone));
+                metricCopy_.record(0.0);  // zero-copy
+            }
+            else
+#endif
             if (sink && (frame_->format == AV_PIX_FMT_YUV420P ||
                                frame_->format == AV_PIX_FMT_YUVJ420P)) {
                 // Create or reset frame pool on first frame or resolution change

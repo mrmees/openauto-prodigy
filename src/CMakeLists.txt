@@ -4,6 +4,7 @@ qt_add_executable(openauto-prodigy
     core/YamlConfig.cpp
     core/InputDeviceScanner.cpp
     core/aa/VideoDecoder.cpp
+    core/aa/DmaBufVideoBuffer.cpp
     core/aa/TouchHandler.cpp
     core/aa/EvdevTouchReader.cpp
     core/aa/NightModeProvider.cpp
