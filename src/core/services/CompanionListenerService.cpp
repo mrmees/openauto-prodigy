@@ -135,8 +135,8 @@ QByteArray CompanionListenerService::generateQrPng(const QString& payload)
     int total = size + border * 2;
     int scale = 8;  // pixels per module — crisp at 200x200 display
 
-    QImage image(total * scale, total * scale, QImage::Format_Mono);
-    image.fill(1);  // white
+    QImage image(total * scale, total * scale, QImage::Format_Grayscale8);
+    image.fill(255);  // white
 
     for (int y = 0; y < size; y++) {
         for (int x = 0; x < size; x++) {
@@ -145,7 +145,7 @@ QByteArray CompanionListenerService::generateQrPng(const QString& payload)
                 int py = (y + border) * scale;
                 for (int dy = 0; dy < scale; dy++)
                     for (int dx = 0; dx < scale; dx++)
-                        image.setPixel(px + dx, py + dy, 0);  // black
+                        image.setPixel(px + dx, py + dy, qRgb(0, 0, 0));
             }
         }
     }
