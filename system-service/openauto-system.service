@@ -1,0 +1,14 @@
+[Unit]
+Description=OpenAuto Prodigy System Manager
+Before=openauto-prodigy.service
+After=network.target bluetooth.target
+
+[Service]
+Type=notify
+ExecStart=/usr/bin/python3 /home/matt/openauto-prodigy/system-service/openauto_system.py
+RuntimeDirectory=openauto
+Restart=always
+RestartSec=2
+
+[Install]
+WantedBy=multi-user.target

@@ -6,6 +6,7 @@ import tempfile
 import unittest
 
 from ipc_server import IpcServer
+from health_monitor import HealthMonitor
 
 
 class IpcServerTests(unittest.IsolatedAsyncioTestCase):
@@ -67,3 +68,49 @@ class IpcServerTests(unittest.IsolatedAsyncioTestCase):
 
         responses = await asyncio.gather(send("a"), send("b"), send("c"))
         self.assertEqual([item["result"] for item in responses], ["pong", "pong", "pong"])
+
+
+class IpcHealthIntegrationTests(unittest.IsolatedAsyncioTestCase):
+    """Integration tests: IPC server wired to HealthMonitor."""
+
+    async def asyncSetUp(self) -> None:
+        self._tmpdir = tempfile.TemporaryDirectory()
+        self.socket_path = os.path.join(self._tmpdir.name, "test.sock")
+        self.server = IpcServer(self.socket_path)
+        self.health = HealthMonitor()
+
+        async def handle_get_health(params):
+            return self.health.get_health()
+
+        self.server.register_method("get_health", handle_get_health)
+        await self.server.start()
+
+    async def asyncTearDown(self) -> None:
+        await self.server.stop()
+        self._tmpdir.cleanup()
+
+    async def test_get_health_returns_all_services(self) -> None:
+        """get_health returns health data with hostapd, bluetooth, and networkd keys."""
+        reader, writer = await asyncio.open_unix_connection(self.socket_path)
+        try:
+            request = json.dumps({"id": "h1", "method": "get_health"}) + "\n"
+            writer.write(request.encode())
+            await writer.drain()
+            line = await asyncio.wait_for(reader.readline(), timeout=2.0)
+            response = json.loads(line)
+
+            self.assertEqual(response["id"], "h1")
+            result = response["result"]
+            self.assertIn("hostapd", result)
+            self.assertIn("bluetooth", result)
+            self.assertIn("networkd", result)
+
+            # Each service entry has state and retries
+            for name in ("hostapd", "bluetooth", "networkd"):
+                self.assertIn("state", result[name])
+                self.assertIn("retries", result[name])
+                self.assertEqual(result[name]["state"], "unknown")
+                self.assertEqual(result[name]["retries"], 0)
+        finally:
+            writer.close()
+            await writer.wait_closed()
