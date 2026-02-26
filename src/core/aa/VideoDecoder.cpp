@@ -259,6 +259,9 @@ void VideoDecoder::processFrame(const QByteArray& h264Data, qint64 enqueueTimeNs
                     << ((detected == AV_CODEC_ID_H265) ? "H.265" : "H.264")
                     << "(matches current decoder)";
         }
+        // Update the decode worker's codec hint for keyframe detection
+        if (worker_)
+            worker_->setCodecIsH265(activeCodecId_ == AV_CODEC_ID_H265);
     }
 
     auto t_decodeStart = PerfStats::Clock::now();
@@ -487,10 +490,75 @@ void VideoDecoder::processFrame(const QByteArray& h264Data, qint64 enqueueTimeNs
     }
 }
 
+// Detect keyframes in H.264 or H.265 AnnexB bitstreams.
+// When codecIsH265 is unknown (first frame), checks both — this is safe because
+// the first frame from AA is always SPS+PPS+IDR which is unambiguous in both codecs.
+static bool isKeyframe(const QByteArray& data, bool codecIsH265)
+{
+    const uint8_t* p = reinterpret_cast<const uint8_t*>(data.constData());
+    int len = data.size();
+    for (int i = 0; i + 3 <= len; ++i) {
+        if (p[i] == 0 && p[i+1] == 0) {
+            int nalStart = -1;
+            if (p[i+2] == 1) {
+                nalStart = i + 3;
+            } else if (p[i+2] == 0 && i + 3 < len && p[i+3] == 1) {
+                nalStart = i + 4;
+            }
+            if (nalStart >= 0 && nalStart < len) {
+                uint8_t firstByte = p[nalStart];
+                if (codecIsH265) {
+                    // H.265: forbidden_zero(1) + type(6) + layer_id(6) + tid(3)
+                    // IDR_W_RADL=19, IDR_N_LP=20, VPS=32, SPS=33, PPS=34
+                    uint8_t h265Type = (firstByte >> 1) & 0x3F;
+                    if (h265Type == 19 || h265Type == 20 || h265Type == 32 || h265Type == 33 || h265Type == 34)
+                        return true;
+                } else {
+                    // H.264: forbidden_zero(1) + nal_ref_idc(2) + type(5)
+                    // IDR=5, SPS=7, PPS=8
+                    uint8_t h264Type = firstByte & 0x1F;
+                    if (h264Type == 5 || h264Type == 7 || h264Type == 8)
+                        return true;
+                }
+                // Found a NAL but it's not a keyframe type — continue scanning for more NALs
+            }
+        }
+    }
+    return false;
+}
+
 void VideoDecoder::DecodeWorker::enqueue(std::shared_ptr<const QByteArray> data, qint64 enqueueTimeNs)
 {
     QMutexLocker locker(&mutex_);
-    queue_.push({std::move(data), enqueueTimeNs});
+
+    bool keyframe = isKeyframe(*data, codecIsH265_);
+
+    // If awaiting keyframe after a forced drop, discard non-keyframes
+    if (awaitingKeyframe_) {
+        if (!keyframe) {
+            ++droppedFrames_;
+            return;  // Don't wake — nothing to process
+        }
+        // Got our keyframe — resume normal decode
+        awaitingKeyframe_ = false;
+        needsFlush_ = true;
+        qDebug() << "[VideoDecoder] Keyframe received, resuming decode (dropped" << droppedFrames_ << "frames)";
+    }
+
+    // Bound queue size
+    while (static_cast<int>(queue_.size()) >= MAX_QUEUE_SIZE) {
+        auto& front = queue_.front();
+        if (front.isKeyframe && queue_.size() == 1) {
+            // Only a keyframe left and we need to drop it — enter awaiting mode
+            awaitingKeyframe_ = true;
+            needsFlush_ = true;
+            qWarning() << "[VideoDecoder] Dropped keyframe, awaiting next IDR";
+        }
+        queue_.pop();
+        ++droppedFrames_;
+    }
+
+    queue_.push({std::move(data), enqueueTimeNs, keyframe});
     condition_.wakeOne();
 }
 
@@ -505,6 +573,7 @@ void VideoDecoder::DecodeWorker::run()
 {
     while (true) {
         WorkItem item;
+        bool flush = false;
         {
             QMutexLocker locker(&mutex_);
             while (queue_.empty() && !stopRequested_)
@@ -513,7 +582,11 @@ void VideoDecoder::DecodeWorker::run()
                 return;
             item = std::move(queue_.front());
             queue_.pop();
+            flush = needsFlush_;
+            needsFlush_ = false;
         }
+        if (flush && decoder_->codecCtx_)
+            avcodec_flush_buffers(decoder_->codecCtx_);
         decoder_->processFrame(*item.data, item.enqueueTimeNs);
     }
 }

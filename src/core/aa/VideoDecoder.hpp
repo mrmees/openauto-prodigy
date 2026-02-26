@@ -54,13 +54,20 @@ private:
         void run() override;
         void enqueue(std::shared_ptr<const QByteArray> data, qint64 enqueueTimeNs);
         void requestStop();
+        void setCodecIsH265(bool h265) { QMutexLocker lock(&mutex_); codecIsH265_ = h265; }
+        uint32_t droppedFrames() const { QMutexLocker lock(&mutex_); return droppedFrames_; }
     private:
         VideoDecoder* decoder_;
-        QMutex mutex_;
+        mutable QMutex mutex_;
         QWaitCondition condition_;
-        struct WorkItem { std::shared_ptr<const QByteArray> data; qint64 enqueueTimeNs; };
+        struct WorkItem { std::shared_ptr<const QByteArray> data; qint64 enqueueTimeNs; bool isKeyframe; };
         std::queue<WorkItem> queue_;
         bool stopRequested_ = false;
+        static constexpr int MAX_QUEUE_SIZE = 2;
+        bool awaitingKeyframe_ = false;
+        bool needsFlush_ = false;
+        uint32_t droppedFrames_ = 0;
+        bool codecIsH265_ = false;  // Set by decoder after codec detection
     };
 
     DecodeWorker* worker_ = nullptr;
