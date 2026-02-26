@@ -3,7 +3,7 @@
 #include <QDebug>
 
 #include "NavigationStateMessage.pb.h"
-#include "NavigationStepMessage.pb.h"
+#include "NavigationNotificationMessage.pb.h"
 #include "NavigationDistanceMessage.pb.h"
 
 namespace oaa {
