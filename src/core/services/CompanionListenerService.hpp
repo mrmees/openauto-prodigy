@@ -20,6 +20,7 @@ class CompanionListenerService : public QObject {
     Q_PROPERTY(bool phoneCharging READ isPhoneCharging NOTIFY batteryChanged)
     Q_PROPERTY(bool internetAvailable READ isInternetAvailable NOTIFY internetChanged)
     Q_PROPERTY(QString proxyAddress READ proxyAddress NOTIFY internetChanged)
+    Q_PROPERTY(QString qrCodeDataUri READ qrCodeDataUri NOTIFY qrCodeChanged)
 
 public:
     explicit CompanionListenerService(QObject* parent = nullptr);
@@ -47,12 +48,14 @@ public:
     bool isPhoneCharging() const;
     bool isInternetAvailable() const;
     QString proxyAddress() const;
+    QString qrCodeDataUri() const;
 
 signals:
     void connectedChanged();
     void gpsChanged();
     void batteryChanged();
     void internetChanged();
+    void qrCodeChanged();
     void timeAdjusted(qint64 oldTimeMs, qint64 newTimeMs, qint64 deltaMs);
 
 private slots:
@@ -67,6 +70,7 @@ private:
     bool verifyMac(const QJsonObject& msg, const QByteArray& rawLine);
     void adjustClock(qint64 phoneTimeMs);
     QByteArray computeHmac(const QByteArray& key, const QByteArray& data);
+    QString generateQrSvg(const QString& payload);
 
     QTcpServer* server_ = nullptr;
     QTcpSocket* client_ = nullptr;
@@ -86,6 +90,8 @@ private:
     bool phoneCharging_ = false;
     bool internetAvailable_ = false;
     QString proxyAddress_;
+    QString qrCodeDataUri_;
+    int listenPort_ = 9876;
 
     // Time safety
     int backwardJumpCount_ = 0;

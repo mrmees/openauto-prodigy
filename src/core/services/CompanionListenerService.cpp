@@ -8,6 +8,7 @@
 #include <QDir>
 #include <QFile>
 #include <QFileInfo>
+#include <qrcodegen.hpp>
 
 namespace oap {
 
@@ -25,6 +26,7 @@ bool CompanionListenerService::start(int port)
 {
     if (server_) return false;
 
+    listenPort_ = port;
     server_ = new QTcpServer(this);
     connect(server_, &QTcpServer::newConnection,
             this, &CompanionListenerService::onNewConnection);
@@ -94,6 +96,16 @@ QString CompanionListenerService::generatePairingPin()
     }
 
     setSharedSecret(QString::fromUtf8(secret));
+
+    // Build QR payload with connection info
+    QString payload = QString("openauto://pair?pin=%1&host=10.0.0.1&port=%2")
+        .arg(pinStr)
+        .arg(listenPort_);
+
+    QString svg = generateQrSvg(payload);
+    qrCodeDataUri_ = "data:image/svg+xml;base64," + QString::fromLatin1(svg.toUtf8().toBase64());
+    emit qrCodeChanged();
+
     qInfo() << "Companion: pairing PIN generated, secret saved to" << path;
     return pinStr;
 }
@@ -109,6 +121,35 @@ int CompanionListenerService::phoneBattery() const { return phoneBattery_; }
 bool CompanionListenerService::isPhoneCharging() const { return phoneCharging_; }
 bool CompanionListenerService::isInternetAvailable() const { return internetAvailable_; }
 QString CompanionListenerService::proxyAddress() const { return proxyAddress_; }
+QString CompanionListenerService::qrCodeDataUri() const { return qrCodeDataUri_; }
+
+QString CompanionListenerService::generateQrSvg(const QString& payload)
+{
+    using namespace qrcodegen;
+    QrCode qr = QrCode::encodeText(payload.toUtf8().constData(), QrCode::Ecc::MEDIUM);
+
+    int size = qr.getSize();
+    int border = 2;
+    int total = size + border * 2;
+    int scale = 4;
+
+    QString svg;
+    svg += QString("<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 %1 %1'>").arg(total * scale);
+    svg += QString("<rect width='%1' height='%1' fill='white'/>").arg(total * scale);
+
+    for (int y = 0; y < size; y++) {
+        for (int x = 0; x < size; x++) {
+            if (qr.getModule(x, y)) {
+                svg += QString("<rect x='%1' y='%2' width='%3' height='%3' fill='black'/>")
+                    .arg((x + border) * scale)
+                    .arg((y + border) * scale)
+                    .arg(scale);
+            }
+        }
+    }
+    svg += "</svg>";
+    return svg;
+}
 
 void CompanionListenerService::onNewConnection()
 {

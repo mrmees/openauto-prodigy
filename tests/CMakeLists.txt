@@ -259,9 +259,11 @@ add_test(NAME test_device_registry COMMAND test_device_registry)
 add_executable(test_companion_listener
     test_companion_listener.cpp
     ${CMAKE_SOURCE_DIR}/src/core/services/CompanionListenerService.cpp
+    ${CMAKE_SOURCE_DIR}/libs/qrcodegen/qrcodegen.cpp
 )
 target_include_directories(test_companion_listener PRIVATE
     ${CMAKE_SOURCE_DIR}/src
+    ${CMAKE_SOURCE_DIR}/libs/qrcodegen
 )
 target_link_libraries(test_companion_listener PRIVATE
     Qt6::Core
