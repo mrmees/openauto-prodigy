@@ -40,6 +40,7 @@ qt_add_executable(openauto-prodigy
     plugins/android_auto/AndroidAutoPlugin.cpp
     plugins/bt_audio/BtAudioPlugin.cpp
     plugins/phone/PhonePlugin.cpp
+    ${CMAKE_SOURCE_DIR}/libs/qrcodegen/qrcodegen.cpp
 )
 
 # Tell Qt the QML type name for each file (override subdirectory-based naming)
@@ -246,6 +247,7 @@ target_include_directories(openauto-prodigy PRIVATE
     ${CMAKE_CURRENT_SOURCE_DIR}
     ${CMAKE_SOURCE_DIR}/libs/open-androidauto/include
     ${CMAKE_BINARY_DIR}/libs/open-androidauto
+    ${CMAKE_SOURCE_DIR}/libs/qrcodegen
     ${LIBAV_INCLUDE_DIRS}
     ${PIPEWIRE_INCLUDE_DIRS}
 )

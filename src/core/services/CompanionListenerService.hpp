@@ -20,6 +20,7 @@ class CompanionListenerService : public QObject {
     Q_PROPERTY(bool phoneCharging READ isPhoneCharging NOTIFY batteryChanged)
     Q_PROPERTY(bool internetAvailable READ isInternetAvailable NOTIFY internetChanged)
     Q_PROPERTY(QString proxyAddress READ proxyAddress NOTIFY internetChanged)
+    Q_PROPERTY(QString qrCodeDataUri READ qrCodeDataUri NOTIFY qrCodeChanged)
 
 public:
     explicit CompanionListenerService(QObject* parent = nullptr);
@@ -30,6 +31,7 @@ public:
     bool isListening() const;
 
     void setSharedSecret(const QString& secret);
+    void setWifiSsid(const QString& ssid) { wifiSsid_ = ssid; }
 
     /// Generate a 6-digit pairing PIN and derive+store shared secret.
     /// Returns the PIN string for display to the user.
@@ -47,12 +49,14 @@ public:
     bool isPhoneCharging() const;
     bool isInternetAvailable() const;
     QString proxyAddress() const;
+    QString qrCodeDataUri() const;
 
 signals:
     void connectedChanged();
     void gpsChanged();
     void batteryChanged();
     void internetChanged();
+    void qrCodeChanged();
     void timeAdjusted(qint64 oldTimeMs, qint64 newTimeMs, qint64 deltaMs);
 
 private slots:
@@ -67,6 +71,7 @@ private:
     bool verifyMac(const QJsonObject& msg, const QByteArray& rawLine);
     void adjustClock(qint64 phoneTimeMs);
     QByteArray computeHmac(const QByteArray& key, const QByteArray& data);
+    QByteArray generateQrPng(const QString& payload);
 
     QTcpServer* server_ = nullptr;
     QTcpSocket* client_ = nullptr;
@@ -86,6 +91,9 @@ private:
     bool phoneCharging_ = false;
     bool internetAvailable_ = false;
     QString proxyAddress_;
+    QString qrCodeDataUri_;
+    QString wifiSsid_ = QStringLiteral("OpenAutoProdigy");
+    int listenPort_ = 9876;
 
     // Time safety
     int backwardJumpCount_ = 0;
