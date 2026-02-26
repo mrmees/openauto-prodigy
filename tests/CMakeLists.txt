@@ -490,6 +490,20 @@ target_link_libraries(test_codec_capability PRIVATE
 )
 add_test(NAME test_codec_capability COMMAND test_codec_capability)
 
+# Video frame pool — format management and allocation tracking
+add_executable(test_video_frame_pool
+    test_video_frame_pool.cpp
+)
+target_include_directories(test_video_frame_pool PRIVATE
+    ${CMAKE_SOURCE_DIR}/src
+)
+target_link_libraries(test_video_frame_pool PRIVATE
+    Qt6::Core
+    Qt6::Multimedia
+    Qt6::Test
+)
+add_test(NAME test_video_frame_pool COMMAND test_video_frame_pool)
+
 # GUI/Quick tests need offscreen platform when no display is available
 set_tests_properties(test_configuration test_theme_service test_plugin_model
     PROPERTIES ENVIRONMENT "QT_QPA_PLATFORM=offscreen"
