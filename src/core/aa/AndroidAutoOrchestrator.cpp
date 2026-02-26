@@ -266,9 +266,9 @@ void AndroidAutoOrchestrator::onNewConnection()
 
     // Create PipeWire audio streams with per-stream buffer sizing from config
     if (audioService_) {
-        int mediaBufMs  = yamlConfig_ ? yamlConfig_->audioBufferMs("media")  : 50;
-        int speechBufMs = yamlConfig_ ? yamlConfig_->audioBufferMs("speech") : 35;
-        int systemBufMs = yamlConfig_ ? yamlConfig_->audioBufferMs("system") : 35;
+        int mediaBufMs  = yamlConfig_ ? yamlConfig_->audioBufferMs("media")  : 200;
+        int speechBufMs = yamlConfig_ ? yamlConfig_->audioBufferMs("speech") : 200;
+        int systemBufMs = yamlConfig_ ? yamlConfig_->audioBufferMs("system") : 200;
 
         mediaStream_  = audioService_->createStream("AA Media",  50, 48000, 2, "auto", mediaBufMs);
         speechStream_ = audioService_->createStream("AA Speech", 60, 48000, 1, "auto", speechBufMs);

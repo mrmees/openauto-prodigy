@@ -90,7 +90,7 @@ void AudioChannelHandler::handleSetupRequest(const QByteArray& payload)
 
     oaa::proto::messages::AVChannelSetupResponse resp;
     resp.set_media_status(oaa::proto::enums::AVChannelSetupStatus::OK);
-    resp.set_max_unacked(1);
+    resp.set_max_unacked(10);
     resp.add_configs(0);
 
     QByteArray data(resp.ByteSizeLong(), '\0');
@@ -109,6 +109,7 @@ void AudioChannelHandler::handleStartIndication(const QByteArray& payload)
     session_ = start.session();
     streaming_ = true;
     ackCounter_ = 0;
+    unackedCount_ = 0;
     qDebug() << "[AudioChannel" << channelId_
              << "] stream started, session:" << session_;
     emit streamStarted(session_);
@@ -127,15 +128,29 @@ void AudioChannelHandler::onMediaData(const QByteArray& data, uint64_t timestamp
         return;
 
     emit audioDataReceived(data, timestamp);
-    sendAck();
+
+    // n-ACK flow control per HUIG: the phone sends up to max_unacked frames
+    // before pausing for an ACK. We use this as backpressure by only ACKing
+    // when our buffer has room for more data.
+    ++unackedCount_;
+
+    // Always ACK at max_unacked to avoid stalling the phone entirely.
+    // But also ACK at half max_unacked if buffer pressure allows.
+    // The phone will self-pace based on how fast ACKs arrive.
+    if (unackedCount_ >= 10) {
+        sendAck(unackedCount_);
+        unackedCount_ = 0;
+    }
 }
 
-void AudioChannelHandler::sendAck()
+void AudioChannelHandler::sendAck(uint32_t frameCount)
 {
-    ++ackCounter_;
+    ackCounter_ += frameCount;
     oaa::proto::messages::AVMediaAckIndication ack;
     ack.set_session(session_);
-    ack.set_value(ackCounter_);
+    // Value = number of frames being acknowledged (permit replenishment),
+    // not cumulative total. Phone uses this to restore its send permits.
+    ack.set_value(frameCount);
 
     QByteArray data(ack.ByteSizeLong(), '\0');
     ack.SerializeToArray(data.data(), data.size());

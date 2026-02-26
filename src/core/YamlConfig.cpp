@@ -34,9 +34,9 @@ void YamlConfig::initDefaults()
 
     root_["audio"]["master_volume"] = 80;
     root_["audio"]["output_device"] = "auto";
-    root_["audio"]["buffer_ms"]["media"] = 50;
-    root_["audio"]["buffer_ms"]["speech"] = 35;
-    root_["audio"]["buffer_ms"]["system"] = 35;
+    root_["audio"]["buffer_ms"]["media"] = 100;
+    root_["audio"]["buffer_ms"]["speech"] = 100;
+    root_["audio"]["buffer_ms"]["system"] = 100;
     root_["audio"]["adaptive"] = true;
     root_["audio"]["microphone"]["device"] = "auto";
     root_["audio"]["microphone"]["gain"] = 1.0;
@@ -504,7 +504,7 @@ void YamlConfig::setGpsSource(const QString& v)
 
 int YamlConfig::audioBufferMs(const QString& streamType) const
 {
-    int fallback = (streamType == "media") ? 50 : 35;
+    int fallback = 200;
     return root_["audio"]["buffer_ms"][streamType.toStdString()].as<int>(fallback);
 }
 

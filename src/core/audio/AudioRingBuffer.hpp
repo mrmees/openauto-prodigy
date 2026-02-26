@@ -43,6 +43,7 @@ public:
             spa_ringbuffer_get_read_index(&ring_, &readIdx);
             spa_ringbuffer_read_update(&ring_,
                 static_cast<int32_t>(readIdx + drop));
+            dropCount_.fetch_add(1, std::memory_order_relaxed);
         }
 
         uint32_t writeIdx;
@@ -82,10 +83,21 @@ public:
         spa_ringbuffer_init(&ring_);
     }
 
+    uint32_t dropCount() const
+    {
+        return dropCount_.load(std::memory_order_relaxed);
+    }
+
+    uint32_t resetDropCount()
+    {
+        return dropCount_.exchange(0, std::memory_order_relaxed);
+    }
+
 private:
     uint32_t capacity_;
     std::vector<uint8_t> data_;
     struct spa_ringbuffer ring_{};
+    std::atomic<uint32_t> dropCount_{0};
 };
 
 } // namespace oap

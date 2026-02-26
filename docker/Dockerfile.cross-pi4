@@ -1,0 +1,37 @@
+FROM debian:trixie
+
+# Avoid interactive prompts
+ENV DEBIAN_FRONTEND=noninteractive
+
+# Add arm64 architecture for cross-compilation target libraries
+RUN dpkg --add-architecture arm64
+
+# Install cross-compiler and native build tools
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    build-essential \
+    cmake \
+    pkg-config \
+    gcc-aarch64-linux-gnu \
+    g++-aarch64-linux-gnu \
+    git \
+    # Qt 6.8 host tools (moc, rcc, syncqt, etc.) — native x86_64
+    qt6-base-dev-tools \
+    qt6-declarative-dev-tools \
+    # Qt 6.8 target libraries — arm64
+    qt6-base-dev:arm64 \
+    qt6-base-private-dev:arm64 \
+    qt6-declarative-dev:arm64 \
+    qt6-multimedia-dev:arm64 \
+    qt6-connectivity-dev:arm64 \
+    # Project dependencies — arm64
+    libprotobuf-dev:arm64 \
+    protobuf-compiler \
+    libssl-dev:arm64 \
+    libavcodec-dev:arm64 \
+    libavutil-dev:arm64 \
+    libpipewire-0.3-dev:arm64 \
+    libyaml-cpp-dev:arm64 \
+    libbluetooth-dev:arm64 \
+    && rm -rf /var/lib/apt/lists/*
+
+WORKDIR /src

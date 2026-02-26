@@ -2,6 +2,12 @@
 #include <QDebug>
 #include <cstring>
 #include <spa/param/props.h>
+#include <pipewire/version.h>
+
+// pw_stream_set_rate() requires PipeWire >= 1.4.0 (Pi has 1.4.2, dev VM has 1.0.5)
+#if !defined(PW_CHECK_VERSION) || !PW_CHECK_VERSION(1, 4, 0)
+static inline int pw_stream_set_rate(struct pw_stream*, double) { return 0; }
+#endif
 
 namespace oap {
 
@@ -128,26 +134,97 @@ void AudioService::onPlaybackProcess(void* userdata)
     if (!buf) return;
 
     struct spa_data& d = buf->buffer->datas[0];
-    uint32_t maxSize = d.maxsize;
+    int stride = handle->bytesPerFrame;
 
-    uint32_t bytesRead = handle->ringBuffer->read(static_cast<uint8_t*>(d.data), maxSize);
+    // Determine how many frames to output: clamp to buf->requested when nonzero,
+    // matching PipeWire's audio-src-ring.c example. The resampler sets requested
+    // to the exact frame count it needs; maxsize is just the buffer capacity.
+    uint32_t n_frames = d.maxsize / stride;
+    if (buf->requested > 0 && buf->requested < n_frames)
+        n_frames = buf->requested;
+    uint32_t wantBytes = n_frames * stride;
+
+    uint32_t bytesRead = handle->ringBuffer->read(static_cast<uint8_t*>(d.data), wantBytes);
 
     // Track complete underruns for adaptive buffer growth
     if (bytesRead == 0)
         handle->underrunCount.fetch_add(1, std::memory_order_relaxed);
 
-    // Silence-fill any underrun gap to prevent audio pops/discontinuities.
-    // Always report a full period to PipeWire — short reads cause worse
-    // artifacts than silence padding. (An earlier version reported only
-    // actual bytes read, but that trades underrun silence for audible clicks
-    // at period boundaries.)
-    if (bytesRead < maxSize) {
-        std::memset(static_cast<uint8_t*>(d.data) + bytesRead, 0, maxSize - bytesRead);
-    }
+    // Silence-fill any gap — PipeWire graph timing is fixed by quantum/rate,
+    // so we must always output a full period to avoid tempo wobble.
+    if (bytesRead < wantBytes)
+        std::memset(static_cast<uint8_t*>(d.data) + bytesRead, 0, wantBytes - bytesRead);
 
     d.chunk->offset = 0;
-    d.chunk->stride = handle->bytesPerFrame;
-    d.chunk->size = maxSize;
+    d.chunk->stride = stride;
+    d.chunk->size = wantBytes;
+    buf->size = n_frames;
+
+    // --- Adaptive rate matching (clock drift compensation) ---
+    // The phone's audio clock and PipeWire's graph clock drift independently.
+    // We steer PipeWire's built-in adaptive resampler via pw_stream_set_rate()
+    // to keep the ring buffer fill level near the target (50% of capacity).
+
+    uint32_t avail = handle->ringBuffer->available();
+
+    // Track activity and update EMA every callback for proper smoothing
+    if (bytesRead > 0)
+        handle->activeCallbacks++;
+
+    float fillNorm = static_cast<float>(avail) /
+                     static_cast<float>(handle->ringBuffer->capacity());
+    constexpr float alpha = 0.02f; // ~50 callback time constant (~1s)
+    handle->filteredFill += alpha * (fillNorm - handle->filteredFill);
+
+    // Apply rate correction every ~16 callbacks (~340ms)
+    handle->rateCtlCount++;
+    if (handle->rateCtlCount >= 16) {
+        bool active = handle->activeCallbacks > 0;
+        handle->activeCallbacks = 0;
+        handle->rateCtlCount = 0;
+
+        if (active) {
+            // Target 25% fill — with 500ms buffer this is ~125ms of audio.
+            // The phone naturally delivers at roughly playback rate, so the
+            // buffer settles around 20%. Targeting too high (75%) saturates
+            // the integrator and prevents the controller from responding to
+            // actual variations.
+            float error = handle->filteredFill - 0.25f;
+
+            // PI controller — gentle gains to avoid oscillation
+            constexpr float kP = 0.001f;
+            constexpr float kI = 0.00005f;
+
+            handle->rateIntegral += error;
+            // Anti-windup
+            if (handle->rateIntegral > 10.0f) handle->rateIntegral = 10.0f;
+            if (handle->rateIntegral < -10.0f) handle->rateIntegral = -10.0f;
+
+            float correction = (kP * error) + (kI * handle->rateIntegral);
+
+            // Clamp to ±5000 ppm (±0.5%)
+            if (correction > 0.005f) correction = 0.005f;
+            if (correction < -0.005f) correction = -0.005f;
+
+            double newRate = 1.0 + static_cast<double>(correction);
+            pw_stream_set_rate(handle->stream, newRate);
+
+            // Periodic diagnostic (every ~10s)
+            handle->diagCount++;
+            if (handle->diagCount % 30 == 0) {
+                uint32_t drops = handle->ringBuffer->resetDropCount();
+                fprintf(stderr, "[AudioRate %s] fill=%.1f%% err=%.4f integ=%.2f corr=%.6f avail=%u/%u drops=%u\n",
+                        handle->name.toUtf8().constData(),
+                        handle->filteredFill * 100.0f, error,
+                        handle->rateIntegral, correction,
+                        avail, handle->ringBuffer->capacity(), drops);
+            }
+        } else {
+            handle->filteredFill = 0.25f;
+            handle->rateIntegral = 0.0f;
+            pw_stream_set_rate(handle->stream, 1.0);
+        }
+    }
 
     pw_stream_queue_buffer(handle->stream, buf);
 }
@@ -172,11 +249,15 @@ AudioStreamHandle* AudioService::createStream(
     handle->bytesPerFrame = channels * 2; // 16-bit PCM
     handle->bufferMs = bufferMs;
 
-    // Ring buffer: sized per-stream via bufferMs, rounded up to power of 2
+    // Ring buffer: sized per-stream via bufferMs, minimum 500ms for burst absorption
+    // AA sends audio in large protobuf bursts over TCP, not sample-by-sample.
+    if (bufferMs < 500) bufferMs = 500;
+    handle->bufferMs = bufferMs;
     uint32_t rbSize = static_cast<uint32_t>(sampleRate * channels * 2 * (bufferMs / 1000.0f));
     uint32_t pow2 = 1;
     while (pow2 < rbSize) pow2 <<= 1;
     handle->ringBuffer = std::make_unique<AudioRingBuffer>(pow2);
+    qInfo() << "AudioService: Ring buffer for" << name << ":" << pow2 << "bytes (" << bufferMs << "ms)";
 
     // Determine PipeWire role based on stream name
     const char* role = "Music";

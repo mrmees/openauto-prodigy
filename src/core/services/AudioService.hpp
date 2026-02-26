@@ -30,6 +30,13 @@ struct AudioStreamHandle {
     // Underrun tracking (written on PW RT thread, read on Qt main thread)
     std::atomic<uint32_t> underrunCount{0};
 
+    // Rate matching state (PW RT thread only, no atomics needed)
+    uint32_t rateCtlCount = 0;
+    uint32_t diagCount = 0;
+    uint32_t activeCallbacks = 0; // callbacks with data in current window
+    float filteredFill = 0.5f;    // EMA of normalized fill level
+    float rateIntegral = 0.0f;    // PI controller integral term
+
     // Format info for process callback
     int sampleRate = 48000;
     int channels = 2;
