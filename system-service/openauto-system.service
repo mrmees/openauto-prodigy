@@ -6,6 +6,9 @@ After=network.target bluetooth.target
 [Service]
 Type=notify
 ExecStart=/home/matt/openauto-prodigy/system-service/.venv/bin/python3 /home/matt/openauto-prodigy/system-service/openauto_system.py
+ExecStopPost=-/usr/sbin/iptables -t nat -D OUTPUT -p tcp -j OPENAUTO_PROXY
+ExecStopPost=-/usr/sbin/iptables -t nat -F OPENAUTO_PROXY
+ExecStopPost=-/usr/sbin/iptables -t nat -X OPENAUTO_PROXY
 WorkingDirectory=/home/matt/openauto-prodigy/system-service
 RuntimeDirectory=openauto
 Restart=always

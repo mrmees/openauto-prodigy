@@ -11,6 +11,7 @@ import time
 from ipc_server import IpcServer
 from health_monitor import HealthMonitor
 from config_applier import ConfigApplier
+from proxy_manager import ProxyManager
 
 DEFAULT_SOCKET_PATH = "/run/openauto/system.sock"
 DEFAULT_CONFIG_PATH = os.path.expanduser("~matt/.openauto/config.yaml")
@@ -52,6 +53,7 @@ async def main() -> None:
     ipc = IpcServer(socket_path=socket_path)
     health = HealthMonitor()
     config = ConfigApplier(config_path=config_path)
+    proxy = ProxyManager()
 
     # BT profiles (optional — only if dbus-next is installed)
     bt = None
@@ -95,10 +97,32 @@ async def main() -> None:
         rc, out = await health.run_cmd("systemctl", "restart", name)
         return {"ok": rc == 0, "output": out.strip()}
 
+    async def handle_set_proxy_route(params):
+        active = params.get("active", False)
+        try:
+            if active:
+                await proxy.enable(
+                    host=params["host"],
+                    port=int(params["port"]),
+                    user=params.get("user", "oap"),
+                    password=params["password"],
+                )
+            else:
+                await proxy.disable()
+            return {"ok": True, "state": proxy.state.value}
+        except Exception as e:
+            LOG.error("set_proxy_route error: %s", e)
+            return {"ok": False, "error": str(e), "state": proxy.state.value}
+
+    async def handle_get_proxy_status(params):
+        return {"state": proxy.state.value}
+
     ipc.register_method("get_health", handle_get_health)
     ipc.register_method("get_status", handle_get_status)
     ipc.register_method("apply_config", handle_apply_config)
     ipc.register_method("restart_service", handle_restart_service)
+    ipc.register_method("set_proxy_route", handle_set_proxy_route)
+    ipc.register_method("get_proxy_status", handle_get_proxy_status)
 
     # --- Start ---
     await ipc.start()
@@ -140,6 +164,9 @@ async def main() -> None:
         await health_task
     except asyncio.CancelledError:
         pass
+
+    if proxy.state.value != "disabled":
+        await proxy.disable()
 
     if bt:
         await bt.close()
