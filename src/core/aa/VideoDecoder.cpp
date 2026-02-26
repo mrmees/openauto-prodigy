@@ -476,13 +476,15 @@ void VideoDecoder::processFrame(const QByteArray& h264Data, qint64 enqueueTimeNs
                 double elapsed = PerfStats::msElapsed(lastLogTime_, now) / 1000.0;
                 if (elapsed >= LOG_INTERVAL_SEC) {
                     double fps = framesSinceLog_ / elapsed;
+                    uint32_t drops = worker_ ? worker_->droppedFrames() : 0;
                     qInfo() << "[Perf] Video: queue="
                         << QString::number(metricQueue_.avg(), 'f', 1) << "ms"
                         << "decode=" << QString::number(metricDecode_.avg(), 'f', 1) << "ms"
                         << "copy=" << QString::number(metricCopy_.avg(), 'f', 1) << "ms"
                         << "total=" << QString::number(metricTotal_.avg(), 'f', 1) << "ms"
                         << "(p99\u2248" << QString::number(metricTotal_.max, 'f', 1) << "ms)"
-                        << "|" << QString::number(fps, 'f', 1) << "fps";
+                        << "|" << QString::number(fps, 'f', 1) << "fps"
+                        << (drops > 0 ? QString(" drops=%1").arg(drops) : "");
 
                     metricQueue_.reset();
                     metricDecode_.reset();
@@ -553,11 +555,15 @@ void VideoDecoder::DecodeWorker::enqueue(std::shared_ptr<const QByteArray> data,
         qDebug() << "[VideoDecoder] Keyframe received, resuming decode (dropped" << droppedFrames_ << "frames)";
     }
 
-    // Bound queue size
+    // Bound queue size — drop oldest frames to make room.
+    // Dropping P-frames may cause brief artifacts from stale references,
+    // but the decoder recovers naturally at the next keyframe (~1s).
+    // Only enter awaitingKeyframe mode if we're forced to drop a keyframe,
+    // since that means the decoder has no valid reference at all.
     while (static_cast<int>(queue_.size()) >= MAX_QUEUE_SIZE) {
         auto& front = queue_.front();
         if (front.isKeyframe && queue_.size() == 1) {
-            // Only a keyframe left and we need to drop it — enter awaiting mode
+            // Dropping the only keyframe — must flush and wait for next IDR
             awaitingKeyframe_ = true;
             needsFlush_ = true;
             qWarning() << "[VideoDecoder] Dropped keyframe, awaiting next IDR";
