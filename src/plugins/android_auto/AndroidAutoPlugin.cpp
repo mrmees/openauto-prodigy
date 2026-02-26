@@ -169,7 +169,7 @@ void AndroidAutoPlugin::onConfigChanged(const QString& path, const QVariant& val
     // Queue the disconnect — calling it synchronously from inside configChanged
     // would spin a nested event loop mid-signal-emission and crash
     QMetaObject::invokeMethod(aaService_, [this]() {
-        aaService_->disconnectSession();
+        aaService_->disconnectAndRetrigger();
     }, Qt::QueuedConnection);
 }
 

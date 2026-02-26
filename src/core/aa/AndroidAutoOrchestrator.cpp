@@ -166,6 +166,12 @@ void AndroidAutoOrchestrator::disconnectSession()
     session_->stop(1);
 }
 
+void AndroidAutoOrchestrator::disconnectAndRetrigger()
+{
+    pendingReconnect_ = true;
+    disconnectSession();
+}
+
 void AndroidAutoOrchestrator::onNewConnection()
 {
     QTcpSocket* socket = tcpServer_.nextPendingConnection();
@@ -448,6 +454,19 @@ void AndroidAutoOrchestrator::onSessionDisconnected(oaa::DisconnectReason reason
     uint16_t port = config_ ? config_->tcpPort() : 5288;
     setState(WaitingForDevice,
              QString("Waiting for wireless connection on port %1...").arg(port));
+
+#ifdef HAS_BLUETOOTH
+    if (pendingReconnect_ && btDiscovery_) {
+        pendingReconnect_ = false;
+        // Give the phone ~500ms to process the disconnect before re-sending
+        // the WifiStartRequest. Firing immediately causes the phone to ignore it.
+        QTimer::singleShot(500, this, [this]() {
+            if (btDiscovery_)
+                btDiscovery_->retrigger();
+        });
+    }
+#endif
+    pendingReconnect_ = false;
 }
 
 void AndroidAutoOrchestrator::teardownSession()

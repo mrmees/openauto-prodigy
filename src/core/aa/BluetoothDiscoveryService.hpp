@@ -54,6 +54,11 @@ public:
     void start();
     void stop();
 
+    /// Re-send WifiStartRequest through the existing RFCOMM socket to make the
+    /// phone re-initiate the WiFi → TCP → AA connection. Used after a deliberate
+    /// session disconnect (e.g. video settings change) when BT is still connected.
+    void retrigger();
+
     QString localAddress() const;
 
 signals:
@@ -66,6 +71,7 @@ private slots:
 
 private:
     void sendMessage(const google::protobuf::Message& message, uint16_t type);
+    void sendWifiStartRequest();
     void handleWifiCredentialRequest();
     void handleWifiConnectionStatus(const QByteArray& data, uint16_t length);
     bool registerSdpRecord(uint8_t rfcommChannel);

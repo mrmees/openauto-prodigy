@@ -61,6 +61,7 @@ public:
     Q_INVOKABLE void start();
     Q_INVOKABLE void stop();
     void disconnectSession();
+    void disconnectAndRetrigger();
     void requestVideoFocus();
     void requestExitToCar();
 
@@ -125,6 +126,7 @@ private:
 
     ConnectionState state_ = Disconnected;
     QString statusMessage_;
+    bool pendingReconnect_ = false;
 
 #ifdef HAS_BLUETOOTH
     class BluetoothDiscoveryService* btDiscovery_ = nullptr;

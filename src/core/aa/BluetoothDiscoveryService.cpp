@@ -373,14 +373,18 @@ void BluetoothDiscoveryService::onClientConnected()
     connect(socket_, &QBluetoothSocket::readyRead,
             this, &BluetoothDiscoveryService::readSocket);
 
-    // Step 1: Send WifiStartRequest with our IP and TCP port
+    sendWifiStartRequest();
+}
+
+void BluetoothDiscoveryService::sendWifiStartRequest()
+{
+    if (!socket_) return;
+
     std::string localIp = getLocalIP(wifiInterface_);
     if (localIp.empty() && wifiInterface_ == "wlan0") {
-        // Fallback: try common AP interface names
         localIp = getLocalIP(QStringLiteral("ap0"));
     }
     if (localIp.empty()) {
-        // Last resort: try any non-loopback IPv4
         for (const auto& iface : QNetworkInterface::allInterfaces()) {
             if (iface.flags().testFlag(QNetworkInterface::IsLoopBack)) continue;
             if (!iface.flags().testFlag(QNetworkInterface::IsUp)) continue;
@@ -402,7 +406,6 @@ void BluetoothDiscoveryService::onClientConnected()
         return;
     }
 
-    // Send WifiStartRequest (msgId=1) with our IP and TCP port
     oaa::proto::messages::WifiStartRequest request;
     request.set_ip_address(localIp);
     request.set_port(config_->tcpPort());
@@ -410,6 +413,16 @@ void BluetoothDiscoveryService::onClientConnected()
     qInfo() << "[BTDiscovery] Sending WifiStartRequest: ip=" << localIp.c_str()
             << "port=" << config_->tcpPort();
     sendMessage(request, kMsgWifiStartRequest);
+}
+
+void BluetoothDiscoveryService::retrigger()
+{
+    if (!socket_ || socket_->state() != QBluetoothSocket::SocketState::ConnectedState) {
+        qInfo() << "[BTDiscovery] retrigger: RFCOMM socket not connected, phone must reconnect via BT";
+        return;
+    }
+    qInfo() << "[BTDiscovery] Retrigger: re-sending WifiStartRequest to reconnect";
+    sendWifiStartRequest();
 }
 
 void BluetoothDiscoveryService::readSocket()
