@@ -58,8 +58,7 @@ private:
         void run() override;
         void enqueue(std::shared_ptr<const QByteArray> data, qint64 enqueueTimeNs);
         void requestStop();
-        void setCodecIsH265(bool h265) { QMutexLocker lock(&mutex_); codecIsH265_ = h265; }
-        uint32_t droppedFrames() const { QMutexLocker lock(&mutex_); return droppedFrames_; }
+        int queueDepth() const { QMutexLocker lock(&mutex_); return static_cast<int>(queue_.size()); }
     private:
         VideoDecoder* decoder_;
         mutable QMutex mutex_;
@@ -67,11 +66,10 @@ private:
         struct WorkItem { std::shared_ptr<const QByteArray> data; qint64 enqueueTimeNs; bool isKeyframe; };
         std::queue<WorkItem> queue_;
         bool stopRequested_ = false;
-        static constexpr int MAX_QUEUE_SIZE = 2;
-        bool awaitingKeyframe_ = false;
-        bool needsFlush_ = false;
-        uint32_t droppedFrames_ = 0;
-        bool codecIsH265_ = false;  // Set by decoder after codec detection
+        // When queue depth exceeds this, skip non-reference frames
+        // (AVDISCARD_NONREF — B-frames only) to reduce CPU.
+        // Never use AVDISCARD_NONKEY — it skips P-frames and breaks refs.
+        static constexpr int SKIP_THRESHOLD = 3;
     };
 
     DecodeWorker* worker_ = nullptr;
