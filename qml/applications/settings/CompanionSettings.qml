@@ -167,7 +167,7 @@ Flickable {
                 Text {
                     id: pairLabel
                     anchors.centerIn: parent
-                    text: "Generate Pairing PIN"
+                    text: "Generate Pairing Code"
                     font.pixelSize: UiMetrics.fontBody
                     color: ThemeService.normalFontColor
                 }
@@ -186,6 +186,18 @@ Flickable {
             }
         }
 
+        // QR code (visible after generation)
+        Image {
+            id: qrCode
+            visible: root.hasService && CompanionService.qrCodeDataUri !== ""
+            Layout.alignment: Qt.AlignHCenter
+            Layout.preferredWidth: Math.round(200 * UiMetrics.scale)
+            Layout.preferredHeight: Math.round(200 * UiMetrics.scale)
+            source: root.hasService ? CompanionService.qrCodeDataUri : ""
+            fillMode: Image.PreserveAspectFit
+            smooth: false
+        }
+
         // PIN display (hidden until generated)
         Text {
             id: pinDisplay
@@ -202,7 +214,7 @@ Flickable {
             id: pinHint
             visible: false
             Layout.alignment: Qt.AlignHCenter
-            text: "Enter this PIN in the companion app on your phone"
+            text: "Scan the QR code, or enter this PIN manually"
             font.pixelSize: UiMetrics.fontSmall
             font.italic: true
             color: ThemeService.descriptionFontColor
