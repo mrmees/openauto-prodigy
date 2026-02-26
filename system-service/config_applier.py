@@ -107,8 +107,11 @@ class ConfigApplier:
         try:
             os.write(fd, content.encode())
             os.close(fd)
+            fd = -1
             os.rename(tmp_path, path)
         except Exception:
-            os.close(fd)
-            os.unlink(tmp_path)
+            if fd >= 0:
+                os.close(fd)
+            if os.path.exists(tmp_path):
+                os.unlink(tmp_path)
             raise

@@ -62,6 +62,8 @@ async def main() -> None:
     except ImportError:
         LOG.warning("dbus-next not available, BT profile registration disabled")
 
+    start_time = time.monotonic()
+
     # --- IPC method handlers ---
     async def handle_get_health(params):
         return health.get_health()
@@ -69,7 +71,7 @@ async def main() -> None:
     async def handle_get_status(params):
         return {
             "health": health.get_health(),
-            "uptime": time.monotonic(),
+            "uptime": time.monotonic() - start_time,
             "version": "0.1.0",
         }
 
@@ -79,7 +81,7 @@ async def main() -> None:
         # If config wrote files that need a service restart, do it
         if result.get("ok") and result.get("restarted"):
             for svc in result["restarted"]:
-                rc, out = await health._run_cmd(f"systemctl restart {svc}")
+                rc, out = await health.run_cmd("systemctl", "restart", svc)
                 if rc != 0:
                     result["ok"] = False
                     result["error"] = f"Failed to restart {svc}: {out}"
@@ -90,7 +92,7 @@ async def main() -> None:
         name = params.get("name", "")
         if name not in ALLOWED_SERVICES:
             return {"ok": False, "error": f"Unknown service: {name}"}
-        rc, out = await health._run_cmd(f"systemctl restart {name}")
+        rc, out = await health.run_cmd("systemctl", "restart", name)
         return {"ok": rc == 0, "output": out.strip()}
 
     ipc.register_method("get_health", handle_get_health)

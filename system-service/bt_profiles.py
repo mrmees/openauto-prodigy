@@ -90,7 +90,8 @@ class BtProfileManager:
                     profile["uuid"],
                 )
             except DBusError as e:
-                if "AlreadyExists" in str(e):
+                err_lower = str(e).lower()
+                if "already" in err_lower:
                     log.info(
                         "BT profile already registered: %s",
                         profile["options"]["Name"],

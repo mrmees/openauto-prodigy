@@ -59,12 +59,11 @@ class HealthMonitor:
             was_down = svc.state in (
                 ServiceState.FAILED,
                 ServiceState.INACTIVE,
-                ServiceState.UNKNOWN,
             )
 
             # Check systemd unit state
-            rc, output = await self._run_cmd(
-                f"systemctl is-active {svc.unit}", timeout=CMD_TIMEOUT
+            rc, output = await self.run_cmd(
+                "systemctl", "is-active", svc.unit, timeout=CMD_TIMEOUT
             )
             unit_active = output.strip() == "active"
 
@@ -95,24 +94,33 @@ class HealthMonitor:
                     log.info(
                         "bluetooth recovered, triggering BT profile registration"
                     )
-                    asyncio.create_task(self._on_bt_restart_callback())
+                    task = asyncio.create_task(self._on_bt_restart_callback())
+                    task.add_done_callback(self._bt_callback_done)
             else:
                 svc.state = ServiceState.FAILED if rc != 0 else ServiceState.DEGRADED
                 await self._attempt_recovery(svc)
 
             svc.last_check = now
 
+    @staticmethod
+    def _bt_callback_done(task: asyncio.Task) -> None:
+        if task.cancelled():
+            return
+        exc = task.exception()
+        if exc:
+            log.error("BT profile re-registration failed: %s", exc)
+
     async def _functional_check(self, name: str) -> bool:
         if name in ("hostapd", "networkd"):
-            rc, output = await self._run_cmd(
-                "ip addr show wlan0", timeout=CMD_TIMEOUT
+            rc, output = await self.run_cmd(
+                "ip", "addr", "show", "wlan0", timeout=CMD_TIMEOUT
             )
             if f"inet {self._expected_ip}/" not in output:
                 log.warning("wlan0 missing expected IP %s", self._expected_ip)
                 return False
         elif name == "bluetooth":
-            rc, output = await self._run_cmd(
-                "hciconfig hci0", timeout=CMD_TIMEOUT
+            rc, output = await self.run_cmd(
+                "hciconfig", "hci0", timeout=CMD_TIMEOUT
             )
             if "UP RUNNING" not in output:
                 log.warning("hci0 not UP RUNNING")
@@ -128,25 +136,25 @@ class HealthMonitor:
 
         svc.retries += 1
         log.warning("Restarting %s (attempt %d)", svc.unit, svc.retries)
-        rc, output = await self._run_cmd(
-            f"systemctl restart {svc.unit}", timeout=CMD_TIMEOUT
+        rc, output = await self.run_cmd(
+            "systemctl", "restart", svc.unit, timeout=CMD_TIMEOUT
         )
         if rc == 0:
             log.info("%s restart succeeded", svc.unit)
         else:
             log.error("%s restart failed: %s", svc.unit, output.strip())
 
-    async def _run_cmd(self, cmd: str, timeout: int = CMD_TIMEOUT) -> tuple[int, str]:
+    async def run_cmd(self, *args: str, timeout: int = CMD_TIMEOUT) -> tuple[int, str]:
         try:
-            proc = await asyncio.create_subprocess_shell(
-                cmd,
+            proc = await asyncio.create_subprocess_exec(
+                *args,
                 stdout=asyncio.subprocess.PIPE,
                 stderr=asyncio.subprocess.STDOUT,
             )
             stdout, _ = await asyncio.wait_for(proc.communicate(), timeout=timeout)
             return (proc.returncode, stdout.decode())
         except asyncio.TimeoutError:
-            log.warning("Command timed out: %s", cmd)
+            log.warning("Command timed out: %s", args)
             try:
                 proc.kill()
             except ProcessLookupError:

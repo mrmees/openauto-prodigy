@@ -5,7 +5,8 @@ After=network.target bluetooth.target
 
 [Service]
 Type=notify
-ExecStart=/usr/bin/python3 /home/matt/openauto-prodigy/system-service/openauto_system.py
+ExecStart=/home/matt/openauto-prodigy/system-service/.venv/bin/python3 /home/matt/openauto-prodigy/system-service/openauto_system.py
+WorkingDirectory=/home/matt/openauto-prodigy/system-service
 RuntimeDirectory=openauto
 Restart=always
 RestartSec=2
