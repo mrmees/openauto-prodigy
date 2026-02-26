@@ -214,10 +214,18 @@ redsocks {{
                 logging.warning("iptables flush %s failed with rc=%d: %s", " ".join(cmd), rc, out)
 
     async def _dns_enable(self) -> None:
+        # Prefer systemd-resolved if available; LAN DNS still works via eth0 exclusion otherwise.
+        rc, out = await self._run_cmd("which", "resolvectl")
+        if rc != 0:
+            logging.info("resolvectl not available — skipping DNS override (LAN DNS still reachable via eth0)")
+            return
         await self._run_cmd("resolvectl", "dns", "wlan0", "1.1.1.1")
         await self._run_cmd("resolvectl", "dnssec", "wlan0", "no")
 
     async def _dns_restore(self) -> None:
+        rc, out = await self._run_cmd("which", "resolvectl")
+        if rc != 0:
+            return
         await self._run_cmd("resolvectl", "revert", "wlan0")
 
     async def _health_loop(self) -> None:

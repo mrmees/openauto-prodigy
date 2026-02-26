@@ -109,6 +109,7 @@ install_dependencies() {
 
         # Transparent SOCKS5 proxy routing (companion internet sharing)
         redsocks
+        iptables
     )
 
     sudo apt install -y "${PACKAGES[@]}"
