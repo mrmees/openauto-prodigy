@@ -2,6 +2,7 @@
 
 #include <oaa/Messenger/FrameType.hpp>
 #include <oaa/Messenger/FrameHeader.hpp>
+#include <oaa/Messenger/CircularBuffer.hpp>
 #include <QObject>
 #include <QByteArray>
 
@@ -29,7 +30,7 @@ private:
     void process();
 
     State m_state = State::ReadHeader;
-    QByteArray m_buffer;
+    CircularBuffer m_buffer{65536};
     FrameHeader m_currentHeader{};
     int m_sizeFieldLength = 0;
     uint16_t m_framePayloadSize = 0;
