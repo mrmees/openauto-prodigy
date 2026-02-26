@@ -58,6 +58,8 @@ public:
     QString proxyAddress() const;
     QString qrCodeDataUri() const;
 
+    Q_INVOKABLE void syncProxyRoute();
+
 signals:
     void connectedChanged();
     void gpsChanged();
@@ -80,6 +82,7 @@ private:
     QByteArray computeHmac(const QByteArray& key, const QByteArray& data);
     QByteArray generateQrPng(const QString& payload);
     QString socks5Password() const;
+    void syncProxyRouteFromStatus(bool active, const QString& host, int port, const QString& password);
 
     QTcpServer* server_ = nullptr;
     QTcpSocket* client_ = nullptr;
@@ -104,6 +107,10 @@ private:
     SystemServiceClient* systemClient_ = nullptr;
     QString vehicleId_;
     int listenPort_ = 9876;
+
+    QString requestedProxyHost_;
+    int requestedProxyPort_ = 0;
+    bool proxyRouteApplied_ = false;
 
     // Time safety
     int backwardJumpCount_ = 0;

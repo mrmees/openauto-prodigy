@@ -172,6 +172,13 @@ int main(int argc, char *argv[])
     auto* systemClient = new oap::SystemServiceClient(&app);
     if (companionListener)
         companionListener->setSystemServiceClient(systemClient);
+    if (companionListener && systemClient) {
+        QObject::connect(systemClient, &oap::SystemServiceClient::connectedChanged, systemClient, [=]() {
+            if (systemClient->isConnected()) {
+                companionListener->syncProxyRoute();
+            }
+        });
+    }
 
     QQuickStyle::setStyle("Material");
 
