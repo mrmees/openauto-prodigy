@@ -126,8 +126,20 @@ void VideoDecoder::cleanup()
 
 void VideoDecoder::setVideoSink(QVideoSink* sink)
 {
-    if (videoSink_ != sink) {
-        videoSink_ = sink;
+    // Atomically swap so the decode worker thread always sees a consistent pointer.
+    // fetchAndStoreRelease pairs with loadAcquire in processFrame().
+    QVideoSink* old = videoSink_.fetchAndStoreRelease(sink);
+    if (old != sink) {
+        // Invalidate the liveness guard BEFORE updating the pointer.
+        // Any lambda already in the main thread's event queue that captured
+        // the old sinkValid_ shared_ptr will see false and skip setVideoFrame(),
+        // so the old QVideoSink can be safely deleted immediately after this call.
+        sinkValid_->store(false);
+        if (sink) {
+            // Fresh guard for the new sink — lambdas dispatched after this point
+            // get a new shared_ptr that is true until the next setVideoSink call.
+            sinkValid_ = std::make_shared<std::atomic<bool>>(true);
+        }
         emit videoSinkChanged();
         qInfo() << "[VideoDecoder] Video sink "
                                 << (sink ? "connected" : "disconnected");
@@ -211,7 +223,13 @@ void VideoDecoder::processFrame(const QByteArray& h264Data, qint64 enqueueTimeNs
             // Got a decoded frame — convert to QVideoFrame
             // Accept both YUV420P (limited range) and YUVJ420P (full/JPEG range) —
             // same pixel layout, different color range convention
-            if (videoSink_ && (frame_->format == AV_PIX_FMT_YUV420P ||
+            // Load the sink pointer once atomically. The lambda captures this local
+            // value so it doesn't re-read videoSink_ when it fires on the main thread
+            // (by which time the sink may have been nulled by setVideoSink(nullptr)).
+            // Qt's QueuedConnection dispatch also uses `sink` as the context object,
+            // so if QVideoSink is destroyed before the lambda runs, Qt discards the event.
+            QVideoSink* sink = videoSink_.loadAcquire();
+            if (sink && (frame_->format == AV_PIX_FMT_YUV420P ||
                                frame_->format == AV_PIX_FMT_YUVJ420P)) {
                 // Cache format on first frame or resolution change
                 if (!cachedFormat_ ||
@@ -269,9 +287,14 @@ void VideoDecoder::processFrame(const QByteArray& h264Data, qint64 enqueueTimeNs
 
                     auto t_copyDone = PerfStats::Clock::now();
 
-                    // Marshal setVideoFrame back to Qt main thread
-                    QMetaObject::invokeMethod(videoSink_, [this, videoFrame]() {
-                        videoSink_->setVideoFrame(videoFrame);
+                    // Marshal setVideoFrame back to Qt main thread.
+                    // Capture `sink` and `guard` by value. If setVideoSink(nullptr)
+                    // is called before this lambda runs, guard will be false and we
+                    // skip the call — the QVideoSink may already be deleted by then.
+                    auto guard = sinkValid_;
+                    QMetaObject::invokeMethod(sink, [sink, videoFrame, guard]() {
+                        if (guard->load())
+                            sink->setVideoFrame(videoFrame);
                     }, Qt::QueuedConnection);
 
                     auto t_display = PerfStats::Clock::now();

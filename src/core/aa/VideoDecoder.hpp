@@ -8,6 +8,9 @@
 #include <QThread>
 #include <QMutex>
 #include <QWaitCondition>
+#include <QAtomicPointer>
+#include <atomic>
+#include <memory>
 #include <optional>
 #include <queue>
 
@@ -31,7 +34,7 @@ public:
     explicit VideoDecoder(QObject* parent = nullptr);
     ~VideoDecoder() override;
 
-    QVideoSink* videoSink() const { return videoSink_; }
+    QVideoSink* videoSink() const { return videoSink_.loadRelaxed(); }
     void setVideoSink(QVideoSink* sink);
 
 signals:
@@ -62,7 +65,10 @@ private:
 
     void cleanup();
 
-    QVideoSink* videoSink_ = nullptr;
+    QAtomicPointer<QVideoSink> videoSink_;
+    // Shared across threads: set to false in setVideoSink(nullptr) so any
+    // already-queued invokeMethod lambdas skip the setVideoFrame() call.
+    std::shared_ptr<std::atomic<bool>> sinkValid_ = std::make_shared<std::atomic<bool>>(false);
 
     // FFmpeg state
     const AVCodec* codec_ = nullptr;

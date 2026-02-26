@@ -135,44 +135,37 @@ QByteArray ServiceDiscoveryBuilder::buildVideoDescriptor() const
     int marginW = 0, marginH = 0;
     calcMargins(remoteW, remoteH, marginW, marginH);
 
-    // Codec test: advertise every codec at every resolution to see phone's priority
+    // Advertise only the configured resolution with codecs we can actually decode.
+    // H.264 listed first (most compatible, best Pi 4 software-decode performance),
+    // H.265 second for phones that prefer it. AV1/VP9 omitted — not supported.
     using Res = oaa::proto::enums::VideoResolution;
     using Codec = oaa::proto::enums::MediaCodecType;
 
-    struct ResInfo {
-        Res::Enum res; int w; int h; const char* label;
-    };
-    ResInfo resolutions[] = {
-        { Res::_1080p, 1920, 1080, "1080p" },
-        { Res::_720p,  1280,  720, "720p"  },
-        { Res::_480p,   800,  480, "480p"  },
+    struct ResInfo { Res::Enum res; int w; int h; const char* label; };
+    ResInfo chosen = { Res::_720p, 1280, 720, "720p" };
+    if (res == "1080p") chosen = { Res::_1080p, 1920, 1080, "1080p" };
+    else if (res == "480p") chosen = { Res::_480p, 800, 480, "480p" };
+
+    struct CodecInfo { Codec::Enum codec; const char* label; };
+    CodecInfo codecs[] = {
+        { Codec::MEDIA_CODEC_VIDEO_H264_BP, "H.264" },
+        { Codec::MEDIA_CODEC_VIDEO_H265,    "H.265" },
     };
 
-    struct CodecInfo {
-        Codec::Enum codec; const char* label;
-    };
-    CodecInfo codecs[] = {
-        { Codec::MEDIA_CODEC_VIDEO_AV1,     "AV1"   },
-        { Codec::MEDIA_CODEC_VIDEO_H265,    "H.265" },
-        { Codec::MEDIA_CODEC_VIDEO_VP9,     "VP9"   },
-        { Codec::MEDIA_CODEC_VIDEO_H264_BP, "H.264" },
-    };
+    int mW = 0, mH = 0;
+    calcMargins(chosen.w, chosen.h, mW, mH);
 
     int configIdx = 0;
-    for (const auto& r : resolutions) {
-        int mW = 0, mH = 0;
-        calcMargins(r.w, r.h, mW, mH);
-        for (const auto& c : codecs) {
-            auto* cfg = avChannel->add_video_configs();
-            cfg->set_video_resolution(r.res);
-            cfg->set_video_fps(fpsEnum);
-            cfg->set_margin_width(mW);
-            cfg->set_margin_height(mH);
-            cfg->set_dpi(dpi);
-            cfg->set_codec(c.codec);
-            qInfo() << "[ServiceDiscoveryBuilder] config[" << configIdx++ << "]:"
-                    << r.label << c.label << "margins:" << mW << "x" << mH;
-        }
+    for (const auto& c : codecs) {
+        auto* cfg = avChannel->add_video_configs();
+        cfg->set_video_resolution(chosen.res);
+        cfg->set_video_fps(fpsEnum);
+        cfg->set_margin_width(mW);
+        cfg->set_margin_height(mH);
+        cfg->set_dpi(dpi);
+        cfg->set_codec(c.codec);
+        qInfo() << "[ServiceDiscoveryBuilder] config[" << configIdx++ << "]:"
+                << chosen.label << c.label << "margins:" << mW << "x" << mH;
     }
 
     qInfo() << "[ServiceDiscoveryBuilder] Advertised" << configIdx << "video configs";

@@ -21,7 +21,6 @@ Flickable {
             configPath: "video.fps"
             options: ["30", "60"]
             values: [30, 60]
-            restartRequired: true
         }
 
         FullScreenPicker {
@@ -29,7 +28,14 @@ Flickable {
             configPath: "video.resolution"
             options: ["480p", "720p", "1080p"]
             values: ["480p", "720p", "1080p"]
-            restartRequired: true
+        }
+
+        Text {
+            text: "FPS and resolution changes reconnect Android Auto automatically."
+            font.pixelSize: UiMetrics.fontTiny
+            color: ThemeService.descriptionFontColor
+            font.italic: true
+            Layout.leftMargin: UiMetrics.marginRow
         }
 
         SettingsSlider {

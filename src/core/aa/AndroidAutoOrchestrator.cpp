@@ -159,36 +159,11 @@ void AndroidAutoOrchestrator::disconnectSession()
 
     qInfo() << "[AAOrchestrator] Disconnecting AA session (USER_SELECTION)";
 
-    // Send ShutdownRequest with USER_SELECTION (reason 1)
+    // Send ShutdownRequest with USER_SELECTION (reason 1) and return immediately.
+    // The session has a 5s internal timeout; when the ack arrives (or times out),
+    // it emits disconnected → onSessionDisconnected handles teardown normally.
+    // No blocking event loop here — that causes re-entrancy crashes.
     session_->stop(1);
-
-    // Wait for phone acknowledgement
-    QEventLoop loop;
-    QTimer timeout;
-    timeout.setSingleShot(true);
-    connect(session_, &oaa::AASession::disconnected, &loop, &QEventLoop::quit);
-    connect(&timeout, &QTimer::timeout, &loop, &QEventLoop::quit);
-    timeout.start(2000);
-    loop.exec();
-
-    if (timeout.isActive()) {
-        qInfo() << "[AAOrchestrator] Phone acknowledged disconnect";
-    } else {
-        qInfo() << "[AAOrchestrator] Disconnect timeout — forcing teardown";
-    }
-
-    stopConnectionWatchdog();
-
-    if (nightProvider_) {
-        nightProvider_->stop();
-        nightProvider_.reset();
-    }
-
-    teardownSession();
-
-    uint16_t port = config_ ? config_->tcpPort() : 5288;
-    setState(WaitingForDevice,
-             QString("Waiting for wireless connection on port %1...").arg(port));
 }
 
 void AndroidAutoOrchestrator::onNewConnection()
@@ -246,8 +221,8 @@ void AndroidAutoOrchestrator::onNewConnection()
     // Create session
     session_ = new oaa::AASession(transport_, config, this);
 
-    // Tell video handler how many configs we advertised (3 resolutions × 4 codecs)
-    videoHandler_.setNumVideoConfigs(12);
+    // Tell video handler how many configs we advertised (1 resolution × 2 codecs)
+    videoHandler_.setNumVideoConfigs(2);
 
     // Register all channel handlers
     session_->registerChannel(oaa::ChannelId::Video, &videoHandler_);
@@ -478,6 +453,9 @@ void AndroidAutoOrchestrator::onSessionDisconnected(oaa::DisconnectReason reason
 void AndroidAutoOrchestrator::teardownSession()
 {
     if (session_) {
+        // Disconnect all signals from session_ to us BEFORE scheduling deletion.
+        // This prevents onSessionDisconnected from being called a second time if
+        // the 'disconnected' signal is also queued.
         session_->disconnect(this);
         videoHandler_.disconnect(this);
         mediaAudioHandler_.disconnect(this);
@@ -485,11 +463,16 @@ void AndroidAutoOrchestrator::teardownSession()
         systemAudioHandler_.disconnect(this);
         videoHandler_.disconnect(&videoDecoder_);
 
-        delete session_;
+        // deleteLater() instead of delete: teardownSession() is often called from
+        // within onSessionStateChanged(), which is a direct-connection slot of
+        // session_->stateChanged. Deleting the sender synchronously while inside
+        // its signal dispatch causes UAF when Qt's dispatch machinery resumes.
+        // deleteLater() defers the delete to the next event loop iteration.
+        session_->deleteLater();
         session_ = nullptr;
     }
     if (transport_) {
-        delete transport_;
+        transport_->deleteLater();
         transport_ = nullptr;
     }
     activeSocket_ = nullptr;  // owned by transport

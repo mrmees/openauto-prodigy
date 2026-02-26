@@ -68,6 +68,9 @@ public:
     /// Gracefully disconnect the AA session (sends ShutdownRequest to phone)
     void stopAA();
 
+public slots:
+    void onConfigChanged(const QString& path, const QVariant& value);
+
 signals:
     void requestActivation();
     void requestDeactivation();

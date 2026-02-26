@@ -6,6 +6,7 @@
 #include "core/InputDeviceScanner.hpp"
 #include "core/services/IAudioService.hpp"
 #include "core/services/IConfigService.hpp"
+#include "core/services/ConfigService.hpp"
 #include <algorithm>
 #include <QDebug>
 #include <QQmlContext>
@@ -130,6 +131,14 @@ bool AndroidAutoPlugin::initialize(IHostContext* context)
         qInfo() << "[AAPlugin] No touch device found — touch input disabled";
     }
 
+    // Watch for video setting changes — disconnect active session so phone
+    // reconnects and renegotiates with the updated config
+    if (hostContext_ && hostContext_->configService()) {
+        auto* cfgSvc = static_cast<oap::ConfigService*>(hostContext_->configService());
+        connect(cfgSvc, &oap::ConfigService::configChanged,
+                this, &AndroidAutoPlugin::onConfigChanged);
+    }
+
     // Start AA orchestrator — it needs to listen for connections immediately
     aaService_->start();
 
@@ -137,6 +146,31 @@ bool AndroidAutoPlugin::initialize(IHostContext* context)
         hostContext_->log(LogLevel::Info, QStringLiteral("Android Auto plugin initialized"));
 
     return true;
+}
+
+void AndroidAutoPlugin::onConfigChanged(const QString& path, const QVariant& value)
+{
+    Q_UNUSED(value)
+    static const QStringList videoSettings = {
+        QStringLiteral("video.resolution"),
+        QStringLiteral("video.fps"),
+    };
+    if (!videoSettings.contains(path))
+        return;
+
+    if (!aaService_) return;
+
+    using CS = oap::aa::AndroidAutoOrchestrator;
+    auto state = static_cast<CS::ConnectionState>(aaService_->connectionState());
+    if (state != CS::Connected && state != CS::Backgrounded)
+        return;
+
+    qInfo() << "[AAPlugin] Video setting changed (" << path << ") — reconnecting for renegotiation";
+    // Queue the disconnect — calling it synchronously from inside configChanged
+    // would spin a nested event loop mid-signal-emission and crash
+    QMetaObject::invokeMethod(aaService_, [this]() {
+        aaService_->disconnectSession();
+    }, Qt::QueuedConnection);
 }
 
 void AndroidAutoPlugin::stopAA()
