@@ -150,13 +150,21 @@ bool AndroidAutoPlugin::initialize(IHostContext* context)
 
 void AndroidAutoPlugin::onConfigChanged(const QString& path, const QVariant& value)
 {
-    Q_UNUSED(value)
     static const QStringList videoSettings = {
         QStringLiteral("video.resolution"),
         QStringLiteral("video.fps"),
     };
     if (!videoSettings.contains(path))
         return;
+
+    // Update touch coordinate mapping for the new resolution
+    if (path == QLatin1String("video.resolution") && touchReader_) {
+        int aaW = 1280, aaH = 720;
+        QString res = value.toString();
+        if (res == QLatin1String("1080p")) { aaW = 1920; aaH = 1080; }
+        else if (res == QLatin1String("480p")) { aaW = 800; aaH = 480; }
+        touchReader_->setAAResolution(aaW, aaH);
+    }
 
     if (!aaService_) return;
 

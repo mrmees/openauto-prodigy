@@ -173,6 +173,13 @@ void EvdevTouchReader::setSidebar(bool enabled, int width, const std::string& po
     }
 }
 
+void EvdevTouchReader::setAAResolution(int aaWidth, int aaHeight)
+{
+    pendingAAWidth_.store(aaWidth, std::memory_order_relaxed);
+    pendingAAHeight_.store(aaHeight, std::memory_order_release);
+    qInfo() << "[EvdevTouch] Pending resolution update:" << aaWidth << "x" << aaHeight;
+}
+
 int EvdevTouchReader::mapX(int rawX) const
 {
     float rel = (rawX - videoEvdevX0_) / videoEvdevW_;
@@ -335,6 +342,18 @@ bool EvdevTouchReader::checkGesture()
 
 void EvdevTouchReader::processSync()
 {
+    // Apply pending AA resolution update (set from main thread via setAAResolution)
+    int newH = pendingAAHeight_.load(std::memory_order_acquire);
+    if (newH > 0) {
+        int newW = pendingAAWidth_.load(std::memory_order_relaxed);
+        aaWidth_ = newW;
+        aaHeight_ = newH;
+        pendingAAWidth_.store(0, std::memory_order_relaxed);
+        pendingAAHeight_.store(0, std::memory_order_relaxed);
+        computeLetterbox();
+        qInfo() << "[EvdevTouch] Applied resolution update:" << aaWidth_ << "x" << aaHeight_;
+    }
+
     // Check for 3-finger gesture — suppress touches if active
     if (checkGesture()) {
         // Clear dirty flags and save state, but don't forward to AA

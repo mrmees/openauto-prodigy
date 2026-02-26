@@ -67,6 +67,10 @@ public:
     void setSidebar(bool enabled, int width, const std::string& position);
     void computeLetterbox();
 
+    /// Thread-safe: update AA coordinate space (e.g. after video resolution change).
+    /// Takes effect on next touch sync on the reader thread.
+    void setAAResolution(int aaWidth, int aaHeight);
+
 signals:
     /// Emitted when a 3-finger tap gesture is detected (thread-safe, queued).
     void gestureDetected();
@@ -136,6 +140,10 @@ private:
     float sidebarVolX0_ = 0, sidebarVolX1_ = 0;
     float sidebarHomeX0_ = 0, sidebarHomeX1_ = 0;
     int sidebarDragSlot_ = -1;  // slot currently dragging in volume zone
+
+    // Pending resolution update (set from main thread, consumed on reader thread)
+    std::atomic<int> pendingAAWidth_{0};
+    std::atomic<int> pendingAAHeight_{0};
 };
 
 } // namespace aa
