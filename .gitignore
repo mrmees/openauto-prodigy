@@ -26,6 +26,7 @@ Testing/__pycache__/
 # Decompiled APK source + index database (367MB)
 analysis-projection/
 __pycache__/
+.venv/
 
 # Archive (old docs/plans/assets kept for reference)
 archive/

@@ -19,6 +19,7 @@
 #include "core/services/ActionRegistry.hpp"
 #include "core/services/NotificationService.hpp"
 #include "core/services/CompanionListenerService.hpp"
+#include "core/services/SystemServiceClient.hpp"
 #include "ui/NotificationModel.hpp"
 #include "core/plugin/HostContext.hpp"
 #include "core/plugin/PluginManager.hpp"
@@ -166,6 +167,9 @@ int main(int argc, char *argv[])
         ipcServer->setCompanionListenerService(companionListener);
     ipcServer->start();
 
+    // --- System service client (IPC to openauto-system daemon) ---
+    auto* systemClient = new oap::SystemServiceClient(&app);
+
     QQuickStyle::setStyle("Material");
 
     QQmlApplicationEngine engine;
@@ -214,6 +218,8 @@ int main(int argc, char *argv[])
 
     if (companionListener)
         engine.rootContext()->setContextProperty("CompanionService", companionListener);
+
+    engine.rootContext()->setContextProperty("SystemService", systemClient);
 
     // Qt 6.5+ uses /qt/qml/ prefix, Qt 6.4 uses direct URI prefix
     QUrl url(QStringLiteral("qrc:/OpenAutoProdigy/main.qml"));

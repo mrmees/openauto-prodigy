@@ -1,0 +1,11 @@
+[Match]
+Name={interface}
+
+[Network]
+Address={ap_ip}/24
+DHCPServer=yes
+
+[DHCPServer]
+PoolOffset={dhcp_range_start}
+PoolSize={dhcp_pool_size}
+EmitDNS=no
