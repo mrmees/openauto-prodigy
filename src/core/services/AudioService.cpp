@@ -126,11 +126,20 @@ void AudioService::onPlaybackProcess(void* userdata)
     struct spa_data& d = buf->buffer->datas[0];
     uint32_t maxSize = d.maxsize;
 
-    uint32_t read = handle->ringBuffer->read(static_cast<uint8_t*>(d.data), maxSize);
+    uint32_t bytesRead = handle->ringBuffer->read(static_cast<uint8_t*>(d.data), maxSize);
+
+    // Silence-fill any underrun gap to prevent audio pops/discontinuities.
+    // Always report a full period to PipeWire — short reads cause worse
+    // artifacts than silence padding. (An earlier version reported only
+    // actual bytes read, but that trades underrun silence for audible clicks
+    // at period boundaries.)
+    if (bytesRead < maxSize) {
+        std::memset(static_cast<uint8_t*>(d.data) + bytesRead, 0, maxSize - bytesRead);
+    }
 
     d.chunk->offset = 0;
     d.chunk->stride = handle->bytesPerFrame;
-    d.chunk->size = read; // Only report actual audio bytes to PipeWire
+    d.chunk->size = maxSize;
 
     pw_stream_queue_buffer(handle->stream, buf);
 }

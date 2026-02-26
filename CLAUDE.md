@@ -252,7 +252,7 @@ AA supports fixed resolutions only:
 - **`tcpi_retransmits` resets between polls** — use `tcpi_backoff` instead for reliable dead peer detection.
 - **`<netinet/tcp.h>` and `<linux/tcp.h>` conflict** — only include `<netinet/tcp.h>` for `tcp_info`.
 - **EVIOCGRAB must be toggled with AA connection state** — grab on AA connect (route touch to AA), ungrab on disconnect (return touch to Wayland/libinput). Permanent grab steals touch from the launcher UI.
-- **PipeWire `d.chunk->size` must report actual bytes read** — reporting `maxSize` (with zero-fill) causes choppy audio. Only report bytes actually read from the ring buffer.
+- **PipeWire underrun handling: silence-fill short reads** — always report `maxSize` to PipeWire with silence padding for any underrun gap. Short reads (reporting only actual bytes) cause worse artifacts (clicks/pops at period boundaries) than silence padding. An earlier attempt at zero-filling ALL reads caused choppy audio, but that was a different issue — filling silence only during genuine underruns is correct.
 - **Boost.ASIO sockets don't set SOCK_CLOEXEC** — forked processes (e.g. QProcess::startDetached for restart) inherit the TCP acceptor FD, preventing port rebind. Must `fcntl(fd, F_SETFD, FD_CLOEXEC)` after socket open.
 - **SO_REUSEADDR must be set before bind** — the Boost.ASIO 2-arg acceptor constructor does open+bind+listen in one shot, too late for socket options. Use separate open/set_option/bind/listen.
 - **`SPA_DICT_INIT_ARRAY` inline syntax** causes "taking address of temporary array" — use named `spa_dict_item` arrays with `SPA_DICT_INIT` instead.
