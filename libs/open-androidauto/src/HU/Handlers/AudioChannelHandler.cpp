@@ -34,14 +34,18 @@ void AudioChannelHandler::onChannelClosed()
     qDebug() << "[AudioChannel" << channelId_ << "] closed";
 }
 
-void AudioChannelHandler::onMessage(uint16_t messageId, const QByteArray& payload)
+void AudioChannelHandler::onMessage(uint16_t messageId, const QByteArray& payload, int dataOffset)
 {
+    // Zero-copy view of data past the message ID header
+    const QByteArray data = QByteArray::fromRawData(
+        payload.constData() + dataOffset, payload.size() - dataOffset);
+
     switch (messageId) {
     case oaa::AVMessageId::SETUP_REQUEST:
-        handleSetupRequest(payload);
+        handleSetupRequest(data);
         break;
     case oaa::AVMessageId::START_INDICATION:
-        handleStartIndication(payload);
+        handleStartIndication(data);
         break;
     case oaa::AVMessageId::STOP_INDICATION:
         handleStopIndication();
@@ -61,12 +65,12 @@ void AudioChannelHandler::onMessage(uint16_t messageId, const QByteArray& payloa
     case oaa::AVMessageId::MEDIA_OPTIONS:
         qDebug() << "[AudioChannel" << channelId_
                  << "] newer AV message:" << Qt::hex << messageId
-                 << "size:" << payload.size();
+                 << "size:" << data.size();
         break;
     default:
         qWarning() << "[AudioChannel" << channelId_
                    << "] unknown message id:" << Qt::hex << messageId;
-        emit unknownMessage(messageId, payload);
+        emit unknownMessage(messageId, data);
         break;
     }
 }

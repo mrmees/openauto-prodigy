@@ -22,16 +22,20 @@ void PhoneStatusChannelHandler::onChannelClosed()
     qInfo() << "[PhoneStatusChannel] closed";
 }
 
-void PhoneStatusChannelHandler::onMessage(uint16_t messageId, const QByteArray& payload)
+void PhoneStatusChannelHandler::onMessage(uint16_t messageId, const QByteArray& payload, int dataOffset)
 {
+    // Zero-copy view of data past the message ID header
+    const QByteArray data = QByteArray::fromRawData(
+        payload.constData() + dataOffset, payload.size() - dataOffset);
+
     switch (messageId) {
     case oaa::PhoneStatusMessageId::PHONE_STATUS:
-        handlePhoneStatus(payload);
+        handlePhoneStatus(data);
         break;
     default:
         qInfo() << "[PhoneStatusChannel] unknown msgId:" << QString("0x%1").arg(messageId, 4, 16, QChar('0'))
-                << "len:" << payload.size()
-                << "hex:" << payload.left(64).toHex(' ');
+                << "len:" << data.size()
+                << "hex:" << data.left(64).toHex(' ');
         break;
     }
 }

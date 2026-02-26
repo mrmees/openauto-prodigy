@@ -167,16 +167,18 @@ void Messenger::onMessageAssembled(uint8_t channelId, MessageType messageType,
     memcpy(&messageId, payload.constData(), 2);
     messageId = qFromBigEndian(messageId);
 
-    QByteArray msgPayload = payload.mid(2);
+    constexpr int msgIdSize = 2;
 
     // SSL handshake messages on ch0 (msgId 0x0003) before encryption is active
     // are routed to the handshake handler
     if (channelId == 0 && messageId == 0x0003 && !cryptor_.isActive()) {
-        handleHandshakeData(msgPayload);
+        // Handshake needs a clean buffer — small and infrequent, copy is fine
+        handleHandshakeData(payload.mid(msgIdSize));
         return;
     }
 
-    emit messageReceived(channelId, messageId, msgPayload);
+    // Pass full payload with offset to avoid per-message QByteArray allocation
+    emit messageReceived(channelId, messageId, payload, msgIdSize);
 }
 
 void Messenger::handleHandshakeData(const QByteArray& data)

@@ -33,18 +33,22 @@ void AVInputChannelHandler::onChannelClosed()
     qDebug() << "[AVInputChannel] closed";
 }
 
-void AVInputChannelHandler::onMessage(uint16_t messageId, const QByteArray& payload)
+void AVInputChannelHandler::onMessage(uint16_t messageId, const QByteArray& payload, int dataOffset)
 {
+    // Zero-copy view of data past the message ID header
+    const QByteArray data = QByteArray::fromRawData(
+        payload.constData() + dataOffset, payload.size() - dataOffset);
+
     switch (messageId) {
     case oaa::AVMessageId::INPUT_OPEN_REQUEST:
-        handleInputOpenRequest(payload);
+        handleInputOpenRequest(data);
         break;
     case oaa::AVMessageId::ACK_INDICATION:
-        handleAckIndication(payload);
+        handleAckIndication(data);
         break;
     default:
         qWarning() << "[AVInputChannel] unknown message id:" << Qt::hex << messageId;
-        emit unknownMessage(messageId, payload);
+        emit unknownMessage(messageId, data);
         break;
     }
 }

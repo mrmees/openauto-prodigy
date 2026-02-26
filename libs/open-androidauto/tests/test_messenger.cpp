@@ -138,7 +138,10 @@ private slots:
         QCOMPARE(spy.count(), 1);
         QCOMPARE(spy[0][0].value<uint8_t>(), uint8_t(0));
         QCOMPARE(spy[0][1].value<uint16_t>(), uint16_t(0x0002));
-        QCOMPARE(spy[0][2].toByteArray(), versionResponse);
+        // Signal now carries full payload + dataOffset instead of stripped payload
+        int dataOffset = spy[0][3].toInt();
+        QByteArray fullPayload = spy[0][2].toByteArray();
+        QCOMPARE(fullPayload.mid(dataOffset), versionResponse);
     }
 
     void testSendLargeMessageFragmented() {
@@ -213,7 +216,10 @@ private slots:
         QCOMPARE(spy.count(), 1);
         QCOMPARE(spy[0][0].value<uint8_t>(), uint8_t(3));
         QCOMPARE(spy[0][1].value<uint16_t>(), uint16_t(0x0005));
-        QCOMPARE(spy[0][2].toByteArray(), QByteArray(10, 'Z'));
+        // Signal now carries full payload + dataOffset instead of stripped payload
+        int dataOffset = spy[0][3].toInt();
+        QByteArray fullPayload = spy[0][2].toByteArray();
+        QCOMPARE(fullPayload.mid(dataOffset), QByteArray(10, 'Z'));
     }
 };
 

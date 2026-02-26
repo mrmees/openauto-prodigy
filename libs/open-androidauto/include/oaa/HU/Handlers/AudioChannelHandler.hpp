@@ -14,7 +14,7 @@ public:
     uint8_t channelId() const override { return channelId_; }
     void onChannelOpened() override;
     void onChannelClosed() override;
-    void onMessage(uint16_t messageId, const QByteArray& payload) override;
+    void onMessage(uint16_t messageId, const QByteArray& payload, int dataOffset = 0) override;
 
     // IAVChannelHandler
     void onMediaData(const QByteArray& data, uint64_t timestamp) override;

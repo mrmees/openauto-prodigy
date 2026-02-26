@@ -23,11 +23,13 @@ public:
         qDebug() << "[" << name_ << "] channel closed";
     }
 
-    void onMessage(uint16_t messageId, const QByteArray& payload) override {
+    void onMessage(uint16_t messageId, const QByteArray& payload, int dataOffset = 0) override {
+        const int dataSize = payload.size() - dataOffset;
         // Use qInfo so it's not filtered by debug level
         qInfo() << "[" << name_ << "] msgId:" << QString("0x%1").arg(messageId, 4, 16, QChar('0'))
-                << "len:" << payload.size()
-                << "hex:" << payload.left(128).toHex(' ');
+                << "len:" << dataSize
+                << "hex:" << QByteArray::fromRawData(payload.constData() + dataOffset,
+                                                      qMin(dataSize, 128)).toHex(' ');
     }
 
 private:

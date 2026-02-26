@@ -15,7 +15,7 @@ public:
     uint8_t channelId() const override { return oaa::ChannelId::Navigation; }
     void onChannelOpened() override;
     void onChannelClosed() override;
-    void onMessage(uint16_t messageId, const QByteArray& payload) override;
+    void onMessage(uint16_t messageId, const QByteArray& payload, int dataOffset = 0) override;
 
 signals:
     /// Emitted when navigation starts (active=true) or ends (active=false)

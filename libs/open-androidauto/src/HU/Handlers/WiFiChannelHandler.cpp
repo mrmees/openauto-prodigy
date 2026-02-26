@@ -29,15 +29,19 @@ void WiFiChannelHandler::onChannelClosed()
     qDebug() << "[WiFiChannel] closed";
 }
 
-void WiFiChannelHandler::onMessage(uint16_t messageId, const QByteArray& payload)
+void WiFiChannelHandler::onMessage(uint16_t messageId, const QByteArray& payload, int dataOffset)
 {
+    // Zero-copy view of data past the message ID header
+    const QByteArray data = QByteArray::fromRawData(
+        payload.constData() + dataOffset, payload.size() - dataOffset);
+
     switch (messageId) {
     case oaa::WiFiMessageId::CREDENTIALS_REQUEST:
-        handleSecurityRequest(payload);
+        handleSecurityRequest(data);
         break;
     default:
         qWarning() << "[WiFiChannel] unknown message id:" << Qt::hex << messageId;
-        emit unknownMessage(messageId, payload);
+        emit unknownMessage(messageId, data);
         break;
     }
 }

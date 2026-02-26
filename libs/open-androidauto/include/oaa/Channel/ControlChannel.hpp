@@ -14,7 +14,7 @@ public:
     uint8_t channelId() const override;
     void onChannelOpened() override;
     void onChannelClosed() override;
-    void onMessage(uint16_t messageId, const QByteArray& payload) override;
+    void onMessage(uint16_t messageId, const QByteArray& payload, int dataOffset = 0) override;
 
     // Outgoing protocol messages
     void sendVersionRequest(uint16_t major, uint16_t minor);
