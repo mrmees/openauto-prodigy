@@ -135,14 +135,57 @@ class HealthMonitor:
                 return
 
         svc.retries += 1
+
+        # Pre-recovery fixups (before service restart)
+        await self._pre_recovery(svc)
+
         log.warning("Restarting %s (attempt %d)", svc.unit, svc.retries)
         rc, output = await self.run_cmd(
             "systemctl", "restart", svc.unit, timeout=CMD_TIMEOUT
         )
         if rc == 0:
             log.info("%s restart succeeded", svc.unit)
+            # Post-recovery fixups (after service restart)
+            await self._post_recovery(svc)
         else:
             log.error("%s restart failed: %s", svc.unit, output.strip())
+
+    async def _pre_recovery(self, svc: ServiceInfo):
+        """Fix underlying issues before restarting a service."""
+        if svc.name == "hostapd":
+            await self._unblock_wifi_rfkill()
+
+    async def _post_recovery(self, svc: ServiceInfo):
+        """Fix issues that require the service to be running first."""
+        if svc.name == "bluetooth":
+            # bluetooth.service may start but leave hci0 DOWN
+            await asyncio.sleep(0.5)  # let bluetoothd settle
+            rc, output = await self.run_cmd(
+                "hciconfig", "hci0", timeout=CMD_TIMEOUT
+            )
+            if "DOWN" in output and "UP" not in output:
+                log.info("hci0 is DOWN after bluetooth restart, bringing up")
+                await self.run_cmd(
+                    "hciconfig", "hci0", "up", timeout=CMD_TIMEOUT
+                )
+
+    async def _unblock_wifi_rfkill(self):
+        """Unblock WiFi if rfkill soft-blocked (common at boot on Pi)."""
+        import glob
+        for rfkill_dir in sorted(glob.glob("/sys/class/rfkill/rfkill*")):
+            try:
+                with open(f"{rfkill_dir}/type") as f:
+                    if f.read().strip() != "wlan":
+                        continue
+                with open(f"{rfkill_dir}/soft") as f:
+                    if f.read().strip() == "1":
+                        log.info("WiFi rfkill soft-blocked (%s), unblocking", rfkill_dir)
+                        with open(f"{rfkill_dir}/soft", "w") as fw:
+                            fw.write("0")
+                        await asyncio.sleep(1)  # let driver re-init
+                        return
+            except OSError as e:
+                log.warning("rfkill check failed for %s: %s", rfkill_dir, e)
 
     async def run_cmd(self, *args: str, timeout: int = CMD_TIMEOUT) -> tuple[int, str]:
         try:
