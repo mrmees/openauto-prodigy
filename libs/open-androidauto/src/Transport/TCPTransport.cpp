@@ -55,10 +55,7 @@ void TCPTransport::stop()
 void TCPTransport::write(const QByteArray& data)
 {
     if (socket_ && socket_->state() == QAbstractSocket::ConnectedState) {
-        qDebug() << "[TCPTransport] write:" << data.size() << "bytes,"
-                 << "hex:" << data.toHex(' ');
         socket_->write(data);
-        socket_->flush();
     } else {
         qWarning() << "[TCPTransport] write DROPPED:" << data.size()
                     << "bytes (socket state:" << (socket_ ? (int)socket_->state() : -1) << ")";

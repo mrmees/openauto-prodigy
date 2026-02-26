@@ -194,10 +194,12 @@ void AndroidAutoOrchestrator::onNewConnection()
     setState(Connecting, QString("Wireless connection from %1...")
              .arg(socket->peerAddress().toString()));
 
-    // Enable TCP keepalive
+    // TCP socket tuning
     auto fd = socket->socketDescriptor();
     if (fd != -1) {
         int yes = 1;
+        // Disable Nagle — send touch events immediately, don't buffer small packets
+        ::setsockopt(fd, IPPROTO_TCP, TCP_NODELAY, &yes, sizeof(yes));
         ::setsockopt(fd, SOL_SOCKET, SO_KEEPALIVE, &yes, sizeof(yes));
         int idle = 5, interval = 3, count = 3;
         ::setsockopt(fd, IPPROTO_TCP, TCP_KEEPIDLE, &idle, sizeof(idle));

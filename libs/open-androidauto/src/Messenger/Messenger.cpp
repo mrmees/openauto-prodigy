@@ -1,4 +1,5 @@
 #include <oaa/Messenger/Messenger.hpp>
+#include <oaa/Channel/ChannelId.hpp>
 #include <QtEndian>
 #include <QDebug>
 
@@ -102,8 +103,12 @@ void Messenger::sendMessage(uint8_t channelId, uint16_t messageId,
         }
     }
 
-    // Queue and send
-    sendQueue_.enqueue(SendItem{std::move(frames)});
+    // Queue and send — input channel (touch) gets priority
+    if (channelId == ChannelId::Input) {
+        sendQueue_.prepend(SendItem{std::move(frames)});
+    } else {
+        sendQueue_.enqueue(SendItem{std::move(frames)});
+    }
     processSendQueue();
 }
 
