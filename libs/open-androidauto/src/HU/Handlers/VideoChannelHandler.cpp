@@ -1,6 +1,10 @@
 #include "oaa/HU/Handlers/VideoChannelHandler.hpp"
 
+#include <chrono>
+#include <memory>
 #include <QDebug>
+
+Q_DECLARE_METATYPE(std::shared_ptr<const QByteArray>)
 
 #include "AVChannelSetupRequestMessage.pb.h"
 #include "AVChannelSetupResponseMessage.pb.h"
@@ -188,7 +192,12 @@ void VideoChannelHandler::onMediaData(const QByteArray& data, uint64_t timestamp
     if (!channelOpen_ || !streaming_)
         return;
 
-    emit videoFrameData(data, timestamp);
+    auto now = std::chrono::steady_clock::now();
+    qint64 enqueueNs = std::chrono::duration_cast<std::chrono::nanoseconds>(
+        now.time_since_epoch()).count();
+
+    auto shared = std::make_shared<const QByteArray>(data);
+    emit videoFrameData(shared, enqueueNs);
     sendAck();
 }
 

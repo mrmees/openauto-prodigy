@@ -124,6 +124,8 @@ private:
     oap::AudioStreamHandle* speechStream_ = nullptr;
     oap::AudioStreamHandle* systemStream_ = nullptr;
 
+    QTimer* displayTimer_ = nullptr;
+
     ConnectionState state_ = Disconnected;
     QString statusMessage_;
     bool pendingReconnect_ = false;

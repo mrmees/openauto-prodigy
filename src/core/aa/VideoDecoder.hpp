@@ -11,6 +11,7 @@
 #include <QAtomicPointer>
 #include <atomic>
 #include <memory>
+#include <mutex>
 #include <queue>
 
 #include "PerfStats.hpp"
@@ -20,6 +21,7 @@
 extern "C" {
 #include <libavcodec/avcodec.h>
 #include <libavutil/imgutils.h>
+#include <libavutil/hwcontext.h>
 }
 
 namespace oap { class YamlConfig; }
@@ -40,11 +42,14 @@ public:
     void setVideoSink(QVideoSink* sink);
     void setYamlConfig(oap::YamlConfig* config) { yamlConfig_ = config; }
 
+    /// Returns the latest decoded frame if available, otherwise invalid QVideoFrame
+    QVideoFrame takeLatestFrame();
+
 signals:
     void videoSinkChanged();
 
 public slots:
-    void decodeFrame(QByteArray h264Data, qint64 enqueueTimeNs = 0);
+    void decodeFrame(std::shared_ptr<const QByteArray> h264Data, qint64 enqueueTimeNs = 0);
 
 private:
     // Decode worker thread
@@ -52,15 +57,20 @@ private:
     public:
         explicit DecodeWorker(VideoDecoder* decoder) : decoder_(decoder) {}
         void run() override;
-        void enqueue(QByteArray data, qint64 enqueueTimeNs);
+        void enqueue(std::shared_ptr<const QByteArray> data, qint64 enqueueTimeNs);
         void requestStop();
+        int queueDepth() const { QMutexLocker lock(&mutex_); return static_cast<int>(queue_.size()); }
     private:
         VideoDecoder* decoder_;
-        QMutex mutex_;
+        mutable QMutex mutex_;
         QWaitCondition condition_;
-        struct WorkItem { QByteArray data; qint64 enqueueTimeNs; };
+        struct WorkItem { std::shared_ptr<const QByteArray> data; qint64 enqueueTimeNs; bool isKeyframe; };
         std::queue<WorkItem> queue_;
         bool stopRequested_ = false;
+        // When queue depth exceeds this, skip non-reference frames
+        // (AVDISCARD_NONREF — B-frames only) to reduce CPU.
+        // Never use AVDISCARD_NONKEY — it skips P-frames and breaks refs.
+        static constexpr int SKIP_THRESHOLD = 3;
     };
 
     DecodeWorker* worker_ = nullptr;
@@ -72,6 +82,11 @@ private:
     // Shared across threads: set to false in setVideoSink(nullptr) so any
     // already-queued invokeMethod lambdas skip the setVideoFrame() call.
     std::shared_ptr<std::atomic<bool>> sinkValid_ = std::make_shared<std::atomic<bool>>(false);
+
+    // Latest-frame-wins slot — decode thread writes, display timer reads
+    std::mutex latestFrameMutex_;
+    QVideoFrame latestFrame_;
+    std::atomic<bool> hasLatestFrame_{false};
 
     // FFmpeg state
     const AVCodec* codec_ = nullptr;
@@ -90,6 +105,10 @@ private:
     void cleanupCodec();
     AVCodecID detectCodec(const QByteArray& data) const;
     static bool isHardwareDecoder(const AVCodec* codec);
+
+    // DRM hwaccel for HEVC V4L2 request API (rpi-hevc-dec)
+    AVBufferRef* hwDeviceCtx_ = nullptr;
+    static enum AVPixelFormat getHwFormat(AVCodecContext* ctx, const enum AVPixelFormat* pix_fmts);
 
     uint64_t frameCount_ = 0;
 

@@ -1,5 +1,6 @@
 #include <QTest>
 #include <QSignalSpy>
+#include <memory>
 #include <oaa/HU/Handlers/VideoChannelHandler.hpp>
 #include <oaa/Channel/ChannelId.hpp>
 #include "AVChannelSetupRequestMessage.pb.h"
@@ -56,6 +57,8 @@ private slots:
     }
 
     void testMediaDataEmitsFrameAndAck() {
+        qRegisterMetaType<std::shared_ptr<const QByteArray>>();
+
         oaa::hu::VideoChannelHandler handler;
         handler.onChannelOpened();
 
@@ -74,7 +77,15 @@ private slots:
         handler.onMediaData(h264Data, 1234567890);
 
         QCOMPARE(frameSpy.count(), 1);
-        QCOMPARE(frameSpy[0][0].toByteArray().size(), 4096);
+        auto sharedData = frameSpy[0][0].value<std::shared_ptr<const QByteArray>>();
+        QVERIFY(sharedData);
+        QCOMPARE(sharedData->size(), 4096);
+
+        // Timestamp should be a steady_clock value (nanoseconds > 0),
+        // NOT the AA protocol timestamp we passed in
+        qint64 emittedTs = frameSpy[0][1].value<qint64>();
+        QVERIFY(emittedTs > 0);
+        QVERIFY(emittedTs != 1234567890); // Must NOT be the protocol timestamp
 
         // Should send ACK
         QCOMPARE(sendSpy.count(), 1);
@@ -114,6 +125,8 @@ private slots:
     }
 
     void testMediaDataIgnoredWhenNotStreaming() {
+        qRegisterMetaType<std::shared_ptr<const QByteArray>>();
+
         oaa::hu::VideoChannelHandler handler;
         QSignalSpy frameSpy(&handler, &oaa::hu::VideoChannelHandler::videoFrameData);
 

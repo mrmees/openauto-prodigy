@@ -19,6 +19,16 @@ VideoDecoder::VideoDecoder(QObject* parent)
     packet_ = av_packet_alloc();
     frame_ = av_frame_alloc();
 
+    // Try to open DRM device for HEVC V4L2 request API hardware acceleration.
+    // On Pi 4, this routes to rpi-hevc-dec (/dev/video19) via the vc4 DRM driver.
+    // Fails gracefully on machines without DRM devices (dev VM, etc.).
+    if (av_hwdevice_ctx_create(&hwDeviceCtx_, AV_HWDEVICE_TYPE_DRM,
+                               "/dev/dri/card1", nullptr, 0) == 0) {
+        qInfo() << "[VideoDecoder] DRM device opened for HEVC hardware acceleration";
+    } else {
+        hwDeviceCtx_ = nullptr;
+    }
+
     if (!initCodec(AV_CODEC_ID_H264)) {
         qCritical() << "[VideoDecoder] Failed to initialize H.264 decoder";
         return;
@@ -44,6 +54,19 @@ bool VideoDecoder::isHardwareDecoder(const AVCodec* codec)
             strstr(name, "videotoolbox") || strstr(name, "qsv"));
 }
 
+enum AVPixelFormat VideoDecoder::getHwFormat(
+    AVCodecContext* /*ctx*/, const enum AVPixelFormat* pix_fmts)
+{
+    // Request DRM_PRIME (DMA buffer) output when offered by the hwaccel.
+    // FFmpeg's V4L2 request API hwaccel offers this when rpi-hevc-dec is available.
+    for (const enum AVPixelFormat* p = pix_fmts; *p != AV_PIX_FMT_NONE; p++) {
+        if (*p == AV_PIX_FMT_DRM_PRIME)
+            return AV_PIX_FMT_DRM_PRIME;
+    }
+    // DRM_PRIME not offered — fall back to first format (software decode)
+    return pix_fmts[0];
+}
+
 bool VideoDecoder::tryOpenCodec(const AVCodec* codec, AVCodecID codecId)
 {
     codecCtx_ = avcodec_alloc_context3(codec);
@@ -53,6 +76,16 @@ bool VideoDecoder::tryOpenCodec(const AVCodec* codec, AVCodecID codecId)
     codecCtx_->flags |= AV_CODEC_FLAG_LOW_DELAY;
     codecCtx_->flags2 |= AV_CODEC_FLAG2_FAST;
     codecCtx_->thread_count = 1;  // Single-threaded for immediate output (no frame reordering delay)
+
+    // For HEVC software decoder with DRM device available, enable V4L2 request
+    // API hwaccel.  FFmpeg's HEVC parser feeds parsed slices to rpi-hevc-dec
+    // hardware, which returns DRM_PRIME (DMA buffer) frames.
+    // Only attach to the software decoder — standalone hw decoders (v4l2m2m)
+    // manage their own hw context.
+    if (codecId == AV_CODEC_ID_H265 && hwDeviceCtx_ && !isHardwareDecoder(codec)) {
+        codecCtx_->hw_device_ctx = av_buffer_ref(hwDeviceCtx_);
+        codecCtx_->get_format = getHwFormat;
+    }
 
     if (avcodec_open2(codecCtx_, codec, nullptr) < 0) {
         avcodec_free_context(&codecCtx_);
@@ -105,7 +138,16 @@ bool VideoDecoder::initCodec(AVCodecID codecId)
                        << "not found, falling back to auto";
     }
 
-    // 2. Auto mode: try known hw decoders in order
+    // 2a. For HEVC with DRM device: use software decoder + V4L2 request hwaccel.
+    // This routes decode through rpi-hevc-dec hardware via the stateless API,
+    // which is faster and more reliable than hevc_v4l2m2m on Pi 4 (kernel 6.6+).
+    if (!selectedCodec && codecId == AV_CODEC_ID_H265 && hwDeviceCtx_) {
+        selectedCodec = avcodec_find_decoder(codecId);
+        if (selectedCodec)
+            qInfo() << "[VideoDecoder] HEVC: using software decoder with DRM hwaccel (V4L2 request)";
+    }
+
+    // 2b. Auto mode: try known standalone hw decoders in order
     if (!selectedCodec && it != codecInfoMap.end()) {
         for (int i = 0; it->hwDecoders[i]; ++i) {
             const AVCodec* hwCodec = avcodec_find_decoder_by_name(it->hwDecoders[i]);
@@ -143,9 +185,11 @@ bool VideoDecoder::initCodec(AVCodecID codecId)
         }
     }
 
-    usingHardware_ = isHardwareDecoder(codec_);
+    usingHardware_ = isHardwareDecoder(codec_) ||
+                     (codecCtx_ && codecCtx_->hw_device_ctx);
     qInfo() << "[VideoDecoder] Using" << codec_->name
-            << (usingHardware_ ? "(hardware)" : "(software)");
+            << (usingHardware_ ? "(hardware)" : "(software)")
+            << (codecCtx_->hw_device_ctx ? "[DRM hwaccel]" : "");
     return true;
 }
 
@@ -206,6 +250,18 @@ void VideoDecoder::cleanup()
     if (frame_) { av_frame_free(&frame_); frame_ = nullptr; }
     if (packet_) { av_packet_free(&packet_); packet_ = nullptr; }
     cleanupCodec();
+    if (hwDeviceCtx_) { av_buffer_unref(&hwDeviceCtx_); hwDeviceCtx_ = nullptr; }
+}
+
+QVideoFrame VideoDecoder::takeLatestFrame()
+{
+    if (!hasLatestFrame_.load(std::memory_order_acquire))
+        return {};
+    std::lock_guard<std::mutex> lock(latestFrameMutex_);
+    if (!hasLatestFrame_.load(std::memory_order_relaxed))
+        return {};  // Lost the race
+    hasLatestFrame_.store(false, std::memory_order_relaxed);
+    return std::move(latestFrame_);
 }
 
 void VideoDecoder::setVideoSink(QVideoSink* sink)
@@ -230,7 +286,7 @@ void VideoDecoder::setVideoSink(QVideoSink* sink)
     }
 }
 
-void VideoDecoder::decodeFrame(QByteArray h264Data, qint64 enqueueTimeNs)
+void VideoDecoder::decodeFrame(std::shared_ptr<const QByteArray> h264Data, qint64 enqueueTimeNs)
 {
     if (worker_)
         worker_->enqueue(std::move(h264Data), enqueueTimeNs);
@@ -259,6 +315,7 @@ void VideoDecoder::processFrame(const QByteArray& h264Data, qint64 enqueueTimeNs
                     << ((detected == AV_CODEC_ID_H265) ? "H.265" : "H.264")
                     << "(matches current decoder)";
         }
+        // Codec switch handled by initCodec() above
     }
 
     auto t_decodeStart = PerfStats::Clock::now();
@@ -328,6 +385,25 @@ void VideoDecoder::processFrame(const QByteArray& h264Data, qint64 enqueueTimeNs
 
             auto t_decodeDone = PerfStats::Clock::now();
 
+            // Transfer DRM_PRIME (hw) frames to CPU when DmaBufVideoBuffer is
+            // unavailable (Qt < 6.8).  The RPi FFmpeg fork (--enable-sand) handles
+            // Sand/NC12 → YUV420P conversion during the transfer.
+#if QT_VERSION < QT_VERSION_CHECK(6,8,0)
+            if (frame_->format == AV_PIX_FMT_DRM_PRIME) {
+                AVFrame* swFrame = av_frame_alloc();
+                if (av_hwframe_transfer_data(swFrame, frame_, 0) >= 0) {
+                    av_frame_unref(frame_);
+                    av_frame_move_ref(frame_, swFrame);
+                    av_frame_free(&swFrame);
+                } else {
+                    qWarning() << "[VideoDecoder] Failed to transfer hw frame to CPU";
+                    av_frame_free(&swFrame);
+                    av_frame_unref(frame_);
+                    continue;
+                }
+            }
+#endif
+
             // Got a decoded frame — convert to QVideoFrame
             // Accept both YUV420P (limited range) and YUVJ420P (full/JPEG range) —
             // same pixel layout, different color range convention
@@ -337,6 +413,9 @@ void VideoDecoder::processFrame(const QByteArray& h264Data, qint64 enqueueTimeNs
             // Qt's QueuedConnection dispatch also uses `sink` as the context object,
             // so if QVideoSink is destroyed before the lambda runs, Qt discards the event.
             QVideoSink* sink = videoSink_.loadAcquire();
+            bool frameDelivered = false;
+            auto t_copyDone = t_decodeDone;  // default for zero-copy path
+
 #if QT_VERSION >= QT_VERSION_CHECK(6,8,0)
             if (sink && frame_->format == AV_PIX_FMT_DRM_PRIME) {
                 // Zero-copy hardware path: wrap DRM_PRIME frame in QAbstractVideoBuffer.
@@ -345,24 +424,14 @@ void VideoDecoder::processFrame(const QByteArray& h264Data, qint64 enqueueTimeNs
                     frame_, frame_->width, frame_->height);
                 QVideoFrame videoFrame(std::move(buffer));
 
-                auto t_copyDone = PerfStats::Clock::now();
+                t_copyDone = PerfStats::Clock::now();
 
-                auto guard = sinkValid_;
-                QMetaObject::invokeMethod(sink, [sink, videoFrame, guard]() {
-                    if (guard->load())
-                        sink->setVideoFrame(videoFrame);
-                }, Qt::QueuedConnection);
-
-                auto t_display = PerfStats::Clock::now();
-
-                // Record timing metrics
-                if (enqueueTimeNs > 0) {
-                    auto t_enqueue = PerfStats::TimePoint(std::chrono::nanoseconds(enqueueTimeNs));
-                    metricQueue_.record(PerfStats::msElapsed(t_enqueue, t_decodeStart));
-                    metricTotal_.record(PerfStats::msElapsed(t_enqueue, t_display));
+                {
+                    std::lock_guard<std::mutex> lock(latestFrameMutex_);
+                    latestFrame_ = std::move(videoFrame);
                 }
-                metricDecode_.record(PerfStats::msElapsed(t_decodeStart, t_decodeDone));
-                metricCopy_.record(0.0);  // zero-copy
+                hasLatestFrame_.store(true, std::memory_order_release);
+                frameDelivered = true;
             }
             else
 #endif
@@ -382,82 +451,97 @@ void VideoDecoder::processFrame(const QByteArray& h264Data, qint64 enqueueTimeNs
                     }
                 }
 
-                // Fresh frame each decode — QVideoFrame is ref-counted so reusing
-                // buffers races with Qt's render thread holding a read mapping.
-                // The pool encapsulates format caching and allocation tracking.
+                const int w = frame_->width;
+                const int h = frame_->height;
+                const int chromaH = h / 2;
+                const int chromaW = w / 2;
+
+#if QT_VERSION >= QT_VERSION_CHECK(6,8,0)
+                // Qt 6.8+: Recycled buffer path — pool manages raw memory,
+                // destructor returns it when Qt's render thread is done.
+                // Tightly packed strides (no alignment padding).
+                QVideoFrame videoFrame = framePool_->acquireRecycled();
+                // map() to get our buffer pointer (no-op internally, just returns pointers)
+                if (videoFrame.map(QVideoFrame::WriteOnly)) {
+                    uint8_t* yDst = videoFrame.bits(0);
+                    uint8_t* uDst = videoFrame.bits(1);
+                    uint8_t* vDst = videoFrame.bits(2);
+                    const int yDstStride = videoFrame.bytesPerLine(0);  // == w
+                    const int uDstStride = videoFrame.bytesPerLine(1);  // == w/2
+                    const int vDstStride = videoFrame.bytesPerLine(2);  // == w/2
+#else
                 QVideoFrame videoFrame = framePool_->acquire();
                 if (videoFrame.map(QVideoFrame::WriteOnly)) {
-                    const int h = frame_->height;
-                    const int chromaH = h / 2;
-
-                    // Y plane — bulk copy if strides match
+                    uint8_t* yDst = videoFrame.bits(0);
+                    uint8_t* uDst = videoFrame.bits(1);
+                    uint8_t* vDst = videoFrame.bits(2);
                     const int yDstStride = videoFrame.bytesPerLine(0);
-                    const int ySrcStride = frame_->linesize[0];
-                    if (yDstStride == ySrcStride) {
-                        std::memcpy(videoFrame.bits(0), frame_->data[0], ySrcStride * h);
+                    const int uDstStride = videoFrame.bytesPerLine(1);
+                    const int vDstStride = videoFrame.bytesPerLine(2);
+#endif
+                    // Y plane — bulk copy if strides match
+                    if (yDstStride == frame_->linesize[0]) {
+                        std::memcpy(yDst, frame_->data[0], frame_->linesize[0] * h);
                     } else {
-                        const int yRowBytes = std::min(yDstStride, ySrcStride);
+                        const int rowBytes = std::min(yDstStride, frame_->linesize[0]);
                         for (int y = 0; y < h; ++y)
-                            std::memcpy(videoFrame.bits(0) + y * yDstStride,
-                                        frame_->data[0] + y * ySrcStride, yRowBytes);
+                            std::memcpy(yDst + y * yDstStride,
+                                        frame_->data[0] + y * frame_->linesize[0], rowBytes);
                     }
 
                     // U plane
-                    const int uDstStride = videoFrame.bytesPerLine(1);
-                    const int uSrcStride = frame_->linesize[1];
-                    if (uDstStride == uSrcStride) {
-                        std::memcpy(videoFrame.bits(1), frame_->data[1], uSrcStride * chromaH);
+                    if (uDstStride == frame_->linesize[1]) {
+                        std::memcpy(uDst, frame_->data[1], frame_->linesize[1] * chromaH);
                     } else {
-                        const int uRowBytes = std::min(uDstStride, uSrcStride);
+                        const int rowBytes = std::min(uDstStride, frame_->linesize[1]);
                         for (int y = 0; y < chromaH; ++y)
-                            std::memcpy(videoFrame.bits(1) + y * uDstStride,
-                                        frame_->data[1] + y * uSrcStride, uRowBytes);
+                            std::memcpy(uDst + y * uDstStride,
+                                        frame_->data[1] + y * frame_->linesize[1], rowBytes);
                     }
 
                     // V plane
-                    const int vDstStride = videoFrame.bytesPerLine(2);
-                    const int vSrcStride = frame_->linesize[2];
-                    if (vDstStride == vSrcStride) {
-                        std::memcpy(videoFrame.bits(2), frame_->data[2], vSrcStride * chromaH);
+                    if (vDstStride == frame_->linesize[2]) {
+                        std::memcpy(vDst, frame_->data[2], frame_->linesize[2] * chromaH);
                     } else {
-                        const int vRowBytes = std::min(vDstStride, vSrcStride);
+                        const int rowBytes = std::min(vDstStride, frame_->linesize[2]);
                         for (int y = 0; y < chromaH; ++y)
-                            std::memcpy(videoFrame.bits(2) + y * vDstStride,
-                                        frame_->data[2] + y * vSrcStride, vRowBytes);
+                            std::memcpy(vDst + y * vDstStride,
+                                        frame_->data[2] + y * frame_->linesize[2], rowBytes);
                     }
 
                     videoFrame.unmap();
 
-                    auto t_copyDone = PerfStats::Clock::now();
+                    t_copyDone = PerfStats::Clock::now();
 
-                    // Marshal setVideoFrame back to Qt main thread.
-                    // Capture `sink` and `guard` by value. If setVideoSink(nullptr)
-                    // is called before this lambda runs, guard will be false and we
-                    // skip the call — the QVideoSink may already be deleted by then.
-                    auto guard = sinkValid_;
-                    QMetaObject::invokeMethod(sink, [sink, videoFrame, guard]() {
-                        if (guard->load())
-                            sink->setVideoFrame(videoFrame);
-                    }, Qt::QueuedConnection);
-
-                    auto t_display = PerfStats::Clock::now();
-
-                    // Record timing metrics
-                    if (enqueueTimeNs > 0) {
-                        auto t_enqueue = PerfStats::TimePoint(std::chrono::nanoseconds(enqueueTimeNs));
-                        metricQueue_.record(PerfStats::msElapsed(t_enqueue, t_decodeStart));
-                        metricTotal_.record(PerfStats::msElapsed(t_enqueue, t_display));
+                    {
+                        std::lock_guard<std::mutex> lock(latestFrameMutex_);
+                        latestFrame_ = std::move(videoFrame);
                     }
-                    metricDecode_.record(PerfStats::msElapsed(t_decodeStart, t_decodeDone));
-                    metricCopy_.record(PerfStats::msElapsed(t_decodeDone, t_copyDone));
+                    hasLatestFrame_.store(true, std::memory_order_release);
+                    frameDelivered = true;
                 }
+            }
+
+            // Shared instrumentation for all decode paths
+            if (frameDelivered) {
+                auto t_display = PerfStats::Clock::now();
+
+                if (enqueueTimeNs > 0) {
+                    auto t_enqueue = PerfStats::TimePoint(std::chrono::nanoseconds(enqueueTimeNs));
+                    metricQueue_.record(PerfStats::msElapsed(t_enqueue, t_decodeStart));
+                    metricTotal_.record(PerfStats::msElapsed(t_enqueue, t_display));
+                }
+                metricDecode_.record(PerfStats::msElapsed(t_decodeStart, t_decodeDone));
+                metricCopy_.record(PerfStats::msElapsed(t_decodeDone, t_copyDone));
 
                 ++frameCount_;
                 ++framesSinceLog_;
 
                 if (frameCount_ == 1) {
-                    qInfo() << "[VideoDecoder] First frame decoded: "
-                                            << frame_->width << "x" << frame_->height;
+                    qInfo() << "[VideoDecoder] First frame decoded:"
+                            << frame_->width << "x" << frame_->height
+                            << "fmt=" << frame_->format
+                            << (usingHardware_ ? "(hardware)" : "(software)");
                 }
 
                 // Rolling stats every LOG_INTERVAL_SEC seconds
@@ -465,13 +549,16 @@ void VideoDecoder::processFrame(const QByteArray& h264Data, qint64 enqueueTimeNs
                 double elapsed = PerfStats::msElapsed(lastLogTime_, now) / 1000.0;
                 if (elapsed >= LOG_INTERVAL_SEC) {
                     double fps = framesSinceLog_ / elapsed;
+                    int depth = worker_ ? worker_->queueDepth() : 0;
                     qInfo() << "[Perf] Video: queue="
                         << QString::number(metricQueue_.avg(), 'f', 1) << "ms"
                         << "decode=" << QString::number(metricDecode_.avg(), 'f', 1) << "ms"
                         << "copy=" << QString::number(metricCopy_.avg(), 'f', 1) << "ms"
                         << "total=" << QString::number(metricTotal_.avg(), 'f', 1) << "ms"
                         << "(p99\u2248" << QString::number(metricTotal_.max, 'f', 1) << "ms)"
-                        << "|" << QString::number(fps, 'f', 1) << "fps";
+                        << "|" << QString::number(fps, 'f', 1) << "fps"
+                        << (depth > 0 ? QString(" qdepth=%1").arg(depth) : "")
+                        << (framePool_ ? QString(" pool=%1/%2").arg(framePool_->totalRecycled()).arg(framePool_->totalAllocated()) : "");
 
                     metricQueue_.reset();
                     metricDecode_.reset();
@@ -487,10 +574,20 @@ void VideoDecoder::processFrame(const QByteArray& h264Data, qint64 enqueueTimeNs
     }
 }
 
-void VideoDecoder::DecodeWorker::enqueue(QByteArray data, qint64 enqueueTimeNs)
+
+void VideoDecoder::DecodeWorker::enqueue(std::shared_ptr<const QByteArray> data, qint64 enqueueTimeNs)
 {
     QMutexLocker locker(&mutex_);
-    queue_.push({std::move(data), enqueueTimeNs});
+
+    // Never drop compressed packets — doing so breaks the decoder's reference
+    // chain and causes persistent visual corruption.  Instead, always enqueue
+    // and let the decoder maintain its reference state.  Load shedding happens
+    // in two places:
+    //   1. skip_frame (set in run()) tells FFmpeg to skip non-reference frame
+    //      output when the queue is deep, reducing CPU while keeping refs intact.
+    //   2. The display-side "latest-frame-wins" slot naturally discards stale
+    //      decoded frames — only the newest frame is ever shown.
+    queue_.push({std::move(data), enqueueTimeNs, false});
     condition_.wakeOne();
 }
 
@@ -505,6 +602,7 @@ void VideoDecoder::DecodeWorker::run()
 {
     while (true) {
         WorkItem item;
+        int depth = 0;
         {
             QMutexLocker locker(&mutex_);
             while (queue_.empty() && !stopRequested_)
@@ -513,8 +611,21 @@ void VideoDecoder::DecodeWorker::run()
                 return;
             item = std::move(queue_.front());
             queue_.pop();
+            depth = static_cast<int>(queue_.size());  // remaining after pop
         }
-        decoder_->processFrame(item.data, item.enqueueTimeNs);
+
+        // Adaptive load shedding: when the queue is deep, tell FFmpeg to skip
+        // non-reference frame output (B-frames).  This saves CPU while keeping
+        // the reference chain intact.  AVDISCARD_NONKEY is NOT safe — it skips
+        // P-frames which breaks references and causes corruption.
+        if (decoder_->codecCtx_) {
+            if (depth >= SKIP_THRESHOLD)
+                decoder_->codecCtx_->skip_frame = AVDISCARD_NONREF;
+            else
+                decoder_->codecCtx_->skip_frame = AVDISCARD_DEFAULT;
+        }
+
+        decoder_->processFrame(*item.data, item.enqueueTimeNs);
     }
 }
 

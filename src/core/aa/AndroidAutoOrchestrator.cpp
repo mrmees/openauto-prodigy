@@ -6,6 +6,7 @@
 #include "../../core/services/IAudioService.hpp"
 #include "../../core/services/IEventBus.hpp"
 
+#include <memory>
 #include <QDebug>
 #include <QEventLoop>
 #include <netinet/in.h>
@@ -261,8 +262,24 @@ void AndroidAutoOrchestrator::onNewConnection()
     systemAudioHandler_.disconnect(this);
 
     // Wire video frames to decoder
+    qRegisterMetaType<std::shared_ptr<const QByteArray>>();
     connect(&videoHandler_, &oaa::hu::VideoChannelHandler::videoFrameData,
             &videoDecoder_, &VideoDecoder::decodeFrame, Qt::QueuedConnection);
+
+    // Display tick — poll latest decoded frame at ~60Hz
+    if (!displayTimer_) {
+        displayTimer_ = new QTimer(this);
+        displayTimer_->setTimerType(Qt::PreciseTimer);
+        connect(displayTimer_, &QTimer::timeout, this, [this]() {
+            QVideoFrame frame = videoDecoder_.takeLatestFrame();
+            if (frame.isValid()) {
+                QVideoSink* sink = videoDecoder_.videoSink();
+                if (sink)
+                    sink->setVideoFrame(frame);
+            }
+        });
+    }
+    displayTimer_->start(16);  // ~60Hz
 
     // Create PipeWire audio streams with per-stream buffer sizing from config
     if (audioService_) {
@@ -478,6 +495,9 @@ void AndroidAutoOrchestrator::onSessionDisconnected(oaa::DisconnectReason reason
 
 void AndroidAutoOrchestrator::teardownSession()
 {
+    if (displayTimer_)
+        displayTimer_->stop();
+
     if (session_) {
         // Disconnect all signals from session_ to us BEFORE scheduling deletion.
         // This prevents onSessionDisconnected from being called a second time if
