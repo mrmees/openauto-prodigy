@@ -230,7 +230,7 @@ void VideoDecoder::setVideoSink(QVideoSink* sink)
     }
 }
 
-void VideoDecoder::decodeFrame(QByteArray h264Data, qint64 enqueueTimeNs)
+void VideoDecoder::decodeFrame(std::shared_ptr<const QByteArray> h264Data, qint64 enqueueTimeNs)
 {
     if (worker_)
         worker_->enqueue(std::move(h264Data), enqueueTimeNs);
@@ -487,7 +487,7 @@ void VideoDecoder::processFrame(const QByteArray& h264Data, qint64 enqueueTimeNs
     }
 }
 
-void VideoDecoder::DecodeWorker::enqueue(QByteArray data, qint64 enqueueTimeNs)
+void VideoDecoder::DecodeWorker::enqueue(std::shared_ptr<const QByteArray> data, qint64 enqueueTimeNs)
 {
     QMutexLocker locker(&mutex_);
     queue_.push({std::move(data), enqueueTimeNs});
@@ -514,7 +514,7 @@ void VideoDecoder::DecodeWorker::run()
             item = std::move(queue_.front());
             queue_.pop();
         }
-        decoder_->processFrame(item.data, item.enqueueTimeNs);
+        decoder_->processFrame(*item.data, item.enqueueTimeNs);
     }
 }
 

@@ -44,7 +44,7 @@ signals:
     void videoSinkChanged();
 
 public slots:
-    void decodeFrame(QByteArray h264Data, qint64 enqueueTimeNs = 0);
+    void decodeFrame(std::shared_ptr<const QByteArray> h264Data, qint64 enqueueTimeNs = 0);
 
 private:
     // Decode worker thread
@@ -52,13 +52,13 @@ private:
     public:
         explicit DecodeWorker(VideoDecoder* decoder) : decoder_(decoder) {}
         void run() override;
-        void enqueue(QByteArray data, qint64 enqueueTimeNs);
+        void enqueue(std::shared_ptr<const QByteArray> data, qint64 enqueueTimeNs);
         void requestStop();
     private:
         VideoDecoder* decoder_;
         QMutex mutex_;
         QWaitCondition condition_;
-        struct WorkItem { QByteArray data; qint64 enqueueTimeNs; };
+        struct WorkItem { std::shared_ptr<const QByteArray> data; qint64 enqueueTimeNs; };
         std::queue<WorkItem> queue_;
         bool stopRequested_ = false;
     };

@@ -1,5 +1,6 @@
 #pragma once
 
+#include <memory>
 #include <oaa/Channel/IAVChannelHandler.hpp>
 #include <oaa/Channel/ChannelId.hpp>
 #include <oaa/Channel/MessageIds.hpp>
@@ -28,7 +29,7 @@ public:
     void setNumVideoConfigs(uint32_t n) { numVideoConfigs_ = n; }
 
 signals:
-    void videoFrameData(const QByteArray& data, qint64 enqueueTimeNs);
+    void videoFrameData(std::shared_ptr<const QByteArray> data, qint64 enqueueTimeNs);
     void streamStarted(int32_t session, uint32_t configIndex);
     void streamStopped();
     void videoFocusChanged(int focusMode, bool unrequested);
