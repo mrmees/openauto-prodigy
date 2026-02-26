@@ -37,6 +37,7 @@ void YamlConfig::initDefaults()
     root_["audio"]["buffer_ms"]["media"] = 50;
     root_["audio"]["buffer_ms"]["speech"] = 35;
     root_["audio"]["buffer_ms"]["system"] = 35;
+    root_["audio"]["adaptive"] = true;
     root_["audio"]["microphone"]["device"] = "auto";
     root_["audio"]["microphone"]["gain"] = 1.0;
 
@@ -472,6 +473,11 @@ int YamlConfig::audioBufferMs(const QString& streamType) const
 {
     int fallback = (streamType == "media") ? 50 : 35;
     return root_["audio"]["buffer_ms"][streamType.toStdString()].as<int>(fallback);
+}
+
+bool YamlConfig::audioAdaptive() const
+{
+    return root_["audio"]["adaptive"].as<bool>(true);
 }
 
 // --- Audio: microphone ---

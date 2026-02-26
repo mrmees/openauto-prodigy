@@ -58,6 +58,10 @@ AudioService::AudioService(QObject* parent)
 
     connect(&deviceRegistry_, &PipeWireDeviceRegistry::deviceRemoved,
             this, &AudioService::onDeviceRemoved);
+
+    // Adaptive buffer growth timer — polls underrun counters every 2 seconds
+    connect(&adaptiveTimer_, &QTimer::timeout, this, &AudioService::checkAdaptiveBuffers);
+    adaptiveTimer_.start(2000);
 }
 
 AudioService::~AudioService()
@@ -127,6 +131,10 @@ void AudioService::onPlaybackProcess(void* userdata)
     uint32_t maxSize = d.maxsize;
 
     uint32_t bytesRead = handle->ringBuffer->read(static_cast<uint8_t*>(d.data), maxSize);
+
+    // Track complete underruns for adaptive buffer growth
+    if (bytesRead == 0)
+        handle->underrunCount.fetch_add(1, std::memory_order_relaxed);
 
     // Silence-fill any underrun gap to prevent audio pops/discontinuities.
     // Always report a full period to PipeWire — short reads cause worse
@@ -541,6 +549,29 @@ void AudioService::setCaptureCallback(AudioStreamHandle* handle, CaptureCallback
     if (handle && capture_.handle == handle) {
         capture_.callback = std::move(cb);
         capture_.callbackActive.store(capture_.callback != nullptr, std::memory_order_release);
+    }
+}
+
+// ---- Adaptive buffer growth ----
+
+void AudioService::checkAdaptiveBuffers()
+{
+    if (!adaptiveBuffers_) return;
+
+    QMutexLocker lock(&mutex_);
+    for (auto* handle : streams_) {
+        uint32_t xruns = handle->underrunCount.exchange(0, std::memory_order_relaxed);
+        if (xruns >= 2 && handle->bufferMs < handle->maxBufferMs) {
+            int oldMs = handle->bufferMs;
+            handle->bufferMs = qMin(handle->bufferMs + 10, handle->maxBufferMs);
+            // AudioRingBuffer uses spa_ringbuffer with a fixed backing store —
+            // live resize would require draining and reallocating. The grown
+            // bufferMs will take effect when the stream is next created.
+            qInfo() << "[Audio] Buffer grown to" << handle->bufferMs
+                    << "ms for stream" << handle->name
+                    << "(" << xruns << "xruns, was" << oldMs << "ms)"
+                    << "— takes effect on next session";
+        }
     }
 }
 

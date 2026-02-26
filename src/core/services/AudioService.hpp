@@ -6,6 +6,7 @@
 #include <QObject>
 #include <QMutex>
 #include <QList>
+#include <QTimer>
 #include <atomic>
 #include <memory>
 #include <pipewire/pipewire.h>
@@ -24,6 +25,10 @@ struct AudioStreamHandle {
     float volume = 1.0f;  // 0.0 - 1.0 (current, may be ducked)
     float baseVolume = 1.0f;  // Volume before ducking
     int bufferMs = 50;  // ring buffer size in milliseconds
+    int maxBufferMs = 100;  // adaptive growth cap
+
+    // Underrun tracking (written on PW RT thread, read on Qt main thread)
+    std::atomic<uint32_t> underrunCount{0};
 
     // Format info for process callback
     int sampleRate = 48000;
@@ -89,6 +94,7 @@ private slots:
 
 private:
     void applyDucking();
+    void checkAdaptiveBuffers();
     static void onPlaybackProcess(void* userdata);
     static void onCaptureProcess(void* userdata);
 
@@ -114,6 +120,10 @@ private:
     struct spa_hook captureListener_{};
 
     PipeWireDeviceRegistry deviceRegistry_{this};
+
+    // Adaptive buffer growth
+    bool adaptiveBuffers_ = true;
+    QTimer adaptiveTimer_;
 };
 
 } // namespace oap
