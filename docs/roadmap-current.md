@@ -4,6 +4,7 @@ Governance: capture new ideas in `docs/wishlist.md`; only promoted items should 
 
 ## Done (recent)
 
+- Touch device auto-discovery — already implemented via INPUT_PROP_DIRECT scan. Removed hardcoded evdev axis ranges; now read from device at open time. COMPLETE.
 - Persistent network configuration — installer configures hostapd + systemd-networkd (built-in DHCP, no dnsmasq) for boot persistence. System service now installed and enabled by install.sh. COMPLETE.
 - Settings UI buildout — scrollable ListView, section headers, plugin settings integration, subtext removal, larger touch targets. Settings tree spec at `docs/settings-tree.md`. COMPLETE.
 - Settings implementation — categories rendered in UI, SettingsListItem control, PluginModel settingsQml role. COMPLETE.
@@ -20,10 +21,6 @@ Governance: capture new ideas in `docs/wishlist.md`; only promoted items should 
 - General HFP call audio handling.
   - Rationale: typical head units maintain the HFP AG profile across both Android Auto and the base hardware — e.g., if AA crashes, call audio is not lost.
   - Outcome: phone calls work with audio through the head unit speakers/mic across a closed AA stream.
-
-- Touch device auto-discovery.
-  - Rationale: touch input is hardcoded to /dev/input/event4. Needs VID/PID-based detection.
-  - Outcome: correct touch device selected automatically across different hardware configs (USB, MIPI DSI, GPIO/SPI).
 
 - Audio equalizer.
   - Rationale: users expect the ability to swap between equalizer presets and define custom EQ profiles for their vehicle and speaker setup.
