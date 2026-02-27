@@ -2,11 +2,13 @@
 
 Governance: capture new ideas in `docs/wishlist.md`; only promoted items should appear in this roadmap.
 
-## Now
+## Done (recent)
 
-- Documentation cleanup and structured workflow.
-  - Rationale: 10 days of intense development left docs scattered and stale. Need a solid foundation before the next feature push.
-  - Outcome: consolidated docs, AGENTS.md workflow loop, accurate CLAUDE.md, archived community repo content.
+- Documentation cleanup and structured workflow. COMPLETE.
+- Proto repo migration — standalone [open-android-auto](https://github.com/mrmees/open-android-auto) community repo. COMPLETE.
+- Video ACK delta fix (PR #5) — prevents RxVid overflow on phone. COMPLETE.
+
+## Now
 
 - Background system service hardening.
   - Rationale: the system service (health monitor, proxy manager, IPC) is functional but needs reliability work.

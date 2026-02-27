@@ -4,6 +4,33 @@ Newest entries first.
 
 ---
 
+## 2026-02-26 — Proto Repo Migration & Community Release
+
+**What changed:**
+- Created standalone repo [open-android-auto](https://github.com/mrmees/open-android-auto) with:
+  - 164 proto files organized into 13 categories (moved from `libs/open-androidauto/proto/`)
+  - Protocol docs: reference, cross-reference, wireless BT setup, video resolution, display rendering, phone-side debug, troubleshooting
+  - Decompiled headunit firmware analysis (Alpine, Kenwood, Pioneer, Sony)
+  - APK indexer tools + 156MB SQLite database (git-lfs)
+- Integrated open-android-auto as git submodule in openauto-prodigy
+- Updated CMakeLists.txt with custom protoc invocation (preserves `oaa/<category>/` directory structure)
+- Updated 25 C++ source files (129 includes) for new proto paths
+- Removed old flat proto files from openauto-prodigy
+- Cleaned duplicated docs from openauto-prodigy (firmware, protocol reference, APK indexer)
+- Fixed broken `docs/INDEX.md` links (aa-protocol/ paths never existed)
+- Merged PR #5 (video ACK delta fix) and removed dead `ackCounter_` from both handlers
+
+**Why:**
+- Proto definitions are the most broadly useful artifact from this project. Standalone repo lets the AA community use them without pulling in the full head unit implementation.
+- Deduplication keeps openauto-prodigy focused on implementation.
+
+**Status:** Complete. Both repos pushed, Pi deployed with latest build, 48/48 tests pass.
+
+**Key gotcha for future reference:**
+- `protobuf_generate_cpp` puts all generated files flat — doesn't preserve directory structure. Must use custom `foreach` + `add_custom_command` with proper `--proto_path` when protos have subdirectory imports.
+
+---
+
 ## 2026-02-26 — Video ACK Delta Fix (Gearhead RxVid Crash Candidate)
 
 **What changed:**
