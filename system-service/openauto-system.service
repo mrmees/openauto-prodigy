@@ -1,3 +1,8 @@
+# Reference only — install.sh generates the actual service file
+# with correct paths for the target system.
+#
+# Installed to: /etc/systemd/system/openauto-system.service
+
 [Unit]
 Description=OpenAuto Prodigy System Manager
 Before=openauto-prodigy.service
@@ -5,6 +10,7 @@ After=network.target bluetooth.target
 
 [Service]
 Type=notify
+User=matt
 ExecStart=/home/matt/openauto-prodigy/system-service/.venv/bin/python3 /home/matt/openauto-prodigy/system-service/openauto_system.py
 ExecStopPost=-/usr/sbin/iptables -t nat -D OUTPUT -p tcp -j OPENAUTO_PROXY
 ExecStopPost=-/usr/sbin/iptables -t nat -F OPENAUTO_PROXY

@@ -403,7 +403,57 @@ SERVICE
 }
 
 # ────────────────────────────────────────────────────
-# Step 8: Diagnostics
+# Step 8: Create system service (Python daemon)
+# ────────────────────────────────────────────────────
+create_system_service() {
+    local SYS_DIR="$INSTALL_DIR/system-service"
+    local VENV_DIR="$SYS_DIR/.venv"
+
+    if [[ ! -f "$SYS_DIR/openauto_system.py" ]]; then
+        warn "System service not found at $SYS_DIR — skipping"
+        return
+    fi
+
+    info "Setting up system service..."
+
+    # Create venv and install deps
+    python3 -m venv "$VENV_DIR"
+    "$VENV_DIR/bin/pip" install --quiet -r "$SYS_DIR/requirements.txt" 2>/dev/null || {
+        # pytest is dev-only, install just runtime deps if full install fails
+        "$VENV_DIR/bin/pip" install --quiet dbus-next PyYAML
+    }
+    ok "Python venv created at $VENV_DIR"
+
+    # Install systemd service with correct paths
+    sudo tee /etc/systemd/system/openauto-system.service > /dev/null << SERVICE
+[Unit]
+Description=OpenAuto Prodigy System Manager
+Before=${SERVICE_NAME}.service
+After=network.target bluetooth.target
+
+[Service]
+Type=notify
+User=$USER
+ExecStart=$VENV_DIR/bin/python3 $SYS_DIR/openauto_system.py
+ExecStopPost=-/usr/sbin/iptables -t nat -D OUTPUT -p tcp -j OPENAUTO_PROXY
+ExecStopPost=-/usr/sbin/iptables -t nat -F OPENAUTO_PROXY
+ExecStopPost=-/usr/sbin/iptables -t nat -X OPENAUTO_PROXY
+WorkingDirectory=$SYS_DIR
+RuntimeDirectory=openauto
+Restart=always
+RestartSec=2
+
+[Install]
+WantedBy=multi-user.target
+SERVICE
+
+    sudo systemctl daemon-reload
+    sudo systemctl enable openauto-system
+    ok "System service installed and enabled"
+}
+
+# ────────────────────────────────────────────────────
+# Step 9: Diagnostics
 # ────────────────────────────────────────────────────
 run_diagnostics() {
     echo -e "\n${CYAN}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${NC}"
@@ -478,6 +528,13 @@ run_diagnostics() {
         info "WiFi AP: not started (configure hostapd separately)"
     fi
 
+    # System service
+    if systemctl is-enabled openauto-system &>/dev/null; then
+        ok "System service: enabled (BT profiles, proxy, IPC)"
+    else
+        warn "System service: not installed"
+    fi
+
     echo -e "\n${GREEN}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${NC}"
     echo -e "${GREEN}  Installation Complete!${NC}"
     echo -e "${GREEN}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${NC}"
@@ -502,6 +559,7 @@ main() {
     configure_network
     create_service
     create_web_service
+    create_system_service
     run_diagnostics
 }
 
