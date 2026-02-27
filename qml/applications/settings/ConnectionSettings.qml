@@ -47,9 +47,86 @@ Flickable {
 
         SectionHeader { text: "Bluetooth" }
 
-        SettingsToggle {
-            label: "Discoverable"
-            configPath: "connection.bt_discoverable"
+        ReadOnlyField {
+            label: "Device Name"
+            configPath: "connection.bt_name"
+            placeholder: "OpenAutoProdigy"
+        }
+
+        // Repurposed: controls Pairable (not Discoverable)
+        Item {
+            Layout.fillWidth: true
+            implicitHeight: UiMetrics.rowH
+            RowLayout {
+                anchors.fill: parent
+                anchors.leftMargin: UiMetrics.marginPage
+                anchors.rightMargin: UiMetrics.marginPage
+                spacing: UiMetrics.gap
+                MaterialIcon { icon: "\ue1b7"; size: UiMetrics.iconSize; color: ThemeService.normalFontColor }
+                Text {
+                    text: "Accept New Pairings"
+                    font.pixelSize: UiMetrics.fontBody
+                    color: ThemeService.normalFontColor
+                    Layout.fillWidth: true
+                }
+                Switch {
+                    id: pairableSwitch
+                    checked: BluetoothManager ? BluetoothManager.pairable : false
+                    onToggled: {
+                        if (BluetoothManager) BluetoothManager.setPairable(checked)
+                    }
+                }
+            }
+            Rectangle {
+                anchors.bottom: parent.bottom
+                anchors.left: parent.left; anchors.right: parent.right
+                anchors.leftMargin: UiMetrics.marginPage; anchors.rightMargin: UiMetrics.marginPage
+                height: 1; color: ThemeService.descriptionFontColor; opacity: 0.15
+            }
+        }
+
+        // Paired devices list
+        Repeater {
+            model: PairedDevicesModel
+            delegate: Item {
+                Layout.fillWidth: true
+                implicitHeight: UiMetrics.rowH
+                RowLayout {
+                    anchors.fill: parent
+                    anchors.leftMargin: UiMetrics.marginPage
+                    anchors.rightMargin: UiMetrics.marginPage
+                    spacing: UiMetrics.gap
+                    MaterialIcon {
+                        icon: model.connected ? "\ue1ba" : "\ue1b9"
+                        size: UiMetrics.iconSize
+                        color: model.connected ? "#44aa44" : ThemeService.descriptionFontColor
+                    }
+                    Text {
+                        text: model.name || model.address
+                        font.pixelSize: UiMetrics.fontBody
+                        color: ThemeService.normalFontColor
+                        Layout.fillWidth: true
+                    }
+                    Text {
+                        text: "Forget"
+                        font.pixelSize: UiMetrics.fontSmall
+                        color: "#cc4444"
+                        MouseArea {
+                            anchors.fill: parent
+                            anchors.margins: -8
+                            onClicked: {
+                                if (BluetoothManager) BluetoothManager.forgetDevice(model.address)
+                            }
+                        }
+                    }
+                }
+                Rectangle {
+                    anchors.bottom: parent.bottom
+                    anchors.left: parent.left; anchors.right: parent.right
+                    anchors.leftMargin: UiMetrics.marginPage; anchors.rightMargin: UiMetrics.marginPage
+                    height: 1; color: ThemeService.descriptionFontColor; opacity: 0.15
+                }
+            }
         }
     }
 }
