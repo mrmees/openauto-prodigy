@@ -237,7 +237,6 @@ Flickable {
                         var pin = CompanionService.generatePairingPin()
                         pinDisplay.text = pin
                         pinDisplay.visible = true
-                        pinHint.visible = true
                     }
                 }
             }
