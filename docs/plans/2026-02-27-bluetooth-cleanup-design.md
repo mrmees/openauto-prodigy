@@ -17,7 +17,7 @@ A new `BluetoothManager` core service (C++/Qt) becomes the single owner of all a
 |----------|--------|-----------|
 | Profile registration owner | C++ BluetoothManager | Single process owns BT state; eliminates Python/C++ duplication |
 | Pairing UX | 6-digit confirmation dialog | Matches real head unit behavior; secure without being cumbersome |
-| Discoverability | Always discoverable, pairable on demand | Phones can see the device anytime; pairing requires user action |
+| Discoverability | Always discoverable; existing toggle repurposed to control Pairable | Phones always see the device; toggle controls whether new pairings are accepted |
 | Auto-connect | Active reconnect + discoverable | Faster reconnect than passive-only; covers "phone boots slower than Pi" |
 | Retry policy | Backoff: 5s x6, 30s x4, 60s x3 (~5 min) | Covers slow phone boot without wasting BT bandwidth indefinitely |
 | Adapter/WiFi name | Unified `Prodigy_<8-hex>`, generated at install | Avoids confusion; unique per vehicle for multi-install deployments |
@@ -155,27 +155,50 @@ Modal overlay at Shell level (not inside settings — pairing requests can arriv
 
 ---
 
-## Component 5: Unified Device Name
+## Component 5: Unified Device Name & Config Schema
 
 ### Install-Time Generation
 
-In `install.sh`, during first install:
+The install script already generates a unique SSID (`OpenAutoProdigy-<HEX>`) via `head -c 2 /dev/urandom | xxd -p`. We unify this: generate one name used for both WiFi SSID and BT adapter alias.
 
-```bash
-if ! grep -q 'bt_name' "$CONFIG_FILE" 2>/dev/null; then
-    DEVICE_NAME="Prodigy_$(head -c 4 /dev/urandom | xxd -p)"
-    # Write to both bt_name and wifi SSID
-    yq -i ".connection.bt_name = \"$DEVICE_NAME\"" "$CONFIG_FILE"
-    yq -i ".connection.wifi_ap.ssid = \"$DEVICE_NAME\"" "$CONFIG_FILE"
-fi
-```
+**Changes to `install.sh` interactive prompts (Step 2):**
+- Replace the current `VEHICLE_UUID` / `DEFAULT_SSID` generation with:
+  ```bash
+  DEVICE_NAME="Prodigy_$(head -c 4 /dev/urandom | xxd -p)"
+  ```
+- The prompt uses `DEVICE_NAME` as both the WiFi SSID default and BT name.
+- `hostapd.conf` gets `ssid=$DEVICE_NAME`.
 
-Also written to `hostapd.conf` as the SSID.
+**Changes to `install.sh` config heredoc (Step 5):**
+- Add `bt_name`, `bt_discoverable`, `auto_connect_aa`, `last_paired_mac`, and `last_paired_name` to the heredoc template:
+  ```yaml
+  connection:
+    wifi_ap:
+      interface: "${WIFI_IFACE:-wlan0}"
+      ssid: "$DEVICE_NAME"
+      password: "$WIFI_PASS"
+    tcp_port: $TCP_PORT
+    bt_name: "$DEVICE_NAME"
+    bt_discoverable: true
+    auto_connect_aa: true
+    last_paired_mac: ""
+    last_paired_name: ""
+  ```
+- No `yq` dependency needed — everything goes through the existing heredoc flow.
+
+**Changes to `install.sh` polkit (Step 5):**
+- Install a BlueZ polkit rule alongside the existing companion polkit rule:
+  ```bash
+  # BlueZ agent polkit rule (allows non-root RequestDefaultAgent)
+  sudo cp "$INSTALL_DIR/config/bluez-agent-polkit.rules" \
+      /etc/polkit-1/rules.d/50-openauto-bluez.rules
+  ```
 
 ### Runtime
 
 - `BluetoothManager` reads `connection.bt_name` → sets `Adapter1.Alias` via D-Bus
 - `BluetoothDiscoveryService` already reads `connection.wifi_ap.ssid` for RFCOMM credential exchange
+- Both fields are set to the same value at install time; divergence only if user edits config manually
 - If config key missing, fallback: `OpenAutoProdigy`
 
 ### Name Changes
@@ -184,31 +207,103 @@ Also written to `hostapd.conf` as the SSID.
 - WiFi SSID requires hostapd restart (can't change SSID on a running AP)
 - Web panel handles the restart; on-head-unit settings shows the name read-only
 
+### Config Schema Summary
+
+| Key | Type | Default | Written by |
+|-----|------|---------|-----------|
+| `connection.bt_name` | string | `Prodigy_<8-hex>` | install.sh heredoc |
+| `connection.bt_discoverable` | bool | `true` | install.sh heredoc |
+| `connection.auto_connect_aa` | bool | `true` | install.sh heredoc |
+| `connection.last_paired_mac` | string | `""` | BluetoothManager at runtime |
+| `connection.last_paired_name` | string | `""` | BluetoothManager at runtime |
+| `connection.wifi_ap.ssid` | string | `Prodigy_<8-hex>` (same) | install.sh heredoc |
+
 ---
 
 ## Component 6: Connection Settings UI Updates
 
 **File:** `qml/applications/settings/ConnectionSettings.qml`
 
+### Changes to Existing Controls
+
+- **Discoverable toggle** → repurposed: label changes to "Accept New Pairings", config path changes to `connection.bt_pairable` (or we drive it directly via BluetoothManager signal, not config). When toggled ON, BluetoothManager sets `Adapter1.Pairable=true` with `PairableTimeout=120`. Auto-toggles OFF after timeout.
+
 ### New Controls (Bluetooth section)
 
-| Control | Type | Config Key | Behavior |
-|---------|------|-----------|----------|
+| Control | Type | Binding | Behavior |
+|---------|------|---------|----------|
 | Device Name | ReadOnlyField | `connection.bt_name` | Display only; edit via web panel |
-| Pair New Device | Action button | — | Sets `Pairable=true` for 120s, shows "Ready to pair..." indicator |
-| Connected Device | ReadOnlyField | — | Shows name of connected phone, or "None" |
-| Paired Devices | List | — | Shows paired device names with "Forget" action |
+| Accept New Pairings | SettingsToggle | BluetoothManager.pairable | Repurposed from Discoverable; controls Pairable with 120s auto-off |
+| Connected Device | ReadOnlyField | BluetoothManager.connectedDeviceName | Shows name of connected phone, or "None" |
 
 ### Layout
 
 ```
 SectionHeader: "Bluetooth"
   ReadOnlyField: Device Name
-  SettingsToggle: Discoverable          (existing)
-  ActionButton: Pair New Device
+  SettingsToggle: Accept New Pairings
   ReadOnlyField: Connected Device
-  [Paired device list with Forget buttons]
 ```
+
+**Note on "Paired Devices" list:** The design scope is single paired phone (head unit use case). A paired devices list with Forget implies multi-device management, which contradicts the single-phone scope. Deferred — if we add Forget functionality later, it goes in the web panel where the user has more screen space and isn't driving.
+
+---
+
+## Component 7: AA Bluetooth Channel Reconciliation
+
+**File:** `libs/open-androidauto/src/HU/Handlers/BluetoothChannelHandler.cpp`
+
+### Current Behavior
+
+The AA protocol's Bluetooth channel handler always responds `already_paired: true` to `PAIRING_REQUEST` messages from the phone. This was correct when pairing was always handled externally (pre-paired via `bluetoothctl`).
+
+### Required Change
+
+With the new pairing UX, the response should reflect actual pairing state:
+- If phone's BT MAC is already paired in BlueZ → respond `already_paired: true` (current behavior)
+- If phone is not yet paired → respond `already_paired: false`, which tells the phone to initiate BT pairing
+
+This is a **future refinement**, not a blocker for initial implementation. The initial BT cleanup can ship with `already_paired: true` (existing behavior) since pairing still happens at the BT level before AA connects. The AA pairing request is a secondary confirmation, not the primary pairing mechanism. We'll revisit once the BluetoothManager is stable.
+
+---
+
+## Component 8: BluetoothManager Lifecycle & Ownership
+
+### Bootstrap (in `main.cpp`)
+
+BluetoothManager is a **core service**, not tied to any plugin's lifecycle. It must be created and initialized early — before any plugin that uses BT (AndroidAutoPlugin, BtAudioPlugin, PhonePlugin).
+
+```
+main.cpp startup sequence:
+  1. ConfigService (reads YAML)
+  2. ThemeService
+  3. AudioService (PipeWire)
+  4. BluetoothManager::create() ← NEW
+  5. BluetoothManager::initialize() (adapter setup, agent, profiles, auto-connect)
+  6. HostContext::setBluetoothService(btManager)
+  7. PluginManager::initializeAll() (plugins get IHostContext with BT service ready)
+```
+
+### Shutdown
+
+```
+main.cpp shutdown:
+  1. PluginManager::shutdownAll()
+  2. BluetoothManager::shutdown() (unregister agent, profiles, cancel auto-connect)
+  3. AudioService shutdown
+  4. ...
+```
+
+### QML Exposure
+
+BluetoothManager needs Q_PROPERTYs for QML binding in Connection settings:
+- `pairable` (bool, read/write) — drives the toggle
+- `connectedDeviceName` (QString, read-only, NOTIFY) — for the connected device field
+- `pairingActive` (bool, read-only, NOTIFY) — true when pairing dialog should show
+- `pairingDeviceName` (QString) — device requesting pairing
+- `pairingPasskey` (QString) — 6-digit code to display
+
+Exposed to QML via `rootContext()->setContextProperty("BluetoothManager", btManager)` in main.cpp.
 
 ---
 
@@ -216,7 +311,7 @@ SectionHeader: "Bluetooth"
 
 ## Codex Review Findings (incorporated above)
 
-The following issues were identified during automated review and folded into the design:
+### Review Round 1
 
 1. **HIGH — `Connected=true` unreliable for AA**: Dual-mode phones can report Connected on BLE bearer without AA coming up. Fixed: use RFCOMM `NewConnection` as stop criterion.
 2. **HIGH — BlueZ restart recovery underspecified**: Fixed: added `QDBusServiceWatcher` on `org.bluez` with full re-init state machine.
@@ -227,6 +322,15 @@ The following issues were identified during automated review and folded into the
 7. **MEDIUM — Agent Cancel/timeout handling**: BlueZ has ~60s internal timeout. Fixed: track pending request, handle Cancel, ignore late UI responses.
 8. **MEDIUM — Adapter property sequencing**: Fixed: explicit power-on → wait → timeouts → booleans ordering.
 9. **LOW — AutoConnect option for server role**: BlueZ Profile API says it's client-only. Fixed: removed from profile options.
+
+### Review Round 2
+
+1. **HIGH — Config schema not implementation-ready**: New keys (`bt_name`, `last_paired_mac`, `last_paired_name`) not defined in install heredoc. Design used `yq` which isn't a dep. Fixed: all new keys added to existing heredoc template, no `yq` needed.
+2. **HIGH — Discoverable toggle contradicts "always discoverable"**: Fixed: toggle repurposed to control `Pairable`, not `Discoverable`. Adapter is always discoverable; toggle gates new pairing acceptance with 120s auto-off.
+3. **HIGH — BT restart recovery removes Python callback without replacement**: Fixed: `QDBusServiceWatcher` on `org.bluez` triggers full re-init in C++. Python health monitor keeps adapter-level recovery (hci0 up, /var/run/sdp perms).
+4. **MEDIUM — BluetoothManager lifecycle/ownership not defined**: Fixed: added Component 8 with explicit main.cpp bootstrap sequence, shutdown order, and QML property exposure.
+5. **MEDIUM — AA channel `already_paired` not reconciled with new pairing UX**: Fixed: added Component 7. Initial implementation keeps `already_paired: true` (safe default). Future refinement to check actual BlueZ pairing state.
+6. **LOW — Paired devices list contradicts single-phone scope**: Fixed: removed paired devices list from on-screen UI. Forget functionality deferred to web panel.
 
 ---
 
