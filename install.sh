@@ -139,21 +139,32 @@ install_dependencies() {
 setup_hardware() {
     echo -e "\n${CYAN}── Hardware Configuration ──${NC}\n"
 
-    # Touch device
-    info "Detecting input devices..."
-    echo
+    # Touch device — filter for INPUT_PROP_DIRECT (touchscreens)
+    info "Detecting touch devices..."
+    TOUCH_DEVS=()
     for dev in /dev/input/event*; do
         if [[ -e "$dev" ]]; then
-            NAME=$(cat "/sys/class/input/$(basename "$dev")/device/name" 2>/dev/null || echo "unknown")
-            printf "  %-24s %s\n" "$dev" "$NAME"
+            # Check for INPUT_PROP_DIRECT (bit 0x01 in properties bitmask)
+            local PROPS_PATH="/sys/class/input/$(basename "$dev")/device/properties"
+            if [[ -f "$PROPS_PATH" ]] && (( $(cat "$PROPS_PATH" 2>/dev/null || echo 0) & 1 )); then
+                NAME=$(cat "/sys/class/input/$(basename "$dev")/device/name" 2>/dev/null || echo "unknown")
+                TOUCH_DEVS+=("$dev")
+                printf "  %-24s %s\n" "$dev" "$NAME"
+            fi
         fi
     done
     echo
-    read -p "Touch device path [auto-detect at runtime]: " TOUCH_DEV
-    TOUCH_DEV=${TOUCH_DEV:-}
-    if [[ -z "$TOUCH_DEV" ]]; then
-        ok "Touch: will auto-detect at runtime (INPUT_PROP_DIRECT scan)"
+    if [[ ${#TOUCH_DEVS[@]} -eq 0 ]]; then
+        warn "No touchscreen devices detected."
+        ok "Touch: will auto-detect at runtime"
+        TOUCH_DEV=""
+    elif [[ ${#TOUCH_DEVS[@]} -eq 1 ]]; then
+        TOUCH_DEV="${TOUCH_DEVS[0]}"
+        NAME=$(cat "/sys/class/input/$(basename "$TOUCH_DEV")/device/name" 2>/dev/null || echo "unknown")
+        ok "Touch: $TOUCH_DEV ($NAME)"
     else
+        read -p "Touch device path [${TOUCH_DEVS[0]}]: " TOUCH_DEV
+        TOUCH_DEV=${TOUCH_DEV:-${TOUCH_DEVS[0]}}
         ok "Touch: $TOUCH_DEV"
     fi
 
