@@ -4,25 +4,23 @@
 
 Clean-room open-source rebuild of OpenAuto Pro (BlueWave Studio, defunct). Raspberry Pi-based **wireless-only** Android Auto head unit app using Qt 6 + QML, with a plugin-based architecture supporting BT audio, phone calls, and extensible third-party plugins.
 
+## Workflow
+
+This project follows a structured workflow. See `AGENTS.md` for the full loop.
+
+- **Vision & principles:** `docs/project-vision.md`
+- **Current priorities:** `docs/roadmap-current.md`
+- **Session log:** `docs/session-handoffs.md`
+- **Idea parking lot:** `docs/wishlist.md`
+- **Documentation index:** `docs/INDEX.md`
+
 ## Design Philosophy
 
-This project exists because BlueWave Studio stopped developing OpenAuto Pro, the source was never open, and time moved on — dependencies broke, the Pi ecosystem evolved, and users were left stranded. Prodigy is a **fresh start for everyone**, built on current software, with no legacy baggage.
+See `docs/project-vision.md` for design principles and `docs/design-philosophy.md` for detailed rationale.
 
-### Core Principles
+## Current Status
 
-1. **Open source, GPL v3.** No closed-source dependencies, no proprietary blobs, no "contact us for licensing." Anyone can build, modify, and redistribute.
-
-2. **Raspberry Pi 4 is the reference hardware.** Every feature must work on a Pi 4 with a basic touchscreen. If it doesn't run well on a Pi 4, it doesn't ship. Other SBCs and x86 are welcome but Pi 4 is the floor.
-
-3. **Current software stack.** RPi OS Trixie (Debian 13) is the base OS. Qt 6, PipeWire, labwc (Wayland), modern C++17. No backporting to ancient distros.
-
-4. **Android 12+ minimum, Android 14+ primary target.** Android 12 is the floor because that's when wireless AA became mandatory on new devices. We optimize for Android 14+ and don't bend over backwards for older quirks. AA protocol version: request v1.7 (current negotiated maximum).
-
-5. **Wireless only.** USB AA adds complexity (AOAP, libusb, USB permissions) for a use case that's increasingly irrelevant. Wireless is the future, and it's what the Pi's built-in WiFi/BT supports natively.
-
-6. **Plugin architecture for extensibility.** Core AA functionality is a plugin. BT audio is a plugin. Phone is a plugin. OBD-II, dashcam, backup camera — all future plugins. The shell and plugin system are the product; AA is just the killer app.
-
-7. **Installable by normal humans.** One script, minimal prerequisites, clear error messages. If someone can flash an SD card and SSH in, they should be able to install Prodigy.
+See `docs/roadmap-current.md` for current status and priorities.
 
 ## Repository Layout
 
@@ -40,6 +38,8 @@ This project exists because BlueWave Studio stopped developing OpenAuto Pro, the
 - `tests/` — Unit tests (47 tests covering config, plugins, theme, audio, events, notifications, device registry, protocol, codecs, video)
 - `web-config/` — Flask web config panel (Python, HTML/CSS/JS)
 - `docs/` — Design decisions, development guide, wireless setup, plans
+  - `docs/aa-protocol/` — AA protocol reference, phone-side debug notes, video resolution docs
+  - `docs/OpenAutoPro_archive_information/` — Archived info from the original OpenAuto Pro
 - `install.sh` — Interactive installer for RPi OS Trixie
 
 ## Build & Test
@@ -96,58 +96,6 @@ ssh matt@192.168.1.152 '~/openauto-prodigy/restart.sh --force-kill'
 ```
 
 **Note:** If cross-compiled binaries have issues (missing libs, ABI mismatch), fall back to Option B.
-
-## Current Status
-
-**v0.4.0 — AV pipeline optimization complete.**
-
-Working features:
-- Wireless AA connection (BT discovery → WiFi AP → TCP)
-- H.264 video decoding and display at 1280x720 @ 30fps on Pi 4
-- Multi-codec support: H.264, H.265, VP9, AV1 (configurable via Settings UI)
-- FFmpeg hardware decoder selection with 3-tier fallback (user config → auto hw probe → software)
-- First-frame hw→sw fallback (automatic recovery if hw decoder fails on first frame)
-- DRM_PRIME zero-copy video buffer for Qt 6.8+ (DmaBufVideoBuffer, compile-time gated)
-- Video frame pool for efficient QVideoFrame allocation (format caching, allocation tracking)
-- Codec capability detection at startup (probes FFmpeg for available hw/sw decoders)
-- Video Settings UI with per-codec enable/disable, hw/sw toggle, and decoder picker
-- ServiceDiscovery codec list driven by config + runtime capabilities
-- Circular buffer frame parser (eliminates per-frame QByteArray allocation in protocol layer)
-- Zero-copy message ID extraction in Messenger (avoids QByteArray::mid() copies)
-- Adaptive audio buffer growth on underrun detection
-- Per-stream audio ring buffer sizing (media=50ms, speech/system=35ms)
-- Multi-touch input via direct evdev reader (auto-detected by INPUT_PROP_DIRECT, bypasses Qt/Wayland)
-- Plugin system with lifecycle management (Discover → Load → Init → Activate ↔ Deactivate → Shutdown)
-- YAML configuration with deep merge, hot-reload, and ConfigService for QML
-- Theme system (day/night mode, YAML-based color definitions)
-- Audio pipeline via PipeWire (AA media/nav/phone streams with lock-free ring buffers)
-- PipeWire device registry with hot-plug detection (USB audio adapters appear in QML dropdowns)
-- Audio device selection (output + input) via Settings UI (requires restart to apply)
-- Graceful AA shutdown (sends ShutdownRequest to phone before app exit/restart)
-- App restart from Settings with PID-based wait and FD_CLOEXEC for clean port rebind
-- Bluetooth audio plugin (A2DP sink monitoring, AVRCP metadata + controls via BlueZ D-Bus)
-- Phone plugin (HFP via BlueZ D-Bus, dialer, incoming call overlay)
-- Settings pages: Audio, Display, Connection, Video, System, About
-- Web config panel (Flask, Unix socket IPC, settings/theme/plugin management)
-- 3-finger gesture overlay (volume, brightness, home, day/night toggle)
-- Connection watchdog using TCP_INFO polling (detects dead peers on local WiFi AP)
-- Interactive install script for RPi OS Trixie
-- Configurable sidebar during AA (volume, home) using protocol-level margin negotiation
-
-**Known limitations / TODO:**
-- DmaBufVideoBuffer (Qt 6.8 zero-copy) needs real-world testing on Pi with v4l2m2m
-- Adaptive audio buffer growth needs stress testing under load
-- D-Bus signal connection warnings for BT audio and phone plugins (non-fatal, but plugins don't receive live state updates)
-- HFP call audio routing not yet wired through PipeWire
-- Phone contacts not yet synced (PBAP profile)
-- `wlan0` IP (10.0.0.1) doesn't survive reboot — needs permanent config
-- Dynamic plugin loading (.so) untested — only static plugins currently
-- Audio device switching requires app restart (live PipeWire stream re-routing didn't work reliably)
-- Phone doesn't cleanly reconnect after app restart — user must manually cycle BT/WiFi
-- "Default" device label shows first registry device, not PipeWire's actual default sink
-- Sidebar touch zones use evdev hit detection — QML MouseAreas are visual fallback only (EVIOCGRAB blocks Qt input on Pi)
-- Sidebar config changes require app restart (margins locked at AA session start)
-- Sidebar volume slider in QML won't respond to evdev-driven volume changes (no live binding back from C++)
 
 ## Architecture
 
@@ -249,38 +197,48 @@ AA supports fixed resolutions only:
 
 ## Gotchas
 
+### Qt / Build
+
 - Don't use `loadFromModule()` — not available in Qt 6.4
 - `QColor` needs `Qt6::Gui` link, not `Qt6::Core`
-- Boost.Log truncates multiline — use `ShortDebugString()` for protobuf
-- SonOfGib aasdk is proto2 — no `device_model` field in ServiceDiscoveryRequest
+- Q_OBJECT in header-only classes needs a .cpp file listed in CMakeLists.txt for MOC
 - BT code is `#ifdef HAS_BLUETOOTH` guarded — builds without qt6-connectivity-dev
-- WiFi SSID/password in config must match hostapd.conf exactly
+- **QTimer needs `#include <QTimer>`** — forward declaration alone causes "not declared in scope" errors
+- **QTimer only works on threads with a Qt event loop** — starting a QTimer from a Boost.ASIO thread silently does nothing. Use `QMetaObject::invokeMethod(obj, lambda, Qt::QueuedConnection)` to marshal to the main thread.
+- **QVideoFrame is ref-counted** — do NOT reuse frame buffers. Allocate fresh frames each decode.
+- **QDBusArgument `>>` operator** cannot extract QVariantMap directly — use manual `beginMap()/endMap()` with `QDBusVariant`
+
+### AA Protocol
+
+- SonOfGib aasdk is proto2 — no `device_model` field in ServiceDiscoveryRequest
 - SPS/PPS arrives as `AV_MEDIA_INDICATION` (no timestamp) — must forward to decoder
 - H.264 data from aasdk already has AnnexB start codes — do NOT prepend additional ones
-- Q_OBJECT in header-only classes needs a .cpp file listed in CMakeLists.txt for MOC
-- `pkill` on names >15 chars silently matches nothing — use `pkill -f`
-- **QVideoFrame is ref-counted** — do NOT reuse frame buffers. Allocate fresh frames each decode.
+- WiFi SSID/password in config must match hostapd.conf exactly
+- **`touch_screen_config` must be video resolution (1280x720), not display resolution (1024x600)** — the phone interprets touch coordinates relative to `touch_screen_config`. Mismatch causes touch misalignment.
+- **Phone sends `config_index=3` in `AVChannelSetupRequest`** — despite our video config list only having indices 0-1. This is the phone's internal reference, not an index into our list.
+- **FFmpeg `thread_count` must be 1 for real-time AA decode** — `thread_count=2` causes multi-threaded H.264 decoders to buffer frames internally, resulting in permanent EAGAIN on phones that send small P-frames.
+- **Some phones output `AV_PIX_FMT_YUVJ420P` (fmt=12) instead of `AV_PIX_FMT_YUV420P` (fmt=0)** — JPEG full-range vs limited-range YUV420. Must accept both formats or frames will be silently discarded (black screen). Moto G Play 2024 outputs YUVJ420P; Samsung S25 Ultra outputs YUV420P.
+- **AA `VideoConfig.margin_width/height` actually works** — the phone renders UI in a centered sub-region with black bar margins. Use for non-standard screen ratios and sidebar layouts. Margins are locked at session start. See `docs/aa-protocol/`.
+
+### PipeWire / Audio
+
+- **PipeWire playback: always output full periods** — set `d.chunk->size = maxSize` and silence-fill any gap. PipeWire's graph timing is fixed by quantum/rate; variable `chunk->size` values cause tempo wobble. Reporting only `bytesRead` was the cause of "skippy" audio.
+- **`SPA_DICT_INIT_ARRAY` inline syntax** causes "taking address of temporary array" — use named `spa_dict_item` arrays with `SPA_DICT_INIT` instead.
+
+### Pi / System
+
 - **labwc `mouseEmulation="yes"`** destroys multi-touch — must be `"no"` in `~/.config/labwc/rc.xml`
 - **Qt evdevtouch plugin** causes duplicate events — use direct evdev with EVIOCGRAB instead
 - **WAYLAND_DISPLAY** on Pi is `wayland-0` (not `wayland-1`)
 - **DFRobot USB Multi Touch** (vendor 3343:5710): 10 points, MT Type B, 0-4095 range
-- **QDBusArgument `>>` operator** cannot extract QVariantMap directly — use manual `beginMap()/endMap()` with `QDBusVariant`
-- **QTimer needs `#include <QTimer>`** — forward declaration alone causes "not declared in scope" errors
-- **QTimer only works on threads with a Qt event loop** — starting a QTimer from a Boost.ASIO thread silently does nothing. Use `QMetaObject::invokeMethod(obj, lambda, Qt::QueuedConnection)` to marshal to the main thread.
-- **TCP keepalive alone won't detect dead connections on a local WiFi AP** — when the Pi IS the AP, there's no router to send RST. Must actively poll `tcp_info` via `getsockopt(IPPROTO_TCP, TCP_INFO)` and check `tcpi_backoff >= 3` (~16s detection).
-- **`tcpi_retransmits` resets between polls** — use `tcpi_backoff` instead for reliable dead peer detection.
-- **`<netinet/tcp.h>` and `<linux/tcp.h>` conflict** — only include `<netinet/tcp.h>` for `tcp_info`.
 - **EVIOCGRAB must be toggled with AA connection state** — grab on AA connect (route touch to AA), ungrab on disconnect (return touch to Wayland/libinput). Permanent grab steals touch from the launcher UI.
-- **PipeWire playback: always output full periods** — set `d.chunk->size = maxSize` and silence-fill any gap after the actual ring buffer read. PipeWire's graph timing is fixed by quantum/rate; variable `chunk->size` values cause tempo wobble (audio speeds up/slows down). This matches PipeWire's own `audio-src-ring.c` example which always outputs `n_frames * stride`. Reporting only `bytesRead` was the cause of "skippy" audio.
-- **Boost.ASIO sockets don't set SOCK_CLOEXEC** — forked processes (e.g. QProcess::startDetached for restart) inherit the TCP acceptor FD, preventing port rebind. Must `fcntl(fd, F_SETFD, FD_CLOEXEC)` after socket open.
-- **SO_REUSEADDR must be set before bind** — the Boost.ASIO 2-arg acceptor constructor does open+bind+listen in one shot, too late for socket options. Use separate open/set_option/bind/listen.
-- **`SPA_DICT_INIT_ARRAY` inline syntax** causes "taking address of temporary array" — use named `spa_dict_item` arrays with `SPA_DICT_INIT` instead.
-- **AA `VideoConfig.margin_width/height` actually works** — the phone renders UI in a centered sub-region with black bar margins. Use this for non-standard screen ratios and sidebar layouts. Margins are locked at session start (set during `ServiceDiscoveryResponse`). See `docs/aa-video-resolution.md`.
 - **Sidebar QML MouseArea vs EVIOCGRAB** — during AA, EVIOCGRAB steals all touch from Qt. Sidebar touch actions are handled via evdev hit zones in `EvdevTouchReader`, not QML `MouseArea`. The QML controls are visual only on Pi.
-- **`touch_screen_config` must be video resolution (1280x720), not display resolution (1024x600)** — the phone interprets touch coordinates relative to `touch_screen_config`. Since we send coordinates in video resolution space, this field must match. Mismatch causes touch misalignment.
-- **Phone sends `config_index=3` in `AVChannelSetupRequest`** — despite our video config list only having indices 0-1. This is the phone's internal reference, not an index into our list. We always respond with `add_configs(0)` (720p primary).
-- **FFmpeg `thread_count` must be 1 for real-time AA decode** — `thread_count=2` causes multi-threaded H.264 decoders to buffer frames internally before producing output, resulting in permanent EAGAIN on phones that send small P-frames. Single-threaded decode produces frames immediately.
-- **Some phones output `AV_PIX_FMT_YUVJ420P` (fmt=12) instead of `AV_PIX_FMT_YUV420P` (fmt=0)** — JPEG full-range vs limited-range YUV420. Identical pixel layout, different color range flag. Must accept both formats in the decoder or frames will be silently discarded (black screen). Moto G Play 2024 outputs YUVJ420P; Samsung S25 Ultra outputs YUV420P.
+- **TCP keepalive alone won't detect dead connections on a local WiFi AP** — when the Pi IS the AP, there's no router to send RST. Must actively poll `tcp_info` via `getsockopt(IPPROTO_TCP, TCP_INFO)` and check `tcpi_backoff >= 3` (~16s detection). `tcpi_retransmits` resets between polls.
+- **`<netinet/tcp.h>` and `<linux/tcp.h>` conflict** — only include `<netinet/tcp.h>` for `tcp_info`.
+- **Boost.ASIO sockets don't set SOCK_CLOEXEC** — forked processes inherit the TCP acceptor FD, preventing port rebind. Must `fcntl(fd, F_SETFD, FD_CLOEXEC)` after socket open.
+- **SO_REUSEADDR must be set before bind** — the Boost.ASIO 2-arg acceptor constructor does open+bind+listen in one shot, too late for socket options. Use separate open/set_option/bind/listen.
+- Boost.Log truncates multiline — use `ShortDebugString()` for protobuf
+- `pkill` on names >15 chars silently matches nothing — use `pkill -f`
 
 ## Hardware (Pi Target)
 
@@ -291,5 +249,5 @@ AA supports fixed resolutions only:
 | Touch | DFRobot USB Multi Touch (10-point, MT Type B, 0-4095 range) |
 | WiFi | Built-in (used as AP for phone connection) |
 | BT | Built-in (RFCOMM for AA discovery, A2DP sink, HFP) |
-| IP | 192.168.1.149 (LAN), 10.0.0.1 (wlan0 AP) |
+| IP | 192.168.1.152 (LAN), 10.0.0.1 (wlan0 AP) |
 | OS | RPi OS Trixie, labwc compositor |
