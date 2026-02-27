@@ -178,7 +178,7 @@ setup_hardware() {
     fi
 
     if [[ -n "$WIFI_IFACE" ]]; then
-        DEVICE_NAME="Prodigy_$(head -c 4 /dev/urandom | xxd -p)"
+        DEVICE_NAME="Prodigy_$(od -An -tx1 -N4 /dev/urandom | tr -d ' \n')"
         echo ""
         info "This name identifies your vehicle on both WiFi and Bluetooth."
         info "The default includes a unique suffix to avoid conflicts with multiple vehicles."
