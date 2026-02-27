@@ -347,9 +347,10 @@ build_project() {
     mkdir -p build
     cd build
 
+    info "Configuring build..."
+    cmake .. -Wno-dev 2>&1 | grep -v "^--\|^$" | head -5
     info "Building (this may take a while on RPi)..."
-    cmake ..
-    cmake --build . -j$(nproc)
+    cmake --build . -j$(nproc) 2>&1 | tail -5
     ok "Build complete"
 }
 
