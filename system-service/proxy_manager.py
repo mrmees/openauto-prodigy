@@ -26,7 +26,7 @@ class ProxyManager:
 
 redsocks {{
     local_ip = 127.0.0.1;
-    local_port = 12345;
+    local_port = {redirect_port};
     ip = {host};
     port = {port};
     type = socks5;
@@ -34,9 +34,19 @@ redsocks {{
     password = "{password}";
 }}
 """
+    DEFAULT_REDIRECT_PORT = 12345
 
-    def __init__(self, config_path: str = "/run/openauto/redsocks.conf"):
+    def __init__(
+        self,
+        config_path: str = "/run/openauto/redsocks.conf",
+        default_skip_interfaces=None,
+        default_skip_ports=None,
+        default_skip_networks=None,
+    ):
         self._config_path = config_path
+        self._default_skip_interfaces = list(default_skip_interfaces or ["eth0", "lo"])
+        self._default_skip_ports = list(default_skip_ports or [22])
+        self._default_skip_networks = list(default_skip_networks or [])
         self._state = ProxyState.DISABLED
         self._redsocks_proc = None
         self._proxy_host = ""
@@ -44,6 +54,10 @@ redsocks {{
         self._fail_count = 0
         self._health_task = None
         self._state_callback = None
+        self._skip_interfaces = []
+        self._skip_ports = []
+        self._skip_networks = []
+        self._redirect_port = self.DEFAULT_REDIRECT_PORT
 
     @property
     def state(self) -> ProxyState:
@@ -63,12 +77,27 @@ redsocks {{
         out, _ = await proc.communicate()
         return proc.returncode, (out.decode() if isinstance(out, (bytes, bytearray)) else str(out))
 
-    async def enable(self, host: str, port: int, user: str, password: str) -> None:
+    async def enable(
+        self,
+        host: str,
+        port: int,
+        user: str,
+        password: str,
+        *,
+        skip_interfaces=None,
+        skip_ports=None,
+        skip_networks=None,
+        redirect_port: int = DEFAULT_REDIRECT_PORT,
+    ) -> None:
         if self._state != ProxyState.DISABLED:
             await self.disable()
 
         self._proxy_host = host
         self._proxy_port = port
+        self._skip_interfaces = list(self._default_skip_interfaces if skip_interfaces is None else skip_interfaces)
+        self._skip_ports = list(self._default_skip_ports if skip_ports is None else skip_ports)
+        self._skip_networks = list(self._default_skip_networks if skip_networks is None else skip_networks)
+        self._redirect_port = redirect_port
         self._fail_count = 0
 
         config_data = self.CONFIG_TEMPLATE.format(
@@ -76,6 +105,7 @@ redsocks {{
             port=port,
             user=user,
             password=password,
+            redirect_port=self._redirect_port,
         )
 
         with open(self._config_path, "w", encoding="utf-8") as conf:
@@ -163,45 +193,50 @@ redsocks {{
         rc, out = await self._run_cmd("iptables", "-t", "nat", "-N", "OPENAUTO_PROXY")
         if rc != 0 and "Chain already exists" not in out:
             raise RuntimeError(f"iptables -N failed: {out}")
-        rc, out = await self._run_cmd(
-            "iptables",
-            "-t",
-            "nat",
-            "-A",
-            "OPENAUTO_PROXY",
-            "-d",
-            "127.0.0.0/8",
-            "-j",
-            "RETURN",
-        )
-        if rc != 0:
-            raise RuntimeError(f"iptables RETURN local failed: {out}")
-        rc, out = await self._run_cmd(
-            "iptables",
-            "-t",
-            "nat",
-            "-A",
-            "OPENAUTO_PROXY",
-            "-d",
-            "10.0.0.0/24",
-            "-j",
-            "RETURN",
-        )
-        if rc != 0:
-            raise RuntimeError(f"iptables RETURN private failed: {out}")
-        rc, out = await self._run_cmd(
-            "iptables",
-            "-t",
-            "nat",
-            "-A",
-            "OPENAUTO_PROXY",
-            "-d",
-            "192.168.0.0/16",
-            "-j",
-            "RETURN",
-        )
-        if rc != 0:
-            raise RuntimeError(f"iptables RETURN vpn failed: {out}")
+        for iface in self._skip_interfaces:
+            rc, out = await self._run_cmd(
+                "iptables",
+                "-t",
+                "nat",
+                "-A",
+                "OPENAUTO_PROXY",
+                "-o",
+                iface,
+                "-j",
+                "RETURN",
+            )
+            if rc != 0:
+                raise RuntimeError(f"iptables RETURN interface {iface} failed: {out}")
+        for port in self._skip_ports:
+            rc, out = await self._run_cmd(
+                "iptables",
+                "-t",
+                "nat",
+                "-A",
+                "OPENAUTO_PROXY",
+                "-p",
+                "tcp",
+                "--dport",
+                str(port),
+                "-j",
+                "RETURN",
+            )
+            if rc != 0:
+                raise RuntimeError(f"iptables RETURN port {port} failed: {out}")
+        for network in self._skip_networks:
+            rc, out = await self._run_cmd(
+                "iptables",
+                "-t",
+                "nat",
+                "-A",
+                "OPENAUTO_PROXY",
+                "-d",
+                network,
+                "-j",
+                "RETURN",
+            )
+            if rc != 0:
+                raise RuntimeError(f"iptables RETURN network {network} failed: {out}")
         rc, out = await self._run_cmd(
             "iptables",
             "-t",
@@ -213,7 +248,7 @@ redsocks {{
             "-j",
             "REDIRECT",
             "--to-ports",
-            "12345",
+            str(self._redirect_port),
         )
         if rc != 0:
             raise RuntimeError(f"iptables REDIRECT failed: {out}")

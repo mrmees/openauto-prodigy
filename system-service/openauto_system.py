@@ -7,6 +7,7 @@ import os
 import signal
 import socket
 import time
+import ipaddress
 from typing import Any, Dict
 
 from ipc_server import IpcServer
@@ -53,12 +54,43 @@ def parse_set_proxy_route_request(params: Dict[str, Any]) -> Dict[str, Any]:
     if not isinstance(password, str) or not password:
         raise ValueError("password must be a non-empty string")
 
+    skip_interfaces = params.get("skip_interfaces", ["eth0", "lo"])
+    if not isinstance(skip_interfaces, list) or not all(
+        isinstance(item, str) and item.strip() for item in skip_interfaces
+    ):
+        raise ValueError("skip_interfaces must be a list of non-empty strings")
+
+    skip_ports = params.get("skip_tcp_ports", [22])
+    if not isinstance(skip_ports, list) or not skip_ports:
+        raise ValueError("skip_tcp_ports must be a non-empty list")
+    normalized_skip_ports = []
+    for skip_port in skip_ports:
+        try:
+            skip_port = int(skip_port)
+        except (TypeError, ValueError):
+            raise ValueError("skip_tcp_ports must contain valid integers")
+        if not (1 <= skip_port <= 65535):
+            raise ValueError("skip_tcp_ports values must be in [1, 65535]")
+        normalized_skip_ports.append(skip_port)
+
+    skip_networks = params.get("skip_networks", [])
+    if not isinstance(skip_networks, list):
+        raise ValueError("skip_networks must be a list")
+    normalized_skip_networks = []
+    for network in skip_networks:
+        if not isinstance(network, str) or not network.strip():
+            raise ValueError("skip_networks entries must be non-empty strings")
+        normalized_skip_networks.append(str(ipaddress.ip_network(network, strict=False)))
+
     return {
         "active": True,
         "host": host,
         "port": port,
         "user": user,
         "password": password,
+        "skip_interfaces": skip_interfaces,
+        "skip_tcp_ports": normalized_skip_ports,
+        "skip_networks": normalized_skip_networks,
     }
 
 
@@ -147,6 +179,9 @@ async def main() -> None:
                     port=normalized["port"],
                     user=normalized["user"],
                     password=normalized["password"],
+                    skip_interfaces=normalized["skip_interfaces"],
+                    skip_ports=normalized["skip_tcp_ports"],
+                    skip_networks=normalized["skip_networks"],
                 )
             else:
                 await proxy.disable()

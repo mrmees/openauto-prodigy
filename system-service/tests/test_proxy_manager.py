@@ -25,11 +25,17 @@ class ProxyManagerTests(unittest.IsolatedAsyncioTestCase):
         proc.kill = MagicMock()
         return proc
 
-    async def _run_enable_with_mocks(self, pm: ProxyManager, host="127.0.0.2", port=1080):
+    async def _run_enable_with_mocks(
+        self,
+        pm: ProxyManager,
+        host="127.0.0.2",
+        port=1080,
+        **kwargs,
+    ):
         proc = self._mock_proc()
         pm._run_cmd = AsyncMock(return_value=(0, ""))
         with patch("asyncio.create_subprocess_exec", AsyncMock(return_value=proc)):
-            await pm.enable(host, port, "user", "pass")
+            await pm.enable(host, port, "user", "pass", **kwargs)
         return proc
 
     async def test_initial_state_is_disabled(self):
@@ -89,8 +95,25 @@ class ProxyManagerTests(unittest.IsolatedAsyncioTestCase):
         await self._run_enable_with_mocks(pm)
 
         args = [call.args for call in pm._run_cmd.await_args_list]
-        self.assertTrue(any("REDIRECT" in cmd for call in args for cmd in call))
-        self.assertTrue(any("10.0.0.0/24" in cmd for call in args for cmd in call))
+        self.assertTrue(any("REDIRECT" in token for call in args for token in call))
+        self.assertTrue(any("-o" in call and "eth0" in call for call in args))
+        self.assertTrue(any("--dport" in call and "22" in call for call in args))
+        self.assertFalse(any("10.0.0.0/24" in token for call in args for token in call))
+        self.assertFalse(any("192.168.0.0/16" in token for call in args for token in call))
+
+    async def test_enable_applies_custom_exceptions(self):
+        pm = ProxyManager(config_path="/tmp/test_redsocks.conf")
+        await self._run_enable_with_mocks(
+            pm,
+            skip_interfaces=["wlan0"],
+            skip_ports=[123],
+            skip_networks=["172.16.0.0/12"],
+        )
+
+        args = [call.args for call in pm._run_cmd.await_args_list]
+        self.assertTrue(any("-o" in call and "wlan0" in call for call in args))
+        self.assertTrue(any("--dport" in call and "123" in call for call in args))
+        self.assertTrue(any("-d" in call and "172.16.0.0/12" in call for call in args))
 
         if pm._health_task is not None:
             pm._health_task.cancel()
@@ -106,8 +129,8 @@ class ProxyManagerTests(unittest.IsolatedAsyncioTestCase):
 
         args = [call.args for call in pm._run_cmd.await_args_list]
         self.assertTrue(
-            any("-D" in cmd for call in args for cmd in call)
-            or any("-F" in cmd for call in args for cmd in call)
+            any("-D" in token for call in args for token in call)
+            or any("-F" in token for call in args for token in call)
         )
 
     async def test_double_enable_stops_old_process(self):
