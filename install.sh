@@ -24,7 +24,7 @@ SERVICE_NAME="openauto-prodigy"
 # Defaults for optional variables (may be overridden by setup_hardware)
 WIFI_IFACE=""
 WIFI_SSID=""
-WIFI_PASS="prodigy"
+WIFI_PASS="changeme"
 DEVICE_NAME="OpenAutoProdigy"
 AP_IP="10.0.0.1"
 COUNTRY_CODE="US"
@@ -187,8 +187,8 @@ setup_hardware() {
         DEVICE_NAME=${USER_DEVICE_NAME:-$DEVICE_NAME}
         WIFI_SSID="$DEVICE_NAME"
 
-        read -p "WiFi hotspot password [prodigy]: " WIFI_PASS
-        WIFI_PASS=${WIFI_PASS:-prodigy}
+        WIFI_PASS=$(head -c 12 /dev/urandom | base64 | tr -dc 'a-zA-Z0-9' | head -c 16)
+        info "Generated random WiFi password (sent to phone automatically over BT)"
 
         read -p "AP static IP [10.0.0.1]: " AP_IP
         AP_IP=${AP_IP:-10.0.0.1}
