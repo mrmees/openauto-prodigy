@@ -3,6 +3,7 @@
 #include "IBluetoothService.hpp"
 #include <QObject>
 #include <QDBusConnection>
+#include <QDBusVariant>
 #include <QAbstractListModel>
 #include <memory>
 
@@ -54,7 +55,14 @@ signals:
     void profileNewConnection();  // RFCOMM NewConnection — auto-connect stop signal
 
 private:
+    // D-Bus helpers
+    void setupAdapter();
+    void setAdapterProperty(const QString& property, const QVariant& value);
+    QVariant getAdapterProperty(const QString& property);
+    QString findAdapterPath();
+
     IConfigService* configService_ = nullptr;
+    QString adapterPath_;  // e.g. "/org/bluez/hci0"
     QString adapterAddress_;
     QString adapterAlias_;
     bool discoverable_ = false;
