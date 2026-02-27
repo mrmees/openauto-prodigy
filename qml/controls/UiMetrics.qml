@@ -11,7 +11,7 @@ QtObject {
     }
 
     // Touch targets
-    readonly property int rowH:     Math.round(64 * scale)
+    readonly property int rowH:     Math.round(80 * scale)
     readonly property int touchMin: Math.round(56 * scale)
 
     // Spacing
@@ -32,7 +32,7 @@ QtObject {
     readonly property int headerH:     Math.round(56 * scale)
     readonly property int sectionH:    Math.round(36 * scale)
     readonly property int backBtnSize: Math.round(44 * scale)
-    readonly property int iconSize:    Math.round(28 * scale)
+    readonly property int iconSize:    Math.round(36 * scale)
     readonly property int iconSmall:   Math.round(20 * scale)
 
     // Radii

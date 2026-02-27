@@ -6,7 +6,6 @@ Item {
 
     property string icon: ""
     property string label: ""
-    property string subtitle: ""
 
     signal clicked()
 
@@ -25,24 +24,11 @@ Item {
             color: ThemeService.normalFontColor
         }
 
-        ColumnLayout {
+        Text {
+            text: root.label
+            font.pixelSize: UiMetrics.fontBody
+            color: ThemeService.normalFontColor
             Layout.fillWidth: true
-            spacing: 0
-
-            Text {
-                text: root.label
-                font.pixelSize: UiMetrics.fontBody
-                color: ThemeService.normalFontColor
-                Layout.fillWidth: true
-            }
-
-            Text {
-                text: root.subtitle
-                font.pixelSize: UiMetrics.fontTiny
-                color: ThemeService.descriptionFontColor
-                Layout.fillWidth: true
-                visible: root.subtitle !== ""
-            }
         }
 
         MaterialIcon {

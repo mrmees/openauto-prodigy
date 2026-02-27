@@ -30,14 +30,6 @@ Flickable {
             values: ["480p", "720p", "1080p"]
         }
 
-        Text {
-            text: "FPS and resolution changes reconnect Android Auto automatically."
-            font.pixelSize: UiMetrics.fontTiny
-            color: ThemeService.descriptionFontColor
-            font.italic: true
-            Layout.leftMargin: UiMetrics.marginRow
-        }
-
         SettingsSlider {
             label: "DPI"
             configPath: "video.dpi"
@@ -235,14 +227,6 @@ Flickable {
             }
         }
 
-        Text {
-            text: "Codec and decoder changes take effect on next AA connection."
-            font.pixelSize: UiMetrics.fontTiny
-            color: ThemeService.descriptionFontColor
-            font.italic: true
-            Layout.leftMargin: UiMetrics.marginRow
-        }
-
         SectionHeader { text: "Sidebar" }
 
         SettingsToggle {
@@ -267,13 +251,6 @@ Flickable {
             restartRequired: true
         }
 
-        Text {
-            text: "Sidebar changes take effect on next app restart."
-            font.pixelSize: UiMetrics.fontTiny
-            color: ThemeService.descriptionFontColor
-            font.italic: true
-            Layout.leftMargin: UiMetrics.marginRow
-        }
     }
 
     // --- Decoder picker dialog ---

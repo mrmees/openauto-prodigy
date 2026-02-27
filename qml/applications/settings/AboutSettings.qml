@@ -32,18 +32,6 @@ Flickable {
                 font.pixelSize: UiMetrics.fontBody
                 color: ThemeService.descriptionFontColor
             }
-
-            Text {
-                text: "Open-source Android Auto head unit"
-                font.pixelSize: UiMetrics.fontSmall
-                color: ThemeService.descriptionFontColor
-            }
-
-            Text {
-                text: "License: GPLv3"
-                font.pixelSize: UiMetrics.fontSmall
-                color: ThemeService.descriptionFontColor
-            }
         }
 
         Item { Layout.fillWidth: true; Layout.preferredHeight: UiMetrics.marginPage + UiMetrics.marginRow }

@@ -267,16 +267,6 @@ Flickable {
             color: ThemeService.specialFontColor
         }
 
-        Text {
-            id: pinHint
-            visible: false
-            Layout.alignment: Qt.AlignHCenter
-            text: "Scan the QR code, or enter this PIN manually"
-            font.pixelSize: UiMetrics.fontSmall
-            font.italic: true
-            color: ThemeService.descriptionFontColor
-        }
-
         SectionHeader { text: "Configuration" }
 
         SettingsToggle {
@@ -289,11 +279,6 @@ Flickable {
             label: "Listen Port"
             configPath: "companion.port"
             placeholder: "9876"
-        }
-
-        InfoBanner {
-            text: "The companion app shares time, GPS, battery, and internet from your phone to the head unit."
-            shown: true
         }
     }
 }

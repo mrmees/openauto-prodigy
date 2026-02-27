@@ -42,22 +42,21 @@ Item {
                 required property string type
                 required property string icon
                 required property string label
-                required property string subtitle
                 required property string pageId
             }
 
             Component.onCompleted: {
                 // General
-                settingsListModel.append({ type: "section", icon: "", label: "General", subtitle: "", pageId: "" })
-                settingsListModel.append({ type: "item", icon: "\ueb97", label: "Display", subtitle: "Brightness, theme, night mode", pageId: "display" })
-                settingsListModel.append({ type: "item", icon: "\ue050", label: "Audio", subtitle: "Volume, devices, microphone", pageId: "audio" })
-                settingsListModel.append({ type: "item", icon: "\ue1d8", label: "Connection", subtitle: "WiFi, Bluetooth, Android Auto", pageId: "connection" })
-                settingsListModel.append({ type: "item", icon: "\ue04b", label: "Video", subtitle: "Resolution, codecs, sidebar", pageId: "video" })
-                settingsListModel.append({ type: "item", icon: "\uf8cd", label: "System", subtitle: "Identity, hardware, touch", pageId: "system" })
+                settingsListModel.append({ type: "section", icon: "", label: "General", pageId: "" })
+                settingsListModel.append({ type: "item", icon: "\ueb97", label: "Display", pageId: "display" })
+                settingsListModel.append({ type: "item", icon: "\ue050", label: "Audio", pageId: "audio" })
+                settingsListModel.append({ type: "item", icon: "\ue1d8", label: "Connection", pageId: "connection" })
+                settingsListModel.append({ type: "item", icon: "\ue04b", label: "Video", pageId: "video" })
+                settingsListModel.append({ type: "item", icon: "\uf8cd", label: "System", pageId: "system" })
 
                 // Companion
-                settingsListModel.append({ type: "section", icon: "", label: "Companion", subtitle: "", pageId: "" })
-                settingsListModel.append({ type: "item", icon: "\ue324", label: "Companion", subtitle: "Phone pairing, GPS, internet", pageId: "companion" })
+                settingsListModel.append({ type: "section", icon: "", label: "Companion", pageId: "" })
+                settingsListModel.append({ type: "item", icon: "\ue324", label: "Companion", pageId: "companion" })
 
                 // Plugins
                 var pluginCount = 0
@@ -67,7 +66,7 @@ Item {
                         var settingsUrl = PluginModel.data(idx, 264)  // SettingsQmlRole
                         if (settingsUrl && settingsUrl.toString() !== "") {
                             if (pluginCount === 0) {
-                                settingsListModel.append({ type: "section", icon: "", label: "Plugins", subtitle: "", pageId: "" })
+                                settingsListModel.append({ type: "section", icon: "", label: "Plugins", pageId: "" })
                             }
                             var pluginId = PluginModel.data(idx, 257)    // PluginIdRole
                             var pluginName = PluginModel.data(idx, 258)  // PluginNameRole
@@ -76,7 +75,6 @@ Item {
                                 type: "item",
                                 icon: pluginIcon || "\ue8b8",
                                 label: pluginName + " Settings",
-                                subtitle: "",
                                 pageId: "plugin:" + pluginId
                             })
                             pluginCount++
@@ -85,8 +83,8 @@ Item {
                 }
 
                 // About
-                settingsListModel.append({ type: "section", icon: "", label: "", subtitle: "", pageId: "" })
-                settingsListModel.append({ type: "item", icon: "\ue88e", label: "About", subtitle: "Version, license, close app", pageId: "about" })
+                settingsListModel.append({ type: "section", icon: "", label: "", pageId: "" })
+                settingsListModel.append({ type: "item", icon: "\ue88e", label: "About", pageId: "about" })
             }
         }
     }
@@ -101,7 +99,6 @@ Item {
         SettingsListItem {
             icon: parent ? parent.icon : ""
             label: parent ? parent.label : ""
-            subtitle: parent ? parent.subtitle : ""
             onClicked: openPage(parent ? parent.pageId : "")
         }
     }

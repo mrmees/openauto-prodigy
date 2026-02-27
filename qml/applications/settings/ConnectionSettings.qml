@@ -29,15 +29,6 @@ Flickable {
 
         SectionHeader { text: "WiFi Access Point" }
 
-        Text {
-            text: "SSID, password, and interface are configured via web panel"
-            font.pixelSize: UiMetrics.fontTiny
-            font.italic: true
-            color: ThemeService.descriptionFontColor
-            Layout.fillWidth: true
-            Layout.leftMargin: UiMetrics.marginRow
-        }
-
         FullScreenPicker {
             label: "Channel"
             configPath: "connection.wifi_ap.channel"
