@@ -4,6 +4,37 @@ Newest entries first.
 
 ---
 
+## 2026-02-26 — Video ACK Delta Fix (Gearhead RxVid Crash Candidate)
+
+**What changed:**
+- Updated video ACK behavior in `libs/open-androidauto/src/HU/Handlers/VideoChannelHandler.cpp`:
+  - `AVMediaAckIndication.value` now sends delta permits (`1` per frame) instead of cumulative `ackCounter_`.
+- Added regression coverage in `tests/test_video_channel_handler.cpp`:
+  - `testMediaDataEmitsFrameAndAck` now sends two frames and validates both ACK payload values are `1`.
+
+**Why:**
+- Phone logs showed repeated Gearhead crash: `FATAL EXCEPTION: RxVid` with `java.lang.Error: Maximum permit count exceeded`.
+- Cumulative video ACK values can over-replenish phone-side permits (triangular growth) and plausibly trigger semaphore overflow.
+- Audio channel already uses delta ACK semantics; video now matches that flow-control model.
+
+**Status:** Complete and verified locally (build + full tests pass).
+
+**Next steps:**
+1. Run extended real-device AA session (>40 minutes at 30fps) to confirm no recurrence of `RxVid` / `Maximum permit count exceeded`.
+2. Capture and compare phone logcat + Pi hostapd timeline during validation session.
+3. Commit and push this change set to the active Prodigy branch/PR.
+
+**Verification commands/results:**
+- `cd build && cmake --build . -j$(nproc) --target test_video_channel_handler && ctest -R test_video_channel_handler --output-on-failure`
+  - First run (before fix): failed on ACK payload value (`actual 2`, `expected 1`).
+  - Second run (after fix): passed.
+- `cd build && cmake --build . -j$(nproc)`
+  - Passed (`Built target openauto-prodigy`).
+- `cd build && ctest --output-on-failure`
+  - Passed (`100% tests passed, 0 tests failed out of 48`).
+
+---
+
 ## 2026-02-26 — Documentation Cleanup & Structured Workflow
 
 **What changed:**
