@@ -27,6 +27,7 @@ private slots:
     void testPairableToggle();
     void testPairingConfirmReject();
     void testConnectedDeviceState();
+    void testAutoConnectLifecycle();
 };
 
 void TestBluetoothManager::testInitialState()
@@ -80,6 +81,28 @@ void TestBluetoothManager::testConnectedDeviceState()
 
     QVERIFY(mgr.connectedDeviceName().isEmpty());
     QVERIFY(mgr.connectedDeviceAddress().isEmpty());
+}
+
+void TestBluetoothManager::testAutoConnectLifecycle()
+{
+    MockConfigService config;
+    oap::BluetoothManager mgr(&config);
+
+    // startAutoConnect() with no adapter should be a no-op (no crash)
+    mgr.startAutoConnect();
+
+    // cancelAutoConnect() should be safe to call anytime
+    mgr.cancelAutoConnect();
+
+    // Double cancel should also be safe
+    mgr.cancelAutoConnect();
+
+    // startAutoConnect after cancel should also be safe
+    mgr.startAutoConnect();
+
+    // With auto-connect disabled in config, should return early
+    config.values_["connection.auto_connect_aa"] = false;
+    mgr.startAutoConnect();
 }
 
 QTEST_MAIN(TestBluetoothManager)

@@ -8,6 +8,8 @@
 #include <QDBusContext>
 #include <QDBusObjectPath>
 #include <QDBusServiceWatcher>
+#include <QDBusPendingCall>
+#include <QDBusPendingCallWatcher>
 
 // BluezAgentAdaptor — handles org.bluez.Agent1 D-Bus method calls from BlueZ.
 // Defined here (not in header) because it's an implementation detail.
@@ -141,14 +143,104 @@ void BluetoothManager::forgetDevice(const QString& address)
 
 void BluetoothManager::startAutoConnect()
 {
-    qInfo() << "[BtManager] Starting auto-connect";
-    // TODO: enumerate paired devices, start retry loop
+    if (adapterPath_.isEmpty()) return;
+
+    // Check config
+    if (configService_) {
+        QVariant enabled = configService_->value("connection.auto_connect_aa");
+        if (enabled.isValid() && !enabled.toBool()) {
+            qInfo() << "[BtManager] Auto-connect disabled in config";
+            return;
+        }
+    }
+
+    // Build list of paired device paths
+    pairedDevicePaths_.clear();
+    for (int i = 0; i < pairedDevicesModel_->rowCount(); ++i) {
+        QString addr = pairedDevicesModel_->data(
+            pairedDevicesModel_->index(i, 0), PairedDevicesModel::AddressRole).toString();
+        addr.replace(':', '_');
+        pairedDevicePaths_.append(adapterPath_ + "/dev_" + addr);
+    }
+
+    if (pairedDevicePaths_.isEmpty()) {
+        qInfo() << "[BtManager] No paired devices — skipping auto-connect";
+        return;
+    }
+
+    autoConnectAttempt_ = 0;
+    autoConnectDeviceIndex_ = 0;
+    autoConnectInFlight_ = false;
+
+    if (!autoConnectTimer_) {
+        autoConnectTimer_ = new QTimer(this);
+        autoConnectTimer_->setSingleShot(true);
+        connect(autoConnectTimer_, &QTimer::timeout, this, &BluetoothManager::attemptConnect);
+    }
+
+    qInfo() << "[BtManager] Starting auto-connect for" << pairedDevicePaths_.size() << "device(s)";
+    attemptConnect();  // First attempt immediately
 }
 
 void BluetoothManager::cancelAutoConnect()
 {
-    qInfo() << "[BtManager] Cancelling auto-connect";
-    // TODO: stop retry timer
+    if (autoConnectTimer_) {
+        autoConnectTimer_->stop();
+    }
+    autoConnectAttempt_ = MAX_ATTEMPTS;  // prevent further attempts
+    autoConnectInFlight_ = false;
+    pairedDevicePaths_.clear();
+    qInfo() << "[BtManager] Auto-connect cancelled";
+}
+
+void BluetoothManager::attemptConnect()
+{
+    if (autoConnectInFlight_) return;
+    if (autoConnectAttempt_ >= MAX_ATTEMPTS || pairedDevicePaths_.isEmpty()) {
+        qInfo() << "[BtManager] Auto-connect exhausted after" << autoConnectAttempt_ << "attempts";
+        return;
+    }
+
+    QString devicePath = pairedDevicePaths_[autoConnectDeviceIndex_ % pairedDevicePaths_.size()];
+    autoConnectDeviceIndex_++;
+    autoConnectInFlight_ = true;
+
+    qInfo() << "[BtManager] Auto-connect attempt" << (autoConnectAttempt_ + 1)
+            << "/" << MAX_ATTEMPTS << "→" << devicePath;
+
+    // Async D-Bus call: Device1.Connect()
+    QDBusInterface device("org.bluez", devicePath,
+        "org.bluez.Device1", QDBusConnection::systemBus());
+
+    QDBusPendingCall pending = device.asyncCall("Connect");
+    auto* watcher = new QDBusPendingCallWatcher(pending, this);
+    connect(watcher, &QDBusPendingCallWatcher::finished, this, [this, watcher]() {
+        watcher->deleteLater();
+        autoConnectInFlight_ = false;
+
+        if (watcher->isError()) {
+            qInfo() << "[BtManager] Connect failed:" << watcher->error().message();
+        } else {
+            qInfo() << "[BtManager] Connect call returned success";
+            // Don't cancel yet — wait for profileNewConnection (RFCOMM) as the true success signal
+        }
+
+        autoConnectAttempt_++;
+        int interval = nextRetryInterval();
+        if (interval > 0 && autoConnectTimer_) {
+            autoConnectTimer_->start(interval);
+        } else {
+            qInfo() << "[BtManager] Auto-connect schedule exhausted";
+        }
+    });
+}
+
+int BluetoothManager::nextRetryInterval() const
+{
+    if (autoConnectAttempt_ < 6) return 5000;    // 5s × 6
+    if (autoConnectAttempt_ < 10) return 30000;   // 30s × 4
+    if (autoConnectAttempt_ < 13) return 60000;   // 60s × 3
+    return -1;  // stop
 }
 
 QString BluetoothManager::connectedDeviceName() const { return connectedDeviceName_; }
@@ -174,7 +266,11 @@ void BluetoothManager::initialize()
         setupAdapter();
         registerAgent();
     });
-    // TODO: profile registration, auto-connect
+    // Cancel auto-connect when RFCOMM connection arrives
+    connect(this, &BluetoothManager::profileNewConnection,
+            this, &BluetoothManager::cancelAutoConnect);
+
+    startAutoConnect();
 }
 
 QString BluetoothManager::findAdapterPath()

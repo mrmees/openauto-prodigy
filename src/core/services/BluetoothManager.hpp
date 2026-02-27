@@ -7,6 +7,8 @@
 #include <QDBusMessage>
 #include <QDBusVariant>
 #include <QAbstractListModel>
+#include <QTimer>
+#include <QStringList>
 #include <memory>
 
 class BluezAgentAdaptor;
@@ -81,6 +83,11 @@ private:
     void handleAgentRequestConfirmation(const QDBusMessage& msg, const QString& devicePath, uint passkey);
     void handleAgentCancel();
 
+    // Auto-connect
+    void attemptConnect();
+    int nextRetryInterval() const;
+    static constexpr int MAX_ATTEMPTS = 13;  // 6 + 4 + 3
+
     IConfigService* configService_ = nullptr;
     QString adapterPath_;  // e.g. "/org/bluez/hci0"
     QString adapterAddress_;
@@ -96,6 +103,13 @@ private:
     QDBusMessage pendingPairingMessage_;
     QString pendingPairingDevicePath_;
     PairedDevicesModel* pairedDevicesModel_ = nullptr;
+
+    // Auto-connect state
+    QTimer* autoConnectTimer_ = nullptr;
+    int autoConnectAttempt_ = 0;
+    int autoConnectDeviceIndex_ = 0;
+    bool autoConnectInFlight_ = false;
+    QStringList pairedDevicePaths_;
 };
 
 } // namespace oap
