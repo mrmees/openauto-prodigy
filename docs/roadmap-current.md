@@ -4,6 +4,7 @@ Governance: capture new ideas in `docs/wishlist.md`; only promoted items should 
 
 ## Done (recent)
 
+- Wireless BT AA flow — already fully integrated. App starts RFCOMM server + SDP registration + TCP listener automatically. Phone discovers, pairs, and connects without manual scripts. COMPLETE.
 - Touch device auto-discovery — already implemented via INPUT_PROP_DIRECT scan. Removed hardcoded evdev axis ranges; now read from device at open time. COMPLETE.
 - Persistent network configuration — installer configures hostapd + systemd-networkd (built-in DHCP, no dnsmasq) for boot persistence. System service now installed and enabled by install.sh. COMPLETE.
 - Settings UI buildout — scrollable ListView, section headers, plugin settings integration, subtext removal, larger touch targets. Settings tree spec at `docs/settings-tree.md`. COMPLETE.
@@ -13,10 +14,6 @@ Governance: capture new ideas in `docs/wishlist.md`; only promoted items should 
 - Video ACK delta fix (PR #5) — prevents RxVid overflow on phone. COMPLETE.
 
 ## Now
-
-- Integrate wireless BT AA flow into the main application.
-  - Rationale: wireless AA works via standalone test scripts (sdp_clean, HFP AG, hostapd, TCP handoff). Needs to be wired into the app's connection manager. Needs investigation to confirm whether this is already present.
-  - Outcome: phone pairs and connects wirelessly through the app UI without manual script execution.
 
 - General HFP call audio handling.
   - Rationale: typical head units maintain the HFP AG profile across both Android Auto and the base hardware — e.g., if AA crashes, call audio is not lost.
