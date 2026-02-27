@@ -15,6 +15,13 @@ Governance: capture new ideas in `docs/wishlist.md`; only promoted items should 
 
 ## Now
 
+- General Bluetooth cleanup.
+  - Rationale: before adding advanced BT features like HFP call audio, the foundational BT stack needs to be solid — proper profile advertising, user-friendly pairing, and reliable auto-reconnect.
+  - Outcome:
+    - All available BT profiles on the Pi adapter are properly advertised (A2DP sink, AVRCP, HFP AG, etc.).
+    - Users can initiate pairing from the on-screen Connection settings page (no SSH/terminal needed).
+    - App auto-connects to the paired phone on startup.
+
 - General HFP call audio handling.
   - Rationale: typical head units maintain the HFP AG profile across both Android Auto and the base hardware — e.g., if AA crashes, call audio is not lost.
   - Outcome: phone calls work with audio through the head unit speakers/mic across a closed AA stream.
