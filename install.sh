@@ -119,7 +119,7 @@ install_dependencies() {
         python3-dbus-next python3-yaml
 
         # Bluetooth
-        bluez
+        bluez libbluetooth-dev
 
         # Transparent SOCKS5 proxy routing (companion internet sharing)
         redsocks
