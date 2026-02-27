@@ -1,39 +1,57 @@
 # Documentation Index
 
+## Project Management
+
+- [project-vision.md](project-vision.md) — product intent, design principles, constraints
+- [roadmap-current.md](roadmap-current.md) — current priorities (Now/Next/Later)
+- [session-handoffs.md](session-handoffs.md) — session continuity log
+- [wishlist.md](wishlist.md) — idea parking lot
+
 ## Getting Started
 
-- [development.md](development.md) -- Build dependencies, platform notes, dual-platform (Qt 6.4/6.8) setup
-- [wireless-setup.md](wireless-setup.md) -- WiFi AP + Bluetooth configuration for wireless Android Auto
+- [development.md](development.md) — build, dependencies, cross-compile, dual-platform
+- [wireless-setup.md](wireless-setup.md) — WiFi AP + Bluetooth for wireless AA
 
 ## Reference
 
-- [config-schema.md](config-schema.md) -- YAML configuration keys and default values
-- [design-decisions.md](design-decisions.md) -- Key architectural choices and rationale
-- [plugin-api.md](plugin-api.md) -- IPlugin interface, lifecycle hooks, IHostContext services
-- [hfp-stack-spike.md](hfp-stack-spike.md) -- HFP audio routing research (BlueZ vs ofono vs PipeWire)
-- [debugging-notes.md](debugging-notes.md) -- Common issues and their fixes
+- [config-schema.md](config-schema.md) — YAML config keys and defaults
+- [design-decisions.md](design-decisions.md) — architectural choices and rationale
+- [design-philosophy.md](design-philosophy.md) — core design principles (detailed)
+- [plugin-api.md](plugin-api.md) — IPlugin interface, lifecycle, IHostContext
+- [hfp-stack-spike.md](hfp-stack-spike.md) — HFP audio routing research
+- [debugging-notes.md](debugging-notes.md) — common issues and fixes
+- [testing-reconnect.md](testing-reconnect.md) — reconnect test procedures
 
-## Plans
+## AA Protocol
 
-Design docs and implementation plans, newest first. Each has a status header.
+- [aa-protocol/protocol-reference.md](aa-protocol/protocol-reference.md) — comprehensive protocol reference
+- [aa-protocol/phone-side-debug.md](aa-protocol/phone-side-debug.md) — phone-side behavior and debugging
+- [aa-protocol/cross-reference.md](aa-protocol/cross-reference.md) — protocol cross-reference (aasdk/wire formats)
+- [aa-protocol/apk-deep-dive.md](aa-protocol/apk-deep-dive.md) — APK v16.1 analysis
+- [aa-protocol/display-rendering.md](aa-protocol/display-rendering.md) — video pipeline and rendering
+- [aa-protocol/video-resolution.md](aa-protocol/video-resolution.md) — resolution negotiation
+- [aa-protocol/troubleshooting-runbook.md](aa-protocol/troubleshooting-runbook.md) — troubleshooting guide
+- [aa-protocol/apk-proto-reference.md](aa-protocol/apk-proto-reference.md) — protobuf message reference
+- [aa-protocol/apk-indexing.md](aa-protocol/apk-indexing.md) — APK indexing pipeline
+- [aa-protocol/proto-validation-report.md](aa-protocol/proto-validation-report.md) — field migration validation
 
-### Active / Not Started
+## Milestone History
 
-- [2026-02-21 Config Contract Overhaul (design)](plans/2026-02-21-config-contract-overhaul-design.md)
-- [2026-02-21 Config Contract Overhaul (plan)](plans/2026-02-21-config-contract-overhaul-plan.md)
-- [2026-02-21 Architecture Extensibility (plan)](plans/2026-02-21-architecture-extensibility-plan.md)
+- [plans/milestone-01-foundation.md](plans/milestone-01-foundation.md) — Feb 16-18: initial build, architecture, protocol
+- [plans/milestone-02-aa-integration.md](plans/milestone-02-aa-integration.md) — Feb 19-21: oaa library, settings, audio, sidebar
+- [plans/milestone-03-companion-system.md](plans/milestone-03-companion-system.md) — Feb 22-23: companion app, multi-vehicle, UI
+- [plans/milestone-04-protocol-correctness.md](plans/milestone-04-protocol-correctness.md) — Feb 23-25: proto migration, APK analysis
+- [plans/milestone-05-av-optimization.md](plans/milestone-05-av-optimization.md) — Feb 25-26: video, HW accel, proxy, system service
 
-### Completed
+## Active Plans
 
-- [2026-02-21 Audio Pipeline (design)](plans/2026-02-21-audio-pipeline-design.md) -- PipeWire ring buffer bridge, device selection
-- [2026-02-21 Audio Pipeline (plan)](plans/2026-02-21-audio-pipeline-plan.md)
-- [2026-02-21 Settings Redesign (design)](plans/2026-02-21-settings-redesign-design.md) -- 6 settings subpages
-- [2026-02-21 Settings Redesign (plan)](plans/2026-02-21-settings-redesign-plan.md)
-- [2026-02-19 Infrastructure Improvements (design)](plans/2026-02-19-infrastructure-improvements-design.md)
-- [2026-02-19 Infrastructure Improvements (plan)](plans/2026-02-19-infrastructure-improvements-implementation.md)
-- [2026-02-19 Firmware Features (plan)](plans/2026-02-19-firmware-features-implementation.md)
-- [2026-02-18 Architecture & UX (design)](plans/2026-02-18-architecture-and-ux-design.md) -- Plugin system, theme, nav strip
-- [2026-02-18 Architecture & UX (plan)](plans/2026-02-18-architecture-implementation-plan.md)
-- [2026-02-17 AA Performance (design)](plans/2026-02-17-aa-performance-design.md) -- Video/touch optimization
-- [2026-02-17 AA Performance (plan)](plans/2026-02-17-aa-performance-plan.md)
-- [2026-02-16 Protocol Audit Fixes (plan)](plans/2026-02-16-protocol-audit-fixes.md)
+- [plans/active/](plans/active/) — in-progress or not-yet-started design/implementation plans
+
+## Pi Configuration
+
+- [pi-config/](pi-config/) — system config snapshot (hostapd, systemd, BlueZ, labwc, udev, boot)
+
+## Archive
+
+- [OpenAutoPro_archive_information/](OpenAutoPro_archive_information/) — original OpenAuto Pro reverse engineering (from community repo)
+- [OpenAutoPro_archive_information/needs-review/](OpenAutoPro_archive_information/needs-review/) — workspace files pending manual triage
