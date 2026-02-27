@@ -226,7 +226,7 @@ setup_hardware() {
         read -p "AP static IP [10.0.0.1]: " AP_IP
         AP_IP=${AP_IP:-10.0.0.1}
 
-        # Detect country code from WiFi regulatory domain or locale
+        # Detect country code: iw reg → locale → IP geolocation → US fallback
         COUNTRY_CODE=""
         if command -v iw &>/dev/null; then
             COUNTRY_CODE=$(iw reg get 2>/dev/null | sed -n 's/^country \([A-Z]\{2\}\).*/\1/p' | head -1) || true
@@ -237,6 +237,13 @@ setup_hardware() {
         if [[ -z "$COUNTRY_CODE" ]]; then
             # Try locale (e.g. en_US.UTF-8 -> US)
             COUNTRY_CODE=$(locale 2>/dev/null | sed -n 's/.*_\([A-Z]\{2\}\)\..*/\1/p' | head -1) || true
+        fi
+        if [[ -z "$COUNTRY_CODE" ]] && command -v curl &>/dev/null; then
+            # Try IP geolocation (we have internet if we cloned from GitHub)
+            COUNTRY_CODE=$(curl -fsS --max-time 3 https://ipinfo.io/country 2>/dev/null | tr -d '\r\n') || true
+            if [[ ! "$COUNTRY_CODE" =~ ^[A-Z]{2}$ ]]; then
+                COUNTRY_CODE=""
+            fi
         fi
         COUNTRY_CODE=${COUNTRY_CODE:-US}
         read -p "Country code for 5GHz WiFi [$COUNTRY_CODE]: " USER_CC
