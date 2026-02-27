@@ -223,12 +223,12 @@ setup_hardware() {
         # Detect country code from WiFi regulatory domain or locale
         COUNTRY_CODE=""
         if command -v iw &>/dev/null; then
-            COUNTRY_CODE=$(iw reg get 2>/dev/null | grep -oP 'country \K[A-Z]{2}' | head -1)
-            [[ "$COUNTRY_CODE" == "00" ]] && COUNTRY_CODE=""
+            COUNTRY_CODE=$(iw reg get 2>/dev/null | sed -n 's/^country \([A-Z]\{2\}\).*/\1/p' | head -1) || true
+            [[ "$COUNTRY_CODE" == "00" || "$COUNTRY_CODE" == "99" ]] && COUNTRY_CODE=""
         fi
         if [[ -z "$COUNTRY_CODE" ]]; then
             # Try locale (e.g. en_US.UTF-8 -> US)
-            COUNTRY_CODE=$(locale 2>/dev/null | grep -oP 'LANG=\w+_\K[A-Z]{2}' | head -1)
+            COUNTRY_CODE=$(locale 2>/dev/null | sed -n 's/.*_\([A-Z]\{2\}\)\..*/\1/p' | head -1) || true
         fi
         COUNTRY_CODE=${COUNTRY_CODE:-US}
         read -p "Country code for 5GHz WiFi [$COUNTRY_CODE]: " USER_CC
