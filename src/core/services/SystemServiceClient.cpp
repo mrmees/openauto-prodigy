@@ -154,6 +154,12 @@ void SystemServiceClient::handleResponse(const QJsonObject& response)
         QString newState = result["state"].toString(routeState_);
         QString newError = result.value("error").toString();
         if (newState != routeState_ || newError != routeError_) {
+            qInfo() << "[system-service] route state update:"
+                    << method
+                    << "state=" << newState
+                    << "error=" << (newError.isEmpty() ? "<none>" : newError);
+        }
+        if (newState != routeState_ || newError != routeError_) {
             routeState_ = newState;
             routeError_ = newError;
             emit routeChanged();
