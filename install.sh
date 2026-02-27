@@ -220,8 +220,18 @@ setup_hardware() {
         read -p "AP static IP [10.0.0.1]: " AP_IP
         AP_IP=${AP_IP:-10.0.0.1}
 
-        read -p "Country code (for 5GHz) [US]: " COUNTRY_CODE
+        # Detect country code from WiFi regulatory domain or locale
+        COUNTRY_CODE=""
+        if command -v iw &>/dev/null; then
+            COUNTRY_CODE=$(iw reg get 2>/dev/null | grep -oP 'country \K[A-Z]{2}' | head -1)
+            [[ "$COUNTRY_CODE" == "00" ]] && COUNTRY_CODE=""
+        fi
+        if [[ -z "$COUNTRY_CODE" ]]; then
+            # Try locale (e.g. en_US.UTF-8 -> US)
+            COUNTRY_CODE=$(locale 2>/dev/null | grep -oP 'LANG=\w+_\K[A-Z]{2}' | head -1)
+        fi
         COUNTRY_CODE=${COUNTRY_CODE:-US}
+        ok "Country code: $COUNTRY_CODE (for 5GHz channel selection)"
     fi
 
     # Audio output device
