@@ -3,10 +3,10 @@
 #include <memory>
 #include <oaa/HU/Handlers/VideoChannelHandler.hpp>
 #include <oaa/Channel/ChannelId.hpp>
-#include "AVChannelSetupRequestMessage.pb.h"
-#include "AVChannelStartIndicationMessage.pb.h"
-#include "VideoFocusIndicationMessage.pb.h"
-#include "VideoFocusModeEnum.pb.h"
+#include "oaa/av/AVChannelSetupRequestMessage.pb.h"
+#include "oaa/av/AVChannelStartIndicationMessage.pb.h"
+#include "oaa/video/VideoFocusIndicationMessage.pb.h"
+#include "oaa/video/VideoFocusModeEnum.pb.h"
 
 class TestVideoChannelHandler : public QObject {
     Q_OBJECT

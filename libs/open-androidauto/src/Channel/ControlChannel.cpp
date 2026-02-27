@@ -2,17 +2,17 @@
 #include <QtEndian>
 #include <QDebug>
 
-#include "PingRequestMessage.pb.h"
-#include "PingResponseMessage.pb.h"
-#include "ChannelOpenRequestMessage.pb.h"
-#include "ChannelOpenResponseMessage.pb.h"
-#include "AuthCompleteIndicationMessage.pb.h"
-#include "ShutdownRequestMessage.pb.h"
-#include "ShutdownResponseMessage.pb.h"
-#include "StatusEnum.pb.h"
-#include "ShutdownReasonEnum.pb.h"
-#include "CallAvailabilityMessage.pb.h"
-#include "ServiceDiscoveryRequestMessage.pb.h"
+#include "oaa/control/PingRequestMessage.pb.h"
+#include "oaa/control/PingResponseMessage.pb.h"
+#include "oaa/control/ChannelOpenRequestMessage.pb.h"
+#include "oaa/control/ChannelOpenResponseMessage.pb.h"
+#include "oaa/control/AuthCompleteIndicationMessage.pb.h"
+#include "oaa/control/ShutdownRequestMessage.pb.h"
+#include "oaa/control/ShutdownResponseMessage.pb.h"
+#include "oaa/common/StatusEnum.pb.h"
+#include "oaa/control/ShutdownReasonEnum.pb.h"
+#include "oaa/phone/CallAvailabilityMessage.pb.h"
+#include "oaa/control/ServiceDiscoveryRequestMessage.pb.h"
 
 namespace oaa {
 

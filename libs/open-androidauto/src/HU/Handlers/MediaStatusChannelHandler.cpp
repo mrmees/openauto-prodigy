@@ -2,8 +2,8 @@
 
 #include <QDebug>
 
-#include "MediaPlaybackStatusMessage.pb.h"
-#include "MediaPlaybackMetadataMessage.pb.h"
+#include "oaa/media/MediaPlaybackStatusMessage.pb.h"
+#include "oaa/media/MediaPlaybackMetadataMessage.pb.h"
 
 namespace oaa {
 namespace hu {

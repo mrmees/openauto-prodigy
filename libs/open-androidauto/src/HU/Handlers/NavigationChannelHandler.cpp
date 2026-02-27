@@ -2,9 +2,9 @@
 
 #include <QDebug>
 
-#include "NavigationStateMessage.pb.h"
-#include "NavigationNotificationMessage.pb.h"
-#include "NavigationDistanceMessage.pb.h"
+#include "oaa/navigation/NavigationStateMessage.pb.h"
+#include "oaa/navigation/NavigationNotificationMessage.pb.h"
+#include "oaa/navigation/NavigationDistanceMessage.pb.h"
 
 namespace oaa {
 namespace hu {

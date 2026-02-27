@@ -3,17 +3,17 @@
 #include <QDateTime>
 #include <QDebug>
 
-#include "ServiceDiscoveryRequestMessage.pb.h"
-#include "ServiceDiscoveryResponseMessage.pb.h"
-#include "ChannelDescriptorData.pb.h"
-#include "ChannelOpenRequestMessage.pb.h"
-#include "ChannelOpenResponseMessage.pb.h"
-#include "StatusEnum.pb.h"
-#include "AudioFocusRequestMessage.pb.h"
-#include "AudioFocusResponseMessage.pb.h"
-#include "AudioFocusTypeEnum.pb.h"
-#include "AudioFocusStateEnum.pb.h"
-#include "DriverPositionEnum.pb.h"
+#include "oaa/control/ServiceDiscoveryRequestMessage.pb.h"
+#include "oaa/control/ServiceDiscoveryResponseMessage.pb.h"
+#include "oaa/control/ChannelDescriptorData.pb.h"
+#include "oaa/control/ChannelOpenRequestMessage.pb.h"
+#include "oaa/control/ChannelOpenResponseMessage.pb.h"
+#include "oaa/common/StatusEnum.pb.h"
+#include "oaa/audio/AudioFocusRequestMessage.pb.h"
+#include "oaa/audio/AudioFocusResponseMessage.pb.h"
+#include "oaa/audio/AudioFocusTypeEnum.pb.h"
+#include "oaa/audio/AudioFocusStateEnum.pb.h"
+#include "oaa/common/DriverPositionEnum.pb.h"
 
 namespace oaa {
 

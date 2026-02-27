@@ -3,13 +3,13 @@
 #include <QtEndian>
 #include <oaa/Channel/ControlChannel.hpp>
 
-#include "PingRequestMessage.pb.h"
-#include "PingResponseMessage.pb.h"
-#include "ChannelOpenRequestMessage.pb.h"
-#include "ChannelOpenResponseMessage.pb.h"
-#include "ShutdownRequestMessage.pb.h"
-#include "StatusEnum.pb.h"
-#include "ShutdownReasonEnum.pb.h"
+#include "oaa/control/PingRequestMessage.pb.h"
+#include "oaa/control/PingResponseMessage.pb.h"
+#include "oaa/control/ChannelOpenRequestMessage.pb.h"
+#include "oaa/control/ChannelOpenResponseMessage.pb.h"
+#include "oaa/control/ShutdownRequestMessage.pb.h"
+#include "oaa/common/StatusEnum.pb.h"
+#include "oaa/control/ShutdownReasonEnum.pb.h"
 
 class TestControlChannel : public QObject {
     Q_OBJECT

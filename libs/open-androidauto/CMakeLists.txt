@@ -9,11 +9,39 @@ find_package(Qt6 REQUIRED COMPONENTS Core Network)
 find_package(OpenSSL REQUIRED)
 find_package(Protobuf REQUIRED)
 
+# Proto generation: custom protoc invocation to preserve oaa/ directory structure
+set(PROTO_IMPORT_ROOT ${CMAKE_CURRENT_SOURCE_DIR}/proto/open-android-auto/proto)
+set(PROTO_OUTPUT_DIR ${CMAKE_CURRENT_BINARY_DIR})
+
 file(GLOB_RECURSE PROTO_FILES
-    ${CMAKE_CURRENT_SOURCE_DIR}/proto/open-android-auto/proto/oaa/*.proto)
-# Set import root so protoc resolves "oaa/..." imports
-set(Protobuf_IMPORT_DIRS ${CMAKE_CURRENT_SOURCE_DIR}/proto/open-android-auto/proto)
-protobuf_generate_cpp(PROTO_SRCS PROTO_HDRS ${PROTO_FILES})
+    ${PROTO_IMPORT_ROOT}/oaa/*.proto)
+
+set(PROTO_SRCS)
+set(PROTO_HDRS)
+
+foreach(PROTO_FILE ${PROTO_FILES})
+    # Get path relative to import root (e.g., oaa/control/PingRequestMessage.proto)
+    file(RELATIVE_PATH PROTO_REL ${PROTO_IMPORT_ROOT} ${PROTO_FILE})
+    # Derive output paths
+    string(REPLACE ".proto" ".pb.cc" PROTO_SRC "${PROTO_OUTPUT_DIR}/${PROTO_REL}")
+    string(REPLACE ".proto" ".pb.h" PROTO_HDR "${PROTO_OUTPUT_DIR}/${PROTO_REL}")
+
+    list(APPEND PROTO_SRCS ${PROTO_SRC})
+    list(APPEND PROTO_HDRS ${PROTO_HDR})
+
+    get_filename_component(PROTO_OUT_DIR ${PROTO_SRC} DIRECTORY)
+
+    add_custom_command(
+        OUTPUT ${PROTO_SRC} ${PROTO_HDR}
+        COMMAND ${CMAKE_COMMAND} -E make_directory ${PROTO_OUT_DIR}
+        COMMAND protobuf::protoc
+            --proto_path=${PROTO_IMPORT_ROOT}
+            --cpp_out=${PROTO_OUTPUT_DIR}
+            ${PROTO_FILE}
+        DEPENDS ${PROTO_FILE}
+        COMMENT "Generating protobuf: ${PROTO_REL}"
+    )
+endforeach()
 
 add_library(open-androidauto STATIC
     ${PROTO_SRCS}

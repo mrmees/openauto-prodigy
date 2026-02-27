@@ -6,16 +6,16 @@
 
 Q_DECLARE_METATYPE(std::shared_ptr<const QByteArray>)
 
-#include "AVChannelSetupRequestMessage.pb.h"
-#include "AVChannelSetupResponseMessage.pb.h"
-#include "AVChannelSetupStatusEnum.pb.h"
-#include "AVChannelStartIndicationMessage.pb.h"
-#include "AVChannelStopIndicationMessage.pb.h"
-#include "AVMediaAckIndicationMessage.pb.h"
-#include "VideoFocusRequestMessage.pb.h"
-#include "VideoFocusIndicationMessage.pb.h"
-#include "VideoFocusModeEnum.pb.h"
-#include "VideoFocusReasonEnum.pb.h"
+#include "oaa/av/AVChannelSetupRequestMessage.pb.h"
+#include "oaa/av/AVChannelSetupResponseMessage.pb.h"
+#include "oaa/av/AVChannelSetupStatusEnum.pb.h"
+#include "oaa/av/AVChannelStartIndicationMessage.pb.h"
+#include "oaa/av/AVChannelStopIndicationMessage.pb.h"
+#include "oaa/av/AVMediaAckIndicationMessage.pb.h"
+#include "oaa/video/VideoFocusRequestMessage.pb.h"
+#include "oaa/video/VideoFocusIndicationMessage.pb.h"
+#include "oaa/video/VideoFocusModeEnum.pb.h"
+#include "oaa/video/VideoFocusReasonEnum.pb.h"
 
 namespace oaa {
 namespace hu {

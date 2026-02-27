@@ -3,8 +3,8 @@
 #include <QtEndian>
 #include <oaa/HU/Handlers/AVInputChannelHandler.hpp>
 #include <oaa/Channel/ChannelId.hpp>
-#include "AVInputOpenRequestMessage.pb.h"
-#include "AVInputOpenResponseMessage.pb.h"
+#include "oaa/av/AVInputOpenRequestMessage.pb.h"
+#include "oaa/av/AVInputOpenResponseMessage.pb.h"
 
 class TestAVInputChannelHandler : public QObject {
     Q_OBJECT

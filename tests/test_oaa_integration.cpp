@@ -8,8 +8,8 @@
 #include <oaa/HU/Handlers/BluetoothChannelHandler.hpp>
 #include <oaa/HU/Handlers/WiFiChannelHandler.hpp>
 #include "core/aa/ServiceDiscoveryBuilder.hpp"
-#include "SensorStartRequestMessage.pb.h"
-#include "SensorTypeEnum.pb.h"
+#include "oaa/sensor/SensorStartRequestMessage.pb.h"
+#include "oaa/sensor/SensorTypeEnum.pb.h"
 
 class TestOAAIntegration : public QObject {
     Q_OBJECT

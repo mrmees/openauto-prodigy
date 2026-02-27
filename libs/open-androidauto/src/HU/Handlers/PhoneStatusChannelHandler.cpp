@@ -2,7 +2,7 @@
 
 #include <QDebug>
 
-#include "PhoneStatusMessage.pb.h"
+#include "oaa/phone/PhoneStatusMessage.pb.h"
 
 namespace oaa {
 namespace hu {

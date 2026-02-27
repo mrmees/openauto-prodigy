@@ -23,11 +23,11 @@ extern "C" {
 #include <bluetooth/sdp_lib.h>
 }
 
-#include "WifiStartRequestMessage.pb.h"
-#include "WifiInfoRequestMessage.pb.h"
-#include "WifiInfoResponseMessage.pb.h"
-#include "WifiSecurityRequestMessage.pb.h"
-#include "WifiSecurityResponseMessage.pb.h"
+#include "oaa/wifi/WifiStartRequestMessage.pb.h"
+#include "oaa/wifi/WifiInfoRequestMessage.pb.h"
+#include "oaa/wifi/WifiInfoResponseMessage.pb.h"
+#include "oaa/wifi/WifiSecurityRequestMessage.pb.h"
+#include "oaa/wifi/WifiSecurityResponseMessage.pb.h"
 
 namespace oap {
 namespace aa {

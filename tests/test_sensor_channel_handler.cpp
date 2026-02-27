@@ -2,8 +2,8 @@
 #include <QSignalSpy>
 #include <oaa/HU/Handlers/SensorChannelHandler.hpp>
 #include <oaa/Channel/ChannelId.hpp>
-#include "SensorStartRequestMessage.pb.h"
-#include "SensorTypeEnum.pb.h"
+#include "oaa/sensor/SensorStartRequestMessage.pb.h"
+#include "oaa/sensor/SensorTypeEnum.pb.h"
 
 class TestSensorChannelHandler : public QObject {
     Q_OBJECT

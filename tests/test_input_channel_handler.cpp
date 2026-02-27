@@ -2,8 +2,8 @@
 #include <QSignalSpy>
 #include <oaa/HU/Handlers/InputChannelHandler.hpp>
 #include <oaa/Channel/ChannelId.hpp>
-#include "BindingRequestMessage.pb.h"
-#include "InputEventIndicationMessage.pb.h"
+#include "oaa/control/BindingRequestMessage.pb.h"
+#include "oaa/input/InputEventIndicationMessage.pb.h"
 
 class TestInputChannelHandler : public QObject {
     Q_OBJECT

@@ -5,14 +5,14 @@
 #include <oaa/Session/AASession.hpp>
 #include <oaa/Channel/IChannelHandler.hpp>
 
-#include "ChannelOpenRequestMessage.pb.h"
-#include "ChannelOpenResponseMessage.pb.h"
-#include "ShutdownRequestMessage.pb.h"
-#include "ShutdownResponseMessage.pb.h"
-#include "ShutdownReasonEnum.pb.h"
-#include "StatusEnum.pb.h"
-#include "ServiceDiscoveryRequestMessage.pb.h"
-#include "ServiceDiscoveryResponseMessage.pb.h"
+#include "oaa/control/ChannelOpenRequestMessage.pb.h"
+#include "oaa/control/ChannelOpenResponseMessage.pb.h"
+#include "oaa/control/ShutdownRequestMessage.pb.h"
+#include "oaa/control/ShutdownResponseMessage.pb.h"
+#include "oaa/control/ShutdownReasonEnum.pb.h"
+#include "oaa/common/StatusEnum.pb.h"
+#include "oaa/control/ServiceDiscoveryRequestMessage.pb.h"
+#include "oaa/control/ServiceDiscoveryResponseMessage.pb.h"
 
 // Minimal mock channel handler for testing
 class MockChannelHandler : public oaa::IChannelHandler {

@@ -2,14 +2,14 @@
 
 #include <QDebug>
 
-#include "SensorStartRequestMessage.pb.h"
-#include "SensorStartResponseMessage.pb.h"
-#include "SensorEventIndicationMessage.pb.h"
-#include "NightModeData.pb.h"
-#include "DrivingStatusData.pb.h"
-#include "ParkingBrakeData.pb.h"
-#include "StatusEnum.pb.h"
-#include "SensorTypeEnum.pb.h"
+#include "oaa/sensor/SensorStartRequestMessage.pb.h"
+#include "oaa/sensor/SensorStartResponseMessage.pb.h"
+#include "oaa/sensor/SensorEventIndicationMessage.pb.h"
+#include "oaa/sensor/NightModeData.pb.h"
+#include "oaa/sensor/DrivingStatusData.pb.h"
+#include "oaa/sensor/ParkingBrakeData.pb.h"
+#include "oaa/common/StatusEnum.pb.h"
+#include "oaa/sensor/SensorTypeEnum.pb.h"
 
 namespace oaa {
 namespace hu {

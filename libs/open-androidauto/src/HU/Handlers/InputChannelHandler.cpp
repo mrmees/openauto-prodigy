@@ -2,13 +2,13 @@
 
 #include <QDebug>
 
-#include "InputEventIndicationMessage.pb.h"
-#include "TouchEventData.pb.h"
-#include "TouchLocationData.pb.h"
-#include "TouchActionEnum.pb.h"
-#include "BindingRequestMessage.pb.h"
-#include "BindingResponseMessage.pb.h"
-#include "StatusEnum.pb.h"
+#include "oaa/input/InputEventIndicationMessage.pb.h"
+#include "oaa/input/TouchEventData.pb.h"
+#include "oaa/input/TouchLocationData.pb.h"
+#include "oaa/input/TouchActionEnum.pb.h"
+#include "oaa/control/BindingRequestMessage.pb.h"
+#include "oaa/control/BindingResponseMessage.pb.h"
+#include "oaa/common/StatusEnum.pb.h"
 
 namespace oaa {
 namespace hu {

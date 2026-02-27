@@ -2,8 +2,8 @@
 #include <QSignalSpy>
 #include <oaa/HU/Handlers/AudioChannelHandler.hpp>
 #include <oaa/Channel/ChannelId.hpp>
-#include "AVChannelSetupRequestMessage.pb.h"
-#include "AVChannelStartIndicationMessage.pb.h"
+#include "oaa/av/AVChannelSetupRequestMessage.pb.h"
+#include "oaa/av/AVChannelStartIndicationMessage.pb.h"
 
 class TestAudioChannelHandler : public QObject {
     Q_OBJECT

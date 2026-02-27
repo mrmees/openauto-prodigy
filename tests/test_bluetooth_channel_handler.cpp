@@ -2,9 +2,9 @@
 #include <QSignalSpy>
 #include <oaa/HU/Handlers/BluetoothChannelHandler.hpp>
 #include <oaa/Channel/ChannelId.hpp>
-#include "BluetoothPairingRequestMessage.pb.h"
-#include "BluetoothPairingMethodEnum.pb.h"
-#include "BluetoothPairingResponseMessage.pb.h"
+#include "oaa/bluetooth/BluetoothPairingRequestMessage.pb.h"
+#include "oaa/bluetooth/BluetoothPairingMethodEnum.pb.h"
+#include "oaa/bluetooth/BluetoothPairingResponseMessage.pb.h"
 
 class TestBluetoothChannelHandler : public QObject {
     Q_OBJECT

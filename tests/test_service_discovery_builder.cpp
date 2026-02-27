@@ -2,7 +2,7 @@
 #include "core/aa/ServiceDiscoveryBuilder.hpp"
 
 // oaa proto headers
-#include "ChannelDescriptorData.pb.h"
+#include "oaa/control/ChannelDescriptorData.pb.h"
 
 class TestServiceDiscoveryBuilder : public QObject {
     Q_OBJECT

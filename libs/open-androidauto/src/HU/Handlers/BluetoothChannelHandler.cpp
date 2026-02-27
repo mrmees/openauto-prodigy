@@ -2,9 +2,9 @@
 
 #include <QDebug>
 
-#include "BluetoothPairingRequestMessage.pb.h"
-#include "BluetoothPairingResponseMessage.pb.h"
-#include "BluetoothPairingStatusEnum.pb.h"
+#include "oaa/bluetooth/BluetoothPairingRequestMessage.pb.h"
+#include "oaa/bluetooth/BluetoothPairingResponseMessage.pb.h"
+#include "oaa/bluetooth/BluetoothPairingStatusEnum.pb.h"
 
 namespace oaa {
 namespace hu {

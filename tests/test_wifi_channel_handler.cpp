@@ -2,7 +2,7 @@
 #include <QSignalSpy>
 #include <oaa/HU/Handlers/WiFiChannelHandler.hpp>
 #include <oaa/Channel/ChannelId.hpp>
-#include "WifiSecurityResponseMessage.pb.h"
+#include "oaa/wifi/WifiSecurityResponseMessage.pb.h"
 
 class TestWiFiChannelHandler : public QObject {
     Q_OBJECT

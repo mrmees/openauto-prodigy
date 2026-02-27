@@ -2,12 +2,12 @@
 
 #include <QDebug>
 
-#include "AVChannelSetupRequestMessage.pb.h"
-#include "AVChannelSetupResponseMessage.pb.h"
-#include "AVChannelSetupStatusEnum.pb.h"
-#include "AVChannelStartIndicationMessage.pb.h"
-#include "AVChannelStopIndicationMessage.pb.h"
-#include "AVMediaAckIndicationMessage.pb.h"
+#include "oaa/av/AVChannelSetupRequestMessage.pb.h"
+#include "oaa/av/AVChannelSetupResponseMessage.pb.h"
+#include "oaa/av/AVChannelSetupStatusEnum.pb.h"
+#include "oaa/av/AVChannelStartIndicationMessage.pb.h"
+#include "oaa/av/AVChannelStopIndicationMessage.pb.h"
+#include "oaa/av/AVMediaAckIndicationMessage.pb.h"
 
 namespace oaa {
 namespace hu {

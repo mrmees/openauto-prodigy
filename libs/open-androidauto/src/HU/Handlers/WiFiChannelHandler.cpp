@@ -2,8 +2,8 @@
 
 #include <QDebug>
 
-#include "WifiSecurityRequestMessage.pb.h"
-#include "WifiSecurityResponseMessage.pb.h"
+#include "oaa/wifi/WifiSecurityRequestMessage.pb.h"
+#include "oaa/wifi/WifiSecurityResponseMessage.pb.h"
 
 namespace oaa {
 namespace hu {

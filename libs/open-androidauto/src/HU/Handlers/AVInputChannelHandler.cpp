@@ -4,8 +4,8 @@
 
 #include <QtEndian>
 
-#include "AVInputOpenRequestMessage.pb.h"
-#include "AVInputOpenResponseMessage.pb.h"
+#include "oaa/av/AVInputOpenRequestMessage.pb.h"
+#include "oaa/av/AVInputOpenResponseMessage.pb.h"
 
 namespace oaa {
 namespace hu {
