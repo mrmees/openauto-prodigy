@@ -4,6 +4,49 @@ Newest entries first.
 
 ---
 
+## 2026-02-27 — system-service shutdown timeout hardening
+
+**What changed:**
+- Updated `system-service/bt_profiles.py`:
+  - `BtProfileManager.close()` now wraps `disconnect()` in try/except (called on event loop thread — `to_thread` is unsafe since dbus-next touches loop internals).
+  - On exception, logs a warning and still clears `self._bus = None`.
+- Updated `system-service/openauto_system.py` shutdown block:
+  - Added `shutdown_sequence()` wrapped by `asyncio.wait_for(..., timeout=10.0)` for an overall teardown deadline.
+  - Wrapped `proxy.disable()` with `asyncio.wait_for(..., timeout=5.0)` and warning on timeout.
+  - Wrapped `ipc.stop()` with `asyncio.wait_for(..., timeout=3.0)` and warning on timeout.
+  - If overall teardown timeout hits, logs forced shutdown error.
+- Added/updated tests:
+  - `system-service/tests/test_bt_profiles.py` for `close()` timeout warning + bus cleanup.
+  - `system-service/tests/test_openauto_system.py` for proxy-disable timeout continuation, IPC-stop timeout warning, and overall forced-shutdown logging.
+
+**Why:**
+- Prevent shutdown deadlocks when D-Bus or bluetoothd is unresponsive and ensure teardown continues far enough to avoid lingering IPC socket/proxy state.
+
+**Status:** Complete for requested `system-service` fixes and targeted tests. Repository-wide `ctest` has pre-existing environment/integration failures unrelated to these edits.
+
+**Next steps:**
+1. Re-run `ctest --output-on-failure` in an environment with display/network test prerequisites (or apply existing CI/headless test profile).
+2. Validate daemon shutdown on target Pi with induced bluetoothd/D-Bus fault conditions.
+3. If needed, add a focused `system-service` test target to CI so these Python reliability checks run independently of Qt integration constraints.
+
+**Verification commands/results:**
+- `pytest -q system-service/tests/test_bt_profiles.py`
+  - Passed (`15 passed`).
+- `pytest -q system-service/tests/test_openauto_system.py -k shutdown`
+  - Passed (`3 passed, 9 deselected`).
+- `pytest -q system-service/tests/test_openauto_system.py`
+  - Passed (`12 passed`).
+- `cd build && cmake --build . -j$(nproc)`
+  - Passed (`Built target openauto-prodigy`).
+- `cd build && ctest --output-on-failure`
+  - Failed with 4 tests not related to `system-service` changes:
+    - `test_tcp_transport` (listen/bind failure)
+    - `test_companion_listener` (Qt platform/display plugin init failure)
+    - `test_aa_orchestrator` (listen/bind failure on port 15277)
+    - `test_video_frame_pool` (Qt platform/display plugin init failure)
+
+---
+
 ## 2026-02-26 — Proto Repo Migration & Community Release
 
 **What changed:**

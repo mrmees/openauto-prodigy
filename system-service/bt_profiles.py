@@ -105,7 +105,17 @@ class BtProfileManager:
                     raise
 
     async def close(self):
-        """Disconnect from D-Bus."""
+        """Disconnect from D-Bus.
+
+        disconnect() is synchronous but touches event loop internals
+        (remove_reader/remove_writer), so it must run on the event loop
+        thread — NOT via asyncio.to_thread().  We just guard against
+        unexpected exceptions.
+        """
         if self._bus:
-            self._bus.disconnect()
-            self._bus = None
+            try:
+                self._bus.disconnect()
+            except Exception as e:
+                log.warning("BT D-Bus disconnect error: %s", e)
+            finally:
+                self._bus = None

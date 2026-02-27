@@ -235,18 +235,31 @@ async def main() -> None:
     await stop_event.wait()
 
     # --- Shutdown ---
-    health_task.cancel()
+    async def shutdown_sequence():
+        health_task.cancel()
+        try:
+            await health_task
+        except asyncio.CancelledError:
+            pass
+
+        if proxy.state.value != "disabled":
+            try:
+                await asyncio.wait_for(proxy.disable(), timeout=5.0)
+            except asyncio.TimeoutError:
+                LOG.warning("Proxy disable timed out during shutdown")
+
+        if bt:
+            await bt.close()
+
+        try:
+            await asyncio.wait_for(ipc.stop(), timeout=3.0)
+        except asyncio.TimeoutError:
+            LOG.warning("IPC stop timed out during shutdown")
+
     try:
-        await health_task
-    except asyncio.CancelledError:
-        pass
-
-    if proxy.state.value != "disabled":
-        await proxy.disable()
-
-    if bt:
-        await bt.close()
-    await ipc.stop()
+        await asyncio.wait_for(shutdown_sequence(), timeout=10.0)
+    except asyncio.TimeoutError:
+        LOG.error("Forced shutdown: teardown exceeded 10 seconds")
     LOG.info("Shutdown complete")
 
 

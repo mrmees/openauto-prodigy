@@ -1,5 +1,6 @@
 """Tests for BT profile registration via dbus-next."""
 
+import asyncio
 import sys
 import types
 import unittest
@@ -156,6 +157,20 @@ class TestBtProfileRegistration(unittest.IsolatedAsyncioTestCase):
 
         mock_bus.disconnect.assert_called_once()
         self.assertIsNone(mgr._bus)
+
+    async def test_close_disconnect_exception_logs_warning_and_clears_bus(self):
+        mgr = BtProfileManager()
+        mock_bus = MagicMock()
+        mock_bus.disconnect.side_effect = OSError("D-Bus socket gone")
+        mgr._bus = mock_bus
+
+        with self.assertLogs("bt_profiles", level="WARNING") as captured:
+            await mgr.close()
+
+        self.assertIsNone(mgr._bus)
+        self.assertTrue(
+            any("disconnect error" in message.lower() for message in captured.output)
+        )
 
     async def test_close_noop_when_no_bus(self):
         mgr = BtProfileManager()
