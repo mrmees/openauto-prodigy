@@ -4,6 +4,7 @@ Governance: capture new ideas in `docs/wishlist.md`; only promoted items should 
 
 ## Done (recent)
 
+- Persistent network configuration — installer configures hostapd + systemd-networkd (built-in DHCP, no dnsmasq) for boot persistence. System service now installed and enabled by install.sh. COMPLETE.
 - Settings UI buildout — scrollable ListView, section headers, plugin settings integration, subtext removal, larger touch targets. Settings tree spec at `docs/settings-tree.md`. COMPLETE.
 - Settings implementation — categories rendered in UI, SettingsListItem control, PluginModel settingsQml role. COMPLETE.
 - Background system service hardening — bt.close() hang fix, layered shutdown timeouts (10s overall, 5s proxy, 3s IPC). COMPLETE.
@@ -23,10 +24,6 @@ Governance: capture new ideas in `docs/wishlist.md`; only promoted items should 
 - Touch device auto-discovery.
   - Rationale: touch input is hardcoded to /dev/input/event4. Needs VID/PID-based detection.
   - Outcome: correct touch device selected automatically across different hardware configs (USB, MIPI DSI, GPIO/SPI).
-
-- Persistent network configuration.
-  - Rationale: wlan0 IP, hostapd, dnsmasq, and /var/run/sdp permissions don't survive reboot.
-  - Outcome: full wireless AA stack comes up cleanly on boot without manual intervention. When app is running, network should assume all traffic traverses the companion app proxy, with a rule exception for the LAN port to allow SSH access during development and debugging.
 
 - Audio equalizer.
   - Rationale: users expect the ability to swap between equalizer presets and define custom EQ profiles for their vehicle and speaker setup.
