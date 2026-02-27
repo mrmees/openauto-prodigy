@@ -1,0 +1,7 @@
+[Desktop Entry]
+Name=OpenAuto Prodigy
+Comment=Restart OpenAuto Prodigy
+Exec=/home/matt/openauto-prodigy/restart.sh
+Icon=utilities-terminal
+Terminal=false
+Type=Application

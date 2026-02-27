@@ -1,0 +1,11 @@
+[Match]
+Name=wlan0
+
+[Network]
+Address=10.0.0.1/24
+DHCPServer=yes
+
+[DHCPServer]
+PoolOffset=10
+PoolSize=40
+EmitDNS=no
