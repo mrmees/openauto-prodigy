@@ -31,7 +31,7 @@ Rectangle {
 
             Text {
                 text: "Pair with device?"
-                font.pixelSize: UiMetrics.fontHeader
+                font.pixelSize: UiMetrics.fontHeading
                 color: ThemeService.normalFontColor
                 Layout.alignment: Qt.AlignHCenter
             }
@@ -45,7 +45,7 @@ Rectangle {
 
             Text {
                 text: BluetoothManager ? BluetoothManager.pairingPasskey : ""
-                font.pixelSize: UiMetrics.fontHeader * 1.8
+                font.pixelSize: UiMetrics.fontHeading * 1.8
                 font.weight: Font.Bold
                 font.letterSpacing: 8
                 color: ThemeService.normalFontColor

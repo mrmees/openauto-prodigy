@@ -663,11 +663,45 @@ void BluetoothManager::refreshPairedDevices()
     qInfo() << "[BtManager] Found" << devices.size() << "paired device(s)";
 }
 
+void BluetoothManager::updateConnectedDevice()
+{
+    // Scan paired devices for any that are connected
+    for (int i = 0; i < pairedDevicesModel_->rowCount(); ++i) {
+        QModelIndex idx = pairedDevicesModel_->index(i, 0);
+        bool connected = pairedDevicesModel_->data(idx, PairedDevicesModel::ConnectedRole).toBool();
+        if (connected) {
+            QString name = pairedDevicesModel_->data(idx, PairedDevicesModel::NameRole).toString();
+            QString addr = pairedDevicesModel_->data(idx, PairedDevicesModel::AddressRole).toString();
+            if (connectedDeviceName_ != name || connectedDeviceAddress_ != addr) {
+                connectedDeviceName_ = name;
+                connectedDeviceAddress_ = addr;
+                emit connectedDeviceChanged();
+                qInfo() << "[BtManager] Device connected:" << name << addr;
+            }
+            // Stop auto-connect on any successful device connection
+            if (autoConnectTimer_ && autoConnectAttempt_ < MAX_ATTEMPTS) {
+                qInfo() << "[BtManager] Device connected — stopping auto-connect";
+                cancelAutoConnect();
+            }
+            return;
+        }
+    }
+    // No connected device found
+    if (!connectedDeviceName_.isEmpty()) {
+        qInfo() << "[BtManager] Device disconnected:" << connectedDeviceAddress_;
+        connectedDeviceName_.clear();
+        connectedDeviceAddress_.clear();
+        emit connectedDeviceChanged();
+    }
+}
+
 void BluetoothManager::onDevicePropertiesChanged(const QString& interface,
     const QVariantMap& changed, const QStringList& /*invalidated*/)
 {
-    if (interface == QLatin1String("org.bluez.Device1"))
+    if (interface == QLatin1String("org.bluez.Device1")) {
         refreshPairedDevices();
+        updateConnectedDevice();
+    }
 
     // Track adapter pairable state (BlueZ auto-toggles off after PairableTimeout)
     if (interface == QLatin1String("org.bluez.Adapter1") && changed.contains("Pairable")) {

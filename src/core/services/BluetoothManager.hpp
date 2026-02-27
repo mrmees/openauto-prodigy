@@ -87,6 +87,9 @@ private:
     void handleAgentRequestConfirmation(const QDBusMessage& msg, const QString& devicePath, uint passkey);
     void handleAgentCancel();
 
+    // Connected device tracking
+    void updateConnectedDevice();
+
     // Auto-connect
     void attemptConnect();
     int nextRetryInterval() const;
