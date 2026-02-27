@@ -20,6 +20,7 @@
 #include "core/services/NotificationService.hpp"
 #include "core/services/CompanionListenerService.hpp"
 #include "core/services/SystemServiceClient.hpp"
+#include "core/services/BluetoothManager.hpp"
 #include "ui/NotificationModel.hpp"
 #include "core/plugin/HostContext.hpp"
 #include "core/plugin/PluginManager.hpp"
@@ -97,6 +98,10 @@ int main(int argc, char *argv[])
     hostContext->setThemeService(themeService);
     hostContext->setAudioService(audioService);
 
+    // --- Bluetooth manager ---
+    auto* bluetoothManager = new oap::BluetoothManager(configService.get(), &app);
+    hostContext->setBluetoothService(bluetoothManager);
+
     // --- EventBus ---
     auto eventBus = new oap::EventBus(&app);
     hostContext->setEventBus(eventBus);
@@ -157,6 +162,7 @@ int main(int argc, char *argv[])
 
     // Initialize all plugins (static + dynamic)
     pluginManager.initializeAll(hostContext.get());
+    bluetoothManager->initialize();
 
     // --- IPC server for web config panel ---
     auto ipcServer = new oap::IpcServer(&app);
@@ -230,6 +236,7 @@ int main(int argc, char *argv[])
         engine.rootContext()->setContextProperty("CompanionService", companionListener);
 
     engine.rootContext()->setContextProperty("SystemService", systemClient);
+    engine.rootContext()->setContextProperty("BluetoothManager", bluetoothManager);
 
     // Qt 6.5+ uses /qt/qml/ prefix, Qt 6.4 uses direct URI prefix
     QUrl url(QStringLiteral("qrc:/OpenAutoProdigy/main.qml"));
@@ -272,6 +279,7 @@ int main(int argc, char *argv[])
     // BEFORE engine is destroyed (stack-local), BEFORE plugin shutdown.
     pluginModel->setActivePlugin(QString());
 
+    bluetoothManager->shutdown();
     pluginManager.shutdownAll();
 
     return ret;
