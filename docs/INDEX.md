@@ -24,16 +24,17 @@
 
 ## AA Protocol
 
-- [aa-protocol/protocol-reference.md](aa-protocol/protocol-reference.md) — comprehensive protocol reference
-- [aa-protocol/phone-side-debug.md](aa-protocol/phone-side-debug.md) — phone-side behavior and debugging
-- [aa-protocol/cross-reference.md](aa-protocol/cross-reference.md) — protocol cross-reference (aasdk/wire formats)
-- [aa-protocol/apk-deep-dive.md](aa-protocol/apk-deep-dive.md) — APK v16.1 analysis
-- [aa-protocol/display-rendering.md](aa-protocol/display-rendering.md) — video pipeline and rendering
-- [aa-protocol/video-resolution.md](aa-protocol/video-resolution.md) — resolution negotiation
-- [aa-protocol/troubleshooting-runbook.md](aa-protocol/troubleshooting-runbook.md) — troubleshooting guide
-- [aa-protocol/apk-proto-reference.md](aa-protocol/apk-proto-reference.md) — protobuf message reference
-- [aa-protocol/apk-indexing.md](aa-protocol/apk-indexing.md) — APK indexing pipeline
-- [aa-protocol/proto-validation-report.md](aa-protocol/proto-validation-report.md) — field migration validation
+Protocol definitions and generic reference docs are in [open-android-auto](https://github.com/mrmees/open-android-auto). The docs below are implementation-specific to this project.
+
+- [aa-phone-side-debug.md](aa-phone-side-debug.md) — phone-side behavior and debugging
+- [android-auto-protocol-cross-reference.md](android-auto-protocol-cross-reference.md) — protocol cross-reference (aasdk/wire formats)
+- [aa-apk-deep-dive.md](aa-apk-deep-dive.md) — APK v16.1 analysis
+- [aa-display-rendering.md](aa-display-rendering.md) — video pipeline and rendering
+- [aa-video-resolution.md](aa-video-resolution.md) — resolution negotiation
+- [aa-troubleshooting-runbook.md](aa-troubleshooting-runbook.md) — troubleshooting guide
+- [apk-proto-reference.md](apk-proto-reference.md) — protobuf message reference
+- [apk-indexing.md](apk-indexing.md) — APK indexing pipeline
+- [proto-validation-report.md](proto-validation-report.md) — field migration validation
 
 ## Milestone History
 
