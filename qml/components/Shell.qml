@@ -63,6 +63,11 @@ Item {
         id: gestureOverlay
     }
 
+    // Bluetooth pairing confirmation dialog
+    PairingDialog {
+        id: pairingDialog
+    }
+
     // Incoming call overlay (still uses global PhonePlugin until Priority 3)
     IncomingCallOverlay {
         id: callOverlay
