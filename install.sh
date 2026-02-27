@@ -8,6 +8,15 @@
 #
 set -euo pipefail
 
+# Flags
+VERBOSE=false
+while [[ "${1:-}" == -* ]]; do
+    case "$1" in
+        -v|--verbose) VERBOSE=true; shift ;;
+        *) echo "Unknown option: $1"; exit 1 ;;
+    esac
+done
+
 # Colors
 RED='\033[0;31m'
 GREEN='\033[0;32m'
@@ -348,7 +357,11 @@ build_project() {
     cd build
 
     info "Configuring build..."
-    cmake .. -Wno-dev 2>&1 | grep -v "^CMake Warning\|^  \|^$\|^Call Stack" | grep -v "Could NOT find"
+    if [[ "$VERBOSE" == "true" ]]; then
+        cmake ..
+    else
+        cmake .. -Wno-dev 2>&1 | grep -v "^CMake Warning\|^  \|^$\|^Call Stack" | grep -v "Could NOT find"
+    fi
     info "Building (this may take a while on RPi)..."
     cmake --build . -j$(nproc)
     ok "Build complete"
