@@ -231,7 +231,15 @@ setup_hardware() {
             COUNTRY_CODE=$(locale 2>/dev/null | grep -oP 'LANG=\w+_\K[A-Z]{2}' | head -1)
         fi
         COUNTRY_CODE=${COUNTRY_CODE:-US}
-        ok "Country code: $COUNTRY_CODE (for 5GHz channel selection)"
+        read -p "Country code for 5GHz WiFi [$COUNTRY_CODE]: " USER_CC
+        COUNTRY_CODE=${USER_CC:-$COUNTRY_CODE}
+
+        # Set regulatory domain system-wide so hostapd can use 5GHz
+        sudo iw reg set "$COUNTRY_CODE" 2>/dev/null || true
+        if [[ -f /etc/default/crda ]]; then
+            sudo sed -i "s/^REGDOMAIN=.*/REGDOMAIN=$COUNTRY_CODE/" /etc/default/crda
+        fi
+        ok "Country code: $COUNTRY_CODE (5GHz WiFi regulatory domain)"
     fi
 
     # Audio output device
