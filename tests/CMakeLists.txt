@@ -522,6 +522,14 @@ target_link_libraries(test_video_decode_queue PRIVATE
 )
 add_test(NAME test_video_decode_queue COMMAND test_video_decode_queue)
 
+add_executable(test_bluetooth_manager
+    test_bluetooth_manager.cpp
+    ${CMAKE_SOURCE_DIR}/src/core/services/BluetoothManager.cpp
+)
+target_include_directories(test_bluetooth_manager PRIVATE ${CMAKE_SOURCE_DIR}/src)
+target_link_libraries(test_bluetooth_manager PRIVATE Qt6::Core Qt6::DBus Qt6::Test)
+add_test(NAME test_bluetooth_manager COMMAND test_bluetooth_manager)
+
 # GUI/Quick tests need offscreen platform when no display is available
 set_tests_properties(test_configuration test_theme_service test_plugin_model
     PROPERTIES ENVIRONMENT "QT_QPA_PLATFORM=offscreen"
