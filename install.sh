@@ -294,8 +294,11 @@ setup_hardware() {
     echo
     read -p "Start OpenAuto Prodigy automatically on boot? [Y/n] " -n 1 -r
     echo
-    AUTOSTART=true
-    [[ $REPLY =~ ^[Nn]$ ]] && AUTOSTART=false
+    if [[ $REPLY =~ ^[Nn]$ ]]; then
+        AUTOSTART=false
+    else
+        AUTOSTART=true
+    fi
 }
 
 # ────────────────────────────────────────────────────
@@ -784,29 +787,17 @@ run_diagnostics() {
 # ────────────────────────────────────────────────────
 main() {
     print_header
-    echo "DEBUG: after print_header" >&2
     check_system
-    echo "DEBUG: after check_system" >&2
     install_dependencies
-    echo "DEBUG: after install_dependencies" >&2
     setup_hardware
-    echo "DEBUG: after setup_hardware (exit=$?)" >&2
     build_project
-    echo "DEBUG: after build_project" >&2
     generate_config
-    echo "DEBUG: after generate_config" >&2
     configure_network
-    echo "DEBUG: after configure_network" >&2
     configure_labwc
-    echo "DEBUG: after configure_labwc" >&2
     create_service
-    echo "DEBUG: after create_service" >&2
     create_web_service
-    echo "DEBUG: after create_web_service" >&2
     create_system_service
-    echo "DEBUG: after create_system_service" >&2
     run_diagnostics
-    echo "DEBUG: after run_diagnostics" >&2
 }
 
 main "$@"
