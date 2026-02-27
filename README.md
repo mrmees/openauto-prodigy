@@ -126,6 +126,28 @@ ctest --output-on-failure
 This repository now includes a prebuilt packaging path so you can distribute
 the current app state without requiring end users to compile from source.
 
+### End-user installer options
+
+`install.sh` now supports two install modes:
+
+1. Build locally from source.
+2. Download a precompiled release from GitHub (interactive release list).
+
+Both modes run platform checks before install (OS family, CPU architecture, and Pi 4 hardware model with explicit continue prompts on mismatch).
+
+To only list available prebuilt assets:
+
+```bash
+bash install.sh --list-prebuilt
+```
+
+### Release naming convention
+
+- Git tag: `v<major>.<minor>.<patch>` (example: `v0.3.0`)
+- Prebuilt asset: `openauto-prodigy-prebuilt-<tag>-pi4-aarch64.tar.gz`
+- Archive root directory: `openauto-prodigy-prebuilt-<tag>-pi4-aarch64/`
+- Archive metadata file: `RELEASE.json`
+
 1. Cross-compile for Pi (aarch64):
 
 ```bash
@@ -141,14 +163,14 @@ the current app state without requiring end users to compile from source.
 This creates:
 
 ```text
-dist/openauto-prodigy-prebuilt-v0.1.0.tar.gz
+dist/openauto-prodigy-prebuilt-v0.1.0-pi4-aarch64.tar.gz
 ```
 
 3. On the target Pi, extract and run:
 
 ```bash
-tar -xzf openauto-prodigy-prebuilt-v0.1.0.tar.gz
-cd openauto-prodigy-prebuilt-v0.1.0
+tar -xzf openauto-prodigy-prebuilt-v0.1.0-pi4-aarch64.tar.gz
+cd openauto-prodigy-prebuilt-v0.1.0-pi4-aarch64
 bash install-prebuilt.sh
 ```
 

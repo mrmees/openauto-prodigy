@@ -16,6 +16,7 @@ REPO_ROOT="$(cd "$SCRIPT_DIR/.." && pwd)"
 BUILD_DIR="$REPO_ROOT/build-pi"
 OUTPUT_DIR="$REPO_ROOT/dist"
 VERSION_TAG="$(date -u +%Y%m%d-%H%M%S)"
+TARGET_NAME="pi4-aarch64"
 
 usage() {
     cat <<'USAGE'
@@ -28,6 +29,8 @@ Options:
                         (default: ./dist)
   --version-tag <tag>   Release tag suffix for archive naming
                         (default: UTC timestamp YYYYMMDD-HHMMSS)
+  --target <name>       Target suffix used in asset naming
+                        (default: pi4-aarch64)
   --help                Show this help text
 USAGE
 }
@@ -51,6 +54,10 @@ while [[ $# -gt 0 ]]; do
             VERSION_TAG="$2"
             shift 2
             ;;
+        --target)
+            TARGET_NAME="$2"
+            shift 2
+            ;;
         --help|-h)
             usage
             exit 0
@@ -62,6 +69,7 @@ while [[ $# -gt 0 ]]; do
 done
 
 [[ -n "$VERSION_TAG" ]] || fail "version tag cannot be empty"
+[[ -n "$TARGET_NAME" ]] || fail "target name cannot be empty"
 
 if [[ "$BUILD_DIR" != /* ]]; then
     BUILD_DIR="$REPO_ROOT/$BUILD_DIR"
@@ -78,9 +86,10 @@ RESTART_SCRIPT="$REPO_ROOT/docs/pi-config/restart.sh"
 [[ -f "$INSTALL_SCRIPT" ]] || fail "missing installer script: $INSTALL_SCRIPT"
 [[ -f "$RESTART_SCRIPT" ]] || fail "missing restart helper: $RESTART_SCRIPT"
 
-PACKAGE_NAME="openauto-prodigy-prebuilt-${VERSION_TAG}"
+PACKAGE_NAME="openauto-prodigy-prebuilt-${VERSION_TAG}-${TARGET_NAME}"
 STAGE_DIR="$OUTPUT_DIR/$PACKAGE_NAME"
 ARCHIVE_PATH="$OUTPUT_DIR/${PACKAGE_NAME}.tar.gz"
+GIT_COMMIT="$(git -C "$REPO_ROOT" rev-parse --short HEAD 2>/dev/null || echo unknown)"
 
 echo "[INFO] Packaging prebuilt release"
 echo "       build:   $BUILD_DIR"
@@ -92,6 +101,17 @@ mkdir -p "$STAGE_DIR/payload/build/src"
 # Release entrypoint
 cp "$INSTALL_SCRIPT" "$STAGE_DIR/install-prebuilt.sh"
 chmod +x "$STAGE_DIR/install-prebuilt.sh"
+
+cat > "$STAGE_DIR/RELEASE.json" <<JSON
+{
+  "project": "openauto-prodigy",
+  "version_tag": "$VERSION_TAG",
+  "target": "$TARGET_NAME",
+  "asset_name": "${PACKAGE_NAME}.tar.gz",
+  "git_commit": "$GIT_COMMIT",
+  "created_utc": "$(date -u +%Y-%m-%dT%H:%M:%SZ)"
+}
+JSON
 
 # Runtime payload
 cp "$BINARY_PATH" "$STAGE_DIR/payload/build/src/openauto-prodigy"

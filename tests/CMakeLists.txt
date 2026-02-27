@@ -545,6 +545,11 @@ add_test(
     COMMAND python3 ${CMAKE_SOURCE_DIR}/tests/test_prebuilt_release_package.py
 )
 
+add_test(
+    NAME test_install_list_prebuilt
+    COMMAND python3 ${CMAKE_SOURCE_DIR}/tests/test_install_list_prebuilt.py
+)
+
 # GUI/Quick tests need offscreen platform when no display is available
 set_tests_properties(test_configuration test_theme_service test_plugin_model
     PROPERTIES ENVIRONMENT "QT_QPA_PLATFORM=offscreen"

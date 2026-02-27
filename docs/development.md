@@ -64,15 +64,27 @@ For a fresh Raspberry Pi, the install script handles everything:
 bash install.sh
 ```
 
-This installs dependencies, builds from source, generates config, and creates systemd services.
+`install.sh` now provides an install mode picker:
+- Build locally from source.
+- Download a precompiled release from GitHub.
+
+Both install modes run platform validation first (Debian/RPi OS family, ARM architecture, and Pi 4 hardware model, with explicit continue prompts if mismatched).
+
+To list available precompiled release assets without installing:
+
+```bash
+bash install.sh --list-prebuilt
+```
+
+The source mode installs dependencies, builds from source, generates config, and creates systemd services.
 
 ### Prebuilt Install (RPi OS Trixie)
 
 If you have a packaged prebuilt release tarball, install without building:
 
 ```bash
-tar -xzf openauto-prodigy-prebuilt-<tag>.tar.gz
-cd openauto-prodigy-prebuilt-<tag>
+tar -xzf openauto-prodigy-prebuilt-<tag>-pi4-aarch64.tar.gz
+cd openauto-prodigy-prebuilt-<tag>-pi4-aarch64
 bash install-prebuilt.sh
 ```
 
@@ -82,6 +94,11 @@ To create a prebuilt package from this repo:
 ./cross-build.sh -DCMAKE_BUILD_TYPE=Release
 ./tools/package-prebuilt-release.sh --build-dir build-pi --version-tag <tag>
 ```
+
+Prebuilt release convention:
+- Asset: `openauto-prodigy-prebuilt-<tag>-pi4-aarch64.tar.gz`
+- Root dir: `openauto-prodigy-prebuilt-<tag>-pi4-aarch64/`
+- Metadata: `RELEASE.json` at archive root
 
 ## Running
 

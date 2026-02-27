@@ -242,3 +242,61 @@ Documentation:
   - Green phase: passed after implementation.
 - `./tools/package-prebuilt-release.sh --build-dir build-pi --output-dir dist --version-tag local-test`
   - Passed; created `dist/openauto-prodigy-prebuilt-local-test.tar.gz`.
+
+---
+
+## 2026-02-27 — Installer Mode Selection + Release Convention Finalization
+
+**What changed:**
+- Expanded `install.sh` to support:
+  - `--mode <source|prebuilt>`
+  - `--list-prebuilt`
+  - `--prebuilt-index <N>`
+  - interactive mode picker (local build vs GitHub prebuilt download)
+- Added GitHub prebuilt release discovery/listing in `install.sh`, including compatibility with legacy prebuilt asset names.
+- Added/extended platform guardrails in `install.sh`:
+  - OS family check (`debian` / `raspbian`)
+  - architecture check (`aarch64`/`armv7l`)
+  - hardware model check for Raspberry Pi 4 (`/proc/device-tree/model`)
+  - checks now run for both source and prebuilt install flows.
+- Finalized release packaging convention in `tools/package-prebuilt-release.sh`:
+  - target-qualified asset naming: `openauto-prodigy-prebuilt-<tag>-<target>.tar.gz`
+  - new `--target` argument (default `pi4-aarch64`)
+  - added `RELEASE.json` metadata payload.
+- Added test coverage:
+  - new `tests/test_install_list_prebuilt.py`
+  - updated `tests/test_prebuilt_release_package.py` for target-qualified name + `RELEASE.json`
+  - registered new test in `tests/CMakeLists.txt`.
+- Updated docs:
+  - `README.md`, `docs/development.md` (mode options + OS/hardware checks + naming)
+  - `docs/release-packaging.md` (new convention doc)
+  - `docs/INDEX.md` (linked release-packaging doc)
+  - `docs/roadmap-current.md` (done item expanded).
+
+**Why:**
+- End users need a first-class choice between local source builds and precompiled releases.
+- Distribution artifacts need a stable, explicit naming structure before publishing releases.
+- Installer should validate both software platform and target hardware before proceeding to reduce unsupported installs and troubleshooting churn.
+
+**Status:** Complete in `feature/prebuilt-distribution`; ready to push as follow-up commit on PR #6.
+
+**Next steps:**
+1. Validate `install.sh --mode prebuilt` end-to-end on actual Pi 4 hardware using a GitHub-hosted release tarball.
+2. Tag and publish first release using the finalized convention (`vX.Y.Z` + `-pi4-aarch64` asset suffix).
+3. Optionally add CI coverage for `install.sh --list-prebuilt` and packaging script execution in release workflows.
+
+**Verification commands/results:**
+- `bash -n install.sh`
+  - Passed.
+- `bash -n tools/package-prebuilt-release.sh`
+  - Passed.
+- `python3 -m py_compile tests/test_install_list_prebuilt.py tests/test_prebuilt_release_package.py`
+  - Passed.
+- `cd build && ctest -R 'test_install_list_prebuilt|test_prebuilt_release_package' --output-on-failure`
+  - Passed (`2/2`).
+- `cd build && cmake --build . -j$(nproc)`
+  - Passed.
+- `cd build && ctest --output-on-failure`
+  - Passed (`100% tests passed, 0 tests failed out of 52`).
+- `./cross-build.sh -DCMAKE_BUILD_TYPE=Release`
+  - Passed (`Build complete: build-pi/src/openauto-prodigy`).

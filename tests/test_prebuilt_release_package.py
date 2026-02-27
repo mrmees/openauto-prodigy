@@ -41,19 +41,21 @@ def main() -> int:
             cwd=REPO_ROOT,
         )
 
-        archive = output_dir / "openauto-prodigy-prebuilt-test.tar.gz"
+        package_root = "openauto-prodigy-prebuilt-test-pi4-aarch64"
+        archive = output_dir / f"{package_root}.tar.gz"
         if not archive.is_file():
             raise AssertionError(f"missing archive: {archive}")
 
         required = {
-            "openauto-prodigy-prebuilt-test/install-prebuilt.sh",
-            "openauto-prodigy-prebuilt-test/payload/build/src/openauto-prodigy",
-            "openauto-prodigy-prebuilt-test/payload/config/themes/default/theme.yaml",
-            "openauto-prodigy-prebuilt-test/payload/system-service/openauto_system.py",
-            "openauto-prodigy-prebuilt-test/payload/system-service/requirements.txt",
-            "openauto-prodigy-prebuilt-test/payload/web-config/server.py",
-            "openauto-prodigy-prebuilt-test/payload/web-config/requirements.txt",
-            "openauto-prodigy-prebuilt-test/payload/restart.sh",
+            f"{package_root}/install-prebuilt.sh",
+            f"{package_root}/RELEASE.json",
+            f"{package_root}/payload/build/src/openauto-prodigy",
+            f"{package_root}/payload/config/themes/default/theme.yaml",
+            f"{package_root}/payload/system-service/openauto_system.py",
+            f"{package_root}/payload/system-service/requirements.txt",
+            f"{package_root}/payload/web-config/server.py",
+            f"{package_root}/payload/web-config/requirements.txt",
+            f"{package_root}/payload/restart.sh",
         }
         with tarfile.open(archive, mode="r:gz") as tar:
             names = set(tar.getnames())
