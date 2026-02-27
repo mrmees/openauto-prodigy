@@ -79,15 +79,17 @@ export QT_QPA_PLATFORM=wayland
 
 The Pi runs labwc as its Wayland compositor. Do **not** use `eglfs` — it won't work with this display server setup.
 
-### Via SSH (backgrounded)
+### Via SSH
 
 ```bash
-ssh matt@192.168.1.149 'DISPLAY=:0 XDG_RUNTIME_DIR=/run/user/1000 nohup /home/matt/openauto-prodigy/build/src/openauto-prodigy </dev/null >/tmp/oap.log 2>&1 & sleep 1; pgrep -f openauto-prodigy && echo running'
+ssh matt@192.168.1.152 '~/openauto-prodigy/restart.sh'
+# Validate without restarting:
+ssh matt@192.168.1.152 '~/openauto-prodigy/restart.sh --check'
+# Force-kill stuck process:
+ssh matt@192.168.1.152 '~/openauto-prodigy/restart.sh --force-kill'
 ```
 
-Kill with: `ssh matt@192.168.1.149 'pkill -f openauto-prodigy'`
-
-**Note:** Use `pkill -f` not `pkill` — the binary name exceeds 15 characters, and `pkill` silently matches nothing for long names.
+See `docs/pi-config/restart.sh` for the script source of truth.
 
 ### Web Config Panel
 

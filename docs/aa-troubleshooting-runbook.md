@@ -156,11 +156,10 @@ cd build && ctest --output-on-failure
    ssh matt@192.168.1.149 'touch -t 203001010000 /home/matt/openauto-prodigy/src/path/to/changed/file.cpp'
    ```
 
-5. **Kill old instance + launch:**
+5. **Restart the app:**
    ```bash
-   ssh matt@192.168.1.149 "pkill -f 'build/src/openauto-prodigy'"
-   sleep 2
-   ssh -f matt@192.168.1.149 "cd /home/matt/openauto-prodigy && env WAYLAND_DISPLAY=wayland-0 XDG_RUNTIME_DIR=/run/user/1000 ./build/src/openauto-prodigy > /tmp/oap.log 2>&1 </dev/null &"
+   ssh matt@192.168.1.152 '~/openauto-prodigy/restart.sh'
+   # If process is stuck, use --force-kill
    ```
 
 6. **Reconnect phone** — see [Manual Test Cycle](docs/skills/aa-troubleshooting/SKILL.md#manual-test-cycle-replaces-reconnectsh-for-now) in the skill (steps 1, 7-10).

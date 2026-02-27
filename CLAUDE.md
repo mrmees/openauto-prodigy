@@ -88,9 +88,11 @@ rsync -av build-pi/src/openauto-prodigy matt@192.168.1.152:~/openauto-prodigy/bu
 ssh matt@192.168.1.152 "cd /home/matt/openauto-prodigy/build && cmake --build . -j3"
 ```
 
-**Launch:**
+**Launch / Restart:**
 ```bash
-ssh matt@192.168.1.152 'cd /home/matt/openauto-prodigy && nohup env WAYLAND_DISPLAY=wayland-0 XDG_RUNTIME_DIR=/run/user/1000 ./build/src/openauto-prodigy > /tmp/oap.log 2>&1 &'
+ssh matt@192.168.1.152 '~/openauto-prodigy/restart.sh'
+# Or with SIGKILL for stuck processes:
+ssh matt@192.168.1.152 '~/openauto-prodigy/restart.sh --force-kill'
 ```
 
 **Note:** If cross-compiled binaries have issues (missing libs, ABI mismatch), fall back to Option B.
