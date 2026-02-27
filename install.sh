@@ -8,6 +8,8 @@
 #
 set -euo pipefail
 
+trap 'echo -e "\033[0;31m[CRASH]\033[0m Script failed at line $LINENO (exit code $?): $(sed -n "${LINENO}p" "$0" 2>/dev/null || echo "unknown")"' ERR
+
 # Wrap entire script in a block so bash reads it all into memory before
 # executing. This prevents git pull from modifying the script mid-run.
 {
