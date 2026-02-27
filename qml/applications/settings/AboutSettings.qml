@@ -2,13 +2,16 @@ import QtQuick
 import QtQuick.Layouts
 import QtQuick.Controls
 
-Item {
+Flickable {
     id: root
+    contentHeight: content.implicitHeight + UiMetrics.marginPage * 2
+    clip: true
+    boundsBehavior: Flickable.StopAtBounds
 
     ColumnLayout {
+        id: content
         anchors.left: parent.left
         anchors.right: parent.right
-        anchors.top: parent.top
         anchors.margins: UiMetrics.marginPage
         spacing: UiMetrics.gap
 
