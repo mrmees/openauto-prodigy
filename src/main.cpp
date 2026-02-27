@@ -160,9 +160,11 @@ int main(int argc, char *argv[])
     // Discover dynamic plugins from user directory
     pluginManager.discoverPlugins(QDir::homePath() + "/.openauto/plugins");
 
+    // Initialize BT before plugins so they see a ready BT service
+    bluetoothManager->initialize();
+
     // Initialize all plugins (static + dynamic)
     pluginManager.initializeAll(hostContext.get());
-    bluetoothManager->initialize();
 
     // --- IPC server for web config panel ---
     auto ipcServer = new oap::IpcServer(&app);
@@ -280,8 +282,8 @@ int main(int argc, char *argv[])
     // BEFORE engine is destroyed (stack-local), BEFORE plugin shutdown.
     pluginModel->setActivePlugin(QString());
 
-    bluetoothManager->shutdown();
     pluginManager.shutdownAll();
+    bluetoothManager->shutdown();
 
     return ret;
 }

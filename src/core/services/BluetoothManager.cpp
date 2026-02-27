@@ -300,10 +300,18 @@ void BluetoothManager::initialize()
     registerAgent();
     registerProfiles();
 
-    // Watch for BlueZ device property changes (paired/connected state)
+    // Watch for BlueZ device/adapter property changes
     QDBusConnection::systemBus().connect(
         "org.bluez", QString(), "org.freedesktop.DBus.Properties", "PropertiesChanged",
         this, SLOT(onDevicePropertiesChanged(QString,QVariantMap,QStringList)));
+
+    // Watch for new/removed devices (paired externally, removed via bluetoothctl, etc.)
+    QDBusConnection::systemBus().connect(
+        "org.bluez", QString(), "org.freedesktop.DBus.ObjectManager", "InterfacesAdded",
+        this, SLOT(onInterfacesChanged()));
+    QDBusConnection::systemBus().connect(
+        "org.bluez", QString(), "org.freedesktop.DBus.ObjectManager", "InterfacesRemoved",
+        this, SLOT(onInterfacesChanged()));
 
     auto* watcher = new QDBusServiceWatcher("org.bluez",
         QDBusConnection::systemBus(),
@@ -656,14 +664,31 @@ void BluetoothManager::refreshPairedDevices()
 }
 
 void BluetoothManager::onDevicePropertiesChanged(const QString& interface,
-    const QVariantMap& /*changed*/, const QStringList& /*invalidated*/)
+    const QVariantMap& changed, const QStringList& /*invalidated*/)
 {
-    if (interface == "org.bluez.Device1")
+    if (interface == QLatin1String("org.bluez.Device1"))
         refreshPairedDevices();
+
+    // Track adapter pairable state (BlueZ auto-toggles off after PairableTimeout)
+    if (interface == QLatin1String("org.bluez.Adapter1") && changed.contains("Pairable")) {
+        bool newPairable = changed.value("Pairable").toBool();
+        if (pairable_ != newPairable) {
+            pairable_ = newPairable;
+            emit pairableChanged();
+            qInfo() << "[BtManager] Adapter pairable changed to:" << pairable_;
+        }
+    }
+}
+
+void BluetoothManager::onInterfacesChanged()
+{
+    refreshPairedDevices();
 }
 
 void BluetoothManager::shutdown()
 {
+    if (shutdown_) return;
+    shutdown_ = true;
     qInfo() << "[BtManager] Shutting down";
     cancelAutoConnect();
     unregisterProfiles();

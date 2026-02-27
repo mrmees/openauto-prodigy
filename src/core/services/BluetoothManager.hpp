@@ -65,6 +65,7 @@ private slots:
     void onDevicePropertiesChanged(const QString& interface,
                                    const QVariantMap& changed,
                                    const QStringList& invalidated);
+    void onInterfacesChanged();
 
 private:
     friend class ::BluezAgentAdaptor;
@@ -106,6 +107,7 @@ private:
     QDBusMessage pendingPairingMessage_;
     QString pendingPairingDevicePath_;
     PairedDevicesModel* pairedDevicesModel_ = nullptr;
+    bool shutdown_ = false;
 
     // Profile registration state
     QStringList registeredProfilePaths_;
