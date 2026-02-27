@@ -89,7 +89,6 @@ bool AndroidAutoPlugin::initialize(IHostContext* context)
         touchReader_ = new oap::aa::EvdevTouchReader(
             aaService_->touchHandler(),
             touchDevice.toStdString(),
-            4095, 4095,
             aaW, aaH,
             displayW, displayH,
             this);

@@ -39,22 +39,18 @@ public:
 
     explicit EvdevTouchReader(TouchHandler* handler,
                               const std::string& devicePath,
-                              int screenWidth, int screenHeight,
                               int aaWidth, int aaHeight,
                               int displayWidth, int displayHeight,
                               QObject* parent = nullptr)
         : QThread(parent)
         , handler_(handler)
         , devicePath_(devicePath)
-        , screenWidth_(screenWidth)
-        , screenHeight_(screenHeight)
         , aaWidth_(aaWidth)
         , aaHeight_(aaHeight)
         , displayWidth_(displayWidth)
         , displayHeight_(displayHeight)
     {
         slots_.fill(Slot{});
-        computeLetterbox();
     }
 
     void requestStop() { stopRequested_ = true; }
@@ -92,8 +88,8 @@ private:
 
     TouchHandler* handler_;
     std::string devicePath_;
-    int screenWidth_;   // evdev axis max (e.g. 4095)
-    int screenHeight_;  // evdev axis max (e.g. 4095)
+    int screenWidth_ = 4095;   // evdev axis max, read from device in run()
+    int screenHeight_ = 4095;  // evdev axis max, read from device in run()
     int aaWidth_;       // AA touch coordinate space (video resolution)
     int aaHeight_;
     int displayWidth_;  // physical display pixels
