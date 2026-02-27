@@ -146,7 +146,7 @@ setup_hardware() {
         if [[ -e "$dev" ]]; then
             # Check for INPUT_PROP_DIRECT (bit 0x01 in properties bitmask)
             local PROPS_PATH="/sys/class/input/$(basename "$dev")/device/properties"
-            if [[ -f "$PROPS_PATH" ]] && (( $(cat "$PROPS_PATH" 2>/dev/null || echo 0) & 1 )); then
+            if [[ -f "$PROPS_PATH" ]] && (( $(cat "$PROPS_PATH" 2>/dev/null || echo 0) & 2 )); then
                 NAME=$(cat "/sys/class/input/$(basename "$dev")/device/name" 2>/dev/null || echo "unknown")
                 TOUCH_DEVS+=("$dev")
                 printf "  %-24s %s\n" "$dev" "$NAME"
