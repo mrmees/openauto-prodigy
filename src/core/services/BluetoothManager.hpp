@@ -1,6 +1,7 @@
 #pragma once
 
 #include "IBluetoothService.hpp"
+#include "ui/PairedDevicesModel.hpp"
 #include <QObject>
 #include <QDBusConnection>
 #include <QDBusMessage>
@@ -57,6 +58,11 @@ signals:
     void connectedDeviceChanged();
     void profileNewConnection();  // RFCOMM NewConnection — auto-connect stop signal
 
+private slots:
+    void onDevicePropertiesChanged(const QString& interface,
+                                   const QVariantMap& changed,
+                                   const QStringList& invalidated);
+
 private:
     friend class ::BluezAgentAdaptor;
 
@@ -69,6 +75,7 @@ private:
     QString findAdapterPath();
     QString deviceNameFromPath(const QString& devicePath);
     void setDeviceProperty(const QString& devicePath, const QString& property, const QVariant& value);
+    void refreshPairedDevices();
 
     // Called by BluezAgentAdaptor
     void handleAgentRequestConfirmation(const QDBusMessage& msg, const QString& devicePath, uint passkey);
@@ -88,6 +95,7 @@ private:
     BluezAgentAdaptor* agentAdaptor_ = nullptr;
     QDBusMessage pendingPairingMessage_;
     QString pendingPairingDevicePath_;
+    PairedDevicesModel* pairedDevicesModel_ = nullptr;
 };
 
 } // namespace oap

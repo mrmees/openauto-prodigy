@@ -533,6 +533,7 @@ add_test(NAME test_paired_devices_model COMMAND test_paired_devices_model)
 add_executable(test_bluetooth_manager
     test_bluetooth_manager.cpp
     ${CMAKE_SOURCE_DIR}/src/core/services/BluetoothManager.cpp
+    ${CMAKE_SOURCE_DIR}/src/ui/PairedDevicesModel.cpp
 )
 target_include_directories(test_bluetooth_manager PRIVATE ${CMAKE_SOURCE_DIR}/src)
 target_link_libraries(test_bluetooth_manager PRIVATE Qt6::Core Qt6::DBus Qt6::Test)

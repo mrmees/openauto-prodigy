@@ -1,5 +1,6 @@
 #include "BluetoothManager.hpp"
 #include "IConfigService.hpp"
+#include "ui/PairedDevicesModel.hpp"
 #include <QDebug>
 #include <QDBusInterface>
 #include <QDBusReply>
@@ -49,6 +50,7 @@ BluetoothManager::BluetoothManager(IConfigService* configService, QObject* paren
     : QObject(parent)
     , configService_(configService)
 {
+    pairedDevicesModel_ = new PairedDevicesModel(this);
 }
 
 BluetoothManager::~BluetoothManager()
@@ -91,6 +93,8 @@ void BluetoothManager::confirmPairing()
     pairingPasskey_.clear();
     pendingPairingDevicePath_.clear();
     emit pairingActiveChanged();
+
+    refreshPairedDevices();
 }
 
 void BluetoothManager::rejectPairing()
@@ -112,13 +116,27 @@ void BluetoothManager::rejectPairing()
 
 QAbstractListModel* BluetoothManager::pairedDevicesModel()
 {
-    return nullptr;  // TODO: return PairedDevicesModel
+    return pairedDevicesModel_;
 }
 
 void BluetoothManager::forgetDevice(const QString& address)
 {
+    if (adapterPath_.isEmpty()) return;
     qInfo() << "[BtManager] Forget device:" << address;
-    // TODO: call Adapter1.RemoveDevice via D-Bus
+
+    // Device paths are like /org/bluez/hci0/dev_AA_BB_CC_DD_EE_FF
+    QString devAddr = address;
+    devAddr.replace(':', '_');
+    QString devicePath = adapterPath_ + "/dev_" + devAddr;
+
+    QDBusInterface adapter("org.bluez", adapterPath_,
+        "org.bluez.Adapter1", QDBusConnection::systemBus());
+    QDBusReply<void> reply = adapter.call("RemoveDevice",
+        QVariant::fromValue(QDBusObjectPath(devicePath)));
+    if (!reply.isValid())
+        qWarning() << "[BtManager] RemoveDevice failed:" << reply.error().message();
+
+    refreshPairedDevices();
 }
 
 void BluetoothManager::startAutoConnect()
@@ -141,6 +159,11 @@ void BluetoothManager::initialize()
     qInfo() << "[BtManager] Initializing...";
     setupAdapter();
     registerAgent();
+
+    // Watch for BlueZ device property changes (paired/connected state)
+    QDBusConnection::systemBus().connect(
+        "org.bluez", QString(), "org.freedesktop.DBus.Properties", "PropertiesChanged",
+        this, SLOT(onDevicePropertiesChanged(QString,QVariantMap,QStringList)));
 
     auto* watcher = new QDBusServiceWatcher("org.bluez",
         QDBusConnection::systemBus(),
@@ -264,6 +287,8 @@ void BluetoothManager::setupAdapter()
     qInfo() << "[BtManager] Adapter:" << adapterAddress_
             << "alias:" << adapterAlias_
             << "discoverable:" << discoverable_;
+
+    refreshPairedDevices();
 }
 
 void BluetoothManager::registerAgent()
@@ -353,6 +378,78 @@ void BluetoothManager::setDeviceProperty(const QString& devicePath, const QStrin
         QVariant::fromValue(QDBusVariant(value)));
     if (reply.type() == QDBusMessage::ErrorMessage)
         qWarning() << "[BtManager] Failed to set" << property << "on" << devicePath << ":" << reply.errorMessage();
+}
+
+void BluetoothManager::refreshPairedDevices()
+{
+    QDBusInterface objectManager("org.bluez", "/",
+        "org.freedesktop.DBus.ObjectManager", QDBusConnection::systemBus());
+
+    QDBusMessage reply = objectManager.call("GetManagedObjects");
+    if (reply.type() != QDBusMessage::ReplyMessage || reply.arguments().isEmpty())
+        return;
+
+    QList<PairedDeviceInfo> devices;
+    const QDBusArgument arg = reply.arguments().first().value<QDBusArgument>();
+
+    arg.beginMap();
+    while (!arg.atEnd()) {
+        arg.beginMapEntry();
+        QDBusObjectPath objPath;
+        arg >> objPath;
+
+        // Parse interfaces map
+        bool hasDevice = false;
+        bool paired = false;
+        bool connected = false;
+        QString address, name;
+
+        arg.beginMap();
+        while (!arg.atEnd()) {
+            arg.beginMapEntry();
+            QString ifaceName;
+            arg >> ifaceName;
+
+            // Parse properties sub-map
+            arg.beginMap();
+            while (!arg.atEnd()) {
+                arg.beginMapEntry();
+                QString key;
+                arg >> key;
+                QDBusVariant val;
+                arg >> val;
+
+                if (ifaceName == "org.bluez.Device1") {
+                    hasDevice = true;
+                    if (key == "Address") address = val.variant().toString();
+                    else if (key == "Name") name = val.variant().toString();
+                    else if (key == "Alias" && name.isEmpty()) name = val.variant().toString();
+                    else if (key == "Paired") paired = val.variant().toBool();
+                    else if (key == "Connected") connected = val.variant().toBool();
+                }
+                arg.endMapEntry();
+            }
+            arg.endMap();
+            arg.endMapEntry();
+        }
+        arg.endMap();
+        arg.endMapEntry();
+
+        if (hasDevice && paired) {
+            devices.append({address, name.isEmpty() ? address : name, connected});
+        }
+    }
+    arg.endMap();
+
+    pairedDevicesModel_->setDevices(devices);
+    qInfo() << "[BtManager] Found" << devices.size() << "paired device(s)";
+}
+
+void BluetoothManager::onDevicePropertiesChanged(const QString& interface,
+    const QVariantMap& /*changed*/, const QStringList& /*invalidated*/)
+{
+    if (interface == "org.bluez.Device1")
+        refreshPairedDevices();
 }
 
 void BluetoothManager::shutdown()
