@@ -293,12 +293,14 @@ HOSTAPD
         sudo sed -i 's|^#\?DAEMON_CONF=.*|DAEMON_CONF="/etc/hostapd/hostapd.conf"|' /etc/default/hostapd
     fi
 
-    # Enable services
+    # Enable and start services
     sudo systemctl unmask hostapd 2>/dev/null || true
     sudo systemctl enable hostapd
     sudo systemctl enable systemd-networkd
+    sudo systemctl restart systemd-networkd
+    sudo systemctl restart hostapd
 
-    ok "WiFi AP configured: SSID=$WIFI_SSID on $WIFI_IFACE ($AP_IP)"
+    ok "WiFi AP configured and started: SSID=$WIFI_SSID on $WIFI_IFACE ($AP_IP)"
 }
 
 # ────────────────────────────────────────────────────
@@ -599,22 +601,33 @@ run_diagnostics() {
         warn "labwc: mouseEmulation may be enabled — check $RC_FILE"
     fi
 
-    # Touch devices
+    # Touch devices (filtered to touchscreens only, same as setup)
     echo
-    info "Touch devices:"
+    info "Touchscreen devices (INPUT_PROP_DIRECT):"
+    local FOUND_TOUCH=false
     for dev in /dev/input/event*; do
         if [[ -e "$dev" ]]; then
-            NAME=$(cat /sys/class/input/$(basename "$dev")/device/name 2>/dev/null || echo "unknown")
-            echo "  $dev — $NAME"
+            local PROPS_PATH="/sys/class/input/$(basename "$dev")/device/properties"
+            if [[ -f "$PROPS_PATH" ]] && (( $(cat "$PROPS_PATH" 2>/dev/null || echo 0) & 2 )); then
+                NAME=$(cat "/sys/class/input/$(basename "$dev")/device/name" 2>/dev/null || echo "unknown")
+                printf "  %-24s %s\n" "$dev" "$NAME"
+                FOUND_TOUCH=true
+            fi
         fi
     done
+    if [[ "$FOUND_TOUCH" == "false" ]]; then
+        warn "No touchscreen devices detected"
+    fi
 
     # Audio outputs
     echo
     info "Audio outputs:"
     if command -v pactl &>/dev/null; then
-        pactl list short sinks 2>/dev/null | while read -r line; do
-            echo "  $line"
+        pactl list sinks 2>/dev/null | grep -E "^\s*(Name|Description):" | paste - - | while read -r line; do
+            local name desc
+            name=$(echo "$line" | sed 's/.*Name: \([^ ]*\).*/\1/')
+            desc=$(echo "$line" | sed 's/.*Description: //')
+            printf "  %-40s %s\n" "$name" "$desc"
         done
     elif command -v pw-cli &>/dev/null; then
         pw-cli list-objects Node 2>/dev/null | grep -i "audio.*sink" | head -5 || echo "  (use pw-cli to inspect)"
@@ -640,7 +653,7 @@ run_diagnostics() {
     if [[ -n "$WIFI_SSID" ]] && systemctl is-active hostapd &>/dev/null; then
         ok "WiFi AP: running (SSID: $WIFI_SSID)"
     elif [[ -n "$WIFI_SSID" ]]; then
-        info "WiFi AP: configured but not started (will start on reboot)"
+        warn "WiFi AP: configured but hostapd not running — check: sudo systemctl status hostapd"
     else
         info "WiFi AP: not configured"
     fi
@@ -679,6 +692,17 @@ run_diagnostics() {
     else
         echo -e "  ${YELLOW}NOTE: Group changes require logout/login (or reboot) to take effect.${NC}"
         echo
+    fi
+
+    # Offer to launch immediately
+    echo
+    read -p "Start OpenAuto Prodigy now? [Y/n] " -n 1 -r
+    echo
+    if [[ ! $REPLY =~ ^[Nn]$ ]]; then
+        info "Starting OpenAuto Prodigy..."
+        # Always use systemd — service file has correct Wayland env for headless/SSH launch
+        sudo systemctl start ${SERVICE_NAME}
+        ok "Started via systemd. Logs: journalctl -u ${SERVICE_NAME} -f"
     fi
 }
 
