@@ -29,7 +29,8 @@ public:
         PluginIconTextRole,
         PluginQmlRole,
         IsActiveRole,
-        WantsFullscreenRole
+        WantsFullscreenRole,
+        SettingsQmlRole
     };
 
     explicit PluginModel(PluginManager* manager, QQmlEngine* engine, QObject* parent = nullptr);

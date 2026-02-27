@@ -104,6 +104,25 @@ private slots:
         model.setActivePlugin(QString());  // go home
         QCOMPARE(model.activePluginId(), QString());
     }
+
+    void testSettingsQmlRole()
+    {
+        auto* p = new MockPlugin("test.a", "A", this);
+        MockHostContext ctx;
+        oap::PluginManager manager;
+        QQmlEngine engine;
+
+        manager.registerStaticPlugin(p);
+        manager.initializeAll(&ctx);
+
+        oap::PluginModel model(&manager, &engine);
+        QModelIndex idx = model.index(0, 0);
+
+        // MockPlugin inherits default settingsComponent(), which is empty.
+        QVariant val = model.data(idx, oap::PluginModel::SettingsQmlRole);
+        QVERIFY(val.isValid());
+        QCOMPARE(val.toUrl(), QUrl());
+    }
 };
 
 QTEST_MAIN(TestPluginModel)

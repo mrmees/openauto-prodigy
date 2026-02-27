@@ -42,6 +42,7 @@ QVariant PluginModel::data(const QModelIndex& index, int role) const
     case PluginQmlRole:         return plugin->qmlComponent();
     case IsActiveRole:          return plugin->id() == activePluginId_;
     case WantsFullscreenRole:   return plugin->wantsFullscreen();
+    case SettingsQmlRole:       return plugin->settingsComponent();
     default:                    return {};
     }
 }
@@ -55,7 +56,8 @@ QHash<int, QByteArray> PluginModel::roleNames() const
         {PluginIconTextRole,  "pluginIconText"},
         {PluginQmlRole,       "pluginQml"},
         {IsActiveRole,        "isActive"},
-        {WantsFullscreenRole, "wantsFullscreen"}
+        {WantsFullscreenRole, "wantsFullscreen"},
+        {SettingsQmlRole,     "settingsQml"}
     };
 }
 
