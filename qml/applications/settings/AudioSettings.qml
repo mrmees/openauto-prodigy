@@ -14,7 +14,7 @@ Flickable {
         anchors.margins: UiMetrics.marginPage
         spacing: UiMetrics.spacing
 
-        SectionHeader { text: "Volume" }
+        SectionHeader { text: "Output" }
 
         SettingsSlider {
             label: "Master Volume"
@@ -25,14 +25,6 @@ Flickable {
                     AudioService.setMasterVolume(value)
             }
         }
-
-        SettingsSlider {
-            label: "Mic Gain"
-            configPath: "audio.microphone.gain"
-            from: 0.5; to: 4.0; stepSize: 0.1
-        }
-
-        SectionHeader { text: "Devices" }
 
         FullScreenPicker {
             id: outputPicker
@@ -56,6 +48,14 @@ Flickable {
                 var idx = AudioOutputDeviceModel.indexOfDevice(current)
                 if (idx >= 0) currentIndex = idx
             }
+        }
+
+        SectionHeader { text: "Microphone" }
+
+        SettingsSlider {
+            label: "Mic Gain"
+            configPath: "audio.microphone.gain"
+            from: 0.5; to: 4.0; stepSize: 0.1
         }
 
         FullScreenPicker {
