@@ -21,6 +21,17 @@ INSTALL_DIR="$HOME/openauto-prodigy"
 CONFIG_DIR="$HOME/.openauto"
 SERVICE_NAME="openauto-prodigy"
 
+# Defaults for optional variables (may be overridden by setup_hardware)
+WIFI_IFACE=""
+WIFI_SSID=""
+WIFI_PASS="prodigy"
+DEVICE_NAME="OpenAutoProdigy"
+AP_IP="10.0.0.1"
+COUNTRY_CODE="US"
+TCP_PORT="5277"
+VIDEO_FPS="30"
+AUTOSTART=false
+
 print_header() {
     echo -e "\n${CYAN}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${NC}"
     echo -e "${CYAN}  OpenAuto Prodigy — Installer${NC}"
@@ -104,12 +115,18 @@ install_dependencies() {
         # Web config panel
         python3-flask
 
+        # System service Python deps (avoids needing pip/internet later)
+        python3-dbus-next python3-yaml
+
         # Bluetooth
         bluez
 
         # Transparent SOCKS5 proxy routing (companion internet sharing)
         redsocks
         iptables
+
+        # Python venv support (for system-service fallback)
+        python3-venv
     )
 
     sudo apt install -y "${PACKAGES[@]}"
@@ -259,6 +276,39 @@ HOSTAPD
 }
 
 # ────────────────────────────────────────────────────
+# Step 3c: Configure labwc for multi-touch
+# ────────────────────────────────────────────────────
+configure_labwc() {
+    local LABWC_DIR="$HOME/.config/labwc"
+    local RC_FILE="$LABWC_DIR/rc.xml"
+
+    info "Configuring labwc for multi-touch..."
+
+    mkdir -p "$LABWC_DIR"
+
+    if [[ -f "$RC_FILE" ]]; then
+        # Replace mouseEmulation="yes" with "no" if present
+        if grep -q 'mouseEmulation="yes"' "$RC_FILE"; then
+            sed -i 's/mouseEmulation="yes"/mouseEmulation="no"/' "$RC_FILE"
+            ok "labwc: mouseEmulation set to \"no\" (was \"yes\")"
+        elif grep -q 'mouseEmulation="no"' "$RC_FILE"; then
+            ok "labwc: mouseEmulation already \"no\""
+        else
+            warn "labwc: rc.xml exists but no mouseEmulation found — check manually"
+        fi
+    else
+        # Create minimal rc.xml with correct touch config
+        cat > "$RC_FILE" << 'LABWC'
+<?xml version="1.0"?>
+<openbox_config xmlns="http://openbox.org/3.4/rc">
+	<touch deviceName="" mapToOutput="" mouseEmulation="no"/>
+</openbox_config>
+LABWC
+        ok "labwc: created rc.xml with mouseEmulation=\"no\""
+    fi
+}
+
+# ────────────────────────────────────────────────────
 # Step 4: Clone and build
 # ────────────────────────────────────────────────────
 build_project() {
@@ -300,7 +350,7 @@ generate_config() {
 connection:
   wifi_ap:
     interface: "${WIFI_IFACE:-wlan0}"
-    ssid: "$DEVICE_NAME"
+    ssid: "${WIFI_SSID:-$DEVICE_NAME}"
     password: "$WIFI_PASS"
   tcp_port: $TCP_PORT
   bt_name: "$DEVICE_NAME"
@@ -324,8 +374,8 @@ companion:
 YAML
 
     # Install default theme
-    if [[ -f "$INSTALL_DIR/tests/data/themes/default/theme.yaml" ]]; then
-        cp "$INSTALL_DIR/tests/data/themes/default/theme.yaml" "$CONFIG_DIR/themes/default/"
+    if [[ -f "$INSTALL_DIR/config/themes/default/theme.yaml" ]]; then
+        cp "$INSTALL_DIR/config/themes/default/theme.yaml" "$CONFIG_DIR/themes/default/"
     fi
 
     # Companion app polkit rule (allows timedatectl set-time without sudo)
@@ -340,8 +390,9 @@ YAML
         ok "BlueZ agent polkit rule installed"
     fi
 
-    # Ensure user is in bluetooth group for BlueZ D-Bus access
-    sudo usermod -aG bluetooth "$USER"
+    # Ensure user is in required groups
+    sudo usermod -aG bluetooth "$USER"  # BlueZ D-Bus access
+    sudo usermod -aG input "$USER"      # evdev touch device access
 
     ok "Configuration written to $CONFIG_DIR/config.yaml"
 }
@@ -352,17 +403,22 @@ YAML
 create_service() {
     info "Creating systemd service..."
 
+    local USER_ID
+    USER_ID=$(id -u)
+
     sudo tee /etc/systemd/system/${SERVICE_NAME}.service > /dev/null << SERVICE
 [Unit]
 Description=OpenAuto Prodigy
 After=graphical.target
+Wants=openauto-system.service
 
 [Service]
 Type=simple
 User=$USER
-Environment=XDG_RUNTIME_DIR=/run/user/$(id -u)
+Environment=XDG_RUNTIME_DIR=/run/user/$USER_ID
 Environment=WAYLAND_DISPLAY=wayland-0
 Environment=QT_QPA_PLATFORM=wayland
+Environment=DBUS_SESSION_BUS_ADDRESS=unix:path=/run/user/$USER_ID/bus
 WorkingDirectory=$INSTALL_DIR
 ExecStart=$INSTALL_DIR/build/src/openauto-prodigy
 Restart=on-failure
@@ -426,13 +482,23 @@ create_system_service() {
 
     info "Setting up system service..."
 
-    # Create venv and install deps
-    python3 -m venv "$VENV_DIR"
-    "$VENV_DIR/bin/pip" install --quiet -r "$SYS_DIR/requirements.txt" 2>/dev/null || {
-        # pytest is dev-only, install just runtime deps if full install fails
-        "$VENV_DIR/bin/pip" install --quiet dbus-next PyYAML
-    }
-    ok "Python venv created at $VENV_DIR"
+    # Try venv + pip first; fall back to system Python if pip fails (no internet on AP)
+    local PYTHON_PATH="/usr/bin/python3"
+    if python3 -m venv "$VENV_DIR" 2>/dev/null; then
+        if "$VENV_DIR/bin/pip" install --quiet -r "$SYS_DIR/requirements.txt" 2>/dev/null; then
+            PYTHON_PATH="$VENV_DIR/bin/python3"
+            ok "Python venv created at $VENV_DIR"
+        elif "$VENV_DIR/bin/pip" install --quiet dbus-next PyYAML 2>/dev/null; then
+            PYTHON_PATH="$VENV_DIR/bin/python3"
+            ok "Python venv created (runtime deps only)"
+        else
+            warn "pip install failed (no internet?). Using system Python."
+            warn "Install python3-dbus-next and python3-yaml via apt if not already present."
+            rm -rf "$VENV_DIR"
+        fi
+    else
+        warn "Could not create venv. Using system Python."
+    fi
 
     # Install systemd service with correct paths
     sudo tee /etc/systemd/system/openauto-system.service > /dev/null << SERVICE
@@ -444,7 +510,7 @@ After=network.target bluetooth.target
 [Service]
 Type=notify
 User=$USER
-ExecStart=$VENV_DIR/bin/python3 $SYS_DIR/openauto_system.py
+ExecStart=$PYTHON_PATH $SYS_DIR/openauto_system.py
 ExecStopPost=-/usr/sbin/iptables -t nat -D OUTPUT -p tcp -j OPENAUTO_PROXY
 ExecStopPost=-/usr/sbin/iptables -t nat -F OPENAUTO_PROXY
 ExecStopPost=-/usr/sbin/iptables -t nat -X OPENAUTO_PROXY
@@ -494,12 +560,20 @@ run_diagnostics() {
         warn "BlueZ: not running — Bluetooth features disabled"
     fi
 
+    # labwc touch config
+    local RC_FILE="$HOME/.config/labwc/rc.xml"
+    if [[ -f "$RC_FILE" ]] && grep -q 'mouseEmulation="no"' "$RC_FILE"; then
+        ok "labwc: mouseEmulation disabled (multi-touch safe)"
+    elif [[ -f "$RC_FILE" ]]; then
+        warn "labwc: mouseEmulation may be enabled — check $RC_FILE"
+    fi
+
     # Touch devices
     echo
     info "Touch devices:"
     for dev in /dev/input/event*; do
         if [[ -e "$dev" ]]; then
-            NAME=$(cat /sys/class/input/$(basename $dev)/device/name 2>/dev/null || echo "unknown")
+            NAME=$(cat /sys/class/input/$(basename "$dev")/device/name 2>/dev/null || echo "unknown")
             echo "  $dev — $NAME"
         fi
     done
@@ -532,17 +606,32 @@ run_diagnostics() {
 
     # WiFi AP
     echo
-    if systemctl is-active hostapd &>/dev/null; then
+    if [[ -n "$WIFI_SSID" ]] && systemctl is-active hostapd &>/dev/null; then
         ok "WiFi AP: running (SSID: $WIFI_SSID)"
+    elif [[ -n "$WIFI_SSID" ]]; then
+        info "WiFi AP: configured but not started (will start on reboot)"
     else
-        info "WiFi AP: not started (configure hostapd separately)"
+        info "WiFi AP: not configured"
     fi
 
     # System service
     if systemctl is-enabled openauto-system &>/dev/null; then
-        ok "System service: enabled (BT profiles, proxy, IPC)"
+        ok "System service: enabled"
     else
         warn "System service: not installed"
+    fi
+
+    # Group membership
+    echo
+    if id -nG "$USER" | grep -qw bluetooth; then
+        ok "User in bluetooth group"
+    else
+        warn "User NOT in bluetooth group — re-login required"
+    fi
+    if id -nG "$USER" | grep -qw input; then
+        ok "User in input group"
+    else
+        warn "User NOT in input group — re-login required after install"
     fi
 
     echo -e "\n${GREEN}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${NC}"
@@ -554,6 +643,12 @@ run_diagnostics() {
     echo -e "  Logs:   ${BLUE}journalctl -u ${SERVICE_NAME} -f${NC}"
     echo -e "  Config: ${BLUE}$CONFIG_DIR/config.yaml${NC}"
     echo
+    if id -nG "$USER" | grep -qw bluetooth && id -nG "$USER" | grep -qw input; then
+        :
+    else
+        echo -e "  ${YELLOW}NOTE: Group changes require logout/login (or reboot) to take effect.${NC}"
+        echo
+    fi
 }
 
 # ────────────────────────────────────────────────────
@@ -567,6 +662,7 @@ main() {
     build_project
     generate_config
     configure_network
+    configure_labwc
     create_service
     create_web_service
     create_system_service
