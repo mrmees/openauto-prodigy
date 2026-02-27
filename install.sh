@@ -126,7 +126,7 @@ install_dependencies() {
         libyaml-cpp-dev
 
         # WiFi AP
-        hostapd
+        hostapd rfkill
 
         # Web config panel
         python3-flask
@@ -311,6 +311,13 @@ configure_network() {
     fi
 
     info "Configuring WiFi AP on $WIFI_IFACE..."
+
+    # Unblock WiFi and Bluetooth radios (fresh Trixie has them soft-blocked)
+    if command -v rfkill &>/dev/null; then
+        sudo rfkill unblock wlan 2>/dev/null || true
+        sudo rfkill unblock bluetooth 2>/dev/null || true
+        ok "WiFi and Bluetooth radios unblocked"
+    fi
 
     # systemd-networkd config for static IP + built-in DHCP server
     sudo mkdir -p /etc/systemd/network
@@ -690,11 +697,10 @@ run_diagnostics() {
     echo
     info "Audio outputs:"
     if command -v pactl &>/dev/null; then
-        pactl list sinks 2>/dev/null | grep -E "^\s*(Name|Description):" | paste - - | while read -r line; do
-            local name desc
-            name=$(echo "$line" | sed 's/.*Name: \([^ ]*\).*/\1/')
+        pactl list sinks 2>/dev/null | grep -E "^\s*Description:" | while read -r line; do
+            local desc
             desc=$(echo "$line" | sed 's/.*Description: //')
-            printf "  %-40s %s\n" "$name" "$desc"
+            echo "  $desc"
         done
     elif command -v pw-cli &>/dev/null; then
         pw-cli list-objects Node 2>/dev/null | grep -i "audio.*sink" | head -5 || echo "  (use pw-cli to inspect)"
