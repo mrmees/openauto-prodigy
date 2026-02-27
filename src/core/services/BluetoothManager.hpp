@@ -10,6 +10,7 @@
 #include <QTimer>
 #include <QStringList>
 #include <memory>
+#include <vector>
 
 class BluezAgentAdaptor;
 
@@ -72,6 +73,8 @@ private:
     void setupAdapter();
     void registerAgent();
     void unregisterAgent();
+    void registerProfiles();
+    void unregisterProfiles();
     void setAdapterProperty(const QString& property, const QVariant& value);
     QVariant getAdapterProperty(const QString& property);
     QString findAdapterPath();
@@ -103,6 +106,11 @@ private:
     QDBusMessage pendingPairingMessage_;
     QString pendingPairingDevicePath_;
     PairedDevicesModel* pairedDevicesModel_ = nullptr;
+
+    // Profile registration state
+    QStringList registeredProfilePaths_;
+    std::vector<std::unique_ptr<QObject>> profileObjects_;
+    std::vector<int> profileFds_;
 
     // Auto-connect state
     QTimer* autoConnectTimer_ = nullptr;

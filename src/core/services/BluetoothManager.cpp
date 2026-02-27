@@ -10,6 +10,9 @@
 #include <QDBusServiceWatcher>
 #include <QDBusPendingCall>
 #include <QDBusPendingCallWatcher>
+#include <QDBusAbstractAdaptor>
+#include <QDBusUnixFileDescriptor>
+#include <unistd.h>
 
 // BluezAgentAdaptor — handles org.bluez.Agent1 D-Bus method calls from BlueZ.
 // Defined here (not in header) because it's an implementation detail.
@@ -43,6 +46,50 @@ public slots:
     }
 
 private:
+    oap::BluetoothManager* manager_;
+};
+
+// D-Bus adaptor implementing org.bluez.Profile1 — holds NewConnection fds
+// and notifies BluetoothManager when a profile connection arrives.
+class BluezProfile1Handler : public QDBusAbstractAdaptor
+{
+    Q_OBJECT
+    Q_CLASSINFO("D-Bus Interface", "org.bluez.Profile1")
+
+public:
+    explicit BluezProfile1Handler(QObject* parent, std::vector<int>& fdStore,
+                                   oap::BluetoothManager* manager)
+        : QDBusAbstractAdaptor(parent), fdStore_(fdStore), manager_(manager) {}
+
+public slots:
+    void NewConnection(const QDBusObjectPath& device,
+                       const QDBusUnixFileDescriptor& fd,
+                       const QVariantMap& /*properties*/)
+    {
+        if (fd.isValid()) {
+            int dupFd = ::dup(fd.fileDescriptor());
+            if (dupFd >= 0) {
+                fdStore_.push_back(dupFd);
+                qInfo() << "[BtManager] Profile NewConnection from"
+                         << device.path() << "— holding fd" << dupFd;
+            }
+        }
+        if (manager_)
+            emit manager_->profileNewConnection();
+    }
+
+    void RequestDisconnection(const QDBusObjectPath& device)
+    {
+        qInfo() << "[BtManager] Profile RequestDisconnection:" << device.path();
+    }
+
+    void Release()
+    {
+        qInfo() << "[BtManager] Profile released";
+    }
+
+private:
+    std::vector<int>& fdStore_;
     oap::BluetoothManager* manager_;
 };
 
@@ -251,6 +298,7 @@ void BluetoothManager::initialize()
     qInfo() << "[BtManager] Initializing...";
     setupAdapter();
     registerAgent();
+    registerProfiles();
 
     // Watch for BlueZ device property changes (paired/connected state)
     QDBusConnection::systemBus().connect(
@@ -265,6 +313,7 @@ void BluetoothManager::initialize()
         qInfo() << "[BtManager] BlueZ restarted — re-initializing";
         setupAdapter();
         registerAgent();
+        registerProfiles();
     });
     // Cancel auto-connect when RFCOMM connection arrives
     connect(this, &BluetoothManager::profileNewConnection,
@@ -428,6 +477,71 @@ void BluetoothManager::unregisterAgent()
     qInfo() << "[BtManager] Agent unregistered";
 }
 
+void BluetoothManager::registerProfiles()
+{
+    if (adapterPath_.isEmpty()) return;
+
+    struct ProfileInfo {
+        const char* uuid;
+        const char* path;
+        const char* name;
+    };
+
+    static const ProfileInfo profiles[] = {
+        {"0000111f-0000-1000-8000-00805f9b34fb", "/org/openauto/bt/hfp_ag", "HFP AG"},
+        {"00001108-0000-1000-8000-00805f9b34fb", "/org/openauto/bt/hsp_hs", "HSP HS"},
+    };
+
+    auto bus = QDBusConnection::systemBus();
+
+    for (const auto& prof : profiles) {
+        auto obj = std::make_unique<QObject>();
+        new BluezProfile1Handler(obj.get(), profileFds_, this);
+
+        if (!bus.registerObject(prof.path, obj.get(), QDBusConnection::ExportAdaptors)) {
+            qWarning() << "[BtManager] Failed to register D-Bus object at" << prof.path;
+            continue;
+        }
+        profileObjects_.push_back(std::move(obj));
+
+        QVariantMap options;
+        options["Role"] = QVariant::fromValue(QDBusVariant(QString("server")));
+        options["RequireAuthentication"] = QVariant::fromValue(QDBusVariant(false));
+        options["RequireAuthorization"] = QVariant::fromValue(QDBusVariant(false));
+
+        QDBusMessage call = QDBusMessage::createMethodCall(
+            "org.bluez", "/org/bluez", "org.bluez.ProfileManager1", "RegisterProfile");
+        call << QVariant::fromValue(QDBusObjectPath(prof.path))
+             << QString(prof.uuid)
+             << options;
+
+        QDBusMessage reply = bus.call(call, QDBus::Block, 5000);
+        if (reply.type() == QDBusMessage::ErrorMessage) {
+            qWarning() << "[BtManager] Failed to register" << prof.name << ":" << reply.errorMessage();
+        } else {
+            qInfo() << "[BtManager] Registered" << prof.name << "profile";
+            registeredProfilePaths_.append(prof.path);
+        }
+    }
+}
+
+void BluetoothManager::unregisterProfiles()
+{
+    auto bus = QDBusConnection::systemBus();
+    for (const auto& path : registeredProfilePaths_) {
+        QDBusMessage call = QDBusMessage::createMethodCall(
+            "org.bluez", "/org/bluez", "org.bluez.ProfileManager1", "UnregisterProfile");
+        call << QVariant::fromValue(QDBusObjectPath(path));
+        bus.call(call, QDBus::Block, 2000);
+        bus.unregisterObject(path);
+    }
+    registeredProfilePaths_.clear();
+    profileObjects_.clear();
+    for (int fd : profileFds_)
+        ::close(fd);
+    profileFds_.clear();
+}
+
 void BluetoothManager::handleAgentRequestConfirmation(const QDBusMessage& msg, const QString& devicePath, uint passkey)
 {
     pendingPairingMessage_ = msg;
@@ -552,6 +666,7 @@ void BluetoothManager::shutdown()
 {
     qInfo() << "[BtManager] Shutting down";
     cancelAutoConnect();
+    unregisterProfiles();
     unregisterAgent();
 }
 
