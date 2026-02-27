@@ -234,10 +234,10 @@ setup_hardware() {
 
     # Auto-start
     echo
-    read -p "Start OpenAuto Prodigy automatically on boot? [y/N] " -n 1 -r
+    read -p "Start OpenAuto Prodigy automatically on boot? [Y/n] " -n 1 -r
     echo
-    AUTOSTART=false
-    [[ $REPLY =~ ^[Yy]$ ]] && AUTOSTART=true
+    AUTOSTART=true
+    [[ $REPLY =~ ^[Nn]$ ]] && AUTOSTART=false
 }
 
 # ────────────────────────────────────────────────────
