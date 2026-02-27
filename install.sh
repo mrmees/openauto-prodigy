@@ -223,6 +223,34 @@ setup_hardware() {
         COUNTRY_CODE=${COUNTRY_CODE:-US}
     fi
 
+    # Audio output device
+    info "Detecting audio output devices..."
+    AUDIO_SINK=""
+    if command -v pactl &>/dev/null; then
+        AUDIO_SINKS=()
+        AUDIO_DESCS=()
+        while IFS= read -r line; do
+            local name desc
+            name=$(echo "$line" | sed 's/.*Name: \([^ ]*\).*/\1/')
+            desc=$(echo "$line" | sed 's/.*Description: //')
+            AUDIO_SINKS+=("$name")
+            AUDIO_DESCS+=("$desc")
+            printf "  %d. %s\n" "${#AUDIO_SINKS[@]}" "$desc"
+        done < <(pactl list sinks 2>/dev/null | grep -E "^\s*(Name|Description):" | paste - -)
+
+        if [[ ${#AUDIO_SINKS[@]} -gt 0 ]]; then
+            echo
+            read -p "Select audio output [1]: " AUDIO_CHOICE
+            AUDIO_CHOICE=${AUDIO_CHOICE:-1}
+            AUDIO_SINK="${AUDIO_SINKS[$((AUDIO_CHOICE-1))]}"
+            ok "Audio: ${AUDIO_DESCS[$((AUDIO_CHOICE-1))]}"
+        else
+            warn "No audio sinks detected — will use PipeWire default"
+        fi
+    else
+        warn "pactl not available — will use PipeWire default"
+    fi
+
     # AA settings
     read -p "Android Auto TCP port [5277]: " TCP_PORT
     TCP_PORT=${TCP_PORT:-5277}
@@ -388,6 +416,9 @@ connection:
   tcp_port: $TCP_PORT
   bt_name: "$DEVICE_NAME"
   auto_connect_aa: true
+
+audio:
+  output_device: "${AUDIO_SINK}"
 
 video:
   fps: $VIDEO_FPS
@@ -700,9 +731,18 @@ run_diagnostics() {
     echo
     if [[ ! $REPLY =~ ^[Nn]$ ]]; then
         info "Starting OpenAuto Prodigy..."
-        # Always use systemd — service file has correct Wayland env for headless/SSH launch
+        # systemd service runs as $USER with correct Wayland env
+        # Group membership may not be active yet in this shell, but systemd
+        # resolves groups fresh from /etc/group, so this works even pre-relogin
         sudo systemctl start ${SERVICE_NAME}
-        ok "Started via systemd. Logs: journalctl -u ${SERVICE_NAME} -f"
+        sleep 2
+        if systemctl is-active --quiet ${SERVICE_NAME}; then
+            ok "Started via systemd. Logs: journalctl -u ${SERVICE_NAME} -f"
+        else
+            fail "Service failed to start. Check: journalctl -u ${SERVICE_NAME} -n 30"
+            echo
+            journalctl -u ${SERVICE_NAME} -n 10 --no-pager 2>/dev/null || true
+        fi
     fi
 }
 
