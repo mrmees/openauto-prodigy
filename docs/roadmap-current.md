@@ -1,0 +1,58 @@
+# Current Roadmap
+
+Governance: capture new ideas in `docs/wishlist.md`; only promoted items should appear in this roadmap.
+
+## Now
+
+- Documentation cleanup and structured workflow.
+  - Rationale: 10 days of intense development left docs scattered and stale. Need a solid foundation before the next feature push.
+  - Outcome: consolidated docs, AGENTS.md workflow loop, accurate CLAUDE.md, archived community repo content.
+
+- Background system service hardening.
+  - Rationale: the system service (health monitor, proxy manager, IPC) is functional but needs reliability work.
+  - Outcome: stable daemon lifecycle, clean restart behavior, resolved bt.close() hang. Determine necessary changes to implement internet sharing with companion app.
+
+- Settings implementation — categories, display, and web backend.
+  - Rationale: config-schema.md defines the full settings surface but the UI and web server backend are incomplete.
+  - Outcome: settings categories rendered in the UI, web server serving settings pages, changes persisted to YAML config.
+
+- Settings UI buildout.
+  - Rationale: the settings screen is currently crowded without a real structure. Structure of settings needs to be documented (via YAML or otherwise) so preferred structure can be easily implemented upon review.
+  - Outcome: settings screen with clear and logical groupings, allows scrolling, compatible with extension architecture to allow extensions to insert settings/groups.
+
+## Next
+
+- Integrate wireless BT AA flow into the main application.
+  - Rationale: wireless AA works via standalone test scripts (sdp_clean, HFP AG, hostapd, TCP handoff). Needs to be wired into the app's connection manager. Needs investigation to confirm whether this is already present.
+  - Outcome: phone pairs and connects wirelessly through the app UI without manual script execution.
+
+- General HFP call audio handling.
+  - Rationale: typical head units maintain the HFP AG profile across both Android Auto and the base hardware — e.g., if AA crashes, call audio is not lost.
+  - Outcome: phone calls work with audio through the head unit speakers/mic across a closed AA stream.
+
+- Touch device auto-discovery.
+  - Rationale: touch input is hardcoded to /dev/input/event4. Needs VID/PID-based detection.
+  - Outcome: correct touch device selected automatically across different hardware configs (USB, MIPI DSI, GPIO/SPI).
+
+- Persistent network configuration.
+  - Rationale: wlan0 IP, hostapd, dnsmasq, and /var/run/sdp permissions don't survive reboot.
+  - Outcome: full wireless AA stack comes up cleanly on boot without manual intervention. When app is running, network should assume all traffic traverses the companion app proxy, with a rule exception for the LAN port to allow SSH access during development and debugging.
+
+- Audio equalizer.
+  - Rationale: users expect the ability to swap between equalizer presets and define custom EQ profiles for their vehicle and speaker setup.
+  - Outcome: audio equalizer plugin with YAML settings file, on-head-unit component for basic changes / profile swapping, web settings backend for advanced EQ setup and profile creation.
+
+## Later
+
+- Plugin system expansion (OBD-II, backup camera, GPIO control).
+- Theme engine and user-facing theme selection.
+- CI automation for builds and tests.
+- Multi-display / resolution support beyond 1024x600.
+- Community contribution workflow (issue templates, PR guidelines).
+
+## Deferred
+
+- USB Android Auto support — explicitly out of scope.
+- CarPlay or non-AA projection protocols.
+- Hardware support beyond Pi 4.
+- Cloud services, accounts, or telemetry.
