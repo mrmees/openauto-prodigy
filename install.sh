@@ -348,7 +348,7 @@ build_project() {
     cd build
 
     info "Configuring build..."
-    cmake .. -Wno-dev
+    cmake .. -Wno-dev 2>&1 | grep -v "^CMake Warning\|^  \|^$\|^Call Stack" | grep -v "Could NOT find"
     info "Building (this may take a while on RPi)..."
     cmake --build . -j$(nproc)
     ok "Build complete"
