@@ -230,7 +230,9 @@ setup_hardware() {
         COUNTRY_CODE=""
         if command -v iw &>/dev/null; then
             COUNTRY_CODE=$(iw reg get 2>/dev/null | sed -n 's/^country \([A-Z]\{2\}\).*/\1/p' | head -1) || true
-            [[ "$COUNTRY_CODE" == "00" || "$COUNTRY_CODE" == "99" ]] && COUNTRY_CODE=""
+            if [[ "$COUNTRY_CODE" == "00" || "$COUNTRY_CODE" == "99" ]]; then
+                COUNTRY_CODE=""
+            fi
         fi
         if [[ -z "$COUNTRY_CODE" ]]; then
             # Try locale (e.g. en_US.UTF-8 -> US)
