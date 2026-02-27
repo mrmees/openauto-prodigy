@@ -41,9 +41,9 @@ Expands the existing `IBluetoothService` interface. Registered in `IHostContext`
 2. **Profile registration** — Register HFP AG + HSP HS via `ProfileManager1` D-Bus. Includes `BluezProfile1Adaptor` (fd-holding logic, moved from `BluetoothDiscoveryService`). Remove `AutoConnect` option (it's for client role, not server).
 3. **Pairing agent** — Implement `org.bluez.Agent1` D-Bus interface with `RequestConfirmation`, `AuthorizeService`, `Release`, and `Cancel`. Track pending request ID to handle BlueZ-initiated cancellation (BlueZ has its own ~60s timeout, not configurable via Agent1 API). On `Cancel`, dismiss dialog and discard any late UI responses.
 4. **Pairable toggle** — `setPairable(bool)` sets `org.bluez.Adapter1.Pairable` D-Bus property. Use adapter-side `PairableTimeout=120` (survives app crashes) rather than app-only QTimer.
-5. **Auto-connect** — On startup, read `connection.last_paired_mac`. If set and `connection.auto_connect_aa` is true, attempt `org.bluez.Device1.Connect()` with backoff schedule. Gate to one in-flight attempt (schedule next only after completion/error to avoid `InProgress` spam). Cancel on RFCOMM `NewConnection` (AA-specific readiness) or pairing mode entry. Do NOT use generic `Device1.Connected=true` — on dual-mode phones it can fire on wrong bearer (BLE vs BR/EDR) without AA coming up.
+5. **Auto-connect** — On startup, if `connection.auto_connect_aa` is true, enumerate all paired devices from BlueZ (`org.bluez.Device1` objects with `Paired=true`). Round-robin `Device1.Connect()` across all paired phones — first one that triggers an RFCOMM `NewConnection` wins the AA session. Gate to one in-flight attempt (schedule next only after completion/error to avoid `InProgress` spam). Cancel on RFCOMM `NewConnection` (AA-specific readiness) or pairing mode entry. Do NOT use generic `Device1.Connected=true` — on dual-mode phones it can fire on wrong bearer (BLE vs BR/EDR) without AA coming up.
 6. **Connection state** — Watch `org.bluez.Device1.PropertiesChanged` for `Connected` changes. Emit `deviceConnected(name, address)` / `deviceDisconnected(name, address)`.
-7. **MAC persistence** — On successful pairing, write `connection.last_paired_mac` and `connection.last_paired_name` to config. Also set `Trusted=true` on the device so BlueZ allows auto-reconnect without re-pairing.
+7. **Device trust** — On successful pairing, set `Trusted=true` on the device so BlueZ allows auto-reconnect without re-pairing. Paired device list comes from BlueZ directly (not config) — BlueZ persists pairings in `/var/lib/bluetooth/`.
 8. **BlueZ restart recovery** — `QDBusServiceWatcher` monitors `org.bluez` name ownership. On daemon restart, re-run full init: register agent + request default, register profiles, set adapter properties, restart auto-connect loop.
 9. **Polkit policy** — `install.sh` installs a polkit rule allowing the app user to call `RequestDefaultAgent`. Without this, non-root agent registration fails with `NotAuthorized`.
 
@@ -93,9 +93,9 @@ Modal overlay at Shell level (not inside settings — pairing requests can arriv
 
 ### Startup Sequence
 
-1. Read `connection.last_paired_mac` from config
-2. If empty or `connection.auto_connect_aa` is false, skip — just stay discoverable
-3. Start QTimer-based retry loop:
+1. Enumerate paired devices from BlueZ (`GetManagedObjects`, filter for `Device1` with `Paired=true`)
+2. If no paired devices or `connection.auto_connect_aa` is false, skip — just stay discoverable
+3. Start QTimer-based retry loop (round-robin across paired devices):
    - Phase 1: every 5s, 6 attempts (30s)
    - Phase 2: every 30s, 4 attempts (2 min)
    - Phase 3: every 60s, 3 attempts (3 min)
@@ -179,12 +179,10 @@ The install script already generates a unique SSID (`OpenAutoProdigy-<HEX>`) via
       password: "$WIFI_PASS"
     tcp_port: $TCP_PORT
     bt_name: "$DEVICE_NAME"
-    bt_discoverable: true
     auto_connect_aa: true
-    last_paired_mac: ""
-    last_paired_name: ""
   ```
 - No `yq` dependency needed — everything goes through the existing heredoc flow.
+- Paired device list is managed by BlueZ (persisted in `/var/lib/bluetooth/`), not in our config.
 
 **Changes to `install.sh` polkit (Step 5):**
 - Install a BlueZ polkit rule alongside the existing companion polkit rule:
@@ -212,11 +210,10 @@ The install script already generates a unique SSID (`OpenAutoProdigy-<HEX>`) via
 | Key | Type | Default | Written by |
 |-----|------|---------|-----------|
 | `connection.bt_name` | string | `Prodigy_<8-hex>` | install.sh heredoc |
-| `connection.bt_discoverable` | bool | `true` | install.sh heredoc |
 | `connection.auto_connect_aa` | bool | `true` | install.sh heredoc |
-| `connection.last_paired_mac` | string | `""` | BluetoothManager at runtime |
-| `connection.last_paired_name` | string | `""` | BluetoothManager at runtime |
 | `connection.wifi_ap.ssid` | string | `Prodigy_<8-hex>` (same) | install.sh heredoc |
+
+Paired devices are managed by BlueZ in `/var/lib/bluetooth/<adapter-mac>/` — not duplicated in our config.
 
 ---
 
@@ -234,7 +231,7 @@ The install script already generates a unique SSID (`OpenAutoProdigy-<HEX>`) via
 |---------|------|---------|----------|
 | Device Name | ReadOnlyField | `connection.bt_name` | Display only; edit via web panel |
 | Accept New Pairings | SettingsToggle | BluetoothManager.pairable | Repurposed from Discoverable; controls Pairable with 120s auto-off |
-| Connected Device | ReadOnlyField | BluetoothManager.connectedDeviceName | Shows name of connected phone, or "None" |
+| Paired Devices | ListView | BluetoothManager.pairedDevices | Shows name + connected indicator per device, "Forget" swipe/button |
 
 ### Layout
 
@@ -242,10 +239,12 @@ The install script already generates a unique SSID (`OpenAutoProdigy-<HEX>`) via
 SectionHeader: "Bluetooth"
   ReadOnlyField: Device Name
   SettingsToggle: Accept New Pairings
-  ReadOnlyField: Connected Device
+  [Paired device list: name, connected badge, Forget action]
 ```
 
-**Note on "Paired Devices" list:** The design scope is single paired phone (head unit use case). A paired devices list with Forget implies multi-device management, which contradicts the single-phone scope. Deferred — if we add Forget functionality later, it goes in the web panel where the user has more screen space and isn't driving.
+### Paired Devices List
+
+BluetoothManager exposes a `pairedDevices` model (QAbstractListModel or QVariantList) to QML showing all BlueZ-paired devices with name, address, and connected status. Each entry has a "Forget" action that calls `Device1.RemoveDevice()` via BlueZ adapter. List updates live via `PropertiesChanged` / `InterfacesAdded` / `InterfacesRemoved` signals.
 
 ---
 
@@ -338,5 +337,4 @@ Exposed to QML via `rootContext()->setContextProperty("BluetoothManager", btMana
 
 - **HFP call audio** (SCO routing, AT commands) — separate roadmap item, depends on this cleanup
 - **Audio equalizer** — unrelated
-- **Multi-phone support** — single paired phone only (head unit use case)
 - **BLE advertising** — existing `IBluetoothService` has start/stopAdvertising stubs; not needed for classic BT profiles
