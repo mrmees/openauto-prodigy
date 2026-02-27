@@ -33,7 +33,6 @@ private:
 
     uint8_t channelId_;
     int32_t session_ = -1;
-    uint32_t ackCounter_ = 0;
     uint32_t unackedCount_ = 0;
     bool channelOpen_ = false;
     bool streaming_ = false;

@@ -43,7 +43,6 @@ private:
     void sendAck();
 
     int32_t session_ = -1;
-    uint32_t ackCounter_ = 0;
     uint32_t numVideoConfigs_ = 1;
     bool channelOpen_ = false;
     bool streaming_ = false;

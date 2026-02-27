@@ -30,7 +30,7 @@ void VideoChannelHandler::onChannelOpened()
     channelOpen_ = true;
     streaming_ = false;
     session_ = -1;
-    ackCounter_ = 0;
+
     qDebug() << "[VideoChannel] opened";
 }
 
@@ -135,7 +135,7 @@ void VideoChannelHandler::handleStartIndication(const QByteArray& payload)
 
     session_ = start.session();
     streaming_ = true;
-    ackCounter_ = 0;
+
     qInfo() << "[VideoChannel] stream started, session:" << session_
             << "config:" << start.config()
             << "(of" << numVideoConfigs_ << "offered)";
@@ -221,7 +221,6 @@ void VideoChannelHandler::requestVideoFocus(bool focused)
 
 void VideoChannelHandler::sendAck()
 {
-    ++ackCounter_;
     oaa::proto::messages::AVMediaAckIndication ack;
     ack.set_session(session_);
     // Value is permit replenishment for this ACK message, not cumulative count.

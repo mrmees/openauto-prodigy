@@ -23,7 +23,7 @@ void AudioChannelHandler::onChannelOpened()
     channelOpen_ = true;
     streaming_ = false;
     session_ = -1;
-    ackCounter_ = 0;
+
     qDebug() << "[AudioChannel" << channelId_ << "] opened";
 }
 
@@ -108,7 +108,7 @@ void AudioChannelHandler::handleStartIndication(const QByteArray& payload)
 
     session_ = start.session();
     streaming_ = true;
-    ackCounter_ = 0;
+
     unackedCount_ = 0;
     qDebug() << "[AudioChannel" << channelId_
              << "] stream started, session:" << session_;
@@ -145,7 +145,6 @@ void AudioChannelHandler::onMediaData(const QByteArray& data, uint64_t timestamp
 
 void AudioChannelHandler::sendAck(uint32_t frameCount)
 {
-    ackCounter_ += frameCount;
     oaa::proto::messages::AVMediaAckIndication ack;
     ack.set_session(session_);
     // Value = number of frames being acknowledged (permit replenishment),
