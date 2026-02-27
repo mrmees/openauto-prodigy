@@ -5,18 +5,11 @@
 #include <QBluetoothUuid>
 #include <QDataStream>
 #include <QNetworkInterface>
-#include <QDBusConnection>
-#include <QDBusMessage>
-#include <QDBusVariant>
-#include <QDBusUnixFileDescriptor>
 #include <QDebug>
-
-#include <unistd.h>
 
 // BlueZ SDP C library for direct SDP record registration.
 // The AA RFCOMM record is registered via the legacy SDP socket (--compat mode)
 // because ProfileManager1 would conflict with QBluetoothServer on the same channel.
-// HFP AG and HSP HS profiles use ProfileManager1 (different UUIDs, no conflict).
 extern "C" {
 #include <bluetooth/bluetooth.h>
 #include <bluetooth/sdp.h>
@@ -83,15 +76,10 @@ void BluetoothDiscoveryService::start()
     }
 
     qInfo() << "[BTDiscovery] SDP service registered (AA Wireless)";
-
-    // Register HFP AG and HSP HS profiles via D-Bus so the phone sees
-    // standard profiles and doesn't disconnect with "No profiles".
-    registerBluetoothProfiles();
 }
 
 void BluetoothDiscoveryService::stop()
 {
-    unregisterBluetoothProfiles();
     unregisterSdpRecord();
 
     if (socket_) {
@@ -229,127 +217,6 @@ void BluetoothDiscoveryService::unregisterSdpRecord()
     // which happens when the process exits. For explicit cleanup,
     // we'd need to keep the session handle, but this is fine for our use case.
     sdpRecordHandle_ = 0;
-}
-
-// --- BluezProfile1Adaptor implementation ---
-
-void BluezProfile1Adaptor::NewConnection(
-    const QDBusObjectPath& device,
-    const QDBusUnixFileDescriptor& fd,
-    const QVariantMap& /*properties*/)
-{
-    // Dup the fd so it stays alive after BlueZ closes its end.
-    // This keeps the profile connection open — without it, the phone
-    // sees a disconnect and may drop the BT link.
-    if (fd.isValid()) {
-        int dupFd = ::dup(fd.fileDescriptor());
-        if (dupFd >= 0) {
-            fdStore_.push_back(dupFd);
-            qInfo() << "[BTDiscovery] Profile NewConnection from"
-                     << device.path() << "— holding fd" << dupFd;
-        }
-    }
-}
-
-void BluezProfile1Adaptor::RequestDisconnection(const QDBusObjectPath& device)
-{
-    qInfo() << "[BTDiscovery] Profile RequestDisconnection:" << device.path();
-}
-
-void BluezProfile1Adaptor::Release()
-{
-    qInfo() << "[BTDiscovery] Profile released";
-}
-
-// --- BluetoothDiscoveryService profile registration ---
-
-void BluetoothDiscoveryService::registerBluetoothProfiles()
-{
-    // Register dummy HFP AG and HSP HS profiles via BlueZ ProfileManager1.
-    // Required because:
-    // 1. Android requires HFP AG or logs WIRELESS_SETUP_FAILED_TO_START_NO_HFP_FROM_HU_PRESENCE
-    // 2. Without a standard profile, phone shows "No profiles" and disconnects
-    //
-    // These don't conflict with QBluetoothServer — different UUIDs, different channels.
-
-    struct ProfileInfo {
-        const char* uuid;
-        const char* path;
-        const char* name;
-    };
-
-    static const ProfileInfo profiles[] = {
-        {"0000111f-0000-1000-8000-00805f9b34fb", "/org/openauto/hfp_ag", "HFP AG"},
-        {"00001108-0000-1000-8000-00805f9b34fb", "/org/openauto/hsp_hs", "HSP HS"},
-    };
-
-    auto bus = QDBusConnection::systemBus();
-
-    for (const auto& prof : profiles) {
-        // Create a QObject to live at the D-Bus path, with a Profile1 adaptor
-        // that handles NewConnection/Release/RequestDisconnection.
-        auto obj = std::make_unique<QObject>();
-        new BluezProfile1Adaptor(obj.get(), profileFds_);
-
-        if (!bus.registerObject(prof.path, obj.get(),
-                QDBusConnection::ExportAdaptors)) {
-            qWarning() << "[BTDiscovery] Failed to register D-Bus object at"
-                        << prof.path;
-            continue;
-        }
-
-        profileObjects_.push_back(std::move(obj));
-
-        // Now tell BlueZ to register this profile
-        QVariantMap options;
-        options["Role"] = QVariant::fromValue(QDBusVariant(QString("server")));
-        options["RequireAuthentication"] = QVariant::fromValue(QDBusVariant(false));
-        options["RequireAuthorization"] = QVariant::fromValue(QDBusVariant(false));
-        options["AutoConnect"] = QVariant::fromValue(QDBusVariant(true));
-
-        QDBusMessage call = QDBusMessage::createMethodCall(
-            "org.bluez",
-            "/org/bluez",
-            "org.bluez.ProfileManager1",
-            "RegisterProfile");
-        call << QVariant::fromValue(QDBusObjectPath(prof.path))
-             << QString(prof.uuid)
-             << options;
-
-        QDBusMessage reply = bus.call(call, QDBus::Block, 5000);
-        if (reply.type() == QDBusMessage::ErrorMessage) {
-            qWarning() << "[BTDiscovery] Failed to register" << prof.name
-                        << "profile:" << reply.errorMessage();
-        } else {
-            qInfo() << "[BTDiscovery] Registered" << prof.name
-                     << "profile via ProfileManager1";
-            registeredProfilePaths_.append(prof.path);
-        }
-    }
-}
-
-void BluetoothDiscoveryService::unregisterBluetoothProfiles()
-{
-    auto bus = QDBusConnection::systemBus();
-
-    for (const auto& path : registeredProfilePaths_) {
-        QDBusMessage call = QDBusMessage::createMethodCall(
-            "org.bluez",
-            "/org/bluez",
-            "org.bluez.ProfileManager1",
-            "UnregisterProfile");
-        call << QVariant::fromValue(QDBusObjectPath(path));
-        bus.call(call, QDBus::Block, 2000);  // Best-effort
-        bus.unregisterObject(path);
-    }
-    registeredProfilePaths_.clear();
-    profileObjects_.clear();  // Destroys QObjects (and their adaptors)
-
-    // Close held profile fds
-    for (int fd : profileFds_) {
-        ::close(fd);
-    }
-    profileFds_.clear();
 }
 
 void BluetoothDiscoveryService::onClientConnected()
