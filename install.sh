@@ -140,16 +140,17 @@ setup_hardware() {
     echo -e "\n${CYAN}── Hardware Configuration ──${NC}\n"
 
     # Touch device
-    info "Detecting touch devices..."
-    TOUCH_DEVICES=$(find /dev/input -name 'event*' 2>/dev/null | head -10)
-    if [[ -n "$TOUCH_DEVICES" ]]; then
-        echo "$TOUCH_DEVICES"
-        read -p "Touch device path [/dev/input/event4]: " TOUCH_DEV
-        TOUCH_DEV=${TOUCH_DEV:-/dev/input/event4}
-    else
-        warn "No touch devices found."
-        TOUCH_DEV="/dev/input/event4"
-    fi
+    info "Detecting input devices..."
+    echo
+    for dev in /dev/input/event*; do
+        if [[ -e "$dev" ]]; then
+            NAME=$(cat "/sys/class/input/$(basename "$dev")/device/name" 2>/dev/null || echo "unknown")
+            printf "  %-24s %s\n" "$dev" "$NAME"
+        fi
+    done
+    echo
+    read -p "Touch device path [auto-detect]: " TOUCH_DEV
+    TOUCH_DEV=${TOUCH_DEV:-}
 
     # WiFi AP — detect wireless interfaces
     info "Detecting wireless interfaces..."
