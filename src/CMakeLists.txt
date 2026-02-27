@@ -21,6 +21,7 @@ qt_add_executable(openauto-prodigy
     ui/PluginViewHost.cpp
     ui/LauncherModel.cpp
     ui/AudioDeviceModel.cpp
+    ui/PairedDevicesModel.cpp
     ui/CodecCapabilityModel.cpp
     core/plugin/HostContext.cpp
     core/services/ConfigService.cpp
