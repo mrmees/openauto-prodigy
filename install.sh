@@ -319,6 +319,18 @@ configure_network() {
         ok "WiFi and Bluetooth radios unblocked"
     fi
 
+    # BlueZ needs --compat for SDP service registration (AA RFCOMM discovery)
+    local BT_OVERRIDE="/etc/systemd/system/bluetooth.service.d"
+    sudo mkdir -p "$BT_OVERRIDE"
+    sudo tee "$BT_OVERRIDE/override.conf" > /dev/null << 'BTCONF'
+[Service]
+ExecStart=
+ExecStart=/usr/libexec/bluetooth/bluetoothd --compat
+BTCONF
+    sudo systemctl daemon-reload
+    sudo systemctl restart bluetooth
+    ok "BlueZ configured with --compat (SDP enabled)"
+
     # systemd-networkd config for static IP + built-in DHCP server
     sudo mkdir -p /etc/systemd/network
     sudo tee /etc/systemd/network/10-openauto-ap.network > /dev/null << NETCFG
