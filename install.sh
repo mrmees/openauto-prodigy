@@ -237,6 +237,11 @@ setup_hardware() {
         COUNTRY_CODE=${COUNTRY_CODE:-US}
         read -p "Country code for 5GHz WiFi [$COUNTRY_CODE]: " USER_CC
         COUNTRY_CODE=${USER_CC:-$COUNTRY_CODE}
+        COUNTRY_CODE=$(echo "$COUNTRY_CODE" | tr '[:lower:]' '[:upper:]')
+        if [[ ! "$COUNTRY_CODE" =~ ^[A-Z]{2}$ ]]; then
+            warn "Invalid country code '$COUNTRY_CODE' — using US"
+            COUNTRY_CODE="US"
+        fi
 
         # Set regulatory domain system-wide so hostapd can use 5GHz
         sudo iw reg set "$COUNTRY_CODE" 2>/dev/null || true
