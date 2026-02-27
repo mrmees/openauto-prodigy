@@ -5,6 +5,7 @@
 #include <oaa/Channel/ChannelId.hpp>
 #include "oaa/av/AVChannelSetupRequestMessage.pb.h"
 #include "oaa/av/AVChannelStartIndicationMessage.pb.h"
+#include "oaa/av/AVMediaAckIndicationMessage.pb.h"
 #include "oaa/video/VideoFocusIndicationMessage.pb.h"
 #include "oaa/video/VideoFocusModeEnum.pb.h"
 
@@ -75,8 +76,9 @@ private slots:
 
         QByteArray h264Data(4096, '\x00');
         handler.onMediaData(h264Data, 1234567890);
+        handler.onMediaData(h264Data, 1234567891);
 
-        QCOMPARE(frameSpy.count(), 1);
+        QCOMPARE(frameSpy.count(), 2);
         auto sharedData = frameSpy[0][0].value<std::shared_ptr<const QByteArray>>();
         QVERIFY(sharedData);
         QCOMPARE(sharedData->size(), 4096);
@@ -87,10 +89,23 @@ private slots:
         QVERIFY(emittedTs > 0);
         QVERIFY(emittedTs != 1234567890); // Must NOT be the protocol timestamp
 
-        // Should send ACK
-        QCOMPARE(sendSpy.count(), 1);
+        // Should send ACK for each frame
+        QCOMPARE(sendSpy.count(), 2);
         QCOMPARE(sendSpy[0][1].value<uint16_t>(),
                  static_cast<uint16_t>(oaa::AVMessageId::ACK_INDICATION));
+        QCOMPARE(sendSpy[1][1].value<uint16_t>(),
+                 static_cast<uint16_t>(oaa::AVMessageId::ACK_INDICATION));
+
+        // ACK value must be delta-per-message (1), not cumulative count.
+        oaa::proto::messages::AVMediaAckIndication ack0;
+        QByteArray ackPayload0 = sendSpy[0][2].toByteArray();
+        QVERIFY(ack0.ParseFromArray(ackPayload0.constData(), ackPayload0.size()));
+        QCOMPARE(ack0.value(), 1);
+
+        oaa::proto::messages::AVMediaAckIndication ack1;
+        QByteArray ackPayload1 = sendSpy[1][2].toByteArray();
+        QVERIFY(ack1.ParseFromArray(ackPayload1.constData(), ackPayload1.size()));
+        QCOMPARE(ack1.value(), 1);
     }
 
     void testVideoFocusIndication() {

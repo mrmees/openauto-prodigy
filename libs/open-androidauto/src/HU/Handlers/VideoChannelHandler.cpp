@@ -224,7 +224,8 @@ void VideoChannelHandler::sendAck()
     ++ackCounter_;
     oaa::proto::messages::AVMediaAckIndication ack;
     ack.set_session(session_);
-    ack.set_value(ackCounter_);
+    // Value is permit replenishment for this ACK message, not cumulative count.
+    ack.set_value(1);
 
     QByteArray data(ack.ByteSizeLong(), '\0');
     ack.SerializeToArray(data.data(), data.size());
