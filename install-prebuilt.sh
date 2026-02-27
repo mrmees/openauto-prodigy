@@ -1,0 +1,592 @@
+#!/usr/bin/env bash
+#
+# OpenAuto Prodigy — Prebuilt Installer
+# Targets: Raspberry Pi OS Trixie (Debian 13) on RPi 4
+#
+# This installer deploys a prebuilt binary and runtime payload from:
+#   ./payload/
+#
+set -euo pipefail
+
+# Colors
+RED='\033[0;31m'
+GREEN='\033[0;32m'
+YELLOW='\033[1;33m'
+BLUE='\033[0;34m'
+CYAN='\033[0;36m'
+NC='\033[0m'
+
+SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
+PAYLOAD_DIR="$SCRIPT_DIR/payload"
+INSTALL_DIR="$HOME/openauto-prodigy"
+CONFIG_DIR="$HOME/.openauto"
+SERVICE_NAME="openauto-prodigy"
+
+# Defaults for optional variables (may be overridden by setup_hardware)
+WIFI_IFACE=""
+WIFI_SSID=""
+WIFI_PASS="changeme"
+DEVICE_NAME="OpenAutoProdigy"
+AP_IP="10.0.0.1"
+COUNTRY_CODE="US"
+TCP_PORT="5277"
+VIDEO_FPS="30"
+AUTOSTART=false
+
+print_header() {
+    echo -e "\n${CYAN}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${NC}"
+    echo -e "${CYAN}  OpenAuto Prodigy — Prebuilt Installer${NC}"
+    echo -e "${CYAN}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${NC}\n"
+}
+
+info()  { echo -e "${BLUE}[INFO]${NC} $*"; }
+ok()    { echo -e "${GREEN}[OK]${NC} $*"; }
+warn()  { echo -e "${YELLOW}[WARN]${NC} $*"; }
+fail()  { echo -e "${RED}[FAIL]${NC} $*"; }
+
+require_payload() {
+    info "Validating payload..."
+
+    local required=(
+        "$PAYLOAD_DIR/build/src/openauto-prodigy"
+        "$PAYLOAD_DIR/config/themes/default/theme.yaml"
+        "$PAYLOAD_DIR/system-service/openauto_system.py"
+        "$PAYLOAD_DIR/web-config/server.py"
+        "$PAYLOAD_DIR/restart.sh"
+    )
+
+    for path in "${required[@]}"; do
+        if [[ ! -e "$path" ]]; then
+            fail "Missing payload file: $path"
+            fail "Extract the prebuilt archive and run install-prebuilt.sh from its root."
+            exit 1
+        fi
+    done
+
+    ok "Payload looks complete"
+}
+
+# ────────────────────────────────────────────────────
+# Step 1: Check OS and architecture
+# ────────────────────────────────────────────────────
+check_system() {
+    info "Checking system..."
+
+    if [[ ! -f /etc/os-release ]]; then
+        fail "Cannot determine OS. /etc/os-release not found."
+        exit 1
+    fi
+
+    source /etc/os-release
+
+    ARCH=$(uname -m)
+    info "OS: $PRETTY_NAME"
+    info "Architecture: $ARCH"
+    info "Kernel: $(uname -r)"
+
+    if [[ "$ARCH" != "aarch64" && "$ARCH" != "armv7l" ]]; then
+        warn "This script targets Raspberry Pi (ARM). Detected: $ARCH"
+        read -p "Continue anyway? [y/N] " -n 1 -r
+        echo
+        [[ $REPLY =~ ^[Yy]$ ]] || exit 1
+    fi
+
+    if [[ "${VERSION_CODENAME:-}" != "trixie" ]]; then
+        warn "Expected RPi OS Trixie (Debian 13). Detected: ${VERSION_CODENAME:-unknown}"
+        warn "Packages may differ. Proceeding anyway."
+    fi
+}
+
+# ────────────────────────────────────────────────────
+# Step 2: Install runtime dependencies
+# ────────────────────────────────────────────────────
+install_dependencies() {
+    info "Installing runtime dependencies..."
+    sudo apt update
+
+    local PACKAGES=(
+        # Qt 6 runtime/development packages (matches current project expectations)
+        qt6-base-dev qt6-declarative-dev qt6-wayland
+        qt6-connectivity-dev qt6-multimedia-dev
+        qml6-module-qtquick-controls qml6-module-qtquick-layouts
+        qml6-module-qtquick-window qml6-module-qtqml-workerscript
+
+        # Runtime libs
+        libboost-system-dev libboost-log-dev
+        libprotobuf-dev
+        libssl-dev
+        libavcodec-dev libavutil-dev
+        libpipewire-0.3-dev libspa-0.2-dev
+        libyaml-cpp-dev
+
+        # WiFi AP / Bluetooth / proxy
+        hostapd
+        bluez
+        redsocks
+        iptables
+
+        # Web config + system service Python deps
+        python3-flask
+        python3-dbus-next python3-yaml
+        python3-venv
+    )
+
+    sudo apt install -y "${PACKAGES[@]}"
+    ok "Dependencies installed"
+}
+
+# ────────────────────────────────────────────────────
+# Step 3: Interactive hardware setup
+# ────────────────────────────────────────────────────
+setup_hardware() {
+    echo -e "\n${CYAN}── Hardware Configuration ──${NC}\n"
+
+    # Touch device — filter for INPUT_PROP_DIRECT (touchscreens)
+    info "Detecting touch devices..."
+    TOUCH_DEVS=()
+    for dev in /dev/input/event*; do
+        if [[ -e "$dev" ]]; then
+            local PROPS_PATH="/sys/class/input/$(basename "$dev")/device/properties"
+            if [[ -f "$PROPS_PATH" ]] && (( $(cat "$PROPS_PATH" 2>/dev/null || echo 0) & 2 )); then
+                NAME=$(cat "/sys/class/input/$(basename "$dev")/device/name" 2>/dev/null || echo "unknown")
+                TOUCH_DEVS+=("$dev")
+                printf "  %-24s %s\n" "$dev" "$NAME"
+            fi
+        fi
+    done
+    echo
+    if [[ ${#TOUCH_DEVS[@]} -eq 0 ]]; then
+        warn "No touchscreen devices detected."
+        ok "Touch: will auto-detect at runtime"
+        TOUCH_DEV=""
+    elif [[ ${#TOUCH_DEVS[@]} -eq 1 ]]; then
+        TOUCH_DEV="${TOUCH_DEVS[0]}"
+        NAME=$(cat "/sys/class/input/$(basename "$TOUCH_DEV")/device/name" 2>/dev/null || echo "unknown")
+        ok "Touch: $TOUCH_DEV ($NAME)"
+    else
+        read -p "Touch device path [${TOUCH_DEVS[0]}]: " TOUCH_DEV
+        TOUCH_DEV=${TOUCH_DEV:-${TOUCH_DEVS[0]}}
+        ok "Touch: $TOUCH_DEV"
+    fi
+
+    # WiFi AP — detect wireless interfaces
+    info "Detecting wireless interfaces..."
+    WIFI_INTERFACES=()
+    for iface_path in /sys/class/net/*/wireless; do
+        if [[ -e "$iface_path" ]]; then
+            WIFI_INTERFACES+=("$(basename "$(dirname "$iface_path")")")
+        fi
+    done
+
+    if [[ ${#WIFI_INTERFACES[@]} -eq 0 ]]; then
+        warn "No wireless interfaces found!"
+        warn "WiFi AP will not be configured. You can set this up manually later."
+        WIFI_IFACE=""
+    elif [[ ${#WIFI_INTERFACES[@]} -eq 1 ]]; then
+        WIFI_IFACE="${WIFI_INTERFACES[0]}"
+        info "Found wireless interface: $WIFI_IFACE"
+    else
+        echo "Multiple wireless interfaces found:"
+        for i in "${!WIFI_INTERFACES[@]}"; do
+            echo "  $((i+1)). ${WIFI_INTERFACES[$i]}"
+        done
+        read -p "Select interface for WiFi AP [1]: " WIFI_CHOICE
+        WIFI_CHOICE=${WIFI_CHOICE:-1}
+        WIFI_IFACE="${WIFI_INTERFACES[$((WIFI_CHOICE-1))]}"
+    fi
+
+    if [[ -n "$WIFI_IFACE" ]]; then
+        DEVICE_NAME="Prodigy_$(od -An -tx1 -N2 /dev/urandom | tr -d ' \n')"
+        echo ""
+        info "This name identifies your vehicle on both WiFi and Bluetooth."
+        info "The default includes a unique suffix to avoid conflicts with multiple vehicles."
+        echo ""
+        read -p "Device name [$DEVICE_NAME]: " USER_DEVICE_NAME
+        DEVICE_NAME=${USER_DEVICE_NAME:-$DEVICE_NAME}
+        WIFI_SSID="$DEVICE_NAME"
+
+        WIFI_PASS=$(head -c 12 /dev/urandom | base64 | tr -dc 'a-zA-Z0-9' | head -c 16)
+        info "Generated random WiFi password (sent to phone automatically over BT)"
+
+        read -p "AP static IP [10.0.0.1]: " AP_IP
+        AP_IP=${AP_IP:-10.0.0.1}
+
+        read -p "Country code (for 5GHz) [US]: " COUNTRY_CODE
+        COUNTRY_CODE=${COUNTRY_CODE:-US}
+    fi
+
+    # AA settings
+    read -p "Android Auto TCP port [5277]: " TCP_PORT
+    TCP_PORT=${TCP_PORT:-5277}
+
+    read -p "Video FPS (30 or 60) [30]: " VIDEO_FPS
+    VIDEO_FPS=${VIDEO_FPS:-30}
+
+    ok "Hardware configuration complete"
+
+    echo
+    read -p "Start OpenAuto Prodigy automatically on boot? [y/N] " -n 1 -r
+    echo
+    AUTOSTART=false
+    [[ $REPLY =~ ^[Yy]$ ]] && AUTOSTART=true
+}
+
+# ────────────────────────────────────────────────────
+# Step 4: Deploy prebuilt payload
+# ────────────────────────────────────────────────────
+deploy_payload() {
+    info "Deploying prebuilt files to $INSTALL_DIR..."
+
+    if [[ -d "$INSTALL_DIR" ]]; then
+        warn "Directory $INSTALL_DIR already exists."
+        read -p "Overwrite prebuilt payload in this directory? [Y/n] " -n 1 -r
+        echo
+        if [[ $REPLY =~ ^[Nn]$ ]]; then
+            fail "Aborting to avoid modifying existing install."
+            exit 1
+        fi
+    fi
+
+    mkdir -p "$INSTALL_DIR"
+
+    rm -rf \
+        "$INSTALL_DIR/build" \
+        "$INSTALL_DIR/config" \
+        "$INSTALL_DIR/system-service" \
+        "$INSTALL_DIR/web-config" \
+        "$INSTALL_DIR/restart.sh"
+
+    cp -a "$PAYLOAD_DIR/build" "$INSTALL_DIR/"
+    cp -a "$PAYLOAD_DIR/config" "$INSTALL_DIR/"
+    cp -a "$PAYLOAD_DIR/system-service" "$INSTALL_DIR/"
+    cp -a "$PAYLOAD_DIR/web-config" "$INSTALL_DIR/"
+    cp "$PAYLOAD_DIR/restart.sh" "$INSTALL_DIR/restart.sh"
+
+    chmod +x "$INSTALL_DIR/build/src/openauto-prodigy" "$INSTALL_DIR/restart.sh"
+    ok "Prebuilt payload deployed"
+}
+
+# ────────────────────────────────────────────────────
+# Step 5: Generate config
+# ────────────────────────────────────────────────────
+generate_config() {
+    info "Generating configuration..."
+    mkdir -p "$CONFIG_DIR/themes/default" "$CONFIG_DIR/plugins"
+
+    cat > "$CONFIG_DIR/config.yaml" << YAML
+# OpenAuto Prodigy Configuration
+# Generated by install-prebuilt.sh on $(date -Iseconds)
+
+connection:
+  wifi_ap:
+    interface: "${WIFI_IFACE:-wlan0}"
+    ssid: "${WIFI_SSID:-$DEVICE_NAME}"
+    password: "$WIFI_PASS"
+  tcp_port: $TCP_PORT
+  bt_name: "$DEVICE_NAME"
+  auto_connect_aa: true
+
+video:
+  fps: $VIDEO_FPS
+  resolution: "480p"
+
+display:
+  width: 1024
+  height: 600
+  brightness: 80
+
+touch:
+  device: ""
+
+companion:
+  enabled: true
+  port: 9876
+YAML
+
+    if [[ -f "$INSTALL_DIR/config/themes/default/theme.yaml" ]]; then
+        cp "$INSTALL_DIR/config/themes/default/theme.yaml" "$CONFIG_DIR/themes/default/"
+    fi
+
+    if [[ -f "$INSTALL_DIR/config/companion-polkit.rules" ]]; then
+        sudo cp "$INSTALL_DIR/config/companion-polkit.rules" /etc/polkit-1/rules.d/50-openauto-time.rules
+        ok "Companion polkit rule installed"
+    fi
+
+    if [[ -f "$INSTALL_DIR/config/bluez-agent-polkit.rules" ]]; then
+        sudo cp "$INSTALL_DIR/config/bluez-agent-polkit.rules" /etc/polkit-1/rules.d/50-openauto-bluez.rules
+        ok "BlueZ agent polkit rule installed"
+    fi
+
+    sudo usermod -aG bluetooth "$USER"
+    sudo usermod -aG input "$USER"
+
+    ok "Configuration written to $CONFIG_DIR/config.yaml"
+}
+
+# ────────────────────────────────────────────────────
+# Step 6: Configure WiFi AP networking
+# ────────────────────────────────────────────────────
+configure_network() {
+    if [[ -z "$WIFI_IFACE" ]]; then
+        warn "Skipping network configuration (no wireless interface)"
+        return
+    fi
+
+    info "Configuring WiFi AP on $WIFI_IFACE..."
+
+    sudo mkdir -p /etc/systemd/network
+    sudo tee /etc/systemd/network/10-openauto-ap.network > /dev/null << NETCFG
+[Match]
+Name=$WIFI_IFACE
+
+[Network]
+Address=${AP_IP}/24
+DHCPServer=yes
+
+[DHCPServer]
+PoolOffset=10
+PoolSize=40
+EmitDNS=no
+NETCFG
+
+    sudo tee /etc/hostapd/hostapd.conf > /dev/null << HOSTAPD
+interface=$WIFI_IFACE
+driver=nl80211
+ssid=$WIFI_SSID
+hw_mode=a
+channel=36
+ieee80211n=1
+ieee80211ac=1
+wmm_enabled=1
+country_code=$COUNTRY_CODE
+ieee80211d=1
+macaddr_acl=0
+auth_algs=1
+ignore_broadcast_ssid=0
+wpa=2
+wpa_passphrase=$WIFI_PASS
+wpa_key_mgmt=WPA-PSK
+rsn_pairwise=CCMP
+HOSTAPD
+
+    if [[ -f /etc/default/hostapd ]]; then
+        sudo sed -i 's|^#\?DAEMON_CONF=.*|DAEMON_CONF="/etc/hostapd/hostapd.conf"|' /etc/default/hostapd
+    fi
+
+    sudo systemctl unmask hostapd 2>/dev/null || true
+    sudo systemctl enable hostapd
+    sudo systemctl enable systemd-networkd
+
+    ok "WiFi AP configured: SSID=$WIFI_SSID on $WIFI_IFACE ($AP_IP)"
+}
+
+# ────────────────────────────────────────────────────
+# Step 7: Configure labwc for multi-touch
+# ────────────────────────────────────────────────────
+configure_labwc() {
+    local LABWC_DIR="$HOME/.config/labwc"
+    local RC_FILE="$LABWC_DIR/rc.xml"
+
+    info "Configuring labwc for multi-touch..."
+    mkdir -p "$LABWC_DIR"
+
+    if [[ -f "$RC_FILE" ]]; then
+        if grep -q 'mouseEmulation="yes"' "$RC_FILE"; then
+            sed -i 's/mouseEmulation="yes"/mouseEmulation="no"/' "$RC_FILE"
+            ok "labwc: mouseEmulation set to \"no\" (was \"yes\")"
+        elif grep -q 'mouseEmulation="no"' "$RC_FILE"; then
+            ok "labwc: mouseEmulation already \"no\""
+        else
+            warn "labwc: rc.xml exists but no mouseEmulation found — check manually"
+        fi
+    else
+        cat > "$RC_FILE" << 'LABWC'
+<?xml version="1.0"?>
+<openbox_config xmlns="http://openbox.org/3.4/rc">
+	<touch deviceName="" mapToOutput="" mouseEmulation="no"/>
+</openbox_config>
+LABWC
+        ok "labwc: created rc.xml with mouseEmulation=\"no\""
+    fi
+}
+
+# ────────────────────────────────────────────────────
+# Step 8: Create systemd service
+# ────────────────────────────────────────────────────
+create_service() {
+    info "Creating systemd service..."
+
+    local USER_ID
+    USER_ID=$(id -u)
+
+    sudo tee /etc/systemd/system/${SERVICE_NAME}.service > /dev/null << SERVICE
+[Unit]
+Description=OpenAuto Prodigy
+After=graphical.target
+Wants=openauto-system.service
+
+[Service]
+Type=simple
+User=$USER
+Environment=XDG_RUNTIME_DIR=/run/user/$USER_ID
+Environment=WAYLAND_DISPLAY=wayland-0
+Environment=QT_QPA_PLATFORM=wayland
+Environment=DBUS_SESSION_BUS_ADDRESS=unix:path=/run/user/$USER_ID/bus
+WorkingDirectory=$INSTALL_DIR
+ExecStart=$INSTALL_DIR/build/src/openauto-prodigy
+Restart=on-failure
+RestartSec=3
+
+[Install]
+WantedBy=graphical.target
+SERVICE
+
+    sudo systemctl daemon-reload
+
+    if [[ "$AUTOSTART" == "true" ]]; then
+        sudo systemctl enable ${SERVICE_NAME}
+        ok "Service created and enabled (auto-start on boot)"
+    else
+        ok "Service created (manual start: sudo systemctl start ${SERVICE_NAME})"
+    fi
+}
+
+# ────────────────────────────────────────────────────
+# Step 9: Create web config service
+# ────────────────────────────────────────────────────
+create_web_service() {
+    info "Creating web config panel service..."
+
+    sudo tee /etc/systemd/system/${SERVICE_NAME}-web.service > /dev/null << SERVICE
+[Unit]
+Description=OpenAuto Prodigy Web Config
+After=network.target ${SERVICE_NAME}.service
+
+[Service]
+Type=simple
+User=$USER
+WorkingDirectory=$INSTALL_DIR/web-config
+ExecStart=/usr/bin/python3 $INSTALL_DIR/web-config/server.py
+Restart=on-failure
+RestartSec=5
+Environment=OAP_WEB_HOST=0.0.0.0
+Environment=OAP_WEB_PORT=8080
+
+[Install]
+WantedBy=multi-user.target
+SERVICE
+
+    sudo systemctl daemon-reload
+    sudo systemctl enable ${SERVICE_NAME}-web
+    ok "Web config service created (port 8080)"
+}
+
+# ────────────────────────────────────────────────────
+# Step 10: Create system service (Python daemon)
+# ────────────────────────────────────────────────────
+create_system_service() {
+    local SYS_DIR="$INSTALL_DIR/system-service"
+    local VENV_DIR="$SYS_DIR/.venv"
+
+    if [[ ! -f "$SYS_DIR/openauto_system.py" ]]; then
+        warn "System service not found at $SYS_DIR — skipping"
+        return
+    fi
+
+    info "Setting up system service..."
+
+    local PYTHON_PATH="/usr/bin/python3"
+    if python3 -m venv "$VENV_DIR" 2>/dev/null; then
+        if "$VENV_DIR/bin/pip" install --quiet -r "$SYS_DIR/requirements.txt" 2>/dev/null; then
+            PYTHON_PATH="$VENV_DIR/bin/python3"
+            ok "Python venv created at $VENV_DIR"
+        elif "$VENV_DIR/bin/pip" install --quiet dbus-next PyYAML 2>/dev/null; then
+            PYTHON_PATH="$VENV_DIR/bin/python3"
+            ok "Python venv created (runtime deps only)"
+        else
+            warn "pip install failed (no internet?). Using system Python."
+            warn "Install python3-dbus-next and python3-yaml via apt if not already present."
+            rm -rf "$VENV_DIR"
+        fi
+    else
+        warn "Could not create venv. Using system Python."
+    fi
+
+    sudo tee /etc/systemd/system/openauto-system.service > /dev/null << SERVICE
+[Unit]
+Description=OpenAuto Prodigy System Manager
+Before=${SERVICE_NAME}.service
+After=network.target bluetooth.target
+
+[Service]
+Type=notify
+User=$USER
+ExecStart=$PYTHON_PATH $SYS_DIR/openauto_system.py
+ExecStopPost=-/usr/sbin/iptables -t nat -D OUTPUT -p tcp -j OPENAUTO_PROXY
+ExecStopPost=-/usr/sbin/iptables -t nat -F OPENAUTO_PROXY
+ExecStopPost=-/usr/sbin/iptables -t nat -X OPENAUTO_PROXY
+WorkingDirectory=$SYS_DIR
+RuntimeDirectory=openauto
+Restart=always
+RestartSec=2
+
+[Install]
+WantedBy=multi-user.target
+SERVICE
+
+    sudo systemctl daemon-reload
+    sudo systemctl enable openauto-system
+    ok "System service installed and enabled"
+}
+
+# ────────────────────────────────────────────────────
+# Step 11: Diagnostics
+# ────────────────────────────────────────────────────
+run_diagnostics() {
+    echo -e "\n${CYAN}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${NC}"
+    echo -e "${CYAN}  System Diagnostics${NC}"
+    echo -e "${CYAN}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${NC}\n"
+
+    if [[ -x "$INSTALL_DIR/build/src/openauto-prodigy" ]]; then
+        ok "Binary: $INSTALL_DIR/build/src/openauto-prodigy"
+    else
+        warn "Binary missing or not executable"
+    fi
+
+    if systemctl is-enabled openauto-system &>/dev/null; then
+        ok "System service: enabled"
+    else
+        warn "System service: not installed"
+    fi
+
+    if [[ -f "$CONFIG_DIR/config.yaml" ]]; then
+        ok "Config: $CONFIG_DIR/config.yaml"
+    else
+        warn "Config: not found"
+    fi
+
+    echo
+    echo -e "  Start:  ${BLUE}sudo systemctl start ${SERVICE_NAME}${NC}"
+    echo -e "  Web:    ${BLUE}http://$(hostname -I | awk '{print $1}'):8080${NC}"
+    echo -e "  Logs:   ${BLUE}journalctl -u ${SERVICE_NAME} -f${NC}"
+    echo -e "  Config: ${BLUE}$CONFIG_DIR/config.yaml${NC}"
+    echo
+}
+
+main() {
+    print_header
+    require_payload
+    check_system
+    install_dependencies
+    setup_hardware
+    deploy_payload
+    generate_config
+    configure_network
+    configure_labwc
+    create_service
+    create_web_service
+    create_system_service
+    run_diagnostics
+}
+
+main "$@"

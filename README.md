@@ -121,6 +121,40 @@ cmake --build . -j"$(nproc)"
 ctest --output-on-failure
 ```
 
+## Prebuilt Distribution (Pi, Experimental)
+
+This repository now includes a prebuilt packaging path so you can distribute
+the current app state without requiring end users to compile from source.
+
+1. Cross-compile for Pi (aarch64):
+
+```bash
+./cross-build.sh -DCMAKE_BUILD_TYPE=Release
+```
+
+2. Package the prebuilt release tarball:
+
+```bash
+./tools/package-prebuilt-release.sh --build-dir build-pi --version-tag v0.1.0
+```
+
+This creates:
+
+```text
+dist/openauto-prodigy-prebuilt-v0.1.0.tar.gz
+```
+
+3. On the target Pi, extract and run:
+
+```bash
+tar -xzf openauto-prodigy-prebuilt-v0.1.0.tar.gz
+cd openauto-prodigy-prebuilt-v0.1.0
+bash install-prebuilt.sh
+```
+
+The prebuilt installer deploys the packaged binary + runtime payload,
+installs dependencies, writes config, and installs/enables systemd services.
+
 ## Documentation Map
 
 - `docs/INDEX.md` - doc index

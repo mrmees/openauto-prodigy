@@ -1,5 +1,6 @@
 build/
 build-pi/
+dist/
 .cache/
 CMakeLists.txt.user
 *.o

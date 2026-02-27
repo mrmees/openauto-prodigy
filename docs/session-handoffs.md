@@ -196,3 +196,49 @@ Documentation:
 - 10 AA protocol docs in `docs/aa-protocol/`
 - 22 archive files in `docs/OpenAutoPro_archive_information/`
 - No orphaned plan files
+
+---
+
+## 2026-02-27 — Prebuilt Distribution Packaging Workflow
+
+**What changed:**
+- Added a prebuilt installer script: `install-prebuilt.sh`.
+  - Installs runtime dependencies.
+  - Prompts for hardware/network setup (WiFi AP + touch discovery).
+  - Deploys packaged payload to `~/openauto-prodigy`.
+  - Generates `~/.openauto/config.yaml` and installs/enables systemd services.
+- Added release packaging helper: `tools/package-prebuilt-release.sh`.
+  - Builds a distributable tarball from `build-pi/src/openauto-prodigy` + runtime payload files.
+  - Produces `dist/openauto-prodigy-prebuilt-<tag>.tar.gz`.
+- Added automated test coverage for artifact layout:
+  - `tests/test_prebuilt_release_package.py`.
+  - Registered in `tests/CMakeLists.txt` as `test_prebuilt_release_package`.
+- Updated docs:
+  - `README.md` (new prebuilt distribution section).
+  - `docs/development.md` (prebuilt install path + package creation commands).
+  - `docs/roadmap-current.md` (marked prebuilt distribution workflow complete in recent done items).
+- Updated `.gitignore` to ignore `dist/` artifacts.
+
+**Why:**
+- Enable shipping the current app state as a Pi-ready prebuilt release, avoiding source builds on target systems.
+- Keep distribution repeatable and testable via a scripted packaging flow.
+
+**Status:** Complete and verified locally/cross-compile. PR branch contains scripts, tests, and docs updates.
+
+**Next steps:**
+1. Validate `install-prebuilt.sh` end-to-end on target Pi hardware from a fresh tarball extract.
+2. Optionally trim payload contents (for example, omit `system-service/tests`) to reduce archive size.
+3. Add CI job to run `test_prebuilt_release_package` and optionally produce release artifacts.
+
+**Verification commands/results:**
+- `cd build && cmake --build . -j$(nproc)`
+  - Passed.
+- `cd build && ctest --output-on-failure`
+  - Passed (`100% tests passed, 0 tests failed out of 51`).
+- `./cross-build.sh -DCMAKE_BUILD_TYPE=Release`
+  - Passed (`Build complete: build-pi/src/openauto-prodigy`).
+- `cd build && ctest -R test_prebuilt_release_package --output-on-failure`
+  - Red phase: failed as expected before implementation (`FileNotFoundError` for missing packaging script).
+  - Green phase: passed after implementation.
+- `./tools/package-prebuilt-release.sh --build-dir build-pi --output-dir dist --version-tag local-test`
+  - Passed; created `dist/openauto-prodigy-prebuilt-local-test.tar.gz`.

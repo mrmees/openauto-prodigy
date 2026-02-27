@@ -539,6 +539,12 @@ target_include_directories(test_bluetooth_manager PRIVATE ${CMAKE_SOURCE_DIR}/sr
 target_link_libraries(test_bluetooth_manager PRIVATE Qt6::Core Qt6::DBus Qt6::Test)
 add_test(NAME test_bluetooth_manager COMMAND test_bluetooth_manager)
 
+# Prebuilt release packaging smoke test
+add_test(
+    NAME test_prebuilt_release_package
+    COMMAND python3 ${CMAKE_SOURCE_DIR}/tests/test_prebuilt_release_package.py
+)
+
 # GUI/Quick tests need offscreen platform when no display is available
 set_tests_properties(test_configuration test_theme_service test_plugin_model
     PROPERTIES ENVIRONMENT "QT_QPA_PLATFORM=offscreen"

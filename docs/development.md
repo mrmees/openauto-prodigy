@@ -66,6 +66,23 @@ bash install.sh
 
 This installs dependencies, builds from source, generates config, and creates systemd services.
 
+### Prebuilt Install (RPi OS Trixie)
+
+If you have a packaged prebuilt release tarball, install without building:
+
+```bash
+tar -xzf openauto-prodigy-prebuilt-<tag>.tar.gz
+cd openauto-prodigy-prebuilt-<tag>
+bash install-prebuilt.sh
+```
+
+To create a prebuilt package from this repo:
+
+```bash
+./cross-build.sh -DCMAKE_BUILD_TYPE=Release
+./tools/package-prebuilt-release.sh --build-dir build-pi --version-tag <tag>
+```
+
 ## Running
 
 ### On Raspberry Pi (Wayland/labwc)
