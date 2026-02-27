@@ -4,6 +4,31 @@ Newest entries first.
 
 ---
 
+## 2026-02-27 — Settings UI restructure & visual cleanup
+
+**What changed:**
+- Replaced settings tile grid with scrollable ListView + section headers
+- Added `SettingsListItem.qml` control (icon + label + chevron)
+- Added `SettingsQmlRole` to PluginModel for dynamic plugin settings pages
+- Restructured AudioSettings into Output/Microphone sections
+- Converted AboutSettings to Flickable
+- Removed all small subtext, subtitles, hint text, and info banners from all settings pages — design rule: if it's not important enough to show prominently, it belongs in the web config panel
+- Increased `rowH` (64→80) and `iconSize` (28→36) in UiMetrics for car-screen glanceability
+- Removed dead `pinHint` reference from CompanionSettings
+- Created `docs/settings-tree.md` — editable spec of every settings page, section, and control
+
+**Why:**
+- Original tile grid didn't scale with growing settings pages. Scrollable list with section headers is standard for settings UIs and handles any number of entries.
+- Small screen at arm's length in a car needs big touch targets and no squinting at subtext.
+
+**Status:** Complete. All 48 tests pass. Cross-compiled and validated on Pi.
+
+**Key design rule established:**
+- No `fontTiny` or `fontSmall` italic hint text on the Pi UI. Either show it at `fontBody` or move it to the web config panel.
+- Edit `docs/settings-tree.md` to describe desired settings layout changes.
+
+---
+
 ## 2026-02-27 — system-service shutdown timeout hardening
 
 **What changed:**
