@@ -344,10 +344,13 @@ HOSTAPD
     sudo systemctl unmask hostapd 2>/dev/null || true
     sudo systemctl enable hostapd
     sudo systemctl enable systemd-networkd
-    sudo systemctl restart systemd-networkd
-    sudo systemctl restart hostapd
-
-    ok "WiFi AP configured and started: SSID=$WIFI_SSID on $WIFI_IFACE ($AP_IP)"
+    sudo systemctl restart systemd-networkd || warn "systemd-networkd restart failed (may need reboot)"
+    if sudo systemctl restart hostapd 2>/dev/null; then
+        ok "WiFi AP configured and started: SSID=$WIFI_SSID on $WIFI_IFACE ($AP_IP)"
+    else
+        warn "hostapd failed to start now (may need reboot). AP is enabled for next boot."
+        ok "WiFi AP configured: SSID=$WIFI_SSID on $WIFI_IFACE ($AP_IP)"
+    fi
 }
 
 # ────────────────────────────────────────────────────
