@@ -80,6 +80,10 @@ set_source_files_properties(../qml/controls/SettingsSlider.qml PROPERTIES
     QT_QML_SOURCE_TYPENAME "SettingsSlider"
     QT_RESOURCE_ALIAS "SettingsSlider.qml"
 )
+set_source_files_properties(../qml/controls/SettingsListItem.qml PROPERTIES
+    QT_QML_SOURCE_TYPENAME "SettingsListItem"
+    QT_RESOURCE_ALIAS "SettingsListItem.qml"
+)
 set_source_files_properties(../qml/controls/FullScreenPicker.qml PROPERTIES
     QT_QML_SOURCE_TYPENAME "FullScreenPicker"
     QT_RESOURCE_ALIAS "FullScreenPicker.qml"
@@ -211,6 +215,7 @@ qt_add_qml_module(openauto-prodigy
         ../qml/controls/SectionHeader.qml
         ../qml/controls/SettingsToggle.qml
         ../qml/controls/SettingsSlider.qml
+        ../qml/controls/SettingsListItem.qml
         ../qml/controls/FullScreenPicker.qml
         ../qml/controls/SegmentedButton.qml
         ../qml/controls/ReadOnlyField.qml
