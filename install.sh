@@ -8,6 +8,10 @@
 #
 set -euo pipefail
 
+# Wrap entire script in a block so bash reads it all into memory before
+# executing. This prevents git pull from modifying the script mid-run.
+{
+
 # Flags
 VERBOSE=false
 while [[ "${1:-}" == -* ]]; do
@@ -787,3 +791,5 @@ main() {
 }
 
 main "$@"
+exit
+}
