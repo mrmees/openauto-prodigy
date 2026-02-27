@@ -9,7 +9,10 @@ find_package(Qt6 REQUIRED COMPONENTS Core Network)
 find_package(OpenSSL REQUIRED)
 find_package(Protobuf REQUIRED)
 
-file(GLOB PROTO_FILES ${CMAKE_CURRENT_SOURCE_DIR}/proto/*.proto)
+file(GLOB_RECURSE PROTO_FILES
+    ${CMAKE_CURRENT_SOURCE_DIR}/proto/open-android-auto/proto/oaa/*.proto)
+# Set import root so protoc resolves "oaa/..." imports
+set(Protobuf_IMPORT_DIRS ${CMAKE_CURRENT_SOURCE_DIR}/proto/open-android-auto/proto)
 protobuf_generate_cpp(PROTO_SRCS PROTO_HDRS ${PROTO_FILES})
 
 add_library(open-androidauto STATIC
