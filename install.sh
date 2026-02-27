@@ -149,8 +149,13 @@ setup_hardware() {
         fi
     done
     echo
-    read -p "Touch device path [auto-detect]: " TOUCH_DEV
+    read -p "Touch device path [auto-detect at runtime]: " TOUCH_DEV
     TOUCH_DEV=${TOUCH_DEV:-}
+    if [[ -z "$TOUCH_DEV" ]]; then
+        ok "Touch: will auto-detect at runtime (INPUT_PROP_DIRECT scan)"
+    else
+        ok "Touch: $TOUCH_DEV"
+    fi
 
     # WiFi AP — detect wireless interfaces
     info "Detecting wireless interfaces..."
