@@ -1,9 +1,0 @@
-syntax="proto3";
-
-package oaa.proto.data;
-
-// APK class: wcg — 1 repeated int32 field
-message TirePressure
-{
-    repeated int32 tire_pressures = 1;
-}
