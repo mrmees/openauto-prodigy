@@ -789,8 +789,8 @@ main() {
     print_header
     check_system
     install_dependencies
-    setup_hardware
     build_project
+    setup_hardware
     generate_config
     configure_network
     configure_labwc
