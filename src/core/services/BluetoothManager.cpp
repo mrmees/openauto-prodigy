@@ -4,7 +4,44 @@
 #include <QDBusInterface>
 #include <QDBusReply>
 #include <QDBusArgument>
+#include <QDBusContext>
+#include <QDBusObjectPath>
 #include <QDBusServiceWatcher>
+
+// BluezAgentAdaptor — handles org.bluez.Agent1 D-Bus method calls from BlueZ.
+// Defined here (not in header) because it's an implementation detail.
+// Requires #include "BluetoothManager.moc" at end of file for AUTOMOC.
+class BluezAgentAdaptor : public QObject, protected QDBusContext {
+    Q_OBJECT
+    Q_CLASSINFO("D-Bus Interface", "org.bluez.Agent1")
+public:
+    explicit BluezAgentAdaptor(oap::BluetoothManager* manager, QObject* parent = nullptr)
+        : QObject(parent), manager_(manager) {}
+
+public slots:
+    void Release() {
+        qInfo() << "[BtAgent] Released";
+    }
+
+    void RequestConfirmation(const QDBusObjectPath& device, uint passkey) {
+        qInfo() << "[BtAgent] RequestConfirmation:" << device.path() << passkey;
+        setDelayedReply(true);
+        manager_->handleAgentRequestConfirmation(message(), device.path(), passkey);
+    }
+
+    void AuthorizeService(const QDBusObjectPath& device, const QString& uuid) {
+        qInfo() << "[BtAgent] AuthorizeService:" << device.path() << uuid;
+        // Auto-accept all services from paired devices (no delayed reply needed)
+    }
+
+    void Cancel() {
+        qInfo() << "[BtAgent] Cancel";
+        manager_->handleAgentCancel();
+    }
+
+private:
+    oap::BluetoothManager* manager_;
+};
 
 namespace oap {
 
@@ -40,14 +77,37 @@ QString BluetoothManager::pairingPasskey() const { return pairingPasskey_; }
 
 void BluetoothManager::confirmPairing()
 {
+    if (!pairingActive_) return;
     qInfo() << "[BtManager] Pairing confirmed by user";
-    // TODO: reply to pending Agent1 D-Bus method call
+
+    auto reply = pendingPairingMessage_.createReply();
+    QDBusConnection::systemBus().send(reply);
+
+    // Trust the device so future connections auto-accept
+    setDeviceProperty(pendingPairingDevicePath_, "Trusted", true);
+
+    pairingActive_ = false;
+    pairingDeviceName_.clear();
+    pairingPasskey_.clear();
+    pendingPairingDevicePath_.clear();
+    emit pairingActiveChanged();
 }
 
 void BluetoothManager::rejectPairing()
 {
+    if (!pairingActive_) return;
     qInfo() << "[BtManager] Pairing rejected by user";
-    // TODO: reply with rejection to pending Agent1 D-Bus method call
+
+    auto reply = pendingPairingMessage_.createErrorReply(
+        QStringLiteral("org.bluez.Error.Rejected"),
+        QStringLiteral("User rejected pairing"));
+    QDBusConnection::systemBus().send(reply);
+
+    pairingActive_ = false;
+    pairingDeviceName_.clear();
+    pairingPasskey_.clear();
+    pendingPairingDevicePath_.clear();
+    emit pairingActiveChanged();
 }
 
 QAbstractListModel* BluetoothManager::pairedDevicesModel()
@@ -80,16 +140,18 @@ void BluetoothManager::initialize()
 {
     qInfo() << "[BtManager] Initializing...";
     setupAdapter();
+    registerAgent();
 
     auto* watcher = new QDBusServiceWatcher("org.bluez",
         QDBusConnection::systemBus(),
         QDBusServiceWatcher::WatchForRegistration, this);
     connect(watcher, &QDBusServiceWatcher::serviceRegistered,
             this, [this]() {
-        qInfo() << "[BtManager] BlueZ restarted — re-initializing adapter";
+        qInfo() << "[BtManager] BlueZ restarted — re-initializing";
         setupAdapter();
+        registerAgent();
     });
-    // TODO: agent registration, profile registration, auto-connect
+    // TODO: profile registration, auto-connect
 }
 
 QString BluetoothManager::findAdapterPath()
@@ -204,11 +266,102 @@ void BluetoothManager::setupAdapter()
             << "discoverable:" << discoverable_;
 }
 
+void BluetoothManager::registerAgent()
+{
+    if (adapterPath_.isEmpty()) return;
+
+    if (!agentAdaptor_) {
+        agentAdaptor_ = new BluezAgentAdaptor(this, this);
+        QDBusConnection::systemBus().registerObject(
+            QStringLiteral("/org/openauto/agent"), agentAdaptor_,
+            QDBusConnection::ExportAllSlots);
+    }
+
+    QDBusInterface agentMgr("org.bluez", "/org/bluez",
+        "org.bluez.AgentManager1", QDBusConnection::systemBus());
+
+    QDBusReply<void> reply = agentMgr.call("RegisterAgent",
+        QVariant::fromValue(QDBusObjectPath(QStringLiteral("/org/openauto/agent"))),
+        QStringLiteral("DisplayYesNo"));
+    if (!reply.isValid())
+        qWarning() << "[BtManager] RegisterAgent failed:" << reply.error().message();
+
+    reply = agentMgr.call("RequestDefaultAgent",
+        QVariant::fromValue(QDBusObjectPath(QStringLiteral("/org/openauto/agent"))));
+    if (!reply.isValid())
+        qWarning() << "[BtManager] RequestDefaultAgent failed:" << reply.error().message();
+    else
+        qInfo() << "[BtManager] Registered as default agent";
+}
+
+void BluetoothManager::unregisterAgent()
+{
+    if (!agentAdaptor_) return;
+
+    QDBusInterface agentMgr("org.bluez", "/org/bluez",
+        "org.bluez.AgentManager1", QDBusConnection::systemBus());
+    agentMgr.call("UnregisterAgent",
+        QVariant::fromValue(QDBusObjectPath(QStringLiteral("/org/openauto/agent"))));
+
+    QDBusConnection::systemBus().unregisterObject(QStringLiteral("/org/openauto/agent"));
+    qInfo() << "[BtManager] Agent unregistered";
+}
+
+void BluetoothManager::handleAgentRequestConfirmation(const QDBusMessage& msg, const QString& devicePath, uint passkey)
+{
+    pendingPairingMessage_ = msg;
+    pendingPairingDevicePath_ = devicePath;
+    pairingDeviceName_ = deviceNameFromPath(devicePath);
+    pairingPasskey_ = QStringLiteral("%1").arg(passkey, 6, 10, QChar('0'));
+    pairingActive_ = true;
+    emit pairingActiveChanged();
+}
+
+void BluetoothManager::handleAgentCancel()
+{
+    if (pairingActive_) {
+        pairingActive_ = false;
+        pairingDeviceName_.clear();
+        pairingPasskey_.clear();
+        pendingPairingDevicePath_.clear();
+        emit pairingActiveChanged();
+        qInfo() << "[BtManager] BlueZ cancelled pairing request";
+    }
+}
+
+QString BluetoothManager::deviceNameFromPath(const QString& devicePath)
+{
+    QDBusInterface props("org.bluez", devicePath,
+        "org.freedesktop.DBus.Properties", QDBusConnection::systemBus());
+    QDBusReply<QDBusVariant> reply = props.call("Get", "org.bluez.Device1", "Name");
+    if (reply.isValid())
+        return reply.value().variant().toString();
+
+    // Fallback: extract MAC from path (e.g. /org/bluez/hci0/dev_AA_BB_CC_DD_EE_FF)
+    QString mac = devicePath.section('/', -1);
+    if (mac.startsWith(QLatin1String("dev_")))
+        mac = mac.mid(4);
+    mac.replace('_', ':');
+    return mac;
+}
+
+void BluetoothManager::setDeviceProperty(const QString& devicePath, const QString& property, const QVariant& value)
+{
+    QDBusInterface props("org.bluez", devicePath,
+        "org.freedesktop.DBus.Properties", QDBusConnection::systemBus());
+    QDBusMessage reply = props.call("Set", "org.bluez.Device1", property,
+        QVariant::fromValue(QDBusVariant(value)));
+    if (reply.type() == QDBusMessage::ErrorMessage)
+        qWarning() << "[BtManager] Failed to set" << property << "on" << devicePath << ":" << reply.errorMessage();
+}
+
 void BluetoothManager::shutdown()
 {
     qInfo() << "[BtManager] Shutting down";
     cancelAutoConnect();
-    // TODO: unregister agent, profiles
+    unregisterAgent();
 }
 
 } // namespace oap
+
+#include "BluetoothManager.moc"

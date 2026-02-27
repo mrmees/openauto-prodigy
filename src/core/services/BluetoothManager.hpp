@@ -3,9 +3,12 @@
 #include "IBluetoothService.hpp"
 #include <QObject>
 #include <QDBusConnection>
+#include <QDBusMessage>
 #include <QDBusVariant>
 #include <QAbstractListModel>
 #include <memory>
+
+class BluezAgentAdaptor;
 
 namespace oap {
 
@@ -55,11 +58,21 @@ signals:
     void profileNewConnection();  // RFCOMM NewConnection — auto-connect stop signal
 
 private:
+    friend class ::BluezAgentAdaptor;
+
     // D-Bus helpers
     void setupAdapter();
+    void registerAgent();
+    void unregisterAgent();
     void setAdapterProperty(const QString& property, const QVariant& value);
     QVariant getAdapterProperty(const QString& property);
     QString findAdapterPath();
+    QString deviceNameFromPath(const QString& devicePath);
+    void setDeviceProperty(const QString& devicePath, const QString& property, const QVariant& value);
+
+    // Called by BluezAgentAdaptor
+    void handleAgentRequestConfirmation(const QDBusMessage& msg, const QString& devicePath, uint passkey);
+    void handleAgentCancel();
 
     IConfigService* configService_ = nullptr;
     QString adapterPath_;  // e.g. "/org/bluez/hci0"
@@ -72,6 +85,9 @@ private:
     QString pairingPasskey_;
     QString connectedDeviceName_;
     QString connectedDeviceAddress_;
+    BluezAgentAdaptor* agentAdaptor_ = nullptr;
+    QDBusMessage pendingPairingMessage_;
+    QString pendingPairingDevicePath_;
 };
 
 } // namespace oap
