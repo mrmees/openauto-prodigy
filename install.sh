@@ -161,15 +161,14 @@ setup_hardware() {
     fi
 
     if [[ -n "$WIFI_IFACE" ]]; then
-        VEHICLE_UUID=$(head -c 2 /dev/urandom | xxd -p | tr '[:lower:]' '[:upper:]')
-        DEFAULT_SSID="OpenAutoProdigy-${VEHICLE_UUID}"
+        DEVICE_NAME="Prodigy_$(head -c 4 /dev/urandom | xxd -p)"
         echo ""
-        info "The companion app uses the WiFi SSID to identify this vehicle."
+        info "This name identifies your vehicle on both WiFi and Bluetooth."
         info "The default includes a unique suffix to avoid conflicts with multiple vehicles."
-        info "If you enter a custom name, make sure it's unique across your vehicles."
         echo ""
-        read -p "WiFi hotspot SSID [$DEFAULT_SSID]: " WIFI_SSID
-        WIFI_SSID=${WIFI_SSID:-$DEFAULT_SSID}
+        read -p "Device name [$DEVICE_NAME]: " USER_DEVICE_NAME
+        DEVICE_NAME=${USER_DEVICE_NAME:-$DEVICE_NAME}
+        WIFI_SSID="$DEVICE_NAME"
 
         read -p "WiFi hotspot password [prodigy]: " WIFI_PASS
         WIFI_PASS=${WIFI_PASS:-prodigy}
@@ -301,9 +300,11 @@ generate_config() {
 connection:
   wifi_ap:
     interface: "${WIFI_IFACE:-wlan0}"
-    ssid: "$WIFI_SSID"
+    ssid: "$DEVICE_NAME"
     password: "$WIFI_PASS"
   tcp_port: $TCP_PORT
+  bt_name: "$DEVICE_NAME"
+  auto_connect_aa: true
 
 video:
   fps: $VIDEO_FPS
