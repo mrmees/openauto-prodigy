@@ -334,6 +334,15 @@ YAML
         ok "Companion polkit rule installed"
     fi
 
+    # BlueZ agent polkit rule (allows non-root pairing agent registration)
+    if [[ -f "$INSTALL_DIR/config/bluez-agent-polkit.rules" ]]; then
+        sudo cp "$INSTALL_DIR/config/bluez-agent-polkit.rules" /etc/polkit-1/rules.d/50-openauto-bluez.rules
+        ok "BlueZ agent polkit rule installed"
+    fi
+
+    # Ensure user is in bluetooth group for BlueZ D-Bus access
+    sudo usermod -aG bluetooth "$USER"
+
     ok "Configuration written to $CONFIG_DIR/config.yaml"
 }
 
