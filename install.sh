@@ -114,6 +114,7 @@ install_dependencies() {
 
         # PipeWire (audio)
         libpipewire-0.3-dev libspa-0.2-dev
+        pipewire-pulse pulseaudio-utils
 
         # YAML config
         libyaml-cpp-dev
