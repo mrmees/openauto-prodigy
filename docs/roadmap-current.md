@@ -4,25 +4,13 @@ Governance: capture new ideas in `docs/wishlist.md`; only promoted items should 
 
 ## Done (recent)
 
-- Documentation cleanup and structured workflow. COMPLETE.
+- Settings UI buildout — scrollable ListView, section headers, plugin settings integration, subtext removal, larger touch targets. Settings tree spec at `docs/settings-tree.md`. COMPLETE.
+- Settings implementation — categories rendered in UI, SettingsListItem control, PluginModel settingsQml role. COMPLETE.
+- Background system service hardening — bt.close() hang fix, layered shutdown timeouts (10s overall, 5s proxy, 3s IPC). COMPLETE.
 - Proto repo migration — standalone [open-android-auto](https://github.com/mrmees/open-android-auto) community repo. COMPLETE.
 - Video ACK delta fix (PR #5) — prevents RxVid overflow on phone. COMPLETE.
 
 ## Now
-
-- Background system service hardening.
-  - Rationale: the system service (health monitor, proxy manager, IPC) is functional but needs reliability work.
-  - Outcome: stable daemon lifecycle, clean restart behavior, resolved bt.close() hang. Determine necessary changes to implement internet sharing with companion app.
-
-- Settings implementation — categories, display, and web backend.
-  - Rationale: config-schema.md defines the full settings surface but the UI and web server backend are incomplete.
-  - Outcome: settings categories rendered in the UI, web server serving settings pages, changes persisted to YAML config.
-
-- Settings UI buildout.
-  - Rationale: the settings screen is currently crowded without a real structure. Structure of settings needs to be documented (via YAML or otherwise) so preferred structure can be easily implemented upon review.
-  - Outcome: settings screen with clear and logical groupings, allows scrolling, compatible with extension architecture to allow extensions to insert settings/groups.
-
-## Next
 
 - Integrate wireless BT AA flow into the main application.
   - Rationale: wireless AA works via standalone test scripts (sdp_clean, HFP AG, hostapd, TCP handoff). Needs to be wired into the app's connection manager. Needs investigation to confirm whether this is already present.
