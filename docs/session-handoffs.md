@@ -266,3 +266,24 @@ Documentation:
   - `cd build && cmake --build . -j$(nproc)` -> passed (`Built target openauto-prodigy`).
   - `cd build && ctest --output-on-failure` -> `100% tests passed, 0 tests failed out of 51`.
   - `./cross-build.sh` -> passed (`Build complete: build-pi/src/openauto-prodigy`).
+
+---
+
+## 2026-02-28 — Fix `install.sh --list-prebuilt` in No-TERM Environments
+
+**What changed:**
+- Updated `install.sh` `print_header()` to avoid calling `clear` when running in non-interactive/no-`TERM` contexts.
+- Updated `tests/test_install_list_prebuilt.py` to explicitly unset `TERM` in the test environment so CI/ctest consistently validates this path.
+
+**Why:**
+- `test_install_list_prebuilt` could fail when `TERM` was unset because `clear` exited non-zero under `set -e`, causing `install.sh --list-prebuilt` to exit before listing releases.
+
+**Status:** Complete and verified locally.
+
+**Next steps:**
+1. Commit and push this fix branch.
+2. Open PR noting that installer list mode now works in minimal/CI environments.
+
+**Verification commands/results:**
+- `cd build && cmake --build . -j$(nproc) && ctest --output-on-failure`
+  - Passed (`100% tests passed, 0 tests failed out of 51`).

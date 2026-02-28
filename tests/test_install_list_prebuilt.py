@@ -50,6 +50,8 @@ def main() -> int:
         env = dict(**{"OAP_GITHUB_API_URL": f"file://{json_path}"})
         # Keep parent environment for shell/path resolution.
         full_env = dict(**os.environ, **env)
+        # Ensure list mode works in minimal/non-interactive environments.
+        full_env.pop("TERM", None)
 
         proc = subprocess.run(
             ["bash", str(INSTALL_SCRIPT), "--list-prebuilt"],
