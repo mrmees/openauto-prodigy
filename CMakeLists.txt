@@ -11,6 +11,12 @@ find_package(Qt6 REQUIRED COMPONENTS Core Gui Quick QuickControls2 Multimedia Ne
 find_package(Qt6 OPTIONAL_COMPONENTS Bluetooth)
 qt_standard_project_setup()
 
+# Suppress Qt QML static plugin import warnings on shared-library Qt builds
+# (e.g. Debian/Trixie on RPi). Plugins load at runtime; static import targets
+# don't exist in distro packages and produce harmless but noisy CMake warnings.
+option(OAP_SKIP_QML_PLUGIN_IMPORT
+    "Disable static QML plugin imports (recommended for distro-packaged Qt)" ON)
+
 # Android Auto dependencies
 find_package(Protobuf REQUIRED)
 find_package(OpenSSL REQUIRED)

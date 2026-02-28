@@ -255,6 +255,10 @@ qt_add_qml_module(openauto-prodigy
         ../resources/resources.qrc
 )
 
+if(OAP_SKIP_QML_PLUGIN_IMPORT)
+    set_target_properties(openauto-prodigy PROPERTIES QT_NO_IMPORT_QML_PLUGINS ON)
+endif()
+
 target_include_directories(openauto-prodigy PRIVATE
     ${CMAKE_CURRENT_SOURCE_DIR}
     ${CMAKE_SOURCE_DIR}/libs/open-androidauto/include
