@@ -4,6 +4,43 @@ Newest entries first.
 
 ---
 
+## 2026-02-27 — Bluetooth cleanup, install script overhaul, aasdk removal
+
+**What changed:**
+
+Bluetooth:
+- Created `BluetoothManager` — D-Bus Adapter1 setup, Agent1 pairing, PairedDevicesModel, auto-connect retry loop
+- HSP HS profile registered by C++; HFP AG owned by PipeWire's bluez5 plugin (no conflict on fresh Trixie)
+- `PairingDialog.qml` overlay for on-screen PIN confirmation
+- BlueZ polkit rule for non-root pairing agent registration
+- `updateConnectedDevice()` tracks Device1.Connected property changes
+
+Install script (`install.sh`):
+- Reordered: deps → build → hardware config (interactive prompts grouped after build)
+- Hardware detection: INPUT_PROP_DIRECT touch filtering with device names, WiFi interface scan, audio sink selection via `pactl`
+- WiFi: random password per install, country code auto-detection (iw reg → locale → ipinfo.io → US fallback), rfkill unblock
+- BlueZ: `--compat` systemd override for SDP registration
+- labwc: `mouseEmulation="no"` for multi-touch
+- Services: openauto-prodigy, web config, system service — all created and enabled
+- Launch option at end: starts app via systemd (works from SSH)
+- Robustness: `{ ... exit; }` wrapper for self-update safety, ERR trap, `set -e`-safe conditionals (no `[[ ]] &&` pattern), hostapd failure non-fatal
+- Build: cmake warnings suppressed by default (`--verbose`/`-v` to restore)
+
+Documentation:
+- Removed obsolete aasdk references from source code, CLAUDE.md, README, development.md, INDEX.md, aa-video-resolution.md
+- Historical docs (design-decisions, debugging-notes, troubleshooting, phone-side-debug, cross-reference, archive) left as-is
+- Updated roadmap: BT cleanup, install overhaul, aasdk removal → Done
+
+**Status:** Install script validated on fresh RPi OS Trixie. Pairing works. AA connection blocked by SDP "Permission denied" (group membership needs reboot). Not yet validated end-to-end on fresh drive.
+
+**Next steps:**
+1. Reboot Pi and validate full AA session on fresh install
+2. Investigate/suppress system pairing notification (draws over Prodigy UI)
+3. Stale BT device pruning (two-pass approach — deferred)
+4. Remove Python profile registration from codebase (Task 16 — pending)
+
+---
+
 ## 2026-02-27 — Settings UI restructure & visual cleanup
 
 **What changed:**
