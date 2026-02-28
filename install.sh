@@ -139,6 +139,7 @@ detect_terminal() {
     fi
 
     TUI_MODE=true
+    BODY_CURSOR=$HEADER_ROWS
     AGGREGATE_LOG=$(mktemp /tmp/oap-install-full-XXXXXX.log)
 
     tput civis 2>/dev/null || true  # hide cursor
