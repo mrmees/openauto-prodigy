@@ -376,7 +376,8 @@ setup_hardware() {
         read -p "AP static IP [10.0.0.1]: " AP_IP
         AP_IP=${AP_IP:-10.0.0.1}
 
-        # Detect country code: iw reg → locale → IP geolocation → US fallback
+        # Detect country code: iw reg → IP geolocation → locale → US fallback
+        # Locale is last because RPi OS defaults to en_GB regardless of user setup
         COUNTRY_CODE=""
         CC_SOURCE=""
         if command -v iw &>/dev/null; then
@@ -387,13 +388,6 @@ setup_hardware() {
                 CC_SOURCE="wireless regulatory domain"
             fi
         fi
-        if [[ -z "$COUNTRY_CODE" ]]; then
-            # Try locale (e.g. en_US.UTF-8 -> US)
-            COUNTRY_CODE=$(locale 2>/dev/null | sed -n 's/.*_\([A-Z]\{2\}\)\..*/\1/p' | head -1) || true
-            if [[ -n "$COUNTRY_CODE" ]]; then
-                CC_SOURCE="system locale"
-            fi
-        fi
         if [[ -z "$COUNTRY_CODE" ]] && command -v curl &>/dev/null; then
             # Try IP geolocation (we have internet if we cloned from GitHub)
             COUNTRY_CODE=$(curl -fsS --max-time 3 https://ipinfo.io/country 2>/dev/null | tr -d '\r\n') || true
@@ -401,6 +395,13 @@ setup_hardware() {
                 COUNTRY_CODE=""
             else
                 CC_SOURCE="IP geolocation"
+            fi
+        fi
+        if [[ -z "$COUNTRY_CODE" ]]; then
+            # Locale fallback (unreliable on RPi OS — defaults to en_GB)
+            COUNTRY_CODE=$(locale 2>/dev/null | sed -n 's/.*_\([A-Z]\{2\}\)\..*/\1/p' | head -1) || true
+            if [[ -n "$COUNTRY_CODE" ]]; then
+                CC_SOURCE="system locale"
             fi
         fi
         if [[ -z "$COUNTRY_CODE" ]]; then
