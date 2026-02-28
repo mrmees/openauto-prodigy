@@ -1521,10 +1521,8 @@ main() {
     fi
 
     # Choose install mode before TUI setup (prebuilt bypasses source flow entirely)
-    if [[ -z "$INSTALL_MODE" ]]; then
-        print_header
-        choose_install_mode
-    fi
+    print_header
+    choose_install_mode
 
     if [[ "$INSTALL_MODE" == "prebuilt" ]]; then
         check_system
@@ -1539,8 +1537,6 @@ main() {
     if [[ "$TUI_MODE" == "true" ]]; then
         draw_header
         enter_interactive
-    else
-        print_header
     fi
 
     prime_sudo
