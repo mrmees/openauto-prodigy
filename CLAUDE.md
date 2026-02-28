@@ -4,6 +4,10 @@
 
 Clean-room open-source rebuild of OpenAuto Pro (BlueWave Studio, defunct). Raspberry Pi-based **wireless-only** Android Auto head unit app using Qt 6 + QML, with a plugin-based architecture supporting BT audio, phone calls, and extensible third-party plugins.
 
+## Hands-Off: `open-android-auto` Submodule
+
+The proto definitions at `libs/open-androidauto/proto/` are a git submodule pointing to `https://github.com/mrmees/open-android-auto`. **Do not modify files in this submodule.** That repo is managed separately as a community resource. If proto changes are needed, note them — don't make them here.
+
 ## Workflow
 
 This project follows a structured workflow. See `AGENTS.md` for the full loop.
