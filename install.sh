@@ -86,7 +86,10 @@ AUTOSTART=false
 
 # Simple mode header (used when TUI is disabled)
 print_header() {
-    clear
+    # ctest/non-interactive environments may not define TERM; avoid failing.
+    if [[ -n "${TERM:-}" ]] && [ -t 1 ]; then
+        clear || true
+    fi
     echo -e "\n${CYAN}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${NC}"
     echo -e "${CYAN}  OpenAuto Prodigy — Installer${NC}"
     echo -e "${CYAN}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${NC}\n"
