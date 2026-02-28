@@ -218,6 +218,9 @@ std::string ProtocolLogger::channelName(uint8_t id)
         case ChannelId::SystemAudio:  return "SYSTEM_AUDIO";
         case ChannelId::AVInput:      return "AV_INPUT";
         case ChannelId::Bluetooth:    return "BLUETOOTH";
+        case ChannelId::Navigation:   return "NAVIGATION";
+        case ChannelId::MediaStatus:  return "MEDIA_STATUS";
+        case ChannelId::PhoneStatus:  return "PHONE_STATUS";
         case ChannelId::WiFi:         return "WIFI";
         default:                      return "UNKNOWN(" + std::to_string(id) + ")";
     }
@@ -294,6 +297,32 @@ std::string ProtocolLogger::messageName(uint8_t channelId, uint16_t msgId)
             case BluetoothMessageId::PAIRING_REQUEST:  return "BT_PAIRING_REQUEST";
             case BluetoothMessageId::PAIRING_RESPONSE: return "BT_PAIRING_RESPONSE";
             case BluetoothMessageId::AUTH_DATA:        return "BT_AUTH_DATA";
+            default: break;
+        }
+    }
+
+    if (channelId == ChannelId::Navigation) {
+        switch (msgId) {
+            case NavigationMessageId::NAV_STATE:    return "NAVIGATION_STATE";
+            case NavigationMessageId::NAV_STEP:     return "NAVIGATION_NOTIFICATION";
+            case NavigationMessageId::NAV_DISTANCE: return "NAVIGATION_DISTANCE";
+            // Observed in APK/decompile notes; not yet in MessageIds.hpp.
+            case 0x8004:                            return "NAVIGATION_TURN_EVENT";
+            default: break;
+        }
+    }
+
+    if (channelId == ChannelId::MediaStatus) {
+        switch (msgId) {
+            case MediaStatusMessageId::PLAYBACK_STATUS:   return "MEDIA_PLAYBACK_STATUS";
+            case MediaStatusMessageId::PLAYBACK_METADATA: return "MEDIA_PLAYBACK_METADATA";
+            default: break;
+        }
+    }
+
+    if (channelId == ChannelId::PhoneStatus) {
+        switch (msgId) {
+            case PhoneStatusMessageId::PHONE_STATUS: return "PHONE_STATUS_UPDATE";
             default: break;
         }
     }

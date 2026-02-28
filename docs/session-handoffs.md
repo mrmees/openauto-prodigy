@@ -287,3 +287,43 @@ Documentation:
 **Verification commands/results:**
 - `cd build && cmake --build . -j$(nproc) && ctest --output-on-failure`
   - Passed (`100% tests passed, 0 tests failed out of 51`).
+
+---
+
+## 2026-02-28 — Resolve `0x800*` Logger Names for Nav/Media/Phone Status Channels
+
+**What changed:**
+- Updated `libs/open-androidauto/src/Messenger/ProtocolLogger.cpp`:
+  - Added channel name mappings for:
+    - `ChannelId::Navigation` -> `NAVIGATION`
+    - `ChannelId::MediaStatus` -> `MEDIA_STATUS`
+    - `ChannelId::PhoneStatus` -> `PHONE_STATUS`
+  - Added message name mappings for:
+    - Navigation channel: `0x8003` -> `NAVIGATION_STATE`, `0x8006` -> `NAVIGATION_NOTIFICATION`, `0x8007` -> `NAVIGATION_DISTANCE`, `0x8004` -> `NAVIGATION_TURN_EVENT`
+    - Media status channel: `0x8001` -> `MEDIA_PLAYBACK_STATUS`, `0x8003` -> `MEDIA_PLAYBACK_METADATA`
+    - Phone status channel: `0x8001` -> `PHONE_STATUS_UPDATE`
+- Updated `libs/open-androidauto/tests/test_protocol_logger.cpp` to assert the new channel/message-name mappings.
+
+**Why:**
+- Protocol capture JSONL/TSV previously emitted `message_name` as raw hex (`0x8001`, `0x8003`, etc.) for navigation/media/phone-status traffic, reducing capture readability and making validator map construction harder.
+
+**Status:** Complete and verified locally.
+
+**Next steps:**
+1. Re-run a fresh AA capture on Pi and confirm these tuples now log as named messages (no `0x800*` for mapped tuples).
+2. Mirror these mapping updates to standalone `open-android-auto` repo if not already present there.
+3. Use the named tuples to tighten validator baseline map and treat remaining unknowns as explicit coverage gaps.
+
+**Verification commands/results:**
+- Tuple evidence confirmation (capture decode against proto candidates):
+  - Generated `/home/matt/claude/personal/openautopro/_captures/chunks/oaa-protocol-capture-20260228-130258/tuple_decode_validation.tsv`
+  - Result: 100% decode success for mapped tuples:
+    - `(Phone->HU,10,32769)` -> `MediaPlaybackStatus` (`1993/1993`)
+    - `(Phone->HU,10,32771)` -> `MediaPlaybackMetadata` (`25/25`)
+    - `(Phone->HU,9,32774)` -> `NavigationNotification` (`8/8`)
+    - `(Phone->HU,9,32775)` -> `NavigationDistance` (`8/8`)
+    - `(Phone->HU,9,32771)` -> `NavigationState` (`2/2`)
+    - `(Phone->HU,11,32769)` -> `PhoneStatusUpdate` (`1/1`)
+- Required repo verification:
+  - `cd build && cmake --build . -j$(nproc) && ctest --output-on-failure`
+  - Passed (`100% tests passed, 0 tests failed out of 51`).
