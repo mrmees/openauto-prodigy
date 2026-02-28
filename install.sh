@@ -8,7 +8,7 @@
 #
 set -euo pipefail
 
-trap 'echo -e "\033[0;31m[CRASH]\033[0m Script failed at line $LINENO (exit code $?): $(sed -n "${LINENO}p" "$0" 2>/dev/null || echo "unknown")"' ERR
+# ERR trap is set after TUI detection in main()
 
 # Wrap entire script in a block so bash reads it all into memory before
 # executing. This prevents git pull from modifying the script mid-run.
@@ -48,6 +48,7 @@ TCP_PORT="5277"
 VIDEO_FPS="30"
 AUTOSTART=false
 
+# Simple mode header (used when TUI is disabled)
 print_header() {
     clear
     echo -e "\n${CYAN}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${NC}"
@@ -55,13 +56,8 @@ print_header() {
     echo -e "${CYAN}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${NC}\n"
 }
 
-info()  { echo -e "${BLUE}[INFO]${NC} $*"; }
-ok()    { echo -e "${GREEN}[OK]${NC} $*"; }
-warn()  { echo -e "${YELLOW}[WARN]${NC} $*"; }
-fail()  { echo -e "${RED}[FAIL]${NC} $*"; }
-
 # ────────────────────────────────────────────────────
-# UI Primitives — pretty output with --verbose bypass
+# TUI — Terminal User Interface
 # ────────────────────────────────────────────────────
 
 # Detect unicode support (braille spinner vs ASCII fallback)
@@ -69,26 +65,259 @@ if printf '\u2800' 2>/dev/null | grep -q '⠀' 2>/dev/null; then
     SPINNER_CHARS='⠋⠙⠹⠸⠼⠴⠦⠧⠇⠏'
     CHECK='✓'
     CROSS='✗'
+    PENDING='○'
 else
     SPINNER_CHARS='|/-\'
     CHECK='+'
     CROSS='x'
+    PENDING='.'
 fi
 
-CURRENT_STEP=0
-TOTAL_STEPS=8
-SPINNER_LOG=""
+# Step registry
+STEP_NAMES=("System" "Dependencies" "Hardware" "Building" "Config" "Network" "Services" "Verify")
+STEP_STATUS=(pending pending pending pending pending pending pending pending)
+STEP_START=(0 0 0 0 0 0 0 0)
+STEP_ELAPSED=(0 0 0 0 0 0 0 0)
+STEP_DETAIL=("" "" "" "" "" "" "" "")
+TOTAL_STEPS=${#STEP_NAMES[@]}
+ACTIVE_STEP=-1
+SPIN_TICK=0
 
-# Step counter — prints "[3/9] Label"
-step() {
-    CURRENT_STEP=$((CURRENT_STEP + 1))
-    echo -e "\n${CYAN}[${CURRENT_STEP}/${TOTAL_STEPS}]${NC} ${BOLD}$*${NC}"
-}
+# TUI state
+TUI_MODE=false
+TERM_COLS=80
+TERM_ROWS=24
+HEADER_ROWS=7
+LOG_LINES=3
+LAYOUT_MODE="small"
+SPINNER_LOG=""
+AGGREGATE_LOG=""
 
 # Format elapsed seconds as M:SS
 _fmt_elapsed() {
     local secs=$1
     printf '%d:%02d' $((secs / 60)) $((secs % 60))
+}
+
+# Append to aggregate debug log
+_log_aggregate() {
+    if [[ -n "$AGGREGATE_LOG" && -f "$AGGREGATE_LOG" ]]; then
+        printf '[%s] [%s] %s\n' "$(date +%H:%M:%S)" "$1" "$2" >> "$AGGREGATE_LOG"
+    fi
+}
+
+info()  { echo -e "${BLUE}[INFO]${NC} $*"; _log_aggregate "INFO" "$*"; }
+ok()    { echo -e "${GREEN}[OK]${NC} $*"; _log_aggregate "OK" "$*"; }
+warn()  { echo -e "${YELLOW}[WARN]${NC} $*"; _log_aggregate "WARN" "$*"; }
+fail()  { echo -e "${RED}[FAIL]${NC} $*"; _log_aggregate "FAIL" "$*"; }
+
+# Detect terminal capabilities and set layout
+detect_terminal() {
+    if [[ "$VERBOSE" == "true" ]] || ! [ -t 1 ] || [[ "${TERM:-dumb}" == "dumb" ]]; then
+        TUI_MODE=false
+        return
+    fi
+
+    TERM_COLS=$(tput cols 2>/dev/null) || { TUI_MODE=false; return; }
+    TERM_ROWS=$(tput lines 2>/dev/null) || { TUI_MODE=false; return; }
+
+    if [[ $TERM_ROWS -le 30 || $TERM_COLS -le 80 ]]; then
+        LAYOUT_MODE="small"
+        HEADER_ROWS=7    # 2 title + 4 steps (2-col) + 1 separator
+        LOG_LINES=$(( TERM_ROWS - HEADER_ROWS - 1 ))
+        if [[ $LOG_LINES -gt 4 ]]; then LOG_LINES=4; fi
+        if [[ $LOG_LINES -lt 2 ]]; then LOG_LINES=2; fi
+    elif [[ $TERM_ROWS -le 45 && $TERM_COLS -le 130 ]]; then
+        LAYOUT_MODE="medium"
+        HEADER_ROWS=11   # 2 title + 8 steps + 1 separator
+        LOG_LINES=8
+    else
+        LAYOUT_MODE="large"
+        HEADER_ROWS=11
+        LOG_LINES=15
+    fi
+
+    TUI_MODE=true
+    AGGREGATE_LOG=$(mktemp /tmp/oap-install-full-XXXXXX.log)
+
+    tput civis 2>/dev/null || true  # hide cursor
+    clear
+}
+
+# Restore terminal to normal state
+tui_cleanup() {
+    if [[ "$TUI_MODE" == "true" ]]; then
+        printf '\033[r'                        # reset scroll region
+        tput cnorm 2>/dev/null || true         # show cursor
+        tput cup "$TERM_ROWS" 0 2>/dev/null || true  # cursor to bottom
+    fi
+}
+
+# Draw a single step entry at current cursor position
+_draw_step() {
+    local idx=$1
+    local status="${STEP_STATUS[$idx]}"
+    local name="${STEP_NAMES[$idx]}"
+
+    case "$status" in
+        pending)
+            printf ' %b%s%b %-14s' "${CYAN}" "$PENDING" "${NC}" "$name"
+            ;;
+        active)
+            local c="${SPINNER_CHARS:$((SPIN_TICK % ${#SPINNER_CHARS})):1}"
+            printf ' %b%s%b %b%-14s%b' "${CYAN}" "$c" "${NC}" "${BOLD}" "$name" "${NC}"
+            if [[ -n "${STEP_DETAIL[$idx]}" ]]; then
+                printf ' %b%s%b' "${CYAN}" "${STEP_DETAIL[$idx]}" "${NC}"
+            fi
+            local elapsed=$(( SECONDS - ${STEP_START[$idx]} ))
+            if [[ $elapsed -gt 2 ]]; then
+                printf ' (%s)' "$(_fmt_elapsed $elapsed)"
+            fi
+            ;;
+        done)
+            local el="${STEP_ELAPSED[$idx]}"
+            printf ' %b%s%b %-14s' "${GREEN}" "$CHECK" "${NC}" "$name"
+            if [[ $el -gt 0 ]]; then
+                printf ' %b(%s)%b' "${GREEN}" "$(_fmt_elapsed $el)" "${NC}"
+            fi
+            ;;
+        fail)
+            printf ' %b%s%b %-14s' "${RED}" "$CROSS" "${NC}" "$name"
+            ;;
+    esac
+}
+
+# Draw the fixed header (title + step checklist)
+draw_header() {
+    if [[ "$TUI_MODE" != "true" ]]; then return; fi
+
+    # Title (rows 0-1)
+    tput cup 0 0
+    printf '  %b%bOpenAuto Prodigy — Installer%b' "${CYAN}" "${BOLD}" "${NC}"
+    tput el
+    tput cup 1 0
+    printf '  %b━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━%b' "${CYAN}" "${NC}"
+    tput el
+
+    if [[ "$LAYOUT_MODE" == "small" ]]; then
+        # 2-column: steps 0-3 left, 4-7 right
+        local col2=$((TERM_COLS / 2))
+        for row in 0 1 2 3; do
+            local y=$((2 + row))
+            tput cup $y 1
+            _draw_step $row
+            tput cup $y $col2
+            _draw_step $((row + 4))
+            tput el
+        done
+        # Separator
+        tput cup 6 0
+        printf '  %b━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━%b' "${CYAN}" "${NC}"
+        tput el
+    else
+        # 1-column
+        for i in "${!STEP_NAMES[@]}"; do
+            tput cup $((2 + i)) 1
+            _draw_step "$i"
+            tput el
+        done
+        # Separator
+        tput cup 10 0
+        printf '  %b━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━%b' "${CYAN}" "${NC}"
+        tput el
+    fi
+}
+
+# Draw log viewport (tail of current log file) below header
+draw_log_viewport() {
+    if [[ "$TUI_MODE" != "true" ]]; then return; fi
+
+    local start_row=$HEADER_ROWS
+    local lines_drawn=0
+
+    if [[ -n "$SPINNER_LOG" && -f "$SPINNER_LOG" ]]; then
+        while IFS= read -r line; do
+            tput cup $((start_row + lines_drawn)) 0
+            printf '  %.*s' $((TERM_COLS - 4)) "$line"
+            tput el
+            lines_drawn=$((lines_drawn + 1))
+        done < <(tail -n "$LOG_LINES" "$SPINNER_LOG" 2>/dev/null)
+    fi
+
+    # Clear remaining viewport lines
+    while [[ $lines_drawn -lt $LOG_LINES ]]; do
+        tput cup $((start_row + lines_drawn)) 0
+        tput el
+        lines_drawn=$((lines_drawn + 1))
+    done
+}
+
+# Clear the body area below the header
+clear_body() {
+    if [[ "$TUI_MODE" != "true" ]]; then return; fi
+    tput cup "$HEADER_ROWS" 0
+    tput ed
+}
+
+# Update step status and redraw header
+update_step() {
+    local idx=$1
+    local status=$2
+    local detail="${3:-}"
+
+    case "$status" in
+        active)
+            STEP_STATUS[$idx]="active"
+            STEP_START[$idx]=$SECONDS
+            STEP_DETAIL[$idx]="$detail"
+            ACTIVE_STEP=$idx
+            ;;
+        done)
+            STEP_STATUS[$idx]="done"
+            STEP_ELAPSED[$idx]=$(( SECONDS - ${STEP_START[$idx]} ))
+            STEP_DETAIL[$idx]=""
+            ACTIVE_STEP=-1
+            ;;
+        fail)
+            STEP_STATUS[$idx]="fail"
+            STEP_ELAPSED[$idx]=$(( SECONDS - ${STEP_START[$idx]} ))
+            STEP_DETAIL[$idx]=""
+            ACTIVE_STEP=-1
+            ;;
+    esac
+
+    if [[ "$TUI_MODE" == "true" ]]; then
+        draw_header
+        if [[ "$status" == "active" ]]; then
+            clear_body
+        fi
+    else
+        if [[ "$status" == "active" ]]; then
+            echo -e "\n${CYAN}[$((idx + 1))/${TOTAL_STEPS}]${NC} ${BOLD}${STEP_NAMES[$idx]}${NC}"
+        fi
+    fi
+}
+
+# Switch to interactive mode (normal scrolling below header)
+enter_interactive() {
+    if [[ "$TUI_MODE" != "true" ]]; then return; fi
+    # Set scroll region to body area only
+    printf '\033[%d;%dr' "$((HEADER_ROWS + 1))" "$TERM_ROWS"
+    # Position cursor at top of scroll region
+    tput cup "$HEADER_ROWS" 0
+    # Show cursor for user input
+    tput cnorm 2>/dev/null || true
+}
+
+# Return from interactive mode
+leave_interactive() {
+    if [[ "$TUI_MODE" != "true" ]]; then return; fi
+    # Reset scroll region to full screen
+    printf '\033[r'
+    # Hide cursor
+    tput civis 2>/dev/null || true
+    # Redraw header (may have been scrolled)
+    draw_header
 }
 
 # Show last N lines of log on failure
@@ -97,11 +326,44 @@ show_error_tail() {
     if [[ -f "$logfile" && -s "$logfile" ]]; then
         echo -e "\n${RED}── Last ${lines} lines of output ──${NC}"
         tail -n "$lines" "$logfile"
-        echo -e "${RED}── Full log: ${logfile} ──${NC}"
+        echo -e "${RED}── End of error output ──${NC}"
     fi
 }
 
-# Run a command with an animated spinner + elapsed timer
+# Save aggregate log to persistent location on failure
+save_debug_log() {
+    if [[ -n "$AGGREGATE_LOG" && -f "$AGGREGATE_LOG" && -s "$AGGREGATE_LOG" ]]; then
+        local dest="${INSTALL_DIR}/install-debug-$(date +%Y%m%d-%H%M%S).log"
+        mkdir -p "$(dirname "$dest")" 2>/dev/null || true
+        cp "$AGGREGATE_LOG" "$dest" 2>/dev/null || true
+        echo ""
+        echo -e "${YELLOW}${BOLD}Debug log saved to:${NC} $dest"
+        echo -e "${YELLOW}Share this file when reporting issues.${NC}"
+    fi
+}
+
+# TUI-aware error handler
+handle_error() {
+    local line=$1 code=$2
+
+    # Mark active step as failed
+    if [[ $ACTIVE_STEP -ge 0 ]]; then
+        update_step $ACTIVE_STEP fail
+    fi
+
+    # Exit TUI mode
+    tui_cleanup
+
+    echo -e "\n${RED}[CRASH]${NC} Script failed at line $line (exit code $code)"
+
+    if [[ -n "$SPINNER_LOG" && -f "$SPINNER_LOG" ]]; then
+        show_error_tail "$SPINNER_LOG"
+    fi
+
+    save_debug_log
+}
+
+# Run a command with spinner + log viewport
 # Usage: run_with_spinner "Installing dependencies" apt install -y ...
 run_with_spinner() {
     local label="$1"; shift
@@ -114,30 +376,53 @@ run_with_spinner() {
 
     SPINNER_LOG=$(mktemp /tmp/oap-install-XXXXXX.log)
     local start_time=$SECONDS
-    local spin_i=0
     local char_count=${#SPINNER_CHARS}
 
     "$@" > "$SPINNER_LOG" 2>&1 &
     local cmd_pid=$!
 
-    # Spinner loop
-    while kill -0 "$cmd_pid" 2>/dev/null; do
-        local elapsed=$((SECONDS - start_time))
-        local c="${SPINNER_CHARS:$((spin_i % char_count)):1}"
-        printf '\r  %s %s (%s)  ' "$c" "$label" "$(_fmt_elapsed $elapsed)"
-        spin_i=$((spin_i + 1))
-        sleep 0.1
-    done
+    if [[ "$TUI_MODE" == "true" ]]; then
+        tput civis 2>/dev/null || true
+        while kill -0 "$cmd_pid" 2>/dev/null; do
+            SPIN_TICK=$((SPIN_TICK + 1))
+            draw_header
+            draw_log_viewport
+            sleep 0.15
+        done
+    else
+        local spin_i=0
+        while kill -0 "$cmd_pid" 2>/dev/null; do
+            local elapsed=$((SECONDS - start_time))
+            local c="${SPINNER_CHARS:$((spin_i % char_count)):1}"
+            printf '\r  %s %s (%s)  ' "$c" "$label" "$(_fmt_elapsed $elapsed)"
+            spin_i=$((spin_i + 1))
+            sleep 0.1
+        done
+    fi
 
     wait "$cmd_pid"
     local exit_code=$?
     local elapsed=$((SECONDS - start_time))
 
+    # Append to aggregate log
+    if [[ -n "$AGGREGATE_LOG" && -f "$SPINNER_LOG" ]]; then
+        printf '\n=== %s (exit %d, %s) ===\n' "$label" "$exit_code" "$(_fmt_elapsed $elapsed)" >> "$AGGREGATE_LOG"
+        cat "$SPINNER_LOG" >> "$AGGREGATE_LOG" 2>/dev/null || true
+    fi
+
     if [[ $exit_code -eq 0 ]]; then
-        echo -e "\r  ${GREEN}${CHECK}${NC} ${label} ($(_fmt_elapsed $elapsed))  "
+        if [[ "$TUI_MODE" == "true" ]]; then
+            clear_body
+        else
+            echo -e "\r  ${GREEN}${CHECK}${NC} ${label} ($(_fmt_elapsed $elapsed))  "
+        fi
         rm -f "$SPINNER_LOG"
+        SPINNER_LOG=""
     else
-        echo -e "\r  ${RED}${CROSS}${NC} ${label} ($(_fmt_elapsed $elapsed))  "
+        if [[ "$TUI_MODE" != "true" ]]; then
+            echo -e "\r  ${RED}${CROSS}${NC} ${label} ($(_fmt_elapsed $elapsed))  "
+        fi
+        tui_cleanup
         show_error_tail "$SPINNER_LOG"
         return $exit_code
     fi
@@ -156,44 +441,70 @@ build_with_progress() {
 
     SPINNER_LOG=$(mktemp /tmp/oap-build-XXXXXX.log)
     local start_time=$SECONDS
-    local spin_i=0
     local char_count=${#SPINNER_CHARS}
     local last_pct=""
 
-    # Run build in background, output to log
     "$@" > "$SPINNER_LOG" 2>&1 &
     local cmd_pid=$!
 
-    # Spinner loop — scrape latest percentage from log file
-    while kill -0 "$cmd_pid" 2>/dev/null; do
-        local elapsed=$((SECONDS - start_time))
-        local c="${SPINNER_CHARS:$((spin_i % char_count)):1}"
-
-        # Grab last percentage from log (cmake outputs [  X%])
-        local pct
-        pct=$(sed -n 's/.*\[\s*\([0-9]*\)%\].*/\1/p' "$SPINNER_LOG" 2>/dev/null | tail -1) || true
-        if [[ -n "$pct" ]]; then
-            last_pct="$pct"
-        fi
-
-        if [[ -n "$last_pct" ]]; then
-            printf '\r  %s %s (%s%%) (%s)  ' "$c" "$label" "$last_pct" "$(_fmt_elapsed $elapsed)"
-        else
-            printf '\r  %s %s (%s)  ' "$c" "$label" "$(_fmt_elapsed $elapsed)"
-        fi
-        spin_i=$((spin_i + 1))
-        sleep 0.25
-    done
+    if [[ "$TUI_MODE" == "true" ]]; then
+        tput civis 2>/dev/null || true
+        while kill -0 "$cmd_pid" 2>/dev/null; do
+            SPIN_TICK=$((SPIN_TICK + 1))
+            # Scrape cmake percentage from log
+            local pct
+            pct=$(sed -n 's/.*\[\s*\([0-9]*\)%\].*/\1/p' "$SPINNER_LOG" 2>/dev/null | tail -1) || true
+            if [[ -n "$pct" ]]; then
+                last_pct="$pct"
+                if [[ $ACTIVE_STEP -ge 0 ]]; then
+                    STEP_DETAIL[$ACTIVE_STEP]="${pct}%"
+                fi
+            fi
+            draw_header
+            draw_log_viewport
+            sleep 0.25
+        done
+    else
+        local spin_i=0
+        while kill -0 "$cmd_pid" 2>/dev/null; do
+            local elapsed=$((SECONDS - start_time))
+            local c="${SPINNER_CHARS:$((spin_i % char_count)):1}"
+            local pct
+            pct=$(sed -n 's/.*\[\s*\([0-9]*\)%\].*/\1/p' "$SPINNER_LOG" 2>/dev/null | tail -1) || true
+            if [[ -n "$pct" ]]; then last_pct="$pct"; fi
+            if [[ -n "$last_pct" ]]; then
+                printf '\r  %s %s (%s%%) (%s)  ' "$c" "$label" "$last_pct" "$(_fmt_elapsed $elapsed)"
+            else
+                printf '\r  %s %s (%s)  ' "$c" "$label" "$(_fmt_elapsed $elapsed)"
+            fi
+            spin_i=$((spin_i + 1))
+            sleep 0.25
+        done
+    fi
 
     wait "$cmd_pid"
     local exit_code=$?
     local elapsed=$((SECONDS - start_time))
 
+    # Append to aggregate log
+    if [[ -n "$AGGREGATE_LOG" && -f "$SPINNER_LOG" ]]; then
+        printf '\n=== %s (exit %d, %s) ===\n' "$label" "$exit_code" "$(_fmt_elapsed $elapsed)" >> "$AGGREGATE_LOG"
+        cat "$SPINNER_LOG" >> "$AGGREGATE_LOG" 2>/dev/null || true
+    fi
+
     if [[ $exit_code -eq 0 ]]; then
-        echo -e "\r  ${GREEN}${CHECK}${NC} ${label} (100%) ($(_fmt_elapsed $elapsed))  "
+        if [[ "$TUI_MODE" == "true" ]]; then
+            clear_body
+        else
+            echo -e "\r  ${GREEN}${CHECK}${NC} ${label} (100%) ($(_fmt_elapsed $elapsed))  "
+        fi
         rm -f "$SPINNER_LOG"
+        SPINNER_LOG=""
     else
-        echo -e "\r  ${RED}${CROSS}${NC} ${label} ($(_fmt_elapsed $elapsed))  "
+        if [[ "$TUI_MODE" != "true" ]]; then
+            echo -e "\r  ${RED}${CROSS}${NC} ${label} ($(_fmt_elapsed $elapsed))  "
+        fi
+        tui_cleanup
         show_error_tail "$SPINNER_LOG"
         return $exit_code
     fi
@@ -209,14 +520,15 @@ prime_sudo() {
     # Keepalive loop — refresh sudo every 50s until script exits
     (while true; do sudo -n -v 2>/dev/null; sleep 50; done) &
     SUDO_KEEPALIVE_PID=$!
-    trap 'kill $SUDO_KEEPALIVE_PID 2>/dev/null; rm -f "$SPINNER_LOG"' EXIT
+    trap 'kill $SUDO_KEEPALIVE_PID 2>/dev/null; rm -f "$SPINNER_LOG"; tui_cleanup' EXIT
 }
 
 # ────────────────────────────────────────────────────
 # Step 1: Check OS and architecture
 # ────────────────────────────────────────────────────
 check_system() {
-    step "Checking system"
+    update_step 0 active
+    enter_interactive
 
     if [[ ! -f /etc/os-release ]]; then
         fail "Cannot determine OS. /etc/os-release not found."
@@ -238,13 +550,16 @@ check_system() {
     if [[ "${VERSION_CODENAME:-}" != "trixie" ]]; then
         warn "Expected RPi OS Trixie (Debian 13). Detected: ${VERSION_CODENAME:-unknown}"
     fi
+
+    leave_interactive
+    update_step 0 done
 }
 
 # ────────────────────────────────────────────────────
 # Step 2: Install apt dependencies
 # ────────────────────────────────────────────────────
 install_dependencies() {
-    step "Installing dependencies"
+    update_step 1 active
 
     local PACKAGES=(
         # Build tools
@@ -297,13 +612,16 @@ install_dependencies() {
 
     run_with_spinner "Updating package lists" sudo apt-get update -qq
     run_with_spinner "Installing ${#PACKAGES[@]} packages" sudo apt-get install -y -qq "${PACKAGES[@]}"
+
+    update_step 1 done
 }
 
 # ────────────────────────────────────────────────────
 # Step 3: Interactive hardware setup
 # ────────────────────────────────────────────────────
 setup_hardware() {
-    step "Hardware configuration"
+    update_step 2 active
+    enter_interactive
 
     # Touch device — filter for INPUT_PROP_DIRECT (touchscreens)
     info "Detecting touch devices..."
@@ -482,16 +800,20 @@ setup_hardware() {
     else
         AUTOSTART=true
     fi
+
+    leave_interactive
+    update_step 2 done
 }
 
 # ────────────────────────────────────────────────────
 # Step 3b: Configure WiFi AP networking
 # ────────────────────────────────────────────────────
 configure_network() {
-    step "Configuring network"
+    enter_interactive
 
     if [[ -z "$WIFI_IFACE" ]]; then
         warn "Skipping network configuration (no wireless interface)"
+        leave_interactive
         return
     fi
 
@@ -565,6 +887,8 @@ HOSTAPD
     else
         warn "hostapd failed to start (may need reboot). Enabled for next boot."
     fi
+
+    leave_interactive
 }
 
 # ────────────────────────────────────────────────────
@@ -602,32 +926,38 @@ LABWC
 # Step 4: Clone and build
 # ────────────────────────────────────────────────────
 build_project() {
-    step "Building from source"
+    update_step 3 active
 
     cd "$INSTALL_DIR"
     run_with_spinner "Initializing submodules" git submodule update --init --recursive
 
     if [[ -f "$INSTALL_DIR/build/src/openauto-prodigy" ]]; then
+        enter_interactive
         warn "OpenAuto Prodigy is already built."
         read -p "Rebuild? [Y/n] " -n 1 -r
         echo
         if [[ $REPLY =~ ^[Nn]$ ]]; then
             info "Skipping build."
+            leave_interactive
+            update_step 3 done
             return
         fi
+        leave_interactive
     fi
     mkdir -p build
     cd build
 
     run_with_spinner "Configuring CMake" cmake .. -Wno-dev
     build_with_progress "Building" cmake --build . -j$(nproc)
+
+    update_step 3 done
 }
 
 # ────────────────────────────────────────────────────
 # Step 5: Generate config
 # ────────────────────────────────────────────────────
 generate_config() {
-    step "Generating configuration"
+    enter_interactive
     mkdir -p "$CONFIG_DIR/themes/default" "$CONFIG_DIR/plugins"
 
     cat > "$CONFIG_DIR/config.yaml" << YAML
@@ -685,14 +1015,14 @@ YAML
     sudo usermod -aG input "$USER"      # evdev touch device access
 
     ok "Configuration written to $CONFIG_DIR/config.yaml"
+
+    leave_interactive
 }
 
 # ────────────────────────────────────────────────────
 # Step 6: Create systemd service
 # ────────────────────────────────────────────────────
 create_service() {
-    step "Creating services"
-
     local USER_ID
     USER_ID=$(id -u)
 
@@ -729,7 +1059,7 @@ SERVICE
 }
 
 # ────────────────────────────────────────────────────
-# Step 7: Create web config service
+# Step 6b: Create web config service
 # ────────────────────────────────────────────────────
 create_web_service() {
 
@@ -819,7 +1149,8 @@ SERVICE
 # Step 9: Diagnostics
 # ────────────────────────────────────────────────────
 run_diagnostics() {
-    step "Verifying installation"
+    update_step 7 active
+    enter_interactive
 
     local warnings=()
 
@@ -886,6 +1217,12 @@ run_diagnostics() {
         fi
     fi
 
+    leave_interactive
+    update_step 7 done
+
+    # Exit TUI mode for final summary
+    tui_cleanup
+
     # ── Final summary box ──
     echo -e "\n${GREEN}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${NC}"
     echo -e "${GREEN}  Installation Complete!${NC}"
@@ -922,20 +1259,51 @@ run_diagnostics() {
 # Main
 # ────────────────────────────────────────────────────
 main() {
-    print_header
+    detect_terminal
+    trap 'handle_error $LINENO $?' ERR
+
+    if [[ "$TUI_MODE" == "true" ]]; then
+        draw_header
+        enter_interactive
+    else
+        print_header
+    fi
+
     prime_sudo
 
-    check_system          # 1
-    install_dependencies  # 2
-    setup_hardware        # 3
-    build_project         # 4
-    generate_config       # 5
-    configure_network     # 6
-    configure_labwc       # 7 (silent — no step header)
-    create_service        # 8
-    create_web_service    #   (part of step 8)
-    create_system_service #   (part of step 8)
-    run_diagnostics       # 9
+    if [[ "$TUI_MODE" == "true" ]]; then
+        leave_interactive
+    fi
+
+    check_system          # Step 0: System
+    install_dependencies  # Step 1: Dependencies
+    setup_hardware        # Step 2: Hardware
+    build_project         # Step 3: Building
+
+    # Step 4: Config
+    update_step 4 active
+    generate_config
+    update_step 4 done
+
+    # Step 5: Network
+    update_step 5 active
+    configure_network
+    configure_labwc
+    update_step 5 done
+
+    # Step 6: Services
+    update_step 6 active
+    enter_interactive
+    create_service
+    create_web_service
+    create_system_service
+    leave_interactive
+    update_step 6 done
+
+    run_diagnostics       # Step 7: Verify
+
+    # Clean up aggregate log on success
+    rm -f "$AGGREGATE_LOG"
 }
 
 main "$@"
