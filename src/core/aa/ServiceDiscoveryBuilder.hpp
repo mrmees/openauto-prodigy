@@ -9,8 +9,7 @@ namespace oap {
 namespace aa {
 
 /// Builds a fully-populated SessionConfig with pre-serialized channel
-/// descriptors for AA service discovery. Replaces the scattered fillFeatures()
-/// methods from the old aasdk service stubs.
+/// descriptors for AA service discovery.
 class ServiceDiscoveryBuilder {
 public:
     explicit ServiceDiscoveryBuilder(oap::YamlConfig* yamlConfig = nullptr,

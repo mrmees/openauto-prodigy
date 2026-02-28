@@ -51,7 +51,6 @@ oaa::SessionConfig ServiceDiscoveryBuilder::build() const
     oaa::SessionConfig config;
 
     // Head unit identity
-    // Identity must match aasdk/Crankshaft-NG values for phone vehicle DB lookup
     // Phone matches on: manufacturer + model + modelyear + vehicleid
     config.headUnitName = "Crankshaft-NG";
     config.carModel = "Universal";

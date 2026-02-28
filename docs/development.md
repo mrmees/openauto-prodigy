@@ -54,7 +54,7 @@ cmake ..
 make -j$(nproc)
 ```
 
-**Important:** Don't forget `--recurse-submodules` — the aasdk library lives in `libs/aasdk/` as a git submodule.
+**Important:** Don't forget `--recurse-submodules` — the [open-android-auto](https://github.com/mrmees/open-android-auto) protobuf definitions are a git submodule under `libs/open-androidauto/proto/`.
 
 ### Interactive Install (RPi OS Trixie)
 
@@ -232,7 +232,7 @@ openauto-prodigy/
 │   ├── requirements.txt
 │   └── templates/                   # HTML templates (base, index, settings, themes, plugins)
 ├── libs/
-│   └── aasdk/                       # Android Auto SDK (git submodule)
+│   └── open-androidauto/             # AA protocol library (proto defs via git submodule)
 ├── tests/                           # Unit tests (8 tests)
 └── docs/                            # Design docs, plans
 ```

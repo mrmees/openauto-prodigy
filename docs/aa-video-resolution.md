@@ -18,7 +18,7 @@ AA uses fixed, enumerated resolutions — no custom dimensions. During service d
 | `_1440p_p` | 1440×2560 | Portrait mode |
 | `_4K_p` | 2160×3840 | Portrait mode |
 
-Portrait resolutions were added around Android 8+ (late 2022). Our aasdk protobuf may need updating to include enum values 4-9 for full support.
+Portrait resolutions were added around Android 8+ (late 2022). Our protobuf definitions may need updating to include enum values 4-9 for full support.
 
 ### VideoConfig Fields
 
@@ -132,6 +132,4 @@ With margins, the AA content occupies a sub-region of the video frame. Touch map
 ## References
 
 - [Crankshaft issue #403](https://github.com/opencardev/crankshaft/issues/403) — Emil Borconi's margin/overscan technique
-- `libs/aasdk/aasdk_proto/VideoConfigData.proto` — VideoConfig protobuf definition
-- `libs/aasdk/aasdk_proto/VideoResolutionEnum.proto` — Resolution enum values
 - `src/core/aa/VideoService.cpp` — Where margins are configured

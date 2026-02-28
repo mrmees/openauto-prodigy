@@ -41,13 +41,13 @@ Open-source Android Auto head unit stack for Raspberry Pi, rebuilt as a clean-ro
 
 ### 3) Protocol Library (`libs/open-androidauto`)
 
-In-tree static library used by the app. This is the active AA protocol rewrite effort: replacing direct `aasdk` usage with a Qt-native implementation, while using SonOfGib/`aasdk` behavior as a compatibility/reference guide.
+In-tree static library implementing the AA protocol with a Qt-native approach. Protobuf definitions come from the [open-android-auto](https://github.com/mrmees/open-android-auto) community repo (included as a git submodule).
 
 - Transport (`TCPTransport`, `ReplayTransport`)
 - Framing/messenger/encryption
 - Session state machine (`AASession`)
 - Head-unit channel handlers (`oaa::hu::*`) for video, audio, AV input, input, sensor, Bluetooth, WiFi, navigation, media status, phone status
-- Proto generation from `libs/open-androidauto/proto/*.proto`
+- Proto generation from `libs/open-androidauto/proto/open-android-auto/proto/oaa/*.proto`
 
 ### 4) Plugin Layer (`src/plugins`)
 

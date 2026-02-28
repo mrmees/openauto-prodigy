@@ -34,7 +34,6 @@ See `docs/roadmap-current.md` for current status and priorities.
   - `qml/controls/` — Reusable controls (Tile, Icon, NormalText, SpecialText)
   - `qml/applications/` — Plugin views (launcher, android_auto, settings, home, bt_audio, phone)
 - `libs/open-androidauto/` — AA protocol library (Transport, Messenger, Session, Channel, HU handlers)
-- `libs/aasdk/` — Android Auto SDK (git submodule, SonOfGib's fork)
 - `tests/` — Unit tests (47 tests covering config, plugins, theme, audio, events, notifications, device registry, protocol, codecs, video)
 - `web-config/` — Flask web config panel (Python, HTML/CSS/JS)
 - `docs/` — Design decisions, development guide, wireless setup, plans
@@ -210,9 +209,8 @@ AA supports fixed resolutions only:
 
 ### AA Protocol
 
-- SonOfGib aasdk is proto2 — no `device_model` field in ServiceDiscoveryRequest
 - SPS/PPS arrives as `AV_MEDIA_INDICATION` (no timestamp) — must forward to decoder
-- H.264 data from aasdk already has AnnexB start codes — do NOT prepend additional ones
+- H.264 data from the protocol already has AnnexB start codes — do NOT prepend additional ones (may be outdated — verify with open-androidauto)
 - WiFi SSID/password in config must match hostapd.conf exactly
 - **`touch_screen_config` must be video resolution (1280x720), not display resolution (1024x600)** — the phone interprets touch coordinates relative to `touch_screen_config`. Mismatch causes touch misalignment.
 - **Phone sends `config_index=3` in `AVChannelSetupRequest`** — despite our video config list only having indices 0-1. This is the phone's internal reference, not an index into our list.

@@ -27,7 +27,7 @@
 Protocol definitions and generic reference docs are in [open-android-auto](https://github.com/mrmees/open-android-auto). The docs below are implementation-specific to this project.
 
 - [aa-phone-side-debug.md](aa-phone-side-debug.md) — phone-side behavior and debugging
-- [android-auto-protocol-cross-reference.md](android-auto-protocol-cross-reference.md) — protocol cross-reference (aasdk/wire formats)
+- [android-auto-protocol-cross-reference.md](android-auto-protocol-cross-reference.md) — protocol cross-reference (wire formats)
 - [aa-apk-deep-dive.md](aa-apk-deep-dive.md) — APK v16.1 analysis
 - [aa-display-rendering.md](aa-display-rendering.md) — video pipeline and rendering
 - [aa-video-resolution.md](aa-video-resolution.md) — resolution negotiation
