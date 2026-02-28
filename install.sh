@@ -1152,7 +1152,7 @@ run_diagnostics() {
     update_step 7 active
     enter_interactive
 
-    local warnings=()
+    warnings=()
 
     # Quick checks — collect warnings, show ok for passes
     if systemctl --user is-active pipewire &>/dev/null || pgrep -x pipewire &>/dev/null; then
@@ -1180,7 +1180,7 @@ run_diagnostics() {
         warnings+=("WiFi AP configured but hostapd not running — may need reboot")
     fi
 
-    local needs_relogin=false
+    needs_relogin=false
     if ! id -nG "$USER" | grep -qw bluetooth; then
         warnings+=("User not yet in bluetooth group")
         needs_relogin=true
@@ -1189,11 +1189,6 @@ run_diagnostics() {
         warnings+=("User not yet in input group")
         needs_relogin=true
     fi
-
-    # Show warnings if any
-    for w in "${warnings[@]}"; do
-        warn "$w"
-    done
 
     # Verbose mode: extended diagnostics
     if [[ "$VERBOSE" == "true" ]]; then
@@ -1222,16 +1217,56 @@ run_diagnostics() {
 
     # Exit TUI mode for final summary
     tui_cleanup
+    clear
 
-    # ── Final summary box ──
-    echo -e "\n${GREEN}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${NC}"
+    # ── Final summary ──
+    echo -e "${GREEN}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${NC}"
     echo -e "${GREEN}  Installation Complete!${NC}"
     echo -e "${GREEN}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${NC}"
     echo
-    echo -e "  ${BOLD}Start:${NC}   sudo systemctl start ${SERVICE_NAME}"
-    echo -e "  ${BOLD}Web:${NC}     http://$(hostname -I | awk '{print $1}'):8080"
-    echo -e "  ${BOLD}Logs:${NC}    journalctl -u ${SERVICE_NAME} -f"
-    echo -e "  ${BOLD}Config:${NC}  $CONFIG_DIR/config.yaml"
+
+    # Configuration summary
+    echo -e "  ${BOLD}${CYAN}Configuration${NC}"
+    echo -e "  ${BOLD}Device name:${NC}    $DEVICE_NAME"
+    if [[ -n "$WIFI_IFACE" ]]; then
+        echo -e "  ${BOLD}WiFi SSID:${NC}      $WIFI_SSID"
+        echo -e "  ${BOLD}WiFi password:${NC}  $WIFI_PASS"
+        echo -e "  ${BOLD}WiFi interface:${NC} $WIFI_IFACE"
+        echo -e "  ${BOLD}AP IP:${NC}          $AP_IP"
+        echo -e "  ${BOLD}Country code:${NC}   $COUNTRY_CODE"
+    else
+        echo -e "  ${BOLD}WiFi AP:${NC}        ${YELLOW}not configured${NC}"
+    fi
+    echo -e "  ${BOLD}TCP port:${NC}       $TCP_PORT"
+    echo -e "  ${BOLD}Video:${NC}          480p @ ${VIDEO_FPS}fps"
+    if [[ -n "${AUDIO_SINK:-}" ]]; then
+        echo -e "  ${BOLD}Audio output:${NC}   $AUDIO_SINK"
+    else
+        echo -e "  ${BOLD}Audio output:${NC}   PipeWire default"
+    fi
+    if [[ -n "${TOUCH_DEV:-}" ]]; then
+        echo -e "  ${BOLD}Touch device:${NC}   $TOUCH_DEV"
+    else
+        echo -e "  ${BOLD}Touch device:${NC}   auto-detect"
+    fi
+    echo -e "  ${BOLD}Auto-start:${NC}     $(if [[ "$AUTOSTART" == "true" ]]; then echo "yes"; else echo "no"; fi)"
+    echo
+
+    # Diagnostics warnings
+    if [[ ${#warnings[@]} -gt 0 ]]; then
+        for w in "${warnings[@]}"; do
+            warn "$w"
+        done
+        echo
+    fi
+
+    # Quick reference
+    echo -e "  ${BOLD}${CYAN}Quick Reference${NC}"
+    echo -e "  ${BOLD}Start:${NC}    sudo systemctl start ${SERVICE_NAME}"
+    echo -e "  ${BOLD}Stop:${NC}     sudo systemctl stop ${SERVICE_NAME}"
+    echo -e "  ${BOLD}Logs:${NC}     journalctl -u ${SERVICE_NAME} -f"
+    echo -e "  ${BOLD}Web:${NC}      http://$(hostname -I | awk '{print $1}'):8080"
+    echo -e "  ${BOLD}Config:${NC}   $CONFIG_DIR/config.yaml"
 
     if [[ "$needs_relogin" == "true" ]]; then
         echo
