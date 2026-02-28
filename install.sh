@@ -642,10 +642,12 @@ setup_hardware() {
         warn "No touchscreen devices detected."
         ok "Touch: will auto-detect at runtime"
         TOUCH_DEV=""
+        read -p "Press Enter to continue..." -r
     elif [[ ${#TOUCH_DEVS[@]} -eq 1 ]]; then
         TOUCH_DEV="${TOUCH_DEVS[0]}"
         NAME=$(cat "/sys/class/input/$(basename "$TOUCH_DEV")/device/name" 2>/dev/null || echo "unknown")
         ok "Touch: $TOUCH_DEV ($NAME)"
+        read -p "Press Enter to continue..." -r
     else
         read -p "Touch device path [${TOUCH_DEVS[0]}]: " TOUCH_DEV
         TOUCH_DEV=${TOUCH_DEV:-${TOUCH_DEVS[0]}}
@@ -665,9 +667,11 @@ setup_hardware() {
         warn "No wireless interfaces found!"
         warn "WiFi AP will not be configured. You can set this up manually later."
         WIFI_IFACE=""
+        read -p "Press Enter to continue..." -r
     elif [[ ${#WIFI_INTERFACES[@]} -eq 1 ]]; then
         WIFI_IFACE="${WIFI_INTERFACES[0]}"
-        info "Found wireless interface: $WIFI_IFACE"
+        ok "WiFi interface: $WIFI_IFACE"
+        read -p "Press Enter to continue..." -r
     else
         echo "Multiple wireless interfaces found:"
         for i in "${!WIFI_INTERFACES[@]}"; do
@@ -772,7 +776,11 @@ setup_hardware() {
             printf "  %d. %s\n" "${#AUDIO_SINKS[@]}" "$desc"
         done < <(pactl list sinks 2>/dev/null | grep -E "^\s*(Name|Description):" | paste - -)
 
-        if [[ ${#AUDIO_SINKS[@]} -gt 0 ]]; then
+        if [[ ${#AUDIO_SINKS[@]} -eq 1 ]]; then
+            AUDIO_SINK="${AUDIO_SINKS[0]}"
+            ok "Audio: ${AUDIO_DESCS[0]}"
+            read -p "Press Enter to continue..." -r
+        elif [[ ${#AUDIO_SINKS[@]} -gt 1 ]]; then
             echo
             read -p "Select audio output [1]: " AUDIO_CHOICE
             AUDIO_CHOICE=${AUDIO_CHOICE:-1}
@@ -780,9 +788,11 @@ setup_hardware() {
             ok "Audio: ${AUDIO_DESCS[$((AUDIO_CHOICE-1))]}"
         else
             warn "No audio sinks detected — will use PipeWire default"
+            read -p "Press Enter to continue..." -r
         fi
     else
         warn "pactl not available — will use PipeWire default"
+        read -p "Press Enter to continue..." -r
     fi
 
     # AA settings
