@@ -43,6 +43,11 @@ Item {
                 visible: !PluginModel.activePluginId
                          && ApplicationController.currentApplication === 6
             }
+
+            // First-run pairing banner (shown on launcher when no devices paired)
+            FirstRunBanner {
+                id: firstRunBanner
+            }
         }
 
         // Nav strip — plugin-model driven, hidden in fullscreen

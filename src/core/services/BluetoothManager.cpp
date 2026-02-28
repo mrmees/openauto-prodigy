@@ -122,6 +122,7 @@ void BluetoothManager::setPairable(bool enabled)
         setAdapterProperty("Pairable", enabled);
 }
 
+bool BluetoothManager::needsFirstPairing() const { return needsFirstPairing_; }
 bool BluetoothManager::isPairingActive() const { return pairingActive_; }
 QString BluetoothManager::pairingDeviceName() const { return pairingDeviceName_; }
 QString BluetoothManager::pairingPasskey() const { return pairingPasskey_; }
@@ -144,6 +145,15 @@ void BluetoothManager::confirmPairing()
     emit pairingActiveChanged();
 
     refreshPairedDevices();
+
+    // Clear first-run banner if we now have paired devices
+    if (needsFirstPairing_ && pairedDevicesModel_->rowCount() > 0) {
+        qInfo() << "[BtManager] First device paired — clearing first-run state";
+        needsFirstPairing_ = false;
+        emit needsFirstPairingChanged();
+        if (pairableRenewTimer_)
+            pairableRenewTimer_->stop();
+    }
 }
 
 void BluetoothManager::rejectPairing()
@@ -290,6 +300,47 @@ int BluetoothManager::nextRetryInterval() const
     return -1;  // stop
 }
 
+void BluetoothManager::checkFirstRunPairing()
+{
+    if (pairedDevicesModel_->rowCount() > 0) return;
+
+    qInfo() << "[BtManager] No paired devices — enabling first-run pairable mode";
+    needsFirstPairing_ = true;
+    emit needsFirstPairingChanged();
+
+    setPairable(true);
+
+    // BlueZ PairableTimeout is 120s. Renew at 110s to avoid gaps.
+    if (!pairableRenewTimer_) {
+        pairableRenewTimer_ = new QTimer(this);
+        pairableRenewTimer_->setInterval(110000);
+        connect(pairableRenewTimer_, &QTimer::timeout, this, [this]() {
+            if (!needsFirstPairing_) {
+                pairableRenewTimer_->stop();
+                return;
+            }
+            qInfo() << "[BtManager] Renewing pairable mode for first-run";
+            setAdapterProperty("Pairable", true);
+            if (!pairable_) {
+                pairable_ = true;
+                emit pairableChanged();
+            }
+        });
+    }
+    pairableRenewTimer_->start();
+}
+
+void BluetoothManager::dismissFirstRunBanner()
+{
+    if (!needsFirstPairing_) return;
+    qInfo() << "[BtManager] First-run banner dismissed by user";
+    needsFirstPairing_ = false;
+    emit needsFirstPairingChanged();
+    if (pairableRenewTimer_)
+        pairableRenewTimer_->stop();
+    // Don't disable pairable — let it expire naturally via BlueZ timeout
+}
+
 QString BluetoothManager::connectedDeviceName() const { return connectedDeviceName_; }
 QString BluetoothManager::connectedDeviceAddress() const { return connectedDeviceAddress_; }
 
@@ -328,6 +379,7 @@ void BluetoothManager::initialize()
             this, &BluetoothManager::cancelAutoConnect);
 
     startAutoConnect();
+    checkFirstRunPairing();
 }
 
 QString BluetoothManager::findAdapterPath()
@@ -711,6 +763,19 @@ void BluetoothManager::onDevicePropertiesChanged(const QString& interface,
             emit pairableChanged();
             qInfo() << "[BtManager] Adapter pairable changed to:" << pairable_;
         }
+        // Re-enable pairable if BlueZ timeout killed it during first-run
+        if (needsFirstPairing_ && !newPairable) {
+            QTimer::singleShot(1000, this, [this]() {
+                if (needsFirstPairing_) {
+                    qInfo() << "[BtManager] Re-enabling pairable after BlueZ timeout (first-run)";
+                    setAdapterProperty("Pairable", true);
+                    if (!pairable_) {
+                        pairable_ = true;
+                        emit pairableChanged();
+                    }
+                }
+            });
+        }
     }
 }
 
@@ -724,6 +789,8 @@ void BluetoothManager::shutdown()
     if (shutdown_) return;
     shutdown_ = true;
     qInfo() << "[BtManager] Shutting down";
+    if (pairableRenewTimer_)
+        pairableRenewTimer_->stop();
     cancelAutoConnect();
     unregisterProfiles();
     unregisterAgent();

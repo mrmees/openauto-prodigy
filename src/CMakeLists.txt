@@ -138,6 +138,10 @@ set_source_files_properties(../qml/components/PairingDialog.qml PROPERTIES
     QT_QML_SOURCE_TYPENAME "PairingDialog"
     QT_RESOURCE_ALIAS "PairingDialog.qml"
 )
+set_source_files_properties(../qml/components/FirstRunBanner.qml PROPERTIES
+    QT_QML_SOURCE_TYPENAME "FirstRunBanner"
+    QT_RESOURCE_ALIAS "FirstRunBanner.qml"
+)
 set_source_files_properties(../qml/components/NotificationArea.qml PROPERTIES
     QT_QML_SOURCE_TYPENAME "NotificationArea"
     QT_RESOURCE_ALIAS "NotificationArea.qml"
@@ -234,6 +238,7 @@ qt_add_qml_module(openauto-prodigy
         ../qml/components/NavStrip.qml
         ../qml/components/GestureOverlay.qml
         ../qml/components/PairingDialog.qml
+        ../qml/components/FirstRunBanner.qml
         ../qml/components/NotificationArea.qml
         ../qml/components/ExitDialog.qml
         ../qml/applications/launcher/LauncherMenu.qml

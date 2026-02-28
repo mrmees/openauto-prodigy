@@ -28,6 +28,7 @@ class BluetoothManager : public QObject, public IBluetoothService {
     Q_PROPERTY(QString pairingDeviceName READ pairingDeviceName NOTIFY pairingActiveChanged)
     Q_PROPERTY(QString pairingPasskey READ pairingPasskey NOTIFY pairingActiveChanged)
     Q_PROPERTY(QString connectedDeviceName READ connectedDeviceName NOTIFY connectedDeviceChanged)
+    Q_PROPERTY(bool needsFirstPairing READ needsFirstPairing NOTIFY needsFirstPairingChanged)
 
 public:
     explicit BluetoothManager(IConfigService* configService, QObject* parent = nullptr);
@@ -46,6 +47,8 @@ public:
     Q_INVOKABLE void rejectPairing() override;
     QAbstractListModel* pairedDevicesModel() override;
     Q_INVOKABLE void forgetDevice(const QString& address) override;
+    Q_INVOKABLE void dismissFirstRunBanner();
+    bool needsFirstPairing() const;
     void startAutoConnect() override;
     void cancelAutoConnect() override;
     QString connectedDeviceName() const override;
@@ -59,6 +62,7 @@ signals:
     void pairableChanged();
     void pairingActiveChanged();
     void connectedDeviceChanged();
+    void needsFirstPairingChanged();
     void profileNewConnection();  // RFCOMM NewConnection — auto-connect stop signal
 
 private slots:
@@ -87,6 +91,9 @@ private:
     void handleAgentRequestConfirmation(const QDBusMessage& msg, const QString& devicePath, uint passkey);
     void handleAgentCancel();
 
+    // First-run pairing
+    void checkFirstRunPairing();
+
     // Connected device tracking
     void updateConnectedDevice();
 
@@ -111,6 +118,8 @@ private:
     QString pendingPairingDevicePath_;
     PairedDevicesModel* pairedDevicesModel_ = nullptr;
     bool shutdown_ = false;
+    bool needsFirstPairing_ = false;
+    QTimer* pairableRenewTimer_ = nullptr;
 
     // Profile registration state
     QStringList registeredProfilePaths_;
