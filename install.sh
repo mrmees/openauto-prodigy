@@ -432,21 +432,18 @@ LABWC
 # Step 4: Clone and build
 # ────────────────────────────────────────────────────
 build_project() {
-    info "Cloning OpenAuto Prodigy..."
-
-    if [[ -d "$INSTALL_DIR" ]]; then
-        warn "Directory $INSTALL_DIR already exists."
-        read -p "Pull latest and rebuild? [Y/n] " -n 1 -r
-        echo
-        if [[ ! $REPLY =~ ^[Nn]$ ]]; then
-            cd "$INSTALL_DIR"
-            git pull --recurse-submodules
-        fi
-    else
-        git clone --recurse-submodules "$REPO_URL" "$INSTALL_DIR"
-    fi
-
     cd "$INSTALL_DIR"
+    git submodule update --init --recursive
+
+    if [[ -d "$INSTALL_DIR/build/src/openauto-prodigy" ]]; then
+        warn "OpenAuto Prodigy is already built."
+        read -p "Rebuild? [Y/n] " -n 1 -r
+        echo
+        if [[ $REPLY =~ ^[Nn]$ ]]; then
+            info "Skipping build."
+            return
+        fi
+    fi
     mkdir -p build
     cd build
 
