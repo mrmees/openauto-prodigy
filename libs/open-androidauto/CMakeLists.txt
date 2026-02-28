@@ -10,7 +10,7 @@ find_package(OpenSSL REQUIRED)
 find_package(Protobuf REQUIRED)
 
 # Proto generation: custom protoc invocation to preserve oaa/ directory structure
-set(PROTO_IMPORT_ROOT ${CMAKE_CURRENT_SOURCE_DIR}/proto/open-android-auto/proto)
+set(PROTO_IMPORT_ROOT ${CMAKE_CURRENT_SOURCE_DIR}/proto)
 set(PROTO_OUTPUT_DIR ${CMAKE_CURRENT_BINARY_DIR})
 
 file(GLOB_RECURSE PROTO_FILES

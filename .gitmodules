@@ -1,3 +1,3 @@
-[submodule "libs/open-androidauto/proto/open-android-auto"]
-	path = libs/open-androidauto/proto/open-android-auto
+[submodule "libs/open-androidauto/proto"]
+	path = libs/open-androidauto/proto
 	url = https://github.com/mrmees/open-android-auto.git
