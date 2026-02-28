@@ -1245,10 +1245,8 @@ run_diagnostics() {
 
     # Configuration summary
     echo -e "  ${BOLD}${CYAN}Configuration${NC}"
-    echo -e "  ${BOLD}Device name:${NC}    $DEVICE_NAME"
+    echo -e "  ${BOLD}Device name:${NC}    $DEVICE_NAME  ${CYAN}(WiFi SSID + Bluetooth)${NC}"
     if [[ -n "$WIFI_IFACE" ]]; then
-        echo -e "  ${BOLD}WiFi SSID:${NC}      $WIFI_SSID"
-        echo -e "  ${BOLD}WiFi password:${NC}  $WIFI_PASS"
         echo -e "  ${BOLD}WiFi interface:${NC} $WIFI_IFACE"
         echo -e "  ${BOLD}AP IP:${NC}          $AP_IP"
         echo -e "  ${BOLD}Country code:${NC}   $COUNTRY_CODE"
