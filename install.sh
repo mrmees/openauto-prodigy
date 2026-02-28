@@ -366,8 +366,19 @@ setup_hardware() {
         info "This name identifies your vehicle on both WiFi and Bluetooth."
         info "The default includes a unique suffix to avoid conflicts with multiple vehicles."
         echo ""
-        read -p "Device name [$DEVICE_NAME]: " USER_DEVICE_NAME
-        DEVICE_NAME=${USER_DEVICE_NAME:-$DEVICE_NAME}
+        while true; do
+            read -p "Device name [$DEVICE_NAME]: " USER_DEVICE_NAME
+            USER_DEVICE_NAME=${USER_DEVICE_NAME:-$DEVICE_NAME}
+            # WiFi SSID: max 32 bytes, ASCII printable only, no spaces
+            if [[ ${#USER_DEVICE_NAME} -gt 32 ]]; then
+                warn "Name too long (${#USER_DEVICE_NAME} chars, max 32 for WiFi SSID)"
+            elif [[ ! "$USER_DEVICE_NAME" =~ ^[a-zA-Z0-9_.-]+$ ]]; then
+                warn "Name must be alphanumeric (a-z, 0-9, _ . - only)"
+            else
+                DEVICE_NAME="$USER_DEVICE_NAME"
+                break
+            fi
+        done
         WIFI_SSID="$DEVICE_NAME"
 
         WIFI_PASS=$(head -c 12 /dev/urandom | base64 | tr -dc 'a-zA-Z0-9' | head -c 16)
