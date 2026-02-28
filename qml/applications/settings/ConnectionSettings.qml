@@ -27,6 +27,31 @@ Flickable {
             placeholder: "5277"
         }
 
+        SectionHeader { text: "Protocol Capture" }
+
+        SettingsToggle {
+            label: "Enable Capture"
+            configPath: "connection.protocol_capture.enabled"
+        }
+
+        SegmentedButton {
+            label: "Format"
+            configPath: "connection.protocol_capture.format"
+            options: ["JSONL", "TSV"]
+            values: ["jsonl", "tsv"]
+        }
+
+        SettingsToggle {
+            label: "Include Media Frames"
+            configPath: "connection.protocol_capture.include_media"
+        }
+
+        ReadOnlyField {
+            label: "Capture Path"
+            configPath: "connection.protocol_capture.path"
+            placeholder: "/tmp/oaa-protocol-capture.jsonl"
+        }
+
         SectionHeader { text: "WiFi Access Point" }
 
         FullScreenPicker {

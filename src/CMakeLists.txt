@@ -12,7 +12,6 @@ qt_add_executable(openauto-prodigy
     core/aa/ThemeNightMode.cpp
     core/aa/GpioNightMode.cpp
     core/aa/CodecCapability.cpp
-    core/aa/ProtocolLogger.cpp
     core/aa/ServiceDiscoveryBuilder.cpp
     core/aa/AndroidAutoOrchestrator.cpp
     ui/ApplicationController.cpp

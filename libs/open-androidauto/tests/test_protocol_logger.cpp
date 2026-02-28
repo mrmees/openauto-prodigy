@@ -99,6 +99,59 @@ private slots:
 
         std::remove(path.c_str());
     }
+
+    void testJsonlOutput()
+    {
+        std::string path = "/tmp/test_protocol_logger.jsonl";
+
+        oaa::ProtocolLogger logger;
+        logger.setFormat(oaa::ProtocolLogger::OutputFormat::Jsonl);
+        logger.setIncludeMedia(false);
+        logger.open(path);
+
+        uint8_t payload[] = {0x08, 0x01};
+        logger.log("Phone->HU", oaa::ChannelId::Control, 0x000B, payload, sizeof(payload));
+        logger.close();
+
+        std::ifstream f(path);
+        QVERIFY(f.is_open());
+
+        std::string line;
+        QVERIFY(std::getline(f, line));
+        QVERIFY(line.find("\"direction\":\"Phone->HU\"") != std::string::npos);
+        QVERIFY(line.find("\"channel_id\":0") != std::string::npos);
+        QVERIFY(line.find("\"message_id\":11") != std::string::npos);
+        QVERIFY(line.find("\"message_name\":\"PING_REQUEST\"") != std::string::npos);
+        QVERIFY(line.find("\"payload_hex\":\"0801\"") != std::string::npos);
+
+        std::string extra;
+        QVERIFY(!std::getline(f, extra));
+
+        std::remove(path.c_str());
+    }
+
+    void testJsonlSkipsMediaWhenDisabled()
+    {
+        std::string path = "/tmp/test_protocol_logger_jsonl_media.jsonl";
+
+        oaa::ProtocolLogger logger;
+        logger.setFormat(oaa::ProtocolLogger::OutputFormat::Jsonl);
+        logger.setIncludeMedia(false);
+        logger.open(path);
+
+        uint8_t payload[] = {0x00, 0x01, 0x02};
+        logger.log("Phone->HU", oaa::ChannelId::Video, oaa::AVMessageId::AV_MEDIA_INDICATION,
+                   payload, sizeof(payload));
+        logger.close();
+
+        std::ifstream f(path);
+        QVERIFY(f.is_open());
+
+        std::string line;
+        QVERIFY(!std::getline(f, line));
+
+        std::remove(path.c_str());
+    }
 };
 
 QTEST_MAIN(TestProtocolLogger)

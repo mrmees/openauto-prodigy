@@ -7,8 +7,10 @@
 #include "../../core/services/IEventBus.hpp"
 
 #include <memory>
+#include <QDir>
 #include <QDebug>
 #include <QEventLoop>
+#include <QFileInfo>
 #include <netinet/in.h>
 #include <netinet/tcp.h>
 #include <sys/socket.h>
@@ -255,6 +257,7 @@ void AndroidAutoOrchestrator::onNewConnection()
             this, &AndroidAutoOrchestrator::onSessionStateChanged);
     connect(session_, &oaa::AASession::disconnected,
             this, &AndroidAutoOrchestrator::onSessionDisconnected);
+    startProtocolCapture();
 
     // Disconnect handler signals from previous session (prevents duplicates on reconnect)
     videoHandler_.disconnect(&videoDecoder_);
@@ -495,8 +498,77 @@ void AndroidAutoOrchestrator::onSessionDisconnected(oaa::DisconnectReason reason
     pendingReconnect_ = false;
 }
 
+void AndroidAutoOrchestrator::startProtocolCapture()
+{
+    if (!session_ || !session_->messenger() || !yamlConfig_) {
+        stopProtocolCapture();
+        return;
+    }
+
+    const QVariant enabledVar = yamlConfig_->valueByPath("connection.protocol_capture.enabled");
+    const bool enabled = enabledVar.isValid() ? enabledVar.toBool() : false;
+    if (!enabled) {
+        stopProtocolCapture();
+        return;
+    }
+
+    QString path = yamlConfig_->valueByPath("connection.protocol_capture.path").toString().trimmed();
+    if (path.isEmpty()) {
+        path = "/tmp/oaa-protocol-capture.jsonl";
+    }
+
+    const QFileInfo captureInfo(path);
+    const QString captureDir = captureInfo.absolutePath();
+    if (!captureDir.isEmpty()) {
+        QDir().mkpath(captureDir);
+    }
+
+    QString format = yamlConfig_->valueByPath("connection.protocol_capture.format")
+                         .toString().trimmed().toLower();
+    if (format.isEmpty()) {
+        format = "jsonl";
+    }
+
+    const QVariant includeMediaVar = yamlConfig_->valueByPath("connection.protocol_capture.include_media");
+    const bool includeMedia = includeMediaVar.isValid() ? includeMediaVar.toBool() : false;
+
+    if (!protocolLogger_) {
+        protocolLogger_ = std::make_unique<oaa::ProtocolLogger>();
+    }
+
+    protocolLogger_->detach();
+    protocolLogger_->close();
+    protocolLogger_->setFormat(format == "jsonl"
+        ? oaa::ProtocolLogger::OutputFormat::Jsonl
+        : oaa::ProtocolLogger::OutputFormat::Tsv);
+    protocolLogger_->setIncludeMedia(includeMedia);
+    protocolLogger_->open(path.toStdString());
+    if (!protocolLogger_->isOpen()) {
+        qWarning() << "[AAOrchestrator] Protocol capture enabled but failed to open:" << path;
+        return;
+    }
+
+    protocolLogger_->attach(session_->messenger());
+    qInfo() << "[AAOrchestrator] Protocol capture active:"
+            << "path=" << path
+            << "format=" << format
+            << "include_media=" << includeMedia;
+}
+
+void AndroidAutoOrchestrator::stopProtocolCapture()
+{
+    if (!protocolLogger_) {
+        return;
+    }
+
+    protocolLogger_->detach();
+    protocolLogger_->close();
+}
+
 void AndroidAutoOrchestrator::teardownSession()
 {
+    stopProtocolCapture();
+
     if (displayTimer_)
         displayTimer_->stop();
 

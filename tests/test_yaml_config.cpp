@@ -22,6 +22,8 @@ private slots:
     void testSetValueByPath();
     void testSetValueByPathRejectsUnknown();
     void testSidebarDefaults();
+    void testProtocolCaptureDefaults();
+    void testProtocolCaptureSetValueByPath();
 };
 
 void TestYamlConfig::testLoadDefaults()
@@ -244,6 +246,32 @@ void TestYamlConfig::testSidebarDefaults()
     QCOMPARE(config.sidebarEnabled(), true);
     QCOMPARE(config.sidebarWidth(), 200);
     QCOMPARE(config.sidebarPosition(), QString("left"));
+}
+
+void TestYamlConfig::testProtocolCaptureDefaults()
+{
+    oap::YamlConfig config;
+    QCOMPARE(config.valueByPath("connection.protocol_capture.enabled").toBool(), false);
+    QCOMPARE(config.valueByPath("connection.protocol_capture.format").toString(), QString("jsonl"));
+    QCOMPARE(config.valueByPath("connection.protocol_capture.include_media").toBool(), false);
+    QCOMPARE(config.valueByPath("connection.protocol_capture.path").toString(),
+             QString("/tmp/oaa-protocol-capture.jsonl"));
+}
+
+void TestYamlConfig::testProtocolCaptureSetValueByPath()
+{
+    oap::YamlConfig config;
+    QVERIFY(config.setValueByPath("connection.protocol_capture.enabled", true));
+    QVERIFY(config.setValueByPath("connection.protocol_capture.format", QString("tsv")));
+    QVERIFY(config.setValueByPath("connection.protocol_capture.include_media", true));
+    QVERIFY(config.setValueByPath("connection.protocol_capture.path",
+                                  QString("/tmp/custom-capture.jsonl")));
+
+    QCOMPARE(config.valueByPath("connection.protocol_capture.enabled").toBool(), true);
+    QCOMPARE(config.valueByPath("connection.protocol_capture.format").toString(), QString("tsv"));
+    QCOMPARE(config.valueByPath("connection.protocol_capture.include_media").toBool(), true);
+    QCOMPARE(config.valueByPath("connection.protocol_capture.path").toString(),
+             QString("/tmp/custom-capture.jsonl"));
 }
 
 QTEST_MAIN(TestYamlConfig)

@@ -156,6 +156,14 @@ QByteArray IpcServer::handleGetConfig()
     obj["wifi_password"] = config_->wifiPassword();
     obj["tcp_port"] = config_->tcpPort();
     obj["video_fps"] = config_->videoFps();
+    obj["protocol_capture_enabled"] =
+        config_->valueByPath("connection.protocol_capture.enabled").toBool();
+    obj["protocol_capture_format"] =
+        config_->valueByPath("connection.protocol_capture.format").toString();
+    obj["protocol_capture_include_media"] =
+        config_->valueByPath("connection.protocol_capture.include_media").toBool();
+    obj["protocol_capture_path"] =
+        config_->valueByPath("connection.protocol_capture.path").toString();
     return QJsonDocument(obj).toJson(QJsonDocument::Compact);
 }
 
@@ -171,6 +179,22 @@ QByteArray IpcServer::handleSetConfig(const QVariantMap& data)
         config_->setTcpPort(data.value("tcp_port").toInt());
     if (data.contains("video_fps"))
         config_->setVideoFps(data.value("video_fps").toInt());
+    if (data.contains("protocol_capture_enabled"))
+        config_->setValueByPath(
+            "connection.protocol_capture.enabled",
+            data.value("protocol_capture_enabled").toBool());
+    if (data.contains("protocol_capture_format"))
+        config_->setValueByPath(
+            "connection.protocol_capture.format",
+            data.value("protocol_capture_format").toString());
+    if (data.contains("protocol_capture_include_media"))
+        config_->setValueByPath(
+            "connection.protocol_capture.include_media",
+            data.value("protocol_capture_include_media").toBool());
+    if (data.contains("protocol_capture_path"))
+        config_->setValueByPath(
+            "connection.protocol_capture.path",
+            data.value("protocol_capture_path").toString());
 
     config_->save(configPath_);
 

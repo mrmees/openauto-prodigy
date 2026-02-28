@@ -218,3 +218,51 @@ Documentation:
 - `python3 -m pytest tools/test_*.py -v` -> `19 passed`.
 - `cd build && cmake --build . -j$(nproc)` -> build passed.
 - `cd build && ctest --output-on-failure` -> `100% tests passed, 0 tests failed out of 50`.
+
+---
+
+## 2026-02-28 — Protocol Capture Dumps (JSONL/TSV) for Proto Validation
+
+**What changed:**
+- Extended `oaa::ProtocolLogger` (`libs/open-androidauto`) with:
+  - output mode switch: `TSV` (existing) or `JSONL` (validator-ready)
+  - media payload inclusion toggle (`include_media`)
+  - JSONL rows with fields: `ts_ms`, `direction`, `channel_id`, `message_id`, `message_name`, `payload_hex`
+- Wired capture lifecycle in `AndroidAutoOrchestrator`:
+  - starts capture on new AA session when enabled
+  - attaches at messenger layer (`session_->messenger()`)
+  - closes/detaches on teardown
+- Added new YAML defaults under `connection.protocol_capture.*`:
+  - `enabled: false`
+  - `format: "jsonl"`
+  - `include_media: false`
+  - `path: "/tmp/oaa-protocol-capture.jsonl"`
+- Removed duplicate app-local logger implementation and test:
+  - deleted `src/core/aa/ProtocolLogger.hpp/.cpp`
+  - deleted `tests/test_oap_protocol_logger.cpp`
+  - removed related CMake entries
+- Updated docs:
+  - `docs/config-schema.md` (new capture keys + examples)
+  - `docs/roadmap-current.md` (done item)
+  - `docs/aa-troubleshooting-runbook.md` (test reference updated)
+
+**Why:**
+- Enable repeatable capture dumps that can feed protobuf regression validation tooling directly.
+- Avoid high-noise AV payloads by default while preserving optional inclusion when needed.
+- Remove duplicate logger code paths to prevent drift.
+
+**Status:** Complete. Build + full test suite pass.
+
+**Next steps:**
+1. Add UI/web-config controls for `connection.protocol_capture.*` so capture can be toggled without manual YAML edits.
+2. Capture one real AA non-media session and run it through `open-android-auto` validator workflow.
+3. If needed, add capture rotation/size limits for long-running sessions.
+
+**Verification commands/results:**
+- RED (expected before implementation):
+  - `cd build && cmake --build . -j$(nproc)` -> failed in `test_oaa_protocol_logger` (missing `setFormat` / `setIncludeMedia`).
+  - `cd build && ctest --output-on-failure -R "test_yaml_config|test_config_key_coverage"` -> failed on missing `connection.protocol_capture.*` defaults.
+- GREEN (after implementation):
+  - `cd build && cmake --build . -j$(nproc)` -> passed (`Built target openauto-prodigy`).
+  - `cd build && ctest --output-on-failure` -> `100% tests passed, 0 tests failed out of 51`.
+  - `./cross-build.sh` -> passed (`Build complete: build-pi/src/openauto-prodigy`).

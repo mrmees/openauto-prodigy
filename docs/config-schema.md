@@ -38,6 +38,11 @@ connection:
     channel: 36                     # WiFi channel (5 GHz: 36-48, 149-165)
     band: "a"                       # WiFi band ("a" = 5 GHz, "g" = 2.4 GHz)
   tcp_port: 5277                    # TCP port for AA connection handshake
+  protocol_capture:
+    enabled: false                  # write AA frame dumps for protobuf regression validation
+    format: "jsonl"                 # "jsonl" (validator-ready) or "tsv" (human-readable)
+    include_media: false            # include noisy AV media payload frames (usually keep false)
+    path: "/tmp/oaa-protocol-capture.jsonl"  # capture output path
 
 # Audio configuration
 audio:
@@ -142,6 +147,10 @@ All keys are documented with their dot-path (for `valueByPath()`), type, default
 | `connection.wifi_ap.channel` | int | `36` | WiFi channel (5 GHz: 36-48, 149-165; 2.4 GHz: 1-13) |
 | `connection.wifi_ap.band` | string | `"a"` | WiFi band (`"a"` = 5 GHz, `"g"` = 2.4 GHz) |
 | `connection.tcp_port` | int | `5277` | TCP port for AA handshake and connection |
+| `connection.protocol_capture.enabled` | bool | `false` | Enable protocol frame capture dumps |
+| `connection.protocol_capture.format` | string | `"jsonl"` | Capture format (`"jsonl"` for tooling, `"tsv"` for manual inspection) |
+| `connection.protocol_capture.include_media` | bool | `false` | Include AV media data frames (large/noisy) |
+| `connection.protocol_capture.path` | string | `"/tmp/oaa-protocol-capture.jsonl"` | Output file path for capture dump |
 | `audio.master_volume` | int | `80` | Master volume level (0-100, used by audio plugins) |
 | `audio.output_device` | string | `"auto"` | PipeWire output device name (`"auto"` = system default) |
 | `audio.microphone.device` | string | `"auto"` | PipeWire input device name (`"auto"` = system default) |

@@ -31,6 +31,10 @@ void YamlConfig::initDefaults()
     root_["connection"]["wifi_ap"]["channel"] = 36;
     root_["connection"]["wifi_ap"]["band"] = "a";
     root_["connection"]["tcp_port"] = 5277;
+    root_["connection"]["protocol_capture"]["enabled"] = false;
+    root_["connection"]["protocol_capture"]["format"] = "jsonl";
+    root_["connection"]["protocol_capture"]["include_media"] = false;
+    root_["connection"]["protocol_capture"]["path"] = "/tmp/oaa-protocol-capture.jsonl";
 
     root_["audio"]["master_volume"] = 80;
     root_["audio"]["output_device"] = "auto";

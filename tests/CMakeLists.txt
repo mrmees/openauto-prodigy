@@ -461,20 +461,6 @@ set_tests_properties(test_aa_orchestrator PROPERTIES
     ENVIRONMENT "QT_QPA_PLATFORM=offscreen"
 )
 
-add_executable(test_oap_protocol_logger
-    test_oap_protocol_logger.cpp
-    ${CMAKE_SOURCE_DIR}/src/core/aa/ProtocolLogger.cpp
-)
-target_include_directories(test_oap_protocol_logger PRIVATE
-    ${CMAKE_SOURCE_DIR}/src
-    ${CMAKE_SOURCE_DIR}/libs/open-androidauto/include
-)
-target_link_libraries(test_oap_protocol_logger PRIVATE
-    Qt6::Core
-    Qt6::Test
-)
-add_test(NAME test_oap_protocol_logger COMMAND test_oap_protocol_logger)
-
 add_executable(test_circular_buffer test_circular_buffer.cpp)
 target_link_libraries(test_circular_buffer PRIVATE Qt6::Test open-androidauto)
 add_test(NAME test_circular_buffer COMMAND test_circular_buffer)

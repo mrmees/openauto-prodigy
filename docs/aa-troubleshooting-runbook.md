@@ -87,7 +87,7 @@ cd build && ctest --output-on-failure
 
 **Key test files for AA troubleshooting:**
 - `tests/test_oaa_integration.cpp` — open-androidauto library integration
-- `tests/test_oap_protocol_logger.cpp` — Protocol message logging
+- `libs/open-androidauto/tests/test_protocol_logger.cpp` — Protocol capture logging (TSV + JSONL)
 - `tests/test_video_channel_handler.cpp` — Video stream + flow control
 - `tests/test_audio_channel_handler.cpp` — Audio stream handlers
 - `tests/test_sensor_channel_handler.cpp` — Sensor (GPS, night mode)

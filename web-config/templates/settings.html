@@ -41,6 +41,34 @@
     </div>
 
     <div class="card">
+        <h3>Protocol Capture</h3>
+        <div class="form-group">
+            <label>
+                <input type="checkbox" id="protocol_capture_enabled" {{ 'checked' if config.get('protocol_capture_enabled', False) else '' }}>
+                Enable capture dumps
+            </label>
+        </div>
+        <div class="form-group">
+            <label for="protocol_capture_format">Format</label>
+            <select id="protocol_capture_format">
+                {% for fmt in ['jsonl', 'tsv'] %}
+                <option value="{{ fmt }}" {{ 'selected' if config.get('protocol_capture_format', 'jsonl') == fmt }}>{{ fmt|upper }}</option>
+                {% endfor %}
+            </select>
+        </div>
+        <div class="form-group">
+            <label>
+                <input type="checkbox" id="protocol_capture_include_media" {{ 'checked' if config.get('protocol_capture_include_media', False) else '' }}>
+                Include media payload frames
+            </label>
+        </div>
+        <div class="form-group">
+            <label for="protocol_capture_path">Capture Path</label>
+            <input type="text" id="protocol_capture_path" value="{{ config.get('protocol_capture_path', '/tmp/oaa-protocol-capture.jsonl') }}">
+        </div>
+    </div>
+
+    <div class="card">
         <h3>Display</h3>
         <div class="form-group">
             <label for="brightness">Brightness</label>
@@ -70,6 +98,10 @@ document.getElementById('settingsForm').addEventListener('submit', async (e) => 
         tcp_port: parseInt(document.getElementById('tcp_port').value),
         video_fps: parseInt(document.getElementById('video_fps').value),
         video_resolution: document.getElementById('video_resolution').value,
+        protocol_capture_enabled: document.getElementById('protocol_capture_enabled').checked,
+        protocol_capture_format: document.getElementById('protocol_capture_format').value,
+        protocol_capture_include_media: document.getElementById('protocol_capture_include_media').checked,
+        protocol_capture_path: document.getElementById('protocol_capture_path').value,
         brightness: parseInt(document.getElementById('brightness').value),
         night_mode: document.getElementById('night_mode').value,
     };

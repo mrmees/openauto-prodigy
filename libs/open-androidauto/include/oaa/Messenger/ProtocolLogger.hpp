@@ -18,12 +18,21 @@ class ProtocolLogger : public QObject {
     Q_OBJECT
 
 public:
+    enum class OutputFormat {
+        Tsv,
+        Jsonl,
+    };
+
     explicit ProtocolLogger(QObject* parent = nullptr);
     ~ProtocolLogger() override;
 
     void open(const std::string& path = "/tmp/oap-protocol.log");
     void close();
     bool isOpen() const;
+    void setFormat(OutputFormat format);
+    OutputFormat format() const;
+    void setIncludeMedia(bool includeMedia);
+    bool includeMedia() const;
 
     /// Connect to a Messenger's signals for automatic logging
     void attach(Messenger* messenger);
@@ -43,6 +52,8 @@ private:
     std::chrono::steady_clock::time_point startTime_;
     std::atomic<bool> open_{false};
     Messenger* messenger_ = nullptr;
+    OutputFormat format_ = OutputFormat::Tsv;
+    bool includeMedia_ = true;
 };
 
 } // namespace oaa

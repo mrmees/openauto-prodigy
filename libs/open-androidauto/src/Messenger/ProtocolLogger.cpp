@@ -2,10 +2,64 @@
 #include <oaa/Messenger/Messenger.hpp>
 #include <oaa/Channel/ChannelId.hpp>
 #include <oaa/Channel/MessageIds.hpp>
+#include <algorithm>
 #include <iomanip>
 #include <sstream>
 
 namespace oaa {
+
+namespace {
+
+bool isAVMediaFrame(uint8_t channelId, uint16_t messageId)
+{
+    if (messageId != AVMessageId::AV_MEDIA_WITH_TIMESTAMP
+        && messageId != AVMessageId::AV_MEDIA_INDICATION) {
+        return false;
+    }
+
+    return channelId == ChannelId::Video
+        || channelId == ChannelId::MediaAudio
+        || channelId == ChannelId::SpeechAudio
+        || channelId == ChannelId::SystemAudio
+        || channelId == ChannelId::AVInput;
+}
+
+std::string hexNoSpaces(const uint8_t* payload, size_t payloadSize)
+{
+    std::ostringstream out;
+    out << std::hex << std::setfill('0');
+    for (size_t i = 0; i < payloadSize; ++i) {
+        out << std::setw(2) << static_cast<int>(payload[i]);
+    }
+    return out.str();
+}
+
+std::string jsonEscape(const std::string& input)
+{
+    std::ostringstream out;
+    for (char c : input) {
+        switch (c) {
+        case '\\': out << "\\\\"; break;
+        case '"': out << "\\\""; break;
+        case '\b': out << "\\b"; break;
+        case '\f': out << "\\f"; break;
+        case '\n': out << "\\n"; break;
+        case '\r': out << "\\r"; break;
+        case '\t': out << "\\t"; break;
+        default:
+            if (static_cast<unsigned char>(c) < 0x20) {
+                out << "\\u" << std::hex << std::setfill('0') << std::setw(4)
+                    << static_cast<int>(static_cast<unsigned char>(c));
+            } else {
+                out << c;
+            }
+            break;
+        }
+    }
+    return out.str();
+}
+
+} // namespace
 
 ProtocolLogger::ProtocolLogger(QObject* parent)
     : QObject(parent)
@@ -25,7 +79,7 @@ void ProtocolLogger::open(const std::string& path)
     file_.open(path, std::ios::trunc);
     startTime_ = std::chrono::steady_clock::now();
     open_ = file_.is_open();
-    if (open_) {
+    if (open_ && format_ == OutputFormat::Tsv) {
         file_ << "TIME\tDIR\tCHANNEL\tMESSAGE\tSIZE\tPAYLOAD_PREVIEW\n";
         file_.flush();
     }
@@ -40,6 +94,28 @@ void ProtocolLogger::close()
 bool ProtocolLogger::isOpen() const
 {
     return open_;
+}
+
+void ProtocolLogger::setFormat(OutputFormat format)
+{
+    std::lock_guard<std::mutex> lock(mutex_);
+    format_ = format;
+}
+
+ProtocolLogger::OutputFormat ProtocolLogger::format() const
+{
+    return format_;
+}
+
+void ProtocolLogger::setIncludeMedia(bool includeMedia)
+{
+    std::lock_guard<std::mutex> lock(mutex_);
+    includeMedia_ = includeMedia;
+}
+
+bool ProtocolLogger::includeMedia() const
+{
+    return includeMedia_;
 }
 
 void ProtocolLogger::attach(Messenger* messenger)
@@ -77,18 +153,33 @@ void ProtocolLogger::log(const std::string& direction,
     std::lock_guard<std::mutex> lock(mutex_);
     if (!open_) return;
 
+    const bool isDataMsg = isAVMediaFrame(channelId, messageId);
+    if (!includeMedia_ && isDataMsg) {
+        return;
+    }
+
     auto now = std::chrono::steady_clock::now();
-    auto elapsed = std::chrono::duration<double>(now - startTime_).count();
+    const auto elapsedMs = std::chrono::duration_cast<std::chrono::milliseconds>(
+        now - startTime_).count();
+
+    if (format_ == OutputFormat::Jsonl) {
+        std::ostringstream line;
+        line << "{\"ts_ms\":" << elapsedMs
+             << ",\"direction\":\"" << jsonEscape(direction) << "\""
+             << ",\"channel_id\":" << static_cast<int>(channelId)
+             << ",\"message_id\":" << messageId
+             << ",\"message_name\":\"" << jsonEscape(messageName(channelId, messageId)) << "\""
+             << ",\"payload_hex\":\"" << hexNoSpaces(payload, payloadSize) << "\"}\n";
+        file_ << line.str();
+        file_.flush();
+        return;
+    }
+
+    const auto elapsed = std::chrono::duration<double>(now - startTime_).count();
 
     // Hex preview of first 64 payload bytes
     std::ostringstream hex;
     const size_t previewMax = 64;
-    bool isDataMsg = (messageId == AVMessageId::AV_MEDIA_WITH_TIMESTAMP
-                      || messageId == AVMessageId::AV_MEDIA_INDICATION)
-        && (channelId == ChannelId::Video
-            || channelId == ChannelId::MediaAudio
-            || channelId == ChannelId::SpeechAudio
-            || channelId == ChannelId::SystemAudio);
 
     if (isDataMsg) {
         hex << "[" << (channelId == ChannelId::Video ? "video" : "audio")

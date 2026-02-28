@@ -9,6 +9,7 @@
 
 #include <oaa/Session/AASession.hpp>
 #include <oaa/Transport/TCPTransport.hpp>
+#include <oaa/Messenger/ProtocolLogger.hpp>
 
 #include <oaa/HU/Handlers/VideoChannelHandler.hpp>
 #include <oaa/HU/Handlers/AudioChannelHandler.hpp>
@@ -85,6 +86,8 @@ private:
     void startConnectionWatchdog();
     void stopConnectionWatchdog();
     void teardownSession();
+    void startProtocolCapture();
+    void stopProtocolCapture();
 
     std::shared_ptr<oap::Configuration> config_;
     oap::IAudioService* audioService_;
@@ -125,6 +128,7 @@ private:
     oap::AudioStreamHandle* systemStream_ = nullptr;
 
     QTimer* displayTimer_ = nullptr;
+    std::unique_ptr<oaa::ProtocolLogger> protocolLogger_;
 
     ConnectionState state_ = Disconnected;
     QString statusMessage_;
