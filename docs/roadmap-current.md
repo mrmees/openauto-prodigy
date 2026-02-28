@@ -4,23 +4,22 @@ Governance: capture new ideas in `docs/wishlist.md`; only promoted items should 
 
 ## Done (recent)
 
-- Wireless BT AA flow — already fully integrated. App starts RFCOMM server + SDP registration + TCP listener automatically. Phone discovers, pairs, and connects without manual scripts. COMPLETE.
-- Touch device auto-discovery — already implemented via INPUT_PROP_DIRECT scan. Removed hardcoded evdev axis ranges; now read from device at open time. COMPLETE.
-- Persistent network configuration — installer configures hostapd + systemd-networkd (built-in DHCP, no dnsmasq) for boot persistence. System service now installed and enabled by install.sh. COMPLETE.
-- Settings UI buildout — scrollable ListView, section headers, plugin settings integration, subtext removal, larger touch targets. Settings tree spec at `docs/settings-tree.md`. COMPLETE.
-- Settings implementation — categories rendered in UI, SettingsListItem control, PluginModel settingsQml role. COMPLETE.
-- Background system service hardening — bt.close() hang fix, layered shutdown timeouts (10s overall, 5s proxy, 3s IPC). COMPLETE.
+- Wireless BT AA flow — RFCOMM server + SDP registration + TCP listener. Phone discovers, pairs, and connects without manual scripts. COMPLETE.
+- Touch device auto-discovery — INPUT_PROP_DIRECT scan, axis ranges read from device at open time. COMPLETE.
+- Persistent network configuration — hostapd + systemd-networkd (built-in DHCP, no dnsmasq). COMPLETE.
+- Settings UI buildout — scrollable ListView, section headers, plugin settings integration. COMPLETE.
+- Background system service hardening — bt.close() hang fix, layered shutdown timeouts. COMPLETE.
 - Proto repo migration — standalone [open-android-auto](https://github.com/mrmees/open-android-auto) community repo. COMPLETE.
 - Video ACK delta fix (PR #5) — prevents RxVid overflow on phone. COMPLETE.
+- General Bluetooth cleanup — BluetoothManager with D-Bus Adapter1/Agent1, PairedDevicesModel, auto-connect retry, PairingDialog overlay, HSP/HFP profile registration, polkit rules. COMPLETE.
+- Obsolete aasdk reference removal — cleaned source and active docs of stale aasdk references. COMPLETE.
+- Install script overhaul — interactive installer validated on fresh Trixie: hardware detection (touch, WiFi, audio), BlueZ --compat, rfkill unblock, country code auto-detection, labwc multi-touch config, systemd services, launch option. COMPLETE.
 
 ## Now
 
-- General Bluetooth cleanup.
-  - Rationale: before adding advanced BT features like HFP call audio, the foundational BT stack needs to be solid — proper profile advertising, user-friendly pairing, and reliable auto-reconnect.
-  - Outcome:
-    - All available BT profiles on the Pi adapter are properly advertised (A2DP sink, AVRCP, HFP AG, etc.).
-    - Users can initiate pairing from the on-screen Connection settings page (no SSH/terminal needed).
-    - App auto-connects to the paired phone on startup.
+- AA connection validation on fresh install.
+  - Rationale: fresh Trixie install completes, app launches, BT pairing works, but AA projection has not been validated end-to-end on the new drive yet. SDP registration hit "Permission denied" (group membership needs re-login/reboot).
+  - Outcome: full AA session (BT discovery → WiFi → TCP → video projection) working on a clean install after reboot.
 
 - General HFP call audio handling.
   - Rationale: typical head units maintain the HFP AG profile across both Android Auto and the base hardware — e.g., if AA crashes, call audio is not lost.
