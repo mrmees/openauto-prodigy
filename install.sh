@@ -623,12 +623,11 @@ setup_hardware() {
     update_step 2 active
     enter_interactive
 
-    # Touch device — filter for INPUT_PROP_DIRECT (touchscreens)
+    # ── Touch device ──
     info "Detecting touch devices..."
     TOUCH_DEVS=()
     for dev in /dev/input/event*; do
         if [[ -e "$dev" ]]; then
-            # Check for INPUT_PROP_DIRECT (bit 0x01 in properties bitmask)
             local PROPS_PATH="/sys/class/input/$(basename "$dev")/device/properties"
             if [[ -f "$PROPS_PATH" ]] && (( $(cat "$PROPS_PATH" 2>/dev/null || echo 0) & 2 )); then
                 NAME=$(cat "/sys/class/input/$(basename "$dev")/device/name" 2>/dev/null || echo "unknown")
@@ -654,7 +653,9 @@ setup_hardware() {
         ok "Touch: $TOUCH_DEV"
     fi
 
-    # WiFi AP — detect wireless interfaces
+    # ── WiFi AP ──
+    clear_body
+    tput cup "$HEADER_ROWS" 0
     info "Detecting wireless interfaces..."
     WIFI_INTERFACES=()
     for iface_path in /sys/class/net/*/wireless; do
@@ -671,7 +672,6 @@ setup_hardware() {
     elif [[ ${#WIFI_INTERFACES[@]} -eq 1 ]]; then
         WIFI_IFACE="${WIFI_INTERFACES[0]}"
         ok "WiFi interface: $WIFI_IFACE"
-        read -p "Press Enter to continue..." -r
     else
         echo "Multiple wireless interfaces found:"
         for i in "${!WIFI_INTERFACES[@]}"; do
@@ -691,7 +691,6 @@ setup_hardware() {
         while true; do
             read -p "Device name [$DEVICE_NAME]: " USER_DEVICE_NAME
             USER_DEVICE_NAME=${USER_DEVICE_NAME:-$DEVICE_NAME}
-            # WiFi SSID: max 32 bytes, ASCII printable only, no spaces
             if [[ ${#USER_DEVICE_NAME} -gt 32 ]]; then
                 warn "Name too long (${#USER_DEVICE_NAME} chars, max 32 for WiFi SSID)"
             elif [[ ! "$USER_DEVICE_NAME" =~ ^[a-zA-Z0-9_.-]+$ ]]; then
@@ -709,8 +708,9 @@ setup_hardware() {
         read -p "AP static IP [10.0.0.1]: " AP_IP
         AP_IP=${AP_IP:-10.0.0.1}
 
-        # Detect country code: iw reg → IP geolocation → locale → US fallback
-        # Locale is last because RPi OS defaults to en_GB regardless of user setup
+        # ── Country code ──
+        clear_body
+        tput cup "$HEADER_ROWS" 0
         COUNTRY_CODE=""
         CC_SOURCE=""
         if command -v iw &>/dev/null; then
@@ -722,7 +722,6 @@ setup_hardware() {
             fi
         fi
         if [[ -z "$COUNTRY_CODE" ]] && command -v curl &>/dev/null; then
-            # Try IP geolocation (we have internet if we cloned from GitHub)
             COUNTRY_CODE=$(curl -fsS --max-time 3 https://ipinfo.io/country 2>/dev/null | tr -d '\r\n') || true
             if [[ ! "$COUNTRY_CODE" =~ ^[A-Z]{2}$ ]]; then
                 COUNTRY_CODE=""
@@ -731,7 +730,6 @@ setup_hardware() {
             fi
         fi
         if [[ -z "$COUNTRY_CODE" ]]; then
-            # Locale fallback (unreliable on RPi OS — defaults to en_GB)
             COUNTRY_CODE=$(locale 2>/dev/null | sed -n 's/.*_\([A-Z]\{2\}\)\..*/\1/p' | head -1) || true
             if [[ -n "$COUNTRY_CODE" ]]; then
                 CC_SOURCE="system locale"
@@ -752,7 +750,6 @@ setup_hardware() {
             COUNTRY_CODE="US"
         fi
 
-        # Set regulatory domain system-wide so hostapd can use 5GHz
         sudo iw reg set "$COUNTRY_CODE" 2>/dev/null || true
         if [[ -f /etc/default/crda ]]; then
             sudo sed -i "s/^REGDOMAIN=.*/REGDOMAIN=$COUNTRY_CODE/" /etc/default/crda
@@ -760,7 +757,9 @@ setup_hardware() {
         ok "Country code: $COUNTRY_CODE (5GHz WiFi regulatory domain)"
     fi
 
-    # Audio output device
+    # ── Audio output ──
+    clear_body
+    tput cup "$HEADER_ROWS" 0
     info "Detecting audio output devices..."
     AUDIO_SINK=""
     if command -v pactl &>/dev/null; then
@@ -795,13 +794,12 @@ setup_hardware() {
         read -p "Press Enter to continue..." -r
     fi
 
-    # AA settings
+    # ── General settings ──
+    clear_body
+    tput cup "$HEADER_ROWS" 0
     read -p "Android Auto TCP port [5277]: " TCP_PORT
     TCP_PORT=${TCP_PORT:-5277}
 
-    ok "Hardware configuration complete"
-
-    # Auto-start
     echo
     read -p "Start OpenAuto Prodigy automatically on boot? [Y/n] " -n 1 -r
     echo
