@@ -92,6 +92,7 @@ LOG_LINES=3
 LAYOUT_MODE="small"
 SPINNER_LOG=""
 AGGREGATE_LOG=""
+BODY_CURSOR=7
 
 # Format elapsed seconds as M:SS
 _fmt_elapsed() {
@@ -232,7 +233,11 @@ draw_header() {
 draw_log_viewport() {
     if [[ "$TUI_MODE" != "true" ]]; then return; fi
 
-    local start_row=$HEADER_ROWS
+    local start_row=$BODY_CURSOR
+    local available=$((TERM_ROWS - start_row - 1))
+    local max_lines=$LOG_LINES
+    if [[ $max_lines -gt $available ]]; then max_lines=$available; fi
+    if [[ $max_lines -lt 1 ]]; then max_lines=1; fi
     local lines_drawn=0
 
     if [[ -n "$SPINNER_LOG" && -f "$SPINNER_LOG" ]]; then
@@ -241,11 +246,11 @@ draw_log_viewport() {
             printf '  %.*s' $((TERM_COLS - 4)) "$line"
             tput el
             lines_drawn=$((lines_drawn + 1))
-        done < <(tail -n "$LOG_LINES" "$SPINNER_LOG" 2>/dev/null)
+        done < <(tail -n "$max_lines" "$SPINNER_LOG" 2>/dev/null)
     fi
 
     # Clear remaining viewport lines
-    while [[ $lines_drawn -lt $LOG_LINES ]]; do
+    while [[ $lines_drawn -lt $max_lines ]]; do
         tput cup $((start_row + lines_drawn)) 0
         tput el
         lines_drawn=$((lines_drawn + 1))
@@ -257,6 +262,7 @@ clear_body() {
     if [[ "$TUI_MODE" != "true" ]]; then return; fi
     tput cup "$HEADER_ROWS" 0
     tput ed
+    BODY_CURSOR=$HEADER_ROWS
 }
 
 # Update step status and redraw header
@@ -301,10 +307,10 @@ update_step() {
 # Switch to interactive mode (normal scrolling below header)
 enter_interactive() {
     if [[ "$TUI_MODE" != "true" ]]; then return; fi
-    # Set scroll region to body area only
-    printf '\033[%d;%dr' "$((HEADER_ROWS + 1))" "$TERM_ROWS"
+    # Set scroll region to body area (below any accumulated output)
+    printf '\033[%d;%dr' "$((BODY_CURSOR + 1))" "$TERM_ROWS"
     # Position cursor at top of scroll region
-    tput cup "$HEADER_ROWS" 0
+    tput cup "$BODY_CURSOR" 0
     # Show cursor for user input
     tput cnorm 2>/dev/null || true
 }
@@ -412,7 +418,11 @@ run_with_spinner() {
 
     if [[ $exit_code -eq 0 ]]; then
         if [[ "$TUI_MODE" == "true" ]]; then
-            clear_body
+            # Clear spinner viewport, print completion line, advance cursor
+            tput cup "$BODY_CURSOR" 0; tput ed
+            printf '  %b%s%b %s (%s)\n' "${GREEN}" "$CHECK" "${NC}" "$label" "$(_fmt_elapsed $elapsed)"
+            BODY_CURSOR=$((BODY_CURSOR + 1))
+            tput cup "$BODY_CURSOR" 0
         else
             echo -e "\r  ${GREEN}${CHECK}${NC} ${label} ($(_fmt_elapsed $elapsed))  "
         fi
@@ -494,7 +504,10 @@ build_with_progress() {
 
     if [[ $exit_code -eq 0 ]]; then
         if [[ "$TUI_MODE" == "true" ]]; then
-            clear_body
+            tput cup "$BODY_CURSOR" 0; tput ed
+            printf '  %b%s%b %s (100%%) (%s)\n' "${GREEN}" "$CHECK" "${NC}" "$label" "$(_fmt_elapsed $elapsed)"
+            BODY_CURSOR=$((BODY_CURSOR + 1))
+            tput cup "$BODY_CURSOR" 0
         else
             echo -e "\r  ${GREEN}${CHECK}${NC} ${label} (100%) ($(_fmt_elapsed $elapsed))  "
         fi
@@ -708,9 +721,6 @@ setup_hardware() {
         read -p "AP static IP [10.0.0.1]: " AP_IP
         AP_IP=${AP_IP:-10.0.0.1}
 
-        # ── Country code ──
-        clear_body
-        tput cup "$HEADER_ROWS" 0
         COUNTRY_CODE=""
         CC_SOURCE=""
         if command -v iw &>/dev/null; then
