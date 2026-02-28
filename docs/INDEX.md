@@ -19,6 +19,7 @@
 - [design-philosophy.md](design-philosophy.md) — core design principles (detailed)
 - [plugin-api.md](plugin-api.md) — IPlugin interface, lifecycle, IHostContext
 - [hfp-stack-spike.md](hfp-stack-spike.md) — HFP audio routing research
+- [release-packaging.md](release-packaging.md) — prebuilt release naming and archive conventions
 - [debugging-notes.md](debugging-notes.md) — common issues and fixes
 - [testing-reconnect.md](testing-reconnect.md) — reconnect test procedures
 

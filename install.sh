@@ -5,6 +5,8 @@
 #
 # Usage: curl -sSL <url> | bash
 #    or: bash install.sh
+#    or: bash install.sh --mode prebuilt
+#    or: bash install.sh --list-prebuilt
 #
 set -euo pipefail
 
@@ -14,11 +16,42 @@ set -euo pipefail
 # executing. This prevents git pull from modifying the script mid-run.
 {
 
+print_usage() {
+    cat <<'USAGE'
+Usage:
+  bash install.sh [options]
+
+Options:
+  -v, --verbose            Show full CMake configure output.
+  --mode <source|prebuilt>  Install mode. If omitted, interactive prompt is shown.
+  --list-prebuilt           List available prebuilt GitHub release assets and exit.
+  --prebuilt-index <N>      Auto-select prebuilt option N (1-based, with --mode prebuilt).
+  --help, -h                Show this help.
+
+Modes:
+  source   Build locally from source (existing behavior).
+  prebuilt Download a precompiled release from GitHub and run install-prebuilt.sh.
+USAGE
+}
+
 # Flags
 VERBOSE=false
+INSTALL_MODE=""
+LIST_PREBUILT_ONLY=false
+PREBUILT_INDEX=""
+PREBUILT_ROWS=()
+
 while [[ "${1:-}" == -* ]]; do
     case "$1" in
         -v|--verbose) VERBOSE=true; shift ;;
+        --mode)
+            [[ $# -ge 2 ]] || { echo "Error: --mode requires a value"; exit 1; }
+            INSTALL_MODE="$2"; shift 2 ;;
+        --list-prebuilt) LIST_PREBUILT_ONLY=true; shift ;;
+        --prebuilt-index)
+            [[ $# -ge 2 ]] || { echo "Error: --prebuilt-index requires a value"; exit 1; }
+            PREBUILT_INDEX="$2"; shift 2 ;;
+        --help|-h) print_usage; exit 0 ;;
         *) echo "Unknown option: $1"; exit 1 ;;
     esac
 done
@@ -33,6 +66,9 @@ BOLD='\033[1m'
 NC='\033[0m'
 
 REPO_URL="https://github.com/mrmees/openauto-prodigy.git"
+GITHUB_RELEASES_API="${OAP_GITHUB_API_URL:-https://api.github.com/repos/mrmees/openauto-prodigy/releases?per_page=20}"
+PREBUILT_ASSET_REGEX='^openauto-prodigy-prebuilt-.*-pi4-aarch64\.tar\.gz$'
+LEGACY_PREBUILT_ASSET_REGEX='^openauto-prodigy-prebuilt-.*\.tar\.gz$'
 INSTALL_DIR="$HOME/openauto-prodigy"
 CONFIG_DIR="$HOME/.openauto"
 SERVICE_NAME="openauto-prodigy"
@@ -537,6 +573,149 @@ prime_sudo() {
     trap 'kill $SUDO_KEEPALIVE_PID 2>/dev/null; rm -f "$SPINNER_LOG"; tui_cleanup' EXIT
 }
 
+fetch_prebuilt_release_rows() {
+    local json_path="$1"
+    python3 - "$json_path" "$PREBUILT_ASSET_REGEX" "$LEGACY_PREBUILT_ASSET_REGEX" <<'PY'
+import json
+import re
+import sys
+
+path = sys.argv[1]
+pattern_new = re.compile(sys.argv[2])
+pattern_legacy = re.compile(sys.argv[3])
+
+with open(path, "r", encoding="utf-8") as f:
+    releases = json.load(f)
+
+for release in releases:
+    if release.get("draft"):
+        continue
+    release_label = release.get("tag_name") or release.get("name") or "untagged"
+    published = release.get("published_at") or ""
+    for asset in release.get("assets", []):
+        name = asset.get("name") or ""
+        url = asset.get("browser_download_url") or ""
+        if not url:
+            continue
+        if pattern_new.match(name) or pattern_legacy.match(name):
+            print("\t".join([release_label, name, url, published]))
+PY
+}
+
+load_prebuilt_rows() {
+    local tmp_json
+    tmp_json="$(mktemp -t oap-releases-XXXXXX.json)"
+    if ! curl -fsSL "$GITHUB_RELEASES_API" -o "$tmp_json"; then
+        rm -f "$tmp_json"
+        fail "Failed to fetch release list from: $GITHUB_RELEASES_API"
+        exit 1
+    fi
+    mapfile -t PREBUILT_ROWS < <(fetch_prebuilt_release_rows "$tmp_json")
+    rm -f "$tmp_json"
+
+    if [[ ${#PREBUILT_ROWS[@]} -eq 0 ]]; then
+        fail "No prebuilt release assets found (expected pattern: openauto-prodigy-prebuilt-<version>-pi4-aarch64.tar.gz)."
+        exit 1
+    fi
+}
+
+print_prebuilt_rows() {
+    echo -e "\n${CYAN}Available prebuilt releases${NC}\n"
+    local i row tag asset url published published_date
+    for i in "${!PREBUILT_ROWS[@]}"; do
+        row="${PREBUILT_ROWS[$i]}"
+        IFS=$'\t' read -r tag asset url published <<< "$row"
+        published_date="${published%%T*}"
+        [[ -n "$published_date" ]] || published_date="unknown-date"
+        echo "  $((i+1))) $tag — $asset ($published_date)"
+    done
+    echo
+}
+
+install_from_github_prebuilt() {
+    info "Preparing prebuilt install from GitHub releases..."
+    load_prebuilt_rows
+    print_prebuilt_rows
+
+    local choice selected row tag asset url published
+    if [[ -n "$PREBUILT_INDEX" ]]; then
+        choice="$PREBUILT_INDEX"
+    else
+        read -p "Select prebuilt release [1]: " choice
+        choice="${choice:-1}"
+    fi
+
+    if ! [[ "$choice" =~ ^[0-9]+$ ]]; then
+        fail "Invalid selection: $choice"
+        exit 1
+    fi
+    if (( choice < 1 || choice > ${#PREBUILT_ROWS[@]} )); then
+        fail "Selection out of range: $choice"
+        exit 1
+    fi
+
+    selected=$((choice - 1))
+    row="${PREBUILT_ROWS[$selected]}"
+    IFS=$'\t' read -r tag asset url published <<< "$row"
+
+    local tmp_dir archive_path installer_path installer_root keep_tmp
+    tmp_dir="$(mktemp -d -t oap-prebuilt-XXXXXX)"
+    archive_path="$tmp_dir/$asset"
+
+    info "Downloading $asset..."
+    curl -fL "$url" -o "$archive_path"
+    info "Extracting release package..."
+    tar -xzf "$archive_path" -C "$tmp_dir"
+
+    installer_path="$(find "$tmp_dir" -maxdepth 3 -type f -name install-prebuilt.sh | head -n1)"
+    if [[ -z "$installer_path" ]]; then
+        fail "Downloaded archive does not contain install-prebuilt.sh"
+        warn "Temporary files kept at: $tmp_dir"
+        exit 1
+    fi
+
+    installer_root="$(dirname "$installer_path")"
+    info "Running prebuilt installer from: $installer_root"
+    if (cd "$installer_root" && bash ./install-prebuilt.sh); then
+        read -p "Keep downloaded release files at $tmp_dir? [y/N] " -n 1 -r keep_tmp
+        echo
+        if [[ $keep_tmp =~ ^[Yy]$ ]]; then
+            info "Kept temporary files: $tmp_dir"
+        else
+            rm -rf "$tmp_dir"
+            ok "Removed temporary files"
+        fi
+    else
+        warn "Prebuilt install failed. Temporary files kept at: $tmp_dir"
+        exit 1
+    fi
+}
+
+choose_install_mode() {
+    if [[ "$INSTALL_MODE" == "source" || "$INSTALL_MODE" == "prebuilt" ]]; then
+        return
+    fi
+    if [[ -n "$INSTALL_MODE" ]]; then
+        fail "Invalid --mode value: $INSTALL_MODE (expected source or prebuilt)"
+        exit 1
+    fi
+
+    echo -e "\n${CYAN}── Installation Mode ──${NC}\n"
+    echo "  1. Build locally from source (slower, best for development)"
+    echo "  2. Download precompiled release from GitHub (recommended for users)"
+    echo "  3. Exit"
+    echo
+    read -p "Select mode [1]: " MODE_CHOICE
+    MODE_CHOICE="${MODE_CHOICE:-1}"
+
+    case "$MODE_CHOICE" in
+        1) INSTALL_MODE="source" ;;
+        2) INSTALL_MODE="prebuilt" ;;
+        3) info "Exiting."; exit 0 ;;
+        *) fail "Invalid mode selection: $MODE_CHOICE"; exit 1 ;;
+    esac
+}
+
 # ────────────────────────────────────────────────────
 # Step 1: Check OS and architecture
 # ────────────────────────────────────────────────────
@@ -552,10 +731,32 @@ check_system() {
     source /etc/os-release
 
     ARCH=$(uname -m)
+    MODEL=""
+    if [[ -r /proc/device-tree/model ]]; then
+        MODEL="$(tr -d '\0' < /proc/device-tree/model)"
+    fi
+
     ok "OS: $PRETTY_NAME | $ARCH | $(uname -r)"
+    if [[ -n "$MODEL" ]]; then
+        info "Hardware: $MODEL"
+    fi
+
+    if [[ "${ID:-}" != "debian" && "${ID:-}" != "raspbian" ]]; then
+        warn "Expected Debian/RPi OS family. Detected ID=${ID:-unknown}"
+        read -p "Continue anyway? [y/N] " -n 1 -r
+        echo
+        [[ $REPLY =~ ^[Yy]$ ]] || exit 1
+    fi
 
     if [[ "$ARCH" != "aarch64" && "$ARCH" != "armv7l" ]]; then
         warn "This script targets Raspberry Pi (ARM). Detected: $ARCH"
+        read -p "Continue anyway? [y/N] " -n 1 -r
+        echo
+        [[ $REPLY =~ ^[Yy]$ ]] || exit 1
+    fi
+
+    if [[ -n "$MODEL" ]] && [[ "$MODEL" != *"Raspberry Pi 4"* ]]; then
+        warn "Expected Raspberry Pi 4 hardware. Detected: $MODEL"
         read -p "Continue anyway? [y/N] " -n 1 -r
         echo
         [[ $REPLY =~ ^[Yy]$ ]] || exit 1
@@ -1311,14 +1512,31 @@ run_diagnostics() {
 # Main
 # ────────────────────────────────────────────────────
 main() {
+    # Handle --list-prebuilt early (no TUI needed)
+    if [[ "$LIST_PREBUILT_ONLY" == "true" ]]; then
+        print_header
+        load_prebuilt_rows
+        print_prebuilt_rows
+        exit 0
+    fi
+
+    # Choose install mode before TUI setup (prebuilt bypasses source flow entirely)
+    print_header
+    choose_install_mode
+
+    if [[ "$INSTALL_MODE" == "prebuilt" ]]; then
+        check_system
+        install_from_github_prebuilt
+        exit 0
+    fi
+
+    # Source build flow — full TUI
     detect_terminal
     trap 'handle_error $LINENO $?' ERR
 
     if [[ "$TUI_MODE" == "true" ]]; then
         draw_header
         enter_interactive
-    else
-        print_header
     fi
 
     prime_sudo
