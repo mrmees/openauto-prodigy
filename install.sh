@@ -29,6 +29,7 @@ GREEN='\033[0;32m'
 YELLOW='\033[1;33m'
 BLUE='\033[0;34m'
 CYAN='\033[0;36m'
+BOLD='\033[1m'
 NC='\033[0m'
 
 REPO_URL="https://github.com/mrmees/openauto-prodigy.git"
@@ -59,10 +60,162 @@ warn()  { echo -e "${YELLOW}[WARN]${NC} $*"; }
 fail()  { echo -e "${RED}[FAIL]${NC} $*"; }
 
 # ────────────────────────────────────────────────────
+# UI Primitives — pretty output with --verbose bypass
+# ────────────────────────────────────────────────────
+
+# Detect unicode support (braille spinner vs ASCII fallback)
+if printf '\u2800' 2>/dev/null | grep -q '⠀' 2>/dev/null; then
+    SPINNER_CHARS='⠋⠙⠹⠸⠼⠴⠦⠧⠇⠏'
+    CHECK='✓'
+    CROSS='✗'
+else
+    SPINNER_CHARS='|/-\'
+    CHECK='+'
+    CROSS='x'
+fi
+
+CURRENT_STEP=0
+TOTAL_STEPS=8
+SPINNER_LOG=""
+
+# Step counter — prints "[3/9] Label"
+step() {
+    CURRENT_STEP=$((CURRENT_STEP + 1))
+    echo -e "\n${CYAN}[${CURRENT_STEP}/${TOTAL_STEPS}]${NC} ${BOLD}$*${NC}"
+}
+
+# Format elapsed seconds as M:SS
+_fmt_elapsed() {
+    local secs=$1
+    printf '%d:%02d' $((secs / 60)) $((secs % 60))
+}
+
+# Show last N lines of log on failure
+show_error_tail() {
+    local logfile=$1 lines=${2:-20}
+    if [[ -f "$logfile" && -s "$logfile" ]]; then
+        echo -e "\n${RED}── Last ${lines} lines of output ──${NC}"
+        tail -n "$lines" "$logfile"
+        echo -e "${RED}── Full log: ${logfile} ──${NC}"
+    fi
+}
+
+# Run a command with an animated spinner + elapsed timer
+# Usage: run_with_spinner "Installing dependencies" apt install -y ...
+run_with_spinner() {
+    local label="$1"; shift
+
+    if [[ "$VERBOSE" == "true" ]]; then
+        info "$label"
+        "$@"
+        return $?
+    fi
+
+    SPINNER_LOG=$(mktemp /tmp/oap-install-XXXXXX.log)
+    local start_time=$SECONDS
+    local spin_i=0
+    local char_count=${#SPINNER_CHARS}
+
+    "$@" > "$SPINNER_LOG" 2>&1 &
+    local cmd_pid=$!
+
+    # Spinner loop
+    while kill -0 "$cmd_pid" 2>/dev/null; do
+        local elapsed=$((SECONDS - start_time))
+        local c="${SPINNER_CHARS:$((spin_i % char_count)):1}"
+        printf '\r  %s %s (%s)  ' "$c" "$label" "$(_fmt_elapsed $elapsed)"
+        spin_i=$((spin_i + 1))
+        sleep 0.1
+    done
+
+    wait "$cmd_pid"
+    local exit_code=$?
+    local elapsed=$((SECONDS - start_time))
+
+    if [[ $exit_code -eq 0 ]]; then
+        echo -e "\r  ${GREEN}${CHECK}${NC} ${label} ($(_fmt_elapsed $elapsed))  "
+        rm -f "$SPINNER_LOG"
+    else
+        echo -e "\r  ${RED}${CROSS}${NC} ${label} ($(_fmt_elapsed $elapsed))  "
+        show_error_tail "$SPINNER_LOG"
+        return $exit_code
+    fi
+}
+
+# Run cmake --build with percentage progress + elapsed timer
+# Usage: build_with_progress "Building" cmake --build . -j4
+build_with_progress() {
+    local label="$1"; shift
+
+    if [[ "$VERBOSE" == "true" ]]; then
+        info "$label"
+        "$@"
+        return $?
+    fi
+
+    SPINNER_LOG=$(mktemp /tmp/oap-build-XXXXXX.log)
+    local start_time=$SECONDS
+    local spin_i=0
+    local char_count=${#SPINNER_CHARS}
+    local last_pct=""
+
+    # Run build in background, output to log
+    "$@" > "$SPINNER_LOG" 2>&1 &
+    local cmd_pid=$!
+
+    # Spinner loop — scrape latest percentage from log file
+    while kill -0 "$cmd_pid" 2>/dev/null; do
+        local elapsed=$((SECONDS - start_time))
+        local c="${SPINNER_CHARS:$((spin_i % char_count)):1}"
+
+        # Grab last percentage from log (cmake outputs [  X%])
+        local pct
+        pct=$(sed -n 's/.*\[\s*\([0-9]*\)%\].*/\1/p' "$SPINNER_LOG" 2>/dev/null | tail -1) || true
+        if [[ -n "$pct" ]]; then
+            last_pct="$pct"
+        fi
+
+        if [[ -n "$last_pct" ]]; then
+            printf '\r  %s %s (%s%%) (%s)  ' "$c" "$label" "$last_pct" "$(_fmt_elapsed $elapsed)"
+        else
+            printf '\r  %s %s (%s)  ' "$c" "$label" "$(_fmt_elapsed $elapsed)"
+        fi
+        spin_i=$((spin_i + 1))
+        sleep 0.25
+    done
+
+    wait "$cmd_pid"
+    local exit_code=$?
+    local elapsed=$((SECONDS - start_time))
+
+    if [[ $exit_code -eq 0 ]]; then
+        echo -e "\r  ${GREEN}${CHECK}${NC} ${label} (100%) ($(_fmt_elapsed $elapsed))  "
+        rm -f "$SPINNER_LOG"
+    else
+        echo -e "\r  ${RED}${CROSS}${NC} ${label} ($(_fmt_elapsed $elapsed))  "
+        show_error_tail "$SPINNER_LOG"
+        return $exit_code
+    fi
+}
+
+# Prime sudo and keep it alive in background
+prime_sudo() {
+    if [[ "$EUID" -eq 0 ]]; then
+        return  # Already root
+    fi
+    echo -e "${BLUE}[sudo]${NC} This installer needs sudo for system configuration."
+    sudo -v
+    # Keepalive loop — refresh sudo every 50s until script exits
+    (while true; do sudo -n -v 2>/dev/null; sleep 50; done) &
+    SUDO_KEEPALIVE_PID=$!
+    trap 'kill $SUDO_KEEPALIVE_PID 2>/dev/null; rm -f "$SPINNER_LOG"' EXIT
+}
+
+# ────────────────────────────────────────────────────
 # Step 1: Check OS and architecture
 # ────────────────────────────────────────────────────
 check_system() {
-    info "Checking system..."
+    step "Checking system"
 
     if [[ ! -f /etc/os-release ]]; then
         fail "Cannot determine OS. /etc/os-release not found."
@@ -72,9 +225,7 @@ check_system() {
     source /etc/os-release
 
     ARCH=$(uname -m)
-    info "OS: $PRETTY_NAME"
-    info "Architecture: $ARCH"
-    info "Kernel: $(uname -r)"
+    ok "OS: $PRETTY_NAME | $ARCH | $(uname -r)"
 
     if [[ "$ARCH" != "aarch64" && "$ARCH" != "armv7l" ]]; then
         warn "This script targets Raspberry Pi (ARM). Detected: $ARCH"
@@ -85,7 +236,6 @@ check_system() {
 
     if [[ "${VERSION_CODENAME:-}" != "trixie" ]]; then
         warn "Expected RPi OS Trixie (Debian 13). Detected: ${VERSION_CODENAME:-unknown}"
-        warn "Packages may differ. Proceeding anyway."
     fi
 }
 
@@ -93,8 +243,7 @@ check_system() {
 # Step 2: Install apt dependencies
 # ────────────────────────────────────────────────────
 install_dependencies() {
-    info "Installing system dependencies..."
-    sudo apt update
+    step "Installing dependencies"
 
     local PACKAGES=(
         # Build tools
@@ -145,15 +294,15 @@ install_dependencies() {
         python3-venv
     )
 
-    sudo apt install -y "${PACKAGES[@]}"
-    ok "Dependencies installed"
+    run_with_spinner "Updating package lists" sudo apt-get update -qq
+    run_with_spinner "Installing ${#PACKAGES[@]} packages" sudo apt-get install -y -qq "${PACKAGES[@]}"
 }
 
 # ────────────────────────────────────────────────────
 # Step 3: Interactive hardware setup
 # ────────────────────────────────────────────────────
 setup_hardware() {
-    echo -e "\n${CYAN}── Hardware Configuration ──${NC}\n"
+    step "Hardware configuration"
 
     # Touch device — filter for INPUT_PROP_DIRECT (touchscreens)
     info "Detecting touch devices..."
@@ -228,24 +377,38 @@ setup_hardware() {
 
         # Detect country code: iw reg → locale → IP geolocation → US fallback
         COUNTRY_CODE=""
+        CC_SOURCE=""
         if command -v iw &>/dev/null; then
             COUNTRY_CODE=$(iw reg get 2>/dev/null | sed -n 's/^country \([A-Z]\{2\}\).*/\1/p' | head -1) || true
             if [[ "$COUNTRY_CODE" == "00" || "$COUNTRY_CODE" == "99" ]]; then
                 COUNTRY_CODE=""
+            elif [[ -n "$COUNTRY_CODE" ]]; then
+                CC_SOURCE="wireless regulatory domain"
             fi
         fi
         if [[ -z "$COUNTRY_CODE" ]]; then
             # Try locale (e.g. en_US.UTF-8 -> US)
             COUNTRY_CODE=$(locale 2>/dev/null | sed -n 's/.*_\([A-Z]\{2\}\)\..*/\1/p' | head -1) || true
+            if [[ -n "$COUNTRY_CODE" ]]; then
+                CC_SOURCE="system locale"
+            fi
         fi
         if [[ -z "$COUNTRY_CODE" ]] && command -v curl &>/dev/null; then
             # Try IP geolocation (we have internet if we cloned from GitHub)
             COUNTRY_CODE=$(curl -fsS --max-time 3 https://ipinfo.io/country 2>/dev/null | tr -d '\r\n') || true
             if [[ ! "$COUNTRY_CODE" =~ ^[A-Z]{2}$ ]]; then
                 COUNTRY_CODE=""
+            else
+                CC_SOURCE="IP geolocation"
             fi
         fi
-        COUNTRY_CODE=${COUNTRY_CODE:-US}
+        if [[ -z "$COUNTRY_CODE" ]]; then
+            COUNTRY_CODE="US"
+            CC_SOURCE=""
+            warn "Could not auto-detect country code — defaulting to US"
+        else
+            info "Detected country code $COUNTRY_CODE (via $CC_SOURCE)"
+        fi
         read -p "Country code for 5GHz WiFi [$COUNTRY_CODE]: " USER_CC
         COUNTRY_CODE=${USER_CC:-$COUNTRY_CODE}
         COUNTRY_CODE=$(echo "$COUNTRY_CODE" | tr '[:lower:]' '[:upper:]')
@@ -268,10 +431,11 @@ setup_hardware() {
     if command -v pactl &>/dev/null; then
         AUDIO_SINKS=()
         AUDIO_DESCS=()
-        while IFS= read -r line; do
+        while IFS=$'\t' read -r name_field desc_field; do
             local name desc
-            name=$(echo "$line" | sed 's/.*Name: \([^ ]*\).*/\1/')
-            desc=$(echo "$line" | sed 's/.*Description: //')
+            name=$(echo "$name_field" | sed 's/.*Name: //')
+            desc=$(echo "$desc_field" | sed 's/.*Description: //')
+            name=$(echo "$name" | tr -d '[:space:]')
             AUDIO_SINKS+=("$name")
             AUDIO_DESCS+=("$desc")
             printf "  %d. %s\n" "${#AUDIO_SINKS[@]}" "$desc"
@@ -294,9 +458,6 @@ setup_hardware() {
     read -p "Android Auto TCP port [5277]: " TCP_PORT
     TCP_PORT=${TCP_PORT:-5277}
 
-    read -p "Video FPS (30 or 60) [30]: " VIDEO_FPS
-    VIDEO_FPS=${VIDEO_FPS:-30}
-
     ok "Hardware configuration complete"
 
     # Auto-start
@@ -314,18 +475,17 @@ setup_hardware() {
 # Step 3b: Configure WiFi AP networking
 # ────────────────────────────────────────────────────
 configure_network() {
+    step "Configuring network"
+
     if [[ -z "$WIFI_IFACE" ]]; then
         warn "Skipping network configuration (no wireless interface)"
         return
     fi
 
-    info "Configuring WiFi AP on $WIFI_IFACE..."
-
     # Unblock WiFi and Bluetooth radios (fresh Trixie has them soft-blocked)
     if command -v rfkill &>/dev/null; then
         sudo rfkill unblock wlan 2>/dev/null || true
         sudo rfkill unblock bluetooth 2>/dev/null || true
-        ok "WiFi and Bluetooth radios unblocked"
     fi
 
     # BlueZ needs --compat for SDP service registration (AA RFCOMM discovery)
@@ -335,10 +495,10 @@ configure_network() {
 [Service]
 ExecStart=
 ExecStart=/usr/libexec/bluetooth/bluetoothd --compat
+ExecStartPost=/bin/sh -c 'for i in 1 2 3 4 5; do [ -e /var/run/sdp ] && { chgrp bluetooth /var/run/sdp; chmod g+rw /var/run/sdp; exit 0; }; sleep 0.5; done'
 BTCONF
-    sudo systemctl daemon-reload
-    sudo systemctl restart bluetooth
-    ok "BlueZ configured with --compat (SDP enabled)"
+
+    run_with_spinner "Restarting BlueZ (SDP compat)" bash -c 'sudo systemctl daemon-reload && sudo systemctl restart bluetooth'
 
     # systemd-networkd config for static IP + built-in DHCP server
     sudo mkdir -p /etc/systemd/network
@@ -384,14 +544,13 @@ HOSTAPD
 
     # Enable and start services
     sudo systemctl unmask hostapd 2>/dev/null || true
-    sudo systemctl enable hostapd
-    sudo systemctl enable systemd-networkd
-    sudo systemctl restart systemd-networkd || warn "systemd-networkd restart failed (may need reboot)"
+    sudo systemctl enable --quiet hostapd
+    sudo systemctl enable --quiet systemd-networkd
+    run_with_spinner "Starting network services" bash -c 'sudo systemctl restart systemd-networkd 2>/dev/null; true'
     if sudo systemctl restart hostapd 2>/dev/null; then
-        ok "WiFi AP configured and started: SSID=$WIFI_SSID on $WIFI_IFACE ($AP_IP)"
+        ok "WiFi AP: SSID=$WIFI_SSID on $WIFI_IFACE ($AP_IP)"
     else
-        warn "hostapd failed to start now (may need reboot). AP is enabled for next boot."
-        ok "WiFi AP configured: SSID=$WIFI_SSID on $WIFI_IFACE ($AP_IP)"
+        warn "hostapd failed to start (may need reboot). Enabled for next boot."
     fi
 }
 
@@ -401,8 +560,6 @@ HOSTAPD
 configure_labwc() {
     local LABWC_DIR="$HOME/.config/labwc"
     local RC_FILE="$LABWC_DIR/rc.xml"
-
-    info "Configuring labwc for multi-touch..."
 
     mkdir -p "$LABWC_DIR"
 
@@ -432,10 +589,12 @@ LABWC
 # Step 4: Clone and build
 # ────────────────────────────────────────────────────
 build_project() {
-    cd "$INSTALL_DIR"
-    git submodule update --init --recursive
+    step "Building from source"
 
-    if [[ -d "$INSTALL_DIR/build/src/openauto-prodigy" ]]; then
+    cd "$INSTALL_DIR"
+    run_with_spinner "Initializing submodules" git submodule update --init --recursive
+
+    if [[ -f "$INSTALL_DIR/build/src/openauto-prodigy" ]]; then
         warn "OpenAuto Prodigy is already built."
         read -p "Rebuild? [Y/n] " -n 1 -r
         echo
@@ -447,22 +606,15 @@ build_project() {
     mkdir -p build
     cd build
 
-    info "Configuring build..."
-    if [[ "$VERBOSE" == "true" ]]; then
-        cmake ..
-    else
-        cmake .. -Wno-dev 2>&1 | grep -v "^CMake Warning\|^  \|^$\|^Call Stack" | grep -v "Could NOT find"
-    fi
-    info "Building (this may take a while on RPi)..."
-    cmake --build . -j$(nproc)
-    ok "Build complete"
+    run_with_spinner "Configuring CMake" cmake .. -Wno-dev
+    build_with_progress "Building" cmake --build . -j$(nproc)
 }
 
 # ────────────────────────────────────────────────────
 # Step 5: Generate config
 # ────────────────────────────────────────────────────
 generate_config() {
-    info "Generating configuration..."
+    step "Generating configuration"
     mkdir -p "$CONFIG_DIR/themes/default" "$CONFIG_DIR/plugins"
 
     cat > "$CONFIG_DIR/config.yaml" << YAML
@@ -526,7 +678,7 @@ YAML
 # Step 6: Create systemd service
 # ────────────────────────────────────────────────────
 create_service() {
-    info "Creating systemd service..."
+    step "Creating services"
 
     local USER_ID
     USER_ID=$(id -u)
@@ -556,7 +708,7 @@ SERVICE
     sudo systemctl daemon-reload
 
     if [[ "$AUTOSTART" == "true" ]]; then
-        sudo systemctl enable ${SERVICE_NAME}
+        sudo systemctl enable --quiet ${SERVICE_NAME}
         ok "Service created and enabled (auto-start on boot)"
     else
         ok "Service created (manual start: sudo systemctl start ${SERVICE_NAME})"
@@ -567,7 +719,6 @@ SERVICE
 # Step 7: Create web config service
 # ────────────────────────────────────────────────────
 create_web_service() {
-    info "Creating web config panel service..."
 
     sudo tee /etc/systemd/system/${SERVICE_NAME}-web.service > /dev/null << SERVICE
 [Unit]
@@ -589,7 +740,7 @@ WantedBy=multi-user.target
 SERVICE
 
     sudo systemctl daemon-reload
-    sudo systemctl enable ${SERVICE_NAME}-web
+    sudo systemctl enable --quiet ${SERVICE_NAME}-web
     ok "Web config service created (port 8080)"
 }
 
@@ -604,8 +755,6 @@ create_system_service() {
         warn "System service not found at $SYS_DIR — skipping"
         return
     fi
-
-    info "Setting up system service..."
 
     # Try venv + pip first; fall back to system Python if pip fails (no internet on AP)
     local PYTHON_PATH="/usr/bin/python3"
@@ -649,7 +798,7 @@ WantedBy=multi-user.target
 SERVICE
 
     sudo systemctl daemon-reload
-    sudo systemctl enable openauto-system
+    sudo systemctl enable --quiet openauto-system
     ok "System service installed and enabled"
 }
 
@@ -657,150 +806,100 @@ SERVICE
 # Step 9: Diagnostics
 # ────────────────────────────────────────────────────
 run_diagnostics() {
-    echo -e "\n${CYAN}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${NC}"
-    echo -e "${CYAN}  System Diagnostics${NC}"
-    echo -e "${CYAN}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${NC}\n"
+    step "Verifying installation"
 
-    # Qt version
-    if command -v qmake6 &>/dev/null; then
-        ok "Qt: $(qmake6 --version 2>&1 | grep 'Qt version' || echo 'detected')"
+    local warnings=()
+
+    # Quick checks — collect warnings, show ok for passes
+    if systemctl --user is-active pipewire &>/dev/null || pgrep -x pipewire &>/dev/null; then
+        ok "PipeWire running"
     else
-        warn "Qt: qmake6 not in PATH (may still work via cmake)"
+        warnings+=("PipeWire not detected — audio may not work")
     fi
 
-    # PipeWire
-    if systemctl --user is-active pipewire &>/dev/null; then
-        ok "PipeWire: running"
-    elif pgrep pipewire &>/dev/null; then
-        ok "PipeWire: running (not via systemd)"
-    else
-        warn "PipeWire: not detected — audio may not work"
-    fi
-
-    # BlueZ
     if systemctl is-active bluetooth &>/dev/null; then
-        BLUEZ_VER=$(bluetoothctl --version 2>/dev/null || echo "unknown")
-        ok "BlueZ: running ($BLUEZ_VER)"
+        ok "BlueZ running"
     else
-        warn "BlueZ: not running — Bluetooth features disabled"
+        warnings+=("BlueZ not running — Bluetooth features disabled")
     fi
 
-    # labwc touch config
     local RC_FILE="$HOME/.config/labwc/rc.xml"
     if [[ -f "$RC_FILE" ]] && grep -q 'mouseEmulation="no"' "$RC_FILE"; then
-        ok "labwc: mouseEmulation disabled (multi-touch safe)"
+        ok "labwc multi-touch configured"
     elif [[ -f "$RC_FILE" ]]; then
-        warn "labwc: mouseEmulation may be enabled — check $RC_FILE"
+        warnings+=("labwc mouseEmulation may be enabled — check $RC_FILE")
     fi
 
-    # Touch devices (filtered to touchscreens only, same as setup)
-    echo
-    info "Touchscreen devices (INPUT_PROP_DIRECT):"
-    local FOUND_TOUCH=false
-    for dev in /dev/input/event*; do
-        if [[ -e "$dev" ]]; then
-            local PROPS_PATH="/sys/class/input/$(basename "$dev")/device/properties"
-            if [[ -f "$PROPS_PATH" ]] && (( $(cat "$PROPS_PATH" 2>/dev/null || echo 0) & 2 )); then
-                NAME=$(cat "/sys/class/input/$(basename "$dev")/device/name" 2>/dev/null || echo "unknown")
-                printf "  %-24s %s\n" "$dev" "$NAME"
-                FOUND_TOUCH=true
-            fi
-        fi
-    done
-    if [[ "$FOUND_TOUCH" == "false" ]]; then
-        warn "No touchscreen devices detected"
-    fi
-
-    # Audio outputs
-    echo
-    info "Audio outputs:"
-    if command -v pactl &>/dev/null; then
-        pactl list sinks 2>/dev/null | grep -E "^\s*Description:" | while read -r line; do
-            local desc
-            desc=$(echo "$line" | sed 's/.*Description: //')
-            echo "  $desc"
-        done
-    elif command -v pw-cli &>/dev/null; then
-        pw-cli list-objects Node 2>/dev/null | grep -i "audio.*sink" | head -5 || echo "  (use pw-cli to inspect)"
-    else
-        echo "  (pactl/pw-cli not found)"
-    fi
-
-    # Config
-    echo
-    if [[ -f "$CONFIG_DIR/config.yaml" ]]; then
-        ok "Config: $CONFIG_DIR/config.yaml"
-    else
-        warn "Config: not found"
-    fi
-
-    # Plugins
-    PLUGIN_COUNT=$(find "$CONFIG_DIR/plugins" -name "plugin.yaml" 2>/dev/null | wc -l)
-    info "Plugins: $PLUGIN_COUNT dynamic plugins in $CONFIG_DIR/plugins/"
-    info "  + 3 static plugins (Android Auto, Bluetooth Audio, Phone)"
-
-    # WiFi AP
-    echo
     if [[ -n "$WIFI_SSID" ]] && systemctl is-active hostapd &>/dev/null; then
-        ok "WiFi AP: running (SSID: $WIFI_SSID)"
+        ok "WiFi AP running (SSID: $WIFI_SSID)"
     elif [[ -n "$WIFI_SSID" ]]; then
-        warn "WiFi AP: configured but hostapd not running — check: sudo systemctl status hostapd"
-    else
-        info "WiFi AP: not configured"
+        warnings+=("WiFi AP configured but hostapd not running — may need reboot")
     fi
 
-    # System service
-    if systemctl is-enabled openauto-system &>/dev/null; then
-        ok "System service: enabled"
-    else
-        warn "System service: not installed"
+    local needs_relogin=false
+    if ! id -nG "$USER" | grep -qw bluetooth; then
+        warnings+=("User not yet in bluetooth group")
+        needs_relogin=true
+    fi
+    if ! id -nG "$USER" | grep -qw input; then
+        warnings+=("User not yet in input group")
+        needs_relogin=true
     fi
 
-    # Group membership
-    echo
-    if id -nG "$USER" | grep -qw bluetooth; then
-        ok "User in bluetooth group"
-    else
-        warn "User NOT in bluetooth group — re-login required"
-    fi
-    if id -nG "$USER" | grep -qw input; then
-        ok "User in input group"
-    else
-        warn "User NOT in input group — re-login required after install"
+    # Show warnings if any
+    for w in "${warnings[@]}"; do
+        warn "$w"
+    done
+
+    # Verbose mode: extended diagnostics
+    if [[ "$VERBOSE" == "true" ]]; then
+        echo
+        if command -v qmake6 &>/dev/null; then
+            info "Qt: $(qmake6 --version 2>&1 | grep 'Qt version' || echo 'detected')"
+        fi
+        info "Touchscreen devices:"
+        for dev in /dev/input/event*; do
+            if [[ -e "$dev" ]]; then
+                local PROPS_PATH="/sys/class/input/$(basename "$dev")/device/properties"
+                if [[ -f "$PROPS_PATH" ]] && (( $(cat "$PROPS_PATH" 2>/dev/null || echo 0) & 2 )); then
+                    NAME=$(cat "/sys/class/input/$(basename "$dev")/device/name" 2>/dev/null || echo "unknown")
+                    printf "  %-24s %s\n" "$dev" "$NAME"
+                fi
+            fi
+        done
+        info "Audio outputs:"
+        if command -v pactl &>/dev/null; then
+            pactl list sinks 2>/dev/null | grep -E "^\s*Description:" | sed 's/.*Description: /    /'
+        fi
     fi
 
+    # ── Final summary box ──
     echo -e "\n${GREEN}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${NC}"
     echo -e "${GREEN}  Installation Complete!${NC}"
     echo -e "${GREEN}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${NC}"
     echo
-    echo -e "  Start:  ${BLUE}sudo systemctl start ${SERVICE_NAME}${NC}"
-    echo -e "  Web:    ${BLUE}http://$(hostname -I | awk '{print $1}'):8080${NC}"
-    echo -e "  Logs:   ${BLUE}journalctl -u ${SERVICE_NAME} -f${NC}"
-    echo -e "  Config: ${BLUE}$CONFIG_DIR/config.yaml${NC}"
-    echo
-    if id -nG "$USER" | grep -qw bluetooth && id -nG "$USER" | grep -qw input; then
-        :
-    else
-        echo -e "  ${YELLOW}NOTE: Group changes require logout/login (or reboot) to take effect.${NC}"
+    echo -e "  ${BOLD}Start:${NC}   sudo systemctl start ${SERVICE_NAME}"
+    echo -e "  ${BOLD}Web:${NC}     http://$(hostname -I | awk '{print $1}'):8080"
+    echo -e "  ${BOLD}Logs:${NC}    journalctl -u ${SERVICE_NAME} -f"
+    echo -e "  ${BOLD}Config:${NC}  $CONFIG_DIR/config.yaml"
+
+    if [[ "$needs_relogin" == "true" ]]; then
         echo
+        echo -e "  ${YELLOW}Reboot required for group membership changes.${NC}"
     fi
+    echo
 
     # Offer to launch immediately
-    echo
     read -p "Start OpenAuto Prodigy now? [Y/n] " -n 1 -r
     echo
     if [[ ! $REPLY =~ ^[Nn]$ ]]; then
-        info "Starting OpenAuto Prodigy..."
-        # systemd service runs as $USER with correct Wayland env
-        # Group membership may not be active yet in this shell, but systemd
-        # resolves groups fresh from /etc/group, so this works even pre-relogin
+        # systemd resolves groups fresh from /etc/group, so this works pre-relogin
         sudo systemctl start ${SERVICE_NAME}
         sleep 2
         if systemctl is-active --quiet ${SERVICE_NAME}; then
-            ok "Started via systemd. Logs: journalctl -u ${SERVICE_NAME} -f"
+            ok "Started! Logs: journalctl -u ${SERVICE_NAME} -f"
         else
             fail "Service failed to start. Check: journalctl -u ${SERVICE_NAME} -n 30"
-            echo
             journalctl -u ${SERVICE_NAME} -n 10 --no-pager 2>/dev/null || true
         fi
     fi
@@ -811,17 +910,19 @@ run_diagnostics() {
 # ────────────────────────────────────────────────────
 main() {
     print_header
-    check_system
-    install_dependencies
-    build_project
-    setup_hardware
-    generate_config
-    configure_network
-    configure_labwc
-    create_service
-    create_web_service
-    create_system_service
-    run_diagnostics
+    prime_sudo
+
+    check_system          # 1
+    install_dependencies  # 2
+    setup_hardware        # 3
+    build_project         # 4
+    generate_config       # 5
+    configure_network     # 6
+    configure_labwc       # 7 (silent — no step header)
+    create_service        # 8
+    create_web_service    #   (part of step 8)
+    create_system_service #   (part of step 8)
+    run_diagnostics       # 9
 }
 
 main "$@"
