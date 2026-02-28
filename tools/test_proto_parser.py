@@ -8,7 +8,7 @@ from proto_parser import parse_proto_file
 
 def test_parse_message():
     """Parse AudioConfigData.proto — simple 3-field message."""
-    result = parse_proto_file("libs/open-androidauto/proto/AudioConfigData.proto")
+    result = parse_proto_file("libs/open-androidauto/proto/oaa/audio/AudioConfigData.proto")
     assert len(result["messages"]) == 1
     msg = result["messages"]["AudioConfig"]
     assert len(msg["fields"]) == 3
@@ -16,14 +16,14 @@ def test_parse_message():
         "number": 1,
         "name": "sample_rate",
         "type": "uint32",
-        "cardinality": "required",
+        "cardinality": "optional",
         "message_type": None,
     }
 
 
 def test_parse_enum():
     """Parse StatusEnum.proto — enum wrapped in message."""
-    result = parse_proto_file("libs/open-androidauto/proto/StatusEnum.proto")
+    result = parse_proto_file("libs/open-androidauto/proto/oaa/common/StatusEnum.proto")
     assert "Status" in result["messages"]
     msg = result["messages"]["Status"]
     assert "Enum" in msg["enums"]
@@ -41,7 +41,7 @@ def test_parse_enum():
 
 def test_parse_repeated():
     """Parse InputChannelData.proto — repeated fields."""
-    result = parse_proto_file("libs/open-androidauto/proto/InputChannelData.proto")
+    result = parse_proto_file("libs/open-androidauto/proto/oaa/input/InputChannelData.proto")
     msg = result["messages"]["InputChannel"]
     keycodes = msg["fields"][0]
     assert keycodes["cardinality"] == "repeated"
@@ -52,7 +52,7 @@ def test_parse_repeated():
 
 def test_parse_packed():
     """Parse BluetoothChannelData.proto — packed repeated field."""
-    result = parse_proto_file("libs/open-androidauto/proto/BluetoothChannelData.proto")
+    result = parse_proto_file("libs/open-androidauto/proto/oaa/bluetooth/BluetoothChannelData.proto")
     msg = result["messages"]["BluetoothChannel"]
     pairing = msg["fields"][1]
     assert pairing["cardinality"] == "packed"
@@ -60,7 +60,7 @@ def test_parse_packed():
 
 def test_parse_oneof_fields():
     """Parse oneof fields without cardinality keyword."""
-    result = parse_proto_file("libs/open-androidauto/proto/ConnectionConfigurationData.proto")
+    result = parse_proto_file("libs/open-androidauto/proto/oaa/control/ConnectionConfigurationData.proto")
     msg = result["messages"]["ConnectionConfiguration"]
     fields_by_num = {field["number"]: field for field in msg["fields"]}
     assert fields_by_num[2]["name"] == "security_config"
