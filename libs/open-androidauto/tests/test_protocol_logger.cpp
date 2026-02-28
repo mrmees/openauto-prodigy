@@ -14,6 +14,9 @@ private slots:
         QCOMPARE(oaa::ProtocolLogger::channelName(oaa::ChannelId::Control), std::string("CONTROL"));
         QCOMPARE(oaa::ProtocolLogger::channelName(oaa::ChannelId::Video), std::string("VIDEO"));
         QCOMPARE(oaa::ProtocolLogger::channelName(oaa::ChannelId::MediaAudio), std::string("MEDIA_AUDIO"));
+        QCOMPARE(oaa::ProtocolLogger::channelName(oaa::ChannelId::Navigation), std::string("NAVIGATION"));
+        QCOMPARE(oaa::ProtocolLogger::channelName(oaa::ChannelId::MediaStatus), std::string("MEDIA_STATUS"));
+        QCOMPARE(oaa::ProtocolLogger::channelName(oaa::ChannelId::PhoneStatus), std::string("PHONE_STATUS"));
         QCOMPARE(oaa::ProtocolLogger::channelName(oaa::ChannelId::WiFi), std::string("WIFI"));
         QCOMPARE(oaa::ProtocolLogger::channelName(99), std::string("UNKNOWN(99)"));
     }
@@ -37,6 +40,18 @@ private slots:
         // Sensor channel
         QCOMPARE(oaa::ProtocolLogger::messageName(oaa::ChannelId::Sensor, oaa::SensorMessageId::SENSOR_START_REQUEST),
                  std::string("SENSOR_START_REQUEST"));
+
+        // Navigation/media/phone status channels
+        QCOMPARE(oaa::ProtocolLogger::messageName(oaa::ChannelId::Navigation, oaa::NavigationMessageId::NAV_STEP),
+                 std::string("NAVIGATION_NOTIFICATION"));
+        QCOMPARE(oaa::ProtocolLogger::messageName(oaa::ChannelId::Navigation, oaa::NavigationMessageId::NAV_DISTANCE),
+                 std::string("NAVIGATION_DISTANCE"));
+        QCOMPARE(oaa::ProtocolLogger::messageName(oaa::ChannelId::MediaStatus, oaa::MediaStatusMessageId::PLAYBACK_STATUS),
+                 std::string("MEDIA_PLAYBACK_STATUS"));
+        QCOMPARE(oaa::ProtocolLogger::messageName(oaa::ChannelId::MediaStatus, oaa::MediaStatusMessageId::PLAYBACK_METADATA),
+                 std::string("MEDIA_PLAYBACK_METADATA"));
+        QCOMPARE(oaa::ProtocolLogger::messageName(oaa::ChannelId::PhoneStatus, oaa::PhoneStatusMessageId::PHONE_STATUS),
+                 std::string("PHONE_STATUS_UPDATE"));
 
         // Unknown
         auto name = oaa::ProtocolLogger::messageName(oaa::ChannelId::Input, 0xFFFF);
