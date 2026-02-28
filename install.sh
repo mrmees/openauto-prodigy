@@ -155,9 +155,9 @@ tui_cleanup() {
 
 # Draw a single step entry at current cursor position
 _draw_step() {
-    local idx=$1
-    local status="${STEP_STATUS[$idx]}"
-    local name="${STEP_NAMES[$idx]}"
+    local idx="$1"
+    local status="${STEP_STATUS[$idx]:-pending}"
+    local name="${STEP_NAMES[$idx]:-}"
 
     case "$status" in
         pending)
