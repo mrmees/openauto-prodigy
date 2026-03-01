@@ -4,7 +4,7 @@ import QtQuick.Layouts
 
 /// Translucent overlay shown when a 3-finger tap gesture is detected.
 /// Provides quick controls: volume, brightness, home button, dismiss.
-/// Auto-dismisses after 5 seconds or on tap outside controls.
+/// Auto-dismisses after 15 seconds if no interaction.
 Rectangle {
     id: overlay
     anchors.fill: parent
@@ -12,10 +12,13 @@ Rectangle {
     visible: false
     z: 999
 
-    property int autoDismissMs: 5000
+    property int autoDismissMs: 15000
+    property bool acceptInput: false
 
     function show() {
         visible = true
+        acceptInput = false
+        inputGuardTimer.restart()
         if (typeof DisplayService !== "undefined")
             brightnessSlider.value = DisplayService.brightness
         dismissTimer.restart()
@@ -23,7 +26,9 @@ Rectangle {
 
     function dismiss() {
         visible = false
+        acceptInput = false
         dismissTimer.stop()
+        inputGuardTimer.stop()
     }
 
     Timer {
@@ -32,10 +37,15 @@ Rectangle {
         onTriggered: overlay.dismiss()
     }
 
-    // Tap outside controls to dismiss
+    Timer {
+        id: inputGuardTimer
+        interval: 500
+        onTriggered: overlay.acceptInput = true
+    }
+
+    // Transparent touch sink — absorbs taps but does NOT dismiss
     MouseArea {
         anchors.fill: parent
-        onClicked: overlay.dismiss()
     }
 
     // Control panel (centered)
@@ -48,7 +58,7 @@ Rectangle {
         border.color: "#0f3460"
         border.width: 2
 
-        // Block clicks from dismissing when clicking inside the panel
+        // Block clicks from passing through the panel
         MouseArea {
             anchors.fill: parent
             onClicked: {
@@ -87,6 +97,7 @@ Rectangle {
                     from: 0
                     to: 100
                     value: 80
+                    enabled: overlay.acceptInput
                     Component.onCompleted: {
                         if (typeof AudioService !== "undefined")
                             value = AudioService.masterVolume
@@ -123,6 +134,7 @@ Rectangle {
                     from: 5
                     to: 100
                     value: typeof DisplayService !== "undefined" ? DisplayService.brightness : 80
+                    enabled: overlay.acceptInput
                     onValueChanged: {
                         if (typeof DisplayService !== "undefined") {
                             DisplayService.setBrightness(Math.round(value))
@@ -148,6 +160,7 @@ Rectangle {
 
                 Button {
                     font.pixelSize: 14
+                    enabled: overlay.acceptInput
                     onClicked: {
                         ActionRegistry.dispatch("app.home")
                         overlay.dismiss()
@@ -175,6 +188,7 @@ Rectangle {
 
                 Button {
                     font.pixelSize: 14
+                    enabled: overlay.acceptInput
                     onClicked: {
                         ActionRegistry.dispatch("theme.toggle")
                         dismissTimer.restart()
@@ -202,6 +216,7 @@ Rectangle {
 
                 Button {
                     font.pixelSize: 14
+                    enabled: overlay.acceptInput
                     onClicked: overlay.dismiss()
                     contentItem: RowLayout {
                         spacing: 6

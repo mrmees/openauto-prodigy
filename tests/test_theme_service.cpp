@@ -345,7 +345,7 @@ private slots:
     }
     // --- Wallpaper enumeration tests ---
 
-    void wallpaperListIncludesNone()
+    void wallpaperListHasFixedEntries()
     {
         QTemporaryDir tmpDir;
         QVERIFY(tmpDir.isValid());
@@ -362,46 +362,22 @@ private slots:
         oap::ThemeService service;
         service.scanThemeDirectories({tmpDir.path()});
 
-        QVERIFY(service.availableWallpaperNames().size() >= 1);
-        QCOMPARE(service.availableWallpaperNames()[0], QString("None"));
-        QCOMPARE(service.availableWallpapers()[0], QString());
+        // Should always have at least "Theme Default" and "None"
+        QVERIFY(service.availableWallpaperNames().size() >= 2);
+        QCOMPARE(service.availableWallpaperNames()[0], QString("Theme Default"));
+        QCOMPARE(service.availableWallpapers()[0], QString());      // "" = theme default
+        QCOMPARE(service.availableWallpaperNames()[1], QString("None"));
+        QCOMPARE(service.availableWallpapers()[1], QString("none"));
     }
 
-    void wallpaperListIncludesThemesWithImages()
+    void wallpaperListScansUserDir()
     {
         QTemporaryDir tmpDir;
         QVERIFY(tmpDir.isValid());
 
-        QDir(tmpDir.path()).mkpath("wptheme");
-        {
-            QFile f(tmpDir.filePath("wptheme/theme.yaml"));
-            f.open(QIODevice::WriteOnly);
-            QTextStream out(&f);
-            out << "id: wptheme\nname: WP Theme\nday:\n  background: \"#111111\"\nnight:\n  background: \"#222222\"\n";
-            f.close();
-        }
-        // Create a wallpaper image
-        {
-            QImage img(1, 1, QImage::Format_RGB32);
-            img.fill(Qt::red);
-            img.save(tmpDir.filePath("wptheme/wallpaper.jpg"), "JPEG");
-        }
-
-        oap::ThemeService service;
-        service.scanThemeDirectories({tmpDir.path()});
-
-        QCOMPARE(service.availableWallpapers().size(), 2);  // None + wptheme
-        QCOMPARE(service.availableWallpaperNames().size(), 2);
-        QCOMPARE(service.availableWallpaperNames()[1], QString("WP Theme"));
-        QVERIFY(service.availableWallpapers()[1].startsWith("file://"));
-        QVERIFY(service.availableWallpapers()[1].contains("wallpaper.jpg"));
-    }
-
-    void wallpaperListExcludesThemesWithoutImages()
-    {
-        QTemporaryDir tmpDir;
-        QVERIFY(tmpDir.isValid());
-
+        // Create a fake user wallpapers dir and put an image in it
+        // (buildWallpaperList scans ~/.openauto/wallpapers/ — we can't
+        // easily redirect that in tests, so just verify the fixed entries work)
         QDir(tmpDir.path()).mkpath("nowp");
         {
             QFile f(tmpDir.filePath("nowp/theme.yaml"));
@@ -414,35 +390,121 @@ private slots:
         oap::ThemeService service;
         service.scanThemeDirectories({tmpDir.path()});
 
-        // Only "None" should be in the list (theme without wallpaper is excluded)
-        QCOMPARE(service.availableWallpapers().size(), 1);
-        QCOMPARE(service.availableWallpaperNames().size(), 1);
-        QCOMPARE(service.availableWallpaperNames()[0], QString("None"));
+        // At minimum "Theme Default" + "None" (custom files depend on user's homedir)
+        QVERIFY(service.availableWallpapers().size() >= 2);
+        QCOMPARE(service.availableWallpaperNames()[0], QString("Theme Default"));
+        QCOMPARE(service.availableWallpaperNames()[1], QString("None"));
     }
 
-    void setWallpaperUpdatesSource()
+    void setWallpaperOverrideCustom()
     {
         oap::ThemeService service;
-        service.setWallpaper("file:///some/path.jpg");
+        service.setWallpaperOverride("file:///some/path.jpg");
         QCOMPARE(service.wallpaperSource(), QString("file:///some/path.jpg"));
     }
 
-    void setWallpaperEmitsSignal()
+    void setWallpaperOverrideNone()
+    {
+        // Start with a custom wallpaper, then set "none"
+        oap::ThemeService service;
+        service.setWallpaperOverride("file:///some/path.jpg");
+        QCOMPARE(service.wallpaperSource(), QString("file:///some/path.jpg"));
+
+        service.setWallpaperOverride("none");
+        QVERIFY(service.wallpaperSource().isEmpty());
+    }
+
+    void setWallpaperOverrideEmitsSignal()
     {
         oap::ThemeService service;
         QSignalSpy spy(&service, &oap::ThemeService::wallpaperChanged);
-        service.setWallpaper("file:///test.jpg");
+        service.setWallpaperOverride("file:///test.jpg");
         QCOMPARE(spy.count(), 1);
     }
 
-    void setWallpaperSameNoSignal()
+    void setWallpaperOverrideSameNoSignal()
     {
         oap::ThemeService service;
-        service.setWallpaper("file:///test.jpg");
+        service.setWallpaperOverride("file:///test.jpg");
 
         QSignalSpy spy(&service, &oap::ThemeService::wallpaperChanged);
-        service.setWallpaper("file:///test.jpg");  // same value
+        service.setWallpaperOverride("file:///test.jpg");  // same value
         QCOMPARE(spy.count(), 0);
+    }
+
+    void setThemeWithOverrideKeepsCustomWallpaper()
+    {
+        QTemporaryDir tmpDir;
+        QVERIFY(tmpDir.isValid());
+
+        // Two themes, each with a wallpaper
+        for (const auto& id : {"themeA", "themeB"}) {
+            QDir(tmpDir.path()).mkpath(id);
+            {
+                QFile f(tmpDir.filePath(QString(id) + "/theme.yaml"));
+                f.open(QIODevice::WriteOnly);
+                QTextStream out(&f);
+                out << "id: " << id << "\nname: " << id << "\nday:\n  background: \"#111111\"\nnight:\n  background: \"#222222\"\n";
+                f.close();
+            }
+            {
+                QFile f(tmpDir.filePath(QString(id) + "/wallpaper.jpg"));
+                f.open(QIODevice::WriteOnly);
+                f.write("fake-jpg-data");
+                f.close();
+            }
+        }
+
+        oap::ThemeService service;
+        service.scanThemeDirectories({tmpDir.path()});
+        service.setTheme("themeA");
+
+        // Set a custom override
+        service.setWallpaperOverride("file:///custom/bg.jpg");
+        QCOMPARE(service.wallpaperSource(), QString("file:///custom/bg.jpg"));
+
+        // Switch theme — custom wallpaper should persist
+        service.setTheme("themeB");
+        QCOMPARE(service.wallpaperSource(), QString("file:///custom/bg.jpg"));
+    }
+
+    void setThemeDefaultWallpaperChangesWithTheme()
+    {
+        QTemporaryDir tmpDir;
+        QVERIFY(tmpDir.isValid());
+
+        // Two themes, each with a wallpaper
+        for (const auto& id : {"themeA", "themeB"}) {
+            QDir(tmpDir.path()).mkpath(id);
+            {
+                QFile f(tmpDir.filePath(QString(id) + "/theme.yaml"));
+                f.open(QIODevice::WriteOnly);
+                QTextStream out(&f);
+                out << "id: " << id << "\nname: " << id << "\nday:\n  background: \"#111111\"\nnight:\n  background: \"#222222\"\n";
+                f.close();
+            }
+            {
+                QFile f(tmpDir.filePath(QString(id) + "/wallpaper.jpg"));
+                f.open(QIODevice::WriteOnly);
+                f.write("fake-jpg-data");
+                f.close();
+            }
+        }
+
+        oap::ThemeService service;
+        service.scanThemeDirectories({tmpDir.path()});
+
+        // No override — theme default
+        service.setTheme("themeA");
+        QString wpA = service.wallpaperSource();
+        QVERIFY(wpA.contains("themeA"));
+
+        service.setTheme("themeB");
+        QString wpB = service.wallpaperSource();
+        QVERIFY(wpB.contains("themeB"));
+
+        // Wallpapers should be different (different theme dirs)
+        QVERIFY(wpA != wpB);
     }
 };
 

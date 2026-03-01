@@ -129,17 +129,7 @@ bool ThemeService::setTheme(const QString& themeId)
     if (!loadTheme(it.value()))
         return false;
 
-    // Resolve wallpaper
-    QString oldWp = wallpaperSource_;
-    QString wpPath = QDir(it.value()).filePath("wallpaper.jpg");
-    if (QFile::exists(wpPath))
-        wallpaperSource_ = "file://" + QFileInfo(wpPath).absoluteFilePath();
-    else
-        wallpaperSource_.clear();
-
-    if (wallpaperSource_ != oldWp)
-        emit wallpaperChanged();
-
+    resolveWallpaper();
     return true;
 }
 
@@ -161,30 +151,70 @@ void ThemeService::buildWallpaperList()
     availableWallpapers_.clear();
     availableWallpaperNames_.clear();
 
-    // First entry: "None" (solid color background)
-    availableWallpapers_.append(QString());
+    // Fixed entries: "Theme Default" and "None"
+    availableWallpapers_.append(QString());            // "" = theme default
+    availableWallpaperNames_.append(QStringLiteral("Theme Default"));
+
+    availableWallpapers_.append(QStringLiteral("none"));
     availableWallpaperNames_.append(QStringLiteral("None"));
 
-    // Enumerate wallpapers from all scanned themes
-    for (int i = 0; i < availableThemes_.size(); ++i) {
-        const QString& themeId = availableThemes_[i];
-        const QString& themeDir = themeDirectories_[themeId];
-        QString wpPath = QDir(themeDir).filePath("wallpaper.jpg");
-        if (QFile::exists(wpPath)) {
-            QString fileUrl = QStringLiteral("file://") + QFileInfo(wpPath).absoluteFilePath();
+    // Scan ~/.openauto/wallpapers/ for custom images
+    QString userWpDir = QDir::homePath() + "/.openauto/wallpapers";
+    QDir wpDir(userWpDir);
+    if (wpDir.exists()) {
+        QStringList filters;
+        filters << "*.jpg" << "*.jpeg" << "*.png" << "*.webp";
+        auto entries = wpDir.entryInfoList(filters, QDir::Files, QDir::Name);
+        for (const QFileInfo& fi : entries) {
+            QString fileUrl = QStringLiteral("file://") + fi.absoluteFilePath();
             availableWallpapers_.append(fileUrl);
-            availableWallpaperNames_.append(availableThemeNames_[i]);
+            // Display name: strip extension, replace underscores/hyphens with spaces
+            QString displayName = fi.completeBaseName();
+            displayName.replace('_', ' ');
+            displayName.replace('-', ' ');
+            // Title case: capitalize first letter of each word
+            QStringList words = displayName.split(' ', Qt::SkipEmptyParts);
+            for (QString& word : words) {
+                if (!word.isEmpty())
+                    word[0] = word[0].toUpper();
+            }
+            availableWallpaperNames_.append(words.join(' '));
         }
     }
 
     emit availableWallpapersChanged();
 }
 
-void ThemeService::setWallpaper(const QString& wallpaperPath)
+void ThemeService::setWallpaperOverride(const QString& override)
 {
-    if (wallpaperSource_ == wallpaperPath) return;
-    wallpaperSource_ = wallpaperPath;
-    emit wallpaperChanged();
+    if (wallpaperOverride_ == override) return;
+    wallpaperOverride_ = override;
+    resolveWallpaper();
+}
+
+void ThemeService::resolveWallpaper()
+{
+    QString oldWp = wallpaperSource_;
+
+    if (wallpaperOverride_ == "none") {
+        wallpaperSource_.clear();
+    } else if (!wallpaperOverride_.isEmpty()) {
+        wallpaperSource_ = wallpaperOverride_;  // custom image
+    } else {
+        // Theme default — look for wallpaper.jpg in current theme dir
+        if (!themeDirPath_.isEmpty()) {
+            QString wpPath = QDir(themeDirPath_).filePath("wallpaper.jpg");
+            if (QFile::exists(wpPath))
+                wallpaperSource_ = "file://" + QFileInfo(wpPath).absoluteFilePath();
+            else
+                wallpaperSource_.clear();
+        } else {
+            wallpaperSource_.clear();
+        }
+    }
+
+    if (wallpaperSource_ != oldWp)
+        emit wallpaperChanged();
 }
 
 QColor ThemeService::activeColor(const QString& key) const

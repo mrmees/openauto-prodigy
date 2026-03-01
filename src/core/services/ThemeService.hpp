@@ -81,14 +81,14 @@ public:
     /// Current theme wallpaper as file:// URL, or empty string if none
     QString wallpaperSource() const { return wallpaperSource_; }
 
-    /// Available wallpaper values: "" for None, file:// URLs for images
+    /// Available wallpaper override values: "" (theme default), "none", file:// URLs
     QStringList availableWallpapers() const { return availableWallpapers_; }
 
-    /// Available wallpaper display names: "None", "Default", "Ocean", etc.
+    /// Available wallpaper display names: "Theme Default", "None", custom files...
     QStringList availableWallpaperNames() const { return availableWallpaperNames_; }
 
-    /// Set wallpaper independently of theme selection
-    Q_INVOKABLE void setWallpaper(const QString& wallpaperPath);
+    /// Set wallpaper override (empty = theme default, "none" = no wallpaper, file:// = custom)
+    Q_INVOKABLE void setWallpaperOverride(const QString& override);
 
     // Day/Night mode
     bool nightMode() const { return nightMode_; }
@@ -137,11 +137,13 @@ private:
     QStringList availableThemeNames_;
     QMap<QString, QString> themeDirectories_; // theme ID -> directory path
     QString wallpaperSource_;
+    QString wallpaperOverride_;
 
     QStringList availableWallpapers_;
     QStringList availableWallpaperNames_;
 
     void buildWallpaperList();
+    void resolveWallpaper();
 };
 
 } // namespace oap

@@ -40,11 +40,11 @@ Flickable {
 
         FullScreenPicker {
             label: "Wallpaper"
-            configPath: "display.wallpaper"
+            configPath: "display.wallpaper_override"
             options: ThemeService.availableWallpaperNames
             values: ThemeService.availableWallpapers
             onActivated: function(index) {
-                ThemeService.setWallpaper(ThemeService.availableWallpapers[index])
+                ThemeService.setWallpaperOverride(ThemeService.availableWallpapers[index])
             }
         }
 

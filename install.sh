@@ -1278,6 +1278,12 @@ YAML
         cp "$INSTALL_DIR/config/themes/default/theme.yaml" "$CONFIG_DIR/themes/default/"
     fi
 
+    # Install sample wallpapers (user can add/remove from ~/.openauto/wallpapers/)
+    mkdir -p "$CONFIG_DIR/wallpapers"
+    if [[ -d "$INSTALL_DIR/config/wallpapers" ]]; then
+        cp -n "$INSTALL_DIR/config/wallpapers/"*.jpg "$CONFIG_DIR/wallpapers/" 2>/dev/null || true
+    fi
+
     # Companion app polkit rule (allows timedatectl set-time without sudo)
     if [[ -f "$INSTALL_DIR/config/companion-polkit.rules" ]]; then
         sudo cp "$INSTALL_DIR/config/companion-polkit.rules" /etc/polkit-1/rules.d/50-openauto-time.rules
