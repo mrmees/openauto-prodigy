@@ -46,6 +46,7 @@ Flickable {
             onActivated: function(index) {
                 ThemeService.setWallpaperOverride(ThemeService.availableWallpapers[index])
             }
+            Component.onCompleted: ThemeService.refreshWallpapers()
         }
 
         SegmentedButton {

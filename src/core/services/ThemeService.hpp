@@ -90,6 +90,9 @@ public:
     /// Set wallpaper override (empty = theme default, "none" = no wallpaper, file:// = custom)
     Q_INVOKABLE void setWallpaperOverride(const QString& override);
 
+    /// Re-scan wallpaper directories and rebuild the available wallpapers list
+    Q_INVOKABLE void refreshWallpapers();
+
     // Day/Night mode
     bool nightMode() const { return nightMode_; }
     void setNightMode(bool night);

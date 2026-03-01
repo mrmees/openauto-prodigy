@@ -185,6 +185,11 @@ void ThemeService::buildWallpaperList()
     emit availableWallpapersChanged();
 }
 
+void ThemeService::refreshWallpapers()
+{
+    buildWallpaperList();
+}
+
 void ThemeService::setWallpaperOverride(const QString& override)
 {
     if (wallpaperOverride_ == override) return;

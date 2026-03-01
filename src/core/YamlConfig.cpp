@@ -19,6 +19,7 @@ void YamlConfig::initDefaults()
 
     root_["display"]["brightness"] = 80;
     root_["display"]["theme"] = "default";
+    root_["display"]["wallpaper_override"] = "";
     root_["display"]["orientation"] = "landscape";
     root_["display"]["width"] = 1024;
     root_["display"]["height"] = 600;
