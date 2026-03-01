@@ -1,5 +1,6 @@
 #include <signal.h>
 #include <QGuiApplication>
+#include <QCommandLineParser>
 #include <QIcon>
 #include <QQmlApplicationEngine>
 #include <QQmlContext>
@@ -10,6 +11,7 @@
 #include <QTimer>
 #include <memory>
 #include "core/Configuration.hpp"
+#include "core/Logging.hpp"
 #include "core/YamlConfig.hpp"
 #include "core/services/ConfigService.hpp"
 #include "core/services/ThemeService.hpp"
@@ -42,6 +44,28 @@ int main(int argc, char *argv[])
     app.setOrganizationName("OpenAutoProdigy");
     app.setWindowIcon(QIcon(":/icons/prodigy-64.png"));
 
+    // --- CLI argument parsing ---
+    QCommandLineParser parser;
+    parser.setApplicationDescription("OpenAuto Prodigy — Wireless Android Auto head unit");
+    parser.addHelpOption();
+    parser.addVersionOption();
+
+    QCommandLineOption verboseOption("verbose",
+                                     "Enable verbose debug logging for all components");
+    parser.addOption(verboseOption);
+
+    QCommandLineOption logFileOption("log-file",
+                                     "Write log output to file in addition to stderr",
+                                     "path");
+    parser.addOption(logFileOption);
+
+    parser.process(app);
+
+    // --- Install log handler EARLY (before any other initialization) ---
+    if (parser.isSet(logFileOption))
+        oap::setLogFile(parser.value(logFileOption));
+    oap::installLogHandler();
+
     auto config = std::make_shared<oap::Configuration>();
 
     // Load from default path if exists; otherwise use built-in defaults
@@ -68,6 +92,20 @@ int main(int argc, char *argv[])
         // Save as YAML for next boot
         QDir().mkpath(QDir::homePath() + "/.openauto");
         yamlConfig->save(yamlPath);
+    }
+
+    // --- Configure logging from CLI + YAML ---
+    bool cliVerbose = parser.isSet(verboseOption);
+    bool cfgVerbose = yamlConfig->valueByPath("logging.verbose").toBool();
+    if (cliVerbose || cfgVerbose) {
+        oap::setVerbose(true);
+        qCInfo(lcCore) << "Verbose logging enabled" << (cliVerbose ? "(CLI)" : "(config)");
+    } else {
+        QStringList debugCategories = yamlConfig->valueByPath("logging.debug_categories").toStringList();
+        if (!debugCategories.isEmpty()) {
+            oap::setDebugCategories(debugCategories);
+            qCInfo(lcCore) << "Debug categories:" << debugCategories;
+        }
     }
 
     auto appController = new oap::ApplicationController(&app);
@@ -120,7 +158,7 @@ int main(int argc, char *argv[])
     bool companionEnabled = companionEnabledVar.isValid() ? companionEnabledVar.toBool() : true;
     QVariant companionPortVar = yamlConfig->valueByPath("companion.port");
     int companionPort = companionPortVar.isValid() ? companionPortVar.toInt() : 9876;
-    qInfo() << "Companion: enabled=" << companionEnabled << "port=" << companionPort;
+    qCInfo(lcCore) << "Companion: enabled=" << companionEnabled << "port=" << companionPort;
     if (companionEnabled) {
         companionListener = new oap::CompanionListenerService(&app);
         companionListener->setWifiSsid(config->wifiSsid());
@@ -129,20 +167,20 @@ int main(int argc, char *argv[])
         if (secretFile.open(QIODevice::ReadOnly)) {
             QByteArray secret = secretFile.readAll().trimmed();
             companionListener->setSharedSecret(QString::fromUtf8(secret));
-            qInfo() << "Companion: loaded secret from" << secretFile.fileName()
+            qCInfo(lcCore) << "Companion: loaded secret from" << secretFile.fileName()
                      << "(" << secret.length() << "bytes)";
         } else {
-            qWarning() << "Companion: no secret file at" << secretFile.fileName()
+            qCWarning(lcCore) << "Companion: no secret file at" << secretFile.fileName()
                         << "— pairing required";
         }
         if (companionListener->start(companionPort)) {
-            qInfo() << "Companion: listening on port" << companionPort;
+            qCInfo(lcCore) << "Companion: listening on port" << companionPort;
         } else {
-            qWarning() << "Companion: FAILED to bind port" << companionPort;
+            qCWarning(lcCore) << "Companion: FAILED to bind port" << companionPort;
         }
         hostContext->setCompanionListenerService(companionListener);
     } else {
-        qInfo() << "Companion: disabled in config";
+        qCInfo(lcCore) << "Companion: disabled in config";
     }
 
     oap::PluginManager pluginManager(&app);
