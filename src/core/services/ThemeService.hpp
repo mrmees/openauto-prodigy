@@ -5,6 +5,7 @@
 #include <QColor>
 #include <QMap>
 #include <QString>
+#include <QStringList>
 
 namespace oap {
 
@@ -44,6 +45,10 @@ class ThemeService : public QObject, public IThemeService {
 
     Q_PROPERTY(bool nightMode READ nightMode WRITE setNightMode NOTIFY modeChanged)
 
+    Q_PROPERTY(QStringList availableThemes READ availableThemes NOTIFY availableThemesChanged)
+    Q_PROPERTY(QStringList availableThemeNames READ availableThemeNames NOTIFY availableThemesChanged)
+    Q_PROPERTY(QString wallpaperSource READ wallpaperSource NOTIFY wallpaperChanged)
+
 public:
     explicit ThemeService(QObject* parent = nullptr);
 
@@ -60,6 +65,19 @@ public:
     QString fontFamily() const override;
     QString iconPath(const QString& relativePath) const override;
     bool setTheme(const QString& themeId) override;
+
+    /// Scan directories for theme subdirectories containing theme.yaml.
+    /// User themes searched first (first seen ID wins for deduplication).
+    void scanThemeDirectories(const QStringList& searchPaths);
+
+    /// Available theme IDs (populated by scanThemeDirectories)
+    QStringList availableThemes() const { return availableThemes_; }
+
+    /// Available theme display names (parallel to availableThemes)
+    QStringList availableThemeNames() const { return availableThemeNames_; }
+
+    /// Current theme wallpaper as file:// URL, or empty string if none
+    QString wallpaperSource() const { return wallpaperSource_; }
 
     // Day/Night mode
     bool nightMode() const { return nightMode_; }
@@ -88,6 +106,8 @@ public:
 signals:
     void colorsChanged();
     void modeChanged();
+    void availableThemesChanged();
+    void wallpaperChanged();
 
 private:
     QColor activeColor(const QString& key) const;
@@ -100,6 +120,11 @@ private:
 
     QMap<QString, QColor> dayColors_;
     QMap<QString, QColor> nightColors_;
+
+    QStringList availableThemes_;
+    QStringList availableThemeNames_;
+    QMap<QString, QString> themeDirectories_; // theme ID -> directory path
+    QString wallpaperSource_;
 };
 
 } // namespace oap

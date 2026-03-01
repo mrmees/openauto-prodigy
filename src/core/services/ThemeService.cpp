@@ -1,6 +1,7 @@
 #include "ThemeService.hpp"
 #include <QDir>
 #include <QFile>
+#include <QFileInfo>
 #include <yaml-cpp/yaml.h>
 
 namespace oap {
@@ -79,12 +80,66 @@ QString ThemeService::iconPath(const QString& relativePath) const
     return {};
 }
 
+void ThemeService::scanThemeDirectories(const QStringList& searchPaths)
+{
+    availableThemes_.clear();
+    availableThemeNames_.clear();
+    themeDirectories_.clear();
+
+    for (const QString& searchPath : searchPaths) {
+        QDir dir(searchPath);
+        if (!dir.exists()) continue;
+
+        const auto entries = dir.entryList(QDir::Dirs | QDir::NoDotAndDotDot);
+        for (const QString& entry : entries) {
+            QString themeDir = dir.absoluteFilePath(entry);
+            QString yamlPath = QDir(themeDir).filePath("theme.yaml");
+
+            if (!QFile::exists(yamlPath)) continue;
+
+            try {
+                YAML::Node root = YAML::LoadFile(yamlPath.toStdString());
+                QString id = QString::fromStdString(root["id"].as<std::string>(""));
+                QString name = QString::fromStdString(root["name"].as<std::string>(""));
+
+                if (id.isEmpty()) continue;
+
+                // First seen ID wins (user themes searched before bundled)
+                if (themeDirectories_.contains(id)) continue;
+
+                availableThemes_.append(id);
+                availableThemeNames_.append(name);
+                themeDirectories_[id] = themeDir;
+            } catch (const YAML::Exception&) {
+                continue;
+            }
+        }
+    }
+
+    emit availableThemesChanged();
+}
+
 bool ThemeService::setTheme(const QString& themeId)
 {
-    Q_UNUSED(themeId);
-    // Multi-theme directory scanning not yet implemented.
-    // Currently only supports the loaded theme.
-    return false;
+    auto it = themeDirectories_.find(themeId);
+    if (it == themeDirectories_.end())
+        return false;
+
+    if (!loadTheme(it.value()))
+        return false;
+
+    // Resolve wallpaper
+    QString oldWp = wallpaperSource_;
+    QString wpPath = QDir(it.value()).filePath("wallpaper.jpg");
+    if (QFile::exists(wpPath))
+        wallpaperSource_ = "file://" + QFileInfo(wpPath).absoluteFilePath();
+    else
+        wallpaperSource_.clear();
+
+    if (wallpaperSource_ != oldWp)
+        emit wallpaperChanged();
+
+    return true;
 }
 
 void ThemeService::setNightMode(bool night)
