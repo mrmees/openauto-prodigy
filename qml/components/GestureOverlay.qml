@@ -112,7 +112,7 @@ Rectangle {
                 spacing: 12
 
                 MaterialIcon {
-                    icon: typeof DisplayService !== "undefined" && DisplayService.hasHardwareBrightness ? "\ue1ac" : "\ue3a1"  // brightness_high / tonality
+                    icon: "\ue1ac"  // brightness_high
                     size: 22
                     color: "#e0e0e0"
                 }
