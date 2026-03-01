@@ -1181,7 +1181,8 @@ build_project() {
     cd build
 
     run_with_spinner "Configuring CMake" cmake .. -Wno-dev \
-        -DCMAKE_C_COMPILER_LAUNCHER=ccache -DCMAKE_CXX_COMPILER_LAUNCHER=ccache
+        -DCMAKE_C_COMPILER_LAUNCHER=ccache -DCMAKE_CXX_COMPILER_LAUNCHER=ccache \
+        -DBUILD_TESTING=OFF
     build_with_progress "Building" cmake --build . -j$(nproc)
 
     update_step 3 done
