@@ -60,7 +60,7 @@ void EvdevTouchReader::computeLetterbox()
         videoPixelX0 = effectiveDisplayX0;
         videoPixelY0 = effectiveDisplayY0;
 
-        qCInfo(lcAA) << "X-crop mode: video " << aaWidth_ << "x" << aaHeight_
+        qCDebug(lcAA) << "X-crop mode: video " << aaWidth_ << "x" << aaHeight_
                                 << " in " << effectiveDisplayW << "x" << effectiveDisplayH
                                 << " | AA visible X: " << cropAAOffsetX_
                                 << " to " << (cropAAOffsetX_ + visibleAAWidth_)
@@ -79,7 +79,7 @@ void EvdevTouchReader::computeLetterbox()
         videoPixelX0 = effectiveDisplayX0;
         videoPixelY0 = effectiveDisplayY0;
 
-        qCInfo(lcAA) << "Y-crop mode: video " << aaWidth_ << "x" << aaHeight_
+        qCDebug(lcAA) << "Y-crop mode: video " << aaWidth_ << "x" << aaHeight_
                                 << " in " << effectiveDisplayW << "x" << effectiveDisplayH
                                 << " | AA visible Y: " << cropAAOffsetY_
                                 << " to " << (cropAAOffsetY_ + visibleAAHeight_)
@@ -103,7 +103,7 @@ void EvdevTouchReader::computeLetterbox()
     videoEvdevW_ = videoPixelW * evdevPerPixelX;
     videoEvdevH_ = videoPixelH * evdevPerPixelY;
 
-    qCInfo(lcAA) << "Mapping: display " << effectiveDisplayW << "x" << effectiveDisplayH
+    qCDebug(lcAA) << "Mapping: display " << effectiveDisplayW << "x" << effectiveDisplayH
                             << " at pixel (" << videoPixelX0 << "," << videoPixelY0 << ")"
                             << " | evdev (" << videoEvdevX0_ << "," << videoEvdevY0_
                             << ") " << videoEvdevW_ << "x" << videoEvdevH_;
@@ -111,7 +111,7 @@ void EvdevTouchReader::computeLetterbox()
     if (handler_)
         handler_->setContentDims(static_cast<int>(visibleAAWidth_), static_cast<int>(visibleAAHeight_));
 
-    qCInfo(lcAA) << "Diagnostic: sidebar=" << (sidebarEnabled_ ? sidebarPosition_.c_str() : "off")
+    qCDebug(lcAA) << "Diagnostic: sidebar=" << (sidebarEnabled_ ? sidebarPosition_.c_str() : "off")
                             << " " << sidebarPixelWidth_ << "px"
                             << " | contentW=" << visibleAAWidth_ << " contentH=" << visibleAAHeight_
                             << " | touch range: X=[" << mapX(static_cast<int>(videoEvdevX0_))
@@ -151,7 +151,7 @@ void EvdevTouchReader::setSidebar(bool enabled, int width, const std::string& po
         sidebarHomeX0_ = (displayWidth_ - 80.0f) * evdevPerPixelX;  // home zone ~80px at right
         sidebarHomeX1_ = screenWidth_;
 
-        qCInfo(lcAA) << "Sidebar: " << position.c_str() << " " << width << "px"
+        qCDebug(lcAA) << "Sidebar: " << position.c_str() << " " << width << "px"
                                 << ", evdev Y: " << sidebarEvdevY0_ << "-" << sidebarEvdevY1_;
     } else {
         // Vertical sidebar (left/right): X band, Y sub-zones
@@ -169,7 +169,7 @@ void EvdevTouchReader::setSidebar(bool enabled, int width, const std::string& po
         sidebarHomeY0_ = displayHeight_ * 0.75f * evdevPerPixelY;
         sidebarHomeY1_ = screenHeight_;
 
-        qCInfo(lcAA) << "Sidebar: " << position.c_str() << " " << width << "px"
+        qCDebug(lcAA) << "Sidebar: " << position.c_str() << " " << width << "px"
                                 << ", evdev X: " << sidebarEvdevX0_ << "-" << sidebarEvdevX1_;
     }
 }
@@ -178,7 +178,7 @@ void EvdevTouchReader::setAAResolution(int aaWidth, int aaHeight)
 {
     pendingAAWidth_.store(aaWidth, std::memory_order_relaxed);
     pendingAAHeight_.store(aaHeight, std::memory_order_release);
-    qCInfo(lcAA) << "Pending resolution update:" << aaWidth << "x" << aaHeight;
+    qCDebug(lcAA) << "Pending resolution update:" << aaWidth << "x" << aaHeight;
 }
 
 int EvdevTouchReader::mapX(int rawX) const
@@ -352,7 +352,7 @@ void EvdevTouchReader::processSync()
         pendingAAWidth_.store(0, std::memory_order_relaxed);
         pendingAAHeight_.store(0, std::memory_order_relaxed);
         computeLetterbox();
-        qCInfo(lcAA) << "Applied resolution update:" << aaWidth_ << "x" << aaHeight_;
+        qCDebug(lcAA) << "Applied resolution update:" << aaWidth_ << "x" << aaHeight_;
     }
 
     // Check for 3-finger gesture — suppress touches if active
@@ -468,7 +468,7 @@ void EvdevTouchReader::processSync()
                                           actionIdx, action);
             prevActive = nowActive;  // update for subsequent events in same SYN
 
-            qCInfo(lcAA) << "DOWN slot=" << i
+            qCDebug(lcAA) << "DOWN slot=" << i
                                     << " actionIdx=" << actionIdx
                                     << " active=" << nowActive
                                     << " raw=(" << slots_[i].x << "," << slots_[i].y << ")"
@@ -495,7 +495,7 @@ void EvdevTouchReader::processSync()
             handler_->sendTouchIndication(withLifted.size(), withLifted.data(),
                                           actionIdx, action);
 
-            qCInfo(lcAA) << "UP slot=" << i
+            qCDebug(lcAA) << "UP slot=" << i
                                     << " actionIdx=" << actionIdx
                                     << " active=" << nowActive;
         }

@@ -118,7 +118,7 @@ void AndroidAutoOrchestrator::stop()
 
     // Graceful shutdown: send ShutdownRequest and wait for phone to acknowledge
     if (session_ && (state_ == Connected || state_ == Backgrounded)) {
-        qCInfo(lcAA) << "Sending graceful shutdown to phone";
+        qCDebug(lcAA) << "Sending graceful shutdown to phone";
         session_->stop(7);  // POWER_DOWN — app is exiting
 
         // Spin a local event loop so the message goes out and we get the response
@@ -131,9 +131,9 @@ void AndroidAutoOrchestrator::stop()
         loop.exec();
 
         if (timeout.isActive()) {
-            qCInfo(lcAA) << "Phone acknowledged shutdown";
+            qCDebug(lcAA) << "Phone acknowledged shutdown";
         } else {
-            qCInfo(lcAA) << "Shutdown timeout — proceeding with teardown";
+            qCDebug(lcAA) << "Shutdown timeout — proceeding with teardown";
         }
     }
 
@@ -159,7 +159,7 @@ void AndroidAutoOrchestrator::stop()
 void AndroidAutoOrchestrator::disconnectSession()
 {
     if (!session_ || (state_ != Connected && state_ != Backgrounded)) {
-        qCInfo(lcAA) << "disconnectSession: no active session";
+        qCDebug(lcAA) << "disconnectSession: no active session";
         return;
     }
 
@@ -451,9 +451,11 @@ void AndroidAutoOrchestrator::onSessionStateChanged(oaa::SessionState state)
     case oaa::SessionState::Connecting:
     case oaa::SessionState::VersionExchange:
     case oaa::SessionState::TLSHandshake:
+        qCDebug(lcAA) << "Session state: negotiating protocol";
         setState(Connecting, "Negotiating protocol...");
         break;
     case oaa::SessionState::ServiceDiscovery:
+        qCDebug(lcAA) << "Session state: service discovery";
         setState(Connecting, "Service discovery...");
         break;
     case oaa::SessionState::ShuttingDown:
@@ -666,7 +668,7 @@ void AndroidAutoOrchestrator::startConnectionWatchdog()
 
         // TCP_ESTABLISHED = 1
         if (info.tcpi_state != 1) {
-            qCInfo(lcAA) << "Watchdog: TCP state="
+            qCDebug(lcAA) << "Watchdog: TCP state="
                      << (int)info.tcpi_state << "(not ESTABLISHED), forcing disconnect";
             onSessionDisconnected(oaa::DisconnectReason::TransportError);
             return;
@@ -676,11 +678,11 @@ void AndroidAutoOrchestrator::startConnectionWatchdog()
         // the peer is unreachable
         bool dead = false;
         if (info.tcpi_backoff >= 3) {
-            qCInfo(lcAA) << "Watchdog: backoff=" << (int)info.tcpi_backoff
+            qCDebug(lcAA) << "Watchdog: backoff=" << (int)info.tcpi_backoff
                      << ", peer unreachable";
             dead = true;
         } else if (info.tcpi_retransmits > 4) {
-            qCInfo(lcAA) << "Watchdog:" << (int)info.tcpi_retransmits
+            qCDebug(lcAA) << "Watchdog:" << (int)info.tcpi_retransmits
                      << "retransmits";
             dead = true;
         }

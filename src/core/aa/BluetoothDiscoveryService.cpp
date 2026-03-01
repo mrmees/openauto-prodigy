@@ -153,10 +153,10 @@ bool BluetoothDiscoveryService::registerSdpRecord(uint8_t rfcommChannel)
                 qCDebug(lcBT) << "Could not remove core SDP record"
                          << Qt::hex << handle << "(may not exist)";
             } else {
-                qCInfo(lcBT) << "Removed core SDP record" << Qt::hex << handle;
+                qCDebug(lcBT) << "Removed core SDP record" << Qt::hex << handle;
             }
         } else {
-            qCInfo(lcBT) << "Removed core SDP record" << Qt::hex << handle;
+            qCDebug(lcBT) << "Removed core SDP record" << Qt::hex << handle;
         }
     }
 
@@ -215,7 +215,7 @@ bool BluetoothDiscoveryService::registerSdpRecord(uint8_t rfcommChannel)
     }
 
     sdpRecordHandle_ = record->handle;
-    qCInfo(lcBT) << "SDP record handle:" << Qt::hex << sdpRecordHandle_;
+    qCDebug(lcBT) << "SDP record handle:" << Qt::hex << sdpRecordHandle_;
 
     // Free lists (record data is now owned by SDP server)
     sdp_data_free(channelData);
@@ -287,7 +287,7 @@ void BluetoothDiscoveryService::sendWifiStartRequest()
             for (const auto& entry : iface.addressEntries()) {
                 if (entry.ip().protocol() == QAbstractSocket::IPv4Protocol) {
                     localIp = entry.ip().toString().toStdString();
-                    qCInfo(lcBT) << "Using IP from"
+                    qCDebug(lcBT) << "Using IP from"
                             << iface.name() << ":" << localIp.c_str();
                     break;
                 }
@@ -306,7 +306,7 @@ void BluetoothDiscoveryService::sendWifiStartRequest()
     request.set_ip_address(localIp);
     request.set_port(config_->tcpPort());
 
-    qCInfo(lcBT) << "Sending WifiStartRequest: ip=" << localIp.c_str()
+    qCDebug(lcBT) << "Sending WifiStartRequest: ip=" << localIp.c_str()
             << "port=" << config_->tcpPort();
     sendMessage(request, kMsgWifiStartRequest);
 }
@@ -340,7 +340,7 @@ void BluetoothDiscoveryService::readSocket()
         uint16_t messageId = 0;
         stream >> messageId;
 
-        qCInfo(lcBT) << "Received msgId=" << messageId
+        qCDebug(lcBT) << "Received msgId=" << messageId
                 << "length=" << length;
 
         switch (messageId) {
@@ -348,7 +348,7 @@ void BluetoothDiscoveryService::readSocket()
             handleWifiCredentialRequest();
             break;
         case kMsgWifiStartResponse:      // Phone acknowledges, connecting to WiFi
-            qCInfo(lcBT) << "Phone acknowledged WifiStartRequest";
+            qCDebug(lcBT) << "Phone acknowledged WifiStartRequest";
             break;
         case kMsgWifiConnectionStatus:   // Phone reports WiFi connection result
             handleWifiConnectionStatus(buffer_, length);
@@ -392,7 +392,7 @@ void BluetoothDiscoveryService::handleWifiCredentialRequest()
     }
     response.set_bssid(bssid.toStdString());
 
-    qCInfo(lcBT) << "Sending WifiInfoResponse (creds): ssid="
+    qCDebug(lcBT) << "Sending WifiInfoResponse (creds): ssid="
             << config_->wifiSsid() << "bssid=" << bssid;
     sendMessage(response, kMsgWifiInfoResponse);
 }
@@ -411,7 +411,7 @@ void BluetoothDiscoveryService::handleWifiConnectionStatus(
         return;
     }
 
-    qCInfo(lcBT) << "WifiConnectionStatus:"
+    qCDebug(lcBT) << "WifiConnectionStatus:"
             << msg.ShortDebugString().c_str();
 
     // If we received a parseable response, the phone has connected

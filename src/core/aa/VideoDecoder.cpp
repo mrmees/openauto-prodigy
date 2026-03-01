@@ -132,7 +132,7 @@ bool VideoDecoder::initCodec(AVCodecID codecId)
     if (decoderPref != "auto") {
         selectedCodec = avcodec_find_decoder_by_name(decoderPref.toUtf8().constData());
         if (selectedCodec)
-            qCInfo(lcAA) << "Trying configured decoder:" << decoderPref;
+            qCDebug(lcAA) << "Trying configured decoder:" << decoderPref;
         else
             qCWarning(lcAA) << "Configured decoder" << decoderPref
                        << "not found, falling back to auto";
@@ -144,7 +144,7 @@ bool VideoDecoder::initCodec(AVCodecID codecId)
     if (!selectedCodec && codecId == AV_CODEC_ID_H265 && hwDeviceCtx_) {
         selectedCodec = avcodec_find_decoder(codecId);
         if (selectedCodec)
-            qCInfo(lcAA) << "HEVC: using software decoder with DRM hwaccel (V4L2 request)";
+            qCDebug(lcAA) << "HEVC: using software decoder with DRM hwaccel (V4L2 request)";
     }
 
     // 2b. Auto mode: try known standalone hw decoders in order
@@ -152,7 +152,7 @@ bool VideoDecoder::initCodec(AVCodecID codecId)
         for (int i = 0; it->hwDecoders[i]; ++i) {
             const AVCodec* hwCodec = avcodec_find_decoder_by_name(it->hwDecoders[i]);
             if (hwCodec) {
-                qCInfo(lcAA) << "Auto-detected hw decoder:" << it->hwDecoders[i];
+                qCDebug(lcAA) << "Auto-detected hw decoder:" << it->hwDecoders[i];
                 selectedCodec = hwCodec;
                 break;
             }
@@ -281,7 +281,7 @@ void VideoDecoder::setVideoSink(QVideoSink* sink)
             sinkValid_ = std::make_shared<std::atomic<bool>>(true);
         }
         emit videoSinkChanged();
-        qCInfo(lcAA) << "Video sink "
+        qCDebug(lcAA) << "Video sink "
                                 << (sink ? "connected" : "disconnected");
     }
 }
@@ -300,7 +300,7 @@ void VideoDecoder::processFrame(const QByteArray& h264Data, qint64 enqueueTimeNs
     if (!codecDetected_) {
         codecDetected_ = true;
         QByteArray prefix = h264Data.left(16);
-        qCInfo(lcAA) << "First packet:" << prefix.size() << "bytes, hex:"
+        qCDebug(lcAA) << "First packet:" << prefix.size() << "bytes, hex:"
                 << prefix.toHex(' ');
         AVCodecID detected = detectCodec(h264Data);
         if (detected != activeCodecId_) {
@@ -311,7 +311,7 @@ void VideoDecoder::processFrame(const QByteArray& h264Data, qint64 enqueueTimeNs
                 return;
             }
         } else {
-            qCInfo(lcAA) << "Phone is sending"
+            qCDebug(lcAA) << "Phone is sending"
                     << ((detected == AV_CODEC_ID_H265) ? "H.265" : "H.264")
                     << "(matches current decoder)";
         }
@@ -552,7 +552,7 @@ void VideoDecoder::processFrame(const QByteArray& h264Data, qint64 enqueueTimeNs
                 if (elapsed >= LOG_INTERVAL_SEC) {
                     double fps = framesSinceLog_ / elapsed;
                     int depth = worker_ ? worker_->queueDepth() : 0;
-                    qCInfo(lcAA) << "[Perf] Video: queue="
+                    qCDebug(lcAA) << "[Perf] Video: queue="
                         << QString::number(metricQueue_.avg(), 'f', 1) << "ms"
                         << "decode=" << QString::number(metricDecode_.avg(), 'f', 1) << "ms"
                         << "copy=" << QString::number(metricCopy_.avg(), 'f', 1) << "ms"

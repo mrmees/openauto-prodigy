@@ -257,7 +257,7 @@ AudioStreamHandle* AudioService::createStream(
     uint32_t pow2 = 1;
     while (pow2 < rbSize) pow2 <<= 1;
     handle->ringBuffer = std::make_unique<AudioRingBuffer>(pow2);
-    qCInfo(lcAudio) << "AudioService: Ring buffer for" << name << ":" << pow2 << "bytes (" << bufferMs << "ms)";
+    qCDebug(lcAudio) << "AudioService: Ring buffer for" << name << ":" << pow2 << "bytes (" << bufferMs << "ms)";
 
     // Determine PipeWire role based on stream name
     const char* role = "Music";
@@ -460,14 +460,14 @@ void AudioService::setOutputDevice(const QString& deviceName)
 {
     QMutexLocker lock(&mutex_);
     outputDevice_ = deviceName.isEmpty() ? "auto" : deviceName;
-    qCInfo(lcAudio) << "AudioService: Output device set to" << outputDevice_;
+    qCDebug(lcAudio) << "AudioService: Output device set to" << outputDevice_;
 }
 
 void AudioService::setInputDevice(const QString& deviceName)
 {
     QMutexLocker lock(&mutex_);
     inputDevice_ = deviceName.isEmpty() ? "auto" : deviceName;
-    qCInfo(lcAudio) << "AudioService: Input device set to" << inputDevice_;
+    qCDebug(lcAudio) << "AudioService: Input device set to" << inputDevice_;
 }
 
 QString AudioService::outputDevice() const
@@ -648,7 +648,7 @@ void AudioService::checkAdaptiveBuffers()
             // AudioRingBuffer uses spa_ringbuffer with a fixed backing store —
             // live resize would require draining and reallocating. The grown
             // bufferMs will take effect when the stream is next created.
-            qCInfo(lcAudio) << "Buffer grown to" << handle->bufferMs
+            qCDebug(lcAudio) << "Buffer grown to" << handle->bufferMs
                     << "ms for stream" << handle->name
                     << "(" << xruns << "xruns, was" << oldMs << "ms)"
                     << "— takes effect on next session";
