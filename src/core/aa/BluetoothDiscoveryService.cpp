@@ -36,6 +36,9 @@ static constexpr uint16_t kMsgWifiInfoResponse = 3;       // HU -> Phone: SSID +
 static constexpr uint16_t kMsgWifiStartResponse = 6;      // Phone -> HU: acknowledgement
 static constexpr uint16_t kMsgWifiConnectionStatus = 7;   // Phone -> HU: WiFi connected
 
+static constexpr int kSdpRetryIntervalMs = 2000;
+static constexpr int kSdpMaxRetries = 30;  // 60 seconds total
+
 BluetoothDiscoveryService::BluetoothDiscoveryService(
     std::shared_ptr<oap::Configuration> config,
     const QString& wifiInterface,
@@ -48,6 +51,11 @@ BluetoothDiscoveryService::BluetoothDiscoveryService(
 {
     connect(rfcommServer_.get(), &QBluetoothServer::newConnection,
             this, &BluetoothDiscoveryService::onClientConnected);
+
+    sdpRetryTimer_.setSingleShot(false);
+    sdpRetryTimer_.setInterval(kSdpRetryIntervalMs);
+    connect(&sdpRetryTimer_, &QTimer::timeout,
+            this, &BluetoothDiscoveryService::attemptSdpRegistration);
 }
 
 BluetoothDiscoveryService::~BluetoothDiscoveryService()
@@ -63,23 +71,44 @@ void BluetoothDiscoveryService::start()
         return;
     }
 
-    quint16 port = rfcommServer_->serverPort();
-    qInfo() << "[BTDiscovery] RFCOMM listening on port" << port;
+    rfcommPort_ = static_cast<uint8_t>(rfcommServer_->serverPort());
+    qInfo() << "[BTDiscovery] RFCOMM listening on port" << rfcommPort_;
 
     // Register SDP record via BlueZ's legacy SDP socket (requires --compat).
     // We can't use ProfileManager1 D-Bus because it tries to bind its own
     // RFCOMM socket on the same channel, conflicting with QBluetoothServer.
-    if (!registerSdpRecord(static_cast<uint8_t>(port))) {
-        qCritical() << "[BTDiscovery] Failed to register SDP record";
+    sdpRetryCount_ = 0;
+    attemptSdpRegistration();
+}
+
+void BluetoothDiscoveryService::attemptSdpRegistration()
+{
+    if (registerSdpRecord(rfcommPort_)) {
+        sdpRetryTimer_.stop();
+        qInfo() << "[BTDiscovery] SDP service registered (AA Wireless)";
+        return;
+    }
+
+    sdpRetryCount_++;
+    if (sdpRetryCount_ >= kSdpMaxRetries) {
+        sdpRetryTimer_.stop();
+        qCritical() << "[BTDiscovery] SDP registration failed after"
+                     << kSdpMaxRetries << "attempts, giving up";
         emit error("Failed to register Bluetooth SDP service");
         return;
     }
 
-    qInfo() << "[BTDiscovery] SDP service registered (AA Wireless)";
+    if (!sdpRetryTimer_.isActive()) {
+        qWarning() << "[BTDiscovery] SDP registration failed, retrying every"
+                    << kSdpRetryIntervalMs / 1000 << "s (attempt"
+                    << sdpRetryCount_ << "/" << kSdpMaxRetries << ")";
+        sdpRetryTimer_.start();
+    }
 }
 
 void BluetoothDiscoveryService::stop()
 {
+    sdpRetryTimer_.stop();
     unregisterSdpRecord();
 
     if (socket_) {

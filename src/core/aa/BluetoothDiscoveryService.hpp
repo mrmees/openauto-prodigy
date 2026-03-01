@@ -1,6 +1,7 @@
 #pragma once
 
 #include <QObject>
+#include <QTimer>
 #include <QBluetoothServer>
 #include <QBluetoothSocket>
 #include <QBluetoothServiceInfo>
@@ -48,12 +49,17 @@ private:
     void unregisterSdpRecord();
     std::string getLocalIP(const QString& interfaceName) const;
 
+    void attemptSdpRegistration();
+
     std::shared_ptr<oap::Configuration> config_;
     std::unique_ptr<QBluetoothServer> rfcommServer_;
     QBluetoothSocket* socket_ = nullptr;
     QByteArray buffer_;
     QString wifiInterface_;
     uint32_t sdpRecordHandle_ = 0;
+    QTimer sdpRetryTimer_;
+    uint8_t rfcommPort_ = 0;
+    int sdpRetryCount_ = 0;
 };
 
 } // namespace aa
