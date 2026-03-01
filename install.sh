@@ -791,7 +791,7 @@ install_dependencies() {
 
     local PACKAGES=(
         # Build tools
-        cmake g++ git pkg-config
+        cmake g++ git pkg-config ccache
 
         # Qt 6
         qt6-base-dev qt6-declarative-dev qt6-wayland
@@ -1180,7 +1180,8 @@ build_project() {
     mkdir -p build
     cd build
 
-    run_with_spinner "Configuring CMake" cmake .. -Wno-dev
+    run_with_spinner "Configuring CMake" cmake .. -Wno-dev \
+        -DCMAKE_C_COMPILER_LAUNCHER=ccache -DCMAKE_CXX_COMPILER_LAUNCHER=ccache
     build_with_progress "Building" cmake --build . -j$(nproc)
 
     update_step 3 done

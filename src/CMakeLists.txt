@@ -1,5 +1,5 @@
-qt_add_executable(openauto-prodigy
-    main.cpp
+# Static library of all app code (shared between main executable and tests)
+add_library(openauto-core STATIC
     core/Configuration.cpp
     core/YamlConfig.cpp
     core/InputDeviceScanner.cpp
@@ -43,6 +43,38 @@ qt_add_executable(openauto-prodigy
     plugins/bt_audio/BtAudioPlugin.cpp
     plugins/phone/PhonePlugin.cpp
     ${CMAKE_SOURCE_DIR}/libs/qrcodegen/qrcodegen.cpp
+)
+
+target_include_directories(openauto-core PUBLIC
+    ${CMAKE_CURRENT_SOURCE_DIR}
+    ${CMAKE_SOURCE_DIR}/libs/open-androidauto/include
+    ${CMAKE_BINARY_DIR}/libs/open-androidauto
+    ${CMAKE_SOURCE_DIR}/libs/qrcodegen
+    ${LIBAV_INCLUDE_DIRS}
+    ${PIPEWIRE_INCLUDE_DIRS}
+)
+
+target_link_libraries(openauto-core PUBLIC
+    Qt6::Core
+    Qt6::Gui
+    Qt6::Quick
+    Qt6::QuickControls2
+    Qt6::Multimedia
+    Qt6::Network
+    Qt6::DBus
+    open-androidauto
+    OpenSSL::SSL
+    OpenSSL::Crypto
+    protobuf::libprotobuf
+    ${LIBAV_LIBRARIES}
+    ${PIPEWIRE_LIBRARIES}
+    yaml-cpp::yaml-cpp
+)
+
+set_target_properties(openauto-core PROPERTIES AUTOMOC ON)
+
+qt_add_executable(openauto-prodigy
+    main.cpp
 )
 
 # Tell Qt the QML type name for each file (override subdirectory-based naming)
@@ -264,51 +296,28 @@ if(OAP_SKIP_QML_PLUGIN_IMPORT)
     set_target_properties(openauto-prodigy PROPERTIES QT_NO_IMPORT_QML_PLUGINS ON)
 endif()
 
-target_include_directories(openauto-prodigy PRIVATE
-    ${CMAKE_CURRENT_SOURCE_DIR}
-    ${CMAKE_SOURCE_DIR}/libs/open-androidauto/include
-    ${CMAKE_BINARY_DIR}/libs/open-androidauto
-    ${CMAKE_SOURCE_DIR}/libs/qrcodegen
-    ${LIBAV_INCLUDE_DIRS}
-    ${PIPEWIRE_INCLUDE_DIRS}
-)
-
-target_link_libraries(openauto-prodigy PRIVATE
-    Qt6::Core
-    Qt6::Quick
-    Qt6::QuickControls2
-    Qt6::Multimedia
-    Qt6::Network
-    Qt6::DBus
-    open-androidauto
-    OpenSSL::SSL
-    OpenSSL::Crypto
-    protobuf::libprotobuf
-    ${LIBAV_LIBRARIES}
-    ${PIPEWIRE_LIBRARIES}
-    yaml-cpp::yaml-cpp
-)
+target_link_libraries(openauto-prodigy PRIVATE openauto-core)
 
 # Git hash for ServiceDiscoveryResponse sw_build field
-target_compile_definitions(openauto-prodigy PRIVATE
+target_compile_definitions(openauto-core PUBLIC
     OAP_GIT_HASH="${OAP_GIT_HASH}"
 )
 
 # Bluetooth discovery — optional, not available on all dev platforms (e.g. WSL2)
 if(TARGET Qt6::Bluetooth)
-    target_sources(openauto-prodigy PRIVATE
+    target_sources(openauto-core PRIVATE
         core/aa/BluetoothDiscoveryService.cpp
     )
     # BlueZ C library for direct SDP record registration via legacy SDP socket.
     # ProfileManager1 D-Bus API conflicts with QBluetoothServer's RFCOMM binding.
     find_library(BLUEZ_LIB bluetooth)
     if(BLUEZ_LIB)
-        target_link_libraries(openauto-prodigy PRIVATE Qt6::Bluetooth ${BLUEZ_LIB})
+        target_link_libraries(openauto-core PUBLIC Qt6::Bluetooth ${BLUEZ_LIB})
     else()
-        target_link_libraries(openauto-prodigy PRIVATE Qt6::Bluetooth)
+        target_link_libraries(openauto-core PUBLIC Qt6::Bluetooth)
         message(WARNING "libbluetooth not found — SDP registration will fail at runtime")
     endif()
-    target_compile_definitions(openauto-prodigy PRIVATE HAS_BLUETOOTH)
+    target_compile_definitions(openauto-core PUBLIC HAS_BLUETOOTH)
     message(STATUS "Qt6::Bluetooth found — Bluetooth discovery enabled")
 else()
     message(STATUS "Qt6::Bluetooth NOT found — Bluetooth discovery disabled (wireless requires manual TCP)")
