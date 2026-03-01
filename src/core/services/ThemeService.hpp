@@ -64,7 +64,7 @@ public:
     QColor color(const QString& name) const override;
     QString fontFamily() const override;
     QString iconPath(const QString& relativePath) const override;
-    bool setTheme(const QString& themeId) override;
+    Q_INVOKABLE bool setTheme(const QString& themeId) override;
 
     /// Scan directories for theme subdirectories containing theme.yaml.
     /// User themes searched first (first seen ID wins for deduplication).
