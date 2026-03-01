@@ -40,7 +40,10 @@ if(NOT OAP_GIT_HASH)
     set(OAP_GIT_HASH "unknown")
 endif()
 
-enable_testing()
-
 add_subdirectory(src)
-add_subdirectory(tests)
+
+option(BUILD_TESTING "Build test executables" ON)
+if(BUILD_TESTING)
+    enable_testing()
+    add_subdirectory(tests)
+endif()
