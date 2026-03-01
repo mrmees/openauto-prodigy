@@ -41,10 +41,12 @@ Plans:
   2. User can select a wallpaper from available options, visible on the home/launcher screen
   3. Selected theme and wallpaper survive a full reboot
   4. User can adjust screen brightness from the settings slider and gesture overlay, and the physical backlight changes on Pi
-**Plans**: TBD
+**Plans**: 3 plans
 
 Plans:
-- [ ] 02-01: TBD
+- [ ] 02-01-PLAN.md — ThemeService multi-theme scanning, switching, wallpaper source + bundled theme YAMLs
+- [ ] 02-02-PLAN.md — DisplayService implementation (3-tier brightness: sysfs > ddcutil > software overlay)
+- [ ] 02-03-PLAN.md — UI wiring: theme picker, wallpaper, brightness sliders, dimming overlay + Pi verification
 
 ### Phase 3: Audio Features
 **Goal**: Phone calls never drop due to AA state, and music sounds good through car speakers with EQ
@@ -84,6 +86,6 @@ Phases execute in numeric order: 1 -> 2 -> 3 -> 4
 | Phase | Plans Complete | Status | Completed |
 |-------|----------------|--------|-----------|
 | 1. Logging Cleanup | 2/3 | UAT gap closure | - |
-| 2. Theme & Display | 0/? | Not started | - |
+| 2. Theme & Display | 0/3 | Planned | - |
 | 3. Audio Features | 0/? | Not started | - |
 | 4. Release Hardening | 0/? | Not started | - |
