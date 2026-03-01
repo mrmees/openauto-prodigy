@@ -1,0 +1,36 @@
+id: amoled
+name: AMOLED
+version: 1.0.0
+font_family: "Lato"
+
+# Day mode colors — pure black, minimal accent
+day:
+  background: "#000000"
+  highlight: "#4fc3f7"
+  control_background: "#0a0a0a"
+  control_foreground: "#d0d0d0"
+  normal_font: "#ffffff"
+  special_font: "#4fc3f7"
+  description_font: "#808080"
+  bar_background: "#0f0f0f"
+  control_box_background: "#0a0a0a"
+  gauge_indicator: "#4fc3f7"
+  icon: "#ffffff"
+  side_widget_background: "#0a0a0a"
+  bar_shadow: "#000000"
+
+# Night mode colors — identical to day (pure black needs no dimming)
+night:
+  background: "#000000"
+  highlight: "#4fc3f7"
+  control_background: "#0a0a0a"
+  control_foreground: "#d0d0d0"
+  normal_font: "#ffffff"
+  special_font: "#4fc3f7"
+  description_font: "#808080"
+  bar_background: "#0f0f0f"
+  control_box_background: "#0a0a0a"
+  gauge_indicator: "#4fc3f7"
+  icon: "#ffffff"
+  side_widget_background: "#0a0a0a"
+  bar_shadow: "#000000"

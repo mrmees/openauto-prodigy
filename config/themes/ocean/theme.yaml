@@ -1,0 +1,36 @@
+id: ocean
+name: Ocean
+version: 1.0.0
+font_family: "Lato"
+
+# Day mode colors — cool blue/teal palette
+day:
+  background: "#1b2838"
+  highlight: "#66c0f4"
+  control_background: "#172030"
+  control_foreground: "#d0d0e0"
+  normal_font: "#e8e8f0"
+  special_font: "#66c0f4"
+  description_font: "#8090a8"
+  bar_background: "#1e3a52"
+  control_box_background: "#172030"
+  gauge_indicator: "#66c0f4"
+  icon: "#e8e8f0"
+  side_widget_background: "#172030"
+  bar_shadow: "#000000"
+
+# Night mode colors — deeper, less saturated
+night:
+  background: "#0e1a26"
+  highlight: "#4a98c8"
+  control_background: "#0c1620"
+  control_foreground: "#a0a0b8"
+  normal_font: "#b8b8c8"
+  special_font: "#4a98c8"
+  description_font: "#607080"
+  bar_background: "#142838"
+  control_box_background: "#0c1620"
+  gauge_indicator: "#4a98c8"
+  icon: "#b8b8c8"
+  side_widget_background: "#0c1620"
+  bar_shadow: "#000000"

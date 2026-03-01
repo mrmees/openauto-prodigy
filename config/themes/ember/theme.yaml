@@ -1,0 +1,36 @@
+id: ember
+name: Ember
+version: 1.0.0
+font_family: "Lato"
+
+# Day mode colors — warm amber/orange, classic dashboard feel
+day:
+  background: "#1e1712"
+  highlight: "#ff8c42"
+  control_background: "#2a1e16"
+  control_foreground: "#e0d0c0"
+  normal_font: "#f0e8e0"
+  special_font: "#ff8c42"
+  description_font: "#a09080"
+  bar_background: "#2d2018"
+  control_box_background: "#2a1e16"
+  gauge_indicator: "#ff8c42"
+  icon: "#f0e8e0"
+  side_widget_background: "#2a1e16"
+  bar_shadow: "#000000"
+
+# Night mode colors — deeper, reduced intensity
+night:
+  background: "#120e0a"
+  highlight: "#cc7035"
+  control_background: "#1a1410"
+  control_foreground: "#b0a090"
+  normal_font: "#c8c0b8"
+  special_font: "#cc7035"
+  description_font: "#706050"
+  bar_background: "#201810"
+  control_box_background: "#1a1410"
+  gauge_indicator: "#cc7035"
+  icon: "#c8c0b8"
+  side_widget_background: "#1a1410"
+  bar_shadow: "#000000"
