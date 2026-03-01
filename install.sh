@@ -1103,6 +1103,9 @@ wpa=2
 wpa_passphrase=$WIFI_PASS
 wpa_key_mgmt=WPA-PSK
 rsn_pairwise=CCMP
+
+# 40MHz channel bonding + short guard interval for lower latency
+ht_capab=[HT40+][SHORT-GI-20][SHORT-GI-40]
 HOSTAPD
 
     # Point hostapd at our config
