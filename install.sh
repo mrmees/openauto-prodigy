@@ -431,8 +431,18 @@ run_with_spinner() {
         tput civis 2>/dev/null || true
         while kill -0 "$cmd_pid" 2>/dev/null; do
             SPIN_TICK=$((SPIN_TICK + 1))
+            local elapsed=$((SECONDS - start_time))
+            local c="${SPINNER_CHARS:$((SPIN_TICK % char_count)):1}"
             draw_header
+            # Show current task label with spinner on the line below completed items
+            tput cup "$BODY_CURSOR" 0
+            printf '  %s %s (%s)' "$c" "$label" "$(_fmt_elapsed $elapsed)"
+            tput el
+            # Show log viewport below the label line
+            local saved_cursor=$BODY_CURSOR
+            BODY_CURSOR=$((BODY_CURSOR + 1))
             draw_log_viewport
+            BODY_CURSOR=$saved_cursor
             sleep 0.15
         done
     else
