@@ -74,8 +74,17 @@ const char* levelTag(QtMsgType type)
 
 bool containsLifecycleKeyword(const QString& message)
 {
+    // Strip any leading bracket tag (e.g. "[AASession] ") before checking,
+    // so tag names don't false-match keywords like "session"
+    QString body = message;
+    if (body.startsWith(QLatin1Char('['))) {
+        int close = body.indexOf(QLatin1Char(']'));
+        if (close > 0)
+            body = body.mid(close + 1);
+    }
+
     for (int i = 0; g_lifecycleKeywords[i]; ++i) {
-        if (message.contains(QLatin1String(g_lifecycleKeywords[i]), Qt::CaseInsensitive))
+        if (body.contains(QLatin1String(g_lifecycleKeywords[i]), Qt::CaseInsensitive))
             return true;
     }
     return false;
