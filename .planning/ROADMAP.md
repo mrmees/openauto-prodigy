@@ -12,7 +12,6 @@ The core AA experience works end-to-end. This roadmap closes the remaining gaps 
 
 - [ ] **Phase 1: Logging Cleanup** - Replace debug spam with categorized, quiet-by-default logging (UAT gap closure in progress)
 - [ ] **Phase 2: Theme & Display** - User-selectable color palettes, wallpapers, and brightness control
-- [ ] **Phase 3: Release Hardening** - First-run experience, watchdog, clean shutdown, daily-driver stability
 
 ## Phase Details
 
@@ -50,28 +49,12 @@ Plans:
 - [x] 02-05-PLAN.md — Gap closure: wallpaper display in Shell.qml + gesture overlay wiring
 - [ ] 02-06-PLAN.md — Gap closure: wallpaper config persistence + dynamic wallpaper refresh
 
-### Phase 3: Release Hardening
-**Goal**: The app is trustworthy enough to be someone's daily-driver head unit without SSH access
-**Depends on**: Phase 2, Phase 3
-**Requirements**: REL-01, REL-02, REL-03, REL-04, REL-05
-**Success Criteria** (what must be TRUE):
-  1. First launch after install presents a guided flow that walks the user through phone pairing and WiFi verification
-  2. Selecting shutdown or reboot from the ExitDialog actually powers off or reboots the Pi
-  3. If the app crashes or hangs, systemd automatically restarts it within 10 seconds
-  4. Killing the app with SIGTERM results in a clean exit (config saved, BT ungrabbed, connections closed, no orphan processes)
-  5. The app runs as a daily driver for a week without crashes requiring manual intervention
-**Plans**: TBD
+### Phase 3: equalizer
+
+**Goal:** [To be planned]
+**Requirements**: TBD
+**Depends on:** Phase 3
+**Plans:** 0 plans
 
 Plans:
-- [ ] 03-01: TBD
-
-## Progress
-
-**Execution Order:**
-Phases execute in numeric order: 1 -> 2 -> 3 -> 4
-
-| Phase | Plans Complete | Status | Completed |
-|-------|----------------|--------|-----------|
-| 1. Logging Cleanup | 2/3 | UAT gap closure | - |
-| 2. Theme & Display | 5/6 | UAT gap closure | - |
-| 3. Release Hardening | 0/? | Not started | - |
+- [ ] TBD (run /gsd:plan-phase 4 to break down)

@@ -3,9 +3,9 @@ gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
 status: unknown
-last_updated: "2026-03-01T22:23:05.978Z"
+last_updated: "2026-03-01T22:25:52.218Z"
 progress:
-  total_phases: 2
+  total_phases: 3
   completed_phases: 2
   total_plans: 9
   completed_plans: 9
@@ -22,7 +22,7 @@ See: .planning/PROJECT.md (updated 2026-03-01)
 
 ## Current Position
 
-Phase: 2 of 3 (Theme & Display) -- COMPLETE
+Phase: 2 of 2 (Theme & Display) -- COMPLETE
 Plan: 6 of 6 in current phase (all complete)
 Status: Phase 2 complete (including gap-closure plans 04+05+06), ready for Phase 3
 Last activity: 2026-03-01 — Completed 02-06 (UAT Retest Gap Closure)
@@ -82,6 +82,11 @@ Recent decisions affecting current work:
 - 02-05: EvdevTouchReader always tracks slots, only forwards to AA when grabbed
 - 02-06: Config defaults gate: wallpaper_override must exist in initDefaults() for setValueByPath to accept writes
 - 02-06: Wallpaper refresh on Component.onCompleted (no filesystem watcher needed)
+
+### Roadmap Evolution
+
+- Phase 3 (audio-features) removed: HFP bundled elsewhere
+- Phase 4 added: equalizer
 
 ### Pending Todos
 
