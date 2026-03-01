@@ -24,6 +24,8 @@ private slots:
     void testLibraryDetectionByCategory();
     void testLibraryDetectionByFilePath();
     void testLibraryDetectionByBracketTag();
+    void testLibraryDetectionByColonPrefix();
+    void testLibraryDetectionNewTags();
     void testNonLibraryMessage();
 
     void cleanupTestCase();
@@ -133,7 +135,22 @@ void TestLogging::testLibraryDetectionByBracketTag()
 {
     QVERIFY(oap::isLibraryMessage("default", nullptr, QStringLiteral("[TCPTransport] connecting...")));
     QVERIFY(oap::isLibraryMessage("default", nullptr, QStringLiteral("[ControlChannel] opened")));
-    QVERIFY(oap::isLibraryMessage("default", nullptr, QStringLiteral("[Messenger] frame received")));
+    QVERIFY(oap::isLibraryMessage("default", nullptr, QStringLiteral("[AASession] RX frame")));
+}
+
+void TestLogging::testLibraryDetectionByColonPrefix()
+{
+    QVERIFY(oap::isLibraryMessage("default", nullptr, QStringLiteral("Messenger: assembled frame")));
+    QVERIFY(oap::isLibraryMessage("default", nullptr, QStringLiteral("FrameAssembler: duplicate FIRST")));
+    // Should NOT match colon in middle of message
+    QVERIFY(!oap::isLibraryMessage("default", nullptr, QStringLiteral("Some prefix Messenger: not at start")));
+}
+
+void TestLogging::testLibraryDetectionNewTags()
+{
+    QVERIFY(oap::isLibraryMessage("default", nullptr, QStringLiteral("[PhoneStatusChannel] call state changed")));
+    QVERIFY(oap::isLibraryMessage("default", nullptr, QStringLiteral("[NavChannel] navigation started")));
+    QVERIFY(oap::isLibraryMessage("default", nullptr, QStringLiteral("[MediaStatusChannel] playback state")));
 }
 
 void TestLogging::testNonLibraryMessage()

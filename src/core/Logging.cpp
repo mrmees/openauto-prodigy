@@ -19,13 +19,19 @@ static std::atomic<bool> g_verbose{false};
 static bool g_logToFile{false};
 static FILE* g_logFile{nullptr};
 
-// Known bracket tags from open-androidauto library
+// Known bracket tags from open-androidauto library (verified from source)
 static const char* const g_libraryTags[] = {
-    "[TCPTransport]", "[ControlChannel]", "[Messenger]",
-    "[Session]", "[MediaChannel]", "[InputChannel]",
+    "[TCPTransport]", "[ControlChannel]", "[InputChannel]",
     "[SensorChannel]", "[AudioChannel]", "[VideoChannel]",
     "[BluetoothChannel]", "[WiFiChannel]", "[AVInputChannel]",
-    "[FrameParser]", "[CryptoLayer]",
+    "[AASession]", "[PhoneStatusChannel]", "[NavChannel]",
+    "[MediaStatusChannel]",
+    nullptr
+};
+
+// Library files that use "Name: ..." format without brackets
+static const char* const g_libraryPrefixes[] = {
+    "Messenger:", "FrameAssembler:",
     nullptr
 };
 
@@ -210,6 +216,12 @@ bool isLibraryMessage(const char* category, const char* file, const QString& mes
     // Check for known bracket tags in message
     for (int i = 0; g_libraryTags[i]; ++i) {
         if (message.contains(QLatin1String(g_libraryTags[i])))
+            return true;
+    }
+
+    // Check for colon-prefixed patterns (e.g. "Messenger: assembled frame")
+    for (int i = 0; g_libraryPrefixes[i]; ++i) {
+        if (message.startsWith(QLatin1String(g_libraryPrefixes[i])))
             return true;
     }
 
