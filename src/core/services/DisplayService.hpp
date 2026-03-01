@@ -25,7 +25,7 @@ public:
     // IDisplayService
     QSize screenSize() const override;
     int brightness() const override;
-    void setBrightness(int value) override;
+    Q_INVOKABLE void setBrightness(int value) override;
     QString orientation() const override;
 
     /// Overlay opacity for software dimming (0.0 = invisible, max 0.9).
