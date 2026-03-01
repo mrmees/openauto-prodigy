@@ -36,6 +36,7 @@ Governance: capture new ideas in `docs/wishlist.md`; only promoted items should 
 
 - Dynamic AA video reconfiguration for sidebar changes.
   - Rationale: toggling the sidebar on/off or changing its position (left/right/top/bottom) requires recalculating the AA video content area (margin_width/margin_height in VideoConfig). Currently this isn't handled dynamically — the video config is locked at session start.
+  - Discovery: `UiConfigMessages.proto` (added to open-android-auto 2026-02-28) defines `UpdateHuUiConfigRequest` (0x8012) — an HU-initiated push of margins, content insets, and day/night theme over the video AV channel. This may be the proper mechanism for runtime sidebar/margin changes and night mode, replacing the sensor-based workaround. Needs wire verification.
   - Outcome: sidebar show/hide and position changes trigger AA video renegotiation or margin recalculation within the active session, so the phone renders correctly for the new layout without reconnecting.
 - Reduce unnecessary logging / enable debug logging options.
   - Rationale: BtManager spams "Found N paired device(s)" on every D-Bus signal, NavStrip QML color warnings on startup. Production should be quiet by default with a debug flag or config option to enable verbose output.
