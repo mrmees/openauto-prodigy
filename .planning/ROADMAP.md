@@ -12,8 +12,7 @@ The core AA experience works end-to-end. This roadmap closes the remaining gaps 
 
 - [ ] **Phase 1: Logging Cleanup** - Replace debug spam with categorized, quiet-by-default logging (UAT gap closure in progress)
 - [ ] **Phase 2: Theme & Display** - User-selectable color palettes, wallpapers, and brightness control
-- [ ] **Phase 3: Audio Features** - HFP call audio independence from AA session + parametric EQ with presets
-- [ ] **Phase 4: Release Hardening** - First-run experience, watchdog, clean shutdown, daily-driver stability
+- [ ] **Phase 3: Release Hardening** - First-run experience, watchdog, clean shutdown, daily-driver stability
 
 ## Phase Details
 
@@ -51,22 +50,7 @@ Plans:
 - [x] 02-05-PLAN.md — Gap closure: wallpaper display in Shell.qml + gesture overlay wiring
 - [ ] 02-06-PLAN.md — Gap closure: wallpaper config persistence + dynamic wallpaper refresh
 
-### Phase 3: Audio Features
-**Goal**: Phone calls never drop due to AA state, and music sounds good through car speakers with EQ
-**Depends on**: Phase 1
-**Requirements**: AUD-01, AUD-02, AUD-03, AUD-04, AUD-05, AUD-06
-**Success Criteria** (what must be TRUE):
-  1. An active HFP phone call continues with audio when the AA session disconnects or crashes
-  2. AA media audio ducks (reduces volume) automatically when an HFP call is active
-  3. User can select an EQ preset (flat, bass boost, vocal, etc.) from head unit settings and hear the difference immediately
-  4. User can create a custom EQ profile with per-band gain sliders, save it, and recall it later
-  5. EQ is editable from the web config panel and applies only to music/media (not navigation or call audio)
-**Plans**: TBD
-
-Plans:
-- [ ] 03-01: TBD
-
-### Phase 4: Release Hardening
+### Phase 3: Release Hardening
 **Goal**: The app is trustworthy enough to be someone's daily-driver head unit without SSH access
 **Depends on**: Phase 2, Phase 3
 **Requirements**: REL-01, REL-02, REL-03, REL-04, REL-05
@@ -79,7 +63,7 @@ Plans:
 **Plans**: TBD
 
 Plans:
-- [ ] 04-01: TBD
+- [ ] 03-01: TBD
 
 ## Progress
 
@@ -90,5 +74,4 @@ Phases execute in numeric order: 1 -> 2 -> 3 -> 4
 |-------|----------------|--------|-----------|
 | 1. Logging Cleanup | 2/3 | UAT gap closure | - |
 | 2. Theme & Display | 5/6 | UAT gap closure | - |
-| 3. Audio Features | 0/? | Not started | - |
-| 4. Release Hardening | 0/? | Not started | - |
+| 3. Release Hardening | 0/? | Not started | - |

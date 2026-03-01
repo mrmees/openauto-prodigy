@@ -1,8 +1,8 @@
 ---
-status: investigating
+status: resolved
 trigger: "open-androidauto library output not filtered in quiet mode - [AASession] RX ch X msgId Y len Z floods log as [D] [App]"
 created: 2026-03-01T00:00:00Z
-updated: 2026-03-01T00:00:00Z
+updated: 2026-03-01T00:30:00Z
 ---
 
 ## Current Focus
@@ -57,6 +57,13 @@ root_cause: |
 
   Secondary issue: Messenger.cpp and FrameAssembler.cpp use a different format ("Messenger: ...", "FrameAssembler: ...") without brackets, so they bypass all heuristics.
 
-fix: Update g_libraryTags to match actual library output
-verification:
-files_changed: []
+fix: |
+  Already applied in commit b1a0dca:
+  1. Removed stale tags: [Session], [MediaChannel], [FrameParser], [CryptoLayer]
+  2. Added missing tags: [AASession], [PhoneStatusChannel], [NavChannel], [MediaStatusChannel]
+  3. Added g_libraryPrefixes[] array for "Messenger:" and "FrameAssembler:" colon-format messages
+  4. Added startsWith check in isLibraryMessage() for colon-prefixed patterns
+  Follow-up commit 7aa0133 added bracket-tag stripping before lifecycle keyword check.
+verification: test_logging passes (1/1). Code already committed to main.
+files_changed:
+  - src/core/Logging.cpp
