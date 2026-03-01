@@ -25,6 +25,10 @@ A person with a Raspberry Pi 4 and a touchscreen can install this, pair their ph
 - ✓ Settings UI (audio, video, display, connection, system sections) — existing
 - ✓ YAML config with deep merge, typed accessors — existing
 - ✓ Day/night theme via ThemeService — existing
+- ✓ Categorized logging with quiet defaults, verbose via CLI/config/web panel — v0.4
+- ✓ Multi-theme color palettes with user override paths — v0.4
+- ✓ Wallpaper system with per-theme defaults and user override — v0.4
+- ✓ 3-tier brightness control (sysfs > ddcutil > software overlay) — v0.4
 - ✓ Interactive installer for RPi OS Trixie (hardware detection, hostapd, labwc, services) — existing
 - ✓ Prebuilt release distribution workflow — existing
 - ✓ Web config panel (Flask + Unix socket IPC) — existing
@@ -38,10 +42,10 @@ A person with a Raspberry Pi 4 and a touchscreen can install this, pair their ph
 
 - [ ] HFP call audio persists across AA connection state (calls don't drop if AA disconnects)
 - [ ] Audio equalizer with presets and custom profiles (head unit UI + web config backend)
-- [ ] Dynamic sidebar/video reconfiguration during active AA session
-- [ ] Logging cleanup — quiet default output, debug toggle
-- [ ] Theme selection — user-pickable color palettes + wallpaper selection
 - [ ] Release-quality stability — daily driver reliable without manual intervention
+- [ ] First-run experience guides user through phone pairing and WiFi verification
+- [ ] Clean shutdown on SIGTERM (saves config, closes connections)
+- [ ] Systemd watchdog for process monitoring
 
 ### Out of Scope
 
@@ -63,9 +67,7 @@ A person with a Raspberry Pi 4 and a touchscreen can install this, pair their ph
 
 OpenAuto Pro (BlueWave Studio) was a commercial Pi-based AA head unit that went defunct. This project is a clean-room rebuild — no OAP code, no aasdk dependency. The protocol library (`open-android-auto`) is maintained as a separate community resource.
 
-The project has been developed organically over multiple sessions with significant progress — the core AA experience works end-to-end. What's needed now is structured milestone planning to close the remaining gaps and reach a tagged v1.0 release that others can install and use.
-
-Existing codebase is substantial (~15K+ lines C++, ~3K QML, installer, web panel, 47 tests). Most AA protocol work is done. Remaining work is primarily feature completion (HFP audio, EQ, sidebar), polish (themes, logging), and release hardening.
+v0.4 shipped logging infrastructure and visual personalization. Codebase is ~18K+ lines C++ across 159 files, ~3K QML, installer, web panel, 47 tests. Core AA experience works end-to-end. Remaining work: audio features (EQ, HFP independence), release hardening (first-run, watchdog, stability).
 
 ## Constraints
 
@@ -87,7 +89,11 @@ Existing codebase is substantial (~15K+ lines C++, ~3K QML, installer, web panel
 | YAML config over INI | Deep merge, structured data, theme/device cascading | ✓ Good |
 | Direct evdev touch (not Qt plugin) | Avoids labwc/Qt touch conflicts, enables EVIOCGRAB for AA | ✓ Good |
 | Companion app separate repo/timeline | Head unit v1.0 shouldn't be blocked by phone app | — Pending |
-| Color palette + wallpaper themes (not full engine) | Right scope for v1.0 — full themes are post-release | — Pending |
+| Color palette + wallpaper themes (not full engine) | Right scope for v1.0 — full themes are post-release | ✓ Good |
+| Qt logging categories per subsystem | Clean default output, granular verbose control | ✓ Good |
+| 3-tier brightness (sysfs > ddcutil > software) | Works on all hardware, DFRobot has no sysfs backlight | ✓ Good |
+| Wallpaper override independent of theme | User can mix theme colors with any wallpaper | ✓ Good |
+| Config defaults gate pattern | setValueByPath silently fails without initDefaults() entry | ⚠️ Revisit |
 
 ---
-*Last updated: 2026-03-01 after initialization*
+*Last updated: 2026-03-01 after v0.4 milestone*
