@@ -7,8 +7,8 @@ last_updated: "2026-03-01T20:00:25.155Z"
 progress:
   total_phases: 2
   completed_phases: 2
-  total_plans: 6
-  completed_plans: 6
+  total_plans: 7
+  completed_plans: 7
 ---
 
 # Project State
@@ -23,29 +23,29 @@ See: .planning/PROJECT.md (updated 2026-03-01)
 ## Current Position
 
 Phase: 2 of 4 (Theme & Display) -- COMPLETE
-Plan: 3 of 3 in current phase (all complete)
-Status: Phase 2 complete, ready for Phase 3
-Last activity: 2026-03-01 — Completed 02-03 (UI Integration)
+Plan: 4 of 4 in current phase (all complete)
+Status: Phase 2 complete (including gap-closure plan 04), ready for Phase 3
+Last activity: 2026-03-01 — Completed 02-04 (Wallpaper Picker)
 
 Progress: [██████████] 100% (Phase 2)
 
 ## Performance Metrics
 
 **Velocity:**
-- Total plans completed: 6
-- Average duration: ~15 min
-- Total execution time: ~90 min
+- Total plans completed: 7
+- Average duration: ~13 min
+- Total execution time: ~93 min
 
 **By Phase:**
 
 | Phase | Plans | Total | Avg/Plan |
 |-------|-------|-------|----------|
 | 01-logging-cleanup | 3 | ~56 min | ~19 min |
-| 02-theme-display | 3/3 | ~38 min | ~13 min |
+| 02-theme-display | 4/4 | ~41 min | ~10 min |
 
 **Recent Trend:**
-- Last 5 plans: 01-03 (~6min), 02-02 (~4min), 02-01 (~4min), 02-03 (~30min)
-- Trend: 02-03 longer due to Pi hardware verification cycle
+- Last 5 plans: 02-02 (~4min), 02-01 (~4min), 02-03 (~30min), 02-04 (~3min)
+- Trend: 02-04 fast (gap-closure, no Pi verification needed)
 
 *Updated after each plan completion*
 
@@ -74,6 +74,9 @@ Recent decisions affecting current work:
 - 02-03: Q_INVOKABLE required for QML to call C++ methods via context properties (Q_PROPERTY WRITE alone insufficient)
 - 02-03: Software dimming labeled "Screen Dimming" with contrast icon when no hardware backend
 - 02-03: Brightness persistence split: SettingsSlider configPath in settings, explicit ConfigService.save() in GestureOverlay
+- 02-04: Wallpaper selection independent of theme: setTheme() sets default, setWallpaper() overrides, config persists
+- 02-04: AMOLED theme intentionally has no wallpaper (pure black background)
+- 02-04: Wallpaper list includes "None" as first option for solid color background
 
 ### Pending Todos
 
@@ -87,5 +90,5 @@ None yet.
 ## Session Continuity
 
 Last session: 2026-03-01
-Stopped at: Completed 02-03-PLAN.md (UI Integration) -- Phase 2 complete
+Stopped at: Completed 02-04-PLAN.md (Wallpaper Picker) -- Phase 2 fully complete
 Resume file: None
