@@ -18,11 +18,11 @@ progress:
 See: .planning/PROJECT.md (updated 2026-03-01)
 
 **Core value:** A person with a Raspberry Pi 4 and a touchscreen can install this, pair their phone, and get a reliable wireless Android Auto experience — every time, without SSH.
-**Current focus:** Phase 3 — DSP Core
+**Current focus:** Phase 1 — DSP Core
 
 ## Current Position
 
-Phase: 3 of 5 (DSP Core) — first phase of v0.4.1
+Phase: 1 of 3 (DSP Core) — first phase of v0.4.1
 Plan: 0 of ? in current phase
 Status: Ready to plan
 Last activity: 2026-03-01 — Roadmap created for v0.4.1
@@ -56,7 +56,7 @@ None.
 ### Blockers/Concerns
 
 - PipeWire SCO behavior needs wire verification on Pi before finalizing PhonePlugin architecture
-- Research flagged: QML slider layout at 1024x600 (10 vertical sliders in ~900px) needs visual prototyping in Phase 5
+- Research flagged: QML slider layout at 1024x600 (10 vertical sliders in ~900px) needs visual prototyping in Phase 3
 
 ## Session Continuity
 
