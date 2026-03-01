@@ -3,6 +3,7 @@
 #include <QTemporaryDir>
 #include <QFile>
 #include <QTextStream>
+#include <QImage>
 #include "core/services/ThemeService.hpp"
 
 class TestThemeService : public QObject {
@@ -341,6 +342,107 @@ private slots:
         QSignalSpy spy(&service, &oap::ThemeService::availableThemesChanged);
         service.scanThemeDirectories({tmpDir.path()});
         QCOMPARE(spy.count(), 1);
+    }
+    // --- Wallpaper enumeration tests ---
+
+    void wallpaperListIncludesNone()
+    {
+        QTemporaryDir tmpDir;
+        QVERIFY(tmpDir.isValid());
+
+        QDir(tmpDir.path()).mkpath("mytheme");
+        {
+            QFile f(tmpDir.filePath("mytheme/theme.yaml"));
+            f.open(QIODevice::WriteOnly);
+            QTextStream out(&f);
+            out << "id: mytheme\nname: My Theme\nday:\n  background: \"#111111\"\nnight:\n  background: \"#222222\"\n";
+            f.close();
+        }
+
+        oap::ThemeService service;
+        service.scanThemeDirectories({tmpDir.path()});
+
+        QVERIFY(service.availableWallpaperNames().size() >= 1);
+        QCOMPARE(service.availableWallpaperNames()[0], QString("None"));
+        QCOMPARE(service.availableWallpapers()[0], QString());
+    }
+
+    void wallpaperListIncludesThemesWithImages()
+    {
+        QTemporaryDir tmpDir;
+        QVERIFY(tmpDir.isValid());
+
+        QDir(tmpDir.path()).mkpath("wptheme");
+        {
+            QFile f(tmpDir.filePath("wptheme/theme.yaml"));
+            f.open(QIODevice::WriteOnly);
+            QTextStream out(&f);
+            out << "id: wptheme\nname: WP Theme\nday:\n  background: \"#111111\"\nnight:\n  background: \"#222222\"\n";
+            f.close();
+        }
+        // Create a wallpaper image
+        {
+            QImage img(1, 1, QImage::Format_RGB32);
+            img.fill(Qt::red);
+            img.save(tmpDir.filePath("wptheme/wallpaper.jpg"), "JPEG");
+        }
+
+        oap::ThemeService service;
+        service.scanThemeDirectories({tmpDir.path()});
+
+        QCOMPARE(service.availableWallpapers().size(), 2);  // None + wptheme
+        QCOMPARE(service.availableWallpaperNames().size(), 2);
+        QCOMPARE(service.availableWallpaperNames()[1], QString("WP Theme"));
+        QVERIFY(service.availableWallpapers()[1].startsWith("file://"));
+        QVERIFY(service.availableWallpapers()[1].contains("wallpaper.jpg"));
+    }
+
+    void wallpaperListExcludesThemesWithoutImages()
+    {
+        QTemporaryDir tmpDir;
+        QVERIFY(tmpDir.isValid());
+
+        QDir(tmpDir.path()).mkpath("nowp");
+        {
+            QFile f(tmpDir.filePath("nowp/theme.yaml"));
+            f.open(QIODevice::WriteOnly);
+            QTextStream out(&f);
+            out << "id: nowp\nname: No Wallpaper\nday:\n  background: \"#111111\"\nnight:\n  background: \"#222222\"\n";
+            f.close();
+        }
+
+        oap::ThemeService service;
+        service.scanThemeDirectories({tmpDir.path()});
+
+        // Only "None" should be in the list (theme without wallpaper is excluded)
+        QCOMPARE(service.availableWallpapers().size(), 1);
+        QCOMPARE(service.availableWallpaperNames().size(), 1);
+        QCOMPARE(service.availableWallpaperNames()[0], QString("None"));
+    }
+
+    void setWallpaperUpdatesSource()
+    {
+        oap::ThemeService service;
+        service.setWallpaper("file:///some/path.jpg");
+        QCOMPARE(service.wallpaperSource(), QString("file:///some/path.jpg"));
+    }
+
+    void setWallpaperEmitsSignal()
+    {
+        oap::ThemeService service;
+        QSignalSpy spy(&service, &oap::ThemeService::wallpaperChanged);
+        service.setWallpaper("file:///test.jpg");
+        QCOMPARE(spy.count(), 1);
+    }
+
+    void setWallpaperSameNoSignal()
+    {
+        oap::ThemeService service;
+        service.setWallpaper("file:///test.jpg");
+
+        QSignalSpy spy(&service, &oap::ThemeService::wallpaperChanged);
+        service.setWallpaper("file:///test.jpg");  // same value
+        QCOMPARE(spy.count(), 0);
     }
 };
 

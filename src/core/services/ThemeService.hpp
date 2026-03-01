@@ -48,6 +48,8 @@ class ThemeService : public QObject, public IThemeService {
     Q_PROPERTY(QStringList availableThemes READ availableThemes NOTIFY availableThemesChanged)
     Q_PROPERTY(QStringList availableThemeNames READ availableThemeNames NOTIFY availableThemesChanged)
     Q_PROPERTY(QString wallpaperSource READ wallpaperSource NOTIFY wallpaperChanged)
+    Q_PROPERTY(QStringList availableWallpapers READ availableWallpapers NOTIFY availableWallpapersChanged)
+    Q_PROPERTY(QStringList availableWallpaperNames READ availableWallpaperNames NOTIFY availableWallpapersChanged)
 
 public:
     explicit ThemeService(QObject* parent = nullptr);
@@ -79,6 +81,15 @@ public:
     /// Current theme wallpaper as file:// URL, or empty string if none
     QString wallpaperSource() const { return wallpaperSource_; }
 
+    /// Available wallpaper values: "" for None, file:// URLs for images
+    QStringList availableWallpapers() const { return availableWallpapers_; }
+
+    /// Available wallpaper display names: "None", "Default", "Ocean", etc.
+    QStringList availableWallpaperNames() const { return availableWallpaperNames_; }
+
+    /// Set wallpaper independently of theme selection
+    Q_INVOKABLE void setWallpaper(const QString& wallpaperPath);
+
     // Day/Night mode
     bool nightMode() const { return nightMode_; }
     void setNightMode(bool night);
@@ -108,6 +119,7 @@ signals:
     void modeChanged();
     void availableThemesChanged();
     void wallpaperChanged();
+    void availableWallpapersChanged();
 
 private:
     QColor activeColor(const QString& key) const;
@@ -125,6 +137,11 @@ private:
     QStringList availableThemeNames_;
     QMap<QString, QString> themeDirectories_; // theme ID -> directory path
     QString wallpaperSource_;
+
+    QStringList availableWallpapers_;
+    QStringList availableWallpaperNames_;
+
+    void buildWallpaperList();
 };
 
 } // namespace oap

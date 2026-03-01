@@ -38,6 +38,16 @@ Flickable {
             }
         }
 
+        FullScreenPicker {
+            label: "Wallpaper"
+            configPath: "display.wallpaper"
+            options: ThemeService.availableWallpaperNames
+            values: ThemeService.availableWallpapers
+            onActivated: function(index) {
+                ThemeService.setWallpaper(ThemeService.availableWallpapers[index])
+            }
+        }
+
         SegmentedButton {
             label: "Orientation"
             configPath: "display.orientation"

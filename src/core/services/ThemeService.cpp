@@ -117,6 +117,7 @@ void ThemeService::scanThemeDirectories(const QStringList& searchPaths)
     }
 
     emit availableThemesChanged();
+    buildWallpaperList();
 }
 
 bool ThemeService::setTheme(const QString& themeId)
@@ -153,6 +154,37 @@ void ThemeService::setNightMode(bool night)
 void ThemeService::toggleMode()
 {
     setNightMode(!nightMode_);
+}
+
+void ThemeService::buildWallpaperList()
+{
+    availableWallpapers_.clear();
+    availableWallpaperNames_.clear();
+
+    // First entry: "None" (solid color background)
+    availableWallpapers_.append(QString());
+    availableWallpaperNames_.append(QStringLiteral("None"));
+
+    // Enumerate wallpapers from all scanned themes
+    for (int i = 0; i < availableThemes_.size(); ++i) {
+        const QString& themeId = availableThemes_[i];
+        const QString& themeDir = themeDirectories_[themeId];
+        QString wpPath = QDir(themeDir).filePath("wallpaper.jpg");
+        if (QFile::exists(wpPath)) {
+            QString fileUrl = QStringLiteral("file://") + QFileInfo(wpPath).absoluteFilePath();
+            availableWallpapers_.append(fileUrl);
+            availableWallpaperNames_.append(availableThemeNames_[i]);
+        }
+    }
+
+    emit availableWallpapersChanged();
+}
+
+void ThemeService::setWallpaper(const QString& wallpaperPath)
+{
+    if (wallpaperSource_ == wallpaperPath) return;
+    wallpaperSource_ = wallpaperPath;
+    emit wallpaperChanged();
 }
 
 QColor ThemeService::activeColor(const QString& key) const
