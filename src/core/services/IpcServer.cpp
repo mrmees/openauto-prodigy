@@ -143,6 +143,10 @@ QByteArray IpcServer::handleRequest(const QByteArray& request)
         return handleSetAudioConfig(data);
     if (command == QLatin1String("companion_status"))
         return handleCompanionStatus();
+    if (command == QLatin1String("get_logging"))
+        return handleGetLogging();
+    if (command == QLatin1String("set_logging"))
+        return handleSetLogging(data);
 
     return R"({"error":"Unknown command"})";
 }
@@ -378,6 +382,54 @@ QByteArray IpcServer::handleCompanionStatus()
     if (!companion_->vehicleId().isEmpty())
         obj["vehicle_id"] = companion_->vehicleId();
     return QJsonDocument(obj).toJson(QJsonDocument::Compact);
+}
+
+QByteArray IpcServer::handleGetLogging()
+{
+    QJsonObject obj;
+    obj["verbose"] = oap::isVerbose();
+
+    // Read persisted debug_categories from config
+    QJsonArray cats;
+    if (config_) {
+        QVariant val = config_->valueByPath("logging.debug_categories");
+        if (val.isValid()) {
+            for (const QString& cat : val.toStringList())
+                cats.append(cat);
+        }
+    }
+    obj["debug_categories"] = cats;
+
+    return QJsonDocument(obj).toJson(QJsonDocument::Compact);
+}
+
+QByteArray IpcServer::handleSetLogging(const QVariantMap& data)
+{
+    if (data.contains("verbose")) {
+        bool verbose = data.value("verbose").toBool();
+        oap::setVerbose(verbose);
+        if (config_) {
+            config_->setValueByPath("logging.verbose", verbose);
+        }
+        qCInfo(lcCore) << "Logging verbose set to" << verbose << "(via IPC)";
+    }
+
+    if (data.contains("categories")) {
+        QStringList categories;
+        for (const QVariant& v : data.value("categories").toList())
+            categories.append(v.toString());
+        oap::setDebugCategories(categories);
+        if (config_) {
+            config_->setValueByPath("logging.debug_categories", categories);
+        }
+        qCInfo(lcCore) << "Logging debug categories set to" << categories << "(via IPC)";
+    }
+
+    // Persist to disk
+    if (config_)
+        config_->save(configPath_);
+
+    return R"({"ok":true})";
 }
 
 } // namespace oap

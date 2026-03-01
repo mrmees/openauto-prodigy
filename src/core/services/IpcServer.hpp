@@ -53,6 +53,8 @@ private:
     QByteArray handleGetAudioConfig();
     QByteArray handleSetAudioConfig(const QVariantMap& data);
     QByteArray handleCompanionStatus();
+    QByteArray handleGetLogging();
+    QByteArray handleSetLogging(const QVariantMap& data);
 
     QLocalServer* server_ = nullptr;
     YamlConfig* config_ = nullptr;

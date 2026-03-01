@@ -143,6 +143,19 @@ def api_list_plugins():
     return jsonify(ipc_request("list_plugins"))
 
 
+@app.route("/api/logging", methods=["GET"])
+def api_get_logging():
+    return jsonify(ipc_request("get_logging"))
+
+
+@app.route("/api/logging", methods=["POST"])
+def api_set_logging():
+    data = request.get_json()
+    if not data:
+        return jsonify({"error": "No JSON data"}), 400
+    return jsonify(ipc_request("set_logging", data))
+
+
 @app.route("/api/status", methods=["GET"])
 def api_status():
     return jsonify(ipc_request("status"))

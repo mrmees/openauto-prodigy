@@ -86,10 +86,85 @@
 
     <button type="submit">Save Settings</button>
 </form>
+
+<div class="card" id="loggingCard">
+    <h3>Logging</h3>
+    <div class="form-group">
+        <label>
+            <input type="checkbox" id="log_verbose">
+            Verbose logging (all debug output)
+        </label>
+    </div>
+    <div class="form-group">
+        <label>Per-category debug (overrides verbose when set):</label>
+        <div style="display: flex; flex-wrap: wrap; gap: 8px; margin-top: 4px;">
+            <label><input type="checkbox" class="log-cat" value="aa"> AA</label>
+            <label><input type="checkbox" class="log-cat" value="bt"> BT</label>
+            <label><input type="checkbox" class="log-cat" value="audio"> Audio</label>
+            <label><input type="checkbox" class="log-cat" value="plugin"> Plugin</label>
+            <label><input type="checkbox" class="log-cat" value="ui"> UI</label>
+            <label><input type="checkbox" class="log-cat" value="core"> Core</label>
+        </div>
+    </div>
+    <div id="logStatus" style="font-size: 0.85em; color: #888; margin-top: 4px;"></div>
+</div>
 {% endblock %}
 
 {% block scripts %}
 <script>
+// --- Logging controls (live, no form submit needed) ---
+(async function initLogging() {
+    try {
+        const resp = await fetch('/api/logging');
+        const data = await resp.json();
+        if (data.error) return;
+
+        document.getElementById('log_verbose').checked = !!data.verbose;
+        const cats = data.debug_categories || [];
+        document.querySelectorAll('.log-cat').forEach(cb => {
+            cb.checked = cats.includes(cb.value);
+        });
+    } catch (e) {
+        console.error('Failed to load logging state:', e);
+    }
+})();
+
+document.getElementById('log_verbose').addEventListener('change', async function() {
+    const result = await apiCall('POST', '/api/logging', { verbose: this.checked });
+    const status = document.getElementById('logStatus');
+    if (result && !result.error) {
+        // Clear per-category checkboxes when enabling verbose (verbose overrides)
+        if (this.checked) {
+            document.querySelectorAll('.log-cat').forEach(cb => cb.checked = false);
+        }
+        status.textContent = 'Verbose ' + (this.checked ? 'enabled' : 'disabled');
+    } else {
+        status.textContent = 'Error: ' + (result?.error || 'unknown');
+    }
+    setTimeout(() => status.textContent = '', 3000);
+});
+
+document.querySelectorAll('.log-cat').forEach(cb => {
+    cb.addEventListener('change', async function() {
+        const selected = [];
+        document.querySelectorAll('.log-cat:checked').forEach(c => selected.push(c.value));
+
+        // If any category is selected, turn off verbose toggle
+        if (selected.length > 0) {
+            document.getElementById('log_verbose').checked = false;
+        }
+
+        const result = await apiCall('POST', '/api/logging', { categories: selected });
+        const status = document.getElementById('logStatus');
+        if (result && !result.error) {
+            status.textContent = selected.length ? 'Debug: ' + selected.join(', ') : 'Debug categories cleared';
+        } else {
+            status.textContent = 'Error: ' + (result?.error || 'unknown');
+        }
+        setTimeout(() => status.textContent = '', 3000);
+    });
+});
+
 document.getElementById('settingsForm').addEventListener('submit', async (e) => {
     e.preventDefault();
     const data = {
