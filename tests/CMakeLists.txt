@@ -25,6 +25,8 @@ oap_add_test(test_yaml_config
 )
 configure_file(data/test_config.yaml ${CMAKE_CURRENT_BINARY_DIR}/data/test_config.yaml COPYONLY)
 
+oap_add_test(test_logging SOURCES test_logging.cpp)
+
 oap_add_test(test_config_service SOURCES test_config_service.cpp)
 oap_add_test(test_config_key_coverage SOURCES test_config_key_coverage.cpp)
 
