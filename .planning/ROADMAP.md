@@ -10,7 +10,7 @@ The core AA experience works end-to-end. This roadmap closes the remaining gaps 
 - Integer phases (1, 2, 3, 4): Planned milestone work
 - Decimal phases (e.g., 2.1): Urgent insertions (marked with INSERTED)
 
-- [ ] **Phase 1: Logging Cleanup** - Replace debug spam with categorized, quiet-by-default logging
+- [x] **Phase 1: Logging Cleanup** - Replace debug spam with categorized, quiet-by-default logging (completed 2026-03-01)
 - [ ] **Phase 2: Theme & Display** - User-selectable color palettes, wallpapers, and brightness control
 - [ ] **Phase 3: Audio Features** - HFP call audio independence from AA session + parametric EQ with presets
 - [ ] **Phase 4: Release Hardening** - First-run experience, watchdog, clean shutdown, daily-driver stability
@@ -82,7 +82,7 @@ Phases execute in numeric order: 1 -> 2 -> 3 -> 4
 
 | Phase | Plans Complete | Status | Completed |
 |-------|----------------|--------|-----------|
-| 1. Logging Cleanup | 0/2 | Planned | - |
+| 1. Logging Cleanup | 2/2 | Complete   | 2026-03-01 |
 | 2. Theme & Display | 0/? | Not started | - |
 | 3. Audio Features | 0/? | Not started | - |
 | 4. Release Hardening | 0/? | Not started | - |
