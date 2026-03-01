@@ -1255,6 +1255,60 @@ YAML
 }
 
 # ────────────────────────────────────────────────────
+# ────────────────────────────────────────────────────
+# Clear paired phones from BlueZ (stale pairings from previous installs)
+# Identifies phones by Bluetooth Class of Device major class 0x02 (Phone).
+# Leaves non-phone devices (keyboards, speakers, etc.) untouched.
+# ────────────────────────────────────────────────────
+clear_paired_phones() {
+    local BT_DIR="/var/lib/bluetooth"
+    if [[ ! -d "$BT_DIR" ]]; then return; fi
+
+    # Find all paired phones
+    local phones=()
+    local phone_names=()
+    while IFS= read -r info_file; do
+        local class_hex
+        class_hex=$(grep -oP 'Class=0x\K[0-9a-fA-F]+' "$info_file" 2>/dev/null) || continue
+        # Major device class is bits 12-8: (class >> 8) & 0x1F
+        local major=$(( (16#$class_hex >> 8) & 0x1F ))
+        if [[ $major -eq 2 ]]; then
+            local dev_dir
+            dev_dir=$(dirname "$info_file")
+            local dev_name
+            dev_name=$(grep -oP 'Name=\K.*' "$info_file" 2>/dev/null || echo "Unknown device")
+            phones+=("$dev_dir")
+            phone_names+=("$dev_name")
+        fi
+    done < <(sudo find "$BT_DIR" -mindepth 3 -maxdepth 3 -name "info" 2>/dev/null)
+
+    if [[ ${#phones[@]} -eq 0 ]]; then return; fi
+
+    enter_interactive
+    echo
+    warn "Found ${#phones[@]} paired phone(s) from a previous installation:"
+    for i in "${!phone_names[@]}"; do
+        echo "    • ${phone_names[$i]}"
+    done
+    echo
+    echo "  Stale pairings can prevent the first-run pairing flow from appearing."
+    echo "  Non-phone devices (speakers, keyboards, etc.) will not be affected."
+    echo
+    read -p "  Remove paired phone(s)? [Y/n] " -n 1 -r
+    echo
+    if [[ ! "$REPLY" =~ ^[Nn]$ ]]; then
+        for dev_dir in "${phones[@]}"; do
+            sudo rm -rf "$dev_dir"
+        done
+        # Restart BlueZ to pick up the change
+        sudo systemctl restart bluetooth 2>/dev/null || true
+        ok "Removed ${#phones[@]} phone pairing(s)"
+    else
+        info "Keeping existing phone pairings"
+    fi
+    leave_interactive
+}
+
 # Step 6: Create systemd service
 # ────────────────────────────────────────────────────
 create_service() {
@@ -1584,6 +1638,9 @@ main() {
     create_system_service
     leave_interactive
     update_step 6 done
+
+    # Clean up stale phone pairings (survived from previous install)
+    clear_paired_phones
 
     run_diagnostics       # Step 7: Verify
 
