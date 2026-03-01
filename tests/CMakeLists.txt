@@ -50,6 +50,7 @@ oap_add_test(test_theme_service
 )
 file(COPY data/themes DESTINATION ${CMAKE_CURRENT_BINARY_DIR}/data)
 
+oap_add_test(test_display_service SOURCES test_display_service.cpp)
 oap_add_test(test_audio_service SOURCES test_audio_service.cpp)
 oap_add_test(test_event_bus SOURCES test_event_bus.cpp)
 oap_add_test(test_action_registry SOURCES test_action_registry.cpp)
@@ -97,6 +98,6 @@ add_test(
 )
 
 # GUI/Quick tests need offscreen platform when no display is available
-set_tests_properties(test_configuration test_theme_service test_plugin_model test_aa_orchestrator
+set_tests_properties(test_configuration test_theme_service test_display_service test_plugin_model test_aa_orchestrator
     PROPERTIES ENVIRONMENT "QT_QPA_PLATFORM=offscreen"
 )
