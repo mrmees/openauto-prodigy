@@ -19,13 +19,13 @@ See .planning/milestones/v0.4/ for archived details.
 
 ## Phases
 
-- [ ] **Phase 3: DSP Core** - RT-safe 10-band biquad engine with coefficient interpolation, bypass, and unit tests
-- [ ] **Phase 4: Service & Config** - EqualizerService with presets, per-stream profiles, AudioService integration, YAML persistence
-- [ ] **Phase 5: Head Unit EQ UI** - Touch-friendly QML interface with sliders, preset picker, and stream selector
+- [ ] **Phase 1: DSP Core** - RT-safe 10-band biquad engine with coefficient interpolation, bypass, and unit tests
+- [ ] **Phase 2: Service & Config** - EqualizerService with presets, per-stream profiles, AudioService integration, YAML persistence
+- [ ] **Phase 3: Head Unit EQ UI** - Touch-friendly QML interface with sliders, preset picker, and stream selector
 
 ## Phase Details
 
-### Phase 3: DSP Core
+### Phase 1: DSP Core
 **Goal**: A correct, RT-safe 10-band biquad equalizer engine exists with full unit test coverage, ready to be wired into any audio pipeline
 **Depends on**: Nothing (self-contained DSP math)
 **Requirements**: DSP-01, DSP-02, DSP-03
@@ -34,15 +34,15 @@ See .planning/milestones/v0.4/ for archived details.
   2. Coefficient interpolation smoothly transitions between two gain settings without audible clicks (verified by test checking ramp-over-N-samples behavior)
   3. Bypass toggle passes audio through unmodified (bit-exact or within floating-point epsilon)
   4. All processing is lock-free and uses no mutex (atomic coefficient swap only)
-**Plans**: TBD
+**Plans**: 2 plans
 
 Plans:
-- [ ] 03-01: TBD
-- [ ] 03-02: TBD
+- [ ] 01-01-PLAN.md — BiquadFilter + SoftLimiter (DSP primitives with TDD)
+- [ ] 01-02-PLAN.md — EqualizerEngine (10-band cascade, interpolation, bypass)
 
-### Phase 4: Service & Config
+### Phase 2: Service & Config
 **Goal**: Users hear EQ-processed audio on all three AA streams with per-stream profiles, bundled presets, user preset save/load, and settings that survive reboot
-**Depends on**: Phase 3
+**Depends on**: Phase 1
 **Requirements**: PRST-01, PRST-02, PRST-03, PRST-04, CFG-01
 **Success Criteria** (what must be TRUE):
   1. User can select any of 8 bundled presets and hear the audio change in real time
@@ -53,12 +53,12 @@ Plans:
 **Plans**: TBD
 
 Plans:
-- [ ] 04-01: TBD
-- [ ] 04-02: TBD
+- [ ] 02-01: TBD
+- [ ] 02-02: TBD
 
-### Phase 5: Head Unit EQ UI
+### Phase 3: Head Unit EQ UI
 **Goal**: Users can see and control the equalizer from the head unit touchscreen with car-friendly touch targets
-**Depends on**: Phase 4
+**Depends on**: Phase 2
 **Requirements**: UI-01, UI-02, UI-03
 **Success Criteria** (what must be TRUE):
   1. User can drag 10 vertical sliders to adjust individual band gains and hear the change immediately
@@ -68,19 +68,19 @@ Plans:
 **Plans**: TBD
 
 Plans:
-- [ ] 05-01: TBD
+- [ ] 03-01: TBD
 
 ## Progress
 
 **Execution Order:**
-Phases execute in numeric order: 3 -> 4 -> 5
+Phases execute in numeric order: 1 -> 2 -> 3
 
 | Phase | Plans Complete | Status | Completed |
 |-------|----------------|--------|-----------|
-| 3. DSP Core | 0/? | Not started | - |
-| 4. Service & Config | 0/? | Not started | - |
-| 5. Head Unit EQ UI | 0/? | Not started | - |
+| 1. DSP Core | 0/2 | Planned | - |
+| 2. Service & Config | 0/? | Not started | - |
+| 3. Head Unit EQ UI | 0/? | Not started | - |
 
 ---
 *Roadmap created: 2026-03-01*
-*Last updated: 2026-03-01*
+*Last updated: 2026-03-01 — Phase 1 plans created*
