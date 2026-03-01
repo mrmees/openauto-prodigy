@@ -7,8 +7,8 @@ last_updated: "2026-03-01T20:27:00.588Z"
 progress:
   total_phases: 2
   completed_phases: 2
-  total_plans: 7
-  completed_plans: 7
+  total_plans: 8
+  completed_plans: 8
 ---
 
 # Project State
@@ -23,29 +23,29 @@ See: .planning/PROJECT.md (updated 2026-03-01)
 ## Current Position
 
 Phase: 2 of 4 (Theme & Display) -- COMPLETE
-Plan: 4 of 4 in current phase (all complete)
-Status: Phase 2 complete (including gap-closure plan 04), ready for Phase 3
-Last activity: 2026-03-01 — Completed 02-04 (Wallpaper Picker)
+Plan: 5 of 5 in current phase (all complete)
+Status: Phase 2 complete (including gap-closure plans 04+05), ready for Phase 3
+Last activity: 2026-03-01 — Completed 02-05 (UAT Gap Closure)
 
 Progress: [██████████] 100% (Phase 2)
 
 ## Performance Metrics
 
 **Velocity:**
-- Total plans completed: 7
-- Average duration: ~13 min
-- Total execution time: ~93 min
+- Total plans completed: 8
+- Average duration: ~12 min
+- Total execution time: ~95 min
 
 **By Phase:**
 
 | Phase | Plans | Total | Avg/Plan |
 |-------|-------|-------|----------|
 | 01-logging-cleanup | 3 | ~56 min | ~19 min |
-| 02-theme-display | 4/4 | ~41 min | ~10 min |
+| 02-theme-display | 5/5 | ~43 min | ~9 min |
 
 **Recent Trend:**
-- Last 5 plans: 02-02 (~4min), 02-01 (~4min), 02-03 (~30min), 02-04 (~3min)
-- Trend: 02-04 fast (gap-closure, no Pi verification needed)
+- Last 5 plans: 02-01 (~4min), 02-03 (~30min), 02-04 (~3min), 02-05 (~2min)
+- Trend: 02-05 fast (gap-closure, targeted fixes)
 
 *Updated after each plan completion*
 
@@ -77,6 +77,9 @@ Recent decisions affecting current work:
 - 02-04: Wallpaper selection independent of theme: setTheme() sets default, setWallpaper() overrides, config persists
 - 02-04: AMOLED theme intentionally has no wallpaper (pure black background)
 - 02-04: Wallpaper list includes "None" as first option for solid color background
+- 02-05: Wallpaper visible condition matches LauncherMenu (hidden during plugins and settings)
+- 02-05: gestureTriggered relay signal avoids direct QML coupling in plugin code
+- 02-05: EvdevTouchReader always tracks slots, only forwards to AA when grabbed
 
 ### Pending Todos
 
@@ -90,5 +93,5 @@ None yet.
 ## Session Continuity
 
 Last session: 2026-03-01
-Stopped at: Completed 02-04-PLAN.md (Wallpaper Picker) -- Phase 2 fully complete
+Stopped at: Completed 02-05-PLAN.md (UAT Gap Closure) -- Phase 2 fully complete
 Resume file: None
