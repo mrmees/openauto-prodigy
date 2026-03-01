@@ -40,8 +40,21 @@ A person with a Raspberry Pi 4 and a touchscreen can install this, pair their ph
 
 <!-- Current scope. Building toward these. -->
 
+## Current Milestone: v0.4.1 Audio Equalizer
+
+**Goal:** Add a 10-band graphic equalizer with per-stream profiles, bundled + user presets, and dual UI (head unit touch + web config panel).
+
+**Target features:**
+- 10-band graphic EQ processing in PipeWire
+- Per-stream EQ profiles (media, navigation, phone)
+- Bundled presets (Rock, Pop, Jazz, Flat, Bass Boost, etc.)
+- User-created presets with save/load
+- Head unit touch UI (slider controls)
+- Web config panel EQ interface
+- YAML config persistence
+
+**Deferred to future milestones:**
 - [ ] HFP call audio persists across AA connection state (calls don't drop if AA disconnects)
-- [ ] Audio equalizer with presets and custom profiles (head unit UI + web config backend)
 - [ ] Release-quality stability — daily driver reliable without manual intervention
 - [ ] First-run experience guides user through phone pairing and WiFi verification
 - [ ] Clean shutdown on SIGTERM (saves config, closes connections)
@@ -67,7 +80,7 @@ A person with a Raspberry Pi 4 and a touchscreen can install this, pair their ph
 
 OpenAuto Pro (BlueWave Studio) was a commercial Pi-based AA head unit that went defunct. This project is a clean-room rebuild — no OAP code, no aasdk dependency. The protocol library (`open-android-auto`) is maintained as a separate community resource.
 
-v0.4 shipped logging infrastructure and visual personalization. Codebase is ~18K+ lines C++ across 159 files, ~3K QML, installer, web panel, 47 tests. Core AA experience works end-to-end. Remaining work: audio features (EQ, HFP independence), release hardening (first-run, watchdog, stability).
+v0.4 shipped logging infrastructure and visual personalization. Codebase is ~18K+ lines C++ across 159 files, ~3K QML, installer, web panel, 47 tests. Core AA experience works end-to-end. v0.4.1 focuses on audio equalizer — PipeWire DSP processing with per-stream profiles. Remaining after: HFP independence, release hardening (first-run, watchdog, stability).
 
 ## Constraints
 
@@ -96,4 +109,4 @@ v0.4 shipped logging infrastructure and visual personalization. Codebase is ~18K
 | Config defaults gate pattern | setValueByPath silently fails without initDefaults() entry | ⚠️ Revisit |
 
 ---
-*Last updated: 2026-03-01 after v0.4 milestone*
+*Last updated: 2026-03-01 after v0.4.1 milestone start*
