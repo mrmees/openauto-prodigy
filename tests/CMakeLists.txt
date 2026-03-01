@@ -89,6 +89,7 @@ oap_add_test(test_video_decode_queue SOURCES test_video_decode_queue.cpp)
 # --- DSP tests ---
 
 oap_add_test(test_biquad_filter SOURCES test_biquad_filter.cpp)
+oap_add_test(test_soft_limiter SOURCES test_soft_limiter.cpp)
 
 # --- Script tests (no compilation) ---
 
