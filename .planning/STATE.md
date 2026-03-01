@@ -41,11 +41,11 @@ Progress: [██████░░░░] 67% (Phase 2)
 | Phase | Plans | Total | Avg/Plan |
 |-------|-------|-------|----------|
 | 01-logging-cleanup | 3 | ~56 min | ~19 min |
-| 02-theme-display | 1/3 | ~4 min | ~4 min |
+| 02-theme-display | 2/3 | ~8 min | ~4 min |
 
 **Recent Trend:**
-- Last 5 plans: 01-01 (~25min), 01-02 (~25min), 01-03 (~6min), 02-02 (~4min)
-- Trend: Fast execution (02-02 source pre-existed, only build registration needed)
+- Last 5 plans: 01-02 (~25min), 01-03 (~6min), 02-02 (~4min), 02-01 (~4min)
+- Trend: Fast execution continues
 
 *Updated after each plan completion*
 
@@ -68,6 +68,9 @@ Recent decisions affecting current work:
 - 01-03: Colon-prefixed library patterns detected via startsWith()
 - 02-02: DisplayService source created in 02-01; this plan only needed build registration
 - 02-02: Software overlay backend auto-selected on dev VM; tests validate backend-independent logic
+- 02-01: First-seen theme ID wins during scan (user themes override bundled)
+- 02-01: Wallpaper convention: wallpaper.jpg in theme dir, exposed as file:// URL
+- 02-01: AMOLED theme uses identical day/night colors (pure black needs no dimming)
 
 ### Pending Todos
 
@@ -81,5 +84,5 @@ None yet.
 ## Session Continuity
 
 Last session: 2026-03-01
-Stopped at: Completed 02-02-PLAN.md (DisplayService Build Registration)
+Stopped at: Completed 02-01-PLAN.md (Multi-Theme Backend)
 Resume file: None
