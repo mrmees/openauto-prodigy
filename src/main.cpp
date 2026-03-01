@@ -15,6 +15,7 @@
 #include "core/YamlConfig.hpp"
 #include "core/services/ConfigService.hpp"
 #include "core/services/ThemeService.hpp"
+#include "core/services/DisplayService.hpp"
 #include "core/services/AudioService.hpp"
 #include "core/services/IpcServer.hpp"
 #include "core/services/EventBus.hpp"
@@ -112,12 +113,26 @@ int main(int argc, char *argv[])
 
     // --- Theme service ---
     auto themeService = new oap::ThemeService(&app);
-    QString themePath = QDir::homePath() + "/.openauto/themes/default";
-    if (!themeService->loadTheme(themePath)) {
-        // Fall back to bundled theme next to the executable
-        QString bundledTheme = QCoreApplication::applicationDirPath() + "/../../config/themes/default";
-        themeService->loadTheme(bundledTheme);
+
+    // Scan theme directories: user themes first (override bundled), then bundled
+    QStringList themeSearchPaths;
+    themeSearchPaths << QDir::homePath() + "/.openauto/themes";
+    themeSearchPaths << QCoreApplication::applicationDirPath() + "/../../config/themes";
+    themeService->scanThemeDirectories(themeSearchPaths);
+
+    // Load theme from config (or default)
+    QString savedTheme = yamlConfig->valueByPath("display.theme").toString();
+    if (savedTheme.isEmpty()) savedTheme = "default";
+    if (!themeService->setTheme(savedTheme)) {
+        qCWarning(lcCore) << "Failed to load theme:" << savedTheme << "- falling back to default";
+        themeService->setTheme("default");
     }
+
+    // --- Display service (brightness) ---
+    auto displayService = new oap::DisplayService(&app);
+    QVariant savedBrightness = yamlConfig->valueByPath("display.brightness");
+    if (savedBrightness.isValid())
+        displayService->setBrightness(savedBrightness.toInt());
 
     // --- Audio service (PipeWire) ---
     auto audioService = new oap::AudioService(&app);
@@ -134,6 +149,7 @@ int main(int argc, char *argv[])
     auto hostContext = std::make_unique<oap::HostContext>();
     hostContext->setConfigService(configService.get());
     hostContext->setThemeService(themeService);
+    hostContext->setDisplayService(displayService);
     hostContext->setAudioService(audioService);
 
     // --- Bluetooth manager ---
@@ -259,6 +275,7 @@ int main(int argc, char *argv[])
     engine.rootContext()->setContextProperty("PhonePlugin", phonePlugin);
 
     engine.rootContext()->setContextProperty("AudioService", audioService);
+    engine.rootContext()->setContextProperty("DisplayService", displayService);
 
     auto* outputDeviceModel = new oap::AudioDeviceModel(
         oap::AudioDeviceModel::Output, audioService->deviceRegistry(), audioService);
