@@ -8,7 +8,7 @@ progress:
   total_phases: 3
   completed_phases: 0
   total_plans: 2
-  completed_plans: 1
+  completed_plans: 2
 ---
 
 # Project State
@@ -18,27 +18,28 @@ progress:
 See: .planning/PROJECT.md (updated 2026-03-01)
 
 **Core value:** A person with a Raspberry Pi 4 and a touchscreen can install this, pair their phone, and get a reliable wireless Android Auto experience — every time, without SSH.
-**Current focus:** Phase 1 — DSP Core
+**Current focus:** Phase 1 complete — DSP Core
 
 ## Current Position
 
 Phase: 1 of 3 (DSP Core) — first phase of v0.4.1
-Plan: 1 of 2 in current phase
-Status: Executing
-Last activity: 2026-03-01 — Completed 01-01 DSP Primitives
+Plan: 2 of 2 in current phase (COMPLETE)
+Status: Phase 1 complete
+Last activity: 2026-03-01 — Completed 01-02 Equalizer Engine
 
-Progress: [█████░░░░░] 50%
+Progress: [██████████] 100% (Phase 1)
 
 ## Performance Metrics
 
 **Velocity:**
-- Total plans completed: 1
-- Average duration: 4min
-- Total execution time: 4min
+- Total plans completed: 2
+- Average duration: 4.5min
+- Total execution time: 9min
 
 | Phase | Plan | Duration | Tasks | Files |
 |-------|------|----------|-------|-------|
 | 01-dsp-core | 01 | 4min | 2 | 5 |
+| 01-dsp-core | 02 | 5min | 1 | 5 |
 
 *Updated after each plan completion*
 
@@ -49,6 +50,9 @@ Progress: [█████░░░░░] 50%
 - [01-01] float32 precision for all DSP (sufficient for 10-band graphic EQ at 16-bit input)
 - [01-01] Direct Form II Transposed topology for biquad (fewer delay elements, good numerical behavior)
 - [01-01] Per-channel limiter (not stereo-linked) for simplicity and zero crosstalk
+- [01-02] Generation counter for double-buffer swap detection (avoids ABA problem with pointer comparison)
+- [01-02] Bypass fast-path snaps coefficients immediately (no interpolation while fully bypassed)
+- [01-02] Bypass crossfade uses same 2304-sample ramp as coefficient interpolation
 
 ### Roadmap Evolution
 
@@ -67,5 +71,5 @@ None.
 ## Session Continuity
 
 Last session: 2026-03-01
-Stopped at: Completed 01-01-PLAN.md (DSP Primitives)
+Stopped at: Completed 01-02-PLAN.md (Equalizer Engine) — Phase 1 complete
 Resume file: None

@@ -10,8 +10,8 @@ Requirements for audio equalizer milestone. Each maps to roadmap phases.
 ### DSP Core
 
 - [x] **DSP-01**: User can hear EQ-processed audio through a 10-band graphic equalizer (31Hz-16kHz ISO frequencies)
-- [ ] **DSP-02**: User experiences smooth audio transitions when switching EQ presets (coefficient interpolation)
-- [ ] **DSP-03**: User can bypass EQ processing entirely with a single toggle
+- [x] **DSP-02**: User experiences smooth audio transitions when switching EQ presets (coefficient interpolation)
+- [x] **DSP-03**: User can bypass EQ processing entirely with a single toggle
 
 ### Presets
 
@@ -56,8 +56,8 @@ Which phases cover which requirements. Updated during roadmap creation.
 | Requirement | Phase | Status |
 |-------------|-------|--------|
 | DSP-01 | Phase 1 | Complete |
-| DSP-02 | Phase 1 | Pending |
-| DSP-03 | Phase 1 | Pending |
+| DSP-02 | Phase 1 | Complete |
+| DSP-03 | Phase 1 | Complete |
 | PRST-01 | Phase 2 | Pending |
 | PRST-02 | Phase 2 | Pending |
 | PRST-03 | Phase 2 | Pending |
