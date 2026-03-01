@@ -9,7 +9,7 @@ Requirements for audio equalizer milestone. Each maps to roadmap phases.
 
 ### DSP Core
 
-- [ ] **DSP-01**: User can hear EQ-processed audio through a 10-band graphic equalizer (31Hz-16kHz ISO frequencies)
+- [x] **DSP-01**: User can hear EQ-processed audio through a 10-band graphic equalizer (31Hz-16kHz ISO frequencies)
 - [ ] **DSP-02**: User experiences smooth audio transitions when switching EQ presets (coefficient interpolation)
 - [ ] **DSP-03**: User can bypass EQ processing entirely with a single toggle
 
@@ -55,17 +55,17 @@ Which phases cover which requirements. Updated during roadmap creation.
 
 | Requirement | Phase | Status |
 |-------------|-------|--------|
-| DSP-01 | Phase 3 | Pending |
-| DSP-02 | Phase 3 | Pending |
-| DSP-03 | Phase 3 | Pending |
-| PRST-01 | Phase 4 | Pending |
-| PRST-02 | Phase 4 | Pending |
-| PRST-03 | Phase 4 | Pending |
-| PRST-04 | Phase 4 | Pending |
-| UI-01 | Phase 5 | Pending |
-| UI-02 | Phase 5 | Pending |
-| UI-03 | Phase 5 | Pending |
-| CFG-01 | Phase 4 | Pending |
+| DSP-01 | Phase 1 | Complete |
+| DSP-02 | Phase 1 | Pending |
+| DSP-03 | Phase 1 | Pending |
+| PRST-01 | Phase 2 | Pending |
+| PRST-02 | Phase 2 | Pending |
+| PRST-03 | Phase 2 | Pending |
+| PRST-04 | Phase 2 | Pending |
+| UI-01 | Phase 3 | Pending |
+| UI-02 | Phase 3 | Pending |
+| UI-03 | Phase 3 | Pending |
+| CFG-01 | Phase 2 | Pending |
 
 **Coverage:**
 - v0.4.1 requirements: 11 total
