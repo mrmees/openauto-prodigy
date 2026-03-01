@@ -1,5 +1,5 @@
 ---
-status: complete
+status: diagnosed
 phase: 02-theme-display
 source: [02-01-SUMMARY.md, 02-02-SUMMARY.md, 02-03-SUMMARY.md, 02-04-SUMMARY.md]
 started: 2026-03-01T20:35:00Z
@@ -69,17 +69,28 @@ skipped: 2
   reason: "User reported: Picker has shown up, but no changes to the background on the home screen"
   severity: major
   test: 3
-  root_cause: ""
-  artifacts: []
-  missing: []
-  debug_session: ""
+  root_cause: "Wallpaper.qml is defined and compiled but never instantiated in the QML scene graph — Shell.qml has no Wallpaper {} element"
+  artifacts:
+    - path: "qml/components/Shell.qml"
+      issue: "Missing Wallpaper {} instantiation"
+    - path: "qml/components/Wallpaper.qml"
+      issue: "Component is correct but orphaned — never used anywhere"
+  missing:
+    - "Add Wallpaper {} inside pluginContentHost in Shell.qml, before LauncherMenu, with anchors.fill and visible tied to launcher visibility"
+  debug_session: ".planning/debug/wallpaper-not-displayed.md"
 
 - truth: "3-finger gesture overlay opens with brightness slider"
   status: failed
   reason: "User reported: Gesture overlay does not work at all and has not worked for a long time"
   severity: major
   test: 7
-  root_cause: ""
-  artifacts: []
-  missing: []
-  debug_session: ""
+  root_cause: "gestureDetected signal emitted but never connected to anything; also events discarded when ungrabbed (AA not connected) so gesture detection unreachable on home screen"
+  artifacts:
+    - path: "src/plugins/android_auto/AndroidAutoPlugin.cpp"
+      issue: "gestureDetected signal never connected (sidebar signals were, this one was missed)"
+    - path: "src/core/aa/EvdevTouchReader.cpp"
+      issue: "Line 253: events discarded when grabbed_=false, gesture detection impossible outside AA"
+  missing:
+    - "Connect gestureDetected signal to invoke GestureOverlay.show() (C++ to QML bridge)"
+    - "Restructure EvdevTouchReader event loop so gesture detection runs even when ungrabbed, while AA touch forwarding remains suppressed"
+  debug_session: ".planning/debug/gesture-overlay-broken.md"

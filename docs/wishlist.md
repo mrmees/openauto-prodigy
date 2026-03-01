@@ -2,6 +2,14 @@
 
 Ideas captured here. Promote to `roadmap-current.md` when ready to commit.
 
+## Bugs / Infrastructure
+
+- **SDP `/var/run/sdp` permissions race** — BlueZ `ExecStartPost` wait loop (5x 0.5s) loses the race; socket stays `root:root` instead of `root:bluetooth`. App-side retry (2s x 30) helps but doesn't fix root cause. Need `inotifywait` on socket creation or a longer/smarter polling loop in the systemd override. Reproduces on every fresh boot.
+
+- **Web config panel broken** — Pre-existing issue, not a phase 1 regression. The Flask web panel at `web-config/` doesn't load. Blocks testing of runtime logging controls, settings persistence, and any future web-based configuration. Needs investigation — could be a route issue, missing dependency, or socket communication failure.
+
+- **Boot/reboot startup reliability** — After a reboot, `graphical.target` was slow to activate (stuck on `systemd-networkd-wait-online.service` timeout). Prodigy service depends on `graphical.target` so it sat in `inactive (dead)` until the timeout passed. Need to verify clean boot sequence, measure time-to-app, and possibly mask the networkd-wait service (NetworkManager is the actual manager). Phase 4 territory.
+
 ## Candidate Ideas
 
 - **Per-connection WiFi password rotation** — Generate a fresh random WPA password each time a phone connects via BT RFCOMM, update hostapd (`hostapd_cli set wpa_passphrase` + reload), then send the new password to the phone. Eliminates any static credential. Requires coordinating hostapd reload timing with the BT handshake.

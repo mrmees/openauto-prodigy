@@ -1,33 +1,47 @@
 ---
 phase: 02-theme-display
-verified: 2026-03-01T20:35:00Z
-status: passed
-score: 7/7 must-haves verified
+verified: 2026-03-01T22:00:00Z
+status: human_needed
+score: 9/9 must-haves verified
 re_verification:
-  previous_status: gaps_found
-  previous_score: 6/7
+  previous_status: passed
+  previous_score: 7/7
   gaps_closed:
-    - "User can open DisplaySettings and see a wallpaper picker with available options"
+    - "Wallpaper image visible on home screen (Wallpaper {} instantiated in Shell.qml as first child of pluginContentHost)"
+    - "3-finger gesture overlay signal chain wired end-to-end (gestureDetected -> gestureTriggered -> GestureOverlay.show())"
+    - "Gesture detection runs even when ungrabbed (home screen, not just during AA)"
   gaps_remaining: []
   regressions: []
 human_verification:
-  - test: "Pi hardware: verify theme picker works for all 4 themes with live color apply"
-    expected: "Selecting Ocean/Ember/AMOLED changes all UI colors instantly"
-    why_human: "Pi hardware verification is documented as completed (02-03 Task 3 approved), but cannot be re-run programmatically from dev VM"
-  - test: "Pi hardware: verify brightness dimming overlay at sub-100% brightness"
-    expected: "Moving brightness slider to ~20% shows visible dark overlay; 100% is fully clear"
-    why_human: "Software overlay behavior requires visual confirmation on actual display"
-  - test: "Pi hardware: verify wallpaper picker shows 3 options + None; selecting one updates the background"
-    expected: "'None' shows solid theme color; Default/Ocean/Ember show respective gradient wallpapers behind UI"
-    why_human: "Wallpaper image rendering on actual 1024x600 DFRobot display cannot be verified from dev VM"
+  - test: "Pi hardware: verify wallpaper image renders behind launcher after selecting Default/Ocean/Ember"
+    expected: "Gradient wallpaper visible behind tile grid on home screen; None shows solid theme color"
+    why_human: "UAT test 3 previously failed (picker shown, no background change). Wallpaper {} instantiation fix applied in plan 05. Requires on-device confirmation."
+  - test: "Pi hardware: verify 3-finger gesture overlay opens on home screen (AA not connected)"
+    expected: "3-finger tap opens quick controls overlay with brightness slider, even without AA active"
+    why_human: "UAT test 7 previously failed (overlay never opened). gestureDetected signal wired and ungrabbed event loop restructured in plan 05. Requires on-device confirmation."
+  - test: "Pi hardware: verify 3-finger gesture overlay opens during AA session"
+    expected: "3-finger tap during Android Auto opens the overlay; tap or timeout dismisses it"
+    why_human: "grabbed_ = true path routes through processSync -> checkGesture. Requires on-device confirmation with AA connected."
+  - test: "Pi hardware: verify wallpaper picker independence (different wallpaper from active theme)"
+    expected: "Ocean theme with Ember wallpaper: blue/teal colors, amber gradient background"
+    why_human: "UAT test 5 was skipped (wallpaper display was broken). Now unblocked. Requires on-device verification."
 ---
 
 # Phase 2: Theme & Display Verification Report
 
 **Phase Goal:** Users can personalize the head unit appearance and control screen brightness
-**Verified:** 2026-03-01T20:35:00Z
-**Status:** passed
-**Re-verification:** Yes — after gap closure (plan 04)
+**Verified:** 2026-03-01T22:00:00Z
+**Status:** human_needed — all automated checks pass; plan 05 UAT gap fixes verified in code; on-device re-tests required
+**Re-verification:** Yes — after plan 05 gap closure (UAT-driven fixes)
+
+## Re-verification Context
+
+The previous VERIFICATION.md (plan 04) had `status: passed` based on code inspection alone. UAT on Pi then revealed two real runtime failures:
+
+- **UAT Test 3 (Wallpaper Display):** "Picker has shown up, but no changes to the background on the home screen" — `Wallpaper.qml` was correct but orphaned; never instantiated in `Shell.qml`. This is exactly the Level 3 (wiring) failure type code inspection missed.
+- **UAT Test 7 (Gesture Overlay):** "Gesture overlay does not work at all and has not worked for a long time" — `gestureDetected` signal emitted but never connected; and gesture detection unreachable when `grabbed_ = false` (home screen state).
+
+Plan 05 addressed both. This re-verification confirms all fixes are in place, the build is clean, and tests pass. On-device UAT re-runs are required for final goal confirmation.
 
 ## Goal Achievement
 
@@ -35,97 +49,115 @@ human_verification:
 
 | # | Truth | Status | Evidence |
 |---|-------|--------|----------|
-| 1 | ThemeService exposes availableThemes/availableThemeNames/wallpaperSource as Q_PROPERTYs | VERIFIED | ThemeService.hpp lines 48-50: all three Q_PROPERTYs present with correct types and signals |
-| 2 | setTheme(id) loads a different theme and emits colorsChanged() | VERIFIED | ThemeService.cpp lines 123-144: full implementation, looks up themeDirectories_, calls loadTheme(), emits via colorsChanged(). Q_INVOKABLE present. |
-| 3 | Theme scanning finds bundled themes; 4 theme YAML files exist with distinct palettes | VERIFIED | config/themes/{default,ocean,ember,amoled}/theme.yaml — all validated: 13 day colors, 13 night colors, distinct palettes. scanThemeDirectories() lines 83-121. |
-| 4 | User can open DisplaySettings and see a theme picker with at least 3 options | VERIFIED | DisplaySettings.qml lines 31-39: FullScreenPicker wired to ThemeService.availableThemeNames/availableThemes with live setTheme() call on selection. |
-| 5 | Wallpaper.qml shows active theme wallpaper image (or solid color if none) | VERIFIED | Wallpaper.qml line 13: Image.source bound to ThemeService.wallpaperSource; visible only when source != "". 3 bundled wallpapers now exist. |
-| 6 | User can open DisplaySettings and see a wallpaper picker with available options | VERIFIED | DisplaySettings.qml lines 41-49: FullScreenPicker for "Wallpaper" with ThemeService.availableWallpapers/availableWallpaperNames + setWallpaper() on activation. 3 theme wallpapers + "None" option. |
-| 7 | Brightness slider adjusts brightness; software dimming overlay appears in Shell; persists across restart | VERIFIED | DisplaySettings.qml + GestureOverlay.qml: sliders wired to DisplayService.setBrightness(). Shell.qml: dimming Rectangle bound to DisplayService.dimOverlayOpacity (z:998). main.cpp: savedBrightness loaded at startup. |
+| 1 | User can switch between 4 color themes with live UI update | VERIFIED | DisplaySettings.qml lines 31-39: FullScreenPicker wired to ThemeService.setTheme(). 4 theme YAMLs confirmed. UAT tests 1+2 passed on Pi. |
+| 2 | Wallpaper image renders behind launcher on home screen | VERIFIED (code) | Shell.qml lines 31-36: Wallpaper {} is first child of pluginContentHost, visible matches LauncherMenu condition. Wallpaper.qml line 13: source bound to ThemeService.wallpaperSource. Needs Pi re-test. |
+| 3 | Wallpaper picker shows None + theme wallpapers; AMOLED excluded | VERIFIED | DisplaySettings.qml lines 41-49: FullScreenPicker with ThemeService.availableWallpapers/availableWallpaperNames. buildWallpaperList() prepends "None", enumerates themes with wallpaper.jpg. AMOLED dir has no wallpaper.jpg. UAT test 4 skipped — needs Pi re-test. |
+| 4 | Wallpaper selection is independent of theme selection | VERIFIED (code) | ThemeService has separate setTheme() and setWallpaper(). main.cpp loads display.theme then display.wallpaper independently. UAT test 5 was skipped — needs Pi re-test. |
+| 5 | Theme and wallpaper survive full reboot | VERIFIED | FullScreenPicker configPath saves to YAML. main.cpp loads savedTheme + savedWallpaper at startup. UAT test 9 passed on Pi. |
+| 6 | Brightness slider in Settings dims screen via software overlay | VERIFIED | DisplaySettings.qml: SettingsSlider onMoved -> DisplayService.setBrightness(). Shell.qml lines 73-81: dimming Rectangle, opacity bound to DisplayService.dimOverlayOpacity, z:998. UAT test 6 passed on Pi. |
+| 7 | Brightness slider in gesture overlay controls screen dimming | VERIFIED (code) | GestureOverlay.qml has brightness slider wired to DisplayService. Signal chain now wired: gestureDetected -> gestureTriggered -> main.cpp findChild -> GestureOverlay.show(). UAT test 7 previously failed — needs Pi re-test. |
+| 8 | 3-finger gesture opens on home screen (ungrabbed) | VERIFIED (code) | EvdevTouchReader.cpp lines 252-289: ungrabbed branch calls checkGesture() without AA forwarding. Needs Pi re-test. |
+| 9 | 3-finger gesture opens during AA session (grabbed) | VERIFIED (code) | processSync() calls checkGesture() when grabbed. gestureTriggered -> GestureOverlay.show() wired in main.cpp lines 332-340. Needs Pi re-test. |
 
-**Score: 7/7 truths verified**
+**Score: 9/9 truths verified in code**
 
 ### Required Artifacts
 
 | Artifact | Expected | Status | Details |
 |----------|----------|--------|---------|
-| `config/themes/default/wallpaper.jpg` | Default theme wallpaper (1024x600) | VERIFIED | 5763 bytes, created 2026-03-01. Dark navy gradient via ImageMagick. |
-| `config/themes/ocean/wallpaper.jpg` | Ocean theme wallpaper (1024x600) | VERIFIED | 5717 bytes, created 2026-03-01. Deep blue/teal gradient. |
-| `config/themes/ember/wallpaper.jpg` | Ember theme wallpaper (1024x600) | VERIFIED | 5323 bytes, created 2026-03-01. Warm dark amber gradient. |
-| `config/themes/amoled/` | No wallpaper (intentional — pure black) | VERIFIED | Directory contains only theme.yaml. No wallpaper.jpg. |
-| `qml/applications/settings/DisplaySettings.qml` | Wallpaper picker FullScreenPicker with available wallpapers | VERIFIED | Lines 41-49: FullScreenPicker label "Wallpaper", configPath "display.wallpaper", bound to ThemeService.availableWallpaperNames/availableWallpapers. |
-| `src/core/services/ThemeService.hpp` | availableWallpapers/availableWallpaperNames Q_PROPERTYs, setWallpaper() Q_INVOKABLE | VERIFIED | Lines 51-52: both Q_PROPERTYs present. Line 91: Q_INVOKABLE setWallpaper(). Line 122: availableWallpapersChanged signal. Lines 141-142: private members. |
-| `src/core/services/ThemeService.cpp` | buildWallpaperList(), setWallpaper() implementations | VERIFIED | Lines 159-181: buildWallpaperList() enumerates all themes with wallpaper.jpg, prepends "None". Lines 183-188: setWallpaper() guards on same-value, emits wallpaperChanged(). Called at end of scanThemeDirectories() (line 120). |
-| `src/main.cpp` | display.wallpaper config loaded and applied after setTheme() | VERIFIED | Lines 131-134: QVariant savedWallpaper loaded from config; if valid, themeService->setWallpaper() called after setTheme(). Override chain correct. |
-| `tests/test_theme_service.cpp` | New wallpaper enumeration and setWallpaper tests | VERIFIED | 6 new tests: wallpaperListIncludesNone, wallpaperListIncludesThemesWithImages, wallpaperListExcludesThemesWithoutImages, setWallpaperUpdatesSource, setWallpaperEmitsSignal, setWallpaperSameNoSignal. All pass. |
+| `qml/components/Shell.qml` | Wallpaper {} inside pluginContentHost as first child | VERIFIED | Lines 31-36: Wallpaper {} with anchors.fill, visible matching LauncherMenu condition. Added by plan 05. |
+| `qml/components/Shell.qml` | GestureOverlay has objectName: "gestureOverlay" | VERIFIED | Line 86: objectName: "gestureOverlay" present. Required for C++ findChild access. |
+| `qml/components/Wallpaper.qml` | Image bound to ThemeService.wallpaperSource | VERIFIED (regression) | Line 13: source: ThemeService.wallpaperSource. Unchanged from plan 03. |
+| `src/plugins/android_auto/AndroidAutoPlugin.hpp` | gestureTriggered() signal declared | VERIFIED | Line 77: void gestureTriggered(); in signals block. |
+| `src/plugins/android_auto/AndroidAutoPlugin.cpp` | gestureDetected connected to gestureTriggered | VERIFIED | Lines 100-102: connect with Qt::QueuedConnection. |
+| `src/core/aa/EvdevTouchReader.cpp` | Event loop: always track slots, gesture detection when ungrabbed | VERIFIED | Lines 252-289: isGrabbed flag; ungrabbed branch calls checkGesture() + clears dirty flags without AA forwarding. |
+| `src/main.cpp` | gestureTriggered connected to GestureOverlay.show() via findChild | VERIFIED | Lines 332-340: QObject::connect on gestureTriggered, findChild<QObject*>("gestureOverlay"), invokeMethod "show". |
+| `config/themes/default/wallpaper.jpg` | Default theme wallpaper | VERIFIED (regression) | Exists, 5763 bytes. Unchanged from plan 04. |
+| `config/themes/ocean/wallpaper.jpg` | Ocean theme wallpaper | VERIFIED (regression) | Exists, 5717 bytes. Unchanged from plan 04. |
+| `config/themes/ember/wallpaper.jpg` | Ember theme wallpaper | VERIFIED (regression) | Exists, 5323 bytes. Unchanged from plan 04. |
 
 ### Key Link Verification
 
 | From | To | Via | Status | Details |
 |------|----|-----|--------|---------|
-| DisplaySettings.qml (Wallpaper picker) | ThemeService | FullScreenPicker with availableWallpapers/availableWallpaperNames | WIRED | Lines 44-45: options/values bound to ThemeService properties. Line 46-48: onActivated calls ThemeService.setWallpaper(). |
-| ThemeService.setWallpaper() | ThemeService.wallpaperSource | Sets wallpaperSource_ and emits wallpaperChanged() | WIRED | ThemeService.cpp lines 183-188: sets wallpaperSource_, emits if changed. wallpaperSource Q_PROPERTY reads wallpaperSource_. |
-| Wallpaper.qml | ThemeService.wallpaperSource | Image source binding | WIRED | Wallpaper.qml line 13: source: ThemeService.wallpaperSource. Already wired from plans 01-03, regression verified. |
-| scanThemeDirectories() | buildWallpaperList() | Called at end of scan | WIRED | ThemeService.cpp line 120: buildWallpaperList() called immediately after availableThemesChanged emitted. |
-| main.cpp | themeService->setWallpaper() | display.wallpaper config key loaded after setTheme() | WIRED | Lines 131-134: override chain correct — setTheme() sets theme default, then config value overrides if present. |
-| DisplaySettings.qml (Theme picker) | ThemeService.setTheme() | FullScreenPicker onActivated | WIRED | Lines 36-38: onActivated calls ThemeService.setTheme(). Regression verified (unchanged). |
-| DisplaySettings.qml | DisplayService.setBrightness() | SettingsSlider onMoved | WIRED | Line 27: DisplayService.setBrightness() in onMoved. Regression verified (unchanged). |
-| Shell.qml | DisplayService.dimOverlayOpacity | Rectangle opacity binding | WIRED | Shell.qml lines 67-74: Rectangle opacity bound to DisplayService.dimOverlayOpacity, z:998. Regression verified (unchanged). |
+| Shell.qml pluginContentHost | ThemeService.wallpaperSource | Wallpaper {} first child | WIRED | Wallpaper {} at line 32; Wallpaper.qml Image.source bound to ThemeService.wallpaperSource |
+| EvdevTouchReader::gestureDetected | AndroidAutoPlugin::gestureTriggered | Qt signal-signal connect | WIRED | AndroidAutoPlugin.cpp lines 100-102: connect with Qt::QueuedConnection |
+| AndroidAutoPlugin::gestureTriggered | GestureOverlay.show() | main.cpp lambda + findChild | WIRED | main.cpp lines 333-340: findChild<QObject*>("gestureOverlay") + invokeMethod "show" |
+| EvdevTouchReader event loop | checkGesture() when ungrabbed | isGrabbed branch | WIRED | EvdevTouchReader.cpp lines 281-287: else branch calls checkGesture() when !isGrabbed |
+| DisplaySettings.qml brightness slider | Shell.qml dimming overlay | DisplayService.dimOverlayOpacity | WIRED (regression) | Shell.qml line 77: opacity bound to DisplayService.dimOverlayOpacity. Unchanged. |
+| DisplaySettings.qml theme picker | ThemeService.setTheme() | FullScreenPicker onActivated | WIRED (regression) | Lines 36-38: onActivated calls ThemeService.setTheme(). Unchanged. |
+| DisplaySettings.qml wallpaper picker | ThemeService.setWallpaper() | FullScreenPicker onActivated | WIRED (regression) | Lines 46-48: onActivated calls ThemeService.setWallpaper(). Unchanged. |
+| main.cpp | themeService->setWallpaper() | display.wallpaper config key | WIRED (regression) | Lines 131-134: override chain correct. Unchanged. |
+
+### Build and Test Status
+
+| Check | Result | Details |
+|-------|--------|---------|
+| cmake --build | PASS | Clean build, no errors |
+| ctest (53 tests) | 52/53 PASS | test_event_bus (#28) fails — pre-existing issue, unrelated to phase 2 |
 
 ### Requirements Coverage
 
-| Requirement | Source Plan | Description | Status | Evidence |
+| Requirement | Source Plans | Description | Status | Evidence |
 |-------------|-------------|-------------|--------|----------|
-| DISP-01 | 02-01, 02-03 | User can select from multiple color palettes in settings | SATISFIED | FullScreenPicker with 4 themes in DisplaySettings; setTheme() changes colors live. 4 theme YAMLs with distinct palettes verified. |
-| DISP-02 | 02-03, 02-04 | User can select a wallpaper from available options in settings | SATISFIED | Wallpaper FullScreenPicker in DisplaySettings; ThemeService.availableWallpapers includes "None" + 3 theme wallpapers; setWallpaper() updates wallpaperSource; Wallpaper.qml renders it. Gap closed by plan 04. |
-| DISP-03 | 02-01, 02-03, 02-04 | Selected theme and wallpaper persist across restarts | SATISFIED | Theme persists via display.theme config key (FullScreenPicker configPath + main.cpp load at startup). Wallpaper persists via display.wallpaper config key (FullScreenPicker configPath + main.cpp override after setTheme()). |
-| DISP-04 | 02-02, 02-03 | Screen brightness is controllable from settings slider and gesture overlay | SATISFIED | Both sliders wired to DisplayService.setBrightness(). Brightness persists. |
-| DISP-05 | 02-02, 02-03 | Brightness control writes to actual display backlight hardware on the Pi | SATISFIED (needs human) | DisplayService sysfs and ddcutil paths implemented. Pi hardware verification completed per 02-03 SUMMARY (12 steps approved). |
+| DISP-01 | 02-01, 02-03 | User can select from multiple color palettes in settings | SATISFIED | 4 themes in DisplaySettings; setTheme() live update. UAT tests 1+2 passed on Pi. |
+| DISP-02 | 02-03, 02-04, 02-05 | User can select a wallpaper from available options in settings | SATISFIED (code) | Wallpaper picker in DisplaySettings; Wallpaper {} now instantiated in Shell.qml. UAT tests 3+4 need Pi re-test. |
+| DISP-03 | 02-01, 02-03, 02-04 | Selected theme and wallpaper persist across restarts | SATISFIED | FullScreenPicker configPath + main.cpp load at startup. UAT test 9 passed on Pi. |
+| DISP-04 | 02-02, 02-03, 02-05 | Screen brightness controllable from settings slider and gesture overlay | SATISFIED (code) | Settings slider confirmed (UAT test 6 passed). Gesture overlay signal chain now wired. UAT test 7 needs Pi re-test. |
+| DISP-05 | 02-02, 02-03 | Brightness control writes to actual display backlight hardware on Pi | SATISFIED (needs human) | DisplayService sysfs/ddcutil paths implemented. Software overlay confirmed working (UAT test 6). Pi hardware backlight path verified per 02-03-SUMMARY. |
+
+All 5 DISP requirements accounted for. No orphaned requirements.
 
 ### Anti-Patterns Found
 
 | File | Line | Pattern | Severity | Impact |
 |------|------|---------|----------|--------|
-| None found | — | — | — | No TODO/FIXME/placeholder patterns in plan 04 modified files |
+| AndroidAutoPlugin.cpp | 240 | return {} | INFO | IPlugin::qmlComponent() — intentional empty URL when QRC path unavailable. Not a stub. |
+| AndroidAutoPlugin.hpp | 62, 65 | return {} | INFO | IPlugin optional interface methods (no settings component, no required services). By design. |
+
+No blockers. No warnings.
 
 ### Human Verification Required
 
-#### 1. Pi Hardware — Theme Color Live Apply
+#### 1. Pi Hardware — Wallpaper Display (UAT Test 3 re-run)
 
-**Test:** On Pi, open Settings > Display, select "Ocean" theme
-**Expected:** All UI colors change instantly to blue/teal tones (background, highlight, bars)
-**Why human:** Visual color accuracy on actual 1024x600 DFRobot display cannot be verified from dev VM. (Pi hardware verification was completed per 02-03-SUMMARY Task 3.)
+**Test:** Pull latest from main, restart app. Open Settings > Display, select "Default" wallpaper, navigate back to the home/launcher screen.
+**Expected:** Gradient wallpaper image visible behind the tile grid. Selecting "None" reverts to solid theme background color.
+**Why human:** UAT test 3 previously failed with "no changes to the background." The fix (Wallpaper {} instantiated in Shell.qml) is verified in code but on-device rendering requires physical observation.
 
-#### 2. Pi Hardware — Software Dimming Overlay
+#### 2. Pi Hardware — Gesture Overlay on Home Screen (UAT Test 7 re-run)
 
-**Test:** Move brightness slider to ~20%, observe display
-**Expected:** Dark semi-transparent overlay appears, screen visibly dims. Returning to 100% clears overlay.
-**Why human:** Overlay rendering on HDMI display with no hardware backlight requires physical observation.
+**Test:** With AA disconnected, touch the Pi screen with 3 fingers simultaneously within ~200ms.
+**Expected:** Quick controls overlay slides in / appears with brightness slider.
+**Why human:** UAT test 7 previously failed completely. Two fixes applied in plan 05: gestureDetected signal wired and EvdevTouchReader ungrabbed path restructured. Requires physical touchscreen confirmation.
 
-#### 3. Pi Hardware — Wallpaper Picker
+#### 3. Pi Hardware — Gesture Overlay During AA
 
-**Test:** On Pi, open Settings > Display, use Wallpaper picker, select each option
-**Expected:** "None" shows solid theme color; "Default"/"Ocean"/"Ember" show the respective gradient wallpapers behind the shell UI; selection persists after restart
-**Why human:** Wallpaper image rendering and persistence require on-device verification. New in plan 04.
+**Test:** With Android Auto connected and video displaying, touch screen with 3 fingers simultaneously.
+**Expected:** Quick controls overlay appears over the AA video. Single tap or timeout dismisses it, returning to AA.
+**Why human:** grabbed_ = true path (processSync -> checkGesture) is a separate code path from the ungrabbed path. Requires on-device confirmation with AA connected.
 
----
+#### 4. Pi Hardware — Wallpaper Picker Independence (UAT Test 5, previously skipped)
 
-## Re-verification Summary
-
-**Gap closed:** The single gap from initial verification (DISP-02 — no wallpaper picker, no bundled wallpaper images) was fully addressed by plan 04:
-
-- 3 bundled gradient wallpaper images generated via ImageMagick (default, ocean, ember — each ~5KB JPEG)
-- AMOLED theme intentionally has no wallpaper (pure black is the design point)
-- `ThemeService` extended with `availableWallpapers`/`availableWallpaperNames` Q_PROPERTYs, `setWallpaper()` Q_INVOKABLE, and `buildWallpaperList()` enumeration
-- Wallpaper picker `FullScreenPicker` added to `DisplaySettings.qml` between Theme and Orientation controls
-- Wallpaper selection persists via `display.wallpaper` config key; loaded in `main.cpp` after `setTheme()` so user choice overrides theme default
-- 6 new unit tests covering wallpaper enumeration and `setWallpaper()` behavior; all pass
-
-**No regressions:** 52/53 tests pass (same count as before plan 04; the single failure is the pre-existing `test_event_bus` issue unrelated to this phase). Build is clean.
-
-All 5 DISP requirements are now satisfied. All 7 observable truths verified. Phase 2 goal achieved.
+**Test:** Select "Ocean" theme. Then use the Wallpaper picker to select "Ember" wallpaper. Navigate to home screen. Restart app.
+**Expected:** Color palette stays Ocean (blue/teal tones); background image shows Ember amber gradient. Both choices persist after restart.
+**Why human:** UAT test 5 was skipped because wallpaper display was broken. Now unblocked. Requires on-device verification.
 
 ---
 
-_Verified: 2026-03-01T20:35:00Z_
+## Gap Closure Summary
+
+Plan 05 addressed the two UAT failures that slipped through code-only verification:
+
+**Gap 1 — Wallpaper not displayed (UAT Test 3):**
+Root cause: `Wallpaper.qml` was a correct, fully-wired component that was never instantiated in the scene graph — a classic orphaned component (Level 3 wiring failure). The previous verification confirmed Wallpaper.qml's internal wiring but missed that Shell.qml never placed it anywhere. Fix: added `Wallpaper {}` as the first child of `pluginContentHost` in Shell.qml, with visibility matching the LauncherMenu condition so it shows only on the home screen.
+
+**Gap 2 — Gesture overlay non-functional (UAT Test 7):**
+Two root causes: (a) `gestureDetected` emitted by EvdevTouchReader but connected to nothing in AndroidAutoPlugin — the sidebar signals (`sidebarVolumeSet`, `sidebarHome`) were connected but `gestureDetected` was missed; (b) all touch events discarded when `grabbed_ = false`, making gesture detection impossible on the home screen. Fixes: (a) added `gestureTriggered()` relay signal to AndroidAutoPlugin, connected to `gestureDetected`, wired in main.cpp via `findChild<QObject*>("gestureOverlay")` + `invokeMethod("show")`; (b) restructured EvdevTouchReader event loop so EV_ABS slot tracking always runs, SYN_REPORT branches on grab state — ungrabbed path calls `checkGesture()` without AA forwarding.
+
+**Lesson:** Code-only verification missed both of these because the components existed and their internal logic was correct. The failures were wiring failures at the integration level (QML scene graph instantiation, signal connection). UAT caught what code inspection did not.
+
+---
+
+_Verified: 2026-03-01T22:00:00Z_
 _Verifier: Claude (gsd-verifier)_
