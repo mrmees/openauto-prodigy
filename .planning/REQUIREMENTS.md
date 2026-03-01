@@ -55,23 +55,23 @@ Which phases cover which requirements. Updated during roadmap creation.
 
 | Requirement | Phase | Status |
 |-------------|-------|--------|
-| DSP-01 | — | Pending |
-| DSP-02 | — | Pending |
-| DSP-03 | — | Pending |
-| PRST-01 | — | Pending |
-| PRST-02 | — | Pending |
-| PRST-03 | — | Pending |
-| PRST-04 | — | Pending |
-| UI-01 | — | Pending |
-| UI-02 | — | Pending |
-| UI-03 | — | Pending |
-| CFG-01 | — | Pending |
+| DSP-01 | Phase 3 | Pending |
+| DSP-02 | Phase 3 | Pending |
+| DSP-03 | Phase 3 | Pending |
+| PRST-01 | Phase 4 | Pending |
+| PRST-02 | Phase 4 | Pending |
+| PRST-03 | Phase 4 | Pending |
+| PRST-04 | Phase 4 | Pending |
+| UI-01 | Phase 5 | Pending |
+| UI-02 | Phase 5 | Pending |
+| UI-03 | Phase 5 | Pending |
+| CFG-01 | Phase 4 | Pending |
 
 **Coverage:**
 - v0.4.1 requirements: 11 total
-- Mapped to phases: 0
-- Unmapped: 11
+- Mapped to phases: 11
+- Unmapped: 0
 
 ---
 *Requirements defined: 2026-03-01*
-*Last updated: 2026-03-01 after initial definition*
+*Last updated: 2026-03-01 after roadmap creation*
