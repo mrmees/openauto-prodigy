@@ -25,10 +25,11 @@ The core AA experience works end-to-end. This roadmap closes the remaining gaps 
   1. Running the app with default settings produces no debug-level output in journalctl
   2. Launching with --verbose (or setting a config flag) enables full debug output per component
   3. Log lines include component category tags (AA, BT, Audio, Plugin, etc.) when verbose
-**Plans**: TBD
+**Plans**: 2 plans
 
 Plans:
-- [ ] 01-01: TBD
+- [ ] 01-01-PLAN.md — Logging infrastructure (categories, message handler, CLI parsing, tests)
+- [ ] 01-02-PLAN.md — Migrate all log calls + IPC/web panel runtime toggle
 
 ### Phase 2: Theme & Display
 **Goal**: Users can personalize the head unit appearance and control screen brightness
@@ -81,7 +82,7 @@ Phases execute in numeric order: 1 -> 2 -> 3 -> 4
 
 | Phase | Plans Complete | Status | Completed |
 |-------|----------------|--------|-----------|
-| 1. Logging Cleanup | 0/? | Not started | - |
+| 1. Logging Cleanup | 0/2 | Planned | - |
 | 2. Theme & Display | 0/? | Not started | - |
 | 3. Audio Features | 0/? | Not started | - |
 | 4. Release Hardening | 0/? | Not started | - |
