@@ -127,7 +127,6 @@ private:
     oap::AudioStreamHandle* speechStream_ = nullptr;
     oap::AudioStreamHandle* systemStream_ = nullptr;
 
-    QTimer* displayTimer_ = nullptr;
     std::unique_ptr<oaa::ProtocolLogger> protocolLogger_;
 
     ConnectionState state_ = Disconnected;

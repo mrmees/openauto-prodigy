@@ -271,20 +271,19 @@ void AndroidAutoOrchestrator::onNewConnection()
     connect(&videoHandler_, &oaa::hu::VideoChannelHandler::videoFrameData,
             &videoDecoder_, &VideoDecoder::decodeFrame, Qt::QueuedConnection);
 
-    // Display tick — poll latest decoded frame at ~60Hz
-    if (!displayTimer_) {
-        displayTimer_ = new QTimer(this);
-        displayTimer_->setTimerType(Qt::PreciseTimer);
-        connect(displayTimer_, &QTimer::timeout, this, [this]() {
-            QVideoFrame frame = videoDecoder_.takeLatestFrame();
-            if (frame.isValid()) {
-                QVideoSink* sink = videoDecoder_.videoSink();
-                if (sink)
-                    sink->setVideoFrame(frame);
-            }
-        });
-    }
-    displayTimer_->start(16);  // ~60Hz
+    // Push decoded frames to the sink as soon as they're ready (signal-driven).
+    // The signal is emitted from the decode worker thread; Qt auto-queues it to
+    // the main thread, so setVideoFrame() runs in the GUI thread as required.
+    // This replaces the old 16ms polling timer, eliminating 0-16ms of display jitter.
+    videoDecoder_.disconnect(this);  // prevent duplicate connections on reconnect
+    connect(&videoDecoder_, &VideoDecoder::frameReady, this, [this]() {
+        QVideoFrame frame = videoDecoder_.takeLatestFrame();
+        if (frame.isValid()) {
+            QVideoSink* sink = videoDecoder_.videoSink();
+            if (sink)
+                sink->setVideoFrame(frame);
+        }
+    });
 
     // Create PipeWire audio streams with per-stream buffer sizing from config
     if (audioService_) {
@@ -569,8 +568,8 @@ void AndroidAutoOrchestrator::teardownSession()
 {
     stopProtocolCapture();
 
-    if (displayTimer_)
-        displayTimer_->stop();
+    // Disconnect frame-ready signal to stop pushing frames during teardown
+    videoDecoder_.disconnect(this);
 
     if (session_) {
         // Disconnect all signals from session_ to us BEFORE scheduling deletion.

@@ -47,6 +47,9 @@ public:
 
 signals:
     void videoSinkChanged();
+    /// Emitted from the decode worker thread after a new frame is stored.
+    /// Connect with Qt::AutoConnection — Qt will auto-queue to the main thread.
+    void frameReady();
 
 public slots:
     void decodeFrame(std::shared_ptr<const QByteArray> h264Data, qint64 enqueueTimeNs = 0);

@@ -431,6 +431,7 @@ void VideoDecoder::processFrame(const QByteArray& h264Data, qint64 enqueueTimeNs
                     latestFrame_ = std::move(videoFrame);
                 }
                 hasLatestFrame_.store(true, std::memory_order_release);
+                emit frameReady();
                 frameDelivered = true;
             }
             else
@@ -518,6 +519,7 @@ void VideoDecoder::processFrame(const QByteArray& h264Data, qint64 enqueueTimeNs
                         latestFrame_ = std::move(videoFrame);
                     }
                     hasLatestFrame_.store(true, std::memory_order_release);
+                    emit frameReady();
                     frameDelivered = true;
                 }
             }
