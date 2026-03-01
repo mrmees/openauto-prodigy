@@ -1314,14 +1314,16 @@ clear_paired_phones() {
     local phone_names=()
     while IFS= read -r info_file; do
         local class_hex
-        class_hex=$(grep -oP 'Class=0x\K[0-9a-fA-F]+' "$info_file" 2>/dev/null) || continue
+        class_hex=$(sed -n 's/^Class=0x\([0-9a-fA-F]*\)/\1/p' "$info_file" 2>/dev/null) || continue
+        if [[ -z "$class_hex" ]]; then continue; fi
         # Major device class is bits 12-8: (class >> 8) & 0x1F
         local major=$(( (16#$class_hex >> 8) & 0x1F ))
         if [[ $major -eq 2 ]]; then
             local dev_dir
             dev_dir=$(dirname "$info_file")
             local dev_name
-            dev_name=$(grep -oP 'Name=\K.*' "$info_file" 2>/dev/null || echo "Unknown device")
+            dev_name=$(sed -n 's/^Name=//p' "$info_file" 2>/dev/null)
+            if [[ -z "$dev_name" ]]; then dev_name="Unknown device"; fi
             phones+=("$dev_dir")
             phone_names+=("$dev_name")
         fi
