@@ -128,6 +128,11 @@ int main(int argc, char *argv[])
         themeService->setTheme("default");
     }
 
+    // Load user's explicit wallpaper choice (overrides theme default)
+    QVariant savedWallpaper = yamlConfig->valueByPath("display.wallpaper");
+    if (savedWallpaper.isValid())
+        themeService->setWallpaper(savedWallpaper.toString());
+
     // --- Display service (brightness) ---
     auto displayService = new oap::DisplayService(&app);
     QVariant savedBrightness = yamlConfig->valueByPath("display.brightness");
