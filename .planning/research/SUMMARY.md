@@ -1,183 +1,171 @@
 # Project Research Summary
 
-**Project:** OpenAuto Prodigy — v1.0 Feature Completion
-**Domain:** Raspberry Pi Android Auto head unit (wireless-only, Qt 6 + C++)
+**Project:** OpenAuto Prodigy — Audio Equalizer (v0.4.1)
+**Domain:** Real-time 10-band graphic EQ for PipeWire-based Android Auto head unit
 **Researched:** 2026-03-01
-**Confidence:** HIGH (most features extend existing, proven architecture; one feature has unverified protocol behavior)
+**Confidence:** HIGH
 
 ## Executive Summary
 
-OpenAuto Prodigy is already a functioning wireless Android Auto head unit. This research covers the gap between "it works" and "v1.0 releasable" — five concrete feature areas: HFP call audio independence, audio equalization, theme and wallpaper selection, dynamic sidebar reconfiguration, and logging cleanup. The good news is that every feature can be implemented with the existing dependency set (Qt 6.8, PipeWire 1.4.2, BlueZ, FFmpeg, yaml-cpp, protobuf) — no new packages needed beyond verifying `pipewire-module-filter-chain` is present.
+The audio equalizer for OpenAuto Prodigy is a well-scoped, self-contained feature with no new dependencies. All four research streams converged on the same architecture: **inline biquad DSP processing inside the existing PipeWire `onPlaybackProcess` callback**. This approach was evaluated alongside two PipeWire-native alternatives (filter-chain modules and `pw_filter` nodes), both rejected due to graph latency, broken rate matching, and complex link lifecycle. The biquad approach slots cleanly into the existing ring buffer → callback → PW buffer pipeline with approximately 15 new lines of integration code.
 
-The recommended approach is to build in risk order: low-risk, high-impact improvements first (logging cleanup, theme selection) to establish release quality, then the critical daily-driver features (HFP audio independence, audio EQ), and the experimental protocol work (dynamic sidebar) last. Four of the five features are pure extensions of existing patterns with well-understood implementation paths. The fifth — dynamic sidebar reconfiguration via `UpdateHuUiConfigRequest` (message 0x8012) — is architecturally sound in terms of the proto definition but unverified on the wire. Modern phones may or may not honor runtime margin changes. A feature flag and fallback to disconnect+reconnect is mandatory.
+The recommended implementation uses the Robert Bristow-Johnson Audio EQ Cookbook (peaking EQ formula), which is the W3C-hosted industry standard. The entire DSP core is approximately 150 lines of C++ using only `<cmath>` and `<atomic>` — nothing new to link, nothing to install. The feature scope is well-defined: 10 bands at ISO octave frequencies (31Hz–16kHz), ±12dB range, 8 bundled presets, per-stream profiles (media/navigation/phone), YAML persistence, QML touch UI, and web config extension. Total estimated new code is approximately 1,070 lines across 9 files.
 
-The main architectural risk is in HFP audio: PipeWire's bluez5 plugin already owns HFP AG on Trixie. Any attempt to manually manage SCO sockets will create conflicts and silent audio failures. The correct approach is to let PipeWire handle SCO routing entirely, and have PhonePlugin manage only call state monitoring, audio focus requests, and UI lifecycle — completely decoupled from the AA session. This is an architectural decision that must be made correctly before any code is written, because fixing it retroactively is high-cost.
+The primary risks are in the real-time audio domain: mutex use in the callback (priority inversion), denormal floats during quiet audio (CPU spikes on Cortex-A72), and coefficient snap-in on preset change (audible clicks). All three have well-documented prevention strategies — double-buffered atomic coefficients, FTZ bit on the audio thread, and coefficient interpolation over 5–10ms. These are not theoretical risks; they are the specific failure modes that every IIR EQ implementation on real-time audio hardware encounters. Getting them right from the start is essential — retrofitting them is painful.
 
 ## Key Findings
 
 ### Recommended Stack
 
-No new dependencies required. All five features are achievable with the existing build. The key insight from STACK.md is that the app already has everything needed: PipeWire for EQ (inline biquad in the RT callback, not the filter-chain module), QLoggingCategory for logging (Qt built-in), yaml-cpp for theme directory scanning, and the `UiConfigMessages.proto` already in the open-androidauto submodule for dynamic sidebar.
+No new dependencies. The entire EQ implementation builds on the existing stack. DSP math uses `<cmath>`. Thread safety uses `<atomic>`. The existing PipeWire `pw_stream` API, yaml-cpp config system, Qt Quick Controls, and Flask/IPC web panel all extend naturally.
 
-**Core technologies (additions/changes):**
-- PipeWire RT callback (existing): Inline biquad EQ — avoids PW graph complexity entirely
-- QLoggingCategory (Qt built-in): Replaces bare `qDebug()` — zero new deps, ~230 call sites to migrate
-- ThemeService extension (existing): Directory scanning + wallpaper path Q_PROPERTY — no new deps
-- UiConfigMessages.proto (existing submodule): 0x8012/0x8013 for dynamic sidebar — needs wire verification
-- PipeWire bluez5 + WirePlumber (existing): HFP AG audio — app explicitly must NOT compete with this
+**Core technologies:**
+- **`<cmath>` + `<atomic>` + `<array>`**: DSP math and lock-free coefficient swap — standard C++17, zero new dependency
+- **Existing `onPlaybackProcess` callback**: Integration point for inline biquad processing — already owns the audio data at the right moment in the right thread
+- **Existing yaml-cpp (YamlConfig)**: Preset and profile persistence — follows `setValueByPath`/`initDefaults` pattern already in use
+- **Existing Qt Quick Controls (Slider, ComboBox, Repeater)**: EQ touch UI — available in both Qt 6.4 (dev VM) and Qt 6.8 (Pi)
+- **Existing IpcServer + Flask**: Web config panel extension — additive, follows established `handleGetX`/`handleSetX` pattern
 
-**What NOT to use:** ofono (rejected by project), PipeWire filter-chain for EQ (latency + graph complexity), SCO socket management in-app (conflicts with PipeWire), spdlog/Boost.Log (Qt already has logging), EasyEffects (GTK4 desktop app, not embeddable), SVG wallpapers (fixed resolution, JPEG is simpler).
+**Version compatibility:** No issues. Inline processing uses only `pw_stream` API (no filter-chain modules), so the PipeWire version gap (1.0.5 dev VM vs 1.4.2 Pi) is irrelevant. Qt 6.4 and 6.8 both cover the basic QML controls needed.
 
 ### Expected Features
 
-**Must have for v1.0 (table stakes):**
-- HFP audio persistence across AA disconnect — phone calls dropping is a daily-driver dealbreaker
-- Audio equalizer with presets — every commercial head unit has EQ; car audio without it sounds bad
-- Screen brightness wiring — IDisplayService and QML slider exist, setBrightness() backend is a TODO; must write to `/sys/class/backlight/`
-- Theme/wallpaper selection UI — ThemeService supports it, QML picker missing; users expect personalization
-- Clean logging (quiet production output) — debug spam in journalctl looks amateur, degrades perceived quality
-- First-run experience polish — FirstRunBanner exists but needs to be a complete guided flow
+**Must have (table stakes):**
+- 10-band graphic EQ sliders (31, 62, 125, 250, 500, 1k, 2k, 4k, 8k, 16kHz) — standard for any head unit EQ
+- Bundled presets (8): Flat, Rock, Pop, Jazz, Bass Boost, Treble Boost, Voice, Car Cabin — one-tap sound profiles are expected
+- Bypass/flat toggle — always-visible, prominent; users need to hear the before/after difference
+- Real-time slider response — no "apply" button; coefficients update within one audio quantum (~21ms)
+- Visual frequency response curve — polyline connecting slider tops; trivial to add, significant UX improvement
+- YAML config persistence — survives reboot; non-negotiable for a car head unit
 
 **Should have (differentiators):**
-- Dynamic sidebar reconfiguration during AA — no commercial unit does this; protocol support is experimental
-- Per-connection WiFi password rotation — security hardening, unique to Prodigy
+- Per-stream EQ profiles — different curves for media vs navigation vs phone; no commercial head unit does this
+- User-created presets — save custom curves with a name; targets power users
+- Web config panel EQ — adjust from phone browser with better precision than touchscreen
+- Per-stream preset assignment in web panel — configure all three streams from one screen
 
-**Defer to post-v1.0:**
-- USB Android Auto — wireless-only is a deliberate simplification
-- CarPlay / screen mirroring — massive scope, not daily-driver needs
-- Built-in media player (Kodi), iDrive/IBus controllers, hardware sensor integration
-- Multi-display support, companion app (separate repo/timeline), CI automation
-- Community plugin examples — plugin system works, examples are documentation
+**Defer (v2+):**
+- System-wide EQ covering BT audio — different architecture (sink-level filter-chain), out of v0.4.1 scope
+- Parametric EQ (adjustable Q/frequency) — UI nightmare on 1024x600; users who need it can use PipeWire externally
+- Real-time spectrum analyzer — FFT on the RT thread competes with video decode CPU budget on Pi 4
+- Auto-EQ / room correction — requires calibrated mic, test signal, far beyond scope
+- Separate left/right channel EQ — doubles controls, UI nightmare on small touchscreen
 
 ### Architecture Approach
 
-The existing layered architecture (QML Shell → PluginManager → IHostContext services → Plugin implementations → PipeWire/BlueZ/FFmpeg) is solid and should not be restructured. All five features integrate cleanly as targeted modifications: two new services (EqualizerService, LoggingService), one extended service (ThemeService), and two modified plugins (PhonePlugin for audio independence, AndroidAutoOrchestrator for dynamic margin push). The critical thread model constraints — ASIO threads bridging to Qt main via `QMetaObject::invokeMethod(QueuedConnection)`, lock-free ring buffer for audio — must be respected by all new code.
+The architecture is a clean **Service + Processor split**: `EqualizerService` (QObject, main thread, UI bindings, config, presets) owns `EqualizerProcessor` instances (RT thread, stateless except biquad filter state). They communicate only through atomic pointer swap — the service computes new coefficients on the main thread and stores them atomically; the processor checks and applies them at the top of each RT callback. This mirrors how ThemeService and AudioService already work. The integration into `AudioService` is minimal: `AudioStreamHandle` gets an `eqProcessor` field, `createStream()` initializes it, and `onPlaybackProcess()` gets approximately 15 lines between the ring buffer read and the silence fill.
 
-**Major components and responsibilities:**
-1. EqualizerService (NEW) — Biquad DSP state, RT-safe atomic coefficient swap, preset YAML storage. Process called inline from `AudioService::onPlaybackProcess()`. Media stream only — navigation and phone streams bypass EQ.
-2. ThemeService (EXTENDED) — Add `scanThemeDirectories()`, implement the stub `setTheme(id)`, add `wallpaperPath` Q_PROPERTY. Theme picker QML view in Settings.
-3. PhonePlugin (MODIFIED) — Decouple HFP audio lifecycle from AA session. Own audio focus requests independently. Let PipeWire handle actual SCO routing.
-4. AndroidAutoOrchestrator (MODIFIED) — Add `pushUiConfigUpdate()` behind feature flag. Send 0x8012, handle 0x8013 response. Fall back to disconnect+reconnect on failure.
-5. LoggingService (NEW) — `qInstallMessageHandler()` at startup, `QLoggingCategory` definitions for all subsystems, `--verbose` CLI flag, runtime toggle via web panel.
+**Major components:**
+1. **`BiquadFilter` (header-only)** — single biquad stage; coefficients + z1/z2 state; Transposed Direct Form II
+2. **`EqualizerProcessor`** — 10-band cascade per channel; atomic coefficient swap; RT-safe `process(int16_t*, nFrames, channels)`
+3. **`EqualizerService`** (QObject) — per-stream profiles, preset library (bundled + user), config persistence, Q_PROPERTYs for QML
+4. **`EqualizerSettings.qml`** — vertical sliders, stream selector tabs, preset picker, frequency curve; integrates with Settings view
+5. **IPC extension** — 5 new JSON commands over existing Unix socket; web panel reads/writes via these, never direct YAML access
+
+**Suggested build order:** BiquadFilter → EqualizerProcessor → AudioService integration → EqualizerService → config schema → IPC handlers → QML UI → web config panel. Bottom-up: testable DSP core first, UI surfaces last.
 
 ### Critical Pitfalls
 
-1. **HFP audio ownership conflict with PipeWire** — PipeWire's bluez5 plugin already owns HFP AG on Trixie. Attempting to open SCO sockets directly or register a competing AG profile causes silent audio failures (call connects at signaling level, no audio flows). Prevention: explicitly let PipeWire own SCO; app manages only focus/ducking and call UI state.
+1. **Mutex in the RT callback** — any lock in `onPlaybackProcess` causes priority inversion under load. Use double-buffered atomic coefficient swap. No exceptions. An atomic index swap (`std::atomic<int>`) between two coefficient arrays is wait-free and correct.
 
-2. **HFP call audio drops when AA disconnects** — If PhonePlugin audio lifecycle is coupled to the AA session, calls drop when AA disconnects mid-drive. Prevention: PhonePlugin must own audio focus independently of AndroidAutoPlugin. Test matrix must cover: call starts before AA, during AA, AA disconnects during call. This is HIGH-cost to fix retroactively.
+2. **Denormal floats during quiet audio** — IIR biquad state variables decay to subnormals when audio goes quiet; Cortex-A72 processes these ~100x slower, blowing the RT deadline. Set FTZ bit on FPCR at PipeWire thread start: `fpcr |= (1 << 24)`. One assembly line prevents the entire class of problem.
 
-3. **AA margins locked at session start — dynamic sidebar is constrained by protocol** — `ServiceDiscoveryResponse` is sent once at connection time; margins cannot change mid-session per protocol spec. `UpdateHuUiConfigRequest` (0x8012) is the only potential path, but its runtime behavior is unverified. Prevention: design settings UI to clearly show "takes effect on next connection" for sidebar changes. Provide instant visual feedback by toggling sidebar strip visibility (overlay) without changing video margins, while actual resize waits for reconnect.
+3. **Coefficient snap causes click artifacts on preset change** — atomically swapping biquad coefficients produces an audible transient because filter delay line state is inconsistent with the new transfer function. Interpolate coefficients smoothly over 5–10ms (240–480 samples at 48kHz). **This is not optional polish — implement it from day one.**
 
-4. **EQ latency on navigation and phone call audio** — Inserting EQ into ALL audio streams adds latency on top of the existing ~100ms wireless AA transport delay. Navigation prompts and call audio cross the perceptibility threshold. Prevention: apply EQ only to the media/music PipeWire stream. Navigation and phone streams bypass EQ entirely. The three-stream separation in AudioService already enables this.
+4. **EQ on navigation/phone audio breaks intelligibility** — bass boost preset applied to navigation voice prompts masks consonants over road noise. Default nav and phone streams to flat or Voice preset; never apply user music EQ to speech streams automatically. The three-stream separation in AudioService already enables clean per-stream control.
 
-5. **ThemeService live reload requires Q_PROPERTY bindings, not signal assumptions** — QML bindings to function calls like `ThemeService.color("key")` are NOT automatically re-evaluated when `colorsChanged()` emits. Must use Q_PROPERTY for each color value, or explicit `Connections {}` blocks. Prevention: verify existing color bindings work on theme switch before building the picker UI.
+5. **Config defaults gate** — `setValueByPath` silently fails without an `initDefaults()` entry (known project issue). Register all `audio.equalizer.*` keys in `initDefaults()` before any read/write operation.
 
 ## Implications for Roadmap
 
-Based on research, all five features are independent (no feature depends on another). The ordering below is purely by risk/impact ratio: highest-confidence lowest-risk first, experimental last.
+Based on research, the natural build order is bottom-up: testable DSP core first, service layer second, UI surfaces last. This minimizes integration risk and enables unit testing at each layer before touching the next.
 
-### Phase 1: Logging Cleanup
-**Rationale:** Zero risk, immediate developer quality-of-life benefit that makes debugging ALL subsequent phases easier. Mechanical work (replace ~230 `qDebug()` calls with categorized equivalents) that doesn't touch business logic.
-**Delivers:** Production-quality journald output. `--verbose` flag. Runtime toggle via web panel. Quiet defaults.
-**Addresses:** "Clean logging" table stakes from FEATURES.md
-**Avoids:** `fprintf` in RT audio callbacks (performance trap from PITFALLS.md)
-**Research flag:** Skip — QLoggingCategory is thoroughly documented, well-understood Qt pattern.
+### Phase 1: DSP Core
+**Rationale:** Everything else depends on the biquad math being correct and RT-safe. This layer has zero Qt/PipeWire dependencies and is fully unit-testable on the dev VM without a PipeWire daemon. Getting coefficient accuracy and thread safety right before touching any other system avoids debugging RT problems through layers of UI.
+**Delivers:** `BiquadFilter` (header-only), `EqualizerProcessor` with atomic coefficient swap, RBJ peaking EQ coefficient calculator, coefficient interpolation, FTZ setup
+**Addresses:** 10-band EQ (underlying engine), bypass toggle (atomic `enabled_` flag), real-time response (lock-free updates)
+**Avoids:** Pitfall 1 (mutex in RT callback), Pitfall 2 (denormals — FTZ set here), Pitfall 3 (click artifacts — interpolation implemented here, not deferred)
 
-### Phase 2: Theme and Wallpaper Selection
-**Rationale:** High confidence, self-contained, zero protocol risk. Extends existing ThemeService patterns. Delivers visible polish that builds confidence in release quality.
-**Delivers:** Theme directory scanning. `setTheme()` implemented. QML picker in Settings. Wallpaper support. 2-3 bundled themes.
-**Addresses:** "Theme/wallpaper selection UI" table stakes from FEATURES.md
-**Avoids:** Missing Q_PROPERTY bindings for live reload (PITFALLS.md integration gotcha). Pre-scale wallpapers to 1024x600 on selection (PITFALLS.md performance trap).
-**Research flag:** Skip — pure extension of existing ThemeService patterns, no new system boundaries.
+### Phase 2: AudioService Integration
+**Rationale:** The DSP core is useless without being wired into the audio pipeline. This phase does the minimal integration: add `eqProcessor` to `AudioStreamHandle`, call `process()` in `onPlaybackProcess()`, and verify the PI rate controller is unaffected. Approximately 15 lines of production code but the most risk-sensitive step because it touches the RT callback.
+**Delivers:** Working EQ on all three AA audio streams, per-stream processor instances, verified rate matching stability
+**Addresses:** Per-stream EQ profiles (foundation), audio quality improvement
+**Avoids:** Pitfall 4 (speech stream intelligibility — default nav/phone to flat here), Pitfall 6 (rate matching disruption — verify PI controller unchanged with EQ enabled)
 
-### Phase 3: HFP Call Audio Independence
-**Rationale:** Critical for daily-driver use. Phone calls dropping is a showstopper. Must be done before EQ (audio architecture must be understood first) and has an architectural decision that's expensive to reverse. Wire verification needed on Pi.
-**Delivers:** Phone calls survive AA disconnect/reconnect. Audio focus management independent of AA session. Bidirectional call audio (both directions must be verified).
-**Addresses:** "HFP audio persistence across AA state" table stakes from FEATURES.md
-**Avoids:** HFP audio ownership conflict with PipeWire (Critical Pitfall 1). Coupling audio lifecycle to AA session (Critical Pitfall 2). PipeWire's `org.pipewire.Telephony` API (1.4+) for call control if needed.
-**Research flag:** Flag for wire testing on Pi. PipeWire's automatic HFP SCO behavior needs verification — especially mSBC vs CVSD codec negotiation and whether app needs to do anything beyond audio focus management.
+### Phase 3: EqualizerService + Config
+**Rationale:** With processors wired in, the service layer provides the Qt-facing API: per-stream profiles, preset library (8 bundled presets compiled into binary), config persistence, and QML Q_PROPERTY bindings. This is where the per-stream differentiator gets built.
+**Delivers:** `EqualizerService` QObject, 8 bundled presets (code-defined), per-stream profiles in YAML, `initDefaults()` registration, user preset save/delete
+**Addresses:** Bundled presets, user-created presets, YAML persistence, per-stream profiles
+**Avoids:** Pitfall 5 (config defaults gate — register all keys before first access), Pitfall 7 (correct YAML schema up front)
 
-### Phase 4: Audio Equalizer
-**Rationale:** Table stakes for car audio. More complex than themes (biquad math, RT-safe coefficient swap, two UIs — QML preset selector and web panel band editor) but well-understood. Benefits from clean logging (Phase 1) for debugging.
-**Delivers:** 10-band parametric EQ with preset YAML storage. Real-time coefficient updates (no restart). EQ applies to media stream only, bypasses navigation/phone. Presets: Flat (default off), Bass Boost, Treble Boost, Vocal Clarity, Road Noise Compensation.
-**Addresses:** "Audio equalizer with presets" table stakes from FEATURES.md
-**Avoids:** EQ latency on navigation/call audio (Critical Pitfall 4). PipeWire filter-chain approach (Anti-Pattern 1 from ARCHITECTURE.md — graph complexity, WirePlumber conflict). `fprintf` in RT callback (performance trap).
-**Research flag:** Skip — biquad DSP is well-understood mathematics. Inline-in-RT-callback pattern is documented in ARCHITECTURE.md with code example.
+### Phase 4: Head Unit Touch UI
+**Rationale:** Primary user-facing surface. Built after the service layer is stable so QML bindings are reliable. Preset-first design (prominent preset picker, sliders behind "Custom" tap) reduces touch precision requirements and matches how most users interact with EQ.
+**Delivers:** `EqualizerSettings.qml` with 10 vertical sliders, stream selector tabs, preset picker (reuses FullScreenPicker), frequency curve polyline, bypass toggle, "Reset to Flat" button
+**Addresses:** All P1 features — sliders, presets, curve, bypass, stream switching
+**Avoids:** Pitfall 9 (touch target sizing — preset-first design, sliders behind advanced tap; snap to 1dB increments)
 
-### Phase 5: Dynamic Sidebar Reconfiguration
-**Rationale:** Only after core features are solid and daily-driver quality is established. Highest risk (protocol behavior unverified). Even partial success (dynamic night-mode push via 0x8012 without margin changes) is valuable.
-**Delivers:** `UpdateHuUiConfigRequest` (0x8012) sending behind feature flag. Protocol capture to verify phone response. Fallback to disconnect+reconnect if phone rejects. Clear "takes effect on next connection" UX for rejected/unsupported scenarios.
-**Addresses:** "Dynamic sidebar" differentiator from FEATURES.md
-**Avoids:** Designing the settings UI without "takes effect on next connection" messaging (UX pitfall). Missing evdev touch zone recalculation after sidebar state changes (PITFALLS.md "Looks Done But Isn't" checklist).
-**Research flag:** FLAG — requires wire testing with protocol capture enabled before committing to the implementation approach. The 0x8012 message exists in the proto (confirmed) but phone-side behavior is unverified. Margin changes may not work; theme-only changes may still work. Design must handle all outcomes gracefully.
-
-### Phase 6: Release Hardening
-**Rationale:** The "Looks Done But Isn't" checklist from PITFALLS.md covers items that don't fit in feature phases but are required for a trustworthy release. Grouped here rather than scattered across phases.
-**Delivers:** Screen brightness backend wired to `/sys/class/backlight/`. systemd watchdog integration. Log rotation bounds. Clean SIGTERM shutdown (EVIOCGRAB released, BT ungrabbed, config flushed). Graceful AudioService degradation when PipeWire is unavailable. First-run experience polish. ExitDialog shutdown/reboot verification.
-**Addresses:** Partial-status items from FEATURES.md (brightness, first-run, graceful shutdown). Release hardening section from PITFALLS.md.
-**Research flag:** Skip for most items. Watchdog integration is well-documented for Pi 4 BCM watchdog. sysfs backlight path is hardware-specific — verify on Pi before coding.
+### Phase 5: Web Config Panel
+**Rationale:** Second UI surface, lower priority than touch UI. Depends on Phase 3 IPC commands. Delivers power-user configuration from phone/laptop — better precision for fine tuning than fat-finger touchscreen sliders.
+**Delivers:** Flask `/equalizer` route, HTML/JS EQ panel with sliders, per-stream preset dropdowns, save-as-preset form, real-time IPC commands
+**Addresses:** Web config EQ (P2), per-stream web panel assignment (P2), all P2 features
+**Avoids:** Pitfall 8 (web/head-unit state sync — IPC socket is single source of truth, web panel polls for state rather than reading YAML directly)
 
 ### Phase Ordering Rationale
 
-- Logging first: makes debugging phases 2-6 measurably easier. Zero-risk warmup.
-- Theme before HFP: confidence building, no risk. Validates the YAML/QML extension patterns before touching audio.
-- HFP before EQ: audio architecture understanding (what PipeWire owns vs what app owns) informs EQ stream selection (media only). Wrong HFP architecture breaks EQ later.
-- EQ before dynamic sidebar: EQ is well-understood; sidebar is experimental. Ship the high-confidence features first.
-- Dynamic sidebar last: protocol-dependent, has the only unverified assumption in all the research. Doesn't block v1.0 if it fails.
-- Release hardening last: crosses all other phases, validates the whole system.
+- **DSP before service:** Biquad math is dependency-free and fully unit-testable. Bugs found here cost nothing. Bugs found after Qt wiring cost more.
+- **Integration before service:** The RT callback is the most constrained environment. Verify the integration point works in isolation before adding Qt machinery on top.
+- **Service before UI:** QML bindings require stable Q_PROPERTYs and Q_INVOKABLEs to bind against.
+- **Touch UI before web:** Primary interface first; web panel is an enhancement.
+- **Coefficient interpolation in Phase 1, not Phase 4:** Click artifacts are a DSP problem, not a UI problem. Deferring them to "UI polish" is a trap — by then the audio callback is wired into the app and testing is harder.
 
 ### Research Flags
 
-Phases needing deeper research during planning:
-- **Phase 3 (HFP Call Audio):** Wire test on Pi required. PipeWire's automatic HFP SCO behavior, mSBC/CVSD codec handling, and the `org.pipewire.Telephony` D-Bus API (new in 1.4) need verification before finalizing the PhonePlugin architecture. Session memory confirms HFP AG is owned by PipeWire, but the exact audio routing path hasn't been exercised.
-- **Phase 5 (Dynamic Sidebar):** Protocol behavior of 0x8012 on modern AA (16.x) is completely unverified. Must test with protocol capture before committing to implementation. Fallback path (reconnect) is required regardless.
+Phases with well-documented patterns (skip `/gsd:research-phase`):
+- **Phase 1 (DSP Core):** RBJ cookbook is the canonical W3C reference; Transposed Direct Form II is textbook; no research needed.
+- **Phase 2 (AudioService integration):** Codebase was read directly during research; integration point is fully characterized.
+- **Phase 3 (Service + Config):** Follows existing ThemeService and YamlConfig patterns exactly.
+- **Phase 4 (Touch UI):** Standard Qt Quick Controls; UiMetrics scaling established in project.
+- **Phase 5 (Web Config):** Follows existing Flask + IPC patterns. Only open question is polling vs push for state sync — recommend polling at ~1s interval for v0.4.1.
 
-Phases with standard patterns (skip research):
-- **Phase 1 (Logging):** QLoggingCategory is thoroughly documented Qt functionality.
-- **Phase 2 (Theme):** Pure extension of existing ThemeService. No new system boundaries.
-- **Phase 4 (EQ):** Biquad DSP math is standard DSP. RT-safe atomic swap pattern is documented with code in ARCHITECTURE.md.
-- **Phase 6 (Release Hardening):** Mostly Pi/systemd-specific work with clear sysfs/D-Bus APIs.
+No phases need `/gsd:research-phase`. The domain is extremely well-documented from multiple high-confidence sources, and the codebase was read directly during research.
 
 ## Confidence Assessment
 
 | Area | Confidence | Notes |
 |------|------------|-------|
-| Stack | HIGH | All features use existing deps. PipeWire filter-chain vs inline biquad decision has been analyzed from multiple angles; inline wins on all metrics for this use case. |
-| Features | HIGH | Feature set well-defined. Table stakes derived from OAP predecessor + commercial benchmarks. Anti-features explicitly justified. |
-| Architecture | HIGH (4/5 features) / LOW (sidebar margins) | Logging, theme, EQ, HFP architecture all HIGH confidence — pure extensions of existing patterns. Dynamic margin push via 0x8012 is LOW confidence on runtime phone behavior. |
-| Pitfalls | MEDIUM-HIGH | HFP audio ownership conflict and EQ latency pitfalls are well-grounded in codebase analysis. PipeWire Telephony API confidence is MEDIUM (new API, may evolve). Watchdog specifics are MEDIUM (community sources). |
+| Stack | HIGH | All technologies already in use; no new dependencies; version compatibility verified for both Qt 6.4/6.8 and PipeWire 1.0.5/1.4.2 |
+| Features | HIGH | Standard car audio EQ domain; OAP reference available; competitor analysis complete; feature count and UX patterns well-established |
+| Architecture | HIGH | Codebase read directly; existing `onPlaybackProcess` callback fully characterized; integration point confirmed; all three alternative approaches evaluated and rejected with specific reasons |
+| Pitfalls | HIGH | RT audio pitfalls from official PipeWire docs + established EarLevel Engineering references; Pi 4 ARM-specific pitfalls from ARM community + codebase analysis |
 
-**Overall confidence:** HIGH for the 4 low-risk features. MEDIUM for dynamic sidebar. Ready to roadmap.
+**Overall confidence:** HIGH
 
 ### Gaps to Address
 
-- **0x8012 runtime behavior on modern phones:** Only gap with no clear resolution from research. Must be tested on wire during Phase 5. Fallback (reconnect) removes blocking risk, but true dynamic resize capability is uncertain. Design Phase 5 to deliver value even if 0x8012 only works for night-mode/theme (not margins).
-- **PipeWire Telephony API stability:** `org.pipewire.Telephony` is new (PipeWire 1.4, Feb 2025). Documentation exists but the API may evolve. If it proves unstable, fall back to monitoring call state via BlueZ D-Bus `org.bluez.VoiceGateway` properties. The existing PhonePlugin D-Bus monitoring path is a safe baseline.
-- **mSBC codec availability on all test phones:** HFP wideband (mSBC) vs narrowband (CVSD) — must verify both codecs produce working call audio on Pi Trixie. Samsung S25 Ultra is the primary test phone (session memory), but mSBC behavior varies by phone model.
-- **Screen brightness sysfs path:** `/sys/class/backlight/` path is hardware/driver-specific on Pi 4 with DFRobot display. Verify exact path before Phase 6 implementation.
+- **QML slider layout at 1024x600:** 10 vertical sliders in ~900px usable width needs visual prototyping to confirm touch targets are comfortable at driving precision levels. STACK.md flagged this as MEDIUM. Mitigation: preset-first design means most users never touch individual sliders.
+- **Coefficient interpolation implementation detail:** Research recommends 5–10ms linear interpolation but the exact per-sample `alpha` increment loop in the RT callback needs care. If the quantum is shorter than the interpolation window, carry `alpha` across multiple callbacks. If alpha reaches 1.0 mid-callback, stop interpolating. Not complex but needs explicit handling.
+- **Web config state sync direction:** Current IpcServer is request/response only — no server-initiated push. If the user adjusts EQ via the head unit touchscreen while the web panel is open, the web panel won't update until next poll. Options: poll every ~1s (simple, acceptable for v0.4.1), or upgrade to WebSocket (deferred). Recommend polling for now.
 
 ## Sources
 
 ### Primary (HIGH confidence)
-- Existing codebase: `AudioService.cpp`, `ThemeService.cpp`, `PhonePlugin.cpp`, `AndroidAutoOrchestrator.cpp`, `docs/aa-display-rendering.md` — primary source for architecture decisions
-- Project session memory — HFP AG on PipeWire confirmed on fresh Trixie install; HT40/VHT80 WiFi validated
-- [PipeWire Filter-Chain Module](https://docs.pipewire.org/page_module_filter_chain.html) — biquad EQ filter types and configuration
-- [PipeWire Parametric Equalizer Module](https://docs.pipewire.org/page_module_parametric_equalizer.html) — static EQ config format
-- [WirePlumber Bluetooth Configuration](https://pipewire.pages.freedesktop.org/wireplumber/daemon/configuration/bluetooth.html) — bluez5.roles, HFP AG, SCO routing
-- [QLoggingCategory (Qt 6)](https://doc.qt.io/qt-6/qloggingcategory.html) — categorized logging with runtime filter support
-- OpenAuto Pro manual PDF (local) — predecessor feature set reference
-- UiConfigMessages.proto (in-tree submodule) — 0x8012/0x8013 message definitions
+- [W3C Audio EQ Cookbook (RBJ)](https://www.w3.org/TR/audio-eq-cookbook/) — biquad peaking EQ coefficient formulas, the definitive reference
+- [PipeWire Tutorial 7: Audio DSP Filter](https://docs.pipewire.org/devel/page_tutorial7.html) — RT callback structure; pw_filter API (evaluated, rejected)
+- [PipeWire Filter-Chain Module](https://docs.pipewire.org/page_module_filter_chain.html) — external EQ approach (evaluated, rejected)
+- [PipeWire Parametric Equalizer Module](https://docs.pipewire.org/page_module_parametric_equalizer.html) — external EQ approach (evaluated, rejected)
+- [PipeWire Filter API](https://docs.pipewire.org/group__pw__filter.html) — pw_filter reference (evaluated, rejected)
+- Existing codebase: `AudioService.cpp`, `AudioService.hpp`, `AudioRingBuffer.hpp`, `IpcServer.cpp`, `ThemeService.hpp`, `YamlConfig.hpp` — primary source, read directly during research
 
 ### Secondary (MEDIUM confidence)
-- [PipeWire Bluetooth Telephony Support (George Kiagiadakis, Feb 2025)](https://gkiagia.gr/2025-02-20-pipewire-telephony/) — new Telephony D-Bus API details
-- [Writing a PipeWire Parametric EQ Module (asymptotic.io)](https://asymptotic.io/blog/pipewire-parametric-autoeq/) — practical EQ implementation guide
-- [EarLevel Biquad C++ Source](https://www.earlevel.com/main/2012/11/26/biquad-c-source-code/) — reference biquad implementation
-- [Raspberry Pi Watchdog (community forums)](https://forums.raspberrypi.com/viewtopic.php?t=326779) — Pi 4 BCM watchdog behavior
-- [Best Android Auto Head Units 2025 (T3)](https://www.t3.com/features/best-android-auto-head-unit) — commercial feature benchmarks
+- [EarLevel Engineering: Biquad C++ Source](https://www.earlevel.com/main/2012/11/26/biquad-c-source-code/) — Transposed Direct Form II reference implementation
+- [EarLevel Engineering: Denormalization in Audio](https://www.earlevel.com/main/2012/12/03/a-note-about-de-normalization/) — FTZ/DAZ mitigation strategies and ARM specifics
+- [DSP Parameter Smoothing (Dark Palace Studio)](https://darkpalace.studio/2025/04/18/dsp-smoothing.html) — coefficient interpolation patterns for RT audio
+- [Pi 4 Real-Time DSP Discussion (RPi Forums)](https://forums.raspberrypi.com/viewtopic.php?t=248857) — ARM Cortex-A72 performance validation community data
+- [Crutchfield: Car EQ Guide](https://www.crutchfield.com/learn/how-to-adjust-the-equalizer-in-your-car.html) — preset values and UX conventions for car audio EQ
+- [SoundCertified: Best Equalizer Settings for Car Audio](https://soundcertified.com/best-equalizer-settings-for-car-audio/) — preset genre definitions
 
 ### Tertiary (LOW confidence)
-- aa-proxy-rs source (community) — 0x8012 message ID origin; runtime phone behavior unverified
-- [Crankshaft](https://getcrankshaft.com/) — open-source competitor (unmaintained, USB-only; useful as negative comparison only)
+- [DSP-Cpp-filters (GitHub)](https://github.com/dimtass/DSP-Cpp-filters) — reference IIR implementations; useful for cross-checking only, not authoritative
 
 ---
 *Research completed: 2026-03-01*

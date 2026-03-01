@@ -1,141 +1,198 @@
-# Feature Landscape
+# Feature Research: Audio Equalizer
 
-**Domain:** Raspberry Pi Android Auto head unit (wireless-only)
+**Domain:** 10-band graphic EQ for car head unit (PipeWire-based, touchscreen + web UI)
 **Researched:** 2026-03-01
-**Comparisons:** OpenAuto Pro (predecessor), Crankshaft (open-source), commercial aftermarket head units (Kenwood, Pioneer, Sony, ATOTO)
+**Confidence:** HIGH
 
-## Table Stakes
+## Feature Landscape
 
-Features users expect from a head unit app. Missing any of these means the product feels incomplete or broken at v1.0.
+### Table Stakes (Users Expect These)
 
-| Feature | Why Expected | Complexity | Status | Notes |
-|---------|--------------|------------|--------|-------|
-| Reliable wireless AA connection | Core purpose of the product | -- | DONE | BT discovery, WiFi AP, TCP, auto-reconnect all working |
-| Video projection with low latency | Core purpose | -- | DONE | Multi-codec decode, hw/sw fallback, ~50fps on Pi 4 |
-| Multi-touch input | Every head unit has touch | -- | DONE | Direct evdev, MT Type B, 3-finger gesture |
-| Audio playback (media, nav, phone) | No audio = unusable | -- | DONE | 3 PipeWire streams with audio focus |
-| Bluetooth audio (A2DP) | Users play music without AA | -- | DONE | BtAudioPlugin with AVRCP controls |
-| Phone calls (HFP) | Users expect hands-free calling | -- | DONE | PhonePlugin with dialer + incoming call overlay |
-| Volume control | Every head unit has this | Low | DONE | AudioService + QML sliders + gesture overlay |
-| Screen brightness control | Every head unit has this | Low | PARTIAL | IDisplayService interface exists, settings slider exists, but setBrightness() is not wired to actual backlight control |
-| Day/night theme | All head units switch colors for night driving | Low | DONE | ThemeService with time/GPIO/manual sources, AA night mode toggle |
-| Settings UI | Users need to configure without SSH | -- | DONE | 8 settings views (Audio, Video, Display, Connection, System, etc.) |
-| Bluetooth pairing UI | Users pair phones from the touchscreen | -- | DONE | PairingDialog, PairedDevicesModel, auto-connect retry |
-| Auto-start on boot | Head unit should be ready when car starts | Low | DONE | systemd service via installer |
-| Installer that works | Non-developers need to set this up | -- | DONE | Interactive install.sh validated on fresh Trixie |
-| HFP audio persistence across AA state | Phone calls must not drop when AA disconnects/crashes | Med | IN PROGRESS | Active item in roadmap. Critical for daily driver use. |
-| Audio equalizer with presets | Every commercial head unit has EQ; OAP had it | Med | IN PROGRESS | Active item in roadmap. PipeWire filter chain integration needed. |
-| Clean default logging | Debug spam in production is unprofessional | Low | PLANNED | In roadmap "Later" section |
-| Theme/wallpaper selection UI | OAP had this; users expect to personalize | Med | PLANNED | Color palette picker + wallpaper chooser. ThemeService supports it, needs QML UI. |
-| Graceful shutdown/reboot | Users need to power off safely from touchscreen | Low | PARTIAL | ExitDialog.qml exists but needs verification that it actually triggers system shutdown/reboot |
-| First-run experience | New users need guided initial setup | Low | PARTIAL | FirstRunBanner.qml exists, but unclear if it covers BT pairing + WiFi config on first boot |
+Features users assume exist in any audio EQ implementation. Missing any of these and it feels half-baked.
 
-## Differentiators
+| Feature | Why Expected | Complexity | Notes |
+|---------|--------------|------------|-------|
+| 10-band graphic EQ sliders | Standard car audio EQ count. OAP had 15 bands (overkill for 1024x600). 10 is the sweet spot -- enough control, fits the screen. | MEDIUM | Standard ISO frequencies: 31, 62, 125, 250, 500, 1k, 2k, 4k, 8k, 16kHz. Each band +/-12dB range. |
+| Bundled genre presets | Every head unit ships with presets. Users expect one-tap sound profiles. | LOW | Rock, Pop, Jazz, Classical, Bass Boost, Treble Boost, Vocal, Flat. 8 presets is standard. |
+| Flat/bypass toggle | Users need a quick way to hear the difference. "Is EQ actually doing anything?" | LOW | Single button that zeros all bands or bypasses processing entirely. Bypass is better (avoids "now I have to re-enter my settings"). |
+| Real-time preview | Adjusting a slider must change the sound immediately, not on save. | MEDIUM | Biquad coefficient updates must propagate to DSP path within one audio quantum (~5ms). No "apply" button. |
+| Preset selection dropdown/picker | Quick access to presets without entering a full settings screen. | LOW | Reuse existing `FullScreenPicker` pattern from AudioSettings.qml. |
+| Persist EQ settings across restarts | Settings must survive reboot. Car users turn the car off and expect the same sound next time. | LOW | Already have YAML config persistence. Store band gains + active preset name under `audio.equalizer.*`. |
+| Visual frequency response curve | Users expect to see the EQ shape, not just isolated sliders. A curve connecting slider tops shows overall tonal shape at a glance. | LOW | Simple polyline/spline in QML connecting slider handle positions. No FFT needed -- purely visual. |
 
-Features that set Prodigy apart from competitors. Not expected, but valued when present. These create competitive advantage against commercial units and the defunct OAP.
+### Differentiators (Competitive Advantage)
+
+Features that go beyond what basic car head units offer.
 
 | Feature | Value Proposition | Complexity | Notes |
 |---------|-------------------|------------|-------|
-| Open source (GPLv3) | No vendor lock-in, community can fix bugs, survives company death (unlike OAP) | -- | Already true. THE differentiator. |
-| Plugin architecture | Extensibility beyond what any closed-source head unit offers. OBD, cameras, GPIO, custom apps. | -- | Already exists. Static + dynamic plugin loading. |
-| Web config panel | Configure from phone/laptop without touching the screen. Unique among Pi head units. | -- | Already exists (Flask + Unix socket IPC). |
-| Dynamic sidebar during AA | Change sidebar position/visibility without AA reconnect. No commercial unit does this. | High | Depends on `UpdateHuUiConfigRequest` (0x8012) protocol message. Experimental. |
-| Multi-codec video (H.265/VP9/AV1) | Future-proofing as phones adopt newer codecs. Most head units are H.264-only. | -- | Already implemented. |
-| 3-finger gesture overlay | Quick controls (volume, brightness, day/night) without leaving AA. Better than OAP's top-bar pulldown. | -- | Already implemented. |
-| Per-connection WiFi password rotation | Security hardening unique to Prodigy. Fresh WPA password each connection. | Med | Wishlist item. hostapd_cli integration. |
-| Protocol capture/debug logging | Invaluable for debugging AA issues. No other head unit exposes this. | -- | Already implemented. JSONL/TSV with settings UI. |
-| Companion Android app | Phone-side GPS, battery, time sync, internet sharing. Only AAWireless has a companion app in this space. | High | Separate repo, separate timeline. Not blocking v1.0. |
-| Prebuilt release distribution | Users can install without compiling. Lowers the bar massively vs Crankshaft/original OpenAuto. | -- | Already implemented. |
-| Cross-compilation toolchain | Developer quality-of-life. Fast iteration without building on Pi. | -- | Already set up. |
+| Per-stream EQ profiles | Apply different EQ to media vs navigation vs phone. Boost voice clarity on nav/phone while keeping music EQ separate. No consumer head unit does this -- they EQ the master output only. | MEDIUM | Three independent biquad chains (one per AA audio stream). Config stores `audio.equalizer.profiles.media`, `.navigation`, `.phone`. Each profile references a preset name or custom band values. |
+| User-created presets | Save custom EQ curves with a name. Power users tune for their specific car/speakers. | LOW | Save to `audio.equalizer.user_presets.[name]` in YAML. Need a save dialog (name input + confirm). |
+| Web config panel EQ | Adjust EQ from phone browser while sitting in the car. Better precision than fat-finger touchscreen sliders. Existing web config pattern makes this straightforward. | MEDIUM | Flask route + HTML/JS EQ UI. IPC commands: `eq.get_state`, `eq.set_band`, `eq.set_preset`, `eq.save_preset`. Same underlying EQ service, different UI. |
+| Per-stream preset assignment in web panel | Web UI shows all three streams with their assigned presets. Easier to configure than navigating nested touchscreen menus. | LOW | Builds on web config EQ. Three dropdown selectors + band visualization per stream. |
 
-## Anti-Features
+### Anti-Features (Commonly Requested, Often Problematic)
 
-Features to explicitly NOT build for v1.0. Each has been considered and rejected with rationale.
+| Feature | Why Requested | Why Problematic | Alternative |
+|---------|---------------|-----------------|-------------|
+| Parametric EQ (adjustable Q/frequency per band) | "More control" -- audiophile users want to tune individual band width and center frequency. | Massively increases UI complexity. 1024x600 cannot fit Q knobs + frequency selectors + gain sliders for 10 bands. Makes presets non-portable (different Q values break preset sharing). | Stick with graphic EQ (fixed frequencies, fixed Q). Users who need parametric can use PipeWire's built-in parametric-equalizer module externally. |
+| Real-time spectrum analyzer / FFT display | "Show me what the music looks like." Looks cool, adds perceived value. | Continuous FFT on RT audio thread costs CPU budget on Pi 4 that should go to video decode. Visual distraction while driving. | Static frequency response curve derived from slider positions. If someone wants a visualizer, that's a separate plugin. |
+| Auto-EQ / room correction | "Measure my car and auto-tune." REW + measurement mic workflow. | Requires calibrated mic, test signal playback, complex DSP. Way beyond scope. | Provide good presets and easy manual tuning. Link to external tools (REW, AutoEQ) in docs. |
+| Separate left/right channel EQ | "My car's acoustics favor one side." | Doubles controls (20 sliders). UI nightmare on a small touchscreen. | Single EQ applied to both channels. PipeWire filter-chain can do per-channel externally. |
+| EQ applied to BT audio plugin | "I want EQ on Bluetooth music too." | Scope creep. BT audio is a separate PipeWire A2DP sink stream. Inserting EQ there means intercepting PipeWire's A2DP sink output (fragile) or running system-wide EQ (conflicts with per-stream). | v0.4.1 scope is AA streams only. System-wide EQ is a future consideration using PipeWire filter-chain at the sink level. |
 
-| Anti-Feature | Why Avoid | What to Do Instead |
-|--------------|-----------|-------------------|
-| USB Android Auto | Adds AOAP protocol complexity, libusb, hotplug handling. Every phone since 2022 supports wireless AA. Wireless-only is a deliberate simplification. | Keep wireless-only. Revisit only if user demand is overwhelming post-v1.0. |
-| CarPlay / non-AA protocols | Massive scope expansion. Apple's protocol is proprietary. Would double the codebase. | Single protocol focus for quality. Let someone else fork for CarPlay. |
-| Screen mirroring | OAP had this but it's a niche feature requiring scrcpy/VNC integration. Not what daily drivers need. | Defer post-v1.0. Could be a plugin if someone contributes it. |
-| Built-in media player (Kodi) | OAP bundled Kodi. Huge dependency, limited use case (most people stream from phone via BT/AA). | BT audio A2DP is already there. External app launcher could point to Kodi if user installs it separately. |
-| BMW iDrive / IBus / MMI controllers | Niche hardware integration that OAP supported. Enormous maintenance burden for tiny user base. | Post-v1.0 as community-contributed plugins. Plugin system already supports this pattern. |
-| Hardware sensor integration (TSL2561, DS18B20) | OAP supported i2c light sensor and temperature sensor. Niche, requires specific hardware. | GPIO day/night switching is already in settings. Light sensor could be a post-v1.0 plugin. |
-| External application launcher | OAP had this (up to 8 apps). Requires process lifecycle management, window stacking. | Plugin system is the replacement. Plugins run in-process with proper lifecycle. External apps can be launched from the Pi desktop if needed. |
-| Multi-display / multi-resolution | Supporting arbitrary screen sizes adds testing complexity. | Lock to 1024x600 target for v1.0. UiMetrics scale factor handles minor variation. |
-| Cloud services / telemetry / accounts | Privacy violation. Against project principles. No server infrastructure to maintain. | Offline-only, forever. |
-| Pi 5 / other SBC support | Adds hardware matrix, different GPU drivers, different display pipelines. | Pi 4 reference hardware only for v1.0. Community can test on Pi 5 but it's not a supported target. |
+## Standard Preset Definitions
+
+Based on car audio conventions and genre characteristics. All values in dB, range +/-12.
+
+| Preset | 31Hz | 62Hz | 125Hz | 250Hz | 500Hz | 1kHz | 2kHz | 4kHz | 8kHz | 16kHz | Character |
+|--------|------|------|-------|-------|-------|------|------|------|------|-------|-----------|
+| Flat | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | No coloration |
+| Rock | +4 | +3 | +1 | 0 | -1 | +1 | +3 | +4 | +3 | +2 | Scooped mids, strong guitar/drums |
+| Pop | -1 | +1 | +3 | +4 | +3 | +1 | -1 | -1 | +1 | +2 | Forward mids, clear vocals |
+| Jazz | +3 | +2 | +1 | 0 | -1 | -1 | 0 | +1 | +3 | +4 | Warm bass, crisp highs |
+| Classical | 0 | 0 | 0 | 0 | 0 | 0 | -1 | -1 | +1 | +2 | Subtle high lift, natural |
+| Bass Boost | +6 | +5 | +4 | +2 | 0 | 0 | 0 | 0 | 0 | 0 | Heavy low end |
+| Treble Boost | 0 | 0 | 0 | 0 | 0 | +1 | +2 | +4 | +5 | +6 | Bright, airy top end |
+| Vocal | -2 | -1 | 0 | +2 | +4 | +4 | +3 | +1 | 0 | -1 | Midrange emphasis for speech clarity |
 
 ## Feature Dependencies
 
 ```
-Screen brightness control (wire to backlight) --> Gesture overlay brightness slider (already exists, needs wiring)
-HFP audio persistence --> Audio focus management refactor (HFP must outlive AA session)
-Audio equalizer --> PipeWire filter-chain integration --> EQ presets in YAML config --> EQ UI in settings + web panel
-Theme selection UI --> ThemeService palette loading (exists) --> QML color palette picker --> Wallpaper file browser
-Dynamic sidebar --> UpdateHuUiConfigRequest protocol support --> AA video renegotiation --> Sidebar position settings
-Clean logging --> Log level config option --> Quiet default, --verbose flag
-First-run experience --> BT pairing flow --> WiFi status check --> "Ready to connect" screen
+[Biquad DSP engine]
+    └──requires──> [AudioService stream access]  (EXISTING)
+                       └──requires──> [PipeWire thread loop]  (EXISTING)
+
+[Per-stream EQ profiles]
+    └──requires──> [Biquad DSP engine]
+    └──requires──> [Profile config schema]
+                       └──requires──> [YAML config]  (EXISTING)
+
+[Bundled presets]
+    └──requires──> [Biquad DSP engine]
+
+[User-created presets]
+    └──requires──> [Bundled presets]  (same data model)
+    └──requires──> [Save dialog UI]
+
+[Head unit touch UI]
+    └──requires──> [Biquad DSP engine]
+    └──requires──> [EQ service (QML-exposed)]
+
+[Web config EQ]
+    └──requires──> [EQ service]
+    └──requires──> [IPC commands for EQ]
+                       └──requires──> [IpcServer]  (EXISTING)
+
+[Visual frequency curve]
+    └──enhances──> [Head unit touch UI]
+    └──enhances──> [Web config EQ]
 ```
 
-## Gaps: What Prodigy Has vs What's Needed for v1.0
+### Dependency Notes
 
-### Already Complete (no work needed)
-- Wireless AA connection flow (BT + WiFi AP + TCP)
-- Video decode (multi-codec, hw/sw fallback)
-- Touch input (direct evdev, multi-touch, 3-finger gesture)
-- Audio playback (3 PipeWire streams)
-- BT Audio plugin (A2DP + AVRCP)
-- Phone plugin (HFP dialer + call overlay)
-- Plugin system (static + dynamic)
-- Settings UI (8 views)
-- Bluetooth pairing UI
-- Day/night theme (time/GPIO/manual)
-- Installer (interactive, validated)
-- Web config panel
-- Protocol capture logging
-- Prebuilt release distribution
-- Cross-compilation toolchain
+- **Biquad DSP engine requires AudioService stream access:** EQ processing happens in `onPlaybackProcess` callback where we already access the audio buffer. Biquad filters process samples inline between ring buffer read and PipeWire buffer write -- no separate PipeWire filter node needed.
+- **Per-stream EQ profiles require profile config schema:** Each of the three AA streams (media, navigation, phone) needs its own set of 10 band gains in YAML. Schema supports both preset references (`preset: "Rock"`) and custom values (`bands: [4, 3, 1, ...]`).
+- **User presets require bundled presets:** Same data model (name + 10 band values). User presets stored alongside bundled but flagged as user-created (bundled are read-only).
+- **Web config EQ requires IPC commands:** New IPC command set for Flask panel to read/write EQ state. Follows existing `get_config`/`set_config` pattern but with EQ-specific commands for real-time band updates.
 
-### In Progress (active development)
-- HFP audio persistence across AA state
-- Audio equalizer with presets
+## MVP Definition
 
-### Needs Work for v1.0
-- **Screen brightness wiring:** IDisplayService exists, QML slider exists, but setBrightness() is a TODO. Must write to `/sys/class/backlight/` on Pi.
-- **Theme/wallpaper selection UI:** ThemeService supports palettes, but no QML picker. Users can only change theme via web panel or YAML.
-- **Clean logging:** Debug spam in production output. Needs log level config + quiet defaults.
-- **First-run polish:** FirstRunBanner exists but needs to be a complete guided setup (pair phone, verify WiFi, test connection).
-- **Graceful shutdown verification:** ExitDialog.qml exists but needs confirmation that reboot/shutdown actually work via systemd D-Bus calls.
+### Launch With (v0.4.1)
 
-### Nice-to-Have for v1.0 (not blocking, but adds polish)
-- Dynamic sidebar reconfiguration during AA (depends on protocol discovery)
-- Per-connection WiFi password rotation
+Minimum viable EQ that's actually useful in the car.
 
-## MVP Recommendation
+- [ ] **10-band biquad DSP in playback callback** -- the core processing engine
+- [ ] **Bundled presets (8)** -- one-tap sound profiles (most users pick a preset and never touch individual bands)
+- [ ] **Per-stream EQ profiles** -- the differentiator. Even if the UI only lets you pick presets per stream, it's valuable.
+- [ ] **Head unit touch UI with sliders** -- the primary interface. Vertical sliders, preset picker, bypass toggle.
+- [ ] **Visual frequency curve** -- connects slider tops with a smooth line. Trivial to implement, big UX win.
+- [ ] **YAML config persistence** -- survives reboot. Non-negotiable.
 
-For v1.0 release, prioritize in this order:
+### Add After Validation (v0.4.1 polish)
 
-1. **HFP audio persistence** -- table stakes for daily driver use. Phone calls dropping is a dealbreaker.
-2. **Audio equalizer** -- table stakes. Every commercial head unit and OAP had this. Car audio without EQ sounds terrible.
-3. **Screen brightness wiring** -- low effort, high impact. The UI already exists, just needs the sysfs backend.
-4. **Theme/wallpaper selection UI** -- moderate effort. Users expect to personalize their head unit.
-5. **Clean logging** -- low effort, high impact for perceived quality. Debug spam in journalctl looks amateur.
-6. **First-run experience polish** -- moderate effort. Makes the difference between "I installed it and it works" vs "I installed it and had to SSH in to fix things."
+- [ ] **User-created presets** -- needs name input dialog. Low complexity but not essential for initial validation.
+- [ ] **Web config panel EQ** -- duplicate UI in Flask/HTML/JS. Worth doing but only after head unit UI is validated.
+- [ ] **Per-stream preset assignment in web panel** -- nice for configuration, not needed for driving.
 
-**Defer to post-v1.0:**
-- Dynamic sidebar reconfiguration: depends on undiscovered protocol behavior, high risk
-- Per-connection WiFi rotation: security enhancement, not user-facing
-- Companion app: separate repo/timeline, not blocking
-- Community plugin examples: plugin system works, examples are documentation not features
-- CI automation: desirable but not user-facing
+### Future Consideration (v2+)
+
+- [ ] **System-wide EQ (BT audio, local media)** -- requires PipeWire sink-level filter-chain, different architecture
+- [ ] **EQ preset import/export** -- share presets between installations (YAML copy is manual but works)
+- [ ] **Spectrum analyzer plugin** -- separate from EQ, visual-only, opt-in CPU cost
+
+## Feature Prioritization Matrix
+
+| Feature | User Value | Implementation Cost | Priority |
+|---------|------------|---------------------|----------|
+| 10-band biquad DSP engine | HIGH | MEDIUM | P1 |
+| Bundled presets (8) | HIGH | LOW | P1 |
+| Head unit touch UI (sliders + curve) | HIGH | MEDIUM | P1 |
+| Per-stream EQ profiles | HIGH | MEDIUM | P1 |
+| Bypass toggle | HIGH | LOW | P1 |
+| YAML config persistence | HIGH | LOW | P1 |
+| Preset picker | MEDIUM | LOW | P1 |
+| Visual frequency response curve | MEDIUM | LOW | P1 |
+| User-created presets | MEDIUM | LOW | P2 |
+| Web config panel EQ | MEDIUM | MEDIUM | P2 |
+| Per-stream web panel assignment | LOW | LOW | P2 |
+
+**Priority key:**
+- P1: Must have for v0.4.1 launch
+- P2: Should have, add during v0.4.1 development
+- P3: Nice to have, future consideration
+
+## Competitor Feature Analysis
+
+| Feature | OpenAuto Pro (defunct) | Kenwood DMX1058XR | Pioneer DMH-W4660NEX | Prodigy Approach |
+|---------|----------------------|-------------------|----------------------|------------------|
+| Band count | 15-band graphic | 13-band parametric | 13-band graphic | 10-band graphic (fits 1024x600) |
+| Presets | Flat, Rock, Custom | Multiple built-in | Multiple built-in | 8 built-in + user-created |
+| Per-source EQ | No | Source-dependent curves (JVC) | No | Yes -- per AA stream (media/nav/phone) |
+| Parametric Q control | No | Yes (Basic/Advanced modes) | Yes | No -- complexity vs. screen size tradeoff |
+| Remote config | No | No | No | Yes -- web config panel from phone |
+| EQ implementation | LADSPA plugin (PulseAudio) | Hardware DSP | Hardware DSP | Inline biquad in PipeWire callback |
+| Config storage | INI file | NVRAM | NVRAM | YAML (human-readable, git-friendly) |
+
+## UX Patterns for Touchscreen EQ
+
+### Slider Design (1024x600 constraint)
+
+- **Vertical sliders**, not horizontal. Frequency on X-axis, gain on Y-axis -- matches the mental model of a frequency response curve.
+- **10 sliders in ~900px usable width** (after margins) = ~90px per slider. Comfortable touch target.
+- **Slider height**: At least 200px for +/-12dB range. On 600px display minus top/bottom bars (~80px each), ~440px content area. 200px sliders + labels + preset picker fits.
+- **Frequency labels below**: "31" "62" "125" "250" "500" "1k" "2k" "4k" "8k" "16k" -- abbreviated, no "Hz".
+- **dB readout above active slider**: Show current value while dragging. Disappears on release.
+- **Snap to 0dB**: Slight detent at 0dB center for easy flat reset per band.
+
+### Interaction Patterns
+
+- **Tap preset name** to open preset picker (reuse FullScreenPicker).
+- **Drag sliders** for individual band adjustment. Switching to custom auto-names "Custom" (or keeps preset name with modified indicator).
+- **Long-press/double-tap a slider** to reset that band to 0dB.
+- **Bypass toggle** in section header -- prominent, always visible.
+- **Stream selector** (if per-stream exposed in touch UI): tab-like buttons -- "Media" | "Nav" | "Phone". Most users only care about media.
+
+### Web Config UX
+
+- **HTML5 range inputs** (vertical) or a canvas-drawn EQ widget.
+- **Immediate IPC updates** on slider change (debounced ~50ms).
+- **Dropdown per stream** for preset assignment.
+- **"Save as Preset" button** with text input for name.
 
 ## Sources
 
-- [OpenAuto Pro User Guide (PDF)](https://www.readkong.com/page/openauto-pro-7564639) -- predecessor feature set reference
-- [OpenAuto Pro Wiki](https://github.com/f1xpl/openauto/wiki/OpenAuto-Pro) -- feature list
-- [Crankshaft](https://getcrankshaft.com/) -- open-source competitor (USB-only, unmaintained)
-- [Best Android Auto Head Units 2025 (T3)](https://www.t3.com/features/best-android-auto-head-unit) -- commercial feature benchmarks
-- [Best Aftermarket Head Units (Auto Sound NYC)](https://autosoundnyc.com/2026/02/22/best-aftermarket-head-units-for-android-auto/) -- commercial feature benchmarks
-- [2025 Android Car Stereo Guide (ATOTO)](https://www.atotodirect.com/blogs/guides/2025-android-car-stereo-guide-head-unit-checklist-upgrade-tips) -- feature checklist
-- [AAWireless](https://www.aawireless.io/en) -- wireless AA dongle with companion app
-- OpenAuto Pro manual PDF (local: `/home/matt/claude/personal/openautopro/oap_manual_1.pdf`) -- detailed feature/settings reference
+- [Crutchfield: How to adjust your car's equalizer settings](https://www.crutchfield.com/learn/how-to-adjust-the-equalizer-in-your-car.html)
+- [SoundCertified: Best Equalizer Settings for Car Audio](https://soundcertified.com/best-equalizer-settings-for-car-audio/)
+- [Sorena Car Audio: Comprehensive Guide to Car Audio Equalizers](https://sorenacaraudio.com/comprehensive-guide-to-car-audio-equalizers-elevate-your-sound-quality/)
+- [PipeWire: Filter-Chain module](https://docs.pipewire.org/page_module_filter_chain.html)
+- [PipeWire: Tutorial 7 - Creating an Audio DSP Filter](https://docs.pipewire.org/devel/page_tutorial7.html)
+- [PipeWire: Parametric Equalizer module](https://docs.pipewire.org/page_module_parametric_equalizer.html)
+- [BlueWave Studio forum: OAP 5.0 equalizer](https://bluewavestudio.io/community/archive/index.php?thread-1286.html)
+- [Headphones Addict: Best Equalizer Settings for Music Genres](https://headphonesaddict.com/best-equalizer-settings-for-music-genres/)
+- [Digital Trends: How to master your equalizer settings](https://www.digitaltrends.com/home-theater/eq-explainer/)
+- OpenAuto Prodigy reverse-engineering notes (in-repo)
+
+---
+*Feature research for: Audio Equalizer (v0.4.1 milestone)*
+*Researched: 2026-03-01*

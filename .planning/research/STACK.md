@@ -1,213 +1,315 @@
-# Technology Stack — v1.0 Feature Additions
+# Technology Stack: Audio Equalizer
 
-**Project:** OpenAuto Prodigy
+**Project:** OpenAuto Prodigy v0.4.1
 **Researched:** 2026-03-01
-**Scope:** New libraries/APIs needed for HFP call audio, audio EQ, dynamic AA video reconfig, theme selection, and logging cleanup. Does NOT re-document the existing stack (Qt 6.8, PipeWire, BlueZ, FFmpeg, etc.).
+**Focus:** 10-band graphic EQ — what to add to the existing stack
 
-## Recommended Additions
+## Recommendation: Inline Biquad Processing, No New Dependencies
 
-### 1. HFP Call Audio — No New Dependencies
+The EQ should be implemented as **inline biquad filter processing inside the existing `onPlaybackProcess` PipeWire callback** — not as a separate PipeWire filter node, not with an external DSP library. The math is ~15 lines of code per filter stage. Adding a library for this would be over-engineering.
 
-| Technology | Version | Purpose | Why |
-|------------|---------|---------|-----|
-| PipeWire bluez5 plugin (existing) | 1.4.2 (Pi) | HFP AG audio routing | Already handles SCO audio. PipeWire's `bluez5.roles` includes `hfp_ag` by default on Trixie. |
-| WirePlumber (existing) | 0.5.x (Pi) | BT profile autoswitch | Handles A2DP <-> HFP profile transitions automatically. |
-| BlueZ D-Bus (existing) | 5.x | Call state monitoring | PhonePlugin already monitors `org.bluez.Device1` for HFP UUIDs. |
+**Zero new packages. Zero new build dependencies. ~150 lines of DSP code using `<cmath>`.**
 
-**Approach:** The Pi's PipeWire + WirePlumber stack already manages HFP AG audio. PipeWire's bluez5 SPA plugin registers as HFP AG, creates SCO audio nodes, and WirePlumber routes them to the default sink/source. The app does NOT need to handle SCO sockets directly.
+## What's Needed (New Code)
 
-**What needs to change (code, not deps):**
-- PhonePlugin must decouple from AA session lifecycle. Currently the phone plugin monitors devices but doesn't manage audio persistence across AA connect/disconnect cycles.
-- Watch `org.freedesktop.DBus.Properties` on the BlueZ `MediaTransport1` interface for SCO transport state transitions (idle/pending/active).
-- When AA disconnects mid-call, HFP audio should already be flowing through PipeWire — the key is ensuring the app doesn't tear down BT connections on AA disconnect.
+### EQ DSP Core
+| Component | What | Why |
+|-----------|------|-----|
+| `BiquadFilter` class | ~50 lines C++ — coefficients + `process(float)` | One biquad = one EQ band. Transposed Direct Form II. |
+| `EqProcessor` class | 10 `BiquadFilter` instances per channel, processes sample buffers | Wraps the chain, provides `apply(float* samples, int count, int channels)` |
+| RBJ coefficient calculator | Static function: `(frequency, gain_dB, Q, sampleRate) -> coefficients` | Robert Bristow-Johnson's Audio EQ Cookbook peaking filter formula |
 
-**Confidence:** HIGH — PipeWire's HFP AG is the default on RPi OS Trixie. Confirmed from WirePlumber 0.5.x docs and project memory (HSP HS registered by C++; HFP AG owned by PipeWire's bluez5 plugin).
+**No new libraries needed.** The entire DSP core is ~150 lines of C++ using only `<cmath>`.
 
-### 2. Audio Equalizer — PipeWire filter-chain Module
+### EqService — Config + State Management
+| Component | What | Why |
+|-----------|------|-----|
+| `EqService` class | Owns per-stream EqProcessor instances, manages presets, exposes Q_PROPERTYs for QML | Follows existing service pattern (ThemeService, AudioService) |
+| YAML preset format | Band gains stored in config, preset library as bundled + user-created | Matches existing YAML config pattern with deep merge |
 
-| Technology | Version | Purpose | Why |
-|------------|---------|---------|-----|
-| PipeWire filter-chain module | 1.4.2 (Pi) | Parametric EQ DSP | Built into PipeWire. No external library needed. Supports biquad filters (peaking, low shelf, high shelf) with configurable frequency/gain/Q. |
+### QML UI
+| Component | What | Why |
+|-----------|------|-----|
+| EQ slider panel | 10 vertical sliders (-12dB to +12dB) with band labels | Head unit touch interface — must work at 1024x600 |
+| Preset selector | ComboBox or tile grid for preset selection | Quick switching while driving |
+| Stream selector | Tab bar or similar for media/navigation/phone | Per-stream profile switching |
 
-**Approach: filter-chain via config files, NOT pw_filter C API.**
+### Web Config Extension
+| Component | What | Why |
+|-----------|------|-----|
+| EQ panel page | HTML/JS sliders + preset management | Detailed adjustment from phone/laptop |
+| IPC messages | `eq/get-profile`, `eq/set-bands`, `eq/list-presets`, `eq/save-preset` | Extends existing Unix socket JSON protocol |
 
-Two viable approaches exist. Use the PipeWire filter-chain module (configuration-driven) rather than the `pw_filter` C API (code-driven):
+## Why Inline Processing (Not PipeWire Filter Nodes)
 
-| Approach | Pros | Cons |
-|----------|------|------|
-| **filter-chain module** (recommended) | Zero new C++ code for DSP. Config-file driven. PipeWire handles the RT processing. Hot-reloadable by restarting the module. Standard PipeWire pattern used by EasyEffects, AutoEQ, etc. | Must spawn/manage a PipeWire module load. Less fine-grained control. |
-| `pw_filter` C API | Full control. In-process. Can react to UI changes instantly. | Must implement biquad DSP in RT-safe C++. Must manage float conversion. Significant new code on the RT audio path — high risk of bugs. |
+I evaluated three approaches. The previous research (v1.0 STACK.md) recommended PipeWire filter-chain. After examining the actual AudioService code, **that recommendation was wrong for this project.** Here's why:
 
-**Implementation pattern:**
-1. Store EQ profiles as YAML in `~/.openauto/eq/` (preset name, band count, per-band freq/gain/Q/type).
-2. On profile selection, generate a PipeWire filter-chain config fragment.
-3. Load it via `pw_context_load_module("libpipewire-module-filter-chain", ...)` or by writing a `.conf` file to `~/.config/pipewire/pipewire.conf.d/` and signaling PipeWire to reload.
-4. The filter-chain inserts between the app's playback streams and the output sink.
+### Option A: Inline in `onPlaybackProcess` callback -- RECOMMENDED
 
-**EQ filter types needed:**
-- `bq_peaking` — parametric bands (the workhorse)
-- `bq_lowshelf` — bass shelf
-- `bq_highshelf` — treble shelf
-- All are builtins in PipeWire's filter-chain module.
+**How:** After reading from ring buffer, convert S16->float, apply biquad chain, convert float->S16, write to PW buffer.
 
-**Presets to ship:**
-- Flat (bypass), Bass Boost, Treble Boost, Vocal, Rock, Custom (user-defined bands)
+**Pros:**
+- Zero additional latency — processing happens in the same callback that already runs
+- No PipeWire graph changes — no link management, no WirePlumber interference
+- Per-stream EQ is trivial — each stream's callback has its own EqProcessor
+- No new PipeWire API surface — stays within `pw_stream` which is already battle-tested here
+- Works on dev VM (unit tests run DSP math without PipeWire daemon)
+- Doesn't disrupt the existing adaptive rate matching (PI controller in callback)
+- Simple bypass — set a flag, skip the processing loop
 
-**Confidence:** HIGH — PipeWire filter-chain with biquad builtins is well-documented and the standard approach for EQ on PipeWire systems. Works on Pi's PipeWire 1.4.2.
+**Cons:**
+- Slightly more CPU in the RT callback (~0.01ms for 10 biquads on Pi 4 at 48kHz — negligible vs the 21ms quantum)
+- Format conversion overhead (S16 <-> float) — ~2 operations per sample, also negligible
 
-### 3. Dynamic AA Video Reconfiguration — open-androidauto Protos
+### Option B: PipeWire `pw_filter` nodes -- REJECTED
 
-| Technology | Version | Purpose | Why |
-|------------|---------|---------|-----|
-| `UiConfigMessages.proto` (existing) | In open-androidauto | Runtime margin/theme push | Already in the proto submodule. Defines `UpdateHuUiConfigRequest` (0x8012) for HU-initiated UI config changes. |
-| Protobuf (existing) | 3.x | Serialization | Already a build dependency. |
+**How:** Create separate filter nodes per stream, link between app streams and the sink.
 
-**Approach:** Send `UpdateHuUiConfigRequest` on the AV channel when sidebar config changes, rather than requiring an AA session restart.
+**Why not:**
+- Requires programmatic link management (`pw_link` API) — WirePlumber may fight with manual links or reconnect them wrong
+- Adds graph latency (extra node = extra quantum of buffering = +21ms at 48kHz/1024)
+- Per-stream filtering requires 3 separate filter nodes with link lifecycle tracking
+- **Critically: the app's adaptive rate matching PI controller lives in `onPlaybackProcess`.** Inserting a filter node between stream and sink means the rate controller can't see actual sink buffer state — it breaks clock drift compensation.
 
-**What needs to change (code, not deps):**
-- Wire `UiConfigMessages.pb.h` into the AV channel message handler (register message ID 0x8012 for sending, 0x8013 for receiving the response).
-- When sidebar position/size changes in the UI: recalculate margins using the existing `calcMargins` logic from `VideoService`, build an `UpdateHuUiConfigRequest` with the new `Insets`, and send it over the AV channel.
-- Handle `UpdateHuUiConfigResponse` (0x8013) to confirm the phone accepted the change.
-- Update `EvdevTouchReader` hit zones and touch coordinate mapping to reflect the new layout.
+### Option C: PipeWire `filter-chain` module with config files -- REJECTED
 
-**Risk:** This is unverified on the wire. The proto exists (sourced from aa-proxy-rs) but no one has confirmed the phone actually honors runtime margin changes via 0x8012. May need to fall back to a session restart if the phone ignores or NACKs the message.
+**How:** Generate PipeWire filter-chain config files, load as modules.
 
-**Confidence:** MEDIUM — Proto structure is known, but runtime behavior is unverified. Flag for wire testing before committing to this approach. Fallback (session restart) is always available.
+**Why not:**
+- Config is file-based — live coefficient updates require module reload (audible glitch)
+- Per-stream control is awkward — filter-chain operates on PipeWire graph nodes, not app-internal streams. Would need to identify nodes by name and route manually.
+- Requires `libpipewire-module-filter-chain` to be present (likely is on Trixie, but adds a runtime dependency to verify)
+- On the dev VM (PipeWire 1.0.5), filter-chain module may not have the same features as 1.4.2
+- **Previous STACK.md recommended this approach.** After reading the actual AudioService code, it's clear this is the wrong fit — the app's audio architecture (ring buffer -> callback -> PW buffer) doesn't need an external graph node.
 
-### 4. Theme Selection — No New Dependencies
+**Verdict:** Option A wins decisively. The app already owns the audio callback. Inserting 10 biquads there is the simplest, lowest-latency, most maintainable approach.
 
-| Technology | Version | Purpose | Why |
-|------------|---------|---------|-----|
-| yaml-cpp (existing) | 0.8.x | Theme YAML parsing | ThemeService already loads `theme.yaml` via yaml-cpp. |
-| Qt Quick (existing) | 6.8 | Wallpaper rendering | QML `Image` element for wallpaper display. Already have `Wallpaper.qml` (currently a solid color rect). |
+## Biquad Implementation Details
 
-**Approach:** Extend the existing ThemeService, don't replace it.
+### RBJ Peaking EQ Formula (Audio EQ Cookbook)
 
-**Theme directory structure:**
+For a 10-band graphic EQ, each band uses a **peaking EQ** biquad:
+
 ```
-~/.openauto/themes/
-  default/
-    theme.yaml        # Color palette (day/night) — existing format
-    wallpapers/       # NEW: wallpaper images
-      day.jpg
-      night.jpg
-  midnight-blue/
-    theme.yaml
-    wallpapers/
-      day.jpg
-      night.jpg
+w0 = 2 * pi * f0 / sampleRate
+alpha = sin(w0) / (2 * Q)
+A = 10^(dBgain / 40)   // note: /40 not /20 — this is amplitude, not power
+
+b0 =  1 + alpha * A
+b1 = -2 * cos(w0)
+b2 =  1 - alpha * A
+a0 =  1 + alpha / A
+a1 = -2 * cos(w0)
+a2 =  1 - alpha / A
 ```
 
-**What needs to change (code, not deps):**
-- `ThemeService::setTheme(id)` — currently a stub returning false. Implement directory scanning of `~/.openauto/themes/` and `config/themes/`.
-- Add `wallpaperPath` Q_PROPERTY to ThemeService (day/night aware).
-- `Wallpaper.qml` — replace solid `Rectangle` with `Image` that sources from `ThemeService.wallpaperPath`, falling back to solid color if no image.
-- Theme picker UI in Settings — `ListView` of discovered themes with preview colors.
-- Persist selected theme ID in YAML config (`ui.theme`).
+Normalize all coefficients by dividing by `a0`.
 
-**Wallpaper format:** JPEG at 1024x600 (target display resolution). No SVG, no dynamic wallpapers. Keep it dead simple. Ship 2-3 bundled themes; users can add their own by dropping directories into `~/.openauto/themes/`.
+**Confidence:** HIGH — This is the W3C-hosted Audio EQ Cookbook, the definitive reference used by virtually every software EQ implementation.
 
-**Confidence:** HIGH — Extends existing code with no new dependencies. ThemeService already has the loading infrastructure; it just needs directory scanning and wallpaper path support.
+### Standard 10-Band Frequencies (Octave Spacing)
 
-### 5. Logging Cleanup — QLoggingCategory (Qt Built-in)
+| Band | Frequency (Hz) |
+|------|----------------|
+| 1 | 31 |
+| 2 | 62 |
+| 3 | 125 |
+| 4 | 250 |
+| 5 | 500 |
+| 6 | 1000 |
+| 7 | 2000 |
+| 8 | 4000 |
+| 9 | 8000 |
+| 10 | 16000 |
 
-| Technology | Version | Purpose | Why |
-|------------|---------|---------|-----|
-| QLoggingCategory (existing) | Qt 6.4+ | Categorized log filtering | Built into Qt. Zero new deps. Industry-standard Qt logging pattern. |
+Q = 1.414 (sqrt(2)) for graphic EQ gives ~1 octave bandwidth per band with smooth overlap between adjacent bands. This is the standard value used by hardware graphic EQs.
 
-**Approach:** Replace raw `qDebug()`/`qInfo()`/`fprintf(stderr)` calls with categorized logging using `Q_LOGGING_CATEGORY` and `qCDebug()`/`qCInfo()`.
+### Transposed Direct Form II (process loop)
 
-**Category structure:**
 ```cpp
-Q_LOGGING_CATEGORY(lcAA,        "oap.aa")         // AA protocol
-Q_LOGGING_CATEGORY(lcAAVideo,   "oap.aa.video")    // Video decode
-Q_LOGGING_CATEGORY(lcAATouch,   "oap.aa.touch")    // Touch input
-Q_LOGGING_CATEGORY(lcAudio,     "oap.audio")       // PipeWire audio
-Q_LOGGING_CATEGORY(lcBluetooth, "oap.bluetooth")   // BlueZ/BT
-Q_LOGGING_CATEGORY(lcPlugin,    "oap.plugin")      // Plugin lifecycle
-Q_LOGGING_CATEGORY(lcUI,        "oap.ui")          // QML/UI
-Q_LOGGING_CATEGORY(lcConfig,    "oap.config")      // Config loading
+float BiquadFilter::process(float in) {
+    float out = b0_ * in + z1_;
+    z1_ = b1_ * in - a1_ * out + z2_;
+    z2_ = b2_ * in - a2_ * out;
+    return out;
+}
 ```
 
-**Default log rules (quiet production):**
+Two state variables per filter, 5 multiply-adds per sample per band. For 10 bands, stereo, 48kHz: ~1.92M multiply-adds/sec. The Pi 4's Cortex-A72 does billions per second. This is free.
+
+### Integration Point: `onPlaybackProcess`
+
+Current flow:
 ```
-oap.*.debug=false
-oap.aa.video.info=false
-oap.aa.touch.info=false
+ring buffer -> read S16 bytes -> silence fill -> write to PW buffer
 ```
 
-**Debug mode activation:**
-- `--verbose` CLI flag: sets `QLoggingCategory::setFilterRules("oap.*=true")`
-- Config option: `logging.verbose: true` in YAML
-- Runtime toggle via web config panel
+New flow:
+```
+ring buffer -> read S16 bytes -> silence fill -> S16->float -> EQ process -> float->S16 -> write to PW buffer
+```
 
-**Migration scope:** ~230 log calls across 23 files (counted above). Mechanical replacement — no logic changes.
+The conversion is cheap and fits naturally after the existing silence-fill:
+```cpp
+// S16 interleaved to float (in-place with temp buffer on stack or handle)
+for (uint32_t i = 0; i < totalSamples; i++)
+    floatBuf[i] = static_cast<float>(s16Buf[i]) / 32768.0f;
 
-**Confidence:** HIGH — QLoggingCategory is the standard Qt pattern. Available in Qt 6.4+ (both dev VM and Pi). Well-documented with runtime filter support.
+// Apply 10-band EQ cascade
+eqProcessor->apply(floatBuf, numFrames, channels);
+
+// Float to S16 with clamp
+for (uint32_t i = 0; i < totalSamples; i++)
+    s16Buf[i] = static_cast<int16_t>(
+        std::clamp(floatBuf[i] * 32768.0f, -32768.0f, 32767.0f));
+```
+
+**Float buffer allocation:** Pre-allocate a float buffer in `AudioStreamHandle` (same size as max PW buffer). No allocation in the RT callback.
+
+### Thread Safety: Double-Buffered Coefficients
+
+The RT callback reads coefficients. The Qt main thread writes them when the user adjusts a slider.
+
+```cpp
+struct EqCoefficients {
+    std::array<BiquadCoeffs, 10> bands;
+    bool enabled = true;
+};
+
+// In EqProcessor:
+std::atomic<int> activeIndex_{0};
+EqCoefficients buffers_[2];
+
+// Qt thread writes:
+void updateBand(int band, float gainDb) {
+    int inactive = 1 - activeIndex_.load(std::memory_order_acquire);
+    buffers_[inactive] = buffers_[activeIndex_];  // copy current
+    buffers_[inactive].bands[band] = computeCoeffs(freq, gainDb, Q);
+    activeIndex_.store(inactive, std::memory_order_release);
+}
+
+// RT thread reads:
+const EqCoefficients& active() const {
+    return buffers_[activeIndex_.load(std::memory_order_acquire)];
+}
+```
+
+No locks in the RT path. Atomic index swap is wait-free.
+
+## Per-Stream EQ Architecture
+
+Each `AudioStreamHandle` gets an `EqProcessor*` member. The `EqService` creates and owns per-stream processors, and updates coefficients when gains change.
+
+**Stream-to-profile mapping:**
+- `media` stream -> media EQ profile (music, podcasts)
+- `navigation` stream -> navigation EQ profile (voice clarity)
+- `phone` stream -> phone EQ profile (voice clarity)
+
+Different profiles make sense: you want bass boost for music but voice clarity for navigation.
+
+## Preset Storage (YAML)
+
+Integrated into existing config, not separate files:
+
+```yaml
+equalizer:
+  enabled: true
+  profiles:
+    media:
+      preset: "Rock"
+      bands: [3, 5, -1, -2, 0, 2, 4, 5, 3, 1]  # dB gains per band
+    navigation:
+      preset: "Voice Boost"
+      bands: [0, 0, 0, 2, 4, 6, 4, 2, 0, 0]
+    phone:
+      preset: "Voice Boost"
+      bands: [0, 0, 0, 2, 4, 6, 4, 2, 0, 0]
+  user_presets:
+    "My Custom":
+      bands: [-2, 0, 1, 3, 2, 0, -1, 1, 3, 2]
+```
+
+**Bundled presets** (compiled into the binary, not files):
+- Flat (all 0dB — bypass equivalent)
+- Rock (+3, +5, -1, -2, 0, +2, +4, +5, +3, +1)
+- Pop (-1, +2, +4, +5, +4, +2, 0, -1, -1, -1)
+- Jazz (+3, +2, 0, +2, -2, -2, 0, +2, +3, +3)
+- Bass Boost (+6, +5, +4, +2, 0, 0, 0, 0, 0, 0)
+- Treble Boost (0, 0, 0, 0, 0, +2, +3, +4, +5, +5)
+- Voice Boost (0, 0, 0, +2, +4, +6, +4, +2, 0, 0)
+- Bass Cut (-4, -3, -2, -1, 0, 0, 0, 0, 0, 0)
 
 ## Alternatives Considered
 
 | Category | Recommended | Alternative | Why Not |
 |----------|-------------|-------------|---------|
-| EQ DSP | PipeWire filter-chain module | `pw_filter` C API | Writing RT-safe biquad DSP code is unnecessary risk when PipeWire provides it as a built-in module. The filter-chain approach is what EasyEffects and the broader PipeWire ecosystem use. |
-| EQ DSP | PipeWire filter-chain module | EasyEffects / JDSP4Linux | Heavy desktop apps with GTK4 dependencies. Overkill for a head unit. We want embedded EQ, not a desktop audio suite. |
-| HFP audio | PipeWire bluez5 (native) | ofono | Ofono is unreliable on Trixie (existing project decision). PipeWire's native HFP backend is the default and works. |
-| HFP audio | PipeWire bluez5 (native) | Direct SCO socket handling | Reinventing what PipeWire already does. The bluez5 SPA plugin handles SCO transport negotiation and audio routing. |
-| Logging | QLoggingCategory | spdlog / Boost.Log | External dependency for a problem Qt solves natively. The app is already Qt-based; adding a second logging framework creates split-brain logging. |
-| Logging | QLoggingCategory | Custom log levels via HostContext | Already exists for plugin logging, but doesn't help with core/AA code. QLoggingCategory is the Qt-native solution that covers everything. |
-| Theme format | YAML + JPEG wallpapers | QSS (Qt Style Sheets) | QSS is for widgets, not QML. The app uses QML exclusively. |
-| Theme format | YAML + JPEG wallpapers | SVG wallpapers | Unnecessary complexity for a fixed-resolution display. JPEG at 1024x600 is trivial to load and fast to render. |
-| Dynamic sidebar | `UpdateHuUiConfigRequest` (0x8012) | Session restart | Session restart works but is disruptive (2-3 second reconnection). 0x8012 is the proper protocol mechanism if the phone supports it. |
-| Dynamic sidebar | `UpdateHuUiConfigRequest` (0x8012) | Fake margin via QML crop | QML-only approach can't change what the phone renders — content layout would be wrong. Must tell the phone about the new margins. |
+| DSP approach | Inline biquad in callback | PipeWire filter-chain | Can't do live coefficient updates without glitchy module reload. Doesn't integrate with per-stream model. Breaks rate matching. |
+| DSP approach | Inline biquad in callback | `pw_filter` nodes | Link management nightmare, +21ms latency per node, breaks rate matching PI controller. |
+| DSP library | Hand-rolled ~150 LOC | KFR framework | 50MB+ dependency for 150 lines of math. Absurd. |
+| DSP library | Hand-rolled ~150 LOC | FFTW + overlap-add FIR | FIR EQ is overkill for 10 bands. Biquad cascade is the standard, simpler, lower latency. |
+| Coefficient formula | RBJ Audio EQ Cookbook | Custom derivation | RBJ is the industry standard, now hosted by W3C. No reason to deviate. |
+| Thread safety | Double-buffered coefficients | Mutex in RT callback | Mutex in RT path = priority inversion risk. Never lock in audio callbacks. |
+| Thread safety | Double-buffered coefficients | `std::atomic<float>` per coeff | 5 coefficients per band x 10 bands = 50 atomic loads per sample. Double-buffer is one atomic load per callback. |
+| Preset storage | YAML in existing config | Separate JSON files | Existing config system works. Don't add a second format for one feature. |
+| Float buffer | Pre-allocated in AudioStreamHandle | Stack allocation | PW buffer can be up to 4096 frames x 2ch = 32KB of floats. Too large for stack on some configs. |
 
-## What NOT to Use
+## Version Compatibility
 
-| Technology | Why Not |
-|------------|---------|
-| ofono | Unreliable on Trixie. Already rejected as a project decision. |
-| PulseAudio / pactl for EQ | PipeWire is the audio stack. Don't mix audio servers. |
-| EasyEffects | Desktop GUI app, GTK4 dependency, massive overkill for preset-based EQ. |
-| LADSPA/LV2 plugins for EQ | Filter-chain builtins (bq_peaking, bq_lowshelf, bq_highshelf) cover all needed EQ filter types without external plugin packages. |
-| spdlog / glog / Boost.Log | Qt already has QLoggingCategory. Don't add a second logging framework to a Qt app. |
-| QSS themes | Wrong technology — QSS is for QWidget, not QML. |
-| SVG wallpapers | Over-engineered for a single fixed-resolution display. |
+| Technology | Dev VM (Ubuntu 24.04) | Pi (RPi OS Trixie) | Impact |
+|------------|----------------------|---------------------|--------|
+| PipeWire | 1.0.5 | 1.4.2 | No impact — inline processing uses `pw_stream` API only, no filter-chain modules |
+| Qt | 6.4 | 6.8 | No impact — EQ UI uses basic QML controls (Slider, ComboBox, Repeater) available in both |
+| C++ | C++17 | C++17 | `std::clamp`, `<cmath>`, `<array>`, `<atomic>` — all available |
+| `<cmath>` | standard | standard | `sin()`, `cos()`, `pow()`, `tan()`, `M_PI` — no platform concerns |
 
-## No New Packages Required
+## New Files to Create
 
-Every feature can be implemented with libraries already in the build:
+| File | Purpose | Lines (est.) |
+|------|---------|-------------|
+| `src/core/audio/BiquadFilter.hpp` | Coefficient calc + process (header-only) | ~80 |
+| `src/core/audio/EqProcessor.hpp` | 10-band chain with double-buffered coefficients | ~60 |
+| `src/core/audio/EqProcessor.cpp` | Implementation | ~120 |
+| `src/core/services/EqService.hpp` | Service interface: per-stream profiles, presets, QML props | ~80 |
+| `src/core/services/EqService.cpp` | Implementation | ~200 |
+| `qml/applications/equalizer/EqView.qml` | Main EQ UI (sliders + presets + stream tabs) | ~150 |
+| `web-config/templates/equalizer.html` | Web config EQ page | ~200 |
+| `tests/test_biquad.cpp` | Coefficient calculation + filtering accuracy tests | ~100 |
+| `tests/test_eq_service.cpp` | Preset management, per-stream profiles, config persistence | ~80 |
+
+**Estimated total new code:** ~1,070 lines across 9 files. Small feature, well-scoped.
+
+## Installation
 
 ```bash
-# Already installed — no changes to install.sh or CMakeLists.txt deps:
-# Qt 6.8 (Core, Gui, Quick, QuickControls2, Multimedia, Network, DBus)
-# PipeWire 1.4.2 (libpipewire-0.3)
-# yaml-cpp
-# Protobuf
-# BlueZ + D-Bus
-```
-
-The only potential addition is ensuring `pipewire-module-filter-chain` is available on the Pi. On Trixie with PipeWire 1.4.2, this module ships with the base `pipewire` package — verify during implementation with:
-```bash
-ls /usr/lib/*/pipewire-0.3/libpipewire-module-filter-chain.so
+# No new packages needed.
+# The entire EQ implementation uses only:
+#   - <cmath> (sin, cos, pow, M_PI)
+#   - <atomic> (double-buffer swap)
+#   - <array> (coefficient storage)
+#   - <algorithm> (std::clamp)
+#   - Existing PipeWire headers (already linked)
+#   - Existing yaml-cpp (already linked)
+#   - Existing Qt Quick Controls (already linked)
 ```
 
 ## Sources
 
-- [PipeWire Filter-Chain Module](https://docs.pipewire.org/page_module_filter_chain.html) — builtin biquad EQ filters, configuration format
-- [PipeWire Parametric Equalizer](https://docs.pipewire.org/page_module_parametric_equalizer.html) — AutoEQ-compatible parametric EQ module
-- [PipeWire pw_filter API](https://docs.pipewire.org/group__pw__filter.html) — C API for custom audio DSP (considered, not recommended)
-- [PipeWire audio-dsp-filter.c example](https://github.com/PipeWire/pipewire/blob/master/src/examples/audio-dsp-filter.c) — reference implementation of pw_filter
-- [WirePlumber 0.5.x Bluetooth Configuration](https://pipewire.pages.freedesktop.org/wireplumber/daemon/configuration/bluetooth.html) — bluez5.roles, HFP AG config, SCO routing
-- [QLoggingCategory (Qt 6)](https://doc.qt.io/qt-6/qloggingcategory.html) — categorized logging with runtime filtering
-- [Qt Logging Types (Qt 6)](https://doc.qt.io/qt-6/qtlogging.html) — qCDebug, qCInfo, message handler installation
-- [UiConfigMessages.proto](../libs/open-androidauto/proto/oaa/av/UiConfigMessages.proto) — in-tree proto for runtime UI config push (0x8012/0x8013)
-- [Writing a PipeWire parametric equalizer module](https://asymptotic.io/blog/pipewire-parametric-autoeq/) — practical guide to PipeWire EQ implementation
+- [W3C Audio EQ Cookbook (RBJ)](https://www.w3.org/TR/audio-eq-cookbook/) — Biquad coefficient formulas, the definitive reference (HIGH confidence)
+- [WebAudio EQ Cookbook (original text)](https://webaudio.github.io/Audio-EQ-Cookbook/audio-eq-cookbook.html) — Same content, original hosting (HIGH confidence)
+- [EarLevel Engineering Biquad C++ Source](https://www.earlevel.com/main/2012/11/26/biquad-c-source-code/) — Clean implementation reference (HIGH confidence)
+- [PipeWire Tutorial 7: Audio DSP Filter](https://docs.pipewire.org/devel/page_tutorial7.html) — pw_filter API pattern (HIGH confidence, evaluated and rejected for this use case)
+- [PipeWire Filter API](https://docs.pipewire.org/group__pw__filter.html) — pw_filter reference (HIGH confidence)
+- [PipeWire Filter-Chain Module](https://docs.pipewire.org/page_module_filter_chain.html) — Alternative approach evaluated and rejected (HIGH confidence)
+- [Debian Trixie PipeWire Package](https://packages.debian.org/trixie/pipewire) — Version 1.4.2 confirmed (HIGH confidence)
+- [DSP-Cpp-filters](https://github.com/dimtass/DSP-Cpp-filters) — Reference implementations of various IIR filters in C++ (MEDIUM confidence)
 
 ## Confidence Assessment
 
 | Area | Confidence | Notes |
 |------|------------|-------|
-| HFP call audio | HIGH | PipeWire's bluez5 HFP AG is default on Trixie. Confirmed by project memory. No new deps. |
-| Audio EQ | HIGH | PipeWire filter-chain with biquad builtins is well-documented standard approach. Ships with PipeWire. |
-| Dynamic sidebar | MEDIUM | Proto exists but 0x8012 runtime behavior is unverified on the wire. Needs testing. |
-| Theme selection | HIGH | Pure extension of existing ThemeService + YAML + QML. No new deps. |
-| Logging cleanup | HIGH | QLoggingCategory is built-in Qt. Mechanical migration of ~230 log calls. |
+| Biquad math / RBJ formulas | HIGH | W3C standard, used everywhere, thoroughly verified |
+| Inline processing approach | HIGH | Standard technique; existing callback already does volume, silence fill, rate matching |
+| Double-buffer thread safety | HIGH | Well-known lock-free pattern for RT audio |
+| Per-stream EQ profiles | HIGH | Natural extension — each AudioStreamHandle is independent |
+| Pi 4 performance | HIGH | 10 biquads x 2 channels x 48kHz = trivial for Cortex-A72 |
+| QML slider UI at 1024x600 | MEDIUM | Need to verify 10 sliders fit comfortably on the small display — may need horizontal scroll or compact layout |

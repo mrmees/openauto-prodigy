@@ -1,212 +1,209 @@
-# Pitfalls Research
+# Domain Pitfalls
 
-**Domain:** Android Auto head unit (Raspberry Pi) -- feature completion and release hardening
+**Domain:** Real-time audio equalizer (10-band graphic EQ) added to existing PipeWire stream pipeline on Raspberry Pi 4
 **Researched:** 2026-03-01
-**Confidence:** MEDIUM-HIGH (most pitfalls derive from codebase analysis + verified documentation; HFP telephony API details are LOW confidence due to rapid evolution)
+**Confidence:** MEDIUM-HIGH (PipeWire RT constraints from official docs, DSP pitfalls from verified audio engineering sources, Pi 4 performance from community benchmarks + codebase analysis)
 
 ## Critical Pitfalls
 
-### Pitfall 1: HFP Audio Ownership Fight Between PipeWire and Your App
+### Pitfall 1: EQ Processing in PipeWire RT Callback Violates Real-Time Safety
 
-**What goes wrong:**
-PipeWire's bluez5 plugin already registers as the HFP Audio Gateway on Trixie (confirmed in project memory: "HFP AG owned by PipeWire's bluez5 plugin"). If you try to manage SCO audio routing yourself via BlueZ D-Bus, you will conflict with PipeWire's native HFP handling. Two components both claiming AG ownership causes silent failures: calls connect at the signaling level but no audio flows, or audio routes to the wrong sink.
+**What goes wrong:** You add biquad filter processing directly inside `onPlaybackProcess()` -- the existing PipeWire RT callback. It works fine initially, but under load (phone navigation + media + call audio simultaneously), you get audio glitches, xruns, or dropouts. The RT thread stalls because your EQ code does something non-RT-safe: allocates memory for coefficient arrays, locks a mutex to read user-changed preset values, or triggers a `qCDebug()` log call that blocks on journald.
 
-**Why it happens:**
-The PhonePlugin currently monitors call state via BlueZ D-Bus but delegates actual audio to PipeWire. The temptation when implementing real call audio is to grab SCO socket management yourself for control. But PipeWire already negotiates HFP codecs (mSBC/CVSD) and creates source/sink nodes automatically. Fighting this creates a tug-of-war.
+**Why it happens:** The existing `onPlaybackProcess()` is already carefully written to be RT-safe -- no allocations, no locks, no logging (just `fprintf` for periodic diagnostics, which is borderline). Adding EQ processing is tempting to do inline here because it's the natural insertion point between ring buffer read and `pw_stream_queue_buffer`. But EQ introduces new shared state: filter coefficients that the UI thread writes and the RT callback reads. The instinct is to protect that with a mutex, which is the single worst thing you can do in an RT callback.
 
-**How to avoid:**
-Use PipeWire as the HFP audio owner. Your app should:
-1. Monitor call state via BlueZ D-Bus `org.bluez.Device1` properties (already done)
-2. Let PipeWire handle SCO audio routing -- it creates `bluez_input.*` and `bluez_output.*` nodes automatically for HFP
-3. Use WirePlumber policies or `pw_metadata` to route HFP audio to your app's capture/playback streams
-4. For call initiation/hangup, use PipeWire's new `org.pipewire.Telephony` D-Bus API (PipeWire 1.4+, Pi has 1.4.2) rather than raw BlueZ AT commands
+**Consequences:** Audio dropouts during preset switches. Intermittent glitches that only appear under load. Priority inversion if the UI thread holds the coefficient mutex while the RT thread waits. Worst case: the RT thread misses its deadline, PipeWire marks the stream as failed, and audio stops entirely until stream recreation.
 
-Do NOT: open SCO sockets directly, register your own AG profile competing with PipeWire, or bypass PipeWire for "more control."
+**Prevention:**
+1. **Double-buffered coefficients:** Maintain two coefficient arrays. UI thread writes to the "staging" array, then atomically swaps a pointer (`std::atomic<int>` index). RT callback reads from the "active" array. Zero locking, zero contention.
+2. **Never allocate in the callback.** Pre-allocate all filter state (delay lines, coefficient arrays) at stream creation time. A 10-band stereo biquad needs exactly 10 x 2 channels x 4 state variables = 80 floats of persistent state -- trivially small, allocate once.
+3. **No logging in the RT path.** Use the existing pattern from `onPlaybackProcess()`: atomic counters incremented in RT, polled and logged from a Qt timer on the main thread.
+4. **No mutex, no `QMutexLocker`, no `std::lock_guard` in the callback.** Period.
 
-**Warning signs:**
-- Call connects but no audio heard
-- `pactl list sources` shows HFP source but your app doesn't see it
-- BlueZ logs show profile conflicts or "profile already registered"
-- Audio works on first call but breaks on reconnect
-
-**Phase to address:**
-HFP Call Audio phase (early -- this is an architectural decision that gates all other call audio work)
+**Detection:** Enable PipeWire's xrun reporting (`PIPEWIRE_DEBUG=3`). Monitor `pw-top` for xrun counts on your streams. Any xrun during a preset change = coefficient access is not lock-free.
 
 ---
 
-### Pitfall 2: AA Margins Locked at Session Start -- No Dynamic Sidebar Reconfiguration
+### Pitfall 2: Denormal Floating-Point Numbers Tank Performance on Idle/Quiet Audio
 
-**What goes wrong:**
-You implement a beautiful sidebar toggle or resize, test it in the launcher, it works great. Then you try toggling the sidebar during an active Android Auto session and either: (a) the video doesn't change because margin/touch configs are session-locked, or (b) you force a reconnect and lose the user's navigation/music mid-drive.
+**What goes wrong:** Your EQ works great during loud music playback. But when audio goes quiet (silence between tracks, paused playback, quiet navigation prompt decaying), CPU usage on the audio thread spikes dramatically -- sometimes 100x slower per sample. On Pi 4, this can push the RT callback past its deadline, causing xruns.
 
-**Why it happens:**
-The AA protocol sends `margin_width`/`margin_height` and `touch_screen_config` in `ServiceDiscoveryResponse`, which happens once at connection time. The protocol documentation (confirmed in `docs/aa-display-rendering.md`) states explicitly: "Margins are locked at session start. They cannot be changed mid-session." `AVChannelSetupRequest` is phone-to-HU only -- the head unit cannot initiate renegotiation. `VideoFocusIndication` can pause/resume but cannot change resolution or margins.
+**Why it happens:** IIR biquad filters have internal state (delay line / z^-1 and z^-2 values). When input drops to near-zero, these state values decay toward extremely small floating-point numbers called "denormals" (subnormals). Most CPUs, including the Cortex-A72 in Pi 4, process denormalized floats dramatically slower than normal floats because they require microcode fallback instead of hardware FPU paths. A 10-band cascaded biquad has 10 x 2 = 20 state variables per channel, all decaying in parallel -- 40 potential denormal hotspots for stereo.
 
-**How to avoid:**
-Accept the protocol constraint and design around it:
-1. Sidebar config must be set BEFORE AA connects (or on next connection)
-2. Show a clear "takes effect on next connection" message in settings UI
-3. Store sidebar preference in config; apply at connection time in `VideoService::fillFeatures()` and `ServiceFactory` touch setup
-4. For "dynamic" feel, allow toggling sidebar VISIBILITY (show/hide the strip) without changing video margins -- the video area stays the same size but the sidebar overlays or hides. This gives instant feedback without protocol renegotiation.
-5. If truly dynamic resize is required, implement a graceful AA disconnect/reconnect cycle with user confirmation
+**Consequences:** Audio glitches during quiet passages or between tracks. CPU spikes visible in `htop` that correlate with silence rather than load. The existing adaptive buffer growth (`checkAdaptiveBuffers()`) may misdiagnose this as underruns and grow buffers unnecessarily.
 
-**Warning signs:**
-- Touch coordinates drift after sidebar toggle during AA session
-- Black bars appear/disappear without matching touch remapping
-- User complaints about sidebar toggle "not working" during navigation
+**Prevention:**
+1. **Set FTZ (Flush-To-Zero) on the audio thread.** On AArch64 (Pi 4), set bit 24 of FPCR at thread start:
+   ```cpp
+   // Call once when PipeWire thread starts (or at top of first RT callback)
+   uint64_t fpcr;
+   __asm__ __volatile__("mrs %0, fpcr" : "=r"(fpcr));
+   fpcr |= (1 << 24); // FZ bit
+   __asm__ __volatile__("msr fpcr, %0" :: "r"(fpcr));
+   ```
+   This makes ALL denormals flush to zero automatically. On x86 dev VM, use `_MM_SET_FLUSH_ZERO_MODE(_MM_FLUSH_ZERO_ON)` from `<xmmintrin.h>`.
+2. **Alternative: add a tiny DC bias.** Add 1e-18f to each filter's input before processing. Inaudible (-360 dB), prevents state variables from reaching denormal range. Less elegant than FTZ but portable.
+3. **Do NOT rely on compiler flags alone.** `-ffast-math` implies `-ffinite-math-only` which does NOT set FTZ at runtime on ARM. You need the explicit FPCR write.
 
-**Phase to address:**
-Dynamic Sidebar/Video Reconfiguration phase (this shapes the entire feature design)
-
----
-
-### Pitfall 3: HFP Call Audio Drops When AA Disconnects
-
-**What goes wrong:**
-User is on a phone call via HFP. AA session ends (phone moves out of WiFi range, user backgrounds AA, app restart). The call audio cuts out because the HFP audio stream was tied to the AA session lifecycle rather than being independent.
-
-**Why it happens:**
-In the current architecture, the AndroidAutoPlugin manages connection state and triggers grab/ungrab of touch + audio focus. If HFP audio routing is wired through the AA orchestrator's lifecycle, disconnecting AA tears down the audio path. The phone call is still active at the Bluetooth/cellular level, but the head unit stops routing audio.
-
-**How to avoid:**
-HFP audio must be architecturally independent of the AA session:
-1. PhonePlugin owns HFP audio lifecycle, NOT AndroidAutoPlugin
-2. HFP PipeWire streams (capture + playback) live in PhonePlugin, created on call start, destroyed on call end -- completely independent of AA state
-3. Audio focus interaction: when a call is active AND AA is connected, use `AudioFocusType::GainTransientMayDuck` to duck AA media while routing call audio. When AA disconnects, call audio continues undisturbed.
-4. Test matrix: call starts before AA, call starts during AA, AA disconnects during call, call ends after AA disconnects
-
-**Warning signs:**
-- Audio cuts out when switching away from AA view during a call
-- PhonePlugin's audio streams are created/destroyed in AndroidAutoPlugin callbacks
-- No unit test for "call survives AA disconnect" scenario
-
-**Phase to address:**
-HFP Call Audio phase (core architectural requirement)
+**Detection:** Profile the `onPlaybackProcess` callback duration during silence vs playback. If silence is slower, you have a denormal problem. `perf stat -e fp_denorm_input` can count denormal operations on some ARM cores.
 
 ---
 
-### Pitfall 4: PipeWire Filter-Chain EQ Adds Latency to AA Audio
+### Pitfall 3: Preset Switching Causes Audible Click/Pop Artifacts
 
-**What goes wrong:**
-You insert a PipeWire filter-chain (biquad EQ) into the audio path. It works for music playback, but AA navigation prompts and phone call audio now have perceptible latency. Navigation says "turn right" 100-200ms after the visual prompt changes. Call audio feels laggy like a satellite phone.
+**What goes wrong:** User taps a preset button (switches from "Rock" to "Jazz"). For one buffer frame, the audio passes through a set of filter coefficients that are mathematically inconsistent -- some bands have the old coefficients, some have the new ones, or the filter state (delay lines) is inconsistent with the new coefficients. Result: a loud click, pop, or transient artifact that's very noticeable in a car environment.
 
-**Why it happens:**
-PipeWire filter-chain operates with its own buffer quantum. Each filter node adds at least one quantum of latency (typically 1024 samples at 48kHz = ~21ms). Multiple filter stages or large convolutions compound this. AA audio already has ~100ms of transport + decode latency from the wireless link. Adding filter-chain latency pushes total latency past the perceptibility threshold for speech/navigation.
+**Why it happens:** Biquad IIR filters have internal state (the z^-1 and z^-2 delay values) that are the result of processing history with the OLD coefficients. When you slam in NEW coefficients, the filter's transfer function changes discontinuously. The delay line values, which were appropriate for the old filter shape, become inappropriate for the new shape, producing a transient output spike. This is NOT just about atomic swaps -- even a perfectly atomic coefficient swap causes this artifact because the state is stale.
 
-**How to avoid:**
-1. Apply EQ only to the media/music stream, NOT to navigation or phone call audio streams. The current AudioService already creates separate streams for media, navigation, and phone -- use this separation.
-2. Use PipeWire's parametric-equalizer module (more efficient than manually chained biquads) for the EQ implementation
-3. Keep the filter-chain quantum matched to the graph quantum (don't use a larger processing block)
-4. Benchmark on Pi 4: a 10-band parametric EQ via biquad should use <1% CPU at 48kHz stereo. If CPU usage is higher, check for unnecessary resampling or mismatched sample rates.
-5. Consider implementing EQ in the ring buffer write path (apply biquads inline in `AudioService::writeAudio()`) instead of via PipeWire filter-chain -- eliminates the extra graph hop entirely. Simple biquad math is ~100 multiplies per sample, trivial on Pi 4.
+**Consequences:** Audible click on every preset change. Users will avoid changing presets while music is playing, defeating the purpose of an EQ.
 
-**Warning signs:**
-- Navigation audio feels "late" compared to visual prompts
-- Users report echo on phone calls
-- `pw-top` shows extra latency on filtered streams
-- CPU usage spikes when EQ is enabled (suggests resampling or format conversion in the chain)
+**Prevention:**
+1. **Coefficient interpolation (recommended):** Smoothly interpolate between old and new coefficients over 5-10ms (240-480 samples at 48kHz). Per sample: `coeff = old + alpha * (new - old)`, advancing `alpha` from 0 to 1. This spreads the transient over many samples, making it inaudible. Recalculate the target coefficients once per block; interpolate per sample.
+2. **Crossfade (alternative):** Run both old and new filter instances simultaneously during transition. Crossfade output over ~10ms. Uses 2x CPU briefly but guarantees glitch-free. More complex to implement.
+3. **Reset delay lines on preset change (worst option):** Zeroing the delay lines eliminates the stale-state problem but introduces its own transient as the filter "rings up" from zero. Less bad than a coefficient slam but still audible on material with sustained bass.
+4. **DO NOT just atomically swap coefficients and call it done.** The atomic swap prevents data races but does NOT prevent audio artifacts.
 
-**Phase to address:**
-Audio EQ phase (design decision: inline vs filter-chain)
+**Detection:** Automate rapid preset cycling while playing a sustained sine wave. Record output and look for spikes in a waveform editor. If you see any transient larger than the sine amplitude, you have a glitch.
 
 ---
 
-## Technical Debt Patterns
+### Pitfall 4: EQ Applied to Navigation/Phone Audio Causes Latency or Intelligibility Problems
 
-| Shortcut | Immediate Benefit | Long-term Cost | When Acceptable |
-|----------|-------------------|----------------|-----------------|
-| Inline biquad EQ in writeAudio() | Zero latency, no PipeWire dependency | Tightly coupled to AudioService, harder to add convolution/advanced DSP later | Acceptable for v1.0 -- 10-band parametric is the scope |
-| Sidebar visibility toggle instead of true dynamic resize | Instant UX, no protocol issues | Users expect "real" resize; overlay sidebar wastes screen space | Acceptable for v1.0 -- protocol makes true resize impossible mid-session |
-| Single hardcoded theme directory | Simpler code path | Adding theme marketplace/sharing later requires refactor | Acceptable for v1.0 if theme YAML schema is well-defined |
-| stderr/printf logging in RT audio callbacks | Easy debugging | Blocks RT thread if stderr is slow (pipe, file) | Never in release builds -- use atomic flag + periodic poll from non-RT thread (already partially done for rate diagnostics) |
+**What goes wrong:** You apply the same EQ curve to all three PipeWire streams (media, navigation, phone). The "Bass Boost" preset that sounds great for music makes navigation prompts sound muddy and hard to understand over road noise. Or the filter processing adds enough latency that "turn right in 200 feet" arrives perceptibly late relative to the visual map prompt.
 
-## Integration Gotchas
+**Why it happens:** The current `AudioService` creates separate streams for media, navigation, and phone (confirmed in codebase and `CLAUDE.md`). The temptation is to apply EQ uniformly for simplicity. But speech intelligibility and music enjoyment have opposite EQ requirements: speech benefits from mid-frequency boost (2-4 kHz clarity range), while music presets often cut mids and boost bass/treble ("smiley face" EQ). Additionally, even inline biquad processing adds measurable latency at the sample level (each biquad stage adds 2 samples of group delay for a peaking filter).
 
-| Integration | Common Mistake | Correct Approach |
-|-------------|----------------|------------------|
-| PipeWire HFP audio | Opening SCO sockets directly, bypassing PipeWire | Let PipeWire own SCO; route via `pw_metadata` or WirePlumber policies |
-| PipeWire filter-chain | Inserting filter between app stream and sink (requires WirePlumber scripting) | Use `target.object` on filter-chain capture to grab your app's output; or apply EQ inline in ring buffer |
-| BlueZ D-Bus telephony | Using `org.bluez.Network1` or deprecated oFono for call control | Use PipeWire's `org.pipewire.Telephony` API (1.4+) for Dial/Answer/Hangup; monitor state via BlueZ D-Bus |
-| ThemeService live reload | Emitting `colorsChanged()` and expecting all QML to update | QML bindings to `ThemeService.color("key")` are NOT automatically re-evaluated on signal. Must use Q_PROPERTY bindings or explicit Connections {} blocks per color |
-| systemd watchdog | Setting `WatchdogSec` in unit file but not petting from app | App must call `sd_notify("WATCHDOG=1")` periodically. Pi 4 BCM watchdog has 15s max timeout -- set `RuntimeWatchdogSec=10s` and pet every 5s |
-| AA video decoder reconfiguration | Destroying and recreating FFmpeg codec context mid-stream | Flush decoder with `avcodec_flush_buffers()` before parameter change. SPS/PPS must be re-sent after flush. |
+**Consequences:** "Turn right" is unintelligible because bass boost masks consonant frequencies. Phone calls sound hollow or muffled. Users get lost because they can't understand navigation prompts. If using PipeWire filter-chain instead of inline processing, the extra graph node adds a full quantum of latency (~21ms at 1024/48000) per stream.
 
-## Performance Traps
+**Prevention:**
+1. **Per-stream EQ profiles are the correct design (already planned).** Media gets the user's chosen preset. Navigation gets a fixed "speech clarity" preset (or flat). Phone gets a fixed "voice" preset (or flat).
+2. **Default to EQ OFF for navigation and phone streams.** Let users opt in to EQ on speech streams, but never make it the default.
+3. **Use inline biquad processing, not PipeWire filter-chain.** The current architecture writes audio into a ring buffer (`writeAudio()`), then the RT callback reads and outputs it. Insert biquad processing in the RT callback AFTER the ring buffer read, BEFORE writing to the PipeWire buffer. This adds zero graph-level latency -- just the ~2 sample group delay per biquad stage (~0.4ms total for 10 bands at 48kHz, imperceptible).
+4. **Test with actual road noise.** Play a road noise recording through the car speakers while testing navigation audio with EQ. What sounds fine in a quiet room may be unintelligible at 60mph.
 
-| Trap | Symptoms | Prevention | When It Breaks |
-|------|----------|------------|----------------|
-| EQ filter-chain with sample rate mismatch | Extra resampler nodes appear in `pw-top`, CPU jumps 5-10% | Ensure EQ filter-chain sample rate matches AA audio (48kHz). Avoid format negotiation mismatches. | Immediately on mismatch -- constant overhead |
-| Theme color lookup per frame | QML `color: ThemeService.color("bg")` called every frame due to animation | Cache color values in QML properties; update only on `colorsChanged` signal | Visible at >30 animated elements with per-frame color lookups |
-| Wallpaper image not pre-scaled | 4K wallpaper decoded and scaled every time view loads | Pre-scale wallpaper to display resolution (1024x600) on selection, cache scaled version | With images >2MP on Pi 4 -- noticeable 200-500ms stutter on view load |
-| fprintf in RT audio callback | Audio glitches when stderr is piped to journald or slow storage | Use atomic counters in RT callback, read + log from timer on main thread (pattern already in codebase for rate diagnostics) | When journald is under pressure or SD card is busy |
+**Detection:** Measure time between visual navigation prompt change and audio onset with and without EQ. If delta exceeds 50ms, the EQ path is adding unacceptable latency.
 
-## Security Mistakes
+---
 
-| Mistake | Risk | Prevention |
-|---------|------|------------|
-| Leaving PipeWire telephony API accessible to all D-Bus users | Any process can initiate/answer/hangup phone calls | Restrict `org.pipewire.Telephony` access via D-Bus policy; or use PipeWire's built-in access control |
-| Web config panel Unix socket world-readable | Any local process can change head unit config | Set socket permissions to user-only (0600) in IpcServer; already using `/tmp/openauto-prodigy.sock` -- verify umask |
-| Theme YAML with unchecked paths | Path traversal via `icon_path: "../../../etc/shadow"` in malicious theme | Validate all paths in theme YAML are relative and within theme directory; reject `..` components |
-| Installer running as root without input validation | Command injection via WiFi SSID/password with special characters | Already addressed somewhat; double-check all `hostapd.conf` values are sanitized |
+## Moderate Pitfalls
 
-## UX Pitfalls
+### Pitfall 5: Biquad Coefficient Calculation Uses Wrong Formula or Wrong Q Convention
 
-| Pitfall | User Impact | Better Approach |
-|---------|-------------|-----------------|
-| EQ changes require app restart | User tunes EQ, has to restart to hear changes -- feels broken | Apply EQ changes in real-time. If using inline biquads, update coefficients atomically. If using filter-chain, reload config via `pw-cli`. |
-| Theme preview shows colors but not actual car-mounted appearance | User picks theme that looks good on phone/desktop but is unreadable in bright sunlight | Show preview ON the Pi display. Provide "sunlight" and "night" preview modes. Include high-contrast themes as defaults. |
-| Sidebar toggle "doesn't work" during AA | User expects instant sidebar; protocol prevents it | Clear UI messaging: "Sidebar changes take effect on next Android Auto connection." Disable the toggle control (greyed out) while AA is active. |
-| Phone call notification during AA navigation | Full-screen call overlay blocks navigation view | Use the existing notification system (priority-based overlay) for incoming calls. Show minimal caller ID bar, NOT full-screen takeover. Allow answer/reject from the bar. |
-| EQ presets named for headphones not car speakers | Imported AutoEQ profiles meaningless in car context | Ship presets named for car audio scenarios: "Bass Boost", "Flat", "Vocal Clarity", "Road Noise Compensation". Don't expose raw frequency numbers in main UI. |
+**What goes wrong:** Your 10-band EQ produces unexpected frequency response -- bands interact in weird ways, boosting one band affects adjacent bands more than expected, or the overall level shifts up/down when only one band is adjusted.
 
-## "Looks Done But Isn't" Checklist
+**Prevention:**
+1. Use the Robert Bristow-Johnson Audio EQ Cookbook (the canonical reference: `https://webaudio.github.io/Audio-EQ-Cookbook/audio-eq-cookbook.html`). Specifically use the "peakingEQ" filter type for graphic EQ bands.
+2. **Q convention matters.** The cookbook's `Q` for peakingEQ controls bandwidth. For a graphic EQ, typical Q is 1.4-4.3 depending on band spacing. For 10 bands (roughly 1-octave spacing from 31Hz to 16kHz), use Q ~1.4 (1-octave bandwidth). Higher Q = narrower band = less interaction but less musical.
+3. **Gain is in dB, not linear.** A +6dB boost is `10^(6/20) = 1.995x`, not `6x`.
+4. **Compute coefficients on the UI thread, not the RT thread.** Trig functions (`sin()`, `cos()`, `pow()`) are expensive and not deterministic in timing -- never call them in the RT callback.
 
-- [ ] **HFP Call Audio:** Often missing microphone routing -- calls work outbound (you hear them) but they can't hear you. Verify bidirectional audio: PipeWire capture stream from BT SCO source routed to PhonePlugin, AND playback stream from PhonePlugin to BT SCO sink.
-- [ ] **HFP Call Audio:** Often missing codec negotiation handling -- mSBC (wideband) vs CVSD (narrowband) produce different stream parameters. Verify both codecs work, especially when phone doesn't support mSBC.
-- [ ] **Audio EQ:** Often missing bypass/disable -- user has no way to turn EQ completely off without manually removing config. Ship with EQ defaulting to OFF (flat).
-- [ ] **Theme Selection:** Often missing validation of incomplete themes -- user-created theme YAML missing required color keys causes transparent/invisible UI elements. Validate all required keys present; fall back to default theme colors for missing keys.
-- [ ] **Theme Selection:** Often missing font fallback -- custom theme specifies font not installed on Pi. Always chain to a guaranteed-present fallback font (Lato is already bundled).
-- [ ] **Dynamic Sidebar:** Often missing evdev touch zone recalculation -- sidebar visibility changes but EvdevTouchReader still uses old hit zones. Touch zones must update when sidebar state changes.
-- [ ] **Release Hardening:** Often missing graceful degradation when PipeWire is unavailable -- app crashes instead of running without audio. AudioService already handles this (`isAvailable()` checks), but verify ALL callers handle nullptr returns from `createStream()`.
-- [ ] **Release Hardening:** Often missing log rotation -- app runs for weeks, fills SD card with logs. Ensure journald has size limits and app's own logging (if any file logging) is bounded.
-- [ ] **Release Hardening:** Often missing clean shutdown on SIGTERM -- systemd sends SIGTERM before SIGKILL. App must flush config, disconnect AA gracefully, and release EVIOCGRAB within the systemd timeout (default 90s, but the app's `restart.sh` uses shorter windows).
+---
 
-## Recovery Strategies
+### Pitfall 6: Ring Buffer + EQ Interaction Breaks Rate Matching PI Controller
 
-| Pitfall | Recovery Cost | Recovery Steps |
-|---------|---------------|----------------|
-| HFP audio ownership conflict | LOW | Disable app's SCO handling, restart PipeWire (`systemctl --user restart pipewire`), let PipeWire re-register AG |
-| AA margins wrong after sidebar change | LOW | Restart app or trigger AA reconnect; margins recalculated on next `ServiceDiscoveryResponse` |
-| EQ causes audio glitches | LOW | Disable EQ (set flat/bypass), remove filter-chain config, restart PipeWire if needed |
-| Theme causes unreadable UI | LOW | Fall back to default theme via config edit or web panel; ThemeService already falls back to day colors when night keys missing |
-| Watchdog false-positive reboots | MEDIUM | Increase `RuntimeWatchdogSec`, add more frequent petting, check for main thread blocks (long FFmpeg init, D-Bus timeouts) |
-| Call audio drops on AA disconnect | HIGH (if architectural) | Requires decoupling PhonePlugin audio from AA lifecycle -- architectural change if not designed correctly upfront |
+**What goes wrong:** The existing PI controller for adaptive rate matching (`pw_stream_set_rate()`) is tuned for the current ring buffer behavior. Adding EQ processing in the RT callback changes the timing characteristics -- the callback takes slightly longer, the fill level dynamics change, and the PI controller starts oscillating or over-correcting. Audio pitch wobbles or stutters.
 
-## Pitfall-to-Phase Mapping
+**Prevention:**
+1. **EQ processing time is deterministic and tiny** -- 10 biquads x 2 channels x 5 multiply-adds = 100 FLOPS per sample. At 48kHz, that's 4.8 MFLOPS, well within Pi 4's ~10 GFLOPS capability. The callback timing change should be negligible (<1% of quantum duration).
+2. **Do NOT change the PI controller gains** when adding EQ. If the controller was stable before, it should remain stable -- EQ doesn't change the ring buffer fill dynamics, only the processing time per callback.
+3. **If you observe rate wobble after adding EQ, the problem is elsewhere** -- likely denormals (Pitfall 2) causing variable callback duration, not the EQ math itself.
+4. **Verify:** Log `filteredFill` and `correction` values with and without EQ enabled. They should be statistically identical.
 
-| Pitfall | Prevention Phase | Verification |
-|---------|------------------|--------------|
-| HFP audio ownership fight | HFP Call Audio | PipeWire owns SCO; `pw-dump` shows HFP nodes; no BlueZ profile conflicts in `journalctl -u bluetooth` |
-| AA margins locked mid-session | Dynamic Sidebar | UI shows "next connection" message; toggle greyed during AA; no touch coordinate drift |
-| HFP audio independent of AA | HFP Call Audio | Test: start call, connect AA, disconnect AA, verify call audio continues |
-| EQ latency on navigation/call | Audio EQ | Measure end-to-end latency with EQ enabled; navigation audio within 50ms of visual prompt |
-| Theme live reload | Theme Selection | Change theme, verify all QML elements update without app restart; no transparent/missing elements |
-| Release watchdog | Release Hardening | Kill -STOP the app process; verify Pi reboots within 15s; verify clean restart |
-| Log rotation | Release Hardening | Run app for 48h; verify log storage bounded; `journalctl --disk-usage` under 50MB |
-| Clean shutdown | Release Hardening | `systemctl stop openauto-prodigy`; verify EVIOCGRAB released (touch works in launcher), BT ungrabbed, config flushed |
-| Wallpaper pre-scaling | Theme Selection | Set 4K wallpaper; measure view load time; must be <100ms |
+---
+
+### Pitfall 7: EQ State Not Persisted Correctly -- Config Defaults Gate Pattern Bites Again
+
+**What goes wrong:** User configures a custom preset, saves it, restarts the app. The preset is gone, or worse, the app crashes because `ConfigService::getValueByPath()` returns an unexpected type for the EQ config subtree.
+
+**Prevention:**
+1. The project already has a known issue with config defaults gating: `"setValueByPath silently fails without initDefaults() entry"` (from PROJECT.md Key Decisions). EQ config keys MUST be registered in `initDefaults()` before any read/write.
+2. **YAML schema for EQ config:** Define the schema up front:
+   ```yaml
+   audio:
+     equalizer:
+       enabled: false
+       active_preset: "flat"
+       per_stream:
+         media: "flat"
+         navigation: "flat"
+         phone: "flat"
+       presets:
+         flat:
+           bands: [0, 0, 0, 0, 0, 0, 0, 0, 0, 0]
+         rock:
+           bands: [5, 4, -1, -2, 1, 3, 5, 6, 6, 5]
+   ```
+3. **User presets in a separate file** (`~/.openauto/eq-presets.yaml`), not inline in the main config. Main config references preset names; preset definitions live separately. This prevents config bloat and makes preset sharing possible.
+4. **Validate on load.** A preset with != 10 bands, or gain values outside [-12, +12] dB, should be rejected with a warning and fall back to flat.
+
+---
+
+### Pitfall 8: Web Config Panel EQ UI Out of Sync with Head Unit
+
+**What goes wrong:** User adjusts EQ via the web panel. The change appears saved in the web UI, but the head unit doesn't reflect it until restart. Or worse, the head unit has a different preset active, and the web panel overwrites it on next save.
+
+**Prevention:**
+1. **Use the existing IPC socket (`/tmp/openauto-prodigy.sock`) for real-time EQ commands**, not just config file writes. The web panel should send JSON commands like `{"type": "eq_set_preset", "stream": "media", "preset": "rock"}` over the Unix socket. The Qt app applies the change immediately AND persists to config.
+2. **IPC must be bidirectional for EQ state.** When the head unit EQ changes (user adjusts via touch), the IPC server should push the update to connected web clients. The existing IpcServer supports request/response but may not support server-initiated push -- this may need WebSocket upgrade or polling.
+3. **Single source of truth:** The Qt app's in-memory EQ state is authoritative. Both UIs (touch and web) read from and write to it via defined APIs. Neither UI reads the YAML file directly for current state.
+
+---
+
+## Minor Pitfalls
+
+### Pitfall 9: Slider UI Not Suitable for Car Touchscreen
+
+**What goes wrong:** You build a nice 10-band EQ with vertical sliders. On the 1024x600 DFRobot touchscreen, the sliders are too narrow to hit accurately while driving. Users accidentally adjust adjacent bands. The slider throw (vertical range) is too short for fine adjustment.
+
+**Prevention:**
+1. **Wide touch targets.** Each band slider should be at least 60px wide (with the existing `UiMetrics` scale factor, this means ~55-80dp). For 10 bands across 1024px, that's ~100px per band including spacing -- achievable.
+2. **Consider a preset-first UI** instead of raw sliders. Show preset buttons prominently; hide per-band sliders behind a "Custom" or "Advanced" tap. Most users will use presets, not individual band adjustment.
+3. **Snap to dB values.** Snap to 1dB increments, not continuous. Reduces the precision needed for touch targeting.
+4. **Provide a "Reset to Flat" button** that's always visible. Users who accidentally mess up their EQ need a quick escape.
+
+---
+
+### Pitfall 10: BT Audio Plugin EQ Expectations
+
+**What goes wrong:** User expects the EQ to also apply to Bluetooth A2DP audio (BtAudioPlugin), not just AA media. BT audio uses a completely separate PipeWire stream path.
+
+**Prevention:**
+1. **Decide scope early.** If EQ applies to BT audio too, the EQ engine must be integrated at the AudioService level (shared by all plugins), not inside the AndroidAutoPlugin.
+2. **Recommended: EQ at AudioService level.** The `onPlaybackProcess()` callback is already per-stream. Add EQ state to `AudioStreamHandle`. Each stream gets its own filter instances. BT audio, AA media, and any future audio source all benefit automatically.
+3. **Expose per-stream enable/disable** so users can EQ media but not phone calls, regardless of source plugin.
+
+---
+
+## Phase-Specific Warnings
+
+| Phase Topic | Likely Pitfall | Mitigation |
+|-------------|---------------|------------|
+| Biquad DSP engine | Denormals on quiet audio (Pitfall 2) | Set FTZ on audio thread at startup; test with silence between tracks |
+| Biquad DSP engine | Coefficient interpolation missing (Pitfall 3) | Implement 5-10ms smoothing from day one; don't defer as "polish" |
+| Integration into AudioService | RT safety violations (Pitfall 1) | Double-buffered coefficients, zero allocations, no logging in callback |
+| Integration into AudioService | Rate matching disruption (Pitfall 6) | Verify PI controller stability with EQ enabled; expect no change |
+| Per-stream profiles | Navigation intelligibility (Pitfall 4) | Default nav/phone to flat; test with road noise |
+| Preset management | Config defaults gate (Pitfall 7) | Register all EQ keys in `initDefaults()` before first access |
+| Preset switching | Click artifacts (Pitfall 3) | Coefficient interpolation is mandatory, not optional |
+| Head unit touch UI | Touch target sizing (Pitfall 9) | Preset-first design; sliders behind "Custom" |
+| Web config panel | State sync (Pitfall 8) | Real-time IPC commands, single source of truth in Qt app |
+| BT Audio integration | Scope confusion (Pitfall 10) | EQ engine at AudioService level, not plugin level |
 
 ## Sources
 
-- [PipeWire Bluetooth Telephony Support (George Kiagiadakis, Feb 2025)](https://gkiagia.gr/2025-02-20-pipewire-telephony/) -- MEDIUM confidence (new API, may evolve)
-- [PipeWire Filter-Chain Documentation](https://docs.pipewire.org/page_module_filter_chain.html) -- HIGH confidence (official docs)
-- [PipeWire Parametric Equalizer Documentation](https://docs.pipewire.org/page_module_parametric_equalizer.html) -- HIGH confidence (official docs)
-- [WirePlumber Bluetooth Configuration](https://pipewire.pages.freedesktop.org/wireplumber/daemon/configuration/bluetooth.html) -- HIGH confidence (official docs)
-- [Raspberry Pi Watchdog Forums](https://forums.raspberrypi.com/viewtopic.php?t=326779) -- MEDIUM confidence (community, but hardware-specific)
-- [Dries Buytaert - Keeping Pi Online with Watchdogs](https://dri.es/keeping-your-raspberry-pi-online-with-watchdogs) -- MEDIUM confidence (practical guide)
-- Project codebase: `docs/aa-display-rendering.md`, `PhonePlugin.cpp`, `AudioService.cpp`, `ThemeService.cpp` -- HIGH confidence (primary source)
-- Project memory: HFP AG ownership confirmed on fresh Trixie install -- HIGH confidence (tested)
+- [PipeWire DSP Filter Tutorial](https://docs.pipewire.org/devel/page_tutorial7.html) -- HIGH confidence (official docs, RT safety constraints)
+- [PipeWire Filter API](https://docs.pipewire.org/group__pw__filter.html) -- HIGH confidence (official docs)
+- [PipeWire Filter-Chain Module](https://docs.pipewire.org/page_module_filter_chain.html) -- HIGH confidence (official docs)
+- [PipeWire Parametric Equalizer Module](https://docs.pipewire.org/1.2/page_module_parametric_equalizer.html) -- HIGH confidence (official docs)
+- [Audio EQ Cookbook (Robert Bristow-Johnson)](https://webaudio.github.io/Audio-EQ-Cookbook/audio-eq-cookbook.html) -- HIGH confidence (canonical DSP reference)
+- [EarLevel Engineering: Denormalization in Audio](https://www.earlevel.com/main/2012/12/03/a-note-about-de-normalization/) -- HIGH confidence (established audio engineering reference)
+- [EarLevel Engineering: Floating Point Caveats](https://www.earlevel.com/main/2019/04/19/floating-point-caveats/) -- HIGH confidence
+- [DSP Parameter Smoothing (Dark Palace Studio)](https://darkpalace.studio/2025/04/18/dsp-smoothing.html) -- MEDIUM confidence (practical guide, verified against multiple sources)
+- [Pi 4 Real-Time DSP Discussion (RPi Forums)](https://forums.raspberrypi.com/viewtopic.php?t=248857) -- MEDIUM confidence (community, but hardware-specific)
+- [ARM NEON Denormal Handling](https://community.arm.com/support-forums/f/ai-and-ml-forum/47731/cmsis-dsp---64-bit-dsp-filtering-on-neon-raspberry-pi) -- MEDIUM confidence (ARM community forum)
+- Project codebase: `AudioService.cpp`, `AudioService.hpp`, `AudioRingBuffer.hpp` -- HIGH confidence (primary source, read directly)
+- Project memory: PipeWire 1.4.2 on Pi, ring buffer architecture, RT callback patterns -- HIGH confidence (tested)
 
 ---
-*Pitfalls research for: OpenAuto Prodigy feature completion and release hardening*
+*Pitfalls research for: OpenAuto Prodigy v0.4.1 Audio Equalizer milestone*
 *Researched: 2026-03-01*
