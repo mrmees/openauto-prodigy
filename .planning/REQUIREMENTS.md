@@ -19,7 +19,7 @@ Requirements for v1.0 release. Each maps to roadmap phases.
 ### Display & Theming
 
 - [x] **DISP-01**: User can select from multiple color palettes in settings (dark, light, blue, etc.)
-- [ ] **DISP-02**: User can select a wallpaper from available options in settings
+- [x] **DISP-02**: User can select a wallpaper from available options in settings
 - [x] **DISP-03**: Selected theme and wallpaper persist across restarts
 - [x] **DISP-04**: Screen brightness is controllable from the settings slider and gesture overlay
 - [x] **DISP-05**: Brightness control writes to actual display backlight hardware on the Pi
@@ -90,7 +90,7 @@ Which phases cover which requirements. Updated during roadmap creation.
 | AUD-05 | Phase 3 | Pending |
 | AUD-06 | Phase 3 | Pending |
 | DISP-01 | Phase 2 | Complete |
-| DISP-02 | Phase 2 | Pending |
+| DISP-02 | Phase 2 | Complete |
 | DISP-03 | Phase 2 | Complete |
 | DISP-04 | Phase 2 | Complete |
 | DISP-05 | Phase 2 | Complete |
