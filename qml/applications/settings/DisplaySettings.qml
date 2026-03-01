@@ -19,7 +19,7 @@ Flickable {
 
         SettingsSlider {
             id: brightnessSlider
-            label: "Brightness"
+            label: typeof DisplayService !== "undefined" && DisplayService.hasHardwareBrightness ? "Brightness" : "Screen Dimming"
             configPath: "display.brightness"
             from: 5; to: 100; stepSize: 1
             onMoved: {

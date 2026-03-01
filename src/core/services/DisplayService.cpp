@@ -108,6 +108,11 @@ qreal DisplayService::dimOverlayOpacity() const
     return (100.0 - brightness_) / 100.0 * 0.9;
 }
 
+bool DisplayService::hasHardwareBrightness() const
+{
+    return backend_ != Backend::SoftwareOverlay;
+}
+
 QString DisplayService::backendName() const
 {
     switch (backend_) {

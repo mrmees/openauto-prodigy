@@ -18,6 +18,7 @@ class DisplayService : public QObject, public IDisplayService {
     Q_OBJECT
     Q_PROPERTY(int brightness READ brightness WRITE setBrightness NOTIFY brightnessChanged)
     Q_PROPERTY(qreal dimOverlayOpacity READ dimOverlayOpacity NOTIFY brightnessChanged)
+    Q_PROPERTY(bool hasHardwareBrightness READ hasHardwareBrightness CONSTANT)
 
 public:
     explicit DisplayService(QObject* parent = nullptr);
@@ -30,6 +31,9 @@ public:
 
     /// Overlay opacity for software dimming (0.0 = invisible, max 0.9).
     qreal dimOverlayOpacity() const;
+
+    /// True if sysfs or ddcutil backend is active (not software overlay).
+    bool hasHardwareBrightness() const;
 
     /// Human-readable name of the active backend (for logging/debug).
     QString backendName() const;

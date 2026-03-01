@@ -106,13 +106,13 @@ Rectangle {
                 }
             }
 
-            // Brightness slider
+            // Brightness / Screen Dimming slider
             RowLayout {
                 Layout.fillWidth: true
                 spacing: 12
 
                 MaterialIcon {
-                    icon: "\ue1ac"  // brightness_high
+                    icon: typeof DisplayService !== "undefined" && DisplayService.hasHardwareBrightness ? "\ue1ac" : "\ue3a1"  // brightness_high / tonality
                     size: 22
                     color: "#e0e0e0"
                 }
