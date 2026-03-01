@@ -1,9 +1,9 @@
 ---
-status: diagnosed
+status: resolved
 phase: 02-theme-display
 source: [02-01-SUMMARY.md, 02-02-SUMMARY.md, 02-03-SUMMARY.md, 02-04-SUMMARY.md]
 started: 2026-03-01T20:35:00Z
-updated: 2026-03-01T20:45:00Z
+updated: 2026-03-01T22:00:00Z
 ---
 
 ## Current Test
@@ -65,7 +65,7 @@ skipped: 2
 ## Gaps
 
 - truth: "Wallpaper image visible behind UI on home/launcher screen"
-  status: failed
+  status: resolved
   reason: "User reported: Picker has shown up, but no changes to the background on the home screen"
   severity: major
   test: 3
@@ -80,7 +80,7 @@ skipped: 2
   debug_session: ".planning/debug/wallpaper-not-displayed.md"
 
 - truth: "3-finger gesture overlay opens with brightness slider"
-  status: failed
+  status: resolved
   reason: "User reported: Gesture overlay does not work at all and has not worked for a long time"
   severity: major
   test: 7
