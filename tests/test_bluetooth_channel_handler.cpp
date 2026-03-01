@@ -23,7 +23,7 @@ private slots:
 
         oaa::proto::messages::BluetoothPairingRequest req;
         req.set_phone_address("8C:C5:D0:DD:74:15");
-        req.set_pairing_method(oaa::proto::enums::BluetoothPairingMethod::HFP);
+        req.set_pairing_method(oaa::proto::enums::BluetoothPairingMethod::PIN);
         QByteArray payload(req.ByteSizeLong(), '\0');
         req.SerializeToArray(payload.data(), payload.size());
 

@@ -336,7 +336,7 @@ QByteArray ServiceDiscoveryBuilder::buildBluetoothDescriptor() const
     auto* btChannel = desc.mutable_bluetooth_channel();
     btChannel->set_adapter_address(btMacAddress_.toStdString());
     btChannel->add_supported_pairing_methods(
-        oaa::proto::enums::BluetoothPairingMethod::HFP);
+        oaa::proto::enums::BluetoothPairingMethod::PIN);
 
     QByteArray data(desc.ByteSizeLong(), '\0');
     desc.SerializeToArray(data.data(), data.size());
