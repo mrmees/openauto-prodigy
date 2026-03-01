@@ -1,6 +1,6 @@
 #include "PluginDiscovery.hpp"
 #include <QDir>
-#include <QDebug>
+#include "../Logging.hpp"
 
 namespace oap {
 
@@ -10,7 +10,7 @@ QList<PluginManifest> PluginDiscovery::discover(const QString& pluginsDir) const
     QDir dir(pluginsDir);
 
     if (!dir.exists()) {
-        qDebug() << "Plugin directory does not exist: " << pluginsDir;
+        qCDebug(lcPlugin) << "Plugin directory does not exist: " << pluginsDir;
         return results;
     }
 
@@ -21,18 +21,18 @@ QList<PluginManifest> PluginDiscovery::discover(const QString& pluginsDir) const
 
         auto manifest = PluginManifest::fromFile(manifestPath);
         if (!manifest.isValid()) {
-            qWarning() << "Invalid plugin manifest in " << entry;
+            qCWarning(lcPlugin) << "Invalid plugin manifest in " << entry;
             continue;
         }
 
         if (!validateManifest(manifest)) {
-            qWarning() << "Plugin " << manifest.id
+            qCWarning(lcPlugin) << "Plugin " << manifest.id
                                         << " requires API v" << manifest.apiVersion
                                         << " (host is v" << HOST_API_VERSION << "), skipping";
             continue;
         }
 
-        qInfo() << "Discovered plugin: " << manifest.id
+        qCInfo(lcPlugin) << "Discovered plugin: " << manifest.id
                                  << " v" << manifest.version;
         results.append(manifest);
     }

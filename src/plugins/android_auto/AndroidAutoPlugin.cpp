@@ -8,7 +8,7 @@
 #include "core/services/IConfigService.hpp"
 #include "core/services/ConfigService.hpp"
 #include <algorithm>
-#include <QDebug>
+#include "../../core/Logging.hpp"
 #include <QQmlContext>
 #include <QFile>
 
@@ -64,7 +64,7 @@ bool AndroidAutoPlugin::initialize(IHostContext* context)
     if (touchDevice.isEmpty()) {
         touchDevice = oap::InputDeviceScanner::findTouchDevice();
         if (!touchDevice.isEmpty()) {
-            qInfo() << "[AAPlugin] Auto-detected touch device:" << touchDevice;
+            qCInfo(lcAA) << "Auto-detected touch device:" << touchDevice;
         }
     }
 
@@ -93,7 +93,7 @@ bool AndroidAutoPlugin::initialize(IHostContext* context)
             displayW, displayH,
             this);
         touchReader_->start();
-        qInfo() << "[AAPlugin] Touch:" << touchDevice
+        qCInfo(lcAA) << "Touch:" << touchDevice
                 << "display=" << displayW << "x" << displayH;
 
         // Configure sidebar touch exclusion
@@ -108,26 +108,26 @@ bool AndroidAutoPlugin::initialize(IHostContext* context)
                 if (pos.isEmpty()) pos = "right";
                 touchReader_->setSidebar(true, sidebarW, pos.toStdString());
                 touchReader_->computeLetterbox();
-                qInfo() << "[AAPlugin] Sidebar touch zones:" << pos << sidebarW << "px";
+                qCInfo(lcAA) << "Sidebar touch zones:" << pos << sidebarW << "px";
 
                 connect(touchReader_, &oap::aa::EvdevTouchReader::sidebarVolumeSet,
                         this, [this](int level) {
                     if (hostContext_ && hostContext_->audioService()) {
                         hostContext_->audioService()->setMasterVolume(level);
-                        qDebug() << "[AAPlugin] Sidebar vol:" << level;
+                        qCDebug(lcAA) << "Sidebar vol:" << level;
                     }
                 }, Qt::QueuedConnection);
 
                 connect(touchReader_, &oap::aa::EvdevTouchReader::sidebarHome,
                         this, [this]() {
-                    qInfo() << "[AAPlugin] Sidebar home — requesting exit to car";
+                    qCInfo(lcAA) << "Sidebar home — requesting exit to car";
                     if (aaService_)
                         aaService_->requestExitToCar();
                 }, Qt::QueuedConnection);
             }
         }
     } else {
-        qInfo() << "[AAPlugin] No touch device found — touch input disabled";
+        qCInfo(lcAA) << "No touch device found — touch input disabled";
     }
 
     // Watch for video setting changes — disconnect active session so phone
@@ -172,7 +172,7 @@ void AndroidAutoPlugin::onConfigChanged(const QString& path, const QVariant& val
     if (state != CS::Connected && state != CS::Backgrounded)
         return;
 
-    qInfo() << "[AAPlugin] Video setting changed (" << path << ") — reconnecting for renegotiation";
+    qCInfo(lcAA) << "Video setting changed (" << path << ") — reconnecting for renegotiation";
     // Queue the disconnect — calling it synchronously from inside configChanged
     // would spin a nested event loop mid-signal-emission and crash
     QMetaObject::invokeMethod(aaService_, [this]() {
@@ -183,7 +183,7 @@ void AndroidAutoPlugin::onConfigChanged(const QString& path, const QVariant& val
 void AndroidAutoPlugin::stopAA()
 {
     if (aaService_) {
-        qInfo() << "[AAPlugin] Graceful AA shutdown requested";
+        qCInfo(lcAA) << "Graceful AA shutdown requested";
         aaService_->disconnectSession();
     }
 }
@@ -215,7 +215,7 @@ void AndroidAutoPlugin::onActivated(QQmlContext* context)
     if (static_cast<CS::ConnectionState>(aaService_->connectionState()) == CS::Backgrounded) {
         if (touchReader_) touchReader_->grab();
         aaService_->requestVideoFocus();
-        qInfo() << "[AAPlugin] Re-entering AA projection from background";
+        qCInfo(lcAA) << "Re-entering AA projection from background";
     }
 }
 

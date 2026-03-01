@@ -3,7 +3,7 @@
 #include "PluginLoader.hpp"
 #include "IPlugin.hpp"
 #include "IHostContext.hpp"
-#include <QDebug>
+#include "../Logging.hpp"
 
 namespace oap {
 
@@ -37,7 +37,7 @@ void PluginManager::registerStaticPlugin(IPlugin* plugin)
     entries_.append(entry);
     idIndex_[plugin->id()] = idx;
 
-    qInfo() << "Registered static plugin: " << plugin->id();
+    qCInfo(lcPlugin) << "Registered static plugin: " << plugin->id();
     emit pluginLoaded(plugin->id());
 }
 
@@ -49,7 +49,7 @@ void PluginManager::discoverPlugins(const QString& pluginsDir)
     for (const auto& manifest : manifests) {
         // Skip if already registered (e.g., static plugin with same ID)
         if (idIndex_.contains(manifest.id)) {
-            qDebug() << "Skipping discovered plugin " << manifest.id
+            qCDebug(lcPlugin) << "Skipping discovered plugin " << manifest.id
                                       << " — already registered (static)";
             continue;
         }
@@ -71,7 +71,7 @@ void PluginManager::discoverPlugins(const QString& pluginsDir)
         entries_.append(entry);
         idIndex_[manifest.id] = idx;
 
-        qInfo() << "Loaded dynamic plugin: " << manifest.id;
+        qCInfo(lcPlugin) << "Loaded dynamic plugin: " << manifest.id;
         emit pluginLoaded(manifest.id);
     }
 }
@@ -81,22 +81,22 @@ void PluginManager::initializeAll(IHostContext* context)
     for (auto& entry : entries_) {
         if (entry.initialized) continue;
 
-        qInfo() << "Initializing plugin: " << entry.manifest.id;
+        qCInfo(lcPlugin) << "Initializing plugin: " << entry.manifest.id;
 
         bool ok = false;
         try {
             ok = entry.plugin->initialize(context);
         } catch (const std::exception& e) {
-            qCritical() << "Plugin " << entry.manifest.id
+            qCCritical(lcPlugin) << "Plugin " << entry.manifest.id
                                       << " threw during initialize(): " << e.what();
         }
 
         if (ok) {
             entry.initialized = true;
-            qInfo() << "Plugin initialized: " << entry.manifest.id;
+            qCInfo(lcPlugin) << "Plugin initialized: " << entry.manifest.id;
             emit pluginInitialized(entry.manifest.id);
         } else {
-            qCritical() << "Plugin " << entry.manifest.id
+            qCCritical(lcPlugin) << "Plugin " << entry.manifest.id
                                       << " failed to initialize — disabled";
             emit pluginFailed(entry.manifest.id, "initialize() returned false");
         }
@@ -110,11 +110,11 @@ void PluginManager::shutdownAll()
         auto& entry = entries_[i];
         if (!entry.initialized) continue;
 
-        qInfo() << "Shutting down plugin: " << entry.manifest.id;
+        qCInfo(lcPlugin) << "Shutting down plugin: " << entry.manifest.id;
         try {
             entry.plugin->shutdown();
         } catch (const std::exception& e) {
-            qCritical() << "Plugin " << entry.manifest.id
+            qCCritical(lcPlugin) << "Plugin " << entry.manifest.id
                                       << " threw during shutdown(): " << e.what();
         }
         entry.initialized = false;

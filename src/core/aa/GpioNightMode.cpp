@@ -1,7 +1,7 @@
 #include "GpioNightMode.hpp"
 #include <QFile>
 #include <QTextStream>
-#include <QDebug>
+#include "../Logging.hpp"
 
 namespace oap {
 namespace aa {
@@ -21,11 +21,11 @@ bool GpioNightMode::isNight() const
 
 void GpioNightMode::start()
 {
-    qInfo() << "[GpioNightMode] Starting — pin=" << gpioPin_
+    qCInfo(lcCore) << "Starting — pin=" << gpioPin_
                             << " activeHigh=" << (activeHigh_ ? "true" : "false");
 
     if (!exportGpio()) {
-        qCritical() << "[GpioNightMode] Failed to export GPIO " << gpioPin_
+        qCCritical(lcCore) << "Failed to export GPIO " << gpioPin_
                                  << " — night mode will remain " << (currentState_ ? "NIGHT" : "DAY");
         return;
     }
@@ -46,7 +46,7 @@ void GpioNightMode::poll()
     QFile file(valuePath);
 
     if (!file.open(QIODevice::ReadOnly | QIODevice::Text)) {
-        qWarning() << "[GpioNightMode] Cannot read " << valuePath;
+        qCWarning(lcCore) << "Cannot read " << valuePath;
         return;
     }
 
@@ -59,7 +59,7 @@ void GpioNightMode::poll()
 
     if (night != currentState_) {
         currentState_ = night;
-        qInfo() << "[GpioNightMode] Pin " << gpioPin_ << " = " << val
+        qCInfo(lcCore) << "Pin " << gpioPin_ << " = " << val
                                 << " -> " << (night ? "NIGHT" : "DAY");
         emit nightModeChanged(night);
     }
@@ -70,13 +70,13 @@ bool GpioNightMode::exportGpio()
     // Check if already exported
     QString dirPath = QString("/sys/class/gpio/gpio%1").arg(gpioPin_);
     if (QFile::exists(dirPath + "/value")) {
-        qDebug() << "[GpioNightMode] GPIO " << gpioPin_ << " already exported";
+        qCDebug(lcCore) << "GPIO " << gpioPin_ << " already exported";
         exported_ = true;
     } else {
         // Export the GPIO
         QFile exportFile("/sys/class/gpio/export");
         if (!exportFile.open(QIODevice::WriteOnly | QIODevice::Text)) {
-            qCritical() << "[GpioNightMode] Cannot open /sys/class/gpio/export (permission denied?)";
+            qCCritical(lcCore) << "Cannot open /sys/class/gpio/export (permission denied?)";
             return false;
         }
         QTextStream out(&exportFile);
@@ -93,7 +93,7 @@ bool GpioNightMode::exportGpio()
         out << "in";
         dirFile.close();
     } else {
-        qWarning() << "[GpioNightMode] Cannot set direction for GPIO " << gpioPin_;
+        qCWarning(lcCore) << "Cannot set direction for GPIO " << gpioPin_;
     }
 
     return true;

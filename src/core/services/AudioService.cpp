@@ -1,5 +1,5 @@
 #include "AudioService.hpp"
-#include <QDebug>
+#include "../Logging.hpp"
 #include <cstring>
 #include <spa/param/props.h>
 #include <pipewire/version.h>
@@ -18,7 +18,7 @@ AudioService::AudioService(QObject* parent)
 
     threadLoop_ = pw_thread_loop_new("openauto-audio", nullptr);
     if (!threadLoop_) {
-        qWarning() << "AudioService: Failed to create PipeWire thread loop";
+        qCWarning(lcAudio) << "AudioService: Failed to create PipeWire thread loop";
         return;
     }
 
@@ -26,7 +26,7 @@ AudioService::AudioService(QObject* parent)
 
     context_ = pw_context_new(pw_thread_loop_get_loop(threadLoop_), nullptr, 0);
     if (!context_) {
-        qWarning() << "AudioService: Failed to create PipeWire context";
+        qCWarning(lcAudio) << "AudioService: Failed to create PipeWire context";
         pw_thread_loop_unlock(threadLoop_);
         pw_thread_loop_destroy(threadLoop_);
         threadLoop_ = nullptr;
@@ -35,7 +35,7 @@ AudioService::AudioService(QObject* parent)
 
     core_ = pw_context_connect(context_, nullptr, 0);
     if (!core_) {
-        qWarning() << "AudioService: Failed to connect to PipeWire daemon"
+        qCWarning(lcAudio) << "AudioService: Failed to connect to PipeWire daemon"
                     << " — audio will be unavailable";
         pw_thread_loop_unlock(threadLoop_);
         pw_context_destroy(context_);
@@ -48,14 +48,14 @@ AudioService::AudioService(QObject* parent)
     pw_thread_loop_unlock(threadLoop_);
 
     if (pw_thread_loop_start(threadLoop_) < 0) {
-        qWarning() << "AudioService: Failed to start PipeWire thread loop";
+        qCWarning(lcAudio) << "AudioService: Failed to start PipeWire thread loop";
         pw_core_disconnect(core_); core_ = nullptr;
         pw_context_destroy(context_); context_ = nullptr;
         pw_thread_loop_destroy(threadLoop_); threadLoop_ = nullptr;
         return;
     }
 
-    qInfo() << "AudioService: Connected to PipeWire daemon";
+    qCInfo(lcAudio) << "AudioService: Connected to PipeWire daemon";
 
     // Start device registry under PW lock (loop is now running)
     pw_thread_loop_lock(threadLoop_);
@@ -237,7 +237,7 @@ AudioStreamHandle* AudioService::createStream(
     int bufferMs)
 {
     if (!isAvailable()) {
-        qWarning() << "AudioService::createStream: PipeWire not available, returning nullptr";
+        qCWarning(lcAudio) << "AudioService::createStream: PipeWire not available, returning nullptr";
         return nullptr;
     }
 
@@ -257,7 +257,7 @@ AudioStreamHandle* AudioService::createStream(
     uint32_t pow2 = 1;
     while (pow2 < rbSize) pow2 <<= 1;
     handle->ringBuffer = std::make_unique<AudioRingBuffer>(pow2);
-    qInfo() << "AudioService: Ring buffer for" << name << ":" << pow2 << "bytes (" << bufferMs << "ms)";
+    qCInfo(lcAudio) << "AudioService: Ring buffer for" << name << ":" << pow2 << "bytes (" << bufferMs << "ms)";
 
     // Determine PipeWire role based on stream name
     const char* role = "Music";
@@ -284,7 +284,7 @@ AudioStreamHandle* AudioService::createStream(
 
     handle->stream = pw_stream_new(core_, name.toUtf8().constData(), props);
     if (!handle->stream) {
-        qWarning() << "AudioService: Failed to create PipeWire stream:" << name;
+        qCWarning(lcAudio) << "AudioService: Failed to create PipeWire stream:" << name;
         pw_thread_loop_unlock(threadLoop_);
         delete handle;
         return nullptr;
@@ -318,7 +318,7 @@ AudioStreamHandle* AudioService::createStream(
         params, 1);
 
     if (ret < 0) {
-        qWarning() << "AudioService: Failed to connect stream:" << name << "error:" << ret;
+        qCWarning(lcAudio) << "AudioService: Failed to connect stream:" << name << "error:" << ret;
         spa_hook_remove(&handle->listener);
         pw_stream_destroy(handle->stream);
         pw_thread_loop_unlock(threadLoop_);
@@ -331,7 +331,7 @@ AudioStreamHandle* AudioService::createStream(
     QMutexLocker lock(&mutex_);
     streams_.append(handle);
 
-    qInfo() << "AudioService: Created stream" << name
+    qCInfo(lcAudio) << "AudioService: Created stream" << name
             << sampleRate << "Hz" << channels << "ch"
             << "priority:" << priority;
     return handle;
@@ -352,7 +352,7 @@ void AudioService::destroyStream(AudioStreamHandle* handle)
         pw_thread_loop_unlock(threadLoop_);
     }
 
-    qInfo() << "AudioService: Destroyed stream" << handle->name;
+    qCInfo(lcAudio) << "AudioService: Destroyed stream" << handle->name;
     delete handle;
 }
 
@@ -460,14 +460,14 @@ void AudioService::setOutputDevice(const QString& deviceName)
 {
     QMutexLocker lock(&mutex_);
     outputDevice_ = deviceName.isEmpty() ? "auto" : deviceName;
-    qInfo() << "AudioService: Output device set to" << outputDevice_;
+    qCInfo(lcAudio) << "AudioService: Output device set to" << outputDevice_;
 }
 
 void AudioService::setInputDevice(const QString& deviceName)
 {
     QMutexLocker lock(&mutex_);
     inputDevice_ = deviceName.isEmpty() ? "auto" : deviceName;
-    qInfo() << "AudioService: Input device set to" << inputDevice_;
+    qCInfo(lcAudio) << "AudioService: Input device set to" << inputDevice_;
 }
 
 QString AudioService::outputDevice() const
@@ -511,13 +511,13 @@ AudioStreamHandle* AudioService::openCaptureStream(const QString& name,
                                                      int sampleRate, int channels, int bitDepth)
 {
     if (!isAvailable()) {
-        qWarning() << "AudioService::openCaptureStream: PipeWire not available";
+        qCWarning(lcAudio) << "AudioService::openCaptureStream: PipeWire not available";
         return nullptr;
     }
 
     // Only one capture stream at a time
     if (capture_.handle) {
-        qWarning() << "AudioService::openCaptureStream: capture already open, closing previous";
+        qCWarning(lcAudio) << "AudioService::openCaptureStream: capture already open, closing previous";
         closeCaptureStream(capture_.handle);
     }
 
@@ -545,7 +545,7 @@ AudioStreamHandle* AudioService::openCaptureStream(const QString& name,
 
     handle->stream = pw_stream_new(core_, name.toUtf8().constData(), props);
     if (!handle->stream) {
-        qWarning() << "AudioService: Failed to create PipeWire capture stream:" << name;
+        qCWarning(lcAudio) << "AudioService: Failed to create PipeWire capture stream:" << name;
         pw_thread_loop_unlock(threadLoop_);
         delete handle;
         return nullptr;
@@ -579,7 +579,7 @@ AudioStreamHandle* AudioService::openCaptureStream(const QString& name,
         params, 1);
 
     if (ret < 0) {
-        qWarning() << "AudioService: Failed to connect capture stream:" << name << "error:" << ret;
+        qCWarning(lcAudio) << "AudioService: Failed to connect capture stream:" << name << "error:" << ret;
         spa_hook_remove(&captureListener_);
         pw_stream_destroy(handle->stream);
         pw_thread_loop_unlock(threadLoop_);
@@ -590,7 +590,7 @@ AudioStreamHandle* AudioService::openCaptureStream(const QString& name,
 
     pw_thread_loop_unlock(threadLoop_);
 
-    qInfo() << "AudioService: Opened capture stream" << name
+    qCInfo(lcAudio) << "AudioService: Opened capture stream" << name
             << sampleRate << "Hz" << channels << "ch" << bitDepth << "bit";
     return handle;
 }
@@ -621,7 +621,7 @@ void AudioService::closeCaptureStream(AudioStreamHandle* handle)
         capture_.handle = nullptr;
     }
 
-    qInfo() << "AudioService: Closed capture stream" << handle->name;
+    qCInfo(lcAudio) << "AudioService: Closed capture stream" << handle->name;
     delete handle;
 }
 
@@ -648,7 +648,7 @@ void AudioService::checkAdaptiveBuffers()
             // AudioRingBuffer uses spa_ringbuffer with a fixed backing store —
             // live resize would require draining and reallocating. The grown
             // bufferMs will take effect when the stream is next created.
-            qInfo() << "[Audio] Buffer grown to" << handle->bufferMs
+            qCInfo(lcAudio) << "Buffer grown to" << handle->bufferMs
                     << "ms for stream" << handle->name
                     << "(" << xruns << "xruns, was" << oldMs << "ms)"
                     << "— takes effect on next session";
@@ -664,7 +664,7 @@ void AudioService::onDeviceRemoved(uint32_t registryId)
     // PipeWire/WirePlumber handles the actual rerouting when a target device
     // disappears. Active streams will automatically fall back to the default
     // sink/source. We just log it for diagnostics.
-    qWarning() << "AudioService: Audio device removed (registry id:" << registryId
+    qCWarning(lcAudio) << "AudioService: Audio device removed (registry id:" << registryId
                << ") — PipeWire will reroute active streams to default";
 }
 

@@ -1,5 +1,5 @@
 #include "ActionRegistry.hpp"
-#include <QDebug>
+#include "../Logging.hpp"
 
 namespace oap {
 
@@ -19,7 +19,7 @@ bool ActionRegistry::dispatch(const QString& actionId, const QVariant& payload)
 {
     auto it = handlers_.find(actionId);
     if (it == handlers_.end()) {
-        qDebug() << "ActionRegistry: unknown action '"
+        qCDebug(lcCore) << "ActionRegistry: unknown action '"
                                   << actionId << "'";
         return false;
     }

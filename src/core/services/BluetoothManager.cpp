@@ -1,7 +1,7 @@
 #include "BluetoothManager.hpp"
 #include "IConfigService.hpp"
 #include "ui/PairedDevicesModel.hpp"
-#include <QDebug>
+#include "../Logging.hpp"
 #include <QDBusInterface>
 #include <QDBusReply>
 #include <QDBusArgument>
@@ -26,22 +26,22 @@ public:
 
 public slots:
     void Release() {
-        qInfo() << "[BtAgent] Released";
+        qCInfo(lcBT) << "[Agent] Released";
     }
 
     void RequestConfirmation(const QDBusObjectPath& device, uint passkey) {
-        qInfo() << "[BtAgent] RequestConfirmation:" << device.path() << passkey;
+        qCInfo(lcBT) << "[Agent] RequestConfirmation:" << device.path() << passkey;
         setDelayedReply(true);
         manager_->handleAgentRequestConfirmation(message(), device.path(), passkey);
     }
 
     void AuthorizeService(const QDBusObjectPath& device, const QString& uuid) {
-        qInfo() << "[BtAgent] AuthorizeService:" << device.path() << uuid;
+        qCInfo(lcBT) << "[Agent] AuthorizeService:" << device.path() << uuid;
         // Auto-accept all services from paired devices (no delayed reply needed)
     }
 
     void Cancel() {
-        qInfo() << "[BtAgent] Cancel";
+        qCInfo(lcBT) << "[Agent] Cancel";
         manager_->handleAgentCancel();
     }
 
@@ -70,7 +70,7 @@ public slots:
             int dupFd = ::dup(fd.fileDescriptor());
             if (dupFd >= 0) {
                 fdStore_.push_back(dupFd);
-                qInfo() << "[BtManager] Profile NewConnection from"
+                qCInfo(lcBT) << "Profile NewConnection from"
                          << device.path() << "— holding fd" << dupFd;
             }
         }
@@ -80,12 +80,12 @@ public slots:
 
     void RequestDisconnection(const QDBusObjectPath& device)
     {
-        qInfo() << "[BtManager] Profile RequestDisconnection:" << device.path();
+        qCInfo(lcBT) << "Profile RequestDisconnection:" << device.path();
     }
 
     void Release()
     {
-        qInfo() << "[BtManager] Profile released";
+        qCInfo(lcBT) << "Profile released";
     }
 
 private:
@@ -117,7 +117,7 @@ void BluetoothManager::setPairable(bool enabled)
     if (pairable_ == enabled) return;
     pairable_ = enabled;
     emit pairableChanged();
-    qInfo() << "[BtManager] Pairable:" << enabled;
+    qCInfo(lcBT) << "Pairable:" << enabled;
     if (!adapterPath_.isEmpty())
         setAdapterProperty("Pairable", enabled);
 }
@@ -130,7 +130,7 @@ QString BluetoothManager::pairingPasskey() const { return pairingPasskey_; }
 void BluetoothManager::confirmPairing()
 {
     if (!pairingActive_) return;
-    qInfo() << "[BtManager] Pairing confirmed by user";
+    qCInfo(lcBT) << "Pairing confirmed by user";
 
     auto reply = pendingPairingMessage_.createReply();
     QDBusConnection::systemBus().send(reply);
@@ -148,7 +148,7 @@ void BluetoothManager::confirmPairing()
 
     // Clear first-run banner if we now have paired devices
     if (needsFirstPairing_ && pairedDevicesModel_->rowCount() > 0) {
-        qInfo() << "[BtManager] First device paired — clearing first-run state";
+        qCInfo(lcBT) << "First device paired — clearing first-run state";
         needsFirstPairing_ = false;
         emit needsFirstPairingChanged();
         if (pairableRenewTimer_)
@@ -159,7 +159,7 @@ void BluetoothManager::confirmPairing()
 void BluetoothManager::rejectPairing()
 {
     if (!pairingActive_) return;
-    qInfo() << "[BtManager] Pairing rejected by user";
+    qCInfo(lcBT) << "Pairing rejected by user";
 
     auto reply = pendingPairingMessage_.createErrorReply(
         QStringLiteral("org.bluez.Error.Rejected"),
@@ -181,7 +181,7 @@ QAbstractListModel* BluetoothManager::pairedDevicesModel()
 void BluetoothManager::forgetDevice(const QString& address)
 {
     if (adapterPath_.isEmpty()) return;
-    qInfo() << "[BtManager] Forget device:" << address;
+    qCInfo(lcBT) << "Forget device:" << address;
 
     // Device paths are like /org/bluez/hci0/dev_AA_BB_CC_DD_EE_FF
     QString devAddr = address;
@@ -193,7 +193,7 @@ void BluetoothManager::forgetDevice(const QString& address)
     QDBusReply<void> reply = adapter.call("RemoveDevice",
         QVariant::fromValue(QDBusObjectPath(devicePath)));
     if (!reply.isValid())
-        qWarning() << "[BtManager] RemoveDevice failed:" << reply.error().message();
+        qCWarning(lcBT) << "RemoveDevice failed:" << reply.error().message();
 
     refreshPairedDevices();
 }
@@ -206,7 +206,7 @@ void BluetoothManager::startAutoConnect()
     if (configService_) {
         QVariant enabled = configService_->value("connection.auto_connect_aa");
         if (enabled.isValid() && !enabled.toBool()) {
-            qInfo() << "[BtManager] Auto-connect disabled in config";
+            qCInfo(lcBT) << "Auto-connect disabled in config";
             return;
         }
     }
@@ -221,7 +221,7 @@ void BluetoothManager::startAutoConnect()
     }
 
     if (pairedDevicePaths_.isEmpty()) {
-        qInfo() << "[BtManager] No paired devices — skipping auto-connect";
+        qCInfo(lcBT) << "No paired devices — skipping auto-connect";
         return;
     }
 
@@ -235,7 +235,7 @@ void BluetoothManager::startAutoConnect()
         connect(autoConnectTimer_, &QTimer::timeout, this, &BluetoothManager::attemptConnect);
     }
 
-    qInfo() << "[BtManager] Starting auto-connect for" << pairedDevicePaths_.size() << "device(s)";
+    qCInfo(lcBT) << "Starting auto-connect for" << pairedDevicePaths_.size() << "device(s)";
     attemptConnect();  // First attempt immediately
 }
 
@@ -247,14 +247,14 @@ void BluetoothManager::cancelAutoConnect()
     autoConnectAttempt_ = MAX_ATTEMPTS;  // prevent further attempts
     autoConnectInFlight_ = false;
     pairedDevicePaths_.clear();
-    qInfo() << "[BtManager] Auto-connect cancelled";
+    qCInfo(lcBT) << "Auto-connect cancelled";
 }
 
 void BluetoothManager::attemptConnect()
 {
     if (autoConnectInFlight_) return;
     if (autoConnectAttempt_ >= MAX_ATTEMPTS || pairedDevicePaths_.isEmpty()) {
-        qInfo() << "[BtManager] Auto-connect exhausted after" << autoConnectAttempt_ << "attempts";
+        qCInfo(lcBT) << "Auto-connect exhausted after" << autoConnectAttempt_ << "attempts";
         return;
     }
 
@@ -262,7 +262,7 @@ void BluetoothManager::attemptConnect()
     autoConnectDeviceIndex_++;
     autoConnectInFlight_ = true;
 
-    qInfo() << "[BtManager] Auto-connect attempt" << (autoConnectAttempt_ + 1)
+    qCInfo(lcBT) << "Auto-connect attempt" << (autoConnectAttempt_ + 1)
             << "/" << MAX_ATTEMPTS << "→" << devicePath;
 
     // Async D-Bus call: Device1.Connect()
@@ -276,9 +276,9 @@ void BluetoothManager::attemptConnect()
         autoConnectInFlight_ = false;
 
         if (watcher->isError()) {
-            qInfo() << "[BtManager] Connect failed:" << watcher->error().message();
+            qCInfo(lcBT) << "Connect failed:" << watcher->error().message();
         } else {
-            qInfo() << "[BtManager] Connect call returned success";
+            qCInfo(lcBT) << "Connect call returned success";
             // Don't cancel yet — wait for profileNewConnection (RFCOMM) as the true success signal
         }
 
@@ -287,7 +287,7 @@ void BluetoothManager::attemptConnect()
         if (interval > 0 && autoConnectTimer_) {
             autoConnectTimer_->start(interval);
         } else {
-            qInfo() << "[BtManager] Auto-connect schedule exhausted";
+            qCInfo(lcBT) << "Auto-connect schedule exhausted";
         }
     });
 }
@@ -304,7 +304,7 @@ void BluetoothManager::checkFirstRunPairing()
 {
     if (pairedDevicesModel_->rowCount() > 0) return;
 
-    qInfo() << "[BtManager] No paired devices — enabling first-run pairable mode";
+    qCInfo(lcBT) << "No paired devices — enabling first-run pairable mode";
     needsFirstPairing_ = true;
     emit needsFirstPairingChanged();
 
@@ -319,7 +319,7 @@ void BluetoothManager::checkFirstRunPairing()
                 pairableRenewTimer_->stop();
                 return;
             }
-            qInfo() << "[BtManager] Renewing pairable mode for first-run";
+            qCInfo(lcBT) << "Renewing pairable mode for first-run";
             setAdapterProperty("Pairable", true);
             if (!pairable_) {
                 pairable_ = true;
@@ -333,7 +333,7 @@ void BluetoothManager::checkFirstRunPairing()
 void BluetoothManager::dismissFirstRunBanner()
 {
     if (!needsFirstPairing_) return;
-    qInfo() << "[BtManager] First-run banner dismissed by user";
+    qCInfo(lcBT) << "First-run banner dismissed by user";
     needsFirstPairing_ = false;
     emit needsFirstPairingChanged();
     if (pairableRenewTimer_)
@@ -346,7 +346,7 @@ QString BluetoothManager::connectedDeviceAddress() const { return connectedDevic
 
 void BluetoothManager::initialize()
 {
-    qInfo() << "[BtManager] Initializing...";
+    qCInfo(lcBT) << "Initializing...";
     setupAdapter();
     registerAgent();
     registerProfiles();
@@ -369,7 +369,7 @@ void BluetoothManager::initialize()
         QDBusServiceWatcher::WatchForRegistration, this);
     connect(watcher, &QDBusServiceWatcher::serviceRegistered,
             this, [this]() {
-        qInfo() << "[BtManager] BlueZ restarted — re-initializing";
+        qCInfo(lcBT) << "BlueZ restarted — re-initializing";
         setupAdapter();
         registerAgent();
         registerProfiles();
@@ -440,7 +440,7 @@ QVariant BluetoothManager::getAdapterProperty(const QString& property)
     QDBusReply<QDBusVariant> reply = props.call("Get", "org.bluez.Adapter1", property);
     if (reply.isValid())
         return reply.value().variant();
-    qWarning() << "[BtManager] Failed to get" << property << ":" << reply.error().message();
+    qCWarning(lcBT) << "Failed to get" << property << ":" << reply.error().message();
     return {};
 }
 
@@ -451,14 +451,14 @@ void BluetoothManager::setAdapterProperty(const QString& property, const QVarian
     QDBusMessage reply = props.call("Set", "org.bluez.Adapter1", property,
         QVariant::fromValue(QDBusVariant(value)));
     if (reply.type() == QDBusMessage::ErrorMessage)
-        qWarning() << "[BtManager] Failed to set" << property << ":" << reply.errorMessage();
+        qCWarning(lcBT) << "Failed to set" << property << ":" << reply.errorMessage();
 }
 
 void BluetoothManager::setupAdapter()
 {
     adapterPath_ = findAdapterPath();
     if (adapterPath_.isEmpty()) {
-        qWarning() << "[BtManager] No BlueZ adapter found";
+        qCWarning(lcBT) << "No BlueZ adapter found";
         return;
     }
 
@@ -489,7 +489,7 @@ void BluetoothManager::setupAdapter()
     setAdapterProperty("Pairable", false);
     pairable_ = false;
 
-    qInfo() << "[BtManager] Adapter:" << adapterAddress_
+    qCInfo(lcBT) << "Adapter:" << adapterAddress_
             << "alias:" << adapterAlias_
             << "discoverable:" << discoverable_;
 
@@ -514,14 +514,14 @@ void BluetoothManager::registerAgent()
         QVariant::fromValue(QDBusObjectPath(QStringLiteral("/org/openauto/agent"))),
         QStringLiteral("DisplayYesNo"));
     if (!reply.isValid())
-        qWarning() << "[BtManager] RegisterAgent failed:" << reply.error().message();
+        qCWarning(lcBT) << "RegisterAgent failed:" << reply.error().message();
 
     reply = agentMgr.call("RequestDefaultAgent",
         QVariant::fromValue(QDBusObjectPath(QStringLiteral("/org/openauto/agent"))));
     if (!reply.isValid())
-        qWarning() << "[BtManager] RequestDefaultAgent failed:" << reply.error().message();
+        qCWarning(lcBT) << "RequestDefaultAgent failed:" << reply.error().message();
     else
-        qInfo() << "[BtManager] Registered as default agent";
+        qCInfo(lcBT) << "Registered as default agent";
 }
 
 void BluetoothManager::unregisterAgent()
@@ -534,7 +534,7 @@ void BluetoothManager::unregisterAgent()
         QVariant::fromValue(QDBusObjectPath(QStringLiteral("/org/openauto/agent"))));
 
     QDBusConnection::systemBus().unregisterObject(QStringLiteral("/org/openauto/agent"));
-    qInfo() << "[BtManager] Agent unregistered";
+    qCInfo(lcBT) << "Agent unregistered";
 }
 
 void BluetoothManager::registerProfiles()
@@ -559,7 +559,7 @@ void BluetoothManager::registerProfiles()
         new BluezProfile1Handler(obj.get(), profileFds_, this);
 
         if (!bus.registerObject(prof.path, obj.get(), QDBusConnection::ExportAdaptors)) {
-            qWarning() << "[BtManager] Failed to register D-Bus object at" << prof.path;
+            qCWarning(lcBT) << "Failed to register D-Bus object at" << prof.path;
             continue;
         }
         profileObjects_.push_back(std::move(obj));
@@ -577,9 +577,9 @@ void BluetoothManager::registerProfiles()
 
         QDBusMessage reply = bus.call(call, QDBus::Block, 5000);
         if (reply.type() == QDBusMessage::ErrorMessage) {
-            qWarning() << "[BtManager] Failed to register" << prof.name << ":" << reply.errorMessage();
+            qCWarning(lcBT) << "Failed to register" << prof.name << ":" << reply.errorMessage();
         } else {
-            qInfo() << "[BtManager] Registered" << prof.name << "profile";
+            qCInfo(lcBT) << "Registered" << prof.name << "profile";
             registeredProfilePaths_.append(prof.path);
         }
     }
@@ -620,7 +620,7 @@ void BluetoothManager::handleAgentCancel()
         pairingPasskey_.clear();
         pendingPairingDevicePath_.clear();
         emit pairingActiveChanged();
-        qInfo() << "[BtManager] BlueZ cancelled pairing request";
+        qCInfo(lcBT) << "BlueZ cancelled pairing request";
     }
 }
 
@@ -647,7 +647,7 @@ void BluetoothManager::setDeviceProperty(const QString& devicePath, const QStrin
     QDBusMessage reply = props.call("Set", "org.bluez.Device1", property,
         QVariant::fromValue(QDBusVariant(value)));
     if (reply.type() == QDBusMessage::ErrorMessage)
-        qWarning() << "[BtManager] Failed to set" << property << "on" << devicePath << ":" << reply.errorMessage();
+        qCWarning(lcBT) << "Failed to set" << property << "on" << devicePath << ":" << reply.errorMessage();
 }
 
 void BluetoothManager::refreshPairedDevices()
@@ -712,7 +712,7 @@ void BluetoothManager::refreshPairedDevices()
     arg.endMap();
 
     pairedDevicesModel_->setDevices(devices);
-    qInfo() << "[BtManager] Found" << devices.size() << "paired device(s)";
+    qCInfo(lcBT) << "Found" << devices.size() << "paired device(s)";
 }
 
 void BluetoothManager::updateConnectedDevice()
@@ -728,11 +728,11 @@ void BluetoothManager::updateConnectedDevice()
                 connectedDeviceName_ = name;
                 connectedDeviceAddress_ = addr;
                 emit connectedDeviceChanged();
-                qInfo() << "[BtManager] Device connected:" << name << addr;
+                qCInfo(lcBT) << "Device connected:" << name << addr;
             }
             // Stop auto-connect on any successful device connection
             if (autoConnectTimer_ && autoConnectAttempt_ < MAX_ATTEMPTS) {
-                qInfo() << "[BtManager] Device connected — stopping auto-connect";
+                qCInfo(lcBT) << "Device connected — stopping auto-connect";
                 cancelAutoConnect();
             }
             return;
@@ -740,7 +740,7 @@ void BluetoothManager::updateConnectedDevice()
     }
     // No connected device found
     if (!connectedDeviceName_.isEmpty()) {
-        qInfo() << "[BtManager] Device disconnected:" << connectedDeviceAddress_;
+        qCInfo(lcBT) << "Device disconnected:" << connectedDeviceAddress_;
         connectedDeviceName_.clear();
         connectedDeviceAddress_.clear();
         emit connectedDeviceChanged();
@@ -761,13 +761,13 @@ void BluetoothManager::onDevicePropertiesChanged(const QString& interface,
         if (pairable_ != newPairable) {
             pairable_ = newPairable;
             emit pairableChanged();
-            qInfo() << "[BtManager] Adapter pairable changed to:" << pairable_;
+            qCInfo(lcBT) << "Adapter pairable changed to:" << pairable_;
         }
         // Re-enable pairable if BlueZ timeout killed it during first-run
         if (needsFirstPairing_ && !newPairable) {
             QTimer::singleShot(1000, this, [this]() {
                 if (needsFirstPairing_) {
-                    qInfo() << "[BtManager] Re-enabling pairable after BlueZ timeout (first-run)";
+                    qCInfo(lcBT) << "Re-enabling pairable after BlueZ timeout (first-run)";
                     setAdapterProperty("Pairable", true);
                     if (!pairable_) {
                         pairable_ = true;
@@ -788,7 +788,7 @@ void BluetoothManager::shutdown()
 {
     if (shutdown_) return;
     shutdown_ = true;
-    qInfo() << "[BtManager] Shutting down";
+    qCInfo(lcBT) << "Shutting down";
     if (pairableRenewTimer_)
         pairableRenewTimer_->stop();
     cancelAutoConnect();

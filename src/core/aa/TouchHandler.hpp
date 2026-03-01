@@ -3,7 +3,7 @@
 #include <QObject>
 #include <QVariantList>
 #include <QVariantMap>
-#include <QDebug>
+#include "../Logging.hpp"
 #include <atomic>
 #include <chrono>
 #include <iomanip>
@@ -94,7 +94,7 @@ public:
         double secSinceLog = PerfStats::msElapsed(lastLogTime_, t_send) / 1000.0;
         if (secSinceLog >= 5.0) {
             double eventsPerSec = eventsSinceLog_ / secSinceLog;
-            qDebug() << "[Perf] Touch: total=" << QString::number(metricTotal_.avg(), 'f', 1) << "ms"
+            qCDebug(lcAA) << "[Perf] Touch: total=" << QString::number(metricTotal_.avg(), 'f', 1) << "ms"
                      << "(p99~" << QString::number(metricTotal_.max, 'f', 1) << "ms)"
                      << "|" << QString::number(eventsPerSec, 'f', 1) << "events/sec";
             metricTotal_.reset();

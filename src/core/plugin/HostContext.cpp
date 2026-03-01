@@ -1,15 +1,15 @@
 #include "HostContext.hpp"
-#include <QDebug>
+#include "../Logging.hpp"
 
 namespace oap {
 
 void HostContext::log(LogLevel level, const QString& message)
 {
     switch (level) {
-        case LogLevel::Debug:   qDebug() << "[plugin] " << message; break;
-        case LogLevel::Info:    qInfo() << "[plugin] " << message; break;
-        case LogLevel::Warning: qWarning() << "[plugin] " << message; break;
-        case LogLevel::Error:   qCritical() << "[plugin] " << message; break;
+        case LogLevel::Debug:   qCDebug(lcPlugin) << message; break;
+        case LogLevel::Info:    qCInfo(lcPlugin) << message; break;
+        case LogLevel::Warning: qCWarning(lcPlugin) << message; break;
+        case LogLevel::Error:   qCCritical(lcPlugin) << message; break;
     }
 }
 

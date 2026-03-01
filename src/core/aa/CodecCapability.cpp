@@ -1,6 +1,6 @@
 #include "core/aa/CodecCapability.hpp"
 
-#include <QDebug>
+#include "core/Logging.hpp"
 
 extern "C" {
 #include <libavcodec/avcodec.h>
@@ -55,10 +55,10 @@ std::map<std::string, CodecInfo> CodecCapability::probe()
 
         if (c.isHardware) {
             ci.hardware.push_back(std::move(info));
-            qInfo() << "CodecCapability: found HW decoder" << c.decoder << "for" << c.codec;
+            qCInfo(lcAA) << "CodecCapability: found HW decoder" << c.decoder << "for" << c.codec;
         } else {
             ci.software.push_back(std::move(info));
-            qInfo() << "CodecCapability: found SW decoder" << c.decoder << "for" << c.codec;
+            qCInfo(lcAA) << "CodecCapability: found SW decoder" << c.decoder << "for" << c.codec;
         }
     }
 

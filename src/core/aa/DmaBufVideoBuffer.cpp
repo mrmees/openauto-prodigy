@@ -7,7 +7,7 @@ extern "C" {
 #include <libavutil/imgutils.h>
 }
 
-#include <QDebug>
+#include "../Logging.hpp"
 
 namespace oap {
 namespace aa {
@@ -47,7 +47,7 @@ QAbstractVideoBuffer::MapData DmaBufVideoBuffer::map(QVideoFrame::MapMode mode)
     if (!swFrame_) {
         swFrame_ = av_frame_alloc();
         if (av_hwframe_transfer_data(swFrame_, frame_, 0) < 0) {
-            qWarning() << "[DmaBufVideoBuffer] Failed to transfer hw frame to CPU";
+            qCWarning(lcAA) << "Failed to transfer hw frame to CPU";
             av_frame_free(&swFrame_);
             swFrame_ = nullptr;
             return data;

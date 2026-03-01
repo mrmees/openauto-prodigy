@@ -5,7 +5,7 @@
 #include <QBluetoothUuid>
 #include <QDataStream>
 #include <QNetworkInterface>
-#include <QDebug>
+#include "../Logging.hpp"
 
 // BlueZ SDP C library for direct SDP record registration.
 // The AA RFCOMM record is registered via the legacy SDP socket (--compat mode)
@@ -66,13 +66,13 @@ BluetoothDiscoveryService::~BluetoothDiscoveryService()
 void BluetoothDiscoveryService::start()
 {
     if (!rfcommServer_->listen(QBluetoothAddress())) {
-        qCritical() << "[BTDiscovery] Failed to start RFCOMM server";
+        qCCritical(lcBT) << "Failed to start RFCOMM server";
         emit error("Failed to start Bluetooth RFCOMM server");
         return;
     }
 
     rfcommPort_ = static_cast<uint8_t>(rfcommServer_->serverPort());
-    qInfo() << "[BTDiscovery] RFCOMM listening on port" << rfcommPort_;
+    qCInfo(lcBT) << "RFCOMM listening on port" << rfcommPort_;
 
     // Register SDP record via BlueZ's legacy SDP socket (requires --compat).
     // We can't use ProfileManager1 D-Bus because it tries to bind its own
@@ -85,21 +85,21 @@ void BluetoothDiscoveryService::attemptSdpRegistration()
 {
     if (registerSdpRecord(rfcommPort_)) {
         sdpRetryTimer_.stop();
-        qInfo() << "[BTDiscovery] SDP service registered (AA Wireless)";
+        qCInfo(lcBT) << "SDP service registered (AA Wireless)";
         return;
     }
 
     sdpRetryCount_++;
     if (sdpRetryCount_ >= kSdpMaxRetries) {
         sdpRetryTimer_.stop();
-        qCritical() << "[BTDiscovery] SDP registration failed after"
+        qCCritical(lcBT) << "SDP registration failed after"
                      << kSdpMaxRetries << "attempts, giving up";
         emit error("Failed to register Bluetooth SDP service");
         return;
     }
 
     if (!sdpRetryTimer_.isActive()) {
-        qWarning() << "[BTDiscovery] SDP registration failed, retrying every"
+        qCWarning(lcBT) << "SDP registration failed, retrying every"
                     << kSdpRetryIntervalMs / 1000 << "s (attempt"
                     << sdpRetryCount_ << "/" << kSdpMaxRetries << ")";
         sdpRetryTimer_.start();
@@ -120,7 +120,7 @@ void BluetoothDiscoveryService::stop()
     rfcommServer_->close();
     buffer_.clear();
 
-    qInfo() << "[BTDiscovery] Stopped";
+    qCInfo(lcBT) << "Stopped";
 }
 
 QString BluetoothDiscoveryService::localAddress() const
@@ -136,7 +136,7 @@ bool BluetoothDiscoveryService::registerSdpRecord(uint8_t rfcommChannel)
     bdaddr_t localAddr = {{0, 0, 0, 0xff, 0xff, 0xff}};
     sdp_session_t* session = sdp_connect(&anyAddr, &localAddr, SDP_RETRY_IF_BUSY);
     if (!session) {
-        qCritical() << "[BTDiscovery] sdp_connect failed:" << strerror(errno)
+        qCCritical(lcBT) << "sdp_connect failed:" << strerror(errno)
                      << "- is bluetoothd running with --compat?";
         return false;
     }
@@ -150,13 +150,13 @@ bool BluetoothDiscoveryService::registerSdpRecord(uint8_t rfcommChannel)
             memset(&coreRec, 0, sizeof(coreRec));
             coreRec.handle = handle;
             if (sdp_record_unregister(session, &coreRec) < 0) {
-                qDebug() << "[BTDiscovery] Could not remove core SDP record"
+                qCDebug(lcBT) << "Could not remove core SDP record"
                          << Qt::hex << handle << "(may not exist)";
             } else {
-                qInfo() << "[BTDiscovery] Removed core SDP record" << Qt::hex << handle;
+                qCInfo(lcBT) << "Removed core SDP record" << Qt::hex << handle;
             }
         } else {
-            qInfo() << "[BTDiscovery] Removed core SDP record" << Qt::hex << handle;
+            qCInfo(lcBT) << "Removed core SDP record" << Qt::hex << handle;
         }
     }
 
@@ -208,14 +208,14 @@ bool BluetoothDiscoveryService::registerSdpRecord(uint8_t rfcommChannel)
 
     // Register with SDP server
     if (sdp_record_register(session, record, 0) < 0) {
-        qCritical() << "[BTDiscovery] sdp_record_register failed:" << strerror(errno);
+        qCCritical(lcBT) << "sdp_record_register failed:" << strerror(errno);
         sdp_record_free(record);
         sdp_close(session);
         return false;
     }
 
     sdpRecordHandle_ = record->handle;
-    qInfo() << "[BTDiscovery] SDP record handle:" << Qt::hex << sdpRecordHandle_;
+    qCInfo(lcBT) << "SDP record handle:" << Qt::hex << sdpRecordHandle_;
 
     // Free lists (record data is now owned by SDP server)
     sdp_data_free(channelData);
@@ -257,13 +257,13 @@ void BluetoothDiscoveryService::onClientConnected()
 
     socket_ = rfcommServer_->nextPendingConnection();
     if (!socket_) {
-        qCritical() << "[BTDiscovery] Null socket from pending connection";
+        qCCritical(lcBT) << "Null socket from pending connection";
         return;
     }
 
     buffer_.clear();
 
-    qInfo() << "[BTDiscovery] Phone connected via BT:"
+    qCInfo(lcBT) << "Phone connected via BT:"
             << socket_->peerName();
 
     connect(socket_, &QBluetoothSocket::readyRead,
@@ -287,7 +287,7 @@ void BluetoothDiscoveryService::sendWifiStartRequest()
             for (const auto& entry : iface.addressEntries()) {
                 if (entry.ip().protocol() == QAbstractSocket::IPv4Protocol) {
                     localIp = entry.ip().toString().toStdString();
-                    qInfo() << "[BTDiscovery] Using IP from"
+                    qCInfo(lcBT) << "Using IP from"
                             << iface.name() << ":" << localIp.c_str();
                     break;
                 }
@@ -297,7 +297,7 @@ void BluetoothDiscoveryService::sendWifiStartRequest()
     }
 
     if (localIp.empty()) {
-        qCritical() << "[BTDiscovery] No usable IPv4 address found!";
+        qCCritical(lcBT) << "No usable IPv4 address found!";
         emit error("No usable IPv4 address for WiFi handshake");
         return;
     }
@@ -306,7 +306,7 @@ void BluetoothDiscoveryService::sendWifiStartRequest()
     request.set_ip_address(localIp);
     request.set_port(config_->tcpPort());
 
-    qInfo() << "[BTDiscovery] Sending WifiStartRequest: ip=" << localIp.c_str()
+    qCInfo(lcBT) << "Sending WifiStartRequest: ip=" << localIp.c_str()
             << "port=" << config_->tcpPort();
     sendMessage(request, kMsgWifiStartRequest);
 }
@@ -314,10 +314,10 @@ void BluetoothDiscoveryService::sendWifiStartRequest()
 void BluetoothDiscoveryService::retrigger()
 {
     if (!socket_ || socket_->state() != QBluetoothSocket::SocketState::ConnectedState) {
-        qInfo() << "[BTDiscovery] retrigger: RFCOMM socket not connected, phone must reconnect via BT";
+        qCInfo(lcBT) << "retrigger: RFCOMM socket not connected, phone must reconnect via BT";
         return;
     }
-    qInfo() << "[BTDiscovery] Retrigger: re-sending WifiStartRequest to reconnect";
+    qCInfo(lcBT) << "Retrigger: re-sending WifiStartRequest to reconnect";
     sendWifiStartRequest();
 }
 
@@ -340,7 +340,7 @@ void BluetoothDiscoveryService::readSocket()
         uint16_t messageId = 0;
         stream >> messageId;
 
-        qInfo() << "[BTDiscovery] Received msgId=" << messageId
+        qCInfo(lcBT) << "Received msgId=" << messageId
                 << "length=" << length;
 
         switch (messageId) {
@@ -348,13 +348,13 @@ void BluetoothDiscoveryService::readSocket()
             handleWifiCredentialRequest();
             break;
         case kMsgWifiStartResponse:      // Phone acknowledges, connecting to WiFi
-            qInfo() << "[BTDiscovery] Phone acknowledged WifiStartRequest";
+            qCInfo(lcBT) << "Phone acknowledged WifiStartRequest";
             break;
         case kMsgWifiConnectionStatus:   // Phone reports WiFi connection result
             handleWifiConnectionStatus(buffer_, length);
             break;
         default:
-            qWarning() << "[BTDiscovery] Unknown message ID:" << messageId;
+            qCWarning(lcBT) << "Unknown message ID:" << messageId;
             break;
         }
 
@@ -366,7 +366,7 @@ void BluetoothDiscoveryService::readSocket()
 void BluetoothDiscoveryService::handleWifiCredentialRequest()
 {
     // Phone is asking for WiFi credentials (msgId=2, empty payload)
-    qInfo() << "[BTDiscovery] Phone requested WiFi credentials";
+    qCInfo(lcBT) << "Phone requested WiFi credentials";
 
     // Send WifiInfoResponse (msgId=3) with AP credentials
     oaa::proto::messages::WifiSecurityResponse response;
@@ -387,12 +387,12 @@ void BluetoothDiscoveryService::handleWifiCredentialRequest()
         }
     }
     if (bssid.isEmpty()) {
-        qWarning() << "[BTDiscovery] Could not read wlan0 MAC, using default";
+        qCWarning(lcBT) << "Could not read wlan0 MAC, using default";
         bssid = "00:00:00:00:00:00";
     }
     response.set_bssid(bssid.toStdString());
 
-    qInfo() << "[BTDiscovery] Sending WifiInfoResponse (creds): ssid="
+    qCInfo(lcBT) << "Sending WifiInfoResponse (creds): ssid="
             << config_->wifiSsid() << "bssid=" << bssid;
     sendMessage(response, kMsgWifiInfoResponse);
 }
@@ -406,16 +406,16 @@ void BluetoothDiscoveryService::handleWifiConnectionStatus(
     // or empty/missing fields.
     oaa::proto::messages::WifiInfoResponse msg;
     if (!msg.ParseFromArray(data.data() + 4, length)) {
-        qCritical() << "[BTDiscovery] Failed to parse WifiConnectionStatus";
+        qCCritical(lcBT) << "Failed to parse WifiConnectionStatus";
         emit error("Phone WiFi connection status parse failed");
         return;
     }
 
-    qInfo() << "[BTDiscovery] WifiConnectionStatus:"
+    qCInfo(lcBT) << "WifiConnectionStatus:"
             << msg.ShortDebugString().c_str();
 
     // If we received a parseable response, the phone has connected
-    qInfo() << "[BTDiscovery] Phone connected to WiFi!";
+    qCInfo(lcBT) << "Phone connected to WiFi!";
     emit phoneWillConnect();
 }
 
@@ -430,14 +430,14 @@ void BluetoothDiscoveryService::sendMessage(
     ds << type;
     message.SerializeToArray(out.data() + 4, byteSize);
 
-    qDebug() << "[BTDiscovery] Sending" << message.GetTypeName().c_str()
+    qCDebug(lcBT) << "Sending" << message.GetTypeName().c_str()
              << "(msgId=" << type << ", size=" << byteSize << ")";
-    qDebug() << "[BTDiscovery] Payload hex:" << out.mid(4).toHex(' ');
-    qDebug() << "[BTDiscovery] Proto debug:" << message.ShortDebugString().c_str();
+    qCDebug(lcBT) << "Payload hex:" << out.mid(4).toHex(' ');
+    qCDebug(lcBT) << "Proto debug:" << message.ShortDebugString().c_str();
 
     qint64 written = socket_->write(out);
     if (written < 0) {
-        qCritical() << "[BTDiscovery] Failed to write to BT socket";
+        qCCritical(lcBT) << "Failed to write to BT socket";
     }
 }
 

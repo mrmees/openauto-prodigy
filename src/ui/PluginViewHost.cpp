@@ -3,7 +3,7 @@
 #include <QQmlComponent>
 #include <QQmlContext>
 #include <QQuickItem>
-#include <QDebug>
+#include "../core/Logging.hpp"
 
 namespace oap {
 
@@ -24,7 +24,7 @@ bool PluginViewHost::loadView(const QUrl& qmlUrl, QQmlContext* pluginContext)
     QQmlComponent component(engine_, qmlUrl);
     if (component.isError()) {
         auto err = component.errorString();
-        qCritical() << "[PluginViewHost] Failed to load "
+        qCCritical(lcUI) << "Failed to load "
                                   << qmlUrl.toString() << ": "
                                   << err;
         emit viewLoadFailed(err);

@@ -1,7 +1,7 @@
 #include "PluginManifest.hpp"
 #include <yaml-cpp/yaml.h>
 #include <QFileInfo>
-#include <QDebug>
+#include "../Logging.hpp"
 
 namespace oap {
 
@@ -67,7 +67,7 @@ PluginManifest PluginManifest::fromFile(const QString& filePath)
         m.dirPath = QFileInfo(filePath).absolutePath();
 
     } catch (const YAML::Exception& e) {
-        qCritical() << "Failed to parse plugin manifest " << filePath
+        qCCritical(lcPlugin) << "Failed to parse plugin manifest " << filePath
                                   << ": " << e.what();
         return {};
     }

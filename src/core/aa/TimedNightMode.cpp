@@ -1,5 +1,5 @@
 #include "TimedNightMode.hpp"
-#include <QDebug>
+#include "../Logging.hpp"
 
 namespace oap {
 namespace aa {
@@ -12,12 +12,12 @@ TimedNightMode::TimedNightMode(const QString& dayStart,
     , nightStart_(QTime::fromString(nightStart, "HH:mm"))
 {
     if (!dayStart_.isValid()) {
-        qWarning() << "[TimedNightMode] Invalid dayStart '" << dayStart
+        qCWarning(lcCore) << "Invalid dayStart '" << dayStart
                                    << "', defaulting to 07:00";
         dayStart_ = QTime(7, 0);
     }
     if (!nightStart_.isValid()) {
-        qWarning() << "[TimedNightMode] Invalid nightStart '" << nightStart
+        qCWarning(lcCore) << "Invalid nightStart '" << nightStart
                                    << "', defaulting to 19:00";
         nightStart_ = QTime(19, 0);
     }
@@ -32,7 +32,7 @@ bool TimedNightMode::isNight() const
 
 void TimedNightMode::start()
 {
-    qInfo() << "[TimedNightMode] Starting — day=" << dayStart_.toString("HH:mm")
+    qCInfo(lcCore) << "Starting — day=" << dayStart_.toString("HH:mm")
                             << " night=" << nightStart_.toString("HH:mm");
     evaluate();  // Initial check
     timer_.start(60000);  // Poll every 60 seconds
@@ -60,7 +60,7 @@ void TimedNightMode::evaluate()
 
     if (night != currentState_) {
         currentState_ = night;
-        qInfo() << "[TimedNightMode] Mode changed to " << (night ? "NIGHT" : "DAY")
+        qCInfo(lcCore) << "Mode changed to " << (night ? "NIGHT" : "DAY")
                                 << " (time=" << now.toString("HH:mm") << ")";
         emit nightModeChanged(night);
     }

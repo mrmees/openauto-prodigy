@@ -8,7 +8,7 @@
 
 #include <memory>
 #include <QDir>
-#include <QDebug>
+#include "../Logging.hpp"
 #include <QEventLoop>
 #include <QFileInfo>
 #include <netinet/in.h>
@@ -57,7 +57,7 @@ AndroidAutoOrchestrator::~AndroidAutoOrchestrator()
 
 void AndroidAutoOrchestrator::start()
 {
-    qInfo() << "[AAOrchestrator] Starting Android Auto service (wireless mode)";
+    qCInfo(lcAA) << "Starting Android Auto service (wireless mode)";
 
     setState(WaitingForDevice, "Initializing...");
 
@@ -71,8 +71,8 @@ void AndroidAutoOrchestrator::start()
             this, &AndroidAutoOrchestrator::onNewConnection);
 
     if (!tcpServer_.listen(QHostAddress::Any, port)) {
-        qCritical() << "[AAOrchestrator] Failed to listen on port" << port
-                     << ":" << tcpServer_.errorString();
+        qCCritical(lcAA) << "Failed to listen on port" << port
+                        << ":" << tcpServer_.errorString();
         setState(Disconnected, QString("TCP listen failed: %1").arg(tcpServer_.errorString()));
         return;
     }
@@ -85,7 +85,7 @@ void AndroidAutoOrchestrator::start()
             ::fcntl(fd, F_SETFD, flags | FD_CLOEXEC);
     }
 
-    qInfo() << "[AAOrchestrator] TCP listener started on port" << port;
+    qCInfo(lcAA) << "TCP listener started on port" << port;
 
 #ifdef HAS_BLUETOOTH
     if (config_ && config_->wirelessEnabled()) {
@@ -99,10 +99,10 @@ void AndroidAutoOrchestrator::start()
                 });
         connect(btDiscovery_, &BluetoothDiscoveryService::error,
                 this, [this](const QString& msg) {
-                    qWarning() << "[AAOrchestrator] BT error:" << msg;
+                    qCWarning(lcAA) << "BT error:" << msg;
                 });
         btDiscovery_->start();
-        qInfo() << "[AAOrchestrator] Bluetooth discovery started";
+        qCInfo(lcAA) << "Bluetooth discovery started";
     }
 #endif
 
@@ -112,13 +112,13 @@ void AndroidAutoOrchestrator::start()
 
 void AndroidAutoOrchestrator::stop()
 {
-    qInfo() << "[AAOrchestrator] Stopping Android Auto service";
+    qCInfo(lcAA) << "Stopping Android Auto service";
 
     stopConnectionWatchdog();
 
     // Graceful shutdown: send ShutdownRequest and wait for phone to acknowledge
     if (session_ && (state_ == Connected || state_ == Backgrounded)) {
-        qInfo() << "[AAOrchestrator] Sending graceful shutdown to phone";
+        qCInfo(lcAA) << "Sending graceful shutdown to phone";
         session_->stop(7);  // POWER_DOWN — app is exiting
 
         // Spin a local event loop so the message goes out and we get the response
@@ -131,9 +131,9 @@ void AndroidAutoOrchestrator::stop()
         loop.exec();
 
         if (timeout.isActive()) {
-            qInfo() << "[AAOrchestrator] Phone acknowledged shutdown";
+            qCInfo(lcAA) << "Phone acknowledged shutdown";
         } else {
-            qInfo() << "[AAOrchestrator] Shutdown timeout — proceeding with teardown";
+            qCInfo(lcAA) << "Shutdown timeout — proceeding with teardown";
         }
     }
 
@@ -159,11 +159,11 @@ void AndroidAutoOrchestrator::stop()
 void AndroidAutoOrchestrator::disconnectSession()
 {
     if (!session_ || (state_ != Connected && state_ != Backgrounded)) {
-        qInfo() << "[AAOrchestrator] disconnectSession: no active session";
+        qCInfo(lcAA) << "disconnectSession: no active session";
         return;
     }
 
-    qInfo() << "[AAOrchestrator] Disconnecting AA session (USER_SELECTION)";
+    qCInfo(lcAA) << "Disconnecting AA session (USER_SELECTION)";
 
     // Send ShutdownRequest with USER_SELECTION (reason 1) and return immediately.
     // The session has a 5s internal timeout; when the ack arrives (or times out),
@@ -183,13 +183,13 @@ void AndroidAutoOrchestrator::onNewConnection()
     QTcpSocket* socket = tcpServer_.nextPendingConnection();
     if (!socket) return;
 
-    qInfo() << "[AAOrchestrator] Wireless AA connection from"
+    qCInfo(lcAA) << "Wireless AA connection from"
             << socket->peerAddress().toString()
             << ":" << socket->peerPort();
 
     // Tear down any existing session first (reconnect scenario)
     if (session_) {
-        qWarning() << "[AAOrchestrator] Already have active connection — tearing down for reconnect";
+        qCWarning(lcAA) << "Already have active connection — tearing down for reconnect";
         teardownSession();
     }
 
@@ -349,10 +349,10 @@ void AndroidAutoOrchestrator::onNewConnection()
             this, [this](int focusMode, bool) {
                 // Focus mode 1 = PROJECTED, 2 = NATIVE, 3 = NATIVE_TRANSIENT, 4 = PROJECTED_NO_INPUT_FOCUS
                 if (focusMode == 2 && state_ == Connected) {
-                    qInfo() << "[AAOrchestrator] Video focus lost — exit to car";
+                    qCInfo(lcAA) << "Video focus lost — exit to car";
                     setState(Backgrounded, "Android Auto running in background");
                 } else if (focusMode == 1 && state_ == Backgrounded) {
-                    qInfo() << "[AAOrchestrator] Video focus gained — returning to projection";
+                    qCInfo(lcAA) << "Video focus gained — returning to projection";
                     setState(Connected, "Android Auto active");
                 }
             });
@@ -433,7 +433,7 @@ void AndroidAutoOrchestrator::onNewConnection()
                 &sensorHandler_, &oaa::hu::SensorChannelHandler::pushNightMode);
 
         nightProvider_->start();
-        qInfo() << "[AAOrchestrator] Night mode provider started (source=" << nightSource << ")";
+        qCInfo(lcAA) << "Night mode provider started (source=" << nightSource << ")";
     }
 
     // Start protocol handshake
@@ -444,7 +444,7 @@ void AndroidAutoOrchestrator::onSessionStateChanged(oaa::SessionState state)
 {
     switch (state) {
     case oaa::SessionState::Active:
-        qInfo() << "[AAOrchestrator] Android Auto connected!";
+        qCInfo(lcAA) << "Android Auto connected!";
         setState(Connected, "Android Auto active");
         startConnectionWatchdog();
         break;
@@ -457,7 +457,7 @@ void AndroidAutoOrchestrator::onSessionStateChanged(oaa::SessionState state)
         setState(Connecting, "Service discovery...");
         break;
     case oaa::SessionState::ShuttingDown:
-        qInfo() << "[AAOrchestrator] Session shutting down";
+        qCInfo(lcAA) << "Session shutting down";
         break;
     case oaa::SessionState::Disconnected:
         onSessionDisconnected(oaa::DisconnectReason::Normal);
@@ -469,7 +469,7 @@ void AndroidAutoOrchestrator::onSessionStateChanged(oaa::SessionState state)
 
 void AndroidAutoOrchestrator::onSessionDisconnected(oaa::DisconnectReason reason)
 {
-    qInfo() << "[AAOrchestrator] Disconnected, reason:" << static_cast<int>(reason);
+    qCInfo(lcAA) << "Disconnected, reason:" << static_cast<int>(reason);
     stopConnectionWatchdog();
 
     if (nightProvider_) {
@@ -543,12 +543,12 @@ void AndroidAutoOrchestrator::startProtocolCapture()
     protocolLogger_->setIncludeMedia(includeMedia);
     protocolLogger_->open(path.toStdString());
     if (!protocolLogger_->isOpen()) {
-        qWarning() << "[AAOrchestrator] Protocol capture enabled but failed to open:" << path;
+        qCWarning(lcAA) << "Protocol capture enabled but failed to open:" << path;
         return;
     }
 
     protocolLogger_->attach(session_->messenger());
-    qInfo() << "[AAOrchestrator] Protocol capture active:"
+    qCInfo(lcAA) << "Protocol capture active:"
             << "path=" << path
             << "format=" << format
             << "include_media=" << includeMedia;
@@ -607,7 +607,7 @@ void AndroidAutoOrchestrator::teardownSession()
 void AndroidAutoOrchestrator::requestVideoFocus()
 {
     if (state_ == Backgrounded) {
-        qInfo() << "[AAOrchestrator] Requesting video focus (returning from background)";
+        qCInfo(lcAA) << "Requesting video focus (returning from background)";
         videoHandler_.requestVideoFocus(true);
         setState(Connected, "Android Auto active");
     }
@@ -616,7 +616,7 @@ void AndroidAutoOrchestrator::requestVideoFocus()
 void AndroidAutoOrchestrator::requestExitToCar()
 {
     if (state_ == Connected) {
-        qInfo() << "[AAOrchestrator] Requesting exit to car (sidebar home)";
+        qCInfo(lcAA) << "Requesting exit to car (sidebar home)";
         videoHandler_.requestVideoFocus(false);
         setState(Backgrounded, "Exited to car");
     }
@@ -648,7 +648,7 @@ void AndroidAutoOrchestrator::startConnectionWatchdog()
 
         auto fd = activeSocket_->socketDescriptor();
         if (fd == -1) {
-            qWarning() << "[AAOrchestrator] Watchdog: socket descriptor invalid";
+            qCWarning(lcAA) << "Watchdog: socket descriptor invalid";
             teardownSession();
             uint16_t port = config_ ? config_->tcpPort() : 5288;
             setState(WaitingForDevice,
@@ -659,14 +659,14 @@ void AndroidAutoOrchestrator::startConnectionWatchdog()
         struct tcp_info info{};
         socklen_t len = sizeof(info);
         if (::getsockopt(fd, IPPROTO_TCP, TCP_INFO, &info, &len) < 0) {
-            qWarning() << "[AAOrchestrator] Watchdog: getsockopt failed, forcing disconnect";
+            qCWarning(lcAA) << "Watchdog: getsockopt failed, forcing disconnect";
             onSessionDisconnected(oaa::DisconnectReason::TransportError);
             return;
         }
 
         // TCP_ESTABLISHED = 1
         if (info.tcpi_state != 1) {
-            qInfo() << "[AAOrchestrator] Watchdog: TCP state="
+            qCInfo(lcAA) << "Watchdog: TCP state="
                      << (int)info.tcpi_state << "(not ESTABLISHED), forcing disconnect";
             onSessionDisconnected(oaa::DisconnectReason::TransportError);
             return;
@@ -676,11 +676,11 @@ void AndroidAutoOrchestrator::startConnectionWatchdog()
         // the peer is unreachable
         bool dead = false;
         if (info.tcpi_backoff >= 3) {
-            qInfo() << "[AAOrchestrator] Watchdog: backoff=" << (int)info.tcpi_backoff
+            qCInfo(lcAA) << "Watchdog: backoff=" << (int)info.tcpi_backoff
                      << ", peer unreachable";
             dead = true;
         } else if (info.tcpi_retransmits > 4) {
-            qInfo() << "[AAOrchestrator] Watchdog:" << (int)info.tcpi_retransmits
+            qCInfo(lcAA) << "Watchdog:" << (int)info.tcpi_retransmits
                      << "retransmits";
             dead = true;
         }
@@ -692,7 +692,7 @@ void AndroidAutoOrchestrator::startConnectionWatchdog()
     });
 
     watchdogTimer_.start(2000);
-    qDebug() << "[AAOrchestrator] Connection watchdog started";
+    qCDebug(lcAA) << "Connection watchdog started";
 }
 
 void AndroidAutoOrchestrator::stopConnectionWatchdog()
@@ -700,7 +700,7 @@ void AndroidAutoOrchestrator::stopConnectionWatchdog()
     if (watchdogTimer_.isActive()) {
         watchdogTimer_.stop();
         disconnect(&watchdogTimer_, nullptr, this, nullptr);
-        qDebug() << "[AAOrchestrator] Connection watchdog stopped";
+        qCDebug(lcAA) << "Connection watchdog stopped";
     }
 }
 

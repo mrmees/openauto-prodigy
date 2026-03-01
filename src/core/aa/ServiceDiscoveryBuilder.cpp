@@ -2,7 +2,7 @@
 #include "../../core/YamlConfig.hpp"
 
 #include <cmath>
-#include <QDebug>
+#include "../Logging.hpp"
 #include <QMap>
 
 // oaa proto headers
@@ -161,7 +161,7 @@ QByteArray ServiceDiscoveryBuilder::buildVideoDescriptor() const
     for (const auto& codecName : enabledCodecs) {
         auto it = codecMap.find(codecName.toLower());
         if (it == codecMap.end()) {
-            qWarning() << "[ServiceDiscoveryBuilder] Unknown codec in config:" << codecName
+            qCWarning(lcAA) << "Unknown codec in config:" << codecName
                         << "— skipping";
             continue;
         }
@@ -172,7 +172,7 @@ QByteArray ServiceDiscoveryBuilder::buildVideoDescriptor() const
         cfg->set_margin_height(mH);
         cfg->set_dpi(dpi);
         cfg->set_codec(it.value());
-        qInfo() << "[ServiceDiscoveryBuilder] config[" << configIdx++ << "]:"
+        qCInfo(lcAA) << "config[" << configIdx++ << "]:"
                 << chosen.label << codecName << "margins:" << mW << "x" << mH;
     }
 
@@ -185,11 +185,11 @@ QByteArray ServiceDiscoveryBuilder::buildVideoDescriptor() const
         cfg->set_margin_height(mH);
         cfg->set_dpi(dpi);
         cfg->set_codec(Codec::MEDIA_CODEC_VIDEO_H264_BP);
-        qWarning() << "[ServiceDiscoveryBuilder] No valid codecs in config, falling back to H.264";
+        qCWarning(lcAA) << "No valid codecs in config, falling back to H.264";
         configIdx = 1;
     }
 
-    qInfo() << "[ServiceDiscoveryBuilder] Advertised" << configIdx << "video configs";
+    qCInfo(lcAA) << "Advertised" << configIdx << "video configs";
 
     QByteArray data(desc.ByteSizeLong(), '\0');
     desc.SerializeToArray(data.data(), data.size());
@@ -294,7 +294,7 @@ QByteArray ServiceDiscoveryBuilder::buildInputDescriptor() const
     touchConfig->set_width(touchW);
     touchConfig->set_height(touchH);
 
-    qDebug() << "[ServiceDiscoveryBuilder] touch_screen_config:" << touchW << "x" << touchH;
+    qCDebug(lcAA) << "touch_screen_config:" << touchW << "x" << touchH;
 
     // Android keycodes: HOME, BACK, MICROPHONE
     inputChannel->add_supported_keycodes(3);   // KEYCODE_HOME

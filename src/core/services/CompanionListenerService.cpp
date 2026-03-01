@@ -1,4 +1,5 @@
 #include "CompanionListenerService.hpp"
+#include "../Logging.hpp"
 #include <QJsonDocument>
 #include <QMessageAuthenticationCode>
 #include <QCryptographicHash>
@@ -88,7 +89,7 @@ void CompanionListenerService::loadOrGenerateVehicleId()
     if (file.open(QIODevice::ReadOnly)) {
         vehicleId_ = QString::fromUtf8(file.readAll().trimmed());
         if (!vehicleId_.isEmpty()) {
-            qInfo() << "Companion: loaded vehicle_id" << vehicleId_;
+            qCInfo(lcCore) << "Companion: loaded vehicle_id" << vehicleId_;
             return;
         }
     }
@@ -100,7 +101,7 @@ void CompanionListenerService::loadOrGenerateVehicleId()
         file.write(vehicleId_.toUtf8());
         file.setPermissions(QFileDevice::ReadOwner | QFileDevice::WriteOwner);
     }
-    qInfo() << "Companion: generated new vehicle_id" << vehicleId_;
+    qCInfo(lcCore) << "Companion: generated new vehicle_id" << vehicleId_;
 }
 
 QString CompanionListenerService::generatePairingPin()
@@ -136,7 +137,7 @@ QString CompanionListenerService::generatePairingPin()
     qrCodeDataUri_ = "data:image/png;base64," + QString::fromLatin1(pngData.toBase64());
     emit qrCodeChanged();
 
-    qInfo() << "Companion: pairing PIN generated, secret saved to" << path;
+    qCInfo(lcCore) << "Companion: pairing PIN generated, secret saved to" << path;
     return pinStr;
 }
 
@@ -222,7 +223,7 @@ void CompanionListenerService::sendChallenge()
         challenge["vehicle_id"] = vehicleId_;
 
     QByteArray challengeJson = QJsonDocument(challenge).toJson(QJsonDocument::Compact) + "\n";
-    qInfo() << "Companion: sending challenge, nonce=" << currentNonce_.left(16) << "...";
+    qCInfo(lcCore) << "Companion: sending challenge, nonce=" << currentNonce_.left(16) << "...";
     client_->write(challengeJson);
     client_->flush();
 }
@@ -231,7 +232,7 @@ bool CompanionListenerService::validateHello(const QJsonObject& msg)
 {
     if (msg["type"].toString() != "hello") return false;
     if (sharedSecret_.isEmpty()) {
-        qWarning() << "Companion: auth failed — no shared secret set";
+        qCWarning(lcCore) << "Companion: auth failed — no shared secret set";
         return false;
     }
 
@@ -240,7 +241,7 @@ bool CompanionListenerService::validateHello(const QJsonObject& msg)
         sharedSecret_.toUtf8(), currentNonce_);
     QString expectedHex = QString::fromLatin1(expected.toHex());
 
-    qInfo() << "Companion auth:"
+    qCInfo(lcCore) << "Companion auth:"
             << "secret_len=" << sharedSecret_.length()
             << "secret_prefix=" << sharedSecret_.left(8)
             << "nonce=" << currentNonce_.left(16) << "..."
@@ -293,14 +294,14 @@ void CompanionListenerService::onClientReadyRead()
             }
         } else if (type == "status") {
             if (sessionKey_.isEmpty()) {
-                qWarning() << "Companion: status msg but no session key";
+                qCWarning(lcCore) << "Companion: status msg but no session key";
                 continue;
             }
             if (!verifyMac(msg, line)) {
-                qWarning() << "Companion: status msg MAC failed";
+                qCWarning(lcCore) << "Companion: status msg MAC failed";
                 continue;
             }
-            qInfo() << "Companion: valid status message received";
+            qCInfo(lcCore) << "Companion: valid status message received";
             handleStatus(msg);
         }
     }
@@ -310,7 +311,7 @@ bool CompanionListenerService::verifyMac(const QJsonObject& msg, const QByteArra
 {
     QString mac = msg["mac"].toString();
     if (mac.isEmpty()) {
-        qWarning() << "Companion: MAC empty in status message";
+        qCWarning(lcCore) << "Companion: MAC empty in status message";
         return false;
     }
 
@@ -332,7 +333,7 @@ bool CompanionListenerService::verifyMac(const QJsonObject& msg, const QByteArra
     if (macPos >= 0) {
         payloadBytes.remove(macPos, macPattern.size());
     } else {
-        qWarning() << "Companion: could not strip mac from raw payload";
+        qCWarning(lcCore) << "Companion: could not strip mac from raw payload";
         return false;
     }
 
@@ -341,7 +342,7 @@ bool CompanionListenerService::verifyMac(const QJsonObject& msg, const QByteArra
 
     bool ok = (mac == expectedHex);
     if (!ok) {
-        qWarning() << "Companion: MAC mismatch"
+        qCWarning(lcCore) << "Companion: MAC mismatch"
                     << "received=" << mac.left(16) << "..."
                     << "expected=" << expectedHex.left(16) << "..."
                     << "payload_len=" << payloadBytes.size()
@@ -392,7 +393,7 @@ void CompanionListenerService::handleStatus(const QJsonObject& msg)
         bool routeInfoChanged = (active && (host != requestedProxyHost_ || port != requestedProxyPort_));
 
         if (active && (port <= 0 || host.isEmpty())) {
-            qWarning() << "Companion: invalid SOCKS5 status payload"
+            qCWarning(lcCore) << "Companion: invalid SOCKS5 status payload"
                        << "active=" << active << "port=" << port << "host=" << host;
             // Force disable routing if we can't apply it safely.
             if (internetAvailable_) {
@@ -497,11 +498,11 @@ void CompanionListenerService::adjustClock(qint64 phoneTimeMs)
     proc.waitForFinished(5000);
 
     if (proc.exitCode() == 0) {
-        qInfo() << "Companion: clock adjusted by" << deltaMs << "ms"
+        qCInfo(lcCore) << "Companion: clock adjusted by" << deltaMs << "ms"
                 << "(" << piTimeMs << "->" << phoneTimeMs << ")";
         emit timeAdjusted(piTimeMs, phoneTimeMs, deltaMs);
     } else {
-        qWarning() << "Companion: timedatectl failed:" << proc.readAllStandardError();
+        qCWarning(lcCore) << "Companion: timedatectl failed:" << proc.readAllStandardError();
     }
 }
 

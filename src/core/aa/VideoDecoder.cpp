@@ -6,7 +6,7 @@
 #endif
 
 #include <QMetaObject>
-#include <QDebug>
+#include "../Logging.hpp"
 #include <cstring>
 #include <iomanip>
 
@@ -24,19 +24,19 @@ VideoDecoder::VideoDecoder(QObject* parent)
     // Fails gracefully on machines without DRM devices (dev VM, etc.).
     if (av_hwdevice_ctx_create(&hwDeviceCtx_, AV_HWDEVICE_TYPE_DRM,
                                "/dev/dri/card1", nullptr, 0) == 0) {
-        qInfo() << "[VideoDecoder] DRM device opened for HEVC hardware acceleration";
+        qCInfo(lcAA) << "DRM device opened for HEVC hardware acceleration";
     } else {
         hwDeviceCtx_ = nullptr;
     }
 
     if (!initCodec(AV_CODEC_ID_H264)) {
-        qCritical() << "[VideoDecoder] Failed to initialize H.264 decoder";
+        qCCritical(lcAA) << "Failed to initialize H.264 decoder";
         return;
     }
 
     worker_ = new DecodeWorker(this);
     worker_->start();
-    qInfo() << "[VideoDecoder] Decode worker thread started";
+    qCInfo(lcAA) << "Decode worker thread started";
 }
 
 bool VideoDecoder::isHardwareDecoder(const AVCodec* codec)
@@ -132,9 +132,9 @@ bool VideoDecoder::initCodec(AVCodecID codecId)
     if (decoderPref != "auto") {
         selectedCodec = avcodec_find_decoder_by_name(decoderPref.toUtf8().constData());
         if (selectedCodec)
-            qInfo() << "[VideoDecoder] Trying configured decoder:" << decoderPref;
+            qCInfo(lcAA) << "Trying configured decoder:" << decoderPref;
         else
-            qWarning() << "[VideoDecoder] Configured decoder" << decoderPref
+            qCWarning(lcAA) << "Configured decoder" << decoderPref
                        << "not found, falling back to auto";
     }
 
@@ -144,7 +144,7 @@ bool VideoDecoder::initCodec(AVCodecID codecId)
     if (!selectedCodec && codecId == AV_CODEC_ID_H265 && hwDeviceCtx_) {
         selectedCodec = avcodec_find_decoder(codecId);
         if (selectedCodec)
-            qInfo() << "[VideoDecoder] HEVC: using software decoder with DRM hwaccel (V4L2 request)";
+            qCInfo(lcAA) << "HEVC: using software decoder with DRM hwaccel (V4L2 request)";
     }
 
     // 2b. Auto mode: try known standalone hw decoders in order
@@ -152,7 +152,7 @@ bool VideoDecoder::initCodec(AVCodecID codecId)
         for (int i = 0; it->hwDecoders[i]; ++i) {
             const AVCodec* hwCodec = avcodec_find_decoder_by_name(it->hwDecoders[i]);
             if (hwCodec) {
-                qInfo() << "[VideoDecoder] Auto-detected hw decoder:" << it->hwDecoders[i];
+                qCInfo(lcAA) << "Auto-detected hw decoder:" << it->hwDecoders[i];
                 selectedCodec = hwCodec;
                 break;
             }
@@ -163,7 +163,7 @@ bool VideoDecoder::initCodec(AVCodecID codecId)
     if (!selectedCodec) {
         selectedCodec = avcodec_find_decoder(codecId);
         if (!selectedCodec) {
-            qCritical() << "[VideoDecoder] No" << codecName << "decoder found";
+            qCCritical(lcAA) << "No" << codecName << "decoder found";
             return false;
         }
     }
@@ -173,21 +173,21 @@ bool VideoDecoder::initCodec(AVCodecID codecId)
         // If it was a non-software decoder, fall back to software
         const AVCodec* swCodec = avcodec_find_decoder(codecId);
         if (selectedCodec != swCodec) {
-            qWarning() << "[VideoDecoder]" << selectedCodec->name
+            qCWarning(lcAA) << selectedCodec->name
                        << "failed to open, falling back to software";
             if (!swCodec || !tryOpenCodec(swCodec, codecId)) {
-                qCritical() << "[VideoDecoder] Software fallback also failed for" << codecName;
+                qCCritical(lcAA) << "Software fallback also failed for" << codecName;
                 return false;
             }
         } else {
-            qCritical() << "[VideoDecoder] Failed to open" << codecName << "software decoder";
+            qCCritical(lcAA) << "Failed to open" << codecName << "software decoder";
             return false;
         }
     }
 
     usingHardware_ = isHardwareDecoder(codec_) ||
                      (codecCtx_ && codecCtx_->hw_device_ctx);
-    qInfo() << "[VideoDecoder] Using" << codec_->name
+    qCInfo(lcAA) << "Using" << codec_->name
             << (usingHardware_ ? "(hardware)" : "(software)")
             << (codecCtx_->hw_device_ctx ? "[DRM hwaccel]" : "");
     return true;
@@ -281,7 +281,7 @@ void VideoDecoder::setVideoSink(QVideoSink* sink)
             sinkValid_ = std::make_shared<std::atomic<bool>>(true);
         }
         emit videoSinkChanged();
-        qInfo() << "[VideoDecoder] Video sink "
+        qCInfo(lcAA) << "Video sink "
                                 << (sink ? "connected" : "disconnected");
     }
 }
@@ -300,18 +300,18 @@ void VideoDecoder::processFrame(const QByteArray& h264Data, qint64 enqueueTimeNs
     if (!codecDetected_) {
         codecDetected_ = true;
         QByteArray prefix = h264Data.left(16);
-        qInfo() << "[VideoDecoder] First packet:" << prefix.size() << "bytes, hex:"
+        qCInfo(lcAA) << "First packet:" << prefix.size() << "bytes, hex:"
                 << prefix.toHex(' ');
         AVCodecID detected = detectCodec(h264Data);
         if (detected != activeCodecId_) {
             const char* name = (detected == AV_CODEC_ID_H265) ? "H.265" : "H.264";
-            qInfo() << "[VideoDecoder] Phone is sending" << name << "— switching decoder";
+            qCInfo(lcAA) << "Phone is sending" << name << "— switching decoder";
             if (!initCodec(detected)) {
-                qCritical() << "[VideoDecoder] Failed to switch to" << name;
+                qCCritical(lcAA) << "Failed to switch to" << name;
                 return;
             }
         } else {
-            qInfo() << "[VideoDecoder] Phone is sending"
+            qCInfo(lcAA) << "Phone is sending"
                     << ((detected == AV_CODEC_ID_H265) ? "H.265" : "H.264")
                     << "(matches current decoder)";
         }
@@ -332,7 +332,7 @@ void VideoDecoder::processFrame(const QByteArray& h264Data, qint64 enqueueTimeNs
             AV_NOPTS_VALUE, AV_NOPTS_VALUE, 0);
 
         if (consumed < 0) {
-            qCritical() << "[VideoDecoder] Parse error";
+            qCCritical(lcAA) << "Parse error";
             break;
         }
 
@@ -345,7 +345,7 @@ void VideoDecoder::processFrame(const QByteArray& h264Data, qint64 enqueueTimeNs
         // Send packet to decoder
         int ret = avcodec_send_packet(codecCtx_, packet_);
         if (ret < 0) {
-            qWarning() << "[VideoDecoder] Send packet error: " << ret;
+            qCWarning(lcAA) << "Send packet error: " << ret;
             continue;
         }
 
@@ -357,19 +357,19 @@ void VideoDecoder::processFrame(const QByteArray& h264Data, qint64 enqueueTimeNs
             // reinitialize with software and re-send the packet
             if (ret < 0 && ret != AVERROR(EAGAIN) && ret != AVERROR_EOF
                 && usingHardware_ && !firstFrameDecoded_) {
-                qWarning() << "[VideoDecoder] HW decoder failed on first frame (err="
+                qCWarning(lcAA) << "HW decoder failed on first frame (err="
                            << ret << "), falling back to software";
                 const AVCodec* swCodec = avcodec_find_decoder(activeCodecId_);
                 AVCodecID savedId = activeCodecId_;
                 cleanupCodec();
                 if (swCodec && tryOpenCodec(swCodec, savedId)) {
                     usingHardware_ = false;
-                    qInfo() << "[VideoDecoder] Switched to" << swCodec->name << "(software)";
+                    qCInfo(lcAA) << "Switched to" << swCodec->name << "(software)";
                     // Re-send the current packet to the new decoder
                     avcodec_send_packet(codecCtx_, packet_);
                     ret = avcodec_receive_frame(codecCtx_, frame_);
                 } else {
-                    qCritical() << "[VideoDecoder] Software fallback failed during first-frame recovery";
+                    qCCritical(lcAA) << "Software fallback failed during first-frame recovery";
                     break;
                 }
             }
@@ -377,7 +377,7 @@ void VideoDecoder::processFrame(const QByteArray& h264Data, qint64 enqueueTimeNs
             if (ret == AVERROR(EAGAIN) || ret == AVERROR_EOF)
                 break;
             if (ret < 0) {
-                qWarning() << "[VideoDecoder] Receive frame error: " << ret;
+                qCWarning(lcAA) << "Receive frame error: " << ret;
                 break;
             }
 
@@ -396,7 +396,7 @@ void VideoDecoder::processFrame(const QByteArray& h264Data, qint64 enqueueTimeNs
                     av_frame_move_ref(frame_, swFrame);
                     av_frame_free(&swFrame);
                 } else {
-                    qWarning() << "[VideoDecoder] Failed to transfer hw frame to CPU";
+                    qCWarning(lcAA) << "Failed to transfer hw frame to CPU";
                     av_frame_free(&swFrame);
                     av_frame_unref(frame_);
                     continue;
@@ -540,7 +540,7 @@ void VideoDecoder::processFrame(const QByteArray& h264Data, qint64 enqueueTimeNs
                 ++framesSinceLog_;
 
                 if (frameCount_ == 1) {
-                    qInfo() << "[VideoDecoder] First frame decoded:"
+                    qCInfo(lcAA) << "First frame decoded:"
                             << frame_->width << "x" << frame_->height
                             << "fmt=" << frame_->format
                             << (usingHardware_ ? "(hardware)" : "(software)");
@@ -552,7 +552,7 @@ void VideoDecoder::processFrame(const QByteArray& h264Data, qint64 enqueueTimeNs
                 if (elapsed >= LOG_INTERVAL_SEC) {
                     double fps = framesSinceLog_ / elapsed;
                     int depth = worker_ ? worker_->queueDepth() : 0;
-                    qInfo() << "[Perf] Video: queue="
+                    qCInfo(lcAA) << "[Perf] Video: queue="
                         << QString::number(metricQueue_.avg(), 'f', 1) << "ms"
                         << "decode=" << QString::number(metricDecode_.avg(), 'f', 1) << "ms"
                         << "copy=" << QString::number(metricCopy_.avg(), 'f', 1) << "ms"

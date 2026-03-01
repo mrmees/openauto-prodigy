@@ -1,7 +1,7 @@
 #include "PluginLoader.hpp"
 #include "IPlugin.hpp"
 #include <QPluginLoader>
-#include <QDebug>
+#include "../Logging.hpp"
 
 namespace oap {
 
@@ -10,14 +10,14 @@ IPlugin* PluginLoader::load(const QString& soPath)
     QPluginLoader loader(soPath);
     QObject* instance = loader.instance();
     if (!instance) {
-        qCritical() << "Failed to load plugin: " << soPath
+        qCCritical(lcPlugin) << "Failed to load plugin: " << soPath
                                   << " — " << loader.errorString();
         return nullptr;
     }
 
     auto* plugin = qobject_cast<IPlugin*>(instance);
     if (!plugin) {
-        qCritical() << "Loaded object from " << soPath
+        qCCritical(lcPlugin) << "Loaded object from " << soPath
                                   << " does not implement IPlugin";
         return nullptr;
     }

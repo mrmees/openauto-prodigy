@@ -1,4 +1,5 @@
 #include "SystemServiceClient.hpp"
+#include "../Logging.hpp"
 #include <QJsonDocument>
 #include <QTimer>
 
@@ -73,14 +74,14 @@ void SystemServiceClient::connectToService()
 
 void SystemServiceClient::onConnected()
 {
-    qInfo() << "SystemServiceClient: connected to daemon";
+    qCInfo(lcCore) << "SystemServiceClient: connected to daemon";
     emit connectedChanged();
     getHealth();
 }
 
 void SystemServiceClient::onDisconnected()
 {
-    qInfo() << "SystemServiceClient: disconnected from daemon";
+    qCInfo(lcCore) << "SystemServiceClient: disconnected from daemon";
     emit connectedChanged();
     // Retry after 5 seconds
     QTimer::singleShot(5000, this, &SystemServiceClient::connectToService);
@@ -154,7 +155,7 @@ void SystemServiceClient::handleResponse(const QJsonObject& response)
         QString newState = result["state"].toString(routeState_);
         QString newError = result.value("error").toString();
         if (newState != routeState_ || newError != routeError_) {
-            qInfo() << "[system-service] route state update:"
+            qCInfo(lcCore) << "route state update:"
                     << method
                     << "state=" << newState
                     << "error=" << (newError.isEmpty() ? "<none>" : newError);

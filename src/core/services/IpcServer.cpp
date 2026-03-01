@@ -11,7 +11,7 @@
 #include <QFile>
 #include <QDir>
 #include <QRegularExpression>
-#include <QDebug>
+#include "../Logging.hpp"
 #include <yaml-cpp/yaml.h>
 #include <fstream>
 
@@ -40,14 +40,14 @@ bool IpcServer::start(const QString& socketPath)
     connect(server_, &QLocalServer::newConnection, this, &IpcServer::onNewConnection);
 
     if (!server_->listen(socketPath)) {
-        qWarning() << "IpcServer: Failed to listen on" << socketPath
+        qCWarning(lcCore) << "IpcServer: Failed to listen on" << socketPath
                    << "—" << server_->errorString();
         delete server_;
         server_ = nullptr;
         return false;
     }
 
-    qInfo() << "IpcServer: Listening on" << socketPath;
+    qCInfo(lcCore) << "IpcServer: Listening on" << socketPath;
     return true;
 }
 
