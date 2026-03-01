@@ -18,15 +18,24 @@ Flickable {
         SectionHeader { text: "General" }
 
         SettingsSlider {
+            id: brightnessSlider
             label: "Brightness"
             configPath: "display.brightness"
-            from: 0; to: 100; stepSize: 1
+            from: 5; to: 100; stepSize: 1
+            onMoved: {
+                if (typeof DisplayService !== "undefined")
+                    DisplayService.setBrightness(Math.round(value))
+            }
         }
 
-        ReadOnlyField {
+        FullScreenPicker {
             label: "Theme"
             configPath: "display.theme"
-            placeholder: "default"
+            options: ThemeService.availableThemeNames
+            values: ThemeService.availableThemes
+            onActivated: function(index) {
+                ThemeService.setTheme(ThemeService.availableThemes[index])
+            }
         }
 
         SegmentedButton {

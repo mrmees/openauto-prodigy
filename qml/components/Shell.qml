@@ -63,6 +63,16 @@ Item {
         id: notificationArea
     }
 
+    // Software brightness dimming overlay
+    Rectangle {
+        anchors.fill: parent
+        color: "black"
+        opacity: typeof DisplayService !== "undefined" ? DisplayService.dimOverlayOpacity : 0
+        visible: opacity > 0
+        z: 998
+        enabled: false  // Don't capture mouse/touch events
+    }
+
     // Gesture overlay (on top of everything)
     GestureOverlay {
         id: gestureOverlay

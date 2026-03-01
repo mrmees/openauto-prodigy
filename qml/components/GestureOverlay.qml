@@ -16,6 +16,8 @@ Rectangle {
 
     function show() {
         visible = true
+        if (typeof DisplayService !== "undefined")
+            brightnessSlider.value = DisplayService.brightness
         dismissTimer.restart()
     }
 
@@ -118,11 +120,15 @@ Rectangle {
                 Slider {
                     id: brightnessSlider
                     Layout.fillWidth: true
-                    from: 10
+                    from: 5
                     to: 100
-                    value: 80
+                    value: typeof DisplayService !== "undefined" ? DisplayService.brightness : 80
                     onValueChanged: {
-                        // TODO: Wire to IDisplayService.setBrightness()
+                        if (typeof DisplayService !== "undefined") {
+                            DisplayService.setBrightness(Math.round(value))
+                            ConfigService.setValue("display.brightness", Math.round(value))
+                            ConfigService.save()
+                        }
                         dismissTimer.restart()
                     }
                 }
