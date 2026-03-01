@@ -28,6 +28,13 @@ Item {
             Layout.fillHeight: true
             clip: true
 
+            // Wallpaper layer — behind all content, visible on launcher only
+            Wallpaper {
+                anchors.fill: parent
+                visible: !PluginModel.activePluginId
+                         && ApplicationController.currentApplication !== 6
+            }
+
             // Launcher is shown when no plugin view is loaded and not in a built-in screen
             LauncherMenu {
                 id: launcherView
@@ -76,6 +83,7 @@ Item {
     // Gesture overlay (on top of everything)
     GestureOverlay {
         id: gestureOverlay
+        objectName: "gestureOverlay"
     }
 
     // Bluetooth pairing confirmation dialog

@@ -96,6 +96,11 @@ bool AndroidAutoPlugin::initialize(IHostContext* context)
         qCInfo(lcAA) << "Touch:" << touchDevice
                 << "display=" << displayW << "x" << displayH;
 
+        // Relay 3-finger gesture to QML overlay (works regardless of sidebar/grab state)
+        connect(touchReader_, &oap::aa::EvdevTouchReader::gestureDetected,
+                this, &AndroidAutoPlugin::gestureTriggered,
+                Qt::QueuedConnection);
+
         // Configure sidebar touch exclusion
         if (hostContext_ && hostContext_->configService()) {
             QVariant sidebarEnabledVar = hostContext_->configService()->value("video.sidebar.enabled");

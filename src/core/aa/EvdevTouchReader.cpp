@@ -249,9 +249,9 @@ void EvdevTouchReader::run()
         ssize_t n = ::read(fd_, &ev, sizeof(ev));
         if (n != sizeof(ev)) continue;
 
-        // When not grabbed, discard events — Wayland/libinput is handling touch
-        if (!grabbed_.load(std::memory_order_relaxed)) continue;
+        bool isGrabbed = grabbed_.load(std::memory_order_relaxed);
 
+        // Always process slot tracking — needed for gesture detection even when ungrabbed
         switch (ev.type) {
         case EV_ABS:
             switch (ev.code) {
@@ -275,8 +275,17 @@ void EvdevTouchReader::run()
             break;
 
         case EV_SYN:
-            if (ev.code == SYN_REPORT)
-                processSync();
+            if (ev.code == SYN_REPORT) {
+                if (isGrabbed) {
+                    processSync();  // Full processing: gesture + AA forwarding
+                } else {
+                    // Ungrabbed: only run gesture detection, don't forward to AA
+                    checkGesture();
+                    for (int i = 0; i < MAX_SLOTS; ++i)
+                        slots_[i].dirty = false;
+                    prevSlots_ = slots_;
+                }
+            }
             break;
         }
     }

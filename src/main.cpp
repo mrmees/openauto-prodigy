@@ -329,6 +329,16 @@ int main(int argc, char *argv[])
             pluginModel->setActivePlugin(QString());
     });
 
+    // Connect 3-finger gesture to GestureOverlay
+    QObject::connect(aaPlugin, &oap::plugins::AndroidAutoPlugin::gestureTriggered,
+                     &app, [&engine]() {
+        auto* root = engine.rootObjects().value(0);
+        if (!root) return;
+        auto* overlay = root->findChild<QObject*>("gestureOverlay");
+        if (overlay)
+            QMetaObject::invokeMethod(overlay, "show");
+    });
+
     // SIGUSR1 → disconnect AA session (ShutdownRequest + teardown, keep listening)
     static oap::plugins::AndroidAutoPlugin* g_aaPlugin = aaPlugin;
     signal(SIGUSR1, [](int) {

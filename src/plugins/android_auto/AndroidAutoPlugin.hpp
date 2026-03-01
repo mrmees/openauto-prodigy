@@ -74,6 +74,7 @@ public slots:
 signals:
     void requestActivation();
     void requestDeactivation();
+    void gestureTriggered();
 
 private:
     std::shared_ptr<oap::Configuration> config_;
