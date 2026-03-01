@@ -29,6 +29,7 @@ add_library(openauto-core STATIC
     core/services/DisplayService.cpp
     core/services/AudioService.cpp
     core/audio/PipeWireDeviceRegistry.cpp
+    core/audio/EqualizerEngine.cpp
     core/services/IpcServer.cpp
     core/services/EventBus.cpp
     core/services/ActionRegistry.cpp
