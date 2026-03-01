@@ -26,9 +26,9 @@ Requirements for v1.0 release. Each maps to roadmap phases.
 
 ### Logging
 
-- [ ] **LOG-01**: Default log output is clean — no debug spam in journalctl during normal operation
-- [ ] **LOG-02**: Debug-level logging is available via --verbose flag or config option
-- [ ] **LOG-03**: Log categories are defined per component (AA, BT, Audio, Plugin, etc.)
+- [x] **LOG-01**: Default log output is clean — no debug spam in journalctl during normal operation
+- [x] **LOG-02**: Debug-level logging is available via --verbose flag or config option
+- [x] **LOG-03**: Log categories are defined per component (AA, BT, Audio, Plugin, etc.)
 
 ### Release Quality
 
@@ -94,9 +94,9 @@ Which phases cover which requirements. Updated during roadmap creation.
 | DISP-03 | Phase 2 | Pending |
 | DISP-04 | Phase 2 | Pending |
 | DISP-05 | Phase 2 | Pending |
-| LOG-01 | Phase 1 | Pending |
-| LOG-02 | Phase 1 | Pending |
-| LOG-03 | Phase 1 | Pending |
+| LOG-01 | Phase 1 | Complete |
+| LOG-02 | Phase 1 | Complete |
+| LOG-03 | Phase 1 | Complete |
 | REL-01 | Phase 4 | Pending |
 | REL-02 | Phase 4 | Pending |
 | REL-03 | Phase 4 | Pending |

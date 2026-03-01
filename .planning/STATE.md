@@ -10,11 +10,11 @@ See: .planning/PROJECT.md (updated 2026-03-01)
 ## Current Position
 
 Phase: 1 of 4 (Logging Cleanup)
-Plan: 0 of ? in current phase
-Status: Ready to plan
-Last activity: 2026-03-01 — Roadmap created
+Plan: 1 of 2 in current phase
+Status: Executing
+Last activity: 2026-03-01 — Completed 01-01 (Logging Infrastructure)
 
-Progress: [░░░░░░░░░░] 0%
+Progress: [█████░░░░░] 50%
 
 ## Performance Metrics
 
@@ -44,6 +44,9 @@ Recent decisions affecting current work:
 
 - Roadmap: HFP before EQ (audio architecture understanding informs EQ stream selection)
 - Roadmap: Phases 2 and 3 are parallel-ready (both depend only on Phase 1, not each other)
+- 01-01: Removed -v CLI shorthand for --verbose (conflicts with Qt built-in -v/--version)
+- 01-01: Library detection uses triple heuristic (oaa.* prefix, file path, bracket tags)
+- 01-01: Lifecycle keywords pass through quiet-mode library filter
 
 ### Pending Todos
 
@@ -57,5 +60,5 @@ None yet.
 ## Session Continuity
 
 Last session: 2026-03-01
-Stopped at: Roadmap created, ready to plan Phase 1
+Stopped at: Completed 01-01-PLAN.md (Logging Infrastructure)
 Resume file: None
