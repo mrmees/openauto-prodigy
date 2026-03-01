@@ -1084,15 +1084,59 @@ PoolSize=40
 EmitDNS=no
 NETCFG
 
+    # Detect WiFi hardware capabilities for hostapd
+    local phy_name
+    phy_name=$(cat "/sys/class/net/$WIFI_IFACE/phy80211/name" 2>/dev/null || echo "phy0")
+    local phy_info
+    phy_info=$(iw phy "$phy_name" info 2>/dev/null || true)
+
+    # Check for 5GHz support (Band 2)
+    local use_5ghz=false
+    local hw_mode="g"
+    local channel="6"
+    if echo "$phy_info" | grep -q "Band 2:"; then
+        use_5ghz=true
+        hw_mode="a"
+        channel="36"
+    fi
+
+    # Build ht_capab from hardware capabilities
+    local ht_capab=""
+    if echo "$phy_info" | grep -q "HT20/HT40"; then
+        if [[ "$use_5ghz" == "true" ]]; then
+            ht_capab="${ht_capab}[HT40+]"
+        else
+            ht_capab="${ht_capab}[HT40-]"
+        fi
+    fi
+    if echo "$phy_info" | grep -q "RX HT20 SGI"; then
+        ht_capab="${ht_capab}[SHORT-GI-20]"
+    fi
+    if echo "$phy_info" | grep -q "RX HT40 SGI"; then
+        ht_capab="${ht_capab}[SHORT-GI-40]"
+    fi
+
+    # Check for VHT (802.11ac) support
+    local use_vht=false
+    if echo "$phy_info" | grep -q "VHT Capabilities"; then
+        use_vht=true
+    fi
+
+    if [[ "$use_5ghz" == "true" ]]; then
+        ok "WiFi: 5GHz (802.11a/n${use_vht:+/ac}) HT caps: ${ht_capab:-[default]}"
+    else
+        ok "WiFi: 2.4GHz (802.11g/n) HT caps: ${ht_capab:-[default]}"
+    fi
+
     # hostapd config
     sudo tee /etc/hostapd/hostapd.conf > /dev/null << HOSTAPD
 interface=$WIFI_IFACE
 driver=nl80211
 ssid=$WIFI_SSID
-hw_mode=a
-channel=36
+hw_mode=$hw_mode
+channel=$channel
 ieee80211n=1
-ieee80211ac=1
+$(if [[ "$use_vht" == "true" && "$use_5ghz" == "true" ]]; then echo "ieee80211ac=1"; fi)
 wmm_enabled=1
 country_code=$COUNTRY_CODE
 ieee80211d=1
@@ -1103,9 +1147,7 @@ wpa=2
 wpa_passphrase=$WIFI_PASS
 wpa_key_mgmt=WPA-PSK
 rsn_pairwise=CCMP
-
-# 40MHz channel bonding + short guard interval for lower latency
-ht_capab=[HT40+][SHORT-GI-20][SHORT-GI-40]
+$(if [[ -n "$ht_capab" ]]; then echo "ht_capab=$ht_capab"; fi)
 HOSTAPD
 
     # Point hostapd at our config
