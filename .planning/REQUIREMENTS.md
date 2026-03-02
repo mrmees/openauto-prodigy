@@ -62,26 +62,26 @@ Which phases cover which requirements. Updated during roadmap creation.
 
 | Requirement | Phase | Status |
 |-------------|-------|--------|
-| WIFI-01 | — | Pending |
-| WIFI-02 | — | Pending |
-| WIFI-03 | — | Pending |
-| WIFI-04 | — | Pending |
-| BT-01 | — | Pending |
-| BT-02 | — | Pending |
-| BT-03 | — | Pending |
-| AUD-01 | — | Pending |
-| AUD-02 | — | Pending |
-| SVC-01 | — | Pending |
-| SVC-02 | — | Pending |
-| SVC-03 | — | Pending |
-| INST-01 | — | Pending |
-| INST-02 | — | Pending |
+| WIFI-01 | Phase 1 | Pending |
+| WIFI-02 | Phase 1 | Pending |
+| WIFI-03 | Phase 1 | Pending |
+| WIFI-04 | Phase 1 | Pending |
+| BT-01 | Phase 2 | Pending |
+| BT-02 | Phase 2 | Pending |
+| BT-03 | Phase 2 | Pending |
+| AUD-01 | Phase 3 | Pending |
+| AUD-02 | Phase 3 | Pending |
+| SVC-01 | Phase 1 | Pending |
+| SVC-02 | Phase 1 | Pending |
+| SVC-03 | Phase 3 | Pending |
+| INST-01 | Phase 1 | Pending |
+| INST-02 | Phase 3 | Pending |
 
 **Coverage:**
 - v0.4.2 requirements: 14 total
-- Mapped to phases: 0
-- Unmapped: 14 ⚠️
+- Mapped to phases: 14
+- Unmapped: 0
 
 ---
 *Requirements defined: 2026-03-02*
-*Last updated: 2026-03-02 after initial definition*
+*Last updated: 2026-03-02 — traceability updated with phase mappings*
