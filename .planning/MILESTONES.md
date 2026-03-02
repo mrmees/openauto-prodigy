@@ -28,3 +28,17 @@
 
 ---
 
+## v0.4.2 Service Hardening (Shipped: 2026-03-02)
+
+**Phases completed:** 3 phases, 18 commits, 13 files changed (+1136/-144)
+
+**Key accomplishments:**
+- Pre-flight script: rfkill unblock, SDP socket self-heal, systemd-networkd readiness check
+- systemd service hardening: correct After/Wants ordering, Restart=on-failure with rate limiting, BindsTo=hostapd
+- sd_notify integration: READY=1 on startup, STOPPING=1 on shutdown, WATCHDOG=1 heartbeat
+- SDP retry with exponential backoff and clear logging
+- WiFi AP independent of app lifecycle (PartOf= instead of ExecStopPost)
+- Installer diagnostics: PipeWire, BlueZ, hostapd, labwc, group membership verification
+
+---
+
