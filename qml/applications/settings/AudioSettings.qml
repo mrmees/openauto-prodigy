@@ -82,6 +82,70 @@ Flickable {
             }
         }
 
+        SectionHeader { text: "Equalizer" }
+
+        Item {
+            Layout.fillWidth: true
+            implicitHeight: UiMetrics.rowH
+
+            RowLayout {
+                anchors.fill: parent
+                spacing: UiMetrics.gap
+
+                Text {
+                    text: "\ue050"
+                    font.family: "Material Icons"
+                    font.pixelSize: UiMetrics.iconSize
+                    color: ThemeService.normalFontColor
+                }
+
+                Text {
+                    text: "Equalizer"
+                    font.pixelSize: UiMetrics.fontBody
+                    color: ThemeService.normalFontColor
+                    Layout.fillWidth: true
+                }
+
+                Text {
+                    text: {
+                        if (typeof EqualizerService === "undefined") return ""
+                        var preset = EqualizerService.activePresetForStream(0)
+                        return preset !== "" ? preset : "Custom"
+                    }
+                    font.pixelSize: UiMetrics.fontSmall
+                    color: ThemeService.descriptionFontColor
+                }
+
+                Text {
+                    text: "\ue5cc"
+                    font.family: "Material Icons"
+                    font.pixelSize: UiMetrics.iconSmall
+                    color: ThemeService.descriptionFontColor
+                }
+            }
+
+            Rectangle {
+                anchors.bottom: parent.bottom
+                anchors.left: parent.left; anchors.right: parent.right
+                height: 1; color: ThemeService.descriptionFontColor; opacity: 0.15
+            }
+
+            MouseArea {
+                anchors.fill: parent
+                onClicked: {
+                    if (StackView.view) {
+                        StackView.view.push(eqSettingsComponent)
+                        ApplicationController.setTitle("Settings > Audio > Equalizer")
+                    }
+                }
+            }
+        }
+
+        Component {
+            id: eqSettingsComponent
+            EqSettings {}
+        }
+
         InfoBanner {
             id: restartBanner
             text: "Restart required to apply device changes"
