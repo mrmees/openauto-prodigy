@@ -28,12 +28,45 @@ Text {
     /// Shorthand for font.pixelSize
     property int size: 24
 
+    /// Variable font weight (100-700). Only effective on Qt 6.8+.
+    property int weight: 400
+
+    /// Variable font optical size (20-48). Only effective on Qt 6.8+.
+    property int opticalSize: 24
+
     font.family: materialFont.name
     font.pixelSize: size
     text: icon
 
     horizontalAlignment: Text.AlignHCenter
     verticalAlignment: Text.AlignVCenter
+
+    // Apply variable font axes on Qt 6.8+ (font.variableAxes added in Qt 6.7)
+    // On Qt 6.4, this is silently skipped — font renders with default axes.
+    Component.onCompleted: {
+        if (root.font.variableAxes !== undefined) {
+            root.font.variableAxes = {
+                "wght": root.weight,
+                "opsz": root.opticalSize
+            }
+        }
+    }
+    onWeightChanged: {
+        if (root.font.variableAxes !== undefined) {
+            root.font.variableAxes = {
+                "wght": root.weight,
+                "opsz": root.opticalSize
+            }
+        }
+    }
+    onOpticalSizeChanged: {
+        if (root.font.variableAxes !== undefined) {
+            root.font.variableAxes = {
+                "wght": root.weight,
+                "opsz": root.opticalSize
+            }
+        }
+    }
 
     FontLoader {
         id: materialFont

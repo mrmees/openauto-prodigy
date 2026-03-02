@@ -40,4 +40,13 @@ QtObject {
 
     // Grid (settings menu tiles)
     readonly property int gridGap: Math.round(24 * scale)
+
+    // Animation durations (ms) — not scaled, timing is absolute
+    readonly property int animDuration: 150       // standard transition (StackView push/pop)
+    readonly property int animDurationFast: 80    // quick feedback (press scale/opacity)
+
+    // Category tile sizing (used in settings grid)
+    readonly property int tileW: Math.round(160 * scale)
+    readonly property int tileH: Math.round(140 * scale)
+    readonly property int tileIconSize: Math.round(48 * scale)
 }
