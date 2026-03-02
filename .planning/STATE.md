@@ -22,19 +22,19 @@ See: .planning/PROJECT.md (updated 2026-03-01)
 
 ## Current Position
 
-Phase: 2 of 3 (Service & Config) — COMPLETE
-Plan: 2 of 2 in current phase (COMPLETE)
-Status: Phase 02 complete, Phase 03 next
-Last activity: 2026-03-02 — Completed 02-02 Config Persistence & Pipeline Integration
+Phase: 3 of 3 (Head Unit EQ UI)
+Plan: 1 of 2 in current phase
+Status: Plan 03-01 complete, 03-02 next
+Last activity: 2026-03-02 — Completed 03-01 Core EQ UI
 
-Progress: [██████████] 100% (4/4 plans)
+Progress: [████████░░] 83% (5/6 plans)
 
 ## Performance Metrics
 
 **Velocity:**
-- Total plans completed: 4
+- Total plans completed: 5
 - Average duration: 6min
-- Total execution time: 24min
+- Total execution time: 29min
 
 | Phase | Plan | Duration | Tasks | Files |
 |-------|------|----------|-------|-------|
@@ -42,6 +42,7 @@ Progress: [██████████] 100% (4/4 plans)
 | 01-dsp-core | 02 | 5min | 1 | 5 |
 | 02-service-config | 01 | 5min | 2 | 8 |
 | 02-service-config | 02 | 10min | 2 | 16 |
+| 03-head-unit-eq-ui | 01 | 5min | 2 | 5 |
 
 *Updated after each plan completion*
 
@@ -63,6 +64,11 @@ Progress: [██████████] 100% (4/4 plans)
 - [02-02] EQ defaults: Media=Flat, Navigation=Voice, Phone=Voice
 - [02-02] eqEngine as non-owning raw pointer in AudioStreamHandle
 
+- [03-01] int-parameter Q_INVOKABLE overloads for QML (StreamId enum not registered)
+- [03-01] Dual signal emission: gainsChanged(StreamId) + gainsChangedForStream(int) for C++ and QML
+- [03-01] SegmentedButton with empty configPath for transient stream selection
+- [03-01] 0.5 dB snap granularity for touch-friendly slider interaction
+
 ### Roadmap Evolution
 
 - v0.4: Originally scoped as v1.0 with 4+ phases. Rescoped to logging + theming only.
@@ -80,5 +86,5 @@ None.
 ## Session Continuity
 
 Last session: 2026-03-02
-Stopped at: Completed 02-02-PLAN.md (Config Persistence & Pipeline Integration)
+Stopped at: Completed 03-01-PLAN.md (Core EQ UI)
 Resume file: None

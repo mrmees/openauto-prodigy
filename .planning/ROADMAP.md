@@ -65,10 +65,11 @@ Plans:
   2. User can pick a preset from a list and see the sliders snap to that preset's values
   3. User can switch between media, navigation, and phone stream profiles via a visible selector
   4. All controls are usable with a finger on a 1024x600 touchscreen (no precision tapping required)
-**Plans**: TBD
+**Plans**: 2 plans
 
 Plans:
-- [ ] 03-01: TBD
+- [ ] 03-01-PLAN.md — EqBandSlider control, EqSettings page (sliders + stream selector + bypass), EqualizerService QML helpers
+- [ ] 03-02-PLAN.md — Preset picker, save/delete dialogs, AudioSettings entry point, settings navigation wiring
 
 ## Progress
 
@@ -79,8 +80,8 @@ Phases execute in numeric order: 1 -> 2 -> 3
 |-------|----------------|--------|-----------|
 | 1. DSP Core | 2/2 | Complete | 2026-03-01 |
 | 2. Service & Config | 0/2 | Planned | - |
-| 3. Head Unit EQ UI | 0/? | Not started | - |
+| 3. Head Unit EQ UI | 0/2 | Planned | - |
 
 ---
 *Roadmap created: 2026-03-01*
-*Last updated: 2026-03-02 — Phase 2 plans created*
+*Last updated: 2026-03-02 — Phase 3 plans created*
