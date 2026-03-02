@@ -1,8 +1,8 @@
 ---
 gsd_state_version: 1.0
-milestone: v0.4
-milestone_name: milestone
-status: milestone_complete
+milestone: v0.4.2
+milestone_name: Service Hardening
+status: defining_requirements
 last_updated: "2026-03-02T04:13:26Z"
 progress:
   total_phases: 3
@@ -18,16 +18,16 @@ progress:
 See: .planning/PROJECT.md (updated 2026-03-01)
 
 **Core value:** A person with a Raspberry Pi 4 and a touchscreen can install this, pair their phone, and get a reliable wireless Android Auto experience — every time, without SSH.
-**Current focus:** v0.4.1 Audio Equalizer milestone verified and complete.
+**Current focus:** v0.4.2 Service Hardening — reliable boot and lifecycle transitions.
 
 ## Current Position
 
-Phase: 3 of 3 (Head Unit EQ UI)
-Plan: 2 of 2 in current phase
-Status: Milestone v0.4.1 verified and complete. All 7 Pi touch tests passed.
-Last activity: 2026-03-02 — Human verification passed, milestone closed
+Phase: Not started (defining requirements)
+Plan: —
+Status: Defining requirements for v0.4.2
+Last activity: 2026-03-02 — Milestone v0.4.2 started
 
-Progress: [██████████] 100% (6/6 plans)
+Progress: [░░░░░░░░░░] 0%
 
 ## Performance Metrics
 
@@ -90,5 +90,5 @@ None.
 ## Session Continuity
 
 Last session: 2026-03-02
-Stopped at: Milestone v0.4.1 complete — all phases verified
+Stopped at: Defining requirements for v0.4.2 Service Hardening
 Resume file: None

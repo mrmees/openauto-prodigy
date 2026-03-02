@@ -29,6 +29,7 @@ A person with a Raspberry Pi 4 and a touchscreen can install this, pair their ph
 - ✓ Multi-theme color palettes with user override paths — v0.4
 - ✓ Wallpaper system with per-theme defaults and user override — v0.4
 - ✓ 3-tier brightness control (sysfs > ddcutil > software overlay) — v0.4
+- ✓ 10-band graphic EQ with per-stream profiles, bundled/user presets, touch UI — v0.4.1
 - ✓ Interactive installer for RPi OS Trixie (hardware detection, hostapd, labwc, services) — existing
 - ✓ Prebuilt release distribution workflow — existing
 - ✓ Web config panel (Flask + Unix socket IPC) — existing
@@ -40,25 +41,23 @@ A person with a Raspberry Pi 4 and a touchscreen can install this, pair their ph
 
 <!-- Current scope. Building toward these. -->
 
-## Current Milestone: v0.4.1 Audio Equalizer
+## Current Milestone: v0.4.2 Service Hardening
 
-**Goal:** Add a 10-band graphic equalizer with per-stream profiles, bundled + user presets, and dual UI (head unit touch + web config panel).
+**Goal:** Every lifecycle transition (install → first boot → reboot → app restart → crash recovery) results in a fully working system with no manual intervention.
 
 **Target features:**
-- 10-band graphic EQ processing in PipeWire
-- Per-stream EQ profiles (media, navigation, phone)
-- Bundled presets (Rock, Pop, Jazz, Flat, Bass Boost, etc.)
-- User-created presets with save/load
-- Head unit touch UI (slider controls)
-- Web config panel EQ interface
-- YAML config persistence
+- Reliable WiFi AP startup (rfkill handling, hostapd recovery)
+- Reliable Bluetooth/SDP initialization (socket permissions, --compat flag)
+- PipeWire readiness detection before audio stream creation
+- Proper systemd service ordering and dependencies
+- Installer fixes for service definitions and pre-conditions
+- App-side graceful degradation and health monitoring
 
 **Deferred to future milestones:**
 - [ ] HFP call audio persists across AA connection state (calls don't drop if AA disconnects)
-- [ ] Release-quality stability — daily driver reliable without manual intervention
 - [ ] First-run experience guides user through phone pairing and WiFi verification
-- [ ] Clean shutdown on SIGTERM (saves config, closes connections)
-- [ ] Systemd watchdog for process monitoring
+- [ ] Web config panel EQ interface
+- [ ] Boot speed optimization (reliable first, fast later)
 
 ### Out of Scope
 
@@ -80,7 +79,7 @@ A person with a Raspberry Pi 4 and a touchscreen can install this, pair their ph
 
 OpenAuto Pro (BlueWave Studio) was a commercial Pi-based AA head unit that went defunct. This project is a clean-room rebuild — no OAP code, no aasdk dependency. The protocol library (`open-android-auto`) is maintained as a separate community resource.
 
-v0.4 shipped logging infrastructure and visual personalization. Codebase is ~18K+ lines C++ across 159 files, ~3K QML, installer, web panel, 47 tests. Core AA experience works end-to-end. v0.4.1 focuses on audio equalizer — PipeWire DSP processing with per-stream profiles. Remaining after: HFP independence, release hardening (first-run, watchdog, stability).
+v0.4 shipped logging and theming. v0.4.1 shipped 10-band graphic EQ with per-stream profiles. Codebase is ~20K+ lines C++ across 170+ files, ~3K QML, installer, web panel, 57 tests. Core AA experience works end-to-end but boot reliability is fragile — WiFi AP, Bluetooth SDP, and service ordering have race conditions that require manual intervention on some boots.
 
 ## Constraints
 
@@ -109,4 +108,4 @@ v0.4 shipped logging infrastructure and visual personalization. Codebase is ~18K
 | Config defaults gate pattern | setValueByPath silently fails without initDefaults() entry | ⚠️ Revisit |
 
 ---
-*Last updated: 2026-03-01 after v0.4.1 milestone start*
+*Last updated: 2026-03-02 after v0.4.2 milestone start*
