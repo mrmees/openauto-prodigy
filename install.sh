@@ -1155,12 +1155,15 @@ HOSTAPD
         sudo sed -i 's|^#\?DAEMON_CONF=.*|DAEMON_CONF="/etc/hostapd/hostapd.conf"|' /etc/default/hostapd
     fi
 
-    # hostapd drop-in: unblock WiFi radio before starting AP
+    # hostapd drop-ins: rfkill unblock before start + stop with Prodigy on clean shutdown
     sudo mkdir -p /etc/systemd/system/hostapd.service.d
-    sudo tee /etc/systemd/system/hostapd.service.d/rfkill.conf > /dev/null << 'RFKILL'
+    sudo tee /etc/systemd/system/hostapd.service.d/openauto.conf > /dev/null << 'HOSTAPD_DROPIN'
+[Unit]
+PartOf=openauto-prodigy.service
+
 [Service]
 ExecStartPre=/usr/sbin/rfkill unblock wlan
-RFKILL
+HOSTAPD_DROPIN
 
     # Enable and start services
     sudo systemctl unmask hostapd 2>/dev/null || true
@@ -1487,7 +1490,6 @@ Environment=DBUS_SESSION_BUS_ADDRESS=unix:path=/run/user/$USER_ID/bus
 WorkingDirectory=$INSTALL_DIR
 ExecStartPre=+/usr/local/bin/openauto-preflight
 ExecStart=$INSTALL_DIR/build/src/openauto-prodigy
-ExecStopPost=-+/bin/sh -c '[ "\$SERVICE_RESULT" = "success" ] && /bin/systemctl stop hostapd.service || true'
 Restart=on-failure
 RestartSec=3
 WatchdogSec=30
