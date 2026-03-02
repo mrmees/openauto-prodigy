@@ -818,6 +818,9 @@ install_dependencies() {
         # YAML config
         libyaml-cpp-dev
 
+        # Systemd integration (sd_notify)
+        libsystemd-dev
+
         # WiFi AP
         hostapd rfkill
 
