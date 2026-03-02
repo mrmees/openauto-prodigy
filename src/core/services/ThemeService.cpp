@@ -222,6 +222,22 @@ void ThemeService::resolveWallpaper()
         emit wallpaperChanged();
 }
 
+QColor ThemeService::dividerColor() const
+{
+    QColor c = activeColor("divider");
+    if (c == QColor(Qt::transparent))
+        return QColor(255, 255, 255, 38);  // ~15% white fallback
+    return c;
+}
+
+QColor ThemeService::pressedColor() const
+{
+    QColor c = activeColor("pressed");
+    if (c == QColor(Qt::transparent))
+        return QColor(255, 255, 255, 26);  // ~10% white fallback
+    return c;
+}
+
 QColor ThemeService::activeColor(const QString& key) const
 {
     const auto& colors = nightMode_ ? nightColors_ : dayColors_;

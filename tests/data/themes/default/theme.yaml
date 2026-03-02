@@ -18,6 +18,8 @@ day:
   icon: "#ffffff"
   side_widget_background: "#16213e"
   bar_shadow: "#000000"
+  divider: "#ffffff26"
+  pressed: "#ffffff1a"
 
 # Night mode colors — dimmer, less eye strain
 night:
@@ -34,3 +36,5 @@ night:
   icon: "#c0c0c0"
   side_widget_background: "#0e1729"
   bar_shadow: "#000000"
+  divider: "#ffffff1a"
+  pressed: "#ffffff0d"

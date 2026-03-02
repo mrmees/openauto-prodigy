@@ -42,6 +42,8 @@ class ThemeService : public QObject, public IThemeService {
     Q_PROPERTY(QColor iconColor READ iconColor NOTIFY colorsChanged)
     Q_PROPERTY(QColor sideWidgetBackgroundColor READ sideWidgetBackgroundColor NOTIFY colorsChanged)
     Q_PROPERTY(QColor barShadowColor READ barShadowColor NOTIFY colorsChanged)
+    Q_PROPERTY(QColor dividerColor READ dividerColor NOTIFY colorsChanged)
+    Q_PROPERTY(QColor pressedColor READ pressedColor NOTIFY colorsChanged)
 
     Q_PROPERTY(bool nightMode READ nightMode WRITE setNightMode NOTIFY modeChanged)
 
@@ -112,6 +114,8 @@ public:
     QColor iconColor() const { return activeColor("icon"); }
     QColor sideWidgetBackgroundColor() const { return activeColor("side_widget_background"); }
     QColor barShadowColor() const { return activeColor("bar_shadow"); }
+    QColor dividerColor() const;
+    QColor pressedColor() const;
 
     /// Read-only access to color maps (for IPC export without signal side-effects)
     const QMap<QString, QColor>& dayColors() const { return dayColors_; }

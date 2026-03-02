@@ -18,6 +18,8 @@ day:
   icon: "#ffffff"
   side_widget_background: "#0a0a0a"
   bar_shadow: "#000000"
+  divider: "#ffffff1a"
+  pressed: "#ffffff0d"
 
 # Night mode colors — identical to day (pure black needs no dimming)
 night:
@@ -34,3 +36,5 @@ night:
   icon: "#ffffff"
   side_widget_background: "#0a0a0a"
   bar_shadow: "#000000"
+  divider: "#ffffff1a"
+  pressed: "#ffffff0d"
