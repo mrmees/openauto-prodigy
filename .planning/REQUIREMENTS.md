@@ -11,13 +11,13 @@
 - [ ] **VIS-02**: Settings page transitions use smooth slide + fade animations (render-thread Animators, ≤150ms)
 - [ ] **VIS-03**: Automotive-minimal aesthetic applied globally — dark, high-contrast, full-width rows, subtle section dividers, generous spacing
 - [ ] **VIS-04**: Day/night theme transitions animate smoothly (color interpolation, no instant flash)
-- [ ] **VIS-05**: ThemeService provides `dividerColor` and `pressedColor` properties for consistent styling
-- [ ] **VIS-06**: UiMetrics extended with animation duration constants and category tile sizing
+- [x] **VIS-05**: ThemeService provides `dividerColor` and `pressedColor` properties for consistent styling
+- [x] **VIS-06**: UiMetrics extended with animation duration constants and category tile sizing
 
 ### Icons (ICON)
 
 - [ ] **ICON-01**: All settings rows and category tiles display contextual Material Symbols icons with minimal whitespace
-- [ ] **ICON-02**: MaterialIcon component supports weight and optical size properties (variable font axes on Qt 6.8, graceful fallback on 6.4)
+- [x] **ICON-02**: MaterialIcon component supports weight and optical size properties (variable font axes on Qt 6.8, graceful fallback on 6.4)
 - [ ] **ICON-03**: NavStrip buttons use consistent icon sizing and press feedback
 - [ ] **ICON-04**: Launcher tiles use appropriately-sized icons with the automotive-minimal visual style
 
@@ -72,10 +72,10 @@
 | VIS-02 | Phase 1 | Pending |
 | VIS-03 | Phase 1 | Pending |
 | VIS-04 | Phase 1 | Pending |
-| VIS-05 | Phase 1 | Pending |
-| VIS-06 | Phase 1 | Pending |
+| VIS-05 | Phase 1 | Complete |
+| VIS-06 | Phase 1 | Complete |
 | ICON-01 | Phase 1 | Pending |
-| ICON-02 | Phase 1 | Pending |
+| ICON-02 | Phase 1 | Complete |
 | ICON-03 | Phase 3 | Pending |
 | ICON-04 | Phase 3 | Pending |
 | SET-01 | Phase 2 | Pending |
