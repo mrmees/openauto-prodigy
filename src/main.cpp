@@ -1,4 +1,7 @@
 #include <signal.h>
+#ifdef HAS_SYSTEMD
+#include <systemd/sd-daemon.h>
+#endif
 #include <QGuiApplication>
 #include <QCommandLineParser>
 #include <QIcon>
@@ -358,6 +361,35 @@ int main(int argc, char *argv[])
         QMetaObject::invokeMethod(g_aaPlugin, [](){ g_aaPlugin->stopAA(); },
                                    Qt::QueuedConnection);
     });
+
+    // --- systemd integration (Type=notify + watchdog) ---
+#ifdef HAS_SYSTEMD
+    // Signal systemd: app is fully initialized
+    sd_notify(0, "READY=1");
+    qCInfo(lcCore) << "sd_notify: READY=1 sent";
+
+    // Watchdog heartbeat — if running under systemd with WatchdogSec,
+    // fire at half the interval. Falls back to 15s if not set.
+    QTimer* watchdogTimer = new QTimer(&app);
+    uint64_t watchdogUsec = 0;
+    if (sd_watchdog_enabled(0, &watchdogUsec) > 0 && watchdogUsec > 0) {
+        int intervalMs = static_cast<int>(watchdogUsec / 1000 / 2);
+        watchdogTimer->setInterval(intervalMs);
+    } else {
+        watchdogTimer->setInterval(15000);
+    }
+    QObject::connect(watchdogTimer, &QTimer::timeout, []{
+        sd_notify(0, "WATCHDOG=1");
+    });
+    watchdogTimer->start();
+    qCInfo(lcCore) << "Watchdog heartbeat started (interval:" << watchdogTimer->interval() << "ms)";
+
+    // Signal systemd on clean shutdown
+    QObject::connect(&app, &QGuiApplication::aboutToQuit, []{
+        sd_notify(0, "STOPPING=1");
+        qCInfo(lcCore) << "sd_notify: STOPPING=1 sent";
+    });
+#endif
 
     int ret = app.exec();
 

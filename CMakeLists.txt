@@ -23,6 +23,7 @@ find_package(OpenSSL REQUIRED)
 include(FindPkgConfig)
 pkg_check_modules(LIBAV REQUIRED libavcodec libavutil)
 pkg_check_modules(PIPEWIRE REQUIRED libpipewire-0.3)
+pkg_check_modules(SYSTEMD QUIET IMPORTED_TARGET libsystemd)
 find_package(yaml-cpp REQUIRED)
 
 # open-androidauto — Qt-native AA protocol library
