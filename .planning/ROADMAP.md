@@ -50,11 +50,11 @@ Plans:
   3. User can save a custom EQ curve as a named preset, and load or delete it later
   4. All EQ settings (active preset per stream, custom presets, band gains) persist across app restart via YAML config
   5. Navigation and phone streams default to Flat/Voice preset on first use (not the user's music EQ)
-**Plans**: TBD
+**Plans**: 2 plans
 
 Plans:
-- [ ] 02-01: TBD
-- [ ] 02-02: TBD
+- [ ] 02-01-PLAN.md — EqualizerService with presets, per-stream engines, and preset management
+- [ ] 02-02-PLAN.md — YAML persistence, AudioService pipeline integration, HostContext wiring
 
 ### Phase 3: Head Unit EQ UI
 **Goal**: Users can see and control the equalizer from the head unit touchscreen with car-friendly touch targets
@@ -77,10 +77,10 @@ Phases execute in numeric order: 1 -> 2 -> 3
 
 | Phase | Plans Complete | Status | Completed |
 |-------|----------------|--------|-----------|
-| 1. DSP Core | 0/2 | Planned | - |
-| 2. Service & Config | 0/? | Not started | - |
+| 1. DSP Core | 2/2 | Complete | 2026-03-01 |
+| 2. Service & Config | 0/2 | Planned | - |
 | 3. Head Unit EQ UI | 0/? | Not started | - |
 
 ---
 *Roadmap created: 2026-03-01*
-*Last updated: 2026-03-01 — Phase 1 plans created*
+*Last updated: 2026-03-02 — Phase 2 plans created*
