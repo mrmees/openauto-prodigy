@@ -28,7 +28,7 @@ Requirements for audio equalizer milestone. Each maps to roadmap phases.
 
 ### Config
 
-- [ ] **CFG-01**: User's EQ settings and presets persist across app restarts via YAML config
+- [x] **CFG-01**: User's EQ settings and presets persist across app restarts via YAML config
 
 ## Future Requirements
 
@@ -65,7 +65,7 @@ Which phases cover which requirements. Updated during roadmap creation.
 | UI-01 | Phase 3 | Pending |
 | UI-02 | Phase 3 | Pending |
 | UI-03 | Phase 3 | Pending |
-| CFG-01 | Phase 2 | Pending |
+| CFG-01 | Phase 2 | Complete |
 
 **Coverage:**
 - v0.4.1 requirements: 11 total

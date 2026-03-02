@@ -3,12 +3,12 @@ gsd_state_version: 1.0
 milestone: v0.4
 milestone_name: milestone
 status: in-progress
-last_updated: "2026-03-02T00:37:37Z"
+last_updated: "2026-03-02T00:49:17Z"
 progress:
   total_phases: 2
-  completed_phases: 1
+  completed_phases: 2
   total_plans: 4
-  completed_plans: 3
+  completed_plans: 4
 ---
 
 # Project State
@@ -18,29 +18,30 @@ progress:
 See: .planning/PROJECT.md (updated 2026-03-01)
 
 **Core value:** A person with a Raspberry Pi 4 and a touchscreen can install this, pair their phone, and get a reliable wireless Android Auto experience — every time, without SSH.
-**Current focus:** Phase 2 in progress — Service & Config
+**Current focus:** Phase 2 complete — Service & Config done. Phase 3 (Head Unit UI) next.
 
 ## Current Position
 
-Phase: 2 of 3 (Service & Config) — second phase of v0.4.1
-Plan: 1 of 2 in current phase (COMPLETE)
-Status: Plan 02-01 complete, Plan 02-02 next
-Last activity: 2026-03-02 — Completed 02-01 Equalizer Service
+Phase: 2 of 3 (Service & Config) — COMPLETE
+Plan: 2 of 2 in current phase (COMPLETE)
+Status: Phase 02 complete, Phase 03 next
+Last activity: 2026-03-02 — Completed 02-02 Config Persistence & Pipeline Integration
 
-Progress: [███████░░░] 75% (3/4 plans)
+Progress: [██████████] 100% (4/4 plans)
 
 ## Performance Metrics
 
 **Velocity:**
-- Total plans completed: 3
-- Average duration: 4.7min
-- Total execution time: 14min
+- Total plans completed: 4
+- Average duration: 6min
+- Total execution time: 24min
 
 | Phase | Plan | Duration | Tasks | Files |
 |-------|------|----------|-------|-------|
 | 01-dsp-core | 01 | 4min | 2 | 5 |
 | 01-dsp-core | 02 | 5min | 1 | 5 |
 | 02-service-config | 01 | 5min | 2 | 8 |
+| 02-service-config | 02 | 10min | 2 | 16 |
 
 *Updated after each plan completion*
 
@@ -57,6 +58,10 @@ Progress: [███████░░░] 75% (3/4 plans)
 - [02-01] saveUserPreset takes StreamId parameter (caller specifies source stream)
 - [02-01] setGain clears activePreset to "" (indicates manual adjustment from preset)
 - [02-01] User presets in-memory only; config persistence deferred to Plan 02
+- [02-02] 2-second debounce timer for EQ config saves (avoids disk thrash)
+- [02-02] saveNow() on aboutToQuit for guaranteed shutdown persistence
+- [02-02] EQ defaults: Media=Flat, Navigation=Voice, Phone=Voice
+- [02-02] eqEngine as non-owning raw pointer in AudioStreamHandle
 
 ### Roadmap Evolution
 
@@ -75,5 +80,5 @@ None.
 ## Session Continuity
 
 Last session: 2026-03-02
-Stopped at: Completed 02-01-PLAN.md (Equalizer Service)
+Stopped at: Completed 02-02-PLAN.md (Config Persistence & Pipeline Integration)
 Resume file: None
