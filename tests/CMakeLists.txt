@@ -92,6 +92,7 @@ oap_add_test(test_biquad_filter SOURCES test_biquad_filter.cpp)
 oap_add_test(test_soft_limiter SOURCES test_soft_limiter.cpp)
 oap_add_test(test_equalizer_engine SOURCES test_equalizer_engine.cpp)
 oap_add_test(test_equalizer_presets SOURCES test_equalizer_presets.cpp)
+oap_add_test(test_equalizer_service SOURCES test_equalizer_service.cpp)
 
 # --- Script tests (no compilation) ---
 
