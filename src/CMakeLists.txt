@@ -46,6 +46,7 @@ add_library(openauto-core STATIC
     plugins/android_auto/AndroidAutoPlugin.cpp
     plugins/bt_audio/BtAudioPlugin.cpp
     plugins/phone/PhonePlugin.cpp
+    plugins/equalizer/EqualizerPlugin.cpp
     ${CMAKE_SOURCE_DIR}/libs/qrcodegen/qrcodegen.cpp
 )
 

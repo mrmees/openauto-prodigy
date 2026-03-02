@@ -31,6 +31,7 @@
 #include "plugins/android_auto/AndroidAutoPlugin.hpp"
 #include "plugins/bt_audio/BtAudioPlugin.hpp"
 #include "plugins/phone/PhonePlugin.hpp"
+#include "plugins/equalizer/EqualizerPlugin.hpp"
 #include "ui/ApplicationController.hpp"
 #include "ui/PluginModel.hpp"
 #include "ui/PluginViewHost.hpp"
@@ -223,6 +224,9 @@ int main(int argc, char *argv[])
 
     auto phonePlugin = new oap::plugins::PhonePlugin(&app);
     pluginManager.registerStaticPlugin(phonePlugin);
+
+    auto eqPlugin = new oap::plugins::EqualizerPlugin(&app);
+    pluginManager.registerStaticPlugin(eqPlugin);
 
     // Discover dynamic plugins from user directory
     pluginManager.discoverPlugins(QDir::homePath() + "/.openauto/plugins");

@@ -12,12 +12,7 @@ Item {
         function onBackRequested() {
             if (settingsStack.depth > 1) {
                 settingsStack.pop()
-                if (settingsStack.depth > 1) {
-                    // Popped back to a sub-page (e.g. Audio after leaving EQ)
-                    ApplicationController.setTitle("Settings > Audio")
-                } else {
-                    ApplicationController.setTitle("Settings")
-                }
+                ApplicationController.setTitle("Settings")
                 ApplicationController.setBackHandled(true)
             }
         }
