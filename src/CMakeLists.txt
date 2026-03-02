@@ -137,6 +137,10 @@ set_source_files_properties(../qml/controls/InfoBanner.qml PROPERTIES
     QT_QML_SOURCE_TYPENAME "InfoBanner"
     QT_RESOURCE_ALIAS "InfoBanner.qml"
 )
+set_source_files_properties(../qml/controls/EqBandSlider.qml PROPERTIES
+    QT_QML_SOURCE_TYPENAME "EqBandSlider"
+    QT_RESOURCE_ALIAS "EqBandSlider.qml"
+)
 set_source_files_properties(../qml/controls/UiMetrics.qml PROPERTIES
     QT_QML_SOURCE_TYPENAME "UiMetrics"
     QT_QML_SINGLETON_TYPE TRUE
@@ -246,6 +250,10 @@ set_source_files_properties(../qml/applications/settings/AboutSettings.qml PROPE
     QT_QML_SOURCE_TYPENAME "AboutSettings"
     QT_RESOURCE_ALIAS "AboutSettings.qml"
 )
+set_source_files_properties(../qml/applications/settings/EqSettings.qml PROPERTIES
+    QT_QML_SOURCE_TYPENAME "EqSettings"
+    QT_RESOURCE_ALIAS "EqSettings.qml"
+)
 
 qt_add_qml_module(openauto-prodigy
     URI OpenAutoProdigy
@@ -265,6 +273,7 @@ qt_add_qml_module(openauto-prodigy
         ../qml/controls/SegmentedButton.qml
         ../qml/controls/ReadOnlyField.qml
         ../qml/controls/InfoBanner.qml
+        ../qml/controls/EqBandSlider.qml
         ../qml/controls/UiMetrics.qml
         ../qml/components/Clock.qml
         ../qml/components/Wallpaper.qml
@@ -292,6 +301,7 @@ qt_add_qml_module(openauto-prodigy
         ../qml/applications/settings/SystemSettings.qml
         ../qml/applications/settings/CompanionSettings.qml
         ../qml/applications/settings/AboutSettings.qml
+        ../qml/applications/settings/EqSettings.qml
     RESOURCES
         ../resources/resources.qrc
 )
