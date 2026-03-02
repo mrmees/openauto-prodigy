@@ -45,8 +45,8 @@ See .planning/milestones/v0.4.1/ for archived details.
 **Plans**: 2 plans (1 wave)
 
 Plans:
-- [ ] 01-01-PLAN.md — Pre-flight script and systemd service hardening (install.sh)
-- [ ] 01-02-PLAN.md — sd_notify integration and watchdog heartbeat (C++ app)
+- [x] 01-01-PLAN.md — Pre-flight script and systemd service hardening (install.sh)
+- [x] 01-02-PLAN.md — sd_notify integration and watchdog heartbeat (C++ app)
 
 ### Phase 2: Bluetooth Hardening
 **Goal**: SDP registration and BlueZ compatibility work reliably across boots, daemon restarts, and package updates
@@ -83,7 +83,7 @@ Phases execute in numeric order: 1 -> 2 -> 3
 
 | Phase | Plans Complete | Status | Completed |
 |-------|----------------|--------|-----------|
-| 1. Service Foundation | 0/? | Not started | - |
+| 1. Service Foundation | 2/2 | Complete | 2026-03-02 |
 | 2. Bluetooth Hardening | 0/? | Not started | - |
 | 3. App Lifecycle | 0/? | Not started | - |
 
