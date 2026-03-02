@@ -5,6 +5,7 @@ Rectangle {
     id: topBar
 
     color: ThemeService.barBackgroundColor
+    Behavior on color { ColorAnimation { duration: 300; easing.type: Easing.InOutQuad } }
 
     RowLayout {
         anchors.fill: parent

@@ -11,6 +11,7 @@ Window {
     visibility: Window.FullScreen
     title: "OpenAuto Prodigy"
     color: ThemeService.backgroundColor
+    Behavior on color { ColorAnimation { duration: 300; easing.type: Easing.InOutQuad } }
 
     Material.theme: ThemeService.nightMode ? Material.Dark : Material.Light
     Material.accent: ThemeService.highlightColor

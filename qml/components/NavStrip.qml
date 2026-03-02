@@ -5,6 +5,7 @@ import QtQuick.Controls
 Rectangle {
     id: navStrip
     color: ThemeService.barBackgroundColor
+    Behavior on color { ColorAnimation { duration: 300; easing.type: Easing.InOutQuad } }
 
     // Home is active when no plugin and on launcher screen
     readonly property bool homeActive: !PluginModel.activePluginId
