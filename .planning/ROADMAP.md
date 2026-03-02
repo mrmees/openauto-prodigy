@@ -50,9 +50,9 @@ Transform the existing functional UI into an automotive-minimal interface. Resty
 **Plans:** 3 plans
 
 Plans:
-- [ ] 01-01-PLAN.md — ThemeService + UiMetrics + MaterialIcon foundation properties
-- [ ] 01-02-PLAN.md — Control restyling: press feedback, icons, automotive-minimal aesthetic
-- [ ] 01-03-PLAN.md — StackView transitions + day/night theme color animation
+- [x] 01-01-PLAN.md — ThemeService + UiMetrics + MaterialIcon foundation properties
+- [x] 01-02-PLAN.md — Control restyling: press feedback, icons, automotive-minimal aesthetic
+- [x] 01-03-PLAN.md — StackView transitions + day/night theme color animation
 
 ### Phase 2: Settings Restructuring
 **Goal**: Users navigate settings through 6 intuitive category tiles that match their mental model (AA, Display, Audio, Connectivity, Companion, System)
@@ -90,7 +90,7 @@ Plans:
 
 | Phase | Plans Complete | Status | Completed |
 |-------|----------------|--------|-----------|
-| 1. Visual Foundation | 0/3 | Planned | - |
+| 1. Visual Foundation | 3/3 | Complete | 2026-03-02 |
 | 2. Settings Restructuring | 0/? | Not started | - |
 | 3. EQ Dual-Access & Shell Polish | 0/? | Not started | - |
 
