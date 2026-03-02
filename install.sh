@@ -1050,11 +1050,7 @@ configure_network() {
         return
     fi
 
-    # Unblock WiFi and Bluetooth radios (fresh Trixie has them soft-blocked)
-    if command -v rfkill &>/dev/null; then
-        sudo rfkill unblock wlan 2>/dev/null || true
-        sudo rfkill unblock bluetooth 2>/dev/null || true
-    fi
+    # rfkill unblock moved to pre-flight script (runs on every service start)
 
     # BlueZ needs --compat for SDP service registration (AA RFCOMM discovery)
     local BT_OVERRIDE="/etc/systemd/system/bluetooth.service.d"
@@ -1077,6 +1073,7 @@ Name=$WIFI_IFACE
 [Network]
 Address=${AP_IP}/24
 DHCPServer=yes
+ConfigureWithoutCarrier=yes
 
 [DHCPServer]
 PoolOffset=10
@@ -1362,7 +1359,93 @@ clear_paired_phones() {
     leave_interactive
 }
 
-# Step 6: Create systemd service
+# Step 6: Create pre-flight script and systemd service
+# ────────────────────────────────────────────────────
+create_preflight_script() {
+    sudo tee /usr/local/bin/openauto-preflight > /dev/null << 'PREFLIGHT'
+#!/bin/bash
+# OpenAuto Prodigy — Pre-flight checks
+# Runs as ExecStartPre before the main service.
+# Standalone usage: sudo openauto-preflight [--check-only]
+set -euo pipefail
+
+CHECK_ONLY=false
+if [[ "${1:-}" == "--check-only" ]]; then
+    CHECK_ONLY=true
+fi
+
+PASS=0
+FAIL=0
+
+pass() { echo "PASS: $1"; ((PASS++)); }
+fail() { echo "FAIL: $1"; ((FAIL++)); }
+
+# 1. rfkill unblock (self-healing)
+if command -v rfkill &>/dev/null; then
+    if [[ "$CHECK_ONLY" == "true" ]]; then
+        if rfkill list wlan 2>/dev/null | grep -q "Soft blocked: yes"; then
+            fail "WiFi radio soft-blocked (run without --check-only to fix)"
+        else
+            pass "WiFi radio unblocked"
+        fi
+        if rfkill list bluetooth 2>/dev/null | grep -q "Soft blocked: yes"; then
+            fail "Bluetooth radio soft-blocked (run without --check-only to fix)"
+        else
+            pass "Bluetooth radio unblocked"
+        fi
+    else
+        if rfkill unblock wlan 2>/dev/null; then
+            pass "WiFi radio unblocked"
+        else
+            fail "Could not unblock WiFi radio"
+        fi
+        if rfkill unblock bluetooth 2>/dev/null; then
+            pass "Bluetooth radio unblocked"
+        else
+            fail "Could not unblock Bluetooth radio"
+        fi
+    fi
+else
+    fail "rfkill not found"
+fi
+
+# 2. Wayland compositor check
+WAYLAND_SOCKET="${XDG_RUNTIME_DIR:-/run/user/1000}/${WAYLAND_DISPLAY:-wayland-0}"
+if [[ -e "$WAYLAND_SOCKET" ]]; then
+    pass "Wayland compositor ready (${WAYLAND_DISPLAY:-wayland-0})"
+else
+    fail "Wayland socket not found at $WAYLAND_SOCKET"
+fi
+
+# 3. SDP socket check
+SDP_SOCKET="/var/run/sdp"
+if [[ -e "$SDP_SOCKET" ]]; then
+    # Check group-writable by bluetooth group
+    SDP_GROUP=$(stat -c '%G' "$SDP_SOCKET" 2>/dev/null || echo "unknown")
+    SDP_PERMS=$(stat -c '%a' "$SDP_SOCKET" 2>/dev/null || echo "000")
+    if [[ "$SDP_GROUP" == "bluetooth" ]] && [[ "${SDP_PERMS:1:1}" =~ [2367] ]]; then
+        pass "SDP socket ready (group=$SDP_GROUP perms=$SDP_PERMS)"
+    else
+        fail "/var/run/sdp wrong permissions (group=$SDP_GROUP perms=$SDP_PERMS, need bluetooth group-writable)"
+    fi
+else
+    fail "/var/run/sdp missing (is bluetooth.service running with --compat?)"
+fi
+
+# Summary
+echo "---"
+echo "Pre-flight: $PASS passed, $FAIL failed"
+
+if [[ "$FAIL" -gt 0 ]]; then
+    exit 1
+fi
+exit 0
+PREFLIGHT
+
+    sudo chmod +x /usr/local/bin/openauto-preflight
+    ok "Pre-flight script installed at /usr/local/bin/openauto-preflight"
+}
+
 # ────────────────────────────────────────────────────
 create_service() {
     local USER_ID
@@ -1371,20 +1454,27 @@ create_service() {
     sudo tee /etc/systemd/system/${SERVICE_NAME}.service > /dev/null << SERVICE
 [Unit]
 Description=OpenAuto Prodigy
-After=graphical.target
+After=graphical.target hostapd.service bluetooth.target pipewire.service
 Wants=openauto-system.service
+BindsTo=hostapd.service
 
 [Service]
-Type=simple
+Type=notify
 User=$USER
 Environment=XDG_RUNTIME_DIR=/run/user/$USER_ID
 Environment=WAYLAND_DISPLAY=wayland-0
 Environment=QT_QPA_PLATFORM=wayland
 Environment=DBUS_SESSION_BUS_ADDRESS=unix:path=/run/user/$USER_ID/bus
 WorkingDirectory=$INSTALL_DIR
+ExecStartPre=/usr/local/bin/openauto-preflight
 ExecStart=$INSTALL_DIR/build/src/openauto-prodigy
+ExecStopPost=-/bin/systemctl stop hostapd.service
 Restart=on-failure
 RestartSec=3
+StartLimitBurst=5
+StartLimitIntervalSec=60
+WatchdogSec=30
+NotifyAccess=main
 
 [Install]
 WantedBy=graphical.target
@@ -1686,6 +1776,7 @@ main() {
     # Step 6: Services
     update_step 6 active
     enter_interactive
+    create_preflight_script
     create_service
     create_web_service
     create_system_service
