@@ -8,9 +8,9 @@
 ### Visual Foundation (VIS)
 
 - [ ] **VIS-01**: All interactive controls (tiles, buttons, toggles, sliders, list items) show visible press feedback (scale or opacity change)
-- [ ] **VIS-02**: Settings page transitions use smooth slide + fade animations (render-thread Animators, ≤150ms)
+- [x] **VIS-02**: Settings page transitions use smooth slide + fade animations (render-thread Animators, ≤150ms)
 - [ ] **VIS-03**: Automotive-minimal aesthetic applied globally — dark, high-contrast, full-width rows, subtle section dividers, generous spacing
-- [ ] **VIS-04**: Day/night theme transitions animate smoothly (color interpolation, no instant flash)
+- [x] **VIS-04**: Day/night theme transitions animate smoothly (color interpolation, no instant flash)
 - [x] **VIS-05**: ThemeService provides `dividerColor` and `pressedColor` properties for consistent styling
 - [x] **VIS-06**: UiMetrics extended with animation duration constants and category tile sizing
 
@@ -69,9 +69,9 @@
 | Requirement | Phase | Status |
 |-------------|-------|--------|
 | VIS-01 | Phase 1 | Pending |
-| VIS-02 | Phase 1 | Pending |
+| VIS-02 | Phase 1 | Complete |
 | VIS-03 | Phase 1 | Pending |
-| VIS-04 | Phase 1 | Pending |
+| VIS-04 | Phase 1 | Complete |
 | VIS-05 | Phase 1 | Complete |
 | VIS-06 | Phase 1 | Complete |
 | ICON-01 | Phase 1 | Pending |
