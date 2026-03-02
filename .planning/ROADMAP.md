@@ -42,11 +42,11 @@ See .planning/milestones/v0.4.1/ for archived details.
   3. The Prodigy systemd service starts only after Wayland, hostapd, BlueZ, and PipeWire are ready
   4. If the Prodigy app crashes, systemd restarts it automatically (with rate limiting to prevent restart loops)
   5. A fresh `install.sh` run produces service files with ExecStartPre checks for rfkill and socket readiness
-**Plans**: TBD
+**Plans**: 2 plans (1 wave)
 
 Plans:
-- [ ] 01-01: TBD
-- [ ] 01-02: TBD
+- [ ] 01-01-PLAN.md — Pre-flight script and systemd service hardening (install.sh)
+- [ ] 01-02-PLAN.md — sd_notify integration and watchdog heartbeat (C++ app)
 
 ### Phase 2: Bluetooth Hardening
 **Goal**: SDP registration and BlueZ compatibility work reliably across boots, daemon restarts, and package updates
