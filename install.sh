@@ -1377,8 +1377,8 @@ fi
 PASS=0
 FAIL=0
 
-pass() { echo "PASS: $1"; ((PASS++)); }
-fail() { echo "FAIL: $1"; ((FAIL++)); }
+pass() { echo "PASS: $1"; PASS=$((PASS + 1)); }
+fail() { echo "FAIL: $1"; FAIL=$((FAIL + 1)); }
 
 # 1. rfkill unblock (self-healing)
 if command -v rfkill &>/dev/null; then
@@ -1466,9 +1466,9 @@ Environment=WAYLAND_DISPLAY=wayland-0
 Environment=QT_QPA_PLATFORM=wayland
 Environment=DBUS_SESSION_BUS_ADDRESS=unix:path=/run/user/$USER_ID/bus
 WorkingDirectory=$INSTALL_DIR
-ExecStartPre=/usr/local/bin/openauto-preflight
+ExecStartPre=+/usr/local/bin/openauto-preflight
 ExecStart=$INSTALL_DIR/build/src/openauto-prodigy
-ExecStopPost=-/bin/systemctl stop hostapd.service
+ExecStopPost=-+/bin/systemctl stop hostapd.service
 Restart=on-failure
 RestartSec=3
 StartLimitBurst=5
