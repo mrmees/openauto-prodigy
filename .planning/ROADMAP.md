@@ -64,11 +64,11 @@ Plans:
   3. Every existing setting is reachable in the new hierarchy — no setting lost or orphaned
   4. All config paths are unchanged — existing config.yaml files work without migration
   5. Read-only fields are visually distinct from editable controls (no confusion about interactivity)
-**Plans**: TBD
+**Plans:** 2 plans
 
 Plans:
-- [ ] 02-01: TBD
-- [ ] 02-02: TBD
+- [ ] 02-01-PLAN.md — Tile subtitle + ReadOnlyField UX + tile grid landing page in SettingsMenu
+- [ ] 02-02-PLAN.md — Category page creation/restructuring + SettingsMenu wiring + checkpoint
 
 ### Phase 3: EQ Dual-Access & Shell Polish
 **Goal**: The entire shell (NavStrip, TopBar, launcher, modals) matches the automotive-minimal aesthetic, and EQ is accessible from both Audio settings and a NavStrip shortcut
