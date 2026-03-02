@@ -12,6 +12,11 @@ Item {
     Layout.fillWidth: true
     implicitHeight: UiMetrics.rowH
 
+    scale: mouseArea.pressed ? 0.97 : 1.0
+    opacity: mouseArea.pressed ? 0.85 : 1.0
+    Behavior on scale { NumberAnimation { duration: UiMetrics.animDurationFast; easing.type: Easing.OutCubic } }
+    Behavior on opacity { NumberAnimation { duration: UiMetrics.animDurationFast; easing.type: Easing.OutCubic } }
+
     RowLayout {
         anchors.fill: parent
         anchors.leftMargin: UiMetrics.marginPage
@@ -45,11 +50,12 @@ Item {
         anchors.leftMargin: UiMetrics.marginPage
         anchors.rightMargin: UiMetrics.marginPage
         height: 1
-        color: ThemeService.descriptionFontColor
-        opacity: 0.15
+        color: ThemeService.dividerColor
+        opacity: 1.0
     }
 
     MouseArea {
+        id: mouseArea
         anchors.fill: parent
         onClicked: root.clicked()
     }

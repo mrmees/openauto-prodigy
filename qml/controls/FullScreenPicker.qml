@@ -63,6 +63,11 @@ Item {
         return ""
     }
 
+    scale: rowMouseArea.pressed ? 0.97 : 1.0
+    opacity: rowMouseArea.pressed ? 0.85 : 1.0
+    Behavior on scale { NumberAnimation { duration: UiMetrics.animDurationFast; easing.type: Easing.OutCubic } }
+    Behavior on opacity { NumberAnimation { duration: UiMetrics.animDurationFast; easing.type: Easing.OutCubic } }
+
     // --- Tappable row ---
     RowLayout {
         anchors.fill: parent
@@ -99,6 +104,7 @@ Item {
     }
 
     MouseArea {
+        id: rowMouseArea
         anchors.fill: parent
         onClicked: pickerDialog.open()
     }
@@ -184,6 +190,11 @@ Item {
                 width: optionsList.width
                 height: UiMetrics.rowH
 
+                scale: delegateMouseArea.pressed ? 0.97 : 1.0
+                opacity: delegateMouseArea.pressed ? 0.85 : 1.0
+                Behavior on scale { NumberAnimation { duration: UiMetrics.animDurationFast; easing.type: Easing.OutCubic } }
+                Behavior on opacity { NumberAnimation { duration: UiMetrics.animDurationFast; easing.type: Easing.OutCubic } }
+
                 readonly property string _itemText: {
                     if (root._useModel && root.textRole !== "") {
                         // model-driven: read textRole from model data
@@ -228,6 +239,7 @@ Item {
                 }
 
                 MouseArea {
+                    id: delegateMouseArea
                     anchors.fill: parent
                     onClicked: {
                         root.currentIndex = index

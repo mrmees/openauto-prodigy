@@ -65,6 +65,11 @@ Item {
                     color: isSelected ? ThemeService.highlightColor : ThemeService.controlBackgroundColor
                     radius: UiMetrics.radius
 
+                    scale: segMouseArea.pressed ? 0.97 : 1.0
+                    opacity: segMouseArea.pressed ? 0.85 : 1.0
+                    Behavior on scale { NumberAnimation { duration: UiMetrics.animDurationFast; easing.type: Easing.OutCubic } }
+                    Behavior on opacity { NumberAnimation { duration: UiMetrics.animDurationFast; easing.type: Easing.OutCubic } }
+
                     // Mask inner corners by overlapping rectangles
                     Rectangle {
                         visible: !segment.isFirst
@@ -103,6 +108,7 @@ Item {
                     }
 
                     MouseArea {
+                        id: segMouseArea
                         anchors.fill: parent
                         onClicked: {
                             if (internal.selectedIndex === index) return

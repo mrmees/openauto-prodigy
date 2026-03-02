@@ -11,10 +11,12 @@ Rectangle {
     signal clicked()
 
     radius: 8
-    color: mouseArea.containsMouse && tileEnabled
-           ? ThemeService.highlightColor
-           : ThemeService.controlBackgroundColor
-    opacity: tileEnabled ? 1.0 : 0.5
+    color: ThemeService.controlBackgroundColor
+
+    scale: mouseArea.pressed ? 0.95 : 1.0
+    opacity: mouseArea.pressed && tileEnabled ? 0.85 : (tileEnabled ? 1.0 : 0.5)
+    Behavior on scale { NumberAnimation { duration: UiMetrics.animDurationFast; easing.type: Easing.OutCubic } }
+    Behavior on opacity { NumberAnimation { duration: UiMetrics.animDurationFast; easing.type: Easing.OutCubic } }
 
     ColumnLayout {
         anchors.centerIn: parent
@@ -40,7 +42,6 @@ Rectangle {
     MouseArea {
         id: mouseArea
         anchors.fill: parent
-        hoverEnabled: true
         cursorShape: tile.tileEnabled ? Qt.PointingHandCursor : Qt.ArrowCursor
         onClicked: {
             if (tile.tileEnabled)
