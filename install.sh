@@ -1417,16 +1417,23 @@ else
     fail "Wayland socket not found at $WAYLAND_SOCKET"
 fi
 
-# 3. SDP socket check
+# 3. SDP socket check (self-healing: fix permissions if wrong)
 SDP_SOCKET="/var/run/sdp"
 if [[ -e "$SDP_SOCKET" ]]; then
-    # Check group-writable by bluetooth group
     SDP_GROUP=$(stat -c '%G' "$SDP_SOCKET" 2>/dev/null || echo "unknown")
     SDP_PERMS=$(stat -c '%a' "$SDP_SOCKET" 2>/dev/null || echo "000")
     if [[ "$SDP_GROUP" == "bluetooth" ]] && [[ "${SDP_PERMS:1:1}" =~ [2367] ]]; then
         pass "SDP socket ready (group=$SDP_GROUP perms=$SDP_PERMS)"
-    else
+    elif [[ "$CHECK_ONLY" == "true" ]]; then
         fail "/var/run/sdp wrong permissions (group=$SDP_GROUP perms=$SDP_PERMS, need bluetooth group-writable)"
+    else
+        # Self-heal: fix permissions (we run as root via ExecStartPre=+)
+        chgrp bluetooth "$SDP_SOCKET" 2>/dev/null && chmod g+rw "$SDP_SOCKET" 2>/dev/null
+        if [[ $? -eq 0 ]]; then
+            pass "SDP socket fixed (was group=$SDP_GROUP, now bluetooth group-writable)"
+        else
+            fail "/var/run/sdp wrong permissions and could not fix (group=$SDP_GROUP perms=$SDP_PERMS)"
+        fi
     fi
 else
     fail "/var/run/sdp missing (is bluetooth.service running with --compat?)"
