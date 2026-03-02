@@ -68,38 +68,38 @@
 
 | Requirement | Phase | Status |
 |-------------|-------|--------|
-| VIS-01 | — | Pending |
-| VIS-02 | — | Pending |
-| VIS-03 | — | Pending |
-| VIS-04 | — | Pending |
-| VIS-05 | — | Pending |
-| VIS-06 | — | Pending |
-| ICON-01 | — | Pending |
-| ICON-02 | — | Pending |
-| ICON-03 | — | Pending |
-| ICON-04 | — | Pending |
-| SET-01 | — | Pending |
-| SET-02 | — | Pending |
-| SET-03 | — | Pending |
-| SET-04 | — | Pending |
-| SET-05 | — | Pending |
-| SET-06 | — | Pending |
-| SET-07 | — | Pending |
-| SET-08 | — | Pending |
-| SET-09 | — | Pending |
-| UX-01 | — | Pending |
-| UX-02 | — | Pending |
-| UX-03 | — | Pending |
-| UX-04 | — | Pending |
-| NAV-01 | — | Pending |
-| NAV-02 | — | Pending |
-| NAV-03 | — | Pending |
+| VIS-01 | Phase 1 | Pending |
+| VIS-02 | Phase 1 | Pending |
+| VIS-03 | Phase 1 | Pending |
+| VIS-04 | Phase 1 | Pending |
+| VIS-05 | Phase 1 | Pending |
+| VIS-06 | Phase 1 | Pending |
+| ICON-01 | Phase 1 | Pending |
+| ICON-02 | Phase 1 | Pending |
+| ICON-03 | Phase 3 | Pending |
+| ICON-04 | Phase 3 | Pending |
+| SET-01 | Phase 2 | Pending |
+| SET-02 | Phase 2 | Pending |
+| SET-03 | Phase 2 | Pending |
+| SET-04 | Phase 2 | Pending |
+| SET-05 | Phase 2 | Pending |
+| SET-06 | Phase 2 | Pending |
+| SET-07 | Phase 2 | Pending |
+| SET-08 | Phase 2 | Pending |
+| SET-09 | Phase 2 | Pending |
+| UX-01 | Phase 3 | Pending |
+| UX-02 | Phase 3 | Pending |
+| UX-03 | Phase 2 | Pending |
+| UX-04 | Phase 3 | Pending |
+| NAV-01 | Phase 3 | Pending |
+| NAV-02 | Phase 3 | Pending |
+| NAV-03 | Phase 3 | Pending |
 
 **Coverage:**
 - v0.4.3 requirements: 26 total
-- Mapped to phases: 0
-- Unmapped: 26 ⚠️
+- Mapped to phases: 26
+- Unmapped: 0
 
 ---
 *Requirements defined: 2026-03-02*
-*Last updated: 2026-03-02 after initial definition*
+*Last updated: 2026-03-02 after roadmap creation*
