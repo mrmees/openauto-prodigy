@@ -3,12 +3,12 @@ gsd_state_version: 1.0
 milestone: v0.4
 milestone_name: milestone
 status: unknown
-last_updated: "2026-03-02T00:55:37.052Z"
+last_updated: "2026-03-02T04:13:26Z"
 progress:
-  total_phases: 2
-  completed_phases: 2
-  total_plans: 4
-  completed_plans: 4
+  total_phases: 3
+  completed_phases: 3
+  total_plans: 6
+  completed_plans: 6
 ---
 
 # Project State
@@ -18,23 +18,23 @@ progress:
 See: .planning/PROJECT.md (updated 2026-03-01)
 
 **Core value:** A person with a Raspberry Pi 4 and a touchscreen can install this, pair their phone, and get a reliable wireless Android Auto experience — every time, without SSH.
-**Current focus:** Phase 2 complete — Service & Config done. Phase 3 (Head Unit UI) next.
+**Current focus:** All phases complete — v0.4.1 Audio Equalizer milestone done.
 
 ## Current Position
 
 Phase: 3 of 3 (Head Unit EQ UI)
-Plan: 1 of 2 in current phase
-Status: Plan 03-01 complete, 03-02 next
-Last activity: 2026-03-02 — Completed 03-01 Core EQ UI
+Plan: 2 of 2 in current phase
+Status: All plans complete. Milestone v0.4.1 done.
+Last activity: 2026-03-02 — Completed 03-02 Preset Picker & Settings Navigation
 
-Progress: [████████░░] 83% (5/6 plans)
+Progress: [██████████] 100% (6/6 plans)
 
 ## Performance Metrics
 
 **Velocity:**
-- Total plans completed: 5
-- Average duration: 6min
-- Total execution time: 29min
+- Total plans completed: 6
+- Average duration: 5min
+- Total execution time: 31min
 
 | Phase | Plan | Duration | Tasks | Files |
 |-------|------|----------|-------|-------|
@@ -43,6 +43,7 @@ Progress: [████████░░] 83% (5/6 plans)
 | 02-service-config | 01 | 5min | 2 | 8 |
 | 02-service-config | 02 | 10min | 2 | 16 |
 | 03-head-unit-eq-ui | 01 | 5min | 2 | 5 |
+| 03-head-unit-eq-ui | 02 | 2min | 2 | 3 |
 
 *Updated after each plan completion*
 
@@ -68,6 +69,9 @@ Progress: [████████░░] 83% (5/6 plans)
 - [03-01] Dual signal emission: gainsChanged(StreamId) + gainsChangedForStream(int) for C++ and QML
 - [03-01] SegmentedButton with empty configPath for transient stream selection
 - [03-01] 0.5 dB snap granularity for touch-friendly slider interaction
+- [03-02] Preset picker as bottom sheet Dialog following FullScreenPicker pattern
+- [03-02] Swipe-to-delete via drag.target on content Rectangle over red background
+- [03-02] Depth-aware back handler checks settingsStack.depth after pop for title
 
 ### Roadmap Evolution
 
@@ -86,5 +90,5 @@ None.
 ## Session Continuity
 
 Last session: 2026-03-02
-Stopped at: Completed 03-01-PLAN.md (Core EQ UI)
+Stopped at: Completed 03-02-PLAN.md (Preset Picker & Settings Navigation)
 Resume file: None

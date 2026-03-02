@@ -23,7 +23,7 @@ Requirements for audio equalizer milestone. Each maps to roadmap phases.
 ### Head Unit UI
 
 - [x] **UI-01**: User can adjust 10 EQ band gains via vertical sliders on the head unit touchscreen
-- [ ] **UI-02**: User can select presets from a picker in the EQ settings view
+- [x] **UI-02**: User can select presets from a picker in the EQ settings view
 - [x] **UI-03**: User can switch between media, navigation, and phone EQ profiles via stream selector
 
 ### Config
@@ -63,7 +63,7 @@ Which phases cover which requirements. Updated during roadmap creation.
 | PRST-03 | Phase 2 | Complete |
 | PRST-04 | Phase 2 | Complete |
 | UI-01 | Phase 3 | Complete |
-| UI-02 | Phase 3 | Pending |
+| UI-02 | Phase 3 | Complete |
 | UI-03 | Phase 3 | Complete |
 | CFG-01 | Phase 2 | Complete |
 
