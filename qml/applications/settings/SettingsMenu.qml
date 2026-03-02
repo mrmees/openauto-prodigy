@@ -22,6 +22,31 @@ Item {
         id: settingsStack
         anchors.fill: parent
         initialItem: settingsList
+
+        pushEnter: Transition {
+            ParallelAnimation {
+                OpacityAnimator { from: 0; to: 1; duration: UiMetrics.animDuration; easing.type: Easing.OutCubic }
+                XAnimator { from: settingsStack.width * 0.3; to: 0; duration: UiMetrics.animDuration; easing.type: Easing.OutCubic }
+            }
+        }
+        pushExit: Transition {
+            ParallelAnimation {
+                OpacityAnimator { from: 1; to: 0; duration: UiMetrics.animDuration; easing.type: Easing.OutCubic }
+                XAnimator { from: 0; to: -settingsStack.width * 0.3; duration: UiMetrics.animDuration; easing.type: Easing.OutCubic }
+            }
+        }
+        popEnter: Transition {
+            ParallelAnimation {
+                OpacityAnimator { from: 0; to: 1; duration: UiMetrics.animDuration; easing.type: Easing.OutCubic }
+                XAnimator { from: -settingsStack.width * 0.3; to: 0; duration: UiMetrics.animDuration; easing.type: Easing.OutCubic }
+            }
+        }
+        popExit: Transition {
+            ParallelAnimation {
+                OpacityAnimator { from: 1; to: 0; duration: UiMetrics.animDuration; easing.type: Easing.OutCubic }
+                XAnimator { from: 0; to: settingsStack.width * 0.3; duration: UiMetrics.animDuration; easing.type: Easing.OutCubic }
+            }
+        }
     }
 
     Component {
