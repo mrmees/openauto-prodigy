@@ -52,79 +52,86 @@ Item {
     Component {
         id: settingsList
 
-        ListView {
+        Item {
             anchors.fill: parent
-            clip: true
-            boundsBehavior: Flickable.StopAtBounds
 
-            model: ListModel {
-                id: settingsListModel
-            }
+            GridLayout {
+                anchors.centerIn: parent
+                columns: 3
+                columnSpacing: UiMetrics.gridGap
+                rowSpacing: UiMetrics.gridGap
 
-            delegate: Loader {
-                width: ListView.view.width
-                sourceComponent: type === "section" ? sectionDelegate : itemDelegate
-                required property string type
-                required property string icon
-                required property string label
-                required property string pageId
-            }
-
-            Component.onCompleted: {
-                // General
-                settingsListModel.append({ type: "section", icon: "", label: "General", pageId: "" })
-                settingsListModel.append({ type: "item", icon: "\ueb97", label: "Display", pageId: "display" })
-                settingsListModel.append({ type: "item", icon: "\ue050", label: "Audio", pageId: "audio" })
-                settingsListModel.append({ type: "item", icon: "\ue1d8", label: "Connection", pageId: "connection" })
-                settingsListModel.append({ type: "item", icon: "\ue04b", label: "Video", pageId: "video" })
-                settingsListModel.append({ type: "item", icon: "\uf8cd", label: "System", pageId: "system" })
-
-                // Companion
-                settingsListModel.append({ type: "section", icon: "", label: "Companion", pageId: "" })
-                settingsListModel.append({ type: "item", icon: "\ue324", label: "Companion", pageId: "companion" })
-
-                // Plugins
-                var pluginCount = 0
-                if (typeof PluginModel !== "undefined") {
-                    for (var i = 0; i < PluginModel.rowCount(); i++) {
-                        var idx = PluginModel.index(i, 0)
-                        var settingsUrl = PluginModel.data(idx, 264)  // SettingsQmlRole
-                        if (settingsUrl && settingsUrl.toString() !== "") {
-                            if (pluginCount === 0) {
-                                settingsListModel.append({ type: "section", icon: "", label: "Plugins", pageId: "" })
-                            }
-                            var pluginId = PluginModel.data(idx, 257)    // PluginIdRole
-                            var pluginName = PluginModel.data(idx, 258)  // PluginNameRole
-                            var pluginIcon = PluginModel.data(idx, 260)  // PluginIconTextRole
-                            settingsListModel.append({
-                                type: "item",
-                                icon: pluginIcon || "\ue8b8",
-                                label: pluginName + " Settings",
-                                pageId: "plugin:" + pluginId
-                            })
-                            pluginCount++
-                        }
+                Tile {
+                    tileName: "Android Auto"
+                    tileIcon: "\ue531"
+                    tileSubtitle: {
+                        var r = ConfigService.value("video.resolution") || "720p"
+                        var f = ConfigService.value("video.fps") || 60
+                        return r + " " + f + "fps"
                     }
+                    Layout.preferredWidth: UiMetrics.tileW
+                    Layout.preferredHeight: UiMetrics.tileH
+                    onClicked: openPage("video")
                 }
 
-                // About
-                settingsListModel.append({ type: "section", icon: "", label: "", pageId: "" })
-                settingsListModel.append({ type: "item", icon: "\ue88e", label: "About", pageId: "about" })
+                Tile {
+                    tileName: "Display"
+                    tileIcon: "\ueb97"
+                    tileSubtitle: {
+                        var t = ConfigService.value("display.theme") || "default"
+                        return t.charAt(0).toUpperCase() + t.slice(1)
+                    }
+                    Layout.preferredWidth: UiMetrics.tileW
+                    Layout.preferredHeight: UiMetrics.tileH
+                    onClicked: openPage("display")
+                }
+
+                Tile {
+                    tileName: "Audio"
+                    tileIcon: "\ue050"
+                    tileSubtitle: {
+                        var v = typeof AudioService !== "undefined" ? AudioService.masterVolume : 100
+                        return "Vol: " + v + "%"
+                    }
+                    Layout.preferredWidth: UiMetrics.tileW
+                    Layout.preferredHeight: UiMetrics.tileH
+                    onClicked: openPage("audio")
+                }
+
+                Tile {
+                    tileName: "Connectivity"
+                    tileIcon: "\ue1d8"
+                    tileSubtitle: {
+                        if (typeof BluetoothManager === "undefined") return ""
+                        var n = BluetoothManager.connectedDeviceName
+                        return n !== "" ? "BT: " + n : "BT: No device"
+                    }
+                    Layout.preferredWidth: UiMetrics.tileW
+                    Layout.preferredHeight: UiMetrics.tileH
+                    onClicked: openPage("connection")
+                }
+
+                Tile {
+                    tileName: "Companion"
+                    tileIcon: "\ue324"
+                    tileSubtitle: {
+                        if (typeof CompanionService === "undefined") return "Disabled"
+                        return CompanionService.connected ? "Connected" : "Not connected"
+                    }
+                    Layout.preferredWidth: UiMetrics.tileW
+                    Layout.preferredHeight: UiMetrics.tileH
+                    onClicked: openPage("companion")
+                }
+
+                Tile {
+                    tileName: "System"
+                    tileIcon: "\uf8cd"
+                    tileSubtitle: "v" + (ConfigService.value("identity.sw_version") || "0.0.0")
+                    Layout.preferredWidth: UiMetrics.tileW
+                    Layout.preferredHeight: UiMetrics.tileH
+                    onClicked: openPage("system")
+                }
             }
-        }
-    }
-
-    Component {
-        id: sectionDelegate
-        SectionHeader { text: parent ? parent.label : "" }
-    }
-
-    Component {
-        id: itemDelegate
-        SettingsListItem {
-            icon: parent ? parent.icon : ""
-            label: parent ? parent.label : ""
-            onClicked: openPage(parent ? parent.pageId : "")
         }
     }
 
