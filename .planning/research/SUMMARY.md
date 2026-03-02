@@ -1,172 +1,189 @@
 # Project Research Summary
 
-**Project:** OpenAuto Prodigy — Audio Equalizer (v0.4.1)
-**Domain:** Real-time 10-band graphic EQ for PipeWire-based Android Auto head unit
-**Researched:** 2026-03-01
+**Project:** OpenAuto Prodigy — v0.4.3 Interface Polish & Settings Reorganization
+**Domain:** Automotive head unit UI/UX — Qt 6 QML visual refresh and settings restructuring
+**Researched:** 2026-03-02
 **Confidence:** HIGH
 
 ## Executive Summary
 
-The audio equalizer for OpenAuto Prodigy is a well-scoped, self-contained feature with no new dependencies. All four research streams converged on the same architecture: **inline biquad DSP processing inside the existing PipeWire `onPlaybackProcess` callback**. This approach was evaluated alongside two PipeWire-native alternatives (filter-chain modules and `pw_filter` nodes), both rejected due to graph latency, broken rate matching, and complex link lifecycle. The biquad approach slots cleanly into the existing ring buffer → callback → PW buffer pipeline with approximately 15 new lines of integration code.
+This milestone is a UI-layer overhaul of an existing, working Qt 6/QML automotive head unit application. The app already has a solid plugin architecture, validated AA protocol stack, and working audio/BT subsystems. v0.4.3 is specifically about making the settings experience match automotive UX standards and giving the entire interface a visual polish pass. No new C++ services are needed; this is overwhelmingly a QML-side effort with minimal C++ surface changes (two new ThemeService Q_PROPERTYs).
 
-The recommended implementation uses the Robert Bristow-Johnson Audio EQ Cookbook (peaking EQ formula), which is the W3C-hosted industry standard. The entire DSP core is approximately 150 lines of C++ using only `<cmath>` and `<atomic>` — nothing new to link, nothing to install. The feature scope is well-defined: 10 bands at ISO octave frequencies (31Hz–16kHz), ±12dB range, 8 bundled presets, per-stream profiles (media/navigation/phone), YAML persistence, QML touch UI, and web config extension. Total estimated new code is approximately 1,070 lines across 9 files.
+The recommended approach is evolutionary: restyle existing controls first (visual foundation), then restructure settings navigation (settings reorganization), then wire the NavStrip EQ shortcut as the final integration point. This ordering avoids double-work — new pages inherit polished controls from day one, and the EQ shortcut can only be wired once both its source (NavStrip) and destination (SettingsMenu) are ready. The key structural change is replacing a flat 8-item settings list with a 6-category navigation system that maps logically to user mental models: Android Auto / Display / Audio / Connectivity / Companion / System.
 
-The primary risks are in the real-time audio domain: mutex use in the callback (priority inversion), denormal floats during quiet audio (CPU spikes on Cortex-A72), and coefficient snap-in on preset change (audible clicks). All three have well-documented prevention strategies — double-buffered atomic coefficients, FTZ bit on the audio thread, and coefficient interpolation over 5–10ms. These are not theoretical risks; they are the specific failure modes that every IIR EQ implementation on real-time audio hardware encounters. Getting them right from the start is essential — retrofitting them is painful.
+The critical risks are Pi 4 GPU performance (StackView transitions can tank frame rate if not carefully controlled), EQ dual-access state divergence (two navigation paths to the same component causing inconsistent UI state), and the ongoing Qt 6.4/6.8 platform gap between dev VM and Pi target. All three are well-understood and have clear mitigations. No new dependencies are required — everything needed is already in Qt Quick / Qt Quick Controls, already installed, and already validated on Pi 4.
 
 ## Key Findings
 
 ### Recommended Stack
 
-No new dependencies. The entire EQ implementation builds on the existing stack. DSP math uses `<cmath>`. Thread safety uses `<atomic>`. The existing PipeWire `pw_stream` API, yaml-cpp config system, Qt Quick Controls, and Flask/IPC web panel all extend naturally.
+No new packages or dependencies are needed for this milestone. The animation system (OpacityAnimator, XAnimator, Behavior, ColorAnimation, StackView transitions) is built into QtQuick and already a project dependency. Material Symbols Outlined variable font is already bundled at 10MB. The only C++ changes are two new Q_PROPERTY additions to ThemeService (`dividerColor`, `pressedColor`) with corresponding YAML keys. UiMetrics additions are QML-only (it's already a QML singleton).
 
 **Core technologies:**
-- **`<cmath>` + `<atomic>` + `<array>`**: DSP math and lock-free coefficient swap — standard C++17, zero new dependency
-- **Existing `onPlaybackProcess` callback**: Integration point for inline biquad processing — already owns the audio data at the right moment in the right thread
-- **Existing yaml-cpp (YamlConfig)**: Preset and profile persistence — follows `setValueByPath`/`initDefaults` pattern already in use
-- **Existing Qt Quick Controls (Slider, ComboBox, Repeater)**: EQ touch UI — available in both Qt 6.4 (dev VM) and Qt 6.8 (Pi)
-- **Existing IpcServer + Flask**: Web config panel extension — additive, follows established `handleGetX`/`handleSetX` pattern
+- `OpacityAnimator` / `XAnimator`: Page transitions — render-thread execution stays smooth even when UI thread is busy (available since Qt 5.2, no compat concerns)
+- `Behavior on <property>` + `ColorAnimation`: Control feedback and theme transitions — already used in EqBandSlider, Sidebar, NotificationArea; extend the existing pattern
+- `StackView` custom transitions: Settings category drill-down — already in use; needs transition properties populated and performance-validated on Pi 4
+- Material Symbols Outlined variable font: All iconography — already bundled; add `font.variableAxes` support on Qt 6.8 via runtime `hasOwnProperty` guard
+- Static `Grid` in `Flickable`: Category tile grid — 6 fixed items, no dynamic model or GridView needed
 
-**Version compatibility:** No issues. Inline processing uses only `pw_stream` API (no filter-chain modules), so the PipeWire version gap (1.0.5 dev VM vs 1.4.2 Pi) is irrelevant. Qt 6.4 and 6.8 both cover the basic QML controls needed.
+**Critical constraints:**
+- All animation durations 80-200ms maximum (automotive = instant feel). 150ms for page transitions, 80ms for press feedback
+- `font.variableAxes` is Qt 6.8-only — must use runtime check, not conditional compilation
+- Never mix `Animator` types with `NumberAnimation` in the same `ParallelAnimation` — defeats render-thread optimization
+- Do NOT use anchors on root-level items pushed to StackView — blocks position-based transition animations
 
 ### Expected Features
 
-**Must have (table stakes):**
-- 10-band graphic EQ sliders (31, 62, 125, 250, 500, 1k, 2k, 4k, 8k, 16kHz) — standard for any head unit EQ
-- Bundled presets (8): Flat, Rock, Pop, Jazz, Bass Boost, Treble Boost, Voice, Car Cabin — one-tap sound profiles are expected
-- Bypass/flat toggle — always-visible, prominent; users need to hear the before/after difference
-- Real-time slider response — no "apply" button; coefficients update within one audio quantum (~21ms)
-- Visual frequency response curve — polyline connecting slider tops; trivial to add, significant UX improvement
-- YAML config persistence — survives reboot; non-negotiable for a car head unit
+The research identified a clear gap between current state and automotive table stakes. The single biggest UX miss is press feedback — every tappable control currently gives no visual confirmation of a tap, which violates basic automotive HMI requirements and Google Design for Driving guidelines (330ms ripple minimum, per spec). Visual feedback has been shown to reduce glance time by 40%.
 
-**Should have (differentiators):**
-- Per-stream EQ profiles — different curves for media vs navigation vs phone; no commercial head unit does this
-- User-created presets — save custom curves with a name; targets power users
-- Web config panel EQ — adjust from phone browser with better precision than touchscreen
-- Per-stream preset assignment in web panel — configure all three streams from one screen
+**Must have (table stakes — defines v0.4.3):**
+- Press feedback on ALL tappable elements — largest single UX gap; without this the UI feels dead. Add pressed color state (highlight at 20% opacity) or scale 0.95 to SettingsListItem, Tile, NavStrip buttons, FullScreenPicker rows, EQ controls
+- Settings reorganization into 6 category tiles — headline feature; replaces flat 8-item list with a 2x3 tile grid
+- Video settings moved into Android Auto category — rearrangement, not new features; video config only makes sense in AA context
+- EQ moved into Audio category — audio feature belongs in audio settings; keep NavStrip shortcut for quick access
+- Consistent icons on all settings rows — add leading icon support to SettingsToggle, SettingsSlider, SegmentedButton, FullScreenPicker
 
-**Defer (v2+):**
-- System-wide EQ covering BT audio — different architecture (sink-level filter-chain), out of v0.4.1 scope
-- Parametric EQ (adjustable Q/frequency) — UI nightmare on 1024x600; users who need it can use PipeWire externally
-- Real-time spectrum analyzer — FFT on the RT thread competes with video decode CPU budget on Pi 4
-- Auto-EQ / room correction — requires calibrated mic, test signal, far beyond scope
-- Separate left/right channel EQ — doubles controls, UI nightmare on small touchscreen
+**Should have (quality improvements, do if time allows):**
+- BT device swipe-to-forget — port EQ preset swipe pattern to ConnectionSettings; replace tiny "Forget" text link
+- Inline status on category tiles ("5GHz Ch36", "2 paired") — differentiator, requires optional `subtitle` prop on Tile
+- Font size bump for automotive readability — bump fontBody from 20 to 22-24px base; test at arm's length on Pi
+- NavStrip EQ shortcut button — quick-access icon between day/night toggle and settings gear
+
+**Defer to future milestone:**
+- Touch target size audit (touchMin from 56 to 76px) — needs full regression test across all views
+- Animated transition tuning beyond initial implementation
+- Read-only field visual overhaul
+- Settings value preview on category tiles
+- Ripple/wave animation feedback — requires fragment shader, overkill for this milestone
+
+**Proposed settings reorganization (6 categories):**
+- **Android Auto**: Resolution, FPS, DPI, codecs, sidebar, auto-connect, TCP port, protocol capture
+- **Display**: Brightness, theme, wallpaper, orientation, day/night source, GPIO night pin
+- **Audio**: Master volume, output device, input device, mic gain + EQ sub-page (Output/Input and Equalizer)
+- **Connectivity**: WiFi channel/band, BT name, accept pairings, paired devices list
+- **Companion**: All companion app settings (unchanged)
+- **System / About**: HU identity, hardware profile, touch device, version, close app
 
 ### Architecture Approach
 
-The architecture is a clean **Service + Processor split**: `EqualizerService` (QObject, main thread, UI bindings, config, presets) owns `EqualizerProcessor` instances (RT thread, stateless except biquad filter state). They communicate only through atomic pointer swap — the service computes new coefficients on the main thread and stores them atomically; the processor checks and applies them at the top of each RT callback. This mirrors how ThemeService and AudioService already work. The integration into `AudioService` is minimal: `AudioStreamHandle` gets an `eqProcessor` field, `createStream()` initializes it, and `onPlaybackProcess()` gets approximately 15 lines between the ring buffer read and the silence fill.
+The architecture is evolutionary, not revolutionary. The existing StackView + signal-based navigation pattern is sound and extends cleanly to the new two-level settings hierarchy. No new C++ services are needed. The SettingsMenu.qml gets a structural rewrite; all other navigation plumbing stays the same. The critical architectural principle: category pages emit signals, SettingsMenu handles navigation — category components never reference the StackView directly.
 
-**Major components:**
-1. **`BiquadFilter` (header-only)** — single biquad stage; coefficients + z1/z2 state; Transposed Direct Form II
-2. **`EqualizerProcessor`** — 10-band cascade per channel; atomic coefficient swap; RT-safe `process(int16_t*, nFrames, channels)`
-3. **`EqualizerService`** (QObject) — per-stream profiles, preset library (bundled + user), config persistence, Q_PROPERTYs for QML
-4. **`EqualizerSettings.qml`** — vertical sliders, stream selector tabs, preset picker, frequency curve; integrates with Settings view
-5. **IPC extension** — 5 new JSON commands over existing Unix socket; web panel reads/writes via these, never direct YAML access
+**Component change map:**
+1. `SettingsMenu.qml` (REWRITTEN) — StackView orchestrator; adds `openDirectPage()` for NavStrip EQ shortcut; handles back navigation and TopBar title sync
+2. `SettingsCategoryList.qml` (NEW) — 6-item static category list + dynamically appended plugin settings; emits `categorySelected` signal
+3. `AndroidAutoSettings.qml` (NEW) — merges ConnectionSettings (AA/capture sections) + VideoSettings (all content)
+4. `ConnectivitySettings.qml` (NEW) — extracts BT + WiFi AP sections from ConnectionSettings
+5. `AudioSettingsCategory.qml` (NEW) — subcategory page: "Output & Input" and "Equalizer" sub-items
+6. `SystemAboutSettings.qml` (NEW) — merges SystemSettings + AboutSettings
+7. All existing controls (MODIFIED) — visual refresh + press state + icon prop; same public API preserved
 
-**Suggested build order:** BiquadFilter → EqualizerProcessor → AudioService integration → EqualizerService → config schema → IPC handlers → QML UI → web config panel. Bottom-up: testable DSP core first, UI surfaces last.
+**Files deleted (content migrated, not lost):** ConnectionSettings.qml, VideoSettings.qml, SystemSettings.qml, AboutSettings.qml
+
+**Key patterns to follow:**
+- All settings pages use Flickable + ColumnLayout template (already universal in codebase)
+- All controls bind to ConfigService via `configPath` string — config paths are NEVER changed during this reorganization
+- Signal-based sub-navigation: category pages emit signals, SettingsMenu pushes pages
+- NavStrip EQ shortcut is pure QML-to-QML: `settingsView.openDirectPage("eq")` — zero C++ changes needed
 
 ### Critical Pitfalls
 
-1. **Mutex in the RT callback** — any lock in `onPlaybackProcess` causes priority inversion under load. Use double-buffered atomic coefficient swap. No exceptions. An atomic index swap (`std::atomic<int>`) between two coefficient arrays is wait-free and correct.
+1. **StackView transitions drop to 15-20fps on Pi 4** — VideoCore VI cannot composit two full-screen blended layers at 60fps while AA video may be decoding. Start with `null` transitions (instant). Only add animation if Pi 4 testing confirms it runs smooth. Use `QSG_RENDER_TIMING=1` to measure. The existing Sidebar uses 80ms animations — treat that as the proven ceiling.
 
-2. **Denormal floats during quiet audio** — IIR biquad state variables decay to subnormals when audio goes quiet; Cortex-A72 processes these ~100x slower, blowing the RT deadline. Set FTZ bit on FPCR at PipeWire thread start: `fpcr |= (1 << 24)`. One assembly line prevents the entire class of problem.
+2. **EQ dual-access creates two instances with divergent state** — StackView `push(Component)` creates a new EqSettings instance each time. Local QML state (`currentStream`, `currentBypassed`) initializes fresh, diverging from whatever the other navigation path last showed. Fix: either use a single shared instance (Loader parented to Shell), or make all visual state fully derived from `EqualizerService` C++ singleton properties. This architecture decision must be made before Phase 3.
 
-3. **Coefficient snap causes click artifacts on preset change** — atomically swapping biquad coefficients produces an audible transient because filter delay line state is inconsistent with the new transfer function. Interpolate coefficients smoothly over 5–10ms (240–480 samples at 48kHz). **This is not optional polish — implement it from day one.**
+3. **`layer.enabled` causes GPU memory exhaustion** — the codebase currently has zero `layer.enabled` usage. Maintain this. For rounded corners use `Rectangle` radius (GPU-native). For subtree opacity animate individual children. Ban `layer.enabled` entirely for this milestone.
 
-4. **EQ on navigation/phone audio breaks intelligibility** — bass boost preset applied to navigation voice prompts masks consonants over road noise. Default nav and phone streams to flat or Voice preset; never apply user music EQ to speech streams automatically. The three-stream separation in AudioService already enables clean per-stream control.
+4. **Config path breakage during settings reorganization** — moving a control to a different settings page tempts reorganizing config paths to match (e.g. `video.resolution` → `android_auto.video.resolution`). This breaks existing installations. UI categories and YAML config paths are independent. Never rename a config path during a UI reskin.
 
-5. **Config defaults gate** — `setValueByPath` silently fails without an `initDefaults()` entry (known project issue). Register all `audio.equalizer.*` keys in `initDefaults()` before any read/write operation.
+5. **Qt 6.4 / 6.8 platform gap** — dev VM (Qt 6.4) vs Pi target (Qt 6.8). Forbidden APIs: `loadFromModule()` (already documented), `font.variableAxes` (requires runtime guard), `Popup.popupType`, `Text.renderType: CurveRendering`, anything marked "since Qt 6.5+" in the docs. Test on both platforms after every QML component change.
 
 ## Implications for Roadmap
 
-Based on research, the natural build order is bottom-up: testable DSP core first, service layer second, UI surfaces last. This minimizes integration risk and enables unit testing at each layer before touching the next.
+Based on combined research, a 3-phase structure is recommended. Phase boundaries are driven by: (a) the need for polished controls before new pages are built, (b) the EQ shortcut depending on both NavStrip and SettingsMenu changes, and (c) risk management benefit of validating control styling on the existing structure before restructuring it.
 
-### Phase 1: DSP Core
-**Rationale:** Everything else depends on the biquad math being correct and RT-safe. This layer has zero Qt/PipeWire dependencies and is fully unit-testable on the dev VM without a PipeWire daemon. Getting coefficient accuracy and thread safety right before touching any other system avoids debugging RT problems through layers of UI.
-**Delivers:** `BiquadFilter` (header-only), `EqualizerProcessor` with atomic coefficient swap, RBJ peaking EQ coefficient calculator, coefficient interpolation, FTZ setup
-**Addresses:** 10-band EQ (underlying engine), bypass toggle (atomic `enabled_` flag), real-time response (lock-free updates)
-**Avoids:** Pitfall 1 (mutex in RT callback), Pitfall 2 (denormals — FTZ set here), Pitfall 3 (click artifacts — interpolation implemented here, not deferred)
+### Phase 1: Visual Foundation — Control Polish
+**Rationale:** Restyle existing controls while the settings structure is unchanged. New settings pages will inherit polished controls from day one, eliminating double-work. This is also the lowest-risk phase — same public API, only styling changes — so it can be validated on both Qt 6.4 and 6.8 without structural risk.
+**Delivers:** Press feedback on all tappable elements. Optional icon prop on all controls. SettingsToggle/SettingsSlider/SegmentedButton/FullScreenPicker visually refreshed. Tile and LauncherMenu flatter. NavStrip spacing polished (EQ button not yet wired). UiMetrics additions (categoryRowH, animDuration, animDurationFast). ThemeService additions (dividerColor, pressedColor).
+**Addresses:** Press feedback gap (table stakes #1), icon consistency (#5), automotive visual language throughout
+**Avoids:** `layer.enabled` temptation (banned from day one), hardcoded pixels (enforce UiMetrics from day one), Qt 6.4/6.8 compat violations (test on both platforms per control)
 
-### Phase 2: AudioService Integration
-**Rationale:** The DSP core is useless without being wired into the audio pipeline. This phase does the minimal integration: add `eqProcessor` to `AudioStreamHandle`, call `process()` in `onPlaybackProcess()`, and verify the PI rate controller is unaffected. Approximately 15 lines of production code but the most risk-sensitive step because it touches the RT callback.
-**Delivers:** Working EQ on all three AA audio streams, per-stream processor instances, verified rate matching stability
-**Addresses:** Per-stream EQ profiles (foundation), audio quality improvement
-**Avoids:** Pitfall 4 (speech stream intelligibility — default nav/phone to flat here), Pitfall 6 (rate matching disruption — verify PI controller unchanged with EQ enabled)
+### Phase 2: Settings Restructuring
+**Rationale:** Build new settings pages using the freshly polished control library. Each new page is independently buildable and testable. Delete old files only after content is fully migrated and verified. Config paths are never changed.
+**Delivers:** SettingsCategoryList (6-category top-level), SettingsMenu rewritten to 2-level hierarchy with `openDirectPage()`, AndroidAutoSettings (merges 3 source files), ConnectivitySettings (extracted), SystemAboutSettings (merged), AudioSettingsCategory (subcategory page). Old files deleted. All configPaths verified against current config.yaml schema.
+**Addresses:** Settings reorganization into 6 categories (#2), Video into Android Auto (#3), EQ in Audio (#4)
+**Avoids:** Config path breakage (UI categories independent of YAML paths), StackView state leaks (decide Loader vs destroyOnPop architecture before building), deep nesting (2 levels max — Audio is the only subcategory)
 
-### Phase 3: EqualizerService + Config
-**Rationale:** With processors wired in, the service layer provides the Qt-facing API: per-stream profiles, preset library (8 bundled presets compiled into binary), config persistence, and QML Q_PROPERTY bindings. This is where the per-stream differentiator gets built.
-**Delivers:** `EqualizerService` QObject, 8 bundled presets (code-defined), per-stream profiles in YAML, `initDefaults()` registration, user preset save/delete
-**Addresses:** Bundled presets, user-created presets, YAML persistence, per-stream profiles
-**Avoids:** Pitfall 5 (config defaults gate — register all keys before first access), Pitfall 7 (correct YAML schema up front)
-
-### Phase 4: Head Unit Touch UI
-**Rationale:** Primary user-facing surface. Built after the service layer is stable so QML bindings are reliable. Preset-first design (prominent preset picker, sliders behind "Custom" tap) reduces touch precision requirements and matches how most users interact with EQ.
-**Delivers:** `EqualizerSettings.qml` with 10 vertical sliders, stream selector tabs, preset picker (reuses FullScreenPicker), frequency curve polyline, bypass toggle, "Reset to Flat" button
-**Addresses:** All P1 features — sliders, presets, curve, bypass, stream switching
-**Avoids:** Pitfall 9 (touch target sizing — preset-first design, sliders behind advanced tap; snap to 1dB increments)
-
-### Phase 5: Web Config Panel
-**Rationale:** Second UI surface, lower priority than touch UI. Depends on Phase 3 IPC commands. Delivers power-user configuration from phone/laptop — better precision for fine tuning than fat-finger touchscreen sliders.
-**Delivers:** Flask `/equalizer` route, HTML/JS EQ panel with sliders, per-stream preset dropdowns, save-as-preset form, real-time IPC commands
-**Addresses:** Web config EQ (P2), per-stream web panel assignment (P2), all P2 features
-**Avoids:** Pitfall 8 (web/head-unit state sync — IPC socket is single source of truth, web panel polls for state rather than reading YAML directly)
+### Phase 3: EQ Dual-Access and Integration Validation
+**Rationale:** NavStrip EQ shortcut is the final integration point — it requires NavStrip modifications (Phase 1) and SettingsMenu's `openDirectPage()` (Phase 2). End-to-end navigation testing covers all paths that touch the new structure. EQ state architecture must be resolved here.
+**Delivers:** NavStrip EQ button wired. EQ accessible from Audio category AND NavStrip shortcut. `openDirectPage` resets StackView to depth 1 before pushing (prevents stale stack state). Full navigation regression: category→detail→back, EQ from launcher/AA/other-settings, plugin settings still work.
+**Addresses:** NavStrip EQ shortcut (should-have), EQ state divergence resolution
+**Avoids:** StackView state leak on direct navigation (pop to depth 1 before push), animation during video decode (test on Pi 4 with active AA session, max 80ms, use Animator types)
 
 ### Phase Ordering Rationale
 
-- **DSP before service:** Biquad math is dependency-free and fully unit-testable. Bugs found here cost nothing. Bugs found after Qt wiring cost more.
-- **Integration before service:** The RT callback is the most constrained environment. Verify the integration point works in isolation before adding Qt machinery on top.
-- **Service before UI:** QML bindings require stable Q_PROPERTYs and Q_INVOKABLEs to bind against.
-- **Touch UI before web:** Primary interface first; web panel is an enhancement.
-- **Coefficient interpolation in Phase 1, not Phase 4:** Click artifacts are a DSP problem, not a UI problem. Deferring them to "UI polish" is a trap — by then the audio callback is wired into the app and testing is harder.
+- Visual-first prevents double-work: polished controls are needed in new pages, so building pages first means restyling twice
+- SettingsMenu rewrite must follow SettingsCategoryList creation (obvious dependency)
+- AndroidAutoSettings is the largest single merge (3 source files) — build early in Phase 2 to surface issues while there is time to course-correct
+- EQ shortcut last because it requires both NavStrip changes and SettingsMenu's `openDirectPage()` — it is the integration test for the whole milestone
+- Config path verification is a hard gate at end of Phase 2, not a cleanup task at end of Phase 3
 
 ### Research Flags
 
-Phases with well-documented patterns (skip `/gsd:research-phase`):
-- **Phase 1 (DSP Core):** RBJ cookbook is the canonical W3C reference; Transposed Direct Form II is textbook; no research needed.
-- **Phase 2 (AudioService integration):** Codebase was read directly during research; integration point is fully characterized.
-- **Phase 3 (Service + Config):** Follows existing ThemeService and YamlConfig patterns exactly.
-- **Phase 4 (Touch UI):** Standard Qt Quick Controls; UiMetrics scaling established in project.
-- **Phase 5 (Web Config):** Follows existing Flask + IPC patterns. Only open question is polling vs push for state sync — recommend polling at ~1s interval for v0.4.1.
+Phases with standard patterns (skip `/gsd:research-phase`):
+- **Phase 1 (control polish):** Well-documented Qt Quick animation patterns; codebase already uses them on Pi 4; Sidebar at 80ms is direct evidence they work
+- **Phase 2 (settings restructuring):** Pure QML rearrangement; StackView navigation is well-documented; signal-based architecture already in use
+- **Phase 3 (EQ wiring):** `openDirectPage` pattern is fully specified in ARCHITECTURE.md; no unknown territory
 
-No phases need `/gsd:research-phase`. The domain is extremely well-documented from multiple high-confidence sources, and the codebase was read directly during research.
+Phases needing careful empirical validation rather than deeper research:
+- **Phase 1:** Test press feedback and icon sizing on Pi 4 at arm's length — readability is a physical validation problem, not a research problem
+- **Phase 3:** StackView transition performance must be measured on Pi 4 (start null, add only if `QSG_RENDER_TIMING=1` confirms smooth). EQ state divergence architecture (shared Loader vs. C++-derived state) must be decided before Phase 3 begins.
+
+No phases need `/gsd:research-phase`. The domain is well-documented, all APIs are verified, and the codebase was read directly during research.
 
 ## Confidence Assessment
 
 | Area | Confidence | Notes |
 |------|------------|-------|
-| Stack | HIGH | All technologies already in use; no new dependencies; version compatibility verified for both Qt 6.4/6.8 and PipeWire 1.0.5/1.4.2 |
-| Features | HIGH | Standard car audio EQ domain; OAP reference available; competitor analysis complete; feature count and UX patterns well-established |
-| Architecture | HIGH | Codebase read directly; existing `onPlaybackProcess` callback fully characterized; integration point confirmed; all three alternative approaches evaluated and rejected with specific reasons |
-| Pitfalls | HIGH | RT audio pitfalls from official PipeWire docs + established EarLevel Engineering references; Pi 4 ARM-specific pitfalls from ARM community + codebase analysis |
+| Stack | HIGH | All recommendations use Qt APIs verified in official docs. Codebase already uses these patterns on Pi 4. No new dependencies. |
+| Features | HIGH | Grounded in Google Design for Driving guidelines, OEM pattern analysis, and direct inventory of all 43 QML files and 11 existing controls. |
+| Architecture | HIGH | Based on direct analysis of all relevant source files. All recommended patterns already exist in the codebase — no speculation. |
+| Pitfalls | HIGH (critical), MEDIUM (Pi 4 perf specifics) | Qt official docs confirm layer.enabled, clipping, and animation warnings. Pi 4 frame rate numbers under transition load are from community sources — treat as directional, validate empirically. |
 
 **Overall confidence:** HIGH
 
 ### Gaps to Address
 
-- **QML slider layout at 1024x600:** 10 vertical sliders in ~900px usable width needs visual prototyping to confirm touch targets are comfortable at driving precision levels. STACK.md flagged this as MEDIUM. Mitigation: preset-first design means most users never touch individual sliders.
-- **Coefficient interpolation implementation detail:** Research recommends 5–10ms linear interpolation but the exact per-sample `alpha` increment loop in the RT callback needs care. If the quantum is shorter than the interpolation window, carry `alpha` across multiple callbacks. If alpha reaches 1.0 mid-callback, stop interpolating. Not complex but needs explicit handling.
-- **Web config state sync direction:** Current IpcServer is request/response only — no server-initiated push. If the user adjusts EQ via the head unit touchscreen while the web panel is open, the web panel won't update until next poll. Options: poll every ~1s (simple, acceptable for v0.4.1), or upgrade to WebSocket (deferred). Recommend polling for now.
+- **EQ state divergence architecture decision**: Research identified the problem and two solutions (shared Loader instance at Shell level, or fully C++-derived state in EqualizerService). The choice has downstream implications — Loader is simpler but requires Shell.qml changes; C++ approach is cleaner long-term but requires new EqualizerService properties. Decide before Phase 3 begins.
+- **StackView `destroyOnPop: false` availability in Qt 6.4**: Research flagged this property may not exist in Qt 6.4. Verify before relying on it for scroll position preservation; fall back to persistent Loader approach if needed.
+- **Press feedback visual values**: Research recommends pressed color at 20% opacity or scale 0.95, but exact values need visual testing on Pi 4 at car-mount distance (60cm). Automotive ambient light differs from desktop monitors.
+- **Font size bump layout impact**: Bumping fontBody from 20 to 22-24px needs a full layout audit across all existing settings pages — some may truncate labels at 1024px wide with larger text. Do this within Phase 1, not as an afterthought.
 
 ## Sources
 
 ### Primary (HIGH confidence)
-- [W3C Audio EQ Cookbook (RBJ)](https://www.w3.org/TR/audio-eq-cookbook/) — biquad peaking EQ coefficient formulas, the definitive reference
-- [PipeWire Tutorial 7: Audio DSP Filter](https://docs.pipewire.org/devel/page_tutorial7.html) — RT callback structure; pw_filter API (evaluated, rejected)
-- [PipeWire Filter-Chain Module](https://docs.pipewire.org/page_module_filter_chain.html) — external EQ approach (evaluated, rejected)
-- [PipeWire Parametric Equalizer Module](https://docs.pipewire.org/page_module_parametric_equalizer.html) — external EQ approach (evaluated, rejected)
-- [PipeWire Filter API](https://docs.pipewire.org/group__pw__filter.html) — pw_filter reference (evaluated, rejected)
-- Existing codebase: `AudioService.cpp`, `AudioService.hpp`, `AudioRingBuffer.hpp`, `IpcServer.cpp`, `ThemeService.hpp`, `YamlConfig.hpp` — primary source, read directly during research
+- Qt 6 StackView documentation — transition properties, anchor caveat, destroyOnPop behavior
+- Qt 6 Animator type documentation — render thread execution model, available subtypes, ParallelAnimation caveat
+- Qt 6 Behavior / NumberAnimation / ColorAnimation documentation — implicit animation patterns
+- Qt 6 Item documentation — layer.enabled GPU memory warnings, clipping costs inside delegates
+- Qt 6.8 What's New — documents APIs unavailable in Qt 6.4 (font.variableAxes, Popup.popupType, etc.)
+- Qt 6 Quick Performance Considerations — official performance guidance (layer, clipping, animation)
+- Google Design for Driving — Sizing (76dp touch targets), Components, Buttons (330ms ripple, 156dp min width)
+- Material Symbols developer guide — variable font axes, optical size range 20-48dp, static vs variable tradeoffs
+- Android AOSP Car Settings documentation — settings hierarchy and grouping patterns
+- Direct codebase analysis — all 43 QML files, all settings pages, all control components, ApplicationController.hpp, ThemeService.hpp, CLAUDE.md, MEMORY.md
 
 ### Secondary (MEDIUM confidence)
-- [EarLevel Engineering: Biquad C++ Source](https://www.earlevel.com/main/2012/11/26/biquad-c-source-code/) — Transposed Direct Form II reference implementation
-- [EarLevel Engineering: Denormalization in Audio](https://www.earlevel.com/main/2012/12/03/a-note-about-de-normalization/) — FTZ/DAZ mitigation strategies and ARM specifics
-- [DSP Parameter Smoothing (Dark Palace Studio)](https://darkpalace.studio/2025/04/18/dsp-smoothing.html) — coefficient interpolation patterns for RT audio
-- [Pi 4 Real-Time DSP Discussion (RPi Forums)](https://forums.raspberrypi.com/viewtopic.php?t=248857) — ARM Cortex-A72 performance validation community data
-- [Crutchfield: Car EQ Guide](https://www.crutchfield.com/learn/how-to-adjust-the-equalizer-in-your-car.html) — preset values and UX conventions for car audio EQ
-- [SoundCertified: Best Equalizer Settings for Car Audio](https://soundcertified.com/best-equalizer-settings-for-car-audio/) — preset genre definitions
+- Snapp Automotive — touch area sizes in car interfaces (80px min, 100px for frequent actions)
+- Qt Forum: QML animations slow on Raspberry Pi — Pi 4 GPU frame rate constraints under animation load
+- Qt Forum: Keep state of view in StackView — state loss on push/pop behavior documentation
+- MDPI: UI Design Patterns for Infotainment Systems — 9 IVI design patterns
+- Spyro Soft: QML Performance Dos and Don'ts — aligns with official Qt performance guidance
+- Automotive UX Basics (UXPin) — clean/minimal principle, large text, dark-first for cars
 
-### Tertiary (LOW confidence)
-- [DSP-Cpp-filters (GitHub)](https://github.com/dimtass/DSP-Cpp-filters) — reference IIR implementations; useful for cross-checking only, not authoritative
+### Tertiary (directional only)
+- Pi 4 frame rate numbers during StackView transitions (15-20fps) — community estimate; validate empirically with `QSG_RENDER_TIMING=1` before committing to any transition approach
+- Touch feedback readability at 60cm arm's length — automotive UX convention; validate on actual Pi display at realistic mounting distance
 
 ---
-*Research completed: 2026-03-01*
+*Research completed: 2026-03-02*
 *Ready for roadmap: yes*

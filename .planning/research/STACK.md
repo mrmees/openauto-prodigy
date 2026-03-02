@@ -1,315 +1,249 @@
-# Technology Stack: Audio Equalizer
+# Technology Stack: v0.4.3 UI Redesign & Settings Reorganization
 
-**Project:** OpenAuto Prodigy v0.4.1
-**Researched:** 2026-03-01
-**Focus:** 10-band graphic EQ — what to add to the existing stack
+**Project:** OpenAuto Prodigy
+**Researched:** 2026-03-02
+**Scope:** NEW capabilities needed for automotive-minimal visual refresh. Does NOT cover existing validated stack (Qt 6.8, PipeWire, BlueZ, etc.).
 
-## Recommendation: Inline Biquad Processing, No New Dependencies
+## Recommended Stack Additions
 
-The EQ should be implemented as **inline biquad filter processing inside the existing `onPlaybackProcess` PipeWire callback** — not as a separate PipeWire filter node, not with an external DSP library. The math is ~15 lines of code per filter stage. Adding a library for this would be over-engineering.
+### Animation & Transitions (QML built-in -- no new dependencies)
 
-**Zero new packages. Zero new build dependencies. ~150 lines of DSP code using `<cmath>`.**
+| Technology | Module | Purpose | Why |
+|------------|--------|---------|-----|
+| `OpacityAnimator` | QtQuick | Fade transitions for page/view changes | Runs on scene graph render thread, not UI thread. Stays smooth even when UI thread is busy (e.g., during BT scan or config writes). Available since Qt 5.2. |
+| `XAnimator` / `YAnimator` | QtQuick | Slide transitions for StackView push/pop | Same render-thread advantage. Use for settings category drill-down animations. |
+| `Behavior on <property>` | QtQuick | Implicit animations on color, opacity, scale changes | Already used in codebase (NotificationArea, EqBandSlider, Sidebar). Extend pattern to all interactive controls for press/hover feedback. |
+| `ColorAnimation` | QtQuick | Theme-aware color transitions on state changes | Already used in EqSettings. Apply to Tile hover, NavStrip active state, toggle switches. |
+| `StackView` transitions | QtQuick.Controls | Custom `pushEnter`/`pushExit`/`popEnter`/`popExit` | StackView already used in SettingsMenu but with default (instant) transitions. Add slide + fade for polished category navigation. |
 
-## What's Needed (New Code)
+**Critical constraint:** Do NOT use `anchors` on root-level items pushed to StackView -- anchors prevent position-based transition animations. Use `Layout` or explicit `width`/`height` binding instead. (Source: Qt 6 StackView docs.)
 
-### EQ DSP Core
-| Component | What | Why |
-|-----------|------|-----|
-| `BiquadFilter` class | ~50 lines C++ — coefficients + `process(float)` | One biquad = one EQ band. Transposed Direct Form II. |
-| `EqProcessor` class | 10 `BiquadFilter` instances per channel, processes sample buffers | Wraps the chain, provides `apply(float* samples, int count, int channels)` |
-| RBJ coefficient calculator | Static function: `(frequency, gain_dB, Q, sampleRate) -> coefficients` | Robert Bristow-Johnson's Audio EQ Cookbook peaking filter formula |
+**Performance rule:** Keep all animation durations between 80-200ms. Automotive UIs must feel instant. 150ms is the sweet spot for "smooth but not sluggish." The Pi 4 GPU handles these fine under labwc/Wayland -- the codebase already proves this with Sidebar animations at 80ms.
 
-**No new libraries needed.** The entire DSP core is ~150 lines of C++ using only `<cmath>`.
+### Animator Types vs Regular Animations -- When to Use Which
 
-### EqService — Config + State Management
-| Component | What | Why |
-|-----------|------|-----|
-| `EqService` class | Owns per-stream EqProcessor instances, manages presets, exposes Q_PROPERTYs for QML | Follows existing service pattern (ThemeService, AudioService) |
-| YAML preset format | Band gains stored in config, preset library as bundled + user-created | Matches existing YAML config pattern with deep merge |
+| Use Case | Type | Why |
+|----------|------|-----|
+| Page transitions (StackView) | `OpacityAnimator` + `XAnimator` | Render thread; stays smooth during model updates |
+| Control feedback (hover, press) | `Behavior` + `NumberAnimation` | Simpler syntax; UI thread is fine for these tiny animations |
+| Color changes (theme, active state) | `Behavior` + `ColorAnimation` | ColorAnimation handles QColor interpolation correctly |
+| List item add/remove | `ViewTransition` + `NumberAnimation` | Built-in GridView/ListView transition system |
 
-### QML UI
-| Component | What | Why |
-|-----------|------|-----|
-| EQ slider panel | 10 vertical sliders (-12dB to +12dB) with band labels | Head unit touch interface — must work at 1024x600 |
-| Preset selector | ComboBox or tile grid for preset selection | Quick switching while driving |
-| Stream selector | Tab bar or similar for media/navigation/phone | Per-stream profile switching |
+**Caveat:** When mixing Animator types in `ParallelAnimation`, ALL sub-animations must be Animator types for render-thread optimization to apply. Mixing `NumberAnimation` with `OpacityAnimator` in the same parallel group defeats the purpose. (Source: Qt 6 Animator docs.)
 
-### Web Config Extension
-| Component | What | Why |
-|-----------|------|-----|
-| EQ panel page | HTML/JS sliders + preset management | Detailed adjustment from phone/laptop |
-| IPC messages | `eq/get-profile`, `eq/set-bands`, `eq/list-presets`, `eq/save-preset` | Extends existing Unix socket JSON protocol |
+### Icon System (Material Symbols -- already in tree)
 
-## Why Inline Processing (Not PipeWire Filter Nodes)
+| Technology | Version | Purpose | Why |
+|------------|---------|---------|-----|
+| Material Symbols Outlined (variable font) | Current (in `resources/fonts/`) | All UI iconography | Already bundled at 10MB. Variable font supports optical size axis (20-48dp), weight axis (100-700), and grade axis. |
 
-I evaluated three approaches. The previous research (v1.0 STACK.md) recommended PipeWire filter-chain. After examining the actual AudioService code, **that recommendation was wrong for this project.** Here's why:
+**Current state:** `MaterialIcon.qml` wraps the font as a `Text` element with `icon` (codepoint) and `size` properties. This works but doesn't leverage the variable font axes.
 
-### Option A: Inline in `onPlaybackProcess` callback -- RECOMMENDED
+**Recommended enhancement -- `font.variableAxes`:**
 
-**How:** After reading from ring buffer, convert S16->float, apply biquad chain, convert float->S16, write to PW buffer.
+Qt 6.7+ added `font.variableAxes` (QFont::setVariableAxis). On the Pi (Qt 6.8), set optical size to match icon pixel size for crisper rendering at any scale:
 
-**Pros:**
-- Zero additional latency — processing happens in the same callback that already runs
-- No PipeWire graph changes — no link management, no WirePlumber interference
-- Per-stream EQ is trivial — each stream's callback has its own EqProcessor
-- No new PipeWire API surface — stays within `pw_stream` which is already battle-tested here
-- Works on dev VM (unit tests run DSP math without PipeWire daemon)
-- Doesn't disrupt the existing adaptive rate matching (PI controller in callback)
-- Simple bypass — set a flag, skip the processing loop
+```qml
+// Enhanced MaterialIcon.qml
+Text {
+    property string icon: ""
+    property int size: 24
+    property int weight: 400  // 100-700
+    property int opticalSize: -1  // auto = match size
 
-**Cons:**
-- Slightly more CPU in the RT callback (~0.01ms for 10 biquads on Pi 4 at 48kHz — negligible vs the 21ms quantum)
-- Format conversion overhead (S16 <-> float) — ~2 operations per sample, also negligible
-
-### Option B: PipeWire `pw_filter` nodes -- REJECTED
-
-**How:** Create separate filter nodes per stream, link between app streams and the sink.
-
-**Why not:**
-- Requires programmatic link management (`pw_link` API) — WirePlumber may fight with manual links or reconnect them wrong
-- Adds graph latency (extra node = extra quantum of buffering = +21ms at 48kHz/1024)
-- Per-stream filtering requires 3 separate filter nodes with link lifecycle tracking
-- **Critically: the app's adaptive rate matching PI controller lives in `onPlaybackProcess`.** Inserting a filter node between stream and sink means the rate controller can't see actual sink buffer state — it breaks clock drift compensation.
-
-### Option C: PipeWire `filter-chain` module with config files -- REJECTED
-
-**How:** Generate PipeWire filter-chain config files, load as modules.
-
-**Why not:**
-- Config is file-based — live coefficient updates require module reload (audible glitch)
-- Per-stream control is awkward — filter-chain operates on PipeWire graph nodes, not app-internal streams. Would need to identify nodes by name and route manually.
-- Requires `libpipewire-module-filter-chain` to be present (likely is on Trixie, but adds a runtime dependency to verify)
-- On the dev VM (PipeWire 1.0.5), filter-chain module may not have the same features as 1.4.2
-- **Previous STACK.md recommended this approach.** After reading the actual AudioService code, it's clear this is the wrong fit — the app's audio architecture (ring buffer -> callback -> PW buffer) doesn't need an external graph node.
-
-**Verdict:** Option A wins decisively. The app already owns the audio callback. Inserting 10 biquads there is the simplest, lowest-latency, most maintainable approach.
-
-## Biquad Implementation Details
-
-### RBJ Peaking EQ Formula (Audio EQ Cookbook)
-
-For a 10-band graphic EQ, each band uses a **peaking EQ** biquad:
-
-```
-w0 = 2 * pi * f0 / sampleRate
-alpha = sin(w0) / (2 * Q)
-A = 10^(dBgain / 40)   // note: /40 not /20 — this is amplitude, not power
-
-b0 =  1 + alpha * A
-b1 = -2 * cos(w0)
-b2 =  1 - alpha * A
-a0 =  1 + alpha / A
-a1 = -2 * cos(w0)
-a2 =  1 - alpha / A
-```
-
-Normalize all coefficients by dividing by `a0`.
-
-**Confidence:** HIGH — This is the W3C-hosted Audio EQ Cookbook, the definitive reference used by virtually every software EQ implementation.
-
-### Standard 10-Band Frequencies (Octave Spacing)
-
-| Band | Frequency (Hz) |
-|------|----------------|
-| 1 | 31 |
-| 2 | 62 |
-| 3 | 125 |
-| 4 | 250 |
-| 5 | 500 |
-| 6 | 1000 |
-| 7 | 2000 |
-| 8 | 4000 |
-| 9 | 8000 |
-| 10 | 16000 |
-
-Q = 1.414 (sqrt(2)) for graphic EQ gives ~1 octave bandwidth per band with smooth overlap between adjacent bands. This is the standard value used by hardware graphic EQs.
-
-### Transposed Direct Form II (process loop)
-
-```cpp
-float BiquadFilter::process(float in) {
-    float out = b0_ * in + z1_;
-    z1_ = b1_ * in - a1_ * out + z2_;
-    z2_ = b2_ * in - a2_ * out;
-    return out;
+    font.family: materialFont.name
+    font.pixelSize: size
+    font.variableAxes: {
+        var axes = {}
+        axes["opsz"] = (opticalSize > 0) ? opticalSize : Math.min(48, Math.max(20, size))
+        axes["wght"] = weight
+        return axes
+    }
+    text: icon
 }
 ```
 
-Two state variables per filter, 5 multiply-adds per sample per band. For 10 bands, stereo, 48kHz: ~1.92M multiply-adds/sec. The Pi 4's Cortex-A72 does billions per second. This is free.
+**Qt 6.4 compatibility:** `font.variableAxes` does not exist in Qt 6.4. Don't set it on the dev VM -- the font still renders fine, just without optical size optimization. Since `font.variableAxes` is a QML property, not setting it is a no-op. No conditional compilation needed. Use a safe runtime check:
 
-### Integration Point: `onPlaybackProcess`
-
-Current flow:
-```
-ring buffer -> read S16 bytes -> silence fill -> write to PW buffer
-```
-
-New flow:
-```
-ring buffer -> read S16 bytes -> silence fill -> S16->float -> EQ process -> float->S16 -> write to PW buffer
-```
-
-The conversion is cheap and fits naturally after the existing silence-fill:
-```cpp
-// S16 interleaved to float (in-place with temp buffer on stack or handle)
-for (uint32_t i = 0; i < totalSamples; i++)
-    floatBuf[i] = static_cast<float>(s16Buf[i]) / 32768.0f;
-
-// Apply 10-band EQ cascade
-eqProcessor->apply(floatBuf, numFrames, channels);
-
-// Float to S16 with clamp
-for (uint32_t i = 0; i < totalSamples; i++)
-    s16Buf[i] = static_cast<int16_t>(
-        std::clamp(floatBuf[i] * 32768.0f, -32768.0f, 32767.0f));
-```
-
-**Float buffer allocation:** Pre-allocate a float buffer in `AudioStreamHandle` (same size as max PW buffer). No allocation in the RT callback.
-
-### Thread Safety: Double-Buffered Coefficients
-
-The RT callback reads coefficients. The Qt main thread writes them when the user adjusts a slider.
-
-```cpp
-struct EqCoefficients {
-    std::array<BiquadCoeffs, 10> bands;
-    bool enabled = true;
-};
-
-// In EqProcessor:
-std::atomic<int> activeIndex_{0};
-EqCoefficients buffers_[2];
-
-// Qt thread writes:
-void updateBand(int band, float gainDb) {
-    int inactive = 1 - activeIndex_.load(std::memory_order_acquire);
-    buffers_[inactive] = buffers_[activeIndex_];  // copy current
-    buffers_[inactive].bands[band] = computeCoeffs(freq, gainDb, Q);
-    activeIndex_.store(inactive, std::memory_order_release);
-}
-
-// RT thread reads:
-const EqCoefficients& active() const {
-    return buffers_[activeIndex_.load(std::memory_order_acquire)];
+```qml
+Component.onCompleted: {
+    if (font.hasOwnProperty("variableAxes")) {
+        font.variableAxes = { "opsz": Math.min(48, Math.max(20, size)), "wght": weight }
+    }
 }
 ```
 
-No locks in the RT path. Atomic index swap is wait-free.
+**Whitespace around glyphs:** Material Symbols glyphs are drawn within a square em-box. At `font.pixelSize: 36`, the glyph is inscribed in a 36x36 box with some internal padding (~10-15% on each side). To get icons with minimal visual whitespace:
+- Slightly oversize the `font.pixelSize` relative to the desired visual size (e.g., `size: UiMetrics.iconSize * 1.15`)
+- The variable font's `opsz` axis helps: higher optical sizes use thicker strokes that fill more of the glyph box
+- Do NOT use `clip: true` with a smaller bounding rect -- can cut off glyphs unpredictably
 
-## Per-Stream EQ Architecture
+**Font size consideration:** The 10MB variable font is bundled in the Qt resource system (compiled into the binary). This adds ~10MB to binary size. For a car head unit with 4GB RAM this is fine. Do NOT switch to the static font (295KB) because you lose the optical size axis that makes icons crisp at UiMetrics-scaled sizes.
 
-Each `AudioStreamHandle` gets an `EqProcessor*` member. The `EqService` creates and owns per-stream processors, and updates coefficients when gains change.
+### Settings Category Grid (QML built-in)
 
-**Stream-to-profile mapping:**
-- `media` stream -> media EQ profile (music, podcasts)
-- `navigation` stream -> navigation EQ profile (voice clarity)
-- `phone` stream -> phone EQ profile (voice clarity)
+| Technology | Module | Purpose | Why |
+|------------|--------|---------|-----|
+| `Grid` in `Flickable` | QtQuick | Top-level settings category tiles | 6 categories in a 2x3 or 3x2 grid. Static layout, not model-driven. |
 
-Different profiles make sense: you want bass boost for music but voice clarity for navigation.
+**Recommendation:** Use a static `Grid` inside a `Flickable`, NOT `GridView`. The settings categories are fixed (Android Auto, Display, Audio, Connectivity, Companion, System/About) -- there's no dynamic model. A `Grid` is simpler, avoids delegate recycling complexity, and gives direct layout control for a fixed 6-item grid on 1024x600.
 
-## Preset Storage (YAML)
+### Touch Feedback (QML built-in)
 
-Integrated into existing config, not separate files:
+| Pattern | Implementation | Purpose |
+|---------|----------------|---------|
+| Press scale | `Behavior on scale { NumberAnimation { duration: 80 } }` + `scale: mouseArea.pressed ? 0.95 : 1.0` | Subtle press feedback on tiles and buttons |
+| Press opacity | `Behavior on opacity { NumberAnimation { duration: 80 } }` + opacity dim on press | Alternative to scale for list items |
+| Ripple effect | NOT recommended | Material ripple requires fragment shader. Scale + opacity achieves 90% of the effect with 10% of the code. |
 
-```yaml
-equalizer:
-  enabled: true
-  profiles:
-    media:
-      preset: "Rock"
-      bands: [3, 5, -1, -2, 0, 2, 4, 5, 3, 1]  # dB gains per band
-    navigation:
-      preset: "Voice Boost"
-      bands: [0, 0, 0, 2, 4, 6, 4, 2, 0, 0]
-    phone:
-      preset: "Voice Boost"
-      bands: [0, 0, 0, 2, 4, 6, 4, 2, 0, 0]
-  user_presets:
-    "My Custom":
-      bands: [-2, 0, 1, 3, 2, 0, -1, 1, 3, 2]
+### StackView Transition Recipes
+
+For the settings category drill-down (top-level grid -> category detail -> sub-setting):
+
+```qml
+StackView {
+    id: settingsStack
+
+    pushEnter: Transition {
+        ParallelAnimation {
+            OpacityAnimator { from: 0; to: 1; duration: 150 }
+            XAnimator { from: 60; to: 0; duration: 150; easing.type: Easing.OutCubic }
+        }
+    }
+    pushExit: Transition {
+        OpacityAnimator { from: 1; to: 0; duration: 150 }
+    }
+    popEnter: Transition {
+        ParallelAnimation {
+            OpacityAnimator { from: 0; to: 1; duration: 150 }
+            XAnimator { from: -60; to: 0; duration: 150; easing.type: Easing.OutCubic }
+        }
+    }
+    popExit: Transition {
+        ParallelAnimation {
+            OpacityAnimator { from: 1; to: 0; duration: 150 }
+            XAnimator { from: 0; to: 60; duration: 150; easing.type: Easing.OutCubic }
+        }
+    }
+}
 ```
 
-**Bundled presets** (compiled into the binary, not files):
-- Flat (all 0dB — bypass equivalent)
-- Rock (+3, +5, -1, -2, 0, +2, +4, +5, +3, +1)
-- Pop (-1, +2, +4, +5, +4, +2, 0, -1, -1, -1)
-- Jazz (+3, +2, 0, +2, -2, -2, 0, +2, +3, +3)
-- Bass Boost (+6, +5, +4, +2, 0, 0, 0, 0, 0, 0)
-- Treble Boost (0, 0, 0, 0, 0, +2, +3, +4, +5, +5)
-- Voice Boost (0, 0, 0, +2, +4, +6, +4, +2, 0, 0)
-- Bass Cut (-4, -3, -2, -1, 0, 0, 0, 0, 0, 0)
+**Why `Easing.OutCubic`:** Fast start, gentle deceleration. Feels responsive. Avoid `Easing.InOutQuad` for page transitions -- the slow start feels laggy in a car UI where every tap should feel immediate.
+
+### New UiMetrics Properties Needed
+
+The existing `UiMetrics` singleton needs a few additions for the redesign:
+
+| Property | Value | Purpose |
+|----------|-------|---------|
+| `tileWidth` | `Math.round(140 * scale)` | Settings category tile size |
+| `tileHeight` | `Math.round(120 * scale)` | Settings category tile size |
+| `iconLarge` | `Math.round(48 * scale)` | Category tile icons (larger than current `iconSize: 36`) |
+| `animDuration` | `150` | Centralized animation duration constant |
+| `animDurationFast` | `80` | Quick feedback animations |
+
+### New ThemeService Properties Needed
+
+| Property | Purpose | Why |
+|----------|---------|-----|
+| `dividerColor` | Section dividers, list separators | Currently using `descriptionFontColor` at 0.15 opacity inline -- a dedicated property is cleaner and theme-consistent |
+| `pressedColor` | Touch feedback overlay color | Avoid hardcoding alpha-modified highlight colors in QML |
+
+`highlightFontColor` already exists and covers active/selected text on highlighted backgrounds.
+
+**Note:** Adding ThemeService properties requires C++ changes (Q_PROPERTY + getter + theme YAML key). Keep additions minimal -- the two above cover the redesign needs.
+
+## What NOT to Add
+
+| Technology | Why Avoid |
+|------------|-----------|
+| Qt Quick Controls Material style | Pulls in entire Material theme engine. Heavy, fights ThemeService, adds startup time. Custom controls already exist. |
+| Qt Quick Controls Universal style | Same problem. Use "Basic" (default) style and theme through ThemeService. |
+| Qt Quick Effects / MultiEffect | Blur, shadow, glow effects. GPU-intensive, marginal benefit on 1024x600. Drop shadows can be faked with offset semi-transparent rectangles. |
+| Qt Quick Particles | Completely unnecessary for a car head unit. |
+| QtGraphicalEffects | Removed in Qt 6. Don't even look at it. |
+| SVG icons | Material Symbols font already in tree. SVG adds per-icon rendering overhead. Font glyphs are rasterized once. |
+| Lottie animations | JSON-based animations. Overkill. `Behavior` + `NumberAnimation` covers everything needed. |
+| Qt Quick 3D | No. |
+| Additional icon fonts (FontAwesome, etc.) | Material Symbols Outlined covers everything. Second font wastes memory and creates inconsistency. |
+| `Qt.labs` imports | Experimental, may break between minor versions. Everything needed is in stable QtQuick / QtQuick.Controls. |
 
 ## Alternatives Considered
 
 | Category | Recommended | Alternative | Why Not |
 |----------|-------------|-------------|---------|
-| DSP approach | Inline biquad in callback | PipeWire filter-chain | Can't do live coefficient updates without glitchy module reload. Doesn't integrate with per-stream model. Breaks rate matching. |
-| DSP approach | Inline biquad in callback | `pw_filter` nodes | Link management nightmare, +21ms latency per node, breaks rate matching PI controller. |
-| DSP library | Hand-rolled ~150 LOC | KFR framework | 50MB+ dependency for 150 lines of math. Absurd. |
-| DSP library | Hand-rolled ~150 LOC | FFTW + overlap-add FIR | FIR EQ is overkill for 10 bands. Biquad cascade is the standard, simpler, lower latency. |
-| Coefficient formula | RBJ Audio EQ Cookbook | Custom derivation | RBJ is the industry standard, now hosted by W3C. No reason to deviate. |
-| Thread safety | Double-buffered coefficients | Mutex in RT callback | Mutex in RT path = priority inversion risk. Never lock in audio callbacks. |
-| Thread safety | Double-buffered coefficients | `std::atomic<float>` per coeff | 5 coefficients per band x 10 bands = 50 atomic loads per sample. Double-buffer is one atomic load per callback. |
-| Preset storage | YAML in existing config | Separate JSON files | Existing config system works. Don't add a second format for one feature. |
-| Float buffer | Pre-allocated in AudioStreamHandle | Stack allocation | PW buffer can be up to 4096 frames x 2ch = 32KB of floats. Too large for stack on some configs. |
+| Page transitions | `OpacityAnimator` + `XAnimator` | `PropertyAnimation` on x/opacity | PropertyAnimation runs on UI thread; Animator runs on render thread. Matters when settings page has complex content loading. |
+| Icon rendering | Variable font with `font.variableAxes` | Static font (295KB) | Loses optical size axis. Icons look slightly blurry at non-24px sizes. 10MB cost is irrelevant on Pi 4. |
+| Settings grid | Static `Grid` in `Flickable` | `GridView` with `ListModel` | GridView adds delegate recycling overhead for 6 fixed items. Simpler code wins. |
+| Touch feedback | Scale + opacity `Behavior` | Material ripple shader | Ripple requires fragment shader. Complex to implement and test. Scale + opacity achieves 90% of the effect with 10% of the code. |
+| Color transitions | `ColorAnimation` in `Behavior` | `PropertyAnimation` targeting color | `ColorAnimation` handles color space interpolation correctly (no gray flash in RGB lerp). |
+| Settings navigation | `StackView` with custom transitions | `Loader` + manual visibility | StackView already in use, handles back-stack automatically, transition properties are built-in. Switching to Loader would be a regression. |
 
-## Version Compatibility
+## Integration Points
 
-| Technology | Dev VM (Ubuntu 24.04) | Pi (RPi OS Trixie) | Impact |
-|------------|----------------------|---------------------|--------|
-| PipeWire | 1.0.5 | 1.4.2 | No impact — inline processing uses `pw_stream` API only, no filter-chain modules |
-| Qt | 6.4 | 6.8 | No impact — EQ UI uses basic QML controls (Slider, ComboBox, Repeater) available in both |
-| C++ | C++17 | C++17 | `std::clamp`, `<cmath>`, `<array>`, `<atomic>` — all available |
-| `<cmath>` | standard | standard | `sin()`, `cos()`, `pow()`, `tan()`, `M_PI` — no platform concerns |
+### With ThemeService
+- All new animations use ThemeService colors as from/to values
+- New `dividerColor` and `pressedColor` properties follow existing pattern (YAML key -> Q_PROPERTY -> QML binding)
+- Day/night mode switch should animate color transitions globally (add `Behavior on color` to themed Rectangle backgrounds for smooth day/night transition)
 
-## New Files to Create
+### With UiMetrics
+- All new sizing properties follow existing `Math.round(N * scale)` pattern
+- Animation durations are NOT scaled -- 150ms is 150ms regardless of display size (timing perception doesn't scale with pixels)
+- Tile grid dimensions adapt to available space via UiMetrics, not hardcoded
 
-| File | Purpose | Lines (est.) |
-|------|---------|-------------|
-| `src/core/audio/BiquadFilter.hpp` | Coefficient calc + process (header-only) | ~80 |
-| `src/core/audio/EqProcessor.hpp` | 10-band chain with double-buffered coefficients | ~60 |
-| `src/core/audio/EqProcessor.cpp` | Implementation | ~120 |
-| `src/core/services/EqService.hpp` | Service interface: per-stream profiles, presets, QML props | ~80 |
-| `src/core/services/EqService.cpp` | Implementation | ~200 |
-| `qml/applications/equalizer/EqView.qml` | Main EQ UI (sliders + presets + stream tabs) | ~150 |
-| `web-config/templates/equalizer.html` | Web config EQ page | ~200 |
-| `tests/test_biquad.cpp` | Coefficient calculation + filtering accuracy tests | ~100 |
-| `tests/test_eq_service.cpp` | Preset management, per-stream profiles, config persistence | ~80 |
-
-**Estimated total new code:** ~1,070 lines across 9 files. Small feature, well-scoped.
+### With Existing Controls
+- `SettingsListItem`, `SettingsToggle`, `SettingsSlider`, `SegmentedButton` need touch feedback additions (press scale/opacity)
+- `Tile.qml` already has hover color change via ThemeService -- add press scale animation
+- `SectionHeader` stays unchanged (visual divider, not interactive)
+- `MaterialIcon.qml` gets `weight` and `opticalSize` properties (backward compatible -- defaults to current behavior)
 
 ## Installation
 
+No new packages required. Everything is built into Qt Quick / Qt Quick Controls, which are already dependencies.
+
 ```bash
-# No new packages needed.
-# The entire EQ implementation uses only:
-#   - <cmath> (sin, cos, pow, M_PI)
-#   - <atomic> (double-buffer swap)
-#   - <array> (coefficient storage)
-#   - <algorithm> (std::clamp)
-#   - Existing PipeWire headers (already linked)
-#   - Existing yaml-cpp (already linked)
-#   - Existing Qt Quick Controls (already linked)
+# No changes to install.sh or CMakeLists.txt for animation/transition support
+# These are all QML-side changes using existing Qt modules:
+#   - QtQuick (Animator, Behavior, NumberAnimation, ColorAnimation)
+#   - QtQuick.Controls (StackView transitions)
 ```
+
+The only C++ changes are:
+1. 2 new Q_PROPERTY additions to ThemeService (`dividerColor`, `pressedColor`)
+2. Corresponding YAML theme keys and getters
+3. UiMetrics additions are QML-only (it's a QML singleton) -- no C++ needed
+
+## Qt 6.4 / 6.8 Compatibility Notes
+
+| Feature | Qt 6.4 (dev VM) | Qt 6.8 (Pi) | Mitigation |
+|---------|-----------------|--------------|------------|
+| `OpacityAnimator`, `XAnimator`, `YAnimator` | Yes | Yes | Available since Qt 5.2 |
+| `StackView` transition properties | Yes | Yes | Available since Qt Quick Controls 2 (Qt 5.7) |
+| `Behavior`, `NumberAnimation`, `ColorAnimation` | Yes | Yes | Core QtQuick since Qt 5.0 |
+| `font.variableAxes` | NO | Yes | Don't set it on 6.4; font renders fine without it. Runtime check only. |
+| `Easing.OutCubic` | Yes | Yes | All easing curves available in both |
+| `Grid` / `GridView` | Yes | Yes | Core QtQuick |
+| `ViewTransition` | Yes | Yes | Available since Qt Quick 2.0 |
+
+**Only `font.variableAxes` is 6.8-specific.** Everything else works on both platforms with zero conditional code.
 
 ## Sources
 
-- [W3C Audio EQ Cookbook (RBJ)](https://www.w3.org/TR/audio-eq-cookbook/) — Biquad coefficient formulas, the definitive reference (HIGH confidence)
-- [WebAudio EQ Cookbook (original text)](https://webaudio.github.io/Audio-EQ-Cookbook/audio-eq-cookbook.html) — Same content, original hosting (HIGH confidence)
-- [EarLevel Engineering Biquad C++ Source](https://www.earlevel.com/main/2012/11/26/biquad-c-source-code/) — Clean implementation reference (HIGH confidence)
-- [PipeWire Tutorial 7: Audio DSP Filter](https://docs.pipewire.org/devel/page_tutorial7.html) — pw_filter API pattern (HIGH confidence, evaluated and rejected for this use case)
-- [PipeWire Filter API](https://docs.pipewire.org/group__pw__filter.html) — pw_filter reference (HIGH confidence)
-- [PipeWire Filter-Chain Module](https://docs.pipewire.org/page_module_filter_chain.html) — Alternative approach evaluated and rejected (HIGH confidence)
-- [Debian Trixie PipeWire Package](https://packages.debian.org/trixie/pipewire) — Version 1.4.2 confirmed (HIGH confidence)
-- [DSP-Cpp-filters](https://github.com/dimtass/DSP-Cpp-filters) — Reference implementations of various IIR filters in C++ (MEDIUM confidence)
+- [Qt 6 StackView documentation](https://doc.qt.io/qt-6/qml-qtquick-controls-stackview.html) -- transition properties, anchor caveat (HIGH confidence)
+- [Qt 6 Animator type documentation](https://doc.qt.io/qt-6/qml-qtquick-animator.html) -- render thread execution model, available subtypes, ParallelAnimation caveat (HIGH confidence)
+- [Qt 6 Behavior type documentation](https://doc.qt.io/qt-6/qml-qtquick-behavior.html) -- implicit animations, single-behavior limitation (HIGH confidence)
+- [Material Symbols developer guide](https://developers.google.com/fonts/docs/material_symbols) -- variable font axes, optical size range 20-48dp, static vs variable tradeoffs (HIGH confidence)
+- [Qt 6 GridView documentation](https://doc.qt.io/qt-6/qml-qtquick-gridview.html) -- ViewTransition for populate/add/remove animations (HIGH confidence)
+- [Qt 6 OpacityAnimator](https://doc.qt.io/qt-6/qml-qtquick-opacityanimator.html) -- scene graph thread execution details (HIGH confidence)
+- Existing codebase patterns in `qml/controls/EqBandSlider.qml`, `qml/applications/android_auto/Sidebar.qml`, `qml/components/NotificationArea.qml` -- confirmed Behavior + NumberAnimation works on Pi 4 at 80-200ms durations (HIGH confidence, direct evidence)
 
 ## Confidence Assessment
 
 | Area | Confidence | Notes |
 |------|------------|-------|
-| Biquad math / RBJ formulas | HIGH | W3C standard, used everywhere, thoroughly verified |
-| Inline processing approach | HIGH | Standard technique; existing callback already does volume, silence fill, rate matching |
-| Double-buffer thread safety | HIGH | Well-known lock-free pattern for RT audio |
-| Per-stream EQ profiles | HIGH | Natural extension — each AudioStreamHandle is independent |
-| Pi 4 performance | HIGH | 10 biquads x 2 channels x 48kHz = trivial for Cortex-A72 |
-| QML slider UI at 1024x600 | MEDIUM | Need to verify 10 sliders fit comfortably on the small display — may need horizontal scroll or compact layout |
+| Animation types & performance | HIGH | Qt docs verified, codebase already uses these patterns successfully on Pi 4 |
+| StackView transitions | HIGH | Qt docs confirmed, properties available in both Qt 6.4 and 6.8 |
+| Material Symbols variable axes | HIGH | Google developer docs verified, `font.variableAxes` confirmed Qt 6.7+ |
+| Qt 6.4 compatibility | HIGH | All recommended types except `font.variableAxes` pre-date Qt 6.0 |
+| Touch feedback patterns | MEDIUM | Based on common QML patterns and automotive UI conventions, not empirically tested at 1024x600 yet |
+| Icon whitespace behavior | MEDIUM | Google docs confirm em-box model but exact padding percentages are approximate |
