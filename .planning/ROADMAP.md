@@ -47,11 +47,12 @@ Transform the existing functional UI into an automotive-minimal interface. Resty
   3. Switching between day and night themes animates colors smoothly (no instant flash)
   4. All settings rows display a contextual icon to the left of the label
   5. MaterialIcon component renders variable-weight icons on Qt 6.8 and falls back gracefully on Qt 6.4
-**Plans**: TBD
+**Plans:** 3 plans
 
 Plans:
-- [ ] 01-01: TBD
-- [ ] 01-02: TBD
+- [ ] 01-01-PLAN.md — ThemeService + UiMetrics + MaterialIcon foundation properties
+- [ ] 01-02-PLAN.md — Control restyling: press feedback, icons, automotive-minimal aesthetic
+- [ ] 01-03-PLAN.md — StackView transitions + day/night theme color animation
 
 ### Phase 2: Settings Restructuring
 **Goal**: Users navigate settings through 6 intuitive category tiles that match their mental model (AA, Display, Audio, Connectivity, Companion, System)
@@ -89,7 +90,7 @@ Plans:
 
 | Phase | Plans Complete | Status | Completed |
 |-------|----------------|--------|-----------|
-| 1. Visual Foundation | 0/? | Not started | - |
+| 1. Visual Foundation | 0/3 | Planned | - |
 | 2. Settings Restructuring | 0/? | Not started | - |
 | 3. EQ Dual-Access & Shell Polish | 0/? | Not started | - |
 
