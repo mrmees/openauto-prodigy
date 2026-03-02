@@ -1487,7 +1487,7 @@ Environment=DBUS_SESSION_BUS_ADDRESS=unix:path=/run/user/$USER_ID/bus
 WorkingDirectory=$INSTALL_DIR
 ExecStartPre=+/usr/local/bin/openauto-preflight
 ExecStart=$INSTALL_DIR/build/src/openauto-prodigy
-ExecStopPost=-+/bin/systemctl stop hostapd.service
+ExecStopPost=-+/bin/sh -c '[ "\$SERVICE_RESULT" = "success" ] && /bin/systemctl stop hostapd.service || true'
 Restart=on-failure
 RestartSec=3
 WatchdogSec=30
