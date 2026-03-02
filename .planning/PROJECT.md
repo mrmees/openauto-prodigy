@@ -46,6 +46,17 @@ A person with a Raspberry Pi 4 and a touchscreen can install this, pair their ph
 
 <!-- Current scope. Building toward these. -->
 
+## Current Milestone: v0.4.3 Interface Polish & Settings Reorganization
+
+**Goal:** Redesign the entire UI with an automotive-minimal aesthetic and reorganize settings into logical, domain-specific categories.
+
+**Target features:**
+- Settings reorganization into 6 top-level categories: Android Auto, Display, Audio (w/ EQ), Connectivity, Companion, System/About
+- Automotive-minimal visual redesign across entire app (settings, launcher, nav strip, top bar, modals)
+- Consistent iconography with minimal whitespace around icons for glanceability
+- UX touch improvements (BT device management, modal dismiss, button feedback, read-only field clarity)
+- EQ accessible both in Audio settings and via nav strip shortcut
+
 **Deferred to future milestones:**
 - [ ] HFP call audio persists across AA connection state (calls don't drop if AA disconnects)
 - [ ] First-run experience guides user through phone pairing and WiFi verification
@@ -72,7 +83,7 @@ A person with a Raspberry Pi 4 and a touchscreen can install this, pair their ph
 
 OpenAuto Pro (BlueWave Studio) was a commercial Pi-based AA head unit that went defunct. This project is a clean-room rebuild — no OAP code, no aasdk dependency. The protocol library (`open-android-auto`) is maintained as a separate community resource.
 
-v0.4 shipped logging and theming. v0.4.1 shipped 10-band graphic EQ with per-stream profiles. v0.4.2 shipped service hardening — WiFi AP, Bluetooth SDP, systemd ordering, and clean shutdown all work reliably without manual intervention. Codebase is ~20K+ lines C++ across 170+ files, ~3K QML, installer, web panel, 57 tests.
+v0.4 shipped logging and theming. v0.4.1 shipped 10-band graphic EQ with per-stream profiles. v0.4.2 shipped service hardening — WiFi AP, Bluetooth SDP, systemd ordering, and clean shutdown all work reliably without manual intervention. Codebase is ~20K+ lines C++ across 170+ files, ~3K QML, installer, web panel, 57 tests. v0.4.3 focuses on full UI refresh with automotive-minimal styling and settings reorganization.
 
 ## Constraints
 
@@ -101,4 +112,4 @@ v0.4 shipped logging and theming. v0.4.1 shipped 10-band graphic EQ with per-str
 | Config defaults gate pattern | setValueByPath silently fails without initDefaults() entry | ⚠️ Revisit |
 
 ---
-*Last updated: 2026-03-02 after v0.4.2 milestone completion*
+*Last updated: 2026-03-02 after v0.4.3 milestone start*
