@@ -6,6 +6,7 @@ Rectangle {
 
     property string tileName: ""
     property string tileIcon: ""
+    property string tileSubtitle: ""
     property bool tileEnabled: true
 
     signal clicked()
@@ -36,6 +37,17 @@ Rectangle {
             color: ThemeService.normalFontColor
             font.pixelSize: UiMetrics.fontSmall
             horizontalAlignment: Text.AlignHCenter
+        }
+
+        Text {
+            text: tile.tileSubtitle
+            color: ThemeService.descriptionFontColor
+            font.pixelSize: UiMetrics.fontTiny
+            horizontalAlignment: Text.AlignHCenter
+            Layout.alignment: Qt.AlignHCenter
+            elide: Text.ElideRight
+            Layout.maximumWidth: tile.width - UiMetrics.marginRow * 2
+            visible: tile.tileSubtitle !== ""
         }
     }
 

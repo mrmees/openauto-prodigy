@@ -46,7 +46,7 @@ QtObject {
     readonly property int animDurationFast: 80    // quick feedback (press scale/opacity)
 
     // Category tile sizing (used in settings grid)
-    readonly property int tileW: Math.round(160 * scale)
-    readonly property int tileH: Math.round(140 * scale)
+    readonly property int tileW: Math.round(280 * scale)
+    readonly property int tileH: Math.round(200 * scale)
     readonly property int tileIconSize: Math.round(48 * scale)
 }
