@@ -1210,6 +1210,14 @@ LABWC
     fi
 }
 
+# Step 3d: Suppress wf-panel-pi Bluetooth popups
+# The panel's BT plugin shows "Connection successful" dialogs that draw over
+# the app.  The systemd service kills the panel on start and restores it on
+# clean stop, so no config changes are needed here — just log it.
+suppress_panel_notifications() {
+    ok "wf-panel-pi will be suspended while Prodigy runs (systemd unit handles lifecycle)"
+}
+
 # ────────────────────────────────────────────────────
 # Step 4: Clone and build
 # ────────────────────────────────────────────────────
@@ -1489,8 +1497,10 @@ Environment=QT_QPA_PLATFORM=wayland
 Environment=DBUS_SESSION_BUS_ADDRESS=unix:path=/run/user/$USER_ID/bus
 WorkingDirectory=$INSTALL_DIR
 ExecStartPre=+/usr/local/bin/openauto-preflight
+ExecStartPre=-/bin/sh -c 'pkill -f "lwrespawn.*wf-panel-pi"; pkill wf-panel-pi; true'
 ExecStart=$INSTALL_DIR/build/src/openauto-prodigy
 ExecStopPost=-/bin/sh -c '[ "\$SERVICE_RESULT" = "success" ] && /usr/bin/bluetoothctl disconnect || true'
+ExecStopPost=-/bin/sh -c '[ "\$SERVICE_RESULT" = "success" ] && su - $USER -c "WAYLAND_DISPLAY=wayland-0 XDG_RUNTIME_DIR=/run/user/$USER_ID nohup /usr/bin/lwrespawn /usr/bin/wf-panel-pi >/dev/null 2>&1 &" || true'
 Restart=on-failure
 RestartSec=3
 WatchdogSec=30
@@ -1791,6 +1801,7 @@ main() {
     update_step 5 active
     configure_network
     configure_labwc
+    suppress_panel_notifications
     update_step 5 done
 
     # Step 6: Services
