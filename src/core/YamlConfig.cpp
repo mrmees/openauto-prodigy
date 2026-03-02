@@ -124,6 +124,12 @@ void YamlConfig::initDefaults()
     root_["plugins"]["disabled"] = YAML::Node(YAML::NodeType::Sequence);
 
     root_["plugin_config"] = YAML::Node(YAML::NodeType::Map);
+
+    // EQ defaults
+    root_["audio"]["equalizer"]["streams"]["media"]["preset"] = "Flat";
+    root_["audio"]["equalizer"]["streams"]["navigation"]["preset"] = "Voice";
+    root_["audio"]["equalizer"]["streams"]["phone"]["preset"] = "Voice";
+    root_["audio"]["equalizer"]["user_presets"] = YAML::Node(YAML::NodeType::Sequence);
 }
 
 void YamlConfig::load(const QString& filePath)
@@ -571,6 +577,60 @@ void YamlConfig::setLauncherTiles(const QList<QVariantMap>& tiles)
         node.push_back(t);
     }
     root_["launcher"]["tiles"] = node;
+}
+
+// --- EQ config ---
+
+QString YamlConfig::eqStreamPreset(const QString& streamName) const
+{
+    auto node = root_["audio"]["equalizer"]["streams"][streamName.toStdString()]["preset"];
+    if (node.IsDefined() && node.IsScalar())
+        return QString::fromStdString(node.as<std::string>());
+    return QStringLiteral("Flat");
+}
+
+void YamlConfig::setEqStreamPreset(const QString& streamName, const QString& presetName)
+{
+    root_["audio"]["equalizer"]["streams"][streamName.toStdString()]["preset"] = presetName.toStdString();
+}
+
+QList<YamlConfig::EqUserPreset> YamlConfig::eqUserPresets() const
+{
+    QList<EqUserPreset> result;
+    auto node = root_["audio"]["equalizer"]["user_presets"];
+    if (!node.IsDefined() || !node.IsSequence())
+        return result;
+
+    for (const auto& entry : node) {
+        EqUserPreset preset;
+        if (entry["name"].IsDefined())
+            preset.name = QString::fromStdString(entry["name"].as<std::string>());
+        preset.gains.fill(0.0f);
+        if (entry["gains"].IsDefined() && entry["gains"].IsSequence()) {
+            int i = 0;
+            for (const auto& g : entry["gains"]) {
+                if (i >= 10) break;
+                preset.gains[i++] = g.as<float>(0.0f);
+            }
+        }
+        result.append(preset);
+    }
+    return result;
+}
+
+void YamlConfig::setEqUserPresets(const QList<EqUserPreset>& presets)
+{
+    YAML::Node node(YAML::NodeType::Sequence);
+    for (const auto& preset : presets) {
+        YAML::Node entry;
+        entry["name"] = preset.name.toStdString();
+        YAML::Node gains(YAML::NodeType::Sequence);
+        for (int i = 0; i < 10; ++i)
+            gains.push_back(preset.gains[i]);
+        entry["gains"] = gains;
+        node.push_back(entry);
+    }
+    root_["audio"]["equalizer"]["user_presets"] = node;
 }
 
 // --- Plugins ---

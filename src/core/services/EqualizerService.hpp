@@ -5,11 +5,14 @@
 #include <QString>
 #include <QStringList>
 #include <QList>
+#include <QTimer>
 #include <array>
 #include "core/audio/BiquadFilter.hpp"
 #include "core/audio/EqualizerEngine.hpp"
 #include "core/audio/EqualizerPresets.hpp"
 #include "core/services/IEqualizerService.hpp"
+
+namespace oap { class YamlConfig; }
 
 namespace oap {
 
@@ -23,6 +26,7 @@ class EqualizerService : public QObject, public IEqualizerService {
 
 public:
     explicit EqualizerService(QObject* parent = nullptr);
+    explicit EqualizerService(YamlConfig* config, QObject* parent = nullptr);
 
     // --- Q_PROPERTY readers ---
     QString mediaPreset() const { return streams_[0].activePreset; }
@@ -45,6 +49,9 @@ public:
 
     /// Get raw engine pointer for AudioService stream hookup
     EqualizerEngine* engineForStream(StreamId stream);
+
+    /// Flush pending config changes immediately (call on app shutdown)
+    void saveNow();
 
 signals:
     void mediaPresetChanged();
@@ -75,6 +82,9 @@ private:
     bool isBundledName(const QString& name) const;
     const std::array<float, kNumBands>* findPresetGains(const QString& name) const;
     QString generateAutoName() const;
+    void loadFromConfig();
+    void scheduleSave();
+    void writeToConfig();
 
     StreamState streams_[3] = {
         {48000.0f, 2},  // Media: stereo 48kHz
@@ -83,6 +93,8 @@ private:
     };
 
     QList<UserPreset> userPresets_;
+    YamlConfig* config_ = nullptr;
+    QTimer saveTimer_;
 };
 
 } // namespace oap

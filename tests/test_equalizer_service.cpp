@@ -1,6 +1,9 @@
 #include <QtTest>
 #include "core/services/EqualizerService.hpp"
 #include "core/audio/EqualizerPresets.hpp"
+#include "core/YamlConfig.hpp"
+#include <QDir>
+#include <QFile>
 
 using oap::StreamId;
 
@@ -217,6 +220,99 @@ private slots:
         for (int b = 0; b < oap::kNumBands; ++b) {
             QCOMPARE(navGains[b], voice->gains[b]);
         }
+    }
+
+    // --- Config-aware tests ---
+
+    void testConstructorWithNullConfigStillWorks()
+    {
+        // nullptr config = no persistence, should not crash
+        oap::YamlConfig* noConfig = nullptr;
+        oap::EqualizerService svc(noConfig);
+        QCOMPARE(svc.activePreset(StreamId::Media), QString("Flat"));
+        QCOMPARE(svc.activePreset(StreamId::Navigation), QString("Voice"));
+    }
+
+    void testConfigLoadsPresetAssignments()
+    {
+        oap::YamlConfig config;
+        config.setEqStreamPreset("media", "Rock");
+        config.setEqStreamPreset("navigation", "Bass Boost");
+
+        oap::EqualizerService svc(&config);
+        QCOMPARE(svc.activePreset(StreamId::Media), QString("Rock"));
+        QCOMPARE(svc.activePreset(StreamId::Navigation), QString("Bass Boost"));
+        QCOMPARE(svc.activePreset(StreamId::Phone), QString("Voice")); // default
+    }
+
+    void testConfigMissingPresetFallsBackToFlat()
+    {
+        oap::YamlConfig config;
+        config.setEqStreamPreset("media", "NonExistentPreset");
+
+        oap::EqualizerService svc(&config);
+        QCOMPARE(svc.activePreset(StreamId::Media), QString("Flat"));
+    }
+
+    void testApplyPresetTriggersScheduleSave()
+    {
+        oap::YamlConfig config;
+        oap::EqualizerService svc(&config);
+
+        svc.applyPreset(StreamId::Media, "Rock");
+
+        // Force flush
+        svc.saveNow();
+
+        QCOMPARE(config.eqStreamPreset("media"), QString("Rock"));
+    }
+
+    void testSaveUserPresetPersistsToConfig()
+    {
+        oap::YamlConfig config;
+        oap::EqualizerService svc(&config);
+
+        svc.setGain(StreamId::Media, 0, 6.0f);
+        svc.saveUserPreset(StreamId::Media, "MyCustom");
+        svc.saveNow();
+
+        auto presets = config.eqUserPresets();
+        QCOMPARE(presets.size(), 1);
+        QCOMPARE(presets[0].name, QString("MyCustom"));
+        QCOMPARE(presets[0].gains[0], 6.0f);
+    }
+
+    void testDeleteUserPresetRemovesFromConfig()
+    {
+        oap::YamlConfig config;
+        oap::EqualizerService svc(&config);
+
+        svc.saveUserPreset(StreamId::Media, "ToDelete");
+        svc.saveNow();
+        QCOMPARE(config.eqUserPresets().size(), 1);
+
+        svc.deleteUserPreset("ToDelete");
+        svc.saveNow();
+        QCOMPARE(config.eqUserPresets().size(), 0);
+    }
+
+    void testConfigLoadsUserPresets()
+    {
+        oap::YamlConfig config;
+        QList<oap::YamlConfig::EqUserPreset> presets;
+        oap::YamlConfig::EqUserPreset p;
+        p.name = "Saved Custom";
+        p.gains = {1.0f, 2.0f, 3.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f};
+        presets.append(p);
+        config.setEqUserPresets(presets);
+
+        oap::EqualizerService svc(&config);
+        QVERIFY(svc.userPresetNames().contains("Saved Custom"));
+
+        // Can apply the loaded user preset
+        svc.applyPreset(StreamId::Media, "Saved Custom");
+        QCOMPARE(svc.activePreset(StreamId::Media), QString("Saved Custom"));
+        QCOMPARE(svc.gain(StreamId::Media, 0), 1.0f);
     }
 };
 

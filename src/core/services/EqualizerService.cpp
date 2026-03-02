@@ -1,4 +1,5 @@
 #include "core/services/EqualizerService.hpp"
+#include "core/YamlConfig.hpp"
 #include <algorithm>
 
 namespace oap {
@@ -6,10 +7,30 @@ namespace oap {
 EqualizerService::EqualizerService(QObject* parent)
     : QObject(parent)
 {
+    saveTimer_.setSingleShot(true);
+    connect(&saveTimer_, &QTimer::timeout, this, &EqualizerService::writeToConfig);
+
     // Apply default presets
     applyPreset(StreamId::Media, "Flat");
     applyPreset(StreamId::Navigation, "Voice");
     applyPreset(StreamId::Phone, "Voice");
+}
+
+EqualizerService::EqualizerService(YamlConfig* config, QObject* parent)
+    : QObject(parent)
+    , config_(config)
+{
+    saveTimer_.setSingleShot(true);
+    connect(&saveTimer_, &QTimer::timeout, this, &EqualizerService::writeToConfig);
+
+    // Apply default presets first
+    applyPreset(StreamId::Media, "Flat");
+    applyPreset(StreamId::Navigation, "Voice");
+    applyPreset(StreamId::Phone, "Voice");
+
+    // Override from config if available
+    if (config_)
+        loadFromConfig();
 }
 
 QString EqualizerService::activePreset(StreamId stream) const
@@ -36,6 +57,7 @@ void EqualizerService::applyPreset(StreamId stream, const QString& presetName)
 
     emitPresetSignal(stream);
     emit gainsChanged(stream);
+    scheduleSave();
 }
 
 void EqualizerService::setGain(StreamId stream, int band, float dB)
@@ -49,6 +71,7 @@ void EqualizerService::setGain(StreamId stream, int band, float dB)
 
     emitPresetSignal(stream);
     emit gainsChanged(stream);
+    scheduleSave();
 }
 
 float EqualizerService::gain(StreamId stream, int band) const
@@ -106,12 +129,14 @@ QString EqualizerService::saveUserPreset(StreamId source, const QString& name)
         if (p.name == presetName) {
             p.gains = streamAt(source).currentGains;
             emit presetListChanged();
+            scheduleSave();
             return presetName;
         }
     }
 
     userPresets_.append({presetName, streamAt(source).currentGains});
     emit presetListChanged();
+    scheduleSave();
     return presetName;
 }
 
@@ -133,6 +158,7 @@ bool EqualizerService::deleteUserPreset(const QString& name)
     }
 
     emit presetListChanged();
+    scheduleSave();
     return true;
 }
 
@@ -156,6 +182,7 @@ bool EqualizerService::renameUserPreset(const QString& oldName, const QString& n
     }
 
     emit presetListChanged();
+    scheduleSave();
     return true;
 }
 
@@ -232,6 +259,67 @@ QString EqualizerService::generateAutoName() const
         }
         if (!taken) return candidate;
     }
+}
+
+// --- Config persistence ---
+
+void EqualizerService::loadFromConfig()
+{
+    if (!config_) return;
+
+    // Load user presets first (so applyPreset can find them)
+    auto cfgPresets = config_->eqUserPresets();
+    for (const auto& cp : cfgPresets) {
+        UserPreset up;
+        up.name = cp.name;
+        up.gains = cp.gains;
+        userPresets_.append(up);
+    }
+
+    // Load per-stream preset assignments
+    static const char* streamNames[] = {"media", "navigation", "phone"};
+    static const StreamId streamIds[] = {StreamId::Media, StreamId::Navigation, StreamId::Phone};
+    for (int i = 0; i < 3; ++i) {
+        QString presetName = config_->eqStreamPreset(QString::fromLatin1(streamNames[i]));
+        if (!presetName.isEmpty()) {
+            applyPreset(streamIds[i], presetName);
+        }
+    }
+}
+
+void EqualizerService::scheduleSave()
+{
+    if (!config_) return;
+    saveTimer_.start(2000);
+}
+
+void EqualizerService::writeToConfig()
+{
+    if (!config_) return;
+
+    // Write stream preset assignments
+    static const char* streamNames[] = {"media", "navigation", "phone"};
+    for (int i = 0; i < 3; ++i) {
+        config_->setEqStreamPreset(
+            QString::fromLatin1(streamNames[i]),
+            streams_[i].activePreset);
+    }
+
+    // Write user presets
+    QList<YamlConfig::EqUserPreset> cfgPresets;
+    for (const auto& up : userPresets_) {
+        YamlConfig::EqUserPreset cp;
+        cp.name = up.name;
+        cp.gains = up.gains;
+        cfgPresets.append(cp);
+    }
+    config_->setEqUserPresets(cfgPresets);
+}
+
+void EqualizerService::saveNow()
+{
+    saveTimer_.stop();
+    writeToConfig();
 }
 
 } // namespace oap

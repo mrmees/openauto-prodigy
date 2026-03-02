@@ -24,6 +24,11 @@ private slots:
     void testSidebarDefaults();
     void testProtocolCaptureDefaults();
     void testProtocolCaptureSetValueByPath();
+    void testEqStreamPresetDefaults();
+    void testEqStreamPresetSetAndGet();
+    void testEqStreamPresetSaveReload();
+    void testEqUserPresetsEmpty();
+    void testEqUserPresetsSaveReload();
 };
 
 void TestYamlConfig::testLoadDefaults()
@@ -272,6 +277,79 @@ void TestYamlConfig::testProtocolCaptureSetValueByPath()
     QCOMPARE(config.valueByPath("connection.protocol_capture.include_media").toBool(), true);
     QCOMPARE(config.valueByPath("connection.protocol_capture.path").toString(),
              QString("/tmp/custom-capture.jsonl"));
+}
+
+void TestYamlConfig::testEqStreamPresetDefaults()
+{
+    oap::YamlConfig config;
+    QCOMPARE(config.eqStreamPreset("media"), QString("Flat"));
+    QCOMPARE(config.eqStreamPreset("navigation"), QString("Voice"));
+    QCOMPARE(config.eqStreamPreset("phone"), QString("Voice"));
+}
+
+void TestYamlConfig::testEqStreamPresetSetAndGet()
+{
+    oap::YamlConfig config;
+    config.setEqStreamPreset("media", "Rock");
+    QCOMPARE(config.eqStreamPreset("media"), QString("Rock"));
+    // Others unchanged
+    QCOMPARE(config.eqStreamPreset("navigation"), QString("Voice"));
+}
+
+void TestYamlConfig::testEqStreamPresetSaveReload()
+{
+    oap::YamlConfig config;
+    config.setEqStreamPreset("media", "Rock");
+
+    QString tmpPath = QDir::tempPath() + "/oap_test_eq_config.yaml";
+    config.save(tmpPath);
+
+    oap::YamlConfig loaded;
+    loaded.load(tmpPath);
+    QCOMPARE(loaded.eqStreamPreset("media"), QString("Rock"));
+    QCOMPARE(loaded.eqStreamPreset("navigation"), QString("Voice"));
+
+    QFile::remove(tmpPath);
+}
+
+void TestYamlConfig::testEqUserPresetsEmpty()
+{
+    oap::YamlConfig config;
+    QVERIFY(config.eqUserPresets().isEmpty());
+}
+
+void TestYamlConfig::testEqUserPresetsSaveReload()
+{
+    oap::YamlConfig config;
+
+    QList<oap::YamlConfig::EqUserPreset> presets;
+    oap::YamlConfig::EqUserPreset p1;
+    p1.name = "My Preset";
+    p1.gains = {1.0f, 2.0f, 3.0f, -1.0f, -2.0f, 0.0f, 4.0f, 5.0f, -3.0f, 0.5f};
+    presets.append(p1);
+
+    oap::YamlConfig::EqUserPreset p2;
+    p2.name = "Bass Boost Custom";
+    p2.gains = {6.0f, 5.0f, 4.0f, 2.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f};
+    presets.append(p2);
+
+    config.setEqUserPresets(presets);
+
+    QString tmpPath = QDir::tempPath() + "/oap_test_eq_user_presets.yaml";
+    config.save(tmpPath);
+
+    oap::YamlConfig loaded;
+    loaded.load(tmpPath);
+    auto loadedPresets = loaded.eqUserPresets();
+    QCOMPARE(loadedPresets.size(), 2);
+    QCOMPARE(loadedPresets[0].name, QString("My Preset"));
+    QCOMPARE(loadedPresets[1].name, QString("Bass Boost Custom"));
+    for (int i = 0; i < 10; ++i) {
+        QCOMPARE(loadedPresets[0].gains[i], p1.gains[i]);
+        QCOMPARE(loadedPresets[1].gains[i], p2.gains[i]);
+    }
+
+    QFile::remove(tmpPath);
 }
 
 QTEST_MAIN(TestYamlConfig)
