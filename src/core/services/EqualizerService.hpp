@@ -5,6 +5,7 @@
 #include <QString>
 #include <QStringList>
 #include <QList>
+#include <QVariantList>
 #include <QTimer>
 #include <array>
 #include "core/audio/BiquadFilter.hpp"
@@ -47,6 +48,16 @@ public:
     Q_INVOKABLE bool deleteUserPreset(const QString& name) override;
     Q_INVOKABLE bool renameUserPreset(const QString& oldName, const QString& newName) override;
 
+    // --- QML-friendly helpers (int parameters, no StreamId enum registration needed) ---
+    Q_INVOKABLE QVariantList gainsAsList(int streamIndex) const;
+    Q_INVOKABLE int bandCount() const;
+    Q_INVOKABLE QString bandLabel(int band) const;
+    Q_INVOKABLE void setGainForStream(int streamIndex, int band, float dB);
+    Q_INVOKABLE void setBypassedForStream(int streamIndex, bool bypassed);
+    Q_INVOKABLE bool isBypassedForStream(int streamIndex) const;
+    Q_INVOKABLE QString activePresetForStream(int streamIndex) const;
+    Q_INVOKABLE void applyPresetForStream(int streamIndex, const QString& presetName);
+
     /// Get raw engine pointer for AudioService stream hookup
     EqualizerEngine* engineForStream(StreamId stream);
 
@@ -58,6 +69,8 @@ signals:
     void navigationPresetChanged();
     void phonePresetChanged();
     void gainsChanged(StreamId stream);
+    void gainsChangedForStream(int stream);
+    void bypassedChanged(int stream);
     void presetListChanged();
 
 private:

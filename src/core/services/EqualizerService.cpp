@@ -57,6 +57,7 @@ void EqualizerService::applyPreset(StreamId stream, const QString& presetName)
 
     emitPresetSignal(stream);
     emit gainsChanged(stream);
+    emit gainsChangedForStream(static_cast<int>(stream));
     scheduleSave();
 }
 
@@ -71,6 +72,7 @@ void EqualizerService::setGain(StreamId stream, int band, float dB)
 
     emitPresetSignal(stream);
     emit gainsChanged(stream);
+    emit gainsChangedForStream(static_cast<int>(stream));
     scheduleSave();
 }
 
@@ -88,6 +90,7 @@ std::array<float, kNumBands> EqualizerService::gainsForStream(StreamId stream) c
 void EqualizerService::setBypassed(StreamId stream, bool bypassed)
 {
     streamAt(stream).engine.setBypassed(bypassed);
+    emit bypassedChanged(static_cast<int>(stream));
 }
 
 bool EqualizerService::isBypassed(StreamId stream) const
@@ -184,6 +187,64 @@ bool EqualizerService::renameUserPreset(const QString& oldName, const QString& n
     emit presetListChanged();
     scheduleSave();
     return true;
+}
+
+// --- QML-friendly helpers ---
+
+QVariantList EqualizerService::gainsAsList(int streamIndex) const
+{
+    QVariantList list;
+    if (streamIndex < 0 || streamIndex > 2) return list;
+    auto sid = static_cast<StreamId>(streamIndex);
+    const auto& gains = streamAt(sid).currentGains;
+    list.reserve(kNumBands);
+    for (int i = 0; i < kNumBands; ++i)
+        list.append(static_cast<double>(gains[i]));
+    return list;
+}
+
+int EqualizerService::bandCount() const
+{
+    return kNumBands;
+}
+
+QString EqualizerService::bandLabel(int band) const
+{
+    static const char* labels[] = {
+        "31", "63", "125", "250", "500", "1k", "2k", "4k", "8k", "16k"
+    };
+    if (band < 0 || band >= kNumBands) return {};
+    return QString::fromLatin1(labels[band]);
+}
+
+void EqualizerService::setGainForStream(int streamIndex, int band, float dB)
+{
+    if (streamIndex < 0 || streamIndex > 2) return;
+    setGain(static_cast<StreamId>(streamIndex), band, dB);
+}
+
+void EqualizerService::setBypassedForStream(int streamIndex, bool bypassed)
+{
+    if (streamIndex < 0 || streamIndex > 2) return;
+    setBypassed(static_cast<StreamId>(streamIndex), bypassed);
+}
+
+bool EqualizerService::isBypassedForStream(int streamIndex) const
+{
+    if (streamIndex < 0 || streamIndex > 2) return false;
+    return isBypassed(static_cast<StreamId>(streamIndex));
+}
+
+QString EqualizerService::activePresetForStream(int streamIndex) const
+{
+    if (streamIndex < 0 || streamIndex > 2) return {};
+    return activePreset(static_cast<StreamId>(streamIndex));
+}
+
+void EqualizerService::applyPresetForStream(int streamIndex, const QString& presetName)
+{
+    if (streamIndex < 0 || streamIndex > 2) return;
+    applyPreset(static_cast<StreamId>(streamIndex), presetName);
 }
 
 EqualizerEngine* EqualizerService::engineForStream(StreamId stream)
