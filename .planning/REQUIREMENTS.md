@@ -1,39 +1,48 @@
-# Requirements: OpenAuto Prodigy
+# Requirements: OpenAuto Prodigy v0.4.2
 
-**Defined:** 2026-03-01
+**Defined:** 2026-03-02
 **Core Value:** A person with a Raspberry Pi 4 and a touchscreen can install this, pair their phone, and get a reliable wireless Android Auto experience — every time, without SSH.
 
-## v0.4.1 Requirements
+## v0.4.2 Requirements
 
-Requirements for audio equalizer milestone. Each maps to roadmap phases.
+Requirements for service hardening milestone. Each maps to roadmap phases.
 
-### DSP Core
+### WiFi
 
-- [x] **DSP-01**: User can hear EQ-processed audio through a 10-band graphic equalizer (31Hz-16kHz ISO frequencies)
-- [x] **DSP-02**: User experiences smooth audio transitions when switching EQ presets (coefficient interpolation)
-- [x] **DSP-03**: User can bypass EQ processing entirely with a single toggle
+- [ ] **WIFI-01**: WiFi rfkill is unblocked before hostapd starts on every boot
+- [ ] **WIFI-02**: hostapd starts reliably and recovers from transient failures
+- [ ] **WIFI-03**: WiFi AP is independent of Prodigy app lifecycle (survives app restart)
+- [ ] **WIFI-04**: DHCP server (systemd-networkd) is ready before hostapd accepts clients
 
-### Presets
+### Bluetooth
 
-- [x] **PRST-01**: User can select from 8 bundled presets (Flat, Rock, Pop, Jazz, Classical, Bass Boost, Treble Boost, Vocal)
-- [x] **PRST-02**: User can apply different EQ profiles to media, navigation, and phone audio streams independently
-- [x] **PRST-03**: User can save custom EQ settings as a named preset
-- [x] **PRST-04**: User can load and delete user-created presets
+- [ ] **BT-01**: SDP socket (`/var/run/sdp`) always has correct group permissions after BlueZ starts
+- [ ] **BT-02**: BlueZ `--compat` override is robust (survives package updates, daemon-reload)
+- [ ] **BT-03**: App registers SDP service within 10 seconds of startup (clear logging on retry/success)
 
-### Head Unit UI
+### Audio
 
-- [x] **UI-01**: User can adjust 10 EQ band gains via vertical sliders on the head unit touchscreen
-- [x] **UI-02**: User can select presets from a picker in the EQ settings view
-- [x] **UI-03**: User can switch between media, navigation, and phone EQ profiles via stream selector
+- [ ] **AUD-01**: App detects PipeWire readiness before creating audio streams
+- [ ] **AUD-02**: Audio streams are properly cleaned up on app shutdown (no orphaned PipeWire nodes)
 
-### Config
+### Service Stack
 
-- [x] **CFG-01**: User's EQ settings and presets persist across app restarts via YAML config
+- [ ] **SVC-01**: Prodigy systemd service has correct After/Wants dependencies (Wayland, hostapd, BlueZ, PipeWire)
+- [ ] **SVC-02**: Prodigy restarts automatically on crash with rate limiting
+- [ ] **SVC-03**: SIGTERM triggers clean shutdown (config save, connection close, resource release)
+
+### Installer
+
+- [ ] **INST-01**: Installer creates service definitions with ExecStartPre pre-conditions (rfkill, socket checks)
+- [ ] **INST-02**: Installer runs post-install health check verifying all services are functional
 
 ## Future Requirements
 
-### Web Config Panel EQ
+### Deferred
 
+- **PERF-01**: Boot-to-AA-ready time under 30 seconds
+- **FRX-01**: First-run experience guides user through phone pairing and WiFi verification
+- **HFP-01**: HFP call audio persists across AA connection state changes
 - **WEB-01**: User can adjust EQ bands from the web config panel
 - **WEB-02**: User can manage presets from the web config panel
 - **WEB-03**: User can assign presets to streams from the web config panel
@@ -42,12 +51,10 @@ Requirements for audio equalizer milestone. Each maps to roadmap phases.
 
 | Feature | Reason |
 |---------|--------|
-| Parametric EQ (adjustable Q/frequency) | Too complex for touchscreen; fixed-band covers car audio needs |
-| Spectrum analyzer / visualizer | Visual complexity, CPU cost on Pi 4, not core EQ value |
-| Auto-EQ / room correction | Requires measurement hardware and calibration flow |
-| Per-channel EQ (left/right) | Car audio balance is handled at amp/receiver level |
-| BT Audio plugin EQ | BT A2DP audio is decoded by phone; EQ at source is more appropriate |
-| PipeWire filter-chain approach | Adds latency, breaks rate matching PI controller, no runtime parameter API |
+| WiFi password rotation per connection | Post-v1.0 security enhancement |
+| Systemd watchdog with custom health protocol | Restart=on-failure is sufficient for v0.4.2 |
+| NetworkManager instead of hostapd/systemd-networkd | Current stack works, just needs hardening |
+| Boot speed optimization | Reliability first; speed is a future milestone |
 
 ## Traceability
 
@@ -55,23 +62,26 @@ Which phases cover which requirements. Updated during roadmap creation.
 
 | Requirement | Phase | Status |
 |-------------|-------|--------|
-| DSP-01 | Phase 1 | Complete |
-| DSP-02 | Phase 1 | Complete |
-| DSP-03 | Phase 1 | Complete |
-| PRST-01 | Phase 2 | Complete |
-| PRST-02 | Phase 2 | Complete |
-| PRST-03 | Phase 2 | Complete |
-| PRST-04 | Phase 2 | Complete |
-| UI-01 | Phase 3 | Complete |
-| UI-02 | Phase 3 | Complete |
-| UI-03 | Phase 3 | Complete |
-| CFG-01 | Phase 2 | Complete |
+| WIFI-01 | — | Pending |
+| WIFI-02 | — | Pending |
+| WIFI-03 | — | Pending |
+| WIFI-04 | — | Pending |
+| BT-01 | — | Pending |
+| BT-02 | — | Pending |
+| BT-03 | — | Pending |
+| AUD-01 | — | Pending |
+| AUD-02 | — | Pending |
+| SVC-01 | — | Pending |
+| SVC-02 | — | Pending |
+| SVC-03 | — | Pending |
+| INST-01 | — | Pending |
+| INST-02 | — | Pending |
 
 **Coverage:**
-- v0.4.1 requirements: 11 total
-- Mapped to phases: 11
-- Unmapped: 0
+- v0.4.2 requirements: 14 total
+- Mapped to phases: 0
+- Unmapped: 14 ⚠️
 
 ---
-*Requirements defined: 2026-03-01*
-*Last updated: 2026-03-01 after roadmap creation*
+*Requirements defined: 2026-03-02*
+*Last updated: 2026-03-02 after initial definition*
