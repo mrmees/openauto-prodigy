@@ -1155,6 +1155,13 @@ HOSTAPD
         sudo sed -i 's|^#\?DAEMON_CONF=.*|DAEMON_CONF="/etc/hostapd/hostapd.conf"|' /etc/default/hostapd
     fi
 
+    # hostapd drop-in: unblock WiFi radio before starting AP
+    sudo mkdir -p /etc/systemd/system/hostapd.service.d
+    sudo tee /etc/systemd/system/hostapd.service.d/rfkill.conf > /dev/null << 'RFKILL'
+[Service]
+ExecStartPre=/usr/sbin/rfkill unblock wlan
+RFKILL
+
     # Enable and start services
     sudo systemctl unmask hostapd 2>/dev/null || true
     sudo systemctl enable --quiet hostapd
@@ -1467,6 +1474,8 @@ Description=OpenAuto Prodigy
 After=graphical.target hostapd.service bluetooth.target pipewire.service
 Wants=openauto-system.service
 BindsTo=hostapd.service
+StartLimitBurst=5
+StartLimitIntervalSec=60
 
 [Service]
 Type=notify
@@ -1481,8 +1490,6 @@ ExecStart=$INSTALL_DIR/build/src/openauto-prodigy
 ExecStopPost=-+/bin/systemctl stop hostapd.service
 Restart=on-failure
 RestartSec=3
-StartLimitBurst=5
-StartLimitIntervalSec=60
 WatchdogSec=30
 NotifyAccess=main
 
