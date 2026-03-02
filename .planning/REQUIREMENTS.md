@@ -9,10 +9,10 @@ Requirements for service hardening milestone. Each maps to roadmap phases.
 
 ### WiFi
 
-- [ ] **WIFI-01**: WiFi rfkill is unblocked before hostapd starts on every boot
-- [ ] **WIFI-02**: hostapd starts reliably and recovers from transient failures
-- [ ] **WIFI-03**: WiFi AP is independent of Prodigy app lifecycle (survives app restart)
-- [ ] **WIFI-04**: DHCP server (systemd-networkd) is ready before hostapd accepts clients
+- [x] **WIFI-01**: WiFi rfkill is unblocked before hostapd starts on every boot
+- [x] **WIFI-02**: hostapd starts reliably and recovers from transient failures
+- [x] **WIFI-03**: WiFi AP is independent of Prodigy app lifecycle (survives app restart)
+- [x] **WIFI-04**: DHCP server (systemd-networkd) is ready before hostapd accepts clients
 
 ### Bluetooth
 
@@ -27,13 +27,13 @@ Requirements for service hardening milestone. Each maps to roadmap phases.
 
 ### Service Stack
 
-- [ ] **SVC-01**: Prodigy systemd service has correct After/Wants dependencies (Wayland, hostapd, BlueZ, PipeWire)
-- [ ] **SVC-02**: Prodigy restarts automatically on crash with rate limiting
+- [x] **SVC-01**: Prodigy systemd service has correct After/Wants dependencies (Wayland, hostapd, BlueZ, PipeWire)
+- [x] **SVC-02**: Prodigy restarts automatically on crash with rate limiting
 - [ ] **SVC-03**: SIGTERM triggers clean shutdown (config save, connection close, resource release)
 
 ### Installer
 
-- [ ] **INST-01**: Installer creates service definitions with ExecStartPre pre-conditions (rfkill, socket checks)
+- [x] **INST-01**: Installer creates service definitions with ExecStartPre pre-conditions (rfkill, socket checks)
 - [ ] **INST-02**: Installer runs post-install health check verifying all services are functional
 
 ## Future Requirements
@@ -62,19 +62,19 @@ Which phases cover which requirements. Updated during roadmap creation.
 
 | Requirement | Phase | Status |
 |-------------|-------|--------|
-| WIFI-01 | Phase 1 | Pending |
-| WIFI-02 | Phase 1 | Pending |
-| WIFI-03 | Phase 1 | Pending |
-| WIFI-04 | Phase 1 | Pending |
+| WIFI-01 | Phase 1 | Complete |
+| WIFI-02 | Phase 1 | Complete |
+| WIFI-03 | Phase 1 | Complete |
+| WIFI-04 | Phase 1 | Complete |
 | BT-01 | Phase 2 | Pending |
 | BT-02 | Phase 2 | Pending |
 | BT-03 | Phase 2 | Pending |
 | AUD-01 | Phase 3 | Pending |
 | AUD-02 | Phase 3 | Pending |
-| SVC-01 | Phase 1 | Pending |
-| SVC-02 | Phase 1 | Pending |
+| SVC-01 | Phase 1 | Complete |
+| SVC-02 | Phase 1 | Complete |
 | SVC-03 | Phase 3 | Pending |
-| INST-01 | Phase 1 | Pending |
+| INST-01 | Phase 1 | Complete |
 | INST-02 | Phase 3 | Pending |
 
 **Coverage:**
