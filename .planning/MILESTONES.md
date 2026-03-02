@@ -14,3 +14,17 @@
 
 ---
 
+## v0.4.1 Audio Equalizer (Shipped: 2026-03-02)
+
+**Phases completed:** 3 phases, 6 plans, 31min total execution
+
+**Key accomplishments:**
+- RT-safe 10-band biquad DSP engine with lock-free coefficient interpolation and bypass crossfade
+- EqualizerService with per-stream profiles (media/nav/phone), 8 bundled presets, user preset save/load
+- YAML config persistence with 2-second debounce and guaranteed shutdown save
+- AudioService pipeline integration — EQ processing wired into all 3 PipeWire streams
+- Touch-friendly QML UI: 10 vertical band sliders, preset picker, swipe-to-delete, bypass toggle
+- Promoted EQ to standalone nav strip plugin (user feedback during verification)
+
+---
+
