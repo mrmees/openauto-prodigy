@@ -320,8 +320,8 @@ target_compile_definitions(openauto-core PUBLIC
 
 # systemd notification — optional, for Type=notify service unit + watchdog
 if(SYSTEMD_FOUND)
-    target_compile_definitions(openauto-core PRIVATE HAS_SYSTEMD)
-    target_link_libraries(openauto-core PRIVATE PkgConfig::SYSTEMD)
+    target_compile_definitions(openauto-prodigy PRIVATE HAS_SYSTEMD)
+    target_link_libraries(openauto-prodigy PRIVATE PkgConfig::SYSTEMD)
     message(STATUS "libsystemd found — sd_notify integration enabled")
 else()
     message(STATUS "libsystemd NOT found — sd_notify integration disabled")
