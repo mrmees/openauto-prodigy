@@ -6,6 +6,7 @@ namespace oap {
 
 class IAudioService;
 class IBluetoothService;
+class IEqualizerService;
 class IConfigService;
 class IThemeService;
 class IDisplayService;
@@ -29,6 +30,7 @@ public:
     virtual ActionRegistry* actionRegistry() = 0;
     virtual INotificationService* notificationService() = 0;
     virtual CompanionListenerService* companionListenerService() = 0;
+    virtual IEqualizerService* equalizerService() = 0;
 
     /// Log a message through the host's logging system.
     /// Thread-safe.

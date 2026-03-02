@@ -24,6 +24,7 @@
 #include "core/services/CompanionListenerService.hpp"
 #include "core/services/SystemServiceClient.hpp"
 #include "core/services/BluetoothManager.hpp"
+#include "core/services/EqualizerService.hpp"
 #include "ui/NotificationModel.hpp"
 #include "core/plugin/HostContext.hpp"
 #include "core/plugin/PluginManager.hpp"
@@ -149,6 +150,12 @@ int main(int argc, char *argv[])
     audioService->setInputDevice(yamlConfig->microphoneDevice());
     audioService->setMasterVolume(yamlConfig->masterVolume());
 
+    // --- Equalizer service (depends on YamlConfig) ---
+    auto eqService = new oap::EqualizerService(yamlConfig.get(), &app);
+
+    // Flush EQ config on shutdown
+    QObject::connect(&app, &QGuiApplication::aboutToQuit, eqService, &oap::EqualizerService::saveNow);
+
     // --- Plugin infrastructure ---
     auto configService = std::make_unique<oap::ConfigService>(yamlConfig.get(), yamlPath);
     auto hostContext = std::make_unique<oap::HostContext>();
@@ -156,6 +163,7 @@ int main(int argc, char *argv[])
     hostContext->setThemeService(themeService);
     hostContext->setDisplayService(displayService);
     hostContext->setAudioService(audioService);
+    hostContext->setEqualizerService(eqService);
 
     // --- Bluetooth manager ---
     auto* bluetoothManager = new oap::BluetoothManager(configService.get(), &app);
@@ -292,6 +300,7 @@ int main(int argc, char *argv[])
     auto* codecCapModel = new oap::CodecCapabilityModel(&app);
     engine.rootContext()->setContextProperty("CodecCapabilityModel", codecCapModel);
 
+    engine.rootContext()->setContextProperty("EqualizerService", eqService);
     engine.rootContext()->setContextProperty("ConfigService", configService.get());
 
     if (companionListener)

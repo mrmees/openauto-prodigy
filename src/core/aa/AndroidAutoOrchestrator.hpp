@@ -33,6 +33,7 @@ class YamlConfig;
 class IAudioService;
 class IEventBus;
 class Configuration;
+class EqualizerService;
 struct AudioStreamHandle;
 
 namespace aa {
@@ -56,6 +57,7 @@ public:
                                       oap::IAudioService* audioService,
                                       oap::YamlConfig* yamlConfig,
                                       oap::IEventBus* eventBus = nullptr,
+                                      oap::EqualizerService* eqService = nullptr,
                                       QObject* parent = nullptr);
     ~AndroidAutoOrchestrator() override;
 
@@ -93,6 +95,7 @@ private:
     oap::IAudioService* audioService_;
     oap::YamlConfig* yamlConfig_;
     oap::IEventBus* eventBus_;
+    oap::EqualizerService* eqService_;
 
     // TCP listener (Qt-native, replaces ASIO acceptor)
     QTcpServer tcpServer_;

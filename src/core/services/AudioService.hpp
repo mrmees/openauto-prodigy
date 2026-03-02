@@ -14,6 +14,8 @@
 
 namespace oap {
 
+class EqualizerEngine;  // forward declaration for RT-safe EQ processing
+
 /// AudioStreamHandle — wraps a PipeWire stream node.
 /// Created by AudioService, destroyed by AudioService::destroyStream().
 struct AudioStreamHandle {
@@ -44,6 +46,9 @@ struct AudioStreamHandle {
 
     // Ring buffer for ASIO → PipeWire bridging
     std::unique_ptr<oap::AudioRingBuffer> ringBuffer;
+
+    // EQ engine — non-owning, set by orchestrator after stream creation
+    EqualizerEngine* eqEngine = nullptr;
 
     // PipeWire listener (must outlive stream)
     struct spa_hook listener{};

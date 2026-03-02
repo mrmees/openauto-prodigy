@@ -7,6 +7,7 @@
 #include "core/services/IAudioService.hpp"
 #include "core/services/IConfigService.hpp"
 #include "core/services/ConfigService.hpp"
+#include "core/services/EqualizerService.hpp"
 #include <algorithm>
 #include "../../core/Logging.hpp"
 #include <QQmlContext>
@@ -36,7 +37,8 @@ bool AndroidAutoPlugin::initialize(IHostContext* context)
     // Create AA orchestrator with audio routing through PipeWire
     auto* audioService = context ? context->audioService() : nullptr;
     auto* eventBus = context ? context->eventBus() : nullptr;
-    aaService_ = new oap::aa::AndroidAutoOrchestrator(config_, audioService, yamlConfig_, eventBus, this);
+    auto* eqService = context ? dynamic_cast<oap::EqualizerService*>(context->equalizerService()) : nullptr;
+    aaService_ = new oap::aa::AndroidAutoOrchestrator(config_, audioService, yamlConfig_, eventBus, eqService, this);
 
     // Connect navigation: emit signals for PluginModel to handle activation/deactivation.
     QObject::connect(aaService_, &oap::aa::AndroidAutoOrchestrator::connectionStateChanged,

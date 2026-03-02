@@ -1,5 +1,6 @@
 #include "AudioService.hpp"
 #include "../Logging.hpp"
+#include "core/audio/EqualizerEngine.hpp"
 #include <cstring>
 #include <spa/param/props.h>
 #include <pipewire/version.h>
@@ -149,6 +150,14 @@ void AudioService::onPlaybackProcess(void* userdata)
     // Track complete underruns for adaptive buffer growth
     if (bytesRead == 0)
         handle->underrunCount.fetch_add(1, std::memory_order_relaxed);
+
+    // EQ processing (RT-safe, in-place) — runs before silence fill
+    if (handle->eqEngine && bytesRead > 0) {
+        int frames = static_cast<int>(bytesRead / handle->bytesPerFrame);
+        handle->eqEngine->process(
+            reinterpret_cast<int16_t*>(static_cast<uint8_t*>(d.data)),
+            frames);
+    }
 
     // Silence-fill any gap — PipeWire graph timing is fixed by quantum/rate,
     // so we must always output a full period to avoid tempo wobble.

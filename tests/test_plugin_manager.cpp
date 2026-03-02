@@ -41,6 +41,7 @@ public:
     oap::ActionRegistry* actionRegistry() override { return nullptr; }
     oap::INotificationService* notificationService() override { return nullptr; }
     oap::CompanionListenerService* companionListenerService() override { return nullptr; }
+    oap::IEqualizerService* equalizerService() override { return nullptr; }
     void log(oap::LogLevel, const QString&) override {}
 };
 

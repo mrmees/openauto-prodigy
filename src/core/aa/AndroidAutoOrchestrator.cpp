@@ -4,7 +4,9 @@
 #include "../../core/YamlConfig.hpp"
 #include "../../core/Configuration.hpp"
 #include "../../core/services/IAudioService.hpp"
+#include "../../core/services/AudioService.hpp"
 #include "../../core/services/IEventBus.hpp"
+#include "../../core/services/EqualizerService.hpp"
 
 #include <memory>
 #include <QDir>
@@ -28,12 +30,14 @@ AndroidAutoOrchestrator::AndroidAutoOrchestrator(
     oap::IAudioService* audioService,
     oap::YamlConfig* yamlConfig,
     oap::IEventBus* eventBus,
+    oap::EqualizerService* eqService,
     QObject* parent)
     : QObject(parent)
     , config_(std::move(config))
     , audioService_(audioService)
     , yamlConfig_(yamlConfig)
     , eventBus_(eventBus)
+    , eqService_(eqService)
 {
     // Wire TouchHandler to InputChannelHandler
     touchHandler_.setHandler(&inputHandler_);
@@ -294,6 +298,16 @@ void AndroidAutoOrchestrator::onNewConnection()
         mediaStream_  = audioService_->createStream("AA Media",  50, 48000, 2, "auto", mediaBufMs);
         speechStream_ = audioService_->createStream("AA Speech", 60, 48000, 1, "auto", speechBufMs);
         systemStream_ = audioService_->createStream("AA System", 40, 16000, 1, "auto", systemBufMs);
+
+        // Assign EQ engines to stream handles
+        if (eqService_) {
+            if (mediaStream_)
+                mediaStream_->eqEngine = eqService_->engineForStream(oap::StreamId::Media);
+            if (speechStream_)
+                speechStream_->eqEngine = eqService_->engineForStream(oap::StreamId::Navigation);
+            if (systemStream_)
+                systemStream_->eqEngine = eqService_->engineForStream(oap::StreamId::Phone);
+        }
 
         if (mediaStream_) {
             connect(&mediaAudioHandler_, &oaa::hu::AudioChannelHandler::audioDataReceived,
