@@ -15,10 +15,10 @@ Requirements for audio equalizer milestone. Each maps to roadmap phases.
 
 ### Presets
 
-- [ ] **PRST-01**: User can select from 8 bundled presets (Flat, Rock, Pop, Jazz, Classical, Bass Boost, Treble Boost, Vocal)
-- [ ] **PRST-02**: User can apply different EQ profiles to media, navigation, and phone audio streams independently
-- [ ] **PRST-03**: User can save custom EQ settings as a named preset
-- [ ] **PRST-04**: User can load and delete user-created presets
+- [x] **PRST-01**: User can select from 8 bundled presets (Flat, Rock, Pop, Jazz, Classical, Bass Boost, Treble Boost, Vocal)
+- [x] **PRST-02**: User can apply different EQ profiles to media, navigation, and phone audio streams independently
+- [x] **PRST-03**: User can save custom EQ settings as a named preset
+- [x] **PRST-04**: User can load and delete user-created presets
 
 ### Head Unit UI
 
@@ -58,10 +58,10 @@ Which phases cover which requirements. Updated during roadmap creation.
 | DSP-01 | Phase 1 | Complete |
 | DSP-02 | Phase 1 | Complete |
 | DSP-03 | Phase 1 | Complete |
-| PRST-01 | Phase 2 | Pending |
-| PRST-02 | Phase 2 | Pending |
-| PRST-03 | Phase 2 | Pending |
-| PRST-04 | Phase 2 | Pending |
+| PRST-01 | Phase 2 | Complete |
+| PRST-02 | Phase 2 | Complete |
+| PRST-03 | Phase 2 | Complete |
+| PRST-04 | Phase 2 | Complete |
 | UI-01 | Phase 3 | Pending |
 | UI-02 | Phase 3 | Pending |
 | UI-03 | Phase 3 | Pending |

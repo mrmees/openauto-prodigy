@@ -2,13 +2,13 @@
 gsd_state_version: 1.0
 milestone: v0.4
 milestone_name: milestone
-status: unknown
-last_updated: "2026-03-02T00:03:40.955Z"
+status: in-progress
+last_updated: "2026-03-02T00:37:37Z"
 progress:
-  total_phases: 1
+  total_phases: 2
   completed_phases: 1
-  total_plans: 2
-  completed_plans: 2
+  total_plans: 4
+  completed_plans: 3
 ---
 
 # Project State
@@ -18,28 +18,29 @@ progress:
 See: .planning/PROJECT.md (updated 2026-03-01)
 
 **Core value:** A person with a Raspberry Pi 4 and a touchscreen can install this, pair their phone, and get a reliable wireless Android Auto experience — every time, without SSH.
-**Current focus:** Phase 1 complete — DSP Core
+**Current focus:** Phase 2 in progress — Service & Config
 
 ## Current Position
 
-Phase: 1 of 3 (DSP Core) — first phase of v0.4.1
-Plan: 2 of 2 in current phase (COMPLETE)
-Status: Phase 1 complete
-Last activity: 2026-03-01 — Completed 01-02 Equalizer Engine
+Phase: 2 of 3 (Service & Config) — second phase of v0.4.1
+Plan: 1 of 2 in current phase (COMPLETE)
+Status: Plan 02-01 complete, Plan 02-02 next
+Last activity: 2026-03-02 — Completed 02-01 Equalizer Service
 
-Progress: [██████████] 100% (Phase 1)
+Progress: [███████░░░] 75% (3/4 plans)
 
 ## Performance Metrics
 
 **Velocity:**
-- Total plans completed: 2
-- Average duration: 4.5min
-- Total execution time: 9min
+- Total plans completed: 3
+- Average duration: 4.7min
+- Total execution time: 14min
 
 | Phase | Plan | Duration | Tasks | Files |
 |-------|------|----------|-------|-------|
 | 01-dsp-core | 01 | 4min | 2 | 5 |
 | 01-dsp-core | 02 | 5min | 1 | 5 |
+| 02-service-config | 01 | 5min | 2 | 8 |
 
 *Updated after each plan completion*
 
@@ -53,6 +54,9 @@ Progress: [██████████] 100% (Phase 1)
 - [01-02] Generation counter for double-buffer swap detection (avoids ABA problem with pointer comparison)
 - [01-02] Bypass fast-path snaps coefficients immediately (no interpolation while fully bypassed)
 - [01-02] Bypass crossfade uses same 2304-sample ramp as coefficient interpolation
+- [02-01] saveUserPreset takes StreamId parameter (caller specifies source stream)
+- [02-01] setGain clears activePreset to "" (indicates manual adjustment from preset)
+- [02-01] User presets in-memory only; config persistence deferred to Plan 02
 
 ### Roadmap Evolution
 
@@ -70,6 +74,6 @@ None.
 
 ## Session Continuity
 
-Last session: 2026-03-01
-Stopped at: Completed 01-02-PLAN.md (Equalizer Engine) — Phase 1 complete
+Last session: 2026-03-02
+Stopped at: Completed 02-01-PLAN.md (Equalizer Service)
 Resume file: None
