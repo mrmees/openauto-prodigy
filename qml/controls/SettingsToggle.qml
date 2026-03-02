@@ -4,6 +4,7 @@ import QtQuick.Controls
 
 Item {
     id: root
+    property string icon: ""
     property string label: ""
     property string configPath: ""
     property bool restartRequired: false
@@ -16,6 +17,14 @@ Item {
         anchors.leftMargin: UiMetrics.marginRow
         anchors.rightMargin: UiMetrics.marginRow
         spacing: UiMetrics.gap
+
+        MaterialIcon {
+            icon: root.icon
+            size: UiMetrics.iconSize
+            color: ThemeService.normalFontColor
+            visible: root.icon !== ""
+            Layout.preferredWidth: UiMetrics.iconSize
+        }
 
         Text {
             text: root.label

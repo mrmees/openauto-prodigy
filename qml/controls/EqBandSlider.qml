@@ -66,8 +66,7 @@ Item {
             anchors.rightMargin: UiMetrics.spacing / 2
             y: root.gainToY(0) - 1
             height: 1
-            color: ThemeService.descriptionFontColor
-            opacity: 0.3
+            color: ThemeService.dividerColor
         }
 
         // Thumb

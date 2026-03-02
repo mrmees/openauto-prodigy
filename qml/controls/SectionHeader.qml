@@ -26,7 +26,6 @@ Item {
         anchors.right: parent.right
         anchors.bottom: parent.bottom
         height: 1
-        color: ThemeService.descriptionFontColor
-        opacity: 0.3
+        color: ThemeService.dividerColor
     }
 }
