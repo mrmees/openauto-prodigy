@@ -14,16 +14,20 @@ Rectangle {
     readonly property bool homeActive: !PluginModel.activePluginId
                                        && ApplicationController.currentApplication === 0
 
+    // Fixed buttons (home, EQ, day/night, settings) + dynamic plugins
+    readonly property int _buttonCount: 4 + PluginModel.rowCount()
+    readonly property real _maxButtonW: (width - 2 * UiMetrics.marginRow) / _buttonCount
+
     RowLayout {
         anchors.fill: parent
         anchors.leftMargin: UiMetrics.marginRow
         anchors.rightMargin: UiMetrics.marginRow
-        spacing: UiMetrics.spacing
+        spacing: 0
 
         // Home button
         Rectangle {
             Layout.fillHeight: true
-            Layout.preferredWidth: Math.min(navStrip.height * 1.2, navStrip.width / 7)
+            Layout.preferredWidth: Math.min(navStrip.height * 1.2, navStrip._maxButtonW)
             color: navStrip.homeActive ? ThemeService.highlightColor : "transparent"
             radius: UiMetrics.radiusSmall
 
@@ -56,7 +60,7 @@ Rectangle {
 
             Rectangle {
                 Layout.fillHeight: true
-                Layout.preferredWidth: Math.min(navStrip.height * 1.2, navStrip.width / 7)
+                Layout.preferredWidth: Math.min(navStrip.height * 1.2, navStrip._maxButtonW)
                 color: isActive ? ThemeService.highlightColor : "transparent"
                 radius: UiMetrics.radiusSmall
 
@@ -87,7 +91,7 @@ Rectangle {
         // EQ shortcut
         Rectangle {
             Layout.fillHeight: true
-            Layout.preferredWidth: Math.min(navStrip.height * 1.2, navStrip.width / 7)
+            Layout.preferredWidth: Math.min(navStrip.height * 1.2, navStrip._maxButtonW)
             color: "transparent"
             radius: UiMetrics.radiusSmall
 
@@ -110,13 +114,16 @@ Rectangle {
             }
         }
 
-        // Spacer
-        Item { Layout.fillWidth: true }
+        // Spacer — collapses on narrow screens so buttons don't get clipped
+        Item {
+            Layout.fillWidth: navStrip._maxButtonW >= navStrip.height * 0.8
+            Layout.preferredWidth: navStrip._maxButtonW >= navStrip.height * 0.8 ? -1 : 0
+        }
 
         // Back button (visible when not on launcher)
         Rectangle {
             Layout.fillHeight: true
-            Layout.preferredWidth: Math.min(navStrip.height * 1.2, navStrip.width / 7)
+            Layout.preferredWidth: Math.min(navStrip.height * 1.2, navStrip._maxButtonW)
             color: "transparent"
             radius: UiMetrics.radiusSmall
             visible: ApplicationController.currentApplication !== 0
@@ -143,7 +150,7 @@ Rectangle {
         // Day/night mode toggle
         Rectangle {
             Layout.fillHeight: true
-            Layout.preferredWidth: Math.min(navStrip.height * 1.2, navStrip.width / 7)
+            Layout.preferredWidth: Math.min(navStrip.height * 1.2, navStrip._maxButtonW)
             color: "transparent"
             radius: UiMetrics.radiusSmall
 
@@ -169,7 +176,7 @@ Rectangle {
         // Settings button
         Rectangle {
             Layout.fillHeight: true
-            Layout.preferredWidth: Math.min(navStrip.height * 1.2, navStrip.width / 7)
+            Layout.preferredWidth: Math.min(navStrip.height * 1.2, navStrip._maxButtonW)
             color: ApplicationController.currentApplication === 6 ? ThemeService.highlightColor : "transparent"
             radius: UiMetrics.radiusSmall
 
