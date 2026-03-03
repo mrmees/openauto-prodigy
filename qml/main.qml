@@ -5,10 +5,10 @@ import QtQuick.Controls.Material
 
 Window {
     id: root
-    width: 1024
-    height: 600
+    width: _geomW > 0 ? _geomW : 1024
+    height: _geomH > 0 ? _geomH : 600
     visible: true
-    visibility: Window.FullScreen
+    visibility: _geomW > 0 ? Window.Windowed : Window.FullScreen
     title: "OpenAuto Prodigy"
     color: ThemeService.backgroundColor
     Behavior on color { ColorAnimation { duration: 300; easing.type: Easing.InOutQuad } }

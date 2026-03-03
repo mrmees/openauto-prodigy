@@ -67,7 +67,26 @@ int main(int argc, char *argv[])
                                      "path");
     parser.addOption(logFileOption);
 
+    QCommandLineOption geometryOption("geometry",
+                                      "Run windowed at WxH resolution (for testing)",
+                                      "WxH");
+    parser.addOption(geometryOption);
+
     parser.process(app);
+
+    // --- Geometry override (windowed mode for resolution testing) ---
+    int geomW = 0, geomH = 0;
+    if (parser.isSet(geometryOption)) {
+        auto parts = parser.value(geometryOption).split('x');
+        if (parts.size() == 2) {
+            geomW = parts[0].toInt();
+            geomH = parts[1].toInt();
+        }
+        if (geomW <= 0 || geomH <= 0) {
+            qCritical() << "Invalid --geometry format. Use WxH (e.g., --geometry 800x480)";
+            return 1;
+        }
+    }
 
     // --- Install log handler EARLY (before any other initialization) ---
     if (parser.isSet(logFileOption))
@@ -118,7 +137,12 @@ int main(int argc, char *argv[])
 
     // --- DisplayInfo (window dimensions bridge for QML UiMetrics) ---
     auto* displayInfo = new oap::DisplayInfo(&app);
-    displayInfo->setWindowSize(yamlConfig->displayWidth(), yamlConfig->displayHeight());
+    if (geomW > 0 && geomH > 0) {
+        displayInfo->setWindowSize(geomW, geomH);
+        qCInfo(lcCore) << "Geometry override:" << geomW << "x" << geomH << "(windowed mode)";
+    } else {
+        displayInfo->setWindowSize(yamlConfig->displayWidth(), yamlConfig->displayHeight());
+    }
 
     // Log active UI overrides
     {
@@ -340,6 +364,10 @@ int main(int argc, char *argv[])
     engine.rootContext()->setContextProperty("SystemService", systemClient);
     engine.rootContext()->setContextProperty("BluetoothManager", bluetoothManager);
     engine.rootContext()->setContextProperty("PairedDevicesModel", bluetoothManager->pairedDevicesModel());
+
+    // Geometry override for windowed resolution testing
+    engine.rootContext()->setContextProperty("_geomW", geomW);
+    engine.rootContext()->setContextProperty("_geomH", geomH);
 
     // Qt 6.5+ uses /qt/qml/ prefix, Qt 6.4 uses direct URI prefix
     QUrl url(QStringLiteral("qrc:/OpenAutoProdigy/main.qml"));
