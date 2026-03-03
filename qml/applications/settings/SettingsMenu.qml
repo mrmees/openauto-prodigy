@@ -74,11 +74,6 @@ Item {
                 Tile {
                     tileName: "Android Auto"
                     tileIcon: "\ue531"
-                    tileSubtitle: {
-                        var r = ConfigService.value("video.resolution") || "720p"
-                        var f = ConfigService.value("video.fps") || 60
-                        return r + " " + f + "fps"
-                    }
                     Layout.preferredWidth: UiMetrics.tileW
                     Layout.preferredHeight: UiMetrics.tileH
                     onClicked: openPage("aa")
@@ -87,10 +82,6 @@ Item {
                 Tile {
                     tileName: "Display"
                     tileIcon: "\ueb97"
-                    tileSubtitle: {
-                        var t = ConfigService.value("display.theme") || "default"
-                        return t.charAt(0).toUpperCase() + t.slice(1)
-                    }
                     Layout.preferredWidth: UiMetrics.tileW
                     Layout.preferredHeight: UiMetrics.tileH
                     onClicked: openPage("display")
@@ -99,10 +90,6 @@ Item {
                 Tile {
                     tileName: "Audio"
                     tileIcon: "\ue050"
-                    tileSubtitle: {
-                        var v = typeof AudioService !== "undefined" ? AudioService.masterVolume : 100
-                        return "Vol: " + v + "%"
-                    }
                     Layout.preferredWidth: UiMetrics.tileW
                     Layout.preferredHeight: UiMetrics.tileH
                     onClicked: openPage("audio")
@@ -111,11 +98,6 @@ Item {
                 Tile {
                     tileName: "Connectivity"
                     tileIcon: "\ue1d8"
-                    tileSubtitle: {
-                        if (typeof BluetoothManager === "undefined") return ""
-                        var n = BluetoothManager.connectedDeviceName
-                        return n !== "" ? "BT: " + n : "BT: No device"
-                    }
                     Layout.preferredWidth: UiMetrics.tileW
                     Layout.preferredHeight: UiMetrics.tileH
                     onClicked: openPage("connection")
@@ -124,10 +106,6 @@ Item {
                 Tile {
                     tileName: "Companion"
                     tileIcon: "\ue324"
-                    tileSubtitle: {
-                        if (typeof CompanionService === "undefined") return "Disabled"
-                        return CompanionService.connected ? "Connected" : "Not connected"
-                    }
                     Layout.preferredWidth: UiMetrics.tileW
                     Layout.preferredHeight: UiMetrics.tileH
                     onClicked: openPage("companion")
@@ -136,7 +114,6 @@ Item {
                 Tile {
                     tileName: "System"
                     tileIcon: "\uf8cd"
-                    tileSubtitle: "v" + (ConfigService.value("identity.sw_version") || "0.0.0")
                     Layout.preferredWidth: UiMetrics.tileW
                     Layout.preferredHeight: UiMetrics.tileH
                     onClicked: openPage("system")

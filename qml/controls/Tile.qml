@@ -35,19 +35,8 @@ Rectangle {
             Layout.alignment: Qt.AlignHCenter
             text: tile.tileName
             color: ThemeService.normalFontColor
-            font.pixelSize: UiMetrics.fontSmall
+            font.pixelSize: UiMetrics.fontHeading
             horizontalAlignment: Text.AlignHCenter
-        }
-
-        Text {
-            text: tile.tileSubtitle
-            color: ThemeService.descriptionFontColor
-            font.pixelSize: UiMetrics.fontTiny
-            horizontalAlignment: Text.AlignHCenter
-            Layout.alignment: Qt.AlignHCenter
-            elide: Text.ElideRight
-            Layout.maximumWidth: tile.width - UiMetrics.marginRow * 2
-            visible: tile.tileSubtitle !== ""
         }
     }
 
