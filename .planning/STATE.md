@@ -3,12 +3,12 @@ gsd_state_version: 1.0
 milestone: v0.4
 milestone_name: milestone
 status: in-progress
-last_updated: "2026-03-03T01:52:46Z"
+last_updated: "2026-03-03T02:05:07Z"
 progress:
   total_phases: 3
-  completed_phases: 2
+  completed_phases: 3
   total_plans: 7
-  completed_plans: 6
+  completed_plans: 7
 ---
 
 # Project State
@@ -23,18 +23,18 @@ See: .planning/PROJECT.md (updated 2026-03-02)
 ## Current Position
 
 Phase: 3 of 3 (EQ Dual-Access & Shell Polish)
-Plan: 1 of 2
-Status: In Progress
-Last activity: 2026-03-03 — Completed 03-01 (Shell Polish)
+Plan: 2 of 2
+Status: Complete
+Last activity: 2026-03-03 — Completed 03-02 (EQ Dual-Access)
 
-Progress: [████████░░] 86% (6/7 plans)
+Progress: [██████████] 100% (7/7 plans)
 
 ## Performance Metrics
 
 **Velocity:**
-- Total plans completed: 6
+- Total plans completed: 7
 - Average duration: 5min
-- Total execution time: 29min
+- Total execution time: 32min
 
 ## Accumulated Context
 
@@ -60,6 +60,8 @@ Progress: [████████░░] 86% (6/7 plans)
 - 02-02: Settings nav strip and launcher buttons always reset to tile grid root
 - 03-01: 0.95 scale for all NavStrip buttons (consistent with Tile large-item feedback)
 - 03-01: Launcher tiles use UiMetrics.tileW/tileH to match settings tile sizing
+- 03-02: EQ button is a go-to shortcut (no active highlight) -- navigates to settings which highlights the settings icon
+- 03-02: AudioSettings EQ list item uses openEqualizer signal instead of StackView.view -- avoids tight coupling
 
 ### Pending Todos
 
@@ -67,11 +69,10 @@ None yet.
 
 ### Blockers/Concerns
 
-- EQ dual-access architecture decision needed before Phase 3: shared Loader instance vs fully C++-derived state in EqualizerService
 - PipeWire SCO behavior needs wire verification on Pi before finalizing PhonePlugin architecture (carried forward)
 
 ## Session Continuity
 
 Last session: 2026-03-03
-Stopped at: Completed 03-01-PLAN.md
+Stopped at: Completed 03-02-PLAN.md — v0.4.3 milestone complete
 Resume file: None

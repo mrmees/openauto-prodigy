@@ -38,7 +38,7 @@
 - [x] **UX-01**: BT device forget action has a clearly visible, adequately-sized touch target (not tiny text)
 - [x] **UX-02**: Modal pickers can be dismissed by tapping outside the modal area (background dismiss)
 - [x] **UX-03**: Read-only fields display clearly as informational (no "edit via web panel" confusion)
-- [ ] **UX-04**: EQ accessible both via Audio settings subsection and NavStrip shortcut icon (dual-access with consistent state)
+- [x] **UX-04**: EQ accessible both via Audio settings subsection and NavStrip shortcut icon (dual-access with consistent state)
 
 ### Shell & Navigation (NAV)
 
@@ -90,7 +90,7 @@
 | UX-01 | Phase 3 | Complete |
 | UX-02 | Phase 3 | Complete |
 | UX-03 | Phase 2 | Complete |
-| UX-04 | Phase 3 | Pending |
+| UX-04 | Phase 3 | Complete |
 | NAV-01 | Phase 3 | Complete |
 | NAV-02 | Phase 3 | Complete |
 | NAV-03 | Phase 3 | Complete |
