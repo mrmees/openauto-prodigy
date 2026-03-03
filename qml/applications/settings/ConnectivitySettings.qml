@@ -14,24 +14,6 @@ Flickable {
         anchors.margins: UiMetrics.marginPage
         spacing: UiMetrics.spacing
 
-        SectionHeader { text: "WiFi Access Point" }
-
-        FullScreenPicker {
-            label: "Channel"
-            configPath: "connection.wifi_ap.channel"
-            options: ["1","2","3","4","5","6","7","8","9","10","11","36","40","44","48"]
-            values: [1,2,3,4,5,6,7,8,9,10,11,36,40,44,48]
-            restartRequired: true
-        }
-
-        SegmentedButton {
-            label: "Band"
-            configPath: "connection.wifi_ap.band"
-            options: ["2.4 GHz", "5 GHz"]
-            values: ["g", "a"]
-            restartRequired: true
-        }
-
         SectionHeader { text: "Bluetooth" }
 
         ReadOnlyField {
