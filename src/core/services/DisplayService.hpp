@@ -2,7 +2,6 @@
 
 #include "IDisplayService.hpp"
 #include <QObject>
-#include <QSize>
 #include <QString>
 
 namespace oap {
@@ -24,10 +23,8 @@ public:
     explicit DisplayService(QObject* parent = nullptr);
 
     // IDisplayService
-    QSize screenSize() const override;
     int brightness() const override;
     Q_INVOKABLE void setBrightness(int value) override;
-    QString orientation() const override;
 
     /// Overlay opacity for software dimming (0.0 = invisible, max 0.9).
     qreal dimOverlayOpacity() const;

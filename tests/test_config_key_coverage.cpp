@@ -35,9 +35,6 @@ void TestConfigKeyCoverage::testAllRuntimeKeys()
         "hardware_profile",
         "display.brightness",
         "display.theme",
-        "display.orientation",
-        "display.width",
-        "display.height",
         "connection.auto_connect_aa",
         "connection.bt_discoverable",
         "connection.wifi_ap.ssid",
@@ -92,11 +89,6 @@ void TestConfigKeyCoverage::testPluginConsumedKeys()
     oap::ConfigService svc(&yaml, "/tmp/oap_test_coverage.yaml");
 
     QVERIFY(svc.value("touch.device").isValid());
-    QVERIFY(svc.value("display.width").isValid());
-    QVERIFY(svc.value("display.height").isValid());
-
-    QCOMPARE(svc.value("display.width").toInt(), 1024);
-    QCOMPARE(svc.value("display.height").toInt(), 600);
     QCOMPARE(svc.value("touch.device").toString(), QString(""));
 }
 

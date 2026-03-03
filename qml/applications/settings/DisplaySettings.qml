@@ -49,13 +49,6 @@ Flickable {
             Component.onCompleted: ThemeService.refreshWallpapers()
         }
 
-        SegmentedButton {
-            label: "Orientation"
-            configPath: "display.orientation"
-            options: ["Landscape", "Portrait"]
-            values: ["landscape", "portrait"]
-        }
-
         SectionHeader { text: "Day / Night Mode" }
 
         FullScreenPicker {

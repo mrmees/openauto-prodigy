@@ -71,17 +71,6 @@ private slots:
         QVERIFY(qFuzzyCompare(svc.dimOverlayOpacity(), 0.45));
     }
 
-    void screenSizeDefault()
-    {
-        oap::DisplayService svc;
-        QCOMPARE(svc.screenSize(), QSize(1024, 600));
-    }
-
-    void orientationDefault()
-    {
-        oap::DisplayService svc;
-        QCOMPARE(svc.orientation(), QStringLiteral("landscape"));
-    }
 };
 
 QTEST_MAIN(TestDisplayService)

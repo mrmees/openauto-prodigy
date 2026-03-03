@@ -65,11 +65,6 @@ DisplayService::Backend DisplayService::detectBackend()
     return Backend::SoftwareOverlay;
 }
 
-QSize DisplayService::screenSize() const
-{
-    return QSize(1024, 600);
-}
-
 int DisplayService::brightness() const
 {
     return brightness_;
@@ -96,11 +91,6 @@ void DisplayService::setBrightness(int value)
     }
 
     emit brightnessChanged();
-}
-
-QString DisplayService::orientation() const
-{
-    return QStringLiteral("landscape");
 }
 
 qreal DisplayService::dimOverlayOpacity() const
