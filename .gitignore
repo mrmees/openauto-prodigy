@@ -21,13 +21,13 @@ platforms/
 .mcp.json
 
 # Test artifacts
-Testing/Temporary/
-Testing/__pycache__/
+Testing/
 
 # Decompiled APK source + index database (367MB)
 analysis-projection/
 __pycache__/
 .venv/
 
-# Archive (old docs/plans/assets kept for reference)
+# Local-only artifacts (kept for reference, not public)
 archive/
+.planning/
