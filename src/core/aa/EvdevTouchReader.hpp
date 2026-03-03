@@ -63,6 +63,16 @@ public:
     void setSidebar(bool enabled, int width, const std::string& position);
     void computeLetterbox();
 
+    // Test accessors for sidebar zone boundaries (evdev coordinate space)
+    float sidebarVolY0() const { return sidebarVolY0_; }
+    float sidebarVolY1() const { return sidebarVolY1_; }
+    float sidebarHomeY0() const { return sidebarHomeY0_; }
+    float sidebarHomeY1() const { return sidebarHomeY1_; }
+    float sidebarVolX0() const { return sidebarVolX0_; }
+    float sidebarVolX1() const { return sidebarVolX1_; }
+    float sidebarHomeX0() const { return sidebarHomeX0_; }
+    float sidebarHomeX1() const { return sidebarHomeX1_; }
+
     /// Thread-safe: update AA coordinate space (e.g. after video resolution change).
     /// Takes effect on next touch sync on the reader thread.
     void setAAResolution(int aaWidth, int aaHeight);

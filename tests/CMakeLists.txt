@@ -87,6 +87,10 @@ oap_add_test(test_codec_capability SOURCES test_codec_capability.cpp)
 oap_add_test(test_video_frame_pool SOURCES test_video_frame_pool.cpp)
 oap_add_test(test_video_decode_queue SOURCES test_video_decode_queue.cpp)
 
+# --- Sidebar zone tests ---
+
+oap_add_test(test_sidebar_zones SOURCES test_sidebar_zones.cpp)
+
 # --- DSP tests ---
 
 oap_add_test(test_biquad_filter SOURCES test_biquad_filter.cpp)

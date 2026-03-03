@@ -117,10 +117,11 @@ Plans:
   2. Swapping displays (e.g. DFRobot -> Pi official) produces correct scaling on next app launch without manual intervention
   3. Portrait/landscape orientation setting removed from Display settings -- app derives orientation from window dimensions
   4. Brightness auto-adapts to display hardware (sysfs backlight on Pi official, software fallback on DFRobot)
-**Plans**: 1 plan
+**Plans**: 2 plans
 
 Plans:
-- [ ] 05-01-PLAN.md — Remove manual display config, dead IDisplayService methods, orientation UI; update tests and docs
+- [x] 05-01-PLAN.md — Remove manual display config, dead IDisplayService methods, orientation UI; update tests and docs
+- [ ] 05-02-PLAN.md — Fix sidebar touch zone misalignment (gap closure from UAT)
 
 ## Progress
 
@@ -133,7 +134,7 @@ Phases execute in numeric order: 1 -> 2 -> 3 -> 4 -> 5
 | 2. UiMetrics Foundation + Touch Pipeline | 2/2 | Complete    | 2026-03-03 |
 | 3. QML Hardcoded Island Audit | 3/3 | Complete | 2026-03-03 |
 | 4. Layout Adaptation + Validation | 0/2 | Planning complete | - |
-| 5. Runtime Adaptation | 0/1 | Planning complete | - |
+| 5. Runtime Adaptation | 1/2 | Gap closure planned | - |
 
 ---
-*Last updated: 2026-03-03 -- Phase 5 planned (1 plan, 1 wave)*
+*Last updated: 2026-03-03 -- Phase 5 gap closure plan added (sidebar touch zones)*
