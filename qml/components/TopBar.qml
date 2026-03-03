@@ -9,9 +9,9 @@ Rectangle {
 
     RowLayout {
         anchors.fill: parent
-        anchors.leftMargin: 16
-        anchors.rightMargin: 16
-        spacing: 12
+        anchors.leftMargin: UiMetrics.gap
+        anchors.rightMargin: UiMetrics.gap
+        spacing: UiMetrics.marginRow
 
         // Title
         Text {

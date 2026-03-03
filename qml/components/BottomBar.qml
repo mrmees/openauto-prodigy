@@ -9,9 +9,9 @@ Rectangle {
 
     RowLayout {
         anchors.fill: parent
-        anchors.leftMargin: 20
-        anchors.rightMargin: 20
-        spacing: 12
+        anchors.leftMargin: UiMetrics.marginPage
+        anchors.rightMargin: UiMetrics.marginPage
+        spacing: UiMetrics.marginRow
 
         // Volume icon
         MaterialIcon {
@@ -20,7 +20,7 @@ Rectangle {
                 : volumeSlider.value > 0  ? "\ue04d"   // volume_down
                 :                           "\ue04f"   // volume_off
             color: ThemeService.normalFontColor
-            size: 24
+            size: Math.round(24 * UiMetrics.scale)
         }
 
         Slider {
@@ -36,26 +36,26 @@ Rectangle {
                 x: volumeSlider.leftPadding
                 y: volumeSlider.topPadding + volumeSlider.availableHeight / 2 - height / 2
                 implicitWidth: 200
-                implicitHeight: 6
+                implicitHeight: UiMetrics.trackThick
                 width: volumeSlider.availableWidth
                 height: implicitHeight
-                radius: 3
+                radius: UiMetrics.trackThick / 2
                 color: ThemeService.controlBackgroundColor
 
                 Rectangle {
                     width: volumeSlider.visualPosition * parent.width
                     height: parent.height
                     color: ThemeService.highlightColor
-                    radius: 3
+                    radius: UiMetrics.trackThick / 2
                 }
             }
 
             handle: Rectangle {
                 x: volumeSlider.leftPadding + volumeSlider.visualPosition * (volumeSlider.availableWidth - width)
                 y: volumeSlider.topPadding + volumeSlider.availableHeight / 2 - height / 2
-                implicitWidth: 22
-                implicitHeight: 22
-                radius: 11
+                implicitWidth: UiMetrics.knobSize
+                implicitHeight: UiMetrics.knobSize
+                radius: UiMetrics.knobSize / 2
                 color: volumeSlider.pressed ? Qt.lighter(ThemeService.highlightColor, 1.2)
                                             : ThemeService.highlightColor
                 border.color: ThemeService.controlForegroundColor

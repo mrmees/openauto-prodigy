@@ -9,7 +9,7 @@ Item {
     anchors.left: parent.left
     anchors.right: parent.right
     anchors.top: parent.top
-    anchors.topMargin: 8
+    anchors.topMargin: UiMetrics.spacing
     height: notificationColumn.implicitHeight
     z: 998  // below GestureOverlay (999), above everything else
 
@@ -17,15 +17,15 @@ Item {
         id: notificationColumn
         anchors.horizontalCenter: parent.horizontalCenter
         width: Math.min(parent.width * 0.6, 480)
-        spacing: 6
+        spacing: UiMetrics.spacing
 
         Repeater {
             model: NotificationModel
 
             Rectangle {
                 Layout.fillWidth: true
-                Layout.preferredHeight: toastLayout.implicitHeight + 16
-                radius: 8
+                Layout.preferredHeight: toastLayout.implicitHeight + UiMetrics.gap
+                radius: UiMetrics.radiusSmall
                 color: "#DD2a2a3e"
                 border.color: "#0f3460"
                 border.width: 1
@@ -41,26 +41,26 @@ Item {
                 RowLayout {
                     id: toastLayout
                     anchors.fill: parent
-                    anchors.margins: 8
-                    spacing: 8
+                    anchors.margins: UiMetrics.spacing
+                    spacing: UiMetrics.spacing
 
                     MaterialIcon {
                         icon: "\ue88e"  // info
-                        size: 20
+                        size: UiMetrics.iconSmall
                         color: "#e0e0e0"
                     }
 
                     Text {
                         Layout.fillWidth: true
                         text: model.message
-                        font.pixelSize: 14
+                        font.pixelSize: UiMetrics.fontTiny
                         color: "#e0e0e0"
                         wrapMode: Text.WordWrap
                     }
 
                     MaterialIcon {
                         icon: "\ue5cd"  // close
-                        size: 16
+                        size: UiMetrics.iconSmall
                         color: "#808080"
 
                         MouseArea {

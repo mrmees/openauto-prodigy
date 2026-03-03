@@ -16,16 +16,16 @@ Rectangle {
 
     RowLayout {
         anchors.fill: parent
-        anchors.leftMargin: 12
-        anchors.rightMargin: 12
-        spacing: 8
+        anchors.leftMargin: UiMetrics.marginRow
+        anchors.rightMargin: UiMetrics.marginRow
+        spacing: UiMetrics.spacing
 
         // Home button
         Rectangle {
             Layout.fillHeight: true
             Layout.preferredWidth: navStrip.height * 1.2
             color: navStrip.homeActive ? ThemeService.highlightColor : "transparent"
-            radius: 8
+            radius: UiMetrics.radiusSmall
 
             scale: homeArea.pressed ? 0.95 : 1.0
             opacity: homeArea.pressed ? 0.85 : 1.0
@@ -58,7 +58,7 @@ Rectangle {
                 Layout.fillHeight: true
                 Layout.preferredWidth: navStrip.height * 1.2
                 color: isActive ? ThemeService.highlightColor : "transparent"
-                radius: 8
+                radius: UiMetrics.radiusSmall
 
                 scale: pluginArea.pressed ? 0.95 : 1.0
                 opacity: pluginArea.pressed ? 0.85 : 1.0
@@ -89,7 +89,7 @@ Rectangle {
             Layout.fillHeight: true
             Layout.preferredWidth: navStrip.height * 1.2
             color: "transparent"
-            radius: 8
+            radius: UiMetrics.radiusSmall
 
             scale: eqArea.pressed ? 0.95 : 1.0
             opacity: eqArea.pressed ? 0.85 : 1.0
@@ -118,7 +118,7 @@ Rectangle {
             Layout.fillHeight: true
             Layout.preferredWidth: navStrip.height * 1.2
             color: "transparent"
-            radius: 8
+            radius: UiMetrics.radiusSmall
             visible: ApplicationController.currentApplication !== 0
 
             scale: backArea.pressed ? 0.95 : 1.0
@@ -145,7 +145,7 @@ Rectangle {
             Layout.fillHeight: true
             Layout.preferredWidth: navStrip.height * 1.2
             color: "transparent"
-            radius: 8
+            radius: UiMetrics.radiusSmall
 
             scale: modeArea.pressed ? 0.95 : 1.0
             opacity: modeArea.pressed ? 0.85 : 1.0
@@ -171,7 +171,7 @@ Rectangle {
             Layout.fillHeight: true
             Layout.preferredWidth: navStrip.height * 1.2
             color: ApplicationController.currentApplication === 6 ? ThemeService.highlightColor : "transparent"
-            radius: 8
+            radius: UiMetrics.radiusSmall
 
             scale: settingsArea.pressed ? 0.95 : 1.0
             opacity: settingsArea.pressed ? 0.85 : 1.0
