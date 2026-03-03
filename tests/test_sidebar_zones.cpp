@@ -1,5 +1,7 @@
 #include <QtTest>
+#include <QSignalSpy>
 #include "core/aa/EvdevTouchReader.hpp"
+#include "core/aa/TouchRouter.hpp"
 
 using namespace oap::aa;
 
@@ -134,6 +136,120 @@ private slots:
         QVERIFY2(gap < maxGapEvdev,
                  qPrintable(QString("Gap between volume and home too large: %1 evdev (%2 px equivalent)")
                      .arg(gap).arg(gap * 600.0 / 4095.0)));
+    }
+    // TouchRouter dispatch: volume DOWN in vertical right sidebar claims the touch
+    void touchRouter_volumeDownClaims()
+    {
+        EvdevTouchReader reader(nullptr, "/dev/null", 1280, 720, 1024, 600);
+        reader.setSidebar(true, 150, "right");
+
+        TouchRouter& router = reader.router();
+
+        // Touch in volume zone: X inside sidebar band, Y in volume range
+        float midX = (reader.sidebarVolX0() + reader.sidebarVolX1()) / 2.0f;
+        // Wait -- for vertical sidebar, X bounds are sidebarEvdevX0_/X1_ (no Vol accessors for X of vertical)
+        // Volume zone: X = [sidebarEvdevX0_, sidebarEvdevX1_], Y = [sidebarVolY0_, sidebarVolY1_]
+        // Use X in the sidebar band
+        float sidebarX = pixelToEvdev(1024 - 75, 1024, 4095);  // mid-sidebar pixel
+        float midVolY = reader.sidebarVolY1() / 2.0f;  // mid-volume zone
+
+        bool claimed = router.dispatch(0, sidebarX, midVolY, TouchEvent::Down);
+        QVERIFY2(claimed, "Volume zone DOWN should be claimed by router");
+
+        // Subsequent MOVE on same slot should also be claimed (sticky finger)
+        float newVolY = reader.sidebarVolY1() * 0.3f;
+        bool moveClaimed = router.dispatch(0, sidebarX, newVolY, TouchEvent::Move);
+        QVERIFY2(moveClaimed, "Volume zone MOVE (sticky finger) should be claimed");
+
+        // UP releases the claim
+        bool upClaimed = router.dispatch(0, sidebarX, newVolY, TouchEvent::Up);
+        QVERIFY2(upClaimed, "Volume zone UP should be claimed (then released)");
+    }
+
+    // TouchRouter dispatch: home DOWN in vertical right sidebar claims and emits signal
+    void touchRouter_homeDownEmitsSignal()
+    {
+        EvdevTouchReader reader(nullptr, "/dev/null", 1280, 720, 1024, 600);
+        reader.setSidebar(true, 150, "right");
+
+        QSignalSpy homeSpy(&reader, &EvdevTouchReader::sidebarHome);
+        QVERIFY(homeSpy.isValid());
+
+        TouchRouter& router = reader.router();
+
+        // Touch in home zone: X in sidebar band, Y in home range
+        float sidebarX = pixelToEvdev(1024 - 75, 1024, 4095);
+        float homeY = (reader.sidebarHomeY0() + reader.sidebarHomeY1()) / 2.0f;
+
+        bool claimed = router.dispatch(0, sidebarX, homeY, TouchEvent::Down);
+        QVERIFY2(claimed, "Home zone DOWN should be claimed");
+        QCOMPARE(homeSpy.count(), 1);
+    }
+
+    // TouchRouter dispatch: volume drag emits sidebarVolumeSet signal
+    void touchRouter_volumeDragEmitsSignal()
+    {
+        EvdevTouchReader reader(nullptr, "/dev/null", 1280, 720, 1024, 600);
+        reader.setSidebar(true, 150, "right");
+
+        QSignalSpy volSpy(&reader, &EvdevTouchReader::sidebarVolumeSet);
+        QVERIFY(volSpy.isValid());
+
+        TouchRouter& router = reader.router();
+
+        float sidebarX = pixelToEvdev(1024 - 75, 1024, 4095);
+
+        // DOWN at top of volume zone (should be ~100%)
+        float topVolY = reader.sidebarVolY0() + 10;
+        router.dispatch(0, sidebarX, topVolY, TouchEvent::Down);
+        QCOMPARE(volSpy.count(), 1);
+        int vol = volSpy.at(0).at(0).toInt();
+        QVERIFY2(vol > 90, qPrintable(QString("Top of volume zone should be near 100%, got %1").arg(vol)));
+
+        // MOVE toward bottom (should decrease volume)
+        float bottomVolY = reader.sidebarVolY1() - 10;
+        router.dispatch(0, sidebarX, bottomVolY, TouchEvent::Move);
+        QCOMPARE(volSpy.count(), 2);
+        int vol2 = volSpy.at(1).at(0).toInt();
+        QVERIFY2(vol2 < 10, qPrintable(QString("Bottom of volume zone should be near 0%, got %1").arg(vol2)));
+    }
+
+    // TouchRouter dispatch: touch outside sidebar zones is NOT claimed
+    void touchRouter_outsideZoneNotClaimed()
+    {
+        EvdevTouchReader reader(nullptr, "/dev/null", 1280, 720, 1024, 600);
+        reader.setSidebar(true, 150, "right");
+
+        TouchRouter& router = reader.router();
+
+        // Touch in the middle of the screen (not in sidebar)
+        float centerX = 2048;  // mid-evdev
+        float centerY = 2048;
+
+        bool claimed = router.dispatch(0, centerX, centerY, TouchEvent::Down);
+        QVERIFY2(!claimed, "Touch outside sidebar should NOT be claimed (falls through to AA)");
+    }
+
+    // Disabling sidebar removes zones from router
+    void disableSidebar_clearsRouterZones()
+    {
+        EvdevTouchReader reader(nullptr, "/dev/null", 1280, 720, 1024, 600);
+        reader.setSidebar(true, 150, "right");
+
+        TouchRouter& router = reader.router();
+
+        // Verify sidebar zone is active
+        float sidebarX = pixelToEvdev(1024 - 75, 1024, 4095);
+        float homeY = (reader.sidebarHomeY0() + reader.sidebarHomeY1()) / 2.0f;
+        QVERIFY(router.dispatch(0, sidebarX, homeY, TouchEvent::Down));
+        router.dispatch(0, sidebarX, homeY, TouchEvent::Up);  // release claim
+
+        // Disable sidebar
+        reader.setSidebar(false, 0, "right");
+
+        // Same touch should no longer be claimed
+        bool claimed = router.dispatch(1, sidebarX, homeY, TouchEvent::Down);
+        QVERIFY2(!claimed, "After disabling sidebar, touches should not be claimed");
     }
 };
 
