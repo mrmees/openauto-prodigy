@@ -20,7 +20,7 @@ Flickable {
 
         SectionHeader { text: "Status" }
 
-        // Connection indicator
+        // Connection indicator + pairing button
         Item {
             Layout.fillWidth: true
             implicitHeight: UiMetrics.rowH
@@ -47,6 +47,37 @@ Flickable {
                     font.pixelSize: UiMetrics.fontBody
                     color: ThemeService.normalFontColor
                     Layout.fillWidth: true
+                }
+
+                Rectangle {
+                    width: pairBtnLabel.implicitWidth + UiMetrics.gap * 2
+                    height: UiMetrics.touchMin
+                    radius: height / 2
+                    color: pairBtnMouse.pressed
+                           ? Qt.darker(ThemeService.barBackgroundColor, 1.3)
+                           : ThemeService.barBackgroundColor
+                    border.color: ThemeService.descriptionFontColor
+                    border.width: 1
+                    opacity: root.hasService ? 1.0 : 0.4
+
+                    Text {
+                        id: pairBtnLabel
+                        anchors.centerIn: parent
+                        text: "Generate Pairing Code"
+                        font.pixelSize: UiMetrics.fontSmall
+                        color: ThemeService.normalFontColor
+                    }
+
+                    MouseArea {
+                        id: pairBtnMouse
+                        anchors.fill: parent
+                        enabled: root.hasService
+                        onClicked: {
+                            var pin = CompanionService.generatePairingPin()
+                            pairingCodeDialog.pinCode = pin
+                            pairingCodeDialog.visible = true
+                        }
+                    }
                 }
             }
         }
@@ -201,71 +232,6 @@ Flickable {
             }
         }
 
-        SectionHeader { text: "Pairing" }
-
-        // Pairing button
-        Item {
-            Layout.fillWidth: true
-            implicitHeight: UiMetrics.touchMin + UiMetrics.gap
-
-            Rectangle {
-                id: pairBtn
-                anchors.horizontalCenter: parent.horizontalCenter
-                width: pairLabel.implicitWidth + UiMetrics.touchMin
-                height: UiMetrics.touchMin
-                radius: height / 2
-                color: pairMouse.pressed
-                       ? Qt.darker(ThemeService.barBackgroundColor, 1.3)
-                       : ThemeService.barBackgroundColor
-                border.color: ThemeService.descriptionFontColor
-                border.width: 1
-                opacity: root.hasService ? 1.0 : 0.4
-
-                Text {
-                    id: pairLabel
-                    anchors.centerIn: parent
-                    text: "Generate Pairing Code"
-                    font.pixelSize: UiMetrics.fontBody
-                    color: ThemeService.normalFontColor
-                }
-
-                MouseArea {
-                    id: pairMouse
-                    anchors.fill: parent
-                    enabled: root.hasService
-                    onClicked: {
-                        var pin = CompanionService.generatePairingPin()
-                        pinDisplay.text = pin
-                        pinDisplay.visible = true
-                    }
-                }
-            }
-        }
-
-        // QR code (visible after generation)
-        Image {
-            id: qrCode
-            visible: root.hasService && CompanionService.qrCodeDataUri !== ""
-            Layout.alignment: Qt.AlignHCenter
-            Layout.preferredWidth: Math.round(200 * UiMetrics.scale)
-            Layout.preferredHeight: Math.round(200 * UiMetrics.scale)
-            source: root.hasService ? CompanionService.qrCodeDataUri : ""
-            fillMode: Image.PreserveAspectFit
-            smooth: false
-        }
-
-        // PIN display (hidden until generated)
-        Text {
-            id: pinDisplay
-            visible: false
-            Layout.alignment: Qt.AlignHCenter
-            font.pixelSize: Math.round(48 * UiMetrics.scale)
-            font.bold: true
-            font.family: "monospace"
-            font.letterSpacing: Math.round(8 * UiMetrics.scale)
-            color: ThemeService.specialFontColor
-        }
-
         SectionHeader { text: "Configuration" }
 
         SettingsToggle {
@@ -278,6 +244,91 @@ Flickable {
             label: "Listen Port"
             configPath: "companion.port"
             placeholder: "9876"
+        }
+    }
+
+    // Pairing code popup
+    Rectangle {
+        id: pairingCodeDialog
+        property string pinCode: ""
+        anchors.fill: parent
+        color: "#CC000000"
+        visible: false
+        z: 998
+
+        MouseArea {
+            anchors.fill: parent
+            onClicked: {} // absorb
+        }
+
+        Rectangle {
+            anchors.centerIn: parent
+            width: Math.min(parent.width * 0.7, 500)
+            height: dialogCol.implicitHeight + UiMetrics.marginPage * 2
+            radius: 12
+            color: ThemeService.backgroundColor
+
+            ColumnLayout {
+                id: dialogCol
+                anchors.fill: parent
+                anchors.margins: UiMetrics.marginPage
+                spacing: UiMetrics.gap
+
+                Text {
+                    text: "Companion Pairing"
+                    font.pixelSize: UiMetrics.fontHeading
+                    color: ThemeService.normalFontColor
+                    Layout.alignment: Qt.AlignHCenter
+                }
+
+                Text {
+                    text: "Enter this code in the Prodigy Companion app"
+                    font.pixelSize: UiMetrics.fontBody
+                    color: ThemeService.descriptionFontColor
+                    Layout.alignment: Qt.AlignHCenter
+                }
+
+                Text {
+                    text: pairingCodeDialog.pinCode
+                    font.pixelSize: UiMetrics.fontHeading * 1.8
+                    font.weight: Font.Bold
+                    font.letterSpacing: 8
+                    color: ThemeService.normalFontColor
+                    Layout.alignment: Qt.AlignHCenter
+                    Layout.topMargin: UiMetrics.gap
+                }
+
+                Image {
+                    visible: root.hasService && CompanionService.qrCodeDataUri !== ""
+                    Layout.alignment: Qt.AlignHCenter
+                    Layout.preferredWidth: Math.round(200 * UiMetrics.scale)
+                    Layout.preferredHeight: Math.round(200 * UiMetrics.scale)
+                    source: root.hasService ? CompanionService.qrCodeDataUri : ""
+                    fillMode: Image.PreserveAspectFit
+                    smooth: false
+                }
+
+                Rectangle {
+                    width: 140; height: UiMetrics.rowH
+                    radius: 8
+                    color: ThemeService.barBackgroundColor
+                    border.color: ThemeService.descriptionFontColor
+                    border.width: 1
+                    Layout.alignment: Qt.AlignHCenter
+                    Layout.topMargin: UiMetrics.gap
+
+                    Text {
+                        anchors.centerIn: parent
+                        text: "Close"
+                        font.pixelSize: UiMetrics.fontBody
+                        color: ThemeService.normalFontColor
+                    }
+                    MouseArea {
+                        anchors.fill: parent
+                        onClicked: pairingCodeDialog.visible = false
+                    }
+                }
+            }
         }
     }
 }
