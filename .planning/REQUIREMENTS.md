@@ -43,8 +43,8 @@ Requirements for v0.4.4 Scalable UI. Each maps to roadmap phases.
 
 ### Touch Pipeline
 
-- [ ] **TOUCH-01**: EvdevTouchReader sidebar hit zones are derived from display config (not hardcoded 1024x600 magic values)
-- [ ] **TOUCH-02**: YamlConfig display dimensions auto-detected from actual screen or validated against it
+- [x] **TOUCH-01**: EvdevTouchReader sidebar hit zones are derived from display config (not hardcoded 1024x600 magic values)
+- [x] **TOUCH-02**: YamlConfig display dimensions auto-detected from actual screen or validated against it
 
 ### Runtime Adaptation
 
@@ -91,8 +91,8 @@ Which phases cover which requirements. Updated during roadmap creation.
 | SCALE-03 | Phase 2 | Complete |
 | SCALE-04 | Phase 2 | Complete |
 | SCALE-05 | Phase 2 | Complete |
-| TOUCH-01 | Phase 2 | Pending |
-| TOUCH-02 | Phase 2 | Pending |
+| TOUCH-01 | Phase 2 | Complete |
+| TOUCH-02 | Phase 2 | Complete |
 | AUDIT-01 | Phase 3 | Pending |
 | AUDIT-02 | Phase 3 | Pending |
 | AUDIT-03 | Phase 3 | Pending |

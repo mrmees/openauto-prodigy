@@ -41,7 +41,7 @@ See .planning/milestones/v0.4.3/ for archived details.
 - Decimal phases (2.1, 2.2): Urgent insertions (marked with INSERTED)
 
 - [ ] **Phase 1: Config Overrides** - YAML config schema for UI scale, font scale, and per-token overrides so users can always tune their setup
-- [ ] **Phase 2: UiMetrics Foundation + Touch Pipeline** - Unclamped scale formula, new tokens, C++ sidebar hit zones, display config detection
+- [x] **Phase 2: UiMetrics Foundation + Touch Pipeline** - Unclamped scale formula, new tokens, C++ sidebar hit zones, display config detection (completed 2026-03-03)
 - [ ] **Phase 3: QML Hardcoded Island Audit** - Replace all hardcoded pixel values across 9+ QML files with UiMetrics tokens
 - [ ] **Phase 4: Layout Adaptation + Validation** - Grid overflow fixes, EQ guard, full resolution validation sweep
 - [ ] **Phase 5: Runtime Adaptation** - Auto-detect resolution, dynamic resize response, remove manual display config
@@ -128,7 +128,7 @@ Phases execute in numeric order: 1 -> 2 -> 3 -> 4 -> 5
 | Phase | Plans Complete | Status | Completed |
 |-------|----------------|--------|-----------|
 | 1. Config Overrides | 1/1 | Complete | 2026-03-03 |
-| 2. UiMetrics Foundation + Touch Pipeline | 0/2 | Planned | - |
+| 2. UiMetrics Foundation + Touch Pipeline | 2/2 | Complete   | 2026-03-03 |
 | 3. QML Hardcoded Island Audit | 0/0 | Not started | - |
 | 4. Layout Adaptation + Validation | 0/0 | Not started | - |
 | 5. Runtime Adaptation | 0/0 | Not started | - |

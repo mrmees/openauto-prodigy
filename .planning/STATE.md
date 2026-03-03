@@ -22,19 +22,19 @@ See: .planning/PROJECT.md (updated 2026-03-03)
 
 ## Current Position
 
-Phase: 2 of 5 (UiMetrics Foundation + Touch Pipeline)
-Plan: 1 of 2 in current phase (complete)
-Status: Phase 2 in progress
-Last activity: 2026-03-03 -- Completed 02-01-PLAN.md (DisplayInfo + Dual-Axis UiMetrics)
+Phase: 2 of 5 (UiMetrics Foundation + Touch Pipeline) -- COMPLETE
+Plan: 2 of 2 in current phase (complete)
+Status: Phase 2 complete, ready for Phase 3
+Last activity: 2026-03-03 -- Completed 02-02-PLAN.md (Touch Pipeline Display Dimensions)
 
 Progress: [####......] 40%
 
 ## Performance Metrics
 
 **Velocity:**
-- Total plans completed: 2
+- Total plans completed: 3
 - Average duration: 3 min
-- Total execution time: 0.10 hours
+- Total execution time: 0.17 hours
 
 ## Accumulated Context
 
@@ -51,6 +51,9 @@ Progress: [####......] 40%
 - [02-01] Layout scale uses min(scaleH,scaleV) for overflow safety
 - [02-01] autoScale fully unclamped -- no 0.9-1.35 range restriction
 - [02-01] fontTiny promoted to overridable via _tok()
+- [02-02] Proportional sidebar sub-zones derived from sidebarPixelWidth_ instead of hardcoded 100px/80px
+- [02-02] DisplayInfo flows through AndroidAutoPlugin to both EvdevTouchReader and Orchestrator
+- [02-02] ServiceDiscoveryBuilder override dimensions stored as members (0 = use config fallback)
 
 ### Pending Todos
 
@@ -64,5 +67,5 @@ None yet.
 ## Session Continuity
 
 Last session: 2026-03-03
-Stopped at: Completed 02-01-PLAN.md (DisplayInfo + Dual-Axis UiMetrics)
+Stopped at: Completed 02-02-PLAN.md (Touch Pipeline Display Dimensions) -- Phase 2 complete
 Resume file: None
