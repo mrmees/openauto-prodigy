@@ -34,7 +34,7 @@ Flickable {
         ReadOnlyField {
             label: "Software Version"
             configPath: "identity.sw_version"
-            showWebHint: false
+
         }
 
         ReadOnlyField {
