@@ -153,8 +153,10 @@ int main(int argc, char *argv[])
         logUiOverride("ui.scale");
         logUiOverride("ui.fontScale");
         for (const char* tok : {"rowH","touchMin","fontTitle","fontBody","fontSmall",
-                                 "fontHeading","headerH","iconSize","radius","tileW","tileH",
-                                 "trackThick","trackThin","knobSize","knobSizeSmall"}) {
+                                 "fontHeading","fontTiny","headerH","iconSize","radius",
+                                 "radiusSmall","radiusLarge","tileW","tileH",
+                                 "trackThick","trackThin","knobSize","knobSizeSmall",
+                                 "albumArt","callBtnSize","overlayBtnW","overlayBtnH"}) {
             logUiOverride((std::string("ui.tokens.") + tok).c_str());
         }
     }

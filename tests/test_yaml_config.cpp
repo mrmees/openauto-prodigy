@@ -402,7 +402,9 @@ void TestYamlConfig::testUiFontFloorDefault()
 void TestYamlConfig::testUiNewTokenDefaults()
 {
     oap::YamlConfig config;
-    QStringList newTokens = {"trackThick", "trackThin", "knobSize", "knobSizeSmall"};
+    QStringList newTokens = {"trackThick", "trackThin", "knobSize", "knobSizeSmall",
+                              "radiusSmall", "radiusLarge", "albumArt", "callBtnSize",
+                              "overlayBtnW", "overlayBtnH", "fontTiny"};
     for (const auto& tok : newTokens) {
         QVariant v = config.valueByPath("ui.tokens." + tok);
         QVERIFY2(v.isValid(), qPrintable("ui.tokens." + tok + " should be registered"));

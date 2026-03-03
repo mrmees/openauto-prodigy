@@ -137,6 +137,7 @@ void YamlConfig::initDefaults()
     root_["ui"]["tokens"]["fontBody"] = 0;
     root_["ui"]["tokens"]["fontSmall"] = 0;
     root_["ui"]["tokens"]["fontHeading"] = 0;
+    root_["ui"]["tokens"]["fontTiny"] = 0;
     root_["ui"]["tokens"]["headerH"] = 0;
     root_["ui"]["tokens"]["iconSize"] = 0;
     root_["ui"]["tokens"]["radius"] = 0;

@@ -12,10 +12,8 @@ private slots:
         int subId = bus.subscribe("test/topic", [&](const QVariant& v) { received = v; });
 
         bus.publish("test/topic", 42);
-        // EventBus delivers via QueuedConnection — need event loop
-        QCoreApplication::processEvents();
-
-        QCOMPARE(received.toInt(), 42);
+        // EventBus delivers via QueuedConnection — QTRY spins event loop until delivered
+        QTRY_COMPARE(received.toInt(), 42);
         QVERIFY(subId > 0);
     }
 
