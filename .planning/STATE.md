@@ -3,15 +3,15 @@ gsd_state_version: 1.0
 milestone: v0.4
 milestone_name: milestone
 status: executing
-stopped_at: Completed 01-01-PLAN.md
-last_updated: "2026-03-03T23:02:30.000Z"
-last_activity: 2026-03-03 -- Plan 01-01 executed (TouchRouter + EvdevCoordBridge)
+stopped_at: Completed 01-02-PLAN.md
+last_updated: "2026-03-03T23:08:00.000Z"
+last_activity: 2026-03-03 -- Plan 01-02 executed (EvdevTouchReader integration)
 progress:
   total_phases: 4
   completed_phases: 2
   total_plans: 5
-  completed_plans: 6
-  percent: 17
+  completed_plans: 7
+  percent: 33
 ---
 
 # Project State
@@ -25,23 +25,24 @@ See: .planning/PROJECT.md (updated 2026-03-03)
 
 ## Current Position
 
-Phase: 1 of 4 (Touch Routing)
-Plan: 1 of 2 in current phase
+Phase: 1 of 4 (Touch Routing) -- COMPLETE
+Plan: 2 of 2 in current phase (phase complete)
 Status: Executing
-Last activity: 2026-03-03 -- Plan 01-01 executed (TouchRouter + EvdevCoordBridge)
+Last activity: 2026-03-03 -- Plan 01-02 executed (EvdevTouchReader integration)
 
-Progress: [█░░░░░░░░░] 17%
+Progress: [███░░░░░░░] 33%
 
 ## Performance Metrics
 
 **Velocity:**
-- Total plans completed: 1
-- Average duration: 5min
-- Total execution time: 0.08 hours
+- Total plans completed: 2
+- Average duration: 4min
+- Total execution time: 0.13 hours
 
 | Phase | Plan | Duration | Tasks | Files |
 |-------|------|----------|-------|-------|
 | 01 | 01 | 5min | 2 | 8 |
+| 01 | 02 | 3min | 2 | 3 |
 
 ## Accumulated Context
 
@@ -54,6 +55,8 @@ Progress: [█░░░░░░░░░] 17%
 - Used std::mutex with copy-on-read for TouchRouter zone list (simpler than atomic shared_ptr, zone updates are rare)
 - TouchRouter has zero Qt dependencies -- pure C++ with std::function callbacks
 - Zone boundaries inclusive on all edges
+- Zone callbacks use lambdas capturing this pointer for signal emission (same thread, safe)
+- Sidebar disable pushes empty zone vector to clear router state
 
 ### Blockers/Concerns
 
@@ -63,6 +66,6 @@ Progress: [█░░░░░░░░░] 17%
 
 ## Session Continuity
 
-Last session: 2026-03-03T23:02:30.000Z
-Stopped at: Completed 01-01-PLAN.md
-Resume file: .planning/milestones/v0.4.5-phases/01-touch-routing/01-02-PLAN.md
+Last session: 2026-03-03T23:08:00.000Z
+Stopped at: Completed 01-02-PLAN.md (Phase 01 complete)
+Resume file: .planning/milestones/v0.4.5-phases/02-navbar-zone/

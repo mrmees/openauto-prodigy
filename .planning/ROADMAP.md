@@ -47,7 +47,7 @@ See .planning/milestones/v0.4.4/ for archived details.
 - Each milestone starts at Phase 1.
 - Decimal phases (1.1, 1.2): Urgent insertions if needed (marked with INSERTED)
 
-- [ ] **Phase 1: Touch Routing** - Zone-based evdev dispatch layer replacing hardcoded sidebar logic
+- [x] **Phase 1: Touch Routing** - Zone-based evdev dispatch layer replacing hardcoded sidebar logic
 - [ ] **Phase 2: Navbar** - 3-control navbar with gestures, edge positioning, popups, and QML visuals
 - [ ] **Phase 3: AA Integration** - Viewport margins, touch exclusion, and on-device validation with real AA sessions
 - [ ] **Phase 4: Cleanup** - Remove TopBar, NavStrip, sidebar overlay, and migrate remaining actions
@@ -66,8 +66,8 @@ See .planning/milestones/v0.4.4/ for archived details.
   5. QML MouseArea input works in launcher mode; evdev zone dispatch works during AA (EVIOCGRAB active)
 
 Plans:
-- [ ] 01-01: TouchRouter + EvdevCoordBridge (pure logic + unit tests)
-- [ ] 01-02: EvdevTouchReader integration (replace sidebar dispatch, preserve behavior)
+- [x] 01-01: TouchRouter + EvdevCoordBridge (pure logic + unit tests)
+- [x] 01-02: EvdevTouchReader integration (replace sidebar dispatch, preserve behavior)
 
 ### Phase 2: Navbar
 **Goal**: Users interact with a 3-control navbar (volume/clock-home/brightness) that supports tap, short-hold-release, and long-hold gestures on any screen edge
@@ -117,10 +117,10 @@ Phases execute in numeric order: 1 -> 2 -> 3 -> 4
 
 | Phase | Plans Complete | Status | Completed |
 |-------|----------------|--------|-----------|
-| 1. Touch Routing | 0/2 | Not started | - |
+| 1. Touch Routing | 2/2 | Complete | 2026-03-03 |
 | 2. Navbar | 0/2 | Not started | - |
 | 3. AA Integration | 0/1 | Not started | - |
 | 4. Cleanup | 0/1 | Not started | - |
 
 ---
-*Last updated: 2026-03-03 -- v0.4.5 roadmap created*
+*Last updated: 2026-03-03 -- Phase 1 (Touch Routing) complete*

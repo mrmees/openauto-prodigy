@@ -13,7 +13,7 @@ Requirements for navbar rework milestone. Each maps to roadmap phases.
 - [x] **TOUCH-02**: Finger routing is sticky — once a finger claims a zone on DOWN, all MOVE/UP stay with that zone
 - [x] **TOUCH-03**: Popup overlays can register/deregister transient touch zones dynamically
 - [x] **TOUCH-04**: QML components report their geometry to C++ touch zones (no duplicated layout math)
-- [ ] **TOUCH-05**: Dual input path — QML MouseArea works in launcher, evdev zones work during AA
+- [x] **TOUCH-05**: Dual input path — QML MouseArea works in launcher, evdev zones work during AA
 
 ### Navbar
 
@@ -79,7 +79,7 @@ Which phases cover which requirements. Updated during roadmap creation.
 | TOUCH-02 | Phase 1 | Complete |
 | TOUCH-03 | Phase 1 | Complete |
 | TOUCH-04 | Phase 1 | Complete |
-| TOUCH-05 | Phase 1 | Pending |
+| TOUCH-05 | Phase 1 | Complete |
 | NAV-01 | Phase 2 | Pending |
 | NAV-02 | Phase 2 | Pending |
 | NAV-03 | Phase 2 | Pending |
@@ -108,4 +108,4 @@ Which phases cover which requirements. Updated during roadmap creation.
 
 ---
 *Requirements defined: 2026-03-03*
-*Last updated: 2026-03-03 after roadmap creation*
+*Last updated: 2026-03-03 -- TOUCH-01 through TOUCH-05 complete (Phase 1)*
