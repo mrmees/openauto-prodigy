@@ -24,15 +24,15 @@ Requirements for v0.4.4 Scalable UI. Each maps to roadmap phases.
 
 ### QML Audit
 
-- [ ] **AUDIT-01**: NormalText and SpecialText use UiMetrics font tokens instead of hardcoded pixelSize
+- [x] **AUDIT-01**: NormalText and SpecialText use UiMetrics font tokens instead of hardcoded pixelSize
 - [x] **AUDIT-02**: TopBar and NavStrip margins/spacing/radius use UiMetrics tokens
 - [ ] **AUDIT-03**: Sidebar icon sizes, font sizes, thumb dimensions, and margins use UiMetrics tokens
 - [ ] **AUDIT-04**: GestureOverlay font sizes, spacing, and dimensions use UiMetrics tokens
 - [ ] **AUDIT-05**: PhoneView font sizes, button dimensions, and spacing use UiMetrics tokens
 - [ ] **AUDIT-06**: IncomingCallOverlay font sizes, spacing, and button dimensions use UiMetrics tokens
 - [ ] **AUDIT-07**: BtAudioView font sizes, album art dimensions, and spacing use UiMetrics tokens
-- [ ] **AUDIT-08**: HomeMenu font sizes use UiMetrics tokens
-- [ ] **AUDIT-09**: Tile and PairingDialog radius and dimensions use UiMetrics tokens
+- [x] **AUDIT-08**: HomeMenu font sizes use UiMetrics tokens
+- [x] **AUDIT-09**: Tile and PairingDialog radius and dimensions use UiMetrics tokens
 - [ ] **AUDIT-10**: Zero hardcoded pixel values remain in QML files (excluding intentional dev debug overlays)
 
 ### Layout Adaptation
@@ -93,15 +93,15 @@ Which phases cover which requirements. Updated during roadmap creation.
 | SCALE-05 | Phase 2 | Complete |
 | TOUCH-01 | Phase 2 | Complete |
 | TOUCH-02 | Phase 2 | Complete |
-| AUDIT-01 | Phase 3 | Pending |
+| AUDIT-01 | Phase 3 | Complete |
 | AUDIT-02 | Phase 3 | Complete |
 | AUDIT-03 | Phase 3 | Pending |
 | AUDIT-04 | Phase 3 | Pending |
 | AUDIT-05 | Phase 3 | Pending |
 | AUDIT-06 | Phase 3 | Pending |
 | AUDIT-07 | Phase 3 | Pending |
-| AUDIT-08 | Phase 3 | Pending |
-| AUDIT-09 | Phase 3 | Pending |
+| AUDIT-08 | Phase 3 | Complete |
+| AUDIT-09 | Phase 3 | Complete |
 | AUDIT-10 | Phase 3 | Pending |
 | LAYOUT-01 | Phase 4 | Pending |
 | LAYOUT-02 | Phase 4 | Pending |
