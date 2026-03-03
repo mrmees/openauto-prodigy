@@ -20,7 +20,7 @@ Rectangle {
         anchors.centerIn: parent
         width: Math.min(parent.width * 0.7, 500)
         height: col.implicitHeight + UiMetrics.marginPage * 2
-        radius: 12
+        radius: UiMetrics.radius
         color: ThemeService.backgroundColor
 
         ColumnLayout {
@@ -59,8 +59,8 @@ Rectangle {
                 spacing: UiMetrics.gap * 2
 
                 Rectangle {
-                    width: 140; height: UiMetrics.rowH
-                    radius: 8
+                    width: Math.round(140 * UiMetrics.scale); height: UiMetrics.rowH
+                    radius: UiMetrics.radiusSmall
                     color: "#cc4444"
                     Text {
                         anchors.centerIn: parent
@@ -75,8 +75,8 @@ Rectangle {
                 }
 
                 Rectangle {
-                    width: 140; height: UiMetrics.rowH
-                    radius: 8
+                    width: Math.round(140 * UiMetrics.scale); height: UiMetrics.rowH
+                    radius: UiMetrics.radiusSmall
                     color: "#44aa44"
                     Text {
                         anchors.centerIn: parent

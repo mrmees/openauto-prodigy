@@ -266,7 +266,7 @@ Flickable {
             anchors.centerIn: parent
             width: Math.min(parent.width * 0.7, 500)
             height: dialogCol.implicitHeight + UiMetrics.marginPage * 2
-            radius: 12
+            radius: UiMetrics.radius
             color: ThemeService.backgroundColor
 
             ColumnLayout {

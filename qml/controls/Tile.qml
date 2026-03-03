@@ -10,7 +10,7 @@ Rectangle {
 
     signal clicked()
 
-    radius: 8
+    radius: UiMetrics.radiusSmall
     color: ThemeService.controlBackgroundColor
 
     scale: mouseArea.pressed ? 0.95 : 1.0
@@ -20,7 +20,7 @@ Rectangle {
 
     ColumnLayout {
         anchors.centerIn: parent
-        spacing: 8
+        spacing: UiMetrics.spacing
 
         MaterialIcon {
             Layout.alignment: Qt.AlignHCenter
