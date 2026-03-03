@@ -8,6 +8,7 @@ Rectangle {
     Behavior on color { ColorAnimation { duration: 300; easing.type: Easing.InOutQuad } }
 
     signal settingsResetRequested()
+    signal eqRequested()
 
     // Home is active when no plugin and on launcher screen
     readonly property bool homeActive: !PluginModel.activePluginId
@@ -80,6 +81,32 @@ Rectangle {
                         ApplicationController.navigateTo(0)
                     }
                 }
+            }
+        }
+
+        // EQ shortcut
+        Rectangle {
+            Layout.fillHeight: true
+            Layout.preferredWidth: navStrip.height * 1.2
+            color: "transparent"
+            radius: 8
+
+            scale: eqArea.pressed ? 0.95 : 1.0
+            opacity: eqArea.pressed ? 0.85 : 1.0
+            Behavior on scale { NumberAnimation { duration: UiMetrics.animDurationFast; easing.type: Easing.OutCubic } }
+            Behavior on opacity { NumberAnimation { duration: UiMetrics.animDurationFast; easing.type: Easing.OutCubic } }
+
+            MaterialIcon {
+                anchors.centerIn: parent
+                icon: "\ue429"  // equalizer
+                size: parent.height * 0.5
+                color: ThemeService.normalFontColor
+            }
+
+            MouseArea {
+                id: eqArea
+                anchors.fill: parent
+                onClicked: navStrip.eqRequested()
             }
         }
 

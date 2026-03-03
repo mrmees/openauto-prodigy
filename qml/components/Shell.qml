@@ -63,6 +63,11 @@ Item {
             Layout.preferredHeight: shell.fullscreenMode ? 0 : shell.height * 0.12
             visible: !shell.fullscreenMode
             onSettingsResetRequested: settingsView.resetToGrid()
+            onEqRequested: {
+                PluginModel.setActivePlugin("")
+                ApplicationController.navigateTo(6)
+                settingsView.openEqDirect()
+            }
         }
     }
 

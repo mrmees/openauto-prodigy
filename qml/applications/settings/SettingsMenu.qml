@@ -5,6 +5,8 @@ import QtQuick.Controls
 Item {
     id: settingsMenu
 
+    property bool _pendingEqNav: false
+
     Component.onCompleted: ApplicationController.setTitle("Settings")
 
     function resetToGrid() {
@@ -14,9 +16,36 @@ Item {
         ApplicationController.setTitle("Settings")
     }
 
+    function openEqDirect() {
+        _pendingEqNav = true
+        if (visible) {
+            _doEqNav()
+        }
+        // Otherwise onVisibleChanged will handle it
+    }
+
+    function _doEqNav() {
+        _pendingEqNav = false
+        if (settingsStack.depth > 1) {
+            settingsStack.pop(null)
+        }
+        settingsStack.push(audioPage)
+        ApplicationController.setTitle("Settings > Audio")
+        Qt.callLater(function() {
+            settingsStack.push(eqDirectComponent)
+            ApplicationController.setTitle("Settings > Audio > Equalizer")
+        })
+    }
+
     // Reset to tile grid whenever settings becomes visible (e.g. from launcher)
     onVisibleChanged: {
-        if (visible) resetToGrid()
+        if (visible) {
+            if (_pendingEqNav) {
+                _doEqNav()
+            } else {
+                resetToGrid()
+            }
+        }
     }
 
     Connections {
@@ -140,6 +169,7 @@ Item {
     Component { id: connectionPage; ConnectionSettings {} }
     Component { id: systemPage; SystemSettings {} }
     Component { id: companionPage; CompanionSettings {} }
+    Component { id: eqDirectComponent; EqSettings {} }
 
     function openPage(pageId) {
         var titles = {

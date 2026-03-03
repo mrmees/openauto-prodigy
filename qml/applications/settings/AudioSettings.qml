@@ -4,6 +4,7 @@ import QtQuick.Controls
 
 Flickable {
     id: root
+    objectName: "Audio"
     contentHeight: content.implicitHeight + UiMetrics.marginPage * 2
     clip: true
     boundsBehavior: Flickable.StopAtBounds
