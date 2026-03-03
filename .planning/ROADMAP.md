@@ -34,6 +34,7 @@ Transform the existing functional UI into an automotive-minimal interface. Resty
 - [ ] **Phase 1: Visual Foundation** - Restyle all controls with press feedback, icons, animations, and automotive-minimal aesthetic
 - [ ] **Phase 2: Settings Restructuring** - Replace flat settings list with 6-category navigation hierarchy
 - [ ] **Phase 3: EQ Dual-Access & Shell Polish** - Wire NavStrip EQ shortcut, restyle launcher/TopBar, modal dismiss, BT forget
+- [ ] **Phase 4: Tech Debt Cleanup** - Fix broken bindings, remove dead code, update stale traceability
 
 ### Phase Details
 
@@ -86,6 +87,18 @@ Plans:
 - [x] 03-01-PLAN.md — Shell polish: NavStrip press feedback, TopBar divider, launcher tile sizing, BT forget button, modal dismiss
 - [x] 03-02-PLAN.md — EQ dual-access NavStrip shortcut with deep navigation + Pi verification checkpoint
 
+### Phase 4: Tech Debt Cleanup
+**Goal**: Close all audit-identified tech debt — fix broken bindings, remove dead code, correct stale documentation
+**Depends on**: Phase 3
+**Requirements**: ICON-03, NAV-01 (integration fix)
+**Gap Closure:** Closes gaps from v0.4.3 milestone audit
+**Success Criteria** (what must be TRUE):
+  1. NavStrip active icon color uses a real ThemeService property (no undefined binding)
+  2. SegmentedButton divider uses ThemeService.dividerColor (not descriptionFontColor hack)
+  3. No dead Q_PROPERTYs or QML properties from descoped features remain
+  4. REQUIREMENTS.md traceability table has no stale "Pending" entries
+**Plans:** TBD
+
 ### Progress
 
 | Phase | Plans Complete | Status | Completed |
@@ -93,6 +106,7 @@ Plans:
 | 1. Visual Foundation | 3/3 | Complete | 2026-03-02 |
 | 2. Settings Restructuring | 2/2 | Complete | 2026-03-03 |
 | 3. EQ Dual-Access & Shell Polish | 2/2 | Complete | 2026-03-03 |
+| 4. Tech Debt Cleanup | 0/? | Pending | — |
 
 ---
-*Last updated: 2026-03-03 — v0.4.3 milestone complete*
+*Last updated: 2026-03-03 — Phase 4 added for audit tech debt closure*

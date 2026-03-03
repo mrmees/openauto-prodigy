@@ -70,11 +70,11 @@
 |-------------|-------|--------|
 | VIS-01 | Phase 1 | Complete |
 | VIS-02 | Phase 1 | Complete |
-| VIS-03 | Phase 1 | Pending |
+| VIS-03 | Phase 1 | Complete |
 | VIS-04 | Phase 1 | Complete |
 | VIS-05 | Phase 1 | Complete |
 | VIS-06 | Phase 1 | Complete |
-| ICON-01 | Phase 1 | Pending |
+| ICON-01 | Phase 1 | Complete |
 | ICON-02 | Phase 1 | Complete |
 | ICON-03 | Phase 3 | Complete |
 | ICON-04 | Phase 3 | Complete |
