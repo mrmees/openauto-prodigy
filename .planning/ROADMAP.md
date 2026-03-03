@@ -71,11 +71,11 @@ Plans:
   2. NormalText and SpecialText render at proportionally correct sizes across resolutions (pixel floors prevent illegibility)
   3. Sidebar touch zones on AA view align with visual sidebar elements at 800x480 (taps hit the right buttons)
   4. UiMetrics scale is derived from window dimensions, not Screen.* (verified by startup log on Pi)
-**Plans**: TBD
+**Plans**: 2 plans
 
 Plans:
-- [ ] 02-01: TBD
-- [ ] 02-02: TBD
+- [ ] 02-01-PLAN.md — DisplayInfo C++ bridge, dual-axis UiMetrics rewrite, font floors, new tokens
+- [ ] 02-02-PLAN.md — EvdevTouchReader dynamic display dims, proportional sidebar zones, ServiceDiscoveryBuilder wiring
 
 ### Phase 3: QML Hardcoded Island Audit
 **Goal**: Every QML file uses UiMetrics tokens for all sizing -- zero hardcoded pixel values remain
@@ -127,11 +127,11 @@ Phases execute in numeric order: 1 -> 2 -> 3 -> 4 -> 5
 
 | Phase | Plans Complete | Status | Completed |
 |-------|----------------|--------|-----------|
-| 1. Config Overrides | 0/0 | Not started | - |
-| 2. UiMetrics Foundation + Touch Pipeline | 0/0 | Not started | - |
+| 1. Config Overrides | 1/1 | Complete | 2026-03-03 |
+| 2. UiMetrics Foundation + Touch Pipeline | 0/2 | Planned | - |
 | 3. QML Hardcoded Island Audit | 0/0 | Not started | - |
 | 4. Layout Adaptation + Validation | 0/0 | Not started | - |
 | 5. Runtime Adaptation | 0/0 | Not started | - |
 
 ---
-*Last updated: 2026-03-03 -- v0.4.4 roadmap updated (Phase 1 Config Overrides added)*
+*Last updated: 2026-03-03 -- Phase 2 plans created (2 plans in 2 waves)*
