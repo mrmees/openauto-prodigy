@@ -26,6 +26,7 @@ Item {
                     } else if (action.startsWith("navigate:")) {
                         var target = action.substring(9);
                         if (target === "settings") {
+                            PluginModel.setActivePlugin("");
                             ApplicationController.navigateTo(6);
                         }
                     }
