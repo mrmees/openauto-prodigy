@@ -33,6 +33,8 @@ private slots:
     void testUiTokenDefaults();
     void testUiScaleSetAndGet();
     void testUiTokenSetAndGet();
+    void testUiFontFloorDefault();
+    void testUiNewTokenDefaults();
 };
 
 void TestYamlConfig::testLoadDefaults()
@@ -387,6 +389,25 @@ void TestYamlConfig::testUiTokenSetAndGet()
     oap::YamlConfig config;
     QVERIFY(config.setValueByPath("ui.tokens.fontBody", 24));
     QCOMPARE(config.valueByPath("ui.tokens.fontBody").toInt(), 24);
+}
+
+void TestYamlConfig::testUiFontFloorDefault()
+{
+    oap::YamlConfig config;
+    QVariant v = config.valueByPath("ui.fontFloor");
+    QVERIFY2(v.isValid(), "ui.fontFloor should be registered");
+    QCOMPARE(v.toInt(), 0);
+}
+
+void TestYamlConfig::testUiNewTokenDefaults()
+{
+    oap::YamlConfig config;
+    QStringList newTokens = {"trackThick", "trackThin", "knobSize", "knobSizeSmall"};
+    for (const auto& tok : newTokens) {
+        QVariant v = config.valueByPath("ui.tokens." + tok);
+        QVERIFY2(v.isValid(), qPrintable("ui.tokens." + tok + " should be registered"));
+        QCOMPARE(v.toInt(), 0);
+    }
 }
 
 QTEST_MAIN(TestYamlConfig)

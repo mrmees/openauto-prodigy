@@ -124,7 +124,8 @@ int main(int argc, char *argv[])
         logUiOverride("ui.scale");
         logUiOverride("ui.fontScale");
         for (const char* tok : {"rowH","touchMin","fontTitle","fontBody","fontSmall",
-                                 "fontHeading","headerH","iconSize","radius","tileW","tileH"}) {
+                                 "fontHeading","headerH","iconSize","radius","tileW","tileH",
+                                 "trackThick","trackThin","knobSize","knobSizeSmall"}) {
             logUiOverride((std::string("ui.tokens.") + tok).c_str());
         }
     }

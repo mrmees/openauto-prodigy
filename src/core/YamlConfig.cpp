@@ -145,6 +145,11 @@ void YamlConfig::initDefaults()
     root_["ui"]["tokens"]["radius"] = 0;
     root_["ui"]["tokens"]["tileW"] = 0;
     root_["ui"]["tokens"]["tileH"] = 0;
+    root_["ui"]["tokens"]["trackThick"] = 0;
+    root_["ui"]["tokens"]["trackThin"] = 0;
+    root_["ui"]["tokens"]["knobSize"] = 0;
+    root_["ui"]["tokens"]["knobSizeSmall"] = 0;
+    root_["ui"]["fontFloor"] = 0;
 }
 
 void YamlConfig::load(const QString& filePath)
