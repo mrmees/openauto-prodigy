@@ -33,7 +33,7 @@ Requirements for v0.4.4 Scalable UI. Each maps to roadmap phases.
 - [x] **AUDIT-07**: BtAudioView font sizes, album art dimensions, and spacing use UiMetrics tokens
 - [x] **AUDIT-08**: HomeMenu font sizes use UiMetrics tokens
 - [x] **AUDIT-09**: Tile and PairingDialog radius and dimensions use UiMetrics tokens
-- [ ] **AUDIT-10**: Zero hardcoded pixel values remain in QML files (excluding intentional dev debug overlays)
+- [x] **AUDIT-10**: Zero hardcoded pixel values remain in QML files (excluding intentional dev debug overlays)
 
 ### Layout Adaptation
 
@@ -102,7 +102,7 @@ Which phases cover which requirements. Updated during roadmap creation.
 | AUDIT-07 | Phase 3 | Complete |
 | AUDIT-08 | Phase 3 | Complete |
 | AUDIT-09 | Phase 3 | Complete |
-| AUDIT-10 | Phase 3 | Pending |
+| AUDIT-10 | Phase 4 | Complete |
 | LAYOUT-01 | Phase 4 | Complete |
 | LAYOUT-02 | Phase 4 | Complete |
 | LAYOUT-03 | Phase 4 | Complete |
