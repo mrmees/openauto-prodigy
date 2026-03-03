@@ -7,6 +7,7 @@ add_library(openauto-core STATIC
     core/aa/VideoDecoder.cpp
     core/aa/DmaBufVideoBuffer.cpp
     core/aa/TouchHandler.cpp
+    core/aa/TouchRouter.cpp
     core/aa/EvdevTouchReader.cpp
     core/aa/NightModeProvider.cpp
     core/aa/TimedNightMode.cpp
