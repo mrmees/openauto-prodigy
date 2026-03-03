@@ -16,11 +16,11 @@ Requirements for v0.4.4 Scalable UI. Each maps to roadmap phases.
 
 ### UiMetrics Foundation
 
-- [ ] **SCALE-01**: UiMetrics scale factor is unclamped -- derives freely from actual screen dimensions
-- [ ] **SCALE-02**: UiMetrics uses dual-axis scaling -- `min(scaleH, scaleV)` for layout, geometric mean for fonts
-- [ ] **SCALE-03**: UiMetrics derives scale from window dimensions (not Screen.* which is unreliable at Wayland init)
-- [ ] **SCALE-04**: Font tokens have pixel floors (min 12px for smallest) to guarantee automotive legibility
-- [ ] **SCALE-05**: New UiMetrics tokens added for currently-missing dimensions (trackThick, trackThin, knobSize)
+- [x] **SCALE-01**: UiMetrics scale factor is unclamped -- derives freely from actual screen dimensions
+- [x] **SCALE-02**: UiMetrics uses dual-axis scaling -- `min(scaleH, scaleV)` for layout, geometric mean for fonts
+- [x] **SCALE-03**: UiMetrics derives scale from window dimensions (not Screen.* which is unreliable at Wayland init)
+- [x] **SCALE-04**: Font tokens have pixel floors (min 12px for smallest) to guarantee automotive legibility
+- [x] **SCALE-05**: New UiMetrics tokens added for currently-missing dimensions (trackThick, trackThin, knobSize)
 
 ### QML Audit
 
@@ -86,11 +86,11 @@ Which phases cover which requirements. Updated during roadmap creation.
 | CFG-02 | Phase 1 | Complete |
 | CFG-03 | Phase 1 | Complete |
 | CFG-04 | Phase 1 | Complete |
-| SCALE-01 | Phase 2 | Pending |
-| SCALE-02 | Phase 2 | Pending |
-| SCALE-03 | Phase 2 | Pending |
-| SCALE-04 | Phase 2 | Pending |
-| SCALE-05 | Phase 2 | Pending |
+| SCALE-01 | Phase 2 | Complete |
+| SCALE-02 | Phase 2 | Complete |
+| SCALE-03 | Phase 2 | Complete |
+| SCALE-04 | Phase 2 | Complete |
+| SCALE-05 | Phase 2 | Complete |
 | TOUCH-01 | Phase 2 | Pending |
 | TOUCH-02 | Phase 2 | Pending |
 | AUDIT-01 | Phase 3 | Pending |
