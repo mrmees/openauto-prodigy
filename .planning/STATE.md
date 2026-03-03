@@ -1,0 +1,64 @@
+---
+gsd_state_version: 1.0
+milestone: v0.4.4
+milestone_name: Scalable UI
+status: executing
+last_updated: "2026-03-03"
+progress:
+  total_phases: 5
+  completed_phases: 0
+  total_plans: 1
+  completed_plans: 1
+---
+
+# Project State
+
+## Project Reference
+
+See: .planning/PROJECT.md (updated 2026-03-03)
+
+**Core value:** A person with a Raspberry Pi 4 and a touchscreen can install this, pair their phone, and get a reliable wireless Android Auto experience -- every time, without SSH.
+**Current focus:** Phase 1 - Config Overrides
+
+## Current Position
+
+Phase: 1 of 5 (Config Overrides)
+Plan: 1 of 1 in current phase (complete)
+Status: Phase 1 complete
+Last activity: 2026-03-03 -- Completed 01-01-PLAN.md (Config Overrides)
+
+Progress: [##........] 20%
+
+## Performance Metrics
+
+**Velocity:**
+- Total plans completed: 1
+- Average duration: 2 min
+- Total execution time: 0.03 hours
+
+## Accumulated Context
+
+### Decisions
+
+- UiMetrics scale factor clamps (0.9-1.35) will be removed -- scale freely based on screen
+- Target resolution range: 800x480 (Pi official touchscreen) through ultrawide
+- C++ touch pipeline included in Phase 1 (not deferred) -- needed to validate at 800x480
+- User-facing S/M/L scale options deferred to future milestone
+- [01-01] 0 means "not set" for all ui.* config keys (auto-derived behavior unchanged)
+- [01-01] globalScale and fontScale stack multiplicatively with autoScale
+- [01-01] Individual token overrides are absolute pixel values (no multiplication)
+
+### Pending Todos
+
+None yet.
+
+### Blockers/Concerns
+
+- PipeWire SCO behavior needs wire verification on Pi before finalizing PhonePlugin architecture (carried forward)
+- Screen.* QML properties unreliable at Wayland init -- Phase 1 must use window dimensions instead
+
+## Session Continuity
+
+Last session: 2026-03-03
+Stopped at: Completed 01-01-PLAN.md (Config Overrides)
+Resume file: None
