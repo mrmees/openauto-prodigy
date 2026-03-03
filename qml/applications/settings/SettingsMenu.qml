@@ -210,7 +210,13 @@ Item {
 
         if (pages[pageId]) {
             ApplicationController.setTitle("Settings > " + titles[pageId])
-            settingsStack.push(pages[pageId])
+            var item = settingsStack.push(pages[pageId])
+            if (pageId === "audio" && item && item.openEqualizer) {
+                item.openEqualizer.connect(function() {
+                    settingsStack.push(eqDirectComponent)
+                    ApplicationController.setTitle("Settings > Audio > Equalizer")
+                })
+            }
         }
     }
 }

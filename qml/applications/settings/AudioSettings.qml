@@ -5,6 +5,7 @@ import QtQuick.Controls
 Flickable {
     id: root
     objectName: "Audio"
+    signal openEqualizer()
     contentHeight: content.implicitHeight + UiMetrics.marginPage * 2
     clip: true
     boundsBehavior: Flickable.StopAtBounds
@@ -98,18 +99,7 @@ Flickable {
                 var preset = EqualizerService.activePresetName(0)
                 return preset !== "" ? "Equalizer \u2014 " + preset : "Equalizer"
             }
-            onClicked: {
-                var sv = StackView.view
-                if (sv) {
-                    sv.push(eqPageComponent)
-                    ApplicationController.setTitle("Settings > Audio > Equalizer")
-                }
-            }
-        }
-
-        Component {
-            id: eqPageComponent
-            EqSettings {}
+            onClicked: root.openEqualizer()
         }
     }
 }
