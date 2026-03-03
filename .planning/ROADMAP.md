@@ -83,7 +83,7 @@ Plans:
 **Plans:** 2 plans
 
 Plans:
-- [ ] 03-01-PLAN.md — Shell polish: NavStrip press feedback, TopBar divider, launcher tile sizing, BT forget button, modal dismiss
+- [x] 03-01-PLAN.md — Shell polish: NavStrip press feedback, TopBar divider, launcher tile sizing, BT forget button, modal dismiss
 - [ ] 03-02-PLAN.md — EQ dual-access NavStrip shortcut with deep navigation + Pi verification checkpoint
 
 ### Progress
@@ -92,7 +92,7 @@ Plans:
 |-------|----------------|--------|-----------|
 | 1. Visual Foundation | 3/3 | Complete | 2026-03-02 |
 | 2. Settings Restructuring | 2/2 | Complete | 2026-03-03 |
-| 3. EQ Dual-Access & Shell Polish | 0/2 | Not started | - |
+| 3. EQ Dual-Access & Shell Polish | 1/2 | In Progress | - |
 
 ---
 *Last updated: 2026-03-03*

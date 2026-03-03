@@ -18,8 +18,8 @@
 
 - [x] **ICON-01**: All settings rows and category tiles display contextual Material Symbols icons with minimal whitespace
 - [x] **ICON-02**: MaterialIcon component supports weight and optical size properties (variable font axes on Qt 6.8, graceful fallback on 6.4)
-- [ ] **ICON-03**: NavStrip buttons use consistent icon sizing and press feedback
-- [ ] **ICON-04**: Launcher tiles use appropriately-sized icons with the automotive-minimal visual style
+- [x] **ICON-03**: NavStrip buttons use consistent icon sizing and press feedback
+- [x] **ICON-04**: Launcher tiles use appropriately-sized icons with the automotive-minimal visual style
 
 ### Settings Reorganization (SET)
 
@@ -35,16 +35,16 @@
 
 ### Touch UX (UX)
 
-- [ ] **UX-01**: BT device forget action has a clearly visible, adequately-sized touch target (not tiny text)
-- [ ] **UX-02**: Modal pickers can be dismissed by tapping outside the modal area (background dismiss)
+- [x] **UX-01**: BT device forget action has a clearly visible, adequately-sized touch target (not tiny text)
+- [x] **UX-02**: Modal pickers can be dismissed by tapping outside the modal area (background dismiss)
 - [x] **UX-03**: Read-only fields display clearly as informational (no "edit via web panel" confusion)
 - [ ] **UX-04**: EQ accessible both via Audio settings subsection and NavStrip shortcut icon (dual-access with consistent state)
 
 ### Shell & Navigation (NAV)
 
-- [ ] **NAV-01**: NavStrip buttons have consistent automotive-minimal styling with press feedback
-- [ ] **NAV-02**: TopBar styling updated to match automotive-minimal aesthetic
-- [ ] **NAV-03**: Launcher grid tiles restyled with automotive-minimal aesthetic and press feedback
+- [x] **NAV-01**: NavStrip buttons have consistent automotive-minimal styling with press feedback
+- [x] **NAV-02**: TopBar styling updated to match automotive-minimal aesthetic
+- [x] **NAV-03**: Launcher grid tiles restyled with automotive-minimal aesthetic and press feedback
 
 ## Future Requirements
 
@@ -76,8 +76,8 @@
 | VIS-06 | Phase 1 | Complete |
 | ICON-01 | Phase 1 | Pending |
 | ICON-02 | Phase 1 | Complete |
-| ICON-03 | Phase 3 | Pending |
-| ICON-04 | Phase 3 | Pending |
+| ICON-03 | Phase 3 | Complete |
+| ICON-04 | Phase 3 | Complete |
 | SET-01 | Phase 2 | Complete |
 | SET-02 | Phase 2 | Complete |
 | SET-03 | Phase 2 | Complete |
@@ -87,13 +87,13 @@
 | SET-07 | Phase 2 | Complete |
 | SET-08 | Phase 2 | Complete |
 | SET-09 | Phase 2 | Complete |
-| UX-01 | Phase 3 | Pending |
-| UX-02 | Phase 3 | Pending |
+| UX-01 | Phase 3 | Complete |
+| UX-02 | Phase 3 | Complete |
 | UX-03 | Phase 2 | Complete |
 | UX-04 | Phase 3 | Pending |
-| NAV-01 | Phase 3 | Pending |
-| NAV-02 | Phase 3 | Pending |
-| NAV-03 | Phase 3 | Pending |
+| NAV-01 | Phase 3 | Complete |
+| NAV-02 | Phase 3 | Complete |
+| NAV-03 | Phase 3 | Complete |
 
 **Coverage:**
 - v0.4.3 requirements: 26 total

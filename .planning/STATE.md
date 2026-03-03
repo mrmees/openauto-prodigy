@@ -2,13 +2,13 @@
 gsd_state_version: 1.0
 milestone: v0.4
 milestone_name: milestone
-status: unknown
-last_updated: "2026-03-03T01:22:07.427Z"
+status: in-progress
+last_updated: "2026-03-03T01:52:46Z"
 progress:
-  total_phases: 2
+  total_phases: 3
   completed_phases: 2
-  total_plans: 5
-  completed_plans: 5
+  total_plans: 7
+  completed_plans: 6
 ---
 
 # Project State
@@ -18,23 +18,23 @@ progress:
 See: .planning/PROJECT.md (updated 2026-03-02)
 
 **Core value:** A person with a Raspberry Pi 4 and a touchscreen can install this, pair their phone, and get a reliable wireless Android Auto experience — every time, without SSH.
-**Current focus:** v0.4.3 Phase 2 — Settings Restructuring
+**Current focus:** v0.4.3 Phase 3 — EQ Dual-Access & Shell Polish
 
 ## Current Position
 
-Phase: 2 of 3 (Settings Restructuring)
-Plan: 2 of 2
-Status: Complete
-Last activity: 2026-03-03 — Completed 02-02 (Settings Category Pages)
+Phase: 3 of 3 (EQ Dual-Access & Shell Polish)
+Plan: 1 of 2
+Status: In Progress
+Last activity: 2026-03-03 — Completed 03-01 (Shell Polish)
 
-Progress: [██████████] 100% (5/5 plans)
+Progress: [████████░░] 86% (6/7 plans)
 
 ## Performance Metrics
 
 **Velocity:**
-- Total plans completed: 5
+- Total plans completed: 6
 - Average duration: 5min
-- Total execution time: 27min
+- Total execution time: 29min
 
 ## Accumulated Context
 
@@ -58,6 +58,8 @@ Progress: [██████████] 100% (5/5 plans)
 - 02-02: Stripped WiFi AP from Connectivity, renamed to Bluetooth (WiFi is system-level hostapd config)
 - 02-02: Companion pairing inline with status + QR/PIN popup (fewer taps to pair)
 - 02-02: Settings nav strip and launcher buttons always reset to tile grid root
+- 03-01: 0.95 scale for all NavStrip buttons (consistent with Tile large-item feedback)
+- 03-01: Launcher tiles use UiMetrics.tileW/tileH to match settings tile sizing
 
 ### Pending Todos
 
@@ -71,5 +73,5 @@ None yet.
 ## Session Continuity
 
 Last session: 2026-03-03
-Stopped at: Completed 02-02-PLAN.md (Phase 2 complete)
+Stopped at: Completed 03-01-PLAN.md
 Resume file: None
