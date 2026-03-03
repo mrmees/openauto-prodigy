@@ -23,14 +23,14 @@
 
 ### Settings Reorganization (SET)
 
-- [x] **SET-01**: Settings top-level displays 6 category tiles in a grid: Android Auto, Display, Audio, Connectivity, Companion, System/About
-- [x] **SET-02**: Category tiles show live status subtitles (e.g., Connectivity: "BT: Connected", Audio: "EQ: Rock", AA: "720p 60fps")
+- [x] **SET-01**: Settings top-level displays 6 category tiles in a grid: Android Auto, Display, Audio, Bluetooth, Companion, System
+- [x] **SET-02**: ~~Category tiles show live status subtitles~~ Descoped — subtitles too small for automotive display at 1024x600. Deferred to future milestone.
 - [x] **SET-03**: Android Auto category contains: resolution, FPS, DPI, codec enable/disable, decoder selection, auto-connect, sidebar config, protocol capture
 - [x] **SET-04**: Display category contains: brightness, theme picker, wallpaper picker, orientation, day/night mode source
-- [x] **SET-05**: Audio category contains: master volume, output device, mic gain, input device, and EQ subsection (stream selector, presets, band sliders)
-- [x] **SET-06**: Connectivity category contains: WiFi AP channel/band, Bluetooth device name, pairable toggle, paired devices list with connect/forget actions
-- [x] **SET-07**: Companion category contains: connection status, GPS coordinates, platform info
-- [x] **SET-08**: System/About category contains: app version, build info, system diagnostics
+- [x] **SET-05**: Audio category contains: master volume, output device, mic gain, input device, and EQ entry point
+- [x] **SET-06**: ~~Connectivity category contains WiFi AP~~ Descoped — WiFi AP is set-once at install, no runtime UI needed. Renamed to Bluetooth: device name, pairable toggle, paired devices with forget.
+- [x] **SET-07**: Companion category contains: enabled toggle, connection status, GPS coordinates, pairing code generation with QR popup
+- [x] **SET-08**: System category contains: identity, hardware info, app version, Close App button (About merged in)
 - [x] **SET-09**: All existing config paths preserved — reorganization is purely presentational, no config migration needed
 
 ### Touch UX (UX)
