@@ -67,7 +67,7 @@ Plans:
 **Plans:** 2 plans
 
 Plans:
-- [ ] 02-01-PLAN.md — Tile subtitle + ReadOnlyField UX + tile grid landing page in SettingsMenu
+- [x] 02-01-PLAN.md — Tile subtitle + ReadOnlyField UX + tile grid landing page in SettingsMenu
 - [ ] 02-02-PLAN.md — Category page creation/restructuring + SettingsMenu wiring + checkpoint
 
 ### Phase 3: EQ Dual-Access & Shell Polish
@@ -91,8 +91,8 @@ Plans:
 | Phase | Plans Complete | Status | Completed |
 |-------|----------------|--------|-----------|
 | 1. Visual Foundation | 3/3 | Complete | 2026-03-02 |
-| 2. Settings Restructuring | 0/? | Not started | - |
+| 2. Settings Restructuring | 1/2 | In progress | - |
 | 3. EQ Dual-Access & Shell Polish | 0/? | Not started | - |
 
 ---
-*Last updated: 2026-03-02*
+*Last updated: 2026-03-03*

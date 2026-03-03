@@ -2,13 +2,13 @@
 gsd_state_version: 1.0
 milestone: v0.4
 milestone_name: milestone
-status: unknown
-last_updated: "2026-03-02T23:24:08.047Z"
+status: in-progress
+last_updated: "2026-03-02T23:59:14Z"
 progress:
-  total_phases: 1
+  total_phases: 2
   completed_phases: 1
-  total_plans: 3
-  completed_plans: 3
+  total_plans: 5
+  completed_plans: 4
 ---
 
 # Project State
@@ -18,23 +18,23 @@ progress:
 See: .planning/PROJECT.md (updated 2026-03-02)
 
 **Core value:** A person with a Raspberry Pi 4 and a touchscreen can install this, pair their phone, and get a reliable wireless Android Auto experience — every time, without SSH.
-**Current focus:** v0.4.3 Phase 1 — Visual Foundation
+**Current focus:** v0.4.3 Phase 2 — Settings Restructuring
 
 ## Current Position
 
-Phase: 1 of 3 (Visual Foundation) -- COMPLETE
-Plan: 3 of 3
-Status: Phase 1 Complete
-Last activity: 2026-03-02 — Completed 01-02 (Control Restyling, checkpoint approved)
+Phase: 2 of 3 (Settings Restructuring)
+Plan: 1 of 2
+Status: In Progress
+Last activity: 2026-03-02 — Completed 02-01 (Tile Grid Landing Page)
 
-Progress: [██████████] 100% (Phase 1)
+Progress: [████████░░] 80% (4/5 plans)
 
 ## Performance Metrics
 
 **Velocity:**
-- Total plans completed: 3
+- Total plans completed: 4
 - Average duration: 3min
-- Total execution time: 10min
+- Total execution time: 12min
 
 ## Accumulated Context
 
@@ -50,6 +50,10 @@ Progress: [██████████] 100% (Phase 1)
 - 01-02: Scale+opacity press feedback (0.97/0.95 scale, 0.85 opacity) over color overlay -- more tactile
 - 01-02: Tiles get more pronounced feedback (0.95) than list items (0.97) -- size-appropriate
 - 01-02: No press feedback on Toggle/Slider -- native widget interaction IS the feedback
+- 02-01: Tile subtitles use JS bindings to ConfigService/AudioService/BluetoothManager/CompanionService for live status
+- 02-01: Android Auto tile temporarily routes to VideoSettings until 02-02 creates AASettings
+- 02-01: Plugin settings scanning removed from tile grid -- accessible via System category in 02-02
+- 02-01: ReadOnlyField always uses descriptionFontColor (muted) regardless of value state
 
 ### Pending Todos
 
@@ -63,5 +67,5 @@ None yet.
 ## Session Continuity
 
 Last session: 2026-03-02
-Stopped at: Completed 01-02-PLAN.md (Phase 1 complete)
+Stopped at: Completed 02-01-PLAN.md
 Resume file: None
