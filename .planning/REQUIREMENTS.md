@@ -37,9 +37,9 @@ Requirements for v0.4.4 Scalable UI. Each maps to roadmap phases.
 
 ### Layout Adaptation
 
-- [ ] **LAYOUT-01**: LauncherMenu tile grid derives width from available container space (no overflow at 800px)
-- [ ] **LAYOUT-02**: Settings tile grid derives dimensions from available width (no clipping at 800x480)
-- [ ] **LAYOUT-03**: EQ band sliders have minimum height guard at small resolutions
+- [x] **LAYOUT-01**: LauncherMenu tile grid derives width from available container space (no overflow at 800px)
+- [x] **LAYOUT-02**: Settings tile grid derives dimensions from available width (no clipping at 800x480)
+- [x] **LAYOUT-03**: EQ band sliders have minimum height guard at small resolutions
 
 ### Touch Pipeline
 
@@ -103,9 +103,9 @@ Which phases cover which requirements. Updated during roadmap creation.
 | AUDIT-08 | Phase 3 | Complete |
 | AUDIT-09 | Phase 3 | Complete |
 | AUDIT-10 | Phase 3 | Pending |
-| LAYOUT-01 | Phase 4 | Pending |
-| LAYOUT-02 | Phase 4 | Pending |
-| LAYOUT-03 | Phase 4 | Pending |
+| LAYOUT-01 | Phase 4 | Complete |
+| LAYOUT-02 | Phase 4 | Complete |
+| LAYOUT-03 | Phase 4 | Complete |
 | ADAPT-01 | Phase 5 | Pending |
 | ADAPT-02 | Phase 5 | Pending |
 | ADAPT-03 | Phase 5 | Pending |
