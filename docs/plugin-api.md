@@ -55,7 +55,7 @@ Read/write YAML configuration values.
 
 | Method | Thread Safety | Description |
 |--------|---------------|-------------|
-| `value(key)` | Main thread | Read a config value by dotted key (e.g. `"display.width"`) |
+| `value(key)` | Main thread | Read a config value by dotted key (e.g. `"display.brightness"`) |
 | `setValue(key, value)` | Main thread | Write a config value |
 
 **Stability:** Stable

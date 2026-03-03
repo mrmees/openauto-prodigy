@@ -45,7 +45,6 @@ Scrollable list. Icon + label per row, chevron on right. Tap opens subpage.
 |---------|-------|------------|-------|
 | Slider | Brightness | `display.brightness` | 0–100 |
 | ReadOnly | Theme | `display.theme` | |
-| SegmentedButton | Orientation | `display.orientation` | Landscape / Portrait |
 
 ### Day / Night Mode
 | Control | Label | Config Key | Notes |

@@ -136,9 +136,6 @@ All keys are documented with their dot-path (for `valueByPath()`), type, default
 | `hardware_profile` | string | `"rpi4"` | Hardware profile ID (currently only `"rpi4"` is defined) |
 | `display.brightness` | int | `80` | Display brightness level (0-100) |
 | `display.theme` | string | `"default"` | Theme filename to load from `~/.openauto/themes/` |
-| `display.orientation` | string | `"landscape"` | Display orientation (`"landscape"` or `"portrait"`) |
-| `display.width` | int | `1024` | Display width in pixels |
-| `display.height` | int | `600` | Display height in pixels |
 | `connection.auto_connect_aa` | bool | `true` | Auto-connect to AA when phone becomes available |
 | `connection.bt_discoverable` | bool | `true` | Allow Bluetooth discovery from phone (required for AA) |
 | `connection.wifi_ap.interface` | string | `"wlan0"` | WiFi interface name for AP mode |
