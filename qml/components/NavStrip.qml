@@ -26,6 +26,11 @@ Rectangle {
             color: navStrip.homeActive ? ThemeService.highlightColor : "transparent"
             radius: 8
 
+            scale: homeArea.pressed ? 0.95 : 1.0
+            opacity: homeArea.pressed ? 0.85 : 1.0
+            Behavior on scale { NumberAnimation { duration: UiMetrics.animDurationFast; easing.type: Easing.OutCubic } }
+            Behavior on opacity { NumberAnimation { duration: UiMetrics.animDurationFast; easing.type: Easing.OutCubic } }
+
             MaterialIcon {
                 anchors.centerIn: parent
                 icon: "\ue9b2"  // home
@@ -35,6 +40,7 @@ Rectangle {
             }
 
             MouseArea {
+                id: homeArea
                 anchors.fill: parent
                 onClicked: {
                     PluginModel.setActivePlugin("")
@@ -53,6 +59,11 @@ Rectangle {
                 color: isActive ? ThemeService.highlightColor : "transparent"
                 radius: 8
 
+                scale: pluginArea.pressed ? 0.95 : 1.0
+                opacity: pluginArea.pressed ? 0.85 : 1.0
+                Behavior on scale { NumberAnimation { duration: UiMetrics.animDurationFast; easing.type: Easing.OutCubic } }
+                Behavior on opacity { NumberAnimation { duration: UiMetrics.animDurationFast; easing.type: Easing.OutCubic } }
+
                 MaterialIcon {
                     anchors.centerIn: parent
                     icon: pluginIconText || "\ue5c3"
@@ -62,6 +73,7 @@ Rectangle {
                 }
 
                 MouseArea {
+                    id: pluginArea
                     anchors.fill: parent
                     onClicked: {
                         PluginModel.setActivePlugin(pluginId)
@@ -82,6 +94,11 @@ Rectangle {
             radius: 8
             visible: ApplicationController.currentApplication !== 0
 
+            scale: backArea.pressed ? 0.95 : 1.0
+            opacity: backArea.pressed ? 0.85 : 1.0
+            Behavior on scale { NumberAnimation { duration: UiMetrics.animDurationFast; easing.type: Easing.OutCubic } }
+            Behavior on opacity { NumberAnimation { duration: UiMetrics.animDurationFast; easing.type: Easing.OutCubic } }
+
             MaterialIcon {
                 anchors.centerIn: parent
                 icon: "\ue5c4"  // arrow_back
@@ -90,6 +107,7 @@ Rectangle {
             }
 
             MouseArea {
+                id: backArea
                 anchors.fill: parent
                 onClicked: ApplicationController.requestBack()
             }
@@ -102,6 +120,11 @@ Rectangle {
             color: "transparent"
             radius: 8
 
+            scale: modeArea.pressed ? 0.95 : 1.0
+            opacity: modeArea.pressed ? 0.85 : 1.0
+            Behavior on scale { NumberAnimation { duration: UiMetrics.animDurationFast; easing.type: Easing.OutCubic } }
+            Behavior on opacity { NumberAnimation { duration: UiMetrics.animDurationFast; easing.type: Easing.OutCubic } }
+
             MaterialIcon {
                 anchors.centerIn: parent
                 icon: ThemeService.nightMode ? "\ue518" : "\ue430"  // dark_mode / light_mode
@@ -110,6 +133,7 @@ Rectangle {
             }
 
             MouseArea {
+                id: modeArea
                 anchors.fill: parent
                 onClicked: ThemeService.toggleMode()
             }
@@ -122,6 +146,11 @@ Rectangle {
             color: ApplicationController.currentApplication === 6 ? ThemeService.highlightColor : "transparent"
             radius: 8
 
+            scale: settingsArea.pressed ? 0.95 : 1.0
+            opacity: settingsArea.pressed ? 0.85 : 1.0
+            Behavior on scale { NumberAnimation { duration: UiMetrics.animDurationFast; easing.type: Easing.OutCubic } }
+            Behavior on opacity { NumberAnimation { duration: UiMetrics.animDurationFast; easing.type: Easing.OutCubic } }
+
             MaterialIcon {
                 anchors.centerIn: parent
                 icon: "\ue8b8"  // settings
@@ -132,6 +161,7 @@ Rectangle {
             }
 
             MouseArea {
+                id: settingsArea
                 anchors.fill: parent
                 onClicked: {
                     PluginModel.setActivePlugin("")
