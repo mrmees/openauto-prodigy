@@ -4,18 +4,27 @@ import QtQuick.Layouts
 Item {
     id: launcherMenu
 
-    GridLayout {
-        anchors.centerIn: parent
-        columns: 4
-        rowSpacing: UiMetrics.gridGap
-        columnSpacing: UiMetrics.gridGap
+    GridView {
+        id: tileGrid
+        anchors.fill: parent
+        anchors.margins: UiMetrics.gridGap / 2
+        clip: true
+        boundsBehavior: Flickable.StopAtBounds
 
-        Repeater {
-            model: LauncherModel
+        readonly property int columns: Math.max(1, Math.floor(width / (UiMetrics.tileW + UiMetrics.gridGap)))
+        cellWidth: width / columns
+        cellHeight: UiMetrics.tileH + UiMetrics.gridGap
+
+        model: LauncherModel
+
+        delegate: Item {
+            width: tileGrid.cellWidth
+            height: tileGrid.cellHeight
 
             Tile {
-                Layout.preferredWidth: UiMetrics.tileW
-                Layout.preferredHeight: UiMetrics.tileH
+                anchors.centerIn: parent
+                width: tileGrid.cellWidth - UiMetrics.gridGap
+                height: tileGrid.cellHeight - UiMetrics.gridGap
                 tileName: model.tileLabel
                 tileIcon: model.tileIcon
                 tileEnabled: true
