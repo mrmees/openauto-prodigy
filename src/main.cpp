@@ -114,6 +114,21 @@ int main(int argc, char *argv[])
         }
     }
 
+    // Log active UI overrides
+    {
+        auto logUiOverride = [&](const char* key) {
+            auto v = yamlConfig->valueByPath(key);
+            if (v.isValid() && v.toDouble() > 0)
+                qCInfo(lcCore) << "UI override:" << key << "=" << v.toString();
+        };
+        logUiOverride("ui.scale");
+        logUiOverride("ui.fontScale");
+        for (const char* tok : {"rowH","touchMin","fontTitle","fontBody","fontSmall",
+                                 "fontHeading","headerH","iconSize","radius","tileW","tileH"}) {
+            logUiOverride((std::string("ui.tokens.") + tok).c_str());
+        }
+    }
+
     auto appController = new oap::ApplicationController(&app);
 
     // --- Theme service ---

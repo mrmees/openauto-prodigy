@@ -29,6 +29,10 @@ private slots:
     void testEqStreamPresetSaveReload();
     void testEqUserPresetsEmpty();
     void testEqUserPresetsSaveReload();
+    void testUiScaleDefaults();
+    void testUiTokenDefaults();
+    void testUiScaleSetAndGet();
+    void testUiTokenSetAndGet();
 };
 
 void TestYamlConfig::testLoadDefaults()
@@ -350,6 +354,39 @@ void TestYamlConfig::testEqUserPresetsSaveReload()
     }
 
     QFile::remove(tmpPath);
+}
+
+void TestYamlConfig::testUiScaleDefaults()
+{
+    oap::YamlConfig config;
+    QCOMPARE(config.valueByPath("ui.scale").toInt(), 0);
+    QCOMPARE(config.valueByPath("ui.fontScale").toInt(), 0);
+}
+
+void TestYamlConfig::testUiTokenDefaults()
+{
+    oap::YamlConfig config;
+    QStringList tokens = {"rowH", "touchMin", "fontTitle", "fontBody", "fontSmall",
+                          "fontHeading", "headerH", "iconSize", "radius", "tileW", "tileH"};
+    for (const auto& tok : tokens) {
+        QVariant v = config.valueByPath("ui.tokens." + tok);
+        QVERIFY2(v.isValid(), qPrintable("ui.tokens." + tok + " should be registered"));
+        QCOMPARE(v.toInt(), 0);
+    }
+}
+
+void TestYamlConfig::testUiScaleSetAndGet()
+{
+    oap::YamlConfig config;
+    QVERIFY(config.setValueByPath("ui.scale", 1.5));
+    QCOMPARE(config.valueByPath("ui.scale").toDouble(), 1.5);
+}
+
+void TestYamlConfig::testUiTokenSetAndGet()
+{
+    oap::YamlConfig config;
+    QVERIFY(config.setValueByPath("ui.tokens.fontBody", 24));
+    QCOMPARE(config.valueByPath("ui.tokens.fontBody").toInt(), 24);
 }
 
 QTEST_MAIN(TestYamlConfig)

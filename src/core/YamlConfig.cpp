@@ -130,6 +130,21 @@ void YamlConfig::initDefaults()
     root_["audio"]["equalizer"]["streams"]["navigation"]["preset"] = "Voice";
     root_["audio"]["equalizer"]["streams"]["phone"]["preset"] = "Voice";
     root_["audio"]["equalizer"]["user_presets"] = YAML::Node(YAML::NodeType::Sequence);
+
+    // UI override defaults (0 = "not set, use auto-derived")
+    root_["ui"]["scale"] = 0;
+    root_["ui"]["fontScale"] = 0;
+    root_["ui"]["tokens"]["rowH"] = 0;
+    root_["ui"]["tokens"]["touchMin"] = 0;
+    root_["ui"]["tokens"]["fontTitle"] = 0;
+    root_["ui"]["tokens"]["fontBody"] = 0;
+    root_["ui"]["tokens"]["fontSmall"] = 0;
+    root_["ui"]["tokens"]["fontHeading"] = 0;
+    root_["ui"]["tokens"]["headerH"] = 0;
+    root_["ui"]["tokens"]["iconSize"] = 0;
+    root_["ui"]["tokens"]["radius"] = 0;
+    root_["ui"]["tokens"]["tileW"] = 0;
+    root_["ui"]["tokens"]["tileH"] = 0;
 }
 
 void YamlConfig::load(const QString& filePath)
