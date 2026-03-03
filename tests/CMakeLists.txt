@@ -91,6 +91,7 @@ oap_add_test(test_video_decode_queue SOURCES test_video_decode_queue.cpp)
 
 oap_add_test(test_sidebar_zones SOURCES test_sidebar_zones.cpp)
 oap_add_test(test_touch_router SOURCES test_touch_router.cpp)
+oap_add_test(test_evdev_coord_bridge SOURCES test_evdev_coord_bridge.cpp)
 
 # --- DSP tests ---
 
