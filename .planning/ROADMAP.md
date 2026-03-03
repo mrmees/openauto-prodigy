@@ -86,11 +86,12 @@ Plans:
   2. Caller ID text on PhoneView and IncomingCallOverlay is readable at arm's length on 800x480 display
   3. A grep for hardcoded pixelSize/font.pixelSize literals in QML returns zero results (excluding intentional debug overlays)
   4. All controls (tiles, buttons, dialogs) maintain touch-target minimums at 800x480
-**Plans**: TBD
+**Plans**: 3 plans
 
 Plans:
-- [ ] 03-01: TBD
-- [ ] 03-02: TBD
+- [ ] 03-01-PLAN.md -- New UiMetrics tokens + shell chrome tokenization (TopBar, BottomBar, NavStrip, NotificationArea)
+- [ ] 03-02-PLAN.md -- Plugin view tokenization (Sidebar, GestureOverlay, PhoneView, IncomingCallOverlay, BtAudioView)
+- [ ] 03-03-PLAN.md -- Controls, dialogs, remaining files + final grep verification (AUDIT-10)
 
 ### Phase 4: Layout Adaptation + Validation
 **Goal**: Grid layouts adapt to available space without overflow or clipping, validated at all target resolutions
@@ -129,9 +130,9 @@ Phases execute in numeric order: 1 -> 2 -> 3 -> 4 -> 5
 |-------|----------------|--------|-----------|
 | 1. Config Overrides | 1/1 | Complete | 2026-03-03 |
 | 2. UiMetrics Foundation + Touch Pipeline | 2/2 | Complete    | 2026-03-03 |
-| 3. QML Hardcoded Island Audit | 0/0 | Not started | - |
+| 3. QML Hardcoded Island Audit | 0/3 | In progress | - |
 | 4. Layout Adaptation + Validation | 0/0 | Not started | - |
 | 5. Runtime Adaptation | 0/0 | Not started | - |
 
 ---
-*Last updated: 2026-03-03 -- Phase 2 plans created (2 plans in 2 waves)*
+*Last updated: 2026-03-03 -- Phase 3 plans created (3 plans in 2 waves)*
