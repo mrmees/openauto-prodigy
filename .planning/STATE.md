@@ -3,12 +3,12 @@ gsd_state_version: 1.0
 milestone: v0.4
 milestone_name: milestone
 status: in-progress
-last_updated: "2026-03-02T23:59:14Z"
+last_updated: "2026-03-03T01:13:23Z"
 progress:
   total_phases: 2
-  completed_phases: 1
+  completed_phases: 2
   total_plans: 5
-  completed_plans: 4
+  completed_plans: 5
 ---
 
 # Project State
@@ -23,18 +23,18 @@ See: .planning/PROJECT.md (updated 2026-03-02)
 ## Current Position
 
 Phase: 2 of 3 (Settings Restructuring)
-Plan: 1 of 2
-Status: In Progress
-Last activity: 2026-03-02 — Completed 02-01 (Tile Grid Landing Page)
+Plan: 2 of 2
+Status: Complete
+Last activity: 2026-03-03 — Completed 02-02 (Settings Category Pages)
 
-Progress: [████████░░] 80% (4/5 plans)
+Progress: [██████████] 100% (5/5 plans)
 
 ## Performance Metrics
 
 **Velocity:**
-- Total plans completed: 4
-- Average duration: 3min
-- Total execution time: 12min
+- Total plans completed: 5
+- Average duration: 5min
+- Total execution time: 27min
 
 ## Accumulated Context
 
@@ -54,6 +54,10 @@ Progress: [████████░░] 80% (4/5 plans)
 - 02-01: Android Auto tile temporarily routes to VideoSettings until 02-02 creates AASettings
 - 02-01: Plugin settings scanning removed from tile grid -- accessible via System category in 02-02
 - 02-01: ReadOnlyField always uses descriptionFontColor (muted) regardless of value state
+- 02-02: Removed tile subtitles (too small for car), doubled title font for glanceability
+- 02-02: Stripped WiFi AP from Connectivity, renamed to Bluetooth (WiFi is system-level hostapd config)
+- 02-02: Companion pairing inline with status + QR/PIN popup (fewer taps to pair)
+- 02-02: Settings nav strip and launcher buttons always reset to tile grid root
 
 ### Pending Todos
 
@@ -66,6 +70,6 @@ None yet.
 
 ## Session Continuity
 
-Last session: 2026-03-02
-Stopped at: Completed 02-01-PLAN.md
+Last session: 2026-03-03
+Stopped at: Completed 02-02-PLAN.md (Phase 2 complete)
 Resume file: None

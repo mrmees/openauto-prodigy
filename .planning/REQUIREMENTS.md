@@ -25,12 +25,12 @@
 
 - [x] **SET-01**: Settings top-level displays 6 category tiles in a grid: Android Auto, Display, Audio, Connectivity, Companion, System/About
 - [x] **SET-02**: Category tiles show live status subtitles (e.g., Connectivity: "BT: Connected", Audio: "EQ: Rock", AA: "720p 60fps")
-- [ ] **SET-03**: Android Auto category contains: resolution, FPS, DPI, codec enable/disable, decoder selection, auto-connect, sidebar config, protocol capture
-- [ ] **SET-04**: Display category contains: brightness, theme picker, wallpaper picker, orientation, day/night mode source
-- [ ] **SET-05**: Audio category contains: master volume, output device, mic gain, input device, and EQ subsection (stream selector, presets, band sliders)
-- [ ] **SET-06**: Connectivity category contains: WiFi AP channel/band, Bluetooth device name, pairable toggle, paired devices list with connect/forget actions
-- [ ] **SET-07**: Companion category contains: connection status, GPS coordinates, platform info
-- [ ] **SET-08**: System/About category contains: app version, build info, system diagnostics
+- [x] **SET-03**: Android Auto category contains: resolution, FPS, DPI, codec enable/disable, decoder selection, auto-connect, sidebar config, protocol capture
+- [x] **SET-04**: Display category contains: brightness, theme picker, wallpaper picker, orientation, day/night mode source
+- [x] **SET-05**: Audio category contains: master volume, output device, mic gain, input device, and EQ subsection (stream selector, presets, band sliders)
+- [x] **SET-06**: Connectivity category contains: WiFi AP channel/band, Bluetooth device name, pairable toggle, paired devices list with connect/forget actions
+- [x] **SET-07**: Companion category contains: connection status, GPS coordinates, platform info
+- [x] **SET-08**: System/About category contains: app version, build info, system diagnostics
 - [x] **SET-09**: All existing config paths preserved — reorganization is purely presentational, no config migration needed
 
 ### Touch UX (UX)
@@ -80,12 +80,12 @@
 | ICON-04 | Phase 3 | Pending |
 | SET-01 | Phase 2 | Complete |
 | SET-02 | Phase 2 | Complete |
-| SET-03 | Phase 2 | Pending |
-| SET-04 | Phase 2 | Pending |
-| SET-05 | Phase 2 | Pending |
-| SET-06 | Phase 2 | Pending |
-| SET-07 | Phase 2 | Pending |
-| SET-08 | Phase 2 | Pending |
+| SET-03 | Phase 2 | Complete |
+| SET-04 | Phase 2 | Complete |
+| SET-05 | Phase 2 | Complete |
+| SET-06 | Phase 2 | Complete |
+| SET-07 | Phase 2 | Complete |
+| SET-08 | Phase 2 | Complete |
 | SET-09 | Phase 2 | Complete |
 | UX-01 | Phase 3 | Pending |
 | UX-02 | Phase 3 | Pending |
