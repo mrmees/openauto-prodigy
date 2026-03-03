@@ -128,12 +128,16 @@ stop_app() {
 stop_xvfb() {
     if [ -n "${VNC_PID:-}" ] && kill -0 "$VNC_PID" 2>/dev/null; then
         kill "$VNC_PID" 2>/dev/null || true
+        wait "$VNC_PID" 2>/dev/null || true
         VNC_PID=""
     fi
     if [ -n "${XVFB_PID:-}" ] && kill -0 "$XVFB_PID" 2>/dev/null; then
         kill "$XVFB_PID" 2>/dev/null || true
+        wait "$XVFB_PID" 2>/dev/null || true
         XVFB_PID=""
     fi
+    # Ensure port is released before next iteration
+    sleep 0.5
 }
 
 echo "=== OpenAuto Prodigy Resolution Validation ==="

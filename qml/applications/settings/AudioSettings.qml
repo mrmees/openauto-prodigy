@@ -96,7 +96,7 @@ Flickable {
             icon: "\ue429"
             label: {
                 if (typeof EqualizerService === "undefined") return "Equalizer"
-                var preset = EqualizerService.activePresetName(0)
+                var preset = EqualizerService.activePresetForStream(0)
                 return preset !== "" ? "Equalizer \u2014 " + preset : "Equalizer"
             }
             onClicked: root.openEqualizer()

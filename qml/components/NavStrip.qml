@@ -23,7 +23,7 @@ Rectangle {
         // Home button
         Rectangle {
             Layout.fillHeight: true
-            Layout.preferredWidth: navStrip.height * 1.2
+            Layout.preferredWidth: Math.min(navStrip.height * 1.2, navStrip.width / 7)
             color: navStrip.homeActive ? ThemeService.highlightColor : "transparent"
             radius: UiMetrics.radiusSmall
 
@@ -56,7 +56,7 @@ Rectangle {
 
             Rectangle {
                 Layout.fillHeight: true
-                Layout.preferredWidth: navStrip.height * 1.2
+                Layout.preferredWidth: Math.min(navStrip.height * 1.2, navStrip.width / 7)
                 color: isActive ? ThemeService.highlightColor : "transparent"
                 radius: UiMetrics.radiusSmall
 
@@ -87,7 +87,7 @@ Rectangle {
         // EQ shortcut
         Rectangle {
             Layout.fillHeight: true
-            Layout.preferredWidth: navStrip.height * 1.2
+            Layout.preferredWidth: Math.min(navStrip.height * 1.2, navStrip.width / 7)
             color: "transparent"
             radius: UiMetrics.radiusSmall
 
@@ -116,7 +116,7 @@ Rectangle {
         // Back button (visible when not on launcher)
         Rectangle {
             Layout.fillHeight: true
-            Layout.preferredWidth: navStrip.height * 1.2
+            Layout.preferredWidth: Math.min(navStrip.height * 1.2, navStrip.width / 7)
             color: "transparent"
             radius: UiMetrics.radiusSmall
             visible: ApplicationController.currentApplication !== 0
@@ -143,7 +143,7 @@ Rectangle {
         // Day/night mode toggle
         Rectangle {
             Layout.fillHeight: true
-            Layout.preferredWidth: navStrip.height * 1.2
+            Layout.preferredWidth: Math.min(navStrip.height * 1.2, navStrip.width / 7)
             color: "transparent"
             radius: UiMetrics.radiusSmall
 
@@ -169,7 +169,7 @@ Rectangle {
         // Settings button
         Rectangle {
             Layout.fillHeight: true
-            Layout.preferredWidth: navStrip.height * 1.2
+            Layout.preferredWidth: Math.min(navStrip.height * 1.2, navStrip.width / 7)
             color: ApplicationController.currentApplication === 6 ? ThemeService.highlightColor : "transparent"
             radius: UiMetrics.radiusSmall
 

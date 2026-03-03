@@ -106,13 +106,15 @@ Item {
         Item {
             id: settingsGrid
             anchors.fill: parent
+            anchors.margins: UiMetrics.gridGap / 2
 
             readonly property int _prefTileW: UiMetrics.tileW
             readonly property int _gridCols: Math.max(1, Math.floor(width / (_prefTileW + UiMetrics.gridGap)))
             readonly property int _actualTileW: Math.floor((width - (_gridCols - 1) * UiMetrics.gridGap) / _gridCols)
 
             GridLayout {
-                anchors.centerIn: parent
+                anchors.horizontalCenter: parent.horizontalCenter
+                anchors.top: parent.top
                 columns: settingsGrid._gridCols
                 columnSpacing: UiMetrics.gridGap
                 rowSpacing: UiMetrics.gridGap
