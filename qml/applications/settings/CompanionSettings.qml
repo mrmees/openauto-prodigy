@@ -247,7 +247,7 @@ Flickable {
         }
     }
 
-    // Pairing code popup
+    // Pairing code popup — tap anywhere to dismiss
     Rectangle {
         id: pairingCodeDialog
         property string pinCode: ""
@@ -256,9 +256,17 @@ Flickable {
         visible: false
         z: 998
 
+        // Close on successful pairing
+        Connections {
+            target: root.hasService ? CompanionService : null
+            function onConnectedChanged() {
+                if (CompanionService.connected) pairingCodeDialog.visible = false
+            }
+        }
+
         MouseArea {
             anchors.fill: parent
-            onClicked: {} // absorb
+            onClicked: pairingCodeDialog.visible = false
         }
 
         Rectangle {
@@ -274,30 +282,6 @@ Flickable {
                 anchors.margins: UiMetrics.marginPage
                 spacing: UiMetrics.gap
 
-                Text {
-                    text: "Companion Pairing"
-                    font.pixelSize: UiMetrics.fontHeading
-                    color: ThemeService.normalFontColor
-                    Layout.alignment: Qt.AlignHCenter
-                }
-
-                Text {
-                    text: "Enter this code in the Prodigy Companion app"
-                    font.pixelSize: UiMetrics.fontBody
-                    color: ThemeService.descriptionFontColor
-                    Layout.alignment: Qt.AlignHCenter
-                }
-
-                Text {
-                    text: pairingCodeDialog.pinCode
-                    font.pixelSize: UiMetrics.fontHeading * 1.8
-                    font.weight: Font.Bold
-                    font.letterSpacing: 8
-                    color: ThemeService.normalFontColor
-                    Layout.alignment: Qt.AlignHCenter
-                    Layout.topMargin: UiMetrics.gap
-                }
-
                 Image {
                     visible: root.hasService && CompanionService.qrCodeDataUri !== ""
                     Layout.alignment: Qt.AlignHCenter
@@ -308,25 +292,13 @@ Flickable {
                     smooth: false
                 }
 
-                Rectangle {
-                    width: 140; height: UiMetrics.rowH
-                    radius: 8
-                    color: ThemeService.barBackgroundColor
-                    border.color: ThemeService.descriptionFontColor
-                    border.width: 1
+                Text {
+                    text: pairingCodeDialog.pinCode
+                    font.pixelSize: UiMetrics.fontHeading * 1.8
+                    font.weight: Font.Bold
+                    font.letterSpacing: 8
+                    color: ThemeService.normalFontColor
                     Layout.alignment: Qt.AlignHCenter
-                    Layout.topMargin: UiMetrics.gap
-
-                    Text {
-                        anchors.centerIn: parent
-                        text: "Close"
-                        font.pixelSize: UiMetrics.fontBody
-                        color: ThemeService.normalFontColor
-                    }
-                    MouseArea {
-                        anchors.fill: parent
-                        onClicked: pairingCodeDialog.visible = false
-                    }
                 }
             }
         }
