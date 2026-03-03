@@ -144,15 +144,18 @@ void EvdevTouchReader::setSidebar(bool enabled, int width, const std::string& po
             sidebarEvdevY0_ = 0;
             sidebarEvdevY1_ = width * evdevPerPixelY;
         }
-        // Sub-zones along X: volume takes most of the width, small home button at end
-        // Matches QML layout where home icon is ~56px at right edge
+        // Sub-zones along X: volume takes most of the width, home button at end
+        // Home zone width derived from sidebar pixel width (proportional to display)
+        float homePx = static_cast<float>(sidebarPixelWidth_);
         sidebarVolX0_ = 0;
-        sidebarVolX1_ = (displayWidth_ - 100.0f) * evdevPerPixelX;  // volume up to ~100px from right
-        sidebarHomeX0_ = (displayWidth_ - 80.0f) * evdevPerPixelX;  // home zone ~80px at right
+        sidebarVolX1_ = (displayWidth_ - homePx) * evdevPerPixelX;
+        sidebarHomeX0_ = (displayWidth_ - homePx * 0.8f) * evdevPerPixelX;
         sidebarHomeX1_ = screenWidth_;
 
         qCDebug(lcAA) << "Sidebar: " << position.c_str() << " " << width << "px"
-                                << ", evdev Y: " << sidebarEvdevY0_ << "-" << sidebarEvdevY1_;
+                                << ", evdev Y: " << sidebarEvdevY0_ << "-" << sidebarEvdevY1_
+                                << ", sub-zones X: vol=[0," << sidebarVolX1_
+                                << "] home=[" << sidebarHomeX0_ << "," << sidebarHomeX1_ << "]";
     } else {
         // Vertical sidebar (left/right): X band, Y sub-zones
         if (position == "right") {
@@ -170,7 +173,9 @@ void EvdevTouchReader::setSidebar(bool enabled, int width, const std::string& po
         sidebarHomeY1_ = screenHeight_;
 
         qCDebug(lcAA) << "Sidebar: " << position.c_str() << " " << width << "px"
-                                << ", evdev X: " << sidebarEvdevX0_ << "-" << sidebarEvdevX1_;
+                                << ", evdev X: " << sidebarEvdevX0_ << "-" << sidebarEvdevX1_
+                                << ", sub-zones Y: vol=[0," << sidebarVolY1_
+                                << "] home=[" << sidebarHomeY0_ << "," << sidebarHomeY1_ << "]";
     }
 }
 
@@ -179,6 +184,13 @@ void EvdevTouchReader::setAAResolution(int aaWidth, int aaHeight)
     pendingAAWidth_.store(aaWidth, std::memory_order_relaxed);
     pendingAAHeight_.store(aaHeight, std::memory_order_release);
     qCDebug(lcAA) << "Pending resolution update:" << aaWidth << "x" << aaHeight;
+}
+
+void EvdevTouchReader::setDisplayDimensions(int w, int h)
+{
+    pendingDisplayWidth_.store(w, std::memory_order_relaxed);
+    pendingDisplayHeight_.store(h, std::memory_order_release);
+    qCDebug(lcAA) << "Pending display dimension update:" << w << "x" << h;
 }
 
 int EvdevTouchReader::mapX(int rawX) const
@@ -362,6 +374,20 @@ void EvdevTouchReader::processSync()
         pendingAAHeight_.store(0, std::memory_order_relaxed);
         computeLetterbox();
         qCDebug(lcAA) << "Applied resolution update:" << aaWidth_ << "x" << aaHeight_;
+    }
+
+    // Apply pending display dimension update (set from main thread via setDisplayDimensions)
+    int newDisplayH = pendingDisplayHeight_.load(std::memory_order_acquire);
+    if (newDisplayH > 0) {
+        int newDisplayW = pendingDisplayWidth_.load(std::memory_order_relaxed);
+        displayWidth_ = newDisplayW;
+        displayHeight_ = newDisplayH;
+        pendingDisplayWidth_.store(0, std::memory_order_relaxed);
+        pendingDisplayHeight_.store(0, std::memory_order_relaxed);
+        if (sidebarEnabled_)
+            setSidebar(sidebarEnabled_, sidebarPixelWidth_, sidebarPosition_);
+        computeLetterbox();
+        qCDebug(lcAA) << "Applied display dimension update:" << displayWidth_ << "x" << displayHeight_;
     }
 
     // Check for 3-finger gesture — suppress touches if active

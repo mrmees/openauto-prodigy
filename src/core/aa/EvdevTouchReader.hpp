@@ -67,6 +67,10 @@ public:
     /// Takes effect on next touch sync on the reader thread.
     void setAAResolution(int aaWidth, int aaHeight);
 
+    /// Thread-safe: update display dimensions (e.g. after window resize detection).
+    /// Takes effect on next touch sync on the reader thread.
+    void setDisplayDimensions(int w, int h);
+
 signals:
     /// Emitted when a 3-finger tap gesture is detected (thread-safe, queued).
     void gestureDetected();
@@ -140,6 +144,10 @@ private:
     // Pending resolution update (set from main thread, consumed on reader thread)
     std::atomic<int> pendingAAWidth_{0};
     std::atomic<int> pendingAAHeight_{0};
+
+    // Pending display dimension update (set from main thread, consumed on reader thread)
+    std::atomic<int> pendingDisplayWidth_{0};
+    std::atomic<int> pendingDisplayHeight_{0};
 };
 
 } // namespace aa
