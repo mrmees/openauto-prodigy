@@ -13,17 +13,17 @@ Rectangle {
 
     ColumnLayout {
         anchors.fill: parent
-        anchors.margins: 16
-        spacing: 12
+        anchors.margins: UiMetrics.gap
+        spacing: UiMetrics.marginRow
 
         // Status bar
         RowLayout {
             Layout.fillWidth: true
-            spacing: 8
+            spacing: UiMetrics.spacing
 
             Text {
                 text: PhonePlugin ? (PhonePlugin.deviceName || "Phone") : "Phone"
-                font.pixelSize: 14
+                font.pixelSize: UiMetrics.fontSmall
                 color: ThemeService.descriptionFontColor
                 opacity: 0.7
             }
@@ -31,15 +31,15 @@ Rectangle {
             Item { Layout.fillWidth: true }
 
             Rectangle {
-                width: 10
-                height: 10
-                radius: 5
+                width: UiMetrics.statusDot
+                height: UiMetrics.statusDot
+                radius: UiMetrics.statusDot / 2
                 color: isConnected ? "#4CAF50" : "#F44336"
             }
 
             Text {
                 text: isConnected ? "Connected" : "No phone"
-                font.pixelSize: 12
+                font.pixelSize: UiMetrics.fontTiny
                 color: ThemeService.descriptionFontColor
             }
         }
@@ -47,9 +47,9 @@ Rectangle {
         // Dialed number / call info display
         Rectangle {
             Layout.fillWidth: true
-            height: 60
+            height: Math.round(60 * UiMetrics.scale)
             color: ThemeService.controlBackgroundColor
-            radius: 8
+            radius: UiMetrics.radiusSmall
 
             Text {
                 anchors.centerIn: parent
@@ -65,11 +65,11 @@ Rectangle {
                     }
                     return PhonePlugin.dialedNumber || ""
                 }
-                font.pixelSize: inCall ? 18 : 28
+                font.pixelSize: inCall ? UiMetrics.fontBody : UiMetrics.fontHeading
                 font.bold: true
                 color: ThemeService.normalFontColor
                 elide: Text.ElideRight
-                width: parent.width - 32
+                width: parent.width - UiMetrics.sectionGap * 2
                 horizontalAlignment: Text.AlignHCenter
             }
         }
@@ -79,8 +79,8 @@ Rectangle {
             Layout.fillWidth: true
             Layout.fillHeight: true
             columns: 3
-            rowSpacing: 8
-            columnSpacing: 8
+            rowSpacing: UiMetrics.spacing
+            columnSpacing: UiMetrics.spacing
             visible: !inCall
             opacity: isConnected ? 1.0 : 0.4
 
@@ -91,7 +91,7 @@ Rectangle {
                     Layout.fillWidth: true
                     Layout.fillHeight: true
                     text: modelData
-                    font.pixelSize: 24
+                    font.pixelSize: UiMetrics.fontTitle
                     enabled: isConnected
                     onClicked: if (PhonePlugin) PhonePlugin.appendDigit(modelData)
 
@@ -106,7 +106,7 @@ Rectangle {
                         color: parent.pressed
                                ? ThemeService.highlightColor
                                : ThemeService.controlBackgroundColor
-                        radius: 8
+                        radius: UiMetrics.radiusSmall
                         border.color: ThemeService.controlForegroundColor
                         border.width: 1
                     }
@@ -118,19 +118,19 @@ Rectangle {
         RowLayout {
             Layout.fillWidth: true
             Layout.fillHeight: true
-            spacing: 16
+            spacing: UiMetrics.gap
             visible: inCall
 
             Item { Layout.fillWidth: true }
 
             // Hangup button (always visible during call)
             Button {
-                Layout.preferredWidth: 80
-                Layout.preferredHeight: 80
+                Layout.preferredWidth: UiMetrics.callBtnSize
+                Layout.preferredHeight: UiMetrics.callBtnSize
                 onClicked: if (PhonePlugin) PhonePlugin.hangup()
                 contentItem: MaterialIcon {
                     icon: "\uf0bc"  // call_end
-                    size: 36
+                    size: UiMetrics.iconSize
                     color: "white"
                 }
                 background: Rectangle {
@@ -141,13 +141,13 @@ Rectangle {
 
             // Answer button (only for incoming calls)
             Button {
-                Layout.preferredWidth: 80
-                Layout.preferredHeight: 80
+                Layout.preferredWidth: UiMetrics.callBtnSize
+                Layout.preferredHeight: UiMetrics.callBtnSize
                 visible: callState === 2  // Ringing
                 onClicked: if (PhonePlugin) PhonePlugin.answer()
                 contentItem: MaterialIcon {
                     icon: "\uf0d4"  // phone
-                    size: 36
+                    size: UiMetrics.iconSize
                     color: "white"
                 }
                 background: Rectangle {
@@ -162,24 +162,24 @@ Rectangle {
         // Bottom action row (dial / backspace)
         RowLayout {
             Layout.fillWidth: true
-            height: 56
-            spacing: 8
+            height: UiMetrics.touchMin
+            spacing: UiMetrics.spacing
             visible: !inCall
 
             // Backspace
             Button {
-                Layout.preferredWidth: 64
+                Layout.preferredWidth: Math.max(Math.round(64 * UiMetrics.scale), UiMetrics.touchMin)
                 Layout.fillHeight: true
                 enabled: isConnected && PhonePlugin && PhonePlugin.dialedNumber.length > 0
                 onClicked: if (PhonePlugin) PhonePlugin.clearDialed()
                 contentItem: MaterialIcon {
                     icon: "\ue14a"  // backspace
-                    size: 22
+                    size: Math.round(22 * UiMetrics.scale)
                     color: ThemeService.normalFontColor
                 }
                 background: Rectangle {
                     color: parent.pressed ? ThemeService.highlightColor : ThemeService.controlBackgroundColor
-                    radius: 8
+                    radius: UiMetrics.radiusSmall
                 }
             }
 
@@ -190,16 +190,16 @@ Rectangle {
                 enabled: isConnected && PhonePlugin && PhonePlugin.dialedNumber.length > 0
                 onClicked: if (PhonePlugin) PhonePlugin.dial(PhonePlugin.dialedNumber)
                 contentItem: RowLayout {
-                    spacing: 8
+                    spacing: UiMetrics.spacing
                     Item { Layout.fillWidth: true }
                     MaterialIcon {
                         icon: "\uf0d4"  // phone
-                        size: 22
+                        size: Math.round(22 * UiMetrics.scale)
                         color: "white"
                     }
                     Text {
                         text: "Call"
-                        font.pixelSize: 20
+                        font.pixelSize: UiMetrics.fontBody
                         font.bold: true
                         color: "white"
                     }
@@ -209,7 +209,7 @@ Rectangle {
                     color: parent.enabled
                            ? (parent.pressed ? "#388E3C" : "#4CAF50")
                            : "#666666"
-                    radius: 8
+                    radius: UiMetrics.radiusSmall
                 }
             }
         }

@@ -18,20 +18,20 @@ Rectangle {
 
     ColumnLayout {
         anchors.centerIn: parent
-        spacing: 24
+        spacing: UiMetrics.sectionGap
         width: parent.width * 0.6
 
         Text {
             Layout.alignment: Qt.AlignHCenter
             text: "Incoming Call"
-            font.pixelSize: 18
+            font.pixelSize: UiMetrics.fontBody
             color: "#AAAAAA"
         }
 
         Text {
             Layout.alignment: Qt.AlignHCenter
             text: PhonePlugin ? (PhonePlugin.callerName || PhonePlugin.callerNumber || "Unknown") : ""
-            font.pixelSize: 28
+            font.pixelSize: UiMetrics.fontHeading
             font.bold: true
             color: "white"
             elide: Text.ElideRight
@@ -41,25 +41,25 @@ Rectangle {
         Text {
             Layout.alignment: Qt.AlignHCenter
             text: PhonePlugin ? PhonePlugin.callerNumber : ""
-            font.pixelSize: 16
+            font.pixelSize: UiMetrics.fontSmall
             color: "#CCCCCC"
             visible: PhonePlugin && PhonePlugin.callerName.length > 0 && PhonePlugin.callerNumber.length > 0
         }
 
-        Item { height: 16 }
+        Item { height: UiMetrics.gap }
 
         RowLayout {
             Layout.alignment: Qt.AlignHCenter
-            spacing: 48
+            spacing: Math.round(48 * UiMetrics.scale)
 
             // Reject
             Button {
-                Layout.preferredWidth: 72
-                Layout.preferredHeight: 72
+                Layout.preferredWidth: UiMetrics.callBtnSize
+                Layout.preferredHeight: UiMetrics.callBtnSize
                 onClicked: if (PhonePlugin) PhonePlugin.hangup()
                 contentItem: MaterialIcon {
                     icon: "\uf0bc"  // call_end
-                    size: 32
+                    size: UiMetrics.iconSize
                     color: "white"
                 }
                 background: Rectangle {
@@ -70,12 +70,12 @@ Rectangle {
 
             // Accept
             Button {
-                Layout.preferredWidth: 72
-                Layout.preferredHeight: 72
+                Layout.preferredWidth: UiMetrics.callBtnSize
+                Layout.preferredHeight: UiMetrics.callBtnSize
                 onClicked: if (PhonePlugin) PhonePlugin.answer()
                 contentItem: MaterialIcon {
                     icon: "\uf0d4"  // phone
-                    size: 32
+                    size: UiMetrics.iconSize
                     color: "white"
                 }
                 background: Rectangle {
