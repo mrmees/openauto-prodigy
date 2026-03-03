@@ -9,9 +9,12 @@
 #include <linux/input.h>
 #include <QDebug>
 #include "TouchHandler.hpp"
+#include "TouchRouter.hpp"
 
 namespace oap {
 namespace aa {
+
+class EvdevCoordBridge;  // forward declaration
 
 // Reads multi-touch events directly from a Linux evdev device (MT Type B protocol).
 // Bypasses Qt's touch input entirely to avoid Wayland/evdev plugin conflicts.
@@ -61,7 +64,11 @@ public:
     void ungrab();
 
     void setSidebar(bool enabled, int width, const std::string& position);
+    void setCoordBridge(EvdevCoordBridge* bridge) { coordBridge_ = bridge; }
     void computeLetterbox();
+
+    /// Direct access to the touch router (for external zone registration)
+    TouchRouter& router() { return router_; }
 
     // Test accessors for sidebar zone boundaries (evdev coordinate space)
     float sidebarVolY0() const { return sidebarVolY0_; }
@@ -150,6 +157,10 @@ private:
     float sidebarVolX0_ = 0, sidebarVolX1_ = 0;
     float sidebarHomeX0_ = 0, sidebarHomeX1_ = 0;
     int sidebarDragSlot_ = -1;  // slot currently dragging in volume zone
+
+    // Touch routing
+    TouchRouter router_;
+    EvdevCoordBridge* coordBridge_ = nullptr;
 
     // Pending resolution update (set from main thread, consumed on reader thread)
     std::atomic<int> pendingAAWidth_{0};

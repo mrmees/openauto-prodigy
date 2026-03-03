@@ -127,7 +127,11 @@ void EvdevTouchReader::setSidebar(bool enabled, int width, const std::string& po
     sidebarPosition_ = position;
     sidebarHorizontal_ = (position == "top" || position == "bottom");
 
-    if (!enabled || width <= 0) return;
+    if (!enabled || width <= 0) {
+        // Remove sidebar zones from router
+        router_.setZones({});
+        return;
+    }
 
     float evdevPerPixelX = static_cast<float>(screenWidth_) / displayWidth_;
     float evdevPerPixelY = static_cast<float>(screenHeight_) / displayHeight_;
@@ -191,6 +195,89 @@ void EvdevTouchReader::setSidebar(bool enabled, int width, const std::string& po
                                 << "] home=[" << sidebarHomeY0_ << "," << sidebarHomeY1_ << "]"
                                 << " (homeStartPx=" << homeStartPx << " volEndPx=" << volEndPx << ")";
     }
+
+    // Register sidebar zones with TouchRouter
+    std::vector<TouchZone> zones;
+
+    if (sidebarHorizontal_) {
+        // Volume zone: horizontal band, X sub-range for volume slider
+        TouchZone volZone;
+        volZone.id = "sidebar-volume";
+        volZone.priority = 10;
+        volZone.x0 = sidebarVolX0_;
+        volZone.y0 = sidebarEvdevY0_;
+        volZone.x1 = sidebarVolX1_;
+        volZone.y1 = sidebarEvdevY1_;
+        volZone.callback = [this](int slot, float x, float /*y*/, TouchEvent event) {
+            if (event == TouchEvent::Down) {
+                sidebarDragSlot_ = slot;
+                float rel = (x - sidebarVolX0_) / (sidebarVolX1_ - sidebarVolX0_);
+                int vol = std::clamp(static_cast<int>(rel * 100), 0, 100);
+                emit sidebarVolumeSet(vol);
+            } else if (event == TouchEvent::Move && slot == sidebarDragSlot_) {
+                float rel = (x - sidebarVolX0_) / (sidebarVolX1_ - sidebarVolX0_);
+                int vol = std::clamp(static_cast<int>(rel * 100), 0, 100);
+                emit sidebarVolumeSet(vol);
+            } else if (event == TouchEvent::Up && slot == sidebarDragSlot_) {
+                sidebarDragSlot_ = -1;
+            }
+        };
+        zones.push_back(std::move(volZone));
+
+        // Home zone: horizontal band, X sub-range for home button
+        TouchZone homeZone;
+        homeZone.id = "sidebar-home";
+        homeZone.priority = 10;
+        homeZone.x0 = sidebarHomeX0_;
+        homeZone.y0 = sidebarEvdevY0_;
+        homeZone.x1 = sidebarHomeX1_;
+        homeZone.y1 = sidebarEvdevY1_;
+        homeZone.callback = [this](int /*slot*/, float /*x*/, float /*y*/, TouchEvent event) {
+            if (event == TouchEvent::Down)
+                emit sidebarHome();
+        };
+        zones.push_back(std::move(homeZone));
+    } else {
+        // Volume zone: vertical band, Y sub-range for volume slider
+        TouchZone volZone;
+        volZone.id = "sidebar-volume";
+        volZone.priority = 10;
+        volZone.x0 = sidebarEvdevX0_;
+        volZone.y0 = sidebarVolY0_;
+        volZone.x1 = sidebarEvdevX1_;
+        volZone.y1 = sidebarVolY1_;
+        volZone.callback = [this](int slot, float /*x*/, float y, TouchEvent event) {
+            if (event == TouchEvent::Down) {
+                sidebarDragSlot_ = slot;
+                float rel = 1.0f - (y - sidebarVolY0_) / (sidebarVolY1_ - sidebarVolY0_);
+                int vol = std::clamp(static_cast<int>(rel * 100), 0, 100);
+                emit sidebarVolumeSet(vol);
+            } else if (event == TouchEvent::Move && slot == sidebarDragSlot_) {
+                float rel = 1.0f - (y - sidebarVolY0_) / (sidebarVolY1_ - sidebarVolY0_);
+                int vol = std::clamp(static_cast<int>(rel * 100), 0, 100);
+                emit sidebarVolumeSet(vol);
+            } else if (event == TouchEvent::Up && slot == sidebarDragSlot_) {
+                sidebarDragSlot_ = -1;
+            }
+        };
+        zones.push_back(std::move(volZone));
+
+        // Home zone: vertical band, Y sub-range for home button
+        TouchZone homeZone;
+        homeZone.id = "sidebar-home";
+        homeZone.priority = 10;
+        homeZone.x0 = sidebarEvdevX0_;
+        homeZone.y0 = sidebarHomeY0_;
+        homeZone.x1 = sidebarEvdevX1_;
+        homeZone.y1 = sidebarHomeY1_;
+        homeZone.callback = [this](int /*slot*/, float /*x*/, float /*y*/, TouchEvent event) {
+            if (event == TouchEvent::Down)
+                emit sidebarHome();
+        };
+        zones.push_back(std::move(homeZone));
+    }
+
+    router_.setZones(std::move(zones));
 }
 
 void EvdevTouchReader::setAAResolution(int aaWidth, int aaHeight)
@@ -413,73 +500,39 @@ void EvdevTouchReader::processSync()
         return;
     }
 
-    // Check for sidebar touches — detect hits and suppress AA forwarding
-    if (sidebarEnabled_) {
-        bool anySidebarTouch = false;
-        for (int i = 0; i < MAX_SLOTS; ++i) {
-            if (slots_[i].trackingId >= 0 && slots_[i].dirty) {
-                float rawX = slots_[i].x;
-                float rawY = slots_[i].y;
-                bool inSidebar = false;
+    // Dispatch touches through TouchRouter — zones claim slots, unclaimed fall through to AA
+    for (int i = 0; i < MAX_SLOTS; ++i) {
+        if (!slots_[i].dirty) continue;
 
-                if (sidebarHorizontal_) {
-                    // Horizontal sidebar: check Y band
-                    inSidebar = (rawY >= sidebarEvdevY0_ && rawY <= sidebarEvdevY1_);
-                } else {
-                    // Vertical sidebar: check X band
-                    inSidebar = (rawX >= sidebarEvdevX0_ && rawX <= sidebarEvdevX1_);
-                }
+        bool wasActive = prevSlots_[i].trackingId >= 0;
+        bool isActive = slots_[i].trackingId >= 0;
 
-                if (inSidebar) {
-                    bool isDown = prevSlots_[i].trackingId < 0;
-
-                    if (sidebarHorizontal_) {
-                        // Horizontal: volume along X (left=0%, right=100%), home on right
-                        if (isDown) {
-                            if (rawX >= sidebarVolX0_ && rawX < sidebarVolX1_) {
-                                sidebarDragSlot_ = i;
-                                float rel = (rawX - sidebarVolX0_) / (sidebarVolX1_ - sidebarVolX0_);
-                                int vol = std::clamp(static_cast<int>(rel * 100), 0, 100);
-                                emit sidebarVolumeSet(vol);
-                            } else if (rawX >= sidebarHomeX0_ && rawX <= sidebarHomeX1_) {
-                                emit sidebarHome();
-                            }
-                        } else if (i == sidebarDragSlot_) {
-                            float rel = (rawX - sidebarVolX0_) / (sidebarVolX1_ - sidebarVolX0_);
-                            int vol = std::clamp(static_cast<int>(rel * 100), 0, 100);
-                            emit sidebarVolumeSet(vol);
-                        }
-                    } else {
-                        // Vertical: volume along Y (top=100%, bottom=0%), home on bottom
-                        if (isDown) {
-                            if (rawY >= sidebarVolY0_ && rawY < sidebarVolY1_) {
-                                sidebarDragSlot_ = i;
-                                float rel = 1.0f - (rawY - sidebarVolY0_) / (sidebarVolY1_ - sidebarVolY0_);
-                                int vol = std::clamp(static_cast<int>(rel * 100), 0, 100);
-                                emit sidebarVolumeSet(vol);
-                            } else if (rawY >= sidebarHomeY0_ && rawY <= sidebarHomeY1_) {
-                                emit sidebarHome();
-                            }
-                        } else if (i == sidebarDragSlot_) {
-                            float rel = 1.0f - (rawY - sidebarVolY0_) / (sidebarVolY1_ - sidebarVolY0_);
-                            int vol = std::clamp(static_cast<int>(rel * 100), 0, 100);
-                            emit sidebarVolumeSet(vol);
-                        }
-                    }
-
-                    slots_[i].dirty = false;  // consume — don't forward to AA
-                    anySidebarTouch = true;
-                }
-            }
-            // End drag when finger lifts
-            if (slots_[i].trackingId < 0 && i == sidebarDragSlot_)
-                sidebarDragSlot_ = -1;
+        TouchEvent evt;
+        float x, y;
+        if (!wasActive && isActive) {
+            evt = TouchEvent::Down;
+            x = slots_[i].x; y = slots_[i].y;
+        } else if (wasActive && isActive) {
+            evt = TouchEvent::Move;
+            x = slots_[i].x; y = slots_[i].y;
+        } else if (wasActive && !isActive) {
+            evt = TouchEvent::Up;
+            x = prevSlots_[i].x; y = prevSlots_[i].y;
+        } else {
+            continue;  // inactive->inactive, skip
         }
-        // If ALL touches in this sync are sidebar touches, skip AA processing
+
+        if (router_.dispatch(i, x, y, evt)) {
+            slots_[i].dirty = false;  // consumed by zone
+        }
+    }
+
+    // If all dirty slots were consumed by zones, skip AA processing
+    {
         bool anyDirty = false;
         for (int i = 0; i < MAX_SLOTS; ++i)
             if (slots_[i].dirty) { anyDirty = true; break; }
-        if (anySidebarTouch && !anyDirty) {
+        if (!anyDirty) {
             prevSlots_ = slots_;
             return;
         }
@@ -597,6 +650,7 @@ void EvdevTouchReader::ungrab()
     gestureActive_ = false;
     gestureMaxFingers_ = 0;
     prevActiveCount_ = 0;
+    router_.resetClaims();
 
     qCInfo(lcAA) << "Device ungrabbed — touch returned to Wayland";
 }
