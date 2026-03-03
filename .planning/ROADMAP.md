@@ -34,7 +34,7 @@ Transform the existing functional UI into an automotive-minimal interface. Resty
 - [ ] **Phase 1: Visual Foundation** - Restyle all controls with press feedback, icons, animations, and automotive-minimal aesthetic
 - [ ] **Phase 2: Settings Restructuring** - Replace flat settings list with 6-category navigation hierarchy
 - [ ] **Phase 3: EQ Dual-Access & Shell Polish** - Wire NavStrip EQ shortcut, restyle launcher/TopBar, modal dismiss, BT forget
-- [ ] **Phase 4: Tech Debt Cleanup** - Fix broken bindings, remove dead code, update stale traceability
+- [x] **Phase 4: Tech Debt Cleanup** - Fix broken bindings, remove dead code, update stale traceability
 
 ### Phase Details
 
@@ -100,7 +100,7 @@ Plans:
 **Plans:** 1 plan
 
 Plans:
-- [ ] 04-01-PLAN.md — Add highlightFontColor property, fix divider color hacks, remove dead code, verify traceability
+- [x] 04-01-PLAN.md — Add highlightFontColor property, fix divider color hacks, remove dead code, verify traceability
 
 ### Progress
 
@@ -109,7 +109,7 @@ Plans:
 | 1. Visual Foundation | 3/3 | Complete | 2026-03-02 |
 | 2. Settings Restructuring | 2/2 | Complete | 2026-03-03 |
 | 3. EQ Dual-Access & Shell Polish | 2/2 | Complete | 2026-03-03 |
-| 4. Tech Debt Cleanup | 0/1 | Pending | — |
+| 4. Tech Debt Cleanup | 1/1 | Complete | 2026-03-03 |
 
 ---
-*Last updated: 2026-03-03 — Phase 4 planned (1 plan)*
+*Last updated: 2026-03-03 — Phase 4 complete (1/1 plans)*

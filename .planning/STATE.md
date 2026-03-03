@@ -2,13 +2,13 @@
 gsd_state_version: 1.0
 milestone: v0.4
 milestone_name: milestone
-status: unknown
-last_updated: "2026-03-03T02:09:55.612Z"
+status: in-progress
+last_updated: "2026-03-03T02:45:30Z"
 progress:
-  total_phases: 3
-  completed_phases: 3
-  total_plans: 7
-  completed_plans: 7
+  total_phases: 4
+  completed_phases: 4
+  total_plans: 8
+  completed_plans: 8
 ---
 
 # Project State
@@ -18,23 +18,23 @@ progress:
 See: .planning/PROJECT.md (updated 2026-03-02)
 
 **Core value:** A person with a Raspberry Pi 4 and a touchscreen can install this, pair their phone, and get a reliable wireless Android Auto experience — every time, without SSH.
-**Current focus:** v0.4.3 Phase 3 — EQ Dual-Access & Shell Polish
+**Current focus:** v0.4.3 Phase 4 — Tech Debt Cleanup
 
 ## Current Position
 
-Phase: 3 of 3 (EQ Dual-Access & Shell Polish)
-Plan: 2 of 2
+Phase: 4 of 4 (Tech Debt Cleanup)
+Plan: 1 of 1
 Status: Complete
-Last activity: 2026-03-03 — Completed 03-02 (EQ Dual-Access)
+Last activity: 2026-03-03 — Completed 04-01 (Tech Debt Cleanup)
 
-Progress: [██████████] 100% (7/7 plans)
+Progress: [██████████] 100% (8/8 plans)
 
 ## Performance Metrics
 
 **Velocity:**
-- Total plans completed: 7
+- Total plans completed: 8
 - Average duration: 5min
-- Total execution time: 32min
+- Total execution time: 36min
 
 ## Accumulated Context
 
@@ -77,5 +77,5 @@ None yet.
 ## Session Continuity
 
 Last session: 2026-03-03
-Stopped at: Completed 03-02-PLAN.md — v0.4.3 milestone complete
+Stopped at: Completed 04-01-PLAN.md — Phase 4 tech debt cleanup complete
 Resume file: None
