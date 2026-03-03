@@ -68,7 +68,7 @@ Plans:
 
 Plans:
 - [x] 02-01-PLAN.md — Tile subtitle + ReadOnlyField UX + tile grid landing page in SettingsMenu
-- [ ] 02-02-PLAN.md — Category page creation/restructuring + SettingsMenu wiring + checkpoint
+- [x] 02-02-PLAN.md — Category page creation/restructuring + SettingsMenu wiring + checkpoint
 
 ### Phase 3: EQ Dual-Access & Shell Polish
 **Goal**: The entire shell (NavStrip, TopBar, launcher, modals) matches the automotive-minimal aesthetic, and EQ is accessible from both Audio settings and a NavStrip shortcut
@@ -80,19 +80,19 @@ Plans:
   3. Launcher grid tiles are restyled with the automotive-minimal aesthetic and show press feedback on tap
   4. Modal pickers dismiss when tapping outside the modal area
   5. BT device forget action has a clearly visible, adequately-sized touch target
-**Plans**: TBD
+**Plans:** 2 plans
 
 Plans:
-- [ ] 03-01: TBD
-- [ ] 03-02: TBD
+- [ ] 03-01-PLAN.md — Shell polish: NavStrip press feedback, TopBar divider, launcher tile sizing, BT forget button, modal dismiss
+- [ ] 03-02-PLAN.md — EQ dual-access NavStrip shortcut with deep navigation + Pi verification checkpoint
 
 ### Progress
 
 | Phase | Plans Complete | Status | Completed |
 |-------|----------------|--------|-----------|
 | 1. Visual Foundation | 3/3 | Complete | 2026-03-02 |
-| 2. Settings Restructuring | 1/2 | In progress | - |
-| 3. EQ Dual-Access & Shell Polish | 0/? | Not started | - |
+| 2. Settings Restructuring | 2/2 | Complete | 2026-03-03 |
+| 3. EQ Dual-Access & Shell Polish | 0/2 | Not started | - |
 
 ---
 *Last updated: 2026-03-03*
