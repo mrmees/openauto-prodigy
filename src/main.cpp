@@ -41,6 +41,8 @@
 #include "ui/LauncherModel.hpp"
 #include "ui/AudioDeviceModel.hpp"
 #include "ui/CodecCapabilityModel.hpp"
+#include "ui/DisplayInfo.hpp"
+#include <QQuickWindow>
 
 int main(int argc, char *argv[])
 {
@@ -113,6 +115,10 @@ int main(int argc, char *argv[])
             qCInfo(lcCore) << "Debug categories:" << debugCategories;
         }
     }
+
+    // --- DisplayInfo (window dimensions bridge for QML UiMetrics) ---
+    auto* displayInfo = new oap::DisplayInfo(&app);
+    displayInfo->setWindowSize(yamlConfig->displayWidth(), yamlConfig->displayHeight());
 
     // Log active UI overrides
     {
@@ -325,6 +331,7 @@ int main(int argc, char *argv[])
 
     engine.rootContext()->setContextProperty("EqualizerService", eqService);
     engine.rootContext()->setContextProperty("ConfigService", configService.get());
+    engine.rootContext()->setContextProperty("DisplayInfo", displayInfo);
 
     if (companionListener)
         engine.rootContext()->setContextProperty("CompanionService", companionListener);
@@ -342,6 +349,21 @@ int main(int argc, char *argv[])
 
     if (engine.rootObjects().isEmpty())
         return -1;
+
+    // Wire DisplayInfo to actual window dimensions
+    {
+        auto* rootWindow = qobject_cast<QQuickWindow*>(engine.rootObjects().first());
+        if (rootWindow) {
+            auto updateSize = [displayInfo, rootWindow]() {
+                int w = rootWindow->width(), h = rootWindow->height();
+                if (w > 0 && h > 0)
+                    displayInfo->setWindowSize(w, h);
+            };
+            QObject::connect(rootWindow, &QQuickWindow::widthChanged, displayInfo, updateSize);
+            QObject::connect(rootWindow, &QQuickWindow::heightChanged, displayInfo, updateSize);
+            updateSize();  // push initial real values
+        }
+    }
 
     // Wire PluginViewHost to the QML host item
     auto* rootObj = engine.rootObjects().first();
