@@ -97,7 +97,10 @@ Plans:
   2. SegmentedButton divider uses ThemeService.dividerColor (not descriptionFontColor hack)
   3. No dead Q_PROPERTYs or QML properties from descoped features remain
   4. REQUIREMENTS.md traceability table has no stale "Pending" entries
-**Plans:** TBD
+**Plans:** 1 plan
+
+Plans:
+- [ ] 04-01-PLAN.md — Add highlightFontColor property, fix divider color hacks, remove dead code, verify traceability
 
 ### Progress
 
@@ -106,7 +109,7 @@ Plans:
 | 1. Visual Foundation | 3/3 | Complete | 2026-03-02 |
 | 2. Settings Restructuring | 2/2 | Complete | 2026-03-03 |
 | 3. EQ Dual-Access & Shell Polish | 2/2 | Complete | 2026-03-03 |
-| 4. Tech Debt Cleanup | 0/? | Pending | — |
+| 4. Tech Debt Cleanup | 0/1 | Pending | — |
 
 ---
-*Last updated: 2026-03-03 — Phase 4 added for audit tech debt closure*
+*Last updated: 2026-03-03 — Phase 4 planned (1 plan)*
