@@ -23,8 +23,8 @@ Rectangle {
     // Vertical layout (left/right sidebar)
     ColumnLayout {
         anchors.fill: parent
-        anchors.margins: 8
-        spacing: 8
+        anchors.margins: UiMetrics.spacing
+        spacing: UiMetrics.spacing
         visible: !sidebar.isHorizontal
 
         // Volume icon
@@ -33,7 +33,7 @@ Rectangle {
             icon: AudioService.masterVolume > 50 ? "\ue050"
                 : AudioService.masterVolume > 0  ? "\ue04d"
                 : "\ue04e"
-            size: 24
+            size: Math.round(24 * UiMetrics.scale)
             color: ThemeService.normalFontColor
         }
 
@@ -44,22 +44,22 @@ Rectangle {
 
             Rectangle {
                 anchors.horizontalCenter: parent.horizontalCenter
-                width: 6; height: parent.height; radius: 3
+                width: UiMetrics.trackThick; height: parent.height; radius: UiMetrics.trackThick / 2
                 color: ThemeService.barShadowColor
             }
             Rectangle {
                 anchors.horizontalCenter: parent.horizontalCenter
                 anchors.bottom: parent.bottom
-                width: 6
+                width: UiMetrics.trackThick
                 height: parent.height * AudioService.masterVolume / 100
-                radius: 3
+                radius: UiMetrics.trackThick / 2
                 color: ThemeService.specialFontColor
                 Behavior on height { NumberAnimation { duration: 80 } }
             }
             Rectangle {
                 anchors.horizontalCenter: parent.horizontalCenter
                 y: parent.height * (1 - AudioService.masterVolume / 100) - height / 2
-                width: 18; height: 18; radius: 9
+                width: UiMetrics.knobSizeSmall; height: UiMetrics.knobSizeSmall; radius: UiMetrics.knobSizeSmall / 2
                 color: ThemeService.normalFontColor
                 Behavior on y { NumberAnimation { duration: 80 } }
             }
@@ -68,7 +68,7 @@ Rectangle {
         Text {
             Layout.alignment: Qt.AlignHCenter
             text: AudioService.masterVolume + "%"
-            font.pixelSize: 12
+            font.pixelSize: UiMetrics.fontTiny
             color: ThemeService.descriptionFontColor
         }
 
@@ -76,10 +76,10 @@ Rectangle {
 
         Item {
             Layout.fillWidth: true
-            Layout.preferredHeight: 56
+            Layout.preferredHeight: UiMetrics.touchMin
             MaterialIcon {
                 anchors.centerIn: parent
-                icon: "\ue9b2"; size: 32
+                icon: "\ue9b2"; size: UiMetrics.iconSize
                 color: ThemeService.specialFontColor
             }
         }
@@ -88,8 +88,8 @@ Rectangle {
     // Horizontal layout (top/bottom sidebar)
     RowLayout {
         anchors.fill: parent
-        anchors.margins: 6
-        spacing: 8
+        anchors.margins: UiMetrics.spacing
+        spacing: UiMetrics.spacing
         visible: sidebar.isHorizontal
 
         // Volume icon
@@ -98,7 +98,7 @@ Rectangle {
             icon: AudioService.masterVolume > 50 ? "\ue050"
                 : AudioService.masterVolume > 0  ? "\ue04d"
                 : "\ue04e"
-            size: 20
+            size: UiMetrics.iconSmall
             color: ThemeService.normalFontColor
         }
 
@@ -109,22 +109,22 @@ Rectangle {
 
             Rectangle {
                 anchors.verticalCenter: parent.verticalCenter
-                width: parent.width; height: 6; radius: 3
+                width: parent.width; height: UiMetrics.trackThick; radius: UiMetrics.trackThick / 2
                 color: ThemeService.barShadowColor
             }
             Rectangle {
                 anchors.verticalCenter: parent.verticalCenter
                 anchors.left: parent.left
-                height: 6
+                height: UiMetrics.trackThick
                 width: parent.width * AudioService.masterVolume / 100
-                radius: 3
+                radius: UiMetrics.trackThick / 2
                 color: ThemeService.specialFontColor
                 Behavior on width { NumberAnimation { duration: 80 } }
             }
             Rectangle {
                 anchors.verticalCenter: parent.verticalCenter
                 x: parent.width * AudioService.masterVolume / 100 - width / 2
-                width: 18; height: 18; radius: 9
+                width: UiMetrics.knobSizeSmall; height: UiMetrics.knobSizeSmall; radius: UiMetrics.knobSizeSmall / 2
                 color: ThemeService.normalFontColor
                 Behavior on x { NumberAnimation { duration: 80 } }
             }
@@ -133,7 +133,7 @@ Rectangle {
         Text {
             Layout.alignment: Qt.AlignVCenter
             text: AudioService.masterVolume + "%"
-            font.pixelSize: 12
+            font.pixelSize: UiMetrics.fontTiny
             color: ThemeService.descriptionFontColor
         }
 
@@ -141,10 +141,10 @@ Rectangle {
 
         Item {
             Layout.fillHeight: true
-            Layout.preferredWidth: 56
+            Layout.preferredWidth: UiMetrics.touchMin
             MaterialIcon {
                 anchors.centerIn: parent
-                icon: "\ue9b2"; size: 28
+                icon: "\ue9b2"; size: Math.round(28 * UiMetrics.scale)
                 color: ThemeService.specialFontColor
             }
         }

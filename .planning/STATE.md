@@ -22,19 +22,19 @@ See: .planning/PROJECT.md (updated 2026-03-03)
 
 ## Current Position
 
-Phase: 2 of 5 (UiMetrics Foundation + Touch Pipeline) -- COMPLETE
-Plan: 2 of 2 in current phase (complete)
-Status: Phase 2 complete, ready for Phase 3
-Last activity: 2026-03-03 -- Completed 02-02-PLAN.md (Touch Pipeline Display Dimensions)
+Phase: 3 of 5 (QML Hardcoded Island Audit)
+Plan: 1 of 3 in current phase (complete)
+Status: Plan 03-01 complete, ready for 03-02
+Last activity: 2026-03-03 -- Completed 03-01-PLAN.md (New UiMetrics Tokens + Shell Chrome Tokenization)
 
-Progress: [####......] 40%
+Progress: [#####.....] 50%
 
 ## Performance Metrics
 
 **Velocity:**
-- Total plans completed: 3
+- Total plans completed: 4
 - Average duration: 3 min
-- Total execution time: 0.17 hours
+- Total execution time: 0.20 hours
 
 ## Accumulated Context
 
@@ -54,6 +54,10 @@ Progress: [####......] 40%
 - [02-02] Proportional sidebar sub-zones derived from sidebarPixelWidth_ instead of hardcoded 100px/80px
 - [02-02] DisplayInfo flows through AndroidAutoPlugin to both EvdevTouchReader and Orchestrator
 - [02-02] ServiceDiscoveryBuilder override dimensions stored as members (0 = use config fallback)
+- [03-01] NotificationArea font.pixelSize:14 mapped to fontTiny (base 14, exact match)
+- [03-01] NotificationArea close icon size:16 mapped to iconSmall (base 20) for consistency
+- [03-01] BottomBar volume icon uses inline Math.round(24 * scale) rather than new token
+- [03-01] Slider implicitWidth:200 left as structural literal (overridden by parent layout)
 
 ### Pending Todos
 
@@ -67,5 +71,5 @@ None yet.
 ## Session Continuity
 
 Last session: 2026-03-03
-Stopped at: Phase 3 context gathered, ready for planning
-Resume file: .planning/phases/03-qml-hardcoded-island-audit/03-CONTEXT.md
+Stopped at: Completed 03-01-PLAN.md
+Resume file: .planning/phases/03-qml-hardcoded-island-audit/03-01-SUMMARY.md

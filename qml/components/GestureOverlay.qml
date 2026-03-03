@@ -51,9 +51,9 @@ Rectangle {
     // Control panel (centered)
     Rectangle {
         anchors.centerIn: parent
-        width: Math.min(parent.width * 0.7, 500)
-        height: controlsLayout.implicitHeight + 48
-        radius: 16
+        width: Math.min(parent.width * 0.7, Math.round(500 * UiMetrics.scale))
+        height: controlsLayout.implicitHeight + Math.round(48 * UiMetrics.scale)
+        radius: UiMetrics.radiusLarge
         color: "#DD1a1a2e"
         border.color: "#0f3460"
         border.width: 2
@@ -69,13 +69,13 @@ Rectangle {
         ColumnLayout {
             id: controlsLayout
             anchors.centerIn: parent
-            width: parent.width - 48
-            spacing: 16
+            width: parent.width - Math.round(48 * UiMetrics.scale)
+            spacing: UiMetrics.gap
 
             Text {
                 Layout.alignment: Qt.AlignHCenter
                 text: "Quick Controls"
-                font.pixelSize: 16
+                font.pixelSize: UiMetrics.fontSmall
                 font.bold: true
                 color: "#e0e0e0"
             }
@@ -83,11 +83,11 @@ Rectangle {
             // Volume slider
             RowLayout {
                 Layout.fillWidth: true
-                spacing: 12
+                spacing: UiMetrics.marginRow
 
                 MaterialIcon {
                     icon: "\ue050"  // volume_up
-                    size: 22
+                    size: Math.round(22 * UiMetrics.scale)
                     color: "#e0e0e0"
                 }
 
@@ -111,20 +111,20 @@ Rectangle {
 
                 Text {
                     text: Math.round(volumeSlider.value) + "%"
-                    font.pixelSize: 14
+                    font.pixelSize: UiMetrics.fontSmall
                     color: "#a0a0c0"
-                    Layout.preferredWidth: 40
+                    Layout.preferredWidth: Math.round(40 * UiMetrics.scale)
                 }
             }
 
             // Brightness / Screen Dimming slider
             RowLayout {
                 Layout.fillWidth: true
-                spacing: 12
+                spacing: UiMetrics.marginRow
 
                 MaterialIcon {
                     icon: typeof DisplayService !== "undefined" && DisplayService.hasHardwareBrightness ? "\ue1ac" : "\ue3a1"  // brightness_high / contrast
-                    size: 22
+                    size: Math.round(22 * UiMetrics.scale)
                     color: "#e0e0e0"
                 }
 
@@ -147,95 +147,95 @@ Rectangle {
 
                 Text {
                     text: Math.round(brightnessSlider.value) + "%"
-                    font.pixelSize: 14
+                    font.pixelSize: UiMetrics.fontSmall
                     color: "#a0a0c0"
-                    Layout.preferredWidth: 40
+                    Layout.preferredWidth: Math.round(40 * UiMetrics.scale)
                 }
             }
 
             // Action buttons
             RowLayout {
                 Layout.alignment: Qt.AlignHCenter
-                spacing: 24
+                spacing: UiMetrics.sectionGap
 
                 Button {
-                    font.pixelSize: 14
+                    font.pixelSize: UiMetrics.fontSmall
                     enabled: overlay.acceptInput
                     onClicked: {
                         ActionRegistry.dispatch("app.home")
                         overlay.dismiss()
                     }
                     contentItem: RowLayout {
-                        spacing: 6
+                        spacing: UiMetrics.spacing
                         MaterialIcon {
                             icon: "\ue9b2"  // home
-                            size: 18
+                            size: UiMetrics.iconSmall
                             color: "#e0e0e0"
                         }
                         Text {
                             text: "Home"
-                            font.pixelSize: 14
+                            font.pixelSize: UiMetrics.fontSmall
                             color: "#e0e0e0"
                         }
                     }
                     background: Rectangle {
                         color: parent.pressed ? "#e94560" : "#0f3460"
-                        radius: 8
-                        implicitWidth: 100
-                        implicitHeight: 36
+                        radius: UiMetrics.radiusSmall
+                        implicitWidth: UiMetrics.overlayBtnW
+                        implicitHeight: UiMetrics.overlayBtnH
                     }
                 }
 
                 Button {
-                    font.pixelSize: 14
+                    font.pixelSize: UiMetrics.fontSmall
                     enabled: overlay.acceptInput
                     onClicked: {
                         ActionRegistry.dispatch("theme.toggle")
                         dismissTimer.restart()
                     }
                     contentItem: RowLayout {
-                        spacing: 6
+                        spacing: UiMetrics.spacing
                         MaterialIcon {
                             icon: ThemeService.nightMode ? "\ue518" : "\ue51c"  // light_mode / dark_mode
-                            size: 18
+                            size: UiMetrics.iconSmall
                             color: "#e0e0e0"
                         }
                         Text {
                             text: ThemeService.nightMode ? "Day" : "Night"
-                            font.pixelSize: 14
+                            font.pixelSize: UiMetrics.fontSmall
                             color: "#e0e0e0"
                         }
                     }
                     background: Rectangle {
                         color: parent.pressed ? "#e94560" : "#0f3460"
-                        radius: 8
-                        implicitWidth: 100
-                        implicitHeight: 36
+                        radius: UiMetrics.radiusSmall
+                        implicitWidth: UiMetrics.overlayBtnW
+                        implicitHeight: UiMetrics.overlayBtnH
                     }
                 }
 
                 Button {
-                    font.pixelSize: 14
+                    font.pixelSize: UiMetrics.fontSmall
                     enabled: overlay.acceptInput
                     onClicked: overlay.dismiss()
                     contentItem: RowLayout {
-                        spacing: 6
+                        spacing: UiMetrics.spacing
                         MaterialIcon {
                             icon: "\ue5cd"  // close
-                            size: 18
+                            size: UiMetrics.iconSmall
                             color: "#e0e0e0"
                         }
                         Text {
                             text: "Close"
-                            font.pixelSize: 14
+                            font.pixelSize: UiMetrics.fontSmall
                             color: "#e0e0e0"
                         }
                     }
                     background: Rectangle {
                         color: parent.pressed ? "#e94560" : "#0f3460"
-                        radius: 8
-                        implicitWidth: 100
-                        implicitHeight: 36
+                        radius: UiMetrics.radiusSmall
+                        implicitWidth: UiMetrics.overlayBtnW
+                        implicitHeight: UiMetrics.overlayBtnH
                     }
                 }
             }

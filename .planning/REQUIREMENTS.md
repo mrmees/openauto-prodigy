@@ -25,7 +25,7 @@ Requirements for v0.4.4 Scalable UI. Each maps to roadmap phases.
 ### QML Audit
 
 - [ ] **AUDIT-01**: NormalText and SpecialText use UiMetrics font tokens instead of hardcoded pixelSize
-- [ ] **AUDIT-02**: TopBar and NavStrip margins/spacing/radius use UiMetrics tokens
+- [x] **AUDIT-02**: TopBar and NavStrip margins/spacing/radius use UiMetrics tokens
 - [ ] **AUDIT-03**: Sidebar icon sizes, font sizes, thumb dimensions, and margins use UiMetrics tokens
 - [ ] **AUDIT-04**: GestureOverlay font sizes, spacing, and dimensions use UiMetrics tokens
 - [ ] **AUDIT-05**: PhoneView font sizes, button dimensions, and spacing use UiMetrics tokens
@@ -94,7 +94,7 @@ Which phases cover which requirements. Updated during roadmap creation.
 | TOUCH-01 | Phase 2 | Complete |
 | TOUCH-02 | Phase 2 | Complete |
 | AUDIT-01 | Phase 3 | Pending |
-| AUDIT-02 | Phase 3 | Pending |
+| AUDIT-02 | Phase 3 | Complete |
 | AUDIT-03 | Phase 3 | Pending |
 | AUDIT-04 | Phase 3 | Pending |
 | AUDIT-05 | Phase 3 | Pending |
