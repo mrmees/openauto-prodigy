@@ -62,6 +62,9 @@ Progress: [██████████] 100% (7/7 plans)
 - 03-01: Launcher tiles use UiMetrics.tileW/tileH to match settings tile sizing
 - 03-02: EQ button is a go-to shortcut (no active highlight) -- navigates to settings which highlights the settings icon
 - 03-02: AudioSettings EQ list item uses openEqualizer signal instead of StackView.view -- avoids tight coupling
+- 04-01: pressedColor kept (not removed) -- VIS-05 says "provides", zero runtime cost, removal would be perverse
+- 04-01: ConnectivitySettings/ConnectionSettings divider hacks fixed alongside SegmentedButton -- same anti-pattern, same fix
+- 04-01: highlightFontColor falls back to activeColor("background") -- no IThemeService change needed, QML accesses ThemeService directly
 
 ### Pending Todos
 
