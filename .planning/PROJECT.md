@@ -41,23 +41,16 @@ A person with a Raspberry Pi 4 and a touchscreen can install this, pair their ph
 - ✓ SDP self-healing: socket permissions, BlueZ --compat override, app-side retry with logging — v0.4.2
 - ✓ PipeWire graceful degradation and clean stream teardown on shutdown — v0.4.2
 - ✓ Installer health check: PipeWire, BlueZ, hostapd, labwc, group memberships — v0.4.2
+- ✓ Automotive-minimal control restyling with press feedback, Material Symbols icons, theme-aware dividers — v0.4.3
+- ✓ Settings restructured into 6-category tile grid (AA, Display, Audio, Bluetooth, Companion, System) — v0.4.3
+- ✓ EQ dual-access: NavStrip shortcut + Audio settings, deep navigation with shared state — v0.4.3
+- ✓ Shell polish: NavStrip/TopBar/launcher restyled, modal dismiss, BT forget pill button — v0.4.3
+- ✓ Day/night theme color animation on all major surfaces — v0.4.3
 
 ### Active
 
 <!-- Current scope. Building toward these. -->
 
-## Current Milestone: v0.4.3 Interface Polish & Settings Reorganization
-
-**Goal:** Redesign the entire UI with an automotive-minimal aesthetic and reorganize settings into logical, domain-specific categories.
-
-**Target features:**
-- Settings reorganization into 6 top-level categories: Android Auto, Display, Audio (w/ EQ), Connectivity, Companion, System/About
-- Automotive-minimal visual redesign across entire app (settings, launcher, nav strip, top bar, modals)
-- Consistent iconography with minimal whitespace around icons for glanceability
-- UX touch improvements (BT device management, modal dismiss, button feedback, read-only field clarity)
-- EQ accessible both in Audio settings and via nav strip shortcut
-
-**Deferred to future milestones:**
 - [ ] HFP call audio persists across AA connection state (calls don't drop if AA disconnects)
 - [ ] First-run experience guides user through phone pairing and WiFi verification
 - [ ] Web config panel EQ interface
@@ -83,7 +76,7 @@ A person with a Raspberry Pi 4 and a touchscreen can install this, pair their ph
 
 OpenAuto Pro (BlueWave Studio) was a commercial Pi-based AA head unit that went defunct. This project is a clean-room rebuild — no OAP code, no aasdk dependency. The protocol library (`open-android-auto`) is maintained as a separate community resource.
 
-v0.4 shipped logging and theming. v0.4.1 shipped 10-band graphic EQ with per-stream profiles. v0.4.2 shipped service hardening — WiFi AP, Bluetooth SDP, systemd ordering, and clean shutdown all work reliably without manual intervention. Codebase is ~20K+ lines C++ across 170+ files, ~3K QML, installer, web panel, 57 tests. v0.4.3 focuses on full UI refresh with automotive-minimal styling and settings reorganization.
+v0.4 shipped logging and theming. v0.4.1 shipped 10-band graphic EQ with per-stream profiles. v0.4.2 shipped service hardening — WiFi AP, Bluetooth SDP, systemd ordering, and clean shutdown all work reliably without manual intervention. v0.4.3 shipped full UI refresh — automotive-minimal styling, 6-category settings, EQ dual-access, shell polish. Codebase is ~21.5K lines C++/QML across 170+ files, installer, web panel, 57 tests.
 
 ## Constraints
 
@@ -110,6 +103,11 @@ v0.4 shipped logging and theming. v0.4.1 shipped 10-band graphic EQ with per-str
 | 3-tier brightness (sysfs > ddcutil > software) | Works on all hardware, DFRobot has no sysfs backlight | ✓ Good |
 | Wallpaper override independent of theme | User can mix theme colors with any wallpaper | ✓ Good |
 | Config defaults gate pattern | setValueByPath silently fails without initDefaults() entry | ⚠️ Revisit |
+| Scale+opacity press feedback (not color overlay) | More tactile, works on any theme, no color math | ✓ Good |
+| Settings 6-tile grid (not expandable list) | Glanceable at car distance, matches mental model | ✓ Good |
+| EQ as NavStrip go-to shortcut (not plugin icon) | Shortcut navigates into settings, avoids plugin state conflicts | ✓ Good |
+| Descope tile subtitles | Too small at 1024x600 for automotive use — deferred | ✓ Good |
+| Descope WiFi AP from settings | Set-once at install via hostapd, no runtime UI needed | ✓ Good |
 
 ---
-*Last updated: 2026-03-02 after v0.4.3 milestone start*
+*Last updated: 2026-03-03 after v0.4.3 milestone completion*

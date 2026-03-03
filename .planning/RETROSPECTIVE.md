@@ -1,5 +1,40 @@
 # Retrospective
 
+## Milestone: v0.4.3 — Interface Polish & Settings Reorganization
+
+**Shipped:** 2026-03-03
+**Phases:** 4 | **Plans:** 8 | **Tasks:** 18 | 74 commits
+
+### What Was Built
+- Automotive-minimal control restyling with press feedback across all interactive controls
+- 6-category settings tile grid replacing flat ListView
+- EQ dual-access (NavStrip shortcut + Audio settings path with deep navigation)
+- Shell polish (NavStrip, TopBar, launcher, modals, BT forget)
+- Day/night smooth color animation on all major surfaces
+- Tech debt cleanup (highlightFontColor, divider hacks, dead code)
+
+### What Worked
+- Visual foundation first — settings pages inherited polish automatically (zero rework)
+- Phase 4 gap closure: audit identified 5 items, single plan closed all of them
+- Purely QML-side work with minimal C++ kept risk low
+- Descoping at Pi verification (tile subtitles, WiFi AP) improved the product
+
+### What Was Inefficient
+- Phase 2 verification flagged descoped items as failures before requirements were updated
+- SUMMARY frontmatter inconsistencies made automated extraction harder
+
+### Patterns Established
+- Descope at Pi verification and update requirements immediately
+- Gap closure via audit → plan → execute cycle
+- Signal relay pattern for cross-component deep navigation
+
+### Key Lessons
+1. Restyle shared controls before creating new pages — avoids double-work
+2. Descoping is a valid outcome, not a failure
+3. QML undefined property bindings are silent — need verification to catch
+
+---
+
 ## Milestone: v0.4 — Logging & Theming
 
 **Shipped:** 2026-03-01

@@ -1,5 +1,19 @@
 # Milestones
 
+## v0.4.3 Interface Polish & Settings Reorganization (Shipped: 2026-03-03)
+
+**Phases completed:** 4 phases, 8 plans, 18 tasks | 74 commits, 84 files changed (+8,946/-1,740)
+
+**Key accomplishments:**
+- Automotive-minimal control restyling: press feedback (scale+opacity), Material Symbols icons, divider colors across all interactive controls
+- Settings restructured into 6-category tile grid (AA, Display, Audio, Bluetooth, Companion, System) with slide+fade StackView navigation
+- EQ dual-access: NavStrip shortcut + Audio settings path, deep navigation with shared EqualizerService state
+- Shell polish: NavStrip/TopBar/launcher restyled, modal dismiss-on-outside-tap, BT forget pill button
+- Day/night theme color animation: smooth 300ms ColorAnimation on all 4 major surfaces
+- Tech debt closure: highlightFontColor Q_PROPERTY, divider color hacks fixed, dead tileSubtitle removed
+
+---
+
 ## v0.4 Logging & Theming (Shipped: 2026-03-01)
 
 **Phases completed:** 2 phases, 9 plans, 0 tasks
