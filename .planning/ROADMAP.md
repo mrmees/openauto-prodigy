@@ -42,7 +42,7 @@ See .planning/milestones/v0.4.3/ for archived details.
 
 - [ ] **Phase 1: Config Overrides** - YAML config schema for UI scale, font scale, and per-token overrides so users can always tune their setup
 - [x] **Phase 2: UiMetrics Foundation + Touch Pipeline** - Unclamped scale formula, new tokens, C++ sidebar hit zones, display config detection (completed 2026-03-03)
-- [ ] **Phase 3: QML Hardcoded Island Audit** - Replace all hardcoded pixel values across 9+ QML files with UiMetrics tokens
+- [x] **Phase 3: QML Hardcoded Island Audit** - Replace all hardcoded pixel values across 9+ QML files with UiMetrics tokens (completed 2026-03-03)
 - [ ] **Phase 4: Layout Adaptation + Validation** - Grid overflow fixes, EQ guard, full resolution validation sweep
 - [ ] **Phase 5: Runtime Adaptation** - Auto-detect resolution, dynamic resize response, remove manual display config
 
@@ -102,10 +102,11 @@ Plans:
   2. Settings tile grid displays all 6 category tiles without clipping at 800x480
   3. EQ band sliders are usable (draggable, visually distinct) at 800x480
   4. Full UI is verified functional at 800x480, 1024x600, and 1280x720 (or simulated equivalent)
-**Plans**: TBD
+**Plans**: 2 plans
 
 Plans:
-- [ ] 04-01: TBD
+- [ ] 04-01-PLAN.md — Container-derived grid layouts (LauncherMenu, SettingsMenu) + EQ minimum guard
+- [ ] 04-02-PLAN.md — --geometry CLI flag, validation script, AUDIT-10 closure, visual verification
 
 ### Phase 5: Runtime Adaptation
 **Goal**: App detects and adapts to whatever display the user has configured -- no manual display config in the app
@@ -131,8 +132,8 @@ Phases execute in numeric order: 1 -> 2 -> 3 -> 4 -> 5
 | 1. Config Overrides | 1/1 | Complete | 2026-03-03 |
 | 2. UiMetrics Foundation + Touch Pipeline | 2/2 | Complete    | 2026-03-03 |
 | 3. QML Hardcoded Island Audit | 3/3 | Complete | 2026-03-03 |
-| 4. Layout Adaptation + Validation | 0/0 | Not started | - |
+| 4. Layout Adaptation + Validation | 0/2 | Planning complete | - |
 | 5. Runtime Adaptation | 0/0 | Not started | - |
 
 ---
-*Last updated: 2026-03-03 -- Phase 3 complete (all QML files tokenized)*
+*Last updated: 2026-03-03 -- Phase 4 planned (2 plans, 2 waves)*
