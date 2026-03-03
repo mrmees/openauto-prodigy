@@ -134,6 +134,12 @@ void EvdevTouchReader::setSidebar(bool enabled, int width, const std::string& po
 
     sidebarDragSlot_ = -1;
 
+    // Compute UiMetrics scale (mirrors QML: min(windowWidth/1024, windowHeight/600))
+    float scale = std::min(static_cast<float>(displayWidth_) / 1024.0f,
+                           static_cast<float>(displayHeight_) / 600.0f);
+    int spacingPx = std::max(1, static_cast<int>(std::round(8.0f * scale)));
+    int touchMinPx = std::max(1, static_cast<int>(std::round(56.0f * scale)));
+
     if (sidebarHorizontal_) {
         // Horizontal sidebar (top/bottom): Y band, X sub-zones
         if (position == "bottom") {
@@ -144,18 +150,21 @@ void EvdevTouchReader::setSidebar(bool enabled, int width, const std::string& po
             sidebarEvdevY0_ = 0;
             sidebarEvdevY1_ = width * evdevPerPixelY;
         }
-        // Sub-zones along X: volume takes most of the width, home button at end
-        // Home zone width derived from sidebar pixel width (proportional to display)
-        float homePx = static_cast<float>(sidebarPixelWidth_);
+        // Mirror QML Sidebar.qml RowLayout: ...volumeBar(fill) | spacing | separator(1px) | spacing | homeButton(touchMin) | margin(spacing)
+        int homeStartPx = displayWidth_ - spacingPx - touchMinPx;
+        int volEndPx = homeStartPx - spacingPx - 1 - spacingPx;
+
         sidebarVolX0_ = 0;
-        sidebarVolX1_ = (displayWidth_ - homePx) * evdevPerPixelX;
-        sidebarHomeX0_ = (displayWidth_ - homePx * 0.8f) * evdevPerPixelX;
+        sidebarVolX1_ = volEndPx * evdevPerPixelX;
+        sidebarHomeX0_ = homeStartPx * evdevPerPixelX;
         sidebarHomeX1_ = screenWidth_;
 
         qCDebug(lcAA) << "Sidebar: " << position.c_str() << " " << width << "px"
+                                << " (scale=" << scale << " touchMin=" << touchMinPx << "px spacing=" << spacingPx << "px)"
                                 << ", evdev Y: " << sidebarEvdevY0_ << "-" << sidebarEvdevY1_
                                 << ", sub-zones X: vol=[0," << sidebarVolX1_
-                                << "] home=[" << sidebarHomeX0_ << "," << sidebarHomeX1_ << "]";
+                                << "] home=[" << sidebarHomeX0_ << "," << sidebarHomeX1_ << "]"
+                                << " (homeStartPx=" << homeStartPx << " volEndPx=" << volEndPx << ")";
     } else {
         // Vertical sidebar (left/right): X band, Y sub-zones
         if (position == "right") {
@@ -166,16 +175,21 @@ void EvdevTouchReader::setSidebar(bool enabled, int width, const std::string& po
             sidebarEvdevX0_ = 0;
             sidebarEvdevX1_ = width * evdevPerPixelX;
         }
-        // Sub-zones along Y: top 70% = volume, gap 5%, bottom 25% = home
+        // Mirror QML Sidebar.qml ColumnLayout: ...volumeBar(fill) | spacing | separator(1px) | spacing | homeButton(touchMin) | margin(spacing)
+        int homeStartPx = displayHeight_ - spacingPx - touchMinPx;
+        int volEndPx = homeStartPx - spacingPx - 1 - spacingPx;
+
         sidebarVolY0_ = 0;
-        sidebarVolY1_ = displayHeight_ * 0.70f * evdevPerPixelY;
-        sidebarHomeY0_ = displayHeight_ * 0.75f * evdevPerPixelY;
+        sidebarVolY1_ = volEndPx * evdevPerPixelY;
+        sidebarHomeY0_ = homeStartPx * evdevPerPixelY;
         sidebarHomeY1_ = screenHeight_;
 
         qCDebug(lcAA) << "Sidebar: " << position.c_str() << " " << width << "px"
+                                << " (scale=" << scale << " touchMin=" << touchMinPx << "px spacing=" << spacingPx << "px)"
                                 << ", evdev X: " << sidebarEvdevX0_ << "-" << sidebarEvdevX1_
                                 << ", sub-zones Y: vol=[0," << sidebarVolY1_
-                                << "] home=[" << sidebarHomeY0_ << "," << sidebarHomeY1_ << "]";
+                                << "] home=[" << sidebarHomeY0_ << "," << sidebarHomeY1_ << "]"
+                                << " (homeStartPx=" << homeStartPx << " volEndPx=" << volEndPx << ")";
     }
 }
 
