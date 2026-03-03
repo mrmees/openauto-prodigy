@@ -100,8 +100,8 @@ void ServiceDiscoveryBuilder::calcMargins(int remoteW, int remoteH,
     if (!yamlConfig_ || !yamlConfig_->sidebarEnabled() || yamlConfig_->sidebarWidth() <= 0)
         return;
 
-    int displayW = (overrideDisplayW_ > 0) ? overrideDisplayW_ : yamlConfig_->displayWidth();
-    int displayH = (overrideDisplayH_ > 0) ? overrideDisplayH_ : yamlConfig_->displayHeight();
+    int displayW = (overrideDisplayW_ > 0) ? overrideDisplayW_ : 1024;
+    int displayH = (overrideDisplayH_ > 0) ? overrideDisplayH_ : 600;
     int sidebarW = yamlConfig_->sidebarWidth();
     QString pos = yamlConfig_->sidebarPosition();
     bool horizontal = (pos == "top" || pos == "bottom");
@@ -277,8 +277,8 @@ QByteArray ServiceDiscoveryBuilder::buildInputDescriptor() const
         else if (res == "480p") { touchW = 800; touchH = 480; }
     }
     if (yamlConfig_ && yamlConfig_->sidebarEnabled() && yamlConfig_->sidebarWidth() > 0) {
-        int displayW = (overrideDisplayW_ > 0) ? overrideDisplayW_ : yamlConfig_->displayWidth();
-        int displayH = (overrideDisplayH_ > 0) ? overrideDisplayH_ : yamlConfig_->displayHeight();
+        int displayW = (overrideDisplayW_ > 0) ? overrideDisplayW_ : 1024;
+        int displayH = (overrideDisplayH_ > 0) ? overrideDisplayH_ : 600;
         int sidebarW = yamlConfig_->sidebarWidth();
         QString pos = yamlConfig_->sidebarPosition();
         bool horizontal = (pos == "top" || pos == "bottom");

@@ -25,10 +25,6 @@ public:
     void setDisplayBrightness(int v);
     QString theme() const;
     void setTheme(const QString& v);
-    int displayWidth() const;
-    void setDisplayWidth(int v);
-    int displayHeight() const;
-    void setDisplayHeight(int v);
 
     // Touch
     QString touchDevice() const;

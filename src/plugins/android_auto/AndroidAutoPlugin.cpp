@@ -85,13 +85,7 @@ bool AndroidAutoPlugin::initialize(IHostContext* context)
         displayH = displayInfo_->windowHeight();
         qCInfo(lcAA) << "Display dimensions: detected" << displayW << "x" << displayH;
     } else {
-        if (hostContext_ && hostContext_->configService()) {
-            QVariant w = hostContext_->configService()->value("display.width");
-            QVariant h = hostContext_->configService()->value("display.height");
-            if (w.isValid()) displayW = w.toInt();
-            if (h.isValid()) displayH = h.toInt();
-        }
-        qCInfo(lcAA) << "Display dimensions: config" << displayW << "x" << displayH << "(fallback)";
+        qCInfo(lcAA) << "Display dimensions: using defaults" << displayW << "x" << displayH;
     }
 
     // Pass detected dimensions to AA orchestrator for margin calculations

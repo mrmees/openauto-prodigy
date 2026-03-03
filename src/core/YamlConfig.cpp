@@ -20,9 +20,6 @@ void YamlConfig::initDefaults()
     root_["display"]["brightness"] = 80;
     root_["display"]["theme"] = "default";
     root_["display"]["wallpaper_override"] = "";
-    root_["display"]["orientation"] = "landscape";
-    root_["display"]["width"] = 1024;
-    root_["display"]["height"] = 600;
 
     root_["connection"]["auto_connect_aa"] = true;
     root_["connection"]["bt_discoverable"] = true;
@@ -206,26 +203,6 @@ QString YamlConfig::theme() const
 void YamlConfig::setTheme(const QString& v)
 {
     root_["display"]["theme"] = v.toStdString();
-}
-
-int YamlConfig::displayWidth() const
-{
-    return root_["display"]["width"].as<int>(1024);
-}
-
-void YamlConfig::setDisplayWidth(int v)
-{
-    root_["display"]["width"] = v;
-}
-
-int YamlConfig::displayHeight() const
-{
-    return root_["display"]["height"].as<int>(600);
-}
-
-void YamlConfig::setDisplayHeight(int v)
-{
-    root_["display"]["height"] = v;
 }
 
 // --- Touch ---

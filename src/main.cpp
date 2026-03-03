@@ -140,9 +140,8 @@ int main(int argc, char *argv[])
     if (geomW > 0 && geomH > 0) {
         displayInfo->setWindowSize(geomW, geomH);
         qCInfo(lcCore) << "Geometry override:" << geomW << "x" << geomH << "(windowed mode)";
-    } else {
-        displayInfo->setWindowSize(yamlConfig->displayWidth(), yamlConfig->displayHeight());
     }
+    // DisplayInfo defaults to 1024x600, overwritten by QQuickWindow signals
 
     // Log active UI overrides
     {
