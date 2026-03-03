@@ -1,42 +1,36 @@
-# Phase 3: Head Unit EQ UI - Research
+# Phase 3: EQ Dual-Access & Shell Polish - Research
 
-**Researched:** 2026-03-01
-**Domain:** Qt 6 QML UI, touch-friendly controls, C++/QML interop
+**Researched:** 2026-03-02
+**Domain:** Qt 6 QML shell styling, NavStrip navigation, modal behavior, touch UX
 **Confidence:** HIGH
 
 ## Summary
 
-This phase is a pure QML UI build on top of a fully-implemented C++ service layer (EqualizerService). The core challenge is building a custom vertical slider control that works well with finger input at 1024x600, wiring it to the existing `EqualizerService` Q_INVOKABLE API, and integrating into the existing Settings StackView navigation.
+This phase has two distinct work streams: (1) extending the automotive-minimal aesthetic to the shell components (NavStrip, TopBar, launcher tiles) that Phase 1 did not restyle, and (2) adding a NavStrip EQ shortcut that shares state with the existing AudioSettings > Equalizer path.
 
-The main technical risk is the `StreamId` enum — it's a bare `enum class` not registered with Qt's meta-object system, so QML cannot access its values directly. This requires either adding `Q_NAMESPACE`/`Q_ENUM_NS` registration or using integer constants on the QML side. A secondary concern is that `std::array<float, 10>` returned by `gainsForStream()` may not convert cleanly to a QML-accessible JavaScript array — this needs a `QVariantList` wrapper or per-band `gain(stream, band)` calls.
+The shell restyling is straightforward QML work -- NavStrip buttons need press feedback (scale/opacity pattern already established in Phase 1), TopBar needs minor styling alignment, and launcher tiles already have press feedback via Tile.qml but need visual refinement. The EQ dual-access requires a navigation mechanism to open the EQ page from the NavStrip without going through Settings > Audio first.
 
-**Primary recommendation:** Use integer constants (0/1/2) for stream IDs in QML, add a `Q_INVOKABLE QVariantList gainsAsList(int stream)` helper to EqualizerService, and build a custom `EqBandSlider.qml` control with a vertically-oriented touch area. All other controls (SegmentedButton, FullScreenPicker, SectionHeader) are reusable as-is.
+The BT device "Forget" button (UX-01) is currently a small text label with only -8px margin expansion -- inadequate for a car touchscreen. The modal dismiss behavior (UX-02) should work via Qt's default `closePolicy` (CloseOnPressOutside) but needs verification/explicit setting.
+
+**Primary recommendation:** Add an EQ shortcut button to the NavStrip that navigates to Settings (app 6), pushes the Audio page, then pushes the EQ page onto the SettingsMenu StackView -- reusing the existing EqSettings component with no duplication. For shell polish, apply the Phase 1 press feedback pattern (scale 0.95-0.97, opacity 0.85, animDurationFast) to all NavStrip buttons.
 
 <user_constraints>
 ## User Constraints (from CONTEXT.md)
 
 ### Locked Decisions
-- EQ lives as a settings sub-page, not a standalone plugin — no NavStrip icon
+- EQ lives as a settings sub-page, not a standalone plugin -- no NavStrip icon (NOTE: SUPERSEDED by v0.4.3 requirements -- UX-04 explicitly requires NavStrip shortcut icon for EQ)
 - Entry point: a tap-through row in AudioSettings ("Equalizer >" showing current preset name)
 - Navigates to a dedicated EQ page within the Settings navigation flow (back button returns to AudioSettings)
 - All 10 vertical sliders in a single full-width horizontal row
 - Stream selector (SegmentedButton) and preset picker above the slider area
-- Custom vertical slider component (SettingsSlider is horizontal — needs new EqBandSlider control)
-- Gain range: +/-12 dB with 0.5 dB step size (49 positions per slider)
-- Floating dB value label above the thumb while dragging, disappears on release
-- Subtle 0 dB reference line drawn horizontally across all 10 slider tracks
-- Double-tap a slider to reset that individual band to 0 dB
-- Band frequency labels below each slider (31, 63, 125, 250, 500, 1k, 2k, 4k, 8k, 16k)
-- Stream selector: SegmentedButton with 3 segments (Media, Nav, Phone) — reuse existing control
-- Preset picker: FullScreenPicker (bottom sheet) — bundled presets listed first, then user presets below a divider with section header
-- Checkmark on active preset in the picker
-- Save button (icon) on EQ page — tap opens a name dialog with text input, saves current slider positions as user preset
-- Delete user presets via swipe-to-delete gesture in the preset picker (bundled presets not swipeable)
-- When sliders are manually adjusted away from any preset, preset label shows "Custom"
-- Per-stream bypass (matches IEqualizerService API) — each stream has independent bypass state
-- Bypass indicator: BYPASS badge/button in the header bar area, sliders dim to ~40% opacity when bypassed
-- Sliders remain draggable when bypassed (can configure curve before enabling)
-- No separate "Reset to Flat" button — user picks the Flat preset from the picker instead
+- Custom vertical slider component (already built: EqBandSlider.qml)
+- Gain range: +/-12 dB with 0.5 dB step size
+- Floating dB value label above thumb while dragging
+- 0 dB reference line across all slider tracks
+- Double-tap to reset band to 0 dB
+- Band frequency labels below each slider
+- Preset picker: FullScreenPicker (bottom sheet) with bundled presets first, user presets below divider
+- Per-stream bypass with BYPASS badge, sliders dim to ~40% opacity when bypassed
 
 ### Claude's Discretion
 - Exact spacing and margins within the EQ page (use UiMetrics)
@@ -45,9 +39,11 @@ The main technical risk is the `StreamId` enum — it's a bare `enum class` not 
 - Exact color treatment for bypass badge and dimmed state
 - Save dialog styling and keyboard behavior
 - Swipe-to-delete animation and threshold distance
+- NavStrip EQ button icon choice and placement
+- Shell styling details (TopBar margins, launcher tile refinements)
 
 ### Deferred Ideas (OUT OF SCOPE)
-None — discussion stayed within phase scope
+None from CONTEXT.md.
 </user_constraints>
 
 <phase_requirements>
@@ -55,9 +51,14 @@ None — discussion stayed within phase scope
 
 | ID | Description | Research Support |
 |----|-------------|-----------------|
-| UI-01 | User can adjust 10 EQ band gains via vertical sliders on the head unit touchscreen | Custom EqBandSlider control, EqualizerService.setGain() per band, layout analysis shows ~98px per slider is viable at 1024x600 |
-| UI-02 | User can select presets from a picker in the EQ settings view | Reuse FullScreenPicker with combined bundled+user preset model, swipe-to-delete for user presets |
-| UI-03 | User can switch between media, navigation, and phone EQ profiles via stream selector | Reuse SegmentedButton, integer stream IDs (0/1/2) since StreamId enum is not QML-registered |
+| UX-01 | BT device forget action has clearly visible, adequately-sized touch target | Current "Forget" is small text with -8px margins. Replace with icon button or pill-shaped button meeting UiMetrics.touchMin. See Architecture Patterns: BT Forget Button. |
+| UX-02 | Modal pickers can be dismissed by tapping outside modal area | Qt 6 Dialog default closePolicy includes CloseOnPressOutside. Add explicit `closePolicy: Popup.CloseOnEscape | Popup.CloseOnPressOutside` to all Dialogs for clarity and to prevent regressions. |
+| UX-04 | EQ accessible via Audio settings AND NavStrip shortcut icon (dual-access, consistent state) | NavStrip EQ button navigates to Settings > Audio > EQ via StackView push chain. Single EqSettings instance, state from EqualizerService C++ singleton. See Architecture Patterns: EQ Dual-Access. |
+| ICON-03 | NavStrip buttons use consistent icon sizing and press feedback | Apply Phase 1 press feedback pattern (scale/opacity Behaviors) to all NavStrip Rectangle buttons. Standardize icon sizing to `parent.height * 0.5`. |
+| ICON-04 | Launcher tiles use appropriately-sized icons with automotive-minimal visual style | Tile.qml already has press feedback. May need icon size increase, background color tweaks, or border treatment for automotive-minimal consistency. |
+| NAV-01 | NavStrip buttons have consistent automotive-minimal styling with press feedback | NavStrip buttons are bare Rectangles with no press feedback. Add scale/opacity Behavior animations matching Phase 1 pattern. Add subtle border-radius, consistent padding. |
+| NAV-02 | TopBar styling updated to match automotive-minimal aesthetic | TopBar is minimal (title + clock). Add subtle bottom border/divider, ensure font styling matches Phase 1 conventions. Minor work. |
+| NAV-03 | Launcher grid tiles restyled with automotive-minimal aesthetic and press feedback | LauncherMenu uses Tile.qml which already has press feedback (0.95 scale). May need spacing, background, or icon refinements. Evaluate against settings tiles for consistency. |
 </phase_requirements>
 
 ## Standard Stack
@@ -65,285 +66,265 @@ None — discussion stayed within phase scope
 ### Core
 | Library | Version | Purpose | Why Standard |
 |---------|---------|---------|--------------|
-| Qt Quick Controls 2 | 6.4+ | Slider base, Dialog, Overlay | Already in project, provides native touch support |
-| QML Animations | 6.4+ | Slider snap, bypass dimming, swipe-to-delete | Built-in, GPU-accelerated on Pi |
+| Qt 6.4/6.8 QML | 6.4+ | All UI components | Project standard, dual-platform |
+| ThemeService | in-tree | Colors, day/night mode | Phase 1 established all theme properties |
+| UiMetrics | in-tree | Responsive sizing, animation constants | Phase 1 established all sizing constants |
+| EqualizerService | in-tree | EQ state management | Already has full QML-friendly API (gainsAsList, int-based methods) |
 
 ### Supporting
 | Library | Version | Purpose | When to Use |
 |---------|---------|---------|-------------|
-| EqualizerService (C++) | existing | All EQ operations | Every slider move, preset change, bypass toggle |
-| ThemeService (C++) | existing | Colors for all UI elements | Every visual element |
-| UiMetrics (QML singleton) | existing | Responsive sizing | Every dimension and spacing |
+| MaterialIcon.qml | in-tree | Icon rendering | All icon display in NavStrip, buttons |
+| SegmentedButton.qml | in-tree | Multi-option selector | EQ stream selector (already in use) |
+| FullScreenPicker.qml | in-tree | Bottom-sheet picker | EQ preset picker (already in use) |
+| EqBandSlider.qml | in-tree | Vertical EQ band slider | EQ page (already built and working) |
 
 ### Alternatives Considered
 | Instead of | Could Use | Tradeoff |
 |------------|-----------|----------|
-| Custom vertical Slider | Qt Slider with `orientation: Qt.Vertical` | Qt's built-in vertical Slider exists but has limited styling; custom control gives full control over thumb, track, and touch area — worth it for car UI |
-| Integer stream IDs in QML | Q_NAMESPACE + Q_ENUM_NS registration | Proper enum registration is cleaner but requires C++ changes; integers are simpler for a 3-value enum and match existing patterns in the codebase |
-| Per-band gain() calls | gainsAsList() helper | Helper is one call vs 10; use helper for initial load / preset snap, per-band for slider moves |
+| NavStrip StackView push chain for EQ | Separate EQ Loader outside Settings | Would duplicate EQ component, break settings back-button flow. Push chain is simpler. |
+| Explicit closePolicy on each Dialog | Relying on Qt default | Explicit is defensive -- prevents regression if a future Dialog accidentally overrides |
 
 ## Architecture Patterns
 
-### Recommended File Structure
-```
-qml/controls/EqBandSlider.qml           # New custom vertical slider control
-qml/applications/settings/EqSettings.qml # New EQ settings page
-```
+### EQ Dual-Access Navigation
 
-Plus modifications to:
-```
-qml/applications/settings/AudioSettings.qml  # Add "Equalizer >" row
-qml/applications/settings/SettingsMenu.qml   # Register EQ page in navigation
-src/core/services/EqualizerService.hpp/cpp    # Add QML-friendly helpers
-src/CMakeLists.txt                            # Register new QML files
-```
+**What:** NavStrip EQ button opens EQ through the Settings StackView, reaching the same EqSettings page as Audio > Equalizer.
 
-### Pattern 1: Settings Sub-Page Navigation (StackView)
-**What:** Settings uses a StackView. Sub-pages are pushed as Components. Back button pops.
-**When to use:** EQ page navigated from AudioSettings, not from the top-level settings list.
-**How it works in this codebase:**
-```
-SettingsMenu.qml
-  └─ StackView (settingsStack)
-       ├─ settingsList (initial)
-       └─ audioPage → AudioSettings.qml
-            └─ (needs to push) eqPage → EqSettings.qml
-```
-**Critical detail:** AudioSettings is loaded BY SettingsMenu's StackView. For EQ to be a sub-sub-page, AudioSettings needs access to that same StackView. Two approaches:
-1. Pass `settingsStack` as a property to AudioSettings (cleaner)
-2. Use `StackView.view` attached property from within AudioSettings to access the parent StackView
+**When to use:** When EQ shortcut is tapped from NavStrip.
 
-The existing pattern uses approach 1 implicitly — when SettingsMenu pushes AudioSettings, it becomes a child of the StackView. AudioSettings can navigate via `StackView.view.push(eqComponent)`.
+**Approach:** The NavStrip EQ button should:
+1. Clear any active plugin (`PluginModel.setActivePlugin("")`)
+2. Navigate to Settings (`ApplicationController.navigateTo(6)`)
+3. Push Audio page onto SettingsMenu's StackView
+4. Push EQ page onto Audio's inner StackView (if nested) OR push EqSettings directly onto the settings StackView
 
-### Pattern 2: EqualizerService QML Binding
-**What:** EqualizerService is already a QML context property. All Q_INVOKABLE methods are callable from QML.
-**Key detail:** `StreamId` is `enum class StreamId` in namespace `oap` — NOT inside a QObject, NOT registered with Q_ENUM or Q_NAMESPACE/Q_ENUM_NS. QML cannot reference `StreamId.Media`. Must use integer values: 0=Media, 1=Navigation, 2=Phone.
+**Key insight:** EqSettings.qml is already built and uses `EqualizerService` (a C++ singleton exposed to QML root context). Opening it from two paths shows identical state because the state lives in C++, not in QML properties. No shared Loader or state synchronization needed.
 
-**gainsForStream() return type issue:** `std::array<float, 10>` is NOT automatically converted to a JS array by Qt. Q_INVOKABLE methods returning `std::array` will likely produce an opaque object in QML. Need a QVariantList wrapper:
-```cpp
-Q_INVOKABLE QVariantList gainsAsList(int streamIndex) const;
+**Implementation pattern:**
+```qml
+// In NavStrip.qml -- EQ shortcut button
+Rectangle {
+    // ... styling ...
+    MouseArea {
+        anchors.fill: parent
+        onClicked: {
+            PluginModel.setActivePlugin("")
+            ApplicationController.navigateTo(6)  // Switch to Settings
+            // SettingsMenu needs a function to deep-navigate to EQ
+            settingsView.openEqDirect()
+        }
+    }
+}
 ```
 
-**Alternative:** Call `gain(stream, band)` 10 times individually. Works but is verbose for preset snap animation where all 10 sliders update at once.
+The SettingsMenu.qml needs a new `openEqDirect()` function that pushes Audio then EQ onto its StackView. This also requires the signal path from NavStrip through Shell to SettingsMenu (similar to existing `settingsResetRequested` signal).
 
-### Pattern 3: Custom Vertical Slider (EqBandSlider)
-**What:** A finger-friendly vertical slider for a single EQ band.
-**Layout math at 1024x600 (scale=1.0):**
-- Page margins: 2 * 20px = 40px
-- Available width: 984px for 10 sliders
-- Per-slider column: ~98px (well above touchMin of 56px)
-- Top control bar (stream selector + preset + bypass): ~80px (1 rowH)
-- Settings title bar: ~56px (headerH)
-- Frequency labels below sliders: ~24px
-- Available slider height: 600 - 56 - 80 - 24 - margins ≈ 400px
-- 49 steps in 400px = ~8px per step — coarse enough for finger dragging
+**Navigation back:** When user taps Back from EQ opened via NavStrip, they go to Audio settings (depth 2), then Settings grid (depth 1). This is correct behavior -- the NavStrip shortcut is a convenience entry point, not a separate navigation context.
 
-**Implementation approach:**
-- Rectangle track with a draggable thumb (Rectangle or custom shape)
-- MouseArea covering the full slider column width (not just the track)
-- Map Y position to dB value: top = +12dB, bottom = -12dB
-- Snap to 0.5 dB steps
-- Floating label: show on press, hide on release (opacity animation)
-- Double-tap: Timer-based detection or TapHandler with tapCount
+### Press Feedback Pattern (Phase 1 Established)
 
-### Pattern 4: Preset Picker with Sections
-**What:** FullScreenPicker bottom sheet with bundled and user presets separated by a divider.
-**Existing FullScreenPicker limitations:** Currently supports a flat list. Need to extend for:
-- Section dividers (SectionHeader between bundled and user presets)
-- Swipe-to-delete on user preset items only
-- Checkmark on active preset
+**What:** Scale + opacity animation on press for all interactive elements.
 
-**Options:**
-1. Extend FullScreenPicker to support sections — risk: makes the generic control more complex
-2. Build an EQ-specific preset picker dialog — keeps FullScreenPicker simple, duplicates some code
-3. Use FullScreenPicker's model-driven mode with a custom model that includes section headers as special rows
+**Pattern:**
+```qml
+// For large items (tiles, full-width buttons)
+scale: mouseArea.pressed ? 0.95 : 1.0
+opacity: mouseArea.pressed ? 0.85 : 1.0
 
-**Recommendation:** Option 3 — create a `PresetListModel` (QAbstractListModel in C++) or just assemble the list in QML JS from `bundledPresetNames()` + `userPresetNames()` with a separator. Given the small list size (8 bundled + N user), a JS approach is fine and avoids a new C++ class.
+// For small items (list rows, nav buttons)
+scale: mouseArea.pressed ? 0.97 : 1.0
+opacity: mouseArea.pressed ? 0.85 : 1.0
 
-Actually, looking more carefully at FullScreenPicker, it uses a flat `ListView` delegate. Swipe-to-delete requires adding horizontal drag handling to individual delegates. This is custom enough that a dedicated EQ preset picker (a Dialog with custom delegates) is cleaner than shoehorning it into FullScreenPicker.
+// Always with these Behaviors
+Behavior on scale { NumberAnimation { duration: UiMetrics.animDurationFast; easing.type: Easing.OutCubic } }
+Behavior on opacity { NumberAnimation { duration: UiMetrics.animDurationFast; easing.type: Easing.OutCubic } }
+```
+
+### BT Forget Button
+
+**What:** Replace tiny "Forget" text with an adequately-sized touch target.
+
+**Current state (ConnectionSettings.qml line 136-146):**
+```qml
+Text {
+    text: "Forget"
+    font.pixelSize: UiMetrics.fontSmall
+    color: "#cc4444"
+    MouseArea {
+        anchors.fill: parent
+        anchors.margins: -8  // Only 8px expansion -- too small
+        onClicked: { ... }
+    }
+}
+```
+
+**Recommended replacement:** A pill-shaped button with minimum `UiMetrics.touchMin` height and adequate width:
+```qml
+Rectangle {
+    Layout.preferredWidth: forgetText.implicitWidth + UiMetrics.gap * 2
+    Layout.preferredHeight: UiMetrics.touchMin
+    radius: UiMetrics.touchMin / 2  // pill shape
+    color: "transparent"
+    border.color: "#cc4444"
+    border.width: 1
+
+    // Press feedback
+    scale: forgetArea.pressed ? 0.95 : 1.0
+    opacity: forgetArea.pressed ? 0.85 : 1.0
+    Behavior on scale { NumberAnimation { duration: UiMetrics.animDurationFast; easing.type: Easing.OutCubic } }
+    Behavior on opacity { NumberAnimation { duration: UiMetrics.animDurationFast; easing.type: Easing.OutCubic } }
+
+    Text {
+        id: forgetText
+        anchors.centerIn: parent
+        text: "Forget"
+        font.pixelSize: UiMetrics.fontSmall
+        color: "#cc4444"
+    }
+
+    MouseArea {
+        id: forgetArea
+        anchors.fill: parent
+        onClicked: { ... }
+    }
+}
+```
+
+Alternative: delete icon button (trash can) with `UiMetrics.touchMin x UiMetrics.touchMin` size. Either works -- pill button is more discoverable.
+
+### Modal Dismiss Pattern
+
+**What:** Ensure all Dialog/Popup components dismiss on outside tap.
+
+**Qt 6 default behavior:** `Popup.closePolicy` defaults to `Popup.CloseOnEscape | Popup.CloseOnPressOutside`. Modal dialogs with `dim: true` show a dim overlay, and tapping that overlay triggers close.
+
+**Recommendation:** Add explicit `closePolicy` to all Dialogs for defensive coding:
+```qml
+Dialog {
+    modal: true
+    dim: true
+    closePolicy: Popup.CloseOnEscape | Popup.CloseOnPressOutside
+    // ...
+}
+```
+
+Affected components:
+- `FullScreenPicker.qml` (pickerDialog)
+- `EqSettings.qml` (presetPickerDialog, savePresetDialog)
+- `PairingDialog.qml`
+- `ExitDialog` (in NavStrip)
+- Any other Dialog instances
 
 ### Anti-Patterns to Avoid
-- **Hardcoded pixel sizes:** Every dimension must use UiMetrics. The CLAUDE.md explicitly says "DO NOT hardcode pixel sizes in QML."
-- **Accessing StreamId enum from QML:** Will silently fail or produce undefined. Use integers 0/1/2.
-- **Calling gainsForStream() directly in QML:** std::array<float,10> won't auto-convert. Use a QVariantList wrapper or individual gain() calls.
-- **Debouncing slider moves in QML:** EqualizerService already has a 2-second debounce timer for config saves. Don't add another debounce layer. Call setGain() on every slider move for immediate audio feedback; persistence is already handled.
-- **Using SettingsSlider for vertical bands:** It's horizontal with a label layout. Build a purpose-built EqBandSlider instead.
+- **Duplicating EqSettings for NavStrip access:** Do NOT create a second EQ component. The EqualizerService singleton guarantees shared state -- just navigate to the existing page.
+- **Hardcoded pixel sizes:** All dimensions through UiMetrics. Phase 1 established this rule; phase 3 must not regress.
+- **layer.enabled effects:** Banned per project pitfalls -- GPU competition with video decode on Pi 4.
+- **Breaking NavStrip EVIOCGRAB behavior:** During AA, touch is grabbed by evdev. NavStrip visual changes must not interfere with the evdev hit zone logic in EvdevTouchReader.
 
 ## Don't Hand-Roll
 
 | Problem | Don't Build | Use Instead | Why |
 |---------|-------------|-------------|-----|
-| Stream switching | Custom toggle/radio | SegmentedButton.qml | Already exists, proven, themed |
-| Bottom sheet dialog | Custom popup positioning | Dialog with `parent: Overlay.overlay` | Pattern used by FullScreenPicker, handles modal dimming |
-| Responsive sizing | Manual breakpoints | UiMetrics singleton | Scale factor already computed, all dimensions derived |
-| Config persistence | Manual YAML writes | EqualizerService handles it | 2-second debounce + shutdown flush already implemented |
-| Preset list data | QAbstractListModel | QML JS array from bundledPresetNames() + userPresetNames() | List is small (<20 items), model overhead not justified |
-
-**Key insight:** Phase 2 built the entire service layer. This phase should contain zero business logic — it's a pure view layer that calls Q_INVOKABLE methods.
+| EQ state management | Custom QML state sync | EqualizerService C++ singleton | Already built, already exposed to QML, signals auto-propagate |
+| Bottom-sheet picker | New picker component | FullScreenPicker.qml | Already styled, already handles model-driven and options-driven modes |
+| Press feedback | Per-component animations | Copy Phase 1 pattern (scale/opacity Behavior) | Consistent UX, proven on Pi |
+| Icon rendering | Custom icon loading | MaterialIcon.qml | Already supports variable weight, graceful Qt 6.4 fallback |
 
 ## Common Pitfalls
 
-### Pitfall 1: StreamId Enum Not Accessible in QML
-**What goes wrong:** QML code like `EqualizerService.setGain(StreamId.Media, 0, 3.0)` silently passes `undefined` for the stream parameter.
-**Why it happens:** `StreamId` is a bare `enum class` in namespace `oap`, not inside a QObject, and has no `Q_ENUM_NS` registration.
-**How to avoid:** Use integer literals in QML: `EqualizerService.setGain(0, 0, 3.0)` for Media. Define JS constants at the top of EqSettings.qml: `readonly property int streamMedia: 0`, etc.
-**Warning signs:** EQ changes not affecting the expected stream, or setGain silently doing nothing.
+### Pitfall 1: NavStrip EQ Navigation Timing
+**What goes wrong:** Calling `navigateTo(6)` and then immediately trying to push onto SettingsMenu's StackView fails because SettingsMenu hasn't rendered yet.
+**Why it happens:** `navigateTo()` changes `currentApplication` which triggers `visible` on SettingsMenu, but QML rendering is deferred.
+**How to avoid:** Use `Qt.callLater()` for the StackView push, or have SettingsMenu check a "pending deep navigation" property on `Component.onCompleted` / `onVisibleChanged`.
+**Warning signs:** EQ page doesn't appear when tapping NavStrip shortcut, but works from Audio settings.
 
-### Pitfall 2: std::array Return Type in QML
-**What goes wrong:** `EqualizerService.gainsForStream(0)` returns an opaque object, not a JS array. Indexing it returns undefined.
-**Why it happens:** Qt's meta-type system doesn't auto-convert `std::array<float, N>` to `QVariantList`.
-**How to avoid:** Add a `Q_INVOKABLE QVariantList gainsAsList(int stream)` method, or use individual `gain(stream, band)` calls.
-**Warning signs:** Sliders all showing 0 on page load or preset switch.
+### Pitfall 2: StackView Depth After NavStrip EQ
+**What goes wrong:** After opening EQ via NavStrip, the Settings back button and the NavStrip settings button don't behave correctly.
+**Why it happens:** The StackView depth is 3 (grid > audio > eq) but the user didn't navigate through those intermediate pages.
+**How to avoid:** Ensure `navigateBack()` handler in SettingsMenu properly restores titles at each depth. Test the full back-button chain: EQ > Audio > Grid.
 
-### Pitfall 3: StackView Sub-Sub-Page Navigation
-**What goes wrong:** Pressing back from EQ page goes all the way back to settings list instead of AudioSettings.
-**Why it happens:** If EQ is pushed onto a separate StackView or the back handler doesn't account for depth > 2.
-**How to avoid:** Push EQ page onto the SAME settingsStack that AudioSettings lives in. The existing `onBackRequested` handler in SettingsMenu already does `settingsStack.pop()` when depth > 1 — this naturally handles any depth. Set title to "Settings > Audio > Equalizer".
-**Warning signs:** Back button behavior inconsistency.
+### Pitfall 3: SettingsMenu Reset vs EQ Deep Navigate
+**What goes wrong:** `SettingsMenu.resetToGrid()` pops all StackView items to root. If this fires while navigating to EQ, the EQ push gets lost.
+**Why it happens:** `onVisibleChanged` in SettingsMenu calls `resetToGrid()`. When NavStrip EQ navigates to settings, `visible` becomes true, triggering reset.
+**How to avoid:** Add a guard: don't reset on visible if a deep navigation is pending. Or remove the `onVisibleChanged` reset and only reset on explicit settings button tap (which already has its own reset via `settingsResetRequested` signal).
+**Warning signs:** NavStrip EQ button shows the settings tile grid instead of EQ.
 
-### Pitfall 4: Slider Touch Area Too Small
-**What goes wrong:** Users can't reliably grab individual sliders — touches register on adjacent bands.
-**Why it happens:** 10 sliders in 984px = ~98px each, but if the touchable area is just the thumb (e.g., 20px wide), precision is needed.
-**How to avoid:** Make the entire column width the touch area, not just the thumb. The MouseArea should fill the full ~98px column. Map the Y coordinate to dB value regardless of X position within the column.
-**Warning signs:** Users complaining about accidentally hitting wrong bands.
-
-### Pitfall 5: Double-Tap Detection vs Drag
-**What goes wrong:** Double-tap to reset interferes with drag-to-adjust. A quick drag is misinterpreted as a double-tap.
-**Why it happens:** MouseArea processes both tap and drag events.
-**How to avoid:** Use separate input handlers — TapHandler for double-tap (requires `tapCount: 2`) and DragHandler or MouseArea `onPositionChanged` for dragging. Or track movement distance: if the finger moves more than a threshold during press, it's a drag, not a tap.
-**Warning signs:** Sliders resetting to 0 during fast adjustments.
-
-### Pitfall 6: Bypass Signal Not Emitted
-**What goes wrong:** Toggling bypass doesn't update the QML UI (sliders don't dim).
-**Why it happens:** `setBypassed()` currently just calls `engine.setBypassed()` — there's no `bypassChanged` signal on EqualizerService. The bypass state is only on the engine, not exposed as a Q_PROPERTY.
-**How to avoid:** Add `bypassedChanged(int stream)` signal and emit it from `setBypassed()`. Or add per-stream bypass Q_PROPERTYs analogous to the existing preset Q_PROPERTYs.
-**Warning signs:** Bypass badge toggling but sliders not dimming, or vice versa.
-
-### Pitfall 7: gainsChanged Signal Fires Per-Band During Preset Apply
-**What goes wrong:** Applying a preset fires `gainsChanged` once (good), but if the UI handler refreshes all 10 sliders on each signal, and setGain is called per-band, you get 10 refreshes.
-**Why it happens:** `applyPreset()` calls `engine.setAllGains()` and emits `gainsChanged` once. But if the QML connects to gainsChanged and reloads all sliders, and the initial load uses individual gain() calls, the pattern is fine. Just don't call setGain() 10 times from QML to apply a preset — use applyPreset().
-**How to avoid:** Always use `applyPreset()` for preset selection, never loop `setGain()`.
+### Pitfall 4: BT Forget Confirmation Missing
+**What goes wrong:** User accidentally taps "Forget" and loses a paired device.
+**Why it happens:** No confirmation dialog -- immediate action on tap.
+**How to avoid:** Consider adding a simple confirmation (but note: the requirement only says "clearly visible, adequately-sized touch target" -- not confirmation). If adding confirmation, use the existing Dialog pattern.
 
 ## Code Examples
 
-### EqBandSlider.qml — Vertical Slider Control
+### NavStrip Button with Press Feedback
 ```qml
-// Conceptual structure — not a copy-paste implementation
-Item {
-    id: root
-    property int bandIndex: 0
-    property real gainValue: 0.0  // -12.0 to +12.0
-    property string freqLabel: ""
-    property bool bypassed: false
+// Refactored NavStrip button pattern
+Rectangle {
+    Layout.fillHeight: true
+    Layout.preferredWidth: navStrip.height * 1.2
+    color: isActive ? ThemeService.highlightColor : "transparent"
+    radius: UiMetrics.radius
 
-    signal gainChanged(real dB)
-    signal resetRequested()
+    // Press feedback (new)
+    scale: btnArea.pressed ? 0.95 : 1.0
+    opacity: btnArea.pressed ? 0.85 : 1.0
+    Behavior on scale { NumberAnimation { duration: UiMetrics.animDurationFast; easing.type: Easing.OutCubic } }
+    Behavior on opacity { NumberAnimation { duration: UiMetrics.animDurationFast; easing.type: Easing.OutCubic } }
 
-    // Full column is the touch area
+    MaterialIcon {
+        anchors.centerIn: parent
+        icon: "\ue429"  // equalizer
+        size: parent.height * 0.5
+        color: isActive ? ThemeService.highlightFontColor
+                        : ThemeService.normalFontColor
+    }
+
     MouseArea {
+        id: btnArea
         anchors.fill: parent
-        property bool isDragging: false
+        onClicked: { /* navigation logic */ }
+    }
+}
+```
 
-        onPressed: { isDragging = false; /* show floating label */ }
-        onPositionChanged: {
-            isDragging = true
-            // Map mouse.y to dB: top = +12, bottom = -12
-            var normalized = 1.0 - (mouse.y - trackTop) / trackHeight
-            var dB = -12.0 + normalized * 24.0
-            dB = Math.round(dB / 0.5) * 0.5  // snap to 0.5 dB
-            dB = Math.max(-12.0, Math.min(12.0, dB))
-            root.gainValue = dB
-            root.gainChanged(dB)
+### Deep Navigation to EQ from NavStrip
+```qml
+// In SettingsMenu.qml
+function openEqDirect() {
+    // Reset to root first, then push audio > eq
+    if (settingsStack.depth > 1) {
+        settingsStack.pop(null)
+    }
+    settingsStack.push(audioPage)
+    ApplicationController.setTitle("Settings > Audio")
+    // Defer EQ push to next frame to ensure Audio page is loaded
+    Qt.callLater(function() {
+        var audioItem = settingsStack.currentItem
+        if (audioItem) {
+            // AudioSettings has an inner StackView or we push EQ onto settingsStack
+            settingsStack.push(eqDirectComponent)
+            ApplicationController.setTitle("Settings > Audio > Equalizer")
         }
-        onReleased: { /* hide floating label */ }
-        onDoubleClicked: root.resetRequested()
-    }
-
-    // Track, thumb, 0dB line, frequency label, floating label
-    // All dimensions via UiMetrics
-}
-```
-
-### Calling EqualizerService from QML
-```qml
-// Stream constants (since StreamId enum isn't QML-registered)
-readonly property int streamMedia: 0
-readonly property int streamNavigation: 1
-readonly property int streamPhone: 2
-
-property int currentStream: streamMedia
-
-// Set a single band gain (immediate audio effect)
-EqualizerService.setGain(currentStream, bandIndex, newGainDb)
-
-// Apply a preset (updates all bands at once)
-EqualizerService.applyPreset(currentStream, "Rock")
-
-// Read current gains for a stream (need QVariantList helper)
-var gains = EqualizerService.gainsAsList(currentStream)
-for (var i = 0; i < 10; i++) {
-    sliderRepeater.itemAt(i).gainValue = gains[i]
-}
-
-// Toggle bypass
-EqualizerService.setBypassed(currentStream, !EqualizerService.isBypassed(currentStream))
-```
-
-### StackView Sub-Page Push from AudioSettings
-```qml
-// In AudioSettings.qml — add tap-through row
-SettingsListItem {
-    icon: "\ue050"   // equalizer icon
-    label: "Equalizer"
-    // Show current preset name as subtitle/description
-    onClicked: {
-        // Access parent StackView via attached property
-        StackView.view.push(eqSettingsComponent)
-        ApplicationController.setTitle("Settings > Audio > Equalizer")
-    }
+    })
 }
 
 Component {
-    id: eqSettingsComponent
+    id: eqDirectComponent
     EqSettings {}
 }
 ```
 
-### Swipe-to-Delete Delegate Pattern
+**Alternative (simpler):** Push EQ directly onto settingsStack at depth 2, skipping the Audio page. Back would go to settings grid. This is simpler but loses the "Audio > Equalizer" breadcrumb context.
+
+### Explicit Modal Dismiss
 ```qml
-// Inside preset picker delegate
-Item {
-    id: delegateRoot
-    clip: true
-
-    Rectangle {
-        id: contentRow
-        x: 0
-        // Horizontal drag for user presets only
-        Behavior on x { NumberAnimation { duration: 150 } }
-    }
-
-    // Red delete background revealed by swipe
-    Rectangle {
-        visible: isUserPreset
-        anchors.right: parent.right
-        color: "red"
-        // MaterialIcon trash can
-    }
-
-    MouseArea {
-        drag.target: isUserPreset ? contentRow : undefined
-        drag.axis: Drag.XAxis
-        drag.minimumX: -deleteThreshold
-        drag.maximumX: 0
-        onReleased: {
-            if (contentRow.x < -deleteThreshold / 2) {
-                EqualizerService.deleteUserPreset(presetName)
-            } else {
-                contentRow.x = 0  // snap back
-            }
-        }
-    }
+// Add to every Dialog in the project
+Dialog {
+    modal: true
+    dim: true
+    closePolicy: Popup.CloseOnEscape | Popup.CloseOnPressOutside
+    // ... rest of dialog
 }
 ```
 
@@ -351,58 +332,44 @@ Item {
 
 | Old Approach | Current Approach | When Changed | Impact |
 |--------------|------------------|--------------|--------|
-| Qt Quick Controls 1 Slider | Qt Quick Controls 2 Slider | Qt 5.7+ | Better touch, themeable, no widget dependency |
-| C++ QAbstractListModel for small lists | QML JS arrays with Q_INVOKABLE | Always valid for <50 items | Less boilerplate, no C++ model class needed |
-| loadFromModule() | qt_add_qml_module + QML_FILES | Qt 6.2+ | This project uses qt_add_qml_module (required for Qt 6.4 compat) |
-
-**Deprecated/outdated:**
-- `loadFromModule()` not available in Qt 6.4 (project must support 6.4)
+| No press feedback on NavStrip | Phase 1 established pattern | Phase 1 (v0.4.3) | NavStrip is the last un-styled component |
+| EQ only via Settings > Audio | Dual-access via NavStrip + Settings | Phase 3 (this phase) | Quick EQ access for car use |
+| Small text "Forget" button | Pill-shaped touch target | Phase 3 (this phase) | Adequate for in-car touch |
 
 ## Open Questions
 
-1. **StackView.view attached property in Qt 6.4**
-   - What we know: This is standard Qt Quick Controls 2 API. Should work in both 6.4 and 6.8.
-   - What's unclear: Whether AudioSettings (loaded as a Component pushed by SettingsMenu) can reliably access `StackView.view` to push further sub-pages.
-   - Recommendation: If `StackView.view` doesn't work, pass `settingsStack` as a property when pushing AudioSettings. LOW risk — test during implementation.
+1. **SettingsMenu onVisibleChanged reset vs deep navigation**
+   - What we know: `onVisibleChanged` calls `resetToGrid()` which would fight NavStrip EQ navigation
+   - What's unclear: Best approach -- guard the reset, or remove it entirely (the NavStrip settings button already handles reset explicitly via `settingsResetRequested`)
+   - Recommendation: Remove `onVisibleChanged` reset. The `settingsResetRequested` signal from NavStrip settings button handles the user-facing "tap settings to go back to grid" case. The `onVisibleChanged` was defensive but conflicts with deep navigation.
 
-2. **Virtual keyboard for save preset name dialog**
-   - What we know: The Pi runs labwc (Wayland compositor). Qt's virtual keyboard module (QtVirtualKeyboard) may or may not be installed.
-   - What's unclear: Whether a TextInput in a Dialog will trigger a virtual keyboard on the Pi. If not, the user has no way to type a preset name.
-   - Recommendation: Check if QtVirtualKeyboard is available on Pi. If not, consider a simpler naming approach (auto-generated names with optional rename) or include VK in install script deps. This can be tested during implementation.
+2. **EQ NavStrip button position and icon**
+   - What we know: NavStrip has Home, plugin buttons, spacer, back, day/night, settings
+   - What's unclear: Where the EQ button should go (before spacer? after day/night? replace something?)
+   - Recommendation: Place EQ button between the plugin buttons and the spacer, on the left side. Use `\ue429` (equalizer icon). This groups "go-to" buttons on the left, utility buttons on the right.
 
-3. **gainsChanged signal parameter type in QML**
-   - What we know: `gainsChanged(StreamId stream)` signal uses the unregistered `StreamId` enum.
-   - What's unclear: Whether QML can receive and compare this parameter. It may arrive as an integer (which would work) or be undefined.
-   - Recommendation: Test, and if needed, change signal to `gainsChanged(int stream)` for QML compatibility. LOW risk fix.
-
-## C++ Changes Required
-
-Small but critical additions to `EqualizerService`:
-
-1. **`gainsAsList(int stream)` Q_INVOKABLE** — returns `QVariantList` of 10 floats for a stream
-2. **`bypassedChanged(int stream)` signal** — emitted from `setBypassed()` so QML can react
-3. **Integer overloads or casts** — Q_INVOKABLE methods taking `StreamId` may work via implicit int cast from QML, but should be verified. If not, add `int`-parameter overloads.
-4. **Consider `bypassed` Q_PROPERTY per stream** — analogous to existing `mediaPreset`/`navigationPreset`/`phonePreset` Q_PROPERTYs
+3. **Launcher tile restyling scope**
+   - What we know: LauncherMenu uses Tile.qml which already has press feedback (0.95 scale)
+   - What's unclear: How much visual change is needed beyond what Tile.qml already provides
+   - Recommendation: Evaluate current launcher appearance against settings tiles. May only need spacing/grid adjustments and ensuring icon sizes use UiMetrics consistently. The Tile.qml itself may already satisfy ICON-04 after Phase 1 changes.
 
 ## Sources
 
 ### Primary (HIGH confidence)
-- **Codebase inspection** — EqualizerService.hpp/cpp, IEqualizerService.hpp, SettingsMenu.qml, AudioSettings.qml, FullScreenPicker.qml, SegmentedButton.qml, UiMetrics.qml, SettingsSlider.qml, SettingsListItem.qml, main.cpp
-- **Qt 6 documentation** — Q_INVOKABLE, StackView, MouseArea, TapHandler patterns from training knowledge (HIGH confidence for stable Qt APIs)
+- Project codebase: NavStrip.qml, TopBar.qml, LauncherMenu.qml, Tile.qml, EqSettings.qml, EqBandSlider.qml, SettingsMenu.qml, ConnectionSettings.qml, ApplicationController.hpp
+- Phase 1 research and implementation: press feedback pattern, UiMetrics constants, ThemeService properties
+- EqualizerService.hpp: full QML-friendly API already implemented
 
 ### Secondary (MEDIUM confidence)
-- **std::array QML interop** — Based on Qt meta-type system behavior; `std::array` is not a Q_DECLARE_METATYPE-registered type by default, won't auto-convert to JS array. Verified by pattern: project uses `QStringList` (which IS auto-converted) for other list returns.
-- **StreamId enum QML accessibility** — Confirmed by codebase: no Q_NAMESPACE/Q_ENUM_NS anywhere for StreamId. Other enums in the project (CallState, ConnectionState) ARE registered via Q_ENUM inside QObject classes, confirming the pattern is deliberate where it exists and missing where it doesn't.
-
-### Tertiary (LOW confidence)
-- **Virtual keyboard on Pi** — Needs runtime verification. QtVirtualKeyboard availability depends on RPi OS Trixie packages.
+- Qt 6 Popup.closePolicy default behavior (CloseOnEscape | CloseOnPressOutside for modal popups) -- verified from Qt documentation knowledge
 
 ## Metadata
 
 **Confidence breakdown:**
-- Standard stack: HIGH — all components are existing project patterns, no new libraries needed
-- Architecture: HIGH — StackView navigation, QML controls, C++/QML interop are well-understood from codebase inspection
-- Pitfalls: HIGH — StreamId/std::array issues identified from direct code analysis, not speculation
+- Standard stack: HIGH - all components are in-tree, already working
+- Architecture: HIGH - patterns established in Phase 1, EQ service fully built
+- Pitfalls: HIGH - navigation timing and StackView depth are well-understood from Phase 2 work
+- EQ dual-access: MEDIUM - the SettingsMenu onVisibleChanged conflict needs careful handling during implementation
 
-**Research date:** 2026-03-01
-**Valid until:** 2026-04-01 (stable domain — Qt 6 QML patterns don't change fast)
+**Research date:** 2026-03-02
+**Valid until:** 2026-04-02 (stable -- all in-tree components, no external dependencies)
