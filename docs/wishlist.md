@@ -12,6 +12,9 @@ Ideas captured here. Promote to `roadmap-current.md` when ready to commit.
 
 ## Deferred UI Features
 
+- **Live sidebar toggle reactivity** — Toggling sidebar enable/disable mid-AA-session doesn't update AA video margins or evdev touch zones. Sidebar draws over AA content and touch passes through. Requires app restart. Needs: config change signal → margin recalculation → touch zone update pipeline for mid-session changes.
+
+
 - **Settings tile subtitles** — Live status text under each tile icon (e.g., "720p 60fps", "BT: Connected"). Removed from v0.4.3 — too small to read on 1024x600 automotive display. Revisit with larger font or alternate layout in a future milestone.
 
 - **WiFi AP settings in UI** — Channel/band picker was in Connectivity settings, removed because WiFi AP config is set once at install via `install.sh` and doesn't need runtime changes. Could return if users need to switch channels without reinstalling.

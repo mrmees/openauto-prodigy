@@ -45,11 +45,8 @@ skipped: 0
 ## Gaps
 
 - truth: "Sidebar touch zones and AA video margins update dynamically when sidebar is toggled on/off mid-session"
-  status: failed
+  status: deferred
   reason: "User reported: Only works after restarting the program - changing the sidebar enable/disable toggle and then returning to android auto does not update the change. Sidebar draws over AA window (margins not recalculated), touch zones not updated (taps on sidebar go to AA instead of being intercepted)."
   severity: major
   test: 4
-  root_cause: ""
-  artifacts: []
-  missing: []
-  debug_session: ""
+  deferred_to: "wishlist — live sidebar toggle reactivity (margins + touch zones mid-session)"
