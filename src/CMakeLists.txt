@@ -223,6 +223,10 @@ set_source_files_properties(../qml/applications/phone/IncomingCallOverlay.qml PR
     QT_QML_SOURCE_TYPENAME "IncomingCallOverlay"
     QT_RESOURCE_ALIAS "IncomingCallOverlay.qml"
 )
+set_source_files_properties(../qml/applications/settings/AASettings.qml PROPERTIES
+    QT_QML_SOURCE_TYPENAME "AASettings"
+    QT_RESOURCE_ALIAS "AASettings.qml"
+)
 set_source_files_properties(../qml/applications/settings/DisplaySettings.qml PROPERTIES
     QT_QML_SOURCE_TYPENAME "DisplaySettings"
     QT_RESOURCE_ALIAS "DisplaySettings.qml"
@@ -295,6 +299,7 @@ qt_add_qml_module(openauto-prodigy
         ../qml/applications/bt_audio/BtAudioView.qml
         ../qml/applications/phone/PhoneView.qml
         ../qml/applications/phone/IncomingCallOverlay.qml
+        ../qml/applications/settings/AASettings.qml
         ../qml/applications/settings/DisplaySettings.qml
         ../qml/applications/settings/AudioSettings.qml
         ../qml/applications/settings/ConnectionSettings.qml

@@ -12,7 +12,17 @@ Item {
         function onBackRequested() {
             if (settingsStack.depth > 1) {
                 settingsStack.pop()
-                ApplicationController.setTitle("Settings")
+                if (settingsStack.depth > 1) {
+                    // Back to a category page (depth 2) — restore category title
+                    var item = settingsStack.currentItem
+                    if (item && item.objectName) {
+                        ApplicationController.setTitle("Settings > " + item.objectName)
+                    } else {
+                        ApplicationController.setTitle("Settings")
+                    }
+                } else {
+                    ApplicationController.setTitle("Settings")
+                }
                 ApplicationController.setBackHandled(true)
             }
         }
@@ -71,7 +81,7 @@ Item {
                     }
                     Layout.preferredWidth: UiMetrics.tileW
                     Layout.preferredHeight: UiMetrics.tileH
-                    onClicked: openPage("video")
+                    onClicked: openPage("aa")
                 }
 
                 Tile {
@@ -135,32 +145,29 @@ Item {
         }
     }
 
+    Component { id: aaPage; AASettings {} }
     Component { id: displayPage; DisplaySettings {} }
     Component { id: audioPage; AudioSettings {} }
     Component { id: connectionPage; ConnectionSettings {} }
-    Component { id: videoPage; VideoSettings {} }
     Component { id: systemPage; SystemSettings {} }
     Component { id: companionPage; CompanionSettings {} }
-    Component { id: aboutPage; AboutSettings {} }
 
     function openPage(pageId) {
         var titles = {
+            "aa": "Android Auto",
             "display": "Display",
             "audio": "Audio",
-            "connection": "Connection",
-            "video": "Video",
+            "connection": "Connectivity",
             "system": "System",
-            "companion": "Companion",
-            "about": "About"
+            "companion": "Companion"
         }
         var pages = {
+            "aa": aaPage,
             "display": displayPage,
             "audio": audioPage,
             "connection": connectionPage,
-            "video": videoPage,
             "system": systemPage,
-            "companion": companionPage,
-            "about": aboutPage
+            "companion": companionPage
         }
 
         if (pageId.startsWith("plugin:")) {

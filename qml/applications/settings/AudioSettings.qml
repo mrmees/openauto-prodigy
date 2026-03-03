@@ -87,5 +87,28 @@ Flickable {
             text: "Restart required to apply device changes"
             shown: false
         }
+
+        SectionHeader { text: "Equalizer" }
+
+        SettingsListItem {
+            icon: "\ue429"
+            label: {
+                if (typeof EqualizerService === "undefined") return "Equalizer"
+                var preset = EqualizerService.activePresetName(0)
+                return preset !== "" ? "Equalizer \u2014 " + preset : "Equalizer"
+            }
+            onClicked: {
+                var sv = StackView.view
+                if (sv) {
+                    sv.push(eqPageComponent)
+                    ApplicationController.setTitle("Settings > Audio > Equalizer")
+                }
+            }
+        }
+
+        Component {
+            id: eqPageComponent
+            EqSettings {}
+        }
     }
 }
