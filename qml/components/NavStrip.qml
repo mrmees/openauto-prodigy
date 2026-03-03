@@ -7,6 +7,8 @@ Rectangle {
     color: ThemeService.barBackgroundColor
     Behavior on color { ColorAnimation { duration: 300; easing.type: Easing.InOutQuad } }
 
+    signal settingsResetRequested()
+
     // Home is active when no plugin and on launcher screen
     readonly property bool homeActive: !PluginModel.activePluginId
                                        && ApplicationController.currentApplication === 0
@@ -133,7 +135,12 @@ Rectangle {
                 anchors.fill: parent
                 onClicked: {
                     PluginModel.setActivePlugin("")
-                    ApplicationController.navigateTo(6)
+                    if (ApplicationController.currentApplication === 6) {
+                        // Already in settings — reset stack to tile grid
+                        settingsResetRequested()
+                    } else {
+                        ApplicationController.navigateTo(6)
+                    }
                 }
                 onPressAndHold: exitDialog.open()
             }

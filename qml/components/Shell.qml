@@ -62,6 +62,7 @@ Item {
             Layout.fillWidth: true
             Layout.preferredHeight: shell.fullscreenMode ? 0 : shell.height * 0.12
             visible: !shell.fullscreenMode
+            onSettingsResetRequested: settingsView.resetToGrid()
         }
     }
 
