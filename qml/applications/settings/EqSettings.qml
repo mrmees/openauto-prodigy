@@ -229,6 +229,7 @@ Item {
         id: presetPickerDialog
         modal: true
         dim: true
+        closePolicy: Popup.CloseOnEscape | Popup.CloseOnPressOutside
 
         parent: Overlay.overlay
         x: 0
@@ -421,6 +422,7 @@ Item {
         id: savePresetDialog
         modal: true
         dim: true
+        closePolicy: Popup.CloseOnEscape | Popup.CloseOnPressOutside
         title: "Save Preset"
 
         parent: Overlay.overlay

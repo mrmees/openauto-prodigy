@@ -7,15 +7,15 @@ Item {
     GridLayout {
         anchors.centerIn: parent
         columns: 4
-        rowSpacing: 20
-        columnSpacing: 20
+        rowSpacing: UiMetrics.gridGap
+        columnSpacing: UiMetrics.gridGap
 
         Repeater {
             model: LauncherModel
 
             Tile {
-                Layout.preferredWidth: launcherMenu.width * 0.18
-                Layout.preferredHeight: launcherMenu.width * 0.18
+                Layout.preferredWidth: UiMetrics.tileW
+                Layout.preferredHeight: UiMetrics.tileH
                 tileName: model.tileLabel
                 tileIcon: model.tileIcon
                 tileEnabled: true

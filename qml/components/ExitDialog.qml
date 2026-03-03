@@ -7,6 +7,7 @@ Popup {
     anchors.centerIn: parent
     width: Math.min(parent.width * 0.5, 400)
     modal: true
+    closePolicy: Popup.CloseOnEscape | Popup.CloseOnPressOutside
     padding: UiMetrics.gap
 
     readonly property color dangerColor: "#F44336"

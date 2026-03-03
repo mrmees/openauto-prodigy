@@ -296,6 +296,7 @@ Flickable {
         id: decoderPickerDialog
         modal: true
         dim: true
+        closePolicy: Popup.CloseOnEscape | Popup.CloseOnPressOutside
 
         property int codecIndex: -1
         property string codecLabel: ""

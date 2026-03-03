@@ -114,6 +114,7 @@ Item {
         id: pickerDialog
         modal: true
         dim: true
+        closePolicy: Popup.CloseOnEscape | Popup.CloseOnPressOutside
 
         // Position at bottom of window, full width, ~60% height
         parent: Overlay.overlay

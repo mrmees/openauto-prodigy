@@ -132,13 +132,30 @@ Flickable {
                         color: ThemeService.normalFontColor
                         Layout.fillWidth: true
                     }
-                    Text {
-                        text: "Forget"
-                        font.pixelSize: UiMetrics.fontSmall
-                        color: "#cc4444"
+                    Rectangle {
+                        Layout.preferredWidth: forgetText.implicitWidth + UiMetrics.gap * 2
+                        Layout.preferredHeight: UiMetrics.touchMin
+                        radius: UiMetrics.touchMin / 2
+                        color: "transparent"
+                        border.color: "#cc4444"
+                        border.width: 1
+
+                        scale: forgetArea.pressed ? 0.95 : 1.0
+                        opacity: forgetArea.pressed ? 0.85 : 1.0
+                        Behavior on scale { NumberAnimation { duration: UiMetrics.animDurationFast; easing.type: Easing.OutCubic } }
+                        Behavior on opacity { NumberAnimation { duration: UiMetrics.animDurationFast; easing.type: Easing.OutCubic } }
+
+                        Text {
+                            id: forgetText
+                            anchors.centerIn: parent
+                            text: "Forget"
+                            font.pixelSize: UiMetrics.fontSmall
+                            color: "#cc4444"
+                        }
+
                         MouseArea {
+                            id: forgetArea
                             anchors.fill: parent
-                            anchors.margins: -8
                             onClicked: {
                                 if (BluetoothManager) BluetoothManager.forgetDevice(model.address)
                             }
