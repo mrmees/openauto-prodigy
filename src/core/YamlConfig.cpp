@@ -149,6 +149,12 @@ void YamlConfig::initDefaults()
     root_["ui"]["tokens"]["trackThin"] = 0;
     root_["ui"]["tokens"]["knobSize"] = 0;
     root_["ui"]["tokens"]["knobSizeSmall"] = 0;
+    root_["ui"]["tokens"]["radiusSmall"] = 0;
+    root_["ui"]["tokens"]["radiusLarge"] = 0;
+    root_["ui"]["tokens"]["albumArt"] = 0;
+    root_["ui"]["tokens"]["callBtnSize"] = 0;
+    root_["ui"]["tokens"]["overlayBtnW"] = 0;
+    root_["ui"]["tokens"]["overlayBtnH"] = 0;
     root_["ui"]["fontFloor"] = 0;
 }
 

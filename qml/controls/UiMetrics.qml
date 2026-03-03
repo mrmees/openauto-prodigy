@@ -105,6 +105,22 @@ QtObject {
     readonly property int knobSize:      { var o = _tok("knobSize"); return isNaN(o) ? Math.round(22 * scale) : o; }
     readonly property int knobSizeSmall: { var o = _tok("knobSizeSmall"); return isNaN(o) ? Math.round(18 * scale) : o; }
 
+    // Radii (additional tiers)
+    readonly property int radiusSmall: { var o = _tok("radiusSmall"); return isNaN(o) ? Math.round(8 * scale) : o; }
+    readonly property int radiusLarge: { var o = _tok("radiusLarge"); return isNaN(o) ? Math.round(16 * scale) : o; }
+
+    // Content sizing
+    readonly property int albumArt: { var o = _tok("albumArt"); return isNaN(o) ? Math.round(200 * scale) : o; }
+
+    // Button sizing (with touch-target floors)
+    readonly property int callBtnSize: { var o = _tok("callBtnSize"); return isNaN(o) ? Math.max(Math.round(72 * scale), touchMin) : o; }
+    readonly property int overlayBtnW: { var o = _tok("overlayBtnW"); return isNaN(o) ? Math.round(100 * scale) : o; }
+    readonly property int overlayBtnH: { var o = _tok("overlayBtnH"); return isNaN(o) ? Math.max(Math.round(36 * scale), touchMin) : o; }
+
+    // Small indicators
+    readonly property int statusDot: Math.round(10 * scale)
+    readonly property int progressH: Math.round(4 * scale)
+
     // --- Startup logging ---
     Component.onCompleted: {
         console.log("[UiMetrics] window:", _winW + "x" + _winH,
