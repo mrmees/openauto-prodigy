@@ -1,67 +1,61 @@
-# Requirements: OpenAuto Prodigy v0.4.4
+# Requirements: OpenAuto Prodigy v0.4.5
 
 **Defined:** 2026-03-03
-**Core Value:** A person with a Raspberry Pi 4 and a touchscreen can install this, pair their phone, and get a reliable wireless Android Auto experience -- every time, without SSH.
+**Core Value:** A person with a Raspberry Pi 4 and a touchscreen can install this, pair their phone, and get a reliable wireless Android Auto experience — every time, without SSH.
 
-## v1 Requirements
+## v0.4.5 Requirements
 
-Requirements for v0.4.4 Scalable UI. Each maps to roadmap phases.
+Requirements for navbar rework milestone. Each maps to roadmap phases.
 
-### Config Overrides
+### Touch Routing
 
-- [x] **CFG-01**: YAML config supports override for global UI scale factor (e.g. `ui.scale: 1.2`)
-- [x] **CFG-02**: YAML config supports override for font scale factor independent of layout scale (e.g. `ui.fontScale: 1.1`)
-- [x] **CFG-03**: YAML config supports override for individual UiMetrics tokens (e.g. `ui.tokens.rowH: 48`)
-- [x] **CFG-04**: UiMetrics applies config overrides after auto-derived values, so user always wins
+- [x] **TOUCH-01**: Touch routing layer dispatches evdev touches to registered zones by priority
+- [x] **TOUCH-02**: Finger routing is sticky — once a finger claims a zone on DOWN, all MOVE/UP stay with that zone
+- [x] **TOUCH-03**: Popup overlays can register/deregister transient touch zones dynamically
+- [x] **TOUCH-04**: QML components report their geometry to C++ touch zones (no duplicated layout math)
+- [ ] **TOUCH-05**: Dual input path — QML MouseArea works in launcher, evdev zones work during AA
 
-### UiMetrics Foundation
+### Navbar
 
-- [x] **SCALE-01**: UiMetrics scale factor is unclamped -- derives freely from actual screen dimensions
-- [x] **SCALE-02**: UiMetrics uses dual-axis scaling -- `min(scaleH, scaleV)` for layout, geometric mean for fonts
-- [x] **SCALE-03**: UiMetrics derives scale from window dimensions (not Screen.* which is unreliable at Wayland init)
-- [x] **SCALE-04**: Font tokens have pixel floors (min 12px for smallest) to guarantee automotive legibility
-- [x] **SCALE-05**: New UiMetrics tokens added for currently-missing dimensions (trackThick, trackThin, knobSize)
+- [ ] **NAV-01**: Navbar displays 3 controls: volume (driver side), clock/home (center), brightness (passenger side)
+- [ ] **NAV-02**: Each control supports tap, short-hold-release, and long-hold gestures
+- [ ] **NAV-03**: Volume tap shows popup slider; short-hold opens EQ; long-hold mutes
+- [ ] **NAV-04**: Clock tap goes home; short-hold opens settings; long-hold shows power/minimize menu
+- [ ] **NAV-05**: Brightness tap shows popup slider; short-hold opens display settings; long-hold toggles night mode
+- [ ] **NAV-06**: LHD/RHD config swaps driver/passenger side placement
+- [ ] **NAV-07**: Popup sliders dismiss on outside tap, consistent with existing modal pattern
 
-### QML Audit
+### Edge Positioning
 
-- [x] **AUDIT-01**: NormalText and SpecialText use UiMetrics font tokens instead of hardcoded pixelSize
-- [x] **AUDIT-02**: TopBar and NavStrip margins/spacing/radius use UiMetrics tokens
-- [x] **AUDIT-03**: Sidebar icon sizes, font sizes, thumb dimensions, and margins use UiMetrics tokens
-- [x] **AUDIT-04**: GestureOverlay font sizes, spacing, and dimensions use UiMetrics tokens
-- [x] **AUDIT-05**: PhoneView font sizes, button dimensions, and spacing use UiMetrics tokens
-- [x] **AUDIT-06**: IncomingCallOverlay font sizes, spacing, and button dimensions use UiMetrics tokens
-- [x] **AUDIT-07**: BtAudioView font sizes, album art dimensions, and spacing use UiMetrics tokens
-- [x] **AUDIT-08**: HomeMenu font sizes use UiMetrics tokens
-- [x] **AUDIT-09**: Tile and PairingDialog radius and dimensions use UiMetrics tokens
-- [x] **AUDIT-10**: Zero hardcoded pixel values remain in QML files (excluding intentional dev debug overlays)
+- [ ] **EDGE-01**: User can configure navbar edge position (top/bottom/left/right) in settings
+- [ ] **EDGE-02**: Navbar renders horizontally on top/bottom edges, vertically on left/right edges
+- [ ] **EDGE-03**: Touch zones update automatically when navbar edge position changes
 
-### Layout Adaptation
+### AA Integration
 
-- [x] **LAYOUT-01**: LauncherMenu tile grid derives width from available container space (no overflow at 800px)
-- [x] **LAYOUT-02**: Settings tile grid derives dimensions from available width (no clipping at 800x480)
-- [x] **LAYOUT-03**: EQ band sliders have minimum height guard at small resolutions
+- [ ] **AA-01**: "Show Navbar during AA" toggle in settings
+- [ ] **AA-02**: When navbar is visible during AA, viewport margins reserve space for navbar
+- [ ] **AA-03**: Touch in navbar zone during AA is consumed (not forwarded to phone)
+- [ ] **AA-04**: Touch outside navbar zone during AA forwards to phone normally
+- [ ] **AA-05**: Gesture overlay touch passthrough bug is fixed (overlay controls respond to touch during AA)
+- [ ] **AA-06**: Sidebar overlay is replaced by navbar — no separate sidebar component
 
-### Touch Pipeline
+### Cleanup
 
-- [x] **TOUCH-01**: EvdevTouchReader sidebar hit zones are derived from display config (not hardcoded 1024x600 magic values)
-- [x] **TOUCH-02**: YamlConfig display dimensions auto-detected from actual screen or validated against it
+- [ ] **CLEAN-01**: TopBar component removed from shell
+- [ ] **CLEAN-02**: Old NavStrip (plugin icon bar) removed from shell
+- [ ] **CLEAN-03**: Sidebar overlay component and its evdev hit zones removed
+- [ ] **CLEAN-04**: Clock display integrated into navbar (no separate clock component needed)
 
-### Runtime Adaptation
+## Future Requirements
 
-- [x] **ADAPT-01**: App auto-detects display resolution on startup and adjusts UiMetrics accordingly (no manual config required)
-- [x] **ADAPT-02**: App responds dynamically if window dimensions change at runtime (e.g. compositor resize)
-- [x] **ADAPT-03**: Portrait/landscape display orientation setting removed — app derives orientation from detected dimensions
-- [x] **ADAPT-04**: Brightness detection adapts to display hardware (existing 3-tier sysfs > ddcutil > software)
+Deferred to future milestones. Tracked but not in current roadmap.
 
-## v2 Requirements
+### Navbar Enhancements
 
-Deferred to future milestone. Tracked but not in current roadmap.
-
-### User Scale Options
-
-- **USCALE-01**: User can select UI scale preset (Small / Medium / Large) from Display settings
-- **USCALE-02**: Scale preset overrides auto-derived scale factor with user preference
-- **USCALE-03**: Scale change applies immediately without restart
+- **NAVX-01**: Navbar auto-hide during AA (overlay on margin area, reveal on edge tap)
+- **NAVX-02**: Configurable gesture actions (user remaps tap/short-hold/long-hold per control)
+- **NAVX-03**: Navbar animation on show/hide (slide in/out)
 
 ## Out of Scope
 
@@ -69,12 +63,11 @@ Explicitly excluded. Documented to prevent scope creep.
 
 | Feature | Reason |
 |---------|--------|
-| Multi-display support | Single display target; just different resolutions on that display |
-| System resolution control from app | User owns the display config; app adapts to whatever they set |
-| Manual display resolution/orientation settings | App detects these automatically -- no user config needed |
-| Fractional DPI / HiDPI scaling | Pi displays are all 1x DPR; HiDPI is a different problem |
-| Custom icon sets per resolution | Material Symbols scale fine via font metrics |
-| Separate hscale/vscale consumer API | Adds complexity; min(h,v) is sufficient for v0.4.4 -- ultrawide handled by geometric mean for fonts |
+| Plugin icons in navbar | Launcher tiles are the sole plugin navigation — navbar is controls only |
+| Double-tap gesture | Adds 300ms delay to single-tap; replaced by short-hold-release |
+| Navbar auto-hide during AA | Adds complexity; deferred unless users request it |
+| Custom icon sets for navbar | Material Symbols icons sufficient for 3 controls |
+| Swipe gestures on navbar | Touch routing complexity; tap/hold covers all needed actions |
 
 ## Traceability
 
@@ -82,38 +75,35 @@ Which phases cover which requirements. Updated during roadmap creation.
 
 | Requirement | Phase | Status |
 |-------------|-------|--------|
-| CFG-01 | Phase 1 | Complete |
-| CFG-02 | Phase 1 | Complete |
-| CFG-03 | Phase 1 | Complete |
-| CFG-04 | Phase 1 | Complete |
-| SCALE-01 | Phase 2 | Complete |
-| SCALE-02 | Phase 2 | Complete |
-| SCALE-03 | Phase 2 | Complete |
-| SCALE-04 | Phase 2 | Complete |
-| SCALE-05 | Phase 2 | Complete |
-| TOUCH-01 | Phase 2 | Complete |
-| TOUCH-02 | Phase 2 | Complete |
-| AUDIT-01 | Phase 3 | Complete |
-| AUDIT-02 | Phase 3 | Complete |
-| AUDIT-03 | Phase 3 | Complete |
-| AUDIT-04 | Phase 3 | Complete |
-| AUDIT-05 | Phase 3 | Complete |
-| AUDIT-06 | Phase 3 | Complete |
-| AUDIT-07 | Phase 3 | Complete |
-| AUDIT-08 | Phase 3 | Complete |
-| AUDIT-09 | Phase 3 | Complete |
-| AUDIT-10 | Phase 4 | Complete |
-| LAYOUT-01 | Phase 4 | Complete |
-| LAYOUT-02 | Phase 4 | Complete |
-| LAYOUT-03 | Phase 4 | Complete |
-| ADAPT-01 | Phase 5 | Complete |
-| ADAPT-02 | Phase 5 | Complete |
-| ADAPT-03 | Phase 5 | Complete |
-| ADAPT-04 | Phase 5 | Complete |
+| TOUCH-01 | Phase 1 | Complete |
+| TOUCH-02 | Phase 1 | Complete |
+| TOUCH-03 | Phase 1 | Complete |
+| TOUCH-04 | Phase 1 | Complete |
+| TOUCH-05 | Phase 1 | Pending |
+| NAV-01 | Phase 2 | Pending |
+| NAV-02 | Phase 2 | Pending |
+| NAV-03 | Phase 2 | Pending |
+| NAV-04 | Phase 2 | Pending |
+| NAV-05 | Phase 2 | Pending |
+| NAV-06 | Phase 2 | Pending |
+| NAV-07 | Phase 2 | Pending |
+| EDGE-01 | Phase 2 | Pending |
+| EDGE-02 | Phase 2 | Pending |
+| EDGE-03 | Phase 2 | Pending |
+| AA-01 | Phase 3 | Pending |
+| AA-02 | Phase 3 | Pending |
+| AA-03 | Phase 3 | Pending |
+| AA-04 | Phase 3 | Pending |
+| AA-05 | Phase 3 | Pending |
+| AA-06 | Phase 3 | Pending |
+| CLEAN-01 | Phase 4 | Pending |
+| CLEAN-02 | Phase 4 | Pending |
+| CLEAN-03 | Phase 4 | Pending |
+| CLEAN-04 | Phase 4 | Pending |
 
 **Coverage:**
-- v1 requirements: 28 total
-- Mapped to phases: 28
+- v0.4.5 requirements: 25 total
+- Mapped to phases: 25
 - Unmapped: 0
 
 ---
