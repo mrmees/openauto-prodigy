@@ -18,7 +18,7 @@ progress:
 See: .planning/PROJECT.md (updated 2026-03-03)
 
 **Core value:** A person with a Raspberry Pi 4 and a touchscreen can install this, pair their phone, and get a reliable wireless Android Auto experience -- every time, without SSH.
-**Current focus:** Phase 2 - UiMetrics Foundation + Touch Pipeline
+**Current focus:** Phase 3 - QML Hardcoded Island Audit
 
 ## Current Position
 
@@ -67,5 +67,5 @@ None yet.
 ## Session Continuity
 
 Last session: 2026-03-03
-Stopped at: Completed 02-02-PLAN.md (Touch Pipeline Display Dimensions) -- Phase 2 complete
-Resume file: None
+Stopped at: Phase 3 context gathered, ready for planning
+Resume file: .planning/phases/03-qml-hardcoded-island-audit/03-CONTEXT.md
