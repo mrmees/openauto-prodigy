@@ -48,10 +48,10 @@ Requirements for v0.4.4 Scalable UI. Each maps to roadmap phases.
 
 ### Runtime Adaptation
 
-- [ ] **ADAPT-01**: App auto-detects display resolution on startup and adjusts UiMetrics accordingly (no manual config required)
-- [ ] **ADAPT-02**: App responds dynamically if window dimensions change at runtime (e.g. compositor resize)
-- [ ] **ADAPT-03**: Portrait/landscape display orientation setting removed — app derives orientation from detected dimensions
-- [ ] **ADAPT-04**: Brightness detection adapts to display hardware (existing 3-tier sysfs > ddcutil > software)
+- [x] **ADAPT-01**: App auto-detects display resolution on startup and adjusts UiMetrics accordingly (no manual config required)
+- [x] **ADAPT-02**: App responds dynamically if window dimensions change at runtime (e.g. compositor resize)
+- [x] **ADAPT-03**: Portrait/landscape display orientation setting removed — app derives orientation from detected dimensions
+- [x] **ADAPT-04**: Brightness detection adapts to display hardware (existing 3-tier sysfs > ddcutil > software)
 
 ## v2 Requirements
 
@@ -106,10 +106,10 @@ Which phases cover which requirements. Updated during roadmap creation.
 | LAYOUT-01 | Phase 4 | Complete |
 | LAYOUT-02 | Phase 4 | Complete |
 | LAYOUT-03 | Phase 4 | Complete |
-| ADAPT-01 | Phase 5 | Pending |
-| ADAPT-02 | Phase 5 | Pending |
-| ADAPT-03 | Phase 5 | Pending |
-| ADAPT-04 | Phase 5 | Pending |
+| ADAPT-01 | Phase 5 | Complete |
+| ADAPT-02 | Phase 5 | Complete |
+| ADAPT-03 | Phase 5 | Complete |
+| ADAPT-04 | Phase 5 | Complete |
 
 **Coverage:**
 - v1 requirements: 28 total

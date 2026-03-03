@@ -2,13 +2,16 @@
 gsd_state_version: 1.0
 milestone: v0.4
 milestone_name: milestone
-status: unknown
-last_updated: "2026-03-03T18:05:39.646Z"
+status: completed
+stopped_at: Completed 05-01-PLAN.md
+last_updated: "2026-03-03T19:23:22.977Z"
+last_activity: 2026-03-03 -- Plan 05-01 executed
 progress:
-  total_phases: 2
-  completed_phases: 2
-  total_plans: 5
-  completed_plans: 5
+  total_phases: 5
+  completed_phases: 3
+  total_plans: 6
+  completed_plans: 6
+  percent: 100
 ---
 
 # Project State
@@ -18,14 +21,14 @@ progress:
 See: .planning/PROJECT.md (updated 2026-03-03)
 
 **Core value:** A person with a Raspberry Pi 4 and a touchscreen can install this, pair their phone, and get a reliable wireless Android Auto experience -- every time, without SSH.
-**Current focus:** Phase 4 - Layout Adaptation + Validation
+**Current focus:** Phase 5 - Runtime Adaptation (COMPLETE)
 
 ## Current Position
 
-Phase: 4 of 5 (Layout Adaptation + Validation)
-Plan: 2 of 2 in current phase (COMPLETE)
-Status: Phase 4 complete -- all layout adaptation and validation done
-Last activity: 2026-03-03 -- Plan 04-02 executed
+Phase: 5 of 5 (Runtime Adaptation)
+Plan: 1 of 1 in current phase (COMPLETE)
+Status: Phase 5 complete -- display config dead code removed, auto-detection is sole source
+Last activity: 2026-03-03 -- Plan 05-01 executed
 
 Progress: [##########] 100%
 
@@ -40,6 +43,7 @@ Progress: [##########] 100%
 |-------|------|----------|-------|-------|
 | 04    | 01   | 1min     | 2     | 3     |
 | 04    | 02   | 15min    | 2     | 6     |
+| Phase 05 P01 | 4min | 3 tasks | 14 files |
 
 ## Accumulated Context
 
@@ -76,6 +80,7 @@ Progress: [##########] 100%
 - [04-02] 480x272 intentionally skipped -- not a target scenario for car head units
 - [04-02] Nav bar width capped for narrow screens to prevent overflow
 - [04-02] Validation script supports Xvfb/VNC modes for headless testing
+- [Phase 05]: ServiceDiscoveryBuilder uses hardcoded 1024/600 as defensive fallback (overrides always set by AndroidAutoPlugin)
 
 ### Pending Todos
 
@@ -88,6 +93,6 @@ None yet.
 
 ## Session Continuity
 
-Last session: 2026-03-03
-Stopped at: Completed 04-02-PLAN.md (Phase 4 complete)
-Resume file: .planning/phases/04-layout-adaptation-validation/04-02-SUMMARY.md
+Last session: 2026-03-03T19:23:22.976Z
+Stopped at: Completed 05-01-PLAN.md
+Resume file: None

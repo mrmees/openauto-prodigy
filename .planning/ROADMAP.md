@@ -117,10 +117,10 @@ Plans:
   2. Swapping displays (e.g. DFRobot -> Pi official) produces correct scaling on next app launch without manual intervention
   3. Portrait/landscape orientation setting removed from Display settings -- app derives orientation from window dimensions
   4. Brightness auto-adapts to display hardware (sysfs backlight on Pi official, software fallback on DFRobot)
-**Plans**: TBD
+**Plans**: 1 plan
 
 Plans:
-- [ ] 05-01: TBD
+- [ ] 05-01-PLAN.md — Remove manual display config, dead IDisplayService methods, orientation UI; update tests and docs
 
 ## Progress
 
@@ -133,7 +133,7 @@ Phases execute in numeric order: 1 -> 2 -> 3 -> 4 -> 5
 | 2. UiMetrics Foundation + Touch Pipeline | 2/2 | Complete    | 2026-03-03 |
 | 3. QML Hardcoded Island Audit | 3/3 | Complete | 2026-03-03 |
 | 4. Layout Adaptation + Validation | 0/2 | Planning complete | - |
-| 5. Runtime Adaptation | 0/0 | Not started | - |
+| 5. Runtime Adaptation | 0/1 | Planning complete | - |
 
 ---
-*Last updated: 2026-03-03 -- Phase 4 planned (2 plans, 2 waves)*
+*Last updated: 2026-03-03 -- Phase 5 planned (1 plan, 1 wave)*
