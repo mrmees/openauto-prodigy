@@ -242,6 +242,7 @@ int main(int argc, char *argv[])
 
     // Register static (compiled-in) plugins
     auto aaPlugin = new oap::plugins::AndroidAutoPlugin(config, yamlConfig.get(), &app);
+    aaPlugin->setDisplayInfo(displayInfo);
     pluginManager.registerStaticPlugin(aaPlugin);
 
     auto btAudioPlugin = new oap::plugins::BtAudioPlugin(&app);

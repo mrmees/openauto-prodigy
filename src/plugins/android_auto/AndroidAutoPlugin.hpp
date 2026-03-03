@@ -11,6 +11,7 @@ namespace oap {
 class Configuration;
 class YamlConfig;
 class IHostContext;
+class DisplayInfo;
 
 namespace aa {
 class AndroidAutoOrchestrator;
@@ -65,6 +66,9 @@ public:
     QStringList requiredServices() const override { return {}; }
     bool wantsFullscreen() const override { return true; }
 
+    /// Set detected display dimensions source (must be called before initialize)
+    void setDisplayInfo(DisplayInfo* info);
+
     /// Gracefully disconnect the AA session (sends ShutdownRequest to phone)
     void stopAA();
 
@@ -81,6 +85,7 @@ private:
     oap::YamlConfig* yamlConfig_ = nullptr;
     IHostContext* hostContext_ = nullptr;
 
+    oap::DisplayInfo* displayInfo_ = nullptr;
     oap::aa::AndroidAutoOrchestrator* aaService_ = nullptr;
     oap::aa::EvdevTouchReader* touchReader_ = nullptr;
 };

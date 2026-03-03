@@ -70,6 +70,9 @@ public:
 
     VideoDecoder* videoDecoder() { return &videoDecoder_; }
     TouchHandler* touchHandler() { return &touchHandler_; }
+
+    /// Set detected display dimensions for margin calculations.
+    void setDisplayDimensions(int w, int h) { displayW_ = w; displayH_ = h; }
     oaa::hu::InputChannelHandler* inputHandler() { return &inputHandler_; }
 
     int connectionState() const { return state_; }
@@ -135,6 +138,8 @@ private:
     ConnectionState state_ = Disconnected;
     QString statusMessage_;
     bool pendingReconnect_ = false;
+    int displayW_ = 0;  // detected display dimensions (0 = use config fallback)
+    int displayH_ = 0;
 
 #ifdef HAS_BLUETOOTH
     class BluetoothDiscoveryService* btDiscovery_ = nullptr;

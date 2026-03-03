@@ -8,6 +8,7 @@
 #include "core/services/IConfigService.hpp"
 #include "core/services/ConfigService.hpp"
 #include "core/services/EqualizerService.hpp"
+#include "ui/DisplayInfo.hpp"
 #include <algorithm>
 #include "../../core/Logging.hpp"
 #include <QQmlContext>
@@ -29,6 +30,12 @@ AndroidAutoPlugin::~AndroidAutoPlugin()
 {
     shutdown();
 }
+
+void AndroidAutoPlugin::setDisplayInfo(DisplayInfo* info)
+{
+    displayInfo_ = info;
+}
+
 
 bool AndroidAutoPlugin::initialize(IHostContext* context)
 {
@@ -70,13 +77,26 @@ bool AndroidAutoPlugin::initialize(IHostContext* context)
         }
     }
 
-    // Read display resolution from config (default: 1024x600)
+    // Read display resolution: prefer detected dimensions from DisplayInfo,
+    // fall back to config values (default: 1024x600)
     int displayW = 1024, displayH = 600;
-    if (hostContext_ && hostContext_->configService()) {
-        QVariant w = hostContext_->configService()->value("display.width");
-        QVariant h = hostContext_->configService()->value("display.height");
-        if (w.isValid()) displayW = w.toInt();
-        if (h.isValid()) displayH = h.toInt();
+    if (displayInfo_ && displayInfo_->windowWidth() > 0 && displayInfo_->windowHeight() > 0) {
+        displayW = displayInfo_->windowWidth();
+        displayH = displayInfo_->windowHeight();
+        qCInfo(lcAA) << "Display dimensions: detected" << displayW << "x" << displayH;
+    } else {
+        if (hostContext_ && hostContext_->configService()) {
+            QVariant w = hostContext_->configService()->value("display.width");
+            QVariant h = hostContext_->configService()->value("display.height");
+            if (w.isValid()) displayW = w.toInt();
+            if (h.isValid()) displayH = h.toInt();
+        }
+        qCInfo(lcAA) << "Display dimensions: config" << displayW << "x" << displayH << "(fallback)";
+    }
+
+    // Pass detected dimensions to AA orchestrator for margin calculations
+    if (displayInfo_ && displayInfo_->windowWidth() > 0 && displayInfo_->windowHeight() > 0) {
+        aaService_->setDisplayDimensions(displayInfo_->windowWidth(), displayInfo_->windowHeight());
     }
 
     // Resolve AA touch coordinate space from configured video resolution
@@ -135,6 +155,20 @@ bool AndroidAutoPlugin::initialize(IHostContext* context)
         }
     } else {
         qCInfo(lcAA) << "No touch device found — touch input disabled";
+    }
+
+    // Wire dynamic display dimension updates from window resize detection
+    if (displayInfo_) {
+        connect(displayInfo_, &DisplayInfo::windowSizeChanged, this, [this]() {
+            int w = displayInfo_->windowWidth();
+            int h = displayInfo_->windowHeight();
+            if (w > 0 && h > 0) {
+                if (touchReader_)
+                    touchReader_->setDisplayDimensions(w, h);
+                if (aaService_)
+                    aaService_->setDisplayDimensions(w, h);
+            }
+        });
     }
 
     // Watch for video setting changes — disconnect active session so phone

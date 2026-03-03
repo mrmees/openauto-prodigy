@@ -234,6 +234,8 @@ void AndroidAutoOrchestrator::onNewConnection()
     ServiceDiscoveryBuilder builder(yamlConfig_, btMac,
                                      yamlConfig_ ? yamlConfig_->wifiSsid() : QString(),
                                      yamlConfig_ ? yamlConfig_->wifiPassword() : QString());
+    if (displayW_ > 0 && displayH_ > 0)
+        builder.setDisplayDimensions(displayW_, displayH_);
     oaa::SessionConfig config = builder.build();
 
     // Create session

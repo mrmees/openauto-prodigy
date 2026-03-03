@@ -19,6 +19,9 @@ public:
 
     oaa::SessionConfig build() const;
 
+    /// Override display dimensions for margin calculations (detected > config fallback).
+    void setDisplayDimensions(int w, int h);
+
 private:
     QByteArray buildVideoDescriptor() const;
     QByteArray buildMediaAudioDescriptor() const;
@@ -41,6 +44,8 @@ private:
     QString btMacAddress_;
     QString wifiSsid_;
     QString wifiPassword_;
+    int overrideDisplayW_ = 0;  // 0 = use yamlConfig values
+    int overrideDisplayH_ = 0;
 };
 
 } // namespace aa

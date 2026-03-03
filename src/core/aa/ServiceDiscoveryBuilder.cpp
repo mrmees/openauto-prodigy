@@ -46,6 +46,12 @@ ServiceDiscoveryBuilder::ServiceDiscoveryBuilder(
 {
 }
 
+void ServiceDiscoveryBuilder::setDisplayDimensions(int w, int h)
+{
+    overrideDisplayW_ = w;
+    overrideDisplayH_ = h;
+}
+
 oaa::SessionConfig ServiceDiscoveryBuilder::build() const
 {
     oaa::SessionConfig config;
@@ -94,8 +100,8 @@ void ServiceDiscoveryBuilder::calcMargins(int remoteW, int remoteH,
     if (!yamlConfig_ || !yamlConfig_->sidebarEnabled() || yamlConfig_->sidebarWidth() <= 0)
         return;
 
-    int displayW = yamlConfig_->displayWidth();
-    int displayH = yamlConfig_->displayHeight();
+    int displayW = (overrideDisplayW_ > 0) ? overrideDisplayW_ : yamlConfig_->displayWidth();
+    int displayH = (overrideDisplayH_ > 0) ? overrideDisplayH_ : yamlConfig_->displayHeight();
     int sidebarW = yamlConfig_->sidebarWidth();
     QString pos = yamlConfig_->sidebarPosition();
     bool horizontal = (pos == "top" || pos == "bottom");
@@ -271,8 +277,8 @@ QByteArray ServiceDiscoveryBuilder::buildInputDescriptor() const
         else if (res == "480p") { touchW = 800; touchH = 480; }
     }
     if (yamlConfig_ && yamlConfig_->sidebarEnabled() && yamlConfig_->sidebarWidth() > 0) {
-        int displayW = yamlConfig_->displayWidth();
-        int displayH = yamlConfig_->displayHeight();
+        int displayW = (overrideDisplayW_ > 0) ? overrideDisplayW_ : yamlConfig_->displayWidth();
+        int displayH = (overrideDisplayH_ > 0) ? overrideDisplayH_ : yamlConfig_->displayHeight();
         int sidebarW = yamlConfig_->sidebarWidth();
         QString pos = yamlConfig_->sidebarPosition();
         bool horizontal = (pos == "top" || pos == "bottom");
