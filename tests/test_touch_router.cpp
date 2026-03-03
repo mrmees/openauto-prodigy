@@ -179,7 +179,7 @@ private slots:
         claimed = router.dispatch(0, 301, 200, TouchEvent::Down);
         QVERIFY(!claimed);
 
-        QCOMPARE(hitCount, 2);  // two successful DOWNs
+        QCOMPARE(hitCount, 4);  // two successful DOWN + UP pairs
     }
 };
 
