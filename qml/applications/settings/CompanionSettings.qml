@@ -18,6 +18,12 @@ Flickable {
         anchors.margins: UiMetrics.marginPage
         spacing: UiMetrics.spacing
 
+        SettingsToggle {
+            label: "Companion Enabled"
+            configPath: "companion.enabled"
+            restartRequired: true
+        }
+
         SectionHeader { text: "Status" }
 
         // Connection indicator + pairing button
@@ -232,19 +238,6 @@ Flickable {
             }
         }
 
-        SectionHeader { text: "Configuration" }
-
-        SettingsToggle {
-            label: "Companion Enabled"
-            configPath: "companion.enabled"
-            restartRequired: true
-        }
-
-        ReadOnlyField {
-            label: "Listen Port"
-            configPath: "companion.port"
-            placeholder: "9876"
-        }
     }
 
     // Pairing code popup — tap anywhere to dismiss
