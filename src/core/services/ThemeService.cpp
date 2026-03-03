@@ -238,6 +238,14 @@ QColor ThemeService::pressedColor() const
     return c;
 }
 
+QColor ThemeService::highlightFontColor() const
+{
+    QColor c = activeColor("highlight_font");
+    if (c == QColor(Qt::transparent))
+        return activeColor("background");
+    return c;
+}
+
 QColor ThemeService::activeColor(const QString& key) const
 {
     const auto& colors = nightMode_ ? nightColors_ : dayColors_;

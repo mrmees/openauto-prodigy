@@ -50,7 +50,7 @@ Flickable {
                 anchors.bottom: parent.bottom
                 anchors.left: parent.left; anchors.right: parent.right
                 anchors.leftMargin: UiMetrics.marginPage; anchors.rightMargin: UiMetrics.marginPage
-                height: 1; color: ThemeService.descriptionFontColor; opacity: 0.15
+                height: 1; color: ThemeService.dividerColor
             }
         }
 
@@ -93,7 +93,7 @@ Flickable {
                     anchors.bottom: parent.bottom
                     anchors.left: parent.left; anchors.right: parent.right
                     anchors.leftMargin: UiMetrics.marginPage; anchors.rightMargin: UiMetrics.marginPage
-                    height: 1; color: ThemeService.descriptionFontColor; opacity: 0.15
+                    height: 1; color: ThemeService.dividerColor
                 }
             }
         }

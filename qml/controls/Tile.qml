@@ -6,7 +6,6 @@ Rectangle {
 
     property string tileName: ""
     property string tileIcon: ""
-    property string tileSubtitle: ""
     property bool tileEnabled: true
 
     signal clicked()

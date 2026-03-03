@@ -20,6 +20,8 @@ day:
   bar_shadow: "#000000"
   divider: "#ffffff1a"
   pressed: "#ffffff0d"
+  highlight_font: "#000000"
+  highlight_font: "#000000"
 
 # Night mode colors — identical to day (pure black needs no dimming)
 night:
@@ -38,3 +40,4 @@ night:
   bar_shadow: "#000000"
   divider: "#ffffff1a"
   pressed: "#ffffff0d"
+  highlight_font: "#000000"

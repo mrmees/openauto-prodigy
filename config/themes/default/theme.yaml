@@ -20,6 +20,7 @@ day:
   bar_shadow: "#000000"
   divider: "#ffffff26"
   pressed: "#ffffff1a"
+  highlight_font: "#1a1a2e"
 
 # Night mode colors — dimmer, less eye strain
 night:
@@ -38,3 +39,4 @@ night:
   bar_shadow: "#000000"
   divider: "#ffffff1a"
   pressed: "#ffffff0d"
+  highlight_font: "#0a0a14"
