@@ -7,6 +7,14 @@ Item {
 
     Component.onCompleted: ApplicationController.setTitle("Settings")
 
+    // Reset to tile grid whenever settings becomes visible (e.g. nav strip tap)
+    onVisibleChanged: {
+        if (visible && settingsStack.depth > 1) {
+            settingsStack.pop(null)
+            ApplicationController.setTitle("Settings")
+        }
+    }
+
     Connections {
         target: ApplicationController
         function onBackRequested() {
