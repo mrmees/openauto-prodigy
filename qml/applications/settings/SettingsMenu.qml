@@ -96,8 +96,8 @@ Item {
                 }
 
                 Tile {
-                    tileName: "Connectivity"
-                    tileIcon: "\ue1d8"
+                    tileName: "Bluetooth"
+                    tileIcon: "\ue1a7"
                     Layout.preferredWidth: UiMetrics.tileW
                     Layout.preferredHeight: UiMetrics.tileH
                     onClicked: openPage("connection")
@@ -134,7 +134,7 @@ Item {
             "aa": "Android Auto",
             "display": "Display",
             "audio": "Audio",
-            "connection": "Connectivity",
+            "connection": "Bluetooth",
             "system": "System",
             "companion": "Companion"
         }
