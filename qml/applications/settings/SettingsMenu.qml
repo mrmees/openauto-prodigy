@@ -104,18 +104,23 @@ Item {
         id: settingsList
 
         Item {
+            id: settingsGrid
             anchors.fill: parent
+
+            readonly property int _prefTileW: UiMetrics.tileW
+            readonly property int _gridCols: Math.max(1, Math.floor(width / (_prefTileW + UiMetrics.gridGap)))
+            readonly property int _actualTileW: Math.floor((width - (_gridCols - 1) * UiMetrics.gridGap) / _gridCols)
 
             GridLayout {
                 anchors.centerIn: parent
-                columns: 3
+                columns: settingsGrid._gridCols
                 columnSpacing: UiMetrics.gridGap
                 rowSpacing: UiMetrics.gridGap
 
                 Tile {
                     tileName: "Android Auto"
                     tileIcon: "\ue531"
-                    Layout.preferredWidth: UiMetrics.tileW
+                    Layout.preferredWidth: settingsGrid._actualTileW
                     Layout.preferredHeight: UiMetrics.tileH
                     onClicked: openPage("aa")
                 }
@@ -123,7 +128,7 @@ Item {
                 Tile {
                     tileName: "Display"
                     tileIcon: "\ueb97"
-                    Layout.preferredWidth: UiMetrics.tileW
+                    Layout.preferredWidth: settingsGrid._actualTileW
                     Layout.preferredHeight: UiMetrics.tileH
                     onClicked: openPage("display")
                 }
@@ -131,7 +136,7 @@ Item {
                 Tile {
                     tileName: "Audio"
                     tileIcon: "\ue050"
-                    Layout.preferredWidth: UiMetrics.tileW
+                    Layout.preferredWidth: settingsGrid._actualTileW
                     Layout.preferredHeight: UiMetrics.tileH
                     onClicked: openPage("audio")
                 }
@@ -139,7 +144,7 @@ Item {
                 Tile {
                     tileName: "Bluetooth"
                     tileIcon: "\ue1a7"
-                    Layout.preferredWidth: UiMetrics.tileW
+                    Layout.preferredWidth: settingsGrid._actualTileW
                     Layout.preferredHeight: UiMetrics.tileH
                     onClicked: openPage("connection")
                 }
@@ -147,7 +152,7 @@ Item {
                 Tile {
                     tileName: "Companion"
                     tileIcon: "\ue324"
-                    Layout.preferredWidth: UiMetrics.tileW
+                    Layout.preferredWidth: settingsGrid._actualTileW
                     Layout.preferredHeight: UiMetrics.tileH
                     onClicked: openPage("companion")
                 }
@@ -155,7 +160,7 @@ Item {
                 Tile {
                     tileName: "System"
                     tileIcon: "\uf8cd"
-                    Layout.preferredWidth: UiMetrics.tileW
+                    Layout.preferredWidth: settingsGrid._actualTileW
                     Layout.preferredHeight: UiMetrics.tileH
                     onClicked: openPage("system")
                 }

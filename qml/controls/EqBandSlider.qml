@@ -18,7 +18,8 @@ Item {
     // Layout constants derived from UiMetrics
     readonly property int labelAreaH: UiMetrics.fontTiny + UiMetrics.spacing
     readonly property int trackTopY: UiMetrics.spacing
-    readonly property int trackHeight: height - labelAreaH - UiMetrics.spacing * 2
+    readonly property int minTrackH: Math.round(60 * UiMetrics.scale)
+    readonly property int trackHeight: Math.max(height - labelAreaH - UiMetrics.spacing * 2, minTrackH)
     readonly property int trackWidth: Math.max(UiMetrics.spacing / 2, 2)
     readonly property int thumbH: Math.round(UiMetrics.touchMin * 0.6)
     readonly property int thumbW: Math.round(UiMetrics.touchMin * 0.8)
