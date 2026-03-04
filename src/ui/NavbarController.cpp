@@ -188,7 +188,6 @@ void NavbarController::showPopup(int controlIndex)
 
     popupVisible_ = true;
     popupControlIndex_ = controlIndex;
-    activePopupGeneration_ = popupGeneration_;
     popupDismissTimer_->start();
 
     // Don't register hardcoded zones — QML will call setPopupRegions()
@@ -447,7 +446,8 @@ void NavbarController::unregisterPopupZones()
 qint64 NavbarController::beginPopupSession(int controlIndex)
 {
     Q_UNUSED(controlIndex)
-    return ++popupGeneration_;
+    activePopupGeneration_ = ++popupGeneration_;
+    return activePopupGeneration_;
 }
 
 void NavbarController::setPopupRegions(int controlIndex, qint64 generation,
