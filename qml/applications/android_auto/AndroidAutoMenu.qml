@@ -21,7 +21,7 @@ Item {
         id: videoOutput
         anchors.fill: parent
         visible: androidAutoMenu.projecting
-        fillMode: VideoOutput.PreserveAspectFit
+        fillMode: VideoOutput.PreserveAspectCrop
     }
 
     // Debug touch overlay — maps content-space coordinates back to screen

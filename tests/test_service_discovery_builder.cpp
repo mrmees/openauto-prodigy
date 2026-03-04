@@ -137,8 +137,11 @@ private slots:
         QFAIL("Video channel not found");
     }
 
-    void testNavbarDisabledNoMargins() {
-        // When navbar is not shown during AA, margins should be (0,0)
+    void testNavbarDisabledStillHasDisplayMargins() {
+        // Even without navbar, margins match display aspect ratio (1024x600)
+        // so the video fills the viewport with no letterbox bars.
+        // 1024/600 = 1.707 < 1280/720 = 1.778 → X margin
+        // marginW = round(1280 - 720 * 1024/600) = round(1280 - 1229) = 51
         oap::YamlConfig config;
         config.setValueByPath("navbar.show_during_aa", false);
         config.setValueByPath("navbar.edge", QString("bottom"));
@@ -152,7 +155,7 @@ private slots:
                 oaa::proto::data::ChannelDescriptor desc;
                 QVERIFY(desc.ParseFromArray(ch.descriptor.constData(), ch.descriptor.size()));
                 auto& vc = desc.av_channel().video_configs(0);
-                QCOMPARE(vc.margin_width(), 0);
+                QCOMPARE(vc.margin_width(), 51);
                 QCOMPARE(vc.margin_height(), 0);
                 return;
             }

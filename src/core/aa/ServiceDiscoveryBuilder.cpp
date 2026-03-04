@@ -132,14 +132,12 @@ std::pair<int,int> ServiceDiscoveryBuilder::computeContentDimensions(
     }
 
     int contentW = videoW, contentH = videoH;
-    if (viewportW != displayW || viewportH != displayH) {
-        float screenRatio = static_cast<float>(viewportW) / viewportH;
-        float remoteRatio = static_cast<float>(videoW) / videoH;
-        if (screenRatio < remoteRatio)
-            contentW -= static_cast<int>(std::round(videoW - (videoH * screenRatio)));
-        else
-            contentH -= static_cast<int>(std::round(videoH - (videoW / screenRatio)));
-    }
+    float screenRatio = static_cast<float>(viewportW) / viewportH;
+    float remoteRatio = static_cast<float>(videoW) / videoH;
+    if (screenRatio < remoteRatio)
+        contentW -= static_cast<int>(std::round(videoW - (videoH * screenRatio)));
+    else if (screenRatio > remoteRatio)
+        contentH -= static_cast<int>(std::round(videoH - (videoW / screenRatio)));
     return {contentW, contentH};
 }
 
