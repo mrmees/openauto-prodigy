@@ -3,6 +3,7 @@
 #include "core/aa/EvdevCoordBridge.hpp"
 #include "core/services/ActionRegistry.hpp"
 #include <QMetaObject>
+#include <algorithm>
 
 namespace oap {
 
@@ -244,6 +245,16 @@ void NavbarController::setActionRegistry(ActionRegistry* registry)
     actionRegistry_ = registry;
 }
 
+void NavbarController::setAudioService(QObject* svc)
+{
+    audioService_ = svc;
+}
+
+void NavbarController::setDisplayService(QObject* svc)
+{
+    displayService_ = svc;
+}
+
 // --- Zone registration ---
 
 void NavbarController::registerZones(int displayWidth, int displayHeight)
@@ -387,16 +398,32 @@ void NavbarController::registerPopupZones(int controlIndex)
     }
 
     int ctrlIdx = controlIndex;
+    float pY = popupY, pH = popupH;
     coordBridge_->updateZone(
         std::string("navbar-popup-slider"), 60,
         popupX, popupY, popupW, popupH,
-        [this, ctrlIdx](int /*slot*/, float x, float y, aa::TouchEvent event) {
+        [this, ctrlIdx, pY, pH](int /*slot*/, float /*x*/, float y, aa::TouchEvent event) {
             if (event == aa::TouchEvent::Move || event == aa::TouchEvent::Down) {
-                // Normalize drag value based on slider orientation (always vertical)
-                // Even on horizontal navbar, the slider extends vertically into content
-                // so we use y for normalization
-                QMetaObject::invokeMethod(this, [this, ctrlIdx, y]() {
-                    emit popupDrag(ctrlIdx, y);
+                // Convert raw evdev Y to a 0-1 slider value based on popup geometry
+                float normalized = std::clamp((y - pY) / pH, 0.0f, 1.0f);
+                // Invert: top of popup = max value, bottom = min (slider grows upward)
+                if (edge_ == "bottom" || edge_ == "right")
+                    normalized = 1.0f - normalized;
+
+                QMetaObject::invokeMethod(this, [this, ctrlIdx, normalized]() {
+                    // Direct service calls for EVIOCGRAB mode (QML sliders can't receive touches)
+                    QString role = controlRole(ctrlIdx);
+                    if (role == "volume" && audioService_) {
+                        int volume = static_cast<int>(normalized * 100.0f);
+                        QMetaObject::invokeMethod(audioService_, "setMasterVolume",
+                                                  Qt::QueuedConnection, Q_ARG(int, volume));
+                    } else if (role == "brightness" && displayService_) {
+                        int brightness = 5 + static_cast<int>(normalized * 95.0f);
+                        QMetaObject::invokeMethod(displayService_, "setBrightness",
+                                                  Qt::QueuedConnection, Q_ARG(int, brightness));
+                    }
+                    // Also emit for QML popup visual updates in non-grab mode
+                    emit popupDrag(ctrlIdx, normalized);
                 }, Qt::QueuedConnection);
             }
         });

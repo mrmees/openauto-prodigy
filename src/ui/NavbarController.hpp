@@ -75,6 +75,8 @@ public:
     // --- External dependency setters ---
     void setCoordBridge(oap::aa::EvdevCoordBridge* bridge);
     void setActionRegistry(ActionRegistry* registry);
+    void setAudioService(QObject* svc);
+    void setDisplayService(QObject* svc);
 
 signals:
     void gestureTriggered(int controlIndex, int gesture);
@@ -121,6 +123,8 @@ private:
     // External dependencies (not owned)
     oap::aa::EvdevCoordBridge* coordBridge_ = nullptr;
     ActionRegistry* actionRegistry_ = nullptr;
+    QObject* audioService_ = nullptr;
+    QObject* displayService_ = nullptr;
 };
 
 } // namespace oap

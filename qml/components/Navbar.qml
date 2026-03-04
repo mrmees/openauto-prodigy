@@ -311,8 +311,13 @@ Item {
     onWidthChanged: Qt.callLater(registerZones)
     onHeightChanged: Qt.callLater(registerZones)
     onEdgeChanged: Qt.callLater(registerZones)
+    onVisibleChanged: Qt.callLater(registerZones)
 
     function registerZones() {
+        if (!navbar.visible) {
+            NavbarController.unregisterZones()
+            return
+        }
         if (navbar.parent && navbar.parent.width > 0 && navbar.parent.height > 0) {
             NavbarController.registerZones(navbar.parent.width, navbar.parent.height)
         }
