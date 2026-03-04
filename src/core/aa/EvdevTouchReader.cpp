@@ -39,9 +39,10 @@ void EvdevTouchReader::computeLetterbox()
 
     float videoPixelW, videoPixelH, videoPixelX0, videoPixelY0;
 
-    // Navbar always uses PreserveAspectFit -- no crop modes
-    visibleAAWidth_ = aaWidth_;
-    visibleAAHeight_ = aaHeight_;
+    // Use content-space dimensions when set (matches touch_screen_config),
+    // otherwise fall back to full video resolution (backward compatible).
+    visibleAAWidth_ = (contentWidth_ > 0) ? contentWidth_ : aaWidth_;
+    visibleAAHeight_ = (contentHeight_ > 0) ? contentHeight_ : aaHeight_;
 
     if (videoAspect > displayAspect) {
         // Fit mode: video fills width, letterbox top/bottom
@@ -72,7 +73,8 @@ void EvdevTouchReader::computeLetterbox()
 
     qCDebug(lcAA) << "Diagnostic: navbar=" << (navbarEnabled_ ? navbarEdge_.c_str() : "off")
                             << " " << navbarThickness_ << "px"
-                            << " | contentW=" << visibleAAWidth_ << " contentH=" << visibleAAHeight_
+                            << " | video=" << aaWidth_ << "x" << aaHeight_
+                            << " content=" << visibleAAWidth_ << "x" << visibleAAHeight_
                             << " | touch range: X=[" << mapX(static_cast<int>(videoEvdevX0_))
                             << "," << mapX(static_cast<int>(videoEvdevX0_ + videoEvdevW_))
                             << "] Y=[" << mapY(static_cast<int>(videoEvdevY0_))
@@ -85,6 +87,13 @@ void EvdevTouchReader::setNavbar(bool enabled, int thickness, const std::string&
     navbarThickness_ = thickness;
     navbarEdge_ = edge;
     // Navbar zones are registered by NavbarController via EvdevCoordBridge -- not here.
+}
+
+void EvdevTouchReader::setContentDimensions(int w, int h)
+{
+    contentWidth_ = w;
+    contentHeight_ = h;
+    qCInfo(lcAA) << "Content dimensions set:" << w << "x" << h;
 }
 
 void EvdevTouchReader::setAAResolution(int aaWidth, int aaHeight)

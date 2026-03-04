@@ -70,6 +70,11 @@ public:
     /// Direct access to the touch router (for external zone registration)
     TouchRouter& router() { return router_; }
 
+    /// Set content-space dimensions (video res minus margins).
+    /// When set, mapX/mapY output in this coordinate space instead of full video res.
+    /// Must match touch_screen_config sent to the phone.
+    void setContentDimensions(int w, int h);
+
     /// Thread-safe: update AA coordinate space (e.g. after video resolution change).
     /// Takes effect on next touch sync on the reader thread.
     void setAAResolution(int aaWidth, int aaHeight);
@@ -126,6 +131,11 @@ private:
     int gestureMaxFingers_ = 0;   // max simultaneous fingers in current gesture window
     std::chrono::steady_clock::time_point firstFingerTime_;
     int prevActiveCount_ = 0;
+
+    // Content-space dimensions (video res minus margins, matches touch_screen_config)
+    // When > 0, mapX/mapY output in this coordinate space instead of full video res.
+    int contentWidth_ = 0;
+    int contentHeight_ = 0;
 
     // Navbar dimensions for letterbox calculation
     bool navbarEnabled_ = false;
