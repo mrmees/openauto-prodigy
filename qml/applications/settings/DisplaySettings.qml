@@ -49,6 +49,19 @@ Flickable {
             Component.onCompleted: ThemeService.refreshWallpapers()
         }
 
+        SectionHeader { text: "Navbar" }
+
+        FullScreenPicker {
+            label: "Navbar Position"
+            configPath: "navbar.edge"
+            options: ["Bottom", "Top", "Left", "Right"]
+            values: ["bottom", "top", "left", "right"]
+            onActivated: function(index) {
+                var edges = ["bottom", "top", "left", "right"]
+                NavbarController.setEdge(edges[index])
+            }
+        }
+
         SectionHeader { text: "Day / Night Mode" }
 
         FullScreenPicker {
