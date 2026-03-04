@@ -1,5 +1,7 @@
 #include "ui/NavbarController.hpp"
 #include "core/aa/TouchRouter.hpp"
+#include "core/aa/EvdevCoordBridge.hpp"
+#include "core/services/ActionRegistry.hpp"
 #include <QMetaObject>
 
 namespace oap {
@@ -40,6 +42,10 @@ NavbarController::NavbarController(QObject* parent)
     popupDismissTimer_->setSingleShot(true);
     popupDismissTimer_->setInterval(7000);
     connect(popupDismissTimer_, &QTimer::timeout, this, &NavbarController::hidePopup);
+
+    // Wire gesture signals to action dispatch
+    connect(this, &NavbarController::gestureTriggered,
+            this, &NavbarController::dispatchAction);
 }
 
 NavbarController::~NavbarController() = default;
@@ -140,6 +146,11 @@ void NavbarController::setEdge(const QString& edge)
         return;
     edge_ = edge;
     emit edgeChanged();
+
+    // Re-register zones at new positions if they were registered
+    if (zonesRegistered_ && coordBridge_) {
+        registerZones(displayWidth_, displayHeight_);
+    }
 }
 
 bool NavbarController::leftHandDrive() const
@@ -175,6 +186,10 @@ void NavbarController::showPopup(int controlIndex)
     popupVisible_ = true;
     popupControlIndex_ = controlIndex;
     popupDismissTimer_->start();
+
+    if (coordBridge_ && zonesRegistered_)
+        registerPopupZones(controlIndex);
+
     emit popupChanged();
 }
 
@@ -186,6 +201,10 @@ void NavbarController::hidePopup()
     popupVisible_ = false;
     popupControlIndex_ = -1;
     popupDismissTimer_->stop();
+
+    if (coordBridge_)
+        unregisterPopupZones();
+
     emit popupChanged();
 }
 
@@ -223,6 +242,192 @@ void NavbarController::setCoordBridge(oap::aa::EvdevCoordBridge* bridge)
 void NavbarController::setActionRegistry(ActionRegistry* registry)
 {
     actionRegistry_ = registry;
+}
+
+// --- Zone registration ---
+
+void NavbarController::registerZones(int displayWidth, int displayHeight)
+{
+    if (!coordBridge_)
+        return;
+
+    displayWidth_ = displayWidth;
+    displayHeight_ = displayHeight;
+    zonesRegistered_ = true;
+
+    // Zone IDs for 3 controls
+    static const std::string zoneIds[3] = {
+        "navbar-driver", "navbar-center", "navbar-passenger"
+    };
+
+    bool isVertical = (edge_ == "left" || edge_ == "right");
+
+    for (int i = 0; i < 3; ++i) {
+        float px, py, pw, ph;
+
+        if (!isVertical) {
+            // Horizontal bar (top/bottom)
+            float totalW = static_cast<float>(displayWidth);
+            float quarterW = totalW / 4.0f;
+            float halfW = totalW / 2.0f;
+
+            if (i == 0) {          // driver (left 1/4)
+                px = 0; pw = quarterW;
+            } else if (i == 1) {   // center (middle 1/2)
+                px = quarterW; pw = halfW;
+            } else {               // passenger (right 1/4)
+                px = quarterW + halfW; pw = quarterW;
+            }
+
+            ph = static_cast<float>(BAR_THICK);
+            if (edge_ == "bottom") {
+                py = static_cast<float>(displayHeight - BAR_THICK);
+            } else {  // top
+                py = 0;
+            }
+        } else {
+            // Vertical bar (left/right)
+            float totalH = static_cast<float>(displayHeight);
+            float quarterH = totalH / 4.0f;
+            float halfH = totalH / 2.0f;
+
+            if (i == 0) {          // driver (top 1/4)
+                py = 0; ph = quarterH;
+            } else if (i == 1) {   // center (middle 1/2)
+                py = quarterH; ph = halfH;
+            } else {               // passenger (bottom 1/4)
+                py = quarterH + halfH; ph = quarterH;
+            }
+
+            pw = static_cast<float>(BAR_THICK);
+            if (edge_ == "left") {
+                px = 0;
+            } else {  // right
+                px = static_cast<float>(displayWidth - BAR_THICK);
+            }
+        }
+
+        int controlIdx = i;
+        coordBridge_->updateZone(
+            zoneIds[i], 50, px, py, pw, ph,
+            [this, controlIdx](int slot, float x, float y, aa::TouchEvent event) {
+                onZoneTouch(controlIdx, slot, x, y, event);
+            });
+    }
+}
+
+void NavbarController::unregisterZones()
+{
+    if (!coordBridge_)
+        return;
+
+    coordBridge_->removeZone(std::string("navbar-driver"));
+    coordBridge_->removeZone(std::string("navbar-center"));
+    coordBridge_->removeZone(std::string("navbar-passenger"));
+    unregisterPopupZones();
+    zonesRegistered_ = false;
+}
+
+void NavbarController::registerPopupZones(int controlIndex)
+{
+    if (!coordBridge_)
+        return;
+
+    // Screen-wide dismiss zone at priority 40
+    coordBridge_->updateZone(
+        std::string("navbar-popup-dismiss"), 40,
+        0, 0,
+        static_cast<float>(displayWidth_), static_cast<float>(displayHeight_),
+        [this](int /*slot*/, float /*x*/, float /*y*/, aa::TouchEvent event) {
+            if (event == aa::TouchEvent::Down) {
+                QMetaObject::invokeMethod(this, [this]() {
+                    hidePopup();
+                }, Qt::QueuedConnection);
+            }
+        });
+
+    // Popup slider zone at priority 60 (higher than dismiss)
+    // Positioned adjacent to the triggering control, extending into content area
+    // Exact position will be refined by QML layout; for now use a reasonable area
+    float popupX = 0, popupY = 0, popupW = 0, popupH = 0;
+    bool isVertical = (edge_ == "left" || edge_ == "right");
+
+    if (!isVertical) {
+        float quarterW = static_cast<float>(displayWidth_) / 4.0f;
+        if (controlIndex == 0) {
+            popupX = 0;
+        } else if (controlIndex == 1) {
+            popupX = quarterW;
+        } else {
+            popupX = quarterW + static_cast<float>(displayWidth_) / 2.0f;
+        }
+        popupW = (controlIndex == 1) ? static_cast<float>(displayWidth_) / 2.0f : quarterW;
+        popupH = 200;  // popup height into content
+        if (edge_ == "bottom") {
+            popupY = static_cast<float>(displayHeight_ - BAR_THICK) - popupH;
+        } else {
+            popupY = static_cast<float>(BAR_THICK);
+        }
+    } else {
+        float quarterH = static_cast<float>(displayHeight_) / 4.0f;
+        if (controlIndex == 0) {
+            popupY = 0;
+        } else if (controlIndex == 1) {
+            popupY = quarterH;
+        } else {
+            popupY = quarterH + static_cast<float>(displayHeight_) / 2.0f;
+        }
+        popupH = (controlIndex == 1) ? static_cast<float>(displayHeight_) / 2.0f : quarterH;
+        popupW = 200;  // popup width into content
+        if (edge_ == "left") {
+            popupX = static_cast<float>(BAR_THICK);
+        } else {
+            popupX = static_cast<float>(displayWidth_ - BAR_THICK) - popupW;
+        }
+    }
+
+    int ctrlIdx = controlIndex;
+    coordBridge_->updateZone(
+        std::string("navbar-popup-slider"), 60,
+        popupX, popupY, popupW, popupH,
+        [this, ctrlIdx](int /*slot*/, float x, float y, aa::TouchEvent event) {
+            if (event == aa::TouchEvent::Move || event == aa::TouchEvent::Down) {
+                // Normalize drag value based on slider orientation (always vertical)
+                // Even on horizontal navbar, the slider extends vertically into content
+                // so we use y for normalization
+                QMetaObject::invokeMethod(this, [this, ctrlIdx, y]() {
+                    emit popupDrag(ctrlIdx, y);
+                }, Qt::QueuedConnection);
+            }
+        });
+}
+
+void NavbarController::unregisterPopupZones()
+{
+    if (!coordBridge_)
+        return;
+    coordBridge_->removeZone(std::string("navbar-popup-dismiss"));
+    coordBridge_->removeZone(std::string("navbar-popup-slider"));
+}
+
+// --- Action dispatch ---
+
+void NavbarController::dispatchAction(int controlIndex, int gesture)
+{
+    if (!actionRegistry_)
+        return;
+
+    QString role = controlRole(controlIndex);
+    QString gestureStr;
+    switch (gesture) {
+    case Tap:       gestureStr = QStringLiteral("tap"); break;
+    case ShortHold: gestureStr = QStringLiteral("shortHold"); break;
+    case LongHold:  gestureStr = QStringLiteral("longHold"); break;
+    default: return;
+    }
+
+    QString actionId = QStringLiteral("navbar.%1.%2").arg(role, gestureStr);
+    actionRegistry_->dispatch(actionId);
 }
 
 // --- Private ---

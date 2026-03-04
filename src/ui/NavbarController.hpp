@@ -68,6 +68,10 @@ public:
     int shortHoldMaxMs() const;
     void setShortHoldMaxMs(int ms);
 
+    // --- Zone registration ---
+    Q_INVOKABLE void registerZones(int displayWidth, int displayHeight);
+    Q_INVOKABLE void unregisterZones();
+
     // --- External dependency setters ---
     void setCoordBridge(oap::aa::EvdevCoordBridge* bridge);
     void setActionRegistry(ActionRegistry* registry);
@@ -89,6 +93,9 @@ private:
     };
 
     void resetControlState(int index);
+    void dispatchAction(int controlIndex, int gesture);
+    void registerPopupZones(int controlIndex);
+    void unregisterPopupZones();
 
     std::array<ControlState, 3> controls_;
     std::array<QTimer*, 3> longHoldTimers_;
@@ -103,6 +110,12 @@ private:
     bool popupVisible_ = false;
     int popupControlIndex_ = -1;
     QTimer* popupDismissTimer_ = nullptr;
+
+    // Zone registration state
+    bool zonesRegistered_ = false;
+    int displayWidth_ = 0;
+    int displayHeight_ = 0;
+    static constexpr int BAR_THICK = 56;
 
     // External dependencies (not owned)
     oap::aa::EvdevCoordBridge* coordBridge_ = nullptr;
