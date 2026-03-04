@@ -11,6 +11,10 @@ Item {
 
     ColumnLayout {
         anchors.fill: parent
+        anchors.topMargin: navbar.visible && navbar.edge === "top" ? navbar.barThick : 0
+        anchors.bottomMargin: navbar.visible && navbar.edge === "bottom" ? navbar.barThick : 0
+        anchors.leftMargin: navbar.visible && navbar.edge === "left" ? navbar.barThick : 0
+        anchors.rightMargin: navbar.visible && navbar.edge === "right" ? navbar.barThick : 0
         spacing: 0
 
         // Status bar — ~8% height, hidden in fullscreen
