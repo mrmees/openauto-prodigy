@@ -3,7 +3,9 @@
 #include "core/aa/EvdevCoordBridge.hpp"
 #include "core/services/ActionRegistry.hpp"
 #include <QMetaObject>
+#include <QVariantMap>
 #include <algorithm>
+#include <cmath>
 
 namespace oap {
 
@@ -450,10 +452,125 @@ qint64 NavbarController::beginPopupSession(int controlIndex)
 void NavbarController::setPopupRegions(int controlIndex, qint64 generation,
                                         const QVariantList& regions)
 {
-    // Stub — will be implemented in Task 4
-    Q_UNUSED(controlIndex)
-    Q_UNUSED(generation)
-    Q_UNUSED(regions)
+    if (!coordBridge_ || generation != activePopupGeneration_)
+        return;
+
+    // Region types matching QML enum
+    static constexpr int REGION_TYPE_SLIDER = 0;
+    static constexpr int REGION_TYPE_BUTTON = 1;
+    static constexpr float TAP_SLOP_PX = 15.0f;
+
+    // Remove any previously registered popup region zones
+    unregisterPopupRegionZones();
+
+    // Also remove the hardcoded popup zones from showPopup (Pass 1 fallback)
+    coordBridge_->removeZone(std::string("navbar-popup-slider"));
+    coordBridge_->removeZone(std::string("navbar-popup-dismiss"));
+
+    // Register dismiss zone (full screen, priority 40, fires on Up)
+    std::string dismissId = "popup." + std::to_string(controlIndex) + "."
+                           + std::to_string(generation) + ".dismiss";
+    popupRegionZoneIds_.push_back(dismissId);
+    coordBridge_->updateZone(
+        dismissId, 40,
+        0, 0,
+        static_cast<float>(displayWidth_), static_cast<float>(displayHeight_),
+        [this](int /*slot*/, float /*x*/, float /*y*/, aa::TouchEvent event) {
+            if (event == aa::TouchEvent::Up) {
+                QMetaObject::invokeMethod(this, [this]() {
+                    hidePopup();
+                }, Qt::QueuedConnection);
+            }
+        });
+
+    // Register each interactive region
+    for (const QVariant& regionVar : regions) {
+        QVariantMap region = regionVar.toMap();
+
+        if (!region.contains("id") || !region.contains("type") ||
+            !region.contains("x") || !region.contains("y") ||
+            !region.contains("w") || !region.contains("h")) {
+            qWarning("NavbarController: invalid popup region (missing fields), skipping");
+            continue;
+        }
+
+        QString id = region["id"].toString();
+        int type = region["type"].toInt();
+        float x = region["x"].toFloat();
+        float y = region["y"].toFloat();
+        float w = region["w"].toFloat();
+        float h = region["h"].toFloat();
+
+        std::string zoneId = "popup." + std::to_string(controlIndex) + "."
+                            + std::to_string(generation) + "." + id.toStdString();
+        popupRegionZoneIds_.push_back(zoneId);
+
+        if (type == REGION_TYPE_SLIDER) {
+            int target = region.value("target", 0).toInt();
+            int minVal = region.value("min", 0).toInt();
+            int maxVal = region.value("max", 100).toInt();
+            bool invertAxis = region.value("invertAxis", true).toBool();
+
+            // Pre-compute evdev-space bounds for normalization
+            float evY0 = coordBridge_->pixelToEvdevY(y);
+            float evY1 = coordBridge_->pixelToEvdevY(y + h);
+            float evRange = evY1 - evY0;
+
+            coordBridge_->updateZone(
+                zoneId, 60, x, y, w, h,
+                [this, target, minVal, maxVal, invertAxis, evY0, evRange]
+                (int /*slot*/, float /*x*/, float evY, aa::TouchEvent event) {
+                    if (event == aa::TouchEvent::Move || event == aa::TouchEvent::Down) {
+                        float normalized = (evRange > 0)
+                            ? std::clamp((evY - evY0) / evRange, 0.0f, 1.0f)
+                            : 0.5f;
+                        if (invertAxis)
+                            normalized = 1.0f - normalized;
+
+                        int value = minVal + static_cast<int>(normalized * (maxVal - minVal));
+
+                        QMetaObject::invokeMethod(this, [this, target, value]() {
+                            if (target == 0 && audioService_) {
+                                QMetaObject::invokeMethod(audioService_, "setMasterVolume",
+                                                          Qt::QueuedConnection, Q_ARG(int, value));
+                            } else if (target == 1 && displayService_) {
+                                QMetaObject::invokeMethod(displayService_, "setBrightness",
+                                                          Qt::QueuedConnection, Q_ARG(int, value));
+                            }
+                            bumpPopupDismissTimer();
+                        }, Qt::QueuedConnection);
+                    }
+                });
+
+        } else if (type == REGION_TYPE_BUTTON) {
+            QString action = region.value("action").toString();
+            float tapSlopEvdev = coordBridge_->pixelToEvdevY(TAP_SLOP_PX);
+
+            coordBridge_->updateZone(
+                zoneId, 60, x, y, w, h,
+                [this, action, tapSlopEvdev]
+                (int /*slot*/, float evX, float evY, aa::TouchEvent event) {
+                    static float downX = 0, downY = 0;
+                    if (event == aa::TouchEvent::Down) {
+                        downX = evX;
+                        downY = evY;
+                    } else if (event == aa::TouchEvent::Up) {
+                        float dx = evX - downX;
+                        float dy = evY - downY;
+                        float dist = std::sqrt(dx * dx + dy * dy);
+                        if (dist <= tapSlopEvdev) {
+                            QMetaObject::invokeMethod(this, [this, action]() {
+                                hidePopup();
+                                if (actionRegistry_) {
+                                    actionRegistry_->dispatch(
+                                        QStringLiteral("app.%1").arg(action));
+                                }
+                            }, Qt::QueuedConnection);
+                        }
+                    }
+                });
+        }
+    }
 }
 
 void NavbarController::clearPopupRegions(int controlIndex, qint64 generation)

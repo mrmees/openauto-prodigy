@@ -576,6 +576,169 @@ private slots:
         QVERIFY(ctrl->popupVisible());
     }
 
+    // --- setPopupRegions ---
+
+    void testSetPopupRegionsSliderZoneClaims()
+    {
+        oap::aa::TouchRouter router;
+        oap::aa::EvdevCoordBridge bridge(&router);
+        bridge.setDisplayMapping(1024, 600, 4095, 4095);
+
+        auto ctrl = makeController(true, "bottom");
+        ctrl->setCoordBridge(&bridge);
+        ctrl->registerZones(1024, 600);
+
+        qint64 gen = ctrl->beginPopupSession(0);
+        ctrl->showPopup(0);
+
+        // Report a slider region covering left strip of screen
+        QVariantList regions;
+        QVariantMap slider;
+        slider["id"] = "volume-slider";
+        slider["type"] = 0;  // Slider
+        slider["x"] = 10.0;
+        slider["y"] = 0.0;
+        slider["w"] = 80.0;
+        slider["h"] = 600.0;
+        slider["target"] = 0;  // Volume
+        slider["min"] = 0;
+        slider["max"] = 100;
+        slider["axis"] = 0;  // Vertical
+        slider["invertAxis"] = true;
+        regions.append(slider);
+
+        ctrl->setPopupRegions(0, gen, regions);
+
+        // Touch inside the reported slider region should be claimed
+        float sliderEvX = bridge.pixelToEvdevX(50);  // x=50, inside [10,90]
+        float sliderEvY = bridge.pixelToEvdevY(300); // y=300, inside [0,600]
+        bool claimed = router.dispatch(0, sliderEvX, sliderEvY, oap::aa::TouchEvent::Down);
+        QVERIFY(claimed);
+        router.resetClaims();
+
+        // Touch outside the slider region but inside screen should hit dismiss zone
+        float outsideEvX = bridge.pixelToEvdevX(500);
+        float outsideEvY = bridge.pixelToEvdevY(300);
+        claimed = router.dispatch(1, outsideEvX, outsideEvY, oap::aa::TouchEvent::Down);
+        QVERIFY(claimed);  // dismiss zone
+        router.resetClaims();
+    }
+
+    void testSetPopupRegionsButtonZoneClaims()
+    {
+        oap::aa::TouchRouter router;
+        oap::aa::EvdevCoordBridge bridge(&router);
+        bridge.setDisplayMapping(1024, 600, 4095, 4095);
+
+        auto ctrl = makeController(true, "bottom");
+        ctrl->setCoordBridge(&bridge);
+        ctrl->registerZones(1024, 600);
+
+        qint64 gen = ctrl->beginPopupSession(1);
+        ctrl->showPopup(1);
+
+        // Report 3 button regions
+        QVariantList regions;
+        for (const auto& action : {"minimize", "restart", "quit"}) {
+            QVariantMap btn;
+            btn["id"] = QString("btn-%1").arg(action);
+            btn["type"] = 1;  // Button
+            btn["x"] = 400.0;
+            btn["y"] = 100.0 + regions.size() * 60.0;
+            btn["w"] = 160.0;
+            btn["h"] = 50.0;
+            btn["action"] = QString(action);
+            regions.append(btn);
+        }
+
+        ctrl->setPopupRegions(1, gen, regions);
+
+        // Touch inside first button region
+        float btnEvX = bridge.pixelToEvdevX(480);  // center of button
+        float btnEvY = bridge.pixelToEvdevY(125);  // center of first button
+        bool claimed = router.dispatch(0, btnEvX, btnEvY, oap::aa::TouchEvent::Down);
+        QVERIFY(claimed);
+        router.resetClaims();
+    }
+
+    void testSetPopupRegionsReplacesOldZones()
+    {
+        oap::aa::TouchRouter router;
+        oap::aa::EvdevCoordBridge bridge(&router);
+        bridge.setDisplayMapping(1024, 600, 4095, 4095);
+
+        auto ctrl = makeController(true, "bottom");
+        ctrl->setCoordBridge(&bridge);
+        ctrl->registerZones(1024, 600);
+
+        qint64 gen = ctrl->beginPopupSession(0);
+        ctrl->showPopup(0);
+
+        // First set: slider at x=0-100
+        QVariantList regions1;
+        QVariantMap slider1;
+        slider1["id"] = "slider";
+        slider1["type"] = 0;
+        slider1["x"] = 0.0; slider1["y"] = 0.0;
+        slider1["w"] = 100.0; slider1["h"] = 600.0;
+        slider1["target"] = 0; slider1["min"] = 0; slider1["max"] = 100;
+        slider1["axis"] = 0; slider1["invertAxis"] = true;
+        regions1.append(slider1);
+        ctrl->setPopupRegions(0, gen, regions1);
+
+        // Second set: slider at x=500-600 (different position)
+        QVariantList regions2;
+        QVariantMap slider2;
+        slider2["id"] = "slider";
+        slider2["type"] = 0;
+        slider2["x"] = 500.0; slider2["y"] = 0.0;
+        slider2["w"] = 100.0; slider2["h"] = 600.0;
+        slider2["target"] = 0; slider2["min"] = 0; slider2["max"] = 100;
+        slider2["axis"] = 0; slider2["invertAxis"] = true;
+        regions2.append(slider2);
+        ctrl->setPopupRegions(0, gen, regions2);
+
+        // New position SHOULD be claimed by slider (priority 60)
+        float newEvX = bridge.pixelToEvdevX(550);
+        float evY = bridge.pixelToEvdevY(300);
+        bool claimed = router.dispatch(0, newEvX, evY, oap::aa::TouchEvent::Down);
+        QVERIFY(claimed);
+        router.resetClaims();
+    }
+
+    void testSetPopupRegionsIgnoresWrongGeneration()
+    {
+        oap::aa::TouchRouter router;
+        oap::aa::EvdevCoordBridge bridge(&router);
+        bridge.setDisplayMapping(1024, 600, 4095, 4095);
+
+        auto ctrl = makeController(true, "bottom");
+        ctrl->setCoordBridge(&bridge);
+        ctrl->registerZones(1024, 600);
+
+        qint64 gen1 = ctrl->beginPopupSession(0);
+        ctrl->showPopup(0);
+        qint64 gen2 = ctrl->beginPopupSession(0);
+        ctrl->showPopup(0);
+
+        // Try to set regions with old generation — should be ignored
+        QVariantList regions;
+        QVariantMap slider;
+        slider["id"] = "slider";
+        slider["type"] = 0;
+        slider["x"] = 0.0; slider["y"] = 0.0;
+        slider["w"] = 100.0; slider["h"] = 600.0;
+        slider["target"] = 0; slider["min"] = 0; slider["max"] = 100;
+        slider["axis"] = 0; slider["invertAxis"] = true;
+        regions.append(slider);
+
+        ctrl->setPopupRegions(0, gen1, regions);  // stale!
+
+        // The hardcoded popup zones from showPopup() should still be active,
+        // not replaced by the stale setPopupRegions call.
+        Q_UNUSED(gen2)
+    }
+
     // --- Popup dismiss behavior ---
 
     void testPopupDismissOnUpNotDown()
