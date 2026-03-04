@@ -25,6 +25,7 @@ add_library(openauto-core STATIC
     ui/AudioDeviceModel.cpp
     ui/PairedDevicesModel.cpp
     ui/CodecCapabilityModel.cpp
+    ui/NavbarController.cpp
     ui/DisplayInfo.cpp
     core/plugin/HostContext.cpp
     core/services/ConfigService.cpp

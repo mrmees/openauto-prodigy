@@ -154,6 +154,12 @@ void YamlConfig::initDefaults()
     root_["ui"]["tokens"]["overlayBtnW"] = 0;
     root_["ui"]["tokens"]["overlayBtnH"] = 0;
     root_["ui"]["fontFloor"] = 0;
+    root_["ui"]["tokens"]["navbarThick"] = 0;
+
+    // Navbar defaults
+    root_["navbar"]["edge"] = "bottom";
+    root_["navbar"]["gesture"]["tap_max_ms"] = 200;
+    root_["navbar"]["gesture"]["short_hold_max_ms"] = 600;
 }
 
 void YamlConfig::load(const QString& filePath)
