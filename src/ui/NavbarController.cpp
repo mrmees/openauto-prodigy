@@ -350,7 +350,7 @@ void NavbarController::registerPopupZones(int controlIndex)
         0, 0,
         static_cast<float>(displayWidth_), static_cast<float>(displayHeight_),
         [this](int /*slot*/, float /*x*/, float /*y*/, aa::TouchEvent event) {
-            if (event == aa::TouchEvent::Down) {
+            if (event == aa::TouchEvent::Up) {
                 QMetaObject::invokeMethod(this, [this]() {
                     hidePopup();
                 }, Qt::QueuedConnection);

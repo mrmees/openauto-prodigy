@@ -521,6 +521,40 @@ private slots:
         QTest::qWait(50);
         QCOMPARE(spy.count(), 1);  // still just 1
     }
+
+    // --- Popup dismiss behavior ---
+
+    void testPopupDismissOnUpNotDown()
+    {
+        oap::aa::TouchRouter router;
+        oap::aa::EvdevCoordBridge bridge(&router);
+        bridge.setDisplayMapping(1024, 600, 4095, 4095);
+
+        auto ctrl = makeController(true, "bottom");
+        ctrl->setCoordBridge(&bridge);
+        ctrl->registerZones(1024, 600);
+        ctrl->showPopup(0);
+
+        QVERIFY(ctrl->popupVisible());
+
+        // DOWN in dismiss area (content area, outside popup slider zone)
+        float contentEvX = bridge.pixelToEvdevX(512);
+        float contentEvY = bridge.pixelToEvdevY(200);
+        router.dispatch(0, contentEvX, contentEvY, oap::aa::TouchEvent::Down);
+
+        // Process queued events
+        QCoreApplication::processEvents();
+
+        // Should still be visible — dismiss fires on Up, not Down
+        QVERIFY(ctrl->popupVisible());
+
+        // UP in dismiss area
+        router.dispatch(0, contentEvX, contentEvY, oap::aa::TouchEvent::Up);
+        QCoreApplication::processEvents();
+
+        // Now should be hidden
+        QVERIFY(!ctrl->popupVisible());
+    }
 };
 
 QTEST_MAIN(TestNavbarController)
