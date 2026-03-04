@@ -634,7 +634,7 @@ void AndroidAutoOrchestrator::requestVideoFocus()
 void AndroidAutoOrchestrator::requestExitToCar()
 {
     if (state_ == Connected) {
-        qCInfo(lcAA) << "Requesting exit to car (sidebar home)";
+        qCInfo(lcAA) << "Requesting exit to car";
         videoHandler_.requestVideoFocus(false);
         setState(Backgrounded, "Exited to car");
     }

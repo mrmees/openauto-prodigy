@@ -62,6 +62,12 @@ Flickable {
             }
         }
 
+        SettingsToggle {
+            label: "Show Navbar during Android Auto"
+            configPath: "navbar.show_during_aa"
+            restartRequired: true
+        }
+
         SectionHeader { text: "Day / Night Mode" }
 
         FullScreenPicker {

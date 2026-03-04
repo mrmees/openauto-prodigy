@@ -112,7 +112,7 @@ bool AndroidAutoPlugin::initialize(IHostContext* context)
         qCInfo(lcAA) << "Touch:" << touchDevice
                 << "display=" << displayW << "x" << displayH;
 
-        // Relay 3-finger gesture to QML overlay (works regardless of sidebar/grab state)
+        // Relay 3-finger gesture to QML overlay (works regardless of grab state)
         connect(touchReader_, &oap::aa::EvdevTouchReader::gestureDetected,
                 this, &AndroidAutoPlugin::gestureTriggered,
                 Qt::QueuedConnection);
