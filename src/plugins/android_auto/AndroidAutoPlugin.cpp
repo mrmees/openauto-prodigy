@@ -258,5 +258,18 @@ QUrl AndroidAutoPlugin::iconSource() const
     return {};
 }
 
+bool AndroidAutoPlugin::wantsFullscreen() const
+{
+    // When navbar.show_during_aa is true (default), AA does NOT want fullscreen
+    // so that the navbar remains visible. When false, AA takes the full screen.
+    if (hostContext_ && hostContext_->configService()) {
+        QVariant showDuringAA = hostContext_->configService()->value("navbar.show_during_aa");
+        // Default is true (show navbar during AA = not fullscreen)
+        if (showDuringAA.isNull() || showDuringAA.toBool())
+            return false;
+    }
+    return true;
+}
+
 } // namespace plugins
 } // namespace oap

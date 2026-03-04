@@ -65,7 +65,7 @@ public:
 
     // IPlugin — Capabilities
     QStringList requiredServices() const override { return {}; }
-    bool wantsFullscreen() const override { return true; }
+    bool wantsFullscreen() const override;
 
     /// Set detected display dimensions source (must be called before initialize)
     void setDisplayInfo(DisplayInfo* info);
