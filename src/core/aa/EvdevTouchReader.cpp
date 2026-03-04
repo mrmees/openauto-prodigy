@@ -31,9 +31,6 @@ void EvdevTouchReader::computeLetterbox()
         }
     }
 
-    float videoAspect = static_cast<float>(aaWidth_) / aaHeight_;
-    float displayAspect = static_cast<float>(effectiveDisplayW) / effectiveDisplayH;
-
     float evdevPerPixelX = static_cast<float>(screenWidth_) / displayWidth_;
     float evdevPerPixelY = static_cast<float>(screenHeight_) / displayHeight_;
 
@@ -44,16 +41,23 @@ void EvdevTouchReader::computeLetterbox()
     visibleAAWidth_ = (contentWidth_ > 0) ? contentWidth_ : aaWidth_;
     visibleAAHeight_ = (contentHeight_ > 0) ? contentHeight_ : aaHeight_;
 
-    if (videoAspect > displayAspect) {
-        // Fit mode: video fills width, letterbox top/bottom
+    // Use CONTENT aspect ratio, not frame ratio. With PreserveAspectCrop,
+    // the margin bars are cropped away — only content is visible. Margins
+    // are computed so content ratio matches viewport ratio, meaning the
+    // content fills edge-to-edge with no letterbox.
+    float contentAspect = static_cast<float>(visibleAAWidth_) / visibleAAHeight_;
+    float displayAspect = static_cast<float>(effectiveDisplayW) / effectiveDisplayH;
+
+    if (contentAspect > displayAspect) {
+        // Content fills width, letterbox top/bottom
         videoPixelW = effectiveDisplayW;
-        videoPixelH = effectiveDisplayW / videoAspect;
+        videoPixelH = effectiveDisplayW / contentAspect;
         videoPixelX0 = effectiveDisplayX0;
         videoPixelY0 = effectiveDisplayY0 + (effectiveDisplayH - videoPixelH) / 2.0f;
     } else {
-        // Fit mode: video fills height, letterbox left/right
+        // Content fills height, letterbox left/right
         videoPixelH = effectiveDisplayH;
-        videoPixelW = effectiveDisplayH * videoAspect;
+        videoPixelW = effectiveDisplayH * contentAspect;
         videoPixelX0 = effectiveDisplayX0 + (effectiveDisplayW - videoPixelW) / 2.0f;
         videoPixelY0 = effectiveDisplayY0;
     }
