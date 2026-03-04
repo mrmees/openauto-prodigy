@@ -405,14 +405,29 @@ private slots:
         ctrl->setCoordBridge(&bridge);
         ctrl->registerZones(1024, 600);
 
+        qint64 gen = ctrl->beginPopupSession(0);
         ctrl->showPopup(0);
 
-        // Dismiss zone is screen-wide at priority 40 -- should claim touches
-        // in the content area (above the bar)
+        // After showPopup alone, no popup zones exist yet (QML hasn't reported)
         float contentEvX = bridge.pixelToEvdevX(512);
         float contentEvY = bridge.pixelToEvdevY(200);
         bool claimed = router.dispatch(0, contentEvX, contentEvY, oap::aa::TouchEvent::Down);
-        QVERIFY(claimed);  // dismiss zone catches it
+        QVERIFY(!claimed);  // no zones in content area yet
+        router.resetClaims();
+
+        // After setPopupRegions, dismiss zone should be active
+        QVariantList regions;
+        QVariantMap slider;
+        slider["id"] = "slider"; slider["type"] = 0;
+        slider["x"] = 0.0; slider["y"] = 0.0;
+        slider["w"] = 100.0; slider["h"] = 600.0;
+        slider["target"] = 0; slider["min"] = 0; slider["max"] = 100;
+        slider["axis"] = 0; slider["invertAxis"] = true;
+        regions.append(slider);
+        ctrl->setPopupRegions(0, gen, regions);
+
+        claimed = router.dispatch(1, contentEvX, contentEvY, oap::aa::TouchEvent::Down);
+        QVERIFY(claimed);  // dismiss zone now active
         router.resetClaims();
     }
 
@@ -750,7 +765,20 @@ private slots:
         auto ctrl = makeController(true, "bottom");
         ctrl->setCoordBridge(&bridge);
         ctrl->registerZones(1024, 600);
+
+        qint64 gen = ctrl->beginPopupSession(0);
         ctrl->showPopup(0);
+
+        // Simulate QML reporting geometry (registers dismiss zone)
+        QVariantList regions;
+        QVariantMap slider;
+        slider["id"] = "slider"; slider["type"] = 0;
+        slider["x"] = 0.0; slider["y"] = 0.0;
+        slider["w"] = 100.0; slider["h"] = 600.0;
+        slider["target"] = 0; slider["min"] = 0; slider["max"] = 100;
+        slider["axis"] = 0; slider["invertAxis"] = true;
+        regions.append(slider);
+        ctrl->setPopupRegions(0, gen, regions);
 
         QVERIFY(ctrl->popupVisible());
 

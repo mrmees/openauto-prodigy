@@ -191,8 +191,8 @@ void NavbarController::showPopup(int controlIndex)
     activePopupGeneration_ = popupGeneration_;
     popupDismissTimer_->start();
 
-    if (coordBridge_ && zonesRegistered_)
-        registerPopupZones(controlIndex);
+    // Don't register hardcoded zones — QML will call setPopupRegions()
+    // after receiving the popupChanged signal
 
     emit popupChanged();
 }
@@ -342,6 +342,7 @@ void NavbarController::unregisterZones()
     zonesRegistered_ = false;
 }
 
+// DEPRECATED: Kept as reference. QML now reports geometry via setPopupRegions().
 void NavbarController::registerPopupZones(int controlIndex)
 {
     if (!coordBridge_)
