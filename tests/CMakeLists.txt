@@ -93,6 +93,10 @@ oap_add_test(test_sidebar_zones SOURCES test_sidebar_zones.cpp)
 oap_add_test(test_touch_router SOURCES test_touch_router.cpp)
 oap_add_test(test_evdev_coord_bridge SOURCES test_evdev_coord_bridge.cpp)
 
+# --- Navbar tests ---
+
+oap_add_test(test_navbar_controller SOURCES test_navbar_controller.cpp)
+
 # --- DSP tests ---
 
 oap_add_test(test_biquad_filter SOURCES test_biquad_filter.cpp)
