@@ -234,6 +234,8 @@ int main(int argc, char *argv[])
     // --- NavbarController ---
     auto navbarController = new oap::NavbarController(&app);
     navbarController->setActionRegistry(actionRegistry);
+    navbarController->setAudioService(audioService);
+    navbarController->setDisplayService(displayService);
     // Read edge and LHD config
     {
         auto edgeVar = yamlConfig->valueByPath("navbar.edge");
@@ -532,7 +534,7 @@ int main(int argc, char *argv[])
                 // Panel geometry: centered, ~70% width (capped at 500px), ~50% height
                 float panelW = std::min(dw * 0.7f, 500.0f);
                 float panelX = (dw - panelW) / 2.0f;
-                float panelH = dh * 0.5f;
+                float panelH = dh * 0.55f;
                 float panelY = (dh - panelH) / 2.0f;
 
                 // Outside panel -- still consumed (prevents AA forwarding) but no action
