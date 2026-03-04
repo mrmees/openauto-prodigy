@@ -137,6 +137,8 @@ Item {
     }
 
     // --- Power menu popup (clock long-hold) ---
+    property int powerMenuGeneration: -1
+
     Item {
         id: powerMenu
         visible: NavbarController.popupVisible && NavbarController.popupControlIndex === 1
@@ -166,6 +168,32 @@ Item {
                 // Clamp
                 if (powerMenu.x < 0) powerMenu.x = 0
                 if (powerMenu.y < 0) powerMenu.y = 0
+
+                // Report button geometry for evdev zones
+                navbar.powerMenuGeneration = NavbarController.beginPopupSession(1)
+                Qt.callLater(function() {
+                    var regions = []
+                    var actions = ["minimize", "restart", "quit"]
+                    for (var i = 0; i < powerMenuCol.children.length; i++) {
+                        var btn = powerMenuCol.children[i]
+                        if (btn.visible && btn.width > 0 && i < actions.length) {
+                            var btnPos = btn.mapToItem(navbar.parent, 0, 0)
+                            regions.push({
+                                id: "btn-" + actions[i],
+                                type: 1,  // Button
+                                x: btnPos.x,
+                                y: btnPos.y,
+                                w: btn.width,
+                                h: btn.height,
+                                action: actions[i]
+                            })
+                        }
+                    }
+                    NavbarController.setPopupRegions(1, navbar.powerMenuGeneration, regions)
+                })
+            } else if (navbar.powerMenuGeneration >= 0) {
+                NavbarController.clearPopupRegions(1, navbar.powerMenuGeneration)
+                navbar.powerMenuGeneration = -1
             }
         }
 

@@ -10,6 +10,7 @@ Item {
     property bool isVolume: true
     property Item anchorItem: null
     property string navbarEdge: "bottom"
+    property int popupGeneration: -1
 
     // Popup dimensions — full screen height for easy touch target
     readonly property int popupW: UiMetrics.touchMin * 3
@@ -39,6 +40,26 @@ Item {
                 if (centerX + popupW > parent.width) centerX = parent.width - popupW
                 root.x = centerX
             }
+
+            // Report geometry to NavbarController for evdev zone registration
+            popupGeneration = NavbarController.beginPopupSession(root.controlIndex)
+            var regions = [{
+                id: root.isVolume ? "volume-slider" : "brightness-slider",
+                type: 0,  // Slider
+                x: root.x,
+                y: root.y,
+                w: root.width,
+                h: root.height,
+                target: root.isVolume ? 0 : 1,
+                min: root.minVal,
+                max: root.maxVal,
+                axis: 0,  // Vertical
+                invertAxis: true
+            }]
+            NavbarController.setPopupRegions(root.controlIndex, popupGeneration, regions)
+        } else if (!visible && popupGeneration >= 0) {
+            NavbarController.clearPopupRegions(root.controlIndex, popupGeneration)
+            popupGeneration = -1
         }
     }
 
@@ -138,7 +159,7 @@ Item {
                                 DisplayService.setBrightness(val)
                         }
                         // Reset auto-dismiss timer on interaction
-                        NavbarController.showPopup(root.controlIndex)
+                        NavbarController.bumpPopupDismissTimer()
                     }
                 }
             }
