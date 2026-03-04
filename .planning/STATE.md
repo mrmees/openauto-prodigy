@@ -2,14 +2,14 @@
 gsd_state_version: 1.0
 milestone: v0.4
 milestone_name: milestone
-current_phase: 02-navbar complete, Phase 3 (AA Integration) next
+current_phase: 03-aa-integration (plan 01 complete, plan 02 next)
 status: executing
-last_updated: "2026-03-04T02:51:21.990Z"
+last_updated: "2026-03-04T03:32:41.786Z"
 progress:
   total_phases: 4
   completed_phases: 2
-  total_plans: 4
-  completed_plans: 4
+  total_plans: 6
+  completed_plans: 5
 ---
 
 # Session State
@@ -21,7 +21,7 @@ See: .planning/PROJECT.md
 ## Position
 
 **Milestone:** v0.4.5 Touch & Navbar
-**Current phase:** 02-navbar complete, Phase 3 (AA Integration) next
+**Current phase:** 03-aa-integration (plan 01 complete, plan 02 next)
 **Status:** In Progress
 
 ## Decisions
@@ -29,6 +29,9 @@ See: .planning/PROJECT.md
 - [02-navbar] 7-second popup auto-dismiss timeout (middle of 5-10s range)
 - [02-navbar] Action ID pattern: navbar.{role}.{gesture} (e.g. navbar.volume.tap)
 - [02-navbar] Zone layout: driver 1/4, center 1/2, passenger 1/4
+- [03-aa] Shared calcNavbarViewport() helper prevents duplicated margin/touch logic
+- [03-aa] BAR_THICK (56) hardcoded in ServiceDiscoveryBuilder to match NavbarController
+- [03-aa] Removed all crop-mode branches -- navbar uses PreserveAspectFit only
 
 ## Session Log
 
@@ -37,3 +40,4 @@ See: .planning/PROJECT.md
 - 2026-03-04: Completed 02-02-PLAN.md (Navbar QML, popups, Shell integration, settings, bugfixes)
 - 2026-03-04: Phase 2 (Navbar) complete
 - 2026-03-04: Phase 02.1 inserted after Phase 2: fix critical layout bugs (URGENT)
+- 2026-03-04: Completed 03-01-PLAN.md (Sidebar-to-navbar AA integration, margin calc, QML simplification)

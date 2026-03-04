@@ -87,6 +87,7 @@ Plans:
 **Goal**: Navbar works correctly during active AA sessions -- visible with reserved viewport space, touch correctly routed between navbar and phone
 **Depends on**: Phase 2
 **Requirements**: AA-01, AA-02, AA-03, AA-04, AA-05, AA-06
+**Plans:** 2 plans
 **Success Criteria** (what must be TRUE):
   1. "Show Navbar during AA" toggle exists in settings and persists across restarts
   2. When navbar is visible during AA, the phone renders in a sub-region with margins matching navbar size -- no content hidden behind navbar
@@ -95,7 +96,8 @@ Plans:
   5. Sidebar overlay is fully replaced by navbar -- there is no separate sidebar component active during AA
 
 Plans:
-- [ ] 03-01: AA margin calculation + settings toggle + on-device validation
+- [x] 03-01-PLAN.md -- Sidebar-to-navbar plumbing: config, margins, QML simplification, sidebar removal, settings toggle
+- [ ] 03-02-PLAN.md -- GestureOverlay evdev zone fix + touch routing validation during AA
 
 ### Phase 4: Cleanup
 **Goal**: Old navigation UI is removed -- the codebase has one navigation system, not two
@@ -119,8 +121,8 @@ Phases execute in numeric order: 1 -> 2 -> 3 -> 4
 |-------|----------------|--------|-----------|
 | 1. Touch Routing | 2/2 | Complete | 2026-03-03 |
 | 2. Navbar | 2/2 | Complete | 2026-03-04 |
-| 3. AA Integration | 0/1 | Not started | - |
+| 3. AA Integration | 1/2 | In Progress | - |
 | 4. Cleanup | 0/1 | Not started | - |
 
 ---
-*Last updated: 2026-03-03 -- Phase 1 (Touch Routing) complete*
+*Last updated: 2026-03-04 -- Phase 3 plan 01 complete*

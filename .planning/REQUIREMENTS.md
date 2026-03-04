@@ -33,12 +33,12 @@ Requirements for navbar rework milestone. Each maps to roadmap phases.
 
 ### AA Integration
 
-- [ ] **AA-01**: "Show Navbar during AA" toggle in settings
-- [ ] **AA-02**: When navbar is visible during AA, viewport margins reserve space for navbar
+- [x] **AA-01**: "Show Navbar during AA" toggle in settings
+- [x] **AA-02**: When navbar is visible during AA, viewport margins reserve space for navbar
 - [ ] **AA-03**: Touch in navbar zone during AA is consumed (not forwarded to phone)
 - [ ] **AA-04**: Touch outside navbar zone during AA forwards to phone normally
 - [ ] **AA-05**: Gesture overlay touch passthrough bug is fixed (overlay controls respond to touch during AA)
-- [ ] **AA-06**: Sidebar overlay is replaced by navbar — no separate sidebar component
+- [x] **AA-06**: Sidebar overlay is replaced by navbar — no separate sidebar component
 
 ### Cleanup
 
@@ -90,12 +90,12 @@ Which phases cover which requirements. Updated during roadmap creation.
 | EDGE-01 | Phase 2 | Complete |
 | EDGE-02 | Phase 2 | Pending |
 | EDGE-03 | Phase 2 | Complete |
-| AA-01 | Phase 3 | Pending |
-| AA-02 | Phase 3 | Pending |
+| AA-01 | Phase 3 | Complete |
+| AA-02 | Phase 3 | Complete |
 | AA-03 | Phase 3 | Pending |
 | AA-04 | Phase 3 | Pending |
 | AA-05 | Phase 3 | Pending |
-| AA-06 | Phase 3 | Pending |
+| AA-06 | Phase 3 | Complete |
 | CLEAN-01 | Phase 4 | Pending |
 | CLEAN-02 | Phase 4 | Pending |
 | CLEAN-03 | Phase 4 | Pending |
