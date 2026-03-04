@@ -17,19 +17,19 @@ Requirements for navbar rework milestone. Each maps to roadmap phases.
 
 ### Navbar
 
-- [ ] **NAV-01**: Navbar displays 3 controls: volume (driver side), clock/home (center), brightness (passenger side)
-- [ ] **NAV-02**: Each control supports tap, short-hold-release, and long-hold gestures
-- [ ] **NAV-03**: Volume tap shows popup slider; short-hold opens EQ; long-hold mutes
-- [ ] **NAV-04**: Clock tap goes home; short-hold opens settings; long-hold shows power/minimize menu
-- [ ] **NAV-05**: Brightness tap shows popup slider; short-hold opens display settings; long-hold toggles night mode
-- [ ] **NAV-06**: LHD/RHD config swaps driver/passenger side placement
-- [ ] **NAV-07**: Popup sliders dismiss on outside tap, consistent with existing modal pattern
+- [x] **NAV-01**: Navbar displays 3 controls: volume (driver side), clock/home (center), brightness (passenger side)
+- [x] **NAV-02**: Each control supports tap, short-hold-release, and long-hold gestures
+- [x] **NAV-03**: Volume tap shows popup slider; short-hold opens EQ; long-hold mutes
+- [x] **NAV-04**: Clock tap goes home; short-hold opens settings; long-hold shows power/minimize menu
+- [x] **NAV-05**: Brightness tap shows popup slider; short-hold opens display settings; long-hold toggles night mode
+- [x] **NAV-06**: LHD/RHD config swaps driver/passenger side placement
+- [x] **NAV-07**: Popup sliders dismiss on outside tap, consistent with existing modal pattern
 
 ### Edge Positioning
 
-- [ ] **EDGE-01**: User can configure navbar edge position (top/bottom/left/right) in settings
+- [x] **EDGE-01**: User can configure navbar edge position (top/bottom/left/right) in settings
 - [ ] **EDGE-02**: Navbar renders horizontally on top/bottom edges, vertically on left/right edges
-- [ ] **EDGE-03**: Touch zones update automatically when navbar edge position changes
+- [x] **EDGE-03**: Touch zones update automatically when navbar edge position changes
 
 ### AA Integration
 
@@ -80,16 +80,16 @@ Which phases cover which requirements. Updated during roadmap creation.
 | TOUCH-03 | Phase 1 | Complete |
 | TOUCH-04 | Phase 1 | Complete |
 | TOUCH-05 | Phase 1 | Complete |
-| NAV-01 | Phase 2 | Pending |
-| NAV-02 | Phase 2 | Pending |
-| NAV-03 | Phase 2 | Pending |
-| NAV-04 | Phase 2 | Pending |
-| NAV-05 | Phase 2 | Pending |
-| NAV-06 | Phase 2 | Pending |
-| NAV-07 | Phase 2 | Pending |
-| EDGE-01 | Phase 2 | Pending |
+| NAV-01 | Phase 2 | Complete |
+| NAV-02 | Phase 2 | Complete |
+| NAV-03 | Phase 2 | Complete |
+| NAV-04 | Phase 2 | Complete |
+| NAV-05 | Phase 2 | Complete |
+| NAV-06 | Phase 2 | Complete |
+| NAV-07 | Phase 2 | Complete |
+| EDGE-01 | Phase 2 | Complete |
 | EDGE-02 | Phase 2 | Pending |
-| EDGE-03 | Phase 2 | Pending |
+| EDGE-03 | Phase 2 | Complete |
 | AA-01 | Phase 3 | Pending |
 | AA-02 | Phase 3 | Pending |
 | AA-03 | Phase 3 | Pending |
