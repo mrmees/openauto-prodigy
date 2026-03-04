@@ -19,8 +19,6 @@ Rectangle {
         visible = true
         acceptInput = false
         inputGuardTimer.restart()
-        if (typeof DisplayService !== "undefined")
-            brightnessSlider.value = DisplayService.brightness
         dismissTimer.restart()
     }
 
@@ -43,6 +41,20 @@ Rectangle {
         onTriggered: overlay.acceptInput = true
     }
 
+    // Service -> slider sync (external changes, e.g. evdev zone callbacks)
+    Connections {
+        target: typeof AudioService !== "undefined" ? AudioService : null
+        function onMasterVolumeChanged() {
+            volumeSlider.value = AudioService.masterVolume
+        }
+    }
+    Connections {
+        target: typeof DisplayService !== "undefined" ? DisplayService : null
+        function onBrightnessChanged() {
+            brightnessSlider.value = DisplayService.brightness
+        }
+    }
+
     // Transparent touch sink — absorbs taps but does NOT dismiss
     MouseArea {
         anchors.fill: parent
@@ -50,6 +62,7 @@ Rectangle {
 
     // Control panel (centered)
     Rectangle {
+        objectName: "overlayPanel"
         anchors.centerIn: parent
         width: Math.min(parent.width * 0.7, Math.round(500 * UiMetrics.scale))
         height: controlsLayout.implicitHeight + Math.round(48 * UiMetrics.scale)
@@ -82,6 +95,7 @@ Rectangle {
 
             // Volume slider
             RowLayout {
+                objectName: "overlayVolumeRow"
                 Layout.fillWidth: true
                 spacing: UiMetrics.marginRow
 
@@ -96,13 +110,9 @@ Rectangle {
                     Layout.fillWidth: true
                     from: 0
                     to: 100
-                    value: 80
+                    value: typeof AudioService !== "undefined" ? AudioService.masterVolume : 80
                     enabled: overlay.acceptInput
-                    Component.onCompleted: {
-                        if (typeof AudioService !== "undefined")
-                            value = AudioService.masterVolume
-                    }
-                    onValueChanged: {
+                    onMoved: {
                         dismissTimer.restart()
                         if (typeof AudioService !== "undefined")
                             AudioService.setMasterVolume(Math.round(value))
@@ -119,6 +129,7 @@ Rectangle {
 
             // Brightness / Screen Dimming slider
             RowLayout {
+                objectName: "overlayBrightnessRow"
                 Layout.fillWidth: true
                 spacing: UiMetrics.marginRow
 
@@ -135,7 +146,7 @@ Rectangle {
                     to: 100
                     value: typeof DisplayService !== "undefined" ? DisplayService.brightness : 80
                     enabled: overlay.acceptInput
-                    onValueChanged: {
+                    onMoved: {
                         if (typeof DisplayService !== "undefined") {
                             DisplayService.setBrightness(Math.round(value))
                             ConfigService.setValue("display.brightness", Math.round(value))
@@ -159,6 +170,7 @@ Rectangle {
                 spacing: UiMetrics.sectionGap
 
                 Button {
+                    objectName: "overlayHomeBtn"
                     font.pixelSize: UiMetrics.fontSmall
                     enabled: overlay.acceptInput
                     onClicked: {
@@ -187,6 +199,7 @@ Rectangle {
                 }
 
                 Button {
+                    objectName: "overlayThemeBtn"
                     font.pixelSize: UiMetrics.fontSmall
                     enabled: overlay.acceptInput
                     onClicked: {
@@ -215,6 +228,7 @@ Rectangle {
                 }
 
                 Button {
+                    objectName: "overlayCloseBtn"
                     font.pixelSize: UiMetrics.fontSmall
                     enabled: overlay.acceptInput
                     onClicked: overlay.dismiss()
