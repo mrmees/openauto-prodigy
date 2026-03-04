@@ -347,6 +347,12 @@ int main(int argc, char *argv[])
     actionRegistry->registerAction("app.quit", [](const QVariant&) {
         QGuiApplication::quit();
     });
+    actionRegistry->registerAction("app.minimize", [appController](const QVariant&) {
+        appController->minimize();
+    });
+    actionRegistry->registerAction("app.restart", [appController](const QVariant&) {
+        appController->restart();
+    });
     actionRegistry->registerAction("app.home", [pluginModel](const QVariant&) {
         pluginModel->setActivePlugin(QString());
     });
