@@ -115,28 +115,54 @@ void ServiceDiscoveryBuilder::calcNavbarViewport(int& viewportW, int& viewportH)
         viewportW -= barThick;
 }
 
-// ---- Shared margin calculation ----
+// ---- Shared content dimension calculation ----
+
+std::pair<int,int> ServiceDiscoveryBuilder::computeContentDimensions(
+    int videoW, int videoH, int displayW, int displayH,
+    bool navbarDuringAA, const QString& navbarEdge, int navbarThickness)
+{
+    int viewportW = displayW, viewportH = displayH;
+
+    if (navbarDuringAA) {
+        bool horizontal = (navbarEdge == "top" || navbarEdge == "bottom");
+        if (horizontal)
+            viewportH -= navbarThickness;
+        else
+            viewportW -= navbarThickness;
+    }
+
+    int contentW = videoW, contentH = videoH;
+    if (viewportW != displayW || viewportH != displayH) {
+        float screenRatio = static_cast<float>(viewportW) / viewportH;
+        float remoteRatio = static_cast<float>(videoW) / videoH;
+        if (screenRatio < remoteRatio)
+            contentW -= static_cast<int>(std::round(videoW - (videoH * screenRatio)));
+        else
+            contentH -= static_cast<int>(std::round(videoH - (videoW / screenRatio)));
+    }
+    return {contentW, contentH};
+}
+
+// ---- Shared margin calculation (delegates to computeContentDimensions) ----
 
 void ServiceDiscoveryBuilder::calcMargins(int remoteW, int remoteH,
                                            int& marginW, int& marginH) const
 {
-    marginW = 0;
-    marginH = 0;
-
-    int viewportW, viewportH;
-    calcNavbarViewport(viewportW, viewportH);
-
     int displayW = (overrideDisplayW_ > 0) ? overrideDisplayW_ : 1024;
     int displayH = (overrideDisplayH_ > 0) ? overrideDisplayH_ : 600;
-    if (viewportW == displayW && viewportH == displayH)
-        return;  // No navbar inset — no margins needed
 
-    float screenRatio = static_cast<float>(viewportW) / viewportH;
-    float remoteRatio = static_cast<float>(remoteW) / remoteH;
-    if (screenRatio < remoteRatio)
-        marginW = std::round(remoteW - (remoteH * screenRatio));
-    else
-        marginH = std::round(remoteH - (remoteW / screenRatio));
+    bool navbarDuringAA = false;
+    QString edge = "bottom";
+    if (yamlConfig_) {
+        navbarDuringAA = yamlConfig_->valueByPath("navbar.show_during_aa").toBool();
+        edge = yamlConfig_->valueByPath("navbar.edge").toString();
+        if (edge.isEmpty()) edge = "bottom";
+    }
+
+    auto [contentW, contentH] = computeContentDimensions(
+        remoteW, remoteH, displayW, displayH, navbarDuringAA, edge);
+    marginW = remoteW - contentW;
+    marginH = remoteH - contentH;
 }
 
 // ---- Channel descriptor builders ----

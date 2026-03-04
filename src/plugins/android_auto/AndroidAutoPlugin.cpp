@@ -2,6 +2,7 @@
 #include "core/aa/AndroidAutoOrchestrator.hpp"
 #include "core/aa/EvdevTouchReader.hpp"
 #include "core/aa/EvdevCoordBridge.hpp"
+#include "core/aa/ServiceDiscoveryBuilder.hpp"
 #include "core/plugin/IHostContext.hpp"
 #include "core/Configuration.hpp"
 #include "core/InputDeviceScanner.hpp"
@@ -124,17 +125,27 @@ bool AndroidAutoPlugin::initialize(IHostContext* context)
                 Qt::QueuedConnection);
 
         // Configure navbar dimensions for touch letterbox calculation
+        bool navbarDuringAA = true;
+        QString navEdge = "bottom";
         if (hostContext_ && hostContext_->configService()) {
             QVariant showDuringAA = hostContext_->configService()->value("navbar.show_during_aa");
-            bool navbarEnabled = (showDuringAA.isNull() || showDuringAA.toBool());
-            if (navbarEnabled) {
-                QString edge = hostContext_->configService()->value("navbar.edge").toString();
-                if (edge.isEmpty()) edge = "bottom";
-                touchReader_->setNavbar(true, 56, edge.toStdString());
-                touchReader_->computeLetterbox();
-                qCInfo(lcAA) << "Navbar touch zone:" << edge << "56px";
+            navbarDuringAA = (showDuringAA.isNull() || showDuringAA.toBool());
+            if (navbarDuringAA) {
+                navEdge = hostContext_->configService()->value("navbar.edge").toString();
+                if (navEdge.isEmpty()) navEdge = "bottom";
+                touchReader_->setNavbar(true, 56, navEdge.toStdString());
+                qCInfo(lcAA) << "Navbar touch zone:" << navEdge << "56px";
             }
         }
+
+        // Compute content dimensions to match touch_screen_config
+        // Uses same calculation as ServiceDiscoveryBuilder (single source of truth)
+        auto [contentW, contentH] = oap::aa::ServiceDiscoveryBuilder::computeContentDimensions(
+            aaW, aaH, displayW, displayH, navbarDuringAA, navEdge);
+        touchReader_->setContentDimensions(contentW, contentH);
+        touchReader_->computeLetterbox();
+        qCInfo(lcAA) << "Content dims:" << contentW << "x" << contentH
+                     << "(video:" << aaW << "x" << aaH << ")";
     } else {
         qCInfo(lcAA) << "No touch device found — touch input disabled";
     }
@@ -186,6 +197,28 @@ void AndroidAutoPlugin::onConfigChanged(const QString& path, const QVariant& val
         if (res == QLatin1String("1080p")) { aaW = 1920; aaH = 1080; }
         else if (res == QLatin1String("480p")) { aaW = 800; aaH = 480; }
         touchReader_->setAAResolution(aaW, aaH);
+
+        // Recompute content dimensions for the new video resolution
+        int displayW = 1024, displayH = 600;
+        if (displayInfo_ && displayInfo_->windowWidth() > 0)
+            displayW = displayInfo_->windowWidth();
+        if (displayInfo_ && displayInfo_->windowHeight() > 0)
+            displayH = displayInfo_->windowHeight();
+
+        bool navbarDuringAA = true;
+        QString navEdge = "bottom";
+        if (hostContext_ && hostContext_->configService()) {
+            QVariant showVal = hostContext_->configService()->value("navbar.show_during_aa");
+            navbarDuringAA = (showVal.isNull() || showVal.toBool());
+            navEdge = hostContext_->configService()->value("navbar.edge").toString();
+            if (navEdge.isEmpty()) navEdge = "bottom";
+        }
+
+        auto [contentW, contentH] = oap::aa::ServiceDiscoveryBuilder::computeContentDimensions(
+            aaW, aaH, displayW, displayH, navbarDuringAA, navEdge);
+        touchReader_->setContentDimensions(contentW, contentH);
+        qCInfo(lcAA) << "Content dims updated:" << contentW << "x" << contentH
+                     << "(video:" << aaW << "x" << aaH << ")";
     }
 
     if (!aaService_) return;
