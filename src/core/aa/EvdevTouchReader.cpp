@@ -294,14 +294,8 @@ void EvdevTouchReader::processSync()
         qCDebug(lcAA) << "Applied display dimension update:" << displayWidth_ << "x" << displayHeight_;
     }
 
-    // Check for 3-finger gesture — suppress touches if active
-    if (checkGesture()) {
-        // Clear dirty flags and save state, but don't forward to AA
-        for (int i = 0; i < MAX_SLOTS; ++i)
-            slots_[i].dirty = false;
-        prevSlots_ = slots_;
-        return;
-    }
+    // Check for 3-finger gesture — may suppress AA forwarding but not zone dispatch
+    bool gestureBlocking = checkGesture();
 
     // Dispatch touches through TouchRouter — zones claim slots, unclaimed fall through to AA
     for (int i = 0; i < MAX_SLOTS; ++i) {
@@ -328,6 +322,14 @@ void EvdevTouchReader::processSync()
         if (router_.dispatch(i, x, y, evt)) {
             slots_[i].dirty = false;  // consumed by zone
         }
+    }
+
+    // If gesture is active, suppress AA forwarding for unclaimed touches
+    if (gestureBlocking) {
+        for (int i = 0; i < MAX_SLOTS; ++i)
+            slots_[i].dirty = false;
+        prevSlots_ = slots_;
+        return;
     }
 
     // If all dirty slots were consumed by zones, skip AA processing

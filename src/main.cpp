@@ -45,6 +45,7 @@
 #include "ui/CodecCapabilityModel.hpp"
 #include "ui/DisplayInfo.hpp"
 #include <QQuickWindow>
+#include <algorithm>
 
 int main(int argc, char *argv[])
 {
@@ -518,28 +519,72 @@ int main(int argc, char *argv[])
             std::string("gesture-overlay"), 200,
             0.0f, 0.0f,
             static_cast<float>(dw), static_cast<float>(dh),
-            [overlay, audioService, displayService, actionRegistry](int /*slot*/, float x, float y, oap::aa::TouchEvent event) {
-                // All touches consumed while overlay visible -- prevents AA forwarding.
-                // Bridge evdev touches to overlay controls:
-                // Get overlay panel geometry for hit-testing
-                QObject* panel = overlay->findChild<QObject*>();
-                if (!panel) return;
+            [overlay, audioService, displayService, actionRegistry, displayInfo](int /*slot*/, float rawX, float rawY, oap::aa::TouchEvent event) {
+                // Bridge evdev touches to overlay controls during EVIOCGRAB.
+                // Convert evdev (0-4095) to pixel coordinates.
+                int dw = displayInfo->windowWidth();
+                int dh = displayInfo->windowHeight();
+                if (dw <= 0 || dh <= 0) return;
 
-                // The overlay is full-screen. The panel is centered at ~70% width.
-                // For slider interaction, we use normalized Y within the panel.
-                // For simplicity (and per plan's "simpler alternative"), we consume
-                // all touches. Volume/brightness sliders and buttons work via QML
-                // when not in EVIOCGRAB mode. During AA+EVIOCGRAB, this zone prevents
-                // stray touches reaching the phone while overlay is up.
-                //
-                // Full evdev-to-slider bridging deferred (TODO: map evdev coords
-                // to slider values for volume/brightness control during AA).
-                Q_UNUSED(x);
-                Q_UNUSED(y);
-                Q_UNUSED(event);
-                Q_UNUSED(audioService);
-                Q_UNUSED(displayService);
-                Q_UNUSED(actionRegistry);
+                float px = (rawX / 4095.0f) * dw;
+                float py = (rawY / 4095.0f) * dh;
+
+                // Panel geometry: centered, ~70% width (capped at 500px), ~50% height
+                float panelW = std::min(dw * 0.7f, 500.0f);
+                float panelX = (dw - panelW) / 2.0f;
+                float panelH = dh * 0.5f;
+                float panelY = (dh - panelH) / 2.0f;
+
+                // Outside panel -- still consumed (prevents AA forwarding) but no action
+                if (px < panelX || px > panelX + panelW || py < panelY || py > panelY + panelH)
+                    return;
+
+                // Normalize position within panel (0-1)
+                float relX = (px - panelX) / panelW;
+                float relY = (py - panelY) / panelH;
+
+                // Panel layout (approximate vertical regions):
+                // 0.00-0.10: "Quick Controls" title
+                // 0.10-0.40: Volume slider row
+                // 0.40-0.70: Brightness slider row
+                // 0.70-1.00: Action buttons row
+
+                if (relY >= 0.10f && relY < 0.40f) {
+                    // Volume slider region
+                    if (event == oap::aa::TouchEvent::Down || event == oap::aa::TouchEvent::Move) {
+                        float sliderRelX = std::clamp((relX - 0.12f) / 0.72f, 0.0f, 1.0f);
+                        int volume = static_cast<int>(sliderRelX * 100.0f);
+                        QMetaObject::invokeMethod(audioService, [audioService, volume]() {
+                            audioService->setMasterVolume(volume);
+                        }, Qt::QueuedConnection);
+                    }
+                } else if (relY >= 0.40f && relY < 0.70f) {
+                    // Brightness slider region
+                    if (event == oap::aa::TouchEvent::Down || event == oap::aa::TouchEvent::Move) {
+                        float sliderRelX = std::clamp((relX - 0.12f) / 0.72f, 0.0f, 1.0f);
+                        int brightness = 5 + static_cast<int>(sliderRelX * 95.0f);  // 5-100
+                        QMetaObject::invokeMethod(displayService, [displayService, brightness]() {
+                            displayService->setBrightness(brightness);
+                        }, Qt::QueuedConnection);
+                    }
+                } else if (relY >= 0.70f && event == oap::aa::TouchEvent::Down) {
+                    // Button region -- 3 buttons evenly spaced
+                    if (relX < 0.33f) {
+                        // Home button
+                        QMetaObject::invokeMethod(qApp, [actionRegistry]() {
+                            actionRegistry->dispatch("app.home");
+                        }, Qt::QueuedConnection);
+                        QMetaObject::invokeMethod(overlay, "dismiss", Qt::QueuedConnection);
+                    } else if (relX < 0.66f) {
+                        // Day/Night toggle
+                        QMetaObject::invokeMethod(qApp, [actionRegistry]() {
+                            actionRegistry->dispatch("theme.toggle");
+                        }, Qt::QueuedConnection);
+                    } else {
+                        // Close button
+                        QMetaObject::invokeMethod(overlay, "dismiss", Qt::QueuedConnection);
+                    }
+                }
             });
 
         // Deregister zone when overlay becomes invisible (covers all dismiss paths:
