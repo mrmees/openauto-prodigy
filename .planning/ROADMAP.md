@@ -48,7 +48,7 @@ See .planning/milestones/v0.4.4/ for archived details.
 - Decimal phases (1.1, 1.2): Urgent insertions if needed (marked with INSERTED)
 
 - [x] **Phase 1: Touch Routing** - Zone-based evdev dispatch layer replacing hardcoded sidebar logic
-- [ ] **Phase 2: Navbar** - 3-control navbar with gestures, edge positioning, popups, and QML visuals
+- [x] **Phase 2: Navbar** - 3-control navbar with gestures, edge positioning, popups, and QML visuals
 - [ ] **Phase 3: AA Integration** - Viewport margins, touch exclusion, and on-device validation with real AA sessions
 - [ ] **Phase 4: Cleanup** - Remove TopBar, NavStrip, sidebar overlay, and migrate remaining actions
 
@@ -80,8 +80,8 @@ Plans:
   4. Popup sliders dismiss on outside tap and do not leak taps to underlying views
 
 Plans:
-- [ ] 02-01: NavbarController + gesture recognition (C++ state machine, zone registration, testable without QML)
-- [ ] 02-02: Navbar QML + popups (visual components, edge positioning, geometry reporting, Shell integration)
+- [x] 02-01: NavbarController + gesture recognition (C++ state machine, zone registration, testable without QML)
+- [x] 02-02: Navbar QML + popups (visual components, edge positioning, geometry reporting, Shell integration)
 
 ### Phase 3: AA Integration
 **Goal**: Navbar works correctly during active AA sessions -- visible with reserved viewport space, touch correctly routed between navbar and phone
@@ -118,7 +118,7 @@ Phases execute in numeric order: 1 -> 2 -> 3 -> 4
 | Phase | Plans Complete | Status | Completed |
 |-------|----------------|--------|-----------|
 | 1. Touch Routing | 2/2 | Complete | 2026-03-03 |
-| 2. Navbar | 1/2 | In Progress|  |
+| 2. Navbar | 2/2 | Complete | 2026-03-04 |
 | 3. AA Integration | 0/1 | Not started | - |
 | 4. Cleanup | 0/1 | Not started | - |
 

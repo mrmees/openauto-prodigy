@@ -1,8 +1,11 @@
 #include <QTest>
 #include "core/aa/ServiceDiscoveryBuilder.hpp"
+#include "core/YamlConfig.hpp"
 
 // oaa proto headers
 #include "oaa/control/ChannelDescriptorData.pb.h"
+#include "oaa/input/InputChannelData.pb.h"
+#include "oaa/input/TouchConfigData.pb.h"
 
 class TestServiceDiscoveryBuilder : public QObject {
     Q_OBJECT
@@ -73,6 +76,116 @@ private slots:
             }
         }
         QCOMPARE(audioChannelCount, 3); // media, speech, system
+    }
+
+    void testNavbarBottomMargins() {
+        // Bottom navbar: 1024x600 display, 56px bar, 720p video
+        // Effective viewport: 1024x544
+        // screenRatio = 1024/544 = 1.8824
+        // videoRatio = 1280/720 = 1.7778
+        // screenRatio > videoRatio -> marginH = round(720 - 1280/1.8824) = round(720 - 680) = 40
+        oap::YamlConfig config;
+        config.setValueByPath("navbar.show_during_aa", true);
+        config.setValueByPath("navbar.edge", QString("bottom"));
+
+        oap::aa::ServiceDiscoveryBuilder builder(&config);
+        builder.setDisplayDimensions(1024, 600);
+        auto sessionConfig = builder.build();
+
+        // Find video channel (id=3) and check margins
+        for (const auto& ch : sessionConfig.channels) {
+            if (ch.channelId == 3) {
+                oaa::proto::data::ChannelDescriptor desc;
+                QVERIFY(desc.ParseFromArray(ch.descriptor.constData(), ch.descriptor.size()));
+                QVERIFY(desc.has_av_channel());
+                QVERIFY(desc.av_channel().video_configs_size() > 0);
+                auto& vc = desc.av_channel().video_configs(0);
+                // marginW should be 0 (horizontal navbar doesn't affect width)
+                QCOMPARE(vc.margin_width(), 0);
+                // marginH should be positive (viewport is shorter than video aspect)
+                QVERIFY2(vc.margin_height() > 0, "Bottom navbar should produce positive marginH");
+                return;
+            }
+        }
+        QFAIL("Video channel not found");
+    }
+
+    void testNavbarLeftMargins() {
+        // Left navbar: 1024x600 display, 56px bar
+        // Effective viewport: 968x600
+        // screenRatio = 968/600 = 1.6133
+        // videoRatio = 1280/720 = 1.7778
+        // screenRatio < videoRatio -> marginW = round(1280 - 720*1.6133) = round(1280 - 1161.6) = 118
+        oap::YamlConfig config;
+        config.setValueByPath("navbar.show_during_aa", true);
+        config.setValueByPath("navbar.edge", QString("left"));
+
+        oap::aa::ServiceDiscoveryBuilder builder(&config);
+        builder.setDisplayDimensions(1024, 600);
+        auto sessionConfig = builder.build();
+
+        for (const auto& ch : sessionConfig.channels) {
+            if (ch.channelId == 3) {
+                oaa::proto::data::ChannelDescriptor desc;
+                QVERIFY(desc.ParseFromArray(ch.descriptor.constData(), ch.descriptor.size()));
+                auto& vc = desc.av_channel().video_configs(0);
+                QVERIFY2(vc.margin_width() > 0, "Left navbar should produce positive marginW");
+                QCOMPARE(vc.margin_height(), 0);
+                return;
+            }
+        }
+        QFAIL("Video channel not found");
+    }
+
+    void testNavbarDisabledNoMargins() {
+        // When navbar is not shown during AA, margins should be (0,0)
+        oap::YamlConfig config;
+        config.setValueByPath("navbar.show_during_aa", false);
+        config.setValueByPath("navbar.edge", QString("bottom"));
+
+        oap::aa::ServiceDiscoveryBuilder builder(&config);
+        builder.setDisplayDimensions(1024, 600);
+        auto sessionConfig = builder.build();
+
+        for (const auto& ch : sessionConfig.channels) {
+            if (ch.channelId == 3) {
+                oaa::proto::data::ChannelDescriptor desc;
+                QVERIFY(desc.ParseFromArray(ch.descriptor.constData(), ch.descriptor.size()));
+                auto& vc = desc.av_channel().video_configs(0);
+                QCOMPARE(vc.margin_width(), 0);
+                QCOMPARE(vc.margin_height(), 0);
+                return;
+            }
+        }
+        QFAIL("Video channel not found");
+    }
+
+    void testInputDescriptorUsesNavbarDimensions() {
+        // touch_screen_config dimensions should account for navbar inset
+        oap::YamlConfig config;
+        config.setValueByPath("navbar.show_during_aa", true);
+        config.setValueByPath("navbar.edge", QString("bottom"));
+
+        oap::aa::ServiceDiscoveryBuilder builder(&config);
+        builder.setDisplayDimensions(1024, 600);
+        auto sessionConfig = builder.build();
+
+        // Find input channel (id=1)
+        for (const auto& ch : sessionConfig.channels) {
+            if (ch.channelId == 1) {
+                oaa::proto::data::ChannelDescriptor desc;
+                QVERIFY(desc.ParseFromArray(ch.descriptor.constData(), ch.descriptor.size()));
+                QVERIFY(desc.has_input_channel());
+                QVERIFY(desc.input_channel().touch_screen_config_size() > 0);
+                auto& tc = desc.input_channel().touch_screen_config(0);
+                // With margins, touch dimensions should be less than full video res
+                // (because margins reduce the content area)
+                QVERIFY2(tc.width() <= 1280, "Touch width should be <= video width");
+                QVERIFY2(tc.height() < 720, "Touch height should be < video height with bottom navbar");
+                return;
+            }
+        }
+        QFAIL("Input channel not found");
     }
 
     void testWifiChannelHasSsid() {

@@ -55,12 +55,6 @@ public:
     void setVideoResolution(const QString& v);
     int videoDpi() const;
     void setVideoDpi(int v);
-    bool sidebarEnabled() const;
-    void setSidebarEnabled(bool v);
-    int sidebarWidth() const;
-    void setSidebarWidth(int v);
-    QString sidebarPosition() const;
-    void setSidebarPosition(const QString& v);
     QStringList videoCodecs() const;
     QString videoDecoder(const QString& codec) const;
 

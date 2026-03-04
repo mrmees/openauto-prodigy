@@ -70,9 +70,8 @@ void TestConfigKeyCoverage::testAllRuntimeKeys()
         "sensors.night_mode.gpio_active_high",
         "sensors.gps.enabled",
         "sensors.gps.source",
-        "video.sidebar.enabled",
-        "video.sidebar.width",
-        "video.sidebar.position",
+        "navbar.edge",
+        "navbar.show_during_aa",
         "nav_strip.show_labels",
         "touch.device",
     };

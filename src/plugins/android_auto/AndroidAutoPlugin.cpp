@@ -117,34 +117,16 @@ bool AndroidAutoPlugin::initialize(IHostContext* context)
                 this, &AndroidAutoPlugin::gestureTriggered,
                 Qt::QueuedConnection);
 
-        // Configure sidebar touch exclusion
+        // Configure navbar dimensions for touch letterbox calculation
         if (hostContext_ && hostContext_->configService()) {
-            QVariant sidebarEnabledVar = hostContext_->configService()->value("video.sidebar.enabled");
-            bool sidebarEnabled = (sidebarEnabledVar == true || sidebarEnabledVar.toInt() == 1
-                                   || sidebarEnabledVar.toString() == "true");
-            if (sidebarEnabled) {
-                int sidebarW = hostContext_->configService()->value("video.sidebar.width").toInt();
-                QString pos = hostContext_->configService()->value("video.sidebar.position").toString();
-                if (sidebarW <= 0) sidebarW = 150;
-                if (pos.isEmpty()) pos = "right";
-                touchReader_->setSidebar(true, sidebarW, pos.toStdString());
+            QVariant showDuringAA = hostContext_->configService()->value("navbar.show_during_aa");
+            bool navbarEnabled = (showDuringAA.isNull() || showDuringAA.toBool());
+            if (navbarEnabled) {
+                QString edge = hostContext_->configService()->value("navbar.edge").toString();
+                if (edge.isEmpty()) edge = "bottom";
+                touchReader_->setNavbar(true, 56, edge.toStdString());
                 touchReader_->computeLetterbox();
-                qCInfo(lcAA) << "Sidebar touch zones:" << pos << sidebarW << "px";
-
-                connect(touchReader_, &oap::aa::EvdevTouchReader::sidebarVolumeSet,
-                        this, [this](int level) {
-                    if (hostContext_ && hostContext_->audioService()) {
-                        hostContext_->audioService()->setMasterVolume(level);
-                        qCDebug(lcAA) << "Sidebar vol:" << level;
-                    }
-                }, Qt::QueuedConnection);
-
-                connect(touchReader_, &oap::aa::EvdevTouchReader::sidebarHome,
-                        this, [this]() {
-                    qCInfo(lcAA) << "Sidebar home — requesting exit to car";
-                    if (aaService_)
-                        aaService_->requestExitToCar();
-                }, Qt::QueuedConnection);
+                qCInfo(lcAA) << "Navbar touch zone:" << edge << "56px";
             }
         }
     } else {

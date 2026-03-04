@@ -63,22 +63,12 @@ public:
     void grab();
     void ungrab();
 
-    void setSidebar(bool enabled, int width, const std::string& position);
+    void setNavbar(bool enabled, int thickness, const std::string& edge);
     void setCoordBridge(EvdevCoordBridge* bridge) { coordBridge_ = bridge; }
     void computeLetterbox();
 
     /// Direct access to the touch router (for external zone registration)
     TouchRouter& router() { return router_; }
-
-    // Test accessors for sidebar zone boundaries (evdev coordinate space)
-    float sidebarVolY0() const { return sidebarVolY0_; }
-    float sidebarVolY1() const { return sidebarVolY1_; }
-    float sidebarHomeY0() const { return sidebarHomeY0_; }
-    float sidebarHomeY1() const { return sidebarHomeY1_; }
-    float sidebarVolX0() const { return sidebarVolX0_; }
-    float sidebarVolX1() const { return sidebarVolX1_; }
-    float sidebarHomeX0() const { return sidebarHomeX0_; }
-    float sidebarHomeX1() const { return sidebarHomeX1_; }
 
     /// Thread-safe: update AA coordinate space (e.g. after video resolution change).
     /// Takes effect on next touch sync on the reader thread.
@@ -91,8 +81,6 @@ public:
 signals:
     /// Emitted when a 3-finger tap gesture is detected (thread-safe, queued).
     void gestureDetected();
-    void sidebarVolumeSet(int level);  // 0-100 continuous volume from drag
-    void sidebarHome();
 
 protected:
     void run() override;
@@ -116,17 +104,15 @@ private:
     int displayWidth_;  // physical display pixels
     int displayHeight_;
 
-    // Letterbox/crop: video area within evdev coordinate space
+    // Letterbox: video area within evdev coordinate space
     float videoEvdevX0_ = 0;  // left edge of video in evdev coords
     float videoEvdevY0_ = 0;  // top edge of video in evdev coords
     float videoEvdevW_ = 0;   // width of video area in evdev coords
     float videoEvdevH_ = 0;   // height of video area in evdev coords
 
-    // Crop mode (sidebar active): AA coordinate offset for cropped video
-    float cropAAOffsetX_ = 0;   // AA X offset due to horizontal crop (side sidebar)
-    float visibleAAWidth_ = 0;  // visible AA width after crop
-    float cropAAOffsetY_ = 0;   // AA Y offset due to vertical crop (top/bottom sidebar)
-    float visibleAAHeight_ = 0; // visible AA height after crop
+    // Visible AA dimensions (always full res with navbar fit-mode)
+    float visibleAAWidth_ = 0;
+    float visibleAAHeight_ = 0;
 
     std::array<Slot, MAX_SLOTS> slots_;
     std::array<Slot, MAX_SLOTS> prevSlots_;  // state before this SYN
@@ -141,22 +127,10 @@ private:
     std::chrono::steady_clock::time_point firstFingerTime_;
     int prevActiveCount_ = 0;
 
-    // Sidebar touch exclusion
-    bool sidebarEnabled_ = false;
-    bool sidebarHorizontal_ = false;  // top/bottom = horizontal band
-    int sidebarPixelWidth_ = 0;
-    std::string sidebarPosition_ = "right";
-    // Vertical sidebar (left/right): X band with Y sub-zones
-    float sidebarEvdevX0_ = 0;
-    float sidebarEvdevX1_ = 0;
-    float sidebarVolY0_ = 0, sidebarVolY1_ = 0;
-    float sidebarHomeY0_ = 0, sidebarHomeY1_ = 0;
-    // Horizontal sidebar (top/bottom): Y band with X sub-zones
-    float sidebarEvdevY0_ = 0;
-    float sidebarEvdevY1_ = 0;
-    float sidebarVolX0_ = 0, sidebarVolX1_ = 0;
-    float sidebarHomeX0_ = 0, sidebarHomeX1_ = 0;
-    int sidebarDragSlot_ = -1;  // slot currently dragging in volume zone
+    // Navbar dimensions for letterbox calculation
+    bool navbarEnabled_ = false;
+    int navbarThickness_ = 0;
+    std::string navbarEdge_ = "bottom";
 
     // Touch routing
     TouchRouter router_;

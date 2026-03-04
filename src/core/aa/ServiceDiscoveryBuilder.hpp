@@ -40,6 +40,9 @@ private:
     void calcMargins(int remoteW, int remoteH,
                      int& marginW, int& marginH) const;
 
+    // Shared viewport calculation (navbar-aware)
+    void calcNavbarViewport(int& viewportW, int& viewportH) const;
+
     oap::YamlConfig* yamlConfig_ = nullptr;
     QString btMacAddress_;
     QString wifiSsid_;
