@@ -4,8 +4,11 @@
 #include <QElapsedTimer>
 #include <QTimer>
 #include <QString>
+#include <QVariantList>
 #include <array>
 #include <memory>
+#include <string>
+#include <vector>
 
 namespace oap { namespace aa {
 class EvdevCoordBridge;
@@ -57,6 +60,13 @@ public:
     // --- Popup management ---
     Q_INVOKABLE void showPopup(int controlIndex);
     Q_INVOKABLE void hidePopup();
+
+    // --- Popup session API (geometry handshake) ---
+    Q_INVOKABLE qint64 beginPopupSession(int controlIndex);
+    Q_INVOKABLE void setPopupRegions(int controlIndex, qint64 generation,
+                                      const QVariantList& regions);
+    Q_INVOKABLE void clearPopupRegions(int controlIndex, qint64 generation);
+    Q_INVOKABLE void bumpPopupDismissTimer();
 
     // --- Control role mapping ---
     /// Returns "volume", "clock", or "brightness" for the given controlIndex (0-2)
@@ -125,6 +135,12 @@ private:
     ActionRegistry* actionRegistry_ = nullptr;
     QObject* audioService_ = nullptr;
     QObject* displayService_ = nullptr;
+
+    // Popup session tracking
+    qint64 popupGeneration_ = 0;
+    qint64 activePopupGeneration_ = 0;
+    std::vector<std::string> popupRegionZoneIds_;
+    void unregisterPopupRegionZones();
 };
 
 } // namespace oap

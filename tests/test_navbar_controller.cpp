@@ -524,6 +524,60 @@ private slots:
 
     // --- Popup dismiss behavior ---
 
+    // --- Popup session API ---
+
+    void testBeginPopupSessionReturnsIncreasingGeneration()
+    {
+        auto ctrl = makeController();
+        qint64 gen1 = ctrl->beginPopupSession(0);
+        qint64 gen2 = ctrl->beginPopupSession(1);
+        QVERIFY(gen2 > gen1);
+    }
+
+    void testClearPopupRegionsIgnoresStaleGeneration()
+    {
+        oap::aa::TouchRouter router;
+        oap::aa::EvdevCoordBridge bridge(&router);
+        bridge.setDisplayMapping(1024, 600, 4095, 4095);
+
+        auto ctrl = makeController(true, "bottom");
+        ctrl->setCoordBridge(&bridge);
+        ctrl->registerZones(1024, 600);
+
+        // Open popup, get generation
+        qint64 gen1 = ctrl->beginPopupSession(0);
+        ctrl->showPopup(0);
+
+        // Open a second popup (simulates quick close+reopen)
+        qint64 gen2 = ctrl->beginPopupSession(0);
+        ctrl->showPopup(0);
+
+        // Try to clear with stale generation — should be ignored
+        ctrl->clearPopupRegions(0, gen1);
+        QVERIFY(ctrl->popupVisible());  // still visible
+
+        // Clear with current generation — should work
+        ctrl->clearPopupRegions(0, gen2);
+        QCoreApplication::processEvents();
+        QVERIFY(!ctrl->popupVisible());
+    }
+
+    void testBumpPopupDismissTimerResetsTimeout()
+    {
+        auto ctrl = makeController();
+        ctrl->showPopup(0);
+        QVERIFY(ctrl->popupVisible());
+
+        // Wait a bit, then bump timer
+        QTest::qWait(100);
+        ctrl->bumpPopupDismissTimer();
+
+        // Popup should still be visible (timer was reset)
+        QVERIFY(ctrl->popupVisible());
+    }
+
+    // --- Popup dismiss behavior ---
+
     void testPopupDismissOnUpNotDown()
     {
         oap::aa::TouchRouter router;

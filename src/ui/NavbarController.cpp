@@ -186,6 +186,7 @@ void NavbarController::showPopup(int controlIndex)
 
     popupVisible_ = true;
     popupControlIndex_ = controlIndex;
+    activePopupGeneration_ = popupGeneration_;
     popupDismissTimer_->start();
 
     if (coordBridge_ && zonesRegistered_)
@@ -435,6 +436,49 @@ void NavbarController::unregisterPopupZones()
         return;
     coordBridge_->removeZone(std::string("navbar-popup-dismiss"));
     coordBridge_->removeZone(std::string("navbar-popup-slider"));
+    unregisterPopupRegionZones();
+}
+
+// --- Popup session API ---
+
+qint64 NavbarController::beginPopupSession(int controlIndex)
+{
+    Q_UNUSED(controlIndex)
+    return ++popupGeneration_;
+}
+
+void NavbarController::setPopupRegions(int controlIndex, qint64 generation,
+                                        const QVariantList& regions)
+{
+    // Stub — will be implemented in Task 4
+    Q_UNUSED(controlIndex)
+    Q_UNUSED(generation)
+    Q_UNUSED(regions)
+}
+
+void NavbarController::clearPopupRegions(int controlIndex, qint64 generation)
+{
+    Q_UNUSED(controlIndex)
+    if (generation != activePopupGeneration_ && activePopupGeneration_ != 0)
+        return;  // stale generation, ignore
+
+    hidePopup();
+}
+
+void NavbarController::bumpPopupDismissTimer()
+{
+    if (popupVisible_ && popupDismissTimer_)
+        popupDismissTimer_->start();  // restart the 7-second timer
+}
+
+void NavbarController::unregisterPopupRegionZones()
+{
+    if (!coordBridge_)
+        return;
+    for (const auto& zoneId : popupRegionZoneIds_) {
+        coordBridge_->removeZone(zoneId);
+    }
+    popupRegionZoneIds_.clear();
 }
 
 // --- Action dispatch ---
