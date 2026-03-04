@@ -356,10 +356,11 @@ int main(int argc, char *argv[])
             }
         }
     });
-    // Volume short-hold: open settings (EQ would need Shell signal, just open audio settings)
-    actionRegistry->registerAction("navbar.volume.shortHold", [appController, pluginModel](const QVariant&) {
+    // Volume short-hold: open audio/EQ settings
+    actionRegistry->registerAction("navbar.volume.shortHold", [appController, pluginModel, navbarController](const QVariant&) {
         pluginModel->setActivePlugin(QString());
-        appController->navigateTo(6);  // settings
+        appController->navigateTo(6);
+        emit navbarController->settingsPageRequested(QStringLiteral("audio"));
     });
     // Volume long-hold: mute toggle
     {
@@ -396,9 +397,10 @@ int main(int argc, char *argv[])
         }
     });
     // Brightness short-hold: open display settings
-    actionRegistry->registerAction("navbar.brightness.shortHold", [appController, pluginModel](const QVariant&) {
+    actionRegistry->registerAction("navbar.brightness.shortHold", [appController, pluginModel, navbarController](const QVariant&) {
         pluginModel->setActivePlugin(QString());
         appController->navigateTo(6);
+        emit navbarController->settingsPageRequested(QStringLiteral("display"));
     });
     // Brightness long-hold: toggle night mode
     actionRegistry->registerAction("navbar.brightness.longHold", [themeService](const QVariant&) {

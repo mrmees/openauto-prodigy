@@ -83,6 +83,7 @@ signals:
     void layoutChanged();
     void popupChanged();
     void popupDrag(int controlIndex, float normalizedValue);
+    void settingsPageRequested(const QString& pageId);
 
 private:
     struct ControlState {

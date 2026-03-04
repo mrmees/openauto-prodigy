@@ -21,9 +21,9 @@ NavbarController::NavbarController(QObject* parent)
         connect(longHoldTimers_[i], &QTimer::timeout, this, [this, i]() {
             if (controls_[i].pressed) {
                 controls_[i].longHoldFired = true;
-                emit gestureTriggered(i, LongHold);
                 progressTimers_[i]->stop();
-                emit holdProgress(i, 1.0);
+                emit gestureTriggered(i, LongHold);
+                emit holdProgress(i, 0.0);
             }
         });
 
@@ -437,6 +437,7 @@ void NavbarController::resetControlState(int index)
     controls_[index].pressed = false;
     controls_[index].longHoldFired = false;
     controls_[index].activeSlot = -1;
+    emit holdProgress(index, 0.0);
 }
 
 } // namespace oap

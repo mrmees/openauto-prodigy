@@ -11,42 +11,34 @@ Item {
     property Item anchorItem: null
     property string navbarEdge: "bottom"
 
-    // Popup dimensions
-    readonly property int popupW: UiMetrics.touchMin * 2
-    readonly property int popupH: Math.round(200 * UiMetrics.scale)
-    readonly property int sliderTrackW: UiMetrics.trackThick
-    readonly property int knobDiameter: UiMetrics.knobSize
+    // Popup dimensions — full screen height for easy touch target
+    readonly property int popupW: UiMetrics.touchMin * 3
+    readonly property int popupH: root.parent ? root.parent.height : Math.round(400 * UiMetrics.scale)
+    readonly property int sliderTrackW: Math.round(UiMetrics.trackThick * 2.5)
+    readonly property int knobDiameter: Math.round(UiMetrics.knobSize * 1.5)
 
     visible: NavbarController.popupVisible && NavbarController.popupControlIndex === root.controlIndex
     z: 200
 
-    // Position relative to anchor item
+    // Position: full height, centered horizontally on the anchor control
     onVisibleChanged: {
         if (visible && anchorItem) {
             var pos = anchorItem.mapToItem(root.parent, 0, 0)
-            var centerX = pos.x + anchorItem.width / 2 - popupW / 2
 
-            // Clamp to parent bounds
-            if (centerX < 0) centerX = 0
-            if (centerX + popupW > parent.width) centerX = parent.width - popupW
+            // Always span full height
+            root.y = 0
 
-            if (navbarEdge === "bottom") {
-                root.x = centerX
-                root.y = pos.y - popupH - UiMetrics.spacing
-            } else if (navbarEdge === "top") {
-                root.x = centerX
-                root.y = pos.y + anchorItem.height + UiMetrics.spacing
-            } else if (navbarEdge === "left") {
+            if (navbarEdge === "left") {
                 root.x = pos.x + anchorItem.width + UiMetrics.spacing
-                root.y = pos.y + anchorItem.height / 2 - popupH / 2
-            } else { // right
+            } else if (navbarEdge === "right") {
                 root.x = pos.x - popupW - UiMetrics.spacing
-                root.y = pos.y + anchorItem.height / 2 - popupH / 2
+            } else {
+                // top/bottom: center on the control
+                var centerX = pos.x + anchorItem.width / 2 - popupW / 2
+                if (centerX < 0) centerX = 0
+                if (centerX + popupW > parent.width) centerX = parent.width - popupW
+                root.x = centerX
             }
-
-            // Clamp Y
-            if (root.y < 0) root.y = 0
-            if (root.y + popupH > parent.height) root.y = parent.height - popupH
         }
     }
 
@@ -76,21 +68,25 @@ Item {
 
         ColumnLayout {
             anchors.fill: parent
-            anchors.margins: UiMetrics.spacing
+            anchors.margins: UiMetrics.marginRow
             spacing: UiMetrics.spacing
 
             // Value label
             Text {
                 Layout.alignment: Qt.AlignHCenter
+                Layout.topMargin: UiMetrics.spacing
                 text: root.currentValue
-                font.pixelSize: UiMetrics.fontBody
+                font.pixelSize: UiMetrics.fontHeading
+                font.bold: true
                 color: ThemeService.normalFontColor
             }
 
-            // Slider track area
+            // Slider track area — with vertical padding so knob doesn't clip
             Item {
                 Layout.fillWidth: true
                 Layout.fillHeight: true
+                Layout.topMargin: root.knobDiameter / 2
+                Layout.bottomMargin: root.knobDiameter / 2 + UiMetrics.spacing
 
                 // Track background
                 Rectangle {
@@ -123,11 +119,12 @@ Item {
                     y: parent.height - (parent.height * (root.currentValue - root.minVal) / (root.maxVal - root.minVal)) - root.knobDiameter / 2
                 }
 
-                // Drag area
+                // Drag area — extends beyond track for easy finger targeting
                 MouseArea {
                     anchors.fill: parent
-                    onPressed: function(mouse) { updateValue(mouse.y) }
-                    onPositionChanged: function(mouse) { updateValue(mouse.y) }
+                    anchors.margins: -UiMetrics.spacing
+                    onPressed: function(mouse) { updateValue(mouse.y + UiMetrics.spacing) }
+                    onPositionChanged: function(mouse) { updateValue(mouse.y + UiMetrics.spacing) }
 
                     function updateValue(mouseY) {
                         var normalized = 1.0 - (mouseY / parent.height)

@@ -77,6 +77,13 @@ Item {
         z: 100
     }
 
+    Connections {
+        target: NavbarController
+        function onSettingsPageRequested(pageId) {
+            settingsView.openPage(pageId)
+        }
+    }
+
     // Toast notifications
     NotificationArea {
         id: notificationArea
