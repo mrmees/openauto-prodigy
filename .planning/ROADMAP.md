@@ -97,7 +97,7 @@ Plans:
 
 Plans:
 - [x] 03-01-PLAN.md -- Sidebar-to-navbar plumbing: config, margins, QML simplification, sidebar removal, settings toggle
-- [ ] 03-02-PLAN.md -- GestureOverlay evdev zone fix + touch routing validation during AA
+- [x] 03-02-PLAN.md -- GestureOverlay evdev zone fix + touch routing validation during AA
 
 ### Phase 4: Cleanup
 **Goal**: Old navigation UI is removed -- the codebase has one navigation system, not two
@@ -121,8 +121,8 @@ Phases execute in numeric order: 1 -> 2 -> 3 -> 4
 |-------|----------------|--------|-----------|
 | 1. Touch Routing | 2/2 | Complete | 2026-03-03 |
 | 2. Navbar | 2/2 | Complete | 2026-03-04 |
-| 3. AA Integration | 1/2 | In Progress | - |
+| 3. AA Integration | 2/2 | Complete | 2026-03-04 |
 | 4. Cleanup | 0/1 | Not started | - |
 
 ---
-*Last updated: 2026-03-04 -- Phase 3 plan 01 complete*
+*Last updated: 2026-03-04 -- Phase 3 complete*

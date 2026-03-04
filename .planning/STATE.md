@@ -2,14 +2,14 @@
 gsd_state_version: 1.0
 milestone: v0.4
 milestone_name: milestone
-current_phase: 03-aa-integration (plan 01 complete, plan 02 next)
+current_phase: 03-aa-integration (plan 02 complete, phase complete)
 status: executing
-last_updated: "2026-03-04T03:32:41.786Z"
+last_updated: "2026-03-04T03:41:00Z"
 progress:
   total_phases: 4
-  completed_phases: 2
+  completed_phases: 3
   total_plans: 6
-  completed_plans: 5
+  completed_plans: 6
 ---
 
 # Session State
@@ -21,7 +21,7 @@ See: .planning/PROJECT.md
 ## Position
 
 **Milestone:** v0.4.5 Touch & Navbar
-**Current phase:** 03-aa-integration (plan 01 complete, plan 02 next)
+**Current phase:** 03-aa-integration (plan 02 complete, phase complete)
 **Status:** In Progress
 
 ## Decisions
@@ -32,6 +32,9 @@ See: .planning/PROJECT.md
 - [03-aa] Shared calcNavbarViewport() helper prevents duplicated margin/touch logic
 - [03-aa] BAR_THICK (56) hardcoded in ServiceDiscoveryBuilder to match NavbarController
 - [03-aa] Removed all crop-mode branches -- navbar uses PreserveAspectFit only
+- [03-aa] EvdevCoordBridge created in AndroidAutoPlugin, shared with NavbarController and gesture overlay
+- [03-aa] GestureOverlay zone consumes all touches during AA -- full evdev-to-slider bridging deferred
+- [03-aa] Zone deregistration wired to visibleChanged (not individual dismiss callers)
 
 ## Session Log
 
@@ -41,3 +44,5 @@ See: .planning/PROJECT.md
 - 2026-03-04: Phase 2 (Navbar) complete
 - 2026-03-04: Phase 02.1 inserted after Phase 2: fix critical layout bugs (URGENT)
 - 2026-03-04: Completed 03-01-PLAN.md (Sidebar-to-navbar AA integration, margin calc, QML simplification)
+- 2026-03-04: Completed 03-02-PLAN.md (GestureOverlay evdev zone registration + priority preemption tests)
+- 2026-03-04: Phase 3 (AA Integration) complete
