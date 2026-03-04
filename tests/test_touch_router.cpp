@@ -270,6 +270,43 @@ private slots:
         QVERIFY(!claimed);
         QCOMPARE(overlayHits, 1);  // no additional hits
     }
+
+    void claimProtection_setZonesDuringActiveDispatch()
+    {
+        // Verify setZones doesn't corrupt claims while dispatch is using them.
+        // This is a structural test — we verify claims are cleared properly
+        // when zones change mid-touch.
+        TouchRouter router;
+        int zoneAHits = 0;
+        int zoneBHits = 0;
+
+        router.setZones({
+            {"zoneA", 5, 0, 0, 2048, 4095,
+             [&](int, float, float, TouchEvent) { zoneAHits++; }},
+        });
+
+        // DOWN claims zoneA on slot 0
+        router.dispatch(0, 1000, 1000, TouchEvent::Down);
+        QCOMPARE(zoneAHits, 1);
+
+        // Replace zones while slot 0 has active claim
+        router.setZones({
+            {"zoneB", 5, 0, 0, 4095, 4095,
+             [&](int, float, float, TouchEvent) { zoneBHits++; }},
+        });
+
+        // MOVE on slot 0 — stale claim for zoneA cleared by setZones,
+        // should fall through (MOVE can't claim new zone)
+        bool claimed = router.dispatch(0, 1000, 1000, TouchEvent::Move);
+        QVERIFY(!claimed);
+        QCOMPARE(zoneAHits, 1);  // no additional hits
+        QCOMPARE(zoneBHits, 0);  // MOVE doesn't claim
+
+        // New DOWN on slot 0 should now claim zoneB
+        claimed = router.dispatch(0, 1000, 1000, TouchEvent::Down);
+        QVERIFY(claimed);
+        QCOMPARE(zoneBHits, 1);
+    }
 };
 
 QTEST_MAIN(TestTouchRouter)
