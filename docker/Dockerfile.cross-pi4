@@ -32,6 +32,7 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     libpipewire-0.3-dev:arm64 \
     libyaml-cpp-dev:arm64 \
     libbluetooth-dev:arm64 \
+    libsystemd-dev:arm64 \
     && rm -rf /var/lib/apt/lists/*
 
 WORKDIR /src

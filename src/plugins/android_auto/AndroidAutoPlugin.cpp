@@ -233,12 +233,15 @@ void AndroidAutoPlugin::onActivated(QQmlContext* context)
     context->setContextProperty("VideoDecoder", aaService_->videoDecoder());
     context->setContextProperty("TouchHandler", aaService_->touchHandler());
 
-    // Re-grab touch and request video focus if returning from backgrounded state
+    // Re-grab touch when returning to AA view (may have been ungrabbed by onDeactivated)
     using CS = oap::aa::AndroidAutoOrchestrator;
-    if (static_cast<CS::ConnectionState>(aaService_->connectionState()) == CS::Backgrounded) {
+    auto connState = static_cast<CS::ConnectionState>(aaService_->connectionState());
+    if (connState == CS::Connected || connState == CS::Backgrounded) {
         if (touchReader_) touchReader_->grab();
-        aaService_->requestVideoFocus();
-        qCInfo(lcAA) << "Re-entering AA projection from background";
+        if (connState == CS::Backgrounded) {
+            aaService_->requestVideoFocus();
+        }
+        qCInfo(lcAA) << "Re-entering AA projection (state:" << aaService_->connectionState() << ")";
     }
 }
 
@@ -246,6 +249,11 @@ void AndroidAutoPlugin::onDeactivated()
 {
     if (aaService_ && aaService_->videoDecoder())
         aaService_->videoDecoder()->setVideoSink(nullptr);
+
+    // Release touch grab so Wayland/Qt can handle touch on the home screen.
+    // The AA connection may still be alive (backgrounded), but the view is gone.
+    if (touchReader_)
+        touchReader_->ungrab();
 }
 
 QUrl AndroidAutoPlugin::qmlComponent() const
@@ -264,10 +272,13 @@ bool AndroidAutoPlugin::wantsFullscreen() const
     // so that the navbar remains visible. When false, AA takes the full screen.
     if (hostContext_ && hostContext_->configService()) {
         QVariant showDuringAA = hostContext_->configService()->value("navbar.show_during_aa");
-        // Default is true (show navbar during AA = not fullscreen)
-        if (showDuringAA.isNull() || showDuringAA.toBool())
-            return false;
+        bool result = !(showDuringAA.isNull() || showDuringAA.toBool());
+        qCInfo(lcAA) << "wantsFullscreen:" << result
+                     << "show_during_aa:" << showDuringAA
+                     << "isNull:" << showDuringAA.isNull();
+        return result;
     }
+    qCWarning(lcAA) << "wantsFullscreen: no hostContext/configService, defaulting to true";
     return true;
 }
 
