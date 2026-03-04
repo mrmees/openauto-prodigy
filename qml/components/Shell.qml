@@ -57,11 +57,11 @@ Item {
             }
         }
 
-        // Nav strip — plugin-model driven, hidden in fullscreen
+        // Nav strip — plugin-model driven, hidden when navbar is active (navbar replaces its role)
         NavStrip {
             Layout.fillWidth: true
-            Layout.preferredHeight: shell.fullscreenMode ? 0 : shell.height * 0.12
-            visible: !shell.fullscreenMode
+            Layout.preferredHeight: shell.fullscreenMode || navbar.visible ? 0 : shell.height * 0.12
+            visible: !shell.fullscreenMode && !navbar.visible
             onSettingsResetRequested: settingsView.resetToGrid()
             onEqRequested: {
                 PluginModel.setActivePlugin("")
