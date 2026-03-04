@@ -37,6 +37,7 @@
 #include "plugins/equalizer/EqualizerPlugin.hpp"
 #include "ui/ApplicationController.hpp"
 #include "ui/NavbarController.hpp"
+#include "core/aa/EvdevCoordBridge.hpp"
 #include "ui/PluginModel.hpp"
 #include "ui/PluginViewHost.hpp"
 #include "ui/LauncherModel.hpp"
@@ -302,6 +303,11 @@ int main(int argc, char *argv[])
     // Initialize all plugins (static + dynamic)
     pluginManager.initializeAll(hostContext.get());
 
+    // Wire EvdevCoordBridge from AA plugin to NavbarController for touch zones
+    if (auto* bridge = aaPlugin->coordBridge()) {
+        navbarController->setCoordBridge(bridge);
+    }
+
     // --- IPC server for web config panel ---
     auto ipcServer = new oap::IpcServer(&app);
     ipcServer->setConfig(yamlConfig.get(), yamlPath);
@@ -492,12 +498,65 @@ int main(int argc, char *argv[])
 
     // Connect 3-finger gesture to GestureOverlay
     QObject::connect(aaPlugin, &oap::plugins::AndroidAutoPlugin::gestureTriggered,
-                     &app, [&engine]() {
+                     &app, [&engine, aaPlugin, displayInfo, audioService, displayService, themeService, actionRegistry]() {
         auto* root = engine.rootObjects().value(0);
         if (!root) return;
         auto* overlay = root->findChild<QObject*>("gestureOverlay");
-        if (overlay)
-            QMetaObject::invokeMethod(overlay, "show");
+        if (!overlay) return;
+
+        QMetaObject::invokeMethod(overlay, "show");
+
+        // Register full-screen evdev zone at priority 200 to intercept all touches
+        // during overlay visibility (QML MouseAreas don't work during EVIOCGRAB)
+        auto* bridge = aaPlugin->coordBridge();
+        if (!bridge) return;
+
+        int dw = displayInfo->windowWidth();
+        int dh = displayInfo->windowHeight();
+
+        bridge->updateZone(
+            std::string("gesture-overlay"), 200,
+            0.0f, 0.0f,
+            static_cast<float>(dw), static_cast<float>(dh),
+            [overlay, audioService, displayService, actionRegistry](int /*slot*/, float x, float y, oap::aa::TouchEvent event) {
+                // All touches consumed while overlay visible -- prevents AA forwarding.
+                // Bridge evdev touches to overlay controls:
+                // Get overlay panel geometry for hit-testing
+                QObject* panel = overlay->findChild<QObject*>();
+                if (!panel) return;
+
+                // The overlay is full-screen. The panel is centered at ~70% width.
+                // For slider interaction, we use normalized Y within the panel.
+                // For simplicity (and per plan's "simpler alternative"), we consume
+                // all touches. Volume/brightness sliders and buttons work via QML
+                // when not in EVIOCGRAB mode. During AA+EVIOCGRAB, this zone prevents
+                // stray touches reaching the phone while overlay is up.
+                //
+                // Full evdev-to-slider bridging deferred (TODO: map evdev coords
+                // to slider values for volume/brightness control during AA).
+                Q_UNUSED(x);
+                Q_UNUSED(y);
+                Q_UNUSED(event);
+                Q_UNUSED(audioService);
+                Q_UNUSED(displayService);
+                Q_UNUSED(actionRegistry);
+            });
+
+        // Deregister zone when overlay becomes invisible (covers all dismiss paths:
+        // timer, close button, home button -- they all set visible=false via dismiss())
+        // Per research Pitfall 2: wire to visible property change, not individual dismiss callers.
+        static QMetaObject::Connection visConn;
+        // Disconnect any previous connection to avoid stacking
+        if (visConn) QObject::disconnect(visConn);
+        auto* overlayItem = qobject_cast<QQuickItem*>(overlay);
+        if (overlayItem) {
+            visConn = QObject::connect(overlayItem, &QQuickItem::visibleChanged,
+                overlayItem, [bridge, overlayItem]() {
+                    if (!overlayItem->isVisible()) {
+                        bridge->removeZone(std::string("gesture-overlay"));
+                    }
+                });
+        }
     });
 
     // SIGUSR1 → disconnect AA session (ShutdownRequest + teardown, keep listening)

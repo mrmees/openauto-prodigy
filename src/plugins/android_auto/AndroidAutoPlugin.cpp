@@ -1,6 +1,7 @@
 #include "AndroidAutoPlugin.hpp"
 #include "core/aa/AndroidAutoOrchestrator.hpp"
 #include "core/aa/EvdevTouchReader.hpp"
+#include "core/aa/EvdevCoordBridge.hpp"
 #include "core/plugin/IHostContext.hpp"
 #include "core/Configuration.hpp"
 #include "core/InputDeviceScanner.hpp"
@@ -111,6 +112,11 @@ bool AndroidAutoPlugin::initialize(IHostContext* context)
         touchReader_->start();
         qCInfo(lcAA) << "Touch:" << touchDevice
                 << "display=" << displayW << "x" << displayH;
+
+        // Create EvdevCoordBridge for external zone registration (navbar, gesture overlay)
+        coordBridge_ = new oap::aa::EvdevCoordBridge(&touchReader_->router(), this);
+        coordBridge_->setDisplayMapping(displayW, displayH, 4095, 4095);
+        touchReader_->setCoordBridge(coordBridge_);
 
         // Relay 3-finger gesture to QML overlay (works regardless of grab state)
         connect(touchReader_, &oap::aa::EvdevTouchReader::gestureDetected,

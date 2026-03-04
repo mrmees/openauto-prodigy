@@ -181,6 +181,95 @@ private slots:
 
         QCOMPARE(hitCount, 4);  // two successful DOWN + UP pairs
     }
+
+    // --- GestureOverlay priority preemption tests (AA-05) ---
+
+    void gestureOverlayZone_preemptsNavbar()
+    {
+        // Simulates: navbar at priority 50, gesture overlay at priority 200
+        // Both cover the same area. Overlay should win.
+        TouchRouter router;
+        int navbarHits = 0;
+        int overlayHits = 0;
+        router.setZones({
+            {"navbar-driver", 50, 0, 0, 4095, 4095,
+             [&](int, float, float, TouchEvent) { navbarHits++; }},
+            {"gesture-overlay", 200, 0, 0, 4095, 4095,
+             [&](int, float, float, TouchEvent) { overlayHits++; }},
+        });
+        bool claimed = router.dispatch(0, 2000, 2000, TouchEvent::Down);
+        QVERIFY(claimed);
+        QCOMPARE(overlayHits, 1);
+        QCOMPARE(navbarHits, 0);
+
+        // MOVE also goes to overlay (sticky)
+        router.dispatch(0, 2500, 2500, TouchEvent::Move);
+        QCOMPARE(overlayHits, 2);
+        QCOMPARE(navbarHits, 0);
+
+        router.dispatch(0, 2500, 2500, TouchEvent::Up);
+        QCOMPARE(overlayHits, 3);
+        QCOMPARE(navbarHits, 0);
+    }
+
+    void gestureOverlayZone_removalRestoresNavbar()
+    {
+        // After overlay zone is removed, touches should go to navbar zone
+        TouchRouter router;
+        int navbarHits = 0;
+        int overlayHits = 0;
+
+        // Both zones active
+        router.setZones({
+            {"navbar-driver", 50, 0, 0, 4095, 4095,
+             [&](int, float, float, TouchEvent) { navbarHits++; }},
+            {"gesture-overlay", 200, 0, 0, 4095, 4095,
+             [&](int, float, float, TouchEvent) { overlayHits++; }},
+        });
+
+        // Touch goes to overlay
+        router.dispatch(0, 2000, 2000, TouchEvent::Down);
+        router.dispatch(0, 2000, 2000, TouchEvent::Up);
+        QCOMPARE(overlayHits, 2);
+        QCOMPARE(navbarHits, 0);
+
+        // Remove overlay zone -- keep only navbar
+        router.setZones({
+            {"navbar-driver", 50, 0, 0, 4095, 4095,
+             [&](int, float, float, TouchEvent) { navbarHits++; }},
+        });
+
+        // Now touch should go to navbar
+        bool claimed = router.dispatch(0, 2000, 2000, TouchEvent::Down);
+        QVERIFY(claimed);
+        QCOMPARE(navbarHits, 1);
+        QCOMPARE(overlayHits, 2);  // unchanged
+    }
+
+    void gestureOverlayZone_stickyDuringRemoval()
+    {
+        // Edge case: finger DOWN in overlay zone, overlay removed during MOVE.
+        // Sticky routing should clear (stale claim) and MOVE falls through.
+        TouchRouter router;
+        int overlayHits = 0;
+
+        router.setZones({
+            {"gesture-overlay", 200, 0, 0, 4095, 4095,
+             [&](int, float, float, TouchEvent) { overlayHits++; }},
+        });
+
+        // DOWN claims overlay
+        router.dispatch(0, 2000, 2000, TouchEvent::Down);
+        QCOMPARE(overlayHits, 1);
+
+        // Remove overlay (dismiss happened mid-touch)
+        router.setZones({});
+
+        // MOVE should fall through (stale claim cleared by setZones)
+        bool claimed = router.dispatch(0, 2500, 2500, TouchEvent::Move);
+        QVERIFY(!claimed);
+        QCOMPARE(overlayHits, 1);  // no additional hits
+    }
 };
 
 QTEST_MAIN(TestTouchRouter)
