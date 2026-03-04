@@ -71,6 +71,12 @@ Item {
         }
     }
 
+    // Navbar (floating, any edge — replaces TopBar/NavStrip role, both still present until Phase 4)
+    Navbar {
+        id: navbar
+        z: 100
+    }
+
     // Toast notifications
     NotificationArea {
         id: notificationArea

@@ -159,6 +159,18 @@ set_source_files_properties(../qml/components/Wallpaper.qml PROPERTIES
     QT_QML_SOURCE_TYPENAME "Wallpaper"
     QT_RESOURCE_ALIAS "Wallpaper.qml"
 )
+set_source_files_properties(../qml/components/Navbar.qml PROPERTIES
+    QT_QML_SOURCE_TYPENAME "Navbar"
+    QT_RESOURCE_ALIAS "Navbar.qml"
+)
+set_source_files_properties(../qml/components/NavbarControl.qml PROPERTIES
+    QT_QML_SOURCE_TYPENAME "NavbarControl"
+    QT_RESOURCE_ALIAS "NavbarControl.qml"
+)
+set_source_files_properties(../qml/components/NavbarPopup.qml PROPERTIES
+    QT_QML_SOURCE_TYPENAME "NavbarPopup"
+    QT_RESOURCE_ALIAS "NavbarPopup.qml"
+)
 set_source_files_properties(../qml/components/TopBar.qml PROPERTIES
     QT_QML_SOURCE_TYPENAME "TopBar"
     QT_RESOURCE_ALIAS "TopBar.qml"
@@ -289,6 +301,9 @@ qt_add_qml_module(openauto-prodigy
         ../qml/components/TopBar.qml
         ../qml/components/BottomBar.qml
         ../qml/components/Shell.qml
+        ../qml/components/Navbar.qml
+        ../qml/components/NavbarControl.qml
+        ../qml/components/NavbarPopup.qml
         ../qml/components/NavStrip.qml
         ../qml/components/GestureOverlay.qml
         ../qml/components/PairingDialog.qml

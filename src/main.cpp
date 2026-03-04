@@ -36,6 +36,7 @@
 #include "plugins/phone/PhonePlugin.hpp"
 #include "plugins/equalizer/EqualizerPlugin.hpp"
 #include "ui/ApplicationController.hpp"
+#include "ui/NavbarController.hpp"
 #include "ui/PluginModel.hpp"
 #include "ui/PluginViewHost.hpp"
 #include "ui/LauncherModel.hpp"
@@ -228,6 +229,19 @@ int main(int argc, char *argv[])
     auto actionRegistry = new oap::ActionRegistry(&app);
     hostContext->setActionRegistry(actionRegistry);
 
+    // --- NavbarController ---
+    auto navbarController = new oap::NavbarController(&app);
+    navbarController->setActionRegistry(actionRegistry);
+    // Read edge and LHD config
+    {
+        auto edgeVar = yamlConfig->valueByPath("navbar.edge");
+        if (edgeVar.isValid() && !edgeVar.toString().isEmpty())
+            navbarController->setEdge(edgeVar.toString());
+        auto lhdVar = yamlConfig->valueByPath("identity.left_hand_drive");
+        if (lhdVar.isValid())
+            navbarController->setLeftHandDrive(lhdVar.toBool());
+    }
+
     // --- NotificationService ---
     auto notificationService = new oap::NotificationService(&app);
     hostContext->setNotificationService(notificationService);
@@ -331,6 +345,67 @@ int main(int argc, char *argv[])
         themeService->toggleMode();
     });
 
+    // --- Navbar action handlers ---
+    // Volume tap: show volume popup
+    actionRegistry->registerAction("navbar.volume.tap", [navbarController](const QVariant&) {
+        // Determine which control index is volume
+        for (int i = 0; i < 3; ++i) {
+            if (navbarController->controlRole(i) == "volume") {
+                navbarController->showPopup(i);
+                break;
+            }
+        }
+    });
+    // Volume short-hold: open settings (EQ would need Shell signal, just open audio settings)
+    actionRegistry->registerAction("navbar.volume.shortHold", [appController, pluginModel](const QVariant&) {
+        pluginModel->setActivePlugin(QString());
+        appController->navigateTo(6);  // settings
+    });
+    // Volume long-hold: mute toggle
+    {
+        static int previousVolume = 80;
+        actionRegistry->registerAction("navbar.volume.longHold", [audioService](const QVariant&) {
+            if (audioService->masterVolume() > 0) {
+                previousVolume = audioService->masterVolume();
+                audioService->setMasterVolume(0);
+            } else {
+                audioService->setMasterVolume(previousVolume > 0 ? previousVolume : 80);
+            }
+        });
+    }
+    // Clock tap: go home
+    actionRegistry->registerAction("navbar.clock.tap", [pluginModel, appController](const QVariant&) {
+        pluginModel->setActivePlugin(QString());
+        appController->navigateTo(0);
+    });
+    // Clock short-hold: open settings
+    actionRegistry->registerAction("navbar.clock.shortHold", [appController](const QVariant&) {
+        appController->navigateTo(6);
+    });
+    // Clock long-hold: show power menu
+    actionRegistry->registerAction("navbar.clock.longHold", [navbarController](const QVariant&) {
+        navbarController->showPopup(1);  // center control = clock
+    });
+    // Brightness tap: show brightness popup
+    actionRegistry->registerAction("navbar.brightness.tap", [navbarController](const QVariant&) {
+        for (int i = 0; i < 3; ++i) {
+            if (navbarController->controlRole(i) == "brightness") {
+                navbarController->showPopup(i);
+                break;
+            }
+        }
+    });
+    // Brightness short-hold: open display settings
+    actionRegistry->registerAction("navbar.brightness.shortHold", [appController, pluginModel](const QVariant&) {
+        pluginModel->setActivePlugin(QString());
+        appController->navigateTo(6);
+    });
+    // Brightness long-hold: toggle night mode
+    actionRegistry->registerAction("navbar.brightness.longHold", [themeService](const QVariant&) {
+        themeService->toggleMode();
+    });
+
+    engine.rootContext()->setContextProperty("NavbarController", navbarController);
     engine.rootContext()->setContextProperty("ActionRegistry", actionRegistry);
     engine.rootContext()->setContextProperty("ThemeService", themeService);
     engine.rootContext()->setContextProperty("ApplicationController", appController);

@@ -62,6 +62,7 @@ QtObject {
     // Touch targets (layout tokens -- use scale)
     readonly property int rowH:     { var o = _tok("rowH"); return isNaN(o) ? Math.round(80 * scale) : o; }
     readonly property int touchMin: { var o = _tok("touchMin"); return isNaN(o) ? Math.round(56 * scale) : o; }
+    readonly property int navbarThick: { var o = _tok("navbarThick"); return isNaN(o) ? Math.round(56 * scale) : o; }
 
     // Spacing (non-overridable -- scale only)
     readonly property int marginPage: Math.round(20 * scale)

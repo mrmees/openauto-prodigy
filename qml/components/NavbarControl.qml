@@ -1,0 +1,108 @@
+import QtQuick
+
+/// Individual navbar control: icon (volume/brightness) or clock (center).
+/// Delegates press/release to NavbarController and shows hold progress feedback.
+Item {
+    id: root
+
+    property int controlIndex: 0
+    property string iconText: ""
+    property bool showClock: false
+    property bool isVertical: false
+
+    // Hold progress (0.0 - 1.0) driven by NavbarController
+    property real _holdProgress: 0.0
+
+    Connections {
+        target: NavbarController
+        function onHoldProgress(idx, progress) {
+            if (idx === root.controlIndex)
+                root._holdProgress = progress
+        }
+        function onGestureTriggered(idx, gesture) {
+            if (idx === root.controlIndex)
+                root._holdProgress = 0.0
+        }
+    }
+
+    // Background with hold progress feedback
+    Rectangle {
+        anchors.fill: parent
+        color: ThemeService.barBackgroundColor
+        opacity: 1.0
+
+        // Progress overlay — fills from bottom to top
+        Rectangle {
+            anchors.left: parent.left
+            anchors.right: parent.right
+            anchors.bottom: parent.bottom
+            height: parent.height * root._holdProgress
+            color: ThemeService.highlightColor
+            opacity: 0.3
+            visible: root._holdProgress > 0
+        }
+    }
+
+    // Icon display (volume or brightness)
+    MaterialIcon {
+        anchors.centerIn: parent
+        icon: root.iconText
+        size: UiMetrics.iconSize
+        color: ThemeService.iconColor
+        visible: !root.showClock
+    }
+
+    // Clock display -- horizontal mode
+    Text {
+        id: clockHoriz
+        anchors.centerIn: parent
+        visible: root.showClock && !root.isVertical
+        color: ThemeService.normalFontColor
+        font.pixelSize: UiMetrics.fontBody
+
+        Timer {
+            interval: 1000
+            running: root.showClock
+            repeat: true
+            triggeredOnStart: true
+            onTriggered: {
+                var timeStr = Qt.formatTime(new Date(), "h:mm AP")
+                clockHoriz.text = timeStr
+                // Update vertical clock model too
+                var chars = []
+                for (var i = 0; i < timeStr.length; i++) {
+                    if (timeStr[i] !== " ")
+                        chars.push(timeStr[i])
+                }
+                clockVertRepeater.model = chars
+            }
+        }
+    }
+
+    // Clock display -- vertical mode (stacked single-digit column)
+    Column {
+        anchors.centerIn: parent
+        visible: root.showClock && root.isVertical
+        spacing: 0
+
+        Repeater {
+            id: clockVertRepeater
+            model: []
+            Text {
+                text: modelData
+                font.pixelSize: UiMetrics.fontSmall
+                color: ThemeService.normalFontColor
+                horizontalAlignment: Text.AlignHCenter
+                width: root.width
+            }
+        }
+    }
+
+    // Touch handling (launcher mode -- during AA, evdev zones handle this)
+    MouseArea {
+        anchors.fill: parent
+        onPressed: NavbarController.handlePress(root.controlIndex)
+        onReleased: NavbarController.handleRelease(root.controlIndex)
+        onExited: NavbarController.handleCancel(root.controlIndex)
+    }
+}
