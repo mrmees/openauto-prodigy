@@ -515,8 +515,9 @@ int main(int argc, char *argv[])
 
         QMetaObject::invokeMethod(overlay, "show");
 
-        // Register full-screen evdev zone at priority 200 to intercept all touches
-        // during overlay visibility (QML MouseAreas don't work during EVIOCGRAB)
+        // Register full-screen evdev zone at priority 200 to consume all touches
+        // during overlay visibility (prevents AA forwarding while overlay is up).
+        // Per-control zones at priority 210 handle actual interactions.
         auto* bridge = aaPlugin->coordBridge();
         if (!bridge) return;
 
@@ -527,86 +528,112 @@ int main(int argc, char *argv[])
             std::string("gesture-overlay"), 200,
             0.0f, 0.0f,
             static_cast<float>(dw), static_cast<float>(dh),
-            [overlay, audioService, displayService, actionRegistry, displayInfo](int /*slot*/, float rawX, float rawY, oap::aa::TouchEvent event) {
-                // Bridge evdev touches to overlay controls during EVIOCGRAB.
-                // Convert evdev (0-4095) to pixel coordinates.
-                int dw = displayInfo->windowWidth();
-                int dh = displayInfo->windowHeight();
-                if (dw <= 0 || dh <= 0) return;
-
-                float px = (rawX / 4095.0f) * dw;
-                float py = (rawY / 4095.0f) * dh;
-
-                // Panel geometry: centered, ~70% width (capped at 500px), ~50% height
-                float panelW = std::min(dw * 0.7f, 500.0f);
-                float panelX = (dw - panelW) / 2.0f;
-                float panelH = dh * 0.55f;
-                float panelY = (dh - panelH) / 2.0f;
-
-                // Outside panel -- still consumed (prevents AA forwarding) but no action
-                if (px < panelX || px > panelX + panelW || py < panelY || py > panelY + panelH)
-                    return;
-
-                // Normalize position within panel (0-1)
-                float relX = (px - panelX) / panelW;
-                float relY = (py - panelY) / panelH;
-
-                // Panel layout (approximate vertical regions):
-                // 0.00-0.10: "Quick Controls" title
-                // 0.10-0.40: Volume slider row
-                // 0.40-0.70: Brightness slider row
-                // 0.70-1.00: Action buttons row
-
-                if (relY >= 0.10f && relY < 0.40f) {
-                    // Volume slider region
-                    if (event == oap::aa::TouchEvent::Down || event == oap::aa::TouchEvent::Move) {
-                        float sliderRelX = std::clamp((relX - 0.12f) / 0.72f, 0.0f, 1.0f);
-                        int volume = static_cast<int>(sliderRelX * 100.0f);
-                        QMetaObject::invokeMethod(audioService, [audioService, volume]() {
-                            audioService->setMasterVolume(volume);
-                        }, Qt::QueuedConnection);
-                    }
-                } else if (relY >= 0.40f && relY < 0.70f) {
-                    // Brightness slider region
-                    if (event == oap::aa::TouchEvent::Down || event == oap::aa::TouchEvent::Move) {
-                        float sliderRelX = std::clamp((relX - 0.12f) / 0.72f, 0.0f, 1.0f);
-                        int brightness = 5 + static_cast<int>(sliderRelX * 95.0f);  // 5-100
-                        QMetaObject::invokeMethod(displayService, [displayService, brightness]() {
-                            displayService->setBrightness(brightness);
-                        }, Qt::QueuedConnection);
-                    }
-                } else if (relY >= 0.70f && event == oap::aa::TouchEvent::Down) {
-                    // Button region -- 3 buttons evenly spaced
-                    if (relX < 0.33f) {
-                        // Home button
-                        QMetaObject::invokeMethod(qApp, [actionRegistry]() {
-                            actionRegistry->dispatch("app.home");
-                        }, Qt::QueuedConnection);
-                        QMetaObject::invokeMethod(overlay, "dismiss", Qt::QueuedConnection);
-                    } else if (relX < 0.66f) {
-                        // Day/Night toggle
-                        QMetaObject::invokeMethod(qApp, [actionRegistry]() {
-                            actionRegistry->dispatch("theme.toggle");
-                        }, Qt::QueuedConnection);
-                    } else {
-                        // Close button
-                        QMetaObject::invokeMethod(overlay, "dismiss", Qt::QueuedConnection);
-                    }
-                }
+            [](int, float, float, oap::aa::TouchEvent) {
+                // Consume all touches to block AA forwarding.
+                // Per-control zones at priority 210 handle interactions.
             });
 
-        // Deregister zone when overlay becomes invisible (covers all dismiss paths:
-        // timer, close button, home button -- they all set visible=false via dismiss())
-        // Per research Pitfall 2: wire to visible property change, not individual dismiss callers.
-        static QMetaObject::Connection visConn;
-        // Disconnect any previous connection to avoid stacking
-        if (visConn) QObject::disconnect(visConn);
+        // Wait one frame for QML layout to stabilize, then register
+        // per-control zones using actual QML element positions
         auto* overlayItem = qobject_cast<QQuickItem*>(overlay);
-        if (overlayItem) {
-            visConn = QObject::connect(overlayItem, &QQuickItem::visibleChanged,
-                overlayItem, [bridge, overlayItem]() {
-                    if (!overlayItem->isVisible()) {
+        QTimer::singleShot(16, overlayItem, [bridge, overlayItem, audioService, displayService, actionRegistry]() {
+            if (!overlayItem || !overlayItem->isVisible()) return;
+
+            // Helper: get window-space rect for a named child
+            auto getRect = [overlayItem](const char* name, float& x, float& y, float& w, float& h) -> bool {
+                auto* item = overlayItem->findChild<QQuickItem*>(QString(name));
+                if (!item || item->width() <= 0) return false;
+                QPointF pos = item->mapToScene(QPointF(0, 0));
+                x = pos.x(); y = pos.y();
+                w = item->width(); h = item->height();
+                return true;
+            };
+
+            float x, y, w, h;
+
+            // Volume slider row
+            if (getRect("overlayVolumeRow", x, y, w, h)) {
+                float evX0 = bridge->pixelToEvdevX(x);
+                float evX1 = bridge->pixelToEvdevX(x + w);
+                bridge->updateZone("overlay-volume", 210, x, y, w, h,
+                    [audioService, evX0, evX1](int, float rawX, float, oap::aa::TouchEvent event) {
+                        if (event == oap::aa::TouchEvent::Down || event == oap::aa::TouchEvent::Move) {
+                            float norm = std::clamp((rawX - evX0) / (evX1 - evX0), 0.0f, 1.0f);
+                            int volume = static_cast<int>(norm * 100.0f);
+                            QMetaObject::invokeMethod(audioService, [audioService, volume]() {
+                                audioService->setMasterVolume(volume);
+                            }, Qt::QueuedConnection);
+                        }
+                    });
+            }
+
+            // Brightness slider row
+            if (getRect("overlayBrightnessRow", x, y, w, h)) {
+                float evX0 = bridge->pixelToEvdevX(x);
+                float evX1 = bridge->pixelToEvdevX(x + w);
+                bridge->updateZone("overlay-brightness", 210, x, y, w, h,
+                    [displayService, evX0, evX1](int, float rawX, float, oap::aa::TouchEvent event) {
+                        if (event == oap::aa::TouchEvent::Down || event == oap::aa::TouchEvent::Move) {
+                            float norm = std::clamp((rawX - evX0) / (evX1 - evX0), 0.0f, 1.0f);
+                            int brightness = 5 + static_cast<int>(norm * 95.0f);
+                            QMetaObject::invokeMethod(displayService, [displayService, brightness]() {
+                                displayService->setBrightness(brightness);
+                            }, Qt::QueuedConnection);
+                        }
+                    });
+            }
+
+            // Home button
+            if (getRect("overlayHomeBtn", x, y, w, h)) {
+                bridge->updateZone("overlay-home", 210, x, y, w, h,
+                    [overlayItem, actionRegistry](int, float, float, oap::aa::TouchEvent event) {
+                        if (event == oap::aa::TouchEvent::Down) {
+                            QMetaObject::invokeMethod(qApp, [actionRegistry]() {
+                                actionRegistry->dispatch("app.home");
+                            }, Qt::QueuedConnection);
+                            QMetaObject::invokeMethod(overlayItem, "dismiss", Qt::QueuedConnection);
+                        }
+                    });
+            }
+
+            // Theme toggle button
+            if (getRect("overlayThemeBtn", x, y, w, h)) {
+                bridge->updateZone("overlay-theme", 210, x, y, w, h,
+                    [actionRegistry](int, float, float, oap::aa::TouchEvent event) {
+                        if (event == oap::aa::TouchEvent::Down) {
+                            QMetaObject::invokeMethod(qApp, [actionRegistry]() {
+                                actionRegistry->dispatch("theme.toggle");
+                            }, Qt::QueuedConnection);
+                        }
+                    });
+            }
+
+            // Close button
+            if (getRect("overlayCloseBtn", x, y, w, h)) {
+                bridge->updateZone("overlay-close", 210, x, y, w, h,
+                    [overlayItem](int, float, float, oap::aa::TouchEvent event) {
+                        if (event == oap::aa::TouchEvent::Down) {
+                            QMetaObject::invokeMethod(overlayItem, "dismiss", Qt::QueuedConnection);
+                        }
+                    });
+            }
+        });
+
+        // Deregister all zones when overlay becomes invisible (covers all dismiss paths:
+        // timer, close button, home button -- they all set visible=false via dismiss())
+        static QMetaObject::Connection visConn;
+        if (visConn) QObject::disconnect(visConn);
+        auto* overlayItemVis = qobject_cast<QQuickItem*>(overlay);
+        if (overlayItemVis) {
+            visConn = QObject::connect(overlayItemVis, &QQuickItem::visibleChanged,
+                overlayItemVis, [bridge, overlayItemVis]() {
+                    if (!overlayItemVis->isVisible()) {
                         bridge->removeZone(std::string("gesture-overlay"));
+                        bridge->removeZone(std::string("overlay-volume"));
+                        bridge->removeZone(std::string("overlay-brightness"));
+                        bridge->removeZone(std::string("overlay-home"));
+                        bridge->removeZone(std::string("overlay-theme"));
+                        bridge->removeZone(std::string("overlay-close"));
                     }
                 });
         }
