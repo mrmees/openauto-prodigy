@@ -58,12 +58,6 @@ PluginManifest PluginManifest::fromFile(const QString& filePath)
             }
         }
 
-        // Nav strip config
-        if (root["nav_strip"]) {
-            m.navStripOrder = root["nav_strip"]["order"].as<int>(99);
-            m.navStripVisible = root["nav_strip"]["visible"].as<bool>(true);
-        }
-
         m.dirPath = QFileInfo(filePath).absolutePath();
 
     } catch (const YAML::Exception& e) {

@@ -72,7 +72,6 @@ void TestConfigKeyCoverage::testAllRuntimeKeys()
         "sensors.gps.source",
         "navbar.edge",
         "navbar.show_during_aa",
-        "nav_strip.show_labels",
         "touch.device",
     };
 

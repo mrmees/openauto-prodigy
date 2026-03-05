@@ -50,12 +50,6 @@ public:
     bool dayNightModeController() const { return m_dayNightModeController; }
     void setDayNightModeController(bool v) { m_dayNightModeController = v; }
 
-    bool showClockInAndroidAuto() const { return m_showClockInAndroidAuto; }
-    void setShowClockInAndroidAuto(bool v) { m_showClockInAndroidAuto = v; }
-
-    bool showTopBar() const { return m_showTopBar; }
-    void setShowTopBar(bool v) { m_showTopBar = v; }
-
     // --- Display ---
     ScreenType screenType() const { return m_screenType; }
     void setScreenType(ScreenType v) { m_screenType = v; }
@@ -152,8 +146,6 @@ private:
 
     // AndroidAuto
     bool m_dayNightModeController = true;
-    bool m_showClockInAndroidAuto = true;
-    bool m_showTopBar = true;
 
     // Display
     ScreenType m_screenType = ScreenType::Standard;

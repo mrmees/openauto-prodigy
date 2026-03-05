@@ -50,12 +50,6 @@ sensors:
     enabled: false
     source: "gpsd"
 
-nav_strip:
-  order:
-    - org.openauto.android-auto
-    - org.openauto.bt-audio
-  show_labels: true
-
 plugins:
   enabled:
     - org.openauto.android-auto

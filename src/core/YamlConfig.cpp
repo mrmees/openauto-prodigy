@@ -75,10 +75,6 @@ void YamlConfig::initDefaults()
     root_["sensors"]["gps"]["enabled"] = true;
     root_["sensors"]["gps"]["source"] = "none";
 
-    root_["nav_strip"]["order"] = YAML::Node(YAML::NodeType::Sequence);
-    root_["nav_strip"]["order"].push_back("org.openauto.android-auto");
-    root_["nav_strip"]["show_labels"] = true;
-
     // Launcher tiles
     YAML::Node tiles;
 

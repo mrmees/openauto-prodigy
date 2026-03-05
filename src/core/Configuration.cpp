@@ -104,8 +104,6 @@ void Configuration::load(const QString& filePath) {
     // [AndroidAuto]
     settings.beginGroup(QStringLiteral("AndroidAuto"));
     m_dayNightModeController = settings.value(QStringLiteral("day_night_mode_controller"), m_dayNightModeController).toBool();
-    m_showClockInAndroidAuto = settings.value(QStringLiteral("show_clock_in_android_auto"), m_showClockInAndroidAuto).toBool();
-    m_showTopBar             = settings.value(QStringLiteral("show_top_bar"), m_showTopBar).toBool();
     settings.endGroup();
 
     // [Display]
@@ -156,8 +154,6 @@ void Configuration::save(const QString& filePath) const {
     // [AndroidAuto]
     settings.beginGroup(QStringLiteral("AndroidAuto"));
     settings.setValue(QStringLiteral("day_night_mode_controller"), m_dayNightModeController);
-    settings.setValue(QStringLiteral("show_clock_in_android_auto"), m_showClockInAndroidAuto);
-    settings.setValue(QStringLiteral("show_top_bar"), m_showTopBar);
     settings.endGroup();
 
     // [Display]

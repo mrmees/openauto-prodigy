@@ -23,6 +23,3 @@ settings:
       - low
       - medium
       - high
-nav_strip:
-  order: 1
-  visible: true
