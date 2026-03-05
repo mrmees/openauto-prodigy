@@ -3,6 +3,7 @@
 #include <oaa/HU/Handlers/AudioChannelHandler.hpp>
 #include <oaa/Channel/ChannelId.hpp>
 #include "oaa/av/AVChannelSetupRequestMessage.pb.h"
+#include "oaa/av/MediaCodecTypeEnum.pb.h"
 #include "oaa/av/AVChannelStartIndicationMessage.pb.h"
 
 class TestAudioChannelHandler : public QObject {
@@ -30,7 +31,7 @@ private slots:
         handler.onChannelOpened();
 
         oaa::proto::messages::AVChannelSetupRequest req;
-        req.set_config_index(0);
+        req.set_config_index(static_cast<oaa::proto::enums::MediaCodecType_Enum>(0));
         QByteArray payload(req.ByteSizeLong(), '\0');
         req.SerializeToArray(payload.data(), payload.size());
 

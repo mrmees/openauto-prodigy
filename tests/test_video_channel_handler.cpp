@@ -4,6 +4,7 @@
 #include <oaa/HU/Handlers/VideoChannelHandler.hpp>
 #include <oaa/Channel/ChannelId.hpp>
 #include "oaa/av/AVChannelSetupRequestMessage.pb.h"
+#include "oaa/av/MediaCodecTypeEnum.pb.h"
 #include "oaa/av/AVChannelStartIndicationMessage.pb.h"
 #include "oaa/av/AVMediaAckIndicationMessage.pb.h"
 #include "oaa/video/VideoFocusIndicationMessage.pb.h"
@@ -24,7 +25,7 @@ private slots:
         handler.onChannelOpened();
 
         oaa::proto::messages::AVChannelSetupRequest req;
-        req.set_config_index(3); // Phone sends its own internal index
+        req.set_config_index(oaa::proto::enums::MediaCodecType_Enum_MEDIA_CODEC_VIDEO_H264_BP); // Phone sends its own internal index
         QByteArray payload(req.ByteSizeLong(), '\0');
         req.SerializeToArray(payload.data(), payload.size());
 

@@ -16,6 +16,11 @@ set(PROTO_OUTPUT_DIR ${CMAKE_CURRENT_BINARY_DIR})
 file(GLOB_RECURSE PROTO_FILES
     ${PROTO_IMPORT_ROOT}/oaa/*.proto)
 
+# Exclude protos with field names that clash with protobuf built-in methods.
+# These protos have fields named "descriptor" which conflicts with protobuf's
+# generated Descriptor* descriptor() static method. Neither is used by handler code.
+list(FILTER PROTO_FILES EXCLUDE REGEX "(InputModelData|ServiceDiscoveryUpdateMessage)\\.proto$")
+
 set(PROTO_SRCS)
 set(PROTO_HDRS)
 
