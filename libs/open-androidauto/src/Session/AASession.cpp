@@ -319,8 +319,10 @@ void AASession::onMessage(uint8_t channelId, uint16_t messageId,
 
     auto it = channels_.find(channelId);
     if (it == channels_.end()) {
-        qDebug() << "[AASession] Message for unregistered channel" << channelId
-                 << "msgId" << Qt::hex << messageId;
+        qDebug() << "[AA:unhandled] ch" << channelId
+                 << "msgId" << QString("0x%1").arg(messageId, 4, 16, QChar('0'))
+                 << "len" << dataSize
+                 << "hex:" << payload.mid(dataOffset, qMin(dataSize, 128)).toHex(' ');
         return;
     }
 

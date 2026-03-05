@@ -244,7 +244,16 @@ void AndroidAutoOrchestrator::onNewConnection()
     // Tell video handler how many configs we advertised (1 resolution × 2 codecs)
     videoHandler_.setNumVideoConfigs(2);
 
-    // Register all channel handlers
+    // Register all known channel handlers.
+    //
+    // Registered: Control(0), Input(1), Sensor(2), Video(3), MediaAudio(4),
+    //   SpeechAudio(5), SystemAudio(6), AVInput(7), Bluetooth(8),
+    //   Navigation(9), MediaStatus(10), PhoneStatus(11), WiFi(14)
+    //
+    // Intentionally unregistered (no handler yet):
+    //   Channel 12, 13 — purpose unknown; any messages on these channels
+    //   will be logged by AASession with [AA:unhandled] prefix + hex payload
+    //   for future protocol discovery.
     session_->registerChannel(oaa::ChannelId::Video, &videoHandler_);
     session_->registerChannel(oaa::ChannelId::MediaAudio, &mediaAudioHandler_);
     session_->registerChannel(oaa::ChannelId::SpeechAudio, &speechAudioHandler_);
