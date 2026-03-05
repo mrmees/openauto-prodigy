@@ -16,6 +16,7 @@ class DisplayInfo;
 namespace aa {
 class AndroidAutoOrchestrator;
 class EvdevTouchReader;
+class EvdevCoordBridge;
 }
 
 namespace plugins {
@@ -64,13 +65,16 @@ public:
 
     // IPlugin — Capabilities
     QStringList requiredServices() const override { return {}; }
-    bool wantsFullscreen() const override { return true; }
+    bool wantsFullscreen() const override;
 
     /// Set detected display dimensions source (must be called before initialize)
     void setDisplayInfo(DisplayInfo* info);
 
     /// Gracefully disconnect the AA session (sends ShutdownRequest to phone)
     void stopAA();
+
+    /// Access the evdev coordinate bridge for external zone registration
+    oap::aa::EvdevCoordBridge* coordBridge() const { return coordBridge_; }
 
 public slots:
     void onConfigChanged(const QString& path, const QVariant& value);
@@ -88,6 +92,7 @@ private:
     oap::DisplayInfo* displayInfo_ = nullptr;
     oap::aa::AndroidAutoOrchestrator* aaService_ = nullptr;
     oap::aa::EvdevTouchReader* touchReader_ = nullptr;
+    oap::aa::EvdevCoordBridge* coordBridge_ = nullptr;
 };
 
 } // namespace plugins

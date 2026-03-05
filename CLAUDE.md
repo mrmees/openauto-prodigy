@@ -34,7 +34,7 @@ See `docs/roadmap-current.md` for current status and priorities.
   - `src/plugins/` — Static plugins (android_auto, bt_audio, phone)
   - `src/ui/` — Qt/QML controllers (ApplicationController, PluginModel, PluginRuntimeContext)
 - `qml/` — QML UI files
-  - `qml/components/` — Shell, TopBar, BottomBar, Clock, Wallpaper, GestureOverlay
+  - `qml/components/` — Shell, Navbar, NavbarControl, NavbarPopup, Wallpaper, GestureOverlay
   - `qml/controls/` — Reusable controls (Tile, Icon, NormalText, SpecialText)
   - `qml/applications/` — Plugin views (launcher, android_auto, settings, home, bt_audio, phone)
 - `libs/open-androidauto/` — AA protocol library (Transport, Messenger, Session, Channel, HU handlers)

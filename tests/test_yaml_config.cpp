@@ -21,7 +21,7 @@ private slots:
     void testValueByPathMissing();
     void testSetValueByPath();
     void testSetValueByPathRejectsUnknown();
-    void testSidebarDefaults();
+    // testSidebarDefaults removed — sidebar config keys no longer exist
     void testProtocolCaptureDefaults();
     void testProtocolCaptureSetValueByPath();
     void testEqStreamPresetDefaults();
@@ -35,6 +35,8 @@ private slots:
     void testUiTokenSetAndGet();
     void testUiFontFloorDefault();
     void testUiNewTokenDefaults();
+    void testNavbarShowDuringAADefault();
+    void testSidebarDefaultsRemoved();
 };
 
 void TestYamlConfig::testLoadDefaults()
@@ -244,20 +246,7 @@ void TestYamlConfig::testSetValueByPathRejectsUnknown()
     QVERIFY(!config.setValueByPath("connection.wifi_ap", QString("x")));
 }
 
-void TestYamlConfig::testSidebarDefaults()
-{
-    oap::YamlConfig config;
-    QCOMPARE(config.sidebarEnabled(), false);
-    QCOMPARE(config.sidebarWidth(), 150);
-    QCOMPARE(config.sidebarPosition(), QString("right"));
-
-    config.setSidebarEnabled(true);
-    config.setSidebarWidth(200);
-    config.setSidebarPosition("left");
-    QCOMPARE(config.sidebarEnabled(), true);
-    QCOMPARE(config.sidebarWidth(), 200);
-    QCOMPARE(config.sidebarPosition(), QString("left"));
-}
+// testSidebarDefaults removed — sidebar config keys no longer exist
 
 void TestYamlConfig::testProtocolCaptureDefaults()
 {
@@ -410,6 +399,26 @@ void TestYamlConfig::testUiNewTokenDefaults()
         QVERIFY2(v.isValid(), qPrintable("ui.tokens." + tok + " should be registered"));
         QCOMPARE(v.toInt(), 0);
     }
+}
+
+void TestYamlConfig::testNavbarShowDuringAADefault()
+{
+    oap::YamlConfig config;
+    QVariant v = config.valueByPath("navbar.show_during_aa");
+    QVERIFY2(v.isValid(), "navbar.show_during_aa should be registered");
+    QCOMPARE(v.toBool(), true);
+}
+
+void TestYamlConfig::testSidebarDefaultsRemoved()
+{
+    oap::YamlConfig config;
+    // Sidebar config keys should no longer have defaults
+    QVERIFY2(!config.valueByPath("video.sidebar.enabled").isValid(),
+             "video.sidebar.enabled should not be in defaults");
+    QVERIFY2(!config.valueByPath("video.sidebar.width").isValid(),
+             "video.sidebar.width should not be in defaults");
+    QVERIFY2(!config.valueByPath("video.sidebar.position").isValid(),
+             "video.sidebar.position should not be in defaults");
 }
 
 QTEST_MAIN(TestYamlConfig)

@@ -7,6 +7,8 @@ add_library(openauto-core STATIC
     core/aa/VideoDecoder.cpp
     core/aa/DmaBufVideoBuffer.cpp
     core/aa/TouchHandler.cpp
+    core/aa/TouchRouter.cpp
+    core/aa/EvdevCoordBridge.cpp
     core/aa/EvdevTouchReader.cpp
     core/aa/NightModeProvider.cpp
     core/aa/TimedNightMode.cpp
@@ -23,6 +25,7 @@ add_library(openauto-core STATIC
     ui/AudioDeviceModel.cpp
     ui/PairedDevicesModel.cpp
     ui/CodecCapabilityModel.cpp
+    ui/NavbarController.cpp
     ui/DisplayInfo.cpp
     core/plugin/HostContext.cpp
     core/services/ConfigService.cpp
@@ -148,29 +151,25 @@ set_source_files_properties(../qml/controls/UiMetrics.qml PROPERTIES
     QT_QML_SINGLETON_TYPE TRUE
     QT_RESOURCE_ALIAS "UiMetrics.qml"
 )
-set_source_files_properties(../qml/components/Clock.qml PROPERTIES
-    QT_QML_SOURCE_TYPENAME "Clock"
-    QT_RESOURCE_ALIAS "Clock.qml"
-)
 set_source_files_properties(../qml/components/Wallpaper.qml PROPERTIES
     QT_QML_SOURCE_TYPENAME "Wallpaper"
     QT_RESOURCE_ALIAS "Wallpaper.qml"
 )
-set_source_files_properties(../qml/components/TopBar.qml PROPERTIES
-    QT_QML_SOURCE_TYPENAME "TopBar"
-    QT_RESOURCE_ALIAS "TopBar.qml"
+set_source_files_properties(../qml/components/Navbar.qml PROPERTIES
+    QT_QML_SOURCE_TYPENAME "Navbar"
+    QT_RESOURCE_ALIAS "Navbar.qml"
 )
-set_source_files_properties(../qml/components/BottomBar.qml PROPERTIES
-    QT_QML_SOURCE_TYPENAME "BottomBar"
-    QT_RESOURCE_ALIAS "BottomBar.qml"
+set_source_files_properties(../qml/components/NavbarControl.qml PROPERTIES
+    QT_QML_SOURCE_TYPENAME "NavbarControl"
+    QT_RESOURCE_ALIAS "NavbarControl.qml"
+)
+set_source_files_properties(../qml/components/NavbarPopup.qml PROPERTIES
+    QT_QML_SOURCE_TYPENAME "NavbarPopup"
+    QT_RESOURCE_ALIAS "NavbarPopup.qml"
 )
 set_source_files_properties(../qml/components/Shell.qml PROPERTIES
     QT_QML_SOURCE_TYPENAME "Shell"
     QT_RESOURCE_ALIAS "Shell.qml"
-)
-set_source_files_properties(../qml/components/NavStrip.qml PROPERTIES
-    QT_QML_SOURCE_TYPENAME "NavStrip"
-    QT_RESOURCE_ALIAS "NavStrip.qml"
 )
 set_source_files_properties(../qml/components/GestureOverlay.qml PROPERTIES
     QT_QML_SOURCE_TYPENAME "GestureOverlay"
@@ -199,10 +198,6 @@ set_source_files_properties(../qml/applications/launcher/LauncherMenu.qml PROPER
 set_source_files_properties(../qml/applications/android_auto/AndroidAutoMenu.qml PROPERTIES
     QT_QML_SOURCE_TYPENAME "AndroidAutoMenu"
     QT_RESOURCE_ALIAS "AndroidAutoMenu.qml"
-)
-set_source_files_properties(../qml/applications/android_auto/Sidebar.qml PROPERTIES
-    QT_QML_SOURCE_TYPENAME "Sidebar"
-    QT_RESOURCE_ALIAS "Sidebar.qml"
 )
 set_source_files_properties(../qml/applications/settings/SettingsMenu.qml PROPERTIES
     QT_QML_SOURCE_TYPENAME "SettingsMenu"
@@ -281,12 +276,11 @@ qt_add_qml_module(openauto-prodigy
         ../qml/controls/InfoBanner.qml
         ../qml/controls/EqBandSlider.qml
         ../qml/controls/UiMetrics.qml
-        ../qml/components/Clock.qml
         ../qml/components/Wallpaper.qml
-        ../qml/components/TopBar.qml
-        ../qml/components/BottomBar.qml
         ../qml/components/Shell.qml
-        ../qml/components/NavStrip.qml
+        ../qml/components/Navbar.qml
+        ../qml/components/NavbarControl.qml
+        ../qml/components/NavbarPopup.qml
         ../qml/components/GestureOverlay.qml
         ../qml/components/PairingDialog.qml
         ../qml/components/FirstRunBanner.qml
@@ -294,7 +288,6 @@ qt_add_qml_module(openauto-prodigy
         ../qml/components/ExitDialog.qml
         ../qml/applications/launcher/LauncherMenu.qml
         ../qml/applications/android_auto/AndroidAutoMenu.qml
-        ../qml/applications/android_auto/Sidebar.qml
         ../qml/applications/settings/SettingsMenu.qml
         ../qml/applications/home/HomeMenu.qml
         ../qml/applications/bt_audio/BtAudioView.qml

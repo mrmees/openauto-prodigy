@@ -1,6 +1,8 @@
 #include "AndroidAutoPlugin.hpp"
 #include "core/aa/AndroidAutoOrchestrator.hpp"
 #include "core/aa/EvdevTouchReader.hpp"
+#include "core/aa/EvdevCoordBridge.hpp"
+#include "core/aa/ServiceDiscoveryBuilder.hpp"
 #include "core/plugin/IHostContext.hpp"
 #include "core/Configuration.hpp"
 #include "core/InputDeviceScanner.hpp"
@@ -112,41 +114,38 @@ bool AndroidAutoPlugin::initialize(IHostContext* context)
         qCInfo(lcAA) << "Touch:" << touchDevice
                 << "display=" << displayW << "x" << displayH;
 
-        // Relay 3-finger gesture to QML overlay (works regardless of sidebar/grab state)
+        // Create EvdevCoordBridge for external zone registration (navbar, gesture overlay)
+        coordBridge_ = new oap::aa::EvdevCoordBridge(&touchReader_->router(), this);
+        coordBridge_->setDisplayMapping(displayW, displayH, 4095, 4095);
+        touchReader_->setCoordBridge(coordBridge_);
+
+        // Relay 3-finger gesture to QML overlay (works regardless of grab state)
         connect(touchReader_, &oap::aa::EvdevTouchReader::gestureDetected,
                 this, &AndroidAutoPlugin::gestureTriggered,
                 Qt::QueuedConnection);
 
-        // Configure sidebar touch exclusion
+        // Configure navbar dimensions for touch letterbox calculation
+        bool navbarDuringAA = true;
+        QString navEdge = "bottom";
         if (hostContext_ && hostContext_->configService()) {
-            QVariant sidebarEnabledVar = hostContext_->configService()->value("video.sidebar.enabled");
-            bool sidebarEnabled = (sidebarEnabledVar == true || sidebarEnabledVar.toInt() == 1
-                                   || sidebarEnabledVar.toString() == "true");
-            if (sidebarEnabled) {
-                int sidebarW = hostContext_->configService()->value("video.sidebar.width").toInt();
-                QString pos = hostContext_->configService()->value("video.sidebar.position").toString();
-                if (sidebarW <= 0) sidebarW = 150;
-                if (pos.isEmpty()) pos = "right";
-                touchReader_->setSidebar(true, sidebarW, pos.toStdString());
-                touchReader_->computeLetterbox();
-                qCInfo(lcAA) << "Sidebar touch zones:" << pos << sidebarW << "px";
-
-                connect(touchReader_, &oap::aa::EvdevTouchReader::sidebarVolumeSet,
-                        this, [this](int level) {
-                    if (hostContext_ && hostContext_->audioService()) {
-                        hostContext_->audioService()->setMasterVolume(level);
-                        qCDebug(lcAA) << "Sidebar vol:" << level;
-                    }
-                }, Qt::QueuedConnection);
-
-                connect(touchReader_, &oap::aa::EvdevTouchReader::sidebarHome,
-                        this, [this]() {
-                    qCInfo(lcAA) << "Sidebar home — requesting exit to car";
-                    if (aaService_)
-                        aaService_->requestExitToCar();
-                }, Qt::QueuedConnection);
+            QVariant showDuringAA = hostContext_->configService()->value("navbar.show_during_aa");
+            navbarDuringAA = (showDuringAA.isNull() || showDuringAA.toBool());
+            if (navbarDuringAA) {
+                navEdge = hostContext_->configService()->value("navbar.edge").toString();
+                if (navEdge.isEmpty()) navEdge = "bottom";
+                touchReader_->setNavbar(true, 56, navEdge.toStdString());
+                qCInfo(lcAA) << "Navbar touch zone:" << navEdge << "56px";
             }
         }
+
+        // Compute content dimensions to match touch_screen_config
+        // Uses same calculation as ServiceDiscoveryBuilder (single source of truth)
+        auto [contentW, contentH] = oap::aa::ServiceDiscoveryBuilder::computeContentDimensions(
+            aaW, aaH, displayW, displayH, navbarDuringAA, navEdge);
+        touchReader_->setContentDimensions(contentW, contentH);
+        touchReader_->computeLetterbox();
+        qCInfo(lcAA) << "Content dims:" << contentW << "x" << contentH
+                     << "(video:" << aaW << "x" << aaH << ")";
     } else {
         qCInfo(lcAA) << "No touch device found — touch input disabled";
     }
@@ -198,6 +197,28 @@ void AndroidAutoPlugin::onConfigChanged(const QString& path, const QVariant& val
         if (res == QLatin1String("1080p")) { aaW = 1920; aaH = 1080; }
         else if (res == QLatin1String("480p")) { aaW = 800; aaH = 480; }
         touchReader_->setAAResolution(aaW, aaH);
+
+        // Recompute content dimensions for the new video resolution
+        int displayW = 1024, displayH = 600;
+        if (displayInfo_ && displayInfo_->windowWidth() > 0)
+            displayW = displayInfo_->windowWidth();
+        if (displayInfo_ && displayInfo_->windowHeight() > 0)
+            displayH = displayInfo_->windowHeight();
+
+        bool navbarDuringAA = true;
+        QString navEdge = "bottom";
+        if (hostContext_ && hostContext_->configService()) {
+            QVariant showVal = hostContext_->configService()->value("navbar.show_during_aa");
+            navbarDuringAA = (showVal.isNull() || showVal.toBool());
+            navEdge = hostContext_->configService()->value("navbar.edge").toString();
+            if (navEdge.isEmpty()) navEdge = "bottom";
+        }
+
+        auto [contentW, contentH] = oap::aa::ServiceDiscoveryBuilder::computeContentDimensions(
+            aaW, aaH, displayW, displayH, navbarDuringAA, navEdge);
+        touchReader_->setContentDimensions(contentW, contentH);
+        qCInfo(lcAA) << "Content dims updated:" << contentW << "x" << contentH
+                     << "(video:" << aaW << "x" << aaH << ")";
     }
 
     if (!aaService_) return;
@@ -245,12 +266,15 @@ void AndroidAutoPlugin::onActivated(QQmlContext* context)
     context->setContextProperty("VideoDecoder", aaService_->videoDecoder());
     context->setContextProperty("TouchHandler", aaService_->touchHandler());
 
-    // Re-grab touch and request video focus if returning from backgrounded state
+    // Re-grab touch when returning to AA view (may have been ungrabbed by onDeactivated)
     using CS = oap::aa::AndroidAutoOrchestrator;
-    if (static_cast<CS::ConnectionState>(aaService_->connectionState()) == CS::Backgrounded) {
+    auto connState = static_cast<CS::ConnectionState>(aaService_->connectionState());
+    if (connState == CS::Connected || connState == CS::Backgrounded) {
         if (touchReader_) touchReader_->grab();
-        aaService_->requestVideoFocus();
-        qCInfo(lcAA) << "Re-entering AA projection from background";
+        if (connState == CS::Backgrounded) {
+            aaService_->requestVideoFocus();
+        }
+        qCInfo(lcAA) << "Re-entering AA projection (state:" << aaService_->connectionState() << ")";
     }
 }
 
@@ -258,6 +282,11 @@ void AndroidAutoPlugin::onDeactivated()
 {
     if (aaService_ && aaService_->videoDecoder())
         aaService_->videoDecoder()->setVideoSink(nullptr);
+
+    // Release touch grab so Wayland/Qt can handle touch on the home screen.
+    // The AA connection may still be alive (backgrounded), but the view is gone.
+    if (touchReader_)
+        touchReader_->ungrab();
 }
 
 QUrl AndroidAutoPlugin::qmlComponent() const
@@ -268,6 +297,22 @@ QUrl AndroidAutoPlugin::qmlComponent() const
 QUrl AndroidAutoPlugin::iconSource() const
 {
     return {};
+}
+
+bool AndroidAutoPlugin::wantsFullscreen() const
+{
+    // When navbar.show_during_aa is true (default), AA does NOT want fullscreen
+    // so that the navbar remains visible. When false, AA takes the full screen.
+    if (hostContext_ && hostContext_->configService()) {
+        QVariant showDuringAA = hostContext_->configService()->value("navbar.show_during_aa");
+        bool result = !(showDuringAA.isNull() || showDuringAA.toBool());
+        qCInfo(lcAA) << "wantsFullscreen:" << result
+                     << "show_during_aa:" << showDuringAA
+                     << "isNull:" << showDuringAA.isNull();
+        return result;
+    }
+    qCWarning(lcAA) << "wantsFullscreen: no hostContext/configService, defaulting to true";
+    return true;
 }
 
 } // namespace plugins

@@ -20,8 +20,6 @@ void TestConfiguration::testLoadDefaults() {
 
     // AndroidAuto defaults
     QCOMPARE(cfg.dayNightModeController(), true);
-    QCOMPARE(cfg.showClockInAndroidAuto(), true);
-    QCOMPARE(cfg.showTopBar(), true);
 
     // Display defaults
     QCOMPARE(cfg.screenType(), ScreenType::Standard);
@@ -52,8 +50,6 @@ void TestConfiguration::testLoadFromFile() {
     cfg.load(QStringLiteral(TEST_DATA_DIR "/test_config.ini"));
 
     QCOMPARE(cfg.dayNightModeController(), true);
-    QCOMPARE(cfg.showClockInAndroidAuto(), true);
-    QCOMPARE(cfg.showTopBar(), true);
 
     QCOMPARE(cfg.screenType(), ScreenType::Standard);
     QCOMPARE(cfg.handednessOfTraffic(), Handedness::LHD);
@@ -123,8 +119,6 @@ void TestConfiguration::testSaveRoundTrip() {
 
     // Compare all values
     QCOMPARE(reloaded.dayNightModeController(), original.dayNightModeController());
-    QCOMPARE(reloaded.showClockInAndroidAuto(), original.showClockInAndroidAuto());
-    QCOMPARE(reloaded.showTopBar(), original.showTopBar());
     QCOMPARE(reloaded.screenType(), original.screenType());
     QCOMPARE(reloaded.handednessOfTraffic(), original.handednessOfTraffic());
     QCOMPARE(reloaded.screenDpi(), original.screenDpi());

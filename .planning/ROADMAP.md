@@ -37,5 +37,16 @@ See .planning/milestones/v0.4.4/ for archived details.
 
 </details>
 
+<details>
+<summary>v0.4.5 Navbar Rework (Phases 1-4) - SHIPPED 2026-03-05</summary>
+
+See .planning/milestones/v0.4.5/ for archived details.
+
+</details>
+
+## Phases
+
+No active milestone. Use `/gsd:new-milestone` to start the next one.
+
 ---
-*Last updated: 2026-03-03 -- v0.4.4 milestone completed and archived*
+*Last updated: 2026-03-05 — v0.4.5 archived*

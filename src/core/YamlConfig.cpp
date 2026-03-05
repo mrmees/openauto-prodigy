@@ -59,10 +59,6 @@ void YamlConfig::initDefaults()
     root_["video"]["decoder"]["vp9"] = "auto";
     root_["video"]["decoder"]["av1"] = "auto";
 
-    root_["video"]["sidebar"]["enabled"] = false;
-    root_["video"]["sidebar"]["width"] = 150;
-    root_["video"]["sidebar"]["position"] = "right";
-
     root_["identity"]["head_unit_name"] = "OpenAuto Prodigy";
     root_["identity"]["manufacturer"] = "OpenAuto Project";
     root_["identity"]["model"] = "Raspberry Pi 4";
@@ -78,10 +74,6 @@ void YamlConfig::initDefaults()
     root_["sensors"]["night_mode"]["gpio_active_high"] = true;
     root_["sensors"]["gps"]["enabled"] = true;
     root_["sensors"]["gps"]["source"] = "none";
-
-    root_["nav_strip"]["order"] = YAML::Node(YAML::NodeType::Sequence);
-    root_["nav_strip"]["order"].push_back("org.openauto.android-auto");
-    root_["nav_strip"]["show_labels"] = true;
 
     // Launcher tiles
     YAML::Node tiles;
@@ -154,6 +146,13 @@ void YamlConfig::initDefaults()
     root_["ui"]["tokens"]["overlayBtnW"] = 0;
     root_["ui"]["tokens"]["overlayBtnH"] = 0;
     root_["ui"]["fontFloor"] = 0;
+    root_["ui"]["tokens"]["navbarThick"] = 0;
+
+    // Navbar defaults
+    root_["navbar"]["edge"] = "bottom";
+    root_["navbar"]["show_during_aa"] = true;
+    root_["navbar"]["gesture"]["tap_max_ms"] = 200;
+    root_["navbar"]["gesture"]["short_hold_max_ms"] = 600;
 }
 
 void YamlConfig::load(const QString& filePath)
@@ -315,36 +314,6 @@ int YamlConfig::videoDpi() const
 void YamlConfig::setVideoDpi(int v)
 {
     root_["video"]["dpi"] = v;
-}
-
-bool YamlConfig::sidebarEnabled() const
-{
-    return root_["video"]["sidebar"]["enabled"].as<bool>(false);
-}
-
-void YamlConfig::setSidebarEnabled(bool v)
-{
-    root_["video"]["sidebar"]["enabled"] = v;
-}
-
-int YamlConfig::sidebarWidth() const
-{
-    return root_["video"]["sidebar"]["width"].as<int>(150);
-}
-
-void YamlConfig::setSidebarWidth(int v)
-{
-    root_["video"]["sidebar"]["width"] = v;
-}
-
-QString YamlConfig::sidebarPosition() const
-{
-    return QString::fromStdString(root_["video"]["sidebar"]["position"].as<std::string>("right"));
-}
-
-void YamlConfig::setSidebarPosition(const QString& v)
-{
-    root_["video"]["sidebar"]["position"] = v.toStdString();
 }
 
 // --- Video: codec config ---

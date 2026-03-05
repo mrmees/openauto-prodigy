@@ -21,5 +21,5 @@ set(CMAKE_FIND_ROOT_PATH_MODE_PACKAGE ONLY)
 set(QT_HOST_PATH "/usr" CACHE PATH "Path to host Qt6 installation (for moc, rcc, etc.)")
 
 # Help pkg-config find .pc files in the sysroot
-set(ENV{PKG_CONFIG_PATH} "${CMAKE_SYSROOT}/usr/lib/aarch64-linux-gnu/pkgconfig:${CMAKE_SYSROOT}/usr/share/pkgconfig")
+set(ENV{PKG_CONFIG_PATH} "${CMAKE_SYSROOT}/usr/lib/aarch64-linux-gnu/pkgconfig:${CMAKE_SYSROOT}/lib/aarch64-linux-gnu/pkgconfig:${CMAKE_SYSROOT}/usr/share/pkgconfig")
 set(ENV{PKG_CONFIG_SYSROOT_DIR} "${CMAKE_SYSROOT}")

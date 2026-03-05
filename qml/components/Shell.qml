@@ -11,14 +11,11 @@ Item {
 
     ColumnLayout {
         anchors.fill: parent
+        anchors.topMargin: navbar.visible && navbar.edge === "top" ? navbar.barThick : 0
+        anchors.bottomMargin: navbar.visible && navbar.edge === "bottom" ? navbar.barThick : 0
+        anchors.leftMargin: navbar.visible && navbar.edge === "left" ? navbar.barThick : 0
+        anchors.rightMargin: navbar.visible && navbar.edge === "right" ? navbar.barThick : 0
         spacing: 0
-
-        // Status bar — ~8% height, hidden in fullscreen
-        TopBar {
-            Layout.fillWidth: true
-            Layout.preferredHeight: shell.fullscreenMode ? 0 : shell.height * 0.08
-            visible: !shell.fullscreenMode
-        }
 
         // Content area — C++ manages plugin views via PluginViewHost
         Item {
@@ -57,17 +54,18 @@ Item {
             }
         }
 
-        // Nav strip — plugin-model driven, hidden in fullscreen
-        NavStrip {
-            Layout.fillWidth: true
-            Layout.preferredHeight: shell.fullscreenMode ? 0 : shell.height * 0.12
-            visible: !shell.fullscreenMode
-            onSettingsResetRequested: settingsView.resetToGrid()
-            onEqRequested: {
-                PluginModel.setActivePlugin("")
-                ApplicationController.navigateTo(6)
-                settingsView.openEqDirect()
-            }
+    }
+
+    // Navbar (floating, any edge)
+    Navbar {
+        id: navbar
+        z: 100
+    }
+
+    Connections {
+        target: NavbarController
+        function onSettingsPageRequested(pageId) {
+            settingsView.openPage(pageId)
         }
     }
 

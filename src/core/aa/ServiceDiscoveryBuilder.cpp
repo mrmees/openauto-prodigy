@@ -90,30 +90,77 @@ oaa::SessionConfig ServiceDiscoveryBuilder::build() const
     return config;
 }
 
-// ---- Shared margin calculation ----
+// ---- Shared viewport calculation (navbar-aware) ----
+
+void ServiceDiscoveryBuilder::calcNavbarViewport(int& viewportW, int& viewportH) const
+{
+    int displayW = (overrideDisplayW_ > 0) ? overrideDisplayW_ : 1024;
+    int displayH = (overrideDisplayH_ > 0) ? overrideDisplayH_ : 600;
+    viewportW = displayW;
+    viewportH = displayH;
+
+    if (!yamlConfig_) return;
+
+    bool navbarDuringAA = yamlConfig_->valueByPath("navbar.show_during_aa").toBool();
+    if (!navbarDuringAA) return;
+
+    QString edge = yamlConfig_->valueByPath("navbar.edge").toString();
+    if (edge.isEmpty()) edge = "bottom";
+    int barThick = 56;  // NavbarController::BAR_THICK
+
+    bool horizontal = (edge == "top" || edge == "bottom");
+    if (horizontal)
+        viewportH -= barThick;
+    else
+        viewportW -= barThick;
+}
+
+// ---- Shared content dimension calculation ----
+
+std::pair<int,int> ServiceDiscoveryBuilder::computeContentDimensions(
+    int videoW, int videoH, int displayW, int displayH,
+    bool navbarDuringAA, const QString& navbarEdge, int navbarThickness)
+{
+    int viewportW = displayW, viewportH = displayH;
+
+    if (navbarDuringAA) {
+        bool horizontal = (navbarEdge == "top" || navbarEdge == "bottom");
+        if (horizontal)
+            viewportH -= navbarThickness;
+        else
+            viewportW -= navbarThickness;
+    }
+
+    int contentW = videoW, contentH = videoH;
+    float screenRatio = static_cast<float>(viewportW) / viewportH;
+    float remoteRatio = static_cast<float>(videoW) / videoH;
+    if (screenRatio < remoteRatio)
+        contentW -= static_cast<int>(std::round(videoW - (videoH * screenRatio)));
+    else if (screenRatio > remoteRatio)
+        contentH -= static_cast<int>(std::round(videoH - (videoW / screenRatio)));
+    return {contentW, contentH};
+}
+
+// ---- Shared margin calculation (delegates to computeContentDimensions) ----
 
 void ServiceDiscoveryBuilder::calcMargins(int remoteW, int remoteH,
                                            int& marginW, int& marginH) const
 {
-    marginW = 0;
-    marginH = 0;
-    if (!yamlConfig_ || !yamlConfig_->sidebarEnabled() || yamlConfig_->sidebarWidth() <= 0)
-        return;
-
     int displayW = (overrideDisplayW_ > 0) ? overrideDisplayW_ : 1024;
     int displayH = (overrideDisplayH_ > 0) ? overrideDisplayH_ : 600;
-    int sidebarW = yamlConfig_->sidebarWidth();
-    QString pos = yamlConfig_->sidebarPosition();
-    bool horizontal = (pos == "top" || pos == "bottom");
 
-    int aaViewportW = horizontal ? displayW : (displayW - sidebarW);
-    int aaViewportH = horizontal ? (displayH - sidebarW) : displayH;
-    float screenRatio = static_cast<float>(aaViewportW) / aaViewportH;
-    float remoteRatio = static_cast<float>(remoteW) / remoteH;
-    if (screenRatio < remoteRatio)
-        marginW = std::round(remoteW - (remoteH * screenRatio));
-    else
-        marginH = std::round(remoteH - (remoteW / screenRatio));
+    bool navbarDuringAA = false;
+    QString edge = "bottom";
+    if (yamlConfig_) {
+        navbarDuringAA = yamlConfig_->valueByPath("navbar.show_during_aa").toBool();
+        edge = yamlConfig_->valueByPath("navbar.edge").toString();
+        if (edge.isEmpty()) edge = "bottom";
+    }
+
+    auto [contentW, contentH] = computeContentDimensions(
+        remoteW, remoteH, displayW, displayH, navbarDuringAA, edge);
+    marginW = remoteW - contentW;
+    marginH = remoteH - contentH;
 }
 
 // ---- Channel descriptor builders ----
@@ -276,24 +323,12 @@ QByteArray ServiceDiscoveryBuilder::buildInputDescriptor() const
         if (res == "1080p") { touchW = 1920; touchH = 1080; }
         else if (res == "480p") { touchW = 800; touchH = 480; }
     }
-    if (yamlConfig_ && yamlConfig_->sidebarEnabled() && yamlConfig_->sidebarWidth() > 0) {
-        int displayW = (overrideDisplayW_ > 0) ? overrideDisplayW_ : 1024;
-        int displayH = (overrideDisplayH_ > 0) ? overrideDisplayH_ : 600;
-        int sidebarW = yamlConfig_->sidebarWidth();
-        QString pos = yamlConfig_->sidebarPosition();
-        bool horizontal = (pos == "top" || pos == "bottom");
-
-        int aaViewportW = horizontal ? displayW : (displayW - sidebarW);
-        int aaViewportH = horizontal ? (displayH - sidebarW) : displayH;
-        float screenRatio = static_cast<float>(aaViewportW) / aaViewportH;
-        float remoteRatio = static_cast<float>(touchW) / touchH;
-        if (screenRatio < remoteRatio) {
-            int marginW = std::round(touchW - (touchH * screenRatio));
-            touchW -= marginW;
-        } else {
-            int marginH = std::round(touchH - (touchW / screenRatio));
-            touchH -= marginH;
-        }
+    // Use shared viewport calculation (navbar-aware) to adjust touch dimensions
+    {
+        int mW = 0, mH = 0;
+        calcMargins(touchW, touchH, mW, mH);
+        touchW -= mW;
+        touchH -= mH;
     }
 
     auto* touchConfig = inputChannel->add_touch_screen_config();

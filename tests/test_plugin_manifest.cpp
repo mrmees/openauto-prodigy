@@ -9,7 +9,7 @@ private slots:
     void testMissingFields();
     void testRequiredServices();
     void testSettingsSchema();
-    void testNavStripConfig();
+
 };
 
 void TestPluginManifest::testParseValidManifest()
@@ -69,13 +69,6 @@ void TestPluginManifest::testSettingsSchema()
     QCOMPARE(m.settings[1].type, QString("enum"));
     QCOMPARE(m.settings[1].options.size(), 3);
     QCOMPARE(m.settings[1].options[2], QString("high"));
-}
-
-void TestPluginManifest::testNavStripConfig()
-{
-    auto m = oap::PluginManifest::fromFile(QString(TEST_DATA_DIR) + "/test_plugin.yaml");
-    QCOMPARE(m.navStripOrder, 1);
-    QCOMPARE(m.navStripVisible, true);
 }
 
 QTEST_MAIN(TestPluginManifest)

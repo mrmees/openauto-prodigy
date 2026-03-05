@@ -36,6 +36,8 @@
 #include "plugins/phone/PhonePlugin.hpp"
 #include "plugins/equalizer/EqualizerPlugin.hpp"
 #include "ui/ApplicationController.hpp"
+#include "ui/NavbarController.hpp"
+#include "core/aa/EvdevCoordBridge.hpp"
 #include "ui/PluginModel.hpp"
 #include "ui/PluginViewHost.hpp"
 #include "ui/LauncherModel.hpp"
@@ -43,6 +45,7 @@
 #include "ui/CodecCapabilityModel.hpp"
 #include "ui/DisplayInfo.hpp"
 #include <QQuickWindow>
+#include <algorithm>
 
 int main(int argc, char *argv[])
 {
@@ -228,6 +231,21 @@ int main(int argc, char *argv[])
     auto actionRegistry = new oap::ActionRegistry(&app);
     hostContext->setActionRegistry(actionRegistry);
 
+    // --- NavbarController ---
+    auto navbarController = new oap::NavbarController(&app);
+    navbarController->setActionRegistry(actionRegistry);
+    navbarController->setAudioService(audioService);
+    navbarController->setDisplayService(displayService);
+    // Read edge and LHD config
+    {
+        auto edgeVar = yamlConfig->valueByPath("navbar.edge");
+        if (edgeVar.isValid() && !edgeVar.toString().isEmpty())
+            navbarController->setEdge(edgeVar.toString());
+        auto lhdVar = yamlConfig->valueByPath("identity.left_hand_drive");
+        if (lhdVar.isValid())
+            navbarController->setLeftHandDrive(lhdVar.toBool());
+    }
+
     // --- NotificationService ---
     auto notificationService = new oap::NotificationService(&app);
     hostContext->setNotificationService(notificationService);
@@ -288,6 +306,11 @@ int main(int argc, char *argv[])
     // Initialize all plugins (static + dynamic)
     pluginManager.initializeAll(hostContext.get());
 
+    // Wire EvdevCoordBridge from AA plugin to NavbarController for touch zones
+    if (auto* bridge = aaPlugin->coordBridge()) {
+        navbarController->setCoordBridge(bridge);
+    }
+
     // --- IPC server for web config panel ---
     auto ipcServer = new oap::IpcServer(&app);
     ipcServer->setConfig(yamlConfig.get(), yamlPath);
@@ -324,6 +347,12 @@ int main(int argc, char *argv[])
     actionRegistry->registerAction("app.quit", [](const QVariant&) {
         QGuiApplication::quit();
     });
+    actionRegistry->registerAction("app.minimize", [appController](const QVariant&) {
+        appController->minimize();
+    });
+    actionRegistry->registerAction("app.restart", [appController](const QVariant&) {
+        appController->restart();
+    });
     actionRegistry->registerAction("app.home", [pluginModel](const QVariant&) {
         pluginModel->setActivePlugin(QString());
     });
@@ -331,6 +360,69 @@ int main(int argc, char *argv[])
         themeService->toggleMode();
     });
 
+    // --- Navbar action handlers ---
+    // Volume tap: show volume popup
+    actionRegistry->registerAction("navbar.volume.tap", [navbarController](const QVariant&) {
+        // Determine which control index is volume
+        for (int i = 0; i < 3; ++i) {
+            if (navbarController->controlRole(i) == "volume") {
+                navbarController->showPopup(i);
+                break;
+            }
+        }
+    });
+    // Volume short-hold: open audio/EQ settings
+    actionRegistry->registerAction("navbar.volume.shortHold", [appController, pluginModel, navbarController](const QVariant&) {
+        pluginModel->setActivePlugin(QString());
+        appController->navigateTo(6);
+        emit navbarController->settingsPageRequested(QStringLiteral("audio"));
+    });
+    // Volume long-hold: mute toggle
+    {
+        static int previousVolume = 80;
+        actionRegistry->registerAction("navbar.volume.longHold", [audioService](const QVariant&) {
+            if (audioService->masterVolume() > 0) {
+                previousVolume = audioService->masterVolume();
+                audioService->setMasterVolume(0);
+            } else {
+                audioService->setMasterVolume(previousVolume > 0 ? previousVolume : 80);
+            }
+        });
+    }
+    // Clock tap: go home
+    actionRegistry->registerAction("navbar.clock.tap", [pluginModel, appController](const QVariant&) {
+        pluginModel->setActivePlugin(QString());
+        appController->navigateTo(0);
+    });
+    // Clock short-hold: open settings
+    actionRegistry->registerAction("navbar.clock.shortHold", [appController](const QVariant&) {
+        appController->navigateTo(6);
+    });
+    // Clock long-hold: show power menu
+    actionRegistry->registerAction("navbar.clock.longHold", [navbarController](const QVariant&) {
+        navbarController->showPopup(1);  // center control = clock
+    });
+    // Brightness tap: show brightness popup
+    actionRegistry->registerAction("navbar.brightness.tap", [navbarController](const QVariant&) {
+        for (int i = 0; i < 3; ++i) {
+            if (navbarController->controlRole(i) == "brightness") {
+                navbarController->showPopup(i);
+                break;
+            }
+        }
+    });
+    // Brightness short-hold: open display settings
+    actionRegistry->registerAction("navbar.brightness.shortHold", [appController, pluginModel, navbarController](const QVariant&) {
+        pluginModel->setActivePlugin(QString());
+        appController->navigateTo(6);
+        emit navbarController->settingsPageRequested(QStringLiteral("display"));
+    });
+    // Brightness long-hold: toggle night mode
+    actionRegistry->registerAction("navbar.brightness.longHold", [themeService](const QVariant&) {
+        themeService->toggleMode();
+    });
+
+    engine.rootContext()->setContextProperty("NavbarController", navbarController);
     engine.rootContext()->setContextProperty("ActionRegistry", actionRegistry);
     engine.rootContext()->setContextProperty("ThemeService", themeService);
     engine.rootContext()->setContextProperty("ApplicationController", appController);
@@ -415,12 +507,136 @@ int main(int argc, char *argv[])
 
     // Connect 3-finger gesture to GestureOverlay
     QObject::connect(aaPlugin, &oap::plugins::AndroidAutoPlugin::gestureTriggered,
-                     &app, [&engine]() {
+                     &app, [&engine, aaPlugin, displayInfo, audioService, displayService, themeService, actionRegistry]() {
         auto* root = engine.rootObjects().value(0);
         if (!root) return;
         auto* overlay = root->findChild<QObject*>("gestureOverlay");
-        if (overlay)
-            QMetaObject::invokeMethod(overlay, "show");
+        if (!overlay) return;
+
+        QMetaObject::invokeMethod(overlay, "show");
+
+        // Register full-screen evdev zone at priority 200 to consume all touches
+        // during overlay visibility (prevents AA forwarding while overlay is up).
+        // Per-control zones at priority 210 handle actual interactions.
+        auto* bridge = aaPlugin->coordBridge();
+        if (!bridge) return;
+
+        int dw = displayInfo->windowWidth();
+        int dh = displayInfo->windowHeight();
+
+        bridge->updateZone(
+            std::string("gesture-overlay"), 200,
+            0.0f, 0.0f,
+            static_cast<float>(dw), static_cast<float>(dh),
+            [](int, float, float, oap::aa::TouchEvent) {
+                // Consume all touches to block AA forwarding.
+                // Per-control zones at priority 210 handle interactions.
+            });
+
+        // Wait one frame for QML layout to stabilize, then register
+        // per-control zones using actual QML element positions
+        auto* overlayItem = qobject_cast<QQuickItem*>(overlay);
+        QTimer::singleShot(16, overlayItem, [bridge, overlayItem, audioService, displayService, actionRegistry]() {
+            if (!overlayItem || !overlayItem->isVisible()) return;
+
+            // Helper: get window-space rect for a named child
+            auto getRect = [overlayItem](const char* name, float& x, float& y, float& w, float& h) -> bool {
+                auto* item = overlayItem->findChild<QQuickItem*>(QString(name));
+                if (!item || item->width() <= 0) return false;
+                QPointF pos = item->mapToScene(QPointF(0, 0));
+                x = pos.x(); y = pos.y();
+                w = item->width(); h = item->height();
+                return true;
+            };
+
+            float x, y, w, h;
+
+            // Volume slider row
+            if (getRect("overlayVolumeRow", x, y, w, h)) {
+                float evX0 = bridge->pixelToEvdevX(x);
+                float evX1 = bridge->pixelToEvdevX(x + w);
+                bridge->updateZone("overlay-volume", 210, x, y, w, h,
+                    [audioService, evX0, evX1](int, float rawX, float, oap::aa::TouchEvent event) {
+                        if (event == oap::aa::TouchEvent::Down || event == oap::aa::TouchEvent::Move) {
+                            float norm = std::clamp((rawX - evX0) / (evX1 - evX0), 0.0f, 1.0f);
+                            int volume = static_cast<int>(norm * 100.0f);
+                            QMetaObject::invokeMethod(audioService, [audioService, volume]() {
+                                audioService->setMasterVolume(volume);
+                            }, Qt::QueuedConnection);
+                        }
+                    });
+            }
+
+            // Brightness slider row
+            if (getRect("overlayBrightnessRow", x, y, w, h)) {
+                float evX0 = bridge->pixelToEvdevX(x);
+                float evX1 = bridge->pixelToEvdevX(x + w);
+                bridge->updateZone("overlay-brightness", 210, x, y, w, h,
+                    [displayService, evX0, evX1](int, float rawX, float, oap::aa::TouchEvent event) {
+                        if (event == oap::aa::TouchEvent::Down || event == oap::aa::TouchEvent::Move) {
+                            float norm = std::clamp((rawX - evX0) / (evX1 - evX0), 0.0f, 1.0f);
+                            int brightness = 5 + static_cast<int>(norm * 95.0f);
+                            QMetaObject::invokeMethod(displayService, [displayService, brightness]() {
+                                displayService->setBrightness(brightness);
+                            }, Qt::QueuedConnection);
+                        }
+                    });
+            }
+
+            // Home button
+            if (getRect("overlayHomeBtn", x, y, w, h)) {
+                bridge->updateZone("overlay-home", 210, x, y, w, h,
+                    [overlayItem, actionRegistry](int, float, float, oap::aa::TouchEvent event) {
+                        if (event == oap::aa::TouchEvent::Down) {
+                            QMetaObject::invokeMethod(qApp, [actionRegistry]() {
+                                actionRegistry->dispatch("app.home");
+                            }, Qt::QueuedConnection);
+                            QMetaObject::invokeMethod(overlayItem, "dismiss", Qt::QueuedConnection);
+                        }
+                    });
+            }
+
+            // Theme toggle button
+            if (getRect("overlayThemeBtn", x, y, w, h)) {
+                bridge->updateZone("overlay-theme", 210, x, y, w, h,
+                    [actionRegistry](int, float, float, oap::aa::TouchEvent event) {
+                        if (event == oap::aa::TouchEvent::Down) {
+                            QMetaObject::invokeMethod(qApp, [actionRegistry]() {
+                                actionRegistry->dispatch("theme.toggle");
+                            }, Qt::QueuedConnection);
+                        }
+                    });
+            }
+
+            // Close button
+            if (getRect("overlayCloseBtn", x, y, w, h)) {
+                bridge->updateZone("overlay-close", 210, x, y, w, h,
+                    [overlayItem](int, float, float, oap::aa::TouchEvent event) {
+                        if (event == oap::aa::TouchEvent::Down) {
+                            QMetaObject::invokeMethod(overlayItem, "dismiss", Qt::QueuedConnection);
+                        }
+                    });
+            }
+        });
+
+        // Deregister all zones when overlay becomes invisible (covers all dismiss paths:
+        // timer, close button, home button -- they all set visible=false via dismiss())
+        static QMetaObject::Connection visConn;
+        if (visConn) QObject::disconnect(visConn);
+        auto* overlayItemVis = qobject_cast<QQuickItem*>(overlay);
+        if (overlayItemVis) {
+            visConn = QObject::connect(overlayItemVis, &QQuickItem::visibleChanged,
+                overlayItemVis, [bridge, overlayItemVis]() {
+                    if (!overlayItemVis->isVisible()) {
+                        bridge->removeZone(std::string("gesture-overlay"));
+                        bridge->removeZone(std::string("overlay-volume"));
+                        bridge->removeZone(std::string("overlay-brightness"));
+                        bridge->removeZone(std::string("overlay-home"));
+                        bridge->removeZone(std::string("overlay-theme"));
+                        bridge->removeZone(std::string("overlay-close"));
+                    }
+                });
+        }
     });
 
     // SIGUSR1 → disconnect AA session (ShutdownRequest + teardown, keep listening)

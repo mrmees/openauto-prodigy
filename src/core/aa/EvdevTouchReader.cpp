@@ -13,87 +13,51 @@ namespace aa {
 
 void EvdevTouchReader::computeLetterbox()
 {
-    bool horizontal = sidebarHorizontal_;
-
     int effectiveDisplayW = displayWidth_;
     int effectiveDisplayH = displayHeight_;
     int effectiveDisplayX0 = 0;
     int effectiveDisplayY0 = 0;
 
-    if (sidebarEnabled_ && sidebarPixelWidth_ > 0) {
+    if (navbarEnabled_ && navbarThickness_ > 0) {
+        bool horizontal = (navbarEdge_ == "top" || navbarEdge_ == "bottom");
         if (horizontal) {
-            effectiveDisplayH = displayHeight_ - sidebarPixelWidth_;
-            if (sidebarPosition_ == "top")
-                effectiveDisplayY0 = sidebarPixelWidth_;
+            effectiveDisplayH = displayHeight_ - navbarThickness_;
+            if (navbarEdge_ == "top")
+                effectiveDisplayY0 = navbarThickness_;
         } else {
-            effectiveDisplayW = displayWidth_ - sidebarPixelWidth_;
-            if (sidebarPosition_ == "left")
-                effectiveDisplayX0 = sidebarPixelWidth_;
+            effectiveDisplayW = displayWidth_ - navbarThickness_;
+            if (navbarEdge_ == "left")
+                effectiveDisplayX0 = navbarThickness_;
         }
     }
-
-    float videoAspect = static_cast<float>(aaWidth_) / aaHeight_;
-    float displayAspect = static_cast<float>(effectiveDisplayW) / effectiveDisplayH;
 
     float evdevPerPixelX = static_cast<float>(screenWidth_) / displayWidth_;
     float evdevPerPixelY = static_cast<float>(screenHeight_) / displayHeight_;
 
     float videoPixelW, videoPixelH, videoPixelX0, videoPixelY0;
 
-    // Reset crop offset defaults
-    cropAAOffsetX_ = 0;
-    visibleAAWidth_ = aaWidth_;
-    cropAAOffsetY_ = 0;
-    visibleAAHeight_ = aaHeight_;
+    // Use content-space dimensions when set (matches touch_screen_config),
+    // otherwise fall back to full video resolution (backward compatible).
+    visibleAAWidth_ = (contentWidth_ > 0) ? contentWidth_ : aaWidth_;
+    visibleAAHeight_ = (contentHeight_ > 0) ? contentHeight_ : aaHeight_;
 
-    if (sidebarEnabled_ && !horizontal && videoAspect > displayAspect) {
-        // X-crop mode (side sidebar): video fills height, X gets cropped
-        videoPixelH = effectiveDisplayH;
-        float scale = static_cast<float>(effectiveDisplayH) / aaHeight_;
-        float totalVideoWidthPx = aaWidth_ * scale;
-        float cropPx = (totalVideoWidthPx - effectiveDisplayW) / 2.0f;
+    // Use CONTENT aspect ratio, not frame ratio. With PreserveAspectCrop,
+    // the margin bars are cropped away — only content is visible. Margins
+    // are computed so content ratio matches viewport ratio, meaning the
+    // content fills edge-to-edge with no letterbox.
+    float contentAspect = static_cast<float>(visibleAAWidth_) / visibleAAHeight_;
+    float displayAspect = static_cast<float>(effectiveDisplayW) / effectiveDisplayH;
 
-        cropAAOffsetX_ = cropPx / scale;
-        visibleAAWidth_ = effectiveDisplayW / scale;
-
+    if (contentAspect > displayAspect) {
+        // Content fills width, letterbox top/bottom
         videoPixelW = effectiveDisplayW;
-        videoPixelX0 = effectiveDisplayX0;
-        videoPixelY0 = effectiveDisplayY0;
-
-        qCDebug(lcAA) << "X-crop mode: video " << aaWidth_ << "x" << aaHeight_
-                                << " in " << effectiveDisplayW << "x" << effectiveDisplayH
-                                << " | AA visible X: " << cropAAOffsetX_
-                                << " to " << (cropAAOffsetX_ + visibleAAWidth_)
-                                << " (" << visibleAAWidth_ << " wide)";
-    } else if (sidebarEnabled_ && horizontal && displayAspect > videoAspect) {
-        // Y-crop mode (top/bottom sidebar): video fills width, Y gets cropped
-        videoPixelW = effectiveDisplayW;
-        float scale = static_cast<float>(effectiveDisplayW) / aaWidth_;
-        float totalVideoHeightPx = aaHeight_ * scale;
-        float cropPy = (totalVideoHeightPx - effectiveDisplayH) / 2.0f;
-
-        cropAAOffsetY_ = cropPy / scale;
-        visibleAAHeight_ = effectiveDisplayH / scale;
-
-        videoPixelH = effectiveDisplayH;
-        videoPixelX0 = effectiveDisplayX0;
-        videoPixelY0 = effectiveDisplayY0;
-
-        qCDebug(lcAA) << "Y-crop mode: video " << aaWidth_ << "x" << aaHeight_
-                                << " in " << effectiveDisplayW << "x" << effectiveDisplayH
-                                << " | AA visible Y: " << cropAAOffsetY_
-                                << " to " << (cropAAOffsetY_ + visibleAAHeight_)
-                                << " (" << visibleAAHeight_ << " tall)";
-    } else if (videoAspect > displayAspect) {
-        // Fit mode: video fills width, letterbox top/bottom
-        videoPixelW = effectiveDisplayW;
-        videoPixelH = effectiveDisplayW / videoAspect;
+        videoPixelH = effectiveDisplayW / contentAspect;
         videoPixelX0 = effectiveDisplayX0;
         videoPixelY0 = effectiveDisplayY0 + (effectiveDisplayH - videoPixelH) / 2.0f;
     } else {
-        // Fit mode: video fills height, letterbox left/right
+        // Content fills height, letterbox left/right
         videoPixelH = effectiveDisplayH;
-        videoPixelW = effectiveDisplayH * videoAspect;
+        videoPixelW = effectiveDisplayH * contentAspect;
         videoPixelX0 = effectiveDisplayX0 + (effectiveDisplayW - videoPixelW) / 2.0f;
         videoPixelY0 = effectiveDisplayY0;
     }
@@ -111,86 +75,29 @@ void EvdevTouchReader::computeLetterbox()
     if (handler_)
         handler_->setContentDims(static_cast<int>(visibleAAWidth_), static_cast<int>(visibleAAHeight_));
 
-    qCDebug(lcAA) << "Diagnostic: sidebar=" << (sidebarEnabled_ ? sidebarPosition_.c_str() : "off")
-                            << " " << sidebarPixelWidth_ << "px"
-                            << " | contentW=" << visibleAAWidth_ << " contentH=" << visibleAAHeight_
+    qCDebug(lcAA) << "Diagnostic: navbar=" << (navbarEnabled_ ? navbarEdge_.c_str() : "off")
+                            << " " << navbarThickness_ << "px"
+                            << " | video=" << aaWidth_ << "x" << aaHeight_
+                            << " content=" << visibleAAWidth_ << "x" << visibleAAHeight_
                             << " | touch range: X=[" << mapX(static_cast<int>(videoEvdevX0_))
                             << "," << mapX(static_cast<int>(videoEvdevX0_ + videoEvdevW_))
                             << "] Y=[" << mapY(static_cast<int>(videoEvdevY0_))
                             << "," << mapY(static_cast<int>(videoEvdevY0_ + videoEvdevH_)) << "]";
 }
 
-void EvdevTouchReader::setSidebar(bool enabled, int width, const std::string& position)
+void EvdevTouchReader::setNavbar(bool enabled, int thickness, const std::string& edge)
 {
-    sidebarEnabled_ = enabled;
-    sidebarPixelWidth_ = width;
-    sidebarPosition_ = position;
-    sidebarHorizontal_ = (position == "top" || position == "bottom");
+    navbarEnabled_ = enabled;
+    navbarThickness_ = thickness;
+    navbarEdge_ = edge;
+    // Navbar zones are registered by NavbarController via EvdevCoordBridge -- not here.
+}
 
-    if (!enabled || width <= 0) return;
-
-    float evdevPerPixelX = static_cast<float>(screenWidth_) / displayWidth_;
-    float evdevPerPixelY = static_cast<float>(screenHeight_) / displayHeight_;
-
-    sidebarDragSlot_ = -1;
-
-    // Compute UiMetrics scale (mirrors QML: min(windowWidth/1024, windowHeight/600))
-    float scale = std::min(static_cast<float>(displayWidth_) / 1024.0f,
-                           static_cast<float>(displayHeight_) / 600.0f);
-    int spacingPx = std::max(1, static_cast<int>(std::round(8.0f * scale)));
-    int touchMinPx = std::max(1, static_cast<int>(std::round(56.0f * scale)));
-
-    if (sidebarHorizontal_) {
-        // Horizontal sidebar (top/bottom): Y band, X sub-zones
-        if (position == "bottom") {
-            int sidebarStartPx = displayHeight_ - width;
-            sidebarEvdevY0_ = sidebarStartPx * evdevPerPixelY;
-            sidebarEvdevY1_ = screenHeight_;
-        } else {
-            sidebarEvdevY0_ = 0;
-            sidebarEvdevY1_ = width * evdevPerPixelY;
-        }
-        // Mirror QML Sidebar.qml RowLayout: ...volumeBar(fill) | spacing | separator(1px) | spacing | homeButton(touchMin) | margin(spacing)
-        int homeStartPx = displayWidth_ - spacingPx - touchMinPx;
-        int volEndPx = homeStartPx - spacingPx - 1 - spacingPx;
-
-        sidebarVolX0_ = 0;
-        sidebarVolX1_ = volEndPx * evdevPerPixelX;
-        sidebarHomeX0_ = homeStartPx * evdevPerPixelX;
-        sidebarHomeX1_ = screenWidth_;
-
-        qCDebug(lcAA) << "Sidebar: " << position.c_str() << " " << width << "px"
-                                << " (scale=" << scale << " touchMin=" << touchMinPx << "px spacing=" << spacingPx << "px)"
-                                << ", evdev Y: " << sidebarEvdevY0_ << "-" << sidebarEvdevY1_
-                                << ", sub-zones X: vol=[0," << sidebarVolX1_
-                                << "] home=[" << sidebarHomeX0_ << "," << sidebarHomeX1_ << "]"
-                                << " (homeStartPx=" << homeStartPx << " volEndPx=" << volEndPx << ")";
-    } else {
-        // Vertical sidebar (left/right): X band, Y sub-zones
-        if (position == "right") {
-            int sidebarStartPx = displayWidth_ - width;
-            sidebarEvdevX0_ = sidebarStartPx * evdevPerPixelX;
-            sidebarEvdevX1_ = screenWidth_;
-        } else {
-            sidebarEvdevX0_ = 0;
-            sidebarEvdevX1_ = width * evdevPerPixelX;
-        }
-        // Mirror QML Sidebar.qml ColumnLayout: ...volumeBar(fill) | spacing | separator(1px) | spacing | homeButton(touchMin) | margin(spacing)
-        int homeStartPx = displayHeight_ - spacingPx - touchMinPx;
-        int volEndPx = homeStartPx - spacingPx - 1 - spacingPx;
-
-        sidebarVolY0_ = 0;
-        sidebarVolY1_ = volEndPx * evdevPerPixelY;
-        sidebarHomeY0_ = homeStartPx * evdevPerPixelY;
-        sidebarHomeY1_ = screenHeight_;
-
-        qCDebug(lcAA) << "Sidebar: " << position.c_str() << " " << width << "px"
-                                << " (scale=" << scale << " touchMin=" << touchMinPx << "px spacing=" << spacingPx << "px)"
-                                << ", evdev X: " << sidebarEvdevX0_ << "-" << sidebarEvdevX1_
-                                << ", sub-zones Y: vol=[0," << sidebarVolY1_
-                                << "] home=[" << sidebarHomeY0_ << "," << sidebarHomeY1_ << "]"
-                                << " (homeStartPx=" << homeStartPx << " volEndPx=" << volEndPx << ")";
-    }
+void EvdevTouchReader::setContentDimensions(int w, int h)
+{
+    contentWidth_ = w;
+    contentHeight_ = h;
+    qCInfo(lcAA) << "Content dimensions set:" << w << "x" << h;
 }
 
 void EvdevTouchReader::setAAResolution(int aaWidth, int aaHeight)
@@ -212,8 +119,7 @@ int EvdevTouchReader::mapX(int rawX) const
     float rel = (rawX - videoEvdevX0_) / videoEvdevW_;
     rel = std::clamp(rel, 0.0f, 1.0f);
     // Map to content coordinate space (0 to visibleAAWidth_).
-    // The phone handles margin offset internally — we should NOT add cropAAOffsetX_.
-    // touch_screen_config is set to content dimensions to match.
+    // With navbar fit-mode, visibleAAWidth_ == aaWidth_ (no crop).
     return static_cast<int>(rel * visibleAAWidth_);
 }
 
@@ -222,8 +128,7 @@ int EvdevTouchReader::mapY(int rawY) const
     float rel = (rawY - videoEvdevY0_) / videoEvdevH_;
     rel = std::clamp(rel, 0.0f, 1.0f);
     // Map to content coordinate space (0 to visibleAAHeight_).
-    // For top/bottom sidebar, visibleAAHeight_ < aaHeight_ (Y-crop active).
-    // For side sidebar or no sidebar, visibleAAHeight_ == aaHeight_.
+    // With navbar fit-mode, visibleAAHeight_ == aaHeight_ (no crop).
     return static_cast<int>(rel * visibleAAHeight_);
 }
 
@@ -398,88 +303,54 @@ void EvdevTouchReader::processSync()
         displayHeight_ = newDisplayH;
         pendingDisplayWidth_.store(0, std::memory_order_relaxed);
         pendingDisplayHeight_.store(0, std::memory_order_relaxed);
-        if (sidebarEnabled_)
-            setSidebar(sidebarEnabled_, sidebarPixelWidth_, sidebarPosition_);
         computeLetterbox();
         qCDebug(lcAA) << "Applied display dimension update:" << displayWidth_ << "x" << displayHeight_;
     }
 
-    // Check for 3-finger gesture — suppress touches if active
-    if (checkGesture()) {
-        // Clear dirty flags and save state, but don't forward to AA
+    // Check for 3-finger gesture — may suppress AA forwarding but not zone dispatch
+    bool gestureBlocking = checkGesture();
+
+    // Dispatch touches through TouchRouter — zones claim slots, unclaimed fall through to AA
+    for (int i = 0; i < MAX_SLOTS; ++i) {
+        if (!slots_[i].dirty) continue;
+
+        bool wasActive = prevSlots_[i].trackingId >= 0;
+        bool isActive = slots_[i].trackingId >= 0;
+
+        TouchEvent evt;
+        float x, y;
+        if (!wasActive && isActive) {
+            evt = TouchEvent::Down;
+            x = slots_[i].x; y = slots_[i].y;
+        } else if (wasActive && isActive) {
+            evt = TouchEvent::Move;
+            x = slots_[i].x; y = slots_[i].y;
+        } else if (wasActive && !isActive) {
+            evt = TouchEvent::Up;
+            x = prevSlots_[i].x; y = prevSlots_[i].y;
+        } else {
+            continue;  // inactive->inactive, skip
+        }
+
+        if (router_.dispatch(i, x, y, evt)) {
+            slots_[i].dirty = false;  // consumed by zone
+        }
+    }
+
+    // If gesture is active, suppress AA forwarding for unclaimed touches
+    if (gestureBlocking) {
         for (int i = 0; i < MAX_SLOTS; ++i)
             slots_[i].dirty = false;
         prevSlots_ = slots_;
         return;
     }
 
-    // Check for sidebar touches — detect hits and suppress AA forwarding
-    if (sidebarEnabled_) {
-        bool anySidebarTouch = false;
-        for (int i = 0; i < MAX_SLOTS; ++i) {
-            if (slots_[i].trackingId >= 0 && slots_[i].dirty) {
-                float rawX = slots_[i].x;
-                float rawY = slots_[i].y;
-                bool inSidebar = false;
-
-                if (sidebarHorizontal_) {
-                    // Horizontal sidebar: check Y band
-                    inSidebar = (rawY >= sidebarEvdevY0_ && rawY <= sidebarEvdevY1_);
-                } else {
-                    // Vertical sidebar: check X band
-                    inSidebar = (rawX >= sidebarEvdevX0_ && rawX <= sidebarEvdevX1_);
-                }
-
-                if (inSidebar) {
-                    bool isDown = prevSlots_[i].trackingId < 0;
-
-                    if (sidebarHorizontal_) {
-                        // Horizontal: volume along X (left=0%, right=100%), home on right
-                        if (isDown) {
-                            if (rawX >= sidebarVolX0_ && rawX < sidebarVolX1_) {
-                                sidebarDragSlot_ = i;
-                                float rel = (rawX - sidebarVolX0_) / (sidebarVolX1_ - sidebarVolX0_);
-                                int vol = std::clamp(static_cast<int>(rel * 100), 0, 100);
-                                emit sidebarVolumeSet(vol);
-                            } else if (rawX >= sidebarHomeX0_ && rawX <= sidebarHomeX1_) {
-                                emit sidebarHome();
-                            }
-                        } else if (i == sidebarDragSlot_) {
-                            float rel = (rawX - sidebarVolX0_) / (sidebarVolX1_ - sidebarVolX0_);
-                            int vol = std::clamp(static_cast<int>(rel * 100), 0, 100);
-                            emit sidebarVolumeSet(vol);
-                        }
-                    } else {
-                        // Vertical: volume along Y (top=100%, bottom=0%), home on bottom
-                        if (isDown) {
-                            if (rawY >= sidebarVolY0_ && rawY < sidebarVolY1_) {
-                                sidebarDragSlot_ = i;
-                                float rel = 1.0f - (rawY - sidebarVolY0_) / (sidebarVolY1_ - sidebarVolY0_);
-                                int vol = std::clamp(static_cast<int>(rel * 100), 0, 100);
-                                emit sidebarVolumeSet(vol);
-                            } else if (rawY >= sidebarHomeY0_ && rawY <= sidebarHomeY1_) {
-                                emit sidebarHome();
-                            }
-                        } else if (i == sidebarDragSlot_) {
-                            float rel = 1.0f - (rawY - sidebarVolY0_) / (sidebarVolY1_ - sidebarVolY0_);
-                            int vol = std::clamp(static_cast<int>(rel * 100), 0, 100);
-                            emit sidebarVolumeSet(vol);
-                        }
-                    }
-
-                    slots_[i].dirty = false;  // consume — don't forward to AA
-                    anySidebarTouch = true;
-                }
-            }
-            // End drag when finger lifts
-            if (slots_[i].trackingId < 0 && i == sidebarDragSlot_)
-                sidebarDragSlot_ = -1;
-        }
-        // If ALL touches in this sync are sidebar touches, skip AA processing
+    // If all dirty slots were consumed by zones, skip AA processing
+    {
         bool anyDirty = false;
         for (int i = 0; i < MAX_SLOTS; ++i)
             if (slots_[i].dirty) { anyDirty = true; break; }
-        if (anySidebarTouch && !anyDirty) {
+        if (!anyDirty) {
             prevSlots_ = slots_;
             return;
         }
@@ -597,6 +468,7 @@ void EvdevTouchReader::ungrab()
     gestureActive_ = false;
     gestureMaxFingers_ = 0;
     prevActiveCount_ = 0;
+    router_.resetClaims();
 
     qCInfo(lcAA) << "Device ungrabbed — touch returned to Wayland";
 }

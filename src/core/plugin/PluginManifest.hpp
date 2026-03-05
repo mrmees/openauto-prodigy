@@ -28,9 +28,6 @@ struct PluginManifest {
     QStringList requiredServices;   // Presence-only checks, no semver
     QList<PluginSettingDef> settings;
 
-    int navStripOrder = 99;
-    bool navStripVisible = true;
-
     QString dirPath;    // Absolute path to the plugin directory
 
     bool isValid() const;

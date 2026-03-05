@@ -227,30 +227,6 @@ Flickable {
             }
         }
 
-        SectionHeader { text: "Sidebar" }
-
-        SettingsToggle {
-            label: "Show sidebar during Android Auto"
-            configPath: "video.sidebar.enabled"
-            restartRequired: true
-        }
-
-        SegmentedButton {
-            label: "Position"
-            configPath: "video.sidebar.position"
-            options: ["Left", "Right"]
-            values: ["left", "right"]
-            restartRequired: true
-        }
-
-        SettingsSlider {
-            label: "Sidebar Width (px)"
-            configPath: "video.sidebar.width"
-            from: 80; to: 300
-            stepSize: 10
-            restartRequired: true
-        }
-
         SectionHeader { text: "Connection" }
 
         SettingsToggle {

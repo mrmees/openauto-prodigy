@@ -2,6 +2,7 @@
 
 #include <oaa/Session/SessionConfig.hpp>
 #include <QString>
+#include <utility>
 
 namespace oap { class YamlConfig; }
 
@@ -22,6 +23,13 @@ public:
     /// Override display dimensions for margin calculations (detected > config fallback).
     void setDisplayDimensions(int w, int h);
 
+    /// Compute content dimensions (video res minus margins) for a given config.
+    /// Returns {contentW, contentH}. Used by both buildInputDescriptor (touch_screen_config)
+    /// and EvdevTouchReader (touch output coordinate space) -- single source of truth.
+    static std::pair<int,int> computeContentDimensions(
+        int videoW, int videoH, int displayW, int displayH,
+        bool navbarDuringAA, const QString& navbarEdge, int navbarThickness = 56);
+
 private:
     QByteArray buildVideoDescriptor() const;
     QByteArray buildMediaAudioDescriptor() const;
@@ -39,6 +47,9 @@ private:
     // Shared margin calculation for video/input
     void calcMargins(int remoteW, int remoteH,
                      int& marginW, int& marginH) const;
+
+    // Shared viewport calculation (navbar-aware)
+    void calcNavbarViewport(int& viewportW, int& viewportH) const;
 
     oap::YamlConfig* yamlConfig_ = nullptr;
     QString btMacAddress_;
