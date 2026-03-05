@@ -36,7 +36,7 @@ Requirements for protocol compliance milestone. Each maps to roadmap phases.
 
 ### Protocol Observability
 
-- [ ] **OBS-01**: All unhandled channel messages are logged at debug level with message ID, channel, and hex payload
+- [x] **OBS-01**: All unhandled channel messages are logged at debug level with message ID, channel, and hex payload
 
 ## Future Requirements
 
@@ -61,7 +61,7 @@ Requirements for protocol compliance milestone. Each maps to roadmap phases.
 | Requirement | Phase | Status |
 |-------------|-------|--------|
 | SUB-01 | Phase 1 | Complete |
-| OBS-01 | Phase 1 | Pending |
+| OBS-01 | Phase 1 | Complete |
 | NAV-01 | Phase 2 | Pending |
 | NAV-02 | Phase 2 | Pending |
 | AUD-01 | Phase 2 | Pending |
