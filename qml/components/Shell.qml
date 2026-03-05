@@ -17,13 +17,6 @@ Item {
         anchors.rightMargin: navbar.visible && navbar.edge === "right" ? navbar.barThick : 0
         spacing: 0
 
-        // Status bar — ~8% height, hidden in fullscreen
-        TopBar {
-            Layout.fillWidth: true
-            Layout.preferredHeight: shell.fullscreenMode ? 0 : shell.height * 0.08
-            visible: !shell.fullscreenMode
-        }
-
         // Content area — C++ manages plugin views via PluginViewHost
         Item {
             id: pluginContentHost

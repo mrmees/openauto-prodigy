@@ -171,10 +171,6 @@ set_source_files_properties(../qml/components/NavbarPopup.qml PROPERTIES
     QT_QML_SOURCE_TYPENAME "NavbarPopup"
     QT_RESOURCE_ALIAS "NavbarPopup.qml"
 )
-set_source_files_properties(../qml/components/TopBar.qml PROPERTIES
-    QT_QML_SOURCE_TYPENAME "TopBar"
-    QT_RESOURCE_ALIAS "TopBar.qml"
-)
 set_source_files_properties(../qml/components/BottomBar.qml PROPERTIES
     QT_QML_SOURCE_TYPENAME "BottomBar"
     QT_RESOURCE_ALIAS "BottomBar.qml"
@@ -294,7 +290,6 @@ qt_add_qml_module(openauto-prodigy
         ../qml/controls/UiMetrics.qml
         ../qml/components/Clock.qml
         ../qml/components/Wallpaper.qml
-        ../qml/components/TopBar.qml
         ../qml/components/BottomBar.qml
         ../qml/components/Shell.qml
         ../qml/components/Navbar.qml
