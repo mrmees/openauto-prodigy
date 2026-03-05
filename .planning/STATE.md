@@ -3,13 +3,13 @@ gsd_state_version: 1.0
 milestone: v0.4
 milestone_name: milestone
 current_phase: 03-aa-integration (plan 02 complete, phase complete)
-status: executing
-last_updated: "2026-03-04T04:20:34.751Z"
+status: planning
+last_updated: "2026-03-05T00:23:20.926Z"
 progress:
   total_phases: 4
   completed_phases: 3
-  total_plans: 7
-  completed_plans: 7
+  total_plans: 10
+  completed_plans: 10
 ---
 
 # Session State
@@ -22,7 +22,7 @@ See: .planning/PROJECT.md
 
 **Milestone:** v0.4.5 Touch & Navbar
 **Current phase:** 03-aa-integration (plan 02 complete, phase complete)
-**Status:** In Progress
+**Status:** Ready to plan
 
 ## Decisions
 
@@ -36,6 +36,9 @@ See: .planning/PROJECT.md
 - [03-aa] GestureOverlay zone consumes all touches during AA -- full evdev-to-slider bridging deferred
 - [03-aa] Zone deregistration wired to visibleChanged (not individual dismiss callers)
 - [Phase 03-aa-integration]: wantsFullscreen() defaults false when config unset, overlay uses approximate panel geometry regions for touch bridging
+- [03-aa] onMoved replaces onValueChanged for slider sync (prevents feedback loops)
+- [03-aa] Per-control evdev zones at priority 210 above consume zone at 200
+- [03-aa] 16ms singleshot delay for QML layout stabilization before mapToScene queries
 
 ## Session Log
 
@@ -47,3 +50,4 @@ See: .planning/PROJECT.md
 - 2026-03-04: Completed 03-01-PLAN.md (Sidebar-to-navbar AA integration, margin calc, QML simplification)
 - 2026-03-04: Completed 03-02-PLAN.md (GestureOverlay evdev zone registration + priority preemption tests)
 - 2026-03-04: Phase 3 (AA Integration) complete
+- 2026-03-04: Completed 03-06-PLAN.md (GestureOverlay visual sync + touch hit-testing fix)

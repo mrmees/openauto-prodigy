@@ -87,7 +87,7 @@ Plans:
 **Goal**: Navbar works correctly during active AA sessions -- visible with reserved viewport space, touch correctly routed between navbar and phone
 **Depends on**: Phase 2
 **Requirements**: AA-01, AA-02, AA-03, AA-04, AA-05, AA-06
-**Plans:** 5 plans (3 complete, 2 gap closure)
+**Plans:** 6 plans (5 complete, 1 gap closure)
 **Success Criteria** (what must be TRUE):
   1. "Show Navbar during AA" toggle exists in settings and persists across restarts
   2. When navbar is visible during AA, the phone renders in a sub-region with margins matching navbar size -- no content hidden behind navbar
@@ -99,8 +99,9 @@ Plans:
 - [x] 03-01-PLAN.md -- Sidebar-to-navbar plumbing: config, margins, QML simplification, sidebar removal, settings toggle
 - [x] 03-02-PLAN.md -- GestureOverlay evdev zone fix + touch routing validation during AA
 - [x] 03-03-PLAN.md -- Gap closure: navbar visibility + overlay controls during AA
-- [ ] 03-04-PLAN.md -- Gap closure: fix AA touch calibration (coordinate space mismatch)
-- [ ] 03-05-PLAN.md -- Gap closure: fix overlay/popup touch handling + navbar visibility gating
+- [x] 03-04-PLAN.md -- Gap closure: fix AA touch calibration (coordinate space mismatch)
+- [x] 03-05-PLAN.md -- Gap closure: fix overlay/popup touch handling + navbar visibility gating
+- [ ] 03-06-PLAN.md -- Gap closure: fix overlay slider visual sync + replace hardcoded geometry with QML-reported positions
 
 ### Phase 4: Cleanup
 **Goal**: Old navigation UI is removed -- the codebase has one navigation system, not two
@@ -124,8 +125,8 @@ Phases execute in numeric order: 1 -> 2 -> 3 -> 4
 |-------|----------------|--------|-----------|
 | 1. Touch Routing | 2/2 | Complete | 2026-03-03 |
 | 2. Navbar | 2/2 | Complete | 2026-03-04 |
-| 3. AA Integration | 3/5 | Gap closure | - |
+| 3. AA Integration | 5/6 | Gap closure | - |
 | 4. Cleanup | 0/1 | Not started | - |
 
 ---
-*Last updated: 2026-03-04 -- Phase 3 gap closure plans created*
+*Last updated: 2026-03-04 -- Phase 3 gap closure plan 06 created*
