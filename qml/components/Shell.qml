@@ -54,21 +54,9 @@ Item {
             }
         }
 
-        // Nav strip — plugin-model driven, hidden when navbar is active (navbar replaces its role)
-        NavStrip {
-            Layout.fillWidth: true
-            Layout.preferredHeight: shell.fullscreenMode || navbar.visible ? 0 : shell.height * 0.12
-            visible: !shell.fullscreenMode && !navbar.visible
-            onSettingsResetRequested: settingsView.resetToGrid()
-            onEqRequested: {
-                PluginModel.setActivePlugin("")
-                ApplicationController.navigateTo(6)
-                settingsView.openEqDirect()
-            }
-        }
     }
 
-    // Navbar (floating, any edge — replaces TopBar/NavStrip role, both still present until Phase 4)
+    // Navbar (floating, any edge)
     Navbar {
         id: navbar
         z: 100
