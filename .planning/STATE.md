@@ -1,36 +1,77 @@
 ---
 gsd_state_version: 1.0
-milestone: none
-milestone_name: none
-current_phase: none
-status: between_milestones
-last_updated: "2026-03-05"
+milestone: v0.5
+milestone_name: milestone
+status: executing
+stopped_at: Completed 01-01-PLAN.md
+last_updated: "2026-03-05T04:09:00Z"
+last_activity: 2026-03-05 -- Completed proto submodule update (01-01)
 progress:
-  total_phases: 0
+  total_phases: 3
   completed_phases: 0
-  total_plans: 0
-  completed_plans: 0
+  total_plans: 5
+  completed_plans: 1
+  percent: 20
 ---
 
-# Session State
+# Project State
 
 ## Project Reference
 
 See: .planning/PROJECT.md (updated 2026-03-05)
 
-**Core value:** A person with a Raspberry Pi 4 and a touchscreen can install this, pair their phone, and get a reliable wireless Android Auto experience — every time, without SSH.
-**Current focus:** Planning next milestone
+**Core value:** A person with a Raspberry Pi 4 and a touchscreen can install this, pair their phone, and get a reliable wireless Android Auto experience -- every time, without SSH.
+**Current focus:** Phase 1 - Proto Foundation & Observability
 
-## Position
+## Current Position
 
-**Last milestone:** v0.4.5 Navbar Rework (shipped 2026-03-05)
-**Current phase:** None — between milestones
-**Status:** Ready for `/gsd:new-milestone`
+Phase: 1 of 3 (Proto Foundation & Observability)
+Plan: 1 of 2 in current phase
+Status: Executing
+Last activity: 2026-03-05 -- Completed proto submodule update (01-01)
 
-## Decisions
+Progress: [==........] 20%
 
-Cleared — see PROJECT.md Key Decisions table for cumulative record.
+## Performance Metrics
 
-## Session Log
+**Velocity:**
+- Total plans completed: 0
+- Average duration: -
+- Total execution time: 0 hours
 
-- 2026-03-05: v0.4.5 milestone archived
+**By Phase:**
+
+| Phase | Plans | Total | Avg/Plan |
+|-------|-------|-------|----------|
+| - | - | - | - |
+
+**Recent Trend:**
+- Last 5 plans: -
+- Trend: -
+
+*Updated after each plan completion*
+
+## Accumulated Context
+
+### Decisions
+
+Decisions are logged in PROJECT.md Key Decisions table.
+Recent decisions affecting current work:
+
+- Submodule updated to v1.0 (1cd8919) -- 2 proto files excluded due to descriptor name clash
+- NavigationTurnEvent (0x8004) is highest-impact compliance gap
+- config_index field type changed from uint32 to MediaCodecType_Enum in v1.0 protos
+
+### Pending Todos
+
+None yet.
+
+### Blockers/Concerns
+
+- Submodule is read-only -- any proto corrections must go to the open-android-auto repo, not this one.
+
+## Session Continuity
+
+Last session: 2026-03-05T04:09:00Z
+Stopped at: Completed 01-01-PLAN.md
+Resume file: .planning/phases/01-proto-foundation-observability/01-02-PLAN.md
