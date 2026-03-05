@@ -4,7 +4,7 @@
 
 #include "oaa/navigation/NavigationStateMessage.pb.h"
 #include "oaa/navigation/NavigationNotificationMessage.pb.h"
-#include "oaa/navigation/NavigationDistanceMessage.pb.h"
+#include "oaa/navigation/NavigationTurnEventMessage.pb.h"
 
 namespace oaa {
 namespace hu {
@@ -100,18 +100,20 @@ void NavigationChannelHandler::handleNavStep(const QByteArray& payload)
 
 void NavigationChannelHandler::handleNavDistance(const QByteArray& payload)
 {
-    oaa::proto::messages::NavigationDistance msg;
+    oaa::proto::messages::NavigationNextTurnDistanceEvent msg;
     if (!msg.ParseFromArray(payload.constData(), payload.size())) {
-        qWarning() << "[NavChannel] failed to parse NavigationDistance";
+        qWarning() << "[NavChannel] failed to parse NavigationNextTurnDistanceEvent";
         return;
     }
 
     QString distance;
     int unit = 0;
 
-    if (msg.has_distance()) {
-        distance = QString::number(msg.distance().value());
-        unit = msg.distance().unit();
+    if (msg.has_remaining_distance() && msg.remaining_distance().has_distance()) {
+        const auto& d = msg.remaining_distance().distance();
+        if (d.has_display_text())
+            distance = QString::fromStdString(d.display_text());
+        unit = d.distance_unit();
     }
 
     qDebug() << "[NavChannel] distance:" << distance << "unit:" << unit;
