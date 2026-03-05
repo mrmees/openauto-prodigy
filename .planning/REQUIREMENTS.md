@@ -42,10 +42,10 @@ Requirements for navbar rework milestone. Each maps to roadmap phases.
 
 ### Cleanup
 
-- [ ] **CLEAN-01**: TopBar component removed from shell
-- [ ] **CLEAN-02**: Old NavStrip (plugin icon bar) removed from shell
-- [ ] **CLEAN-03**: Sidebar overlay component and its evdev hit zones removed
-- [ ] **CLEAN-04**: Clock display integrated into navbar (no separate clock component needed)
+- [x] **CLEAN-01**: TopBar component removed from shell
+- [x] **CLEAN-02**: Old NavStrip (plugin icon bar) removed from shell
+- [x] **CLEAN-03**: Sidebar overlay component and its evdev hit zones removed
+- [x] **CLEAN-04**: Clock display integrated into navbar (no separate clock component needed)
 
 ## Future Requirements
 
@@ -96,10 +96,10 @@ Which phases cover which requirements. Updated during roadmap creation.
 | AA-04 | Phase 3 | Complete |
 | AA-05 | Phase 3 | Complete |
 | AA-06 | Phase 3 | Complete |
-| CLEAN-01 | Phase 4 | Pending |
-| CLEAN-02 | Phase 4 | Pending |
-| CLEAN-03 | Phase 4 | Pending |
-| CLEAN-04 | Phase 4 | Pending |
+| CLEAN-01 | Phase 4 | Complete |
+| CLEAN-02 | Phase 4 | Complete |
+| CLEAN-03 | Phase 4 | Complete |
+| CLEAN-04 | Phase 4 | Complete |
 
 **Coverage:**
 - v0.4.5 requirements: 25 total

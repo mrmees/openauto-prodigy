@@ -49,8 +49,8 @@ See .planning/milestones/v0.4.4/ for archived details.
 
 - [x] **Phase 1: Touch Routing** - Zone-based evdev dispatch layer replacing hardcoded sidebar logic
 - [x] **Phase 2: Navbar** - 3-control navbar with gestures, edge positioning, popups, and QML visuals
-- [ ] **Phase 3: AA Integration** - Viewport margins, touch exclusion, and on-device validation with real AA sessions
-- [ ] **Phase 4: Cleanup** - Remove TopBar, NavStrip, sidebar overlay, and migrate remaining actions
+- [x] **Phase 3: AA Integration** - Viewport margins, touch exclusion, and on-device validation with real AA sessions
+- [x] **Phase 4: Cleanup** - Remove TopBar, NavStrip, sidebar overlay, and migrate remaining actions
 
 ## Phase Details
 
@@ -101,7 +101,7 @@ Plans:
 - [x] 03-03-PLAN.md -- Gap closure: navbar visibility + overlay controls during AA
 - [x] 03-04-PLAN.md -- Gap closure: fix AA touch calibration (coordinate space mismatch)
 - [x] 03-05-PLAN.md -- Gap closure: fix overlay/popup touch handling + navbar visibility gating
-- [ ] 03-06-PLAN.md -- Gap closure: fix overlay slider visual sync + replace hardcoded geometry with QML-reported positions
+- [x] 03-06-PLAN.md -- Gap closure: fix overlay slider visual sync + replace hardcoded geometry with QML-reported positions
 
 ### Phase 4: Cleanup
 **Goal**: Old navigation UI is removed -- the codebase has one navigation system, not two
@@ -114,7 +114,7 @@ Plans:
   4. Clock display is integrated into navbar center control -- no separate clock component remains in the shell
 
 Plans:
-- [ ] 04-01: Remove old UI components and verify action migration
+- [x] 04-01: Remove old UI components and verify action migration
 
 ## Progress
 
@@ -125,8 +125,8 @@ Phases execute in numeric order: 1 -> 2 -> 3 -> 4
 |-------|----------------|--------|-----------|
 | 1. Touch Routing | 2/2 | Complete | 2026-03-03 |
 | 2. Navbar | 2/2 | Complete | 2026-03-04 |
-| 3. AA Integration | 5/6 | Gap closure | - |
-| 4. Cleanup | 0/1 | Not started | - |
+| 3. AA Integration | 6/6 | Complete | 2026-03-04 |
+| 4. Cleanup | 1/1 | Complete | 2026-03-05 |
 
 ---
-*Last updated: 2026-03-04 -- Phase 3 gap closure plan 06 created*
+*Last updated: 2026-03-05 -- Phase 4 cleanup complete, all phases done*
