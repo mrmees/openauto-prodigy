@@ -23,8 +23,8 @@ Requirements for protocol compliance milestone. Each maps to roadmap phases.
 
 ### Media & Voice
 
-- [ ] **MED-01**: HU can send MediaPlaybackCommand (PAUSE/RESUME) to phone
-- [ ] **MED-02**: HU sends VoiceSessionRequest START on voice button press and STOP on release
+- [x] **MED-01**: HU can send MediaPlaybackCommand (PAUSE/RESUME) to phone
+- [x] **MED-02**: HU sends VoiceSessionRequest START on voice button press and STOP on release
 
 ### Bluetooth
 
@@ -66,8 +66,8 @@ Requirements for protocol compliance milestone. Each maps to roadmap phases.
 | NAV-02 | Phase 2 | Complete |
 | AUD-01 | Phase 2 | Complete |
 | AUD-02 | Phase 2 | Complete |
-| MED-01 | Phase 3 | Pending |
-| MED-02 | Phase 3 | Pending |
+| MED-01 | Phase 3 | Complete |
+| MED-02 | Phase 3 | Complete |
 | BT-01 | Phase 3 | Pending |
 | INP-01 | Phase 3 | Pending |
 
