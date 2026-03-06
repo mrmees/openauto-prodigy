@@ -4,6 +4,8 @@
 #include <oaa/Channel/ChannelId.hpp>
 #include "oaa/control/BindingRequestMessage.pb.h"
 #include "oaa/input/InputEventIndicationMessage.pb.h"
+#include "oaa/input/InputBindingNotificationMessage.pb.h"
+#include "oaa/input/HapticFeedbackTypeEnum.pb.h"
 
 class TestInputChannelHandler : public QObject {
     Q_OBJECT
@@ -86,6 +88,31 @@ private slots:
         oaa::hu::InputChannelHandler::Pointer pt{640, 360, 0};
         handler.sendTouchIndication(1, &pt, 0, 0, 12345);
         QCOMPARE(sendSpy.count(), 0);
+    }
+    void testBindingNotificationEmitsHapticFeedback() {
+        oaa::hu::InputChannelHandler handler;
+        QSignalSpy hapticSpy(&handler, &oaa::hu::InputChannelHandler::hapticFeedbackRequested);
+
+        oaa::proto::messages::InputBindingNotification notif;
+        notif.set_feedback_type(oaa::proto::enums::HapticFeedbackType::FEEDBACK_SELECT);
+        QByteArray payload(notif.ByteSizeLong(), '\0');
+        notif.SerializeToArray(payload.data(), payload.size());
+
+        handler.onMessage(oaa::InputMessageId::BINDING_NOTIFICATION, payload);
+
+        QCOMPARE(hapticSpy.count(), 1);
+        QCOMPARE(hapticSpy[0][0].toInt(), 1); // FEEDBACK_SELECT = 1
+    }
+
+    void testBindingNotificationInvalidPayload() {
+        oaa::hu::InputChannelHandler handler;
+        QSignalSpy hapticSpy(&handler, &oaa::hu::InputChannelHandler::hapticFeedbackRequested);
+
+        // Send garbage payload
+        QByteArray garbage("\xFF\xFF\xFF\xFF\xFF", 5);
+        handler.onMessage(oaa::InputMessageId::BINDING_NOTIFICATION, garbage);
+
+        QCOMPARE(hapticSpy.count(), 0);
     }
 };
 

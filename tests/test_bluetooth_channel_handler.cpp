@@ -45,6 +45,30 @@ private slots:
         QVERIFY(resp.ParseFromArray(respPayload.constData(), respPayload.size()));
         QVERIFY(resp.already_paired());
     }
+    void testAuthDataEmitsSignal() {
+        oaa::hu::BluetoothChannelHandler handler;
+        QSignalSpy authSpy(&handler, &oaa::hu::BluetoothChannelHandler::authDataReceived);
+
+        // Arbitrary 16-byte payload (no proto schema exists for auth data)
+        QByteArray payload(16, '\xAB');
+
+        handler.onMessage(oaa::BluetoothMessageId::AUTH_DATA, payload);
+
+        QCOMPARE(authSpy.count(), 1);
+        QCOMPARE(authSpy[0][0].toByteArray(), payload);
+    }
+
+    void testAuthResultEmitsSignal() {
+        oaa::hu::BluetoothChannelHandler handler;
+        QSignalSpy authSpy(&handler, &oaa::hu::BluetoothChannelHandler::authResultReceived);
+
+        QByteArray payload(8, '\xCD');
+
+        handler.onMessage(oaa::BluetoothMessageId::AUTH_RESULT, payload);
+
+        QCOMPARE(authSpy.count(), 1);
+        QCOMPARE(authSpy[0][0].toByteArray(), payload);
+    }
 };
 
 QTEST_MAIN(TestBluetoothChannelHandler)
