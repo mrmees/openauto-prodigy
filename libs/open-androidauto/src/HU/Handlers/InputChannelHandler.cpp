@@ -9,6 +9,7 @@
 #include "oaa/control/BindingRequestMessage.pb.h"
 #include "oaa/control/BindingResponseMessage.pb.h"
 #include "oaa/common/StatusEnum.pb.h"
+#include "oaa/input/InputBindingNotificationMessage.pb.h"
 
 namespace oaa {
 namespace hu {
@@ -40,6 +41,9 @@ void InputChannelHandler::onMessage(uint16_t messageId, const QByteArray& payloa
     case oaa::InputMessageId::BINDING_REQUEST:
         handleBindingRequest(data);
         break;
+    case oaa::InputMessageId::BINDING_NOTIFICATION:
+        handleBindingNotification(data);
+        break;
     default:
         qWarning() << "[InputChannel] unknown message id:" << Qt::hex << messageId;
         emit unknownMessage(messageId, data);
@@ -63,6 +67,19 @@ void InputChannelHandler::handleBindingRequest(const QByteArray& payload)
     QByteArray data(resp.ByteSizeLong(), '\0');
     resp.SerializeToArray(data.data(), data.size());
     emit sendRequested(channelId(), oaa::InputMessageId::BINDING_RESPONSE, data);
+}
+
+void InputChannelHandler::handleBindingNotification(const QByteArray& payload)
+{
+    oaa::proto::messages::InputBindingNotification notif;
+    if (!notif.ParseFromArray(payload.constData(), payload.size())) {
+        qWarning() << "[InputChannel] failed to parse InputBindingNotification";
+        return;
+    }
+
+    int feedbackType = static_cast<int>(notif.feedback_type());
+    qDebug() << "[InputChannel] haptic feedback requested:" << feedbackType;
+    emit hapticFeedbackRequested(feedbackType);
 }
 
 void InputChannelHandler::sendTouchIndication(int pointerCount, const Pointer* pointers,

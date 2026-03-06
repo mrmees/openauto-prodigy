@@ -24,8 +24,12 @@ public:
     void sendTouchIndication(int pointerCount, const Pointer* pointers,
                              int actionIndex, int action, uint64_t timestamp);
 
+signals:
+    void hapticFeedbackRequested(int feedbackType);
+
 private:
     void handleBindingRequest(const QByteArray& payload);
+    void handleBindingNotification(const QByteArray& payload);
     std::atomic<bool> channelOpen_{false};
 };
 

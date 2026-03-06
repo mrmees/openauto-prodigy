@@ -19,6 +19,8 @@ public:
 
 signals:
     void pairingRequested(const QString& phoneAddress);
+    void authDataReceived(const QByteArray& payload);
+    void authResultReceived(const QByteArray& payload);
 
 private:
     void handlePairingRequest(const QByteArray& payload);

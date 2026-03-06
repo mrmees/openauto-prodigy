@@ -38,6 +38,7 @@ namespace InputMessageId {
     constexpr uint16_t INPUT_EVENT_INDICATION  = 0x8001;
     constexpr uint16_t BINDING_REQUEST         = 0x8002;
     constexpr uint16_t BINDING_RESPONSE        = 0x8003;
+    constexpr uint16_t BINDING_NOTIFICATION    = 0x8004; // Provisional — 0x8004 on Input channel (no collision, channel-scoped)
 }
 
 /// Sensor channel messages
@@ -52,6 +53,7 @@ namespace BluetoothMessageId {
     constexpr uint16_t PAIRING_REQUEST         = 0x8001;
     constexpr uint16_t PAIRING_RESPONSE        = 0x8002;
     constexpr uint16_t AUTH_DATA               = 0x8003;
+    constexpr uint16_t AUTH_RESULT             = 0x8004; // Provisional — no proto schema, raw payload only
 }
 
 /// Navigation channel messages

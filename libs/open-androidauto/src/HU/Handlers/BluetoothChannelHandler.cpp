@@ -36,6 +36,16 @@ void BluetoothChannelHandler::onMessage(uint16_t messageId, const QByteArray& pa
     case oaa::BluetoothMessageId::PAIRING_REQUEST:
         handlePairingRequest(data);
         break;
+    case oaa::BluetoothMessageId::AUTH_DATA:
+        qDebug() << "[BluetoothChannel] AUTH_DATA received len:" << data.size()
+                 << "hex:" << data.left(64).toHex(' ');
+        emit authDataReceived(data);
+        break;
+    case oaa::BluetoothMessageId::AUTH_RESULT:
+        qDebug() << "[BluetoothChannel] AUTH_RESULT received len:" << data.size()
+                 << "hex:" << data.left(64).toHex(' ');
+        emit authResultReceived(data);
+        break;
     default:
         qWarning() << "[BluetoothChannel] unknown message id:" << Qt::hex << messageId;
         emit unknownMessage(messageId, data);
