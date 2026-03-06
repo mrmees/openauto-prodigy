@@ -8,6 +8,8 @@
 #include "oaa/av/AVChannelStartIndicationMessage.pb.h"
 #include "oaa/av/AVChannelStopIndicationMessage.pb.h"
 #include "oaa/av/AVMediaAckIndicationMessage.pb.h"
+#include "oaa/audio/AudioFocusStateMessage.pb.h"
+#include "oaa/audio/AudioStreamTypeMessage.pb.h"
 
 namespace oaa {
 namespace hu {
@@ -23,6 +25,8 @@ void AudioChannelHandler::onChannelOpened()
     channelOpen_ = true;
     streaming_ = false;
     session_ = -1;
+    hasFocus_ = false;
+    streamType_ = -1;
 
     qDebug() << "[AudioChannel" << channelId_ << "] opened";
 }
@@ -31,6 +35,8 @@ void AudioChannelHandler::onChannelClosed()
 {
     channelOpen_ = false;
     streaming_ = false;
+    hasFocus_ = false;
+    streamType_ = -1;
     qDebug() << "[AudioChannel" << channelId_ << "] closed";
 }
 
@@ -49,6 +55,12 @@ void AudioChannelHandler::onMessage(uint16_t messageId, const QByteArray& payloa
         break;
     case oaa::AVMessageId::STOP_INDICATION:
         handleStopIndication();
+        break;
+    case oaa::AVMessageId::AUDIO_FOCUS_STATE:
+        handleAudioFocusState(data);
+        break;
+    case oaa::AVMessageId::AUDIO_STREAM_TYPE:
+        handleAudioStreamType(data);
         break;
     case oaa::AVMessageId::VIDEO_FOCUS_NOTIFICATION:
     case oaa::AVMessageId::UPDATE_UI_CONFIG_REQUEST:
@@ -141,6 +153,38 @@ void AudioChannelHandler::onMediaData(const QByteArray& data, uint64_t timestamp
         sendAck(unackedCount_);
         unackedCount_ = 0;
     }
+}
+
+void AudioChannelHandler::handleAudioFocusState(const QByteArray& payload)
+{
+    oaa::proto::messages::AudioFocusState msg;
+    if (!msg.ParseFromArray(payload.constData(), payload.size())) {
+        qWarning() << "[AudioChannel" << channelId_ << "] failed to parse AudioFocusState";
+        return;
+    }
+
+    bool hasFocus = msg.has_focus();
+    qDebug() << "[AudioChannel" << channelId_ << "] focus state:" << hasFocus;
+
+    if (hasFocus_ != hasFocus) {
+        hasFocus_ = hasFocus;
+        emit audioFocusStateChanged(hasFocus);
+    }
+}
+
+void AudioChannelHandler::handleAudioStreamType(const QByteArray& payload)
+{
+    oaa::proto::messages::AudioStreamType msg;
+    if (!msg.ParseFromArray(payload.constData(), payload.size())) {
+        qWarning() << "[AudioChannel" << channelId_ << "] failed to parse AudioStreamType";
+        return;
+    }
+
+    int type = static_cast<int>(msg.stream_type());
+    qDebug() << "[AudioChannel" << channelId_ << "] stream type:" << type;
+
+    streamType_ = type;
+    emit audioStreamTypeChanged(type);
 }
 
 void AudioChannelHandler::sendAck(uint32_t frameCount)
