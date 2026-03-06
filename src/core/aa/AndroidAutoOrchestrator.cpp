@@ -347,11 +347,11 @@ void AndroidAutoOrchestrator::onNewConnection()
     auto connectAudioSignals = [this](oaa::hu::AudioChannelHandler& handler, const char* name) {
         connect(&handler, &oaa::hu::AudioChannelHandler::audioFocusStateChanged,
                 this, [name](bool hasFocus) {
-            qCDebug(lcAA) << "[Audio:" << name << "] focus:" << hasFocus;
+            qCInfo(lcAA) << "[Audio:" << name << "] focus:" << hasFocus;
         });
         connect(&handler, &oaa::hu::AudioChannelHandler::audioStreamTypeChanged,
                 this, [name](int streamType) {
-            qCDebug(lcAA) << "[Audio:" << name << "] stream type:" << streamType;
+            qCInfo(lcAA) << "[Audio:" << name << "] stream type:" << streamType;
         });
     };
     connectAudioSignals(mediaAudioHandler_, "Media");
@@ -424,7 +424,7 @@ void AndroidAutoOrchestrator::onNewConnection()
         connect(&navHandler_, &oaa::hu::NavigationChannelHandler::navigationTurnEvent,
                 this, [](const QString& roadName, int maneuverType, int turnDirection,
                          const QByteArray& turnIcon, int distanceMeters, int distanceUnit) {
-            qCDebug(lcAA) << "[Nav] turn:" << roadName
+            qCInfo(lcAA) << "[Nav] turn:" << roadName
                           << "maneuver:" << maneuverType << "dir:" << turnDirection
                           << "dist:" << distanceMeters << "unit:" << distanceUnit
                           << "icon:" << turnIcon.size() << "bytes";
@@ -434,14 +434,14 @@ void AndroidAutoOrchestrator::onNewConnection()
         connect(&navHandler_, &oaa::hu::NavigationChannelHandler::navigationNotificationReceived,
                 this, [](int stepCount, int laneCount,
                          const QString& destination, const QString& /*eta*/) {
-            qCDebug(lcAA) << "[Nav] notification:" << stepCount << "steps,"
+            qCInfo(lcAA) << "[Nav] notification:" << stepCount << "steps,"
                           << laneCount << "lanes, dest:" << destination;
         });
 
         // Navigation focus indication (debug logging only)
         connect(&navHandler_, &oaa::hu::NavigationChannelHandler::navigationFocusChanged,
                 this, [](bool hasFocus) {
-            qCDebug(lcAA) << "[Nav] focus:" << hasFocus;
+            qCInfo(lcAA) << "[Nav] focus:" << hasFocus;
         });
 
         // Phone status events
@@ -457,6 +457,18 @@ void AndroidAutoOrchestrator::onNewConnection()
         connect(&phoneStatusHandler_, &oaa::hu::PhoneStatusChannelHandler::callsIdle,
                 this, [this]() {
             eventBus_->publish("aa.phone.idle");
+        });
+
+        // Media command logging
+        connect(&mediaStatusHandler_, &oaa::hu::MediaStatusChannelHandler::playbackCommandSent,
+                this, [](int command) {
+            qCDebug(lcAA) << "[MediaStatus] sent playback command:" << command;
+        });
+
+        // Voice session command logging
+        connect(session_->controlChannel(), &oaa::ControlChannel::voiceSessionSent,
+                this, [](int sessionType) {
+            qCDebug(lcAA) << "[Control] sent voice session request:" << sessionType;
         });
 
         // Media status events
@@ -686,6 +698,22 @@ void AndroidAutoOrchestrator::requestExitToCar()
         videoHandler_.requestVideoFocus(false);
         setState(Backgrounded, "Exited to car");
     }
+}
+
+void AndroidAutoOrchestrator::sendMediaPlaybackCommand(int command)
+{
+    mediaStatusHandler_.sendPlaybackCommand(command);
+}
+
+void AndroidAutoOrchestrator::toggleMediaPlayback()
+{
+    mediaStatusHandler_.togglePlayback();
+}
+
+void AndroidAutoOrchestrator::sendVoiceSessionRequest(int sessionType)
+{
+    if (session_)
+        session_->controlChannel()->sendVoiceSessionRequest(sessionType);
 }
 
 void AndroidAutoOrchestrator::setState(ConnectionState state, const QString& message)
