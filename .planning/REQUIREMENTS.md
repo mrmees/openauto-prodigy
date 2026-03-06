@@ -18,8 +18,8 @@ Requirements for protocol compliance milestone. Each maps to roadmap phases.
 
 ### Audio
 
-- [ ] **AUD-01**: HU receives and processes AudioFocusState (0x8021) per-channel focus indicator
-- [ ] **AUD-02**: HU receives and processes AudioStreamType (0x8022) per-channel stream type
+- [x] **AUD-01**: HU receives and processes AudioFocusState (0x8021) per-channel focus indicator
+- [x] **AUD-02**: HU receives and processes AudioStreamType (0x8022) per-channel stream type
 
 ### Media & Voice
 
@@ -64,8 +64,8 @@ Requirements for protocol compliance milestone. Each maps to roadmap phases.
 | OBS-01 | Phase 1 | Complete |
 | NAV-01 | Phase 2 | Pending |
 | NAV-02 | Phase 2 | Pending |
-| AUD-01 | Phase 2 | Pending |
-| AUD-02 | Phase 2 | Pending |
+| AUD-01 | Phase 2 | Complete |
+| AUD-02 | Phase 2 | Complete |
 | MED-01 | Phase 3 | Pending |
 | MED-02 | Phase 3 | Pending |
 | BT-01 | Phase 3 | Pending |
