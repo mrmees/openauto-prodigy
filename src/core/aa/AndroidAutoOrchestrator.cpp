@@ -343,6 +343,21 @@ void AndroidAutoOrchestrator::onNewConnection()
         }
     }
 
+    // Wire per-channel audio focus/stream type signals for debug logging
+    auto connectAudioSignals = [this](oaa::hu::AudioChannelHandler& handler, const char* name) {
+        connect(&handler, &oaa::hu::AudioChannelHandler::audioFocusStateChanged,
+                this, [name](bool hasFocus) {
+            qCDebug(lcAA) << "[Audio:" << name << "] focus:" << hasFocus;
+        });
+        connect(&handler, &oaa::hu::AudioChannelHandler::audioStreamTypeChanged,
+                this, [name](int streamType) {
+            qCDebug(lcAA) << "[Audio:" << name << "] stream type:" << streamType;
+        });
+    };
+    connectAudioSignals(mediaAudioHandler_, "Media");
+    connectAudioSignals(speechAudioHandler_, "Speech");
+    connectAudioSignals(systemAudioHandler_, "System");
+
     // Bridge AA audio focus requests to PipeWire stream ducking
     if (audioService_) {
         connect(session_, &oaa::AASession::audioFocusChanged,
