@@ -24,11 +24,15 @@ signals:
     void audioDataReceived(const QByteArray& data, uint64_t timestamp);
     void streamStarted(int32_t session);
     void streamStopped();
+    void audioFocusStateChanged(bool hasFocus);
+    void audioStreamTypeChanged(int streamType);
 
 private:
     void handleSetupRequest(const QByteArray& payload);
     void handleStartIndication(const QByteArray& payload);
     void handleStopIndication();
+    void handleAudioFocusState(const QByteArray& payload);
+    void handleAudioStreamType(const QByteArray& payload);
     void sendAck(uint32_t frameCount);
 
     uint8_t channelId_;
@@ -36,6 +40,8 @@ private:
     uint32_t unackedCount_ = 0;
     bool channelOpen_ = false;
     bool streaming_ = false;
+    bool hasFocus_ = false;
+    int streamType_ = -1;
 };
 
 } // namespace hu
