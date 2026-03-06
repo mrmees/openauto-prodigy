@@ -98,11 +98,11 @@ Plans:
   2. Pressing a voice button sends VoiceSessionRequest START and Google Assistant activates on the phone; releasing sends STOP
   3. BT pairing exchanges BluetoothAuthenticationData (0x8003) and processes BluetoothAuthenticationResult (0x8004) without errors
   4. InputBindingNotification haptic feedback requests from the phone are received and logged (ready for future haptic output)
-**Plans**: TBD
+**Plans:** 2 plans
 
 Plans:
-- [ ] 03-01: MediaPlaybackCommand and VoiceSessionRequest wiring
-- [ ] 03-02: BT auth data exchange and InputBindingNotification handling
+- [ ] 03-01-PLAN.md -- MediaPlaybackCommand and VoiceSessionRequest outbound commands
+- [ ] 03-02-PLAN.md -- BT auth data exchange and InputBindingNotification haptic handling
 
 ## Progress
 
@@ -116,4 +116,4 @@ Phases execute in numeric order: 1 -> 2 -> 3
 | 3. Commands & Authentication | 0/2 | Not started | - |
 
 ---
-*Last updated: 2026-03-06 -- Phase 2 plans created*
+*Last updated: 2026-03-06 -- Phase 3 plans created*
