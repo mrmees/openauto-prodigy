@@ -420,6 +420,30 @@ void AndroidAutoOrchestrator::onNewConnection()
             });
         });
 
+        // Navigation turn event (debug logging only -- future UI consumer)
+        connect(&navHandler_, &oaa::hu::NavigationChannelHandler::navigationTurnEvent,
+                this, [](const QString& roadName, int maneuverType, int turnDirection,
+                         const QByteArray& turnIcon, int distanceMeters, int distanceUnit) {
+            qCDebug(lcAA) << "[Nav] turn:" << roadName
+                          << "maneuver:" << maneuverType << "dir:" << turnDirection
+                          << "dist:" << distanceMeters << "unit:" << distanceUnit
+                          << "icon:" << turnIcon.size() << "bytes";
+        });
+
+        // Navigation notification (debug logging only)
+        connect(&navHandler_, &oaa::hu::NavigationChannelHandler::navigationNotificationReceived,
+                this, [](int stepCount, int laneCount,
+                         const QString& destination, const QString& /*eta*/) {
+            qCDebug(lcAA) << "[Nav] notification:" << stepCount << "steps,"
+                          << laneCount << "lanes, dest:" << destination;
+        });
+
+        // Navigation focus indication (debug logging only)
+        connect(&navHandler_, &oaa::hu::NavigationChannelHandler::navigationFocusChanged,
+                this, [](bool hasFocus) {
+            qCDebug(lcAA) << "[Nav] focus:" << hasFocus;
+        });
+
         // Phone status events
         connect(&phoneStatusHandler_, &oaa::hu::PhoneStatusChannelHandler::callStateChanged,
                 this, [this](int callState, const QString& number,
