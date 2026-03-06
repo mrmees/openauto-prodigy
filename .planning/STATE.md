@@ -3,15 +3,15 @@ gsd_state_version: 1.0
 milestone: v0.5
 milestone_name: milestone
 status: executing
-stopped_at: Completed 03-01-PLAN.md
-last_updated: "2026-03-06T22:15:00.000Z"
-last_activity: 2026-03-06 -- Completed media commands and voice session (03-01)
+stopped_at: Completed 03-02-PLAN.md
+last_updated: "2026-03-06T22:23:10.000Z"
+last_activity: 2026-03-06 -- Completed BT auth and haptic feedback (03-02)
 progress:
   total_phases: 3
-  completed_phases: 2
+  completed_phases: 3
   total_plans: 6
-  completed_plans: 5
-  percent: 83
+  completed_plans: 6
+  percent: 100
 ---
 
 # Project State
@@ -26,11 +26,11 @@ See: .planning/PROJECT.md (updated 2026-03-05)
 ## Current Position
 
 Phase: 3 of 3 (Commands & Authentication)
-Plan: 1 of 2 in current phase
-Status: Executing
-Last activity: 2026-03-06 -- Completed media commands and voice session (03-01)
+Plan: 2 of 2 in current phase
+Status: Complete
+Last activity: 2026-03-06 -- Completed BT auth and haptic feedback (03-02)
 
-Progress: [========..] 83%
+Progress: [==========] 100%
 
 ## Performance Metrics
 
@@ -54,6 +54,7 @@ Progress: [========..] 83%
 | Phase 02 P01 | 6min | 2 tasks | 7 files |
 | Phase 02 P02 | 5min | 2 tasks | 5 files |
 | Phase 03 P01 | 6min | 2 tasks | 9 files |
+| Phase 03 P02 | 5min | 2 tasks | 8 files |
 
 ## Accumulated Context
 
@@ -71,6 +72,8 @@ Recent decisions affecting current work:
 - [Phase 02]: AudioFocusState signal uses change guard; AudioStreamType emits on every message
 - [Phase 03]: Outbound command pattern established: protobuf build + serialize + sendRequested
 - [Phase 03]: Voice session on ControlChannel (ch0, 0x0011) per wire capture, not InputChannel
+- [Phase 03]: BT auth signals emit raw QByteArray (no proto schema exists)
+- [Phase 03]: 0x8004 reused across BT/Input channels (channel-scoped, no collision)
 
 ### Pending Todos
 
@@ -82,5 +85,5 @@ None yet.
 
 ## Session Continuity
 
-Last session: 2026-03-06T22:15:00Z
-Stopped at: Completed 03-01-PLAN.md
+Last session: 2026-03-06T22:23:10Z
+Stopped at: Completed 03-02-PLAN.md (milestone complete)

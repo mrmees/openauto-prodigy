@@ -28,11 +28,11 @@ Requirements for protocol compliance milestone. Each maps to roadmap phases.
 
 ### Bluetooth
 
-- [ ] **BT-01**: HU exchanges BluetoothAuthenticationData (0x8003) and handles BluetoothAuthenticationResult (0x8004) during pairing
+- [x] **BT-01**: HU exchanges BluetoothAuthenticationData (0x8003) and handles BluetoothAuthenticationResult (0x8004) during pairing
 
 ### Input
 
-- [ ] **INP-01**: HU receives InputBindingNotification (0x8004) haptic feedback requests from phone
+- [x] **INP-01**: HU receives InputBindingNotification (0x8004) haptic feedback requests from phone
 
 ### Protocol Observability
 
@@ -68,8 +68,8 @@ Requirements for protocol compliance milestone. Each maps to roadmap phases.
 | AUD-02 | Phase 2 | Complete |
 | MED-01 | Phase 3 | Complete |
 | MED-02 | Phase 3 | Complete |
-| BT-01 | Phase 3 | Pending |
-| INP-01 | Phase 3 | Pending |
+| BT-01 | Phase 3 | Complete |
+| INP-01 | Phase 3 | Complete |
 
 **Coverage:**
 - v0.5.0 requirements: 10 total
