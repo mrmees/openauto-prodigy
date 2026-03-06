@@ -488,6 +488,22 @@ void AndroidAutoOrchestrator::onNewConnection()
                 {"album", album}
             });
         });
+
+        // Bluetooth auth events (debug logging only — no crypto, existing BT pairing unaffected)
+        connect(&btHandler_, &oaa::hu::BluetoothChannelHandler::authDataReceived,
+                this, [](const QByteArray& payload) {
+            qCDebug(lcAA) << "[Bluetooth] auth data received, len:" << payload.size();
+        });
+        connect(&btHandler_, &oaa::hu::BluetoothChannelHandler::authResultReceived,
+                this, [](const QByteArray& payload) {
+            qCDebug(lcAA) << "[Bluetooth] auth result received, len:" << payload.size();
+        });
+
+        // Input haptic feedback (debug logging only — Pi has no haptic motor)
+        connect(&inputHandler_, &oaa::hu::InputChannelHandler::hapticFeedbackRequested,
+                this, [](int feedbackType) {
+            qCDebug(lcAA) << "[Input] haptic feedback requested, type:" << feedbackType;
+        });
     }
 
     // Create and wire night mode provider
