@@ -13,8 +13,8 @@ Requirements for protocol compliance milestone. Each maps to roadmap phases.
 
 ### Navigation
 
-- [ ] **NAV-01**: HU parses NavigationTurnEvent (0x8004) and exposes turn type, road name, distance, and icon data
-- [ ] **NAV-02**: HU handles NavigationFocusIndication from phone to complete focus negotiation flow
+- [x] **NAV-01**: HU parses NavigationTurnEvent (0x8004) and exposes turn type, road name, distance, and icon data
+- [x] **NAV-02**: HU handles NavigationFocusIndication from phone to complete focus negotiation flow
 
 ### Audio
 
@@ -62,8 +62,8 @@ Requirements for protocol compliance milestone. Each maps to roadmap phases.
 |-------------|-------|--------|
 | SUB-01 | Phase 1 | Complete |
 | OBS-01 | Phase 1 | Complete |
-| NAV-01 | Phase 2 | Pending |
-| NAV-02 | Phase 2 | Pending |
+| NAV-01 | Phase 2 | Complete |
+| NAV-02 | Phase 2 | Complete |
 | AUD-01 | Phase 2 | Complete |
 | AUD-02 | Phase 2 | Complete |
 | MED-01 | Phase 3 | Pending |

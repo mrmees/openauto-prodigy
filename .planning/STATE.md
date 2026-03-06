@@ -3,9 +3,9 @@ gsd_state_version: 1.0
 milestone: v0.5
 milestone_name: milestone
 status: executing
-stopped_at: Completed 02-02 audio channel state parsing
-last_updated: "2026-03-06T18:03:05Z"
-last_activity: 2026-03-06 -- Completed audio channel focus/stream type parsing (02-02)
+stopped_at: Completed 02-01 navigation channel handler extensions
+last_updated: "2026-03-06T18:04:28Z"
+last_activity: 2026-03-06 -- Completed navigation turn event, focus indication, enhanced notifications (02-01)
 progress:
   total_phases: 3
   completed_phases: 1
@@ -28,7 +28,7 @@ See: .planning/PROJECT.md (updated 2026-03-05)
 Phase: 2 of 3 (Navigation & Audio Channels)
 Plan: 2 of 2 in current phase (complete)
 Status: Executing
-Last activity: 2026-03-06 -- Completed audio channel focus/stream type parsing (02-02)
+Last activity: 2026-03-06 -- Completed navigation channel handler extensions (02-01)
 
 Progress: [======....] 60%
 
@@ -51,6 +51,7 @@ Progress: [======....] 60%
 
 *Updated after each plan completion*
 | Phase 01 P02 | 1min | 1 tasks | 2 files |
+| Phase 02 P01 | 6min | 2 tasks | 7 files |
 | Phase 02 P02 | 5min | 2 tasks | 5 files |
 
 ## Accumulated Context
@@ -64,6 +65,8 @@ Recent decisions affecting current work:
 - NavigationTurnEvent (0x8004) is highest-impact compliance gap
 - config_index field type changed from uint32 to MediaCodecType_Enum in v1.0 protos
 - [Phase 01]: Used [AA:unhandled] prefix for library-level unregistered channel logging (not lcAA category)
+- [Phase 02]: NAV_FOCUS_INDICATION assigned provisional ID 0x8005 (gap between 0x8003 and 0x8006)
+- [Phase 02]: Enhanced handleNavStep emits both original and new signals for backward compat
 - [Phase 02]: AudioFocusState signal uses change guard; AudioStreamType emits on every message
 
 ### Pending Todos
@@ -76,5 +79,5 @@ None yet.
 
 ## Session Continuity
 
-Last session: 2026-03-06T18:03:05Z
-Stopped at: Completed 02-02-PLAN.md
+Last session: 2026-03-06T18:04:28Z
+Stopped at: Completed 02-01-PLAN.md
