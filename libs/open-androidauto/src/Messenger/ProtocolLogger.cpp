@@ -303,11 +303,11 @@ std::string ProtocolLogger::messageName(uint8_t channelId, uint16_t msgId)
 
     if (channelId == ChannelId::Navigation) {
         switch (msgId) {
-            case NavigationMessageId::NAV_STATE:    return "NAVIGATION_STATE";
-            case NavigationMessageId::NAV_STEP:     return "NAVIGATION_NOTIFICATION";
-            case NavigationMessageId::NAV_DISTANCE: return "NAVIGATION_DISTANCE";
-            // Observed in APK/decompile notes; not yet in MessageIds.hpp.
-            case 0x8004:                            return "NAVIGATION_TURN_EVENT";
+            case NavigationMessageId::NAV_STATE:            return "NAVIGATION_STATE";
+            case NavigationMessageId::NAV_TURN_EVENT:       return "NAVIGATION_TURN_EVENT";
+            case NavigationMessageId::NAV_FOCUS_INDICATION: return "NAVIGATION_FOCUS_INDICATION";
+            case NavigationMessageId::NAV_STEP:             return "NAVIGATION_NOTIFICATION";
+            case NavigationMessageId::NAV_DISTANCE:         return "NAVIGATION_DISTANCE";
             default: break;
         }
     }

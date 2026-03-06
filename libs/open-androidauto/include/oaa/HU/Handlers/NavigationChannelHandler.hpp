@@ -28,12 +28,27 @@ signals:
     /// Emitted with distance/ETA update
     void navigationDistanceChanged(const QString& distance, int unit);
 
+    /// Emitted with NavigationTurnEvent (~1Hz during active navigation)
+    void navigationTurnEvent(const QString& roadName, int maneuverType,
+                             int turnDirection, const QByteArray& turnIcon,
+                             int distanceMeters, int distanceUnit);
+
+    /// Emitted with enhanced NavigationNotification (multi-step, lanes, destination)
+    void navigationNotificationReceived(int stepCount, int laneCount,
+                                         const QString& destination, const QString& eta);
+
+    /// Emitted when navigation focus indication is received
+    void navigationFocusChanged(bool hasFocus);
+
 private:
     void handleNavState(const QByteArray& payload);
     void handleNavStep(const QByteArray& payload);
     void handleNavDistance(const QByteArray& payload);
+    void handleTurnEvent(const QByteArray& payload);
+    void handleFocusIndication(const QByteArray& payload);
 
     bool navActive_ = false;
+    bool navFocusActive_ = false;
 };
 
 } // namespace hu
