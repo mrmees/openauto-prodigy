@@ -83,11 +83,11 @@ Plans:
   2. NavigationFocusIndication from phone is acknowledged, completing the focus negotiation handshake
   3. AudioFocusState changes per channel are received and logged (focus gained/lost/transient for media/nav/phone)
   4. AudioStreamType per channel is received and logged, identifying which stream type each channel carries
-**Plans**: TBD
+**Plans:** 2 plans
 
 Plans:
-- [ ] 02-01: NavigationTurnEvent parsing and NavigationFocusIndication handling
-- [ ] 02-02: AudioFocusState and AudioStreamType per-channel handling
+- [ ] 02-01-PLAN.md -- NavigationTurnEvent parsing, notification enhancement, and NavigationFocusIndication handling
+- [ ] 02-02-PLAN.md -- AudioFocusState and AudioStreamType per-channel handling
 
 ### Phase 3: Commands & Authentication
 **Goal**: Prodigy can send commands to the phone (media control, voice activation) and complete the BT authentication exchange
@@ -116,4 +116,4 @@ Phases execute in numeric order: 1 -> 2 -> 3
 | 3. Commands & Authentication | 0/2 | Not started | - |
 
 ---
-*Last updated: 2026-03-05 -- Phase 1 plans created*
+*Last updated: 2026-03-06 -- Phase 2 plans created*
