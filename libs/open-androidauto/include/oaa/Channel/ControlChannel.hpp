@@ -27,6 +27,7 @@ public:
     void sendAudioFocusResponse(const QByteArray& payload);
     void sendNavigationFocusResponse(const QByteArray& payload);
     void sendCallAvailability(bool available);
+    void sendVoiceSessionRequest(int sessionType);
 
 signals:
     void versionReceived(uint16_t major, uint16_t minor, bool match);
@@ -40,6 +41,7 @@ signals:
     void shutdownAcknowledged();
     void voiceSessionRequested(const QByteArray& payload);
     void audioFocusRequested(const QByteArray& payload);
+    void voiceSessionSent(int sessionType);
 };
 
 } // namespace oaa

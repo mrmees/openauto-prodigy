@@ -12,6 +12,7 @@
 #include "oaa/common/StatusEnum.pb.h"
 #include "oaa/control/ShutdownReasonEnum.pb.h"
 #include "oaa/phone/CallAvailabilityMessage.pb.h"
+#include "oaa/phone/VoiceSessionRequestMessage.pb.h"
 #include "oaa/control/ServiceDiscoveryRequestMessage.pb.h"
 
 namespace oaa {
@@ -239,6 +240,15 @@ void ControlChannel::sendCallAvailability(bool available) {
     QByteArray payload(msg.ByteSizeLong(), '\0');
     msg.SerializeToArray(payload.data(), payload.size());
     emit sendRequested(0, MSG_CALL_AVAILABILITY, payload);
+}
+
+void ControlChannel::sendVoiceSessionRequest(int sessionType) {
+    proto::messages::VoiceSessionRequest msg;
+    msg.set_session_type(static_cast<proto::messages::VoiceSessionType>(sessionType));
+    QByteArray payload(msg.ByteSizeLong(), '\0');
+    msg.SerializeToArray(payload.data(), payload.size());
+    emit sendRequested(0, MSG_VOICE_SESSION_REQUEST, payload);
+    emit voiceSessionSent(sessionType);
 }
 
 } // namespace oaa

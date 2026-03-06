@@ -66,6 +66,7 @@ namespace NavigationMessageId {
 /// Media status channel messages
 namespace MediaStatusMessageId {
     constexpr uint16_t PLAYBACK_STATUS    = 0x8001;
+    constexpr uint16_t PLAYBACK_COMMAND   = 0x8002;
     constexpr uint16_t PLAYBACK_METADATA  = 0x8003;
 }
 
