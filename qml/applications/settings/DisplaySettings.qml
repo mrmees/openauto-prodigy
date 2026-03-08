@@ -58,6 +58,13 @@ Flickable {
             Component.onCompleted: ThemeService.refreshWallpapers()
         }
 
+        SectionHeader { text: "Clock" }
+
+        SettingsToggle {
+            label: "24-Hour Format"
+            configPath: "display.clock_24h"
+        }
+
         SectionHeader { text: "Navbar" }
 
         FullScreenPicker {

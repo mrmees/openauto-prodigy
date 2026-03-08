@@ -58,7 +58,8 @@ Item {
         anchors.centerIn: parent
         visible: root.showClock && !root.isVertical
         color: ThemeService.normalFontColor
-        font.pixelSize: UiMetrics.fontBody
+        font.pixelSize: Math.round(root.height * 0.75)
+        font.weight: Font.DemiBold
 
         Timer {
             interval: 1000
@@ -66,13 +67,14 @@ Item {
             repeat: true
             triggeredOnStart: true
             onTriggered: {
-                var timeStr = Qt.formatTime(new Date(), "h:mm AP")
+                var is24h = ConfigService.value("display.clock_24h") === true
+                var fmt = is24h ? "HH:mm" : "h:mm"
+                var timeStr = Qt.formatTime(new Date(), fmt)
                 clockHoriz.text = timeStr
                 // Update vertical clock model too
                 var chars = []
                 for (var i = 0; i < timeStr.length; i++) {
-                    if (timeStr[i] !== " ")
-                        chars.push(timeStr[i])
+                    chars.push(timeStr[i])
                 }
                 clockVertRepeater.model = chars
             }
@@ -90,7 +92,8 @@ Item {
             model: []
             Text {
                 text: modelData
-                font.pixelSize: UiMetrics.fontSmall
+                font.pixelSize: Math.round(root.width * 0.55)
+                font.weight: Font.DemiBold
                 color: ThemeService.normalFontColor
                 horizontalAlignment: Text.AlignHCenter
                 width: root.width
