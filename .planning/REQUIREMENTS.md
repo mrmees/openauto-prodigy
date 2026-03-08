@@ -14,16 +14,16 @@ Requirements for protocol compliance milestone. Each maps to roadmap phases.
 ### Navigation
 
 - [x] **NAV-01**: HU parses NavigationTurnEvent (0x8004) and exposes turn type, road name, distance, and icon data
-- [x] **NAV-02**: HU handles NavigationFocusIndication from phone to complete focus negotiation flow
+- [x] ~~**NAV-02**: HU handles NavigationFocusIndication from phone to complete focus negotiation flow~~ *RETRACTED in v1.2 -- NavigationFocusIndication was misidentified; nav focus is on Control channel*
 
 ### Audio
 
-- [x] **AUD-01**: HU receives and processes AudioFocusState (0x8021) per-channel focus indicator
-- [x] **AUD-02**: HU receives and processes AudioStreamType (0x8022) per-channel stream type
+- [x] ~~**AUD-01**: HU receives and processes AudioFocusState (0x8021) per-channel focus indicator~~ *RETRACTED in v1.2 -- AudioFocusState was misidentified radio channel message*
+- [x] ~~**AUD-02**: HU receives and processes AudioStreamType (0x8022) per-channel stream type~~ *RETRACTED in v1.2 -- AudioStreamType was misidentified radio channel message*
 
 ### Media & Voice
 
-- [x] **MED-01**: HU can send MediaPlaybackCommand (PAUSE/RESUME) to phone
+- [x] ~~**MED-01**: HU can send MediaPlaybackCommand (PAUSE/RESUME) to phone~~ *RETRACTED in v1.2 -- MediaPlaybackCommand proto does not exist; keycode-based approach is v1.2-correct*
 - [x] **MED-02**: HU sends VoiceSessionRequest START on voice button press and STOP on release
 
 ### Bluetooth
@@ -42,6 +42,7 @@ Requirements for protocol compliance milestone. Each maps to roadmap phases.
 
 - [x] **CLN-01**: All retracted handler stubs, dead methods, and RETRACTED comments removed from source
 - [x] **CLN-02**: WiFi SDP descriptor sends actual BSSID (wlan0 MAC address), not SSID string
+- [x] **REN-01**: Protocol library renamed from open-androidauto to prodigy-oaa-protocol with updated build system and documentation
 - [x] **TST-01**: All tests pass reliably (100% pass rate, no flaky tests)
 
 ## Future Requirements
@@ -69,20 +70,21 @@ Requirements for protocol compliance milestone. Each maps to roadmap phases.
 | SUB-01 | Phase 1 | Complete |
 | OBS-01 | Phase 1 | Complete |
 | NAV-01 | Phase 2 | Complete |
-| NAV-02 | Phase 2 | Complete |
-| AUD-01 | Phase 2 | Complete |
-| AUD-02 | Phase 2 | Complete |
-| MED-01 | Phase 3 | Complete |
+| NAV-02 | Phase 2 | Retracted (v1.2) |
+| AUD-01 | Phase 2 | Retracted (v1.2) |
+| AUD-02 | Phase 2 | Retracted (v1.2) |
+| MED-01 | Phase 3 | Retracted (v1.2) |
 | MED-02 | Phase 3 | Complete |
 | BT-01 | Phase 3 | Complete |
 | INP-01 | Phase 3 | Complete |
 | CLN-01 | Phase 4 | Complete |
 | CLN-02 | Phase 4 | Complete |
+| REN-01 | Phase 4 | Complete |
 | TST-01 | Phase 4 | Complete |
 
 **Coverage:**
-- v0.5.0 requirements: 13 total
-- Mapped to phases: 13
+- v0.5.0 requirements: 14 total (10 active, 4 retracted in v1.2)
+- Mapped to phases: 14
 - Unmapped: 0
 
 ---

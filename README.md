@@ -39,7 +39,7 @@ Open-source Android Auto head unit stack for Raspberry Pi, rebuilt as a clean-ro
 - `ConfigService`, `ThemeService`, `AudioService`, `PipeWireDeviceRegistry`, `EventBus`, `ActionRegistry`, `NotificationService`, `CompanionListenerService`, `IpcServer`.
 - `YamlConfig`: schema-backed YAML config with defaults + deep merge.
 
-### 3) Protocol Library (`libs/open-androidauto`)
+### 3) Protocol Library (`libs/prodigy-oaa-protocol`)
 
 In-tree static library implementing the AA protocol with a Qt-native approach. Protobuf definitions come from the [open-android-auto](https://github.com/mrmees/open-android-auto) community repo (included as a git submodule).
 
@@ -47,7 +47,7 @@ In-tree static library implementing the AA protocol with a Qt-native approach. P
 - Framing/messenger/encryption
 - Session state machine (`AASession`)
 - Head-unit channel handlers (`oaa::hu::*`) for video, audio, AV input, input, sensor, Bluetooth, WiFi, navigation, media status, phone status
-- Proto generation from `libs/open-androidauto/proto/open-android-auto/proto/oaa/*.proto`
+- Proto generation from `libs/prodigy-oaa-protocol/proto/oaa/*.proto`
 
 ### 4) Plugin Layer (`src/plugins`)
 
@@ -99,7 +99,7 @@ qml/
   components/
   controls/
 libs/
-  open-androidauto/
+  prodigy-oaa-protocol/
 web-config/
 tests/
 docs/

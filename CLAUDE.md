@@ -6,7 +6,7 @@ Clean-room open-source rebuild of OpenAuto Pro (BlueWave Studio, defunct). Raspb
 
 ## Hands-Off: `open-android-auto` Submodule
 
-The proto definitions at `libs/open-androidauto/proto/` are a git submodule pointing to `https://github.com/mrmees/open-android-auto`. **Do not modify files in this submodule.** That repo is managed separately as a community resource. If proto changes are needed, note them — don't make them here.
+The proto definitions at `libs/prodigy-oaa-protocol/proto/` are a git submodule pointing to `https://github.com/mrmees/open-android-auto`. **Do not modify files in this submodule.** That repo is managed separately as a community resource. If proto changes are needed, note them — don't make them here.
 
 ## Workflow
 
@@ -37,7 +37,7 @@ See `docs/roadmap-current.md` for current status and priorities.
   - `qml/components/` — Shell, Navbar, NavbarControl, NavbarPopup, Wallpaper, GestureOverlay
   - `qml/controls/` — Reusable controls (Tile, Icon, NormalText, SpecialText)
   - `qml/applications/` — Plugin views (launcher, android_auto, settings, home, bt_audio, phone)
-- `libs/open-androidauto/` — AA protocol library (Transport, Messenger, Session, Channel, HU handlers)
+- `libs/prodigy-oaa-protocol/` — AA protocol library (Transport, Messenger, Session, Channel, HU handlers)
 - `tests/` — Unit tests (47 tests covering config, plugins, theme, audio, events, notifications, device registry, protocol, codecs, video)
 - `web-config/` — Flask web config panel (Python, HTML/CSS/JS)
 - `docs/` — Design decisions, development guide, wireless setup, plans

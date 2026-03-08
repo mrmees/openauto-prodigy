@@ -25,7 +25,7 @@ Ideas captured here. Promote to `roadmap-current.md` when ready to commit.
 
 - **Three-tier community architecture** — Long-term goal is a clean separation into three public layers:
   1. **Protocol definitions** (`open-android-auto`, exists) — language-neutral `.proto` files. Anyone can generate bindings for any language.
-  2. **Protocol implementations** (new repo, TBD) — community-contributed implementations in any language. Transport, framing, encryption, channel handlers. Our C++ one lives in `libs/open-androidauto/` today (needs de-Qt-ing first), but the repo would welcome Rust, Python, Go, Qt, COBOL — whatever someone wants to PR.
+  2. **Protocol implementations** (new repo, TBD) — community-contributed implementations in any language. Transport, framing, encryption, channel handlers. Our C++ one lives in `libs/prodigy-oaa-protocol/` today (needs de-Qt-ing first), but the repo would welcome Rust, Python, Go, Qt, COBOL — whatever someone wants to PR.
   3. **Application** (`openauto-prodigy`) — Qt/QML head unit that consumes the above two as submodules.
 
   **What needs to happen:**

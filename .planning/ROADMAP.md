@@ -57,7 +57,7 @@ See .planning/milestones/v0.4.5/ for archived details.
 - [x] **Phase 1: Proto Foundation & Observability** - Update submodule to v1.0 and add debug logging for all unhandled channel messages
 - [x] **Phase 2: Navigation & Audio Channels** - Handle inbound navigation events and per-channel audio state messages from phone
 - [x] **Phase 3: Commands & Authentication** - Wire HU-initiated media/voice commands, BT auth exchange, and haptic feedback
-- [ ] **Phase 4: OAA Proto Compliance & Library Rename** - Remove retracted proto dead code, fix WiFi bssid semantics, rename protocol library
+- [x] **Phase 4: OAA Proto Compliance & Library Rename** - Remove retracted proto dead code, fix WiFi bssid semantics, rename protocol library
 
 ## Phase Details
 
@@ -120,7 +120,7 @@ Plans:
 
 Plans:
 - [x] 04-01-PLAN.md -- Dead code cleanup and WiFi bssid fix
-- [ ] 04-02-PLAN.md -- Library rename, test fixes, and documentation update
+- [x] 04-02-PLAN.md -- Library rename, test fixes, and documentation update
 
 ## Progress
 

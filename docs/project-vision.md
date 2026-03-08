@@ -24,7 +24,7 @@ OpenAuto Prodigy is a clean-room, open-source replacement for OpenAuto Pro (Blue
 ## Constraints
 
 - Development hardware: Raspberry Pi 4, 1024x600 DFRobot touchscreen, Raspberry Pi Official Touch Screen, Samsung S25+ / Moto Edge 5G 2024, Android 16, Android Auto 16.1
-- Stack: Qt 6.8 + QML, C++17, CMake, open-androidauto (in-tree AA protocol library), PipeWire.
+- Stack: Qt 6.8 + QML, C++17, CMake, prodigy-oaa-protocol (in-tree AA protocol library), PipeWire.
 - Cross-compile via Docker (aarch64), deploy via rsync + SSH.
 - Solo-maintained: process must stay lightweight.
 - No GPU passthrough on dev VM — GPU-dependent work tested on Pi only.
