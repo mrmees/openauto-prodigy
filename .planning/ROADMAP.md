@@ -94,7 +94,7 @@ Plans:
   2. Clock shows bare time without AM/PM suffix in 12h mode
   3. User can toggle between 12h and 24h format in settings, and the navbar clock updates immediately
   4. User can adjust UI scale via stepper in Display settings (increments of 0.1), and all UI elements resize live or on confirm
-**Plans:** 2 plans
+**Plans:** 1/2 plans executed
 Plans:
 - [ ] 02-01-PLAN.md -- Config plumbing, UiMetrics reactivity fix, clock sizing and 24h toggle
 - [ ] 02-02-PLAN.md -- Scale stepper control with safety revert overlay
@@ -127,7 +127,7 @@ Phases execute in numeric order: 1 -> 2 -> 3 -> 4
 | Phase | Plans Complete | Status | Completed |
 |-------|----------------|--------|-----------|
 | 1. DPI Foundation | 3/3 | Complete   | 2026-03-08 |
-| 2. Clock & Scale Control | 0/2 | Planning complete | - |
+| 2. Clock & Scale Control | 1/2 | In Progress|  |
 | 3. Theme Color System | 0/? | Not started | - |
 | 4. Visual Depth | 0/? | Not started | - |
 

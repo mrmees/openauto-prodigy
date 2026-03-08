@@ -17,9 +17,9 @@ Requirements for DPI sizing and UI polish milestone. Each maps to roadmap phases
 
 ### Clock
 
-- [ ] **CLK-01**: Clock display is larger and more readable at automotive glance distance
-- [ ] **CLK-02**: AM/PM designation removed from clock display (12h format shows time only)
-- [ ] **CLK-03**: User can toggle between 12h and 24h clock format in settings
+- [x] **CLK-01**: Clock display is larger and more readable at automotive glance distance
+- [x] **CLK-02**: AM/PM designation removed from clock display (12h format shows time only)
+- [x] **CLK-03**: User can toggle between 12h and 24h clock format in settings
 
 ### Theme & Colors
 
@@ -63,9 +63,9 @@ Requirements for DPI sizing and UI polish milestone. Each maps to roadmap phases
 | DPI-03 | Phase 1 | Complete |
 | DPI-04 | Phase 1 | Complete |
 | DPI-05 | Phase 2 | Pending |
-| CLK-01 | Phase 2 | Pending |
-| CLK-02 | Phase 2 | Pending |
-| CLK-03 | Phase 2 | Pending |
+| CLK-01 | Phase 2 | Complete |
+| CLK-02 | Phase 2 | Complete |
+| CLK-03 | Phase 2 | Complete |
 | THM-01 | Phase 3 | Pending |
 | THM-02 | Phase 3 | Pending |
 | THM-03 | Phase 3 | Pending |
