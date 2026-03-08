@@ -11,7 +11,7 @@ Requirements for DPI sizing and UI polish milestone. Each maps to roadmap phases
 
 - [x] **DPI-01**: Installer probes EDID for physical screen dimensions and prompts user to confirm or enter screen size
 - [x] **DPI-02**: Default physical screen size is 7" (double DIN) when EDID unavailable and user skips entry
-- [ ] **DPI-03**: UiMetrics computes baseline scale from real DPI (resolution ÷ physical size) instead of pure resolution ratio
+- [x] **DPI-03**: UiMetrics computes baseline scale from real DPI (resolution ÷ physical size) instead of pure resolution ratio
 - [x] **DPI-04**: Physical screen size is persisted in YAML config and can be changed in Display settings
 - [ ] **DPI-05**: User can adjust UI scale via stepper control (±0.1 increments) in Display settings, applied as multiplier on DPI baseline
 
@@ -60,7 +60,7 @@ Requirements for DPI sizing and UI polish milestone. Each maps to roadmap phases
 |-------------|-------|--------|
 | DPI-01 | Phase 1 | Complete |
 | DPI-02 | Phase 1 | Complete |
-| DPI-03 | Phase 1 | Pending |
+| DPI-03 | Phase 1 | Complete |
 | DPI-04 | Phase 1 | Complete |
 | DPI-05 | Phase 2 | Pending |
 | CLK-01 | Phase 2 | Pending |
