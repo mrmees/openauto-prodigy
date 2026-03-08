@@ -84,6 +84,29 @@ Flickable {
                     Layout.fillWidth: true
                 }
 
+                // Reset button (left of controls so [-] [+] don't shift)
+                Rectangle {
+                    width: UiMetrics.touchMin
+                    height: UiMetrics.touchMin
+                    radius: UiMetrics.touchMin / 2
+                    color: "transparent"
+                    border.color: Math.abs(root._currentScale - 1.0) > 0.05 ? ThemeService.descriptionFontColor : "transparent"
+                    border.width: 1
+                    opacity: Math.abs(root._currentScale - 1.0) > 0.05 ? 1.0 : 0.0
+
+                    MaterialIcon {
+                        anchors.centerIn: parent
+                        icon: "\ue042"
+                        size: UiMetrics.iconSmall
+                        color: ThemeService.descriptionFontColor
+                    }
+                    MouseArea {
+                        anchors.fill: parent
+                        enabled: Math.abs(root._currentScale - 1.0) > 0.05
+                        onClicked: root._applyScale(1.0)
+                    }
+                }
+
                 // [-] button
                 Rectangle {
                     width: UiMetrics.touchMin
@@ -141,28 +164,6 @@ Flickable {
                             var newVal = Math.round((root._currentScale + 0.1) * 10) / 10
                             root._applyScale(newVal)
                         }
-                    }
-                }
-
-                // Reset button
-                Rectangle {
-                    width: UiMetrics.touchMin
-                    height: UiMetrics.touchMin
-                    radius: UiMetrics.touchMin / 2
-                    color: "transparent"
-                    border.color: ThemeService.descriptionFontColor
-                    border.width: 1
-                    visible: Math.abs(root._currentScale - 1.0) > 0.05
-
-                    MaterialIcon {
-                        anchors.centerIn: parent
-                        icon: "\ue042"
-                        size: UiMetrics.iconSmall
-                        color: ThemeService.descriptionFontColor
-                    }
-                    MouseArea {
-                        anchors.fill: parent
-                        onClicked: root._applyScale(1.0)
                     }
                 }
             }
