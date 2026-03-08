@@ -67,9 +67,19 @@ Item {
             repeat: true
             triggeredOnStart: true
             onTriggered: {
-                var is24h = ConfigService.value("display.clock_24h") === true
-                var fmt = is24h ? "HH:mm" : "h:mm"
-                var timeStr = Qt.formatTime(new Date(), fmt)
+                var v = ConfigService.value("display.clock_24h")
+                var is24h = (v === true || v === 1 || v === "true")
+                var timeStr
+                if (is24h) {
+                    timeStr = Qt.formatTime(new Date(), "HH:mm")
+                } else {
+                    // Qt "h:mm" still outputs 24h unless "ap" is present.
+                    // Build 12h manually to avoid AM/PM suffix.
+                    var now = new Date()
+                    var h = now.getHours() % 12 || 12
+                    var m = now.getMinutes()
+                    timeStr = h + ":" + (m < 10 ? "0" : "") + m
+                }
                 clockHoriz.text = timeStr
                 // Update vertical clock model too
                 var chars = []
