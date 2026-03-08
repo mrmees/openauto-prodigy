@@ -2,6 +2,7 @@
 #include <QDir>
 #include <QFile>
 #include <QFileInfo>
+#include <QSet>
 #include <yaml-cpp/yaml.h>
 
 namespace oap {
@@ -220,6 +221,77 @@ void ThemeService::resolveWallpaper()
 
     if (wallpaperSource_ != oldWp)
         emit wallpaperChanged();
+}
+
+// Known AA token keys (the 16 base tokens used in our theme system)
+static const QSet<QString> knownAATokenKeys = {
+    "primary", "on_surface", "surface", "surface_variant",
+    "surface_container_low", "inverse_surface", "inverse_on_surface",
+    "outline", "outline_variant", "background", "text_primary",
+    "text_secondary", "red", "on_red", "yellow", "on_yellow"
+};
+
+void ThemeService::applyAATokens(const QMap<QString, uint32_t>& argbTokens)
+{
+    if (themeId_ != "connected-device")
+        return;
+
+    for (auto it = argbTokens.constBegin(); it != argbTokens.constEnd(); ++it) {
+        if (!knownAATokenKeys.contains(it.key()))
+            continue;
+
+        QColor c = QColor::fromRgba(it.value());
+        dayColors_[it.key()] = c;
+        nightColors_[it.key()] = c;
+    }
+
+    persistConnectedDeviceTheme();
+    emit colorsChanged();
+}
+
+void ThemeService::persistConnectedDeviceTheme()
+{
+    // Find connected-device theme directory
+    QString themeDir;
+    auto dirIt = themeDirectories_.find("connected-device");
+    if (dirIt != themeDirectories_.end()) {
+        themeDir = dirIt.value();
+    } else {
+        themeDir = QDir::homePath() + "/.openauto/themes/connected-device";
+    }
+
+    QDir().mkpath(themeDir);
+    QString yamlPath = QDir(themeDir).filePath("theme.yaml");
+
+    YAML::Emitter out;
+    out << YAML::BeginMap;
+    out << YAML::Key << "id" << YAML::Value << "connected-device";
+    out << YAML::Key << "name" << YAML::Value << "Connected Device";
+    out << YAML::Key << "version" << YAML::Value << "2.0.0";
+    out << YAML::Key << "font_family" << YAML::Value << fontFamily_.toStdString();
+
+    // Write day colors
+    out << YAML::Key << "day" << YAML::Value << YAML::BeginMap;
+    for (auto it = dayColors_.constBegin(); it != dayColors_.constEnd(); ++it) {
+        out << YAML::Key << it.key().toStdString()
+            << YAML::Value << it.value().name(QColor::HexArgb).toStdString();
+    }
+    out << YAML::EndMap;
+
+    // Write night colors
+    out << YAML::Key << "night" << YAML::Value << YAML::BeginMap;
+    for (auto it = nightColors_.constBegin(); it != nightColors_.constEnd(); ++it) {
+        out << YAML::Key << it.key().toStdString()
+            << YAML::Value << it.value().name(QColor::HexArgb).toStdString();
+    }
+    out << YAML::EndMap;
+    out << YAML::EndMap;
+
+    QFile file(yamlPath);
+    if (file.open(QIODevice::WriteOnly | QIODevice::Truncate)) {
+        file.write(out.c_str());
+        file.close();
+    }
 }
 
 QColor ThemeService::outlineVariant() const

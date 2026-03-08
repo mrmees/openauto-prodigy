@@ -72,6 +72,11 @@ public:
     /// Load from an explicit YAML file path.
     bool loadThemeFile(const QString& yamlPath);
 
+    /// Apply AA theming tokens (ARGB uint32 values) to the Connected Device theme.
+    /// Only updates colors when "connected-device" theme is active.
+    /// Persists updated colors to the theme YAML and emits colorsChanged.
+    void applyAATokens(const QMap<QString, uint32_t>& argbTokens);
+
     // IThemeService
     QString currentThemeId() const override;
     QColor color(const QString& name) const override;
@@ -168,6 +173,7 @@ private:
 
     void buildWallpaperList();
     void resolveWallpaper();
+    void persistConnectedDeviceTheme();
 };
 
 } // namespace oap

@@ -1,0 +1,46 @@
+# Connected Device theme — colors are updated live when Android Auto
+# sends UiConfigRequest theming tokens from the phone's Material You palette.
+# This file doubles as a persistent cache of the last-received colors.
+# On first launch (before any phone connection), uses default theme fallback colors.
+id: connected-device
+name: Connected Device
+version: 2.0.0
+font_family: "Lato"
+
+# Day mode colors — AA wire token names
+day:
+  background: "#1a1a2e"
+  primary: "#e94560"
+  surface_variant: "#16213e"
+  on_surface: "#e0e0e0"
+  text_primary: "#ffffff"
+  text_secondary: "#a0a0a0"
+  surface_container_low: "#0f3460"
+  surface: "#16213e"
+  outline_variant: "#ffffff26"
+  inverse_surface: "#1a1a2e"
+  inverse_on_surface: "#ffffff"
+  outline: "#808080"
+  red: "#cc4444"
+  on_red: "#ffffff"
+  yellow: "#FF9800"
+  on_yellow: "#000000"
+
+# Night mode colors — dimmer, less eye strain
+night:
+  background: "#0a0a14"
+  primary: "#c73650"
+  surface_variant: "#0e1729"
+  on_surface: "#b0b0b0"
+  text_primary: "#c0c0c0"
+  text_secondary: "#707070"
+  surface_container_low: "#0a2240"
+  surface: "#0e1729"
+  outline_variant: "#ffffff1a"
+  inverse_surface: "#0a0a14"
+  inverse_on_surface: "#c0c0c0"
+  outline: "#606060"
+  red: "#aa3333"
+  on_red: "#ffffff"
+  yellow: "#cc7a00"
+  on_yellow: "#000000"
