@@ -1,0 +1,31 @@
+#pragma once
+
+#include <oaa/Channel/IChannelHandler.hpp>
+#include <oaa/Channel/ChannelId.hpp>
+#include <oaa/Channel/MessageIds.hpp>
+
+namespace oaa {
+namespace hu {
+
+class BluetoothChannelHandler : public oaa::IChannelHandler {
+    Q_OBJECT
+public:
+    explicit BluetoothChannelHandler(QObject* parent = nullptr);
+
+    uint8_t channelId() const override { return oaa::ChannelId::Bluetooth; }
+    void onChannelOpened() override;
+    void onChannelClosed() override;
+    void onMessage(uint16_t messageId, const QByteArray& payload, int dataOffset = 0) override;
+
+signals:
+    void pairingRequested(const QString& phoneAddress);
+    void authDataReceived(const QByteArray& payload);
+    void authResultReceived(const QByteArray& payload);
+
+private:
+    void handlePairingRequest(const QByteArray& payload);
+    bool channelOpen_ = false;
+};
+
+} // namespace hu
+} // namespace oaa

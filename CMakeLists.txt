@@ -26,8 +26,8 @@ pkg_check_modules(PIPEWIRE REQUIRED libpipewire-0.3)
 pkg_check_modules(SYSTEMD QUIET IMPORTED_TARGET libsystemd)
 find_package(yaml-cpp REQUIRED)
 
-# open-androidauto — Qt-native AA protocol library
-add_subdirectory(libs/open-androidauto)
+# prodigy-oaa-protocol — Qt-native AA protocol library
+add_subdirectory(libs/prodigy-oaa-protocol)
 
 # Capture git hash at configure time for version identification
 execute_process(

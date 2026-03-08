@@ -115,6 +115,153 @@ Flickable {
             }
         }
 
+        SectionHeader { text: "Debug: AA Protocol" }
+
+        Text {
+            text: "Test outbound commands (requires active AA connection)"
+            font.pixelSize: UiMetrics.fontCaption
+            color: ThemeService.descriptionFontColor
+            Layout.fillWidth: true
+            wrapMode: Text.Wrap
+        }
+
+        property bool aaConnected: AAOrchestrator !== null && AAOrchestrator.connectionState === 3
+
+        RowLayout {
+            Layout.fillWidth: true
+            spacing: UiMetrics.spacing
+
+            Button {
+                Layout.fillWidth: true
+                Layout.preferredHeight: UiMetrics.rowH
+                enabled: aaConnected
+                onClicked: AAOrchestrator.sendButtonPress(85)
+                contentItem: Text {
+                    text: "Play/Pause"
+                    font.pixelSize: UiMetrics.fontBody
+                    color: parent.enabled ? ThemeService.normalFontColor : ThemeService.descriptionFontColor
+                    horizontalAlignment: Text.AlignHCenter
+                    verticalAlignment: Text.AlignVCenter
+                }
+                background: Rectangle {
+                    color: parent.pressed ? ThemeService.highlightColor : ThemeService.barBackgroundColor
+                    radius: UiMetrics.radius
+                    opacity: parent.enabled ? 1.0 : 0.4
+                }
+            }
+
+            Button {
+                Layout.fillWidth: true
+                Layout.preferredHeight: UiMetrics.rowH
+                enabled: aaConnected
+                onClicked: AAOrchestrator.sendButtonPress(88)
+                contentItem: Text {
+                    text: "Prev"
+                    font.pixelSize: UiMetrics.fontBody
+                    color: parent.enabled ? ThemeService.normalFontColor : ThemeService.descriptionFontColor
+                    horizontalAlignment: Text.AlignHCenter
+                    verticalAlignment: Text.AlignVCenter
+                }
+                background: Rectangle {
+                    color: parent.pressed ? ThemeService.highlightColor : ThemeService.barBackgroundColor
+                    radius: UiMetrics.radius
+                    opacity: parent.enabled ? 1.0 : 0.4
+                }
+            }
+
+            Button {
+                Layout.fillWidth: true
+                Layout.preferredHeight: UiMetrics.rowH
+                enabled: aaConnected
+                onClicked: AAOrchestrator.sendButtonPress(87)
+                contentItem: Text {
+                    text: "Next"
+                    font.pixelSize: UiMetrics.fontBody
+                    color: parent.enabled ? ThemeService.normalFontColor : ThemeService.descriptionFontColor
+                    horizontalAlignment: Text.AlignHCenter
+                    verticalAlignment: Text.AlignVCenter
+                }
+                background: Rectangle {
+                    color: parent.pressed ? ThemeService.highlightColor : ThemeService.barBackgroundColor
+                    radius: UiMetrics.radius
+                    opacity: parent.enabled ? 1.0 : 0.4
+                }
+            }
+        }
+
+        RowLayout {
+            Layout.fillWidth: true
+            spacing: UiMetrics.spacing
+
+            Button {
+                Layout.fillWidth: true
+                Layout.preferredHeight: UiMetrics.rowH
+                enabled: aaConnected
+                onClicked: AAOrchestrator.sendButtonPress(84)
+                contentItem: Text {
+                    text: "Search (84)"
+                    font.pixelSize: UiMetrics.fontBody
+                    color: parent.enabled ? ThemeService.normalFontColor : ThemeService.descriptionFontColor
+                    horizontalAlignment: Text.AlignHCenter
+                    verticalAlignment: Text.AlignVCenter
+                }
+                background: Rectangle {
+                    color: parent.pressed ? ThemeService.highlightColor : ThemeService.barBackgroundColor
+                    radius: UiMetrics.radius
+                    opacity: parent.enabled ? 1.0 : 0.4
+                }
+            }
+
+            Button {
+                Layout.fillWidth: true
+                Layout.preferredHeight: UiMetrics.rowH
+                enabled: aaConnected
+                onClicked: AAOrchestrator.sendButtonPress(219)
+                contentItem: Text {
+                    text: "Assist (219)"
+                    font.pixelSize: UiMetrics.fontBody
+                    color: parent.enabled ? ThemeService.normalFontColor : ThemeService.descriptionFontColor
+                    horizontalAlignment: Text.AlignHCenter
+                    verticalAlignment: Text.AlignVCenter
+                }
+                background: Rectangle {
+                    color: parent.pressed ? ThemeService.highlightColor : ThemeService.barBackgroundColor
+                    radius: UiMetrics.radius
+                    opacity: parent.enabled ? 1.0 : 0.4
+                }
+            }
+
+            Button {
+                Layout.fillWidth: true
+                Layout.preferredHeight: UiMetrics.rowH
+                enabled: aaConnected
+                onClicked: AAOrchestrator.sendButtonPress(231)
+                contentItem: Text {
+                    text: "Voice (231)"
+                    font.pixelSize: UiMetrics.fontBody
+                    color: parent.enabled ? ThemeService.normalFontColor : ThemeService.descriptionFontColor
+                    horizontalAlignment: Text.AlignHCenter
+                    verticalAlignment: Text.AlignVCenter
+                }
+                background: Rectangle {
+                    color: parent.pressed ? ThemeService.highlightColor : ThemeService.barBackgroundColor
+                    radius: UiMetrics.radius
+                    opacity: parent.enabled ? 1.0 : 0.4
+                }
+            }
+        }
+
+        Text {
+            text: aaConnected
+                  ? "AA Connected — buttons active"
+                  : (AAOrchestrator !== null
+                     ? "AA not connected — buttons disabled"
+                     : "AA orchestrator unavailable")
+            font.pixelSize: UiMetrics.fontCaption
+            color: aaConnected ? ThemeService.highlightColor : ThemeService.descriptionFontColor
+            Layout.fillWidth: true
+        }
+
     }
 
     ExitDialog {

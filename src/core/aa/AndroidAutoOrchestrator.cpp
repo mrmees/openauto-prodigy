@@ -9,10 +9,12 @@
 #include "../../core/services/EqualizerService.hpp"
 
 #include <memory>
+#include <chrono>
 #include <QDir>
 #include "../Logging.hpp"
 #include <QEventLoop>
 #include <QFileInfo>
+#include <QNetworkInterface>
 #include <netinet/in.h>
 #include <netinet/tcp.h>
 #include <sys/socket.h>
@@ -231,9 +233,20 @@ void AndroidAutoOrchestrator::onNewConnection()
     if (btDiscovery_)
         btMac = btDiscovery_->localAddress();
 #endif
+    // Look up wlan0 MAC address for WiFi BSSID field
+    QString wifiBssid;
+    QString wifiIface = yamlConfig_ ? yamlConfig_->wifiInterface() : QStringLiteral("wlan0");
+    for (const auto& iface : QNetworkInterface::allInterfaces()) {
+        if (iface.name() == wifiIface) {
+            wifiBssid = iface.hardwareAddress();
+            break;
+        }
+    }
+
     ServiceDiscoveryBuilder builder(yamlConfig_, btMac,
                                      yamlConfig_ ? yamlConfig_->wifiSsid() : QString(),
-                                     yamlConfig_ ? yamlConfig_->wifiPassword() : QString());
+                                     yamlConfig_ ? yamlConfig_->wifiPassword() : QString(),
+                                     wifiBssid);
     if (displayW_ > 0 && displayH_ > 0)
         builder.setDisplayDimensions(displayW_, displayH_);
     oaa::SessionConfig config = builder.build();
@@ -244,7 +257,16 @@ void AndroidAutoOrchestrator::onNewConnection()
     // Tell video handler how many configs we advertised (1 resolution × 2 codecs)
     videoHandler_.setNumVideoConfigs(2);
 
-    // Register all channel handlers
+    // Register all known channel handlers.
+    //
+    // Registered: Control(0), Input(1), Sensor(2), Video(3), MediaAudio(4),
+    //   SpeechAudio(5), SystemAudio(6), AVInput(7), Bluetooth(8),
+    //   Navigation(9), MediaStatus(10), PhoneStatus(11), WiFi(14)
+    //
+    // Intentionally unregistered (no handler yet):
+    //   Channel 12, 13 — purpose unknown; any messages on these channels
+    //   will be logged by AASession with [AA:unhandled] prefix + hex payload
+    //   for future protocol discovery.
     session_->registerChannel(oaa::ChannelId::Video, &videoHandler_);
     session_->registerChannel(oaa::ChannelId::MediaAudio, &mediaAudioHandler_);
     session_->registerChannel(oaa::ChannelId::SpeechAudio, &speechAudioHandler_);
@@ -396,6 +418,24 @@ void AndroidAutoOrchestrator::onNewConnection()
             });
         });
 
+        // Navigation turn event (debug logging only -- future UI consumer)
+        connect(&navHandler_, &oaa::hu::NavigationChannelHandler::navigationTurnEvent,
+                this, [](const QString& roadName, int maneuverType, int turnDirection,
+                         const QByteArray& turnIcon, int distanceMeters, int distanceUnit) {
+            qCInfo(lcAA) << "[Nav] turn:" << roadName
+                          << "maneuver:" << maneuverType << "dir:" << turnDirection
+                          << "dist:" << distanceMeters << "unit:" << distanceUnit
+                          << "icon:" << turnIcon.size() << "bytes";
+        });
+
+        // Navigation notification (debug logging only)
+        connect(&navHandler_, &oaa::hu::NavigationChannelHandler::navigationNotificationReceived,
+                this, [](int stepCount, int laneCount,
+                         const QString& destination, const QString& /*eta*/) {
+            qCInfo(lcAA) << "[Nav] notification:" << stepCount << "steps,"
+                          << laneCount << "lanes, dest:" << destination;
+        });
+
         // Phone status events
         connect(&phoneStatusHandler_, &oaa::hu::PhoneStatusChannelHandler::callStateChanged,
                 this, [this](int callState, const QString& number,
@@ -409,6 +449,13 @@ void AndroidAutoOrchestrator::onNewConnection()
         connect(&phoneStatusHandler_, &oaa::hu::PhoneStatusChannelHandler::callsIdle,
                 this, [this]() {
             eventBus_->publish("aa.phone.idle");
+        });
+
+
+        // Voice session command logging
+        connect(session_->controlChannel(), &oaa::ControlChannel::voiceSessionSent,
+                this, [](int sessionType) {
+            qCDebug(lcAA) << "[Control] sent voice session request:" << sessionType;
         });
 
         // Media status events
@@ -427,6 +474,22 @@ void AndroidAutoOrchestrator::onNewConnection()
                 {"artist", artist},
                 {"album", album}
             });
+        });
+
+        // Bluetooth auth events (debug logging only — no crypto, existing BT pairing unaffected)
+        connect(&btHandler_, &oaa::hu::BluetoothChannelHandler::authDataReceived,
+                this, [](const QByteArray& payload) {
+            qCDebug(lcAA) << "[Bluetooth] auth data received, len:" << payload.size();
+        });
+        connect(&btHandler_, &oaa::hu::BluetoothChannelHandler::authResultReceived,
+                this, [](const QByteArray& payload) {
+            qCDebug(lcAA) << "[Bluetooth] auth result received, len:" << payload.size();
+        });
+
+        // Input haptic feedback (debug logging only — Pi has no haptic motor)
+        connect(&inputHandler_, &oaa::hu::InputChannelHandler::hapticFeedbackRequested,
+                this, [](int feedbackType) {
+            qCDebug(lcAA) << "[Input] haptic feedback requested, type:" << feedbackType;
         });
     }
 
@@ -638,6 +701,16 @@ void AndroidAutoOrchestrator::requestExitToCar()
         videoHandler_.requestVideoFocus(false);
         setState(Backgrounded, "Exited to car");
     }
+}
+
+void AndroidAutoOrchestrator::sendButtonPress(int keycode)
+{
+    qCDebug(lcAA) << "[Input] sendButtonPress keycode:" << keycode;
+    auto ts = static_cast<uint64_t>(
+        std::chrono::duration_cast<std::chrono::microseconds>(
+            std::chrono::steady_clock::now().time_since_epoch()).count());
+    inputHandler_.sendButtonEvent(static_cast<uint32_t>(keycode), true, ts);
+    inputHandler_.sendButtonEvent(static_cast<uint32_t>(keycode), false, ts + 50000);
 }
 
 void AndroidAutoOrchestrator::setState(ConnectionState state, const QString& message)

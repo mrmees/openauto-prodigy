@@ -1,0 +1,92 @@
+# Requirements: OpenAuto Prodigy
+
+**Defined:** 2026-03-04
+**Core Value:** A person with a Raspberry Pi 4 and a touchscreen can install this, pair their phone, and get a reliable wireless Android Auto experience — every time, without SSH.
+
+## v0.5.0 Requirements
+
+Requirements for protocol compliance milestone. Each maps to roadmap phases.
+
+### Submodule
+
+- [x] **SUB-01**: Submodule updated to open-android-auto v1.0 with verified proto definitions
+
+### Navigation
+
+- [x] **NAV-01**: HU parses NavigationTurnEvent (0x8004) and exposes turn type, road name, distance, and icon data
+- [x] ~~**NAV-02**: HU handles NavigationFocusIndication from phone to complete focus negotiation flow~~ *RETRACTED in v1.2 -- NavigationFocusIndication was misidentified; nav focus is on Control channel*
+
+### Audio
+
+- [x] ~~**AUD-01**: HU receives and processes AudioFocusState (0x8021) per-channel focus indicator~~ *RETRACTED in v1.2 -- AudioFocusState was misidentified radio channel message*
+- [x] ~~**AUD-02**: HU receives and processes AudioStreamType (0x8022) per-channel stream type~~ *RETRACTED in v1.2 -- AudioStreamType was misidentified radio channel message*
+
+### Media & Voice
+
+- [x] ~~**MED-01**: HU can send MediaPlaybackCommand (PAUSE/RESUME) to phone~~ *RETRACTED in v1.2 -- MediaPlaybackCommand proto does not exist; keycode-based approach is v1.2-correct*
+- [x] **MED-02**: HU sends VoiceSessionRequest START on voice button press and STOP on release
+
+### Bluetooth
+
+- [x] **BT-01**: HU exchanges BluetoothAuthenticationData (0x8003) and handles BluetoothAuthenticationResult (0x8004) during pairing
+
+### Input
+
+- [x] **INP-01**: HU receives InputBindingNotification (0x8004) haptic feedback requests from phone
+
+### Protocol Observability
+
+- [x] **OBS-01**: All unhandled channel messages are logged at debug level with message ID, channel, and hex payload
+
+### Cleanup & Correctness
+
+- [x] **CLN-01**: All retracted handler stubs, dead methods, and RETRACTED comments removed from source
+- [x] **CLN-02**: WiFi SDP descriptor sends actual BSSID (wlan0 MAC address), not SSID string
+- [x] **REN-01**: Protocol library renamed from open-androidauto to prodigy-oaa-protocol with updated build system and documentation
+- [x] **TST-01**: All tests pass reliably (100% pass rate, no flaky tests)
+
+## Future Requirements
+
+### Optional Capabilities
+
+- **CAR-01**: Car control channel (VHAL vehicle property access)
+- **RAD-01**: Radio channel (broadcast radio tuner control)
+- **DISP-01**: Multi-display routing (cluster, auxiliary)
+
+## Out of Scope
+
+| Feature | Reason |
+|---------|--------|
+| Car control channel implementation | New capability, not a compliance gap — log only for now |
+| Radio channel implementation | New capability, not a compliance gap — log only for now |
+| Multi-display support | Requires hardware not available; log display routing messages |
+| Proto schema changes | Submodule is read-only; corrections go to open-android-auto repo |
+| CoolWalk layout control | Phone-side only; HU influences via DPI/resolution in SDP |
+
+## Traceability
+
+| Requirement | Phase | Status |
+|-------------|-------|--------|
+| SUB-01 | Phase 1 | Complete |
+| OBS-01 | Phase 1 | Complete |
+| NAV-01 | Phase 2 | Complete |
+| NAV-02 | Phase 2 | Retracted (v1.2) |
+| AUD-01 | Phase 2 | Retracted (v1.2) |
+| AUD-02 | Phase 2 | Retracted (v1.2) |
+| MED-01 | Phase 3 | Retracted (v1.2) |
+| MED-02 | Phase 3 | Complete |
+| BT-01 | Phase 3 | Complete |
+| INP-01 | Phase 3 | Complete |
+| CLN-01 | Phase 4 | Complete |
+| CLN-02 | Phase 4 | Complete |
+| REN-01 | Phase 4 | Complete |
+| TST-01 | Phase 4 | Complete |
+
+**Coverage:**
+- v0.5.0 requirements: 14 total (10 active, 4 retracted in v1.2)
+- Mapped to phases: 14
+- Unmapped: 0
+
+---
+*Requirements defined: 2026-03-04*
+*Last updated: 2026-03-08 after Phase 4 Plan 1*

@@ -54,7 +54,7 @@ cmake ..
 make -j$(nproc)
 ```
 
-**Important:** Don't forget `--recurse-submodules` — the [open-android-auto](https://github.com/mrmees/open-android-auto) protobuf definitions are a git submodule under `libs/open-androidauto/proto/`.
+**Important:** Don't forget `--recurse-submodules` — the [open-android-auto](https://github.com/mrmees/open-android-auto) protobuf definitions are a git submodule under `libs/prodigy-oaa-protocol/proto/`.
 
 ### Interactive Install (RPi OS Trixie)
 
@@ -266,7 +266,7 @@ openauto-prodigy/
 │   ├── requirements.txt
 │   └── templates/                   # HTML templates (base, index, settings, themes, plugins)
 ├── libs/
-│   └── open-androidauto/             # AA protocol library (proto defs via git submodule)
+│   └── prodigy-oaa-protocol/          # AA protocol library (proto defs via git submodule)
 ├── tests/                           # Unit tests (8 tests)
 └── docs/                            # Design docs, plans
 ```

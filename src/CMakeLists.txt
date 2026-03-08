@@ -56,8 +56,8 @@ add_library(openauto-core STATIC
 
 target_include_directories(openauto-core PUBLIC
     ${CMAKE_CURRENT_SOURCE_DIR}
-    ${CMAKE_SOURCE_DIR}/libs/open-androidauto/include
-    ${CMAKE_BINARY_DIR}/libs/open-androidauto
+    ${CMAKE_SOURCE_DIR}/libs/prodigy-oaa-protocol/include
+    ${CMAKE_BINARY_DIR}/libs/prodigy-oaa-protocol
     ${CMAKE_SOURCE_DIR}/libs/qrcodegen
     ${LIBAV_INCLUDE_DIRS}
     ${PIPEWIRE_INCLUDE_DIRS}
@@ -71,7 +71,7 @@ target_link_libraries(openauto-core PUBLIC
     Qt6::Multimedia
     Qt6::Network
     Qt6::DBus
-    open-androidauto
+    prodigy-oaa-protocol
     OpenSSL::SSL
     OpenSSL::Crypto
     protobuf::libprotobuf

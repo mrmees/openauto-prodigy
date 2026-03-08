@@ -19,7 +19,7 @@ static std::atomic<bool> g_verbose{false};
 static bool g_logToFile{false};
 static FILE* g_logFile{nullptr};
 
-// Known bracket tags from open-androidauto library (verified from source)
+// Known bracket tags from prodigy-oaa-protocol library (verified from source)
 static const char* const g_libraryTags[] = {
     "[TCPTransport]", "[ControlChannel]", "[InputChannel]",
     "[SensorChannel]", "[AudioChannel]", "[VideoChannel]",
@@ -218,8 +218,8 @@ bool isLibraryMessage(const char* category, const char* file, const QString& mes
     if (category && qstrncmp(category, "oaa.", 4) == 0)
         return true;
 
-    // Check file path for open-androidauto
-    if (file && strstr(file, "open-androidauto") != nullptr)
+    // Check file path for prodigy-oaa-protocol library
+    if (file && strstr(file, "prodigy-oaa-protocol") != nullptr)
         return true;
 
     // Check for known bracket tags in message

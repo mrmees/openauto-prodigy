@@ -5,8 +5,8 @@ set -euo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
 REPO_ROOT="$(cd "$SCRIPT_DIR/.." && pwd)"
-PROTO_DIR="$REPO_ROOT/libs/open-androidauto/proto"
-SRC_DIRS=("$REPO_ROOT/src" "$REPO_ROOT/libs/open-androidauto/src" "$REPO_ROOT/libs/open-androidauto/include" "$REPO_ROOT/tests")
+PROTO_DIR="$REPO_ROOT/libs/prodigy-oaa-protocol/proto"
+SRC_DIRS=("$REPO_ROOT/src" "$REPO_ROOT/libs/prodigy-oaa-protocol/src" "$REPO_ROOT/libs/prodigy-oaa-protocol/include" "$REPO_ROOT/tests")
 
 # Colors
 RED='\033[0;31m'
@@ -87,7 +87,7 @@ case "$mode" in
         ref="${2:-HEAD~1}"
         echo -e "${CYAN}Checking for changes to used protos since $ref${NC}"
         changed=0
-        pushd "$REPO_ROOT/libs/open-androidauto" > /dev/null
+        pushd "$REPO_ROOT/libs/prodigy-oaa-protocol" > /dev/null
         for p in "${USED_PROTOS[@]}"; do
             proto_file="proto/${p}.proto"
             if git diff --quiet "$ref" -- "$proto_file" 2>/dev/null; then

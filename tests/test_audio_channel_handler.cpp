@@ -3,6 +3,7 @@
 #include <oaa/HU/Handlers/AudioChannelHandler.hpp>
 #include <oaa/Channel/ChannelId.hpp>
 #include "oaa/av/AVChannelSetupRequestMessage.pb.h"
+#include "oaa/av/MediaCodecTypeEnum.pb.h"
 #include "oaa/av/AVChannelStartIndicationMessage.pb.h"
 
 class TestAudioChannelHandler : public QObject {
@@ -30,7 +31,7 @@ private slots:
         handler.onChannelOpened();
 
         oaa::proto::messages::AVChannelSetupRequest req;
-        req.set_config_index(0);
+        req.set_media_codec_type(static_cast<oaa::proto::enums::MediaCodecType_Enum>(0));
         QByteArray payload(req.ByteSizeLong(), '\0');
         req.SerializeToArray(payload.data(), payload.size());
 
@@ -97,6 +98,41 @@ private slots:
         // Not started — media data should be silently ignored
         handler.onMediaData(QByteArray(960, '\x42'), 0);
         QCOMPARE(dataSpy.count(), 0);
+    }
+
+    void testRetractedMessageFallsToDefault() {
+        // 0x8021 and 0x8022 are retracted — they now fall through to the
+        // default case which logs and emits unknownMessage. Should not crash.
+        oaa::hu::AudioChannelHandler handler(oaa::ChannelId::MediaAudio);
+        handler.onChannelOpened();
+
+        QSignalSpy unknownSpy(&handler, &oaa::hu::AudioChannelHandler::unknownMessage);
+        QByteArray payload("\x08\x01", 2);
+        handler.onMessage(0x8021, payload);
+        handler.onMessage(0x8022, payload);
+        QCOMPARE(unknownSpy.count(), 2);
+    }
+
+    void testStateResetsOnChannelClose() {
+        oaa::hu::AudioChannelHandler handler(oaa::ChannelId::MediaAudio);
+        handler.onChannelOpened();
+
+        // Start a stream
+        oaa::proto::messages::AVChannelStartIndication start;
+        start.set_session(1);
+        start.set_config(0);
+        QByteArray sp(start.ByteSizeLong(), '\0');
+        start.SerializeToArray(sp.data(), sp.size());
+        handler.onMessage(oaa::AVMessageId::START_INDICATION, sp);
+        QVERIFY(handler.canAcceptMedia());
+
+        // Close channel — state should reset
+        handler.onChannelClosed();
+        QVERIFY(!handler.canAcceptMedia());
+
+        // Re-open — should be clean
+        handler.onChannelOpened();
+        QVERIFY(!handler.canAcceptMedia());
     }
 };
 

@@ -127,8 +127,8 @@ void TestLogging::testLibraryDetectionByCategory()
 
 void TestLogging::testLibraryDetectionByFilePath()
 {
-    QVERIFY(oap::isLibraryMessage("default", "/path/to/open-androidauto/src/Transport.cpp", QString()));
-    QVERIFY(oap::isLibraryMessage("default", "libs/open-androidauto/include/Foo.hpp", QString()));
+    QVERIFY(oap::isLibraryMessage("default", "/path/to/prodigy-oaa-protocol/src/Transport.cpp", QString()));
+    QVERIFY(oap::isLibraryMessage("default", "libs/prodigy-oaa-protocol/include/Foo.hpp", QString()));
 }
 
 void TestLogging::testLibraryDetectionByBracketTag()

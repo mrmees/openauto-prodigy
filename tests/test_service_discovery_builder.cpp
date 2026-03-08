@@ -179,8 +179,8 @@ private slots:
                 oaa::proto::data::ChannelDescriptor desc;
                 QVERIFY(desc.ParseFromArray(ch.descriptor.constData(), ch.descriptor.size()));
                 QVERIFY(desc.has_input_channel());
-                QVERIFY(desc.input_channel().touch_screen_config_size() > 0);
-                auto& tc = desc.input_channel().touch_screen_config(0);
+                QVERIFY(desc.input_channel().touch_screen_configs_size() > 0);
+                auto& tc = desc.input_channel().touch_screen_configs(0);
                 // With margins, touch dimensions should be less than full video res
                 // (because margins reduce the content area)
                 QVERIFY2(tc.width() <= 1280, "Touch width should be <= video width");
@@ -191,9 +191,11 @@ private slots:
         QFAIL("Input channel not found");
     }
 
-    void testWifiChannelHasSsid() {
+    void testWifiChannelHasBssid() {
+        // BSSID should be the wlan0 MAC address, not the SSID
         oap::aa::ServiceDiscoveryBuilder builder(nullptr, "00:00:00:00:00:00",
-                                                  "TestSSID", "TestPass");
+                                                  "TestSSID", "TestPass",
+                                                  "AA:BB:CC:DD:EE:FF");
         auto config = builder.build();
 
         for (const auto& ch : config.channels) {
@@ -202,8 +204,8 @@ private slots:
                 desc.ParseFromArray(ch.descriptor.constData(),
                                     ch.descriptor.size());
                 QVERIFY(desc.has_wifi_channel());
-                QCOMPARE(QString::fromStdString(desc.wifi_channel().ssid()),
-                         QString("TestSSID"));
+                QCOMPARE(QString::fromStdString(desc.wifi_channel().bssid()),
+                         QString("AA:BB:CC:DD:EE:FF"));
                 return;
             }
         }

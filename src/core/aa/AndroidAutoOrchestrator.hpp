@@ -68,6 +68,9 @@ public:
     void requestVideoFocus();
     void requestExitToCar();
 
+    /// Send a button press+release via the Input channel (Android keycode)
+    Q_INVOKABLE void sendButtonPress(int keycode);
+
     VideoDecoder* videoDecoder() { return &videoDecoder_; }
     TouchHandler* touchHandler() { return &touchHandler_; }
 
@@ -108,7 +111,7 @@ private:
     oaa::TCPTransport* transport_ = nullptr;
     QTcpSocket* activeSocket_ = nullptr;
 
-    // Channel handlers (from open-androidauto library)
+    // Channel handlers (from prodigy-oaa-protocol library)
     oaa::hu::VideoChannelHandler videoHandler_;
     oaa::hu::AudioChannelHandler mediaAudioHandler_{oaa::ChannelId::MediaAudio};
     oaa::hu::AudioChannelHandler speechAudioHandler_{oaa::ChannelId::SpeechAudio};

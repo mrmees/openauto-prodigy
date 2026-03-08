@@ -74,21 +74,27 @@ private slots:
         QSignalSpy spy(ctrl.get(), &oap::NavbarController::holdProgress);
 
         ctrl->handlePress(0);
-        QTest::qWait(400);  // should emit several holdProgress signals
+
+        // Wait for multiple holdProgress signals. The progress timer fires every
+        // 16ms, so 400ms should yield ~25 signals.
+        QTRY_VERIFY_WITH_TIMEOUT(spy.count() >= 3, 500);
+
+        // Capture progress values BEFORE release, since release emits
+        // holdProgress(0, 0.0) as a reset signal.
+        int countBeforeRelease = spy.count();
+        qreal firstProgress = spy.first().at(1).toReal();
+        qreal lastProgress = spy.at(countBeforeRelease - 1).at(1).toReal();
+
         ctrl->handleRelease(0);
 
-        QVERIFY(spy.count() > 0);
-
-        // First emitted progress should be small, last should be approaching 0.67 (400/600)
-        qreal firstProgress = spy.first().at(1).toReal();
-        qreal lastProgress = spy.last().at(1).toReal();
+        // Progress should increase over time (timer-driven, based on elapsed ms)
         QVERIFY(firstProgress >= 0.0);
         QVERIFY(lastProgress > firstProgress);
         QVERIFY(lastProgress <= 1.0);
 
-        // All should be for control 0
-        for (const auto& args : spy) {
-            QCOMPARE(args.at(0).toInt(), 0);
+        // All pre-release signals should be for control 0
+        for (int i = 0; i < countBeforeRelease; ++i) {
+            QCOMPARE(spy.at(i).at(0).toInt(), 0);
         }
     }
 
