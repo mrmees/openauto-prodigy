@@ -2,9 +2,17 @@ pragma Singleton
 import QtQuick
 
 QtObject {
-    // --- Config reads (bound once at creation) ---
-    readonly property var _cfgScale: ConfigService.value("ui.scale")
-    readonly property var _cfgFontScale: ConfigService.value("ui.fontScale")
+    // --- Config reads (updated reactively via Connections below) ---
+    property var _cfgScale: ConfigService.value("ui.scale")
+    property var _cfgFontScale: ConfigService.value("ui.fontScale")
+
+    Connections {
+        target: ConfigService
+        function onConfigChanged(path, value) {
+            if (path === "ui.scale") _cfgScale = value
+            else if (path === "ui.fontScale") _cfgFontScale = value
+        }
+    }
 
     // --- Effective scale factors (0 = not set = 1.0) ---
     readonly property real globalScale: {

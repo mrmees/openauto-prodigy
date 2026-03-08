@@ -78,11 +78,11 @@ See .planning/milestones/v0.5.0-ROADMAP.md for archived details.
   1. Running the installer on a Pi with EDID-capable display shows detected screen size and lets the user confirm or override it
   2. A fresh install with no EDID and user skipping entry defaults to 7" and produces correctly scaled UI
   3. UiMetrics-driven element sizes change when the configured screen size changes (e.g., 7" vs 10" produces visibly different control sizes at the same resolution)
-  4. User can view and change the physical screen size value in Display settings, and the change persists across restarts
+  4. User can view screen size and computed DPI in Display settings (read-only; editable via YAML config for advanced users)
 **Plans:** 3/3 plans complete
 Plans:
-- [ ] 01-01-PLAN.md -- DisplayInfo DPI properties + config default + unit tests
-- [ ] 01-02-PLAN.md -- UiMetrics DPI-based scaling + settings UI read-only display
+- [x] 01-01-PLAN.md -- DisplayInfo DPI properties + config default + unit tests
+- [x] 01-02-PLAN.md -- UiMetrics DPI-based scaling + settings UI read-only display
 - [x] 01-03-PLAN.md -- Installer EDID probe + screen size prompt + config persistence
 
 ### Phase 2: Clock & Scale Control
@@ -94,7 +94,10 @@ Plans:
   2. Clock shows bare time without AM/PM suffix in 12h mode
   3. User can toggle between 12h and 24h format in settings, and the navbar clock updates immediately
   4. User can adjust UI scale via stepper in Display settings (increments of 0.1), and all UI elements resize live or on confirm
-**Plans**: TBD
+**Plans:** 2 plans
+Plans:
+- [ ] 02-01-PLAN.md -- Config plumbing, UiMetrics reactivity fix, clock sizing and 24h toggle
+- [ ] 02-02-PLAN.md -- Scale stepper control with safety revert overlay
 
 ### Phase 3: Theme Color System
 **Goal**: All UI elements draw from a complete, consistent semantic color palette
@@ -124,9 +127,9 @@ Phases execute in numeric order: 1 -> 2 -> 3 -> 4
 | Phase | Plans Complete | Status | Completed |
 |-------|----------------|--------|-----------|
 | 1. DPI Foundation | 3/3 | Complete   | 2026-03-08 |
-| 2. Clock & Scale Control | 0/? | Not started | - |
+| 2. Clock & Scale Control | 0/2 | Planning complete | - |
 | 3. Theme Color System | 0/? | Not started | - |
 | 4. Visual Depth | 0/? | Not started | - |
 
 ---
-*Last updated: 2026-03-08 -- Phase 1 plans created*
+*Last updated: 2026-03-08 -- Phase 2 plans created*
