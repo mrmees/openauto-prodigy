@@ -73,12 +73,12 @@ AASession::AASession(ITransport* transport, const SessionConfig& config,
                     state = proto::enums::AudioFocusState::GAIN; break;
                 case proto::enums::AudioFocusType::GAIN_TRANSIENT:
                     state = proto::enums::AudioFocusState::GAIN_TRANSIENT; break;
-                case proto::enums::AudioFocusType::GAIN_NAVI:
+                case proto::enums::AudioFocusType::GAIN_TRANSIENT_MAY_DUCK:
                     state = proto::enums::AudioFocusState::GAIN_TRANSIENT_GUIDANCE_ONLY; break;
                 case proto::enums::AudioFocusType::RELEASE:
                     state = proto::enums::AudioFocusState::LOSS; break;
                 default:
-                    state = proto::enums::AudioFocusState::NONE; break;
+                    state = proto::enums::AudioFocusState::INVALID; break;
                 }
                 qDebug() << "[AASession] Audio focus request type:" << (int)type
                          << "→ state:" << (int)state;

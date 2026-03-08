@@ -25,7 +25,7 @@ private slots:
         handler.onChannelOpened();
 
         oaa::proto::messages::AVChannelSetupRequest req;
-        req.set_config_index(oaa::proto::enums::MediaCodecType_Enum_MEDIA_CODEC_VIDEO_H264_BP); // Phone sends its own internal index
+        req.set_media_codec_type(oaa::proto::enums::MediaCodecType_Enum_MEDIA_CODEC_VIDEO_H264_BP); // Phone sends its own internal index
         QByteArray payload(req.ByteSizeLong(), '\0');
         req.SerializeToArray(payload.data(), payload.size());
 
@@ -101,12 +101,12 @@ private slots:
         oaa::proto::messages::AVMediaAckIndication ack0;
         QByteArray ackPayload0 = sendSpy[0][2].toByteArray();
         QVERIFY(ack0.ParseFromArray(ackPayload0.constData(), ackPayload0.size()));
-        QCOMPARE(ack0.value(), 1);
+        QCOMPARE(ack0.ack_count(), 1);
 
         oaa::proto::messages::AVMediaAckIndication ack1;
         QByteArray ackPayload1 = sendSpy[1][2].toByteArray();
         QVERIFY(ack1.ParseFromArray(ackPayload1.constData(), ackPayload1.size()));
-        QCOMPARE(ack1.value(), 1);
+        QCOMPARE(ack1.ack_count(), 1);
     }
 
     void testVideoFocusIndication() {

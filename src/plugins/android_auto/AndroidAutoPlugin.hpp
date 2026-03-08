@@ -76,6 +76,9 @@ public:
     /// Access the evdev coordinate bridge for external zone registration
     oap::aa::EvdevCoordBridge* coordBridge() const { return coordBridge_; }
 
+    /// Access the AA orchestrator (for root context exposure)
+    oap::aa::AndroidAutoOrchestrator* orchestrator() const { return aaService_; }
+
 public slots:
     void onConfigChanged(const QString& path, const QVariant& value);
 

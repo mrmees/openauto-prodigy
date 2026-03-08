@@ -24,6 +24,9 @@ public:
     void sendTouchIndication(int pointerCount, const Pointer* pointers,
                              int actionIndex, int action, uint64_t timestamp);
 
+    // Send a button press/release event (e.g. media keys, home, back)
+    void sendButtonEvent(uint32_t keycode, bool pressed, uint64_t timestamp);
+
 signals:
     void hapticFeedbackRequested(int feedbackType);
 

@@ -305,7 +305,7 @@ std::string ProtocolLogger::messageName(uint8_t channelId, uint16_t msgId)
         switch (msgId) {
             case NavigationMessageId::NAV_STATE:            return "NAVIGATION_STATE";
             case NavigationMessageId::NAV_TURN_EVENT:       return "NAVIGATION_TURN_EVENT";
-            case NavigationMessageId::NAV_FOCUS_INDICATION: return "NAVIGATION_FOCUS_INDICATION";
+            case 0x8005:                                    return "NAV_0x8005_RETRACTED";
             case NavigationMessageId::NAV_STEP:             return "NAVIGATION_NOTIFICATION";
             case NavigationMessageId::NAV_DISTANCE:         return "NAVIGATION_DISTANCE";
             default: break;

@@ -32,6 +32,7 @@
 #include "core/plugin/HostContext.hpp"
 #include "core/plugin/PluginManager.hpp"
 #include "plugins/android_auto/AndroidAutoPlugin.hpp"
+#include "core/aa/AndroidAutoOrchestrator.hpp"
 #include "plugins/bt_audio/BtAudioPlugin.hpp"
 #include "plugins/phone/PhonePlugin.hpp"
 #include "plugins/equalizer/EqualizerPlugin.hpp"
@@ -457,6 +458,7 @@ int main(int argc, char *argv[])
     engine.rootContext()->setContextProperty("SystemService", systemClient);
     engine.rootContext()->setContextProperty("BluetoothManager", bluetoothManager);
     engine.rootContext()->setContextProperty("PairedDevicesModel", bluetoothManager->pairedDevicesModel());
+    engine.rootContext()->setContextProperty("AAOrchestrator", static_cast<QObject*>(aaPlugin->orchestrator()));
 
     // Geometry override for windowed resolution testing
     engine.rootContext()->setContextProperty("_geomW", geomW);

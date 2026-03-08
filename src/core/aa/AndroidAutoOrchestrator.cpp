@@ -9,6 +9,7 @@
 #include "../../core/services/EqualizerService.hpp"
 
 #include <memory>
+#include <chrono>
 #include <QDir>
 #include "../Logging.hpp"
 #include <QEventLoop>
@@ -343,20 +344,7 @@ void AndroidAutoOrchestrator::onNewConnection()
         }
     }
 
-    // Wire per-channel audio focus/stream type signals for debug logging
-    auto connectAudioSignals = [this](oaa::hu::AudioChannelHandler& handler, const char* name) {
-        connect(&handler, &oaa::hu::AudioChannelHandler::audioFocusStateChanged,
-                this, [name](bool hasFocus) {
-            qCInfo(lcAA) << "[Audio:" << name << "] focus:" << hasFocus;
-        });
-        connect(&handler, &oaa::hu::AudioChannelHandler::audioStreamTypeChanged,
-                this, [name](int streamType) {
-            qCInfo(lcAA) << "[Audio:" << name << "] stream type:" << streamType;
-        });
-    };
-    connectAudioSignals(mediaAudioHandler_, "Media");
-    connectAudioSignals(speechAudioHandler_, "Speech");
-    connectAudioSignals(systemAudioHandler_, "System");
+    // audioFocusStateChanged / audioStreamTypeChanged removed — proto messages retracted in v1.1
 
     // Bridge AA audio focus requests to PipeWire stream ducking
     if (audioService_) {
@@ -438,11 +426,7 @@ void AndroidAutoOrchestrator::onNewConnection()
                           << laneCount << "lanes, dest:" << destination;
         });
 
-        // Navigation focus indication (debug logging only)
-        connect(&navHandler_, &oaa::hu::NavigationChannelHandler::navigationFocusChanged,
-                this, [](bool hasFocus) {
-            qCInfo(lcAA) << "[Nav] focus:" << hasFocus;
-        });
+        // navigationFocusChanged removed — NavigationFocusIndication retracted in v1.1
 
         // Phone status events
         connect(&phoneStatusHandler_, &oaa::hu::PhoneStatusChannelHandler::callStateChanged,
@@ -459,11 +443,6 @@ void AndroidAutoOrchestrator::onNewConnection()
             eventBus_->publish("aa.phone.idle");
         });
 
-        // Media command logging
-        connect(&mediaStatusHandler_, &oaa::hu::MediaStatusChannelHandler::playbackCommandSent,
-                this, [](int command) {
-            qCDebug(lcAA) << "[MediaStatus] sent playback command:" << command;
-        });
 
         // Voice session command logging
         connect(session_->controlChannel(), &oaa::ControlChannel::voiceSessionSent,
@@ -716,20 +695,14 @@ void AndroidAutoOrchestrator::requestExitToCar()
     }
 }
 
-void AndroidAutoOrchestrator::sendMediaPlaybackCommand(int command)
+void AndroidAutoOrchestrator::sendButtonPress(int keycode)
 {
-    mediaStatusHandler_.sendPlaybackCommand(command);
-}
-
-void AndroidAutoOrchestrator::toggleMediaPlayback()
-{
-    mediaStatusHandler_.togglePlayback();
-}
-
-void AndroidAutoOrchestrator::sendVoiceSessionRequest(int sessionType)
-{
-    if (session_)
-        session_->controlChannel()->sendVoiceSessionRequest(sessionType);
+    qCDebug(lcAA) << "[Input] sendButtonPress keycode:" << keycode;
+    auto ts = static_cast<uint64_t>(
+        std::chrono::duration_cast<std::chrono::microseconds>(
+            std::chrono::steady_clock::now().time_since_epoch()).count());
+    inputHandler_.sendButtonEvent(static_cast<uint32_t>(keycode), true, ts);
+    inputHandler_.sendButtonEvent(static_cast<uint32_t>(keycode), false, ts + 50000);
 }
 
 void AndroidAutoOrchestrator::setState(ConnectionState state, const QString& message)

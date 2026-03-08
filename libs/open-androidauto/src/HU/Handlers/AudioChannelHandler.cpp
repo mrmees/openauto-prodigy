@@ -8,8 +8,7 @@
 #include "oaa/av/AVChannelStartIndicationMessage.pb.h"
 #include "oaa/av/AVChannelStopIndicationMessage.pb.h"
 #include "oaa/av/AVMediaAckIndicationMessage.pb.h"
-#include "oaa/audio/AudioFocusStateMessage.pb.h"
-#include "oaa/audio/AudioStreamTypeMessage.pb.h"
+// AudioFocusStateMessage.pb.h and AudioStreamTypeMessage.pb.h removed — retracted in proto v1.1
 
 namespace oaa {
 namespace hu {
@@ -25,8 +24,6 @@ void AudioChannelHandler::onChannelOpened()
     channelOpen_ = true;
     streaming_ = false;
     session_ = -1;
-    hasFocus_ = false;
-    streamType_ = -1;
 
     qDebug() << "[AudioChannel" << channelId_ << "] opened";
 }
@@ -35,8 +32,6 @@ void AudioChannelHandler::onChannelClosed()
 {
     channelOpen_ = false;
     streaming_ = false;
-    hasFocus_ = false;
-    streamType_ = -1;
     qDebug() << "[AudioChannel" << channelId_ << "] closed";
 }
 
@@ -96,7 +91,7 @@ void AudioChannelHandler::handleSetupRequest(const QByteArray& payload)
     }
 
     qInfo() << "[AudioChannel" << channelId_
-            << "] setup request, config_index:" << req.config_index()
+            << "] setup request, codec:" << req.media_codec_type()
             << "raw:" << payload.toHex(' ')
             << "debug:" << QString::fromStdString(req.ShortDebugString());
 
@@ -157,43 +152,25 @@ void AudioChannelHandler::onMediaData(const QByteArray& data, uint64_t timestamp
 
 void AudioChannelHandler::handleAudioFocusState(const QByteArray& payload)
 {
-    oaa::proto::messages::AudioFocusState msg;
-    if (!msg.ParseFromArray(payload.constData(), payload.size())) {
-        qWarning() << "[AudioChannel" << channelId_ << "] failed to parse AudioFocusState";
-        return;
-    }
-
-    bool hasFocus = msg.has_focus();
-    qDebug() << "[AudioChannel" << channelId_ << "] focus state:" << hasFocus;
-
-    if (hasFocus_ != hasFocus) {
-        hasFocus_ = hasFocus;
-        emit audioFocusStateChanged(hasFocus);
-    }
+    // AudioFocusState message was retracted (misidentified).
+    // Log raw payload if we ever receive 0x8021 on an audio channel.
+    qDebug() << "[AudioChannel" << channelId_ << "] received 0x8021 (retracted AudioFocusState), len:" << payload.size();
 }
 
 void AudioChannelHandler::handleAudioStreamType(const QByteArray& payload)
 {
-    oaa::proto::messages::AudioStreamType msg;
-    if (!msg.ParseFromArray(payload.constData(), payload.size())) {
-        qWarning() << "[AudioChannel" << channelId_ << "] failed to parse AudioStreamType";
-        return;
-    }
-
-    int type = static_cast<int>(msg.stream_type());
-    qDebug() << "[AudioChannel" << channelId_ << "] stream type:" << type;
-
-    streamType_ = type;
-    emit audioStreamTypeChanged(type);
+    // AudioStreamType message was retracted (actually RadioTuneDirectionRequest on radio channel).
+    // Log raw payload for now if we ever receive 0x8022 on an audio channel.
+    qDebug() << "[AudioChannel" << channelId_ << "] received 0x8022 (retracted AudioStreamType), len:" << payload.size();
 }
 
 void AudioChannelHandler::sendAck(uint32_t frameCount)
 {
     oaa::proto::messages::AVMediaAckIndication ack;
-    ack.set_session(session_);
-    // Value = number of frames being acknowledged (permit replenishment),
+    ack.set_session_id(session_);
+    // ack_count = number of frames being acknowledged (permit replenishment),
     // not cumulative total. Phone uses this to restore its send permits.
-    ack.set_value(frameCount);
+    ack.set_ack_count(frameCount);
 
     QByteArray data(ack.ByteSizeLong(), '\0');
     ack.SerializeToArray(data.data(), data.size());

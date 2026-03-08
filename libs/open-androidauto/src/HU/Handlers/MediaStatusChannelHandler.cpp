@@ -4,7 +4,6 @@
 
 #include "oaa/media/MediaPlaybackStatusMessage.pb.h"
 #include "oaa/media/MediaPlaybackMetadataMessage.pb.h"
-#include "oaa/media/MediaPlaybackCommandMessage.pb.h"
 
 namespace oaa {
 namespace hu {
@@ -87,32 +86,7 @@ void MediaStatusChannelHandler::handlePlaybackMetadata(const QByteArray& payload
     qInfo() << "[MediaStatusChannel] metadata:" << title << "—" << artist
             << "—" << album << "art:" << albumArt.size() << "bytes";
 
-    // Log new v16.1 fields if present
-    if (msg.has_is_playing())
-        qInfo() << "[MediaStatusChannel]   is_playing:" << msg.is_playing();
-    if (msg.has_album_art_url())
-        qInfo() << "[MediaStatusChannel]   album_art_url:" << QString::fromStdString(msg.album_art_url());
-
     emit metadataChanged(title, artist, album, albumArt);
-}
-
-void MediaStatusChannelHandler::sendPlaybackCommand(int command)
-{
-    oaa::proto::messages::MediaPlaybackCommand msg;
-    msg.set_command(static_cast<oaa::proto::messages::PlaybackCommandType>(command));
-    QByteArray data(msg.ByteSizeLong(), '\0');
-    msg.SerializeToArray(data.data(), data.size());
-    emit sendRequested(channelId(), oaa::MediaStatusMessageId::PLAYBACK_COMMAND, data);
-    emit playbackCommandSent(command);
-}
-
-void MediaStatusChannelHandler::togglePlayback()
-{
-    if (currentPlaybackState_ == Playing) {
-        sendPlaybackCommand(static_cast<int>(oaa::proto::messages::PLAYBACK_COMMAND_PAUSE));
-    } else {
-        sendPlaybackCommand(static_cast<int>(oaa::proto::messages::PLAYBACK_COMMAND_RESUME));
-    }
 }
 
 } // namespace hu

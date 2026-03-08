@@ -6,6 +6,8 @@
 #include "oaa/input/TouchEventData.pb.h"
 #include "oaa/input/TouchLocationData.pb.h"
 #include "oaa/input/TouchActionEnum.pb.h"
+#include "oaa/input/ButtonEventsData.pb.h"
+#include "oaa/input/ButtonEventData.pb.h"
 #include "oaa/control/BindingRequestMessage.pb.h"
 #include "oaa/control/BindingResponseMessage.pb.h"
 #include "oaa/common/StatusEnum.pb.h"
@@ -101,6 +103,26 @@ void InputChannelHandler::sendTouchIndication(int pointerCount, const Pointer* p
         loc->set_y(pointers[i].y);
         loc->set_pointer_id(pointers[i].id);
     }
+
+    QByteArray data(indication.ByteSizeLong(), '\0');
+    indication.SerializeToArray(data.data(), data.size());
+    emit sendRequested(channelId(), oaa::InputMessageId::INPUT_EVENT_INDICATION, data);
+}
+
+void InputChannelHandler::sendButtonEvent(uint32_t scanCode, bool pressed, uint64_t timestamp)
+{
+    qWarning() << "[InputChannel] sendButtonEvent scanCode:" << scanCode << "pressed:" << pressed << "channelOpen:" << channelOpen_.load();
+    if (!channelOpen_)
+        return;
+
+    oaa::proto::messages::InputEventIndication indication;
+    indication.set_timestamp(timestamp);
+
+    auto* buttonEvents = indication.mutable_button_event();
+    auto* btn = buttonEvents->add_button_events();
+    btn->set_keycode(scanCode);
+    btn->set_is_pressed(pressed);
+    btn->set_meta_state(0);
 
     QByteArray data(indication.ByteSizeLong(), '\0');
     indication.SerializeToArray(data.data(), data.size());

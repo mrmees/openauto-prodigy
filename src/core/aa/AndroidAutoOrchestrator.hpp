@@ -68,12 +68,8 @@ public:
     void requestVideoFocus();
     void requestExitToCar();
 
-    /// Send a media playback command (PAUSE=1, RESUME=2) to the phone
-    void sendMediaPlaybackCommand(int command);
-    /// Toggle media playback based on current phone state
-    void toggleMediaPlayback();
-    /// Send a voice session request (START=1, STOP=2) to the phone
-    void sendVoiceSessionRequest(int sessionType);
+    /// Send a button press+release via the Input channel (Android keycode)
+    Q_INVOKABLE void sendButtonPress(int keycode);
 
     VideoDecoder* videoDecoder() { return &videoDecoder_; }
     TouchHandler* touchHandler() { return &touchHandler_; }

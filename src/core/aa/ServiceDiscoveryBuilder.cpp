@@ -22,7 +22,7 @@
 #include "oaa/navigation/NavigationChannelData.pb.h"
 #include "oaa/navigation/NavigationImageOptionsData.pb.h"
 #include "oaa/media/MediaChannelData.pb.h"
-#include "oaa/phone/PhoneStatusChannelData.pb.h"
+// PhoneStatusChannelData.pb.h removed — PhoneStatusChannel is in ChannelDescriptorData.pb.h (retracted in proto v1.1)
 #include "oaa/av/AVStreamTypeEnum.pb.h"
 #include "oaa/audio/AudioTypeEnum.pb.h"
 #include "oaa/video/VideoResolutionEnum.pb.h"
@@ -199,9 +199,9 @@ QByteArray ServiceDiscoveryBuilder::buildVideoDescriptor() const
     };
 
     struct ResInfo { Res::Enum res; int w; int h; const char* label; };
-    ResInfo chosen = { Res::_720p, 1280, 720, "720p" };
-    if (res == "1080p") chosen = { Res::_1080p, 1920, 1080, "1080p" };
-    else if (res == "480p") chosen = { Res::_480p, 800, 480, "480p" };
+    ResInfo chosen = { Res::VIDEO_1280x720, 1280, 720, "720p" };
+    if (res == "1080p") chosen = { Res::VIDEO_1920x1080, 1920, 1080, "1080p" };
+    else if (res == "480p") chosen = { Res::VIDEO_800x480, 800, 480, "480p" };
 
     int mW = 0, mH = 0;
     calcMargins(chosen.w, chosen.h, mW, mH);
@@ -331,16 +331,24 @@ QByteArray ServiceDiscoveryBuilder::buildInputDescriptor() const
         touchH -= mH;
     }
 
-    auto* touchConfig = inputChannel->add_touch_screen_config();
+    auto* touchConfig = inputChannel->add_touch_screen_configs();
     touchConfig->set_width(touchW);
     touchConfig->set_height(touchH);
 
     qCDebug(lcAA) << "touch_screen_config:" << touchW << "x" << touchH;
 
-    // Android keycodes: HOME, BACK, MICROPHONE
+    // Android keycodes: navigation, voice, media controls
     inputChannel->add_supported_keycodes(3);   // KEYCODE_HOME
     inputChannel->add_supported_keycodes(4);   // KEYCODE_BACK
-    inputChannel->add_supported_keycodes(84);  // KEYCODE_MICROPHONE_1
+    inputChannel->add_supported_keycodes(84);  // KEYCODE_SEARCH
+    inputChannel->add_supported_keycodes(85);  // KEYCODE_MEDIA_PLAY_PAUSE
+    inputChannel->add_supported_keycodes(86);  // KEYCODE_MEDIA_STOP
+    inputChannel->add_supported_keycodes(87);  // KEYCODE_MEDIA_NEXT
+    inputChannel->add_supported_keycodes(88);  // KEYCODE_MEDIA_PREVIOUS
+    inputChannel->add_supported_keycodes(126); // KEYCODE_MEDIA_PLAY
+    inputChannel->add_supported_keycodes(127); // KEYCODE_MEDIA_PAUSE
+    inputChannel->add_supported_keycodes(219); // KEYCODE_ASSIST (Google Assistant)
+    inputChannel->add_supported_keycodes(231); // KEYCODE_VOICE_ASSIST
 
     QByteArray data(desc.ByteSizeLong(), '\0');
     desc.SerializeToArray(data.data(), data.size());
@@ -390,7 +398,7 @@ QByteArray ServiceDiscoveryBuilder::buildWifiDescriptor() const
     desc.set_channel_id(14);
 
     auto* wifiChannel = desc.mutable_wifi_channel();
-    wifiChannel->set_ssid(wifiSsid_.toStdString());
+    wifiChannel->set_bssid(wifiSsid_.toStdString());
 
     QByteArray data(desc.ByteSizeLong(), '\0');
     desc.SerializeToArray(data.data(), data.size());

@@ -75,7 +75,7 @@ void BluetoothChannelHandler::handlePairingRequest(const QByteArray& payload)
     // Respond: already paired (we handle BT pairing externally via bluetoothctl)
     oaa::proto::messages::BluetoothPairingResponse resp;
     resp.set_already_paired(true);
-    resp.set_status(oaa::proto::enums::BluetoothPairingStatus::OK);
+    resp.set_status(0); // 0 = SUCCESS in AA StatusCode enum
 
     QByteArray data(resp.ByteSizeLong(), '\0');
     resp.SerializeToArray(data.data(), data.size());

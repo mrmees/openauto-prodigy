@@ -5,9 +5,6 @@
 #include "oaa/av/AVChannelSetupRequestMessage.pb.h"
 #include "oaa/av/MediaCodecTypeEnum.pb.h"
 #include "oaa/av/AVChannelStartIndicationMessage.pb.h"
-#include "oaa/audio/AudioFocusStateMessage.pb.h"
-#include "oaa/audio/AudioStreamTypeMessage.pb.h"
-#include "oaa/audio/AudioStreamTypeEnum.pb.h"
 
 class TestAudioChannelHandler : public QObject {
     Q_OBJECT
@@ -34,7 +31,7 @@ private slots:
         handler.onChannelOpened();
 
         oaa::proto::messages::AVChannelSetupRequest req;
-        req.set_config_index(static_cast<oaa::proto::enums::MediaCodecType_Enum>(0));
+        req.set_media_codec_type(static_cast<oaa::proto::enums::MediaCodecType_Enum>(0));
         QByteArray payload(req.ByteSizeLong(), '\0');
         req.SerializeToArray(payload.data(), payload.size());
 
@@ -103,149 +100,41 @@ private slots:
         QCOMPARE(dataSpy.count(), 0);
     }
 
-    // --- AudioFocusState (0x8021) tests ---
+    // AudioFocusState (0x8021) and AudioStreamType (0x8022) tests removed —
+    // these messages were retracted in proto v1.1
 
-    void testAudioFocusStateGainEmitsSignal() {
+    void testRetractedMessageDoesNotCrash() {
+        // 0x8021 and 0x8022 are retracted but may still arrive from phones.
+        // Handler should log and not crash.
         oaa::hu::AudioChannelHandler handler(oaa::ChannelId::MediaAudio);
-        QSignalSpy spy(&handler, &oaa::hu::AudioChannelHandler::audioFocusStateChanged);
         handler.onChannelOpened();
 
-        oaa::proto::messages::AudioFocusState msg;
-        msg.set_has_focus(true);
-        QByteArray payload(msg.ByteSizeLong(), '\0');
-        msg.SerializeToArray(payload.data(), payload.size());
-
+        QByteArray payload("\x08\x01", 2); // valid-ish protobuf
         handler.onMessage(oaa::AVMessageId::AUDIO_FOCUS_STATE, payload);
-
-        QCOMPARE(spy.count(), 1);
-        QCOMPARE(spy[0][0].toBool(), true);
-    }
-
-    void testAudioFocusStateLossEmitsSignal() {
-        oaa::hu::AudioChannelHandler handler(oaa::ChannelId::MediaAudio);
-        QSignalSpy spy(&handler, &oaa::hu::AudioChannelHandler::audioFocusStateChanged);
-        handler.onChannelOpened();
-
-        // First send focus=true
-        oaa::proto::messages::AudioFocusState msg;
-        msg.set_has_focus(true);
-        QByteArray payload(msg.ByteSizeLong(), '\0');
-        msg.SerializeToArray(payload.data(), payload.size());
-        handler.onMessage(oaa::AVMessageId::AUDIO_FOCUS_STATE, payload);
-
-        // Then send focus=false
-        msg.set_has_focus(false);
-        QByteArray payload2(msg.ByteSizeLong(), '\0');
-        msg.SerializeToArray(payload2.data(), payload2.size());
-        handler.onMessage(oaa::AVMessageId::AUDIO_FOCUS_STATE, payload2);
-
-        QCOMPARE(spy.count(), 2);
-        QCOMPARE(spy[1][0].toBool(), false);
-    }
-
-    void testAudioFocusStateNoChangeGuard() {
-        oaa::hu::AudioChannelHandler handler(oaa::ChannelId::MediaAudio);
-        QSignalSpy spy(&handler, &oaa::hu::AudioChannelHandler::audioFocusStateChanged);
-        handler.onChannelOpened();
-
-        oaa::proto::messages::AudioFocusState msg;
-        msg.set_has_focus(true);
-        QByteArray payload(msg.ByteSizeLong(), '\0');
-        msg.SerializeToArray(payload.data(), payload.size());
-
-        // Send same value twice — should only emit once
-        handler.onMessage(oaa::AVMessageId::AUDIO_FOCUS_STATE, payload);
-        handler.onMessage(oaa::AVMessageId::AUDIO_FOCUS_STATE, payload);
-
-        QCOMPARE(spy.count(), 1);
-    }
-
-    void testAudioFocusStateInvalidPayload() {
-        oaa::hu::AudioChannelHandler handler(oaa::ChannelId::MediaAudio);
-        QSignalSpy spy(&handler, &oaa::hu::AudioChannelHandler::audioFocusStateChanged);
-        handler.onChannelOpened();
-
-        // Garbage payload that won't parse as protobuf
-        // Use bytes that are definitely invalid protobuf (wrong wire type for field 1)
-        QByteArray garbage;
-        garbage.append('\x0b'); // field 1, wire type 3 (start group) — invalid for bool
-        garbage.append('\xff');
-        garbage.append('\xff');
-        handler.onMessage(oaa::AVMessageId::AUDIO_FOCUS_STATE, garbage);
-
-        QCOMPARE(spy.count(), 0);
-    }
-
-    // --- AudioStreamType (0x8022) tests ---
-
-    void testAudioStreamTypeMediaEmitsSignal() {
-        oaa::hu::AudioChannelHandler handler(oaa::ChannelId::MediaAudio);
-        QSignalSpy spy(&handler, &oaa::hu::AudioChannelHandler::audioStreamTypeChanged);
-        handler.onChannelOpened();
-
-        oaa::proto::messages::AudioStreamType msg;
-        msg.set_stream_type(oaa::proto::enums::AudioStreamType::MEDIA);
-        QByteArray payload(msg.ByteSizeLong(), '\0');
-        msg.SerializeToArray(payload.data(), payload.size());
-
         handler.onMessage(oaa::AVMessageId::AUDIO_STREAM_TYPE, payload);
-
-        QCOMPARE(spy.count(), 1);
-        QCOMPARE(spy[0][0].toInt(), 1);  // MEDIA = 1
+        // No crash = pass
     }
-
-    void testAudioStreamTypeGuidanceEmitsSignal() {
-        oaa::hu::AudioChannelHandler handler(oaa::ChannelId::SpeechAudio);
-        QSignalSpy spy(&handler, &oaa::hu::AudioChannelHandler::audioStreamTypeChanged);
-        handler.onChannelOpened();
-
-        oaa::proto::messages::AudioStreamType msg;
-        msg.set_stream_type(oaa::proto::enums::AudioStreamType::GUIDANCE);
-        QByteArray payload(msg.ByteSizeLong(), '\0');
-        msg.SerializeToArray(payload.data(), payload.size());
-
-        handler.onMessage(oaa::AVMessageId::AUDIO_STREAM_TYPE, payload);
-
-        QCOMPARE(spy.count(), 1);
-        QCOMPARE(spy[0][0].toInt(), 2);  // GUIDANCE = 2
-    }
-
-    void testAudioStreamTypeInvalidPayload() {
-        oaa::hu::AudioChannelHandler handler(oaa::ChannelId::MediaAudio);
-        QSignalSpy spy(&handler, &oaa::hu::AudioChannelHandler::audioStreamTypeChanged);
-        handler.onChannelOpened();
-
-        QByteArray garbage;
-        garbage.append('\x0b');
-        garbage.append('\xff');
-        garbage.append('\xff');
-        handler.onMessage(oaa::AVMessageId::AUDIO_STREAM_TYPE, garbage);
-
-        QCOMPARE(spy.count(), 0);
-    }
-
-    // --- State reset tests ---
 
     void testStateResetsOnChannelClose() {
         oaa::hu::AudioChannelHandler handler(oaa::ChannelId::MediaAudio);
-        QSignalSpy focusSpy(&handler, &oaa::hu::AudioChannelHandler::audioFocusStateChanged);
         handler.onChannelOpened();
 
-        // Set focus to true
-        oaa::proto::messages::AudioFocusState focusMsg;
-        focusMsg.set_has_focus(true);
-        QByteArray fp(focusMsg.ByteSizeLong(), '\0');
-        focusMsg.SerializeToArray(fp.data(), fp.size());
-        handler.onMessage(oaa::AVMessageId::AUDIO_FOCUS_STATE, fp);
-        QCOMPARE(focusSpy.count(), 1);
+        // Start a stream
+        oaa::proto::messages::AVChannelStartIndication start;
+        start.set_session(1);
+        start.set_config(0);
+        QByteArray sp(start.ByteSizeLong(), '\0');
+        start.SerializeToArray(sp.data(), sp.size());
+        handler.onMessage(oaa::AVMessageId::START_INDICATION, sp);
+        QVERIFY(handler.canAcceptMedia());
 
         // Close channel — state should reset
         handler.onChannelClosed();
+        QVERIFY(!handler.canAcceptMedia());
 
-        // Re-open and send focus=true again — should emit because state was reset
+        // Re-open — should be clean
         handler.onChannelOpened();
-        handler.onMessage(oaa::AVMessageId::AUDIO_FOCUS_STATE, fp);
-        QCOMPARE(focusSpy.count(), 2);  // emitted again after reset
+        QVERIFY(!handler.canAcceptMedia());
     }
 };
 

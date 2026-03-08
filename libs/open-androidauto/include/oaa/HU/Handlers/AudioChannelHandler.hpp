@@ -24,8 +24,7 @@ signals:
     void audioDataReceived(const QByteArray& data, uint64_t timestamp);
     void streamStarted(int32_t session);
     void streamStopped();
-    void audioFocusStateChanged(bool hasFocus);
-    void audioStreamTypeChanged(int streamType);
+    // audioFocusStateChanged / audioStreamTypeChanged removed — proto messages retracted in v1.1
 
 private:
     void handleSetupRequest(const QByteArray& payload);
@@ -40,8 +39,6 @@ private:
     uint32_t unackedCount_ = 0;
     bool channelOpen_ = false;
     bool streaming_ = false;
-    bool hasFocus_ = false;
-    int streamType_ = -1;
 };
 
 } // namespace hu

@@ -60,16 +60,16 @@ namespace BluetoothMessageId {
 namespace NavigationMessageId {
     constexpr uint16_t NAV_STATE            = 0x8003;
     constexpr uint16_t NAV_TURN_EVENT       = 0x8004;
-    constexpr uint16_t NAV_FOCUS_INDICATION = 0x8005; // Provisional ID -- gap between 0x8003 and 0x8006
+    // 0x8005 was NAV_FOCUS_INDICATION — retracted (nav focus is on Control channel, msgs 13/14)
     constexpr uint16_t NAV_STEP             = 0x8006;
     constexpr uint16_t NAV_DISTANCE         = 0x8007;
 }
 
-/// Media status channel messages
+/// Media status channel messages (CAR.GAL.INST, GAL type 11)
 namespace MediaStatusMessageId {
-    constexpr uint16_t PLAYBACK_STATUS    = 0x8001;
-    constexpr uint16_t PLAYBACK_COMMAND   = 0x8002;
-    constexpr uint16_t PLAYBACK_METADATA  = 0x8003;
+    constexpr uint16_t PLAYBACK_STATUS       = 0x8001; // Phone → HU
+    constexpr uint16_t PLAYBACK_STATUS_EVENT = 0x8002; // HU → Phone (instrument cluster d-pad input)
+    constexpr uint16_t PLAYBACK_METADATA     = 0x8003; // Phone → HU
 }
 
 /// Phone status channel messages

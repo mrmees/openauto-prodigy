@@ -18,7 +18,6 @@ NavigationChannelHandler::NavigationChannelHandler(QObject* parent)
 void NavigationChannelHandler::onChannelOpened()
 {
     navActive_ = false;
-    navFocusActive_ = false;
     qInfo() << "[NavChannel] opened";
 }
 
@@ -27,10 +26,6 @@ void NavigationChannelHandler::onChannelClosed()
     if (navActive_) {
         navActive_ = false;
         emit navigationStateChanged(false);
-    }
-    if (navFocusActive_) {
-        navFocusActive_ = false;
-        emit navigationFocusChanged(false);
     }
     qInfo() << "[NavChannel] closed";
 }
@@ -48,8 +43,8 @@ void NavigationChannelHandler::onMessage(uint16_t messageId, const QByteArray& p
     case oaa::NavigationMessageId::NAV_TURN_EVENT:
         handleTurnEvent(data);
         break;
-    case oaa::NavigationMessageId::NAV_FOCUS_INDICATION:
-        handleFocusIndication(data);
+    case 0x8005: // was NAV_FOCUS_INDICATION (retracted — message doesn't exist)
+        qInfo() << "[NavChannel] received 0x8005 (retracted NAV_FOCUS_INDICATION), len:" << data.size();
         break;
     case oaa::NavigationMessageId::NAV_STEP:
         handleNavStep(data);
@@ -172,21 +167,8 @@ void NavigationChannelHandler::handleNavStep(const QByteArray& payload)
     emit navigationNotificationReceived(stepCount, totalLanes, destination, QString());
 }
 
-void NavigationChannelHandler::handleFocusIndication(const QByteArray& payload)
-{
-    oaa::proto::messages::NavigationFocusIndication msg;
-    if (!msg.ParseFromArray(payload.constData(), payload.size())) {
-        qWarning() << "[NavChannel] failed to parse NavigationFocusIndication";
-        return;
-    }
-
-    QByteArray focusData(msg.focus_data().data(), msg.focus_data().size());
-    qInfo() << "[NavChannel] focus indication, data:" << focusData.left(64).toHex(' ')
-            << "(" << focusData.size() << "bytes)";
-
-    navFocusActive_ = true;
-    emit navigationFocusChanged(true);
-}
+// handleFocusIndication removed — NavigationFocusIndication proto was retracted (2026-03-06).
+// Nav focus is managed via Control channel (NavigationFocusRequest/Response, msgs 13/14).
 
 void NavigationChannelHandler::handleNavDistance(const QByteArray& payload)
 {

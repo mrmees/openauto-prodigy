@@ -5,7 +5,7 @@
 #include <oaa/Channel/MessageIds.hpp>
 #include "oaa/navigation/NavigationTurnEventMessage.pb.h"
 #include "oaa/navigation/NavigationNotificationMessage.pb.h"
-#include "oaa/navigation/NavigationFocusIndicationMessage.pb.h"
+// NavigationFocusIndicationMessage.pb.h removed — retracted in proto v1.1
 
 class TestNavigationChannelHandler : public QObject {
     Q_OBJECT
@@ -121,47 +121,8 @@ private slots:
         QCOMPARE(spy[0][2].toString(), QString("123 Elm Street")); // destination
     }
 
-    void testFocusIndicationEmitsSignal() {
-        oaa::hu::NavigationChannelHandler handler;
-        QSignalSpy spy(&handler, &oaa::hu::NavigationChannelHandler::navigationFocusChanged);
-
-        oaa::proto::messages::NavigationFocusIndication msg;
-        msg.set_focus_data(std::string("\x01\x02\x03", 3));
-
-        QByteArray payload(msg.ByteSizeLong(), '\0');
-        msg.SerializeToArray(payload.data(), payload.size());
-
-        // NAV_FOCUS_INDICATION = 0x8005 (provisional)
-        handler.onMessage(oaa::NavigationMessageId::NAV_FOCUS_INDICATION, payload);
-
-        QCOMPARE(spy.count(), 1);
-        QCOMPARE(spy[0][0].toBool(), true);
-    }
-
-    void testFocusIndicationUpdatesState() {
-        oaa::hu::NavigationChannelHandler handler;
-        QSignalSpy spy(&handler, &oaa::hu::NavigationChannelHandler::navigationFocusChanged);
-
-        oaa::proto::messages::NavigationFocusIndication msg;
-        msg.set_focus_data(std::string("\x01", 1));
-
-        QByteArray payload(msg.ByteSizeLong(), '\0');
-        msg.SerializeToArray(payload.data(), payload.size());
-
-        // Send focus indication
-        handler.onMessage(oaa::NavigationMessageId::NAV_FOCUS_INDICATION, payload);
-        QCOMPARE(spy.count(), 1);
-        QCOMPARE(spy[0][0].toBool(), true);
-
-        // Channel close should reset focus
-        handler.onChannelClosed();
-        // Focus should be cleared (navFocusActive_ = false)
-        // Verify by sending another focus indication -- should emit again
-        QSignalSpy spy2(&handler, &oaa::hu::NavigationChannelHandler::navigationFocusChanged);
-        handler.onChannelOpened();
-        handler.onMessage(oaa::NavigationMessageId::NAV_FOCUS_INDICATION, payload);
-        QCOMPARE(spy2.count(), 1);
-    }
+    // testFocusIndicationEmitsSignal / testFocusIndicationUpdatesState removed —
+    // NavigationFocusIndication proto retracted in v1.1 (nav focus is on Control channel)
 };
 
 QTEST_MAIN(TestNavigationChannelHandler)

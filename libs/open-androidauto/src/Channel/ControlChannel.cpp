@@ -8,7 +8,7 @@
 #include "oaa/control/ChannelOpenResponseMessage.pb.h"
 #include "oaa/control/AuthCompleteIndicationMessage.pb.h"
 #include "oaa/control/ShutdownRequestMessage.pb.h"
-#include "oaa/control/ShutdownResponseMessage.pb.h"
+#include "oaa/control/ByeByeResponseMessage.pb.h"
 #include "oaa/common/StatusEnum.pb.h"
 #include "oaa/control/ShutdownReasonEnum.pb.h"
 #include "oaa/phone/CallAvailabilityMessage.pb.h"
@@ -220,7 +220,7 @@ void ControlChannel::sendShutdownRequest(int reason) {
 }
 
 void ControlChannel::sendShutdownResponse() {
-    proto::messages::ShutdownResponse msg;
+    proto::messages::ByeByeResponse msg;
     QByteArray payload(msg.ByteSizeLong(), '\0');
     msg.SerializeToArray(payload.data(), payload.size());
     emit sendRequested(0, MSG_SHUTDOWN_RESPONSE, payload);

@@ -94,7 +94,7 @@ void VideoChannelHandler::handleSetupRequest(const QByteArray& payload)
         return;
     }
 
-    qInfo() << "[VideoChannel] setup request, config_index:" << req.config_index()
+    qInfo() << "[VideoChannel] setup request, codec:" << req.media_codec_type()
             << "raw:" << payload.toHex(' ')
             << "debug:" << QString::fromStdString(req.ShortDebugString());
 
@@ -222,9 +222,9 @@ void VideoChannelHandler::requestVideoFocus(bool focused)
 void VideoChannelHandler::sendAck()
 {
     oaa::proto::messages::AVMediaAckIndication ack;
-    ack.set_session(session_);
-    // Value is permit replenishment for this ACK message, not cumulative count.
-    ack.set_value(1);
+    ack.set_session_id(session_);
+    // ack_count is permit replenishment for this ACK message, not cumulative count.
+    ack.set_ack_count(1);
 
     QByteArray data(ack.ByteSizeLong(), '\0');
     ack.SerializeToArray(data.data(), data.size());

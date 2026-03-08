@@ -37,18 +37,14 @@ signals:
     void navigationNotificationReceived(int stepCount, int laneCount,
                                          const QString& destination, const QString& eta);
 
-    /// Emitted when navigation focus indication is received
-    void navigationFocusChanged(bool hasFocus);
+    // navigationFocusChanged removed — NavigationFocusIndication retracted in v1.1
 
 private:
     void handleNavState(const QByteArray& payload);
     void handleNavStep(const QByteArray& payload);
     void handleNavDistance(const QByteArray& payload);
     void handleTurnEvent(const QByteArray& payload);
-    void handleFocusIndication(const QByteArray& payload);
-
     bool navActive_ = false;
-    bool navFocusActive_ = false;
 };
 
 } // namespace hu
