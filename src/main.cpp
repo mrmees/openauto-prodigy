@@ -147,6 +147,13 @@ int main(int argc, char *argv[])
     }
     // DisplayInfo defaults to 1024x600, overwritten by QQuickWindow signals
 
+    // Apply screen size from config for DPI computation
+    auto screenSizeVar = yamlConfig->valueByPath("display.screen_size");
+    if (screenSizeVar.isValid() && screenSizeVar.toDouble() > 0)
+        displayInfo->setScreenSizeInches(screenSizeVar.toDouble());
+    qCInfo(lcCore) << "Screen size:" << displayInfo->screenSizeInches()
+                   << "inches, DPI:" << displayInfo->computedDpi();
+
     // Log active UI overrides
     {
         auto logUiOverride = [&](const char* key) {

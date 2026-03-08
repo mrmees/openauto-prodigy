@@ -18,6 +18,7 @@ void YamlConfig::initDefaults()
     root_["hardware_profile"] = "rpi4";
 
     root_["display"]["brightness"] = 80;
+    root_["display"]["screen_size"] = 7.0;
     root_["display"]["theme"] = "default";
     root_["display"]["wallpaper_override"] = "";
 
