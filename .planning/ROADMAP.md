@@ -63,7 +63,7 @@ See .planning/milestones/v0.5.0-ROADMAP.md for archived details.
 - Integer phases (1, 2, 3): Planned milestone work
 - Decimal phases (2.1, 2.2): Urgent insertions (marked with INSERTED)
 
-- [ ] **Phase 1: DPI Foundation** - Installer EDID probe, DPI-based UiMetrics, config persistence with settings UI
+- [x] **Phase 1: DPI Foundation** - Installer EDID probe, DPI-based UiMetrics, config persistence with settings UI (completed 2026-03-08)
 - [ ] **Phase 2: Clock & Scale Control** - Clock readability and 24h toggle, user-facing scale stepper
 - [ ] **Phase 3: Theme Color System** - Full semantic color palette aligned with Material Design conventions
 - [ ] **Phase 4: Visual Depth** - 3D depth effects on buttons and navbar
@@ -79,7 +79,7 @@ See .planning/milestones/v0.5.0-ROADMAP.md for archived details.
   2. A fresh install with no EDID and user skipping entry defaults to 7" and produces correctly scaled UI
   3. UiMetrics-driven element sizes change when the configured screen size changes (e.g., 7" vs 10" produces visibly different control sizes at the same resolution)
   4. User can view and change the physical screen size value in Display settings, and the change persists across restarts
-**Plans:** 3 plans
+**Plans:** 3/3 plans complete
 Plans:
 - [ ] 01-01-PLAN.md -- DisplayInfo DPI properties + config default + unit tests
 - [ ] 01-02-PLAN.md -- UiMetrics DPI-based scaling + settings UI read-only display
@@ -123,7 +123,7 @@ Phases execute in numeric order: 1 -> 2 -> 3 -> 4
 
 | Phase | Plans Complete | Status | Completed |
 |-------|----------------|--------|-----------|
-| 1. DPI Foundation | 1/3 | Executing | - |
+| 1. DPI Foundation | 3/3 | Complete   | 2026-03-08 |
 | 2. Clock & Scale Control | 0/? | Not started | - |
 | 3. Theme Color System | 0/? | Not started | - |
 | 4. Visual Depth | 0/? | Not started | - |
