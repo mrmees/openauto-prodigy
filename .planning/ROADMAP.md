@@ -107,7 +107,7 @@ Plans:
   1. ThemeService exposes a full set of named semantic color roles (surface, primary, secondary, accent, error, on-surface, on-primary, etc.) as Q_PROPERTYs
   2. Switching between day and night themes produces a coherent, non-clashing color scheme across all screens (launcher, settings, AA overlay, BT audio, phone)
   3. No hardcoded color hex values remain in any QML file -- all colors reference ThemeService properties
-**Plans:** 3 plans
+**Plans:** 1/3 plans executed
 Plans:
 - [ ] 03-01-PLAN.md -- ThemeService property rename to AA tokens + derived colors + YAML migration
 - [ ] 03-02-PLAN.md -- QML hardcode elimination + ThemeService reference update + web config/IPC
@@ -132,7 +132,7 @@ Phases execute in numeric order: 1 -> 2 -> 3 -> 4
 |-------|----------------|--------|-----------|
 | 1. DPI Foundation | 3/3 | Complete   | 2026-03-08 |
 | 2. Clock & Scale Control | 2/2 | Complete   | 2026-03-08 |
-| 3. Theme Color System | 0/3 | Not started | - |
+| 3. Theme Color System | 1/3 | In Progress|  |
 | 4. Visual Depth | 0/? | Not started | - |
 
 ---

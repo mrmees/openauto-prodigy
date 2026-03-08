@@ -23,8 +23,8 @@ Requirements for DPI sizing and UI polish milestone. Each maps to roadmap phases
 
 ### Theme & Colors
 
-- [ ] **THM-01**: Theme color palette is fully fleshed out with named semantic roles (surface, primary, secondary, accent, error, etc.)
-- [ ] **THM-02**: Theme colors align with Material Design color system conventions for consistency and familiarity
+- [x] **THM-01**: Theme color palette is fully fleshed out with named semantic roles (surface, primary, secondary, accent, error, etc.)
+- [x] **THM-02**: Theme colors align with Material Design color system conventions for consistency and familiarity
 - [ ] **THM-03**: All UI elements consistently use semantic theme colors (no hardcoded color values in QML)
 
 ### Styling
@@ -66,8 +66,8 @@ Requirements for DPI sizing and UI polish milestone. Each maps to roadmap phases
 | CLK-01 | Phase 2 | Complete |
 | CLK-02 | Phase 2 | Complete |
 | CLK-03 | Phase 2 | Complete |
-| THM-01 | Phase 3 | Pending |
-| THM-02 | Phase 3 | Pending |
+| THM-01 | Phase 3 | Complete |
+| THM-02 | Phase 3 | Complete |
 | THM-03 | Phase 3 | Pending |
 | STY-01 | Phase 4 | Pending |
 | STY-02 | Phase 4 | Pending |
