@@ -3,14 +3,14 @@ gsd_state_version: 1.0
 milestone: v0.5
 milestone_name: milestone
 status: executing
-stopped_at: Completed 02-01-PLAN.md
-last_updated: "2026-03-08T19:09:17Z"
-last_activity: 2026-03-08 -- Plan 02-01 executed (clock sizing & config reactivity)
+stopped_at: Completed 02-02-PLAN.md
+last_updated: "2026-03-08T19:13:24Z"
+last_activity: 2026-03-08 -- Plan 02-02 executed (scale stepper & safety revert)
 progress:
   total_phases: 4
-  completed_phases: 1
+  completed_phases: 2
   total_plans: 5
-  completed_plans: 4
+  completed_plans: 5
   percent: 100
 ---
 
@@ -21,23 +21,23 @@ progress:
 See: .planning/PROJECT.md (updated 2026-03-08)
 
 **Core value:** A person with a Raspberry Pi 4 and a touchscreen can install this, pair their phone, and get a reliable wireless Android Auto experience -- every time, without SSH.
-**Current focus:** v0.5.1 DPI Sizing & UI Polish -- Phase 2 in progress
+**Current focus:** v0.5.1 DPI Sizing & UI Polish -- Phase 2 complete
 
 ## Current Position
 
-Phase: 2 of 4 (Clock & Scale Control) -- EXECUTING
-Plan: 1 of 2 complete
-Status: Plan 02-01 complete, ready for Plan 02-02
-Last activity: 2026-03-08 -- Plan 02-01 executed (clock sizing & config reactivity)
+Phase: 2 of 4 (Clock & Scale Control) -- COMPLETE
+Plan: 2 of 2 complete
+Status: Phase 2 complete, ready for Phase 3
+Last activity: 2026-03-08 -- Plan 02-02 executed (scale stepper & safety revert)
 
-Progress: [████████░░] 80%
+Progress: [██████████] 100%
 
 ## Performance Metrics
 
 **Velocity:**
-- Total plans completed: 4
+- Total plans completed: 5
 - Average duration: 2 min
-- Total execution time: 0.18 hours
+- Total execution time: 0.21 hours
 
 ## Accumulated Context
 
@@ -53,6 +53,9 @@ Decisions are logged in PROJECT.md Key Decisions table.
 - (02-01) Clock fills 75% of control height with DemiBold weight for glanceability
 - (02-01) 12h format omits AM/PM -- in a car you know if it's day or night
 - (02-01) UiMetrics Connections on ConfigService.configChanged for reactive config updates
+- (02-02) Safety revert triggers on every scale change, not just extreme values -- Windows display pattern
+- (02-02) No animation on scale changes -- instant re-layout avoids visual chaos
+- (02-02) Overlay at Flickable bottom with z:10 to float over scrollable content
 
 ### Pending Todos
 
@@ -64,5 +67,5 @@ None yet.
 
 ## Session Continuity
 
-Last session: 2026-03-08T19:09:17Z
-Stopped at: Completed 02-01-PLAN.md
+Last session: 2026-03-08T19:13:24Z
+Stopped at: Completed 02-02-PLAN.md

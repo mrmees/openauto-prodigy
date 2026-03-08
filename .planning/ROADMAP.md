@@ -64,7 +64,7 @@ See .planning/milestones/v0.5.0-ROADMAP.md for archived details.
 - Decimal phases (2.1, 2.2): Urgent insertions (marked with INSERTED)
 
 - [x] **Phase 1: DPI Foundation** - Installer EDID probe, DPI-based UiMetrics, config persistence with settings UI (completed 2026-03-08)
-- [ ] **Phase 2: Clock & Scale Control** - Clock readability and 24h toggle, user-facing scale stepper
+- [x] **Phase 2: Clock & Scale Control** - Clock readability and 24h toggle, user-facing scale stepper (completed 2026-03-08)
 - [ ] **Phase 3: Theme Color System** - Full semantic color palette aligned with Material Design conventions
 - [ ] **Phase 4: Visual Depth** - 3D depth effects on buttons and navbar
 
@@ -94,7 +94,7 @@ Plans:
   2. Clock shows bare time without AM/PM suffix in 12h mode
   3. User can toggle between 12h and 24h format in settings, and the navbar clock updates immediately
   4. User can adjust UI scale via stepper in Display settings (increments of 0.1), and all UI elements resize live or on confirm
-**Plans:** 1/2 plans executed
+**Plans:** 2/2 plans complete
 Plans:
 - [ ] 02-01-PLAN.md -- Config plumbing, UiMetrics reactivity fix, clock sizing and 24h toggle
 - [ ] 02-02-PLAN.md -- Scale stepper control with safety revert overlay
@@ -127,7 +127,7 @@ Phases execute in numeric order: 1 -> 2 -> 3 -> 4
 | Phase | Plans Complete | Status | Completed |
 |-------|----------------|--------|-----------|
 | 1. DPI Foundation | 3/3 | Complete   | 2026-03-08 |
-| 2. Clock & Scale Control | 1/2 | In Progress|  |
+| 2. Clock & Scale Control | 2/2 | Complete   | 2026-03-08 |
 | 3. Theme Color System | 0/? | Not started | - |
 | 4. Visual Depth | 0/? | Not started | - |
 

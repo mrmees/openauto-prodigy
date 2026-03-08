@@ -2,11 +2,12 @@ pragma Singleton
 import QtQuick
 
 QtObject {
-    // --- Config reads (updated reactively via Connections below) ---
+    // --- Config reads (updated reactively via Connections property) ---
     property var _cfgScale: ConfigService.value("ui.scale")
     property var _cfgFontScale: ConfigService.value("ui.fontScale")
 
-    Connections {
+    // Declared as property — QtObject cannot have child objects
+    property Connections _configWatcher: Connections {
         target: ConfigService
         function onConfigChanged(path, value) {
             if (path === "ui.scale") _cfgScale = value
