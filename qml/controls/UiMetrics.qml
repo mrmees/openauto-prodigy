@@ -22,9 +22,16 @@ QtObject {
     readonly property int _winW: DisplayInfo ? DisplayInfo.windowWidth : 1024
     readonly property int _winH: DisplayInfo ? DisplayInfo.windowHeight : 600
 
+    // --- DPI-based scaling (replaces hardcoded 1024/600 resolution ratio) ---
+    readonly property real _screenSize: DisplayInfo ? DisplayInfo.screenSizeInches : 7.0
+    readonly property real _diagPx: Math.sqrt(_winW * _winW + _winH * _winH)
+    readonly property real _dpi: _diagPx / _screenSize
+    readonly property real _referenceDpi: 160.0  // Android mdpi standard
+
     // --- Dual-axis scale factors (unclamped) ---
-    readonly property real scaleH: _winW / 1024.0
-    readonly property real scaleV: _winH / 600.0
+    // DPI-based: actual_DPI / 160 (uniform for square pixels, preserves dual-axis infrastructure)
+    readonly property real scaleH: _dpi / _referenceDpi
+    readonly property real scaleV: _dpi / _referenceDpi
 
     // --- Layout scale: min of axes (prevents overflow) ---
     readonly property real autoScale: Math.min(scaleH, scaleV)
@@ -125,6 +132,8 @@ QtObject {
     // --- Startup logging ---
     Component.onCompleted: {
         console.log("[UiMetrics] window:", _winW + "x" + _winH,
+                    "screen:", _screenSize + "\"",
+                    "dpi:", Math.round(_dpi),
                     "scaleH:", scaleH.toFixed(3), "scaleV:", scaleV.toFixed(3),
                     "layoutScale:", autoScale.toFixed(3), "fontScale:", _autoFontScale.toFixed(3),
                     "globalScale:", globalScale, "fontScaleCfg:", fontScale,
