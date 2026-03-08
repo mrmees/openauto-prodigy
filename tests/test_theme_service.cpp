@@ -25,10 +25,10 @@ private slots:
 
         // Day mode is the default
         QVERIFY(!service.nightMode());
-        QCOMPARE(service.backgroundColor(), QColor("#1a1a2e"));
-        QCOMPARE(service.highlightColor(), QColor("#e94560"));
-        QCOMPARE(service.normalFontColor(), QColor("#ffffff"));
-        QCOMPARE(service.barBackgroundColor(), QColor("#0f3460"));
+        QCOMPARE(service.background(), QColor("#1a1a2e"));
+        QCOMPARE(service.primary(), QColor("#e94560"));
+        QCOMPARE(service.textPrimary(), QColor("#ffffff"));
+        QCOMPARE(service.surfaceContainerLow(), QColor("#0f3460"));
     }
 
     void nightModeColors()
@@ -38,9 +38,9 @@ private slots:
 
         service.setNightMode(true);
         QVERIFY(service.nightMode());
-        QCOMPARE(service.backgroundColor(), QColor("#0a0a14"));
-        QCOMPARE(service.highlightColor(), QColor("#c73650"));
-        QCOMPARE(service.normalFontColor(), QColor("#c0c0c0"));
+        QCOMPARE(service.background(), QColor("#0a0a14"));
+        QCOMPARE(service.primary(), QColor("#c73650"));
+        QCOMPARE(service.textPrimary(), QColor("#c0c0c0"));
     }
 
     void toggleModeFlips()
@@ -61,7 +61,7 @@ private slots:
         service.loadThemeFile(QFINDTESTDATA("data/themes/default/theme.yaml"));
 
         // IThemeService::color() uses the same key lookup
-        QCOMPARE(service.color("highlight"), QColor("#e94560"));
+        QCOMPARE(service.color("primary"), QColor("#e94560"));
         QCOMPARE(service.color("nonexistent"), QColor(Qt::transparent));
     }
 
@@ -110,7 +110,7 @@ private slots:
             << "name: Partial Theme\n"
             << "day:\n"
             << "  background: \"#111111\"\n"
-            << "  highlight: \"#222222\"\n"
+            << "  primary: \"#222222\"\n"
             << "night:\n"
             << "  background: \"#333333\"\n";
         f.close();
@@ -121,8 +121,75 @@ private slots:
         service.setNightMode(true);
         // background is defined in night
         QCOMPARE(service.color("background"), QColor("#333333"));
-        // highlight falls back to day
-        QCOMPARE(service.color("highlight"), QColor("#222222"));
+        // primary falls back to day
+        QCOMPARE(service.color("primary"), QColor("#222222"));
+    }
+
+    // --- New AA token accessor tests ---
+
+    void allBaseTokensPresent()
+    {
+        oap::ThemeService service;
+        service.loadThemeFile(QFINDTESTDATA("data/themes/default/theme.yaml"));
+
+        // All 16 base accessors should return non-transparent colors
+        QVERIFY(service.primary() != QColor(Qt::transparent));
+        QVERIFY(service.onSurface() != QColor(Qt::transparent));
+        QVERIFY(service.surface() != QColor(Qt::transparent));
+        QVERIFY(service.surfaceVariant() != QColor(Qt::transparent));
+        QVERIFY(service.surfaceContainerLow() != QColor(Qt::transparent));
+        QVERIFY(service.inverseSurface() != QColor(Qt::transparent));
+        QVERIFY(service.inverseOnSurface() != QColor(Qt::transparent));
+        QVERIFY(service.outline() != QColor(Qt::transparent));
+        QVERIFY(service.outlineVariant() != QColor(Qt::transparent));
+        QVERIFY(service.background() != QColor(Qt::transparent));
+        QVERIFY(service.textPrimary() != QColor(Qt::transparent));
+        QVERIFY(service.textSecondary() != QColor(Qt::transparent));
+        QVERIFY(service.red() != QColor(Qt::transparent));
+        QVERIFY(service.onRed() != QColor(Qt::transparent));
+        QVERIFY(service.yellow() != QColor(Qt::transparent));
+        QVERIFY(service.onYellow() != QColor(Qt::transparent));
+    }
+
+    void derivedColors()
+    {
+        oap::ThemeService service;
+        service.loadThemeFile(QFINDTESTDATA("data/themes/default/theme.yaml"));
+
+        // scrim is always black at ~70% opacity
+        QCOMPARE(service.scrim(), QColor(0, 0, 0, 180));
+
+        // pressed is onSurface at 10% alpha (~26/255)
+        QColor expectedPressed = QColor("#e0e0e0");
+        expectedPressed.setAlpha(26);
+        QCOMPARE(service.pressed(), expectedPressed);
+
+        // barShadow is always black at 50% opacity
+        QCOMPARE(service.barShadow(), QColor(0, 0, 0, 128));
+
+        // success is a fixed green
+        QCOMPARE(service.success(), QColor("#4CAF50"));
+
+        // onSuccess is white
+        QCOMPARE(service.onSuccess(), QColor("#FFFFFF"));
+    }
+
+    void dayNightWithNewAccessors()
+    {
+        oap::ThemeService service;
+        service.loadThemeFile(QFINDTESTDATA("data/themes/default/theme.yaml"));
+
+        // Day
+        QColor dayPrimary = service.primary();
+        QColor daySurface = service.surface();
+
+        // Switch to night
+        service.setNightMode(true);
+        QColor nightPrimary = service.primary();
+        QColor nightSurface = service.surface();
+
+        QVERIFY(dayPrimary != nightPrimary);
+        QVERIFY(daySurface != nightSurface);
     }
 
     // --- Multi-theme scanning and switching tests ---
@@ -241,11 +308,11 @@ private slots:
         oap::ThemeService service;
         service.scanThemeDirectories({tmpDir.path()});
         QVERIFY(service.setTheme("themeA"));
-        QCOMPARE(service.backgroundColor(), QColor("#ff0000"));
+        QCOMPARE(service.background(), QColor("#ff0000"));
 
         QSignalSpy colorsSpy(&service, &oap::ThemeService::colorsChanged);
         QVERIFY(service.setTheme("themeB"));
-        QCOMPARE(service.backgroundColor(), QColor("#0000ff"));
+        QCOMPARE(service.background(), QColor("#0000ff"));
         QVERIFY(colorsSpy.count() >= 1);
     }
 
