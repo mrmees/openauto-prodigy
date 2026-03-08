@@ -37,8 +37,6 @@ signals:
     void navigationNotificationReceived(int stepCount, int laneCount,
                                          const QString& destination, const QString& eta);
 
-    // navigationFocusChanged removed — NavigationFocusIndication retracted in v1.1
-
 private:
     void handleNavState(const QByteArray& payload);
     void handleNavStep(const QByteArray& payload);

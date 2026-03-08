@@ -16,7 +16,8 @@ public:
     explicit ServiceDiscoveryBuilder(oap::YamlConfig* yamlConfig = nullptr,
                                      const QString& btMacAddress = "00:00:00:00:00:00",
                                      const QString& wifiSsid = {},
-                                     const QString& wifiPassword = {});
+                                     const QString& wifiPassword = {},
+                                     const QString& wifiBssid = {});
 
     oaa::SessionConfig build() const;
 
@@ -55,6 +56,7 @@ private:
     QString btMacAddress_;
     QString wifiSsid_;
     QString wifiPassword_;
+    QString wifiBssid_;
     int overrideDisplayW_ = 0;  // 0 = use yamlConfig values
     int overrideDisplayH_ = 0;
 };

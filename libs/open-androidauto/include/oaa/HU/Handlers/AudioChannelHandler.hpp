@@ -24,14 +24,10 @@ signals:
     void audioDataReceived(const QByteArray& data, uint64_t timestamp);
     void streamStarted(int32_t session);
     void streamStopped();
-    // audioFocusStateChanged / audioStreamTypeChanged removed — proto messages retracted in v1.1
-
 private:
     void handleSetupRequest(const QByteArray& payload);
     void handleStartIndication(const QByteArray& payload);
     void handleStopIndication();
-    void handleAudioFocusState(const QByteArray& payload);
-    void handleAudioStreamType(const QByteArray& payload);
     void sendAck(uint32_t frameCount);
 
     uint8_t channelId_;

@@ -8,8 +8,6 @@
 #include "oaa/av/AVChannelStartIndicationMessage.pb.h"
 #include "oaa/av/AVChannelStopIndicationMessage.pb.h"
 #include "oaa/av/AVMediaAckIndicationMessage.pb.h"
-// AudioFocusStateMessage.pb.h and AudioStreamTypeMessage.pb.h removed — retracted in proto v1.1
-
 namespace oaa {
 namespace hu {
 
@@ -50,12 +48,6 @@ void AudioChannelHandler::onMessage(uint16_t messageId, const QByteArray& payloa
         break;
     case oaa::AVMessageId::STOP_INDICATION:
         handleStopIndication();
-        break;
-    case oaa::AVMessageId::AUDIO_FOCUS_STATE:
-        handleAudioFocusState(data);
-        break;
-    case oaa::AVMessageId::AUDIO_STREAM_TYPE:
-        handleAudioStreamType(data);
         break;
     case oaa::AVMessageId::VIDEO_FOCUS_NOTIFICATION:
     case oaa::AVMessageId::UPDATE_UI_CONFIG_REQUEST:
@@ -148,20 +140,6 @@ void AudioChannelHandler::onMediaData(const QByteArray& data, uint64_t timestamp
         sendAck(unackedCount_);
         unackedCount_ = 0;
     }
-}
-
-void AudioChannelHandler::handleAudioFocusState(const QByteArray& payload)
-{
-    // AudioFocusState message was retracted (misidentified).
-    // Log raw payload if we ever receive 0x8021 on an audio channel.
-    qDebug() << "[AudioChannel" << channelId_ << "] received 0x8021 (retracted AudioFocusState), len:" << payload.size();
-}
-
-void AudioChannelHandler::handleAudioStreamType(const QByteArray& payload)
-{
-    // AudioStreamType message was retracted (actually RadioTuneDirectionRequest on radio channel).
-    // Log raw payload for now if we ever receive 0x8022 on an audio channel.
-    qDebug() << "[AudioChannel" << channelId_ << "] received 0x8022 (retracted AudioStreamType), len:" << payload.size();
 }
 
 void AudioChannelHandler::sendAck(uint32_t frameCount)

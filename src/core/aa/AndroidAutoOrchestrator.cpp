@@ -14,6 +14,7 @@
 #include "../Logging.hpp"
 #include <QEventLoop>
 #include <QFileInfo>
+#include <QNetworkInterface>
 #include <netinet/in.h>
 #include <netinet/tcp.h>
 #include <sys/socket.h>
@@ -232,9 +233,20 @@ void AndroidAutoOrchestrator::onNewConnection()
     if (btDiscovery_)
         btMac = btDiscovery_->localAddress();
 #endif
+    // Look up wlan0 MAC address for WiFi BSSID field
+    QString wifiBssid;
+    QString wifiIface = yamlConfig_ ? yamlConfig_->wifiInterface() : QStringLiteral("wlan0");
+    for (const auto& iface : QNetworkInterface::allInterfaces()) {
+        if (iface.name() == wifiIface) {
+            wifiBssid = iface.hardwareAddress();
+            break;
+        }
+    }
+
     ServiceDiscoveryBuilder builder(yamlConfig_, btMac,
                                      yamlConfig_ ? yamlConfig_->wifiSsid() : QString(),
-                                     yamlConfig_ ? yamlConfig_->wifiPassword() : QString());
+                                     yamlConfig_ ? yamlConfig_->wifiPassword() : QString(),
+                                     wifiBssid);
     if (displayW_ > 0 && displayH_ > 0)
         builder.setDisplayDimensions(displayW_, displayH_);
     oaa::SessionConfig config = builder.build();
@@ -344,8 +356,6 @@ void AndroidAutoOrchestrator::onNewConnection()
         }
     }
 
-    // audioFocusStateChanged / audioStreamTypeChanged removed — proto messages retracted in v1.1
-
     // Bridge AA audio focus requests to PipeWire stream ducking
     if (audioService_) {
         connect(session_, &oaa::AASession::audioFocusChanged,
@@ -425,8 +435,6 @@ void AndroidAutoOrchestrator::onNewConnection()
             qCInfo(lcAA) << "[Nav] notification:" << stepCount << "steps,"
                           << laneCount << "lanes, dest:" << destination;
         });
-
-        // navigationFocusChanged removed — NavigationFocusIndication retracted in v1.1
 
         // Phone status events
         connect(&phoneStatusHandler_, &oaa::hu::PhoneStatusChannelHandler::callStateChanged,

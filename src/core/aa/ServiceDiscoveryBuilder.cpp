@@ -22,7 +22,6 @@
 #include "oaa/navigation/NavigationChannelData.pb.h"
 #include "oaa/navigation/NavigationImageOptionsData.pb.h"
 #include "oaa/media/MediaChannelData.pb.h"
-// PhoneStatusChannelData.pb.h removed — PhoneStatusChannel is in ChannelDescriptorData.pb.h (retracted in proto v1.1)
 #include "oaa/av/AVStreamTypeEnum.pb.h"
 #include "oaa/audio/AudioTypeEnum.pb.h"
 #include "oaa/video/VideoResolutionEnum.pb.h"
@@ -38,11 +37,13 @@ ServiceDiscoveryBuilder::ServiceDiscoveryBuilder(
     oap::YamlConfig* yamlConfig,
     const QString& btMacAddress,
     const QString& wifiSsid,
-    const QString& wifiPassword)
+    const QString& wifiPassword,
+    const QString& wifiBssid)
     : yamlConfig_(yamlConfig)
     , btMacAddress_(btMacAddress)
     , wifiSsid_(wifiSsid)
     , wifiPassword_(wifiPassword)
+    , wifiBssid_(wifiBssid)
 {
 }
 
@@ -398,7 +399,7 @@ QByteArray ServiceDiscoveryBuilder::buildWifiDescriptor() const
     desc.set_channel_id(14);
 
     auto* wifiChannel = desc.mutable_wifi_channel();
-    wifiChannel->set_bssid(wifiSsid_.toStdString());
+    wifiChannel->set_bssid(wifiBssid_.toStdString());
 
     QByteArray data(desc.ByteSizeLong(), '\0');
     desc.SerializeToArray(data.data(), data.size());

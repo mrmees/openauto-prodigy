@@ -29,8 +29,6 @@ namespace AVMessageId {
     constexpr uint16_t UPDATE_HU_UI_CONFIG_RESPONSE    = 0x8013;
     constexpr uint16_t MEDIA_STATS                     = 0x8014;
     constexpr uint16_t MEDIA_OPTIONS                   = 0x8015;
-    constexpr uint16_t AUDIO_FOCUS_STATE               = 0x8021;
-    constexpr uint16_t AUDIO_STREAM_TYPE               = 0x8022;
 }
 
 /// Input channel messages
@@ -60,7 +58,6 @@ namespace BluetoothMessageId {
 namespace NavigationMessageId {
     constexpr uint16_t NAV_STATE            = 0x8003;
     constexpr uint16_t NAV_TURN_EVENT       = 0x8004;
-    // 0x8005 was NAV_FOCUS_INDICATION — retracted (nav focus is on Control channel, msgs 13/14)
     constexpr uint16_t NAV_STEP             = 0x8006;
     constexpr uint16_t NAV_DISTANCE         = 0x8007;
 }

@@ -5,8 +5,6 @@
 #include "oaa/navigation/NavigationStateMessage.pb.h"
 #include "oaa/navigation/NavigationNotificationMessage.pb.h"
 #include "oaa/navigation/NavigationTurnEventMessage.pb.h"
-#include "oaa/navigation/NavigationFocusIndicationMessage.pb.h"
-
 namespace oaa {
 namespace hu {
 
@@ -42,9 +40,6 @@ void NavigationChannelHandler::onMessage(uint16_t messageId, const QByteArray& p
         break;
     case oaa::NavigationMessageId::NAV_TURN_EVENT:
         handleTurnEvent(data);
-        break;
-    case 0x8005: // was NAV_FOCUS_INDICATION (retracted — message doesn't exist)
-        qInfo() << "[NavChannel] received 0x8005 (retracted NAV_FOCUS_INDICATION), len:" << data.size();
         break;
     case oaa::NavigationMessageId::NAV_STEP:
         handleNavStep(data);
@@ -166,9 +161,6 @@ void NavigationChannelHandler::handleNavStep(const QByteArray& payload)
     // Emit enhanced notification signal
     emit navigationNotificationReceived(stepCount, totalLanes, destination, QString());
 }
-
-// handleFocusIndication removed — NavigationFocusIndication proto was retracted (2026-03-06).
-// Nav focus is managed via Control channel (NavigationFocusRequest/Response, msgs 13/14).
 
 void NavigationChannelHandler::handleNavDistance(const QByteArray& payload)
 {

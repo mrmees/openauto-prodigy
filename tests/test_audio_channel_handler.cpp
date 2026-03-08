@@ -100,19 +100,17 @@ private slots:
         QCOMPARE(dataSpy.count(), 0);
     }
 
-    // AudioFocusState (0x8021) and AudioStreamType (0x8022) tests removed —
-    // these messages were retracted in proto v1.1
-
-    void testRetractedMessageDoesNotCrash() {
-        // 0x8021 and 0x8022 are retracted but may still arrive from phones.
-        // Handler should log and not crash.
+    void testRetractedMessageFallsToDefault() {
+        // 0x8021 and 0x8022 are retracted — they now fall through to the
+        // default case which logs and emits unknownMessage. Should not crash.
         oaa::hu::AudioChannelHandler handler(oaa::ChannelId::MediaAudio);
         handler.onChannelOpened();
 
-        QByteArray payload("\x08\x01", 2); // valid-ish protobuf
-        handler.onMessage(oaa::AVMessageId::AUDIO_FOCUS_STATE, payload);
-        handler.onMessage(oaa::AVMessageId::AUDIO_STREAM_TYPE, payload);
-        // No crash = pass
+        QSignalSpy unknownSpy(&handler, &oaa::hu::AudioChannelHandler::unknownMessage);
+        QByteArray payload("\x08\x01", 2);
+        handler.onMessage(0x8021, payload);
+        handler.onMessage(0x8022, payload);
+        QCOMPARE(unknownSpy.count(), 2);
     }
 
     void testStateResetsOnChannelClose() {
