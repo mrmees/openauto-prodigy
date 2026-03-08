@@ -68,6 +68,12 @@ A person with a Raspberry Pi 4 and a touchscreen can install this, pair their ph
 
 <!-- Current scope. Building toward these. -->
 
+- [ ] Physical screen size detection (EDID + installer prompt) with 7" default
+- [ ] DPI-based UiMetrics baseline derived from real screen DPI
+- [ ] User-facing scale stepper (±0.1) in Display settings
+- [ ] Clock readability: larger display, remove AM/PM, 24h toggle in settings
+- [ ] Full theme color palette with Material Design compatibility
+- [ ] UI element styling: subtle 3D depth on buttons and taskbar
 - [ ] HFP call audio persists across AA connection state (calls don't drop if AA disconnects)
 - [ ] First-run experience guides user through phone pairing and WiFi verification
 - [ ] Web config panel EQ interface
@@ -146,5 +152,17 @@ v0.4 shipped logging and theming. v0.4.1 shipped 10-band graphic EQ with per-str
 | Library rename to prodigy-oaa-protocol | Distinguishes Prodigy's protocol lib from upstream open-android-auto | ✓ Good |
 | WiFi BSSID sends MAC not SSID | QNetworkInterface for wlan0 MAC — correct SDP semantics | ✓ Good |
 
+## Current Milestone: v0.5.1 DPI Sizing & UI Polish
+
+**Goal:** Make UI sizing physically meaningful via DPI-aware scaling with user control, and polish visual presentation (clock, theme colors, element depth).
+
+**Target features:**
+- Physical screen size detection (EDID in installer, 7" default, config override)
+- DPI-based UiMetrics replacing pure resolution-ratio scaling
+- User-facing scale stepper control (±0.1 increments) in Display settings
+- Clock readability improvements with 24h toggle
+- Full theme color palette with Material Design alignment
+- Subtle 3D depth styling on buttons and taskbar
+
 ---
-*Last updated: 2026-03-08 after v0.5.0 milestone completed*
+*Last updated: 2026-03-08 after v0.5.1 milestone started*
