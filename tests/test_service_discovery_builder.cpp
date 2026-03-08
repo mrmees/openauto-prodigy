@@ -191,9 +191,11 @@ private slots:
         QFAIL("Input channel not found");
     }
 
-    void testWifiChannelHasSsid() {
+    void testWifiChannelHasBssid() {
+        // BSSID should be the wlan0 MAC address, not the SSID
         oap::aa::ServiceDiscoveryBuilder builder(nullptr, "00:00:00:00:00:00",
-                                                  "TestSSID", "TestPass");
+                                                  "TestSSID", "TestPass",
+                                                  "AA:BB:CC:DD:EE:FF");
         auto config = builder.build();
 
         for (const auto& ch : config.channels) {
@@ -203,7 +205,7 @@ private slots:
                                     ch.descriptor.size());
                 QVERIFY(desc.has_wifi_channel());
                 QCOMPARE(QString::fromStdString(desc.wifi_channel().bssid()),
-                         QString("TestSSID"));
+                         QString("AA:BB:CC:DD:EE:FF"));
                 return;
             }
         }
