@@ -12,7 +12,23 @@ ThemeService::ThemeService(QObject* parent)
 {
 }
 
-static QMap<QString, QColor> loadColorMap(const YAML::Node& node)
+// Migration map: v1.0.0 theme keys → v2.0.0 AA wire token keys
+static const QMap<QString, QString> legacyKeyMap = {
+    {"background", "background"},
+    {"highlight", "primary"},
+    {"control_background", "surface_variant"},
+    {"control_foreground", "on_surface"},
+    {"normal_font", "text_primary"},
+    {"description_font", "text_secondary"},
+    {"bar_background", "surface_container_low"},
+    {"control_box_background", "surface"},
+    {"divider", "outline_variant"},
+    {"highlight_font", "inverse_surface"},
+    // Keys that map to new tokens with no direct old equivalent
+    // (special_font, gauge_indicator, icon, side_widget_background → dropped or derived)
+};
+
+static QMap<QString, QColor> loadColorMap(const YAML::Node& node, bool migrate)
 {
     QMap<QString, QColor> colors;
     if (!node.IsMap()) return colors;
@@ -21,8 +37,27 @@ static QMap<QString, QColor> loadColorMap(const YAML::Node& node)
         QString key = QString::fromStdString(it->first.as<std::string>());
         QString value = QString::fromStdString(it->second.as<std::string>());
         QColor c(value);
-        if (c.isValid())
+        if (!c.isValid()) continue;
+
+        if (migrate) {
+            auto mapped = legacyKeyMap.find(key);
+            if (mapped != legacyKeyMap.end())
+                colors[mapped.value()] = c;
+            // Also populate keys that need special handling
+            if (key == "highlight_font")
+                colors["inverse_on_surface"] = QColor("#ffffff");  // was always white-on-highlight
+            if (key == "divider")
+                colors["outline"] = QColor("#808080");  // no old equivalent
+            if (key == "highlight") {
+                // old highlight was used for red/yellow indicators too — provide defaults
+                if (!colors.contains("red")) colors["red"] = QColor("#cc4444");
+                if (!colors.contains("on_red")) colors["on_red"] = QColor("#ffffff");
+                if (!colors.contains("yellow")) colors["yellow"] = QColor("#FF9800");
+                if (!colors.contains("on_yellow")) colors["on_yellow"] = QColor("#000000");
+            }
+        } else {
             colors[key] = c;
+        }
     }
     return colors;
 }
@@ -46,8 +81,16 @@ bool ThemeService::loadThemeFile(const QString& yamlPath)
         themeName_ = QString::fromStdString(root["name"].as<std::string>(""));
         fontFamily_ = QString::fromStdString(root["font_family"].as<std::string>("Lato"));
 
-        dayColors_ = loadColorMap(root["day"]);
-        nightColors_ = loadColorMap(root["night"]);
+        // Detect v1.0.0 themes by checking for old key names (e.g. "highlight")
+        bool needsMigration = false;
+        if (root["day"] && root["day"]["highlight"])
+            needsMigration = true;
+
+        dayColors_ = loadColorMap(root["day"], needsMigration);
+        nightColors_ = loadColorMap(root["night"], needsMigration);
+
+        if (needsMigration)
+            qInfo() << "[Theme] Migrated v1 theme keys for:" << themeId_;
 
         emit colorsChanged();
         return true;
