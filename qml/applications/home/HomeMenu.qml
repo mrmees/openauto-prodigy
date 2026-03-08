@@ -8,7 +8,7 @@ Item {
     Text {
         anchors.centerIn: parent
         text: "Dashboard"
-        color: ThemeService.specialFontColor
+        color: ThemeService.primary
         font.pixelSize: UiMetrics.fontHeading
         font.bold: true
     }

@@ -76,9 +76,9 @@ Item {
     // Background
     Rectangle {
         anchors.fill: parent
-        color: ThemeService.controlBoxBackgroundColor
+        color: ThemeService.surface
         radius: UiMetrics.radius
-        border.color: ThemeService.barShadowColor
+        border.color: ThemeService.barShadow
         border.width: 1
 
         // Prevent tap-through
@@ -99,7 +99,7 @@ Item {
                 text: root.currentValue
                 font.pixelSize: UiMetrics.fontHeading
                 font.bold: true
-                color: ThemeService.normalFontColor
+                color: ThemeService.textPrimary
             }
 
             // Slider track area — with vertical padding so knob doesn't clip
@@ -116,7 +116,7 @@ Item {
                     anchors.bottom: parent.bottom
                     width: root.sliderTrackW
                     radius: root.sliderTrackW / 2
-                    color: ThemeService.controlBackgroundColor
+                    color: ThemeService.surfaceVariant
 
                     // Filled portion (from bottom)
                     Rectangle {
@@ -125,7 +125,7 @@ Item {
                         width: parent.width
                         height: parent.height * (root.currentValue - root.minVal) / (root.maxVal - root.minVal)
                         radius: parent.radius
-                        color: ThemeService.highlightColor
+                        color: ThemeService.primary
                     }
                 }
 
@@ -135,7 +135,7 @@ Item {
                     width: root.knobDiameter
                     height: root.knobDiameter
                     radius: root.knobDiameter / 2
-                    color: ThemeService.highlightColor
+                    color: ThemeService.primary
                     anchors.horizontalCenter: parent.horizontalCenter
                     y: parent.height - (parent.height * (root.currentValue - root.minVal) / (root.maxVal - root.minVal)) - root.knobDiameter / 2
                 }

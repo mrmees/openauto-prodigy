@@ -36,14 +36,14 @@ Item {
         Text {
             text: root.label
             font.pixelSize: UiMetrics.fontBody
-            color: ThemeService.normalFontColor
+            color: ThemeService.textPrimary
             Layout.fillWidth: true
         }
 
         MaterialIcon {
             icon: "\ue86a"
             size: UiMetrics.iconSmall
-            color: ThemeService.descriptionFontColor
+            color: ThemeService.textSecondary
             visible: root.restartRequired
         }
 
@@ -62,7 +62,7 @@ Item {
 
                     width: Math.max(UiMetrics.touchMin * 1.5, segLabel.implicitWidth + UiMetrics.gap)
                     height: UiMetrics.touchMin
-                    color: isSelected ? ThemeService.highlightColor : ThemeService.controlBackgroundColor
+                    color: isSelected ? ThemeService.primary : ThemeService.surfaceVariant
                     radius: UiMetrics.radius
 
                     scale: segMouseArea.pressed ? 0.97 : 1.0
@@ -95,7 +95,7 @@ Item {
                         anchors.verticalCenter: parent.verticalCenter
                         width: 1
                         height: parent.height * 0.6
-                        color: ThemeService.dividerColor
+                        color: ThemeService.outlineVariant
                     }
 
                     Text {
@@ -103,7 +103,7 @@ Item {
                         anchors.centerIn: parent
                         text: modelData
                         font.pixelSize: UiMetrics.fontSmall
-                        color: segment.isSelected ? ThemeService.backgroundColor : ThemeService.normalFontColor
+                        color: segment.isSelected ? ThemeService.background : ThemeService.textPrimary
                     }
 
                     MouseArea {

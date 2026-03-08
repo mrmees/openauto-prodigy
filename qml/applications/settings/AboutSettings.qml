@@ -24,13 +24,13 @@ Flickable {
                 text: "OpenAuto Prodigy"
                 font.pixelSize: UiMetrics.fontHeading
                 font.bold: true
-                color: ThemeService.normalFontColor
+                color: ThemeService.textPrimary
             }
 
             Text {
                 text: "Version " + (ConfigService.value("identity.sw_version") || "0.0.0")
                 font.pixelSize: UiMetrics.fontBody
-                color: ThemeService.descriptionFontColor
+                color: ThemeService.textSecondary
             }
         }
 
@@ -47,17 +47,17 @@ Flickable {
                 MaterialIcon {
                     icon: "\ue5cd"
                     size: UiMetrics.iconSize
-                    color: ThemeService.normalFontColor
+                    color: ThemeService.textPrimary
                 }
                 Text {
                     text: "Close App"
                     font.pixelSize: UiMetrics.fontBody
-                    color: ThemeService.normalFontColor
+                    color: ThemeService.textPrimary
                 }
                 Item { Layout.fillWidth: true }
             }
             background: Rectangle {
-                color: parent.pressed ? ThemeService.highlightColor : ThemeService.barBackgroundColor
+                color: parent.pressed ? ThemeService.primary : ThemeService.surfaceContainerLow
                 radius: UiMetrics.radius
             }
         }

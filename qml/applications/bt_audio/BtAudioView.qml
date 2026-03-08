@@ -5,7 +5,7 @@ import QtQuick.Layouts
 Rectangle {
     id: btAudioView
     anchors.fill: parent
-    color: ThemeService.backgroundColor
+    color: ThemeService.background
 
     property bool isConnected: BtAudioPlugin && BtAudioPlugin.connectionState === 1
     property bool isPlaying: BtAudioPlugin && BtAudioPlugin.playbackState === 1
@@ -20,7 +20,7 @@ Rectangle {
             Layout.alignment: Qt.AlignHCenter
             text: BtAudioPlugin ? (BtAudioPlugin.deviceName || "Bluetooth Audio") : "Bluetooth Audio"
             font.pixelSize: UiMetrics.fontSmall
-            color: ThemeService.descriptionFontColor
+            color: ThemeService.textSecondary
             opacity: 0.7
             visible: isConnected
         }
@@ -31,15 +31,15 @@ Rectangle {
             width: UiMetrics.albumArt
             height: UiMetrics.albumArt
             radius: UiMetrics.radius
-            color: ThemeService.controlBackgroundColor
-            border.color: ThemeService.controlForegroundColor
+            color: ThemeService.surfaceVariant
+            border.color: ThemeService.onSurface
             border.width: 1
 
             MaterialIcon {
                 anchors.centerIn: parent
                 icon: "\ue405"  // music_note
                 size: Math.round(72 * UiMetrics.scale)
-                color: ThemeService.normalFontColor
+                color: ThemeService.textPrimary
                 opacity: 0.3
             }
         }
@@ -54,7 +54,7 @@ Rectangle {
                 text: BtAudioPlugin ? (BtAudioPlugin.trackTitle || "No Track") : "No Track"
                 font.pixelSize: UiMetrics.fontTitle
                 font.bold: true
-                color: ThemeService.normalFontColor
+                color: ThemeService.textPrimary
                 elide: Text.ElideRight
                 Layout.maximumWidth: btAudioView.width * 0.7
             }
@@ -63,7 +63,7 @@ Rectangle {
                 Layout.alignment: Qt.AlignHCenter
                 text: BtAudioPlugin ? (BtAudioPlugin.trackArtist || "Unknown Artist") : "Unknown Artist"
                 font.pixelSize: UiMetrics.fontSmall
-                color: ThemeService.descriptionFontColor
+                color: ThemeService.textSecondary
                 elide: Text.ElideRight
                 Layout.maximumWidth: btAudioView.width * 0.7
             }
@@ -72,7 +72,7 @@ Rectangle {
                 Layout.alignment: Qt.AlignHCenter
                 text: BtAudioPlugin ? (BtAudioPlugin.trackAlbum || "") : ""
                 font.pixelSize: UiMetrics.fontSmall
-                color: ThemeService.descriptionFontColor
+                color: ThemeService.textSecondary
                 opacity: 0.7
                 elide: Text.ElideRight
                 Layout.maximumWidth: btAudioView.width * 0.7
@@ -90,14 +90,14 @@ Rectangle {
             Text {
                 text: formatTime(BtAudioPlugin ? BtAudioPlugin.trackPosition : 0)
                 font.pixelSize: UiMetrics.fontTiny
-                color: ThemeService.descriptionFontColor
+                color: ThemeService.textSecondary
             }
 
             Rectangle {
                 Layout.fillWidth: true
                 height: UiMetrics.progressH
                 radius: UiMetrics.progressH / 2
-                color: ThemeService.controlBackgroundColor
+                color: ThemeService.surfaceVariant
 
                 Rectangle {
                     width: BtAudioPlugin && BtAudioPlugin.trackDuration > 0
@@ -105,14 +105,14 @@ Rectangle {
                            : 0
                     height: parent.height
                     radius: UiMetrics.progressH / 2
-                    color: ThemeService.highlightColor
+                    color: ThemeService.primary
                 }
             }
 
             Text {
                 text: formatTime(BtAudioPlugin ? BtAudioPlugin.trackDuration : 0)
                 font.pixelSize: UiMetrics.fontTiny
-                color: ThemeService.descriptionFontColor
+                color: ThemeService.textSecondary
             }
         }
 
@@ -121,7 +121,7 @@ Rectangle {
             Layout.alignment: Qt.AlignHCenter
             text: "No device connected"
             font.pixelSize: UiMetrics.fontSmall
-            color: ThemeService.highlightColor
+            color: ThemeService.primary
             visible: !isConnected
         }
 
@@ -138,10 +138,10 @@ Rectangle {
                 contentItem: MaterialIcon {
                     icon: "\ue045"  // skip_previous
                     size: UiMetrics.iconSize
-                    color: ThemeService.normalFontColor
+                    color: ThemeService.textPrimary
                 }
                 background: Rectangle {
-                    color: parent.pressed ? ThemeService.highlightColor : "transparent"
+                    color: parent.pressed ? ThemeService.primary : "transparent"
                     radius: width / 2
                     implicitWidth: UiMetrics.touchMin
                     implicitHeight: UiMetrics.touchMin
@@ -161,10 +161,10 @@ Rectangle {
                 contentItem: MaterialIcon {
                     icon: isPlaying ? "\ue034" : "\ue037"  // pause / play_arrow
                     size: Math.round(48 * UiMetrics.scale)
-                    color: ThemeService.normalFontColor
+                    color: ThemeService.textPrimary
                 }
                 background: Rectangle {
-                    color: parent.pressed ? ThemeService.highlightColor : "transparent"
+                    color: parent.pressed ? ThemeService.primary : "transparent"
                     radius: width / 2
                     implicitWidth: UiMetrics.callBtnSize
                     implicitHeight: UiMetrics.callBtnSize
@@ -178,10 +178,10 @@ Rectangle {
                 contentItem: MaterialIcon {
                     icon: "\ue044"  // skip_next
                     size: UiMetrics.iconSize
-                    color: ThemeService.normalFontColor
+                    color: ThemeService.textPrimary
                 }
                 background: Rectangle {
-                    color: parent.pressed ? ThemeService.highlightColor : "transparent"
+                    color: parent.pressed ? ThemeService.primary : "transparent"
                     radius: width / 2
                     implicitWidth: UiMetrics.touchMin
                     implicitHeight: UiMetrics.touchMin

@@ -78,12 +78,12 @@ Flickable {
                 text: "OpenAuto Prodigy"
                 font.pixelSize: UiMetrics.fontHeading
                 font.bold: true
-                color: ThemeService.normalFontColor
+                color: ThemeService.textPrimary
             }
             Text {
                 text: "Version " + (ConfigService.value("identity.sw_version") || "0.0.0")
                 font.pixelSize: UiMetrics.fontBody
-                color: ThemeService.descriptionFontColor
+                color: ThemeService.textSecondary
             }
         }
 
@@ -100,17 +100,17 @@ Flickable {
                 MaterialIcon {
                     icon: "\ue5cd"
                     size: UiMetrics.iconSize
-                    color: ThemeService.normalFontColor
+                    color: ThemeService.textPrimary
                 }
                 Text {
                     text: "Close App"
                     font.pixelSize: UiMetrics.fontBody
-                    color: ThemeService.normalFontColor
+                    color: ThemeService.textPrimary
                 }
                 Item { Layout.fillWidth: true }
             }
             background: Rectangle {
-                color: parent.pressed ? ThemeService.highlightColor : ThemeService.barBackgroundColor
+                color: parent.pressed ? ThemeService.primary : ThemeService.surfaceContainerLow
                 radius: UiMetrics.radius
             }
         }
@@ -120,7 +120,7 @@ Flickable {
         Text {
             text: "Test outbound commands (requires active AA connection)"
             font.pixelSize: UiMetrics.fontCaption
-            color: ThemeService.descriptionFontColor
+            color: ThemeService.textSecondary
             Layout.fillWidth: true
             wrapMode: Text.Wrap
         }
@@ -139,12 +139,12 @@ Flickable {
                 contentItem: Text {
                     text: "Play/Pause"
                     font.pixelSize: UiMetrics.fontBody
-                    color: parent.enabled ? ThemeService.normalFontColor : ThemeService.descriptionFontColor
+                    color: parent.enabled ? ThemeService.textPrimary : ThemeService.textSecondary
                     horizontalAlignment: Text.AlignHCenter
                     verticalAlignment: Text.AlignVCenter
                 }
                 background: Rectangle {
-                    color: parent.pressed ? ThemeService.highlightColor : ThemeService.barBackgroundColor
+                    color: parent.pressed ? ThemeService.primary : ThemeService.surfaceContainerLow
                     radius: UiMetrics.radius
                     opacity: parent.enabled ? 1.0 : 0.4
                 }
@@ -158,12 +158,12 @@ Flickable {
                 contentItem: Text {
                     text: "Prev"
                     font.pixelSize: UiMetrics.fontBody
-                    color: parent.enabled ? ThemeService.normalFontColor : ThemeService.descriptionFontColor
+                    color: parent.enabled ? ThemeService.textPrimary : ThemeService.textSecondary
                     horizontalAlignment: Text.AlignHCenter
                     verticalAlignment: Text.AlignVCenter
                 }
                 background: Rectangle {
-                    color: parent.pressed ? ThemeService.highlightColor : ThemeService.barBackgroundColor
+                    color: parent.pressed ? ThemeService.primary : ThemeService.surfaceContainerLow
                     radius: UiMetrics.radius
                     opacity: parent.enabled ? 1.0 : 0.4
                 }
@@ -177,12 +177,12 @@ Flickable {
                 contentItem: Text {
                     text: "Next"
                     font.pixelSize: UiMetrics.fontBody
-                    color: parent.enabled ? ThemeService.normalFontColor : ThemeService.descriptionFontColor
+                    color: parent.enabled ? ThemeService.textPrimary : ThemeService.textSecondary
                     horizontalAlignment: Text.AlignHCenter
                     verticalAlignment: Text.AlignVCenter
                 }
                 background: Rectangle {
-                    color: parent.pressed ? ThemeService.highlightColor : ThemeService.barBackgroundColor
+                    color: parent.pressed ? ThemeService.primary : ThemeService.surfaceContainerLow
                     radius: UiMetrics.radius
                     opacity: parent.enabled ? 1.0 : 0.4
                 }
@@ -201,12 +201,12 @@ Flickable {
                 contentItem: Text {
                     text: "Search (84)"
                     font.pixelSize: UiMetrics.fontBody
-                    color: parent.enabled ? ThemeService.normalFontColor : ThemeService.descriptionFontColor
+                    color: parent.enabled ? ThemeService.textPrimary : ThemeService.textSecondary
                     horizontalAlignment: Text.AlignHCenter
                     verticalAlignment: Text.AlignVCenter
                 }
                 background: Rectangle {
-                    color: parent.pressed ? ThemeService.highlightColor : ThemeService.barBackgroundColor
+                    color: parent.pressed ? ThemeService.primary : ThemeService.surfaceContainerLow
                     radius: UiMetrics.radius
                     opacity: parent.enabled ? 1.0 : 0.4
                 }
@@ -220,12 +220,12 @@ Flickable {
                 contentItem: Text {
                     text: "Assist (219)"
                     font.pixelSize: UiMetrics.fontBody
-                    color: parent.enabled ? ThemeService.normalFontColor : ThemeService.descriptionFontColor
+                    color: parent.enabled ? ThemeService.textPrimary : ThemeService.textSecondary
                     horizontalAlignment: Text.AlignHCenter
                     verticalAlignment: Text.AlignVCenter
                 }
                 background: Rectangle {
-                    color: parent.pressed ? ThemeService.highlightColor : ThemeService.barBackgroundColor
+                    color: parent.pressed ? ThemeService.primary : ThemeService.surfaceContainerLow
                     radius: UiMetrics.radius
                     opacity: parent.enabled ? 1.0 : 0.4
                 }
@@ -239,12 +239,12 @@ Flickable {
                 contentItem: Text {
                     text: "Voice (231)"
                     font.pixelSize: UiMetrics.fontBody
-                    color: parent.enabled ? ThemeService.normalFontColor : ThemeService.descriptionFontColor
+                    color: parent.enabled ? ThemeService.textPrimary : ThemeService.textSecondary
                     horizontalAlignment: Text.AlignHCenter
                     verticalAlignment: Text.AlignVCenter
                 }
                 background: Rectangle {
-                    color: parent.pressed ? ThemeService.highlightColor : ThemeService.barBackgroundColor
+                    color: parent.pressed ? ThemeService.primary : ThemeService.surfaceContainerLow
                     radius: UiMetrics.radius
                     opacity: parent.enabled ? 1.0 : 0.4
                 }
@@ -258,7 +258,7 @@ Flickable {
                      ? "AA not connected — buttons disabled"
                      : "AA orchestrator unavailable")
             font.pixelSize: UiMetrics.fontCaption
-            color: aaConnected ? ThemeService.highlightColor : ThemeService.descriptionFontColor
+            color: aaConnected ? ThemeService.primary : ThemeService.textSecondary
             Layout.fillWidth: true
         }
 

@@ -18,7 +18,7 @@ Item {
         font.pixelSize: UiMetrics.fontSmall
         font.bold: true
         font.capitalization: Font.AllUppercase
-        color: ThemeService.descriptionFontColor
+        color: ThemeService.textSecondary
     }
 
     Rectangle {
@@ -26,6 +26,6 @@ Item {
         anchors.right: parent.right
         anchors.bottom: parent.bottom
         height: 1
-        color: ThemeService.dividerColor
+        color: ThemeService.outlineVariant
     }
 }

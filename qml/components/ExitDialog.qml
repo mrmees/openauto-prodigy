@@ -13,9 +13,9 @@ Popup {
     readonly property color dangerColor: "#F44336"
 
     background: Rectangle {
-        color: ThemeService.controlBackgroundColor
+        color: ThemeService.surfaceVariant
         radius: UiMetrics.gap
-        border.color: ThemeService.controlForegroundColor
+        border.color: ThemeService.onSurface
         border.width: 1
     }
 
@@ -27,7 +27,7 @@ Popup {
             text: "Close OpenAuto Prodigy?"
             font.pixelSize: UiMetrics.fontTitle
             font.bold: true
-            color: ThemeService.normalFontColor
+            color: ThemeService.textPrimary
             horizontalAlignment: Text.AlignHCenter
             Layout.bottomMargin: UiMetrics.spacing
         }
@@ -45,17 +45,17 @@ Popup {
                 MaterialIcon {
                     icon: "\ue5cd"
                     size: UiMetrics.iconSize
-                    color: ThemeService.normalFontColor
+                    color: ThemeService.textPrimary
                 }
                 Text {
                     text: "Minimize"
                     font.pixelSize: UiMetrics.fontBody
-                    color: ThemeService.normalFontColor
+                    color: ThemeService.textPrimary
                 }
                 Item { Layout.fillWidth: true }
             }
             background: Rectangle {
-                color: parent.pressed ? ThemeService.highlightColor : ThemeService.barBackgroundColor
+                color: parent.pressed ? ThemeService.primary : ThemeService.surfaceContainerLow
                 radius: UiMetrics.radius
             }
         }
@@ -80,7 +80,7 @@ Popup {
                 Item { Layout.fillWidth: true }
             }
             background: Rectangle {
-                color: parent.pressed ? exitDialog.dangerColor : ThemeService.barBackgroundColor
+                color: parent.pressed ? exitDialog.dangerColor : ThemeService.surfaceContainerLow
                 radius: UiMetrics.radius
                 border.color: exitDialog.dangerColor
                 border.width: 1
@@ -94,11 +94,11 @@ Popup {
             contentItem: Text {
                 text: "Cancel"
                 font.pixelSize: UiMetrics.fontBody
-                color: ThemeService.normalFontColor
+                color: ThemeService.textPrimary
                 horizontalAlignment: Text.AlignHCenter
             }
             background: Rectangle {
-                color: parent.pressed ? ThemeService.highlightColor : ThemeService.barBackgroundColor
+                color: parent.pressed ? ThemeService.primary : ThemeService.surfaceContainerLow
                 radius: UiMetrics.radius
             }
         }

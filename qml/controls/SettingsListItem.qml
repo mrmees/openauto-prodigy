@@ -26,20 +26,20 @@ Item {
         MaterialIcon {
             icon: root.icon
             size: UiMetrics.iconSize
-            color: ThemeService.normalFontColor
+            color: ThemeService.textPrimary
         }
 
         Text {
             text: root.label
             font.pixelSize: UiMetrics.fontBody
-            color: ThemeService.normalFontColor
+            color: ThemeService.textPrimary
             Layout.fillWidth: true
         }
 
         MaterialIcon {
             icon: "\ue5cc"
             size: UiMetrics.iconSmall
-            color: ThemeService.descriptionFontColor
+            color: ThemeService.textSecondary
         }
     }
 
@@ -50,7 +50,7 @@ Item {
         anchors.leftMargin: UiMetrics.marginPage
         anchors.rightMargin: UiMetrics.marginPage
         height: 1
-        color: ThemeService.dividerColor
+        color: ThemeService.outlineVariant
         opacity: 1.0
     }
 

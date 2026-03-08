@@ -21,7 +21,7 @@ Item {
         MaterialIcon {
             icon: root.icon
             size: UiMetrics.iconSize
-            color: ThemeService.normalFontColor
+            color: ThemeService.textPrimary
             visible: root.icon !== ""
             Layout.preferredWidth: UiMetrics.iconSize
         }
@@ -29,14 +29,14 @@ Item {
         Text {
             text: root.label
             font.pixelSize: UiMetrics.fontBody
-            color: ThemeService.normalFontColor
+            color: ThemeService.textPrimary
             Layout.fillWidth: true
         }
 
         MaterialIcon {
             icon: "\ue86a"  // restart_alt
             size: UiMetrics.iconSmall
-            color: ThemeService.descriptionFontColor
+            color: ThemeService.textSecondary
             visible: root.restartRequired
         }
 

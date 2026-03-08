@@ -78,7 +78,7 @@ Item {
                 default: return "Android Auto";
                 }
             }
-            color: ThemeService.specialFontColor
+            color: ThemeService.primary
             font.pixelSize: Math.round(40 * UiMetrics.scale)
             font.bold: true
         }
@@ -86,7 +86,7 @@ Item {
         Text {
             Layout.alignment: Qt.AlignHCenter
             text: AndroidAutoService.statusMessage
-            color: ThemeService.descriptionFontColor
+            color: ThemeService.textSecondary
             font.pixelSize: UiMetrics.fontTitle
             wrapMode: Text.WordWrap
             horizontalAlignment: Text.AlignHCenter
@@ -121,16 +121,16 @@ Item {
             width: cancelText.implicitWidth + UiMetrics.touchMin
             height: UiMetrics.touchMin
             radius: height / 2
-            color: cancelMouse.pressed ? Qt.darker(ThemeService.barBackgroundColor, 1.3)
-                                      : ThemeService.barBackgroundColor
-            border.color: ThemeService.descriptionFontColor
+            color: cancelMouse.pressed ? Qt.darker(ThemeService.surfaceContainerLow, 1.3)
+                                      : ThemeService.surfaceContainerLow
+            border.color: ThemeService.textSecondary
             border.width: 1
 
             Text {
                 id: cancelText
                 anchors.centerIn: parent
                 text: "Back"
-                color: ThemeService.normalFontColor
+                color: ThemeService.textPrimary
                 font.pixelSize: UiMetrics.fontBody
             }
 

@@ -37,7 +37,7 @@ Item {
     Rectangle {
         id: shadow
         anchors.fill: barBackground
-        color: ThemeService.barShadowColor
+        color: ThemeService.barShadow
         radius: 0
     }
 
@@ -45,7 +45,7 @@ Item {
     Rectangle {
         id: barBackground
         anchors.fill: parent
-        color: ThemeService.barBackgroundColor
+        color: ThemeService.surfaceContainerLow
     }
 
     // --- Controls container ---
@@ -204,9 +204,9 @@ Item {
             id: powerMenuBg
             width: Math.round(160 * UiMetrics.scale)
             height: powerMenuCol.implicitHeight + UiMetrics.spacing * 2
-            color: ThemeService.controlBoxBackgroundColor
+            color: ThemeService.surface
             radius: UiMetrics.radius
-            border.color: ThemeService.barShadowColor
+            border.color: ThemeService.barShadow
             border.width: 1
 
             MouseArea {
@@ -230,7 +230,7 @@ Item {
                         width: powerMenuBg.width - UiMetrics.spacing * 2
                         height: UiMetrics.touchMin
                         radius: UiMetrics.radiusSmall
-                        color: pmMouseArea.pressed ? ThemeService.pressedColor : "transparent"
+                        color: pmMouseArea.pressed ? ThemeService.pressed : "transparent"
 
                         Row {
                             anchors.centerIn: parent
@@ -239,13 +239,13 @@ Item {
                             MaterialIcon {
                                 icon: modelData.icon
                                 size: UiMetrics.iconSize
-                                color: ThemeService.iconColor
+                                color: ThemeService.onSurface
                                 anchors.verticalCenter: parent.verticalCenter
                             }
                             Text {
                                 text: modelData.label
                                 font.pixelSize: UiMetrics.fontBody
-                                color: ThemeService.normalFontColor
+                                color: ThemeService.textPrimary
                                 anchors.verticalCenter: parent.verticalCenter
                             }
                         }

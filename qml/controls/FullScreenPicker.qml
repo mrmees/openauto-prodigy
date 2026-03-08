@@ -78,28 +78,28 @@ Item {
         Text {
             text: root.label
             font.pixelSize: UiMetrics.fontBody
-            color: ThemeService.normalFontColor
+            color: ThemeService.textPrimary
             Layout.fillWidth: true
         }
 
         MaterialIcon {
             icon: "\ue86a"
             size: UiMetrics.iconSmall
-            color: ThemeService.descriptionFontColor
+            color: ThemeService.textSecondary
             visible: root.restartRequired
         }
 
         Text {
             text: root._displayText
             font.pixelSize: UiMetrics.fontBody
-            color: ThemeService.descriptionFontColor
+            color: ThemeService.textSecondary
             horizontalAlignment: Text.AlignRight
         }
 
         MaterialIcon {
             icon: "\ue5cf"
             size: UiMetrics.iconSize
-            color: ThemeService.descriptionFontColor
+            color: ThemeService.textSecondary
         }
     }
 
@@ -128,7 +128,7 @@ Item {
         bottomPadding: 0
 
         background: Rectangle {
-            color: ThemeService.controlBoxBackgroundColor
+            color: ThemeService.surface
             radius: UiMetrics.radius
             // Only round top corners
             Rectangle {
@@ -152,7 +152,7 @@ Item {
                     text: root.label
                     font.pixelSize: UiMetrics.fontTitle
                     font.bold: true
-                    color: ThemeService.normalFontColor
+                    color: ThemeService.textPrimary
                     Layout.fillWidth: true
                 }
 
@@ -165,7 +165,7 @@ Item {
                         anchors.centerIn: parent
                         icon: "\ue5cd"
                         size: UiMetrics.iconSize
-                        color: ThemeService.normalFontColor
+                        color: ThemeService.textPrimary
                     }
                 }
             }
@@ -176,7 +176,7 @@ Item {
                 anchors.left: parent.left
                 anchors.right: parent.right
                 height: 1
-                color: ThemeService.controlBackgroundColor
+                color: ThemeService.surfaceVariant
             }
         }
 
@@ -215,15 +215,15 @@ Item {
                         text: _itemText
                         font.pixelSize: UiMetrics.fontBody
                         color: index === root.currentIndex
-                            ? ThemeService.highlightColor
-                            : ThemeService.normalFontColor
+                            ? ThemeService.primary
+                            : ThemeService.textPrimary
                         Layout.fillWidth: true
                     }
 
                     MaterialIcon {
                         icon: "\ue876"
                         size: UiMetrics.iconSize
-                        color: ThemeService.highlightColor
+                        color: ThemeService.primary
                         visible: index === root.currentIndex
                     }
                 }
@@ -235,7 +235,7 @@ Item {
                     anchors.leftMargin: UiMetrics.marginPage
                     anchors.rightMargin: UiMetrics.marginPage
                     height: 1
-                    color: ThemeService.controlBackgroundColor
+                    color: ThemeService.surfaceVariant
                     visible: index < optionsList.count - 1
                 }
 

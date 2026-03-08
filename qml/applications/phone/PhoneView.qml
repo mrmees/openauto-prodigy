@@ -5,7 +5,7 @@ import QtQuick.Layouts
 Rectangle {
     id: phoneView
     anchors.fill: parent
-    color: ThemeService.backgroundColor
+    color: ThemeService.background
 
     property bool isConnected: PhonePlugin && PhonePlugin.phoneConnected
     property int callState: PhonePlugin ? PhonePlugin.callState : 0
@@ -24,7 +24,7 @@ Rectangle {
             Text {
                 text: PhonePlugin ? (PhonePlugin.deviceName || "Phone") : "Phone"
                 font.pixelSize: UiMetrics.fontSmall
-                color: ThemeService.descriptionFontColor
+                color: ThemeService.textSecondary
                 opacity: 0.7
             }
 
@@ -40,7 +40,7 @@ Rectangle {
             Text {
                 text: isConnected ? "Connected" : "No phone"
                 font.pixelSize: UiMetrics.fontTiny
-                color: ThemeService.descriptionFontColor
+                color: ThemeService.textSecondary
             }
         }
 
@@ -48,7 +48,7 @@ Rectangle {
         Rectangle {
             Layout.fillWidth: true
             height: Math.round(60 * UiMetrics.scale)
-            color: ThemeService.controlBackgroundColor
+            color: ThemeService.surfaceVariant
             radius: UiMetrics.radiusSmall
 
             Text {
@@ -67,7 +67,7 @@ Rectangle {
                 }
                 font.pixelSize: inCall ? UiMetrics.fontBody : UiMetrics.fontHeading
                 font.bold: true
-                color: ThemeService.normalFontColor
+                color: ThemeService.textPrimary
                 elide: Text.ElideRight
                 width: parent.width - UiMetrics.sectionGap * 2
                 horizontalAlignment: Text.AlignHCenter
@@ -98,16 +98,16 @@ Rectangle {
                     contentItem: Text {
                         text: parent.text
                         font: parent.font
-                        color: ThemeService.normalFontColor
+                        color: ThemeService.textPrimary
                         horizontalAlignment: Text.AlignHCenter
                         verticalAlignment: Text.AlignVCenter
                     }
                     background: Rectangle {
                         color: parent.pressed
-                               ? ThemeService.highlightColor
-                               : ThemeService.controlBackgroundColor
+                               ? ThemeService.primary
+                               : ThemeService.surfaceVariant
                         radius: UiMetrics.radiusSmall
-                        border.color: ThemeService.controlForegroundColor
+                        border.color: ThemeService.onSurface
                         border.width: 1
                     }
                 }
@@ -175,10 +175,10 @@ Rectangle {
                 contentItem: MaterialIcon {
                     icon: "\ue14a"  // backspace
                     size: Math.round(22 * UiMetrics.scale)
-                    color: ThemeService.normalFontColor
+                    color: ThemeService.textPrimary
                 }
                 background: Rectangle {
-                    color: parent.pressed ? ThemeService.highlightColor : ThemeService.controlBackgroundColor
+                    color: parent.pressed ? ThemeService.primary : ThemeService.surfaceVariant
                     radius: UiMetrics.radiusSmall
                 }
             }

@@ -21,7 +21,7 @@ Rectangle {
         width: Math.min(parent.width * 0.7, 500)
         height: col.implicitHeight + UiMetrics.marginPage * 2
         radius: UiMetrics.radius
-        color: ThemeService.backgroundColor
+        color: ThemeService.background
 
         ColumnLayout {
             id: col
@@ -32,14 +32,14 @@ Rectangle {
             Text {
                 text: "Pair with device?"
                 font.pixelSize: UiMetrics.fontHeading
-                color: ThemeService.normalFontColor
+                color: ThemeService.textPrimary
                 Layout.alignment: Qt.AlignHCenter
             }
 
             Text {
                 text: BluetoothManager ? BluetoothManager.pairingDeviceName : ""
                 font.pixelSize: UiMetrics.fontBody
-                color: ThemeService.descriptionFontColor
+                color: ThemeService.textSecondary
                 Layout.alignment: Qt.AlignHCenter
             }
 
@@ -48,7 +48,7 @@ Rectangle {
                 font.pixelSize: UiMetrics.fontHeading * 1.8
                 font.weight: Font.Bold
                 font.letterSpacing: 8
-                color: ThemeService.normalFontColor
+                color: ThemeService.textPrimary
                 Layout.alignment: Qt.AlignHCenter
                 Layout.topMargin: UiMetrics.gap
                 Layout.bottomMargin: UiMetrics.gap

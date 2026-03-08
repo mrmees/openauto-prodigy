@@ -57,7 +57,7 @@ Flickable {
                 Text {
                     text: "UI Scale"
                     font.pixelSize: UiMetrics.fontBody
-                    color: ThemeService.normalFontColor
+                    color: ThemeService.textPrimary
                     Layout.fillWidth: true
                 }
 
@@ -67,7 +67,7 @@ Flickable {
                     height: UiMetrics.touchMin
                     radius: UiMetrics.touchMin / 2
                     color: "transparent"
-                    border.color: Math.abs(root._currentScale - 1.0) > 0.05 ? ThemeService.descriptionFontColor : "transparent"
+                    border.color: Math.abs(root._currentScale - 1.0) > 0.05 ? ThemeService.textSecondary : "transparent"
                     border.width: 1
                     opacity: Math.abs(root._currentScale - 1.0) > 0.05 ? 1.0 : 0.0
 
@@ -75,7 +75,7 @@ Flickable {
                         anchors.centerIn: parent
                         icon: "\ue042"
                         size: UiMetrics.iconSmall
-                        color: ThemeService.descriptionFontColor
+                        color: ThemeService.textSecondary
                     }
                     MouseArea {
                         anchors.fill: parent
@@ -89,7 +89,7 @@ Flickable {
                     width: UiMetrics.touchMin
                     height: UiMetrics.touchMin
                     radius: UiMetrics.radius
-                    color: root._currentScale <= 0.5 ? ThemeService.barBackgroundColor : ThemeService.highlightColor
+                    color: root._currentScale <= 0.5 ? ThemeService.surfaceContainerLow : ThemeService.primary
                     opacity: root._currentScale <= 0.5 ? 0.3 : 1.0
 
                     Text {
@@ -114,7 +114,7 @@ Flickable {
                     text: root._currentScale.toFixed(1)
                     font.pixelSize: UiMetrics.fontTitle
                     font.weight: Font.DemiBold
-                    color: ThemeService.normalFontColor
+                    color: ThemeService.textPrimary
                     horizontalAlignment: Text.AlignHCenter
                     Layout.preferredWidth: UiMetrics.touchMin
                 }
@@ -124,7 +124,7 @@ Flickable {
                     width: UiMetrics.touchMin
                     height: UiMetrics.touchMin
                     radius: UiMetrics.radius
-                    color: root._currentScale >= 2.0 ? ThemeService.barBackgroundColor : ThemeService.highlightColor
+                    color: root._currentScale >= 2.0 ? ThemeService.surfaceContainerLow : ThemeService.primary
                     opacity: root._currentScale >= 2.0 ? 0.3 : 1.0
 
                     Text {

@@ -46,7 +46,7 @@ Item {
         MaterialIcon {
             icon: root.icon
             size: UiMetrics.iconSize
-            color: ThemeService.normalFontColor
+            color: ThemeService.textPrimary
             visible: root.icon !== ""
             Layout.preferredWidth: UiMetrics.iconSize
         }
@@ -54,14 +54,14 @@ Item {
         Text {
             text: root.label
             font.pixelSize: UiMetrics.fontBody
-            color: ThemeService.normalFontColor
+            color: ThemeService.textPrimary
             Layout.preferredWidth: root.width * 0.3
         }
 
         MaterialIcon {
             icon: "\ue86a"
             size: UiMetrics.iconSmall
-            color: ThemeService.descriptionFontColor
+            color: ThemeService.textSecondary
             visible: root.restartRequired
         }
 
@@ -77,7 +77,7 @@ Item {
         Text {
             text: Math.round(slider.value * 100) / 100
             font.pixelSize: UiMetrics.fontSmall
-            color: ThemeService.descriptionFontColor
+            color: ThemeService.textSecondary
             Layout.preferredWidth: UiMetrics.rowH
             horizontalAlignment: Text.AlignRight
         }

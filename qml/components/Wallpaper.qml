@@ -5,7 +5,7 @@ Item {
 
     Rectangle {
         anchors.fill: parent
-        color: ThemeService.backgroundColor
+        color: ThemeService.background
         Behavior on color { ColorAnimation { duration: 300; easing.type: Easing.InOutQuad } }
     }
 
