@@ -1,6 +1,7 @@
 #pragma once
 
 #include <memory>
+#include <QMap>
 #include <oaa/Channel/IAVChannelHandler.hpp>
 #include <oaa/Channel/ChannelId.hpp>
 #include <oaa/Channel/MessageIds.hpp>
@@ -33,6 +34,8 @@ signals:
     void streamStarted(int32_t session, uint32_t configIndex);
     void streamStopped();
     void videoFocusChanged(int focusMode, bool unrequested);
+    void uiConfigTokensReceived(const QMap<QString, uint32_t>& dayTokens,
+                                 const QMap<QString, uint32_t>& nightTokens);
 
 private:
     void handleSetupRequest(const QByteArray& payload);

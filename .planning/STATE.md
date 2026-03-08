@@ -2,16 +2,16 @@
 gsd_state_version: 1.0
 milestone: v0.5
 milestone_name: milestone
-status: completed
-stopped_at: Completed 03-03-PLAN.md
-last_updated: "2026-03-08T21:19:04.643Z"
-last_activity: 2026-03-08 -- Plan 03-03 executed (Connected Device theme + UiConfigRequest)
+status: in-progress
+stopped_at: Completed 03.1-01-PLAN.md
+last_updated: "2026-03-08T23:52:03Z"
+last_activity: 2026-03-08 -- Plan 03.1-01 executed (hyphenated keys + dual-map applyAATokens)
 progress:
-  total_phases: 4
+  total_phases: 5
   completed_phases: 3
-  total_plans: 8
-  completed_plans: 8
-  percent: 100
+  total_plans: 10
+  completed_plans: 9
+  percent: 90
 ---
 
 # Project State
@@ -21,23 +21,23 @@ progress:
 See: .planning/PROJECT.md (updated 2026-03-08)
 
 **Core value:** A person with a Raspberry Pi 4 and a touchscreen can install this, pair their phone, and get a reliable wireless Android Auto experience -- every time, without SSH.
-**Current focus:** v0.5.1 DPI Sizing & UI Polish -- Phase 3 complete, ready for Phase 4
+**Current focus:** v0.5.1 DPI Sizing & UI Polish -- Phase 03.1 in progress (AA theme stream integration)
 
 ## Current Position
 
-Phase: 3 of 4 (Theme Color System) -- COMPLETE
-Plan: 3 of 3 complete
-Status: Phase 3 complete, ready for Phase 4
-Last activity: 2026-03-08 -- Plan 03-03 executed (Connected Device theme + UiConfigRequest)
+Phase: 3.1 of 5 (AA Theme Stream Integration)
+Plan: 1 of 2 complete
+Status: Plan 03.1-01 complete, ready for plan 03.1-02
+Last activity: 2026-03-08 -- Plan 03.1-01 executed (hyphenated keys + dual-map applyAATokens)
 
-Progress: [██████████] 100%
+Progress: [█████████░] 90%
 
 ## Performance Metrics
 
 **Velocity:**
-- Total plans completed: 8
+- Total plans completed: 9
 - Average duration: 5 min
-- Total execution time: 0.55 hours
+- Total execution time: 0.65 hours
 
 ## Accumulated Context
 
@@ -63,10 +63,17 @@ Decisions are logged in PROJECT.md Key Decisions table.
 - (03-02) ThemeService.outline for panel borders (was hardcoded #0f3460)
 - [Phase 03]: AA tokens applied to both day and night color maps (phone sends one palette)
 - [Phase 03]: UiConfigRequest sent on session Active state, response is informational-only logging
+- (03.1-01) Hyphenated keys in YAML and C++ to match AA wire token format
+- (03.1-01) applyAATokens always caches to connected-device YAML even when another theme is active
+- (03.1-01) Swap-and-restore pattern for persistence when connected-device is not active theme
 
 ### Pending Todos
 
 None yet.
+
+### Roadmap Evolution
+
+- Phase 03.1 inserted after Phase 03: get AA theme information working from stream (URGENT)
 
 ### Blockers/Concerns
 
@@ -74,5 +81,5 @@ None yet.
 
 ## Session Continuity
 
-Last session: 2026-03-08T21:14:41.332Z
-Stopped at: Completed 03-03-PLAN.md
+Last session: 2026-03-08T23:52:03Z
+Stopped at: Completed 03.1-01-PLAN.md

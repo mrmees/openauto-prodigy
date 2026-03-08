@@ -127,7 +127,7 @@ Plans:
 **Plans:** 2 plans
 
 Plans:
-- [ ] 03.1-01-PLAN.md -- Key format migration (underscore->hyphen) + applyAATokens dual-map signature + always-cache + tests
+- [x] 03.1-01-PLAN.md -- Key format migration (underscore->hyphen) + applyAATokens dual-map signature + always-cache + tests
 - [ ] 03.1-02-PLAN.md -- Protocol direction flip (inbound 0x8011 handler + 0x8012 response) + orchestrator wiring + submodule bump
 
 ### Phase 4: Visual Depth
@@ -150,8 +150,8 @@ Phases execute in numeric order: 1 -> 2 -> 3 -> 3.1 -> 4
 | 1. DPI Foundation | 3/3 | Complete   | 2026-03-08 |
 | 2. Clock & Scale Control | 2/2 | Complete   | 2026-03-08 |
 | 3. Theme Color System | 2/3 | In Progress|  |
-| 3.1 AA Theme Stream | 0/2 | Not started | - |
+| 3.1 AA Theme Stream | 1/2 | In Progress | - |
 | 4. Visual Depth | 0/? | Not started | - |
 
 ---
-*Last updated: 2026-03-08 -- Phase 03.1 plans created*
+*Last updated: 2026-03-08 -- Plan 03.1-01 complete*
