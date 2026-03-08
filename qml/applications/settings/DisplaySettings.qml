@@ -8,6 +8,33 @@ Flickable {
     clip: true
     boundsBehavior: Flickable.StopAtBounds
 
+    property real _currentScale: {
+        var v = ConfigService.value("ui.scale")
+        if (v !== undefined && v !== null && Number(v) > 0) return Number(v)
+        return 1.0
+    }
+    property real _previousScale: _currentScale
+    property bool _showRevert: false
+    property int _revertCountdown: 10
+
+    Connections {
+        target: ConfigService
+        function onConfigChanged(path, value) {
+            if (path === "ui.scale") {
+                root._currentScale = (value !== undefined && value !== null && Number(value) > 0) ? Number(value) : 1.0
+            }
+        }
+    }
+
+    function _applyScale(newVal) {
+        _previousScale = _currentScale
+        ConfigService.setValue("ui.scale", newVal)
+        ConfigService.save()
+        _showRevert = true
+        _revertCountdown = 10
+        scaleRevertTimer.restart()
+    }
+
     ColumnLayout {
         id: content
         anchors.left: parent.left
@@ -21,6 +48,108 @@ Flickable {
                 var size = DisplayInfo ? DisplayInfo.screenSizeInches : 7.0;
                 var dpi = DisplayInfo ? DisplayInfo.computedDpi : 170;
                 return size.toFixed(1) + "\" / " + dpi + " PPI";
+            }
+        }
+
+        // Scale stepper: [-] value [+] (reset)
+        Item {
+            Layout.fillWidth: true
+            implicitHeight: UiMetrics.rowH
+
+            RowLayout {
+                anchors.fill: parent
+                anchors.leftMargin: UiMetrics.marginRow
+                anchors.rightMargin: UiMetrics.marginRow
+                spacing: UiMetrics.gap
+
+                Text {
+                    text: "UI Scale"
+                    font.pixelSize: UiMetrics.fontBody
+                    color: ThemeService.normalFontColor
+                    Layout.fillWidth: true
+                }
+
+                // [-] button
+                Rectangle {
+                    width: UiMetrics.touchMin
+                    height: UiMetrics.touchMin
+                    radius: UiMetrics.radius
+                    color: root._currentScale <= 0.5 ? ThemeService.barBackgroundColor : ThemeService.highlightColor
+                    opacity: root._currentScale <= 0.5 ? 0.3 : 1.0
+
+                    Text {
+                        anchors.centerIn: parent
+                        text: "\u2212"
+                        font.pixelSize: UiMetrics.fontHeading
+                        font.weight: Font.Bold
+                        color: "white"
+                    }
+                    MouseArea {
+                        anchors.fill: parent
+                        onClicked: {
+                            if (root._currentScale <= 0.5) return
+                            var newVal = Math.round((root._currentScale - 0.1) * 10) / 10
+                            root._applyScale(newVal)
+                        }
+                    }
+                }
+
+                // Value display
+                Text {
+                    text: root._currentScale.toFixed(1)
+                    font.pixelSize: UiMetrics.fontTitle
+                    font.weight: Font.DemiBold
+                    color: ThemeService.normalFontColor
+                    horizontalAlignment: Text.AlignHCenter
+                    Layout.preferredWidth: UiMetrics.touchMin
+                }
+
+                // [+] button
+                Rectangle {
+                    width: UiMetrics.touchMin
+                    height: UiMetrics.touchMin
+                    radius: UiMetrics.radius
+                    color: root._currentScale >= 2.0 ? ThemeService.barBackgroundColor : ThemeService.highlightColor
+                    opacity: root._currentScale >= 2.0 ? 0.3 : 1.0
+
+                    Text {
+                        anchors.centerIn: parent
+                        text: "+"
+                        font.pixelSize: UiMetrics.fontHeading
+                        font.weight: Font.Bold
+                        color: "white"
+                    }
+                    MouseArea {
+                        anchors.fill: parent
+                        onClicked: {
+                            if (root._currentScale >= 2.0) return
+                            var newVal = Math.round((root._currentScale + 0.1) * 10) / 10
+                            root._applyScale(newVal)
+                        }
+                    }
+                }
+
+                // Reset button
+                Rectangle {
+                    width: UiMetrics.touchMin
+                    height: UiMetrics.touchMin
+                    radius: UiMetrics.touchMin / 2
+                    color: "transparent"
+                    border.color: ThemeService.descriptionFontColor
+                    border.width: 1
+                    visible: Math.abs(root._currentScale - 1.0) > 0.05
+
+                    MaterialIcon {
+                        anchors.centerIn: parent
+                        icon: "\ue042"
+                        size: UiMetrics.iconSmall
+                        color: ThemeService.descriptionFontColor
+                    }
+                    MouseArea {
+                        anchors.fill: parent
+                        onClicked: root._applyScale(1.0)
+                    }
+                }
             }
         }
 
