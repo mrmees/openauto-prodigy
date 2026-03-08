@@ -132,7 +132,7 @@ Phases execute in numeric order: 1 -> 2 -> 3 -> 4
 | 1. Proto Foundation & Observability | 2/2 | Complete | 2026-03-06 |
 | 2. Navigation & Audio Channels | 2/2 | Complete | 2026-03-06 |
 | 3. Commands & Authentication | 2/2 | Complete | 2026-03-06 |
-| 4. OAA Proto Compliance & Library Rename | 1/2 | In Progress | - |
+| 4. OAA Proto Compliance & Library Rename | 2/2 | Complete | 2026-03-08 |
 
 ---
-*Last updated: 2026-03-08 -- Phase 4 Plan 1 complete*
+*Last updated: 2026-03-08 -- v0.5.0 milestone complete*

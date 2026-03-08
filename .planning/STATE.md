@@ -3,15 +3,15 @@ gsd_state_version: 1.0
 milestone: v0.5
 milestone_name: milestone
 status: in_progress
-stopped_at: Completed 04-01 dead code cleanup
-last_updated: "2026-03-08T04:15:01Z"
-last_activity: 2026-03-08 -- Completed dead code cleanup and BSSID fix (04-01)
+stopped_at: Completed 04-02 library rename - v0.5.0 milestone complete
+last_updated: "2026-03-08T04:28:38Z"
+last_activity: 2026-03-08 -- Library rename and documentation update (04-02)
 progress:
   total_phases: 4
-  completed_phases: 3
+  completed_phases: 4
   total_plans: 8
-  completed_plans: 7
-  percent: 88
+  completed_plans: 8
+  percent: 100
 ---
 
 # Project State
@@ -21,16 +21,16 @@ progress:
 See: .planning/PROJECT.md (updated 2026-03-05)
 
 **Core value:** A person with a Raspberry Pi 4 and a touchscreen can install this, pair their phone, and get a reliable wireless Android Auto experience -- every time, without SSH.
-**Current focus:** Phase 4 - OAA Proto Compliance & Library Rename
+**Current focus:** v0.5.0 Protocol Compliance milestone COMPLETE
 
 ## Current Position
 
 Phase: 4 of 4 (OAA Proto Compliance & Library Rename)
-Plan: 1 of 2 in current phase
-Status: Plan 1 complete, Plan 2 pending
-Last activity: 2026-03-08 -- Completed dead code cleanup and BSSID fix (04-01)
+Plan: 2 of 2 in current phase
+Status: v0.5.0 milestone complete -- all 8 plans across 4 phases done
+Last activity: 2026-03-08 -- Library rename and documentation update (04-02)
 
-Progress: [========= ] 88%
+Progress: [==========] 100%
 
 ## Performance Metrics
 
@@ -56,6 +56,7 @@ Progress: [========= ] 88%
 | Phase 03 P01 | 6min | 2 tasks | 9 files |
 | Phase 03 P02 | 5min | 2 tasks | 8 files |
 | Phase 04 P01 | 6min | 2 tasks | 12 files |
+| Phase 04 P02 | 10min | 2 tasks | 21 files |
 
 ## Accumulated Context
 
@@ -77,6 +78,8 @@ Recent decisions affecting current work:
 - [Phase 03]: 0x8004 reused across BT/Input channels (channel-scoped, no collision)
 - [Phase 04]: Retracted message IDs (0x8021, 0x8022, 0x8005) fall to default handler — Phase 1 logger catches them
 - [Phase 04]: WiFi BSSID now sends wlan0 MAC via QNetworkInterface, not SSID string
+- [Phase 04]: Library renamed from open-androidauto to prodigy-oaa-protocol; oaa:: namespace preserved
+- [Phase 04]: 4 requirements retracted (NAV-02, AUD-01, AUD-02, MED-01) after v1.2 proto verification
 
 ### Pending Todos
 
@@ -92,5 +95,5 @@ None yet.
 
 ## Session Continuity
 
-Last session: 2026-03-08T04:15:01Z
-Stopped at: Completed 04-01 dead code cleanup
+Last session: 2026-03-08T04:28:38Z
+Stopped at: Completed 04-02 library rename - v0.5.0 milestone complete
