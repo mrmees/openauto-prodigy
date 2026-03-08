@@ -18,7 +18,7 @@ namespace oap {
 ///   font_family: "Font Name"
 ///   day:
 ///     primary: "#rrggbb"
-///     on_surface: "#rrggbb"
+///     on-surface: "#rrggbb"
 ///     ...
 ///   night:
 ///     primary: "#rrggbb"
@@ -72,10 +72,11 @@ public:
     /// Load from an explicit YAML file path.
     bool loadThemeFile(const QString& yamlPath);
 
-    /// Apply AA theming tokens (ARGB uint32 values) to the Connected Device theme.
-    /// Only updates colors when "connected-device" theme is active.
-    /// Persists updated colors to the theme YAML and emits colorsChanged.
-    void applyAATokens(const QMap<QString, uint32_t>& argbTokens);
+    /// Apply AA theming tokens (ARGB uint32 values) with separate day/night maps.
+    /// Always caches to connected-device YAML; only updates live colors when
+    /// connected-device theme is active.
+    void applyAATokens(const QMap<QString, uint32_t>& dayTokens,
+                        const QMap<QString, uint32_t>& nightTokens) override;
 
     // IThemeService
     QString currentThemeId() const override;
@@ -114,23 +115,23 @@ public:
     void setNightMode(bool night);
     Q_INVOKABLE void toggleMode();
 
-    // 16 base AA wire token color accessors
+    // 16 base AA wire token color accessors (hyphenated keys match AA wire format)
     QColor primary() const { return activeColor("primary"); }
-    QColor onSurface() const { return activeColor("on_surface"); }
+    QColor onSurface() const { return activeColor("on-surface"); }
     QColor surface() const { return activeColor("surface"); }
-    QColor surfaceVariant() const { return activeColor("surface_variant"); }
-    QColor surfaceContainerLow() const { return activeColor("surface_container_low"); }
-    QColor inverseSurface() const { return activeColor("inverse_surface"); }
-    QColor inverseOnSurface() const { return activeColor("inverse_on_surface"); }
+    QColor surfaceVariant() const { return activeColor("surface-variant"); }
+    QColor surfaceContainerLow() const { return activeColor("surface-container-low"); }
+    QColor inverseSurface() const { return activeColor("inverse-surface"); }
+    QColor inverseOnSurface() const { return activeColor("inverse-on-surface"); }
     QColor outline() const { return activeColor("outline"); }
     QColor outlineVariant() const;
     QColor background() const { return activeColor("background"); }
-    QColor textPrimary() const { return activeColor("text_primary"); }
-    QColor textSecondary() const { return activeColor("text_secondary"); }
+    QColor textPrimary() const { return activeColor("text-primary"); }
+    QColor textSecondary() const { return activeColor("text-secondary"); }
     QColor red() const { return activeColor("red"); }
-    QColor onRed() const { return activeColor("on_red"); }
+    QColor onRed() const { return activeColor("on-red"); }
     QColor yellow() const { return activeColor("yellow"); }
-    QColor onYellow() const { return activeColor("on_yellow"); }
+    QColor onYellow() const { return activeColor("on-yellow"); }
 
     // 5 derived color accessors (computed, not from YAML)
     QColor scrim() const;

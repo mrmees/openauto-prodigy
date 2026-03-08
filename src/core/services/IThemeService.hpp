@@ -1,6 +1,7 @@
 #pragma once
 
 #include <QObject>
+#include <QMap>
 #include <QString>
 #include <QColor>
 
@@ -9,6 +10,12 @@ namespace oap {
 class IThemeService {
 public:
     virtual ~IThemeService() = default;
+
+    /// Apply AA theming tokens (ARGB uint32 values) with separate day/night maps.
+    /// Always caches to connected-device YAML; only updates live colors when
+    /// connected-device theme is active.
+    virtual void applyAATokens(const QMap<QString, uint32_t>& dayTokens,
+                                const QMap<QString, uint32_t>& nightTokens) { Q_UNUSED(dayTokens); Q_UNUSED(nightTokens); }
 
     /// Current theme identifier (e.g., "default", "dark-blue").
     /// Thread-safe.

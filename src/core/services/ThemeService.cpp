@@ -12,18 +12,18 @@ ThemeService::ThemeService(QObject* parent)
 {
 }
 
-// Migration map: v1.0.0 theme keys → v2.0.0 AA wire token keys
+// Migration map: v1.0.0 theme keys → v2.0.0 AA wire token keys (hyphenated)
 static const QMap<QString, QString> legacyKeyMap = {
     {"background", "background"},
     {"highlight", "primary"},
-    {"control_background", "surface_variant"},
-    {"control_foreground", "on_surface"},
-    {"normal_font", "text_primary"},
-    {"description_font", "text_secondary"},
-    {"bar_background", "surface_container_low"},
+    {"control_background", "surface-variant"},
+    {"control_foreground", "on-surface"},
+    {"normal_font", "text-primary"},
+    {"description_font", "text-secondary"},
+    {"bar_background", "surface-container-low"},
     {"control_box_background", "surface"},
-    {"divider", "outline_variant"},
-    {"highlight_font", "inverse_surface"},
+    {"divider", "outline-variant"},
+    {"highlight_font", "inverse-surface"},
     // Keys that map to new tokens with no direct old equivalent
     // (special_font, gauge_indicator, icon, side_widget_background → dropped or derived)
 };
@@ -45,15 +45,15 @@ static QMap<QString, QColor> loadColorMap(const YAML::Node& node, bool migrate)
                 colors[mapped.value()] = c;
             // Also populate keys that need special handling
             if (key == "highlight_font")
-                colors["inverse_on_surface"] = QColor("#ffffff");  // was always white-on-highlight
+                colors["inverse-on-surface"] = QColor("#ffffff");  // was always white-on-highlight
             if (key == "divider")
                 colors["outline"] = QColor("#808080");  // no old equivalent
             if (key == "highlight") {
                 // old highlight was used for red/yellow indicators too — provide defaults
                 if (!colors.contains("red")) colors["red"] = QColor("#cc4444");
-                if (!colors.contains("on_red")) colors["on_red"] = QColor("#ffffff");
+                if (!colors.contains("on-red")) colors["on-red"] = QColor("#ffffff");
                 if (!colors.contains("yellow")) colors["yellow"] = QColor("#FF9800");
-                if (!colors.contains("on_yellow")) colors["on_yellow"] = QColor("#000000");
+                if (!colors.contains("on-yellow")) colors["on-yellow"] = QColor("#000000");
             }
         } else {
             colors[key] = c;
@@ -266,30 +266,88 @@ void ThemeService::resolveWallpaper()
         emit wallpaperChanged();
 }
 
-// Known AA token keys (the 16 base tokens used in our theme system)
+// Known AA token keys (the 16 base tokens used in our theme system, hyphenated)
 static const QSet<QString> knownAATokenKeys = {
-    "primary", "on_surface", "surface", "surface_variant",
-    "surface_container_low", "inverse_surface", "inverse_on_surface",
-    "outline", "outline_variant", "background", "text_primary",
-    "text_secondary", "red", "on_red", "yellow", "on_yellow"
+    "primary", "on-surface", "surface", "surface-variant",
+    "surface-container-low", "inverse-surface", "inverse-on-surface",
+    "outline", "outline-variant", "background", "text-primary",
+    "text-secondary", "red", "on-red", "yellow", "on-yellow"
 };
 
-void ThemeService::applyAATokens(const QMap<QString, uint32_t>& argbTokens)
+void ThemeService::applyAATokens(const QMap<QString, uint32_t>& dayTokens,
+                                  const QMap<QString, uint32_t>& nightTokens)
 {
-    if (themeId_ != "connected-device")
-        return;
-
-    for (auto it = argbTokens.constBegin(); it != argbTokens.constEnd(); ++it) {
-        if (!knownAATokenKeys.contains(it.key()))
-            continue;
-
-        QColor c = QColor::fromRgba(it.value());
-        dayColors_[it.key()] = c;
-        nightColors_[it.key()] = c;
+    // Build color maps from ARGB tokens, filtering through known keys
+    QMap<QString, QColor> newDayColors;
+    for (auto it = dayTokens.constBegin(); it != dayTokens.constEnd(); ++it) {
+        if (knownAATokenKeys.contains(it.key()))
+            newDayColors[it.key()] = QColor::fromRgba(it.value());
     }
 
+    QMap<QString, QColor> newNightColors;
+    for (auto it = nightTokens.constBegin(); it != nightTokens.constEnd(); ++it) {
+        if (knownAATokenKeys.contains(it.key()))
+            newNightColors[it.key()] = QColor::fromRgba(it.value());
+    }
+
+    // Always load connected-device theme colors for caching
+    // (even if it's not the active theme)
+    QMap<QString, QColor> cacheDayColors = dayColors_;
+    QMap<QString, QColor> cacheNightColors = nightColors_;
+
+    // If connected-device is NOT active, load its YAML to get current cached colors
+    if (themeId_ != "connected-device") {
+        QString themeDir;
+        auto dirIt = themeDirectories_.find("connected-device");
+        if (dirIt != themeDirectories_.end()) {
+            themeDir = dirIt.value();
+        } else {
+            themeDir = QDir::homePath() + "/.openauto/themes/connected-device";
+        }
+
+        QString yamlPath = QDir(themeDir).filePath("theme.yaml");
+        if (QFile::exists(yamlPath)) {
+            try {
+                YAML::Node root = YAML::LoadFile(yamlPath.toStdString());
+                cacheDayColors = loadColorMap(root["day"], false);
+                cacheNightColors = loadColorMap(root["night"], false);
+            } catch (const YAML::Exception&) {
+                // Use empty maps if can't load
+                cacheDayColors.clear();
+                cacheNightColors.clear();
+            }
+        } else {
+            cacheDayColors.clear();
+            cacheNightColors.clear();
+        }
+    }
+
+    // Merge new tokens into cache maps
+    for (auto it = newDayColors.constBegin(); it != newDayColors.constEnd(); ++it)
+        cacheDayColors[it.key()] = it.value();
+    for (auto it = newNightColors.constBegin(); it != newNightColors.constEnd(); ++it)
+        cacheNightColors[it.key()] = it.value();
+
+    // Always persist to connected-device YAML
+    // Temporarily swap colors for persistence, then restore if not active
+    QMap<QString, QColor> savedDay = dayColors_;
+    QMap<QString, QColor> savedNight = nightColors_;
+    dayColors_ = cacheDayColors;
+    nightColors_ = cacheNightColors;
     persistConnectedDeviceTheme();
-    emit colorsChanged();
+
+    if (themeId_ == "connected-device") {
+        // Keep updated colors live
+        qInfo() << "[Theme] Applied" << newDayColors.size() << "day +"
+                << newNightColors.size() << "night tokens (live)";
+        emit colorsChanged();
+    } else {
+        // Restore original colors — live theme unchanged
+        dayColors_ = savedDay;
+        nightColors_ = savedNight;
+        qInfo() << "[Theme] Cached" << newDayColors.size() << "day +"
+                << newNightColors.size() << "night tokens (theme not active)";
+    }
 }
 
 void ThemeService::persistConnectedDeviceTheme()
@@ -339,7 +397,7 @@ void ThemeService::persistConnectedDeviceTheme()
 
 QColor ThemeService::outlineVariant() const
 {
-    QColor c = activeColor("outline_variant");
+    QColor c = activeColor("outline-variant");
     if (c == QColor(Qt::transparent))
         return QColor(255, 255, 255, 38);  // ~15% white fallback
     return c;
@@ -352,7 +410,7 @@ QColor ThemeService::scrim() const
 
 QColor ThemeService::pressed() const
 {
-    QColor c = activeColor("on_surface");
+    QColor c = activeColor("on-surface");
     c.setAlpha(26);
     return c;
 }
