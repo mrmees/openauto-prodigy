@@ -11,8 +11,8 @@
 #include "oaa/control/ByeByeResponseMessage.pb.h"
 #include "oaa/common/StatusEnum.pb.h"
 #include "oaa/control/ShutdownReasonEnum.pb.h"
-#include "oaa/phone/CallAvailabilityMessage.pb.h"
-#include "oaa/phone/VoiceSessionRequestMessage.pb.h"
+#include "oaa/control/CallAvailabilityMessage.pb.h"
+#include "oaa/control/VoiceSessionRequestMessage.pb.h"
 #include "oaa/control/ServiceDiscoveryRequestMessage.pb.h"
 
 namespace oaa {

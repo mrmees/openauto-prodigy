@@ -23,14 +23,14 @@ void setVerbose(bool verbose);
 bool isVerbose();
 
 /// Enable debug output only for the named categories (e.g. {"aa", "bt"}).
-/// Pass "aa" to also enable "oaa.*" (open-androidauto library).
+/// Pass "aa" to also enable "oaa.*" (prodigy-oaa-protocol library).
 void setDebugCategories(const QStringList& categories);
 
 /// Enable file logging in addition to stderr.
 void setLogFile(const QString& path);
 
 /// Test helper: returns true if a message context looks like it came from
-/// the open-androidauto library (based on file path, category, or bracket tag).
+/// the prodigy-oaa-protocol library (based on file path, category, or bracket tag).
 bool isLibraryMessage(const char* category, const char* file, const QString& message);
 
 } // namespace oap

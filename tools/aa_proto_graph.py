@@ -90,7 +90,7 @@ SEED_MATCHES = {
 
 # Channel descriptions for documentation
 # Known field names from our proto files — maps message_name -> {field_num: field_name}
-# Auto-populated at startup from libs/open-androidauto/proto/*.proto
+# Auto-populated at startup from libs/prodigy-oaa-protocol/proto/*.proto
 OUR_FIELD_NAMES = {}  # Populated by load_our_field_names()
 
 # Map from APK class to our proto message name (reverse of SEED_MATCHES)
@@ -251,7 +251,7 @@ CHANNEL_INFO = {
 def load_our_field_names():
     """Load field names from our .proto files."""
     import glob
-    proto_dir = PROJECT_ROOT / "libs" / "open-androidauto" / "proto"
+    proto_dir = PROJECT_ROOT / "libs" / "prodigy-oaa-protocol" / "proto"
     for proto_file in sorted(glob.glob(str(proto_dir / "*.proto"))):
         with open(proto_file) as f:
             content = f.read()

@@ -17,7 +17,7 @@ from match_loader import load_matches
 from proto_comparator import compare_fields
 from proto_parser import parse_all_protos
 
-PROTO_DIR = TOOLS_DIR.parent / "libs" / "open-androidauto" / "proto"
+PROTO_DIR = TOOLS_DIR.parent / "libs" / "prodigy-oaa-protocol" / "proto"
 REPORT_JSON = TOOLS_DIR / "proto_validation_report.json"
 REPORT_MD = TOOLS_DIR.parent / "docs" / "proto-validation-report.md"
 

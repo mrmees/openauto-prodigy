@@ -1,5 +1,5 @@
 cmake_minimum_required(VERSION 3.22)
-project(open-androidauto VERSION 0.1.0 LANGUAGES CXX)
+project(prodigy-oaa-protocol VERSION 0.1.0 LANGUAGES CXX)
 
 set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
@@ -48,7 +48,7 @@ foreach(PROTO_FILE ${PROTO_FILES})
     )
 endforeach()
 
-add_library(open-androidauto STATIC
+add_library(prodigy-oaa-protocol STATIC
     ${PROTO_SRCS}
     include/oaa/Transport/ITransport.hpp
     include/oaa/Transport/TCPTransport.hpp
@@ -106,12 +106,12 @@ add_library(open-androidauto STATIC
     src/HU/Handlers/WiFiChannelHandler.cpp
 )
 
-target_include_directories(open-androidauto PUBLIC
+target_include_directories(prodigy-oaa-protocol PUBLIC
     ${CMAKE_CURRENT_SOURCE_DIR}/include
     ${CMAKE_CURRENT_BINARY_DIR}
 )
 
-target_link_libraries(open-androidauto PUBLIC
+target_link_libraries(prodigy-oaa-protocol PUBLIC
     Qt6::Core
     Qt6::Network
     OpenSSL::SSL
@@ -120,7 +120,7 @@ target_link_libraries(open-androidauto PUBLIC
 )
 
 # Tests
-option(OAA_BUILD_TESTS "Build open-androidauto tests" ON)
+option(OAA_BUILD_TESTS "Build prodigy-oaa-protocol tests" ON)
 if(OAA_BUILD_TESTS)
     enable_testing()
     add_subdirectory(tests)
