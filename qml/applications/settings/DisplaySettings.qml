@@ -15,6 +15,15 @@ Flickable {
         anchors.margins: UiMetrics.marginPage
         spacing: UiMetrics.spacing
 
+        ReadOnlyField {
+            label: "Screen"
+            value: {
+                var size = DisplayInfo ? DisplayInfo.screenSizeInches : 7.0;
+                var dpi = DisplayInfo ? DisplayInfo.computedDpi : 170;
+                return size.toFixed(1) + "\" / " + dpi + " PPI";
+            }
+        }
+
         SectionHeader { text: "General" }
 
         SettingsSlider {
