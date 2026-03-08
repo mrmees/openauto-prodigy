@@ -42,7 +42,7 @@ Flickable {
                     height: UiMetrics.iconSmall
                     radius: width / 2
                     color: root.hasService && CompanionService.connected
-                           ? "#4CAF50" : ThemeService.textSecondary
+                           ? ThemeService.success : ThemeService.textSecondary
                 }
 
                 Text {
@@ -210,9 +210,9 @@ Flickable {
                     radius: width / 2
                     color: {
                         var s = routeStatusRow.routeStateStr
-                        if (s === "active")   return "#4CAF50"
-                        if (s === "degraded") return "#FF9800"
-                        if (s === "failed")   return "#F44336"
+                        if (s === "active")   return ThemeService.success
+                        if (s === "degraded") return ThemeService.yellow
+                        if (s === "failed")   return ThemeService.red
                         return ThemeService.textSecondary
                     }
                 }
@@ -228,8 +228,8 @@ Flickable {
                     font.pixelSize: UiMetrics.fontBody
                     color: {
                         var s = routeStatusRow.routeStateStr
-                        if (s === "degraded") return "#FF9800"
-                        if (s === "failed")   return "#F44336"
+                        if (s === "degraded") return ThemeService.yellow
+                        if (s === "failed")   return ThemeService.red
                         return ThemeService.textPrimary
                     }
                     Layout.fillWidth: true
@@ -245,7 +245,7 @@ Flickable {
         id: pairingCodeDialog
         property string pinCode: ""
         anchors.fill: parent
-        color: "#CC000000"
+        color: ThemeService.scrim
         visible: false
         z: 998
 

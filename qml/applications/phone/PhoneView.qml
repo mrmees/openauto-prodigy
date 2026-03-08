@@ -34,7 +34,7 @@ Rectangle {
                 width: UiMetrics.statusDot
                 height: UiMetrics.statusDot
                 radius: UiMetrics.statusDot / 2
-                color: isConnected ? "#4CAF50" : "#F44336"
+                color: isConnected ? ThemeService.success : ThemeService.red
             }
 
             Text {
@@ -131,10 +131,10 @@ Rectangle {
                 contentItem: MaterialIcon {
                     icon: "\uf0bc"  // call_end
                     size: UiMetrics.iconSize
-                    color: "white"
+                    color: ThemeService.onRed
                 }
                 background: Rectangle {
-                    color: parent.pressed ? "#D32F2F" : "#F44336"
+                    color: parent.pressed ? Qt.darker(ThemeService.red, 1.15) : ThemeService.red
                     radius: width / 2
                 }
             }
@@ -148,10 +148,10 @@ Rectangle {
                 contentItem: MaterialIcon {
                     icon: "\uf0d4"  // phone
                     size: UiMetrics.iconSize
-                    color: "white"
+                    color: ThemeService.onSuccess
                 }
                 background: Rectangle {
-                    color: parent.pressed ? "#388E3C" : "#4CAF50"
+                    color: parent.pressed ? Qt.darker(ThemeService.success, 1.2) : ThemeService.success
                     radius: width / 2
                 }
             }
@@ -195,20 +195,20 @@ Rectangle {
                     MaterialIcon {
                         icon: "\uf0d4"  // phone
                         size: Math.round(22 * UiMetrics.scale)
-                        color: "white"
+                        color: ThemeService.onSuccess
                     }
                     Text {
                         text: "Call"
                         font.pixelSize: UiMetrics.fontBody
                         font.bold: true
-                        color: "white"
+                        color: ThemeService.onSuccess
                     }
                     Item { Layout.fillWidth: true }
                 }
                 background: Rectangle {
                     color: parent.enabled
-                           ? (parent.pressed ? "#388E3C" : "#4CAF50")
-                           : "#666666"
+                           ? (parent.pressed ? Qt.darker(ThemeService.success, 1.2) : ThemeService.success)
+                           : ThemeService.textSecondary
                     radius: UiMetrics.radiusSmall
                 }
             }

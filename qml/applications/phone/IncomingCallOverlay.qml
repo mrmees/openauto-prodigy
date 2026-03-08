@@ -7,7 +7,7 @@ import QtQuick.Layouts
 Rectangle {
     id: overlay
     anchors.fill: parent
-    color: "#CC000000"  // semi-transparent black
+    color: ThemeService.scrim
     visible: PhonePlugin && PhonePlugin.callState === 2
     z: 1000  // above everything
 
@@ -25,7 +25,7 @@ Rectangle {
             Layout.alignment: Qt.AlignHCenter
             text: "Incoming Call"
             font.pixelSize: UiMetrics.fontBody
-            color: "#AAAAAA"
+            color: ThemeService.textSecondary
         }
 
         Text {
@@ -33,7 +33,7 @@ Rectangle {
             text: PhonePlugin ? (PhonePlugin.callerName || PhonePlugin.callerNumber || "Unknown") : ""
             font.pixelSize: UiMetrics.fontHeading
             font.bold: true
-            color: "white"
+            color: ThemeService.textPrimary
             elide: Text.ElideRight
             Layout.maximumWidth: parent.width
         }
@@ -42,7 +42,7 @@ Rectangle {
             Layout.alignment: Qt.AlignHCenter
             text: PhonePlugin ? PhonePlugin.callerNumber : ""
             font.pixelSize: UiMetrics.fontSmall
-            color: "#CCCCCC"
+            color: ThemeService.textSecondary
             visible: PhonePlugin && PhonePlugin.callerName.length > 0 && PhonePlugin.callerNumber.length > 0
         }
 
@@ -60,10 +60,10 @@ Rectangle {
                 contentItem: MaterialIcon {
                     icon: "\uf0bc"  // call_end
                     size: UiMetrics.iconSize
-                    color: "white"
+                    color: ThemeService.onRed
                 }
                 background: Rectangle {
-                    color: parent.pressed ? "#D32F2F" : "#F44336"
+                    color: parent.pressed ? Qt.darker(ThemeService.red, 1.15) : ThemeService.red
                     radius: width / 2
                 }
             }
@@ -76,10 +76,10 @@ Rectangle {
                 contentItem: MaterialIcon {
                     icon: "\uf0d4"  // phone
                     size: UiMetrics.iconSize
-                    color: "white"
+                    color: ThemeService.onSuccess
                 }
                 background: Rectangle {
-                    color: parent.pressed ? "#388E3C" : "#4CAF50"
+                    color: parent.pressed ? Qt.darker(ThemeService.success, 1.2) : ThemeService.success
                     radius: width / 2
                 }
             }

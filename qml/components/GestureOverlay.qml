@@ -8,7 +8,7 @@ import QtQuick.Layouts
 Rectangle {
     id: overlay
     anchors.fill: parent
-    color: "#AA000000"
+    color: ThemeService.scrim
     visible: false
     z: 999
 
@@ -67,8 +67,8 @@ Rectangle {
         width: Math.min(parent.width * 0.7, Math.round(500 * UiMetrics.scale))
         height: controlsLayout.implicitHeight + Math.round(48 * UiMetrics.scale)
         radius: UiMetrics.radiusLarge
-        color: "#DD1a1a2e"
-        border.color: "#0f3460"
+        color: Qt.rgba(ThemeService.surfaceContainerLow.r, ThemeService.surfaceContainerLow.g, ThemeService.surfaceContainerLow.b, 0.87)
+        border.color: ThemeService.outline
         border.width: 2
 
         // Block clicks from passing through the panel
@@ -90,7 +90,7 @@ Rectangle {
                 text: "Quick Controls"
                 font.pixelSize: UiMetrics.fontSmall
                 font.bold: true
-                color: "#e0e0e0"
+                color: ThemeService.textPrimary
             }
 
             // Volume slider
@@ -102,7 +102,7 @@ Rectangle {
                 MaterialIcon {
                     icon: "\ue050"  // volume_up
                     size: Math.round(22 * UiMetrics.scale)
-                    color: "#e0e0e0"
+                    color: ThemeService.textPrimary
                 }
 
                 Slider {
@@ -122,7 +122,7 @@ Rectangle {
                 Text {
                     text: Math.round(volumeSlider.value) + "%"
                     font.pixelSize: UiMetrics.fontSmall
-                    color: "#a0a0c0"
+                    color: ThemeService.textSecondary
                     Layout.preferredWidth: Math.round(40 * UiMetrics.scale)
                 }
             }
@@ -136,7 +136,7 @@ Rectangle {
                 MaterialIcon {
                     icon: typeof DisplayService !== "undefined" && DisplayService.hasHardwareBrightness ? "\ue1ac" : "\ue3a1"  // brightness_high / contrast
                     size: Math.round(22 * UiMetrics.scale)
-                    color: "#e0e0e0"
+                    color: ThemeService.textPrimary
                 }
 
                 Slider {
@@ -159,7 +159,7 @@ Rectangle {
                 Text {
                     text: Math.round(brightnessSlider.value) + "%"
                     font.pixelSize: UiMetrics.fontSmall
-                    color: "#a0a0c0"
+                    color: ThemeService.textSecondary
                     Layout.preferredWidth: Math.round(40 * UiMetrics.scale)
                 }
             }
@@ -182,16 +182,16 @@ Rectangle {
                         MaterialIcon {
                             icon: "\ue9b2"  // home
                             size: UiMetrics.iconSmall
-                            color: "#e0e0e0"
+                            color: ThemeService.textPrimary
                         }
                         Text {
                             text: "Home"
                             font.pixelSize: UiMetrics.fontSmall
-                            color: "#e0e0e0"
+                            color: ThemeService.textPrimary
                         }
                     }
                     background: Rectangle {
-                        color: parent.pressed ? "#e94560" : "#0f3460"
+                        color: parent.pressed ? ThemeService.primary : ThemeService.surfaceContainerLow
                         radius: UiMetrics.radiusSmall
                         implicitWidth: UiMetrics.overlayBtnW
                         implicitHeight: UiMetrics.overlayBtnH
@@ -211,16 +211,16 @@ Rectangle {
                         MaterialIcon {
                             icon: ThemeService.nightMode ? "\ue518" : "\ue51c"  // light_mode / dark_mode
                             size: UiMetrics.iconSmall
-                            color: "#e0e0e0"
+                            color: ThemeService.textPrimary
                         }
                         Text {
                             text: ThemeService.nightMode ? "Day" : "Night"
                             font.pixelSize: UiMetrics.fontSmall
-                            color: "#e0e0e0"
+                            color: ThemeService.textPrimary
                         }
                     }
                     background: Rectangle {
-                        color: parent.pressed ? "#e94560" : "#0f3460"
+                        color: parent.pressed ? ThemeService.primary : ThemeService.surfaceContainerLow
                         radius: UiMetrics.radiusSmall
                         implicitWidth: UiMetrics.overlayBtnW
                         implicitHeight: UiMetrics.overlayBtnH
@@ -237,16 +237,16 @@ Rectangle {
                         MaterialIcon {
                             icon: "\ue5cd"  // close
                             size: UiMetrics.iconSmall
-                            color: "#e0e0e0"
+                            color: ThemeService.textPrimary
                         }
                         Text {
                             text: "Close"
                             font.pixelSize: UiMetrics.fontSmall
-                            color: "#e0e0e0"
+                            color: ThemeService.textPrimary
                         }
                     }
                     background: Rectangle {
-                        color: parent.pressed ? "#e94560" : "#0f3460"
+                        color: parent.pressed ? ThemeService.primary : ThemeService.surfaceContainerLow
                         radius: UiMetrics.radiusSmall
                         implicitWidth: UiMetrics.overlayBtnW
                         implicitHeight: UiMetrics.overlayBtnH

@@ -333,7 +333,7 @@ Item {
                 anchors.top: parent.top
                 anchors.bottom: parent.bottom
                 width: presetRowRoot.deleteWidth
-                color: "#d32f2f"
+                color: ThemeService.red
                 visible: presetRowRoot.isUserPreset
 
                 Text {

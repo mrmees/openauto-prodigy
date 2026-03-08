@@ -124,7 +124,7 @@ Flickable {
                     MaterialIcon {
                         icon: model.connected ? "\ue1ba" : "\ue1b9"
                         size: UiMetrics.iconSize
-                        color: model.connected ? "#44aa44" : ThemeService.textSecondary
+                        color: model.connected ? ThemeService.success : ThemeService.textSecondary
                     }
                     Text {
                         text: model.name || model.address
@@ -137,7 +137,7 @@ Flickable {
                         Layout.preferredHeight: UiMetrics.touchMin
                         radius: UiMetrics.touchMin / 2
                         color: "transparent"
-                        border.color: "#cc4444"
+                        border.color: ThemeService.red
                         border.width: 1
 
                         scale: forgetArea.pressed ? 0.95 : 1.0
@@ -150,7 +150,7 @@ Flickable {
                             anchors.centerIn: parent
                             text: "Forget"
                             font.pixelSize: UiMetrics.fontSmall
-                            color: "#cc4444"
+                            color: ThemeService.red
                         }
 
                         MouseArea {

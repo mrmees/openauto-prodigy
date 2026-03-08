@@ -10,7 +10,7 @@ Popup {
     closePolicy: Popup.CloseOnEscape | Popup.CloseOnPressOutside
     padding: UiMetrics.gap
 
-    readonly property color dangerColor: "#F44336"
+    readonly property color dangerColor: ThemeService.red
 
     background: Rectangle {
         color: ThemeService.surfaceVariant

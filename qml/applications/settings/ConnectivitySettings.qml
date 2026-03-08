@@ -68,7 +68,7 @@ Flickable {
                     MaterialIcon {
                         icon: model.connected ? "\ue1ba" : "\ue1b9"
                         size: UiMetrics.iconSize
-                        color: model.connected ? "#44aa44" : ThemeService.textSecondary
+                        color: model.connected ? ThemeService.success : ThemeService.textSecondary
                     }
                     Text {
                         text: model.name || model.address
@@ -79,7 +79,7 @@ Flickable {
                     Text {
                         text: "Forget"
                         font.pixelSize: UiMetrics.fontSmall
-                        color: "#cc4444"
+                        color: ThemeService.red
                         MouseArea {
                             anchors.fill: parent
                             anchors.margins: -8

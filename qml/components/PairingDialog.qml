@@ -5,7 +5,7 @@ import QtQuick.Layouts
 Rectangle {
     id: overlay
     anchors.fill: parent
-    color: "#CC000000"
+    color: ThemeService.scrim
     visible: BluetoothManager ? BluetoothManager.pairingActive : false
     z: 998
 
@@ -61,12 +61,12 @@ Rectangle {
                 Rectangle {
                     width: Math.round(140 * UiMetrics.scale); height: UiMetrics.rowH
                     radius: UiMetrics.radiusSmall
-                    color: "#cc4444"
+                    color: ThemeService.red
                     Text {
                         anchors.centerIn: parent
                         text: "Reject"
                         font.pixelSize: UiMetrics.fontBody
-                        color: "white"
+                        color: ThemeService.onRed
                     }
                     MouseArea {
                         anchors.fill: parent
@@ -77,12 +77,12 @@ Rectangle {
                 Rectangle {
                     width: Math.round(140 * UiMetrics.scale); height: UiMetrics.rowH
                     radius: UiMetrics.radiusSmall
-                    color: "#44aa44"
+                    color: ThemeService.success
                     Text {
                         anchors.centerIn: parent
                         text: "Confirm"
                         font.pixelSize: UiMetrics.fontBody
-                        color: "white"
+                        color: ThemeService.onSuccess
                     }
                     MouseArea {
                         anchors.fill: parent
