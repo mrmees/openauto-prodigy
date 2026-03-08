@@ -113,6 +113,23 @@ Plans:
 - [x] 03-02-PLAN.md -- QML hardcode elimination + ThemeService reference update + web config/IPC
 - [ ] 03-03-PLAN.md -- Connected Device theme + UiConfigRequest protocol integration
 
+### Phase 03.1: get AA theme information working from stream (INSERTED)
+
+**Goal:** Flip UiConfigRequest direction to receive phone's Material You palette, apply/cache tokens to ThemeService, and acknowledge with ACCEPTED response
+**Requirements**: AAT-01, AAT-02, AAT-03, AAT-04
+**Depends on:** Phase 3
+**Success Criteria** (what must be TRUE):
+  1. Phone-sent UiConfigRequest (0x8011) is parsed into day/night token maps by VideoChannelHandler
+  2. UpdateHuUiConfigResponse (0x8012) ACCEPTED is sent back to the phone
+  3. Tokens flow through signal chain to ThemeService and are applied (if connected-device active) or cached (always)
+  4. All theme keys use hyphens matching the AA wire token format
+  5. Outbound sendUiConfigRequest is completely removed
+**Plans:** 2 plans
+
+Plans:
+- [ ] 03.1-01-PLAN.md -- Key format migration (underscore->hyphen) + applyAATokens dual-map signature + always-cache + tests
+- [ ] 03.1-02-PLAN.md -- Protocol direction flip (inbound 0x8011 handler + 0x8012 response) + orchestrator wiring + submodule bump
+
 ### Phase 4: Visual Depth
 **Goal**: Buttons and navbar have subtle physical depth that makes the UI feel polished
 **Depends on**: Phase 3
@@ -126,14 +143,15 @@ Plans:
 ## Progress
 
 **Execution Order:**
-Phases execute in numeric order: 1 -> 2 -> 3 -> 4
+Phases execute in numeric order: 1 -> 2 -> 3 -> 3.1 -> 4
 
 | Phase | Plans Complete | Status | Completed |
 |-------|----------------|--------|-----------|
 | 1. DPI Foundation | 3/3 | Complete   | 2026-03-08 |
 | 2. Clock & Scale Control | 2/2 | Complete   | 2026-03-08 |
 | 3. Theme Color System | 2/3 | In Progress|  |
+| 3.1 AA Theme Stream | 0/2 | Not started | - |
 | 4. Visual Depth | 0/? | Not started | - |
 
 ---
-*Last updated: 2026-03-08 -- Phase 3 plans created*
+*Last updated: 2026-03-08 -- Phase 03.1 plans created*
