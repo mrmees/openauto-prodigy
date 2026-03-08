@@ -222,28 +222,39 @@ void ThemeService::resolveWallpaper()
         emit wallpaperChanged();
 }
 
-QColor ThemeService::dividerColor() const
+QColor ThemeService::outlineVariant() const
 {
-    QColor c = activeColor("divider");
+    QColor c = activeColor("outline_variant");
     if (c == QColor(Qt::transparent))
         return QColor(255, 255, 255, 38);  // ~15% white fallback
     return c;
 }
 
-QColor ThemeService::pressedColor() const
+QColor ThemeService::scrim() const
 {
-    QColor c = activeColor("pressed");
-    if (c == QColor(Qt::transparent))
-        return QColor(255, 255, 255, 26);  // ~10% white fallback
+    return QColor(0, 0, 0, 180);
+}
+
+QColor ThemeService::pressed() const
+{
+    QColor c = activeColor("on_surface");
+    c.setAlpha(26);
     return c;
 }
 
-QColor ThemeService::highlightFontColor() const
+QColor ThemeService::barShadow() const
 {
-    QColor c = activeColor("highlight_font");
-    if (c == QColor(Qt::transparent))
-        return activeColor("background");
-    return c;
+    return QColor(0, 0, 0, 128);
+}
+
+QColor ThemeService::success() const
+{
+    return QColor("#4CAF50");
+}
+
+QColor ThemeService::onSuccess() const
+{
+    return QColor("#FFFFFF");
 }
 
 QColor ThemeService::activeColor(const QString& key) const

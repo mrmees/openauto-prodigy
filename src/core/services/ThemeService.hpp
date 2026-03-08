@@ -17,34 +17,42 @@ namespace oap {
 ///   name: Display Name
 ///   font_family: "Font Name"
 ///   day:
-///     background: "#rrggbb"
-///     highlight: "#rrggbb"
+///     primary: "#rrggbb"
+///     on_surface: "#rrggbb"
 ///     ...
 ///   night:
-///     background: "#rrggbb"
+///     primary: "#rrggbb"
 ///     ...
 ///
 /// Supports day/night mode switching.
+/// Color tokens follow AA (Android Auto) wire protocol naming.
 class ThemeService : public QObject, public IThemeService {
     Q_OBJECT
 
-    // Color properties — match old ThemeController names for smooth QML migration
-    Q_PROPERTY(QColor backgroundColor READ backgroundColor NOTIFY colorsChanged)
-    Q_PROPERTY(QColor highlightColor READ highlightColor NOTIFY colorsChanged)
-    Q_PROPERTY(QColor controlBackgroundColor READ controlBackgroundColor NOTIFY colorsChanged)
-    Q_PROPERTY(QColor controlForegroundColor READ controlForegroundColor NOTIFY colorsChanged)
-    Q_PROPERTY(QColor normalFontColor READ normalFontColor NOTIFY colorsChanged)
-    Q_PROPERTY(QColor specialFontColor READ specialFontColor NOTIFY colorsChanged)
-    Q_PROPERTY(QColor descriptionFontColor READ descriptionFontColor NOTIFY colorsChanged)
-    Q_PROPERTY(QColor barBackgroundColor READ barBackgroundColor NOTIFY colorsChanged)
-    Q_PROPERTY(QColor controlBoxBackgroundColor READ controlBoxBackgroundColor NOTIFY colorsChanged)
-    Q_PROPERTY(QColor gaugeIndicatorColor READ gaugeIndicatorColor NOTIFY colorsChanged)
-    Q_PROPERTY(QColor iconColor READ iconColor NOTIFY colorsChanged)
-    Q_PROPERTY(QColor sideWidgetBackgroundColor READ sideWidgetBackgroundColor NOTIFY colorsChanged)
-    Q_PROPERTY(QColor barShadowColor READ barShadowColor NOTIFY colorsChanged)
-    Q_PROPERTY(QColor dividerColor READ dividerColor NOTIFY colorsChanged)
-    Q_PROPERTY(QColor pressedColor READ pressedColor NOTIFY colorsChanged)
-    Q_PROPERTY(QColor highlightFontColor READ highlightFontColor NOTIFY colorsChanged)
+    // 16 base AA wire token color properties
+    Q_PROPERTY(QColor primary READ primary NOTIFY colorsChanged)
+    Q_PROPERTY(QColor onSurface READ onSurface NOTIFY colorsChanged)
+    Q_PROPERTY(QColor surface READ surface NOTIFY colorsChanged)
+    Q_PROPERTY(QColor surfaceVariant READ surfaceVariant NOTIFY colorsChanged)
+    Q_PROPERTY(QColor surfaceContainerLow READ surfaceContainerLow NOTIFY colorsChanged)
+    Q_PROPERTY(QColor inverseSurface READ inverseSurface NOTIFY colorsChanged)
+    Q_PROPERTY(QColor inverseOnSurface READ inverseOnSurface NOTIFY colorsChanged)
+    Q_PROPERTY(QColor outline READ outline NOTIFY colorsChanged)
+    Q_PROPERTY(QColor outlineVariant READ outlineVariant NOTIFY colorsChanged)
+    Q_PROPERTY(QColor background READ background NOTIFY colorsChanged)
+    Q_PROPERTY(QColor textPrimary READ textPrimary NOTIFY colorsChanged)
+    Q_PROPERTY(QColor textSecondary READ textSecondary NOTIFY colorsChanged)
+    Q_PROPERTY(QColor red READ red NOTIFY colorsChanged)
+    Q_PROPERTY(QColor onRed READ onRed NOTIFY colorsChanged)
+    Q_PROPERTY(QColor yellow READ yellow NOTIFY colorsChanged)
+    Q_PROPERTY(QColor onYellow READ onYellow NOTIFY colorsChanged)
+
+    // 5 derived color properties (computed, not from YAML)
+    Q_PROPERTY(QColor scrim READ scrim NOTIFY colorsChanged)
+    Q_PROPERTY(QColor pressed READ pressed NOTIFY colorsChanged)
+    Q_PROPERTY(QColor barShadow READ barShadow NOTIFY colorsChanged)
+    Q_PROPERTY(QColor success READ success NOTIFY colorsChanged)
+    Q_PROPERTY(QColor onSuccess READ onSuccess NOTIFY colorsChanged)
 
     Q_PROPERTY(bool nightMode READ nightMode WRITE setNightMode NOTIFY modeChanged)
 
@@ -101,23 +109,30 @@ public:
     void setNightMode(bool night);
     Q_INVOKABLE void toggleMode();
 
-    // Color accessors
-    QColor backgroundColor() const { return activeColor("background"); }
-    QColor highlightColor() const { return activeColor("highlight"); }
-    QColor controlBackgroundColor() const { return activeColor("control_background"); }
-    QColor controlForegroundColor() const { return activeColor("control_foreground"); }
-    QColor normalFontColor() const { return activeColor("normal_font"); }
-    QColor specialFontColor() const { return activeColor("special_font"); }
-    QColor descriptionFontColor() const { return activeColor("description_font"); }
-    QColor barBackgroundColor() const { return activeColor("bar_background"); }
-    QColor controlBoxBackgroundColor() const { return activeColor("control_box_background"); }
-    QColor gaugeIndicatorColor() const { return activeColor("gauge_indicator"); }
-    QColor iconColor() const { return activeColor("icon"); }
-    QColor sideWidgetBackgroundColor() const { return activeColor("side_widget_background"); }
-    QColor barShadowColor() const { return activeColor("bar_shadow"); }
-    QColor dividerColor() const;
-    QColor pressedColor() const;
-    QColor highlightFontColor() const;
+    // 16 base AA wire token color accessors
+    QColor primary() const { return activeColor("primary"); }
+    QColor onSurface() const { return activeColor("on_surface"); }
+    QColor surface() const { return activeColor("surface"); }
+    QColor surfaceVariant() const { return activeColor("surface_variant"); }
+    QColor surfaceContainerLow() const { return activeColor("surface_container_low"); }
+    QColor inverseSurface() const { return activeColor("inverse_surface"); }
+    QColor inverseOnSurface() const { return activeColor("inverse_on_surface"); }
+    QColor outline() const { return activeColor("outline"); }
+    QColor outlineVariant() const;
+    QColor background() const { return activeColor("background"); }
+    QColor textPrimary() const { return activeColor("text_primary"); }
+    QColor textSecondary() const { return activeColor("text_secondary"); }
+    QColor red() const { return activeColor("red"); }
+    QColor onRed() const { return activeColor("on_red"); }
+    QColor yellow() const { return activeColor("yellow"); }
+    QColor onYellow() const { return activeColor("on_yellow"); }
+
+    // 5 derived color accessors (computed, not from YAML)
+    QColor scrim() const;
+    QColor pressed() const;
+    QColor barShadow() const;
+    QColor success() const;
+    QColor onSuccess() const;
 
     /// Read-only access to color maps (for IPC export without signal side-effects)
     const QMap<QString, QColor>& dayColors() const { return dayColors_; }
