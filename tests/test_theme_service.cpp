@@ -535,6 +535,168 @@ private slots:
         QCOMPARE(service.wallpaperSource(), QString("file:///custom/bg.jpg"));
     }
 
+    // --- Connected Device theme + applyAATokens tests ---
+
+    void applyAATokensUpdatesColors()
+    {
+        QTemporaryDir tmpDir;
+        QVERIFY(tmpDir.isValid());
+
+        // Create a connected-device theme in temp dir
+        QDir(tmpDir.path()).mkpath("connected-device");
+        {
+            QFile f(tmpDir.filePath("connected-device/theme.yaml"));
+            QVERIFY(f.open(QIODevice::WriteOnly));
+            QTextStream out(&f);
+            out << "id: connected-device\n"
+                << "name: Connected Device\n"
+                << "version: 2.0.0\n"
+                << "font_family: \"Lato\"\n"
+                << "day:\n"
+                << "  primary: \"#e94560\"\n"
+                << "  background: \"#1a1a2e\"\n"
+                << "  on_surface: \"#e0e0e0\"\n"
+                << "  surface: \"#16213e\"\n"
+                << "  surface_variant: \"#16213e\"\n"
+                << "  surface_container_low: \"#0f3460\"\n"
+                << "  inverse_surface: \"#1a1a2e\"\n"
+                << "  inverse_on_surface: \"#ffffff\"\n"
+                << "  outline: \"#808080\"\n"
+                << "  outline_variant: \"#ffffff26\"\n"
+                << "  text_primary: \"#ffffff\"\n"
+                << "  text_secondary: \"#a0a0a0\"\n"
+                << "  red: \"#cc4444\"\n"
+                << "  on_red: \"#ffffff\"\n"
+                << "  yellow: \"#FF9800\"\n"
+                << "  on_yellow: \"#000000\"\n"
+                << "night:\n"
+                << "  primary: \"#c73650\"\n"
+                << "  background: \"#0a0a14\"\n"
+                << "  on_surface: \"#b0b0b0\"\n"
+                << "  surface: \"#0e1729\"\n"
+                << "  surface_variant: \"#0e1729\"\n"
+                << "  surface_container_low: \"#0a2240\"\n"
+                << "  inverse_surface: \"#0a0a14\"\n"
+                << "  inverse_on_surface: \"#c0c0c0\"\n"
+                << "  outline: \"#606060\"\n"
+                << "  outline_variant: \"#ffffff1a\"\n"
+                << "  text_primary: \"#c0c0c0\"\n"
+                << "  text_secondary: \"#707070\"\n"
+                << "  red: \"#aa3333\"\n"
+                << "  on_red: \"#ffffff\"\n"
+                << "  yellow: \"#cc7a00\"\n"
+                << "  on_yellow: \"#000000\"\n";
+            f.close();
+        }
+
+        oap::ThemeService service;
+        service.scanThemeDirectories({tmpDir.path()});
+        QVERIFY(service.setTheme("connected-device"));
+
+        // Apply AA tokens with red primary (ARGB format: 0xFFFF0000)
+        QMap<QString, uint32_t> tokens;
+        tokens["primary"] = 0xFFFF0000;  // opaque red
+        service.applyAATokens(tokens);
+
+        // Primary should now be red
+        QCOMPARE(service.primary(), QColor(255, 0, 0));
+    }
+
+    void applyAATokensIgnoredForOtherThemes()
+    {
+        QTemporaryDir tmpDir;
+        QVERIFY(tmpDir.isValid());
+
+        // Create a non-connected-device theme
+        QDir(tmpDir.path()).mkpath("other");
+        {
+            QFile f(tmpDir.filePath("other/theme.yaml"));
+            QVERIFY(f.open(QIODevice::WriteOnly));
+            QTextStream out(&f);
+            out << "id: other\nname: Other\nversion: 2.0.0\n"
+                << "day:\n  primary: \"#e94560\"\n  background: \"#1a1a2e\"\n"
+                << "night:\n  primary: \"#c73650\"\n  background: \"#0a0a14\"\n";
+            f.close();
+        }
+
+        oap::ThemeService service;
+        service.scanThemeDirectories({tmpDir.path()});
+        QVERIFY(service.setTheme("other"));
+        QColor originalPrimary = service.primary();
+
+        QMap<QString, uint32_t> tokens;
+        tokens["primary"] = 0xFFFF0000;
+        service.applyAATokens(tokens);
+
+        // Colors should be unchanged
+        QCOMPARE(service.primary(), originalPrimary);
+    }
+
+    void applyAATokensEmitsSignal()
+    {
+        QTemporaryDir tmpDir;
+        QVERIFY(tmpDir.isValid());
+
+        QDir(tmpDir.path()).mkpath("connected-device");
+        {
+            QFile f(tmpDir.filePath("connected-device/theme.yaml"));
+            QVERIFY(f.open(QIODevice::WriteOnly));
+            QTextStream out(&f);
+            out << "id: connected-device\nname: Connected Device\nversion: 2.0.0\n"
+                << "day:\n  primary: \"#e94560\"\n  background: \"#1a1a2e\"\n"
+                << "night:\n  primary: \"#c73650\"\n  background: \"#0a0a14\"\n";
+            f.close();
+        }
+
+        oap::ThemeService service;
+        service.scanThemeDirectories({tmpDir.path()});
+        QVERIFY(service.setTheme("connected-device"));
+
+        QSignalSpy spy(&service, &oap::ThemeService::colorsChanged);
+        QMap<QString, uint32_t> tokens;
+        tokens["primary"] = 0xFFFF0000;
+        service.applyAATokens(tokens);
+
+        QCOMPARE(spy.count(), 1);
+    }
+
+    void persistConnectedDeviceThemeWritesYaml()
+    {
+        QTemporaryDir tmpDir;
+        QVERIFY(tmpDir.isValid());
+
+        QDir(tmpDir.path()).mkpath("connected-device");
+        {
+            QFile f(tmpDir.filePath("connected-device/theme.yaml"));
+            QVERIFY(f.open(QIODevice::WriteOnly));
+            QTextStream out(&f);
+            out << "id: connected-device\nname: Connected Device\nversion: 2.0.0\n"
+                << "font_family: \"Lato\"\n"
+                << "day:\n  primary: \"#e94560\"\n  background: \"#1a1a2e\"\n"
+                << "night:\n  primary: \"#c73650\"\n  background: \"#0a0a14\"\n";
+            f.close();
+        }
+
+        oap::ThemeService service;
+        service.scanThemeDirectories({tmpDir.path()});
+        QVERIFY(service.setTheme("connected-device"));
+
+        // Apply tokens
+        QMap<QString, uint32_t> tokens;
+        tokens["primary"] = 0xFF00FF00;  // opaque green
+        service.applyAATokens(tokens);
+
+        // Read the YAML file back and verify it was updated
+        QFile f(tmpDir.filePath("connected-device/theme.yaml"));
+        QVERIFY(f.open(QIODevice::ReadOnly));
+        QString content = f.readAll();
+        f.close();
+
+        // The file should contain the new green color
+        // QColor::fromRgba(0xFF00FF00) = #00ff00
+        QVERIFY(content.contains("00ff00") || content.contains("00FF00"));
+    }
+
     void setThemeDefaultWallpaperChangesWithTheme()
     {
         QTemporaryDir tmpDir;
