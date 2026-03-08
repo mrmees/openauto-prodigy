@@ -83,6 +83,7 @@ COUNTRY_CODE="US"
 TCP_PORT="5277"
 VIDEO_FPS="30"
 AUTOSTART=false
+SCREEN_SIZE="7.0"
 
 # Simple mode header (used when TUI is disabled)
 print_header() {
@@ -848,6 +849,71 @@ install_dependencies() {
 }
 
 # ────────────────────────────────────────────────────
+# EDID screen size detection
+# ────────────────────────────────────────────────────
+# Probe EDID for physical screen size.
+# Returns: diagonal inches (e.g. "7.0") on stdout, or empty string if unavailable.
+probe_screen_size() {
+    local edid_path=""
+
+    # Find first connected display's EDID
+    for card_dir in /sys/class/drm/card*-*/; do
+        if [[ -f "${card_dir}status" ]]; then
+            local status
+            status=$(cat "${card_dir}status" 2>/dev/null || echo "")
+            if [[ "$status" == "connected" ]] && [[ -f "${card_dir}edid" ]] && [[ -s "${card_dir}edid" ]]; then
+                edid_path="${card_dir}edid"
+                break
+            fi
+        fi
+    done
+
+    if [[ -z "$edid_path" ]]; then
+        return
+    fi
+
+    # Try detailed timing descriptor first (mm precision).
+    # First descriptor starts at byte 54. Check pixel clock (bytes 54-55)
+    # is non-zero to confirm it's a timing descriptor, not a monitor descriptor.
+    local pclk_lo pclk_hi
+    pclk_lo=$(od -An -tu1 -j54 -N1 "$edid_path" 2>/dev/null | tr -d ' ')
+    pclk_hi=$(od -An -tu1 -j55 -N1 "$edid_path" 2>/dev/null | tr -d ' ')
+
+    if [[ -n "$pclk_lo" ]] && [[ -n "$pclk_hi" ]]; then
+        local pclk=$(( (pclk_hi << 8) | pclk_lo ))
+        if [[ $pclk -gt 0 ]]; then
+            # Physical size at bytes 66-68 within first descriptor
+            local b66 b67 b68
+            b66=$(od -An -tu1 -j66 -N1 "$edid_path" 2>/dev/null | tr -d ' ')
+            b67=$(od -An -tu1 -j67 -N1 "$edid_path" 2>/dev/null | tr -d ' ')
+            b68=$(od -An -tu1 -j68 -N1 "$edid_path" 2>/dev/null | tr -d ' ')
+
+            if [[ -n "$b66" ]] && [[ -n "$b67" ]] && [[ -n "$b68" ]]; then
+                local w_mm=$(( ((b68 >> 4) << 8) | b66 ))
+                local h_mm=$(( ((b68 & 0x0F) << 8) | b67 ))
+
+                if [[ $w_mm -gt 0 ]] && [[ $h_mm -gt 0 ]]; then
+                    awk "BEGIN {printf \"%.1f\", sqrt($w_mm*$w_mm + $h_mm*$h_mm) / 25.4}"
+                    return
+                fi
+            fi
+        fi
+    fi
+
+    # Fall back to basic display params (cm precision, bytes 21-22)
+    local w_cm h_cm
+    w_cm=$(od -An -tu1 -j21 -N1 "$edid_path" 2>/dev/null | tr -d ' ')
+    h_cm=$(od -An -tu1 -j22 -N1 "$edid_path" 2>/dev/null | tr -d ' ')
+
+    if [[ -n "$w_cm" ]] && [[ -n "$h_cm" ]] && [[ $w_cm -gt 0 ]] && [[ $h_cm -gt 0 ]]; then
+        local w_mm=$((w_cm * 10))
+        local h_mm=$((h_cm * 10))
+        awk "BEGIN {printf \"%.1f\", sqrt($w_mm*$w_mm + $h_mm*$h_mm) / 25.4}"
+        return
+    fi
+}
+
+# ────────────────────────────────────────────────────
 # Step 3: Interactive hardware setup
 # ────────────────────────────────────────────────────
 setup_hardware() {
@@ -883,6 +949,42 @@ setup_hardware() {
         TOUCH_DEV=${TOUCH_DEV:-${TOUCH_DEVS[0]}}
         ok "Touch: $TOUCH_DEV"
     fi
+
+    # ── Screen size ──
+    clear_body
+    tput cup "$HEADER_ROWS" 0
+    info "Detecting display..."
+    DETECTED_SIZE=$(probe_screen_size)
+
+    if [[ -n "$DETECTED_SIZE" ]]; then
+        ok "Detected screen: ${DETECTED_SIZE}\""
+        echo ""
+        read -p "Press Enter to accept, or type a different size in inches: " USER_SIZE
+        if [[ -n "$USER_SIZE" ]]; then
+            if [[ "$USER_SIZE" =~ ^[0-9]+\.?[0-9]*$ ]] && awk "BEGIN {exit !($USER_SIZE > 0)}"; then
+                SCREEN_SIZE="$USER_SIZE"
+            else
+                warn "Invalid input, using detected size"
+                SCREEN_SIZE="$DETECTED_SIZE"
+            fi
+        else
+            SCREEN_SIZE="$DETECTED_SIZE"
+        fi
+    else
+        info "Could not detect screen size from EDID"
+        echo ""
+        read -p "Enter screen diagonal in inches [7.0]: " USER_SIZE
+        if [[ -n "$USER_SIZE" ]]; then
+            if [[ "$USER_SIZE" =~ ^[0-9]+\.?[0-9]*$ ]] && awk "BEGIN {exit !($USER_SIZE > 0)}"; then
+                SCREEN_SIZE="$USER_SIZE"
+            else
+                warn "Invalid input, using default 7.0\""
+                SCREEN_SIZE="7.0"
+            fi
+        fi
+        # else SCREEN_SIZE stays at default "7.0"
+    fi
+    ok "Screen size: ${SCREEN_SIZE}\""
 
     # ── WiFi AP ──
     clear_body
@@ -1279,6 +1381,7 @@ video:
   resolution: "480p"
 
 display:
+  screen_size: ${SCREEN_SIZE}
   width: 1024
   height: 600
   brightness: 80
