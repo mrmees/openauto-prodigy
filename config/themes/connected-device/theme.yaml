@@ -1,46 +1,47 @@
 # Connected Device theme — colors are updated live when Android Auto
 # sends UiConfigRequest theming tokens from the phone's Material You palette.
 # This file doubles as a persistent cache of the last-received colors.
-# On first launch (before any phone connection), uses default theme fallback colors.
+# On first launch (before any phone connection), uses a Material You-inspired
+# teal palette as the default. Once a phone connects, colors are overwritten.
 id: connected-device
 name: Connected Device
 version: 2.0.0
 font_family: "Lato"
 
-# Day mode colors — AA wire token names
+# Day mode colors — Material You teal/blue default palette
 day:
-  background: "#1a1a2e"
-  primary: "#e94560"
-  surface_variant: "#16213e"
-  on_surface: "#e0e0e0"
-  text_primary: "#ffffff"
+  background: "#1c1b1f"
+  primary: "#80cbc4"
+  surface_variant: "#2d2d32"
+  on_surface: "#e6e1e5"
+  text_primary: "#f0f0f0"
   text_secondary: "#a0a0a0"
-  surface_container_low: "#0f3460"
-  surface: "#16213e"
-  outline_variant: "#ffffff26"
-  inverse_surface: "#1a1a2e"
-  inverse_on_surface: "#ffffff"
-  outline: "#808080"
-  red: "#cc4444"
-  on_red: "#ffffff"
-  yellow: "#FF9800"
-  on_yellow: "#000000"
+  surface_container_low: "#26383c"
+  surface: "#252530"
+  outline_variant: "#ffffff20"
+  inverse_surface: "#e6e1e5"
+  inverse_on_surface: "#1c1b1f"
+  outline: "#938f99"
+  red: "#f2b8b5"
+  on_red: "#601410"
+  yellow: "#FFD54F"
+  on_yellow: "#1c1b1f"
 
-# Night mode colors — dimmer, less eye strain
+# Night mode colors — dimmer teal variant
 night:
-  background: "#0a0a14"
-  primary: "#c73650"
-  surface_variant: "#0e1729"
-  on_surface: "#b0b0b0"
-  text_primary: "#c0c0c0"
-  text_secondary: "#707070"
-  surface_container_low: "#0a2240"
-  surface: "#0e1729"
-  outline_variant: "#ffffff1a"
-  inverse_surface: "#0a0a14"
-  inverse_on_surface: "#c0c0c0"
-  outline: "#606060"
-  red: "#aa3333"
-  on_red: "#ffffff"
-  yellow: "#cc7a00"
-  on_yellow: "#000000"
+  background: "#121215"
+  primary: "#4db6ac"
+  surface_variant: "#1e1e24"
+  on_surface: "#c9c5ca"
+  text_primary: "#d0d0d0"
+  text_secondary: "#808080"
+  surface_container_low: "#1a2a2e"
+  surface: "#1a1a22"
+  outline_variant: "#ffffff15"
+  inverse_surface: "#c9c5ca"
+  inverse_on_surface: "#121215"
+  outline: "#74707a"
+  red: "#d4837f"
+  on_red: "#601410"
+  yellow: "#ccaa3f"
+  on_yellow: "#121215"
