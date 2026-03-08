@@ -35,6 +35,21 @@ Flickable {
         scaleRevertTimer.restart()
     }
 
+    Timer {
+        id: scaleRevertTimer
+        interval: 1000
+        repeat: true
+        onTriggered: {
+            root._revertCountdown--
+            if (root._revertCountdown <= 0) {
+                scaleRevertTimer.stop()
+                root._showRevert = false
+                ConfigService.setValue("ui.scale", root._previousScale)
+                ConfigService.save()
+            }
+        }
+    }
+
     ColumnLayout {
         id: content
         anchors.left: parent.left
@@ -247,6 +262,69 @@ Flickable {
             label: "GPIO Active High"
             configPath: "sensors.night_mode.gpio_active_high"
             visible: nightSource.currentValue === "gpio"
+        }
+    }
+
+    // Safety revert overlay — floats over scrollable content
+    Rectangle {
+        id: revertOverlay
+        visible: root._showRevert
+        z: 10
+        anchors.bottom: parent.bottom
+        anchors.horizontalCenter: parent.horizontalCenter
+        anchors.bottomMargin: UiMetrics.marginPage
+        width: Math.min(parent.width - UiMetrics.marginPage * 2, 400)
+        height: revertContent.implicitHeight + UiMetrics.gap * 2
+        radius: UiMetrics.radius
+        color: ThemeService.barBackgroundColor
+        border.color: ThemeService.highlightColor
+        border.width: 2
+
+        Column {
+            id: revertContent
+            anchors.centerIn: parent
+            spacing: UiMetrics.spacing
+            width: parent.width - UiMetrics.gap * 2
+
+            Text {
+                width: parent.width
+                text: "Keep this size?"
+                font.pixelSize: UiMetrics.fontTitle
+                font.weight: Font.DemiBold
+                color: ThemeService.normalFontColor
+                horizontalAlignment: Text.AlignHCenter
+            }
+
+            Text {
+                width: parent.width
+                text: "Reverting in " + root._revertCountdown + "s..."
+                font.pixelSize: UiMetrics.fontBody
+                color: ThemeService.descriptionFontColor
+                horizontalAlignment: Text.AlignHCenter
+            }
+
+            Rectangle {
+                width: Math.min(parent.width * 0.6, 200)
+                height: UiMetrics.touchMin
+                anchors.horizontalCenter: parent.horizontalCenter
+                radius: UiMetrics.radius
+                color: ThemeService.highlightColor
+
+                Text {
+                    anchors.centerIn: parent
+                    text: "Keep this size"
+                    font.pixelSize: UiMetrics.fontBody
+                    font.weight: Font.DemiBold
+                    color: "white"
+                }
+                MouseArea {
+                    anchors.fill: parent
+                    onClicked: {
+                        scaleRevertTimer.stop()
+                        root._showRevert = false
+                    }
+                }
+            }
         }
     }
 }
