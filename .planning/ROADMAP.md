@@ -79,7 +79,11 @@ See .planning/milestones/v0.5.0-ROADMAP.md for archived details.
   2. A fresh install with no EDID and user skipping entry defaults to 7" and produces correctly scaled UI
   3. UiMetrics-driven element sizes change when the configured screen size changes (e.g., 7" vs 10" produces visibly different control sizes at the same resolution)
   4. User can view and change the physical screen size value in Display settings, and the change persists across restarts
-**Plans**: TBD
+**Plans:** 3 plans
+Plans:
+- [ ] 01-01-PLAN.md -- DisplayInfo DPI properties + config default + unit tests
+- [ ] 01-02-PLAN.md -- UiMetrics DPI-based scaling + settings UI read-only display
+- [x] 01-03-PLAN.md -- Installer EDID probe + screen size prompt + config persistence
 
 ### Phase 2: Clock & Scale Control
 **Goal**: Clock is readable at glance distance, and user can fine-tune overall UI scale
@@ -119,10 +123,10 @@ Phases execute in numeric order: 1 -> 2 -> 3 -> 4
 
 | Phase | Plans Complete | Status | Completed |
 |-------|----------------|--------|-----------|
-| 1. DPI Foundation | 0/? | Not started | - |
+| 1. DPI Foundation | 1/3 | Executing | - |
 | 2. Clock & Scale Control | 0/? | Not started | - |
 | 3. Theme Color System | 0/? | Not started | - |
 | 4. Visual Depth | 0/? | Not started | - |
 
 ---
-*Last updated: 2026-03-08 -- v0.5.1 roadmap created*
+*Last updated: 2026-03-08 -- Phase 1 plans created*
