@@ -2,16 +2,16 @@
 gsd_state_version: 1.0
 milestone: v0.5
 milestone_name: milestone
-status: completed
-stopped_at: Completed 03-02-PLAN.md (milestone complete)
-last_updated: "2026-03-06T22:27:37.881Z"
-last_activity: 2026-03-06 -- Completed BT auth and haptic feedback (03-02)
+status: in_progress
+stopped_at: Completed 04-01 dead code cleanup
+last_updated: "2026-03-08T04:15:01Z"
+last_activity: 2026-03-08 -- Completed dead code cleanup and BSSID fix (04-01)
 progress:
-  total_phases: 3
+  total_phases: 4
   completed_phases: 3
-  total_plans: 6
-  completed_plans: 6
-  percent: 100
+  total_plans: 8
+  completed_plans: 7
+  percent: 88
 ---
 
 # Project State
@@ -21,16 +21,16 @@ progress:
 See: .planning/PROJECT.md (updated 2026-03-05)
 
 **Core value:** A person with a Raspberry Pi 4 and a touchscreen can install this, pair their phone, and get a reliable wireless Android Auto experience -- every time, without SSH.
-**Current focus:** Phase 3 - Commands & Authentication
+**Current focus:** Phase 4 - OAA Proto Compliance & Library Rename
 
 ## Current Position
 
-Phase: 3 of 3 (Commands & Authentication)
-Plan: 2 of 2 in current phase
-Status: Complete
-Last activity: 2026-03-06 -- Completed BT auth and haptic feedback (03-02)
+Phase: 4 of 4 (OAA Proto Compliance & Library Rename)
+Plan: 1 of 2 in current phase
+Status: Plan 1 complete, Plan 2 pending
+Last activity: 2026-03-08 -- Completed dead code cleanup and BSSID fix (04-01)
 
-Progress: [==========] 100%
+Progress: [========= ] 88%
 
 ## Performance Metrics
 
@@ -55,6 +55,7 @@ Progress: [==========] 100%
 | Phase 02 P02 | 5min | 2 tasks | 5 files |
 | Phase 03 P01 | 6min | 2 tasks | 9 files |
 | Phase 03 P02 | 5min | 2 tasks | 8 files |
+| Phase 04 P01 | 6min | 2 tasks | 12 files |
 
 ## Accumulated Context
 
@@ -74,10 +75,16 @@ Recent decisions affecting current work:
 - [Phase 03]: Voice session on ControlChannel (ch0, 0x0011) per wire capture, not InputChannel
 - [Phase 03]: BT auth signals emit raw QByteArray (no proto schema exists)
 - [Phase 03]: 0x8004 reused across BT/Input channels (channel-scoped, no collision)
+- [Phase 04]: Retracted message IDs (0x8021, 0x8022, 0x8005) fall to default handler — Phase 1 logger catches them
+- [Phase 04]: WiFi BSSID now sends wlan0 MAC via QNetworkInterface, not SSID string
 
 ### Pending Todos
 
 None yet.
+
+### Roadmap Evolution
+
+- Phase 4 added: OAA Proto Compliance & Library Rename
 
 ### Blockers/Concerns
 
@@ -85,5 +92,5 @@ None yet.
 
 ## Session Continuity
 
-Last session: 2026-03-06T22:23:10Z
-Stopped at: Completed 03-02-PLAN.md (milestone complete)
+Last session: 2026-03-08T04:15:01Z
+Stopped at: Completed 04-01 dead code cleanup

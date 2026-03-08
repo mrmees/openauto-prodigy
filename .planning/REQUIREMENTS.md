@@ -38,6 +38,12 @@ Requirements for protocol compliance milestone. Each maps to roadmap phases.
 
 - [x] **OBS-01**: All unhandled channel messages are logged at debug level with message ID, channel, and hex payload
 
+### Cleanup & Correctness
+
+- [x] **CLN-01**: All retracted handler stubs, dead methods, and RETRACTED comments removed from source
+- [x] **CLN-02**: WiFi SDP descriptor sends actual BSSID (wlan0 MAC address), not SSID string
+- [x] **TST-01**: All tests pass reliably (100% pass rate, no flaky tests)
+
 ## Future Requirements
 
 ### Optional Capabilities
@@ -70,12 +76,15 @@ Requirements for protocol compliance milestone. Each maps to roadmap phases.
 | MED-02 | Phase 3 | Complete |
 | BT-01 | Phase 3 | Complete |
 | INP-01 | Phase 3 | Complete |
+| CLN-01 | Phase 4 | Complete |
+| CLN-02 | Phase 4 | Complete |
+| TST-01 | Phase 4 | Complete |
 
 **Coverage:**
-- v0.5.0 requirements: 10 total
-- Mapped to phases: 10
+- v0.5.0 requirements: 13 total
+- Mapped to phases: 13
 - Unmapped: 0
 
 ---
 *Requirements defined: 2026-03-04*
-*Last updated: 2026-03-05 after roadmap creation*
+*Last updated: 2026-03-08 after Phase 4 Plan 1*

@@ -84,7 +84,7 @@ Plans:
   2. Nav state, step, and distance messages are received and logged
 **Plans:** 2 plans
 
-*Note: NAV-02 (NavigationFocusIndication), AUD-01 (AudioFocusState), and AUD-02 (AudioStreamType) were implemented in Phases 2-3 but retracted after v1.1 proto verification revealed misidentified messages. Dead code removed in Phase 4.*
+*Note: NAV-02 (NavigationFocusIndication), AUD-01 (AudioFocusState), and AUD-02 (AudioStreamType) were implemented in Phases 2-3 but retracted after v1.2 proto verification revealed misidentified messages. Dead code removed in Phase 4.*
 
 Plans:
 - [x] 02-01-PLAN.md -- NavigationTurnEvent parsing, notification enhancement, and NavigationFocusIndication handling
@@ -100,7 +100,7 @@ Plans:
   3. InputBindingNotification haptic feedback requests from the phone are received and logged (ready for future haptic output)
 **Plans:** 2 plans
 
-*Note: MED-01 (MediaPlaybackCommand) was implemented but retracted after v1.1 proto verification revealed it was a misidentified message (vuy = ActionTakenNotification). Keycode-based media control is the v1.1-correct approach (deferred to separate phase for Pi verification).*
+*Note: MED-01 (MediaPlaybackCommand) was implemented but retracted after v1.2 proto verification revealed it was a misidentified message (vuy = ActionTakenNotification). Keycode-based media control is the v1.2-correct approach (deferred to separate phase for Pi verification).*
 
 Plans:
 - [x] 03-01-PLAN.md -- MediaPlaybackCommand and VoiceSessionRequest outbound commands
@@ -115,11 +115,11 @@ Plans:
   2. WiFi SDP descriptor sends actual BSSID (MAC address), not SSID
   3. Protocol library is at libs/prodigy-oaa-protocol/ with matching CMake target name
   4. All 64 tests pass (100% pass rate)
-  5. ROADMAP and REQUIREMENTS accurately reflect v1.1 proto reality
+  5. ROADMAP and REQUIREMENTS accurately reflect v1.2 proto reality
 **Plans:** 2 plans
 
 Plans:
-- [ ] 04-01-PLAN.md -- Dead code cleanup and WiFi bssid fix
+- [x] 04-01-PLAN.md -- Dead code cleanup and WiFi bssid fix
 - [ ] 04-02-PLAN.md -- Library rename, test fixes, and documentation update
 
 ## Progress
@@ -132,7 +132,7 @@ Phases execute in numeric order: 1 -> 2 -> 3 -> 4
 | 1. Proto Foundation & Observability | 2/2 | Complete | 2026-03-06 |
 | 2. Navigation & Audio Channels | 2/2 | Complete | 2026-03-06 |
 | 3. Commands & Authentication | 2/2 | Complete | 2026-03-06 |
-| 4. OAA Proto Compliance & Library Rename | 0/2 | Planned | - |
+| 4. OAA Proto Compliance & Library Rename | 1/2 | In Progress | - |
 
 ---
-*Last updated: 2026-03-07 -- Phase 4 planned*
+*Last updated: 2026-03-08 -- Phase 4 Plan 1 complete*
