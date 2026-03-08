@@ -32,6 +32,7 @@ namespace oap {
 class YamlConfig;
 class IAudioService;
 class IEventBus;
+class IThemeService;
 class Configuration;
 class EqualizerService;
 struct AudioStreamHandle;
@@ -74,6 +75,9 @@ public:
     VideoDecoder* videoDecoder() { return &videoDecoder_; }
     TouchHandler* touchHandler() { return &touchHandler_; }
 
+    /// Set theme service for UiConfigRequest sending on session start.
+    void setThemeService(oap::IThemeService* theme) { themeService_ = theme; }
+
     /// Set detected display dimensions for margin calculations.
     void setDisplayDimensions(int w, int h) { displayW_ = w; displayH_ = h; }
     oaa::hu::InputChannelHandler* inputHandler() { return &inputHandler_; }
@@ -96,12 +100,14 @@ private:
     void teardownSession();
     void startProtocolCapture();
     void stopProtocolCapture();
+    void sendUiConfigRequest();
 
     std::shared_ptr<oap::Configuration> config_;
     oap::IAudioService* audioService_;
     oap::YamlConfig* yamlConfig_;
     oap::IEventBus* eventBus_;
     oap::EqualizerService* eqService_;
+    oap::IThemeService* themeService_ = nullptr;
 
     // TCP listener (Qt-native, replaces ASIO acceptor)
     QTcpServer tcpServer_;

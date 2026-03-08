@@ -7,6 +7,10 @@
 #include "../../core/services/AudioService.hpp"
 #include "../../core/services/IEventBus.hpp"
 #include "../../core/services/EqualizerService.hpp"
+#include "../../core/services/IThemeService.hpp"
+
+#include <oaa/video/UiConfigRequestMessage.pb.h>
+#include <oaa/Messenger/Messenger.hpp>
 
 #include <memory>
 #include <chrono>
@@ -526,6 +530,7 @@ void AndroidAutoOrchestrator::onSessionStateChanged(oaa::SessionState state)
         qCInfo(lcAA) << "Android Auto connected!";
         setState(Connected, "Android Auto active");
         startConnectionWatchdog();
+        sendUiConfigRequest();
         break;
     case oaa::SessionState::Connecting:
     case oaa::SessionState::VersionExchange:
@@ -711,6 +716,49 @@ void AndroidAutoOrchestrator::sendButtonPress(int keycode)
             std::chrono::steady_clock::now().time_since_epoch()).count());
     inputHandler_.sendButtonEvent(static_cast<uint32_t>(keycode), true, ts);
     inputHandler_.sendButtonEvent(static_cast<uint32_t>(keycode), false, ts + 50000);
+}
+
+void AndroidAutoOrchestrator::sendUiConfigRequest()
+{
+    if (!session_ || !session_->messenger() || !themeService_) {
+        qCDebug(lcAA) << "Cannot send UiConfigRequest: missing session/messenger/theme";
+        return;
+    }
+
+    // Build UiConfigRequest with current theme's 16 base token colors
+    oaa::proto::messages::UiConfigRequest request;
+    auto* configData = request.mutable_config();
+
+    // The 16 base AA wire token keys
+    static const QStringList tokenKeys = {
+        "primary", "on_surface", "surface", "surface_variant",
+        "surface_container_low", "inverse_surface", "inverse_on_surface",
+        "outline", "outline_variant", "background", "text_primary",
+        "text_secondary", "red", "on_red", "yellow", "on_yellow"
+    };
+
+    for (const QString& key : tokenKeys) {
+        QColor c = themeService_->color(key);
+        if (c == QColor(Qt::transparent))
+            continue;
+
+        auto* entry = configData->add_primary_configs();
+        entry->set_key(key.toStdString());
+        auto* val = entry->mutable_config_value();
+        val->set_value(c.rgba());  // ARGB uint32
+    }
+
+    QByteArray data(request.ByteSizeLong(), '\0');
+    request.SerializeToArray(data.data(), data.size());
+
+    // Send as 0x8011 (OVERLAY_SESSION_UPDATE) on the video channel
+    session_->messenger()->sendMessage(
+        oaa::ChannelId::Video,
+        oaa::AVMessageId::OVERLAY_SESSION_UPDATE,
+        data);
+
+    qCInfo(lcAA) << "Sent UiConfigRequest with" << configData->primary_configs_size()
+                 << "theming tokens";
 }
 
 void AndroidAutoOrchestrator::setState(ConnectionState state, const QString& message)

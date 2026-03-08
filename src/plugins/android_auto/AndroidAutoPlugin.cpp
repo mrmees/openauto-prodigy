@@ -49,6 +49,10 @@ bool AndroidAutoPlugin::initialize(IHostContext* context)
     auto* eqService = context ? dynamic_cast<oap::EqualizerService*>(context->equalizerService()) : nullptr;
     aaService_ = new oap::aa::AndroidAutoOrchestrator(config_, audioService, yamlConfig_, eventBus, eqService, this);
 
+    // Give orchestrator access to theme service for UiConfigRequest sending
+    if (context)
+        aaService_->setThemeService(context->themeService());
+
     // Connect navigation: emit signals for PluginModel to handle activation/deactivation.
     QObject::connect(aaService_, &oap::aa::AndroidAutoOrchestrator::connectionStateChanged,
                      this, [this]() {

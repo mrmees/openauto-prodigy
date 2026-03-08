@@ -16,6 +16,7 @@ Q_DECLARE_METATYPE(std::shared_ptr<const QByteArray>)
 #include "oaa/video/VideoFocusIndicationMessage.pb.h"
 #include "oaa/video/VideoFocusModeEnum.pb.h"
 #include "oaa/video/VideoFocusReasonEnum.pb.h"
+#include "oaa/video/UpdateHuUiConfigResponse.pb.h"
 
 namespace oaa {
 namespace hu {
@@ -63,6 +64,24 @@ void VideoChannelHandler::onMessage(uint16_t messageId, const QByteArray& payloa
     case oaa::AVMessageId::VIDEO_FOCUS_INDICATION:
         handleVideoFocusIndication(data);
         break;
+    case oaa::AVMessageId::UPDATE_HU_UI_CONFIG_REQUEST: {
+        // 0x8012: UpdateHuUiConfigResponse (phone's response to our UiConfigRequest)
+        oaa::proto::messages::UpdateHuUiConfigResponse resp;
+        if (resp.ParseFromArray(data.constData(), data.size())) {
+            int status = resp.has_status() ? static_cast<int>(resp.status()) : -1;
+            const char* statusStr = "unknown";
+            switch (status) {
+            case 0: statusStr = "ERROR"; break;
+            case 1: statusStr = "ACCEPTED"; break;
+            case 2: statusStr = "REJECTED"; break;
+            }
+            qInfo() << "[VideoChannel] UiConfig theming tokens:" << statusStr
+                    << "(status=" << status << ")";
+        } else {
+            qWarning() << "[VideoChannel] failed to parse UpdateHuUiConfigResponse";
+        }
+        break;
+    }
     case oaa::AVMessageId::VIDEO_FOCUS_NOTIFICATION:
     case oaa::AVMessageId::UPDATE_UI_CONFIG_REQUEST:
     case oaa::AVMessageId::UPDATE_UI_CONFIG_REPLY:
@@ -72,7 +91,6 @@ void VideoChannelHandler::onMessage(uint16_t messageId, const QByteArray& payloa
     case oaa::AVMessageId::OVERLAY_START:
     case oaa::AVMessageId::OVERLAY_STOP:
     case oaa::AVMessageId::OVERLAY_SESSION_UPDATE:
-    case oaa::AVMessageId::UPDATE_HU_UI_CONFIG_REQUEST:
     case oaa::AVMessageId::UPDATE_HU_UI_CONFIG_RESPONSE:
     case oaa::AVMessageId::MEDIA_STATS:
     case oaa::AVMessageId::MEDIA_OPTIONS:
