@@ -96,8 +96,8 @@ Plans:
   4. User can adjust UI scale via stepper in Display settings (increments of 0.1), and all UI elements resize live or on confirm
 **Plans:** 2/2 plans complete
 Plans:
-- [ ] 02-01-PLAN.md -- Config plumbing, UiMetrics reactivity fix, clock sizing and 24h toggle
-- [ ] 02-02-PLAN.md -- Scale stepper control with safety revert overlay
+- [x] 02-01-PLAN.md -- Config plumbing, UiMetrics reactivity fix, clock sizing and 24h toggle
+- [x] 02-02-PLAN.md -- Scale stepper control with safety revert overlay
 
 ### Phase 3: Theme Color System
 **Goal**: All UI elements draw from a complete, consistent semantic color palette
@@ -107,10 +107,10 @@ Plans:
   1. ThemeService exposes a full set of named semantic color roles (surface, primary, secondary, accent, error, on-surface, on-primary, etc.) as Q_PROPERTYs
   2. Switching between day and night themes produces a coherent, non-clashing color scheme across all screens (launcher, settings, AA overlay, BT audio, phone)
   3. No hardcoded color hex values remain in any QML file -- all colors reference ThemeService properties
-**Plans:** 1/3 plans executed
+**Plans:** 2/3 plans executed
 Plans:
-- [ ] 03-01-PLAN.md -- ThemeService property rename to AA tokens + derived colors + YAML migration
-- [ ] 03-02-PLAN.md -- QML hardcode elimination + ThemeService reference update + web config/IPC
+- [x] 03-01-PLAN.md -- ThemeService property rename to AA tokens + derived colors + YAML migration
+- [x] 03-02-PLAN.md -- QML hardcode elimination + ThemeService reference update + web config/IPC
 - [ ] 03-03-PLAN.md -- Connected Device theme + UiConfigRequest protocol integration
 
 ### Phase 4: Visual Depth
@@ -132,7 +132,7 @@ Phases execute in numeric order: 1 -> 2 -> 3 -> 4
 |-------|----------------|--------|-----------|
 | 1. DPI Foundation | 3/3 | Complete   | 2026-03-08 |
 | 2. Clock & Scale Control | 2/2 | Complete   | 2026-03-08 |
-| 3. Theme Color System | 1/3 | In Progress|  |
+| 3. Theme Color System | 2/3 | In Progress|  |
 | 4. Visual Depth | 0/? | Not started | - |
 
 ---

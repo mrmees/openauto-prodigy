@@ -3,15 +3,15 @@ gsd_state_version: 1.0
 milestone: v0.5
 milestone_name: milestone
 status: in-progress
-stopped_at: Completed 03-01-PLAN.md
-last_updated: "2026-03-08T20:52:33Z"
-last_activity: 2026-03-08 -- Plan 03-01 executed (AA wire token rename)
+stopped_at: Completed 03-02-PLAN.md
+last_updated: "2026-03-08T21:03:00Z"
+last_activity: 2026-03-08 -- Plan 03-02 executed (QML hardcoded color elimination)
 progress:
   total_phases: 4
   completed_phases: 2
-  total_plans: 7
-  completed_plans: 6
-  percent: 86
+  total_plans: 8
+  completed_plans: 7
+  percent: 88
 ---
 
 # Project State
@@ -26,18 +26,18 @@ See: .planning/PROJECT.md (updated 2026-03-08)
 ## Current Position
 
 Phase: 3 of 4 (Theme Color System)
-Plan: 1 of 2 complete
-Status: Plan 03-01 complete, ready for Plan 03-02
-Last activity: 2026-03-08 -- Plan 03-01 executed (AA wire token rename)
+Plan: 2 of 3 complete
+Status: Plan 03-02 complete, ready for Plan 03-03
+Last activity: 2026-03-08 -- Plan 03-02 executed (QML hardcoded color elimination)
 
-Progress: [████████░░] 86%
+Progress: [█████████░] 88%
 
 ## Performance Metrics
 
 **Velocity:**
-- Total plans completed: 6
-- Average duration: 3 min
-- Total execution time: 0.35 hours
+- Total plans completed: 7
+- Average duration: 4 min
+- Total execution time: 0.48 hours
 
 ## Accumulated Context
 
@@ -58,6 +58,9 @@ Decisions are logged in PROJECT.md Key Decisions table.
 - (02-02) Overlay at Flickable bottom with z:10 to float over scrollable content
 - (03-01) Derived colors (scrim, pressed, barShadow, success, onSuccess) are computed constants, not stored in theme YAML
 - (03-01) Old property names completely removed -- clean break, no backwards compat shim
+- (03-02) Qt.rgba() with ThemeService color components for alpha-tinted panel backgrounds
+- (03-02) ThemeService.onRed/onSuccess for text on colored buttons instead of hardcoded 'white'
+- (03-02) ThemeService.outline for panel borders (was hardcoded #0f3460)
 
 ### Pending Todos
 
@@ -69,5 +72,5 @@ None yet.
 
 ## Session Continuity
 
-Last session: 2026-03-08T20:52:33Z
-Stopped at: Completed 03-01-PLAN.md
+Last session: 2026-03-08T21:02:26Z
+Stopped at: Completed 03-02-PLAN.md
