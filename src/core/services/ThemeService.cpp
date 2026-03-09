@@ -553,6 +553,16 @@ bool ThemeService::deleteTheme(const QString& themeId)
     return true;
 }
 
+bool ThemeService::isUserTheme(const QString& themeId) const
+{
+    auto it = themeDirectories_.find(themeId);
+    if (it == themeDirectories_.end())
+        return false;
+
+    QString userThemesDir = QDir::homePath() + "/.openauto/themes/";
+    return it.value().startsWith(userThemesDir);
+}
+
 QColor ThemeService::outlineVariant() const
 {
     QColor c = activeColor("outline-variant");

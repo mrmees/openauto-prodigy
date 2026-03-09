@@ -142,6 +142,9 @@ public:
     /// If the deleted theme is active, switches to "default" first.
     Q_INVOKABLE bool deleteTheme(const QString& themeId);
 
+    /// Returns true if themeId is a user/companion theme (under ~/.openauto/themes/), false if bundled.
+    Q_INVOKABLE bool isUserTheme(const QString& themeId) const;
+
     /// Available theme IDs (populated by scanThemeDirectories)
     QStringList availableThemes() const { return availableThemes_; }
 

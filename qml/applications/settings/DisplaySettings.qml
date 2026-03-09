@@ -160,12 +160,72 @@ Flickable {
         }
 
         FullScreenPicker {
+            id: themePicker
             label: "Theme"
             configPath: "display.theme"
             options: ThemeService.availableThemeNames
             values: ThemeService.availableThemes
             onActivated: function(index) {
                 ThemeService.setTheme(ThemeService.availableThemes[index])
+            }
+        }
+
+        // Delete theme row -- only visible for user/companion themes
+        Item {
+            Layout.fillWidth: true
+            implicitHeight: UiMetrics.rowH
+            visible: themePicker.currentIndex >= 0
+                     && themePicker.currentIndex < ThemeService.availableThemes.length
+                     && ThemeService.isUserTheme(ThemeService.availableThemes[themePicker.currentIndex])
+
+            property bool confirmPending: false
+
+            // Reset confirmation state when theme selection changes
+            Connections {
+                target: themePicker
+                function onCurrentIndexChanged() {
+                    confirmPending = false
+                }
+            }
+
+            RowLayout {
+                anchors.fill: parent
+                anchors.leftMargin: UiMetrics.marginRow
+                anchors.rightMargin: UiMetrics.marginRow
+                spacing: UiMetrics.gap
+
+                MaterialIcon {
+                    icon: "\ue872"  // delete
+                    size: UiMetrics.iconSmall
+                    color: parent.parent.confirmPending ? ThemeService.red : ThemeService.textSecondary
+                }
+
+                Text {
+                    text: parent.parent.confirmPending ? "Tap again to delete" : "Delete Theme"
+                    font.pixelSize: UiMetrics.fontBody
+                    color: parent.parent.confirmPending ? ThemeService.red : ThemeService.textPrimary
+                    Layout.fillWidth: true
+                }
+            }
+
+            MouseArea {
+                anchors.fill: parent
+                onClicked: {
+                    if (parent.confirmPending) {
+                        var themeId = ThemeService.availableThemes[themePicker.currentIndex]
+                        ThemeService.deleteTheme(themeId)
+                        parent.confirmPending = false
+                    } else {
+                        parent.confirmPending = true
+                    }
+                }
+            }
+
+            // Auto-reset confirmation after 3 seconds
+            Timer {
+                running: parent.confirmPending
+                interval: 3000
+                onTriggered: parent.confirmPending = false
             }
         }
 
