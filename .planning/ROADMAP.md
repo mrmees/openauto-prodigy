@@ -124,7 +124,7 @@ Plans:
   3. Tokens flow through signal chain to ThemeService and are applied (if connected-device active) or cached (always)
   4. All theme keys use hyphens matching the AA wire token format
   5. Outbound sendUiConfigRequest is completely removed
-**Plans:** 2 plans
+**Plans:** 2/2 plans complete
 
 Plans:
 - [x] 03.1-01-PLAN.md -- Key format migration (underscore->hyphen) + applyAATokens dual-map signature + always-cache + tests

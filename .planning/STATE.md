@@ -3,15 +3,15 @@ gsd_state_version: 1.0
 milestone: v0.5
 milestone_name: milestone
 status: in-progress
-stopped_at: Completed 03.1-01-PLAN.md
-last_updated: "2026-03-08T23:52:03Z"
-last_activity: 2026-03-08 -- Plan 03.1-01 executed (hyphenated keys + dual-map applyAATokens)
+stopped_at: Completed 03.1-02-PLAN.md
+last_updated: "2026-03-09T00:03:29Z"
+last_activity: 2026-03-08 -- Plan 03.1-02 executed (inbound UiConfigRequest handler + signal chain)
 progress:
   total_phases: 5
-  completed_phases: 3
+  completed_phases: 3.1
   total_plans: 10
-  completed_plans: 9
-  percent: 90
+  completed_plans: 10
+  percent: 100
 ---
 
 # Project State
@@ -25,19 +25,19 @@ See: .planning/PROJECT.md (updated 2026-03-08)
 
 ## Current Position
 
-Phase: 3.1 of 5 (AA Theme Stream Integration)
-Plan: 1 of 2 complete
-Status: Plan 03.1-01 complete, ready for plan 03.1-02
-Last activity: 2026-03-08 -- Plan 03.1-01 executed (hyphenated keys + dual-map applyAATokens)
+Phase: 3.1 of 5 (AA Theme Stream Integration) -- COMPLETE
+Plan: 2 of 2 complete
+Status: Phase 03.1 complete -- all AA theme stream integration plans done
+Last activity: 2026-03-08 -- Plan 03.1-02 executed (inbound UiConfigRequest handler + signal chain)
 
-Progress: [█████████░] 90%
+Progress: [██████████] 100%
 
 ## Performance Metrics
 
 **Velocity:**
-- Total plans completed: 9
+- Total plans completed: 10
 - Average duration: 5 min
-- Total execution time: 0.65 hours
+- Total execution time: 0.78 hours
 
 ## Accumulated Context
 
@@ -66,6 +66,8 @@ Decisions are logged in PROJECT.md Key Decisions table.
 - (03.1-01) Hyphenated keys in YAML and C++ to match AA wire token format
 - (03.1-01) applyAATokens always caches to connected-device YAML even when another theme is active
 - (03.1-01) Swap-and-restore pattern for persistence when connected-device is not active theme
+- (03.1-02) Phone pushes tokens inbound (0x8011), HU no longer sends outbound UiConfigRequest
+- (03.1-02) ACCEPTED ack sent immediately after parsing, before ThemeService processing
 
 ### Pending Todos
 
@@ -81,5 +83,5 @@ None yet.
 
 ## Session Continuity
 
-Last session: 2026-03-08T23:52:03Z
-Stopped at: Completed 03.1-01-PLAN.md
+Last session: 2026-03-09T00:03:29Z
+Stopped at: Completed 03.1-02-PLAN.md
