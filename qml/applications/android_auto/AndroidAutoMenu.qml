@@ -16,12 +16,12 @@ Item {
         visible: androidAutoMenu.projecting
     }
 
-    // Video output — fills parent (Shell.qml already insets for navbar)
+    // Video output — letterboxed within parent (Fit mode ensures all content visible)
     VideoOutput {
         id: videoOutput
         anchors.fill: parent
         visible: androidAutoMenu.projecting
-        fillMode: VideoOutput.PreserveAspectCrop
+        fillMode: VideoOutput.PreserveAspectFit
     }
 
     // Debug touch overlay — maps content-space coordinates back to screen
