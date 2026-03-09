@@ -75,7 +75,7 @@ public:
     VideoDecoder* videoDecoder() { return &videoDecoder_; }
     TouchHandler* touchHandler() { return &touchHandler_; }
 
-    /// Set theme service for UiConfigRequest sending on session start.
+    /// Set theme service for applying phone-sent AA theming tokens.
     void setThemeService(oap::IThemeService* theme) { themeService_ = theme; }
 
     /// Set detected display dimensions for margin calculations.
@@ -100,7 +100,6 @@ private:
     void teardownSession();
     void startProtocolCapture();
     void stopProtocolCapture();
-    void sendUiConfigRequest();
 
     std::shared_ptr<oap::Configuration> config_;
     oap::IAudioService* audioService_;
