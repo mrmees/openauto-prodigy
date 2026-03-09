@@ -128,7 +128,7 @@ Item {
             Layout.preferredWidth: bypassText.implicitWidth + UiMetrics.gap * 2
             Layout.preferredHeight: UiMetrics.touchMin
             radius: UiMetrics.radius / 2
-            color: root.currentBypassed ? ThemeService.primary : ThemeService.surfaceVariant
+            color: root.currentBypassed ? ThemeService.secondaryContainer : ThemeService.surfaceContainerLow
 
             Behavior on color { ColorAnimation { duration: 150 } }
 
@@ -138,7 +138,7 @@ Item {
                 text: "BYPASS"
                 font.pixelSize: UiMetrics.fontTiny
                 font.bold: true
-                color: root.currentBypassed ? ThemeService.background : ThemeService.onSurfaceVariant
+                color: root.currentBypassed ? ThemeService.onSecondaryContainer : ThemeService.onSurfaceVariant
             }
 
             MouseArea {
@@ -518,7 +518,7 @@ Item {
                         text: "Save"
                         font.pixelSize: UiMetrics.fontBody
                         font.bold: true
-                        color: ThemeService.background
+                        color: ThemeService.onPrimary
                     }
 
                     MouseArea {

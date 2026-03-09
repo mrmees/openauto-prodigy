@@ -102,7 +102,7 @@ Flickable {
                             Rectangle {
                                 width: Math.max(UiMetrics.touchMin * 1.5, swLabel.implicitWidth + UiMetrics.gap)
                                 height: UiMetrics.touchMin
-                                color: !isHardware ? ThemeService.primary : ThemeService.surfaceVariant
+                                color: !isHardware ? ThemeService.secondaryContainer : ThemeService.surfaceContainerLow
                                 radius: UiMetrics.radius
 
                                 Rectangle {
@@ -118,7 +118,7 @@ Flickable {
                                     anchors.centerIn: parent
                                     text: "Software"
                                     font.pixelSize: UiMetrics.fontSmall
-                                    color: !isHardware ? ThemeService.background : ThemeService.onSurface
+                                    color: !isHardware ? ThemeService.onSecondaryContainer : ThemeService.onSurface
                                 }
 
                                 MouseArea {
@@ -134,7 +134,7 @@ Flickable {
                             Rectangle {
                                 width: Math.max(UiMetrics.touchMin * 1.5, hwLabel.implicitWidth + UiMetrics.gap)
                                 height: UiMetrics.touchMin
-                                color: isHardware ? ThemeService.primary : ThemeService.surfaceVariant
+                                color: isHardware ? ThemeService.secondaryContainer : ThemeService.surfaceContainerLow
                                 opacity: hwAvailable ? 1.0 : 0.4
                                 radius: UiMetrics.radius
 
@@ -151,7 +151,7 @@ Flickable {
                                     anchors.centerIn: parent
                                     text: "Hardware"
                                     font.pixelSize: UiMetrics.fontSmall
-                                    color: isHardware ? ThemeService.background : ThemeService.onSurface
+                                    color: isHardware ? ThemeService.onSecondaryContainer : ThemeService.onSurface
                                     opacity: hwAvailable ? 1.0 : 0.4
                                 }
 

@@ -55,7 +55,7 @@ Popup {
                 Item { Layout.fillWidth: true }
             }
             background: Rectangle {
-                color: parent.pressed ? ThemeService.primary : ThemeService.surfaceContainerLow
+                color: parent.pressed ? ThemeService.primaryContainer : ThemeService.surfaceContainerLow
                 radius: UiMetrics.radius
             }
         }
@@ -98,7 +98,7 @@ Popup {
                 horizontalAlignment: Text.AlignHCenter
             }
             background: Rectangle {
-                color: parent.pressed ? ThemeService.primary : ThemeService.surfaceContainerLow
+                color: parent.pressed ? ThemeService.primaryContainer : ThemeService.surfaceContainerLow
                 radius: UiMetrics.radius
             }
         }

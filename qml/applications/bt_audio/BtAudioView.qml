@@ -141,7 +141,7 @@ Rectangle {
                     color: ThemeService.onSurface
                 }
                 background: Rectangle {
-                    color: parent.pressed ? ThemeService.primary : "transparent"
+                    color: parent.pressed ? ThemeService.primaryContainer : "transparent"
                     radius: width / 2
                     implicitWidth: UiMetrics.touchMin
                     implicitHeight: UiMetrics.touchMin
@@ -164,7 +164,7 @@ Rectangle {
                     color: ThemeService.onSurface
                 }
                 background: Rectangle {
-                    color: parent.pressed ? ThemeService.primary : "transparent"
+                    color: parent.pressed ? ThemeService.primaryContainer : "transparent"
                     radius: width / 2
                     implicitWidth: UiMetrics.callBtnSize
                     implicitHeight: UiMetrics.callBtnSize
@@ -181,7 +181,7 @@ Rectangle {
                     color: ThemeService.onSurface
                 }
                 background: Rectangle {
-                    color: parent.pressed ? ThemeService.primary : "transparent"
+                    color: parent.pressed ? ThemeService.primaryContainer : "transparent"
                     radius: width / 2
                     implicitWidth: UiMetrics.touchMin
                     implicitHeight: UiMetrics.touchMin

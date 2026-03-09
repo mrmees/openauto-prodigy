@@ -62,7 +62,7 @@ Item {
 
                     width: Math.max(UiMetrics.touchMin * 1.5, segLabel.implicitWidth + UiMetrics.gap)
                     height: UiMetrics.touchMin
-                    color: isSelected ? ThemeService.primary : ThemeService.surfaceVariant
+                    color: isSelected ? ThemeService.secondaryContainer : ThemeService.surfaceContainerLow
                     radius: UiMetrics.radius
 
                     scale: segMouseArea.pressed ? 0.97 : 1.0
@@ -103,7 +103,7 @@ Item {
                         anchors.centerIn: parent
                         text: modelData
                         font.pixelSize: UiMetrics.fontSmall
-                        color: segment.isSelected ? ThemeService.background : ThemeService.onSurface
+                        color: segment.isSelected ? ThemeService.onSecondaryContainer : ThemeService.onSurface
                     }
 
                     MouseArea {

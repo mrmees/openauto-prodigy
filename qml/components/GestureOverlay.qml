@@ -191,7 +191,7 @@ Rectangle {
                         }
                     }
                     background: Rectangle {
-                        color: parent.pressed ? ThemeService.primary : ThemeService.surfaceContainerLow
+                        color: parent.pressed ? ThemeService.primaryContainer : ThemeService.surfaceContainerLow
                         radius: UiMetrics.radiusSmall
                         implicitWidth: UiMetrics.overlayBtnW
                         implicitHeight: UiMetrics.overlayBtnH
@@ -220,7 +220,7 @@ Rectangle {
                         }
                     }
                     background: Rectangle {
-                        color: parent.pressed ? ThemeService.primary : ThemeService.surfaceContainerLow
+                        color: parent.pressed ? ThemeService.primaryContainer : ThemeService.surfaceContainerLow
                         radius: UiMetrics.radiusSmall
                         implicitWidth: UiMetrics.overlayBtnW
                         implicitHeight: UiMetrics.overlayBtnH
@@ -246,7 +246,7 @@ Rectangle {
                         }
                     }
                     background: Rectangle {
-                        color: parent.pressed ? ThemeService.primary : ThemeService.surfaceContainerLow
+                        color: parent.pressed ? ThemeService.primaryContainer : ThemeService.surfaceContainerLow
                         radius: UiMetrics.radiusSmall
                         implicitWidth: UiMetrics.overlayBtnW
                         implicitHeight: UiMetrics.overlayBtnH
