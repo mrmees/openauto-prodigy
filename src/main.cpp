@@ -3,6 +3,7 @@
 #include <systemd/sd-daemon.h>
 #endif
 #include <QGuiApplication>
+#include <QScreen>
 #include <QCommandLineParser>
 #include <QIcon>
 #include <QQmlApplicationEngine>
@@ -279,6 +280,19 @@ int main(int argc, char *argv[])
             qCWarning(lcCore) << "Companion: no secret file at" << secretFile.fileName()
                         << "— pairing required";
         }
+        companionListener->setThemeService(themeService);
+
+        // Set display size for companion wallpaper cropping
+        if (geomW > 0 && geomH > 0) {
+            companionListener->setDisplaySize(geomW, geomH);
+        } else {
+            auto* screen = QGuiApplication::primaryScreen();
+            if (screen) {
+                QRect geom = screen->geometry();
+                companionListener->setDisplaySize(geom.width(), geom.height());
+            }
+        }
+
         if (companionListener->start(companionPort)) {
             qCInfo(lcCore) << "Companion: listening on port" << companionPort;
         } else {

@@ -1,4 +1,5 @@
 #include "CompanionListenerService.hpp"
+#include "ThemeService.hpp"
 #include "../Logging.hpp"
 #include <QJsonDocument>
 #include <QMessageAuthenticationCode>
@@ -282,6 +283,11 @@ void CompanionListenerService::onClientReadyRead()
                 if (!vehicleId_.isEmpty())
                     ack["vehicle_id"] = vehicleId_;
 
+                QJsonObject display;
+                display["width"] = displayWidth_;
+                display["height"] = displayHeight_;
+                ack["display"] = display;
+
                 client_->write(QJsonDocument(ack).toJson(QJsonDocument::Compact) + "\n");
                 client_->flush();
                 emit connectedChanged();
@@ -303,6 +309,26 @@ void CompanionListenerService::onClientReadyRead()
             }
             qCInfo(lcCore) << "Companion: valid status message received";
             handleStatus(msg);
+        } else if (type == "theme") {
+            if (sessionKey_.isEmpty()) {
+                qCWarning(lcCore) << "Companion: theme msg but no session key";
+                continue;
+            }
+            if (!verifyMac(msg, line)) {
+                qCWarning(lcCore) << "Companion: theme msg MAC failed";
+                continue;
+            }
+            handleThemeMessage(msg);
+        } else if (type == "theme_data") {
+            if (sessionKey_.isEmpty()) {
+                qCWarning(lcCore) << "Companion: theme_data msg but no session key";
+                continue;
+            }
+            if (!verifyMac(msg, line)) {
+                qCWarning(lcCore) << "Companion: theme_data msg MAC failed";
+                continue;
+            }
+            handleThemeDataChunk(msg);
         }
     }
 }
@@ -511,6 +537,112 @@ QByteArray CompanionListenerService::computeHmac(const QByteArray& key, const QB
     return QMessageAuthenticationCode::hash(data, key, QCryptographicHash::Sha256);
 }
 
+void CompanionListenerService::handleThemeMessage(const QJsonObject& msg)
+{
+    QJsonObject theme = msg["theme"].toObject();
+    if (theme.isEmpty()) {
+        qCWarning(lcCore) << "Companion: theme message missing 'theme' object";
+        return;
+    }
+
+    QJsonObject wallpaper = theme["wallpaper"].toObject();
+    int chunks = wallpaper["chunks"].toInt(0);
+    int size = wallpaper["size"].toInt(0);
+
+    // Safety cap: reject wallpaper > 5MB
+    if (size > 5 * 1024 * 1024) {
+        qCWarning(lcCore) << "Companion: wallpaper too large (" << size << "bytes), rejecting theme";
+        return;
+    }
+
+    pendingThemeJson_ = theme;
+    expectedWallpaperChunks_ = chunks;
+    receivedWallpaperChunks_ = 0;
+    pendingWallpaperData_.clear();
+    pendingWallpaperData_.reserve(size);
+
+    qCInfo(lcCore) << "Companion: theme" << theme["name"].toString()
+                   << "wallpaper:" << size << "bytes in" << chunks << "chunks";
+}
+
+void CompanionListenerService::handleThemeDataChunk(const QJsonObject& msg)
+{
+    if (expectedWallpaperChunks_ <= 0) {
+        qCWarning(lcCore) << "Companion: theme_data received but no pending theme";
+        return;
+    }
+
+    int index = msg["index"].toInt(-1);
+    QString b64 = msg["data"].toString();
+
+    if (index < 0 || b64.isEmpty()) {
+        qCWarning(lcCore) << "Companion: invalid theme_data chunk (index=" << index << ")";
+        return;
+    }
+
+    QByteArray decoded = QByteArray::fromBase64(b64.toLatin1());
+    pendingWallpaperData_.append(decoded);
+    receivedWallpaperChunks_++;
+
+    qCDebug(lcCore) << "Companion: theme_data chunk" << receivedWallpaperChunks_
+                    << "/" << expectedWallpaperChunks_ << "(" << decoded.size() << "bytes)";
+
+    if (receivedWallpaperChunks_ >= expectedWallpaperChunks_) {
+        applyReceivedTheme();
+    }
+}
+
+void CompanionListenerService::applyReceivedTheme()
+{
+    QString name = pendingThemeJson_["name"].toString();
+    QString seed = pendingThemeJson_["seed"].toString();
+
+    // Parse light/dark JSON objects into QMap<QString, QColor>
+    // Companion sends camelCase keys — convert to hyphenated
+    auto parseColorMap = [](const QJsonObject& obj) -> QMap<QString, QColor> {
+        QMap<QString, QColor> map;
+        for (auto it = obj.begin(); it != obj.end(); ++it) {
+            // Convert camelCase to hyphenated: insert hyphen before uppercase, lowercase all
+            QString key;
+            for (QChar ch : it.key()) {
+                if (ch.isUpper()) {
+                    key += '-';
+                    key += ch.toLower();
+                } else {
+                    key += ch;
+                }
+            }
+            map.insert(key, QColor(it.value().toString()));
+        }
+        return map;
+    };
+
+    QMap<QString, QColor> dayColors = parseColorMap(pendingThemeJson_["light"].toObject());
+    QMap<QString, QColor> nightColors = parseColorMap(pendingThemeJson_["dark"].toObject());
+
+    if (themeService_) {
+        bool ok = themeService_->importCompanionTheme(name, seed, dayColors, nightColors, pendingWallpaperData_);
+        qCInfo(lcCore) << "Companion: theme import" << name << (ok ? "succeeded" : "failed");
+    } else {
+        qCWarning(lcCore) << "Companion: no ThemeService set, cannot import theme";
+    }
+
+    // Send theme_ack
+    if (client_) {
+        QJsonObject ack;
+        ack["type"] = "theme_ack";
+        ack["accepted"] = true;
+        client_->write(QJsonDocument(ack).toJson(QJsonDocument::Compact) + "\n");
+        client_->flush();
+    }
+
+    // Clear pending state
+    pendingWallpaperData_.clear();
+    pendingThemeJson_ = QJsonObject();
+    expectedWallpaperChunks_ = 0;
+    receivedWallpaperChunks_ = 0;
+}
+
 void CompanionListenerService::onClientDisconnected()
 {
     client_->deleteLater();
@@ -526,6 +658,10 @@ void CompanionListenerService::onClientDisconnected()
     requestedProxyHost_.clear();
     requestedProxyPort_ = 0;
     proxyRouteApplied_ = false;
+    pendingWallpaperData_.clear();
+    pendingThemeJson_ = QJsonObject();
+    expectedWallpaperChunks_ = 0;
+    receivedWallpaperChunks_ = 0;
     if (systemClient_)
         systemClient_->setProxyRoute(false);
 

@@ -385,14 +385,14 @@ void AndroidAutoOrchestrator::onNewConnection()
         }, Qt::QueuedConnection);
     }
 
-    // Wire UI config tokens to theme service
-    connect(&videoHandler_, &oaa::hu::VideoChannelHandler::uiConfigTokensReceived,
-            this, [this](const QMap<QString, uint32_t>& dayTokens,
-                         const QMap<QString, uint32_t>& nightTokens) {
-        if (themeService_) {
-            themeService_->applyAATokens(dayTokens, nightTokens);
-        }
-    });
+    // AA wire theming disabled — companion app is sole theme source (Phase 03.2)
+    // connect(&videoHandler_, &oaa::hu::VideoChannelHandler::uiConfigTokensReceived,
+    //         this, [this](const QMap<QString, uint32_t>& dayTokens,
+    //                      const QMap<QString, uint32_t>& nightTokens) {
+    //     if (themeService_) {
+    //         themeService_->applyAATokens(dayTokens, nightTokens);
+    //     }
+    // });
 
     // Wire video focus changes
     connect(&videoHandler_, &oaa::hu::VideoChannelHandler::videoFocusChanged,
