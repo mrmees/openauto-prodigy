@@ -215,6 +215,13 @@ QByteArray ServiceDiscoveryBuilder::buildVideoDescriptor() const
     int mW = 0, mH = 0;
     calcMargins(chosen.w, chosen.h, mW, mH);
 
+    // Check if navbar is shown during AA (for hidden_ui_elements)
+    bool navbarDuringAA = true;
+    if (yamlConfig_) {
+        QVariant showDuringAA = yamlConfig_->valueByPath("navbar.show_during_aa");
+        navbarDuringAA = showDuringAA.isNull() || showDuringAA.toBool();
+    }
+
     // Read enabled codecs from YAML config
     QStringList enabledCodecs = yamlConfig_ ? yamlConfig_->videoCodecs()
                                             : QStringList{"h264", "h265"};
@@ -234,9 +241,13 @@ QByteArray ServiceDiscoveryBuilder::buildVideoDescriptor() const
         cfg->set_margin_height(mH);
         cfg->set_dpi(dpi);
         cfg->set_codec(it.value());
-        // AdditionalVideoConfig removed: setting ui_theme here causes the phone
-        // to ignore margin_width/margin_height on VideoConfig. Night mode theming
-        // works via color_scheme_support on AVChannel + 0x8011 tokens instead.
+        // Only hidden_ui_elements -- do NOT set ui_theme (breaks margins, see Phase 03.4).
+        if (navbarDuringAA) {
+            auto* avc = cfg->mutable_additional_config();
+            avc->add_hidden_ui_elements(oaa::proto::data::UI_ELEMENT_CLOCK);
+            avc->add_hidden_ui_elements(oaa::proto::data::UI_ELEMENT_BATTERY_LEVEL);
+            avc->add_hidden_ui_elements(oaa::proto::data::UI_ELEMENT_PHONE_SIGNAL);
+        }
         qCInfo(lcAA) << "config[" << configIdx++ << "]:"
                 << chosen.label << codecName << "margins:" << mW << "x" << mH;
     }
@@ -250,9 +261,13 @@ QByteArray ServiceDiscoveryBuilder::buildVideoDescriptor() const
         cfg->set_margin_height(mH);
         cfg->set_dpi(dpi);
         cfg->set_codec(Codec::MEDIA_CODEC_VIDEO_H264_BP);
-        // AdditionalVideoConfig removed: setting ui_theme here causes the phone
-        // to ignore margin_width/margin_height on VideoConfig. Night mode theming
-        // works via color_scheme_support on AVChannel + 0x8011 tokens instead.
+        // Only hidden_ui_elements -- do NOT set ui_theme (breaks margins, see Phase 03.4).
+        if (navbarDuringAA) {
+            auto* avc = cfg->mutable_additional_config();
+            avc->add_hidden_ui_elements(oaa::proto::data::UI_ELEMENT_CLOCK);
+            avc->add_hidden_ui_elements(oaa::proto::data::UI_ELEMENT_BATTERY_LEVEL);
+            avc->add_hidden_ui_elements(oaa::proto::data::UI_ELEMENT_PHONE_SIGNAL);
+        }
         qCWarning(lcAA) << "No valid codecs in config, falling back to H.264";
         configIdx = 1;
     }

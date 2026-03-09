@@ -6,6 +6,7 @@
 #include "oaa/control/ChannelDescriptorData.pb.h"
 #include "oaa/input/InputChannelData.pb.h"
 #include "oaa/input/TouchConfigData.pb.h"
+#include "oaa/video/AdditionalVideoConfigData.pb.h"
 
 class TestServiceDiscoveryBuilder : public QObject {
     Q_OBJECT
@@ -189,6 +190,106 @@ private slots:
             }
         }
         QFAIL("Input channel not found");
+    }
+
+    void testHiddenUiElementsWhenNavbarEnabled() {
+        // Default: navbar.show_during_aa is true (or unset)
+        oap::YamlConfig config;
+        config.setValueByPath("navbar.show_during_aa", true);
+        config.setValueByPath("navbar.edge", QString("bottom"));
+
+        oap::aa::ServiceDiscoveryBuilder builder(&config);
+        builder.setDisplayDimensions(1024, 600);
+        auto sessionConfig = builder.build();
+
+        for (const auto& ch : sessionConfig.channels) {
+            if (ch.channelId == 3) {
+                oaa::proto::data::ChannelDescriptor desc;
+                QVERIFY(desc.ParseFromArray(ch.descriptor.constData(), ch.descriptor.size()));
+                QVERIFY(desc.has_av_channel());
+                QVERIFY(desc.av_channel().video_configs_size() > 0);
+                auto& vc = desc.av_channel().video_configs(0);
+                QVERIFY(vc.has_additional_config());
+                QCOMPARE(vc.additional_config().hidden_ui_elements_size(), 3);
+                QCOMPARE(vc.additional_config().hidden_ui_elements(0),
+                         oaa::proto::data::UI_ELEMENT_CLOCK);
+                QCOMPARE(vc.additional_config().hidden_ui_elements(1),
+                         oaa::proto::data::UI_ELEMENT_BATTERY_LEVEL);
+                QCOMPARE(vc.additional_config().hidden_ui_elements(2),
+                         oaa::proto::data::UI_ELEMENT_PHONE_SIGNAL);
+                return;
+            }
+        }
+        QFAIL("Video channel not found");
+    }
+
+    void testHiddenUiElementsDefaultUnset() {
+        // When navbar.show_during_aa is not set, default is true
+        oap::YamlConfig config;
+        // Don't set navbar.show_during_aa — should default to true
+        oap::aa::ServiceDiscoveryBuilder builder(&config);
+        builder.setDisplayDimensions(1024, 600);
+        auto sessionConfig = builder.build();
+
+        for (const auto& ch : sessionConfig.channels) {
+            if (ch.channelId == 3) {
+                oaa::proto::data::ChannelDescriptor desc;
+                QVERIFY(desc.ParseFromArray(ch.descriptor.constData(), ch.descriptor.size()));
+                auto& vc = desc.av_channel().video_configs(0);
+                QVERIFY2(vc.has_additional_config(),
+                         "Should have hidden_ui_elements when navbar.show_during_aa is unset (default true)");
+                QCOMPARE(vc.additional_config().hidden_ui_elements_size(), 3);
+                return;
+            }
+        }
+        QFAIL("Video channel not found");
+    }
+
+    void testNoHiddenUiElementsWhenNavbarDisabled() {
+        oap::YamlConfig config;
+        config.setValueByPath("navbar.show_during_aa", false);
+
+        oap::aa::ServiceDiscoveryBuilder builder(&config);
+        builder.setDisplayDimensions(1024, 600);
+        auto sessionConfig = builder.build();
+
+        for (const auto& ch : sessionConfig.channels) {
+            if (ch.channelId == 3) {
+                oaa::proto::data::ChannelDescriptor desc;
+                QVERIFY(desc.ParseFromArray(ch.descriptor.constData(), ch.descriptor.size()));
+                auto& vc = desc.av_channel().video_configs(0);
+                // Should NOT have additional_config when navbar is disabled
+                if (vc.has_additional_config()) {
+                    QCOMPARE(vc.additional_config().hidden_ui_elements_size(), 0);
+                }
+                return;
+            }
+        }
+        QFAIL("Video channel not found");
+    }
+
+    void testHiddenUiElementsNoUiTheme() {
+        // Verify no ui_theme field is set (critical — breaks margins)
+        oap::YamlConfig config;
+        config.setValueByPath("navbar.show_during_aa", true);
+
+        oap::aa::ServiceDiscoveryBuilder builder(&config);
+        builder.setDisplayDimensions(1024, 600);
+        auto sessionConfig = builder.build();
+
+        for (const auto& ch : sessionConfig.channels) {
+            if (ch.channelId == 3) {
+                oaa::proto::data::ChannelDescriptor desc;
+                QVERIFY(desc.ParseFromArray(ch.descriptor.constData(), ch.descriptor.size()));
+                auto& vc = desc.av_channel().video_configs(0);
+                QVERIFY(vc.has_additional_config());
+                // ui_theme should NOT be set
+                QVERIFY2(!vc.additional_config().has_ui_theme(),
+                         "ui_theme must NOT be set — it breaks margins");
+                return;
+            }
+        }
+        QFAIL("Video channel not found");
     }
 
     void testWifiChannelHasBssid() {
