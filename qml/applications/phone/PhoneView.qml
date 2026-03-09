@@ -48,7 +48,7 @@ Rectangle {
         Rectangle {
             Layout.fillWidth: true
             height: Math.round(60 * UiMetrics.scale)
-            color: ThemeService.surfaceVariant
+            color: ThemeService.surfaceContainerLow
             radius: UiMetrics.radiusSmall
 
             Text {
@@ -104,8 +104,8 @@ Rectangle {
                     }
                     background: Rectangle {
                         color: parent.pressed
-                               ? ThemeService.primary
-                               : ThemeService.surfaceVariant
+                               ? ThemeService.primaryContainer
+                               : ThemeService.surfaceContainerLow
                         radius: UiMetrics.radiusSmall
                         border.color: ThemeService.onSurface
                         border.width: 1
@@ -178,7 +178,7 @@ Rectangle {
                     color: ThemeService.onSurface
                 }
                 background: Rectangle {
-                    color: parent.pressed ? ThemeService.primary : ThemeService.surfaceVariant
+                    color: parent.pressed ? ThemeService.primaryContainer : ThemeService.surfaceContainerLow
                     radius: UiMetrics.radiusSmall
                 }
             }

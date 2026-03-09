@@ -13,9 +13,9 @@ Popup {
     readonly property color dangerColor: ThemeService.error
 
     background: Rectangle {
-        color: ThemeService.surfaceVariant
+        color: ThemeService.surfaceContainerHigh
         radius: UiMetrics.gap
-        border.color: ThemeService.onSurface
+        border.color: ThemeService.outline
         border.width: 1
     }
 

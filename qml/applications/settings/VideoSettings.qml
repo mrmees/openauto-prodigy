@@ -221,7 +221,7 @@ Flickable {
                     Layout.leftMargin: UiMetrics.marginRow
                     Layout.rightMargin: UiMetrics.marginRow
                     height: 1
-                    color: ThemeService.surfaceVariant
+                    color: ThemeService.outlineVariant
                     visible: index < (typeof CodecCapabilityModel !== "undefined" ? CodecCapabilityModel.rowCount() - 1 : 0)
                 }
             }
@@ -295,7 +295,7 @@ Flickable {
                 anchors.left: parent.left
                 anchors.right: parent.right
                 height: 1
-                color: ThemeService.surfaceVariant
+                color: ThemeService.outlineVariant
             }
         }
 
@@ -337,7 +337,7 @@ Flickable {
                     anchors.leftMargin: UiMetrics.marginPage
                     anchors.rightMargin: UiMetrics.marginPage
                     height: 1
-                    color: ThemeService.surfaceVariant
+                    color: ThemeService.outlineVariant
                     visible: index < decoderPickerDialog.decoders.length - 1
                 }
 

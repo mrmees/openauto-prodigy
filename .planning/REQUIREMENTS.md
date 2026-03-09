@@ -38,8 +38,8 @@ Requirements for DPI sizing and UI polish milestone. Each maps to roadmap phases
 
 ### M3 Color Role Mapping
 
-- [ ] **M3R-01**: All custom/legacy AA token Q_PROPERTYs (textPrimary, textSecondary, red, onRed, yellow, onYellow) removed from ThemeService and replaced with M3 equivalents in QML
-- [ ] **M3R-02**: Deprecated custom token keys removed from bundled theme YAMLs and AA token persistence sets
+- [x] **M3R-01**: All custom/legacy AA token Q_PROPERTYs (textPrimary, textSecondary, red, onRed, yellow, onYellow) removed from ThemeService and replaced with M3 equivalents in QML
+- [x] **M3R-02**: Deprecated custom token keys removed from bundled theme YAMLs and AA token persistence sets
 - [ ] **M3R-03**: Surface container hierarchy applied -- UI elements use appropriate container levels (Lowest/Low/Container/High/Highest) based on visual elevation
 - [ ] **M3R-04**: Button pressed states use primaryContainer/onPrimaryContainer (M3 contained button pattern) instead of raw primary
 - [ ] **M3R-05**: Toggle/slider active states use secondaryContainer (M3 selected state convention) instead of raw primary
@@ -95,8 +95,8 @@ Requirements for DPI sizing and UI polish milestone. Each maps to roadmap phases
 | CTI-04 | Phase 3.2 | Complete |
 | CTI-05 | Phase 3.2 | Complete |
 | CTI-06 | Phase 3.2 | Complete |
-| M3R-01 | Phase 3.3 | Pending |
-| M3R-02 | Phase 3.3 | Pending |
+| M3R-01 | Phase 3.3 | Complete |
+| M3R-02 | Phase 3.3 | Complete |
 | M3R-03 | Phase 3.3 | Pending |
 | M3R-04 | Phase 3.3 | Pending |
 | M3R-05 | Phase 3.3 | Pending |

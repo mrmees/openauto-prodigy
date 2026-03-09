@@ -26,7 +26,7 @@ Item {
                 Layout.fillWidth: true
                 Layout.preferredHeight: toastLayout.implicitHeight + UiMetrics.gap
                 radius: UiMetrics.radiusSmall
-                color: Qt.rgba(ThemeService.surfaceContainerLow.r, ThemeService.surfaceContainerLow.g, ThemeService.surfaceContainerLow.b, 0.87)
+                color: Qt.rgba(ThemeService.surfaceContainerHigh.r, ThemeService.surfaceContainerHigh.g, ThemeService.surfaceContainerHigh.b, 0.87)
                 border.color: ThemeService.outline
                 border.width: 1
                 opacity: 0

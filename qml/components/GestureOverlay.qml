@@ -67,7 +67,7 @@ Rectangle {
         width: Math.min(parent.width * 0.7, Math.round(500 * UiMetrics.scale))
         height: controlsLayout.implicitHeight + Math.round(48 * UiMetrics.scale)
         radius: UiMetrics.radiusLarge
-        color: Qt.rgba(ThemeService.surfaceContainerLow.r, ThemeService.surfaceContainerLow.g, ThemeService.surfaceContainerLow.b, 0.87)
+        color: Qt.rgba(ThemeService.surfaceContainerHighest.r, ThemeService.surfaceContainerHighest.g, ThemeService.surfaceContainerHighest.b, 0.87)
         border.color: ThemeService.outline
         border.width: 2
 

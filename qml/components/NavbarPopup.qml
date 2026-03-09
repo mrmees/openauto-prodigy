@@ -76,7 +76,7 @@ Item {
     // Background
     Rectangle {
         anchors.fill: parent
-        color: ThemeService.surface
+        color: ThemeService.surfaceContainerHigh
         radius: UiMetrics.radius
         border.color: ThemeService.outlineVariant
         border.width: 1
@@ -116,7 +116,7 @@ Item {
                     anchors.bottom: parent.bottom
                     width: root.sliderTrackW
                     radius: root.sliderTrackW / 2
-                    color: ThemeService.surfaceVariant
+                    color: ThemeService.surfaceContainerLow
 
                     // Filled portion (from bottom)
                     Rectangle {

@@ -31,7 +31,7 @@ Rectangle {
             width: UiMetrics.albumArt
             height: UiMetrics.albumArt
             radius: UiMetrics.radius
-            color: ThemeService.surfaceVariant
+            color: ThemeService.surfaceContainerLow
             border.color: ThemeService.onSurface
             border.width: 1
 
@@ -97,7 +97,7 @@ Rectangle {
                 Layout.fillWidth: true
                 height: UiMetrics.progressH
                 radius: UiMetrics.progressH / 2
-                color: ThemeService.surfaceVariant
+                color: ThemeService.surfaceContainerLow
 
                 Rectangle {
                     width: BtAudioPlugin && BtAudioPlugin.trackDuration > 0

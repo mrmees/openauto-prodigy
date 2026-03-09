@@ -37,7 +37,7 @@ Item {
     Rectangle {
         id: shadow
         anchors.fill: barBackground
-        color: ThemeService.outlineVariant
+        color: ThemeService.barShadow
         radius: 0
     }
 
@@ -45,7 +45,7 @@ Item {
     Rectangle {
         id: barBackground
         anchors.fill: parent
-        color: ThemeService.outline
+        color: ThemeService.surfaceContainer
     }
 
     // --- Controls container ---
@@ -204,9 +204,9 @@ Item {
             id: powerMenuBg
             width: Math.round(160 * UiMetrics.scale)
             height: powerMenuCol.implicitHeight + UiMetrics.spacing * 2
-            color: ThemeService.surface
+            color: ThemeService.surfaceContainerHigh
             radius: UiMetrics.radius
-            border.color: ThemeService.barShadow
+            border.color: ThemeService.outlineVariant
             border.width: 1
 
             MouseArea {

@@ -176,7 +176,7 @@ Item {
                 anchors.left: parent.left
                 anchors.right: parent.right
                 height: 1
-                color: ThemeService.surfaceVariant
+                color: ThemeService.outlineVariant
             }
         }
 
@@ -235,7 +235,7 @@ Item {
                     anchors.leftMargin: UiMetrics.marginPage
                     anchors.rightMargin: UiMetrics.marginPage
                     height: 1
-                    color: ThemeService.surfaceVariant
+                    color: ThemeService.outlineVariant
                     visible: index < optionsList.count - 1
                 }
 

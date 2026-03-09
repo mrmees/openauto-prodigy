@@ -92,7 +92,7 @@ Item {
             width: floatingText.implicitWidth + UiMetrics.spacing * 2
             height: floatingText.implicitHeight + UiMetrics.spacing
             radius: UiMetrics.radius / 2
-            color: ThemeService.surfaceVariant
+            color: ThemeService.surfaceContainerLow
             opacity: root.showLabel ? 0.9 : 0.0
             visible: opacity > 0
             x: (parent.width - width) / 2

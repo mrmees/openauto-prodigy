@@ -28,7 +28,7 @@ Item {
     // Background with hold progress feedback
     Rectangle {
         anchors.fill: parent
-        color: ThemeService.outline
+        color: ThemeService.surfaceContainer
         opacity: 1.0
 
         // Progress overlay — fills from bottom to top

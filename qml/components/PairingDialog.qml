@@ -21,7 +21,7 @@ Rectangle {
         width: Math.min(parent.width * 0.7, 500)
         height: col.implicitHeight + UiMetrics.marginPage * 2
         radius: UiMetrics.radius
-        color: ThemeService.background
+        color: ThemeService.surfaceContainerHigh
 
         ColumnLayout {
             id: col

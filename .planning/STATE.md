@@ -2,16 +2,16 @@
 gsd_state_version: 1.0
 milestone: v0.5
 milestone_name: milestone
-status: in-progress
-stopped_at: Plan 03.2-02 complete
-last_updated: "2026-03-09T17:14:48Z"
-last_activity: 2026-03-09 -- Plan 03.2-02 executed (companion theme reception pipeline)
+status: completed
+stopped_at: Plan 03.3-01 complete
+last_updated: "2026-03-09T18:38:09.086Z"
+last_activity: 2026-03-09 -- Plan 03.3-01 executed (M3 color role mapping fix)
 progress:
-  total_phases: 6
+  total_phases: 7
   completed_phases: 4
   total_plans: 13
-  completed_plans: 12
-  percent: 92
+  completed_plans: 13
+  percent: 100
 ---
 
 # Project State
@@ -25,12 +25,12 @@ See: .planning/PROJECT.md (updated 2026-03-08)
 
 ## Current Position
 
-Phase: 3.2 of 5 (Companion Theme Import)
-Plan: 2 of 3 complete
-Status: Plan 03.2-02 complete -- Companion theme protocol handler wired to ThemeService
-Last activity: 2026-03-09 -- Plan 03.2-02 executed (companion theme reception pipeline)
+Phase: 3.3 of 5 (M3 Color Role Mapping Fix)
+Plan: 1 of 1 complete
+Status: Plan 03.3-01 complete -- deprecated tokens removed, QML renamed to M3 roles
+Last activity: 2026-03-09 -- Plan 03.3-01 executed (M3 color role mapping fix)
 
-Progress: [█████████░] 92%
+Progress: [██████████] 100%
 
 ## Performance Metrics
 
@@ -75,6 +75,9 @@ Decisions are logged in PROJECT.md Key Decisions table.
 - (03.2-02) camelCase-to-hyphenated conversion is generic (insert hyphen before uppercase) -- no hardcoded mapping
 - (03.2-02) theme_ack always sent with accepted=true after import (no partial failure handling)
 - (03.2-02) Display size defaults to 1024x600, overridden by --geometry or primaryScreen
+- (03.3-01) All QML color references now use M3 standard role names exclusively (onSurface, onSurfaceVariant, error, onError, tertiary)
+- (03.3-01) Legacy v1 migration map updated to emit M3 names directly, not deprecated custom tokens
+- (03.3-01) barShadow kept as derived color -- still needed for navbar border visual separation
 
 ### Pending Todos
 
@@ -84,6 +87,7 @@ None yet.
 
 - Phase 03.1 inserted after Phase 03: get AA theme information working from stream (URGENT)
 - Phase 03.2 inserted after Phase 03: Companion Theme Import (URGENT)
+- Phase 03.3 inserted after Phase 03: M3 Color Role Mapping Fix (URGENT)
 
 ### Blockers/Concerns
 
@@ -91,5 +95,5 @@ None yet.
 
 ## Session Continuity
 
-Last session: 2026-03-09T17:14:48Z
-Stopped at: Completed 03.2-02-PLAN.md
+Last session: 2026-03-09T19:02:00Z
+Stopped at: Plan 03.3-01 complete

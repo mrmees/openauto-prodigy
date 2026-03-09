@@ -289,7 +289,7 @@ Item {
                 anchors.left: parent.left
                 anchors.right: parent.right
                 height: 1
-                color: ThemeService.surfaceVariant
+                color: ThemeService.outlineVariant
             }
         }
 
@@ -386,7 +386,7 @@ Item {
                     anchors.leftMargin: UiMetrics.marginPage
                     anchors.rightMargin: UiMetrics.marginPage
                     height: 1
-                    color: ThemeService.surfaceVariant
+                    color: ThemeService.outlineVariant
                 }
 
                 MouseArea {
@@ -453,7 +453,7 @@ Item {
                 anchors.left: parent.left
                 anchors.right: parent.right
                 height: 1
-                color: ThemeService.surfaceVariant
+                color: ThemeService.outlineVariant
             }
         }
 
@@ -472,7 +472,7 @@ Item {
                 color: ThemeService.onSurface
 
                 background: Rectangle {
-                    color: ThemeService.surfaceVariant
+                    color: ThemeService.surfaceContainerLow
                     radius: UiMetrics.radius / 2
                 }
             }
@@ -490,7 +490,7 @@ Item {
                     Layout.preferredWidth: cancelBtnText.implicitWidth + UiMetrics.gap * 2
                     Layout.preferredHeight: UiMetrics.touchMin
                     radius: UiMetrics.radius / 2
-                    color: ThemeService.surfaceVariant
+                    color: ThemeService.surfaceContainerLow
 
                     Text {
                         id: cancelBtnText
