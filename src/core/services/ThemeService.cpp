@@ -2,6 +2,7 @@
 #include <QDir>
 #include <QFile>
 #include <QFileInfo>
+#include <QRegularExpression>
 #include <QSet>
 #include <yaml-cpp/yaml.h>
 
@@ -12,7 +13,7 @@ ThemeService::ThemeService(QObject* parent)
 {
 }
 
-// Migration map: v1.0.0 theme keys → v2.0.0 AA wire token keys (hyphenated)
+// Migration map: v1.0.0 theme keys -> v2.0.0 AA wire token keys (hyphenated)
 static const QMap<QString, QString> legacyKeyMap = {
     {"background", "background"},
     {"highlight", "primary"},
@@ -25,7 +26,7 @@ static const QMap<QString, QString> legacyKeyMap = {
     {"divider", "outline-variant"},
     {"highlight_font", "inverse-surface"},
     // Keys that map to new tokens with no direct old equivalent
-    // (special_font, gauge_indicator, icon, side_widget_background → dropped or derived)
+    // (special_font, gauge_indicator, icon, side_widget_background -> dropped or derived)
 };
 
 static QMap<QString, QColor> loadColorMap(const YAML::Node& node, bool migrate)
@@ -49,7 +50,7 @@ static QMap<QString, QColor> loadColorMap(const YAML::Node& node, bool migrate)
             if (key == "divider")
                 colors["outline"] = QColor("#808080");  // no old equivalent
             if (key == "highlight") {
-                // old highlight was used for red/yellow indicators too — provide defaults
+                // old highlight was used for red/yellow indicators too -- provide defaults
                 if (!colors.contains("red")) colors["red"] = QColor("#cc4444");
                 if (!colors.contains("on-red")) colors["on-red"] = QColor("#ffffff");
                 if (!colors.contains("yellow")) colors["yellow"] = QColor("#FF9800");
@@ -126,6 +127,8 @@ QString ThemeService::iconPath(const QString& relativePath) const
 
 void ThemeService::scanThemeDirectories(const QStringList& searchPaths)
 {
+    searchPaths_ = searchPaths;
+
     availableThemes_.clear();
     availableThemeNames_.clear();
     themeDirectories_.clear();
@@ -151,9 +154,14 @@ void ThemeService::scanThemeDirectories(const QStringList& searchPaths)
                 // First seen ID wins (user themes searched before bundled)
                 if (themeDirectories_.contains(id)) continue;
 
+                // Register directory (needed for AA token caching) but hide
+                // connected-device from the user-facing theme picker -- the AA
+                // tokens are too limited to build a usable theme from alone.
+                themeDirectories_[id] = themeDir;
+                if (id == "connected-device") continue;
+
                 availableThemes_.append(id);
                 availableThemeNames_.append(name);
-                themeDirectories_[id] = themeDir;
             } catch (const YAML::Exception&) {
                 continue;
             }
@@ -162,6 +170,12 @@ void ThemeService::scanThemeDirectories(const QStringList& searchPaths)
 
     emit availableThemesChanged();
     buildWallpaperList();
+}
+
+void ThemeService::rescanThemes()
+{
+    if (!searchPaths_.isEmpty())
+        scanThemeDirectories(searchPaths_);
 }
 
 bool ThemeService::setTheme(const QString& themeId)
@@ -250,7 +264,7 @@ void ThemeService::resolveWallpaper()
     } else if (!wallpaperOverride_.isEmpty()) {
         wallpaperSource_ = wallpaperOverride_;  // custom image
     } else {
-        // Theme default — look for wallpaper.jpg in current theme dir
+        // Theme default -- look for wallpaper.jpg in current theme dir
         if (!themeDirPath_.isEmpty()) {
             QString wpPath = QDir(themeDirPath_).filePath("wallpaper.jpg");
             if (QFile::exists(wpPath))
@@ -266,13 +280,35 @@ void ThemeService::resolveWallpaper()
         emit wallpaperChanged();
 }
 
-// Known AA token keys (the 16 base tokens used in our theme system, hyphenated)
+// Known AA token keys (the 16 base tokens from the AA wire protocol)
 static const QSet<QString> knownAATokenKeys = {
     "primary", "on-surface", "surface", "surface-variant",
     "surface-container", "surface-container-low", "inverse-surface", "inverse-on-surface",
     "outline", "outline-variant", "background", "text-primary",
     "text-secondary", "red", "on-red", "yellow", "on-yellow"
 };
+
+// Full 34 M3 role keys + 6 custom tokens (text-primary, text-secondary, red, on-red, yellow, on-yellow)
+static const QSet<QString> knownM3Keys = {
+    // M3 standard roles (34)
+    "primary", "on-primary", "primary-container", "on-primary-container",
+    "secondary", "on-secondary", "secondary-container", "on-secondary-container",
+    "tertiary", "on-tertiary", "tertiary-container", "on-tertiary-container",
+    "error", "on-error", "error-container", "on-error-container",
+    "background", "on-background",
+    "surface", "on-surface", "surface-variant", "on-surface-variant",
+    "surface-dim", "surface-bright",
+    "surface-container-lowest", "surface-container-low", "surface-container",
+    "surface-container-high", "surface-container-highest",
+    "outline", "outline-variant",
+    "inverse-surface", "inverse-on-surface", "inverse-primary",
+    "scrim", "shadow",
+    // Custom tokens (AA extensions, not M3 standard)
+    "text-primary", "text-secondary", "red", "on-red", "yellow", "on-yellow"
+};
+
+// Union of M3 keys + AA token keys for persistence filtering
+static const QSet<QString> allThemeKeys = knownM3Keys | knownAATokenKeys;
 
 void ThemeService::applyAATokens(const QMap<QString, uint32_t>& dayTokens,
                                   const QMap<QString, uint32_t>& nightTokens)
@@ -339,10 +375,14 @@ void ThemeService::applyAATokens(const QMap<QString, uint32_t>& dayTokens,
     if (themeId_ == "connected-device") {
         // Keep updated colors live
         qInfo() << "[Theme] Applied" << newDayColors.size() << "day +"
-                << newNightColors.size() << "night tokens (live)";
+                << newNightColors.size() << "night tokens (live):";
+        for (auto it = newDayColors.constBegin(); it != newDayColors.constEnd(); ++it)
+            qInfo() << "  day" << it.key() << "=" << it.value().name(QColor::HexArgb);
+        for (auto it = newNightColors.constBegin(); it != newNightColors.constEnd(); ++it)
+            qInfo() << "  night" << it.key() << "=" << it.value().name(QColor::HexArgb);
         emit colorsChanged();
     } else {
-        // Restore original colors — live theme unchanged
+        // Restore original colors -- live theme unchanged
         dayColors_ = savedDay;
         nightColors_ = savedNight;
         qInfo() << "[Theme] Cached" << newDayColors.size() << "day +"
@@ -371,19 +411,21 @@ void ThemeService::persistConnectedDeviceTheme()
     out << YAML::Key << "version" << YAML::Value << "2.0.0";
     out << YAML::Key << "font_family" << YAML::Value << fontFamily_.toStdString();
 
-    // Write day colors
+    // Write day colors (filter through all known theme keys)
     out << YAML::Key << "day" << YAML::Value << YAML::BeginMap;
     for (auto it = dayColors_.constBegin(); it != dayColors_.constEnd(); ++it) {
-        out << YAML::Key << it.key().toStdString()
-            << YAML::Value << it.value().name(QColor::HexArgb).toStdString();
+        if (allThemeKeys.contains(it.key()))
+            out << YAML::Key << it.key().toStdString()
+                << YAML::Value << it.value().name(QColor::HexArgb).toStdString();
     }
     out << YAML::EndMap;
 
-    // Write night colors
+    // Write night colors (filter through all known theme keys)
     out << YAML::Key << "night" << YAML::Value << YAML::BeginMap;
     for (auto it = nightColors_.constBegin(); it != nightColors_.constEnd(); ++it) {
-        out << YAML::Key << it.key().toStdString()
-            << YAML::Value << it.value().name(QColor::HexArgb).toStdString();
+        if (allThemeKeys.contains(it.key()))
+            out << YAML::Key << it.key().toStdString()
+                << YAML::Value << it.value().name(QColor::HexArgb).toStdString();
     }
     out << YAML::EndMap;
     out << YAML::EndMap;
@@ -393,6 +435,122 @@ void ThemeService::persistConnectedDeviceTheme()
         file.write(out.c_str());
         file.close();
     }
+}
+
+bool ThemeService::importCompanionTheme(const QString& name, const QString& seed,
+                                         const QMap<QString, QColor>& dayColors,
+                                         const QMap<QString, QColor>& nightColors,
+                                         const QByteArray& wallpaperJpeg)
+{
+    // Generate slug from name
+    QString slug = name.toLower().trimmed();
+    static QRegularExpression nonAlnum("[^a-z0-9]+");
+    slug.replace(nonAlnum, "-");
+    // Trim leading/trailing hyphens
+    while (slug.startsWith('-')) slug.remove(0, 1);
+    while (slug.endsWith('-')) slug.chop(1);
+    if (slug.isEmpty()) slug = "companion-theme";
+
+    // Find the first search path that looks like the user themes dir
+    // (search paths are ordered: user themes first, then bundled)
+    QString userThemesDir;
+    if (!searchPaths_.isEmpty()) {
+        userThemesDir = searchPaths_.first();
+    } else {
+        userThemesDir = QDir::homePath() + "/.openauto/themes";
+    }
+
+    QString themeDir = userThemesDir + "/" + slug;
+    QDir().mkpath(themeDir);
+
+    // Write wallpaper if provided
+    if (!wallpaperJpeg.isEmpty()) {
+        QFile wpFile(themeDir + "/wallpaper.jpg");
+        if (wpFile.open(QIODevice::WriteOnly | QIODevice::Truncate)) {
+            wpFile.write(wallpaperJpeg);
+            wpFile.close();
+        }
+    }
+
+    // Write theme.yaml
+    YAML::Emitter out;
+    out << YAML::BeginMap;
+    out << YAML::Key << "id" << YAML::Value << slug.toStdString();
+    out << YAML::Key << "name" << YAML::Value << name.toStdString();
+    out << YAML::Key << "version" << YAML::Value << "2.0.0";
+    out << YAML::Key << "source" << YAML::Value << "companion";
+    out << YAML::Key << "seed" << YAML::Value << seed.toStdString();
+    out << YAML::Key << "font_family" << YAML::Value << fontFamily_.toStdString();
+
+    // Write day colors
+    out << YAML::Key << "day" << YAML::Value << YAML::BeginMap;
+    for (auto it = dayColors.constBegin(); it != dayColors.constEnd(); ++it) {
+        out << YAML::Key << it.key().toStdString()
+            << YAML::Value << it.value().name(QColor::HexArgb).toStdString();
+    }
+    out << YAML::EndMap;
+
+    // Write night colors
+    out << YAML::Key << "night" << YAML::Value << YAML::BeginMap;
+    for (auto it = nightColors.constBegin(); it != nightColors.constEnd(); ++it) {
+        out << YAML::Key << it.key().toStdString()
+            << YAML::Value << it.value().name(QColor::HexArgb).toStdString();
+    }
+    out << YAML::EndMap;
+    out << YAML::EndMap;
+
+    QString yamlPath = themeDir + "/theme.yaml";
+    QFile file(yamlPath);
+    if (!file.open(QIODevice::WriteOnly | QIODevice::Truncate))
+        return false;
+    file.write(out.c_str());
+    file.close();
+
+    // Rescan to pick up the new theme
+    rescanThemes();
+
+    // Auto-switch to it
+    setTheme(slug);
+
+    // Clear wallpaper override so the theme's own wallpaper applies
+    setWallpaperOverride(QString());
+
+    return true;
+}
+
+bool ThemeService::deleteTheme(const QString& themeId)
+{
+    auto it = themeDirectories_.find(themeId);
+    if (it == themeDirectories_.end())
+        return false;
+
+    QString themeDir = it.value();
+
+    // Only allow deleting themes in the user themes directory (first search path)
+    // Reject bundled themes
+    QString userThemesDir;
+    if (!searchPaths_.isEmpty()) {
+        userThemesDir = searchPaths_.first();
+    } else {
+        userThemesDir = QDir::homePath() + "/.openauto/themes";
+    }
+
+    // Check if the theme dir is under the user themes directory
+    if (!themeDir.startsWith(userThemesDir))
+        return false;
+
+    // If this is the active theme, switch to default first
+    if (themeId_ == themeId) {
+        setTheme("default");
+    }
+
+    // Remove the theme directory
+    QDir(themeDir).removeRecursively();
+
+    // Rescan to update available themes
+    rescanThemes();
+
+    return true;
 }
 
 QColor ThemeService::outlineVariant() const
@@ -405,7 +563,10 @@ QColor ThemeService::outlineVariant() const
 
 QColor ThemeService::scrim() const
 {
-    return QColor(0, 0, 0, 180);
+    QColor c = activeColor("scrim");
+    if (c == QColor(Qt::transparent))
+        return QColor(0, 0, 0, 255);  // opaque black fallback per M3 spec
+    return c;
 }
 
 QColor ThemeService::pressed() const

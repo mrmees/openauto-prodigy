@@ -3,20 +3,55 @@ name: Default Theme
 version: 2.0.0
 font_family: "Lato"
 
-# Day mode colors — AA wire token names
+# Day mode colors — full 34 M3 role set + custom tokens
 day:
-  background: "#1a1a2e"
+  # Primary group
   primary: "#e94560"
-  surface-variant: "#16213e"
-  on-surface: "#e0e0e0"
-  text-primary: "#ffffff"
-  text-secondary: "#a0a0a0"
-  surface-container-low: "#0f3460"
+  on-primary: "#ffffff"
+  primary-container: "#f4a0b0"
+  on-primary-container: "#3d0011"
+  # Secondary group
+  secondary: "#6c757d"
+  on-secondary: "#ffffff"
+  secondary-container: "#b0b8c0"
+  on-secondary-container: "#1a2028"
+  # Tertiary group
+  tertiary: "#7c4dff"
+  on-tertiary: "#ffffff"
+  tertiary-container: "#c4a8ff"
+  on-tertiary-container: "#1a0050"
+  # Error group
+  error: "#cc4444"
+  on-error: "#ffffff"
+  error-container: "#f9dedc"
+  on-error-container: "#410e0b"
+  # Background & surface
+  background: "#1a1a2e"
+  on-background: "#ffffff"
   surface: "#16213e"
+  on-surface: "#e0e0e0"
+  surface-variant: "#16213e"
+  on-surface-variant: "#a0a0a0"
+  surface-dim: "#101020"
+  surface-bright: "#2a2a48"
+  surface-container-lowest: "#0a0a18"
+  surface-container-low: "#0f3460"
+  surface-container: "#1a2848"
+  surface-container-high: "#202f50"
+  surface-container-highest: "#253558"
+  # Outline
+  outline: "#808080"
   outline-variant: "#ffffff26"
+  # Inverse
   inverse-surface: "#1a1a2e"
   inverse-on-surface: "#ffffff"
-  outline: "#808080"
+  inverse-primary: "#f4a0b0"
+  # Utility
+  scrim: "#000000"
+  shadow: "#000000"
+  # Custom tokens (not M3 but kept for AA wire compatibility)
+  text-primary: "#ffffff"
+  text-secondary: "#a0a0a0"
   red: "#cc4444"
   on-red: "#ffffff"
   yellow: "#FF9800"
@@ -24,18 +59,53 @@ day:
 
 # Night mode colors — dimmer, less eye strain
 night:
-  background: "#0a0a14"
+  # Primary group
   primary: "#c73650"
-  surface-variant: "#0e1729"
-  on-surface: "#b0b0b0"
-  text-primary: "#c0c0c0"
-  text-secondary: "#707070"
-  surface-container-low: "#0a2240"
+  on-primary: "#ffffff"
+  primary-container: "#8a2030"
+  on-primary-container: "#f4a0b0"
+  # Secondary group
+  secondary: "#545b62"
+  on-secondary: "#ffffff"
+  secondary-container: "#808890"
+  on-secondary-container: "#c8d0d8"
+  # Tertiary group
+  tertiary: "#5c30cc"
+  on-tertiary: "#ffffff"
+  tertiary-container: "#8060d8"
+  on-tertiary-container: "#e0d0ff"
+  # Error group
+  error: "#aa3333"
+  on-error: "#ffffff"
+  error-container: "#8c1d18"
+  on-error-container: "#f9dedc"
+  # Background & surface
+  background: "#0a0a14"
+  on-background: "#c0c0c0"
   surface: "#0e1729"
+  on-surface: "#b0b0b0"
+  surface-variant: "#0e1729"
+  on-surface-variant: "#707070"
+  surface-dim: "#060610"
+  surface-bright: "#1a1a30"
+  surface-container-lowest: "#040408"
+  surface-container-low: "#0a2240"
+  surface-container: "#0e1830"
+  surface-container-high: "#141e38"
+  surface-container-highest: "#182440"
+  # Outline
+  outline: "#606060"
   outline-variant: "#ffffff1a"
+  # Inverse
   inverse-surface: "#0a0a14"
   inverse-on-surface: "#c0c0c0"
-  outline: "#606060"
+  inverse-primary: "#8a2030"
+  # Utility
+  scrim: "#000000"
+  shadow: "#000000"
+  # Custom tokens
+  text-primary: "#c0c0c0"
+  text-secondary: "#707070"
   red: "#aa3333"
   on-red: "#ffffff"
   yellow: "#cc7a00"

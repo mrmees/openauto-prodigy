@@ -5,18 +5,53 @@ font_family: "Lato"
 
 # Day mode colors — warm amber/orange, classic dashboard feel
 day:
-  background: "#1e1712"
+  # Primary group
   primary: "#ff8c42"
-  surface-variant: "#2a1e16"
-  on-surface: "#e0d0c0"
-  text-primary: "#f0e8e0"
-  text-secondary: "#a09080"
-  surface-container-low: "#2d2018"
+  on-primary: "#3a1800"
+  primary-container: "#a85828"
+  on-primary-container: "#ffe0c0"
+  # Secondary group
+  secondary: "#887060"
+  on-secondary: "#ffffff"
+  secondary-container: "#504030"
+  on-secondary-container: "#d8c8b8"
+  # Tertiary group
+  tertiary: "#e8b040"
+  on-tertiary: "#3a2800"
+  tertiary-container: "#906820"
+  on-tertiary-container: "#f8e8c0"
+  # Error group
+  error: "#cc4444"
+  on-error: "#ffffff"
+  error-container: "#8c1d18"
+  on-error-container: "#ffdad6"
+  # Background & surface
+  background: "#1e1712"
+  on-background: "#f0e8e0"
   surface: "#2a1e16"
+  on-surface: "#e0d0c0"
+  surface-variant: "#2a1e16"
+  on-surface-variant: "#a09080"
+  surface-dim: "#140e0a"
+  surface-bright: "#382a20"
+  surface-container-lowest: "#0e0a08"
+  surface-container-low: "#2d2018"
+  surface-container: "#2a2018"
+  surface-container-high: "#342820"
+  surface-container-highest: "#3a2e24"
+  # Outline
+  outline: "#887060"
   outline-variant: "#f0e0d026"
+  # Inverse
   inverse-surface: "#1e1712"
   inverse-on-surface: "#f0e8e0"
-  outline: "#887060"
+  inverse-primary: "#a85828"
+  # Utility
+  scrim: "#000000"
+  shadow: "#000000"
+  # Custom tokens
+  text-primary: "#f0e8e0"
+  text-secondary: "#a09080"
   red: "#cc4444"
   on-red: "#ffffff"
   yellow: "#FFA726"
@@ -24,18 +59,53 @@ day:
 
 # Night mode colors — deeper, reduced intensity
 night:
-  background: "#120e0a"
+  # Primary group
   primary: "#cc7035"
-  surface-variant: "#1a1410"
-  on-surface: "#b0a090"
-  text-primary: "#c8c0b8"
-  text-secondary: "#706050"
-  surface-container-low: "#201810"
+  on-primary: "#2a1000"
+  primary-container: "#804020"
+  on-primary-container: "#e0c0a0"
+  # Secondary group
+  secondary: "#685848"
+  on-secondary: "#ffffff"
+  secondary-container: "#382820"
+  on-secondary-container: "#c0b0a0"
+  # Tertiary group
+  tertiary: "#c09030"
+  on-tertiary: "#2a2000"
+  tertiary-container: "#705018"
+  on-tertiary-container: "#e0d0a0"
+  # Error group
+  error: "#aa3333"
+  on-error: "#ffffff"
+  error-container: "#6c1410"
+  on-error-container: "#f0c0c0"
+  # Background & surface
+  background: "#120e0a"
+  on-background: "#c8c0b8"
   surface: "#1a1410"
+  on-surface: "#b0a090"
+  surface-variant: "#1a1410"
+  on-surface-variant: "#706050"
+  surface-dim: "#0a0806"
+  surface-bright: "#281e18"
+  surface-container-lowest: "#060404"
+  surface-container-low: "#201810"
+  surface-container: "#1a1410"
+  surface-container-high: "#241c14"
+  surface-container-highest: "#282018"
+  # Outline
+  outline: "#685848"
   outline-variant: "#f0e0d01a"
+  # Inverse
   inverse-surface: "#0f0c09"
   inverse-on-surface: "#c8c0b8"
-  outline: "#685848"
+  inverse-primary: "#804020"
+  # Utility
+  scrim: "#000000"
+  shadow: "#000000"
+  # Custom tokens
+  text-primary: "#c8c0b8"
+  text-secondary: "#706050"
   red: "#aa3333"
   on-red: "#ffffff"
   yellow: "#cc8520"

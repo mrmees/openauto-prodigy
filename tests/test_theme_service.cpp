@@ -156,8 +156,8 @@ private slots:
         oap::ThemeService service;
         service.loadThemeFile(QFINDTESTDATA("data/themes/default/theme.yaml"));
 
-        // scrim is always black at ~70% opacity
-        QCOMPARE(service.scrim(), QColor(0, 0, 0, 180));
+        // scrim is now stored in YAML as opaque black (alpha applied at usage sites)
+        QCOMPARE(service.scrim(), QColor(0, 0, 0, 255));
 
         // pressed is onSurface at 10% alpha (~26/255)
         QColor expectedPressed = QColor("#e0e0e0");
@@ -935,6 +935,11 @@ private slots:
         QTemporaryDir tmpDir;
         QVERIFY(tmpDir.isValid());
 
+        // User themes dir (first search path, where deletes are allowed)
+        QString userThemesDir = tmpDir.filePath("user-themes");
+        QDir().mkpath(userThemesDir);
+
+        // Bundled dir (second search path, protected from deletion)
         QDir(tmpDir.path()).mkpath("bundled/default");
         {
             QFile f(tmpDir.filePath("bundled/default/theme.yaml"));
@@ -947,10 +952,10 @@ private slots:
         }
 
         oap::ThemeService service;
-        service.scanThemeDirectories({tmpDir.filePath("bundled")});
+        service.scanThemeDirectories({userThemesDir, tmpDir.filePath("bundled")});
         QVERIFY(service.setTheme("default"));
 
-        // Delete bundled theme should fail
+        // Delete bundled theme should fail (it's not under user-themes)
         bool result = service.deleteTheme("default");
         QVERIFY(!result);
 
