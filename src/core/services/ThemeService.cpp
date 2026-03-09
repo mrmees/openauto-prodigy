@@ -267,10 +267,15 @@ void ThemeService::resolveWallpaper()
         // Theme default -- look for wallpaper.jpg in current theme dir
         if (!themeDirPath_.isEmpty()) {
             QString wpPath = QDir(themeDirPath_).filePath("wallpaper.jpg");
-            if (QFile::exists(wpPath))
-                wallpaperSource_ = "file://" + QFileInfo(wpPath).absoluteFilePath();
-            else
+            if (QFile::exists(wpPath)) {
+                // Cache-bust query param forces QML Image to reload when file changes on disk
+                QString url = "file://" + QFileInfo(wpPath).absoluteFilePath();
+                QFileInfo fi(wpPath);
+                url += "?t=" + QString::number(fi.lastModified().toMSecsSinceEpoch());
+                wallpaperSource_ = url;
+            } else {
                 wallpaperSource_.clear();
+            }
         } else {
             wallpaperSource_.clear();
         }
@@ -509,8 +514,13 @@ bool ThemeService::importCompanionTheme(const QString& name, const QString& seed
     // Rescan to pick up the new theme
     rescanThemes();
 
-    // Auto-switch to it
-    setTheme(slug);
+    // Auto-switch to it — if already active, force reload colors + wallpaper
+    if (themeId_ == slug) {
+        loadTheme(themeDir);
+        resolveWallpaper();
+    } else {
+        setTheme(slug);
+    }
 
     // Clear wallpaper override so the theme's own wallpaper applies
     setWallpaperOverride(QString());

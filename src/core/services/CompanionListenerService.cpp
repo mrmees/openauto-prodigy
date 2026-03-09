@@ -545,7 +545,7 @@ void CompanionListenerService::handleThemeMessage(const QJsonObject& msg)
         return;
     }
 
-    QJsonObject wallpaper = theme["wallpaper"].toObject();
+    QJsonObject wallpaper = msg["wallpaper"].toObject();
     int chunks = wallpaper["chunks"].toInt(0);
     int size = wallpaper["size"].toInt(0);
 
@@ -563,6 +563,11 @@ void CompanionListenerService::handleThemeMessage(const QJsonObject& msg)
 
     qCInfo(lcCore) << "Companion: theme" << theme["name"].toString()
                    << "wallpaper:" << size << "bytes in" << chunks << "chunks";
+
+    // No wallpaper — apply theme immediately
+    if (chunks == 0) {
+        applyReceivedTheme();
+    }
 }
 
 void CompanionListenerService::handleThemeDataChunk(const QJsonObject& msg)
@@ -572,7 +577,7 @@ void CompanionListenerService::handleThemeDataChunk(const QJsonObject& msg)
         return;
     }
 
-    int index = msg["index"].toInt(-1);
+    int index = msg["chunk"].toInt(-1);
     QString b64 = msg["data"].toString();
 
     if (index < 0 || b64.isEmpty()) {

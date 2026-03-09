@@ -172,6 +172,7 @@ Flickable {
 
         // Delete theme row -- only visible for user/companion themes
         Item {
+            id: deleteThemeRow
             Layout.fillWidth: true
             implicitHeight: UiMetrics.rowH
             visible: themePicker.currentIndex >= 0
@@ -184,7 +185,7 @@ Flickable {
             Connections {
                 target: themePicker
                 function onCurrentIndexChanged() {
-                    confirmPending = false
+                    deleteThemeRow.confirmPending = false
                 }
             }
 
