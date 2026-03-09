@@ -52,10 +52,10 @@ Requirements for DPI sizing and UI polish milestone. Each maps to roadmap phases
 
 ### Navbar Status Indicators
 
-- [ ] **NAV-01**: Phone battery level is extracted from AA protocol (BatteryStatusNotification msg 0x0017 on control channel) and exposed as Q_PROPERTY
-- [ ] **NAV-02**: Phone signal strength is extracted from AA protocol (PhoneStatusUpdate.signal_strength on phone status channel) and exposed as Q_PROPERTY
-- [ ] **NAV-03**: Battery and signal properties reset to sentinel values on AA disconnect (no stale data)
-- [ ] **NAV-04**: SDP VideoConfig includes hidden_ui_elements (clock, battery, signal) when navbar is visible during AA; omits them when navbar is hidden
+- [x] **NAV-01**: Phone battery level is extracted from AA protocol (BatteryStatusNotification msg 0x0017 on control channel) and exposed as Q_PROPERTY
+- [x] **NAV-02**: Phone signal strength is extracted from AA protocol (PhoneStatusUpdate.signal_strength on phone status channel) and exposed as Q_PROPERTY
+- [x] **NAV-03**: Battery and signal properties reset to sentinel values on AA disconnect (no stale data)
+- [x] **NAV-04**: SDP VideoConfig includes hidden_ui_elements (clock, battery, signal) when navbar is visible during AA; omits them when navbar is hidden
 - [ ] **NAV-05**: Battery and signal icons appear flanking the clock in the navbar center zone during AA connection, with zone proportions updated to 15/70/15
 - [ ] **NAV-06**: Battery icon turns red below 20% charge; indicators work in both horizontal and vertical navbar orientations
 
@@ -118,10 +118,10 @@ Requirements for DPI sizing and UI polish milestone. Each maps to roadmap phases
 | FIX-01 | Phase 3.4 | Pending |
 | FIX-02 | Phase 3.4 | Pending |
 | FIX-03 | Phase 3.4 | Pending |
-| NAV-01 | Phase 3.5 | Pending |
-| NAV-02 | Phase 3.5 | Pending |
-| NAV-03 | Phase 3.5 | Pending |
-| NAV-04 | Phase 3.5 | Pending |
+| NAV-01 | Phase 3.5 | Complete |
+| NAV-02 | Phase 3.5 | Complete |
+| NAV-03 | Phase 3.5 | Complete |
+| NAV-04 | Phase 3.5 | Complete |
 | NAV-05 | Phase 3.5 | Pending |
 | NAV-06 | Phase 3.5 | Pending |
 | STY-01 | Phase 4 | Pending |

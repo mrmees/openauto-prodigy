@@ -3,15 +3,15 @@ gsd_state_version: 1.0
 milestone: v0.5
 milestone_name: milestone
 status: verifying
-stopped_at: Phase 03.3 complete
-last_updated: "2026-03-09T19:45:31.842Z"
-last_activity: 2026-03-09 -- Plan 03.3-02 complete (surface hierarchy + interaction states + visual verification)
+stopped_at: Phase 03.5 context gathered
+last_updated: "2026-03-09T23:13:17.000Z"
+last_activity: 2026-03-09 -- Plan 03.5-01 complete (AA status data pipeline)
 progress:
-  total_phases: 7
+  total_phases: 9
   completed_phases: 5
-  total_plans: 15
-  completed_plans: 14
-  percent: 93
+  total_plans: 16
+  completed_plans: 15
+  percent: 94
 ---
 
 # Project State
@@ -25,17 +25,17 @@ See: .planning/PROJECT.md (updated 2026-03-08)
 
 ## Current Position
 
-Phase: 3.3 of 5 (M3 Color Role Mapping Fix) -- COMPLETE
-Plan: 2 of 2 (complete)
-Status: Phase 03.3 complete -- all M3 color role mappings applied, visually verified on Pi
-Last activity: 2026-03-09 -- Plan 03.3-02 complete (surface hierarchy + interaction states + visual verification)
+Phase: 3.5 of 5 (Navbar Status Indicators)
+Plan: 1 of 2 (in progress)
+Status: Plan 03.5-01 complete -- AA status data pipeline (battery/signal Q_PROPERTYs + SDP hidden_ui_elements)
+Last activity: 2026-03-09 -- Plan 03.5-01 complete (protocol data extraction + icon mapping + SDP config)
 
-Progress: [█████████░] 93%
+Progress: [█████████░] 94%
 
 ## Performance Metrics
 
 **Velocity:**
-- Total plans completed: 12
+- Total plans completed: 15
 - Average duration: 5 min
 - Total execution time: 1.06 hours
 
@@ -82,6 +82,10 @@ Decisions are logged in PROJECT.md Key Decisions table.
 - (03.3-02) Button pressed feedback uses primaryContainer (softer than primary per M3 spec)
 - (03.3-02) Toggle/segmented selected uses secondaryContainer/onSecondaryContainer
 - (03.3-02) 1px separators standardized to outlineVariant across all UI
+- (03.5-01) Battery from ControlChannel unknownMessage 0x0017 (avoid modifying ControlChannel submodule)
+- (03.5-01) Signal strength requires submodule change (3 lines in PhoneStatusChannelHandler) -- noted for upstream push
+- (03.5-01) hidden_ui_elements ONLY on AdditionalVideoConfig (no ui_theme -- breaks margins)
+- (03.5-01) -1 sentinel for "no data" on phone status properties (0 is valid battery/signal)
 
 ### Pending Todos
 
@@ -92,6 +96,8 @@ None yet.
 - Phase 03.1 inserted after Phase 03: get AA theme information working from stream (URGENT)
 - Phase 03.2 inserted after Phase 03: Companion Theme Import (URGENT)
 - Phase 03.3 inserted after Phase 03: M3 Color Role Mapping Fix (URGENT)
+- Phase 03.4 inserted after Phase 03: Fix Android Auto rendering (URGENT)
+- Phase 03.5 inserted after Phase 03.4: Navbar status indicators — battery + signal strength (URGENT)
 
 ### Blockers/Concerns
 
@@ -99,5 +105,5 @@ None yet.
 
 ## Session Continuity
 
-Last session: 2026-03-09T19:45:31.840Z
-Stopped at: Phase 03.3 complete
+Last session: 2026-03-09T23:13:17.000Z
+Stopped at: Completed 03.5-01-PLAN.md
