@@ -724,6 +724,321 @@ private slots:
         QVERIFY(content.contains("00ff00") || content.contains("00FF00"));
     }
 
+    // --- M3 34-role expansion tests ---
+
+    void newM3PropertiesReturnValidColors()
+    {
+        oap::ThemeService service;
+        service.loadThemeFile(QFINDTESTDATA("data/themes/default/theme.yaml"));
+
+        // New M3 properties should return non-transparent colors from loaded theme
+        QVERIFY(service.onPrimary() != QColor(Qt::transparent));
+        QVERIFY(service.primaryContainer() != QColor(Qt::transparent));
+        QVERIFY(service.onPrimaryContainer() != QColor(Qt::transparent));
+        QVERIFY(service.secondary() != QColor(Qt::transparent));
+        QVERIFY(service.onSecondary() != QColor(Qt::transparent));
+        QVERIFY(service.secondaryContainer() != QColor(Qt::transparent));
+        QVERIFY(service.onSecondaryContainer() != QColor(Qt::transparent));
+        QVERIFY(service.tertiary() != QColor(Qt::transparent));
+        QVERIFY(service.onTertiary() != QColor(Qt::transparent));
+        QVERIFY(service.tertiaryContainer() != QColor(Qt::transparent));
+        QVERIFY(service.onTertiaryContainer() != QColor(Qt::transparent));
+        QVERIFY(service.error() != QColor(Qt::transparent));
+        QVERIFY(service.onError() != QColor(Qt::transparent));
+        QVERIFY(service.errorContainer() != QColor(Qt::transparent));
+        QVERIFY(service.onErrorContainer() != QColor(Qt::transparent));
+        QVERIFY(service.surfaceDim() != QColor(Qt::transparent));
+        QVERIFY(service.surfaceBright() != QColor(Qt::transparent));
+        QVERIFY(service.surfaceContainerLowest() != QColor(Qt::transparent));
+        QVERIFY(service.surfaceContainerHigh() != QColor(Qt::transparent));
+        QVERIFY(service.surfaceContainerHighest() != QColor(Qt::transparent));
+        QVERIFY(service.inversePrimary() != QColor(Qt::transparent));
+        QVERIFY(service.onBackground() != QColor(Qt::transparent));
+        QVERIFY(service.onSurfaceVariant() != QColor(Qt::transparent));
+        QVERIFY(service.shadow() != QColor(Qt::transparent));
+
+        // Verify specific expected values
+        QCOMPARE(service.onPrimary(), QColor("#ffffff"));
+        QCOMPARE(service.secondary(), QColor("#6c757d"));
+        QCOMPARE(service.error(), QColor("#cc4444"));
+    }
+
+    void backwardCompatOldPropertyNames()
+    {
+        oap::ThemeService service;
+        service.loadThemeFile(QFINDTESTDATA("data/themes/default/theme.yaml"));
+
+        // Old property names must still work
+        QCOMPARE(service.textPrimary(), QColor("#ffffff"));
+        QCOMPARE(service.textSecondary(), QColor("#a0a0a0"));
+        QCOMPARE(service.red(), QColor("#cc4444"));
+        QCOMPARE(service.onRed(), QColor("#ffffff"));
+        QCOMPARE(service.yellow(), QColor("#FF9800"));
+        QCOMPARE(service.onYellow(), QColor("#000000"));
+    }
+
+    void scrimIsStoredNotHardcoded()
+    {
+        oap::ThemeService service;
+        service.loadThemeFile(QFINDTESTDATA("data/themes/default/theme.yaml"));
+
+        // scrim should come from the YAML (opaque black), not hardcoded #000000b4
+        QColor scrim = service.scrim();
+        QCOMPARE(scrim, QColor("#000000"));
+        // Alpha should be 255 (opaque) since YAML stores opaque black
+        QCOMPARE(scrim.alpha(), 255);
+    }
+
+    void importCompanionThemeCreatesTheme()
+    {
+        QTemporaryDir tmpDir;
+        QVERIFY(tmpDir.isValid());
+
+        // Create a default theme for fallback
+        QDir(tmpDir.path()).mkpath("default");
+        {
+            QFile f(tmpDir.filePath("default/theme.yaml"));
+            QVERIFY(f.open(QIODevice::WriteOnly));
+            QTextStream out(&f);
+            out << "id: default\nname: Default\nversion: 2.0.0\n"
+                << "day:\n  primary: \"#e94560\"\n  background: \"#1a1a2e\"\n"
+                << "night:\n  primary: \"#c73650\"\n  background: \"#0a0a14\"\n";
+            f.close();
+        }
+
+        // Create user themes dir
+        QString userThemesDir = tmpDir.filePath("user-themes");
+        QDir().mkpath(userThemesDir);
+
+        oap::ThemeService service;
+        service.scanThemeDirectories({userThemesDir, tmpDir.path()});
+        service.setTheme("default");
+
+        // Prepare companion theme data
+        QMap<QString, QColor> dayColors, nightColors;
+        dayColors["primary"] = QColor("#4285f4");
+        dayColors["on-primary"] = QColor("#ffffff");
+        dayColors["background"] = QColor("#1c1b1f");
+        nightColors["primary"] = QColor("#a8c7fa");
+        nightColors["on-primary"] = QColor("#062e6f");
+        nightColors["background"] = QColor("#0e0e11");
+
+        QByteArray wallpaper("fake-jpeg-data");
+
+        bool result = service.importCompanionTheme(
+            "My Cool Theme", "#4285f4", dayColors, nightColors, wallpaper);
+        QVERIFY(result);
+
+        // Theme dir should exist
+        QString slug = "my-cool-theme";
+        QString themeDir = userThemesDir + "/" + slug;
+        QVERIFY(QDir(themeDir).exists());
+
+        // theme.yaml should exist
+        QVERIFY(QFile::exists(themeDir + "/theme.yaml"));
+
+        // wallpaper.jpg should exist
+        QVERIFY(QFile::exists(themeDir + "/wallpaper.jpg"));
+
+        // Should have auto-switched to the new theme
+        QCOMPARE(service.currentThemeId(), slug);
+
+        // Colors should be from the companion theme
+        QCOMPARE(service.primary(), QColor("#4285f4"));
+    }
+
+    void importCompanionThemeOverwrites()
+    {
+        QTemporaryDir tmpDir;
+        QVERIFY(tmpDir.isValid());
+
+        QDir(tmpDir.path()).mkpath("default");
+        {
+            QFile f(tmpDir.filePath("default/theme.yaml"));
+            QVERIFY(f.open(QIODevice::WriteOnly));
+            QTextStream out(&f);
+            out << "id: default\nname: Default\nversion: 2.0.0\n"
+                << "day:\n  primary: \"#e94560\"\n  background: \"#1a1a2e\"\n"
+                << "night:\n  primary: \"#c73650\"\n  background: \"#0a0a14\"\n";
+            f.close();
+        }
+
+        QString userThemesDir = tmpDir.filePath("user-themes");
+        QDir().mkpath(userThemesDir);
+
+        oap::ThemeService service;
+        service.scanThemeDirectories({userThemesDir, tmpDir.path()});
+        service.setTheme("default");
+
+        QMap<QString, QColor> dayColors1, nightColors1;
+        dayColors1["primary"] = QColor("#ff0000");
+        nightColors1["primary"] = QColor("#aa0000");
+
+        service.importCompanionTheme("Test Theme", "#ff0000", dayColors1, nightColors1, {});
+
+        // Now import again with different colors (same name = overwrite)
+        QMap<QString, QColor> dayColors2, nightColors2;
+        dayColors2["primary"] = QColor("#00ff00");
+        nightColors2["primary"] = QColor("#00aa00");
+
+        bool result = service.importCompanionTheme("Test Theme", "#00ff00", dayColors2, nightColors2, {});
+        QVERIFY(result);
+
+        // Should have the new color
+        QCOMPARE(service.primary(), QColor("#00ff00"));
+    }
+
+    void deleteThemeRemovesUserTheme()
+    {
+        QTemporaryDir tmpDir;
+        QVERIFY(tmpDir.isValid());
+
+        // Create default in bundled dir
+        QDir(tmpDir.path()).mkpath("bundled/default");
+        {
+            QFile f(tmpDir.filePath("bundled/default/theme.yaml"));
+            QVERIFY(f.open(QIODevice::WriteOnly));
+            QTextStream out(&f);
+            out << "id: default\nname: Default\nversion: 2.0.0\n"
+                << "day:\n  primary: \"#e94560\"\n  background: \"#1a1a2e\"\n"
+                << "night:\n  primary: \"#c73650\"\n  background: \"#0a0a14\"\n";
+            f.close();
+        }
+
+        // Create user theme dir with a theme
+        QString userThemesDir = tmpDir.filePath("user-themes");
+        QDir().mkpath(userThemesDir + "/my-theme");
+        {
+            QFile f(userThemesDir + "/my-theme/theme.yaml");
+            QVERIFY(f.open(QIODevice::WriteOnly));
+            QTextStream out(&f);
+            out << "id: my-theme\nname: My Theme\nversion: 2.0.0\nsource: companion\n"
+                << "day:\n  primary: \"#4285f4\"\n  background: \"#1c1b1f\"\n"
+                << "night:\n  primary: \"#a8c7fa\"\n  background: \"#0e0e11\"\n";
+            f.close();
+        }
+
+        oap::ThemeService service;
+        service.scanThemeDirectories({userThemesDir, tmpDir.filePath("bundled")});
+        QVERIFY(service.setTheme("default"));
+
+        // Delete user theme should succeed
+        bool result = service.deleteTheme("my-theme");
+        QVERIFY(result);
+
+        // Dir should be gone
+        QVERIFY(!QDir(userThemesDir + "/my-theme").exists());
+    }
+
+    void deleteThemeRejectsBundledTheme()
+    {
+        QTemporaryDir tmpDir;
+        QVERIFY(tmpDir.isValid());
+
+        QDir(tmpDir.path()).mkpath("bundled/default");
+        {
+            QFile f(tmpDir.filePath("bundled/default/theme.yaml"));
+            QVERIFY(f.open(QIODevice::WriteOnly));
+            QTextStream out(&f);
+            out << "id: default\nname: Default\nversion: 2.0.0\n"
+                << "day:\n  primary: \"#e94560\"\n  background: \"#1a1a2e\"\n"
+                << "night:\n  primary: \"#c73650\"\n  background: \"#0a0a14\"\n";
+            f.close();
+        }
+
+        oap::ThemeService service;
+        service.scanThemeDirectories({tmpDir.filePath("bundled")});
+        QVERIFY(service.setTheme("default"));
+
+        // Delete bundled theme should fail
+        bool result = service.deleteTheme("default");
+        QVERIFY(!result);
+
+        // Theme should still be available
+        QVERIFY(service.availableThemes().contains("default"));
+    }
+
+    void deleteActiveThemeFallsBackToDefault()
+    {
+        QTemporaryDir tmpDir;
+        QVERIFY(tmpDir.isValid());
+
+        // Create default in bundled dir
+        QDir(tmpDir.path()).mkpath("bundled/default");
+        {
+            QFile f(tmpDir.filePath("bundled/default/theme.yaml"));
+            QVERIFY(f.open(QIODevice::WriteOnly));
+            QTextStream out(&f);
+            out << "id: default\nname: Default\nversion: 2.0.0\n"
+                << "day:\n  primary: \"#e94560\"\n  background: \"#1a1a2e\"\n"
+                << "night:\n  primary: \"#c73650\"\n  background: \"#0a0a14\"\n";
+            f.close();
+        }
+
+        // Create user theme
+        QString userThemesDir = tmpDir.filePath("user-themes");
+        QDir().mkpath(userThemesDir + "/active-theme");
+        {
+            QFile f(userThemesDir + "/active-theme/theme.yaml");
+            QVERIFY(f.open(QIODevice::WriteOnly));
+            QTextStream out(&f);
+            out << "id: active-theme\nname: Active Theme\nversion: 2.0.0\nsource: companion\n"
+                << "day:\n  primary: \"#4285f4\"\n  background: \"#1c1b1f\"\n"
+                << "night:\n  primary: \"#a8c7fa\"\n  background: \"#0e0e11\"\n";
+            f.close();
+        }
+
+        oap::ThemeService service;
+        service.scanThemeDirectories({userThemesDir, tmpDir.filePath("bundled")});
+        QVERIFY(service.setTheme("active-theme"));
+        QCOMPARE(service.currentThemeId(), QString("active-theme"));
+
+        // Delete the active theme
+        bool result = service.deleteTheme("active-theme");
+        QVERIFY(result);
+
+        // Should have fallen back to default
+        QCOMPARE(service.currentThemeId(), QString("default"));
+    }
+
+    void companionThemesShowInPicker()
+    {
+        QTemporaryDir tmpDir;
+        QVERIFY(tmpDir.isValid());
+
+        // Create a companion theme
+        QDir(tmpDir.path()).mkpath("my-palette");
+        {
+            QFile f(tmpDir.filePath("my-palette/theme.yaml"));
+            QVERIFY(f.open(QIODevice::WriteOnly));
+            QTextStream out(&f);
+            out << "id: my-palette\nname: My Palette\nversion: 2.0.0\nsource: companion\n"
+                << "day:\n  primary: \"#4285f4\"\n  background: \"#1c1b1f\"\n"
+                << "night:\n  primary: \"#a8c7fa\"\n  background: \"#0e0e11\"\n";
+            f.close();
+        }
+
+        // Create connected-device theme (should be hidden)
+        QDir(tmpDir.path()).mkpath("connected-device");
+        {
+            QFile f(tmpDir.filePath("connected-device/theme.yaml"));
+            QVERIFY(f.open(QIODevice::WriteOnly));
+            QTextStream out(&f);
+            out << "id: connected-device\nname: Connected Device\nversion: 2.0.0\n"
+                << "day:\n  primary: \"#80cbc4\"\n  background: \"#1c1b1f\"\n"
+                << "night:\n  primary: \"#4db6ac\"\n  background: \"#121215\"\n";
+            f.close();
+        }
+
+        oap::ThemeService service;
+        service.scanThemeDirectories({tmpDir.path()});
+
+        // Companion theme should be in picker
+        QVERIFY(service.availableThemes().contains("my-palette"));
+        // Connected-device should NOT be in picker
+        QVERIFY(!service.availableThemes().contains("connected-device"));
+    }
+
     void setThemeDefaultWallpaperChangesWithTheme()
     {
         QTemporaryDir tmpDir;
