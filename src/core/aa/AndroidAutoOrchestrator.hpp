@@ -43,6 +43,9 @@ class AndroidAutoOrchestrator : public QObject {
     Q_OBJECT
     Q_PROPERTY(int connectionState READ connectionState NOTIFY connectionStateChanged)
     Q_PROPERTY(QString statusMessage READ statusMessage NOTIFY statusMessageChanged)
+    Q_PROPERTY(int phoneBatteryLevel READ phoneBatteryLevel NOTIFY phoneBatteryChanged)
+    Q_PROPERTY(int phoneSignalStrength READ phoneSignalStrength NOTIFY phoneSignalChanged)
+    Q_PROPERTY(bool aaConnected READ isAaConnected NOTIFY connectionStateChanged)
 
 public:
     enum ConnectionState {
@@ -87,10 +90,15 @@ public:
 
     int connectionState() const { return state_; }
     QString statusMessage() const { return statusMessage_; }
+    int phoneBatteryLevel() const { return phoneBatteryLevel_; }
+    int phoneSignalStrength() const { return phoneSignalStrength_; }
+    bool isAaConnected() const { return state_ == Connected || state_ == Backgrounded; }
 
 signals:
     void connectionStateChanged();
     void statusMessageChanged();
+    void phoneBatteryChanged();
+    void phoneSignalChanged();
 
 private:
     void onNewConnection();
@@ -149,6 +157,8 @@ private:
     ConnectionState state_ = Disconnected;
     QString statusMessage_;
     bool pendingReconnect_ = false;
+    int phoneBatteryLevel_ = -1;
+    int phoneSignalStrength_ = -1;
     int displayW_ = 0;  // detected display dimensions (0 = use config fallback)
     int displayH_ = 0;
     int navbarThickness_ = 56;

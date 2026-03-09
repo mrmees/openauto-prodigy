@@ -48,6 +48,11 @@ void PhoneStatusChannelHandler::handlePhoneStatus(const QByteArray& payload)
         return;
     }
 
+    // Signal strength can arrive with or without call data
+    if (msg.has_signal_strength()) {
+        emit signalStrengthChanged(static_cast<int>(msg.signal_strength()));
+    }
+
     if (msg.calls_size() == 0) {
         qDebug() << "[PhoneStatusChannel] idle (no active calls)";
         emit callsIdle();

@@ -49,6 +49,19 @@ private slots:
         orch.requestVideoFocus();
         orch.requestExitToCar();
     }
+
+    void testPhonePropertiesDefaultValues() {
+        auto config = std::make_shared<oap::Configuration>();
+        oap::aa::AndroidAutoOrchestrator orch(config, nullptr, nullptr);
+        QCOMPARE(orch.phoneBatteryLevel(), -1);
+        QCOMPARE(orch.phoneSignalStrength(), -1);
+    }
+
+    void testAaConnectedFalseWhenDisconnected() {
+        auto config = std::make_shared<oap::Configuration>();
+        oap::aa::AndroidAutoOrchestrator orch(config, nullptr, nullptr);
+        QVERIFY(!orch.isAaConnected());
+    }
 };
 
 QTEST_MAIN(TestAndroidAutoOrchestrator)
