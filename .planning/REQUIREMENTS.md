@@ -44,6 +44,12 @@ Requirements for DPI sizing and UI polish milestone. Each maps to roadmap phases
 - [x] **M3R-04**: Button pressed states use primaryContainer/onPrimaryContainer (M3 contained button pattern) instead of raw primary
 - [x] **M3R-05**: Toggle/slider active states use secondaryContainer (M3 selected state convention) instead of raw primary
 
+### AA Rendering
+
+- [ ] **FIX-01**: AA video content is fully visible with no cropping when navbar is shown (PreserveAspectFit letterboxing)
+- [ ] **FIX-02**: Touch coordinates align with visible AA content after fillMode change (tapping a button hits that button)
+- [ ] **FIX-03**: Existing SDP margin calculation unit tests continue to pass after rendering changes
+
 ### Styling
 
 - [ ] **STY-01**: Buttons have subtle 3D depth effect (shadow, bevel, or gradient) that responds to press state
@@ -100,14 +106,17 @@ Requirements for DPI sizing and UI polish milestone. Each maps to roadmap phases
 | M3R-03 | Phase 3.3 | Complete |
 | M3R-04 | Phase 3.3 | Complete |
 | M3R-05 | Phase 3.3 | Complete |
+| FIX-01 | Phase 3.4 | Pending |
+| FIX-02 | Phase 3.4 | Pending |
+| FIX-03 | Phase 3.4 | Pending |
 | STY-01 | Phase 4 | Pending |
 | STY-02 | Phase 4 | Pending |
 
 **Coverage:**
-- v0.5.1 requirements: 24 total
-- Mapped to phases: 24
+- v0.5.1 requirements: 27 total
+- Mapped to phases: 27
 - Unmapped: 0
 
 ---
 *Requirements defined: 2026-03-08*
-*Last updated: 2026-03-09 after Phase 03.3 planning*
+*Last updated: 2026-03-09 after Phase 03.4 revision*
