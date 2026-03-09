@@ -9,6 +9,8 @@
 #include "oaa/av/AVMediaAckIndicationMessage.pb.h"
 #include "oaa/video/VideoFocusIndicationMessage.pb.h"
 #include "oaa/video/VideoFocusModeEnum.pb.h"
+#include "oaa/video/UiConfigRequestMessage.pb.h"
+#include "oaa/video/UpdateHuUiConfigResponse.pb.h"
 
 class TestVideoChannelHandler : public QObject {
     Q_OBJECT
@@ -149,6 +151,97 @@ private slots:
         handler.onChannelOpened();
         handler.onMediaData(QByteArray(1024, '\x00'), 0);
         QCOMPARE(frameSpy.count(), 0);
+    }
+
+    void testUiConfigRequestParsesDayNightTokens() {
+        qRegisterMetaType<QMap<QString, uint32_t>>("QMap<QString,uint32_t>");
+
+        oaa::hu::VideoChannelHandler handler;
+        QSignalSpy tokenSpy(&handler, &oaa::hu::VideoChannelHandler::uiConfigTokensReceived);
+        QSignalSpy sendSpy(&handler, &oaa::IChannelHandler::sendRequested);
+
+        handler.onChannelOpened();
+
+        // Build UiConfigRequest with day (primary) and night (secondary) tokens
+        oaa::proto::messages::UiConfigRequest request;
+        auto* config = request.mutable_config();
+
+        // Day tokens (primary_configs)
+        auto* day1 = config->add_primary_configs();
+        day1->set_key("primary");
+        day1->mutable_config_value()->set_value(0xFF1234AB);
+
+        auto* day2 = config->add_primary_configs();
+        day2->set_key("on-surface");
+        day2->mutable_config_value()->set_value(0xFFCCCCCC);
+
+        // Night tokens (secondary_configs)
+        auto* night1 = config->add_secondary_configs();
+        night1->set_key("primary");
+        night1->mutable_config_value()->set_value(0xFF000000);
+
+        auto* night2 = config->add_secondary_configs();
+        night2->set_key("on-surface");
+        night2->mutable_config_value()->set_value(0xFF333333);
+
+        QByteArray payload(request.ByteSizeLong(), '\0');
+        request.SerializeToArray(payload.data(), payload.size());
+
+        handler.onMessage(oaa::AVMessageId::OVERLAY_SESSION_UPDATE, payload);
+
+        // Verify uiConfigTokensReceived emitted once
+        QCOMPARE(tokenSpy.count(), 1);
+
+        auto dayTokens = tokenSpy[0][0].value<QMap<QString, uint32_t>>();
+        auto nightTokens = tokenSpy[0][1].value<QMap<QString, uint32_t>>();
+
+        QCOMPARE(dayTokens.size(), 2);
+        QCOMPARE(dayTokens["primary"], 0xFF1234ABu);
+        QCOMPARE(dayTokens["on-surface"], 0xFFCCCCCCu);
+
+        QCOMPARE(nightTokens.size(), 2);
+        QCOMPARE(nightTokens["primary"], 0xFF000000u);
+        QCOMPARE(nightTokens["on-surface"], 0xFF333333u);
+
+        // Verify ACCEPTED response (0x8012) sent
+        QCOMPARE(sendSpy.count(), 1);
+        QCOMPARE(sendSpy[0][1].value<uint16_t>(),
+                 static_cast<uint16_t>(oaa::AVMessageId::UPDATE_HU_UI_CONFIG_REQUEST));
+
+        // Parse the response payload to verify ACCEPTED status
+        QByteArray respPayload = sendSpy[0][2].toByteArray();
+        oaa::proto::messages::UpdateHuUiConfigResponse resp;
+        QVERIFY(resp.ParseFromArray(respPayload.constData(), respPayload.size()));
+        QCOMPARE(static_cast<int>(resp.status()),
+                 static_cast<int>(oaa::proto::messages::THEMING_TOKENS_ACCEPTED));
+    }
+
+    void testUiConfigRequestEmptyConfig() {
+        qRegisterMetaType<QMap<QString, uint32_t>>("QMap<QString,uint32_t>");
+
+        oaa::hu::VideoChannelHandler handler;
+        QSignalSpy tokenSpy(&handler, &oaa::hu::VideoChannelHandler::uiConfigTokensReceived);
+        QSignalSpy sendSpy(&handler, &oaa::IChannelHandler::sendRequested);
+
+        handler.onChannelOpened();
+
+        // Empty UiConfigRequest (no config field set)
+        oaa::proto::messages::UiConfigRequest request;
+        QByteArray payload(request.ByteSizeLong(), '\0');
+        request.SerializeToArray(payload.data(), payload.size());
+
+        handler.onMessage(oaa::AVMessageId::OVERLAY_SESSION_UPDATE, payload);
+
+        // Should still emit with empty maps (no crash)
+        QCOMPARE(tokenSpy.count(), 1);
+
+        auto dayTokens = tokenSpy[0][0].value<QMap<QString, uint32_t>>();
+        auto nightTokens = tokenSpy[0][1].value<QMap<QString, uint32_t>>();
+        QCOMPARE(dayTokens.size(), 0);
+        QCOMPARE(nightTokens.size(), 0);
+
+        // Should still send ACCEPTED response
+        QCOMPARE(sendSpy.count(), 1);
     }
 };
 
