@@ -127,6 +127,24 @@ Plans:
 Plans:
 - [ ] 03.4-01-PLAN.md -- Change VideoOutput fillMode to PreserveAspectFit + verify on Pi
 
+### Phase 03.5: Navbar Status Indicators (INSERTED)
+
+**Goal:** Add battery and signal strength indicators to the navbar, remove them from AA status bar via protocol flags
+**Requirements**: NAV-01, NAV-02, NAV-03, NAV-04, NAV-05, NAV-06
+**Depends on:** Phase 03.4
+**Success Criteria** (what must be TRUE):
+  1. Phone battery level and signal strength are extracted from AA protocol and exposed as Q_PROPERTYs on the orchestrator
+  2. Battery and signal icons flank the clock in the navbar center zone during AA connection
+  3. Indicators disappear immediately on AA disconnect (no stale data)
+  4. SDP tells phone to hide its own clock, battery, and signal when navbar is visible during AA
+  5. Navbar zone proportions updated to 15/70/15 (volume/center/brightness)
+  6. Battery icon turns red below 20%; indicators work in horizontal and vertical orientations
+**Plans:** 2 plans
+
+Plans:
+- [ ] 03.5-01-PLAN.md -- Protocol data extraction + orchestrator Q_PROPERTYs + SDP hidden_ui_elements + tests
+- [ ] 03.5-02-PLAN.md -- QML navbar layout + indicator icons + visual checkpoint
+
 ### Phase 03.3: M3 Color Role Mapping Fix (INSERTED)
 
 **Goal:** Remap all QML color references from legacy AA custom tokens to semantically correct M3 roles, apply surface container hierarchy, and adopt M3 interaction patterns for pressed/toggle states
@@ -193,7 +211,7 @@ Plans:
 ## Progress
 
 **Execution Order:**
-Phases execute in numeric order: 1 -> 2 -> 3 -> 3.1 -> 3.2 -> 3.3 -> 3.4 -> 4
+Phases execute in numeric order: 1 -> 2 -> 3 -> 3.1 -> 3.2 -> 3.3 -> 3.4 -> 3.5 -> 4
 
 | Phase | Plans Complete | Status | Completed |
 |-------|----------------|--------|-----------|
@@ -203,8 +221,9 @@ Phases execute in numeric order: 1 -> 2 -> 3 -> 3.1 -> 3.2 -> 3.3 -> 3.4 -> 4
 | 3.1 AA Theme Stream | 2/2 | Complete | 2026-03-08 |
 | 3.2 Companion Theme Import | 2/3 | In Progress|  |
 | 3.3 M3 Color Role Mapping | 2/2 | Complete   | 2026-03-09 |
-| 3.4 Fix AA Rendering | 0/1 | Not started | - |
+| 3.4 Fix AA Rendering | 1/1 | Complete | 2026-03-09 |
+| 3.5 Navbar Status Indicators | 0/2 | Not started | - |
 | 4. Visual Depth | 0/? | Not started | - |
 
 ---
-*Last updated: 2026-03-09 -- Phase 03.4 planned (fix AA rendering)*
+*Last updated: 2026-03-09 -- Phase 03.5 planned (navbar status indicators)*

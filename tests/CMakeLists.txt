@@ -84,6 +84,7 @@ oap_add_test(test_navigation_channel_handler SOURCES test_navigation_channel_han
 oap_add_test(test_media_status_channel_handler SOURCES test_media_status_channel_handler.cpp)
 oap_add_test(test_oaa_integration SOURCES test_oaa_integration.cpp)
 oap_add_test(test_aa_orchestrator SOURCES test_aa_orchestrator.cpp)
+oap_add_test(test_indicator_mapping SOURCES test_indicator_mapping.cpp)
 oap_add_test(test_circular_buffer SOURCES test_circular_buffer.cpp)
 oap_add_test(test_codec_capability SOURCES test_codec_capability.cpp)
 oap_add_test(test_video_frame_pool SOURCES test_video_frame_pool.cpp)
