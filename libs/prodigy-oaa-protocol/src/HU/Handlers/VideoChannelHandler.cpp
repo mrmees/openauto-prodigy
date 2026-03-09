@@ -49,6 +49,9 @@ void VideoChannelHandler::onMessage(uint16_t messageId, const QByteArray& payloa
     const QByteArray data = QByteArray::fromRawData(
         payload.constData() + dataOffset, payload.size() - dataOffset);
 
+    // Temp: log all non-media messages arriving on video channel
+    qInfo() << "[VideoChannel] ZEBRA RX msgId:" << Qt::hex << messageId << "size:" << data.size();
+
     switch (messageId) {
     case oaa::AVMessageId::SETUP_REQUEST:
         handleSetupRequest(data);

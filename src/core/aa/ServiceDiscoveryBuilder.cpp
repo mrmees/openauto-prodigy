@@ -9,6 +9,7 @@
 #include "oaa/control/ChannelDescriptorData.pb.h"
 #include "oaa/av/AVChannelData.pb.h"
 #include "oaa/video/VideoConfigData.pb.h"
+#include "oaa/video/AdditionalVideoConfigData.pb.h"
 #include "oaa/av/MediaCodecTypeEnum.pb.h"
 #include "oaa/audio/AudioConfigData.pb.h"
 #include "oaa/input/InputChannelData.pb.h"
@@ -226,6 +227,9 @@ QByteArray ServiceDiscoveryBuilder::buildVideoDescriptor() const
         cfg->set_margin_height(mH);
         cfg->set_dpi(dpi);
         cfg->set_codec(it.value());
+        // Signal theming support so phone sends Material You tokens (0x8011)
+        auto* additional = cfg->mutable_additional_config();
+        additional->set_ui_theme(oaa::proto::data::UI_THEME_AUTOMATIC);
         qCInfo(lcAA) << "config[" << configIdx++ << "]:"
                 << chosen.label << codecName << "margins:" << mW << "x" << mH;
     }
@@ -239,6 +243,8 @@ QByteArray ServiceDiscoveryBuilder::buildVideoDescriptor() const
         cfg->set_margin_height(mH);
         cfg->set_dpi(dpi);
         cfg->set_codec(Codec::MEDIA_CODEC_VIDEO_H264_BP);
+        auto* additional = cfg->mutable_additional_config();
+        additional->set_ui_theme(oaa::proto::data::UI_THEME_AUTOMATIC);
         qCWarning(lcAA) << "No valid codecs in config, falling back to H.264";
         configIdx = 1;
     }
