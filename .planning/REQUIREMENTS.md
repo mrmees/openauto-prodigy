@@ -31,10 +31,10 @@ Requirements for DPI sizing and UI polish milestone. Each maps to roadmap phases
 
 - [x] **CTI-01**: ThemeService exposes all 34 Material Design 3 color roles as Q_PROPERTYs for QML binding
 - [x] **CTI-02**: All bundled themes (default, AMOLED, Ocean, Ember, connected-device) specify all 34 M3 roles in both day and night maps
-- [ ] **CTI-03**: Companion app can send M3 color palettes + wallpaper JPEG over TCP 9876, and HU receives, applies, and acknowledges
-- [ ] **CTI-04**: AA wire token path (0x8011/0x8012) is disabled; companion app is sole source of dynamic themes
+- [x] **CTI-03**: Companion app can send M3 color palettes + wallpaper JPEG over TCP 9876, and HU receives, applies, and acknowledges
+- [x] **CTI-04**: AA wire token path (0x8011/0x8012) is disabled; companion app is sole source of dynamic themes
 - [x] **CTI-05**: Companion themes appear as named entries in theme picker; users can delete companion themes but not bundled themes
-- [ ] **CTI-06**: hello_ack contains display resolution for companion wallpaper cropping
+- [x] **CTI-06**: hello_ack contains display resolution for companion wallpaper cropping
 
 ### Styling
 
@@ -83,10 +83,10 @@ Requirements for DPI sizing and UI polish milestone. Each maps to roadmap phases
 | THM-03 | Phase 3 | Complete |
 | CTI-01 | Phase 3.2 | Complete |
 | CTI-02 | Phase 3.2 | Complete |
-| CTI-03 | Phase 3.2 | Pending |
-| CTI-04 | Phase 3.2 | Pending |
+| CTI-03 | Phase 3.2 | Complete |
+| CTI-04 | Phase 3.2 | Complete |
 | CTI-05 | Phase 3.2 | Complete |
-| CTI-06 | Phase 3.2 | Pending |
+| CTI-06 | Phase 3.2 | Complete |
 | STY-01 | Phase 4 | Pending |
 | STY-02 | Phase 4 | Pending |
 

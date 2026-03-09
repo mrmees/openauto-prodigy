@@ -3,15 +3,15 @@ gsd_state_version: 1.0
 milestone: v0.5
 milestone_name: milestone
 status: in-progress
-stopped_at: Plan 03.2-01 complete
-last_updated: "2026-03-09T17:06:39Z"
-last_activity: 2026-03-09 -- Plan 03.2-01 executed (ThemeService 34 M3 roles + import/delete)
+stopped_at: Plan 03.2-02 complete
+last_updated: "2026-03-09T17:14:48Z"
+last_activity: 2026-03-09 -- Plan 03.2-02 executed (companion theme reception pipeline)
 progress:
   total_phases: 6
   completed_phases: 4
   total_plans: 13
-  completed_plans: 11
-  percent: 85
+  completed_plans: 12
+  percent: 92
 ---
 
 # Project State
@@ -26,11 +26,11 @@ See: .planning/PROJECT.md (updated 2026-03-08)
 ## Current Position
 
 Phase: 3.2 of 5 (Companion Theme Import)
-Plan: 1 of 3 complete
-Status: Plan 03.2-01 complete -- ThemeService expanded to 34 M3 roles with import/delete
-Last activity: 2026-03-09 -- Plan 03.2-01 executed (ThemeService 34 M3 roles + import/delete)
+Plan: 2 of 3 complete
+Status: Plan 03.2-02 complete -- Companion theme protocol handler wired to ThemeService
+Last activity: 2026-03-09 -- Plan 03.2-02 executed (companion theme reception pipeline)
 
-Progress: [████████░░] 85%
+Progress: [█████████░] 92%
 
 ## Performance Metrics
 
@@ -72,6 +72,9 @@ Decisions are logged in PROJECT.md Key Decisions table.
 - (03.2-01) importCompanionTheme writes to first search path (user themes dir) -- bundled protected
 - (03.2-01) error/onError are new M3 keys separate from red/onRed -- both coexist in YAML
 - (03.2-01) allThemeKeys = knownM3Keys | knownAATokenKeys for connected-device YAML persistence
+- (03.2-02) camelCase-to-hyphenated conversion is generic (insert hyphen before uppercase) -- no hardcoded mapping
+- (03.2-02) theme_ack always sent with accepted=true after import (no partial failure handling)
+- (03.2-02) Display size defaults to 1024x600, overridden by --geometry or primaryScreen
 
 ### Pending Todos
 
@@ -88,5 +91,5 @@ None yet.
 
 ## Session Continuity
 
-Last session: 2026-03-09T17:06:39Z
-Stopped at: Completed 03.2-01-PLAN.md
+Last session: 2026-03-09T17:14:48Z
+Stopped at: Completed 03.2-02-PLAN.md
