@@ -113,6 +113,20 @@ Plans:
 - [x] 03-02-PLAN.md -- QML hardcode elimination + ThemeService reference update + web config/IPC
 - [ ] 03-03-PLAN.md -- Connected Device theme + UiConfigRequest protocol integration
 
+### Phase 03.4: Fix Android Auto rendering (INSERTED)
+
+**Goal:** Fix AA video rendering so PreserveAspectFit replaces PreserveAspectCrop, making all content visible regardless of whether the phone honors SDP margin settings
+**Requirements**: FIX-01, FIX-02, FIX-03
+**Depends on:** Phase 3
+**Success Criteria** (what must be TRUE):
+  1. AA video content is fully visible with no cropping when navbar is shown
+  2. Touch targets align with visible AA content
+  3. Existing SDP margin calculation tests still pass
+**Plans:** 1 plan
+
+Plans:
+- [ ] 03.4-01-PLAN.md -- Change VideoOutput fillMode to PreserveAspectFit + verify on Pi
+
 ### Phase 03.3: M3 Color Role Mapping Fix (INSERTED)
 
 **Goal:** Remap all QML color references from legacy AA custom tokens to semantically correct M3 roles, apply surface container hierarchy, and adopt M3 interaction patterns for pressed/toggle states
@@ -124,7 +138,7 @@ Plans:
   3. Surface container hierarchy applied -- UI elements use appropriate elevation levels (Lowest/Low/Container/High/Highest)
   4. Button pressed states use primaryContainer/onPrimaryContainer (M3 contained button pattern)
   5. Toggle/segmented selected states use secondaryContainer/onSecondaryContainer
-**Plans:** 2 plans
+**Plans:** 2/2 plans complete
 
 Plans:
 - [ ] 03.3-01-PLAN.md -- Token removal (C++ Q_PROPERTYs + YAML cleanup) + bulk QML rename to M3 equivalents
@@ -179,7 +193,7 @@ Plans:
 ## Progress
 
 **Execution Order:**
-Phases execute in numeric order: 1 -> 2 -> 3 -> 3.1 -> 3.2 -> 3.3 -> 4
+Phases execute in numeric order: 1 -> 2 -> 3 -> 3.1 -> 3.2 -> 3.3 -> 3.4 -> 4
 
 | Phase | Plans Complete | Status | Completed |
 |-------|----------------|--------|-----------|
@@ -189,7 +203,8 @@ Phases execute in numeric order: 1 -> 2 -> 3 -> 3.1 -> 3.2 -> 3.3 -> 4
 | 3.1 AA Theme Stream | 2/2 | Complete | 2026-03-08 |
 | 3.2 Companion Theme Import | 2/3 | In Progress|  |
 | 3.3 M3 Color Role Mapping | 2/2 | Complete   | 2026-03-09 |
+| 3.4 Fix AA Rendering | 0/1 | Not started | - |
 | 4. Visual Depth | 0/? | Not started | - |
 
 ---
-*Last updated: 2026-03-09 -- Phase 03.3 planned (M3 color role mapping fix)*
+*Last updated: 2026-03-09 -- Phase 03.4 planned (fix AA rendering)*
