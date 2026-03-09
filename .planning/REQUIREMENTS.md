@@ -29,11 +29,11 @@ Requirements for DPI sizing and UI polish milestone. Each maps to roadmap phases
 
 ### Companion Theme Import
 
-- [ ] **CTI-01**: ThemeService exposes all 34 Material Design 3 color roles as Q_PROPERTYs for QML binding
-- [ ] **CTI-02**: All bundled themes (default, AMOLED, Ocean, Ember, connected-device) specify all 34 M3 roles in both day and night maps
+- [x] **CTI-01**: ThemeService exposes all 34 Material Design 3 color roles as Q_PROPERTYs for QML binding
+- [x] **CTI-02**: All bundled themes (default, AMOLED, Ocean, Ember, connected-device) specify all 34 M3 roles in both day and night maps
 - [ ] **CTI-03**: Companion app can send M3 color palettes + wallpaper JPEG over TCP 9876, and HU receives, applies, and acknowledges
 - [ ] **CTI-04**: AA wire token path (0x8011/0x8012) is disabled; companion app is sole source of dynamic themes
-- [ ] **CTI-05**: Companion themes appear as named entries in theme picker; users can delete companion themes but not bundled themes
+- [x] **CTI-05**: Companion themes appear as named entries in theme picker; users can delete companion themes but not bundled themes
 - [ ] **CTI-06**: hello_ack contains display resolution for companion wallpaper cropping
 
 ### Styling
@@ -81,11 +81,11 @@ Requirements for DPI sizing and UI polish milestone. Each maps to roadmap phases
 | THM-01 | Phase 3 | Complete |
 | THM-02 | Phase 3 | Complete |
 | THM-03 | Phase 3 | Complete |
-| CTI-01 | Phase 3.2 | Pending |
-| CTI-02 | Phase 3.2 | Pending |
+| CTI-01 | Phase 3.2 | Complete |
+| CTI-02 | Phase 3.2 | Complete |
 | CTI-03 | Phase 3.2 | Pending |
 | CTI-04 | Phase 3.2 | Pending |
-| CTI-05 | Phase 3.2 | Pending |
+| CTI-05 | Phase 3.2 | Complete |
 | CTI-06 | Phase 3.2 | Pending |
 | STY-01 | Phase 4 | Pending |
 | STY-02 | Phase 4 | Pending |
@@ -97,4 +97,4 @@ Requirements for DPI sizing and UI polish milestone. Each maps to roadmap phases
 
 ---
 *Requirements defined: 2026-03-08*
-*Last updated: 2026-03-09 after Phase 03.2 planning*
+*Last updated: 2026-03-09 after Plan 03.2-01 complete*

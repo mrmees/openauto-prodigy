@@ -3,15 +3,15 @@ gsd_state_version: 1.0
 milestone: v0.5
 milestone_name: milestone
 status: in-progress
-stopped_at: Completed 03.1-02-PLAN.md
-last_updated: "2026-03-09T00:03:29Z"
-last_activity: 2026-03-08 -- Plan 03.1-02 executed (inbound UiConfigRequest handler + signal chain)
+stopped_at: Plan 03.2-01 complete
+last_updated: "2026-03-09T17:06:39Z"
+last_activity: 2026-03-09 -- Plan 03.2-01 executed (ThemeService 34 M3 roles + import/delete)
 progress:
-  total_phases: 5
-  completed_phases: 3.1
-  total_plans: 10
-  completed_plans: 10
-  percent: 100
+  total_phases: 6
+  completed_phases: 4
+  total_plans: 13
+  completed_plans: 11
+  percent: 85
 ---
 
 # Project State
@@ -21,23 +21,23 @@ progress:
 See: .planning/PROJECT.md (updated 2026-03-08)
 
 **Core value:** A person with a Raspberry Pi 4 and a touchscreen can install this, pair their phone, and get a reliable wireless Android Auto experience -- every time, without SSH.
-**Current focus:** v0.5.1 DPI Sizing & UI Polish -- Phase 03.1 in progress (AA theme stream integration)
+**Current focus:** v0.5.1 DPI Sizing & UI Polish -- Phase 03.2 in progress (Companion Theme Import)
 
 ## Current Position
 
-Phase: 3.1 of 5 (AA Theme Stream Integration) -- COMPLETE
-Plan: 2 of 2 complete
-Status: Phase 03.1 complete -- all AA theme stream integration plans done
-Last activity: 2026-03-08 -- Plan 03.1-02 executed (inbound UiConfigRequest handler + signal chain)
+Phase: 3.2 of 5 (Companion Theme Import)
+Plan: 1 of 3 complete
+Status: Plan 03.2-01 complete -- ThemeService expanded to 34 M3 roles with import/delete
+Last activity: 2026-03-09 -- Plan 03.2-01 executed (ThemeService 34 M3 roles + import/delete)
 
-Progress: [██████████] 100%
+Progress: [████████░░] 85%
 
 ## Performance Metrics
 
 **Velocity:**
-- Total plans completed: 10
+- Total plans completed: 11
 - Average duration: 5 min
-- Total execution time: 0.78 hours
+- Total execution time: 0.91 hours
 
 ## Accumulated Context
 
@@ -68,6 +68,10 @@ Decisions are logged in PROJECT.md Key Decisions table.
 - (03.1-01) Swap-and-restore pattern for persistence when connected-device is not active theme
 - (03.1-02) Phone pushes tokens inbound (0x8011), HU no longer sends outbound UiConfigRequest
 - (03.1-02) ACCEPTED ack sent immediately after parsing, before ThemeService processing
+- (03.2-01) scrim promoted from hardcoded QColor(0,0,0,180) to YAML-stored opaque black
+- (03.2-01) importCompanionTheme writes to first search path (user themes dir) -- bundled protected
+- (03.2-01) error/onError are new M3 keys separate from red/onRed -- both coexist in YAML
+- (03.2-01) allThemeKeys = knownM3Keys | knownAATokenKeys for connected-device YAML persistence
 
 ### Pending Todos
 
@@ -76,6 +80,7 @@ None yet.
 ### Roadmap Evolution
 
 - Phase 03.1 inserted after Phase 03: get AA theme information working from stream (URGENT)
+- Phase 03.2 inserted after Phase 03: Companion Theme Import (URGENT)
 
 ### Blockers/Concerns
 
@@ -83,5 +88,5 @@ None yet.
 
 ## Session Continuity
 
-Last session: 2026-03-09T00:03:29Z
-Stopped at: Completed 03.1-02-PLAN.md
+Last session: 2026-03-09T17:06:39Z
+Stopped at: Completed 03.2-01-PLAN.md

@@ -128,7 +128,7 @@ Plans:
 
 Plans:
 - [x] 03.1-01-PLAN.md -- Key format migration (underscore->hyphen) + applyAATokens dual-map signature + always-cache + tests
-- [ ] 03.1-02-PLAN.md -- Protocol direction flip (inbound 0x8011 handler + 0x8012 response) + orchestrator wiring + submodule bump
+- [x] 03.1-02-PLAN.md -- Protocol direction flip (inbound 0x8011 handler + 0x8012 response) + orchestrator wiring + submodule bump
 
 ### Phase 03.2: Companion Theme Import (INSERTED)
 
@@ -145,7 +145,7 @@ Plans:
 **Plans:** 3 plans
 
 Plans:
-- [ ] 03.2-01-PLAN.md -- ThemeService 34 M3 role expansion + bundled theme updates + import/delete methods
+- [x] 03.2-01-PLAN.md -- ThemeService 34 M3 role expansion + bundled theme updates + import/delete methods
 - [ ] 03.2-02-PLAN.md -- Companion protocol handler + display info + AA wire disable
 - [ ] 03.2-03-PLAN.md -- Theme deletion UI + settings integration + human verification
 
@@ -169,9 +169,9 @@ Phases execute in numeric order: 1 -> 2 -> 3 -> 3.1 -> 3.2 -> 4
 | 1. DPI Foundation | 3/3 | Complete   | 2026-03-08 |
 | 2. Clock & Scale Control | 2/2 | Complete   | 2026-03-08 |
 | 3. Theme Color System | 2/3 | In Progress|  |
-| 3.1 AA Theme Stream | 1/2 | In Progress | - |
-| 3.2 Companion Theme Import | 0/3 | Not started | - |
+| 3.1 AA Theme Stream | 2/2 | Complete | 2026-03-08 |
+| 3.2 Companion Theme Import | 1/3 | In Progress | - |
 | 4. Visual Depth | 0/? | Not started | - |
 
 ---
-*Last updated: 2026-03-09 -- Phase 03.2 planned (3 plans)*
+*Last updated: 2026-03-09 -- Plan 03.2-01 complete (ThemeService 34 M3 roles)*
