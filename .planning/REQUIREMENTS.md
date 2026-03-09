@@ -36,6 +36,14 @@ Requirements for DPI sizing and UI polish milestone. Each maps to roadmap phases
 - [x] **CTI-05**: Companion themes appear as named entries in theme picker; users can delete companion themes but not bundled themes
 - [x] **CTI-06**: hello_ack contains display resolution for companion wallpaper cropping
 
+### M3 Color Role Mapping
+
+- [ ] **M3R-01**: All custom/legacy AA token Q_PROPERTYs (textPrimary, textSecondary, red, onRed, yellow, onYellow) removed from ThemeService and replaced with M3 equivalents in QML
+- [ ] **M3R-02**: Deprecated custom token keys removed from bundled theme YAMLs and AA token persistence sets
+- [ ] **M3R-03**: Surface container hierarchy applied -- UI elements use appropriate container levels (Lowest/Low/Container/High/Highest) based on visual elevation
+- [ ] **M3R-04**: Button pressed states use primaryContainer/onPrimaryContainer (M3 contained button pattern) instead of raw primary
+- [ ] **M3R-05**: Toggle/slider active states use secondaryContainer (M3 selected state convention) instead of raw primary
+
 ### Styling
 
 - [ ] **STY-01**: Buttons have subtle 3D depth effect (shadow, bevel, or gradient) that responds to press state
@@ -87,14 +95,19 @@ Requirements for DPI sizing and UI polish milestone. Each maps to roadmap phases
 | CTI-04 | Phase 3.2 | Complete |
 | CTI-05 | Phase 3.2 | Complete |
 | CTI-06 | Phase 3.2 | Complete |
+| M3R-01 | Phase 3.3 | Pending |
+| M3R-02 | Phase 3.3 | Pending |
+| M3R-03 | Phase 3.3 | Pending |
+| M3R-04 | Phase 3.3 | Pending |
+| M3R-05 | Phase 3.3 | Pending |
 | STY-01 | Phase 4 | Pending |
 | STY-02 | Phase 4 | Pending |
 
 **Coverage:**
-- v0.5.1 requirements: 19 total
-- Mapped to phases: 19
+- v0.5.1 requirements: 24 total
+- Mapped to phases: 24
 - Unmapped: 0
 
 ---
 *Requirements defined: 2026-03-08*
-*Last updated: 2026-03-09 after Plan 03.2-01 complete*
+*Last updated: 2026-03-09 after Phase 03.3 planning*

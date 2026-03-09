@@ -113,6 +113,23 @@ Plans:
 - [x] 03-02-PLAN.md -- QML hardcode elimination + ThemeService reference update + web config/IPC
 - [ ] 03-03-PLAN.md -- Connected Device theme + UiConfigRequest protocol integration
 
+### Phase 03.3: M3 Color Role Mapping Fix (INSERTED)
+
+**Goal:** Remap all QML color references from legacy AA custom tokens to semantically correct M3 roles, apply surface container hierarchy, and adopt M3 interaction patterns for pressed/toggle states
+**Requirements**: M3R-01, M3R-02, M3R-03, M3R-04, M3R-05
+**Depends on:** Phase 03.2
+**Success Criteria** (what must be TRUE):
+  1. All custom/legacy AA token Q_PROPERTYs (textPrimary, textSecondary, red, onRed, yellow, onYellow, pressed) removed from ThemeService
+  2. All QML color references use M3 standard role names (onSurface, onSurfaceVariant, error, onError, tertiary)
+  3. Surface container hierarchy applied -- UI elements use appropriate elevation levels (Lowest/Low/Container/High/Highest)
+  4. Button pressed states use primaryContainer/onPrimaryContainer (M3 contained button pattern)
+  5. Toggle/segmented selected states use secondaryContainer/onSecondaryContainer
+**Plans:** 2 plans
+
+Plans:
+- [ ] 03.3-01-PLAN.md -- Token removal (C++ Q_PROPERTYs + YAML cleanup) + bulk QML rename to M3 equivalents
+- [ ] 03.3-02-PLAN.md -- Surface container hierarchy + pressed/toggle state M3 patterns + visual verification
+
 ### Phase 03.1: get AA theme information working from stream (INSERTED)
 
 **Goal:** Flip UiConfigRequest direction to receive phone's Material You palette, apply/cache tokens to ThemeService, and acknowledge with ACCEPTED response
@@ -162,7 +179,7 @@ Plans:
 ## Progress
 
 **Execution Order:**
-Phases execute in numeric order: 1 -> 2 -> 3 -> 3.1 -> 3.2 -> 4
+Phases execute in numeric order: 1 -> 2 -> 3 -> 3.1 -> 3.2 -> 3.3 -> 4
 
 | Phase | Plans Complete | Status | Completed |
 |-------|----------------|--------|-----------|
@@ -171,7 +188,8 @@ Phases execute in numeric order: 1 -> 2 -> 3 -> 3.1 -> 3.2 -> 4
 | 3. Theme Color System | 2/3 | In Progress|  |
 | 3.1 AA Theme Stream | 2/2 | Complete | 2026-03-08 |
 | 3.2 Companion Theme Import | 2/3 | In Progress|  |
+| 3.3 M3 Color Role Mapping | 0/2 | Not started | - |
 | 4. Visual Depth | 0/? | Not started | - |
 
 ---
-*Last updated: 2026-03-09 -- Plan 03.2-01 complete (ThemeService 34 M3 roles)*
+*Last updated: 2026-03-09 -- Phase 03.3 planned (M3 color role mapping fix)*
