@@ -76,9 +76,9 @@ Item {
     // Background
     Rectangle {
         anchors.fill: parent
-        color: ThemeService.surfaceContainerHigh
+        color: navbar.aaActive ? "#1A1A1A" : ThemeService.surfaceContainerHigh
         radius: UiMetrics.radius
-        border.color: ThemeService.outlineVariant
+        border.color: navbar.aaActive ? "#333333" : ThemeService.outlineVariant
         border.width: 1
 
         // Prevent tap-through
@@ -99,7 +99,7 @@ Item {
                 text: root.currentValue
                 font.pixelSize: UiMetrics.fontHeading
                 font.bold: true
-                color: ThemeService.onSurface
+                color: navbar.barFg
             }
 
             // Slider track area — with vertical padding so knob doesn't clip
@@ -116,7 +116,7 @@ Item {
                     anchors.bottom: parent.bottom
                     width: root.sliderTrackW
                     radius: root.sliderTrackW / 2
-                    color: ThemeService.surfaceContainerLow
+                    color: navbar.aaActive ? "#333333" : ThemeService.surfaceContainerLow
 
                     // Filled portion (from bottom)
                     Rectangle {
@@ -125,7 +125,7 @@ Item {
                         width: parent.width
                         height: parent.height * (root.currentValue - root.minVal) / (root.maxVal - root.minVal)
                         radius: parent.radius
-                        color: ThemeService.primary
+                        color: navbar.aaActive ? "#FFFFFF" : ThemeService.primary
                     }
                 }
 
@@ -135,7 +135,7 @@ Item {
                     width: root.knobDiameter
                     height: root.knobDiameter
                     radius: root.knobDiameter / 2
-                    color: ThemeService.primary
+                    color: navbar.aaActive ? "#FFFFFF" : ThemeService.primary
                     anchors.horizontalCenter: parent.horizontalCenter
                     y: parent.height - (parent.height * (root.currentValue - root.minVal) / (root.maxVal - root.minVal)) - root.knobDiameter / 2
                 }

@@ -10,6 +10,12 @@ Item {
     property bool isVertical: edge === "left" || edge === "right"
     property int barThick: UiMetrics.navbarThick
 
+    // When AA is projecting, blend navbar with its black status bar
+    readonly property bool aaActive: PluginModel.activePluginId === "org.openauto.android-auto"
+    readonly property color barBg: aaActive ? "#000000" : ThemeService.surfaceContainer
+    readonly property color barFg: aaActive ? "#FFFFFF" : ThemeService.onSurface
+    readonly property color barShadowColor: aaActive ? "#000000" : ThemeService.barShadow
+
     // Hidden during fullscreen plugin (AA)
     visible: !PluginModel.activePluginFullscreen
     z: 100
@@ -37,7 +43,7 @@ Item {
     Rectangle {
         id: shadow
         anchors.fill: barBackground
-        color: ThemeService.barShadow
+        color: navbar.barShadowColor
         radius: 0
     }
 
@@ -45,7 +51,7 @@ Item {
     Rectangle {
         id: barBackground
         anchors.fill: parent
-        color: ThemeService.surfaceContainer
+        color: navbar.barBg
     }
 
     // --- Controls container ---
@@ -204,9 +210,9 @@ Item {
             id: powerMenuBg
             width: Math.round(160 * UiMetrics.scale)
             height: powerMenuCol.implicitHeight + UiMetrics.spacing * 2
-            color: ThemeService.surfaceContainerHigh
+            color: navbar.aaActive ? "#1A1A1A" : ThemeService.surfaceContainerHigh
             radius: UiMetrics.radius
-            border.color: ThemeService.outlineVariant
+            border.color: navbar.aaActive ? "#333333" : ThemeService.outlineVariant
             border.width: 1
 
             MouseArea {
@@ -230,7 +236,7 @@ Item {
                         width: powerMenuBg.width - UiMetrics.spacing * 2
                         height: UiMetrics.touchMin
                         radius: UiMetrics.radiusSmall
-                        color: pmMouseArea.pressed ? ThemeService.primaryContainer : "transparent"
+                        color: pmMouseArea.pressed ? (navbar.aaActive ? "#333333" : ThemeService.primaryContainer) : "transparent"
 
                         Row {
                             anchors.centerIn: parent
@@ -239,13 +245,13 @@ Item {
                             MaterialIcon {
                                 icon: modelData.icon
                                 size: UiMetrics.iconSize
-                                color: ThemeService.onSurface
+                                color: navbar.barFg
                                 anchors.verticalCenter: parent.verticalCenter
                             }
                             Text {
                                 text: modelData.label
                                 font.pixelSize: UiMetrics.fontBody
-                                color: ThemeService.onSurface
+                                color: navbar.barFg
                                 anchors.verticalCenter: parent.verticalCenter
                             }
                         }
