@@ -80,6 +80,9 @@ public:
 
     /// Set detected display dimensions for margin calculations.
     void setDisplayDimensions(int w, int h) { displayW_ = w; displayH_ = h; }
+
+    /// Set DPI-scaled navbar thickness for margin calculations.
+    void setNavbarThickness(int thickness) { navbarThickness_ = thickness; }
     oaa::hu::InputChannelHandler* inputHandler() { return &inputHandler_; }
 
     int connectionState() const { return state_; }
@@ -148,6 +151,7 @@ private:
     bool pendingReconnect_ = false;
     int displayW_ = 0;  // detected display dimensions (0 = use config fallback)
     int displayH_ = 0;
+    int navbarThickness_ = 56;
 
 #ifdef HAS_BLUETOOTH
     class BluetoothDiscoveryService* btDiscovery_ = nullptr;

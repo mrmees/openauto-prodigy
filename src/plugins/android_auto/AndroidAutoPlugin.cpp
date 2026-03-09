@@ -12,6 +12,7 @@
 #include "core/services/EqualizerService.hpp"
 #include "ui/DisplayInfo.hpp"
 #include <algorithm>
+#include <cmath>
 #include "../../core/Logging.hpp"
 #include <QQmlContext>
 #include <QFile>
@@ -94,10 +95,25 @@ bool AndroidAutoPlugin::initialize(IHostContext* context)
         qCInfo(lcAA) << "Display dimensions: using defaults" << displayW << "x" << displayH;
     }
 
-    // Pass detected dimensions to AA orchestrator for margin calculations
+    // Compute DPI-scaled navbar thickness to match QML UiMetrics.navbarThick
+    // Formula: round(56 * (dpi / 160) * globalScale)
+    int navbarThick = 56;
+    if (displayInfo_ && displayInfo_->computedDpi() > 0) {
+        double dpiScale = static_cast<double>(displayInfo_->computedDpi()) / 160.0;
+        double globalScale = 1.0;
+        if (hostContext_ && hostContext_->configService()) {
+            QVariant gs = hostContext_->configService()->value("ui.scale");
+            if (!gs.isNull() && gs.toDouble() > 0) globalScale = gs.toDouble();
+        }
+        navbarThick = static_cast<int>(std::round(56.0 * dpiScale * globalScale));
+    }
+    qCInfo(lcAA) << "Navbar thickness (DPI-scaled):" << navbarThick << "px";
+
+    // Pass detected dimensions and navbar thickness to AA orchestrator for margin calculations
     if (displayInfo_ && displayInfo_->windowWidth() > 0 && displayInfo_->windowHeight() > 0) {
         aaService_->setDisplayDimensions(displayInfo_->windowWidth(), displayInfo_->windowHeight());
     }
+    aaService_->setNavbarThickness(navbarThick);
 
     // Resolve AA touch coordinate space from configured video resolution
     int aaW = 1280, aaH = 720;
@@ -137,15 +153,15 @@ bool AndroidAutoPlugin::initialize(IHostContext* context)
             if (navbarDuringAA) {
                 navEdge = hostContext_->configService()->value("navbar.edge").toString();
                 if (navEdge.isEmpty()) navEdge = "bottom";
-                touchReader_->setNavbar(true, 56, navEdge.toStdString());
-                qCInfo(lcAA) << "Navbar touch zone:" << navEdge << "56px";
+                touchReader_->setNavbar(true, navbarThick, navEdge.toStdString());
+                qCInfo(lcAA) << "Navbar touch zone:" << navEdge << navbarThick << "px";
             }
         }
 
         // Compute content dimensions to match touch_screen_config
         // Uses same calculation as ServiceDiscoveryBuilder (single source of truth)
         auto [contentW, contentH] = oap::aa::ServiceDiscoveryBuilder::computeContentDimensions(
-            aaW, aaH, displayW, displayH, navbarDuringAA, navEdge);
+            aaW, aaH, displayW, displayH, navbarDuringAA, navEdge, navbarThick);
         touchReader_->setContentDimensions(contentW, contentH);
         touchReader_->computeLetterbox();
         qCInfo(lcAA) << "Content dims:" << contentW << "x" << contentH

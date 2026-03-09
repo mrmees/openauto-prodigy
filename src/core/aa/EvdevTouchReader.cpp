@@ -41,10 +41,9 @@ void EvdevTouchReader::computeLetterbox()
     visibleAAWidth_ = (contentWidth_ > 0) ? contentWidth_ : aaWidth_;
     visibleAAHeight_ = (contentHeight_ > 0) ? contentHeight_ : aaHeight_;
 
-    // Use CONTENT aspect ratio, not frame ratio. With PreserveAspectFit,
-    // the video is letterboxed to fit entirely within the display area.
-    // If the phone honors margins, content fills edge-to-edge. If not,
-    // small letterbox bars appear (black on black) but all content is visible.
+    // Use CONTENT aspect ratio, not frame ratio. With PreserveAspectCrop,
+    // the video fills the display area and any margin bars are cropped away.
+    // Content dimensions already account for navbar via computeContentDimensions.
     float contentAspect = static_cast<float>(visibleAAWidth_) / visibleAAHeight_;
     float displayAspect = static_cast<float>(effectiveDisplayW) / effectiveDisplayH;
 

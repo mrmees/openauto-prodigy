@@ -16,12 +16,12 @@ Item {
         visible: androidAutoMenu.projecting
     }
 
-    // Video output — letterboxed within parent (Fit mode ensures all content visible)
+    // Video output — cropped to fill parent (content negotiated for usable viewport)
     VideoOutput {
         id: videoOutput
         anchors.fill: parent
         visible: androidAutoMenu.projecting
-        fillMode: VideoOutput.PreserveAspectFit
+        fillMode: VideoOutput.PreserveAspectCrop
     }
 
     // Debug touch overlay — maps content-space coordinates back to screen

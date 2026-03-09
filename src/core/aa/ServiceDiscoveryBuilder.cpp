@@ -54,6 +54,11 @@ void ServiceDiscoveryBuilder::setDisplayDimensions(int w, int h)
     overrideDisplayH_ = h;
 }
 
+void ServiceDiscoveryBuilder::setNavbarThickness(int thickness)
+{
+    navbarThickness_ = thickness;
+}
+
 oaa::SessionConfig ServiceDiscoveryBuilder::build() const
 {
     oaa::SessionConfig config;
@@ -103,18 +108,18 @@ void ServiceDiscoveryBuilder::calcNavbarViewport(int& viewportW, int& viewportH)
 
     if (!yamlConfig_) return;
 
-    bool navbarDuringAA = yamlConfig_->valueByPath("navbar.show_during_aa").toBool();
+    QVariant showDuringAA = yamlConfig_->valueByPath("navbar.show_during_aa");
+    bool navbarDuringAA = (showDuringAA.isNull() || showDuringAA.toBool());
     if (!navbarDuringAA) return;
 
     QString edge = yamlConfig_->valueByPath("navbar.edge").toString();
     if (edge.isEmpty()) edge = "bottom";
-    int barThick = 56;  // NavbarController::BAR_THICK
 
     bool horizontal = (edge == "top" || edge == "bottom");
     if (horizontal)
-        viewportH -= barThick;
+        viewportH -= navbarThickness_;
     else
-        viewportW -= barThick;
+        viewportW -= navbarThickness_;
 }
 
 // ---- Shared content dimension calculation ----
@@ -151,16 +156,17 @@ void ServiceDiscoveryBuilder::calcMargins(int remoteW, int remoteH,
     int displayW = (overrideDisplayW_ > 0) ? overrideDisplayW_ : 1024;
     int displayH = (overrideDisplayH_ > 0) ? overrideDisplayH_ : 600;
 
-    bool navbarDuringAA = false;
+    bool navbarDuringAA = true;
     QString edge = "bottom";
     if (yamlConfig_) {
-        navbarDuringAA = yamlConfig_->valueByPath("navbar.show_during_aa").toBool();
+        QVariant showDuringAA = yamlConfig_->valueByPath("navbar.show_during_aa");
+        navbarDuringAA = (showDuringAA.isNull() || showDuringAA.toBool());
         edge = yamlConfig_->valueByPath("navbar.edge").toString();
         if (edge.isEmpty()) edge = "bottom";
     }
 
     auto [contentW, contentH] = computeContentDimensions(
-        remoteW, remoteH, displayW, displayH, navbarDuringAA, edge);
+        remoteW, remoteH, displayW, displayH, navbarDuringAA, edge, navbarThickness_);
     marginW = remoteW - contentW;
     marginH = remoteH - contentH;
 }
@@ -174,7 +180,7 @@ QByteArray ServiceDiscoveryBuilder::buildVideoDescriptor() const
 
     auto* avChannel = desc.mutable_av_channel();
     avChannel->set_stream_type(oaa::proto::enums::AVStreamType::VIDEO);
-    avChannel->set_color_scheme_support(oaa::proto::enums::ColorSchemeSupport::COLOR_SCHEME_MATERIAL_YOU_V2);
+    avChannel->set_color_scheme_support(oaa::proto::enums::ColorSchemeSupport::COLOR_SCHEME_MATERIAL_YOU_V3);
     // Field 5 in APK is uint32, not bool. Omitting has no effect on session.
 
     // Resolve preferred resolution from config
@@ -228,9 +234,9 @@ QByteArray ServiceDiscoveryBuilder::buildVideoDescriptor() const
         cfg->set_margin_height(mH);
         cfg->set_dpi(dpi);
         cfg->set_codec(it.value());
-        // Signal theming support so phone sends Material You tokens (0x8011)
-        auto* additional = cfg->mutable_additional_config();
-        additional->set_ui_theme(oaa::proto::data::UI_THEME_AUTOMATIC);
+        // AdditionalVideoConfig removed: setting ui_theme here causes the phone
+        // to ignore margin_width/margin_height on VideoConfig. Night mode theming
+        // works via color_scheme_support on AVChannel + 0x8011 tokens instead.
         qCInfo(lcAA) << "config[" << configIdx++ << "]:"
                 << chosen.label << codecName << "margins:" << mW << "x" << mH;
     }
@@ -244,8 +250,9 @@ QByteArray ServiceDiscoveryBuilder::buildVideoDescriptor() const
         cfg->set_margin_height(mH);
         cfg->set_dpi(dpi);
         cfg->set_codec(Codec::MEDIA_CODEC_VIDEO_H264_BP);
-        auto* additional = cfg->mutable_additional_config();
-        additional->set_ui_theme(oaa::proto::data::UI_THEME_AUTOMATIC);
+        // AdditionalVideoConfig removed: setting ui_theme here causes the phone
+        // to ignore margin_width/margin_height on VideoConfig. Night mode theming
+        // works via color_scheme_support on AVChannel + 0x8011 tokens instead.
         qCWarning(lcAA) << "No valid codecs in config, falling back to H.264";
         configIdx = 1;
     }

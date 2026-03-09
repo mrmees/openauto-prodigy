@@ -24,6 +24,9 @@ public:
     /// Override display dimensions for margin calculations (detected > config fallback).
     void setDisplayDimensions(int w, int h);
 
+    /// Override navbar thickness (DPI-scaled). Default: 56px (unscaled).
+    void setNavbarThickness(int thickness);
+
     /// Compute content dimensions (video res minus margins) for a given config.
     /// Returns {contentW, contentH}. Used by both buildInputDescriptor (touch_screen_config)
     /// and EvdevTouchReader (touch output coordinate space) -- single source of truth.
@@ -59,6 +62,7 @@ private:
     QString wifiBssid_;
     int overrideDisplayW_ = 0;  // 0 = use yamlConfig values
     int overrideDisplayH_ = 0;
+    int navbarThickness_ = 56;
 };
 
 } // namespace aa

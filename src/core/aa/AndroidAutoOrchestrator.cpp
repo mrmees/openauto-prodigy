@@ -252,6 +252,7 @@ void AndroidAutoOrchestrator::onNewConnection()
                                      wifiBssid);
     if (displayW_ > 0 && displayH_ > 0)
         builder.setDisplayDimensions(displayW_, displayH_);
+    builder.setNavbarThickness(navbarThickness_);
     oaa::SessionConfig config = builder.build();
 
     // Create session
