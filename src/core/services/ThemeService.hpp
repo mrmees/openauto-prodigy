@@ -34,6 +34,7 @@ class ThemeService : public QObject, public IThemeService {
     Q_PROPERTY(QColor onSurface READ onSurface NOTIFY colorsChanged)
     Q_PROPERTY(QColor surface READ surface NOTIFY colorsChanged)
     Q_PROPERTY(QColor surfaceVariant READ surfaceVariant NOTIFY colorsChanged)
+    Q_PROPERTY(QColor surfaceContainer READ surfaceContainer NOTIFY colorsChanged)
     Q_PROPERTY(QColor surfaceContainerLow READ surfaceContainerLow NOTIFY colorsChanged)
     Q_PROPERTY(QColor inverseSurface READ inverseSurface NOTIFY colorsChanged)
     Q_PROPERTY(QColor inverseOnSurface READ inverseOnSurface NOTIFY colorsChanged)
@@ -120,6 +121,7 @@ public:
     QColor onSurface() const { return activeColor("on-surface"); }
     QColor surface() const { return activeColor("surface"); }
     QColor surfaceVariant() const { return activeColor("surface-variant"); }
+    QColor surfaceContainer() const { return activeColor("surface-container"); }
     QColor surfaceContainerLow() const { return activeColor("surface-container-low"); }
     QColor inverseSurface() const { return activeColor("inverse-surface"); }
     QColor inverseOnSurface() const { return activeColor("inverse-on-surface"); }

@@ -174,6 +174,7 @@ QByteArray ServiceDiscoveryBuilder::buildVideoDescriptor() const
 
     auto* avChannel = desc.mutable_av_channel();
     avChannel->set_stream_type(oaa::proto::enums::AVStreamType::VIDEO);
+    avChannel->set_color_scheme_support(oaa::proto::enums::ColorSchemeSupport::COLOR_SCHEME_MATERIAL_YOU_V2);
     // Field 5 in APK is uint32, not bool. Omitting has no effect on session.
 
     // Resolve preferred resolution from config

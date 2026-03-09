@@ -37,7 +37,7 @@ Item {
     Rectangle {
         id: shadow
         anchors.fill: barBackground
-        color: ThemeService.barShadow
+        color: ThemeService.outlineVariant
         radius: 0
     }
 
@@ -45,7 +45,7 @@ Item {
     Rectangle {
         id: barBackground
         anchors.fill: parent
-        color: ThemeService.surfaceContainerLow
+        color: ThemeService.outline
     }
 
     // --- Controls container ---

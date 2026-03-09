@@ -11,7 +11,7 @@ Rectangle {
     signal clicked()
 
     radius: UiMetrics.radiusSmall
-    color: ThemeService.surfaceVariant
+    color: ThemeService.primary
 
     scale: mouseArea.pressed ? 0.95 : 1.0
     opacity: mouseArea.pressed && tileEnabled ? 0.85 : (tileEnabled ? 1.0 : 0.5)
@@ -26,14 +26,14 @@ Rectangle {
             Layout.alignment: Qt.AlignHCenter
             icon: tile.tileIcon
             size: Math.min(tile.width, tile.height) * 0.35
-            color: ThemeService.textPrimary
+            color: ThemeService.inverseOnSurface
             visible: tile.tileIcon !== ""
         }
 
         Text {
             Layout.alignment: Qt.AlignHCenter
             text: tile.tileName
-            color: ThemeService.textPrimary
+            color: ThemeService.inverseOnSurface
             font.pixelSize: UiMetrics.fontHeading
             horizontalAlignment: Text.AlignHCenter
         }

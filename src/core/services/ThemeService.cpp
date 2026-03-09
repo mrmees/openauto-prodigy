@@ -269,7 +269,7 @@ void ThemeService::resolveWallpaper()
 // Known AA token keys (the 16 base tokens used in our theme system, hyphenated)
 static const QSet<QString> knownAATokenKeys = {
     "primary", "on-surface", "surface", "surface-variant",
-    "surface-container-low", "inverse-surface", "inverse-on-surface",
+    "surface-container", "surface-container-low", "inverse-surface", "inverse-on-surface",
     "outline", "outline-variant", "background", "text-primary",
     "text-secondary", "red", "on-red", "yellow", "on-yellow"
 };

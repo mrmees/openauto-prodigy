@@ -28,7 +28,7 @@ Item {
     // Background with hold progress feedback
     Rectangle {
         anchors.fill: parent
-        color: ThemeService.surfaceContainerLow
+        color: ThemeService.outline
         opacity: 1.0
 
         // Progress overlay — fills from bottom to top
@@ -37,7 +37,7 @@ Item {
             anchors.right: parent.right
             anchors.bottom: parent.bottom
             height: parent.height * root._holdProgress
-            color: ThemeService.primary
+            color: ThemeService.yellow
             opacity: 0.3
             visible: root._holdProgress > 0
         }
@@ -48,7 +48,7 @@ Item {
         anchors.centerIn: parent
         icon: root.iconText
         size: UiMetrics.iconSize
-        color: ThemeService.onSurface
+        color: ThemeService.inverseOnSurface
         visible: !root.showClock
     }
 
@@ -57,7 +57,7 @@ Item {
         id: clockHoriz
         anchors.centerIn: parent
         visible: root.showClock && !root.isVertical
-        color: ThemeService.textPrimary
+        color: ThemeService.inverseOnSurface
         font.pixelSize: Math.round(root.height * 0.75)
         font.weight: Font.DemiBold
 
@@ -104,7 +104,7 @@ Item {
                 text: modelData
                 font.pixelSize: Math.round(root.width * 0.55)
                 font.weight: Font.DemiBold
-                color: ThemeService.textPrimary
+                color: ThemeService.inverseOnSurface
                 horizontalAlignment: Text.AlignHCenter
                 width: root.width
             }

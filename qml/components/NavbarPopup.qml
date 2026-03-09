@@ -78,7 +78,7 @@ Item {
         anchors.fill: parent
         color: ThemeService.surface
         radius: UiMetrics.radius
-        border.color: ThemeService.barShadow
+        border.color: ThemeService.outlineVariant
         border.width: 1
 
         // Prevent tap-through

@@ -4,12 +4,4 @@ Item {
     id: homeMenu
 
     Component.onCompleted: ApplicationController.setTitle("Dashboard")
-
-    Text {
-        anchors.centerIn: parent
-        text: "Dashboard"
-        color: ThemeService.primary
-        font.pixelSize: UiMetrics.fontHeading
-        font.bold: true
-    }
 }
