@@ -2,15 +2,15 @@
 gsd_state_version: 1.0
 milestone: v0.5
 milestone_name: milestone
-status: completed
-stopped_at: Plan 03.3-01 complete
-last_updated: "2026-03-09T18:38:09.086Z"
-last_activity: 2026-03-09 -- Plan 03.3-01 executed (M3 color role mapping fix)
+status: in_progress
+stopped_at: Plan 03.3-02 awaiting visual verification on Pi
+last_updated: "2026-03-09T19:14:00Z"
+last_activity: 2026-03-09 -- Plan 03.3-02 Tasks 1-2 complete (surface hierarchy + interaction states)
 progress:
   total_phases: 7
   completed_phases: 4
-  total_plans: 13
-  completed_plans: 13
+  total_plans: 14
+  completed_plans: 14
   percent: 100
 ---
 
@@ -26,18 +26,18 @@ See: .planning/PROJECT.md (updated 2026-03-08)
 ## Current Position
 
 Phase: 3.3 of 5 (M3 Color Role Mapping Fix)
-Plan: 1 of 1 complete
-Status: Plan 03.3-01 complete -- deprecated tokens removed, QML renamed to M3 roles
-Last activity: 2026-03-09 -- Plan 03.3-01 executed (M3 color role mapping fix)
+Plan: 2 of 2 (awaiting visual verification checkpoint)
+Status: Plan 03.3-02 Tasks 1-2 complete -- surface hierarchy + interaction states applied, awaiting Pi visual check
+Last activity: 2026-03-09 -- Plan 03.3-02 executed (surface container hierarchy + button/toggle states)
 
 Progress: [██████████] 100%
 
 ## Performance Metrics
 
 **Velocity:**
-- Total plans completed: 11
+- Total plans completed: 12
 - Average duration: 5 min
-- Total execution time: 0.91 hours
+- Total execution time: 1.06 hours
 
 ## Accumulated Context
 
@@ -78,6 +78,10 @@ Decisions are logged in PROJECT.md Key Decisions table.
 - (03.3-01) All QML color references now use M3 standard role names exclusively (onSurface, onSurfaceVariant, error, onError, tertiary)
 - (03.3-01) Legacy v1 migration map updated to emit M3 names directly, not deprecated custom tokens
 - (03.3-01) barShadow kept as derived color -- still needed for navbar border visual separation
+- (03.3-02) Surface container hierarchy: Lowest < Low < Container < High < Highest mapped by visual elevation
+- (03.3-02) Button pressed feedback uses primaryContainer (softer than primary per M3 spec)
+- (03.3-02) Toggle/segmented selected uses secondaryContainer/onSecondaryContainer
+- (03.3-02) 1px separators standardized to outlineVariant across all UI
 
 ### Pending Todos
 
@@ -95,5 +99,5 @@ None yet.
 
 ## Session Continuity
 
-Last session: 2026-03-09T19:02:00Z
-Stopped at: Plan 03.3-01 complete
+Last session: 2026-03-09T19:14:00Z
+Stopped at: Plan 03.3-02 awaiting visual verification on Pi
