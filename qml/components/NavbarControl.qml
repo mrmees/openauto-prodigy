@@ -10,8 +10,31 @@ Item {
     property bool showClock: false
     property bool isVertical: false
 
+    // Phone status properties (set from Navbar.qml on center control only)
+    property int phoneBattery: -1
+    property int phoneSignal: -1
+    property bool phoneConnected: false
+
     // Hold progress (0.0 - 1.0) driven by NavbarController
     property real _holdProgress: 0.0
+
+    // --- Icon mapping helpers ---
+    function batteryIcon(level) {
+        if (level < 0) return ""
+        if (level === 0) return "\ue19c"       // battery_alert
+        if (level < 20) return "\uebd0"        // battery_1_bar
+        if (level < 40) return "\uebd2"        // battery_3_bar
+        if (level < 60) return "\uebd3"        // battery_4_bar
+        if (level < 80) return "\uebd4"        // battery_5_bar
+        if (level < 96) return "\uebd5"        // battery_6_bar
+        return "\ue1a4"                         // battery_full
+    }
+
+    function signalIcon(strength) {
+        if (strength < 0) return ""
+        var icons = ["\uf0a8", "\uf0a9", "\uf0aa", "\uf0ab", "\uf0ac"]
+        return icons[Math.min(strength, 4)]
+    }
 
     Connections {
         target: NavbarController
@@ -31,7 +54,7 @@ Item {
         color: navbar.barBg
         opacity: 1.0
 
-        // Progress overlay — fills from bottom to top
+        // Progress overlay -- fills from bottom to top
         Rectangle {
             anchors.left: parent.left
             anchors.right: parent.right
@@ -52,51 +75,87 @@ Item {
         visible: !root.showClock
     }
 
-    // Clock display -- horizontal mode
-    Text {
-        id: clockHoriz
-        anchors.centerIn: parent
-        visible: root.showClock && !root.isVertical
-        color: navbar.barFg
-        font.pixelSize: Math.round(root.height * 0.75)
-        font.weight: Font.DemiBold
-
-        Timer {
-            interval: 1000
-            running: root.showClock
-            repeat: true
-            triggeredOnStart: true
-            onTriggered: {
-                var v = ConfigService.value("display.clock_24h")
-                var is24h = (v === true || v === 1 || v === "true")
-                var timeStr
-                if (is24h) {
-                    timeStr = Qt.formatTime(new Date(), "HH:mm")
-                } else {
-                    // Qt "h:mm" still outputs 24h unless "ap" is present.
-                    // Build 12h manually to avoid AM/PM suffix.
-                    var now = new Date()
-                    var h = now.getHours() % 12 || 12
-                    var m = now.getMinutes()
-                    timeStr = h + ":" + (m < 10 ? "0" : "") + m
-                }
-                clockHoriz.text = timeStr
-                // Update vertical clock model too
-                var chars = []
-                for (var i = 0; i < timeStr.length; i++) {
-                    chars.push(timeStr[i])
-                }
-                clockVertRepeater.model = chars
+    // --- Clock timer (shared between horizontal and vertical) ---
+    Timer {
+        id: clockTimer
+        interval: 1000
+        running: root.showClock
+        repeat: true
+        triggeredOnStart: true
+        onTriggered: {
+            var v = ConfigService.value("display.clock_24h")
+            var is24h = (v === true || v === 1 || v === "true")
+            var timeStr
+            if (is24h) {
+                timeStr = Qt.formatTime(new Date(), "HH:mm")
+            } else {
+                var now = new Date()
+                var h = now.getHours() % 12 || 12
+                var m = now.getMinutes()
+                timeStr = h + ":" + (m < 10 ? "0" : "") + m
             }
+            clockHoriz.text = timeStr
+            // Update vertical clock model too
+            var chars = []
+            for (var i = 0; i < timeStr.length; i++) {
+                chars.push(timeStr[i])
+            }
+            clockVertRepeater.model = chars
         }
     }
 
-    // Clock display -- vertical mode (stacked single-digit column)
+    // --- Clock display -- horizontal mode with flanking indicators ---
+    Row {
+        anchors.centerIn: parent
+        spacing: UiMetrics.spacing
+        visible: root.showClock && !root.isVertical
+
+        // Signal indicator (left of clock)
+        MaterialIcon {
+            icon: root.signalIcon(root.phoneSignal)
+            size: UiMetrics.iconSize
+            color: navbar.barFg
+            visible: root.phoneConnected && root.phoneSignal >= 0
+            anchors.verticalCenter: parent.verticalCenter
+        }
+
+        // Clock text
+        Text {
+            id: clockHoriz
+            color: navbar.barFg
+            font.pixelSize: Math.round(root.height * 0.75)
+            font.weight: Font.DemiBold
+            anchors.verticalCenter: parent.verticalCenter
+        }
+
+        // Battery indicator (right of clock)
+        MaterialIcon {
+            icon: root.batteryIcon(root.phoneBattery)
+            size: UiMetrics.iconSize
+            color: root.phoneBattery >= 0 && root.phoneBattery < 20
+                   ? (navbar.aaActive ? "#FF4444" : ThemeService.error)
+                   : navbar.barFg
+            visible: root.phoneConnected && root.phoneBattery >= 0
+            anchors.verticalCenter: parent.verticalCenter
+        }
+    }
+
+    // --- Clock display -- vertical mode with stacked indicators ---
     Column {
         anchors.centerIn: parent
         visible: root.showClock && root.isVertical
-        spacing: 0
+        spacing: Math.round(UiMetrics.spacing * 0.5)
 
+        // Signal indicator (above clock digits)
+        MaterialIcon {
+            icon: root.signalIcon(root.phoneSignal)
+            size: UiMetrics.iconSize
+            color: navbar.barFg
+            visible: root.phoneConnected && root.phoneSignal >= 0
+            anchors.horizontalCenter: parent.horizontalCenter
+        }
+
+        // Stacked clock digits
         Repeater {
             id: clockVertRepeater
             model: []
@@ -108,6 +167,17 @@ Item {
                 horizontalAlignment: Text.AlignHCenter
                 width: root.width
             }
+        }
+
+        // Battery indicator (below clock digits)
+        MaterialIcon {
+            icon: root.batteryIcon(root.phoneBattery)
+            size: UiMetrics.iconSize
+            color: root.phoneBattery >= 0 && root.phoneBattery < 20
+                   ? (navbar.aaActive ? "#FF4444" : ThemeService.error)
+                   : navbar.barFg
+            visible: root.phoneConnected && root.phoneBattery >= 0
+            anchors.horizontalCenter: parent.horizontalCenter
         }
     }
 
