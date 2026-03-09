@@ -78,28 +78,28 @@ Item {
         Text {
             text: root.label
             font.pixelSize: UiMetrics.fontBody
-            color: ThemeService.textPrimary
+            color: ThemeService.onSurface
             Layout.fillWidth: true
         }
 
         MaterialIcon {
             icon: "\ue86a"
             size: UiMetrics.iconSmall
-            color: ThemeService.textSecondary
+            color: ThemeService.onSurfaceVariant
             visible: root.restartRequired
         }
 
         Text {
             text: root._displayText
             font.pixelSize: UiMetrics.fontBody
-            color: ThemeService.textSecondary
+            color: ThemeService.onSurfaceVariant
             horizontalAlignment: Text.AlignRight
         }
 
         MaterialIcon {
             icon: "\ue5cf"
             size: UiMetrics.iconSize
-            color: ThemeService.textSecondary
+            color: ThemeService.onSurfaceVariant
         }
     }
 
@@ -152,7 +152,7 @@ Item {
                     text: root.label
                     font.pixelSize: UiMetrics.fontTitle
                     font.bold: true
-                    color: ThemeService.textPrimary
+                    color: ThemeService.onSurface
                     Layout.fillWidth: true
                 }
 
@@ -165,7 +165,7 @@ Item {
                         anchors.centerIn: parent
                         icon: "\ue5cd"
                         size: UiMetrics.iconSize
-                        color: ThemeService.textPrimary
+                        color: ThemeService.onSurface
                     }
                 }
             }
@@ -216,7 +216,7 @@ Item {
                         font.pixelSize: UiMetrics.fontBody
                         color: index === root.currentIndex
                             ? ThemeService.primary
-                            : ThemeService.textPrimary
+                            : ThemeService.onSurface
                         Layout.fillWidth: true
                     }
 

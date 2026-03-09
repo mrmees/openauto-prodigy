@@ -25,7 +25,7 @@ Rectangle {
             Layout.alignment: Qt.AlignHCenter
             text: "Incoming Call"
             font.pixelSize: UiMetrics.fontBody
-            color: ThemeService.textSecondary
+            color: ThemeService.onSurfaceVariant
         }
 
         Text {
@@ -33,7 +33,7 @@ Rectangle {
             text: PhonePlugin ? (PhonePlugin.callerName || PhonePlugin.callerNumber || "Unknown") : ""
             font.pixelSize: UiMetrics.fontHeading
             font.bold: true
-            color: ThemeService.textPrimary
+            color: ThemeService.onSurface
             elide: Text.ElideRight
             Layout.maximumWidth: parent.width
         }
@@ -42,7 +42,7 @@ Rectangle {
             Layout.alignment: Qt.AlignHCenter
             text: PhonePlugin ? PhonePlugin.callerNumber : ""
             font.pixelSize: UiMetrics.fontSmall
-            color: ThemeService.textSecondary
+            color: ThemeService.onSurfaceVariant
             visible: PhonePlugin && PhonePlugin.callerName.length > 0 && PhonePlugin.callerNumber.length > 0
         }
 
@@ -60,10 +60,10 @@ Rectangle {
                 contentItem: MaterialIcon {
                     icon: "\uf0bc"  // call_end
                     size: UiMetrics.iconSize
-                    color: ThemeService.onRed
+                    color: ThemeService.onError
                 }
                 background: Rectangle {
-                    color: parent.pressed ? Qt.darker(ThemeService.red, 1.15) : ThemeService.red
+                    color: parent.pressed ? Qt.darker(ThemeService.error, 1.15) : ThemeService.error
                     radius: width / 2
                 }
             }

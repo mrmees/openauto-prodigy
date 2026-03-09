@@ -37,7 +37,7 @@ Item {
             anchors.right: parent.right
             anchors.bottom: parent.bottom
             height: parent.height * root._holdProgress
-            color: ThemeService.yellow
+            color: ThemeService.tertiary
             opacity: 0.3
             visible: root._holdProgress > 0
         }

@@ -86,7 +86,7 @@ Item {
         Text {
             Layout.alignment: Qt.AlignHCenter
             text: AndroidAutoService.statusMessage
-            color: ThemeService.textSecondary
+            color: ThemeService.onSurfaceVariant
             font.pixelSize: UiMetrics.fontTitle
             wrapMode: Text.WordWrap
             horizontalAlignment: Text.AlignHCenter
@@ -123,14 +123,14 @@ Item {
             radius: height / 2
             color: cancelMouse.pressed ? Qt.darker(ThemeService.surfaceContainerLow, 1.3)
                                       : ThemeService.surfaceContainerLow
-            border.color: ThemeService.textSecondary
+            border.color: ThemeService.onSurfaceVariant
             border.width: 1
 
             Text {
                 id: cancelText
                 anchors.centerIn: parent
                 text: "Back"
-                color: ThemeService.textPrimary
+                color: ThemeService.onSurface
                 font.pixelSize: UiMetrics.fontBody
             }
 

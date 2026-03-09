@@ -90,7 +90,7 @@ Rectangle {
                 text: "Quick Controls"
                 font.pixelSize: UiMetrics.fontSmall
                 font.bold: true
-                color: ThemeService.textPrimary
+                color: ThemeService.onSurface
             }
 
             // Volume slider
@@ -102,7 +102,7 @@ Rectangle {
                 MaterialIcon {
                     icon: "\ue050"  // volume_up
                     size: Math.round(22 * UiMetrics.scale)
-                    color: ThemeService.textPrimary
+                    color: ThemeService.onSurface
                 }
 
                 Slider {
@@ -122,7 +122,7 @@ Rectangle {
                 Text {
                     text: Math.round(volumeSlider.value) + "%"
                     font.pixelSize: UiMetrics.fontSmall
-                    color: ThemeService.textSecondary
+                    color: ThemeService.onSurfaceVariant
                     Layout.preferredWidth: Math.round(40 * UiMetrics.scale)
                 }
             }
@@ -136,7 +136,7 @@ Rectangle {
                 MaterialIcon {
                     icon: typeof DisplayService !== "undefined" && DisplayService.hasHardwareBrightness ? "\ue1ac" : "\ue3a1"  // brightness_high / contrast
                     size: Math.round(22 * UiMetrics.scale)
-                    color: ThemeService.textPrimary
+                    color: ThemeService.onSurface
                 }
 
                 Slider {
@@ -159,7 +159,7 @@ Rectangle {
                 Text {
                     text: Math.round(brightnessSlider.value) + "%"
                     font.pixelSize: UiMetrics.fontSmall
-                    color: ThemeService.textSecondary
+                    color: ThemeService.onSurfaceVariant
                     Layout.preferredWidth: Math.round(40 * UiMetrics.scale)
                 }
             }
@@ -182,12 +182,12 @@ Rectangle {
                         MaterialIcon {
                             icon: "\ue9b2"  // home
                             size: UiMetrics.iconSmall
-                            color: ThemeService.textPrimary
+                            color: ThemeService.onSurface
                         }
                         Text {
                             text: "Home"
                             font.pixelSize: UiMetrics.fontSmall
-                            color: ThemeService.textPrimary
+                            color: ThemeService.onSurface
                         }
                     }
                     background: Rectangle {
@@ -211,12 +211,12 @@ Rectangle {
                         MaterialIcon {
                             icon: ThemeService.nightMode ? "\ue518" : "\ue51c"  // light_mode / dark_mode
                             size: UiMetrics.iconSmall
-                            color: ThemeService.textPrimary
+                            color: ThemeService.onSurface
                         }
                         Text {
                             text: ThemeService.nightMode ? "Day" : "Night"
                             font.pixelSize: UiMetrics.fontSmall
-                            color: ThemeService.textPrimary
+                            color: ThemeService.onSurface
                         }
                     }
                     background: Rectangle {
@@ -237,12 +237,12 @@ Rectangle {
                         MaterialIcon {
                             icon: "\ue5cd"  // close
                             size: UiMetrics.iconSmall
-                            color: ThemeService.textPrimary
+                            color: ThemeService.onSurface
                         }
                         Text {
                             text: "Close"
                             font.pixelSize: UiMetrics.fontSmall
-                            color: ThemeService.textPrimary
+                            color: ThemeService.onSurface
                         }
                     }
                     background: Rectangle {

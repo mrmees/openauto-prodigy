@@ -54,13 +54,6 @@ day:
   # Utility
   scrim: "#000000"
   shadow: "#000000"
-  # Custom tokens
-  text-primary: "#f0f0f0"
-  text-secondary: "#a0a0a0"
-  red: "#f2b8b5"
-  on-red: "#601410"
-  yellow: "#FFD54F"
-  on-yellow: "#1c1b1f"
 
 # Night mode colors — dimmer teal variant
 night:
@@ -108,10 +101,3 @@ night:
   # Utility
   scrim: "#000000"
   shadow: "#000000"
-  # Custom tokens
-  text-primary: "#d0d0d0"
-  text-secondary: "#808080"
-  red: "#d4837f"
-  on-red: "#601410"
-  yellow: "#ccaa3f"
-  on-yellow: "#121215"

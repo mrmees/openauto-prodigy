@@ -47,21 +47,21 @@ Item {
                     MaterialIcon {
                         icon: "\ue88e"  // info
                         size: UiMetrics.iconSmall
-                        color: ThemeService.textPrimary
+                        color: ThemeService.onSurface
                     }
 
                     Text {
                         Layout.fillWidth: true
                         text: model.message
                         font.pixelSize: UiMetrics.fontTiny
-                        color: ThemeService.textPrimary
+                        color: ThemeService.onSurface
                         wrapMode: Text.WordWrap
                     }
 
                     MaterialIcon {
                         icon: "\ue5cd"  // close
                         size: UiMetrics.iconSmall
-                        color: ThemeService.textSecondary
+                        color: ThemeService.onSurfaceVariant
 
                         MouseArea {
                             anchors.fill: parent

@@ -40,7 +40,7 @@ Item {
                 text: root.text
                 font.pixelSize: UiMetrics.fontSmall
                 font.italic: true
-                color: ThemeService.textPrimary
+                color: ThemeService.onSurface
                 wrapMode: Text.WordWrap
                 Layout.fillWidth: true
             }

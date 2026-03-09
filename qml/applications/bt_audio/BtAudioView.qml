@@ -20,7 +20,7 @@ Rectangle {
             Layout.alignment: Qt.AlignHCenter
             text: BtAudioPlugin ? (BtAudioPlugin.deviceName || "Bluetooth Audio") : "Bluetooth Audio"
             font.pixelSize: UiMetrics.fontSmall
-            color: ThemeService.textSecondary
+            color: ThemeService.onSurfaceVariant
             opacity: 0.7
             visible: isConnected
         }
@@ -39,7 +39,7 @@ Rectangle {
                 anchors.centerIn: parent
                 icon: "\ue405"  // music_note
                 size: Math.round(72 * UiMetrics.scale)
-                color: ThemeService.textPrimary
+                color: ThemeService.onSurface
                 opacity: 0.3
             }
         }
@@ -54,7 +54,7 @@ Rectangle {
                 text: BtAudioPlugin ? (BtAudioPlugin.trackTitle || "No Track") : "No Track"
                 font.pixelSize: UiMetrics.fontTitle
                 font.bold: true
-                color: ThemeService.textPrimary
+                color: ThemeService.onSurface
                 elide: Text.ElideRight
                 Layout.maximumWidth: btAudioView.width * 0.7
             }
@@ -63,7 +63,7 @@ Rectangle {
                 Layout.alignment: Qt.AlignHCenter
                 text: BtAudioPlugin ? (BtAudioPlugin.trackArtist || "Unknown Artist") : "Unknown Artist"
                 font.pixelSize: UiMetrics.fontSmall
-                color: ThemeService.textSecondary
+                color: ThemeService.onSurfaceVariant
                 elide: Text.ElideRight
                 Layout.maximumWidth: btAudioView.width * 0.7
             }
@@ -72,7 +72,7 @@ Rectangle {
                 Layout.alignment: Qt.AlignHCenter
                 text: BtAudioPlugin ? (BtAudioPlugin.trackAlbum || "") : ""
                 font.pixelSize: UiMetrics.fontSmall
-                color: ThemeService.textSecondary
+                color: ThemeService.onSurfaceVariant
                 opacity: 0.7
                 elide: Text.ElideRight
                 Layout.maximumWidth: btAudioView.width * 0.7
@@ -90,7 +90,7 @@ Rectangle {
             Text {
                 text: formatTime(BtAudioPlugin ? BtAudioPlugin.trackPosition : 0)
                 font.pixelSize: UiMetrics.fontTiny
-                color: ThemeService.textSecondary
+                color: ThemeService.onSurfaceVariant
             }
 
             Rectangle {
@@ -112,7 +112,7 @@ Rectangle {
             Text {
                 text: formatTime(BtAudioPlugin ? BtAudioPlugin.trackDuration : 0)
                 font.pixelSize: UiMetrics.fontTiny
-                color: ThemeService.textSecondary
+                color: ThemeService.onSurfaceVariant
             }
         }
 
@@ -138,7 +138,7 @@ Rectangle {
                 contentItem: MaterialIcon {
                     icon: "\ue045"  // skip_previous
                     size: UiMetrics.iconSize
-                    color: ThemeService.textPrimary
+                    color: ThemeService.onSurface
                 }
                 background: Rectangle {
                     color: parent.pressed ? ThemeService.primary : "transparent"
@@ -161,7 +161,7 @@ Rectangle {
                 contentItem: MaterialIcon {
                     icon: isPlaying ? "\ue034" : "\ue037"  // pause / play_arrow
                     size: Math.round(48 * UiMetrics.scale)
-                    color: ThemeService.textPrimary
+                    color: ThemeService.onSurface
                 }
                 background: Rectangle {
                     color: parent.pressed ? ThemeService.primary : "transparent"
@@ -178,7 +178,7 @@ Rectangle {
                 contentItem: MaterialIcon {
                     icon: "\ue044"  // skip_next
                     size: UiMetrics.iconSize
-                    color: ThemeService.textPrimary
+                    color: ThemeService.onSurface
                 }
                 background: Rectangle {
                     color: parent.pressed ? ThemeService.primary : "transparent"

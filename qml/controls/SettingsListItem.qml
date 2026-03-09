@@ -26,20 +26,20 @@ Item {
         MaterialIcon {
             icon: root.icon
             size: UiMetrics.iconSize
-            color: ThemeService.textPrimary
+            color: ThemeService.onSurface
         }
 
         Text {
             text: root.label
             font.pixelSize: UiMetrics.fontBody
-            color: ThemeService.textPrimary
+            color: ThemeService.onSurface
             Layout.fillWidth: true
         }
 
         MaterialIcon {
             icon: "\ue5cc"
             size: UiMetrics.iconSmall
-            color: ThemeService.textSecondary
+            color: ThemeService.onSurfaceVariant
         }
     }
 

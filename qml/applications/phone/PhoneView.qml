@@ -24,7 +24,7 @@ Rectangle {
             Text {
                 text: PhonePlugin ? (PhonePlugin.deviceName || "Phone") : "Phone"
                 font.pixelSize: UiMetrics.fontSmall
-                color: ThemeService.textSecondary
+                color: ThemeService.onSurfaceVariant
                 opacity: 0.7
             }
 
@@ -34,13 +34,13 @@ Rectangle {
                 width: UiMetrics.statusDot
                 height: UiMetrics.statusDot
                 radius: UiMetrics.statusDot / 2
-                color: isConnected ? ThemeService.success : ThemeService.red
+                color: isConnected ? ThemeService.success : ThemeService.error
             }
 
             Text {
                 text: isConnected ? "Connected" : "No phone"
                 font.pixelSize: UiMetrics.fontTiny
-                color: ThemeService.textSecondary
+                color: ThemeService.onSurfaceVariant
             }
         }
 
@@ -67,7 +67,7 @@ Rectangle {
                 }
                 font.pixelSize: inCall ? UiMetrics.fontBody : UiMetrics.fontHeading
                 font.bold: true
-                color: ThemeService.textPrimary
+                color: ThemeService.onSurface
                 elide: Text.ElideRight
                 width: parent.width - UiMetrics.sectionGap * 2
                 horizontalAlignment: Text.AlignHCenter
@@ -98,7 +98,7 @@ Rectangle {
                     contentItem: Text {
                         text: parent.text
                         font: parent.font
-                        color: ThemeService.textPrimary
+                        color: ThemeService.onSurface
                         horizontalAlignment: Text.AlignHCenter
                         verticalAlignment: Text.AlignVCenter
                     }
@@ -131,10 +131,10 @@ Rectangle {
                 contentItem: MaterialIcon {
                     icon: "\uf0bc"  // call_end
                     size: UiMetrics.iconSize
-                    color: ThemeService.onRed
+                    color: ThemeService.onError
                 }
                 background: Rectangle {
-                    color: parent.pressed ? Qt.darker(ThemeService.red, 1.15) : ThemeService.red
+                    color: parent.pressed ? Qt.darker(ThemeService.error, 1.15) : ThemeService.error
                     radius: width / 2
                 }
             }
@@ -175,7 +175,7 @@ Rectangle {
                 contentItem: MaterialIcon {
                     icon: "\ue14a"  // backspace
                     size: Math.round(22 * UiMetrics.scale)
-                    color: ThemeService.textPrimary
+                    color: ThemeService.onSurface
                 }
                 background: Rectangle {
                     color: parent.pressed ? ThemeService.primary : ThemeService.surfaceVariant
@@ -208,7 +208,7 @@ Rectangle {
                 background: Rectangle {
                     color: parent.enabled
                            ? (parent.pressed ? Qt.darker(ThemeService.success, 1.2) : ThemeService.success)
-                           : ThemeService.textSecondary
+                           : ThemeService.onSurfaceVariant
                     radius: UiMetrics.radiusSmall
                 }
             }

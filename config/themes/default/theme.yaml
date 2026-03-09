@@ -49,13 +49,6 @@ day:
   # Utility
   scrim: "#000000"
   shadow: "#000000"
-  # Custom tokens (not M3 but kept for AA wire compatibility)
-  text-primary: "#ffffff"
-  text-secondary: "#a0a0a0"
-  red: "#cc4444"
-  on-red: "#ffffff"
-  yellow: "#FF9800"
-  on-yellow: "#000000"
 
 # Night mode colors — dimmer, less eye strain
 night:
@@ -103,10 +96,3 @@ night:
   # Utility
   scrim: "#000000"
   shadow: "#000000"
-  # Custom tokens
-  text-primary: "#c0c0c0"
-  text-secondary: "#707070"
-  red: "#aa3333"
-  on-red: "#ffffff"
-  yellow: "#cc7a00"
-  on-yellow: "#000000"

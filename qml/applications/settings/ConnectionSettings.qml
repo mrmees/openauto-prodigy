@@ -87,11 +87,11 @@ Flickable {
                 anchors.leftMargin: UiMetrics.marginPage
                 anchors.rightMargin: UiMetrics.marginPage
                 spacing: UiMetrics.gap
-                MaterialIcon { icon: "\ue1b7"; size: UiMetrics.iconSize; color: ThemeService.textPrimary }
+                MaterialIcon { icon: "\ue1b7"; size: UiMetrics.iconSize; color: ThemeService.onSurface }
                 Text {
                     text: "Accept New Pairings"
                     font.pixelSize: UiMetrics.fontBody
-                    color: ThemeService.textPrimary
+                    color: ThemeService.onSurface
                     Layout.fillWidth: true
                 }
                 Switch {
@@ -124,12 +124,12 @@ Flickable {
                     MaterialIcon {
                         icon: model.connected ? "\ue1ba" : "\ue1b9"
                         size: UiMetrics.iconSize
-                        color: model.connected ? ThemeService.success : ThemeService.textSecondary
+                        color: model.connected ? ThemeService.success : ThemeService.onSurfaceVariant
                     }
                     Text {
                         text: model.name || model.address
                         font.pixelSize: UiMetrics.fontBody
-                        color: ThemeService.textPrimary
+                        color: ThemeService.onSurface
                         Layout.fillWidth: true
                     }
                     Rectangle {
@@ -137,7 +137,7 @@ Flickable {
                         Layout.preferredHeight: UiMetrics.touchMin
                         radius: UiMetrics.touchMin / 2
                         color: "transparent"
-                        border.color: ThemeService.red
+                        border.color: ThemeService.error
                         border.width: 1
 
                         scale: forgetArea.pressed ? 0.95 : 1.0
@@ -150,7 +150,7 @@ Flickable {
                             anchors.centerIn: parent
                             text: "Forget"
                             font.pixelSize: UiMetrics.fontSmall
-                            color: ThemeService.red
+                            color: ThemeService.error
                         }
 
                         MouseArea {

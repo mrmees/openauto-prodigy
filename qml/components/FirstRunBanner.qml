@@ -39,13 +39,13 @@ Item {
                     text: "Ready to pair"
                     font.pixelSize: UiMetrics.fontBody
                     font.weight: Font.DemiBold
-                    color: ThemeService.textPrimary
+                    color: ThemeService.onSurface
                 }
 
                 Text {
                     text: "Search for \"" + (BluetoothManager ? BluetoothManager.adapterAlias : "") + "\" on your phone"
                     font.pixelSize: UiMetrics.fontSmall
-                    color: ThemeService.textSecondary
+                    color: ThemeService.onSurfaceVariant
                     wrapMode: Text.WordWrap
                     Layout.fillWidth: true
                 }
@@ -62,7 +62,7 @@ Item {
                     anchors.centerIn: parent
                     icon: "\ue5cd"  // close
                     size: UiMetrics.iconSmall
-                    color: ThemeService.textSecondary
+                    color: ThemeService.onSurfaceVariant
                 }
 
                 MouseArea {

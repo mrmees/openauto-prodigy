@@ -49,13 +49,6 @@ day:
   # Utility
   scrim: "#000000"
   shadow: "#000000"
-  # Custom tokens
-  text-primary: "#f0e8e0"
-  text-secondary: "#a09080"
-  red: "#cc4444"
-  on-red: "#ffffff"
-  yellow: "#FFA726"
-  on-yellow: "#000000"
 
 # Night mode colors — deeper, reduced intensity
 night:
@@ -103,10 +96,3 @@ night:
   # Utility
   scrim: "#000000"
   shadow: "#000000"
-  # Custom tokens
-  text-primary: "#c8c0b8"
-  text-secondary: "#706050"
-  red: "#aa3333"
-  on-red: "#ffffff"
-  yellow: "#cc8520"
-  on-yellow: "#000000"

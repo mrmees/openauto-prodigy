@@ -19,8 +19,8 @@ static const QMap<QString, QString> legacyKeyMap = {
     {"highlight", "primary"},
     {"control_background", "surface-variant"},
     {"control_foreground", "on-surface"},
-    {"normal_font", "text-primary"},
-    {"description_font", "text-secondary"},
+    {"normal_font", "on-surface"},
+    {"description_font", "on-surface-variant"},
     {"bar_background", "surface-container-low"},
     {"control_box_background", "surface"},
     {"divider", "outline-variant"},
@@ -50,11 +50,11 @@ static QMap<QString, QColor> loadColorMap(const YAML::Node& node, bool migrate)
             if (key == "divider")
                 colors["outline"] = QColor("#808080");  // no old equivalent
             if (key == "highlight") {
-                // old highlight was used for red/yellow indicators too -- provide defaults
-                if (!colors.contains("red")) colors["red"] = QColor("#cc4444");
-                if (!colors.contains("on-red")) colors["on-red"] = QColor("#ffffff");
-                if (!colors.contains("yellow")) colors["yellow"] = QColor("#FF9800");
-                if (!colors.contains("on-yellow")) colors["on-yellow"] = QColor("#000000");
+                // old highlight was used for error indicators too -- provide M3 equivalents
+                if (!colors.contains("error")) colors["error"] = QColor("#cc4444");
+                if (!colors.contains("on-error")) colors["on-error"] = QColor("#ffffff");
+                if (!colors.contains("tertiary")) colors["tertiary"] = QColor("#FF9800");
+                if (!colors.contains("on-tertiary")) colors["on-tertiary"] = QColor("#000000");
             }
         } else {
             colors[key] = c;
@@ -285,17 +285,15 @@ void ThemeService::resolveWallpaper()
         emit wallpaperChanged();
 }
 
-// Known AA token keys (the 16 base tokens from the AA wire protocol)
+// Known AA token keys (the 11 base tokens from the AA wire protocol)
 static const QSet<QString> knownAATokenKeys = {
     "primary", "on-surface", "surface", "surface-variant",
     "surface-container", "surface-container-low", "inverse-surface", "inverse-on-surface",
-    "outline", "outline-variant", "background", "text-primary",
-    "text-secondary", "red", "on-red", "yellow", "on-yellow"
+    "outline", "outline-variant", "background"
 };
 
-// Full 34 M3 role keys + 6 custom tokens (text-primary, text-secondary, red, on-red, yellow, on-yellow)
+// Full 34 M3 standard role keys
 static const QSet<QString> knownM3Keys = {
-    // M3 standard roles (34)
     "primary", "on-primary", "primary-container", "on-primary-container",
     "secondary", "on-secondary", "secondary-container", "on-secondary-container",
     "tertiary", "on-tertiary", "tertiary-container", "on-tertiary-container",
@@ -307,9 +305,7 @@ static const QSet<QString> knownM3Keys = {
     "surface-container-high", "surface-container-highest",
     "outline", "outline-variant",
     "inverse-surface", "inverse-on-surface", "inverse-primary",
-    "scrim", "shadow",
-    // Custom tokens (AA extensions, not M3 standard)
-    "text-primary", "text-secondary", "red", "on-red", "yellow", "on-yellow"
+    "scrim", "shadow"
 };
 
 // Union of M3 keys + AA token keys for persistence filtering
@@ -586,13 +582,6 @@ QColor ThemeService::scrim() const
     QColor c = activeColor("scrim");
     if (c == QColor(Qt::transparent))
         return QColor(0, 0, 0, 255);  // opaque black fallback per M3 spec
-    return c;
-}
-
-QColor ThemeService::pressed() const
-{
-    QColor c = activeColor("on-surface");
-    c.setAlpha(26);
     return c;
 }
 

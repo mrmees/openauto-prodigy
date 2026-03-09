@@ -78,12 +78,12 @@ Flickable {
                 text: "OpenAuto Prodigy"
                 font.pixelSize: UiMetrics.fontHeading
                 font.bold: true
-                color: ThemeService.textPrimary
+                color: ThemeService.onSurface
             }
             Text {
                 text: "Version " + (ConfigService.value("identity.sw_version") || "0.0.0")
                 font.pixelSize: UiMetrics.fontBody
-                color: ThemeService.textSecondary
+                color: ThemeService.onSurfaceVariant
             }
         }
 
@@ -100,12 +100,12 @@ Flickable {
                 MaterialIcon {
                     icon: "\ue5cd"
                     size: UiMetrics.iconSize
-                    color: ThemeService.textPrimary
+                    color: ThemeService.onSurface
                 }
                 Text {
                     text: "Close App"
                     font.pixelSize: UiMetrics.fontBody
-                    color: ThemeService.textPrimary
+                    color: ThemeService.onSurface
                 }
                 Item { Layout.fillWidth: true }
             }
@@ -120,7 +120,7 @@ Flickable {
         Text {
             text: "Test outbound commands (requires active AA connection)"
             font.pixelSize: UiMetrics.fontCaption
-            color: ThemeService.textSecondary
+            color: ThemeService.onSurfaceVariant
             Layout.fillWidth: true
             wrapMode: Text.Wrap
         }
@@ -139,7 +139,7 @@ Flickable {
                 contentItem: Text {
                     text: "Play/Pause"
                     font.pixelSize: UiMetrics.fontBody
-                    color: parent.enabled ? ThemeService.textPrimary : ThemeService.textSecondary
+                    color: parent.enabled ? ThemeService.onSurface : ThemeService.onSurfaceVariant
                     horizontalAlignment: Text.AlignHCenter
                     verticalAlignment: Text.AlignVCenter
                 }
@@ -158,7 +158,7 @@ Flickable {
                 contentItem: Text {
                     text: "Prev"
                     font.pixelSize: UiMetrics.fontBody
-                    color: parent.enabled ? ThemeService.textPrimary : ThemeService.textSecondary
+                    color: parent.enabled ? ThemeService.onSurface : ThemeService.onSurfaceVariant
                     horizontalAlignment: Text.AlignHCenter
                     verticalAlignment: Text.AlignVCenter
                 }
@@ -177,7 +177,7 @@ Flickable {
                 contentItem: Text {
                     text: "Next"
                     font.pixelSize: UiMetrics.fontBody
-                    color: parent.enabled ? ThemeService.textPrimary : ThemeService.textSecondary
+                    color: parent.enabled ? ThemeService.onSurface : ThemeService.onSurfaceVariant
                     horizontalAlignment: Text.AlignHCenter
                     verticalAlignment: Text.AlignVCenter
                 }
@@ -201,7 +201,7 @@ Flickable {
                 contentItem: Text {
                     text: "Search (84)"
                     font.pixelSize: UiMetrics.fontBody
-                    color: parent.enabled ? ThemeService.textPrimary : ThemeService.textSecondary
+                    color: parent.enabled ? ThemeService.onSurface : ThemeService.onSurfaceVariant
                     horizontalAlignment: Text.AlignHCenter
                     verticalAlignment: Text.AlignVCenter
                 }
@@ -220,7 +220,7 @@ Flickable {
                 contentItem: Text {
                     text: "Assist (219)"
                     font.pixelSize: UiMetrics.fontBody
-                    color: parent.enabled ? ThemeService.textPrimary : ThemeService.textSecondary
+                    color: parent.enabled ? ThemeService.onSurface : ThemeService.onSurfaceVariant
                     horizontalAlignment: Text.AlignHCenter
                     verticalAlignment: Text.AlignVCenter
                 }
@@ -239,7 +239,7 @@ Flickable {
                 contentItem: Text {
                     text: "Voice (231)"
                     font.pixelSize: UiMetrics.fontBody
-                    color: parent.enabled ? ThemeService.textPrimary : ThemeService.textSecondary
+                    color: parent.enabled ? ThemeService.onSurface : ThemeService.onSurfaceVariant
                     horizontalAlignment: Text.AlignHCenter
                     verticalAlignment: Text.AlignVCenter
                 }
@@ -258,7 +258,7 @@ Flickable {
                      ? "AA not connected — buttons disabled"
                      : "AA orchestrator unavailable")
             font.pixelSize: UiMetrics.fontCaption
-            color: aaConnected ? ThemeService.primary : ThemeService.textSecondary
+            color: aaConnected ? ThemeService.primary : ThemeService.onSurfaceVariant
             Layout.fillWidth: true
         }
 

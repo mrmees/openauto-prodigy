@@ -1,6 +1,6 @@
 import QtQuick
 
 Text {
-    color: ThemeService.textPrimary
+    color: ThemeService.onSurface
     font.pixelSize: UiMetrics.fontSmall
 }

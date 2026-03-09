@@ -61,7 +61,7 @@ Flickable {
                         Text {
                             text: codecDisplayName(codecName)
                             font.pixelSize: UiMetrics.fontBody
-                            color: ThemeService.textPrimary
+                            color: ThemeService.onSurface
                             Layout.fillWidth: true
                         }
 
@@ -92,7 +92,7 @@ Flickable {
                         Text {
                             text: "Decoder"
                             font.pixelSize: UiMetrics.fontBody
-                            color: ThemeService.textPrimary
+                            color: ThemeService.onSurface
                             Layout.fillWidth: true
                         }
 
@@ -118,7 +118,7 @@ Flickable {
                                     anchors.centerIn: parent
                                     text: "Software"
                                     font.pixelSize: UiMetrics.fontSmall
-                                    color: !isHardware ? ThemeService.background : ThemeService.textPrimary
+                                    color: !isHardware ? ThemeService.background : ThemeService.onSurface
                                 }
 
                                 MouseArea {
@@ -151,7 +151,7 @@ Flickable {
                                     anchors.centerIn: parent
                                     text: "Hardware"
                                     font.pixelSize: UiMetrics.fontSmall
-                                    color: isHardware ? ThemeService.background : ThemeService.textPrimary
+                                    color: isHardware ? ThemeService.background : ThemeService.onSurface
                                     opacity: hwAvailable ? 1.0 : 0.4
                                 }
 
@@ -184,21 +184,21 @@ Flickable {
                         Text {
                             text: "Decoder name"
                             font.pixelSize: UiMetrics.fontBody
-                            color: ThemeService.textSecondary
+                            color: ThemeService.onSurfaceVariant
                             Layout.fillWidth: true
                         }
 
                         Text {
                             text: selectedDecoder
                             font.pixelSize: UiMetrics.fontBody
-                            color: ThemeService.textSecondary
+                            color: ThemeService.onSurfaceVariant
                             horizontalAlignment: Text.AlignRight
                         }
 
                         MaterialIcon {
                             icon: "\ue5cf"
                             size: UiMetrics.iconSize
-                            color: ThemeService.textSecondary
+                            color: ThemeService.onSurfaceVariant
                         }
                     }
 
@@ -310,7 +310,7 @@ Flickable {
                     text: decoderPickerDialog.codecLabel
                     font.pixelSize: UiMetrics.fontTitle
                     font.bold: true
-                    color: ThemeService.textPrimary
+                    color: ThemeService.onSurface
                     Layout.fillWidth: true
                 }
 
@@ -323,7 +323,7 @@ Flickable {
                         anchors.centerIn: parent
                         icon: "\ue5cd"
                         size: UiMetrics.iconSize
-                        color: ThemeService.textPrimary
+                        color: ThemeService.onSurface
                     }
                 }
             }
@@ -357,7 +357,7 @@ Flickable {
                         text: modelData
                         font.pixelSize: UiMetrics.fontBody
                         color: modelData === decoderPickerDialog.currentDecoder
-                            ? ThemeService.primary : ThemeService.textPrimary
+                            ? ThemeService.primary : ThemeService.onSurface
                         Layout.fillWidth: true
                     }
 

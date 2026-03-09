@@ -57,7 +57,7 @@ Flickable {
                 Text {
                     text: "UI Scale"
                     font.pixelSize: UiMetrics.fontBody
-                    color: ThemeService.textPrimary
+                    color: ThemeService.onSurface
                     Layout.fillWidth: true
                 }
 
@@ -67,7 +67,7 @@ Flickable {
                     height: UiMetrics.touchMin
                     radius: UiMetrics.touchMin / 2
                     color: "transparent"
-                    border.color: Math.abs(root._currentScale - 1.0) > 0.05 ? ThemeService.textSecondary : "transparent"
+                    border.color: Math.abs(root._currentScale - 1.0) > 0.05 ? ThemeService.onSurfaceVariant : "transparent"
                     border.width: 1
                     opacity: Math.abs(root._currentScale - 1.0) > 0.05 ? 1.0 : 0.0
 
@@ -75,7 +75,7 @@ Flickable {
                         anchors.centerIn: parent
                         icon: "\ue042"
                         size: UiMetrics.iconSmall
-                        color: ThemeService.textSecondary
+                        color: ThemeService.onSurfaceVariant
                     }
                     MouseArea {
                         anchors.fill: parent
@@ -114,7 +114,7 @@ Flickable {
                     text: root._currentScale.toFixed(1)
                     font.pixelSize: UiMetrics.fontTitle
                     font.weight: Font.DemiBold
-                    color: ThemeService.textPrimary
+                    color: ThemeService.onSurface
                     horizontalAlignment: Text.AlignHCenter
                     Layout.preferredWidth: UiMetrics.touchMin
                 }
@@ -198,13 +198,13 @@ Flickable {
                 MaterialIcon {
                     icon: "\ue872"  // delete
                     size: UiMetrics.iconSmall
-                    color: parent.parent.confirmPending ? ThemeService.red : ThemeService.textSecondary
+                    color: parent.parent.confirmPending ? ThemeService.error : ThemeService.onSurfaceVariant
                 }
 
                 Text {
                     text: parent.parent.confirmPending ? "Tap again to delete" : "Delete Theme"
                     font.pixelSize: UiMetrics.fontBody
-                    color: parent.parent.confirmPending ? ThemeService.red : ThemeService.textPrimary
+                    color: parent.parent.confirmPending ? ThemeService.error : ThemeService.onSurface
                     Layout.fillWidth: true
                 }
             }

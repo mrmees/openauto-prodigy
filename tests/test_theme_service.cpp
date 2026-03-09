@@ -27,7 +27,7 @@ private slots:
         QVERIFY(!service.nightMode());
         QCOMPARE(service.background(), QColor("#1a1a2e"));
         QCOMPARE(service.primary(), QColor("#e94560"));
-        QCOMPARE(service.textPrimary(), QColor("#ffffff"));
+        QCOMPARE(service.onSurface(), QColor("#e0e0e0"));
         QCOMPARE(service.surfaceContainerLow(), QColor("#0f3460"));
     }
 
@@ -40,7 +40,7 @@ private slots:
         QVERIFY(service.nightMode());
         QCOMPARE(service.background(), QColor("#0a0a14"));
         QCOMPARE(service.primary(), QColor("#c73650"));
-        QCOMPARE(service.textPrimary(), QColor("#c0c0c0"));
+        QCOMPARE(service.onSurface(), QColor("#b0b0b0"));
     }
 
     void toggleModeFlips()
@@ -143,12 +143,6 @@ private slots:
         QVERIFY(service.outline() != QColor(Qt::transparent));
         QVERIFY(service.outlineVariant() != QColor(Qt::transparent));
         QVERIFY(service.background() != QColor(Qt::transparent));
-        QVERIFY(service.textPrimary() != QColor(Qt::transparent));
-        QVERIFY(service.textSecondary() != QColor(Qt::transparent));
-        QVERIFY(service.red() != QColor(Qt::transparent));
-        QVERIFY(service.onRed() != QColor(Qt::transparent));
-        QVERIFY(service.yellow() != QColor(Qt::transparent));
-        QVERIFY(service.onYellow() != QColor(Qt::transparent));
     }
 
     void derivedColors()
@@ -158,11 +152,6 @@ private slots:
 
         // scrim is now stored in YAML as opaque black (alpha applied at usage sites)
         QCOMPARE(service.scrim(), QColor(0, 0, 0, 255));
-
-        // pressed is onSurface at 10% alpha (~26/255)
-        QColor expectedPressed = QColor("#e0e0e0");
-        expectedPressed.setAlpha(26);
-        QCOMPARE(service.pressed(), expectedPressed);
 
         // barShadow is always black at 50% opacity
         QCOMPARE(service.barShadow(), QColor(0, 0, 0, 128));
@@ -763,18 +752,19 @@ private slots:
         QCOMPARE(service.error(), QColor("#cc4444"));
     }
 
-    void backwardCompatOldPropertyNames()
+    void deprecatedKeysReturnTransparent()
     {
         oap::ThemeService service;
         service.loadThemeFile(QFINDTESTDATA("data/themes/default/theme.yaml"));
 
-        // Old property names must still work
-        QCOMPARE(service.textPrimary(), QColor("#ffffff"));
-        QCOMPARE(service.textSecondary(), QColor("#a0a0a0"));
-        QCOMPARE(service.red(), QColor("#cc4444"));
-        QCOMPARE(service.onRed(), QColor("#ffffff"));
-        QCOMPARE(service.yellow(), QColor("#FF9800"));
-        QCOMPARE(service.onYellow(), QColor("#000000"));
+        // Deprecated custom token keys should return transparent since they
+        // are no longer in theme YAMLs
+        QCOMPARE(service.color("text-primary"), QColor(Qt::transparent));
+        QCOMPARE(service.color("text-secondary"), QColor(Qt::transparent));
+        QCOMPARE(service.color("red"), QColor(Qt::transparent));
+        QCOMPARE(service.color("on-red"), QColor(Qt::transparent));
+        QCOMPARE(service.color("yellow"), QColor(Qt::transparent));
+        QCOMPARE(service.color("on-yellow"), QColor(Qt::transparent));
     }
 
     void scrimIsStoredNotHardcoded()

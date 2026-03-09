@@ -49,13 +49,6 @@ day:
   # Utility
   scrim: "#000000"
   shadow: "#000000"
-  # Custom tokens
-  text-primary: "#ffffff"
-  text-secondary: "#808080"
-  red: "#F44336"
-  on-red: "#ffffff"
-  yellow: "#FF9800"
-  on-yellow: "#000000"
 
 # Night mode colors — identical to day (pure black needs no dimming)
 night:
@@ -103,10 +96,3 @@ night:
   # Utility
   scrim: "#000000"
   shadow: "#000000"
-  # Custom tokens
-  text-primary: "#ffffff"
-  text-secondary: "#808080"
-  red: "#F44336"
-  on-red: "#ffffff"
-  yellow: "#FF9800"
-  on-yellow: "#000000"

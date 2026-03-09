@@ -54,7 +54,7 @@ Item {
             y: root.trackTopY
             width: root.trackWidth
             height: root.trackHeight
-            color: ThemeService.textSecondary
+            color: ThemeService.onSurfaceVariant
             opacity: 0.5
             radius: width / 2
         }
@@ -109,7 +109,7 @@ Item {
                     return sign + v.toFixed(1)
                 }
                 font.pixelSize: UiMetrics.fontSmall
-                color: ThemeService.textPrimary
+                color: ThemeService.onSurface
             }
         }
 
@@ -151,6 +151,6 @@ Item {
         anchors.horizontalCenter: parent.horizontalCenter
         text: root.freqLabel
         font.pixelSize: UiMetrics.fontTiny
-        color: ThemeService.textSecondary
+        color: ThemeService.onSurfaceVariant
     }
 }

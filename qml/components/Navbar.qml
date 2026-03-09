@@ -230,7 +230,7 @@ Item {
                         width: powerMenuBg.width - UiMetrics.spacing * 2
                         height: UiMetrics.touchMin
                         radius: UiMetrics.radiusSmall
-                        color: pmMouseArea.pressed ? ThemeService.pressed : "transparent"
+                        color: pmMouseArea.pressed ? ThemeService.primaryContainer : "transparent"
 
                         Row {
                             anchors.centerIn: parent
@@ -245,7 +245,7 @@ Item {
                             Text {
                                 text: modelData.label
                                 font.pixelSize: UiMetrics.fontBody
-                                color: ThemeService.textPrimary
+                                color: ThemeService.onSurface
                                 anchors.verticalCenter: parent.verticalCenter
                             }
                         }

@@ -18,7 +18,7 @@ Item {
         font.pixelSize: UiMetrics.fontSmall
         font.bold: true
         font.capitalization: Font.AllUppercase
-        color: ThemeService.textSecondary
+        color: ThemeService.onSurfaceVariant
     }
 
     Rectangle {

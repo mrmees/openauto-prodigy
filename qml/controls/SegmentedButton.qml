@@ -36,14 +36,14 @@ Item {
         Text {
             text: root.label
             font.pixelSize: UiMetrics.fontBody
-            color: ThemeService.textPrimary
+            color: ThemeService.onSurface
             Layout.fillWidth: true
         }
 
         MaterialIcon {
             icon: "\ue86a"
             size: UiMetrics.iconSmall
-            color: ThemeService.textSecondary
+            color: ThemeService.onSurfaceVariant
             visible: root.restartRequired
         }
 
@@ -103,7 +103,7 @@ Item {
                         anchors.centerIn: parent
                         text: modelData
                         font.pixelSize: UiMetrics.fontSmall
-                        color: segment.isSelected ? ThemeService.background : ThemeService.textPrimary
+                        color: segment.isSelected ? ThemeService.background : ThemeService.onSurface
                     }
 
                     MouseArea {

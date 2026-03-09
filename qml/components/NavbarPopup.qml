@@ -99,7 +99,7 @@ Item {
                 text: root.currentValue
                 font.pixelSize: UiMetrics.fontHeading
                 font.bold: true
-                color: ThemeService.textPrimary
+                color: ThemeService.onSurface
             }
 
             // Slider track area — with vertical padding so knob doesn't clip

@@ -42,7 +42,7 @@ Flickable {
                     height: UiMetrics.iconSmall
                     radius: width / 2
                     color: root.hasService && CompanionService.connected
-                           ? ThemeService.success : ThemeService.textSecondary
+                           ? ThemeService.success : ThemeService.onSurfaceVariant
                 }
 
                 Text {
@@ -51,7 +51,7 @@ Flickable {
                         return CompanionService.connected ? "Phone Connected" : "Not Connected"
                     }
                     font.pixelSize: UiMetrics.fontBody
-                    color: ThemeService.textPrimary
+                    color: ThemeService.onSurface
                     Layout.fillWidth: true
                 }
 
@@ -62,7 +62,7 @@ Flickable {
                     color: pairBtnMouse.pressed
                            ? Qt.darker(ThemeService.surfaceContainerLow, 1.3)
                            : ThemeService.surfaceContainerLow
-                    border.color: ThemeService.textSecondary
+                    border.color: ThemeService.onSurfaceVariant
                     border.width: 1
                     opacity: root.hasService ? 1.0 : 0.4
 
@@ -71,7 +71,7 @@ Flickable {
                         anchors.centerIn: parent
                         text: "Generate Pairing Code"
                         font.pixelSize: UiMetrics.fontSmall
-                        color: ThemeService.textPrimary
+                        color: ThemeService.onSurface
                     }
 
                     MouseArea {
@@ -103,7 +103,7 @@ Flickable {
                 Text {
                     text: "GPS"
                     font.pixelSize: UiMetrics.fontBody
-                    color: ThemeService.textPrimary
+                    color: ThemeService.onSurface
                     Layout.preferredWidth: parent.width * 0.35
                 }
 
@@ -112,7 +112,7 @@ Flickable {
                           ? CompanionService.gpsLat.toFixed(4) + ", " + CompanionService.gpsLon.toFixed(4)
                           : "\u2014"
                     font.pixelSize: UiMetrics.fontBody
-                    color: ThemeService.textPrimary
+                    color: ThemeService.onSurface
                     horizontalAlignment: Text.AlignRight
                     Layout.fillWidth: true
                 }
@@ -134,7 +134,7 @@ Flickable {
                 Text {
                     text: "Phone Battery"
                     font.pixelSize: UiMetrics.fontBody
-                    color: ThemeService.textPrimary
+                    color: ThemeService.onSurface
                     Layout.preferredWidth: parent.width * 0.35
                 }
 
@@ -144,7 +144,7 @@ Flickable {
                             + (CompanionService.phoneCharging ? " (charging)" : "")
                           : "\u2014"
                     font.pixelSize: UiMetrics.fontBody
-                    color: ThemeService.textPrimary
+                    color: ThemeService.onSurface
                     horizontalAlignment: Text.AlignRight
                     Layout.fillWidth: true
                 }
@@ -166,14 +166,14 @@ Flickable {
                 Text {
                     text: "Internet Proxy"
                     font.pixelSize: UiMetrics.fontBody
-                    color: ThemeService.textPrimary
+                    color: ThemeService.onSurface
                     Layout.preferredWidth: parent.width * 0.35
                 }
 
                 Text {
                     text: root.hasService ? CompanionService.proxyAddress : "\u2014"
                     font.pixelSize: UiMetrics.fontBody
-                    color: ThemeService.textPrimary
+                    color: ThemeService.onSurface
                     horizontalAlignment: Text.AlignRight
                     elide: Text.ElideMiddle
                     Layout.fillWidth: true
@@ -200,7 +200,7 @@ Flickable {
                 Text {
                     text: "Route Active"
                     font.pixelSize: UiMetrics.fontBody
-                    color: ThemeService.textPrimary
+                    color: ThemeService.onSurface
                     Layout.preferredWidth: parent.width * 0.35
                 }
 
@@ -211,9 +211,9 @@ Flickable {
                     color: {
                         var s = routeStatusRow.routeStateStr
                         if (s === "active")   return ThemeService.success
-                        if (s === "degraded") return ThemeService.yellow
-                        if (s === "failed")   return ThemeService.red
-                        return ThemeService.textSecondary
+                        if (s === "degraded") return ThemeService.tertiary
+                        if (s === "failed")   return ThemeService.error
+                        return ThemeService.onSurfaceVariant
                     }
                 }
 
@@ -228,9 +228,9 @@ Flickable {
                     font.pixelSize: UiMetrics.fontBody
                     color: {
                         var s = routeStatusRow.routeStateStr
-                        if (s === "degraded") return ThemeService.yellow
-                        if (s === "failed")   return ThemeService.red
-                        return ThemeService.textPrimary
+                        if (s === "degraded") return ThemeService.tertiary
+                        if (s === "failed")   return ThemeService.error
+                        return ThemeService.onSurface
                     }
                     Layout.fillWidth: true
                     horizontalAlignment: Text.AlignRight
@@ -290,7 +290,7 @@ Flickable {
                     font.pixelSize: UiMetrics.fontHeading * 1.8
                     font.weight: Font.Bold
                     font.letterSpacing: 8
-                    color: ThemeService.textPrimary
+                    color: ThemeService.onSurface
                     Layout.alignment: Qt.AlignHCenter
                 }
             }

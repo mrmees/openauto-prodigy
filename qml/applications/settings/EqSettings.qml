@@ -76,7 +76,7 @@ Item {
                         return name !== "" ? name : "Custom"
                     }
                     font.pixelSize: UiMetrics.fontSmall
-                    color: ThemeService.textSecondary
+                    color: ThemeService.onSurfaceVariant
                     horizontalAlignment: Text.AlignHCenter
                 }
 
@@ -85,7 +85,7 @@ Item {
                     text: "\ue5c5"
                     font.family: "Material Icons"
                     font.pixelSize: UiMetrics.iconSmall
-                    color: ThemeService.textSecondary
+                    color: ThemeService.onSurfaceVariant
                 }
             }
 
@@ -110,7 +110,7 @@ Item {
                 text: "\ue161"
                 font.family: "Material Icons"
                 font.pixelSize: UiMetrics.iconSize
-                color: ThemeService.textSecondary
+                color: ThemeService.onSurfaceVariant
             }
 
             MouseArea {
@@ -138,7 +138,7 @@ Item {
                 text: "BYPASS"
                 font.pixelSize: UiMetrics.fontTiny
                 font.bold: true
-                color: root.currentBypassed ? ThemeService.background : ThemeService.textSecondary
+                color: root.currentBypassed ? ThemeService.background : ThemeService.onSurfaceVariant
             }
 
             MouseArea {
@@ -265,7 +265,7 @@ Item {
                     text: "Presets"
                     font.pixelSize: UiMetrics.fontTitle
                     font.bold: true
-                    color: ThemeService.textPrimary
+                    color: ThemeService.onSurface
                     Layout.fillWidth: true
                 }
 
@@ -279,7 +279,7 @@ Item {
                         text: "\ue5cd"
                         font.family: "Material Icons"
                         font.pixelSize: UiMetrics.iconSize
-                        color: ThemeService.textPrimary
+                        color: ThemeService.onSurface
                     }
                 }
             }
@@ -333,7 +333,7 @@ Item {
                 anchors.top: parent.top
                 anchors.bottom: parent.bottom
                 width: presetRowRoot.deleteWidth
-                color: ThemeService.red
+                color: ThemeService.error
                 visible: presetRowRoot.isUserPreset
 
                 Text {
@@ -366,7 +366,7 @@ Item {
                         font.pixelSize: UiMetrics.fontBody
                         color: presetRowRoot.presetName === EqualizerService.activePresetForStream(root.currentStream)
                             ? ThemeService.primary
-                            : ThemeService.textPrimary
+                            : ThemeService.onSurface
                         Layout.fillWidth: true
                     }
 
@@ -445,7 +445,7 @@ Item {
                 text: "Save Preset"
                 font.pixelSize: UiMetrics.fontTitle
                 font.bold: true
-                color: ThemeService.textPrimary
+                color: ThemeService.onSurface
             }
 
             Rectangle {
@@ -469,7 +469,7 @@ Item {
                 Layout.rightMargin: UiMetrics.marginPage
                 placeholderText: "Enter preset name (or leave blank)"
                 font.pixelSize: UiMetrics.fontBody
-                color: ThemeService.textPrimary
+                color: ThemeService.onSurface
 
                 background: Rectangle {
                     color: ThemeService.surfaceVariant
@@ -497,7 +497,7 @@ Item {
                         anchors.centerIn: parent
                         text: "Cancel"
                         font.pixelSize: UiMetrics.fontBody
-                        color: ThemeService.textPrimary
+                        color: ThemeService.onSurface
                     }
 
                     MouseArea {

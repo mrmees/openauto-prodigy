@@ -81,16 +81,7 @@ class ThemeService : public QObject, public IThemeService {
     Q_PROPERTY(QColor scrim READ scrim NOTIFY colorsChanged)
     Q_PROPERTY(QColor shadow READ shadow NOTIFY colorsChanged)
 
-    // --- Custom tokens (AA extensions, not M3 standard) ---
-    Q_PROPERTY(QColor textPrimary READ textPrimary NOTIFY colorsChanged)
-    Q_PROPERTY(QColor textSecondary READ textSecondary NOTIFY colorsChanged)
-    Q_PROPERTY(QColor red READ red NOTIFY colorsChanged)
-    Q_PROPERTY(QColor onRed READ onRed NOTIFY colorsChanged)
-    Q_PROPERTY(QColor yellow READ yellow NOTIFY colorsChanged)
-    Q_PROPERTY(QColor onYellow READ onYellow NOTIFY colorsChanged)
-
     // --- Derived color properties (computed, not from YAML) ---
-    Q_PROPERTY(QColor pressed READ pressed NOTIFY colorsChanged)
     Q_PROPERTY(QColor barShadow READ barShadow NOTIFY colorsChanged)
     Q_PROPERTY(QColor success READ success NOTIFY colorsChanged)
     Q_PROPERTY(QColor onSuccess READ onSuccess NOTIFY colorsChanged)
@@ -223,16 +214,7 @@ public:
     QColor scrim() const;
     QColor shadow() const { return activeColor("shadow"); }
 
-    // --- Custom tokens (AA extensions) ---
-    QColor textPrimary() const { return activeColor("text-primary"); }
-    QColor textSecondary() const { return activeColor("text-secondary"); }
-    QColor red() const { return activeColor("red"); }
-    QColor onRed() const { return activeColor("on-red"); }
-    QColor yellow() const { return activeColor("yellow"); }
-    QColor onYellow() const { return activeColor("on-yellow"); }
-
     // --- Derived (computed, not from YAML) ---
-    QColor pressed() const;
     QColor barShadow() const;
     QColor success() const;
     QColor onSuccess() const;

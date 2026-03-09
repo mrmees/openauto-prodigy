@@ -10,7 +10,7 @@ Popup {
     closePolicy: Popup.CloseOnEscape | Popup.CloseOnPressOutside
     padding: UiMetrics.gap
 
-    readonly property color dangerColor: ThemeService.red
+    readonly property color dangerColor: ThemeService.error
 
     background: Rectangle {
         color: ThemeService.surfaceVariant
@@ -27,7 +27,7 @@ Popup {
             text: "Close OpenAuto Prodigy?"
             font.pixelSize: UiMetrics.fontTitle
             font.bold: true
-            color: ThemeService.textPrimary
+            color: ThemeService.onSurface
             horizontalAlignment: Text.AlignHCenter
             Layout.bottomMargin: UiMetrics.spacing
         }
@@ -45,12 +45,12 @@ Popup {
                 MaterialIcon {
                     icon: "\ue5cd"
                     size: UiMetrics.iconSize
-                    color: ThemeService.textPrimary
+                    color: ThemeService.onSurface
                 }
                 Text {
                     text: "Minimize"
                     font.pixelSize: UiMetrics.fontBody
-                    color: ThemeService.textPrimary
+                    color: ThemeService.onSurface
                 }
                 Item { Layout.fillWidth: true }
             }
@@ -94,7 +94,7 @@ Popup {
             contentItem: Text {
                 text: "Cancel"
                 font.pixelSize: UiMetrics.fontBody
-                color: ThemeService.textPrimary
+                color: ThemeService.onSurface
                 horizontalAlignment: Text.AlignHCenter
             }
             background: Rectangle {

@@ -32,14 +32,14 @@ Rectangle {
             Text {
                 text: "Pair with device?"
                 font.pixelSize: UiMetrics.fontHeading
-                color: ThemeService.textPrimary
+                color: ThemeService.onSurface
                 Layout.alignment: Qt.AlignHCenter
             }
 
             Text {
                 text: BluetoothManager ? BluetoothManager.pairingDeviceName : ""
                 font.pixelSize: UiMetrics.fontBody
-                color: ThemeService.textSecondary
+                color: ThemeService.onSurfaceVariant
                 Layout.alignment: Qt.AlignHCenter
             }
 
@@ -48,7 +48,7 @@ Rectangle {
                 font.pixelSize: UiMetrics.fontHeading * 1.8
                 font.weight: Font.Bold
                 font.letterSpacing: 8
-                color: ThemeService.textPrimary
+                color: ThemeService.onSurface
                 Layout.alignment: Qt.AlignHCenter
                 Layout.topMargin: UiMetrics.gap
                 Layout.bottomMargin: UiMetrics.gap
@@ -61,12 +61,12 @@ Rectangle {
                 Rectangle {
                     width: Math.round(140 * UiMetrics.scale); height: UiMetrics.rowH
                     radius: UiMetrics.radiusSmall
-                    color: ThemeService.red
+                    color: ThemeService.error
                     Text {
                         anchors.centerIn: parent
                         text: "Reject"
                         font.pixelSize: UiMetrics.fontBody
-                        color: ThemeService.onRed
+                        color: ThemeService.onError
                     }
                     MouseArea {
                         anchors.fill: parent
