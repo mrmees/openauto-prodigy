@@ -66,7 +66,7 @@ See .planning/milestones/v0.5.0-ROADMAP.md for archived details.
 - [x] **Phase 1: DPI Foundation** - Installer EDID probe, DPI-based UiMetrics, config persistence with settings UI (completed 2026-03-08)
 - [x] **Phase 2: Clock & Scale Control** - Clock readability and 24h toggle, user-facing scale stepper (completed 2026-03-08)
 - [x] **Phase 3: Theme Color System** - Full semantic color palette aligned with Material Design conventions (completed 2026-03-09)
-- [ ] **Phase 4: Visual Depth** - 3D depth effects on buttons and navbar
+- [x] **Phase 4: Visual Depth** - 3D depth effects on buttons and navbar (completed 2026-03-10)
 
 ## Phase Details
 
@@ -204,7 +204,7 @@ Plans:
   1. Buttons across the app (settings tiles, launcher tiles, dialog actions) have a visible but subtle 3D effect (shadow, gradient, or bevel) in their resting state
   2. Button press state visibly changes the depth effect (pressed-in appearance) in addition to existing scale+opacity feedback
   3. Navbar has a depth treatment (drop shadow, gradient border, or elevation) that visually separates it from the content area
-**Plans:** 4/5 plans executed
+**Plans:** 5/5 plans complete
 
 Plans:
 - [ ] 04-01-PLAN.md -- Qt 6.8 upgrade on dev VM + QT_VERSION guard removal
@@ -228,7 +228,7 @@ Phases execute in numeric order: 1 -> 2 -> 3 -> 3.1 -> 3.2 -> 3.3 -> 3.4 -> 3.5 
 | 3.3 M3 Color Role Mapping | 2/2 | Complete   | 2026-03-09 |
 | 3.4 Fix AA Rendering | 1/1 | Complete | 2026-03-09 |
 | 3.5 Navbar Clock & Status Bar | 2/2 | Complete   | 2026-03-10 |
-| 4. Visual Depth | 4/5 | In Progress|  |
+| 4. Visual Depth | 5/5 | Complete   | 2026-03-10 |
 
 ---
 *Last updated: 2026-03-10 -- Phase 4 plans revised (split Plan 03, corrected elevation levels)*

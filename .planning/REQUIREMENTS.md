@@ -60,7 +60,7 @@ Requirements for DPI sizing and UI polish milestone. Each maps to roadmap phases
 ### Styling
 
 - [x] **STY-01**: Buttons have subtle 3D depth effect (shadow, bevel, or gradient) that responds to press state
-- [ ] **STY-02**: Taskbar/navbar has subtle depth treatment distinguishing it from content area
+- [x] **STY-02**: Taskbar/navbar has subtle depth treatment distinguishing it from content area
 
 ## Future Requirements
 
@@ -119,7 +119,7 @@ Requirements for DPI sizing and UI polish milestone. Each maps to roadmap phases
 | NAV-01 | Phase 3.5 | Complete |
 | NAV-02 | Phase 3.5 | Complete |
 | STY-01 | Phase 4 | Complete |
-| STY-02 | Phase 4 | Pending |
+| STY-02 | Phase 4 | Complete |
 
 **Coverage:**
 - v0.5.1 requirements: 29 total (4 descoped: NAV-03..06 — protocol limitation)

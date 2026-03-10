@@ -3,14 +3,14 @@ gsd_state_version: 1.0
 milestone: v0.5
 milestone_name: milestone
 status: Dialog/popup buttons migrated to M3 components with Level 3 elevation and surface tint.
-stopped_at: Completed 04-05-PLAN.md
-last_updated: "2026-03-10T03:10:02.548Z"
+stopped_at: Completed 04-04-PLAN.md (navbar gradient + power menu)
+last_updated: "2026-03-10T15:52:03.595Z"
 last_activity: 2026-03-10 -- Completed 04-05 dialog/popup button migration
 progress:
   total_phases: 9
-  completed_phases: 6
+  completed_phases: 7
   total_plans: 23
-  completed_plans: 20
+  completed_plans: 21
   percent: 91
 ---
 
@@ -97,6 +97,8 @@ Decisions are logged in PROJECT.md Key Decisions table.
 - (04-05) Item root wrapper with layer.enabled Rectangle for MultiEffect shadow on dialog/popup panels
 - (04-05) 7% primary blend for surface tint via Qt.rgba lerp across all Level 3 surfaces
 - (04-05) NavbarPopup border removed in favor of shadow elevation
+- [Phase 04-04]: Gradient fade (6px scaled) replaces 1px barShadow border for softer depth separation
+- [Phase 04-04]: Dark theme depth requires stronger visual cues: outlineVariant borders, boosted shadow opacity, 12% surface tint
 
 ### Pending Todos
 
@@ -116,5 +118,5 @@ None yet.
 
 ## Session Continuity
 
-Last session: 2026-03-10T03:10:02.546Z
-Stopped at: Completed 04-05-PLAN.md
+Last session: 2026-03-10T15:52:03.592Z
+Stopped at: Completed 04-04-PLAN.md (navbar gradient + power menu)
