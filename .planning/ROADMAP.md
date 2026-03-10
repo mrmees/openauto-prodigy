@@ -65,7 +65,7 @@ See .planning/milestones/v0.5.0-ROADMAP.md for archived details.
 
 - [x] **Phase 1: DPI Foundation** - Installer EDID probe, DPI-based UiMetrics, config persistence with settings UI (completed 2026-03-08)
 - [x] **Phase 2: Clock & Scale Control** - Clock readability and 24h toggle, user-facing scale stepper (completed 2026-03-08)
-- [ ] **Phase 3: Theme Color System** - Full semantic color palette aligned with Material Design conventions
+- [x] **Phase 3: Theme Color System** - Full semantic color palette aligned with Material Design conventions (completed 2026-03-09)
 - [ ] **Phase 4: Visual Depth** - 3D depth effects on buttons and navbar
 
 ## Phase Details
@@ -107,11 +107,11 @@ Plans:
   1. ThemeService exposes a full set of named semantic color roles (surface, primary, secondary, accent, error, on-surface, on-primary, etc.) as Q_PROPERTYs
   2. Switching between day and night themes produces a coherent, non-clashing color scheme across all screens (launcher, settings, AA overlay, BT audio, phone)
   3. No hardcoded color hex values remain in any QML file -- all colors reference ThemeService properties
-**Plans:** 2/3 plans executed
+**Plans:** 3/3 plans complete
 Plans:
 - [x] 03-01-PLAN.md -- ThemeService property rename to AA tokens + derived colors + YAML migration
 - [x] 03-02-PLAN.md -- QML hardcode elimination + ThemeService reference update + web config/IPC
-- [ ] 03-03-PLAN.md -- Connected Device theme + UiConfigRequest protocol integration
+- [x] 03-03-PLAN.md -- Connected Device theme + UiConfigRequest protocol integration
 
 ### Phase 03.4: Fix Android Auto rendering (INSERTED)
 
@@ -122,28 +122,26 @@ Plans:
   1. AA video content is fully visible with no cropping when navbar is shown
   2. Touch targets align with visible AA content
   3. Existing SDP margin calculation tests still pass
-**Plans:** 1 plan
+**Plans:** 1/1 plans complete
 
 Plans:
-- [ ] 03.4-01-PLAN.md -- Change VideoOutput fillMode to PreserveAspectFit + verify on Pi
+- [x] 03.4-01-PLAN.md -- Change VideoOutput fillMode to PreserveAspectFit + verify on Pi
 
-### Phase 03.5: Navbar Status Indicators (INSERTED)
+### Phase 03.5: Navbar Clock & Status Bar Cleanup (INSERTED)
 
-**Goal:** Add battery and signal strength indicators to the navbar, remove them from AA status bar via protocol flags
-**Requirements**: NAV-01, NAV-02, NAV-03, NAV-04, NAV-05, NAV-06
+**Goal:** Hide phone's clock from AA status bar via SDP when navbar is visible (navbar already has its own clock), update navbar zone proportions
+**Requirements**: NAV-01, NAV-02
 **Depends on:** Phase 03.4
 **Success Criteria** (what must be TRUE):
-  1. Phone battery level and signal strength are extracted from AA protocol and exposed as Q_PROPERTYs on the orchestrator
-  2. Battery and signal icons flank the clock in the navbar center zone during AA connection
-  3. Indicators disappear immediately on AA disconnect (no stale data)
-  4. SDP tells phone to hide its own clock, battery, and signal when navbar is visible during AA
-  5. Navbar zone proportions updated to 15/70/15 (volume/center/brightness)
-  6. Battery icon turns red below 20%; indicators work in horizontal and vertical orientations
-**Plans:** 1/2 plans executed
+  1. SDP tells phone to hide its clock when navbar is visible during AA; omits hidden_ui_elements when navbar is hidden
+  2. Navbar zone proportions updated to 20/60/20 (volume/center clock/brightness)
+**Plans:** 2/2 plans complete
 
 Plans:
-- [ ] 03.5-01-PLAN.md -- Protocol data extraction + orchestrator Q_PROPERTYs + SDP hidden_ui_elements + tests
-- [ ] 03.5-02-PLAN.md -- QML navbar layout + indicator icons + visual checkpoint
+- [x] 03.5-01-PLAN.md -- SDP hidden_ui_elements + battery/signal Q_PROPERTY infrastructure (data pipeline ready, but phone doesn't send battery/signal data)
+- [x] 03.5-02-PLAN.md -- Navbar zone proportions 20/60/20
+
+**Note:** Originally planned to show battery/signal indicators in the navbar. During UAT, discovered that the phone does not send battery or signal data to the headunit via AA protocol. Battery/signal indicators deferred to companion app integration.
 
 ### Phase 03.3: M3 Color Role Mapping Fix (INSERTED)
 
@@ -159,8 +157,8 @@ Plans:
 **Plans:** 2/2 plans complete
 
 Plans:
-- [ ] 03.3-01-PLAN.md -- Token removal (C++ Q_PROPERTYs + YAML cleanup) + bulk QML rename to M3 equivalents
-- [ ] 03.3-02-PLAN.md -- Surface container hierarchy + pressed/toggle state M3 patterns + visual verification
+- [x] 03.3-01-PLAN.md -- Token removal (C++ Q_PROPERTYs + YAML cleanup) + bulk QML rename to M3 equivalents
+- [x] 03.3-02-PLAN.md -- Surface container hierarchy + pressed/toggle state M3 patterns + visual verification
 
 ### Phase 03.1: get AA theme information working from stream (INSERTED)
 
@@ -191,12 +189,12 @@ Plans:
   4. AA wire token path (0x8011/0x8012) is disabled; companion is sole theme source
   5. Companion themes appear in theme picker; users can delete them but not bundled themes
   6. hello_ack contains display resolution for companion wallpaper cropping
-**Plans:** 3 plans
+**Plans:** 3/3 plans complete
 
 Plans:
 - [x] 03.2-01-PLAN.md -- ThemeService 34 M3 role expansion + bundled theme updates + import/delete methods
-- [ ] 03.2-02-PLAN.md -- Companion protocol handler + display info + AA wire disable
-- [ ] 03.2-03-PLAN.md -- Theme deletion UI + settings integration + human verification
+- [x] 03.2-02-PLAN.md -- Companion protocol handler + display info + AA wire disable
+- [x] 03.2-03-PLAN.md -- Theme deletion UI + settings integration + human verification
 
 ### Phase 4: Visual Depth
 **Goal**: Buttons and navbar have subtle physical depth that makes the UI feel polished
@@ -206,7 +204,13 @@ Plans:
   1. Buttons across the app (settings tiles, launcher tiles, dialog actions) have a visible but subtle 3D effect (shadow, gradient, or bevel) in their resting state
   2. Button press state visibly changes the depth effect (pressed-in appearance) in addition to existing scale+opacity feedback
   3. Navbar has a depth treatment (drop shadow, gradient border, or elevation) that visually separates it from the content area
-**Plans**: TBD
+**Plans:** 4 plans
+
+Plans:
+- [ ] 04-01-PLAN.md -- Qt 6.8 upgrade on dev VM + QT_VERSION guard removal
+- [ ] 04-02-PLAN.md -- M3 button components (ElevatedButton, FilledButton, OutlinedButton)
+- [ ] 04-03-PLAN.md -- Migrate all existing buttons to M3 depth patterns
+- [ ] 04-04-PLAN.md -- Navbar gradient fade + barShadow removal + Pi verification
 
 ## Progress
 
@@ -217,13 +221,13 @@ Phases execute in numeric order: 1 -> 2 -> 3 -> 3.1 -> 3.2 -> 3.3 -> 3.4 -> 3.5 
 |-------|----------------|--------|-----------|
 | 1. DPI Foundation | 3/3 | Complete   | 2026-03-08 |
 | 2. Clock & Scale Control | 2/2 | Complete   | 2026-03-08 |
-| 3. Theme Color System | 2/3 | In Progress|  |
+| 3. Theme Color System | 3/3 | Complete   | 2026-03-09 |
 | 3.1 AA Theme Stream | 2/2 | Complete | 2026-03-08 |
-| 3.2 Companion Theme Import | 2/3 | In Progress|  |
+| 3.2 Companion Theme Import | 3/3 | Complete   | 2026-03-09 |
 | 3.3 M3 Color Role Mapping | 2/2 | Complete   | 2026-03-09 |
 | 3.4 Fix AA Rendering | 1/1 | Complete | 2026-03-09 |
-| 3.5 Navbar Status Indicators | 0/2 | Not started | - |
-| 4. Visual Depth | 0/? | Not started | - |
+| 3.5 Navbar Clock & Status Bar | 2/2 | Complete   | 2026-03-10 |
+| 4. Visual Depth | 0/4 | Not started | - |
 
 ---
-*Last updated: 2026-03-09 -- Phase 03.5 planned (navbar status indicators)*
+*Last updated: 2026-03-10 -- Phase 03.5 complete (rescoped: clock hiding + zone proportions only)*

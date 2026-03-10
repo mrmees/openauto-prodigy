@@ -2,16 +2,16 @@
 gsd_state_version: 1.0
 milestone: v0.5
 milestone_name: milestone
-status: verifying
-stopped_at: Phase 03.5 context gathered
-last_updated: "2026-03-09T23:13:17.000Z"
-last_activity: 2026-03-09 -- Plan 03.5-01 complete (AA status data pipeline)
+status: completed
+stopped_at: Completed 03.5-02-PLAN.md
+last_updated: "2026-03-10T01:45:26.108Z"
+last_activity: 2026-03-10 -- Plan 03.5-02 complete (navbar zone proportions 20/60/20)
 progress:
   total_phases: 9
-  completed_phases: 5
-  total_plans: 16
-  completed_plans: 15
-  percent: 94
+  completed_phases: 6
+  total_plans: 18
+  completed_plans: 16
+  percent: 89
 ---
 
 # Project State
@@ -25,19 +25,19 @@ See: .planning/PROJECT.md (updated 2026-03-08)
 
 ## Current Position
 
-Phase: 3.5 of 5 (Navbar Status Indicators)
-Plan: 1 of 2 (in progress)
-Status: Plan 03.5-01 complete -- AA status data pipeline (battery/signal Q_PROPERTYs + SDP hidden_ui_elements)
-Last activity: 2026-03-09 -- Plan 03.5-01 complete (protocol data extraction + icon mapping + SDP config)
+Phase: 3.5 of 5 (Navbar Status Indicators) -- COMPLETE
+Plan: 2 of 2 (complete)
+Status: Phase 03.5 complete -- navbar zone proportions updated to 20/60/20
+Last activity: 2026-03-10 -- Plan 03.5-02 complete (navbar zone proportions 20/60/20)
 
-Progress: [█████████░] 94%
+Progress: [█████████░] 89%
 
 ## Performance Metrics
 
 **Velocity:**
-- Total plans completed: 15
+- Total plans completed: 16
 - Average duration: 5 min
-- Total execution time: 1.06 hours
+- Total execution time: 1.09 hours
 
 ## Accumulated Context
 
@@ -86,6 +86,7 @@ Decisions are logged in PROJECT.md Key Decisions table.
 - (03.5-01) Signal strength requires submodule change (3 lines in PhoneStatusChannelHandler) -- noted for upstream push
 - (03.5-01) hidden_ui_elements ONLY on AdditionalVideoConfig (no ui_theme -- breaks margins)
 - (03.5-01) -1 sentinel for "no data" on phone status properties (0 is valid battery/signal)
+- (03.5-02) 20/60/20 proportions chosen to maximize clock glanceability now that phone clock is hidden via SDP
 
 ### Pending Todos
 
@@ -105,5 +106,5 @@ None yet.
 
 ## Session Continuity
 
-Last session: 2026-03-09T23:13:17.000Z
-Stopped at: Completed 03.5-01-PLAN.md
+Last session: 2026-03-10T01:45:26.106Z
+Stopped at: Completed 03.5-02-PLAN.md
