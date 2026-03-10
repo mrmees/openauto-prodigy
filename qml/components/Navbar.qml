@@ -67,7 +67,7 @@ Item {
             iconText: navbar.control0Icon
             showClock: false
             isVertical: false
-            width: parent.width * 0.25
+            width: parent.width * 0.20
             height: parent.height
         }
         NavbarControl {
@@ -75,7 +75,7 @@ Item {
             controlIndex: 1
             showClock: true
             isVertical: false
-            width: parent.width * 0.50
+            width: parent.width * 0.60
             height: parent.height
         }
         NavbarControl {
@@ -84,7 +84,7 @@ Item {
             iconText: navbar.control2Icon
             showClock: false
             isVertical: false
-            width: parent.width * 0.25
+            width: parent.width * 0.20
             height: parent.height
         }
     }
@@ -102,7 +102,7 @@ Item {
             showClock: false
             isVertical: true
             width: parent.width
-            height: parent.height * 0.25
+            height: parent.height * 0.20
         }
         NavbarControl {
             id: vControl1
@@ -110,7 +110,7 @@ Item {
             showClock: true
             isVertical: true
             width: parent.width
-            height: parent.height * 0.50
+            height: parent.height * 0.60
         }
         NavbarControl {
             id: vControl2
@@ -119,7 +119,7 @@ Item {
             showClock: false
             isVertical: true
             width: parent.width
-            height: parent.height * 0.25
+            height: parent.height * 0.20
         }
     }
 
