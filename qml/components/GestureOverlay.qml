@@ -1,5 +1,6 @@
 import QtQuick
 import QtQuick.Controls
+import QtQuick.Effects
 import QtQuick.Layouts
 
 /// Translucent overlay shown when a 3-finger tap gesture is detected.
@@ -55,27 +56,49 @@ Rectangle {
         }
     }
 
-    // Transparent touch sink — absorbs taps but does NOT dismiss
+    // Transparent touch sink -- absorbs taps but does NOT dismiss
     MouseArea {
         anchors.fill: parent
     }
 
-    // Control panel (centered)
-    Rectangle {
-        objectName: "overlayPanel"
+    // Control panel (centered) with Level 3 elevation
+    Item {
         anchors.centerIn: parent
         width: Math.min(parent.width * 0.7, Math.round(500 * UiMetrics.scale))
         height: controlsLayout.implicitHeight + Math.round(48 * UiMetrics.scale)
-        radius: UiMetrics.radiusLarge
-        color: Qt.rgba(ThemeService.surfaceContainerHighest.r, ThemeService.surfaceContainerHighest.g, ThemeService.surfaceContainerHighest.b, 0.87)
-        border.color: ThemeService.outline
-        border.width: 2
+
+        // Surface tint: blend 7% primary into surfaceContainerHighest
+        Rectangle {
+            id: panelBg
+            anchors.fill: parent
+            radius: UiMetrics.radiusLarge
+            color: Qt.rgba(
+                ThemeService.surfaceContainerHighest.r * 0.93 + ThemeService.primary.r * 0.07,
+                ThemeService.surfaceContainerHighest.g * 0.93 + ThemeService.primary.g * 0.07,
+                ThemeService.surfaceContainerHighest.b * 0.93 + ThemeService.primary.b * 0.07,
+                0.87)
+            layer.enabled: true
+            visible: false
+        }
+
+        MultiEffect {
+            source: panelBg
+            anchors.fill: panelBg
+            shadowEnabled: true
+            shadowColor: ThemeService.shadow
+            shadowBlur: 0.70
+            shadowVerticalOffset: 6
+            shadowOpacity: 0.35
+            shadowHorizontalOffset: 0
+            shadowScale: 1.0
+            autoPaddingEnabled: true
+        }
 
         // Block clicks from passing through the panel
         MouseArea {
             anchors.fill: parent
             onClicked: {
-                // consume — don't dismiss
+                // consume -- don't dismiss
             }
         }
 
@@ -169,88 +192,40 @@ Rectangle {
                 Layout.alignment: Qt.AlignHCenter
                 spacing: UiMetrics.sectionGap
 
-                Button {
+                ElevatedButton {
                     objectName: "overlayHomeBtn"
-                    font.pixelSize: UiMetrics.fontSmall
-                    enabled: overlay.acceptInput
+                    text: "Home"
+                    iconCode: "\ue9b2"
+                    buttonEnabled: overlay.acceptInput
+                    implicitWidth: UiMetrics.overlayBtnW
+                    implicitHeight: UiMetrics.overlayBtnH
                     onClicked: {
                         ActionRegistry.dispatch("app.home")
                         overlay.dismiss()
                     }
-                    contentItem: RowLayout {
-                        spacing: UiMetrics.spacing
-                        MaterialIcon {
-                            icon: "\ue9b2"  // home
-                            size: UiMetrics.iconSmall
-                            color: ThemeService.onSurface
-                        }
-                        Text {
-                            text: "Home"
-                            font.pixelSize: UiMetrics.fontSmall
-                            color: ThemeService.onSurface
-                        }
-                    }
-                    background: Rectangle {
-                        color: parent.pressed ? ThemeService.primaryContainer : ThemeService.surfaceContainerLow
-                        radius: UiMetrics.radiusSmall
-                        implicitWidth: UiMetrics.overlayBtnW
-                        implicitHeight: UiMetrics.overlayBtnH
-                    }
                 }
 
-                Button {
+                ElevatedButton {
                     objectName: "overlayThemeBtn"
-                    font.pixelSize: UiMetrics.fontSmall
-                    enabled: overlay.acceptInput
+                    text: ThemeService.nightMode ? "Day" : "Night"
+                    iconCode: ThemeService.nightMode ? "\ue518" : "\ue51c"
+                    buttonEnabled: overlay.acceptInput
+                    implicitWidth: UiMetrics.overlayBtnW
+                    implicitHeight: UiMetrics.overlayBtnH
                     onClicked: {
                         ActionRegistry.dispatch("theme.toggle")
                         dismissTimer.restart()
                     }
-                    contentItem: RowLayout {
-                        spacing: UiMetrics.spacing
-                        MaterialIcon {
-                            icon: ThemeService.nightMode ? "\ue518" : "\ue51c"  // light_mode / dark_mode
-                            size: UiMetrics.iconSmall
-                            color: ThemeService.onSurface
-                        }
-                        Text {
-                            text: ThemeService.nightMode ? "Day" : "Night"
-                            font.pixelSize: UiMetrics.fontSmall
-                            color: ThemeService.onSurface
-                        }
-                    }
-                    background: Rectangle {
-                        color: parent.pressed ? ThemeService.primaryContainer : ThemeService.surfaceContainerLow
-                        radius: UiMetrics.radiusSmall
-                        implicitWidth: UiMetrics.overlayBtnW
-                        implicitHeight: UiMetrics.overlayBtnH
-                    }
                 }
 
-                Button {
+                ElevatedButton {
                     objectName: "overlayCloseBtn"
-                    font.pixelSize: UiMetrics.fontSmall
-                    enabled: overlay.acceptInput
+                    text: "Close"
+                    iconCode: "\ue5cd"
+                    buttonEnabled: overlay.acceptInput
+                    implicitWidth: UiMetrics.overlayBtnW
+                    implicitHeight: UiMetrics.overlayBtnH
                     onClicked: overlay.dismiss()
-                    contentItem: RowLayout {
-                        spacing: UiMetrics.spacing
-                        MaterialIcon {
-                            icon: "\ue5cd"  // close
-                            size: UiMetrics.iconSmall
-                            color: ThemeService.onSurface
-                        }
-                        Text {
-                            text: "Close"
-                            font.pixelSize: UiMetrics.fontSmall
-                            color: ThemeService.onSurface
-                        }
-                    }
-                    background: Rectangle {
-                        color: parent.pressed ? ThemeService.primaryContainer : ThemeService.surfaceContainerLow
-                        radius: UiMetrics.radiusSmall
-                        implicitWidth: UiMetrics.overlayBtnW
-                        implicitHeight: UiMetrics.overlayBtnH
-                    }
                 }
             }
         }

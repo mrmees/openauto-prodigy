@@ -1,4 +1,5 @@
 import QtQuick
+import QtQuick.Effects
 import QtQuick.Layouts
 
 /// Popup slider for volume or brightness, anchored to a navbar control.
@@ -12,7 +13,7 @@ Item {
     property string navbarEdge: "bottom"
     property int popupGeneration: -1
 
-    // Popup dimensions — full screen height for easy touch target
+    // Popup dimensions -- full screen height for easy touch target
     readonly property int popupW: UiMetrics.touchMin * 3
     readonly property int popupH: root.parent ? root.parent.height : Math.round(400 * UiMetrics.scale)
     readonly property int sliderTrackW: Math.round(UiMetrics.trackThick * 2.5)
@@ -73,94 +74,112 @@ Item {
     readonly property int minVal: root.isVolume ? 0 : 5
     readonly property int maxVal: 100
 
-    // Background
+    // Background with Level 3 elevation + surface tint
     Rectangle {
+        id: popupBg
         anchors.fill: parent
-        color: navbar.aaActive ? "#1A1A1A" : ThemeService.surfaceContainerHigh
         radius: UiMetrics.radius
-        border.color: navbar.aaActive ? "#333333" : ThemeService.outlineVariant
-        border.width: 1
+        color: navbar.aaActive ? "#1A1A1A" : Qt.rgba(
+            ThemeService.surfaceContainerHigh.r * 0.93 + ThemeService.primary.r * 0.07,
+            ThemeService.surfaceContainerHigh.g * 0.93 + ThemeService.primary.g * 0.07,
+            ThemeService.surfaceContainerHigh.b * 0.93 + ThemeService.primary.b * 0.07,
+            1.0)
+        layer.enabled: true
+        visible: false
+    }
 
-        // Prevent tap-through
-        MouseArea {
-            anchors.fill: parent
-            onPressed: function(mouse) { mouse.accepted = true }
+    MultiEffect {
+        source: popupBg
+        anchors.fill: popupBg
+        shadowEnabled: true
+        shadowColor: ThemeService.shadow
+        shadowBlur: 0.70
+        shadowVerticalOffset: 6
+        shadowOpacity: 0.35
+        shadowHorizontalOffset: 0
+        shadowScale: 1.0
+        autoPaddingEnabled: true
+    }
+
+    // Prevent tap-through
+    MouseArea {
+        anchors.fill: parent
+        onPressed: function(mouse) { mouse.accepted = true }
+    }
+
+    ColumnLayout {
+        anchors.fill: parent
+        anchors.margins: UiMetrics.marginRow
+        spacing: UiMetrics.spacing
+
+        // Value label
+        Text {
+            Layout.alignment: Qt.AlignHCenter
+            Layout.topMargin: UiMetrics.spacing
+            text: root.currentValue
+            font.pixelSize: UiMetrics.fontHeading
+            font.bold: true
+            color: navbar.barFg
         }
 
-        ColumnLayout {
-            anchors.fill: parent
-            anchors.margins: UiMetrics.marginRow
-            spacing: UiMetrics.spacing
+        // Slider track area -- with vertical padding so knob doesn't clip
+        Item {
+            Layout.fillWidth: true
+            Layout.fillHeight: true
+            Layout.topMargin: root.knobDiameter / 2
+            Layout.bottomMargin: root.knobDiameter / 2 + UiMetrics.spacing
 
-            // Value label
-            Text {
-                Layout.alignment: Qt.AlignHCenter
-                Layout.topMargin: UiMetrics.spacing
-                text: root.currentValue
-                font.pixelSize: UiMetrics.fontHeading
-                font.bold: true
-                color: navbar.barFg
+            // Track background
+            Rectangle {
+                anchors.horizontalCenter: parent.horizontalCenter
+                anchors.top: parent.top
+                anchors.bottom: parent.bottom
+                width: root.sliderTrackW
+                radius: root.sliderTrackW / 2
+                color: navbar.aaActive ? "#333333" : ThemeService.surfaceContainerLow
+
+                // Filled portion (from bottom)
+                Rectangle {
+                    anchors.horizontalCenter: parent.horizontalCenter
+                    anchors.bottom: parent.bottom
+                    width: parent.width
+                    height: parent.height * (root.currentValue - root.minVal) / (root.maxVal - root.minVal)
+                    radius: parent.radius
+                    color: navbar.aaActive ? "#FFFFFF" : ThemeService.primary
+                }
             }
 
-            // Slider track area — with vertical padding so knob doesn't clip
-            Item {
-                Layout.fillWidth: true
-                Layout.fillHeight: true
-                Layout.topMargin: root.knobDiameter / 2
-                Layout.bottomMargin: root.knobDiameter / 2 + UiMetrics.spacing
+            // Knob
+            Rectangle {
+                id: knob
+                width: root.knobDiameter
+                height: root.knobDiameter
+                radius: root.knobDiameter / 2
+                color: navbar.aaActive ? "#FFFFFF" : ThemeService.primary
+                anchors.horizontalCenter: parent.horizontalCenter
+                y: parent.height - (parent.height * (root.currentValue - root.minVal) / (root.maxVal - root.minVal)) - root.knobDiameter / 2
+            }
 
-                // Track background
-                Rectangle {
-                    anchors.horizontalCenter: parent.horizontalCenter
-                    anchors.top: parent.top
-                    anchors.bottom: parent.bottom
-                    width: root.sliderTrackW
-                    radius: root.sliderTrackW / 2
-                    color: navbar.aaActive ? "#333333" : ThemeService.surfaceContainerLow
+            // Drag area -- extends beyond track for easy finger targeting
+            MouseArea {
+                anchors.fill: parent
+                anchors.margins: -UiMetrics.spacing
+                onPressed: function(mouse) { updateValue(mouse.y + UiMetrics.spacing) }
+                onPositionChanged: function(mouse) { updateValue(mouse.y + UiMetrics.spacing) }
 
-                    // Filled portion (from bottom)
-                    Rectangle {
-                        anchors.horizontalCenter: parent.horizontalCenter
-                        anchors.bottom: parent.bottom
-                        width: parent.width
-                        height: parent.height * (root.currentValue - root.minVal) / (root.maxVal - root.minVal)
-                        radius: parent.radius
-                        color: navbar.aaActive ? "#FFFFFF" : ThemeService.primary
+                function updateValue(mouseY) {
+                    var normalized = 1.0 - (mouseY / parent.height)
+                    normalized = Math.max(0.0, Math.min(1.0, normalized))
+                    var val = Math.round(root.minVal + normalized * (root.maxVal - root.minVal))
+                    if (root.isVolume) {
+                        if (typeof AudioService !== "undefined")
+                            AudioService.setMasterVolume(val)
+                    } else {
+                        if (typeof DisplayService !== "undefined")
+                            DisplayService.setBrightness(val)
                     }
-                }
-
-                // Knob
-                Rectangle {
-                    id: knob
-                    width: root.knobDiameter
-                    height: root.knobDiameter
-                    radius: root.knobDiameter / 2
-                    color: navbar.aaActive ? "#FFFFFF" : ThemeService.primary
-                    anchors.horizontalCenter: parent.horizontalCenter
-                    y: parent.height - (parent.height * (root.currentValue - root.minVal) / (root.maxVal - root.minVal)) - root.knobDiameter / 2
-                }
-
-                // Drag area — extends beyond track for easy finger targeting
-                MouseArea {
-                    anchors.fill: parent
-                    anchors.margins: -UiMetrics.spacing
-                    onPressed: function(mouse) { updateValue(mouse.y + UiMetrics.spacing) }
-                    onPositionChanged: function(mouse) { updateValue(mouse.y + UiMetrics.spacing) }
-
-                    function updateValue(mouseY) {
-                        var normalized = 1.0 - (mouseY / parent.height)
-                        normalized = Math.max(0.0, Math.min(1.0, normalized))
-                        var val = Math.round(root.minVal + normalized * (root.maxVal - root.minVal))
-                        if (root.isVolume) {
-                            if (typeof AudioService !== "undefined")
-                                AudioService.setMasterVolume(val)
-                        } else {
-                            if (typeof DisplayService !== "undefined")
-                                DisplayService.setBrightness(val)
-                        }
-                        // Reset auto-dismiss timer on interaction
-                        NavbarController.bumpPopupDismissTimer()
-                    }
+                    // Reset auto-dismiss timer on interaction
+                    NavbarController.bumpPopupDismissTimer()
                 }
             }
         }

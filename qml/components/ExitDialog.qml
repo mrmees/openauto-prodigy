@@ -1,4 +1,5 @@
 import QtQuick
+import QtQuick.Effects
 import QtQuick.Layouts
 import QtQuick.Controls
 
@@ -10,13 +11,33 @@ Popup {
     closePolicy: Popup.CloseOnEscape | Popup.CloseOnPressOutside
     padding: UiMetrics.gap
 
-    readonly property color dangerColor: ThemeService.error
+    background: Item {
+        // Surface tint: blend 7% primary into surfaceContainerHigh
+        Rectangle {
+            id: dialogBg
+            anchors.fill: parent
+            radius: UiMetrics.gap
+            color: Qt.rgba(
+                ThemeService.surfaceContainerHigh.r * 0.93 + ThemeService.primary.r * 0.07,
+                ThemeService.surfaceContainerHigh.g * 0.93 + ThemeService.primary.g * 0.07,
+                ThemeService.surfaceContainerHigh.b * 0.93 + ThemeService.primary.b * 0.07,
+                1.0)
+            layer.enabled: true
+            visible: false
+        }
 
-    background: Rectangle {
-        color: ThemeService.surfaceContainerHigh
-        radius: UiMetrics.gap
-        border.color: ThemeService.outline
-        border.width: 1
+        MultiEffect {
+            source: dialogBg
+            anchors.fill: dialogBg
+            shadowEnabled: true
+            shadowColor: ThemeService.shadow
+            shadowBlur: 0.70
+            shadowVerticalOffset: 6
+            shadowOpacity: 0.35
+            shadowHorizontalOffset: 0
+            shadowScale: 1.0
+            autoPaddingEnabled: true
+        }
     }
 
     contentItem: ColumnLayout {
@@ -32,75 +53,34 @@ Popup {
             Layout.bottomMargin: UiMetrics.spacing
         }
 
-        Button {
+        ElevatedButton {
             Layout.fillWidth: true
             Layout.preferredHeight: UiMetrics.touchMin
+            text: "Minimize"
+            iconCode: "\ue5cd"
             onClicked: {
                 exitDialog.close()
                 ApplicationController.minimize()
             }
-            contentItem: RowLayout {
-                spacing: UiMetrics.marginRow
-                Item { Layout.fillWidth: true }
-                MaterialIcon {
-                    icon: "\ue5cd"
-                    size: UiMetrics.iconSize
-                    color: ThemeService.onSurface
-                }
-                Text {
-                    text: "Minimize"
-                    font.pixelSize: UiMetrics.fontBody
-                    color: ThemeService.onSurface
-                }
-                Item { Layout.fillWidth: true }
-            }
-            background: Rectangle {
-                color: parent.pressed ? ThemeService.primaryContainer : ThemeService.surfaceContainerLow
-                radius: UiMetrics.radius
-            }
         }
 
-        Button {
+        FilledButton {
             Layout.fillWidth: true
             Layout.preferredHeight: UiMetrics.touchMin
+            text: "Close App"
+            iconCode: "\ue5cd"
+            buttonColor: ThemeService.error
+            pressedColor: Qt.darker(ThemeService.error, 1.15)
+            textColor: ThemeService.onError
+            pressedTextColor: ThemeService.onError
             onClicked: ApplicationController.quit()
-            contentItem: RowLayout {
-                spacing: UiMetrics.marginRow
-                Item { Layout.fillWidth: true }
-                MaterialIcon {
-                    icon: "\ue5cd"
-                    size: UiMetrics.iconSize
-                    color: exitDialog.dangerColor
-                }
-                Text {
-                    text: "Close App"
-                    font.pixelSize: UiMetrics.fontBody
-                    color: exitDialog.dangerColor
-                }
-                Item { Layout.fillWidth: true }
-            }
-            background: Rectangle {
-                color: parent.pressed ? exitDialog.dangerColor : ThemeService.surfaceContainerLow
-                radius: UiMetrics.radius
-                border.color: exitDialog.dangerColor
-                border.width: 1
-            }
         }
 
-        Button {
+        OutlinedButton {
             Layout.fillWidth: true
             Layout.preferredHeight: UiMetrics.touchMin
+            text: "Cancel"
             onClicked: exitDialog.close()
-            contentItem: Text {
-                text: "Cancel"
-                font.pixelSize: UiMetrics.fontBody
-                color: ThemeService.onSurface
-                horizontalAlignment: Text.AlignHCenter
-            }
-            background: Rectangle {
-                color: parent.pressed ? ThemeService.primaryContainer : ThemeService.surfaceContainerLow
-                radius: UiMetrics.radius
-            }
         }
     }
 }
