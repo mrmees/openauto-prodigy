@@ -32,9 +32,9 @@ Item {
                          && ApplicationController.currentApplication !== 6
             }
 
-            // Launcher is shown when no plugin view is loaded and not in a built-in screen
-            LauncherMenu {
-                id: launcherView
+            // Home screen with widget panes and launcher dock
+            HomeMenu {
+                id: homeView
                 anchors.fill: parent
                 visible: !PluginModel.activePluginId
                          && ApplicationController.currentApplication !== 6

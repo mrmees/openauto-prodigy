@@ -206,6 +206,14 @@ set_source_files_properties(../qml/components/ExitDialog.qml PROPERTIES
     QT_QML_SOURCE_TYPENAME "ExitDialog"
     QT_RESOURCE_ALIAS "ExitDialog.qml"
 )
+set_source_files_properties(../qml/components/WidgetHost.qml PROPERTIES
+    QT_QML_SOURCE_TYPENAME "WidgetHost"
+    QT_RESOURCE_ALIAS "WidgetHost.qml"
+)
+set_source_files_properties(../qml/components/LauncherDock.qml PROPERTIES
+    QT_QML_SOURCE_TYPENAME "LauncherDock"
+    QT_RESOURCE_ALIAS "LauncherDock.qml"
+)
 set_source_files_properties(../qml/applications/launcher/LauncherMenu.qml PROPERTIES
     QT_QML_SOURCE_TYPENAME "LauncherMenu"
     QT_RESOURCE_ALIAS "LauncherMenu.qml"
@@ -304,6 +312,8 @@ qt_add_qml_module(openauto-prodigy
         ../qml/components/FirstRunBanner.qml
         ../qml/components/NotificationArea.qml
         ../qml/components/ExitDialog.qml
+        ../qml/components/WidgetHost.qml
+        ../qml/components/LauncherDock.qml
         ../qml/applications/launcher/LauncherMenu.qml
         ../qml/applications/android_auto/AndroidAutoMenu.qml
         ../qml/applications/settings/SettingsMenu.qml
