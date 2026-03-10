@@ -31,14 +31,13 @@ Item {
         opacity: 0.5
     }
 
-    // Long-press detector overlay
+    // Long-press detector — sits behind widget content.
+    // Widget MouseAreas (e.g. AA Status tap-to-connect) take priority.
+    // Empty panes and non-interactive widgets fall through to this.
     MouseArea {
         anchors.fill: parent
+        z: -1
         pressAndHoldInterval: 500
-        propagateComposedEvents: true
         onPressAndHold: widgetHost.longPressed()
-        onClicked: function(mouse) { mouse.accepted = false }
-        onPressed: function(mouse) { mouse.accepted = false }
-        onReleased: function(mouse) { mouse.accepted = false }
     }
 }

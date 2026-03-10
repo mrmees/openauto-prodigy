@@ -222,14 +222,17 @@ set_source_files_properties(../qml/components/WidgetPicker.qml PROPERTIES
 set_source_files_properties(../qml/widgets/ClockWidget.qml PROPERTIES
     QT_QML_SOURCE_TYPENAME "ClockWidget"
     QT_RESOURCE_ALIAS "ClockWidget.qml"
+    QT_QML_SKIP_CACHEGEN TRUE
 )
 set_source_files_properties(../qml/widgets/AAStatusWidget.qml PROPERTIES
     QT_QML_SOURCE_TYPENAME "AAStatusWidget"
     QT_RESOURCE_ALIAS "AAStatusWidget.qml"
+    QT_QML_SKIP_CACHEGEN TRUE
 )
 set_source_files_properties(../qml/widgets/NowPlayingWidget.qml PROPERTIES
     QT_QML_SOURCE_TYPENAME "NowPlayingWidget"
     QT_RESOURCE_ALIAS "NowPlayingWidget.qml"
+    QT_QML_SKIP_CACHEGEN TRUE
 )
 set_source_files_properties(../qml/applications/launcher/LauncherMenu.qml PROPERTIES
     QT_QML_SOURCE_TYPENAME "LauncherMenu"
