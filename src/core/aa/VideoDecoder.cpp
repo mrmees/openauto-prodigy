@@ -1,9 +1,6 @@
 #include "VideoDecoder.hpp"
 #include "../../core/YamlConfig.hpp"
-
-#if QT_VERSION >= QT_VERSION_CHECK(6,8,0)
 #include "DmaBufVideoBuffer.hpp"
-#endif
 
 #include <QMetaObject>
 #include "../Logging.hpp"
@@ -385,25 +382,6 @@ void VideoDecoder::processFrame(const QByteArray& h264Data, qint64 enqueueTimeNs
 
             auto t_decodeDone = PerfStats::Clock::now();
 
-            // Transfer DRM_PRIME (hw) frames to CPU when DmaBufVideoBuffer is
-            // unavailable (Qt < 6.8).  The RPi FFmpeg fork (--enable-sand) handles
-            // Sand/NC12 → YUV420P conversion during the transfer.
-#if QT_VERSION < QT_VERSION_CHECK(6,8,0)
-            if (frame_->format == AV_PIX_FMT_DRM_PRIME) {
-                AVFrame* swFrame = av_frame_alloc();
-                if (av_hwframe_transfer_data(swFrame, frame_, 0) >= 0) {
-                    av_frame_unref(frame_);
-                    av_frame_move_ref(frame_, swFrame);
-                    av_frame_free(&swFrame);
-                } else {
-                    qCWarning(lcAA) << "Failed to transfer hw frame to CPU";
-                    av_frame_free(&swFrame);
-                    av_frame_unref(frame_);
-                    continue;
-                }
-            }
-#endif
-
             // Got a decoded frame — convert to QVideoFrame
             // Accept both YUV420P (limited range) and YUVJ420P (full/JPEG range) —
             // same pixel layout, different color range convention
@@ -416,7 +394,6 @@ void VideoDecoder::processFrame(const QByteArray& h264Data, qint64 enqueueTimeNs
             bool frameDelivered = false;
             auto t_copyDone = t_decodeDone;  // default for zero-copy path
 
-#if QT_VERSION >= QT_VERSION_CHECK(6,8,0)
             if (sink && frame_->format == AV_PIX_FMT_DRM_PRIME) {
                 // Zero-copy hardware path: wrap DRM_PRIME frame in QAbstractVideoBuffer.
                 // Qt 6.8 takes ownership via unique_ptr; format() is provided by the buffer.
@@ -434,9 +411,7 @@ void VideoDecoder::processFrame(const QByteArray& h264Data, qint64 enqueueTimeNs
                 emit frameReady();
                 frameDelivered = true;
             }
-            else
-#endif
-            if (sink && (frame_->format == AV_PIX_FMT_YUV420P ||
+            else if (sink && (frame_->format == AV_PIX_FMT_YUV420P ||
                                frame_->format == AV_PIX_FMT_YUVJ420P)) {
                 // Create or reset frame pool on first frame or resolution change
                 if (!framePool_ ||
@@ -457,8 +432,7 @@ void VideoDecoder::processFrame(const QByteArray& h264Data, qint64 enqueueTimeNs
                 const int chromaH = h / 2;
                 const int chromaW = w / 2;
 
-#if QT_VERSION >= QT_VERSION_CHECK(6,8,0)
-                // Qt 6.8+: Recycled buffer path — pool manages raw memory,
+                // Recycled buffer path — pool manages raw memory,
                 // destructor returns it when Qt's render thread is done.
                 // Tightly packed strides (no alignment padding).
                 QVideoFrame videoFrame = framePool_->acquireRecycled();
@@ -470,16 +444,6 @@ void VideoDecoder::processFrame(const QByteArray& h264Data, qint64 enqueueTimeNs
                     const int yDstStride = videoFrame.bytesPerLine(0);  // == w
                     const int uDstStride = videoFrame.bytesPerLine(1);  // == w/2
                     const int vDstStride = videoFrame.bytesPerLine(2);  // == w/2
-#else
-                QVideoFrame videoFrame = framePool_->acquire();
-                if (videoFrame.map(QVideoFrame::WriteOnly)) {
-                    uint8_t* yDst = videoFrame.bits(0);
-                    uint8_t* uDst = videoFrame.bits(1);
-                    uint8_t* vDst = videoFrame.bits(2);
-                    const int yDstStride = videoFrame.bytesPerLine(0);
-                    const int uDstStride = videoFrame.bytesPerLine(1);
-                    const int vDstStride = videoFrame.bytesPerLine(2);
-#endif
                     // Y plane — bulk copy if strides match
                     if (yDstStride == frame_->linesize[0]) {
                         std::memcpy(yDst, frame_->data[0], frame_->linesize[0] * h);

@@ -1,7 +1,5 @@
 #include "DmaBufVideoBuffer.hpp"
 
-#if QT_VERSION >= QT_VERSION_CHECK(6,8,0)
-
 extern "C" {
 #include <libavutil/hwcontext.h>
 #include <libavutil/imgutils.h>
@@ -75,5 +73,3 @@ void DmaBufVideoBuffer::unmap()
 
 } // namespace aa
 } // namespace oap
-
-#endif // QT_VERSION >= QT_VERSION_CHECK(6,8,0)
