@@ -14,8 +14,6 @@ Item {
     readonly property bool aaActive: PluginModel.activePluginId === "org.openauto.android-auto"
     readonly property color barBg: aaActive ? "#000000" : ThemeService.surfaceContainer
     readonly property color barFg: aaActive ? "#FFFFFF" : ThemeService.onSurface
-    readonly property color barShadowColor: aaActive ? "#000000" : ThemeService.barShadow
-
     // Hidden during fullscreen plugin (AA)
     visible: !PluginModel.activePluginFullscreen
     z: 100
@@ -39,12 +37,87 @@ Item {
     readonly property bool control0IsVolume: NavbarController.leftHandDrive
     readonly property bool control2IsVolume: !NavbarController.leftHandDrive
 
-    // --- Shadow ---
+    // --- Gradient fade (replaces old 1px barShadow border) ---
+    // Renders outside the navbar on its content-facing edge.
+    // Parented to navbar.parent so it draws in the content area.
     Rectangle {
-        id: shadow
-        anchors.fill: barBackground
-        color: navbar.barShadowColor
-        radius: 0
+        id: navGradient
+        visible: navbar.visible && !navbar.aaActive
+        z: 99  // Just below navbar (z:100)
+        parent: navbar.parent
+
+        gradient: Gradient {
+            orientation: navbar.isVertical ? Gradient.Horizontal : Gradient.Vertical
+            GradientStop {
+                id: gradStop0
+                position: 0.0
+                color: Qt.rgba(navbar.barBg.r, navbar.barBg.g, navbar.barBg.b, 0.6)
+            }
+            GradientStop {
+                id: gradStop1
+                position: 1.0
+                color: "transparent"
+            }
+        }
+
+        states: [
+            State {
+                name: "bottom"
+                when: navbar.edge === "bottom"
+                PropertyChanges {
+                    target: navGradient
+                    x: navbar.x
+                    y: navbar.y - Math.round(6 * UiMetrics.scale)
+                    width: navbar.width
+                    height: Math.round(6 * UiMetrics.scale)
+                }
+                // Gradient: navbar color at bottom (pos 1.0), transparent at top (pos 0.0)
+                PropertyChanges { target: gradStop0; color: "transparent" }
+                PropertyChanges { target: gradStop1; color: Qt.rgba(navbar.barBg.r, navbar.barBg.g, navbar.barBg.b, 0.6) }
+            },
+            State {
+                name: "top"
+                when: navbar.edge === "top"
+                PropertyChanges {
+                    target: navGradient
+                    x: navbar.x
+                    y: navbar.y + navbar.height
+                    width: navbar.width
+                    height: Math.round(6 * UiMetrics.scale)
+                }
+                // Gradient: navbar color at top (pos 0.0), transparent at bottom (pos 1.0)
+                PropertyChanges { target: gradStop0; color: Qt.rgba(navbar.barBg.r, navbar.barBg.g, navbar.barBg.b, 0.6) }
+                PropertyChanges { target: gradStop1; color: "transparent" }
+            },
+            State {
+                name: "left"
+                when: navbar.edge === "left"
+                PropertyChanges {
+                    target: navGradient
+                    x: navbar.x + navbar.width
+                    y: navbar.y
+                    width: Math.round(6 * UiMetrics.scale)
+                    height: navbar.height
+                }
+                // Gradient: navbar color at left (pos 0.0), transparent at right (pos 1.0)
+                PropertyChanges { target: gradStop0; color: Qt.rgba(navbar.barBg.r, navbar.barBg.g, navbar.barBg.b, 0.6) }
+                PropertyChanges { target: gradStop1; color: "transparent" }
+            },
+            State {
+                name: "right"
+                when: navbar.edge === "right"
+                PropertyChanges {
+                    target: navGradient
+                    x: navbar.x - Math.round(6 * UiMetrics.scale)
+                    y: navbar.y
+                    width: Math.round(6 * UiMetrics.scale)
+                    height: navbar.height
+                }
+                // Gradient: navbar color at right (pos 1.0), transparent at left (pos 0.0)
+                PropertyChanges { target: gradStop0; color: "transparent" }
+                PropertyChanges { target: gradStop1; color: Qt.rgba(navbar.barBg.r, navbar.barBg.g, navbar.barBg.b, 0.6) }
+            }
+        ]
     }
 
     // --- Background ---
@@ -232,44 +305,28 @@ Item {
                         { label: "Quit", icon: "\ue5cd", action: "quit" }
                     ]
 
-                    Rectangle {
+                    ElevatedButton {
                         width: powerMenuBg.width - UiMetrics.spacing * 2
                         height: UiMetrics.touchMin
-                        radius: UiMetrics.radiusSmall
-                        color: pmMouseArea.pressed ? (navbar.aaActive ? "#333333" : ThemeService.primaryContainer) : "transparent"
+                        text: modelData.label
+                        iconCode: modelData.icon
+                        buttonScale: 0.97
+                        buttonColor: navbar.aaActive ? "#1A1A1A" : ThemeService.surfaceContainerLow
+                        pressedColor: navbar.aaActive ? "#333333" : ThemeService.primaryContainer
+                        textColor: navbar.barFg
+                        pressedTextColor: navbar.barFg
+                        elevation: 2
 
-                        Row {
-                            anchors.centerIn: parent
-                            spacing: UiMetrics.spacing
-
-                            MaterialIcon {
-                                icon: modelData.icon
-                                size: UiMetrics.iconSize
-                                color: navbar.barFg
-                                anchors.verticalCenter: parent.verticalCenter
-                            }
-                            Text {
-                                text: modelData.label
-                                font.pixelSize: UiMetrics.fontBody
-                                color: navbar.barFg
-                                anchors.verticalCenter: parent.verticalCenter
-                            }
-                        }
-
-                        MouseArea {
-                            id: pmMouseArea
-                            anchors.fill: parent
-                            onClicked: {
-                                NavbarController.hidePopup()
-                                Qt.callLater(function() {
-                                    if (modelData.action === "minimize")
-                                        ApplicationController.minimize()
-                                    else if (modelData.action === "restart")
-                                        ApplicationController.restart()
-                                    else if (modelData.action === "quit")
-                                        ApplicationController.quit()
-                                })
-                            }
+                        onClicked: {
+                            NavbarController.hidePopup()
+                            Qt.callLater(function() {
+                                if (modelData.action === "minimize")
+                                    ApplicationController.minimize()
+                                else if (modelData.action === "restart")
+                                    ApplicationController.restart()
+                                else if (modelData.action === "quit")
+                                    ApplicationController.quit()
+                            })
                         }
                     }
                 }
