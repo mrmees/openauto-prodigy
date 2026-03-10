@@ -123,16 +123,33 @@ Item {
         }
     }
 
-    // Widget picker (Task 9 placeholder — just the Loader)
+    // Widget picker overlay
     Loader {
         id: widgetPicker
         anchors.fill: parent
         active: false
+        z: 50
         property string targetPaneId: ""
 
         function openForPane(paneId) {
             targetPaneId = paneId
+            // Filter picker model for pane size
+            var sizeFlag = (paneId === "main") ? 1 : 2  // WidgetSize::Main=1, Sub=2
+            WidgetPickerModel.filterForSize(sizeFlag)
             active = true
+        }
+
+        sourceComponent: WidgetPicker {
+            targetPaneId: widgetPicker.targetPaneId
+            onWidgetSelected: function(widgetId) {
+                WidgetPlacementModel.swapWidget(widgetPicker.targetPaneId, widgetId)
+                widgetPicker.active = false
+            }
+            onCleared: {
+                WidgetPlacementModel.clearPane(widgetPicker.targetPaneId)
+                widgetPicker.active = false
+            }
+            onCancelled: widgetPicker.active = false
         }
     }
 }

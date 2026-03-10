@@ -54,6 +54,7 @@ add_library(openauto-core STATIC
     core/widget/WidgetRegistry.cpp
     ui/WidgetInstanceContext.cpp
     ui/WidgetPlacementModel.cpp
+    ui/WidgetPickerModel.cpp
     ${CMAKE_SOURCE_DIR}/libs/qrcodegen/qrcodegen.cpp
 )
 
@@ -214,6 +215,10 @@ set_source_files_properties(../qml/components/LauncherDock.qml PROPERTIES
     QT_QML_SOURCE_TYPENAME "LauncherDock"
     QT_RESOURCE_ALIAS "LauncherDock.qml"
 )
+set_source_files_properties(../qml/components/WidgetPicker.qml PROPERTIES
+    QT_QML_SOURCE_TYPENAME "WidgetPicker"
+    QT_RESOURCE_ALIAS "WidgetPicker.qml"
+)
 set_source_files_properties(../qml/applications/launcher/LauncherMenu.qml PROPERTIES
     QT_QML_SOURCE_TYPENAME "LauncherMenu"
     QT_RESOURCE_ALIAS "LauncherMenu.qml"
@@ -314,6 +319,7 @@ qt_add_qml_module(openauto-prodigy
         ../qml/components/ExitDialog.qml
         ../qml/components/WidgetHost.qml
         ../qml/components/LauncherDock.qml
+        ../qml/components/WidgetPicker.qml
         ../qml/applications/launcher/LauncherMenu.qml
         ../qml/applications/android_auto/AndroidAutoMenu.qml
         ../qml/applications/settings/SettingsMenu.qml

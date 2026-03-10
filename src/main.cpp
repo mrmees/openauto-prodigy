@@ -49,6 +49,7 @@
 #include "core/widget/WidgetRegistry.hpp"
 #include "core/widget/WidgetTypes.hpp"
 #include "ui/WidgetPlacementModel.hpp"
+#include "ui/WidgetPickerModel.hpp"
 #include <QQuickWindow>
 #include <algorithm>
 
@@ -344,7 +345,7 @@ int main(int argc, char *argv[])
         oap::WidgetDescriptor clockDesc;
         clockDesc.id = "org.openauto.clock";
         clockDesc.displayName = "Clock";
-        clockDesc.iconName = "schedule";
+        clockDesc.iconName = "\ue8b5";  // schedule
         clockDesc.supportedSizes = oap::WidgetSize::Main | oap::WidgetSize::Sub;
         clockDesc.qmlComponent = QUrl("qrc:/qt/qml/OpenAutoProdigy/ClockWidget.qml");
         widgetRegistry->registerWidget(clockDesc);
@@ -352,7 +353,7 @@ int main(int argc, char *argv[])
         oap::WidgetDescriptor aaStatusDesc;
         aaStatusDesc.id = "org.openauto.aa-status";
         aaStatusDesc.displayName = "Android Auto";
-        aaStatusDesc.iconName = "directions_car";
+        aaStatusDesc.iconName = "\ueff7";  // directions_car
         aaStatusDesc.supportedSizes = oap::WidgetSize::Main | oap::WidgetSize::Sub;
         aaStatusDesc.qmlComponent = QUrl("qrc:/qt/qml/OpenAutoProdigy/AAStatusWidget.qml");
         widgetRegistry->registerWidget(aaStatusDesc);
@@ -520,6 +521,9 @@ int main(int argc, char *argv[])
 
     engine.rootContext()->setContextProperty("WidgetPlacementModel", widgetPlacementModel);
     engine.rootContext()->setContextProperty("WidgetRegistry", widgetRegistry);
+
+    auto widgetPickerModel = new oap::WidgetPickerModel(widgetRegistry, &app);
+    engine.rootContext()->setContextProperty("WidgetPickerModel", widgetPickerModel);
     engine.rootContext()->setContextProperty("SystemService", systemClient);
     engine.rootContext()->setContextProperty("BluetoothManager", bluetoothManager);
     engine.rootContext()->setContextProperty("PairedDevicesModel", bluetoothManager->pairedDevicesModel());
