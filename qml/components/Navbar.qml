@@ -51,7 +51,7 @@ Item {
             GradientStop {
                 id: gradStop0
                 position: 0.0
-                color: Qt.rgba(navbar.barBg.r, navbar.barBg.g, navbar.barBg.b, 0.6)
+                color: Qt.rgba(navbar.barBg.r, navbar.barBg.g, navbar.barBg.b, 0.8)
             }
             GradientStop {
                 id: gradStop1
@@ -67,13 +67,13 @@ Item {
                 PropertyChanges {
                     target: navGradient
                     x: navbar.x
-                    y: navbar.y - Math.round(6 * UiMetrics.scale)
+                    y: navbar.y - Math.round(10 * UiMetrics.scale)
                     width: navbar.width
-                    height: Math.round(6 * UiMetrics.scale)
+                    height: Math.round(10 * UiMetrics.scale)
                 }
                 // Gradient: navbar color at bottom (pos 1.0), transparent at top (pos 0.0)
                 PropertyChanges { target: gradStop0; color: "transparent" }
-                PropertyChanges { target: gradStop1; color: Qt.rgba(navbar.barBg.r, navbar.barBg.g, navbar.barBg.b, 0.6) }
+                PropertyChanges { target: gradStop1; color: Qt.rgba(navbar.barBg.r, navbar.barBg.g, navbar.barBg.b, 0.8) }
             },
             State {
                 name: "top"
@@ -83,10 +83,10 @@ Item {
                     x: navbar.x
                     y: navbar.y + navbar.height
                     width: navbar.width
-                    height: Math.round(6 * UiMetrics.scale)
+                    height: Math.round(10 * UiMetrics.scale)
                 }
                 // Gradient: navbar color at top (pos 0.0), transparent at bottom (pos 1.0)
-                PropertyChanges { target: gradStop0; color: Qt.rgba(navbar.barBg.r, navbar.barBg.g, navbar.barBg.b, 0.6) }
+                PropertyChanges { target: gradStop0; color: Qt.rgba(navbar.barBg.r, navbar.barBg.g, navbar.barBg.b, 0.8) }
                 PropertyChanges { target: gradStop1; color: "transparent" }
             },
             State {
@@ -96,11 +96,11 @@ Item {
                     target: navGradient
                     x: navbar.x + navbar.width
                     y: navbar.y
-                    width: Math.round(6 * UiMetrics.scale)
+                    width: Math.round(10 * UiMetrics.scale)
                     height: navbar.height
                 }
                 // Gradient: navbar color at left (pos 0.0), transparent at right (pos 1.0)
-                PropertyChanges { target: gradStop0; color: Qt.rgba(navbar.barBg.r, navbar.barBg.g, navbar.barBg.b, 0.6) }
+                PropertyChanges { target: gradStop0; color: Qt.rgba(navbar.barBg.r, navbar.barBg.g, navbar.barBg.b, 0.8) }
                 PropertyChanges { target: gradStop1; color: "transparent" }
             },
             State {
@@ -108,14 +108,14 @@ Item {
                 when: navbar.edge === "right"
                 PropertyChanges {
                     target: navGradient
-                    x: navbar.x - Math.round(6 * UiMetrics.scale)
+                    x: navbar.x - Math.round(10 * UiMetrics.scale)
                     y: navbar.y
-                    width: Math.round(6 * UiMetrics.scale)
+                    width: Math.round(10 * UiMetrics.scale)
                     height: navbar.height
                 }
                 // Gradient: navbar color at right (pos 1.0), transparent at left (pos 0.0)
                 PropertyChanges { target: gradStop0; color: "transparent" }
-                PropertyChanges { target: gradStop1; color: Qt.rgba(navbar.barBg.r, navbar.barBg.g, navbar.barBg.b, 0.6) }
+                PropertyChanges { target: gradStop1; color: Qt.rgba(navbar.barBg.r, navbar.barBg.g, navbar.barBg.b, 0.8) }
             }
         ]
     }

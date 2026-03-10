@@ -26,9 +26,9 @@ Item {
     readonly property var _shadowParams: {
         switch (elevation) {
         case 0: return { blur: 0.0, offset: 0, opacity: 0.0 };
-        case 1: return { blur: 0.35, offset: 2, opacity: 0.25 };
-        case 2: return { blur: 0.50, offset: 4, opacity: 0.30 };
-        case 3: return { blur: 0.70, offset: 6, opacity: 0.35 };
+        case 1: return { blur: 0.45, offset: 3, opacity: 0.50 };
+        case 2: return { blur: 0.65, offset: 5, opacity: 0.55 };
+        case 3: return { blur: 0.85, offset: 8, opacity: 0.60 };
         default: return { blur: 0.50, offset: 4, opacity: 0.30 };
         }
     }
@@ -36,7 +36,7 @@ Item {
         switch (elevation) {
         case 0: return { blur: 0.0, offset: 0, opacity: 0.0 };
         case 1: return { blur: 0.0, offset: 0, opacity: 0.0 };
-        default: return { blur: 0.25, offset: 2, opacity: 0.15 };
+        default: return { blur: 0.35, offset: 2, opacity: 0.30 };
         }
     }
 
@@ -51,6 +51,8 @@ Item {
         anchors.fill: parent
         radius: root.buttonRadius
         color: root._isPressed ? root.pressedColor : root.buttonColor
+        border.width: 1
+        border.color: ThemeService.outlineVariant
         opacity: root.buttonEnabled ? 1.0 : 0.5
         layer.enabled: true
         visible: false

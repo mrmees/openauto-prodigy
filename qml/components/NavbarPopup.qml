@@ -80,10 +80,12 @@ Item {
         anchors.fill: parent
         radius: UiMetrics.radius
         color: navbar.aaActive ? "#1A1A1A" : Qt.rgba(
-            ThemeService.surfaceContainerHigh.r * 0.93 + ThemeService.primary.r * 0.07,
-            ThemeService.surfaceContainerHigh.g * 0.93 + ThemeService.primary.g * 0.07,
-            ThemeService.surfaceContainerHigh.b * 0.93 + ThemeService.primary.b * 0.07,
+            ThemeService.surfaceContainerHigh.r * 0.88 + ThemeService.primary.r * 0.12,
+            ThemeService.surfaceContainerHigh.g * 0.88 + ThemeService.primary.g * 0.12,
+            ThemeService.surfaceContainerHigh.b * 0.88 + ThemeService.primary.b * 0.12,
             1.0)
+        border.width: 1
+        border.color: navbar.aaActive ? "#333333" : ThemeService.outlineVariant
         layer.enabled: true
         visible: false
     }
@@ -93,9 +95,9 @@ Item {
         anchors.fill: popupBg
         shadowEnabled: true
         shadowColor: ThemeService.shadow
-        shadowBlur: 0.70
-        shadowVerticalOffset: 6
-        shadowOpacity: 0.35
+        shadowBlur: 0.85
+        shadowVerticalOffset: 8
+        shadowOpacity: 0.60
         shadowHorizontalOffset: 0
         shadowScale: 1.0
         autoPaddingEnabled: true

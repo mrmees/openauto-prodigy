@@ -160,9 +160,9 @@ Flickable {
                             anchors.fill: forgetBg
                             shadowEnabled: true
                             shadowColor: ThemeService.shadow
-                            shadowBlur: parent._isPressed ? 0.25 : 0.50
-                            shadowVerticalOffset: parent._isPressed ? 2 : 4
-                            shadowOpacity: parent._isPressed ? 0.15 : 0.30
+                            shadowBlur: parent._isPressed ? 0.35 : 0.65
+                            shadowVerticalOffset: parent._isPressed ? 2 : 5
+                            shadowOpacity: parent._isPressed ? 0.30 : 0.55
                             shadowHorizontalOffset: 0
                             shadowScale: 1.0
                             autoPaddingEnabled: true

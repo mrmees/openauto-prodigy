@@ -26,17 +26,17 @@ Item {
     readonly property var _restShadow: {
         switch (elevation) {
         case 0: return { blur: 0.0, offset: 0, opacity: 0.0 };
-        case 1: return { blur: 0.35, offset: 2, opacity: 0.25 };
-        case 2: return { blur: 0.50, offset: 4, opacity: 0.30 };
-        case 3: return { blur: 0.70, offset: 6, opacity: 0.35 };
+        case 1: return { blur: 0.45, offset: 3, opacity: 0.50 };
+        case 2: return { blur: 0.65, offset: 5, opacity: 0.55 };
+        case 3: return { blur: 0.85, offset: 8, opacity: 0.60 };
         default: return { blur: 0.0, offset: 0, opacity: 0.0 };
         }
     }
     // On press: outlined buttons gain a subtle shadow (level 1)
     readonly property var _pressShadow: {
-        if (elevation === 0) return { blur: 0.35, offset: 2, opacity: 0.25 };
+        if (elevation === 0) return { blur: 0.45, offset: 3, opacity: 0.50 };
         // Higher elevations shrink on press like normal
-        return { blur: 0.25, offset: 2, opacity: 0.15 };
+        return { blur: 0.35, offset: 2, opacity: 0.30 };
     }
 
     readonly property bool _isPressed: mouseArea.pressed && buttonEnabled

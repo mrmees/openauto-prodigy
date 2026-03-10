@@ -60,6 +60,8 @@ Item {
                 anchors.fill: segmentRow
                 radius: UiMetrics.radius
                 color: ThemeService.surfaceContainerLow
+                border.width: 1
+                border.color: ThemeService.outlineVariant
                 layer.enabled: true
                 visible: false
             }
@@ -70,9 +72,9 @@ Item {
                 anchors.fill: segBg
                 shadowEnabled: true
                 shadowColor: ThemeService.shadow
-                shadowBlur: 0.50
-                shadowVerticalOffset: 4
-                shadowOpacity: 0.30
+                shadowBlur: 0.65
+                shadowVerticalOffset: 5
+                shadowOpacity: 0.55
                 shadowHorizontalOffset: 0
                 shadowScale: 1.0
                 autoPaddingEnabled: true

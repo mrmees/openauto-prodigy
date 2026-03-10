@@ -2,16 +2,16 @@
 gsd_state_version: 1.0
 milestone: v0.5
 milestone_name: milestone
-status: Control components migrated to Level 2 MultiEffect shadows. Ready for container/panel migration.
-stopped_at: Completed 04-03-PLAN.md
-last_updated: "2026-03-10T03:03:01.624Z"
-last_activity: 2026-03-10 -- Completed 04-02 M3 button components
+status: Dialog/popup buttons migrated to M3 components with Level 3 elevation and surface tint.
+stopped_at: Completed 04-05-PLAN.md
+last_updated: "2026-03-10T03:10:02.548Z"
+last_activity: 2026-03-10 -- Completed 04-05 dialog/popup button migration
 progress:
   total_phases: 9
   completed_phases: 6
   total_plans: 23
-  completed_plans: 19
-  percent: 82
+  completed_plans: 20
+  percent: 91
 ---
 
 # Project State
@@ -26,11 +26,11 @@ See: .planning/PROJECT.md (updated 2026-03-08)
 ## Current Position
 
 Phase: 4 of 5 (Visual Depth) -- IN PROGRESS
-Plan: 3 of 5 (complete)
-Status: Control components migrated to Level 2 MultiEffect shadows. Ready for container/panel migration.
-Last activity: 2026-03-10 -- Completed 04-03 control component shadow migration
+Plan: 5 of 5 (complete)
+Status: Dialog/popup buttons migrated to M3 components with Level 3 elevation and surface tint.
+Last activity: 2026-03-10 -- Completed 04-05 dialog/popup button migration
 
-Progress: [████████░░] 82%
+Progress: [█████████░] 91%
 
 ## Performance Metrics
 
@@ -94,6 +94,9 @@ Decisions are logged in PROJECT.md Key Decisions table.
 - (04-03) Tile converted from Rectangle root to Item root for MultiEffect shadow pattern
 - (04-03) SegmentedButton: one shadow on whole container, not per-segment
 - (04-03) FullScreenPicker: shadows on both main row and delegate items independently
+- (04-05) Item root wrapper with layer.enabled Rectangle for MultiEffect shadow on dialog/popup panels
+- (04-05) 7% primary blend for surface tint via Qt.rgba lerp across all Level 3 surfaces
+- (04-05) NavbarPopup border removed in favor of shadow elevation
 
 ### Pending Todos
 
@@ -113,5 +116,5 @@ None yet.
 
 ## Session Continuity
 
-Last session: 2026-03-10T03:03:01.621Z
-Stopped at: Completed 04-03-PLAN.md
+Last session: 2026-03-10T03:10:02.546Z
+Stopped at: Completed 04-05-PLAN.md

@@ -22,16 +22,18 @@ Rectangle {
         width: Math.min(parent.width * 0.7, 500)
         height: col.implicitHeight + UiMetrics.marginPage * 2
 
-        // Surface tint: blend 7% primary into surfaceContainerHigh
+        // Surface tint: blend 12% primary into surfaceContainerHigh for visible elevation
         Rectangle {
             id: panelBg
             anchors.fill: parent
             radius: UiMetrics.radius
             color: Qt.rgba(
-                ThemeService.surfaceContainerHigh.r * 0.93 + ThemeService.primary.r * 0.07,
-                ThemeService.surfaceContainerHigh.g * 0.93 + ThemeService.primary.g * 0.07,
-                ThemeService.surfaceContainerHigh.b * 0.93 + ThemeService.primary.b * 0.07,
+                ThemeService.surfaceContainerHigh.r * 0.88 + ThemeService.primary.r * 0.12,
+                ThemeService.surfaceContainerHigh.g * 0.88 + ThemeService.primary.g * 0.12,
+                ThemeService.surfaceContainerHigh.b * 0.88 + ThemeService.primary.b * 0.12,
                 1.0)
+            border.width: 1
+            border.color: ThemeService.outlineVariant
             layer.enabled: true
             visible: false
         }
@@ -41,9 +43,9 @@ Rectangle {
             anchors.fill: panelBg
             shadowEnabled: true
             shadowColor: ThemeService.shadow
-            shadowBlur: 0.70
-            shadowVerticalOffset: 6
-            shadowOpacity: 0.35
+            shadowBlur: 0.85
+            shadowVerticalOffset: 8
+            shadowOpacity: 0.60
             shadowHorizontalOffset: 0
             shadowScale: 1.0
             autoPaddingEnabled: true

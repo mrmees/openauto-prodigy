@@ -22,6 +22,8 @@ Item {
         anchors.fill: parent
         radius: UiMetrics.radiusSmall
         color: tile._isPressed ? ThemeService.primaryContainer : ThemeService.primary
+        border.width: 1
+        border.color: ThemeService.outlineVariant
         opacity: tile.tileEnabled ? 1.0 : 0.5
         layer.enabled: true
         visible: false
@@ -34,9 +36,9 @@ Item {
         anchors.fill: bg
         shadowEnabled: true
         shadowColor: ThemeService.shadow
-        shadowBlur: tile._isPressed ? 0.25 : 0.50
-        shadowVerticalOffset: tile._isPressed ? 2 : 4
-        shadowOpacity: tile._isPressed ? 0.15 : 0.30
+        shadowBlur: tile._isPressed ? 0.35 : 0.65
+        shadowVerticalOffset: tile._isPressed ? 2 : 5
+        shadowOpacity: tile._isPressed ? 0.30 : 0.55
         shadowHorizontalOffset: 0
         shadowScale: 1.0
         autoPaddingEnabled: true

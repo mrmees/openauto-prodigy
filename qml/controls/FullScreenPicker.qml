@@ -75,6 +75,8 @@ Item {
         anchors.fill: parent
         radius: UiMetrics.radiusSmall
         color: ThemeService.surfaceContainerLow
+        border.width: 1
+        border.color: ThemeService.outlineVariant
         layer.enabled: true
         visible: false
     }
@@ -85,9 +87,9 @@ Item {
         anchors.fill: rowBg
         shadowEnabled: true
         shadowColor: ThemeService.shadow
-        shadowBlur: root._isPressed ? 0.25 : 0.50
-        shadowVerticalOffset: root._isPressed ? 2 : 4
-        shadowOpacity: root._isPressed ? 0.15 : 0.30
+        shadowBlur: root._isPressed ? 0.35 : 0.65
+        shadowVerticalOffset: root._isPressed ? 2 : 5
+        shadowOpacity: root._isPressed ? 0.30 : 0.55
         shadowHorizontalOffset: 0
         shadowScale: 1.0
         autoPaddingEnabled: true
@@ -262,9 +264,9 @@ Item {
                     anchors.fill: delegateBg
                     shadowEnabled: true
                     shadowColor: ThemeService.shadow
-                    shadowBlur: delegateItem._isPressed ? 0.25 : 0.50
-                    shadowVerticalOffset: delegateItem._isPressed ? 2 : 4
-                    shadowOpacity: delegateItem._isPressed ? 0.15 : 0.30
+                    shadowBlur: delegateItem._isPressed ? 0.35 : 0.65
+                    shadowVerticalOffset: delegateItem._isPressed ? 2 : 5
+                    shadowOpacity: delegateItem._isPressed ? 0.30 : 0.55
                     shadowHorizontalOffset: 0
                     shadowScale: 1.0
                     autoPaddingEnabled: true
