@@ -50,18 +50,16 @@ Requirements for DPI sizing and UI polish milestone. Each maps to roadmap phases
 - [ ] **FIX-02**: Touch coordinates align with visible AA content after fillMode change (tapping a button hits that button)
 - [ ] **FIX-03**: Existing SDP margin calculation unit tests continue to pass after rendering changes
 
-### Navbar Status Indicators
+### Navbar Clock & Status Bar
 
-- [x] **NAV-01**: Phone battery level is extracted from AA protocol (BatteryStatusNotification msg 0x0017 on control channel) and exposed as Q_PROPERTY
-- [x] **NAV-02**: Phone signal strength is extracted from AA protocol (PhoneStatusUpdate.signal_strength on phone status channel) and exposed as Q_PROPERTY
-- [x] **NAV-03**: Battery and signal properties reset to sentinel values on AA disconnect (no stale data)
-- [x] **NAV-04**: SDP VideoConfig includes hidden_ui_elements (clock, battery, signal) when navbar is visible during AA; omits them when navbar is hidden
-- [x] **NAV-05**: Battery and signal icons appear flanking the clock in the navbar center zone during AA connection, with zone proportions updated to 15/70/15
-- [ ] **NAV-06**: Battery icon turns red below 20% charge; indicators work in both horizontal and vertical navbar orientations
+- [x] **NAV-01**: SDP VideoConfig includes hidden_ui_elements (clock) when navbar is visible during AA; omits them when navbar is hidden
+- [x] **NAV-02**: Navbar zone proportions updated to 20/60/20 (volume/center clock/brightness)
+
+**Descoped (protocol limitation):** Phone does not send battery or signal strength data to the headunit via AA protocol. Battery/signal indicator infrastructure exists in C++ (Q_PROPERTYs, StatusIndicatorHelper) but has no data source. Deferred to companion app integration.
 
 ### Styling
 
-- [ ] **STY-01**: Buttons have subtle 3D depth effect (shadow, bevel, or gradient) that responds to press state
+- [x] **STY-01**: Buttons have subtle 3D depth effect (shadow, bevel, or gradient) that responds to press state
 - [ ] **STY-02**: Taskbar/navbar has subtle depth treatment distinguishing it from content area
 
 ## Future Requirements
@@ -120,18 +118,14 @@ Requirements for DPI sizing and UI polish milestone. Each maps to roadmap phases
 | FIX-03 | Phase 3.4 | Pending |
 | NAV-01 | Phase 3.5 | Complete |
 | NAV-02 | Phase 3.5 | Complete |
-| NAV-03 | Phase 3.5 | Complete |
-| NAV-04 | Phase 3.5 | Complete |
-| NAV-05 | Phase 3.5 | Complete |
-| NAV-06 | Phase 3.5 | Pending |
-| STY-01 | Phase 4 | Pending |
+| STY-01 | Phase 4 | Complete |
 | STY-02 | Phase 4 | Pending |
 
 **Coverage:**
-- v0.5.1 requirements: 33 total
-- Mapped to phases: 33
+- v0.5.1 requirements: 29 total (4 descoped: NAV-03..06 — protocol limitation)
+- Mapped to phases: 29
 - Unmapped: 0
 
 ---
 *Requirements defined: 2026-03-08*
-*Last updated: 2026-03-09 after Phase 03.5 planning*
+*Last updated: 2026-03-10 — Phase 03.5 rescoped (battery/signal descoped, protocol limitation)*

@@ -2,16 +2,16 @@
 gsd_state_version: 1.0
 milestone: v0.5
 milestone_name: milestone
-status: completed
-stopped_at: Completed 04-01-PLAN.md
-last_updated: "2026-03-10T02:57:23.462Z"
-last_activity: 2026-03-10 -- Completed 04-01 Qt 6.8 upgrade
+status: M3 button components created with MultiEffect shadows. Ready for button migration.
+stopped_at: Completed 04-02-PLAN.md
+last_updated: "2026-03-10T03:03:01.624Z"
+last_activity: 2026-03-10 -- Completed 04-02 M3 button components
 progress:
   total_phases: 9
   completed_phases: 6
   total_plans: 23
-  completed_plans: 17
-  percent: 74
+  completed_plans: 18
+  percent: 78
 ---
 
 # Project State
@@ -26,11 +26,11 @@ See: .planning/PROJECT.md (updated 2026-03-08)
 ## Current Position
 
 Phase: 4 of 5 (Visual Depth) -- IN PROGRESS
-Plan: 1 of 5 (complete)
-Status: Qt 6.8 upgrade complete, QT_VERSION guards removed. Ready for shadow/depth system.
-Last activity: 2026-03-10 -- Completed 04-01 Qt 6.8 upgrade
+Plan: 2 of 5 (complete)
+Status: M3 button components created with MultiEffect shadows. Ready for button migration.
+Last activity: 2026-03-10 -- Completed 04-02 M3 button components
 
-Progress: [███████░░░] 74%
+Progress: [████████░░] 78%
 
 ## Performance Metrics
 
@@ -90,6 +90,7 @@ Decisions are logged in PROJECT.md Key Decisions table.
 - [Phase 04]: aqtinstall linux_gcc_64 arch for Qt 6.8.2 on dev VM
 - [Phase 04]: Removed acquire() fallback entirely -- all frame pool usage is acquireRecycled()
 - [Phase 04]: libbluetooth-dev required on dev VM since Qt 6.8.2 enables Bluetooth module
+- [Phase 04]: Item root with layer.enabled Rectangle source for MultiEffect shadow rendering
 
 ### Pending Todos
 
@@ -109,5 +110,5 @@ None yet.
 
 ## Session Continuity
 
-Last session: 2026-03-10T02:21:09.115Z
-Stopped at: Phase 4 context gathered
+Last session: 2026-03-10T03:03:01.621Z
+Stopped at: Completed 04-02-PLAN.md
