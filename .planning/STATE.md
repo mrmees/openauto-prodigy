@@ -3,15 +3,15 @@ gsd_state_version: 1.0
 milestone: v0.5
 milestone_name: milestone
 status: completed
-stopped_at: Completed 03.5-02-PLAN.md
-last_updated: "2026-03-10T01:45:26.108Z"
-last_activity: 2026-03-10 -- Plan 03.5-02 complete (navbar zone proportions 20/60/20)
+stopped_at: Completed 04-01-PLAN.md
+last_updated: "2026-03-10T02:57:23.462Z"
+last_activity: 2026-03-10 -- Completed 04-01 Qt 6.8 upgrade
 progress:
   total_phases: 9
   completed_phases: 6
-  total_plans: 18
-  completed_plans: 16
-  percent: 89
+  total_plans: 23
+  completed_plans: 17
+  percent: 74
 ---
 
 # Project State
@@ -21,16 +21,16 @@ progress:
 See: .planning/PROJECT.md (updated 2026-03-08)
 
 **Core value:** A person with a Raspberry Pi 4 and a touchscreen can install this, pair their phone, and get a reliable wireless Android Auto experience -- every time, without SSH.
-**Current focus:** v0.5.1 DPI Sizing & UI Polish -- Phase 03.2 in progress (Companion Theme Import)
+**Current focus:** v0.5.1 DPI Sizing & UI Polish -- Phase 04 in progress (Visual Depth)
 
 ## Current Position
 
-Phase: 3.5 of 5 (Navbar Status Indicators) -- COMPLETE
-Plan: 2 of 2 (complete)
-Status: Phase 03.5 complete -- navbar zone proportions updated to 20/60/20
-Last activity: 2026-03-10 -- Plan 03.5-02 complete (navbar zone proportions 20/60/20)
+Phase: 4 of 5 (Visual Depth) -- IN PROGRESS
+Plan: 1 of 5 (complete)
+Status: Qt 6.8 upgrade complete, QT_VERSION guards removed. Ready for shadow/depth system.
+Last activity: 2026-03-10 -- Completed 04-01 Qt 6.8 upgrade
 
-Progress: [█████████░] 89%
+Progress: [███████░░░] 74%
 
 ## Performance Metrics
 
@@ -87,6 +87,9 @@ Decisions are logged in PROJECT.md Key Decisions table.
 - (03.5-01) hidden_ui_elements ONLY on AdditionalVideoConfig (no ui_theme -- breaks margins)
 - (03.5-01) -1 sentinel for "no data" on phone status properties (0 is valid battery/signal)
 - (03.5-02) 20/60/20 proportions chosen to maximize clock glanceability now that phone clock is hidden via SDP
+- [Phase 04]: aqtinstall linux_gcc_64 arch for Qt 6.8.2 on dev VM
+- [Phase 04]: Removed acquire() fallback entirely -- all frame pool usage is acquireRecycled()
+- [Phase 04]: libbluetooth-dev required on dev VM since Qt 6.8.2 enables Bluetooth module
 
 ### Pending Todos
 
@@ -106,5 +109,5 @@ None yet.
 
 ## Session Continuity
 
-Last session: 2026-03-10T01:45:26.106Z
-Stopped at: Completed 03.5-02-PLAN.md
+Last session: 2026-03-10T02:21:09.115Z
+Stopped at: Phase 4 context gathered

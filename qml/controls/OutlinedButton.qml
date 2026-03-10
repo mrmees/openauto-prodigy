@@ -1,0 +1,124 @@
+import QtQuick
+import QtQuick.Effects
+import QtQuick.Layouts
+
+Item {
+    id: root
+
+    property string text: ""
+    property string iconCode: ""
+    property color buttonColor: "transparent"
+    property color pressedColor: ThemeService.primaryContainer
+    property color textColor: ThemeService.primary
+    property color pressedTextColor: ThemeService.onPrimaryContainer
+    property real buttonScale: 0.97
+    property bool buttonEnabled: true
+    property real buttonRadius: UiMetrics.radiusSmall
+    property int elevation: 0
+
+    signal clicked()
+    signal pressAndHold()
+
+    implicitWidth: contentRow.implicitWidth + UiMetrics.spacing * 4
+    implicitHeight: contentRow.implicitHeight + UiMetrics.spacing * 2
+
+    // OutlinedButton: elevation 0 at rest, transitions to level 1 on press
+    readonly property var _restShadow: {
+        switch (elevation) {
+        case 0: return { blur: 0.0, offset: 0, opacity: 0.0 };
+        case 1: return { blur: 0.35, offset: 2, opacity: 0.25 };
+        case 2: return { blur: 0.50, offset: 4, opacity: 0.30 };
+        case 3: return { blur: 0.70, offset: 6, opacity: 0.35 };
+        default: return { blur: 0.0, offset: 0, opacity: 0.0 };
+        }
+    }
+    // On press: outlined buttons gain a subtle shadow (level 1)
+    readonly property var _pressShadow: {
+        if (elevation === 0) return { blur: 0.35, offset: 2, opacity: 0.25 };
+        // Higher elevations shrink on press like normal
+        return { blur: 0.25, offset: 2, opacity: 0.15 };
+    }
+
+    readonly property bool _isPressed: mouseArea.pressed && buttonEnabled
+
+    scale: _isPressed ? buttonScale : 1.0
+    Behavior on scale { NumberAnimation { duration: UiMetrics.animDurationFast; easing.type: Easing.OutCubic } }
+
+    // Background rectangle (source for MultiEffect)
+    Rectangle {
+        id: bg
+        anchors.fill: parent
+        radius: root.buttonRadius
+        color: root._isPressed ? root.pressedColor : root.buttonColor
+        border.width: 1
+        border.color: ThemeService.outline
+        opacity: root.buttonEnabled ? 1.0 : 0.5
+        layer.enabled: true
+        visible: false
+    }
+
+    // Shadow effect
+    MultiEffect {
+        id: shadow
+        source: bg
+        anchors.fill: bg
+        shadowEnabled: root._isPressed || root.elevation > 0
+        shadowColor: ThemeService.shadow
+        shadowBlur: root._isPressed ? root._pressShadow.blur : root._restShadow.blur
+        shadowVerticalOffset: root._isPressed ? root._pressShadow.offset : root._restShadow.offset
+        shadowOpacity: root._isPressed ? root._pressShadow.opacity : root._restShadow.opacity
+        shadowHorizontalOffset: 0
+        shadowScale: 1.0
+        autoPaddingEnabled: true
+
+        Behavior on shadowBlur { NumberAnimation { duration: UiMetrics.animDurationFast } }
+        Behavior on shadowVerticalOffset { NumberAnimation { duration: UiMetrics.animDurationFast } }
+        Behavior on shadowOpacity { NumberAnimation { duration: UiMetrics.animDurationFast } }
+    }
+
+    // State layer overlay
+    Rectangle {
+        anchors.fill: parent
+        radius: root.buttonRadius
+        color: ThemeService.onSurface
+        opacity: root._isPressed ? 0.10 : 0.0
+        Behavior on opacity { NumberAnimation { duration: UiMetrics.animDurationFast } }
+    }
+
+    // Content
+    Row {
+        id: contentRow
+        anchors.centerIn: parent
+        spacing: UiMetrics.spacing / 2
+
+        MaterialIcon {
+            icon: root.iconCode
+            size: contentText.font.pixelSize
+            color: root._isPressed ? root.pressedTextColor : root.textColor
+            visible: root.iconCode !== ""
+            anchors.verticalCenter: parent.verticalCenter
+        }
+
+        NormalText {
+            id: contentText
+            text: root.text
+            color: root._isPressed ? root.pressedTextColor : root.textColor
+            visible: root.text !== ""
+            anchors.verticalCenter: parent.verticalCenter
+        }
+    }
+
+    MouseArea {
+        id: mouseArea
+        anchors.fill: parent
+        cursorShape: root.buttonEnabled ? Qt.PointingHandCursor : Qt.ArrowCursor
+        onClicked: {
+            if (root.buttonEnabled)
+                root.clicked()
+        }
+        onPressAndHold: {
+            if (root.buttonEnabled)
+                root.pressAndHold()
+        }
+    }
+}
