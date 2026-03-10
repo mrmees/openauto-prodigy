@@ -82,7 +82,6 @@ class ThemeService : public QObject, public IThemeService {
     Q_PROPERTY(QColor shadow READ shadow NOTIFY colorsChanged)
 
     // --- Derived color properties (computed, not from YAML) ---
-    Q_PROPERTY(QColor barShadow READ barShadow NOTIFY colorsChanged)
     Q_PROPERTY(QColor success READ success NOTIFY colorsChanged)
     Q_PROPERTY(QColor onSuccess READ onSuccess NOTIFY colorsChanged)
 
@@ -215,7 +214,6 @@ public:
     QColor shadow() const { return activeColor("shadow"); }
 
     // --- Derived (computed, not from YAML) ---
-    QColor barShadow() const;
     QColor success() const;
     QColor onSuccess() const;
 

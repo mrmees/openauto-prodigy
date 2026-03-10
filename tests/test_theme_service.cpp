@@ -153,9 +153,6 @@ private slots:
         // scrim is now stored in YAML as opaque black (alpha applied at usage sites)
         QCOMPARE(service.scrim(), QColor(0, 0, 0, 255));
 
-        // barShadow is always black at 50% opacity
-        QCOMPARE(service.barShadow(), QColor(0, 0, 0, 128));
-
         // success is a fixed green
         QCOMPARE(service.success(), QColor("#4CAF50"));
 

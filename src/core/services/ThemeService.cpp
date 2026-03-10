@@ -585,11 +585,6 @@ QColor ThemeService::scrim() const
     return c;
 }
 
-QColor ThemeService::barShadow() const
-{
-    return QColor(0, 0, 0, 128);
-}
-
 QColor ThemeService::success() const
 {
     return QColor("#4CAF50");
