@@ -107,6 +107,12 @@ oap_add_test(test_equalizer_engine SOURCES test_equalizer_engine.cpp)
 oap_add_test(test_equalizer_presets SOURCES test_equalizer_presets.cpp)
 oap_add_test(test_equalizer_service SOURCES test_equalizer_service.cpp)
 
+# --- Widget tests ---
+
+oap_add_test(test_widget_types SOURCES test_widget_types.cpp)
+oap_add_test(test_widget_registry SOURCES test_widget_registry.cpp)
+oap_add_test(test_widget_instance_context SOURCES test_widget_instance_context.cpp)
+
 # --- Script tests (no compilation) ---
 
 add_test(
