@@ -89,30 +89,13 @@ Flickable {
 
         Item { Layout.fillWidth: true; Layout.preferredHeight: UiMetrics.marginPage + UiMetrics.marginRow }
 
-        Button {
+        ElevatedButton {
             Layout.alignment: Qt.AlignHCenter
             Layout.preferredWidth: parent.width * 0.4
             Layout.preferredHeight: UiMetrics.rowH
+            text: "Close App"
+            iconCode: "\ue5cd"
             onClicked: exitDialog.open()
-            contentItem: RowLayout {
-                spacing: UiMetrics.marginRow
-                Item { Layout.fillWidth: true }
-                MaterialIcon {
-                    icon: "\ue5cd"
-                    size: UiMetrics.iconSize
-                    color: ThemeService.onSurface
-                }
-                Text {
-                    text: "Close App"
-                    font.pixelSize: UiMetrics.fontBody
-                    color: ThemeService.onSurface
-                }
-                Item { Layout.fillWidth: true }
-            }
-            background: Rectangle {
-                color: parent.pressed ? ThemeService.primaryContainer : ThemeService.surfaceContainerLow
-                radius: UiMetrics.radius
-            }
         }
 
         SectionHeader { text: "Debug: AA Protocol" }
@@ -131,61 +114,28 @@ Flickable {
             Layout.fillWidth: true
             spacing: UiMetrics.spacing
 
-            Button {
+            ElevatedButton {
                 Layout.fillWidth: true
                 Layout.preferredHeight: UiMetrics.rowH
-                enabled: aaConnected
+                text: "Play/Pause"
+                buttonEnabled: aaConnected
                 onClicked: AAOrchestrator.sendButtonPress(85)
-                contentItem: Text {
-                    text: "Play/Pause"
-                    font.pixelSize: UiMetrics.fontBody
-                    color: parent.enabled ? ThemeService.onSurface : ThemeService.onSurfaceVariant
-                    horizontalAlignment: Text.AlignHCenter
-                    verticalAlignment: Text.AlignVCenter
-                }
-                background: Rectangle {
-                    color: parent.pressed ? ThemeService.primaryContainer : ThemeService.surfaceContainerLow
-                    radius: UiMetrics.radius
-                    opacity: parent.enabled ? 1.0 : 0.4
-                }
             }
 
-            Button {
+            ElevatedButton {
                 Layout.fillWidth: true
                 Layout.preferredHeight: UiMetrics.rowH
-                enabled: aaConnected
+                text: "Prev"
+                buttonEnabled: aaConnected
                 onClicked: AAOrchestrator.sendButtonPress(88)
-                contentItem: Text {
-                    text: "Prev"
-                    font.pixelSize: UiMetrics.fontBody
-                    color: parent.enabled ? ThemeService.onSurface : ThemeService.onSurfaceVariant
-                    horizontalAlignment: Text.AlignHCenter
-                    verticalAlignment: Text.AlignVCenter
-                }
-                background: Rectangle {
-                    color: parent.pressed ? ThemeService.primaryContainer : ThemeService.surfaceContainerLow
-                    radius: UiMetrics.radius
-                    opacity: parent.enabled ? 1.0 : 0.4
-                }
             }
 
-            Button {
+            ElevatedButton {
                 Layout.fillWidth: true
                 Layout.preferredHeight: UiMetrics.rowH
-                enabled: aaConnected
+                text: "Next"
+                buttonEnabled: aaConnected
                 onClicked: AAOrchestrator.sendButtonPress(87)
-                contentItem: Text {
-                    text: "Next"
-                    font.pixelSize: UiMetrics.fontBody
-                    color: parent.enabled ? ThemeService.onSurface : ThemeService.onSurfaceVariant
-                    horizontalAlignment: Text.AlignHCenter
-                    verticalAlignment: Text.AlignVCenter
-                }
-                background: Rectangle {
-                    color: parent.pressed ? ThemeService.primaryContainer : ThemeService.surfaceContainerLow
-                    radius: UiMetrics.radius
-                    opacity: parent.enabled ? 1.0 : 0.4
-                }
             }
         }
 
@@ -193,69 +143,36 @@ Flickable {
             Layout.fillWidth: true
             spacing: UiMetrics.spacing
 
-            Button {
+            ElevatedButton {
                 Layout.fillWidth: true
                 Layout.preferredHeight: UiMetrics.rowH
-                enabled: aaConnected
+                text: "Search (84)"
+                buttonEnabled: aaConnected
                 onClicked: AAOrchestrator.sendButtonPress(84)
-                contentItem: Text {
-                    text: "Search (84)"
-                    font.pixelSize: UiMetrics.fontBody
-                    color: parent.enabled ? ThemeService.onSurface : ThemeService.onSurfaceVariant
-                    horizontalAlignment: Text.AlignHCenter
-                    verticalAlignment: Text.AlignVCenter
-                }
-                background: Rectangle {
-                    color: parent.pressed ? ThemeService.primaryContainer : ThemeService.surfaceContainerLow
-                    radius: UiMetrics.radius
-                    opacity: parent.enabled ? 1.0 : 0.4
-                }
             }
 
-            Button {
+            ElevatedButton {
                 Layout.fillWidth: true
                 Layout.preferredHeight: UiMetrics.rowH
-                enabled: aaConnected
+                text: "Assist (219)"
+                buttonEnabled: aaConnected
                 onClicked: AAOrchestrator.sendButtonPress(219)
-                contentItem: Text {
-                    text: "Assist (219)"
-                    font.pixelSize: UiMetrics.fontBody
-                    color: parent.enabled ? ThemeService.onSurface : ThemeService.onSurfaceVariant
-                    horizontalAlignment: Text.AlignHCenter
-                    verticalAlignment: Text.AlignVCenter
-                }
-                background: Rectangle {
-                    color: parent.pressed ? ThemeService.primaryContainer : ThemeService.surfaceContainerLow
-                    radius: UiMetrics.radius
-                    opacity: parent.enabled ? 1.0 : 0.4
-                }
             }
 
-            Button {
+            ElevatedButton {
                 Layout.fillWidth: true
                 Layout.preferredHeight: UiMetrics.rowH
-                enabled: aaConnected
+                text: "Voice (231)"
+                buttonEnabled: aaConnected
                 onClicked: AAOrchestrator.sendButtonPress(231)
-                contentItem: Text {
-                    text: "Voice (231)"
-                    font.pixelSize: UiMetrics.fontBody
-                    color: parent.enabled ? ThemeService.onSurface : ThemeService.onSurfaceVariant
-                    horizontalAlignment: Text.AlignHCenter
-                    verticalAlignment: Text.AlignVCenter
-                }
-                background: Rectangle {
-                    color: parent.pressed ? ThemeService.primaryContainer : ThemeService.surfaceContainerLow
-                    radius: UiMetrics.radius
-                    opacity: parent.enabled ? 1.0 : 0.4
-                }
             }
         }
 
         Text {
             text: aaConnected
-                  ? "AA Connected — buttons active"
+                  ? "AA Connected -- buttons active"
                   : (AAOrchestrator !== null
-                     ? "AA not connected — buttons disabled"
+                     ? "AA not connected -- buttons disabled"
                      : "AA orchestrator unavailable")
             font.pixelSize: UiMetrics.fontCaption
             color: aaConnected ? ThemeService.primary : ThemeService.onSurfaceVariant

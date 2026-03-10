@@ -36,30 +36,13 @@ Flickable {
 
         Item { Layout.fillWidth: true; Layout.preferredHeight: UiMetrics.marginPage + UiMetrics.marginRow }
 
-        Button {
+        ElevatedButton {
             Layout.alignment: Qt.AlignHCenter
             Layout.preferredWidth: parent.width * 0.4
             Layout.preferredHeight: UiMetrics.rowH
+            text: "Close App"
+            iconCode: "\ue5cd"
             onClicked: exitDialog.open()
-            contentItem: RowLayout {
-                spacing: UiMetrics.marginRow
-                Item { Layout.fillWidth: true }
-                MaterialIcon {
-                    icon: "\ue5cd"
-                    size: UiMetrics.iconSize
-                    color: ThemeService.onSurface
-                }
-                Text {
-                    text: "Close App"
-                    font.pixelSize: UiMetrics.fontBody
-                    color: ThemeService.onSurface
-                }
-                Item { Layout.fillWidth: true }
-            }
-            background: Rectangle {
-                color: parent.pressed ? ThemeService.primaryContainer : ThemeService.surfaceContainerLow
-                radius: UiMetrics.radius
-            }
         }
     }
 

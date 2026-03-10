@@ -2,16 +2,16 @@
 gsd_state_version: 1.0
 milestone: v0.5
 milestone_name: milestone
-status: M3 button components created with MultiEffect shadows. Ready for button migration.
-stopped_at: Completed 04-02-PLAN.md
+status: Control components migrated to Level 2 MultiEffect shadows. Ready for container/panel migration.
+stopped_at: Completed 04-03-PLAN.md
 last_updated: "2026-03-10T03:03:01.624Z"
 last_activity: 2026-03-10 -- Completed 04-02 M3 button components
 progress:
   total_phases: 9
   completed_phases: 6
   total_plans: 23
-  completed_plans: 18
-  percent: 78
+  completed_plans: 19
+  percent: 82
 ---
 
 # Project State
@@ -26,11 +26,11 @@ See: .planning/PROJECT.md (updated 2026-03-08)
 ## Current Position
 
 Phase: 4 of 5 (Visual Depth) -- IN PROGRESS
-Plan: 2 of 5 (complete)
-Status: M3 button components created with MultiEffect shadows. Ready for button migration.
-Last activity: 2026-03-10 -- Completed 04-02 M3 button components
+Plan: 3 of 5 (complete)
+Status: Control components migrated to Level 2 MultiEffect shadows. Ready for container/panel migration.
+Last activity: 2026-03-10 -- Completed 04-03 control component shadow migration
 
-Progress: [████████░░] 78%
+Progress: [████████░░] 82%
 
 ## Performance Metrics
 
@@ -91,6 +91,9 @@ Decisions are logged in PROJECT.md Key Decisions table.
 - [Phase 04]: Removed acquire() fallback entirely -- all frame pool usage is acquireRecycled()
 - [Phase 04]: libbluetooth-dev required on dev VM since Qt 6.8.2 enables Bluetooth module
 - [Phase 04]: Item root with layer.enabled Rectangle source for MultiEffect shadow rendering
+- (04-03) Tile converted from Rectangle root to Item root for MultiEffect shadow pattern
+- (04-03) SegmentedButton: one shadow on whole container, not per-segment
+- (04-03) FullScreenPicker: shadows on both main row and delegate items independently
 
 ### Pending Todos
 
@@ -111,4 +114,4 @@ None yet.
 ## Session Continuity
 
 Last session: 2026-03-10T03:03:01.621Z
-Stopped at: Completed 04-02-PLAN.md
+Stopped at: Completed 04-03-PLAN.md

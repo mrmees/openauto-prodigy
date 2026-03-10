@@ -131,26 +131,31 @@ Rectangle {
             spacing: Math.round(32 * UiMetrics.scale)
             opacity: isConnected ? 1.0 : 0.4
 
-            Button {
-                flat: true
-                enabled: isConnected
+            ElevatedButton {
+                buttonEnabled: isConnected
+                iconCode: "\ue045"  // skip_previous
+                buttonColor: "transparent"
+                pressedColor: ThemeService.primaryContainer
+                textColor: ThemeService.onSurface
+                pressedTextColor: ThemeService.onPrimaryContainer
+                buttonRadius: UiMetrics.touchMin / 2
+                elevation: 0
+                implicitWidth: UiMetrics.touchMin
+                implicitHeight: UiMetrics.touchMin
                 onClicked: if (BtAudioPlugin) BtAudioPlugin.previous()
-                contentItem: MaterialIcon {
-                    icon: "\ue045"  // skip_previous
-                    size: UiMetrics.iconSize
-                    color: ThemeService.onSurface
-                }
-                background: Rectangle {
-                    color: parent.pressed ? ThemeService.primaryContainer : "transparent"
-                    radius: width / 2
-                    implicitWidth: UiMetrics.touchMin
-                    implicitHeight: UiMetrics.touchMin
-                }
             }
 
-            Button {
-                flat: true
-                enabled: isConnected
+            ElevatedButton {
+                buttonEnabled: isConnected
+                iconCode: isPlaying ? "\ue034" : "\ue037"  // pause / play_arrow
+                buttonColor: "transparent"
+                pressedColor: ThemeService.primaryContainer
+                textColor: ThemeService.onSurface
+                pressedTextColor: ThemeService.onPrimaryContainer
+                buttonRadius: UiMetrics.callBtnSize / 2
+                elevation: 0
+                implicitWidth: UiMetrics.callBtnSize
+                implicitHeight: UiMetrics.callBtnSize
                 onClicked: {
                     if (!BtAudioPlugin) return
                     if (isPlaying)
@@ -158,34 +163,20 @@ Rectangle {
                     else
                         BtAudioPlugin.play()
                 }
-                contentItem: MaterialIcon {
-                    icon: isPlaying ? "\ue034" : "\ue037"  // pause / play_arrow
-                    size: Math.round(48 * UiMetrics.scale)
-                    color: ThemeService.onSurface
-                }
-                background: Rectangle {
-                    color: parent.pressed ? ThemeService.primaryContainer : "transparent"
-                    radius: width / 2
-                    implicitWidth: UiMetrics.callBtnSize
-                    implicitHeight: UiMetrics.callBtnSize
-                }
             }
 
-            Button {
-                flat: true
-                enabled: isConnected
+            ElevatedButton {
+                buttonEnabled: isConnected
+                iconCode: "\ue044"  // skip_next
+                buttonColor: "transparent"
+                pressedColor: ThemeService.primaryContainer
+                textColor: ThemeService.onSurface
+                pressedTextColor: ThemeService.onPrimaryContainer
+                buttonRadius: UiMetrics.touchMin / 2
+                elevation: 0
+                implicitWidth: UiMetrics.touchMin
+                implicitHeight: UiMetrics.touchMin
                 onClicked: if (BtAudioPlugin) BtAudioPlugin.next()
-                contentItem: MaterialIcon {
-                    icon: "\ue044"  // skip_next
-                    size: UiMetrics.iconSize
-                    color: ThemeService.onSurface
-                }
-                background: Rectangle {
-                    color: parent.pressed ? ThemeService.primaryContainer : "transparent"
-                    radius: width / 2
-                    implicitWidth: UiMetrics.touchMin
-                    implicitHeight: UiMetrics.touchMin
-                }
             }
         }
     }

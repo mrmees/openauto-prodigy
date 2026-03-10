@@ -2,7 +2,7 @@ import QtQuick
 import QtQuick.Controls
 import QtQuick.Layouts
 
-/// Incoming call overlay — shown on top of any active view.
+/// Incoming call overlay -- shown on top of any active view.
 /// Shell.qml should instantiate this and show it when PhonePlugin.callState === 2 (Ringing).
 Rectangle {
     id: overlay
@@ -53,35 +53,29 @@ Rectangle {
             spacing: Math.round(48 * UiMetrics.scale)
 
             // Reject
-            Button {
-                Layout.preferredWidth: UiMetrics.callBtnSize
-                Layout.preferredHeight: UiMetrics.callBtnSize
+            FilledButton {
+                implicitWidth: UiMetrics.callBtnSize
+                implicitHeight: UiMetrics.callBtnSize
+                iconCode: "\uf0bc"  // call_end
+                buttonColor: ThemeService.error
+                pressedColor: Qt.darker(ThemeService.error, 1.15)
+                textColor: ThemeService.onError
+                pressedTextColor: ThemeService.onError
+                buttonRadius: UiMetrics.callBtnSize / 2
                 onClicked: if (PhonePlugin) PhonePlugin.hangup()
-                contentItem: MaterialIcon {
-                    icon: "\uf0bc"  // call_end
-                    size: UiMetrics.iconSize
-                    color: ThemeService.onError
-                }
-                background: Rectangle {
-                    color: parent.pressed ? Qt.darker(ThemeService.error, 1.15) : ThemeService.error
-                    radius: width / 2
-                }
             }
 
             // Accept
-            Button {
-                Layout.preferredWidth: UiMetrics.callBtnSize
-                Layout.preferredHeight: UiMetrics.callBtnSize
+            FilledButton {
+                implicitWidth: UiMetrics.callBtnSize
+                implicitHeight: UiMetrics.callBtnSize
+                iconCode: "\uf0d4"  // phone
+                buttonColor: ThemeService.success
+                pressedColor: Qt.darker(ThemeService.success, 1.2)
+                textColor: ThemeService.onSuccess
+                pressedTextColor: ThemeService.onSuccess
+                buttonRadius: UiMetrics.callBtnSize / 2
                 onClicked: if (PhonePlugin) PhonePlugin.answer()
-                contentItem: MaterialIcon {
-                    icon: "\uf0d4"  // phone
-                    size: UiMetrics.iconSize
-                    color: ThemeService.onSuccess
-                }
-                background: Rectangle {
-                    color: parent.pressed ? Qt.darker(ThemeService.success, 1.2) : ThemeService.success
-                    radius: width / 2
-                }
             }
         }
     }
