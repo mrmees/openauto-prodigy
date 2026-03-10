@@ -1,0 +1,25 @@
+version: 1
+
+pages:
+  - id: home
+    layoutTemplate: standard-3pane
+    order: 0
+
+placements:
+  - instanceId: clock-main
+    widgetId: org.openauto.clock
+    pageId: home
+    paneId: main
+    config: {}
+
+  - instanceId: aa-status-sub1
+    widgetId: org.openauto.aa-status
+    pageId: home
+    paneId: sub1
+    config: {}
+
+  - instanceId: now-playing-sub2
+    widgetId: org.openauto.bt-now-playing
+    pageId: home
+    paneId: sub2
+    config: {}

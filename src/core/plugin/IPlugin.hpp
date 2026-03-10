@@ -1,9 +1,11 @@
 #pragma once
 
+#include <QList>
 #include <QString>
 #include <QStringList>
 #include <QUrl>
 #include <QtPlugin>
+#include "core/widget/WidgetTypes.hpp"
 
 class QQmlContext;
 
@@ -45,6 +47,9 @@ public:
     /// If true, Shell hides status bar + nav strip when this plugin is active.
     /// Do NOT hardcode AA-specific fullscreen logic into Shell.
     virtual bool wantsFullscreen() const { return false; }
+
+    // Widgets — plugins can provide widget components for the home screen
+    virtual QList<WidgetDescriptor> widgetDescriptors() const { return {}; }
 };
 
 } // namespace oap
