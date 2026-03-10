@@ -3,6 +3,7 @@
 #include <systemd/sd-daemon.h>
 #endif
 #include <QGuiApplication>
+#include <QScreen>
 #include <QCommandLineParser>
 #include <QIcon>
 #include <QQmlApplicationEngine>
@@ -147,6 +148,13 @@ int main(int argc, char *argv[])
     }
     // DisplayInfo defaults to 1024x600, overwritten by QQuickWindow signals
 
+    // Apply screen size from config for DPI computation
+    auto screenSizeVar = yamlConfig->valueByPath("display.screen_size");
+    if (screenSizeVar.isValid() && screenSizeVar.toDouble() > 0)
+        displayInfo->setScreenSizeInches(screenSizeVar.toDouble());
+    qCInfo(lcCore) << "Screen size:" << displayInfo->screenSizeInches()
+                   << "inches, DPI:" << displayInfo->computedDpi();
+
     // Log active UI overrides
     {
         auto logUiOverride = [&](const char* key) {
@@ -272,6 +280,19 @@ int main(int argc, char *argv[])
             qCWarning(lcCore) << "Companion: no secret file at" << secretFile.fileName()
                         << "— pairing required";
         }
+        companionListener->setThemeService(themeService);
+
+        // Set display size for companion wallpaper cropping
+        if (geomW > 0 && geomH > 0) {
+            companionListener->setDisplaySize(geomW, geomH);
+        } else {
+            auto* screen = QGuiApplication::primaryScreen();
+            if (screen) {
+                QRect geom = screen->geometry();
+                companionListener->setDisplaySize(geom.width(), geom.height());
+            }
+        }
+
         if (companionListener->start(companionPort)) {
             qCInfo(lcCore) << "Companion: listening on port" << companionPort;
         } else {

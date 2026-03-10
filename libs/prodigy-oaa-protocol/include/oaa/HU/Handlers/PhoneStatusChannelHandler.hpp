@@ -36,6 +36,9 @@ signals:
     void callStateChanged(int callState, const QString& number,
                            const QString& displayName, const QByteArray& contactPhoto);
 
+    /// Emitted when signal_strength field is present in PhoneStatusUpdate
+    void signalStrengthChanged(int strength);
+
 private:
     void handlePhoneStatus(const QByteArray& payload);
 };

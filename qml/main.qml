@@ -14,12 +14,12 @@ Window {
     visible: true
     visibility: _geomW > 0 ? Window.Windowed : Window.FullScreen
     title: "OpenAuto Prodigy"
-    color: ThemeService.backgroundColor
+    color: ThemeService.background
     Behavior on color { ColorAnimation { duration: 300; easing.type: Easing.InOutQuad } }
 
     Material.theme: ThemeService.nightMode ? Material.Dark : Material.Light
-    Material.accent: ThemeService.highlightColor
-    Material.background: ThemeService.backgroundColor
+    Material.accent: ThemeService.primary
+    Material.background: ThemeService.background
 
     Shell {
         id: shell

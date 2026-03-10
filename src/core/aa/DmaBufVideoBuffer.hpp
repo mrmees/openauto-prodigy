@@ -1,8 +1,5 @@
 #pragma once
 
-#include <QtGlobal>
-#if QT_VERSION >= QT_VERSION_CHECK(6,8,0)
-
 #include <QAbstractVideoBuffer>
 #include <QVideoFrame>
 #include <QVideoFrameFormat>
@@ -21,9 +18,8 @@ namespace aa {
 /// Qt 6.8 redesigned QAbstractVideoBuffer: no constructor args, format() is
 /// pure virtual, and QVideoFrame takes std::unique_ptr<QAbstractVideoBuffer>.
 ///
-/// NOTE: This code has not been tested on Qt 6.8 yet (dev VM has Qt 6.4).
-/// The API matches Qt 6.8 documentation but may need adjustment once tested
-/// on the Pi's Qt 6.8 environment.
+/// NOTE: Requires Qt 6.8+ (QAbstractVideoBuffer redesign: no constructor args,
+/// format() is pure virtual, QVideoFrame takes std::unique_ptr).
 class DmaBufVideoBuffer : public QAbstractVideoBuffer
 {
 public:
@@ -47,5 +43,3 @@ private:
 
 } // namespace aa
 } // namespace oap
-
-#endif // QT_VERSION >= QT_VERSION_CHECK(6,8,0)

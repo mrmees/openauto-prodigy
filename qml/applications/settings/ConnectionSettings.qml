@@ -1,4 +1,5 @@
 import QtQuick
+import QtQuick.Effects
 import QtQuick.Layouts
 import QtQuick.Controls
 
@@ -87,11 +88,11 @@ Flickable {
                 anchors.leftMargin: UiMetrics.marginPage
                 anchors.rightMargin: UiMetrics.marginPage
                 spacing: UiMetrics.gap
-                MaterialIcon { icon: "\ue1b7"; size: UiMetrics.iconSize; color: ThemeService.normalFontColor }
+                MaterialIcon { icon: "\ue1b7"; size: UiMetrics.iconSize; color: ThemeService.onSurface }
                 Text {
                     text: "Accept New Pairings"
                     font.pixelSize: UiMetrics.fontBody
-                    color: ThemeService.normalFontColor
+                    color: ThemeService.onSurface
                     Layout.fillWidth: true
                 }
                 Switch {
@@ -106,7 +107,7 @@ Flickable {
                 anchors.bottom: parent.bottom
                 anchors.left: parent.left; anchors.right: parent.right
                 anchors.leftMargin: UiMetrics.marginPage; anchors.rightMargin: UiMetrics.marginPage
-                height: 1; color: ThemeService.dividerColor
+                height: 1; color: ThemeService.outlineVariant
             }
         }
 
@@ -124,33 +125,68 @@ Flickable {
                     MaterialIcon {
                         icon: model.connected ? "\ue1ba" : "\ue1b9"
                         size: UiMetrics.iconSize
-                        color: model.connected ? "#44aa44" : ThemeService.descriptionFontColor
+                        color: model.connected ? ThemeService.success : ThemeService.onSurfaceVariant
                     }
                     Text {
                         text: model.name || model.address
                         font.pixelSize: UiMetrics.fontBody
-                        color: ThemeService.normalFontColor
+                        color: ThemeService.onSurface
                         Layout.fillWidth: true
                     }
-                    Rectangle {
+                    Item {
                         Layout.preferredWidth: forgetText.implicitWidth + UiMetrics.gap * 2
                         Layout.preferredHeight: UiMetrics.touchMin
-                        radius: UiMetrics.touchMin / 2
-                        color: "transparent"
-                        border.color: "#cc4444"
-                        border.width: 1
 
-                        scale: forgetArea.pressed ? 0.95 : 1.0
-                        opacity: forgetArea.pressed ? 0.85 : 1.0
+                        readonly property bool _isPressed: forgetArea.pressed
+
+                        scale: _isPressed ? 0.95 : 1.0
                         Behavior on scale { NumberAnimation { duration: UiMetrics.animDurationFast; easing.type: Easing.OutCubic } }
-                        Behavior on opacity { NumberAnimation { duration: UiMetrics.animDurationFast; easing.type: Easing.OutCubic } }
+
+                        // Background source for shadow
+                        Rectangle {
+                            id: forgetBg
+                            anchors.fill: parent
+                            radius: UiMetrics.touchMin / 2
+                            color: "transparent"
+                            border.color: ThemeService.error
+                            border.width: 1
+                            layer.enabled: true
+                            visible: false
+                        }
+
+                        // Shadow effect (Level 2 resting, reduced on press)
+                        MultiEffect {
+                            source: forgetBg
+                            anchors.fill: forgetBg
+                            shadowEnabled: true
+                            shadowColor: ThemeService.shadow
+                            shadowBlur: parent._isPressed ? 0.35 : 0.65
+                            shadowVerticalOffset: parent._isPressed ? 2 : 5
+                            shadowOpacity: parent._isPressed ? 0.30 : 0.55
+                            shadowHorizontalOffset: 0
+                            shadowScale: 1.0
+                            autoPaddingEnabled: true
+
+                            Behavior on shadowBlur { NumberAnimation { duration: UiMetrics.animDurationFast } }
+                            Behavior on shadowVerticalOffset { NumberAnimation { duration: UiMetrics.animDurationFast } }
+                            Behavior on shadowOpacity { NumberAnimation { duration: UiMetrics.animDurationFast } }
+                        }
+
+                        // State layer overlay
+                        Rectangle {
+                            anchors.fill: parent
+                            radius: UiMetrics.touchMin / 2
+                            color: ThemeService.onSurface
+                            opacity: parent._isPressed ? 0.10 : 0.0
+                            Behavior on opacity { NumberAnimation { duration: UiMetrics.animDurationFast } }
+                        }
 
                         Text {
                             id: forgetText
                             anchors.centerIn: parent
                             text: "Forget"
                             font.pixelSize: UiMetrics.fontSmall
-                            color: "#cc4444"
+                            color: ThemeService.error
                         }
 
                         MouseArea {
@@ -166,7 +202,7 @@ Flickable {
                     anchors.bottom: parent.bottom
                     anchors.left: parent.left; anchors.right: parent.right
                     anchors.leftMargin: UiMetrics.marginPage; anchors.rightMargin: UiMetrics.marginPage
-                    height: 1; color: ThemeService.dividerColor
+                    height: 1; color: ThemeService.outlineVariant
                 }
             }
         }

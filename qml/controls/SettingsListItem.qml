@@ -1,4 +1,5 @@
 import QtQuick
+import QtQuick.Effects
 import QtQuick.Layouts
 
 Item {
@@ -12,10 +13,50 @@ Item {
     Layout.fillWidth: true
     implicitHeight: UiMetrics.rowH
 
-    scale: mouseArea.pressed ? 0.97 : 1.0
-    opacity: mouseArea.pressed ? 0.85 : 1.0
+    readonly property bool _isPressed: mouseArea.pressed
+
+    scale: _isPressed ? 0.97 : 1.0
     Behavior on scale { NumberAnimation { duration: UiMetrics.animDurationFast; easing.type: Easing.OutCubic } }
-    Behavior on opacity { NumberAnimation { duration: UiMetrics.animDurationFast; easing.type: Easing.OutCubic } }
+
+    // Background rectangle (source for MultiEffect shadow)
+    Rectangle {
+        id: bg
+        anchors.fill: parent
+        radius: UiMetrics.radiusSmall
+        color: ThemeService.surfaceContainerLow
+        border.width: 1
+        border.color: ThemeService.outlineVariant
+        layer.enabled: true
+        visible: false
+    }
+
+    // Shadow effect (Level 2 resting, reduced on press)
+    MultiEffect {
+        id: shadow
+        source: bg
+        anchors.fill: bg
+        shadowEnabled: true
+        shadowColor: ThemeService.shadow
+        shadowBlur: root._isPressed ? 0.35 : 0.65
+        shadowVerticalOffset: root._isPressed ? 2 : 5
+        shadowOpacity: root._isPressed ? 0.30 : 0.55
+        shadowHorizontalOffset: 0
+        shadowScale: 1.0
+        autoPaddingEnabled: true
+
+        Behavior on shadowBlur { NumberAnimation { duration: UiMetrics.animDurationFast } }
+        Behavior on shadowVerticalOffset { NumberAnimation { duration: UiMetrics.animDurationFast } }
+        Behavior on shadowOpacity { NumberAnimation { duration: UiMetrics.animDurationFast } }
+    }
+
+    // State layer overlay
+    Rectangle {
+        anchors.fill: parent
+        radius: UiMetrics.radiusSmall
+        color: ThemeService.onSurface
+        opacity: root._isPressed ? 0.10 : 0.0
+        Behavior on opacity { NumberAnimation { duration: UiMetrics.animDurationFast } }
+    }
 
     RowLayout {
         anchors.fill: parent
@@ -26,20 +67,20 @@ Item {
         MaterialIcon {
             icon: root.icon
             size: UiMetrics.iconSize
-            color: ThemeService.normalFontColor
+            color: ThemeService.onSurface
         }
 
         Text {
             text: root.label
             font.pixelSize: UiMetrics.fontBody
-            color: ThemeService.normalFontColor
+            color: ThemeService.onSurface
             Layout.fillWidth: true
         }
 
         MaterialIcon {
             icon: "\ue5cc"
             size: UiMetrics.iconSmall
-            color: ThemeService.descriptionFontColor
+            color: ThemeService.onSurfaceVariant
         }
     }
 
@@ -50,7 +91,7 @@ Item {
         anchors.leftMargin: UiMetrics.marginPage
         anchors.rightMargin: UiMetrics.marginPage
         height: 1
-        color: ThemeService.dividerColor
+        color: ThemeService.outlineVariant
         opacity: 1.0
     }
 

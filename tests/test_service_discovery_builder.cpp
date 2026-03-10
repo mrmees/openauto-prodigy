@@ -6,6 +6,7 @@
 #include "oaa/control/ChannelDescriptorData.pb.h"
 #include "oaa/input/InputChannelData.pb.h"
 #include "oaa/input/TouchConfigData.pb.h"
+#include "oaa/video/AdditionalVideoConfigData.pb.h"
 
 class TestServiceDiscoveryBuilder : public QObject {
     Q_OBJECT
@@ -189,6 +190,65 @@ private slots:
             }
         }
         QFAIL("Input channel not found");
+    }
+
+    void testSessionConfigWhenNavbarEnabled() {
+        // session_configuration bitmask should hide clock/signal/battery
+        oap::YamlConfig config;
+        config.setValueByPath("navbar.show_during_aa", true);
+        config.setValueByPath("navbar.edge", QString("bottom"));
+
+        oap::aa::ServiceDiscoveryBuilder builder(&config);
+        builder.setDisplayDimensions(1024, 600);
+        auto sessionConfig = builder.build();
+
+        // 1|2|4 = hide clock, signal, battery
+        // HIDE_CLOCK only — AA 16.2 forcibly keeps signal/battery when clock is hidden
+        QCOMPARE(sessionConfig.sessionConfiguration, static_cast<int32_t>(1));
+    }
+
+    void testSessionConfigDefaultUnset() {
+        // When navbar.show_during_aa is not set, default is true — should still hide clock
+        oap::YamlConfig config;
+        oap::aa::ServiceDiscoveryBuilder builder(&config);
+        builder.setDisplayDimensions(1024, 600);
+        auto sessionConfig = builder.build();
+
+        QCOMPARE(sessionConfig.sessionConfiguration, static_cast<int32_t>(1));
+    }
+
+    void testNoSessionConfigWhenNavbarDisabled() {
+        oap::YamlConfig config;
+        config.setValueByPath("navbar.show_during_aa", false);
+
+        oap::aa::ServiceDiscoveryBuilder builder(&config);
+        builder.setDisplayDimensions(1024, 600);
+        auto sessionConfig = builder.build();
+
+        // Should NOT set session_configuration when navbar is disabled
+        QCOMPARE(sessionConfig.sessionConfiguration, static_cast<int32_t>(0));
+    }
+
+    void testNoAdditionalVideoConfig() {
+        // VideoConfig must NOT have additional_config — it breaks legacy margins
+        oap::YamlConfig config;
+        config.setValueByPath("navbar.show_during_aa", true);
+
+        oap::aa::ServiceDiscoveryBuilder builder(&config);
+        builder.setDisplayDimensions(1024, 600);
+        auto sessionConfig = builder.build();
+
+        for (const auto& ch : sessionConfig.channels) {
+            if (ch.channelId == 3) {
+                oaa::proto::data::ChannelDescriptor desc;
+                QVERIFY(desc.ParseFromArray(ch.descriptor.constData(), ch.descriptor.size()));
+                auto& vc = desc.av_channel().video_configs(0);
+                QVERIFY2(!vc.has_additional_config(),
+                         "additional_config must NOT be set — it breaks margins");
+                return;
+            }
+        }
+        QFAIL("Video channel not found");
     }
 
     void testWifiChannelHasBssid() {

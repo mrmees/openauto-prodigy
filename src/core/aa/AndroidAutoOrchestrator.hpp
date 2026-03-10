@@ -32,6 +32,7 @@ namespace oap {
 class YamlConfig;
 class IAudioService;
 class IEventBus;
+class IThemeService;
 class Configuration;
 class EqualizerService;
 struct AudioStreamHandle;
@@ -42,6 +43,9 @@ class AndroidAutoOrchestrator : public QObject {
     Q_OBJECT
     Q_PROPERTY(int connectionState READ connectionState NOTIFY connectionStateChanged)
     Q_PROPERTY(QString statusMessage READ statusMessage NOTIFY statusMessageChanged)
+    Q_PROPERTY(int phoneBatteryLevel READ phoneBatteryLevel NOTIFY phoneBatteryChanged)
+    Q_PROPERTY(int phoneSignalStrength READ phoneSignalStrength NOTIFY phoneSignalChanged)
+    Q_PROPERTY(bool aaConnected READ isAaConnected NOTIFY connectionStateChanged)
 
 public:
     enum ConnectionState {
@@ -74,16 +78,27 @@ public:
     VideoDecoder* videoDecoder() { return &videoDecoder_; }
     TouchHandler* touchHandler() { return &touchHandler_; }
 
+    /// Set theme service for applying phone-sent AA theming tokens.
+    void setThemeService(oap::IThemeService* theme) { themeService_ = theme; }
+
     /// Set detected display dimensions for margin calculations.
     void setDisplayDimensions(int w, int h) { displayW_ = w; displayH_ = h; }
+
+    /// Set DPI-scaled navbar thickness for margin calculations.
+    void setNavbarThickness(int thickness) { navbarThickness_ = thickness; }
     oaa::hu::InputChannelHandler* inputHandler() { return &inputHandler_; }
 
     int connectionState() const { return state_; }
     QString statusMessage() const { return statusMessage_; }
+    int phoneBatteryLevel() const { return phoneBatteryLevel_; }
+    int phoneSignalStrength() const { return phoneSignalStrength_; }
+    bool isAaConnected() const { return state_ == Connected || state_ == Backgrounded; }
 
 signals:
     void connectionStateChanged();
     void statusMessageChanged();
+    void phoneBatteryChanged();
+    void phoneSignalChanged();
 
 private:
     void onNewConnection();
@@ -102,6 +117,7 @@ private:
     oap::YamlConfig* yamlConfig_;
     oap::IEventBus* eventBus_;
     oap::EqualizerService* eqService_;
+    oap::IThemeService* themeService_ = nullptr;
 
     // TCP listener (Qt-native, replaces ASIO acceptor)
     QTcpServer tcpServer_;
@@ -141,8 +157,11 @@ private:
     ConnectionState state_ = Disconnected;
     QString statusMessage_;
     bool pendingReconnect_ = false;
+    int phoneBatteryLevel_ = -1;
+    int phoneSignalStrength_ = -1;
     int displayW_ = 0;  // detected display dimensions (0 = use config fallback)
     int displayH_ = 0;
+    int navbarThickness_ = 56;
 
 #ifdef HAS_BLUETOOTH
     class BluetoothDiscoveryService* btDiscovery_ = nullptr;

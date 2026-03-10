@@ -1,0 +1,103 @@
+# Connected Device theme — colors are updated live when Android Auto
+# sends UiConfigRequest theming tokens from the phone's Material You palette.
+# This file doubles as a persistent cache of the last-received colors.
+# On first launch (before any phone connection), uses a Material You-inspired
+# teal palette as the default. Once a phone connects, colors are overwritten.
+id: connected-device
+name: Connected Device
+version: 2.0.0
+font_family: "Lato"
+
+# Day mode colors — Material You teal/blue default palette
+day:
+  # Primary group
+  primary: "#80cbc4"
+  on-primary: "#003830"
+  primary-container: "#2a7068"
+  on-primary-container: "#b0f0e8"
+  # Secondary group
+  secondary: "#6a8a88"
+  on-secondary: "#ffffff"
+  secondary-container: "#3a5a58"
+  on-secondary-container: "#c0e0d8"
+  # Tertiary group
+  tertiary: "#80a0c8"
+  on-tertiary: "#002848"
+  tertiary-container: "#305880"
+  on-tertiary-container: "#b0d0f0"
+  # Error group
+  error: "#f2b8b5"
+  on-error: "#601410"
+  error-container: "#8c1d18"
+  on-error-container: "#ffdad6"
+  # Background & surface
+  background: "#1c1b1f"
+  on-background: "#f0f0f0"
+  surface: "#252530"
+  on-surface: "#e6e1e5"
+  surface-variant: "#2d2d32"
+  on-surface-variant: "#a0a0a0"
+  surface-dim: "#141418"
+  surface-bright: "#323238"
+  surface-container-lowest: "#0e0e12"
+  surface-container-low: "#26383c"
+  surface-container: "#242430"
+  surface-container-high: "#2c2c38"
+  surface-container-highest: "#323240"
+  # Outline
+  outline: "#938f99"
+  outline-variant: "#ffffff20"
+  # Inverse
+  inverse-surface: "#e6e1e5"
+  inverse-on-surface: "#1c1b1f"
+  inverse-primary: "#2a7068"
+  # Utility
+  scrim: "#000000"
+  shadow: "#000000"
+
+# Night mode colors — dimmer teal variant
+night:
+  # Primary group
+  primary: "#4db6ac"
+  on-primary: "#002820"
+  primary-container: "#1a5850"
+  on-primary-container: "#90d8d0"
+  # Secondary group
+  secondary: "#507070"
+  on-secondary: "#ffffff"
+  secondary-container: "#284040"
+  on-secondary-container: "#a0c8c0"
+  # Tertiary group
+  tertiary: "#6080a8"
+  on-tertiary: "#002038"
+  tertiary-container: "#204060"
+  on-tertiary-container: "#90b8d8"
+  # Error group
+  error: "#d4837f"
+  on-error: "#601410"
+  error-container: "#6c1410"
+  on-error-container: "#f0c0c0"
+  # Background & surface
+  background: "#121215"
+  on-background: "#d0d0d0"
+  surface: "#1a1a22"
+  on-surface: "#c9c5ca"
+  surface-variant: "#1e1e24"
+  on-surface-variant: "#808080"
+  surface-dim: "#0a0a0e"
+  surface-bright: "#24242c"
+  surface-container-lowest: "#060608"
+  surface-container-low: "#1a2a2e"
+  surface-container: "#1a1a24"
+  surface-container-high: "#222230"
+  surface-container-highest: "#282838"
+  # Outline
+  outline: "#74707a"
+  outline-variant: "#ffffff15"
+  # Inverse
+  inverse-surface: "#c9c5ca"
+  inverse-on-surface: "#121215"
+  inverse-primary: "#1a5850"
+  # Utility
+  scrim: "#000000"
+  shadow: "#000000"

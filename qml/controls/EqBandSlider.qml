@@ -54,7 +54,7 @@ Item {
             y: root.trackTopY
             width: root.trackWidth
             height: root.trackHeight
-            color: ThemeService.descriptionFontColor
+            color: ThemeService.onSurfaceVariant
             opacity: 0.5
             radius: width / 2
         }
@@ -67,7 +67,7 @@ Item {
             anchors.rightMargin: UiMetrics.spacing / 2
             y: root.gainToY(0) - 1
             height: 1
-            color: ThemeService.dividerColor
+            color: ThemeService.outlineVariant
         }
 
         // Thumb
@@ -76,7 +76,7 @@ Item {
             width: root.thumbW
             height: root.thumbH
             radius: UiMetrics.radius / 2
-            color: ThemeService.highlightColor
+            color: ThemeService.primary
             x: (parent.width - width) / 2
             y: root.gainToY(root.gainValue) - height / 2
 
@@ -92,7 +92,7 @@ Item {
             width: floatingText.implicitWidth + UiMetrics.spacing * 2
             height: floatingText.implicitHeight + UiMetrics.spacing
             radius: UiMetrics.radius / 2
-            color: ThemeService.controlBackgroundColor
+            color: ThemeService.surfaceContainerLow
             opacity: root.showLabel ? 0.9 : 0.0
             visible: opacity > 0
             x: (parent.width - width) / 2
@@ -109,7 +109,7 @@ Item {
                     return sign + v.toFixed(1)
                 }
                 font.pixelSize: UiMetrics.fontSmall
-                color: ThemeService.normalFontColor
+                color: ThemeService.onSurface
             }
         }
 
@@ -151,6 +151,6 @@ Item {
         anchors.horizontalCenter: parent.horizontalCenter
         text: root.freqLabel
         font.pixelSize: UiMetrics.fontTiny
-        color: ThemeService.descriptionFontColor
+        color: ThemeService.onSurfaceVariant
     }
 }

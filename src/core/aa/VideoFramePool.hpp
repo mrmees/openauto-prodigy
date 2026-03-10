@@ -5,10 +5,7 @@
 #include <mutex>
 #include <queue>
 #include <memory>
-
-#if QT_VERSION >= QT_VERSION_CHECK(6,8,0)
 #include <QAbstractVideoBuffer>
-#endif
 
 namespace oap {
 namespace aa {
@@ -16,14 +13,12 @@ namespace aa {
 /**
  * VideoFramePool — recycling pool for software-decode QVideoFrame buffers.
  *
- * On Qt 6.8+: Uses RecycledVideoBuffer (custom QAbstractVideoBuffer) with
- * pooled raw memory. When Qt's render thread releases a frame, the buffer's
- * destructor returns the memory to the pool's free list. Eliminates per-frame
- * heap allocation in steady state.
+ * Uses RecycledVideoBuffer (custom QAbstractVideoBuffer) with pooled raw
+ * memory. When Qt's render thread releases a frame, the buffer's destructor
+ * returns the memory to the pool's free list. Eliminates per-frame heap
+ * allocation in steady state.
  *
- * On Qt < 6.8: Falls back to QVideoFrame(format) allocation (no recycling).
- *
- * Thread safety: acquire/acquireRecycled called from decode worker thread.
+ * Thread safety: acquireRecycled called from decode worker thread.
  * returnBuffer called from any thread (Qt render thread via destructor).
  * Protected by mutex.
  */
@@ -35,19 +30,9 @@ public:
         bufferSize_ = computeBufferSize(fmt);
     }
 
-    /// Returns a new QVideoFrame (Qt < 6.8 path, no recycling)
-    QVideoFrame acquire()
-    {
-        std::lock_guard<std::mutex> lock(mutex_);
-        ++totalAllocated_;
-        return QVideoFrame(format_);
-    }
-
-#if QT_VERSION >= QT_VERSION_CHECK(6,8,0)
-    /// Returns a QVideoFrame backed by a recycled buffer (Qt 6.8+ only).
+    /// Returns a QVideoFrame backed by a recycled buffer.
     /// The buffer memory is returned to the pool when Qt releases the frame.
     QVideoFrame acquireRecycled();
-#endif
 
     /// Return a buffer to the free list (called from RecycledVideoBuffer destructor)
     void returnBuffer(std::unique_ptr<uint8_t[]> buf)
@@ -105,7 +90,6 @@ private:
     std::queue<std::unique_ptr<uint8_t[]>> freeBuffers_;
 };
 
-#if QT_VERSION >= QT_VERSION_CHECK(6,8,0)
 /**
  * RecycledVideoBuffer — QAbstractVideoBuffer backed by pool-managed memory.
  *
@@ -181,7 +165,6 @@ inline QVideoFrame VideoFramePool::acquireRecycled()
         std::move(buf), w, h, format_, this);
     return QVideoFrame(std::move(buffer));
 }
-#endif // QT_VERSION >= 6.8.0
 
 } // namespace aa
 } // namespace oap

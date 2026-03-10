@@ -1,42 +1,98 @@
 id: ember
 name: Ember
-version: 1.0.0
+version: 2.0.0
 font_family: "Lato"
 
 # Day mode colors — warm amber/orange, classic dashboard feel
 day:
+  # Primary group
+  primary: "#ff8c42"
+  on-primary: "#3a1800"
+  primary-container: "#a85828"
+  on-primary-container: "#ffe0c0"
+  # Secondary group
+  secondary: "#887060"
+  on-secondary: "#ffffff"
+  secondary-container: "#504030"
+  on-secondary-container: "#d8c8b8"
+  # Tertiary group
+  tertiary: "#e8b040"
+  on-tertiary: "#3a2800"
+  tertiary-container: "#906820"
+  on-tertiary-container: "#f8e8c0"
+  # Error group
+  error: "#cc4444"
+  on-error: "#ffffff"
+  error-container: "#8c1d18"
+  on-error-container: "#ffdad6"
+  # Background & surface
   background: "#1e1712"
-  highlight: "#ff8c42"
-  control_background: "#2a1e16"
-  control_foreground: "#e0d0c0"
-  normal_font: "#f0e8e0"
-  special_font: "#ff8c42"
-  description_font: "#a09080"
-  bar_background: "#2d2018"
-  control_box_background: "#2a1e16"
-  gauge_indicator: "#ff8c42"
-  icon: "#f0e8e0"
-  side_widget_background: "#2a1e16"
-  bar_shadow: "#000000"
-  divider: "#f0e0d026"
-  pressed: "#f0e0d01a"
-  highlight_font: "#1e1712"
+  on-background: "#f0e8e0"
+  surface: "#2a1e16"
+  on-surface: "#e0d0c0"
+  surface-variant: "#2a1e16"
+  on-surface-variant: "#a09080"
+  surface-dim: "#140e0a"
+  surface-bright: "#382a20"
+  surface-container-lowest: "#0e0a08"
+  surface-container-low: "#2d2018"
+  surface-container: "#2a2018"
+  surface-container-high: "#342820"
+  surface-container-highest: "#3a2e24"
+  # Outline
+  outline: "#887060"
+  outline-variant: "#f0e0d026"
+  # Inverse
+  inverse-surface: "#1e1712"
+  inverse-on-surface: "#f0e8e0"
+  inverse-primary: "#a85828"
+  # Utility
+  scrim: "#000000"
+  shadow: "#000000"
 
 # Night mode colors — deeper, reduced intensity
 night:
+  # Primary group
+  primary: "#cc7035"
+  on-primary: "#2a1000"
+  primary-container: "#804020"
+  on-primary-container: "#e0c0a0"
+  # Secondary group
+  secondary: "#685848"
+  on-secondary: "#ffffff"
+  secondary-container: "#382820"
+  on-secondary-container: "#c0b0a0"
+  # Tertiary group
+  tertiary: "#c09030"
+  on-tertiary: "#2a2000"
+  tertiary-container: "#705018"
+  on-tertiary-container: "#e0d0a0"
+  # Error group
+  error: "#aa3333"
+  on-error: "#ffffff"
+  error-container: "#6c1410"
+  on-error-container: "#f0c0c0"
+  # Background & surface
   background: "#120e0a"
-  highlight: "#cc7035"
-  control_background: "#1a1410"
-  control_foreground: "#b0a090"
-  normal_font: "#c8c0b8"
-  special_font: "#cc7035"
-  description_font: "#706050"
-  bar_background: "#201810"
-  control_box_background: "#1a1410"
-  gauge_indicator: "#cc7035"
-  icon: "#c8c0b8"
-  side_widget_background: "#1a1410"
-  bar_shadow: "#000000"
-  divider: "#f0e0d01a"
-  pressed: "#f0e0d00d"
-  highlight_font: "#0f0c09"
+  on-background: "#c8c0b8"
+  surface: "#1a1410"
+  on-surface: "#b0a090"
+  surface-variant: "#1a1410"
+  on-surface-variant: "#706050"
+  surface-dim: "#0a0806"
+  surface-bright: "#281e18"
+  surface-container-lowest: "#060404"
+  surface-container-low: "#201810"
+  surface-container: "#1a1410"
+  surface-container-high: "#241c14"
+  surface-container-highest: "#282018"
+  # Outline
+  outline: "#685848"
+  outline-variant: "#f0e0d01a"
+  # Inverse
+  inverse-surface: "#0f0c09"
+  inverse-on-surface: "#c8c0b8"
+  inverse-primary: "#804020"
+  # Utility
+  scrim: "#000000"
+  shadow: "#000000"

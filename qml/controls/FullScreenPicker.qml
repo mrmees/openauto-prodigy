@@ -1,4 +1,5 @@
 import QtQuick
+import QtQuick.Effects
 import QtQuick.Layouts
 import QtQuick.Controls
 
@@ -63,10 +64,49 @@ Item {
         return ""
     }
 
-    scale: rowMouseArea.pressed ? 0.97 : 1.0
-    opacity: rowMouseArea.pressed ? 0.85 : 1.0
+    readonly property bool _isPressed: rowMouseArea.pressed
+
+    scale: _isPressed ? 0.97 : 1.0
     Behavior on scale { NumberAnimation { duration: UiMetrics.animDurationFast; easing.type: Easing.OutCubic } }
-    Behavior on opacity { NumberAnimation { duration: UiMetrics.animDurationFast; easing.type: Easing.OutCubic } }
+
+    // Background rectangle (source for MultiEffect shadow)
+    Rectangle {
+        id: rowBg
+        anchors.fill: parent
+        radius: UiMetrics.radiusSmall
+        color: ThemeService.surfaceContainerLow
+        border.width: 1
+        border.color: ThemeService.outlineVariant
+        layer.enabled: true
+        visible: false
+    }
+
+    // Shadow effect (Level 2 resting, reduced on press)
+    MultiEffect {
+        source: rowBg
+        anchors.fill: rowBg
+        shadowEnabled: true
+        shadowColor: ThemeService.shadow
+        shadowBlur: root._isPressed ? 0.35 : 0.65
+        shadowVerticalOffset: root._isPressed ? 2 : 5
+        shadowOpacity: root._isPressed ? 0.30 : 0.55
+        shadowHorizontalOffset: 0
+        shadowScale: 1.0
+        autoPaddingEnabled: true
+
+        Behavior on shadowBlur { NumberAnimation { duration: UiMetrics.animDurationFast } }
+        Behavior on shadowVerticalOffset { NumberAnimation { duration: UiMetrics.animDurationFast } }
+        Behavior on shadowOpacity { NumberAnimation { duration: UiMetrics.animDurationFast } }
+    }
+
+    // State layer overlay
+    Rectangle {
+        anchors.fill: parent
+        radius: UiMetrics.radiusSmall
+        color: ThemeService.onSurface
+        opacity: root._isPressed ? 0.10 : 0.0
+        Behavior on opacity { NumberAnimation { duration: UiMetrics.animDurationFast } }
+    }
 
     // --- Tappable row ---
     RowLayout {
@@ -78,28 +118,28 @@ Item {
         Text {
             text: root.label
             font.pixelSize: UiMetrics.fontBody
-            color: ThemeService.normalFontColor
+            color: ThemeService.onSurface
             Layout.fillWidth: true
         }
 
         MaterialIcon {
             icon: "\ue86a"
             size: UiMetrics.iconSmall
-            color: ThemeService.descriptionFontColor
+            color: ThemeService.onSurfaceVariant
             visible: root.restartRequired
         }
 
         Text {
             text: root._displayText
             font.pixelSize: UiMetrics.fontBody
-            color: ThemeService.descriptionFontColor
+            color: ThemeService.onSurfaceVariant
             horizontalAlignment: Text.AlignRight
         }
 
         MaterialIcon {
             icon: "\ue5cf"
             size: UiMetrics.iconSize
-            color: ThemeService.descriptionFontColor
+            color: ThemeService.onSurfaceVariant
         }
     }
 
@@ -128,7 +168,7 @@ Item {
         bottomPadding: 0
 
         background: Rectangle {
-            color: ThemeService.controlBoxBackgroundColor
+            color: ThemeService.surface
             radius: UiMetrics.radius
             // Only round top corners
             Rectangle {
@@ -152,7 +192,7 @@ Item {
                     text: root.label
                     font.pixelSize: UiMetrics.fontTitle
                     font.bold: true
-                    color: ThemeService.normalFontColor
+                    color: ThemeService.onSurface
                     Layout.fillWidth: true
                 }
 
@@ -165,7 +205,7 @@ Item {
                         anchors.centerIn: parent
                         icon: "\ue5cd"
                         size: UiMetrics.iconSize
-                        color: ThemeService.normalFontColor
+                        color: ThemeService.onSurface
                     }
                 }
             }
@@ -176,7 +216,7 @@ Item {
                 anchors.left: parent.left
                 anchors.right: parent.right
                 height: 1
-                color: ThemeService.controlBackgroundColor
+                color: ThemeService.outlineVariant
             }
         }
 
@@ -188,13 +228,14 @@ Item {
             model: root._useModel ? root.model : root.options
 
             delegate: Item {
+                id: delegateItem
                 width: optionsList.width
                 height: UiMetrics.rowH
 
-                scale: delegateMouseArea.pressed ? 0.97 : 1.0
-                opacity: delegateMouseArea.pressed ? 0.85 : 1.0
+                readonly property bool _isPressed: delegateMouseArea.pressed
+
+                scale: _isPressed ? 0.97 : 1.0
                 Behavior on scale { NumberAnimation { duration: UiMetrics.animDurationFast; easing.type: Easing.OutCubic } }
-                Behavior on opacity { NumberAnimation { duration: UiMetrics.animDurationFast; easing.type: Easing.OutCubic } }
 
                 readonly property string _itemText: {
                     if (root._useModel && root.textRole !== "") {
@@ -203,6 +244,45 @@ Item {
                         return val !== undefined ? String(val) : modelData || ""
                     }
                     return modelData || ""
+                }
+
+                // Background source for shadow
+                Rectangle {
+                    id: delegateBg
+                    anchors.fill: parent
+                    anchors.leftMargin: UiMetrics.marginPage
+                    anchors.rightMargin: UiMetrics.marginPage
+                    radius: UiMetrics.radiusSmall
+                    color: ThemeService.surfaceContainerLow
+                    layer.enabled: true
+                    visible: false
+                }
+
+                // Shadow effect (Level 2)
+                MultiEffect {
+                    source: delegateBg
+                    anchors.fill: delegateBg
+                    shadowEnabled: true
+                    shadowColor: ThemeService.shadow
+                    shadowBlur: delegateItem._isPressed ? 0.35 : 0.65
+                    shadowVerticalOffset: delegateItem._isPressed ? 2 : 5
+                    shadowOpacity: delegateItem._isPressed ? 0.30 : 0.55
+                    shadowHorizontalOffset: 0
+                    shadowScale: 1.0
+                    autoPaddingEnabled: true
+
+                    Behavior on shadowBlur { NumberAnimation { duration: UiMetrics.animDurationFast } }
+                    Behavior on shadowVerticalOffset { NumberAnimation { duration: UiMetrics.animDurationFast } }
+                    Behavior on shadowOpacity { NumberAnimation { duration: UiMetrics.animDurationFast } }
+                }
+
+                // State layer overlay
+                Rectangle {
+                    anchors.fill: delegateBg
+                    radius: UiMetrics.radiusSmall
+                    color: ThemeService.onSurface
+                    opacity: delegateItem._isPressed ? 0.10 : 0.0
+                    Behavior on opacity { NumberAnimation { duration: UiMetrics.animDurationFast } }
                 }
 
                 RowLayout {
@@ -215,15 +295,15 @@ Item {
                         text: _itemText
                         font.pixelSize: UiMetrics.fontBody
                         color: index === root.currentIndex
-                            ? ThemeService.highlightColor
-                            : ThemeService.normalFontColor
+                            ? ThemeService.primary
+                            : ThemeService.onSurface
                         Layout.fillWidth: true
                     }
 
                     MaterialIcon {
                         icon: "\ue876"
                         size: UiMetrics.iconSize
-                        color: ThemeService.highlightColor
+                        color: ThemeService.primary
                         visible: index === root.currentIndex
                     }
                 }
@@ -235,7 +315,7 @@ Item {
                     anchors.leftMargin: UiMetrics.marginPage
                     anchors.rightMargin: UiMetrics.marginPage
                     height: 1
-                    color: ThemeService.controlBackgroundColor
+                    color: ThemeService.outlineVariant
                     visible: index < optionsList.count - 1
                 }
 

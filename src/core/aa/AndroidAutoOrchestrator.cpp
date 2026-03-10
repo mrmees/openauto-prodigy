@@ -7,6 +7,10 @@
 #include "../../core/services/AudioService.hpp"
 #include "../../core/services/IEventBus.hpp"
 #include "../../core/services/EqualizerService.hpp"
+#include "../../core/services/IThemeService.hpp"
+
+#include <oaa/Messenger/Messenger.hpp>
+#include <oaa/control/BatteryStatusMessage.pb.h>
 
 #include <memory>
 #include <chrono>
@@ -249,6 +253,7 @@ void AndroidAutoOrchestrator::onNewConnection()
                                      wifiBssid);
     if (displayW_ > 0 && displayH_ > 0)
         builder.setDisplayDimensions(displayW_, displayH_);
+    builder.setNavbarThickness(navbarThickness_);
     oaa::SessionConfig config = builder.build();
 
     // Create session
@@ -382,6 +387,15 @@ void AndroidAutoOrchestrator::onNewConnection()
         }, Qt::QueuedConnection);
     }
 
+    // AA wire theming disabled — companion app is sole theme source (Phase 03.2)
+    // connect(&videoHandler_, &oaa::hu::VideoChannelHandler::uiConfigTokensReceived,
+    //         this, [this](const QMap<QString, uint32_t>& dayTokens,
+    //                      const QMap<QString, uint32_t>& nightTokens) {
+    //     if (themeService_) {
+    //         themeService_->applyAATokens(dayTokens, nightTokens);
+    //     }
+    // });
+
     // Wire video focus changes
     connect(&videoHandler_, &oaa::hu::VideoChannelHandler::videoFocusChanged,
             this, [this](int focusMode, bool) {
@@ -492,6 +506,30 @@ void AndroidAutoOrchestrator::onNewConnection()
             qCDebug(lcAA) << "[Input] haptic feedback requested, type:" << feedbackType;
         });
     }
+
+    // Wire phone battery level from ControlChannel unknownMessage (msg 0x0017)
+    connect(session_->controlChannel(), &oaa::ControlChannel::unknownMessage,
+            this, [this](uint16_t msgId, const QByteArray& payload) {
+        if (msgId == 0x0017) {  // BatteryStatusNotification
+            oaa::proto::messages::BatteryStatusNotification batt;
+            if (batt.ParseFromArray(payload.constData(), payload.size())) {
+                int level = batt.has_battery_level() ? static_cast<int>(batt.battery_level()) : -1;
+                if (phoneBatteryLevel_ != level) {
+                    phoneBatteryLevel_ = level;
+                    emit phoneBatteryChanged();
+                }
+            }
+        }
+    });
+
+    // Wire phone signal strength from PhoneStatusChannelHandler
+    connect(&phoneStatusHandler_, &oaa::hu::PhoneStatusChannelHandler::signalStrengthChanged,
+            this, [this](int strength) {
+        if (phoneSignalStrength_ != strength) {
+            phoneSignalStrength_ = strength;
+            emit phoneSignalChanged();
+        }
+    });
 
     // Create and wire night mode provider
     nightProvider_.reset();
@@ -649,6 +687,16 @@ void AndroidAutoOrchestrator::teardownSession()
 {
     stopProtocolCapture();
 
+    // Reset phone status properties (no stale data after disconnect)
+    if (phoneBatteryLevel_ != -1) {
+        phoneBatteryLevel_ = -1;
+        emit phoneBatteryChanged();
+    }
+    if (phoneSignalStrength_ != -1) {
+        phoneSignalStrength_ = -1;
+        emit phoneSignalChanged();
+    }
+
     // Disconnect frame-ready signal to stop pushing frames during teardown
     videoDecoder_.disconnect(this);
 
@@ -662,6 +710,7 @@ void AndroidAutoOrchestrator::teardownSession()
         speechAudioHandler_.disconnect(this);
         systemAudioHandler_.disconnect(this);
         videoHandler_.disconnect(&videoDecoder_);
+        phoneStatusHandler_.disconnect(this);
 
         // deleteLater() instead of delete: teardownSession() is often called from
         // within onSessionStateChanged(), which is a direct-connection slot of

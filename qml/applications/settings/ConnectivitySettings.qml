@@ -31,11 +31,11 @@ Flickable {
                 anchors.leftMargin: UiMetrics.marginPage
                 anchors.rightMargin: UiMetrics.marginPage
                 spacing: UiMetrics.gap
-                MaterialIcon { icon: "\ue1b7"; size: UiMetrics.iconSize; color: ThemeService.normalFontColor }
+                MaterialIcon { icon: "\ue1b7"; size: UiMetrics.iconSize; color: ThemeService.onSurface }
                 Text {
                     text: "Accept New Pairings"
                     font.pixelSize: UiMetrics.fontBody
-                    color: ThemeService.normalFontColor
+                    color: ThemeService.onSurface
                     Layout.fillWidth: true
                 }
                 Switch {
@@ -50,7 +50,7 @@ Flickable {
                 anchors.bottom: parent.bottom
                 anchors.left: parent.left; anchors.right: parent.right
                 anchors.leftMargin: UiMetrics.marginPage; anchors.rightMargin: UiMetrics.marginPage
-                height: 1; color: ThemeService.dividerColor
+                height: 1; color: ThemeService.outlineVariant
             }
         }
 
@@ -68,18 +68,18 @@ Flickable {
                     MaterialIcon {
                         icon: model.connected ? "\ue1ba" : "\ue1b9"
                         size: UiMetrics.iconSize
-                        color: model.connected ? "#44aa44" : ThemeService.descriptionFontColor
+                        color: model.connected ? ThemeService.success : ThemeService.onSurfaceVariant
                     }
                     Text {
                         text: model.name || model.address
                         font.pixelSize: UiMetrics.fontBody
-                        color: ThemeService.normalFontColor
+                        color: ThemeService.onSurface
                         Layout.fillWidth: true
                     }
                     Text {
                         text: "Forget"
                         font.pixelSize: UiMetrics.fontSmall
-                        color: "#cc4444"
+                        color: ThemeService.error
                         MouseArea {
                             anchors.fill: parent
                             anchors.margins: -8
@@ -93,7 +93,7 @@ Flickable {
                     anchors.bottom: parent.bottom
                     anchors.left: parent.left; anchors.right: parent.right
                     anchors.leftMargin: UiMetrics.marginPage; anchors.rightMargin: UiMetrics.marginPage
-                    height: 1; color: ThemeService.dividerColor
+                    height: 1; color: ThemeService.outlineVariant
                 }
             }
         }

@@ -16,6 +16,8 @@ Q_DECLARE_METATYPE(std::shared_ptr<const QByteArray>)
 #include "oaa/video/VideoFocusIndicationMessage.pb.h"
 #include "oaa/video/VideoFocusModeEnum.pb.h"
 #include "oaa/video/VideoFocusReasonEnum.pb.h"
+#include "oaa/video/UpdateHuUiConfigResponse.pb.h"
+#include "oaa/video/UiConfigRequestMessage.pb.h"
 
 namespace oaa {
 namespace hu {
@@ -47,6 +49,9 @@ void VideoChannelHandler::onMessage(uint16_t messageId, const QByteArray& payloa
     const QByteArray data = QByteArray::fromRawData(
         payload.constData() + dataOffset, payload.size() - dataOffset);
 
+    // Temp: log all non-media messages arriving on video channel
+    qInfo() << "[VideoChannel] ZEBRA RX msgId:" << Qt::hex << messageId << "size:" << data.size();
+
     switch (messageId) {
     case oaa::AVMessageId::SETUP_REQUEST:
         handleSetupRequest(data);
@@ -63,6 +68,45 @@ void VideoChannelHandler::onMessage(uint16_t messageId, const QByteArray& payloa
     case oaa::AVMessageId::VIDEO_FOCUS_INDICATION:
         handleVideoFocusIndication(data);
         break;
+    case oaa::AVMessageId::OVERLAY_SESSION_UPDATE: {
+        // 0x8011: UiConfigRequest (Phone->HU) -- Material You theming tokens
+        oaa::proto::messages::UiConfigRequest request;
+        if (!request.ParseFromArray(data.constData(), data.size())) {
+            qWarning() << "[VideoChannel] failed to parse UiConfigRequest";
+            break;
+        }
+
+        QMap<QString, uint32_t> dayTokens, nightTokens;
+        if (request.has_config()) {
+            const auto& config = request.config();
+            for (int i = 0; i < config.primary_configs_size(); ++i) {
+                const auto& entry = config.primary_configs(i);
+                if (entry.has_config_value()) {
+                    dayTokens[QString::fromStdString(entry.key())] = entry.config_value().value();
+                }
+            }
+            for (int i = 0; i < config.secondary_configs_size(); ++i) {
+                const auto& entry = config.secondary_configs(i);
+                if (entry.has_config_value()) {
+                    nightTokens[QString::fromStdString(entry.key())] = entry.config_value().value();
+                }
+            }
+        }
+
+        qInfo() << "[VideoChannel] UiConfigRequest received:"
+                << dayTokens.size() << "light tokens,"
+                << nightTokens.size() << "dark tokens";
+
+        emit uiConfigTokensReceived(dayTokens, nightTokens);
+
+        // Send 0x8012 ACCEPTED response
+        oaa::proto::messages::UpdateHuUiConfigResponse resp;
+        resp.set_status(oaa::proto::messages::THEMING_TOKENS_ACCEPTED);
+        QByteArray respData(resp.ByteSizeLong(), '\0');
+        resp.SerializeToArray(respData.data(), respData.size());
+        emit sendRequested(channelId(), oaa::AVMessageId::UPDATE_HU_UI_CONFIG_REQUEST, respData);
+        break;
+    }
     case oaa::AVMessageId::VIDEO_FOCUS_NOTIFICATION:
     case oaa::AVMessageId::UPDATE_UI_CONFIG_REQUEST:
     case oaa::AVMessageId::UPDATE_UI_CONFIG_REPLY:
@@ -71,7 +115,6 @@ void VideoChannelHandler::onMessage(uint16_t messageId, const QByteArray& payloa
     case oaa::AVMessageId::OVERLAY_PARAMETERS:
     case oaa::AVMessageId::OVERLAY_START:
     case oaa::AVMessageId::OVERLAY_STOP:
-    case oaa::AVMessageId::OVERLAY_SESSION_UPDATE:
     case oaa::AVMessageId::UPDATE_HU_UI_CONFIG_REQUEST:
     case oaa::AVMessageId::UPDATE_HU_UI_CONFIG_RESPONSE:
     case oaa::AVMessageId::MEDIA_STATS:

@@ -76,7 +76,7 @@ Item {
                         return name !== "" ? name : "Custom"
                     }
                     font.pixelSize: UiMetrics.fontSmall
-                    color: ThemeService.descriptionFontColor
+                    color: ThemeService.onSurfaceVariant
                     horizontalAlignment: Text.AlignHCenter
                 }
 
@@ -85,7 +85,7 @@ Item {
                     text: "\ue5c5"
                     font.family: "Material Icons"
                     font.pixelSize: UiMetrics.iconSmall
-                    color: ThemeService.descriptionFontColor
+                    color: ThemeService.onSurfaceVariant
                 }
             }
 
@@ -110,7 +110,7 @@ Item {
                 text: "\ue161"
                 font.family: "Material Icons"
                 font.pixelSize: UiMetrics.iconSize
-                color: ThemeService.descriptionFontColor
+                color: ThemeService.onSurfaceVariant
             }
 
             MouseArea {
@@ -128,7 +128,7 @@ Item {
             Layout.preferredWidth: bypassText.implicitWidth + UiMetrics.gap * 2
             Layout.preferredHeight: UiMetrics.touchMin
             radius: UiMetrics.radius / 2
-            color: root.currentBypassed ? ThemeService.highlightColor : ThemeService.controlBackgroundColor
+            color: root.currentBypassed ? ThemeService.secondaryContainer : ThemeService.surfaceContainerLow
 
             Behavior on color { ColorAnimation { duration: 150 } }
 
@@ -138,7 +138,7 @@ Item {
                 text: "BYPASS"
                 font.pixelSize: UiMetrics.fontTiny
                 font.bold: true
-                color: root.currentBypassed ? ThemeService.backgroundColor : ThemeService.descriptionFontColor
+                color: root.currentBypassed ? ThemeService.onSecondaryContainer : ThemeService.onSurfaceVariant
             }
 
             MouseArea {
@@ -242,7 +242,7 @@ Item {
         bottomPadding: 0
 
         background: Rectangle {
-            color: ThemeService.controlBoxBackgroundColor
+            color: ThemeService.surface
             radius: UiMetrics.radius
             Rectangle {
                 anchors.bottom: parent.bottom
@@ -265,7 +265,7 @@ Item {
                     text: "Presets"
                     font.pixelSize: UiMetrics.fontTitle
                     font.bold: true
-                    color: ThemeService.normalFontColor
+                    color: ThemeService.onSurface
                     Layout.fillWidth: true
                 }
 
@@ -279,7 +279,7 @@ Item {
                         text: "\ue5cd"
                         font.family: "Material Icons"
                         font.pixelSize: UiMetrics.iconSize
-                        color: ThemeService.normalFontColor
+                        color: ThemeService.onSurface
                     }
                 }
             }
@@ -289,7 +289,7 @@ Item {
                 anchors.left: parent.left
                 anchors.right: parent.right
                 height: 1
-                color: ThemeService.controlBackgroundColor
+                color: ThemeService.outlineVariant
             }
         }
 
@@ -333,7 +333,7 @@ Item {
                 anchors.top: parent.top
                 anchors.bottom: parent.bottom
                 width: presetRowRoot.deleteWidth
-                color: "#d32f2f"
+                color: ThemeService.error
                 visible: presetRowRoot.isUserPreset
 
                 Text {
@@ -350,7 +350,7 @@ Item {
                 id: contentRow
                 width: parent.width
                 height: parent.height
-                color: ThemeService.controlBoxBackgroundColor
+                color: ThemeService.surface
                 x: 0
 
                 Behavior on x { NumberAnimation { duration: 150 } }
@@ -365,8 +365,8 @@ Item {
                         text: presetRowRoot.presetName
                         font.pixelSize: UiMetrics.fontBody
                         color: presetRowRoot.presetName === EqualizerService.activePresetForStream(root.currentStream)
-                            ? ThemeService.highlightColor
-                            : ThemeService.normalFontColor
+                            ? ThemeService.primary
+                            : ThemeService.onSurface
                         Layout.fillWidth: true
                     }
 
@@ -374,7 +374,7 @@ Item {
                         text: "\ue876"
                         font.family: "Material Icons"
                         font.pixelSize: UiMetrics.iconSize
-                        color: ThemeService.highlightColor
+                        color: ThemeService.primary
                         visible: presetRowRoot.presetName === EqualizerService.activePresetForStream(root.currentStream)
                     }
                 }
@@ -386,7 +386,7 @@ Item {
                     anchors.leftMargin: UiMetrics.marginPage
                     anchors.rightMargin: UiMetrics.marginPage
                     height: 1
-                    color: ThemeService.controlBackgroundColor
+                    color: ThemeService.outlineVariant
                 }
 
                 MouseArea {
@@ -431,7 +431,7 @@ Item {
         width: parent ? Math.min(parent.width * 0.8, UiMetrics.marginPage * 20) : 0
 
         background: Rectangle {
-            color: ThemeService.controlBoxBackgroundColor
+            color: ThemeService.surface
             radius: UiMetrics.radius
         }
 
@@ -445,7 +445,7 @@ Item {
                 text: "Save Preset"
                 font.pixelSize: UiMetrics.fontTitle
                 font.bold: true
-                color: ThemeService.normalFontColor
+                color: ThemeService.onSurface
             }
 
             Rectangle {
@@ -453,7 +453,7 @@ Item {
                 anchors.left: parent.left
                 anchors.right: parent.right
                 height: 1
-                color: ThemeService.controlBackgroundColor
+                color: ThemeService.outlineVariant
             }
         }
 
@@ -469,10 +469,10 @@ Item {
                 Layout.rightMargin: UiMetrics.marginPage
                 placeholderText: "Enter preset name (or leave blank)"
                 font.pixelSize: UiMetrics.fontBody
-                color: ThemeService.normalFontColor
+                color: ThemeService.onSurface
 
                 background: Rectangle {
-                    color: ThemeService.controlBackgroundColor
+                    color: ThemeService.surfaceContainerLow
                     radius: UiMetrics.radius / 2
                 }
             }
@@ -490,14 +490,14 @@ Item {
                     Layout.preferredWidth: cancelBtnText.implicitWidth + UiMetrics.gap * 2
                     Layout.preferredHeight: UiMetrics.touchMin
                     radius: UiMetrics.radius / 2
-                    color: ThemeService.controlBackgroundColor
+                    color: ThemeService.surfaceContainerLow
 
                     Text {
                         id: cancelBtnText
                         anchors.centerIn: parent
                         text: "Cancel"
                         font.pixelSize: UiMetrics.fontBody
-                        color: ThemeService.normalFontColor
+                        color: ThemeService.onSurface
                     }
 
                     MouseArea {
@@ -510,7 +510,7 @@ Item {
                     Layout.preferredWidth: saveBtnText.implicitWidth + UiMetrics.gap * 2
                     Layout.preferredHeight: UiMetrics.touchMin
                     radius: UiMetrics.radius / 2
-                    color: ThemeService.highlightColor
+                    color: ThemeService.primary
 
                     Text {
                         id: saveBtnText
@@ -518,7 +518,7 @@ Item {
                         text: "Save"
                         font.pixelSize: UiMetrics.fontBody
                         font.bold: true
-                        color: ThemeService.backgroundColor
+                        color: ThemeService.onPrimary
                     }
 
                     MouseArea {

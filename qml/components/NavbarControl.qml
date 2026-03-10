@@ -28,16 +28,16 @@ Item {
     // Background with hold progress feedback
     Rectangle {
         anchors.fill: parent
-        color: ThemeService.barBackgroundColor
+        color: navbar.barBg
         opacity: 1.0
 
-        // Progress overlay — fills from bottom to top
+        // Progress overlay -- fills from bottom to top
         Rectangle {
             anchors.left: parent.left
             anchors.right: parent.right
             anchors.bottom: parent.bottom
             height: parent.height * root._holdProgress
-            color: ThemeService.highlightColor
+            color: ThemeService.tertiary
             opacity: 0.3
             visible: root._holdProgress > 0
         }
@@ -48,50 +48,63 @@ Item {
         anchors.centerIn: parent
         icon: root.iconText
         size: UiMetrics.iconSize
-        color: ThemeService.iconColor
+        color: navbar.barFg
         visible: !root.showClock
     }
 
-    // Clock display -- horizontal mode
-    Text {
-        id: clockHoriz
-        anchors.centerIn: parent
-        visible: root.showClock && !root.isVertical
-        color: ThemeService.normalFontColor
-        font.pixelSize: UiMetrics.fontBody
-
-        Timer {
-            interval: 1000
-            running: root.showClock
-            repeat: true
-            triggeredOnStart: true
-            onTriggered: {
-                var timeStr = Qt.formatTime(new Date(), "h:mm AP")
-                clockHoriz.text = timeStr
-                // Update vertical clock model too
-                var chars = []
-                for (var i = 0; i < timeStr.length; i++) {
-                    if (timeStr[i] !== " ")
-                        chars.push(timeStr[i])
-                }
-                clockVertRepeater.model = chars
+    // --- Clock timer (shared between horizontal and vertical) ---
+    Timer {
+        id: clockTimer
+        interval: 1000
+        running: root.showClock
+        repeat: true
+        triggeredOnStart: true
+        onTriggered: {
+            var v = ConfigService.value("display.clock_24h")
+            var is24h = (v === true || v === 1 || v === "true")
+            var timeStr
+            if (is24h) {
+                timeStr = Qt.formatTime(new Date(), "HH:mm")
+            } else {
+                var now = new Date()
+                var h = now.getHours() % 12 || 12
+                var m = now.getMinutes()
+                timeStr = h + ":" + (m < 10 ? "0" : "") + m
             }
+            clockHoriz.text = timeStr
+            // Update vertical clock model too
+            var chars = []
+            for (var i = 0; i < timeStr.length; i++) {
+                chars.push(timeStr[i])
+            }
+            clockVertRepeater.model = chars
         }
     }
 
-    // Clock display -- vertical mode (stacked single-digit column)
+    // --- Clock display -- horizontal mode ---
+    Text {
+        id: clockHoriz
+        anchors.centerIn: parent
+        color: navbar.barFg
+        font.pixelSize: Math.round(root.height * 0.75)
+        font.weight: Font.DemiBold
+        visible: root.showClock && !root.isVertical
+    }
+
+    // --- Clock display -- vertical mode ---
     Column {
         anchors.centerIn: parent
         visible: root.showClock && root.isVertical
-        spacing: 0
 
+        // Stacked clock digits
         Repeater {
             id: clockVertRepeater
             model: []
             Text {
                 text: modelData
-                font.pixelSize: UiMetrics.fontSmall
-                color: ThemeService.normalFontColor
+                font.pixelSize: Math.round(root.width * 0.55)
+                font.weight: Font.DemiBold
+                color: navbar.barFg
                 horizontalAlignment: Text.AlignHCenter
                 width: root.width
             }

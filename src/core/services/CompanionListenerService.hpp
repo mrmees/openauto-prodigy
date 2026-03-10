@@ -9,6 +9,8 @@
 
 namespace oap {
 
+class ThemeService;
+
 class CompanionListenerService : public QObject {
     Q_OBJECT
     Q_PROPERTY(bool connected READ isConnected NOTIFY connectedChanged)
@@ -35,6 +37,8 @@ public:
     void setSharedSecret(const QString& secret);
     void setWifiSsid(const QString& ssid) { wifiSsid_ = ssid; }
     void setSystemServiceClient(SystemServiceClient* client) { systemClient_ = client; }
+    void setThemeService(ThemeService* ts) { themeService_ = ts; }
+    void setDisplaySize(int w, int h) { displayWidth_ = w; displayHeight_ = h; }
 
     /// Load vehicle_id from ~/.openauto/vehicle.id, or generate a new UUID v4.
     void loadOrGenerateVehicleId();
@@ -83,6 +87,9 @@ private:
     QByteArray generateQrPng(const QString& payload);
     QString socks5Password() const;
     void syncProxyRouteFromStatus(bool active, const QString& host, int port, const QString& password);
+    void handleThemeMessage(const QJsonObject& msg);
+    void handleThemeDataChunk(const QJsonObject& msg);
+    void applyReceivedTheme();
 
     QTcpServer* server_ = nullptr;
     QTcpSocket* client_ = nullptr;
@@ -111,6 +118,15 @@ private:
     QString requestedProxyHost_;
     int requestedProxyPort_ = 0;
     bool proxyRouteApplied_ = false;
+
+    // Theme transfer state
+    QByteArray pendingWallpaperData_;
+    int expectedWallpaperChunks_ = 0;
+    int receivedWallpaperChunks_ = 0;
+    QJsonObject pendingThemeJson_;
+    ThemeService* themeService_ = nullptr;
+    int displayWidth_ = 1024;
+    int displayHeight_ = 600;
 
     // Time safety
     int backwardJumpCount_ = 0;

@@ -16,7 +16,7 @@ Item {
         width: Math.min(parent.width * 0.85, 600)
         height: content.implicitHeight + UiMetrics.marginPage * 2
         radius: UiMetrics.radius
-        color: ThemeService.controlBoxBackgroundColor
+        color: ThemeService.surface
 
         RowLayout {
             id: content
@@ -28,7 +28,7 @@ Item {
             MaterialIcon {
                 icon: "\ue1a7"  // bluetooth_searching
                 size: UiMetrics.iconSize
-                color: ThemeService.highlightColor
+                color: ThemeService.primary
             }
 
             ColumnLayout {
@@ -39,13 +39,13 @@ Item {
                     text: "Ready to pair"
                     font.pixelSize: UiMetrics.fontBody
                     font.weight: Font.DemiBold
-                    color: ThemeService.normalFontColor
+                    color: ThemeService.onSurface
                 }
 
                 Text {
                     text: "Search for \"" + (BluetoothManager ? BluetoothManager.adapterAlias : "") + "\" on your phone"
                     font.pixelSize: UiMetrics.fontSmall
-                    color: ThemeService.descriptionFontColor
+                    color: ThemeService.onSurfaceVariant
                     wrapMode: Text.WordWrap
                     Layout.fillWidth: true
                 }
@@ -56,13 +56,13 @@ Item {
                 width: UiMetrics.backBtnSize
                 height: UiMetrics.backBtnSize
                 radius: width / 2
-                color: dismissArea.pressed ? ThemeService.highlightColor : "transparent"
+                color: dismissArea.pressed ? ThemeService.primary : "transparent"
 
                 MaterialIcon {
                     anchors.centerIn: parent
                     icon: "\ue5cd"  // close
                     size: UiMetrics.iconSmall
-                    color: ThemeService.descriptionFontColor
+                    color: ThemeService.onSurfaceVariant
                 }
 
                 MouseArea {

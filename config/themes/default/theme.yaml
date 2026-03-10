@@ -1,42 +1,98 @@
 id: default
 name: Default Theme
-version: 1.0.0
+version: 2.0.0
 font_family: "Lato"
 
-# Day mode colors
+# Day mode colors — full 34 M3 role set + custom tokens
 day:
+  # Primary group
+  primary: "#e94560"
+  on-primary: "#ffffff"
+  primary-container: "#f4a0b0"
+  on-primary-container: "#3d0011"
+  # Secondary group
+  secondary: "#6c757d"
+  on-secondary: "#ffffff"
+  secondary-container: "#b0b8c0"
+  on-secondary-container: "#1a2028"
+  # Tertiary group
+  tertiary: "#7c4dff"
+  on-tertiary: "#ffffff"
+  tertiary-container: "#c4a8ff"
+  on-tertiary-container: "#1a0050"
+  # Error group
+  error: "#cc4444"
+  on-error: "#ffffff"
+  error-container: "#f9dedc"
+  on-error-container: "#410e0b"
+  # Background & surface
   background: "#1a1a2e"
-  highlight: "#e94560"
-  control_background: "#16213e"
-  control_foreground: "#e0e0e0"
-  normal_font: "#ffffff"
-  special_font: "#e94560"
-  description_font: "#a0a0a0"
-  bar_background: "#0f3460"
-  control_box_background: "#16213e"
-  gauge_indicator: "#e94560"
-  icon: "#ffffff"
-  side_widget_background: "#16213e"
-  bar_shadow: "#000000"
-  divider: "#ffffff26"
-  pressed: "#ffffff1a"
-  highlight_font: "#1a1a2e"
+  on-background: "#ffffff"
+  surface: "#16213e"
+  on-surface: "#e0e0e0"
+  surface-variant: "#16213e"
+  on-surface-variant: "#a0a0a0"
+  surface-dim: "#101020"
+  surface-bright: "#2a2a48"
+  surface-container-lowest: "#0a0a18"
+  surface-container-low: "#0f3460"
+  surface-container: "#1a2848"
+  surface-container-high: "#202f50"
+  surface-container-highest: "#253558"
+  # Outline
+  outline: "#808080"
+  outline-variant: "#ffffff26"
+  # Inverse
+  inverse-surface: "#1a1a2e"
+  inverse-on-surface: "#ffffff"
+  inverse-primary: "#f4a0b0"
+  # Utility
+  scrim: "#000000"
+  shadow: "#000000"
 
 # Night mode colors — dimmer, less eye strain
 night:
+  # Primary group
+  primary: "#c73650"
+  on-primary: "#ffffff"
+  primary-container: "#8a2030"
+  on-primary-container: "#f4a0b0"
+  # Secondary group
+  secondary: "#545b62"
+  on-secondary: "#ffffff"
+  secondary-container: "#808890"
+  on-secondary-container: "#c8d0d8"
+  # Tertiary group
+  tertiary: "#5c30cc"
+  on-tertiary: "#ffffff"
+  tertiary-container: "#8060d8"
+  on-tertiary-container: "#e0d0ff"
+  # Error group
+  error: "#aa3333"
+  on-error: "#ffffff"
+  error-container: "#8c1d18"
+  on-error-container: "#f9dedc"
+  # Background & surface
   background: "#0a0a14"
-  highlight: "#c73650"
-  control_background: "#0e1729"
-  control_foreground: "#b0b0b0"
-  normal_font: "#c0c0c0"
-  special_font: "#c73650"
-  description_font: "#707070"
-  bar_background: "#0a2240"
-  control_box_background: "#0e1729"
-  gauge_indicator: "#c73650"
-  icon: "#c0c0c0"
-  side_widget_background: "#0e1729"
-  bar_shadow: "#000000"
-  divider: "#ffffff1a"
-  pressed: "#ffffff0d"
-  highlight_font: "#0a0a14"
+  on-background: "#c0c0c0"
+  surface: "#0e1729"
+  on-surface: "#b0b0b0"
+  surface-variant: "#0e1729"
+  on-surface-variant: "#707070"
+  surface-dim: "#060610"
+  surface-bright: "#1a1a30"
+  surface-container-lowest: "#040408"
+  surface-container-low: "#0a2240"
+  surface-container: "#0e1830"
+  surface-container-high: "#141e38"
+  surface-container-highest: "#182440"
+  # Outline
+  outline: "#606060"
+  outline-variant: "#ffffff1a"
+  # Inverse
+  inverse-surface: "#0a0a14"
+  inverse-on-surface: "#c0c0c0"
+  inverse-primary: "#8a2030"
+  # Utility
+  scrim: "#000000"
+  shadow: "#000000"

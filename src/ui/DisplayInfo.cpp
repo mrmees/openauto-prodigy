@@ -1,4 +1,5 @@
 #include "ui/DisplayInfo.hpp"
+#include <cmath>
 
 namespace oap {
 
@@ -17,6 +18,16 @@ int DisplayInfo::windowHeight() const
     return windowHeight_;
 }
 
+qreal DisplayInfo::screenSizeInches() const
+{
+    return screenSizeInches_;
+}
+
+int DisplayInfo::computedDpi() const
+{
+    return static_cast<int>(std::round(std::hypot(windowWidth_, windowHeight_) / screenSizeInches_));
+}
+
 void DisplayInfo::setWindowSize(int w, int h)
 {
     if (w <= 0 || h <= 0)
@@ -28,6 +39,19 @@ void DisplayInfo::setWindowSize(int w, int h)
     windowWidth_ = w;
     windowHeight_ = h;
     emit windowSizeChanged();
+}
+
+void DisplayInfo::setScreenSizeInches(qreal inches)
+{
+    if (inches <= 0)
+        return;
+
+    if (qFuzzyCompare(inches, screenSizeInches_))
+        return;
+
+    screenSizeInches_ = inches;
+    emit screenSizeChanged();
+    emit windowSizeChanged();  // computedDpi depends on screen size
 }
 
 } // namespace oap

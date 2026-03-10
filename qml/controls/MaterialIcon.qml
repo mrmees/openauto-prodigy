@@ -1,7 +1,7 @@
 import QtQuick
 
 /// Material Symbols Outlined icon rendered as a text glyph.
-/// Usage:  MaterialIcon { icon: "\ue050"; size: 24; color: "#ffffff" }
+/// Usage:  MaterialIcon { icon: "\ue050"; size: 24; color: ThemeService.onSurface }
 ///
 /// The font is loaded once globally (see Shell.qml FontLoader).
 /// Icon codepoints — reference table:

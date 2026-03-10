@@ -22,7 +22,7 @@ Item {
         anchors.topMargin: UiMetrics.gap
         implicitHeight: bannerRow.implicitHeight + UiMetrics.gap * 2
         radius: UiMetrics.gap
-        color: ThemeService.controlBoxBackgroundColor
+        color: ThemeService.surface
 
         RowLayout {
             id: bannerRow
@@ -33,14 +33,14 @@ Item {
             MaterialIcon {
                 icon: "\ue88e"
                 size: UiMetrics.iconSmall
-                color: ThemeService.highlightColor
+                color: ThemeService.primary
             }
 
             Text {
                 text: root.text
                 font.pixelSize: UiMetrics.fontSmall
                 font.italic: true
-                color: ThemeService.normalFontColor
+                color: ThemeService.onSurface
                 wrapMode: Text.WordWrap
                 Layout.fillWidth: true
             }

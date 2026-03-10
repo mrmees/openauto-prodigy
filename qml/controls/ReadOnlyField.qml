@@ -21,7 +21,7 @@ Item {
         MaterialIcon {
             icon: root.icon
             size: UiMetrics.iconSize
-            color: ThemeService.normalFontColor
+            color: ThemeService.onSurface
             visible: root.icon !== ""
             Layout.preferredWidth: UiMetrics.iconSize
         }
@@ -29,14 +29,14 @@ Item {
         Text {
             text: root.label
             font.pixelSize: UiMetrics.fontBody
-            color: ThemeService.normalFontColor
+            color: ThemeService.onSurface
             Layout.preferredWidth: root.width * 0.35
         }
 
         Text {
             text: root.value !== "" ? root.value : root.placeholder
             font.pixelSize: UiMetrics.fontBody
-            color: ThemeService.descriptionFontColor
+            color: ThemeService.onSurfaceVariant
             elide: Text.ElideRight
             Layout.fillWidth: true
             horizontalAlignment: Text.AlignRight

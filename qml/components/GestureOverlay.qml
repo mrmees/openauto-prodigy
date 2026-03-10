@@ -1,5 +1,6 @@
 import QtQuick
 import QtQuick.Controls
+import QtQuick.Effects
 import QtQuick.Layouts
 
 /// Translucent overlay shown when a 3-finger tap gesture is detected.
@@ -8,7 +9,7 @@ import QtQuick.Layouts
 Rectangle {
     id: overlay
     anchors.fill: parent
-    color: "#AA000000"
+    color: ThemeService.scrim
     visible: false
     z: 999
 
@@ -55,27 +56,51 @@ Rectangle {
         }
     }
 
-    // Transparent touch sink — absorbs taps but does NOT dismiss
+    // Transparent touch sink -- absorbs taps but does NOT dismiss
     MouseArea {
         anchors.fill: parent
     }
 
-    // Control panel (centered)
-    Rectangle {
-        objectName: "overlayPanel"
+    // Control panel (centered) with Level 3 elevation
+    Item {
         anchors.centerIn: parent
         width: Math.min(parent.width * 0.7, Math.round(500 * UiMetrics.scale))
         height: controlsLayout.implicitHeight + Math.round(48 * UiMetrics.scale)
-        radius: UiMetrics.radiusLarge
-        color: "#DD1a1a2e"
-        border.color: "#0f3460"
-        border.width: 2
+
+        // Surface tint: blend 12% primary into surfaceContainerHighest for visible elevation
+        Rectangle {
+            id: panelBg
+            anchors.fill: parent
+            radius: UiMetrics.radiusLarge
+            color: Qt.rgba(
+                ThemeService.surfaceContainerHighest.r * 0.88 + ThemeService.primary.r * 0.12,
+                ThemeService.surfaceContainerHighest.g * 0.88 + ThemeService.primary.g * 0.12,
+                ThemeService.surfaceContainerHighest.b * 0.88 + ThemeService.primary.b * 0.12,
+                0.87)
+            border.width: 1
+            border.color: ThemeService.outlineVariant
+            layer.enabled: true
+            visible: false
+        }
+
+        MultiEffect {
+            source: panelBg
+            anchors.fill: panelBg
+            shadowEnabled: true
+            shadowColor: ThemeService.shadow
+            shadowBlur: 0.85
+            shadowVerticalOffset: 8
+            shadowOpacity: 0.60
+            shadowHorizontalOffset: 0
+            shadowScale: 1.0
+            autoPaddingEnabled: true
+        }
 
         // Block clicks from passing through the panel
         MouseArea {
             anchors.fill: parent
             onClicked: {
-                // consume — don't dismiss
+                // consume -- don't dismiss
             }
         }
 
@@ -90,7 +115,7 @@ Rectangle {
                 text: "Quick Controls"
                 font.pixelSize: UiMetrics.fontSmall
                 font.bold: true
-                color: "#e0e0e0"
+                color: ThemeService.onSurface
             }
 
             // Volume slider
@@ -102,7 +127,7 @@ Rectangle {
                 MaterialIcon {
                     icon: "\ue050"  // volume_up
                     size: Math.round(22 * UiMetrics.scale)
-                    color: "#e0e0e0"
+                    color: ThemeService.onSurface
                 }
 
                 Slider {
@@ -122,7 +147,7 @@ Rectangle {
                 Text {
                     text: Math.round(volumeSlider.value) + "%"
                     font.pixelSize: UiMetrics.fontSmall
-                    color: "#a0a0c0"
+                    color: ThemeService.onSurfaceVariant
                     Layout.preferredWidth: Math.round(40 * UiMetrics.scale)
                 }
             }
@@ -136,7 +161,7 @@ Rectangle {
                 MaterialIcon {
                     icon: typeof DisplayService !== "undefined" && DisplayService.hasHardwareBrightness ? "\ue1ac" : "\ue3a1"  // brightness_high / contrast
                     size: Math.round(22 * UiMetrics.scale)
-                    color: "#e0e0e0"
+                    color: ThemeService.onSurface
                 }
 
                 Slider {
@@ -159,7 +184,7 @@ Rectangle {
                 Text {
                     text: Math.round(brightnessSlider.value) + "%"
                     font.pixelSize: UiMetrics.fontSmall
-                    color: "#a0a0c0"
+                    color: ThemeService.onSurfaceVariant
                     Layout.preferredWidth: Math.round(40 * UiMetrics.scale)
                 }
             }
@@ -169,88 +194,40 @@ Rectangle {
                 Layout.alignment: Qt.AlignHCenter
                 spacing: UiMetrics.sectionGap
 
-                Button {
+                ElevatedButton {
                     objectName: "overlayHomeBtn"
-                    font.pixelSize: UiMetrics.fontSmall
-                    enabled: overlay.acceptInput
+                    text: "Home"
+                    iconCode: "\ue9b2"
+                    buttonEnabled: overlay.acceptInput
+                    implicitWidth: UiMetrics.overlayBtnW
+                    implicitHeight: UiMetrics.overlayBtnH
                     onClicked: {
                         ActionRegistry.dispatch("app.home")
                         overlay.dismiss()
                     }
-                    contentItem: RowLayout {
-                        spacing: UiMetrics.spacing
-                        MaterialIcon {
-                            icon: "\ue9b2"  // home
-                            size: UiMetrics.iconSmall
-                            color: "#e0e0e0"
-                        }
-                        Text {
-                            text: "Home"
-                            font.pixelSize: UiMetrics.fontSmall
-                            color: "#e0e0e0"
-                        }
-                    }
-                    background: Rectangle {
-                        color: parent.pressed ? "#e94560" : "#0f3460"
-                        radius: UiMetrics.radiusSmall
-                        implicitWidth: UiMetrics.overlayBtnW
-                        implicitHeight: UiMetrics.overlayBtnH
-                    }
                 }
 
-                Button {
+                ElevatedButton {
                     objectName: "overlayThemeBtn"
-                    font.pixelSize: UiMetrics.fontSmall
-                    enabled: overlay.acceptInput
+                    text: ThemeService.nightMode ? "Day" : "Night"
+                    iconCode: ThemeService.nightMode ? "\ue518" : "\ue51c"
+                    buttonEnabled: overlay.acceptInput
+                    implicitWidth: UiMetrics.overlayBtnW
+                    implicitHeight: UiMetrics.overlayBtnH
                     onClicked: {
                         ActionRegistry.dispatch("theme.toggle")
                         dismissTimer.restart()
                     }
-                    contentItem: RowLayout {
-                        spacing: UiMetrics.spacing
-                        MaterialIcon {
-                            icon: ThemeService.nightMode ? "\ue518" : "\ue51c"  // light_mode / dark_mode
-                            size: UiMetrics.iconSmall
-                            color: "#e0e0e0"
-                        }
-                        Text {
-                            text: ThemeService.nightMode ? "Day" : "Night"
-                            font.pixelSize: UiMetrics.fontSmall
-                            color: "#e0e0e0"
-                        }
-                    }
-                    background: Rectangle {
-                        color: parent.pressed ? "#e94560" : "#0f3460"
-                        radius: UiMetrics.radiusSmall
-                        implicitWidth: UiMetrics.overlayBtnW
-                        implicitHeight: UiMetrics.overlayBtnH
-                    }
                 }
 
-                Button {
+                ElevatedButton {
                     objectName: "overlayCloseBtn"
-                    font.pixelSize: UiMetrics.fontSmall
-                    enabled: overlay.acceptInput
+                    text: "Close"
+                    iconCode: "\ue5cd"
+                    buttonEnabled: overlay.acceptInput
+                    implicitWidth: UiMetrics.overlayBtnW
+                    implicitHeight: UiMetrics.overlayBtnH
                     onClicked: overlay.dismiss()
-                    contentItem: RowLayout {
-                        spacing: UiMetrics.spacing
-                        MaterialIcon {
-                            icon: "\ue5cd"  // close
-                            size: UiMetrics.iconSmall
-                            color: "#e0e0e0"
-                        }
-                        Text {
-                            text: "Close"
-                            font.pixelSize: UiMetrics.fontSmall
-                            color: "#e0e0e0"
-                        }
-                    }
-                    background: Rectangle {
-                        color: parent.pressed ? "#e94560" : "#0f3460"
-                        radius: UiMetrics.radiusSmall
-                        implicitWidth: UiMetrics.overlayBtnW
-                        implicitHeight: UiMetrics.overlayBtnH
-                    }
                 }
             }
         }

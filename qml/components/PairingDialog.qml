@@ -1,11 +1,12 @@
 import QtQuick
 import QtQuick.Controls
+import QtQuick.Effects
 import QtQuick.Layouts
 
 Rectangle {
     id: overlay
     anchors.fill: parent
-    color: "#CC000000"
+    color: ThemeService.scrim
     visible: BluetoothManager ? BluetoothManager.pairingActive : false
     z: 998
 
@@ -15,13 +16,40 @@ Rectangle {
         onClicked: {} // absorb
     }
 
-    // Center panel
-    Rectangle {
+    // Center panel with Level 3 elevation
+    Item {
         anchors.centerIn: parent
         width: Math.min(parent.width * 0.7, 500)
         height: col.implicitHeight + UiMetrics.marginPage * 2
-        radius: UiMetrics.radius
-        color: ThemeService.backgroundColor
+
+        // Surface tint: blend 12% primary into surfaceContainerHigh for visible elevation
+        Rectangle {
+            id: panelBg
+            anchors.fill: parent
+            radius: UiMetrics.radius
+            color: Qt.rgba(
+                ThemeService.surfaceContainerHigh.r * 0.88 + ThemeService.primary.r * 0.12,
+                ThemeService.surfaceContainerHigh.g * 0.88 + ThemeService.primary.g * 0.12,
+                ThemeService.surfaceContainerHigh.b * 0.88 + ThemeService.primary.b * 0.12,
+                1.0)
+            border.width: 1
+            border.color: ThemeService.outlineVariant
+            layer.enabled: true
+            visible: false
+        }
+
+        MultiEffect {
+            source: panelBg
+            anchors.fill: panelBg
+            shadowEnabled: true
+            shadowColor: ThemeService.shadow
+            shadowBlur: 0.85
+            shadowVerticalOffset: 8
+            shadowOpacity: 0.60
+            shadowHorizontalOffset: 0
+            shadowScale: 1.0
+            autoPaddingEnabled: true
+        }
 
         ColumnLayout {
             id: col
@@ -32,14 +60,14 @@ Rectangle {
             Text {
                 text: "Pair with device?"
                 font.pixelSize: UiMetrics.fontHeading
-                color: ThemeService.normalFontColor
+                color: ThemeService.onSurface
                 Layout.alignment: Qt.AlignHCenter
             }
 
             Text {
                 text: BluetoothManager ? BluetoothManager.pairingDeviceName : ""
                 font.pixelSize: UiMetrics.fontBody
-                color: ThemeService.descriptionFontColor
+                color: ThemeService.onSurfaceVariant
                 Layout.alignment: Qt.AlignHCenter
             }
 
@@ -48,7 +76,7 @@ Rectangle {
                 font.pixelSize: UiMetrics.fontHeading * 1.8
                 font.weight: Font.Bold
                 font.letterSpacing: 8
-                color: ThemeService.normalFontColor
+                color: ThemeService.onSurface
                 Layout.alignment: Qt.AlignHCenter
                 Layout.topMargin: UiMetrics.gap
                 Layout.bottomMargin: UiMetrics.gap
@@ -58,36 +86,26 @@ Rectangle {
                 Layout.alignment: Qt.AlignHCenter
                 spacing: UiMetrics.gap * 2
 
-                Rectangle {
-                    width: Math.round(140 * UiMetrics.scale); height: UiMetrics.rowH
-                    radius: UiMetrics.radiusSmall
-                    color: "#cc4444"
-                    Text {
-                        anchors.centerIn: parent
-                        text: "Reject"
-                        font.pixelSize: UiMetrics.fontBody
-                        color: "white"
-                    }
-                    MouseArea {
-                        anchors.fill: parent
-                        onClicked: if (BluetoothManager) BluetoothManager.rejectPairing()
-                    }
+                FilledButton {
+                    text: "Reject"
+                    implicitWidth: Math.round(140 * UiMetrics.scale)
+                    implicitHeight: UiMetrics.rowH
+                    buttonColor: ThemeService.error
+                    pressedColor: Qt.darker(ThemeService.error, 1.15)
+                    textColor: ThemeService.onError
+                    pressedTextColor: ThemeService.onError
+                    onClicked: if (BluetoothManager) BluetoothManager.rejectPairing()
                 }
 
-                Rectangle {
-                    width: Math.round(140 * UiMetrics.scale); height: UiMetrics.rowH
-                    radius: UiMetrics.radiusSmall
-                    color: "#44aa44"
-                    Text {
-                        anchors.centerIn: parent
-                        text: "Confirm"
-                        font.pixelSize: UiMetrics.fontBody
-                        color: "white"
-                    }
-                    MouseArea {
-                        anchors.fill: parent
-                        onClicked: if (BluetoothManager) BluetoothManager.confirmPairing()
-                    }
+                FilledButton {
+                    text: "Confirm"
+                    implicitWidth: Math.round(140 * UiMetrics.scale)
+                    implicitHeight: UiMetrics.rowH
+                    buttonColor: ThemeService.success
+                    pressedColor: Qt.darker(ThemeService.success, 1.2)
+                    textColor: ThemeService.onSuccess
+                    pressedTextColor: ThemeService.onSuccess
+                    onClicked: if (BluetoothManager) BluetoothManager.confirmPairing()
                 }
             }
         }

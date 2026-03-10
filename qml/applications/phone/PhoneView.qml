@@ -5,7 +5,7 @@ import QtQuick.Layouts
 Rectangle {
     id: phoneView
     anchors.fill: parent
-    color: ThemeService.backgroundColor
+    color: ThemeService.background
 
     property bool isConnected: PhonePlugin && PhonePlugin.phoneConnected
     property int callState: PhonePlugin ? PhonePlugin.callState : 0
@@ -24,7 +24,7 @@ Rectangle {
             Text {
                 text: PhonePlugin ? (PhonePlugin.deviceName || "Phone") : "Phone"
                 font.pixelSize: UiMetrics.fontSmall
-                color: ThemeService.descriptionFontColor
+                color: ThemeService.onSurfaceVariant
                 opacity: 0.7
             }
 
@@ -34,13 +34,13 @@ Rectangle {
                 width: UiMetrics.statusDot
                 height: UiMetrics.statusDot
                 radius: UiMetrics.statusDot / 2
-                color: isConnected ? "#4CAF50" : "#F44336"
+                color: isConnected ? ThemeService.success : ThemeService.error
             }
 
             Text {
                 text: isConnected ? "Connected" : "No phone"
                 font.pixelSize: UiMetrics.fontTiny
-                color: ThemeService.descriptionFontColor
+                color: ThemeService.onSurfaceVariant
             }
         }
 
@@ -48,7 +48,7 @@ Rectangle {
         Rectangle {
             Layout.fillWidth: true
             height: Math.round(60 * UiMetrics.scale)
-            color: ThemeService.controlBackgroundColor
+            color: ThemeService.surfaceContainerLow
             radius: UiMetrics.radiusSmall
 
             Text {
@@ -67,7 +67,7 @@ Rectangle {
                 }
                 font.pixelSize: inCall ? UiMetrics.fontBody : UiMetrics.fontHeading
                 font.bold: true
-                color: ThemeService.normalFontColor
+                color: ThemeService.onSurface
                 elide: Text.ElideRight
                 width: parent.width - UiMetrics.sectionGap * 2
                 horizontalAlignment: Text.AlignHCenter
@@ -87,29 +87,13 @@ Rectangle {
             Repeater {
                 model: ["1", "2", "3", "4", "5", "6", "7", "8", "9", "*", "0", "#"]
 
-                Button {
+                ElevatedButton {
                     Layout.fillWidth: true
                     Layout.fillHeight: true
                     text: modelData
-                    font.pixelSize: UiMetrics.fontTitle
-                    enabled: isConnected
+                    buttonEnabled: isConnected
+                    elevation: 1
                     onClicked: if (PhonePlugin) PhonePlugin.appendDigit(modelData)
-
-                    contentItem: Text {
-                        text: parent.text
-                        font: parent.font
-                        color: ThemeService.normalFontColor
-                        horizontalAlignment: Text.AlignHCenter
-                        verticalAlignment: Text.AlignVCenter
-                    }
-                    background: Rectangle {
-                        color: parent.pressed
-                               ? ThemeService.highlightColor
-                               : ThemeService.controlBackgroundColor
-                        radius: UiMetrics.radiusSmall
-                        border.color: ThemeService.controlForegroundColor
-                        border.width: 1
-                    }
                 }
             }
         }
@@ -124,36 +108,30 @@ Rectangle {
             Item { Layout.fillWidth: true }
 
             // Hangup button (always visible during call)
-            Button {
-                Layout.preferredWidth: UiMetrics.callBtnSize
-                Layout.preferredHeight: UiMetrics.callBtnSize
+            FilledButton {
+                implicitWidth: UiMetrics.callBtnSize
+                implicitHeight: UiMetrics.callBtnSize
+                iconCode: "\uf0bc"  // call_end
+                buttonColor: ThemeService.error
+                pressedColor: Qt.darker(ThemeService.error, 1.15)
+                textColor: ThemeService.onError
+                pressedTextColor: ThemeService.onError
+                buttonRadius: UiMetrics.callBtnSize / 2
                 onClicked: if (PhonePlugin) PhonePlugin.hangup()
-                contentItem: MaterialIcon {
-                    icon: "\uf0bc"  // call_end
-                    size: UiMetrics.iconSize
-                    color: "white"
-                }
-                background: Rectangle {
-                    color: parent.pressed ? "#D32F2F" : "#F44336"
-                    radius: width / 2
-                }
             }
 
             // Answer button (only for incoming calls)
-            Button {
-                Layout.preferredWidth: UiMetrics.callBtnSize
-                Layout.preferredHeight: UiMetrics.callBtnSize
+            FilledButton {
+                implicitWidth: UiMetrics.callBtnSize
+                implicitHeight: UiMetrics.callBtnSize
                 visible: callState === 2  // Ringing
+                iconCode: "\uf0d4"  // phone
+                buttonColor: ThemeService.success
+                pressedColor: Qt.darker(ThemeService.success, 1.2)
+                textColor: ThemeService.onSuccess
+                pressedTextColor: ThemeService.onSuccess
+                buttonRadius: UiMetrics.callBtnSize / 2
                 onClicked: if (PhonePlugin) PhonePlugin.answer()
-                contentItem: MaterialIcon {
-                    icon: "\uf0d4"  // phone
-                    size: UiMetrics.iconSize
-                    color: "white"
-                }
-                background: Rectangle {
-                    color: parent.pressed ? "#388E3C" : "#4CAF50"
-                    radius: width / 2
-                }
             }
 
             Item { Layout.fillWidth: true }
@@ -167,50 +145,27 @@ Rectangle {
             visible: !inCall
 
             // Backspace
-            Button {
+            ElevatedButton {
                 Layout.preferredWidth: Math.max(Math.round(64 * UiMetrics.scale), UiMetrics.touchMin)
                 Layout.fillHeight: true
-                enabled: isConnected && PhonePlugin && PhonePlugin.dialedNumber.length > 0
+                iconCode: "\ue14a"  // backspace
+                buttonEnabled: isConnected && PhonePlugin && PhonePlugin.dialedNumber.length > 0
                 onClicked: if (PhonePlugin) PhonePlugin.clearDialed()
-                contentItem: MaterialIcon {
-                    icon: "\ue14a"  // backspace
-                    size: Math.round(22 * UiMetrics.scale)
-                    color: ThemeService.normalFontColor
-                }
-                background: Rectangle {
-                    color: parent.pressed ? ThemeService.highlightColor : ThemeService.controlBackgroundColor
-                    radius: UiMetrics.radiusSmall
-                }
             }
 
             // Dial button
-            Button {
+            FilledButton {
                 Layout.fillWidth: true
                 Layout.fillHeight: true
-                enabled: isConnected && PhonePlugin && PhonePlugin.dialedNumber.length > 0
+                text: "Call"
+                iconCode: "\uf0d4"  // phone
+                buttonColor: isConnected && PhonePlugin && PhonePlugin.dialedNumber.length > 0
+                    ? ThemeService.success : ThemeService.onSurfaceVariant
+                pressedColor: Qt.darker(ThemeService.success, 1.2)
+                textColor: ThemeService.onSuccess
+                pressedTextColor: ThemeService.onSuccess
+                buttonEnabled: isConnected && PhonePlugin && PhonePlugin.dialedNumber.length > 0
                 onClicked: if (PhonePlugin) PhonePlugin.dial(PhonePlugin.dialedNumber)
-                contentItem: RowLayout {
-                    spacing: UiMetrics.spacing
-                    Item { Layout.fillWidth: true }
-                    MaterialIcon {
-                        icon: "\uf0d4"  // phone
-                        size: Math.round(22 * UiMetrics.scale)
-                        color: "white"
-                    }
-                    Text {
-                        text: "Call"
-                        font.pixelSize: UiMetrics.fontBody
-                        font.bold: true
-                        color: "white"
-                    }
-                    Item { Layout.fillWidth: true }
-                }
-                background: Rectangle {
-                    color: parent.enabled
-                           ? (parent.pressed ? "#388E3C" : "#4CAF50")
-                           : "#666666"
-                    radius: UiMetrics.radiusSmall
-                }
             }
         }
     }

@@ -53,6 +53,11 @@ void ServiceDiscoveryBuilder::setDisplayDimensions(int w, int h)
     overrideDisplayH_ = h;
 }
 
+void ServiceDiscoveryBuilder::setNavbarThickness(int thickness)
+{
+    navbarThickness_ = thickness;
+}
+
 oaa::SessionConfig ServiceDiscoveryBuilder::build() const
 {
     oaa::SessionConfig config;
@@ -88,6 +93,19 @@ oaa::SessionConfig ServiceDiscoveryBuilder::build() const
     addChannel(10, buildMediaStatusDescriptor());
     addChannel(11, buildPhoneStatusDescriptor());
 
+    // Hide phone's AA status bar elements when our navbar shows them
+    if (yamlConfig_) {
+        QVariant showDuringAA = yamlConfig_->valueByPath("navbar.show_during_aa");
+        bool navbarDuringAA = showDuringAA.isNull() || showDuringAA.toBool();
+        if (navbarDuringAA) {
+            // session_configuration bitmask (SDR field 13) — does NOT touch AdditionalVideoConfig
+            // NOTE: AA 16.2 UI logic (mcr.java) forcibly keeps signal/battery visible when
+            // hideClock is set. Can't hide all three. We hide clock only since we render our own.
+            // Battery/signal data not available over AA wire — needs companion app as source.
+            config.sessionConfiguration = 1;  // HIDE_CLOCK only
+        }
+    }
+
     return config;
 }
 
@@ -102,18 +120,18 @@ void ServiceDiscoveryBuilder::calcNavbarViewport(int& viewportW, int& viewportH)
 
     if (!yamlConfig_) return;
 
-    bool navbarDuringAA = yamlConfig_->valueByPath("navbar.show_during_aa").toBool();
+    QVariant showDuringAA = yamlConfig_->valueByPath("navbar.show_during_aa");
+    bool navbarDuringAA = (showDuringAA.isNull() || showDuringAA.toBool());
     if (!navbarDuringAA) return;
 
     QString edge = yamlConfig_->valueByPath("navbar.edge").toString();
     if (edge.isEmpty()) edge = "bottom";
-    int barThick = 56;  // NavbarController::BAR_THICK
 
     bool horizontal = (edge == "top" || edge == "bottom");
     if (horizontal)
-        viewportH -= barThick;
+        viewportH -= navbarThickness_;
     else
-        viewportW -= barThick;
+        viewportW -= navbarThickness_;
 }
 
 // ---- Shared content dimension calculation ----
@@ -150,16 +168,17 @@ void ServiceDiscoveryBuilder::calcMargins(int remoteW, int remoteH,
     int displayW = (overrideDisplayW_ > 0) ? overrideDisplayW_ : 1024;
     int displayH = (overrideDisplayH_ > 0) ? overrideDisplayH_ : 600;
 
-    bool navbarDuringAA = false;
+    bool navbarDuringAA = true;
     QString edge = "bottom";
     if (yamlConfig_) {
-        navbarDuringAA = yamlConfig_->valueByPath("navbar.show_during_aa").toBool();
+        QVariant showDuringAA = yamlConfig_->valueByPath("navbar.show_during_aa");
+        navbarDuringAA = (showDuringAA.isNull() || showDuringAA.toBool());
         edge = yamlConfig_->valueByPath("navbar.edge").toString();
         if (edge.isEmpty()) edge = "bottom";
     }
 
     auto [contentW, contentH] = computeContentDimensions(
-        remoteW, remoteH, displayW, displayH, navbarDuringAA, edge);
+        remoteW, remoteH, displayW, displayH, navbarDuringAA, edge, navbarThickness_);
     marginW = remoteW - contentW;
     marginH = remoteH - contentH;
 }
@@ -173,6 +192,7 @@ QByteArray ServiceDiscoveryBuilder::buildVideoDescriptor() const
 
     auto* avChannel = desc.mutable_av_channel();
     avChannel->set_stream_type(oaa::proto::enums::AVStreamType::VIDEO);
+    avChannel->set_color_scheme_support(oaa::proto::enums::ColorSchemeSupport::COLOR_SCHEME_MATERIAL_YOU_V3);
     // Field 5 in APK is uint32, not bool. Omitting has no effect on session.
 
     // Resolve preferred resolution from config

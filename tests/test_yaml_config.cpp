@@ -37,6 +37,7 @@ private slots:
     void testUiNewTokenDefaults();
     void testNavbarShowDuringAADefault();
     void testSidebarDefaultsRemoved();
+    void testDisplayScreenSizeDefault();
 };
 
 void TestYamlConfig::testLoadDefaults()
@@ -419,6 +420,14 @@ void TestYamlConfig::testSidebarDefaultsRemoved()
              "video.sidebar.width should not be in defaults");
     QVERIFY2(!config.valueByPath("video.sidebar.position").isValid(),
              "video.sidebar.position should not be in defaults");
+}
+
+void TestYamlConfig::testDisplayScreenSizeDefault()
+{
+    oap::YamlConfig config;
+    QVariant v = config.valueByPath("display.screen_size");
+    QVERIFY2(v.isValid(), "display.screen_size should be registered");
+    QCOMPARE(v.toDouble(), 7.0);
 }
 
 QTEST_MAIN(TestYamlConfig)

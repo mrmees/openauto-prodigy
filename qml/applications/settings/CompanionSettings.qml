@@ -42,7 +42,7 @@ Flickable {
                     height: UiMetrics.iconSmall
                     radius: width / 2
                     color: root.hasService && CompanionService.connected
-                           ? "#4CAF50" : ThemeService.descriptionFontColor
+                           ? ThemeService.success : ThemeService.onSurfaceVariant
                 }
 
                 Text {
@@ -51,7 +51,7 @@ Flickable {
                         return CompanionService.connected ? "Phone Connected" : "Not Connected"
                     }
                     font.pixelSize: UiMetrics.fontBody
-                    color: ThemeService.normalFontColor
+                    color: ThemeService.onSurface
                     Layout.fillWidth: true
                 }
 
@@ -60,9 +60,9 @@ Flickable {
                     height: UiMetrics.touchMin
                     radius: height / 2
                     color: pairBtnMouse.pressed
-                           ? Qt.darker(ThemeService.barBackgroundColor, 1.3)
-                           : ThemeService.barBackgroundColor
-                    border.color: ThemeService.descriptionFontColor
+                           ? Qt.darker(ThemeService.surfaceContainerLow, 1.3)
+                           : ThemeService.surfaceContainerLow
+                    border.color: ThemeService.onSurfaceVariant
                     border.width: 1
                     opacity: root.hasService ? 1.0 : 0.4
 
@@ -71,7 +71,7 @@ Flickable {
                         anchors.centerIn: parent
                         text: "Generate Pairing Code"
                         font.pixelSize: UiMetrics.fontSmall
-                        color: ThemeService.normalFontColor
+                        color: ThemeService.onSurface
                     }
 
                     MouseArea {
@@ -103,7 +103,7 @@ Flickable {
                 Text {
                     text: "GPS"
                     font.pixelSize: UiMetrics.fontBody
-                    color: ThemeService.normalFontColor
+                    color: ThemeService.onSurface
                     Layout.preferredWidth: parent.width * 0.35
                 }
 
@@ -112,7 +112,7 @@ Flickable {
                           ? CompanionService.gpsLat.toFixed(4) + ", " + CompanionService.gpsLon.toFixed(4)
                           : "\u2014"
                     font.pixelSize: UiMetrics.fontBody
-                    color: ThemeService.normalFontColor
+                    color: ThemeService.onSurface
                     horizontalAlignment: Text.AlignRight
                     Layout.fillWidth: true
                 }
@@ -134,7 +134,7 @@ Flickable {
                 Text {
                     text: "Phone Battery"
                     font.pixelSize: UiMetrics.fontBody
-                    color: ThemeService.normalFontColor
+                    color: ThemeService.onSurface
                     Layout.preferredWidth: parent.width * 0.35
                 }
 
@@ -144,7 +144,7 @@ Flickable {
                             + (CompanionService.phoneCharging ? " (charging)" : "")
                           : "\u2014"
                     font.pixelSize: UiMetrics.fontBody
-                    color: ThemeService.normalFontColor
+                    color: ThemeService.onSurface
                     horizontalAlignment: Text.AlignRight
                     Layout.fillWidth: true
                 }
@@ -166,14 +166,14 @@ Flickable {
                 Text {
                     text: "Internet Proxy"
                     font.pixelSize: UiMetrics.fontBody
-                    color: ThemeService.normalFontColor
+                    color: ThemeService.onSurface
                     Layout.preferredWidth: parent.width * 0.35
                 }
 
                 Text {
                     text: root.hasService ? CompanionService.proxyAddress : "\u2014"
                     font.pixelSize: UiMetrics.fontBody
-                    color: ThemeService.normalFontColor
+                    color: ThemeService.onSurface
                     horizontalAlignment: Text.AlignRight
                     elide: Text.ElideMiddle
                     Layout.fillWidth: true
@@ -200,7 +200,7 @@ Flickable {
                 Text {
                     text: "Route Active"
                     font.pixelSize: UiMetrics.fontBody
-                    color: ThemeService.normalFontColor
+                    color: ThemeService.onSurface
                     Layout.preferredWidth: parent.width * 0.35
                 }
 
@@ -210,10 +210,10 @@ Flickable {
                     radius: width / 2
                     color: {
                         var s = routeStatusRow.routeStateStr
-                        if (s === "active")   return "#4CAF50"
-                        if (s === "degraded") return "#FF9800"
-                        if (s === "failed")   return "#F44336"
-                        return ThemeService.descriptionFontColor
+                        if (s === "active")   return ThemeService.success
+                        if (s === "degraded") return ThemeService.tertiary
+                        if (s === "failed")   return ThemeService.error
+                        return ThemeService.onSurfaceVariant
                     }
                 }
 
@@ -228,9 +228,9 @@ Flickable {
                     font.pixelSize: UiMetrics.fontBody
                     color: {
                         var s = routeStatusRow.routeStateStr
-                        if (s === "degraded") return "#FF9800"
-                        if (s === "failed")   return "#F44336"
-                        return ThemeService.normalFontColor
+                        if (s === "degraded") return ThemeService.tertiary
+                        if (s === "failed")   return ThemeService.error
+                        return ThemeService.onSurface
                     }
                     Layout.fillWidth: true
                     horizontalAlignment: Text.AlignRight
@@ -245,7 +245,7 @@ Flickable {
         id: pairingCodeDialog
         property string pinCode: ""
         anchors.fill: parent
-        color: "#CC000000"
+        color: ThemeService.scrim
         visible: false
         z: 998
 
@@ -267,7 +267,7 @@ Flickable {
             width: Math.min(parent.width * 0.7, 500)
             height: dialogCol.implicitHeight + UiMetrics.marginPage * 2
             radius: UiMetrics.radius
-            color: ThemeService.backgroundColor
+            color: ThemeService.background
 
             ColumnLayout {
                 id: dialogCol
@@ -290,7 +290,7 @@ Flickable {
                     font.pixelSize: UiMetrics.fontHeading * 1.8
                     font.weight: Font.Bold
                     font.letterSpacing: 8
-                    color: ThemeService.normalFontColor
+                    color: ThemeService.onSurface
                     Layout.alignment: Qt.AlignHCenter
                 }
             }

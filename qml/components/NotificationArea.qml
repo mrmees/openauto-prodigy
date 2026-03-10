@@ -26,8 +26,8 @@ Item {
                 Layout.fillWidth: true
                 Layout.preferredHeight: toastLayout.implicitHeight + UiMetrics.gap
                 radius: UiMetrics.radiusSmall
-                color: "#DD2a2a3e"
-                border.color: "#0f3460"
+                color: Qt.rgba(ThemeService.surfaceContainerHigh.r, ThemeService.surfaceContainerHigh.g, ThemeService.surfaceContainerHigh.b, 0.87)
+                border.color: ThemeService.outline
                 border.width: 1
                 opacity: 0
                 visible: model.kind === "toast"
@@ -47,21 +47,21 @@ Item {
                     MaterialIcon {
                         icon: "\ue88e"  // info
                         size: UiMetrics.iconSmall
-                        color: "#e0e0e0"
+                        color: ThemeService.onSurface
                     }
 
                     Text {
                         Layout.fillWidth: true
                         text: model.message
                         font.pixelSize: UiMetrics.fontTiny
-                        color: "#e0e0e0"
+                        color: ThemeService.onSurface
                         wrapMode: Text.WordWrap
                     }
 
                     MaterialIcon {
                         icon: "\ue5cd"  // close
                         size: UiMetrics.iconSmall
-                        color: "#808080"
+                        color: ThemeService.onSurfaceVariant
 
                         MouseArea {
                             anchors.fill: parent

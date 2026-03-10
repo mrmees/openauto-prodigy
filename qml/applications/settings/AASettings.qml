@@ -61,7 +61,7 @@ Flickable {
                         Text {
                             text: codecDisplayName(codecName)
                             font.pixelSize: UiMetrics.fontBody
-                            color: ThemeService.normalFontColor
+                            color: ThemeService.onSurface
                             Layout.fillWidth: true
                         }
 
@@ -92,7 +92,7 @@ Flickable {
                         Text {
                             text: "Decoder"
                             font.pixelSize: UiMetrics.fontBody
-                            color: ThemeService.normalFontColor
+                            color: ThemeService.onSurface
                             Layout.fillWidth: true
                         }
 
@@ -102,7 +102,7 @@ Flickable {
                             Rectangle {
                                 width: Math.max(UiMetrics.touchMin * 1.5, swLabel.implicitWidth + UiMetrics.gap)
                                 height: UiMetrics.touchMin
-                                color: !isHardware ? ThemeService.highlightColor : ThemeService.controlBackgroundColor
+                                color: !isHardware ? ThemeService.secondaryContainer : ThemeService.surfaceContainerLow
                                 radius: UiMetrics.radius
 
                                 Rectangle {
@@ -118,7 +118,7 @@ Flickable {
                                     anchors.centerIn: parent
                                     text: "Software"
                                     font.pixelSize: UiMetrics.fontSmall
-                                    color: !isHardware ? ThemeService.backgroundColor : ThemeService.normalFontColor
+                                    color: !isHardware ? ThemeService.onSecondaryContainer : ThemeService.onSurface
                                 }
 
                                 MouseArea {
@@ -134,7 +134,7 @@ Flickable {
                             Rectangle {
                                 width: Math.max(UiMetrics.touchMin * 1.5, hwLabel.implicitWidth + UiMetrics.gap)
                                 height: UiMetrics.touchMin
-                                color: isHardware ? ThemeService.highlightColor : ThemeService.controlBackgroundColor
+                                color: isHardware ? ThemeService.secondaryContainer : ThemeService.surfaceContainerLow
                                 opacity: hwAvailable ? 1.0 : 0.4
                                 radius: UiMetrics.radius
 
@@ -151,7 +151,7 @@ Flickable {
                                     anchors.centerIn: parent
                                     text: "Hardware"
                                     font.pixelSize: UiMetrics.fontSmall
-                                    color: isHardware ? ThemeService.backgroundColor : ThemeService.normalFontColor
+                                    color: isHardware ? ThemeService.onSecondaryContainer : ThemeService.onSurface
                                     opacity: hwAvailable ? 1.0 : 0.4
                                 }
 
@@ -184,21 +184,21 @@ Flickable {
                         Text {
                             text: "Decoder name"
                             font.pixelSize: UiMetrics.fontBody
-                            color: ThemeService.descriptionFontColor
+                            color: ThemeService.onSurfaceVariant
                             Layout.fillWidth: true
                         }
 
                         Text {
                             text: selectedDecoder
                             font.pixelSize: UiMetrics.fontBody
-                            color: ThemeService.descriptionFontColor
+                            color: ThemeService.onSurfaceVariant
                             horizontalAlignment: Text.AlignRight
                         }
 
                         MaterialIcon {
                             icon: "\ue5cf"
                             size: UiMetrics.iconSize
-                            color: ThemeService.descriptionFontColor
+                            color: ThemeService.onSurfaceVariant
                         }
                     }
 
@@ -221,7 +221,7 @@ Flickable {
                     Layout.leftMargin: UiMetrics.marginRow
                     Layout.rightMargin: UiMetrics.marginRow
                     height: 1
-                    color: ThemeService.controlBackgroundColor
+                    color: ThemeService.outlineVariant
                     visible: index < (typeof CodecCapabilityModel !== "undefined" ? CodecCapabilityModel.rowCount() - 1 : 0)
                 }
             }
@@ -288,7 +288,7 @@ Flickable {
         padding: 0; topPadding: 0; bottomPadding: 0
 
         background: Rectangle {
-            color: ThemeService.controlBoxBackgroundColor
+            color: ThemeService.surface
             radius: UiMetrics.radius
             Rectangle {
                 anchors.bottom: parent.bottom
@@ -310,7 +310,7 @@ Flickable {
                     text: decoderPickerDialog.codecLabel
                     font.pixelSize: UiMetrics.fontTitle
                     font.bold: true
-                    color: ThemeService.normalFontColor
+                    color: ThemeService.onSurface
                     Layout.fillWidth: true
                 }
 
@@ -323,7 +323,7 @@ Flickable {
                         anchors.centerIn: parent
                         icon: "\ue5cd"
                         size: UiMetrics.iconSize
-                        color: ThemeService.normalFontColor
+                        color: ThemeService.onSurface
                     }
                 }
             }
@@ -333,7 +333,7 @@ Flickable {
                 anchors.left: parent.left
                 anchors.right: parent.right
                 height: 1
-                color: ThemeService.controlBackgroundColor
+                color: ThemeService.outlineVariant
             }
         }
 
@@ -357,14 +357,14 @@ Flickable {
                         text: modelData
                         font.pixelSize: UiMetrics.fontBody
                         color: modelData === decoderPickerDialog.currentDecoder
-                            ? ThemeService.highlightColor : ThemeService.normalFontColor
+                            ? ThemeService.primary : ThemeService.onSurface
                         Layout.fillWidth: true
                     }
 
                     MaterialIcon {
                         icon: "\ue876"
                         size: UiMetrics.iconSize
-                        color: ThemeService.highlightColor
+                        color: ThemeService.primary
                         visible: modelData === decoderPickerDialog.currentDecoder
                     }
                 }
@@ -375,7 +375,7 @@ Flickable {
                     anchors.leftMargin: UiMetrics.marginPage
                     anchors.rightMargin: UiMetrics.marginPage
                     height: 1
-                    color: ThemeService.controlBackgroundColor
+                    color: ThemeService.outlineVariant
                     visible: index < decoderPickerDialog.decoders.length - 1
                 }
 

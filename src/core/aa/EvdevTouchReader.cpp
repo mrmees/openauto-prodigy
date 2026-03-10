@@ -42,9 +42,8 @@ void EvdevTouchReader::computeLetterbox()
     visibleAAHeight_ = (contentHeight_ > 0) ? contentHeight_ : aaHeight_;
 
     // Use CONTENT aspect ratio, not frame ratio. With PreserveAspectCrop,
-    // the margin bars are cropped away — only content is visible. Margins
-    // are computed so content ratio matches viewport ratio, meaning the
-    // content fills edge-to-edge with no letterbox.
+    // the video fills the display area and any margin bars are cropped away.
+    // Content dimensions already account for navbar via computeContentDimensions.
     float contentAspect = static_cast<float>(visibleAAWidth_) / visibleAAHeight_;
     float displayAspect = static_cast<float>(effectiveDisplayW) / effectiveDisplayH;
 
