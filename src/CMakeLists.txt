@@ -53,6 +53,7 @@ add_library(openauto-core STATIC
     plugins/equalizer/EqualizerPlugin.cpp
     core/widget/WidgetRegistry.cpp
     ui/WidgetInstanceContext.cpp
+    ui/WidgetPlacementModel.cpp
     ${CMAKE_SOURCE_DIR}/libs/qrcodegen/qrcodegen.cpp
 )
 

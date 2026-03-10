@@ -115,6 +115,8 @@ oap_add_test(test_widget_instance_context SOURCES test_widget_instance_context.c
 oap_add_test(test_widget_plugin_integration SOURCES test_widget_plugin_integration.cpp)
 
 configure_file(data/test_widget_config.yaml ${CMAKE_CURRENT_BINARY_DIR}/data/test_widget_config.yaml COPYONLY)
+oap_add_test(test_widget_placement_model SOURCES test_widget_placement_model.cpp)
+
 oap_add_test(test_widget_config
     SOURCES test_widget_config.cpp
     DEFS TEST_DATA_DIR="${CMAKE_CURRENT_BINARY_DIR}/data"
