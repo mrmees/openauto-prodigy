@@ -1,6 +1,7 @@
 #pragma once
 
 #include "core/plugin/IPlugin.hpp"
+#include "core/widget/WidgetTypes.hpp"
 #include <QObject>
 #include <QString>
 #include <QDBusObjectPath>
@@ -79,6 +80,9 @@ public:
     // IPlugin — Capabilities
     QStringList requiredServices() const override { return {}; }
     bool wantsFullscreen() const override { return false; }
+
+    // IPlugin — Widgets
+    QList<oap::WidgetDescriptor> widgetDescriptors() const override;
 
     // Properties
     int connectionState() const { return connectionState_; }

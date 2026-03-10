@@ -227,6 +227,10 @@ set_source_files_properties(../qml/widgets/AAStatusWidget.qml PROPERTIES
     QT_QML_SOURCE_TYPENAME "AAStatusWidget"
     QT_RESOURCE_ALIAS "AAStatusWidget.qml"
 )
+set_source_files_properties(../qml/widgets/NowPlayingWidget.qml PROPERTIES
+    QT_QML_SOURCE_TYPENAME "NowPlayingWidget"
+    QT_RESOURCE_ALIAS "NowPlayingWidget.qml"
+)
 set_source_files_properties(../qml/applications/launcher/LauncherMenu.qml PROPERTIES
     QT_QML_SOURCE_TYPENAME "LauncherMenu"
     QT_RESOURCE_ALIAS "LauncherMenu.qml"
@@ -330,6 +334,7 @@ qt_add_qml_module(openauto-prodigy
         ../qml/components/WidgetPicker.qml
         ../qml/widgets/ClockWidget.qml
         ../qml/widgets/AAStatusWidget.qml
+        ../qml/widgets/NowPlayingWidget.qml
         ../qml/applications/launcher/LauncherMenu.qml
         ../qml/applications/android_auto/AndroidAutoMenu.qml
         ../qml/applications/settings/SettingsMenu.qml
