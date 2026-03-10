@@ -1,4 +1,5 @@
 import QtQuick
+import QtQuick.Effects
 import QtQuick.Layouts
 import QtQuick.Controls
 
@@ -7,7 +8,7 @@ Item {
     property string label: ""
     property string configPath: ""
     property var options: []      // display strings: ["30", "60"] or ["Left", "Right"]
-    property var values: []       // typed values for config storage — if empty, stores options strings
+    property var values: []       // typed values for config storage -- if empty, stores options strings
     property bool restartRequired: false
 
     readonly property int currentIndex: internal.selectedIndex
@@ -47,76 +48,115 @@ Item {
             visible: root.restartRequired
         }
 
-        Row {
-            id: segmentRow
-            spacing: 0
+        // Shadow container for the whole segmented control
+        Item {
+            id: segContainer
+            Layout.preferredWidth: segmentRow.width
+            Layout.preferredHeight: segmentRow.height
 
-            Repeater {
-                model: root.options
+            // Background source for shadow (covers entire segmented control)
+            Rectangle {
+                id: segBg
+                anchors.fill: segmentRow
+                radius: UiMetrics.radius
+                color: ThemeService.surfaceContainerLow
+                layer.enabled: true
+                visible: false
+            }
 
-                Rectangle {
-                    id: segment
-                    property bool isSelected: index === internal.selectedIndex
-                    property bool isFirst: index === 0
-                    property bool isLast: index === root.options.length - 1
+            // Shadow effect on the whole segmented control
+            MultiEffect {
+                source: segBg
+                anchors.fill: segBg
+                shadowEnabled: true
+                shadowColor: ThemeService.shadow
+                shadowBlur: 0.50
+                shadowVerticalOffset: 4
+                shadowOpacity: 0.30
+                shadowHorizontalOffset: 0
+                shadowScale: 1.0
+                autoPaddingEnabled: true
+            }
 
-                    width: Math.max(UiMetrics.touchMin * 1.5, segLabel.implicitWidth + UiMetrics.gap)
-                    height: UiMetrics.touchMin
-                    color: isSelected ? ThemeService.secondaryContainer : ThemeService.surfaceContainerLow
-                    radius: UiMetrics.radius
+            Row {
+                id: segmentRow
+                spacing: 0
 
-                    scale: segMouseArea.pressed ? 0.97 : 1.0
-                    opacity: segMouseArea.pressed ? 0.85 : 1.0
-                    Behavior on scale { NumberAnimation { duration: UiMetrics.animDurationFast; easing.type: Easing.OutCubic } }
-                    Behavior on opacity { NumberAnimation { duration: UiMetrics.animDurationFast; easing.type: Easing.OutCubic } }
+                Repeater {
+                    model: root.options
 
-                    // Mask inner corners by overlapping rectangles
                     Rectangle {
-                        visible: !segment.isFirst
-                        anchors.left: parent.left
-                        anchors.top: parent.top
-                        width: parent.radius
-                        height: parent.height
-                        color: parent.color
-                    }
-                    Rectangle {
-                        visible: !segment.isLast
-                        anchors.right: parent.right
-                        anchors.top: parent.top
-                        width: parent.radius
-                        height: parent.height
-                        color: parent.color
-                    }
+                        id: segment
+                        property bool isSelected: index === internal.selectedIndex
+                        property bool isFirst: index === 0
+                        property bool isLast: index === root.options.length - 1
+                        readonly property bool _isPressed: segMouseArea.pressed
 
-                    // Subtle divider between unselected segments
-                    Rectangle {
-                        visible: !segment.isFirst && !segment.isSelected && internal.selectedIndex !== (index - 1)
-                        anchors.left: parent.left
-                        anchors.verticalCenter: parent.verticalCenter
-                        width: 1
-                        height: parent.height * 0.6
-                        color: ThemeService.outlineVariant
-                    }
+                        width: Math.max(UiMetrics.touchMin * 1.5, segLabel.implicitWidth + UiMetrics.gap)
+                        height: UiMetrics.touchMin
+                        color: isSelected ? ThemeService.secondaryContainer : ThemeService.surfaceContainerLow
+                        radius: UiMetrics.radius
 
-                    Text {
-                        id: segLabel
-                        anchors.centerIn: parent
-                        text: modelData
-                        font.pixelSize: UiMetrics.fontSmall
-                        color: segment.isSelected ? ThemeService.onSecondaryContainer : ThemeService.onSurface
-                    }
+                        scale: _isPressed ? 0.97 : 1.0
+                        Behavior on scale { NumberAnimation { duration: UiMetrics.animDurationFast; easing.type: Easing.OutCubic } }
 
-                    MouseArea {
-                        id: segMouseArea
-                        anchors.fill: parent
-                        onClicked: {
-                            if (internal.selectedIndex === index) return
-                            internal.selectedIndex = index
-                            if (root.configPath === "") return
-                            var writeVal = (root.values.length > 0 && index < root.values.length)
-                                ? root.values[index] : modelData
-                            ConfigService.setValue(root.configPath, writeVal)
-                            ConfigService.save()
+                        // Mask inner corners by overlapping rectangles
+                        Rectangle {
+                            visible: !segment.isFirst
+                            anchors.left: parent.left
+                            anchors.top: parent.top
+                            width: parent.radius
+                            height: parent.height
+                            color: parent.color
+                        }
+                        Rectangle {
+                            visible: !segment.isLast
+                            anchors.right: parent.right
+                            anchors.top: parent.top
+                            width: parent.radius
+                            height: parent.height
+                            color: parent.color
+                        }
+
+                        // Subtle divider between unselected segments
+                        Rectangle {
+                            visible: !segment.isFirst && !segment.isSelected && internal.selectedIndex !== (index - 1)
+                            anchors.left: parent.left
+                            anchors.verticalCenter: parent.verticalCenter
+                            width: 1
+                            height: parent.height * 0.6
+                            color: ThemeService.outlineVariant
+                        }
+
+                        // State layer overlay
+                        Rectangle {
+                            anchors.fill: parent
+                            radius: parent.radius
+                            color: ThemeService.onSurface
+                            opacity: segment._isPressed ? 0.10 : 0.0
+                            Behavior on opacity { NumberAnimation { duration: UiMetrics.animDurationFast } }
+                        }
+
+                        Text {
+                            id: segLabel
+                            anchors.centerIn: parent
+                            text: modelData
+                            font.pixelSize: UiMetrics.fontSmall
+                            color: segment.isSelected ? ThemeService.onSecondaryContainer : ThemeService.onSurface
+                        }
+
+                        MouseArea {
+                            id: segMouseArea
+                            anchors.fill: parent
+                            onClicked: {
+                                if (internal.selectedIndex === index) return
+                                internal.selectedIndex = index
+                                if (root.configPath === "") return
+                                var writeVal = (root.values.length > 0 && index < root.values.length)
+                                    ? root.values[index] : modelData
+                                ConfigService.setValue(root.configPath, writeVal)
+                                ConfigService.save()
+                            }
                         }
                     }
                 }
