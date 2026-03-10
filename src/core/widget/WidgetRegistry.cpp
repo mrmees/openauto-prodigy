@@ -2,6 +2,8 @@
 
 namespace oap {
 
+WidgetRegistry::WidgetRegistry(QObject* parent) : QObject(parent) {}
+
 bool WidgetRegistry::registerWidget(const WidgetDescriptor& descriptor) {
     if (descriptors_.contains(descriptor.id))
         return false;

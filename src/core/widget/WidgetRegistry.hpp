@@ -1,5 +1,6 @@
 #pragma once
 
+#include <QObject>
 #include "core/widget/WidgetTypes.hpp"
 #include <QList>
 #include <QMap>
@@ -7,8 +8,11 @@
 
 namespace oap {
 
-class WidgetRegistry {
+class WidgetRegistry : public QObject {
+    Q_OBJECT
 public:
+    explicit WidgetRegistry(QObject* parent = nullptr);
+
     bool registerWidget(const WidgetDescriptor& descriptor);
     void unregisterWidget(const QString& widgetId);
 

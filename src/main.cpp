@@ -46,6 +46,9 @@
 #include "ui/AudioDeviceModel.hpp"
 #include "ui/CodecCapabilityModel.hpp"
 #include "ui/DisplayInfo.hpp"
+#include "core/widget/WidgetRegistry.hpp"
+#include "core/widget/WidgetTypes.hpp"
+#include "ui/WidgetPlacementModel.hpp"
 #include <QQuickWindow>
 #include <algorithm>
 
@@ -333,6 +336,45 @@ int main(int argc, char *argv[])
         navbarController->setCoordBridge(bridge);
     }
 
+    // --- Widget system ---
+    auto widgetRegistry = new oap::WidgetRegistry(&app);
+
+    // Register built-in standalone widgets
+    {
+        oap::WidgetDescriptor clockDesc;
+        clockDesc.id = "org.openauto.clock";
+        clockDesc.displayName = "Clock";
+        clockDesc.iconName = "schedule";
+        clockDesc.supportedSizes = oap::WidgetSize::Main | oap::WidgetSize::Sub;
+        clockDesc.qmlComponent = QUrl("qrc:/qt/qml/OpenAutoProdigy/ClockWidget.qml");
+        widgetRegistry->registerWidget(clockDesc);
+
+        oap::WidgetDescriptor aaStatusDesc;
+        aaStatusDesc.id = "org.openauto.aa-status";
+        aaStatusDesc.displayName = "Android Auto";
+        aaStatusDesc.iconName = "directions_car";
+        aaStatusDesc.supportedSizes = oap::WidgetSize::Main | oap::WidgetSize::Sub;
+        aaStatusDesc.qmlComponent = QUrl("qrc:/qt/qml/OpenAutoProdigy/AAStatusWidget.qml");
+        widgetRegistry->registerWidget(aaStatusDesc);
+    }
+
+    // Collect widget descriptors from plugins
+    for (auto* plugin : pluginManager.plugins()) {
+        for (const auto& desc : plugin->widgetDescriptors()) {
+            widgetRegistry->registerWidget(desc);
+        }
+    }
+
+    auto widgetPlacementModel = new oap::WidgetPlacementModel(widgetRegistry, &app);
+    widgetPlacementModel->setPlacements(yamlConfig->widgetPlacements());
+    widgetPlacementModel->setActivePageId("home");
+
+    // Auto-save placements on change
+    QObject::connect(widgetPlacementModel, &oap::WidgetPlacementModel::placementsChanged,
+                     widgetPlacementModel, [yamlConfig = yamlConfig.get(), widgetPlacementModel]() {
+        yamlConfig->setWidgetPlacements(widgetPlacementModel->allPlacements());
+    });
+
     // --- IPC server for web config panel ---
     auto ipcServer = new oap::IpcServer(&app);
     ipcServer->setConfig(yamlConfig.get(), yamlPath);
@@ -476,6 +518,8 @@ int main(int argc, char *argv[])
     if (companionListener)
         engine.rootContext()->setContextProperty("CompanionService", companionListener);
 
+    engine.rootContext()->setContextProperty("WidgetPlacementModel", widgetPlacementModel);
+    engine.rootContext()->setContextProperty("WidgetRegistry", widgetRegistry);
     engine.rootContext()->setContextProperty("SystemService", systemClient);
     engine.rootContext()->setContextProperty("BluetoothManager", bluetoothManager);
     engine.rootContext()->setContextProperty("PairedDevicesModel", bluetoothManager->pairedDevicesModel());
