@@ -204,13 +204,14 @@ Plans:
   1. Buttons across the app (settings tiles, launcher tiles, dialog actions) have a visible but subtle 3D effect (shadow, gradient, or bevel) in their resting state
   2. Button press state visibly changes the depth effect (pressed-in appearance) in addition to existing scale+opacity feedback
   3. Navbar has a depth treatment (drop shadow, gradient border, or elevation) that visually separates it from the content area
-**Plans:** 4 plans
+**Plans:** 5 plans
 
 Plans:
 - [ ] 04-01-PLAN.md -- Qt 6.8 upgrade on dev VM + QT_VERSION guard removal
 - [ ] 04-02-PLAN.md -- M3 button components (ElevatedButton, FilledButton, OutlinedButton)
-- [ ] 04-03-PLAN.md -- Migrate all existing buttons to M3 depth patterns
-- [ ] 04-04-PLAN.md -- Navbar gradient fade + barShadow removal + Pi verification
+- [ ] 04-03-PLAN.md -- Migrate control components (Tile, SettingsListItem, SegmentedButton, FullScreenPicker, ConnectionSettings)
+- [ ] 04-04-PLAN.md -- Navbar gradient fade + power menu buttons + barShadow removal + Pi verification
+- [ ] 04-05-PLAN.md -- Dialog/popup button migration + panel elevation (Level 3)
 
 ## Progress
 
@@ -227,7 +228,7 @@ Phases execute in numeric order: 1 -> 2 -> 3 -> 3.1 -> 3.2 -> 3.3 -> 3.4 -> 3.5 
 | 3.3 M3 Color Role Mapping | 2/2 | Complete   | 2026-03-09 |
 | 3.4 Fix AA Rendering | 1/1 | Complete | 2026-03-09 |
 | 3.5 Navbar Clock & Status Bar | 2/2 | Complete   | 2026-03-10 |
-| 4. Visual Depth | 0/4 | Not started | - |
+| 4. Visual Depth | 0/5 | Not started | - |
 
 ---
-*Last updated: 2026-03-10 -- Phase 03.5 complete (rescoped: clock hiding + zone proportions only)*
+*Last updated: 2026-03-10 -- Phase 4 plans revised (split Plan 03, corrected elevation levels)*
