@@ -192,8 +192,8 @@ private slots:
         QFAIL("Input channel not found");
     }
 
-    void testHiddenUiElementsWhenNavbarEnabled() {
-        // Default: navbar.show_during_aa is true (or unset)
+    void testSessionConfigWhenNavbarEnabled() {
+        // session_configuration bitmask should hide clock/signal/battery
         oap::YamlConfig config;
         config.setValueByPath("navbar.show_during_aa", true);
         config.setValueByPath("navbar.edge", QString("bottom"));
@@ -202,50 +202,22 @@ private slots:
         builder.setDisplayDimensions(1024, 600);
         auto sessionConfig = builder.build();
 
-        for (const auto& ch : sessionConfig.channels) {
-            if (ch.channelId == 3) {
-                oaa::proto::data::ChannelDescriptor desc;
-                QVERIFY(desc.ParseFromArray(ch.descriptor.constData(), ch.descriptor.size()));
-                QVERIFY(desc.has_av_channel());
-                QVERIFY(desc.av_channel().video_configs_size() > 0);
-                auto& vc = desc.av_channel().video_configs(0);
-                QVERIFY(vc.has_additional_config());
-                QCOMPARE(vc.additional_config().hidden_ui_elements_size(), 3);
-                QCOMPARE(vc.additional_config().hidden_ui_elements(0),
-                         oaa::proto::data::UI_ELEMENT_CLOCK);
-                QCOMPARE(vc.additional_config().hidden_ui_elements(1),
-                         oaa::proto::data::UI_ELEMENT_BATTERY_LEVEL);
-                QCOMPARE(vc.additional_config().hidden_ui_elements(2),
-                         oaa::proto::data::UI_ELEMENT_PHONE_SIGNAL);
-                return;
-            }
-        }
-        QFAIL("Video channel not found");
+        // 1|2|4 = hide clock, signal, battery
+        // HIDE_CLOCK only — AA 16.2 forcibly keeps signal/battery when clock is hidden
+        QCOMPARE(sessionConfig.sessionConfiguration, static_cast<int32_t>(1));
     }
 
-    void testHiddenUiElementsDefaultUnset() {
-        // When navbar.show_during_aa is not set, default is true
+    void testSessionConfigDefaultUnset() {
+        // When navbar.show_during_aa is not set, default is true — should still hide clock
         oap::YamlConfig config;
-        // Don't set navbar.show_during_aa — should default to true
         oap::aa::ServiceDiscoveryBuilder builder(&config);
         builder.setDisplayDimensions(1024, 600);
         auto sessionConfig = builder.build();
 
-        for (const auto& ch : sessionConfig.channels) {
-            if (ch.channelId == 3) {
-                oaa::proto::data::ChannelDescriptor desc;
-                QVERIFY(desc.ParseFromArray(ch.descriptor.constData(), ch.descriptor.size()));
-                auto& vc = desc.av_channel().video_configs(0);
-                QVERIFY2(vc.has_additional_config(),
-                         "Should have hidden_ui_elements when navbar.show_during_aa is unset (default true)");
-                QCOMPARE(vc.additional_config().hidden_ui_elements_size(), 3);
-                return;
-            }
-        }
-        QFAIL("Video channel not found");
+        QCOMPARE(sessionConfig.sessionConfiguration, static_cast<int32_t>(1));
     }
 
-    void testNoHiddenUiElementsWhenNavbarDisabled() {
+    void testNoSessionConfigWhenNavbarDisabled() {
         oap::YamlConfig config;
         config.setValueByPath("navbar.show_during_aa", false);
 
@@ -253,23 +225,12 @@ private slots:
         builder.setDisplayDimensions(1024, 600);
         auto sessionConfig = builder.build();
 
-        for (const auto& ch : sessionConfig.channels) {
-            if (ch.channelId == 3) {
-                oaa::proto::data::ChannelDescriptor desc;
-                QVERIFY(desc.ParseFromArray(ch.descriptor.constData(), ch.descriptor.size()));
-                auto& vc = desc.av_channel().video_configs(0);
-                // Should NOT have additional_config when navbar is disabled
-                if (vc.has_additional_config()) {
-                    QCOMPARE(vc.additional_config().hidden_ui_elements_size(), 0);
-                }
-                return;
-            }
-        }
-        QFAIL("Video channel not found");
+        // Should NOT set session_configuration when navbar is disabled
+        QCOMPARE(sessionConfig.sessionConfiguration, static_cast<int32_t>(0));
     }
 
-    void testHiddenUiElementsNoUiTheme() {
-        // Verify no ui_theme field is set (critical — breaks margins)
+    void testNoAdditionalVideoConfig() {
+        // VideoConfig must NOT have additional_config — it breaks legacy margins
         oap::YamlConfig config;
         config.setValueByPath("navbar.show_during_aa", true);
 
@@ -282,10 +243,8 @@ private slots:
                 oaa::proto::data::ChannelDescriptor desc;
                 QVERIFY(desc.ParseFromArray(ch.descriptor.constData(), ch.descriptor.size()));
                 auto& vc = desc.av_channel().video_configs(0);
-                QVERIFY(vc.has_additional_config());
-                // ui_theme should NOT be set
-                QVERIFY2(!vc.additional_config().has_ui_theme(),
-                         "ui_theme must NOT be set — it breaks margins");
+                QVERIFY2(!vc.has_additional_config(),
+                         "additional_config must NOT be set — it breaks margins");
                 return;
             }
         }

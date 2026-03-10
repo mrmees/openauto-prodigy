@@ -27,6 +27,10 @@ struct SessionConfig {
     QString swVersion = "0.4.0";
     bool canPlayNativeMediaDuringVr = true;
 
+    // Session configuration bitmask (SDR field 13)
+    // Bitmask of SessionConfiguration enum values (hide clock/signal/battery)
+    int32_t sessionConfiguration = 0;
+
     // Timeouts (ms)
     int versionTimeout = 5000;
     int handshakeTimeout = 10000;

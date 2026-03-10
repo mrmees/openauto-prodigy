@@ -67,7 +67,7 @@ Item {
             iconText: navbar.control0Icon
             showClock: false
             isVertical: false
-            width: parent.width * 0.15
+            width: parent.width * 0.25
             height: parent.height
         }
         NavbarControl {
@@ -75,11 +75,8 @@ Item {
             controlIndex: 1
             showClock: true
             isVertical: false
-            width: parent.width * 0.70
+            width: parent.width * 0.50
             height: parent.height
-            phoneBattery: typeof AAOrchestrator !== "undefined" ? AAOrchestrator.phoneBatteryLevel : -1
-            phoneSignal: typeof AAOrchestrator !== "undefined" ? AAOrchestrator.phoneSignalStrength : -1
-            phoneConnected: typeof AAOrchestrator !== "undefined" ? AAOrchestrator.aaConnected : false
         }
         NavbarControl {
             id: hControl2
@@ -87,7 +84,7 @@ Item {
             iconText: navbar.control2Icon
             showClock: false
             isVertical: false
-            width: parent.width * 0.15
+            width: parent.width * 0.25
             height: parent.height
         }
     }
@@ -105,7 +102,7 @@ Item {
             showClock: false
             isVertical: true
             width: parent.width
-            height: parent.height * 0.15
+            height: parent.height * 0.25
         }
         NavbarControl {
             id: vControl1
@@ -113,10 +110,7 @@ Item {
             showClock: true
             isVertical: true
             width: parent.width
-            height: parent.height * 0.70
-            phoneBattery: typeof AAOrchestrator !== "undefined" ? AAOrchestrator.phoneBatteryLevel : -1
-            phoneSignal: typeof AAOrchestrator !== "undefined" ? AAOrchestrator.phoneSignalStrength : -1
-            phoneConnected: typeof AAOrchestrator !== "undefined" ? AAOrchestrator.aaConnected : false
+            height: parent.height * 0.50
         }
         NavbarControl {
             id: vControl2
@@ -125,7 +119,7 @@ Item {
             showClock: false
             isVertical: true
             width: parent.width
-            height: parent.height * 0.15
+            height: parent.height * 0.25
         }
     }
 

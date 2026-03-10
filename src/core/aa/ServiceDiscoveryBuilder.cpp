@@ -9,7 +9,6 @@
 #include "oaa/control/ChannelDescriptorData.pb.h"
 #include "oaa/av/AVChannelData.pb.h"
 #include "oaa/video/VideoConfigData.pb.h"
-#include "oaa/video/AdditionalVideoConfigData.pb.h"
 #include "oaa/av/MediaCodecTypeEnum.pb.h"
 #include "oaa/audio/AudioConfigData.pb.h"
 #include "oaa/input/InputChannelData.pb.h"
@@ -93,6 +92,19 @@ oaa::SessionConfig ServiceDiscoveryBuilder::build() const
     addChannel(9,  buildNavigationDescriptor());
     addChannel(10, buildMediaStatusDescriptor());
     addChannel(11, buildPhoneStatusDescriptor());
+
+    // Hide phone's AA status bar elements when our navbar shows them
+    if (yamlConfig_) {
+        QVariant showDuringAA = yamlConfig_->valueByPath("navbar.show_during_aa");
+        bool navbarDuringAA = showDuringAA.isNull() || showDuringAA.toBool();
+        if (navbarDuringAA) {
+            // session_configuration bitmask (SDR field 13) — does NOT touch AdditionalVideoConfig
+            // NOTE: AA 16.2 UI logic (mcr.java) forcibly keeps signal/battery visible when
+            // hideClock is set. Can't hide all three. We hide clock only since we render our own.
+            // Battery/signal data not available over AA wire — needs companion app as source.
+            config.sessionConfiguration = 1;  // HIDE_CLOCK only
+        }
+    }
 
     return config;
 }
@@ -215,13 +227,6 @@ QByteArray ServiceDiscoveryBuilder::buildVideoDescriptor() const
     int mW = 0, mH = 0;
     calcMargins(chosen.w, chosen.h, mW, mH);
 
-    // Check if navbar is shown during AA (for hidden_ui_elements)
-    bool navbarDuringAA = true;
-    if (yamlConfig_) {
-        QVariant showDuringAA = yamlConfig_->valueByPath("navbar.show_during_aa");
-        navbarDuringAA = showDuringAA.isNull() || showDuringAA.toBool();
-    }
-
     // Read enabled codecs from YAML config
     QStringList enabledCodecs = yamlConfig_ ? yamlConfig_->videoCodecs()
                                             : QStringList{"h264", "h265"};
@@ -241,13 +246,6 @@ QByteArray ServiceDiscoveryBuilder::buildVideoDescriptor() const
         cfg->set_margin_height(mH);
         cfg->set_dpi(dpi);
         cfg->set_codec(it.value());
-        // Only hidden_ui_elements -- do NOT set ui_theme (breaks margins, see Phase 03.4).
-        if (navbarDuringAA) {
-            auto* avc = cfg->mutable_additional_config();
-            avc->add_hidden_ui_elements(oaa::proto::data::UI_ELEMENT_CLOCK);
-            avc->add_hidden_ui_elements(oaa::proto::data::UI_ELEMENT_BATTERY_LEVEL);
-            avc->add_hidden_ui_elements(oaa::proto::data::UI_ELEMENT_PHONE_SIGNAL);
-        }
         qCInfo(lcAA) << "config[" << configIdx++ << "]:"
                 << chosen.label << codecName << "margins:" << mW << "x" << mH;
     }
@@ -261,13 +259,6 @@ QByteArray ServiceDiscoveryBuilder::buildVideoDescriptor() const
         cfg->set_margin_height(mH);
         cfg->set_dpi(dpi);
         cfg->set_codec(Codec::MEDIA_CODEC_VIDEO_H264_BP);
-        // Only hidden_ui_elements -- do NOT set ui_theme (breaks margins, see Phase 03.4).
-        if (navbarDuringAA) {
-            auto* avc = cfg->mutable_additional_config();
-            avc->add_hidden_ui_elements(oaa::proto::data::UI_ELEMENT_CLOCK);
-            avc->add_hidden_ui_elements(oaa::proto::data::UI_ELEMENT_BATTERY_LEVEL);
-            avc->add_hidden_ui_elements(oaa::proto::data::UI_ELEMENT_PHONE_SIGNAL);
-        }
         qCWarning(lcAA) << "No valid codecs in config, falling back to H.264";
         configIdx = 1;
     }

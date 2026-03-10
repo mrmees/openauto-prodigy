@@ -407,6 +407,10 @@ QByteArray AASession::buildServiceDiscoveryResponse() const {
     resp.set_sw_version(config_.swVersion.toStdString());
     resp.set_can_play_native_media_during_vr(config_.canPlayNativeMediaDuringVr);
 
+    if (config_.sessionConfiguration != 0) {
+        resp.set_session_configuration(config_.sessionConfiguration);
+    }
+
     // Insert pre-built channel descriptors from config
     // These are fully populated by Prodigy's ServiceDiscoveryBuilder
     for (const auto& ch : config_.channels) {
