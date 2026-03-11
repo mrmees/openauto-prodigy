@@ -11,6 +11,9 @@ private slots:
     void testClearPane();
     void testActivePageFilter();
     void testQmlComponentUrl();
+    void testDefaultPaneOpacity();
+    void testSetPaneOpacity();
+    void testPaneOpacity();
 };
 
 void TestWidgetPlacementModel::testPlacementForPane() {
@@ -151,6 +154,83 @@ void TestWidgetPlacementModel::testQmlComponentUrl() {
     model.setActivePageId("home");
 
     QCOMPARE(model.qmlComponentForPane("main"), QUrl("qrc:/widgets/TestWidget.qml"));
+}
+
+void TestWidgetPlacementModel::testDefaultPaneOpacity() {
+    oap::WidgetRegistry registry;
+    oap::WidgetDescriptor d;
+    d.id = "w1";
+    d.supportedSizes = oap::WidgetSize::Main;
+    registry.registerWidget(d);
+
+    QList<oap::WidgetPlacement> placements;
+    oap::WidgetPlacement p;
+    p.instanceId = "w1-main";
+    p.widgetId = "w1";
+    p.pageId = "home";
+    p.paneId = "main";
+    placements.append(p);
+
+    oap::WidgetPlacementModel model(&registry);
+    model.setPlacements(placements);
+    model.setActivePageId("home");
+
+    // Default opacity should be 0.25
+    QCOMPARE(model.paneOpacity("main"), 0.25);
+}
+
+void TestWidgetPlacementModel::testSetPaneOpacity() {
+    oap::WidgetRegistry registry;
+    oap::WidgetDescriptor d;
+    d.id = "w1";
+    d.supportedSizes = oap::WidgetSize::Main;
+    registry.registerWidget(d);
+
+    QList<oap::WidgetPlacement> placements;
+    oap::WidgetPlacement p;
+    p.instanceId = "w1-main";
+    p.widgetId = "w1";
+    p.pageId = "home";
+    p.paneId = "main";
+    placements.append(p);
+
+    oap::WidgetPlacementModel model(&registry);
+    model.setPlacements(placements);
+    model.setActivePageId("home");
+
+    QSignalSpy spy(&model, &oap::WidgetPlacementModel::paneChanged);
+    model.setPaneOpacity("main", 0.7);
+
+    QCOMPARE(spy.count(), 1);
+    QCOMPARE(model.paneOpacity("main"), 0.7);
+
+    // Verify it's stored in the placement config
+    auto placement = model.placementForPane("main");
+    QVERIFY(placement.has_value());
+    QCOMPARE(placement->config.value("opacity").toDouble(), 0.7);
+}
+
+void TestWidgetPlacementModel::testPaneOpacity() {
+    oap::WidgetRegistry registry;
+    oap::WidgetDescriptor d;
+    d.id = "w1";
+    d.supportedSizes = oap::WidgetSize::Main;
+    registry.registerWidget(d);
+
+    QList<oap::WidgetPlacement> placements;
+    oap::WidgetPlacement p;
+    p.instanceId = "w1-main";
+    p.widgetId = "w1";
+    p.pageId = "home";
+    p.paneId = "main";
+    p.config["opacity"] = 0.5;
+    placements.append(p);
+
+    oap::WidgetPlacementModel model(&registry);
+    model.setPlacements(placements);
+    model.setActivePageId("home");
+
+    QCOMPARE(model.paneOpacity("main"), 0.5);
 }
 
 QTEST_GUILESS_MAIN(TestWidgetPlacementModel)

@@ -66,4 +66,22 @@ void WidgetPlacementModel::clearPane(const QString& paneId) {
     emit paneChanged(paneId);
 }
 
+double WidgetPlacementModel::paneOpacity(const QString& paneId) const {
+    auto placement = placementForPane(paneId);
+    if (placement && placement->config.contains("opacity"))
+        return placement->config.value("opacity").toDouble();
+    return 0.25; // default
+}
+
+void WidgetPlacementModel::setPaneOpacity(const QString& paneId, double opacity) {
+    for (auto& p : placements_) {
+        if (p.pageId == activePageId_ && p.paneId == paneId) {
+            p.config["opacity"] = qBound(0.0, opacity, 1.0);
+            emit placementsChanged();
+            emit paneChanged(paneId);
+            return;
+        }
+    }
+}
+
 } // namespace oap

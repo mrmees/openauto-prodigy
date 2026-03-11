@@ -782,6 +782,19 @@ QList<WidgetPlacement> YamlConfig::widgetPlacements() const
             if (node["widgetId"]) p.widgetId = QString::fromStdString(node["widgetId"].as<std::string>());
             if (node["pageId"]) p.pageId = QString::fromStdString(node["pageId"].as<std::string>());
             if (node["paneId"]) p.paneId = QString::fromStdString(node["paneId"].as<std::string>());
+            if (node["config"] && node["config"].IsMap()) {
+                for (auto it = node["config"].begin(); it != node["config"].end(); ++it) {
+                    QString key = QString::fromStdString(it->first.as<std::string>());
+                    if (it->second.IsScalar()) {
+                        try {
+                            double d = it->second.as<double>();
+                            p.config[key] = d;
+                        } catch (...) {
+                            p.config[key] = QString::fromStdString(it->second.as<std::string>());
+                        }
+                    }
+                }
+            }
             result.append(p);
         }
     }
@@ -831,6 +844,17 @@ void YamlConfig::setWidgetPlacements(const QList<WidgetPlacement>& placements)
         n["widgetId"] = p.widgetId.toStdString();
         n["pageId"] = p.pageId.toStdString();
         n["paneId"] = p.paneId.toStdString();
+        if (!p.config.isEmpty()) {
+            YAML::Node configNode;
+            for (auto it = p.config.begin(); it != p.config.end(); ++it) {
+                std::string key = it.key().toStdString();
+                if (it.value().typeId() == QMetaType::Double || it.value().typeId() == QMetaType::Float)
+                    configNode[key] = it.value().toDouble();
+                else
+                    configNode[key] = it.value().toString().toStdString();
+            }
+            n["config"] = configNode;
+        }
         node.push_back(n);
     }
     root_["widget_config"]["placements"] = node;

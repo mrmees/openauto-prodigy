@@ -24,6 +24,8 @@ public:
     Q_INVOKABLE QUrl qmlComponentForPane(const QString& paneId) const;
     Q_INVOKABLE void swapWidget(const QString& paneId, const QString& widgetId);
     Q_INVOKABLE void clearPane(const QString& paneId);
+    Q_INVOKABLE double paneOpacity(const QString& paneId) const;
+    Q_INVOKABLE void setPaneOpacity(const QString& paneId, double opacity);
 
     std::optional<WidgetPlacement> placementForPane(const QString& paneId) const;
 
