@@ -269,38 +269,59 @@ Flickable {
 
         SectionHeader { text: "Day / Night Mode" }
 
-        FullScreenPicker {
-            id: nightSource
-            label: "Source"
-            configPath: "sensors.night_mode.source"
-            options: ["time", "gpio", "none"]
-        }
-
-        ReadOnlyField {
-            label: "Day starts at"
-            configPath: "sensors.night_mode.day_start"
-            placeholder: "HH:MM"
-            visible: nightSource.currentValue === "time"
-        }
-
-        ReadOnlyField {
-            label: "Night starts at"
-            configPath: "sensors.night_mode.night_start"
-            placeholder: "HH:MM"
-            visible: nightSource.currentValue === "time"
-        }
-
-        SettingsSlider {
-            label: "GPIO Pin"
-            configPath: "sensors.night_mode.gpio_pin"
-            from: 0; to: 40; stepSize: 1
-            visible: nightSource.currentValue === "gpio"
-        }
-
         SettingsToggle {
-            label: "GPIO Active High"
-            configPath: "sensors.night_mode.gpio_active_high"
-            visible: nightSource.currentValue === "gpio"
+            label: "Always Use Dark Mode"
+            configPath: "display.force_dark_mode"
+            onToggled: ThemeService.forceDarkMode = checked
+        }
+
+        Item {
+            Layout.fillWidth: true
+            implicitHeight: nightModeControls.implicitHeight
+            opacity: ThemeService.forceDarkMode ? 0.4 : 1.0
+            enabled: !ThemeService.forceDarkMode
+            Behavior on opacity { NumberAnimation { duration: 200 } }
+
+            ColumnLayout {
+                id: nightModeControls
+                anchors.left: parent.left
+                anchors.right: parent.right
+                spacing: UiMetrics.spacing
+
+                FullScreenPicker {
+                    id: nightSource
+                    label: "Source"
+                    configPath: "sensors.night_mode.source"
+                    options: ["time", "gpio", "none"]
+                }
+
+                ReadOnlyField {
+                    label: "Day starts at"
+                    configPath: "sensors.night_mode.day_start"
+                    placeholder: "HH:MM"
+                    visible: nightSource.currentValue === "time"
+                }
+
+                ReadOnlyField {
+                    label: "Night starts at"
+                    configPath: "sensors.night_mode.night_start"
+                    placeholder: "HH:MM"
+                    visible: nightSource.currentValue === "time"
+                }
+
+                SettingsSlider {
+                    label: "GPIO Pin"
+                    configPath: "sensors.night_mode.gpio_pin"
+                    from: 0; to: 40; stepSize: 1
+                    visible: nightSource.currentValue === "gpio"
+                }
+
+                SettingsToggle {
+                    label: "GPIO Active High"
+                    configPath: "sensors.night_mode.gpio_active_high"
+                    visible: nightSource.currentValue === "gpio"
+                }
+            }
         }
     }
 
