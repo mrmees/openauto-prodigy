@@ -105,77 +105,13 @@ Item {
         }
     }
 
-    // Long-press-to-go-back ripple indicator (visual only, positioned by TapHandler)
-    Rectangle {
-        id: holdRipple
-        visible: false
-        x: 0; y: 0
-        width: 0; height: width
-        radius: width / 2
-        color: Qt.hsla(ThemeService.primary.hslHue,
-                       ThemeService.primary.hslSaturation,
-                       ThemeService.primary.hslLightness, 0.3)
-        z: 2000
-
-        MaterialIcon {
-            anchors.centerIn: parent
-            icon: "\ue5c4"  // arrow_back
-            size: UiMetrics.fontTitle
-            color: ThemeService.primary
-            opacity: Math.min(1.0, holdRipple.width / (UiMetrics.touchMin * 1.2))
-        }
-
-        NumberAnimation on width {
-            id: rippleGrow
-            running: false
-            from: 0; to: UiMetrics.touchMin * 1.5
-            duration: 500
-            easing.type: Easing.OutCubic
-        }
-    }
-
-    // Long-press-to-go-back gesture (TapHandler doesn't steal from controls)
-    TapHandler {
-        id: longPressHandler
-        longPressThreshold: 0.5
-        gesturePolicy: TapHandler.WithinBounds
-
-        onLongPressed: {
-            holdRipple.visible = false
-            rippleGrow.stop()
-            if (!goBack())
-                ApplicationController.navigateBack()
-        }
-
-        onPressedChanged: {
-            if (pressed) {
-                // Show ripple at press point
-                holdRipple.width = 0
-                holdRipple.x = point.position.x - holdRipple.width / 2
-                holdRipple.y = point.position.y - holdRipple.width / 2
-                holdRipple.visible = true
-                rippleGrow.start()
-                // Keep ripple centered as it grows
-                holdRipple.x = Qt.binding(function() {
-                    return point.position.x - holdRipple.width / 2
-                })
-                holdRipple.y = Qt.binding(function() {
-                    return point.position.y - holdRipple.width / 2
-                })
-            } else {
-                holdRipple.visible = false
-                rippleGrow.stop()
-                holdRipple.x = 0
-                holdRipple.y = 0
-            }
-        }
-    }
-
     Component {
         id: settingsList
 
         Item {
             anchors.fill: parent
+
+            BackHoldArea {}
 
             ListView {
                 anchors.fill: parent
@@ -204,7 +140,9 @@ Item {
                     MouseArea {
                         id: delegateArea
                         anchors.fill: parent
+                        pressAndHoldInterval: 500
                         onClicked: openPage(model.pageId)
+                        onPressAndHold: ApplicationController.requestBack()
                     }
 
                     MaterialIcon {

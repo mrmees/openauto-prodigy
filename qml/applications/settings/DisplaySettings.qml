@@ -27,6 +27,7 @@ Flickable {
         ConfigService.save()
     }
 
+    BackHoldArea {}
     ColumnLayout {
         id: content
         anchors.left: parent.left

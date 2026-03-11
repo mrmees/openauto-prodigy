@@ -11,6 +11,7 @@ Flickable {
     // Guard: CompanionService may not exist if disabled in config
     readonly property bool hasService: typeof CompanionService !== "undefined"
 
+    BackHoldArea {}
     ColumnLayout {
         id: content
         anchors.left: parent.left

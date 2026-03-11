@@ -37,6 +37,7 @@ Item {
         }
     }
 
+    BackHoldArea {}
     // Control bar
     RowLayout {
         id: controlBar
