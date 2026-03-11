@@ -1,66 +1,45 @@
 # Requirements: OpenAuto Prodigy
 
-**Defined:** 2026-03-08
+**Defined:** 2026-03-10
 **Core Value:** A person with a Raspberry Pi 4 and a touchscreen can install this, pair their phone, and get a reliable wireless Android Auto experience -- every time, without SSH.
 
-## v0.5.1 Requirements
+## v0.5.2 Requirements
 
-Requirements for DPI sizing and UI polish milestone. Each maps to roadmap phases.
+Requirements for widget system and UI polish milestone.
 
-### Screen & DPI
+### Widget System
 
-- [x] **DPI-01**: Installer probes EDID for physical screen dimensions and prompts user to confirm or enter screen size
-- [x] **DPI-02**: Default physical screen size is 7" (double DIN) when EDID unavailable and user skips entry
-- [x] **DPI-03**: UiMetrics computes baseline scale from real DPI (resolution / physical size) instead of pure resolution ratio
-- [x] **DPI-04**: Physical screen size is persisted in YAML config and shown (read-only) in Display settings; editable via YAML for advanced users
-- [x] **DPI-05**: User can adjust UI scale via stepper control (+-0.1 increments) in Display settings, applied as multiplier on DPI baseline
+- [x] **WDG-01**: Home screen displays 3-pane widget layout (landscape: 60/40 main+subs, portrait: top+bottom)
+- [x] **WDG-02**: LauncherDock provides quick-access app icons at bottom of home screen
+- [x] **WDG-03**: Long-press on widget pane opens context menu (Change/Opacity/Clear)
+- [x] **WDG-04**: Widget picker allows selecting from available widgets or clearing a pane
+- [x] **WDG-05**: Glass card WidgetHost with semi-transparent background and per-pane adjustable opacity
+- [x] **WDG-06**: Three built-in widgets: Clock, AA Status, Now Playing
 
-### Clock
+### Settings Restructure
 
-- [x] **CLK-01**: Clock display is larger and more readable at automotive glance distance
-- [x] **CLK-02**: AM/PM designation removed from clock display (12h format shows time only)
-- [x] **CLK-03**: User can toggle between 12h and 24h clock format in settings
+- [x] **SET-01**: Settings reorganized into 9 top-level categories: AA, Display, Audio, Bluetooth, Theme, Companion, System, Information, Debug
+- [ ] **SET-02**: AA page shows Resolution, DPI, and Auto-connect only
+- [ ] **SET-03**: Display page contains screen size info (size/PPI/resolution), UI scale stepper, screen dimming, navbar settings
+- [x] **SET-04**: Theme promoted to top-level category with theme picker, wallpaper, dark mode toggle
+- [ ] **SET-05**: System contains left-hand drive, clock 24h toggle, day/night mode settings, software version
+- [x] **SET-06**: Information page shows identity fields and hardware profile (read-only)
+- [x] **SET-07**: Debug page (visible, last in list) contains protocol capture toggle, codec/decoder selection, TCP port override, verbose logging toggle
+- [ ] **SET-08**: FPS setting removed from UI (YAML-only, 30fps default)
+- [ ] **SET-09**: About OpenAutoProdigy section removed entirely
+- [ ] **SET-10**: Debug AA protocol buttons removed from System page
 
-### Theme & Colors
+### Touch Normalization
 
-- [x] **THM-01**: Theme color palette is fully fleshed out with named semantic roles (surface, primary, secondary, accent, error, etc.)
-- [x] **THM-02**: Theme colors align with Material Design color system conventions for consistency and familiarity
-- [x] **THM-03**: All UI elements consistently use semantic theme colors (no hardcoded color values in QML)
+- [ ] **TCH-01**: All settings sub-pages use consistent alternating-row list style matching main settings menu
+- [ ] **TCH-02**: All interactive controls have touch-friendly sizing via UiMetrics (DPI-scaled, no hardcoded pixels)
+- [ ] **TCH-03**: Text readable at arm's length on target display sizes
 
-### Companion Theme Import
+## Workflow Constraints
 
-- [x] **CTI-01**: ThemeService exposes all 34 Material Design 3 color roles as Q_PROPERTYs for QML binding
-- [x] **CTI-02**: All bundled themes (default, AMOLED, Ocean, Ember, connected-device) specify all 34 M3 roles in both day and night maps
-- [x] **CTI-03**: Companion app can send M3 color palettes + wallpaper JPEG over TCP 9876, and HU receives, applies, and acknowledges
-- [x] **CTI-04**: AA wire token path (0x8011/0x8012) is disabled; companion app is sole source of dynamic themes
-- [x] **CTI-05**: Companion themes appear as named entries in theme picker; users can delete companion themes but not bundled themes
-- [x] **CTI-06**: hello_ack contains display resolution for companion wallpaper cropping
-
-### M3 Color Role Mapping
-
-- [x] **M3R-01**: All custom/legacy AA token Q_PROPERTYs (textPrimary, textSecondary, red, onRed, yellow, onYellow) removed from ThemeService and replaced with M3 equivalents in QML
-- [x] **M3R-02**: Deprecated custom token keys removed from bundled theme YAMLs and AA token persistence sets
-- [x] **M3R-03**: Surface container hierarchy applied -- UI elements use appropriate container levels (Lowest/Low/Container/High/Highest) based on visual elevation
-- [x] **M3R-04**: Button pressed states use primaryContainer/onPrimaryContainer (M3 contained button pattern) instead of raw primary
-- [x] **M3R-05**: Toggle/slider active states use secondaryContainer (M3 selected state convention) instead of raw primary
-
-### AA Rendering
-
-- [ ] **FIX-01**: AA video content is fully visible with no cropping when navbar is shown (PreserveAspectFit letterboxing)
-- [ ] **FIX-02**: Touch coordinates align with visible AA content after fillMode change (tapping a button hits that button)
-- [ ] **FIX-03**: Existing SDP margin calculation unit tests continue to pass after rendering changes
-
-### Navbar Clock & Status Bar
-
-- [x] **NAV-01**: SDP VideoConfig includes hidden_ui_elements (clock) when navbar is visible during AA; omits them when navbar is hidden
-- [x] **NAV-02**: Navbar zone proportions updated to 20/60/20 (volume/center clock/brightness)
-
-**Descoped (protocol limitation):** Phone does not send battery or signal strength data to the headunit via AA protocol. Battery/signal indicator infrastructure exists in C++ (Q_PROPERTYs, StatusIndicatorHelper) but has no data source. Deferred to companion app integration.
-
-### Styling
-
-- [x] **STY-01**: Buttons have subtle 3D depth effect (shadow, bevel, or gradient) that responds to press state
-- [x] **STY-02**: Taskbar/navbar has subtle depth treatment distinguishing it from content area
+- Use `frontend-design` skill for UI work
+- All sizing via UiMetrics/DPI system — target real physical sizes, not pixel values
+- Use Codex MCP for review/production (opposite role of Claude on each task)
 
 ## Future Requirements
 
@@ -78,54 +57,43 @@ Requirements for DPI sizing and UI polish milestone. Each maps to roadmap phases
 
 | Feature | Reason |
 |---------|--------|
-| Full Material Design component library | Overkill for automotive -- adopt color conventions only |
-| Animated theme transitions beyond existing | Color animation already shipped in v0.4.3 |
+| FPS selection in UI | Changing from 30fps causes bandwidth issues — YAML-only for power users |
+| Full Material Design component library | Overkill for automotive — adopt color conventions only |
 | Font selection/customization | Single font is fine for v1.0 |
 | Screen rotation/orientation | Auto-detection handles this, no user control needed |
 | Per-plugin theme overrides | Global theme is sufficient for v1.0 |
-| Theme export (HU to companion) | Deferred -- reverse direction not needed yet |
-| Theme animation on switch | Deferred -- cross-fade between old and new colors |
-| Multiple wallpaper support per theme | Deferred -- slideshow/rotation not needed yet |
+| Theme export (HU to companion) | Deferred — reverse direction not needed yet |
+| About OpenAutoProdigy section | Removed — software version shown in System, no need for separate About |
 
 ## Traceability
 
 | Requirement | Phase | Status |
 |-------------|-------|--------|
-| DPI-01 | Phase 1 | Complete |
-| DPI-02 | Phase 1 | Complete |
-| DPI-03 | Phase 1 | Complete |
-| DPI-04 | Phase 1 | Complete |
-| DPI-05 | Phase 2 | Complete |
-| CLK-01 | Phase 2 | Complete |
-| CLK-02 | Phase 2 | Complete |
-| CLK-03 | Phase 2 | Complete |
-| THM-01 | Phase 3 | Complete |
-| THM-02 | Phase 3 | Complete |
-| THM-03 | Phase 3 | Complete |
-| CTI-01 | Phase 3.2 | Complete |
-| CTI-02 | Phase 3.2 | Complete |
-| CTI-03 | Phase 3.2 | Complete |
-| CTI-04 | Phase 3.2 | Complete |
-| CTI-05 | Phase 3.2 | Complete |
-| CTI-06 | Phase 3.2 | Complete |
-| M3R-01 | Phase 3.3 | Complete |
-| M3R-02 | Phase 3.3 | Complete |
-| M3R-03 | Phase 3.3 | Complete |
-| M3R-04 | Phase 3.3 | Complete |
-| M3R-05 | Phase 3.3 | Complete |
-| FIX-01 | Phase 3.4 | Pending |
-| FIX-02 | Phase 3.4 | Pending |
-| FIX-03 | Phase 3.4 | Pending |
-| NAV-01 | Phase 3.5 | Complete |
-| NAV-02 | Phase 3.5 | Complete |
-| STY-01 | Phase 4 | Complete |
-| STY-02 | Phase 4 | Complete |
+| WDG-01 | Phase 1 | Complete |
+| WDG-02 | Phase 1 | Complete |
+| WDG-03 | Phase 1 | Complete |
+| WDG-04 | Phase 1 | Complete |
+| WDG-05 | Phase 1 | Complete |
+| WDG-06 | Phase 1 | Complete |
+| SET-01 | Phase 2 | Complete |
+| SET-02 | Phase 2 | Pending |
+| SET-03 | Phase 2 | Pending |
+| SET-04 | Phase 2 | Complete |
+| SET-05 | Phase 2 | Pending |
+| SET-06 | Phase 2 | Complete |
+| SET-07 | Phase 2 | Complete |
+| SET-08 | Phase 2 | Pending |
+| SET-09 | Phase 2 | Pending |
+| SET-10 | Phase 2 | Pending |
+| TCH-01 | Phase 3 | Pending |
+| TCH-02 | Phase 3 | Pending |
+| TCH-03 | Phase 3 | Pending |
 
 **Coverage:**
-- v0.5.1 requirements: 29 total (4 descoped: NAV-03..06 — protocol limitation)
-- Mapped to phases: 29
-- Unmapped: 0
+- v0.5.2 requirements: 19 total
+- Mapped to phases: 19/19
+- Orphaned: 0
 
 ---
-*Requirements defined: 2026-03-08*
-*Last updated: 2026-03-10 — Phase 03.5 rescoped (battery/signal descoped, protocol limitation)*
+*Requirements defined: 2026-03-10*
+*Last updated: 2026-03-10 after roadmap creation*
