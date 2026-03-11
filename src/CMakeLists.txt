@@ -146,6 +146,10 @@ set_source_files_properties(../qml/controls/SettingsRow.qml PROPERTIES
     QT_QML_SOURCE_TYPENAME "SettingsRow"
     QT_RESOURCE_ALIAS "SettingsRow.qml"
 )
+set_source_files_properties(../qml/controls/SettingsHoldArea.qml PROPERTIES
+    QT_QML_SOURCE_TYPENAME "SettingsHoldArea"
+    QT_RESOURCE_ALIAS "SettingsHoldArea.qml"
+)
 set_source_files_properties(../qml/controls/BackHoldArea.qml PROPERTIES
     QT_QML_SOURCE_TYPENAME "BackHoldArea"
     QT_RESOURCE_ALIAS "BackHoldArea.qml"
@@ -334,6 +338,7 @@ qt_add_qml_module(openauto-prodigy
         ../qml/controls/SegmentedButton.qml
         ../qml/controls/ReadOnlyField.qml
         ../qml/controls/SettingsRow.qml
+        ../qml/controls/SettingsHoldArea.qml
         ../qml/controls/BackHoldArea.qml
         ../qml/controls/InfoBanner.qml
         ../qml/controls/EqBandSlider.qml

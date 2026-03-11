@@ -100,9 +100,9 @@ Item {
         visible: !root.flat
     }
 
-    MouseArea {
+    SettingsHoldArea {
         id: mouseArea
         anchors.fill: parent
-        onClicked: root.clicked()
+        onShortClicked: root.clicked()
     }
 }

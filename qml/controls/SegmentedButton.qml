@@ -148,10 +148,10 @@ Item {
                             color: segment.isSelected ? ThemeService.onSecondaryContainer : ThemeService.onSurface
                         }
 
-                        MouseArea {
+                        SettingsHoldArea {
                             id: segMouseArea
                             anchors.fill: parent
-                            onClicked: {
+                            onShortClicked: {
                                 if (internal.selectedIndex === index) return
                                 internal.selectedIndex = index
                                 if (root.configPath === "") return

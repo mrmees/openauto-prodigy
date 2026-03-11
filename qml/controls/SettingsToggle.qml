@@ -51,6 +51,11 @@ Item {
         }
     }
 
+    SettingsHoldArea {
+        anchors.fill: parent
+        onShortClicked: toggle.checked = !toggle.checked
+    }
+
     Component.onCompleted: {
         if (root.configPath !== "") {
             var v = ConfigService.value(root.configPath)

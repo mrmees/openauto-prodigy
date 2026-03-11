@@ -14,14 +14,29 @@ Item {
     property bool restartRequired: false
     property alias value: slider.value
     signal moved()
+    property real _pressValue: 0
+    property bool _holdTriggered: false
 
     Layout.fillWidth: true
     implicitHeight: UiMetrics.rowH
 
     Timer {
+        id: holdTimer
+        interval: 500
+        onTriggered: {
+            if (!slider.pressed)
+                return
+            root._holdTriggered = true
+            slider.value = root._pressValue
+            ApplicationController.requestBack()
+        }
+    }
+
+    Timer {
         id: debounce
         interval: 300
         onTriggered: {
+            if (root._holdTriggered) return
             if (root.configPath === "") return
             ConfigService.setValue(root.configPath, slider.value)
             ConfigService.save()
@@ -31,7 +46,7 @@ Item {
     Component.onDestruction: {
         if (debounce.running) {
             debounce.stop()
-            if (root.configPath !== "") {
+            if (!root._holdTriggered && root.configPath !== "") {
                 ConfigService.setValue(root.configPath, slider.value)
                 ConfigService.save()
             }
@@ -72,7 +87,27 @@ Item {
             from: root.from
             to: root.to
             stepSize: root.stepSize
-            onMoved: { debounce.restart(); root.moved() }
+            onPressedChanged: {
+                if (pressed) {
+                    root._pressValue = value
+                    root._holdTriggered = false
+                    holdTimer.restart()
+                    return
+                }
+
+                holdTimer.stop()
+                if (root._holdTriggered)
+                    value = root._pressValue
+            }
+            onMoved: {
+                holdTimer.stop()
+                if (root._holdTriggered) {
+                    value = root._pressValue
+                    return
+                }
+                debounce.restart()
+                root.moved()
+            }
         }
 
         Text {

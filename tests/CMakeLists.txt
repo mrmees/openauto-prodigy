@@ -98,6 +98,10 @@ oap_add_test(test_evdev_coord_bridge SOURCES test_evdev_coord_bridge.cpp)
 # --- Navbar tests ---
 
 oap_add_test(test_navbar_controller SOURCES test_navbar_controller.cpp)
+oap_add_test(test_settings_menu_structure
+    SOURCES test_settings_menu_structure.cpp
+    DEFS TEST_SOURCE_DIR="${CMAKE_SOURCE_DIR}"
+)
 
 # --- DSP tests ---
 
@@ -135,5 +139,8 @@ add_test(
 
 # GUI/Quick tests need offscreen platform when no display is available
 set_tests_properties(test_configuration test_theme_service test_display_service test_plugin_model test_aa_orchestrator
+    PROPERTIES ENVIRONMENT "QT_QPA_PLATFORM=offscreen"
+)
+set_tests_properties(test_settings_menu_structure
     PROPERTIES ENVIRONMENT "QT_QPA_PLATFORM=offscreen"
 )

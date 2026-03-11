@@ -45,11 +45,11 @@ Item {
     }
 
     // MouseArea for interactive rows
-    MouseArea {
+    SettingsHoldArea {
         id: mouseArea
         anchors.fill: parent
         enabled: root.interactive
         visible: root.interactive
-        onClicked: root.clicked()
+        onShortClicked: root.clicked()
     }
 }

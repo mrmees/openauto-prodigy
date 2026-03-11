@@ -4,6 +4,65 @@ Newest entries first.
 
 ---
 
+## 2026-03-11 — Settings interactive control back-hold ownership
+
+**What changed:**
+- Added shared [qml/controls/SettingsHoldArea.qml](/home/matt/claude/personal/openautopro/openauto-prodigy/qml/controls/SettingsHoldArea.qml) to turn `MouseArea`-driven settings controls into short-tap vs long-hold surfaces.
+- Updated [qml/controls/SettingsToggle.qml](/home/matt/claude/personal/openautopro/openauto-prodigy/qml/controls/SettingsToggle.qml), [qml/controls/FullScreenPicker.qml](/home/matt/claude/personal/openautopro/openauto-prodigy/qml/controls/FullScreenPicker.qml), [qml/controls/SettingsListItem.qml](/home/matt/claude/personal/openautopro/openauto-prodigy/qml/controls/SettingsListItem.qml), [qml/controls/SettingsRow.qml](/home/matt/claude/personal/openautopro/openauto-prodigy/qml/controls/SettingsRow.qml), and [qml/controls/SegmentedButton.qml](/home/matt/claude/personal/openautopro/openauto-prodigy/qml/controls/SegmentedButton.qml) so long hold requests back and suppresses the normal click action.
+- Updated [qml/controls/SettingsSlider.qml](/home/matt/claude/personal/openautopro/openauto-prodigy/qml/controls/SettingsSlider.qml) with a dedicated 500 ms hold timer that cancels on drag, requests back on long hold, and suppresses slider value commit when hold wins.
+- Kept the overlay/TapHandler path in [qml/applications/settings/SettingsMenu.qml](/home/matt/claude/personal/openautopro/openauto-prodigy/qml/applications/settings/SettingsMenu.qml) as the fallback for blank and non-interactive settings space.
+- Replaced the old regression assumption in [tests/test_settings_menu_structure.cpp](/home/matt/claude/personal/openautopro/openauto-prodigy/tests/test_settings_menu_structure.cpp) so the test now guards the correct ownership model instead of insisting that form controls stay invisible to back-hold logic.
+
+**Why:**
+- The overlay-only approach was fine for empty space and simple rows, but it was the wrong model for reusable interactive controls. Those controls already own the working touch path on Pi, so long-hold back needs to live there too.
+
+**Status:** Local build, full test suite, and cross-build are complete. Pi hardware validation is still pending.
+
+**Next steps:**
+1. Deploy `build-pi/src/openauto-prodigy` to the Pi and verify long-hold back on toggles, sliders, pickers, and segmented controls with real touch input.
+2. Check custom one-off settings controls in `DebugSettings.qml` and similar pages for any remaining interactive surfaces that still need the shared hold-aware path.
+3. Remove or reduce the temporary `BackHold-*` debug logging in [qml/applications/settings/SettingsMenu.qml](/home/matt/claude/personal/openautopro/openauto-prodigy/qml/applications/settings/SettingsMenu.qml) once Pi validation is confirmed.
+
+**Verification commands/results:**
+- `cd build && cmake --build . -j$(nproc)`
+  - Passed.
+- `cd build && ctest --output-on-failure`
+  - Passed: `100% tests passed, 0 tests failed out of 72`.
+- `bash ./cross-build.sh`
+  - Passed: produced `build-pi/src/openauto-prodigy`.
+  - Notes: cross-build emitted the existing Qt QML plugin warnings during configure, but the aarch64 build completed successfully.
+
+---
+
+## 2026-03-11 — Settings back-hold touch delivery fix
+
+**What changed:**
+- Moved the settings long-press back `TapHandler`s into a transparent full-screen overlay in [qml/applications/settings/SettingsMenu.qml](/home/matt/claude/personal/openautopro/openauto-prodigy/qml/applications/settings/SettingsMenu.qml) with `objectName: "backHoldOverlay"` and `z: 1000`.
+- Kept the existing long-press logic, `blocksBackHoldAt()` hit-testing, and ripple feedback intact; this change only alters where the handlers sit in the scene graph.
+- Added `tests/test_settings_menu_structure.cpp` to guard the required overlay structure in `SettingsMenu.qml`.
+- Registered the new regression test in `tests/CMakeLists.txt`.
+
+**Why:**
+- Pi touch input was never reaching the root-level `TapHandler`s. The Settings screen is covered by a full-screen `StackView` with `ListView`/`Flickable` children and nested `MouseArea`s, so the handlers needed to sit on a high-`z` glass pane above that content to observe fresh presses.
+
+**Status:** Code change, local build, full test suite, and cross-build are complete. Pi hardware validation is still pending.
+
+**Next steps:**
+1. Deploy `build-pi/src/openauto-prodigy` to the Pi and verify that long-press back now logs `BackHold-TOUCH` events and navigates correctly on the DFRobot touchscreen.
+2. If Pi behavior is correct, remove or reduce the temporary `BackHold-*` debug logging noise in `SettingsMenu.qml`.
+3. If Pi still drops touch delivery, capture fresh logs with the overlay in place before changing gesture logic again.
+
+**Verification commands/results:**
+- `cd build && cmake --build . -j$(nproc)`
+  - Passed.
+- `cd build && ctest --output-on-failure`
+  - Passed: `100% tests passed, 0 tests failed out of 72`.
+- `bash ./cross-build.sh`
+  - Passed: produced `build-pi/src/openauto-prodigy`.
+  - Notes: cross-build emitted existing Qt QML plugin warnings during CMake configure, but the aarch64 build completed successfully.
+
+---
+
 ## 2026-02-27 — Bluetooth cleanup, install script overhaul, aasdk removal
 
 **What changed:**

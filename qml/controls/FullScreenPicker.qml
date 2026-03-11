@@ -147,10 +147,10 @@ Item {
         }
     }
 
-    MouseArea {
+    SettingsHoldArea {
         id: rowMouseArea
         anchors.fill: parent
-        onClicked: pickerDialog.open()
+        onShortClicked: pickerDialog.open()
     }
 
     // --- Modal bottom-sheet dialog ---

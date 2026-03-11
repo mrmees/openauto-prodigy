@@ -138,68 +138,76 @@ Item {
         if (!goBack()) ApplicationController.navigateBack()
     }
 
-    // Touchscreen handler (Pi) — Qt.NoButton avoids synthetic-mouse conflict
-    TapHandler {
-        id: backHoldTouch
-        target: null
-        gesturePolicy: TapHandler.DragThreshold
-        acceptedDevices: PointerDevice.TouchScreen
-        acceptedPointerTypes: PointerDevice.Finger
-        acceptedButtons: Qt.NoButton
-        longPressThreshold: 0.5
-        dragThreshold: Math.round(UiMetrics.touchMin * 0.5)
+    // Transparent glass pane above StackView so passive handlers see fresh presses
+    Item {
+        id: backHoldOverlay
+        objectName: "backHoldOverlay"
+        anchors.fill: parent
+        z: 1000
 
-        property bool armed: false
-        onGrabChanged: function(transition, point) {
-            console.log("[BackHold-TOUCH] grabChanged:", transition,
-                        "point:", point.id, "pos:", point.position.x, point.position.y,
-                        "pressed:", pressed, "device:", point.device.type)
-        }
-        onPressedChanged: {
-            console.log("[BackHold-TOUCH] pressedChanged:", pressed,
-                        "point:", point.position.x, point.position.y)
-            if (pressed) { armed = settingsMenu.armHold(point.position) }
-            else { armed = false; settingsMenu.cancelHold() }
-        }
-        onCanceled: {
-            console.log("[BackHold-TOUCH] canceled")
-            armed = false; settingsMenu.cancelHold()
-        }
-        onLongPressed: {
-            console.log("[BackHold-TOUCH] longPressed! armed:", armed)
-            if (!armed) return; armed = false; settingsMenu.triggerHold()
-        }
-    }
+        // Touchscreen handler (Pi) — Qt.NoButton avoids synthetic-mouse conflict
+        TapHandler {
+            id: backHoldTouch
+            target: null
+            gesturePolicy: TapHandler.DragThreshold
+            acceptedDevices: PointerDevice.TouchScreen
+            acceptedPointerTypes: PointerDevice.Finger
+            acceptedButtons: Qt.NoButton
+            longPressThreshold: 0.5
+            dragThreshold: Math.round(UiMetrics.touchMin * 0.5)
 
-    // Mouse handler (desktop dev)
-    TapHandler {
-        id: backHoldMouse
-        target: null
-        gesturePolicy: TapHandler.DragThreshold
-        acceptedDevices: PointerDevice.Mouse | PointerDevice.TouchPad
-        acceptedButtons: Qt.LeftButton
-        longPressThreshold: 0.5
-        dragThreshold: 12
+            property bool armed: false
+            onGrabChanged: function(transition, point) {
+                console.log("[BackHold-TOUCH] grabChanged:", transition,
+                            "point:", point.id, "pos:", point.position.x, point.position.y,
+                            "pressed:", pressed, "device:", point.device.type)
+            }
+            onPressedChanged: {
+                console.log("[BackHold-TOUCH] pressedChanged:", pressed,
+                            "point:", point.position.x, point.position.y)
+                if (pressed) { armed = settingsMenu.armHold(point.position) }
+                else { armed = false; settingsMenu.cancelHold() }
+            }
+            onCanceled: {
+                console.log("[BackHold-TOUCH] canceled")
+                armed = false; settingsMenu.cancelHold()
+            }
+            onLongPressed: {
+                console.log("[BackHold-TOUCH] longPressed! armed:", armed)
+                if (!armed) return; armed = false; settingsMenu.triggerHold()
+            }
+        }
 
-        property bool armed: false
-        onGrabChanged: function(transition, point) {
-            console.log("[BackHold-MOUSE] grabChanged:", transition,
-                        "point:", point.id, "pos:", point.position.x, point.position.y,
-                        "pressed:", pressed, "device:", point.device.type)
-        }
-        onPressedChanged: {
-            console.log("[BackHold-MOUSE] pressedChanged:", pressed,
-                        "point:", point.position.x, point.position.y)
-            if (pressed) { armed = settingsMenu.armHold(point.position) }
-            else { armed = false; settingsMenu.cancelHold() }
-        }
-        onCanceled: {
-            console.log("[BackHold-MOUSE] canceled")
-            armed = false; settingsMenu.cancelHold()
-        }
-        onLongPressed: {
-            console.log("[BackHold-MOUSE] longPressed! armed:", armed)
-            if (!armed) return; armed = false; settingsMenu.triggerHold()
+        // Mouse handler (desktop dev)
+        TapHandler {
+            id: backHoldMouse
+            target: null
+            gesturePolicy: TapHandler.DragThreshold
+            acceptedDevices: PointerDevice.Mouse | PointerDevice.TouchPad
+            acceptedButtons: Qt.LeftButton
+            longPressThreshold: 0.5
+            dragThreshold: 12
+
+            property bool armed: false
+            onGrabChanged: function(transition, point) {
+                console.log("[BackHold-MOUSE] grabChanged:", transition,
+                            "point:", point.id, "pos:", point.position.x, point.position.y,
+                            "pressed:", pressed, "device:", point.device.type)
+            }
+            onPressedChanged: {
+                console.log("[BackHold-MOUSE] pressedChanged:", pressed,
+                            "point:", point.position.x, point.position.y)
+                if (pressed) { armed = settingsMenu.armHold(point.position) }
+                else { armed = false; settingsMenu.cancelHold() }
+            }
+            onCanceled: {
+                console.log("[BackHold-MOUSE] canceled")
+                armed = false; settingsMenu.cancelHold()
+            }
+            onLongPressed: {
+                console.log("[BackHold-MOUSE] longPressed! armed:", armed)
+                if (!armed) return; armed = false; settingsMenu.triggerHold()
+            }
         }
     }
 
