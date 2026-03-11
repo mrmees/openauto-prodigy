@@ -105,7 +105,7 @@ Plans:
 
 Plans:
 - [x] 02-01-PLAN.md -- Create new pages (Theme, Information, Debug) and update menu routing
-- [ ] 02-02-PLAN.md -- Restructure existing pages, remove relocated controls, delete dead files
+- [x] 02-02-PLAN.md -- Restructure existing pages, remove relocated controls, delete dead files
 
 ### Phase 3: Touch Normalization
 **Goal**: Every settings page is comfortable to use by touch in a car
@@ -115,7 +115,11 @@ Plans:
   1. All settings sub-pages use consistent alternating-row list styling matching the main settings menu
   2. All interactive controls (toggles, pickers, sliders) have touch-friendly sizing via UiMetrics (DPI-scaled)
   3. Text is readable at arm's length across all target display sizes (no hardcoded pixel values)
-**Plans**: TBD
+**Plans**: 2 plans
+
+Plans:
+- [ ] 03-01-PLAN.md -- Create SettingsRow component, update controls for flat mode, apply to 5 simpler pages
+- [ ] 03-02-PLAN.md -- Apply SettingsRow to 4 complex pages (Display, Audio, Bluetooth, Debug)
 
 ## Progress
 
@@ -126,7 +130,7 @@ Phases execute in numeric order: 1 -> 2 -> 3
 |-------|----------------|--------|-----------|
 | 1. Widget System | 3/3 | Complete | 2026-03-10 |
 | 2. Settings Restructure | 2/2 | Complete   | 2026-03-11 |
-| 3. Touch Normalization | 0/? | Not started | - |
+| 3. Touch Normalization | 0/2 | Not started | - |
 
 ---
-*Last updated: 2026-03-11 -- Phase 2 plans created (2 plans, 2 waves)*
+*Last updated: 2026-03-11 -- Phase 3 plans created (2 plans, 2 waves)*
