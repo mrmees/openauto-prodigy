@@ -5,6 +5,7 @@ import QtQuick.Controls
 
 Item {
     id: root
+    readonly property bool blocksBackHold: true
 
     // --- Config-driven mode ---
     property string label: ""

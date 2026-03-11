@@ -9,7 +9,6 @@ Flickable {
     contentHeight: content.implicitHeight + UiMetrics.marginPage * 2
     clip: true
     boundsBehavior: Flickable.StopAtBounds
-    BackHoldArea {}
     ColumnLayout {
         id: content
         anchors.left: parent.left

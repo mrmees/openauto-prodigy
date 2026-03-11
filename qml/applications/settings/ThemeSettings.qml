@@ -8,7 +8,6 @@ Flickable {
     clip: true
     boundsBehavior: Flickable.StopAtBounds
 
-    BackHoldArea {}
     ColumnLayout {
         id: content
         anchors.left: parent.left

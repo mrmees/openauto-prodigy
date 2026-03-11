@@ -4,6 +4,7 @@ import QtQuick.Controls
 
 Item {
     id: root
+    readonly property bool blocksBackHold: true
     property string icon: ""
     property string label: ""
     property string configPath: ""

@@ -74,6 +74,28 @@ Item {
         }
     }
 
+    // Hit-test: walk parent chain from deepest item looking for blocksBackHold
+    function blocksBackHoldAt(px, py) {
+        var page = settingsStack.currentItem
+        if (!page) return false
+        var local = settingsMenu.mapToItem(page, px, py)
+        var item = page.childAt(local.x, local.y)
+        // Walk down to deepest child
+        while (item) {
+            var child = item.childAt(
+                item.mapFromItem(page, local.x, local.y).x,
+                item.mapFromItem(page, local.x, local.y).y)
+            if (!child) break
+            item = child
+        }
+        // Walk up checking for blocksBackHold marker
+        while (item && item !== settingsMenu) {
+            if (item.blocksBackHold === true) return true
+            item = item.parent
+        }
+        return false
+    }
+
     StackView {
         id: settingsStack
         anchors.fill: parent
@@ -105,13 +127,92 @@ Item {
         }
     }
 
+    // Long-press-to-go-back: passive TapHandler + expanding ripple
+    TapHandler {
+        id: backHoldHandler
+        target: null
+        gesturePolicy: TapHandler.DragThreshold
+        longPressThreshold: 0.5
+
+        property bool armed: false
+
+        onPressedChanged: {
+            if (pressed) {
+                armed = !settingsMenu.blocksBackHoldAt(point.position.x, point.position.y)
+                if (armed)
+                    holdRipple.showAt(point.position.x, point.position.y)
+            } else {
+                armed = false
+                holdRipple.hide()
+            }
+        }
+
+        onCanceled: {
+            armed = false
+            holdRipple.hide()
+        }
+
+        onLongPressed: {
+            if (!armed) return
+            armed = false
+            holdRipple.hide()
+            if (!goBack())
+                ApplicationController.navigateBack()
+        }
+    }
+
+    // Expanding ripple indicator for hold feedback
+    Rectangle {
+        id: holdRipple
+        visible: false
+        width: 0; height: width
+        radius: width / 2
+        color: "transparent"
+        border.width: Math.max(2, UiMetrics.spacing * 0.5)
+        border.color: ThemeService.primary
+        opacity: 0.5
+        z: 2000
+
+        function showAt(px, py) {
+            _centerX = px
+            _centerY = py
+            width = 0
+            visible = true
+            rippleGrow.restart()
+        }
+        function hide() {
+            rippleGrow.stop()
+            visible = false
+            width = 0
+        }
+
+        property real _centerX: 0
+        property real _centerY: 0
+        x: _centerX - width / 2
+        y: _centerY - height / 2
+
+        MaterialIcon {
+            anchors.centerIn: parent
+            icon: "\ue5c4"  // arrow_back
+            size: UiMetrics.fontTitle
+            color: ThemeService.primary
+            opacity: Math.min(1.0, holdRipple.width / (UiMetrics.touchMin * 1.2))
+        }
+
+        NumberAnimation on width {
+            id: rippleGrow
+            running: false
+            from: 0; to: UiMetrics.touchMin * 1.5
+            duration: 500
+            easing.type: Easing.OutCubic
+        }
+    }
+
     Component {
         id: settingsList
 
         Item {
             anchors.fill: parent
-
-            BackHoldArea {}
 
             ListView {
                 anchors.fill: parent
@@ -140,9 +241,7 @@ Item {
                     MouseArea {
                         id: delegateArea
                         anchors.fill: parent
-                        pressAndHoldInterval: 500
                         onClicked: openPage(model.pageId)
-                        onPressAndHold: ApplicationController.requestBack()
                     }
 
                     MaterialIcon {

@@ -5,6 +5,7 @@ import QtQuick.Controls
 
 Item {
     id: root
+    readonly property bool blocksBackHold: true
     property string label: ""
     property string configPath: ""
     property var options: []      // display strings: ["30", "60"] or ["Left", "Right"]

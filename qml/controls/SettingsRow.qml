@@ -3,6 +3,7 @@ import QtQuick.Layouts
 
 Item {
     id: root
+    readonly property bool blocksBackHold: interactive
 
     property int rowIndex: 0
     property bool interactive: false
