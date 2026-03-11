@@ -32,7 +32,16 @@ QHash<int, QByteArray> WidgetPickerModel::roleNames() const {
 
 void WidgetPickerModel::filterForSize(int sizeFlag) {
     beginResetModel();
-    filtered_ = registry_->widgetsForSize(static_cast<WidgetSize>(sizeFlag));
+    filtered_.clear();
+
+    // Add a "No Widget" option at the top to allow clearing the pane
+    WidgetDescriptor noneDesc;
+    noneDesc.id = QString();
+    noneDesc.displayName = QStringLiteral("No Widget");
+    noneDesc.iconName = QStringLiteral("\ue5cd"); // close/clear icon
+    filtered_.append(noneDesc);
+
+    filtered_.append(registry_->widgetsForSize(static_cast<WidgetSize>(sizeFlag)));
     endResetModel();
 }
 

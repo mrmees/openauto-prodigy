@@ -43,9 +43,16 @@ Item {
 
         MouseArea {
             anchors.fill: parent
+            pressAndHoldInterval: 500
             onClicked: {
                 if (!connected)
                     PluginModel.setActivePlugin("org.openauto.android-auto")
+            }
+            onPressAndHold: {
+                // Forward to WidgetHost via Loader's requestContextMenu().
+                // parent chain: MouseArea → Rectangle → AAStatusWidget root → Loader
+                if (aaStatusWidget.parent && aaStatusWidget.parent.requestContextMenu)
+                    aaStatusWidget.parent.requestContextMenu()
             }
         }
     }

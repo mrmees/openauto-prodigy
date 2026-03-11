@@ -45,23 +45,11 @@ Item {
                     autoPaddingEnabled: true
                 }
 
-                ColumnLayout {
+                MaterialIcon {
                     anchors.centerIn: parent
-                    spacing: UiMetrics.spacing * 0.25
-
-                    MaterialIcon {
-                        icon: model.tileIcon
-                        size: UiMetrics.iconSmall
-                        color: ThemeService.onSurface
-                        Layout.alignment: Qt.AlignHCenter
-                    }
-
-                    NormalText {
-                        text: model.tileLabel
-                        font.pixelSize: UiMetrics.fontSmall
-                        color: ThemeService.onSurface
-                        Layout.alignment: Qt.AlignHCenter
-                    }
+                    icon: model.tileIcon
+                    size: Math.round(UiMetrics.iconSmall * 0.9)
+                    color: ThemeService.onSurface
                 }
 
                 MouseArea {

@@ -34,6 +34,11 @@ Item {
         source: widgetHost.widgetSource
         asynchronous: false
 
+        // Expose a function widgets can call for long-press forwarding.
+        // Widgets with their own MouseAreas (e.g. AAStatusWidget) call
+        // parent.requestContextMenu() from onPressAndHold.
+        function requestContextMenu() { widgetHost.longPressed() }
+
         onStatusChanged: {
             if (status === Loader.Error)
                 console.warn("WidgetHost: failed to load", widgetHost.widgetSource)
@@ -50,9 +55,10 @@ Item {
         visible: !widgetHost.widgetSource.toString()
     }
 
-    // Long-press detector — sits behind widget content.
-    // Widget MouseAreas (e.g. AA Status tap-to-connect) take priority.
-    // Empty panes and non-interactive widgets fall through to this.
+    // Long-press detector — sits behind widget content (z: -1).
+    // Non-interactive widgets (Clock) fall through to this naturally.
+    // Interactive widgets with their own MouseAreas must also detect
+    // pressAndHold and call widgetHost.longPressed() — see AAStatusWidget.
     MouseArea {
         anchors.fill: parent
         z: -1

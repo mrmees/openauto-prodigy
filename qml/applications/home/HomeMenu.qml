@@ -188,7 +188,11 @@ Item {
         sourceComponent: WidgetPicker {
             targetPaneId: widgetPicker.targetPaneId
             onWidgetSelected: function(widgetId) {
-                WidgetPlacementModel.swapWidget(widgetPicker.targetPaneId, widgetId)
+                if (widgetId === "") {
+                    WidgetPlacementModel.clearPane(widgetPicker.targetPaneId)
+                } else {
+                    WidgetPlacementModel.swapWidget(widgetPicker.targetPaneId, widgetId)
+                }
                 widgetPicker.active = false
             }
             onCancelled: widgetPicker.active = false
