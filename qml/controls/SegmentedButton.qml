@@ -151,6 +151,7 @@ Item {
                         SettingsHoldArea {
                             id: segMouseArea
                             anchors.fill: parent
+                            enableBackHold: false
                             onShortClicked: {
                                 if (internal.selectedIndex === index) return
                                 internal.selectedIndex = index

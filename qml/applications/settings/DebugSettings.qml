@@ -57,6 +57,16 @@ Flickable {
                             }
                         }
                     }
+
+                    SettingsHoldArea {
+                        anchors.fill: parent
+                        enableBackHold: false
+                        onShortClicked: {
+                            if (codecName === "h264")
+                                return
+                            codecSwitch.checked = !codecSwitch.checked
+                        }
+                    }
                 }
 
                 // --- Hardware / Software toggle ---
@@ -105,9 +115,10 @@ Flickable {
                                         color: !isHardware ? ThemeService.onSecondaryContainer : ThemeService.onSurface
                                     }
 
-                                    MouseArea {
+                                    SettingsHoldArea {
                                         anchors.fill: parent
-                                        onClicked: {
+                                        enableBackHold: false
+                                        onShortClicked: {
                                             if (!isHardware) return
                                             CodecCapabilityModel.setHardwareMode(index, false)
                                             saveDecoderConfig(codecName, "auto")
@@ -139,10 +150,11 @@ Flickable {
                                         opacity: hwAvailable ? 1.0 : 0.4
                                     }
 
-                                    MouseArea {
+                                    SettingsHoldArea {
                                         anchors.fill: parent
                                         enabled: hwAvailable
-                                        onClicked: {
+                                        enableBackHold: false
+                                        onShortClicked: {
                                             if (isHardware) return
                                             CodecCapabilityModel.setHardwareMode(index, true)
                                             saveDecoderConfig(codecName, "auto")
@@ -189,9 +201,10 @@ Flickable {
                             }
                         }
 
-                        MouseArea {
+                        SettingsHoldArea {
                             anchors.fill: parent
-                            onClicked: {
+                            enableBackHold: false
+                            onShortClicked: {
                                 decoderPickerDialog.codecIndex = index
                                 decoderPickerDialog.codecLabel = codecDisplayName(codecName) + " Decoder"
                                 decoderPickerDialog.decoders = decoderList

@@ -42,62 +42,38 @@ private slots:
                  "SettingsMenu should expose a shared ripple hide helper");
     }
 
-    void testInteractiveControlsOwnBackHold()
+    void testSettingsRowsOwnBackHoldWhileMenuKeepsWhitespaceOverlay()
     {
         const QString holdAreaSource = sourceFor(QStringLiteral("qml/controls/SettingsHoldArea.qml"));
         QVERIFY2(!holdAreaSource.isEmpty(), "Failed to read SettingsHoldArea.qml");
-        QVERIFY2(holdAreaSource.indexOf(QStringLiteral("pressAndHoldInterval: 500")) >= 0,
-                 "SettingsHoldArea should trigger long hold at 500ms");
-        QVERIFY2(holdAreaSource.indexOf(QStringLiteral("ApplicationController.requestBack()")) >= 0,
-                 "SettingsHoldArea should request back on long hold");
-        QVERIFY2(holdAreaSource.indexOf(QStringLiteral("showHoldIndicator")) >= 0,
-                 "SettingsHoldArea should show the shared ripple on press");
-        QVERIFY2(holdAreaSource.indexOf(QStringLiteral("hideHoldIndicator")) >= 0,
-                 "SettingsHoldArea should hide the shared ripple on release/cancel");
-
-        const QString toggleSource = sourceFor(QStringLiteral("qml/controls/SettingsToggle.qml"));
-        QVERIFY2(!toggleSource.isEmpty(), "Failed to read SettingsToggle.qml");
-        QVERIFY2(toggleSource.indexOf(QStringLiteral("readonly property bool blocksBackHold: true")) >= 0,
-                 "SettingsToggle should own back-hold on its interactive surface");
-        QVERIFY2(toggleSource.indexOf(QStringLiteral("SettingsHoldArea")) >= 0,
-                 "SettingsToggle should use the shared hold-aware surface");
+        QVERIFY2(holdAreaSource.indexOf(QStringLiteral("property bool enableBackHold: true")) >= 0,
+                 "SettingsHoldArea should be able to run in row-owned short-click-only mode");
+        QVERIFY2(holdAreaSource.indexOf(QStringLiteral("consumeBackHoldTrigger")) >= 0,
+                 "SettingsHoldArea should suppress short clicks when the enclosing row long-hold already won");
 
         const QString sliderSource = sourceFor(QStringLiteral("qml/controls/SettingsSlider.qml"));
         QVERIFY2(!sliderSource.isEmpty(), "Failed to read SettingsSlider.qml");
-        QVERIFY2(sliderSource.indexOf(QStringLiteral("readonly property bool blocksBackHold: true")) >= 0,
-                 "SettingsSlider should own back-hold on its interactive surface");
-        QVERIFY2(sliderSource.indexOf(QStringLiteral("id: holdTimer")) >= 0,
-                 "SettingsSlider should define a dedicated long-hold timer");
-        QVERIFY2(sliderSource.indexOf(QStringLiteral("interval: 500")) >= 0,
-                 "SettingsSlider long-hold timer should use 500ms");
-        QVERIFY2(sliderSource.indexOf(QStringLiteral("ApplicationController.requestBack()")) >= 0,
-                 "SettingsSlider should request back on long hold");
-        QVERIFY2(sliderSource.indexOf(QStringLiteral("showHoldIndicator")) >= 0,
-                 "SettingsSlider should show the shared ripple when hold starts");
-        QVERIFY2(sliderSource.indexOf(QStringLiteral("hideHoldIndicator")) >= 0,
-                 "SettingsSlider should hide the shared ripple when hold ends");
-
-        const QString pickerSource = sourceFor(QStringLiteral("qml/controls/FullScreenPicker.qml"));
-        QVERIFY2(!pickerSource.isEmpty(), "Failed to read FullScreenPicker.qml");
-        QVERIFY2(pickerSource.indexOf(QStringLiteral("readonly property bool blocksBackHold: true")) >= 0,
-                 "FullScreenPicker should own back-hold on its interactive surface");
-        QVERIFY2(pickerSource.indexOf(QStringLiteral("SettingsHoldArea")) >= 0,
-                 "FullScreenPicker should use the shared hold-aware surface");
-
-        const QString listItemSource = sourceFor(QStringLiteral("qml/controls/SettingsListItem.qml"));
-        QVERIFY2(!listItemSource.isEmpty(), "Failed to read SettingsListItem.qml");
-        QVERIFY2(listItemSource.indexOf(QStringLiteral("SettingsHoldArea")) >= 0,
-                 "SettingsListItem should use the shared hold-aware surface");
-
-        const QString segmentedSource = sourceFor(QStringLiteral("qml/controls/SegmentedButton.qml"));
-        QVERIFY2(!segmentedSource.isEmpty(), "Failed to read SegmentedButton.qml");
-        QVERIFY2(segmentedSource.indexOf(QStringLiteral("SettingsHoldArea")) >= 0,
-                 "SegmentedButton should use the shared hold-aware surface");
+        QVERIFY2(sliderSource.indexOf(QStringLiteral("function _findSettingsRow()")) >= 0,
+                 "SettingsSlider should locate the enclosing SettingsRow for row-owned hold coordination");
+        QVERIFY2(sliderSource.indexOf(QStringLiteral("cancelBackHold()")) >= 0,
+                 "SettingsSlider should cancel row hold when real dragging starts");
+        QVERIFY2(sliderSource.indexOf(QStringLiteral("consumeBackHoldTrigger()")) >= 0,
+                 "SettingsSlider should suppress commit behavior when the row long-hold already won");
+        QVERIFY2(sliderSource.indexOf(QStringLiteral("id: holdTimer")) < 0,
+                 "SettingsSlider should no longer define a dedicated long-hold timer");
 
         const QString rowSource = sourceFor(QStringLiteral("qml/controls/SettingsRow.qml"));
         QVERIFY2(!rowSource.isEmpty(), "Failed to read SettingsRow.qml");
-        QVERIFY2(rowSource.indexOf(QStringLiteral("SettingsHoldArea")) >= 0,
-                 "Interactive SettingsRow should use the shared hold-aware surface");
+        QVERIFY2(rowSource.indexOf(QStringLiteral("readonly property bool blocksBackHold: true")) >= 0,
+                 "Every SettingsRow should block the menu overlay and own row-level hold");
+        QVERIFY2(rowSource.indexOf(QStringLiteral("function cancelBackHold()")) >= 0,
+                 "SettingsRow should expose a cancel helper for drag-driven child controls");
+        QVERIFY2(rowSource.indexOf(QStringLiteral("function consumeBackHoldTrigger()")) >= 0,
+                 "SettingsRow should expose long-hold suppression state to child controls");
+        QVERIFY2(rowSource.indexOf(QStringLiteral("ApplicationController.requestBack()")) >= 0,
+                 "SettingsRow should request back when row-level long hold fires");
+        QVERIFY2(rowSource.indexOf(QStringLiteral("showHoldIndicator")) >= 0,
+                 "SettingsRow should drive the shared ripple through SettingsMenu");
     }
 };
 

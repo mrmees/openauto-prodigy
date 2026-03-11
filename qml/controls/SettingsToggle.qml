@@ -53,6 +53,7 @@ Item {
 
     SettingsHoldArea {
         anchors.fill: parent
+        enableBackHold: false
         onShortClicked: toggle.checked = !toggle.checked
     }
 

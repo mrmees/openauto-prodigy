@@ -79,10 +79,11 @@ Flickable {
                             size: UiMetrics.iconSmall
                             color: ThemeService.onSurfaceVariant
                         }
-                        MouseArea {
+                        SettingsHoldArea {
                             anchors.fill: parent
+                            enableBackHold: false
                             enabled: Math.abs(root._currentScale - 1.0) > 0.05
-                            onClicked: root._applyScale(1.0)
+                            onShortClicked: root._applyScale(1.0)
                         }
                     }
 
@@ -101,9 +102,10 @@ Flickable {
                             font.weight: Font.Bold
                             color: "white"
                         }
-                        MouseArea {
+                        SettingsHoldArea {
                             anchors.fill: parent
-                            onClicked: {
+                            enableBackHold: false
+                            onShortClicked: {
                                 if (root._currentScale <= 0.5) return
                                 var newVal = Math.round((root._currentScale - 0.1) * 10) / 10
                                 root._applyScale(newVal)
@@ -136,9 +138,10 @@ Flickable {
                             font.weight: Font.Bold
                             color: "white"
                         }
-                        MouseArea {
+                        SettingsHoldArea {
                             anchors.fill: parent
-                            onClicked: {
+                            enableBackHold: false
+                            onShortClicked: {
                                 if (root._currentScale >= 2.0) return
                                 var newVal = Math.round((root._currentScale + 0.1) * 10) / 10
                                 root._applyScale(newVal)

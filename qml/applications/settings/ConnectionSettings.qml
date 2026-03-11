@@ -47,6 +47,15 @@ Flickable {
                     }
                 }
             }
+
+            SettingsHoldArea {
+                anchors.fill: parent
+                enableBackHold: false
+                onShortClicked: {
+                    if (BluetoothManager)
+                        pairableSwitch.checked = !pairableSwitch.checked
+                }
+            }
         }
 
         // Paired devices list
@@ -92,9 +101,10 @@ Flickable {
                                 color: ThemeService.error
                             }
 
-                            MouseArea {
+                            SettingsHoldArea {
                                 anchors.fill: parent
-                                onClicked: {
+                                enableBackHold: false
+                                onShortClicked: {
                                     if (BluetoothManager) BluetoothManager.forgetDevice(model.address)
                                 }
                             }

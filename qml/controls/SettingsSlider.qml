@@ -15,14 +15,13 @@ Item {
     property alias value: slider.value
     signal moved()
     property real _pressValue: 0
-    property bool _holdTriggered: false
-    property var _settingsMenu: null
+    property var _settingsRow: null
 
-    function _findSettingsMenu() {
+    function _findSettingsRow() {
         var p = root.parent
         while (p) {
-            if (typeof p.showHoldIndicator === "function"
-                    && typeof p.hideHoldIndicator === "function")
+            if (typeof p.cancelBackHold === "function"
+                    && typeof p.consumeBackHoldTrigger === "function")
                 return p
             p = p.parent
         }
@@ -33,7 +32,7 @@ Item {
     implicitHeight: UiMetrics.rowH
 
     Component.onCompleted: {
-        _settingsMenu = _findSettingsMenu()
+        _settingsRow = _findSettingsRow()
         if (root.configPath !== "") {
             var v = ConfigService.value(root.configPath)
             if (v !== undefined && v !== null)
@@ -42,26 +41,13 @@ Item {
     }
 
     Timer {
-        id: holdTimer
-        interval: 500
-        onTriggered: {
-            if (!slider.pressed)
-                return
-            root._holdTriggered = true
-            slider.value = root._pressValue
-            if (_settingsMenu) {
-                var pos = slider.mapToItem(_settingsMenu, slider.width / 2, slider.height / 2)
-                _settingsMenu.hideHoldIndicator()
-            }
-            ApplicationController.requestBack()
-        }
-    }
-
-    Timer {
         id: debounce
         interval: 300
         onTriggered: {
-            if (root._holdTriggered) return
+            if (_settingsRow && _settingsRow.consumeBackHoldTrigger()) {
+                slider.value = root._pressValue
+                return
+            }
             if (root.configPath === "") return
             ConfigService.setValue(root.configPath, slider.value)
             ConfigService.save()
@@ -71,7 +57,7 @@ Item {
     Component.onDestruction: {
         if (debounce.running) {
             debounce.stop()
-            if (!root._holdTriggered && root.configPath !== "") {
+            if (!(_settingsRow && _settingsRow.consumeBackHoldTrigger()) && root.configPath !== "") {
                 ConfigService.setValue(root.configPath, slider.value)
                 ConfigService.save()
             }
@@ -115,26 +101,16 @@ Item {
             onPressedChanged: {
                 if (pressed) {
                     root._pressValue = value
-                    root._holdTriggered = false
-                    if (_settingsMenu) {
-                        var pos = slider.mapToItem(_settingsMenu, slider.width / 2, slider.height / 2)
-                        _settingsMenu.showHoldIndicator(pos)
-                    }
-                    holdTimer.restart()
                     return
                 }
 
-                holdTimer.stop()
-                if (_settingsMenu)
-                    _settingsMenu.hideHoldIndicator()
-                if (root._holdTriggered)
+                if (_settingsRow && _settingsRow.consumeBackHoldTrigger())
                     value = root._pressValue
             }
             onMoved: {
-                holdTimer.stop()
-                if (_settingsMenu)
-                    _settingsMenu.hideHoldIndicator()
-                if (root._holdTriggered) {
+                if (_settingsRow)
+                    _settingsRow.cancelBackHold()
+                if (_settingsRow && _settingsRow.consumeBackHoldTrigger()) {
                     value = root._pressValue
                     return
                 }

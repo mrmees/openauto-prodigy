@@ -71,11 +71,12 @@ Flickable {
                         color: ThemeService.onSurface
                     }
 
-                    MouseArea {
+                    SettingsHoldArea {
                         id: pairBtnMouse
                         anchors.fill: parent
                         enabled: root.hasService
-                        onClicked: {
+                        enableBackHold: false
+                        onShortClicked: {
                             var pin = CompanionService.generatePairingPin()
                             pairingCodeDialog.pinCode = pin
                             pairingCodeDialog.visible = true
