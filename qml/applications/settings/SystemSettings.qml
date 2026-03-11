@@ -11,25 +11,31 @@ Flickable {
         id: content
         anchors.left: parent.left
         anchors.right: parent.right
-        anchors.margins: UiMetrics.marginPage
-        spacing: UiMetrics.spacing
+        anchors.topMargin: UiMetrics.marginPage
+        spacing: 0
 
         SectionHeader { text: "General" }
 
-        SettingsToggle {
-            label: "Left-Hand Drive"
-            configPath: "identity.left_hand_drive"
+        SettingsRow { rowIndex: 0
+            SettingsToggle {
+                label: "Left-Hand Drive"
+                configPath: "identity.left_hand_drive"
+            }
         }
 
-        SettingsToggle {
-            label: "24-Hour Clock"
-            configPath: "display.clock_24h"
+        SettingsRow { rowIndex: 1
+            SettingsToggle {
+                label: "24-Hour Clock"
+                configPath: "display.clock_24h"
+            }
         }
 
-        SettingsToggle {
-            id: forceDarkToggle
-            label: "Always Use Dark Mode"
-            configPath: "display.force_dark_mode"
+        SettingsRow { rowIndex: 2
+            SettingsToggle {
+                id: forceDarkToggle
+                label: "Always Use Dark Mode"
+                configPath: "display.force_dark_mode"
+            }
         }
 
         Connections {
@@ -44,69 +50,101 @@ Flickable {
 
         Item {
             Layout.fillWidth: true
-            implicitHeight: nightModeControls.implicitHeight
+            implicitHeight: nightModeCol.implicitHeight
             opacity: ThemeService.forceDarkMode ? 0.4 : 1.0
             enabled: !ThemeService.forceDarkMode
             Behavior on opacity { NumberAnimation { duration: 200 } }
 
             ColumnLayout {
-                id: nightModeControls
+                id: nightModeCol
                 anchors.left: parent.left
                 anchors.right: parent.right
-                spacing: UiMetrics.spacing
+                spacing: 0
 
-                FullScreenPicker {
-                    id: nightSource
-                    label: "Source"
-                    configPath: "sensors.night_mode.source"
-                    options: ["time", "gpio", "none"]
+                SettingsRow { rowIndex: 0
+                    FullScreenPicker {
+                        id: nightSource
+                        flat: true
+                        label: "Source"
+                        configPath: "sensors.night_mode.source"
+                        options: ["time", "gpio", "none"]
+                    }
                 }
 
-                ReadOnlyField {
-                    label: "Day starts at"
-                    configPath: "sensors.night_mode.day_start"
-                    placeholder: "HH:MM"
+                SettingsRow { rowIndex: 1
                     visible: nightSource.currentValue === "time"
+                    ReadOnlyField {
+                        label: "Day starts at"
+                        configPath: "sensors.night_mode.day_start"
+                        placeholder: "HH:MM"
+                    }
                 }
 
-                ReadOnlyField {
-                    label: "Night starts at"
-                    configPath: "sensors.night_mode.night_start"
-                    placeholder: "HH:MM"
+                SettingsRow { rowIndex: 2
                     visible: nightSource.currentValue === "time"
+                    ReadOnlyField {
+                        label: "Night starts at"
+                        configPath: "sensors.night_mode.night_start"
+                        placeholder: "HH:MM"
+                    }
                 }
 
-                SettingsSlider {
-                    label: "GPIO Pin"
-                    configPath: "sensors.night_mode.gpio_pin"
-                    from: 0; to: 40; stepSize: 1
+                SettingsRow { rowIndex: 1
                     visible: nightSource.currentValue === "gpio"
+                    SettingsSlider {
+                        label: "GPIO Pin"
+                        configPath: "sensors.night_mode.gpio_pin"
+                        from: 0; to: 40; stepSize: 1
+                    }
                 }
 
-                SettingsToggle {
-                    label: "GPIO Active High"
-                    configPath: "sensors.night_mode.gpio_active_high"
+                SettingsRow { rowIndex: 2
                     visible: nightSource.currentValue === "gpio"
+                    SettingsToggle {
+                        label: "GPIO Active High"
+                        configPath: "sensors.night_mode.gpio_active_high"
+                    }
                 }
             }
         }
 
         SectionHeader { text: "Software" }
 
-        ReadOnlyField {
-            label: "Version"
-            configPath: "identity.sw_version"
+        SettingsRow { rowIndex: 0
+            ReadOnlyField {
+                label: "Version"
+                configPath: "identity.sw_version"
+            }
         }
 
-        Item { Layout.fillWidth: true; Layout.preferredHeight: UiMetrics.marginPage + UiMetrics.marginRow }
-
-        ElevatedButton {
-            Layout.alignment: Qt.AlignHCenter
-            Layout.preferredWidth: parent.width * 0.4
-            Layout.preferredHeight: UiMetrics.rowH
-            text: "Close App"
-            iconCode: "\ue5cd"
+        SettingsRow {
+            rowIndex: 1
+            interactive: true
             onClicked: exitDialog.open()
+
+            RowLayout {
+                anchors.fill: parent
+                spacing: UiMetrics.gap
+
+                MaterialIcon {
+                    icon: "\ue8ac"
+                    size: UiMetrics.iconSize
+                    color: ThemeService.onSurface
+                }
+
+                Text {
+                    text: "Close App"
+                    font.pixelSize: UiMetrics.fontBody
+                    color: ThemeService.onSurface
+                    Layout.fillWidth: true
+                }
+
+                MaterialIcon {
+                    icon: "\ue5cc"
+                    size: UiMetrics.iconSmall
+                    color: ThemeService.onSurfaceVariant
+                }
+            }
         }
     }
 

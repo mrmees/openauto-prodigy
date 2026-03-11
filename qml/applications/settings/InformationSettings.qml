@@ -12,49 +12,63 @@ Flickable {
         id: content
         anchors.left: parent.left
         anchors.right: parent.right
-        anchors.margins: UiMetrics.marginPage
-        spacing: UiMetrics.spacing
+        anchors.topMargin: UiMetrics.marginPage
+        spacing: 0
 
         SectionHeader { text: "Identity" }
 
-        ReadOnlyField {
-            label: "Head Unit Name"
-            configPath: "identity.head_unit_name"
+        SettingsRow { rowIndex: 0
+            ReadOnlyField {
+                label: "Head Unit Name"
+                configPath: "identity.head_unit_name"
+            }
         }
 
-        ReadOnlyField {
-            label: "Manufacturer"
-            configPath: "identity.manufacturer"
+        SettingsRow { rowIndex: 1
+            ReadOnlyField {
+                label: "Manufacturer"
+                configPath: "identity.manufacturer"
+            }
         }
 
-        ReadOnlyField {
-            label: "Model"
-            configPath: "identity.model"
+        SettingsRow { rowIndex: 2
+            ReadOnlyField {
+                label: "Model"
+                configPath: "identity.model"
+            }
         }
 
-        ReadOnlyField {
-            label: "Car Model"
-            configPath: "identity.car_model"
-            placeholder: "(optional)"
+        SettingsRow { rowIndex: 3
+            ReadOnlyField {
+                label: "Car Model"
+                configPath: "identity.car_model"
+                placeholder: "(optional)"
+            }
         }
 
-        ReadOnlyField {
-            label: "Car Year"
-            configPath: "identity.car_year"
-            placeholder: "(optional)"
+        SettingsRow { rowIndex: 4
+            ReadOnlyField {
+                label: "Car Year"
+                configPath: "identity.car_year"
+                placeholder: "(optional)"
+            }
         }
 
         SectionHeader { text: "Hardware" }
 
-        ReadOnlyField {
-            label: "Hardware Profile"
-            configPath: "hardware_profile"
+        SettingsRow { rowIndex: 0
+            ReadOnlyField {
+                label: "Hardware Profile"
+                configPath: "hardware_profile"
+            }
         }
 
-        ReadOnlyField {
-            label: "Touch Device"
-            configPath: "touch.device"
-            placeholder: "(auto-detect)"
+        SettingsRow { rowIndex: 1
+            ReadOnlyField {
+                label: "Touch Device"
+                configPath: "touch.device"
+                placeholder: "(auto-detect)"
+            }
         }
     }
 }

@@ -12,95 +12,100 @@ Flickable {
         id: content
         anchors.left: parent.left
         anchors.right: parent.right
-        anchors.margins: UiMetrics.marginPage
-        spacing: UiMetrics.spacing
+        anchors.topMargin: UiMetrics.marginPage
+        spacing: 0
 
-        FullScreenPicker {
-            id: themePicker
-            label: "Theme"
-            configPath: "display.theme"
-            options: ThemeService.availableThemeNames
-            values: ThemeService.availableThemes
-            onActivated: function(index) {
-                ThemeService.setTheme(ThemeService.availableThemes[index])
+        SettingsRow { rowIndex: 0
+            FullScreenPicker {
+                id: themePicker
+                flat: true
+                label: "Theme"
+                configPath: "display.theme"
+                options: ThemeService.availableThemeNames
+                values: ThemeService.availableThemes
+                onActivated: function(index) {
+                    ThemeService.setTheme(ThemeService.availableThemes[index])
+                }
             }
         }
 
         // Delete theme row -- only visible for user/companion themes
-        Item {
-            id: deleteThemeRow
-            Layout.fillWidth: true
-            implicitHeight: UiMetrics.rowH
+        SettingsRow {
+            id: deleteThemeWrapper
+            rowIndex: 1
+            interactive: true
             visible: themePicker.currentIndex >= 0
                      && themePicker.currentIndex < ThemeService.availableThemes.length
                      && ThemeService.isUserTheme(ThemeService.availableThemes[themePicker.currentIndex])
+            onClicked: {
+                if (deleteThemeState.confirmPending) {
+                    var themeId = ThemeService.availableThemes[themePicker.currentIndex]
+                    ThemeService.deleteTheme(themeId)
+                    deleteThemeState.confirmPending = false
+                } else {
+                    deleteThemeState.confirmPending = true
+                }
+            }
 
-            property bool confirmPending: false
+            QtObject {
+                id: deleteThemeState
+                property bool confirmPending: false
+            }
 
             // Reset confirmation state when theme selection changes
             Connections {
                 target: themePicker
                 function onCurrentIndexChanged() {
-                    deleteThemeRow.confirmPending = false
-                }
-            }
-
-            RowLayout {
-                anchors.fill: parent
-                anchors.leftMargin: UiMetrics.marginRow
-                anchors.rightMargin: UiMetrics.marginRow
-                spacing: UiMetrics.gap
-
-                MaterialIcon {
-                    icon: "\ue872"  // delete
-                    size: UiMetrics.iconSmall
-                    color: parent.parent.confirmPending ? ThemeService.error : ThemeService.onSurfaceVariant
-                }
-
-                Text {
-                    text: parent.parent.confirmPending ? "Tap again to delete" : "Delete Theme"
-                    font.pixelSize: UiMetrics.fontBody
-                    color: parent.parent.confirmPending ? ThemeService.error : ThemeService.onSurface
-                    Layout.fillWidth: true
-                }
-            }
-
-            MouseArea {
-                anchors.fill: parent
-                onClicked: {
-                    if (parent.confirmPending) {
-                        var themeId = ThemeService.availableThemes[themePicker.currentIndex]
-                        ThemeService.deleteTheme(themeId)
-                        parent.confirmPending = false
-                    } else {
-                        parent.confirmPending = true
-                    }
+                    deleteThemeState.confirmPending = false
                 }
             }
 
             // Auto-reset confirmation after 3 seconds
             Timer {
-                running: parent.confirmPending
+                running: deleteThemeState.confirmPending
                 interval: 3000
-                onTriggered: parent.confirmPending = false
+                onTriggered: deleteThemeState.confirmPending = false
+            }
+
+            RowLayout {
+                anchors.fill: parent
+                spacing: UiMetrics.gap
+
+                MaterialIcon {
+                    icon: "\ue872"
+                    size: UiMetrics.iconSmall
+                    color: deleteThemeState.confirmPending ? ThemeService.error : ThemeService.onSurfaceVariant
+                }
+
+                Text {
+                    text: deleteThemeState.confirmPending ? "Tap again to delete" : "Delete Theme"
+                    font.pixelSize: UiMetrics.fontBody
+                    color: deleteThemeState.confirmPending ? ThemeService.error : ThemeService.onSurface
+                    Layout.fillWidth: true
+                }
             }
         }
 
-        FullScreenPicker {
-            label: "Wallpaper"
-            configPath: "display.wallpaper_override"
-            options: ThemeService.availableWallpaperNames
-            values: ThemeService.availableWallpapers
-            onActivated: function(index) {
-                ThemeService.setWallpaperOverride(ThemeService.availableWallpapers[index])
+        SettingsRow { rowIndex: 2
+            FullScreenPicker {
+                flat: true
+                label: "Wallpaper"
+                configPath: "display.wallpaper_override"
+                options: ThemeService.availableWallpaperNames
+                values: ThemeService.availableWallpapers
+                onActivated: function(index) {
+                    ThemeService.setWallpaperOverride(ThemeService.availableWallpapers[index])
+                }
+                Component.onCompleted: ThemeService.refreshWallpapers()
             }
-            Component.onCompleted: ThemeService.refreshWallpapers()
         }
 
-        SettingsToggle {
-            id: forceDarkToggle
-            label: "Always Use Dark Mode"
-            configPath: "display.force_dark_mode"
+        SettingsRow { rowIndex: 3
+            SettingsToggle {
+                id: forceDarkToggle
+                label: "Always Use Dark Mode"
+                configPath: "display.force_dark_mode"
+            }
         }
 
         Connections {

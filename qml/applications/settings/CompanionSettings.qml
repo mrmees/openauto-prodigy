@@ -15,26 +15,23 @@ Flickable {
         id: content
         anchors.left: parent.left
         anchors.right: parent.right
-        anchors.margins: UiMetrics.marginPage
-        spacing: UiMetrics.spacing
+        anchors.topMargin: UiMetrics.marginPage
+        spacing: 0
 
-        SettingsToggle {
-            label: "Companion Enabled"
-            configPath: "companion.enabled"
-            restartRequired: true
+        SettingsRow { rowIndex: 0
+            SettingsToggle {
+                label: "Companion Enabled"
+                configPath: "companion.enabled"
+                restartRequired: true
+            }
         }
 
         SectionHeader { text: "Status" }
 
         // Connection indicator + pairing button
-        Item {
-            Layout.fillWidth: true
-            implicitHeight: UiMetrics.rowH
-
+        SettingsRow { rowIndex: 0
             RowLayout {
                 anchors.fill: parent
-                anchors.leftMargin: UiMetrics.marginRow
-                anchors.rightMargin: UiMetrics.marginRow
                 spacing: UiMetrics.gap
 
                 Rectangle {
@@ -89,22 +86,19 @@ Flickable {
         }
 
         // GPS info (visible when connected and not stale)
-        Item {
-            Layout.fillWidth: true
-            implicitHeight: UiMetrics.rowH
+        SettingsRow {
+            rowIndex: 1
             visible: root.hasService && CompanionService.connected && !CompanionService.gpsStale
 
             RowLayout {
                 anchors.fill: parent
-                anchors.leftMargin: UiMetrics.marginRow
-                anchors.rightMargin: UiMetrics.marginRow
                 spacing: UiMetrics.gap
 
                 Text {
                     text: "GPS"
                     font.pixelSize: UiMetrics.fontBody
                     color: ThemeService.onSurface
-                    Layout.preferredWidth: parent.width * 0.35
+                    Layout.preferredWidth: root.width * 0.35
                 }
 
                 Text {
@@ -120,22 +114,19 @@ Flickable {
         }
 
         // Battery info (visible when connected and battery reported)
-        Item {
-            Layout.fillWidth: true
-            implicitHeight: UiMetrics.rowH
+        SettingsRow {
+            rowIndex: 2
             visible: root.hasService && CompanionService.connected && CompanionService.phoneBattery >= 0
 
             RowLayout {
                 anchors.fill: parent
-                anchors.leftMargin: UiMetrics.marginRow
-                anchors.rightMargin: UiMetrics.marginRow
                 spacing: UiMetrics.gap
 
                 Text {
                     text: "Phone Battery"
                     font.pixelSize: UiMetrics.fontBody
                     color: ThemeService.onSurface
-                    Layout.preferredWidth: parent.width * 0.35
+                    Layout.preferredWidth: root.width * 0.35
                 }
 
                 Text {
@@ -152,22 +143,19 @@ Flickable {
         }
 
         // Internet proxy (visible when available)
-        Item {
-            Layout.fillWidth: true
-            implicitHeight: UiMetrics.rowH
+        SettingsRow {
+            rowIndex: 3
             visible: root.hasService && CompanionService.internetAvailable
 
             RowLayout {
                 anchors.fill: parent
-                anchors.leftMargin: UiMetrics.marginRow
-                anchors.rightMargin: UiMetrics.marginRow
                 spacing: UiMetrics.gap
 
                 Text {
                     text: "Internet Proxy"
                     font.pixelSize: UiMetrics.fontBody
                     color: ThemeService.onSurface
-                    Layout.preferredWidth: parent.width * 0.35
+                    Layout.preferredWidth: root.width * 0.35
                 }
 
                 Text {
@@ -182,10 +170,9 @@ Flickable {
         }
 
         // Proxy route status (visible when internet available)
-        Item {
+        SettingsRow {
             id: routeStatusRow
-            Layout.fillWidth: true
-            implicitHeight: UiMetrics.rowH
+            rowIndex: 4
             visible: root.hasService && CompanionService.internetAvailable
 
             readonly property bool hasSysService: typeof SystemService !== "undefined"
@@ -193,15 +180,13 @@ Flickable {
 
             RowLayout {
                 anchors.fill: parent
-                anchors.leftMargin: UiMetrics.marginRow
-                anchors.rightMargin: UiMetrics.marginRow
                 spacing: UiMetrics.gap
 
                 Text {
                     text: "Route Active"
                     font.pixelSize: UiMetrics.fontBody
                     color: ThemeService.onSurface
-                    Layout.preferredWidth: parent.width * 0.35
+                    Layout.preferredWidth: root.width * 0.35
                 }
 
                 Rectangle {
@@ -240,7 +225,7 @@ Flickable {
 
     }
 
-    // Pairing code popup — tap anywhere to dismiss
+    // Pairing code popup -- tap anywhere to dismiss
     Rectangle {
         id: pairingCodeDialog
         property string pinCode: ""
