@@ -127,38 +127,54 @@ Item {
         }
     }
 
-    // Long-press-to-go-back: passive TapHandler + expanding ripple
+    function armHold(pos) {
+        if (blocksBackHoldAt(pos.x, pos.y)) return false
+        holdRipple.showAt(pos.x, pos.y)
+        return true
+    }
+    function cancelHold() { holdRipple.hide() }
+    function triggerHold() {
+        holdRipple.hide()
+        if (!goBack()) ApplicationController.navigateBack()
+    }
+
+    // Touchscreen handler (Pi) — Qt.NoButton avoids synthetic-mouse conflict
     TapHandler {
-        id: backHoldHandler
+        id: backHoldTouch
         target: null
         gesturePolicy: TapHandler.DragThreshold
+        acceptedDevices: PointerDevice.TouchScreen
+        acceptedPointerTypes: PointerDevice.Finger
+        acceptedButtons: Qt.NoButton
         longPressThreshold: 0.5
+        dragThreshold: Math.round(UiMetrics.touchMin * 0.5)
 
         property bool armed: false
-
         onPressedChanged: {
-            if (pressed) {
-                armed = !settingsMenu.blocksBackHoldAt(point.position.x, point.position.y)
-                if (armed)
-                    holdRipple.showAt(point.position.x, point.position.y)
-            } else {
-                armed = false
-                holdRipple.hide()
-            }
+            if (pressed) { armed = settingsMenu.armHold(point.position) }
+            else { armed = false; settingsMenu.cancelHold() }
         }
+        onCanceled: { armed = false; settingsMenu.cancelHold() }
+        onLongPressed: { if (!armed) return; armed = false; settingsMenu.triggerHold() }
+    }
 
-        onCanceled: {
-            armed = false
-            holdRipple.hide()
-        }
+    // Mouse handler (desktop dev)
+    TapHandler {
+        id: backHoldMouse
+        target: null
+        gesturePolicy: TapHandler.DragThreshold
+        acceptedDevices: PointerDevice.Mouse | PointerDevice.TouchPad
+        acceptedButtons: Qt.LeftButton
+        longPressThreshold: 0.5
+        dragThreshold: 12
 
-        onLongPressed: {
-            if (!armed) return
-            armed = false
-            holdRipple.hide()
-            if (!goBack())
-                ApplicationController.navigateBack()
+        property bool armed: false
+        onPressedChanged: {
+            if (pressed) { armed = settingsMenu.armHold(point.position) }
+            else { armed = false; settingsMenu.cancelHold() }
         }
+        onCanceled: { armed = false; settingsMenu.cancelHold() }
+        onLongPressed: { if (!armed) return; armed = false; settingsMenu.triggerHold() }
     }
 
     // Expanding ripple indicator for hold feedback
