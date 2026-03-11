@@ -14,77 +14,88 @@ Flickable {
         anchors.margins: UiMetrics.marginPage
         spacing: UiMetrics.spacing
 
-        SectionHeader { text: "Identity" }
-
-        ReadOnlyField {
-            label: "Head Unit Name"
-            configPath: "identity.head_unit_name"
-        }
-
-        ReadOnlyField {
-            label: "Manufacturer"
-            configPath: "identity.manufacturer"
-        }
-
-        ReadOnlyField {
-            label: "Model"
-            configPath: "identity.model"
-        }
-
-        ReadOnlyField {
-            label: "Software Version"
-            configPath: "identity.sw_version"
-
-        }
-
-        ReadOnlyField {
-            label: "Car Model"
-            configPath: "identity.car_model"
-            placeholder: "(optional)"
-        }
-
-        ReadOnlyField {
-            label: "Car Year"
-            configPath: "identity.car_year"
-            placeholder: "(optional)"
-        }
+        SectionHeader { text: "General" }
 
         SettingsToggle {
             label: "Left-Hand Drive"
             configPath: "identity.left_hand_drive"
         }
 
-        SectionHeader { text: "Hardware" }
-
-        ReadOnlyField {
-            label: "Hardware Profile"
-            configPath: "hardware_profile"
+        SettingsToggle {
+            label: "24-Hour Clock"
+            configPath: "display.clock_24h"
         }
 
-        ReadOnlyField {
-            label: "Touch Device"
-            configPath: "touch.device"
-            placeholder: "(auto-detect)"
+        SettingsToggle {
+            id: forceDarkToggle
+            label: "Always Use Dark Mode"
+            configPath: "display.force_dark_mode"
         }
 
-        SectionHeader { text: "About" }
+        Connections {
+            target: ConfigService
+            function onConfigChanged(path, value) {
+                if (path === "display.force_dark_mode")
+                    ThemeService.forceDarkMode = (value === true || value === 1 || value === "true")
+            }
+        }
 
-        ColumnLayout {
+        SectionHeader { text: "Day / Night Mode" }
+
+        Item {
             Layout.fillWidth: true
-            Layout.topMargin: UiMetrics.marginRow
-            spacing: UiMetrics.marginRow
+            implicitHeight: nightModeControls.implicitHeight
+            opacity: ThemeService.forceDarkMode ? 0.4 : 1.0
+            enabled: !ThemeService.forceDarkMode
+            Behavior on opacity { NumberAnimation { duration: 200 } }
 
-            Text {
-                text: "OpenAuto Prodigy"
-                font.pixelSize: UiMetrics.fontHeading
-                font.bold: true
-                color: ThemeService.onSurface
+            ColumnLayout {
+                id: nightModeControls
+                anchors.left: parent.left
+                anchors.right: parent.right
+                spacing: UiMetrics.spacing
+
+                FullScreenPicker {
+                    id: nightSource
+                    label: "Source"
+                    configPath: "sensors.night_mode.source"
+                    options: ["time", "gpio", "none"]
+                }
+
+                ReadOnlyField {
+                    label: "Day starts at"
+                    configPath: "sensors.night_mode.day_start"
+                    placeholder: "HH:MM"
+                    visible: nightSource.currentValue === "time"
+                }
+
+                ReadOnlyField {
+                    label: "Night starts at"
+                    configPath: "sensors.night_mode.night_start"
+                    placeholder: "HH:MM"
+                    visible: nightSource.currentValue === "time"
+                }
+
+                SettingsSlider {
+                    label: "GPIO Pin"
+                    configPath: "sensors.night_mode.gpio_pin"
+                    from: 0; to: 40; stepSize: 1
+                    visible: nightSource.currentValue === "gpio"
+                }
+
+                SettingsToggle {
+                    label: "GPIO Active High"
+                    configPath: "sensors.night_mode.gpio_active_high"
+                    visible: nightSource.currentValue === "gpio"
+                }
             }
-            Text {
-                text: "Version " + (ConfigService.value("identity.sw_version") || "0.0.0")
-                font.pixelSize: UiMetrics.fontBody
-                color: ThemeService.onSurfaceVariant
-            }
+        }
+
+        SectionHeader { text: "Software" }
+
+        ReadOnlyField {
+            label: "Version"
+            configPath: "identity.sw_version"
         }
 
         Item { Layout.fillWidth: true; Layout.preferredHeight: UiMetrics.marginPage + UiMetrics.marginRow }
@@ -97,88 +108,6 @@ Flickable {
             iconCode: "\ue5cd"
             onClicked: exitDialog.open()
         }
-
-        SectionHeader { text: "Debug: AA Protocol" }
-
-        Text {
-            text: "Test outbound commands (requires active AA connection)"
-            font.pixelSize: UiMetrics.fontCaption
-            color: ThemeService.onSurfaceVariant
-            Layout.fillWidth: true
-            wrapMode: Text.Wrap
-        }
-
-        property bool aaConnected: AAOrchestrator !== null && AAOrchestrator.connectionState === 3
-
-        RowLayout {
-            Layout.fillWidth: true
-            spacing: UiMetrics.spacing
-
-            ElevatedButton {
-                Layout.fillWidth: true
-                Layout.preferredHeight: UiMetrics.rowH
-                text: "Play/Pause"
-                buttonEnabled: aaConnected
-                onClicked: AAOrchestrator.sendButtonPress(85)
-            }
-
-            ElevatedButton {
-                Layout.fillWidth: true
-                Layout.preferredHeight: UiMetrics.rowH
-                text: "Prev"
-                buttonEnabled: aaConnected
-                onClicked: AAOrchestrator.sendButtonPress(88)
-            }
-
-            ElevatedButton {
-                Layout.fillWidth: true
-                Layout.preferredHeight: UiMetrics.rowH
-                text: "Next"
-                buttonEnabled: aaConnected
-                onClicked: AAOrchestrator.sendButtonPress(87)
-            }
-        }
-
-        RowLayout {
-            Layout.fillWidth: true
-            spacing: UiMetrics.spacing
-
-            ElevatedButton {
-                Layout.fillWidth: true
-                Layout.preferredHeight: UiMetrics.rowH
-                text: "Search (84)"
-                buttonEnabled: aaConnected
-                onClicked: AAOrchestrator.sendButtonPress(84)
-            }
-
-            ElevatedButton {
-                Layout.fillWidth: true
-                Layout.preferredHeight: UiMetrics.rowH
-                text: "Assist (219)"
-                buttonEnabled: aaConnected
-                onClicked: AAOrchestrator.sendButtonPress(219)
-            }
-
-            ElevatedButton {
-                Layout.fillWidth: true
-                Layout.preferredHeight: UiMetrics.rowH
-                text: "Voice (231)"
-                buttonEnabled: aaConnected
-                onClicked: AAOrchestrator.sendButtonPress(231)
-            }
-        }
-
-        Text {
-            text: aaConnected
-                  ? "AA Connected -- buttons active"
-                  : (AAOrchestrator !== null
-                     ? "AA not connected -- buttons disabled"
-                     : "AA orchestrator unavailable")
-            font.pixelSize: UiMetrics.fontCaption
-            color: aaConnected ? ThemeService.primary : ThemeService.onSurfaceVariant
-            Layout.fillWidth: true
-        }
-
     }
 
     ExitDialog {

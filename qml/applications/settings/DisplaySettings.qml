@@ -146,7 +146,7 @@ Flickable {
             }
         }
 
-        SectionHeader { text: "General" }
+        SectionHeader { text: "Display" }
 
         SettingsSlider {
             id: brightnessSlider
@@ -157,95 +157,6 @@ Flickable {
                 if (typeof DisplayService !== "undefined")
                     DisplayService.setBrightness(Math.round(value))
             }
-        }
-
-        FullScreenPicker {
-            id: themePicker
-            label: "Theme"
-            configPath: "display.theme"
-            options: ThemeService.availableThemeNames
-            values: ThemeService.availableThemes
-            onActivated: function(index) {
-                ThemeService.setTheme(ThemeService.availableThemes[index])
-            }
-        }
-
-        // Delete theme row -- only visible for user/companion themes
-        Item {
-            id: deleteThemeRow
-            Layout.fillWidth: true
-            implicitHeight: UiMetrics.rowH
-            visible: themePicker.currentIndex >= 0
-                     && themePicker.currentIndex < ThemeService.availableThemes.length
-                     && ThemeService.isUserTheme(ThemeService.availableThemes[themePicker.currentIndex])
-
-            property bool confirmPending: false
-
-            // Reset confirmation state when theme selection changes
-            Connections {
-                target: themePicker
-                function onCurrentIndexChanged() {
-                    deleteThemeRow.confirmPending = false
-                }
-            }
-
-            RowLayout {
-                anchors.fill: parent
-                anchors.leftMargin: UiMetrics.marginRow
-                anchors.rightMargin: UiMetrics.marginRow
-                spacing: UiMetrics.gap
-
-                MaterialIcon {
-                    icon: "\ue872"  // delete
-                    size: UiMetrics.iconSmall
-                    color: parent.parent.confirmPending ? ThemeService.error : ThemeService.onSurfaceVariant
-                }
-
-                Text {
-                    text: parent.parent.confirmPending ? "Tap again to delete" : "Delete Theme"
-                    font.pixelSize: UiMetrics.fontBody
-                    color: parent.parent.confirmPending ? ThemeService.error : ThemeService.onSurface
-                    Layout.fillWidth: true
-                }
-            }
-
-            MouseArea {
-                anchors.fill: parent
-                onClicked: {
-                    if (parent.confirmPending) {
-                        var themeId = ThemeService.availableThemes[themePicker.currentIndex]
-                        ThemeService.deleteTheme(themeId)
-                        parent.confirmPending = false
-                    } else {
-                        parent.confirmPending = true
-                    }
-                }
-            }
-
-            // Auto-reset confirmation after 3 seconds
-            Timer {
-                running: parent.confirmPending
-                interval: 3000
-                onTriggered: parent.confirmPending = false
-            }
-        }
-
-        FullScreenPicker {
-            label: "Wallpaper"
-            configPath: "display.wallpaper_override"
-            options: ThemeService.availableWallpaperNames
-            values: ThemeService.availableWallpapers
-            onActivated: function(index) {
-                ThemeService.setWallpaperOverride(ThemeService.availableWallpapers[index])
-            }
-            Component.onCompleted: ThemeService.refreshWallpapers()
-        }
-
-        SectionHeader { text: "Clock" }
-
-        SettingsToggle {
-            label: "24-Hour Format"
-            configPath: "display.clock_24h"
         }
 
         SectionHeader { text: "Navbar" }
@@ -266,71 +177,5 @@ Flickable {
             configPath: "navbar.show_during_aa"
             restartRequired: true
         }
-
-        SectionHeader { text: "Day / Night Mode" }
-
-        SettingsToggle {
-            id: forceDarkToggle
-            label: "Always Use Dark Mode"
-            configPath: "display.force_dark_mode"
-        }
-
-        Connections {
-            target: ConfigService
-            function onConfigChanged(path, value) {
-                if (path === "display.force_dark_mode")
-                    ThemeService.forceDarkMode = (value === true || value === 1 || value === "true")
-            }
-        }
-
-        Item {
-            Layout.fillWidth: true
-            implicitHeight: nightModeControls.implicitHeight
-            opacity: ThemeService.forceDarkMode ? 0.4 : 1.0
-            enabled: !ThemeService.forceDarkMode
-            Behavior on opacity { NumberAnimation { duration: 200 } }
-
-            ColumnLayout {
-                id: nightModeControls
-                anchors.left: parent.left
-                anchors.right: parent.right
-                spacing: UiMetrics.spacing
-
-                FullScreenPicker {
-                    id: nightSource
-                    label: "Source"
-                    configPath: "sensors.night_mode.source"
-                    options: ["time", "gpio", "none"]
-                }
-
-                ReadOnlyField {
-                    label: "Day starts at"
-                    configPath: "sensors.night_mode.day_start"
-                    placeholder: "HH:MM"
-                    visible: nightSource.currentValue === "time"
-                }
-
-                ReadOnlyField {
-                    label: "Night starts at"
-                    configPath: "sensors.night_mode.night_start"
-                    placeholder: "HH:MM"
-                    visible: nightSource.currentValue === "time"
-                }
-
-                SettingsSlider {
-                    label: "GPIO Pin"
-                    configPath: "sensors.night_mode.gpio_pin"
-                    from: 0; to: 40; stepSize: 1
-                    visible: nightSource.currentValue === "gpio"
-                }
-
-                SettingsToggle {
-                    label: "GPIO Active High"
-                    configPath: "sensors.night_mode.gpio_active_high"
-                    visible: nightSource.currentValue === "gpio"
-                }
-            }
-        }
     }
-
 }
