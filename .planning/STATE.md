@@ -2,15 +2,15 @@
 gsd_state_version: 1.0
 milestone: v0.5
 milestone_name: milestone
-status: completed
-stopped_at: Phase 3 context gathered
-last_updated: "2026-03-11T04:33:26.243Z"
-last_activity: 2026-03-11 -- Plan 02-02 complete (settings cleanup)
+status: in-progress
+stopped_at: Plan 03-01 complete (settings row foundation)
+last_updated: "2026-03-11T04:50:15Z"
+last_activity: 2026-03-11 -- Plan 03-01 complete (settings row foundation)
 progress:
   total_phases: 3
-  completed_phases: 1
-  total_plans: 2
-  completed_plans: 2
+  completed_phases: 2
+  total_plans: 3
+  completed_plans: 3
   percent: 100
 ---
 
@@ -21,28 +21,29 @@ progress:
 See: .planning/PROJECT.md (updated 2026-03-10)
 
 **Core value:** A person with a Raspberry Pi 4 and a touchscreen can install this, pair their phone, and get a reliable wireless Android Auto experience -- every time, without SSH.
-**Current focus:** v0.5.2 Widget System & UI Polish -- Phase 2 ready to plan
+**Current focus:** v0.5.2 Widget System & UI Polish -- Phase 3 in progress
 
 ## Current Position
 
-Phase: 2 of 3 (Settings Restructure & Touch Polish)
-Plan: 2 of 2 (Phase 2) -- COMPLETE
-Status: Phase 2 complete -- all settings restructured
-Last activity: 2026-03-11 -- Plan 02-02 complete (settings cleanup)
+Phase: 3 of 3 (Touch Normalization)
+Plan: 1 of 2 (Phase 3) -- COMPLETE
+Status: Plan 03-01 complete -- settings row foundation applied to 5 pages
+Last activity: 2026-03-11 -- Plan 03-01 complete (settings row foundation)
 
-Progress: [##########] 100% (Phase 2 complete)
+Progress: [##########] 100% (Plan 03-01 complete)
 
 ## Performance Metrics
 
 **Velocity:**
-- Total plans completed: 5 (Phase 1 widget system + Phase 2 plans 01-02)
-- Average duration: --
+- Total plans completed: 6 (Phase 1 widget system + Phase 2 plans 01-02 + Phase 3 plan 01)
+- Average duration: ~5min
 - Total execution time: --
 
 | Phase | Plan | Duration | Tasks | Files |
 |-------|------|----------|-------|-------|
 | 02 | 01 | 4min | 2 | 5 |
 | 02 | 02 | 6min | 2 | 8 |
+| 03 | 01 | 4min | 2 | 9 |
 
 ## Accumulated Context
 
@@ -54,6 +55,9 @@ Decisions are logged in PROJECT.md Key Decisions table.
 - [02-01] Kept double-tap delete for themes (swipe-to-delete deferred)
 - [02-02] No section headers on AASettings — only 3 controls, headers add clutter
 - [02-02] Night mode controls duplicated on SystemSettings with same forceDarkMode disable pattern
+- [03-01] SettingsRow uses default property alias (plain Item), not RowLayout -- allows any inner layout
+- [03-01] Close App converted from ElevatedButton to interactive SettingsRow with power icon
+- [03-01] Delete Theme row uses QtObject for confirmPending state
 
 ### Pending Todos
 
@@ -71,5 +75,5 @@ None yet.
 
 ## Session Continuity
 
-Last session: 2026-03-11T04:33:26.241Z
-Stopped at: Phase 3 context gathered
+Last session: 2026-03-11T04:50:15Z
+Stopped at: Plan 03-01 complete (settings row foundation)
