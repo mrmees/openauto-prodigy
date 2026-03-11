@@ -74,6 +74,46 @@ Item {
         anchors.fill: parent
         initialItem: settingsList
 
+        property real _swipeStartX: 0
+        property real _swipeStartY: 0
+        property bool _swipeFired: false
+
+        // Swipe-right-to-go-back gesture
+        DragHandler {
+            id: swipeBack
+            target: null
+            onActiveChanged: {
+                if (active) {
+                    settingsStack._swipeStartX = centroid.position.x
+                    settingsStack._swipeStartY = centroid.position.y
+                    settingsStack._swipeFired = false
+                }
+            }
+            onCentroidChanged: {
+                if (!active || settingsStack._swipeFired) return
+                var dx = centroid.position.x - settingsStack._swipeStartX
+                var dy = centroid.position.y - settingsStack._swipeStartY
+                if (dx > UiMetrics.spacing * 8 && dx > Math.abs(dy) * 2) {
+                    settingsStack._swipeFired = true
+                    if (settingsStack.depth > 1) {
+                        settingsStack.pop()
+                        if (settingsStack.depth > 1) {
+                            var item = settingsStack.currentItem
+                            if (item && item.objectName) {
+                                ApplicationController.setTitle("Settings > " + item.objectName)
+                            } else {
+                                ApplicationController.setTitle("Settings")
+                            }
+                        } else {
+                            ApplicationController.setTitle("Settings")
+                        }
+                    } else {
+                        ApplicationController.navigateBack()
+                    }
+                }
+            }
+        }
+
         pushEnter: Transition {
             ParallelAnimation {
                 OpacityAnimator { from: 0; to: 1; duration: UiMetrics.animDuration; easing.type: Easing.OutCubic }
