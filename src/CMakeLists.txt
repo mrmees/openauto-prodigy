@@ -303,6 +303,18 @@ set_source_files_properties(../qml/applications/settings/EqSettings.qml PROPERTI
     QT_QML_SOURCE_TYPENAME "EqSettings"
     QT_RESOURCE_ALIAS "EqSettings.qml"
 )
+set_source_files_properties(../qml/applications/settings/ThemeSettings.qml PROPERTIES
+    QT_QML_SOURCE_TYPENAME "ThemeSettings"
+    QT_RESOURCE_ALIAS "ThemeSettings.qml"
+)
+set_source_files_properties(../qml/applications/settings/InformationSettings.qml PROPERTIES
+    QT_QML_SOURCE_TYPENAME "InformationSettings"
+    QT_RESOURCE_ALIAS "InformationSettings.qml"
+)
+set_source_files_properties(../qml/applications/settings/DebugSettings.qml PROPERTIES
+    QT_QML_SOURCE_TYPENAME "DebugSettings"
+    QT_RESOURCE_ALIAS "DebugSettings.qml"
+)
 
 qt_add_qml_module(openauto-prodigy
     URI OpenAutoProdigy
@@ -360,6 +372,9 @@ qt_add_qml_module(openauto-prodigy
         ../qml/applications/settings/CompanionSettings.qml
         ../qml/applications/settings/AboutSettings.qml
         ../qml/applications/settings/EqSettings.qml
+        ../qml/applications/settings/ThemeSettings.qml
+        ../qml/applications/settings/InformationSettings.qml
+        ../qml/applications/settings/DebugSettings.qml
     RESOURCES
         ../resources/resources.qrc
 )

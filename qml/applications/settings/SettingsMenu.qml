@@ -116,8 +116,11 @@ Item {
                     ListElement { name: "Display"; icon: "\ueb97"; pageId: "display" }
                     ListElement { name: "Audio"; icon: "\ue050"; pageId: "audio" }
                     ListElement { name: "Bluetooth"; icon: "\ue1a7"; pageId: "connection" }
+                    ListElement { name: "Theme"; icon: "\ue40a"; pageId: "theme" }
                     ListElement { name: "Companion"; icon: "\ue324"; pageId: "companion" }
                     ListElement { name: "System"; icon: "\uf8cd"; pageId: "system" }
+                    ListElement { name: "Information"; icon: "\ue88e"; pageId: "information" }
+                    ListElement { name: "Debug"; icon: "\ue868"; pageId: "debug" }
                 }
 
                 delegate: Rectangle {
@@ -160,8 +163,11 @@ Item {
     Component { id: displayPage; DisplaySettings {} }
     Component { id: audioPage; AudioSettings {} }
     Component { id: connectionPage; ConnectionSettings {} }
+    Component { id: themePage; ThemeSettings {} }
     Component { id: systemPage; SystemSettings {} }
     Component { id: companionPage; CompanionSettings {} }
+    Component { id: informationPage; InformationSettings {} }
+    Component { id: debugPage; DebugSettings {} }
     Component { id: eqDirectComponent; EqSettings {} }
 
     function openPage(pageId) {
@@ -170,16 +176,22 @@ Item {
             "display": "Display",
             "audio": "Audio",
             "connection": "Bluetooth",
+            "theme": "Theme",
             "system": "System",
-            "companion": "Companion"
+            "companion": "Companion",
+            "information": "Information",
+            "debug": "Debug"
         }
         var pages = {
             "aa": aaPage,
             "display": displayPage,
             "audio": audioPage,
             "connection": connectionPage,
+            "theme": themePage,
             "system": systemPage,
-            "companion": companionPage
+            "companion": companionPage,
+            "information": informationPage,
+            "debug": debugPage
         }
 
         if (pageId.startsWith("plugin:")) {
