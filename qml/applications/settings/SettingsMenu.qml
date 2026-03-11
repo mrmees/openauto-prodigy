@@ -105,39 +105,69 @@ Item {
         }
     }
 
-    // Swipe-right-to-go-back: left-edge overlay
-    // Must be OUTSIDE StackView so pushed pages can't cover it
-    MouseArea {
-        id: backSwipeEdge
-        anchors.left: parent.left
-        anchors.top: parent.top
-        anchors.bottom: parent.bottom
-        width: Math.max(UiMetrics.touchMin, UiMetrics.spacing * 6)
-        z: 1000
+    // Long-press-to-go-back ripple indicator (visual only, positioned by TapHandler)
+    Rectangle {
+        id: holdRipple
+        visible: false
+        x: 0; y: 0
+        width: 0; height: width
+        radius: width / 2
+        color: Qt.hsla(ThemeService.primary.hslHue,
+                       ThemeService.primary.hslSaturation,
+                       ThemeService.primary.hslLightness, 0.3)
+        z: 2000
 
-        property real pressX: 0
-        property real pressY: 0
-        property bool tracking: false
-
-        onPressed: function(mouse) {
-            pressX = mouse.x
-            pressY = mouse.y
-            tracking = true
+        MaterialIcon {
+            anchors.centerIn: parent
+            icon: "\ue5c4"  // arrow_back
+            size: UiMetrics.fontTitle
+            color: ThemeService.primary
+            opacity: Math.min(1.0, holdRipple.width / (UiMetrics.touchMin * 1.2))
         }
-        onReleased: tracking = false
-        onCanceled: tracking = false
-        onPositionChanged: function(mouse) {
-            if (!tracking) return
-            var dx = mouse.x - pressX
-            var dy = mouse.y - pressY
-            if (dx > UiMetrics.spacing * 6 && dx > Math.abs(dy) * 1.5) {
-                tracking = false
-                if (!goBack())
-                    ApplicationController.navigateBack()
+
+        NumberAnimation on width {
+            id: rippleGrow
+            running: false
+            from: 0; to: UiMetrics.touchMin * 1.5
+            duration: 500
+            easing.type: Easing.OutCubic
+        }
+    }
+
+    // Long-press-to-go-back gesture (TapHandler doesn't steal from controls)
+    TapHandler {
+        id: longPressHandler
+        longPressThreshold: 0.5
+        gesturePolicy: TapHandler.WithinBounds
+
+        onLongPressed: {
+            holdRipple.visible = false
+            rippleGrow.stop()
+            if (!goBack())
+                ApplicationController.navigateBack()
+        }
+
+        onPressedChanged: {
+            if (pressed) {
+                // Show ripple at press point
+                holdRipple.width = 0
+                holdRipple.x = point.position.x - holdRipple.width / 2
+                holdRipple.y = point.position.y - holdRipple.width / 2
+                holdRipple.visible = true
+                rippleGrow.start()
+                // Keep ripple centered as it grows
+                holdRipple.x = Qt.binding(function() {
+                    return point.position.x - holdRipple.width / 2
+                })
+                holdRipple.y = Qt.binding(function() {
+                    return point.position.y - holdRipple.width / 2
+                })
+            } else {
+                holdRipple.visible = false
+                rippleGrow.stop()
+                holdRipple.x = 0
+                holdRipple.y = 0
             }
-            // Cancel if clearly vertical
-            if (Math.abs(dy) > UiMetrics.spacing * 3 && Math.abs(dy) > dx)
-                tracking = false
         }
     }
 
