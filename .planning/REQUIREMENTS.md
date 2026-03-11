@@ -31,9 +31,9 @@ Requirements for widget system and UI polish milestone.
 
 ### Touch Normalization
 
-- [ ] **TCH-01**: All settings sub-pages use consistent alternating-row list style matching main settings menu
-- [ ] **TCH-02**: All interactive controls have touch-friendly sizing via UiMetrics (DPI-scaled, no hardcoded pixels)
-- [ ] **TCH-03**: Text readable at arm's length on target display sizes
+- [x] **TCH-01**: All settings sub-pages use consistent alternating-row list style matching main settings menu
+- [x] **TCH-02**: All interactive controls have touch-friendly sizing via UiMetrics (DPI-scaled, no hardcoded pixels)
+- [x] **TCH-03**: Text readable at arm's length on target display sizes
 
 ## Workflow Constraints
 
@@ -85,9 +85,9 @@ Requirements for widget system and UI polish milestone.
 | SET-08 | Phase 2 | Complete |
 | SET-09 | Phase 2 | Complete |
 | SET-10 | Phase 2 | Complete |
-| TCH-01 | Phase 3 | Pending |
-| TCH-02 | Phase 3 | Pending |
-| TCH-03 | Phase 3 | Pending |
+| TCH-01 | Phase 3 | Complete |
+| TCH-02 | Phase 3 | Complete |
+| TCH-03 | Phase 3 | Complete |
 
 **Coverage:**
 - v0.5.2 requirements: 19 total
