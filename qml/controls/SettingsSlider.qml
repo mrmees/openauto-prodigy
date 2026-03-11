@@ -16,9 +16,30 @@ Item {
     signal moved()
     property real _pressValue: 0
     property bool _holdTriggered: false
+    property var _settingsMenu: null
+
+    function _findSettingsMenu() {
+        var p = root.parent
+        while (p) {
+            if (typeof p.showHoldIndicator === "function"
+                    && typeof p.hideHoldIndicator === "function")
+                return p
+            p = p.parent
+        }
+        return null
+    }
 
     Layout.fillWidth: true
     implicitHeight: UiMetrics.rowH
+
+    Component.onCompleted: {
+        _settingsMenu = _findSettingsMenu()
+        if (root.configPath !== "") {
+            var v = ConfigService.value(root.configPath)
+            if (v !== undefined && v !== null)
+                slider.value = v
+        }
+    }
 
     Timer {
         id: holdTimer
@@ -28,6 +49,10 @@ Item {
                 return
             root._holdTriggered = true
             slider.value = root._pressValue
+            if (_settingsMenu) {
+                var pos = slider.mapToItem(_settingsMenu, slider.width / 2, slider.height / 2)
+                _settingsMenu.hideHoldIndicator()
+            }
             ApplicationController.requestBack()
         }
     }
@@ -91,16 +116,24 @@ Item {
                 if (pressed) {
                     root._pressValue = value
                     root._holdTriggered = false
+                    if (_settingsMenu) {
+                        var pos = slider.mapToItem(_settingsMenu, slider.width / 2, slider.height / 2)
+                        _settingsMenu.showHoldIndicator(pos)
+                    }
                     holdTimer.restart()
                     return
                 }
 
                 holdTimer.stop()
+                if (_settingsMenu)
+                    _settingsMenu.hideHoldIndicator()
                 if (root._holdTriggered)
                     value = root._pressValue
             }
             onMoved: {
                 holdTimer.stop()
+                if (_settingsMenu)
+                    _settingsMenu.hideHoldIndicator()
                 if (root._holdTriggered) {
                     value = root._pressValue
                     return
@@ -119,11 +152,4 @@ Item {
         }
     }
 
-    Component.onCompleted: {
-        if (root.configPath !== "") {
-            var v = ConfigService.value(root.configPath)
-            if (v !== undefined && v !== null)
-                slider.value = v
-        }
-    }
 }

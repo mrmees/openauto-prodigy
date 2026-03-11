@@ -36,6 +36,10 @@ private slots:
                  "Touch TapHandler should live under the back-hold overlay");
         QVERIFY2(source.indexOf(QStringLiteral("id: backHoldMouse"), overlayPos) >= 0,
                  "Mouse TapHandler should live under the back-hold overlay");
+        QVERIFY2(source.indexOf(QStringLiteral("function showHoldIndicator(")) >= 0,
+                 "SettingsMenu should expose a shared ripple show helper");
+        QVERIFY2(source.indexOf(QStringLiteral("function hideHoldIndicator()")) >= 0,
+                 "SettingsMenu should expose a shared ripple hide helper");
     }
 
     void testInteractiveControlsOwnBackHold()
@@ -46,6 +50,10 @@ private slots:
                  "SettingsHoldArea should trigger long hold at 500ms");
         QVERIFY2(holdAreaSource.indexOf(QStringLiteral("ApplicationController.requestBack()")) >= 0,
                  "SettingsHoldArea should request back on long hold");
+        QVERIFY2(holdAreaSource.indexOf(QStringLiteral("showHoldIndicator")) >= 0,
+                 "SettingsHoldArea should show the shared ripple on press");
+        QVERIFY2(holdAreaSource.indexOf(QStringLiteral("hideHoldIndicator")) >= 0,
+                 "SettingsHoldArea should hide the shared ripple on release/cancel");
 
         const QString toggleSource = sourceFor(QStringLiteral("qml/controls/SettingsToggle.qml"));
         QVERIFY2(!toggleSource.isEmpty(), "Failed to read SettingsToggle.qml");
@@ -64,6 +72,10 @@ private slots:
                  "SettingsSlider long-hold timer should use 500ms");
         QVERIFY2(sliderSource.indexOf(QStringLiteral("ApplicationController.requestBack()")) >= 0,
                  "SettingsSlider should request back on long hold");
+        QVERIFY2(sliderSource.indexOf(QStringLiteral("showHoldIndicator")) >= 0,
+                 "SettingsSlider should show the shared ripple when hold starts");
+        QVERIFY2(sliderSource.indexOf(QStringLiteral("hideHoldIndicator")) >= 0,
+                 "SettingsSlider should hide the shared ripple when hold ends");
 
         const QString pickerSource = sourceFor(QStringLiteral("qml/controls/FullScreenPicker.qml"));
         QVERIFY2(!pickerSource.isEmpty(), "Failed to read FullScreenPicker.qml");

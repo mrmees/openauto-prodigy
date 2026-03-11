@@ -127,14 +127,20 @@ Item {
         }
     }
 
+    function showHoldIndicator(pos) {
+        holdRipple.showAt(pos.x, pos.y)
+    }
+    function hideHoldIndicator() {
+        holdRipple.hide()
+    }
     function armHold(pos) {
         if (blocksBackHoldAt(pos.x, pos.y)) return false
-        holdRipple.showAt(pos.x, pos.y)
+        showHoldIndicator(pos)
         return true
     }
-    function cancelHold() { holdRipple.hide() }
+    function cancelHold() { hideHoldIndicator() }
     function triggerHold() {
-        holdRipple.hide()
+        hideHoldIndicator()
         if (!goBack()) ApplicationController.navigateBack()
     }
 
