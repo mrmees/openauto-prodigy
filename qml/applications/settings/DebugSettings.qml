@@ -12,6 +12,8 @@ Flickable {
         id: content
         anchors.left: parent.left
         anchors.right: parent.right
+        anchors.leftMargin: UiMetrics.settingsPageInset
+        anchors.rightMargin: UiMetrics.settingsPageInset
         anchors.topMargin: UiMetrics.marginPage
         spacing: 0
 

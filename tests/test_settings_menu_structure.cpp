@@ -75,6 +75,35 @@ private slots:
         QVERIFY2(rowSource.indexOf(QStringLiteral("showHoldIndicator")) >= 0,
                  "SettingsRow should drive the shared ripple through SettingsMenu");
     }
+
+    void testSubsettingsPagesUseSharedHorizontalInset()
+    {
+        const QString metricsSource = sourceFor(QStringLiteral("qml/controls/UiMetrics.qml"));
+        QVERIFY2(!metricsSource.isEmpty(), "Failed to read UiMetrics.qml");
+        QVERIFY2(metricsSource.indexOf(QStringLiteral("readonly property int settingsPageInset")) >= 0,
+                 "UiMetrics should expose a shared inset token for stacked settings subpages");
+
+        const QStringList pagePaths = {
+            QStringLiteral("qml/applications/settings/AASettings.qml"),
+            QStringLiteral("qml/applications/settings/AudioSettings.qml"),
+            QStringLiteral("qml/applications/settings/CompanionSettings.qml"),
+            QStringLiteral("qml/applications/settings/ConnectionSettings.qml"),
+            QStringLiteral("qml/applications/settings/DebugSettings.qml"),
+            QStringLiteral("qml/applications/settings/DisplaySettings.qml"),
+            QStringLiteral("qml/applications/settings/InformationSettings.qml"),
+            QStringLiteral("qml/applications/settings/SystemSettings.qml"),
+            QStringLiteral("qml/applications/settings/ThemeSettings.qml")
+        };
+
+        for (const QString& pagePath : pagePaths) {
+            const QString pageSource = sourceFor(pagePath);
+            QVERIFY2(!pageSource.isEmpty(), qPrintable(QStringLiteral("Failed to read %1").arg(pagePath)));
+            QVERIFY2(pageSource.indexOf(QStringLiteral("anchors.leftMargin: UiMetrics.settingsPageInset")) >= 0,
+                     qPrintable(QStringLiteral("%1 should apply the shared left inset").arg(pagePath)));
+            QVERIFY2(pageSource.indexOf(QStringLiteral("anchors.rightMargin: UiMetrics.settingsPageInset")) >= 0,
+                     qPrintable(QStringLiteral("%1 should apply the shared right inset").arg(pagePath)));
+        }
+    }
 };
 
 QTEST_MAIN(TestSettingsMenuStructure)

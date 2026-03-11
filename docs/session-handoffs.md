@@ -4,6 +4,43 @@ Newest entries first.
 
 ---
 
+## 2026-03-11 — Settings subpage gutter padding
+
+**What changed:**
+- Added approved design/plan docs in [docs/plans/2026-03-11-settings-subpage-gutters-design.md](/home/matt/claude/personal/openautopro/openauto-prodigy/docs/plans/2026-03-11-settings-subpage-gutters-design.md) and [docs/plans/2026-03-11-settings-subpage-gutters-plan.md](/home/matt/claude/personal/openautopro/openauto-prodigy/docs/plans/2026-03-11-settings-subpage-gutters-plan.md).
+- Added shared `UiMetrics.settingsPageInset` in [qml/controls/UiMetrics.qml](/home/matt/claude/personal/openautopro/openauto-prodigy/qml/controls/UiMetrics.qml) so stacked settings pages can use one consistent horizontal gutter.
+- Applied that inset to the root content column of stacked settings pages in [qml/applications/settings/AASettings.qml](/home/matt/claude/personal/openautopro/openauto-prodigy/qml/applications/settings/AASettings.qml), [qml/applications/settings/AudioSettings.qml](/home/matt/claude/personal/openautopro/openauto-prodigy/qml/applications/settings/AudioSettings.qml), [qml/applications/settings/CompanionSettings.qml](/home/matt/claude/personal/openautopro/openauto-prodigy/qml/applications/settings/CompanionSettings.qml), [qml/applications/settings/ConnectionSettings.qml](/home/matt/claude/personal/openautopro/openauto-prodigy/qml/applications/settings/ConnectionSettings.qml), [qml/applications/settings/DebugSettings.qml](/home/matt/claude/personal/openautopro/openauto-prodigy/qml/applications/settings/DebugSettings.qml), [qml/applications/settings/DisplaySettings.qml](/home/matt/claude/personal/openautopro/openauto-prodigy/qml/applications/settings/DisplaySettings.qml), [qml/applications/settings/InformationSettings.qml](/home/matt/claude/personal/openautopro/openauto-prodigy/qml/applications/settings/InformationSettings.qml), [qml/applications/settings/SystemSettings.qml](/home/matt/claude/personal/openautopro/openauto-prodigy/qml/applications/settings/SystemSettings.qml), and [qml/applications/settings/ThemeSettings.qml](/home/matt/claude/personal/openautopro/openauto-prodigy/qml/applications/settings/ThemeSettings.qml).
+- Extended [tests/test_settings_menu_structure.cpp](/home/matt/claude/personal/openautopro/openauto-prodigy/tests/test_settings_menu_structure.cpp) so the regression test now requires the shared subpage inset token and its use across the stacked settings pages.
+- Redeployed the updated `build-pi/src/openauto-prodigy` binary to `matt@192.168.1.152` and restarted `openauto-prodigy.service`.
+
+**Why:**
+- The top-level Settings landing page already looked correct, but stacked subsettings pages were too tight against the screen edges. That made section headers like "Display" and "Navbar" feel clipped and left the page content without enough breathing room.
+
+**Status:** Local targeted regression test, full local build, full `ctest`, cross-build, Pi deploy, and Pi service restart are complete. Visual confirmation of the new gutter on hardware is pending user verification.
+
+**Next steps:**
+1. Confirm on the Pi that section headers and row content on subsettings pages now have enough breathing room without feeling detached.
+2. If it still feels cramped, increase `UiMetrics.settingsPageInset` slightly rather than changing row-internal `marginRow`.
+3. Leave the top-level Settings landing page unchanged unless a separate request comes in for that screen.
+
+**Verification commands/results:**
+- `cd build && cmake --build . --target test_settings_menu_structure -j$(nproc) && ctest -R test_settings_menu_structure --output-on-failure`
+  - First run (before implementation): failed because `UiMetrics.qml` did not define `settingsPageInset`.
+  - Second run (after implementation): passed.
+- `cd build && cmake --build . -j$(nproc)`
+  - Passed.
+- `cd build && ctest --output-on-failure`
+  - Passed: `100% tests passed, 0 tests failed out of 72`.
+- `bash ./cross-build.sh`
+  - Passed: produced `build-pi/src/openauto-prodigy`.
+  - Notes: emitted the existing Qt QML plugin-link warnings and locale warnings during configure/build, but the aarch64 build completed successfully.
+- `rsync -av build-pi/src/openauto-prodigy matt@192.168.1.152:~/openauto-prodigy/build/src/`
+  - Passed.
+- `ssh matt@192.168.1.152 'sudo systemctl restart openauto-prodigy.service && systemctl is-active openauto-prodigy.service'`
+  - Passed: `active`.
+
+---
+
 ## 2026-03-11 — Settings row-owned back-hold refactor
 
 **What changed:**

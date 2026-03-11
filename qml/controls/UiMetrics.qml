@@ -82,6 +82,7 @@ QtObject {
 
     // Spacing (non-overridable -- scale only)
     readonly property int marginPage: Math.round(20 * scale)
+    readonly property int settingsPageInset: Math.round(marginPage / 2)
     readonly property int marginRow:  Math.round(12 * scale)
     readonly property int spacing:    Math.round(8 * scale)
     readonly property int gap:        Math.round(16 * scale)
