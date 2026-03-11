@@ -27,12 +27,20 @@ Item {
         Behavior on opacity { NumberAnimation { duration: UiMetrics.animDurationFast } }
     }
 
-    // Content container with row margins
+    // Content container — no margins (controls provide their own)
     Item {
         id: contentContainer
         anchors.fill: parent
-        anchors.leftMargin: UiMetrics.marginRow
-        anchors.rightMargin: UiMetrics.marginRow
+        // Auto-size the single content child to fill this container
+        onChildrenChanged: {
+            for (var i = 0; i < children.length; i++) {
+                var child = children[i];
+                child.anchors.left = contentContainer.left;
+                child.anchors.right = contentContainer.right;
+                child.anchors.top = contentContainer.top;
+                child.anchors.bottom = contentContainer.bottom;
+            }
+        }
     }
 
     // MouseArea for interactive rows

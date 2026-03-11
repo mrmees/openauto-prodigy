@@ -35,6 +35,8 @@ Flickable {
 
                         RowLayout {
                             anchors.fill: parent
+                            anchors.leftMargin: UiMetrics.marginRow
+                            anchors.rightMargin: UiMetrics.marginRow
                             spacing: UiMetrics.gap
 
                             Text {
@@ -68,6 +70,7 @@ Flickable {
 
                         RowLayout {
                             anchors.fill: parent
+                            anchors.rightMargin: UiMetrics.marginRow
                             spacing: UiMetrics.gap
 
                             Text {
@@ -162,6 +165,7 @@ Flickable {
 
                         RowLayout {
                             anchors.fill: parent
+                            anchors.rightMargin: UiMetrics.marginRow
                             spacing: UiMetrics.gap
 
                             Text {
@@ -279,6 +283,8 @@ Flickable {
 
             RowLayout {
                 anchors.fill: parent
+                anchors.leftMargin: UiMetrics.marginRow
+                anchors.rightMargin: UiMetrics.marginRow
                 spacing: UiMetrics.gap
 
                 // Status dot: green if connected, gray if not

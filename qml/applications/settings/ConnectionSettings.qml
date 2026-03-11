@@ -28,6 +28,8 @@ Flickable {
 
                 RowLayout {
                     anchors.fill: parent
+                    anchors.leftMargin: UiMetrics.marginRow
+                    anchors.rightMargin: UiMetrics.marginRow
                     spacing: UiMetrics.gap
                     MaterialIcon { icon: "\ue1b7"; size: UiMetrics.iconSize; color: ThemeService.onSurface }
                     Text {
@@ -58,6 +60,8 @@ Flickable {
 
                     RowLayout {
                         anchors.fill: parent
+                        anchors.leftMargin: UiMetrics.marginRow
+                        anchors.rightMargin: UiMetrics.marginRow
                         spacing: UiMetrics.gap
                         MaterialIcon {
                             icon: model.connected ? "\ue1ba" : "\ue1b9"

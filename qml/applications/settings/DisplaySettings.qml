@@ -52,6 +52,8 @@ Flickable {
 
                 RowLayout {
                     anchors.fill: parent
+                    anchors.leftMargin: UiMetrics.marginRow
+                    anchors.rightMargin: UiMetrics.marginRow
                     spacing: UiMetrics.gap
 
                     Text {
