@@ -38,7 +38,6 @@ Item {
         y: Math.max(UiMetrics.spacing, Math.min(anchorY - height / 2, parent.height - height - UiMetrics.spacing))
         radius: UiMetrics.radiusLarge
         color: ThemeService.surfaceContainerHighest
-        opacity: 0.92
 
         // Border
         Rectangle {
@@ -47,7 +46,7 @@ Item {
             color: "transparent"
             border.width: 1
             border.color: ThemeService.outlineVariant
-            opacity: 0.3
+            opacity: 0.4
         }
 
         // Scale-in animation
@@ -61,14 +60,14 @@ Item {
             anchors.right: parent.right
             anchors.top: parent.top
             anchors.margins: UiMetrics.spacing
-            spacing: 0
+            spacing: UiMetrics.gap * 0.5
 
             // Change Widget option
             Rectangle {
                 Layout.fillWidth: true
                 height: UiMetrics.touchMin
                 radius: UiMetrics.radiusSmall
-                color: changeMa.pressed ? ThemeService.primaryContainer : "transparent"
+                color: changeMa.pressed ? ThemeService.primaryContainer : ThemeService.surfaceContainer
 
                 RowLayout {
                     anchors.fill: parent
@@ -99,73 +98,80 @@ Item {
             // Opacity option
             Rectangle {
                 Layout.fillWidth: true
-                height: _opacityExpanded ? UiMetrics.touchMin * 2 : UiMetrics.touchMin
+                implicitHeight: opacityContent.implicitHeight
                 radius: UiMetrics.radiusSmall
-                color: opacityMa.pressed ? ThemeService.primaryContainer : "transparent"
-                clip: true
-
-                Behavior on height { NumberAnimation { duration: 150 } }
+                color: ThemeService.surfaceContainer
 
                 ColumnLayout {
-                    anchors.fill: parent
+                    id: opacityContent
+                    anchors.left: parent.left
+                    anchors.right: parent.right
                     spacing: 0
 
-                    RowLayout {
+                    // Opacity header row
+                    Item {
                         Layout.fillWidth: true
                         Layout.preferredHeight: UiMetrics.touchMin
-                        Layout.leftMargin: UiMetrics.spacing
-                        Layout.rightMargin: UiMetrics.spacing
-                        spacing: UiMetrics.spacing
 
-                        MaterialIcon {
-                            icon: "\ue3a8"  // opacity
-                            size: UiMetrics.iconSmall
-                            color: ThemeService.onSurface
+                        RowLayout {
+                            anchors.fill: parent
+                            anchors.leftMargin: UiMetrics.spacing
+                            anchors.rightMargin: UiMetrics.spacing
+                            spacing: UiMetrics.spacing
+
+                            MaterialIcon {
+                                icon: "\ue3a8"  // opacity
+                                size: UiMetrics.iconSmall
+                                color: ThemeService.onSurface
+                            }
+                            NormalText {
+                                text: "Opacity"
+                                font.pixelSize: UiMetrics.fontBody
+                                color: ThemeService.onSurface
+                                Layout.fillWidth: true
+                            }
+                            NormalText {
+                                text: Math.round(contextMenu._currentOpacity * 100) + "%"
+                                font.pixelSize: UiMetrics.fontSmall
+                                color: ThemeService.onSurfaceVariant
+                            }
                         }
-                        NormalText {
-                            text: "Opacity"
-                            font.pixelSize: UiMetrics.fontBody
-                            color: ThemeService.onSurface
-                            Layout.fillWidth: true
-                        }
-                        NormalText {
-                            text: Math.round(contextMenu._currentOpacity * 100) + "%"
-                            font.pixelSize: UiMetrics.fontSmall
-                            color: ThemeService.onSurfaceVariant
+
+                        MouseArea {
+                            anchors.fill: parent
+                            onClicked: contextMenu._opacityExpanded = !contextMenu._opacityExpanded
                         }
                     }
 
-                    // Slider (visible when expanded)
-                    Slider {
+                    // Slider row (visible when expanded)
+                    Item {
                         Layout.fillWidth: true
-                        Layout.leftMargin: UiMetrics.spacing
-                        Layout.rightMargin: UiMetrics.spacing
-                        Layout.preferredHeight: UiMetrics.touchMin
+                        Layout.preferredHeight: _opacityExpanded ? UiMetrics.touchMin : 0
                         visible: _opacityExpanded
-                        from: 0; to: 1; stepSize: 0.05
-                        value: contextMenu._currentOpacity
-                        onMoved: {
-                            contextMenu._currentOpacity = value
-                            WidgetPlacementModel.setPaneOpacity(contextMenu.targetPaneId, value)
-                            contextMenu.opacityChanged(value)
+                        clip: true
+
+                        Slider {
+                            anchors.fill: parent
+                            anchors.leftMargin: UiMetrics.spacing
+                            anchors.rightMargin: UiMetrics.spacing
+                            from: 0; to: 1; stepSize: 0.05
+                            value: contextMenu._currentOpacity
+                            onMoved: {
+                                contextMenu._currentOpacity = value
+                                WidgetPlacementModel.setPaneOpacity(contextMenu.targetPaneId, value)
+                                contextMenu.opacityChanged(value)
+                            }
                         }
                     }
-                }
-
-                MouseArea {
-                    id: opacityMa
-                    anchors.fill: parent
-                    anchors.bottomMargin: _opacityExpanded ? UiMetrics.touchMin : 0
-                    onClicked: _opacityExpanded = !_opacityExpanded
                 }
             }
 
-            // Clear option
+            // Clear option — separate from opacity, with gap between
             Rectangle {
                 Layout.fillWidth: true
                 height: UiMetrics.touchMin
                 radius: UiMetrics.radiusSmall
-                color: clearMa.pressed ? ThemeService.errorContainer : "transparent"
+                color: clearMa.pressed ? ThemeService.errorContainer : ThemeService.surfaceContainer
                 visible: WidgetPlacementModel.qmlComponentForPane(contextMenu.targetPaneId).toString() !== ""
 
                 RowLayout {

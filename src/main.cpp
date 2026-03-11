@@ -370,10 +370,11 @@ int main(int argc, char *argv[])
     widgetPlacementModel->setPlacements(yamlConfig->widgetPlacements());
     widgetPlacementModel->setActivePageId("home");
 
-    // Auto-save placements on change
+    // Auto-save placements on change (updates in-memory YAML + writes to disk)
     QObject::connect(widgetPlacementModel, &oap::WidgetPlacementModel::placementsChanged,
-                     widgetPlacementModel, [yamlConfig = yamlConfig.get(), widgetPlacementModel]() {
+                     widgetPlacementModel, [yamlConfig = yamlConfig.get(), widgetPlacementModel, yamlPath]() {
         yamlConfig->setWidgetPlacements(widgetPlacementModel->allPlacements());
+        yamlConfig->save(yamlPath);
     });
 
     // --- IPC server for web config panel ---
