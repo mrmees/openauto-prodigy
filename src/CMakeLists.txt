@@ -142,6 +142,10 @@ set_source_files_properties(../qml/controls/ReadOnlyField.qml PROPERTIES
     QT_QML_SOURCE_TYPENAME "ReadOnlyField"
     QT_RESOURCE_ALIAS "ReadOnlyField.qml"
 )
+set_source_files_properties(../qml/controls/SettingsRow.qml PROPERTIES
+    QT_QML_SOURCE_TYPENAME "SettingsRow"
+    QT_RESOURCE_ALIAS "SettingsRow.qml"
+)
 set_source_files_properties(../qml/controls/InfoBanner.qml PROPERTIES
     QT_QML_SOURCE_TYPENAME "InfoBanner"
     QT_RESOURCE_ALIAS "InfoBanner.qml"
@@ -325,6 +329,7 @@ qt_add_qml_module(openauto-prodigy
         ../qml/controls/FullScreenPicker.qml
         ../qml/controls/SegmentedButton.qml
         ../qml/controls/ReadOnlyField.qml
+        ../qml/controls/SettingsRow.qml
         ../qml/controls/InfoBanner.qml
         ../qml/controls/EqBandSlider.qml
         ../qml/controls/ElevatedButton.qml

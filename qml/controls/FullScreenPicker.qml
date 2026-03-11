@@ -12,6 +12,7 @@ Item {
     property var options: []       // display strings
     property var values: []        // typed values to store (if empty, stores options strings)
     property bool restartRequired: false
+    property bool flat: false
 
     // --- Model-driven mode ---
     property var model: null       // QAbstractItemModel or JS array
@@ -66,7 +67,7 @@ Item {
 
     readonly property bool _isPressed: rowMouseArea.pressed
 
-    scale: _isPressed ? 0.97 : 1.0
+    scale: (!root.flat && _isPressed) ? 0.97 : 1.0
     Behavior on scale { NumberAnimation { duration: UiMetrics.animDurationFast; easing.type: Easing.OutCubic } }
 
     // Background rectangle (source for MultiEffect shadow)
@@ -77,7 +78,7 @@ Item {
         color: ThemeService.surfaceContainerLow
         border.width: 1
         border.color: ThemeService.outlineVariant
-        layer.enabled: true
+        layer.enabled: !root.flat
         visible: false
     }
 
@@ -85,7 +86,8 @@ Item {
     MultiEffect {
         source: rowBg
         anchors.fill: rowBg
-        shadowEnabled: true
+        visible: !root.flat
+        shadowEnabled: !root.flat
         shadowColor: ThemeService.shadow
         shadowBlur: root._isPressed ? 0.35 : 0.65
         shadowVerticalOffset: root._isPressed ? 2 : 5
@@ -104,7 +106,8 @@ Item {
         anchors.fill: parent
         radius: UiMetrics.radiusSmall
         color: ThemeService.onSurface
-        opacity: root._isPressed ? 0.10 : 0.0
+        opacity: (!root.flat && root._isPressed) ? 0.10 : 0.0
+        visible: !root.flat
         Behavior on opacity { NumberAnimation { duration: UiMetrics.animDurationFast } }
     }
 
