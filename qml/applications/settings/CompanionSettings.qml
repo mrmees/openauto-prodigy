@@ -284,4 +284,8 @@ Flickable {
             }
         }
     }
+
+    SettingsScrollHints {
+        flickable: root
+    }
 }

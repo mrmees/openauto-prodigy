@@ -122,6 +122,48 @@ private slots:
         QVERIFY2(themeSource.indexOf(QStringLiteral("icon: \"\\ue872\"")) < 0,
                  "ThemeSettings delete row should no longer use the leading trash icon");
     }
+
+    void testSettingsUseSharedScrollHints()
+    {
+        const QString hintSource = sourceFor(QStringLiteral("qml/controls/SettingsScrollHints.qml"));
+        QVERIFY2(!hintSource.isEmpty(), "Failed to read SettingsScrollHints.qml");
+        QVERIFY2(hintSource.indexOf(QStringLiteral("property Flickable flickable")) >= 0,
+                 "SettingsScrollHints should target an arbitrary Flickable/ListView");
+        QVERIFY2(hintSource.indexOf(QStringLiteral("flickable.contentY")) >= 0,
+                 "SettingsScrollHints should derive hint visibility from scroll position");
+        QVERIFY2(hintSource.indexOf(QStringLiteral("flickable.contentHeight")) >= 0,
+                 "SettingsScrollHints should derive hint visibility from content height");
+
+        const QString menuSource = sourceFor(QStringLiteral("qml/applications/settings/SettingsMenu.qml"));
+        QVERIFY2(!menuSource.isEmpty(), "Failed to read SettingsMenu.qml");
+        QVERIFY2(menuSource.indexOf(QStringLiteral("id: settingsListView")) >= 0,
+                 "SettingsMenu should give the top-level settings ListView a stable id for scroll hints");
+        QVERIFY2(menuSource.indexOf(QStringLiteral("SettingsScrollHints")) >= 0,
+                 "SettingsMenu should attach shared scroll hints to the top-level settings list");
+        QVERIFY2(menuSource.indexOf(QStringLiteral("flickable: settingsListView")) >= 0,
+                 "SettingsMenu scroll hints should follow the top-level settings ListView");
+
+        const QStringList pagePaths = {
+            QStringLiteral("qml/applications/settings/AASettings.qml"),
+            QStringLiteral("qml/applications/settings/AudioSettings.qml"),
+            QStringLiteral("qml/applications/settings/CompanionSettings.qml"),
+            QStringLiteral("qml/applications/settings/ConnectionSettings.qml"),
+            QStringLiteral("qml/applications/settings/DebugSettings.qml"),
+            QStringLiteral("qml/applications/settings/DisplaySettings.qml"),
+            QStringLiteral("qml/applications/settings/InformationSettings.qml"),
+            QStringLiteral("qml/applications/settings/SystemSettings.qml"),
+            QStringLiteral("qml/applications/settings/ThemeSettings.qml")
+        };
+
+        for (const QString& pagePath : pagePaths) {
+            const QString pageSource = sourceFor(pagePath);
+            QVERIFY2(!pageSource.isEmpty(), qPrintable(QStringLiteral("Failed to read %1").arg(pagePath)));
+            QVERIFY2(pageSource.indexOf(QStringLiteral("SettingsScrollHints")) >= 0,
+                     qPrintable(QStringLiteral("%1 should attach the shared scroll-hint overlay").arg(pagePath)));
+            QVERIFY2(pageSource.indexOf(QStringLiteral("flickable: root")) >= 0,
+                     qPrintable(QStringLiteral("%1 scroll hints should target the page Flickable").arg(pagePath)));
+        }
+    }
 };
 
 QTEST_MAIN(TestSettingsMenuStructure)

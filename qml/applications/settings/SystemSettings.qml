@@ -152,6 +152,10 @@ Flickable {
         }
     }
 
+    SettingsScrollHints {
+        flickable: root
+    }
+
     ExitDialog {
         id: exitDialog
         parent: Overlay.overlay

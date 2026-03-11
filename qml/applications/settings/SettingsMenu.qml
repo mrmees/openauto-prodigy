@@ -271,6 +271,7 @@ Item {
             anchors.fill: parent
 
             ListView {
+                id: settingsListView
                 anchors.fill: parent
                 clip: true
                 flickableDirection: Flickable.VerticalFlick
@@ -319,6 +320,10 @@ Item {
                         anchors.verticalCenter: parent.verticalCenter
                     }
                 }
+            }
+
+            SettingsScrollHints {
+                flickable: settingsListView
             }
         }
     }
