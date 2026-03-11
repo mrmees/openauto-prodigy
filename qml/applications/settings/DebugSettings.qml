@@ -12,8 +12,10 @@ Flickable {
         id: content
         anchors.left: parent.left
         anchors.right: parent.right
-        anchors.margins: UiMetrics.marginPage
-        spacing: UiMetrics.spacing
+        anchors.topMargin: UiMetrics.marginPage
+        spacing: 0
+
+        property bool aaConnected: AAOrchestrator !== null && AAOrchestrator.connectionState === 3
 
         SectionHeader { text: "Video Decoding" }
 
@@ -22,123 +24,126 @@ Flickable {
 
             ColumnLayout {
                 Layout.fillWidth: true
-                spacing: UiMetrics.spacing
+                spacing: 0
 
-                // --- Codec enable/disable checkbox ---
-                Item {
-                    Layout.fillWidth: true
-                    implicitHeight: UiMetrics.rowH
+                // --- Codec enable/disable row ---
+                SettingsRow {
+                    rowIndex: index * 3
 
-                    RowLayout {
+                    Item {
                         anchors.fill: parent
-                        anchors.leftMargin: UiMetrics.marginRow
-                        anchors.rightMargin: UiMetrics.marginRow
-                        spacing: UiMetrics.gap
 
-                        Text {
-                            text: codecDisplayName(codecName)
-                            font.pixelSize: UiMetrics.fontBody
-                            color: ThemeService.onSurface
-                            Layout.fillWidth: true
-                        }
+                        RowLayout {
+                            anchors.fill: parent
+                            spacing: UiMetrics.gap
 
-                        Switch {
-                            id: codecSwitch
-                            checked: codecEnabled
-                            enabled: codecName !== "h264"
-                            onToggled: {
-                                CodecCapabilityModel.setEnabled(index, checked)
-                                saveCodecConfig()
+                            Text {
+                                text: codecDisplayName(codecName)
+                                font.pixelSize: UiMetrics.fontBody
+                                color: ThemeService.onSurface
+                                Layout.fillWidth: true
+                            }
+
+                            Switch {
+                                id: codecSwitch
+                                checked: codecEnabled
+                                enabled: codecName !== "h264"
+                                onToggled: {
+                                    CodecCapabilityModel.setEnabled(index, checked)
+                                    saveCodecConfig()
+                                }
                             }
                         }
                     }
                 }
 
                 // --- Hardware / Software toggle ---
-                Item {
-                    Layout.fillWidth: true
-                    implicitHeight: UiMetrics.rowH
+                SettingsRow {
+                    rowIndex: index * 3 + 1
                     visible: codecSwitch.checked
 
-                    RowLayout {
+                    Item {
                         anchors.fill: parent
-                        anchors.leftMargin: UiMetrics.marginRow * 3
-                        anchors.rightMargin: UiMetrics.marginRow
-                        spacing: UiMetrics.gap
+                        anchors.leftMargin: UiMetrics.marginRow * 2
 
-                        Text {
-                            text: "Decoder"
-                            font.pixelSize: UiMetrics.fontBody
-                            color: ThemeService.onSurface
-                            Layout.fillWidth: true
-                        }
+                        RowLayout {
+                            anchors.fill: parent
+                            spacing: UiMetrics.gap
 
-                        Row {
-                            spacing: 0
-
-                            Rectangle {
-                                width: Math.max(UiMetrics.touchMin * 1.5, swLabel.implicitWidth + UiMetrics.gap)
-                                height: UiMetrics.touchMin
-                                color: !isHardware ? ThemeService.secondaryContainer : ThemeService.surfaceContainerLow
-                                radius: UiMetrics.radius
-
-                                Rectangle {
-                                    anchors.right: parent.right
-                                    anchors.top: parent.top
-                                    width: parent.radius
-                                    height: parent.height
-                                    color: parent.color
-                                }
-
-                                Text {
-                                    id: swLabel
-                                    anchors.centerIn: parent
-                                    text: "Software"
-                                    font.pixelSize: UiMetrics.fontSmall
-                                    color: !isHardware ? ThemeService.onSecondaryContainer : ThemeService.onSurface
-                                }
-
-                                MouseArea {
-                                    anchors.fill: parent
-                                    onClicked: {
-                                        if (!isHardware) return
-                                        CodecCapabilityModel.setHardwareMode(index, false)
-                                        saveDecoderConfig(codecName, "auto")
-                                    }
-                                }
+                            Text {
+                                text: "Decoder"
+                                font.pixelSize: UiMetrics.fontBody
+                                color: ThemeService.onSurface
+                                Layout.fillWidth: true
                             }
 
-                            Rectangle {
-                                width: Math.max(UiMetrics.touchMin * 1.5, hwLabel.implicitWidth + UiMetrics.gap)
-                                height: UiMetrics.touchMin
-                                color: isHardware ? ThemeService.secondaryContainer : ThemeService.surfaceContainerLow
-                                opacity: hwAvailable ? 1.0 : 0.4
-                                radius: UiMetrics.radius
+                            Row {
+                                spacing: 0
 
                                 Rectangle {
-                                    anchors.left: parent.left
-                                    anchors.top: parent.top
-                                    width: parent.radius
-                                    height: parent.height
-                                    color: parent.color
+                                    width: Math.max(UiMetrics.touchMin * 1.5, swLabel.implicitWidth + UiMetrics.gap)
+                                    height: UiMetrics.touchMin
+                                    color: !isHardware ? ThemeService.secondaryContainer : ThemeService.surfaceContainerLow
+                                    radius: UiMetrics.radius
+
+                                    Rectangle {
+                                        anchors.right: parent.right
+                                        anchors.top: parent.top
+                                        width: parent.radius
+                                        height: parent.height
+                                        color: parent.color
+                                    }
+
+                                    Text {
+                                        id: swLabel
+                                        anchors.centerIn: parent
+                                        text: "Software"
+                                        font.pixelSize: UiMetrics.fontSmall
+                                        color: !isHardware ? ThemeService.onSecondaryContainer : ThemeService.onSurface
+                                    }
+
+                                    MouseArea {
+                                        anchors.fill: parent
+                                        onClicked: {
+                                            if (!isHardware) return
+                                            CodecCapabilityModel.setHardwareMode(index, false)
+                                            saveDecoderConfig(codecName, "auto")
+                                        }
+                                    }
                                 }
 
-                                Text {
-                                    id: hwLabel
-                                    anchors.centerIn: parent
-                                    text: "Hardware"
-                                    font.pixelSize: UiMetrics.fontSmall
-                                    color: isHardware ? ThemeService.onSecondaryContainer : ThemeService.onSurface
+                                Rectangle {
+                                    width: Math.max(UiMetrics.touchMin * 1.5, hwLabel.implicitWidth + UiMetrics.gap)
+                                    height: UiMetrics.touchMin
+                                    color: isHardware ? ThemeService.secondaryContainer : ThemeService.surfaceContainerLow
                                     opacity: hwAvailable ? 1.0 : 0.4
-                                }
+                                    radius: UiMetrics.radius
 
-                                MouseArea {
-                                    anchors.fill: parent
-                                    enabled: hwAvailable
-                                    onClicked: {
-                                        if (isHardware) return
-                                        CodecCapabilityModel.setHardwareMode(index, true)
-                                        saveDecoderConfig(codecName, "auto")
+                                    Rectangle {
+                                        anchors.left: parent.left
+                                        anchors.top: parent.top
+                                        width: parent.radius
+                                        height: parent.height
+                                        color: parent.color
+                                    }
+
+                                    Text {
+                                        id: hwLabel
+                                        anchors.centerIn: parent
+                                        text: "Hardware"
+                                        font.pixelSize: UiMetrics.fontSmall
+                                        color: isHardware ? ThemeService.onSecondaryContainer : ThemeService.onSurface
+                                        opacity: hwAvailable ? 1.0 : 0.4
+                                    }
+
+                                    MouseArea {
+                                        anchors.fill: parent
+                                        enabled: hwAvailable
+                                        onClicked: {
+                                            if (isHardware) return
+                                            CodecCapabilityModel.setHardwareMode(index, true)
+                                            saveDecoderConfig(codecName, "auto")
+                                        }
                                     }
                                 }
                             }
@@ -147,204 +152,230 @@ Flickable {
                 }
 
                 // --- Decoder dropdown (shown when >1 real decoder, i.e. "auto" + 2+ decoders) ---
-                Item {
-                    Layout.fillWidth: true
-                    implicitHeight: UiMetrics.rowH
+                SettingsRow {
+                    rowIndex: index * 3 + 2
                     visible: codecSwitch.checked && decoderList.length > 2
 
-                    RowLayout {
+                    Item {
                         anchors.fill: parent
-                        anchors.leftMargin: UiMetrics.marginRow * 3
-                        anchors.rightMargin: UiMetrics.marginRow
-                        spacing: UiMetrics.gap
+                        anchors.leftMargin: UiMetrics.marginRow * 2
 
-                        Text {
-                            text: "Decoder name"
-                            font.pixelSize: UiMetrics.fontBody
-                            color: ThemeService.onSurfaceVariant
-                            Layout.fillWidth: true
+                        RowLayout {
+                            anchors.fill: parent
+                            spacing: UiMetrics.gap
+
+                            Text {
+                                text: "Decoder name"
+                                font.pixelSize: UiMetrics.fontBody
+                                color: ThemeService.onSurfaceVariant
+                                Layout.fillWidth: true
+                            }
+
+                            Text {
+                                text: selectedDecoder
+                                font.pixelSize: UiMetrics.fontBody
+                                color: ThemeService.onSurfaceVariant
+                                horizontalAlignment: Text.AlignRight
+                            }
+
+                            MaterialIcon {
+                                icon: "\ue5cf"
+                                size: UiMetrics.iconSize
+                                color: ThemeService.onSurfaceVariant
+                            }
                         }
 
-                        Text {
-                            text: selectedDecoder
-                            font.pixelSize: UiMetrics.fontBody
-                            color: ThemeService.onSurfaceVariant
-                            horizontalAlignment: Text.AlignRight
-                        }
-
-                        MaterialIcon {
-                            icon: "\ue5cf"
-                            size: UiMetrics.iconSize
-                            color: ThemeService.onSurfaceVariant
+                        MouseArea {
+                            anchors.fill: parent
+                            onClicked: {
+                                decoderPickerDialog.codecIndex = index
+                                decoderPickerDialog.codecLabel = codecDisplayName(codecName) + " Decoder"
+                                decoderPickerDialog.decoders = decoderList
+                                decoderPickerDialog.currentDecoder = selectedDecoder
+                                decoderPickerDialog.decoderCodecName = codecName
+                                decoderPickerDialog.open()
+                            }
                         }
                     }
-
-                    MouseArea {
-                        anchors.fill: parent
-                        onClicked: {
-                            decoderPickerDialog.codecIndex = index
-                            decoderPickerDialog.codecLabel = codecDisplayName(codecName) + " Decoder"
-                            decoderPickerDialog.decoders = decoderList
-                            decoderPickerDialog.currentDecoder = selectedDecoder
-                            decoderPickerDialog.decoderCodecName = codecName
-                            decoderPickerDialog.open()
-                        }
-                    }
-                }
-
-                // --- Separator between codecs ---
-                Rectangle {
-                    Layout.fillWidth: true
-                    Layout.leftMargin: UiMetrics.marginRow
-                    Layout.rightMargin: UiMetrics.marginRow
-                    height: 1
-                    color: ThemeService.outlineVariant
-                    visible: index < (typeof CodecCapabilityModel !== "undefined" ? CodecCapabilityModel.rowCount() - 1 : 0)
                 }
             }
         }
 
         SectionHeader { text: "Logging" }
 
-        SettingsToggle {
-            label: "Verbose Logging"
-            configPath: "logging.verbose"
+        SettingsRow { rowIndex: 0
+            SettingsToggle {
+                label: "Verbose Logging"
+                configPath: "logging.verbose"
+            }
         }
 
         SectionHeader { text: "Protocol Capture" }
 
-        SettingsToggle {
-            label: "Enable Capture"
-            configPath: "connection.protocol_capture.enabled"
+        SettingsRow { rowIndex: 0
+            SettingsToggle {
+                label: "Enable Capture"
+                configPath: "connection.protocol_capture.enabled"
+            }
         }
 
-        SegmentedButton {
-            label: "Format"
-            configPath: "connection.protocol_capture.format"
-            options: ["JSONL", "TSV"]
-            values: ["jsonl", "tsv"]
+        SettingsRow { rowIndex: 1
+            SegmentedButton {
+                label: "Format"
+                configPath: "connection.protocol_capture.format"
+                options: ["JSONL", "TSV"]
+                values: ["jsonl", "tsv"]
+            }
         }
 
-        SettingsToggle {
-            label: "Include Media Frames"
-            configPath: "connection.protocol_capture.include_media"
+        SettingsRow { rowIndex: 2
+            SettingsToggle {
+                label: "Include Media Frames"
+                configPath: "connection.protocol_capture.include_media"
+            }
         }
 
-        ReadOnlyField {
-            label: "Capture Path"
-            configPath: "connection.protocol_capture.path"
-            placeholder: "/tmp/oaa-protocol-capture.jsonl"
+        SettingsRow { rowIndex: 3
+            ReadOnlyField {
+                label: "Capture Path"
+                configPath: "connection.protocol_capture.path"
+                placeholder: "/tmp/oaa-protocol-capture.jsonl"
+            }
         }
 
         SectionHeader { text: "Connection Info" }
 
-        ReadOnlyField {
-            label: "TCP Port"
-            configPath: "connection.tcp_port"
-            placeholder: "5277"
+        SettingsRow { rowIndex: 0
+            ReadOnlyField {
+                label: "TCP Port"
+                configPath: "connection.tcp_port"
+                placeholder: "5277"
+            }
         }
 
         SectionHeader { text: "WiFi Access Point" }
 
-        Text {
-            text: "Configured at install time. Edit YAML config to change."
-            font.pixelSize: UiMetrics.fontCaption
-            color: ThemeService.onSurfaceVariant
-            Layout.fillWidth: true
-            wrapMode: Text.Wrap
+        SettingsRow { rowIndex: 0
+            ReadOnlyField {
+                label: "Channel"
+                configPath: "connection.wifi_ap.channel"
+            }
         }
 
-        ReadOnlyField {
-            label: "Channel"
-            configPath: "connection.wifi_ap.channel"
-        }
-
-        ReadOnlyField {
-            label: "Band"
-            configPath: "connection.wifi_ap.band"
+        SettingsRow { rowIndex: 1
+            ReadOnlyField {
+                label: "Band"
+                configPath: "connection.wifi_ap.band"
+            }
         }
 
         SectionHeader { text: "AA Protocol Test" }
 
-        Text {
-            text: "Test outbound commands (requires active AA connection)"
-            font.pixelSize: UiMetrics.fontCaption
-            color: ThemeService.onSurfaceVariant
-            Layout.fillWidth: true
-            wrapMode: Text.Wrap
+        // Accordion toggle row
+        SettingsRow {
+            rowIndex: 0
+            interactive: true
+            onClicked: root.showTestButtons = !root.showTestButtons
+
+            RowLayout {
+                anchors.fill: parent
+                spacing: UiMetrics.gap
+
+                // Status dot: green if connected, gray if not
+                Rectangle {
+                    width: UiMetrics.iconSmall * 0.5
+                    height: width
+                    radius: width / 2
+                    color: content.aaConnected ? ThemeService.success : ThemeService.onSurfaceVariant
+                }
+
+                Text {
+                    text: "AA Protocol Test"
+                    font.pixelSize: UiMetrics.fontBody
+                    color: ThemeService.onSurface
+                    Layout.fillWidth: true
+                }
+
+                MaterialIcon {
+                    icon: root.showTestButtons ? "\ue5ce" : "\ue5cf"
+                    size: UiMetrics.iconSmall
+                    color: ThemeService.onSurfaceVariant
+                }
+            }
         }
 
-        property bool aaConnected: AAOrchestrator !== null && AAOrchestrator.connectionState === 3
-
-        RowLayout {
+        // Expandable test button grid
+        ColumnLayout {
             Layout.fillWidth: true
             spacing: UiMetrics.spacing
+            visible: root.showTestButtons
 
-            ElevatedButton {
+            RowLayout {
                 Layout.fillWidth: true
-                Layout.preferredHeight: UiMetrics.rowH
-                text: "Play/Pause"
-                buttonEnabled: content.aaConnected
-                onClicked: AAOrchestrator.sendButtonPress(85)
+                Layout.leftMargin: UiMetrics.marginRow
+                Layout.rightMargin: UiMetrics.marginRow
+                spacing: UiMetrics.spacing
+
+                ElevatedButton {
+                    Layout.fillWidth: true
+                    Layout.preferredHeight: UiMetrics.rowH
+                    text: "Play/Pause"
+                    buttonEnabled: content.aaConnected
+                    onClicked: AAOrchestrator.sendButtonPress(85)
+                }
+
+                ElevatedButton {
+                    Layout.fillWidth: true
+                    Layout.preferredHeight: UiMetrics.rowH
+                    text: "Prev"
+                    buttonEnabled: content.aaConnected
+                    onClicked: AAOrchestrator.sendButtonPress(88)
+                }
+
+                ElevatedButton {
+                    Layout.fillWidth: true
+                    Layout.preferredHeight: UiMetrics.rowH
+                    text: "Next"
+                    buttonEnabled: content.aaConnected
+                    onClicked: AAOrchestrator.sendButtonPress(87)
+                }
             }
 
-            ElevatedButton {
+            RowLayout {
                 Layout.fillWidth: true
-                Layout.preferredHeight: UiMetrics.rowH
-                text: "Prev"
-                buttonEnabled: content.aaConnected
-                onClicked: AAOrchestrator.sendButtonPress(88)
+                Layout.leftMargin: UiMetrics.marginRow
+                Layout.rightMargin: UiMetrics.marginRow
+                spacing: UiMetrics.spacing
+
+                ElevatedButton {
+                    Layout.fillWidth: true
+                    Layout.preferredHeight: UiMetrics.rowH
+                    text: "Search (84)"
+                    buttonEnabled: content.aaConnected
+                    onClicked: AAOrchestrator.sendButtonPress(84)
+                }
+
+                ElevatedButton {
+                    Layout.fillWidth: true
+                    Layout.preferredHeight: UiMetrics.rowH
+                    text: "Assist (219)"
+                    buttonEnabled: content.aaConnected
+                    onClicked: AAOrchestrator.sendButtonPress(219)
+                }
+
+                ElevatedButton {
+                    Layout.fillWidth: true
+                    Layout.preferredHeight: UiMetrics.rowH
+                    text: "Voice (231)"
+                    buttonEnabled: content.aaConnected
+                    onClicked: AAOrchestrator.sendButtonPress(231)
+                }
             }
-
-            ElevatedButton {
-                Layout.fillWidth: true
-                Layout.preferredHeight: UiMetrics.rowH
-                text: "Next"
-                buttonEnabled: content.aaConnected
-                onClicked: AAOrchestrator.sendButtonPress(87)
-            }
-        }
-
-        RowLayout {
-            Layout.fillWidth: true
-            spacing: UiMetrics.spacing
-
-            ElevatedButton {
-                Layout.fillWidth: true
-                Layout.preferredHeight: UiMetrics.rowH
-                text: "Search (84)"
-                buttonEnabled: content.aaConnected
-                onClicked: AAOrchestrator.sendButtonPress(84)
-            }
-
-            ElevatedButton {
-                Layout.fillWidth: true
-                Layout.preferredHeight: UiMetrics.rowH
-                text: "Assist (219)"
-                buttonEnabled: content.aaConnected
-                onClicked: AAOrchestrator.sendButtonPress(219)
-            }
-
-            ElevatedButton {
-                Layout.fillWidth: true
-                Layout.preferredHeight: UiMetrics.rowH
-                text: "Voice (231)"
-                buttonEnabled: content.aaConnected
-                onClicked: AAOrchestrator.sendButtonPress(231)
-            }
-        }
-
-        Text {
-            text: content.aaConnected
-                  ? "AA Connected -- buttons active"
-                  : (AAOrchestrator !== null
-                     ? "AA not connected -- buttons disabled"
-                     : "AA orchestrator unavailable")
-            font.pixelSize: UiMetrics.fontCaption
-            color: content.aaConnected ? ThemeService.primary : ThemeService.onSurfaceVariant
-            Layout.fillWidth: true
         }
     }
+
+    // Property for accordion toggle (accessible from the SettingsRow)
+    property bool showTestButtons: false
 
     // --- Decoder picker dialog ---
     Dialog {
