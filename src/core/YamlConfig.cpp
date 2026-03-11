@@ -91,7 +91,7 @@ void YamlConfig::initDefaults()
     YAML::Node btTile;
     btTile["id"] = "org.openauto.bt-audio";
     btTile["label"] = "Music";
-    btTile["icon"] = QString(QChar(0xe60f)).toStdString();  // bluetooth_audio
+    btTile["icon"] = QString(QChar(0xf032)).toStdString();  // media_bluetooth_on
     btTile["action"] = "plugin:org.openauto.bt-audio";
     tiles.push_back(btTile);
 

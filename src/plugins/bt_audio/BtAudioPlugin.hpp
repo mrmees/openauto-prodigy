@@ -74,7 +74,7 @@ public:
     // IPlugin — UI
     QUrl qmlComponent() const override;
     QUrl iconSource() const override;
-    QString iconText() const override { return QString(QChar(0xe60f)); }  // bluetooth_audio
+    QString iconText() const override { return QString(QChar(0xf032)); }  // media_bluetooth_on
     QUrl settingsComponent() const override { return {}; }
 
     // IPlugin — Capabilities
