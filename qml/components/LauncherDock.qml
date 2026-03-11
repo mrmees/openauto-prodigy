@@ -48,7 +48,7 @@ Item {
                 MaterialIcon {
                     anchors.centerIn: parent
                     icon: model.tileIcon
-                    size: Math.round(UiMetrics.iconSmall * 0.9)
+                    size: Math.round(dockItem.height * 0.9)
                     color: ThemeService.onSurface
                 }
 
