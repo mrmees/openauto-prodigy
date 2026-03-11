@@ -1,0 +1,60 @@
+import QtQuick
+import QtQuick.Layouts
+import QtQuick.Controls
+
+Flickable {
+    id: root
+    contentHeight: content.implicitHeight + UiMetrics.marginPage * 2
+    clip: true
+    boundsBehavior: Flickable.StopAtBounds
+
+    ColumnLayout {
+        id: content
+        anchors.left: parent.left
+        anchors.right: parent.right
+        anchors.margins: UiMetrics.marginPage
+        spacing: UiMetrics.spacing
+
+        SectionHeader { text: "Identity" }
+
+        ReadOnlyField {
+            label: "Head Unit Name"
+            configPath: "identity.head_unit_name"
+        }
+
+        ReadOnlyField {
+            label: "Manufacturer"
+            configPath: "identity.manufacturer"
+        }
+
+        ReadOnlyField {
+            label: "Model"
+            configPath: "identity.model"
+        }
+
+        ReadOnlyField {
+            label: "Car Model"
+            configPath: "identity.car_model"
+            placeholder: "(optional)"
+        }
+
+        ReadOnlyField {
+            label: "Car Year"
+            configPath: "identity.car_year"
+            placeholder: "(optional)"
+        }
+
+        SectionHeader { text: "Hardware" }
+
+        ReadOnlyField {
+            label: "Hardware Profile"
+            configPath: "hardware_profile"
+        }
+
+        ReadOnlyField {
+            label: "Touch Device"
+            configPath: "touch.device"
+            placeholder: "(auto-detect)"
+        }
+    }
+}

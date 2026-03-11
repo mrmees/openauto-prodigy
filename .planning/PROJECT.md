@@ -63,17 +63,25 @@ A person with a Raspberry Pi 4 and a touchscreen can install this, pair their ph
 - ✓ Unhandled message debug logging with hex payload for full protocol observability — v0.5.0
 - ✓ Protocol library renamed to prodigy-oaa-protocol — v0.5.0
 - ✓ 64 unit tests covering core systems — v0.5.0
+- ✓ DPI-based UiMetrics from EDID physical screen size with 7" default — v0.5.1
+- ✓ User-facing scale stepper (±0.1) in Display settings — v0.5.1
+- ✓ Clock readability: 75% control height, DemiBold, no AM/PM, 24h toggle — v0.5.1
+- ✓ Full 34-role M3 color palette with semantic roles across all UI — v0.5.1
+- ✓ Companion theme import (M3 palette + wallpaper over TCP) — v0.5.1
+- ✓ AA rendering fix (PreserveAspectFit, no cropping with navbar) — v0.5.1
+- ✓ SDP hidden_ui_elements (clock) when navbar visible during AA — v0.5.1
+- ✓ M3 button components (ElevatedButton, FilledButton, OutlinedButton) with depth effects — v0.5.1
+- ✓ Surface container hierarchy (Lowest/Low/Container/High/Highest) — v0.5.1
+- ✓ 71 unit tests covering core systems — v0.5.1
 
 ### Active
 
 <!-- Current scope. Building toward these. -->
 
-- [ ] Physical screen size detection (EDID + installer prompt) with 7" default
-- [ ] DPI-based UiMetrics baseline derived from real screen DPI
-- [ ] User-facing scale stepper (±0.1) in Display settings
-- [ ] Clock readability: larger display, remove AM/PM, 24h toggle in settings
-- [ ] Full theme color palette with Material Design compatibility
-- [ ] UI element styling: subtle 3D depth on buttons and taskbar
+- [ ] Home screen widget system with 3-pane layout, launcher dock, and built-in widgets
+- [ ] Settings cleanup: demote power-user settings to YAML-only, keep essential settings in UI
+- [ ] Touch-friendly normalization of all settings pages (readable text, proper touch targets)
+- [ ] Remove duplicate settings between AA and Connection pages
 - [ ] HFP call audio persists across AA connection state (calls don't drop if AA disconnects)
 - [ ] First-run experience guides user through phone pairing and WiFi verification
 - [ ] Web config panel EQ interface
@@ -99,7 +107,7 @@ A person with a Raspberry Pi 4 and a touchscreen can install this, pair their ph
 
 OpenAuto Pro (BlueWave Studio) was a commercial Pi-based AA head unit that went defunct. This project is a clean-room rebuild — no OAP code, no aasdk dependency. The protocol library (`open-android-auto`) is maintained as a separate community resource.
 
-v0.4 shipped logging and theming. v0.4.1 shipped 10-band graphic EQ with per-stream profiles. v0.4.2 shipped service hardening — WiFi AP, Bluetooth SDP, systemd ordering, and clean shutdown all work reliably without manual intervention. v0.4.3 shipped full UI refresh — automotive-minimal styling, 6-category settings, EQ dual-access, shell polish. v0.4.4 shipped resolution independence — unclamped dual-axis UiMetrics, full QML tokenization (zero hardcoded pixels), container-derived grid layouts, runtime auto-detection, and --geometry validation tooling. v0.4.5 shipped navbar rework — zone-based evdev touch routing, 3-control navbar with multi-gesture actions and edge positioning, navbar-aware AA viewport margins, gesture overlay touch fix, and dead UI cleanup (TopBar, NavStrip, sidebar removed). v0.5.0 shipped protocol compliance — proto submodule v1.0, navigation turn events, voice session commands, BT auth exchange, haptic feedback, retracted dead code cleanup after v1.2 proto verification, library renamed to prodigy-oaa-protocol. Codebase is ~34.7K lines C++/QML, 64 unit tests.
+v0.4 shipped logging and theming. v0.4.1 shipped 10-band graphic EQ with per-stream profiles. v0.4.2 shipped service hardening — WiFi AP, Bluetooth SDP, systemd ordering, and clean shutdown all work reliably without manual intervention. v0.4.3 shipped full UI refresh — automotive-minimal styling, 6-category settings, EQ dual-access, shell polish. v0.4.4 shipped resolution independence — unclamped dual-axis UiMetrics, full QML tokenization (zero hardcoded pixels), container-derived grid layouts, runtime auto-detection, and --geometry validation tooling. v0.4.5 shipped navbar rework — zone-based evdev touch routing, 3-control navbar with multi-gesture actions and edge positioning, navbar-aware AA viewport margins, gesture overlay touch fix, and dead UI cleanup (TopBar, NavStrip, sidebar removed). v0.5.0 shipped protocol compliance — proto submodule v1.0, navigation turn events, voice session commands, BT auth exchange, haptic feedback, retracted dead code cleanup after v1.2 proto verification, library renamed to prodigy-oaa-protocol. v0.5.1 shipped DPI sizing & UI polish — EDID-based DPI scaling, scale stepper, clock readability, full 34-role M3 color system, companion theme import, AA rendering fix, navbar status bar cleanup, M3 button components with visual depth effects. Codebase is ~35K+ lines C++/QML, 71 unit tests.
 
 ## Constraints
 
@@ -152,17 +160,15 @@ v0.4 shipped logging and theming. v0.4.1 shipped 10-band graphic EQ with per-str
 | Library rename to prodigy-oaa-protocol | Distinguishes Prodigy's protocol lib from upstream open-android-auto | ✓ Good |
 | WiFi BSSID sends MAC not SSID | QNetworkInterface for wlan0 MAC — correct SDP semantics | ✓ Good |
 
-## Current Milestone: v0.5.1 DPI Sizing & UI Polish
+## Current Milestone: v0.5.2 Widget System & UI Polish
 
-**Goal:** Make UI sizing physically meaningful via DPI-aware scaling with user control, and polish visual presentation (clock, theme colors, element depth).
+**Goal:** Add a widget-based home screen and clean up settings UI for touch-friendly daily use.
 
 **Target features:**
-- Physical screen size detection (EDID in installer, 7" default, config override)
-- DPI-based UiMetrics replacing pure resolution-ratio scaling
-- User-facing scale stepper control (±0.1 increments) in Display settings
-- Clock readability improvements with 24h toggle
-- Full theme color palette with Material Design alignment
-- Subtle 3D depth styling on buttons and taskbar
+- Home screen with 3-pane widget layout, launcher dock, and built-in widgets (Clock, AA Status, Now Playing)
+- Settings cleanup: demote power-user/debug settings to YAML-only
+- Touch-friendly normalization of all settings pages
+- Remove duplicate settings between AA and Connection pages
 
 ---
-*Last updated: 2026-03-08 after v0.5.1 milestone started*
+*Last updated: 2026-03-10 after v0.5.2 milestone started*
