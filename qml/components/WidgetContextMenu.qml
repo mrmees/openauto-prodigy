@@ -11,7 +11,7 @@ Item {
     property real anchorY: 0
 
     signal changeRequested()
-    signal opacityChanged(real value)
+    signal paneOpacityAdjusted(real value)
     signal clearRequested()
     signal dismissed()
 
@@ -159,7 +159,7 @@ Item {
                             onMoved: {
                                 contextMenu._currentOpacity = value
                                 WidgetPlacementModel.setPaneOpacity(contextMenu.targetPaneId, value)
-                                contextMenu.opacityChanged(value)
+                                contextMenu.paneOpacityAdjusted(value)
                             }
                         }
                     }
