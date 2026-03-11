@@ -74,27 +74,29 @@ Item {
         anchors.fill: parent
         initialItem: settingsList
 
-        property real _swipeStartX: 0
-        property real _swipeStartY: 0
-        property bool _swipeFired: false
+        // Swipe-right-to-go-back: left-edge drag zone
+        MouseArea {
+            id: swipeEdge
+            width: UiMetrics.spacing * 6
+            anchors.left: parent.left
+            anchors.top: parent.top
+            anchors.bottom: parent.bottom
 
-        // Swipe-right-to-go-back gesture
-        DragHandler {
-            id: swipeBack
-            target: null
-            onActiveChanged: {
-                if (active) {
-                    settingsStack._swipeStartX = centroid.position.x
-                    settingsStack._swipeStartY = centroid.position.y
-                    settingsStack._swipeFired = false
-                }
+            property real startX: 0
+            property real startY: 0
+            property bool fired: false
+
+            onPressed: function(mouse) {
+                startX = mouse.x
+                startY = mouse.y
+                fired = false
             }
-            onCentroidChanged: {
-                if (!active || settingsStack._swipeFired) return
-                var dx = centroid.position.x - settingsStack._swipeStartX
-                var dy = centroid.position.y - settingsStack._swipeStartY
-                if (dx > UiMetrics.spacing * 8 && dx > Math.abs(dy) * 2) {
-                    settingsStack._swipeFired = true
+            onPositionChanged: function(mouse) {
+                if (fired) return
+                var dx = mouse.x - startX
+                var dy = mouse.y - startY
+                if (dx > UiMetrics.spacing * 6 && dx > Math.abs(dy) * 2) {
+                    fired = true
                     if (settingsStack.depth > 1) {
                         settingsStack.pop()
                         if (settingsStack.depth > 1) {
