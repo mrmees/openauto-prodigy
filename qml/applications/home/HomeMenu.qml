@@ -31,7 +31,7 @@ Item {
                     widgetSource: WidgetPlacementModel.qmlComponentForPane("main")
                     Layout.fillHeight: true
                     Layout.preferredWidth: parent.width * 0.6
-                    onLongPressed: widgetPicker.openForPane("main")
+                    onLongPressed: contextMenuLoader.openForPane("main")
                 }
 
                 ColumnLayout {
@@ -45,7 +45,7 @@ Item {
                         widgetSource: WidgetPlacementModel.qmlComponentForPane("sub1")
                         Layout.fillWidth: true
                         Layout.fillHeight: true
-                        onLongPressed: widgetPicker.openForPane("sub1")
+                        onLongPressed: contextMenuLoader.openForPane("sub1")
                     }
 
                     WidgetHost {
@@ -54,7 +54,7 @@ Item {
                         widgetSource: WidgetPlacementModel.qmlComponentForPane("sub2")
                         Layout.fillWidth: true
                         Layout.fillHeight: true
-                        onLongPressed: widgetPicker.openForPane("sub2")
+                        onLongPressed: contextMenuLoader.openForPane("sub2")
                     }
                 }
             }
@@ -71,7 +71,7 @@ Item {
                     widgetSource: WidgetPlacementModel.qmlComponentForPane("main")
                     Layout.fillWidth: true
                     Layout.preferredHeight: parent.height * 0.6
-                    onLongPressed: widgetPicker.openForPane("main")
+                    onLongPressed: contextMenuLoader.openForPane("main")
                 }
 
                 RowLayout {
@@ -85,7 +85,7 @@ Item {
                         widgetSource: WidgetPlacementModel.qmlComponentForPane("sub1")
                         Layout.fillHeight: true
                         Layout.fillWidth: true
-                        onLongPressed: widgetPicker.openForPane("sub1")
+                        onLongPressed: contextMenuLoader.openForPane("sub1")
                     }
 
                     WidgetHost {
@@ -94,7 +94,7 @@ Item {
                         widgetSource: WidgetPlacementModel.qmlComponentForPane("sub2")
                         Layout.fillHeight: true
                         Layout.fillWidth: true
-                        onLongPressed: widgetPicker.openForPane("sub2")
+                        onLongPressed: contextMenuLoader.openForPane("sub2")
                     }
                 }
             }
@@ -123,18 +123,64 @@ Item {
         }
     }
 
-    // Widget picker overlay
+    // Widget context menu overlay
     Loader {
-        id: widgetPicker
+        id: contextMenuLoader
         anchors.fill: parent
         active: false
         z: 50
         property string targetPaneId: ""
+        property real anchorX: 0
+        property real anchorY: 0
 
         function openForPane(paneId) {
             targetPaneId = paneId
-            // Filter picker model for pane size
-            var sizeFlag = (paneId === "main") ? 1 : 2  // WidgetSize::Main=1, Sub=2
+            // Position near center of the pane
+            var pane = null
+            if (homeScreen.isLandscape) {
+                if (paneId === "main") pane = mainPaneLandscape
+                else if (paneId === "sub1") pane = sub1PaneLandscape
+                else if (paneId === "sub2") pane = sub2PaneLandscape
+            } else {
+                if (paneId === "main") pane = mainPanePortrait
+                else if (paneId === "sub1") pane = sub1PanePortrait
+                else if (paneId === "sub2") pane = sub2PanePortrait
+            }
+            if (pane) {
+                var mapped = pane.mapToItem(homeScreen, pane.width / 2, pane.height / 2)
+                anchorX = mapped.x
+                anchorY = mapped.y
+            }
+            active = true
+        }
+
+        sourceComponent: WidgetContextMenu {
+            targetPaneId: contextMenuLoader.targetPaneId
+            anchorX: contextMenuLoader.anchorX
+            anchorY: contextMenuLoader.anchorY
+            onChangeRequested: {
+                contextMenuLoader.active = false
+                widgetPicker.openForPane(contextMenuLoader.targetPaneId)
+            }
+            onClearRequested: {
+                WidgetPlacementModel.clearPane(contextMenuLoader.targetPaneId)
+                contextMenuLoader.active = false
+            }
+            onDismissed: contextMenuLoader.active = false
+        }
+    }
+
+    // Widget picker overlay (opened from context menu)
+    Loader {
+        id: widgetPicker
+        anchors.fill: parent
+        active: false
+        z: 51
+        property string targetPaneId: ""
+
+        function openForPane(paneId) {
+            targetPaneId = paneId
+            var sizeFlag = (paneId === "main") ? 1 : 2
             WidgetPickerModel.filterForSize(sizeFlag)
             active = true
         }
@@ -143,10 +189,6 @@ Item {
             targetPaneId: widgetPicker.targetPaneId
             onWidgetSelected: function(widgetId) {
                 WidgetPlacementModel.swapWidget(widgetPicker.targetPaneId, widgetId)
-                widgetPicker.active = false
-            }
-            onCleared: {
-                WidgetPlacementModel.clearPane(widgetPicker.targetPaneId)
                 widgetPicker.active = false
             }
             onCancelled: widgetPicker.active = false

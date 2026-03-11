@@ -7,7 +7,6 @@ Item {
 
     property string targetPaneId: ""
     signal widgetSelected(string widgetId)
-    signal cleared()
     signal cancelled()
 
     // Dim background
@@ -41,82 +40,44 @@ Item {
             NumberAnimation { duration: UiMetrics.animDuration; easing.type: Easing.OutCubic }
         }
 
-        RowLayout {
+        // Widget options
+        ListView {
             anchors.fill: parent
             anchors.margins: UiMetrics.spacing
+            orientation: ListView.Horizontal
             spacing: UiMetrics.spacing
+            clip: true
 
-            // Clear button
-            Rectangle {
+            model: WidgetPickerModel
+
+            delegate: Rectangle {
                 width: UiMetrics.tileW * 0.4
-                Layout.fillHeight: true
+                height: ListView.view.height
                 radius: UiMetrics.radiusSmall
-                color: clearMa.pressed ? ThemeService.errorContainer : ThemeService.surfaceContainer
+                color: optionMa.pressed ? ThemeService.primaryContainer : ThemeService.surfaceContainer
 
                 ColumnLayout {
                     anchors.centerIn: parent
                     spacing: UiMetrics.spacing * 0.25
 
                     MaterialIcon {
-                        icon: "\ue5cd"  // close
+                        icon: model.iconName
                         size: UiMetrics.iconSmall
-                        color: ThemeService.error
+                        color: ThemeService.onSurface
                         Layout.alignment: Qt.AlignHCenter
                     }
                     NormalText {
-                        text: "Clear"
+                        text: model.displayName
                         font.pixelSize: UiMetrics.fontSmall
-                        color: ThemeService.error
+                        color: ThemeService.onSurface
                         Layout.alignment: Qt.AlignHCenter
                     }
                 }
 
                 MouseArea {
-                    id: clearMa
+                    id: optionMa
                     anchors.fill: parent
-                    onClicked: picker.cleared()
-                }
-            }
-
-            // Widget options
-            ListView {
-                Layout.fillWidth: true
-                Layout.fillHeight: true
-                orientation: ListView.Horizontal
-                spacing: UiMetrics.spacing
-                clip: true
-
-                model: WidgetPickerModel
-
-                delegate: Rectangle {
-                    width: UiMetrics.tileW * 0.4
-                    height: ListView.view.height
-                    radius: UiMetrics.radiusSmall
-                    color: optionMa.pressed ? ThemeService.primaryContainer : ThemeService.surfaceContainer
-
-                    ColumnLayout {
-                        anchors.centerIn: parent
-                        spacing: UiMetrics.spacing * 0.25
-
-                        MaterialIcon {
-                            icon: model.iconName
-                            size: UiMetrics.iconSmall
-                            color: ThemeService.onSurface
-                            Layout.alignment: Qt.AlignHCenter
-                        }
-                        NormalText {
-                            text: model.displayName
-                            font.pixelSize: UiMetrics.fontSmall
-                            color: ThemeService.onSurface
-                            Layout.alignment: Qt.AlignHCenter
-                        }
-                    }
-
-                    MouseArea {
-                        id: optionMa
-                        anchors.fill: parent
-                        onClicked: picker.widgetSelected(model.widgetId)
-                    }
+                    onClicked: picker.widgetSelected(model.widgetId)
                 }
             }
         }
