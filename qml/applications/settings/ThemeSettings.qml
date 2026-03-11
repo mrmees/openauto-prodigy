@@ -35,11 +35,16 @@ Flickable {
         SettingsRow {
             id: deleteThemeWrapper
             rowIndex: 1
-            interactive: true
             visible: themePicker.currentIndex >= 0
                      && themePicker.currentIndex < ThemeService.availableThemes.length
                      && ThemeService.isUserTheme(ThemeService.availableThemes[themePicker.currentIndex])
-            onClicked: {
+
+            QtObject {
+                id: deleteThemeState
+                property bool confirmPending: false
+            }
+
+            function triggerDeleteThemeAction() {
                 if (deleteThemeState.confirmPending) {
                     var themeId = ThemeService.availableThemes[themePicker.currentIndex]
                     ThemeService.deleteTheme(themeId)
@@ -47,11 +52,6 @@ Flickable {
                 } else {
                     deleteThemeState.confirmPending = true
                 }
-            }
-
-            QtObject {
-                id: deleteThemeState
-                property bool confirmPending: false
             }
 
             // Reset confirmation state when theme selection changes
@@ -71,19 +71,38 @@ Flickable {
 
             RowLayout {
                 anchors.fill: parent
+                anchors.leftMargin: UiMetrics.marginRow
+                anchors.rightMargin: UiMetrics.marginRow
                 spacing: UiMetrics.gap
 
-                MaterialIcon {
-                    icon: "\ue872"
-                    size: UiMetrics.iconSmall
-                    color: deleteThemeState.confirmPending ? ThemeService.error : ThemeService.onSurfaceVariant
+                Text {
+                    text: "Delete Theme"
+                    font.pixelSize: UiMetrics.fontBody
+                    color: ThemeService.onSurface
+                    Layout.fillWidth: true
                 }
 
-                Text {
-                    text: deleteThemeState.confirmPending ? "Tap again to delete" : "Delete Theme"
-                    font.pixelSize: UiMetrics.fontBody
-                    color: deleteThemeState.confirmPending ? ThemeService.error : ThemeService.onSurface
-                    Layout.fillWidth: true
+                Rectangle {
+                    width: deleteThemeButtonText.implicitWidth + UiMetrics.gap * 2
+                    height: UiMetrics.touchMin
+                    radius: UiMetrics.touchMin / 2
+                    color: "transparent"
+                    border.color: ThemeService.error
+                    border.width: 1
+
+                    Text {
+                        id: deleteThemeButtonText
+                        anchors.centerIn: parent
+                        text: deleteThemeState.confirmPending ? "Confirm" : "Delete"
+                        font.pixelSize: UiMetrics.fontBody
+                        color: ThemeService.error
+                    }
+
+                    SettingsHoldArea {
+                        anchors.fill: parent
+                        enableBackHold: false
+                        onShortClicked: deleteThemeWrapper.triggerDeleteThemeAction()
+                    }
                 }
             }
         }

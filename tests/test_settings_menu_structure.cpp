@@ -104,6 +104,24 @@ private slots:
                      qPrintable(QStringLiteral("%1 should apply the shared right inset").arg(pagePath)));
         }
     }
+
+    void testThemeDeleteUsesOutlinedActionButton()
+    {
+        const QString themeSource = sourceFor(QStringLiteral("qml/applications/settings/ThemeSettings.qml"));
+        QVERIFY2(!themeSource.isEmpty(), "Failed to read ThemeSettings.qml");
+        QVERIFY2(themeSource.indexOf(QStringLiteral("id: deleteThemeButtonText")) >= 0,
+                 "ThemeSettings delete row should define a dedicated delete button label");
+        QVERIFY2(themeSource.indexOf(QStringLiteral("border.color: ThemeService.error")) >= 0,
+                 "ThemeSettings delete button should use a destructive outlined button border");
+        QVERIFY2(themeSource.indexOf(QStringLiteral("text: deleteThemeState.confirmPending ? \"Confirm\" : \"Delete\"")) >= 0,
+                 "ThemeSettings delete button should show Delete/Confirm labels");
+        QVERIFY2(themeSource.indexOf(QStringLiteral("SettingsHoldArea")) >= 0,
+                 "ThemeSettings delete button should use SettingsHoldArea for button clicks");
+        QVERIFY2(themeSource.indexOf(QStringLiteral("interactive: true")) < 0,
+                 "ThemeSettings delete row should not rely on whole-row interaction anymore");
+        QVERIFY2(themeSource.indexOf(QStringLiteral("icon: \"\\ue872\"")) < 0,
+                 "ThemeSettings delete row should no longer use the leading trash icon");
+    }
 };
 
 QTEST_MAIN(TestSettingsMenuStructure)

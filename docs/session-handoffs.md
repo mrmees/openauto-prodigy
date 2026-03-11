@@ -4,6 +4,38 @@ Newest entries first.
 
 ---
 
+## 2026-03-11 — Theme delete row uses Bluetooth-style action button
+
+**What changed:**
+- Added approved design/plan docs in [docs/plans/2026-03-11-theme-delete-button-design.md](/home/matt/claude/personal/openautopro/openauto-prodigy/docs/plans/2026-03-11-theme-delete-button-design.md) and [docs/plans/2026-03-11-theme-delete-button-plan.md](/home/matt/claude/personal/openautopro/openauto-prodigy/docs/plans/2026-03-11-theme-delete-button-plan.md).
+- Updated [qml/applications/settings/ThemeSettings.qml](/home/matt/claude/personal/openautopro/openauto-prodigy/qml/applications/settings/ThemeSettings.qml) so the "Delete Theme" row is no longer whole-row interactive, keeps plain left-side label text, and uses a separate outlined destructive button on the right that mirrors the Bluetooth "Forget" affordance.
+- Preserved the existing delete confirmation flow in [qml/applications/settings/ThemeSettings.qml](/home/matt/claude/personal/openautopro/openauto-prodigy/qml/applications/settings/ThemeSettings.qml) by keeping the timer/reset logic and routing the action through a dedicated `triggerDeleteThemeAction()` helper.
+- Extended [tests/test_settings_menu_structure.cpp](/home/matt/claude/personal/openautopro/openauto-prodigy/tests/test_settings_menu_structure.cpp) so the regression now requires the dedicated button label, destructive outline styling, `SettingsHoldArea` button click handling, and the removal of the old whole-row trash-icon pattern.
+
+**Why:**
+- The old delete row mixed destructive intent into the entire row and used a leading trash icon, which made it feel different from the established Bluetooth device action pattern. Moving delete into its own button makes the destructive action explicit while keeping the row itself readable and calm.
+
+**Status:** Local targeted regression coverage, full local build, full `ctest`, and Pi cross-build are complete. Pi deploy/hardware verification is pending a fresh go-ahead for remote access.
+
+**Next steps:**
+1. If approved, `rsync` the new `build-pi/src/openauto-prodigy` binary to the Pi and restart `openauto-prodigy.service`.
+2. On hardware, verify the Theme page delete row reads cleanly and that the `Delete` -> `Confirm` button flow feels right at touch size.
+3. If more destructive rows appear later, consider extracting this outlined action affordance into a shared reusable QML control instead of cloning the pattern.
+
+**Verification commands/results:**
+- `cd build && cmake --build . --target test_settings_menu_structure -j$(nproc) && ctest -R test_settings_menu_structure --output-on-failure`
+  - First run (before implementation): failed because `ThemeSettings.qml` did not define the required button-based delete affordance.
+  - Second run (after implementation): passed.
+- `cd build && cmake --build . -j$(nproc)`
+  - Passed.
+- `cd build && ctest --output-on-failure`
+  - Passed: `100% tests passed, 0 tests failed out of 72`.
+- `bash ./cross-build.sh`
+  - Passed: produced `build-pi/src/openauto-prodigy`.
+  - Notes: emitted the existing Qt QML plugin-link warnings and locale warnings during configure/build, but the aarch64 build completed successfully.
+
+---
+
 ## 2026-03-11 — Settings subpage gutter padding
 
 **What changed:**
