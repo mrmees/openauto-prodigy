@@ -84,21 +84,21 @@ void YamlConfig::initDefaults()
     YAML::Node aaTile;
     aaTile["id"] = "org.openauto.android-auto";
     aaTile["label"] = "Android Auto";
-    aaTile["icon"] = QString(QChar(0xeff7)).toStdString();  // directions_car
+    aaTile["icon"] = QString(QChar(0xe859)).toStdString();  // android
     aaTile["action"] = "plugin:org.openauto.android-auto";
     tiles.push_back(aaTile);
 
     YAML::Node btTile;
     btTile["id"] = "org.openauto.bt-audio";
     btTile["label"] = "Music";
-    btTile["icon"] = QString(QChar(0xf01f)).toStdString();  // headphones
+    btTile["icon"] = QString(QChar(0xe60f)).toStdString();  // bluetooth_audio
     btTile["action"] = "plugin:org.openauto.bt-audio";
     tiles.push_back(btTile);
 
     YAML::Node phoneTile;
     phoneTile["id"] = "org.openauto.phone";
     phoneTile["label"] = "Phone";
-    phoneTile["icon"] = QString(QChar(0xf0d4)).toStdString();  // phone
+    phoneTile["icon"] = QString(QChar(0xe61d)).toStdString();  // phone_in_talk
     phoneTile["action"] = "plugin:org.openauto.phone";
     tiles.push_back(phoneTile);
 

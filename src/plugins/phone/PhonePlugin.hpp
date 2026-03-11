@@ -72,7 +72,7 @@ public:
     // IPlugin — UI
     QUrl qmlComponent() const override;
     QUrl iconSource() const override;
-    QString iconText() const override { return QString(QChar(0xf0d4)); }  // phone
+    QString iconText() const override { return QString(QChar(0xe61d)); }  // phone_in_talk
     QUrl settingsComponent() const override { return {}; }
 
     // IPlugin — Capabilities
