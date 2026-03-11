@@ -48,24 +48,29 @@ Item {
         }
     }
 
-    Connections {
-        target: ApplicationController
-        function onBackRequested() {
+    function goBack() {
+        if (settingsStack.depth > 1) {
+            settingsStack.pop()
             if (settingsStack.depth > 1) {
-                settingsStack.pop()
-                if (settingsStack.depth > 1) {
-                    // Back to a category page (depth 2) — restore category title
-                    var item = settingsStack.currentItem
-                    if (item && item.objectName) {
-                        ApplicationController.setTitle("Settings > " + item.objectName)
-                    } else {
-                        ApplicationController.setTitle("Settings")
-                    }
+                var item = settingsStack.currentItem
+                if (item && item.objectName) {
+                    ApplicationController.setTitle("Settings > " + item.objectName)
                 } else {
                     ApplicationController.setTitle("Settings")
                 }
-                ApplicationController.setBackHandled(true)
+            } else {
+                ApplicationController.setTitle("Settings")
             }
+            return true
+        }
+        return false
+    }
+
+    Connections {
+        target: ApplicationController
+        function onBackRequested() {
+            if (goBack())
+                ApplicationController.setBackHandled(true)
         }
     }
 
@@ -73,48 +78,6 @@ Item {
         id: settingsStack
         anchors.fill: parent
         initialItem: settingsList
-
-        // Swipe-right-to-go-back: left-edge drag zone
-        MouseArea {
-            id: swipeEdge
-            width: UiMetrics.spacing * 6
-            anchors.left: parent.left
-            anchors.top: parent.top
-            anchors.bottom: parent.bottom
-
-            property real startX: 0
-            property real startY: 0
-            property bool fired: false
-
-            onPressed: function(mouse) {
-                startX = mouse.x
-                startY = mouse.y
-                fired = false
-            }
-            onPositionChanged: function(mouse) {
-                if (fired) return
-                var dx = mouse.x - startX
-                var dy = mouse.y - startY
-                if (dx > UiMetrics.spacing * 6 && dx > Math.abs(dy) * 2) {
-                    fired = true
-                    if (settingsStack.depth > 1) {
-                        settingsStack.pop()
-                        if (settingsStack.depth > 1) {
-                            var item = settingsStack.currentItem
-                            if (item && item.objectName) {
-                                ApplicationController.setTitle("Settings > " + item.objectName)
-                            } else {
-                                ApplicationController.setTitle("Settings")
-                            }
-                        } else {
-                            ApplicationController.setTitle("Settings")
-                        }
-                    } else {
-                        ApplicationController.navigateBack()
-                    }
-                }
-            }
-        }
 
         pushEnter: Transition {
             ParallelAnimation {
@@ -139,6 +102,42 @@ Item {
                 OpacityAnimator { from: 1; to: 0; duration: UiMetrics.animDuration; easing.type: Easing.OutCubic }
                 XAnimator { from: 0; to: settingsStack.width * 0.3; duration: UiMetrics.animDuration; easing.type: Easing.OutCubic }
             }
+        }
+    }
+
+    // Swipe-right-to-go-back: left-edge overlay
+    // Must be OUTSIDE StackView so pushed pages can't cover it
+    MouseArea {
+        id: backSwipeEdge
+        anchors.left: parent.left
+        anchors.top: parent.top
+        anchors.bottom: parent.bottom
+        width: Math.max(UiMetrics.touchMin, UiMetrics.spacing * 6)
+        z: 1000
+
+        property real pressX: 0
+        property real pressY: 0
+        property bool tracking: false
+
+        onPressed: function(mouse) {
+            pressX = mouse.x
+            pressY = mouse.y
+            tracking = true
+        }
+        onReleased: tracking = false
+        onCanceled: tracking = false
+        onPositionChanged: function(mouse) {
+            if (!tracking) return
+            var dx = mouse.x - pressX
+            var dy = mouse.y - pressY
+            if (dx > UiMetrics.spacing * 6 && dx > Math.abs(dy) * 1.5) {
+                tracking = false
+                if (!goBack())
+                    ApplicationController.navigateBack()
+            }
+            // Cancel if clearly vertical
+            if (Math.abs(dy) > UiMetrics.spacing * 3 && Math.abs(dy) > dx)
+                tracking = false
         }
     }
 
