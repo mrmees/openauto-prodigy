@@ -139,16 +139,16 @@ Item {
                         size: parent.height * 0.7
                         color: ThemeService.onSurface
                         anchors.left: parent.left
-                        anchors.leftMargin: UiMetrics.spacing
+                        anchors.leftMargin: UiMetrics.spacing * 3
                         anchors.verticalCenter: parent.verticalCenter
                     }
 
                     Text {
                         text: model.name
-                        font.pixelSize: UiMetrics.fontHeading
+                        font.pixelSize: Math.round(parent.height * 0.45)
                         color: ThemeService.onSurface
                         anchors.right: parent.right
-                        anchors.rightMargin: UiMetrics.spacing
+                        anchors.rightMargin: UiMetrics.spacing * 3
                         anchors.verticalCenter: parent.verticalCenter
                     }
                 }
