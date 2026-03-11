@@ -115,11 +115,12 @@ Plans:
   1. All settings sub-pages use consistent alternating-row list styling matching the main settings menu
   2. All interactive controls (toggles, pickers, sliders) have touch-friendly sizing via UiMetrics (DPI-scaled)
   3. Text is readable at arm's length across all target display sizes (no hardcoded pixel values)
-**Plans**: 2 plans
+**Plans**: 3 plans
 
 Plans:
 - [x] 03-01-PLAN.md -- Create SettingsRow component, update controls for flat mode, apply to 5 simpler pages
-- [ ] 03-02-PLAN.md -- Apply SettingsRow to 4 complex pages (Display, Audio, Bluetooth, Debug)
+- [x] 03-02-PLAN.md -- Apply SettingsRow to 4 complex pages (Display, Audio, Bluetooth, Debug)
+- [ ] 03-03-PLAN.md -- Gap closure: increase font base sizes for automotive readability
 
 ## Progress
 
@@ -130,7 +131,7 @@ Phases execute in numeric order: 1 -> 2 -> 3
 |-------|----------------|--------|-----------|
 | 1. Widget System | 3/3 | Complete | 2026-03-10 |
 | 2. Settings Restructure | 2/2 | Complete   | 2026-03-11 |
-| 3. Touch Normalization | 1/2 | In progress | - |
+| 3. Touch Normalization | 2/3 | In progress (gap closure) | - |
 
 ---
-*Last updated: 2026-03-11 -- Plan 03-01 complete (settings row foundation)*
+*Last updated: 2026-03-11 -- Gap closure plan 03-03 created for font size readability*

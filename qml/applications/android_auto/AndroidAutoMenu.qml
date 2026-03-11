@@ -56,7 +56,7 @@ Item {
                 anchors.horizontalCenter: parent.horizontalCenter
                 text: modelData.x + "," + modelData.y
                 color: "#00FF00"
-                font.pixelSize: 10
+                font.pixelSize: UiMetrics.fontTiny
             }
         }
     }

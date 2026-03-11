@@ -88,11 +88,11 @@ QtObject {
     readonly property int sectionGap: Math.round(20 * scale)
 
     // Fonts (overridable -- use _fontScaleTotal, with pixel floors)
-    readonly property int fontTiny:    { var o = _tok("fontTiny"); return isNaN(o) ? Math.max(Math.round(14 * _fontScaleTotal), _floor("fontTiny", 10)) : o; }
-    readonly property int fontSmall:   { var o = _tok("fontSmall"); return isNaN(o) ? Math.max(Math.round(16 * _fontScaleTotal), _floor("fontSmall", 12)) : o; }
-    readonly property int fontBody:    { var o = _tok("fontBody"); return isNaN(o) ? Math.max(Math.round(20 * _fontScaleTotal), _floor("fontBody", 14)) : o; }
-    readonly property int fontTitle:   { var o = _tok("fontTitle"); return isNaN(o) ? Math.max(Math.round(22 * _fontScaleTotal), _floor("fontTitle", 16)) : o; }
-    readonly property int fontHeading: { var o = _tok("fontHeading"); return isNaN(o) ? Math.max(Math.round(28 * _fontScaleTotal), _floor("fontHeading", 18)) : o; }
+    readonly property int fontTiny:    { var o = _tok("fontTiny"); return isNaN(o) ? Math.max(Math.round(20 * _fontScaleTotal), _floor("fontTiny", 14)) : o; }
+    readonly property int fontSmall:   { var o = _tok("fontSmall"); return isNaN(o) ? Math.max(Math.round(22 * _fontScaleTotal), _floor("fontSmall", 16)) : o; }
+    readonly property int fontBody:    { var o = _tok("fontBody"); return isNaN(o) ? Math.max(Math.round(28 * _fontScaleTotal), _floor("fontBody", 20)) : o; }
+    readonly property int fontTitle:   { var o = _tok("fontTitle"); return isNaN(o) ? Math.max(Math.round(30 * _fontScaleTotal), _floor("fontTitle", 22)) : o; }
+    readonly property int fontHeading: { var o = _tok("fontHeading"); return isNaN(o) ? Math.max(Math.round(36 * _fontScaleTotal), _floor("fontHeading", 26)) : o; }
 
     // Component sizing (overridable layout tokens -- use scale)
     readonly property int headerH:     { var o = _tok("headerH"); return isNaN(o) ? Math.round(56 * scale) : o; }
@@ -155,11 +155,11 @@ QtObject {
 
         // Log font floor activations
         var fonts = [
-            { name: "fontTiny",    base: 14, floor: _floor("fontTiny", 10) },
-            { name: "fontSmall",   base: 16, floor: _floor("fontSmall", 12) },
-            { name: "fontBody",    base: 20, floor: _floor("fontBody", 14) },
-            { name: "fontTitle",   base: 22, floor: _floor("fontTitle", 16) },
-            { name: "fontHeading", base: 28, floor: _floor("fontHeading", 18) }
+            { name: "fontTiny",    base: 20, floor: _floor("fontTiny", 14) },
+            { name: "fontSmall",   base: 22, floor: _floor("fontSmall", 16) },
+            { name: "fontBody",    base: 28, floor: _floor("fontBody", 20) },
+            { name: "fontTitle",   base: 30, floor: _floor("fontTitle", 22) },
+            { name: "fontHeading", base: 36, floor: _floor("fontHeading", 26) }
         ];
         for (var i = 0; i < fonts.length; i++) {
             var f = fonts[i];
