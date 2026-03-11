@@ -104,67 +104,53 @@ Item {
         id: settingsList
 
         Item {
-            id: settingsGrid
             anchors.fill: parent
-            anchors.margins: UiMetrics.gridGap / 2
 
-            readonly property int _prefTileW: UiMetrics.tileW
-            readonly property int _gridCols: Math.max(1, Math.floor(width / (_prefTileW + UiMetrics.gridGap)))
-            readonly property int _actualTileW: Math.floor((width - (_gridCols - 1) * UiMetrics.gridGap) / _gridCols)
+            ListView {
+                anchors.fill: parent
+                clip: true
+                flickableDirection: Flickable.VerticalFlick
 
-            GridLayout {
-                anchors.horizontalCenter: parent.horizontalCenter
-                anchors.top: parent.top
-                columns: settingsGrid._gridCols
-                columnSpacing: UiMetrics.gridGap
-                rowSpacing: UiMetrics.gridGap
-
-                Tile {
-                    tileName: "Android Auto"
-                    tileIcon: "\ue531"
-                    Layout.preferredWidth: settingsGrid._actualTileW
-                    Layout.preferredHeight: UiMetrics.tileH
-                    onClicked: openPage("aa")
+                model: ListModel {
+                    ListElement { name: "Android Auto"; icon: "\ue531"; pageId: "aa" }
+                    ListElement { name: "Display"; icon: "\ueb97"; pageId: "display" }
+                    ListElement { name: "Audio"; icon: "\ue050"; pageId: "audio" }
+                    ListElement { name: "Bluetooth"; icon: "\ue1a7"; pageId: "connection" }
+                    ListElement { name: "Companion"; icon: "\ue324"; pageId: "companion" }
+                    ListElement { name: "System"; icon: "\uf8cd"; pageId: "system" }
                 }
 
-                Tile {
-                    tileName: "Display"
-                    tileIcon: "\ueb97"
-                    Layout.preferredWidth: settingsGrid._actualTileW
-                    Layout.preferredHeight: UiMetrics.tileH
-                    onClicked: openPage("display")
-                }
+                delegate: Rectangle {
+                    width: ListView.view.width
+                    height: UiMetrics.tileH * 0.55
+                    color: delegateArea.pressed
+                          ? ThemeService.primaryContainer
+                          : (index % 2 === 0 ? ThemeService.surfaceContainer : ThemeService.surfaceContainerHigh)
 
-                Tile {
-                    tileName: "Audio"
-                    tileIcon: "\ue050"
-                    Layout.preferredWidth: settingsGrid._actualTileW
-                    Layout.preferredHeight: UiMetrics.tileH
-                    onClicked: openPage("audio")
-                }
+                    MouseArea {
+                        id: delegateArea
+                        anchors.fill: parent
+                        onClicked: openPage(model.pageId)
+                    }
 
-                Tile {
-                    tileName: "Bluetooth"
-                    tileIcon: "\ue1a7"
-                    Layout.preferredWidth: settingsGrid._actualTileW
-                    Layout.preferredHeight: UiMetrics.tileH
-                    onClicked: openPage("connection")
-                }
+                    MaterialIcon {
+                        id: rowIcon
+                        icon: model.icon
+                        size: parent.height * 0.7
+                        color: ThemeService.onSurface
+                        anchors.left: parent.left
+                        anchors.leftMargin: UiMetrics.spacing
+                        anchors.verticalCenter: parent.verticalCenter
+                    }
 
-                Tile {
-                    tileName: "Companion"
-                    tileIcon: "\ue324"
-                    Layout.preferredWidth: settingsGrid._actualTileW
-                    Layout.preferredHeight: UiMetrics.tileH
-                    onClicked: openPage("companion")
-                }
-
-                Tile {
-                    tileName: "System"
-                    tileIcon: "\uf8cd"
-                    Layout.preferredWidth: settingsGrid._actualTileW
-                    Layout.preferredHeight: UiMetrics.tileH
-                    onClicked: openPage("system")
+                    Text {
+                        text: model.name
+                        font.pixelSize: UiMetrics.fontHeading
+                        color: ThemeService.onSurface
+                        anchors.right: parent.right
+                        anchors.rightMargin: UiMetrics.spacing
+                        anchors.verticalCenter: parent.verticalCenter
+                    }
                 }
             }
         }
