@@ -270,9 +270,17 @@ Flickable {
         SectionHeader { text: "Day / Night Mode" }
 
         SettingsToggle {
+            id: forceDarkToggle
             label: "Always Use Dark Mode"
             configPath: "display.force_dark_mode"
-            onToggled: ThemeService.forceDarkMode = checked
+        }
+
+        Connections {
+            target: ConfigService
+            function onConfigChanged(path, value) {
+                if (path === "display.force_dark_mode")
+                    ThemeService.forceDarkMode = (value === true || value === 1 || value === "true")
+            }
         }
 
         Item {
