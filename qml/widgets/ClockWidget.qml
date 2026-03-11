@@ -12,7 +12,7 @@ Item {
     Rectangle {
         anchors.fill: parent
         radius: UiMetrics.radius
-        color: ThemeService.surfaceContainer
+        color: "transparent"  // WidgetHost provides glass background
 
         ColumnLayout {
             anchors.centerIn: parent

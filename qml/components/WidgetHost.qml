@@ -6,9 +6,27 @@ Item {
     property string paneId: ""
     property url widgetSource: ""
     property bool isMainPane: paneId === "main"
+    property real paneOpacity: WidgetPlacementModel.paneOpacity(paneId)
 
-    // Long-press detection for widget picker
     signal longPressed()
+
+    // Glass card background — always visible
+    Rectangle {
+        anchors.fill: parent
+        radius: UiMetrics.radius
+        color: ThemeService.surfaceContainer
+        opacity: widgetHost.paneOpacity
+    }
+
+    // Subtle border for edge definition
+    Rectangle {
+        anchors.fill: parent
+        radius: UiMetrics.radius
+        color: "transparent"
+        border.width: 1
+        border.color: ThemeService.outlineVariant
+        opacity: 0.3
+    }
 
     Loader {
         id: widgetLoader
@@ -22,13 +40,14 @@ Item {
         }
     }
 
-    // Empty state
-    Rectangle {
-        anchors.fill: parent
-        color: ThemeService.surfaceContainer
-        radius: UiMetrics.radius
-        visible: !widgetHost.widgetSource.toString()
+    // Empty state hint
+    NormalText {
+        anchors.centerIn: parent
+        text: "Hold to add widget"
+        font.pixelSize: UiMetrics.fontSmall
+        color: ThemeService.onSurfaceVariant
         opacity: 0.5
+        visible: !widgetHost.widgetSource.toString()
     }
 
     // Long-press detector — sits behind widget content.
@@ -39,5 +58,14 @@ Item {
         z: -1
         pressAndHoldInterval: 500
         onPressAndHold: widgetHost.longPressed()
+    }
+
+    // Refresh opacity when placement changes
+    Connections {
+        target: WidgetPlacementModel
+        function onPaneChanged(changedPaneId) {
+            if (changedPaneId === widgetHost.paneId)
+                widgetHost.paneOpacity = WidgetPlacementModel.paneOpacity(widgetHost.paneId)
+        }
     }
 }

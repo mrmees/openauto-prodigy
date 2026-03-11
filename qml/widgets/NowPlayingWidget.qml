@@ -18,7 +18,7 @@ Item {
     Rectangle {
         anchors.fill: parent
         radius: UiMetrics.radius
-        color: ThemeService.surfaceContainer
+        color: "transparent"  // WidgetHost provides glass background
 
         // Main pane: centered track info + controls
         ColumnLayout {
