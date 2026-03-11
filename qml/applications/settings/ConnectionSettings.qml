@@ -15,64 +15,6 @@ Flickable {
         anchors.margins: UiMetrics.marginPage
         spacing: UiMetrics.spacing
 
-        SectionHeader { text: "Android Auto" }
-
-        SettingsToggle {
-            label: "Auto-connect"
-            configPath: "connection.auto_connect_aa"
-        }
-
-        ReadOnlyField {
-            label: "TCP Port"
-            configPath: "connection.tcp_port"
-            placeholder: "5277"
-        }
-
-        SectionHeader { text: "Protocol Capture" }
-
-        SettingsToggle {
-            label: "Enable Capture"
-            configPath: "connection.protocol_capture.enabled"
-        }
-
-        SegmentedButton {
-            label: "Format"
-            configPath: "connection.protocol_capture.format"
-            options: ["JSONL", "TSV"]
-            values: ["jsonl", "tsv"]
-        }
-
-        SettingsToggle {
-            label: "Include Media Frames"
-            configPath: "connection.protocol_capture.include_media"
-        }
-
-        ReadOnlyField {
-            label: "Capture Path"
-            configPath: "connection.protocol_capture.path"
-            placeholder: "/tmp/oaa-protocol-capture.jsonl"
-        }
-
-        SectionHeader { text: "WiFi Access Point" }
-
-        FullScreenPicker {
-            label: "Channel"
-            configPath: "connection.wifi_ap.channel"
-            options: ["1","2","3","4","5","6","7","8","9","10","11","36","40","44","48"]
-            values: [1,2,3,4,5,6,7,8,9,10,11,36,40,44,48]
-            restartRequired: true
-        }
-
-        SegmentedButton {
-            label: "Band"
-            configPath: "connection.wifi_ap.band"
-            options: ["2.4 GHz", "5 GHz"]
-            values: ["g", "a"]
-            restartRequired: true
-        }
-
-        SectionHeader { text: "Bluetooth" }
-
         ReadOnlyField {
             label: "Device Name"
             configPath: "connection.bt_name"

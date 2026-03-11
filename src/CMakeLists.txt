@@ -283,10 +283,6 @@ set_source_files_properties(../qml/applications/settings/ConnectionSettings.qml 
     QT_QML_SOURCE_TYPENAME "ConnectionSettings"
     QT_RESOURCE_ALIAS "ConnectionSettings.qml"
 )
-set_source_files_properties(../qml/applications/settings/VideoSettings.qml PROPERTIES
-    QT_QML_SOURCE_TYPENAME "VideoSettings"
-    QT_RESOURCE_ALIAS "VideoSettings.qml"
-)
 set_source_files_properties(../qml/applications/settings/SystemSettings.qml PROPERTIES
     QT_QML_SOURCE_TYPENAME "SystemSettings"
     QT_RESOURCE_ALIAS "SystemSettings.qml"
@@ -294,10 +290,6 @@ set_source_files_properties(../qml/applications/settings/SystemSettings.qml PROP
 set_source_files_properties(../qml/applications/settings/CompanionSettings.qml PROPERTIES
     QT_QML_SOURCE_TYPENAME "CompanionSettings"
     QT_RESOURCE_ALIAS "CompanionSettings.qml"
-)
-set_source_files_properties(../qml/applications/settings/AboutSettings.qml PROPERTIES
-    QT_QML_SOURCE_TYPENAME "AboutSettings"
-    QT_RESOURCE_ALIAS "AboutSettings.qml"
 )
 set_source_files_properties(../qml/applications/settings/EqSettings.qml PROPERTIES
     QT_QML_SOURCE_TYPENAME "EqSettings"
@@ -367,10 +359,8 @@ qt_add_qml_module(openauto-prodigy
         ../qml/applications/settings/DisplaySettings.qml
         ../qml/applications/settings/AudioSettings.qml
         ../qml/applications/settings/ConnectionSettings.qml
-        ../qml/applications/settings/VideoSettings.qml
         ../qml/applications/settings/SystemSettings.qml
         ../qml/applications/settings/CompanionSettings.qml
-        ../qml/applications/settings/AboutSettings.qml
         ../qml/applications/settings/EqSettings.qml
         ../qml/applications/settings/ThemeSettings.qml
         ../qml/applications/settings/InformationSettings.qml
