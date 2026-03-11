@@ -616,13 +616,14 @@ QColor ThemeService::onSuccess() const
 
 QColor ThemeService::activeColor(const QString& key) const
 {
-    const auto& colors = nightMode_ ? nightColors_ : dayColors_;
+    const bool night = nightMode();  // respects forceDarkMode_ override
+    const auto& colors = night ? nightColors_ : dayColors_;
     auto it = colors.find(key);
     if (it != colors.end())
         return it.value();
 
     // Fall back to day colors if night doesn't have the key
-    if (nightMode_) {
+    if (night) {
         auto dayIt = dayColors_.find(key);
         if (dayIt != dayColors_.end())
             return dayIt.value();
