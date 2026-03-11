@@ -1,6 +1,7 @@
 #pragma once
 
 #include "core/plugin/IPlugin.hpp"
+#include "core/widget/WidgetTypes.hpp"
 #include <QObject>
 #include <QString>
 #include <QDBusObjectPath>
@@ -73,12 +74,15 @@ public:
     // IPlugin — UI
     QUrl qmlComponent() const override;
     QUrl iconSource() const override;
-    QString iconText() const override { return QString(QChar(0xf01f)); }  // headphones
+    QString iconText() const override { return QString(QChar(0xf032)); }  // media_bluetooth_on
     QUrl settingsComponent() const override { return {}; }
 
     // IPlugin — Capabilities
     QStringList requiredServices() const override { return {}; }
     bool wantsFullscreen() const override { return false; }
+
+    // IPlugin — Widgets
+    QList<oap::WidgetDescriptor> widgetDescriptors() const override;
 
     // Properties
     int connectionState() const { return connectionState_; }

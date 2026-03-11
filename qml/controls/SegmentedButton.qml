@@ -5,6 +5,7 @@ import QtQuick.Controls
 
 Item {
     id: root
+    readonly property bool blocksBackHold: true
     property string label: ""
     property string configPath: ""
     property var options: []      // display strings: ["30", "60"] or ["Left", "Right"]
@@ -147,10 +148,11 @@ Item {
                             color: segment.isSelected ? ThemeService.onSecondaryContainer : ThemeService.onSurface
                         }
 
-                        MouseArea {
+                        SettingsHoldArea {
                             id: segMouseArea
                             anchors.fill: parent
-                            onClicked: {
+                            enableBackHold: false
+                            onShortClicked: {
                                 if (internal.selectedIndex === index) return
                                 internal.selectedIndex = index
                                 if (root.configPath === "") return

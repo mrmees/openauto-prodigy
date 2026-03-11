@@ -46,6 +46,10 @@
 #include "ui/AudioDeviceModel.hpp"
 #include "ui/CodecCapabilityModel.hpp"
 #include "ui/DisplayInfo.hpp"
+#include "core/widget/WidgetRegistry.hpp"
+#include "core/widget/WidgetTypes.hpp"
+#include "ui/WidgetPlacementModel.hpp"
+#include "ui/WidgetPickerModel.hpp"
 #include <QQuickWindow>
 #include <algorithm>
 
@@ -197,6 +201,26 @@ int main(int argc, char *argv[])
     if (savedWallpaper.isValid())
         themeService->setWallpaperOverride(savedWallpaper.toString());
 
+    // Apply force-dark-mode override (HU only — AA uses real night mode)
+    QVariant forceDark = yamlConfig->valueByPath("display.force_dark_mode");
+    if (forceDark.isValid())
+        themeService->setForceDarkMode(forceDark.toBool());
+    else
+        themeService->setForceDarkMode(true); // default: on
+
+    // Evaluate time-based night mode at startup so theme is correct before AA connects
+    if (yamlConfig->nightModeSource() == "time") {
+        QTime now = QTime::currentTime();
+        QTime dayStart = QTime::fromString(yamlConfig->nightModeDayStart(), "HH:mm");
+        QTime nightStart = QTime::fromString(yamlConfig->nightModeNightStart(), "HH:mm");
+        if (!dayStart.isValid()) dayStart = QTime(7, 0);
+        if (!nightStart.isValid()) nightStart = QTime(19, 0);
+        bool night = (nightStart > dayStart)
+            ? !(now >= dayStart && now < nightStart)
+            : (now >= nightStart && now < dayStart);
+        themeService->setNightMode(night);
+    }
+
     // --- Display service (brightness) ---
     auto displayService = new oap::DisplayService(&app);
     QVariant savedBrightness = yamlConfig->valueByPath("display.brightness");
@@ -221,6 +245,16 @@ int main(int argc, char *argv[])
 
     // --- Plugin infrastructure ---
     auto configService = std::make_unique<oap::ConfigService>(yamlConfig.get(), yamlPath);
+
+    // Live-toggle verbose logging from settings UI
+    QObject::connect(configService.get(), &oap::ConfigService::configChanged,
+        [](const QString& path, const QVariant& value) {
+            if (path == "logging.verbose") {
+                oap::setVerbose(value.toBool());
+                qCInfo(lcCore) << "Verbose logging" << (value.toBool() ? "enabled" : "disabled") << "(via settings)";
+            }
+        });
+
     auto hostContext = std::make_unique<oap::HostContext>();
     hostContext->setConfigService(configService.get());
     hostContext->setThemeService(themeService);
@@ -332,6 +366,46 @@ int main(int argc, char *argv[])
     if (auto* bridge = aaPlugin->coordBridge()) {
         navbarController->setCoordBridge(bridge);
     }
+
+    // --- Widget system ---
+    auto widgetRegistry = new oap::WidgetRegistry(&app);
+
+    // Register built-in standalone widgets
+    {
+        oap::WidgetDescriptor clockDesc;
+        clockDesc.id = "org.openauto.clock";
+        clockDesc.displayName = "Clock";
+        clockDesc.iconName = "\ue8b5";  // schedule
+        clockDesc.supportedSizes = oap::WidgetSize::Main | oap::WidgetSize::Sub;
+        clockDesc.qmlComponent = QUrl("qrc:/OpenAutoProdigy/ClockWidget.qml");
+        widgetRegistry->registerWidget(clockDesc);
+
+        oap::WidgetDescriptor aaStatusDesc;
+        aaStatusDesc.id = "org.openauto.aa-status";
+        aaStatusDesc.displayName = "Android Auto";
+        aaStatusDesc.iconName = "\ueff7";  // directions_car
+        aaStatusDesc.supportedSizes = oap::WidgetSize::Main | oap::WidgetSize::Sub;
+        aaStatusDesc.qmlComponent = QUrl("qrc:/OpenAutoProdigy/AAStatusWidget.qml");
+        widgetRegistry->registerWidget(aaStatusDesc);
+    }
+
+    // Collect widget descriptors from plugins
+    for (auto* plugin : pluginManager.plugins()) {
+        for (const auto& desc : plugin->widgetDescriptors()) {
+            widgetRegistry->registerWidget(desc);
+        }
+    }
+
+    auto widgetPlacementModel = new oap::WidgetPlacementModel(widgetRegistry, &app);
+    widgetPlacementModel->setPlacements(yamlConfig->widgetPlacements());
+    widgetPlacementModel->setActivePageId("home");
+
+    // Auto-save placements on change (updates in-memory YAML + writes to disk)
+    QObject::connect(widgetPlacementModel, &oap::WidgetPlacementModel::placementsChanged,
+                     widgetPlacementModel, [yamlConfig = yamlConfig.get(), widgetPlacementModel, yamlPath]() {
+        yamlConfig->setWidgetPlacements(widgetPlacementModel->allPlacements());
+        yamlConfig->save(yamlPath);
+    });
 
     // --- IPC server for web config panel ---
     auto ipcServer = new oap::IpcServer(&app);
@@ -476,6 +550,11 @@ int main(int argc, char *argv[])
     if (companionListener)
         engine.rootContext()->setContextProperty("CompanionService", companionListener);
 
+    engine.rootContext()->setContextProperty("WidgetPlacementModel", widgetPlacementModel);
+    engine.rootContext()->setContextProperty("WidgetRegistry", widgetRegistry);
+
+    auto widgetPickerModel = new oap::WidgetPickerModel(widgetRegistry, &app);
+    engine.rootContext()->setContextProperty("WidgetPickerModel", widgetPickerModel);
     engine.rootContext()->setContextProperty("SystemService", systemClient);
     engine.rootContext()->setContextProperty("BluetoothManager", bluetoothManager);
     engine.rootContext()->setContextProperty("PairedDevicesModel", bluetoothManager->pairedDevicesModel());

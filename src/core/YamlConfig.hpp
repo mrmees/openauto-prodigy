@@ -6,6 +6,7 @@
 #include <QVariant>
 #include <QVariantMap>
 #include <yaml-cpp/yaml.h>
+#include "core/widget/WidgetTypes.hpp"
 
 namespace oap {
 
@@ -112,6 +113,13 @@ public:
     void setEqStreamPreset(const QString& streamName, const QString& presetName);
     QList<EqUserPreset> eqUserPresets() const;
     void setEqUserPresets(const QList<EqUserPreset>& presets);
+
+    // Widget home screen config
+    int widgetConfigVersion() const;
+    QList<PageDescriptor> widgetPages() const;
+    void setWidgetPages(const QList<PageDescriptor>& pages);
+    QList<WidgetPlacement> widgetPlacements() const;
+    void setWidgetPlacements(const QList<WidgetPlacement>& placements);
 
     // Plugins
     QStringList enabledPlugins() const;

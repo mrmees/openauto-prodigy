@@ -191,6 +191,11 @@ bool ThemeService::setTheme(const QString& themeId)
     return true;
 }
 
+bool ThemeService::nightMode() const
+{
+    return forceDarkMode_ || nightMode_;
+}
+
 void ThemeService::setNightMode(bool night)
 {
     if (nightMode_ == night) return;
@@ -199,8 +204,22 @@ void ThemeService::setNightMode(bool night)
     emit colorsChanged();
 }
 
+void ThemeService::setForceDarkMode(bool force)
+{
+    if (forceDarkMode_ == force) return;
+    forceDarkMode_ = force;
+    emit forceDarkModeChanged();
+    emit modeChanged();
+    emit colorsChanged();
+}
+
 void ThemeService::toggleMode()
 {
+    if (forceDarkMode_) {
+        // Temporarily disable force-dark for this session
+        setForceDarkMode(false);
+        return;
+    }
     setNightMode(!nightMode_);
 }
 
@@ -597,13 +616,14 @@ QColor ThemeService::onSuccess() const
 
 QColor ThemeService::activeColor(const QString& key) const
 {
-    const auto& colors = nightMode_ ? nightColors_ : dayColors_;
+    const bool night = nightMode();  // respects forceDarkMode_ override
+    const auto& colors = night ? nightColors_ : dayColors_;
     auto it = colors.find(key);
     if (it != colors.end())
         return it.value();
 
     // Fall back to day colors if night doesn't have the key
-    if (nightMode_) {
+    if (night) {
         auto dayIt = dayColors_.find(key);
         if (dayIt != dayColors_.end())
             return dayIt.value();

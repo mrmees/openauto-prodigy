@@ -98,6 +98,10 @@ oap_add_test(test_evdev_coord_bridge SOURCES test_evdev_coord_bridge.cpp)
 # --- Navbar tests ---
 
 oap_add_test(test_navbar_controller SOURCES test_navbar_controller.cpp)
+oap_add_test(test_settings_menu_structure
+    SOURCES test_settings_menu_structure.cpp
+    DEFS TEST_SOURCE_DIR="${CMAKE_SOURCE_DIR}"
+)
 
 # --- DSP tests ---
 
@@ -106,6 +110,21 @@ oap_add_test(test_soft_limiter SOURCES test_soft_limiter.cpp)
 oap_add_test(test_equalizer_engine SOURCES test_equalizer_engine.cpp)
 oap_add_test(test_equalizer_presets SOURCES test_equalizer_presets.cpp)
 oap_add_test(test_equalizer_service SOURCES test_equalizer_service.cpp)
+
+# --- Widget tests ---
+
+oap_add_test(test_widget_types SOURCES test_widget_types.cpp)
+oap_add_test(test_widget_registry SOURCES test_widget_registry.cpp)
+oap_add_test(test_widget_instance_context SOURCES test_widget_instance_context.cpp)
+oap_add_test(test_widget_plugin_integration SOURCES test_widget_plugin_integration.cpp)
+
+configure_file(data/test_widget_config.yaml ${CMAKE_CURRENT_BINARY_DIR}/data/test_widget_config.yaml COPYONLY)
+oap_add_test(test_widget_placement_model SOURCES test_widget_placement_model.cpp)
+
+oap_add_test(test_widget_config
+    SOURCES test_widget_config.cpp
+    DEFS TEST_DATA_DIR="${CMAKE_CURRENT_BINARY_DIR}/data"
+)
 
 # --- Script tests (no compilation) ---
 
@@ -120,5 +139,8 @@ add_test(
 
 # GUI/Quick tests need offscreen platform when no display is available
 set_tests_properties(test_configuration test_theme_service test_display_service test_plugin_model test_aa_orchestrator
+    PROPERTIES ENVIRONMENT "QT_QPA_PLATFORM=offscreen"
+)
+set_tests_properties(test_settings_menu_structure
     PROPERTIES ENVIRONMENT "QT_QPA_PLATFORM=offscreen"
 )

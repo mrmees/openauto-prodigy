@@ -51,5 +51,21 @@ See .planning/milestones/v0.5.0-ROADMAP.md for archived details.
 
 </details>
 
+<details>
+<summary>v0.5.1 DPI Sizing & UI Polish (Phases 1-4 + insertions) - SHIPPED 2026-03-10</summary>
+
+See .planning/milestones/v0.5.1-ROADMAP.md for archived details.
+
+</details>
+
 ---
-*Last updated: 2026-03-08 -- v0.5.0 milestone archived*
+
+<details>
+<summary>v0.5.2 Widget System & UI Polish (Phases 1-3) - SHIPPED 2026-03-11</summary>
+
+See .planning/milestones/v0.5.2-ROADMAP.md for archived details.
+
+</details>
+
+---
+*Last updated: 2026-03-11 -- v0.5.2 shipped*

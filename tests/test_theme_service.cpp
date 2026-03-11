@@ -1031,6 +1031,80 @@ private slots:
         QVERIFY(!service.availableThemes().contains("connected-device"));
     }
 
+    void forceDarkModeOverridesNightMode()
+    {
+        oap::ThemeService service;
+        service.loadThemeFile(QFINDTESTDATA("data/themes/default/theme.yaml"));
+
+        QVERIFY(!service.nightMode());
+        service.setForceDarkMode(true);
+        QVERIFY(service.nightMode());
+
+        // Even setting night mode off doesn't override force dark
+        service.setNightMode(false);
+        QVERIFY(service.nightMode());
+
+        // Disabling force dark restores real state
+        service.setForceDarkMode(false);
+        QVERIFY(!service.nightMode());
+    }
+
+    void forceDarkModeRealNightState()
+    {
+        oap::ThemeService service;
+        service.loadThemeFile(QFINDTESTDATA("data/themes/default/theme.yaml"));
+
+        service.setForceDarkMode(true);
+        QVERIFY(service.nightMode()); // QML sees dark
+
+        // Real state is still day
+        QVERIFY(!service.realNightMode());
+
+        // Set real night via setNightMode
+        service.setNightMode(true);
+        QVERIFY(service.realNightMode());
+
+        // QML still sees dark (unchanged)
+        QVERIFY(service.nightMode());
+    }
+
+    void forceDarkModeSignals()
+    {
+        oap::ThemeService service;
+        service.loadThemeFile(QFINDTESTDATA("data/themes/default/theme.yaml"));
+
+        QSignalSpy forceSpy(&service, &oap::ThemeService::forceDarkModeChanged);
+        QSignalSpy modeSpy(&service, &oap::ThemeService::modeChanged);
+        QSignalSpy colorsSpy(&service, &oap::ThemeService::colorsChanged);
+
+        service.setForceDarkMode(true);
+        QCOMPARE(forceSpy.count(), 1);
+        QCOMPARE(modeSpy.count(), 1);
+        QCOMPARE(colorsSpy.count(), 1);
+
+        // Setting same value again should not emit
+        service.setForceDarkMode(true);
+        QCOMPARE(forceSpy.count(), 1);
+    }
+
+    void forceDarkModeToggle()
+    {
+        oap::ThemeService service;
+        service.loadThemeFile(QFINDTESTDATA("data/themes/default/theme.yaml"));
+
+        service.setForceDarkMode(true);
+        QVERIFY(service.nightMode());
+
+        // toggleMode disables force dark for the session
+        service.toggleMode();
+        QVERIFY(!service.forceDarkMode());
+        QVERIFY(!service.nightMode());
+
+        // toggleMode now acts normally
+        service.toggleMode();
+        QVERIFY(service.nightMode());
+    }
+
     void setThemeDefaultWallpaperChangesWithTheme()
     {
         QTemporaryDir tmpDir;

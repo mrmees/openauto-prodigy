@@ -425,6 +425,18 @@ QUrl BtAudioPlugin::iconSource() const
     return {};  // Font-based icons — see MaterialIcon.qml (\uf01f headphones)
 }
 
+QList<oap::WidgetDescriptor> BtAudioPlugin::widgetDescriptors() const
+{
+    oap::WidgetDescriptor desc;
+    desc.id = QStringLiteral("org.openauto.bt-now-playing");
+    desc.displayName = QStringLiteral("Now Playing");
+    desc.iconName = QStringLiteral("\ue405");  // music_note
+    desc.supportedSizes = oap::WidgetSize::Main | oap::WidgetSize::Sub;
+    desc.qmlComponent = QUrl(QStringLiteral("qrc:/OpenAutoProdigy/NowPlayingWidget.qml"));
+    desc.pluginId = id();
+    return {desc};
+}
+
 void BtAudioPlugin::play()
 {
     sendPlayerCommand(QStringLiteral("Play"));

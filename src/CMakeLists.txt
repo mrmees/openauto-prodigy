@@ -51,6 +51,10 @@ add_library(openauto-core STATIC
     plugins/bt_audio/BtAudioPlugin.cpp
     plugins/phone/PhonePlugin.cpp
     plugins/equalizer/EqualizerPlugin.cpp
+    core/widget/WidgetRegistry.cpp
+    ui/WidgetInstanceContext.cpp
+    ui/WidgetPlacementModel.cpp
+    ui/WidgetPickerModel.cpp
     ${CMAKE_SOURCE_DIR}/libs/qrcodegen/qrcodegen.cpp
 )
 
@@ -138,6 +142,22 @@ set_source_files_properties(../qml/controls/ReadOnlyField.qml PROPERTIES
     QT_QML_SOURCE_TYPENAME "ReadOnlyField"
     QT_RESOURCE_ALIAS "ReadOnlyField.qml"
 )
+set_source_files_properties(../qml/controls/SettingsRow.qml PROPERTIES
+    QT_QML_SOURCE_TYPENAME "SettingsRow"
+    QT_RESOURCE_ALIAS "SettingsRow.qml"
+)
+set_source_files_properties(../qml/controls/SettingsHoldArea.qml PROPERTIES
+    QT_QML_SOURCE_TYPENAME "SettingsHoldArea"
+    QT_RESOURCE_ALIAS "SettingsHoldArea.qml"
+)
+set_source_files_properties(../qml/controls/SettingsScrollHints.qml PROPERTIES
+    QT_QML_SOURCE_TYPENAME "SettingsScrollHints"
+    QT_RESOURCE_ALIAS "SettingsScrollHints.qml"
+)
+set_source_files_properties(../qml/controls/BackHoldArea.qml PROPERTIES
+    QT_QML_SOURCE_TYPENAME "BackHoldArea"
+    QT_RESOURCE_ALIAS "BackHoldArea.qml"
+)
 set_source_files_properties(../qml/controls/InfoBanner.qml PROPERTIES
     QT_QML_SOURCE_TYPENAME "InfoBanner"
     QT_RESOURCE_ALIAS "InfoBanner.qml"
@@ -203,6 +223,38 @@ set_source_files_properties(../qml/components/ExitDialog.qml PROPERTIES
     QT_QML_SOURCE_TYPENAME "ExitDialog"
     QT_RESOURCE_ALIAS "ExitDialog.qml"
 )
+set_source_files_properties(../qml/components/WidgetHost.qml PROPERTIES
+    QT_QML_SOURCE_TYPENAME "WidgetHost"
+    QT_RESOURCE_ALIAS "WidgetHost.qml"
+)
+set_source_files_properties(../qml/components/LauncherDock.qml PROPERTIES
+    QT_QML_SOURCE_TYPENAME "LauncherDock"
+    QT_RESOURCE_ALIAS "LauncherDock.qml"
+)
+set_source_files_properties(../qml/components/WidgetPicker.qml PROPERTIES
+    QT_QML_SOURCE_TYPENAME "WidgetPicker"
+    QT_RESOURCE_ALIAS "WidgetPicker.qml"
+)
+set_source_files_properties(../qml/components/WidgetContextMenu.qml PROPERTIES
+    QT_QML_SOURCE_TYPENAME "WidgetContextMenu"
+    QT_RESOURCE_ALIAS "WidgetContextMenu.qml"
+    QT_QML_SKIP_CACHEGEN TRUE
+)
+set_source_files_properties(../qml/widgets/ClockWidget.qml PROPERTIES
+    QT_QML_SOURCE_TYPENAME "ClockWidget"
+    QT_RESOURCE_ALIAS "ClockWidget.qml"
+    QT_QML_SKIP_CACHEGEN TRUE
+)
+set_source_files_properties(../qml/widgets/AAStatusWidget.qml PROPERTIES
+    QT_QML_SOURCE_TYPENAME "AAStatusWidget"
+    QT_RESOURCE_ALIAS "AAStatusWidget.qml"
+    QT_QML_SKIP_CACHEGEN TRUE
+)
+set_source_files_properties(../qml/widgets/NowPlayingWidget.qml PROPERTIES
+    QT_QML_SOURCE_TYPENAME "NowPlayingWidget"
+    QT_RESOURCE_ALIAS "NowPlayingWidget.qml"
+    QT_QML_SKIP_CACHEGEN TRUE
+)
 set_source_files_properties(../qml/applications/launcher/LauncherMenu.qml PROPERTIES
     QT_QML_SOURCE_TYPENAME "LauncherMenu"
     QT_RESOURCE_ALIAS "LauncherMenu.qml"
@@ -247,10 +299,6 @@ set_source_files_properties(../qml/applications/settings/ConnectionSettings.qml 
     QT_QML_SOURCE_TYPENAME "ConnectionSettings"
     QT_RESOURCE_ALIAS "ConnectionSettings.qml"
 )
-set_source_files_properties(../qml/applications/settings/VideoSettings.qml PROPERTIES
-    QT_QML_SOURCE_TYPENAME "VideoSettings"
-    QT_RESOURCE_ALIAS "VideoSettings.qml"
-)
 set_source_files_properties(../qml/applications/settings/SystemSettings.qml PROPERTIES
     QT_QML_SOURCE_TYPENAME "SystemSettings"
     QT_RESOURCE_ALIAS "SystemSettings.qml"
@@ -259,13 +307,21 @@ set_source_files_properties(../qml/applications/settings/CompanionSettings.qml P
     QT_QML_SOURCE_TYPENAME "CompanionSettings"
     QT_RESOURCE_ALIAS "CompanionSettings.qml"
 )
-set_source_files_properties(../qml/applications/settings/AboutSettings.qml PROPERTIES
-    QT_QML_SOURCE_TYPENAME "AboutSettings"
-    QT_RESOURCE_ALIAS "AboutSettings.qml"
-)
 set_source_files_properties(../qml/applications/settings/EqSettings.qml PROPERTIES
     QT_QML_SOURCE_TYPENAME "EqSettings"
     QT_RESOURCE_ALIAS "EqSettings.qml"
+)
+set_source_files_properties(../qml/applications/settings/ThemeSettings.qml PROPERTIES
+    QT_QML_SOURCE_TYPENAME "ThemeSettings"
+    QT_RESOURCE_ALIAS "ThemeSettings.qml"
+)
+set_source_files_properties(../qml/applications/settings/InformationSettings.qml PROPERTIES
+    QT_QML_SOURCE_TYPENAME "InformationSettings"
+    QT_RESOURCE_ALIAS "InformationSettings.qml"
+)
+set_source_files_properties(../qml/applications/settings/DebugSettings.qml PROPERTIES
+    QT_QML_SOURCE_TYPENAME "DebugSettings"
+    QT_RESOURCE_ALIAS "DebugSettings.qml"
 )
 
 qt_add_qml_module(openauto-prodigy
@@ -285,6 +341,10 @@ qt_add_qml_module(openauto-prodigy
         ../qml/controls/FullScreenPicker.qml
         ../qml/controls/SegmentedButton.qml
         ../qml/controls/ReadOnlyField.qml
+        ../qml/controls/SettingsRow.qml
+        ../qml/controls/SettingsHoldArea.qml
+        ../qml/controls/SettingsScrollHints.qml
+        ../qml/controls/BackHoldArea.qml
         ../qml/controls/InfoBanner.qml
         ../qml/controls/EqBandSlider.qml
         ../qml/controls/ElevatedButton.qml
@@ -301,6 +361,13 @@ qt_add_qml_module(openauto-prodigy
         ../qml/components/FirstRunBanner.qml
         ../qml/components/NotificationArea.qml
         ../qml/components/ExitDialog.qml
+        ../qml/components/WidgetHost.qml
+        ../qml/components/LauncherDock.qml
+        ../qml/components/WidgetPicker.qml
+        ../qml/components/WidgetContextMenu.qml
+        ../qml/widgets/ClockWidget.qml
+        ../qml/widgets/AAStatusWidget.qml
+        ../qml/widgets/NowPlayingWidget.qml
         ../qml/applications/launcher/LauncherMenu.qml
         ../qml/applications/android_auto/AndroidAutoMenu.qml
         ../qml/applications/settings/SettingsMenu.qml
@@ -312,11 +379,12 @@ qt_add_qml_module(openauto-prodigy
         ../qml/applications/settings/DisplaySettings.qml
         ../qml/applications/settings/AudioSettings.qml
         ../qml/applications/settings/ConnectionSettings.qml
-        ../qml/applications/settings/VideoSettings.qml
         ../qml/applications/settings/SystemSettings.qml
         ../qml/applications/settings/CompanionSettings.qml
-        ../qml/applications/settings/AboutSettings.qml
         ../qml/applications/settings/EqSettings.qml
+        ../qml/applications/settings/ThemeSettings.qml
+        ../qml/applications/settings/InformationSettings.qml
+        ../qml/applications/settings/DebugSettings.qml
     RESOURCES
         ../resources/resources.qrc
 )

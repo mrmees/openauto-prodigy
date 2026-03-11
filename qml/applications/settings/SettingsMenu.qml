@@ -48,25 +48,52 @@ Item {
         }
     }
 
-    Connections {
-        target: ApplicationController
-        function onBackRequested() {
+    function goBack() {
+        if (settingsStack.depth > 1) {
+            settingsStack.pop()
             if (settingsStack.depth > 1) {
-                settingsStack.pop()
-                if (settingsStack.depth > 1) {
-                    // Back to a category page (depth 2) — restore category title
-                    var item = settingsStack.currentItem
-                    if (item && item.objectName) {
-                        ApplicationController.setTitle("Settings > " + item.objectName)
-                    } else {
-                        ApplicationController.setTitle("Settings")
-                    }
+                var item = settingsStack.currentItem
+                if (item && item.objectName) {
+                    ApplicationController.setTitle("Settings > " + item.objectName)
                 } else {
                     ApplicationController.setTitle("Settings")
                 }
-                ApplicationController.setBackHandled(true)
+            } else {
+                ApplicationController.setTitle("Settings")
             }
+            return true
         }
+        return false
+    }
+
+    Connections {
+        target: ApplicationController
+        function onBackRequested() {
+            if (goBack())
+                ApplicationController.setBackHandled(true)
+        }
+    }
+
+    // Hit-test: walk parent chain from deepest item looking for blocksBackHold
+    function blocksBackHoldAt(px, py) {
+        var page = settingsStack.currentItem
+        if (!page) return false
+        var local = settingsMenu.mapToItem(page, px, py)
+        var item = page.childAt(local.x, local.y)
+        // Walk down to deepest child
+        while (item) {
+            var child = item.childAt(
+                item.mapFromItem(page, local.x, local.y).x,
+                item.mapFromItem(page, local.x, local.y).y)
+            if (!child) break
+            item = child
+        }
+        // Walk up checking for blocksBackHold marker
+        while (item && item !== settingsMenu) {
+            if (item.blocksBackHold === true) return true
+            item = item.parent
+        }
+        return false
     }
 
     StackView {
@@ -100,72 +127,177 @@ Item {
         }
     }
 
+    function showHoldIndicator(pos) {
+        holdRipple.showAt(pos.x, pos.y)
+    }
+    function hideHoldIndicator() {
+        holdRipple.hide()
+    }
+    function armHold(pos) {
+        if (blocksBackHoldAt(pos.x, pos.y)) return false
+        showHoldIndicator(pos)
+        return true
+    }
+    function cancelHold() { hideHoldIndicator() }
+    function triggerHold() {
+        hideHoldIndicator()
+        if (!goBack()) ApplicationController.navigateBack()
+    }
+
+    // Transparent glass pane above StackView so passive handlers see fresh presses
+    Item {
+        id: backHoldOverlay
+        objectName: "backHoldOverlay"
+        anchors.fill: parent
+        z: 1000
+
+        // Touchscreen handler (Pi) — Qt.NoButton avoids synthetic-mouse conflict
+        TapHandler {
+            id: backHoldTouch
+            target: null
+            gesturePolicy: TapHandler.DragThreshold
+            acceptedDevices: PointerDevice.TouchScreen
+            acceptedPointerTypes: PointerDevice.Finger
+            acceptedButtons: Qt.NoButton
+            longPressThreshold: 0.5
+            dragThreshold: Math.round(UiMetrics.touchMin * 0.5)
+
+            property bool armed: false
+            onPressedChanged: {
+                if (pressed) { armed = settingsMenu.armHold(point.position) }
+                else { armed = false; settingsMenu.cancelHold() }
+            }
+            onCanceled: { armed = false; settingsMenu.cancelHold() }
+            onLongPressed: { if (!armed) return; armed = false; settingsMenu.triggerHold() }
+        }
+
+        // Mouse handler (desktop dev)
+        TapHandler {
+            id: backHoldMouse
+            target: null
+            gesturePolicy: TapHandler.DragThreshold
+            acceptedDevices: PointerDevice.Mouse | PointerDevice.TouchPad
+            acceptedButtons: Qt.LeftButton
+            longPressThreshold: 0.5
+            dragThreshold: 12
+
+            property bool armed: false
+            onPressedChanged: {
+                if (pressed) { armed = settingsMenu.armHold(point.position) }
+                else { armed = false; settingsMenu.cancelHold() }
+            }
+            onCanceled: { armed = false; settingsMenu.cancelHold() }
+            onLongPressed: { if (!armed) return; armed = false; settingsMenu.triggerHold() }
+        }
+    }
+
+    // Expanding ripple indicator for hold feedback
+    Rectangle {
+        id: holdRipple
+        visible: false
+        width: 0; height: width
+        radius: width / 2
+        color: "transparent"
+        border.width: Math.max(2, UiMetrics.spacing * 0.5)
+        border.color: ThemeService.primary
+        opacity: 0.5
+        z: 2000
+
+        function showAt(px, py) {
+            _centerX = px
+            _centerY = py
+            width = 0
+            visible = true
+            rippleGrow.restart()
+        }
+        function hide() {
+            rippleGrow.stop()
+            visible = false
+            width = 0
+        }
+
+        property real _centerX: 0
+        property real _centerY: 0
+        x: _centerX - width / 2
+        y: _centerY - height / 2
+
+        MaterialIcon {
+            anchors.centerIn: parent
+            icon: "\ue5c4"  // arrow_back
+            size: UiMetrics.fontTitle
+            color: ThemeService.primary
+            opacity: Math.min(1.0, holdRipple.width / (UiMetrics.touchMin * 1.2))
+        }
+
+        NumberAnimation on width {
+            id: rippleGrow
+            running: false
+            from: 0; to: UiMetrics.touchMin * 1.5
+            duration: 500
+            easing.type: Easing.OutCubic
+        }
+    }
+
     Component {
         id: settingsList
 
         Item {
-            id: settingsGrid
             anchors.fill: parent
-            anchors.margins: UiMetrics.gridGap / 2
 
-            readonly property int _prefTileW: UiMetrics.tileW
-            readonly property int _gridCols: Math.max(1, Math.floor(width / (_prefTileW + UiMetrics.gridGap)))
-            readonly property int _actualTileW: Math.floor((width - (_gridCols - 1) * UiMetrics.gridGap) / _gridCols)
+            ListView {
+                id: settingsListView
+                anchors.fill: parent
+                clip: true
+                flickableDirection: Flickable.VerticalFlick
 
-            GridLayout {
-                anchors.horizontalCenter: parent.horizontalCenter
-                anchors.top: parent.top
-                columns: settingsGrid._gridCols
-                columnSpacing: UiMetrics.gridGap
-                rowSpacing: UiMetrics.gridGap
-
-                Tile {
-                    tileName: "Android Auto"
-                    tileIcon: "\ue531"
-                    Layout.preferredWidth: settingsGrid._actualTileW
-                    Layout.preferredHeight: UiMetrics.tileH
-                    onClicked: openPage("aa")
+                model: ListModel {
+                    ListElement { name: "Android Auto"; icon: "\ue531"; pageId: "aa" }
+                    ListElement { name: "Display"; icon: "\ueb97"; pageId: "display" }
+                    ListElement { name: "Audio"; icon: "\ue050"; pageId: "audio" }
+                    ListElement { name: "Bluetooth"; icon: "\ue1a7"; pageId: "connection" }
+                    ListElement { name: "Theme"; icon: "\ue40a"; pageId: "theme" }
+                    ListElement { name: "Companion"; icon: "\ue324"; pageId: "companion" }
+                    ListElement { name: "System"; icon: "\uf8cd"; pageId: "system" }
+                    ListElement { name: "Information"; icon: "\ue88e"; pageId: "information" }
+                    ListElement { name: "Debug"; icon: "\ue868"; pageId: "debug" }
                 }
 
-                Tile {
-                    tileName: "Display"
-                    tileIcon: "\ueb97"
-                    Layout.preferredWidth: settingsGrid._actualTileW
-                    Layout.preferredHeight: UiMetrics.tileH
-                    onClicked: openPage("display")
-                }
+                delegate: Rectangle {
+                    width: ListView.view.width
+                    height: UiMetrics.tileH * 0.55
+                    color: delegateArea.pressed
+                          ? ThemeService.primaryContainer
+                          : (index % 2 === 0 ? ThemeService.surfaceContainer : ThemeService.surfaceContainerHigh)
 
-                Tile {
-                    tileName: "Audio"
-                    tileIcon: "\ue050"
-                    Layout.preferredWidth: settingsGrid._actualTileW
-                    Layout.preferredHeight: UiMetrics.tileH
-                    onClicked: openPage("audio")
-                }
+                    MouseArea {
+                        id: delegateArea
+                        anchors.fill: parent
+                        onClicked: openPage(model.pageId)
+                    }
 
-                Tile {
-                    tileName: "Bluetooth"
-                    tileIcon: "\ue1a7"
-                    Layout.preferredWidth: settingsGrid._actualTileW
-                    Layout.preferredHeight: UiMetrics.tileH
-                    onClicked: openPage("connection")
-                }
+                    MaterialIcon {
+                        id: rowIcon
+                        icon: model.icon
+                        size: parent.height * 0.7
+                        color: ThemeService.onSurface
+                        anchors.left: parent.left
+                        anchors.leftMargin: UiMetrics.spacing * 3
+                        anchors.verticalCenter: parent.verticalCenter
+                    }
 
-                Tile {
-                    tileName: "Companion"
-                    tileIcon: "\ue324"
-                    Layout.preferredWidth: settingsGrid._actualTileW
-                    Layout.preferredHeight: UiMetrics.tileH
-                    onClicked: openPage("companion")
+                    Text {
+                        text: model.name
+                        font.pixelSize: Math.round(parent.height * 0.45)
+                        color: ThemeService.onSurface
+                        anchors.right: parent.right
+                        anchors.rightMargin: UiMetrics.spacing * 3
+                        anchors.verticalCenter: parent.verticalCenter
+                    }
                 }
+            }
 
-                Tile {
-                    tileName: "System"
-                    tileIcon: "\uf8cd"
-                    Layout.preferredWidth: settingsGrid._actualTileW
-                    Layout.preferredHeight: UiMetrics.tileH
-                    onClicked: openPage("system")
-                }
+            SettingsScrollHints {
+                flickable: settingsListView
             }
         }
     }
@@ -174,8 +306,11 @@ Item {
     Component { id: displayPage; DisplaySettings {} }
     Component { id: audioPage; AudioSettings {} }
     Component { id: connectionPage; ConnectionSettings {} }
+    Component { id: themePage; ThemeSettings {} }
     Component { id: systemPage; SystemSettings {} }
     Component { id: companionPage; CompanionSettings {} }
+    Component { id: informationPage; InformationSettings {} }
+    Component { id: debugPage; DebugSettings {} }
     Component { id: eqDirectComponent; EqSettings {} }
 
     function openPage(pageId) {
@@ -184,16 +319,22 @@ Item {
             "display": "Display",
             "audio": "Audio",
             "connection": "Bluetooth",
+            "theme": "Theme",
             "system": "System",
-            "companion": "Companion"
+            "companion": "Companion",
+            "information": "Information",
+            "debug": "Debug"
         }
         var pages = {
             "aa": aaPage,
             "display": displayPage,
             "audio": audioPage,
             "connection": connectionPage,
+            "theme": themePage,
             "system": systemPage,
-            "companion": companionPage
+            "companion": companionPage,
+            "information": informationPage,
+            "debug": debugPage
         }
 
         if (pageId.startsWith("plugin:")) {

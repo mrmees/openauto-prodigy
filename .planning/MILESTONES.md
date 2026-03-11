@@ -1,5 +1,21 @@
 # Milestones
 
+## v0.5.2 Widget System & UI Polish (Shipped: 2026-03-11)
+
+**Phases completed:** 3 phases, 8 plans
+
+**Key accomplishments:**
+- Widget-based home screen with 3-pane layout (60/40 landscape, stacked portrait), launcher dock, and glass card WidgetHost with per-pane adjustable opacity
+- Three built-in widgets (Clock, AA Status, Now Playing) with widget picker and long-press context menu
+- Settings reorganized into 9 focused categories (AA, Display, Audio, Bluetooth, Theme, Companion, System, Information, Debug)
+- SettingsRow component with alternating-row styling applied across all 9 settings pages for consistent touch-friendly layout
+- Font sizes increased ~1.4x for automotive readability (3mm+ cap height at arm's length on 1024x600)
+- Long-press-to-go-back gesture with expanding ripple indicator in settings navigation
+
+**Stats:** 155 commits, 98 files changed (+11,041/-1,833), ~26.6K LOC | Timeline: 2 days (2026-03-10 → 2026-03-11)
+
+---
+
 ## v0.5.0 Protocol Compliance (Shipped: 2026-03-08)
 
 **Phases completed:** 4 phases, 8 plans, 0 tasks

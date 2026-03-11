@@ -22,6 +22,7 @@ void YamlConfig::initDefaults()
     root_["display"]["theme"] = "default";
     root_["display"]["wallpaper_override"] = "";
     root_["display"]["clock_24h"] = false;
+    root_["display"]["force_dark_mode"] = true;
 
     root_["connection"]["auto_connect_aa"] = true;
     root_["connection"]["bt_discoverable"] = true;
@@ -83,21 +84,21 @@ void YamlConfig::initDefaults()
     YAML::Node aaTile;
     aaTile["id"] = "org.openauto.android-auto";
     aaTile["label"] = "Android Auto";
-    aaTile["icon"] = QString(QChar(0xeff7)).toStdString();  // directions_car
+    aaTile["icon"] = QString(QChar(0xe859)).toStdString();  // android
     aaTile["action"] = "plugin:org.openauto.android-auto";
     tiles.push_back(aaTile);
 
     YAML::Node btTile;
     btTile["id"] = "org.openauto.bt-audio";
     btTile["label"] = "Music";
-    btTile["icon"] = QString(QChar(0xf01f)).toStdString();  // headphones
+    btTile["icon"] = QString(QChar(0xf032)).toStdString();  // media_bluetooth_on
     btTile["action"] = "plugin:org.openauto.bt-audio";
     tiles.push_back(btTile);
 
     YAML::Node phoneTile;
     phoneTile["id"] = "org.openauto.phone";
     phoneTile["label"] = "Phone";
-    phoneTile["icon"] = QString(QChar(0xf0d4)).toStdString();  // phone
+    phoneTile["icon"] = QString(QChar(0xe61d)).toStdString();  // phone_in_talk
     phoneTile["action"] = "plugin:org.openauto.phone";
     tiles.push_back(phoneTile);
 
@@ -149,6 +150,42 @@ void YamlConfig::initDefaults()
     root_["ui"]["tokens"]["overlayBtnH"] = 0;
     root_["ui"]["fontFloor"] = 0;
     root_["ui"]["tokens"]["navbarThick"] = 0;
+
+    // Widget home screen defaults
+    root_["widget_config"]["version"] = 1;
+
+    YAML::Node defaultPages(YAML::NodeType::Sequence);
+    YAML::Node homePage;
+    homePage["id"] = "home";
+    homePage["layoutTemplate"] = "standard-3pane";
+    homePage["order"] = 0;
+    defaultPages.push_back(homePage);
+    root_["widget_config"]["pages"] = defaultPages;
+
+    YAML::Node defaultPlacements(YAML::NodeType::Sequence);
+
+    YAML::Node clockPlacement;
+    clockPlacement["instanceId"] = "clock-main";
+    clockPlacement["widgetId"] = "org.openauto.clock";
+    clockPlacement["pageId"] = "home";
+    clockPlacement["paneId"] = "main";
+    defaultPlacements.push_back(clockPlacement);
+
+    YAML::Node aaPlacement;
+    aaPlacement["instanceId"] = "aa-status-sub1";
+    aaPlacement["widgetId"] = "org.openauto.aa-status";
+    aaPlacement["pageId"] = "home";
+    aaPlacement["paneId"] = "sub1";
+    defaultPlacements.push_back(aaPlacement);
+
+    YAML::Node npPlacement;
+    npPlacement["instanceId"] = "now-playing-sub2";
+    npPlacement["widgetId"] = "org.openauto.bt-now-playing";
+    npPlacement["pageId"] = "home";
+    npPlacement["paneId"] = "sub2";
+    defaultPlacements.push_back(npPlacement);
+
+    root_["widget_config"]["placements"] = defaultPlacements;
 
     // Navbar defaults
     root_["navbar"]["edge"] = "bottom";
@@ -690,6 +727,138 @@ void YamlConfig::setPluginValue(const QString& pluginId, const QString& key, con
         root_["plugin_config"][idStr][keyStr] = value.toString().toStdString();
         break;
     }
+}
+
+// --- Widget home screen config ---
+
+int YamlConfig::widgetConfigVersion() const
+{
+    return root_["widget_config"]["version"].as<int>(1);
+}
+
+QList<PageDescriptor> YamlConfig::widgetPages() const
+{
+    QList<PageDescriptor> result;
+    auto pages = root_["widget_config"]["pages"];
+    if (pages.IsSequence()) {
+        for (const auto& node : pages) {
+            PageDescriptor page;
+            if (node["id"]) page.id = QString::fromStdString(node["id"].as<std::string>());
+            if (node["layoutTemplate"]) page.layoutTemplate = QString::fromStdString(node["layoutTemplate"].as<std::string>());
+            if (node["order"]) page.order = node["order"].as<int>(0);
+            result.append(page);
+        }
+    }
+    if (result.isEmpty()) {
+        PageDescriptor defaultPage;
+        defaultPage.id = QStringLiteral("home");
+        defaultPage.layoutTemplate = QStringLiteral("standard-3pane");
+        defaultPage.order = 0;
+        result.append(defaultPage);
+    }
+    return result;
+}
+
+void YamlConfig::setWidgetPages(const QList<PageDescriptor>& pages)
+{
+    YAML::Node node(YAML::NodeType::Sequence);
+    for (const auto& page : pages) {
+        YAML::Node p;
+        p["id"] = page.id.toStdString();
+        p["layoutTemplate"] = page.layoutTemplate.toStdString();
+        p["order"] = page.order;
+        node.push_back(p);
+    }
+    root_["widget_config"]["pages"] = node;
+}
+
+QList<WidgetPlacement> YamlConfig::widgetPlacements() const
+{
+    QList<WidgetPlacement> result;
+    auto placements = root_["widget_config"]["placements"];
+    if (placements.IsSequence()) {
+        for (const auto& node : placements) {
+            WidgetPlacement p;
+            if (node["instanceId"]) p.instanceId = QString::fromStdString(node["instanceId"].as<std::string>());
+            if (node["widgetId"]) p.widgetId = QString::fromStdString(node["widgetId"].as<std::string>());
+            if (node["pageId"]) p.pageId = QString::fromStdString(node["pageId"].as<std::string>());
+            if (node["paneId"]) p.paneId = QString::fromStdString(node["paneId"].as<std::string>());
+            if (node["config"] && node["config"].IsMap()) {
+                for (auto it = node["config"].begin(); it != node["config"].end(); ++it) {
+                    QString key = QString::fromStdString(it->first.as<std::string>());
+                    if (it->second.IsScalar()) {
+                        try {
+                            double d = it->second.as<double>();
+                            p.config[key] = d;
+                        } catch (...) {
+                            p.config[key] = QString::fromStdString(it->second.as<std::string>());
+                        }
+                    }
+                }
+            }
+            result.append(p);
+        }
+    }
+    if (result.isEmpty()) {
+        // Return defaults
+        WidgetPlacement clock;
+        clock.instanceId = QStringLiteral("clock-main");
+        clock.widgetId = QStringLiteral("org.openauto.clock");
+        clock.pageId = QStringLiteral("home");
+        clock.paneId = QStringLiteral("main");
+        result.append(clock);
+
+        WidgetPlacement aa;
+        aa.instanceId = QStringLiteral("aa-status-sub1");
+        aa.widgetId = QStringLiteral("org.openauto.aa-status");
+        aa.pageId = QStringLiteral("home");
+        aa.paneId = QStringLiteral("sub1");
+        result.append(aa);
+
+        WidgetPlacement np;
+        np.instanceId = QStringLiteral("now-playing-sub2");
+        np.widgetId = QStringLiteral("org.openauto.bt-now-playing");
+        np.pageId = QStringLiteral("home");
+        np.paneId = QStringLiteral("sub2");
+        result.append(np);
+    }
+    return result;
+}
+
+void YamlConfig::setWidgetPlacements(const QList<WidgetPlacement>& placements)
+{
+    // Validate: deduplicate by composite key (pageId:paneId), keep first
+    QSet<QString> seenKeys;
+    QList<WidgetPlacement> validated;
+    for (const auto& p : placements) {
+        QString key = p.compositeKey();
+        if (!seenKeys.contains(key)) {
+            seenKeys.insert(key);
+            validated.append(p);
+        }
+    }
+
+    YAML::Node node(YAML::NodeType::Sequence);
+    for (const auto& p : validated) {
+        YAML::Node n;
+        n["instanceId"] = p.instanceId.toStdString();
+        n["widgetId"] = p.widgetId.toStdString();
+        n["pageId"] = p.pageId.toStdString();
+        n["paneId"] = p.paneId.toStdString();
+        if (!p.config.isEmpty()) {
+            YAML::Node configNode;
+            for (auto it = p.config.begin(); it != p.config.end(); ++it) {
+                std::string key = it.key().toStdString();
+                if (it.value().typeId() == QMetaType::Double || it.value().typeId() == QMetaType::Float)
+                    configNode[key] = it.value().toDouble();
+                else
+                    configNode[key] = it.value().toString().toStdString();
+            }
+            n["config"] = configNode;
+        }
+        node.push_back(n);
+    }
+    root_["widget_config"]["placements"] = node;
 }
 
 // --- Generic dot-path access ---

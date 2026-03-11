@@ -4,6 +4,267 @@ Newest entries first.
 
 ---
 
+## 2026-03-11 — Strengthen settings scroll hint visibility
+
+**What changed:**
+- Updated [qml/controls/SettingsScrollHints.qml](/home/matt/claude/personal/openautopro/openauto-prodigy/qml/controls/SettingsScrollHints.qml) so the overflow chevrons use `UiMetrics.iconSize` instead of `UiMetrics.iconSmall`.
+- Increased the shared hint opacity in [qml/controls/SettingsScrollHints.qml](/home/matt/claude/personal/openautopro/openauto-prodigy/qml/controls/SettingsScrollHints.qml) from `0.55` to `0.8` so the indicators remain readable on the Pi screen at driving distance.
+- Extended [tests/test_settings_menu_structure.cpp](/home/matt/claude/personal/openautopro/openauto-prodigy/tests/test_settings_menu_structure.cpp) so the regression now requires the stronger scroll-hint size and opacity values.
+
+**Why:**
+- The first pass made the hints behave correctly, but on the actual Pi display they were too small and faint to read comfortably from farther away. This follow-up keeps the same overflow-only behavior and just makes the indicators legible.
+
+**Status:** Targeted regression, full local build, full `ctest`, and Pi cross-build are complete. Pi redeploy/restart is the remaining step.
+
+**Next steps:**
+1. Deploy `build-pi/src/openauto-prodigy` to the Pi and restart `openauto-prodigy.service`.
+2. Recheck top-level Settings and longer subpages on hardware to confirm the larger/stronger chevrons are readable without feeling obnoxious.
+3. If they are still too timid or too loud, continue tuning only in `SettingsScrollHints.qml` so the whole settings stack stays consistent.
+
+**Verification commands/results:**
+- `cd build && cmake --build . --target test_settings_menu_structure -j$(nproc) && ctest -R test_settings_menu_structure --output-on-failure`
+  - First run (before implementation): failed because `SettingsScrollHints.qml` still used the smaller/fainter values.
+  - Second run (after implementation): passed.
+- `cd build && cmake --build . -j$(nproc)`
+  - Passed.
+- `cd build && ctest --output-on-failure`
+  - Passed: `100% tests passed, 0 tests failed out of 72`.
+- `bash ./cross-build.sh`
+  - Passed: produced `build-pi/src/openauto-prodigy`.
+  - Notes: emitted the existing Qt QML plugin-link warnings and locale warnings during configure/build, but the aarch64 build completed successfully.
+
+---
+
+## 2026-03-11 — Settings scroll hints for overflowed pages
+
+**What changed:**
+- Added approved design/plan docs in [docs/plans/2026-03-11-settings-scroll-hints-design.md](/home/matt/claude/personal/openautopro/openauto-prodigy/docs/plans/2026-03-11-settings-scroll-hints-design.md) and [docs/plans/2026-03-11-settings-scroll-hints-plan.md](/home/matt/claude/personal/openautopro/openauto-prodigy/docs/plans/2026-03-11-settings-scroll-hints-plan.md).
+- Added shared [qml/controls/SettingsScrollHints.qml](/home/matt/claude/personal/openautopro/openauto-prodigy/qml/controls/SettingsScrollHints.qml), a non-interactive overlay that targets any `Flickable`/`ListView` and fades small up/down chevrons in only when there is offscreen content in that direction.
+- Registered the new control in [src/CMakeLists.txt](/home/matt/claude/personal/openautopro/openauto-prodigy/src/CMakeLists.txt) so it is compiled into the QML module and validated during native/Pi builds.
+- Attached the shared hint overlay to the top-level Settings category list in [qml/applications/settings/SettingsMenu.qml](/home/matt/claude/personal/openautopro/openauto-prodigy/qml/applications/settings/SettingsMenu.qml) and to every stacked settings subpage `Flickable` in [qml/applications/settings/AASettings.qml](/home/matt/claude/personal/openautopro/openauto-prodigy/qml/applications/settings/AASettings.qml), [qml/applications/settings/AudioSettings.qml](/home/matt/claude/personal/openautopro/openauto-prodigy/qml/applications/settings/AudioSettings.qml), [qml/applications/settings/CompanionSettings.qml](/home/matt/claude/personal/openautopro/openauto-prodigy/qml/applications/settings/CompanionSettings.qml), [qml/applications/settings/ConnectionSettings.qml](/home/matt/claude/personal/openautopro/openauto-prodigy/qml/applications/settings/ConnectionSettings.qml), [qml/applications/settings/DebugSettings.qml](/home/matt/claude/personal/openautopro/openauto-prodigy/qml/applications/settings/DebugSettings.qml), [qml/applications/settings/DisplaySettings.qml](/home/matt/claude/personal/openautopro/openauto-prodigy/qml/applications/settings/DisplaySettings.qml), [qml/applications/settings/InformationSettings.qml](/home/matt/claude/personal/openautopro/openauto-prodigy/qml/applications/settings/InformationSettings.qml), [qml/applications/settings/SystemSettings.qml](/home/matt/claude/personal/openautopro/openauto-prodigy/qml/applications/settings/SystemSettings.qml), and [qml/applications/settings/ThemeSettings.qml](/home/matt/claude/personal/openautopro/openauto-prodigy/qml/applications/settings/ThemeSettings.qml).
+- Extended [tests/test_settings_menu_structure.cpp](/home/matt/claude/personal/openautopro/openauto-prodigy/tests/test_settings_menu_structure.cpp) so the regression now requires the shared hint control, its `Flickable`-driven logic, the top-level settings list attachment, and the subpage attachments.
+
+**Why:**
+- Settings pages could scroll beyond the visible viewport with no directional cue. Small overflow-only hints make it obvious there is more content above or below without adding permanent scrollbar chrome.
+
+**Status:** Targeted red/green regression, full local build, full `ctest`, and Pi cross-build are complete. Pi deploy/hardware validation is the remaining step.
+
+**Next steps:**
+1. Deploy `build-pi/src/openauto-prodigy` to the Pi and restart `openauto-prodigy.service`.
+2. On hardware, check that the top-level Settings list and stacked subpages show subtle hints only when they actually overflow.
+3. If the hints feel too loud or too faint on the Pi, tune `SettingsScrollHints.qml` icon size/opacity/inset in one place rather than per page.
+
+**Verification commands/results:**
+- `cd build && cmake --build . --target test_settings_menu_structure -j$(nproc) && ctest -R test_settings_menu_structure --output-on-failure`
+  - First run (before implementation): failed because `qml/controls/SettingsScrollHints.qml` did not exist.
+  - Second run (after implementation): passed.
+- `cd build && cmake --build . -j$(nproc)`
+  - Passed.
+- `cd build && ctest --output-on-failure`
+  - Passed: `100% tests passed, 0 tests failed out of 72`.
+- `bash ./cross-build.sh`
+  - Passed: produced `build-pi/src/openauto-prodigy`.
+  - Notes: emitted the existing Qt QML plugin-link warnings and locale warnings during configure/build, but the aarch64 build completed successfully.
+
+---
+
+## 2026-03-11 — Theme delete row uses Bluetooth-style action button
+
+**What changed:**
+- Added approved design/plan docs in [docs/plans/2026-03-11-theme-delete-button-design.md](/home/matt/claude/personal/openautopro/openauto-prodigy/docs/plans/2026-03-11-theme-delete-button-design.md) and [docs/plans/2026-03-11-theme-delete-button-plan.md](/home/matt/claude/personal/openautopro/openauto-prodigy/docs/plans/2026-03-11-theme-delete-button-plan.md).
+- Updated [qml/applications/settings/ThemeSettings.qml](/home/matt/claude/personal/openautopro/openauto-prodigy/qml/applications/settings/ThemeSettings.qml) so the "Delete Theme" row is no longer whole-row interactive, keeps plain left-side label text, and uses a separate outlined destructive button on the right that mirrors the Bluetooth "Forget" affordance.
+- Preserved the existing delete confirmation flow in [qml/applications/settings/ThemeSettings.qml](/home/matt/claude/personal/openautopro/openauto-prodigy/qml/applications/settings/ThemeSettings.qml) by keeping the timer/reset logic and routing the action through a dedicated `triggerDeleteThemeAction()` helper.
+- Extended [tests/test_settings_menu_structure.cpp](/home/matt/claude/personal/openautopro/openauto-prodigy/tests/test_settings_menu_structure.cpp) so the regression now requires the dedicated button label, destructive outline styling, `SettingsHoldArea` button click handling, and the removal of the old whole-row trash-icon pattern.
+
+**Why:**
+- The old delete row mixed destructive intent into the entire row and used a leading trash icon, which made it feel different from the established Bluetooth device action pattern. Moving delete into its own button makes the destructive action explicit while keeping the row itself readable and calm.
+
+**Status:** Local targeted regression coverage, full local build, full `ctest`, and Pi cross-build are complete. Pi deploy/hardware verification is pending a fresh go-ahead for remote access.
+
+**Next steps:**
+1. If approved, `rsync` the new `build-pi/src/openauto-prodigy` binary to the Pi and restart `openauto-prodigy.service`.
+2. On hardware, verify the Theme page delete row reads cleanly and that the `Delete` -> `Confirm` button flow feels right at touch size.
+3. If more destructive rows appear later, consider extracting this outlined action affordance into a shared reusable QML control instead of cloning the pattern.
+
+**Verification commands/results:**
+- `cd build && cmake --build . --target test_settings_menu_structure -j$(nproc) && ctest -R test_settings_menu_structure --output-on-failure`
+  - First run (before implementation): failed because `ThemeSettings.qml` did not define the required button-based delete affordance.
+  - Second run (after implementation): passed.
+- `cd build && cmake --build . -j$(nproc)`
+  - Passed.
+- `cd build && ctest --output-on-failure`
+  - Passed: `100% tests passed, 0 tests failed out of 72`.
+- `bash ./cross-build.sh`
+  - Passed: produced `build-pi/src/openauto-prodigy`.
+  - Notes: emitted the existing Qt QML plugin-link warnings and locale warnings during configure/build, but the aarch64 build completed successfully.
+
+---
+
+## 2026-03-11 — Settings subpage gutter padding
+
+**What changed:**
+- Added approved design/plan docs in [docs/plans/2026-03-11-settings-subpage-gutters-design.md](/home/matt/claude/personal/openautopro/openauto-prodigy/docs/plans/2026-03-11-settings-subpage-gutters-design.md) and [docs/plans/2026-03-11-settings-subpage-gutters-plan.md](/home/matt/claude/personal/openautopro/openauto-prodigy/docs/plans/2026-03-11-settings-subpage-gutters-plan.md).
+- Added shared `UiMetrics.settingsPageInset` in [qml/controls/UiMetrics.qml](/home/matt/claude/personal/openautopro/openauto-prodigy/qml/controls/UiMetrics.qml) so stacked settings pages can use one consistent horizontal gutter.
+- Applied that inset to the root content column of stacked settings pages in [qml/applications/settings/AASettings.qml](/home/matt/claude/personal/openautopro/openauto-prodigy/qml/applications/settings/AASettings.qml), [qml/applications/settings/AudioSettings.qml](/home/matt/claude/personal/openautopro/openauto-prodigy/qml/applications/settings/AudioSettings.qml), [qml/applications/settings/CompanionSettings.qml](/home/matt/claude/personal/openautopro/openauto-prodigy/qml/applications/settings/CompanionSettings.qml), [qml/applications/settings/ConnectionSettings.qml](/home/matt/claude/personal/openautopro/openauto-prodigy/qml/applications/settings/ConnectionSettings.qml), [qml/applications/settings/DebugSettings.qml](/home/matt/claude/personal/openautopro/openauto-prodigy/qml/applications/settings/DebugSettings.qml), [qml/applications/settings/DisplaySettings.qml](/home/matt/claude/personal/openautopro/openauto-prodigy/qml/applications/settings/DisplaySettings.qml), [qml/applications/settings/InformationSettings.qml](/home/matt/claude/personal/openautopro/openauto-prodigy/qml/applications/settings/InformationSettings.qml), [qml/applications/settings/SystemSettings.qml](/home/matt/claude/personal/openautopro/openauto-prodigy/qml/applications/settings/SystemSettings.qml), and [qml/applications/settings/ThemeSettings.qml](/home/matt/claude/personal/openautopro/openauto-prodigy/qml/applications/settings/ThemeSettings.qml).
+- Extended [tests/test_settings_menu_structure.cpp](/home/matt/claude/personal/openautopro/openauto-prodigy/tests/test_settings_menu_structure.cpp) so the regression test now requires the shared subpage inset token and its use across the stacked settings pages.
+- Redeployed the updated `build-pi/src/openauto-prodigy` binary to `matt@192.168.1.152` and restarted `openauto-prodigy.service`.
+
+**Why:**
+- The top-level Settings landing page already looked correct, but stacked subsettings pages were too tight against the screen edges. That made section headers like "Display" and "Navbar" feel clipped and left the page content without enough breathing room.
+
+**Status:** Local targeted regression test, full local build, full `ctest`, cross-build, Pi deploy, and Pi service restart are complete. Visual confirmation of the new gutter on hardware is pending user verification.
+
+**Next steps:**
+1. Confirm on the Pi that section headers and row content on subsettings pages now have enough breathing room without feeling detached.
+2. If it still feels cramped, increase `UiMetrics.settingsPageInset` slightly rather than changing row-internal `marginRow`.
+3. Leave the top-level Settings landing page unchanged unless a separate request comes in for that screen.
+
+**Verification commands/results:**
+- `cd build && cmake --build . --target test_settings_menu_structure -j$(nproc) && ctest -R test_settings_menu_structure --output-on-failure`
+  - First run (before implementation): failed because `UiMetrics.qml` did not define `settingsPageInset`.
+  - Second run (after implementation): passed.
+- `cd build && cmake --build . -j$(nproc)`
+  - Passed.
+- `cd build && ctest --output-on-failure`
+  - Passed: `100% tests passed, 0 tests failed out of 72`.
+- `bash ./cross-build.sh`
+  - Passed: produced `build-pi/src/openauto-prodigy`.
+  - Notes: emitted the existing Qt QML plugin-link warnings and locale warnings during configure/build, but the aarch64 build completed successfully.
+- `rsync -av build-pi/src/openauto-prodigy matt@192.168.1.152:~/openauto-prodigy/build/src/`
+  - Passed.
+- `ssh matt@192.168.1.152 'sudo systemctl restart openauto-prodigy.service && systemctl is-active openauto-prodigy.service'`
+  - Passed: `active`.
+
+---
+
+## 2026-03-11 — Settings row-owned back-hold refactor
+
+**What changed:**
+- Added approved design/plan docs in [docs/plans/2026-03-11-settings-row-back-hold-design.md](/home/matt/claude/personal/openautopro/openauto-prodigy/docs/plans/2026-03-11-settings-row-back-hold-design.md) and [docs/plans/2026-03-11-settings-row-back-hold-plan.md](/home/matt/claude/personal/openautopro/openauto-prodigy/docs/plans/2026-03-11-settings-row-back-hold-plan.md).
+- Refactored [qml/controls/SettingsRow.qml](/home/matt/claude/personal/openautopro/openauto-prodigy/qml/controls/SettingsRow.qml) so every actual settings row now blocks the menu overlay, owns row-level long-hold state, drives the shared ripple through `SettingsMenu`, and exposes cancel/consume helpers for child controls.
+- Updated [qml/controls/SettingsHoldArea.qml](/home/matt/claude/personal/openautopro/openauto-prodigy/qml/controls/SettingsHoldArea.qml) with `enableBackHold` so it can run as a short-click-only surface that suppresses normal actions after the enclosing row long-hold wins.
+- Updated [qml/controls/SettingsSlider.qml](/home/matt/claude/personal/openautopro/openauto-prodigy/qml/controls/SettingsSlider.qml) to stop owning its own hold timer and instead coordinate with `SettingsRow` by canceling row hold on drag and restoring the press-time value if long-hold wins.
+- Switched reusable tap-driven controls and one-off settings-row button surfaces to row-owned long-hold with short-click-only `SettingsHoldArea` use in [qml/controls/SettingsToggle.qml](/home/matt/claude/personal/openautopro/openauto-prodigy/qml/controls/SettingsToggle.qml), [qml/controls/SettingsListItem.qml](/home/matt/claude/personal/openautopro/openauto-prodigy/qml/controls/SettingsListItem.qml), [qml/controls/FullScreenPicker.qml](/home/matt/claude/personal/openautopro/openauto-prodigy/qml/controls/FullScreenPicker.qml), [qml/controls/SegmentedButton.qml](/home/matt/claude/personal/openautopro/openauto-prodigy/qml/controls/SegmentedButton.qml), [qml/applications/settings/DisplaySettings.qml](/home/matt/claude/personal/openautopro/openauto-prodigy/qml/applications/settings/DisplaySettings.qml), [qml/applications/settings/ConnectionSettings.qml](/home/matt/claude/personal/openautopro/openauto-prodigy/qml/applications/settings/ConnectionSettings.qml), [qml/applications/settings/DebugSettings.qml](/home/matt/claude/personal/openautopro/openauto-prodigy/qml/applications/settings/DebugSettings.qml), and [qml/applications/settings/CompanionSettings.qml](/home/matt/claude/personal/openautopro/openauto-prodigy/qml/applications/settings/CompanionSettings.qml).
+- Replaced the old slider-owned regression expectation in [tests/test_settings_menu_structure.cpp](/home/matt/claude/personal/openautopro/openauto-prodigy/tests/test_settings_menu_structure.cpp) so the structure test now guards the row-owned back-hold contract.
+
+**Why:**
+- The previous architecture split long-hold ownership across `SettingsMenu`, `SettingsHoldArea`, and `SettingsSlider`. That left dead zones, most visibly the slider label/title strip: the row blocked the menu overlay, but only the inner `Slider` armed long-hold back. Making `SettingsRow` the owner fixes that boundary instead of continuing per-control patches.
+
+**Status:** Local targeted regression test, full local build, full `ctest`, and Pi cross-build are complete. Pi hardware validation is still pending.
+
+**Next steps:**
+1. Verify on the Pi that long-hold back now works from slider labels, row padding, and icon areas, not just the actual slider track.
+2. Check custom settings rows with nested controls on hardware, especially Bluetooth pairing and Debug codec rows, to confirm row hold suppresses the subcontrol action cleanly during long hold.
+3. If any nested control still leaks a normal click after long hold on Pi, either migrate that surface to `SettingsHoldArea` or explicitly opt that row out instead of reintroducing per-control timers.
+
+**Verification commands/results:**
+- `cd build && cmake --build . --target test_settings_menu_structure -j$(nproc) && ctest -R test_settings_menu_structure --output-on-failure`
+  - Passed.
+- `cd build && cmake --build . -j$(nproc)`
+  - Passed.
+- `cd build && ctest --output-on-failure`
+  - Passed: `100% tests passed, 0 tests failed out of 72`.
+- `bash ./cross-build.sh`
+  - Passed: produced `build-pi/src/openauto-prodigy`.
+  - Notes: emitted the existing Qt QML plugin-link warnings and locale warnings during configure/build, but the aarch64 build completed successfully.
+
+---
+
+## 2026-03-11 — Settings interactive hold ripple follow-up
+
+**What changed:**
+- Added shared ripple helpers in [qml/applications/settings/SettingsMenu.qml](/home/matt/claude/personal/openautopro/openauto-prodigy/qml/applications/settings/SettingsMenu.qml) so the existing back-hold indicator can be shown and hidden by child controls, not just the overlay path.
+- Updated [qml/controls/SettingsHoldArea.qml](/home/matt/claude/personal/openautopro/openauto-prodigy/qml/controls/SettingsHoldArea.qml) to find the enclosing settings menu, show the ripple on press, hide it on release/cancel, and hide it before firing long-hold back.
+- Updated [qml/controls/SettingsSlider.qml](/home/matt/claude/personal/openautopro/openauto-prodigy/qml/controls/SettingsSlider.qml) to drive the same shared ripple during its custom hold timer path.
+- Extended [tests/test_settings_menu_structure.cpp](/home/matt/claude/personal/openautopro/openauto-prodigy/tests/test_settings_menu_structure.cpp) so the regression test now requires the control-owned path to hook into the shared ripple helpers.
+- Cross-built, redeployed the new `build-pi/src/openauto-prodigy` binary to `matt@192.168.1.152`, and restarted `openauto-prodigy.service`.
+
+**Why:**
+- The long-hold gesture was working on interactive controls, but the feedback was inconsistent because only the overlay-owned path showed the ripple indicator. Controls were navigating back silently.
+
+**Status:** Local build, full test suite, cross-build, Pi deploy, and Pi service restart are complete. Visual confirmation of the ripple on hardware is pending user verification.
+
+**Next steps:**
+1. Verify on the Pi that toggles, sliders, pickers, and segmented controls now show the same back-hold ripple during the hold.
+2. If the slider ripple position feels off, consider tracking the actual press point instead of the slider center for that control.
+3. Remove or reduce the temporary `BackHold-*` debug logging in [qml/applications/settings/SettingsMenu.qml](/home/matt/claude/personal/openautopro/openauto-prodigy/qml/applications/settings/SettingsMenu.qml) once Pi validation is finished.
+
+**Verification commands/results:**
+- `cd build && cmake --build . --target test_settings_menu_structure -j$(nproc) && ctest -R test_settings_menu_structure --output-on-failure`
+  - Passed.
+- `cd build && cmake --build . -j$(nproc)`
+  - Passed.
+- `cd build && ctest --output-on-failure`
+  - Passed: `100% tests passed, 0 tests failed out of 72`.
+- `bash ./cross-build.sh`
+  - Passed: produced `build-pi/src/openauto-prodigy`.
+  - Notes: cross-build emitted the existing Qt QML plugin warnings during configure, but the aarch64 build completed successfully.
+- `rsync -av build-pi/src/openauto-prodigy matt@192.168.1.152:~/openauto-prodigy/build/src/`
+  - Passed.
+- `ssh matt@192.168.1.152 'sudo systemctl restart openauto-prodigy.service && systemctl is-active openauto-prodigy.service'`
+  - Passed: `active`.
+
+---
+
+## 2026-03-11 — Settings interactive control back-hold ownership
+
+**What changed:**
+- Added shared [qml/controls/SettingsHoldArea.qml](/home/matt/claude/personal/openautopro/openauto-prodigy/qml/controls/SettingsHoldArea.qml) to turn `MouseArea`-driven settings controls into short-tap vs long-hold surfaces.
+- Updated [qml/controls/SettingsToggle.qml](/home/matt/claude/personal/openautopro/openauto-prodigy/qml/controls/SettingsToggle.qml), [qml/controls/FullScreenPicker.qml](/home/matt/claude/personal/openautopro/openauto-prodigy/qml/controls/FullScreenPicker.qml), [qml/controls/SettingsListItem.qml](/home/matt/claude/personal/openautopro/openauto-prodigy/qml/controls/SettingsListItem.qml), [qml/controls/SettingsRow.qml](/home/matt/claude/personal/openautopro/openauto-prodigy/qml/controls/SettingsRow.qml), and [qml/controls/SegmentedButton.qml](/home/matt/claude/personal/openautopro/openauto-prodigy/qml/controls/SegmentedButton.qml) so long hold requests back and suppresses the normal click action.
+- Updated [qml/controls/SettingsSlider.qml](/home/matt/claude/personal/openautopro/openauto-prodigy/qml/controls/SettingsSlider.qml) with a dedicated 500 ms hold timer that cancels on drag, requests back on long hold, and suppresses slider value commit when hold wins.
+- Kept the overlay/TapHandler path in [qml/applications/settings/SettingsMenu.qml](/home/matt/claude/personal/openautopro/openauto-prodigy/qml/applications/settings/SettingsMenu.qml) as the fallback for blank and non-interactive settings space.
+- Replaced the old regression assumption in [tests/test_settings_menu_structure.cpp](/home/matt/claude/personal/openautopro/openauto-prodigy/tests/test_settings_menu_structure.cpp) so the test now guards the correct ownership model instead of insisting that form controls stay invisible to back-hold logic.
+
+**Why:**
+- The overlay-only approach was fine for empty space and simple rows, but it was the wrong model for reusable interactive controls. Those controls already own the working touch path on Pi, so long-hold back needs to live there too.
+
+**Status:** Local build, full test suite, and cross-build are complete. Pi hardware validation is still pending.
+
+**Next steps:**
+1. Deploy `build-pi/src/openauto-prodigy` to the Pi and verify long-hold back on toggles, sliders, pickers, and segmented controls with real touch input.
+2. Check custom one-off settings controls in `DebugSettings.qml` and similar pages for any remaining interactive surfaces that still need the shared hold-aware path.
+3. Remove or reduce the temporary `BackHold-*` debug logging in [qml/applications/settings/SettingsMenu.qml](/home/matt/claude/personal/openautopro/openauto-prodigy/qml/applications/settings/SettingsMenu.qml) once Pi validation is confirmed.
+
+**Verification commands/results:**
+- `cd build && cmake --build . -j$(nproc)`
+  - Passed.
+- `cd build && ctest --output-on-failure`
+  - Passed: `100% tests passed, 0 tests failed out of 72`.
+- `bash ./cross-build.sh`
+  - Passed: produced `build-pi/src/openauto-prodigy`.
+  - Notes: cross-build emitted the existing Qt QML plugin warnings during configure, but the aarch64 build completed successfully.
+
+---
+
+## 2026-03-11 — Settings back-hold touch delivery fix
+
+**What changed:**
+- Moved the settings long-press back `TapHandler`s into a transparent full-screen overlay in [qml/applications/settings/SettingsMenu.qml](/home/matt/claude/personal/openautopro/openauto-prodigy/qml/applications/settings/SettingsMenu.qml) with `objectName: "backHoldOverlay"` and `z: 1000`.
+- Kept the existing long-press logic, `blocksBackHoldAt()` hit-testing, and ripple feedback intact; this change only alters where the handlers sit in the scene graph.
+- Added `tests/test_settings_menu_structure.cpp` to guard the required overlay structure in `SettingsMenu.qml`.
+- Registered the new regression test in `tests/CMakeLists.txt`.
+
+**Why:**
+- Pi touch input was never reaching the root-level `TapHandler`s. The Settings screen is covered by a full-screen `StackView` with `ListView`/`Flickable` children and nested `MouseArea`s, so the handlers needed to sit on a high-`z` glass pane above that content to observe fresh presses.
+
+**Status:** Code change, local build, full test suite, and cross-build are complete. Pi hardware validation is still pending.
+
+**Next steps:**
+1. Deploy `build-pi/src/openauto-prodigy` to the Pi and verify that long-press back now logs `BackHold-TOUCH` events and navigates correctly on the DFRobot touchscreen.
+2. If Pi behavior is correct, remove or reduce the temporary `BackHold-*` debug logging noise in `SettingsMenu.qml`.
+3. If Pi still drops touch delivery, capture fresh logs with the overlay in place before changing gesture logic again.
+
+**Verification commands/results:**
+- `cd build && cmake --build . -j$(nproc)`
+  - Passed.
+- `cd build && ctest --output-on-failure`
+  - Passed: `100% tests passed, 0 tests failed out of 72`.
+- `bash ./cross-build.sh`
+  - Passed: produced `build-pi/src/openauto-prodigy`.
+  - Notes: cross-build emitted existing Qt QML plugin warnings during CMake configure, but the aarch64 build completed successfully.
+
+---
+
 ## 2026-02-27 — Bluetooth cleanup, install script overhaul, aasdk removal
 
 **What changed:**

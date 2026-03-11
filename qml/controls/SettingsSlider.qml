@@ -4,6 +4,7 @@ import QtQuick.Controls
 
 Item {
     id: root
+    readonly property bool blocksBackHold: true
     property string icon: ""
     property string label: ""
     property string configPath: ""
@@ -13,14 +14,40 @@ Item {
     property bool restartRequired: false
     property alias value: slider.value
     signal moved()
+    property real _pressValue: 0
+    property var _settingsRow: null
+
+    function _findSettingsRow() {
+        var p = root.parent
+        while (p) {
+            if (typeof p.cancelBackHold === "function"
+                    && typeof p.consumeBackHoldTrigger === "function")
+                return p
+            p = p.parent
+        }
+        return null
+    }
 
     Layout.fillWidth: true
     implicitHeight: UiMetrics.rowH
+
+    Component.onCompleted: {
+        _settingsRow = _findSettingsRow()
+        if (root.configPath !== "") {
+            var v = ConfigService.value(root.configPath)
+            if (v !== undefined && v !== null)
+                slider.value = v
+        }
+    }
 
     Timer {
         id: debounce
         interval: 300
         onTriggered: {
+            if (_settingsRow && _settingsRow.consumeBackHoldTrigger()) {
+                slider.value = root._pressValue
+                return
+            }
             if (root.configPath === "") return
             ConfigService.setValue(root.configPath, slider.value)
             ConfigService.save()
@@ -30,7 +57,7 @@ Item {
     Component.onDestruction: {
         if (debounce.running) {
             debounce.stop()
-            if (root.configPath !== "") {
+            if (!(_settingsRow && _settingsRow.consumeBackHoldTrigger()) && root.configPath !== "") {
                 ConfigService.setValue(root.configPath, slider.value)
                 ConfigService.save()
             }
@@ -71,7 +98,25 @@ Item {
             from: root.from
             to: root.to
             stepSize: root.stepSize
-            onMoved: { debounce.restart(); root.moved() }
+            onPressedChanged: {
+                if (pressed) {
+                    root._pressValue = value
+                    return
+                }
+
+                if (_settingsRow && _settingsRow.consumeBackHoldTrigger())
+                    value = root._pressValue
+            }
+            onMoved: {
+                if (_settingsRow)
+                    _settingsRow.cancelBackHold()
+                if (_settingsRow && _settingsRow.consumeBackHoldTrigger()) {
+                    value = root._pressValue
+                    return
+                }
+                debounce.restart()
+                root.moved()
+            }
         }
 
         Text {
@@ -83,11 +128,4 @@ Item {
         }
     }
 
-    Component.onCompleted: {
-        if (root.configPath !== "") {
-            var v = ConfigService.value(root.configPath)
-            if (v !== undefined && v !== null)
-                slider.value = v
-        }
-    }
 }

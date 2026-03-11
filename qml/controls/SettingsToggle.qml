@@ -4,6 +4,7 @@ import QtQuick.Controls
 
 Item {
     id: root
+    readonly property bool blocksBackHold: true
     property string icon: ""
     property string label: ""
     property string configPath: ""
@@ -48,6 +49,12 @@ Item {
                 ConfigService.save()
             }
         }
+    }
+
+    SettingsHoldArea {
+        anchors.fill: parent
+        enableBackHold: false
+        onShortClicked: toggle.checked = !toggle.checked
     }
 
     Component.onCompleted: {
