@@ -73,15 +73,16 @@ A person with a Raspberry Pi 4 and a touchscreen can install this, pair their ph
 - ✓ M3 button components (ElevatedButton, FilledButton, OutlinedButton) with depth effects — v0.5.1
 - ✓ Surface container hierarchy (Lowest/Low/Container/High/Highest) — v0.5.1
 - ✓ 71 unit tests covering core systems — v0.5.1
+- ✓ Widget-based home screen with 3-pane layout, launcher dock, and 3 built-in widgets (Clock, AA Status, Now Playing) — v0.5.2
+- ✓ Settings reorganized into 9 focused categories with power-user settings demoted to YAML-only — v0.5.2
+- ✓ SettingsRow alternating-row styling across all settings pages with touch-friendly sizing — v0.5.2
+- ✓ Font sizes scaled ~1.4x for automotive readability (3mm+ cap height at arm's length) — v0.5.2
+- ✓ Long-press-to-go-back gesture with expanding ripple indicator in settings — v0.5.2
 
 ### Active
 
 <!-- Current scope. Building toward these. -->
 
-- [ ] Home screen widget system with 3-pane layout, launcher dock, and built-in widgets
-- [ ] Settings cleanup: demote power-user settings to YAML-only, keep essential settings in UI
-- [ ] Touch-friendly normalization of all settings pages (readable text, proper touch targets)
-- [ ] Remove duplicate settings between AA and Connection pages
 - [ ] HFP call audio persists across AA connection state (calls don't drop if AA disconnects)
 - [ ] First-run experience guides user through phone pairing and WiFi verification
 - [ ] Web config panel EQ interface
@@ -107,7 +108,7 @@ A person with a Raspberry Pi 4 and a touchscreen can install this, pair their ph
 
 OpenAuto Pro (BlueWave Studio) was a commercial Pi-based AA head unit that went defunct. This project is a clean-room rebuild — no OAP code, no aasdk dependency. The protocol library (`open-android-auto`) is maintained as a separate community resource.
 
-v0.4 shipped logging and theming. v0.4.1 shipped 10-band graphic EQ with per-stream profiles. v0.4.2 shipped service hardening — WiFi AP, Bluetooth SDP, systemd ordering, and clean shutdown all work reliably without manual intervention. v0.4.3 shipped full UI refresh — automotive-minimal styling, 6-category settings, EQ dual-access, shell polish. v0.4.4 shipped resolution independence — unclamped dual-axis UiMetrics, full QML tokenization (zero hardcoded pixels), container-derived grid layouts, runtime auto-detection, and --geometry validation tooling. v0.4.5 shipped navbar rework — zone-based evdev touch routing, 3-control navbar with multi-gesture actions and edge positioning, navbar-aware AA viewport margins, gesture overlay touch fix, and dead UI cleanup (TopBar, NavStrip, sidebar removed). v0.5.0 shipped protocol compliance — proto submodule v1.0, navigation turn events, voice session commands, BT auth exchange, haptic feedback, retracted dead code cleanup after v1.2 proto verification, library renamed to prodigy-oaa-protocol. v0.5.1 shipped DPI sizing & UI polish — EDID-based DPI scaling, scale stepper, clock readability, full 34-role M3 color system, companion theme import, AA rendering fix, navbar status bar cleanup, M3 button components with visual depth effects. Codebase is ~35K+ lines C++/QML, 71 unit tests.
+v0.4 shipped logging and theming. v0.4.1 shipped 10-band graphic EQ with per-stream profiles. v0.4.2 shipped service hardening — WiFi AP, Bluetooth SDP, systemd ordering, and clean shutdown all work reliably without manual intervention. v0.4.3 shipped full UI refresh — automotive-minimal styling, 6-category settings, EQ dual-access, shell polish. v0.4.4 shipped resolution independence — unclamped dual-axis UiMetrics, full QML tokenization (zero hardcoded pixels), container-derived grid layouts, runtime auto-detection, and --geometry validation tooling. v0.4.5 shipped navbar rework — zone-based evdev touch routing, 3-control navbar with multi-gesture actions and edge positioning, navbar-aware AA viewport margins, gesture overlay touch fix, and dead UI cleanup (TopBar, NavStrip, sidebar removed). v0.5.0 shipped protocol compliance — proto submodule v1.0, navigation turn events, voice session commands, BT auth exchange, haptic feedback, retracted dead code cleanup after v1.2 proto verification, library renamed to prodigy-oaa-protocol. v0.5.1 shipped DPI sizing & UI polish — EDID-based DPI scaling, scale stepper, clock readability, full 34-role M3 color system, companion theme import, AA rendering fix, navbar status bar cleanup, M3 button components with visual depth effects. v0.5.2 shipped widget system & UI polish — 3-pane home screen with launcher dock and built-in widgets, settings reorganized into 9 categories with touch normalization and automotive-readable font sizes. Codebase is ~26.6K LOC C++/QML, 71 unit tests.
 
 ## Constraints
 
@@ -160,15 +161,5 @@ v0.4 shipped logging and theming. v0.4.1 shipped 10-band graphic EQ with per-str
 | Library rename to prodigy-oaa-protocol | Distinguishes Prodigy's protocol lib from upstream open-android-auto | ✓ Good |
 | WiFi BSSID sends MAC not SSID | QNetworkInterface for wlan0 MAC — correct SDP semantics | ✓ Good |
 
-## Current Milestone: v0.5.2 Widget System & UI Polish
-
-**Goal:** Add a widget-based home screen and clean up settings UI for touch-friendly daily use.
-
-**Target features:**
-- Home screen with 3-pane widget layout, launcher dock, and built-in widgets (Clock, AA Status, Now Playing)
-- Settings cleanup: demote power-user/debug settings to YAML-only
-- Touch-friendly normalization of all settings pages
-- Remove duplicate settings between AA and Connection pages
-
 ---
-*Last updated: 2026-03-10 after v0.5.2 milestone started*
+*Last updated: 2026-03-11 after v0.5.2 milestone completed*

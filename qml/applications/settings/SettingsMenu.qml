@@ -163,25 +163,12 @@ Item {
             dragThreshold: Math.round(UiMetrics.touchMin * 0.5)
 
             property bool armed: false
-            onGrabChanged: function(transition, point) {
-                console.log("[BackHold-TOUCH] grabChanged:", transition,
-                            "point:", point.id, "pos:", point.position.x, point.position.y,
-                            "pressed:", pressed, "device:", point.device.type)
-            }
             onPressedChanged: {
-                console.log("[BackHold-TOUCH] pressedChanged:", pressed,
-                            "point:", point.position.x, point.position.y)
                 if (pressed) { armed = settingsMenu.armHold(point.position) }
                 else { armed = false; settingsMenu.cancelHold() }
             }
-            onCanceled: {
-                console.log("[BackHold-TOUCH] canceled")
-                armed = false; settingsMenu.cancelHold()
-            }
-            onLongPressed: {
-                console.log("[BackHold-TOUCH] longPressed! armed:", armed)
-                if (!armed) return; armed = false; settingsMenu.triggerHold()
-            }
+            onCanceled: { armed = false; settingsMenu.cancelHold() }
+            onLongPressed: { if (!armed) return; armed = false; settingsMenu.triggerHold() }
         }
 
         // Mouse handler (desktop dev)
@@ -195,25 +182,12 @@ Item {
             dragThreshold: 12
 
             property bool armed: false
-            onGrabChanged: function(transition, point) {
-                console.log("[BackHold-MOUSE] grabChanged:", transition,
-                            "point:", point.id, "pos:", point.position.x, point.position.y,
-                            "pressed:", pressed, "device:", point.device.type)
-            }
             onPressedChanged: {
-                console.log("[BackHold-MOUSE] pressedChanged:", pressed,
-                            "point:", point.position.x, point.position.y)
                 if (pressed) { armed = settingsMenu.armHold(point.position) }
                 else { armed = false; settingsMenu.cancelHold() }
             }
-            onCanceled: {
-                console.log("[BackHold-MOUSE] canceled")
-                armed = false; settingsMenu.cancelHold()
-            }
-            onLongPressed: {
-                console.log("[BackHold-MOUSE] longPressed! armed:", armed)
-                if (!armed) return; armed = false; settingsMenu.triggerHold()
-            }
+            onCanceled: { armed = false; settingsMenu.cancelHold() }
+            onLongPressed: { if (!armed) return; armed = false; settingsMenu.triggerHold() }
         }
     }
 
