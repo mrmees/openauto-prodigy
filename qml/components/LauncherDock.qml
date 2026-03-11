@@ -15,8 +15,8 @@ Item {
 
             Item {
                 id: dockItem
-                width: UiMetrics.tileW * 0.6
-                height: UiMetrics.tileH * 0.45
+                implicitWidth: UiMetrics.tileW * 0.6
+                implicitHeight: UiMetrics.tileH * 0.45
 
                 readonly property bool _isPressed: dockMa.pressed
 
@@ -49,6 +49,7 @@ Item {
                     anchors.centerIn: parent
                     icon: model.tileIcon
                     size: Math.round(dockItem.height * 0.9)
+                    opticalSize: Math.min(size, 48)
                     color: ThemeService.onSurface
                 }
 
