@@ -208,6 +208,19 @@ int main(int argc, char *argv[])
     else
         themeService->setForceDarkMode(true); // default: on
 
+    // Evaluate time-based night mode at startup so theme is correct before AA connects
+    if (yamlConfig->nightModeSource() == "time") {
+        QTime now = QTime::currentTime();
+        QTime dayStart = QTime::fromString(yamlConfig->nightModeDayStart(), "HH:mm");
+        QTime nightStart = QTime::fromString(yamlConfig->nightModeNightStart(), "HH:mm");
+        if (!dayStart.isValid()) dayStart = QTime(7, 0);
+        if (!nightStart.isValid()) nightStart = QTime(19, 0);
+        bool night = (nightStart > dayStart)
+            ? !(now >= dayStart && now < nightStart)
+            : (now >= nightStart && now < dayStart);
+        themeService->setNightMode(night);
+    }
+
     // --- Display service (brightness) ---
     auto displayService = new oap::DisplayService(&app);
     QVariant savedBrightness = yamlConfig->valueByPath("display.brightness");
