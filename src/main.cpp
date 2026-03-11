@@ -201,6 +201,13 @@ int main(int argc, char *argv[])
     if (savedWallpaper.isValid())
         themeService->setWallpaperOverride(savedWallpaper.toString());
 
+    // Apply force-dark-mode override (HU only — AA uses real night mode)
+    QVariant forceDark = yamlConfig->valueByPath("display.force_dark_mode");
+    if (forceDark.isValid())
+        themeService->setForceDarkMode(forceDark.toBool());
+    else
+        themeService->setForceDarkMode(true); // default: on
+
     // --- Display service (brightness) ---
     auto displayService = new oap::DisplayService(&app);
     QVariant savedBrightness = yamlConfig->valueByPath("display.brightness");

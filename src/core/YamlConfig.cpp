@@ -22,6 +22,7 @@ void YamlConfig::initDefaults()
     root_["display"]["theme"] = "default";
     root_["display"]["wallpaper_override"] = "";
     root_["display"]["clock_24h"] = false;
+    root_["display"]["force_dark_mode"] = true;
 
     root_["connection"]["auto_connect_aa"] = true;
     root_["connection"]["bt_discoverable"] = true;
