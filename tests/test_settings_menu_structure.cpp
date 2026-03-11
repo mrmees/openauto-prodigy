@@ -133,6 +133,10 @@ private slots:
                  "SettingsScrollHints should derive hint visibility from scroll position");
         QVERIFY2(hintSource.indexOf(QStringLiteral("flickable.contentHeight")) >= 0,
                  "SettingsScrollHints should derive hint visibility from content height");
+        QVERIFY2(hintSource.indexOf(QStringLiteral("property real hintOpacity: 0.8")) >= 0,
+                 "SettingsScrollHints should use stronger opacity for Pi viewing distance");
+        QVERIFY2(hintSource.indexOf(QStringLiteral("size: UiMetrics.iconSize")) >= 0,
+                 "SettingsScrollHints should use larger chevrons for distant readability");
 
         const QString menuSource = sourceFor(QStringLiteral("qml/applications/settings/SettingsMenu.qml"));
         QVERIFY2(!menuSource.isEmpty(), "Failed to read SettingsMenu.qml");

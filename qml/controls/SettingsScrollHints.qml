@@ -6,7 +6,7 @@ Item {
     property Flickable flickable
     property real edgeInset: UiMetrics.marginRow
     property real visibilityThreshold: UiMetrics.spacing
-    property real hintOpacity: 0.55
+    property real hintOpacity: 0.8
 
     // Reparent to the Flickable itself so this overlay stays fixed to the viewport
     // instead of scrolling with the Flickable's contentItem.
@@ -32,7 +32,7 @@ Item {
         anchors.horizontalCenter: parent.horizontalCenter
         y: root.edgeInset
         icon: "\ue5ce"
-        size: UiMetrics.iconSmall
+        size: UiMetrics.iconSize
         color: ThemeService.onSurfaceVariant
         opacity: root.showTopHint ? root.hintOpacity : 0.0
 
@@ -48,7 +48,7 @@ Item {
         anchors.horizontalCenter: parent.horizontalCenter
         y: parent.height - height - root.edgeInset
         icon: "\ue5cf"
-        size: UiMetrics.iconSmall
+        size: UiMetrics.iconSize
         color: ThemeService.onSurfaceVariant
         opacity: root.showBottomHint ? root.hintOpacity : 0.0
 
