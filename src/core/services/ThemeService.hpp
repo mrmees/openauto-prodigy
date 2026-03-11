@@ -86,6 +86,7 @@ class ThemeService : public QObject, public IThemeService {
     Q_PROPERTY(QColor onSuccess READ onSuccess NOTIFY colorsChanged)
 
     Q_PROPERTY(bool nightMode READ nightMode WRITE setNightMode NOTIFY modeChanged)
+    Q_PROPERTY(bool forceDarkMode READ forceDarkMode WRITE setForceDarkMode NOTIFY forceDarkModeChanged)
 
     Q_PROPERTY(QStringList availableThemes READ availableThemes NOTIFY availableThemesChanged)
     Q_PROPERTY(QStringList availableThemeNames READ availableThemeNames NOTIFY availableThemesChanged)
@@ -157,9 +158,14 @@ public:
     Q_INVOKABLE void refreshWallpapers();
 
     // Day/Night mode
-    bool nightMode() const { return nightMode_; }
+    bool nightMode() const;
     void setNightMode(bool night);
     Q_INVOKABLE void toggleMode();
+
+    // Force dark mode (HU override — AA uses realNightMode)
+    bool forceDarkMode() const { return forceDarkMode_; }
+    void setForceDarkMode(bool force);
+    bool realNightMode() const { return nightMode_; }
 
     // --- Primary group ---
     QColor primary() const { return activeColor("primary"); }
@@ -224,6 +230,7 @@ public:
 signals:
     void colorsChanged();
     void modeChanged();
+    void forceDarkModeChanged();
     void availableThemesChanged();
     void wallpaperChanged();
     void availableWallpapersChanged();
@@ -237,6 +244,7 @@ private:
     QString fontFamily_;
     QString themeDirPath_;
     bool nightMode_ = false;
+    bool forceDarkMode_ = false;
 
     QMap<QString, QColor> dayColors_;
     QMap<QString, QColor> nightColors_;

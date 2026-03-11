@@ -191,6 +191,11 @@ bool ThemeService::setTheme(const QString& themeId)
     return true;
 }
 
+bool ThemeService::nightMode() const
+{
+    return forceDarkMode_ || nightMode_;
+}
+
 void ThemeService::setNightMode(bool night)
 {
     if (nightMode_ == night) return;
@@ -199,8 +204,22 @@ void ThemeService::setNightMode(bool night)
     emit colorsChanged();
 }
 
+void ThemeService::setForceDarkMode(bool force)
+{
+    if (forceDarkMode_ == force) return;
+    forceDarkMode_ = force;
+    emit forceDarkModeChanged();
+    emit modeChanged();
+    emit colorsChanged();
+}
+
 void ThemeService::toggleMode()
 {
+    if (forceDarkMode_) {
+        // Temporarily disable force-dark for this session
+        setForceDarkMode(false);
+        return;
+    }
     setNightMode(!nightMode_);
 }
 
