@@ -204,6 +204,13 @@ Flickable {
             }
         }
 
+        SectionHeader { text: "Logging" }
+
+        SettingsToggle {
+            label: "Verbose Logging"
+            configPath: "logging.verbose"
+        }
+
         SectionHeader { text: "Protocol Capture" }
 
         SettingsToggle {

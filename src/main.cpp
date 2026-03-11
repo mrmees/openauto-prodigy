@@ -245,6 +245,16 @@ int main(int argc, char *argv[])
 
     // --- Plugin infrastructure ---
     auto configService = std::make_unique<oap::ConfigService>(yamlConfig.get(), yamlPath);
+
+    // Live-toggle verbose logging from settings UI
+    QObject::connect(configService.get(), &oap::ConfigService::configChanged,
+        [](const QString& path, const QVariant& value) {
+            if (path == "logging.verbose") {
+                oap::setVerbose(value.toBool());
+                qCInfo(lcCore) << "Verbose logging" << (value.toBool() ? "enabled" : "disabled") << "(via settings)";
+            }
+        });
+
     auto hostContext = std::make_unique<oap::HostContext>();
     hostContext->setConfigService(configService.get());
     hostContext->setThemeService(themeService);
