@@ -71,7 +71,7 @@ See .planning/milestones/v0.5.1-ROADMAP.md for archived details.
 - Decimal phases (2.1, 2.2): Urgent insertions (marked with INSERTED)
 
 - [x] **Phase 1: Widget System** - Home screen with 3-pane widget layout, launcher dock, and built-in widgets (completed 2026-03-10)
-- [ ] **Phase 2: Settings Restructure** - Reorganize settings into 9 categories, move/remove/demote power-user and debug controls
+- [x] **Phase 2: Settings Restructure** - Reorganize settings into 9 categories, move/remove/demote power-user and debug controls (completed 2026-03-11)
 - [ ] **Phase 3: Touch Normalization** - Consistent list styling, touch-friendly controls, and readability across all settings pages
 
 ## Phase Details
@@ -125,7 +125,7 @@ Phases execute in numeric order: 1 -> 2 -> 3
 | Phase | Plans Complete | Status | Completed |
 |-------|----------------|--------|-----------|
 | 1. Widget System | 3/3 | Complete | 2026-03-10 |
-| 2. Settings Restructure | 1/2 | In Progress | - |
+| 2. Settings Restructure | 2/2 | Complete   | 2026-03-11 |
 | 3. Touch Normalization | 0/? | Not started | - |
 
 ---

@@ -19,15 +19,15 @@ Requirements for widget system and UI polish milestone.
 ### Settings Restructure
 
 - [x] **SET-01**: Settings reorganized into 9 top-level categories: AA, Display, Audio, Bluetooth, Theme, Companion, System, Information, Debug
-- [ ] **SET-02**: AA page shows Resolution, DPI, and Auto-connect only
-- [ ] **SET-03**: Display page contains screen size info (size/PPI/resolution), UI scale stepper, screen dimming, navbar settings
+- [x] **SET-02**: AA page shows Resolution, DPI, and Auto-connect only
+- [x] **SET-03**: Display page contains screen size info (size/PPI/resolution), UI scale stepper, screen dimming, navbar settings
 - [x] **SET-04**: Theme promoted to top-level category with theme picker, wallpaper, dark mode toggle
-- [ ] **SET-05**: System contains left-hand drive, clock 24h toggle, day/night mode settings, software version
+- [x] **SET-05**: System contains left-hand drive, clock 24h toggle, day/night mode settings, software version
 - [x] **SET-06**: Information page shows identity fields and hardware profile (read-only)
 - [x] **SET-07**: Debug page (visible, last in list) contains protocol capture toggle, codec/decoder selection, TCP port override, verbose logging toggle
-- [ ] **SET-08**: FPS setting removed from UI (YAML-only, 30fps default)
-- [ ] **SET-09**: About OpenAutoProdigy section removed entirely
-- [ ] **SET-10**: Debug AA protocol buttons removed from System page
+- [x] **SET-08**: FPS setting removed from UI (YAML-only, 30fps default)
+- [x] **SET-09**: About OpenAutoProdigy section removed entirely
+- [x] **SET-10**: Debug AA protocol buttons removed from System page
 
 ### Touch Normalization
 
@@ -76,15 +76,15 @@ Requirements for widget system and UI polish milestone.
 | WDG-05 | Phase 1 | Complete |
 | WDG-06 | Phase 1 | Complete |
 | SET-01 | Phase 2 | Complete |
-| SET-02 | Phase 2 | Pending |
-| SET-03 | Phase 2 | Pending |
+| SET-02 | Phase 2 | Complete |
+| SET-03 | Phase 2 | Complete |
 | SET-04 | Phase 2 | Complete |
-| SET-05 | Phase 2 | Pending |
+| SET-05 | Phase 2 | Complete |
 | SET-06 | Phase 2 | Complete |
 | SET-07 | Phase 2 | Complete |
-| SET-08 | Phase 2 | Pending |
-| SET-09 | Phase 2 | Pending |
-| SET-10 | Phase 2 | Pending |
+| SET-08 | Phase 2 | Complete |
+| SET-09 | Phase 2 | Complete |
+| SET-10 | Phase 2 | Complete |
 | TCH-01 | Phase 3 | Pending |
 | TCH-02 | Phase 3 | Pending |
 | TCH-03 | Phase 3 | Pending |

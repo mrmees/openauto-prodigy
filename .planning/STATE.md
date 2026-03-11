@@ -2,16 +2,16 @@
 gsd_state_version: 1.0
 milestone: v0.5
 milestone_name: milestone
-status: executing
-stopped_at: Completed 02-01-PLAN.md
-last_updated: "2026-03-11T03:55:13Z"
-last_activity: 2026-03-11 -- Plan 02-01 complete (new settings pages)
+status: completed
+stopped_at: Completed 02-02-PLAN.md
+last_updated: "2026-03-11T04:06:01.221Z"
+last_activity: 2026-03-11 -- Plan 02-02 complete (settings cleanup)
 progress:
   total_phases: 3
-  completed_phases: 0
+  completed_phases: 1
   total_plans: 2
-  completed_plans: 1
-  percent: 58
+  completed_plans: 2
+  percent: 100
 ---
 
 # Project State
@@ -26,22 +26,23 @@ See: .planning/PROJECT.md (updated 2026-03-10)
 ## Current Position
 
 Phase: 2 of 3 (Settings Restructure & Touch Polish)
-Plan: 2 of 2 (Phase 2)
-Status: Phase 2, Plan 01 complete -- Plan 02 next
-Last activity: 2026-03-11 -- Plan 02-01 complete (new settings pages)
+Plan: 2 of 2 (Phase 2) -- COMPLETE
+Status: Phase 2 complete -- all settings restructured
+Last activity: 2026-03-11 -- Plan 02-02 complete (settings cleanup)
 
-Progress: [#####*----] 58% (Phase 2 plan 1/2 complete)
+Progress: [##########] 100% (Phase 2 complete)
 
 ## Performance Metrics
 
 **Velocity:**
-- Total plans completed: 4 (Phase 1 widget system + Phase 2 plan 01)
+- Total plans completed: 5 (Phase 1 widget system + Phase 2 plans 01-02)
 - Average duration: --
 - Total execution time: --
 
 | Phase | Plan | Duration | Tasks | Files |
 |-------|------|----------|-------|-------|
 | 02 | 01 | 4min | 2 | 5 |
+| 02 | 02 | 6min | 2 | 8 |
 
 ## Accumulated Context
 
@@ -51,6 +52,8 @@ Decisions are logged in PROJECT.md Key Decisions table.
 
 - [02-01] WiFi AP channel/band shown as ReadOnlyField with "Configured at install time" note
 - [02-01] Kept double-tap delete for themes (swipe-to-delete deferred)
+- [02-02] No section headers on AASettings — only 3 controls, headers add clutter
+- [02-02] Night mode controls duplicated on SystemSettings with same forceDarkMode disable pattern
 
 ### Pending Todos
 
@@ -68,5 +71,5 @@ None yet.
 
 ## Session Continuity
 
-Last session: 2026-03-11T03:55:13Z
-Stopped at: Completed 02-01-PLAN.md
+Last session: 2026-03-11T04:06:01.218Z
+Stopped at: Completed 02-02-PLAN.md
