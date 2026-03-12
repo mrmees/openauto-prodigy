@@ -28,7 +28,7 @@ See: .planning/PROJECT.md (updated 2026-03-12)
 Phase: 05 of 08 (Static Grid Rendering & Widget Revision)
 Plan: 02 complete (phase complete)
 Status: Phase 05 done -- all widgets revised with pixel breakpoints
-Last activity: 2026-03-12 -- Phase 05 Plan 02 complete (Widget revision with pixel breakpoints)
+Last activity: 2026-03-12 - Completed quick task 1: Fix AA wireless connection failure
 
 Progress: [##########] 100%
 
@@ -66,6 +66,10 @@ Decisions are logged in PROJECT.md Key Decisions table.
 
 None yet.
 
+### Roadmap Evolution
+
+- Phase 05.1 inserted after Phase 05: Fix AA wireless connection failure (URGENT)
+
 ### Blockers/Concerns
 
 - Nav turn events are logged but not wired to EventBus -- must fix before nav widget (Phase 06)
@@ -74,7 +78,13 @@ None yet.
 - Use ghost rectangle for resize preview in edit mode -- animating width/height is janky on Pi
 - Grid density formula needs real Pi touch validation before shipping
 
+### Quick Tasks Completed
+
+| # | Description | Date | Commit | Directory |
+|---|-------------|------|--------|-----------|
+| 1 | Fix AA wireless connection failure | 2026-03-12 | config-only | [1-fix-the-aa-wireless-connection-failure](./quick/1-fix-the-aa-wireless-connection-failure/) |
+
 ## Session Continuity
 
-Last session: 2026-03-12T19:24:39Z
-Stopped at: Completed 05-02-PLAN.md
+Last session: 2026-03-12T20:49:00Z
+Stopped at: Completed quick task 1: Fix AA wireless connection failure
