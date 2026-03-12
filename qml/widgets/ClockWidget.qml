@@ -4,42 +4,38 @@ import QtQuick.Layouts
 Item {
     id: clockWidget
 
-    // WidgetInstanceContext is injected into our QQmlContext
-    // Access paneSize to adapt layout
-    property bool isMainPane: typeof widgetContext !== "undefined"
-                              ? widgetContext.paneSize === 1 : true  // 1 = Main
+    // Pixel-based breakpoints for responsive layout
+    readonly property bool showDate: width >= 250   // true at 2+ cells wide
+    readonly property bool showDay: height >= 200    // true at 2+ cells tall
 
-    Rectangle {
-        anchors.fill: parent
-        radius: UiMetrics.radius
-        color: "transparent"  // WidgetHost provides glass background
+    ColumnLayout {
+        anchors.centerIn: parent
+        spacing: showDay ? UiMetrics.spacing : UiMetrics.spacing * 0.5
 
-        ColumnLayout {
-            anchors.centerIn: parent
-            spacing: isMainPane ? UiMetrics.spacing : UiMetrics.spacing * 0.5
+        NormalText {
+            id: timeText
+            font.pixelSize: showDay ? UiMetrics.fontHeading * 2.5
+                          : showDate ? UiMetrics.fontHeading * 1.8
+                          : UiMetrics.fontHeading * 2.0
+            font.weight: showDate ? Font.Light : Font.Bold
+            color: ThemeService.onSurface
+            Layout.alignment: Qt.AlignHCenter
+        }
 
-            NormalText {
-                id: timeText
-                font.pixelSize: isMainPane ? UiMetrics.fontHeading * 2.5 : UiMetrics.fontHeading * 1.5
-                font.weight: Font.Light
-                color: ThemeService.onSurface
-                Layout.alignment: Qt.AlignHCenter
-            }
+        NormalText {
+            id: dateText
+            visible: showDate
+            font.pixelSize: UiMetrics.fontTitle
+            color: ThemeService.onSurfaceVariant
+            Layout.alignment: Qt.AlignHCenter
+        }
 
-            NormalText {
-                id: dateText
-                font.pixelSize: isMainPane ? UiMetrics.fontTitle : UiMetrics.fontBody
-                color: ThemeService.onSurfaceVariant
-                Layout.alignment: Qt.AlignHCenter
-            }
-
-            NormalText {
-                id: dayText
-                font.pixelSize: isMainPane ? UiMetrics.fontBody : UiMetrics.fontSmall
-                color: ThemeService.onSurfaceVariant
-                Layout.alignment: Qt.AlignHCenter
-                visible: isMainPane
-            }
+        NormalText {
+            id: dayText
+            visible: showDay
+            font.pixelSize: UiMetrics.fontBody
+            color: ThemeService.onSurfaceVariant
+            Layout.alignment: Qt.AlignHCenter
         }
     }
 
@@ -51,7 +47,7 @@ Item {
         onTriggered: {
             var now = new Date()
             timeText.text = now.toLocaleTimeString(Qt.locale(), "h:mm")
-            dateText.text = now.toLocaleDateString(Qt.locale(), "MMMM d, yyyy")
+            dateText.text = now.toLocaleDateString(Qt.locale(), "MMMM d")
             dayText.text = now.toLocaleDateString(Qt.locale(), "dddd")
         }
     }
