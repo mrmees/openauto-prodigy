@@ -3,62 +3,69 @@ import QtQuick.Layouts
 
 Item {
     id: nowPlayingWidget
+    clip: true
 
-    // Pixel-based breakpoint for responsive layout
-    readonly property bool isFullLayout: width >= 400 && height >= 180
+    // Pixel-based breakpoints for responsive layout
+    readonly property bool showArtist: width >= 400
+    readonly property bool isTall: height >= 180
 
-    property bool isConnected: typeof BtAudioPlugin !== "undefined"
-                               && BtAudioPlugin.connectionState === 1
-    property bool isPlaying: typeof BtAudioPlugin !== "undefined"
-                             && BtAudioPlugin.playbackState === 1
-    property string title: typeof BtAudioPlugin !== "undefined"
-                           ? (BtAudioPlugin.trackTitle || "") : ""
-    property string artist: typeof BtAudioPlugin !== "undefined"
-                            ? (BtAudioPlugin.trackArtist || "") : ""
+    // Data bindings
+    property bool hasMedia: typeof MediaBridge !== "undefined" && MediaBridge.hasMedia
+    property int mediaSource: typeof MediaBridge !== "undefined" ? MediaBridge.source : 0
+    property bool isPlaying: typeof MediaBridge !== "undefined"
+                             && MediaBridge.playbackState === 1
+    property string title: typeof MediaBridge !== "undefined"
+                           ? (MediaBridge.title || "") : ""
+    property string artist: typeof MediaBridge !== "undefined"
+                            ? (MediaBridge.artist || "") : ""
 
-    // Full layout: centered column with icon, title, artist, prev/play/next
+    // Source icon codepoints
+    readonly property string btIcon: "\ue1a7"      // bluetooth_audio
+    readonly property string aaIcon: "\ue649"      // android
+
+    // ---- Full layout (3x2+): title, artist, controls, source icon ----
     ColumnLayout {
         anchors.fill: parent
         anchors.margins: UiMetrics.spacing
         spacing: UiMetrics.spacing
-        visible: isFullLayout
+        visible: isTall
 
         Item { Layout.fillHeight: true }
 
+        // Source indicator (top-right corner)
         MaterialIcon {
-            icon: "\ue405"  // music_note
-            size: UiMetrics.iconSize * 1.5
-            color: isConnected ? ThemeService.primary : ThemeService.onSurfaceVariant
-            Layout.alignment: Qt.AlignHCenter
+            icon: mediaSource === 2 ? aaIcon : (mediaSource === 1 ? btIcon : "")
+            visible: mediaSource !== 0
+            size: UiMetrics.iconSmall
+            color: ThemeService.onSurfaceVariant
+            Layout.alignment: Qt.AlignRight
         }
 
         NormalText {
-            text: title || "No music playing"
+            text: title || "No media"
             font.pixelSize: UiMetrics.fontTitle
-            font.bold: title.length > 0
-            color: ThemeService.onSurface
-            Layout.alignment: Qt.AlignHCenter
+            font.bold: hasMedia
+            color: hasMedia ? ThemeService.onSurface : ThemeService.onSurfaceVariant
             Layout.fillWidth: true
             horizontalAlignment: Text.AlignHCenter
             elide: Text.ElideRight
         }
 
         NormalText {
-            text: artist || (isConnected ? "Unknown Artist" : "")
+            text: artist
+            visible: artist.length > 0
             font.pixelSize: UiMetrics.fontBody
             color: ThemeService.onSurfaceVariant
-            Layout.alignment: Qt.AlignHCenter
             Layout.fillWidth: true
             horizontalAlignment: Text.AlignHCenter
             elide: Text.ElideRight
-            visible: text.length > 0
         }
 
         // Playback controls
         RowLayout {
             Layout.alignment: Qt.AlignHCenter
             spacing: UiMetrics.spacing * 2
-            opacity: isConnected ? 1.0 : 0.3
+            opacity: mediaSource !== 0 ? 1.0 : 0.4
 
             MaterialIcon {
                 icon: "\ue045"  // skip_previous
@@ -67,22 +74,20 @@ Item {
                 MouseArea {
                     anchors.fill: parent
                     anchors.margins: -UiMetrics.spacing
-                    onClicked: if (BtAudioPlugin) BtAudioPlugin.previous()
+                    enabled: mediaSource !== 0
+                    onClicked: if (typeof MediaBridge !== "undefined") MediaBridge.previous()
                 }
             }
 
             MaterialIcon {
-                icon: isPlaying ? "\ue034" : "\ue037"  // pause / play_arrow
+                icon: isPlaying ? "\ue034" : "\ue037"  // pause : play_arrow
                 size: UiMetrics.iconSize * 1.5
                 color: ThemeService.primary
                 MouseArea {
                     anchors.fill: parent
                     anchors.margins: -UiMetrics.spacing
-                    onClicked: {
-                        if (!BtAudioPlugin) return
-                        if (isPlaying) BtAudioPlugin.pause()
-                        else BtAudioPlugin.play()
-                    }
+                    enabled: mediaSource !== 0
+                    onClicked: if (typeof MediaBridge !== "undefined") MediaBridge.playPause()
                 }
             }
 
@@ -93,7 +98,8 @@ Item {
                 MouseArea {
                     anchors.fill: parent
                     anchors.margins: -UiMetrics.spacing
-                    onClicked: if (BtAudioPlugin) BtAudioPlugin.next()
+                    enabled: mediaSource !== 0
+                    onClicked: if (typeof MediaBridge !== "undefined") MediaBridge.next()
                 }
             }
         }
@@ -101,40 +107,126 @@ Item {
         Item { Layout.fillHeight: true }
     }
 
-    // Compact layout: horizontal strip with icon + title + play/pause
+    // ---- Compact layout (2x1, 3x1): horizontal strip ----
     RowLayout {
         anchors.fill: parent
         anchors.margins: UiMetrics.spacing
         spacing: UiMetrics.spacing
-        visible: !isFullLayout
+        visible: !isTall
 
-        MaterialIcon {
-            icon: "\ue405"  // music_note
-            size: UiMetrics.iconSmall
-            color: isConnected ? ThemeService.primary : ThemeService.onSurfaceVariant
-        }
-
-        NormalText {
-            text: title || "No music"
-            font.pixelSize: UiMetrics.fontBody
-            color: ThemeService.onSurface
-            elide: Text.ElideRight
+        // Metadata column
+        ColumnLayout {
             Layout.fillWidth: true
+            spacing: 2
+
+            NormalText {
+                text: title || "No media"
+                font.pixelSize: UiMetrics.fontBody
+                font.bold: hasMedia
+                color: hasMedia ? ThemeService.onSurface : ThemeService.onSurfaceVariant
+                elide: Text.ElideRight
+                Layout.fillWidth: true
+            }
+
+            NormalText {
+                text: artist
+                visible: showArtist && artist.length > 0
+                font.pixelSize: UiMetrics.fontSmall
+                color: ThemeService.onSurfaceVariant
+                elide: Text.ElideRight
+                Layout.fillWidth: true
+            }
         }
 
-        MaterialIcon {
-            icon: isPlaying ? "\ue034" : "\ue037"
-            size: UiMetrics.iconSmall
-            color: ThemeService.onSurface
-            MouseArea {
-                anchors.fill: parent
-                anchors.margins: -UiMetrics.spacing
-                onClicked: {
-                    if (!BtAudioPlugin) return
-                    if (isPlaying) BtAudioPlugin.pause()
-                    else BtAudioPlugin.play()
+        // Compact controls
+        RowLayout {
+            spacing: UiMetrics.spacing
+            opacity: mediaSource !== 0 ? 1.0 : 0.4
+
+            MaterialIcon {
+                icon: "\ue045"  // skip_previous
+                size: UiMetrics.iconSmall
+                color: ThemeService.onSurface
+                MouseArea {
+                    anchors.fill: parent
+                    anchors.margins: -UiMetrics.spacing
+                    enabled: mediaSource !== 0
+                    onClicked: if (typeof MediaBridge !== "undefined") MediaBridge.previous()
+                }
+            }
+
+            MaterialIcon {
+                icon: isPlaying ? "\ue034" : "\ue037"
+                size: UiMetrics.iconSize
+                color: ThemeService.primary
+                MouseArea {
+                    anchors.fill: parent
+                    anchors.margins: -UiMetrics.spacing
+                    enabled: mediaSource !== 0
+                    onClicked: if (typeof MediaBridge !== "undefined") MediaBridge.playPause()
+                }
+            }
+
+            MaterialIcon {
+                icon: "\ue044"  // skip_next
+                size: UiMetrics.iconSmall
+                color: ThemeService.onSurface
+                MouseArea {
+                    anchors.fill: parent
+                    anchors.margins: -UiMetrics.spacing
+                    enabled: mediaSource !== 0
+                    onClicked: if (typeof MediaBridge !== "undefined") MediaBridge.next()
                 }
             }
         }
+
+        // Source indicator
+        MaterialIcon {
+            icon: mediaSource === 2 ? aaIcon : (mediaSource === 1 ? btIcon : "")
+            visible: mediaSource !== 0
+            size: UiMetrics.iconSmall
+            color: ThemeService.onSurfaceVariant
+        }
+    }
+
+    // ---- Inactive overlay (when no source) ----
+    // The layouts above handle showing "No media" text.
+    // Additional muted icon overlay when truly empty (no source, no media)
+    Item {
+        anchors.centerIn: parent
+        visible: mediaSource === 0 && !hasMedia
+        opacity: 0.4
+
+        ColumnLayout {
+            anchors.centerIn: parent
+            spacing: UiMetrics.spacing
+
+            MaterialIcon {
+                icon: "\ue405"  // music_note
+                size: isTall ? UiMetrics.iconSize * 2 : UiMetrics.iconSize * 1.5
+                color: ThemeService.onSurfaceVariant
+                Layout.alignment: Qt.AlignHCenter
+            }
+
+            NormalText {
+                text: "No media"
+                visible: isTall || showArtist
+                font.pixelSize: UiMetrics.fontBody
+                color: ThemeService.onSurfaceVariant
+                Layout.alignment: Qt.AlignHCenter
+            }
+        }
+    }
+
+    // Long-press for context menu (edit mode)
+    MouseArea {
+        anchors.fill: parent
+        z: -1  // behind control MouseAreas
+        pressAndHoldInterval: 500
+        onPressAndHold: {
+            if (nowPlayingWidget.parent && nowPlayingWidget.parent.requestContextMenu)
+                nowPlayingWidget.parent.requestContextMenu()
+        }
+        // No onClick -- interaction only through control buttons (per user decision)
     }
 }

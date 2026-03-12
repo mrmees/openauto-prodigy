@@ -34,6 +34,9 @@
 #include "core/plugin/PluginManager.hpp"
 #include "plugins/android_auto/AndroidAutoPlugin.hpp"
 #include "core/aa/AndroidAutoOrchestrator.hpp"
+#include "core/aa/NavigationDataBridge.hpp"
+#include "core/aa/MediaDataBridge.hpp"
+#include "core/aa/ManeuverIconProvider.hpp"
 #include "plugins/bt_audio/BtAudioPlugin.hpp"
 #include "plugins/phone/PhonePlugin.hpp"
 #include "plugins/equalizer/EqualizerPlugin.hpp"
@@ -368,6 +371,21 @@ int main(int argc, char *argv[])
         navbarController->setCoordBridge(bridge);
     }
 
+    // --- Data bridges for content widgets ---
+    auto* navBridge = new oap::aa::NavigationDataBridge(&app);
+    auto* mediaBridge = new oap::aa::MediaDataBridge(&app);
+    auto* maneuverIconProvider = new oap::aa::ManeuverIconProvider();
+
+    // Wire nav bridge to orchestrator's navigation handler
+    if (auto* orch = aaPlugin->orchestrator()) {
+        navBridge->connectToHandler(orch->navigationHandler());
+        mediaBridge->connectToAAOrchestrator(orch);
+    }
+    navBridge->setManeuverIconProvider(maneuverIconProvider);
+
+    // Wire media bridge to BT audio (may be nullptr on VM — connectToBtAudio handles null)
+    mediaBridge->connectToBtAudio(btAudioPlugin);
+
     // --- Widget system ---
     auto widgetRegistry = new oap::WidgetRegistry(&app);
 
@@ -403,7 +421,7 @@ int main(int argc, char *argv[])
         navDesc.minCols = 2; navDesc.minRows = 1;
         navDesc.maxCols = 4; navDesc.maxRows = 2;
         navDesc.defaultCols = 3; navDesc.defaultRows = 1;
-        // qmlComponent intentionally empty -- Phase 06 fills it
+        navDesc.qmlComponent = QUrl(QStringLiteral("qrc:/OpenAutoProdigy/NavigationWidget.qml"));
         widgetRegistry->registerWidget(navDesc);
 
         oap::WidgetDescriptor npDesc;
@@ -413,7 +431,7 @@ int main(int argc, char *argv[])
         npDesc.minCols = 2; npDesc.minRows = 1;
         npDesc.maxCols = 6; npDesc.maxRows = 2;
         npDesc.defaultCols = 3; npDesc.defaultRows = 2;
-        // qmlComponent intentionally empty -- Phase 06 fills it
+        npDesc.qmlComponent = QUrl(QStringLiteral("qrc:/OpenAutoProdigy/NowPlayingWidget.qml"));
         widgetRegistry->registerWidget(npDesc);
     }
 
@@ -605,6 +623,11 @@ int main(int argc, char *argv[])
     engine.rootContext()->setContextProperty("BluetoothManager", bluetoothManager);
     engine.rootContext()->setContextProperty("PairedDevicesModel", bluetoothManager->pairedDevicesModel());
     engine.rootContext()->setContextProperty("AAOrchestrator", static_cast<QObject*>(aaPlugin->orchestrator()));
+
+    // Content widget data bridges + image provider
+    engine.addImageProvider(QStringLiteral("navicon"), maneuverIconProvider);
+    engine.rootContext()->setContextProperty("NavigationBridge", navBridge);
+    engine.rootContext()->setContextProperty("MediaBridge", mediaBridge);
 
     // Geometry override for windowed resolution testing
     engine.rootContext()->setContextProperty("_geomW", geomW);

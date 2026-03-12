@@ -253,6 +253,11 @@ set_source_files_properties(../qml/widgets/AAStatusWidget.qml PROPERTIES
     QT_RESOURCE_ALIAS "AAStatusWidget.qml"
     QT_QML_SKIP_CACHEGEN TRUE
 )
+set_source_files_properties(../qml/widgets/NavigationWidget.qml PROPERTIES
+    QT_QML_SOURCE_TYPENAME "NavigationWidget"
+    QT_RESOURCE_ALIAS "NavigationWidget.qml"
+    QT_QML_SKIP_CACHEGEN TRUE
+)
 set_source_files_properties(../qml/widgets/NowPlayingWidget.qml PROPERTIES
     QT_QML_SOURCE_TYPENAME "NowPlayingWidget"
     QT_RESOURCE_ALIAS "NowPlayingWidget.qml"
@@ -370,6 +375,7 @@ qt_add_qml_module(openauto-prodigy
         ../qml/components/WidgetContextMenu.qml
         ../qml/widgets/ClockWidget.qml
         ../qml/widgets/AAStatusWidget.qml
+        ../qml/widgets/NavigationWidget.qml
         ../qml/widgets/NowPlayingWidget.qml
         ../qml/applications/launcher/LauncherMenu.qml
         ../qml/applications/android_auto/AndroidAutoMenu.qml

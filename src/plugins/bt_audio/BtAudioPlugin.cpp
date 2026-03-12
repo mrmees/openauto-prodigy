@@ -427,16 +427,9 @@ QUrl BtAudioPlugin::iconSource() const
 
 QList<oap::WidgetDescriptor> BtAudioPlugin::widgetDescriptors() const
 {
-    oap::WidgetDescriptor desc;
-    desc.id = QStringLiteral("org.openauto.bt-now-playing");
-    desc.displayName = QStringLiteral("Now Playing");
-    desc.iconName = QStringLiteral("\ue405");  // music_note
-    desc.minCols = 2; desc.minRows = 1;
-    desc.maxCols = 6; desc.maxRows = 2;
-    desc.defaultCols = 3; desc.defaultRows = 2;
-    desc.qmlComponent = QUrl(QStringLiteral("qrc:/OpenAutoProdigy/NowPlayingWidget.qml"));
-    desc.pluginId = id();
-    return {desc};
+    // Unified NowPlayingWidget registered in main.cpp handles both BT + AA sources.
+    // BtAudioPlugin no longer registers its own widget descriptor.
+    return {};
 }
 
 void BtAudioPlugin::play()
