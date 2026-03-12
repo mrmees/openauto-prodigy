@@ -21,6 +21,10 @@ void NavigationDataBridge::connectToHandler(oaa::hu::NavigationChannelHandler* h
             this, &NavigationDataBridge::onNavigationStateChanged);
     connect(handler, &oaa::hu::NavigationChannelHandler::navigationTurnEvent,
             this, &NavigationDataBridge::onNavigationTurnEvent);
+    connect(handler, &oaa::hu::NavigationChannelHandler::navigationStepChanged,
+            this, &NavigationDataBridge::onNavigationStepChanged);
+    connect(handler, &oaa::hu::NavigationChannelHandler::navigationDistanceChanged,
+            this, &NavigationDataBridge::onNavigationDistanceChanged);
 }
 
 void NavigationDataBridge::setManeuverIconProvider(ManeuverIconProvider* provider)
@@ -42,6 +46,8 @@ void NavigationDataBridge::onNavigationStateChanged(bool active)
         turnDirection_ = 0;
         distanceMeters_ = 0;
         distanceUnit_ = 0;
+        instruction_.clear();
+        phoneDistanceText_.clear();
         currentIcon_.clear();
         if (iconProvider_)
             iconProvider_->updateIcon(QByteArray());
@@ -71,8 +77,39 @@ void NavigationDataBridge::onNavigationTurnEvent(const QString& roadName, int ma
     emit turnDataChanged();
 }
 
+void NavigationDataBridge::onNavigationStepChanged(const QString& instruction,
+                                                     const QString& /*destination*/,
+                                                     int maneuverType)
+{
+    // NavigationNotification (0x8006) — modern phones send this instead of
+    // the deprecated NavigationTurnEvent (0x8004). Use instruction as road name
+    // and update maneuver type. Only update if we haven't gotten a TurnEvent
+    // with richer data (road name + turn icon) in this nav session.
+    if (roadName_.isEmpty() || currentIcon_.isEmpty()) {
+        // No TurnEvent data — use step instruction as road name
+        roadName_ = instruction;
+    }
+    instruction_ = instruction;
+    maneuverType_ = maneuverType;
+    emit turnDataChanged();
+}
+
+void NavigationDataBridge::onNavigationDistanceChanged(const QString& displayText, int /*unit*/)
+{
+    // NavigationNextTurnDistanceEvent (0x8007) — phone provides pre-formatted
+    // distance text with correct locale units (e.g. "0.3 mi", "500 ft")
+    phoneDistanceText_ = displayText;
+    emit distanceChanged();
+}
+
 QString NavigationDataBridge::formattedDistance() const
 {
+    // Prefer the phone's pre-formatted text (from NavigationNextTurnDistanceEvent)
+    // which has correct locale-aware units
+    if (!phoneDistanceText_.isEmpty())
+        return phoneDistanceText_;
+
+    // Fallback: compute from NavigationTurnEvent data (legacy phones)
     // distance_unit from phone: 1=meters, 2=km, 3=miles, 4=feet, 5=yards
     // distanceMeters_ is always in meters regardless of unit
     switch (distanceUnit_) {
