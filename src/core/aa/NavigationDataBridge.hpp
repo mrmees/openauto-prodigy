@@ -64,6 +64,8 @@ private:
     QByteArray currentIcon_;
     int iconVersion_ = 0;
     ManeuverIconProvider* iconProvider_ = nullptr;
+
+    static QString unitSuffix(int distanceUnit);
 };
 
 } // namespace aa

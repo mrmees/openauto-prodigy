@@ -94,20 +94,25 @@ void NavigationDataBridge::onNavigationStepChanged(const QString& instruction,
     emit turnDataChanged();
 }
 
-void NavigationDataBridge::onNavigationDistanceChanged(const QString& displayText, int /*unit*/)
+void NavigationDataBridge::onNavigationDistanceChanged(const QString& displayText, int unit)
 {
-    // NavigationNextTurnDistanceEvent (0x8007) — phone provides pre-formatted
-    // distance text with correct locale units (e.g. "0.3 mi", "500 ft")
+    // NavigationNextTurnDistanceEvent (0x8007) — phone sends numeric display_text
+    // (e.g. "0", "0.3") plus distance_unit enum. We combine them.
     phoneDistanceText_ = displayText;
+    if (unit != 0)
+        distanceUnit_ = unit;
     emit distanceChanged();
 }
 
 QString NavigationDataBridge::formattedDistance() const
 {
-    // Prefer the phone's pre-formatted text (from NavigationNextTurnDistanceEvent)
-    // which has correct locale-aware units
-    if (!phoneDistanceText_.isEmpty())
+    // If we have phone-provided display text, combine with unit suffix
+    if (!phoneDistanceText_.isEmpty()) {
+        QString suffix = unitSuffix(distanceUnit_);
+        if (!suffix.isEmpty())
+            return phoneDistanceText_ + " " + suffix;
         return phoneDistanceText_;
+    }
 
     // Fallback: compute from NavigationTurnEvent data (legacy phones)
     // distance_unit from phone: 1=meters, 2=km, 3=miles, 4=feet, 5=yards
@@ -127,6 +132,19 @@ QString NavigationDataBridge::formattedDistance() const
         return QString::number(qRound(distanceMeters_ / 0.9144)) + " yd";
     default:
         return QString::number(distanceMeters_) + " m";
+    }
+}
+
+QString NavigationDataBridge::unitSuffix(int distanceUnit)
+{
+    switch (distanceUnit) {
+    case 1: return QStringLiteral("m");
+    case 2: return QStringLiteral("km");
+    case 3: return QStringLiteral("mi");
+    case 4: return QStringLiteral("ft");
+    case 5: return QStringLiteral("yd");
+    case 6: return QStringLiteral("ft");  // UNKNOWN_6 observed as feet on US-locale phones
+    default: return QString();
     }
 }
 
