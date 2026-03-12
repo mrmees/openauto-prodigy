@@ -87,6 +87,8 @@ public:
     /// Set DPI-scaled navbar thickness for margin calculations.
     void setNavbarThickness(int thickness) { navbarThickness_ = thickness; }
     oaa::hu::InputChannelHandler* inputHandler() { return &inputHandler_; }
+    oaa::hu::NavigationChannelHandler* navigationHandler() { return &navHandler_; }
+    oaa::hu::MediaStatusChannelHandler* mediaStatusHandler() { return &mediaStatusHandler_; }
 
     int connectionState() const { return state_; }
     QString statusMessage() const { return statusMessage_; }

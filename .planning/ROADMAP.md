@@ -130,12 +130,12 @@ Plans:
   3. Navigation widget shows muted "No active navigation" state when nav inactive; tapping it opens AA fullscreen
   4. Unified Now Playing widget shows track title, artist, and playback controls — sourced from AA media when connected, BT A2DP when not
   5. Now Playing widget displays source indicator ("via Android Auto" / "via Bluetooth") and routes controls to correct source
-**Plans**: TBD
+**Plans**: 3 plans
 
 Plans:
-- [ ] 06-01: TBD
-- [ ] 06-02: TBD
-- [ ] 06-03: TBD
+- [ ] 06-01-PLAN.md — NavigationDataBridge, ManeuverIconProvider, orchestrator accessors, tests
+- [ ] 06-02-PLAN.md — MediaDataBridge with source priority and control delegation, tests
+- [ ] 06-03-PLAN.md — QML widgets (NavigationWidget, unified NowPlayingWidget), main.cpp wiring, BT widget removal
 
 ### Phase 07: Edit Mode
 **Goal**: Users can customize their home screen layout by repositioning, resizing, adding, and removing widgets through a touch-driven edit mode
@@ -180,7 +180,7 @@ Phases execute in numeric order: 04 -> 05 -> 06 + 07 (parallel-capable) -> 08
 |-------|----------------|--------|-----------|
 | 04. Grid Data Model & Persistence | 2/2 | Complete    | 2026-03-12 |
 | 05. Static Grid Rendering & Widget Revision | 2/2 | Complete    | 2026-03-12 |
-| 06. Content Widgets | 0/? | Not started | - |
+| 06. Content Widgets | 0/3 | Not started | - |
 | 07. Edit Mode | 0/? | Not started | - |
 | 08. Multi-Page | 0/? | Not started | - |
 
@@ -193,4 +193,4 @@ Phases execute in numeric order: 04 -> 05 -> 06 + 07 (parallel-capable) -> 08
 - **Phase 08**: SwipeView.interactive must be disabled during edit mode; lazy page instantiation critical for Pi 4 memory
 
 ---
-*Last updated: 2026-03-12 -- Phase 05 planned*
+*Last updated: 2026-03-12 -- Phase 06 planned*
