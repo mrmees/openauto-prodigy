@@ -79,7 +79,7 @@ Replace the fixed 3-pane home screen with an Android-style freeform grid support
 - Integer phases (4-8): Planned milestone work (continuing from v0.5.2 phase 03)
 - Decimal phases (e.g. 5.1): Urgent insertions (marked with INSERTED)
 
-- [ ] **Phase 04: Grid Data Model & Persistence** - Replace pane-based model with cell-based grid model, YAML persistence, config migration
+- [x] **Phase 04: Grid Data Model & Persistence** - Replace pane-based model with cell-based grid model, YAML persistence, config migration (completed 2026-03-12)
 - [ ] **Phase 05: Static Grid Rendering & Widget Revision** - Render widgets on grid in QML, revise existing widgets for variable grid sizing
 - [ ] **Phase 06: Content Widgets** - Wire AA protocol data to QML, build navigation turn-by-turn and unified now playing widgets
 - [ ] **Phase 07: Edit Mode** - Long-press to enter edit state, drag-to-reposition, drag-to-resize, add/remove widgets, safety exits
@@ -178,7 +178,7 @@ Phases execute in numeric order: 04 -> 05 -> 06 + 07 (parallel-capable) -> 08
 
 | Phase | Plans Complete | Status | Completed |
 |-------|----------------|--------|-----------|
-| 04. Grid Data Model & Persistence | 2/2 | Complete | 2026-03-12 |
+| 04. Grid Data Model & Persistence | 2/2 | Complete    | 2026-03-12 |
 | 05. Static Grid Rendering & Widget Revision | 0/? | Not started | - |
 | 06. Content Widgets | 0/? | Not started | - |
 | 07. Edit Mode | 0/? | Not started | - |

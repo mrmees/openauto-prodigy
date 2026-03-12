@@ -428,6 +428,14 @@ int main(int argc, char *argv[])
     auto widgetGridModel = new oap::WidgetGridModel(widgetRegistry, &app);
     widgetGridModel->setGridDimensions(displayInfo->gridColumns(), displayInfo->gridRows());
 
+    // Auto-save grid placements on change (must be connected before placeWidget calls)
+    QObject::connect(widgetGridModel, &oap::WidgetGridModel::placementsChanged,
+                     widgetGridModel, [yamlConfig = yamlConfig.get(), widgetGridModel, yamlPath]() {
+        yamlConfig->setGridPlacements(widgetGridModel->placements());
+        yamlConfig->setGridNextInstanceId(widgetGridModel->nextInstanceId());
+        yamlConfig->save(yamlPath);
+    });
+
     // Load placements from config
     auto savedPlacements = yamlConfig->gridPlacements();
     if (!savedPlacements.isEmpty()) {
@@ -439,14 +447,6 @@ int main(int argc, char *argv[])
         widgetGridModel->placeWidget("org.openauto.bt-now-playing", 2, 0, 3, 2);
         widgetGridModel->placeWidget("org.openauto.aa-status", 0, 2, 2, 1);
     }
-
-    // Auto-save grid placements on change
-    QObject::connect(widgetGridModel, &oap::WidgetGridModel::placementsChanged,
-                     widgetGridModel, [yamlConfig = yamlConfig.get(), widgetGridModel, yamlPath]() {
-        yamlConfig->setGridPlacements(widgetGridModel->placements());
-        yamlConfig->setGridNextInstanceId(widgetGridModel->nextInstanceId());
-        yamlConfig->save(yamlPath);
-    });
 
     // Re-clamp grid when display dimensions change
     QObject::connect(displayInfo, &oap::DisplayInfo::gridDimensionsChanged,
