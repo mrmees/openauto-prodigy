@@ -143,8 +143,8 @@ QString NavigationDataBridge::unitSuffix(int distanceUnit)
     case 2: return QStringLiteral("km");
     case 3: return QStringLiteral("mi");
     case 4: return QStringLiteral("ft");
-    case 5: return QStringLiteral("yd");
-    case 6: return QStringLiteral("yd");  // UNKNOWN_6 observed as yards on US-locale phones
+    case 5: return QStringLiteral("mi");  // Wire-verified: S25 Ultra sends 5=miles (proto says yards)
+    case 6: return QStringLiteral("ft");  // Wire-verified: S25 Ultra sends 6 as initial/close-range feet
     default: return QString();
     }
 }
