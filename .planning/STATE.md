@@ -3,9 +3,9 @@ gsd_state_version: 1.0
 milestone: v0.5
 milestone_name: milestone
 status: in_progress
-stopped_at: Phase 06 wave 1 complete, wave 2 next
+stopped_at: Phase 06 nearly complete — blocked on hostapd for Pi verification
 last_updated: "2026-03-12"
-last_activity: "2026-03-12 - Phase 06 plans 01+02 complete (nav/media data bridges)"
+last_activity: "2026-03-12 - Phase 06 plans 01-03 code complete, Pi verification blocked by hostapd"
 progress:
   total_phases: 5
   completed_phases: 0
@@ -26,11 +26,11 @@ See: .planning/PROJECT.md (updated 2026-03-12)
 ## Current Position
 
 Phase: 06 of 7 (Content Widgets)
-Plan: 02 of 3 complete (wave 1 done)
-Status: NavigationDataBridge + ManeuverIconProvider + MediaDataBridge built and tested. Wave 2 (QML widgets + wiring) next.
-Last activity: 2026-03-12 - Phase 06 plans 01+02 complete (nav/media data bridges)
+Plan: 03 of 3 — code complete, Pi verification pending
+Status: All code committed. Blocked on hostapd failure preventing AA connection for live widget testing.
+Last activity: 2026-03-12 - Phase 06 code complete, Pi verification blocked by hostapd
 
-Progress: [######----] 66%
+Progress: [#########-] 90%
 
 ## Accumulated Context
 
@@ -86,5 +86,39 @@ None yet.
 
 ## Session Continuity
 
-Last session: 2026-03-12T21:23:10.060Z
-Stopped at: Phase 06 context gathered
+Last session: 2026-03-12
+Stopped at: Phase 06 code complete, hostapd blocking Pi AA verification
+
+### Session Handoff (2026-03-12)
+
+**What was done:**
+- Plans 06-01 (NavigationDataBridge + ManeuverIconProvider) and 06-02 (MediaDataBridge) — committed, tested, summarized
+- Plan 06-03 Task 1 (QML widgets + main.cpp wiring) — committed
+- Added long-press widget picker to HomeMenu grid (was missing from Phase 05 grid rewrite) — committed
+- Widget picker confirmed working on Pi touchscreen (long-press → pick → place works)
+- YamlConfig tcp_port default was 5277, changed to 5288 in Pi config — but AA still won't connect
+
+**BLOCKER: hostapd not fully starting**
+- `hostapd` systemd says "active" but never reaches ENABLED state
+- Stuck at `UNINITIALIZED->COUNTRY_UPDATE` — never progresses
+- `hostapd_cli` can't connect (control socket missing)
+- Phone BT-connects, gets WiFi creds, but can't actually join AP (no clients in `hostapd_cli all_sta`)
+- Reboot did NOT fix it
+- Config: channel=36, hw_mode=a, country_code=US, ht_capab=[HT40+][SHORT-GI-20][SHORT-GI-40]
+- This is likely the same class of issue as the quick-fix session but on a fresh Trixie install
+- **Debug next:** Run `sudo hostapd -dd /etc/hostapd/hostapd.conf` manually to see the actual error. Check `rfkill list`, `dmesg | grep -i wifi`, regulatory domain issues.
+
+**What needs Pi verification (once hostapd fixed):**
+1. Navigation widget: inactive placeholder visible, shows turn data when AA nav active
+2. Now Playing widget: unified AA+BT, source switching, playback controls
+3. Both widgets at various grid sizes (2x1, 3x1, 3x2)
+4. Old BT Now Playing widget gone from picker
+
+**Commits this session:**
+- e3cdfc1 feat(06-01): add NavigationDataBridge and ManeuverIconProvider
+- 5a14fb5 feat(06-02): add MediaDataBridge with AA/BT source priority
+- 1d65927 docs(06): wave 1 complete
+- 23fe9f3 feat(06-03): wire navigation and now-playing content widgets
+- e5d8c51 feat(06-03): add long-press widget picker to home grid
+
+**YamlConfig default port mismatch:** `YamlConfig.cpp` defaults tcp_port to 5277, `Configuration.hpp` defaults to 5288. Should align these — 5288 is what works.
