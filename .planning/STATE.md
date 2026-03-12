@@ -3,15 +3,15 @@ gsd_state_version: 1.0
 milestone: v0.5
 milestone_name: milestone
 status: completed
-stopped_at: Phase 05 context gathered
-last_updated: "2026-03-12T19:07:04.252Z"
-last_activity: 2026-03-12 -- Phase 04 Plan 02 complete (WidgetGridModel + persistence)
+stopped_at: Completed 05-01-PLAN.md
+last_updated: "2026-03-12T19:20:23Z"
+last_activity: 2026-03-12 -- Phase 05 Plan 01 complete (Grid renderer + WidgetHost adaptation)
 progress:
   total_phases: 5
   completed_phases: 0
-  total_plans: 0
-  completed_plans: 0
-  percent: 20
+  total_plans: 1
+  completed_plans: 1
+  percent: 25
 ---
 
 # Project State
@@ -21,16 +21,16 @@ progress:
 See: .planning/PROJECT.md (updated 2026-03-12)
 
 **Core value:** A person with a Raspberry Pi 4 and a touchscreen can install this, pair their phone, and get a reliable wireless Android Auto experience -- every time, without SSH.
-**Current focus:** v0.5.3 Widget Grid & Content Widgets -- Phase 04 complete
+**Current focus:** v0.5.3 Widget Grid & Content Widgets -- Phase 05 in progress
 
 ## Current Position
 
-Phase: 04 of 08 (Grid Data Model & Persistence) -- COMPLETE
-Plan: 02 of 02
-Status: Phase 04 complete, Phase 05 next
-Last activity: 2026-03-12 -- Phase 04 Plan 02 complete (WidgetGridModel + persistence)
+Phase: 05 of 08 (Static Grid Rendering & Widget Revision)
+Plan: 01 complete
+Status: Plan 01 done, Plan 02 (widget revision) next
+Last activity: 2026-03-12 -- Phase 05 Plan 01 complete (Grid renderer + WidgetHost adaptation)
 
-Progress: [##........] 20%
+Progress: [###.......] 25%
 
 ## Accumulated Context
 
@@ -56,6 +56,8 @@ Decisions are logged in PROJECT.md Key Decisions table.
 - 04-02: YAML schema v2 uses snake_case keys (instance_id, col_span) for consistency
 - 04-02: QML WidgetPlacementModel context property removed -- Phase 05 handles QML migration
 - 04-02: Phase 06 stubs registered with empty qmlComponent, excluded from picker
+- 05-01: Inline delegate in HomeMenu (not separate GridCell.qml) -- simple enough, avoids SKIP_CACHEGEN
+- 05-01: Blank canvas on fresh install per user decision -- GRID-06 deferred to post Phase 06/07
 
 ### Pending Todos
 
@@ -71,5 +73,5 @@ None yet.
 
 ## Session Continuity
 
-Last session: 2026-03-12T19:07:04.251Z
-Stopped at: Phase 05 context gathered
+Last session: 2026-03-12T19:20:23Z
+Stopped at: Completed 05-01-PLAN.md

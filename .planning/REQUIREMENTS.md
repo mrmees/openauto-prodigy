@@ -11,10 +11,10 @@ Requirements for Widget Grid & Content Widgets milestone. Each maps to roadmap p
 
 - [x] **GRID-01**: Home screen uses a cell-based grid for widget placement (replaces fixed 3-pane layout)
 - [x] **GRID-02**: Grid density (columns/rows) is auto-derived from display size via UiMetrics
-- [ ] **GRID-03**: Widgets render at integer column/row coordinates with column/row span values
+- [x] **GRID-03**: Widgets render at integer column/row coordinates with column/row span values
 - [x] **GRID-04**: Widgets declare min/max grid spans (replaces Main/Sub size enum)
 - [x] **GRID-05**: Grid layout (positions, sizes, opacity) persists in YAML config across restarts
-- [ ] **GRID-06**: Fresh install ships a sensible default widget layout
+- [x] **GRID-06**: Fresh install ships a sensible default widget layout
 - [x] **GRID-07**: Existing 3-pane config auto-migrates to grid coordinates on first launch
 - [x] **GRID-08**: Widget layouts survive resolution changes — widgets that no longer fit are clamped/reflowed to valid positions
 
@@ -104,10 +104,10 @@ Deferred to subsequent milestones.
 |-------------|-------|--------|
 | GRID-01 | Phase 04 | Complete |
 | GRID-02 | Phase 04 | Complete |
-| GRID-03 | Phase 05 | Pending |
+| GRID-03 | Phase 05 | Complete |
 | GRID-04 | Phase 04 | Complete |
 | GRID-05 | Phase 04 | Complete |
-| GRID-06 | Phase 05 | Pending |
+| GRID-06 | Phase 05 | Complete |
 | GRID-07 | Phase 04 | Complete |
 | GRID-08 | Phase 04 | Complete |
 | EDIT-01 | Phase 07 | Pending |
