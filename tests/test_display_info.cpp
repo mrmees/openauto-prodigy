@@ -18,6 +18,9 @@ private slots:
     void testSetScreenSizeInchesSameValueNoSignal();
     void testComputedDpi1024x600At7();
     void testComputedDpi1280x720At10_1();
+    void testGridColumnsProperty();
+    void testGridRowsProperty();
+    void testGridDimensionsChangedSignal();
 };
 
 void TestDisplayInfo::testDefaultDimensions()
@@ -127,6 +130,29 @@ void TestDisplayInfo::testComputedDpi1280x720At10_1()
     info.setScreenSizeInches(10.1);
     // hypot(1280, 720) / 10.1 = 1468.6 / 10.1 = 145.4 -> round = 145
     QCOMPARE(info.computedDpi(), 145);
+}
+
+void TestDisplayInfo::testGridColumnsProperty()
+{
+    oap::DisplayInfo info;
+    QCOMPARE(info.property("gridColumns").toInt(), 6);
+}
+
+void TestDisplayInfo::testGridRowsProperty()
+{
+    oap::DisplayInfo info;
+    // Default 1024x600: usableH=504, 504/125=4.03 -> 4
+    QCOMPARE(info.property("gridRows").toInt(), 4);
+}
+
+void TestDisplayInfo::testGridDimensionsChangedSignal()
+{
+    oap::DisplayInfo info;
+    QSignalSpy spy(&info, &oap::DisplayInfo::gridDimensionsChanged);
+    info.setWindowSize(800, 480);
+    QVERIFY(spy.count() >= 1);
+    QCOMPARE(info.gridColumns(), 5);
+    QCOMPARE(info.gridRows(), 3);
 }
 
 QTEST_MAIN(TestDisplayInfo)

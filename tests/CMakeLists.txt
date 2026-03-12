@@ -126,6 +126,9 @@ oap_add_test(test_widget_config
     DEFS TEST_DATA_DIR="${CMAKE_CURRENT_BINARY_DIR}/data"
 )
 
+oap_add_test(test_grid_dimensions SOURCES test_grid_dimensions.cpp)
+oap_add_test(test_widget_grid_model SOURCES test_widget_grid_model.cpp)
+
 # --- Script tests (no compilation) ---
 
 add_test(
