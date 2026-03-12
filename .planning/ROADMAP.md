@@ -113,12 +113,12 @@ Plans:
   2. Widgets visually snap to grid cells matching their col/row/span from the model
   3. Clock widget shows time-only at 1x1, time+date at 2x1, full at 2x2+
   4. AA Status widget shows icon-only at 1x1, icon+text at 2x1+
-  5. Fresh install displays a sensible default layout without user configuration
-**Plans**: TBD
+  5. Fresh install displays blank canvas (default layout deferred to post Phase 06/07)
+**Plans**: 2 plans
 
 Plans:
-- [ ] 05-01: TBD
-- [ ] 05-02: TBD
+- [ ] 05-01-PLAN.md — HomeMenu grid Repeater rewrite, WidgetHost cleanup, blank canvas fresh install
+- [ ] 05-02-PLAN.md — Widget pixel breakpoint revision (Clock, AA Status, Now Playing)
 
 ### Phase 06: Content Widgets
 **Goal**: Users see live AA navigation and media information on the home screen without switching to fullscreen AA
@@ -179,7 +179,7 @@ Phases execute in numeric order: 04 -> 05 -> 06 + 07 (parallel-capable) -> 08
 | Phase | Plans Complete | Status | Completed |
 |-------|----------------|--------|-----------|
 | 04. Grid Data Model & Persistence | 2/2 | Complete    | 2026-03-12 |
-| 05. Static Grid Rendering & Widget Revision | 0/? | Not started | - |
+| 05. Static Grid Rendering & Widget Revision | 0/2 | Not started | - |
 | 06. Content Widgets | 0/? | Not started | - |
 | 07. Edit Mode | 0/? | Not started | - |
 | 08. Multi-Page | 0/? | Not started | - |
@@ -193,4 +193,4 @@ Phases execute in numeric order: 04 -> 05 -> 06 + 07 (parallel-capable) -> 08
 - **Phase 08**: SwipeView.interactive must be disabled during edit mode; lazy page instantiation critical for Pi 4 memory
 
 ---
-*Last updated: 2026-03-12 -- Phase 04 complete*
+*Last updated: 2026-03-12 -- Phase 05 planned*

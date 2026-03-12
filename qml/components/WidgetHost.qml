@@ -3,29 +3,17 @@ import QtQuick
 Item {
     id: widgetHost
 
-    property string paneId: ""
     property url widgetSource: ""
-    property bool isMainPane: paneId === "main"
-    property real paneOpacity: WidgetPlacementModel.paneOpacity(paneId)
+    property real hostOpacity: 0.25
 
     signal longPressed()
 
-    // Glass card background — always visible
+    // Glass card background
     Rectangle {
         anchors.fill: parent
         radius: UiMetrics.radius
         color: ThemeService.surfaceContainer
-        opacity: widgetHost.paneOpacity
-    }
-
-    // Subtle border for edge definition
-    Rectangle {
-        anchors.fill: parent
-        radius: UiMetrics.radius
-        color: "transparent"
-        border.width: 1
-        border.color: ThemeService.outlineVariant
-        opacity: 0.3
+        opacity: widgetHost.hostOpacity
     }
 
     Loader {
@@ -45,33 +33,14 @@ Item {
         }
     }
 
-    // Empty state hint
-    NormalText {
-        anchors.centerIn: parent
-        text: "Hold to add widget"
-        font.pixelSize: UiMetrics.fontSmall
-        color: ThemeService.onSurfaceVariant
-        opacity: 0.5
-        visible: !widgetHost.widgetSource.toString()
-    }
-
-    // Long-press detector — sits behind widget content (z: -1).
+    // Long-press detector -- sits behind widget content (z: -1).
     // Non-interactive widgets (Clock) fall through to this naturally.
     // Interactive widgets with their own MouseAreas must also detect
-    // pressAndHold and call widgetHost.longPressed() — see AAStatusWidget.
+    // pressAndHold and call widgetHost.longPressed() -- see AAStatusWidget.
     MouseArea {
         anchors.fill: parent
         z: -1
         pressAndHoldInterval: 500
         onPressAndHold: widgetHost.longPressed()
-    }
-
-    // Refresh opacity when placement changes
-    Connections {
-        target: WidgetPlacementModel
-        function onPaneChanged(changedPaneId) {
-            if (changedPaneId === widgetHost.paneId)
-                widgetHost.paneOpacity = WidgetPlacementModel.paneOpacity(widgetHost.paneId)
-        }
     }
 }
