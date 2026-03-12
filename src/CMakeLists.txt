@@ -55,6 +55,7 @@ add_library(openauto-core STATIC
     ui/WidgetInstanceContext.cpp
     ui/WidgetPlacementModel.cpp
     ui/WidgetPickerModel.cpp
+    ui/WidgetGridModel.cpp
     ${CMAKE_SOURCE_DIR}/libs/qrcodegen/qrcodegen.cpp
 )
 
