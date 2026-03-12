@@ -83,6 +83,14 @@ A person with a Raspberry Pi 4 and a touchscreen can install this, pair their ph
 
 <!-- Current scope. Building toward these. -->
 
+- [ ] Freeform grid widget layout replacing fixed 3-pane system (Android-style drag/drop/resize)
+- [ ] Multi-page home screen with swipe navigation between widget pages
+- [ ] AA Navigation widget — turn-by-turn card (maneuver icon, street name, distance)
+- [ ] Unified Now Playing widget — AA media when connected, BT A2DP fallback
+- [ ] Clock widget revised for variable grid sizing
+- [ ] Widget edit mode (long-press background, jiggle state, add/move/resize/remove)
+- [ ] Widget catalog with "+" button in edit mode
+- [ ] Grid density auto-derived from UiMetrics/display DPI
 - [ ] HFP call audio persists across AA connection state (calls don't drop if AA disconnects)
 - [ ] First-run experience guides user through phone pairing and WiFi verification
 - [ ] Web config panel EQ interface
@@ -109,6 +117,20 @@ A person with a Raspberry Pi 4 and a touchscreen can install this, pair their ph
 OpenAuto Pro (BlueWave Studio) was a commercial Pi-based AA head unit that went defunct. This project is a clean-room rebuild — no OAP code, no aasdk dependency. The protocol library (`open-android-auto`) is maintained as a separate community resource.
 
 v0.4 shipped logging and theming. v0.4.1 shipped 10-band graphic EQ with per-stream profiles. v0.4.2 shipped service hardening — WiFi AP, Bluetooth SDP, systemd ordering, and clean shutdown all work reliably without manual intervention. v0.4.3 shipped full UI refresh — automotive-minimal styling, 6-category settings, EQ dual-access, shell polish. v0.4.4 shipped resolution independence — unclamped dual-axis UiMetrics, full QML tokenization (zero hardcoded pixels), container-derived grid layouts, runtime auto-detection, and --geometry validation tooling. v0.4.5 shipped navbar rework — zone-based evdev touch routing, 3-control navbar with multi-gesture actions and edge positioning, navbar-aware AA viewport margins, gesture overlay touch fix, and dead UI cleanup (TopBar, NavStrip, sidebar removed). v0.5.0 shipped protocol compliance — proto submodule v1.0, navigation turn events, voice session commands, BT auth exchange, haptic feedback, retracted dead code cleanup after v1.2 proto verification, library renamed to prodigy-oaa-protocol. v0.5.1 shipped DPI sizing & UI polish — EDID-based DPI scaling, scale stepper, clock readability, full 34-role M3 color system, companion theme import, AA rendering fix, navbar status bar cleanup, M3 button components with visual depth effects. v0.5.2 shipped widget system & UI polish — 3-pane home screen with launcher dock and built-in widgets, settings reorganized into 9 categories with touch normalization and automotive-readable font sizes. Codebase is ~26.6K LOC C++/QML, 71 unit tests.
+
+## Current Milestone: v0.5.3 Widget Grid & Content Widgets
+
+**Goal:** Replace fixed 3-pane widget layout with Android-style freeform grid (drag-and-drop, resize, multi-page) and build out content widgets for AA navigation and media playback.
+
+**Target features:**
+- Freeform grid home screen with drag-and-drop placement and drag-to-resize
+- Multi-page swipe between widget screens, launcher dock retained
+- Edit mode via long-press background (jiggle state, "+" to add widgets)
+- Grid density auto-derived from UiMetrics/display size
+- AA Navigation turn-by-turn widget (maneuver icon + street + distance)
+- Unified Now Playing widget (AA media primary, BT A2DP fallback)
+- Clock widget revised for variable grid cell sizing
+- Widget config persistence (layout, sizes, pages) in YAML
 
 ## Constraints
 
@@ -162,4 +184,4 @@ v0.4 shipped logging and theming. v0.4.1 shipped 10-band graphic EQ with per-str
 | WiFi BSSID sends MAC not SSID | QNetworkInterface for wlan0 MAC — correct SDP semantics | ✓ Good |
 
 ---
-*Last updated: 2026-03-11 after v0.5.2 milestone completed*
+*Last updated: 2026-03-12 after v0.5.3 milestone started*

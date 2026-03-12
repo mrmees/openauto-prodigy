@@ -1,44 +1,58 @@
 #pragma once
 
-#include <QFlags>
 #include <QString>
 #include <QUrl>
 #include <QVariantMap>
 
 namespace oap {
 
-enum class WidgetSize {
-    Main = 0x1,
-    Sub  = 0x2
-};
-Q_DECLARE_FLAGS(WidgetSizeFlags, WidgetSize)
-Q_DECLARE_OPERATORS_FOR_FLAGS(WidgetSizeFlags)
-
 struct WidgetDescriptor {
     QString id;                         // "org.openauto.clock"
     QString displayName;                // "Clock"
-    QString iconName;                   // "schedule" (Material Symbols name)
-    WidgetSizeFlags supportedSizes;     // Main | Sub
-    QUrl qmlComponent;                  // qrc URL to widget QML
+    QString iconName;                   // Material icon codepoint (e.g. "\ue8b5")
+    QUrl qmlComponent;                  // qrc URL to widget QML (empty for stubs)
     QString pluginId;                   // empty for standalone widgets
     QVariantMap defaultConfig;          // optional per-widget defaults
+
+    // Grid size constraints (replaces WidgetSizeFlags)
+    int minCols = 1;
+    int minRows = 1;
+    int maxCols = 6;
+    int maxRows = 4;
+    int defaultCols = 1;
+    int defaultRows = 1;
 };
 
-struct WidgetPlacement {
-    QString instanceId;     // "clock-main" — unique per placement
+struct GridPlacement {
+    QString instanceId;     // unique per placement
     QString widgetId;       // "org.openauto.clock"
-    QString pageId;         // "home"
-    QString paneId;         // "main", "sub1", "sub2"
-    QVariantMap config;     // optional per-instance config
-
-    QString compositeKey() const { return pageId + ":" + paneId; }
+    int col = 0;
+    int row = 0;
+    int colSpan = 1;
+    int rowSpan = 1;
+    double opacity = 0.25;  // glass card opacity
+    bool visible = true;    // false when clamped out (kept in config)
 };
 
+// Legacy types -- used by WidgetPlacementModel and YamlConfig until Plan 02 replaces them.
+// Do NOT use in new code. Use GridPlacement and the new grid config API instead.
 struct PageDescriptor {
     QString id;
     QString layoutTemplate = QStringLiteral("standard-3pane");
     int order = 0;
     QVariantMap flags;
+};
+
+// Legacy pane-based placement -- used by WidgetPlacementModel until Plan 02 replaces it.
+// Do NOT use in new code. Use GridPlacement instead.
+struct WidgetPlacement {
+    QString instanceId;
+    QString widgetId;
+    QString pageId;
+    QString paneId;
+    QVariantMap config;
+
+    QString compositeKey() const { return pageId + ":" + paneId; }
 };
 
 } // namespace oap

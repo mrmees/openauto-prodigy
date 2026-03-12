@@ -431,7 +431,9 @@ QList<oap::WidgetDescriptor> BtAudioPlugin::widgetDescriptors() const
     desc.id = QStringLiteral("org.openauto.bt-now-playing");
     desc.displayName = QStringLiteral("Now Playing");
     desc.iconName = QStringLiteral("\ue405");  // music_note
-    desc.supportedSizes = oap::WidgetSize::Main | oap::WidgetSize::Sub;
+    desc.minCols = 2; desc.minRows = 1;
+    desc.maxCols = 6; desc.maxRows = 2;
+    desc.defaultCols = 3; desc.defaultRows = 2;
     desc.qmlComponent = QUrl(QStringLiteral("qrc:/OpenAutoProdigy/NowPlayingWidget.qml"));
     desc.pluginId = id();
     return {desc};

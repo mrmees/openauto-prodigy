@@ -38,7 +38,9 @@ public:
         oap::WidgetDescriptor desc;
         desc.id = "org.test.widgeted.status";
         desc.displayName = "Status";
-        desc.supportedSizes = oap::WidgetSize::Sub;
+        desc.minCols = 1; desc.minRows = 1;
+        desc.maxCols = 3; desc.maxRows = 2;
+        desc.defaultCols = 2; desc.defaultRows = 1;
         desc.pluginId = id();
         return {desc};
     }

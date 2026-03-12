@@ -5,39 +5,83 @@
 class TestWidgetTypes : public QObject {
     Q_OBJECT
 private slots:
-    void testWidgetSizeFlags();
     void testWidgetDescriptorDefaults();
-    void testWidgetPlacementCompositeKey();
-    void testPageDescriptorDefaults();
+    void testWidgetDescriptorGridSpans();
+    void testGridPlacementDefaults();
+    void testGridPlacementFields();
+    void testLegacyWidgetPlacementCompositeKey();
+    void testLegacyPageDescriptorDefaults();
 };
-
-void TestWidgetTypes::testWidgetSizeFlags() {
-    using namespace oap;
-    WidgetSizeFlags flags = WidgetSize::Main | WidgetSize::Sub;
-    QVERIFY(flags.testFlag(WidgetSize::Main));
-    QVERIFY(flags.testFlag(WidgetSize::Sub));
-
-    WidgetSizeFlags mainOnly = WidgetSize::Main;
-    QVERIFY(mainOnly.testFlag(WidgetSize::Main));
-    QVERIFY(!mainOnly.testFlag(WidgetSize::Sub));
-}
 
 void TestWidgetTypes::testWidgetDescriptorDefaults() {
     oap::WidgetDescriptor desc;
     QVERIFY(desc.id.isEmpty());
     QVERIFY(desc.pluginId.isEmpty());
-    QCOMPARE(desc.supportedSizes, oap::WidgetSizeFlags{});
     QVERIFY(desc.defaultConfig.isEmpty());
+    QCOMPARE(desc.minCols, 1);
+    QCOMPARE(desc.minRows, 1);
+    QCOMPARE(desc.maxCols, 6);
+    QCOMPARE(desc.maxRows, 4);
+    QCOMPARE(desc.defaultCols, 1);
+    QCOMPARE(desc.defaultRows, 1);
 }
 
-void TestWidgetTypes::testWidgetPlacementCompositeKey() {
+void TestWidgetTypes::testWidgetDescriptorGridSpans() {
+    oap::WidgetDescriptor desc;
+    desc.id = "org.test.clock";
+    desc.minCols = 1; desc.minRows = 1;
+    desc.maxCols = 6; desc.maxRows = 4;
+    desc.defaultCols = 2; desc.defaultRows = 2;
+
+    QCOMPARE(desc.minCols, 1);
+    QCOMPARE(desc.minRows, 1);
+    QCOMPARE(desc.maxCols, 6);
+    QCOMPARE(desc.maxRows, 4);
+    QCOMPARE(desc.defaultCols, 2);
+    QCOMPARE(desc.defaultRows, 2);
+}
+
+void TestWidgetTypes::testGridPlacementDefaults() {
+    oap::GridPlacement p;
+    QVERIFY(p.instanceId.isEmpty());
+    QVERIFY(p.widgetId.isEmpty());
+    QCOMPARE(p.col, 0);
+    QCOMPARE(p.row, 0);
+    QCOMPARE(p.colSpan, 1);
+    QCOMPARE(p.rowSpan, 1);
+    QCOMPARE(p.opacity, 0.25);
+    QCOMPARE(p.visible, true);
+}
+
+void TestWidgetTypes::testGridPlacementFields() {
+    oap::GridPlacement p;
+    p.instanceId = "clock-0";
+    p.widgetId = "org.openauto.clock";
+    p.col = 2;
+    p.row = 1;
+    p.colSpan = 3;
+    p.rowSpan = 2;
+    p.opacity = 0.5;
+    p.visible = false;
+
+    QCOMPARE(p.instanceId, "clock-0");
+    QCOMPARE(p.widgetId, "org.openauto.clock");
+    QCOMPARE(p.col, 2);
+    QCOMPARE(p.row, 1);
+    QCOMPARE(p.colSpan, 3);
+    QCOMPARE(p.rowSpan, 2);
+    QCOMPARE(p.opacity, 0.5);
+    QCOMPARE(p.visible, false);
+}
+
+void TestWidgetTypes::testLegacyWidgetPlacementCompositeKey() {
     oap::WidgetPlacement p;
     p.pageId = "home";
     p.paneId = "main";
     QCOMPARE(p.compositeKey(), QStringLiteral("home:main"));
 }
 
-void TestWidgetTypes::testPageDescriptorDefaults() {
+void TestWidgetTypes::testLegacyPageDescriptorDefaults() {
     oap::PageDescriptor page;
     QVERIFY(page.id.isEmpty());
     QCOMPARE(page.layoutTemplate, QStringLiteral("standard-3pane"));

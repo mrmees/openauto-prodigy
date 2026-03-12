@@ -18,7 +18,10 @@ public:
 
     std::optional<WidgetDescriptor> descriptor(const QString& widgetId) const;
     QList<WidgetDescriptor> allDescriptors() const;
-    QList<WidgetDescriptor> widgetsForSize(WidgetSize size) const;
+
+    /// Returns descriptors where minCols <= availCols, minRows <= availRows,
+    /// and qmlComponent is not empty (filters out stubs).
+    QList<WidgetDescriptor> widgetsFittingSpace(int availCols, int availRows) const;
 
 private:
     QMap<QString, WidgetDescriptor> descriptors_;

@@ -376,7 +376,9 @@ int main(int argc, char *argv[])
         clockDesc.id = "org.openauto.clock";
         clockDesc.displayName = "Clock";
         clockDesc.iconName = "\ue8b5";  // schedule
-        clockDesc.supportedSizes = oap::WidgetSize::Main | oap::WidgetSize::Sub;
+        clockDesc.minCols = 1; clockDesc.minRows = 1;
+        clockDesc.maxCols = 6; clockDesc.maxRows = 4;
+        clockDesc.defaultCols = 2; clockDesc.defaultRows = 2;
         clockDesc.qmlComponent = QUrl("qrc:/OpenAutoProdigy/ClockWidget.qml");
         widgetRegistry->registerWidget(clockDesc);
 
@@ -384,7 +386,9 @@ int main(int argc, char *argv[])
         aaStatusDesc.id = "org.openauto.aa-status";
         aaStatusDesc.displayName = "Android Auto";
         aaStatusDesc.iconName = "\ueff7";  // directions_car
-        aaStatusDesc.supportedSizes = oap::WidgetSize::Main | oap::WidgetSize::Sub;
+        aaStatusDesc.minCols = 1; aaStatusDesc.minRows = 1;
+        aaStatusDesc.maxCols = 3; aaStatusDesc.maxRows = 2;
+        aaStatusDesc.defaultCols = 2; aaStatusDesc.defaultRows = 1;
         aaStatusDesc.qmlComponent = QUrl("qrc:/OpenAutoProdigy/AAStatusWidget.qml");
         widgetRegistry->registerWidget(aaStatusDesc);
     }

@@ -7,7 +7,8 @@ class TestWidgetRegistry : public QObject {
 private slots:
     void testRegisterAndLookup();
     void testDuplicateIdRejected();
-    void testFilterBySize();
+    void testWidgetsFittingSpace();
+    void testWidgetsFittingSpaceFiltersStubs();
     void testUnregister();
     void testDescriptorCount();
 };
@@ -17,7 +18,8 @@ void TestWidgetRegistry::testRegisterAndLookup() {
     oap::WidgetDescriptor desc;
     desc.id = "org.test.clock";
     desc.displayName = "Clock";
-    desc.supportedSizes = oap::WidgetSize::Main | oap::WidgetSize::Sub;
+    desc.minCols = 1; desc.minRows = 1;
+    desc.maxCols = 6; desc.maxRows = 4;
 
     QVERIFY(registry.registerWidget(desc));
     auto result = registry.descriptor("org.test.clock");
@@ -33,29 +35,64 @@ void TestWidgetRegistry::testDuplicateIdRejected() {
     QVERIFY(!registry.registerWidget(desc));
 }
 
-void TestWidgetRegistry::testFilterBySize() {
+void TestWidgetRegistry::testWidgetsFittingSpace() {
     oap::WidgetRegistry registry;
 
-    oap::WidgetDescriptor mainOnly;
-    mainOnly.id = "main-only";
-    mainOnly.supportedSizes = oap::WidgetSize::Main;
-    registry.registerWidget(mainOnly);
+    // Small widget: min 1x1
+    oap::WidgetDescriptor small;
+    small.id = "small";
+    small.minCols = 1; small.minRows = 1;
+    small.qmlComponent = QUrl("qrc:/widgets/Small.qml");
+    registry.registerWidget(small);
 
-    oap::WidgetDescriptor subOnly;
-    subOnly.id = "sub-only";
-    subOnly.supportedSizes = oap::WidgetSize::Sub;
-    registry.registerWidget(subOnly);
+    // Large widget: min 3x2
+    oap::WidgetDescriptor large;
+    large.id = "large";
+    large.minCols = 3; large.minRows = 2;
+    large.qmlComponent = QUrl("qrc:/widgets/Large.qml");
+    registry.registerWidget(large);
 
-    oap::WidgetDescriptor both;
-    both.id = "both";
-    both.supportedSizes = oap::WidgetSize::Main | oap::WidgetSize::Sub;
-    registry.registerWidget(both);
+    // Wide widget: min 4x1
+    oap::WidgetDescriptor wide;
+    wide.id = "wide";
+    wide.minCols = 4; wide.minRows = 1;
+    wide.qmlComponent = QUrl("qrc:/widgets/Wide.qml");
+    registry.registerWidget(wide);
 
-    auto mainWidgets = registry.widgetsForSize(oap::WidgetSize::Main);
-    QCOMPARE(mainWidgets.size(), 2); // main-only + both
+    // 2x2 space: only small fits
+    auto fits2x2 = registry.widgetsFittingSpace(2, 2);
+    QCOMPARE(fits2x2.size(), 1);
+    QCOMPARE(fits2x2[0].id, "small");
 
-    auto subWidgets = registry.widgetsForSize(oap::WidgetSize::Sub);
-    QCOMPARE(subWidgets.size(), 2); // sub-only + both
+    // 4x2 space: small and large and wide fit
+    auto fits4x2 = registry.widgetsFittingSpace(4, 2);
+    QCOMPARE(fits4x2.size(), 3);
+
+    // 6x1 space: small and wide fit (large needs 2 rows)
+    auto fits6x1 = registry.widgetsFittingSpace(6, 1);
+    QCOMPARE(fits6x1.size(), 2);
+}
+
+void TestWidgetRegistry::testWidgetsFittingSpaceFiltersStubs() {
+    oap::WidgetRegistry registry;
+
+    // Stub widget (no qmlComponent)
+    oap::WidgetDescriptor stub;
+    stub.id = "stub";
+    stub.minCols = 1; stub.minRows = 1;
+    // qmlComponent intentionally empty
+    registry.registerWidget(stub);
+
+    // Real widget
+    oap::WidgetDescriptor real;
+    real.id = "real";
+    real.minCols = 1; real.minRows = 1;
+    real.qmlComponent = QUrl("qrc:/widgets/Real.qml");
+    registry.registerWidget(real);
+
+    auto fits = registry.widgetsFittingSpace(6, 4);
+    QCOMPARE(fits.size(), 1);
+    QCOMPARE(fits[0].id, "real");
 }
 
 void TestWidgetRegistry::testUnregister() {

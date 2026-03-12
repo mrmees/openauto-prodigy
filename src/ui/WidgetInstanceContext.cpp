@@ -3,13 +3,15 @@
 namespace oap {
 
 WidgetInstanceContext::WidgetInstanceContext(
-    const WidgetPlacement& placement,
-    WidgetSize paneSize,
+    const GridPlacement& placement,
+    int cellWidth,
+    int cellHeight,
     IHostContext* hostContext,
     QObject* parent)
     : QObject(parent)
     , placement_(placement)
-    , paneSize_(paneSize)
+    , cellWidth_(cellWidth)
+    , cellHeight_(cellHeight)
     , hostContext_(hostContext)
 {}
 

@@ -7,32 +7,37 @@ class TestWidgetInstanceContext : public QObject {
     Q_OBJECT
 private slots:
     void testProperties();
-    void testPaneSizeExposed();
+    void testCellDimensions();
 };
 
 void TestWidgetInstanceContext::testProperties() {
-    oap::WidgetPlacement placement;
-    placement.instanceId = "clock-main";
+    oap::GridPlacement placement;
+    placement.instanceId = "clock-0";
     placement.widgetId = "org.openauto.clock";
-    placement.pageId = "home";
-    placement.paneId = "main";
+    placement.col = 0;
+    placement.row = 0;
+    placement.colSpan = 2;
+    placement.rowSpan = 2;
 
-    oap::WidgetInstanceContext ctx(placement, oap::WidgetSize::Main, nullptr, this);
+    oap::WidgetInstanceContext ctx(placement, 310, 290, nullptr, this);
 
-    QCOMPARE(ctx.instanceId(), "clock-main");
+    QCOMPARE(ctx.instanceId(), "clock-0");
     QCOMPARE(ctx.widgetId(), "org.openauto.clock");
-    QCOMPARE(ctx.paneSize(), oap::WidgetSize::Main);
+    QCOMPARE(ctx.cellWidth(), 310);
+    QCOMPARE(ctx.cellHeight(), 290);
 }
 
-void TestWidgetInstanceContext::testPaneSizeExposed() {
-    oap::WidgetPlacement placement;
+void TestWidgetInstanceContext::testCellDimensions() {
+    oap::GridPlacement placement;
     placement.instanceId = "test";
-    placement.paneId = "sub1";
+    placement.col = 1;
+    placement.row = 1;
 
-    oap::WidgetInstanceContext ctx(placement, oap::WidgetSize::Sub, nullptr, this);
+    oap::WidgetInstanceContext ctx(placement, 155, 145, nullptr, this);
 
-    // Verify QML-accessible paneSize property
-    QCOMPARE(ctx.property("paneSize").toInt(), static_cast<int>(oap::WidgetSize::Sub));
+    // Verify QML-accessible properties
+    QCOMPARE(ctx.property("cellWidth").toInt(), 155);
+    QCOMPARE(ctx.property("cellHeight").toInt(), 145);
 }
 
 QTEST_GUILESS_MAIN(TestWidgetInstanceContext)

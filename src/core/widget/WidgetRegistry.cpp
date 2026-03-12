@@ -26,11 +26,13 @@ QList<WidgetDescriptor> WidgetRegistry::allDescriptors() const {
     return descriptors_.values();
 }
 
-QList<WidgetDescriptor> WidgetRegistry::widgetsForSize(WidgetSize size) const {
+QList<WidgetDescriptor> WidgetRegistry::widgetsFittingSpace(int availCols, int availRows) const {
     QList<WidgetDescriptor> result;
     for (const auto& desc : descriptors_) {
-        if (desc.supportedSizes.testFlag(size))
+        if (desc.minCols <= availCols && desc.minRows <= availRows
+            && !desc.qmlComponent.isEmpty()) {
             result.append(desc);
+        }
     }
     return result;
 }

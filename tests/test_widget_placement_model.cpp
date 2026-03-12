@@ -3,6 +3,9 @@
 #include "ui/WidgetPlacementModel.hpp"
 #include "core/widget/WidgetRegistry.hpp"
 
+// Legacy pane-based model tests -- kept for backward compat until Plan 02
+// replaces WidgetPlacementModel with WidgetGridModel.
+
 class TestWidgetPlacementModel : public QObject {
     Q_OBJECT
 private slots:
@@ -22,7 +25,7 @@ void TestWidgetPlacementModel::testPlacementForPane() {
     clockDesc.id = "org.openauto.clock";
     clockDesc.displayName = "Clock";
     clockDesc.qmlComponent = QUrl("qrc:/widgets/ClockWidget.qml");
-    clockDesc.supportedSizes = oap::WidgetSize::Main | oap::WidgetSize::Sub;
+    clockDesc.minCols = 1; clockDesc.minRows = 1;
     registry.registerWidget(clockDesc);
 
     QList<oap::WidgetPlacement> placements;
@@ -46,12 +49,12 @@ void TestWidgetPlacementModel::testSwapWidget() {
     oap::WidgetRegistry registry;
     oap::WidgetDescriptor d1;
     d1.id = "w1";
-    d1.supportedSizes = oap::WidgetSize::Main;
+    d1.minCols = 1; d1.minRows = 1;
     registry.registerWidget(d1);
 
     oap::WidgetDescriptor d2;
     d2.id = "w2";
-    d2.supportedSizes = oap::WidgetSize::Main;
+    d2.minCols = 1; d2.minRows = 1;
     registry.registerWidget(d2);
 
     QList<oap::WidgetPlacement> placements;
@@ -79,7 +82,7 @@ void TestWidgetPlacementModel::testClearPane() {
     oap::WidgetRegistry registry;
     oap::WidgetDescriptor d;
     d.id = "w1";
-    d.supportedSizes = oap::WidgetSize::Main;
+    d.minCols = 1; d.minRows = 1;
     registry.registerWidget(d);
 
     QList<oap::WidgetPlacement> placements;
@@ -102,7 +105,7 @@ void TestWidgetPlacementModel::testActivePageFilter() {
     oap::WidgetRegistry registry;
     oap::WidgetDescriptor d;
     d.id = "w1";
-    d.supportedSizes = oap::WidgetSize::Main;
+    d.minCols = 1; d.minRows = 1;
     registry.registerWidget(d);
 
     QList<oap::WidgetPlacement> placements;
@@ -138,7 +141,7 @@ void TestWidgetPlacementModel::testQmlComponentUrl() {
     oap::WidgetDescriptor d;
     d.id = "w1";
     d.qmlComponent = QUrl("qrc:/widgets/TestWidget.qml");
-    d.supportedSizes = oap::WidgetSize::Main;
+    d.minCols = 1; d.minRows = 1;
     registry.registerWidget(d);
 
     QList<oap::WidgetPlacement> placements;
@@ -160,7 +163,7 @@ void TestWidgetPlacementModel::testDefaultPaneOpacity() {
     oap::WidgetRegistry registry;
     oap::WidgetDescriptor d;
     d.id = "w1";
-    d.supportedSizes = oap::WidgetSize::Main;
+    d.minCols = 1; d.minRows = 1;
     registry.registerWidget(d);
 
     QList<oap::WidgetPlacement> placements;
@@ -183,7 +186,7 @@ void TestWidgetPlacementModel::testSetPaneOpacity() {
     oap::WidgetRegistry registry;
     oap::WidgetDescriptor d;
     d.id = "w1";
-    d.supportedSizes = oap::WidgetSize::Main;
+    d.minCols = 1; d.minRows = 1;
     registry.registerWidget(d);
 
     QList<oap::WidgetPlacement> placements;
@@ -214,7 +217,7 @@ void TestWidgetPlacementModel::testPaneOpacity() {
     oap::WidgetRegistry registry;
     oap::WidgetDescriptor d;
     d.id = "w1";
-    d.supportedSizes = oap::WidgetSize::Main;
+    d.minCols = 1; d.minRows = 1;
     registry.registerWidget(d);
 
     QList<oap::WidgetPlacement> placements;
