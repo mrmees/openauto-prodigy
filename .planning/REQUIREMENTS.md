@@ -62,9 +62,9 @@ Requirements for Widget Grid & Content Widgets milestone. Each maps to roadmap p
 
 ### Widget Revision
 
-- [ ] **REV-01**: All shipped v0.5.3 widgets use pixel-based breakpoints for responsive layout (replaces isMainPane boolean)
-- [ ] **REV-02**: Clock widget adapts content across grid sizes (1x1: time only, 2x1: time+date, 2x2+: full)
-- [ ] **REV-03**: AA Status widget adapts content across grid sizes (1x1: icon only, 2x1+: icon+text)
+- [x] **REV-01**: All shipped v0.5.3 widgets use pixel-based breakpoints for responsive layout (replaces isMainPane boolean)
+- [x] **REV-02**: Clock widget adapts content across grid sizes (1x1: time only, 2x1: time+date, 2x2+: full)
+- [x] **REV-03**: AA Status widget adapts content across grid sizes (1x1: icon only, 2x1+: icon+text)
 
 ## Future Requirements
 
@@ -140,9 +140,9 @@ Deferred to subsequent milestones.
 | MEDIA-04 | Phase 06 | Pending |
 | MEDIA-05 | Phase 06 | Pending |
 | MEDIA-06 | Phase 06 | Pending |
-| REV-01 | Phase 05 | Pending |
-| REV-02 | Phase 05 | Pending |
-| REV-03 | Phase 05 | Pending |
+| REV-01 | Phase 05 | Complete |
+| REV-02 | Phase 05 | Complete |
+| REV-03 | Phase 05 | Complete |
 
 **Coverage:**
 - v0.5.3 requirements: 42 total

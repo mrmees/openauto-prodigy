@@ -3,14 +3,14 @@ gsd_state_version: 1.0
 milestone: v0.5
 milestone_name: milestone
 status: completed
-stopped_at: Completed 05-01-PLAN.md
-last_updated: "2026-03-12T19:20:23Z"
-last_activity: 2026-03-12 -- Phase 05 Plan 01 complete (Grid renderer + WidgetHost adaptation)
+stopped_at: Completed 05-02-PLAN.md
+last_updated: "2026-03-12T19:24:39Z"
+last_activity: 2026-03-12 -- Phase 05 Plan 02 complete (Widget revision with pixel breakpoints)
 progress:
   total_phases: 5
   completed_phases: 0
-  total_plans: 1
-  completed_plans: 1
+  total_plans: 0
+  completed_plans: 0
   percent: 25
 ---
 
@@ -26,11 +26,11 @@ See: .planning/PROJECT.md (updated 2026-03-12)
 ## Current Position
 
 Phase: 05 of 08 (Static Grid Rendering & Widget Revision)
-Plan: 01 complete
-Status: Plan 01 done, Plan 02 (widget revision) next
-Last activity: 2026-03-12 -- Phase 05 Plan 01 complete (Grid renderer + WidgetHost adaptation)
+Plan: 02 complete (phase complete)
+Status: Phase 05 done -- all widgets revised with pixel breakpoints
+Last activity: 2026-03-12 -- Phase 05 Plan 02 complete (Widget revision with pixel breakpoints)
 
-Progress: [###.......] 25%
+Progress: [##########] 100%
 
 ## Accumulated Context
 
@@ -58,6 +58,9 @@ Decisions are logged in PROJECT.md Key Decisions table.
 - 04-02: Phase 06 stubs registered with empty qmlComponent, excluded from picker
 - 05-01: Inline delegate in HomeMenu (not separate GridCell.qml) -- simple enough, avoids SKIP_CACHEGEN
 - 05-01: Blank canvas on fresh install per user decision -- GRID-06 deferred to post Phase 06/07
+- 05-02: Clock date format "MMMM d" (no year) -- irrelevant on car display
+- 05-02: AAStatusWidget ColumnLayout for both tiers (icon size changes, not layout type)
+- 05-02: NowPlaying compact strip omits artist entirely -- too tight at 2x1
 
 ### Pending Todos
 
@@ -73,5 +76,5 @@ None yet.
 
 ## Session Continuity
 
-Last session: 2026-03-12T19:20:23Z
-Stopped at: Completed 05-01-PLAN.md
+Last session: 2026-03-12T19:24:39Z
+Stopped at: Completed 05-02-PLAN.md
