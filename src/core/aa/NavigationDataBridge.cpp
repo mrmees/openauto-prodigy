@@ -98,6 +98,7 @@ void NavigationDataBridge::onNavigationDistanceChanged(const QString& displayTex
 {
     // NavigationNextTurnDistanceEvent (0x8007) — phone sends numeric display_text
     // (e.g. "0", "0.3") plus distance_unit enum. We combine them.
+    qInfo() << "[NavBridge] distance text:" << displayText << "unit:" << unit;
     phoneDistanceText_ = displayText;
     if (unit != 0)
         distanceUnit_ = unit;
@@ -143,7 +144,7 @@ QString NavigationDataBridge::unitSuffix(int distanceUnit)
     case 3: return QStringLiteral("mi");
     case 4: return QStringLiteral("ft");
     case 5: return QStringLiteral("yd");
-    case 6: return QStringLiteral("ft");  // UNKNOWN_6 observed as feet on US-locale phones
+    case 6: return QStringLiteral("yd");  // UNKNOWN_6 observed as yards on US-locale phones
     default: return QString();
     }
 }
