@@ -1,4 +1,4 @@
-// tests/test_widget_config.cpp
+// tests/test_widget_config.cpp -- YAML grid placement persistence tests
 #include <QtTest/QtTest>
 #include <QTemporaryFile>
 #include "core/YamlConfig.hpp"
@@ -7,59 +7,116 @@
 class TestWidgetConfig : public QObject {
     Q_OBJECT
 private slots:
-    void testLoadPages();
-    void testLoadPlacements();
-    void testSavePlacements();
-    void testDefaultsWhenEmpty();
-    void testConfigVersion();
-    void testPlacementValidation();
+    void testGridPlacementsFromYaml();
+    void testSetGridPlacements();
+    void testGridPlacementsRoundTrip();
+    void testMissingWidgetGridReturnsEmpty();
+    void testOldWidgetConfigIgnored();
+    void testGridNextInstanceId();
+    void testGridNextInstanceIdRoundTrip();
 };
 
-void TestWidgetConfig::testLoadPages() {
+void TestWidgetConfig::testGridPlacementsFromYaml() {
     oap::YamlConfig config;
     config.load(TEST_DATA_DIR "/test_widget_config.yaml");
 
-    auto pages = config.widgetPages();
-    QCOMPARE(pages.size(), 1);
-    QCOMPARE(pages[0].id, "home");
-    QCOMPARE(pages[0].layoutTemplate, "standard-3pane");
-    QCOMPARE(pages[0].order, 0);
+    auto placements = config.gridPlacements();
+    QCOMPARE(placements.size(), 2);
+    QCOMPARE(placements[0].instanceId, QString("clock-0"));
+    QCOMPARE(placements[0].widgetId, QString("org.openauto.clock"));
+    QCOMPARE(placements[0].col, 0);
+    QCOMPARE(placements[0].row, 0);
+    QCOMPARE(placements[0].colSpan, 2);
+    QCOMPARE(placements[0].rowSpan, 2);
+    QCOMPARE(placements[0].opacity, 0.25);
+
+    QCOMPARE(placements[1].instanceId, QString("status-1"));
+    QCOMPARE(placements[1].widgetId, QString("org.openauto.aa-status"));
+    QCOMPARE(placements[1].col, 0);
+    QCOMPARE(placements[1].row, 2);
+    QCOMPARE(placements[1].colSpan, 2);
+    QCOMPARE(placements[1].rowSpan, 1);
 }
 
-void TestWidgetConfig::testLoadPlacements() {
+void TestWidgetConfig::testSetGridPlacements() {
     oap::YamlConfig config;
-    config.load(TEST_DATA_DIR "/test_widget_config.yaml");
 
-    auto placements = config.widgetPlacements();
-    QCOMPARE(placements.size(), 3);
-    QCOMPARE(placements[0].instanceId, "clock-main");
-    QCOMPARE(placements[0].widgetId, "org.openauto.clock");
-    QCOMPARE(placements[0].pageId, "home");
-    QCOMPARE(placements[0].paneId, "main");
+    QList<oap::GridPlacement> placements;
+    oap::GridPlacement p;
+    p.instanceId = "test-0";
+    p.widgetId = "org.openauto.clock";
+    p.col = 1;
+    p.row = 2;
+    p.colSpan = 3;
+    p.rowSpan = 1;
+    p.opacity = 0.5;
+    placements.append(p);
+
+    config.setGridPlacements(placements);
+
+    auto result = config.gridPlacements();
+    QCOMPARE(result.size(), 1);
+    QCOMPARE(result[0].instanceId, QString("test-0"));
+    QCOMPARE(result[0].col, 1);
+    QCOMPARE(result[0].row, 2);
+    QCOMPARE(result[0].colSpan, 3);
+    QCOMPARE(result[0].rowSpan, 1);
+    QCOMPARE(result[0].opacity, 0.5);
 }
 
-void TestWidgetConfig::testSavePlacements() {
+void TestWidgetConfig::testGridPlacementsRoundTrip() {
     QTemporaryFile tmpFile;
     tmpFile.open();
     QString tmpPath = tmpFile.fileName();
     tmpFile.close();
 
-    // Load, modify, save, reload
     oap::YamlConfig config;
-    config.load(TEST_DATA_DIR "/test_widget_config.yaml");
 
-    auto placements = config.widgetPlacements();
-    placements[0].widgetId = "org.openauto.weather";
-    config.setWidgetPlacements(placements);
+    QList<oap::GridPlacement> placements;
+    {
+        oap::GridPlacement p;
+        p.instanceId = "clock-0";
+        p.widgetId = "org.openauto.clock";
+        p.col = 0; p.row = 0;
+        p.colSpan = 2; p.rowSpan = 2;
+        p.opacity = 0.3;
+        placements.append(p);
+    }
+    {
+        oap::GridPlacement p;
+        p.instanceId = "np-1";
+        p.widgetId = "org.openauto.bt-now-playing";
+        p.col = 2; p.row = 0;
+        p.colSpan = 3; p.rowSpan = 2;
+        p.opacity = 0.25;
+        placements.append(p);
+    }
+
+    config.setGridPlacements(placements);
+    config.setGridNextInstanceId(5);
     config.save(tmpPath);
 
     oap::YamlConfig reloaded;
     reloaded.load(tmpPath);
-    auto reloadedPlacements = reloaded.widgetPlacements();
-    QCOMPARE(reloadedPlacements[0].widgetId, "org.openauto.weather");
+    auto result = reloaded.gridPlacements();
+    QCOMPARE(result.size(), 2);
+    QCOMPARE(result[0].instanceId, QString("clock-0"));
+    QCOMPARE(result[0].widgetId, QString("org.openauto.clock"));
+    QCOMPARE(result[0].col, 0);
+    QCOMPARE(result[0].row, 0);
+    QCOMPARE(result[0].colSpan, 2);
+    QCOMPARE(result[0].rowSpan, 2);
+    QCOMPARE(result[0].opacity, 0.3);
+
+    QCOMPARE(result[1].instanceId, QString("np-1"));
+    QCOMPARE(result[1].col, 2);
+    QCOMPARE(result[1].colSpan, 3);
+    QCOMPARE(result[1].rowSpan, 2);
+
+    QCOMPARE(reloaded.gridNextInstanceId(), 5);
 }
 
-void TestWidgetConfig::testDefaultsWhenEmpty() {
+void TestWidgetConfig::testMissingWidgetGridReturnsEmpty() {
     QTemporaryFile tmpFile;
     tmpFile.open();
     tmpFile.write("# empty config\n");
@@ -68,45 +125,56 @@ void TestWidgetConfig::testDefaultsWhenEmpty() {
     oap::YamlConfig config;
     config.load(tmpFile.fileName());
 
-    auto pages = config.widgetPages();
-    QCOMPARE(pages.size(), 1);
-    QCOMPARE(pages[0].id, "home");
-
-    auto placements = config.widgetPlacements();
-    QCOMPARE(placements.size(), 3); // default: clock, aa-status, now-playing
+    auto placements = config.gridPlacements();
+    QVERIFY(placements.isEmpty());
 }
 
-void TestWidgetConfig::testConfigVersion() {
+void TestWidgetConfig::testOldWidgetConfigIgnored() {
+    // Old widget_config key should not crash or produce grid placements
+    QTemporaryFile tmpFile;
+    tmpFile.open();
+    tmpFile.write(
+        "widget_config:\n"
+        "  version: 1\n"
+        "  pages:\n"
+        "    - id: home\n"
+        "  placements:\n"
+        "    - instanceId: old-1\n"
+        "      widgetId: org.openauto.clock\n"
+        "      pageId: home\n"
+        "      paneId: main\n"
+    );
+    tmpFile.close();
+
     oap::YamlConfig config;
-    config.load(TEST_DATA_DIR "/test_widget_config.yaml");
-    QCOMPARE(config.widgetConfigVersion(), 1);
+    config.load(tmpFile.fileName());
+
+    // Should return empty (no widget_grid key)
+    auto placements = config.gridPlacements();
+    QVERIFY(placements.isEmpty());
 }
 
-void TestWidgetConfig::testPlacementValidation() {
+void TestWidgetConfig::testGridNextInstanceId() {
     oap::YamlConfig config;
-    config.load(TEST_DATA_DIR "/test_widget_config.yaml");
+    QCOMPARE(config.gridNextInstanceId(), 0);
 
-    // Try to set placements with duplicate composite key
-    QList<oap::WidgetPlacement> bad;
-    oap::WidgetPlacement p1;
-    p1.instanceId = "a";
-    p1.widgetId = "w1";
-    p1.pageId = "home";
-    p1.paneId = "main";
-    bad.append(p1);
+    config.setGridNextInstanceId(42);
+    QCOMPARE(config.gridNextInstanceId(), 42);
+}
 
-    oap::WidgetPlacement p2;
-    p2.instanceId = "b";
-    p2.widgetId = "w2";
-    p2.pageId = "home";
-    p2.paneId = "main"; // duplicate page:pane
-    bad.append(p2);
+void TestWidgetConfig::testGridNextInstanceIdRoundTrip() {
+    QTemporaryFile tmpFile;
+    tmpFile.open();
+    QString tmpPath = tmpFile.fileName();
+    tmpFile.close();
 
-    // Should keep only first placement per composite key
-    config.setWidgetPlacements(bad);
-    auto result = config.widgetPlacements();
-    QCOMPARE(result.size(), 1);
-    QCOMPARE(result[0].instanceId, "a");
+    oap::YamlConfig config;
+    config.setGridNextInstanceId(10);
+    config.save(tmpPath);
+
+    oap::YamlConfig reloaded;
+    reloaded.load(tmpPath);
+    QCOMPARE(reloaded.gridNextInstanceId(), 10);
 }
 
 QTEST_GUILESS_MAIN(TestWidgetConfig)

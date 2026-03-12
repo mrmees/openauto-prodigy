@@ -50,6 +50,7 @@
 #include "core/widget/WidgetTypes.hpp"
 #include "ui/WidgetPlacementModel.hpp"
 #include "ui/WidgetPickerModel.hpp"
+#include "ui/WidgetGridModel.hpp"
 #include <QQuickWindow>
 #include <algorithm>
 
@@ -393,6 +394,29 @@ int main(int argc, char *argv[])
         widgetRegistry->registerWidget(aaStatusDesc);
     }
 
+    // Phase 06 widget stubs (pre-registered descriptors, no QML yet)
+    {
+        oap::WidgetDescriptor navDesc;
+        navDesc.id = "org.openauto.nav-turn";
+        navDesc.displayName = "Navigation";
+        navDesc.iconName = "\ue55c";  // navigation
+        navDesc.minCols = 2; navDesc.minRows = 1;
+        navDesc.maxCols = 4; navDesc.maxRows = 2;
+        navDesc.defaultCols = 3; navDesc.defaultRows = 1;
+        // qmlComponent intentionally empty -- Phase 06 fills it
+        widgetRegistry->registerWidget(navDesc);
+
+        oap::WidgetDescriptor npDesc;
+        npDesc.id = "org.openauto.now-playing";
+        npDesc.displayName = "Now Playing";
+        npDesc.iconName = "\ue030";  // music_note
+        npDesc.minCols = 2; npDesc.minRows = 1;
+        npDesc.maxCols = 6; npDesc.maxRows = 2;
+        npDesc.defaultCols = 3; npDesc.defaultRows = 2;
+        // qmlComponent intentionally empty -- Phase 06 fills it
+        widgetRegistry->registerWidget(npDesc);
+    }
+
     // Collect widget descriptors from plugins
     for (auto* plugin : pluginManager.plugins()) {
         for (const auto& desc : plugin->widgetDescriptors()) {
@@ -400,15 +424,34 @@ int main(int argc, char *argv[])
         }
     }
 
-    auto widgetPlacementModel = new oap::WidgetPlacementModel(widgetRegistry, &app);
-    widgetPlacementModel->setPlacements(yamlConfig->widgetPlacements());
-    widgetPlacementModel->setActivePageId("home");
+    // --- Grid-based widget model (replaces pane-based WidgetPlacementModel) ---
+    auto widgetGridModel = new oap::WidgetGridModel(widgetRegistry, &app);
+    widgetGridModel->setGridDimensions(displayInfo->gridColumns(), displayInfo->gridRows());
 
-    // Auto-save placements on change (updates in-memory YAML + writes to disk)
-    QObject::connect(widgetPlacementModel, &oap::WidgetPlacementModel::placementsChanged,
-                     widgetPlacementModel, [yamlConfig = yamlConfig.get(), widgetPlacementModel, yamlPath]() {
-        yamlConfig->setWidgetPlacements(widgetPlacementModel->allPlacements());
+    // Load placements from config
+    auto savedPlacements = yamlConfig->gridPlacements();
+    if (!savedPlacements.isEmpty()) {
+        widgetGridModel->setPlacements(savedPlacements, widgetRegistry);
+        widgetGridModel->setNextInstanceId(yamlConfig->gridNextInstanceId());
+    } else {
+        // Fresh install: place default layout
+        widgetGridModel->placeWidget("org.openauto.clock", 0, 0, 2, 2);
+        widgetGridModel->placeWidget("org.openauto.bt-now-playing", 2, 0, 3, 2);
+        widgetGridModel->placeWidget("org.openauto.aa-status", 0, 2, 2, 1);
+    }
+
+    // Auto-save grid placements on change
+    QObject::connect(widgetGridModel, &oap::WidgetGridModel::placementsChanged,
+                     widgetGridModel, [yamlConfig = yamlConfig.get(), widgetGridModel, yamlPath]() {
+        yamlConfig->setGridPlacements(widgetGridModel->placements());
+        yamlConfig->setGridNextInstanceId(widgetGridModel->nextInstanceId());
         yamlConfig->save(yamlPath);
+    });
+
+    // Re-clamp grid when display dimensions change
+    QObject::connect(displayInfo, &oap::DisplayInfo::gridDimensionsChanged,
+                     widgetGridModel, [widgetGridModel, displayInfo]() {
+        widgetGridModel->setGridDimensions(displayInfo->gridColumns(), displayInfo->gridRows());
     });
 
     // --- IPC server for web config panel ---
@@ -554,7 +597,7 @@ int main(int argc, char *argv[])
     if (companionListener)
         engine.rootContext()->setContextProperty("CompanionService", companionListener);
 
-    engine.rootContext()->setContextProperty("WidgetPlacementModel", widgetPlacementModel);
+    engine.rootContext()->setContextProperty("WidgetGridModel", widgetGridModel);
     engine.rootContext()->setContextProperty("WidgetRegistry", widgetRegistry);
 
     auto widgetPickerModel = new oap::WidgetPickerModel(widgetRegistry, &app);

@@ -1,25 +1,18 @@
-version: 1
-
-pages:
-  - id: home
-    layoutTemplate: standard-3pane
-    order: 0
-
-placements:
-  - instanceId: clock-main
-    widgetId: org.openauto.clock
-    pageId: home
-    paneId: main
-    config: {}
-
-  - instanceId: aa-status-sub1
-    widgetId: org.openauto.aa-status
-    pageId: home
-    paneId: sub1
-    config: {}
-
-  - instanceId: now-playing-sub2
-    widgetId: org.openauto.bt-now-playing
-    pageId: home
-    paneId: sub2
-    config: {}
+widget_grid:
+  version: 2
+  next_instance_id: 2
+  placements:
+    - instance_id: clock-0
+      widget_id: org.openauto.clock
+      col: 0
+      row: 0
+      col_span: 2
+      row_span: 2
+      opacity: 0.25
+    - instance_id: status-1
+      widget_id: org.openauto.aa-status
+      col: 0
+      row: 2
+      col_span: 2
+      row_span: 1
+      opacity: 0.25

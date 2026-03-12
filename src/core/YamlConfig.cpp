@@ -187,6 +187,11 @@ void YamlConfig::initDefaults()
 
     root_["widget_config"]["placements"] = defaultPlacements;
 
+    // Grid-based widget config defaults (v2)
+    root_["widget_grid"]["version"] = 2;
+    root_["widget_grid"]["next_instance_id"] = 0;
+    root_["widget_grid"]["placements"] = YAML::Node(YAML::NodeType::Sequence);
+
     // Navbar defaults
     root_["navbar"]["edge"] = "bottom";
     root_["navbar"]["show_during_aa"] = true;
@@ -859,6 +864,59 @@ void YamlConfig::setWidgetPlacements(const QList<WidgetPlacement>& placements)
         node.push_back(n);
     }
     root_["widget_config"]["placements"] = node;
+}
+
+// --- Grid-based widget config (v2) ---
+
+QList<GridPlacement> YamlConfig::gridPlacements() const
+{
+    QList<GridPlacement> result;
+    auto placements = root_["widget_grid"]["placements"];
+    if (!placements.IsDefined() || !placements.IsSequence())
+        return result;
+
+    for (const auto& node : placements) {
+        GridPlacement p;
+        p.instanceId = QString::fromStdString(node["instance_id"].as<std::string>(""));
+        p.widgetId = QString::fromStdString(node["widget_id"].as<std::string>(""));
+        p.col = node["col"].as<int>(0);
+        p.row = node["row"].as<int>(0);
+        p.colSpan = node["col_span"].as<int>(1);
+        p.rowSpan = node["row_span"].as<int>(1);
+        p.opacity = node["opacity"].as<double>(0.25);
+        p.visible = true; // visibility is runtime state, not persisted
+        result.append(p);
+    }
+    return result;
+}
+
+void YamlConfig::setGridPlacements(const QList<GridPlacement>& placements)
+{
+    root_["widget_grid"]["version"] = 2;
+
+    YAML::Node node(YAML::NodeType::Sequence);
+    for (const auto& p : placements) {
+        YAML::Node n;
+        n["instance_id"] = p.instanceId.toStdString();
+        n["widget_id"] = p.widgetId.toStdString();
+        n["col"] = p.col;
+        n["row"] = p.row;
+        n["col_span"] = p.colSpan;
+        n["row_span"] = p.rowSpan;
+        n["opacity"] = p.opacity;
+        node.push_back(n);
+    }
+    root_["widget_grid"]["placements"] = node;
+}
+
+int YamlConfig::gridNextInstanceId() const
+{
+    return root_["widget_grid"]["next_instance_id"].as<int>(0);
+}
+
+void YamlConfig::setGridNextInstanceId(int id)
+{
+    root_["widget_grid"]["next_instance_id"] = id;
 }
 
 // --- Generic dot-path access ---

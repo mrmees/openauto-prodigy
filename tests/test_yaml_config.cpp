@@ -38,6 +38,7 @@ private slots:
     void testNavbarShowDuringAADefault();
     void testSidebarDefaultsRemoved();
     void testDisplayScreenSizeDefault();
+    void testWidgetGridDefaults();
 };
 
 void TestYamlConfig::testLoadDefaults()
@@ -428,6 +429,15 @@ void TestYamlConfig::testDisplayScreenSizeDefault()
     QVariant v = config.valueByPath("display.screen_size");
     QVERIFY2(v.isValid(), "display.screen_size should be registered");
     QCOMPARE(v.toDouble(), 7.0);
+}
+
+void TestYamlConfig::testWidgetGridDefaults()
+{
+    oap::YamlConfig config;
+    // Default grid config should have version 2 and empty placements
+    auto placements = config.gridPlacements();
+    QVERIFY(placements.isEmpty());
+    QCOMPARE(config.gridNextInstanceId(), 0);
 }
 
 QTEST_MAIN(TestYamlConfig)
