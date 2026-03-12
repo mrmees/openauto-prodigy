@@ -1,99 +1,154 @@
-# Requirements: OpenAuto Prodigy
+# Requirements: OpenAuto Prodigy v0.5.3
 
-**Defined:** 2026-03-10
-**Core Value:** A person with a Raspberry Pi 4 and a touchscreen can install this, pair their phone, and get a reliable wireless Android Auto experience -- every time, without SSH.
+**Defined:** 2026-03-12
+**Core Value:** A person with a Raspberry Pi 4 and a touchscreen can install this, pair their phone, and get a reliable wireless Android Auto experience — every time, without SSH.
 
-## v0.5.2 Requirements
+## v0.5.3 Requirements
 
-Requirements for widget system and UI polish milestone.
+Requirements for Widget Grid & Content Widgets milestone. Each maps to roadmap phases.
 
-### Widget System
+### Grid Layout
 
-- [x] **WDG-01**: Home screen displays 3-pane widget layout (landscape: 60/40 main+subs, portrait: top+bottom)
-- [x] **WDG-02**: LauncherDock provides quick-access app icons at bottom of home screen
-- [x] **WDG-03**: Long-press on widget pane opens context menu (Change/Opacity/Clear)
-- [x] **WDG-04**: Widget picker allows selecting from available widgets or clearing a pane
-- [x] **WDG-05**: Glass card WidgetHost with semi-transparent background and per-pane adjustable opacity
-- [x] **WDG-06**: Three built-in widgets: Clock, AA Status, Now Playing
+- [ ] **GRID-01**: Home screen uses a cell-based grid for widget placement (replaces fixed 3-pane layout)
+- [x] **GRID-02**: Grid density (columns/rows) is auto-derived from display size via UiMetrics
+- [ ] **GRID-03**: Widgets render at integer column/row coordinates with column/row span values
+- [x] **GRID-04**: Widgets declare min/max grid spans (replaces Main/Sub size enum)
+- [ ] **GRID-05**: Grid layout (positions, sizes, opacity) persists in YAML config across restarts
+- [ ] **GRID-06**: Fresh install ships a sensible default widget layout
+- [ ] **GRID-07**: Existing 3-pane config auto-migrates to grid coordinates on first launch
+- [ ] **GRID-08**: Widget layouts survive resolution changes — widgets that no longer fit are clamped/reflowed to valid positions
 
-### Settings Restructure
+### Edit Mode
 
-- [x] **SET-01**: Settings reorganized into 9 top-level categories: AA, Display, Audio, Bluetooth, Theme, Companion, System, Information, Debug
-- [x] **SET-02**: AA page shows Resolution, DPI, and Auto-connect only
-- [x] **SET-03**: Display page contains screen size info (size/PPI/resolution), UI scale stepper, screen dimming, navbar settings
-- [x] **SET-04**: Theme promoted to top-level category with theme picker, wallpaper, dark mode toggle
-- [x] **SET-05**: System contains left-hand drive, clock 24h toggle, day/night mode settings, software version
-- [x] **SET-06**: Information page shows identity fields and hardware profile (read-only)
-- [x] **SET-07**: Debug page (visible, last in list) contains protocol capture toggle, codec/decoder selection, TCP port override, verbose logging toggle
-- [x] **SET-08**: FPS setting removed from UI (YAML-only, 30fps default)
-- [x] **SET-09**: About OpenAutoProdigy section removed entirely
-- [x] **SET-10**: Debug AA protocol buttons removed from System page
+- [ ] **EDIT-01**: Long-press on empty grid area or widget background enters screen-wide edit mode
+- [ ] **EDIT-02**: Edit mode shows visual feedback on all widgets (accent borders + resize handles)
+- [ ] **EDIT-03**: User can drag a widget to reposition it on the grid (snaps to cells on drop, blocked if target occupied)
+- [ ] **EDIT-04**: User can drag corner handles to resize a widget within its min/max span constraints
+- [ ] **EDIT-05**: "+" button (FAB) in edit mode opens widget catalog to add a new widget
+- [ ] **EDIT-06**: "X" badge on each widget in edit mode removes it from the grid
+- [ ] **EDIT-07**: Edit mode exits on tap outside any widget or after 10-second timeout (safety)
+- [ ] **EDIT-08**: Edit mode auto-exits when AA fullscreen activates (EVIOCGRAB steals touch)
+- [ ] **EDIT-09**: Layout writes are atomic — persist on drop/commit, not during drag
+- [ ] **EDIT-10**: Adding a widget when no space is available shows clear feedback (no silent failure)
 
-### Touch Normalization
+### Multi-Page
 
-- [x] **TCH-01**: All settings sub-pages use consistent alternating-row list style matching main settings menu
-- [x] **TCH-02**: All interactive controls have touch-friendly sizing via UiMetrics (DPI-scaled, no hardcoded pixels)
-- [x] **TCH-03**: Text readable at arm's length on target display sizes
+- [ ] **PAGE-01**: Home screen supports multiple widget pages with horizontal swipe navigation
+- [ ] **PAGE-02**: Page indicator dots show current page position and total count
+- [ ] **PAGE-03**: Launcher dock remains fixed across all pages
+- [ ] **PAGE-04**: Page swipe is disabled during edit mode (prevents gesture conflict with drag)
+- [ ] **PAGE-05**: Maximum 5 pages supported
+- [ ] **PAGE-06**: Explicit page creation and removal (add page when needed, remove empty pages)
+- [ ] **PAGE-07**: Page navigation available during edit mode via non-swipe mechanism (e.g. tap page dots)
+- [ ] **PAGE-08**: Non-visible pages are lazily instantiated (Pi 4 memory/performance)
+- [ ] **PAGE-09**: Page assignments persist in YAML config across restarts
 
-## Workflow Constraints
+### Navigation Widget
 
-- Use `frontend-design` skill for UI work
-- All sizing via UiMetrics/DPI system — target real physical sizes, not pixel values
-- Use Codex MCP for review/production (opposite role of Claude on each task)
+- [ ] **NAV-01**: AA navigation turn-by-turn widget shows maneuver icon, road name, and distance to next turn
+- [ ] **NAV-02**: Maneuver icon renders phone-provided PNG (via QQuickImageProvider), falls back to Material icon
+- [ ] **NAV-03**: Widget shows "No active navigation" with muted icon when nav is inactive
+- [ ] **NAV-04**: Tapping the navigation widget activates AA fullscreen view
+- [ ] **NAV-05**: Navigation data exposed to QML via C++ NavigationDataBridge with Q_PROPERTYs
+
+### Unified Media
+
+- [ ] **MEDIA-01**: Unified Now Playing widget shows track title, artist, and playback controls
+- [ ] **MEDIA-02**: Widget displays AA media metadata when AA is connected, BT A2DP metadata as fallback
+- [ ] **MEDIA-03**: Source indicator label shows "via Android Auto" or "via Bluetooth"
+- [ ] **MEDIA-04**: Playback controls (prev/play-pause/next) map to appropriate source (AVRCP for BT, InputEvent for AA)
+- [ ] **MEDIA-05**: AA media metadata exposed to QML via C++ MediaDataBridge (currently parsed but not surfaced)
+- [ ] **MEDIA-06**: Replaces current BT-only NowPlayingWidget
+
+### Widget Revision
+
+- [ ] **REV-01**: All shipped v0.5.3 widgets use pixel-based breakpoints for responsive layout (replaces isMainPane boolean)
+- [ ] **REV-02**: Clock widget adapts content across grid sizes (1x1: time only, 2x1: time+date, 2x2+: full)
+- [ ] **REV-03**: AA Status widget adapts content across grid sizes (1x1: icon only, 2x1+: icon+text)
 
 ## Future Requirements
 
-### Display
+Deferred to subsequent milestones.
 
-- **DISP-01**: User-facing preset sizes (Small / Medium / Large) as shortcuts for scale values
-- **DISP-02**: Dynamic DPI recalculation on display hot-plug
+### Lane Guidance
+- **LANE-01**: Navigation widget shows lane guidance arrows when available
+  - Reason: Lane arrow bitmap format in proto is uncharacterized. Needs investigation.
 
-### Theme
+### Widget Polish
+- **POLISH-01**: Widget catalog shows live scaled-down previews of each widget
+- **POLISH-02**: AA album art displayed in Now Playing widget (if protocol provides image bytes)
+- **POLISH-03**: Page reordering via drag on page indicator dots
 
-- **THM-04**: Dark/light mode auto-switching based on ambient light sensor
-- **THM-05**: User-created custom color themes
+### Grid Enhancements
+- **GRIDENH-01**: Grid density user choice in Display settings (sparse/dense override)
+- **GRIDENH-02**: Auto-arrange finds first available space when target cells are occupied
 
 ## Out of Scope
 
 | Feature | Reason |
 |---------|--------|
-| FPS selection in UI | Changing from 30fps causes bandwidth issues — YAML-only for power users |
-| Full Material Design component library | Overkill for automotive — adopt color conventions only |
-| Font selection/customization | Single font is fine for v1.0 |
-| Screen rotation/orientation | Auto-detection handles this, no user control needed |
-| Per-plugin theme overrides | Global theme is sufficient for v1.0 |
-| Theme export (HU to companion) | Deferred — reverse direction not needed yet |
-| About OpenAutoProdigy section | Removed — software version shown in System, no need for separate About |
+| Freeform pixel placement (non-grid) | Looks terrible on small screens, alignment becomes user's problem |
+| Widget overlap/stacking | Z-order confusion and tap ambiguity, violates automotive glanceability |
+| Widget-specific settings dialogs | Over-engineering for built-in widgets — YAML config sufficient |
+| Infinite pages | Memory bloat, navigation confusion — capped at 5 |
+| Horizontal scrolling within widgets | Conflicts with page swipe gesture |
+| App shortcut widgets | Launcher dock handles app launching |
+| Real-time map in nav widget | GPU-expensive on Pi, useless at glance distance — AA fullscreen IS the map |
+| Widget-to-widget communication | Coupling nightmare for solo maintainer |
+| Drag widgets between pages | Complex gesture, easy to trigger accidentally — use remove+add instead |
+| Animated widget transitions while driving | Distracting — NHTSA/Google Design for Driving guidance |
 
 ## Traceability
 
 | Requirement | Phase | Status |
 |-------------|-------|--------|
-| WDG-01 | Phase 1 | Complete |
-| WDG-02 | Phase 1 | Complete |
-| WDG-03 | Phase 1 | Complete |
-| WDG-04 | Phase 1 | Complete |
-| WDG-05 | Phase 1 | Complete |
-| WDG-06 | Phase 1 | Complete |
-| SET-01 | Phase 2 | Complete |
-| SET-02 | Phase 2 | Complete |
-| SET-03 | Phase 2 | Complete |
-| SET-04 | Phase 2 | Complete |
-| SET-05 | Phase 2 | Complete |
-| SET-06 | Phase 2 | Complete |
-| SET-07 | Phase 2 | Complete |
-| SET-08 | Phase 2 | Complete |
-| SET-09 | Phase 2 | Complete |
-| SET-10 | Phase 2 | Complete |
-| TCH-01 | Phase 3 | Complete |
-| TCH-02 | Phase 3 | Complete |
-| TCH-03 | Phase 3 | Complete |
+| GRID-01 | Phase 04 | Pending |
+| GRID-02 | Phase 04 | Complete |
+| GRID-03 | Phase 05 | Pending |
+| GRID-04 | Phase 04 | Complete |
+| GRID-05 | Phase 04 | Pending |
+| GRID-06 | Phase 05 | Pending |
+| GRID-07 | Phase 04 | Pending |
+| GRID-08 | Phase 04 | Pending |
+| EDIT-01 | Phase 07 | Pending |
+| EDIT-02 | Phase 07 | Pending |
+| EDIT-03 | Phase 07 | Pending |
+| EDIT-04 | Phase 07 | Pending |
+| EDIT-05 | Phase 07 | Pending |
+| EDIT-06 | Phase 07 | Pending |
+| EDIT-07 | Phase 07 | Pending |
+| EDIT-08 | Phase 07 | Pending |
+| EDIT-09 | Phase 07 | Pending |
+| EDIT-10 | Phase 07 | Pending |
+| PAGE-01 | Phase 08 | Pending |
+| PAGE-02 | Phase 08 | Pending |
+| PAGE-03 | Phase 08 | Pending |
+| PAGE-04 | Phase 08 | Pending |
+| PAGE-05 | Phase 08 | Pending |
+| PAGE-06 | Phase 08 | Pending |
+| PAGE-07 | Phase 08 | Pending |
+| PAGE-08 | Phase 08 | Pending |
+| PAGE-09 | Phase 08 | Pending |
+| NAV-01 | Phase 06 | Pending |
+| NAV-02 | Phase 06 | Pending |
+| NAV-03 | Phase 06 | Pending |
+| NAV-04 | Phase 06 | Pending |
+| NAV-05 | Phase 06 | Pending |
+| MEDIA-01 | Phase 06 | Pending |
+| MEDIA-02 | Phase 06 | Pending |
+| MEDIA-03 | Phase 06 | Pending |
+| MEDIA-04 | Phase 06 | Pending |
+| MEDIA-05 | Phase 06 | Pending |
+| MEDIA-06 | Phase 06 | Pending |
+| REV-01 | Phase 05 | Pending |
+| REV-02 | Phase 05 | Pending |
+| REV-03 | Phase 05 | Pending |
 
 **Coverage:**
-- v0.5.2 requirements: 19 total
-- Mapped to phases: 19/19
-- Orphaned: 0
+- v0.5.3 requirements: 42 total
+- Mapped to phases: 42
+- Unmapped: 0 ✓
 
 ---
-*Requirements defined: 2026-03-10*
-*Last updated: 2026-03-10 after roadmap creation*
+*Requirements defined: 2026-03-12*
+*Last updated: 2026-03-12 after Codex review — added GRID-08, EDIT-08/09/10, PAGE-06/07/08/09; split Phase 04; renumbered phases*
