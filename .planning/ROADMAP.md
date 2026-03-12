@@ -102,7 +102,7 @@ Replace the fixed 3-pane home screen with an Android-style freeform grid support
 
 Plans:
 - [x] 04-01-PLAN.md — Grid types, DisplayInfo grid density, test updates
-- [ ] 04-02-PLAN.md — WidgetGridModel, YAML persistence, app wiring
+- [x] 04-02-PLAN.md — WidgetGridModel, YAML persistence, app wiring
 
 ### Phase 05: Static Grid Rendering & Widget Revision
 **Goal**: Home screen renders widgets positioned on the grid with correct sizing, and existing widgets adapt layout to variable grid cell dimensions
@@ -178,7 +178,7 @@ Phases execute in numeric order: 04 -> 05 -> 06 + 07 (parallel-capable) -> 08
 
 | Phase | Plans Complete | Status | Completed |
 |-------|----------------|--------|-----------|
-| 04. Grid Data Model & Persistence | 1/2 | In progress | - |
+| 04. Grid Data Model & Persistence | 2/2 | Complete | 2026-03-12 |
 | 05. Static Grid Rendering & Widget Revision | 0/? | Not started | - |
 | 06. Content Widgets | 0/? | Not started | - |
 | 07. Edit Mode | 0/? | Not started | - |
@@ -193,4 +193,4 @@ Phases execute in numeric order: 04 -> 05 -> 06 + 07 (parallel-capable) -> 08
 - **Phase 08**: SwipeView.interactive must be disabled during edit mode; lazy page instantiation critical for Pi 4 memory
 
 ---
-*Last updated: 2026-03-12 -- Phase 04 Plan 01 complete*
+*Last updated: 2026-03-12 -- Phase 04 complete*

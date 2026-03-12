@@ -3,15 +3,15 @@ gsd_state_version: 1.0
 milestone: v0.5
 milestone_name: milestone
 status: executing
-stopped_at: Completed 04-01-PLAN.md
-last_updated: "2026-03-12T17:05:17Z"
-last_activity: 2026-03-12 -- Phase 04 Plan 01 complete (grid types + DisplayInfo)
+stopped_at: Completed 04-02-PLAN.md
+last_updated: "2026-03-12T17:27:00Z"
+last_activity: 2026-03-12 -- Phase 04 Plan 02 complete (WidgetGridModel + persistence)
 progress:
   total_phases: 5
-  completed_phases: 0
+  completed_phases: 1
   total_plans: 2
-  completed_plans: 1
-  percent: 10
+  completed_plans: 2
+  percent: 20
 ---
 
 # Project State
@@ -21,16 +21,16 @@ progress:
 See: .planning/PROJECT.md (updated 2026-03-12)
 
 **Core value:** A person with a Raspberry Pi 4 and a touchscreen can install this, pair their phone, and get a reliable wireless Android Auto experience -- every time, without SSH.
-**Current focus:** v0.5.3 Widget Grid & Content Widgets -- Phase 04 Plan 01 complete
+**Current focus:** v0.5.3 Widget Grid & Content Widgets -- Phase 04 complete
 
 ## Current Position
 
-Phase: 04 of 08 (Grid Data Model & Persistence)
-Plan: 01 of 02
-Status: Plan 01 complete, Plan 02 next
-Last activity: 2026-03-12 -- Phase 04 Plan 01 complete (grid types + DisplayInfo)
+Phase: 04 of 08 (Grid Data Model & Persistence) -- COMPLETE
+Plan: 02 of 02
+Status: Phase 04 complete, Phase 05 next
+Last activity: 2026-03-12 -- Phase 04 Plan 02 complete (WidgetGridModel + persistence)
 
-Progress: [#.........] 10%
+Progress: [##........] 20%
 
 ## Accumulated Context
 
@@ -52,6 +52,10 @@ Decisions are logged in PROJECT.md Key Decisions table.
 - 04-01: 1280x720 maps to 8x4 grid (not 7x4 as research estimated)
 - 04-01: Legacy WidgetPlacement/PageDescriptor kept temporarily -- Plan 02 removes them
 - 04-01: WidgetPickerModel.filterForSize -> filterByAvailableSpace
+- 04-02: Occupancy grid stores instanceId per cell (not bool) for collision resolution during clamping
+- 04-02: YAML schema v2 uses snake_case keys (instance_id, col_span) for consistency
+- 04-02: QML WidgetPlacementModel context property removed -- Phase 05 handles QML migration
+- 04-02: Phase 06 stubs registered with empty qmlComponent, excluded from picker
 
 ### Pending Todos
 
@@ -67,5 +71,5 @@ None yet.
 
 ## Session Continuity
 
-Last session: 2026-03-12T17:05:17Z
-Stopped at: Completed 04-01-PLAN.md
+Last session: 2026-03-12T17:27:00Z
+Stopped at: Completed 04-02-PLAN.md
