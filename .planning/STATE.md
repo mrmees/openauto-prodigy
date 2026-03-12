@@ -3,15 +3,15 @@ gsd_state_version: 1.0
 milestone: v0.5
 milestone_name: milestone
 status: in_progress
-stopped_at: Phase 06 nearly complete — blocked on hostapd for Pi verification
+stopped_at: Phase 06 complete — Phase 07 (Edit Mode) next
 last_updated: "2026-03-12"
-last_activity: "2026-03-12 - Phase 06 plans 01-03 code complete, Pi verification blocked by hostapd"
+last_activity: "2026-03-12 - Phase 06 complete, Pi-verified content widgets"
 progress:
   total_phases: 5
-  completed_phases: 0
+  completed_phases: 3
   total_plans: 0
   completed_plans: 0
-  percent: 100
+  percent: 60
 ---
 
 # Project State
@@ -21,16 +21,15 @@ progress:
 See: .planning/PROJECT.md (updated 2026-03-12)
 
 **Core value:** A person with a Raspberry Pi 4 and a touchscreen can install this, pair their phone, and get a reliable wireless Android Auto experience -- every time, without SSH.
-**Current focus:** v0.5.3 Widget Grid & Content Widgets -- Phase 06 in progress
+**Current focus:** v0.5.3 Widget Grid & Content Widgets -- Phase 06 complete, Phase 07 next
 
 ## Current Position
 
-Phase: 06 of 7 (Content Widgets)
-Plan: 03 of 3 — code complete, Pi verification pending
-Status: All code committed. Blocked on hostapd failure preventing AA connection for live widget testing.
-Last activity: 2026-03-12 - Phase 06 code complete, Pi verification blocked by hostapd
+Phase: 07 of 8 (Edit Mode) — not started
+Status: Phase 06 (Content Widgets) Pi-verified and complete. Phase 07 (Edit Mode) is next.
+Last activity: 2026-03-12 - Phase 06 complete with nav distance unit fix from AA APK analysis
 
-Progress: [#########-] 90%
+Progress: [######----] 60%
 
 ## Accumulated Context
 
@@ -61,6 +60,9 @@ Decisions are logged in PROJECT.md Key Decisions table.
 - 05-02: Clock date format "MMMM d" (no year) -- irrelevant on car display
 - 05-02: AAStatusWidget ColumnLayout for both tiers (icon size changes, not layout type)
 - 05-02: NowPlaying compact strip omits artist entirely -- too tight at 2x1
+- 06-03: AA 16.2 dropped NavigationTurnEvent (0x8004) -- bridge uses NavigationNotification (0x8006) + NavigationNextTurnDistanceEvent (0x8007) for modern phones
+- 06-03: AA Distance.displayUnit: 0=unknown, 1=m, 2/3=km, 4/5=mi, 6=ft, 7=yd (P1 variants 3,5 = one decimal place)
+- 06-03: Phone's display_text preferred over computed distance -- always correct for locale
 
 ### Pending Todos
 
@@ -68,15 +70,13 @@ None yet.
 
 ### Roadmap Evolution
 
-- Phase 05.1 inserted after Phase 05: Fix AA wireless connection failure (URGENT)
+- Phase 05.1 inserted after Phase 05: Fix AA wireless connection failure (URGENT) — resolved
 
 ### Blockers/Concerns
 
-- Nav turn events are logged but not wired to EventBus -- must fix before nav widget (Phase 06)
-- AA media metadata exists in orchestrator but is discarded -- must surface via MediaDataBridge (Phase 06)
-- New widget QML files MUST set QT_QML_SKIP_CACHEGEN (known gotcha from v0.5.2)
 - Use ghost rectangle for resize preview in edit mode -- animating width/height is janky on Pi
 - Grid density formula needs real Pi touch validation before shipping
+- Resolve MouseArea+Drag vs DragHandler before Phase 07 implementation (Qt 6.4 compat)
 
 ### Quick Tasks Completed
 
@@ -87,38 +87,23 @@ None yet.
 ## Session Continuity
 
 Last session: 2026-03-12
-Stopped at: Phase 06 code complete, hostapd blocking Pi AA verification
+Stopped at: Phase 06 complete, Phase 07 (Edit Mode) next
 
 ### Session Handoff (2026-03-12)
 
-**What was done:**
-- Plans 06-01 (NavigationDataBridge + ManeuverIconProvider) and 06-02 (MediaDataBridge) — committed, tested, summarized
-- Plan 06-03 Task 1 (QML widgets + main.cpp wiring) — committed
-- Added long-press widget picker to HomeMenu grid (was missing from Phase 05 grid rewrite) — committed
-- Widget picker confirmed working on Pi touchscreen (long-press → pick → place works)
-- YamlConfig tcp_port default was 5277, changed to 5288 in Pi config — but AA still won't connect
+**Phase 06 completed:**
+- Plans 06-01 through 06-03 all complete and Pi-verified
+- Nav widget showing correct distance with miles (AA 16.2 modern message path)
+- Now Playing widget with unified AA+BT metadata, source indicator, controls
+- Old BT Now Playing widget removed from picker
+- Long-press widget picker working on touchscreen
 
-**BLOCKER: hostapd not fully starting**
-- `hostapd` systemd says "active" but never reaches ENABLED state
-- Stuck at `UNINITIALIZED->COUNTRY_UPDATE` — never progresses
-- `hostapd_cli` can't connect (control socket missing)
-- Phone BT-connects, gets WiFi creds, but can't actually join AP (no clients in `hostapd_cli all_sta`)
-- Reboot did NOT fix it
-- Config: channel=36, hw_mode=a, country_code=US, ht_capab=[HT40+][SHORT-GI-20][SHORT-GI-40]
-- This is likely the same class of issue as the quick-fix session but on a fresh Trixie install
-- **Debug next:** Run `sudo hostapd -dd /etc/hostapd/hostapd.conf` manually to see the actual error. Check `rfkill list`, `dmesg | grep -i wifi`, regulatory domain issues.
+**Bug fixes during verification:**
+- NavigationDataBridge wired to modern AA 16.2 messages (0x8006 + 0x8007)
+- Distance unit mapping corrected from AA APK source analysis (community contribution)
 
-**What needs Pi verification (once hostapd fixed):**
-1. Navigation widget: inactive placeholder visible, shows turn data when AA nav active
-2. Now Playing widget: unified AA+BT, source switching, playback controls
-3. Both widgets at various grid sizes (2x1, 3x1, 3x2)
-4. Old BT Now Playing widget gone from picker
+**Open items carried forward:**
+- YamlConfig default port mismatch: `YamlConfig.cpp` defaults tcp_port to 5277, `Configuration.hpp` defaults to 5288. Should align — 5288 is what works.
+- NavigationTurnLabel UTF-8 parse errors spamming logs (proto field may need `bytes` type)
 
-**Commits this session:**
-- e3cdfc1 feat(06-01): add NavigationDataBridge and ManeuverIconProvider
-- 5a14fb5 feat(06-02): add MediaDataBridge with AA/BT source priority
-- 1d65927 docs(06): wave 1 complete
-- 23fe9f3 feat(06-03): wire navigation and now-playing content widgets
-- e5d8c51 feat(06-03): add long-press widget picker to home grid
-
-**YamlConfig default port mismatch:** `YamlConfig.cpp` defaults tcp_port to 5277, `Configuration.hpp` defaults to 5288. Should align these — 5288 is what works.
+**Next:** Phase 07 — Edit Mode (long-press to enter, drag-to-reposition, drag-to-resize, add/remove widgets)

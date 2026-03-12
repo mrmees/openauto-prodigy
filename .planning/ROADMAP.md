@@ -81,7 +81,7 @@ Replace the fixed 3-pane home screen with an Android-style freeform grid support
 
 - [x] **Phase 04: Grid Data Model & Persistence** - Replace pane-based model with cell-based grid model, YAML persistence, config migration (completed 2026-03-12)
 - [x] **Phase 05: Static Grid Rendering & Widget Revision** - Render widgets on grid in QML, revise existing widgets for variable grid sizing (completed 2026-03-12)
-- [ ] **Phase 06: Content Widgets** - Wire AA protocol data to QML, build navigation turn-by-turn and unified now playing widgets
+- [x] **Phase 06: Content Widgets** - Wire AA protocol data to QML, build navigation turn-by-turn and unified now playing widgets (completed 2026-03-12)
 - [ ] **Phase 07: Edit Mode** - Long-press to enter edit state, drag-to-reposition, drag-to-resize, add/remove widgets, safety exits
 - [ ] **Phase 08: Multi-Page** - SwipeView page navigation, page indicator, page management, lazy instantiation, edit mode swipe disable
 
@@ -133,9 +133,9 @@ Plans:
 **Plans**: 3 plans
 
 Plans:
-- [ ] 06-01-PLAN.md — NavigationDataBridge, ManeuverIconProvider, orchestrator accessors, tests
-- [ ] 06-02-PLAN.md — MediaDataBridge with source priority and control delegation, tests
-- [ ] 06-03-PLAN.md — QML widgets (NavigationWidget, unified NowPlayingWidget), main.cpp wiring, BT widget removal
+- [x] 06-01-PLAN.md — NavigationDataBridge, ManeuverIconProvider, orchestrator accessors, tests
+- [x] 06-02-PLAN.md — MediaDataBridge with source priority and control delegation, tests
+- [x] 06-03-PLAN.md — QML widgets (NavigationWidget, unified NowPlayingWidget), main.cpp wiring, BT widget removal
 
 ### Phase 07: Edit Mode
 **Goal**: Users can customize their home screen layout by repositioning, resizing, adding, and removing widgets through a touch-driven edit mode
@@ -180,7 +180,7 @@ Phases execute in numeric order: 04 -> 05 -> 06 + 07 (parallel-capable) -> 08
 |-------|----------------|--------|-----------|
 | 04. Grid Data Model & Persistence | 2/2 | Complete    | 2026-03-12 |
 | 05. Static Grid Rendering & Widget Revision | 2/2 | Complete    | 2026-03-12 |
-| 06. Content Widgets | 0/3 | Not started | - |
+| 06. Content Widgets | 3/3 | Complete    | 2026-03-12 |
 | 07. Edit Mode | 0/? | Not started | - |
 | 08. Multi-Page | 0/? | Not started | - |
 
@@ -193,4 +193,4 @@ Phases execute in numeric order: 04 -> 05 -> 06 + 07 (parallel-capable) -> 08
 - **Phase 08**: SwipeView.interactive must be disabled during edit mode; lazy page instantiation critical for Pi 4 memory
 
 ---
-*Last updated: 2026-03-12 -- Phase 06 planned*
+*Last updated: 2026-03-12 -- Phase 06 complete*
