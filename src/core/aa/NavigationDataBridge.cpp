@@ -98,7 +98,6 @@ void NavigationDataBridge::onNavigationDistanceChanged(const QString& displayTex
 {
     // NavigationNextTurnDistanceEvent (0x8007) — phone sends numeric display_text
     // (e.g. "0", "0.3") plus distance_unit enum. We combine them.
-    qInfo() << "[NavBridge] distance text:" << displayText << "unit:" << unit;
     phoneDistanceText_ = displayText;
     if (unit != 0)
         distanceUnit_ = unit;
@@ -116,20 +115,23 @@ QString NavigationDataBridge::formattedDistance() const
     }
 
     // Fallback: compute from NavigationTurnEvent data (legacy phones)
-    // distance_unit from phone: 1=meters, 2=km, 3=miles, 4=feet, 5=yards
-    // distanceMeters_ is always in meters regardless of unit
+    // Uses same AA Distance.displayUnit enum as above
     switch (distanceUnit_) {
-    case 1: // meters -- show km above 1000m
+    case 1: // meters
         if (distanceMeters_ >= 1000)
             return QString::number(distanceMeters_ / 1000.0, 'f', 1) + " km";
         return QString::number(distanceMeters_) + " m";
     case 2: // km
         return QString::number(distanceMeters_ / 1000.0, 'f', 1) + " km";
-    case 3: // miles
+    case 3: // km P1
+        return QString::number(distanceMeters_ / 1000.0, 'f', 1) + " km";
+    case 4: // miles
         return QString::number(distanceMeters_ / 1609.34, 'f', 1) + " mi";
-    case 4: // feet
+    case 5: // miles P1
+        return QString::number(distanceMeters_ / 1609.34, 'f', 1) + " mi";
+    case 6: // feet
         return QString::number(qRound(distanceMeters_ * 3.28084)) + " ft";
-    case 5: // yards
+    case 7: // yards
         return QString::number(qRound(distanceMeters_ / 0.9144)) + " yd";
     default:
         return QString::number(distanceMeters_) + " m";
@@ -138,13 +140,18 @@ QString NavigationDataBridge::formattedDistance() const
 
 QString NavigationDataBridge::unitSuffix(int distanceUnit)
 {
+    // AA Distance.displayUnit mapping (from Google's formatter):
+    // 0=unknown, 1=m, 2=km, 3=km(P1), 4=mi, 5=mi(P1), 6=ft, 7=yd
+    // P1 variants are same unit with one decimal place formatting.
+    // display_text already has correct precision, so we just need the suffix.
     switch (distanceUnit) {
     case 1: return QStringLiteral("m");
-    case 2: return QStringLiteral("km");
-    case 3: return QStringLiteral("mi");
-    case 4: return QStringLiteral("ft");
-    case 5: return QStringLiteral("mi");  // Wire-verified: S25 Ultra sends 5=miles (proto says yards)
-    case 6: return QStringLiteral("ft");  // Wire-verified: S25 Ultra sends 6 as initial/close-range feet
+    case 2: // fall through
+    case 3: return QStringLiteral("km");
+    case 4: // fall through
+    case 5: return QStringLiteral("mi");
+    case 6: return QStringLiteral("ft");
+    case 7: return QStringLiteral("yd");
     default: return QString();
     }
 }
