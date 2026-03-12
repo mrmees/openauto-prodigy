@@ -442,10 +442,9 @@ int main(int argc, char *argv[])
         widgetGridModel->setPlacements(savedPlacements, widgetRegistry);
         widgetGridModel->setNextInstanceId(yamlConfig->gridNextInstanceId());
     } else {
-        // Fresh install: place default layout
-        widgetGridModel->placeWidget("org.openauto.clock", 0, 0, 2, 2);
-        widgetGridModel->placeWidget("org.openauto.bt-now-playing", 2, 0, 3, 2);
-        widgetGridModel->placeWidget("org.openauto.aa-status", 0, 2, 2, 1);
+        // Fresh install: blank canvas -- no default widgets.
+        // Default layout deferred to post Phase 06/07 when all widgets are finalized.
+        // Users add widgets via edit mode (Phase 07).
     }
 
     // Re-clamp grid when display dimensions change
