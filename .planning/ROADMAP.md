@@ -120,16 +120,6 @@ Plans:
 - [ ] 05-01-PLAN.md — HomeMenu grid Repeater rewrite, WidgetHost cleanup, blank canvas fresh install
 - [ ] 05-02-PLAN.md — Widget pixel breakpoint revision (Clock, AA Status, Now Playing)
 
-### Phase 05.1: Fix AA wireless connection failure (INSERTED)
-
-**Goal:** [Urgent work - to be planned]
-**Requirements**: TBD
-**Depends on:** Phase 05
-**Plans:** 0 plans
-
-Plans:
-- [ ] TBD (run /gsd:plan-phase 05.1 to break down)
-
 ### Phase 06: Content Widgets
 **Goal**: Users see live AA navigation and media information on the home screen without switching to fullscreen AA
 **Depends on**: Phase 05
