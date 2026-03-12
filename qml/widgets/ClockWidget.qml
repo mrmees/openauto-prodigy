@@ -3,6 +3,7 @@ import QtQuick.Layouts
 
 Item {
     id: clockWidget
+    clip: true
 
     // Pixel-based breakpoints for responsive layout
     readonly property bool showDate: width >= 250   // true at 2+ cells wide
@@ -10,6 +11,7 @@ Item {
 
     ColumnLayout {
         anchors.centerIn: parent
+        width: parent.width - UiMetrics.spacing * 2
         spacing: showDay ? UiMetrics.spacing : UiMetrics.spacing * 0.5
 
         NormalText {
@@ -18,24 +20,33 @@ Item {
                           : showDate ? UiMetrics.fontHeading * 1.8
                           : UiMetrics.fontHeading * 2.0
             font.weight: showDate ? Font.Light : Font.Bold
+            fontSizeMode: Text.HorizontalFit
+            minimumPixelSize: UiMetrics.fontHeading
             color: ThemeService.onSurface
-            Layout.alignment: Qt.AlignHCenter
+            Layout.fillWidth: true
+            horizontalAlignment: Text.AlignHCenter
         }
 
         NormalText {
             id: dateText
             visible: showDate
             font.pixelSize: UiMetrics.fontTitle
+            fontSizeMode: Text.HorizontalFit
+            minimumPixelSize: UiMetrics.fontBody
             color: ThemeService.onSurfaceVariant
-            Layout.alignment: Qt.AlignHCenter
+            Layout.fillWidth: true
+            horizontalAlignment: Text.AlignHCenter
         }
 
         NormalText {
             id: dayText
             visible: showDay
             font.pixelSize: UiMetrics.fontBody
+            fontSizeMode: Text.HorizontalFit
+            minimumPixelSize: UiMetrics.fontSmall
             color: ThemeService.onSurfaceVariant
-            Layout.alignment: Qt.AlignHCenter
+            Layout.fillWidth: true
+            horizontalAlignment: Text.AlignHCenter
         }
     }
 
