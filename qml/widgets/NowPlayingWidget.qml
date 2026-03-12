@@ -5,7 +5,7 @@ Item {
     id: nowPlayingWidget
 
     // Pixel-based breakpoint for responsive layout
-    readonly property bool isFullLayout: width >= 400 && height >= 200
+    readonly property bool isFullLayout: width >= 400 && height >= 180
 
     property bool isConnected: typeof BtAudioPlugin !== "undefined"
                                && BtAudioPlugin.connectionState === 1
