@@ -129,6 +129,15 @@ oap_add_test(test_widget_config
 oap_add_test(test_grid_dimensions SOURCES test_grid_dimensions.cpp)
 oap_add_test(test_widget_grid_model SOURCES test_widget_grid_model.cpp)
 
+# --- Media bridge tests ---
+
+oap_add_test(test_media_data_bridge SOURCES test_media_data_bridge.cpp)
+
+# --- Navigation bridge tests ---
+
+oap_add_test(test_navigation_data_bridge SOURCES test_navigation_data_bridge.cpp)
+oap_add_test(test_maneuver_icon_provider SOURCES test_maneuver_icon_provider.cpp)
+
 # --- Script tests (no compilation) ---
 
 add_test(
