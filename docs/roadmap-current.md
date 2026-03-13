@@ -17,12 +17,9 @@ Governance: capture new ideas in `docs/wishlist.md`; only promoted items should 
 - Prebuilt distribution workflow — `install-prebuilt.sh` + `tools/package-prebuilt-release.sh` for shipping Pi-ready release tarballs without source builds, with release naming conventions and installer mode selection (`source` vs GitHub `prebuilt`). COMPLETE.
 - Protocol capture dumps for protobuf validation — configurable session-attached AA capture logging (`jsonl`/`tsv`) with media-frame filtering for low-noise regression inputs. COMPLETE.
 - Protocol capture controls in Settings + web panel — `connection.protocol_capture.*` now editable from in-car Connection settings and `web-config` settings page (no manual YAML edits required). COMPLETE.
+- Platform/plugin architecture refactor (v0.6) — formalized runtime boundaries between core platform, shell/dashboard, and feature plugins. Typed dashboard contributions (`DashboardContributionKind`), narrow provider interfaces (`IProjectionStatusProvider`, `INavigationProvider`, `IMediaStatusProvider`, `ICallStateProvider`), core-owned services (`PhoneStateService`, `MediaStatusService`, `AndroidAutoRuntimeBridge`, `GestureOverlayController`), legacy `Configuration` class deleted, root-context globals replaced with provider-backed properties. COMPLETE (pending Pi hardware verification).
 
 ## Now
-
-- Architecture formalization and runtime boundary refactor.
-  - Rationale: shell, dashboard, plugin runtime, and AA/Bluetooth boundaries are partially migrated but still rely on `main.cpp` wiring and root-context globals. Additional feature work on top of that drift will make the eventual cleanup nastier.
-  - Outcome: Prodigy core formalized as platform runtime + shell/dashboard host; AA consumes platform transport/services as a projection plugin; dashboard supports typed plugin contributions; legacy global-context and enum-navigation leaks are retired.
 
 - AA connection validation on fresh install.
   - Rationale: fresh Trixie install completes, app launches, BT pairing works, but AA projection has not been validated end-to-end on the new drive yet. SDP registration hit "Permission denied" (group membership needs re-login/reboot).

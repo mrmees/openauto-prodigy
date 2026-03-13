@@ -4,6 +4,38 @@ Newest entries first.
 
 ---
 
+## 2026-03-13 — Platform/plugin architecture refactor (v0.6)
+
+**What changed:**
+- **Task 1:** Added `DashboardContributionKind` enum to `WidgetDescriptor` (Widget vs LiveSurfaceWidget). `WidgetPickerModel` excludes LiveSurfaceWidget entries. `WidgetRegistry` can filter by contribution kind.
+- **Task 2:** Defined four narrow provider interfaces (`IProjectionStatusProvider`, `INavigationProvider`, `IMediaStatusProvider`, `ICallStateProvider`). Added `ProjectionStatusProvider` wrapping `AndroidAutoOrchestrator`. Wired all providers into `IHostContext`/`HostContext`.
+- **Task 3:** Created `PhoneStateService` (owns HFP D-Bus + call state machine) and `MediaStatusService` (owns AA+BT source merging). `NavigationDataBridge` implements `INavigationProvider`. PhonePlugin and BtAudioPlugin became UI wrappers.
+- **Task 4:** Replaced 4 root-context globals (`AAOrchestrator`, `NavigationBridge`, `MediaBridge`, `PhonePlugin`) with provider-backed properties (`ProjectionStatus`, `NavigationProvider`, `MediaStatus`, `CallStateProvider`). Updated 6 QML files. Added provider Q_PROPERTYs to `WidgetInstanceContext`. Registered `aa.sendButton` action in `ActionRegistry`. Removed dead `MediaDataBridge`.
+- **Task 5:** Replaced `std::shared_ptr<Configuration>` with `IConfigService*` in `AndroidAutoOrchestrator` and `BluetoothDiscoveryService`. Removed `wirelessEnabled()` guard. Extracted static message builders for BT WiFi handshake. Deleted `Configuration` class, INI loader, and YAML-to-INI sync shim.
+- **Task 6:** Extracted `AndroidAutoRuntimeBridge` from `AndroidAutoPlugin` (touch device detection, EvdevTouchReader lifecycle, EvdevCoordBridge, display dimension injection, navbar thickness). Extracted `GestureOverlayController` from `main.cpp` (three-finger overlay zone registration, slider handling, volume/brightness dispatch).
+
+**Why:**
+- Shell, dashboard, and plugin boundaries relied on `main.cpp` wiring and root-context globals exposing concrete types. Adding features on top of that drift would make cleanup progressively harder. This refactor formalizes the seams so the platform owns singleton state and plugins are UI wrappers.
+
+**Status:** All 6 implementation tasks committed on `dev/0.6`. 82 tests, 81 passing (1 pre-existing `test_navigation_data_bridge` distance formatting failure — unrelated). Each task was Codex-reviewed before commit. Pi hardware verification still needed.
+
+**Next steps:**
+1. Cross-build and deploy to Pi for hardware verification (AA connection, call overlay, widgets, gesture overlay, debug buttons, navbar touch zones, widget picker).
+2. If verification passes, squash-merge `dev/0.6` to `main` as v0.6.
+3. Resume feature work from roadmap (HFP call audio, equalizer, etc.).
+
+**Verification commands/results:**
+```bash
+# Local build + tests
+cd build && cmake --build . -j$(nproc) && ctest --output-on-failure
+# Result: 82 tests, 81 passed, 1 failed (pre-existing nav distance formatting)
+
+# Cross-build (not yet run this session — needed for Pi deploy)
+./cross-build.sh
+```
+
+---
+
 ## 2026-03-11 — Strengthen settings scroll hint visibility
 
 **What changed:**

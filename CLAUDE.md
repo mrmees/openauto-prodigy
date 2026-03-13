@@ -53,7 +53,7 @@ Both claude-dev and the Pi now run Qt 6.8. Local builds use the aqt-installed Qt
 mkdir build && cd build
 cmake -DCMAKE_PREFIX_PATH=/opt/qt/6.8.2/gcc_64 ..
 make -j$(nproc)
-ctest --output-on-failure  # 77 tests
+ctest --output-on-failure  # 82 tests
 ```
 
 **Dependencies:** See `docs/development.md` for full package list.
