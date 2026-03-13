@@ -16,12 +16,21 @@ Item {
     property int _targetRow: 0
     property string _targetInstanceId: ""  // non-empty = editing existing widget
 
+    // Track active drag/resize for cleanup on exit
+    property string draggingInstanceId: ""
+    property string resizingInstanceId: ""
+
     function exitEditMode() {
         editMode = false
         inactivityTimer.stop()
         contextMenuOverlay.visible = false
         pickerOverlay.visible = false
-        // Reset drag state (Plan 03 will add more here)
+        // Reset drag state
+        dropHighlight.visible = false
+        dragPlaceholder.visible = false
+        resizeGhost.visible = false
+        draggingInstanceId = ""
+        resizingInstanceId = ""
     }
 
     // Inactivity timer -- exits edit mode after 10s of no interaction
@@ -125,7 +134,63 @@ Item {
                 }
             }
 
+            // Drop highlight rectangle (shows valid/invalid drop target during drag)
+            Rectangle {
+                id: dropHighlight
+                visible: false
+                z: 5
+                radius: UiMetrics.radius
+                border.width: 2
+                color: "transparent"
+                opacity: 0.6
+                property bool isValid: true
+                border.color: isValid ? ThemeService.primary : ThemeService.error
+            }
+
+            // Placeholder at original position during drag
+            Rectangle {
+                id: dragPlaceholder
+                visible: false
+                z: 1
+                color: "transparent"
+                border.width: 1
+                border.color: ThemeService.outlineVariant
+                radius: UiMetrics.radius
+                opacity: 0.4
+            }
+
+            // Resize ghost rectangle (shows proposed size during resize)
+            Rectangle {
+                id: resizeGhost
+                visible: false
+                z: 50
+                color: "transparent"
+                border.width: 2
+                radius: UiMetrics.radius
+                opacity: 0.7
+                property bool isValid: true
+                border.color: isValid ? ThemeService.primary : ThemeService.error
+
+                // Brief flash animation for boundary hit
+                SequentialAnimation {
+                    id: limitFlash
+                    PropertyAnimation {
+                        target: resizeGhost
+                        property: "border.color"
+                        to: ThemeService.tertiary
+                        duration: 100
+                    }
+                    PropertyAnimation {
+                        target: resizeGhost
+                        property: "border.color"
+                        to: resizeGhost.isValid ? ThemeService.primary : ThemeService.error
+                        duration: 100
+                    }
+                }
+            }
+
             Repeater {
+                id: widgetRepeater
                 model: WidgetGridModel
 
                 delegate: Item {
@@ -135,7 +200,44 @@ Item {
                     width: model.colSpan * gridContainer.cellWidth
                     height: model.rowSpan * gridContainer.cellHeight
                     visible: model.visible
-                    z: 1
+                    z: dragging ? 100 : 1
+
+                    // Drag state
+                    property bool dragging: false
+                    property real dragStartX: 0
+                    property real dragStartY: 0
+                    property real pressOffsetX: 0
+                    property real pressOffsetY: 0
+                    property real originalX: 0
+                    property real originalY: 0
+
+                    // Force-reset drag state when edit mode exits (EVIOCGRAB safety)
+                    Connections {
+                        target: homeScreen
+                        function onEditModeChanged() {
+                            if (!homeScreen.editMode && delegateItem.dragging) {
+                                delegateItem.dragging = false
+                                delegateItem.opacity = 1.0
+                                delegateItem.scale = 1.0
+                                delegateItem.x = Qt.binding(function() { return model.column * gridContainer.cellWidth })
+                                delegateItem.y = Qt.binding(function() { return model.row * gridContainer.cellHeight })
+                            }
+                        }
+                    }
+
+                    // Snap-back animation
+                    NumberAnimation on x {
+                        id: snapBackX
+                        running: false
+                        duration: 200
+                        easing.type: Easing.OutCubic
+                    }
+                    NumberAnimation on y {
+                        id: snapBackY
+                        running: false
+                        duration: 200
+                        easing.type: Easing.OutCubic
+                    }
 
                     // Inner content with gutter margins
                     Item {
@@ -177,19 +279,101 @@ Item {
 
                         // Long-press / tap detector behind widget content
                         MouseArea {
+                            id: widgetMouseArea
                             anchors.fill: parent
                             z: -1
-                            pressAndHoldInterval: 500
-                            onPressAndHold: {
+                            pressAndHoldInterval: homeScreen.editMode ? 200 : 500
+
+                            onPressAndHold: function(mouse) {
                                 if (!homeScreen.editMode) {
                                     homeScreen.editMode = true
+                                    return
                                 }
-                                // In edit mode, pressAndHold is reserved for drag (Plan 03)
+                                // Edit mode: initiate drag
+                                delegateItem.dragging = true
+                                homeScreen.draggingInstanceId = model.instanceId
+                                delegateItem.originalX = delegateItem.x
+                                delegateItem.originalY = delegateItem.y
+                                delegateItem.pressOffsetX = mouse.x
+                                delegateItem.pressOffsetY = mouse.y
+                                // Visual feedback
+                                delegateItem.opacity = 0.5
+                                delegateItem.scale = 1.05
+                                // Show placeholder at original position
+                                dragPlaceholder.x = delegateItem.originalX
+                                dragPlaceholder.y = delegateItem.originalY
+                                dragPlaceholder.width = model.colSpan * gridContainer.cellWidth
+                                dragPlaceholder.height = model.rowSpan * gridContainer.cellHeight
+                                dragPlaceholder.visible = true
+                                inactivityTimer.restart()
                             }
+
+                            onPositionChanged: function(mouse) {
+                                if (!delegateItem.dragging) return
+                                // Move delegate visually (breaks binding -- intentional)
+                                var mapped = mapToItem(gridContainer, mouse.x - delegateItem.pressOffsetX, mouse.y - delegateItem.pressOffsetY)
+                                delegateItem.x = mapped.x
+                                delegateItem.y = mapped.y
+                                // Compute target cell
+                                var targetCol = Math.round(delegateItem.x / gridContainer.cellWidth)
+                                var targetRow = Math.round(delegateItem.y / gridContainer.cellHeight)
+                                targetCol = Math.max(0, Math.min(targetCol, WidgetGridModel.gridColumns - model.colSpan))
+                                targetRow = Math.max(0, Math.min(targetRow, WidgetGridModel.gridRows - model.rowSpan))
+                                // Check validity
+                                var valid = WidgetGridModel.canPlace(targetCol, targetRow, model.colSpan, model.rowSpan, model.instanceId)
+                                // Update drop highlight
+                                dropHighlight.x = targetCol * gridContainer.cellWidth
+                                dropHighlight.y = targetRow * gridContainer.cellHeight
+                                dropHighlight.width = model.colSpan * gridContainer.cellWidth
+                                dropHighlight.height = model.rowSpan * gridContainer.cellHeight
+                                dropHighlight.isValid = valid
+                                dropHighlight.visible = true
+                                inactivityTimer.restart()
+                            }
+
+                            onReleased: function(mouse) {
+                                if (!delegateItem.dragging) return
+                                delegateItem.dragging = false
+                                homeScreen.draggingInstanceId = ""
+                                dropHighlight.visible = false
+                                dragPlaceholder.visible = false
+                                // Restore visual state
+                                delegateItem.opacity = 1.0
+                                delegateItem.scale = 1.0
+                                // Compute final target cell
+                                var targetCol = Math.round(delegateItem.x / gridContainer.cellWidth)
+                                var targetRow = Math.round(delegateItem.y / gridContainer.cellHeight)
+                                targetCol = Math.max(0, Math.min(targetCol, WidgetGridModel.gridColumns - model.colSpan))
+                                targetRow = Math.max(0, Math.min(targetRow, WidgetGridModel.gridRows - model.rowSpan))
+                                if (WidgetGridModel.moveWidget(model.instanceId, targetCol, targetRow)) {
+                                    // Success -- rebind position to model
+                                    delegateItem.x = Qt.binding(function() { return model.column * gridContainer.cellWidth })
+                                    delegateItem.y = Qt.binding(function() { return model.row * gridContainer.cellHeight })
+                                } else {
+                                    // Failed -- animate snap back to original position
+                                    snapBackX.to = delegateItem.originalX
+                                    snapBackY.to = delegateItem.originalY
+                                    snapBackX.running = true
+                                    snapBackY.running = true
+                                    // Rebind after animation completes
+                                    snapBackTimer.start()
+                                }
+                            }
+
                             onClicked: {
-                                if (homeScreen.editMode) {
+                                if (homeScreen.editMode && !delegateItem.dragging) {
                                     widgetLoader.requestContextMenu()
                                 }
+                            }
+                        }
+
+                        // Timer to rebind position after snap-back animation
+                        Timer {
+                            id: snapBackTimer
+                            interval: 250  // slightly longer than snap-back animation
+                            onTriggered: {
+                                delegateItem.x = Qt.binding(function() { return model.column * gridContainer.cellWidth })
+                                delegateItem.y = Qt.binding(function() { return model.row * gridContainer.cellHeight })
                             }
                         }
 
