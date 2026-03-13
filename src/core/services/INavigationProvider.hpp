@@ -13,12 +13,15 @@ public:
     virtual bool navActive() const = 0;
     virtual QString roadName() const = 0;
     virtual int maneuverType() const = 0;
-    virtual int maneuverDirection() const = 0;
+    virtual int turnDirection() const = 0;
     virtual QString formattedDistance() const = 0;
-    virtual bool hasIcon() const = 0;
+    virtual bool hasManeuverIcon() const = 0;
+    virtual int iconVersion() const = 0;
 
 signals:
-    void navStateChanged();
+    void navActiveChanged();
+    void turnDataChanged();
+    void distanceChanged();
 };
 
 } // namespace oap

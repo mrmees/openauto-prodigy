@@ -49,6 +49,10 @@ add_library(openauto-core STATIC
     core/services/IMediaStatusProvider.cpp
     core/services/ICallStateProvider.cpp
     core/services/ProjectionStatusProvider.cpp
+    core/services/IPhoneStateService.cpp
+    core/services/PhoneStateService.cpp
+    core/services/IMediaStatusService.cpp
+    core/services/MediaStatusService.cpp
     ui/NotificationModel.cpp
     core/plugin/PluginManifest.cpp
     core/plugin/PluginDiscovery.cpp

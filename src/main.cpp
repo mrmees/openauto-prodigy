@@ -30,6 +30,8 @@
 #include "core/services/BluetoothManager.hpp"
 #include "core/services/EqualizerService.hpp"
 #include "core/services/ProjectionStatusProvider.hpp"
+#include "core/services/PhoneStateService.hpp"
+#include "core/services/MediaStatusService.hpp"
 #include "ui/NotificationModel.hpp"
 #include "core/plugin/HostContext.hpp"
 #include "core/plugin/PluginManager.hpp"
@@ -351,6 +353,12 @@ int main(int argc, char *argv[])
     auto btAudioPlugin = new oap::plugins::BtAudioPlugin(&app);
     pluginManager.registerStaticPlugin(btAudioPlugin);
 
+    // --- Core phone state service (owns HFP D-Bus + call state machine) ---
+    auto phoneStateService = new oap::PhoneStateService(&app);
+    phoneStateService->setNotificationService(notificationService);
+    phoneStateService->startDBusMonitoring();
+    hostContext->setCallStateProvider(phoneStateService);
+
     auto phonePlugin = new oap::plugins::PhonePlugin(&app);
     pluginManager.registerStaticPlugin(phonePlugin);
 
@@ -382,6 +390,11 @@ int main(int argc, char *argv[])
         mediaBridge->connectToAAOrchestrator(orch);
     }
     navBridge->setManeuverIconProvider(maneuverIconProvider);
+    hostContext->setNavigationProvider(navBridge);
+
+    // --- Core media status service (owns AA+BT source merging) ---
+    auto mediaStatusService = new oap::MediaStatusService(&app);
+    hostContext->setMediaStatusProvider(mediaStatusService);
 
     // --- Projection status provider (wraps orchestrator for narrow interface) ---
     oap::ProjectionStatusProvider* projectionStatusProvider = nullptr;
