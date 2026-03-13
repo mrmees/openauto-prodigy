@@ -1,6 +1,7 @@
 #pragma once
 
 #include <QAbstractListModel>
+#include <QVariantMap>
 #include <QVector>
 #include "core/widget/WidgetTypes.hpp"
 
@@ -23,7 +24,13 @@ public:
         RowSpanRole,
         OpacityRole,
         QmlComponentRole,
-        VisibleRole
+        VisibleRole,
+        MinColsRole,
+        MinRowsRole,
+        MaxColsRole,
+        MaxRowsRole,
+        DefaultColsRole,
+        DefaultRowsRole
     };
 
     explicit WidgetGridModel(WidgetRegistry* registry, QObject* parent = nullptr);
@@ -42,6 +49,7 @@ public:
     Q_INVOKABLE void setWidgetOpacity(const QString& instanceId, double opacity);
     Q_INVOKABLE bool canPlace(int col, int row, int colSpan, int rowSpan,
                                const QString& excludeInstanceId = {}) const;
+    Q_INVOKABLE QVariantMap findFirstAvailableCell(int colSpan, int rowSpan) const;
 
     // Grid dimensions
     void setGridDimensions(int cols, int rows);

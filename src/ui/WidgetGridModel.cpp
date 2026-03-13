@@ -37,6 +37,48 @@ QVariant WidgetGridModel::data(const QModelIndex& index, int role) const
         }
         return {};
     }
+    case MinColsRole: {
+        if (registry_) {
+            auto desc = registry_->descriptor(p.widgetId);
+            if (desc) return desc->minCols;
+        }
+        return 1;
+    }
+    case MinRowsRole: {
+        if (registry_) {
+            auto desc = registry_->descriptor(p.widgetId);
+            if (desc) return desc->minRows;
+        }
+        return 1;
+    }
+    case MaxColsRole: {
+        if (registry_) {
+            auto desc = registry_->descriptor(p.widgetId);
+            if (desc) return desc->maxCols;
+        }
+        return 6;
+    }
+    case MaxRowsRole: {
+        if (registry_) {
+            auto desc = registry_->descriptor(p.widgetId);
+            if (desc) return desc->maxRows;
+        }
+        return 4;
+    }
+    case DefaultColsRole: {
+        if (registry_) {
+            auto desc = registry_->descriptor(p.widgetId);
+            if (desc) return desc->defaultCols;
+        }
+        return 1;
+    }
+    case DefaultRowsRole: {
+        if (registry_) {
+            auto desc = registry_->descriptor(p.widgetId);
+            if (desc) return desc->defaultRows;
+        }
+        return 1;
+    }
     default: return {};
     }
 }
@@ -52,7 +94,13 @@ QHash<int, QByteArray> WidgetGridModel::roleNames() const
         {RowSpanRole, "rowSpan"},
         {OpacityRole, "opacity"},
         {QmlComponentRole, "qmlComponent"},
-        {VisibleRole, "visible"}
+        {VisibleRole, "visible"},
+        {MinColsRole, "minCols"},
+        {MinRowsRole, "minRows"},
+        {MaxColsRole, "maxCols"},
+        {MaxRowsRole, "maxRows"},
+        {DefaultColsRole, "defaultCols"},
+        {DefaultRowsRole, "defaultRows"}
     };
 }
 
@@ -173,6 +221,17 @@ bool WidgetGridModel::canPlace(int col, int row, int colSpan, int rowSpan,
         }
     }
     return true;
+}
+
+QVariantMap WidgetGridModel::findFirstAvailableCell(int colSpan, int rowSpan) const
+{
+    for (int r = 0; r <= rows_ - rowSpan; ++r) {
+        for (int c = 0; c <= cols_ - colSpan; ++c) {
+            if (canPlace(c, r, colSpan, rowSpan))
+                return {{"col", c}, {"row", r}};
+        }
+    }
+    return {{"col", -1}, {"row", -1}};
 }
 
 void WidgetGridModel::setGridDimensions(int cols, int rows)
