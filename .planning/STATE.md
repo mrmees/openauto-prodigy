@@ -2,16 +2,16 @@
 gsd_state_version: 1.0
 milestone: v0.5
 milestone_name: milestone
-status: verifying
-stopped_at: Completed 07-02-PLAN.md
-last_updated: "2026-03-13T00:25:02.863Z"
-last_activity: 2026-03-12 - Phase 06 complete with nav distance unit fix from AA APK analysis
+status: in_progress
+stopped_at: Completed 07-03-PLAN.md
+last_updated: "2026-03-13T01:22:34.248Z"
+last_activity: 2026-03-13 - Phase 07 complete -- drag-to-reposition and drag-to-resize Pi-verified
 progress:
   total_phases: 5
-  completed_phases: 1
-  total_plans: 6
-  completed_plans: 4
-  percent: 60
+  completed_phases: 3
+  total_plans: 11
+  completed_plans: 8
+  percent: 73
 ---
 
 # Project State
@@ -25,11 +25,11 @@ See: .planning/PROJECT.md (updated 2026-03-12)
 
 ## Current Position
 
-Phase: 07 of 8 (Edit Mode) — Plan 2 of 3 complete
-Status: Plan 07-02 (Edit Mode Visual State) complete. Plan 07-03 (Drag Interactions) next.
-Last activity: 2026-03-13 - Edit mode state machine with visual overlays, FAB, X badges
+Phase: 07 of 8 (Edit Mode) — Plan 3 of 3 complete (Phase 07 DONE)
+Status: Phase 07 complete. Phase 08 (Multi-Page) next.
+Last activity: 2026-03-13 - Drag-to-reposition and drag-to-resize with Pi touchscreen verification
 
-Progress: [######----] 67%
+Progress: [########--] 73%
 
 ## Accumulated Context
 
@@ -66,6 +66,9 @@ Decisions are logged in PROJECT.md Key Decisions table.
 - [Phase 07]: findFirstAvailableCell uses row-major scan for top-left placement bias
 - [Phase 07]: WidgetPickerModel extended with defaultCols/defaultRows for auto-placement sizing
 - [Phase 07]: Edit mode picker uses auto-place; legacy targeted placement preserved for context menu Change Widget
+- [Phase 07]: Drag overlay MouseArea (z:25) for consistent drag behavior across interactive and static widgets
+- [Phase 07]: Legacy context menu overlay removed -- replaced by edit mode interactions
+- [Phase 07]: All widgets require long-press to select before dragging (prevents accidental drags)
 
 ### Pending Todos
 
@@ -89,8 +92,8 @@ None yet.
 
 ## Session Continuity
 
-Last session: 2026-03-13T00:32:30Z
-Stopped at: Completed 07-02-PLAN.md
+Last session: 2026-03-13T01:22:00Z
+Stopped at: Completed 07-03-PLAN.md (Phase 07 complete)
 
 ### Session Handoff (2026-03-12)
 

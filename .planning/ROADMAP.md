@@ -82,7 +82,7 @@ Replace the fixed 3-pane home screen with an Android-style freeform grid support
 - [x] **Phase 04: Grid Data Model & Persistence** - Replace pane-based model with cell-based grid model, YAML persistence, config migration (completed 2026-03-12)
 - [x] **Phase 05: Static Grid Rendering & Widget Revision** - Render widgets on grid in QML, revise existing widgets for variable grid sizing (completed 2026-03-12)
 - [x] **Phase 06: Content Widgets** - Wire AA protocol data to QML, build navigation turn-by-turn and unified now playing widgets (completed 2026-03-12)
-- [ ] **Phase 07: Edit Mode** - Long-press to enter edit state, drag-to-reposition, drag-to-resize, add/remove widgets, safety exits
+- [x] **Phase 07: Edit Mode** - Long-press to enter edit state, drag-to-reposition, drag-to-resize, add/remove widgets, safety exits (completed 2026-03-13)
 - [ ] **Phase 08: Multi-Page** - SwipeView page navigation, page indicator, page management, lazy instantiation, edit mode swipe disable
 
 ## Phase Details
@@ -150,9 +150,9 @@ Plans:
 **Plans**: 3 plans
 
 Plans:
-- [ ] 07-01-PLAN.md — C++ backend extensions (constraint roles, auto-place) + Toast.qml
-- [ ] 07-02-PLAN.md — Edit mode visual state, entry/exit, FAB add, X remove
-- [ ] 07-03-PLAN.md — Drag-to-reposition + drag-to-resize interactions
+- [x] 07-01-PLAN.md — C++ backend extensions (constraint roles, auto-place) + Toast.qml
+- [x] 07-02-PLAN.md — Edit mode visual state, entry/exit, FAB add, X remove
+- [x] 07-03-PLAN.md — Drag-to-reposition + drag-to-resize interactions
 
 ### Phase 08: Multi-Page
 **Goal**: Users can organize widgets across multiple swipeable home screen pages
@@ -181,7 +181,7 @@ Phases execute in numeric order: 04 -> 05 -> 06 + 07 (parallel-capable) -> 08
 | 04. Grid Data Model & Persistence | 2/2 | Complete    | 2026-03-12 |
 | 05. Static Grid Rendering & Widget Revision | 2/2 | Complete    | 2026-03-12 |
 | 06. Content Widgets | 3/3 | Complete    | 2026-03-12 |
-| 07. Edit Mode | 2/3 | In Progress|  |
+| 07. Edit Mode | 3/3 | Complete    | 2026-03-13 |
 | 08. Multi-Page | 0/? | Not started | - |
 
 ## Key Research Flags
@@ -193,4 +193,4 @@ Phases execute in numeric order: 04 -> 05 -> 06 + 07 (parallel-capable) -> 08
 - **Phase 08**: SwipeView.interactive must be disabled during edit mode; lazy page instantiation critical for Pi 4 memory
 
 ---
-*Last updated: 2026-03-12 -- Phase 07 planned (3 plans, 3 waves)*
+*Last updated: 2026-03-13 -- Phase 07 complete (3/3 plans), Phase 08 next*
