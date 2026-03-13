@@ -3,14 +3,14 @@ gsd_state_version: 1.0
 milestone: v0.5
 milestone_name: milestone
 status: verifying
-stopped_at: Phase 07 context gathered
-last_updated: "2026-03-12T23:58:02.774Z"
+stopped_at: Completed 07-01-PLAN.md
+last_updated: "2026-03-13T00:25:02.863Z"
 last_activity: 2026-03-12 - Phase 06 complete with nav distance unit fix from AA APK analysis
 progress:
   total_phases: 5
   completed_phases: 1
-  total_plans: 3
-  completed_plans: 3
+  total_plans: 6
+  completed_plans: 4
   percent: 60
 ---
 
@@ -63,6 +63,7 @@ Decisions are logged in PROJECT.md Key Decisions table.
 - 06-03: AA 16.2 dropped NavigationTurnEvent (0x8004) -- bridge uses NavigationNotification (0x8006) + NavigationNextTurnDistanceEvent (0x8007) for modern phones
 - 06-03: AA Distance.displayUnit: 0=unknown, 1=m, 2/3=km, 4/5=mi, 6=ft, 7=yd (P1 variants 3,5 = one decimal place)
 - 06-03: Phone's display_text preferred over computed distance -- always correct for locale
+- [Phase 07]: findFirstAvailableCell uses row-major scan for top-left placement bias
 
 ### Pending Todos
 
@@ -86,8 +87,8 @@ None yet.
 
 ## Session Continuity
 
-Last session: 2026-03-12T23:58:02.770Z
-Stopped at: Phase 07 context gathered
+Last session: 2026-03-13T00:25:02.861Z
+Stopped at: Completed 07-01-PLAN.md
 
 ### Session Handoff (2026-03-12)
 

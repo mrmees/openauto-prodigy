@@ -24,12 +24,12 @@ Requirements for Widget Grid & Content Widgets milestone. Each maps to roadmap p
 - [ ] **EDIT-02**: Edit mode shows visual feedback on all widgets (accent borders + resize handles)
 - [ ] **EDIT-03**: User can drag a widget to reposition it on the grid (snaps to cells on drop, blocked if target occupied)
 - [ ] **EDIT-04**: User can drag corner handles to resize a widget within its min/max span constraints
-- [ ] **EDIT-05**: "+" button (FAB) in edit mode opens widget catalog to add a new widget
+- [x] **EDIT-05**: "+" button (FAB) in edit mode opens widget catalog to add a new widget
 - [ ] **EDIT-06**: "X" badge on each widget in edit mode removes it from the grid
 - [ ] **EDIT-07**: Edit mode exits on tap outside any widget or after 10-second timeout (safety)
 - [ ] **EDIT-08**: Edit mode auto-exits when AA fullscreen activates (EVIOCGRAB steals touch)
 - [ ] **EDIT-09**: Layout writes are atomic — persist on drop/commit, not during drag
-- [ ] **EDIT-10**: Adding a widget when no space is available shows clear feedback (no silent failure)
+- [x] **EDIT-10**: Adding a widget when no space is available shows clear feedback (no silent failure)
 
 ### Multi-Page
 
@@ -114,12 +114,12 @@ Deferred to subsequent milestones.
 | EDIT-02 | Phase 07 | Pending |
 | EDIT-03 | Phase 07 | Pending |
 | EDIT-04 | Phase 07 | Pending |
-| EDIT-05 | Phase 07 | Pending |
+| EDIT-05 | Phase 07 | Complete |
 | EDIT-06 | Phase 07 | Pending |
 | EDIT-07 | Phase 07 | Pending |
 | EDIT-08 | Phase 07 | Pending |
 | EDIT-09 | Phase 07 | Pending |
-| EDIT-10 | Phase 07 | Pending |
+| EDIT-10 | Phase 07 | Complete |
 | PAGE-01 | Phase 08 | Pending |
 | PAGE-02 | Phase 08 | Pending |
 | PAGE-03 | Phase 08 | Pending |
