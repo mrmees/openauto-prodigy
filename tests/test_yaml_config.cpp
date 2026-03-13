@@ -39,6 +39,9 @@ private slots:
     void testSidebarDefaultsRemoved();
     void testDisplayScreenSizeDefault();
     void testWidgetGridDefaults();
+    void testGridPlacementPageRoundTrip();
+    void testGridPageCountRoundTrip();
+    void testGridPageCountDefault();
 };
 
 void TestYamlConfig::testLoadDefaults()
@@ -438,6 +441,70 @@ void TestYamlConfig::testWidgetGridDefaults()
     auto placements = config.gridPlacements();
     QVERIFY(placements.isEmpty());
     QCOMPARE(config.gridNextInstanceId(), 0);
+}
+
+void TestYamlConfig::testGridPlacementPageRoundTrip()
+{
+    oap::YamlConfig config;
+
+    QList<oap::GridPlacement> placements;
+    {
+        oap::GridPlacement p;
+        p.instanceId = "clock-0";
+        p.widgetId = "org.openauto.clock";
+        p.col = 0; p.row = 0;
+        p.colSpan = 2; p.rowSpan = 2;
+        p.opacity = 0.25;
+        p.page = 0;
+        placements.append(p);
+    }
+    {
+        oap::GridPlacement p;
+        p.instanceId = "status-1";
+        p.widgetId = "org.openauto.aa-status";
+        p.col = 0; p.row = 0;
+        p.colSpan = 2; p.rowSpan = 1;
+        p.opacity = 0.5;
+        p.page = 1;
+        placements.append(p);
+    }
+
+    config.setGridPlacements(placements);
+
+    QString tmpPath = QDir::tempPath() + "/oap_test_grid_page.yaml";
+    config.save(tmpPath);
+
+    oap::YamlConfig loaded;
+    loaded.load(tmpPath);
+    auto loadedPlacements = loaded.gridPlacements();
+
+    QCOMPARE(loadedPlacements.size(), 2);
+    QCOMPARE(loadedPlacements[0].page, 0);
+    QCOMPARE(loadedPlacements[1].page, 1);
+    QCOMPARE(loadedPlacements[1].instanceId, QString("status-1"));
+
+    QFile::remove(tmpPath);
+}
+
+void TestYamlConfig::testGridPageCountRoundTrip()
+{
+    oap::YamlConfig config;
+    config.setGridPageCount(3);
+
+    QString tmpPath = QDir::tempPath() + "/oap_test_grid_pagecount.yaml";
+    config.save(tmpPath);
+
+    oap::YamlConfig loaded;
+    loaded.load(tmpPath);
+    QCOMPARE(loaded.gridPageCount(), 3);
+
+    QFile::remove(tmpPath);
+}
+
+void TestYamlConfig::testGridPageCountDefault()
+{
+    oap::YamlConfig config;
+    QCOMPARE(config.gridPageCount(), 2);
 }
 
 QTEST_MAIN(TestYamlConfig)

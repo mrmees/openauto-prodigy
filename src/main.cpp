@@ -447,14 +447,19 @@ int main(int argc, char *argv[])
     widgetGridModel->setGridDimensions(displayInfo->gridColumns(), displayInfo->gridRows());
 
     // Auto-save grid placements on change (must be connected before placeWidget calls)
-    QObject::connect(widgetGridModel, &oap::WidgetGridModel::placementsChanged,
-                     widgetGridModel, [yamlConfig = yamlConfig.get(), widgetGridModel, yamlPath]() {
+    auto saveGridState = [yamlConfig = yamlConfig.get(), widgetGridModel, yamlPath]() {
         yamlConfig->setGridPlacements(widgetGridModel->placements());
         yamlConfig->setGridNextInstanceId(widgetGridModel->nextInstanceId());
+        yamlConfig->setGridPageCount(widgetGridModel->pageCount());
         yamlConfig->save(yamlPath);
-    });
+    };
+    QObject::connect(widgetGridModel, &oap::WidgetGridModel::placementsChanged,
+                     widgetGridModel, saveGridState);
+    QObject::connect(widgetGridModel, &oap::WidgetGridModel::pageCountChanged,
+                     widgetGridModel, saveGridState);
 
-    // Load placements from config
+    // Load placements and page count from config
+    widgetGridModel->setPageCount(yamlConfig->gridPageCount());
     auto savedPlacements = yamlConfig->gridPlacements();
     if (!savedPlacements.isEmpty()) {
         widgetGridModel->setPlacements(savedPlacements, widgetRegistry);

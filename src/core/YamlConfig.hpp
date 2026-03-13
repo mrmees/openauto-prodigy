@@ -121,11 +121,13 @@ public:
     QList<WidgetPlacement> widgetPlacements() const;
     void setWidgetPlacements(const QList<WidgetPlacement>& placements);
 
-    // Grid-based widget config (v2)
+    // Grid-based widget config (v3 with page support)
     QList<GridPlacement> gridPlacements() const;
     void setGridPlacements(const QList<GridPlacement>& placements);
     int gridNextInstanceId() const;
     void setGridNextInstanceId(int id);
+    int gridPageCount() const;
+    void setGridPageCount(int count);
 
     // Plugins
     QStringList enabledPlugins() const;

@@ -187,9 +187,10 @@ void YamlConfig::initDefaults()
 
     root_["widget_config"]["placements"] = defaultPlacements;
 
-    // Grid-based widget config defaults (v2)
-    root_["widget_grid"]["version"] = 2;
+    // Grid-based widget config defaults (v3 with page support)
+    root_["widget_grid"]["version"] = 3;
     root_["widget_grid"]["next_instance_id"] = 0;
+    root_["widget_grid"]["page_count"] = 2;
     root_["widget_grid"]["placements"] = YAML::Node(YAML::NodeType::Sequence);
 
     // Navbar defaults
@@ -884,6 +885,7 @@ QList<GridPlacement> YamlConfig::gridPlacements() const
         p.colSpan = node["col_span"].as<int>(1);
         p.rowSpan = node["row_span"].as<int>(1);
         p.opacity = node["opacity"].as<double>(0.25);
+        p.page = node["page"].as<int>(0); // default 0 for v2 compat
         p.visible = true; // visibility is runtime state, not persisted
         result.append(p);
     }
@@ -892,7 +894,7 @@ QList<GridPlacement> YamlConfig::gridPlacements() const
 
 void YamlConfig::setGridPlacements(const QList<GridPlacement>& placements)
 {
-    root_["widget_grid"]["version"] = 2;
+    root_["widget_grid"]["version"] = 3;
 
     YAML::Node node(YAML::NodeType::Sequence);
     for (const auto& p : placements) {
@@ -904,6 +906,7 @@ void YamlConfig::setGridPlacements(const QList<GridPlacement>& placements)
         n["col_span"] = p.colSpan;
         n["row_span"] = p.rowSpan;
         n["opacity"] = p.opacity;
+        n["page"] = p.page;
         node.push_back(n);
     }
     root_["widget_grid"]["placements"] = node;
@@ -917,6 +920,16 @@ int YamlConfig::gridNextInstanceId() const
 void YamlConfig::setGridNextInstanceId(int id)
 {
     root_["widget_grid"]["next_instance_id"] = id;
+}
+
+int YamlConfig::gridPageCount() const
+{
+    return root_["widget_grid"]["page_count"].as<int>(2);
+}
+
+void YamlConfig::setGridPageCount(int count)
+{
+    root_["widget_grid"]["page_count"] = count;
 }
 
 // --- Generic dot-path access ---
