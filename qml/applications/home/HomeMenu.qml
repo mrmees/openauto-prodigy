@@ -262,6 +262,11 @@ Item {
 
                             // Expose requestContextMenu for widgets with own MouseAreas
                             function requestContextMenu() {
+                                if (homeScreen.editMode) {
+                                    // In edit mode, long-press initiates drag instead of context menu
+                                    widgetMouseArea.initiateDrag()
+                                    return
+                                }
                                 homeScreen._targetCol = model.column
                                 homeScreen._targetRow = model.row
                                 homeScreen._targetInstanceId = model.instanceId
@@ -284,18 +289,13 @@ Item {
                             z: -1
                             pressAndHoldInterval: homeScreen.editMode ? 200 : 500
 
-                            onPressAndHold: function(mouse) {
-                                if (!homeScreen.editMode) {
-                                    homeScreen.editMode = true
-                                    return
-                                }
-                                // Edit mode: initiate drag
+                            function initiateDrag() {
                                 delegateItem.dragging = true
                                 homeScreen.draggingInstanceId = model.instanceId
                                 delegateItem.originalX = delegateItem.x
                                 delegateItem.originalY = delegateItem.y
-                                delegateItem.pressOffsetX = mouse.x
-                                delegateItem.pressOffsetY = mouse.y
+                                delegateItem.pressOffsetX = delegateItem.width / 2
+                                delegateItem.pressOffsetY = delegateItem.height / 2
                                 // Visual feedback
                                 delegateItem.opacity = 0.5
                                 delegateItem.scale = 1.05
@@ -306,6 +306,20 @@ Item {
                                 dragPlaceholder.height = model.rowSpan * gridContainer.cellHeight
                                 dragPlaceholder.visible = true
                                 inactivityTimer.restart()
+                            }
+
+                            onPressAndHold: function(mouse) {
+                                if (!homeScreen.editMode) {
+                                    homeScreen.editMode = true
+                                    return
+                                }
+                                // Edit mode: initiate drag with actual press position
+                                delegateItem.pressOffsetX = mouse.x
+                                delegateItem.pressOffsetY = mouse.y
+                                initiateDrag()
+                                // Restore actual press offset (initiateDrag sets center default)
+                                delegateItem.pressOffsetX = mouse.x
+                                delegateItem.pressOffsetY = mouse.y
                             }
 
                             onPositionChanged: function(mouse) {
