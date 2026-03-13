@@ -10,14 +10,14 @@ Item {
     readonly property bool isTall: height >= 180
 
     // Data bindings
-    property bool hasMedia: typeof MediaBridge !== "undefined" && MediaBridge.hasMedia
-    property int mediaSource: typeof MediaBridge !== "undefined" ? MediaBridge.source : 0
-    property bool isPlaying: typeof MediaBridge !== "undefined"
-                             && MediaBridge.playbackState === 1
-    property string title: typeof MediaBridge !== "undefined"
-                           ? (MediaBridge.title || "") : ""
-    property string artist: typeof MediaBridge !== "undefined"
-                            ? (MediaBridge.artist || "") : ""
+    property bool hasMedia: typeof MediaStatus !== "undefined" && MediaStatus.hasMedia
+    property string mediaSource: typeof MediaStatus !== "undefined" ? (MediaStatus.source || "") : ""
+    property bool isPlaying: typeof MediaStatus !== "undefined"
+                             && MediaStatus.playbackState === 1
+    property string title: typeof MediaStatus !== "undefined"
+                           ? (MediaStatus.title || "") : ""
+    property string artist: typeof MediaStatus !== "undefined"
+                            ? (MediaStatus.artist || "") : ""
 
     // Source icon codepoints
     readonly property string btIcon: "\ue1a7"      // bluetooth_audio
@@ -34,8 +34,8 @@ Item {
 
         // Source indicator (top-right corner)
         MaterialIcon {
-            icon: mediaSource === 2 ? aaIcon : (mediaSource === 1 ? btIcon : "")
-            visible: mediaSource !== 0
+            icon: mediaSource === "AndroidAuto" ? aaIcon : (mediaSource === "Bluetooth" ? btIcon : "")
+            visible: mediaSource !== ""
             size: UiMetrics.iconSmall
             color: ThemeService.onSurfaceVariant
             Layout.alignment: Qt.AlignRight
@@ -65,7 +65,7 @@ Item {
         RowLayout {
             Layout.alignment: Qt.AlignHCenter
             spacing: UiMetrics.spacing * 2
-            opacity: mediaSource !== 0 ? 1.0 : 0.4
+            opacity: mediaSource !== "" ? 1.0 : 0.4
 
             MaterialIcon {
                 icon: "\ue045"  // skip_previous
@@ -74,8 +74,8 @@ Item {
                 MouseArea {
                     anchors.fill: parent
                     anchors.margins: -UiMetrics.spacing
-                    enabled: mediaSource !== 0
-                    onClicked: if (typeof MediaBridge !== "undefined") MediaBridge.previous()
+                    enabled: mediaSource !== ""
+                    onClicked: if (typeof MediaStatus !== "undefined") MediaStatus.previous()
                 }
             }
 
@@ -86,8 +86,8 @@ Item {
                 MouseArea {
                     anchors.fill: parent
                     anchors.margins: -UiMetrics.spacing
-                    enabled: mediaSource !== 0
-                    onClicked: if (typeof MediaBridge !== "undefined") MediaBridge.playPause()
+                    enabled: mediaSource !== ""
+                    onClicked: if (typeof MediaStatus !== "undefined") MediaStatus.playPause()
                 }
             }
 
@@ -98,8 +98,8 @@ Item {
                 MouseArea {
                     anchors.fill: parent
                     anchors.margins: -UiMetrics.spacing
-                    enabled: mediaSource !== 0
-                    onClicked: if (typeof MediaBridge !== "undefined") MediaBridge.next()
+                    enabled: mediaSource !== ""
+                    onClicked: if (typeof MediaStatus !== "undefined") MediaStatus.next()
                 }
             }
         }
@@ -141,7 +141,7 @@ Item {
         // Compact controls
         RowLayout {
             spacing: UiMetrics.spacing
-            opacity: mediaSource !== 0 ? 1.0 : 0.4
+            opacity: mediaSource !== "" ? 1.0 : 0.4
 
             MaterialIcon {
                 icon: "\ue045"  // skip_previous
@@ -150,8 +150,8 @@ Item {
                 MouseArea {
                     anchors.fill: parent
                     anchors.margins: -UiMetrics.spacing
-                    enabled: mediaSource !== 0
-                    onClicked: if (typeof MediaBridge !== "undefined") MediaBridge.previous()
+                    enabled: mediaSource !== ""
+                    onClicked: if (typeof MediaStatus !== "undefined") MediaStatus.previous()
                 }
             }
 
@@ -162,8 +162,8 @@ Item {
                 MouseArea {
                     anchors.fill: parent
                     anchors.margins: -UiMetrics.spacing
-                    enabled: mediaSource !== 0
-                    onClicked: if (typeof MediaBridge !== "undefined") MediaBridge.playPause()
+                    enabled: mediaSource !== ""
+                    onClicked: if (typeof MediaStatus !== "undefined") MediaStatus.playPause()
                 }
             }
 
@@ -174,16 +174,16 @@ Item {
                 MouseArea {
                     anchors.fill: parent
                     anchors.margins: -UiMetrics.spacing
-                    enabled: mediaSource !== 0
-                    onClicked: if (typeof MediaBridge !== "undefined") MediaBridge.next()
+                    enabled: mediaSource !== ""
+                    onClicked: if (typeof MediaStatus !== "undefined") MediaStatus.next()
                 }
             }
         }
 
         // Source indicator
         MaterialIcon {
-            icon: mediaSource === 2 ? aaIcon : (mediaSource === 1 ? btIcon : "")
-            visible: mediaSource !== 0
+            icon: mediaSource === "AndroidAuto" ? aaIcon : (mediaSource === "Bluetooth" ? btIcon : "")
+            visible: mediaSource !== ""
             size: UiMetrics.iconSmall
             color: ThemeService.onSurfaceVariant
         }
@@ -194,7 +194,7 @@ Item {
     // Additional muted icon overlay when truly empty (no source, no media)
     Item {
         anchors.centerIn: parent
-        visible: mediaSource === 0 && !hasMedia
+        visible: mediaSource === "" && !hasMedia
         opacity: 0.4
 
         ColumnLayout {

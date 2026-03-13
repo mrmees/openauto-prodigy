@@ -7,8 +7,10 @@ Item {
     // Pixel-based breakpoint for responsive layout
     readonly property bool showText: width >= 250   // true at 2+ cells wide
 
-    property bool connected: typeof AAOrchestrator !== "undefined"
-                             && AAOrchestrator.aaConnected
+    property bool connected: typeof ProjectionStatus !== "undefined"
+                             && ProjectionStatus !== null
+                             && (ProjectionStatus.projectionState === 3
+                                 || ProjectionStatus.projectionState === 4)
 
     ColumnLayout {
         anchors.centerIn: parent

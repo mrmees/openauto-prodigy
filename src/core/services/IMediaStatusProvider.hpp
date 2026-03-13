@@ -7,6 +7,12 @@ namespace oap {
 
 class IMediaStatusProvider : public QObject {
     Q_OBJECT
+    Q_PROPERTY(QString title READ title NOTIFY mediaStatusChanged)
+    Q_PROPERTY(QString artist READ artist NOTIFY mediaStatusChanged)
+    Q_PROPERTY(QString album READ album NOTIFY mediaStatusChanged)
+    Q_PROPERTY(int playbackState READ playbackState NOTIFY mediaStatusChanged)
+    Q_PROPERTY(QString source READ source NOTIFY mediaStatusChanged)
+    Q_PROPERTY(QString appName READ appName NOTIFY mediaStatusChanged)
 public:
     using QObject::QObject;
 
@@ -17,9 +23,9 @@ public:
     virtual QString source() const = 0;
     virtual QString appName() const = 0;
 
-    virtual void playPause() = 0;
-    virtual void next() = 0;
-    virtual void previous() = 0;
+    Q_INVOKABLE virtual void playPause() = 0;
+    Q_INVOKABLE virtual void next() = 0;
+    Q_INVOKABLE virtual void previous() = 0;
 
 signals:
     void mediaStatusChanged();

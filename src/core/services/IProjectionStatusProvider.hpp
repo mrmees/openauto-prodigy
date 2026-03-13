@@ -7,6 +7,8 @@ namespace oap {
 
 class IProjectionStatusProvider : public QObject {
     Q_OBJECT
+    Q_PROPERTY(int projectionState READ projectionState NOTIFY projectionStateChanged)
+    Q_PROPERTY(QString statusMessage READ statusMessage NOTIFY statusMessageChanged)
 public:
     enum ProjectionState {
         Disconnected = 0,

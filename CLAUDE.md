@@ -47,58 +47,48 @@ See `docs/roadmap-current.md` for current status and priorities.
 
 ## Build & Test
 
+Both claude-dev and the Pi now run Qt 6.8. Local builds use the aqt-installed Qt at `/opt/qt/6.8.2/gcc_64`.
+
 ```bash
-mkdir build && cd build && cmake .. && make -j$(nproc)
-ctest --output-on-failure  # from build dir (47 tests)
+mkdir build && cd build
+cmake -DCMAKE_PREFIX_PATH=/opt/qt/6.8.2/gcc_64 ..
+make -j$(nproc)
+ctest --output-on-failure  # 77 tests
 ```
 
-**Dependencies:** See `docs/development.md` for full package list. Bluetooth requires `qt6-connectivity-dev` (Pi only, optional on dev).
-
-## Dual-Platform Build
-
-Code must compile on both:
-- **Qt 6.4** (Ubuntu 24.04 VM — `claude-dev`) — dev builds (no Bluetooth)
-- **Qt 6.8** (RPi OS Trixie) — target platform (full Bluetooth support)
-
-Key incompatibilities are documented in `docs/development.md` (QML loading, resource paths, type flattening).
+**Dependencies:** See `docs/development.md` for full package list.
 
 ## Cross-Compilation (Pi 4)
 
-A cross-compiler toolchain is set up on claude-dev for building aarch64 binaries locally:
-
-- **Toolchain file:** `toolchain-pi4.cmake`
-- **Sysroot:** `~/pi-sysroot` (rsync'd from the Pi — re-sync if Pi libraries are updated)
-- **Build dir:** `build-pi/` (separate from the x86 `build/` dir)
+Use `cross-build.sh` — Docker-based cross-compile for aarch64. Do NOT use `toolchain-pi4.cmake` directly (CMakeCache confusion outside Docker).
 
 ```bash
-mkdir build-pi && cd build-pi
-cmake -DCMAKE_TOOLCHAIN_FILE=../toolchain-pi4.cmake ..
-make -j$(nproc)
+./cross-build.sh                              # build
+./cross-build.sh -DCMAKE_BUILD_TYPE=Release   # release build
 ```
 
-When asked to "build for the Pi" or "cross-compile", use the toolchain file and `build-pi/` directory. Rsync the resulting binary to the Pi instead of source files.
+Output: `build-pi/src/openauto-prodigy`
 
 ## Pi Deployment
 
-**Option A — Cross-compiled binary** (faster builds):
+**Standard workflow — cross-build + rsync:**
 ```bash
+./cross-build.sh
 rsync -av build-pi/src/openauto-prodigy matt@192.168.1.152:~/openauto-prodigy/build/src/
+ssh matt@192.168.1.152 'sudo systemctl restart openauto-prodigy.service'
 ```
 
-**Option B — Source copy + native build** (guaranteed compatibility):
+Use this for anything that doesn't require the install script to set up system-level config. Push QML changes via git (`git push` + `ssh matt@192.168.1.152 'cd ~/openauto-prodigy && git pull'`) since QML isn't in the binary.
+
+**Fallback — native build on Pi** (if cross-build has ABI issues):
 ```bash
-# Copy changed source files to Pi, then:
 ssh matt@192.168.1.152 "cd /home/matt/openauto-prodigy/build && cmake --build . -j3"
 ```
 
-**Launch / Restart:**
+**Force restart** (for stuck processes):
 ```bash
-ssh matt@192.168.1.152 '~/openauto-prodigy/restart.sh'
-# Or with SIGKILL for stuck processes:
 ssh matt@192.168.1.152 '~/openauto-prodigy/restart.sh --force-kill'
 ```
-
-**Note:** If cross-compiled binaries have issues (missing libs, ABI mismatch), fall back to Option B.
 
 ## Architecture
 
@@ -205,7 +195,7 @@ AA supports fixed resolutions only:
 - Don't use `loadFromModule()` — not available in Qt 6.4
 - `QColor` needs `Qt6::Gui` link, not `Qt6::Core`
 - Q_OBJECT in header-only classes needs a .cpp file listed in CMakeLists.txt for MOC
-- BT code is `#ifdef HAS_BLUETOOTH` guarded — builds without qt6-connectivity-dev
+- BT code is `#ifdef HAS_BLUETOOTH` guarded — compiles on systems without qt6-connectivity-dev (but claude-dev now has it via aqt)
 - **QTimer needs `#include <QTimer>`** — forward declaration alone causes "not declared in scope" errors
 - **QTimer only works on threads with a Qt event loop** — starting a QTimer from a Boost.ASIO thread silently does nothing. Use `QMetaObject::invokeMethod(obj, lambda, Qt::QueuedConnection)` to marshal to the main thread.
 - **QVideoFrame is ref-counted** — do NOT reuse frame buffers. Allocate fresh frames each decode.

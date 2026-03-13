@@ -7,6 +7,13 @@ namespace oap {
 
 class INavigationProvider : public QObject {
     Q_OBJECT
+    Q_PROPERTY(bool navActive READ navActive NOTIFY navActiveChanged)
+    Q_PROPERTY(QString roadName READ roadName NOTIFY turnDataChanged)
+    Q_PROPERTY(int maneuverType READ maneuverType NOTIFY turnDataChanged)
+    Q_PROPERTY(int turnDirection READ turnDirection NOTIFY turnDataChanged)
+    Q_PROPERTY(QString formattedDistance READ formattedDistance NOTIFY distanceChanged)
+    Q_PROPERTY(bool hasManeuverIcon READ hasManeuverIcon NOTIFY turnDataChanged)
+    Q_PROPERTY(int iconVersion READ iconVersion NOTIFY turnDataChanged)
 public:
     using QObject::QObject;
 

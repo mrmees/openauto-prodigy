@@ -38,8 +38,8 @@
 #include "plugins/android_auto/AndroidAutoPlugin.hpp"
 #include "core/aa/AndroidAutoOrchestrator.hpp"
 #include "core/aa/NavigationDataBridge.hpp"
-#include "core/aa/MediaDataBridge.hpp"
 #include "core/aa/ManeuverIconProvider.hpp"
+#include <oaa/HU/Handlers/MediaStatusChannelHandler.hpp>
 #include "plugins/bt_audio/BtAudioPlugin.hpp"
 #include "plugins/phone/PhonePlugin.hpp"
 #include "plugins/equalizer/EqualizerPlugin.hpp"
@@ -381,13 +381,11 @@ int main(int argc, char *argv[])
 
     // --- Data bridges for content widgets ---
     auto* navBridge = new oap::aa::NavigationDataBridge(&app);
-    auto* mediaBridge = new oap::aa::MediaDataBridge(&app);
     auto* maneuverIconProvider = new oap::aa::ManeuverIconProvider();
 
     // Wire nav bridge to orchestrator's navigation handler
     if (auto* orch = aaPlugin->orchestrator()) {
         navBridge->connectToHandler(orch->navigationHandler());
-        mediaBridge->connectToAAOrchestrator(orch);
     }
     navBridge->setManeuverIconProvider(maneuverIconProvider);
     hostContext->setNavigationProvider(navBridge);
@@ -396,15 +394,82 @@ int main(int argc, char *argv[])
     auto mediaStatusService = new oap::MediaStatusService(&app);
     hostContext->setMediaStatusProvider(mediaStatusService);
 
+    // Wire MediaStatusService to AA orchestrator
+    if (auto* orch = aaPlugin->orchestrator()) {
+        QObject::connect(orch, &oap::aa::AndroidAutoOrchestrator::connectionStateChanged,
+                         mediaStatusService, [mediaStatusService, orch]() {
+            mediaStatusService->setAaConnected(orch->isAaConnected());
+        });
+        auto* msHandler = orch->mediaStatusHandler();
+        if (msHandler) {
+            QObject::connect(msHandler, &oaa::hu::MediaStatusChannelHandler::metadataChanged,
+                             mediaStatusService, [mediaStatusService](const QString& title, const QString& artist,
+                                                                       const QString& album, const QByteArray&) {
+                mediaStatusService->updateAaMetadata(title, artist, album);
+            }, Qt::QueuedConnection);
+            QObject::connect(msHandler, &oaa::hu::MediaStatusChannelHandler::playbackStateChanged,
+                             mediaStatusService, [mediaStatusService](int state, const QString& app) {
+                mediaStatusService->updateAaPlaybackState(state, app);
+            }, Qt::QueuedConnection);
+        }
+    }
+
+    // Wire MediaStatusService to BT audio plugin
+    QObject::connect(btAudioPlugin, &oap::plugins::BtAudioPlugin::metadataChanged,
+                     mediaStatusService, [mediaStatusService, btAudioPlugin]() {
+        mediaStatusService->updateBtMetadata(btAudioPlugin->trackTitle(),
+                                              btAudioPlugin->trackArtist(),
+                                              btAudioPlugin->trackAlbum());
+    });
+    QObject::connect(btAudioPlugin, &oap::plugins::BtAudioPlugin::playbackStateChanged,
+                     mediaStatusService, [mediaStatusService, btAudioPlugin]() {
+        mediaStatusService->updateBtPlaybackState(btAudioPlugin->playbackState());
+    });
+    QObject::connect(btAudioPlugin, &oap::plugins::BtAudioPlugin::connectionStateChanged,
+                     mediaStatusService, [mediaStatusService, btAudioPlugin]() {
+        mediaStatusService->setBtConnected(btAudioPlugin->connectionState() == 1);
+    });
+    if (btAudioPlugin->connectionState() == 1) {
+        mediaStatusService->setBtConnected(true);
+        mediaStatusService->updateBtMetadata(btAudioPlugin->trackTitle(),
+                                              btAudioPlugin->trackArtist(),
+                                              btAudioPlugin->trackAlbum());
+        mediaStatusService->updateBtPlaybackState(btAudioPlugin->playbackState());
+    }
+
+    // Playback control delegation
+    {
+        auto* orch = aaPlugin->orchestrator();
+        mediaStatusService->setPlaybackCallbacks(
+            [mediaStatusService, orch, btAudioPlugin]() {
+                if (mediaStatusService->source() == "AndroidAuto" && orch)
+                    orch->sendButtonPress(85);
+                else if (mediaStatusService->source() == "Bluetooth" && btAudioPlugin) {
+                    if (btAudioPlugin->playbackState() == 1) btAudioPlugin->pause();
+                    else btAudioPlugin->play();
+                }
+            },
+            [mediaStatusService, orch, btAudioPlugin]() {
+                if (mediaStatusService->source() == "AndroidAuto" && orch)
+                    orch->sendButtonPress(87);
+                else if (mediaStatusService->source() == "Bluetooth" && btAudioPlugin)
+                    btAudioPlugin->next();
+            },
+            [mediaStatusService, orch, btAudioPlugin]() {
+                if (mediaStatusService->source() == "AndroidAuto" && orch)
+                    orch->sendButtonPress(88);
+                else if (mediaStatusService->source() == "Bluetooth" && btAudioPlugin)
+                    btAudioPlugin->previous();
+            }
+        );
+    }
+
     // --- Projection status provider (wraps orchestrator for narrow interface) ---
     oap::ProjectionStatusProvider* projectionStatusProvider = nullptr;
     if (auto* orch = aaPlugin->orchestrator()) {
         projectionStatusProvider = new oap::ProjectionStatusProvider(orch, &app);
         hostContext->setProjectionStatusProvider(projectionStatusProvider);
     }
-
-    // Wire media bridge to BT audio (may be nullptr on VM — connectToBtAudio handles null)
-    mediaBridge->connectToBtAudio(btAudioPlugin);
 
     // --- Widget system ---
     auto widgetRegistry = new oap::WidgetRegistry(&app);
@@ -542,6 +607,12 @@ int main(int argc, char *argv[])
     actionRegistry->registerAction("theme.toggle", [themeService](const QVariant&) {
         themeService->toggleMode();
     });
+    // AA button press action (used by DebugSettings via ActionRegistry.dispatch)
+    if (auto* orch = aaPlugin->orchestrator()) {
+        actionRegistry->registerAction("aa.sendButton", [orch](const QVariant& v) {
+            orch->sendButtonPress(v.toInt());
+        });
+    }
 
     // --- Navbar action handlers ---
     // Volume tap: show volume popup
@@ -614,8 +685,8 @@ int main(int argc, char *argv[])
     engine.rootContext()->setContextProperty("NotificationModel", notificationModel);
     engine.rootContext()->setContextProperty("NotificationService", notificationService);
 
-    // Expose PhonePlugin globally for IncomingCallOverlay in Shell.qml
-    engine.rootContext()->setContextProperty("PhonePlugin", phonePlugin);
+    // Expose call state provider for IncomingCallOverlay in Shell.qml
+    engine.rootContext()->setContextProperty("CallStateProvider", static_cast<QObject*>(phoneStateService));
 
     engine.rootContext()->setContextProperty("AudioService", audioService);
     engine.rootContext()->setContextProperty("DisplayService", displayService);
@@ -645,12 +716,15 @@ int main(int argc, char *argv[])
     engine.rootContext()->setContextProperty("SystemService", systemClient);
     engine.rootContext()->setContextProperty("BluetoothManager", bluetoothManager);
     engine.rootContext()->setContextProperty("PairedDevicesModel", bluetoothManager->pairedDevicesModel());
-    engine.rootContext()->setContextProperty("AAOrchestrator", static_cast<QObject*>(aaPlugin->orchestrator()));
+    // Projection status provider for widgets and debug settings
+    engine.rootContext()->setContextProperty("ProjectionStatus", static_cast<QObject*>(projectionStatusProvider));
 
-    // Content widget data bridges + image provider
+    // Provider-backed root-context properties for widgets
+    engine.rootContext()->setContextProperty("NavigationProvider", static_cast<QObject*>(navBridge));
+    engine.rootContext()->setContextProperty("MediaStatus", static_cast<QObject*>(mediaStatusService));
+
+    // Navigation icon image provider
     engine.addImageProvider(QStringLiteral("navicon"), maneuverIconProvider);
-    engine.rootContext()->setContextProperty("NavigationBridge", navBridge);
-    engine.rootContext()->setContextProperty("MediaBridge", mediaBridge);
 
     // Geometry override for windowed resolution testing
     engine.rootContext()->setContextProperty("_geomW", geomW);

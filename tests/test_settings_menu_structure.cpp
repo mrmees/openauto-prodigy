@@ -123,6 +123,22 @@ private slots:
                  "ThemeSettings delete row should no longer use the leading trash icon");
     }
 
+    void testDebugSettingsUsesProvidersNotGlobals()
+    {
+        const QString source = sourceFor(QStringLiteral("qml/applications/settings/DebugSettings.qml"));
+        QVERIFY2(!source.isEmpty(), "Failed to read DebugSettings.qml");
+
+        // Should use ProjectionStatus provider, not AAOrchestrator global
+        QVERIFY2(source.indexOf(QStringLiteral("ProjectionStatus")) >= 0,
+                 "DebugSettings should reference ProjectionStatus provider");
+        QVERIFY2(source.indexOf(QStringLiteral("AAOrchestrator")) < 0,
+                 "DebugSettings should not reference AAOrchestrator global");
+
+        // Button presses should route through ActionRegistry
+        QVERIFY2(source.indexOf(QStringLiteral("ActionRegistry.dispatch")) >= 0,
+                 "DebugSettings AA buttons should route through ActionRegistry");
+    }
+
     void testSettingsUseSharedScrollHints()
     {
         const QString hintSource = sourceFor(QStringLiteral("qml/controls/SettingsScrollHints.qml"));

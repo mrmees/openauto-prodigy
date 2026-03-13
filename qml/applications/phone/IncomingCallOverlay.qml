@@ -3,12 +3,12 @@ import QtQuick.Controls
 import QtQuick.Layouts
 
 /// Incoming call overlay -- shown on top of any active view.
-/// Shell.qml should instantiate this and show it when PhonePlugin.callState === 2 (Ringing).
+/// Shell.qml should instantiate this and show it when CallStateProvider.callState === 2 (Ringing).
 Rectangle {
     id: overlay
     anchors.fill: parent
     color: ThemeService.scrim
-    visible: PhonePlugin && PhonePlugin.callState === 2
+    visible: CallStateProvider && CallStateProvider.callState === 2
     z: 1000  // above everything
 
     MouseArea {
@@ -30,7 +30,7 @@ Rectangle {
 
         Text {
             Layout.alignment: Qt.AlignHCenter
-            text: PhonePlugin ? (PhonePlugin.callerName || PhonePlugin.callerNumber || "Unknown") : ""
+            text: CallStateProvider ? (CallStateProvider.callerName || CallStateProvider.callerNumber || "Unknown") : ""
             font.pixelSize: UiMetrics.fontHeading
             font.bold: true
             color: ThemeService.onSurface
@@ -40,10 +40,10 @@ Rectangle {
 
         Text {
             Layout.alignment: Qt.AlignHCenter
-            text: PhonePlugin ? PhonePlugin.callerNumber : ""
+            text: CallStateProvider ? CallStateProvider.callerNumber : ""
             font.pixelSize: UiMetrics.fontSmall
             color: ThemeService.onSurfaceVariant
-            visible: PhonePlugin && PhonePlugin.callerName.length > 0 && PhonePlugin.callerNumber.length > 0
+            visible: CallStateProvider && CallStateProvider.callerName.length > 0 && CallStateProvider.callerNumber.length > 0
         }
 
         Item { height: UiMetrics.gap }
@@ -62,7 +62,7 @@ Rectangle {
                 textColor: ThemeService.onError
                 pressedTextColor: ThemeService.onError
                 buttonRadius: UiMetrics.callBtnSize / 2
-                onClicked: if (PhonePlugin) PhonePlugin.hangup()
+                onClicked: if (CallStateProvider) CallStateProvider.hangup()
             }
 
             // Accept
@@ -75,7 +75,7 @@ Rectangle {
                 textColor: ThemeService.onSuccess
                 pressedTextColor: ThemeService.onSuccess
                 buttonRadius: UiMetrics.callBtnSize / 2
-                onClicked: if (PhonePlugin) PhonePlugin.answer()
+                onClicked: if (CallStateProvider) CallStateProvider.answer()
             }
         }
     }
