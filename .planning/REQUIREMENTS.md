@@ -37,11 +37,11 @@ Requirements for Widget Grid & Content Widgets milestone. Each maps to roadmap p
 - [ ] **PAGE-02**: Page indicator dots show current page position and total count
 - [ ] **PAGE-03**: Launcher dock remains fixed across all pages
 - [ ] **PAGE-04**: Page swipe is disabled during edit mode (prevents gesture conflict with drag)
-- [ ] **PAGE-05**: Maximum 5 pages supported
-- [ ] **PAGE-06**: Explicit page creation and removal (add page when needed, remove empty pages)
+- [x] **PAGE-05**: Maximum 5 pages supported
+- [x] **PAGE-06**: Explicit page creation and removal (add page when needed, remove empty pages)
 - [ ] **PAGE-07**: Page navigation available during edit mode via non-swipe mechanism (e.g. tap page dots)
 - [ ] **PAGE-08**: Non-visible pages are lazily instantiated (Pi 4 memory/performance)
-- [ ] **PAGE-09**: Page assignments persist in YAML config across restarts
+- [x] **PAGE-09**: Page assignments persist in YAML config across restarts
 
 ### Navigation Widget
 
@@ -124,11 +124,11 @@ Deferred to subsequent milestones.
 | PAGE-02 | Phase 08 | Pending |
 | PAGE-03 | Phase 08 | Pending |
 | PAGE-04 | Phase 08 | Pending |
-| PAGE-05 | Phase 08 | Pending |
-| PAGE-06 | Phase 08 | Pending |
+| PAGE-05 | Phase 08 | Complete |
+| PAGE-06 | Phase 08 | Complete |
 | PAGE-07 | Phase 08 | Pending |
 | PAGE-08 | Phase 08 | Pending |
-| PAGE-09 | Phase 08 | Pending |
+| PAGE-09 | Phase 08 | Complete |
 | NAV-01 | Phase 06 | Pending |
 | NAV-02 | Phase 06 | Pending |
 | NAV-03 | Phase 06 | Pending |

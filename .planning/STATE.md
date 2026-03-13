@@ -4,14 +4,14 @@ milestone: v0.5
 milestone_name: milestone
 status: completed
 stopped_at: Phase 08 context gathered
-last_updated: "2026-03-13T01:49:40.951Z"
-last_activity: 2026-03-13 - Drag-to-reposition and drag-to-resize with Pi touchscreen verification
+last_updated: "2026-03-13T02:17:00.000Z"
+last_activity: 2026-03-13 - Page-scoped WidgetGridModel and YAML schema v3 persistence
 progress:
   total_phases: 5
   completed_phases: 2
-  total_plans: 6
-  completed_plans: 6
-  percent: 73
+  total_plans: 8
+  completed_plans: 7
+  percent: 85
 ---
 
 # Project State
@@ -25,11 +25,11 @@ See: .planning/PROJECT.md (updated 2026-03-12)
 
 ## Current Position
 
-Phase: 07 of 8 (Edit Mode) — Plan 3 of 3 complete (Phase 07 DONE)
-Status: Phase 07 complete. Phase 08 (Multi-Page) next.
-Last activity: 2026-03-13 - Drag-to-reposition and drag-to-resize with Pi touchscreen verification
+Phase: 08 of 8 (Multi-Page) — Plan 1 of 2 complete
+Status: Phase 08 in progress. Plan 01 (page-aware grid model) done, Plan 02 (QML SwipeView) next.
+Last activity: 2026-03-13 - Page-scoped WidgetGridModel and YAML schema v3 persistence
 
-Progress: [########--] 73%
+Progress: [#########-] 85%
 
 ## Accumulated Context
 
@@ -69,6 +69,9 @@ Decisions are logged in PROJECT.md Key Decisions table.
 - [Phase 07]: Drag overlay MouseArea (z:25) for consistent drag behavior across interactive and static widgets
 - [Phase 07]: Legacy context menu overlay removed -- replaced by edit mode interactions
 - [Phase 07]: All widgets require long-press to select before dragging (prevents accidental drags)
+- [Phase 08]: Page-scoped collision uses direct iteration (not per-page occupancy maps) -- sufficient for <30 widgets
+- [Phase 08]: canPlaceOnPage private helper separates page-explicit checks from activePage-defaulting public canPlace
+- [Phase 08]: YAML schema v3 adds page field and page_count; v2 configs load with page=0 default
 
 ### Pending Todos
 
@@ -92,8 +95,8 @@ None yet.
 
 ## Session Continuity
 
-Last session: 2026-03-13T01:49:40.947Z
-Stopped at: Phase 08 context gathered
+Last session: 2026-03-13T02:17:00.000Z
+Stopped at: Completed 08-01-PLAN.md
 
 ### Session Handoff (2026-03-12)
 
