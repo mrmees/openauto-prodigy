@@ -147,12 +147,12 @@ Plans:
   3. User can drag corner handles to resize a widget within its declared min/max span constraints
   4. "+" FAB opens widget catalog to place new widgets; "X" badge removes existing widgets; "no space" gets clear feedback
   5. Edit mode exits automatically after 10s inactivity, on tap outside, or when AA fullscreen activates (EVIOCGRAB). Layout writes are atomic (on commit, not during drag).
-**Plans**: TBD
+**Plans**: 3 plans
 
 Plans:
-- [ ] 07-01: TBD
-- [ ] 07-02: TBD
-- [ ] 07-03: TBD
+- [ ] 07-01-PLAN.md — C++ backend extensions (constraint roles, auto-place) + Toast.qml
+- [ ] 07-02-PLAN.md — Edit mode visual state, entry/exit, FAB add, X remove
+- [ ] 07-03-PLAN.md — Drag-to-reposition + drag-to-resize interactions
 
 ### Phase 08: Multi-Page
 **Goal**: Users can organize widgets across multiple swipeable home screen pages
@@ -181,7 +181,7 @@ Phases execute in numeric order: 04 -> 05 -> 06 + 07 (parallel-capable) -> 08
 | 04. Grid Data Model & Persistence | 2/2 | Complete    | 2026-03-12 |
 | 05. Static Grid Rendering & Widget Revision | 2/2 | Complete    | 2026-03-12 |
 | 06. Content Widgets | 3/3 | Complete    | 2026-03-12 |
-| 07. Edit Mode | 0/? | Not started | - |
+| 07. Edit Mode | 0/3 | Not started | - |
 | 08. Multi-Page | 0/? | Not started | - |
 
 ## Key Research Flags
@@ -189,8 +189,8 @@ Phases execute in numeric order: 04 -> 05 -> 06 + 07 (parallel-capable) -> 08
 - **Phase 04**: Grid density formula needs Pi hardware tuning; config migration edge cases with different column counts across resolutions
 - **Phase 05**: Use `QT_QML_SKIP_CACHEGEN` on all new widget QML files; verify on Pi with real touch
 - **Phase 06**: Nav turn events must be wired to EventBus (currently logged only); AA media metadata currently discarded in orchestrator; resolve dual BT/AA metadata flickering with priority logic
-- **Phase 07**: Resolve MouseArea+Drag vs DragHandler before implementation (Qt 6.4 compat); ghost rectangle for resize preview (not animate width/height — janky on Pi); EVIOCGRAB/edit-mode interaction must be explicit
+- **Phase 07**: MouseArea+drag.target resolved (not DragHandler); ghost rectangle for resize preview (not animate width/height — janky on Pi); EVIOCGRAB/edit-mode interaction explicit via exitEditMode()
 - **Phase 08**: SwipeView.interactive must be disabled during edit mode; lazy page instantiation critical for Pi 4 memory
 
 ---
-*Last updated: 2026-03-12 -- Phase 06 complete*
+*Last updated: 2026-03-12 -- Phase 07 planned (3 plans, 3 waves)*
