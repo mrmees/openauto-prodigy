@@ -18,6 +18,10 @@ Item {
     property int _dragColSpan: 1
     property int _dragRowSpan: 1
 
+    // Grid cell dimensions computed from SwipeView size (used by overlays + per-page grids)
+    readonly property real cellWidth: pageView.width / WidgetGridModel.gridColumns
+    readonly property real cellHeight: pageView.height / WidgetGridModel.gridRows
+
     function exitEditMode() {
         editMode = false
         inactivityTimer.stop()
@@ -29,6 +33,17 @@ Item {
         draggingInstanceId = ""
         draggingDelegate = null
         resizingInstanceId = ""
+
+        // Auto-clean empty pages (except page 0) after SwipeView settles
+        Qt.callLater(function() {
+            for (var i = WidgetGridModel.pageCount - 1; i > 0; i--) {
+                if (WidgetGridModel.widgetCountOnPage(i) === 0) {
+                    WidgetGridModel.removePage(i)
+                }
+            }
+            if (pageView.currentIndex >= WidgetGridModel.pageCount)
+                pageView.setCurrentIndex(WidgetGridModel.pageCount - 1)
+        })
     }
 
     // Inactivity timer -- exits edit mode after 10s of no interaction
@@ -60,501 +75,424 @@ Item {
         anchors.margins: UiMetrics.marginPage
         spacing: UiMetrics.spacing
 
-        // Grid container -- fills available space above dock
-        Item {
-            id: gridContainer
+        // Multi-page SwipeView -- fills available space above dots and dock
+        SwipeView {
+            id: pageView
             Layout.fillWidth: true
             Layout.fillHeight: true
+            interactive: !homeScreen.editMode
+            clip: true
 
-            readonly property real cellWidth: width / WidgetGridModel.gridColumns
-            readonly property real cellHeight: height / WidgetGridModel.gridRows
-
-            // Background long-press / tap detector for empty grid space
-            MouseArea {
-                anchors.fill: parent
-                pressAndHoldInterval: 500
-                onPressAndHold: function(mouse) {
-                    if (!homeScreen.editMode) {
-                        homeScreen.editMode = true
-                    }
-                }
-                onClicked: {
-                    if (homeScreen.editMode) {
-                        homeScreen.exitEditMode()
-                    }
-                }
+            Component.onCompleted: {
+                contentItem.boundsBehavior = Flickable.DragAndOvershootBounds
+                contentItem.highlightMoveDuration = 350
             }
 
-            // Dotted grid lines overlay (visible in editMode)
-            Item {
-                anchors.fill: parent
-                visible: homeScreen.editMode
-                z: 0
-
-                // Vertical lines
-                Repeater {
-                    model: WidgetGridModel.gridColumns + 1
-                    delegate: Column {
-                        x: index * gridContainer.cellWidth
-                        y: 0
-                        height: gridContainer.height
-                        spacing: UiMetrics.spacing
-                        Repeater {
-                            model: Math.ceil(gridContainer.height / (UiMetrics.spacing + 2))
-                            delegate: Rectangle {
-                                width: 1
-                                height: 2
-                                color: ThemeService.outlineVariant
-                                opacity: 0.3
-                            }
-                        }
-                    }
-                }
-
-                // Horizontal lines
-                Repeater {
-                    model: WidgetGridModel.gridRows + 1
-                    delegate: Row {
-                        x: 0
-                        y: index * gridContainer.cellHeight
-                        width: gridContainer.width
-                        spacing: UiMetrics.spacing
-                        Repeater {
-                            model: Math.ceil(gridContainer.width / (UiMetrics.spacing + 2))
-                            delegate: Rectangle {
-                                width: 2
-                                height: 1
-                                color: ThemeService.outlineVariant
-                                opacity: 0.3
-                            }
-                        }
-                    }
-                }
-            }
-
-            // Drop highlight rectangle (shows valid/invalid drop target during drag)
-            Rectangle {
-                id: dropHighlight
-                visible: false
-                z: 5
-                radius: UiMetrics.radius
-                border.width: 2
-                color: "transparent"
-                opacity: 0.6
-                property bool isValid: true
-                border.color: isValid ? ThemeService.primary : ThemeService.error
-            }
-
-            // Placeholder at original position during drag
-            Rectangle {
-                id: dragPlaceholder
-                visible: false
-                z: 1
-                color: "transparent"
-                border.width: 1
-                border.color: ThemeService.outlineVariant
-                radius: UiMetrics.radius
-                opacity: 0.4
-            }
-
-            // Drag overlay -- captures touch movement when a widget is being dragged.
-            // Needed because interactive widgets (NowPlaying, Navigation, AAStatus) have
-            // their own MouseAreas that steal the touch grab from the per-delegate handler.
-            MouseArea {
-                id: dragOverlay
-                anchors.fill: parent
-                z: 200
-                enabled: homeScreen.draggingInstanceId !== ""
-                visible: enabled
-
-                onPositionChanged: function(mouse) {
-                    var d = homeScreen.draggingDelegate
-                    if (!d) return
-                    d.x = mouse.x - d.pressOffsetX
-                    d.y = mouse.y - d.pressOffsetY
-                    var cs = homeScreen._dragColSpan
-                    var rs = homeScreen._dragRowSpan
-                    var targetCol = Math.round(d.x / gridContainer.cellWidth)
-                    var targetRow = Math.round(d.y / gridContainer.cellHeight)
-                    targetCol = Math.max(0, Math.min(targetCol, WidgetGridModel.gridColumns - cs))
-                    targetRow = Math.max(0, Math.min(targetRow, WidgetGridModel.gridRows - rs))
-                    var valid = WidgetGridModel.canPlace(targetCol, targetRow, cs, rs, homeScreen.draggingInstanceId)
-                    dropHighlight.x = targetCol * gridContainer.cellWidth
-                    dropHighlight.y = targetRow * gridContainer.cellHeight
-                    dropHighlight.width = cs * gridContainer.cellWidth
-                    dropHighlight.height = rs * gridContainer.cellHeight
-                    dropHighlight.isValid = valid
-                    dropHighlight.visible = true
-                    inactivityTimer.restart()
-                }
-
-                onReleased: function(mouse) {
-                    var d = homeScreen.draggingDelegate
-                    if (!d) return
-                    // Signal the delegate to finalize the drop
-                    d.finalizeDrop()
-                }
-            }
-
-            // Resize ghost rectangle (shows proposed size during resize)
-            Rectangle {
-                id: resizeGhost
-                visible: false
-                z: 50
-                color: "transparent"
-                border.width: 2
-                radius: UiMetrics.radius
-                opacity: 0.7
-                property bool isValid: true
-                border.color: isValid ? ThemeService.primary : ThemeService.error
-
-                // Brief flash animation for boundary hit
-                SequentialAnimation {
-                    id: limitFlash
-                    PropertyAnimation {
-                        target: resizeGhost
-                        property: "border.color"
-                        to: ThemeService.tertiary
-                        duration: 100
-                    }
-                    PropertyAnimation {
-                        target: resizeGhost
-                        property: "border.color"
-                        to: resizeGhost.isValid ? ThemeService.primary : ThemeService.error
-                        duration: 100
-                    }
-                }
+            onCurrentIndexChanged: {
+                WidgetGridModel.activePage = currentIndex
             }
 
             Repeater {
-                id: widgetRepeater
-                model: WidgetGridModel
+                model: WidgetGridModel.pageCount
 
-                delegate: Item {
-                    id: delegateItem
-                    x: model.column * gridContainer.cellWidth
-                    y: model.row * gridContainer.cellHeight
-                    width: model.colSpan * gridContainer.cellWidth
-                    height: model.rowSpan * gridContainer.cellHeight
-                    visible: model.visible
-                    z: dragging ? 100 : 1
+                // Each page is a Loader for lazy instantiation (PAGE-08)
+                Loader {
+                    active: SwipeView.isCurrentItem
+                            || SwipeView.isNextItem
+                            || SwipeView.isPreviousItem
 
-                    // Drag state
-                    property bool dragging: false
-                    property real dragStartX: 0
-                    property real dragStartY: 0
-                    property real pressOffsetX: 0
-                    property real pressOffsetY: 0
-                    property real originalX: 0
-                    property real originalY: 0
+                    property int pageIndex: index
 
-                    function finalizeDrop() {
-                        if (!dragging) return
-                        dragging = false
-                        homeScreen.draggingInstanceId = ""
-                        homeScreen.draggingDelegate = null
-                        dropHighlight.visible = false
-                        dragPlaceholder.visible = false
-                        opacity = 1.0
-                        scale = 1.0
-                        var targetCol = Math.round(x / gridContainer.cellWidth)
-                        var targetRow = Math.round(y / gridContainer.cellHeight)
-                        targetCol = Math.max(0, Math.min(targetCol, WidgetGridModel.gridColumns - model.colSpan))
-                        targetRow = Math.max(0, Math.min(targetRow, WidgetGridModel.gridRows - model.rowSpan))
-                        if (WidgetGridModel.moveWidget(model.instanceId, targetCol, targetRow)) {
-                            x = Qt.binding(function() { return model.column * gridContainer.cellWidth })
-                            y = Qt.binding(function() { return model.row * gridContainer.cellHeight })
-                        } else {
-                            snapBackX.to = originalX
-                            snapBackY.to = originalY
-                            snapBackX.running = true
-                            snapBackY.running = true
-                            snapBackTimer.start()
-                        }
-                    }
+                    sourceComponent: Component {
+                        Item {
+                            id: pageGridContent
 
-                    // Force-reset drag state when edit mode exits (EVIOCGRAB safety)
-                    Connections {
-                        target: homeScreen
-                        function onEditModeChanged() {
-                            if (!homeScreen.editMode && delegateItem.dragging) {
-                                delegateItem.dragging = false
-                                delegateItem.opacity = 1.0
-                                delegateItem.scale = 1.0
-                                delegateItem.x = Qt.binding(function() { return model.column * gridContainer.cellWidth })
-                                delegateItem.y = Qt.binding(function() { return model.row * gridContainer.cellHeight })
-                            }
-                        }
-                    }
-
-                    // Snap-back animation
-                    NumberAnimation on x {
-                        id: snapBackX
-                        running: false
-                        duration: 200
-                        easing.type: Easing.OutCubic
-                    }
-                    NumberAnimation on y {
-                        id: snapBackY
-                        running: false
-                        duration: 200
-                        easing.type: Easing.OutCubic
-                    }
-
-                    // Inner content with gutter margins
-                    Item {
-                        id: innerContent
-                        anchors.fill: parent
-                        anchors.margins: UiMetrics.spacing / 2
-
-                        // Glass card background
-                        Rectangle {
-                            anchors.fill: parent
-                            radius: UiMetrics.radius
-                            color: ThemeService.surfaceContainer
-                            opacity: model.opacity
-                        }
-
-                        // Widget content
-                        Loader {
-                            id: widgetLoader
-                            anchors.fill: parent
-                            source: model.qmlComponent
-                            asynchronous: false
-
-                            // Expose requestContextMenu for widgets with own MouseAreas
-                            // Long-press enters edit mode or initiates drag
-                            function requestContextMenu() {
-                                if (homeScreen.editMode) {
-                                    widgetMouseArea.initiateDrag()
-                                } else {
-                                    homeScreen.editMode = true
-                                }
-                            }
-
-                            onStatusChanged: {
-                                if (status === Loader.Error)
-                                    console.warn("HomeMenu: failed to load widget", model.qmlComponent)
-                            }
-                        }
-
-                        // Long-press / tap detector behind widget content
-                        MouseArea {
-                            id: widgetMouseArea
-                            anchors.fill: parent
-                            z: -1
-                            pressAndHoldInterval: homeScreen.editMode ? 200 : 500
-
-                            function initiateDrag() {
-                                delegateItem.dragging = true
-                                homeScreen.draggingInstanceId = model.instanceId
-                                homeScreen.draggingDelegate = delegateItem
-                                homeScreen._dragColSpan = model.colSpan
-                                homeScreen._dragRowSpan = model.rowSpan
-                                delegateItem.originalX = delegateItem.x
-                                delegateItem.originalY = delegateItem.y
-                                delegateItem.pressOffsetX = delegateItem.width / 2
-                                delegateItem.pressOffsetY = delegateItem.height / 2
-                                // Visual feedback
-                                delegateItem.opacity = 0.5
-                                delegateItem.scale = 1.05
-                                // Show placeholder at original position
-                                dragPlaceholder.x = delegateItem.originalX
-                                dragPlaceholder.y = delegateItem.originalY
-                                dragPlaceholder.width = model.colSpan * gridContainer.cellWidth
-                                dragPlaceholder.height = model.rowSpan * gridContainer.cellHeight
-                                dragPlaceholder.visible = true
-                                inactivityTimer.restart()
-                            }
-
-                            onPressAndHold: function(mouse) {
-                                if (!homeScreen.editMode) {
-                                    homeScreen.editMode = true
-                                    return
-                                }
-                                // Edit mode: initiate drag with actual press position
-                                delegateItem.pressOffsetX = mouse.x
-                                delegateItem.pressOffsetY = mouse.y
-                                initiateDrag()
-                                // Restore actual press offset (initiateDrag sets center default)
-                                delegateItem.pressOffsetX = mouse.x
-                                delegateItem.pressOffsetY = mouse.y
-                            }
-
-                            onClicked: {
-                                if (homeScreen.editMode) {
-                                    // Tap in edit mode exits edit mode
-                                    homeScreen.exitEditMode()
-                                }
-                            }
-                        }
-
-                        // Timer to rebind position after snap-back animation
-                        Timer {
-                            id: snapBackTimer
-                            interval: 250  // slightly longer than snap-back animation
-                            onTriggered: {
-                                delegateItem.x = Qt.binding(function() { return model.column * gridContainer.cellWidth })
-                                delegateItem.y = Qt.binding(function() { return model.row * gridContainer.cellHeight })
-                            }
-                        }
-
-                        // --- Edit mode overlays ---
-
-                        // Accent border
-                        Rectangle {
-                            anchors.fill: parent
-                            color: "transparent"
-                            border.width: 2
-                            border.color: ThemeService.primary
-                            radius: UiMetrics.radius
-                            visible: homeScreen.editMode
-                            z: 10
-                        }
-
-                        // X remove badge (top-right)
-                        Rectangle {
-                            id: removeBadge
-                            width: 28
-                            height: 28
-                            radius: 14
-                            color: ThemeService.error
-                            anchors.right: parent.right
-                            anchors.top: parent.top
-                            anchors.rightMargin: -6
-                            anchors.topMargin: -6
-                            visible: homeScreen.editMode
-                            z: 20
-
-                            MaterialIcon {
-                                icon: "\ue5cd"
-                                size: 16
-                                color: ThemeService.onError
-                                anchors.centerIn: parent
-                            }
-
+                            // Background long-press / tap detector for empty grid space
                             MouseArea {
                                 anchors.fill: parent
+                                pressAndHoldInterval: 500
+                                onPressAndHold: function(mouse) {
+                                    if (!homeScreen.editMode) {
+                                        homeScreen.editMode = true
+                                    }
+                                }
                                 onClicked: {
-                                    WidgetGridModel.removeWidget(model.instanceId)
-                                    inactivityTimer.restart()
+                                    if (homeScreen.editMode) {
+                                        homeScreen.exitEditMode()
+                                    }
                                 }
                             }
-                        }
 
-                        // Resize handle (bottom-right) with drag-to-resize
-                        Rectangle {
-                            id: resizeHandle
-                            width: UiMetrics.touchMin * 0.5
-                            height: UiMetrics.touchMin * 0.5
-                            radius: UiMetrics.radiusSmall
-                            color: ThemeService.primary
-                            opacity: 0.7
-                            anchors.right: parent.right
-                            anchors.bottom: parent.bottom
-                            anchors.rightMargin: UiMetrics.spacing * 0.25
-                            anchors.bottomMargin: UiMetrics.spacing * 0.25
-                            visible: homeScreen.editMode
-                            z: 20
-
-                            MouseArea {
+                            // Dotted grid lines overlay (visible in editMode)
+                            Item {
                                 anchors.fill: parent
-                                // Expand touch area for easier grabbing
-                                anchors.margins: -UiMetrics.spacing / 2
-                                preventStealing: true
+                                visible: homeScreen.editMode
+                                z: 0
 
-                                property point startGlobal: Qt.point(0, 0)
-                                property int startColSpan: 0
-                                property int startRowSpan: 0
-                                property int proposedColSpan: 0
-                                property int proposedRowSpan: 0
-                                property bool resizing: false
-                                property int lastClampedCols: 0
-                                property int lastClampedRows: 0
-
-                                onPressed: function(mouse) {
-                                    resizing = true
-                                    homeScreen.resizingInstanceId = model.instanceId
-                                    startGlobal = mapToItem(gridContainer, mouse.x, mouse.y)
-                                    startColSpan = model.colSpan
-                                    startRowSpan = model.rowSpan
-                                    proposedColSpan = startColSpan
-                                    proposedRowSpan = startRowSpan
-                                    lastClampedCols = startColSpan
-                                    lastClampedRows = startRowSpan
-
-                                    // Position ghost at current widget bounds
-                                    resizeGhost.x = model.column * gridContainer.cellWidth
-                                    resizeGhost.y = model.row * gridContainer.cellHeight
-                                    resizeGhost.width = model.colSpan * gridContainer.cellWidth
-                                    resizeGhost.height = model.rowSpan * gridContainer.cellHeight
-                                    resizeGhost.visible = true
-                                    resizeGhost.isValid = true
-
-                                    inactivityTimer.restart()
-                                    mouse.accepted = true
+                                // Vertical lines
+                                Repeater {
+                                    model: WidgetGridModel.gridColumns + 1
+                                    delegate: Column {
+                                        x: index * homeScreen.cellWidth
+                                        y: 0
+                                        height: pageGridContent.height
+                                        spacing: UiMetrics.spacing
+                                        Repeater {
+                                            model: Math.ceil(pageGridContent.height / (UiMetrics.spacing + 2))
+                                            delegate: Rectangle {
+                                                width: 1
+                                                height: 2
+                                                color: ThemeService.outlineVariant
+                                                opacity: 0.3
+                                            }
+                                        }
+                                    }
                                 }
 
-                                onPositionChanged: function(mouse) {
-                                    if (!resizing) return
-                                    var current = mapToItem(gridContainer, mouse.x, mouse.y)
-                                    var deltaCols = Math.round((current.x - startGlobal.x) / gridContainer.cellWidth)
-                                    var deltaRows = Math.round((current.y - startGlobal.y) / gridContainer.cellHeight)
-
-                                    var newColSpan = startColSpan + deltaCols
-                                    var newRowSpan = startRowSpan + deltaRows
-
-                                    // Clamp to min/max constraints
-                                    var wasAtLimit = false
-                                    if (newColSpan < model.minCols) { newColSpan = model.minCols; wasAtLimit = true }
-                                    if (newColSpan > model.maxCols) { newColSpan = model.maxCols; wasAtLimit = true }
-                                    if (newRowSpan < model.minRows) { newRowSpan = model.minRows; wasAtLimit = true }
-                                    if (newRowSpan > model.maxRows) { newRowSpan = model.maxRows; wasAtLimit = true }
-
-                                    // Clamp to grid bounds
-                                    if (model.column + newColSpan > WidgetGridModel.gridColumns) {
-                                        newColSpan = WidgetGridModel.gridColumns - model.column
-                                        wasAtLimit = true
+                                // Horizontal lines
+                                Repeater {
+                                    model: WidgetGridModel.gridRows + 1
+                                    delegate: Row {
+                                        x: 0
+                                        y: index * homeScreen.cellHeight
+                                        width: pageGridContent.width
+                                        spacing: UiMetrics.spacing
+                                        Repeater {
+                                            model: Math.ceil(pageGridContent.width / (UiMetrics.spacing + 2))
+                                            delegate: Rectangle {
+                                                width: 2
+                                                height: 1
+                                                color: ThemeService.outlineVariant
+                                                opacity: 0.3
+                                            }
+                                        }
                                     }
-                                    if (model.row + newRowSpan > WidgetGridModel.gridRows) {
-                                        newRowSpan = WidgetGridModel.gridRows - model.row
-                                        wasAtLimit = true
-                                    }
-
-                                    // Ensure minimum 1
-                                    newColSpan = Math.max(1, newColSpan)
-                                    newRowSpan = Math.max(1, newRowSpan)
-
-                                    proposedColSpan = newColSpan
-                                    proposedRowSpan = newRowSpan
-
-                                    // Check if proposed size overlaps other widgets
-                                    var valid = WidgetGridModel.canPlace(model.column, model.row,
-                                        newColSpan, newRowSpan, model.instanceId)
-                                    resizeGhost.isValid = valid
-
-                                    // Flash on boundary hit (only when value actually changed to limit)
-                                    if (wasAtLimit && (newColSpan !== lastClampedCols || newRowSpan !== lastClampedRows)) {
-                                        limitFlash.restart()
-                                    }
-                                    lastClampedCols = newColSpan
-                                    lastClampedRows = newRowSpan
-
-                                    // Update ghost size
-                                    resizeGhost.width = newColSpan * gridContainer.cellWidth
-                                    resizeGhost.height = newRowSpan * gridContainer.cellHeight
-
-                                    inactivityTimer.restart()
                                 }
+                            }
 
-                                onReleased: {
-                                    resizing = false
-                                    homeScreen.resizingInstanceId = ""
-                                    resizeGhost.visible = false
+                            // Widget Repeater -- shows only widgets on this page
+                            Repeater {
+                                id: widgetRepeater
+                                model: WidgetGridModel
 
-                                    if (proposedColSpan !== startColSpan || proposedRowSpan !== startRowSpan) {
-                                        // Atomic write on release (EDIT-09)
-                                        WidgetGridModel.resizeWidget(model.instanceId, proposedColSpan, proposedRowSpan)
+                                delegate: Item {
+                                    id: delegateItem
+                                    x: model.column * homeScreen.cellWidth
+                                    y: model.row * homeScreen.cellHeight
+                                    width: model.colSpan * homeScreen.cellWidth
+                                    height: model.rowSpan * homeScreen.cellHeight
+                                    visible: model.page === pageIndex && model.visible
+                                    z: dragging ? 100 : 1
+
+                                    // Drag state
+                                    property bool dragging: false
+                                    property real dragStartX: 0
+                                    property real dragStartY: 0
+                                    property real pressOffsetX: 0
+                                    property real pressOffsetY: 0
+                                    property real originalX: 0
+                                    property real originalY: 0
+
+                                    function finalizeDrop() {
+                                        if (!dragging) return
+                                        dragging = false
+                                        homeScreen.draggingInstanceId = ""
+                                        homeScreen.draggingDelegate = null
+                                        dropHighlight.visible = false
+                                        dragPlaceholder.visible = false
+                                        opacity = 1.0
+                                        scale = 1.0
+                                        var targetCol = Math.round(x / homeScreen.cellWidth)
+                                        var targetRow = Math.round(y / homeScreen.cellHeight)
+                                        targetCol = Math.max(0, Math.min(targetCol, WidgetGridModel.gridColumns - model.colSpan))
+                                        targetRow = Math.max(0, Math.min(targetRow, WidgetGridModel.gridRows - model.rowSpan))
+                                        if (WidgetGridModel.moveWidget(model.instanceId, targetCol, targetRow)) {
+                                            x = Qt.binding(function() { return model.column * homeScreen.cellWidth })
+                                            y = Qt.binding(function() { return model.row * homeScreen.cellHeight })
+                                        } else {
+                                            snapBackX.to = originalX
+                                            snapBackY.to = originalY
+                                            snapBackX.running = true
+                                            snapBackY.running = true
+                                            snapBackTimer.start()
+                                        }
+                                    }
+
+                                    // Force-reset drag state when edit mode exits (EVIOCGRAB safety)
+                                    Connections {
+                                        target: homeScreen
+                                        function onEditModeChanged() {
+                                            if (!homeScreen.editMode && delegateItem.dragging) {
+                                                delegateItem.dragging = false
+                                                delegateItem.opacity = 1.0
+                                                delegateItem.scale = 1.0
+                                                delegateItem.x = Qt.binding(function() { return model.column * homeScreen.cellWidth })
+                                                delegateItem.y = Qt.binding(function() { return model.row * homeScreen.cellHeight })
+                                            }
+                                        }
+                                    }
+
+                                    // Snap-back animation
+                                    NumberAnimation on x {
+                                        id: snapBackX
+                                        running: false
+                                        duration: 200
+                                        easing.type: Easing.OutCubic
+                                    }
+                                    NumberAnimation on y {
+                                        id: snapBackY
+                                        running: false
+                                        duration: 200
+                                        easing.type: Easing.OutCubic
+                                    }
+
+                                    // Inner content with gutter margins
+                                    Item {
+                                        id: innerContent
+                                        anchors.fill: parent
+                                        anchors.margins: UiMetrics.spacing / 2
+
+                                        // Glass card background
+                                        Rectangle {
+                                            anchors.fill: parent
+                                            radius: UiMetrics.radius
+                                            color: ThemeService.surfaceContainer
+                                            opacity: model.opacity
+                                        }
+
+                                        // Widget content
+                                        Loader {
+                                            id: widgetLoader
+                                            anchors.fill: parent
+                                            source: model.qmlComponent
+                                            asynchronous: false
+
+                                            function requestContextMenu() {
+                                                if (homeScreen.editMode) {
+                                                    widgetMouseArea.initiateDrag()
+                                                } else {
+                                                    homeScreen.editMode = true
+                                                }
+                                            }
+
+                                            onStatusChanged: {
+                                                if (status === Loader.Error)
+                                                    console.warn("HomeMenu: failed to load widget", model.qmlComponent)
+                                            }
+                                        }
+
+                                        // Long-press / tap detector behind widget content
+                                        MouseArea {
+                                            id: widgetMouseArea
+                                            anchors.fill: parent
+                                            z: -1
+                                            pressAndHoldInterval: homeScreen.editMode ? 200 : 500
+
+                                            function initiateDrag() {
+                                                delegateItem.dragging = true
+                                                homeScreen.draggingInstanceId = model.instanceId
+                                                homeScreen.draggingDelegate = delegateItem
+                                                homeScreen._dragColSpan = model.colSpan
+                                                homeScreen._dragRowSpan = model.rowSpan
+                                                delegateItem.originalX = delegateItem.x
+                                                delegateItem.originalY = delegateItem.y
+                                                delegateItem.pressOffsetX = delegateItem.width / 2
+                                                delegateItem.pressOffsetY = delegateItem.height / 2
+                                                delegateItem.opacity = 0.5
+                                                delegateItem.scale = 1.05
+                                                // Map placeholder position from page-local to homeScreen coords
+                                                var phPos = delegateItem.parent.mapToItem(homeScreen, delegateItem.originalX, delegateItem.originalY)
+                                                dragPlaceholder.x = phPos.x
+                                                dragPlaceholder.y = phPos.y
+                                                dragPlaceholder.width = model.colSpan * homeScreen.cellWidth
+                                                dragPlaceholder.height = model.rowSpan * homeScreen.cellHeight
+                                                dragPlaceholder.visible = true
+                                                inactivityTimer.restart()
+                                            }
+
+                                            onPressAndHold: function(mouse) {
+                                                if (!homeScreen.editMode) {
+                                                    homeScreen.editMode = true
+                                                    return
+                                                }
+                                                delegateItem.pressOffsetX = mouse.x
+                                                delegateItem.pressOffsetY = mouse.y
+                                                initiateDrag()
+                                                delegateItem.pressOffsetX = mouse.x
+                                                delegateItem.pressOffsetY = mouse.y
+                                            }
+
+                                            onClicked: {
+                                                if (homeScreen.editMode) {
+                                                    homeScreen.exitEditMode()
+                                                }
+                                            }
+                                        }
+
+                                        // Timer to rebind position after snap-back animation
+                                        Timer {
+                                            id: snapBackTimer
+                                            interval: 250
+                                            onTriggered: {
+                                                delegateItem.x = Qt.binding(function() { return model.column * homeScreen.cellWidth })
+                                                delegateItem.y = Qt.binding(function() { return model.row * homeScreen.cellHeight })
+                                            }
+                                        }
+
+                                        // --- Edit mode overlays ---
+
+                                        // Accent border
+                                        Rectangle {
+                                            anchors.fill: parent
+                                            color: "transparent"
+                                            border.width: 2
+                                            border.color: ThemeService.primary
+                                            radius: UiMetrics.radius
+                                            visible: homeScreen.editMode
+                                            z: 10
+                                        }
+
+                                        // X remove badge (top-right)
+                                        Rectangle {
+                                            id: removeBadge
+                                            width: 28
+                                            height: 28
+                                            radius: 14
+                                            color: ThemeService.error
+                                            anchors.right: parent.right
+                                            anchors.top: parent.top
+                                            anchors.rightMargin: -6
+                                            anchors.topMargin: -6
+                                            visible: homeScreen.editMode
+                                            z: 20
+
+                                            MaterialIcon {
+                                                icon: "\ue5cd"
+                                                size: 16
+                                                color: ThemeService.onError
+                                                anchors.centerIn: parent
+                                            }
+
+                                            MouseArea {
+                                                anchors.fill: parent
+                                                onClicked: {
+                                                    WidgetGridModel.removeWidget(model.instanceId)
+                                                    inactivityTimer.restart()
+                                                }
+                                            }
+                                        }
+
+                                        // Resize handle (bottom-right) with drag-to-resize
+                                        Rectangle {
+                                            id: resizeHandle
+                                            width: UiMetrics.touchMin * 0.5
+                                            height: UiMetrics.touchMin * 0.5
+                                            radius: UiMetrics.radiusSmall
+                                            color: ThemeService.primary
+                                            opacity: 0.7
+                                            anchors.right: parent.right
+                                            anchors.bottom: parent.bottom
+                                            anchors.rightMargin: UiMetrics.spacing * 0.25
+                                            anchors.bottomMargin: UiMetrics.spacing * 0.25
+                                            visible: homeScreen.editMode
+                                            z: 20
+
+                                            MouseArea {
+                                                anchors.fill: parent
+                                                anchors.margins: -UiMetrics.spacing / 2
+                                                preventStealing: true
+
+                                                property point startGlobal: Qt.point(0, 0)
+                                                property int startColSpan: 0
+                                                property int startRowSpan: 0
+                                                property int proposedColSpan: 0
+                                                property int proposedRowSpan: 0
+                                                property bool resizing: false
+                                                property int lastClampedCols: 0
+                                                property int lastClampedRows: 0
+
+                                                onPressed: function(mouse) {
+                                                    resizing = true
+                                                    homeScreen.resizingInstanceId = model.instanceId
+                                                    startGlobal = mapToItem(pageGridContent, mouse.x, mouse.y)
+                                                    startColSpan = model.colSpan
+                                                    startRowSpan = model.rowSpan
+                                                    proposedColSpan = startColSpan
+                                                    proposedRowSpan = startRowSpan
+                                                    lastClampedCols = startColSpan
+                                                    lastClampedRows = startRowSpan
+
+                                                    // Map ghost position from page-local to homeScreen coords
+                                                    var ghostPos = pageGridContent.mapToItem(homeScreen,
+                                                        model.column * homeScreen.cellWidth, model.row * homeScreen.cellHeight)
+                                                    resizeGhost.x = ghostPos.x
+                                                    resizeGhost.y = ghostPos.y
+                                                    resizeGhost.width = model.colSpan * homeScreen.cellWidth
+                                                    resizeGhost.height = model.rowSpan * homeScreen.cellHeight
+                                                    resizeGhost.visible = true
+                                                    resizeGhost.isValid = true
+
+                                                    inactivityTimer.restart()
+                                                    mouse.accepted = true
+                                                }
+
+                                                onPositionChanged: function(mouse) {
+                                                    if (!resizing) return
+                                                    var current = mapToItem(pageGridContent, mouse.x, mouse.y)
+                                                    var deltaCols = Math.round((current.x - startGlobal.x) / homeScreen.cellWidth)
+                                                    var deltaRows = Math.round((current.y - startGlobal.y) / homeScreen.cellHeight)
+
+                                                    var newColSpan = startColSpan + deltaCols
+                                                    var newRowSpan = startRowSpan + deltaRows
+
+                                                    var wasAtLimit = false
+                                                    if (newColSpan < model.minCols) { newColSpan = model.minCols; wasAtLimit = true }
+                                                    if (newColSpan > model.maxCols) { newColSpan = model.maxCols; wasAtLimit = true }
+                                                    if (newRowSpan < model.minRows) { newRowSpan = model.minRows; wasAtLimit = true }
+                                                    if (newRowSpan > model.maxRows) { newRowSpan = model.maxRows; wasAtLimit = true }
+
+                                                    if (model.column + newColSpan > WidgetGridModel.gridColumns) {
+                                                        newColSpan = WidgetGridModel.gridColumns - model.column
+                                                        wasAtLimit = true
+                                                    }
+                                                    if (model.row + newRowSpan > WidgetGridModel.gridRows) {
+                                                        newRowSpan = WidgetGridModel.gridRows - model.row
+                                                        wasAtLimit = true
+                                                    }
+
+                                                    newColSpan = Math.max(1, newColSpan)
+                                                    newRowSpan = Math.max(1, newRowSpan)
+
+                                                    proposedColSpan = newColSpan
+                                                    proposedRowSpan = newRowSpan
+
+                                                    var valid = WidgetGridModel.canPlace(model.column, model.row,
+                                                        newColSpan, newRowSpan, model.instanceId)
+                                                    resizeGhost.isValid = valid
+
+                                                    if (wasAtLimit && (newColSpan !== lastClampedCols || newRowSpan !== lastClampedRows)) {
+                                                        limitFlash.restart()
+                                                    }
+                                                    lastClampedCols = newColSpan
+                                                    lastClampedRows = newRowSpan
+
+                                                    resizeGhost.width = newColSpan * homeScreen.cellWidth
+                                                    resizeGhost.height = newRowSpan * homeScreen.cellHeight
+
+                                                    inactivityTimer.restart()
+                                                }
+
+                                                onReleased: {
+                                                    resizing = false
+                                                    homeScreen.resizingInstanceId = ""
+                                                    resizeGhost.visible = false
+
+                                                    if (proposedColSpan !== startColSpan || proposedRowSpan !== startRowSpan) {
+                                                        WidgetGridModel.resizeWidget(model.instanceId, proposedColSpan, proposedRowSpan)
+                                                    }
+                                                }
+                                            }
+                                        }
                                     }
                                 }
                             }
@@ -564,13 +502,173 @@ Item {
             }
         }
 
-        // Launcher dock -- fixed at bottom
+        // Page indicator dots (PAGE-02)
+        PageIndicator {
+            id: pageIndicator
+            Layout.alignment: Qt.AlignHCenter
+            count: pageView.count
+            currentIndex: pageView.currentIndex
+            interactive: true  // Always tappable, including during edit mode (PAGE-07)
+
+            delegate: Rectangle {
+                implicitWidth: UiMetrics.spacing * 1.2
+                implicitHeight: implicitWidth
+                radius: width / 2
+                color: index === pageIndicator.currentIndex
+                       ? ThemeService.primary
+                       : ThemeService.onSurfaceVariant
+                opacity: index === pageIndicator.currentIndex ? 1.0 : 0.4
+
+                required property int index
+                Behavior on opacity { OpacityAnimator { duration: 150 } }
+            }
+
+            onCurrentIndexChanged: {
+                if (currentIndex !== pageView.currentIndex)
+                    pageView.setCurrentIndex(currentIndex)
+            }
+        }
+
+        // Launcher dock -- fixed at bottom (PAGE-03)
         LauncherDock {
             Layout.fillWidth: true
         }
     }
 
-    // ---- FAB (floating action button) for adding widgets ----
+    // ---- Overlays that must stay OUTSIDE SwipeView (at homeScreen level) ----
+    // These need full-screen coverage, not clipped to a single page.
+
+    // Drop highlight rectangle (shows valid/invalid drop target during drag)
+    Rectangle {
+        id: dropHighlight
+        visible: false
+        z: 5
+        radius: UiMetrics.radius
+        border.width: 2
+        color: "transparent"
+        opacity: 0.6
+        property bool isValid: true
+        border.color: isValid ? ThemeService.primary : ThemeService.error
+    }
+
+    // Placeholder at original position during drag
+    Rectangle {
+        id: dragPlaceholder
+        visible: false
+        z: 1
+        color: "transparent"
+        border.width: 1
+        border.color: ThemeService.outlineVariant
+        radius: UiMetrics.radius
+        opacity: 0.4
+    }
+
+    // Drag overlay -- captures touch movement when a widget is being dragged
+    MouseArea {
+        id: dragOverlay
+        anchors.fill: parent
+        z: 200
+        enabled: homeScreen.draggingInstanceId !== ""
+        visible: enabled
+
+        onPositionChanged: function(mouse) {
+            var d = homeScreen.draggingDelegate
+            if (!d) return
+            // Convert mouse position to page-local coordinates
+            var pageLocal = mapToItem(d.parent, mouse.x, mouse.y)
+            d.x = pageLocal.x - d.pressOffsetX
+            d.y = pageLocal.y - d.pressOffsetY
+            var cs = homeScreen._dragColSpan
+            var rs = homeScreen._dragRowSpan
+            var targetCol = Math.round(d.x / homeScreen.cellWidth)
+            var targetRow = Math.round(d.y / homeScreen.cellHeight)
+            targetCol = Math.max(0, Math.min(targetCol, WidgetGridModel.gridColumns - cs))
+            targetRow = Math.max(0, Math.min(targetRow, WidgetGridModel.gridRows - rs))
+            var valid = WidgetGridModel.canPlace(targetCol, targetRow, cs, rs, homeScreen.draggingInstanceId)
+
+            // Position drop highlight -- map from page-local to homeScreen coords
+            var pageItem = d.parent
+            var hlPos = pageItem.mapToItem(homeScreen, targetCol * homeScreen.cellWidth, targetRow * homeScreen.cellHeight)
+            dropHighlight.x = hlPos.x
+            dropHighlight.y = hlPos.y
+            dropHighlight.width = cs * homeScreen.cellWidth
+            dropHighlight.height = rs * homeScreen.cellHeight
+            dropHighlight.isValid = valid
+            dropHighlight.visible = true
+
+            inactivityTimer.restart()
+        }
+
+        onReleased: function(mouse) {
+            var d = homeScreen.draggingDelegate
+            if (!d) return
+            d.finalizeDrop()
+        }
+    }
+
+    // Resize ghost rectangle (shows proposed size during resize)
+    Rectangle {
+        id: resizeGhost
+        visible: false
+        z: 50
+        color: "transparent"
+        border.width: 2
+        radius: UiMetrics.radius
+        opacity: 0.7
+        property bool isValid: true
+        border.color: isValid ? ThemeService.primary : ThemeService.error
+
+        SequentialAnimation {
+            id: limitFlash
+            PropertyAnimation {
+                target: resizeGhost
+                property: "border.color"
+                to: ThemeService.tertiary
+                duration: 100
+            }
+            PropertyAnimation {
+                target: resizeGhost
+                property: "border.color"
+                to: resizeGhost.isValid ? ThemeService.primary : ThemeService.error
+                duration: 100
+            }
+        }
+    }
+
+    // ---- FABs (floating action buttons) ----
+
+    // Add-page FAB (edit mode, above add-widget FAB)
+    Rectangle {
+        id: addPageFab
+        width: UiMetrics.touchMin * 1.2
+        height: width
+        radius: width / 2
+        color: ThemeService.primary
+        visible: homeScreen.editMode
+        z: 50
+        anchors.right: parent.right
+        anchors.bottom: fab.top
+        anchors.rightMargin: UiMetrics.marginPage * 2
+        anchors.bottomMargin: UiMetrics.spacing
+
+        MaterialIcon {
+            icon: "\ue85d"  // library_add
+            size: UiMetrics.iconSize
+            color: ThemeService.onPrimary
+            anchors.centerIn: parent
+        }
+
+        MouseArea {
+            anchors.fill: parent
+            onClicked: {
+                inactivityTimer.restart()
+                WidgetGridModel.addPage()
+                pageView.setCurrentIndex(WidgetGridModel.pageCount - 1)
+            }
+        }
+    }
+
+    // Add-widget FAB
     Rectangle {
         id: fab
         width: UiMetrics.touchMin * 1.2
@@ -595,7 +693,6 @@ Item {
             anchors.fill: parent
             onClicked: {
                 inactivityTimer.restart()
-                // Check if there's any space at all (1x1 minimum)
                 var cell = WidgetGridModel.findFirstAvailableCell(1, 1)
                 if (cell.col < 0) {
                     toast.show("No space available \u2014 remove a widget first")
@@ -604,6 +701,141 @@ Item {
                         WidgetGridModel.gridColumns,
                         WidgetGridModel.gridRows)
                     pickerOverlay.visible = true
+                }
+            }
+        }
+    }
+
+    // Delete-page FAB (edit mode, left side, only when pageCount > 1 and not on page 0)
+    Rectangle {
+        id: deletePageFab
+        width: UiMetrics.touchMin * 1.2
+        height: width
+        radius: width / 2
+        color: ThemeService.error
+        visible: homeScreen.editMode && WidgetGridModel.pageCount > 1 && pageView.currentIndex > 0
+        z: 50
+        anchors.left: parent.left
+        anchors.bottom: parent.bottom
+        anchors.leftMargin: UiMetrics.marginPage * 2
+        anchors.bottomMargin: UiMetrics.marginPage * 2 + UiMetrics.touchMin + UiMetrics.spacing
+
+        MaterialIcon {
+            icon: "\ue872"  // delete
+            size: UiMetrics.iconSize
+            color: ThemeService.onError
+            anchors.centerIn: parent
+        }
+
+        MouseArea {
+            anchors.fill: parent
+            onClicked: {
+                inactivityTimer.restart()
+                deletePageDialog.targetPage = pageView.currentIndex
+                deletePageDialog.widgetCount = WidgetGridModel.widgetCountOnPage(pageView.currentIndex)
+                deletePageDialog.visible = true
+            }
+        }
+    }
+
+    // ---- Delete page confirmation dialog ----
+    Item {
+        id: deletePageDialog
+        anchors.fill: parent
+        visible: false
+        z: 300
+
+        property int targetPage: -1
+        property int widgetCount: 0
+
+        // Scrim
+        Rectangle {
+            anchors.fill: parent
+            color: ThemeService.scrim
+            opacity: 0.4
+            MouseArea {
+                anchors.fill: parent
+                onClicked: deletePageDialog.visible = false
+            }
+        }
+
+        // Dialog card
+        Rectangle {
+            anchors.centerIn: parent
+            width: Math.min(parent.width * 0.6, 400)
+            height: dialogContent.implicitHeight + UiMetrics.spacing * 3
+            radius: UiMetrics.radiusLarge
+            color: ThemeService.surfaceContainerHighest
+
+            ColumnLayout {
+                id: dialogContent
+                anchors.fill: parent
+                anchors.margins: UiMetrics.spacing * 1.5
+                spacing: UiMetrics.spacing
+
+                NormalText {
+                    text: "Delete page and " + deletePageDialog.widgetCount + " widget"
+                          + (deletePageDialog.widgetCount !== 1 ? "s" : "") + "?"
+                    font.pixelSize: UiMetrics.fontTitle
+                    color: ThemeService.onSurface
+                    Layout.fillWidth: true
+                    wrapMode: Text.WordWrap
+                }
+
+                RowLayout {
+                    Layout.alignment: Qt.AlignRight
+                    spacing: UiMetrics.spacing
+
+                    // Cancel button
+                    Rectangle {
+                        width: cancelText.implicitWidth + UiMetrics.spacing * 2
+                        height: UiMetrics.touchMin * 0.8
+                        radius: UiMetrics.radiusSmall
+                        color: cancelMA.pressed ? ThemeService.surfaceContainer : "transparent"
+
+                        NormalText {
+                            id: cancelText
+                            text: "Cancel"
+                            font.pixelSize: UiMetrics.fontSmall
+                            color: ThemeService.onSurface
+                            anchors.centerIn: parent
+                        }
+
+                        MouseArea {
+                            id: cancelMA
+                            anchors.fill: parent
+                            onClicked: deletePageDialog.visible = false
+                        }
+                    }
+
+                    // Delete button
+                    Rectangle {
+                        width: deleteText.implicitWidth + UiMetrics.spacing * 2
+                        height: UiMetrics.touchMin * 0.8
+                        radius: UiMetrics.radiusSmall
+                        color: deleteMA.pressed ? Qt.darker(ThemeService.error, 1.2) : ThemeService.error
+
+                        NormalText {
+                            id: deleteText
+                            text: "Delete"
+                            font.pixelSize: UiMetrics.fontSmall
+                            color: ThemeService.onError
+                            anchors.centerIn: parent
+                        }
+
+                        MouseArea {
+                            id: deleteMA
+                            anchors.fill: parent
+                            onClicked: {
+                                var savedIndex = deletePageDialog.targetPage
+                                WidgetGridModel.removePage(deletePageDialog.targetPage)
+                                var newIndex = Math.min(savedIndex, WidgetGridModel.pageCount - 1)
+                                pageView.setCurrentIndex(newIndex)
+                                deletePageDialog.visible = false
+                                inactivityTimer.restart()
+                            }
+                        }
+                    }
                 }
             }
         }
