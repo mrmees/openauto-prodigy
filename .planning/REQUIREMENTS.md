@@ -20,14 +20,14 @@ Requirements for Widget Grid & Content Widgets milestone. Each maps to roadmap p
 
 ### Edit Mode
 
-- [ ] **EDIT-01**: Long-press on empty grid area or widget background enters screen-wide edit mode
-- [ ] **EDIT-02**: Edit mode shows visual feedback on all widgets (accent borders + resize handles)
+- [x] **EDIT-01**: Long-press on empty grid area or widget background enters screen-wide edit mode
+- [x] **EDIT-02**: Edit mode shows visual feedback on all widgets (accent borders + resize handles)
 - [ ] **EDIT-03**: User can drag a widget to reposition it on the grid (snaps to cells on drop, blocked if target occupied)
 - [ ] **EDIT-04**: User can drag corner handles to resize a widget within its min/max span constraints
 - [x] **EDIT-05**: "+" button (FAB) in edit mode opens widget catalog to add a new widget
-- [ ] **EDIT-06**: "X" badge on each widget in edit mode removes it from the grid
-- [ ] **EDIT-07**: Edit mode exits on tap outside any widget or after 10-second timeout (safety)
-- [ ] **EDIT-08**: Edit mode auto-exits when AA fullscreen activates (EVIOCGRAB steals touch)
+- [x] **EDIT-06**: "X" badge on each widget in edit mode removes it from the grid
+- [x] **EDIT-07**: Edit mode exits on tap outside any widget or after 10-second timeout (safety)
+- [x] **EDIT-08**: Edit mode auto-exits when AA fullscreen activates (EVIOCGRAB steals touch)
 - [ ] **EDIT-09**: Layout writes are atomic — persist on drop/commit, not during drag
 - [x] **EDIT-10**: Adding a widget when no space is available shows clear feedback (no silent failure)
 
@@ -110,14 +110,14 @@ Deferred to subsequent milestones.
 | GRID-06 | Phase 05 | Complete |
 | GRID-07 | Phase 04 | Complete |
 | GRID-08 | Phase 04 | Complete |
-| EDIT-01 | Phase 07 | Pending |
-| EDIT-02 | Phase 07 | Pending |
+| EDIT-01 | Phase 07 | Complete |
+| EDIT-02 | Phase 07 | Complete |
 | EDIT-03 | Phase 07 | Pending |
 | EDIT-04 | Phase 07 | Pending |
 | EDIT-05 | Phase 07 | Complete |
-| EDIT-06 | Phase 07 | Pending |
-| EDIT-07 | Phase 07 | Pending |
-| EDIT-08 | Phase 07 | Pending |
+| EDIT-06 | Phase 07 | Complete |
+| EDIT-07 | Phase 07 | Complete |
+| EDIT-08 | Phase 07 | Complete |
 | EDIT-09 | Phase 07 | Pending |
 | EDIT-10 | Phase 07 | Complete |
 | PAGE-01 | Phase 08 | Pending |
