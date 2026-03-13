@@ -132,6 +132,9 @@ oap_add_test(test_widget_grid_model SOURCES test_widget_grid_model.cpp)
 
 # --- Media bridge tests ---
 
+oap_add_test(test_android_auto_runtime_bridge SOURCES test_android_auto_runtime_bridge.cpp)
+oap_add_test(test_gesture_overlay_controller SOURCES test_gesture_overlay_controller.cpp)
+
 oap_add_test(test_media_data_bridge SOURCES test_media_data_bridge.cpp)
 
 # --- Navigation bridge tests ---

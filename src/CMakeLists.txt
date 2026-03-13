@@ -18,6 +18,7 @@ add_library(openauto-core STATIC
     core/aa/AndroidAutoOrchestrator.cpp
     core/aa/MediaDataBridge.cpp
     core/aa/NavigationDataBridge.cpp
+    core/aa/AndroidAutoRuntimeBridge.cpp
     ui/ApplicationController.cpp
     ui/PluginModel.cpp
     ui/PluginRuntimeContext.cpp
@@ -27,6 +28,7 @@ add_library(openauto-core STATIC
     ui/PairedDevicesModel.cpp
     ui/CodecCapabilityModel.cpp
     ui/NavbarController.cpp
+    ui/GestureOverlayController.cpp
     ui/DisplayInfo.cpp
     core/plugin/HostContext.cpp
     core/services/ConfigService.cpp
