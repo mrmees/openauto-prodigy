@@ -63,6 +63,15 @@ private slots:
     void testSetGridDimensionsHidesOverlapping();
     void testHiddenWidgetsNotInOccupancy();
     void testGridDimensionsProperties();
+    // Constraint role tests
+    void testConstraintRoles();
+    void testConstraintRolesFallback();
+    void testDefaultSpanRoles();
+    // findFirstAvailableCell tests
+    void testFindFirstAvailableCellEmpty();
+    void testFindFirstAvailableCellSkipsOccupied();
+    void testFindFirstAvailableCellNoFitWide();
+    void testFindFirstAvailableCellGridFull();
 };
 
 void TestWidgetGridModel::testPlaceWidgetSuccess() {
@@ -370,6 +379,109 @@ void TestWidgetGridModel::testGridDimensionsProperties() {
     QCOMPARE(spy.count(), 1);
     QCOMPARE(model.gridColumns(), 5);
     QCOMPARE(model.gridRows(), 3);
+}
+
+void TestWidgetGridModel::testConstraintRoles() {
+    auto* reg = makeRegistry();
+    oap::WidgetGridModel model(reg);
+    model.setGridDimensions(6, 4);
+
+    model.placeWidget("status", 0, 0, 2, 1);
+    QModelIndex idx = model.index(0);
+
+    // status: minCols=1, minRows=1, maxCols=3, maxRows=2
+    QCOMPARE(idx.data(oap::WidgetGridModel::MinColsRole).toInt(), 1);
+    QCOMPARE(idx.data(oap::WidgetGridModel::MinRowsRole).toInt(), 1);
+    QCOMPARE(idx.data(oap::WidgetGridModel::MaxColsRole).toInt(), 3);
+    QCOMPARE(idx.data(oap::WidgetGridModel::MaxRowsRole).toInt(), 2);
+}
+
+void TestWidgetGridModel::testConstraintRolesFallback() {
+    // Registry with no descriptor for "unknown"
+    auto* reg = makeRegistry();
+    oap::WidgetGridModel model(reg);
+    model.setGridDimensions(6, 4);
+
+    // Manually set placement with unknown widget ID
+    QList<oap::GridPlacement> placements;
+    oap::GridPlacement p;
+    p.instanceId = "unknown-0";
+    p.widgetId = "unknown";
+    p.col = 0; p.row = 0;
+    p.colSpan = 1; p.rowSpan = 1;
+    p.opacity = 0.25; p.visible = true;
+    placements.append(p);
+    model.setPlacements(placements);
+
+    QModelIndex idx = model.index(0);
+    // Fallbacks: minCols=1, minRows=1, maxCols=6, maxRows=4
+    QCOMPARE(idx.data(oap::WidgetGridModel::MinColsRole).toInt(), 1);
+    QCOMPARE(idx.data(oap::WidgetGridModel::MinRowsRole).toInt(), 1);
+    QCOMPARE(idx.data(oap::WidgetGridModel::MaxColsRole).toInt(), 6);
+    QCOMPARE(idx.data(oap::WidgetGridModel::MaxRowsRole).toInt(), 4);
+}
+
+void TestWidgetGridModel::testDefaultSpanRoles() {
+    auto* reg = makeRegistry();
+    oap::WidgetGridModel model(reg);
+    model.setGridDimensions(6, 4);
+
+    model.placeWidget("clock", 0, 0, 2, 2);
+    QModelIndex idx = model.index(0);
+
+    // clock: defaultCols=2, defaultRows=2
+    QCOMPARE(idx.data(oap::WidgetGridModel::DefaultColsRole).toInt(), 2);
+    QCOMPARE(idx.data(oap::WidgetGridModel::DefaultRowsRole).toInt(), 2);
+}
+
+void TestWidgetGridModel::testFindFirstAvailableCellEmpty() {
+    auto* reg = makeRegistry();
+    oap::WidgetGridModel model(reg);
+    model.setGridDimensions(6, 4);
+
+    QVariantMap result = model.findFirstAvailableCell(2, 2);
+    QCOMPARE(result["col"].toInt(), 0);
+    QCOMPARE(result["row"].toInt(), 0);
+}
+
+void TestWidgetGridModel::testFindFirstAvailableCellSkipsOccupied() {
+    auto* reg = makeRegistry();
+    oap::WidgetGridModel model(reg);
+    model.setGridDimensions(6, 4);
+
+    // Occupy top-left 2x2
+    model.placeWidget("clock", 0, 0, 2, 2);
+
+    QVariantMap result = model.findFirstAvailableCell(2, 2);
+    QCOMPARE(result["col"].toInt(), 2);
+    QCOMPARE(result["row"].toInt(), 0);
+}
+
+void TestWidgetGridModel::testFindFirstAvailableCellNoFitWide() {
+    auto* reg = makeRegistry();
+    oap::WidgetGridModel model(reg);
+    model.setGridDimensions(6, 4);
+
+    // Widget wider than grid
+    QVariantMap result = model.findFirstAvailableCell(7, 1);
+    QCOMPARE(result["col"].toInt(), -1);
+    QCOMPARE(result["row"].toInt(), -1);
+}
+
+void TestWidgetGridModel::testFindFirstAvailableCellGridFull() {
+    auto* reg = makeRegistry();
+    oap::WidgetGridModel model(reg);
+    model.setGridDimensions(2, 2);
+
+    // Fill entire 2x2 grid
+    model.placeWidget("tiny", 0, 0, 1, 1);
+    model.placeWidget("tiny", 1, 0, 1, 1);
+    model.placeWidget("tiny", 0, 1, 1, 1);
+    model.placeWidget("tiny", 1, 1, 1, 1);
+
+    QVariantMap result = model.findFirstAvailableCell(1, 1);
+    QCOMPARE(result["col"].toInt(), -1);
+    QCOMPARE(result["row"].toInt(), -1);
 }
 
 QTEST_GUILESS_MAIN(TestWidgetGridModel)
