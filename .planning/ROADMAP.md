@@ -163,12 +163,12 @@ Plans:
   2. Launcher dock remains visible and fixed across all pages
   3. Page swipe gesture is disabled during edit mode; page dots remain tappable for navigation
   4. Pages can be explicitly created and removed; empty pages are auto-cleaned
-  5. Up to 5 pages supported; page assignments persist across restarts; non-visible pages lazily instantiated
-**Plans**: TBD
+  5. No maximum page limit; page assignments persist across restarts; non-visible pages lazily instantiated
+**Plans**: 2 plans
 
 Plans:
-- [ ] 08-01: TBD
-- [ ] 08-02: TBD
+- [ ] 08-01-PLAN.md — Page-aware WidgetGridModel, schema v3 YAML persistence, page-scoped operations
+- [ ] 08-02-PLAN.md — SwipeView multi-page grid, PageIndicator, page management FABs, Pi verification
 
 ## Progress
 
@@ -182,7 +182,7 @@ Phases execute in numeric order: 04 -> 05 -> 06 + 07 (parallel-capable) -> 08
 | 05. Static Grid Rendering & Widget Revision | 2/2 | Complete    | 2026-03-12 |
 | 06. Content Widgets | 3/3 | Complete    | 2026-03-12 |
 | 07. Edit Mode | 3/3 | Complete    | 2026-03-13 |
-| 08. Multi-Page | 0/? | Not started | - |
+| 08. Multi-Page | 0/2 | Not started | - |
 
 ## Key Research Flags
 
@@ -190,7 +190,7 @@ Phases execute in numeric order: 04 -> 05 -> 06 + 07 (parallel-capable) -> 08
 - **Phase 05**: Use `QT_QML_SKIP_CACHEGEN` on all new widget QML files; verify on Pi with real touch
 - **Phase 06**: Nav turn events must be wired to EventBus (currently logged only); AA media metadata currently discarded in orchestrator; resolve dual BT/AA metadata flickering with priority logic
 - **Phase 07**: MouseArea+drag.target resolved (not DragHandler); ghost rectangle for resize preview (not animate width/height — janky on Pi); EVIOCGRAB/edit-mode interaction explicit via exitEditMode()
-- **Phase 08**: SwipeView.interactive must be disabled during edit mode; lazy page instantiation critical for Pi 4 memory
+- **Phase 08**: SwipeView.interactive must be disabled during edit mode; lazy page instantiation critical for Pi 4 memory; no max page limit per user decision (overrides PAGE-05)
 
 ---
-*Last updated: 2026-03-13 -- Phase 07 complete (3/3 plans), Phase 08 next*
+*Last updated: 2026-03-13 -- Phase 08 planned (2 plans), ready for execution*
