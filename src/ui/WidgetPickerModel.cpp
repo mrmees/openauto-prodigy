@@ -18,6 +18,8 @@ QVariant WidgetPickerModel::data(const QModelIndex& index, int role) const {
         case WidgetIdRole: return desc.id;
         case DisplayNameRole: return desc.displayName;
         case IconNameRole: return desc.iconName;
+        case DefaultColsRole: return desc.defaultCols;
+        case DefaultRowsRole: return desc.defaultRows;
         default: return {};
     }
 }
@@ -26,7 +28,9 @@ QHash<int, QByteArray> WidgetPickerModel::roleNames() const {
     return {
         {WidgetIdRole, "widgetId"},
         {DisplayNameRole, "displayName"},
-        {IconNameRole, "iconName"}
+        {IconNameRole, "iconName"},
+        {DefaultColsRole, "defaultCols"},
+        {DefaultRowsRole, "defaultRows"}
     };
 }
 

@@ -8,10 +8,45 @@ Item {
 
     Component.onCompleted: ApplicationController.setTitle("Home")
 
+    // Edit mode state
+    property bool editMode: false
+
     // Track which grid cell was long-pressed (for widget placement)
     property int _targetCol: 0
     property int _targetRow: 0
     property string _targetInstanceId: ""  // non-empty = editing existing widget
+
+    function exitEditMode() {
+        editMode = false
+        inactivityTimer.stop()
+        contextMenuOverlay.visible = false
+        pickerOverlay.visible = false
+        // Reset drag state (Plan 03 will add more here)
+    }
+
+    // Inactivity timer -- exits edit mode after 10s of no interaction
+    Timer {
+        id: inactivityTimer
+        interval: 10000
+        onTriggered: homeScreen.exitEditMode()
+    }
+
+    onEditModeChanged: {
+        if (editMode) {
+            inactivityTimer.restart()
+        } else {
+            inactivityTimer.stop()
+        }
+    }
+
+    // AA fullscreen auto-exit (EDIT-08)
+    Connections {
+        target: PluginModel
+        function onActivePluginChanged() {
+            if (PluginModel.activePluginFullscreen && homeScreen.editMode)
+                homeScreen.exitEditMode()
+        }
+    }
 
     ColumnLayout {
         anchors.fill: parent
@@ -27,26 +62,65 @@ Item {
             readonly property real cellWidth: width / WidgetGridModel.gridColumns
             readonly property real cellHeight: height / WidgetGridModel.gridRows
 
-            // Background long-press detector for empty grid space
+            // Background long-press / tap detector for empty grid space
             MouseArea {
                 anchors.fill: parent
                 pressAndHoldInterval: 500
                 onPressAndHold: function(mouse) {
-                    // Calculate which cell was pressed
-                    var col = Math.floor(mouse.x / gridContainer.cellWidth)
-                    var row = Math.floor(mouse.y / gridContainer.cellHeight)
-                    col = Math.max(0, Math.min(col, WidgetGridModel.gridColumns - 1))
-                    row = Math.max(0, Math.min(row, WidgetGridModel.gridRows - 1))
+                    if (!homeScreen.editMode) {
+                        homeScreen.editMode = true
+                    }
+                }
+                onClicked: {
+                    if (homeScreen.editMode) {
+                        homeScreen.exitEditMode()
+                    }
+                }
+            }
 
-                    // Only open picker on empty cells
-                    if (WidgetGridModel.canPlace(col, row, 1, 1)) {
-                        homeScreen._targetCol = col
-                        homeScreen._targetRow = row
-                        homeScreen._targetInstanceId = ""
-                        WidgetPickerModel.filterByAvailableSpace(
-                            WidgetGridModel.gridColumns - col,
-                            WidgetGridModel.gridRows - row)
-                        pickerOverlay.visible = true
+            // Dotted grid lines overlay (visible in editMode)
+            Item {
+                anchors.fill: parent
+                visible: homeScreen.editMode
+                z: 0
+
+                // Vertical lines
+                Repeater {
+                    model: WidgetGridModel.gridColumns + 1
+                    delegate: Column {
+                        x: index * gridContainer.cellWidth
+                        y: 0
+                        height: gridContainer.height
+                        spacing: UiMetrics.spacing
+                        Repeater {
+                            model: Math.ceil(gridContainer.height / (UiMetrics.spacing + 2))
+                            delegate: Rectangle {
+                                width: 1
+                                height: 2
+                                color: ThemeService.outlineVariant
+                                opacity: 0.3
+                            }
+                        }
+                    }
+                }
+
+                // Horizontal lines
+                Repeater {
+                    model: WidgetGridModel.gridRows + 1
+                    delegate: Row {
+                        x: 0
+                        y: index * gridContainer.cellHeight
+                        width: gridContainer.width
+                        spacing: UiMetrics.spacing
+                        Repeater {
+                            model: Math.ceil(gridContainer.width / (UiMetrics.spacing + 2))
+                            delegate: Rectangle {
+                                width: 2
+                                height: 1
+                                color: ThemeService.outlineVariant
+                                opacity: 0.3
+                            }
+                        }
                     }
                 }
             }
@@ -55,14 +129,17 @@ Item {
                 model: WidgetGridModel
 
                 delegate: Item {
+                    id: delegateItem
                     x: model.column * gridContainer.cellWidth
                     y: model.row * gridContainer.cellHeight
                     width: model.colSpan * gridContainer.cellWidth
                     height: model.rowSpan * gridContainer.cellHeight
                     visible: model.visible
+                    z: 1
 
                     // Inner content with gutter margins
                     Item {
+                        id: innerContent
                         anchors.fill: parent
                         anchors.margins: UiMetrics.spacing / 2
 
@@ -86,9 +163,10 @@ Item {
                                 homeScreen._targetCol = model.column
                                 homeScreen._targetRow = model.row
                                 homeScreen._targetInstanceId = model.instanceId
-                                contextMenuOverlay.anchorX = parent.mapToItem(homeScreen, parent.width / 2, parent.height / 2).x
-                                contextMenuOverlay.anchorY = parent.mapToItem(homeScreen, parent.width / 2, parent.height / 2).y
+                                contextMenuOverlay.anchorX = innerContent.mapToItem(homeScreen, innerContent.width / 2, innerContent.height / 2).x
+                                contextMenuOverlay.anchorY = innerContent.mapToItem(homeScreen, innerContent.width / 2, innerContent.height / 2).y
                                 contextMenuOverlay.visible = true
+                                inactivityTimer.restart()
                             }
 
                             onStatusChanged: {
@@ -97,19 +175,81 @@ Item {
                             }
                         }
 
-                        // Long-press detector behind widget content
+                        // Long-press / tap detector behind widget content
                         MouseArea {
                             anchors.fill: parent
                             z: -1
                             pressAndHoldInterval: 500
                             onPressAndHold: {
-                                homeScreen._targetCol = model.column
-                                homeScreen._targetRow = model.row
-                                homeScreen._targetInstanceId = model.instanceId
-                                contextMenuOverlay.anchorX = mapToItem(homeScreen, mouse.x, mouse.y).x
-                                contextMenuOverlay.anchorY = mapToItem(homeScreen, mouse.x, mouse.y).y
-                                contextMenuOverlay.visible = true
+                                if (!homeScreen.editMode) {
+                                    homeScreen.editMode = true
+                                }
+                                // In edit mode, pressAndHold is reserved for drag (Plan 03)
                             }
+                            onClicked: {
+                                if (homeScreen.editMode) {
+                                    widgetLoader.requestContextMenu()
+                                }
+                            }
+                        }
+
+                        // --- Edit mode overlays ---
+
+                        // Accent border
+                        Rectangle {
+                            anchors.fill: parent
+                            color: "transparent"
+                            border.width: 2
+                            border.color: ThemeService.primary
+                            radius: UiMetrics.radius
+                            visible: homeScreen.editMode
+                            z: 10
+                        }
+
+                        // X remove badge (top-right)
+                        Rectangle {
+                            id: removeBadge
+                            width: 28
+                            height: 28
+                            radius: 14
+                            color: ThemeService.error
+                            anchors.right: parent.right
+                            anchors.top: parent.top
+                            anchors.rightMargin: -6
+                            anchors.topMargin: -6
+                            visible: homeScreen.editMode
+                            z: 20
+
+                            MaterialIcon {
+                                icon: "\ue5cd"
+                                size: 16
+                                color: ThemeService.onError
+                                anchors.centerIn: parent
+                            }
+
+                            MouseArea {
+                                anchors.fill: parent
+                                onClicked: {
+                                    WidgetGridModel.removeWidget(model.instanceId)
+                                    inactivityTimer.restart()
+                                }
+                            }
+                        }
+
+                        // Resize handle (bottom-right, visual-only for now -- Plan 03 adds drag)
+                        Rectangle {
+                            id: resizeHandle
+                            width: UiMetrics.touchMin * 0.5
+                            height: UiMetrics.touchMin * 0.5
+                            radius: UiMetrics.radiusSmall
+                            color: ThemeService.primary
+                            opacity: 0.7
+                            anchors.right: parent.right
+                            anchors.bottom: parent.bottom
+                            anchors.rightMargin: UiMetrics.spacing * 0.25
+                            anchors.bottomMargin: UiMetrics.spacing * 0.25
+                            visible: homeScreen.editMode
+                            z: 20
                         }
                     }
                 }
@@ -119,6 +259,45 @@ Item {
         // Launcher dock -- fixed at bottom
         LauncherDock {
             Layout.fillWidth: true
+        }
+    }
+
+    // ---- FAB (floating action button) for adding widgets ----
+    Rectangle {
+        id: fab
+        width: UiMetrics.touchMin * 1.2
+        height: width
+        radius: width / 2
+        color: ThemeService.primary
+        visible: homeScreen.editMode
+        z: 50
+        anchors.right: parent.right
+        anchors.bottom: parent.bottom
+        anchors.rightMargin: UiMetrics.marginPage * 2
+        anchors.bottomMargin: UiMetrics.marginPage * 2 + UiMetrics.touchMin + UiMetrics.spacing
+
+        MaterialIcon {
+            icon: "\ue145"
+            size: UiMetrics.iconSize
+            color: ThemeService.onPrimary
+            anchors.centerIn: parent
+        }
+
+        MouseArea {
+            anchors.fill: parent
+            onClicked: {
+                inactivityTimer.restart()
+                // Check if there's any space at all (1x1 minimum)
+                var cell = WidgetGridModel.findFirstAvailableCell(1, 1)
+                if (cell.col < 0) {
+                    toast.show("No space available \u2014 remove a widget first")
+                } else {
+                    WidgetPickerModel.filterByAvailableSpace(
+                        WidgetGridModel.gridColumns,
+                        WidgetGridModel.gridRows)
+                    pickerOverlay.visible = true
+                }
+            }
         }
     }
 
@@ -199,6 +378,7 @@ Item {
                                 WidgetGridModel.gridColumns - homeScreen._targetCol,
                                 WidgetGridModel.gridRows - homeScreen._targetRow)
                             pickerOverlay.visible = true
+                            inactivityTimer.restart()
                         }
                     }
                 }
@@ -224,6 +404,7 @@ Item {
                         onClicked: {
                             WidgetGridModel.removeWidget(homeScreen._targetInstanceId)
                             contextMenuOverlay.visible = false
+                            inactivityTimer.restart()
                         }
                     }
                 }
@@ -238,6 +419,10 @@ Item {
         visible: false
         z: 100
 
+        onVisibleChanged: {
+            if (visible) inactivityTimer.restart()
+        }
+
         // Scrim
         Rectangle {
             anchors.fill: parent
@@ -245,7 +430,10 @@ Item {
             opacity: 0.4
             MouseArea {
                 anchors.fill: parent
-                onClicked: pickerOverlay.visible = false
+                onClicked: {
+                    pickerOverlay.visible = false
+                    inactivityTimer.restart()
+                }
             }
         }
 
@@ -310,20 +498,52 @@ Item {
                             id: pickMA
                             anchors.fill: parent
                             onClicked: {
-                                // Place with default size (2x2, clamped to available space)
-                                var maxCols = WidgetGridModel.gridColumns - homeScreen._targetCol
-                                var maxRows = WidgetGridModel.gridRows - homeScreen._targetRow
-                                var cols = Math.min(2, maxCols)
-                                var rows = Math.min(2, maxRows)
-                                WidgetGridModel.placeWidget(model.widgetId,
-                                    homeScreen._targetCol, homeScreen._targetRow,
-                                    cols, rows)
-                                pickerOverlay.visible = false
+                                if (homeScreen.editMode) {
+                                    // Auto-place mode: find first available cell
+                                    var defCols = model.defaultCols > 0 ? model.defaultCols : 2
+                                    var defRows = model.defaultRows > 0 ? model.defaultRows : 2
+                                    // Clamp to grid dimensions
+                                    defCols = Math.min(defCols, WidgetGridModel.gridColumns)
+                                    defRows = Math.min(defRows, WidgetGridModel.gridRows)
+
+                                    var cell = WidgetGridModel.findFirstAvailableCell(defCols, defRows)
+                                    if (cell.col < 0) {
+                                        // Try with 1x1 as fallback
+                                        cell = WidgetGridModel.findFirstAvailableCell(1, 1)
+                                    }
+                                    if (cell.col >= 0) {
+                                        // Clamp span to available space from found cell
+                                        var placeCols = Math.min(defCols, WidgetGridModel.gridColumns - cell.col)
+                                        var placeRows = Math.min(defRows, WidgetGridModel.gridRows - cell.row)
+                                        WidgetGridModel.placeWidget(model.widgetId,
+                                            cell.col, cell.row, placeCols, placeRows)
+                                    } else {
+                                        toast.show("No space available \u2014 remove a widget first")
+                                    }
+                                    pickerOverlay.visible = false
+                                    inactivityTimer.restart()
+                                } else {
+                                    // Legacy targeted placement (from context menu "Change Widget")
+                                    var maxCols = WidgetGridModel.gridColumns - homeScreen._targetCol
+                                    var maxRows = WidgetGridModel.gridRows - homeScreen._targetRow
+                                    var cols = Math.min(2, maxCols)
+                                    var rows = Math.min(2, maxRows)
+                                    WidgetGridModel.placeWidget(model.widgetId,
+                                        homeScreen._targetCol, homeScreen._targetRow,
+                                        cols, rows)
+                                    pickerOverlay.visible = false
+                                }
                             }
                         }
                     }
                 }
             }
         }
+    }
+
+    // ---- Toast (transient feedback) ----
+    Toast {
+        id: toast
+        z: 200
     }
 }

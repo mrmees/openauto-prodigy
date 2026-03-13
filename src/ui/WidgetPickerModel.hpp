@@ -13,7 +13,9 @@ public:
     enum Roles {
         WidgetIdRole = Qt::UserRole + 1,
         DisplayNameRole,
-        IconNameRole
+        IconNameRole,
+        DefaultColsRole,
+        DefaultRowsRole
     };
 
     explicit WidgetPickerModel(WidgetRegistry* registry, QObject* parent = nullptr);
