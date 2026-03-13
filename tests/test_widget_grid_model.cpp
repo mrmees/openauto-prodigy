@@ -72,6 +72,15 @@ private slots:
     void testFindFirstAvailableCellSkipsOccupied();
     void testFindFirstAvailableCellNoFitWide();
     void testFindFirstAvailableCellGridFull();
+    // Page-scoped tests
+    void testPlaceWidgetOnDifferentPages();
+    void testCanPlacePageScoped();
+    void testFindFirstAvailableCellPageScoped();
+    void testAddPage();
+    void testRemovePageShiftsDown();
+    void testRemovePageZeroRejected();
+    void testWidgetCountOnPage();
+    void testPageRole();
 };
 
 void TestWidgetGridModel::testPlaceWidgetSuccess() {
@@ -482,6 +491,122 @@ void TestWidgetGridModel::testFindFirstAvailableCellGridFull() {
     QVariantMap result = model.findFirstAvailableCell(1, 1);
     QCOMPARE(result["col"].toInt(), -1);
     QCOMPARE(result["row"].toInt(), -1);
+}
+
+// --- Page-scoped tests ---
+
+void TestWidgetGridModel::testPlaceWidgetOnDifferentPages() {
+    auto* reg = makeRegistry();
+    oap::WidgetGridModel model(reg);
+    model.setGridDimensions(6, 4);
+
+    // Place on page 0 (default)
+    bool ok = model.placeWidget("clock", 0, 0, 2, 2);
+    QVERIFY(ok);
+
+    // Switch to page 1, place at same coords
+    model.setActivePage(1);
+    ok = model.placeWidget("clock", 0, 0, 2, 2);
+    QVERIFY(ok);
+    QCOMPARE(model.rowCount(), 2);
+}
+
+void TestWidgetGridModel::testCanPlacePageScoped() {
+    auto* reg = makeRegistry();
+    oap::WidgetGridModel model(reg);
+    model.setGridDimensions(6, 4);
+
+    model.placeWidget("clock", 0, 0, 2, 2);
+
+    // Same coords on page 1 should be available
+    model.setActivePage(1);
+    QVERIFY(model.canPlace(0, 0, 2, 2));
+}
+
+void TestWidgetGridModel::testFindFirstAvailableCellPageScoped() {
+    auto* reg = makeRegistry();
+    oap::WidgetGridModel model(reg);
+    model.setGridDimensions(6, 4);
+
+    // Fill top-left on page 0
+    model.placeWidget("clock", 0, 0, 2, 2);
+
+    // Page 1 should find (0,0) available
+    model.setActivePage(1);
+    QVariantMap result = model.findFirstAvailableCell(2, 2);
+    QCOMPARE(result["col"].toInt(), 0);
+    QCOMPARE(result["row"].toInt(), 0);
+}
+
+void TestWidgetGridModel::testAddPage() {
+    auto* reg = makeRegistry();
+    oap::WidgetGridModel model(reg);
+    model.setGridDimensions(6, 4);
+
+    QCOMPARE(model.pageCount(), 2); // default
+    QSignalSpy spy(&model, &oap::WidgetGridModel::pageCountChanged);
+    model.addPage();
+    QCOMPARE(model.pageCount(), 3);
+    QCOMPARE(spy.count(), 1);
+}
+
+void TestWidgetGridModel::testRemovePageShiftsDown() {
+    auto* reg = makeRegistry();
+    oap::WidgetGridModel model(reg);
+    model.setGridDimensions(6, 4);
+    model.setPageCount(3);
+
+    // Place widget on page 2
+    model.setActivePage(2);
+    model.placeWidget("clock", 0, 0, 2, 2);
+
+    // Remove page 1 -- page 2 widget shifts to page 1
+    bool ok = model.removePage(1);
+    QVERIFY(ok);
+    QCOMPARE(model.pageCount(), 2);
+
+    auto placements = model.placements();
+    QCOMPARE(placements[0].page, 1);
+}
+
+void TestWidgetGridModel::testRemovePageZeroRejected() {
+    auto* reg = makeRegistry();
+    oap::WidgetGridModel model(reg);
+    model.setGridDimensions(6, 4);
+
+    bool ok = model.removePage(0);
+    QVERIFY(!ok);
+    QCOMPARE(model.pageCount(), 2);
+}
+
+void TestWidgetGridModel::testWidgetCountOnPage() {
+    auto* reg = makeRegistry();
+    oap::WidgetGridModel model(reg);
+    model.setGridDimensions(6, 4);
+
+    model.placeWidget("clock", 0, 0, 2, 2);
+    model.placeWidget("tiny", 3, 0, 1, 1);
+
+    model.setActivePage(1);
+    model.placeWidget("tiny", 0, 0, 1, 1);
+
+    QCOMPARE(model.widgetCountOnPage(0), 2);
+    QCOMPARE(model.widgetCountOnPage(1), 1);
+}
+
+void TestWidgetGridModel::testPageRole() {
+    auto* reg = makeRegistry();
+    oap::WidgetGridModel model(reg);
+    model.setGridDimensions(6, 4);
+
+    model.placeWidget("clock", 0, 0, 2, 2);
+    model.setActivePage(1);
+    model.placeWidget("tiny", 0, 0, 1, 1);
+
+    QModelIndex idx0 = model.index(0);
+    QModelIndex idx1 = model.index(1);
+    QCOMPARE(idx0.data(oap::WidgetGridModel::PageRole).toInt(), 0);
+    QCOMPARE(idx1.data(oap::WidgetGridModel::PageRole).toInt(), 1);
 }
 
 QTEST_GUILESS_MAIN(TestWidgetGridModel)

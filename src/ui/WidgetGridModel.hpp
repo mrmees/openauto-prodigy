@@ -13,6 +13,8 @@ class WidgetGridModel : public QAbstractListModel {
     Q_OBJECT
     Q_PROPERTY(int gridColumns READ gridColumns NOTIFY gridDimensionsChanged)
     Q_PROPERTY(int gridRows READ gridRows NOTIFY gridDimensionsChanged)
+    Q_PROPERTY(int activePage READ activePage WRITE setActivePage NOTIFY activePageChanged)
+    Q_PROPERTY(int pageCount READ pageCount WRITE setPageCount NOTIFY pageCountChanged)
 
 public:
     enum Roles {
@@ -30,7 +32,8 @@ public:
         MaxColsRole,
         MaxRowsRole,
         DefaultColsRole,
-        DefaultRowsRole
+        DefaultRowsRole,
+        PageRole
     };
 
     explicit WidgetGridModel(WidgetRegistry* registry, QObject* parent = nullptr);
@@ -51,6 +54,17 @@ public:
                                const QString& excludeInstanceId = {}) const;
     Q_INVOKABLE QVariantMap findFirstAvailableCell(int colSpan, int rowSpan) const;
 
+    // Page management
+    Q_INVOKABLE void addPage();
+    Q_INVOKABLE bool removePage(int page);
+    Q_INVOKABLE void removeAllWidgetsOnPage(int page);
+    Q_INVOKABLE int widgetCountOnPage(int page) const;
+
+    int activePage() const;
+    void setActivePage(int page);
+    int pageCount() const;
+    void setPageCount(int count);
+
     // Grid dimensions
     void setGridDimensions(int cols, int rows);
     int gridColumns() const;
@@ -67,9 +81,13 @@ public:
 signals:
     void gridDimensionsChanged();
     void placementsChanged();
+    void activePageChanged();
+    void pageCountChanged();
 
 private:
     int findPlacement(const QString& instanceId) const;
+    bool canPlaceOnPage(int col, int row, int colSpan, int rowSpan,
+                         int page, const QString& excludeInstanceId = {}) const;
     void rebuildOccupancy();
     void markOccupied(const GridPlacement& p);
     void clearOccupancy();
@@ -81,6 +99,8 @@ private:
     int cols_ = 0;
     int rows_ = 0;
     int nextInstanceId_ = 0;
+    int activePage_ = 0;
+    int pageCount_ = 2;
 };
 
 } // namespace oap

@@ -31,6 +31,7 @@ struct GridPlacement {
     int colSpan = 1;
     int rowSpan = 1;
     double opacity = 0.25;  // glass card opacity
+    int page = 0;           // which grid page this placement belongs to
     bool visible = true;    // false when clamped out (kept in config)
 };
 
