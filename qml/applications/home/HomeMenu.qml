@@ -508,7 +508,7 @@ Item {
             Layout.alignment: Qt.AlignHCenter
             count: pageView.count
             currentIndex: pageView.currentIndex
-            interactive: true  // Always tappable, including during edit mode (PAGE-07)
+            interactive: !homeScreen.editMode  // Disabled during edit mode (edit is page-scoped)
 
             delegate: Rectangle {
                 implicitWidth: UiMetrics.spacing * 1.2

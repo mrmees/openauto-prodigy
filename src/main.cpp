@@ -446,7 +446,17 @@ int main(int argc, char *argv[])
     auto widgetGridModel = new oap::WidgetGridModel(widgetRegistry, &app);
     widgetGridModel->setGridDimensions(displayInfo->gridColumns(), displayInfo->gridRows());
 
-    // Auto-save grid placements on change (must be connected before placeWidget calls)
+    // Load placements and page count from config BEFORE connecting auto-save.
+    // setGridDimensions() emits placementsChanged() — connecting save first would
+    // persist empty placements on startup, wiping the saved config.
+    widgetGridModel->setPageCount(yamlConfig->gridPageCount());
+    auto savedPlacements = yamlConfig->gridPlacements();
+    if (!savedPlacements.isEmpty()) {
+        widgetGridModel->setPlacements(savedPlacements, widgetRegistry);
+        widgetGridModel->setNextInstanceId(yamlConfig->gridNextInstanceId());
+    }
+
+    // Auto-save grid placements on change (connected after load to avoid clobbering)
     auto saveGridState = [yamlConfig = yamlConfig.get(), widgetGridModel, yamlPath]() {
         yamlConfig->setGridPlacements(widgetGridModel->placements());
         yamlConfig->setGridNextInstanceId(widgetGridModel->nextInstanceId());
@@ -457,18 +467,6 @@ int main(int argc, char *argv[])
                      widgetGridModel, saveGridState);
     QObject::connect(widgetGridModel, &oap::WidgetGridModel::pageCountChanged,
                      widgetGridModel, saveGridState);
-
-    // Load placements and page count from config
-    widgetGridModel->setPageCount(yamlConfig->gridPageCount());
-    auto savedPlacements = yamlConfig->gridPlacements();
-    if (!savedPlacements.isEmpty()) {
-        widgetGridModel->setPlacements(savedPlacements, widgetRegistry);
-        widgetGridModel->setNextInstanceId(yamlConfig->gridNextInstanceId());
-    } else {
-        // Fresh install: blank canvas -- no default widgets.
-        // Default layout deferred to post Phase 06/07 when all widgets are finalized.
-        // Users add widgets via edit mode (Phase 07).
-    }
 
     // Re-clamp grid when display dimensions change
     QObject::connect(displayInfo, &oap::DisplayInfo::gridDimensionsChanged,
