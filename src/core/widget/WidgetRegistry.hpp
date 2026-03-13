@@ -20,8 +20,11 @@ public:
     QList<WidgetDescriptor> allDescriptors() const;
 
     /// Returns descriptors where minCols <= availCols, minRows <= availRows,
-    /// and qmlComponent is not empty (filters out stubs).
+    /// qmlComponent is not empty (filters out stubs), and contributionKind == Widget.
     QList<WidgetDescriptor> widgetsFittingSpace(int availCols, int availRows) const;
+
+    /// Returns all descriptors matching the given contribution kind.
+    QList<WidgetDescriptor> descriptorsByKind(DashboardContributionKind kind) const;
 
 private:
     QMap<QString, WidgetDescriptor> descriptors_;

@@ -6,12 +6,18 @@
 
 namespace oap {
 
+enum class DashboardContributionKind {
+    Widget,              // Lightweight data-display widget (clock, now-playing, etc.)
+    LiveSurfaceWidget,   // Embedded live content from a plugin (deferred — no host path yet)
+};
+
 struct WidgetDescriptor {
     QString id;                         // "org.openauto.clock"
     QString displayName;                // "Clock"
     QString iconName;                   // Material icon codepoint (e.g. "\ue8b5")
     QUrl qmlComponent;                  // qrc URL to widget QML (empty for stubs)
     QString pluginId;                   // empty for standalone widgets
+    DashboardContributionKind contributionKind = DashboardContributionKind::Widget;
     QVariantMap defaultConfig;          // optional per-widget defaults
 
     // Grid size constraints (replaces WidgetSizeFlags)

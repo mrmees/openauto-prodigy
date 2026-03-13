@@ -46,11 +46,39 @@ public:
     }
 };
 
+// Mock plugin that provides a LiveSurfaceWidget
+class LiveSurfaceMockPlugin : public QObject, public oap::IPlugin {
+    Q_OBJECT
+    Q_INTERFACES(oap::IPlugin)
+public:
+    QString id() const override { return "org.test.livesurface"; }
+    QString name() const override { return "LiveSurface"; }
+    QString version() const override { return "1.0"; }
+    int apiVersion() const override { return 1; }
+    bool initialize(oap::IHostContext*) override { return true; }
+    void shutdown() override {}
+    QUrl qmlComponent() const override { return {}; }
+    QUrl iconSource() const override { return {}; }
+    QStringList requiredServices() const override { return {}; }
+
+    QList<oap::WidgetDescriptor> widgetDescriptors() const override {
+        oap::WidgetDescriptor desc;
+        desc.id = "org.test.livesurface.embed";
+        desc.displayName = "Embedded View";
+        desc.pluginId = id();
+        desc.contributionKind = oap::DashboardContributionKind::LiveSurfaceWidget;
+        desc.qmlComponent = QUrl("qrc:/widgets/Embed.qml");
+        return {desc};
+    }
+};
+
 class TestWidgetPluginIntegration : public QObject {
     Q_OBJECT
 private slots:
     void testDefaultReturnsEmpty();
     void testPluginProvidesWidgets();
+    void testPluginWidgetPreservesContributionKind();
+    void testPluginWidgetPreservesPluginId();
 };
 
 void TestWidgetPluginIntegration::testDefaultReturnsEmpty() {
@@ -64,6 +92,23 @@ void TestWidgetPluginIntegration::testPluginProvidesWidgets() {
     QCOMPARE(widgets.size(), 1);
     QCOMPARE(widgets[0].id, "org.test.widgeted.status");
     QCOMPARE(widgets[0].pluginId, "org.test.widgeted");
+}
+
+void TestWidgetPluginIntegration::testPluginWidgetPreservesContributionKind() {
+    LiveSurfaceMockPlugin plugin;
+    auto widgets = plugin.widgetDescriptors();
+    QCOMPARE(widgets.size(), 1);
+    QCOMPARE(widgets[0].contributionKind, oap::DashboardContributionKind::LiveSurfaceWidget);
+}
+
+void TestWidgetPluginIntegration::testPluginWidgetPreservesPluginId() {
+    WidgetMockPlugin plugin;
+    auto widgets = plugin.widgetDescriptors();
+    QCOMPARE(widgets.size(), 1);
+    QCOMPARE(widgets[0].pluginId, QStringLiteral("org.test.widgeted"));
+
+    // Default contributionKind should be Widget
+    QCOMPARE(widgets[0].contributionKind, oap::DashboardContributionKind::Widget);
 }
 
 QTEST_GUILESS_MAIN(TestWidgetPluginIntegration)

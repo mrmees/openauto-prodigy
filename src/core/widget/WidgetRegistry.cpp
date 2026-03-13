@@ -30,7 +30,18 @@ QList<WidgetDescriptor> WidgetRegistry::widgetsFittingSpace(int availCols, int a
     QList<WidgetDescriptor> result;
     for (const auto& desc : descriptors_) {
         if (desc.minCols <= availCols && desc.minRows <= availRows
-            && !desc.qmlComponent.isEmpty()) {
+            && !desc.qmlComponent.isEmpty()
+            && desc.contributionKind == DashboardContributionKind::Widget) {
+            result.append(desc);
+        }
+    }
+    return result;
+}
+
+QList<WidgetDescriptor> WidgetRegistry::descriptorsByKind(DashboardContributionKind kind) const {
+    QList<WidgetDescriptor> result;
+    for (const auto& desc : descriptors_) {
+        if (desc.contributionKind == kind) {
             result.append(desc);
         }
     }
