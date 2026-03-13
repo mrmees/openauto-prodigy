@@ -181,6 +181,10 @@ set_source_files_properties(../qml/controls/OutlinedButton.qml PROPERTIES
     QT_QML_SOURCE_TYPENAME "OutlinedButton"
     QT_RESOURCE_ALIAS "OutlinedButton.qml"
 )
+set_source_files_properties(../qml/controls/Toast.qml PROPERTIES
+    QT_QML_SOURCE_TYPENAME "Toast"
+    QT_RESOURCE_ALIAS "Toast.qml"
+)
 set_source_files_properties(../qml/controls/UiMetrics.qml PROPERTIES
     QT_QML_SOURCE_TYPENAME "UiMetrics"
     QT_QML_SINGLETON_TYPE TRUE
@@ -358,6 +362,7 @@ qt_add_qml_module(openauto-prodigy
         ../qml/controls/ElevatedButton.qml
         ../qml/controls/FilledButton.qml
         ../qml/controls/OutlinedButton.qml
+        ../qml/controls/Toast.qml
         ../qml/controls/UiMetrics.qml
         ../qml/components/Wallpaper.qml
         ../qml/components/Shell.qml
