@@ -420,7 +420,7 @@ Item {
                             }
                         }
 
-                        // Resize handle (bottom-right, visual-only for now -- Plan 03 adds drag)
+                        // Resize handle (bottom-right) with drag-to-resize
                         Rectangle {
                             id: resizeHandle
                             width: UiMetrics.touchMin * 0.5
@@ -434,6 +434,108 @@ Item {
                             anchors.bottomMargin: UiMetrics.spacing * 0.25
                             visible: homeScreen.editMode
                             z: 20
+
+                            MouseArea {
+                                anchors.fill: parent
+                                // Expand touch area for easier grabbing
+                                anchors.margins: -UiMetrics.spacing / 2
+                                preventStealing: true
+
+                                property point startGlobal: Qt.point(0, 0)
+                                property int startColSpan: 0
+                                property int startRowSpan: 0
+                                property int proposedColSpan: 0
+                                property int proposedRowSpan: 0
+                                property bool resizing: false
+                                property int lastClampedCols: 0
+                                property int lastClampedRows: 0
+
+                                onPressed: function(mouse) {
+                                    resizing = true
+                                    homeScreen.resizingInstanceId = model.instanceId
+                                    startGlobal = mapToItem(gridContainer, mouse.x, mouse.y)
+                                    startColSpan = model.colSpan
+                                    startRowSpan = model.rowSpan
+                                    proposedColSpan = startColSpan
+                                    proposedRowSpan = startRowSpan
+                                    lastClampedCols = startColSpan
+                                    lastClampedRows = startRowSpan
+
+                                    // Position ghost at current widget bounds
+                                    resizeGhost.x = model.column * gridContainer.cellWidth
+                                    resizeGhost.y = model.row * gridContainer.cellHeight
+                                    resizeGhost.width = model.colSpan * gridContainer.cellWidth
+                                    resizeGhost.height = model.rowSpan * gridContainer.cellHeight
+                                    resizeGhost.visible = true
+                                    resizeGhost.isValid = true
+
+                                    inactivityTimer.restart()
+                                    mouse.accepted = true
+                                }
+
+                                onPositionChanged: function(mouse) {
+                                    if (!resizing) return
+                                    var current = mapToItem(gridContainer, mouse.x, mouse.y)
+                                    var deltaCols = Math.round((current.x - startGlobal.x) / gridContainer.cellWidth)
+                                    var deltaRows = Math.round((current.y - startGlobal.y) / gridContainer.cellHeight)
+
+                                    var newColSpan = startColSpan + deltaCols
+                                    var newRowSpan = startRowSpan + deltaRows
+
+                                    // Clamp to min/max constraints
+                                    var wasAtLimit = false
+                                    if (newColSpan < model.minCols) { newColSpan = model.minCols; wasAtLimit = true }
+                                    if (newColSpan > model.maxCols) { newColSpan = model.maxCols; wasAtLimit = true }
+                                    if (newRowSpan < model.minRows) { newRowSpan = model.minRows; wasAtLimit = true }
+                                    if (newRowSpan > model.maxRows) { newRowSpan = model.maxRows; wasAtLimit = true }
+
+                                    // Clamp to grid bounds
+                                    if (model.column + newColSpan > WidgetGridModel.gridColumns) {
+                                        newColSpan = WidgetGridModel.gridColumns - model.column
+                                        wasAtLimit = true
+                                    }
+                                    if (model.row + newRowSpan > WidgetGridModel.gridRows) {
+                                        newRowSpan = WidgetGridModel.gridRows - model.row
+                                        wasAtLimit = true
+                                    }
+
+                                    // Ensure minimum 1
+                                    newColSpan = Math.max(1, newColSpan)
+                                    newRowSpan = Math.max(1, newRowSpan)
+
+                                    proposedColSpan = newColSpan
+                                    proposedRowSpan = newRowSpan
+
+                                    // Check if proposed size overlaps other widgets
+                                    var valid = WidgetGridModel.canPlace(model.column, model.row,
+                                        newColSpan, newRowSpan, model.instanceId)
+                                    resizeGhost.isValid = valid
+
+                                    // Flash on boundary hit (only when value actually changed to limit)
+                                    if (wasAtLimit && (newColSpan !== lastClampedCols || newRowSpan !== lastClampedRows)) {
+                                        limitFlash.restart()
+                                    }
+                                    lastClampedCols = newColSpan
+                                    lastClampedRows = newRowSpan
+
+                                    // Update ghost size
+                                    resizeGhost.width = newColSpan * gridContainer.cellWidth
+                                    resizeGhost.height = newRowSpan * gridContainer.cellHeight
+
+                                    inactivityTimer.restart()
+                                }
+
+                                onReleased: {
+                                    resizing = false
+                                    homeScreen.resizingInstanceId = ""
+                                    resizeGhost.visible = false
+
+                                    if (proposedColSpan !== startColSpan || proposedRowSpan !== startRowSpan) {
+                                        // Atomic write on release (EDIT-09)
+                                        WidgetGridModel.resizeWidget(model.instanceId, proposedColSpan, proposedRowSpan)
+                                    }
+                                }
+                            }
                         }
                     }
                 }
