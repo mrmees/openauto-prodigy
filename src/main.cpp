@@ -51,7 +51,6 @@
 #include "ui/DisplayInfo.hpp"
 #include "core/widget/WidgetRegistry.hpp"
 #include "core/widget/WidgetTypes.hpp"
-#include "ui/WidgetPlacementModel.hpp"
 #include "ui/WidgetPickerModel.hpp"
 #include "ui/WidgetGridModel.hpp"
 #include <QQuickWindow>

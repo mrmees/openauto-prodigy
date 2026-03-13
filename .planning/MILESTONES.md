@@ -1,5 +1,27 @@
 # Milestones
 
+## v0.5.3 Widget Grid & Content Widgets (Shipped: 2026-03-13)
+
+**Delivered:** Replaced fixed 3-pane home screen with Android-style freeform widget grid — drag-to-reposition, drag-to-resize, multi-page swipe, and two new content widgets (AA navigation turn-by-turn, unified now playing).
+
+**Phases completed:** 04-08 (5 phases, 13 plans)
+
+**Key accomplishments:**
+- Cell-based WidgetGridModel with occupancy tracking, collision detection, and YAML schema v3 persistence (auto-migrates from pane-based config)
+- Grid renderer in HomeMenu.qml with Repeater-based positioning — widgets snap to integer grid cells derived from display size
+- NavigationDataBridge + ManeuverIconProvider wiring AA turn-by-turn data to QML widget with phone PNG icons
+- MediaDataBridge with AA > BT source priority, unified NowPlayingWidget replacing BT-only version
+- Full edit mode: long-press entry, drag-to-reposition with snap-back, drag-to-resize with ghost rectangle, FAB add/X remove, 10s inactivity timeout, AA auto-exit
+- SwipeView multi-page home screen with PageIndicator, lazy Loader instantiation, add/delete page FABs, empty page auto-cleanup
+
+**Stats:** 55 commits, 69 files changed (+7,813/-704), ~28.9K LOC | Timeline: 1 day (2026-03-12 → 2026-03-13)
+
+**Git range:** `feat(04-01)` → `docs(08-02)`
+
+**What's next:** TBD — next milestone planning
+
+---
+
 ## v0.5.2 Widget System & UI Polish (Shipped: 2026-03-11)
 
 **Phases completed:** 3 phases, 8 plans

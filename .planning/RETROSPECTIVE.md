@@ -1,5 +1,45 @@
 # Retrospective
 
+## Milestone: v0.5.3 — Widget Grid & Content Widgets
+
+**Shipped:** 2026-03-13
+**Phases:** 5 | **Plans:** 13 | 55 commits, 1 day
+
+### What Was Built
+- Cell-based WidgetGridModel replacing pane-based layout — occupancy tracking, collision detection, YAML v3 persistence
+- Grid renderer with Repeater positioning, pixel-breakpoint widget revision (Clock, AA Status, Now Playing)
+- NavigationDataBridge + ManeuverIconProvider for AA turn-by-turn widget with modern 0x8006/0x8007 messages
+- MediaDataBridge with AA > BT source priority and unified NowPlayingWidget
+- Full edit mode: drag-to-reposition, drag-to-resize with ghost rectangle, FAB add/X remove, safety exits
+- SwipeView multi-page with lazy Loader instantiation, page management FABs, empty page auto-cleanup
+
+### What Worked
+- 5 phases + 13 plans executed in a single day — tight scoping and parallel-capable phases (06+07) kept velocity high
+- Integration checker confirmed 42/42 requirements wired with 0 broken flows — cross-phase design was clean
+- Pi verification during Phase 07 and 08 caught real bugs (drag overlay routing, persistence wipe on startup, dot tap confusion) before phase close
+- AA 16.2 nav message path (0x8006+0x8007) discovered during Phase 06 Pi testing — old 0x8004 path dead on modern phones
+
+### What Was Inefficient
+- Phases 04 and 05 lost their directories — no VERIFICATION.md, no SUMMARY artifacts. Audit had to rely on git history and REQUIREMENTS.md checkboxes
+- Phase 06 VERIFICATION.md never created, 11 NAV/MEDIA requirements never flipped from Pending — pure paperwork gap caught at audit
+- No SUMMARY files had `requirements_completed` frontmatter — 3-source cross-reference was incomplete across the board
+- Nav distance unit tests (miles/feet/yards) failing — pre-existing from Phase 06 but never fixed
+
+### Patterns Established
+- Drag overlay MouseArea at z:25 for consistent drag across interactive/static widgets
+- Ghost rectangle for resize preview (not animating width/height — janky on Pi)
+- SwipeView.interactive bound to !editMode for gesture conflict prevention
+- Auto-save signal connected AFTER config load to prevent persistence wipe on startup
+- Overlay elements (drag, picker, toast) stay at homeScreen scope outside SwipeView to avoid clipping
+
+### Key Lessons
+1. Phase directories must survive until milestone audit — premature cleanup creates verification gaps
+2. REQUIREMENTS.md checkboxes should be flipped immediately when a phase completes, not deferred
+3. A single-day milestone is possible when phases are well-scoped and dependencies are clean
+4. Pi verification checkpoints are essential — 3 bugs in Phase 07-08 would have shipped without them
+
+---
+
 ## Milestone: v0.5.0 — Protocol Compliance
 
 **Shipped:** 2026-03-08
