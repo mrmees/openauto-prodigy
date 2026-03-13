@@ -92,10 +92,21 @@ A person with a Raspberry Pi 4 and a touchscreen can install this, pair their ph
 
 <!-- Current scope. Building toward these. -->
 
-- [ ] HFP call audio persists across AA connection state (calls don't drop if AA disconnects)
-- [ ] First-run experience guides user through phone pairing and WiFi verification
-- [ ] Web config panel EQ interface
-- [ ] Boot speed optimization (reliable first, fast later)
+- [ ] Formal widget manifest spec with size constraints, categories, and system/user flags
+- [ ] Plugin widget registration API for structured widget declaration
+- [ ] Widget lifecycle hooks (create, activate, deactivate, resize, destroy)
+- [ ] Existing widgets refactored to formalized architecture
+- [ ] Plugin-widget contract documented for third-party developers
+
+### Backlog
+
+<!-- Acknowledged but not in current milestone. -->
+
+- HFP call audio persists across AA connection state (calls don't drop if AA disconnects)
+- First-run experience guides user through phone pairing and WiFi verification
+- Web config panel EQ interface
+- Boot speed optimization (reliable first, fast later)
+- BT Audio / Phone plugin rework — evaluate value vs stripping in favor of pure AA
 
 ### Out of Scope
 
@@ -119,9 +130,16 @@ OpenAuto Pro (BlueWave Studio) was a commercial Pi-based AA head unit that went 
 
 v0.4 shipped logging and theming. v0.4.1 shipped 10-band graphic EQ with per-stream profiles. v0.4.2 shipped service hardening — WiFi AP, Bluetooth SDP, systemd ordering, and clean shutdown all work reliably without manual intervention. v0.4.3 shipped full UI refresh — automotive-minimal styling, 6-category settings, EQ dual-access, shell polish. v0.4.4 shipped resolution independence — unclamped dual-axis UiMetrics, full QML tokenization (zero hardcoded pixels), container-derived grid layouts, runtime auto-detection, and --geometry validation tooling. v0.4.5 shipped navbar rework — zone-based evdev touch routing, 3-control navbar with multi-gesture actions and edge positioning, navbar-aware AA viewport margins, gesture overlay touch fix, and dead UI cleanup (TopBar, NavStrip, sidebar removed). v0.5.0 shipped protocol compliance — proto submodule v1.0, navigation turn events, voice session commands, BT auth exchange, haptic feedback, retracted dead code cleanup after v1.2 proto verification, library renamed to prodigy-oaa-protocol. v0.5.1 shipped DPI sizing & UI polish — EDID-based DPI scaling, scale stepper, clock readability, full 34-role M3 color system, companion theme import, AA rendering fix, navbar status bar cleanup, M3 button components with visual depth effects. v0.5.2 shipped widget system & UI polish — 3-pane home screen with launcher dock and built-in widgets, settings reorganized into 9 categories with touch normalization and automotive-readable font sizes. v0.5.3 shipped widget grid & content widgets — Android-style freeform grid with drag/resize/multi-page, AA navigation turn-by-turn widget, unified now playing widget with AA/BT source priority. Codebase is ~28.9K LOC C++/QML, 77 unit tests.
 
-## Current Milestone: Planning
+## Current Milestone: v0.6 Architecture Formalization
 
-No active milestone. Next milestone TBD.
+**Goal:** Formalize the base app → plugin → widget architecture with explicit contracts, manifests, lifecycle hooks, and registration APIs — laying the foundation for the full widget-based screen layout transition (v0.7) and future third-party plugins.
+
+**Target features:**
+- Formal widget manifest spec (size constraints, categories, editability/removability flags, system vs user distinction)
+- Plugin widget registration API (structured declaration and provision of widgets by plugins)
+- Widget lifecycle hooks (create, activate, deactivate, resize, destroy)
+- Refactor existing widgets (Clock, AA Status, Nav, Now Playing) to use the formalized architecture
+- Documentation of the plugin-widget contract for third-party developers
 
 ## Constraints
 
@@ -182,5 +200,8 @@ No active milestone. Next milestone TBD.
 | No maximum page limit | User decision — uncapped is fine for solo use | ✓ Good |
 | YAML schema v3 with page field | v2 auto-migrates with page=0 default | ✓ Good |
 
+| Architecture first, launcher second | Widget-based launcher (v0.7) consumes the architecture (v0.6) — avoids rework | — Pending |
+| BT Audio / Phone deferred | Redundant when AA connected; decide fate after architecture is solid | — Pending |
+
 ---
-*Last updated: 2026-03-13 after v0.5.3 milestone*
+*Last updated: 2026-03-13 after v0.6 milestone start*
