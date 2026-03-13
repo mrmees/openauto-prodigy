@@ -20,6 +20,10 @@ Governance: capture new ideas in `docs/wishlist.md`; only promoted items should 
 
 ## Now
 
+- Architecture formalization and runtime boundary refactor.
+  - Rationale: shell, dashboard, plugin runtime, and AA/Bluetooth boundaries are partially migrated but still rely on `main.cpp` wiring and root-context globals. Additional feature work on top of that drift will make the eventual cleanup nastier.
+  - Outcome: Prodigy core formalized as platform runtime + shell/dashboard host; AA consumes platform transport/services as a projection plugin; dashboard supports typed plugin contributions; legacy global-context and enum-navigation leaks are retired.
+
 - AA connection validation on fresh install.
   - Rationale: fresh Trixie install completes, app launches, BT pairing works, but AA projection has not been validated end-to-end on the new drive yet. SDP registration hit "Permission denied" (group membership needs re-login/reboot).
   - Outcome: full AA session (BT discovery → WiFi → TCP → video projection) working on a clean install after reboot.
