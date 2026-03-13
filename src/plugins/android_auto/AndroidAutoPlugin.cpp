@@ -4,7 +4,6 @@
 #include "core/aa/EvdevCoordBridge.hpp"
 #include "core/aa/ServiceDiscoveryBuilder.hpp"
 #include "core/plugin/IHostContext.hpp"
-#include "core/Configuration.hpp"
 #include "core/InputDeviceScanner.hpp"
 #include "core/services/IAudioService.hpp"
 #include "core/services/IConfigService.hpp"
@@ -20,11 +19,9 @@
 namespace oap {
 namespace plugins {
 
-AndroidAutoPlugin::AndroidAutoPlugin(std::shared_ptr<oap::Configuration> config,
-                                     oap::YamlConfig* yamlConfig,
+AndroidAutoPlugin::AndroidAutoPlugin(oap::YamlConfig* yamlConfig,
                                      QObject* parent)
     : QObject(parent)
-    , config_(std::move(config))
     , yamlConfig_(yamlConfig)
 {
 }
@@ -48,7 +45,8 @@ bool AndroidAutoPlugin::initialize(IHostContext* context)
     auto* audioService = context ? context->audioService() : nullptr;
     auto* eventBus = context ? context->eventBus() : nullptr;
     auto* eqService = context ? dynamic_cast<oap::EqualizerService*>(context->equalizerService()) : nullptr;
-    aaService_ = new oap::aa::AndroidAutoOrchestrator(config_, audioService, yamlConfig_, eventBus, eqService, this);
+    auto* configService = context ? context->configService() : nullptr;
+    aaService_ = new oap::aa::AndroidAutoOrchestrator(configService, audioService, yamlConfig_, eventBus, eqService, this);
 
     // Give orchestrator access to theme service for UiConfigRequest sending
     if (context)

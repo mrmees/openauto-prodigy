@@ -14,7 +14,6 @@
 #include <QFile>
 #include <QTimer>
 #include <memory>
-#include "core/Configuration.hpp"
 #include "core/Logging.hpp"
 #include "core/YamlConfig.hpp"
 #include "core/services/ConfigService.hpp"
@@ -108,32 +107,11 @@ int main(int argc, char *argv[])
         oap::setLogFile(parser.value(logFileOption));
     oap::installLogHandler();
 
-    auto config = std::make_shared<oap::Configuration>();
-
-    // Load from default path if exists; otherwise use built-in defaults
-    QString configPath = QDir::homePath() + "/.openauto/openauto_system.ini";
-    if (QFile::exists(configPath))
-        config->load(configPath);
-
-    // Try YAML config first, fall back to INI
+    // Load YAML config
     QString yamlPath = QDir::homePath() + "/.openauto/config.yaml";
     auto yamlConfig = std::make_shared<oap::YamlConfig>();
     if (QFile::exists(yamlPath)) {
         yamlConfig->load(yamlPath);
-        // Sync YAML values into legacy Configuration (used by BT service, etc.)
-        config->setWifiSsid(yamlConfig->wifiSsid());
-        config->setWifiPassword(yamlConfig->wifiPassword());
-        config->setTcpPort(yamlConfig->tcpPort());
-        config->setVideoFps(yamlConfig->videoFps());
-    } else if (QFile::exists(configPath)) {
-        // Legacy INI — migrate values to YamlConfig
-        yamlConfig->setWifiSsid(config->wifiSsid());
-        yamlConfig->setWifiPassword(config->wifiPassword());
-        yamlConfig->setTcpPort(config->tcpPort());
-        yamlConfig->setVideoFps(config->videoFps());
-        // Save as YAML for next boot
-        QDir().mkpath(QDir::homePath() + "/.openauto");
-        yamlConfig->save(yamlPath);
     }
 
     // --- Configure logging from CLI + YAML ---
@@ -308,7 +286,7 @@ int main(int argc, char *argv[])
     qCInfo(lcCore) << "Companion: enabled=" << companionEnabled << "port=" << companionPort;
     if (companionEnabled) {
         companionListener = new oap::CompanionListenerService(&app);
-        companionListener->setWifiSsid(config->wifiSsid());
+        companionListener->setWifiSsid(yamlConfig->wifiSsid());
         companionListener->loadOrGenerateVehicleId();
         QFile secretFile(QDir::homePath() + "/.openauto/companion.key");
         if (secretFile.open(QIODevice::ReadOnly)) {
@@ -346,7 +324,7 @@ int main(int argc, char *argv[])
     oap::PluginManager pluginManager(&app);
 
     // Register static (compiled-in) plugins
-    auto aaPlugin = new oap::plugins::AndroidAutoPlugin(config, yamlConfig.get(), &app);
+    auto aaPlugin = new oap::plugins::AndroidAutoPlugin(yamlConfig.get(), &app);
     aaPlugin->setDisplayInfo(displayInfo);
     pluginManager.registerStaticPlugin(aaPlugin);
 

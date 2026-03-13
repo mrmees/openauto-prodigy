@@ -13,12 +13,6 @@ endfunction()
 
 # --- Core tests ---
 
-oap_add_test(test_configuration
-    SOURCES test_configuration.cpp
-    DEFS TEST_DATA_DIR="${CMAKE_CURRENT_BINARY_DIR}/data"
-)
-configure_file(data/test_config.ini ${CMAKE_CURRENT_BINARY_DIR}/data/test_config.ini COPYONLY)
-
 oap_add_test(test_yaml_config
     SOURCES test_yaml_config.cpp
     DEFS TEST_DATA_DIR="${CMAKE_CURRENT_BINARY_DIR}/data"
@@ -87,6 +81,10 @@ oap_add_test(test_navigation_channel_handler SOURCES test_navigation_channel_han
 oap_add_test(test_media_status_channel_handler SOURCES test_media_status_channel_handler.cpp)
 oap_add_test(test_oaa_integration SOURCES test_oaa_integration.cpp)
 oap_add_test(test_aa_orchestrator SOURCES test_aa_orchestrator.cpp)
+if(TARGET Qt6::Bluetooth)
+    oap_add_test(test_bt_discovery_service SOURCES test_bt_discovery_service.cpp)
+    set_tests_properties(test_bt_discovery_service PROPERTIES ENVIRONMENT "QT_QPA_PLATFORM=offscreen")
+endif()
 oap_add_test(test_indicator_mapping SOURCES test_indicator_mapping.cpp)
 oap_add_test(test_circular_buffer SOURCES test_circular_buffer.cpp)
 oap_add_test(test_codec_capability SOURCES test_codec_capability.cpp)
@@ -153,7 +151,7 @@ add_test(
 )
 
 # GUI/Quick tests need offscreen platform when no display is available
-set_tests_properties(test_configuration test_theme_service test_display_service test_plugin_model test_aa_orchestrator
+set_tests_properties(test_theme_service test_display_service test_plugin_model test_aa_orchestrator
     PROPERTIES ENVIRONMENT "QT_QPA_PLATFORM=offscreen"
 )
 set_tests_properties(test_settings_menu_structure

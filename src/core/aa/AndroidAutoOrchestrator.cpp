@@ -2,7 +2,7 @@
 #include "TimedNightMode.hpp"
 #include "GpioNightMode.hpp"
 #include "../../core/YamlConfig.hpp"
-#include "../../core/Configuration.hpp"
+#include "../../core/services/IConfigService.hpp"
 #include "../../core/services/IAudioService.hpp"
 #include "../../core/services/AudioService.hpp"
 #include "../../core/services/IEventBus.hpp"
@@ -32,14 +32,14 @@ namespace oap {
 namespace aa {
 
 AndroidAutoOrchestrator::AndroidAutoOrchestrator(
-    std::shared_ptr<oap::Configuration> config,
+    oap::IConfigService* configService,
     oap::IAudioService* audioService,
     oap::YamlConfig* yamlConfig,
     oap::IEventBus* eventBus,
     oap::EqualizerService* eqService,
     QObject* parent)
     : QObject(parent)
-    , config_(std::move(config))
+    , configService_(configService)
     , audioService_(audioService)
     , yamlConfig_(yamlConfig)
     , eventBus_(eventBus)
@@ -71,8 +71,13 @@ void AndroidAutoOrchestrator::start()
 
     setState(WaitingForDevice, "Initializing...");
 
-    // Start TCP listener
-    uint16_t port = config_ ? config_->tcpPort() : 5288;
+    // Start TCP listener — read port from IConfigService (default 5277)
+    uint16_t port = 5277;
+    if (configService_) {
+        QVariant portVar = configService_->value("connection.tcp_port");
+        if (portVar.isValid())
+            port = static_cast<uint16_t>(portVar.toUInt());
+    }
 
     // Disconnect first to prevent accumulation if start() is called multiple times
     disconnect(&tcpServer_, &QTcpServer::newConnection,
@@ -98,11 +103,11 @@ void AndroidAutoOrchestrator::start()
     qCInfo(lcAA) << "TCP listener started on port" << port;
 
 #ifdef HAS_BLUETOOTH
-    if (config_ && config_->wirelessEnabled()) {
+    {
         QString wifiIface = QStringLiteral("wlan0");
         if (yamlConfig_)
             wifiIface = yamlConfig_->wifiInterface();
-        btDiscovery_ = new BluetoothDiscoveryService(config_, wifiIface, this);
+        btDiscovery_ = new BluetoothDiscoveryService(configService_, wifiIface, this);
         connect(btDiscovery_, &BluetoothDiscoveryService::phoneWillConnect,
                 this, [this]() {
                     setState(Connecting, "Phone connecting via WiFi...");
@@ -598,7 +603,12 @@ void AndroidAutoOrchestrator::onSessionDisconnected(oaa::DisconnectReason reason
 
     teardownSession();
 
-    uint16_t port = config_ ? config_->tcpPort() : 5288;
+    uint16_t port = 5277;
+    if (configService_) {
+        QVariant portVar = configService_->value("connection.tcp_port");
+        if (portVar.isValid())
+            port = static_cast<uint16_t>(portVar.toUInt());
+    }
     setState(WaitingForDevice,
              QString("Waiting for wireless connection on port %1...").arg(port));
 
@@ -790,9 +800,13 @@ void AndroidAutoOrchestrator::startConnectionWatchdog()
         if (fd == -1) {
             qCWarning(lcAA) << "Watchdog: socket descriptor invalid";
             teardownSession();
-            uint16_t port = config_ ? config_->tcpPort() : 5288;
+            uint16_t wdPort = 5277;
+            if (configService_) {
+                QVariant pv = configService_->value("connection.tcp_port");
+                if (pv.isValid()) wdPort = static_cast<uint16_t>(pv.toUInt());
+            }
             setState(WaitingForDevice,
-                     QString("Waiting for wireless connection on port %1...").arg(port));
+                     QString("Waiting for wireless connection on port %1...").arg(wdPort));
             return;
         }
 

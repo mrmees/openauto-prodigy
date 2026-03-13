@@ -8,7 +8,6 @@ class QQmlContext;
 
 namespace oap {
 
-class Configuration;
 class YamlConfig;
 class IHostContext;
 class DisplayInfo;
@@ -30,16 +29,12 @@ namespace plugins {
 ///                    to the plugin's child QQmlContext so the QML view can bind.
 ///   onDeactivated() — child context is destroyed by PluginRuntimeContext.
 ///   shutdown() — stops touch reader + service.
-///
-/// Constructor takes legacy dependencies (Configuration, ApplicationController)
-/// that will be replaced by IHostContext services in later phases.
 class AndroidAutoPlugin : public QObject, public IPlugin {
     Q_OBJECT
     Q_INTERFACES(oap::IPlugin)
 
 public:
-    explicit AndroidAutoPlugin(std::shared_ptr<oap::Configuration> config,
-                               oap::YamlConfig* yamlConfig = nullptr,
+    explicit AndroidAutoPlugin(oap::YamlConfig* yamlConfig = nullptr,
                                QObject* parent = nullptr);
     ~AndroidAutoPlugin() override;
 
@@ -88,7 +83,6 @@ signals:
     void gestureTriggered();
 
 private:
-    std::shared_ptr<oap::Configuration> config_;
     oap::YamlConfig* yamlConfig_ = nullptr;
     IHostContext* hostContext_ = nullptr;
 
