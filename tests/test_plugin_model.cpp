@@ -41,6 +41,10 @@ public:
     oap::INotificationService* notificationService() override { return nullptr; }
     oap::CompanionListenerService* companionListenerService() override { return nullptr; }
     oap::IEqualizerService* equalizerService() override { return nullptr; }
+    oap::IProjectionStatusProvider* projectionStatusProvider() override { return nullptr; }
+    oap::INavigationProvider* navigationProvider() override { return nullptr; }
+    oap::IMediaStatusProvider* mediaStatusProvider() override { return nullptr; }
+    oap::ICallStateProvider* callStateProvider() override { return nullptr; }
     void log(oap::LogLevel, const QString&) override {}
 };
 

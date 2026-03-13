@@ -58,6 +58,7 @@ oap_add_test(test_action_registry SOURCES test_action_registry.cpp)
 oap_add_test(test_notification_service SOURCES test_notification_service.cpp)
 oap_add_test(test_companion_listener SOURCES test_companion_listener.cpp)
 oap_add_test(test_bluetooth_manager SOURCES test_bluetooth_manager.cpp)
+oap_add_test(test_projection_status_provider SOURCES test_projection_status_provider.cpp)
 
 # --- Device / hardware tests ---
 

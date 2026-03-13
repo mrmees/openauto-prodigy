@@ -29,6 +29,7 @@
 #include "core/services/SystemServiceClient.hpp"
 #include "core/services/BluetoothManager.hpp"
 #include "core/services/EqualizerService.hpp"
+#include "core/services/ProjectionStatusProvider.hpp"
 #include "ui/NotificationModel.hpp"
 #include "core/plugin/HostContext.hpp"
 #include "core/plugin/PluginManager.hpp"
@@ -381,6 +382,13 @@ int main(int argc, char *argv[])
         mediaBridge->connectToAAOrchestrator(orch);
     }
     navBridge->setManeuverIconProvider(maneuverIconProvider);
+
+    // --- Projection status provider (wraps orchestrator for narrow interface) ---
+    oap::ProjectionStatusProvider* projectionStatusProvider = nullptr;
+    if (auto* orch = aaPlugin->orchestrator()) {
+        projectionStatusProvider = new oap::ProjectionStatusProvider(orch, &app);
+        hostContext->setProjectionStatusProvider(projectionStatusProvider);
+    }
 
     // Wire media bridge to BT audio (may be nullptr on VM — connectToBtAudio handles null)
     mediaBridge->connectToBtAudio(btAudioPlugin);

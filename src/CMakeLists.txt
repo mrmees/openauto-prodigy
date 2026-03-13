@@ -44,6 +44,11 @@ add_library(openauto-core STATIC
     core/services/SystemServiceClient.cpp
     core/services/BluetoothManager.cpp
     core/services/EqualizerService.cpp
+    core/services/IProjectionStatusProvider.cpp
+    core/services/INavigationProvider.cpp
+    core/services/IMediaStatusProvider.cpp
+    core/services/ICallStateProvider.cpp
+    core/services/ProjectionStatusProvider.cpp
     ui/NotificationModel.cpp
     core/plugin/PluginManifest.cpp
     core/plugin/PluginDiscovery.cpp

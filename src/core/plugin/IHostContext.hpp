@@ -14,6 +14,10 @@ class IEventBus;
 class ActionRegistry;
 class INotificationService;
 class CompanionListenerService;
+class IProjectionStatusProvider;
+class INavigationProvider;
+class IMediaStatusProvider;
+class ICallStateProvider;
 
 enum class LogLevel { Debug, Info, Warning, Error };
 
@@ -31,6 +35,12 @@ public:
     virtual INotificationService* notificationService() = 0;
     virtual CompanionListenerService* companionListenerService() = 0;
     virtual IEqualizerService* equalizerService() = 0;
+
+    // Provider interfaces — return nullptr if not yet registered
+    virtual IProjectionStatusProvider* projectionStatusProvider() = 0;
+    virtual INavigationProvider* navigationProvider() = 0;
+    virtual IMediaStatusProvider* mediaStatusProvider() = 0;
+    virtual ICallStateProvider* callStateProvider() = 0;
 
     /// Log a message through the host's logging system.
     /// Thread-safe.
