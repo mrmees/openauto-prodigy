@@ -33,14 +33,14 @@ Requirements for Widget Grid & Content Widgets milestone. Each maps to roadmap p
 
 ### Multi-Page
 
-- [ ] **PAGE-01**: Home screen supports multiple widget pages with horizontal swipe navigation
-- [ ] **PAGE-02**: Page indicator dots show current page position and total count
-- [ ] **PAGE-03**: Launcher dock remains fixed across all pages
-- [ ] **PAGE-04**: Page swipe is disabled during edit mode (prevents gesture conflict with drag)
+- [x] **PAGE-01**: Home screen supports multiple widget pages with horizontal swipe navigation
+- [x] **PAGE-02**: Page indicator dots show current page position and total count
+- [x] **PAGE-03**: Launcher dock remains fixed across all pages
+- [x] **PAGE-04**: Page swipe is disabled during edit mode (prevents gesture conflict with drag)
 - [x] **PAGE-05**: Maximum 5 pages supported
 - [x] **PAGE-06**: Explicit page creation and removal (add page when needed, remove empty pages)
-- [ ] **PAGE-07**: Page navigation available during edit mode via non-swipe mechanism (e.g. tap page dots)
-- [ ] **PAGE-08**: Non-visible pages are lazily instantiated (Pi 4 memory/performance)
+- [x] **PAGE-07**: Page navigation available during edit mode via non-swipe mechanism (e.g. tap page dots)
+- [x] **PAGE-08**: Non-visible pages are lazily instantiated (Pi 4 memory/performance)
 - [x] **PAGE-09**: Page assignments persist in YAML config across restarts
 
 ### Navigation Widget
@@ -120,14 +120,14 @@ Deferred to subsequent milestones.
 | EDIT-08 | Phase 07 | Complete |
 | EDIT-09 | Phase 07 | Complete |
 | EDIT-10 | Phase 07 | Complete |
-| PAGE-01 | Phase 08 | Pending |
-| PAGE-02 | Phase 08 | Pending |
-| PAGE-03 | Phase 08 | Pending |
-| PAGE-04 | Phase 08 | Pending |
+| PAGE-01 | Phase 08 | Complete |
+| PAGE-02 | Phase 08 | Complete |
+| PAGE-03 | Phase 08 | Complete |
+| PAGE-04 | Phase 08 | Complete |
 | PAGE-05 | Phase 08 | Complete |
 | PAGE-06 | Phase 08 | Complete |
-| PAGE-07 | Phase 08 | Pending |
-| PAGE-08 | Phase 08 | Pending |
+| PAGE-07 | Phase 08 | Complete |
+| PAGE-08 | Phase 08 | Complete |
 | PAGE-09 | Phase 08 | Complete |
 | NAV-01 | Phase 06 | Pending |
 | NAV-02 | Phase 06 | Pending |
