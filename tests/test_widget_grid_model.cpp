@@ -60,8 +60,8 @@ private slots:
     void testPlacementsChangedSignal();
     void testSetGridDimensionsClampsPosition();
     void testSetGridDimensionsClampsSpan();
-    void testSetGridDimensionsHidesOverlapping();
-    void testHiddenWidgetsNotInOccupancy();
+    void testSetGridDimensionsNudgesOverlapping();
+    void testNudgedWidgetsOccupyNewCells();
     void testGridDimensionsProperties();
     // Constraint role tests
     void testConstraintRoles();
@@ -334,14 +334,16 @@ void TestWidgetGridModel::testSetGridDimensionsClampsSpan() {
     model.placeWidget("clock", 0, 0, 4, 3);
 
     // Shrink to 3x2 -- colSpan 4 exceeds 3 cols, rowSpan 3 exceeds 2 rows
+    // Remap clamps spans to fit the new grid
     model.setGridDimensions(3, 2);
 
     auto placements = model.placements();
     QVERIFY(placements[0].colSpan <= 3);
     QVERIFY(placements[0].rowSpan <= 2);
+    QVERIFY(placements[0].visible); // still visible (clock minCols=1)
 }
 
-void TestWidgetGridModel::testSetGridDimensionsHidesOverlapping() {
+void TestWidgetGridModel::testSetGridDimensionsNudgesOverlapping() {
     auto* reg = makeRegistry();
     oap::WidgetGridModel model(reg);
     model.setGridDimensions(6, 4);
@@ -350,16 +352,18 @@ void TestWidgetGridModel::testSetGridDimensionsHidesOverlapping() {
     model.placeWidget("tiny", 0, 0, 1, 1); // first-placed
     model.placeWidget("tiny", 1, 0, 1, 1); // second-placed
 
-    // Shrink to 1 column -- both clamp to col 0, second should be hidden
+    // Shrink to 1 column -- both map to col 0, second nudged (not hidden)
     model.setGridDimensions(1, 4);
 
     auto placements = model.placements();
     QCOMPARE(placements.size(), 2);
     QVERIFY(placements[0].visible);
-    QVERIFY(!placements[1].visible);
+    QVERIFY(placements[1].visible); // nudged to different row, not hidden
+    // They should not overlap
+    QVERIFY(placements[0].col != placements[1].col || placements[0].row != placements[1].row);
 }
 
-void TestWidgetGridModel::testHiddenWidgetsNotInOccupancy() {
+void TestWidgetGridModel::testNudgedWidgetsOccupyNewCells() {
     auto* reg = makeRegistry();
     oap::WidgetGridModel model(reg);
     model.setGridDimensions(6, 4);
@@ -367,12 +371,15 @@ void TestWidgetGridModel::testHiddenWidgetsNotInOccupancy() {
     model.placeWidget("tiny", 0, 0, 1, 1);
     model.placeWidget("tiny", 1, 0, 1, 1);
 
-    // Shrink so second gets hidden
+    // Shrink so second gets nudged
     model.setGridDimensions(1, 4);
 
-    // Cell (0,0) is occupied by visible widget, but we should be able to place
-    // at (0,1) since hidden widgets don't occupy
-    QVERIFY(model.canPlace(0, 1, 1, 1));
+    auto placements = model.placements();
+    // Both visible (second was nudged, not hidden)
+    QVERIFY(placements[0].visible);
+    QVERIFY(placements[1].visible);
+    // Nudged widget occupies a cell -- verify we can still place at a free cell
+    QVERIFY(model.canPlace(0, 2, 1, 1));
 }
 
 void TestWidgetGridModel::testGridDimensionsProperties() {

@@ -80,6 +80,7 @@ Item {
     }
 
     onEditModeChanged: {
+        WidgetGridModel.setEditMode(editMode)
         if (editMode) {
             inactivityTimer.restart()
         } else {

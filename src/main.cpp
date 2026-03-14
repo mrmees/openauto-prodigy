@@ -544,12 +544,14 @@ int main(int argc, char *argv[])
         widgetGridModel->setPlacements(savedPlacements, widgetRegistry);
         widgetGridModel->setNextInstanceId(yamlConfig->gridNextInstanceId());
     }
+    widgetGridModel->setSavedDimensions(yamlConfig->gridSavedCols(), yamlConfig->gridSavedRows());
 
     // Auto-save grid placements on change (connected after load to avoid clobbering)
     auto saveGridState = [yamlConfig = yamlConfig.get(), widgetGridModel, yamlPath]() {
         yamlConfig->setGridPlacements(widgetGridModel->placements());
         yamlConfig->setGridNextInstanceId(widgetGridModel->nextInstanceId());
         yamlConfig->setGridPageCount(widgetGridModel->pageCount());
+        yamlConfig->setGridSavedDims(widgetGridModel->gridColumns(), widgetGridModel->gridRows());
         yamlConfig->save(yamlPath);
     };
     QObject::connect(widgetGridModel, &oap::WidgetGridModel::placementsChanged,

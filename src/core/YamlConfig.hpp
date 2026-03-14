@@ -132,6 +132,9 @@ public:
     void setGridNextInstanceId(int id);
     int gridPageCount() const;
     void setGridPageCount(int count);
+    int gridSavedCols() const;
+    int gridSavedRows() const;
+    void setGridSavedDims(int cols, int rows);
 
     // Plugins
     QStringList enabledPlugins() const;

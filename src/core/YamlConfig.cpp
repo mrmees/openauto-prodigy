@@ -947,6 +947,22 @@ void YamlConfig::setGridPageCount(int count)
     root_["widget_grid"]["page_count"] = count;
 }
 
+int YamlConfig::gridSavedCols() const
+{
+    return root_["widget_grid"]["grid_cols"].as<int>(0);
+}
+
+int YamlConfig::gridSavedRows() const
+{
+    return root_["widget_grid"]["grid_rows"].as<int>(0);
+}
+
+void YamlConfig::setGridSavedDims(int cols, int rows)
+{
+    root_["widget_grid"]["grid_cols"] = cols;
+    root_["widget_grid"]["grid_rows"] = rows;
+}
+
 // --- Generic dot-path access ---
 
 static QVariant yamlScalarToVariant(const YAML::Node& node)

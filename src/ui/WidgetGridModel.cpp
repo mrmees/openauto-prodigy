@@ -1,6 +1,8 @@
 #include "ui/WidgetGridModel.hpp"
 #include "core/widget/WidgetRegistry.hpp"
 #include <algorithm>
+#include <cmath>
+#include <QDebug>
 
 namespace oap {
 
@@ -12,15 +14,15 @@ WidgetGridModel::WidgetGridModel(WidgetRegistry* registry, QObject* parent)
 int WidgetGridModel::rowCount(const QModelIndex& parent) const
 {
     if (parent.isValid()) return 0;
-    return placements_.size();
+    return livePlacements_.size();
 }
 
 QVariant WidgetGridModel::data(const QModelIndex& index, int role) const
 {
-    if (!index.isValid() || index.row() >= placements_.size())
+    if (!index.isValid() || index.row() >= livePlacements_.size())
         return {};
 
-    const auto& p = placements_[index.row()];
+    const auto& p = livePlacements_[index.row()];
     switch (role) {
     case WidgetIdRole:      return p.widgetId;
     case InstanceIdRole:    return p.instanceId;
@@ -125,11 +127,12 @@ bool WidgetGridModel::placeWidget(const QString& widgetId, int col, int row,
     p.page = activePage_;
     p.visible = true;
 
-    beginInsertRows(QModelIndex(), placements_.size(), placements_.size());
-    placements_.append(p);
+    beginInsertRows(QModelIndex(), livePlacements_.size(), livePlacements_.size());
+    livePlacements_.append(p);
     markOccupied(p);
     endInsertRows();
 
+    promoteToBase();
     emit placementsChanged();
     return true;
 }
@@ -139,17 +142,19 @@ bool WidgetGridModel::moveWidget(const QString& instanceId, int newCol, int newR
     int idx = findPlacement(instanceId);
     if (idx < 0) return false;
 
-    const auto& p = placements_[idx];
+    const auto& p = livePlacements_[idx];
     // Use placement's own page for collision check
     if (!canPlaceOnPage(newCol, newRow, p.colSpan, p.rowSpan, p.page, instanceId))
         return false;
 
-    placements_[idx].col = newCol;
-    placements_[idx].row = newRow;
+    livePlacements_[idx].col = newCol;
+    livePlacements_[idx].row = newRow;
     rebuildOccupancy();
 
     QModelIndex mi = index(idx);
     emit dataChanged(mi, mi, {ColumnRole, RowRole});
+
+    promoteToBase();
     emit placementsChanged();
     return true;
 }
@@ -159,7 +164,7 @@ bool WidgetGridModel::resizeWidget(const QString& instanceId, int newColSpan, in
     int idx = findPlacement(instanceId);
     if (idx < 0) return false;
 
-    const auto& p = placements_[idx];
+    const auto& p = livePlacements_[idx];
 
     // Check against widget's min/max constraints
     if (registry_) {
@@ -176,12 +181,14 @@ bool WidgetGridModel::resizeWidget(const QString& instanceId, int newColSpan, in
     if (!canPlaceOnPage(p.col, p.row, newColSpan, newRowSpan, p.page, instanceId))
         return false;
 
-    placements_[idx].colSpan = newColSpan;
-    placements_[idx].rowSpan = newRowSpan;
+    livePlacements_[idx].colSpan = newColSpan;
+    livePlacements_[idx].rowSpan = newRowSpan;
     rebuildOccupancy();
 
     QModelIndex mi = index(idx);
     emit dataChanged(mi, mi, {ColSpanRole, RowSpanRole});
+
+    promoteToBase();
     emit placementsChanged();
     return true;
 }
@@ -192,10 +199,11 @@ void WidgetGridModel::removeWidget(const QString& instanceId)
     if (idx < 0) return;
 
     beginRemoveRows(QModelIndex(), idx, idx);
-    placements_.removeAt(idx);
+    livePlacements_.removeAt(idx);
     endRemoveRows();
 
     rebuildOccupancy();
+    promoteToBase();
     emit placementsChanged();
 }
 
@@ -204,7 +212,7 @@ void WidgetGridModel::setWidgetOpacity(const QString& instanceId, double opacity
     int idx = findPlacement(instanceId);
     if (idx < 0) return;
 
-    placements_[idx].opacity = qBound(0.0, opacity, 1.0);
+    livePlacements_[idx].opacity = qBound(0.0, opacity, 1.0);
     QModelIndex mi = index(idx);
     emit dataChanged(mi, mi, {OpacityRole});
     emit placementsChanged();
@@ -224,7 +232,7 @@ bool WidgetGridModel::canPlaceOnPage(int col, int row, int colSpan, int rowSpan,
     if (col + colSpan > cols_ || row + rowSpan > rows_) return false;
 
     // Direct iteration over placements for page-scoped collision
-    for (const auto& p : placements_) {
+    for (const auto& p : livePlacements_) {
         if (p.page != page || !p.visible) continue;
         if (!excludeInstanceId.isEmpty() && p.instanceId == excludeInstanceId) continue;
 
@@ -281,13 +289,13 @@ bool WidgetGridModel::removePage(int page)
 
     // Remove all placements on this page
     beginResetModel();
-    for (int i = placements_.size() - 1; i >= 0; --i) {
-        if (placements_[i].page == page)
-            placements_.removeAt(i);
+    for (int i = livePlacements_.size() - 1; i >= 0; --i) {
+        if (livePlacements_[i].page == page)
+            livePlacements_.removeAt(i);
     }
 
     // Shift higher pages down
-    for (auto& p : placements_) {
+    for (auto& p : livePlacements_) {
         if (p.page > page)
             p.page--;
     }
@@ -302,6 +310,7 @@ bool WidgetGridModel::removePage(int page)
     }
 
     rebuildOccupancy();
+    promoteToBase();
     emit pageCountChanged();
     emit placementsChanged();
     return true;
@@ -310,100 +319,252 @@ bool WidgetGridModel::removePage(int page)
 void WidgetGridModel::removeAllWidgetsOnPage(int page)
 {
     beginResetModel();
-    for (int i = placements_.size() - 1; i >= 0; --i) {
-        if (placements_[i].page == page)
-            placements_.removeAt(i);
+    for (int i = livePlacements_.size() - 1; i >= 0; --i) {
+        if (livePlacements_[i].page == page)
+            livePlacements_.removeAt(i);
     }
     endResetModel();
 
     rebuildOccupancy();
+    promoteToBase();
     emit placementsChanged();
 }
 
 int WidgetGridModel::widgetCountOnPage(int page) const
 {
     int count = 0;
-    for (const auto& p : placements_) {
+    for (const auto& p : livePlacements_) {
         if (p.page == page && p.visible)
             count++;
     }
     return count;
 }
 
-// --- Grid dimensions ---
+// --- Grid dimensions with proportional remap ---
 
 void WidgetGridModel::setGridDimensions(int cols, int rows)
 {
     if (cols == cols_ && rows == rows_) return;
 
+    // Edit mode deferral: queue dims but don't remap
+    if (editMode_) {
+        pendingCols_ = cols;
+        pendingRows_ = rows;
+        remapPending_ = true;
+        // Still update cols_/rows_ so grid dimensions property reflects the change
+        cols_ = cols;
+        rows_ = rows;
+        emit gridDimensionsChanged();
+        return;
+    }
+
     cols_ = cols;
     rows_ = rows;
 
-    // Clamping algorithm: preserve insertion order, first-placed wins
-    // Must handle per-page: build occupancy per page during clamping
-    // Use a temporary map of page -> occupancy grid
+    // Boot readiness guard: if model not yet initialized, just store dims
+    // Defer remap until setPlacements + setSavedDimensions have been called
+    if (basePlacements_.isEmpty() && savedCols_ == 0) {
+        clearOccupancy();
+        emit gridDimensionsChanged();
+        return;
+    }
+
+    // First-time setup guard: savedCols=0 means config never saved grid dims.
+    // Adopt current dims as baseline -- no remap needed
+    if (savedCols_ == 0) {
+        savedCols_ = cols;
+        savedRows_ = rows;
+        beginResetModel();
+        livePlacements_ = basePlacements_;
+        endResetModel();
+        rebuildOccupancy();
+        emit gridDimensionsChanged();
+        emit placementsChanged();
+        return;
+    }
+
+    // Same as saved dims: identity copy from base
+    if (cols == savedCols_ && rows == savedRows_) {
+        beginResetModel();
+        livePlacements_ = basePlacements_;
+        endResetModel();
+        rebuildOccupancy();
+        emit gridDimensionsChanged();
+        emit placementsChanged();
+        return;
+    }
+
+    // Dims differ from saved: proportional remap
+    remapPlacements(cols, rows);
+
+    rebuildOccupancy();
+    emit gridDimensionsChanged();
+    emit placementsChanged();
+    beginResetModel();
+    endResetModel();
+}
+
+void WidgetGridModel::remapPlacements(int newCols, int newRows)
+{
     QHash<int, QVector<QString>> pageOccupancy;
+    QList<GridPlacement> result;
 
-    for (int i = 0; i < placements_.size(); ++i) {
-        auto& p = placements_[i];
+    for (const auto& base : basePlacements_) {
+        GridPlacement p = base;
 
-        // Ensure page occupancy exists
-        if (!pageOccupancy.contains(p.page))
-            pageOccupancy[p.page] = QVector<QString>(cols_ * rows_);
-
-        // Clamp spans to fit new dimensions (don't exceed grid)
-        p.colSpan = std::min(p.colSpan, cols_);
-        p.rowSpan = std::min(p.rowSpan, rows_);
-
-        // Also clamp spans to widget's min constraints (don't go below min)
+        // 1. Check min span vs grid dims
         if (registry_) {
             auto desc = registry_->descriptor(p.widgetId);
             if (desc) {
-                p.colSpan = std::max(p.colSpan, desc->minCols);
-                p.rowSpan = std::max(p.rowSpan, desc->minRows);
-                // If min constraints exceed grid, widget cannot fit
-                if (p.colSpan > cols_ || p.rowSpan > rows_) {
+                if (desc->minCols > newCols || desc->minRows > newRows) {
                     p.visible = false;
+                    result.append(p);
+                    qWarning() << "Widget" << p.instanceId << "hidden: min span"
+                               << desc->minCols << "x" << desc->minRows
+                               << "exceeds grid" << newCols << "x" << newRows;
                     continue;
                 }
             }
         }
 
-        // Clamp position so widget stays in bounds
-        p.col = std::min(p.col, std::max(0, cols_ - p.colSpan));
-        p.row = std::min(p.row, std::max(0, rows_ - p.rowSpan));
+        // 2. Clamp spans to fit new grid (preserve as much as possible, respect minCols/minRows)
+        if (p.colSpan > newCols) {
+            p.colSpan = newCols;
+            if (registry_) {
+                auto desc = registry_->descriptor(p.widgetId);
+                if (desc) p.colSpan = std::max(p.colSpan, desc->minCols);
+            }
+        }
+        if (p.rowSpan > newRows) {
+            p.rowSpan = newRows;
+            if (registry_) {
+                auto desc = registry_->descriptor(p.widgetId);
+                if (desc) p.rowSpan = std::max(p.rowSpan, desc->minRows);
+            }
+        }
 
-        // Check overlap with already-placed widgets on same page
+        // 3. Proportional position (spans stay original size when possible)
+        p.col = qRound(static_cast<double>(base.col) * newCols / savedCols_);
+        p.row = qRound(static_cast<double>(base.row) * newRows / savedRows_);
+
+        // 4. Clamp to bounds
+        p.col = std::min(p.col, std::max(0, newCols - p.colSpan));
+        p.row = std::min(p.row, std::max(0, newRows - p.rowSpan));
+
+        // 5. Ensure page occupancy exists
+        if (!pageOccupancy.contains(p.page))
+            pageOccupancy[p.page] = QVector<QString>(newCols * newRows);
+
         auto& occ = pageOccupancy[p.page];
+
+        // 6. Check overlap with already-placed widgets on same page
         bool overlaps = false;
         for (int c = p.col; c < p.col + p.colSpan && !overlaps; ++c) {
             for (int r = p.row; r < p.row + p.rowSpan && !overlaps; ++r) {
-                if (!occ[r * cols_ + c].isEmpty())
+                if (c < newCols && r < newRows && !occ[r * newCols + c].isEmpty())
                     overlaps = true;
             }
         }
 
+        // 7. If overlap, try spiral nudge
         if (overlaps) {
-            p.visible = false;
-        } else {
-            p.visible = true;
-            // Mark occupied in page-specific occupancy
-            for (int c = p.col; c < p.col + p.colSpan; ++c) {
-                for (int r = p.row; r < p.row + p.rowSpan; ++r) {
-                    occ[r * cols_ + c] = p.instanceId;
+            overlaps = !spiralNudge(p, occ, newCols, newRows);
+        }
+
+        // 8. If still overlapping, spill to next page
+        if (overlaps) {
+            spillToNextPage(p, pageOccupancy, newCols, newRows);
+        }
+
+        // 9. Mark placed position in occupancy
+        p.visible = true;
+        auto& finalOcc = pageOccupancy[p.page];
+        for (int c = p.col; c < p.col + p.colSpan; ++c) {
+            for (int r = p.row; r < p.row + p.rowSpan; ++r) {
+                if (c < newCols && r < newRows)
+                    finalOcc[r * newCols + c] = p.instanceId;
+            }
+        }
+
+        result.append(p);
+    }
+
+    beginResetModel();
+    livePlacements_ = result;
+    endResetModel();
+}
+
+bool WidgetGridModel::spiralNudge(GridPlacement& p, const QVector<QString>& occupancy,
+                                    int cols, int rows) const
+{
+    // Spiral search: expanding rings from the target position
+    int maxRadius = std::max(cols, rows);
+
+    for (int radius = 1; radius <= maxRadius; ++radius) {
+        // Try all positions at this Manhattan distance in a spiral pattern
+        for (int dc = -radius; dc <= radius; ++dc) {
+            for (int dr = -radius; dr <= radius; ++dr) {
+                // Only check positions at the current ring (not inner positions)
+                if (std::abs(dc) != radius && std::abs(dr) != radius)
+                    continue;
+
+                int nc = p.col + dc;
+                int nr = p.row + dr;
+
+                // Bounds check
+                if (nc < 0 || nr < 0) continue;
+                if (nc + p.colSpan > cols || nr + p.rowSpan > rows) continue;
+
+                // Check if all cells are free
+                bool fits = true;
+                for (int c = nc; c < nc + p.colSpan && fits; ++c) {
+                    for (int r = nr; r < nr + p.rowSpan && fits; ++r) {
+                        if (!occupancy[r * cols + c].isEmpty())
+                            fits = false;
+                    }
+                }
+
+                if (fits) {
+                    p.col = nc;
+                    p.row = nr;
+                    return true;
                 }
             }
         }
     }
+    return false;
+}
 
-    // Rebuild the active page occupancy grid
-    rebuildOccupancy();
+void WidgetGridModel::spillToNextPage(GridPlacement& p, QHash<int, QVector<QString>>& pageOcc,
+                                       int cols, int rows)
+{
+    int nextPage = p.page + 1;
+    // Try to place at (0,0) on successive pages
+    for (int attempt = 0; attempt < 100; ++attempt) {
+        if (!pageOcc.contains(nextPage))
+            pageOcc[nextPage] = QVector<QString>(cols * rows);
 
-    emit gridDimensionsChanged();
-    emit placementsChanged();
-    // Full model reset since positions may have changed
-    beginResetModel();
-    endResetModel();
+        auto& occ = pageOcc[nextPage];
+        p.page = nextPage;
+        p.col = 0;
+        p.row = 0;
+
+        // Check if (0,0) is free
+        bool fits = true;
+        for (int c = 0; c < p.colSpan && fits; ++c) {
+            for (int r = 0; r < p.rowSpan && fits; ++r) {
+                if (c < cols && r < rows && !occ[r * cols + c].isEmpty())
+                    fits = false;
+            }
+        }
+
+        if (fits) return;
+
+        // Try spiral nudge on this page
+        if (spiralNudge(p, occ, cols, rows)) return;
+
+        nextPage++;
+    }
 }
 
 int WidgetGridModel::gridColumns() const { return cols_; }
@@ -411,23 +572,72 @@ int WidgetGridModel::gridRows() const { return rows_; }
 
 QList<GridPlacement> WidgetGridModel::placements() const
 {
-    return placements_;
+    return livePlacements_;
 }
 
 void WidgetGridModel::setPlacements(const QList<GridPlacement>& placements, WidgetRegistry* reg)
 {
     beginResetModel();
-    placements_ = placements;
+    livePlacements_ = placements;
+    basePlacements_ = placements;
     if (reg) registry_ = reg;
     rebuildOccupancy();
     endResetModel();
     emit placementsChanged();
 }
 
+void WidgetGridModel::setSavedDimensions(int cols, int rows)
+{
+    savedCols_ = cols;
+    savedRows_ = rows;
+}
+
+void WidgetGridModel::setEditMode(bool editing)
+{
+    if (editMode_ == editing) return;
+    editMode_ = editing;
+
+    // When exiting edit mode, apply pending remap if any
+    if (!editing && remapPending_) {
+        remapPending_ = false;
+        // Dims are already set (cols_/rows_ updated in setGridDimensions)
+        // Now apply the actual remap
+        if (basePlacements_.isEmpty() && savedCols_ == 0) {
+            // Still not initialized -- nothing to do
+        } else if (savedCols_ == 0) {
+            // First-time setup
+            savedCols_ = cols_;
+            savedRows_ = rows_;
+            beginResetModel();
+            livePlacements_ = basePlacements_;
+            endResetModel();
+            rebuildOccupancy();
+            emit placementsChanged();
+        } else if (cols_ == savedCols_ && rows_ == savedRows_) {
+            beginResetModel();
+            livePlacements_ = basePlacements_;
+            endResetModel();
+            rebuildOccupancy();
+            emit placementsChanged();
+        } else {
+            remapPlacements(cols_, rows_);
+            rebuildOccupancy();
+            emit placementsChanged();
+        }
+    }
+}
+
+void WidgetGridModel::promoteToBase()
+{
+    basePlacements_ = livePlacements_;
+    savedCols_ = cols_;
+    savedRows_ = rows_;
+}
+
 int WidgetGridModel::findPlacement(const QString& instanceId) const
 {
-    for (int i = 0; i < placements_.size(); ++i) {
-        if (placements_[i].instanceId == instanceId)
+    for (int i = 0; i < livePlacements_.size(); ++i) {
+        if (livePlacements_[i].instanceId == instanceId)
             return i;
     }
     return -1;
@@ -436,7 +646,7 @@ int WidgetGridModel::findPlacement(const QString& instanceId) const
 void WidgetGridModel::rebuildOccupancy()
 {
     clearOccupancy();
-    for (const auto& p : placements_) {
+    for (const auto& p : livePlacements_) {
         if (p.visible && p.page == activePage_)
             markOccupied(p);
     }

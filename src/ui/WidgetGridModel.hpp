@@ -1,6 +1,7 @@
 #pragma once
 
 #include <QAbstractListModel>
+#include <QHash>
 #include <QVariantMap>
 #include <QVector>
 #include "core/widget/WidgetTypes.hpp"
@@ -70,6 +71,10 @@ public:
     int gridColumns() const;
     int gridRows() const;
 
+    // Base snapshot / remap support
+    void setSavedDimensions(int cols, int rows);
+    Q_INVOKABLE void setEditMode(bool editing);
+
     // Serialization
     QList<GridPlacement> placements() const;
     void setPlacements(const QList<GridPlacement>& placements, WidgetRegistry* registry = nullptr);
@@ -93,14 +98,29 @@ private:
     void clearOccupancy();
     QString cellOwner(int col, int row) const;
 
+    // Remap algorithm
+    void remapPlacements(int newCols, int newRows);
+    bool spiralNudge(GridPlacement& p, const QVector<QString>& occupancy, int cols, int rows) const;
+    void spillToNextPage(GridPlacement& p, QHash<int, QVector<QString>>& pageOcc, int cols, int rows);
+
+    // After user edit: promote live state to new base
+    void promoteToBase();
+
     WidgetRegistry* registry_;
-    QList<GridPlacement> placements_;
+    QList<GridPlacement> livePlacements_;
+    QList<GridPlacement> basePlacements_;
     QVector<QString> occupancy_; // flat grid: cols_ * rows_
     int cols_ = 0;
     int rows_ = 0;
+    int savedCols_ = 0;
+    int savedRows_ = 0;
     int nextInstanceId_ = 0;
     int activePage_ = 0;
     int pageCount_ = 2;
+    bool editMode_ = false;
+    bool remapPending_ = false;
+    int pendingCols_ = 0;
+    int pendingRows_ = 0;
 };
 
 } // namespace oap
