@@ -3,14 +3,14 @@ gsd_state_version: 1.0
 milestone: v0.6
 milestone_name: milestone
 status: executing
-stopped_at: Completed 09-02-PLAN.md
-last_updated: "2026-03-14T16:31:44Z"
-last_activity: 2026-03-14 — Plan 09-02 executed
+stopped_at: Completed 09-03-PLAN.md
+last_updated: "2026-03-14T16:44:00Z"
+last_activity: 2026-03-14 — Plan 09-03 executed (Phase 09 complete)
 progress:
   total_phases: 4
-  completed_phases: 0
+  completed_phases: 1
   total_plans: 3
-  completed_plans: 2
+  completed_plans: 3
   percent: 16
 ---
 
@@ -26,18 +26,18 @@ See: .planning/PROJECT.md (updated 2026-03-14)
 ## Current Position
 
 Phase: 09 of 12 (Widget Descriptor & Grid Foundation)
-Plan: 2 of 3 complete
-Status: Executing
-Last activity: 2026-03-14 — Plan 09-02 executed
+Plan: 3 of 3 complete
+Status: Phase 09 Complete
+Last activity: 2026-03-14 — Plan 09-03 executed (Phase 09 complete)
 
-Progress: [██░░░░░░░░] 16%
+Progress: [███░░░░░░░] 25%
 
 ## Performance Metrics
 
 **Velocity:**
-- Total plans completed: 2
+- Total plans completed: 3
 - Average duration: 8 min
-- Total execution time: 0.28 hours
+- Total execution time: 0.43 hours
 
 ## Accumulated Context
 
@@ -59,6 +59,9 @@ Progress: [██░░░░░░░░] 16%
 - Phase 09 combines WF-01 (descriptor metadata) + GL-01/02/03 (grid foundation) -- both are foundational with no shared-file conflicts
 - Phase 10 bundles launcher creation + dock removal -- tightly coupled delivery boundary with QA gate between commits
 - Phase 11 (framework polish) depends on Phase 09 but is independent of Phase 10 -- could theoretically overlap
+- Remap clamps oversized spans to fit grid rather than hiding -- maximizes widget visibility
+- promoteToBase() on every user edit mutation -- live always reflects latest user intent as base
+- Base snapshot pattern: basePlacements_ from YAML, livePlacements_ is runtime; remap always derives from base
 
 ### Blockers/Concerns
 
@@ -67,5 +70,5 @@ Progress: [██░░░░░░░░] 16%
 
 ## Session Continuity
 
-Last session: 2026-03-14T16:31:44Z
-Stopped at: Completed 09-02-PLAN.md
+Last session: 2026-03-14T16:44:00Z
+Stopped at: Completed 09-03-PLAN.md (Phase 09 complete)
