@@ -20,6 +20,8 @@ void TestWidgetTypes::testWidgetDescriptorDefaults() {
     QVERIFY(desc.id.isEmpty());
     QVERIFY(desc.pluginId.isEmpty());
     QVERIFY(desc.defaultConfig.isEmpty());
+    QVERIFY(desc.category.isEmpty());
+    QVERIFY(desc.description.isEmpty());
     QCOMPARE(desc.minCols, 1);
     QCOMPARE(desc.minRows, 1);
     QCOMPARE(desc.maxCols, 6);

@@ -121,6 +121,10 @@ public:
     QList<WidgetPlacement> widgetPlacements() const;
     void setWidgetPlacements(const QList<WidgetPlacement>& placements);
 
+    // Home screen grid density
+    int gridDensityBias() const;
+    void setGridDensityBias(int bias);
+
     // Grid-based widget config (v3 with page support)
     QList<GridPlacement> gridPlacements() const;
     void setGridPlacements(const QList<GridPlacement>& placements);

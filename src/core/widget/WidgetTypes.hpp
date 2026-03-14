@@ -15,6 +15,8 @@ struct WidgetDescriptor {
     QString id;                         // "org.openauto.clock"
     QString displayName;                // "Clock"
     QString iconName;                   // Material icon codepoint (e.g. "\ue8b5")
+    QString category;                   // Category ID: "status", "media", "navigation", "launcher"
+    QString description;                // Short description for picker display
     QUrl qmlComponent;                  // qrc URL to widget QML (empty for stubs)
     QString pluginId;                   // empty for standalone widgets
     DashboardContributionKind contributionKind = DashboardContributionKind::Widget;

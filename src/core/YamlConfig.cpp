@@ -193,6 +193,9 @@ void YamlConfig::initDefaults()
     root_["widget_grid"]["page_count"] = 2;
     root_["widget_grid"]["placements"] = YAML::Node(YAML::NodeType::Sequence);
 
+    // Home screen grid density
+    root_["home"]["gridDensityBias"] = 0;
+
     // Navbar defaults
     root_["navbar"]["edge"] = "bottom";
     root_["navbar"]["show_during_aa"] = true;
@@ -865,6 +868,18 @@ void YamlConfig::setWidgetPlacements(const QList<WidgetPlacement>& placements)
         node.push_back(n);
     }
     root_["widget_config"]["placements"] = node;
+}
+
+// --- Home screen grid density ---
+
+int YamlConfig::gridDensityBias() const
+{
+    return std::clamp(root_["home"]["gridDensityBias"].as<int>(0), -1, 1);
+}
+
+void YamlConfig::setGridDensityBias(int bias)
+{
+    root_["home"]["gridDensityBias"] = std::clamp(bias, -1, 1);
 }
 
 // --- Grid-based widget config (v2) ---

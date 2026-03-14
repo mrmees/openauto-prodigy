@@ -15,7 +15,10 @@ public:
         DisplayNameRole,
         IconNameRole,
         DefaultColsRole,
-        DefaultRowsRole
+        DefaultRowsRole,
+        CategoryRole,
+        DescriptionRole,
+        CategoryLabelRole
     };
 
     explicit WidgetPickerModel(WidgetRegistry* registry, QObject* parent = nullptr);

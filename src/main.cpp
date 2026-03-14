@@ -59,7 +59,9 @@
 #include "ui/WidgetPickerModel.hpp"
 #include "ui/WidgetGridModel.hpp"
 #include <QQuickWindow>
+#include <QWindow>
 #include <algorithm>
+#include <cmath>
 
 int main(int argc, char *argv[])
 {
@@ -143,8 +145,15 @@ int main(int argc, char *argv[])
     auto screenSizeVar = yamlConfig->valueByPath("display.screen_size");
     if (screenSizeVar.isValid() && screenSizeVar.toDouble() > 0)
         displayInfo->setScreenSizeInches(screenSizeVar.toDouble());
+
+    // Wire DPI cascade and density bias to DisplayInfo
+    displayInfo->setConfigScreenSizeOverride(displayInfo->screenSizeInches());
+    displayInfo->setDensityBias(yamlConfig->gridDensityBias());
+
     qCInfo(lcCore) << "Screen size:" << displayInfo->screenSizeInches()
-                   << "inches, DPI:" << displayInfo->computedDpi();
+                   << "inches, DPI:" << displayInfo->computedDpi()
+                   << "cellSide:" << displayInfo->cellSide()
+                   << "densityBias:" << displayInfo->densityBias();
 
     // Log active UI overrides
     {
@@ -461,6 +470,8 @@ int main(int argc, char *argv[])
         clockDesc.id = "org.openauto.clock";
         clockDesc.displayName = "Clock";
         clockDesc.iconName = "\ue8b5";  // schedule
+        clockDesc.category = "status";
+        clockDesc.description = "Current time";
         clockDesc.minCols = 1; clockDesc.minRows = 1;
         clockDesc.maxCols = 6; clockDesc.maxRows = 4;
         clockDesc.defaultCols = 2; clockDesc.defaultRows = 2;
@@ -471,6 +482,8 @@ int main(int argc, char *argv[])
         aaStatusDesc.id = "org.openauto.aa-status";
         aaStatusDesc.displayName = "Android Auto";
         aaStatusDesc.iconName = "\ueff7";  // directions_car
+        aaStatusDesc.category = "status";
+        aaStatusDesc.description = "Connection status";
         aaStatusDesc.minCols = 1; aaStatusDesc.minRows = 1;
         aaStatusDesc.maxCols = 3; aaStatusDesc.maxRows = 2;
         aaStatusDesc.defaultCols = 2; aaStatusDesc.defaultRows = 1;
@@ -484,6 +497,8 @@ int main(int argc, char *argv[])
         navDesc.id = "org.openauto.nav-turn";
         navDesc.displayName = "Navigation";
         navDesc.iconName = "\ue55c";  // navigation
+        navDesc.category = "navigation";
+        navDesc.description = "Turn-by-turn directions";
         navDesc.minCols = 2; navDesc.minRows = 1;
         navDesc.maxCols = 4; navDesc.maxRows = 2;
         navDesc.defaultCols = 3; navDesc.defaultRows = 1;
@@ -494,6 +509,8 @@ int main(int argc, char *argv[])
         npDesc.id = "org.openauto.now-playing";
         npDesc.displayName = "Now Playing";
         npDesc.iconName = "\ue030";  // music_note
+        npDesc.category = "media";
+        npDesc.description = "Track info & controls";
         npDesc.minCols = 2; npDesc.minRows = 1;
         npDesc.maxCols = 6; npDesc.maxRows = 2;
         npDesc.defaultCols = 3; npDesc.defaultRows = 2;
@@ -510,7 +527,13 @@ int main(int argc, char *argv[])
 
     // --- Grid-based widget model (replaces pane-based WidgetPlacementModel) ---
     auto widgetGridModel = new oap::WidgetGridModel(widgetRegistry, &app);
-    widgetGridModel->setGridDimensions(displayInfo->gridColumns(), displayInfo->gridRows());
+    // Initial grid dimensions from cellSide (QML will take over once loaded)
+    {
+        qreal cs = displayInfo->cellSide();
+        int initCols = qMax(3, static_cast<int>(std::floor(displayInfo->windowWidth() / cs)));
+        int initRows = qMax(2, static_cast<int>(std::floor(displayInfo->windowHeight() / cs)));
+        widgetGridModel->setGridDimensions(initCols, initRows);
+    }
 
     // Load placements and page count from config BEFORE connecting auto-save.
     // setGridDimensions() emits placementsChanged() — connecting save first would
@@ -534,10 +557,15 @@ int main(int argc, char *argv[])
     QObject::connect(widgetGridModel, &oap::WidgetGridModel::pageCountChanged,
                      widgetGridModel, saveGridState);
 
-    // Re-clamp grid when display dimensions change
-    QObject::connect(displayInfo, &oap::DisplayInfo::gridDimensionsChanged,
+    // Re-clamp grid when cellSide changes (QML drives the actual dims via
+    // WidgetGridModel.setGridDimensions, but we update here as fallback for
+    // non-QML paths like the web config panel)
+    QObject::connect(displayInfo, &oap::DisplayInfo::cellSideChanged,
                      widgetGridModel, [widgetGridModel, displayInfo]() {
-        widgetGridModel->setGridDimensions(displayInfo->gridColumns(), displayInfo->gridRows());
+        qreal cs = displayInfo->cellSide();
+        int cols = qMax(3, static_cast<int>(std::floor(displayInfo->windowWidth() / cs)));
+        int rows = qMax(2, static_cast<int>(std::floor(displayInfo->windowHeight() / cs)));
+        widgetGridModel->setGridDimensions(cols, rows);
     });
 
     // --- IPC server for web config panel ---
@@ -723,7 +751,7 @@ int main(int argc, char *argv[])
     if (engine.rootObjects().isEmpty())
         return -1;
 
-    // Wire DisplayInfo to actual window dimensions
+    // Wire DisplayInfo to actual window dimensions + QScreen DPI + fullscreen state
     {
         auto* rootWindow = qobject_cast<QQuickWindow*>(engine.rootObjects().first());
         if (rootWindow) {
@@ -735,6 +763,34 @@ int main(int argc, char *argv[])
             QObject::connect(rootWindow, &QQuickWindow::widthChanged, displayInfo, updateSize);
             QObject::connect(rootWindow, &QQuickWindow::heightChanged, displayInfo, updateSize);
             updateSize();  // push initial real values
+
+            // Wire QScreen DPI at startup
+            auto* screen = rootWindow->screen();
+            if (screen) {
+                displayInfo->setQScreenDpi(screen->physicalDotsPerInch());
+                // Track DPI changes on current screen
+                QObject::connect(screen, &QScreen::physicalDotsPerInchChanged,
+                                 displayInfo, &oap::DisplayInfo::setQScreenDpi);
+            }
+
+            // Wire fullscreen state
+            displayInfo->setFullscreen(rootWindow->visibility() == QWindow::FullScreen);
+            QObject::connect(rootWindow, &QWindow::visibilityChanged,
+                             displayInfo, [displayInfo](QWindow::Visibility v) {
+                displayInfo->setFullscreen(v == QWindow::FullScreen);
+            });
+
+            // Handle window moving to a different monitor — reconnect DPI signal
+            QObject::connect(rootWindow, &QWindow::screenChanged,
+                             displayInfo, [displayInfo](QScreen* newScreen) {
+                if (newScreen) {
+                    displayInfo->setQScreenDpi(newScreen->physicalDotsPerInch());
+                    // Note: old screen's signal auto-disconnects when screen is destroyed.
+                    // Connect to new screen's DPI change signal.
+                    QObject::connect(newScreen, &QScreen::physicalDotsPerInchChanged,
+                                     displayInfo, &oap::DisplayInfo::setQScreenDpi);
+                }
+            });
         }
     }
 
