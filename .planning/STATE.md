@@ -3,15 +3,15 @@ gsd_state_version: 1.0
 milestone: v0.6
 milestone_name: milestone
 status: in-progress
-stopped_at: Plan 10-01 executed
-last_updated: "2026-03-14T19:18:02.000Z"
-last_activity: 2026-03-14 — Plan 10-01 executed (singleton launcher widgets)
+stopped_at: Completed 10-02-PLAN.md
+last_updated: "2026-03-14T19:35:00.000Z"
+last_activity: 2026-03-14 — Plan 10-02 executed (launcher dock/model/menu deletion)
 progress:
   total_phases: 4
   completed_phases: 1
   total_plans: 6
-  completed_plans: 4
-  percent: 40
+  completed_plans: 5
+  percent: 50
 ---
 
 # Project State
@@ -26,18 +26,18 @@ See: .planning/PROJECT.md (updated 2026-03-14)
 ## Current Position
 
 Phase: 10 of 12 (Launcher Widget & Dock Removal)
-Plan: 1 of 3 complete
+Plan: 2 of 3 complete
 Status: In Progress
-Last activity: 2026-03-14 — Plan 10-01 executed (singleton launcher widgets)
+Last activity: 2026-03-14 — Plan 10-02 executed (launcher dock/model/menu deletion)
 
-Progress: [████░░░░░░] 40%
+Progress: [█████░░░░░] 50%
 
 ## Performance Metrics
 
 **Velocity:**
-- Total plans completed: 4
-- Average duration: 10 min
-- Total execution time: 0.66 hours
+- Total plans completed: 5
+- Average duration: 10.4 min
+- Total execution time: 0.87 hours
 
 ## Accumulated Context
 
@@ -62,6 +62,8 @@ Progress: [████░░░░░░] 40%
 - Remap clamps oversized spans to fit grid rather than hiding -- maximizes widget visibility
 - promoteToBase() on every user edit mutation -- live always reflects latest user intent as base
 - Base snapshot pattern: basePlacements_ from YAML, livePlacements_ is runtime; remap always derives from base
+- Stale launcher.tiles keys in existing user YAML configs left as benign orphans (schema-less YAML ignores unknown keys)
+- Historical plan/session docs referencing launcher kept intact as archival records
 - Reserved page derived from singleton presence (pageHasSingleton), not explicit page flag
 - Fixed instanceIds for seeded singletons (aa-launcher-reserved, settings-launcher-reserved)
 - addPage shifts basePlacements_ alongside livePlacements_ for remap consistency
@@ -73,5 +75,5 @@ Progress: [████░░░░░░] 40%
 
 ## Session Continuity
 
-Last session: 2026-03-14T19:18:02.000Z
-Stopped at: Completed 10-01-PLAN.md
+Last session: 2026-03-14T19:35:00.000Z
+Stopped at: Completed 10-02-PLAN.md

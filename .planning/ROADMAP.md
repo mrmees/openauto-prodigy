@@ -87,7 +87,7 @@ See .planning/milestones/v0.5.3-ROADMAP.md for archived details.
 Decimal phases appear between their surrounding integers in numeric order.
 
 - [x] **Phase 09: Widget Descriptor & Grid Foundation** - Enrich WidgetDescriptor with manifest metadata; replace fixed-pixel grid math with DPI-based physical sizing; add YAML grid migration infrastructure (completed 2026-03-14)
-- [ ] **Phase 10: Launcher Widget & Dock Removal** - Create LauncherWidget as navigation replacement; remove LauncherDock and LauncherModel after verification
+- [x] **Phase 10: Launcher Widget & Dock Removal** - Create LauncherWidget as navigation replacement; remove LauncherDock and LauncherModel after verification (completed 2026-03-14)
 - [ ] **Phase 11: Widget Framework Polish** - Enforce size constraints from descriptors; add widget lifecycle signals; migrate pixel breakpoints to span-based thresholds
 - [ ] **Phase 12: Documentation** - Developer guide covering widget manifest, registration, lifecycle, and sizing conventions; architecture decision records
 
@@ -121,8 +121,8 @@ Plans:
 **Plans**: 2 plans
 
 Plans:
-- [ ] 10-01-PLAN.md -- Singleton widget infrastructure + Settings/AA widgets + reserved page logic + default seeding
-- [ ] 10-02-PLAN.md -- Delete LauncherDock, LauncherModel, LauncherMenu + reference cleanup
+- [x] 10-01-PLAN.md -- Singleton widget infrastructure + Settings/AA widgets + reserved page logic + default seeding
+- [x] 10-02-PLAN.md -- Delete LauncherDock, LauncherModel, LauncherMenu + reference cleanup
 
 ### Phase 11: Widget Framework Polish
 **Goal**: Widgets behave predictably under resize, report lifecycle transitions, and scale their content based on grid span rather than absolute pixels
@@ -158,9 +158,9 @@ Phases execute in numeric order: 09 -> 10 -> 11 -> 12
 | Phase | Plans Complete | Status | Completed |
 |-------|----------------|--------|-----------|
 | 09. Widget Descriptor & Grid Foundation | 3/3 | Complete    | 2026-03-14 |
-| 10. Launcher Widget & Dock Removal | 1/2 | In Progress|  |
+| 10. Launcher Widget & Dock Removal | 2/2 | Complete | 2026-03-14 |
 | 11. Widget Framework Polish | 0/2 | Not started | - |
 | 12. Documentation | 0/1 | Not started | - |
 
 ---
-*Last updated: 2026-03-14 -- Phase 10 plans created*
+*Last updated: 2026-03-14 -- Phase 10 complete*

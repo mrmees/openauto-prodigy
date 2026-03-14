@@ -16,8 +16,8 @@
 ## Navigation (NAV)
 
 - [x] **NAV-01**: LauncherWidget provides quick-launch tiles (AA, BT Audio, Phone, Settings) as a grid widget
-- [ ] **NAV-02**: LauncherDock bottom bar removed from Shell
-- [ ] **NAV-03**: LauncherModel data model removed — LauncherWidget uses PluginModel directly
+- [x] **NAV-02**: LauncherDock bottom bar removed from Shell
+- [x] **NAV-03**: LauncherModel data model removed — LauncherWidget uses PluginModel directly
 
 ## Documentation (DOC)
 
@@ -47,7 +47,7 @@ _None deferred from this milestone._
 | GL-02 | Phase 09 | Complete |
 | GL-03 | Phase 09 | Complete |
 | NAV-01 | Phase 10 | Complete |
-| NAV-02 | Phase 10 | Pending |
-| NAV-03 | Phase 10 | Pending |
+| NAV-02 | Phase 10 | Complete |
+| NAV-03 | Phase 10 | Complete |
 | DOC-01 | Phase 12 | Pending |
 | DOC-02 | Phase 12 | Pending |
