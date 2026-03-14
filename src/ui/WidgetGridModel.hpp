@@ -69,7 +69,7 @@ public:
     void setPageCount(int count);
 
     // Grid dimensions
-    void setGridDimensions(int cols, int rows);
+    Q_INVOKABLE void setGridDimensions(int cols, int rows);
     int gridColumns() const;
     int gridRows() const;
 
