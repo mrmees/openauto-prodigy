@@ -11,16 +11,16 @@ Item {
     readonly property bool isWide: width >= 500
 
     // Data bindings
-    property bool navActive: typeof NavigationBridge !== "undefined"
-                             && NavigationBridge.navActive
-    property bool hasIcon: typeof NavigationBridge !== "undefined"
-                           && NavigationBridge.hasManeuverIcon
-    property string roadName: typeof NavigationBridge !== "undefined"
-                              ? (NavigationBridge.roadName || "") : ""
-    property string distance: typeof NavigationBridge !== "undefined"
-                              ? (NavigationBridge.formattedDistance || "") : ""
-    property int iconVer: typeof NavigationBridge !== "undefined"
-                          ? NavigationBridge.iconVersion : 0
+    property bool navActive: typeof NavigationProvider !== "undefined"
+                             && NavigationProvider.navActive
+    property bool hasIcon: typeof NavigationProvider !== "undefined"
+                           && NavigationProvider.hasManeuverIcon
+    property string roadName: typeof NavigationProvider !== "undefined"
+                              ? (NavigationProvider.roadName || "") : ""
+    property string distance: typeof NavigationProvider !== "undefined"
+                              ? (NavigationProvider.formattedDistance || "") : ""
+    property int iconVer: typeof NavigationProvider !== "undefined"
+                          ? NavigationProvider.iconVersion : 0
 
     // ---- Active state ----
 

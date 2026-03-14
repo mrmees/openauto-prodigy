@@ -14,8 +14,9 @@
 #include <QFile>
 #include <QTimer>
 #include <memory>
-#include "core/Configuration.hpp"
+#include <QtQml/qqml.h>
 #include "core/Logging.hpp"
+#include "ui/SettingsInputBoundary.hpp"
 #include "core/YamlConfig.hpp"
 #include "core/services/ConfigService.hpp"
 #include "core/services/ThemeService.hpp"
@@ -29,14 +30,17 @@
 #include "core/services/SystemServiceClient.hpp"
 #include "core/services/BluetoothManager.hpp"
 #include "core/services/EqualizerService.hpp"
+#include "core/services/ProjectionStatusProvider.hpp"
+#include "core/services/PhoneStateService.hpp"
+#include "core/services/MediaStatusService.hpp"
 #include "ui/NotificationModel.hpp"
 #include "core/plugin/HostContext.hpp"
 #include "core/plugin/PluginManager.hpp"
 #include "plugins/android_auto/AndroidAutoPlugin.hpp"
 #include "core/aa/AndroidAutoOrchestrator.hpp"
 #include "core/aa/NavigationDataBridge.hpp"
-#include "core/aa/MediaDataBridge.hpp"
 #include "core/aa/ManeuverIconProvider.hpp"
+#include <oaa/HU/Handlers/MediaStatusChannelHandler.hpp>
 #include "plugins/bt_audio/BtAudioPlugin.hpp"
 #include "plugins/phone/PhonePlugin.hpp"
 #include "plugins/equalizer/EqualizerPlugin.hpp"
@@ -49,6 +53,7 @@
 #include "ui/AudioDeviceModel.hpp"
 #include "ui/CodecCapabilityModel.hpp"
 #include "ui/DisplayInfo.hpp"
+#include "ui/GestureOverlayController.hpp"
 #include "core/widget/WidgetRegistry.hpp"
 #include "core/widget/WidgetTypes.hpp"
 #include "ui/WidgetPickerModel.hpp"
@@ -105,32 +110,11 @@ int main(int argc, char *argv[])
         oap::setLogFile(parser.value(logFileOption));
     oap::installLogHandler();
 
-    auto config = std::make_shared<oap::Configuration>();
-
-    // Load from default path if exists; otherwise use built-in defaults
-    QString configPath = QDir::homePath() + "/.openauto/openauto_system.ini";
-    if (QFile::exists(configPath))
-        config->load(configPath);
-
-    // Try YAML config first, fall back to INI
+    // Load YAML config
     QString yamlPath = QDir::homePath() + "/.openauto/config.yaml";
     auto yamlConfig = std::make_shared<oap::YamlConfig>();
     if (QFile::exists(yamlPath)) {
         yamlConfig->load(yamlPath);
-        // Sync YAML values into legacy Configuration (used by BT service, etc.)
-        config->setWifiSsid(yamlConfig->wifiSsid());
-        config->setWifiPassword(yamlConfig->wifiPassword());
-        config->setTcpPort(yamlConfig->tcpPort());
-        config->setVideoFps(yamlConfig->videoFps());
-    } else if (QFile::exists(configPath)) {
-        // Legacy INI — migrate values to YamlConfig
-        yamlConfig->setWifiSsid(config->wifiSsid());
-        yamlConfig->setWifiPassword(config->wifiPassword());
-        yamlConfig->setTcpPort(config->tcpPort());
-        yamlConfig->setVideoFps(config->videoFps());
-        // Save as YAML for next boot
-        QDir().mkpath(QDir::homePath() + "/.openauto");
-        yamlConfig->save(yamlPath);
     }
 
     // --- Configure logging from CLI + YAML ---
@@ -305,7 +289,7 @@ int main(int argc, char *argv[])
     qCInfo(lcCore) << "Companion: enabled=" << companionEnabled << "port=" << companionPort;
     if (companionEnabled) {
         companionListener = new oap::CompanionListenerService(&app);
-        companionListener->setWifiSsid(config->wifiSsid());
+        companionListener->setWifiSsid(yamlConfig->wifiSsid());
         companionListener->loadOrGenerateVehicleId();
         QFile secretFile(QDir::homePath() + "/.openauto/companion.key");
         if (secretFile.open(QIODevice::ReadOnly)) {
@@ -343,12 +327,18 @@ int main(int argc, char *argv[])
     oap::PluginManager pluginManager(&app);
 
     // Register static (compiled-in) plugins
-    auto aaPlugin = new oap::plugins::AndroidAutoPlugin(config, yamlConfig.get(), &app);
+    auto aaPlugin = new oap::plugins::AndroidAutoPlugin(yamlConfig.get(), &app);
     aaPlugin->setDisplayInfo(displayInfo);
     pluginManager.registerStaticPlugin(aaPlugin);
 
     auto btAudioPlugin = new oap::plugins::BtAudioPlugin(&app);
     pluginManager.registerStaticPlugin(btAudioPlugin);
+
+    // --- Core phone state service (owns HFP D-Bus + call state machine) ---
+    auto phoneStateService = new oap::PhoneStateService(&app);
+    phoneStateService->setNotificationService(notificationService);
+    phoneStateService->startDBusMonitoring();
+    hostContext->setCallStateProvider(phoneStateService);
 
     auto phonePlugin = new oap::plugins::PhonePlugin(&app);
     pluginManager.registerStaticPlugin(phonePlugin);
@@ -372,18 +362,95 @@ int main(int argc, char *argv[])
 
     // --- Data bridges for content widgets ---
     auto* navBridge = new oap::aa::NavigationDataBridge(&app);
-    auto* mediaBridge = new oap::aa::MediaDataBridge(&app);
     auto* maneuverIconProvider = new oap::aa::ManeuverIconProvider();
 
     // Wire nav bridge to orchestrator's navigation handler
     if (auto* orch = aaPlugin->orchestrator()) {
         navBridge->connectToHandler(orch->navigationHandler());
-        mediaBridge->connectToAAOrchestrator(orch);
     }
     navBridge->setManeuverIconProvider(maneuverIconProvider);
+    hostContext->setNavigationProvider(navBridge);
 
-    // Wire media bridge to BT audio (may be nullptr on VM — connectToBtAudio handles null)
-    mediaBridge->connectToBtAudio(btAudioPlugin);
+    // --- Core media status service (owns AA+BT source merging) ---
+    auto mediaStatusService = new oap::MediaStatusService(&app);
+    hostContext->setMediaStatusProvider(mediaStatusService);
+
+    // Wire MediaStatusService to AA orchestrator
+    if (auto* orch = aaPlugin->orchestrator()) {
+        QObject::connect(orch, &oap::aa::AndroidAutoOrchestrator::connectionStateChanged,
+                         mediaStatusService, [mediaStatusService, orch]() {
+            mediaStatusService->setAaConnected(orch->isAaConnected());
+        });
+        auto* msHandler = orch->mediaStatusHandler();
+        if (msHandler) {
+            QObject::connect(msHandler, &oaa::hu::MediaStatusChannelHandler::metadataChanged,
+                             mediaStatusService, [mediaStatusService](const QString& title, const QString& artist,
+                                                                       const QString& album, const QByteArray&) {
+                mediaStatusService->updateAaMetadata(title, artist, album);
+            }, Qt::QueuedConnection);
+            QObject::connect(msHandler, &oaa::hu::MediaStatusChannelHandler::playbackStateChanged,
+                             mediaStatusService, [mediaStatusService](int state, const QString& app) {
+                mediaStatusService->updateAaPlaybackState(state, app);
+            }, Qt::QueuedConnection);
+        }
+    }
+
+    // Wire MediaStatusService to BT audio plugin
+    QObject::connect(btAudioPlugin, &oap::plugins::BtAudioPlugin::metadataChanged,
+                     mediaStatusService, [mediaStatusService, btAudioPlugin]() {
+        mediaStatusService->updateBtMetadata(btAudioPlugin->trackTitle(),
+                                              btAudioPlugin->trackArtist(),
+                                              btAudioPlugin->trackAlbum());
+    });
+    QObject::connect(btAudioPlugin, &oap::plugins::BtAudioPlugin::playbackStateChanged,
+                     mediaStatusService, [mediaStatusService, btAudioPlugin]() {
+        mediaStatusService->updateBtPlaybackState(btAudioPlugin->playbackState());
+    });
+    QObject::connect(btAudioPlugin, &oap::plugins::BtAudioPlugin::connectionStateChanged,
+                     mediaStatusService, [mediaStatusService, btAudioPlugin]() {
+        mediaStatusService->setBtConnected(btAudioPlugin->connectionState() == 1);
+    });
+    if (btAudioPlugin->connectionState() == 1) {
+        mediaStatusService->setBtConnected(true);
+        mediaStatusService->updateBtMetadata(btAudioPlugin->trackTitle(),
+                                              btAudioPlugin->trackArtist(),
+                                              btAudioPlugin->trackAlbum());
+        mediaStatusService->updateBtPlaybackState(btAudioPlugin->playbackState());
+    }
+
+    // Playback control delegation
+    {
+        auto* orch = aaPlugin->orchestrator();
+        mediaStatusService->setPlaybackCallbacks(
+            [mediaStatusService, orch, btAudioPlugin]() {
+                if (mediaStatusService->source() == "AndroidAuto" && orch)
+                    orch->sendButtonPress(85);
+                else if (mediaStatusService->source() == "Bluetooth" && btAudioPlugin) {
+                    if (btAudioPlugin->playbackState() == 1) btAudioPlugin->pause();
+                    else btAudioPlugin->play();
+                }
+            },
+            [mediaStatusService, orch, btAudioPlugin]() {
+                if (mediaStatusService->source() == "AndroidAuto" && orch)
+                    orch->sendButtonPress(87);
+                else if (mediaStatusService->source() == "Bluetooth" && btAudioPlugin)
+                    btAudioPlugin->next();
+            },
+            [mediaStatusService, orch, btAudioPlugin]() {
+                if (mediaStatusService->source() == "AndroidAuto" && orch)
+                    orch->sendButtonPress(88);
+                else if (mediaStatusService->source() == "Bluetooth" && btAudioPlugin)
+                    btAudioPlugin->previous();
+            }
+        );
+    }
+
+    // --- Projection status provider (wraps orchestrator for narrow interface) ---
+    oap::ProjectionStatusProvider* projectionStatusProvider = nullptr;
+    if (auto* orch = aaPlugin->orchestrator()) {
+        projectionStatusProvider = new oap::ProjectionStatusProvider(orch, &app);
+        hostContext->setProjectionStatusProvider(projectionStatusProvider);
+    }
 
     // --- Widget system ---
     auto widgetRegistry = new oap::WidgetRegistry(&app);
@@ -497,6 +564,8 @@ int main(int argc, char *argv[])
 
     QQuickStyle::setStyle("Material");
 
+    qmlRegisterType<oap::SettingsInputBoundary>("OpenAutoProdigy", 1, 0, "SettingsInputBoundary");
+
     QQmlApplicationEngine engine;
 
     // Plugin model for QML nav strip (needs engine for PluginRuntimeContext)
@@ -521,6 +590,12 @@ int main(int argc, char *argv[])
     actionRegistry->registerAction("theme.toggle", [themeService](const QVariant&) {
         themeService->toggleMode();
     });
+    // AA button press action (used by DebugSettings via ActionRegistry.dispatch)
+    if (auto* orch = aaPlugin->orchestrator()) {
+        actionRegistry->registerAction("aa.sendButton", [orch](const QVariant& v) {
+            orch->sendButtonPress(v.toInt());
+        });
+    }
 
     // --- Navbar action handlers ---
     // Volume tap: show volume popup
@@ -593,8 +668,8 @@ int main(int argc, char *argv[])
     engine.rootContext()->setContextProperty("NotificationModel", notificationModel);
     engine.rootContext()->setContextProperty("NotificationService", notificationService);
 
-    // Expose PhonePlugin globally for IncomingCallOverlay in Shell.qml
-    engine.rootContext()->setContextProperty("PhonePlugin", phonePlugin);
+    // Expose call state provider for IncomingCallOverlay in Shell.qml
+    engine.rootContext()->setContextProperty("CallStateProvider", static_cast<QObject*>(phoneStateService));
 
     engine.rootContext()->setContextProperty("AudioService", audioService);
     engine.rootContext()->setContextProperty("DisplayService", displayService);
@@ -624,12 +699,15 @@ int main(int argc, char *argv[])
     engine.rootContext()->setContextProperty("SystemService", systemClient);
     engine.rootContext()->setContextProperty("BluetoothManager", bluetoothManager);
     engine.rootContext()->setContextProperty("PairedDevicesModel", bluetoothManager->pairedDevicesModel());
-    engine.rootContext()->setContextProperty("AAOrchestrator", static_cast<QObject*>(aaPlugin->orchestrator()));
+    // Projection status provider for widgets and debug settings
+    engine.rootContext()->setContextProperty("ProjectionStatus", static_cast<QObject*>(projectionStatusProvider));
 
-    // Content widget data bridges + image provider
+    // Provider-backed root-context properties for widgets
+    engine.rootContext()->setContextProperty("NavigationProvider", static_cast<QObject*>(navBridge));
+    engine.rootContext()->setContextProperty("MediaStatus", static_cast<QObject*>(mediaStatusService));
+
+    // Navigation icon image provider
     engine.addImageProvider(QStringLiteral("navicon"), maneuverIconProvider);
-    engine.rootContext()->setContextProperty("NavigationBridge", navBridge);
-    engine.rootContext()->setContextProperty("MediaBridge", mediaBridge);
 
     // Geometry override for windowed resolution testing
     engine.rootContext()->setContextProperty("_geomW", geomW);
@@ -678,138 +756,27 @@ int main(int argc, char *argv[])
             pluginModel->setActivePlugin(QString());
     });
 
-    // Connect 3-finger gesture to GestureOverlay
+    // --- Gesture overlay controller ---
+    auto* gestureController = new oap::GestureOverlayController(&app);
+    if (auto* bridge = aaPlugin->coordBridge())
+        gestureController->setCoordBridge(bridge);
+    gestureController->setAudioService(audioService);
+    gestureController->setDisplayService(displayService);
+    gestureController->setActionRegistry(actionRegistry);
+
+    // Connect 3-finger gesture to GestureOverlay via controller
     QObject::connect(aaPlugin, &oap::plugins::AndroidAutoPlugin::gestureTriggered,
-                     &app, [&engine, aaPlugin, displayInfo, audioService, displayService, themeService, actionRegistry]() {
+                     &app, [&engine, gestureController, displayInfo]() {
         auto* root = engine.rootObjects().value(0);
         if (!root) return;
         auto* overlay = root->findChild<QObject*>("gestureOverlay");
         if (!overlay) return;
-
-        QMetaObject::invokeMethod(overlay, "show");
-
-        // Register full-screen evdev zone at priority 200 to consume all touches
-        // during overlay visibility (prevents AA forwarding while overlay is up).
-        // Per-control zones at priority 210 handle actual interactions.
-        auto* bridge = aaPlugin->coordBridge();
-        if (!bridge) return;
-
-        int dw = displayInfo->windowWidth();
-        int dh = displayInfo->windowHeight();
-
-        bridge->updateZone(
-            std::string("gesture-overlay"), 200,
-            0.0f, 0.0f,
-            static_cast<float>(dw), static_cast<float>(dh),
-            [](int, float, float, oap::aa::TouchEvent) {
-                // Consume all touches to block AA forwarding.
-                // Per-control zones at priority 210 handle interactions.
-            });
-
-        // Wait one frame for QML layout to stabilize, then register
-        // per-control zones using actual QML element positions
         auto* overlayItem = qobject_cast<QQuickItem*>(overlay);
-        QTimer::singleShot(16, overlayItem, [bridge, overlayItem, audioService, displayService, actionRegistry]() {
-            if (!overlayItem || !overlayItem->isVisible()) return;
+        if (!overlayItem) return;
 
-            // Helper: get window-space rect for a named child
-            auto getRect = [overlayItem](const char* name, float& x, float& y, float& w, float& h) -> bool {
-                auto* item = overlayItem->findChild<QQuickItem*>(QString(name));
-                if (!item || item->width() <= 0) return false;
-                QPointF pos = item->mapToScene(QPointF(0, 0));
-                x = pos.x(); y = pos.y();
-                w = item->width(); h = item->height();
-                return true;
-            };
-
-            float x, y, w, h;
-
-            // Volume slider row
-            if (getRect("overlayVolumeRow", x, y, w, h)) {
-                float evX0 = bridge->pixelToEvdevX(x);
-                float evX1 = bridge->pixelToEvdevX(x + w);
-                bridge->updateZone("overlay-volume", 210, x, y, w, h,
-                    [audioService, evX0, evX1](int, float rawX, float, oap::aa::TouchEvent event) {
-                        if (event == oap::aa::TouchEvent::Down || event == oap::aa::TouchEvent::Move) {
-                            float norm = std::clamp((rawX - evX0) / (evX1 - evX0), 0.0f, 1.0f);
-                            int volume = static_cast<int>(norm * 100.0f);
-                            QMetaObject::invokeMethod(audioService, [audioService, volume]() {
-                                audioService->setMasterVolume(volume);
-                            }, Qt::QueuedConnection);
-                        }
-                    });
-            }
-
-            // Brightness slider row
-            if (getRect("overlayBrightnessRow", x, y, w, h)) {
-                float evX0 = bridge->pixelToEvdevX(x);
-                float evX1 = bridge->pixelToEvdevX(x + w);
-                bridge->updateZone("overlay-brightness", 210, x, y, w, h,
-                    [displayService, evX0, evX1](int, float rawX, float, oap::aa::TouchEvent event) {
-                        if (event == oap::aa::TouchEvent::Down || event == oap::aa::TouchEvent::Move) {
-                            float norm = std::clamp((rawX - evX0) / (evX1 - evX0), 0.0f, 1.0f);
-                            int brightness = 5 + static_cast<int>(norm * 95.0f);
-                            QMetaObject::invokeMethod(displayService, [displayService, brightness]() {
-                                displayService->setBrightness(brightness);
-                            }, Qt::QueuedConnection);
-                        }
-                    });
-            }
-
-            // Home button
-            if (getRect("overlayHomeBtn", x, y, w, h)) {
-                bridge->updateZone("overlay-home", 210, x, y, w, h,
-                    [overlayItem, actionRegistry](int, float, float, oap::aa::TouchEvent event) {
-                        if (event == oap::aa::TouchEvent::Down) {
-                            QMetaObject::invokeMethod(qApp, [actionRegistry]() {
-                                actionRegistry->dispatch("app.home");
-                            }, Qt::QueuedConnection);
-                            QMetaObject::invokeMethod(overlayItem, "dismiss", Qt::QueuedConnection);
-                        }
-                    });
-            }
-
-            // Theme toggle button
-            if (getRect("overlayThemeBtn", x, y, w, h)) {
-                bridge->updateZone("overlay-theme", 210, x, y, w, h,
-                    [actionRegistry](int, float, float, oap::aa::TouchEvent event) {
-                        if (event == oap::aa::TouchEvent::Down) {
-                            QMetaObject::invokeMethod(qApp, [actionRegistry]() {
-                                actionRegistry->dispatch("theme.toggle");
-                            }, Qt::QueuedConnection);
-                        }
-                    });
-            }
-
-            // Close button
-            if (getRect("overlayCloseBtn", x, y, w, h)) {
-                bridge->updateZone("overlay-close", 210, x, y, w, h,
-                    [overlayItem](int, float, float, oap::aa::TouchEvent event) {
-                        if (event == oap::aa::TouchEvent::Down) {
-                            QMetaObject::invokeMethod(overlayItem, "dismiss", Qt::QueuedConnection);
-                        }
-                    });
-            }
-        });
-
-        // Deregister all zones when overlay becomes invisible (covers all dismiss paths:
-        // timer, close button, home button -- they all set visible=false via dismiss())
-        static QMetaObject::Connection visConn;
-        if (visConn) QObject::disconnect(visConn);
-        auto* overlayItemVis = qobject_cast<QQuickItem*>(overlay);
-        if (overlayItemVis) {
-            visConn = QObject::connect(overlayItemVis, &QQuickItem::visibleChanged,
-                overlayItemVis, [bridge, overlayItemVis]() {
-                    if (!overlayItemVis->isVisible()) {
-                        bridge->removeZone(std::string("gesture-overlay"));
-                        bridge->removeZone(std::string("overlay-volume"));
-                        bridge->removeZone(std::string("overlay-brightness"));
-                        bridge->removeZone(std::string("overlay-home"));
-                        bridge->removeZone(std::string("overlay-theme"));
-                        bridge->removeZone(std::string("overlay-close"));
-                    }
-                });
-        }
+        gestureController->showOverlay(overlayItem,
+                                       displayInfo->windowWidth(),
+                                       displayInfo->windowHeight());
     });
 
     // SIGUSR1 → disconnect AA session (ShutdownRequest + teardown, keep listening)

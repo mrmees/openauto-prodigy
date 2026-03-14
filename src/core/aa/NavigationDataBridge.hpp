@@ -1,8 +1,8 @@
 #pragma once
 
-#include <QObject>
 #include <QString>
 #include <QByteArray>
+#include "core/services/INavigationProvider.hpp"
 
 namespace oaa { namespace hu { class NavigationChannelHandler; } }
 
@@ -11,7 +11,7 @@ namespace aa {
 
 class ManeuverIconProvider;
 
-class NavigationDataBridge : public QObject {
+class NavigationDataBridge : public INavigationProvider {
     Q_OBJECT
     Q_PROPERTY(bool navActive READ navActive NOTIFY navActiveChanged)
     Q_PROPERTY(QString roadName READ roadName NOTIFY turnDataChanged)
@@ -28,15 +28,15 @@ public:
     void connectToHandler(oaa::hu::NavigationChannelHandler* handler);
     void setManeuverIconProvider(ManeuverIconProvider* provider);
 
-    bool navActive() const { return navActive_; }
-    QString roadName() const { return roadName_; }
-    int maneuverType() const { return maneuverType_; }
-    int turnDirection() const { return turnDirection_; }
-    QString formattedDistance() const;
+    bool navActive() const override { return navActive_; }
+    QString roadName() const override { return roadName_; }
+    int maneuverType() const override { return maneuverType_; }
+    int turnDirection() const override { return turnDirection_; }
+    QString formattedDistance() const override;
     int distanceMeters() const { return distanceMeters_; }
     QString instruction() const { return instruction_; }
-    bool hasManeuverIcon() const { return !currentIcon_.isEmpty(); }
-    int iconVersion() const { return iconVersion_; }
+    bool hasManeuverIcon() const override { return !currentIcon_.isEmpty(); }
+    int iconVersion() const override { return iconVersion_; }
 
 signals:
     void navActiveChanged();

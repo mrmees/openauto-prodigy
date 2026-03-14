@@ -8,7 +8,6 @@ class QQmlContext;
 
 namespace oap {
 
-class Configuration;
 class YamlConfig;
 class IHostContext;
 class DisplayInfo;
@@ -17,6 +16,7 @@ namespace aa {
 class AndroidAutoOrchestrator;
 class EvdevTouchReader;
 class EvdevCoordBridge;
+class AndroidAutoRuntimeBridge;
 }
 
 namespace plugins {
@@ -24,22 +24,18 @@ namespace plugins {
 /// Static plugin wrapping the existing Android Auto subsystem.
 ///
 /// Lifecycle:
-///   initialize() — creates AndroidAutoService + EvdevTouchReader, starts them.
-///                   AA needs to listen for connections from boot, not just when visible.
+///   initialize() — creates AndroidAutoService, delegates touch/display/navbar
+///                   setup to AndroidAutoRuntimeBridge, starts AA.
 ///   onActivated() — exposes AA objects (service, VideoDecoder, TouchHandler)
 ///                    to the plugin's child QQmlContext so the QML view can bind.
 ///   onDeactivated() — child context is destroyed by PluginRuntimeContext.
 ///   shutdown() — stops touch reader + service.
-///
-/// Constructor takes legacy dependencies (Configuration, ApplicationController)
-/// that will be replaced by IHostContext services in later phases.
 class AndroidAutoPlugin : public QObject, public IPlugin {
     Q_OBJECT
     Q_INTERFACES(oap::IPlugin)
 
 public:
-    explicit AndroidAutoPlugin(std::shared_ptr<oap::Configuration> config,
-                               oap::YamlConfig* yamlConfig = nullptr,
+    explicit AndroidAutoPlugin(oap::YamlConfig* yamlConfig = nullptr,
                                QObject* parent = nullptr);
     ~AndroidAutoPlugin() override;
 
@@ -73,8 +69,11 @@ public:
     /// Gracefully disconnect the AA session (sends ShutdownRequest to phone)
     void stopAA();
 
+    /// Access the runtime bridge (for zone registration, coord bridge access)
+    oap::aa::AndroidAutoRuntimeBridge* runtimeBridge() const { return runtimeBridge_; }
+
     /// Access the evdev coordinate bridge for external zone registration
-    oap::aa::EvdevCoordBridge* coordBridge() const { return coordBridge_; }
+    oap::aa::EvdevCoordBridge* coordBridge() const;
 
     /// Access the AA orchestrator (for root context exposure)
     oap::aa::AndroidAutoOrchestrator* orchestrator() const { return aaService_; }
@@ -88,14 +87,12 @@ signals:
     void gestureTriggered();
 
 private:
-    std::shared_ptr<oap::Configuration> config_;
     oap::YamlConfig* yamlConfig_ = nullptr;
     IHostContext* hostContext_ = nullptr;
 
     oap::DisplayInfo* displayInfo_ = nullptr;
     oap::aa::AndroidAutoOrchestrator* aaService_ = nullptr;
-    oap::aa::EvdevTouchReader* touchReader_ = nullptr;
-    oap::aa::EvdevCoordBridge* coordBridge_ = nullptr;
+    oap::aa::AndroidAutoRuntimeBridge* runtimeBridge_ = nullptr;
 };
 
 } // namespace plugins

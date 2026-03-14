@@ -1,11 +1,10 @@
 #include "AndroidAutoPlugin.hpp"
 #include "core/aa/AndroidAutoOrchestrator.hpp"
+#include "core/aa/AndroidAutoRuntimeBridge.hpp"
 #include "core/aa/EvdevTouchReader.hpp"
 #include "core/aa/EvdevCoordBridge.hpp"
 #include "core/aa/ServiceDiscoveryBuilder.hpp"
 #include "core/plugin/IHostContext.hpp"
-#include "core/Configuration.hpp"
-#include "core/InputDeviceScanner.hpp"
 #include "core/services/IAudioService.hpp"
 #include "core/services/IConfigService.hpp"
 #include "core/services/ConfigService.hpp"
@@ -20,11 +19,9 @@
 namespace oap {
 namespace plugins {
 
-AndroidAutoPlugin::AndroidAutoPlugin(std::shared_ptr<oap::Configuration> config,
-                                     oap::YamlConfig* yamlConfig,
+AndroidAutoPlugin::AndroidAutoPlugin(oap::YamlConfig* yamlConfig,
                                      QObject* parent)
     : QObject(parent)
-    , config_(std::move(config))
     , yamlConfig_(yamlConfig)
 {
 }
@@ -39,6 +36,10 @@ void AndroidAutoPlugin::setDisplayInfo(DisplayInfo* info)
     displayInfo_ = info;
 }
 
+oap::aa::EvdevCoordBridge* AndroidAutoPlugin::coordBridge() const
+{
+    return runtimeBridge_ ? runtimeBridge_->coordBridge() : nullptr;
+}
 
 bool AndroidAutoPlugin::initialize(IHostContext* context)
 {
@@ -48,7 +49,8 @@ bool AndroidAutoPlugin::initialize(IHostContext* context)
     auto* audioService = context ? context->audioService() : nullptr;
     auto* eventBus = context ? context->eventBus() : nullptr;
     auto* eqService = context ? dynamic_cast<oap::EqualizerService*>(context->equalizerService()) : nullptr;
-    aaService_ = new oap::aa::AndroidAutoOrchestrator(config_, audioService, yamlConfig_, eventBus, eqService, this);
+    auto* configService = context ? context->configService() : nullptr;
+    aaService_ = new oap::aa::AndroidAutoOrchestrator(configService, audioService, yamlConfig_, eventBus, eqService, this);
 
     // Give orchestrator access to theme service for UiConfigRequest sending
     if (context)
@@ -60,129 +62,26 @@ bool AndroidAutoPlugin::initialize(IHostContext* context)
         using CS = oap::aa::AndroidAutoOrchestrator;
         auto state = static_cast<CS::ConnectionState>(aaService_->connectionState());
         if (state == CS::Connected) {
-            if (touchReader_) touchReader_->grab();
+            if (runtimeBridge_) runtimeBridge_->grab();
             emit requestActivation();
         } else if (state == CS::Backgrounded) {
-            if (touchReader_) touchReader_->ungrab();
+            if (runtimeBridge_) runtimeBridge_->ungrab();
             emit requestDeactivation();
         } else if (state == CS::Disconnected
                    || state == CS::WaitingForDevice) {
-            if (touchReader_) touchReader_->ungrab();
+            if (runtimeBridge_) runtimeBridge_->ungrab();
             emit requestDeactivation();
         }
     });
 
-    // Auto-detect or read touch device from config
-    QString touchDevice;
-    if (hostContext_ && hostContext_->configService()) {
-        touchDevice = hostContext_->configService()->value("touch.device").toString();
-    }
-    if (touchDevice.isEmpty()) {
-        touchDevice = oap::InputDeviceScanner::findTouchDevice();
-        if (!touchDevice.isEmpty()) {
-            qCInfo(lcAA) << "Auto-detected touch device:" << touchDevice;
-        }
-    }
+    // Delegate touch/display/navbar platform policy to the runtime bridge
+    runtimeBridge_ = new oap::aa::AndroidAutoRuntimeBridge(this);
+    runtimeBridge_->setup(aaService_, displayInfo_, configService);
 
-    // Read display resolution: prefer detected dimensions from DisplayInfo,
-    // fall back to config values (default: 1024x600)
-    int displayW = 1024, displayH = 600;
-    if (displayInfo_ && displayInfo_->windowWidth() > 0 && displayInfo_->windowHeight() > 0) {
-        displayW = displayInfo_->windowWidth();
-        displayH = displayInfo_->windowHeight();
-        qCInfo(lcAA) << "Display dimensions: detected" << displayW << "x" << displayH;
-    } else {
-        qCInfo(lcAA) << "Display dimensions: using defaults" << displayW << "x" << displayH;
-    }
-
-    // Compute DPI-scaled navbar thickness to match QML UiMetrics.navbarThick
-    // Formula: round(56 * (dpi / 160) * globalScale)
-    int navbarThick = 56;
-    if (displayInfo_ && displayInfo_->computedDpi() > 0) {
-        double dpiScale = static_cast<double>(displayInfo_->computedDpi()) / 160.0;
-        double globalScale = 1.0;
-        if (hostContext_ && hostContext_->configService()) {
-            QVariant gs = hostContext_->configService()->value("ui.scale");
-            if (!gs.isNull() && gs.toDouble() > 0) globalScale = gs.toDouble();
-        }
-        navbarThick = static_cast<int>(std::round(56.0 * dpiScale * globalScale));
-    }
-    qCInfo(lcAA) << "Navbar thickness (DPI-scaled):" << navbarThick << "px";
-
-    // Pass detected dimensions and navbar thickness to AA orchestrator for margin calculations
-    if (displayInfo_ && displayInfo_->windowWidth() > 0 && displayInfo_->windowHeight() > 0) {
-        aaService_->setDisplayDimensions(displayInfo_->windowWidth(), displayInfo_->windowHeight());
-    }
-    aaService_->setNavbarThickness(navbarThick);
-
-    // Resolve AA touch coordinate space from configured video resolution
-    int aaW = 1280, aaH = 720;
-    if (hostContext_ && hostContext_->configService()) {
-        QString res = hostContext_->configService()->value("video.resolution").toString();
-        if (res == "1080p") { aaW = 1920; aaH = 1080; }
-        else if (res == "480p") { aaW = 800; aaH = 480; }
-    }
-
-    if (!touchDevice.isEmpty() && QFile::exists(touchDevice)) {
-        touchReader_ = new oap::aa::EvdevTouchReader(
-            aaService_->touchHandler(),
-            touchDevice.toStdString(),
-            aaW, aaH,
-            displayW, displayH,
-            this);
-        touchReader_->start();
-        qCInfo(lcAA) << "Touch:" << touchDevice
-                << "display=" << displayW << "x" << displayH;
-
-        // Create EvdevCoordBridge for external zone registration (navbar, gesture overlay)
-        coordBridge_ = new oap::aa::EvdevCoordBridge(&touchReader_->router(), this);
-        coordBridge_->setDisplayMapping(displayW, displayH, 4095, 4095);
-        touchReader_->setCoordBridge(coordBridge_);
-
-        // Relay 3-finger gesture to QML overlay (works regardless of grab state)
-        connect(touchReader_, &oap::aa::EvdevTouchReader::gestureDetected,
-                this, &AndroidAutoPlugin::gestureTriggered,
-                Qt::QueuedConnection);
-
-        // Configure navbar dimensions for touch letterbox calculation
-        bool navbarDuringAA = true;
-        QString navEdge = "bottom";
-        if (hostContext_ && hostContext_->configService()) {
-            QVariant showDuringAA = hostContext_->configService()->value("navbar.show_during_aa");
-            navbarDuringAA = (showDuringAA.isNull() || showDuringAA.toBool());
-            if (navbarDuringAA) {
-                navEdge = hostContext_->configService()->value("navbar.edge").toString();
-                if (navEdge.isEmpty()) navEdge = "bottom";
-                touchReader_->setNavbar(true, navbarThick, navEdge.toStdString());
-                qCInfo(lcAA) << "Navbar touch zone:" << navEdge << navbarThick << "px";
-            }
-        }
-
-        // Compute content dimensions to match touch_screen_config
-        // Uses same calculation as ServiceDiscoveryBuilder (single source of truth)
-        auto [contentW, contentH] = oap::aa::ServiceDiscoveryBuilder::computeContentDimensions(
-            aaW, aaH, displayW, displayH, navbarDuringAA, navEdge, navbarThick);
-        touchReader_->setContentDimensions(contentW, contentH);
-        touchReader_->computeLetterbox();
-        qCInfo(lcAA) << "Content dims:" << contentW << "x" << contentH
-                     << "(video:" << aaW << "x" << aaH << ")";
-    } else {
-        qCInfo(lcAA) << "No touch device found — touch input disabled";
-    }
-
-    // Wire dynamic display dimension updates from window resize detection
-    if (displayInfo_) {
-        connect(displayInfo_, &DisplayInfo::windowSizeChanged, this, [this]() {
-            int w = displayInfo_->windowWidth();
-            int h = displayInfo_->windowHeight();
-            if (w > 0 && h > 0) {
-                if (touchReader_)
-                    touchReader_->setDisplayDimensions(w, h);
-                if (aaService_)
-                    aaService_->setDisplayDimensions(w, h);
-            }
-        });
-    }
+    // Relay 3-finger gesture from bridge to plugin signal
+    connect(runtimeBridge_, &oap::aa::AndroidAutoRuntimeBridge::gestureTriggered,
+            this, &AndroidAutoPlugin::gestureTriggered,
+            Qt::QueuedConnection);
 
     // Watch for video setting changes — disconnect active session so phone
     // reconnects and renegotiates with the updated config
@@ -211,19 +110,17 @@ void AndroidAutoPlugin::onConfigChanged(const QString& path, const QVariant& val
         return;
 
     // Update touch coordinate mapping for the new resolution
-    if (path == QLatin1String("video.resolution") && touchReader_) {
+    if (path == QLatin1String("video.resolution") && runtimeBridge_ && runtimeBridge_->touchReader()) {
+        auto* touchReader = runtimeBridge_->touchReader();
         int aaW = 1280, aaH = 720;
         QString res = value.toString();
         if (res == QLatin1String("1080p")) { aaW = 1920; aaH = 1080; }
         else if (res == QLatin1String("480p")) { aaW = 800; aaH = 480; }
-        touchReader_->setAAResolution(aaW, aaH);
+        touchReader->setAAResolution(aaW, aaH);
 
         // Recompute content dimensions for the new video resolution
-        int displayW = 1024, displayH = 600;
-        if (displayInfo_ && displayInfo_->windowWidth() > 0)
-            displayW = displayInfo_->windowWidth();
-        if (displayInfo_ && displayInfo_->windowHeight() > 0)
-            displayH = displayInfo_->windowHeight();
+        int displayW = runtimeBridge_->displayWidth();
+        int displayH = runtimeBridge_->displayHeight();
 
         bool navbarDuringAA = true;
         QString navEdge = "bottom";
@@ -236,7 +133,7 @@ void AndroidAutoPlugin::onConfigChanged(const QString& path, const QVariant& val
 
         auto [contentW, contentH] = oap::aa::ServiceDiscoveryBuilder::computeContentDimensions(
             aaW, aaH, displayW, displayH, navbarDuringAA, navEdge);
-        touchReader_->setContentDimensions(contentW, contentH);
+        touchReader->setContentDimensions(contentW, contentH);
         qCInfo(lcAA) << "Content dims updated:" << contentW << "x" << contentH
                      << "(video:" << aaW << "x" << aaH << ")";
     }
@@ -249,8 +146,6 @@ void AndroidAutoPlugin::onConfigChanged(const QString& path, const QVariant& val
         return;
 
     qCInfo(lcAA) << "Video setting changed (" << path << ") — reconnecting for renegotiation";
-    // Queue the disconnect — calling it synchronously from inside configChanged
-    // would spin a nested event loop mid-signal-emission and crash
     QMetaObject::invokeMethod(aaService_, [this]() {
         aaService_->disconnectAndRetrigger();
     }, Qt::QueuedConnection);
@@ -266,10 +161,10 @@ void AndroidAutoPlugin::stopAA()
 
 void AndroidAutoPlugin::shutdown()
 {
-    if (touchReader_) {
-        touchReader_->requestStop();
-        touchReader_->wait();
-        touchReader_ = nullptr;
+    if (runtimeBridge_) {
+        runtimeBridge_->shutdown();
+        // runtimeBridge_ is parented to this, will be deleted automatically
+        runtimeBridge_ = nullptr;
     }
     if (aaService_) {
         aaService_->stop();
@@ -290,7 +185,7 @@ void AndroidAutoPlugin::onActivated(QQmlContext* context)
     using CS = oap::aa::AndroidAutoOrchestrator;
     auto connState = static_cast<CS::ConnectionState>(aaService_->connectionState());
     if (connState == CS::Connected || connState == CS::Backgrounded) {
-        if (touchReader_) touchReader_->grab();
+        if (runtimeBridge_) runtimeBridge_->grab();
         if (connState == CS::Backgrounded) {
             aaService_->requestVideoFocus();
         }
@@ -304,9 +199,8 @@ void AndroidAutoPlugin::onDeactivated()
         aaService_->videoDecoder()->setVideoSink(nullptr);
 
     // Release touch grab so Wayland/Qt can handle touch on the home screen.
-    // The AA connection may still be alive (backgrounded), but the view is gone.
-    if (touchReader_)
-        touchReader_->ungrab();
+    if (runtimeBridge_)
+        runtimeBridge_->ungrab();
 }
 
 QUrl AndroidAutoPlugin::qmlComponent() const
@@ -322,7 +216,6 @@ QUrl AndroidAutoPlugin::iconSource() const
 bool AndroidAutoPlugin::wantsFullscreen() const
 {
     // When navbar.show_during_aa is true (default), AA does NOT want fullscreen
-    // so that the navbar remains visible. When false, AA takes the full screen.
     if (hostContext_ && hostContext_->configService()) {
         QVariant showDuringAA = hostContext_->configService()->value("navbar.show_during_aa");
         bool result = !(showDuringAA.isNull() || showDuringAA.toBool());

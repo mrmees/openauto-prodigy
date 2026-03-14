@@ -3,6 +3,7 @@
 #include <oaa/HU/Handlers/NavigationChannelHandler.hpp>
 #include "core/aa/NavigationDataBridge.hpp"
 #include "core/aa/ManeuverIconProvider.hpp"
+#include "core/services/INavigationProvider.hpp"
 
 class TestNavigationDataBridge : public QObject {
     Q_OBJECT
@@ -201,6 +202,16 @@ private slots:
 
         emit handler.navigationTurnEvent("", 0, 0, QByteArray(), 250, 99);
         QCOMPARE(bridge.formattedDistance(), QString("250 m"));
+    }
+
+    void testImplementsINavigationProvider() {
+        oap::aa::NavigationDataBridge bridge;
+        oap::INavigationProvider* provider = &bridge;
+        QVERIFY(provider != nullptr);
+        QCOMPARE(provider->navActive(), false);
+        QCOMPARE(provider->roadName(), QString());
+        QCOMPARE(provider->turnDirection(), 0);
+        QCOMPARE(provider->hasManeuverIcon(), false);
     }
 };
 

@@ -77,7 +77,6 @@ Flickable {
                         id: pairBtnMouse
                         anchors.fill: parent
                         enabled: root.hasService
-                        enableBackHold: false
                         onShortClicked: {
                             var pin = CompanionService.generatePairingPin()
                             pairingCodeDialog.pinCode = pin

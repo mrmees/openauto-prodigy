@@ -79,7 +79,7 @@ Scrollable list. Icon + label per row, chevron on right. Tap opens subpage.
 | Control | Label | Config Key | Notes |
 |---------|-------|------------|-------|
 | Toggle | Auto-connect | `connection.auto_connect_aa` | |
-| ReadOnly | TCP Port | `connection.tcp_port` | |
+| ReadOnly | TCP Port | `connection.tcp_port` | Default 5277. Read by `AndroidAutoOrchestrator` and `BluetoothDiscoveryService` via `IConfigService`. |
 
 ### WiFi Access Point
 | Control | Label | Config Key | Notes |

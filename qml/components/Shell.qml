@@ -95,7 +95,7 @@ Item {
         id: pairingDialog
     }
 
-    // Incoming call overlay (still uses global PhonePlugin until Priority 3)
+    // Incoming call overlay (binds to CallStateProvider root-context property)
     IncomingCallOverlay {
         id: callOverlay
     }

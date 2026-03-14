@@ -4,6 +4,56 @@ Newest entries first.
 
 ---
 
+## 2026-03-14 — Settings input: C++ boundary replaces QML overlay stack
+
+**What changed:**
+- Added `SettingsInputBoundary` (`src/ui/SettingsInputBoundary.hpp/.cpp`) — a C++ QQuickItem that uses `childMouseEventFilter()` to passively observe all descendant touch/mouse events and detect long-press without stealing input from child controls.
+- `SettingsMenu.qml` root is now `SettingsInputBoundary` instead of `Item`. Three signal handlers (`onPressStarted`, `onPressEnded`, `onLongPressed`) wire ripple feedback and back navigation.
+- Removed the `backHoldOverlay` z:1000 overlay from `SettingsMenu.qml` and the z:5 overlay from `SettingsRow.qml` — both stole touch events from Sliders, Toggles, and other controls on Pi.
+- Stripped per-row/per-control back-hold coordination: removed `enableBackHold`, `holdTriggered`, row lookups from `SettingsHoldArea.qml`, `SettingsSlider.qml`, `SettingsRow.qml`, and settings pages.
+- Registered `SettingsInputBoundary` via `qmlRegisterType` in `main.cpp` (required because `QML_ELEMENT` in the static library doesn't propagate to `qt_add_qml_module` on the executable target).
+- Added brightness zone integration test to `test_gesture_overlay_controller.cpp`.
+- Updated `test_settings_menu_structure.cpp` to assert new boundary architecture and absence of old overlay plumbing.
+
+**Why:**
+- Qt 6 TapHandlers in overlay Items take exclusive grabs, blocking all child controls. TapHandlers on parent Items don't reliably receive descendant events. `QQuickItem::childMouseEventFilter()` is the Qt API designed for subtree-wide gesture disambiguation — it sees all descendant events without consuming them, and only swallows the release after long-press fires.
+
+**Status:** Pi hardware verified — all 7 test cases pass: category taps, slider drags, toggle taps, dropdown opens, long-press on controls/blank space/titles all trigger back navigation. 82 tests pass locally (1 pre-existing `test_navigation_data_bridge` failure).
+
+---
+
+## 2026-03-13 — Platform/plugin architecture refactor (v0.6)
+
+**What changed:**
+- **Task 1:** Added `DashboardContributionKind` enum to `WidgetDescriptor` (Widget vs LiveSurfaceWidget). `WidgetPickerModel` excludes LiveSurfaceWidget entries. `WidgetRegistry` can filter by contribution kind.
+- **Task 2:** Defined four narrow provider interfaces (`IProjectionStatusProvider`, `INavigationProvider`, `IMediaStatusProvider`, `ICallStateProvider`). Added `ProjectionStatusProvider` wrapping `AndroidAutoOrchestrator`. Wired all providers into `IHostContext`/`HostContext`.
+- **Task 3:** Created `PhoneStateService` (owns HFP D-Bus + call state machine) and `MediaStatusService` (owns AA+BT source merging). `NavigationDataBridge` implements `INavigationProvider`. PhonePlugin and BtAudioPlugin became UI wrappers.
+- **Task 4:** Replaced 4 root-context globals (`AAOrchestrator`, `NavigationBridge`, `MediaBridge`, `PhonePlugin`) with provider-backed properties (`ProjectionStatus`, `NavigationProvider`, `MediaStatus`, `CallStateProvider`). Updated 6 QML files. Added provider Q_PROPERTYs to `WidgetInstanceContext`. Registered `aa.sendButton` action in `ActionRegistry`. Removed dead `MediaDataBridge`.
+- **Task 5:** Replaced `std::shared_ptr<Configuration>` with `IConfigService*` in `AndroidAutoOrchestrator` and `BluetoothDiscoveryService`. Removed `wirelessEnabled()` guard. Extracted static message builders for BT WiFi handshake. Deleted `Configuration` class, INI loader, and YAML-to-INI sync shim.
+- **Task 6:** Extracted `AndroidAutoRuntimeBridge` from `AndroidAutoPlugin` (touch device detection, EvdevTouchReader lifecycle, EvdevCoordBridge, display dimension injection, navbar thickness). Extracted `GestureOverlayController` from `main.cpp` (three-finger overlay zone registration, slider handling, volume/brightness dispatch).
+
+**Why:**
+- Shell, dashboard, and plugin boundaries relied on `main.cpp` wiring and root-context globals exposing concrete types. Adding features on top of that drift would make cleanup progressively harder. This refactor formalizes the seams so the platform owns singleton state and plugins are UI wrappers.
+
+**Status:** All 6 implementation tasks committed on `dev/0.6`. 82 tests, 81 passing (1 pre-existing `test_navigation_data_bridge` distance formatting failure — unrelated). Each task was Codex-reviewed before commit. Pi hardware verification still needed.
+
+**Next steps:**
+1. Cross-build and deploy to Pi for hardware verification (AA connection, call overlay, widgets, gesture overlay, debug buttons, navbar touch zones, widget picker).
+2. If verification passes, squash-merge `dev/0.6` to `main` as v0.6.
+3. Resume feature work from roadmap (HFP call audio, equalizer, etc.).
+
+**Verification commands/results:**
+```bash
+# Local build + tests
+cd build && cmake --build . -j$(nproc) && ctest --output-on-failure
+# Result: 82 tests, 81 passed, 1 failed (pre-existing nav distance formatting)
+
+# Cross-build (not yet run this session — needed for Pi deploy)
+./cross-build.sh
+```
+
+---
+
 ## 2026-03-11 — Strengthen settings scroll hint visibility
 
 **What changed:**
@@ -527,6 +577,42 @@ Documentation:
   - `cd build && cmake --build . -j$(nproc)` -> passed (`Built target openauto-prodigy`).
   - `cd build && ctest --output-on-failure` -> `100% tests passed, 0 tests failed out of 51`.
   - `./cross-build.sh` -> passed (`Build complete: build-pi/src/openauto-prodigy`).
+
+---
+
+## 2026-03-14 — Replace Settings Back-Hold Wiring with Boundary-Based Input Handling
+
+**What changed:**
+- Added `src/ui/SettingsInputBoundary.hpp` and `src/ui/SettingsInputBoundary.cpp`, a `QQuickItem` boundary that filters descendant mouse/touch traffic, detects long-press, cancels on movement, and swallows the matching release once long-press wins.
+- Added `ui/SettingsInputBoundary.cpp` to `openauto-core` in `src/CMakeLists.txt`.
+- Reworked `qml/applications/settings/SettingsMenu.qml` to use `SettingsInputBoundary` as the root item and route `pressStarted`, `pressEnded`, and `longPressed` into the existing ripple/back-navigation helpers.
+- Removed row-owned long-press overlays and state from `qml/controls/SettingsRow.qml`.
+- Simplified `qml/controls/SettingsHoldArea.qml` back to a plain short-click helper.
+- Removed slider back-hold coordination from `qml/controls/SettingsSlider.qml`.
+- Removed obsolete `enableBackHold: false` call sites from settings controls and subpages.
+- Updated `tests/test_settings_menu_structure.cpp` so the regression test now requires the boundary-based architecture instead of the old root/row/control hold plumbing.
+
+**Why:**
+- The previous architecture split long-press ownership across menu, row, and control layers. That made touch behavior brittle: overlays stole input, parent `TapHandler`s missed child interactions, and sliders/toggles needed one-off coordination hacks.
+- The new boundary approach gives settings one blanket long-press mechanism without per-control wiring, while letting normal control touch behavior continue until long-press actually wins.
+
+**Status:** Settings touch architecture updated, targeted regression green, full app build green. Full `ctest` still has one unrelated pre-existing failure in `test_navigation_data_bridge` distance-format expectations.
+
+**Next steps:**
+1. Manual QA on desktop mouse and Pi touchscreen for category taps, long-press-back on whitespace/titles/controls, slider drag, toggle tap, and picker interaction.
+2. If desired, add focused unit coverage for `SettingsInputBoundary` state transitions; current automated coverage is structural rather than event-simulation-based.
+3. Investigate or separately fix the unrelated `test_navigation_data_bridge` imperial-distance expectation failures before claiming a fully green suite.
+
+**Verification commands/results:**
+- `cd build && cmake --build . --target test_settings_menu_structure -j$(nproc) && ctest --test-dir build --output-on-failure -R test_settings_menu_structure`
+  - Passed (`100% tests passed, 0 tests failed out of 1`).
+- `cd build && cmake --build . -j$(nproc)`
+  - Passed (`[100%] Built target openauto-prodigy` and full target graph completed).
+- `cd build && ctest --output-on-failure`
+  - Not fully green due one unrelated failure:
+    - `test_navigation_data_bridge`
+    - Failing cases: `testFormattedDistanceMiles`, `testFormattedDistanceMilesShort`, `testFormattedDistanceFeet`, `testFormattedDistanceYards`
+    - Actual output stayed metric (`"1.6 km"`, `"0.5 km"`, `"0.0 mi"`) instead of expected imperial strings.
 
 ---
 

@@ -11,6 +11,8 @@ private slots:
     void testGridPlacementFields();
     void testLegacyWidgetPlacementCompositeKey();
     void testLegacyPageDescriptorDefaults();
+    void testContributionKindDefaultsToWidget();
+    void testContributionKindCanBeSet();
 };
 
 void TestWidgetTypes::testWidgetDescriptorDefaults() {
@@ -87,6 +89,17 @@ void TestWidgetTypes::testLegacyPageDescriptorDefaults() {
     QCOMPARE(page.layoutTemplate, QStringLiteral("standard-3pane"));
     QCOMPARE(page.order, 0);
     QVERIFY(page.flags.isEmpty());
+}
+
+void TestWidgetTypes::testContributionKindDefaultsToWidget() {
+    oap::WidgetDescriptor desc;
+    QCOMPARE(desc.contributionKind, oap::DashboardContributionKind::Widget);
+}
+
+void TestWidgetTypes::testContributionKindCanBeSet() {
+    oap::WidgetDescriptor desc;
+    desc.contributionKind = oap::DashboardContributionKind::LiveSurfaceWidget;
+    QCOMPARE(desc.contributionKind, oap::DashboardContributionKind::LiveSurfaceWidget);
 }
 
 QTEST_GUILESS_MAIN(TestWidgetTypes)

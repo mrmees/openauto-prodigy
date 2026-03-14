@@ -13,12 +13,6 @@ endfunction()
 
 # --- Core tests ---
 
-oap_add_test(test_configuration
-    SOURCES test_configuration.cpp
-    DEFS TEST_DATA_DIR="${CMAKE_CURRENT_BINARY_DIR}/data"
-)
-configure_file(data/test_config.ini ${CMAKE_CURRENT_BINARY_DIR}/data/test_config.ini COPYONLY)
-
 oap_add_test(test_yaml_config
     SOURCES test_yaml_config.cpp
     DEFS TEST_DATA_DIR="${CMAKE_CURRENT_BINARY_DIR}/data"
@@ -58,6 +52,9 @@ oap_add_test(test_action_registry SOURCES test_action_registry.cpp)
 oap_add_test(test_notification_service SOURCES test_notification_service.cpp)
 oap_add_test(test_companion_listener SOURCES test_companion_listener.cpp)
 oap_add_test(test_bluetooth_manager SOURCES test_bluetooth_manager.cpp)
+oap_add_test(test_projection_status_provider SOURCES test_projection_status_provider.cpp)
+oap_add_test(test_phone_state_service SOURCES test_phone_state_service.cpp)
+oap_add_test(test_media_status_service SOURCES test_media_status_service.cpp)
 
 # --- Device / hardware tests ---
 
@@ -84,6 +81,10 @@ oap_add_test(test_navigation_channel_handler SOURCES test_navigation_channel_han
 oap_add_test(test_media_status_channel_handler SOURCES test_media_status_channel_handler.cpp)
 oap_add_test(test_oaa_integration SOURCES test_oaa_integration.cpp)
 oap_add_test(test_aa_orchestrator SOURCES test_aa_orchestrator.cpp)
+if(TARGET Qt6::Bluetooth)
+    oap_add_test(test_bt_discovery_service SOURCES test_bt_discovery_service.cpp)
+    set_tests_properties(test_bt_discovery_service PROPERTIES ENVIRONMENT "QT_QPA_PLATFORM=offscreen")
+endif()
 oap_add_test(test_indicator_mapping SOURCES test_indicator_mapping.cpp)
 oap_add_test(test_circular_buffer SOURCES test_circular_buffer.cpp)
 oap_add_test(test_codec_capability SOURCES test_codec_capability.cpp)
@@ -131,6 +132,9 @@ oap_add_test(test_widget_grid_model SOURCES test_widget_grid_model.cpp)
 
 # --- Media bridge tests ---
 
+oap_add_test(test_android_auto_runtime_bridge SOURCES test_android_auto_runtime_bridge.cpp)
+oap_add_test(test_gesture_overlay_controller SOURCES test_gesture_overlay_controller.cpp)
+
 oap_add_test(test_media_data_bridge SOURCES test_media_data_bridge.cpp)
 
 # --- Navigation bridge tests ---
@@ -150,9 +154,9 @@ add_test(
 )
 
 # GUI/Quick tests need offscreen platform when no display is available
-set_tests_properties(test_configuration test_theme_service test_display_service test_plugin_model test_aa_orchestrator
+set_tests_properties(test_theme_service test_display_service test_plugin_model test_aa_orchestrator
     PROPERTIES ENVIRONMENT "QT_QPA_PLATFORM=offscreen"
 )
-set_tests_properties(test_settings_menu_structure
+set_tests_properties(test_settings_menu_structure test_gesture_overlay_controller
     PROPERTIES ENVIRONMENT "QT_QPA_PLATFORM=offscreen"
 )

@@ -151,6 +151,89 @@ Post and dismiss notifications.
 - Service methods return default values (empty QVariant, false, etc.) on error.
 - Use `IHostContext::log()` for diagnostic messages.
 
+## Dashboard Contributions
+
+Plugins can contribute widgets to the home screen dashboard via `widgetDescriptors()`.
+
+### WidgetDescriptor
+
+Each widget descriptor declares a dashboard contribution with typed metadata:
+
+| Field | Type | Description |
+|-------|------|-------------|
+| `id` | `QString` | Unique widget identifier |
+| `displayName` | `QString` | Human-readable name shown in picker |
+| `iconName` | `QString` | Material Icon codepoint (e.g. `"\ue8b5"`) |
+| `qmlComponent` | `QUrl` | QRC URL of the widget's QML file |
+| `pluginId` | `QString` | Source plugin ID (set automatically) |
+| `contributionKind` | `DashboardContributionKind` | `Widget` or `LiveSurfaceWidget` |
+| `defaultConfig` | `QVariantMap` | Default per-instance config |
+| `minCols`, `minRows` | `int` | Minimum grid size |
+| `maxCols`, `maxRows` | `int` | Maximum grid size |
+| `defaultCols`, `defaultRows` | `int` | Default grid size |
+
+### Contribution Kinds
+
+| Kind | Description | Status |
+|------|-------------|--------|
+| `Widget` | Lightweight data-display widget (clock, status, now playing) | Active |
+| `LiveSurfaceWidget` | Full interactive surface (embedded AA pane, camera feed) | Declared but deferred — no runtime host exists yet |
+
+`WidgetPickerModel` excludes `LiveSurfaceWidget` entries from the picker UI until a host path is implemented. Plugins may declare `LiveSurfaceWidget` descriptors now; they will become available when the runtime support ships.
+
+### WidgetInstanceContext
+
+Widget QML receives a `WidgetInstanceContext` with layout and provider properties:
+
+| Property | Type | Description |
+|----------|------|-------------|
+| `cellWidth` | `int` | Pixel width of the widget's grid cell |
+| `cellHeight` | `int` | Pixel height of the widget's grid cell |
+| `instanceId` | `QString` | Unique instance identifier |
+| `widgetId` | `QString` | Widget descriptor ID |
+| `projectionStatus` | `QObject*` | `IProjectionStatusProvider` — projection connection state |
+| `navigationProvider` | `QObject*` | `INavigationProvider` — nav data (road, maneuver, distance) |
+| `mediaStatus` | `QObject*` | `IMediaStatusProvider` — media metadata and playback controls |
+
+Provider properties are resolved from `IHostContext` and may be `null` if the corresponding service is not registered.
+
+## Provider Interfaces
+
+Shell, dashboard, and widget QML access cross-cutting state through narrow provider interfaces rather than concrete plugin/bridge types. This decouples the UI from specific plugin implementations.
+
+| Interface | Root-Context Name | Backed By | Provides |
+|-----------|-------------------|-----------|----------|
+| `IProjectionStatusProvider` | `ProjectionStatus` | `ProjectionStatusProvider` → `AndroidAutoOrchestrator` | `projectionState`, `statusMessage` |
+| `INavigationProvider` | `NavigationProvider` | `NavigationDataBridge` | `navActive`, `roadName`, `formattedDistance`, maneuver data |
+| `IMediaStatusProvider` | `MediaStatus` | `MediaStatusService` | `title`, `artist`, `album`, `playbackState`, `source`, `playPause()`/`next()`/`previous()` |
+| `ICallStateProvider` | `CallStateProvider` | `PhoneStateService` | `callState`, `callerName`, `callerNumber`, `answer()`/`hangup()` |
+
+**Design rule:** Core platform owns singleton hardware/system state. Plugins are UI wrappers that read from core services, not state owners.
+
+### Action Registry
+
+The `aa.sendButton` action routes AA button presses through `ActionRegistry` instead of direct orchestrator calls:
+
+```qml
+ActionRegistry.dispatch("aa.sendButton", 85)  // play/pause
+```
+
+## Core Service Ownership
+
+| Service | Owner | Role |
+|---------|-------|------|
+| `PhoneStateService` | Core | Owns HFP D-Bus monitoring + call state machine. Survives regardless of PhonePlugin activation. |
+| `MediaStatusService` | Core | Owns AA + BT media source merging with priority logic. Survives regardless of BtAudioPlugin activation. |
+| `NavigationDataBridge` | Core | Single-source AA navigation data. Implements `INavigationProvider` directly. |
+| `AndroidAutoRuntimeBridge` | Core | Owns touch device detection, EvdevTouchReader lifecycle, EvdevCoordBridge, display dimension injection, navbar thickness. |
+| `GestureOverlayController` | Core | Owns three-finger overlay zone registration, slider handling, volume/brightness dispatch. |
+
+| Plugin | Role |
+|--------|------|
+| `PhonePlugin` | UI wrapper — reads state from `PhoneStateService`, exposes Q_PROPERTYs for PhoneView QML |
+| `BtAudioPlugin` | UI wrapper — reads state from `MediaStatusService` for its QML view. Still owns A2DP transport lifecycle. |
+| `AndroidAutoPlugin` | AA protocol lifecycle — orchestrator start/stop, QML context exposure, config change watching. Delegates platform policy to `AndroidAutoRuntimeBridge`. |
+
 ## Static vs Dynamic Plugins
 
 **Static plugins** are compiled into the binary and registered in `main.cpp` via `PluginManager::registerStaticPlugin()`.

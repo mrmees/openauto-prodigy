@@ -17,7 +17,9 @@ Flickable {
         anchors.topMargin: UiMetrics.marginPage
         spacing: 0
 
-        property bool aaConnected: AAOrchestrator !== null && AAOrchestrator.connectionState === 3
+        property bool aaConnected: typeof ProjectionStatus !== "undefined"
+                                  && ProjectionStatus !== null
+                                  && ProjectionStatus.projectionState === 3
 
         SectionHeader { text: "Video Decoding" }
 
@@ -62,7 +64,6 @@ Flickable {
 
                     SettingsHoldArea {
                         anchors.fill: parent
-                        enableBackHold: false
                         onShortClicked: {
                             if (codecName === "h264")
                                 return
@@ -119,7 +120,6 @@ Flickable {
 
                                     SettingsHoldArea {
                                         anchors.fill: parent
-                                        enableBackHold: false
                                         onShortClicked: {
                                             if (!isHardware) return
                                             CodecCapabilityModel.setHardwareMode(index, false)
@@ -155,7 +155,6 @@ Flickable {
                                     SettingsHoldArea {
                                         anchors.fill: parent
                                         enabled: hwAvailable
-                                        enableBackHold: false
                                         onShortClicked: {
                                             if (isHardware) return
                                             CodecCapabilityModel.setHardwareMode(index, true)
@@ -205,7 +204,6 @@ Flickable {
 
                         SettingsHoldArea {
                             anchors.fill: parent
-                            enableBackHold: false
                             onShortClicked: {
                                 decoderPickerDialog.codecIndex = index
                                 decoderPickerDialog.codecLabel = codecDisplayName(codecName) + " Decoder"
@@ -342,7 +340,7 @@ Flickable {
                     Layout.preferredHeight: UiMetrics.rowH
                     text: "Play/Pause"
                     buttonEnabled: content.aaConnected
-                    onClicked: AAOrchestrator.sendButtonPress(85)
+                    onClicked: ActionRegistry.dispatch("aa.sendButton",85)
                 }
 
                 ElevatedButton {
@@ -350,7 +348,7 @@ Flickable {
                     Layout.preferredHeight: UiMetrics.rowH
                     text: "Prev"
                     buttonEnabled: content.aaConnected
-                    onClicked: AAOrchestrator.sendButtonPress(88)
+                    onClicked: ActionRegistry.dispatch("aa.sendButton",88)
                 }
 
                 ElevatedButton {
@@ -358,7 +356,7 @@ Flickable {
                     Layout.preferredHeight: UiMetrics.rowH
                     text: "Next"
                     buttonEnabled: content.aaConnected
-                    onClicked: AAOrchestrator.sendButtonPress(87)
+                    onClicked: ActionRegistry.dispatch("aa.sendButton",87)
                 }
             }
 
@@ -373,7 +371,7 @@ Flickable {
                     Layout.preferredHeight: UiMetrics.rowH
                     text: "Search (84)"
                     buttonEnabled: content.aaConnected
-                    onClicked: AAOrchestrator.sendButtonPress(84)
+                    onClicked: ActionRegistry.dispatch("aa.sendButton",84)
                 }
 
                 ElevatedButton {
@@ -381,7 +379,7 @@ Flickable {
                     Layout.preferredHeight: UiMetrics.rowH
                     text: "Assist (219)"
                     buttonEnabled: content.aaConnected
-                    onClicked: AAOrchestrator.sendButtonPress(219)
+                    onClicked: ActionRegistry.dispatch("aa.sendButton",219)
                 }
 
                 ElevatedButton {
@@ -389,7 +387,7 @@ Flickable {
                     Layout.preferredHeight: UiMetrics.rowH
                     text: "Voice (231)"
                     buttonEnabled: content.aaConnected
-                    onClicked: AAOrchestrator.sendButtonPress(231)
+                    onClicked: ActionRegistry.dispatch("aa.sendButton",231)
                 }
             }
         }

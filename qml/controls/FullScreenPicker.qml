@@ -150,7 +150,6 @@ Item {
     SettingsHoldArea {
         id: rowMouseArea
         anchors.fill: parent
-        enableBackHold: false
         onShortClicked: pickerDialog.open()
     }
 

@@ -6,6 +6,9 @@
 namespace oap {
 
 class IHostContext;
+class IProjectionStatusProvider;
+class INavigationProvider;
+class IMediaStatusProvider;
 
 class WidgetInstanceContext : public QObject {
     Q_OBJECT
@@ -13,6 +16,9 @@ class WidgetInstanceContext : public QObject {
     Q_PROPERTY(int cellHeight READ cellHeight CONSTANT)
     Q_PROPERTY(QString instanceId READ instanceId CONSTANT)
     Q_PROPERTY(QString widgetId READ widgetId CONSTANT)
+    Q_PROPERTY(QObject* projectionStatus READ projectionStatusObj CONSTANT)
+    Q_PROPERTY(QObject* navigationProvider READ navigationProviderObj CONSTANT)
+    Q_PROPERTY(QObject* mediaStatus READ mediaStatusObj CONSTANT)
 
 public:
     WidgetInstanceContext(const GridPlacement& placement,
@@ -27,6 +33,10 @@ public:
     QString widgetId() const { return placement_.widgetId; }
     IHostContext* hostContext() const { return hostContext_; }
     const GridPlacement& placement() const { return placement_; }
+
+    QObject* projectionStatusObj() const;
+    QObject* navigationProviderObj() const;
+    QObject* mediaStatusObj() const;
 
 private:
     GridPlacement placement_;

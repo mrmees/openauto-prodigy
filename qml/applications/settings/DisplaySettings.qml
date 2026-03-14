@@ -83,7 +83,6 @@ Flickable {
                         }
                         SettingsHoldArea {
                             anchors.fill: parent
-                            enableBackHold: false
                             enabled: Math.abs(root._currentScale - 1.0) > 0.05
                             onShortClicked: root._applyScale(1.0)
                         }
@@ -106,7 +105,6 @@ Flickable {
                         }
                         SettingsHoldArea {
                             anchors.fill: parent
-                            enableBackHold: false
                             onShortClicked: {
                                 if (root._currentScale <= 0.5) return
                                 var newVal = Math.round((root._currentScale - 0.1) * 10) / 10
@@ -142,7 +140,6 @@ Flickable {
                         }
                         SettingsHoldArea {
                             anchors.fill: parent
-                            enableBackHold: false
                             onShortClicked: {
                                 if (root._currentScale >= 2.0) return
                                 var newVal = Math.round((root._currentScale + 0.1) * 10) / 10

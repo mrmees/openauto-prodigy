@@ -100,7 +100,6 @@ Flickable {
 
                     SettingsHoldArea {
                         anchors.fill: parent
-                        enableBackHold: false
                         onShortClicked: deleteThemeWrapper.triggerDeleteThemeAction()
                     }
                 }

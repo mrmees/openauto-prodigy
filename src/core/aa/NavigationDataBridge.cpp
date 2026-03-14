@@ -7,7 +7,7 @@ namespace oap {
 namespace aa {
 
 NavigationDataBridge::NavigationDataBridge(QObject* parent)
-    : QObject(parent)
+    : INavigationProvider(parent)
 {
 }
 

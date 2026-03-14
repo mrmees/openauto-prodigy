@@ -6,6 +6,7 @@
 #include <QDataStream>
 #include <QNetworkInterface>
 #include "../Logging.hpp"
+#include "../services/IConfigService.hpp"
 
 // BlueZ SDP C library for direct SDP record registration.
 // The AA RFCOMM record is registered via the legacy SDP socket (--compat mode)
@@ -16,11 +17,9 @@ extern "C" {
 #include <bluetooth/sdp_lib.h>
 }
 
-#include "oaa/wifi/WifiStartRequestMessage.pb.h"
 #include "oaa/wifi/WifiInfoRequestMessage.pb.h"
 #include "oaa/wifi/WifiInfoResponseMessage.pb.h"
 #include "oaa/wifi/WifiSecurityRequestMessage.pb.h"
-#include "oaa/wifi/WifiSecurityResponseMessage.pb.h"
 
 namespace oap {
 namespace aa {
@@ -40,11 +39,11 @@ static constexpr int kSdpRetryIntervalMs = 2000;
 static constexpr int kSdpMaxRetries = 30;  // 60 seconds total
 
 BluetoothDiscoveryService::BluetoothDiscoveryService(
-    std::shared_ptr<oap::Configuration> config,
+    oap::IConfigService* configService,
     const QString& wifiInterface,
     QObject* parent)
     : QObject(parent)
-    , config_(std::move(config))
+    , configService_(configService)
     , wifiInterface_(wifiInterface)
     , rfcommServer_(std::make_unique<QBluetoothServer>(
           QBluetoothServiceInfo::RfcommProtocol, this))
@@ -127,6 +126,31 @@ QString BluetoothDiscoveryService::localAddress() const
 {
     QBluetoothLocalDevice localDevice;
     return localDevice.address().toString();
+}
+
+// --- Static pure message builders ---
+
+oaa::proto::messages::WifiStartRequest BluetoothDiscoveryService::buildWifiStartRequest(
+    const std::string& ip, uint32_t port)
+{
+    oaa::proto::messages::WifiStartRequest request;
+    request.set_ip_address(ip);
+    request.set_port(port);
+    return request;
+}
+
+oaa::proto::messages::WifiSecurityResponse BluetoothDiscoveryService::buildWifiCredentialResponse(
+    const QString& ssid, const QString& password, const QString& bssid)
+{
+    oaa::proto::messages::WifiSecurityResponse response;
+    response.set_ssid(ssid.toStdString());
+    response.set_key(password.toStdString());
+    response.set_security_mode(
+        oaa::proto::messages::WifiSecurityResponse_SecurityMode_WPA2_PERSONAL);
+    response.set_access_point_type(
+        oaa::proto::messages::WifiSecurityResponse_AccessPointType_DYNAMIC);
+    response.set_bssid(bssid.toStdString());
+    return response;
 }
 
 bool BluetoothDiscoveryService::registerSdpRecord(uint8_t rfcommChannel)
@@ -302,12 +326,18 @@ void BluetoothDiscoveryService::sendWifiStartRequest()
         return;
     }
 
-    oaa::proto::messages::WifiStartRequest request;
-    request.set_ip_address(localIp);
-    request.set_port(config_->tcpPort());
+    // Read TCP port from config service
+    uint32_t tcpPort = 5277;
+    if (configService_) {
+        QVariant portVar = configService_->value("connection.tcp_port");
+        if (portVar.isValid())
+            tcpPort = portVar.toUInt();
+    }
+
+    auto request = buildWifiStartRequest(localIp, tcpPort);
 
     qCDebug(lcBT) << "Sending WifiStartRequest: ip=" << localIp.c_str()
-            << "port=" << config_->tcpPort();
+            << "port=" << tcpPort;
     sendMessage(request, kMsgWifiStartRequest);
 }
 
@@ -368,14 +398,17 @@ void BluetoothDiscoveryService::handleWifiCredentialRequest()
     // Phone is asking for WiFi credentials (msgId=2, empty payload)
     qCInfo(lcBT) << "Phone requested WiFi credentials";
 
-    // Send WifiInfoResponse (msgId=3) with AP credentials
-    oaa::proto::messages::WifiSecurityResponse response;
-    response.set_ssid(config_->wifiSsid().toStdString());
-    response.set_key(config_->wifiPassword().toStdString());
-    response.set_security_mode(
-        oaa::proto::messages::WifiSecurityResponse_SecurityMode_WPA2_PERSONAL);
-    response.set_access_point_type(
-        oaa::proto::messages::WifiSecurityResponse_AccessPointType_DYNAMIC);
+    // Read credentials from config service
+    QString ssid = "OpenAutoProdigy";
+    QString password = "prodigy";
+    if (configService_) {
+        QVariant ssidVar = configService_->value("connection.wifi_ap.ssid");
+        if (ssidVar.isValid() && !ssidVar.toString().isEmpty())
+            ssid = ssidVar.toString();
+        QVariant passVar = configService_->value("connection.wifi_ap.password");
+        if (passVar.isValid() && !passVar.toString().isEmpty())
+            password = passVar.toString();
+    }
 
     // BSSID is required — phone uses it to identify which AP to auto-connect to.
     // Read MAC address of the WiFi interface (wlan0).
@@ -390,10 +423,11 @@ void BluetoothDiscoveryService::handleWifiCredentialRequest()
         qCWarning(lcBT) << "Could not read wlan0 MAC, using default";
         bssid = "00:00:00:00:00:00";
     }
-    response.set_bssid(bssid.toStdString());
+
+    auto response = buildWifiCredentialResponse(ssid, password, bssid);
 
     qCDebug(lcBT) << "Sending WifiInfoResponse (creds): ssid="
-            << config_->wifiSsid() << "bssid=" << bssid;
+            << ssid << "bssid=" << bssid;
     sendMessage(response, kMsgWifiInfoResponse);
 }
 

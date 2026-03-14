@@ -14,66 +14,68 @@ private:
     }
 
 private slots:
-    void testBackHoldUsesOverlayAboveStackView()
+    void testLongPressBackUsesBoundaryItem()
     {
         const QString source = sourceFor(QStringLiteral("qml/applications/settings/SettingsMenu.qml"));
         QVERIFY2(!source.isEmpty(), "Failed to read SettingsMenu.qml");
 
-        const int stackViewPos = source.indexOf(QStringLiteral("id: settingsStack"));
-        QVERIFY2(stackViewPos >= 0, "Expected SettingsMenu to define settingsStack");
+        QVERIFY2(source.indexOf(QStringLiteral("SettingsInputBoundary")) >= 0,
+                 "SettingsMenu should use a SettingsInputBoundary wrapper for subtree-wide hold detection");
+        QVERIFY2(source.indexOf(QStringLiteral("id: backHoldTouch")) < 0,
+                 "SettingsMenu should no longer define root-level backHoldTouch TapHandlers");
+        QVERIFY2(source.indexOf(QStringLiteral("id: backHoldMouse")) < 0,
+                 "SettingsMenu should no longer define root-level backHoldMouse TapHandlers");
 
-        const int overlayPos = source.indexOf(QStringLiteral("objectName: \"backHoldOverlay\""));
-        QVERIFY2(overlayPos >= 0,
-                 "Expected SettingsMenu to define a dedicated back-hold overlay");
-        QVERIFY2(overlayPos > stackViewPos,
-                 "Back-hold overlay should be declared after StackView so it renders above it");
-
-        QVERIFY2(source.indexOf(QStringLiteral("anchors.fill: parent"), overlayPos) >= 0,
-                 "Back-hold overlay must cover the full SettingsMenu surface");
-        QVERIFY2(source.indexOf(QStringLiteral("z: 1000"), overlayPos) >= 0,
-                 "Back-hold overlay must sit above StackView content");
-        QVERIFY2(source.indexOf(QStringLiteral("id: backHoldTouch"), overlayPos) >= 0,
-                 "Touch TapHandler should live under the back-hold overlay");
-        QVERIFY2(source.indexOf(QStringLiteral("id: backHoldMouse"), overlayPos) >= 0,
-                 "Mouse TapHandler should live under the back-hold overlay");
+        // Shared ripple helpers
         QVERIFY2(source.indexOf(QStringLiteral("function showHoldIndicator(")) >= 0,
                  "SettingsMenu should expose a shared ripple show helper");
         QVERIFY2(source.indexOf(QStringLiteral("function hideHoldIndicator()")) >= 0,
                  "SettingsMenu should expose a shared ripple hide helper");
     }
 
-    void testSettingsRowsOwnBackHoldWhileMenuKeepsWhitespaceOverlay()
+    void testTopLevelCategoryRowsUseMouseArea()
+    {
+        const QString source = sourceFor(QStringLiteral("qml/applications/settings/SettingsMenu.qml"));
+        QVERIFY2(!source.isEmpty(), "Failed to read SettingsMenu.qml");
+
+        QVERIFY2(source.indexOf(QStringLiteral("id: delegateArea")) >= 0,
+                 "Top-level settings categories should use a MouseArea for clicks");
+        QVERIFY2(source.indexOf(QStringLiteral("onClicked: openPage(model.pageId)")) >= 0,
+                 "Category-row MouseArea should open the selected settings page on click");
+    }
+
+    void testBoundaryOwnsBackHoldInsteadOfRowsAndControls()
     {
         const QString holdAreaSource = sourceFor(QStringLiteral("qml/controls/SettingsHoldArea.qml"));
         QVERIFY2(!holdAreaSource.isEmpty(), "Failed to read SettingsHoldArea.qml");
-        QVERIFY2(holdAreaSource.indexOf(QStringLiteral("property bool enableBackHold: true")) >= 0,
-                 "SettingsHoldArea should be able to run in row-owned short-click-only mode");
-        QVERIFY2(holdAreaSource.indexOf(QStringLiteral("consumeBackHoldTrigger")) >= 0,
-                 "SettingsHoldArea should suppress short clicks when the enclosing row long-hold already won");
+        QVERIFY2(holdAreaSource.indexOf(QStringLiteral("property bool enableBackHold")) < 0,
+                 "SettingsHoldArea should no longer own back-hold behavior");
+        QVERIFY2(holdAreaSource.indexOf(QStringLiteral("holdTriggered")) < 0,
+                 "SettingsHoldArea should not track long-hold trigger state");
+        QVERIFY2(holdAreaSource.indexOf(QStringLiteral("ApplicationController.requestBack()")) < 0,
+                 "SettingsHoldArea should not request back directly");
 
         const QString sliderSource = sourceFor(QStringLiteral("qml/controls/SettingsSlider.qml"));
         QVERIFY2(!sliderSource.isEmpty(), "Failed to read SettingsSlider.qml");
-        QVERIFY2(sliderSource.indexOf(QStringLiteral("function _findSettingsRow()")) >= 0,
-                 "SettingsSlider should locate the enclosing SettingsRow for row-owned hold coordination");
-        QVERIFY2(sliderSource.indexOf(QStringLiteral("cancelBackHold()")) >= 0,
-                 "SettingsSlider should cancel row hold when real dragging starts");
-        QVERIFY2(sliderSource.indexOf(QStringLiteral("consumeBackHoldTrigger()")) >= 0,
-                 "SettingsSlider should suppress commit behavior when the row long-hold already won");
-        QVERIFY2(sliderSource.indexOf(QStringLiteral("id: holdTimer")) < 0,
-                 "SettingsSlider should no longer define a dedicated long-hold timer");
+        QVERIFY2(sliderSource.indexOf(QStringLiteral("function _findSettingsRow()")) < 0,
+                 "SettingsSlider should not locate SettingsRow for back-hold coordination");
+        QVERIFY2(sliderSource.indexOf(QStringLiteral("_settingsRow")) < 0,
+                 "SettingsSlider should not keep row-level back-hold state");
+        QVERIFY2(sliderSource.indexOf(QStringLiteral("cancelBackHold()")) < 0,
+                 "SettingsSlider should not cancel row-owned back-hold anymore");
+        QVERIFY2(sliderSource.indexOf(QStringLiteral("consumeBackHoldTrigger()")) < 0,
+                 "SettingsSlider should not suppress commits based on row-owned back-hold state");
 
         const QString rowSource = sourceFor(QStringLiteral("qml/controls/SettingsRow.qml"));
         QVERIFY2(!rowSource.isEmpty(), "Failed to read SettingsRow.qml");
-        QVERIFY2(rowSource.indexOf(QStringLiteral("readonly property bool blocksBackHold: true")) >= 0,
-                 "Every SettingsRow should block the menu overlay and own row-level hold");
-        QVERIFY2(rowSource.indexOf(QStringLiteral("function cancelBackHold()")) >= 0,
-                 "SettingsRow should expose a cancel helper for drag-driven child controls");
-        QVERIFY2(rowSource.indexOf(QStringLiteral("function consumeBackHoldTrigger()")) >= 0,
-                 "SettingsRow should expose long-hold suppression state to child controls");
-        QVERIFY2(rowSource.indexOf(QStringLiteral("ApplicationController.requestBack()")) >= 0,
-                 "SettingsRow should request back when row-level long hold fires");
-        QVERIFY2(rowSource.indexOf(QStringLiteral("showHoldIndicator")) >= 0,
-                 "SettingsRow should drive the shared ripple through SettingsMenu");
+        QVERIFY2(rowSource.indexOf(QStringLiteral("backHoldOverlay")) < 0,
+                 "SettingsRow should not define a back-hold overlay");
+        QVERIFY2(rowSource.indexOf(QStringLiteral("function cancelBackHold()")) < 0,
+                 "SettingsRow should not expose row-level back-hold cancel helpers");
+        QVERIFY2(rowSource.indexOf(QStringLiteral("function consumeBackHoldTrigger()")) < 0,
+                 "SettingsRow should not expose row-level back-hold trigger state");
+        QVERIFY2(rowSource.indexOf(QStringLiteral("ApplicationController.requestBack()")) < 0,
+                 "SettingsRow should not request back directly");
     }
 
     void testSubsettingsPagesUseSharedHorizontalInset()
@@ -123,6 +125,22 @@ private slots:
                  "ThemeSettings delete row should no longer use the leading trash icon");
     }
 
+    void testDebugSettingsUsesProvidersNotGlobals()
+    {
+        const QString source = sourceFor(QStringLiteral("qml/applications/settings/DebugSettings.qml"));
+        QVERIFY2(!source.isEmpty(), "Failed to read DebugSettings.qml");
+
+        // Should use ProjectionStatus provider, not AAOrchestrator global
+        QVERIFY2(source.indexOf(QStringLiteral("ProjectionStatus")) >= 0,
+                 "DebugSettings should reference ProjectionStatus provider");
+        QVERIFY2(source.indexOf(QStringLiteral("AAOrchestrator")) < 0,
+                 "DebugSettings should not reference AAOrchestrator global");
+
+        // Button presses should route through ActionRegistry
+        QVERIFY2(source.indexOf(QStringLiteral("ActionRegistry.dispatch")) >= 0,
+                 "DebugSettings AA buttons should route through ActionRegistry");
+    }
+
     void testSettingsUseSharedScrollHints()
     {
         const QString hintSource = sourceFor(QStringLiteral("qml/controls/SettingsScrollHints.qml"));
@@ -168,6 +186,7 @@ private slots:
                      qPrintable(QStringLiteral("%1 scroll hints should target the page Flickable").arg(pagePath)));
         }
     }
+
 };
 
 QTEST_MAIN(TestSettingsMenuStructure)

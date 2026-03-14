@@ -103,7 +103,6 @@ Item {
     SettingsHoldArea {
         id: mouseArea
         anchors.fill: parent
-        enableBackHold: false
         onShortClicked: root.clicked()
     }
 }

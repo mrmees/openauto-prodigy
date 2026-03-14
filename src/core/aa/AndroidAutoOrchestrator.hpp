@@ -33,7 +33,7 @@ class YamlConfig;
 class IAudioService;
 class IEventBus;
 class IThemeService;
-class Configuration;
+class IConfigService;
 class EqualizerService;
 struct AudioStreamHandle;
 
@@ -57,7 +57,7 @@ public:
     };
     Q_ENUM(ConnectionState)
 
-    explicit AndroidAutoOrchestrator(std::shared_ptr<oap::Configuration> config,
+    explicit AndroidAutoOrchestrator(oap::IConfigService* configService,
                                       oap::IAudioService* audioService,
                                       oap::YamlConfig* yamlConfig,
                                       oap::IEventBus* eventBus = nullptr,
@@ -114,7 +114,7 @@ private:
     void startProtocolCapture();
     void stopProtocolCapture();
 
-    std::shared_ptr<oap::Configuration> config_;
+    oap::IConfigService* configService_;
     oap::IAudioService* audioService_;
     oap::YamlConfig* yamlConfig_;
     oap::IEventBus* eventBus_;

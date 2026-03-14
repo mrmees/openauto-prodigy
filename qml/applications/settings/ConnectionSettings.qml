@@ -52,7 +52,6 @@ Flickable {
 
             SettingsHoldArea {
                 anchors.fill: parent
-                enableBackHold: false
                 onShortClicked: {
                     if (BluetoothManager)
                         pairableSwitch.checked = !pairableSwitch.checked
@@ -105,7 +104,6 @@ Flickable {
 
                             SettingsHoldArea {
                                 anchors.fill: parent
-                                enableBackHold: false
                                 onShortClicked: {
                                     if (BluetoothManager) BluetoothManager.forgetDevice(model.address)
                                 }

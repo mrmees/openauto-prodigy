@@ -2,7 +2,7 @@
 
 ## Product Intent
 
-OpenAuto Prodigy is a clean-room, open-source replacement for OpenAuto Pro (BlueWave Studio, defunct). It provides a full-featured Android Auto head unit experience on Raspberry Pi hardware, built on Qt 6, C++17, and its own open-androidauto protocol library.
+OpenAuto Prodigy is a clean-room, open-source replacement for OpenAuto Pro (BlueWave Studio, defunct). It provides a full-featured Android Auto head unit experience on Raspberry Pi hardware, built on Qt 6, C++17, and its own protocol library built on the open-android-auto repository.
 
 ## Primary User Outcomes
 
@@ -45,4 +45,4 @@ OpenAuto Prodigy is a clean-room, open-source replacement for OpenAuto Pro (Blue
 
 ## Direction Change Log
 
-(Populated as architectural direction shifts occur)
+- 2026-03-13: Clarified Prodigy as a platform shell with capability-based plugins. Core owns singleton hardware/system policy, shell/dashboard composition, scaling, and plugin runtime; Android Auto is treated as a projection plugin on top of shared transport services; the home screen is a first-class dashboard rather than a simple launcher.

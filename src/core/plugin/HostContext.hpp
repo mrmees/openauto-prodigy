@@ -16,6 +16,10 @@ public:
     void setNotificationService(INotificationService* svc) { notifications_ = svc; }
     void setCompanionListenerService(CompanionListenerService* svc) { companion_ = svc; }
     void setEqualizerService(IEqualizerService* svc) { equalizer_ = svc; }
+    void setProjectionStatusProvider(IProjectionStatusProvider* p) { projection_ = p; }
+    void setNavigationProvider(INavigationProvider* p) { nav_ = p; }
+    void setMediaStatusProvider(IMediaStatusProvider* p) { media_ = p; }
+    void setCallStateProvider(ICallStateProvider* p) { call_ = p; }
 
     IAudioService* audioService() override { return audio_; }
     IBluetoothService* bluetoothService() override { return bt_; }
@@ -27,6 +31,10 @@ public:
     INotificationService* notificationService() override { return notifications_; }
     CompanionListenerService* companionListenerService() override { return companion_; }
     IEqualizerService* equalizerService() override { return equalizer_; }
+    IProjectionStatusProvider* projectionStatusProvider() override { return projection_; }
+    INavigationProvider* navigationProvider() override { return nav_; }
+    IMediaStatusProvider* mediaStatusProvider() override { return media_; }
+    ICallStateProvider* callStateProvider() override { return call_; }
 
     void log(LogLevel level, const QString& message) override;
 
@@ -41,6 +49,10 @@ private:
     INotificationService* notifications_ = nullptr;
     CompanionListenerService* companion_ = nullptr;
     IEqualizerService* equalizer_ = nullptr;
+    IProjectionStatusProvider* projection_ = nullptr;
+    INavigationProvider* nav_ = nullptr;
+    IMediaStatusProvider* media_ = nullptr;
+    ICallStateProvider* call_ = nullptr;
 };
 
 } // namespace oap

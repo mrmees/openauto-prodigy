@@ -2,7 +2,7 @@ import QtQuick
 import QtQuick.Layouts
 import QtQuick.Controls
 
-Item {
+SettingsInputBoundary {
     id: settingsMenu
 
     property bool _pendingEqNav: false
@@ -74,26 +74,16 @@ Item {
         }
     }
 
-    // Hit-test: walk parent chain from deepest item looking for blocksBackHold
-    function blocksBackHoldAt(px, py) {
-        var page = settingsStack.currentItem
-        if (!page) return false
-        var local = settingsMenu.mapToItem(page, px, py)
-        var item = page.childAt(local.x, local.y)
-        // Walk down to deepest child
-        while (item) {
-            var child = item.childAt(
-                item.mapFromItem(page, local.x, local.y).x,
-                item.mapFromItem(page, local.x, local.y).y)
-            if (!child) break
-            item = child
-        }
-        // Walk up checking for blocksBackHold marker
-        while (item && item !== settingsMenu) {
-            if (item.blocksBackHold === true) return true
-            item = item.parent
-        }
-        return false
+    onPressStarted: function(position) {
+        showHoldIndicator(position)
+    }
+    onPressEnded: {
+        hideHoldIndicator()
+    }
+    onLongPressed: function(position) {
+        hideHoldIndicator()
+        if (!goBack())
+            ApplicationController.navigateBack()
     }
 
     StackView {
@@ -132,63 +122,6 @@ Item {
     }
     function hideHoldIndicator() {
         holdRipple.hide()
-    }
-    function armHold(pos) {
-        if (blocksBackHoldAt(pos.x, pos.y)) return false
-        showHoldIndicator(pos)
-        return true
-    }
-    function cancelHold() { hideHoldIndicator() }
-    function triggerHold() {
-        hideHoldIndicator()
-        if (!goBack()) ApplicationController.navigateBack()
-    }
-
-    // Transparent glass pane above StackView so passive handlers see fresh presses
-    Item {
-        id: backHoldOverlay
-        objectName: "backHoldOverlay"
-        anchors.fill: parent
-        z: 1000
-
-        // Touchscreen handler (Pi) — Qt.NoButton avoids synthetic-mouse conflict
-        TapHandler {
-            id: backHoldTouch
-            target: null
-            gesturePolicy: TapHandler.DragThreshold
-            acceptedDevices: PointerDevice.TouchScreen
-            acceptedPointerTypes: PointerDevice.Finger
-            acceptedButtons: Qt.NoButton
-            longPressThreshold: 0.5
-            dragThreshold: Math.round(UiMetrics.touchMin * 0.5)
-
-            property bool armed: false
-            onPressedChanged: {
-                if (pressed) { armed = settingsMenu.armHold(point.position) }
-                else { armed = false; settingsMenu.cancelHold() }
-            }
-            onCanceled: { armed = false; settingsMenu.cancelHold() }
-            onLongPressed: { if (!armed) return; armed = false; settingsMenu.triggerHold() }
-        }
-
-        // Mouse handler (desktop dev)
-        TapHandler {
-            id: backHoldMouse
-            target: null
-            gesturePolicy: TapHandler.DragThreshold
-            acceptedDevices: PointerDevice.Mouse | PointerDevice.TouchPad
-            acceptedButtons: Qt.LeftButton
-            longPressThreshold: 0.5
-            dragThreshold: 12
-
-            property bool armed: false
-            onPressedChanged: {
-                if (pressed) { armed = settingsMenu.armHold(point.position) }
-                else { armed = false; settingsMenu.cancelHold() }
-            }
-            onCanceled: { armed = false; settingsMenu.cancelHold() }
-            onLongPressed: { if (!armed) return; armed = false; settingsMenu.triggerHold() }
-        }
     }
 
     // Expanding ripple indicator for hold feedback
