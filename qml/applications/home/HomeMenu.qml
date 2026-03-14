@@ -18,9 +18,35 @@ Item {
     property int _dragColSpan: 1
     property int _dragRowSpan: 1
 
-    // Grid cell dimensions computed from SwipeView size (used by overlays + per-page grids)
-    readonly property real cellWidth: pageView.width / WidgetGridModel.gridColumns
-    readonly property real cellHeight: pageView.height / WidgetGridModel.gridRows
+    // Grid frame computation from DisplayInfo.cellSide (cells are square)
+    readonly property real cellSide: DisplayInfo ? DisplayInfo.cellSide : 120
+    readonly property int gridCols: pageView.width > 0 ? Math.max(3, Math.floor(pageView.width / cellSide)) : 3
+    readonly property int gridRows: pageView.height > 0 ? Math.max(2, Math.floor(pageView.height / cellSide)) : 2
+    readonly property real gridW: gridCols * cellSide
+    readonly property real gridH: gridRows * cellSide
+    readonly property real offsetX: (pageView.width - gridW) / 2
+    readonly property real offsetY: (pageView.height - gridH) / 2
+
+    // Legacy aliases for backward compat in overlays
+    readonly property real cellWidth: cellSide
+    readonly property real cellHeight: cellSide
+
+    // Grid is invisible until first valid layout
+    property bool gridReady: false
+
+    // Push grid dimensions to C++ model when they change
+    onGridColsChanged: {
+        if (gridCols > 0 && gridRows > 0 && pageView.width > 0 && pageView.height > 0) {
+            WidgetGridModel.setGridDimensions(gridCols, gridRows)
+            gridReady = true
+        }
+    }
+    onGridRowsChanged: {
+        if (gridCols > 0 && gridRows > 0 && pageView.width > 0 && pageView.height > 0) {
+            WidgetGridModel.setGridDimensions(gridCols, gridRows)
+            gridReady = true
+        }
+    }
 
     function exitEditMode() {
         editMode = false
@@ -131,14 +157,14 @@ Item {
 
                                 // Vertical lines
                                 Repeater {
-                                    model: WidgetGridModel.gridColumns + 1
+                                    model: homeScreen.gridCols + 1
                                     delegate: Column {
-                                        x: index * homeScreen.cellWidth
-                                        y: 0
-                                        height: pageGridContent.height
+                                        x: homeScreen.offsetX + index * homeScreen.cellSide
+                                        y: homeScreen.offsetY
+                                        height: homeScreen.gridH
                                         spacing: UiMetrics.spacing
                                         Repeater {
-                                            model: Math.ceil(pageGridContent.height / (UiMetrics.spacing + 2))
+                                            model: Math.ceil(homeScreen.gridH / (UiMetrics.spacing + 2))
                                             delegate: Rectangle {
                                                 width: 1
                                                 height: 2
@@ -151,11 +177,11 @@ Item {
 
                                 // Horizontal lines
                                 Repeater {
-                                    model: WidgetGridModel.gridRows + 1
+                                    model: homeScreen.gridRows + 1
                                     delegate: Row {
-                                        x: 0
-                                        y: index * homeScreen.cellHeight
-                                        width: pageGridContent.width
+                                        x: homeScreen.offsetX
+                                        y: homeScreen.offsetY + index * homeScreen.cellSide
+                                        width: homeScreen.gridW
                                         spacing: UiMetrics.spacing
                                         Repeater {
                                             model: Math.ceil(pageGridContent.width / (UiMetrics.spacing + 2))
@@ -177,10 +203,10 @@ Item {
 
                                 delegate: Item {
                                     id: delegateItem
-                                    x: model.column * homeScreen.cellWidth
-                                    y: model.row * homeScreen.cellHeight
-                                    width: model.colSpan * homeScreen.cellWidth
-                                    height: model.rowSpan * homeScreen.cellHeight
+                                    x: homeScreen.offsetX + model.column * homeScreen.cellSide
+                                    y: homeScreen.offsetY + model.row * homeScreen.cellSide
+                                    width: model.colSpan * homeScreen.cellSide
+                                    height: model.rowSpan * homeScreen.cellSide
                                     visible: model.page === pageIndex && model.visible
                                     z: dragging ? 100 : 1
 
@@ -202,13 +228,13 @@ Item {
                                         dragPlaceholder.visible = false
                                         opacity = 1.0
                                         scale = 1.0
-                                        var targetCol = Math.round(x / homeScreen.cellWidth)
-                                        var targetRow = Math.round(y / homeScreen.cellHeight)
-                                        targetCol = Math.max(0, Math.min(targetCol, WidgetGridModel.gridColumns - model.colSpan))
-                                        targetRow = Math.max(0, Math.min(targetRow, WidgetGridModel.gridRows - model.rowSpan))
+                                        var targetCol = Math.round((x - homeScreen.offsetX) / homeScreen.cellSide)
+                                        var targetRow = Math.round((y - homeScreen.offsetY) / homeScreen.cellSide)
+                                        targetCol = Math.max(0, Math.min(targetCol, homeScreen.gridCols - model.colSpan))
+                                        targetRow = Math.max(0, Math.min(targetRow, homeScreen.gridRows - model.rowSpan))
                                         if (WidgetGridModel.moveWidget(model.instanceId, targetCol, targetRow)) {
-                                            x = Qt.binding(function() { return model.column * homeScreen.cellWidth })
-                                            y = Qt.binding(function() { return model.row * homeScreen.cellHeight })
+                                            x = Qt.binding(function() { return homeScreen.offsetX + model.column * homeScreen.cellSide })
+                                            y = Qt.binding(function() { return homeScreen.offsetY + model.row * homeScreen.cellSide })
                                         } else {
                                             snapBackX.to = originalX
                                             snapBackY.to = originalY
@@ -226,8 +252,8 @@ Item {
                                                 delegateItem.dragging = false
                                                 delegateItem.opacity = 1.0
                                                 delegateItem.scale = 1.0
-                                                delegateItem.x = Qt.binding(function() { return model.column * homeScreen.cellWidth })
-                                                delegateItem.y = Qt.binding(function() { return model.row * homeScreen.cellHeight })
+                                                delegateItem.x = Qt.binding(function() { return homeScreen.offsetX + model.column * homeScreen.cellSide })
+                                                delegateItem.y = Qt.binding(function() { return homeScreen.offsetY + model.row * homeScreen.cellSide })
                                             }
                                         }
                                     }
@@ -304,8 +330,8 @@ Item {
                                                 var phPos = delegateItem.parent.mapToItem(homeScreen, delegateItem.originalX, delegateItem.originalY)
                                                 dragPlaceholder.x = phPos.x
                                                 dragPlaceholder.y = phPos.y
-                                                dragPlaceholder.width = model.colSpan * homeScreen.cellWidth
-                                                dragPlaceholder.height = model.rowSpan * homeScreen.cellHeight
+                                                dragPlaceholder.width = model.colSpan * homeScreen.cellSide
+                                                dragPlaceholder.height = model.rowSpan * homeScreen.cellSide
                                                 dragPlaceholder.visible = true
                                                 inactivityTimer.restart()
                                             }
@@ -334,8 +360,8 @@ Item {
                                             id: snapBackTimer
                                             interval: 250
                                             onTriggered: {
-                                                delegateItem.x = Qt.binding(function() { return model.column * homeScreen.cellWidth })
-                                                delegateItem.y = Qt.binding(function() { return model.row * homeScreen.cellHeight })
+                                                delegateItem.x = Qt.binding(function() { return homeScreen.offsetX + model.column * homeScreen.cellSide })
+                                                delegateItem.y = Qt.binding(function() { return homeScreen.offsetY + model.row * homeScreen.cellSide })
                                             }
                                         }
 
@@ -424,11 +450,11 @@ Item {
 
                                                     // Map ghost position from page-local to homeScreen coords
                                                     var ghostPos = pageGridContent.mapToItem(homeScreen,
-                                                        model.column * homeScreen.cellWidth, model.row * homeScreen.cellHeight)
+                                                        homeScreen.offsetX + model.column * homeScreen.cellSide, homeScreen.offsetY + model.row * homeScreen.cellSide)
                                                     resizeGhost.x = ghostPos.x
                                                     resizeGhost.y = ghostPos.y
-                                                    resizeGhost.width = model.colSpan * homeScreen.cellWidth
-                                                    resizeGhost.height = model.rowSpan * homeScreen.cellHeight
+                                                    resizeGhost.width = model.colSpan * homeScreen.cellSide
+                                                    resizeGhost.height = model.rowSpan * homeScreen.cellSide
                                                     resizeGhost.visible = true
                                                     resizeGhost.isValid = true
 
@@ -439,8 +465,8 @@ Item {
                                                 onPositionChanged: function(mouse) {
                                                     if (!resizing) return
                                                     var current = mapToItem(pageGridContent, mouse.x, mouse.y)
-                                                    var deltaCols = Math.round((current.x - startGlobal.x) / homeScreen.cellWidth)
-                                                    var deltaRows = Math.round((current.y - startGlobal.y) / homeScreen.cellHeight)
+                                                    var deltaCols = Math.round((current.x - startGlobal.x) / homeScreen.cellSide)
+                                                    var deltaRows = Math.round((current.y - startGlobal.y) / homeScreen.cellSide)
 
                                                     var newColSpan = startColSpan + deltaCols
                                                     var newRowSpan = startRowSpan + deltaRows
@@ -451,12 +477,12 @@ Item {
                                                     if (newRowSpan < model.minRows) { newRowSpan = model.minRows; wasAtLimit = true }
                                                     if (newRowSpan > model.maxRows) { newRowSpan = model.maxRows; wasAtLimit = true }
 
-                                                    if (model.column + newColSpan > WidgetGridModel.gridColumns) {
-                                                        newColSpan = WidgetGridModel.gridColumns - model.column
+                                                    if (model.column + newColSpan > homeScreen.gridCols) {
+                                                        newColSpan = homeScreen.gridCols - model.column
                                                         wasAtLimit = true
                                                     }
-                                                    if (model.row + newRowSpan > WidgetGridModel.gridRows) {
-                                                        newRowSpan = WidgetGridModel.gridRows - model.row
+                                                    if (model.row + newRowSpan > homeScreen.gridRows) {
+                                                        newRowSpan = homeScreen.gridRows - model.row
                                                         wasAtLimit = true
                                                     }
 
@@ -476,8 +502,8 @@ Item {
                                                     lastClampedCols = newColSpan
                                                     lastClampedRows = newRowSpan
 
-                                                    resizeGhost.width = newColSpan * homeScreen.cellWidth
-                                                    resizeGhost.height = newRowSpan * homeScreen.cellHeight
+                                                    resizeGhost.width = newColSpan * homeScreen.cellSide
+                                                    resizeGhost.height = newRowSpan * homeScreen.cellSide
 
                                                     inactivityTimer.restart()
                                                 }
@@ -529,10 +555,17 @@ Item {
             }
         }
 
-        // Launcher dock -- fixed at bottom (PAGE-03)
-        LauncherDock {
-            Layout.fillWidth: true
-        }
+    }
+
+    // Launcher dock -- overlays grid at z=10 (GL-02: grid uses full height, dock on top)
+    LauncherDock {
+        anchors.left: parent.left
+        anchors.right: parent.right
+        anchors.bottom: parent.bottom
+        anchors.leftMargin: UiMetrics.marginPage
+        anchors.rightMargin: UiMetrics.marginPage
+        anchors.bottomMargin: UiMetrics.marginPage
+        z: 10
     }
 
     // ---- Overlays that must stay OUTSIDE SwipeView (at homeScreen level) ----
@@ -580,19 +613,21 @@ Item {
             d.y = pageLocal.y - d.pressOffsetY
             var cs = homeScreen._dragColSpan
             var rs = homeScreen._dragRowSpan
-            var targetCol = Math.round(d.x / homeScreen.cellWidth)
-            var targetRow = Math.round(d.y / homeScreen.cellHeight)
-            targetCol = Math.max(0, Math.min(targetCol, WidgetGridModel.gridColumns - cs))
-            targetRow = Math.max(0, Math.min(targetRow, WidgetGridModel.gridRows - rs))
+            var targetCol = Math.round((d.x - homeScreen.offsetX) / homeScreen.cellSide)
+            var targetRow = Math.round((d.y - homeScreen.offsetY) / homeScreen.cellSide)
+            targetCol = Math.max(0, Math.min(targetCol, homeScreen.gridCols - cs))
+            targetRow = Math.max(0, Math.min(targetRow, homeScreen.gridRows - rs))
             var valid = WidgetGridModel.canPlace(targetCol, targetRow, cs, rs, homeScreen.draggingInstanceId)
 
             // Position drop highlight -- map from page-local to homeScreen coords
             var pageItem = d.parent
-            var hlPos = pageItem.mapToItem(homeScreen, targetCol * homeScreen.cellWidth, targetRow * homeScreen.cellHeight)
+            var hlPos = pageItem.mapToItem(homeScreen,
+                homeScreen.offsetX + targetCol * homeScreen.cellSide,
+                homeScreen.offsetY + targetRow * homeScreen.cellSide)
             dropHighlight.x = hlPos.x
             dropHighlight.y = hlPos.y
-            dropHighlight.width = cs * homeScreen.cellWidth
-            dropHighlight.height = rs * homeScreen.cellHeight
+            dropHighlight.width = cs * homeScreen.cellSide
+            dropHighlight.height = rs * homeScreen.cellSide
             dropHighlight.isValid = valid
             dropHighlight.visible = true
 
@@ -698,8 +733,8 @@ Item {
                     toast.show("No space available \u2014 remove a widget first")
                 } else {
                     WidgetPickerModel.filterByAvailableSpace(
-                        WidgetGridModel.gridColumns,
-                        WidgetGridModel.gridRows)
+                        homeScreen.gridCols,
+                        homeScreen.gridRows)
                     pickerOverlay.visible = true
                 }
             }
@@ -929,15 +964,15 @@ Item {
                             onClicked: {
                                     var defCols = model.defaultCols > 0 ? model.defaultCols : 2
                                     var defRows = model.defaultRows > 0 ? model.defaultRows : 2
-                                    defCols = Math.min(defCols, WidgetGridModel.gridColumns)
-                                    defRows = Math.min(defRows, WidgetGridModel.gridRows)
+                                    defCols = Math.min(defCols, homeScreen.gridCols)
+                                    defRows = Math.min(defRows, homeScreen.gridRows)
 
                                     var cell = WidgetGridModel.findFirstAvailableCell(defCols, defRows)
                                     if (cell.col < 0)
                                         cell = WidgetGridModel.findFirstAvailableCell(1, 1)
                                     if (cell.col >= 0) {
-                                        var placeCols = Math.min(defCols, WidgetGridModel.gridColumns - cell.col)
-                                        var placeRows = Math.min(defRows, WidgetGridModel.gridRows - cell.row)
+                                        var placeCols = Math.min(defCols, homeScreen.gridCols - cell.col)
+                                        var placeRows = Math.min(defRows, homeScreen.gridRows - cell.row)
                                         WidgetGridModel.placeWidget(model.widgetId,
                                             cell.col, cell.row, placeCols, placeRows)
                                     } else {
