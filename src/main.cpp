@@ -617,16 +617,11 @@ int main(int argc, char *argv[])
         widgetGridModel->setPlacements(seedPlacements, widgetRegistry);
     }
 
-    // Re-clamp grid when cellSide changes (QML drives the actual dims via
-    // WidgetGridModel.setGridDimensions, but we update here as fallback for
-    // non-QML paths like the web config panel)
-    QObject::connect(displayInfo, &oap::DisplayInfo::cellSideChanged,
-                     widgetGridModel, [widgetGridModel, displayInfo]() {
-        qreal cs = displayInfo->cellSide();
-        int cols = qMax(3, static_cast<int>(std::floor(displayInfo->windowWidth() / cs)));
-        int rows = qMax(2, static_cast<int>(std::floor(displayInfo->windowHeight() / cs)));
-        widgetGridModel->setGridDimensions(cols, rows);
-    });
+    // QML (HomeMenu.qml) is the sole authority for grid dimensions.
+    // It applies snap-aware computation on top of DisplayInfo.cellSide.
+    // Do NOT push non-snapped dims from C++ — that races with QML's
+    // snapped values and can persist intermediate (wrong) dimensions.
+    // The web config panel does not change grid dimensions directly.
 
     // --- IPC server for web config panel ---
     auto ipcServer = new oap::IpcServer(&app);

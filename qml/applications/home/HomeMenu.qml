@@ -32,13 +32,19 @@ Item {
     readonly property int _snap1Cols: _xWaste1 > kSnapThreshold * baseCellSide ? _baseCols + 1 : _baseCols
     readonly property int _snap1Rows: _yWaste1 > kSnapThreshold * baseCellSide ? _baseRows + 1 : _baseRows
 
-    // Stage 3: second snap pass — after first snap, effective cell size may allow another snap
+    // Stage 3: second snap pass — only for axes that did NOT snap in pass 1.
+    // Pass 1 may shrink cellSide (e.g., Y snaps 3→4, cell shrinks 132→125),
+    // creating new waste on the other axis. Pass 2 catches that cascaded waste.
+    // An axis that already snapped in pass 1 is NOT eligible for pass 2
+    // to prevent iterative packing (e.g., 7x4 → 8x5 → 9x5).
+    readonly property bool _xSnapped: _snap1Cols > _baseCols
+    readonly property bool _ySnapped: _snap1Rows > _baseRows
     readonly property real _snap1CellSide: (_snap1Cols > 0 && _snap1Rows > 0)
         ? Math.min(pageView.width / _snap1Cols, pageView.height / _snap1Rows) : baseCellSide
     readonly property real _xWaste2: pageView.width - _snap1Cols * _snap1CellSide
     readonly property real _yWaste2: pageView.height - _snap1Rows * _snap1CellSide
-    readonly property int gridCols: _xWaste2 > kSnapThreshold * _snap1CellSide ? _snap1Cols + 1 : _snap1Cols
-    readonly property int gridRows: _yWaste2 > kSnapThreshold * _snap1CellSide ? _snap1Rows + 1 : _snap1Rows
+    readonly property int gridCols: (!_xSnapped && _xWaste2 > kSnapThreshold * _snap1CellSide) ? _snap1Cols + 1 : _snap1Cols
+    readonly property int gridRows: (!_ySnapped && _yWaste2 > kSnapThreshold * _snap1CellSide) ? _snap1Rows + 1 : _snap1Rows
 
     // Effective cell size (square cells, fit both axes after both snap passes)
     readonly property real cellSide: gridCols > 0 && gridRows > 0
