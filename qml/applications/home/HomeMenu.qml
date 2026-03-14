@@ -26,13 +26,21 @@ Item {
     readonly property int _baseCols: pageView.width > 0 ? Math.max(3, Math.floor(pageView.width / baseCellSide)) : 3
     readonly property int _baseRows: pageView.height > 0 ? Math.max(2, Math.floor(pageView.height / baseCellSide)) : 2
 
-    // Stage 2: snap — recover wasted gutter space
-    readonly property real _xWaste: pageView.width - _baseCols * baseCellSide
-    readonly property real _yWaste: pageView.height - _baseRows * baseCellSide
-    readonly property int gridCols: _xWaste > kSnapThreshold * baseCellSide ? _baseCols + 1 : _baseCols
-    readonly property int gridRows: _yWaste > kSnapThreshold * baseCellSide ? _baseRows + 1 : _baseRows
+    // Stage 2: first snap pass — recover wasted gutter space
+    readonly property real _xWaste1: pageView.width - _baseCols * baseCellSide
+    readonly property real _yWaste1: pageView.height - _baseRows * baseCellSide
+    readonly property int _snap1Cols: _xWaste1 > kSnapThreshold * baseCellSide ? _baseCols + 1 : _baseCols
+    readonly property int _snap1Rows: _yWaste1 > kSnapThreshold * baseCellSide ? _baseRows + 1 : _baseRows
 
-    // Effective cell size (square cells, fit both axes after snap)
+    // Stage 3: second snap pass — after first snap, effective cell size may allow another snap
+    readonly property real _snap1CellSide: (_snap1Cols > 0 && _snap1Rows > 0)
+        ? Math.min(pageView.width / _snap1Cols, pageView.height / _snap1Rows) : baseCellSide
+    readonly property real _xWaste2: pageView.width - _snap1Cols * _snap1CellSide
+    readonly property real _yWaste2: pageView.height - _snap1Rows * _snap1CellSide
+    readonly property int gridCols: _xWaste2 > kSnapThreshold * _snap1CellSide ? _snap1Cols + 1 : _snap1Cols
+    readonly property int gridRows: _yWaste2 > kSnapThreshold * _snap1CellSide ? _snap1Rows + 1 : _snap1Rows
+
+    // Effective cell size (square cells, fit both axes after both snap passes)
     readonly property real cellSide: gridCols > 0 && gridRows > 0
         ? Math.min(pageView.width / gridCols, pageView.height / gridRows) : baseCellSide
     readonly property real gridW: gridCols * cellSide
