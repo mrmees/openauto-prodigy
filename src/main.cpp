@@ -49,7 +49,7 @@
 #include "core/aa/EvdevCoordBridge.hpp"
 #include "ui/PluginModel.hpp"
 #include "ui/PluginViewHost.hpp"
-#include "ui/LauncherModel.hpp"
+
 #include "ui/AudioDeviceModel.hpp"
 #include "ui/CodecCapabilityModel.hpp"
 #include "ui/DisplayInfo.hpp"
@@ -659,7 +659,6 @@ int main(int argc, char *argv[])
     // Plugin model for QML nav strip (needs engine for PluginRuntimeContext)
     auto pluginModel = new oap::PluginModel(&pluginManager, &engine, &app);
 
-    auto launcherModel = new oap::LauncherModel(yamlConfig.get(), &app);
     auto notificationModel = new oap::NotificationModel(notificationService, &app);
 
     // Register built-in actions (after pluginModel exists)
@@ -752,7 +751,6 @@ int main(int argc, char *argv[])
     engine.rootContext()->setContextProperty("ThemeService", themeService);
     engine.rootContext()->setContextProperty("ApplicationController", appController);
     engine.rootContext()->setContextProperty("PluginModel", pluginModel);
-    engine.rootContext()->setContextProperty("LauncherModel", launcherModel);
     engine.rootContext()->setContextProperty("NotificationModel", notificationModel);
     engine.rootContext()->setContextProperty("NotificationService", notificationService);
 

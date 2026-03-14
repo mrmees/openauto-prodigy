@@ -23,7 +23,7 @@ add_library(openauto-core STATIC
     ui/PluginModel.cpp
     ui/PluginRuntimeContext.cpp
     ui/PluginViewHost.cpp
-    ui/LauncherModel.cpp
+
     ui/AudioDeviceModel.cpp
     ui/PairedDevicesModel.cpp
     ui/CodecCapabilityModel.cpp
@@ -245,10 +245,7 @@ set_source_files_properties(../qml/components/WidgetHost.qml PROPERTIES
     QT_QML_SOURCE_TYPENAME "WidgetHost"
     QT_RESOURCE_ALIAS "WidgetHost.qml"
 )
-set_source_files_properties(../qml/components/LauncherDock.qml PROPERTIES
-    QT_QML_SOURCE_TYPENAME "LauncherDock"
-    QT_RESOURCE_ALIAS "LauncherDock.qml"
-)
+
 set_source_files_properties(../qml/components/WidgetPicker.qml PROPERTIES
     QT_QML_SOURCE_TYPENAME "WidgetPicker"
     QT_RESOURCE_ALIAS "WidgetPicker.qml"
@@ -283,10 +280,7 @@ set_source_files_properties(../qml/widgets/AALauncherWidget.qml PROPERTIES
     QT_RESOURCE_ALIAS "AALauncherWidget.qml"
     QT_QML_SKIP_CACHEGEN TRUE
 )
-set_source_files_properties(../qml/applications/launcher/LauncherMenu.qml PROPERTIES
-    QT_QML_SOURCE_TYPENAME "LauncherMenu"
-    QT_RESOURCE_ALIAS "LauncherMenu.qml"
-)
+
 set_source_files_properties(../qml/applications/android_auto/AndroidAutoMenu.qml PROPERTIES
     QT_QML_SOURCE_TYPENAME "AndroidAutoMenu"
     QT_RESOURCE_ALIAS "AndroidAutoMenu.qml"
@@ -391,7 +385,7 @@ qt_add_qml_module(openauto-prodigy
         ../qml/components/NotificationArea.qml
         ../qml/components/ExitDialog.qml
         ../qml/components/WidgetHost.qml
-        ../qml/components/LauncherDock.qml
+
         ../qml/components/WidgetPicker.qml
         ../qml/widgets/ClockWidget.qml
         ../qml/widgets/AAStatusWidget.qml
@@ -399,7 +393,7 @@ qt_add_qml_module(openauto-prodigy
         ../qml/widgets/NowPlayingWidget.qml
         ../qml/widgets/SettingsLauncherWidget.qml
         ../qml/widgets/AALauncherWidget.qml
-        ../qml/applications/launcher/LauncherMenu.qml
+
         ../qml/applications/android_auto/AndroidAutoMenu.qml
         ../qml/applications/settings/SettingsMenu.qml
         ../qml/applications/home/HomeMenu.qml

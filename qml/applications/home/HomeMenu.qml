@@ -558,17 +558,6 @@ Item {
 
     }
 
-    // Launcher dock -- overlays grid at z=10 (GL-02: grid uses full height, dock on top)
-    LauncherDock {
-        anchors.left: parent.left
-        anchors.right: parent.right
-        anchors.bottom: parent.bottom
-        anchors.leftMargin: UiMetrics.marginPage
-        anchors.rightMargin: UiMetrics.marginPage
-        anchors.bottomMargin: UiMetrics.marginPage
-        z: 10
-    }
-
     // ---- Overlays that must stay OUTSIDE SwipeView (at homeScreen level) ----
     // These need full-screen coverage, not clipped to a single page.
 

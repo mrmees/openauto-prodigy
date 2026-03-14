@@ -255,7 +255,6 @@ openauto-prodigy/
 │   ├── controls/                    # Tile, Icon, NormalText, SpecialText
 │   ├── components/                  # Shell, TopBar, BottomBar, Clock, Wallpaper, GestureOverlay
 │   └── applications/               # Plugin views
-│       ├── launcher/LauncherMenu.qml
 │       ├── android_auto/AndroidAutoMenu.qml
 │       ├── settings/SettingsMenu.qml
 │       ├── home/HomeMenu.qml

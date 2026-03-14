@@ -90,26 +90,6 @@ nav_strip:
     - "org.openauto.android-auto"  # list of enabled plugin IDs in display order
   show_labels: true                 # show text labels under icons (false = icons only)
 
-# Launcher tiles — home screen quick-access buttons
-launcher:
-  tiles:
-    - id: "org.openauto.android-auto"
-      label: "Android Auto"
-      icon: "\ueff7"                # Material Symbols codepoint (directions_car)
-      action: "plugin:org.openauto.android-auto"
-    - id: "org.openauto.bt-audio"
-      label: "Music"
-      icon: "\uf01f"                # Material Symbols codepoint (headphones)
-      action: "plugin:org.openauto.bt-audio"
-    - id: "org.openauto.phone"
-      label: "Phone"
-      icon: "\uf0d4"                # Material Symbols codepoint (phone)
-      action: "plugin:org.openauto.phone"
-    - id: "settings"
-      label: "Settings"
-      icon: "\ue8b8"                # Material Symbols codepoint (settings)
-      action: "navigate:settings"
-
 # Plugin management
 plugins:
   enabled:
@@ -174,7 +154,7 @@ All keys are documented with their dot-path (for `valueByPath()`), type, default
 | `plugins.enabled` | list[string] | `["org.openauto.android-auto"]` | Plugin IDs to load at startup |
 | `plugins.disabled` | list[string] | `[]` | Plugin IDs to disable (if discovered) |
 
-**Note:** `launcher.tiles` and `nav_strip.order` are arrays with complex structure; see examples below.
+**Note:** `nav_strip.order` is an array with complex structure; see examples below.
 
 ---
 
@@ -280,55 +260,6 @@ QVariant val = config->value("plugin_config.org.openauto.bt-audio.auto_connect")
 ```
 
 **Type safety:** `pluginValue()` and `setPluginValue()` automatically handle type conversion (bool, int, double, string).
-
----
-
-## Launcher Tiles
-
-Launcher tiles are quick-access buttons on the home screen. Each tile is defined as an object with `id`, `label`, `icon`, and `action`:
-
-```yaml
-launcher:
-  tiles:
-    - id: "org.openauto.android-auto"
-      label: "Android Auto"
-      icon: "\ueff7"                # Material Symbols: directions_car
-      action: "plugin:org.openauto.android-auto"
-    - id: "org.openauto.bt-audio"
-      label: "Music"
-      icon: "\uf01f"                # Material Symbols: headphones
-      action: "plugin:org.openauto.bt-audio"
-    - id: "org.openauto.phone"
-      label: "Phone"
-      icon: "\uf0d4"                # Material Symbols: phone
-      action: "plugin:org.openauto.phone"
-    - id: "settings"
-      label: "Settings"
-      icon: "\ue8b8"                # Material Symbols: settings
-      action: "navigate:settings"
-```
-
-**Fields:**
-- `id` (string): unique tile identifier
-- `label` (string): displayed text (may be hidden on small screens)
-- `icon` (string): Unicode codepoint from Material Symbols font (e.g., `"\ueff7"`)
-- `action` (string): action on tap — either `"plugin:org.openauto.plugin-id"` or `"navigate:view-name"`
-
-**Access in C++:**
-
-```cpp
-QList<QVariantMap> tiles = config->launcherTiles();
-for (const auto& tile : tiles) {
-    QString id = tile["id"].toString();
-    QString label = tile["label"].toString();
-    QString icon = tile["icon"].toString();
-    QString action = tile["action"].toString();
-}
-
-// Update tiles:
-QList<QVariantMap> newTiles = { /* ... */ };
-config->setLauncherTiles(newTiles);
-```
 
 ---
 

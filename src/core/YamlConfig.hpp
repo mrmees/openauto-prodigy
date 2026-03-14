@@ -99,10 +99,6 @@ public:
     double microphoneGain() const;
     void setMicrophoneGain(double v);
 
-    // Launcher tiles — each tile is a QVariantMap with {id, label, icon, action}
-    QList<QVariantMap> launcherTiles() const;
-    void setLauncherTiles(const QList<QVariantMap>& tiles);
-
     // EQ config — dedicated methods (cannot use generic setValueByPath for sequences/maps)
     struct EqUserPreset {
         QString name;

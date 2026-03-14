@@ -118,7 +118,7 @@ Named command dispatch. Actions are synchronous.
 | Action ID | Description |
 |-----------|-------------|
 | `app.quit` | Quit the application |
-| `app.home` | Return to launcher (deactivate current plugin) |
+| `app.home` | Return to home (deactivate current plugin) |
 | `theme.toggle` | Toggle day/night mode |
 
 **Stability:** Stable

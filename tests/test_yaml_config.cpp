@@ -15,7 +15,6 @@ private slots:
     void testSensorsFromFile();
     void testMicDefaults();
     void testMicFromFile();
-    void testLauncherTiles();
     void testValueByPath();
     void testValueByPathNested();
     void testValueByPathMissing();
@@ -186,22 +185,6 @@ void TestYamlConfig::testMicFromFile()
     config.setMicrophoneGain(2.0);
     QCOMPARE(config.microphoneDevice(), QString("pulse"));
     QCOMPARE(config.microphoneGain(), 2.0);
-}
-
-void TestYamlConfig::testLauncherTiles()
-{
-    oap::YamlConfig config;  // defaults only
-
-    auto tiles = config.launcherTiles();
-    // Default should include at least AA and Settings
-    QVERIFY(tiles.size() >= 2);
-
-    // Each tile has required fields
-    auto first = tiles.first();
-    QVERIFY(!first.value("id").toString().isEmpty());
-    QVERIFY(!first.value("label").toString().isEmpty());
-    QVERIFY(!first.value("icon").toString().isEmpty());
-    QVERIFY(!first.value("action").toString().isEmpty());
 }
 
 void TestYamlConfig::testValueByPath()
