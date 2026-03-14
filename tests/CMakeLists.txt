@@ -129,6 +129,7 @@ oap_add_test(test_widget_config
 
 oap_add_test(test_grid_dimensions SOURCES test_grid_dimensions.cpp)
 oap_add_test(test_widget_grid_model SOURCES test_widget_grid_model.cpp)
+oap_add_test(test_widget_grid_remap SOURCES test_widget_grid_remap.cpp)
 oap_add_test(test_widget_picker_model SOURCES test_widget_picker_model.cpp)
 
 # --- Media bridge tests ---

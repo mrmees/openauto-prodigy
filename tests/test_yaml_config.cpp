@@ -42,6 +42,8 @@ private slots:
     void testGridPlacementPageRoundTrip();
     void testGridPageCountRoundTrip();
     void testGridPageCountDefault();
+    void testGridSavedDimsDefaults();
+    void testGridSavedDimsRoundTrip();
 };
 
 void TestYamlConfig::testLoadDefaults()
@@ -505,6 +507,32 @@ void TestYamlConfig::testGridPageCountDefault()
 {
     oap::YamlConfig config;
     QCOMPARE(config.gridPageCount(), 2);
+}
+
+void TestYamlConfig::testGridSavedDimsDefaults()
+{
+    oap::YamlConfig config;
+    QCOMPARE(config.gridSavedCols(), 0);
+    QCOMPARE(config.gridSavedRows(), 0);
+}
+
+void TestYamlConfig::testGridSavedDimsRoundTrip()
+{
+    oap::YamlConfig config;
+    config.setGridSavedDims(8, 5);
+
+    QCOMPARE(config.gridSavedCols(), 8);
+    QCOMPARE(config.gridSavedRows(), 5);
+
+    QString tmpPath = QDir::tempPath() + "/oap_test_grid_dims.yaml";
+    config.save(tmpPath);
+
+    oap::YamlConfig loaded;
+    loaded.load(tmpPath);
+    QCOMPARE(loaded.gridSavedCols(), 8);
+    QCOMPARE(loaded.gridSavedRows(), 5);
+
+    QFile::remove(tmpPath);
 }
 
 QTEST_MAIN(TestYamlConfig)
