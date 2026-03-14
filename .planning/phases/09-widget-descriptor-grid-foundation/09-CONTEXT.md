@@ -14,11 +14,12 @@ Enrich WidgetDescriptor with manifest metadata (category, description, icon) and
 ## Implementation Decisions
 
 ### Widget categories
-- Free-form string field on WidgetDescriptor — not a fixed enum
-- Plugins declare any category string in their manifest (e.g., "Status", "Media", "Navigation", "Vehicle")
-- Picker groups widgets by unique category values — categories grow organically as plugins register widgets
-- No "Utility" catchall — uncategorized widgets fall into an "Other" group
-- Built-in categories for shipped widgets: Status (Clock, AA Status), Media (Now Playing), Navigation (Nav Turn-by-Turn)
+- Canonical category ID (lowercase, singular) + display label — not pure free-form strings
+- Built-in IDs: `status` ("Status"), `media` ("Media"), `navigation` ("Navigation"), `launcher` ("Launcher")
+- Plugins should use existing IDs when they fit; can register new IDs when they don't (e.g., `vehicle` for OBD)
+- Prevents fragmentation from case/plurality/wording disagreements ("Status" vs "status" vs "System Status")
+- Picker groups widgets by category ID — categories grow as plugins register, but stay canonical
+- Uncategorized widgets fall into an "Other" group
 
 ### Widget description
 - Short tagline format, 2-5 words max (not full sentences)
@@ -33,49 +34,59 @@ Enrich WidgetDescriptor with manifest metadata (category, description, icon) and
 
 ### Physical cell sizing (from Codex design session)
 - **Square cells always** — single cellSide value, no separate width/height
-- **Physical sizing when trustworthy** — use `display.screen_size` (inches) → DPI; cellSide derived as proportion of screen diagonal in pixels
+- **DPI from QScreen, not window size** — physical sizing uses `QScreen` physical dimensions (panel-level truth), not app window rect; DPI is a display property, not a window property
+- **Physical sizing when trustworthy** — use QScreen physical DPI; cellSide derived as proportion of screen diagonal in pixels
 - **DPI sanity range: 80-300** — outside this range, fall back to pixel heuristic targeting the same square-cell band
-- **Pixel heuristic fallback** — produces equivalent square cells when DPI is missing or implausible
+- **Windowed mode** — when window is not fullscreen, physical sizing may not apply (window rect != panel rect); use pixel heuristic fallback in windowed/development mode
+- **Pixel heuristic fallback** — produces equivalent square cells when DPI is missing, implausible, or in windowed mode
 - **Both cols and rows derive freely** — cols = floor(usableW / cellSide), rows = floor(usableH / cellSide); neither dimension is anchored or capped
+- **Floor minimums: 3 cols / 2 rows** — prevents nonsensical grids on tiny windows or extreme aspect ratios
 - **Centered grid with even gutters** — grid frame does not stretch to fill; leftover space becomes symmetric margins (offsetX, offsetY)
 - **Runtime recompute** — resize triggers live grid spec recalculation
 - **`home.gridDensityBias`** config: -1 | 0 | +1 (roomy / standard / dense) — nudges target cell size up or down, not a column count override; controlled escape hatch for weird screens
 
 ### Grid math responsibility split
-- **DisplayInfo.cpp** computes full grid spec: gridColumns, gridRows, gridCellSide, gridOffsetX, gridOffsetY, gridWidth, gridHeight
-- **HomeMenu.qml** renders from grid spec directly — no `pageView.width / cols` division; uses cellSide + offsets from DisplayInfo
-- **WidgetGridModel.cpp** owns logical placements in integer grid units only — no pixel awareness; receives cols/rows and applies remap rule when they change
+- **DisplayInfo.cpp** computes **cellSide only** from DPI/diagonal (the physical sizing math) and exposes it as a Q_PROPERTY; does NOT compute cols/rows/offsets (it doesn't know the actual available rect after navbar, page indicators, margins)
+- **HomeMenu.qml** (or a QML helper) owns the **grid frame** — computes cols, rows, offsetX, offsetY from its actual available rect + cellSide from DisplayInfo; this is where navbar/dock/indicator space is accounted for
+- **WidgetGridModel.cpp** owns logical placements in integer grid units only — no pixel awareness; receives cols/rows from QML and applies remap rule when they change
 - **UiMetrics.qml** remains general UI scaling — widget-grid geometry does NOT depend on global UI scale except as fallback input when physical sizing is unavailable
 
 ### Grid migration on dimension change
 - **Proportional position remap** — when computed grid dims differ from saved dims, scale positions proportionally (col 3 of 6 → col 4 of 8); overlaps resolved by nudging
 - **Spans stay original size** — a 2x2 widget stays 2x2 on a bigger grid; cells are physically bigger so content scales naturally via UiMetrics
-- **Store source grid dims in YAML** — save grid_cols/grid_rows alongside placements (not an abstract version number); on load, if current computed dims differ from saved, trigger remap, update saved dims, save
+- **Shrink failure policy** — when shrinking, clamp position to fit within bounds; if clamping creates overlap, spill widget to next page (auto-create page if needed); if widget min span exceeds grid dimensions entirely (e.g., 4-wide widget on 3-col grid), mark hidden with warning — never silently delete
+- **Store source grid dims in YAML** — save grid_cols/grid_rows alongside placements (not an abstract version number); on load, if current computed dims differ from saved, trigger remap
+- **Remap is runtime-only by default** — remapped layout displays live but does NOT auto-persist to YAML; only persists when user explicitly edits (moves/resizes/adds a widget in edit mode); if window resizes back, original layout restores from YAML
 - **No migration code per-version** — the saved dims ARE the version; remap is a single generic algorithm
 
 ### Dock height removal
-- **Remove 56px deduction now** in Phase 09 — DisplayInfo computes grid over full screen height
+- **Remove 56px deduction now** in Phase 09 — grid math no longer knows about dock
 - **Dock overlaps grid via z-order** — dock renders at z=10 on top of grid at z=0
 - **Bottom-row widgets partially obscured** by dock until Phase 10 removes it — acceptable transitional state
+- **Covered cells remain placeable** in the model but auto-place logic avoids dock-obscured rows; users can manually place there if they want
 - **No grid-side awareness of dock** — grid doesn't know or care about the dock; Phase 10 deletes dock and the bottom row is fully revealed
 
 ### Claude's Discretion
 - Exact diagonal divisor constant for cell sizing (researcher tests values across target displays)
-- DPI fallback heuristic formula
+- DPI fallback heuristic formula for windowed/non-fullscreen mode
 - Remap nudge algorithm for resolving overlaps after proportional remapping
+- Page spill strategy when shrink-remap can't fit widgets on current page
 - Picker card sizing, spacing, and scroll behavior within the grouped layout
 - Category sort order in picker (alphabetical vs predefined)
 - gridDensityBias effect magnitude (how much cellSide changes per step)
+- Whether QML grid frame logic lives in HomeMenu.qml directly or a dedicated GridFrame helper
 
 </decisions>
 
 <specifics>
 ## Specific Ideas
 
-- Codex design session established the physical sizing model: diagonal-proportional cells, DPI sanity gating, density bias control, strict responsibility split between DisplayInfo/HomeMenu/WidgetGridModel/UiMetrics
+- Codex design session established the physical sizing model: diagonal-proportional cells, DPI sanity gating, density bias control
+- Codex review identified key refinements: grid frame ownership belongs in QML (not DisplayInfo), remap must be runtime-only (not auto-persisted), DPI must come from QScreen (not window rect), shrink needs explicit failure policy
 - "I want to shoot for square grid cells" — no rectangular cells, ever
 - "A 7" screen may be good with a 1/2" grid, but a 10" or 12" screen that starts to feel like micromanaging" — grid density should feel appropriate for screen size, not maximize cell count
 - gridDensityBias is explicitly NOT a column count control — it's a nudge on cell size
+- Widget pixel breakpoints (ClockWidget, NowPlayingWidget) are explicitly Phase 11 scope (WF-04) — they will be inconsistent during Phase 09-10, and that's the intended phase boundary
 
 </specifics>
 
@@ -83,8 +94,8 @@ Enrich WidgetDescriptor with manifest metadata (category, description, icon) and
 ## Existing Code Insights
 
 ### Reusable Assets
-- `DisplayInfo.cpp`: Already computes gridColumns/gridRows via updateGridDimensions() — needs rewrite to full grid spec with square cells + offsets
-- `UiMetrics.qml`: Has `_dpi` computed from EDID + screen_size config — DPI value available for physical sizing path
+- `DisplayInfo.cpp`: Already computes gridColumns/gridRows via updateGridDimensions() — needs rewrite to compute cellSide only (physical sizing); cols/rows/offsets move to QML
+- `UiMetrics.qml`: Has `_dpi` computed from EDID + screen_size config — DPI value available for physical sizing path; should use QScreen for panel-level DPI
 - `WidgetPickerModel`: Exposes DisplayNameRole/IconNameRole — needs CategoryRole/DescriptionRole additions
 - `WidgetPicker.qml`: Horizontal card strip — needs rewrite to grouped-by-category layout
 - `WidgetGridModel::setGridDimensions()`: Has clamping logic for dimension changes — needs proportional remap algorithm instead of clamp-and-hide
@@ -97,8 +108,8 @@ Enrich WidgetDescriptor with manifest metadata (category, description, icon) and
 - MaterialIcon uses `icon:` property with codepoints
 
 ### Integration Points
-- `DisplayInfo` → `WidgetGridModel`: dimension change signal triggers remap
-- `DisplayInfo` → `HomeMenu.qml`: grid spec (cellSide, offsets) drives rendering
+- `DisplayInfo` → `HomeMenu.qml`: cellSide Q_PROPERTY drives QML grid frame computation
+- `HomeMenu.qml` → `WidgetGridModel`: passes computed cols/rows; dimension change triggers remap
 - `WidgetDescriptor` → `WidgetPickerModel`: new fields exposed as model roles
 - `YamlConfig`: grid_cols/grid_rows persisted alongside placements for migration detection
 - `Shell.qml`: dock z-order change (dock above grid, not beside it)
