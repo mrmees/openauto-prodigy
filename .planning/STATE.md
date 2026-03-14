@@ -2,16 +2,16 @@
 gsd_state_version: 1.0
 milestone: v0.6
 milestone_name: milestone
-status: completed
-stopped_at: Completed 09-03-PLAN.md (Phase 09 complete)
-last_updated: "2026-03-14T16:49:42.834Z"
-last_activity: 2026-03-14 — Plan 09-03 executed (Phase 09 complete)
+status: in-progress
+stopped_at: Plan 10-01 executed
+last_updated: "2026-03-14T19:18:02.000Z"
+last_activity: 2026-03-14 — Plan 10-01 executed (singleton launcher widgets)
 progress:
   total_phases: 4
   completed_phases: 1
-  total_plans: 3
-  completed_plans: 3
-  percent: 25
+  total_plans: 6
+  completed_plans: 4
+  percent: 40
 ---
 
 # Project State
@@ -21,23 +21,23 @@ progress:
 See: .planning/PROJECT.md (updated 2026-03-14)
 
 **Core value:** A person with a Raspberry Pi 4 and a touchscreen can install this, pair their phone, and get a reliable wireless Android Auto experience -- every time, without SSH.
-**Current focus:** v0.6.1 Phase 09 — Widget Descriptor & Grid Foundation
+**Current focus:** v0.6.1 Phase 10 — Launcher Widget & Dock Removal
 
 ## Current Position
 
-Phase: 09 of 12 (Widget Descriptor & Grid Foundation)
-Plan: 3 of 3 complete
-Status: Phase 09 Complete
-Last activity: 2026-03-14 — Plan 09-03 executed (Phase 09 complete)
+Phase: 10 of 12 (Launcher Widget & Dock Removal)
+Plan: 1 of 3 complete
+Status: In Progress
+Last activity: 2026-03-14 — Plan 10-01 executed (singleton launcher widgets)
 
-Progress: [███░░░░░░░] 25%
+Progress: [████░░░░░░] 40%
 
 ## Performance Metrics
 
 **Velocity:**
-- Total plans completed: 3
-- Average duration: 8 min
-- Total execution time: 0.43 hours
+- Total plans completed: 4
+- Average duration: 10 min
+- Total execution time: 0.66 hours
 
 ## Accumulated Context
 
@@ -62,6 +62,9 @@ Progress: [███░░░░░░░] 25%
 - Remap clamps oversized spans to fit grid rather than hiding -- maximizes widget visibility
 - promoteToBase() on every user edit mutation -- live always reflects latest user intent as base
 - Base snapshot pattern: basePlacements_ from YAML, livePlacements_ is runtime; remap always derives from base
+- Reserved page derived from singleton presence (pageHasSingleton), not explicit page flag
+- Fixed instanceIds for seeded singletons (aa-launcher-reserved, settings-launcher-reserved)
+- addPage shifts basePlacements_ alongside livePlacements_ for remap consistency
 
 ### Blockers/Concerns
 
@@ -70,5 +73,5 @@ Progress: [███░░░░░░░] 25%
 
 ## Session Continuity
 
-Last session: 2026-03-14T16:44:00Z
-Stopped at: Completed 09-03-PLAN.md (Phase 09 complete)
+Last session: 2026-03-14T19:18:02.000Z
+Stopped at: Completed 10-01-PLAN.md

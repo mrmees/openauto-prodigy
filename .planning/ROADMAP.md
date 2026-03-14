@@ -158,7 +158,7 @@ Phases execute in numeric order: 09 -> 10 -> 11 -> 12
 | Phase | Plans Complete | Status | Completed |
 |-------|----------------|--------|-----------|
 | 09. Widget Descriptor & Grid Foundation | 3/3 | Complete    | 2026-03-14 |
-| 10. Launcher Widget & Dock Removal | 0/2 | Not started | - |
+| 10. Launcher Widget & Dock Removal | 1/2 | In Progress|  |
 | 11. Widget Framework Polish | 0/2 | Not started | - |
 | 12. Documentation | 0/1 | Not started | - |
 
