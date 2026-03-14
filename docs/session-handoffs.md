@@ -4,6 +4,29 @@ Newest entries first.
 
 ---
 
+## 2026-03-14 — Page dots moved to navbar, PageIndicator deleted from HomeMenu
+
+**What changed:**
+- Moved page indicator dots from `HomeMenu.qml` into `NavbarControl.qml`, flanking the clock text. The clock serves as the active page indicator (no dot at active position). Dots appear before/after the clock in horizontal navbar, above/below in vertical navbar.
+- Deleted the entire `PageIndicator` block (25 lines) from `HomeMenu.qml`, reclaiming vertical space for the SwipeView grid.
+- Dots are visual only (not tappable). Hidden when: single page, plugin active, or on settings screen.
+- Visibility guard binds to `WidgetGridModel.pageCount`, `PluginModel.activePluginId`, and `ApplicationController.currentApplication`.
+
+**Why:**
+- The `PageIndicator` in `HomeMenu.qml` wasted vertical space needed for the widget grid. Moving dots to the navbar makes them always visible during home screen use without consuming grid real estate.
+
+**Codex review:** One P2 finding — vertical dot stack can overflow the center control with many pages on side-mounted navbar. Acknowledged as edge case (target is bottom navbar, 2-4 pages in practice).
+
+**Status:** Build and 83/84 tests pass (1 pre-existing `test_navigation_data_bridge` failure). Cross-build succeeds. Pi deployment is user-initiated.
+
+**Deploy commands:**
+```bash
+rsync -av build-pi/src/openauto-prodigy matt@192.168.1.152:~/openauto-prodigy/build/src/
+ssh matt@192.168.1.152 'sudo systemctl restart openauto-prodigy.service'
+```
+
+---
+
 ## 2026-03-14 — Settings input: C++ boundary replaces QML overlay stack
 
 **What changed:**
