@@ -29,7 +29,7 @@ Remove the LauncherDock bottom bar, LauncherModel, and LauncherMenu entirely. Re
 ### Settings widget
 - **Appearance:** Gear icon only, centered, no label — icon-only at all sizes
 - **Size:** Min 1x1, resizable (icon scales up at larger spans)
-- **Default placement:** Bottom-right corner of the reserved page
+- **Default placement:** Top-left area of the reserved page (safe coordinates that work on any grid size — bottom-right would require knowing grid dimensions at seed time)
 - **Action:** Tap navigates to settings via full view replacement (`PluginModel.setActivePlugin("") + ApplicationController.navigateTo(6)`)
 - **Singleton:** System-seeded, non-removable, hidden from widget picker
 - **Category:** `launcher` (existing canonical category from Phase 09)
