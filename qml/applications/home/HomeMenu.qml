@@ -18,10 +18,23 @@ Item {
     property int _dragColSpan: 1
     property int _dragRowSpan: 1
 
-    // Grid frame computation from DisplayInfo.cellSide (cells are square)
-    readonly property real cellSide: DisplayInfo ? DisplayInfo.cellSide : 120
-    readonly property int gridCols: pageView.width > 0 ? Math.max(3, Math.floor(pageView.width / cellSide)) : 3
-    readonly property int gridRows: pageView.height > 0 ? Math.max(2, Math.floor(pageView.height / cellSide)) : 2
+    // Snap-aware grid frame computation (two-stage: base → snap → effective)
+    readonly property real baseCellSide: DisplayInfo ? DisplayInfo.cellSide : 120
+    readonly property real kSnapThreshold: 0.6  // Add row/col when waste > 60% of cell
+
+    // Stage 1: initial grid from base cell size
+    readonly property int _baseCols: pageView.width > 0 ? Math.max(3, Math.floor(pageView.width / baseCellSide)) : 3
+    readonly property int _baseRows: pageView.height > 0 ? Math.max(2, Math.floor(pageView.height / baseCellSide)) : 2
+
+    // Stage 2: snap — recover wasted gutter space
+    readonly property real _xWaste: pageView.width - _baseCols * baseCellSide
+    readonly property real _yWaste: pageView.height - _baseRows * baseCellSide
+    readonly property int gridCols: _xWaste > kSnapThreshold * baseCellSide ? _baseCols + 1 : _baseCols
+    readonly property int gridRows: _yWaste > kSnapThreshold * baseCellSide ? _baseRows + 1 : _baseRows
+
+    // Effective cell size (square cells, fit both axes after snap)
+    readonly property real cellSide: gridCols > 0 && gridRows > 0
+        ? Math.min(pageView.width / gridCols, pageView.height / gridRows) : baseCellSide
     readonly property real gridW: gridCols * cellSide
     readonly property real gridH: gridRows * cellSide
     readonly property real offsetX: (pageView.width - gridW) / 2
@@ -277,7 +290,7 @@ Item {
                                     Item {
                                         id: innerContent
                                         anchors.fill: parent
-                                        anchors.margins: UiMetrics.spacing / 2
+                                        anchors.margins: Math.max(UiMetrics.spacing / 4, 2)
 
                                         // Glass card background
                                         Rectangle {
