@@ -177,11 +177,11 @@ Item {
                                 visible: homeScreen.editMode
                                 z: 0
 
-                                // Vertical lines
+                                // Vertical lines (interior only — skip outer edges to avoid clip)
                                 Repeater {
-                                    model: homeScreen.gridCols + 1
+                                    model: Math.max(0, homeScreen.gridCols - 1)
                                     delegate: Column {
-                                        x: homeScreen.offsetX + index * homeScreen.cellSide
+                                        x: homeScreen.offsetX + (index + 1) * homeScreen.cellSide
                                         y: homeScreen.offsetY
                                         height: homeScreen.gridH
                                         spacing: UiMetrics.spacing
@@ -197,12 +197,12 @@ Item {
                                     }
                                 }
 
-                                // Horizontal lines
+                                // Horizontal lines (interior only — skip outer edges to avoid clip)
                                 Repeater {
-                                    model: homeScreen.gridRows + 1
+                                    model: Math.max(0, homeScreen.gridRows - 1)
                                     delegate: Row {
                                         x: homeScreen.offsetX
-                                        y: homeScreen.offsetY + index * homeScreen.cellSide
+                                        y: homeScreen.offsetY + (index + 1) * homeScreen.cellSide
                                         width: homeScreen.gridW
                                         spacing: UiMetrics.spacing
                                         Repeater {
