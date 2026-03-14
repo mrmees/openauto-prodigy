@@ -273,6 +273,16 @@ set_source_files_properties(../qml/widgets/NowPlayingWidget.qml PROPERTIES
     QT_RESOURCE_ALIAS "NowPlayingWidget.qml"
     QT_QML_SKIP_CACHEGEN TRUE
 )
+set_source_files_properties(../qml/widgets/SettingsLauncherWidget.qml PROPERTIES
+    QT_QML_SOURCE_TYPENAME "SettingsLauncherWidget"
+    QT_RESOURCE_ALIAS "SettingsLauncherWidget.qml"
+    QT_QML_SKIP_CACHEGEN TRUE
+)
+set_source_files_properties(../qml/widgets/AALauncherWidget.qml PROPERTIES
+    QT_QML_SOURCE_TYPENAME "AALauncherWidget"
+    QT_RESOURCE_ALIAS "AALauncherWidget.qml"
+    QT_QML_SKIP_CACHEGEN TRUE
+)
 set_source_files_properties(../qml/applications/launcher/LauncherMenu.qml PROPERTIES
     QT_QML_SOURCE_TYPENAME "LauncherMenu"
     QT_RESOURCE_ALIAS "LauncherMenu.qml"
@@ -387,6 +397,8 @@ qt_add_qml_module(openauto-prodigy
         ../qml/widgets/AAStatusWidget.qml
         ../qml/widgets/NavigationWidget.qml
         ../qml/widgets/NowPlayingWidget.qml
+        ../qml/widgets/SettingsLauncherWidget.qml
+        ../qml/widgets/AALauncherWidget.qml
         ../qml/applications/launcher/LauncherMenu.qml
         ../qml/applications/android_auto/AndroidAutoMenu.qml
         ../qml/applications/settings/SettingsMenu.qml

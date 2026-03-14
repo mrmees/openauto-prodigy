@@ -390,7 +390,7 @@ Item {
                                             anchors.top: parent.top
                                             anchors.rightMargin: -6
                                             anchors.topMargin: -6
-                                            visible: homeScreen.editMode
+                                            visible: homeScreen.editMode && !model.isSingleton
                                             z: 20
 
                                             MaterialIcon {
@@ -699,7 +699,8 @@ Item {
             onClicked: {
                 inactivityTimer.restart()
                 WidgetGridModel.addPage()
-                pageView.setCurrentIndex(WidgetGridModel.pageCount - 1)
+                // Navigate to the newly inserted page (second-to-last, since reserved page shifted to last)
+                pageView.setCurrentIndex(WidgetGridModel.pageCount - 2)
             }
         }
     }
@@ -749,7 +750,7 @@ Item {
         height: width
         radius: width / 2
         color: ThemeService.error
-        visible: homeScreen.editMode && WidgetGridModel.pageCount > 1 && pageView.currentIndex > 0
+        visible: homeScreen.editMode && WidgetGridModel.pageCount > 1 && pageView.currentIndex > 0 && !WidgetGridModel.isReservedPage(pageView.currentIndex)
         z: 50
         anchors.left: parent.left
         anchors.bottom: parent.bottom

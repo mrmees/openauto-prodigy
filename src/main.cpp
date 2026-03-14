@@ -518,6 +518,35 @@ int main(int argc, char *argv[])
         widgetRegistry->registerWidget(npDesc);
     }
 
+    // Singleton launcher widgets (system-seeded, non-removable, hidden from picker)
+    {
+        oap::WidgetDescriptor slDesc;
+        slDesc.id = "org.openauto.settings-launcher";
+        slDesc.displayName = "Settings";
+        slDesc.iconName = "\ue8b8";  // settings gear
+        slDesc.category = "launcher";
+        slDesc.description = "Open settings";
+        slDesc.singleton = true;
+        slDesc.minCols = 1; slDesc.minRows = 1;
+        slDesc.maxCols = 3; slDesc.maxRows = 3;
+        slDesc.defaultCols = 1; slDesc.defaultRows = 1;
+        slDesc.qmlComponent = QUrl(QStringLiteral("qrc:/OpenAutoProdigy/SettingsLauncherWidget.qml"));
+        widgetRegistry->registerWidget(slDesc);
+
+        oap::WidgetDescriptor aaDesc;
+        aaDesc.id = "org.openauto.aa-launcher";
+        aaDesc.displayName = "Android Auto";
+        aaDesc.iconName = "\ueff7";  // directions_car
+        aaDesc.category = "launcher";
+        aaDesc.description = "Launch Android Auto";
+        aaDesc.singleton = true;
+        aaDesc.minCols = 1; aaDesc.minRows = 1;
+        aaDesc.maxCols = 3; aaDesc.maxRows = 3;
+        aaDesc.defaultCols = 1; aaDesc.defaultRows = 1;
+        aaDesc.qmlComponent = QUrl(QStringLiteral("qrc:/OpenAutoProdigy/AALauncherWidget.qml"));
+        widgetRegistry->registerWidget(aaDesc);
+    }
+
     // Collect widget descriptors from plugins
     for (auto* plugin : pluginManager.plugins()) {
         for (const auto& desc : plugin->widgetDescriptors()) {
@@ -558,6 +587,35 @@ int main(int argc, char *argv[])
                      widgetGridModel, saveGridState);
     QObject::connect(widgetGridModel, &oap::WidgetGridModel::pageCountChanged,
                      widgetGridModel, saveGridState);
+
+    // Fresh-install seeding: place singleton launcher widgets on the reserved (last) page
+    if (savedPlacements.isEmpty()) {
+        int reservedPage = widgetGridModel->pageCount() - 1;
+        QList<oap::GridPlacement> seedPlacements;
+        {
+            oap::GridPlacement p;
+            p.instanceId = QStringLiteral("aa-launcher-reserved");
+            p.widgetId = QStringLiteral("org.openauto.aa-launcher");
+            p.col = 0; p.row = 0;
+            p.colSpan = 1; p.rowSpan = 1;
+            p.opacity = 0.25;
+            p.page = reservedPage;
+            p.visible = true;
+            seedPlacements.append(p);
+        }
+        {
+            oap::GridPlacement p;
+            p.instanceId = QStringLiteral("settings-launcher-reserved");
+            p.widgetId = QStringLiteral("org.openauto.settings-launcher");
+            p.col = 0; p.row = 1;
+            p.colSpan = 1; p.rowSpan = 1;
+            p.opacity = 0.25;
+            p.page = reservedPage;
+            p.visible = true;
+            seedPlacements.append(p);
+        }
+        widgetGridModel->setPlacements(seedPlacements, widgetRegistry);
+    }
 
     // Re-clamp grid when cellSide changes (QML drives the actual dims via
     // WidgetGridModel.setGridDimensions, but we update here as fallback for
