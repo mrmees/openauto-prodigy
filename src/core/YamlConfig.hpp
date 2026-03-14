@@ -4,7 +4,6 @@
 #include <QString>
 #include <QStringList>
 #include <QVariant>
-#include <QVariantMap>
 #include <yaml-cpp/yaml.h>
 #include "core/widget/WidgetTypes.hpp"
 

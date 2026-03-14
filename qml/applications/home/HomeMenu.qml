@@ -102,7 +102,7 @@ Item {
         anchors.margins: UiMetrics.marginPage
         spacing: UiMetrics.spacing
 
-        // Multi-page SwipeView -- fills available space above dots and dock
+        // Multi-page SwipeView -- fills available space above page dots
         SwipeView {
             id: pageView
             Layout.fillWidth: true
