@@ -20,7 +20,7 @@ Remove the LauncherDock bottom bar, LauncherModel, and LauncherMenu entirely. Re
 - The widget picker serves as the "app drawer" — users add content widgets to access views that have them
 
 ### Reserved utility page
-- **Always the last home screen page** — when users add new pages, new pages insert before the reserved page, never after it. The add-page flow (`HomeMenu.qml:699`, `WidgetGridModel.cpp:279`) currently appends to the end — must be changed to insert at `pageCount - 1`.
+- **Always the last home screen page** — when users add new pages, new pages insert before the reserved page, never after it. The add-page flow (`HomeMenu.qml:699`, `WidgetGridModel.cpp:279`) currently appends to the end — must be changed to insert at `pageCount - 1`. The post-add page selection (`HomeMenu.qml:699` jumps to last page) must also update to jump to the newly inserted page (`pageCount - 2` after insert), not the reserved last page.
 - **Undeletable** — page delete logic (`HomeMenu.qml:745`, `WidgetGridModel.cpp:285`) must skip the reserved page. It never shows a delete option.
 - **Singleton system widgets:** Settings and AA launcher are seeded on first boot and cannot be removed (edit mode hides the X badge). These are **singletons** — only one instance exists, placed by the system, not by the user.
 - **User-customizable:** Users CAN add their own widgets to remaining space on this page — it's not fully locked, just has singleton system items
