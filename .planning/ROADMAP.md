@@ -126,13 +126,20 @@ Plans:
 
 ### Phase 10.1: Adjust grid spacing and page indicator location (INSERTED)
 
-**Goal:** [Urgent work - to be planned]
-**Requirements**: TBD
+**Goal:** Grid recovers wasted gutter space via auto-snap threshold, page indicator dots move to navbar flanking the clock, and card padding tightens for a more cohesive layout
+**Requirements**: GRID-SNAP, CARD-PADDING, PAGE-DOTS-NAVBAR, PAGE-INDICATOR-REMOVAL
 **Depends on:** Phase 10
-**Plans:** 0 plans
+**Success Criteria** (what must be TRUE):
+  1. Grid auto-snap threshold (60%) adds rows/cols when waste exceeds threshold -- 1024x600 goes from 7x3 to 7x4
+  2. Page dots flank the clock in the navbar; clock serves as active page indicator
+  3. Dots hidden when not on home screen, when plugin is active, or when only 1 page exists
+  4. PageIndicator deleted from HomeMenu -- vertical space reclaimed for the grid
+  5. Card padding tightened for less visual gap between widgets
+**Plans**: 2 plans
 
 Plans:
-- [ ] TBD (run /gsd:plan-phase 10.1 to break down)
+- [ ] 10.1-01-PLAN.md -- Auto-snap grid threshold + tighter card padding
+- [ ] 10.1-02-PLAN.md -- Page dots in navbar + PageIndicator removal from HomeMenu
 
 ### Phase 11: Widget Framework Polish
 **Goal**: Widgets behave predictably under resize, report lifecycle transitions, and scale their content based on grid span rather than absolute pixels
@@ -163,14 +170,15 @@ Plans:
 ## Progress
 
 **Execution Order:**
-Phases execute in numeric order: 09 -> 10 -> 11 -> 12
+Phases execute in numeric order: 09 -> 10 -> 10.1 -> 11 -> 12
 
 | Phase | Plans Complete | Status | Completed |
 |-------|----------------|--------|-----------|
 | 09. Widget Descriptor & Grid Foundation | 3/3 | Complete    | 2026-03-14 |
 | 10. Launcher Widget & Dock Removal | 2/2 | Complete    | 2026-03-14 |
+| 10.1. Grid Spacing & Page Indicators | 0/2 | Not started | - |
 | 11. Widget Framework Polish | 0/2 | Not started | - |
 | 12. Documentation | 0/1 | Not started | - |
 
 ---
-*Last updated: 2026-03-14 -- Phase 10 complete*
+*Last updated: 2026-03-14 -- Phase 10.1 planned*
