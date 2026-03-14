@@ -9,8 +9,8 @@
 
 ## Grid Layout (GL)
 
-- [ ] **GL-01**: Grid cell dimensions derived from physical mm targets via DPI instead of fixed pixel values
-- [ ] **GL-02**: Grid math no longer deducts hardcoded dock height from available space
+- [x] **GL-01**: Grid cell dimensions derived from physical mm targets via DPI instead of fixed pixel values
+- [x] **GL-02**: Grid math no longer deducts hardcoded dock height from available space
 - [ ] **GL-03**: YAML widget layout includes grid_version field with migration when grid dimensions change
 
 ## Navigation (NAV)
@@ -43,8 +43,8 @@ _None deferred from this milestone._
 | WF-02 | Phase 11 | Pending |
 | WF-03 | Phase 11 | Pending |
 | WF-04 | Phase 11 | Pending |
-| GL-01 | Phase 09 | Pending |
-| GL-02 | Phase 09 | Pending |
+| GL-01 | Phase 09 | Complete |
+| GL-02 | Phase 09 | Complete |
 | GL-03 | Phase 09 | Pending |
 | NAV-01 | Phase 10 | Pending |
 | NAV-02 | Phase 10 | Pending |

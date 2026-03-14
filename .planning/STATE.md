@@ -3,15 +3,15 @@ gsd_state_version: 1.0
 milestone: v0.6
 milestone_name: milestone
 status: executing
-stopped_at: Completed 09-01-PLAN.md
-last_updated: "2026-03-14T16:29:25Z"
-last_activity: 2026-03-14 — Plan 09-01 executed
+stopped_at: Completed 09-02-PLAN.md
+last_updated: "2026-03-14T16:31:44Z"
+last_activity: 2026-03-14 — Plan 09-02 executed
 progress:
   total_phases: 4
   completed_phases: 0
   total_plans: 3
-  completed_plans: 1
-  percent: 8
+  completed_plans: 2
+  percent: 16
 ---
 
 # Project State
@@ -26,18 +26,18 @@ See: .planning/PROJECT.md (updated 2026-03-14)
 ## Current Position
 
 Phase: 09 of 12 (Widget Descriptor & Grid Foundation)
-Plan: 1 of 3 complete
+Plan: 2 of 3 complete
 Status: Executing
-Last activity: 2026-03-14 — Plan 09-01 executed
+Last activity: 2026-03-14 — Plan 09-02 executed
 
-Progress: [█░░░░░░░░░] 8%
+Progress: [██░░░░░░░░] 16%
 
 ## Performance Metrics
 
 **Velocity:**
-- Total plans completed: 1
-- Average duration: 7 min
-- Total execution time: 0.12 hours
+- Total plans completed: 2
+- Average duration: 8 min
+- Total execution time: 0.28 hours
 
 ## Accumulated Context
 
@@ -49,6 +49,10 @@ Progress: [█░░░░░░░░░] 8%
 
 ### Decisions
 
+- cellSide = diagPx / (9.0 + bias * 0.8) -- resolution-independent, DPI cascade is structural scaffolding for future mm-based path
+- Grid cols/rows computed in QML from DisplayInfo.cellSide, not in C++ (reactive binding)
+- Dock moved to z=10 overlay outside ColumnLayout -- grid uses full vertical space
+- Kept screenSizeInches/computedDpi/windowWidth/Height on DisplayInfo for UiMetrics, settings, and AA runtime compatibility
 - JS-based model filtering in QML Repeater (not C++ proxy model) for category grouping -- sufficient for small widget counts
 - Category order hardcoded in static map (status=0, media=1, navigation=2, launcher=3) -- simple and matches spec
 - Coarse granularity: 12 requirements compressed into 4 phases
@@ -63,5 +67,5 @@ Progress: [█░░░░░░░░░] 8%
 
 ## Session Continuity
 
-Last session: 2026-03-14T16:29:25Z
-Stopped at: Completed 09-01-PLAN.md
+Last session: 2026-03-14T16:31:44Z
+Stopped at: Completed 09-02-PLAN.md
