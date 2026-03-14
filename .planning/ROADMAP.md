@@ -105,24 +105,24 @@ Decimal phases appear between their surrounding integers in numeric order.
 **Plans**: 3 plans
 
 Plans:
-- [ ] 09-01-PLAN.md -- Widget descriptor metadata (category/description) + category-grouped picker
-- [ ] 09-02-PLAN.md -- DPI-based cell sizing (cellSide) + dock height removal + QML grid frame
-- [ ] 09-03-PLAN.md -- YAML grid dimension persistence + proportional remap algorithm
+- [x] 09-01-PLAN.md -- Widget descriptor metadata (category/description) + category-grouped picker
+- [x] 09-02-PLAN.md -- DPI-based cell sizing (cellSide) + dock height removal + QML grid frame
+- [x] 09-03-PLAN.md -- YAML grid dimension persistence + proportional remap algorithm
 
 ### Phase 10: Launcher Widget & Dock Removal
-**Goal**: Users navigate to all views (AA, BT Audio, Phone, Settings) via a home screen widget instead of a fixed bottom bar
+**Goal**: Singleton system widgets on a reserved utility page replace the fixed LauncherDock bottom bar for navigating to Settings and Android Auto
 **Depends on**: Phase 09 (grid foundation must be stable; dock height deduction already removed)
 **Requirements**: NAV-01, NAV-02, NAV-03
 **Success Criteria** (what must be TRUE):
-  1. LauncherWidget provides quick-launch tiles for all plugin views and settings, rendered as a standard grid widget
+  1. Settings and AA launcher singleton widgets are seeded on a protected reserved page (last page, undeletable)
   2. LauncherDock bottom bar is gone from the shell -- vertical space reclaimed for widgets
-  3. Every view reachable from the dock is reachable without it (QA gate: reach every view without SSH on Pi)
-  4. LauncherModel is deleted -- LauncherWidget reads PluginModel directly as single source of truth
-**Plans**: TBD
+  3. Every view reachable from the dock is reachable without it (Settings via widget + navbar holds, AA via widget)
+  4. LauncherModel and LauncherMenu are deleted -- singleton widgets use PluginModel directly
+**Plans**: 2 plans
 
 Plans:
-- [ ] 10-01: TBD
-- [ ] 10-02: TBD
+- [ ] 10-01-PLAN.md -- Singleton widget infrastructure + Settings/AA widgets + reserved page logic + default seeding
+- [ ] 10-02-PLAN.md -- Delete LauncherDock, LauncherModel, LauncherMenu + reference cleanup
 
 ### Phase 11: Widget Framework Polish
 **Goal**: Widgets behave predictably under resize, report lifecycle transitions, and scale their content based on grid span rather than absolute pixels
@@ -163,4 +163,4 @@ Phases execute in numeric order: 09 -> 10 -> 11 -> 12
 | 12. Documentation | 0/1 | Not started | - |
 
 ---
-*Last updated: 2026-03-14 -- Phase 09 plans created*
+*Last updated: 2026-03-14 -- Phase 10 plans created*
