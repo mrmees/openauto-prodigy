@@ -81,6 +81,13 @@ private slots:
     void testRemovePageZeroRejected();
     void testWidgetCountOnPage();
     void testPageRole();
+    // Singleton tests
+    void testSingletonCannotBeRemoved();
+    void testAddPageInsertsBeforeReserved();
+    void testRemovePageRefusesReservedPage();
+    void testIsReservedPage();
+    void testSingletonRoleExposed();
+    void testFreshInstallSeeding();
 };
 
 void TestWidgetGridModel::testPlaceWidgetSuccess() {
@@ -614,6 +621,214 @@ void TestWidgetGridModel::testPageRole() {
     QModelIndex idx1 = model.index(1);
     QCOMPARE(idx0.data(oap::WidgetGridModel::PageRole).toInt(), 0);
     QCOMPARE(idx1.data(oap::WidgetGridModel::PageRole).toInt(), 1);
+}
+
+// --- Singleton tests ---
+
+void TestWidgetGridModel::testSingletonCannotBeRemoved() {
+    auto* reg = new oap::WidgetRegistry(this);
+    oap::WidgetDescriptor d;
+    d.id = "singleton-widget";
+    d.displayName = "Singleton";
+    d.qmlComponent = QUrl("qrc:/Singleton.qml");
+    d.singleton = true;
+    d.minCols = 1; d.minRows = 1;
+    reg->registerWidget(d);
+
+    oap::WidgetGridModel model(reg);
+    model.setGridDimensions(6, 4);
+    model.placeWidget("singleton-widget", 0, 0, 1, 1);
+    QCOMPARE(model.rowCount(), 1);
+
+    auto placements = model.placements();
+    model.removeWidget(placements[0].instanceId);
+    // Singleton should NOT be removed
+    QCOMPARE(model.rowCount(), 1);
+}
+
+void TestWidgetGridModel::testAddPageInsertsBeforeReserved() {
+    auto* reg = new oap::WidgetRegistry(this);
+    oap::WidgetDescriptor d;
+    d.id = "singleton-widget";
+    d.displayName = "Singleton";
+    d.qmlComponent = QUrl("qrc:/Singleton.qml");
+    d.singleton = true;
+    d.minCols = 1; d.minRows = 1;
+    reg->registerWidget(d);
+
+    oap::WidgetGridModel model(reg);
+    model.setGridDimensions(6, 4);
+    model.setPageCount(2); // pages 0 and 1
+
+    // Place singleton on page 1 (the last / reserved page)
+    QList<oap::GridPlacement> placements;
+    oap::GridPlacement p;
+    p.instanceId = "singleton-0";
+    p.widgetId = "singleton-widget";
+    p.col = 0; p.row = 0;
+    p.colSpan = 1; p.rowSpan = 1;
+    p.page = 1; p.visible = true;
+    placements.append(p);
+    model.setPlacements(placements, reg);
+
+    // addPage should insert before reserved, pushing singleton to page 2
+    model.addPage();
+    QCOMPARE(model.pageCount(), 3);
+
+    auto result = model.placements();
+    QCOMPARE(result[0].page, 2); // singleton shifted from 1 to 2
+}
+
+void TestWidgetGridModel::testRemovePageRefusesReservedPage() {
+    auto* reg = new oap::WidgetRegistry(this);
+    oap::WidgetDescriptor d;
+    d.id = "singleton-widget";
+    d.displayName = "Singleton";
+    d.qmlComponent = QUrl("qrc:/Singleton.qml");
+    d.singleton = true;
+    d.minCols = 1; d.minRows = 1;
+    reg->registerWidget(d);
+
+    oap::WidgetGridModel model(reg);
+    model.setGridDimensions(6, 4);
+    model.setPageCount(2);
+
+    QList<oap::GridPlacement> placements;
+    oap::GridPlacement p;
+    p.instanceId = "singleton-0";
+    p.widgetId = "singleton-widget";
+    p.col = 0; p.row = 0;
+    p.colSpan = 1; p.rowSpan = 1;
+    p.page = 1; p.visible = true;
+    placements.append(p);
+    model.setPlacements(placements, reg);
+
+    // Should refuse to remove the page with a singleton
+    bool ok = model.removePage(1);
+    QVERIFY(!ok);
+    QCOMPARE(model.pageCount(), 2);
+}
+
+void TestWidgetGridModel::testIsReservedPage() {
+    auto* reg = new oap::WidgetRegistry(this);
+    oap::WidgetDescriptor d;
+    d.id = "singleton-widget";
+    d.displayName = "Singleton";
+    d.qmlComponent = QUrl("qrc:/Singleton.qml");
+    d.singleton = true;
+    d.minCols = 1; d.minRows = 1;
+    reg->registerWidget(d);
+
+    oap::WidgetGridModel model(reg);
+    model.setGridDimensions(6, 4);
+    model.setPageCount(2);
+
+    QList<oap::GridPlacement> placements;
+    oap::GridPlacement p;
+    p.instanceId = "singleton-0";
+    p.widgetId = "singleton-widget";
+    p.col = 0; p.row = 0;
+    p.colSpan = 1; p.rowSpan = 1;
+    p.page = 1; p.visible = true;
+    placements.append(p);
+    model.setPlacements(placements, reg);
+
+    QVERIFY(model.isReservedPage(1));
+    QVERIFY(!model.isReservedPage(0));
+}
+
+void TestWidgetGridModel::testSingletonRoleExposed() {
+    auto* reg = new oap::WidgetRegistry(this);
+    {
+        oap::WidgetDescriptor d;
+        d.id = "singleton-widget";
+        d.displayName = "Singleton";
+        d.qmlComponent = QUrl("qrc:/Singleton.qml");
+        d.singleton = true;
+        d.minCols = 1; d.minRows = 1;
+        reg->registerWidget(d);
+    }
+    {
+        oap::WidgetDescriptor d;
+        d.id = "normal-widget";
+        d.displayName = "Normal";
+        d.qmlComponent = QUrl("qrc:/Normal.qml");
+        d.singleton = false;
+        d.minCols = 1; d.minRows = 1;
+        reg->registerWidget(d);
+    }
+
+    oap::WidgetGridModel model(reg);
+    model.setGridDimensions(6, 4);
+    model.placeWidget("singleton-widget", 0, 0, 1, 1);
+    model.placeWidget("normal-widget", 1, 0, 1, 1);
+
+    QModelIndex idx0 = model.index(0);
+    QModelIndex idx1 = model.index(1);
+    QCOMPARE(idx0.data(oap::WidgetGridModel::SingletonRole).toBool(), true);
+    QCOMPARE(idx1.data(oap::WidgetGridModel::SingletonRole).toBool(), false);
+}
+
+void TestWidgetGridModel::testFreshInstallSeeding() {
+    auto* reg = new oap::WidgetRegistry(this);
+    {
+        oap::WidgetDescriptor d;
+        d.id = "org.openauto.aa-launcher";
+        d.displayName = "Android Auto";
+        d.qmlComponent = QUrl("qrc:/AALauncherWidget.qml");
+        d.singleton = true;
+        d.minCols = 1; d.minRows = 1;
+        reg->registerWidget(d);
+    }
+    {
+        oap::WidgetDescriptor d;
+        d.id = "org.openauto.settings-launcher";
+        d.displayName = "Settings";
+        d.qmlComponent = QUrl("qrc:/SettingsLauncherWidget.qml");
+        d.singleton = true;
+        d.minCols = 1; d.minRows = 1;
+        reg->registerWidget(d);
+    }
+
+    oap::WidgetGridModel model(reg);
+    model.setGridDimensions(6, 4);
+    model.setPageCount(2); // 2 pages: user page 0, reserved page 1
+
+    // Simulate fresh install seeding: build placements on the reserved page
+    QList<oap::GridPlacement> seed;
+    {
+        oap::GridPlacement p;
+        p.instanceId = "aa-launcher-reserved";
+        p.widgetId = "org.openauto.aa-launcher";
+        p.col = 0; p.row = 0;
+        p.colSpan = 1; p.rowSpan = 1;
+        p.page = 1; // reserved page (last)
+        p.visible = true;
+        seed.append(p);
+    }
+    {
+        oap::GridPlacement p;
+        p.instanceId = "settings-launcher-reserved";
+        p.widgetId = "org.openauto.settings-launcher";
+        p.col = 0; p.row = 1;
+        p.colSpan = 1; p.rowSpan = 1;
+        p.page = 1;
+        p.visible = true;
+        seed.append(p);
+    }
+    model.setPlacements(seed, reg);
+
+    auto placements = model.placements();
+    QCOMPARE(placements.size(), 2);
+    QCOMPARE(placements[0].instanceId, QString("aa-launcher-reserved"));
+    QCOMPARE(placements[0].page, 1);
+    QCOMPARE(placements[0].col, 0);
+    QCOMPARE(placements[0].row, 0);
+    QCOMPARE(placements[1].instanceId, QString("settings-launcher-reserved"));
+    QCOMPARE(placements[1].page, 1);
+    QCOMPARE(placements[1].col, 0);
+    QCOMPARE(placements[1].row, 1);
+    QVERIFY(model.isReservedPage(1));
 }
 
 QTEST_GUILESS_MAIN(TestWidgetGridModel)

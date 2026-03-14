@@ -33,6 +33,13 @@ QVariant WidgetGridModel::data(const QModelIndex& index, int role) const
     case OpacityRole:       return p.opacity;
     case VisibleRole:       return p.visible;
     case PageRole:          return p.page;
+    case SingletonRole: {
+        if (registry_) {
+            auto desc = registry_->descriptor(p.widgetId);
+            if (desc) return desc->singleton;
+        }
+        return false;
+    }
     case QmlComponentRole: {
         if (registry_) {
             auto desc = registry_->descriptor(p.widgetId);
@@ -104,7 +111,8 @@ QHash<int, QByteArray> WidgetGridModel::roleNames() const
         {MaxRowsRole, "maxRows"},
         {DefaultColsRole, "defaultCols"},
         {DefaultRowsRole, "defaultRows"},
-        {PageRole, "page"}
+        {PageRole, "page"},
+        {SingletonRole, "isSingleton"}
     };
 }
 
@@ -198,6 +206,12 @@ void WidgetGridModel::removeWidget(const QString& instanceId)
     int idx = findPlacement(instanceId);
     if (idx < 0) return;
 
+    // Singleton widgets cannot be removed
+    if (registry_) {
+        auto desc = registry_->descriptor(livePlacements_[idx].widgetId);
+        if (desc && desc->singleton) return;
+    }
+
     beginRemoveRows(QModelIndex(), idx, idx);
     livePlacements_.removeAt(idx);
     endRemoveRows();
@@ -278,14 +292,31 @@ void WidgetGridModel::setPageCount(int count)
 
 void WidgetGridModel::addPage()
 {
+    int insertAt = pageCount_ - 1; // Insert before the reserved (last) page
+
+    beginResetModel();
+    // Shift all placements on pages >= insertAt up by 1
+    for (auto& p : livePlacements_) {
+        if (p.page >= insertAt)
+            p.page++;
+    }
+    for (auto& p : basePlacements_) {
+        if (p.page >= insertAt)
+            p.page++;
+    }
     pageCount_++;
+    rebuildOccupancy();
+    endResetModel();
+
     emit pageCountChanged();
+    emit placementsChanged();
 }
 
 bool WidgetGridModel::removePage(int page)
 {
-    // Cannot remove page 0 (first page)
+    // Cannot remove page 0 (first page) or pages with singleton widgets
     if (page <= 0 || page >= pageCount_) return false;
+    if (pageHasSingleton(page)) return false;
 
     // Remove all placements on this page
     beginResetModel();
@@ -625,6 +656,23 @@ void WidgetGridModel::setEditMode(bool editing)
             emit placementsChanged();
         }
     }
+}
+
+bool WidgetGridModel::pageHasSingleton(int page) const
+{
+    for (const auto& p : livePlacements_) {
+        if (p.page != page) continue;
+        if (registry_) {
+            auto desc = registry_->descriptor(p.widgetId);
+            if (desc && desc->singleton) return true;
+        }
+    }
+    return false;
+}
+
+bool WidgetGridModel::isReservedPage(int page) const
+{
+    return pageHasSingleton(page);
 }
 
 void WidgetGridModel::promoteToBase()

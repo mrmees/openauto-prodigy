@@ -34,7 +34,8 @@ public:
         MaxRowsRole,
         DefaultColsRole,
         DefaultRowsRole,
-        PageRole
+        PageRole,
+        SingletonRole
     };
 
     explicit WidgetGridModel(WidgetRegistry* registry, QObject* parent = nullptr);
@@ -60,6 +61,7 @@ public:
     Q_INVOKABLE bool removePage(int page);
     Q_INVOKABLE void removeAllWidgetsOnPage(int page);
     Q_INVOKABLE int widgetCountOnPage(int page) const;
+    Q_INVOKABLE bool isReservedPage(int page) const;
 
     int activePage() const;
     void setActivePage(int page);
@@ -102,6 +104,9 @@ private:
     void remapPlacements(int newCols, int newRows);
     bool spiralNudge(GridPlacement& p, const QVector<QString>& occupancy, int cols, int rows) const;
     void spillToNextPage(GridPlacement& p, QHash<int, QVector<QString>>& pageOcc, int cols, int rows);
+
+    // Singleton page detection
+    bool pageHasSingleton(int page) const;
 
     // After user edit: promote live state to new base
     void promoteToBase();

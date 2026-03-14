@@ -29,6 +29,8 @@ struct WidgetDescriptor {
     int maxRows = 4;
     int defaultCols = 1;
     int defaultRows = 1;
+
+    bool singleton = false;  // System-seeded, non-removable, hidden from picker
 };
 
 struct GridPlacement {

@@ -16,6 +16,7 @@ private slots:
     void testSortOrderCategoryPriority();
     void testUncategorizedSortLast();
     void testUnknownCategoryCapitalized();
+    void testSingletonHiddenFromPicker();
 
 private:
     oap::WidgetRegistry* registry_ = nullptr;
@@ -140,6 +141,35 @@ void TestWidgetPickerModel::testUnknownCategoryCapitalized() {
 
     QModelIndex idx = model.index(1, 0);
     QCOMPARE(model.data(idx, oap::WidgetPickerModel::CategoryLabelRole).toString(), "Utilities");
+}
+
+void TestWidgetPickerModel::testSingletonHiddenFromPicker() {
+    // Register a singleton widget
+    oap::WidgetDescriptor desc;
+    desc.id = "org.openauto.settings-launcher";
+    desc.displayName = "Settings";
+    desc.iconName = "\ue8b8";
+    desc.category = "launcher";
+    desc.description = "Open settings";
+    desc.qmlComponent = QUrl("qrc:/SettingsLauncherWidget.qml");
+    desc.singleton = true;
+    desc.minCols = 1; desc.minRows = 1;
+    registry_->registerWidget(desc);
+
+    // Also register a normal widget for contrast
+    registerTestWidget("test.clock", "Clock", "status", "Current time");
+
+    oap::WidgetPickerModel model(registry_);
+    model.filterByAvailableSpace(6, 4);
+
+    // Singleton should NOT appear in picker results
+    for (int i = 0; i < model.rowCount(); ++i) {
+        QModelIndex idx = model.index(i, 0);
+        QVERIFY(model.data(idx, oap::WidgetPickerModel::WidgetIdRole).toString()
+                != "org.openauto.settings-launcher");
+    }
+    // But normal widget and "No Widget" should be there
+    QCOMPARE(model.rowCount(), 2); // "No Widget" + Clock
 }
 
 QTEST_GUILESS_MAIN(TestWidgetPickerModel)

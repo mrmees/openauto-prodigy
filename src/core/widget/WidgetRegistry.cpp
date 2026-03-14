@@ -31,7 +31,8 @@ QList<WidgetDescriptor> WidgetRegistry::widgetsFittingSpace(int availCols, int a
     for (const auto& desc : descriptors_) {
         if (desc.minCols <= availCols && desc.minRows <= availRows
             && !desc.qmlComponent.isEmpty()
-            && desc.contributionKind == DashboardContributionKind::Widget) {
+            && desc.contributionKind == DashboardContributionKind::Widget
+            && !desc.singleton) {
             result.append(desc);
         }
     }
