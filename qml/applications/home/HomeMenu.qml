@@ -20,7 +20,7 @@ Item {
 
     // Snap-aware grid frame computation (two-stage: base → snap → effective)
     readonly property real baseCellSide: DisplayInfo ? DisplayInfo.cellSide : 120
-    readonly property real kSnapThreshold: 0.6  // Add row/col when waste > 60% of cell
+    readonly property real kSnapThreshold: 0.5  // Add row/col when waste > 50% of cell
 
     // Stage 1: initial grid from base cell size
     readonly property int _baseCols: pageView.width > 0 ? Math.max(3, Math.floor(pageView.width / baseCellSide)) : 3
