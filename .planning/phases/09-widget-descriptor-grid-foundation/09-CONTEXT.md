@@ -37,6 +37,8 @@ Enrich WidgetDescriptor with manifest metadata (category, description, icon) and
 - **DPI from QScreen, not window size** — physical sizing uses `QScreen` physical dimensions (panel-level truth), not app window rect; DPI is a display property, not a window property
 - **Physical sizing when trustworthy** — use QScreen physical DPI; cellSide derived as proportion of screen diagonal in pixels
 - **DPI sanity range: 80-300** — outside this range, fall back to pixel heuristic targeting the same square-cell band
+- **`display.screen_size` config is a hard override** — if set, it overrides QScreen physical dimensions unconditionally; this is the calibration path for panels that report plausible-but-wrong sizes (many cheap touch panels misreport within 80-300 DPI range); already exists in config, just needs to remain authoritative
+- **DPI priority cascade:** `display.screen_size` config (user override) → QScreen physical dimensions → pixel heuristic fallback
 - **Windowed mode** — when window is not fullscreen, physical sizing may not apply (window rect != panel rect); use pixel heuristic fallback in windowed/development mode
 - **Pixel heuristic fallback** — produces equivalent square cells when DPI is missing, implausible, or in windowed mode
 - **Both cols and rows derive freely** — cols = floor(usableW / cellSide), rows = floor(usableH / cellSide); neither dimension is anchored or capped
@@ -49,6 +51,7 @@ Enrich WidgetDescriptor with manifest metadata (category, description, icon) and
 - **DisplayInfo.cpp** computes **cellSide only** from DPI/diagonal (the physical sizing math) and exposes it as a Q_PROPERTY; does NOT compute cols/rows/offsets (it doesn't know the actual available rect after navbar, page indicators, margins)
 - **HomeMenu.qml** (or a QML helper) owns the **grid frame** — computes cols, rows, offsetX, offsetY from its actual available rect + cellSide from DisplayInfo; this is where navbar/dock/indicator space is accounted for
 - **WidgetGridModel.cpp** owns logical placements in integer grid units only — no pixel awareness; receives cols/rows from QML and applies remap rule when they change
+- **Boot sequence:** Model loads base placements + saved dims from YAML at startup but does NOT derive live placements yet; model waits for QML to provide current cols/rows (after layout completes and available rect is known); first remap produces live placements; no provisional layout rendered before QML dims arrive — grid is invisible until the first real layout is computed (avoids first-frame junk and duplicate remaps)
 - **UiMetrics.qml** remains general UI scaling — widget-grid geometry does NOT depend on global UI scale except as fallback input when physical sizing is unavailable
 
 ### Grid migration on dimension change
