@@ -1,5 +1,25 @@
 # Milestones
 
+## v0.6 Architecture Formalization (Shipped: 2026-03-14)
+
+**Delivered:** Formalized platform/plugin/widget architecture with typed contracts, provider interfaces, core-owned services, and C++ settings touch input boundary. Removed legacy Configuration class, replaced root-context globals with provider-backed properties, extracted platform policy from plugins.
+
+**Phases completed:** Tracked outside GSD (docs/session-handoffs.md, docs/plans/)
+
+**Key accomplishments:**
+- Typed dashboard contributions (DashboardContributionKind: Widget vs LiveSurfaceWidget)
+- Narrow provider interfaces (IProjectionStatusProvider, INavigationProvider, IMediaStatusProvider, ICallStateProvider)
+- Core-owned services: PhoneStateService, MediaStatusService, AndroidAutoRuntimeBridge, GestureOverlayController
+- Legacy Configuration class deleted, INI loader removed, YAML-to-INI sync shim removed
+- Root-context globals replaced with provider-backed QML properties
+- SettingsInputBoundary (C++ QQuickItem childMouseEventFilter) for subtree-wide long-press-back
+- Removed per-row/per-control back-hold overlay plumbing from settings
+- 82 unit tests, Pi hardware verified
+
+**Stats:** 16 commits on dev/0.6, squash-merged to main | ~35K+ LOC | Timeline: 2 days (2026-03-13 → 2026-03-14)
+
+---
+
 ## v0.5.3 Widget Grid & Content Widgets (Shipped: 2026-03-13)
 
 **Delivered:** Replaced fixed 3-pane home screen with Android-style freeform widget grid — drag-to-reposition, drag-to-resize, multi-page swipe, and two new content widgets (AA navigation turn-by-turn, unified now playing).
