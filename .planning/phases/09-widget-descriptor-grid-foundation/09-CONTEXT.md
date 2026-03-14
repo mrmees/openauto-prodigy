@@ -56,15 +56,15 @@ Enrich WidgetDescriptor with manifest metadata (category, description, icon) and
 - **Spans stay original size** — a 2x2 widget stays 2x2 on a bigger grid; cells are physically bigger so content scales naturally via UiMetrics
 - **Shrink failure policy** — when shrinking, clamp position to fit within bounds; if clamping creates overlap, spill widget to next page (auto-create page if needed); if widget min span exceeds grid dimensions entirely (e.g., 4-wide widget on 3-col grid), mark hidden with warning — never silently delete
 - **Store source grid dims in YAML** — save grid_cols/grid_rows alongside placements (not an abstract version number); on load, if current computed dims differ from saved, trigger remap
-- **Remap is runtime-only by default** — remapped layout displays live but does NOT auto-persist to YAML; only persists when user explicitly edits (moves/resizes/adds a widget in edit mode); if window resizes back, original layout restores from YAML
+- **Base snapshot is source of truth** — YAML placements are the canonical layout; every remap re-derives live placements from this base snapshot, never from current mutated state; prevents drift from repeated resize cycles (small → large → small accumulating nudges/spills)
+- **Remap is runtime-only by default** — remapped layout displays live but does NOT auto-persist to YAML; only persists when user explicitly edits (moves/resizes/adds a widget in edit mode), which updates both live state AND the YAML base snapshot with current grid dims
 - **No migration code per-version** — the saved dims ARE the version; remap is a single generic algorithm
 
 ### Dock height removal
 - **Remove 56px deduction now** in Phase 09 — grid math no longer knows about dock
 - **Dock overlaps grid via z-order** — dock renders at z=10 on top of grid at z=0
 - **Bottom-row widgets partially obscured** by dock until Phase 10 removes it — acceptable transitional state
-- **Covered cells remain placeable** in the model but auto-place logic avoids dock-obscured rows; users can manually place there if they want
-- **No grid-side awareness of dock** — grid doesn't know or care about the dock; Phase 10 deletes dock and the bottom row is fully revealed
+- **No grid-side awareness of dock** — grid doesn't know or care about the dock; bottom-row overlap is a temporary visual artifact, not a grid logic concern; Phase 10 deletes dock and the bottom row is fully revealed
 
 ### Claude's Discretion
 - Exact diagonal divisor constant for cell sizing (researcher tests values across target displays)
