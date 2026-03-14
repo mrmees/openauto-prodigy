@@ -10,6 +10,15 @@ Item {
     property bool showClock: false
     property bool isVertical: false
 
+    // Page dot data — only when showing clock on home screen
+    readonly property bool showDots: root.showClock
+        && WidgetGridModel.pageCount > 1
+        && !PluginModel.activePluginId
+        && ApplicationController.currentApplication !== 6
+    readonly property int leftDotCount: showDots ? WidgetGridModel.activePage : 0
+    readonly property int rightDotCount: showDots ? Math.max(0, WidgetGridModel.pageCount - WidgetGridModel.activePage - 1) : 0
+    readonly property real dotSize: UiMetrics.spacing * 1.2
+
     // Hold progress (0.0 - 1.0) driven by NavbarController
     property real _holdProgress: 0.0
 
@@ -81,32 +90,76 @@ Item {
         }
     }
 
-    // --- Clock display -- horizontal mode ---
-    Text {
-        id: clockHoriz
+    // --- Clock display -- horizontal mode (with page dots flanking) ---
+    Row {
         anchors.centerIn: parent
-        color: navbar.barFg
-        font.pixelSize: Math.round(root.height * 0.75)
-        font.weight: Font.DemiBold
+        spacing: UiMetrics.spacing
         visible: root.showClock && !root.isVertical
+
+        Repeater {
+            model: root.leftDotCount
+            Rectangle {
+                width: root.dotSize; height: root.dotSize; radius: root.dotSize / 2
+                color: ThemeService.onSurfaceVariant; opacity: 0.4
+                anchors.verticalCenter: parent ? parent.verticalCenter : undefined
+            }
+        }
+
+        Text {
+            id: clockHoriz
+            color: navbar.barFg
+            font.pixelSize: Math.round(root.height * 0.75)
+            font.weight: Font.DemiBold
+            anchors.verticalCenter: parent ? parent.verticalCenter : undefined
+        }
+
+        Repeater {
+            model: root.rightDotCount
+            Rectangle {
+                width: root.dotSize; height: root.dotSize; radius: root.dotSize / 2
+                color: ThemeService.onSurfaceVariant; opacity: 0.4
+                anchors.verticalCenter: parent ? parent.verticalCenter : undefined
+            }
+        }
     }
 
-    // --- Clock display -- vertical mode ---
+    // --- Clock display -- vertical mode (with page dots above/below) ---
     Column {
         anchors.centerIn: parent
+        spacing: UiMetrics.spacing
         visible: root.showClock && root.isVertical
 
-        // Stacked clock digits
         Repeater {
-            id: clockVertRepeater
-            model: []
-            Text {
-                text: modelData
-                font.pixelSize: Math.round(root.width * 0.55)
-                font.weight: Font.DemiBold
-                color: navbar.barFg
-                horizontalAlignment: Text.AlignHCenter
-                width: root.width
+            model: root.leftDotCount  // "left" = above in vertical
+            Rectangle {
+                width: root.dotSize; height: root.dotSize; radius: root.dotSize / 2
+                color: ThemeService.onSurfaceVariant; opacity: 0.4
+                anchors.horizontalCenter: parent ? parent.horizontalCenter : undefined
+            }
+        }
+
+        Column {
+            anchors.horizontalCenter: parent ? parent.horizontalCenter : undefined
+            Repeater {
+                id: clockVertRepeater
+                model: []
+                Text {
+                    text: modelData
+                    font.pixelSize: Math.round(root.width * 0.55)
+                    font.weight: Font.DemiBold
+                    color: navbar.barFg
+                    horizontalAlignment: Text.AlignHCenter
+                    width: root.width
+                }
+            }
+        }
+
+        Repeater {
+            model: root.rightDotCount  // "right" = below in vertical
+            Rectangle {
+                width: root.dotSize; height: root.dotSize; radius: root.dotSize / 2
+                color: ThemeService.onSurfaceVariant; opacity: 0.4
+                anchors.horizontalCenter: parent ? parent.horizontalCenter : undefined
             }
         }
     }

@@ -542,32 +542,7 @@ Item {
             }
         }
 
-        // Page indicator dots (PAGE-02)
-        PageIndicator {
-            id: pageIndicator
-            Layout.alignment: Qt.AlignHCenter
-            count: pageView.count
-            currentIndex: pageView.currentIndex
-            interactive: !homeScreen.editMode  // Disabled during edit mode (edit is page-scoped)
 
-            delegate: Rectangle {
-                implicitWidth: UiMetrics.spacing * 1.2
-                implicitHeight: implicitWidth
-                radius: width / 2
-                color: index === pageIndicator.currentIndex
-                       ? ThemeService.primary
-                       : ThemeService.onSurfaceVariant
-                opacity: index === pageIndicator.currentIndex ? 1.0 : 0.4
-
-                required property int index
-                Behavior on opacity { OpacityAnimator { duration: 150 } }
-            }
-
-            onCurrentIndexChanged: {
-                if (currentIndex !== pageView.currentIndex)
-                    pageView.setCurrentIndex(currentIndex)
-            }
-        }
 
     }
 
