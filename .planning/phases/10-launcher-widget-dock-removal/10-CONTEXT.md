@@ -44,7 +44,7 @@ Remove the LauncherDock bottom bar, LauncherModel, and LauncherMenu entirely. Re
 
 ### Singleton widget infrastructure
 - `WidgetDescriptor` needs a `singleton` flag — singleton widgets are:
-  1. **System-seeded** on first boot (placed in YamlConfig defaults)
+  1. **System-seeded** on first boot (seeded in main.cpp startup)
   2. **Non-removable** — edit mode hides X badge, context menu hides "Clear" option
   3. **Hidden from widget picker** — `WidgetPickerModel` filters them out entirely. Users cannot place additional copies. Only the system-seeded instance exists.
   4. **Movable/resizable** — singleton means "exactly one instance, can't be deleted," not "frozen in place"
@@ -80,7 +80,7 @@ Remove the LauncherDock bottom bar, LauncherModel, and LauncherMenu entirely. Re
 ### Claude's Discretion
 - How reserved page is identified (last page by convention, explicit flag, or derived from singleton widget presence)
 - AA launcher widget position on the reserved page
-- Fresh-install default seeding in YamlConfig — must explicitly place both singleton widgets on the reserved page
+- Fresh-install default seeding in main.cpp startup — must explicitly place both singleton widgets on the reserved page (after auto-save connections)
 - Cleanup scope for stale launcher references in docs and config schema
 - Whether page-insert-before-reserved is enforced in WidgetGridModel (model-level) or HomeMenu (view-level)
 
