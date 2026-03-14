@@ -55,19 +55,16 @@ Item {
     // Grid is invisible until first valid layout
     property bool gridReady: false
 
-    // Push grid dimensions to C++ model when they change
-    onGridColsChanged: {
+    // Push grid dimensions to C++ model when they change (batched via callLater
+    // to avoid intermediate states when cols and rows update independently)
+    function _pushGridDims() {
         if (gridCols > 0 && gridRows > 0 && pageView.width > 0 && pageView.height > 0) {
             WidgetGridModel.setGridDimensions(gridCols, gridRows)
             gridReady = true
         }
     }
-    onGridRowsChanged: {
-        if (gridCols > 0 && gridRows > 0 && pageView.width > 0 && pageView.height > 0) {
-            WidgetGridModel.setGridDimensions(gridCols, gridRows)
-            gridReady = true
-        }
-    }
+    onGridColsChanged: Qt.callLater(_pushGridDims)
+    onGridRowsChanged: Qt.callLater(_pushGridDims)
 
     function exitEditMode() {
         editMode = false
