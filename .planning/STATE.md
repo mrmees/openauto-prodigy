@@ -47,6 +47,10 @@ Progress: [█████░░░░░] 50%
 - NavigationTurnLabel UTF-8 parse errors spamming logs
 - Nav distance unit test failures (miles/feet/yards formatting) -- pre-existing
 
+### Roadmap Evolution
+
+- Phase 10.1 inserted after Phase 10: Adjust grid spacing and page indicator location (URGENT)
+
 ### Decisions
 
 - cellSide = diagPx / (9.0 + bias * 0.8) -- resolution-independent, DPI cascade is structural scaffolding for future mm-based path

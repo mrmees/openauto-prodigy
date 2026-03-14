@@ -124,6 +124,16 @@ Plans:
 - [x] 10-01-PLAN.md -- Singleton widget infrastructure + Settings/AA widgets + reserved page logic + default seeding
 - [x] 10-02-PLAN.md -- Delete LauncherDock, LauncherModel, LauncherMenu + reference cleanup
 
+### Phase 10.1: Adjust grid spacing and page indicator location (INSERTED)
+
+**Goal:** [Urgent work - to be planned]
+**Requirements**: TBD
+**Depends on:** Phase 10
+**Plans:** 0 plans
+
+Plans:
+- [ ] TBD (run /gsd:plan-phase 10.1 to break down)
+
 ### Phase 11: Widget Framework Polish
 **Goal**: Widgets behave predictably under resize, report lifecycle transitions, and scale their content based on grid span rather than absolute pixels
 **Depends on**: Phase 09 (descriptor size constraints and grid dimensions must be finalized)
