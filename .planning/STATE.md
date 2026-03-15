@@ -3,15 +3,15 @@ gsd_state_version: 1.0
 milestone: v0.6
 milestone_name: milestone
 status: verifying
-stopped_at: Phase 13.1 context gathered
-last_updated: "2026-03-15T16:54:23.769Z"
-last_activity: 2026-03-15 — Wallpaper hardened and Shell restructured
+stopped_at: Completed 13.1-01-PLAN.md
+last_updated: "2026-03-15T17:45:48.304Z"
+last_activity: 2026-03-15 — Companion reconnect hardening complete
 progress:
   total_phases: 4
-  completed_phases: 1
-  total_plans: 1
-  completed_plans: 1
-  percent: 33
+  completed_phases: 2
+  total_plans: 2
+  completed_plans: 2
+  percent: 50
 ---
 
 # Project State
@@ -21,16 +21,16 @@ progress:
 See: .planning/PROJECT.md (updated 2026-03-15)
 
 **Core value:** A person with a Raspberry Pi 4 and a touchscreen can install this, pair their phone, and get a reliable wireless Android Auto experience -- every time, without SSH.
-**Current focus:** v0.6.2 — Phase 13: Wallpaper Hardening (Plan 01 complete, needs Pi verification)
+**Current focus:** v0.6.2 — Phase 13.1: Quick Bugfix for Companion App (COMPLETE, awaiting Pi verification)
 
 ## Current Position
 
-Phase: 13 of 15 (Wallpaper Hardening)
+Phase: 13.1 of 15 (Quick Bugfix for Companion App)
 Plan: 01 complete (1 of 1)
-Status: Phase 13 code complete, awaiting Pi verification
-Last activity: 2026-03-15 — Wallpaper hardened and Shell restructured
+Status: Phase 13.1 complete, binary deployed to Pi, awaiting manual verification
+Last activity: 2026-03-15 — Companion reconnect hardening complete
 
-Progress: [███░░░░░░░] 33%
+Progress: [█████░░░░░] 50%
 
 ## Accumulated Context
 
@@ -51,8 +51,12 @@ Progress: [███░░░░░░░] 33%
 
 - Wallpaper sourceSize: no subpixel margin -- not worth complexity
 - Wallpaper z-order: implicit z:0 as first child, no explicit z-index
+- clearClientSession() disconnects signals before abort() to prevent re-entrant signal emission
+- Always-replace on new companion connection -- newest connection always wins
+- Inactivity timer resets only on MAC-verified status messages
+- stop() delegates to clearClientSession() instead of duplicating cleanup
 
 ## Session Continuity
 
-Last session: 2026-03-15T16:54:23.767Z
-Stopped at: Phase 13.1 context gathered
+Last session: 2026-03-15T17:45:48.301Z
+Stopped at: Completed 13.1-01-PLAN.md

@@ -6,10 +6,10 @@
 
 ## Companion Bugfix (BF)
 
-- [ ] **BF-01**: New companion connection replaces stale client instead of rejecting, with diagnostic logging
-- [ ] **BF-02**: Socket errorOccurred triggers full session cleanup via shared idempotent path
-- [ ] **BF-03**: 30-second inactivity timeout (from last valid status message) triggers session teardown
-- [ ] **BF-04**: clearClientSession() is idempotent — double-call safe, no double-emit, no crash
+- [x] **BF-01**: New companion connection replaces stale client instead of rejecting, with diagnostic logging
+- [x] **BF-02**: Socket errorOccurred triggers full session cleanup via shared idempotent path
+- [x] **BF-03**: 30-second inactivity timeout (from last valid status message) triggers session teardown
+- [x] **BF-04**: clearClientSession() is idempotent — double-call safe, no double-emit, no crash
 
 ## Color Audit (CA)
 
@@ -40,10 +40,10 @@
 | Requirement | Phase | Status |
 |-------------|-------|--------|
 | WP-01 | Phase 13 | Complete |
-| BF-01 | Phase 13.1 | Pending |
-| BF-02 | Phase 13.1 | Pending |
-| BF-03 | Phase 13.1 | Pending |
-| BF-04 | Phase 13.1 | Pending |
+| BF-01 | Phase 13.1 | Complete |
+| BF-02 | Phase 13.1 | Complete |
+| BF-03 | Phase 13.1 | Complete |
+| BF-04 | Phase 13.1 | Complete |
 | CA-01 | Phase 14 | Pending |
 | CA-02 | Phase 14 | Pending |
 | CA-03 | Phase 14 | Pending |

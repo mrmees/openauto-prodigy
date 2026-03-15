@@ -88,7 +88,7 @@ See .planning/milestones/v0.6-ROADMAP.md for archived details.
 ### Phases
 
 - [x] **Phase 13: Wallpaper Hardening** - Cap texture memory, eliminate paint-outside-bounds, prevent transition flicker — always cover-fit (completed 2026-03-15)
-- [ ] **Phase 13.1: Quick Bugfix for Companion App** - Fix stale client blocking reconnects, add socket error handling and inactivity timeout (INSERTED)
+- [x] **Phase 13.1: Quick Bugfix for Companion App** - Fix stale client blocking reconnects, add socket error handling and inactivity timeout (INSERTED) (completed 2026-03-15)
 - [ ] **Phase 14: Color Audit & M3 Expressive Tokens** - Fix confirmed on-* token pairings, apply NavbarControl active state fix, update interactive controls to use bolder accent colors
 - [ ] **Phase 15: Color Boldness Slider** - ThemeService colorBoldness property, HSL saturation helper for accent roles, settings UI with persistence
 
@@ -113,7 +113,7 @@ Plans:
 **Goal:** Fix stale CompanionListenerService client blocking all future companion reconnects via idempotent cleanup, always-replace, socket error handling, and inactivity timeout
 **Requirements**: BF-01, BF-02, BF-03, BF-04
 **Depends on:** Phase 13
-**Plans:** 1 plan
+**Plans:** 1/1 plans complete
 
 Plans:
 - [ ] 13.1-01-PLAN.md — Harden companion reconnect with clearClientSession, always-replace, errorOccurred, and 30s inactivity timeout
@@ -151,7 +151,7 @@ Plans:
 | Phase | Milestone | Plans Complete | Status | Completed |
 |-------|-----------|----------------|--------|-----------|
 | 13. Wallpaper Hardening | 1/1 | Complete    | 2026-03-15 | - |
-| 13.1. Quick Bugfix for Companion App | v0.6.2 | 0/1 | Planned | - |
+| 13.1. Quick Bugfix for Companion App | 1/1 | Complete   | 2026-03-15 | - |
 | 14. Color Audit & M3 Expressive Tokens | v0.6.2 | 0/TBD | Not started | - |
 | 15. Color Boldness Slider | v0.6.2 | 0/TBD | Not started | - |
 
