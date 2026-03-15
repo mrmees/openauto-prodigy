@@ -17,7 +17,7 @@ Item {
         var seen = {};
         for (var i = 0; i < WidgetPickerModel.rowCount(); ++i) {
             var idx = WidgetPickerModel.index(i, 0);
-            var label = WidgetPickerModel.data(idx, 263); // CategoryLabelRole = UserRole+8 = 263
+            var label = WidgetPickerModel.data(idx, 264); // CategoryLabelRole = UserRole+8 = 264
             var wid = WidgetPickerModel.data(idx, 257);   // WidgetIdRole = UserRole+1 = 257
             // Skip "No Widget" (empty label, empty id)
             if (label === "" && (wid === "" || wid === undefined)) continue;
@@ -147,13 +147,13 @@ Item {
                                 var items = [];
                                 for (var i = 0; i < WidgetPickerModel.rowCount(); ++i) {
                                     var idx = WidgetPickerModel.index(i, 0);
-                                    var itemLabel = WidgetPickerModel.data(idx, 263); // CategoryLabelRole
+                                    var itemLabel = WidgetPickerModel.data(idx, 264); // CategoryLabelRole
                                     if (itemLabel === catLabel) {
                                         items.push({
                                             widgetId: WidgetPickerModel.data(idx, 257),    // WidgetIdRole
                                             displayName: WidgetPickerModel.data(idx, 258), // DisplayNameRole
                                             iconName: WidgetPickerModel.data(idx, 259),    // IconNameRole
-                                            description: WidgetPickerModel.data(idx, 262)  // DescriptionRole
+                                            description: WidgetPickerModel.data(idx, 263)  // DescriptionRole
                                         });
                                     }
                                 }
