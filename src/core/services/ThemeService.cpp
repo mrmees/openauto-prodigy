@@ -278,6 +278,12 @@ void ThemeService::setWallpaperOverride(const QString& override)
     if (wallpaperOverride_ == override) return;
     wallpaperOverride_ = override;
     resolveWallpaper();
+
+    // Persist to config — matches setTheme() pattern
+    if (configService_) {
+        configService_->setValue("display.wallpaper_override", override);
+        configService_->save();
+    }
 }
 
 void ThemeService::resolveWallpaper()

@@ -1242,6 +1242,70 @@ private slots:
         QCOMPARE(mockConfig.setValueCalls, 0);
         QCOMPARE(mockConfig.saveCalls, 0);
     }
+    void setWallpaperOverridePersistsToConfig()
+    {
+        oap::ThemeService service;
+        MockConfigService mockConfig;
+        service.setConfigService(&mockConfig);
+
+        // Set a wallpaper override
+        service.setWallpaperOverride("file:///tmp/test.jpg");
+        QCOMPARE(mockConfig.lastKey, QString("display.wallpaper_override"));
+        QCOMPARE(mockConfig.lastValue.toString(), QString("file:///tmp/test.jpg"));
+        QCOMPARE(mockConfig.setValueCalls, 1);
+        QCOMPARE(mockConfig.saveCalls, 1);
+
+        // Clear it
+        service.setWallpaperOverride("");
+        QCOMPARE(mockConfig.lastKey, QString("display.wallpaper_override"));
+        QCOMPARE(mockConfig.lastValue.toString(), QString(""));
+        QCOMPARE(mockConfig.setValueCalls, 2);
+        QCOMPARE(mockConfig.saveCalls, 2);
+    }
+
+    void importCompanionThemeClearsWallpaperOverrideInConfig()
+    {
+        QTemporaryDir tmpDir;
+        QVERIFY(tmpDir.isValid());
+
+        QDir(tmpDir.path()).mkpath("default");
+        {
+            QFile f(tmpDir.filePath("default/theme.yaml"));
+            QVERIFY(f.open(QIODevice::WriteOnly));
+            QTextStream out(&f);
+            out << "id: default\nname: Default\nversion: 2.0.0\n"
+                << "day:\n  primary: \"#e94560\"\n  background: \"#1a1a2e\"\n"
+                << "night:\n  primary: \"#c73650\"\n  background: \"#0a0a14\"\n";
+            f.close();
+        }
+
+        QString userThemesDir = tmpDir.filePath("user-themes");
+        QDir().mkpath(userThemesDir);
+
+        MockConfigService mockConfig;
+        oap::ThemeService service;
+        service.setConfigService(&mockConfig);
+        service.scanThemeDirectories({userThemesDir, tmpDir.path()});
+        service.setTheme("default");
+
+        // Set a wallpaper override first
+        service.setWallpaperOverride("file:///tmp/old-wallpaper.jpg");
+        mockConfig.setValueCalls = 0;
+        mockConfig.saveCalls = 0;
+
+        // Import companion theme — should clear wallpaper override
+        QMap<QString, QColor> dayColors, nightColors;
+        dayColors["primary"] = QColor("#4285f4");
+        nightColors["primary"] = QColor("#a8c7fa");
+
+        service.importCompanionTheme("Test", "#4285f4", dayColors, nightColors, {});
+
+        // importCompanionTheme calls setTheme(slug) then setWallpaperOverride("")
+        // Both persist to config. The last setValue call should be the wallpaper clear.
+        QCOMPARE(mockConfig.lastKey, QString("display.wallpaper_override"));
+        QCOMPARE(mockConfig.lastValue.toString(), QString(""));
+        QVERIFY(mockConfig.setValueCalls >= 2); // at least theme + wallpaper
+    }
 };
 
 QTEST_MAIN(TestThemeService)

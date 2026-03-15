@@ -51,20 +51,21 @@ Flickable {
 
                 Switch {
                     id: wpToggle
+                    property bool initialized: false
+
+                    onCheckedChanged: {
+                        if (!initialized) return
+                        if (!checked) {
+                            // Toggle OFF: clear override — persists via setWallpaperOverride
+                            ThemeService.setWallpaperOverride("")
+                        }
+                    }
                 }
             }
 
             SettingsHoldArea {
                 anchors.fill: parent
-                onShortClicked: {
-                    wpToggle.checked = !wpToggle.checked
-                    if (!wpToggle.checked) {
-                        // Toggle OFF: clear override, revert to theme wallpaper
-                        ThemeService.setWallpaperOverride("")
-                        ConfigService.setValue("display.wallpaper_override", "")
-                        ConfigService.save()
-                    }
-                }
+                onShortClicked: wpToggle.checked = !wpToggle.checked
             }
         }
 
@@ -193,10 +194,11 @@ Flickable {
         }
 
         Component.onCompleted: {
-            // Initialize wallpaper toggle from config
+            // Initialize wallpaper toggle from config, then enable change handler
             var wpOverride = ConfigService.value("display.wallpaper_override")
             var strVal = wpOverride !== undefined && wpOverride !== null ? String(wpOverride) : ""
             wpToggle.checked = (strVal !== "")
+            wpToggle.initialized = true
         }
     }
 
