@@ -90,7 +90,7 @@ See .planning/milestones/v0.6-ROADMAP.md for archived details.
 - [x] **Phase 13: Wallpaper Hardening** - Cap texture memory, eliminate paint-outside-bounds, prevent transition flicker — always cover-fit (completed 2026-03-15)
 - [x] **Phase 13.1: Quick Bugfix for Companion App** - Fix stale client blocking reconnects, add socket error handling and inactivity timeout (INSERTED) (completed 2026-03-15)
 - [x] **Phase 13.2: Fix Theme Persistence & Wallpaper UX** - Persist theme selection to config, gate wallpaper override behind toggle, relocate delete button (INSERTED) (completed 2026-03-15)
-- [ ] **Phase 14: Color Audit & M3 Expressive Tokens** - Fix confirmed on-* token pairings, apply NavbarControl active state fix, update interactive controls to use bolder accent colors
+- [x] **Phase 14: Color Audit & M3 Expressive Tokens** - Fix confirmed on-* token pairings, apply NavbarControl active state fix, update interactive controls to use bolder accent colors (completed 2026-03-15)
 - [ ] **Phase 15: Color Boldness Slider** - ThemeService colorBoldness property, HSL saturation helper for accent roles, settings UI with persistence
 
 ## Phase Details
@@ -165,7 +165,7 @@ Plans:
 | 13. Wallpaper Hardening | 1/1 | Complete    | 2026-03-15 | - |
 | 13.1. Quick Bugfix for Companion App | 1/1 | Complete    | 2026-03-15 | - |
 | 13.2. Fix Theme Persistence & Wallpaper UX | 1/1 | Complete    | 2026-03-15 | - |
-| 14. Color Audit & M3 Expressive Tokens | 2/2 | Complete | 2026-03-15 | - |
+| 14. Color Audit & M3 Expressive Tokens | 2/2 | Complete    | 2026-03-15 | - |
 | 15. Color Boldness Slider | v0.6.2 | 0/TBD | Not started | - |
 
 ---

@@ -54,7 +54,7 @@
 | TP-02 | Phase 13.2 | Complete |
 | TP-03 | Phase 13.2 | Complete |
 | CA-01 | Phase 14 | Complete |
-| CA-02 | Phase 14 | Pending |
+| CA-02 | Phase 14 | Complete |
 | CA-03 | Phase 14 | Complete |
 | CB-01 | Phase 15 | Pending |
 | CB-02 | Phase 15 | Pending |
