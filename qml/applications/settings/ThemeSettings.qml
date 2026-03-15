@@ -1,6 +1,7 @@
 import QtQuick
 import QtQuick.Layouts
 import QtQuick.Controls
+import QtQuick.Controls.Material
 
 Flickable {
     id: root
@@ -51,6 +52,7 @@ Flickable {
 
                 Switch {
                     id: wpToggle
+                    Material.accent: ThemeService.primaryContainer
                     property bool initialized: false
 
                     onCheckedChanged: {

@@ -65,14 +65,14 @@ Item {
             Layout.alignment: Qt.AlignHCenter
             icon: tile.tileIcon
             size: Math.min(tile.width, tile.height) * 0.35
-            color: ThemeService.inverseOnSurface
+            color: tile._isPressed ? ThemeService.onPrimaryContainer : ThemeService.onPrimary
             visible: tile.tileIcon !== ""
         }
 
         Text {
             Layout.alignment: Qt.AlignHCenter
             text: tile.tileName
-            color: ThemeService.inverseOnSurface
+            color: tile._isPressed ? ThemeService.onPrimaryContainer : ThemeService.onPrimary
             font.pixelSize: UiMetrics.fontHeading
             horizontalAlignment: Text.AlignHCenter
         }

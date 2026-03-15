@@ -1,6 +1,7 @@
 import QtQuick
 import QtQuick.Layouts
 import QtQuick.Controls
+import QtQuick.Controls.Material
 
 Flickable {
     id: root
@@ -42,6 +43,7 @@ Flickable {
                     }
                     Switch {
                         id: pairableSwitch
+                        Material.accent: ThemeService.primaryContainer
                         checked: BluetoothManager ? BluetoothManager.pairable : false
                         onToggled: {
                             if (BluetoothManager) BluetoothManager.setPairable(checked)

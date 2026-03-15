@@ -21,6 +21,8 @@ Item {
 
     // Hold progress (0.0 - 1.0) driven by NavbarController
     property real _holdProgress: 0.0
+    // Pressed state for quick-tap feedback
+    property bool _pressed: touchArea.pressed
 
     Connections {
         target: NavbarController
@@ -40,13 +42,21 @@ Item {
         color: navbar.barBg
         opacity: 1.0
 
+        // Pressed-state feedback (instant, full fill)
+        Rectangle {
+            anchors.fill: parent
+            color: ThemeService.primaryContainer
+            opacity: navbar.aaActive ? 0.0 : (root._pressed && root._holdProgress === 0 ? 0.3 : 0.0)
+            Behavior on opacity { NumberAnimation { duration: 100 } }
+        }
+
         // Progress overlay -- fills from bottom to top
         Rectangle {
             anchors.left: parent.left
             anchors.right: parent.right
             anchors.bottom: parent.bottom
             height: parent.height * root._holdProgress
-            color: ThemeService.tertiary
+            color: ThemeService.primaryContainer
             opacity: 0.3
             visible: root._holdProgress > 0
         }
@@ -57,7 +67,7 @@ Item {
         anchors.centerIn: parent
         icon: root.iconText
         size: UiMetrics.iconSize
-        color: navbar.barFg
+        color: navbar.aaActive ? navbar.barFg : (root._pressed || root._holdProgress > 0 ? ThemeService.onPrimaryContainer : navbar.barFg)
         visible: !root.showClock
     }
 
@@ -107,7 +117,7 @@ Item {
 
         Text {
             id: clockHoriz
-            color: navbar.barFg
+            color: navbar.aaActive ? navbar.barFg : (root._pressed || root._holdProgress > 0 ? ThemeService.onPrimaryContainer : navbar.barFg)
             font.pixelSize: Math.round(root.height * 0.75)
             font.weight: Font.DemiBold
             anchors.verticalCenter: parent ? parent.verticalCenter : undefined
@@ -147,7 +157,7 @@ Item {
                     text: modelData
                     font.pixelSize: Math.round(root.width * 0.55)
                     font.weight: Font.DemiBold
-                    color: navbar.barFg
+                    color: navbar.aaActive ? navbar.barFg : (root._pressed || root._holdProgress > 0 ? ThemeService.onPrimaryContainer : navbar.barFg)
                     horizontalAlignment: Text.AlignHCenter
                     width: root.width
                 }
@@ -166,6 +176,7 @@ Item {
 
     // Touch handling (launcher mode -- during AA, evdev zones handle this)
     MouseArea {
+        id: touchArea
         anchors.fill: parent
         onPressed: NavbarController.handlePress(root.controlIndex)
         onReleased: NavbarController.handleRelease(root.controlIndex)

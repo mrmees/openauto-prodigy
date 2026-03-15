@@ -198,7 +198,7 @@ Flickable {
                     color: {
                         var s = routeStatusRow.routeStateStr
                         if (s === "active")   return ThemeService.success
-                        if (s === "degraded") return ThemeService.tertiary
+                        if (s === "degraded") return ThemeService.warning
                         if (s === "failed")   return ThemeService.error
                         return ThemeService.onSurfaceVariant
                     }
@@ -215,7 +215,7 @@ Flickable {
                     font.pixelSize: UiMetrics.fontBody
                     color: {
                         var s = routeStatusRow.routeStateStr
-                        if (s === "degraded") return ThemeService.tertiary
+                        if (s === "degraded") return ThemeService.warning
                         if (s === "failed")   return ThemeService.error
                         return ThemeService.onSurface
                     }

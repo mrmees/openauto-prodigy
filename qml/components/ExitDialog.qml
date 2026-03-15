@@ -17,11 +17,7 @@ Popup {
             id: dialogBg
             anchors.fill: parent
             radius: UiMetrics.gap
-            color: Qt.rgba(
-                ThemeService.surfaceContainerHigh.r * 0.88 + ThemeService.primary.r * 0.12,
-                ThemeService.surfaceContainerHigh.g * 0.88 + ThemeService.primary.g * 0.12,
-                ThemeService.surfaceContainerHigh.b * 0.88 + ThemeService.primary.b * 0.12,
-                1.0)
+            color: ThemeService.surfaceTintHigh
             border.width: 1
             border.color: ThemeService.outlineVariant
             layer.enabled: true

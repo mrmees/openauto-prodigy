@@ -79,11 +79,7 @@ Item {
         id: popupBg
         anchors.fill: parent
         radius: UiMetrics.radius
-        color: navbar.aaActive ? "#1A1A1A" : Qt.rgba(
-            ThemeService.surfaceContainerHigh.r * 0.88 + ThemeService.primary.r * 0.12,
-            ThemeService.surfaceContainerHigh.g * 0.88 + ThemeService.primary.g * 0.12,
-            ThemeService.surfaceContainerHigh.b * 0.88 + ThemeService.primary.b * 0.12,
-            1.0)
+        color: navbar.aaActive ? "#1A1A1A" : ThemeService.surfaceTintHigh
         border.width: 1
         border.color: navbar.aaActive ? "#333333" : ThemeService.outlineVariant
         layer.enabled: true

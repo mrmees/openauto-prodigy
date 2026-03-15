@@ -314,7 +314,7 @@ Item {
                         buttonColor: navbar.aaActive ? "#1A1A1A" : ThemeService.surfaceContainerLow
                         pressedColor: navbar.aaActive ? "#333333" : ThemeService.primaryContainer
                         textColor: navbar.barFg
-                        pressedTextColor: navbar.barFg
+                        pressedTextColor: navbar.aaActive ? "#FFFFFF" : ThemeService.onPrimaryContainer
                         elevation: 2
 
                         onClicked: {

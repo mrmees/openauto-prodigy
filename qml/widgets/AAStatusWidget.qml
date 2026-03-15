@@ -25,7 +25,7 @@ Item {
         MaterialIcon {
             icon: connected ? "\ue531" : "\ue55d"  // phonelink / phonelink_off
             size: showText ? UiMetrics.iconSize * 1.5 : UiMetrics.iconSize * 2
-            color: connected ? ThemeService.primary : ThemeService.onSurfaceVariant
+            color: connected ? ThemeService.success : ThemeService.onSurfaceVariant
             Layout.alignment: Qt.AlignHCenter
         }
 

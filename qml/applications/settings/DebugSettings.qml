@@ -1,6 +1,7 @@
 import QtQuick
 import QtQuick.Layouts
 import QtQuick.Controls
+import QtQuick.Controls.Material
 
 Flickable {
     id: root
@@ -52,6 +53,7 @@ Flickable {
 
                             Switch {
                                 id: codecSwitch
+                                Material.accent: ThemeService.primaryContainer
                                 checked: codecEnabled
                                 enabled: codecName !== "h264"
                                 onToggled: {

@@ -1,6 +1,7 @@
 import QtQuick
 import QtQuick.Layouts
 import QtQuick.Controls
+import QtQuick.Controls.Material
 
 Item {
     id: root
@@ -43,6 +44,7 @@ Item {
 
         Switch {
             id: toggle
+            Material.accent: ThemeService.primaryContainer
             onToggled: {
                 if (root.configPath === "") return
                 ConfigService.setValue(root.configPath, checked)

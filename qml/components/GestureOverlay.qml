@@ -72,11 +72,7 @@ Rectangle {
             id: panelBg
             anchors.fill: parent
             radius: UiMetrics.radiusLarge
-            color: Qt.rgba(
-                ThemeService.surfaceContainerHighest.r * 0.88 + ThemeService.primary.r * 0.12,
-                ThemeService.surfaceContainerHighest.g * 0.88 + ThemeService.primary.g * 0.12,
-                ThemeService.surfaceContainerHighest.b * 0.88 + ThemeService.primary.b * 0.12,
-                0.87)
+            color: Qt.rgba(ThemeService.surfaceTintHighest.r, ThemeService.surfaceTintHighest.g, ThemeService.surfaceTintHighest.b, 0.87)
             border.width: 1
             border.color: ThemeService.outlineVariant
             layer.enabled: true
