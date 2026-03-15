@@ -19,9 +19,9 @@
 
 ## Color Audit (CA)
 
-- [ ] **CA-01**: All QML surfaces using accent-colored backgrounds have matching `on-*` foreground tokens (e.g., primary background uses onPrimary text, not onSurface)
+- [x] **CA-01**: All QML surfaces using accent-colored backgrounds have matching `on-*` foreground tokens (e.g., primary background uses onPrimary text, not onSurface)
 - [ ] **CA-02**: NavbarControl active/pressed state uses primaryContainer fill with onPrimaryContainer foreground
-- [ ] **CA-03**: Widget cards, settings tiles, and interactive controls use bolder accent colors from M3 Expressive palette instead of neutral-only surfaces
+- [x] **CA-03**: Widget cards, settings tiles, and interactive controls use bolder accent colors from M3 Expressive palette instead of neutral-only surfaces
 
 ## Color Boldness (CB)
 
@@ -53,9 +53,9 @@
 | TP-01 | Phase 13.2 | Complete |
 | TP-02 | Phase 13.2 | Complete |
 | TP-03 | Phase 13.2 | Complete |
-| CA-01 | Phase 14 | Pending |
+| CA-01 | Phase 14 | Complete |
 | CA-02 | Phase 14 | Pending |
-| CA-03 | Phase 14 | Pending |
+| CA-03 | Phase 14 | Complete |
 | CB-01 | Phase 15 | Pending |
 | CB-02 | Phase 15 | Pending |
 

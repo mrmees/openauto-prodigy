@@ -3,15 +3,15 @@ gsd_state_version: 1.0
 milestone: v0.6
 milestone_name: milestone
 status: verifying
-stopped_at: Phase 14 context gathered
-last_updated: "2026-03-15T20:17:42.021Z"
-last_activity: 2026-03-15 — Theme persistence fix + wallpaper toggle UX
+stopped_at: Completed 14-01-PLAN.md
+last_updated: "2026-03-15T21:01:11Z"
+last_activity: 2026-03-15 — ThemeService tint properties, warning tokens, night guardrail
 progress:
   total_phases: 5
   completed_phases: 3
-  total_plans: 3
-  completed_plans: 3
-  percent: 60
+  total_plans: 4
+  completed_plans: 4
+  percent: 65
 ---
 
 # Project State
@@ -21,16 +21,16 @@ progress:
 See: .planning/PROJECT.md (updated 2026-03-15)
 
 **Core value:** A person with a Raspberry Pi 4 and a touchscreen can install this, pair their phone, and get a reliable wireless Android Auto experience -- every time, without SSH.
-**Current focus:** v0.6.2 — Phase 13.2: Fix Saving of Themes Received by Companion App (COMPLETE, awaiting Pi verification)
+**Current focus:** Phase 14: Color Audit & M3 Expressive Tokens — Plan 01 complete
 
 ## Current Position
 
-Phase: 13.2 of 15 (Fix Saving of Themes Received by Companion App)
-Plan: 01 complete (1 of 1)
-Status: Phase 13.2 complete, binary cross-built, awaiting Pi deployment + manual verification
-Last activity: 2026-03-15 — Theme persistence fix + wallpaper toggle UX
+Phase: 14 of 15 (Color Audit & M3 Expressive Tokens)
+Plan: 01 complete (1 of 2)
+Status: Plan 01 (ThemeService infrastructure) complete; Plan 02 (QML audit) next
+Last activity: 2026-03-15 — ThemeService tint properties, warning tokens, night guardrail
 
-Progress: [██████░░░░] 60%
+Progress: [██████▌░░░] 65%
 
 ## Accumulated Context
 
@@ -50,6 +50,9 @@ Progress: [██████░░░░] 60%
 
 ### Decisions
 
+- HSL saturation clamp at 0.55 for night comfort guardrail (simpler than HCT chroma, Qt-native)
+- Guardrail applies inside activeColor() so tint blends use clamped primary automatically
+- Accent roles: primary, primary-container, secondary, secondary-container, tertiary, tertiary-container
 - Wallpaper sourceSize: no subpixel margin -- not worth complexity
 - Wallpaper z-order: implicit z:0 as first child, no explicit z-index
 - clearClientSession() disconnects signals before abort() to prevent re-entrant signal emission
@@ -62,5 +65,5 @@ Progress: [██████░░░░] 60%
 
 ## Session Continuity
 
-Last session: 2026-03-15T20:17:42.019Z
-Stopped at: Phase 14 context gathered
+Last session: 2026-03-15T21:01:11Z
+Stopped at: Completed 14-01-PLAN.md
