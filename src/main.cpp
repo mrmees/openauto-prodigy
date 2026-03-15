@@ -58,6 +58,7 @@
 #include "core/widget/WidgetTypes.hpp"
 #include "ui/WidgetPickerModel.hpp"
 #include "ui/WidgetGridModel.hpp"
+#include "ui/WidgetContextFactory.hpp"
 #include <QQuickWindow>
 #include <QWindow>
 #include <algorithm>
@@ -679,6 +680,15 @@ int main(int argc, char *argv[])
         });
     }
 
+    // Widget command egress actions
+    actionRegistry->registerAction("app.launchPlugin", [pluginModel](const QVariant& v) {
+        pluginModel->setActivePlugin(v.toString());
+    });
+    actionRegistry->registerAction("app.openSettings", [pluginModel, appController](const QVariant&) {
+        pluginModel->setActivePlugin(QString());
+        appController->navigateTo(6);
+    });
+
     // --- Navbar action handlers ---
     // Volume tap: show volume popup
     actionRegistry->registerAction("navbar.volume.tap", [navbarController](const QVariant&) {
@@ -771,6 +781,10 @@ int main(int argc, char *argv[])
 
     if (companionListener)
         engine.rootContext()->setContextProperty("CompanionService", companionListener);
+
+    // WidgetContextFactory for QML-side WidgetInstanceContext creation
+    auto* widgetContextFactory = new oap::WidgetContextFactory(widgetGridModel, hostContext.get(), &app);
+    engine.rootContext()->setContextProperty("WidgetContextFactory", widgetContextFactory);
 
     engine.rootContext()->setContextProperty("WidgetGridModel", widgetGridModel);
     engine.rootContext()->setContextProperty("WidgetRegistry", widgetRegistry);

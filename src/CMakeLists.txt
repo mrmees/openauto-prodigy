@@ -66,6 +66,7 @@ add_library(openauto-core STATIC
     plugins/equalizer/EqualizerPlugin.cpp
     core/widget/WidgetRegistry.cpp
     ui/WidgetInstanceContext.cpp
+    ui/WidgetContextFactory.cpp
     ui/WidgetPlacementModel.cpp
     ui/WidgetPickerModel.cpp
     ui/WidgetGridModel.cpp

@@ -8,6 +8,9 @@ Item {
 
     Component.onCompleted: ApplicationController.setTitle("Home")
 
+    // Keep WidgetContextFactory cell size in sync with snapped grid cell size
+    Binding { target: WidgetContextFactory; property: "cellSide"; value: Math.round(homeScreen.cellSide) }
+
     // Edit mode state
     property bool editMode: false
 
@@ -235,6 +238,16 @@ Item {
                                     visible: model.page === pageIndex && model.visible
                                     z: dragging ? 100 : 1
 
+                                    // Widget context for provider access and layout info
+                                    property QtObject widgetCtx: WidgetContextFactory.createContext(model.instanceId, delegateItem)
+
+                                    // Keep spans synced when model changes (resize)
+                                    Binding { target: widgetCtx; property: "colSpan"; value: model.colSpan; when: widgetCtx !== null }
+                                    Binding { target: widgetCtx; property: "rowSpan"; value: model.rowSpan; when: widgetCtx !== null }
+
+                                    // isCurrentPage: true when this widget's page is the active SwipeView page
+                                    Binding { target: widgetCtx; property: "isCurrentPage"; value: model.page === pageView.currentIndex; when: widgetCtx !== null }
+
                                     // Drag state
                                     property bool dragging: false
                                     property real dragStartX: 0
@@ -324,6 +337,11 @@ Item {
                                                 } else {
                                                     homeScreen.editMode = true
                                                 }
+                                            }
+
+                                            onLoaded: {
+                                                if (item && "widgetContext" in item)
+                                                    item.widgetContext = delegateItem.widgetCtx
                                             }
 
                                             onStatusChanged: {
