@@ -9,8 +9,8 @@ Single source of truth for which M3 tokens each control type uses in each visual
 | State | Container | Content (Icon/Text) | Notes |
 |-------|-----------|---------------------|-------|
 | Rest | surfaceContainer (via barBg) | onSurface (via barFg) | Calm neutral surface |
-| Pressed (quick tap) | primaryContainer overlay at 0.3 opacity | onPrimaryContainer | Instant full-fill feedback |
-| Hold-progress | primaryContainer overlay at 0.3 opacity (bottom-up fill) | onPrimaryContainer | Animates height with _holdProgress |
+| Pressed (quick tap) | primaryContainer (solid fill) | onPrimaryContainer | Instant full-fill feedback |
+| Hold-progress | primaryContainer (solid bottom-up fill) | onPrimaryContainer | Animates height with _holdProgress |
 | AA active (rest) | #000000 | #FFFFFF | Hardcoded -- AA owns display, blends with status bar |
 | AA active (any interaction) | #000000 | #FFFFFF | No accent colors during AA projection |
 
@@ -53,10 +53,10 @@ Single source of truth for which M3 tokens each control type uses in each visual
 
 | State | Track | Thumb | Notes |
 |-------|-------|-------|-------|
-| Checked (active) | primaryContainer (via Material.accent) | white | Bold accent for ON state |
-| Unchecked | default Material styling | default | Neutral for OFF state |
+| Checked (active) | primaryContainer (via Material.accent) | white (Qt Material default) | Bold accent for ON state |
+| Unchecked | default Material styling | default Material styling | Neutral for OFF state |
 
-All Switches -- whether via SettingsToggle component or declared inline in settings pages -- use `Material.accent: ThemeService.primaryContainer` for consistent active styling.
+All Switches -- whether via SettingsToggle component or declared inline in settings pages -- use `Material.accent: ThemeService.primaryContainer` for consistent active styling. Qt's Material style maps `Material.accent` to the checked track color and provides a white thumb automatically; these are not explicitly set by the app.
 
 ### Tile (Launcher)
 
@@ -89,7 +89,7 @@ All Switches -- whether via SettingsToggle component or declared inline in setti
 
 | Element | Color | Notes |
 |---------|-------|-------|
-| Row background | surfaceContainer (inherited) | Calm neutral -- NO primaryContainer fill ("don't Skittle the settings") |
+| Row background | surfaceContainer / surfaceContainerHigh (alternating by row index) | Calm neutral -- NO primaryContainer fill ("don't Skittle the settings") |
 | Label text | onSurface | Standard content color |
 | Secondary text | onSurfaceVariant | De-emphasized |
 | Dividers | outlineVariant | Subtle separation |

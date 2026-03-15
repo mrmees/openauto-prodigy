@@ -42,22 +42,20 @@ Item {
         color: navbar.barBg
         opacity: 1.0
 
-        // Pressed-state feedback (instant, full fill)
+        // Pressed-state feedback (instant, solid fill)
         Rectangle {
             anchors.fill: parent
             color: ThemeService.primaryContainer
-            opacity: navbar.aaActive ? 0.0 : (root._pressed && root._holdProgress === 0 ? 0.3 : 0.0)
-            Behavior on opacity { NumberAnimation { duration: 100 } }
+            visible: !navbar.aaActive && root._pressed && root._holdProgress === 0
         }
 
-        // Progress overlay -- fills from bottom to top
+        // Progress overlay -- solid fill from bottom to top
         Rectangle {
             anchors.left: parent.left
             anchors.right: parent.right
             anchors.bottom: parent.bottom
             height: parent.height * root._holdProgress
             color: ThemeService.primaryContainer
-            opacity: 0.3
             visible: root._holdProgress > 0
         }
     }
