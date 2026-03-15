@@ -1,43 +1,36 @@
 ---
 gsd_state_version: 1.0
-milestone: v0.6
-milestone_name: milestone
-status: completed
-stopped_at: Completed 12-01-PLAN.md
-last_updated: "2026-03-15T02:43:43.225Z"
-last_activity: "2026-03-15 — Plan 12-01 executed (documentation: widget developer guide + ADRs)"
+milestone: v0.6.2
+milestone_name: Theme Expression & Wallpaper Scaling
+status: active
+stopped_at: Roadmap created — ready to plan Phase 13
+last_updated: "2026-03-15"
+last_activity: "2026-03-15 — Roadmap written, phases 13-15 defined"
 progress:
-  total_phases: 5
-  completed_phases: 5
-  total_plans: 10
-  completed_plans: 10
-  percent: 100
+  total_phases: 3
+  completed_phases: 0
+  total_plans: 0
+  completed_plans: 0
+  percent: 0
 ---
 
 # Project State
 
 ## Project Reference
 
-See: .planning/PROJECT.md (updated 2026-03-14)
+See: .planning/PROJECT.md (updated 2026-03-15)
 
 **Core value:** A person with a Raspberry Pi 4 and a touchscreen can install this, pair their phone, and get a reliable wireless Android Auto experience -- every time, without SSH.
-**Current focus:** v0.6.1 Phase 12 — Documentation (Complete)
+**Current focus:** v0.6.2 — Phase 13: Wallpaper Hardening
 
 ## Current Position
 
-Phase: 12 of 12 (Documentation)
-Plan: 1 of 1 complete
-Status: Phase 12 Complete — All phases done
-Last activity: 2026-03-15 — Plan 12-01 executed (documentation: widget developer guide + ADRs)
+Phase: 13 of 15 (Wallpaper Hardening)
+Plan: — (not yet planned)
+Status: Ready to plan
+Last activity: 2026-03-15 — Roadmap created, phases 13-15 defined
 
-Progress: [██████████] 100%
-
-## Performance Metrics
-
-**Velocity:**
-- Total plans completed: 8
-- Average duration: 10.7 min
-- Total execution time: 0.97 hours
+Progress: [░░░░░░░░░░] 0%
 
 ## Accumulated Context
 
@@ -45,46 +38,12 @@ Progress: [██████████] 100%
 
 - YamlConfig default port mismatch: `YamlConfig.cpp` defaults tcp_port to 5277, `Configuration.hpp` defaults to 5288
 - NavigationTurnLabel UTF-8 parse errors spamming logs
-- Nav distance unit test failures (miles/feet/yards formatting) -- pre-existing
-
-### Roadmap Evolution
-
-- Phase 10.1 inserted after Phase 10: Adjust grid spacing and page indicator location (URGENT)
-
-### Decisions
-
-- cellSide = diagPx / (9.0 + bias * 0.8) -- resolution-independent, DPI cascade is structural scaffolding for future mm-based path
-- Grid cols/rows computed in QML from DisplayInfo.cellSide, not in C++ (reactive binding)
-- Dock moved to z=10 overlay outside ColumnLayout -- grid uses full vertical space
-- Kept screenSizeInches/computedDpi/windowWidth/Height on DisplayInfo for UiMetrics, settings, and AA runtime compatibility
-- JS-based model filtering in QML Repeater (not C++ proxy model) for category grouping -- sufficient for small widget counts
-- Category order hardcoded in static map (status=0, media=1, navigation=2, launcher=3) -- simple and matches spec
-- Coarse granularity: 12 requirements compressed into 4 phases
-- Phase 09 combines WF-01 (descriptor metadata) + GL-01/02/03 (grid foundation) -- both are foundational with no shared-file conflicts
-- Phase 10 bundles launcher creation + dock removal -- tightly coupled delivery boundary with QA gate between commits
-- Phase 11 (framework polish) depends on Phase 09 but is independent of Phase 10 -- could theoretically overlap
-- Remap clamps oversized spans to fit grid rather than hiding -- maximizes widget visibility
-- promoteToBase() on every user edit mutation -- live always reflects latest user intent as base
-- Base snapshot pattern: basePlacements_ from YAML, livePlacements_ is runtime; remap always derives from base
-- Stale launcher.tiles keys in existing user YAML configs left as benign orphans (schema-less YAML ignores unknown keys)
-- Historical plan/session docs referencing launcher kept intact as archival records
-- Reserved page derived from singleton presence (pageHasSingleton), not explicit page flag
-- Fixed instanceIds for seeded singletons (aa-launcher-reserved, settings-launcher-reserved)
-- addPage shifts basePlacements_ alongside livePlacements_ for remap consistency
-- [Phase 10.1]: Single-pass snap threshold (not iterative packing) -- 60% waste against baseCellSide, no re-evaluation after cellSide shrinks
-- [Phase 10.1]: Clock as active page indicator -- leftDotCount = activePage, rightDotCount = pageCount - activePage - 1; P2 vertical overflow acknowledged
-- [Phase 11]: WidgetContextFactory as dedicated class (not on WidgetGridModel) -- keeps model pure data, factory owns IHostContext + cell geometry
-- [Phase 11]: cellSide as Q_PROPERTY on factory bound from QML -- stays reactive if grid resizes
-- [Phase 11]: Context injection via Loader.onLoaded + Binding elements for live span/isCurrentPage sync
-- [Phase 11]: NowPlayingWidget media transport controls stay as typed provider methods, not ActionRegistry candidates
-- [Phase 12]: Widget developer guide covers both local-customizer and experimental dynamic-plugin paths
 
 ### Blockers/Concerns
 
-- DPI mm constants (targetMm_W/H) need empirical Pi validation early in Phase 09
-- YAML migration strategy (auto-inject launcher widget vs schema version bump) needs design decision in Phase 10
+- Phase 14 night palette must be verified on Pi in a dark environment before finalizing — M3 Expressive bold primaries can be a glare hazard in-car
 
 ## Session Continuity
 
-Last session: 2026-03-15T02:36:46Z
-Stopped at: Completed 12-01-PLAN.md
+Last session: 2026-03-15
+Stopped at: Roadmap created — run `/gsd:plan-phase 13` to begin

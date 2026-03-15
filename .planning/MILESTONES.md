@@ -1,5 +1,14 @@
 # Milestones
 
+## v0.6 Widget Framework & Layout Refinement (Shipped: 2026-03-15)
+
+**Phases completed:** 5 phases, 10 plans, 0 tasks
+
+**Key accomplishments:**
+- (none recorded)
+
+---
+
 ## v0.6 Architecture Formalization (Shipped: 2026-03-14)
 
 **Delivered:** Formalized platform/plugin/widget architecture with typed contracts, provider interfaces, core-owned services, and C++ settings touch input boundary. Removed legacy Configuration class, replaced root-context globals with provider-backed properties, extracted platform policy from plugins.

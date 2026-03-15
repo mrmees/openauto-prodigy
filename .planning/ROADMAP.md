@@ -72,113 +72,67 @@ See .planning/milestones/v0.5.3-ROADMAP.md for archived details.
 
 </details>
 
+<details>
+<summary>v0.6.1 Widget Framework & Layout Refinement (Phases 09-12) - SHIPPED 2026-03-15</summary>
+
+See .planning/milestones/v0.6-ROADMAP.md for archived details.
+
+</details>
+
 ---
 
-## v0.6.1 Widget Framework & Layout Refinement (In Progress)
+## v0.6.2 Theme Expression & Wallpaper Scaling (Phases 13-15)
 
-**Milestone Goal:** Formalize widget framework conventions, replace the quick-launch dock with a widget-based launcher, refine DPI-based grid layout, and document all plugin/widget contracts for third-party development.
+**Milestone Goal:** Fix confirmed Wallpaper.qml memory and rendering bugs, apply M3 Expressive token corrections to the existing color audit, and add a color boldness slider that amplifies accent saturation without touching neutral/surface roles.
 
-## Phases
+### Phases
 
-**Phase Numbering:**
-- Integer phases (09, 10, 11, 12): Planned milestone work
-- Decimal phases (09.1, 10.1): Urgent insertions (marked with INSERTED)
-
-Decimal phases appear between their surrounding integers in numeric order.
-
-- [x] **Phase 09: Widget Descriptor & Grid Foundation** - Enrich WidgetDescriptor with manifest metadata; replace fixed-pixel grid math with DPI-based physical sizing; add YAML grid migration infrastructure (completed 2026-03-14)
-- [x] **Phase 10: Launcher Widget & Dock Removal** - Create LauncherWidget as navigation replacement; remove LauncherDock and LauncherModel after verification (completed 2026-03-14)
-- [x] **Phase 11: Widget Framework Polish** - Enforce size constraints from descriptors; expose live span properties and load-state flag; migrate pixel breakpoints to span-based thresholds (completed 2026-03-15)
-- [x] **Phase 12: Documentation** - Developer guide covering widget manifest, registration, lifecycle, and sizing conventions; architecture decision records (completed 2026-03-15)
+- [ ] **Phase 13: Wallpaper Hardening** - Cap texture memory, eliminate paint-outside-bounds, prevent transition flicker — always cover-fit
+- [ ] **Phase 14: Color Audit & M3 Expressive Tokens** - Fix confirmed on-* token pairings, apply NavbarControl active state fix, update interactive controls to use bolder accent colors
+- [ ] **Phase 15: Color Boldness Slider** - ThemeService colorBoldness property, HSL saturation helper for accent roles, settings UI with persistence
 
 ## Phase Details
 
-### Phase 09: Widget Descriptor & Grid Foundation
-**Goal**: Widget metadata is fully specified and grid layout produces physically consistent cell sizes across all target displays
-**Depends on**: Nothing (first phase of v0.6.1)
-**Requirements**: WF-01, GL-01, GL-02, GL-03
+### Phase 13: Wallpaper Hardening
+**Goal**: Wallpaper.qml is memory-safe, renders without bleeding into adjacent regions, and never flickers during theme or day/night transitions
+**Depends on**: Nothing (independent QML fixes)
+**Requirements**: WP-01
 **Success Criteria** (what must be TRUE):
-  1. WidgetDescriptor exposes category, description, and icon fields, and the widget picker displays them
-  2. Grid cell dimensions are derived from physical mm targets via DPI -- visually consistent touch targets on 800x480, 1024x600, and 1080p displays
-  3. Grid math does not deduct a hardcoded dock height -- full vertical space is available to the grid
-  4. Changing grid dimension constants triggers a YAML migration that preserves existing widget placements (no "widgets vanished after update")
-**Plans**: 3 plans
+  1. A phone-camera wallpaper (8+ MP JPEG) does not cause a visible memory spike or video decode degradation during AA session
+  2. Switching themes or toggling day/night mode does not produce a solid-color flash — the previous wallpaper stays visible until the new one is loaded
+  3. A portrait-orientation wallpaper does not paint outside the wallpaper container into the navbar or widget area
+  4. Every wallpaper fills the display edge-to-edge with no letterbox bars regardless of the image's aspect ratio
+**Plans**: TBD
 
-Plans:
-- [x] 09-01-PLAN.md -- Widget descriptor metadata (category/description) + category-grouped picker
-- [x] 09-02-PLAN.md -- DPI-based cell sizing (cellSide) + dock height removal + QML grid frame
-- [x] 09-03-PLAN.md -- YAML grid dimension persistence + proportional remap algorithm
-
-### Phase 10: Launcher Widget & Dock Removal
-**Goal**: Singleton system widgets on a reserved utility page replace the fixed LauncherDock bottom bar for navigating to Settings and Android Auto
-**Depends on**: Phase 09 (grid foundation must be stable; dock height deduction already removed)
-**Requirements**: NAV-01, NAV-02, NAV-03
+### Phase 14: Color Audit & M3 Expressive Tokens
+**Goal**: All interactive surfaces with accent-colored backgrounds have correct on-* foreground tokens, NavbarControl active state uses the right M3 pair, and widget/tile/control colors use bolder accent values from the M3 Expressive palette
+**Depends on**: Phase 13
+**Requirements**: CA-01, CA-02, CA-03
 **Success Criteria** (what must be TRUE):
-  1. Settings and AA launcher singleton widgets are seeded on a protected reserved page (last page, undeletable)
-  2. LauncherDock bottom bar is gone from the shell -- vertical space reclaimed for widgets
-  3. Every view reachable from the dock is reachable without it (Settings via widget + navbar holds, AA via widget)
-  4. LauncherModel and LauncherMenu are deleted -- singleton widgets use PluginModel directly
-**Plans**: 2 plans
+  1. Text on every primary/secondary/tertiary-colored surface is legible in both day and night modes — no white-on-light or dark-on-dark combinations visible on the Pi
+  2. The active/pressed navbar control shows a distinctly colored fill (primaryContainer) with appropriately contrasting foreground (onPrimaryContainer), visually distinct from inactive controls
+  3. Widget cards, settings tiles, and interactive controls show noticeably bolder accent colors compared to pre-milestone neutral-only surfaces
+  4. Night mode primary color is visually comfortable at arm's length in a dark environment — not a glare source
+**Plans**: TBD
 
-Plans:
-- [x] 10-01-PLAN.md -- Singleton widget infrastructure + Settings/AA widgets + reserved page logic + default seeding
-- [x] 10-02-PLAN.md -- Delete LauncherDock, LauncherModel, LauncherMenu + reference cleanup
-
-### Phase 10.1: Adjust grid spacing and page indicator location (INSERTED)
-
-**Goal:** Grid recovers wasted gutter space via auto-snap threshold, page indicator dots move to navbar flanking the clock, and card padding tightens for a more cohesive layout
-**Requirements**: GRID-SNAP, CARD-PADDING, PAGE-DOTS-NAVBAR, PAGE-INDICATOR-REMOVAL
-**Depends on:** Phase 10
+### Phase 15: Color Boldness Slider
+**Goal**: Users can dial in how bold the accent colors appear, stored across restarts, working on both bundled and companion-imported themes
+**Depends on**: Phase 14
+**Requirements**: CB-01, CB-02
 **Success Criteria** (what must be TRUE):
-  1. Grid auto-snap threshold (60%) adds rows/cols when waste exceeds threshold -- 1024x600 goes from 7x3 to 7x4
-  2. Page dots flank the clock in the navbar; clock serves as active page indicator
-  3. Dots hidden when not on home screen, when plugin is active, or when only 1 page exists
-  4. PageIndicator deleted from HomeMenu -- vertical space reclaimed for the grid
-  5. Card padding tightened for less visual gap between widgets
-**Plans**: 2 plans
-
-Plans:
-- [ ] 10.1-01-PLAN.md -- Auto-snap grid threshold + tighter card padding
-- [ ] 10.1-02-PLAN.md -- Page dots in navbar + PageIndicator removal from HomeMenu
-
-### Phase 11: Widget Framework Polish
-**Goal**: Widgets behave predictably under resize, expose live span and load-state properties, and scale their content based on grid span rather than absolute pixels
-**Depends on**: Phase 09 (descriptor size constraints and grid dimensions must be finalized)
-**Requirements**: WF-02, WF-03, WF-04
-**Success Criteria** (what must be TRUE):
-  1. Resizing a widget via drag is clamped to its declared min/max size -- WidgetGridModel enforces WidgetDescriptor constraints as single source of truth
-  2. WidgetInstanceContext exposes live colSpan/rowSpan properties (with NOTIFY) and isCurrentPage load-state flag that widget QML can observe and react to
-  3. All 4 existing widgets (Clock, AA Status, Now Playing, Navigation) use grid-span or UiMetrics-based thresholds instead of hardcoded pixel breakpoints
-**Plans**: 2 plans
-
-Plans:
-- [x] 11-01-PLAN.md -- WidgetInstanceContext span properties + context injection in HomeMenu delegate
-- [x] 11-02-PLAN.md -- Rewrite all 6 widgets to span-based contract (4 content + 2 launcher)
-
-### Phase 12: Documentation
-**Goal**: A third-party developer can create a widget plugin by reading the documentation alone
-**Depends on**: Phase 11 (documents the finalized contracts, not a moving target)
-**Requirements**: DOC-01, DOC-02
-**Success Criteria** (what must be TRUE):
-  1. Plugin-widget developer guide covers: manifest spec (WidgetDescriptor fields), registration API, QML lifecycle hooks, sizing conventions, category taxonomy, and CMake setup (QT_QML_SKIP_CACHEGEN requirement)
-  2. Architecture decision records document the key design choices made during v0.6-v0.6.1 for future contributors
-**Plans**: 1 plan
-
-Plans:
-- [ ] 12-01-PLAN.md -- Widget developer guide + v0.6-v0.6.1 ADRs + index update
+  1. Moving the boldness slider from 0.0 to 1.0 produces a visible change in accent color saturation across the entire UI without affecting glass card backgrounds, surface containers, or neutral roles
+  2. The boldness level survives an app restart and a day/night toggle — the UI comes up at the saved boldness value
+  3. At boldness 1.0 with a companion-imported theme that has already-saturated accent colors, colors clamp cleanly rather than wrapping or producing visual artifacts
+  4. The slider is accessible from Display settings without navigating more than two taps from the home screen
+**Plans**: TBD
 
 ## Progress
 
-**Execution Order:**
-Phases execute in numeric order: 09 -> 10 -> 10.1 -> 11 -> 12
-
-| Phase | Plans Complete | Status | Completed |
-|-------|----------------|--------|-----------|
-| 09. Widget Descriptor & Grid Foundation | 3/3 | Complete    | 2026-03-14 |
-| 10. Launcher Widget & Dock Removal | 2/2 | Complete    | 2026-03-14 |
-| 10.1. Grid Spacing & Page Indicators | 2/2 | Complete    | 2026-03-14 |
-| 11. Widget Framework Polish | 2/2 | Complete    | 2026-03-15 |
-| 12. Documentation | 1/1 | Complete   | 2026-03-15 |
+| Phase | Milestone | Plans Complete | Status | Completed |
+|-------|-----------|----------------|--------|-----------|
+| 13. Wallpaper Hardening | v0.6.2 | 0/TBD | Not started | - |
+| 14. Color Audit & M3 Expressive Tokens | v0.6.2 | 0/TBD | Not started | - |
+| 15. Color Boldness Slider | v0.6.2 | 0/TBD | Not started | - |
 
 ---
-*Last updated: 2026-03-15 -- Phase 12 planned*
+*Last updated: 2026-03-15 — v0.6.2 roadmap created*

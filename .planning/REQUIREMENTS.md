@@ -1,53 +1,46 @@
-# Requirements — v0.6.1 Widget Framework & Layout Refinement
+# Requirements — v0.6.2 Theme Expression & Wallpaper Scaling
 
-## Widget Framework (WF)
+## Wallpaper (WP)
 
-- [x] **WF-01**: WidgetDescriptor includes category, description, and icon metadata fields
-- [x] **WF-02**: WidgetGridModel enforces min/max size constraints from WidgetDescriptor as single source of truth
-- [x] **WF-03**: WidgetInstanceContext exposes live colSpan/rowSpan properties (with NOTIFY) and isCurrentPage load-state flag observable by widget QML
-- [x] **WF-04**: Widget QML uses grid-span or UiMetrics-based thresholds instead of hardcoded pixel breakpoints
+- [ ] **WP-01**: Wallpaper Image caps decoded texture to display dimensions via sourceSize, clips overflow, retains previous image during transitions, and always fills the screen without letterboxing
 
-## Grid Layout (GL)
+## Color Audit (CA)
 
-- [x] **GL-01**: Grid cell dimensions derived from physical mm targets via DPI instead of fixed pixel values
-- [x] **GL-02**: Grid math no longer deducts hardcoded dock height from available space
-- [x] **GL-03**: YAML widget layout includes grid_version field with migration when grid dimensions change
+- [ ] **CA-01**: All QML surfaces using accent-colored backgrounds have matching `on-*` foreground tokens (e.g., primary background uses onPrimary text, not onSurface)
+- [ ] **CA-02**: NavbarControl active/pressed state uses primaryContainer fill with onPrimaryContainer foreground
+- [ ] **CA-03**: Widget cards, settings tiles, and interactive controls use bolder accent colors from M3 Expressive palette instead of neutral-only surfaces
 
-## Navigation (NAV)
+## Color Boldness (CB)
 
-- [x] **NAV-01**: LauncherWidget provides quick-launch tiles (AA, BT Audio, Phone, Settings) as a grid widget
-- [x] **NAV-02**: LauncherDock bottom bar removed from Shell
-- [x] **NAV-03**: LauncherModel data model removed — LauncherWidget uses PluginModel directly
-
-## Documentation (DOC)
-
-- [x] **DOC-01**: Plugin-widget developer guide covers manifest spec, registration API, lifecycle, and sizing conventions
-- [x] **DOC-02**: Architecture decision records document key design choices for future contributors
-
-## Future Requirements
-
-_None deferred from this milestone._
+- [ ] **CB-01**: ThemeService exposes a colorBoldness property (0-1) that amplifies accent role saturation without affecting neutral/surface roles
+- [ ] **CB-02**: User can adjust color boldness via slider in Display settings, persisted across restarts
 
 ## Out of Scope
 
-- C++ IWidgetLifecycle interface — QML signals are sufficient; no widget currently needs C++-side lifecycle awareness
-- Dynamic plugin loading from external .so — static plugins only for v1.0
-- Widget marketplace or remote installation — post-v1.0
-- Proportional grid storage (fraction-based positions) — absolute cell indices with migration are sufficient
+| Feature | Reason |
+|---------|--------|
+| Wallpaper fill mode selector | Always cover-fit, no user choice — prevents letterboxing |
+| Bundled theme YAML changes | Themes built via companion app and imported, not shipped in binary |
+| HCT color math (material-color-utilities port) | HSL saturation multiplier is sufficient; companion app handles proper HCT |
+| Stretch fill mode | Distorts images — anti-feature |
+| Color boldness on neutral/surface roles | Would break glass widget card aesthetic |
 
 ## Traceability
 
 | Requirement | Phase | Status |
 |-------------|-------|--------|
-| WF-01 | Phase 09 | Complete |
-| WF-02 | Phase 11 | Complete |
-| WF-03 | Phase 11 | Complete |
-| WF-04 | Phase 11 | Complete |
-| GL-01 | Phase 09 | Complete |
-| GL-02 | Phase 09 | Complete |
-| GL-03 | Phase 09 | Complete |
-| NAV-01 | Phase 10 | Complete |
-| NAV-02 | Phase 10 | Complete |
-| NAV-03 | Phase 10 | Complete |
-| DOC-01 | Phase 12 | Complete |
-| DOC-02 | Phase 12 | Complete |
+| WP-01 | Phase 13 | Pending |
+| CA-01 | Phase 14 | Pending |
+| CA-02 | Phase 14 | Pending |
+| CA-03 | Phase 14 | Pending |
+| CB-01 | Phase 15 | Pending |
+| CB-02 | Phase 15 | Pending |
+
+**Coverage:**
+- v0.6.2 requirements: 6 total
+- Mapped to phases: 6
+- Unmapped: 0
+
+---
+*Requirements defined: 2026-03-15*
+*Last updated: 2026-03-15 — traceability mapped to phases 13-15*

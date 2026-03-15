@@ -1,5 +1,50 @@
 # Retrospective
 
+## Milestone: v0.6.1 — Widget Framework & Layout Refinement
+
+**Shipped:** 2026-03-15
+**Phases:** 5 (09-12 + 10.1 insertion) | **Plans:** 10 | 2 days
+
+### What Was Built
+- DPI-based grid sizing with diagonal-proportional cellSide formula replacing fixed-pixel math
+- Auto-snap threshold (50%, two-pass with cascade guard) recovers gutter waste — 7x3 to 7x4 on 1024x600
+- Launcher dock replaced by singleton launcher widgets on protected reserved page
+- Page dots moved to navbar flanking the clock, PageIndicator removed from HomeMenu
+- Formalized widget contract: WidgetInstanceContext with live colSpan/rowSpan/isCurrentPage, WidgetContextFactory for QML-side creation, Binding-based injection
+- All 6 widgets rewritten: span-based breakpoints, widgetContext providers, ActionRegistry egress, pressAndHold forwarding
+- Widget developer guide (481 lines) + plugin-api.md refresh + 15 v0.6-v0.6.1 ADRs
+- Test suite at 85/85 (fixed pre-existing distance unit bug during audit)
+
+### What Worked
+- Code review loop caught real issues before they shipped: cellWidth/cellHeight reactivity, hasMedia contract mismatch, edit-mode z-order conflict, WidgetPicker role off-by-1, stale ThemeService names, wrong distance unit enum
+- Integration checker during audit found the WidgetPicker role bug that no unit test could catch (QML uses integer literals, C++ tests use enum names)
+- Documentation review loop (5 rounds) eliminated stale API references, wrong plugin IID, missing service docs, and false ADR claims
+- Distance unit enum fix (99b88b0) was a pre-existing bug from Phase 06 — the audit process surfaced it naturally
+- Phase 10.1 insertion for grid spacing refinement was clean — decimal phase numbering worked well
+
+### What Was Inefficient
+- WidgetPicker role numbers should have used named constants or C++ bridge from the start — hardcoded integers in QML are a silent bug factory
+- Documentation required 5 review rounds to get factually accurate — each round found 2-4 doc-to-code mismatches. Should have had the executor verify each claim against source during writing, not after
+- Plugin-api.md was allowed to go stale across multiple milestones — updating it retroactively in Phase 12 was much harder than keeping it current incrementally
+- Phase 06 VERIFICATION.md was never created, creating a gap that propagated to the audit
+
+### Patterns Established
+- WidgetContextFactory as dedicated class (not on WidgetGridModel) — keeps model pure data
+- Context injection via Loader.onLoaded + Binding elements (not context properties) — typed, NOTIFY-capable
+- Span-based breakpoints (colSpan >= N) replacing pixel thresholds — resolution-independent
+- ActionRegistry.dispatch for widget command egress — decouples widgets from navigation internals
+- widgetMouseArea z:10 in edit mode / z:-1 normal — above widget content, below edit controls
+- promoteToBase on every mutation including opacity — all user edits survive remap
+- Plugin-facing API docs scoped explicitly ("see headers for full surface") to prevent drift
+
+### Key Lessons
+1. Hardcoded enum integers in QML are silent bugs — the C++ model was correct but QML had wrong numbers for months. Use a bridge or named constants.
+2. Documentation accuracy requires code-level verification during writing, not after — "verify against source" instructions in the plan prevented some errors but not all
+3. Code review as a workflow step catches integration-level bugs that unit tests miss — the z-order conflict and WidgetPicker role bug were both invisible to the test suite
+4. Pre-existing bugs surface naturally during milestone audits — the distance unit enum was broken since Phase 06 but nobody noticed until the audit ran the full suite with fresh eyes
+
+---
+
 ## Milestone: v0.5.3 — Widget Grid & Content Widgets
 
 **Shipped:** 2026-03-13

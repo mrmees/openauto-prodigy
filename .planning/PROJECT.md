@@ -87,16 +87,22 @@ A person with a Raspberry Pi 4 and a touchscreen can install this, pair their ph
 - ✓ Grid density auto-derived from display size via UiMetrics — v0.5.3
 - ✓ Widget layout persistence in YAML schema v3 (grid positions, sizes, pages, opacity) — v0.5.3
 - ✓ 77 unit tests covering core systems — v0.5.3
+- ✓ WidgetDescriptor with category, description, icon metadata, min/max/default size constraints — v0.6.1
+- ✓ DPI-based grid sizing (diagonal-proportional cellSide formula, auto-snap threshold) — v0.6.1
+- ✓ Launcher dock replaced by singleton launcher widgets on reserved page — v0.6.1
+- ✓ Grid spacing refined: auto-snap recovers gutter waste, page dots moved to navbar — v0.6.1
+- ✓ Formalized widget contract: span-based breakpoints, context injection, ActionRegistry egress — v0.6.1
+- ✓ All 6 widgets rewritten to formalized contract (no pixel breakpoints, no root globals) — v0.6.1
+- ✓ Widget developer guide + plugin API reference updated + 15 architecture decision records — v0.6.1
+- ✓ 85 unit tests covering core systems (all passing) — v0.6.1
 
 ### Active
 
 <!-- Current scope. Building toward these. -->
 
-- [ ] Formal widget manifest spec with size constraints, categories, and system/user flags
-- [ ] Plugin widget registration API for structured widget declaration
-- [ ] Widget lifecycle hooks (create, activate, deactivate, resize, destroy)
-- [ ] Existing widgets refactored to formalized architecture
-- [ ] Plugin-widget contract documented for third-party developers
+- [ ] M3 Expressive color application across all UI surfaces (navbar, widgets, settings, controls)
+- [ ] Wallpaper cover-fit scaling for resolution/orientation independence
+- [ ] Color audit — ensure accent colors are prominent, not just neutral + tiny primary
 
 ### Backlog
 
@@ -128,17 +134,16 @@ A person with a Raspberry Pi 4 and a touchscreen can install this, pair their ph
 
 OpenAuto Pro (BlueWave Studio) was a commercial Pi-based AA head unit that went defunct. This project is a clean-room rebuild — no OAP code, no aasdk dependency. The protocol library (`open-android-auto`) is maintained as a separate community resource.
 
-v0.4 shipped logging and theming. v0.4.1 shipped 10-band graphic EQ with per-stream profiles. v0.4.2 shipped service hardening — WiFi AP, Bluetooth SDP, systemd ordering, and clean shutdown all work reliably without manual intervention. v0.4.3 shipped full UI refresh — automotive-minimal styling, 6-category settings, EQ dual-access, shell polish. v0.4.4 shipped resolution independence — unclamped dual-axis UiMetrics, full QML tokenization (zero hardcoded pixels), container-derived grid layouts, runtime auto-detection, and --geometry validation tooling. v0.4.5 shipped navbar rework — zone-based evdev touch routing, 3-control navbar with multi-gesture actions and edge positioning, navbar-aware AA viewport margins, gesture overlay touch fix, and dead UI cleanup (TopBar, NavStrip, sidebar removed). v0.5.0 shipped protocol compliance — proto submodule v1.0, navigation turn events, voice session commands, BT auth exchange, haptic feedback, retracted dead code cleanup after v1.2 proto verification, library renamed to prodigy-oaa-protocol. v0.5.1 shipped DPI sizing & UI polish — EDID-based DPI scaling, scale stepper, clock readability, full 34-role M3 color system, companion theme import, AA rendering fix, navbar status bar cleanup, M3 button components with visual depth effects. v0.5.2 shipped widget system & UI polish — 3-pane home screen with launcher dock and built-in widgets, settings reorganized into 9 categories with touch normalization and automotive-readable font sizes. v0.5.3 shipped widget grid & content widgets — Android-style freeform grid with drag/resize/multi-page, AA navigation turn-by-turn widget, unified now playing widget with AA/BT source priority. v0.6 shipped architecture formalization — typed provider interfaces, core-owned services, legacy Configuration removal, SettingsInputBoundary for settings touch input, 82 unit tests. Codebase is ~35K+ LOC C++/QML, 82 unit tests.
+v0.4 shipped logging and theming. v0.4.1 shipped 10-band graphic EQ with per-stream profiles. v0.4.2 shipped service hardening — WiFi AP, Bluetooth SDP, systemd ordering, and clean shutdown all work reliably without manual intervention. v0.4.3 shipped full UI refresh — automotive-minimal styling, 6-category settings, EQ dual-access, shell polish. v0.4.4 shipped resolution independence — unclamped dual-axis UiMetrics, full QML tokenization (zero hardcoded pixels), container-derived grid layouts, runtime auto-detection, and --geometry validation tooling. v0.4.5 shipped navbar rework — zone-based evdev touch routing, 3-control navbar with multi-gesture actions and edge positioning, navbar-aware AA viewport margins, gesture overlay touch fix, and dead UI cleanup (TopBar, NavStrip, sidebar removed). v0.5.0 shipped protocol compliance — proto submodule v1.0, navigation turn events, voice session commands, BT auth exchange, haptic feedback, retracted dead code cleanup after v1.2 proto verification, library renamed to prodigy-oaa-protocol. v0.5.1 shipped DPI sizing & UI polish — EDID-based DPI scaling, scale stepper, clock readability, full 34-role M3 color system, companion theme import, AA rendering fix, navbar status bar cleanup, M3 button components with visual depth effects. v0.5.2 shipped widget system & UI polish — 3-pane home screen with launcher dock and built-in widgets, settings reorganized into 9 categories with touch normalization and automotive-readable font sizes. v0.5.3 shipped widget grid & content widgets — Android-style freeform grid with drag/resize/multi-page, AA navigation turn-by-turn widget, unified now playing widget with AA/BT source priority. v0.6 shipped architecture formalization — typed provider interfaces, core-owned services, legacy Configuration removal, SettingsInputBoundary for settings touch input, 82 unit tests. v0.6.1 shipped widget framework refinement — WidgetDescriptor with size constraints and categories, DPI-based grid sizing with auto-snap, launcher dock replaced by singleton widgets, formalized widget contract (span-based breakpoints, context injection, ActionRegistry egress), all 6 widgets rewritten, developer guide and 15 ADRs, 85 unit tests all passing. Codebase is ~44K LOC C++/QML (30.5K source + 13.4K tests).
 
-## Current Milestone: v0.6.1 Widget Framework & Layout Refinement
+## Current Milestone: v0.6.2 Theme Expression & Wallpaper Scaling
 
-**Goal:** Further define the widget framework conventions, remove the quick-launch bar in favor of widget-only navigation, refine DPI-based grid layout and widget sizing, and document all plugin/widget conventions for future development.
+**Goal:** Apply M3 Expressive color philosophy boldly across all UI surfaces, and make wallpapers resolution-independent with cover-fit scaling.
 
 **Target features:**
-- Further define widget framework conventions and lifecycle
-- Document all plugin/widget conventions for third-party developers
-- Remove quick-launch bar (AA/BT Media/Phone/Settings buttons) — widgets and launcher replace it
-- Refine DPI-based grid layout and widget sizing for consistent appearance across displays
+- Audit and rework color token usage across all QML — accent colors should have visible impact, not just neutral surfaces with tiny primary highlights
+- Wallpaper cover-fit scaling so oversized images work across resolutions and orientations
+- 5 new themes built via companion app and imported (no bundled theme changes needed)
 
 ## Constraints
 
@@ -199,8 +204,16 @@ v0.4 shipped logging and theming. v0.4.1 shipped 10-band graphic EQ with per-str
 | No maximum page limit | User decision — uncapped is fine for solo use | ✓ Good |
 | YAML schema v3 with page field | v2 auto-migrates with page=0 default | ✓ Good |
 
-| Architecture first, launcher second | Widget-based launcher (v0.7) consumes the architecture (v0.6) — avoids rework | — Pending |
+| Architecture first, launcher second | Widget-based launcher (v0.7) consumes the architecture (v0.6) — avoids rework | ✓ Good |
 | BT Audio / Phone deferred | Redundant when AA connected; decide fate after architecture is solid | — Pending |
+| DPI-based cellSide formula (diagPx / (9.0 + bias * 0.8)) | Resolution-independent grid sizing; DPI cascade is scaffolding for future mm-based path | ✓ Good |
+| Two-pass auto-snap threshold (0.5) | Recovers gutter waste without iterative packing; cascade guard prevents runaway | ✓ Good |
+| Singleton launcher widgets replace dock | Reclaims vertical space, unified widget model, no separate LauncherDock code | ✓ Good |
+| WidgetContextFactory as dedicated class | Keeps WidgetGridModel pure data; factory owns IHostContext + cell geometry | ✓ Good |
+| Context injection via Loader.onLoaded + Binding | Typed, documented, NOTIFY-capable — not context properties | ✓ Good |
+| Span-based breakpoints (not pixel thresholds) | Resolution-independent widget layouts; colSpan >= N not width > 300 | ✓ Good |
+| ActionRegistry for widget command egress | Widgets dispatch via named actions, not raw PluginModel/ApplicationController | ✓ Good |
+| promoteToBase on every mutation including opacity | Remap derives from base; all user edits must be preserved | ✓ Good |
 
 ---
-*Last updated: 2026-03-14 after v0.6.1 milestone start*
+*Last updated: 2026-03-15 after v0.6.2 milestone start*
