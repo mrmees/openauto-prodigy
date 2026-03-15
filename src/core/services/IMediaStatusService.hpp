@@ -5,13 +5,12 @@
 namespace oap {
 
 /// Extended media service interface beyond the narrow IMediaStatusProvider.
+/// Currently empty — hasMedia moved to IMediaStatusProvider.
+/// Kept as extension point for future service-only methods.
 class IMediaStatusService : public IMediaStatusProvider {
     Q_OBJECT
-    Q_PROPERTY(bool hasMedia READ hasMedia NOTIFY mediaStatusChanged)
 public:
     using IMediaStatusProvider::IMediaStatusProvider;
-
-    virtual bool hasMedia() const = 0;
 };
 
 } // namespace oap

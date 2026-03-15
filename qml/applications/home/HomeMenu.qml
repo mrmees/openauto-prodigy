@@ -245,6 +245,10 @@ Item {
                                     Binding { target: widgetCtx; property: "colSpan"; value: model.colSpan; when: widgetCtx !== null }
                                     Binding { target: widgetCtx; property: "rowSpan"; value: model.rowSpan; when: widgetCtx !== null }
 
+                                    // Keep cell dimensions reactive (cellSide can change on resize/remap)
+                                    Binding { target: widgetCtx; property: "cellWidth"; value: Math.round(homeScreen.cellSide); when: widgetCtx !== null }
+                                    Binding { target: widgetCtx; property: "cellHeight"; value: Math.round(homeScreen.cellSide); when: widgetCtx !== null }
+
                                     // isCurrentPage: true when this widget's page is the active SwipeView page
                                     Binding { target: widgetCtx; property: "isCurrentPage"; value: model.page === pageView.currentIndex; when: widgetCtx !== null }
 
@@ -350,11 +354,12 @@ Item {
                                             }
                                         }
 
-                                        // Long-press / tap detector behind widget content
+                                        // Long-press / tap detector — behind widget content normally,
+                                        // above it in edit mode so taps exit edit mode
                                         MouseArea {
                                             id: widgetMouseArea
                                             anchors.fill: parent
-                                            z: -1
+                                            z: homeScreen.editMode ? 1000 : -1
                                             pressAndHoldInterval: homeScreen.editMode ? 200 : 500
 
                                             function initiateDrag() {

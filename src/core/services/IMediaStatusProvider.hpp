@@ -7,6 +7,7 @@ namespace oap {
 
 class IMediaStatusProvider : public QObject {
     Q_OBJECT
+    Q_PROPERTY(bool hasMedia READ hasMedia NOTIFY mediaStatusChanged)
     Q_PROPERTY(QString title READ title NOTIFY mediaStatusChanged)
     Q_PROPERTY(QString artist READ artist NOTIFY mediaStatusChanged)
     Q_PROPERTY(QString album READ album NOTIFY mediaStatusChanged)
@@ -16,6 +17,7 @@ class IMediaStatusProvider : public QObject {
 public:
     using QObject::QObject;
 
+    virtual bool hasMedia() const = 0;
     virtual QString title() const = 0;
     virtual QString artist() const = 0;
     virtual QString album() const = 0;

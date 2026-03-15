@@ -14,6 +14,7 @@ public:
     explicit MediaStatusService(QObject* parent = nullptr);
 
     // IMediaStatusProvider
+    bool hasMedia() const override;
     QString title() const override;
     QString artist() const override;
     QString album() const override;
@@ -23,9 +24,6 @@ public:
     void playPause() override;
     void next() override;
     void previous() override;
-
-    // IMediaStatusService
-    bool hasMedia() const override;
 
     /// Set playback control callbacks (delegated to active source)
     using Callback = std::function<void()>;

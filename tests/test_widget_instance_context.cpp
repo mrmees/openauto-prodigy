@@ -34,6 +34,7 @@ class TestMediaProvider : public oap::IMediaStatusProvider {
     Q_OBJECT
 public:
     using IMediaStatusProvider::IMediaStatusProvider;
+    bool hasMedia() const override { return true; }
     QString title() const override { return "Song"; }
     QString artist() const override { return "Artist"; }
     QString album() const override { return "Album"; }

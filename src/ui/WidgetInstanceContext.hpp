@@ -12,8 +12,8 @@ class IMediaStatusProvider;
 
 class WidgetInstanceContext : public QObject {
     Q_OBJECT
-    Q_PROPERTY(int cellWidth READ cellWidth CONSTANT)
-    Q_PROPERTY(int cellHeight READ cellHeight CONSTANT)
+    Q_PROPERTY(int cellWidth READ cellWidth WRITE setCellWidth NOTIFY cellWidthChanged)
+    Q_PROPERTY(int cellHeight READ cellHeight WRITE setCellHeight NOTIFY cellHeightChanged)
     Q_PROPERTY(QString instanceId READ instanceId CONSTANT)
     Q_PROPERTY(QString widgetId READ widgetId CONSTANT)
     Q_PROPERTY(int colSpan READ colSpan WRITE setColSpan NOTIFY colSpanChanged)
@@ -31,7 +31,9 @@ public:
                           QObject* parent = nullptr);
 
     int cellWidth() const { return cellWidth_; }
+    void setCellWidth(int v);
     int cellHeight() const { return cellHeight_; }
+    void setCellHeight(int v);
     QString instanceId() const { return placement_.instanceId; }
     QString widgetId() const { return placement_.widgetId; }
     IHostContext* hostContext() const { return hostContext_; }
@@ -51,6 +53,8 @@ public:
     QObject* mediaStatusObj() const;
 
 signals:
+    void cellWidthChanged();
+    void cellHeightChanged();
     void colSpanChanged();
     void rowSpanChanged();
     void isCurrentPageChanged();

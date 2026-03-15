@@ -22,6 +22,18 @@ WidgetInstanceContext::WidgetInstanceContext(
     , hostContext_(hostContext)
 {}
 
+void WidgetInstanceContext::setCellWidth(int v) {
+    if (cellWidth_ == v) return;
+    cellWidth_ = v;
+    emit cellWidthChanged();
+}
+
+void WidgetInstanceContext::setCellHeight(int v) {
+    if (cellHeight_ == v) return;
+    cellHeight_ = v;
+    emit cellHeightChanged();
+}
+
 void WidgetInstanceContext::setColSpan(int v) {
     if (colSpan_ == v) return;
     colSpan_ = v;
