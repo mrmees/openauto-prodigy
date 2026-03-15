@@ -626,22 +626,79 @@ QColor ThemeService::onSuccess() const
     return QColor("#FFFFFF");
 }
 
+QColor ThemeService::surfaceTintHigh() const
+{
+    QColor base = activeColor("surface-container-high");
+    QColor accent = activeColor("primary");
+    return QColor::fromRgbF(
+        0.88 * base.redF() + 0.12 * accent.redF(),
+        0.88 * base.greenF() + 0.12 * accent.greenF(),
+        0.88 * base.blueF() + 0.12 * accent.blueF(),
+        base.alphaF());
+}
+
+QColor ThemeService::surfaceTintHighest() const
+{
+    QColor base = activeColor("surface-container-highest");
+    QColor accent = activeColor("primary");
+    return QColor::fromRgbF(
+        0.88 * base.redF() + 0.12 * accent.redF(),
+        0.88 * base.greenF() + 0.12 * accent.greenF(),
+        0.88 * base.blueF() + 0.12 * accent.blueF(),
+        base.alphaF());
+}
+
+QColor ThemeService::warning() const
+{
+    return QColor("#FF9800");
+}
+
+QColor ThemeService::onWarning() const
+{
+    return QColor("#FFFFFF");
+}
+
+bool ThemeService::isAccentRole(const QString& key)
+{
+    static const QSet<QString> accentRoles = {
+        "primary", "primary-container",
+        "secondary", "secondary-container",
+        "tertiary", "tertiary-container"
+    };
+    return accentRoles.contains(key);
+}
+
 QColor ThemeService::activeColor(const QString& key) const
 {
     const bool night = nightMode();  // respects forceDarkMode_ override
     const auto& colors = night ? nightColors_ : dayColors_;
-    auto it = colors.find(key);
-    if (it != colors.end())
-        return it.value();
+    QColor color;
 
-    // Fall back to day colors if night doesn't have the key
-    if (night) {
+    auto it = colors.find(key);
+    if (it != colors.end()) {
+        color = it.value();
+    } else if (night) {
+        // Fall back to day colors if night doesn't have the key
         auto dayIt = dayColors_.find(key);
         if (dayIt != dayColors_.end())
-            return dayIt.value();
+            color = dayIt.value();
+        else
+            return QColor(Qt::transparent);
+    } else {
+        return QColor(Qt::transparent);
     }
 
-    return QColor(Qt::transparent);
+    // Night comfort guardrail: clamp accent role saturation
+    if (night && isAccentRole(key)) {
+        constexpr qreal kMaxNightSaturation = 0.55;
+        qreal sat = color.hslSaturationF();
+        if (sat > kMaxNightSaturation) {
+            color.setHslF(color.hslHueF(), kMaxNightSaturation,
+                          color.lightnessF(), color.alphaF());
+        }
+    }
+
+    return color;
 }
 
 } // namespace oap

@@ -56,7 +56,11 @@ private slots:
         service.setNightMode(true);
         QVERIFY(service.nightMode());
         QCOMPARE(service.background(), QColor("#0a0a14"));
-        QCOMPARE(service.primary(), QColor("#c73650"));
+        // Night primary (#c73650, sat=0.573) gets clamped to sat=0.55 by guardrail
+        QColor nightPrimary = service.primary();
+        QVERIFY(qAbs(nightPrimary.red() - 0xc4) <= 1);
+        QVERIFY(qAbs(nightPrimary.green() - 0x39) <= 1);
+        QVERIFY(qAbs(nightPrimary.blue() - 0x52) <= 1);
         QCOMPARE(service.onSurface(), QColor("#b0b0b0"));
     }
 

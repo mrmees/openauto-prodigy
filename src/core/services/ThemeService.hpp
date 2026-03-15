@@ -85,6 +85,10 @@ class ThemeService : public QObject, public IThemeService {
     // --- Derived color properties (computed, not from YAML) ---
     Q_PROPERTY(QColor success READ success NOTIFY colorsChanged)
     Q_PROPERTY(QColor onSuccess READ onSuccess NOTIFY colorsChanged)
+    Q_PROPERTY(QColor surfaceTintHigh READ surfaceTintHigh NOTIFY colorsChanged)
+    Q_PROPERTY(QColor surfaceTintHighest READ surfaceTintHighest NOTIFY colorsChanged)
+    Q_PROPERTY(QColor warning READ warning NOTIFY colorsChanged)
+    Q_PROPERTY(QColor onWarning READ onWarning NOTIFY colorsChanged)
 
     Q_PROPERTY(bool nightMode READ nightMode WRITE setNightMode NOTIFY modeChanged)
     Q_PROPERTY(bool forceDarkMode READ forceDarkMode WRITE setForceDarkMode NOTIFY forceDarkModeChanged)
@@ -226,6 +230,10 @@ public:
     // --- Derived (computed, not from YAML) ---
     QColor success() const;
     QColor onSuccess() const;
+    QColor surfaceTintHigh() const;
+    QColor surfaceTintHighest() const;
+    QColor warning() const;
+    QColor onWarning() const;
 
     /// Read-only access to color maps (for IPC export without signal side-effects)
     const QMap<QString, QColor>& dayColors() const { return dayColors_; }
@@ -241,6 +249,7 @@ signals:
 
 private:
     QColor activeColor(const QString& key) const;
+    static bool isAccentRole(const QString& key);
     void rescanThemes();
 
     IConfigService* configService_ = nullptr;
