@@ -9,6 +9,13 @@ Item {
     // Fullscreen: active plugin requested it (generic — not AA-specific)
     property bool fullscreenMode: PluginModel.activePluginFullscreen
 
+    // Wallpaper layer — root-level, behind all content and navbar, edge-to-edge
+    Wallpaper {
+        anchors.fill: parent
+        visible: !PluginModel.activePluginId
+                 && ApplicationController.currentApplication !== 6
+    }
+
     ColumnLayout {
         anchors.fill: parent
         anchors.topMargin: navbar.visible && navbar.edge === "top" ? navbar.barThick : 0
@@ -24,13 +31,6 @@ Item {
             Layout.fillWidth: true
             Layout.fillHeight: true
             clip: true
-
-            // Wallpaper layer — behind all content, visible on launcher only
-            Wallpaper {
-                anchors.fill: parent
-                visible: !PluginModel.activePluginId
-                         && ApplicationController.currentApplication !== 6
-            }
 
             // Home screen with widget panes and launcher dock
             HomeMenu {
