@@ -89,7 +89,7 @@ See .planning/milestones/v0.6-ROADMAP.md for archived details.
 
 - [x] **Phase 13: Wallpaper Hardening** - Cap texture memory, eliminate paint-outside-bounds, prevent transition flicker — always cover-fit (completed 2026-03-15)
 - [x] **Phase 13.1: Quick Bugfix for Companion App** - Fix stale client blocking reconnects, add socket error handling and inactivity timeout (INSERTED) (completed 2026-03-15)
-- [ ] **Phase 13.2: Fix Theme Persistence & Wallpaper UX** - Persist theme selection to config, gate wallpaper override behind toggle, relocate delete button (INSERTED)
+- [x] **Phase 13.2: Fix Theme Persistence & Wallpaper UX** - Persist theme selection to config, gate wallpaper override behind toggle, relocate delete button (INSERTED) (completed 2026-03-15)
 - [ ] **Phase 14: Color Audit & M3 Expressive Tokens** - Fix confirmed on-* token pairings, apply NavbarControl active state fix, update interactive controls to use bolder accent colors
 - [ ] **Phase 15: Color Boldness Slider** - ThemeService colorBoldness property, HSL saturation helper for accent roles, settings UI with persistence
 
@@ -124,7 +124,7 @@ Plans:
 **Goal:** ThemeService::setTheme() persists theme ID to config so companion-imported and manually-selected themes survive restart; wallpaper override picker gated behind toggle to prevent accidental masking; delete button relocated to reduce mis-taps
 **Requirements**: TP-01, TP-02, TP-03
 **Depends on:** Phase 13.1
-**Plans:** 1 plan
+**Plans:** 1/1 plans complete
 
 Plans:
 - [ ] 13.2-01-PLAN.md — Wire IConfigService into ThemeService, restructure ThemeSettings.qml
@@ -163,7 +163,7 @@ Plans:
 |-------|-----------|----------------|--------|-----------|
 | 13. Wallpaper Hardening | 1/1 | Complete    | 2026-03-15 | - |
 | 13.1. Quick Bugfix for Companion App | 1/1 | Complete    | 2026-03-15 | - |
-| 13.2. Fix Theme Persistence & Wallpaper UX | v0.6.2 | 0/1 | Planning complete | - |
+| 13.2. Fix Theme Persistence & Wallpaper UX | 1/1 | Complete   | 2026-03-15 | - |
 | 14. Color Audit & M3 Expressive Tokens | v0.6.2 | 0/TBD | Not started | - |
 | 15. Color Boldness Slider | v0.6.2 | 0/TBD | Not started | - |
 

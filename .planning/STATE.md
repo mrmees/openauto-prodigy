@@ -3,15 +3,15 @@ gsd_state_version: 1.0
 milestone: v0.6
 milestone_name: milestone
 status: verifying
-stopped_at: Phase 13.2 context gathered
-last_updated: "2026-03-15T18:29:51.361Z"
-last_activity: 2026-03-15 — Companion reconnect hardening complete
+stopped_at: Completed 13.2-01-PLAN.md
+last_updated: "2026-03-15T19:04:44Z"
+last_activity: 2026-03-15 — Theme persistence fix + wallpaper toggle UX
 progress:
   total_phases: 5
-  completed_phases: 2
-  total_plans: 2
-  completed_plans: 2
-  percent: 50
+  completed_phases: 3
+  total_plans: 3
+  completed_plans: 3
+  percent: 60
 ---
 
 # Project State
@@ -21,16 +21,16 @@ progress:
 See: .planning/PROJECT.md (updated 2026-03-15)
 
 **Core value:** A person with a Raspberry Pi 4 and a touchscreen can install this, pair their phone, and get a reliable wireless Android Auto experience -- every time, without SSH.
-**Current focus:** v0.6.2 — Phase 13.1: Quick Bugfix for Companion App (COMPLETE, awaiting Pi verification)
+**Current focus:** v0.6.2 — Phase 13.2: Fix Saving of Themes Received by Companion App (COMPLETE, awaiting Pi verification)
 
 ## Current Position
 
-Phase: 13.1 of 15 (Quick Bugfix for Companion App)
+Phase: 13.2 of 15 (Fix Saving of Themes Received by Companion App)
 Plan: 01 complete (1 of 1)
-Status: Phase 13.1 complete, binary deployed to Pi, awaiting manual verification
-Last activity: 2026-03-15 — Companion reconnect hardening complete
+Status: Phase 13.2 complete, binary cross-built, awaiting Pi deployment + manual verification
+Last activity: 2026-03-15 — Theme persistence fix + wallpaper toggle UX
 
-Progress: [█████░░░░░] 50%
+Progress: [██████░░░░] 60%
 
 ## Accumulated Context
 
@@ -56,8 +56,11 @@ Progress: [█████░░░░░] 50%
 - Always-replace on new companion connection -- newest connection always wins
 - Inactivity timer resets only on MAC-verified status messages
 - stop() delegates to clearClientSession() instead of duplicating cleanup
+- ConfigService creation moved before theme loading in main.cpp for persistence wiring
+- Custom Wallpaper toggle derives state from config value (empty=OFF, non-empty=ON)
+- Theme Default removed from wallpaper picker (toggle OFF serves that purpose)
 
 ## Session Continuity
 
-Last session: 2026-03-15T18:29:51.359Z
-Stopped at: Phase 13.2 context gathered
+Last session: 2026-03-15T19:04:44Z
+Stopped at: Completed 13.2-01-PLAN.md

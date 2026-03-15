@@ -13,9 +13,9 @@
 
 ## Theme Persistence Bugfix (TP)
 
-- [ ] **TP-01**: ThemeService::setTheme() persists theme ID to config.yaml via IConfigService so theme survives restart
-- [ ] **TP-02**: Wallpaper override picker gated behind "Custom Wallpaper" toggle in ThemeSettings.qml — OFF hides picker and clears override, ON reveals picker
-- [ ] **TP-03**: Delete Theme button relocated to bottom of theme settings list to prevent accidental taps
+- [x] **TP-01**: ThemeService::setTheme() persists theme ID to config.yaml via IConfigService so theme survives restart
+- [x] **TP-02**: Wallpaper override picker gated behind "Custom Wallpaper" toggle in ThemeSettings.qml — OFF hides picker and clears override, ON reveals picker
+- [x] **TP-03**: Delete Theme button relocated to bottom of theme settings list to prevent accidental taps
 
 ## Color Audit (CA)
 
@@ -50,9 +50,9 @@
 | BF-02 | Phase 13.1 | Complete |
 | BF-03 | Phase 13.1 | Complete |
 | BF-04 | Phase 13.1 | Complete |
-| TP-01 | Phase 13.2 | Pending |
-| TP-02 | Phase 13.2 | Pending |
-| TP-03 | Phase 13.2 | Pending |
+| TP-01 | Phase 13.2 | Complete |
+| TP-02 | Phase 13.2 | Complete |
+| TP-03 | Phase 13.2 | Complete |
 | CA-01 | Phase 14 | Pending |
 | CA-02 | Phase 14 | Pending |
 | CA-03 | Phase 14 | Pending |
