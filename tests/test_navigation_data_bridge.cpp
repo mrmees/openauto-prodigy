@@ -259,13 +259,13 @@ private slots:
         oap::aa::NavigationDataBridge bridge;
         bridge.connectToHandler(&handler);
 
-        // Set legacy data first
+        // Set legacy data: 1609m with MILES unit → "1.0 mi"
         emit handler.navigationTurnEvent("", 0, 0, QByteArray(), 1609, 3);
         QCOMPARE(bridge.formattedDistance(), QString("1.0 mi"));
 
-        // Modern data overrides
-        emit handler.navigationDistanceChanged("1.0", 3);
-        QCOMPARE(bridge.formattedDistance(), QString("1.0 mi"));
+        // Modern data with different text proves phoneDistanceText_ wins
+        emit handler.navigationDistanceChanged("0.8", 3);
+        QCOMPARE(bridge.formattedDistance(), QString("0.8 mi"));
     }
 
     void testImplementsINavigationProvider() {
