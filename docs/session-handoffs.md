@@ -4,6 +4,40 @@ Newest entries first.
 
 ---
 
+## 2026-03-15 — Theme persistence fix + wallpaper toggle UX (Phase 13.2)
+
+**What changed:**
+- `ThemeService::setTheme()` now persists theme ID to `config.yaml` via `IConfigService` (setValue + save)
+- `ThemeService` gets `IConfigService*` via new `setConfigService()` setter, wired in `main.cpp`
+- `ConfigService` creation moved earlier in `main.cpp` (before theme loading block)
+- ThemeSettings.qml restructured: 5 rows (theme picker, custom wallpaper toggle, conditional wallpaper picker, dark mode toggle, delete theme button)
+- Custom Wallpaper toggle gates wallpaper picker visibility; toggle OFF clears override
+- "Theme Default" removed from wallpaper picker options (toggle OFF serves that purpose)
+- Delete Theme button moved from row 1 to row 4 (bottom of settings)
+- 3 new unit tests for theme persistence; 1 new structural test for QML layout
+
+**Why:**
+- Companion-imported themes (and any theme switch) reverted on restart because `setTheme()` never persisted to config.yaml
+- Wallpaper override picker was too exposed, making it easy to accidentally mask a theme's wallpaper
+
+**Status:** 86/86 tests pass. Cross-build succeeds. Binary ready to deploy.
+
+**Deploy steps:**
+1. `rsync -av build-pi/src/openauto-prodigy matt@192.168.1.152:~/openauto-prodigy/build/src/`
+2. `git push` (user-approved) + `ssh matt@192.168.1.152 'cd ~/openauto-prodigy && git pull'` for QML changes
+3. `ssh matt@192.168.1.152 'sudo systemctl restart openauto-prodigy.service'`
+
+**Manual Pi verification needed:**
+1. Open settings > Theme > verify "Custom Wallpaper" toggle visible, wallpaper picker hidden by default
+2. Toggle ON > verify wallpaper picker appears, select a wallpaper > verify it applies
+3. Toggle OFF > verify picker hides, wallpaper reverts to theme default
+4. Set `display.wallpaper_override` to `"none"` in config.yaml (or select "None" in picker) > restart > verify toggle shows as ON with "None" selected (not OFF)
+5. Verify "Delete Theme" button is at bottom of settings list
+6. Switch theme > restart service > verify theme persists (the core bug fix)
+7. Import a theme from companion app > restart > verify it persists
+
+---
+
 ## 2026-03-15 — Companion reconnect hardening (Phase 13.1)
 
 **What changed:**
