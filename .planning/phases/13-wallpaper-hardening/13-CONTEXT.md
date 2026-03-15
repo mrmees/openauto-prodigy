@@ -16,7 +16,7 @@ Make wallpaper a stable full-screen visual layer that fills the entire display r
 ### Layout model
 - Wallpaper is a full-screen visual layer anchored to the root shell, NOT the navbar-inset content area
 - Navbar overlays on top of the wallpaper — wallpaper extends behind it
-- This requires moving Wallpaper from inside pluginContentHost (inside pluginContentHost in Shell.qml) to a root-level layer in Shell.qml
+- This requires moving Wallpaper from inside pluginContentHost in Shell.qml to a root-level shell layer
 - An exact-screen-size wallpaper must remain visually centered when navbar position changes (top/bottom/left/right)
 
 ### Crop and scaling
@@ -58,7 +58,7 @@ Make wallpaper a stable full-screen visual layer that fills the entire display r
 - ThemeService emits `wallpaperChanged` signal when source changes
 
 ### Integration Points
-- `Shell.qml` currently places Wallpaper inside `pluginContentHost` (line 29), which is reduced by navbar margins — this must change to a root-level shell layer
+- `Shell.qml` currently places Wallpaper inside `pluginContentHost`, which is reduced by navbar margins — this must change to a root-level shell layer
 - `DisplayInfo` singleton exposes full window dimensions — use for sourceSize, not the reduced content viewport
 - Companion app imports wallpapers via `ThemeService::importCompanionTheme()` — file lands on disk, sourceSize handles decode
 
