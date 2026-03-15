@@ -2,6 +2,10 @@ import QtQuick
 
 Item {
     id: root
+
+    // Widget contract: context injection from host
+    property QtObject widgetContext: null
+
     MaterialIcon {
         anchors.centerIn: parent
         icon: "\ueff7"  // directions_car
@@ -13,7 +17,7 @@ Item {
         anchors.fill: parent
         pressAndHoldInterval: 500
         onClicked: {
-            PluginModel.setActivePlugin("org.openauto.android-auto")
+            ActionRegistry.dispatch("app.launchPlugin", "org.openauto.android-auto")
         }
         onPressAndHold: {
             if (root.parent && root.parent.requestContextMenu)
