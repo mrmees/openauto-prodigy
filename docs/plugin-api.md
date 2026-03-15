@@ -50,6 +50,8 @@ All plugins must implement `src/core/plugin/IPlugin.hpp`.
 
 Plugins receive an `IHostContext*` in `initialize()`. All service pointers are valid until `shutdown()`.
 
+**Note:** The tables below document the primary plugin-facing methods for each service. Some services expose additional internal methods (lifecycle, auto-connect, device management, etc.) that are used by core code. For the complete API surface, refer to the interface headers in `src/core/services/`.
+
 ### ConfigService (`IConfigService`)
 
 Read/write YAML configuration values. Plugin-scoped methods isolate each plugin's config under its ID namespace.
