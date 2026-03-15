@@ -149,11 +149,11 @@ Plans:
   1. Resizing a widget via drag is clamped to its declared min/max size -- WidgetGridModel enforces WidgetDescriptor constraints as single source of truth
   2. WidgetHost emits lifecycle signals (created, resized, destroying) that widget QML can observe and react to
   3. All 4 existing widgets (Clock, AA Status, Now Playing, Navigation) use grid-span or UiMetrics-based thresholds instead of hardcoded pixel breakpoints
-**Plans**: TBD
+**Plans**: 2 plans
 
 Plans:
-- [ ] 11-01: TBD
-- [ ] 11-02: TBD
+- [ ] 11-01-PLAN.md -- WidgetInstanceContext span properties + context injection in HomeMenu delegate
+- [ ] 11-02-PLAN.md -- Rewrite all 6 widgets to span-based contract (4 content + 2 launcher)
 
 ### Phase 12: Documentation
 **Goal**: A third-party developer can create a widget plugin by reading the documentation alone
@@ -181,4 +181,4 @@ Phases execute in numeric order: 09 -> 10 -> 10.1 -> 11 -> 12
 | 12. Documentation | 0/1 | Not started | - |
 
 ---
-*Last updated: 2026-03-14 -- Phase 10.1 planned*
+*Last updated: 2026-03-14 -- Phase 11 planned*
