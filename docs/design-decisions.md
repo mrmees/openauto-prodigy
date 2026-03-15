@@ -192,11 +192,11 @@ Original openauto used OMX via `ilclient` for zero-copy GPU decode — fastest p
 
 **Rationale:** Hiding widgets would make them disappear silently — users would think they were deleted. Clamping preserves the widget at a reduced size, maximizing visibility. The original span is stored in `basePlacements_` and restored if the grid grows back.
 
-### promoteToBase() on Structural Mutations
+### promoteToBase() on Every Mutation
 
-**Decision:** After structural user edits (move, resize, add, remove), `promoteToBase()` copies `livePlacements_` to `basePlacements_`. Opacity changes do NOT call `promoteToBase()` — they update `livePlacements_` only.
+**Decision:** After every user edit (move, resize, add, remove, opacity change), `promoteToBase()` copies `livePlacements_` to `basePlacements_`.
 
-**Rationale:** Remap derives its output from `basePlacements_`, so base must reflect the latest user intent for placement geometry. Without this, a remap triggered by a resize would revert to an older base state, discarding the user's recent edits. The copy is cheap (small QList of POD-like structs). **Note:** Because opacity changes skip `promoteToBase()`, an opacity change can be lost if a remap occurs before the next structural edit. This is a known gap — opacity is cosmetic and low-priority relative to placement integrity.
+**Rationale:** Remap derives its output from `basePlacements_`, so base must always reflect the latest user intent. Without this, a remap triggered by a resize would revert to an older base state, discarding the user's recent edits. The copy is cheap (small QList of POD-like structs).
 
 ### Base/Live Snapshot Pattern
 
