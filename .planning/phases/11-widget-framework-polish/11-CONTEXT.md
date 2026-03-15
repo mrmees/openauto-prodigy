@@ -45,12 +45,13 @@ If a grid configuration cannot satisfy a widget's declared minimum span, Prodigy
 ### 2. Data + Actions Contract
 
 #### Data ingress
-- **Platform providers** for core/shared concepts: ThemeService, AudioService, ConfigService, ProjectionStatus, NavigationProvider, MediaStatus, etc. — accessed via QML context properties
+- **Ambient platform singletons** (ThemeService, UiMetrics) may stay ambient — they are app-wide styling/layout concerns, not widget-specific data
+- **Widget data providers** (ProjectionStatus, NavigationProvider, MediaStatus, AudioService, etc.) should be exposed through WidgetInstanceContext / IHostContext injection, NOT fished from root QML context properties. This aligns with the platform refactor direction (2026-03-13-platform-plugin-architecture-design.md) and WidgetInstanceContext.hpp
 - **Published plugin capabilities** for domain-specific cross-plugin data (OBD, cameras, radio, etc.) — when the first real case lands. For now: document the pattern, reserve the architectural direction, don't build a capability registry yet.
 - **No arbitrary global spelunking** — widgets may not reach into undocumented context properties or plugin internals
 - **IHostContext remains for platform-owned services.** Plugin-published capabilities will later use a separate typed mechanism — not "add more random stuff to root context."
 - `createWidgetContext()` style injection is fine for a plugin's own widget helpers. Cross-plugin reuse goes through published contracts.
-- **Missing capability handling:** if a widget depends on a capability absent from the system, it should be filtered from the widget picker. If already placed, it stays visible with a muted placeholder state — never auto-hidden at runtime.
+- **Missing capability handling (deferred implementation):** the intent is that widgets depending on an absent capability get filtered from the picker and show placeholder if already placed. However, WidgetDescriptor currently has no field to declare required capabilities (WidgetTypes.hpp), and WidgetPickerModel only filters by available space (WidgetPickerModel.cpp:75). **Phase 11 documents this as a future contract rule but does NOT add capability metadata or picker filtering — that ships when the capability registry lands with the first real cross-plugin case.**
 
 #### Command egress
 - **ActionRegistry for cross-cutting app/platform actions** (navigation, theme toggle, app launch, shell-level commands)
@@ -62,6 +63,7 @@ If a grid configuration cannot satisfy a widget's declared minimum span, Prodigy
 - **Widget-owned per-instance prefs: nested under `widget_grid.placements[].config`** — same YAML placement record, but separate namespace from host fields
 - `defaultConfig` from descriptor provides defaults for missing keys
 - Global plugin defaults belong under `plugin_config`, not copied into every instance
+- **Compatibility rule:** widgets must tolerate missing/unknown config keys and merge against `defaultConfig` on read. This avoids undefined upgrade behavior when a widget changes its config schema — no migration code needed, just graceful fallback to defaults.
 
 ### 3. Lifecycle/Performance Contract
 
@@ -74,7 +76,7 @@ If a grid configuration cannot satisfy a widget's declared minimum span, Prodigy
 #### Performance rules (strict, not guidelines)
 - Normal dashboard widgets are expected to be cheap
 - **No polling timers** unless there is no practical event-driven source and the interval is justified
-- **Off-page widgets must not keep expensive work alive**
+- **Off-page widgets must not keep expensive work alive.** The host currently keeps current, previous, and next pages instantiated (HomeMenu.qml:149) — "off-page" means pages beyond that window, not "not loaded." The host is responsible for managing widget loading/unloading. Widgets that need to gate expensive work should bind to a host-provided `isCurrentPage` property (or equivalent) rather than assuming unloaded === off-page.
 - Subscriptions, signal connections, and transient resources must clean up when the widget unloads
 - Continuous rendering, video, heavy Canvas, or other expensive surfaces are not normal widgets — they belong in a different contribution type
 - Escape hatch: "allowed with justification" rather than "forbidden" — but the default answer is no
@@ -99,13 +101,23 @@ If a grid configuration cannot satisfy a widget's declared minimum span, Prodigy
 - **Flexible for visualization/content colors:** widgets may define custom content palettes for domain visuals (gauges, charts, route lines, album art accents, warning bands). Custom colors should sit on top of theme-derived surfaces and maintain decent contrast.
 
 #### Canonical example
-- **Rewrite all 4 existing widgets** (Clock, AA Status, Now Playing, Navigation) to comply with the formalized contract — spans instead of pixels, proper pressAndHold forwarding, placeholder states, theme/metrics compliance
-- These serve as the reference implementations for "how to write a Prodigy widget"
+- **Rewrite all 4 content widgets** (Clock, AA Status, Now Playing, Navigation) to comply with the formalized contract — spans instead of pixels, proper pressAndHold forwarding, placeholder states, theme/metrics compliance
+- The 2 singleton launcher widgets (SettingsLauncher, AALauncher) are intentionally out of scope for rewrite — they are trivial single-icon tap targets that already comply with the interaction contract. They don't have breakpoints, data providers, or placeholder states to formalize.
+- The 4 content widgets serve as the reference implementations for "how to write a Prodigy widget"
 
 #### Type split (document now, build later)
 - **Normal dashboard widget:** cheap tile, declarative layout, tap controls only, no focus ownership, no heavy continuous rendering
 - **Live surface (future):** reserved for video, maps, camera, heavy canvas/render loops, text input, scroll/drag-heavy interaction, or anything needing suspend/resume/resource admission rules
 - Phase 11 formalizes this boundary in documentation. LiveSurface infrastructure is a future milestone.
+
+### Verification Targets
+Phase 11 must prove:
+- Resize clamping: drag-resize stops at declared min/max (not just model rejection)
+- Live span updates: changing widget size updates colSpan/rowSpan properties and widget reflows
+- Widget-context provider access: data providers are injected via WidgetInstanceContext, not fished from root context
+- Picker filtering: no regressions in widget picker behavior after contract changes
+- Placeholder states: all 4 content widgets show correct muted state when their data source is unavailable
+- Span-based breakpoints: all 4 content widgets adapt layout based on colSpan/rowSpan, not pixel dimensions
 
 ### Claude's Discretion
 - Exact resize clamping UX (visual feedback during drag-resize when hitting min/max limits)
