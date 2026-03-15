@@ -141,8 +141,8 @@ Plans:
 **Plans**: 2 plans
 
 Plans:
-- [ ] 14-01-PLAN.md — ThemeService C++ infrastructure: tint properties, warning tokens, night guardrail
-- [ ] 14-02-PLAN.md — QML color audit fixes, token pairings, state matrix document
+- [x] 14-01-PLAN.md — ThemeService C++ infrastructure: tint properties, warning tokens, night guardrail
+- [x] 14-02-PLAN.md — QML color audit fixes, token pairings, state matrix document
 
 ### Phase 15: Color Boldness Slider
 **Goal**: Users can dial in how bold the accent colors appear, stored across restarts, working on both bundled and companion-imported themes
@@ -165,7 +165,7 @@ Plans:
 | 13. Wallpaper Hardening | 1/1 | Complete    | 2026-03-15 | - |
 | 13.1. Quick Bugfix for Companion App | 1/1 | Complete    | 2026-03-15 | - |
 | 13.2. Fix Theme Persistence & Wallpaper UX | 1/1 | Complete    | 2026-03-15 | - |
-| 14. Color Audit & M3 Expressive Tokens | 1/2 | In Progress|  | - |
+| 14. Color Audit & M3 Expressive Tokens | 2/2 | Complete | 2026-03-15 | - |
 | 15. Color Boldness Slider | v0.6.2 | 0/TBD | Not started | - |
 
 ---

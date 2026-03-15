@@ -3,15 +3,15 @@ gsd_state_version: 1.0
 milestone: v0.6
 milestone_name: milestone
 status: verifying
-stopped_at: Completed 14-01-PLAN.md
-last_updated: "2026-03-15T21:01:11Z"
-last_activity: 2026-03-15 — ThemeService tint properties, warning tokens, night guardrail
+stopped_at: Completed 14-02-PLAN.md
+last_updated: "2026-03-15T21:40:00Z"
+last_activity: 2026-03-15 — QML color audit, M3 token pairings, state matrix document
 progress:
   total_phases: 5
-  completed_phases: 3
-  total_plans: 4
-  completed_plans: 4
-  percent: 65
+  completed_phases: 4
+  total_plans: 6
+  completed_plans: 6
+  percent: 80
 ---
 
 # Project State
@@ -21,16 +21,16 @@ progress:
 See: .planning/PROJECT.md (updated 2026-03-15)
 
 **Core value:** A person with a Raspberry Pi 4 and a touchscreen can install this, pair their phone, and get a reliable wireless Android Auto experience -- every time, without SSH.
-**Current focus:** Phase 14: Color Audit & M3 Expressive Tokens — Plan 01 complete
+**Current focus:** Phase 14 complete; Phase 15 (Color Boldness Slider) next
 
 ## Current Position
 
 Phase: 14 of 15 (Color Audit & M3 Expressive Tokens)
-Plan: 01 complete (1 of 2)
-Status: Plan 01 (ThemeService infrastructure) complete; Plan 02 (QML audit) next
-Last activity: 2026-03-15 — ThemeService tint properties, warning tokens, night guardrail
+Plan: 02 complete (2 of 2) -- Phase 14 done
+Status: All color audit fixes applied and Pi-verified; Phase 15 next
+Last activity: 2026-03-15 — QML color audit, M3 token pairings, state matrix document
 
-Progress: [██████▌░░░] 65%
+Progress: [████████░░] 80%
 
 ## Accumulated Context
 
@@ -46,13 +46,16 @@ Progress: [██████▌░░░] 65%
 
 ### Blockers/Concerns
 
-- Phase 14 night palette must be verified on Pi in a dark environment before finalizing — M3 Expressive bold primaries can be a glare hazard in-car
+- (RESOLVED) Phase 14 night palette verified on Pi -- approved
 
 ### Decisions
 
 - HSL saturation clamp at 0.55 for night comfort guardrail (simpler than HCT chroma, Qt-native)
 - Guardrail applies inside activeColor() so tint blends use clamped primary automatically
 - Accent roles: primary, primary-container, secondary, secondary-container, tertiary, tertiary-container
+- Solid primaryContainer fills for pressed/hold states (not opacity overlays) for correct M3 contrast
+- Material.accent override on all Switch controls for consistent primaryContainer track color
+- Semantic success/warning tokens always win over theme accent for status indicators
 - Wallpaper sourceSize: no subpixel margin -- not worth complexity
 - Wallpaper z-order: implicit z:0 as first child, no explicit z-index
 - clearClientSession() disconnects signals before abort() to prevent re-entrant signal emission
@@ -65,5 +68,5 @@ Progress: [██████▌░░░] 65%
 
 ## Session Continuity
 
-Last session: 2026-03-15T21:01:11Z
-Stopped at: Completed 14-01-PLAN.md
+Last session: 2026-03-15T21:40:00Z
+Stopped at: Completed 14-02-PLAN.md
