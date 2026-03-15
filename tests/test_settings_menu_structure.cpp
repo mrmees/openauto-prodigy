@@ -187,6 +187,31 @@ private slots:
         }
     }
 
+    void testThemeSettingsWallpaperToggleAndLayout()
+    {
+        const QString source = sourceFor(QStringLiteral("qml/applications/settings/ThemeSettings.qml"));
+        QVERIFY2(!source.isEmpty(), "Failed to read ThemeSettings.qml");
+
+        // Toggle label exists
+        QVERIFY2(source.indexOf(QStringLiteral("Custom Wallpaper")) >= 0,
+                 "ThemeSettings should have a Custom Wallpaper toggle label");
+
+        // Delete Theme appears AFTER force_dark_mode in file order
+        int deletePos = source.indexOf(QStringLiteral("Delete Theme"));
+        int darkModePos = source.indexOf(QStringLiteral("force_dark_mode"));
+        QVERIFY2(deletePos >= 0, "ThemeSettings should contain Delete Theme");
+        QVERIFY2(darkModePos >= 0, "ThemeSettings should contain force_dark_mode");
+        QVERIFY2(deletePos > darkModePos,
+                 "Delete Theme should appear after force_dark_mode (at bottom of settings)");
+
+        // Wallpaper picker is gated by visibility
+        QVERIFY2(source.indexOf(QStringLiteral("visible: wpToggle.checked")) >= 0,
+                 "Wallpaper picker row should be gated by wpToggle.checked visibility");
+
+        // Config path for wallpaper override is referenced
+        QVERIFY2(source.indexOf(QStringLiteral("wallpaper_override")) >= 0,
+                 "ThemeSettings should reference wallpaper_override config path");
+    }
 };
 
 QTEST_MAIN(TestSettingsMenuStructure)
