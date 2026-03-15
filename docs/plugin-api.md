@@ -287,7 +287,7 @@ Per-stream audio equalization with presets and manual band control.
 | `isBypassed(StreamId)` | Main thread | Get bypass state |
 | `bundledPresetNames()` | Main thread | List built-in preset names |
 | `userPresetNames()` | Main thread | List user-created preset names |
-| `saveUserPreset(StreamId, name)` | Main thread | Save current gains as user preset. Returns name used. |
+| `saveUserPreset(StreamId, name)` | Main thread | Save current gains as user preset. Returns name used, or empty string if name collides with a bundled preset. |
 | `deleteUserPreset(name)` | Main thread | Delete a user preset. Streams using it revert to Flat. |
 | `renameUserPreset(old, new)` | Main thread | Rename a user preset |
 
