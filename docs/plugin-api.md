@@ -277,10 +277,17 @@ Per-stream audio equalization with presets and manual band control.
 | Method | Thread Safety | Description |
 |--------|---------------|-------------|
 | `activePreset(StreamId)` | Main thread | Active preset name for a stream (empty if manually adjusted) |
-| `applyPreset(StreamId, name)` | Main thread | Apply a named preset to a stream |
-| `setBandGain(StreamId, band, gain)` | Main thread | Set a single band gain (clears preset) |
-| `bandGains(StreamId)` | Main thread | Get all band gains for a stream |
-| `presetNames()` | Main thread | List available preset names |
+| `applyPreset(StreamId, name)` | Main thread | Apply a named preset (bundled or user). Falls back to Flat if not found. |
+| `setGain(StreamId, band, dB)` | Main thread | Set a single band gain (clears active preset) |
+| `gain(StreamId, band)` | Main thread | Get a single band gain |
+| `gainsForStream(StreamId)` | Main thread | Get all 10 band gains as `std::array<float, 10>` |
+| `setBypassed(StreamId, bool)` | Main thread | Enable/disable bypass for a stream |
+| `isBypassed(StreamId)` | Main thread | Get bypass state |
+| `bundledPresetNames()` | Main thread | List built-in preset names |
+| `userPresetNames()` | Main thread | List user-created preset names |
+| `saveUserPreset(StreamId, name)` | Main thread | Save current gains as user preset. Returns name used. |
+| `deleteUserPreset(name)` | Main thread | Delete a user preset. Streams using it revert to Flat. |
+| `renameUserPreset(old, new)` | Main thread | Rename a user preset |
 
 `StreamId` values: `Media`, `Navigation`, `Phone`.
 
@@ -294,7 +301,7 @@ TCP listener for the Prodigy Companion Android app. Provides GPS, phone battery,
 |----------|------|-------------|
 | `connected` | `bool` | Whether a companion device is connected |
 | `gpsLat` / `gpsLon` / `gpsSpeed` / `gpsAccuracy` / `gpsBearing` | `double` | GPS data from phone |
-| `isGpsStale` | `bool` | Whether GPS data is stale |
+| `gpsStale` | `bool` | Whether GPS data is stale (getter: `isGpsStale()`) |
 | `phoneBattery` | `int` | Phone battery level |
 | `phoneCharging` | `bool` | Phone charging state |
 | `internetAvailable` | `bool` | Whether internet proxy is available |
