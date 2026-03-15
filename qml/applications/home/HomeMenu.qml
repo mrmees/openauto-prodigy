@@ -359,7 +359,7 @@ Item {
                                         MouseArea {
                                             id: widgetMouseArea
                                             anchors.fill: parent
-                                            z: homeScreen.editMode ? 1000 : -1
+                                            z: homeScreen.editMode ? 10 : -1
                                             pressAndHoldInterval: homeScreen.editMode ? 200 : 500
 
                                             function initiateDrag() {
