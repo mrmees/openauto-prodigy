@@ -16,8 +16,29 @@ WidgetInstanceContext::WidgetInstanceContext(
     , placement_(placement)
     , cellWidth_(cellWidth)
     , cellHeight_(cellHeight)
+    , colSpan_(placement.colSpan)
+    , rowSpan_(placement.rowSpan)
+    , isCurrentPage_(false)
     , hostContext_(hostContext)
 {}
+
+void WidgetInstanceContext::setColSpan(int v) {
+    if (colSpan_ == v) return;
+    colSpan_ = v;
+    emit colSpanChanged();
+}
+
+void WidgetInstanceContext::setRowSpan(int v) {
+    if (rowSpan_ == v) return;
+    rowSpan_ = v;
+    emit rowSpanChanged();
+}
+
+void WidgetInstanceContext::setIsCurrentPage(bool v) {
+    if (isCurrentPage_ == v) return;
+    isCurrentPage_ = v;
+    emit isCurrentPageChanged();
+}
 
 QObject* WidgetInstanceContext::projectionStatusObj() const {
     return hostContext_ ? hostContext_->projectionStatusProvider() : nullptr;

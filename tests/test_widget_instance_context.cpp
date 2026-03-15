@@ -1,5 +1,6 @@
 // tests/test_widget_instance_context.cpp
 #include <QtTest/QtTest>
+#include <QSignalSpy>
 #include "ui/WidgetInstanceContext.hpp"
 #include "core/widget/WidgetTypes.hpp"
 #include "core/plugin/HostContext.hpp"
@@ -51,6 +52,14 @@ private slots:
     void testCellDimensions();
     void testProviderPropertiesWithHostContext();
     void testProviderPropertiesWithoutHostContext();
+    void testColSpanDefaultsFromPlacement();
+    void testRowSpanDefaultsFromPlacement();
+    void testSetColSpanEmitsSignal();
+    void testSetRowSpanEmitsSignal();
+    void testSetColSpanNoopDoesNotEmit();
+    void testIsCurrentPageDefaultsFalse();
+    void testSetIsCurrentPageEmitsSignal();
+    void testSetIsCurrentPageNoopDoesNotEmit();
 };
 
 void TestWidgetInstanceContext::testProperties() {
@@ -121,6 +130,93 @@ void TestWidgetInstanceContext::testProviderPropertiesWithoutHostContext() {
     QVERIFY(ctx.property("projectionStatus").value<QObject*>() == nullptr);
     QVERIFY(ctx.property("navigationProvider").value<QObject*>() == nullptr);
     QVERIFY(ctx.property("mediaStatus").value<QObject*>() == nullptr);
+}
+
+void TestWidgetInstanceContext::testColSpanDefaultsFromPlacement() {
+    oap::GridPlacement placement;
+    placement.instanceId = "test-span";
+    placement.colSpan = 3;
+    placement.rowSpan = 2;
+
+    oap::WidgetInstanceContext ctx(placement, 100, 100, nullptr, this);
+    QCOMPARE(ctx.colSpan(), 3);
+}
+
+void TestWidgetInstanceContext::testRowSpanDefaultsFromPlacement() {
+    oap::GridPlacement placement;
+    placement.instanceId = "test-span";
+    placement.colSpan = 3;
+    placement.rowSpan = 2;
+
+    oap::WidgetInstanceContext ctx(placement, 100, 100, nullptr, this);
+    QCOMPARE(ctx.rowSpan(), 2);
+}
+
+void TestWidgetInstanceContext::testSetColSpanEmitsSignal() {
+    oap::GridPlacement placement;
+    placement.instanceId = "test-signal";
+    placement.colSpan = 2;
+    placement.rowSpan = 1;
+
+    oap::WidgetInstanceContext ctx(placement, 100, 100, nullptr, this);
+    QSignalSpy spy(&ctx, &oap::WidgetInstanceContext::colSpanChanged);
+    ctx.setColSpan(4);
+    QCOMPARE(spy.count(), 1);
+    QCOMPARE(ctx.colSpan(), 4);
+}
+
+void TestWidgetInstanceContext::testSetRowSpanEmitsSignal() {
+    oap::GridPlacement placement;
+    placement.instanceId = "test-signal";
+    placement.colSpan = 2;
+    placement.rowSpan = 1;
+
+    oap::WidgetInstanceContext ctx(placement, 100, 100, nullptr, this);
+    QSignalSpy spy(&ctx, &oap::WidgetInstanceContext::rowSpanChanged);
+    ctx.setRowSpan(3);
+    QCOMPARE(spy.count(), 1);
+    QCOMPARE(ctx.rowSpan(), 3);
+}
+
+void TestWidgetInstanceContext::testSetColSpanNoopDoesNotEmit() {
+    oap::GridPlacement placement;
+    placement.instanceId = "test-noop";
+    placement.colSpan = 2;
+    placement.rowSpan = 1;
+
+    oap::WidgetInstanceContext ctx(placement, 100, 100, nullptr, this);
+    QSignalSpy spy(&ctx, &oap::WidgetInstanceContext::colSpanChanged);
+    ctx.setColSpan(2);  // same value
+    QCOMPARE(spy.count(), 0);
+}
+
+void TestWidgetInstanceContext::testIsCurrentPageDefaultsFalse() {
+    oap::GridPlacement placement;
+    placement.instanceId = "test-page";
+
+    oap::WidgetInstanceContext ctx(placement, 100, 100, nullptr, this);
+    QCOMPARE(ctx.isCurrentPage(), false);
+}
+
+void TestWidgetInstanceContext::testSetIsCurrentPageEmitsSignal() {
+    oap::GridPlacement placement;
+    placement.instanceId = "test-page";
+
+    oap::WidgetInstanceContext ctx(placement, 100, 100, nullptr, this);
+    QSignalSpy spy(&ctx, &oap::WidgetInstanceContext::isCurrentPageChanged);
+    ctx.setIsCurrentPage(true);
+    QCOMPARE(spy.count(), 1);
+    QCOMPARE(ctx.isCurrentPage(), true);
+}
+
+void TestWidgetInstanceContext::testSetIsCurrentPageNoopDoesNotEmit() {
+    oap::GridPlacement placement;
+    placement.instanceId = "test-page";
+
+    oap::WidgetInstanceContext ctx(placement, 100, 100, nullptr, this);
+    QSignalSpy spy(&ctx, &oap::WidgetInstanceContext::isCurrentPageChanged);
+    ctx.setIsCurrentPage(false);  // same as default
+    QCOMPARE(spy.count(), 0);
 }
 
 QTEST_GUILESS_MAIN(TestWidgetInstanceContext)

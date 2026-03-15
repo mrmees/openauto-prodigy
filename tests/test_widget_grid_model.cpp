@@ -88,6 +88,7 @@ private slots:
     void testIsReservedPage();
     void testSingletonRoleExposed();
     void testFreshInstallSeeding();
+    void testResizeBelowMinFails();
 };
 
 void TestWidgetGridModel::testPlaceWidgetSuccess() {
@@ -829,6 +830,42 @@ void TestWidgetGridModel::testFreshInstallSeeding() {
     QCOMPARE(placements[1].col, 0);
     QCOMPARE(placements[1].row, 1);
     QVERIFY(model.isReservedPage(1));
+}
+
+void TestWidgetGridModel::testResizeBelowMinFails() {
+    // Register a widget with minCols=2, minRows=2
+    auto* reg = new oap::WidgetRegistry(this);
+    {
+        oap::WidgetDescriptor d;
+        d.id = "min2x2";
+        d.displayName = "Min2x2";
+        d.qmlComponent = QUrl("qrc:/Min2x2.qml");
+        d.minCols = 2; d.minRows = 2;
+        d.maxCols = 4; d.maxRows = 4;
+        d.defaultCols = 2; d.defaultRows = 2;
+        reg->registerWidget(d);
+    }
+
+    oap::WidgetGridModel model(reg);
+    model.setGridDimensions(6, 4);
+
+    // Place at 2x2 (the minimum)
+    model.placeWidget("min2x2", 0, 0, 2, 2);
+    auto placements = model.placements();
+    QString instanceId = placements[0].instanceId;
+
+    // Try to resize below minCols (1x2) -- must fail
+    bool ok = model.resizeWidget(instanceId, 1, 2);
+    QVERIFY(!ok);
+
+    // Try to resize below minRows (2x1) -- must fail
+    ok = model.resizeWidget(instanceId, 2, 1);
+    QVERIFY(!ok);
+
+    // Verify placement unchanged
+    placements = model.placements();
+    QCOMPARE(placements[0].colSpan, 2);
+    QCOMPARE(placements[0].rowSpan, 2);
 }
 
 QTEST_GUILESS_MAIN(TestWidgetGridModel)

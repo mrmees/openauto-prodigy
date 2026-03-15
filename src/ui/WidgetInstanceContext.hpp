@@ -16,6 +16,9 @@ class WidgetInstanceContext : public QObject {
     Q_PROPERTY(int cellHeight READ cellHeight CONSTANT)
     Q_PROPERTY(QString instanceId READ instanceId CONSTANT)
     Q_PROPERTY(QString widgetId READ widgetId CONSTANT)
+    Q_PROPERTY(int colSpan READ colSpan WRITE setColSpan NOTIFY colSpanChanged)
+    Q_PROPERTY(int rowSpan READ rowSpan WRITE setRowSpan NOTIFY rowSpanChanged)
+    Q_PROPERTY(bool isCurrentPage READ isCurrentPage WRITE setIsCurrentPage NOTIFY isCurrentPageChanged)
     Q_PROPERTY(QObject* projectionStatus READ projectionStatusObj CONSTANT)
     Q_PROPERTY(QObject* navigationProvider READ navigationProviderObj CONSTANT)
     Q_PROPERTY(QObject* mediaStatus READ mediaStatusObj CONSTANT)
@@ -34,14 +37,31 @@ public:
     IHostContext* hostContext() const { return hostContext_; }
     const GridPlacement& placement() const { return placement_; }
 
+    int colSpan() const { return colSpan_; }
+    void setColSpan(int v);
+
+    int rowSpan() const { return rowSpan_; }
+    void setRowSpan(int v);
+
+    bool isCurrentPage() const { return isCurrentPage_; }
+    void setIsCurrentPage(bool v);
+
     QObject* projectionStatusObj() const;
     QObject* navigationProviderObj() const;
     QObject* mediaStatusObj() const;
+
+signals:
+    void colSpanChanged();
+    void rowSpanChanged();
+    void isCurrentPageChanged();
 
 private:
     GridPlacement placement_;
     int cellWidth_;
     int cellHeight_;
+    int colSpan_;
+    int rowSpan_;
+    bool isCurrentPage_ = false;
     IHostContext* hostContext_;
 };
 

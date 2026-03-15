@@ -129,6 +129,10 @@ oap_add_test(test_widget_config
 
 oap_add_test(test_grid_dimensions SOURCES test_grid_dimensions.cpp)
 oap_add_test(test_widget_grid_model SOURCES test_widget_grid_model.cpp)
+oap_add_test(test_widget_contract_qml
+    SOURCES test_widget_contract_qml.cpp
+    EXTRA_LIBS Qt6::Quick
+)
 oap_add_test(test_widget_grid_remap SOURCES test_widget_grid_remap.cpp)
 oap_add_test(test_widget_picker_model SOURCES test_widget_picker_model.cpp)
 
@@ -159,6 +163,6 @@ add_test(
 set_tests_properties(test_theme_service test_display_service test_plugin_model test_aa_orchestrator
     PROPERTIES ENVIRONMENT "QT_QPA_PLATFORM=offscreen"
 )
-set_tests_properties(test_settings_menu_structure test_gesture_overlay_controller
+set_tests_properties(test_settings_menu_structure test_gesture_overlay_controller test_widget_contract_qml
     PROPERTIES ENVIRONMENT "QT_QPA_PLATFORM=offscreen"
 )
