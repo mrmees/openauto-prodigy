@@ -11,6 +11,12 @@
 - [x] **BF-03**: 30-second inactivity timeout (from last valid status message) triggers session teardown
 - [x] **BF-04**: clearClientSession() is idempotent — double-call safe, no double-emit, no crash
 
+## Theme Persistence Bugfix (TP)
+
+- [ ] **TP-01**: ThemeService::setTheme() persists theme ID to config.yaml via IConfigService so theme survives restart
+- [ ] **TP-02**: Wallpaper override picker gated behind "Custom Wallpaper" toggle in ThemeSettings.qml — OFF hides picker and clears override, ON reveals picker
+- [ ] **TP-03**: Delete Theme button relocated to bottom of theme settings list to prevent accidental taps
+
 ## Color Audit (CA)
 
 - [ ] **CA-01**: All QML surfaces using accent-colored backgrounds have matching `on-*` foreground tokens (e.g., primary background uses onPrimary text, not onSurface)
@@ -44,6 +50,9 @@
 | BF-02 | Phase 13.1 | Complete |
 | BF-03 | Phase 13.1 | Complete |
 | BF-04 | Phase 13.1 | Complete |
+| TP-01 | Phase 13.2 | Pending |
+| TP-02 | Phase 13.2 | Pending |
+| TP-03 | Phase 13.2 | Pending |
 | CA-01 | Phase 14 | Pending |
 | CA-02 | Phase 14 | Pending |
 | CA-03 | Phase 14 | Pending |
@@ -51,10 +60,10 @@
 | CB-02 | Phase 15 | Pending |
 
 **Coverage:**
-- v0.6.2 requirements: 10 total
-- Mapped to phases: 10
+- v0.6.2 requirements: 13 total
+- Mapped to phases: 13
 - Unmapped: 0
 
 ---
 *Requirements defined: 2026-03-15*
-*Last updated: 2026-03-15 — BF requirements added for Phase 13.1*
+*Last updated: 2026-03-15 — TP requirements added for Phase 13.2*

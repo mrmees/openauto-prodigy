@@ -89,6 +89,7 @@ See .planning/milestones/v0.6-ROADMAP.md for archived details.
 
 - [x] **Phase 13: Wallpaper Hardening** - Cap texture memory, eliminate paint-outside-bounds, prevent transition flicker — always cover-fit (completed 2026-03-15)
 - [x] **Phase 13.1: Quick Bugfix for Companion App** - Fix stale client blocking reconnects, add socket error handling and inactivity timeout (INSERTED) (completed 2026-03-15)
+- [ ] **Phase 13.2: Fix Theme Persistence & Wallpaper UX** - Persist theme selection to config, gate wallpaper override behind toggle, relocate delete button (INSERTED)
 - [ ] **Phase 14: Color Audit & M3 Expressive Tokens** - Fix confirmed on-* token pairings, apply NavbarControl active state fix, update interactive controls to use bolder accent colors
 - [ ] **Phase 15: Color Boldness Slider** - ThemeService colorBoldness property, HSL saturation helper for accent roles, settings UI with persistence
 
@@ -106,7 +107,7 @@ See .planning/milestones/v0.6-ROADMAP.md for archived details.
 **Plans**: 1 plan
 
 Plans:
-- [ ] 13-01-PLAN.md — Harden Wallpaper.qml + move to root shell layer
+- [x] 13-01-PLAN.md — Harden Wallpaper.qml + move to root shell layer
 
 ### Phase 13.1: Quick Bugfix for Companion App (INSERTED)
 
@@ -116,7 +117,17 @@ Plans:
 **Plans:** 1/1 plans complete
 
 Plans:
-- [ ] 13.1-01-PLAN.md — Harden companion reconnect with clearClientSession, always-replace, errorOccurred, and 30s inactivity timeout
+- [x] 13.1-01-PLAN.md — Harden companion reconnect with clearClientSession, always-replace, errorOccurred, and 30s inactivity timeout
+
+### Phase 13.2: Fix Theme Persistence & Wallpaper UX (INSERTED)
+
+**Goal:** ThemeService::setTheme() persists theme ID to config so companion-imported and manually-selected themes survive restart; wallpaper override picker gated behind toggle to prevent accidental masking; delete button relocated to reduce mis-taps
+**Requirements**: TP-01, TP-02, TP-03
+**Depends on:** Phase 13.1
+**Plans:** 1 plan
+
+Plans:
+- [ ] 13.2-01-PLAN.md — Wire IConfigService into ThemeService, restructure ThemeSettings.qml
 
 ### Phase 14: Color Audit & M3 Expressive Tokens
 **Goal**: All interactive surfaces with accent-colored backgrounds have correct on-* foreground tokens, NavbarControl active state uses the right M3 pair, and widget/tile/control colors use bolder accent values from the M3 Expressive palette
@@ -152,8 +163,9 @@ Plans:
 |-------|-----------|----------------|--------|-----------|
 | 13. Wallpaper Hardening | 1/1 | Complete    | 2026-03-15 | - |
 | 13.1. Quick Bugfix for Companion App | 1/1 | Complete    | 2026-03-15 | - |
+| 13.2. Fix Theme Persistence & Wallpaper UX | v0.6.2 | 0/1 | Planning complete | - |
 | 14. Color Audit & M3 Expressive Tokens | v0.6.2 | 0/TBD | Not started | - |
 | 15. Color Boldness Slider | v0.6.2 | 0/TBD | Not started | - |
 
 ---
-*Last updated: 2026-03-15 — Phase 13.1 planned*
+*Last updated: 2026-03-15 — Phase 13.2 planned*
