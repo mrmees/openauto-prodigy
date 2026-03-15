@@ -188,6 +188,12 @@ bool ThemeService::setTheme(const QString& themeId)
         return false;
 
     resolveWallpaper();
+
+    if (configService_) {
+        configService_->setValue("display.theme", themeId);
+        configService_->save();
+    }
+
     return true;
 }
 

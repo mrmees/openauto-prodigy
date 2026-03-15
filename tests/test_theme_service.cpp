@@ -5,6 +5,23 @@
 #include <QTextStream>
 #include <QImage>
 #include "core/services/ThemeService.hpp"
+#include "core/services/IConfigService.hpp"
+
+class MockConfigService : public oap::IConfigService {
+public:
+    QVariant value(const QString&) const override { return {}; }
+    void setValue(const QString& key, const QVariant& val) override {
+        lastKey = key; lastValue = val; setValueCalls++;
+    }
+    QVariant pluginValue(const QString&, const QString&) const override { return {}; }
+    void setPluginValue(const QString&, const QString&, const QVariant&) override {}
+    void save() override { saveCalls++; }
+
+    QString lastKey;
+    QVariant lastValue;
+    int setValueCalls = 0;
+    int saveCalls = 0;
+};
 
 class TestThemeService : public QObject {
     Q_OBJECT
@@ -1142,6 +1159,88 @@ private slots:
 
         // Wallpapers should be different (different theme dirs)
         QVERIFY(wpA != wpB);
+    }
+
+    // --- Config persistence tests ---
+
+    void setThemePersistsToConfig()
+    {
+        QTemporaryDir tmpDir;
+        QVERIFY(tmpDir.isValid());
+
+        QDir(tmpDir.path()).mkpath("test-theme");
+        {
+            QFile f(tmpDir.filePath("test-theme/theme.yaml"));
+            QVERIFY(f.open(QIODevice::WriteOnly));
+            QTextStream out(&f);
+            out << "id: test-theme\nname: Test Theme\nversion: 2.0.0\n"
+                << "day:\n  primary: \"#e94560\"\n  background: \"#1a1a2e\"\n"
+                << "night:\n  primary: \"#c73650\"\n  background: \"#0a0a14\"\n";
+            f.close();
+        }
+
+        MockConfigService mockConfig;
+        oap::ThemeService service;
+        service.setConfigService(&mockConfig);
+        service.scanThemeDirectories({tmpDir.path()});
+
+        QVERIFY(service.setTheme("test-theme"));
+        QCOMPARE(mockConfig.lastKey, QString("display.theme"));
+        QCOMPARE(mockConfig.lastValue.toString(), QString("test-theme"));
+        QCOMPARE(mockConfig.setValueCalls, 1);
+        QCOMPARE(mockConfig.saveCalls, 1);
+    }
+
+    void setThemeWithoutConfigService()
+    {
+        QTemporaryDir tmpDir;
+        QVERIFY(tmpDir.isValid());
+
+        QDir(tmpDir.path()).mkpath("test-theme");
+        {
+            QFile f(tmpDir.filePath("test-theme/theme.yaml"));
+            QVERIFY(f.open(QIODevice::WriteOnly));
+            QTextStream out(&f);
+            out << "id: test-theme\nname: Test Theme\nversion: 2.0.0\n"
+                << "day:\n  primary: \"#e94560\"\n  background: \"#1a1a2e\"\n"
+                << "night:\n  primary: \"#c73650\"\n  background: \"#0a0a14\"\n";
+            f.close();
+        }
+
+        oap::ThemeService service;
+        // No setConfigService call — configService_ is nullptr
+        service.scanThemeDirectories({tmpDir.path()});
+
+        // Should work without crash
+        QVERIFY(service.setTheme("test-theme"));
+        QCOMPARE(service.currentThemeId(), QString("test-theme"));
+    }
+
+    void setThemeInvalidDoesNotPersist()
+    {
+        QTemporaryDir tmpDir;
+        QVERIFY(tmpDir.isValid());
+
+        QDir(tmpDir.path()).mkpath("valid-theme");
+        {
+            QFile f(tmpDir.filePath("valid-theme/theme.yaml"));
+            QVERIFY(f.open(QIODevice::WriteOnly));
+            QTextStream out(&f);
+            out << "id: valid-theme\nname: Valid Theme\nversion: 2.0.0\n"
+                << "day:\n  primary: \"#e94560\"\n  background: \"#1a1a2e\"\n"
+                << "night:\n  primary: \"#c73650\"\n  background: \"#0a0a14\"\n";
+            f.close();
+        }
+
+        MockConfigService mockConfig;
+        oap::ThemeService service;
+        service.setConfigService(&mockConfig);
+        service.scanThemeDirectories({tmpDir.path()});
+
+        // Try setting a nonexistent theme
+        QVERIFY(!service.setTheme("nonexistent"));
+        QCOMPARE(mockConfig.setValueCalls, 0);
+        QCOMPARE(mockConfig.saveCalls, 0);
     }
 };
 

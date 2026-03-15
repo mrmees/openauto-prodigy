@@ -1,6 +1,7 @@
 #pragma once
 
 #include "IThemeService.hpp"
+#include "IConfigService.hpp"
 #include <QObject>
 #include <QColor>
 #include <QMap>
@@ -96,6 +97,9 @@ class ThemeService : public QObject, public IThemeService {
 
 public:
     explicit ThemeService(QObject* parent = nullptr);
+
+    /// Set the config service for persisting theme selection.
+    void setConfigService(IConfigService* svc) { configService_ = svc; }
 
     /// Load a theme from a directory containing theme.yaml.
     /// Returns false if the file doesn't exist or can't be parsed.
@@ -239,6 +243,7 @@ private:
     QColor activeColor(const QString& key) const;
     void rescanThemes();
 
+    IConfigService* configService_ = nullptr;
     QString themeId_;
     QString themeName_;
     QString fontFamily_;
