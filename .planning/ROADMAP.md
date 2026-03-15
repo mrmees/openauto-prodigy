@@ -88,7 +88,7 @@ Decimal phases appear between their surrounding integers in numeric order.
 
 - [x] **Phase 09: Widget Descriptor & Grid Foundation** - Enrich WidgetDescriptor with manifest metadata; replace fixed-pixel grid math with DPI-based physical sizing; add YAML grid migration infrastructure (completed 2026-03-14)
 - [x] **Phase 10: Launcher Widget & Dock Removal** - Create LauncherWidget as navigation replacement; remove LauncherDock and LauncherModel after verification (completed 2026-03-14)
-- [ ] **Phase 11: Widget Framework Polish** - Enforce size constraints from descriptors; add widget lifecycle signals; migrate pixel breakpoints to span-based thresholds
+- [ ] **Phase 11: Widget Framework Polish** - Enforce size constraints from descriptors; expose live span properties and load-state flag; migrate pixel breakpoints to span-based thresholds
 - [ ] **Phase 12: Documentation** - Developer guide covering widget manifest, registration, lifecycle, and sizing conventions; architecture decision records
 
 ## Phase Details
@@ -142,17 +142,17 @@ Plans:
 - [ ] 10.1-02-PLAN.md -- Page dots in navbar + PageIndicator removal from HomeMenu
 
 ### Phase 11: Widget Framework Polish
-**Goal**: Widgets behave predictably under resize, report lifecycle transitions, and scale their content based on grid span rather than absolute pixels
+**Goal**: Widgets behave predictably under resize, expose live span and load-state properties, and scale their content based on grid span rather than absolute pixels
 **Depends on**: Phase 09 (descriptor size constraints and grid dimensions must be finalized)
 **Requirements**: WF-02, WF-03, WF-04
 **Success Criteria** (what must be TRUE):
   1. Resizing a widget via drag is clamped to its declared min/max size -- WidgetGridModel enforces WidgetDescriptor constraints as single source of truth
-  2. WidgetHost emits lifecycle signals (created, resized, destroying) that widget QML can observe and react to
+  2. WidgetInstanceContext exposes live colSpan/rowSpan properties (with NOTIFY) and isCurrentPage load-state flag that widget QML can observe and react to
   3. All 4 existing widgets (Clock, AA Status, Now Playing, Navigation) use grid-span or UiMetrics-based thresholds instead of hardcoded pixel breakpoints
 **Plans**: 2 plans
 
 Plans:
-- [ ] 11-01-PLAN.md -- WidgetInstanceContext span properties + context injection in HomeMenu delegate
+- [x] 11-01-PLAN.md -- WidgetInstanceContext span properties + context injection in HomeMenu delegate
 - [ ] 11-02-PLAN.md -- Rewrite all 6 widgets to span-based contract (4 content + 2 launcher)
 
 ### Phase 12: Documentation
@@ -177,8 +177,8 @@ Phases execute in numeric order: 09 -> 10 -> 10.1 -> 11 -> 12
 | 09. Widget Descriptor & Grid Foundation | 3/3 | Complete    | 2026-03-14 |
 | 10. Launcher Widget & Dock Removal | 2/2 | Complete    | 2026-03-14 |
 | 10.1. Grid Spacing & Page Indicators | 2/2 | Complete    | 2026-03-14 |
-| 11. Widget Framework Polish | 0/2 | Not started | - |
+| 11. Widget Framework Polish | 1/2 | In progress | - |
 | 12. Documentation | 0/1 | Not started | - |
 
 ---
-*Last updated: 2026-03-14 -- Phase 11 planned*
+*Last updated: 2026-03-15 -- Phase 11 Plan 01 complete*

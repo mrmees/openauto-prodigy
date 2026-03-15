@@ -2,16 +2,16 @@
 gsd_state_version: 1.0
 milestone: v0.6
 milestone_name: milestone
-status: completed
-stopped_at: Completed 10.1-02-PLAN.md
-last_updated: "2026-03-14T23:06:56.098Z"
-last_activity: 2026-03-14 — Plan 10.1-02 executed (navbar page dots + PageIndicator removal)
+status: in-progress
+stopped_at: Phase 11 Plan 01 complete
+last_updated: "2026-03-15T01:12:39Z"
+last_activity: 2026-03-15 — Plan 11-01 executed (widget data contract + context injection)
 progress:
   total_phases: 5
   completed_phases: 3
-  total_plans: 7
-  completed_plans: 7
-  percent: 57
+  total_plans: 9
+  completed_plans: 8
+  percent: 64
 ---
 
 # Project State
@@ -21,23 +21,23 @@ progress:
 See: .planning/PROJECT.md (updated 2026-03-14)
 
 **Core value:** A person with a Raspberry Pi 4 and a touchscreen can install this, pair their phone, and get a reliable wireless Android Auto experience -- every time, without SSH.
-**Current focus:** v0.6.1 Phase 10 — Launcher Widget & Dock Removal
+**Current focus:** v0.6.1 Phase 11 — Widget Framework Polish
 
 ## Current Position
 
-Phase: 10.1 of 12 (Adjust Grid Spacing and Page Indicator Location)
-Plan: 2 of 2 complete
-Status: Phase Complete
-Last activity: 2026-03-14 — Plan 10.1-02 executed (navbar page dots + PageIndicator removal)
+Phase: 11 of 12 (Widget Framework Polish)
+Plan: 1 of 2 complete
+Status: In Progress
+Last activity: 2026-03-15 — Plan 11-01 executed (widget data contract + context injection)
 
-Progress: [██████░░░░] 57%
+Progress: [██████░░░░] 64%
 
 ## Performance Metrics
 
 **Velocity:**
-- Total plans completed: 7
-- Average duration: 10.9 min
-- Total execution time: 0.87 hours
+- Total plans completed: 8
+- Average duration: 10.7 min
+- Total execution time: 0.97 hours
 
 ## Accumulated Context
 
@@ -73,6 +73,9 @@ Progress: [██████░░░░] 57%
 - addPage shifts basePlacements_ alongside livePlacements_ for remap consistency
 - [Phase 10.1]: Single-pass snap threshold (not iterative packing) -- 60% waste against baseCellSide, no re-evaluation after cellSide shrinks
 - [Phase 10.1]: Clock as active page indicator -- leftDotCount = activePage, rightDotCount = pageCount - activePage - 1; P2 vertical overflow acknowledged
+- [Phase 11]: WidgetContextFactory as dedicated class (not on WidgetGridModel) -- keeps model pure data, factory owns IHostContext + cell geometry
+- [Phase 11]: cellSide as Q_PROPERTY on factory bound from QML -- stays reactive if grid resizes
+- [Phase 11]: Context injection via Loader.onLoaded + Binding elements for live span/isCurrentPage sync
 
 ### Blockers/Concerns
 
@@ -81,5 +84,5 @@ Progress: [██████░░░░] 57%
 
 ## Session Continuity
 
-Last session: 2026-03-14T21:55:22Z
-Stopped at: Completed 10.1-02-PLAN.md
+Last session: 2026-03-15T01:12:39Z
+Stopped at: Completed 11-01-PLAN.md
