@@ -1263,6 +1263,169 @@ private slots:
         QCOMPARE(mockConfig.saveCalls, 2);
     }
 
+    // --- Surface tint, warning tokens, night guardrail tests ---
+
+    void surfaceTintHighBlend()
+    {
+        oap::ThemeService service;
+        service.loadThemeFile(QFINDTESTDATA("data/themes/default/theme.yaml"));
+
+        // surfaceTintHigh = 88% surfaceContainerHigh + 12% primary
+        QColor sch = service.surfaceContainerHigh();
+        QColor p = service.primary();
+        int expectedR = qRound(0.88 * sch.red() + 0.12 * p.red());
+        int expectedG = qRound(0.88 * sch.green() + 0.12 * p.green());
+        int expectedB = qRound(0.88 * sch.blue() + 0.12 * p.blue());
+
+        QColor tint = service.surfaceTintHigh();
+        QVERIFY(qAbs(tint.red() - expectedR) <= 2);
+        QVERIFY(qAbs(tint.green() - expectedG) <= 2);
+        QVERIFY(qAbs(tint.blue() - expectedB) <= 2);
+    }
+
+    void surfaceTintHighestBlend()
+    {
+        oap::ThemeService service;
+        service.loadThemeFile(QFINDTESTDATA("data/themes/default/theme.yaml"));
+
+        // surfaceTintHighest = 88% surfaceContainerHighest + 12% primary
+        QColor sch = service.surfaceContainerHighest();
+        QColor p = service.primary();
+        int expectedR = qRound(0.88 * sch.red() + 0.12 * p.red());
+        int expectedG = qRound(0.88 * sch.green() + 0.12 * p.green());
+        int expectedB = qRound(0.88 * sch.blue() + 0.12 * p.blue());
+
+        QColor tint = service.surfaceTintHighest();
+        QVERIFY(qAbs(tint.red() - expectedR) <= 2);
+        QVERIFY(qAbs(tint.green() - expectedG) <= 2);
+        QVERIFY(qAbs(tint.blue() - expectedB) <= 2);
+    }
+
+    void warningTokens()
+    {
+        oap::ThemeService service;
+        QCOMPARE(service.warning(), QColor("#FF9800"));
+        QCOMPARE(service.onWarning(), QColor("#FFFFFF"));
+    }
+
+    void nightGuardrailClampsAccent()
+    {
+        // Use a theme with highly saturated primary in night mode
+        QTemporaryDir tmpDir;
+        QVERIFY(tmpDir.isValid());
+
+        QDir(tmpDir.path()).mkpath("saturated");
+        {
+            QFile f(tmpDir.filePath("saturated/theme.yaml"));
+            QVERIFY(f.open(QIODevice::WriteOnly));
+            QTextStream out(&f);
+            out << "id: saturated\nname: Saturated\nversion: 2.0.0\n"
+                << "day:\n  primary: \"#FF0000\"\n  background: \"#1a1a2e\"\n"
+                << "  surface-container: \"#1a2848\"\n"
+                << "night:\n  primary: \"#FF0000\"\n  background: \"#0a0a14\"\n"
+                << "  surface-container: \"#0e1830\"\n";
+            f.close();
+        }
+
+        oap::ThemeService service;
+        service.loadTheme(tmpDir.filePath("saturated"));
+
+        // Enable night mode
+        service.setForceDarkMode(true);
+        QVERIFY(service.nightMode());
+
+        // Night primary with saturation 1.0 should be clamped to <= 0.56
+        QColor p = service.primary();
+        QVERIFY2(p.hslSaturationF() <= 0.56,
+                 qPrintable(QString("Expected sat <= 0.56 but got %1").arg(p.hslSaturationF())));
+    }
+
+    void nightGuardrailPreservesHueAndLightness()
+    {
+        QTemporaryDir tmpDir;
+        QVERIFY(tmpDir.isValid());
+
+        QDir(tmpDir.path()).mkpath("saturated");
+        {
+            QFile f(tmpDir.filePath("saturated/theme.yaml"));
+            QVERIFY(f.open(QIODevice::WriteOnly));
+            QTextStream out(&f);
+            out << "id: saturated\nname: Saturated\nversion: 2.0.0\n"
+                << "day:\n  primary: \"#FF0000\"\n  background: \"#1a1a2e\"\n"
+                << "night:\n  primary: \"#FF0000\"\n  background: \"#0a0a14\"\n";
+            f.close();
+        }
+
+        oap::ThemeService service;
+        service.loadTheme(tmpDir.filePath("saturated"));
+
+        // Get original hue/lightness before guardrail
+        QColor original("#FF0000");
+
+        service.setForceDarkMode(true);
+        QColor clamped = service.primary();
+
+        // Hue and lightness should be preserved within 0.01
+        QVERIFY2(qAbs(clamped.hslHueF() - original.hslHueF()) < 0.01,
+                 qPrintable(QString("Hue drift: original=%1 clamped=%2")
+                     .arg(original.hslHueF()).arg(clamped.hslHueF())));
+        QVERIFY2(qAbs(clamped.lightnessF() - original.lightnessF()) < 0.01,
+                 qPrintable(QString("Lightness drift: original=%1 clamped=%2")
+                     .arg(original.lightnessF()).arg(clamped.lightnessF())));
+    }
+
+    void nightGuardrailSkipsNonAccent()
+    {
+        QTemporaryDir tmpDir;
+        QVERIFY(tmpDir.isValid());
+
+        QDir(tmpDir.path()).mkpath("saturated");
+        {
+            QFile f(tmpDir.filePath("saturated/theme.yaml"));
+            QVERIFY(f.open(QIODevice::WriteOnly));
+            QTextStream out(&f);
+            out << "id: saturated\nname: Saturated\nversion: 2.0.0\n"
+                << "day:\n  primary: \"#FF0000\"\n  background: \"#1a1a2e\"\n"
+                << "  surface-container: \"#FF0000\"\n"
+                << "night:\n  primary: \"#FF0000\"\n  background: \"#0a0a14\"\n"
+                << "  surface-container: \"#FF0000\"\n";
+            f.close();
+        }
+
+        oap::ThemeService service;
+        service.loadTheme(tmpDir.filePath("saturated"));
+        service.setForceDarkMode(true);
+
+        // surface-container is NOT an accent role — should NOT be clamped
+        QColor sc = service.surfaceContainer();
+        QCOMPARE(sc, QColor("#FF0000"));
+    }
+
+    void dayModeNoGuardrail()
+    {
+        QTemporaryDir tmpDir;
+        QVERIFY(tmpDir.isValid());
+
+        QDir(tmpDir.path()).mkpath("saturated");
+        {
+            QFile f(tmpDir.filePath("saturated/theme.yaml"));
+            QVERIFY(f.open(QIODevice::WriteOnly));
+            QTextStream out(&f);
+            out << "id: saturated\nname: Saturated\nversion: 2.0.0\n"
+                << "day:\n  primary: \"#FF0000\"\n  background: \"#1a1a2e\"\n"
+                << "night:\n  primary: \"#FF0000\"\n  background: \"#0a0a14\"\n";
+            f.close();
+        }
+
+        oap::ThemeService service;
+        service.loadTheme(tmpDir.filePath("saturated"));
+
+        // Day mode (default) — no guardrail
+        QVERIFY(!service.nightMode());
+        QColor p = service.primary();
+        QCOMPARE(p, QColor("#FF0000"));
+    }
+
     void importCompanionThemeClearsWallpaperOverrideInConfig()
     {
         QTemporaryDir tmpDir;
