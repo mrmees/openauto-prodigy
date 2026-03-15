@@ -297,6 +297,7 @@ Item {
                 MouseArea {
                     id: delegateMouseArea
                     anchors.fill: parent
+                    propagateComposedEvents: true
                     onClicked: {
                         root.currentIndex = index
 
