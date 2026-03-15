@@ -163,9 +163,9 @@ Item {
         // Position at bottom of window, full width, ~60% height
         parent: Overlay.overlay
         x: 0
-        y: parent ? parent.height * 0.4 : 0
+        y: 0
         width: parent ? parent.width : 0
-        height: parent ? parent.height * 0.6 : 0
+        height: parent ? parent.height : 0
 
         padding: 0
         topPadding: 0
@@ -173,15 +173,6 @@ Item {
 
         background: Rectangle {
             color: ThemeService.surface
-            radius: UiMetrics.radius
-            // Only round top corners
-            Rectangle {
-                anchors.bottom: parent.bottom
-                anchors.left: parent.left
-                anchors.right: parent.right
-                height: UiMetrics.radius
-                color: parent.color
-            }
         }
 
         header: Item {
