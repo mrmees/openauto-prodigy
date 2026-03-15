@@ -16,7 +16,7 @@ Make wallpaper a stable full-screen visual layer that fills the entire display r
 ### Layout model
 - Wallpaper is a full-screen visual layer anchored to the root shell, NOT the navbar-inset content area
 - Navbar overlays on top of the wallpaper — wallpaper extends behind it
-- This requires moving Wallpaper from inside pluginContentHost (Shell.qml:29) to a root-level layer in Shell.qml
+- This requires moving Wallpaper from inside pluginContentHost (inside pluginContentHost in Shell.qml) to a root-level layer in Shell.qml
 - An exact-screen-size wallpaper must remain visually centered when navbar position changes (top/bottom/left/right)
 
 ### Crop and scaling
@@ -34,8 +34,11 @@ Make wallpaper a stable full-screen visual layer that fills the entire display r
 - Original file stays full resolution on disk — sourceSize only affects decode-time texture allocation
 - `clip: true` to prevent PreserveAspectCrop painting outside bounds
 
+### Z-ordering
+- Wallpaper sits behind all content: behind pluginContentHost (home/settings/plugin views), behind navbar, behind overlays
+- Stack from back to front: wallpaper → content area → navbar → overlays (gesture, picker, dialogs)
+
 ### Claude's Discretion
-- Exact z-ordering of the wallpaper layer relative to other root shell children
 - Whether to add a small margin to sourceSize for subpixel filtering (probably not worth it)
 
 </decisions>
