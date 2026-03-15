@@ -18,6 +18,7 @@
 - [design-decisions.md](design-decisions.md) — architectural choices and rationale
 - [design-philosophy.md](design-philosophy.md) — core design principles (detailed)
 - [plugin-api.md](plugin-api.md) — IPlugin interface, lifecycle, IHostContext
+- [widget-developer-guide.md](widget-developer-guide.md) — widget development tutorial and manifest reference
 - [hfp-stack-spike.md](hfp-stack-spike.md) — HFP audio routing research
 - [release-packaging.md](release-packaging.md) — prebuilt release naming and archive conventions
 - [debugging-notes.md](debugging-notes.md) — common issues and fixes
