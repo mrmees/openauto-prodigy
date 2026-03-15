@@ -227,6 +227,7 @@ void WidgetGridModel::setWidgetOpacity(const QString& instanceId, double opacity
     if (idx < 0) return;
 
     livePlacements_[idx].opacity = qBound(0.0, opacity, 1.0);
+    promoteToBase();
     QModelIndex mi = index(idx);
     emit dataChanged(mi, mi, {OpacityRole});
     emit placementsChanged();

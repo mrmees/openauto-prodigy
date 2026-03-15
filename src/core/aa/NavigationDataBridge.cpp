@@ -116,22 +116,20 @@ QString NavigationDataBridge::formattedDistance() const
 
     // Fallback: compute from NavigationTurnEvent data (legacy phones)
     // Uses same AA Distance.displayUnit enum as above
+    // AA proto DistanceDisplayUnit enum:
+    // 1=METERS, 2=KILOMETERS, 3=MILES, 4=FEET, 5=YARDS
     switch (distanceUnit_) {
-    case 1: // meters
+    case 1: // METERS
         if (distanceMeters_ >= 1000)
             return QString::number(distanceMeters_ / 1000.0, 'f', 1) + " km";
         return QString::number(distanceMeters_) + " m";
-    case 2: // km
+    case 2: // KILOMETERS
         return QString::number(distanceMeters_ / 1000.0, 'f', 1) + " km";
-    case 3: // km P1
-        return QString::number(distanceMeters_ / 1000.0, 'f', 1) + " km";
-    case 4: // miles
+    case 3: // MILES
         return QString::number(distanceMeters_ / 1609.34, 'f', 1) + " mi";
-    case 5: // miles P1
-        return QString::number(distanceMeters_ / 1609.34, 'f', 1) + " mi";
-    case 6: // feet
+    case 4: // FEET
         return QString::number(qRound(distanceMeters_ * 3.28084)) + " ft";
-    case 7: // yards
+    case 5: // YARDS
         return QString::number(qRound(distanceMeters_ / 0.9144)) + " yd";
     default:
         return QString::number(distanceMeters_) + " m";
