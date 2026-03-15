@@ -88,6 +88,7 @@ See .planning/milestones/v0.6-ROADMAP.md for archived details.
 ### Phases
 
 - [x] **Phase 13: Wallpaper Hardening** - Cap texture memory, eliminate paint-outside-bounds, prevent transition flicker — always cover-fit (completed 2026-03-15)
+- [ ] **Phase 13.1: Quick Bugfix for Companion App** - Fix stale client blocking reconnects, add socket error handling and inactivity timeout (INSERTED)
 - [ ] **Phase 14: Color Audit & M3 Expressive Tokens** - Fix confirmed on-* token pairings, apply NavbarControl active state fix, update interactive controls to use bolder accent colors
 - [ ] **Phase 15: Color Boldness Slider** - ThemeService colorBoldness property, HSL saturation helper for accent roles, settings UI with persistence
 
@@ -109,13 +110,13 @@ Plans:
 
 ### Phase 13.1: Quick Bugfix for Companion App (INSERTED)
 
-**Goal:** [Urgent work - to be planned]
-**Requirements**: TBD
+**Goal:** Fix stale CompanionListenerService client blocking all future companion reconnects via idempotent cleanup, always-replace, socket error handling, and inactivity timeout
+**Requirements**: BF-01, BF-02, BF-03, BF-04
 **Depends on:** Phase 13
-**Plans:** 1/1 plans complete
+**Plans:** 1 plan
 
 Plans:
-- [ ] TBD (run /gsd:plan-phase 13.1 to break down)
+- [ ] 13.1-01-PLAN.md — Harden companion reconnect with clearClientSession, always-replace, errorOccurred, and 30s inactivity timeout
 
 ### Phase 14: Color Audit & M3 Expressive Tokens
 **Goal**: All interactive surfaces with accent-colored backgrounds have correct on-* foreground tokens, NavbarControl active state uses the right M3 pair, and widget/tile/control colors use bolder accent values from the M3 Expressive palette
@@ -129,7 +130,7 @@ Plans:
 **Plans**: 1 plan
 
 Plans:
-- [ ] 13-01-PLAN.md — Harden Wallpaper.qml + move to root shell layer
+- [ ] 14-01-PLAN.md — TBD (run /gsd:plan-phase 14 to break down)
 
 ### Phase 15: Color Boldness Slider
 **Goal**: Users can dial in how bold the accent colors appear, stored across restarts, working on both bundled and companion-imported themes
@@ -143,15 +144,16 @@ Plans:
 **Plans**: 1 plan
 
 Plans:
-- [ ] 13-01-PLAN.md — Harden Wallpaper.qml + move to root shell layer
+- [ ] 15-01-PLAN.md — TBD (run /gsd:plan-phase 15 to break down)
 
 ## Progress
 
 | Phase | Milestone | Plans Complete | Status | Completed |
 |-------|-----------|----------------|--------|-----------|
 | 13. Wallpaper Hardening | 1/1 | Complete    | 2026-03-15 | - |
+| 13.1. Quick Bugfix for Companion App | v0.6.2 | 0/1 | Planned | - |
 | 14. Color Audit & M3 Expressive Tokens | v0.6.2 | 0/TBD | Not started | - |
 | 15. Color Boldness Slider | v0.6.2 | 0/TBD | Not started | - |
 
 ---
-*Last updated: 2026-03-15 — v0.6.2 roadmap created*
+*Last updated: 2026-03-15 — Phase 13.1 planned*

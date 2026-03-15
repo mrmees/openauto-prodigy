@@ -4,6 +4,13 @@
 
 - [x] **WP-01**: Wallpaper Image caps decoded texture to display dimensions via sourceSize, clips overflow, retains previous image during transitions, and always fills the screen without letterboxing
 
+## Companion Bugfix (BF)
+
+- [ ] **BF-01**: New companion connection replaces stale client instead of rejecting, with diagnostic logging
+- [ ] **BF-02**: Socket errorOccurred triggers full session cleanup via shared idempotent path
+- [ ] **BF-03**: 30-second inactivity timeout (from last valid status message) triggers session teardown
+- [ ] **BF-04**: clearClientSession() is idempotent — double-call safe, no double-emit, no crash
+
 ## Color Audit (CA)
 
 - [ ] **CA-01**: All QML surfaces using accent-colored backgrounds have matching `on-*` foreground tokens (e.g., primary background uses onPrimary text, not onSurface)
@@ -24,12 +31,19 @@
 | HCT color math (material-color-utilities port) | HSL saturation multiplier is sufficient; companion app handles proper HCT |
 | Stretch fill mode | Distorts images — anti-feature |
 | Color boldness on neutral/surface roles | Would break glass widget card aesthetic |
+| Theme import fix | Separate investigation — may be companion-side or protocol mismatch |
+| Manual "clear companion session" UI | Not needed with always-replace logic |
+| Companion protocol versioning | Future resilience, not urgent |
 
 ## Traceability
 
 | Requirement | Phase | Status |
 |-------------|-------|--------|
 | WP-01 | Phase 13 | Complete |
+| BF-01 | Phase 13.1 | Pending |
+| BF-02 | Phase 13.1 | Pending |
+| BF-03 | Phase 13.1 | Pending |
+| BF-04 | Phase 13.1 | Pending |
 | CA-01 | Phase 14 | Pending |
 | CA-02 | Phase 14 | Pending |
 | CA-03 | Phase 14 | Pending |
@@ -37,10 +51,10 @@
 | CB-02 | Phase 15 | Pending |
 
 **Coverage:**
-- v0.6.2 requirements: 6 total
-- Mapped to phases: 6
+- v0.6.2 requirements: 10 total
+- Mapped to phases: 10
 - Unmapped: 0
 
 ---
 *Requirements defined: 2026-03-15*
-*Last updated: 2026-03-15 — traceability mapped to phases 13-15*
+*Last updated: 2026-03-15 — BF requirements added for Phase 13.1*
