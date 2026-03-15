@@ -138,10 +138,11 @@ Plans:
   2. The active/pressed navbar control shows a distinctly colored fill (primaryContainer) with appropriately contrasting foreground (onPrimaryContainer), visually distinct from inactive controls
   3. Widget cards, settings tiles, and interactive controls show noticeably bolder accent colors compared to pre-milestone neutral-only surfaces
   4. Night mode primary color is visually comfortable at arm's length in a dark environment — not a glare source
-**Plans**: 1 plan
+**Plans**: 2 plans
 
 Plans:
-- [ ] 14-01-PLAN.md — TBD (run /gsd:plan-phase 14 to break down)
+- [ ] 14-01-PLAN.md — ThemeService C++ infrastructure: tint properties, warning tokens, night guardrail
+- [ ] 14-02-PLAN.md — QML color audit fixes, token pairings, state matrix document
 
 ### Phase 15: Color Boldness Slider
 **Goal**: Users can dial in how bold the accent colors appear, stored across restarts, working on both bundled and companion-imported themes
@@ -164,8 +165,8 @@ Plans:
 | 13. Wallpaper Hardening | 1/1 | Complete    | 2026-03-15 | - |
 | 13.1. Quick Bugfix for Companion App | 1/1 | Complete    | 2026-03-15 | - |
 | 13.2. Fix Theme Persistence & Wallpaper UX | 1/1 | Complete    | 2026-03-15 | - |
-| 14. Color Audit & M3 Expressive Tokens | v0.6.2 | 0/TBD | Not started | - |
+| 14. Color Audit & M3 Expressive Tokens | v0.6.2 | 0/2 | Planned | - |
 | 15. Color Boldness Slider | v0.6.2 | 0/TBD | Not started | - |
 
 ---
-*Last updated: 2026-03-15 — Phase 13.2 planned*
+*Last updated: 2026-03-15 — Phase 14 planned (2 plans, 2 waves)*
