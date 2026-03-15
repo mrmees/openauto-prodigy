@@ -21,8 +21,8 @@
 
 ## Documentation (DOC)
 
-- [ ] **DOC-01**: Plugin-widget developer guide covers manifest spec, registration API, lifecycle, and sizing conventions
-- [ ] **DOC-02**: Architecture decision records document key design choices for future contributors
+- [x] **DOC-01**: Plugin-widget developer guide covers manifest spec, registration API, lifecycle, and sizing conventions
+- [x] **DOC-02**: Architecture decision records document key design choices for future contributors
 
 ## Future Requirements
 
@@ -49,5 +49,5 @@ _None deferred from this milestone._
 | NAV-01 | Phase 10 | Complete |
 | NAV-02 | Phase 10 | Complete |
 | NAV-03 | Phase 10 | Complete |
-| DOC-01 | Phase 12 | Pending |
-| DOC-02 | Phase 12 | Pending |
+| DOC-01 | Phase 12 | Complete |
+| DOC-02 | Phase 12 | Complete |

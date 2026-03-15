@@ -3,14 +3,14 @@ gsd_state_version: 1.0
 milestone: v0.6
 milestone_name: milestone
 status: completed
-stopped_at: Completed 11-02-PLAN.md
-last_updated: "2026-03-15T01:32:00.635Z"
-last_activity: 2026-03-15 — Plan 11-02 executed (widget QML rewrite to formalized contract)
+stopped_at: Completed 12-01-PLAN.md
+last_updated: "2026-03-15T02:43:43.225Z"
+last_activity: "2026-03-15 — Plan 12-01 executed (documentation: widget developer guide + ADRs)"
 progress:
   total_phases: 5
-  completed_phases: 4
-  total_plans: 9
-  completed_plans: 9
+  completed_phases: 5
+  total_plans: 10
+  completed_plans: 10
   percent: 100
 ---
 
@@ -21,14 +21,14 @@ progress:
 See: .planning/PROJECT.md (updated 2026-03-14)
 
 **Core value:** A person with a Raspberry Pi 4 and a touchscreen can install this, pair their phone, and get a reliable wireless Android Auto experience -- every time, without SSH.
-**Current focus:** v0.6.1 Phase 11 — Widget Framework Polish
+**Current focus:** v0.6.1 Phase 12 — Documentation (Complete)
 
 ## Current Position
 
-Phase: 11 of 12 (Widget Framework Polish)
-Plan: 2 of 2 complete
-Status: Phase 11 Complete
-Last activity: 2026-03-15 — Plan 11-02 executed (widget QML rewrite to formalized contract)
+Phase: 12 of 12 (Documentation)
+Plan: 1 of 1 complete
+Status: Phase 12 Complete — All phases done
+Last activity: 2026-03-15 — Plan 12-01 executed (documentation: widget developer guide + ADRs)
 
 Progress: [██████████] 100%
 
@@ -77,6 +77,7 @@ Progress: [██████████] 100%
 - [Phase 11]: cellSide as Q_PROPERTY on factory bound from QML -- stays reactive if grid resizes
 - [Phase 11]: Context injection via Loader.onLoaded + Binding elements for live span/isCurrentPage sync
 - [Phase 11]: NowPlayingWidget media transport controls stay as typed provider methods, not ActionRegistry candidates
+- [Phase 12]: Widget developer guide covers both local-customizer and experimental dynamic-plugin paths
 
 ### Blockers/Concerns
 
@@ -85,5 +86,5 @@ Progress: [██████████] 100%
 
 ## Session Continuity
 
-Last session: 2026-03-15T01:20:00.316Z
-Stopped at: Completed 11-02-PLAN.md
+Last session: 2026-03-15T02:36:46Z
+Stopped at: Completed 12-01-PLAN.md

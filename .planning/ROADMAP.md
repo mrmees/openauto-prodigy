@@ -89,7 +89,7 @@ Decimal phases appear between their surrounding integers in numeric order.
 - [x] **Phase 09: Widget Descriptor & Grid Foundation** - Enrich WidgetDescriptor with manifest metadata; replace fixed-pixel grid math with DPI-based physical sizing; add YAML grid migration infrastructure (completed 2026-03-14)
 - [x] **Phase 10: Launcher Widget & Dock Removal** - Create LauncherWidget as navigation replacement; remove LauncherDock and LauncherModel after verification (completed 2026-03-14)
 - [x] **Phase 11: Widget Framework Polish** - Enforce size constraints from descriptors; expose live span properties and load-state flag; migrate pixel breakpoints to span-based thresholds (completed 2026-03-15)
-- [ ] **Phase 12: Documentation** - Developer guide covering widget manifest, registration, lifecycle, and sizing conventions; architecture decision records
+- [x] **Phase 12: Documentation** - Developer guide covering widget manifest, registration, lifecycle, and sizing conventions; architecture decision records (completed 2026-03-15)
 
 ## Phase Details
 
@@ -178,7 +178,7 @@ Phases execute in numeric order: 09 -> 10 -> 10.1 -> 11 -> 12
 | 10. Launcher Widget & Dock Removal | 2/2 | Complete    | 2026-03-14 |
 | 10.1. Grid Spacing & Page Indicators | 2/2 | Complete    | 2026-03-14 |
 | 11. Widget Framework Polish | 2/2 | Complete    | 2026-03-15 |
-| 12. Documentation | 0/1 | Not started | - |
+| 12. Documentation | 1/1 | Complete   | 2026-03-15 |
 
 ---
 *Last updated: 2026-03-15 -- Phase 12 planned*
