@@ -204,6 +204,70 @@ private slots:
         QCOMPARE(bridge.formattedDistance(), QString("250 m"));
     }
 
+    // --- Modern 0x8007 path (navigationDistanceChanged) ---
+
+    void testModernDistanceMiles() {
+        oaa::hu::NavigationChannelHandler handler;
+        oap::aa::NavigationDataBridge bridge;
+        bridge.connectToHandler(&handler);
+
+        emit handler.navigationDistanceChanged("0.3", 3); // MILES
+        QCOMPARE(bridge.formattedDistance(), QString("0.3 mi"));
+    }
+
+    void testModernDistanceFeet() {
+        oaa::hu::NavigationChannelHandler handler;
+        oap::aa::NavigationDataBridge bridge;
+        bridge.connectToHandler(&handler);
+
+        emit handler.navigationDistanceChanged("500", 4); // FEET
+        QCOMPARE(bridge.formattedDistance(), QString("500 ft"));
+    }
+
+    void testModernDistanceYards() {
+        oaa::hu::NavigationChannelHandler handler;
+        oap::aa::NavigationDataBridge bridge;
+        bridge.connectToHandler(&handler);
+
+        emit handler.navigationDistanceChanged("200", 5); // YARDS
+        QCOMPARE(bridge.formattedDistance(), QString("200 yd"));
+    }
+
+    void testModernDistanceKm() {
+        oaa::hu::NavigationChannelHandler handler;
+        oap::aa::NavigationDataBridge bridge;
+        bridge.connectToHandler(&handler);
+
+        emit handler.navigationDistanceChanged("1.5", 2); // KILOMETERS
+        QCOMPARE(bridge.formattedDistance(), QString("1.5 km"));
+    }
+
+    void testModernDistanceUnknownUnit6() {
+        // DISTANCE_UNIT_UNKNOWN_6 observed on wire (stationary, display_text="0").
+        // Phone controls the text — we return it as-is without a suffix.
+        oaa::hu::NavigationChannelHandler handler;
+        oap::aa::NavigationDataBridge bridge;
+        bridge.connectToHandler(&handler);
+
+        emit handler.navigationDistanceChanged("0", 6);
+        QCOMPARE(bridge.formattedDistance(), QString("0"));
+    }
+
+    void testModernDistanceOverridesLegacy() {
+        // Modern path (phoneDistanceText_) takes priority over legacy fallback
+        oaa::hu::NavigationChannelHandler handler;
+        oap::aa::NavigationDataBridge bridge;
+        bridge.connectToHandler(&handler);
+
+        // Set legacy data first
+        emit handler.navigationTurnEvent("", 0, 0, QByteArray(), 1609, 3);
+        QCOMPARE(bridge.formattedDistance(), QString("1.0 mi"));
+
+        // Modern data overrides
+        emit handler.navigationDistanceChanged("1.0", 3);
+        QCOMPARE(bridge.formattedDistance(), QString("1.0 mi"));
+    }
+
     void testImplementsINavigationProvider() {
         oap::aa::NavigationDataBridge bridge;
         oap::INavigationProvider* provider = &bridge;
