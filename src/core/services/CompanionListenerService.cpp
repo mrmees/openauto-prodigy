@@ -20,6 +20,17 @@ namespace oap {
 CompanionListenerService::CompanionListenerService(QObject* parent)
     : QObject(parent)
 {
+    inactivityTimer_ = new QTimer(this);
+    inactivityTimer_->setSingleShot(true);
+    inactivityTimer_->setInterval(inactivityTimeoutMs_);
+    connect(inactivityTimer_, &QTimer::timeout, this, [this]() {
+        if (client_) {
+            qCWarning(lcCore) << "Companion: inactivity timeout ("
+                              << inactivityTimer_->interval() << "ms), disconnecting"
+                              << client_->peerAddress().toString() << ":" << client_->peerPort();
+            clearClientSession();
+        }
+    });
 }
 
 CompanionListenerService::~CompanionListenerService()
@@ -46,27 +57,11 @@ bool CompanionListenerService::start(int port)
 
 void CompanionListenerService::stop()
 {
-    if (client_) {
-        client_->disconnectFromHost();
-        client_ = nullptr;
-    }
+    clearClientSession();
     if (server_) {
         server_->close();
         delete server_;
         server_ = nullptr;
-    }
-    sessionKey_.clear();
-    lastSeq_ = -1;
-
-    if (gpsLat_ != 0.0 || phoneBattery_ != -1 || internetAvailable_) {
-        gpsLat_ = 0.0; gpsLon_ = 0.0; gpsSpeed_ = 0.0;
-        gpsAccuracy_ = 0.0; gpsBearing_ = 0.0; gpsAgeMs_ = -1;
-        phoneBattery_ = -1; phoneCharging_ = false;
-        internetAvailable_ = false; proxyAddress_.clear();
-        emit gpsChanged();
-        emit batteryChanged();
-        emit internetChanged();
-        emit connectedChanged();
     }
 }
 
@@ -82,8 +77,8 @@ void CompanionListenerService::setSharedSecret(const QString& secret)
 
 void CompanionListenerService::setInactivityTimeout(int ms)
 {
-    Q_UNUSED(ms)
-    // Stub — will be implemented in Task 2
+    inactivityTimeoutMs_ = ms;
+    inactivityTimer_->setInterval(ms);
 }
 
 void CompanionListenerService::loadOrGenerateVehicleId()
@@ -196,13 +191,13 @@ QByteArray CompanionListenerService::generateQrPng(const QString& payload)
 void CompanionListenerService::onNewConnection()
 {
     auto* pending = server_->nextPendingConnection();
+
     if (client_) {
-        // Reject — only one companion at a time
-        pending->write("{\"type\":\"error\",\"msg\":\"already connected\"}\n");
-        pending->flush();
-        pending->disconnectFromHost();
-        pending->deleteLater();
-        return;
+        qCWarning(lcCore) << "Companion: replacing stale client"
+                          << client_->peerAddress().toString() << ":" << client_->peerPort()
+                          << "with" << pending->peerAddress().toString() << ":" << pending->peerPort()
+                          << "reason=replaced_by_new_connection";
+        clearClientSession();
     }
 
     client_ = pending;
@@ -210,7 +205,14 @@ void CompanionListenerService::onNewConnection()
             this, &CompanionListenerService::onClientReadyRead);
     connect(client_, &QTcpSocket::disconnected,
             this, &CompanionListenerService::onClientDisconnected);
+    connect(client_, &QAbstractSocket::errorOccurred, this,
+            [this](QAbstractSocket::SocketError err) {
+        qCWarning(lcCore) << "Companion: socket error" << err
+                          << (client_ ? client_->errorString() : QStringLiteral("no client"));
+        clearClientSession();
+    });
 
+    inactivityTimer_->start();
     sendChallenge();
 }
 
@@ -314,6 +316,7 @@ void CompanionListenerService::onClientReadyRead()
                 continue;
             }
             qCInfo(lcCore) << "Companion: valid status message received";
+            inactivityTimer_->start();  // Reset inactivity countdown on valid status
             handleStatus(msg);
         } else if (type == "theme") {
             if (sessionKey_.isEmpty()) {
@@ -656,12 +659,28 @@ void CompanionListenerService::applyReceivedTheme()
 
 void CompanionListenerService::onClientDisconnected()
 {
+    qCInfo(lcCore) << "Companion: client disconnected";
+    clearClientSession();
+}
+
+void CompanionListenerService::clearClientSession()
+{
+    if (!client_) return;
+
+    // Disconnect signals BEFORE abort to prevent re-entrant signal emission
+    client_->disconnect(this);
+
+    client_->abort();
     client_->deleteLater();
     client_ = nullptr;
+
     sessionKey_.clear();
     lastSeq_ = -1;
 
-    // Clear all state
+    // Stop inactivity timer
+    inactivityTimer_->stop();
+
+    // Clear all published state
     gpsLat_ = 0.0; gpsLon_ = 0.0; gpsSpeed_ = 0.0;
     gpsAccuracy_ = 0.0; gpsBearing_ = 0.0; gpsAgeMs_ = -1;
     phoneBattery_ = -1; phoneCharging_ = false;
@@ -673,6 +692,7 @@ void CompanionListenerService::onClientDisconnected()
     pendingThemeJson_ = QJsonObject();
     expectedWallpaperChunks_ = 0;
     receivedWallpaperChunks_ = 0;
+
     if (systemClient_)
         systemClient_->setProxyRoute(false);
 

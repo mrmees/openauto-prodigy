@@ -4,6 +4,32 @@ Newest entries first.
 
 ---
 
+## 2026-03-15 — Companion reconnect hardening (Phase 13.1)
+
+**What changed:**
+- Extracted idempotent `clearClientSession()` from `onClientDisconnected()` body
+- `onNewConnection()` now always-replaces stale client instead of rejecting with "already connected"
+- Connected `QAbstractSocket::errorOccurred` signal to `clearClientSession()` for RST/error cleanup
+- Added 30-second inactivity timer (resets on valid MAC-verified status messages)
+- All 4 teardown triggers (disconnect, error, timeout, replace) route through single cleanup path
+- `client_->disconnect(this)` called BEFORE `client_->abort()` to prevent signal re-entrancy
+- Added `setInactivityTimeout(int ms)` for test configurability
+- 4 new tests: alwaysReplaceStaleClient, cleanupIdempotent, inactivityTimeout, errorOccurredTriggersCleanup
+
+**Why:**
+- Companion app could not reconnect after WiFi drops or app restarts. The Pi-side service held a stale `client_` pointer that never fired `disconnected` (TCP half-open), permanently rejecting new connections.
+
+**Status:** 86/86 tests pass. Cross-build succeeds. Binary deployed to Pi via rsync.
+
+**Manual Pi verification needed:**
+1. Connect companion app normally, verify status indicators appear
+2. Force-stop companion app on phone, relaunch -- verify reconnect succeeds immediately (no "Connection problem")
+3. Toggle phone WiFi off/on -- verify reconnect after WiFi re-associates
+4. Wait 30+ seconds with companion app killed -- verify GPS/battery/internet indicators reset to defaults
+5. Check `journalctl -u openauto-prodigy.service` for "replacing stale client" and "inactivity timeout" log messages
+
+---
+
 ## 2026-03-14 — Page dots moved to navbar, PageIndicator deleted from HomeMenu
 
 **What changed:**
@@ -837,3 +863,28 @@ Documentation:
   - Passed (`Build complete: build-pi/src/openauto-prodigy`).
 - Review:
   - Parallel code review found no defects in the extraction itself; residual risk was missing fallback-path test coverage, which is now covered by `test_hostapd_config`.
+
+---
+
+## 2026-03-15 — Deploy Hostapd Credential Sync Fix To Pi
+
+**What changed:**
+- Deployed the committed hostapd credential sync build (`2d48f6a`) to the Pi at `192.168.1.152`.
+- Restarted `openauto-prodigy.service` after copying the new binary into `~/openauto-prodigy/build/src/`.
+
+**Why:**
+- The hostapd credential sync fix was already verified locally and cross-built; Pi deployment was the remaining runtime step needed to get the corrected WiFi password behavior onto hardware.
+
+**Status:** Deployment complete. Pi service restarted and is active. Wireless AA behavior still needs real hardware validation.
+
+**Next steps:**
+1. Re-test wireless Android Auto on the Pi and confirm the phone receives the correct WPA passphrase during the Bluetooth handshake.
+2. If AA still fails after credential exchange, inspect Pi logs around BT discovery and WiFi/TCP bring-up.
+
+**Verification commands/results:**
+- `rsync -av build-pi/src/openauto-prodigy matt@192.168.1.152:~/openauto-prodigy/build/src/`
+  - Passed
+- `ssh matt@192.168.1.152 'sudo systemctl restart openauto-prodigy.service && systemctl is-active openauto-prodigy.service && systemctl show -p ActiveEnterTimestamp --value openauto-prodigy.service'`
+  - Passed
+  - `active`
+  - `Sun 2026-03-15 09:34:09 CDT`

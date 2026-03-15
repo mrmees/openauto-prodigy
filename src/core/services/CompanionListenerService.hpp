@@ -2,6 +2,7 @@
 #include <QObject>
 #include <QTcpServer>
 #include <QTcpSocket>
+#include <QTimer>
 #include <QJsonObject>
 #include <QByteArray>
 #include <QUuid>
@@ -88,6 +89,7 @@ private:
     QByteArray generateQrPng(const QString& payload);
     QString socks5Password() const;
     void syncProxyRouteFromStatus(bool active, const QString& host, int port, const QString& password);
+    void clearClientSession();
     void handleThemeMessage(const QJsonObject& msg);
     void handleThemeDataChunk(const QJsonObject& msg);
     void applyReceivedTheme();
@@ -128,6 +130,10 @@ private:
     ThemeService* themeService_ = nullptr;
     int displayWidth_ = 1024;
     int displayHeight_ = 600;
+
+    // Inactivity timer
+    QTimer* inactivityTimer_ = nullptr;
+    int inactivityTimeoutMs_ = 30000;
 
     // Time safety
     int backwardJumpCount_ = 0;
