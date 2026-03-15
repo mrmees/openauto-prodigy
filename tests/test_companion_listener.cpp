@@ -9,6 +9,7 @@
 #include <QMessageAuthenticationCode>
 #include <QCryptographicHash>
 #include <QTemporaryDir>
+#include <sys/socket.h>
 #include "core/services/CompanionListenerService.hpp"
 #include "core/services/ThemeService.hpp"
 
@@ -545,6 +546,171 @@ private slots:
         QCOMPARE(themeService.primaryContainer(), QColor("#aabbcc"));
         QCOMPARE(themeService.onSurface(), QColor("#112233"));
         QCOMPARE(themeService.surfaceContainerHighest(), QColor("#ffeedd"));
+
+        svc.stop();
+    }
+
+    // --- Phase 13.1: Companion reconnect hardening tests ---
+
+    void alwaysReplaceStaleClient()
+    {
+        oap::CompanionListenerService svc;
+        svc.setSharedSecret("test-secret");
+        svc.start(19890);
+
+        // Connect and authenticate client A
+        QTcpSocket clientA;
+        clientA.connectToHost("127.0.0.1", 19890);
+        QVERIFY(clientA.waitForConnected(2000));
+
+        QByteArray sessionKeyA = authenticateClient(clientA, svc, "test-secret");
+        QVERIFY(!sessionKeyA.isEmpty());
+        QVERIFY(svc.isConnected());
+
+        // Connect client B WITHOUT disconnecting A
+        QTcpSocket clientB;
+        clientB.connectToHost("127.0.0.1", 19890);
+        QVERIFY(clientB.waitForConnected(2000));
+
+        // Process events so server sees the new connection and replaces A
+        for (int i = 0; i < 20; ++i) QCoreApplication::processEvents();
+
+        // Client B should receive a challenge (not a rejection/close)
+        for (int i = 0; i < 20 && !clientB.bytesAvailable(); ++i) {
+            QCoreApplication::processEvents();
+            if (!clientB.bytesAvailable())
+                clientB.waitForReadyRead(200);
+        }
+        QVERIFY(clientB.bytesAvailable() > 0);
+        QByteArray challengeLine = clientB.readLine().trimmed();
+        QJsonObject challenge = QJsonDocument::fromJson(challengeLine).object();
+        QCOMPARE(challenge["type"].toString(), QString("challenge"));
+        QVERIFY(challenge.contains("nonce"));
+
+        // Authenticate client B
+        QByteArray sessionKeyB = authenticateClient(clientB, svc, "test-secret");
+        // authenticateClient reads challenge first, but we already consumed it.
+        // Instead, manually complete the auth handshake since we already have the challenge.
+        // Actually, authenticateClient sent a NEW challenge on the replaced connection.
+        // We already read the challenge above, so do the auth manually.
+        QByteArray nonce = challenge["nonce"].toString().toLatin1();
+        QByteArray token = QMessageAuthenticationCode::hash(
+            nonce, QByteArray("test-secret"), QCryptographicHash::Sha256).toHex();
+
+        QJsonObject hello;
+        hello["type"] = "hello";
+        hello["token"] = QString::fromLatin1(token);
+        clientB.write(QJsonDocument(hello).toJson(QJsonDocument::Compact) + "\n");
+        clientB.flush();
+
+        // Wait for hello_ack
+        for (int i = 0; i < 20 && !clientB.bytesAvailable(); ++i) {
+            QCoreApplication::processEvents();
+            if (!clientB.bytesAvailable())
+                clientB.waitForReadyRead(200);
+        }
+        QVERIFY(clientB.bytesAvailable() > 0);
+        QByteArray ackLine = clientB.readLine().trimmed();
+        QJsonObject ack = QJsonDocument::fromJson(ackLine).object();
+        QVERIFY(ack["accepted"].toBool());
+
+        QVERIFY(svc.isConnected());
+
+        svc.stop();
+    }
+
+    void cleanupIdempotent()
+    {
+        oap::CompanionListenerService svc;
+        svc.setSharedSecret("test-secret");
+        svc.start(19891);
+
+        QTcpSocket client;
+        client.connectToHost("127.0.0.1", 19891);
+        QVERIFY(client.waitForConnected(2000));
+
+        QByteArray sessionKey = authenticateClient(client, svc, "test-secret");
+        QVERIFY(!sessionKey.isEmpty());
+        QVERIFY(svc.isConnected());
+
+        QSignalSpy spy(&svc, &oap::CompanionListenerService::connectedChanged);
+
+        // Disconnect the client
+        client.disconnectFromHost();
+
+        // Process events for cleanup
+        for (int i = 0; i < 30; ++i) {
+            QCoreApplication::processEvents();
+            QTest::qWait(10);
+        }
+
+        QVERIFY(!svc.isConnected());
+        // connectedChanged should have been emitted exactly once
+        QCOMPARE(spy.count(), 1);
+
+        // Wait more — verify no additional emissions
+        QTest::qWait(100);
+        QCoreApplication::processEvents();
+        QCOMPARE(spy.count(), 1);
+
+        svc.stop();
+    }
+
+    void inactivityTimeout()
+    {
+        oap::CompanionListenerService svc;
+        svc.setSharedSecret("test-secret");
+        svc.setInactivityTimeout(100);  // 100ms for test speed
+        svc.start(19892);
+
+        QTcpSocket client;
+        client.connectToHost("127.0.0.1", 19892);
+        QVERIFY(client.waitForConnected(2000));
+
+        QByteArray sessionKey = authenticateClient(client, svc, "test-secret");
+        QVERIFY(!sessionKey.isEmpty());
+        QVERIFY(svc.isConnected());
+
+        // Wait for the inactivity timeout to fire (100ms + buffer)
+        QTest::qWait(300);
+        QCoreApplication::processEvents();
+
+        QVERIFY(!svc.isConnected());
+
+        svc.stop();
+    }
+
+    void errorOccurredTriggersCleanup()
+    {
+        oap::CompanionListenerService svc;
+        svc.setSharedSecret("test-secret");
+        svc.setInactivityTimeout(30000);  // prevent timeout interference
+        svc.start(19893);
+
+        QTcpSocket client;
+        client.connectToHost("127.0.0.1", 19893);
+        QVERIFY(client.waitForConnected(2000));
+
+        QByteArray sessionKey = authenticateClient(client, svc, "test-secret");
+        QVERIFY(!sessionKey.isEmpty());
+        QVERIFY(svc.isConnected());
+
+        QSignalSpy spy(&svc, &oap::CompanionListenerService::connectedChanged);
+
+        // Send RST instead of FIN by setting SO_LINGER with timeout 0
+        // This triggers errorOccurred on the server side
+        struct linger l = {1, 0};
+        setsockopt(client.socketDescriptor(), SOL_SOCKET, SO_LINGER, &l, sizeof(l));
+        client.close();
+
+        // Process events for the error to propagate
+        for (int i = 0; i < 30; ++i) {
+            QCoreApplication::processEvents();
+            QTest::qWait(10);
+        }
+
+        QVERIFY(!svc.isConnected());
+        QVERIFY(spy.count() >= 1);
 
         svc.stop();
     }

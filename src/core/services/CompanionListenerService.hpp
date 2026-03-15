@@ -39,6 +39,7 @@ public:
     void setSystemServiceClient(SystemServiceClient* client) { systemClient_ = client; }
     void setThemeService(ThemeService* ts) { themeService_ = ts; }
     void setDisplaySize(int w, int h) { displayWidth_ = w; displayHeight_ = h; }
+    void setInactivityTimeout(int ms);
 
     /// Load vehicle_id from ~/.openauto/vehicle.id, or generate a new UUID v4.
     void loadOrGenerateVehicleId();

@@ -80,6 +80,12 @@ void CompanionListenerService::setSharedSecret(const QString& secret)
     sharedSecret_ = secret;
 }
 
+void CompanionListenerService::setInactivityTimeout(int ms)
+{
+    Q_UNUSED(ms)
+    // Stub — will be implemented in Task 2
+}
+
 void CompanionListenerService::loadOrGenerateVehicleId()
 {
     QString dir = QDir::homePath() + "/.openauto";
