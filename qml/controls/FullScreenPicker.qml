@@ -250,7 +250,7 @@ Item {
                     return modelData || ""
                 }
 
-                // Background source for shadow
+                // Background (no shadow — too many delegates for Pi GPU)
                 Rectangle {
                     id: delegateBg
                     anchors.fill: parent
@@ -258,26 +258,6 @@ Item {
                     anchors.rightMargin: UiMetrics.marginPage
                     radius: UiMetrics.radiusSmall
                     color: ThemeService.surfaceContainerLow
-                    layer.enabled: true
-                    visible: false
-                }
-
-                // Shadow effect (Level 2)
-                MultiEffect {
-                    source: delegateBg
-                    anchors.fill: delegateBg
-                    shadowEnabled: true
-                    shadowColor: ThemeService.shadow
-                    shadowBlur: delegateItem._isPressed ? 0.35 : 0.65
-                    shadowVerticalOffset: delegateItem._isPressed ? 2 : 5
-                    shadowOpacity: delegateItem._isPressed ? 0.30 : 0.55
-                    shadowHorizontalOffset: 0
-                    shadowScale: 1.0
-                    autoPaddingEnabled: true
-
-                    Behavior on shadowBlur { NumberAnimation { duration: UiMetrics.animDurationFast } }
-                    Behavior on shadowVerticalOffset { NumberAnimation { duration: UiMetrics.animDurationFast } }
-                    Behavior on shadowOpacity { NumberAnimation { duration: UiMetrics.animDurationFast } }
                 }
 
                 // State layer overlay
