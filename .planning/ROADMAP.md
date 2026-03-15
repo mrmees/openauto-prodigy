@@ -142,3 +142,13 @@ Plans:
 Plans:
 - [x] 14-01-PLAN.md — ThemeService C++ infrastructure: tint properties, warning tokens, night guardrail
 - [x] 14-02-PLAN.md — QML color audit fixes, token pairings, state matrix document
+
+### Phase 14.1: Define new default themes (INSERTED)
+
+**Goal:** Promote 9 visually-approved companion-created themes from the Pi into bundled `config/themes/`, replacing the 4 old defaults. Prodigy theme becomes the new `default`.
+**Requirements**: TM-01, TM-02
+**Depends on:** Phase 14
+**Plans:** 0 plans
+
+Plans:
+- [ ] TBD (run /gsd:plan-phase 14.1 to break down)
