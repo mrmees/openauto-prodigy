@@ -5,9 +5,17 @@ Item {
     id: clockWidget
     clip: true
 
-    // Pixel-based breakpoints for responsive layout
-    readonly property bool showDate: width >= 250   // true at 2+ cells wide
-    readonly property bool showDay: height >= 180    // true at 2+ cells tall (navbar eats ~50px)
+    // Widget contract: context injection from host
+    property QtObject widgetContext: null
+
+    // Span-based breakpoints for responsive layout
+    readonly property int colSpan: widgetContext ? widgetContext.colSpan : 1
+    readonly property int rowSpan: widgetContext ? widgetContext.rowSpan : 1
+    readonly property bool showDate: colSpan >= 2
+    readonly property bool showDay: rowSpan >= 2
+
+    // Load-state gating (timer is the one justified polling case)
+    readonly property bool isCurrentPage: widgetContext ? widgetContext.isCurrentPage : true
 
     ColumnLayout {
         anchors.centerIn: parent
@@ -63,6 +71,17 @@ Item {
             timeText.text = now.toLocaleTimeString(Qt.locale(), "h:mm")
             dateText.text = now.toLocaleDateString(Qt.locale(), "MMMM d")
             dayText.text = now.toLocaleDateString(Qt.locale(), "dddd")
+        }
+    }
+
+    // pressAndHold forwarding for host context menu
+    MouseArea {
+        anchors.fill: parent
+        z: -1
+        pressAndHoldInterval: 500
+        onPressAndHold: {
+            if (clockWidget.parent && clockWidget.parent.requestContextMenu)
+                clockWidget.parent.requestContextMenu()
         }
     }
 }

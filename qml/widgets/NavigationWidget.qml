@@ -5,22 +5,27 @@ Item {
     id: navWidget
     clip: true
 
-    // Pixel-based breakpoints for responsive layout
-    readonly property bool showRoadName: width >= 400
-    readonly property bool isTall: height >= 180
-    readonly property bool isWide: width >= 500
+    // Widget contract: context injection from host
+    property QtObject widgetContext: null
 
-    // Data bindings
-    property bool navActive: typeof NavigationProvider !== "undefined"
-                             && NavigationProvider.navActive
-    property bool hasIcon: typeof NavigationProvider !== "undefined"
-                           && NavigationProvider.hasManeuverIcon
-    property string roadName: typeof NavigationProvider !== "undefined"
-                              ? (NavigationProvider.roadName || "") : ""
-    property string distance: typeof NavigationProvider !== "undefined"
-                              ? (NavigationProvider.formattedDistance || "") : ""
-    property int iconVer: typeof NavigationProvider !== "undefined"
-                          ? NavigationProvider.iconVersion : 0
+    // Span-based breakpoints for responsive layout
+    readonly property int colSpan: widgetContext ? widgetContext.colSpan : 1
+    readonly property int rowSpan: widgetContext ? widgetContext.rowSpan : 1
+    readonly property bool showRoadName: colSpan >= 3
+    readonly property bool isTall: rowSpan >= 2
+    readonly property bool isWide: colSpan >= 4
+
+    // Provider access via widgetContext
+    property bool navActive: widgetContext && widgetContext.navigationProvider
+                             ? widgetContext.navigationProvider.navActive : false
+    property bool hasIcon: widgetContext && widgetContext.navigationProvider
+                           ? widgetContext.navigationProvider.hasManeuverIcon : false
+    property string roadName: widgetContext && widgetContext.navigationProvider
+                              ? (widgetContext.navigationProvider.roadName || "") : ""
+    property string distance: widgetContext && widgetContext.navigationProvider
+                              ? (widgetContext.navigationProvider.formattedDistance || "") : ""
+    property int iconVer: widgetContext && widgetContext.navigationProvider
+                          ? widgetContext.navigationProvider.iconVersion : 0
 
     // ---- Active state ----
 
@@ -148,27 +153,27 @@ Item {
 
         MaterialIcon {
             icon: "\ue55c"  // navigation
-            size: isTall ? UiMetrics.iconSize * 2 : UiMetrics.iconSize * 1.5
+            size: rowSpan >= 2 ? UiMetrics.iconSize * 2 : UiMetrics.iconSize * 1.5
             color: ThemeService.onSurfaceVariant
             Layout.alignment: Qt.AlignHCenter
         }
 
         NormalText {
             text: "No navigation"
-            visible: showRoadName || isTall
+            visible: colSpan >= 2 || rowSpan >= 2
             font.pixelSize: UiMetrics.fontBody
             color: ThemeService.onSurfaceVariant
             Layout.alignment: Qt.AlignHCenter
         }
     }
 
-    // Tap to open AA fullscreen
+    // Tap to open AA fullscreen via ActionRegistry
     MouseArea {
         anchors.fill: parent
         pressAndHoldInterval: 500
         onClicked: {
             Qt.callLater(function() {
-                PluginModel.setActivePlugin("org.openauto.android-auto")
+                ActionRegistry.dispatch("app.launchPlugin", "org.openauto.android-auto")
             })
         }
         onPressAndHold: {

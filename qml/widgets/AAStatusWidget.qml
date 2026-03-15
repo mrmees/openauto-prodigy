@@ -4,13 +4,19 @@ import QtQuick.Layouts
 Item {
     id: aaStatusWidget
 
-    // Pixel-based breakpoint for responsive layout
-    readonly property bool showText: width >= 250   // true at 2+ cells wide
+    // Widget contract: context injection from host
+    property QtObject widgetContext: null
 
-    property bool connected: typeof ProjectionStatus !== "undefined"
-                             && ProjectionStatus !== null
-                             && (ProjectionStatus.projectionState === 3
-                                 || ProjectionStatus.projectionState === 4)
+    // Span-based breakpoint for responsive layout
+    readonly property int colSpan: widgetContext ? widgetContext.colSpan : 1
+    readonly property int rowSpan: widgetContext ? widgetContext.rowSpan : 1
+    readonly property bool showText: colSpan >= 2
+
+    // Provider access via widgetContext
+    property bool connected: widgetContext && widgetContext.projectionStatus
+                             ? (widgetContext.projectionStatus.projectionState === 3
+                                || widgetContext.projectionStatus.projectionState === 4)
+                             : false
 
     ColumnLayout {
         anchors.centerIn: parent
@@ -37,7 +43,7 @@ Item {
         pressAndHoldInterval: 500
         onClicked: {
             if (!connected)
-                PluginModel.setActivePlugin("org.openauto.android-auto")
+                ActionRegistry.dispatch("app.launchPlugin", "org.openauto.android-auto")
         }
         onPressAndHold: {
             if (aaStatusWidget.parent && aaStatusWidget.parent.requestContextMenu)

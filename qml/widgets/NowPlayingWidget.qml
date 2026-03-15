@@ -5,19 +5,26 @@ Item {
     id: nowPlayingWidget
     clip: true
 
-    // Pixel-based breakpoints for responsive layout
-    readonly property bool showArtist: width >= 400
-    readonly property bool isTall: height >= 180
+    // Widget contract: context injection from host
+    property QtObject widgetContext: null
 
-    // Data bindings
-    property bool hasMedia: typeof MediaStatus !== "undefined" && MediaStatus.hasMedia
-    property string mediaSource: typeof MediaStatus !== "undefined" ? (MediaStatus.source || "") : ""
-    property bool isPlaying: typeof MediaStatus !== "undefined"
-                             && MediaStatus.playbackState === 1
-    property string title: typeof MediaStatus !== "undefined"
-                           ? (MediaStatus.title || "") : ""
-    property string artist: typeof MediaStatus !== "undefined"
-                            ? (MediaStatus.artist || "") : ""
+    // Span-based breakpoints for responsive layout
+    readonly property int colSpan: widgetContext ? widgetContext.colSpan : 1
+    readonly property int rowSpan: widgetContext ? widgetContext.rowSpan : 1
+    readonly property bool showArtist: colSpan >= 3
+    readonly property bool isTall: rowSpan >= 2
+
+    // Provider access via widgetContext
+    property bool hasMedia: widgetContext && widgetContext.mediaStatus
+                            ? widgetContext.mediaStatus.hasMedia : false
+    property string mediaSource: widgetContext && widgetContext.mediaStatus
+                                 ? (widgetContext.mediaStatus.source || "") : ""
+    property bool isPlaying: widgetContext && widgetContext.mediaStatus
+                             ? widgetContext.mediaStatus.playbackState === 1 : false
+    property string title: widgetContext && widgetContext.mediaStatus
+                           ? (widgetContext.mediaStatus.title || "") : ""
+    property string artist: widgetContext && widgetContext.mediaStatus
+                            ? (widgetContext.mediaStatus.artist || "") : ""
 
     // Source icon codepoints
     readonly property string btIcon: "\ue1a7"      // bluetooth_audio
@@ -75,7 +82,12 @@ Item {
                     anchors.fill: parent
                     anchors.margins: -UiMetrics.spacing
                     enabled: mediaSource !== ""
-                    onClicked: if (typeof MediaStatus !== "undefined") MediaStatus.previous()
+                    pressAndHoldInterval: 500
+                    onClicked: if (widgetContext && widgetContext.mediaStatus) widgetContext.mediaStatus.previous()
+                    onPressAndHold: {
+                        if (nowPlayingWidget.parent && nowPlayingWidget.parent.requestContextMenu)
+                            nowPlayingWidget.parent.requestContextMenu()
+                    }
                 }
             }
 
@@ -87,7 +99,12 @@ Item {
                     anchors.fill: parent
                     anchors.margins: -UiMetrics.spacing
                     enabled: mediaSource !== ""
-                    onClicked: if (typeof MediaStatus !== "undefined") MediaStatus.playPause()
+                    pressAndHoldInterval: 500
+                    onClicked: if (widgetContext && widgetContext.mediaStatus) widgetContext.mediaStatus.playPause()
+                    onPressAndHold: {
+                        if (nowPlayingWidget.parent && nowPlayingWidget.parent.requestContextMenu)
+                            nowPlayingWidget.parent.requestContextMenu()
+                    }
                 }
             }
 
@@ -99,7 +116,12 @@ Item {
                     anchors.fill: parent
                     anchors.margins: -UiMetrics.spacing
                     enabled: mediaSource !== ""
-                    onClicked: if (typeof MediaStatus !== "undefined") MediaStatus.next()
+                    pressAndHoldInterval: 500
+                    onClicked: if (widgetContext && widgetContext.mediaStatus) widgetContext.mediaStatus.next()
+                    onPressAndHold: {
+                        if (nowPlayingWidget.parent && nowPlayingWidget.parent.requestContextMenu)
+                            nowPlayingWidget.parent.requestContextMenu()
+                    }
                 }
             }
         }
@@ -151,7 +173,12 @@ Item {
                     anchors.fill: parent
                     anchors.margins: -UiMetrics.spacing
                     enabled: mediaSource !== ""
-                    onClicked: if (typeof MediaStatus !== "undefined") MediaStatus.previous()
+                    pressAndHoldInterval: 500
+                    onClicked: if (widgetContext && widgetContext.mediaStatus) widgetContext.mediaStatus.previous()
+                    onPressAndHold: {
+                        if (nowPlayingWidget.parent && nowPlayingWidget.parent.requestContextMenu)
+                            nowPlayingWidget.parent.requestContextMenu()
+                    }
                 }
             }
 
@@ -163,7 +190,12 @@ Item {
                     anchors.fill: parent
                     anchors.margins: -UiMetrics.spacing
                     enabled: mediaSource !== ""
-                    onClicked: if (typeof MediaStatus !== "undefined") MediaStatus.playPause()
+                    pressAndHoldInterval: 500
+                    onClicked: if (widgetContext && widgetContext.mediaStatus) widgetContext.mediaStatus.playPause()
+                    onPressAndHold: {
+                        if (nowPlayingWidget.parent && nowPlayingWidget.parent.requestContextMenu)
+                            nowPlayingWidget.parent.requestContextMenu()
+                    }
                 }
             }
 
@@ -175,7 +207,12 @@ Item {
                     anchors.fill: parent
                     anchors.margins: -UiMetrics.spacing
                     enabled: mediaSource !== ""
-                    onClicked: if (typeof MediaStatus !== "undefined") MediaStatus.next()
+                    pressAndHoldInterval: 500
+                    onClicked: if (widgetContext && widgetContext.mediaStatus) widgetContext.mediaStatus.next()
+                    onPressAndHold: {
+                        if (nowPlayingWidget.parent && nowPlayingWidget.parent.requestContextMenu)
+                            nowPlayingWidget.parent.requestContextMenu()
+                    }
                 }
             }
         }
@@ -190,8 +227,6 @@ Item {
     }
 
     // ---- Inactive overlay (when no source) ----
-    // The layouts above handle showing "No media" text.
-    // Additional muted icon overlay when truly empty (no source, no media)
     Item {
         anchors.centerIn: parent
         visible: mediaSource === "" && !hasMedia
@@ -203,14 +238,14 @@ Item {
 
             MaterialIcon {
                 icon: "\ue405"  // music_note
-                size: isTall ? UiMetrics.iconSize * 2 : UiMetrics.iconSize * 1.5
+                size: rowSpan >= 2 ? UiMetrics.iconSize * 2 : UiMetrics.iconSize * 1.5
                 color: ThemeService.onSurfaceVariant
                 Layout.alignment: Qt.AlignHCenter
             }
 
             NormalText {
                 text: "No media"
-                visible: isTall || showArtist
+                visible: colSpan >= 2 || rowSpan >= 2
                 font.pixelSize: UiMetrics.fontBody
                 color: ThemeService.onSurfaceVariant
                 Layout.alignment: Qt.AlignHCenter
