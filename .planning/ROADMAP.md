@@ -153,7 +153,7 @@ Plans:
 
 Plans:
 - [x] 11-01-PLAN.md -- WidgetInstanceContext span properties + context injection in HomeMenu delegate
-- [ ] 11-02-PLAN.md -- Rewrite all 6 widgets to span-based contract (4 content + 2 launcher)
+- [x] 11-02-PLAN.md -- Rewrite all 6 widgets to span-based contract (4 content + 2 launcher)
 
 ### Phase 12: Documentation
 **Goal**: A third-party developer can create a widget plugin by reading the documentation alone
@@ -162,10 +162,10 @@ Plans:
 **Success Criteria** (what must be TRUE):
   1. Plugin-widget developer guide covers: manifest spec (WidgetDescriptor fields), registration API, QML lifecycle hooks, sizing conventions, category taxonomy, and CMake setup (QT_QML_SKIP_CACHEGEN requirement)
   2. Architecture decision records document the key design choices made during v0.6-v0.6.1 for future contributors
-**Plans**: TBD
+**Plans**: 1 plan
 
 Plans:
-- [ ] 12-01: TBD
+- [ ] 12-01-PLAN.md -- Widget developer guide + v0.6-v0.6.1 ADRs + index update
 
 ## Progress
 
@@ -181,4 +181,4 @@ Phases execute in numeric order: 09 -> 10 -> 10.1 -> 11 -> 12
 | 12. Documentation | 0/1 | Not started | - |
 
 ---
-*Last updated: 2026-03-15 -- Phase 11 Plan 01 complete*
+*Last updated: 2026-03-15 -- Phase 12 planned*
