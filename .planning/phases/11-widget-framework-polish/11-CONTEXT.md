@@ -6,7 +6,7 @@
 <domain>
 ## Phase Boundary
 
-Formalize the widget framework contract so that first-party widgets follow consistent rules and third-party widget authors have a clear, documented spec to build against. Rewrite all 4 existing widgets to comply with the formalized contract. Implement resize clamping enforcement in the grid model. This is "make the widget framework a real developer platform" — not just pixel breakpoint fixes.
+Formalize the widget framework contract so that first-party widgets follow consistent rules and third-party widget authors have a clear, documented spec to build against. Rewrite all 6 existing widgets to comply with the formalized contract (4 content widgets as primary reference implementations, 2 launcher widgets as low-complexity compliance work). Implement resize clamping enforcement in the grid model. This is "make the widget framework a real developer platform" — not just pixel breakpoint fixes.
 
 Four contract areas: size/layout, data+actions, lifecycle/performance, authoring/docs.
 
@@ -101,9 +101,13 @@ If a grid configuration cannot satisfy a widget's declared minimum span, Prodigy
 - **Flexible for visualization/content colors:** widgets may define custom content palettes for domain visuals (gauges, charts, route lines, album art accents, warning bands). Custom colors should sit on top of theme-derived surfaces and maintain decent contrast.
 
 #### Canonical example
-- **Rewrite all 4 content widgets** (Clock, AA Status, Now Playing, Navigation) to comply with the formalized contract — spans instead of pixels, proper pressAndHold forwarding, placeholder states, theme/metrics compliance
-- The 2 singleton launcher widgets (SettingsLauncher, AALauncher) are intentionally out of scope for rewrite — they are trivial single-icon tap targets that already comply with the interaction contract. They don't have breakpoints, data providers, or placeholder states to formalize.
-- The 4 content widgets serve as the reference implementations for "how to write a Prodigy widget"
+- **Rewrite all 4 content widgets** (Clock, AA Status, Now Playing, Navigation) as **primary reference implementations** — spans instead of pixels, proper pressAndHold forwarding, placeholder states, theme/metrics compliance, WidgetInstanceContext provider access
+- **Update 2 singleton launcher widgets** (SettingsLauncher, AALauncher) as **secondary compliance targets** — low-complexity work verifying:
+  - Span-based sizing compliance (descriptor min/max honored)
+  - ThemeService / UiMetrics compliance (structural colors, touch targets)
+  - Interaction contract compliance (tap + pressAndHold forwarding)
+  - Edit-mode context-menu forwarding (already present, verify correctness)
+- The 4 content widgets serve as the primary "how to write a Prodigy widget" reference; the 2 launchers demonstrate the minimal-compliance case
 
 #### Type split (document now, build later)
 - **Normal dashboard widget:** cheap tile, declarative layout, tap controls only, no focus ownership, no heavy continuous rendering
