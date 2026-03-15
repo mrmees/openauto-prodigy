@@ -65,7 +65,9 @@ Flickable {
 
             SettingsHoldArea {
                 anchors.fill: parent
-                onShortClicked: wpToggle.checked = !wpToggle.checked
+                onShortClicked: {
+                    wpToggle.toggle()  // fires onToggled, not just checked flip
+                }
             }
         }
 
