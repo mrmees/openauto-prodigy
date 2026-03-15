@@ -3,11 +3,11 @@ gsd_state_version: 1.0
 milestone: v0.6
 milestone_name: milestone
 status: verifying
-stopped_at: Completed 13.1-01-PLAN.md
-last_updated: "2026-03-15T17:48:32.726Z"
+stopped_at: Phase 13.2 context gathered
+last_updated: "2026-03-15T18:29:51.361Z"
 last_activity: 2026-03-15 — Companion reconnect hardening complete
 progress:
-  total_phases: 4
+  total_phases: 5
   completed_phases: 2
   total_plans: 2
   completed_plans: 2
@@ -42,6 +42,7 @@ Progress: [█████░░░░░] 50%
 ### Roadmap Evolution
 
 - Phase 13.1 inserted after Phase 13: Quick Bugfix for Companion App (URGENT)
+- Phase 13.2 inserted after Phase 13.1: Fix saving of themes received by companion app (URGENT)
 
 ### Blockers/Concerns
 
@@ -58,5 +59,5 @@ Progress: [█████░░░░░] 50%
 
 ## Session Continuity
 
-Last session: 2026-03-15T17:45:48.301Z
-Stopped at: Completed 13.1-01-PLAN.md
+Last session: 2026-03-15T18:29:51.359Z
+Stopped at: Phase 13.2 context gathered
