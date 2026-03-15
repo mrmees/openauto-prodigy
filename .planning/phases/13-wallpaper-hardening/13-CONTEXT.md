@@ -6,17 +6,22 @@
 <domain>
 ## Phase Boundary
 
-Fix Wallpaper.qml to be memory-safe, clip-correct, and flicker-free. Wallpapers must always fill the screen regardless of image dimensions or screen resolution. The scaling logic (PreserveAspectCrop) is already correct — this phase hardens it with sourceSize, clip, and retainWhileLoading.
+Make wallpaper a stable full-screen visual layer that fills the entire display regardless of navbar position or screen resolution. This requires both Wallpaper.qml hardening (sourceSize, clip, retainWhileLoading) AND a Shell.qml layout change to move the wallpaper from the navbar-inset content area to a root-level shell layer.
 
 </domain>
 
 <decisions>
 ## Implementation Decisions
 
+### Layout model
+- Wallpaper is a full-screen visual layer anchored to the root shell, NOT the navbar-inset content area
+- Navbar overlays on top of the wallpaper — wallpaper extends behind it
+- This requires moving Wallpaper from inside pluginContentHost (Shell.qml:29) to a root-level layer in Shell.qml
+- An exact-screen-size wallpaper must remain visually centered when navbar position changes (top/bottom/left/right)
+
 ### Crop and scaling
 - Always cover-fit (PreserveAspectCrop) — fit the shorter axis, let the longer axis overflow, center-crop
 - Center anchor for cropping — equal crop from all sides
-- Wallpaper fills the entire screen including behind navbar — navbar overlays on top
 - Theme wallpaper files stay at full resolution on disk — only the decode is capped
 
 ### Transition behavior
@@ -25,12 +30,12 @@ Fix Wallpaper.qml to be memory-safe, clip-correct, and flicker-free. Wallpapers 
 - Background Rectangle keeps its 300ms color animation for themes with no wallpaper (day/night transitions)
 
 ### Memory management
-- `sourceSize` capped to actual display dimensions (e.g., 1024x600 on current Pi, auto-adjusts for other screens)
+- `sourceSize` capped to full shell dimensions (DisplayInfo.windowWidth/windowHeight), not the reduced content viewport
 - Original file stays full resolution on disk — sourceSize only affects decode-time texture allocation
 - `clip: true` to prevent PreserveAspectCrop painting outside bounds
 
 ### Claude's Discretion
-- How to bind sourceSize to actual display dimensions (Window.width/height, Screen, or DisplayInfo)
+- Exact z-ordering of the wallpaper layer relative to other root shell children
 - Whether to add a small margin to sourceSize for subpixel filtering (probably not worth it)
 
 </decisions>
@@ -39,9 +44,10 @@ Fix Wallpaper.qml to be memory-safe, clip-correct, and flicker-free. Wallpapers 
 ## Existing Code Insights
 
 ### Reusable Assets
-- `Wallpaper.qml` (19 lines) — already has PreserveAspectCrop and asynchronous loading
+- `Wallpaper.qml` (19 lines) — provides background color fallback, PreserveAspectCrop, and async image loading
 - `ThemeService.wallpaperSource` — Q_PROPERTY providing file:// URL for current wallpaper
 - `ThemeService.resolveWallpaper()` — handles theme default vs user override resolution
+- `DisplayInfo.windowWidth` / `DisplayInfo.windowHeight` — full shell dimensions for sourceSize binding
 
 ### Established Patterns
 - `asynchronous: true` already set on Image — non-blocking decode
@@ -49,8 +55,8 @@ Fix Wallpaper.qml to be memory-safe, clip-correct, and flicker-free. Wallpapers 
 - ThemeService emits `wallpaperChanged` signal when source changes
 
 ### Integration Points
-- `Shell.qml` contains the Wallpaper component — anchors.fill: parent on the root
-- `DisplayInfo` singleton exposes window dimensions — can provide sourceSize values
+- `Shell.qml` currently places Wallpaper inside `pluginContentHost` (line 29), which is reduced by navbar margins — this must change to a root-level shell layer
+- `DisplayInfo` singleton exposes full window dimensions — use for sourceSize, not the reduced content viewport
 - Companion app imports wallpapers via `ThemeService::importCompanionTheme()` — file lands on disk, sourceSize handles decode
 
 </code_context>
