@@ -102,7 +102,20 @@ See .planning/milestones/v0.6-ROADMAP.md for archived details.
   2. Switching themes or toggling day/night mode does not produce a solid-color flash — the previous wallpaper stays visible until the new one is loaded
   3. A portrait-orientation wallpaper does not paint outside the wallpaper container into the navbar or widget area
   4. Every wallpaper fills the display edge-to-edge with no letterbox bars regardless of the image's aspect ratio
-**Plans**: TBD
+**Plans**: 1 plan
+
+Plans:
+- [ ] 13-01-PLAN.md — Harden Wallpaper.qml + move to root shell layer
+
+### Phase 13.1: Quick Bugfix for Companion App (INSERTED)
+
+**Goal:** [Urgent work - to be planned]
+**Requirements**: TBD
+**Depends on:** Phase 13
+**Plans:** 0 plans
+
+Plans:
+- [ ] TBD (run /gsd:plan-phase 13.1 to break down)
 
 ### Phase 14: Color Audit & M3 Expressive Tokens
 **Goal**: All interactive surfaces with accent-colored backgrounds have correct on-* foreground tokens, NavbarControl active state uses the right M3 pair, and widget/tile/control colors use bolder accent values from the M3 Expressive palette
@@ -113,7 +126,10 @@ See .planning/milestones/v0.6-ROADMAP.md for archived details.
   2. The active/pressed navbar control shows a distinctly colored fill (primaryContainer) with appropriately contrasting foreground (onPrimaryContainer), visually distinct from inactive controls
   3. Widget cards, settings tiles, and interactive controls show noticeably bolder accent colors compared to pre-milestone neutral-only surfaces
   4. Night mode primary color is visually comfortable at arm's length in a dark environment — not a glare source
-**Plans**: TBD
+**Plans**: 1 plan
+
+Plans:
+- [ ] 13-01-PLAN.md — Harden Wallpaper.qml + move to root shell layer
 
 ### Phase 15: Color Boldness Slider
 **Goal**: Users can dial in how bold the accent colors appear, stored across restarts, working on both bundled and companion-imported themes
@@ -124,7 +140,10 @@ See .planning/milestones/v0.6-ROADMAP.md for archived details.
   2. The boldness level survives an app restart and a day/night toggle — the UI comes up at the saved boldness value
   3. At boldness 1.0 with a companion-imported theme that has already-saturated accent colors, colors clamp cleanly rather than wrapping or producing visual artifacts
   4. The slider is accessible from Display settings without navigating more than two taps from the home screen
-**Plans**: TBD
+**Plans**: 1 plan
+
+Plans:
+- [ ] 13-01-PLAN.md — Harden Wallpaper.qml + move to root shell layer
 
 ## Progress
 
