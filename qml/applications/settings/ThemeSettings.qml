@@ -51,22 +51,19 @@ Flickable {
 
                 Switch {
                     id: wpToggle
-                    onToggled: {
-                        if (!checked) {
-                            // Toggle OFF: clear override, revert to theme wallpaper
-                            ThemeService.setWallpaperOverride("")
-                            ConfigService.setValue("display.wallpaper_override", "")
-                            ConfigService.save()
-                        }
-                        // Toggle ON: just reveals the picker, user picks there
-                    }
                 }
             }
 
             SettingsHoldArea {
                 anchors.fill: parent
                 onShortClicked: {
-                    wpToggle.toggle()  // fires onToggled, not just checked flip
+                    wpToggle.checked = !wpToggle.checked
+                    if (!wpToggle.checked) {
+                        // Toggle OFF: clear override, revert to theme wallpaper
+                        ThemeService.setWallpaperOverride("")
+                        ConfigService.setValue("display.wallpaper_override", "")
+                        ConfigService.save()
+                    }
                 }
             }
         }
