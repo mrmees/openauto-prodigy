@@ -83,7 +83,7 @@ Fix on-* token pairings, add NavbarControl active/pressed/hold state model, appl
 - Biggest issue is missing state model on interactive controls, not widespread token misuse
 - Widget text on neutral cards (`onSurface`/`onSurfaceVariant`) is correct
 - NowPlayingWidget/NavigationWidget `primary` accents are intentional and correct on neutral cards
-- PairingDialog/NavbarPopup tinting is ad-hoc but not broken — centralize per popup tint decision
+- Inline tint math in PairingDialog/NavbarPopup/ExitDialog/GestureOverlay is ad-hoc but not broken — centralize per popup tint decision
 
 ### Claude's Discretion
 - Exact chroma threshold values for the dark-mode comfort guardrail
@@ -123,8 +123,8 @@ Fix on-* token pairings, add NavbarControl active/pressed/hold state model, appl
 ### Integration Points
 - NavbarControl.qml: hold-progress fill (line 49), icon color (line 60)
 - Navbar.qml: barBg/barFg properties (lines 15-16), popup button colors (lines 314-315)
-- PairingDialog.qml / NavbarPopup.qml: inline tint math (lines 31-33 / 83-85) → centralize
-- ThemeService.hpp/cpp: add surfaceTinted computed property, add chroma guardrail logic
+- PairingDialog.qml / NavbarPopup.qml / ExitDialog.qml / GestureOverlay.qml: inline tint math → centralize
+- ThemeService.hpp/cpp: add centralized tinted surface token(s) (surfaceTintedHigh/surfaceTintedHighest or parameterized), add chroma guardrail logic
 - All widget QML files: audit accent usage against the one-family-per-widget rule
 
 ### Confirmed Mismatches
