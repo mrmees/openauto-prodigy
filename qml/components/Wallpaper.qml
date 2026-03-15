@@ -2,6 +2,7 @@ import QtQuick
 
 Item {
     anchors.fill: parent
+    clip: true
 
     Rectangle {
         anchors.fill: parent
@@ -15,5 +16,8 @@ Item {
         fillMode: Image.PreserveAspectCrop
         visible: source !== ""
         asynchronous: true
+        retainWhileLoading: true
+        sourceSize.width: DisplayInfo.windowWidth
+        sourceSize.height: DisplayInfo.windowHeight
     }
 }
