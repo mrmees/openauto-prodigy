@@ -202,7 +202,7 @@ Original openauto used OMX via `ilclient` for zero-copy GPU decode — fastest p
 
 **Decision:** Two parallel placement lists: `basePlacements_` (persisted from YAML, updated by promoteToBase) and `livePlacements_` (runtime state exposed to QML).
 
-**Rationale:** Clean separation of persisted vs runtime state. Remap reads from base and writes to live, ensuring the remap algorithm always has a stable input. YAML serialization reads from live (which is always promoted from base after edits). The QAbstractListModel interface exposes live placements.
+**Rationale:** Clean separation of persisted vs runtime state. Remap reads from base and writes to live, ensuring the remap algorithm always has a stable input. Structural edits (move, resize, add, remove) update live first, then `promoteToBase()` copies live back to base so future remaps reflect the latest user intent. YAML serialization reads from live. The QAbstractListModel interface exposes live placements.
 
 ### Reserved Page Derived from Singleton Presence
 

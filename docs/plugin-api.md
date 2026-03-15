@@ -243,6 +243,66 @@ Post and dismiss notifications.
 
 **Stability:** Experimental
 
+### BluetoothService (`IBluetoothService`)
+
+Adapter management, pairing, and paired device access.
+
+| Method | Thread Safety | Description |
+|--------|---------------|-------------|
+| `adapterAddress()` | Main thread | Local adapter MAC address |
+| `adapterAlias()` | Main thread | Local adapter friendly name |
+| `isPairable()` / `setPairable(bool)` | Main thread | Pairable mode control |
+| `isPairingActive()` | Main thread | Whether a pairing dialog is active |
+| `pairingDeviceName()` / `pairingPasskey()` | Main thread | Current pairing request details |
+| `confirmPairing()` / `rejectPairing()` | Main thread | Respond to pairing request |
+| `pairedDevicesModel()` | Main thread | `QAbstractListModel*` of paired devices |
+
+**Stability:** Stable
+
+### DisplayService (`IDisplayService`)
+
+Backlight brightness control.
+
+| Method | Thread Safety | Description |
+|--------|---------------|-------------|
+| `brightness()` | Thread-safe | Current backlight brightness (0-100) |
+| `setBrightness(int)` | Main thread | Set backlight brightness (0-100) |
+
+**Stability:** Stable
+
+### EqualizerService (`IEqualizerService`)
+
+Per-stream audio equalization with presets and manual band control.
+
+| Method | Thread Safety | Description |
+|--------|---------------|-------------|
+| `activePreset(StreamId)` | Main thread | Active preset name for a stream (empty if manually adjusted) |
+| `applyPreset(StreamId, name)` | Main thread | Apply a named preset to a stream |
+| `setBandGain(StreamId, band, gain)` | Main thread | Set a single band gain (clears preset) |
+| `bandGains(StreamId)` | Main thread | Get all band gains for a stream |
+| `presetNames()` | Main thread | List available preset names |
+
+`StreamId` values: `Media`, `Navigation`, `Phone`.
+
+**Stability:** Stable
+
+### CompanionListenerService
+
+TCP listener for the Prodigy Companion Android app. Provides GPS, phone battery, and internet proxy data.
+
+| Property | Type | Description |
+|----------|------|-------------|
+| `connected` | `bool` | Whether a companion device is connected |
+| `gpsLat` / `gpsLon` / `gpsSpeed` / `gpsAccuracy` / `gpsBearing` | `double` | GPS data from phone |
+| `isGpsStale` | `bool` | Whether GPS data is stale |
+| `phoneBattery` | `int` | Phone battery level |
+| `phoneCharging` | `bool` | Phone charging state |
+| `internetAvailable` | `bool` | Whether internet proxy is available |
+
+**Note:** This is a concrete class, not an interface — accessed directly via `IHostContext::companionListenerService()`.
+
+**Stability:** Experimental
+
 ## Error Handling
 
 - Plugin methods should not throw exceptions.
