@@ -5,7 +5,7 @@
 - [x] **WF-01**: WidgetDescriptor includes category, description, and icon metadata fields
 - [x] **WF-02**: WidgetGridModel enforces min/max size constraints from WidgetDescriptor as single source of truth
 - [x] **WF-03**: WidgetInstanceContext exposes live colSpan/rowSpan properties (with NOTIFY) and isCurrentPage load-state flag observable by widget QML
-- [ ] **WF-04**: Widget QML uses grid-span or UiMetrics-based thresholds instead of hardcoded pixel breakpoints
+- [x] **WF-04**: Widget QML uses grid-span or UiMetrics-based thresholds instead of hardcoded pixel breakpoints
 
 ## Grid Layout (GL)
 
@@ -42,7 +42,7 @@ _None deferred from this milestone._
 | WF-01 | Phase 09 | Complete |
 | WF-02 | Phase 11 | Complete |
 | WF-03 | Phase 11 | Complete |
-| WF-04 | Phase 11 | Pending |
+| WF-04 | Phase 11 | Complete |
 | GL-01 | Phase 09 | Complete |
 | GL-02 | Phase 09 | Complete |
 | GL-03 | Phase 09 | Complete |

@@ -2,16 +2,16 @@
 gsd_state_version: 1.0
 milestone: v0.6
 milestone_name: milestone
-status: in-progress
-stopped_at: Phase 11 Plan 01 complete
-last_updated: "2026-03-15T01:12:39Z"
-last_activity: 2026-03-15 — Plan 11-01 executed (widget data contract + context injection)
+status: executing
+stopped_at: Completed 11-02-PLAN.md
+last_updated: "2026-03-15T01:20:00.318Z"
+last_activity: 2026-03-15 — Plan 11-02 executed (widget QML rewrite to formalized contract)
 progress:
   total_phases: 5
-  completed_phases: 3
+  completed_phases: 4
   total_plans: 9
-  completed_plans: 8
-  percent: 64
+  completed_plans: 9
+  percent: 100
 ---
 
 # Project State
@@ -26,11 +26,11 @@ See: .planning/PROJECT.md (updated 2026-03-14)
 ## Current Position
 
 Phase: 11 of 12 (Widget Framework Polish)
-Plan: 1 of 2 complete
-Status: In Progress
-Last activity: 2026-03-15 — Plan 11-01 executed (widget data contract + context injection)
+Plan: 2 of 2 complete
+Status: Phase 11 Complete
+Last activity: 2026-03-15 — Plan 11-02 executed (widget QML rewrite to formalized contract)
 
-Progress: [██████░░░░] 64%
+Progress: [██████████] 100%
 
 ## Performance Metrics
 
@@ -76,6 +76,7 @@ Progress: [██████░░░░] 64%
 - [Phase 11]: WidgetContextFactory as dedicated class (not on WidgetGridModel) -- keeps model pure data, factory owns IHostContext + cell geometry
 - [Phase 11]: cellSide as Q_PROPERTY on factory bound from QML -- stays reactive if grid resizes
 - [Phase 11]: Context injection via Loader.onLoaded + Binding elements for live span/isCurrentPage sync
+- [Phase 11]: NowPlayingWidget media transport controls stay as typed provider methods, not ActionRegistry candidates
 
 ### Blockers/Concerns
 
@@ -84,5 +85,5 @@ Progress: [██████░░░░] 64%
 
 ## Session Continuity
 
-Last session: 2026-03-15T01:12:39Z
-Stopped at: Completed 11-01-PLAN.md
+Last session: 2026-03-15T01:20:00.316Z
+Stopped at: Completed 11-02-PLAN.md
