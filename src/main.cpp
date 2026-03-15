@@ -16,6 +16,7 @@
 #include <memory>
 #include <QtQml/qqml.h>
 #include "core/Logging.hpp"
+#include "core/system/HostapdConfig.hpp"
 #include "ui/SettingsInputBoundary.hpp"
 #include "core/YamlConfig.hpp"
 #include "core/services/ConfigService.hpp"
@@ -120,23 +121,13 @@ int main(int argc, char *argv[])
         yamlConfig->load(yamlPath);
     }
 
-    // Sync WiFi SSID from hostapd.conf (single source of truth)
+    // Sync WiFi credentials from hostapd.conf (single source of truth)
     {
-        QFile hostapdConf(QStringLiteral("/etc/hostapd/hostapd.conf"));
-        if (hostapdConf.open(QIODevice::ReadOnly | QIODevice::Text)) {
-            while (!hostapdConf.atEnd()) {
-                QString line = QString::fromUtf8(hostapdConf.readLine()).trimmed();
-                if (line.startsWith(QStringLiteral("ssid="))) {
-                    QString hostapdSsid = line.mid(5);
-                    if (!hostapdSsid.isEmpty() && hostapdSsid != yamlConfig->wifiSsid()) {
-                        qCInfo(lcCore) << "WiFi SSID synced from hostapd:" << hostapdSsid
-                                       << "(was:" << yamlConfig->wifiSsid() << ")";
-                        yamlConfig->setWifiSsid(hostapdSsid);
-                        yamlConfig->save(yamlPath);
-                    }
-                    break;
-                }
-            }
+        auto credentials = oap::loadHostapdWifiCredentials(QStringLiteral("/etc/hostapd/hostapd.conf"));
+        if (credentials.has_value() && oap::syncWifiCredentials(*yamlConfig, *credentials)) {
+            qCInfo(lcCore) << "WiFi credentials synced from hostapd for SSID:"
+                           << credentials->ssid;
+            yamlConfig->save(yamlPath);
         }
     }
 

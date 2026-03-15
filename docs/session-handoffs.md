@@ -697,3 +697,143 @@ Documentation:
 - Required repo verification:
   - `cd build && cmake --build . -j$(nproc) && ctest --output-on-failure`
   - Passed (`100% tests passed, 0 tests failed out of 51`).
+
+---
+
+## 2026-03-15 — Fix Incomplete AA WiFi Credential Sync
+
+**What changed:**
+- Added `src/core/system/HostapdConfig.hpp` / `src/core/system/HostapdConfig.cpp` with a small helper to parse `ssid` and `wpa_passphrase` from `hostapd.conf`.
+- Updated `src/main.cpp` startup sync to reconcile both WiFi SSID and WiFi password from `/etc/hostapd/hostapd.conf` into YAML before AA services start, instead of syncing only the SSID.
+- Added `tests/test_hostapd_config.cpp` and registered it in `tests/CMakeLists.txt` to lock the expected behavior:
+  - parse both SSID and passphrase from hostapd config text
+  - update stale YAML WiFi credentials as a pair
+
+**Why:**
+- Live Pi inspection showed the attempted fix in `1cc3051` only solved half the problem.
+- On the Pi, `/etc/hostapd/hostapd.conf` contained:
+  - `ssid=Prodigy_a6e7`
+  - `wpa_passphrase=FvbjER1o9JcsnTLx`
+- But `~/.openauto/config.yaml` still contained:
+  - `ssid: Prodigy_a6e7`
+  - `password: prodigy`
+- `BluetoothDiscoveryService` serves WiFi credentials from YAML during the BT handshake, so the phone could still be told the wrong WPA passphrase even after the SSID sync fix.
+
+**Status:** Code fix complete and verified locally. Pi root cause confirmed via SSH. Pi runtime workaround / deployment still pending.
+
+**Next steps:**
+1. Update the Pi runtime to use the real passphrase immediately (either patch `~/.openauto/config.yaml` and restart `openauto-prodigy`, or deploy the rebuilt binary).
+2. Re-test wireless AA on the Pi and confirm the phone reaches the TCP stage after BT credential exchange.
+3. Optionally tighten `BluetoothDiscoveryService::handleWifiConnectionStatus()` logging — it currently reports WiFi success on any parseable status packet, which misled diagnosis.
+
+**Verification commands/results:**
+- Root-cause evidence gathered via SSH:
+  - `ssh matt@192.168.1.152 'sed -n "1,80p" /etc/hostapd/hostapd.conf'`
+    - Showed `ssid=Prodigy_a6e7`, `wpa_passphrase=FvbjER1o9JcsnTLx`
+  - `ssh matt@192.168.1.152 'sed -n "/^connection:/,/^audio:/p" ~/.openauto/config.yaml'`
+    - Showed `ssid: Prodigy_a6e7`, `password: prodigy`
+- Targeted TDD check:
+  - `cd build && cmake --build . -j$(nproc) --target test_hostapd_config`
+  - `cd build && ctest -R test_hostapd_config --output-on-failure`
+  - Passed (`100% tests passed, 0 tests failed out of 1`)
+- Required repo verification:
+  - `cd build && cmake --build . -j$(nproc)`
+  - Passed
+  - `cd build && ctest --output-on-failure`
+  - Passed (`100% tests passed, 0 tests failed out of 86`)
+- Pi cross-compile verification:
+  - `./cross-build.sh`
+  - Passed (`Build complete: build-pi/src/openauto-prodigy`)
+
+---
+
+## 2026-03-15 — Finalize HostapdConfig Extraction
+
+**What changed:**
+- Kept the extracted `src/core/system/HostapdConfig.hpp` / `src/core/system/HostapdConfig.cpp` helper as the home for hostapd WiFi credential parsing and YAML sync.
+- Added `loadHostapdWifiCredentials(const QString& filePath)` so `src/main.cpp` no longer opens and parses `hostapd.conf` directly.
+- Simplified `src/main.cpp` startup sync to:
+  - load credentials from `/etc/hostapd/hostapd.conf`
+  - apply them to `YamlConfig`
+  - save YAML only when the credentials changed
+- Extended `tests/test_hostapd_config.cpp` with a file-based regression test covering the new load helper.
+- Added planning artifacts for the finalization pass:
+  - `docs/plans/2026-03-15-hostapd-config-extraction-design.md`
+  - `docs/plans/2026-03-15-hostapd-config-extraction-plan.md`
+
+**Why:**
+- The initial extraction still left file I/O and hostapd parsing coordination in `main.cpp`.
+- Finishing the extraction here keeps startup code smaller and makes future hostapd-related tests or reuse less annoying.
+- The added file-based test proves the helper handles the real input shape `main.cpp` now consumes.
+
+**Status:** HostapdConfig extraction finalized in source, targeted regression tests green, local build green. Full `ctest` requires `QT_QPA_PLATFORM=offscreen` in this headless environment and still has 3 unrelated existing network/socket failures. Fresh Pi cross-build could not be completed here because Docker daemon access is blocked.
+
+**Next steps:**
+1. Re-run `./cross-build.sh` from an environment with Docker daemon access.
+2. Investigate existing test environment failures unrelated to this work:
+   - `test_tcp_transport`
+   - `test_companion_listener`
+   - `test_aa_orchestrator`
+3. Deploy to the Pi and verify that the phone receives the live hostapd passphrase during wireless AA pairing.
+
+**Verification commands/results:**
+- TDD red:
+  - `cd build && cmake --build . -j$(nproc) --target test_hostapd_config && ctest -R test_hostapd_config --output-on-failure`
+  - Failed as expected before implementation: `loadHostapdWifiCredentials` was not declared.
+- TDD green:
+  - `cd build && cmake --build . -j$(nproc) --target test_hostapd_config && ctest -R test_hostapd_config --output-on-failure`
+  - Passed (`100% tests passed, 0 tests failed out of 1`)
+- Required repo build:
+  - `cd build && cmake --build . -j$(nproc)`
+  - Passed
+- Full test suite in plain headless shell:
+  - `cd build && ctest --output-on-failure`
+  - Failed due Qt platform plugin startup (`wayland` / `xcb`) in this environment plus existing socket/listen failures
+- Full test suite with explicit headless Qt platform:
+  - `cd build && QT_QPA_PLATFORM=offscreen ctest --output-on-failure`
+  - `97% tests passed, 3 tests failed out of 86`
+  - Remaining failures:
+    - `test_tcp_transport`
+    - `test_companion_listener`
+    - `test_aa_orchestrator`
+- Pi cross-compile:
+  - `./cross-build.sh`
+  - Failed in this environment before build start: `permission denied while trying to connect to the Docker daemon socket at unix:///var/run/docker.sock`
+
+---
+
+## 2026-03-15 — Finalize HostapdConfig Extraction
+
+**What changed:**
+- Added `docs/plans/2026-03-15-hostapd-config-extraction-design.md` and `docs/plans/2026-03-15-hostapd-config-extraction-plan.md` to document the extraction boundary and verification plan.
+- Extended `src/core/system/HostapdConfig.hpp` / `src/core/system/HostapdConfig.cpp` with `loadHostapdWifiCredentials(const QString&)` so the hostapd-specific file read now lives with the parser/sync helper instead of in `main.cpp`.
+- Simplified `src/main.cpp` startup sync to call the extracted helper and keep only the top-level logging + YAML save behavior.
+- Expanded `tests/test_hostapd_config.cpp` with regression coverage for:
+  - reading SSID and passphrase from a real `hostapd.conf` path
+  - refusing to mutate YAML credentials when hostapd data is incomplete
+
+**Why:**
+- The earlier extraction still left `main.cpp` performing hostapd file I/O, so the boundary was only half-finished.
+- A file-loading helper makes the hostapd sync path easier to test and keeps the startup path focused on application bootstrapping.
+
+**Status:** Extraction finalized and verified locally. Pi cross-build passes. Ready for deployment/testing on hardware.
+
+**Next steps:**
+1. Deploy `build-pi/src/openauto-prodigy` to the Pi and re-test wireless AA credential handoff on real hardware.
+2. If the separate-worktree flow matters for future refactors, fix the unrelated clean-worktree protobuf build issue in `prodigy-oaa-protocol` so clean builds do not depend on pre-generated artifacts.
+
+**Verification commands/results:**
+- Targeted TDD cycle:
+  - `cd build && cmake --build . -j$(nproc) --target test_hostapd_config && ctest -R test_hostapd_config --output-on-failure`
+  - Red: failed because `oap::loadHostapdWifiCredentials` was missing.
+  - Green: passed (`100% tests passed, 0 tests failed out of 1`).
+- Required repo verification:
+  - `cd build && cmake --build . -j$(nproc)`
+  - Passed
+  - `cd build && ctest --output-on-failure`
+  - Passed (`100% tests passed, 0 tests failed out of 86`).
+- Pi cross-compile verification:
+  - `./cross-build.sh`
+  - Passed (`Build complete: build-pi/src/openauto-prodigy`).
+- Review:
+  - Parallel code review found no defects in the extraction itself; residual risk was missing fallback-path test coverage, which is now covered by `test_hostapd_config`.

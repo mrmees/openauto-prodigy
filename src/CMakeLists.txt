@@ -3,6 +3,7 @@ add_library(openauto-core STATIC
     core/Logging.cpp
     core/YamlConfig.cpp
     core/InputDeviceScanner.cpp
+    core/system/HostapdConfig.cpp
     core/aa/VideoDecoder.cpp
     core/aa/DmaBufVideoBuffer.cpp
     core/aa/TouchHandler.cpp
