@@ -138,18 +138,15 @@ QString NavigationDataBridge::formattedDistance() const
 
 QString NavigationDataBridge::unitSuffix(int distanceUnit)
 {
-    // AA Distance.displayUnit mapping (from Google's formatter):
-    // 0=unknown, 1=m, 2=km, 3=km(P1), 4=mi, 5=mi(P1), 6=ft, 7=yd
-    // P1 variants are same unit with one decimal place formatting.
+    // AA proto DistanceDisplayUnit enum:
+    // 1=METERS, 2=KILOMETERS, 3=MILES, 4=FEET, 5=YARDS
     // display_text already has correct precision, so we just need the suffix.
     switch (distanceUnit) {
     case 1: return QStringLiteral("m");
-    case 2: // fall through
-    case 3: return QStringLiteral("km");
-    case 4: // fall through
-    case 5: return QStringLiteral("mi");
-    case 6: return QStringLiteral("ft");
-    case 7: return QStringLiteral("yd");
+    case 2: return QStringLiteral("km");
+    case 3: return QStringLiteral("mi");
+    case 4: return QStringLiteral("ft");
+    case 5: return QStringLiteral("yd");
     default: return QString();
     }
 }
