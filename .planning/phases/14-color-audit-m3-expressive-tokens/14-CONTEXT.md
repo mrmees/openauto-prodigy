@@ -51,7 +51,7 @@ Fix on-* token pairings, add NavbarControl active/pressed/hold state model, appl
 - Supporting text and secondary controls stay neutral (`onSurface`/`onSurfaceVariant`)
 - `primary` for default accent use (icons, key values, progress, transport controls)
 - `primaryContainer` reserved for state changes only (selected, editing, expanded, alerted)
-- Exception: active alert / connected / strong state can temporarily use container fill
+- Exception: active alert or strong state can temporarily use container fill — but NOT for semantic statuses like "connected" which must use their own semantic color (see semantic status section below)
 
 ### Selection treatment (mixed model)
 - **Settings rows:** border treatment (left accent bar, subtle outline, or trailing check) on neutral surface
@@ -66,17 +66,17 @@ Fix on-* token pairings, add NavbarControl active/pressed/hold state model, appl
 
 ### Night mode comfort guardrail
 - Comfort wins over expression in dark mode
-- Only clamp high-exposure accent roles (primary, primaryContainer, secondary, secondaryContainer), not the whole palette
+- Only clamp high-exposure accent roles, not the whole palette. Roles to clamp: primary, primaryContainer, secondary, secondaryContainer, tertiary, tertiaryContainer — all six accent container/content pairs that the expression model assigns to interactive surfaces
 - Preserve hue identity, reduce chroma/saturation to a comfortable maximum
 - Do NOT re-theme or second-guess the entire companion palette
 - Subtle enough that user still recognizes their chosen theme
 - Guardrail scope: list exactly which roles can be softened
 
 ### Popup surface tint
-- Current hand-rolled `surfaceContainerHigh * 0.88 + primary * 0.12` in PairingDialog/NavbarPopup is not wrong but is fragile
-- Centralize into ThemeService as a computed property (e.g. `surfaceTinted` or `elevatedSurface`)
-- One rule for all tinted overlays — popup, dialog, and elevated surfaces all use the same token
-- Fallback option if this scope-creeps: just use `surfaceContainerHigh` directly and revisit tinting later
+- Current hand-rolled `surfaceContainerHigh * 0.88 + primary * 0.12` exists in 4 files: PairingDialog.qml, NavbarPopup.qml, ExitDialog.qml, GestureOverlay.qml (GestureOverlay uses `surfaceContainerHighest` base instead of `High`)
+- Centralize into ThemeService as computed properties (e.g. `surfaceTintedHigh` and `surfaceTintedHighest` or a single parameterized approach)
+- One rule for all tinted overlays — popup, dialog, gesture overlay, and elevated surfaces all use the same centralized token(s)
+- Fallback option if this scope-creeps: just use `surfaceContainerHigh`/`surfaceContainerHighest` directly and revisit tinting later
 
 ### Token pairing audit (CA-01)
 - Fix all confirmed mismatches where background/foreground tokens don't pair correctly per M3 rules
@@ -130,7 +130,8 @@ Fix on-* token pairings, add NavbarControl active/pressed/hold state model, appl
 ### Confirmed Mismatches
 - NavbarControl hold-progress: `tertiary` → `primaryContainer`
 - NavbarControl: no selected/pressed visual model at all
-- PairingDialog/NavbarPopup: inline tint math should be centralized
+- AAStatusWidget.qml line 28: connected state uses `ThemeService.primary` — should use semantic green per "semantic wins" decision
+- Inline tint math in 4 files: PairingDialog.qml (lines 31-33), NavbarPopup.qml (lines 83-85), ExitDialog.qml (lines 21-23), GestureOverlay.qml (lines 76-78) — all need centralized token. Note: GestureOverlay uses `surfaceContainerHighest` base, others use `surfaceContainerHigh`
 
 </code_context>
 
