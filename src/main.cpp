@@ -120,6 +120,26 @@ int main(int argc, char *argv[])
         yamlConfig->load(yamlPath);
     }
 
+    // Sync WiFi SSID from hostapd.conf (single source of truth)
+    {
+        QFile hostapdConf(QStringLiteral("/etc/hostapd/hostapd.conf"));
+        if (hostapdConf.open(QIODevice::ReadOnly | QIODevice::Text)) {
+            while (!hostapdConf.atEnd()) {
+                QString line = QString::fromUtf8(hostapdConf.readLine()).trimmed();
+                if (line.startsWith(QStringLiteral("ssid="))) {
+                    QString hostapdSsid = line.mid(5);
+                    if (!hostapdSsid.isEmpty() && hostapdSsid != yamlConfig->wifiSsid()) {
+                        qCInfo(lcCore) << "WiFi SSID synced from hostapd:" << hostapdSsid
+                                       << "(was:" << yamlConfig->wifiSsid() << ")";
+                        yamlConfig->setWifiSsid(hostapdSsid);
+                        yamlConfig->save(yamlPath);
+                    }
+                    break;
+                }
+            }
+        }
+    }
+
     // --- Configure logging from CLI + YAML ---
     bool cliVerbose = parser.isSet(verboseOption);
     bool cfgVerbose = yamlConfig->valueByPath("logging.verbose").toBool();
