@@ -23,17 +23,22 @@
 - [x] **CA-02**: NavbarControl active/pressed state uses primaryContainer fill with onPrimaryContainer foreground
 - [x] **CA-03**: Widget cards, settings tiles, and interactive controls use bolder accent colors from M3 Expressive palette instead of neutral-only surfaces
 
-## Color Boldness (CB)
+## ~~Color Boldness (CB)~~ — Removed (Phase 15 dropped)
 
-- [ ] **CB-01**: ThemeService exposes a colorBoldness property (0-1) that amplifies accent role saturation without affecting neutral/surface roles
-- [ ] **CB-02**: User can adjust color boldness via slider in Display settings, persisted across restarts
+- ~~**CB-01**: ThemeService exposes a colorBoldness property (0-1) that amplifies accent role saturation without affecting neutral/surface roles~~
+- ~~**CB-02**: User can adjust color boldness via slider in Display settings, persisted across restarts~~
+
+## Theme Migration (TM)
+
+- [ ] **TM-01**: 9 companion-created themes promoted from Pi user directory to bundled `config/themes/`, replacing old defaults
+- [ ] **TM-02**: Prodigy theme renamed to `default` (first-install theme identity)
 
 ## Out of Scope
 
 | Feature | Reason |
 |---------|--------|
 | Wallpaper fill mode selector | Always cover-fit, no user choice — prevents letterboxing |
-| Bundled theme YAML changes | Themes built via companion app and imported, not shipped in binary |
+| ~~Bundled theme YAML changes~~ | ~~Themes built via companion app and imported, not shipped in binary~~ — **Superseded by Phase 14.1:** companion-created themes now promoted to bundled defaults |
 | HCT color math (material-color-utilities port) | HSL saturation multiplier is sufficient; companion app handles proper HCT |
 | Stretch fill mode | Distorts images — anti-feature |
 | Color boldness on neutral/surface roles | Would break glass widget card aesthetic |
@@ -56,11 +61,13 @@
 | CA-01 | Phase 14 | Complete |
 | CA-02 | Phase 14 | Complete |
 | CA-03 | Phase 14 | Complete |
-| CB-01 | Phase 15 | Pending |
-| CB-02 | Phase 15 | Pending |
+| ~~CB-01~~ | ~~Phase 15~~ | Removed |
+| ~~CB-02~~ | ~~Phase 15~~ | Removed |
+| TM-01 | Phase 14.1 | Pending |
+| TM-02 | Phase 14.1 | Pending |
 
 **Coverage:**
-- v0.6.2 requirements: 13 total
+- v0.6.2 requirements: 13 total (2 removed, 2 added)
 - Mapped to phases: 13
 - Unmapped: 0
 

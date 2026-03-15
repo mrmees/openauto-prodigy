@@ -143,7 +143,7 @@ v0.4 shipped logging and theming. v0.4.1 shipped 10-band graphic EQ with per-str
 **Target features:**
 - Audit and rework color token usage across all QML — accent colors should have visible impact, not just neutral surfaces with tiny primary highlights
 - Wallpaper cover-fit scaling so oversized images work across resolutions and orientations
-- 5 new themes built via companion app and imported (no bundled theme changes needed)
+- 9 new themes built via companion app, promoted to bundled defaults (replacing old theme set)
 
 ## Constraints
 
