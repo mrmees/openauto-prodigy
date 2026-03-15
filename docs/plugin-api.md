@@ -35,7 +35,8 @@ All plugins must implement `src/core/plugin/IPlugin.hpp`.
 | Method | Return | Description |
 |--------|--------|-------------|
 | `qmlComponent()` | `QUrl` | QRC URL of the plugin's main QML view. Empty = no view. |
-| `iconSource()` | `QUrl` | Icon URL for nav strip. Empty = use font icon. |
+| `iconSource()` | `QUrl` | Icon URL for nav strip (image-based). Empty = fall back to `iconText()`. |
+| `iconText()` | `QString` | Material icon codepoint for nav strip (e.g. `"\ue8b5"`). Preferred over `iconSource()` for font-based icons. Default: empty. |
 | `settingsComponent()` | `QUrl` | QRC URL of settings panel. Empty = no settings. |
 
 ### Capabilities

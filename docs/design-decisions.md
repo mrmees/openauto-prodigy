@@ -158,9 +158,9 @@ Original openauto used OMX via `ilclient` for zero-copy GPU decode — fastest p
 
 ### Grid Cols/Rows Computed in QML
 
-**Decision:** Grid columns and rows are computed as reactive QML bindings from `DisplayInfo.cellSide`, not in C++.
+**Decision:** Grid columns and rows are computed as reactive QML bindings from `DisplayInfo.cellSide`. C++ computes the initial grid dimensions at startup (`main.cpp` line 560) for widget seeding and model initialization, then QML takes over the reactive path.
 
-**Rationale:** QML bindings automatically re-evaluate when the window resizes, density bias changes, or any input to the formula changes. A C++ computation would require explicit signal wiring to trigger recalculation. The QML approach in `HomeMenu.qml` (lines 25-55) keeps the grid layout fully reactive with zero imperative code.
+**Rationale:** QML bindings automatically re-evaluate when the window resizes, density bias changes, or any input to the formula changes. The C++ startup computation is needed before the QML engine is running to seed initial placements. After startup, the QML approach in `HomeMenu.qml` (lines 25-55) keeps the grid layout fully reactive with zero imperative code.
 
 ### Auto-Snap Threshold for Gutter Space Recovery
 
@@ -214,7 +214,7 @@ Original openauto used OMX via `ilclient` for zero-copy GPU decode — fastest p
 
 **Decision:** System-seeded singleton widgets get deterministic instance IDs like `"aa-launcher-reserved"` and `"settings-launcher-reserved"`.
 
-**Rationale:** Prevents duplicate seeding on restart. Without fixed IDs, the seeding logic cannot detect that a singleton was already placed, and would create duplicates every launch. The deterministic IDs serve as natural deduplication keys when loading from YAML.
+**Rationale:** Seeding only runs when `savedPlacements.isEmpty()` (fresh install, `main.cpp` line 593), so duplicates are prevented by the empty-check gate, not by ID-based deduplication. The fixed IDs serve a different purpose: they make the seeded placements predictable and debuggable, and ensure consistency across fresh installs. YAML load/save does not deduplicate by instance ID.
 
 ### Clock as Active Page Indicator
 
@@ -226,7 +226,7 @@ Original openauto used OMX via `ilclient` for zero-copy GPU decode — fastest p
 
 **Decision:** Context creation for widget instances is handled by `WidgetContextFactory`, a separate QObject, not by methods on `WidgetGridModel`.
 
-**Rationale:** Keeps the model as pure data (placements, roles, CRUD). The factory owns the `IHostContext` reference and cell geometry needed to construct `WidgetInstanceContext` instances. This separation prevents the model from accumulating service dependencies. The factory's `cellSide` is a Q_PROPERTY bound from QML, keeping context creation reactive to grid resizes.
+**Rationale:** Keeps the model as pure data (placements, roles, CRUD). The factory owns the `IHostContext` reference and cell geometry needed to construct `WidgetInstanceContext` instances. This separation prevents the model from accumulating service dependencies. The factory's `cellSide` Q_PROPERTY provides the initial cell dimensions at context creation time. Ongoing reactivity comes from `HomeMenu.qml` `Binding` elements that update `cellWidth`, `cellHeight`, `colSpan`, `rowSpan`, and `isCurrentPage` directly on each `WidgetInstanceContext` instance (HomeMenu.qml lines 245-251).
 
 ### Context Injection via Loader.onLoaded + Binding
 
