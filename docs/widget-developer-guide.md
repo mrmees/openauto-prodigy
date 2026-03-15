@@ -155,13 +155,20 @@ Key patterns to notice:
 
 ### 2. Register the QML File in CMake
 
-In `src/CMakeLists.txt`, inside the `qt_add_qml_module` block, add your widget file alongside the existing widget entries:
+In `src/CMakeLists.txt`, add your widget file in two places. First, set its properties using `set_source_files_properties` (alongside the existing widget property blocks):
 
 ```cmake
-    ${CMAKE_SOURCE_DIR}/qml/widgets/SystemInfoWidget.qml
+set_source_files_properties(../qml/widgets/SystemInfoWidget.qml PROPERTIES
     QT_QML_SOURCE_TYPENAME "SystemInfoWidget"
     QT_RESOURCE_ALIAS "SystemInfoWidget.qml"
     QT_QML_SKIP_CACHEGEN TRUE
+)
+```
+
+Then add the file to the `QML_FILES` list inside the `qt_add_qml_module` block:
+
+```cmake
+        ../qml/widgets/SystemInfoWidget.qml
 ```
 
 **`QT_QML_SKIP_CACHEGEN TRUE` is mandatory for all widget QML files.** See [Why Skip Cachegen](#why-skip-cachegen) below.
@@ -207,7 +214,7 @@ Every widget is described by a `WidgetDescriptor` struct defined in `src/core/wi
 | `category` | `QString` | `""` | Category ID: `"status"`, `"media"`, `"navigation"`, or `"launcher"` |
 | `description` | `QString` | `""` | Short description displayed in the widget picker |
 | `qmlComponent` | `QUrl` | `QUrl()` | QRC URL to the widget QML file, e.g. `"qrc:/OpenAutoProdigy/ClockWidget.qml"` |
-| `pluginId` | `QString` | `""` | Source plugin ID (set by the system when registered via a plugin) |
+| `pluginId` | `QString` | `""` | Source plugin ID. **You must set this to your plugin's `id()` in `widgetDescriptors()`.** It is not set automatically. |
 | `contributionKind` | `DashboardContributionKind` | `Widget` | `Widget` (lightweight display) or `LiveSurfaceWidget` (deferred, no host path yet) |
 | `defaultConfig` | `QVariantMap` | `{}` | Optional per-widget default configuration |
 | `minCols` | `int` | `1` | Minimum column span |

@@ -51,12 +51,15 @@ Plugins receive an `IHostContext*` in `initialize()`. All service pointers are v
 
 ### ConfigService (`IConfigService`)
 
-Read/write YAML configuration values.
+Read/write YAML configuration values. Plugin-scoped methods isolate each plugin's config under its ID namespace.
 
 | Method | Thread Safety | Description |
 |--------|---------------|-------------|
-| `value(key)` | Main thread | Read a config value by dotted key (e.g. `"display.brightness"`) |
-| `setValue(key, value)` | Main thread | Write a config value |
+| `value(key)` | Thread-safe | Read a top-level config value by dotted key (e.g. `"display.brightness"`) |
+| `setValue(key, value)` | Main thread | Write a top-level config value |
+| `pluginValue(pluginId, key)` | Thread-safe | Read a plugin-scoped config value |
+| `setPluginValue(pluginId, key, value)` | Main thread | Write a plugin-scoped config value |
+| `save()` | Main thread | Flush config to disk |
 
 **Stability:** Stable
 
@@ -160,12 +163,21 @@ Use `realNightMode()` (C++ only) to get the actual day/night state for AA sensor
 
 ### AudioService (`IAudioService`)
 
-PipeWire stream management.
+PipeWire stream management with audio focus and device selection.
 
 | Method | Thread Safety | Description |
 |--------|---------------|-------------|
-| `createStream(name, format)` | Main thread | Create a PipeWire audio stream |
-| `setMasterVolume(float)` | Main thread | Set master volume (0.0–1.0) |
+| `createStream(name, priority, sampleRate, channels, targetDevice, bufferMs)` | Main thread | Create a PipeWire audio stream. Priority 0-100. Returns `AudioStreamHandle*`. |
+| `destroyStream(handle)` | Main thread | Destroy a previously created stream |
+| `writeAudio(handle, data, size)` | Any thread | Write PCM audio data. Returns bytes written or -1. |
+| `setMasterVolume(int)` | Thread-safe | Set master volume (0-100) |
+| `masterVolume()` | Thread-safe | Get current master volume (0-100) |
+| `requestAudioFocus(handle, type)` | Thread-safe | Request audio focus (`Gain`, `GainTransient`, `GainTransientMayDuck`) |
+| `releaseAudioFocus(handle)` | Thread-safe | Release audio focus, restore ducked streams |
+| `setOutputDevice(deviceName)` | Main thread | Set default output device (`"auto"` for default) |
+| `setInputDevice(deviceName)` | Main thread | Set default input device |
+| `outputDevice()` | Main thread | Get current output device name |
+| `inputDevice()` | Main thread | Get current input device name |
 
 **Stability:** Experimental — API may change.
 
@@ -253,7 +265,7 @@ Each widget descriptor declares a dashboard contribution with typed metadata:
 | `category` | `QString` | `""` | Category ID: `"status"`, `"media"`, `"navigation"`, `"launcher"` |
 | `description` | `QString` | `""` | Short description for picker display |
 | `qmlComponent` | `QUrl` | `QUrl()` | QRC URL of the widget's QML file |
-| `pluginId` | `QString` | `""` | Source plugin ID (set automatically) |
+| `pluginId` | `QString` | `""` | Source plugin ID. Must be set explicitly to your plugin's `id()` in `widgetDescriptors()`. |
 | `contributionKind` | `DashboardContributionKind` | `Widget` | `Widget` or `LiveSurfaceWidget` |
 | `defaultConfig` | `QVariantMap` | `{}` | Default per-instance config |
 | `minCols`, `minRows` | `int` | `1` | Minimum grid size |
