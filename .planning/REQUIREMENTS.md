@@ -2,7 +2,7 @@
 
 ## Wallpaper (WP)
 
-- [ ] **WP-01**: Wallpaper Image caps decoded texture to display dimensions via sourceSize, clips overflow, retains previous image during transitions, and always fills the screen without letterboxing
+- [x] **WP-01**: Wallpaper Image caps decoded texture to display dimensions via sourceSize, clips overflow, retains previous image during transitions, and always fills the screen without letterboxing
 
 ## Color Audit (CA)
 
@@ -29,7 +29,7 @@
 
 | Requirement | Phase | Status |
 |-------------|-------|--------|
-| WP-01 | Phase 13 | Pending |
+| WP-01 | Phase 13 | Complete |
 | CA-01 | Phase 14 | Pending |
 | CA-02 | Phase 14 | Pending |
 | CA-03 | Phase 14 | Pending |

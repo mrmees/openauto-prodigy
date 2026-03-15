@@ -87,7 +87,7 @@ See .planning/milestones/v0.6-ROADMAP.md for archived details.
 
 ### Phases
 
-- [ ] **Phase 13: Wallpaper Hardening** - Cap texture memory, eliminate paint-outside-bounds, prevent transition flicker — always cover-fit
+- [x] **Phase 13: Wallpaper Hardening** - Cap texture memory, eliminate paint-outside-bounds, prevent transition flicker — always cover-fit (completed 2026-03-15)
 - [ ] **Phase 14: Color Audit & M3 Expressive Tokens** - Fix confirmed on-* token pairings, apply NavbarControl active state fix, update interactive controls to use bolder accent colors
 - [ ] **Phase 15: Color Boldness Slider** - ThemeService colorBoldness property, HSL saturation helper for accent roles, settings UI with persistence
 
@@ -112,7 +112,7 @@ Plans:
 **Goal:** [Urgent work - to be planned]
 **Requirements**: TBD
 **Depends on:** Phase 13
-**Plans:** 0 plans
+**Plans:** 1/1 plans complete
 
 Plans:
 - [ ] TBD (run /gsd:plan-phase 13.1 to break down)
@@ -149,7 +149,7 @@ Plans:
 
 | Phase | Milestone | Plans Complete | Status | Completed |
 |-------|-----------|----------------|--------|-----------|
-| 13. Wallpaper Hardening | v0.6.2 | 0/TBD | Not started | - |
+| 13. Wallpaper Hardening | 1/1 | Complete   | 2026-03-15 | - |
 | 14. Color Audit & M3 Expressive Tokens | v0.6.2 | 0/TBD | Not started | - |
 | 15. Color Boldness Slider | v0.6.2 | 0/TBD | Not started | - |
 
