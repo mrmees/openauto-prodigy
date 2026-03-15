@@ -62,18 +62,99 @@ Read/write YAML configuration values.
 
 ### ThemeService (`IThemeService`)
 
-Day/night theme colors. All properties are Q_PROPERTY bindings usable from QML.
+Day/night theme with Material Design 3 color tokens. All color properties are Q_PROPERTY bindings usable directly from QML via the `ThemeService` root context object. Colors auto-switch between day and night mode palettes.
+
+**Primary group:**
 
 | Property | Type | Description |
 |----------|------|-------------|
-| `nightMode` | `bool` | Current mode |
-| `backgroundColor` | `QColor` | Current background color |
-| `textColor` | `QColor` | Current text color |
-| `accentColor` | `QColor` | Current accent color |
+| `primary` | `QColor` | Brand accent color |
+| `onPrimary` | `QColor` | Text/icons on primary |
+| `primaryContainer` | `QColor` | Primary container fill |
+| `onPrimaryContainer` | `QColor` | Text/icons on primary container |
+
+**Secondary group:**
+
+| Property | Type | Description |
+|----------|------|-------------|
+| `secondary` | `QColor` | Secondary accent |
+| `onSecondary` | `QColor` | Text/icons on secondary |
+| `secondaryContainer` | `QColor` | Secondary container fill |
+| `onSecondaryContainer` | `QColor` | Text/icons on secondary container |
+
+**Tertiary group:**
+
+| Property | Type | Description |
+|----------|------|-------------|
+| `tertiary` | `QColor` | Tertiary accent |
+| `onTertiary` | `QColor` | Text/icons on tertiary |
+| `tertiaryContainer` | `QColor` | Tertiary container fill |
+| `onTertiaryContainer` | `QColor` | Text/icons on tertiary container |
+
+**Error group:**
+
+| Property | Type | Description |
+|----------|------|-------------|
+| `error` | `QColor` | Error state color |
+| `onError` | `QColor` | Text/icons on error |
+| `errorContainer` | `QColor` | Error container fill |
+| `onErrorContainer` | `QColor` | Text/icons on error container |
+
+**Background and Surface:**
+
+| Property | Type | Description |
+|----------|------|-------------|
+| `background` | `QColor` | App background |
+| `onBackground` | `QColor` | Text on background |
+| `surface` | `QColor` | General surface |
+| `onSurface` | `QColor` | Primary text on surfaces |
+| `surfaceVariant` | `QColor` | Variant surface |
+| `onSurfaceVariant` | `QColor` | Secondary text, icons |
+| `surfaceDim` | `QColor` | Dimmed surface |
+| `surfaceBright` | `QColor` | Bright surface |
+| `surfaceContainerLowest` | `QColor` | Lowest-elevation container |
+| `surfaceContainerLow` | `QColor` | Low-elevation container |
+| `surfaceContainer` | `QColor` | Default container (widget glass cards) |
+| `surfaceContainerHigh` | `QColor` | High-elevation container |
+| `surfaceContainerHighest` | `QColor` | Highest-elevation container |
+
+**Outline:**
+
+| Property | Type | Description |
+|----------|------|-------------|
+| `outline` | `QColor` | Borders, dividers |
+| `outlineVariant` | `QColor` | Subtle borders |
+
+**Inverse:**
+
+| Property | Type | Description |
+|----------|------|-------------|
+| `inverseSurface` | `QColor` | High-contrast surface |
+| `inverseOnSurface` | `QColor` | Text on inverse surface |
+| `inversePrimary` | `QColor` | Primary on inverse surface |
+
+**Utility and Derived:**
+
+| Property | Type | Description |
+|----------|------|-------------|
+| `scrim` | `QColor` | Overlay scrim |
+| `shadow` | `QColor` | Shadow color |
+| `success` | `QColor` | Success state (derived, computed) |
+| `onSuccess` | `QColor` | Text on success (derived, computed) |
+
+**Mode control:**
+
+| Property | Type | Description |
+|----------|------|-------------|
+| `nightMode` | `bool` | Current display mode (read/write). When `forceDarkMode` is on, the UI always shows dark but `nightMode` still tracks the real sensor/time state. |
+| `forceDarkMode` | `bool` | HU override — forces dark palette for the UI. Default: on. |
+
+Use `realNightMode()` (C++ only) to get the actual day/night state for AA sensor reporting, independent of `forceDarkMode`.
 
 | Method | Thread Safety | Description |
 |--------|---------------|-------------|
 | `toggleMode()` | Main thread | Switch between day and night |
+| `setTheme(themeId)` | Main thread | Switch to a different theme by ID |
 
 **Stability:** Stable
 
@@ -113,13 +194,18 @@ Named command dispatch. Actions are synchronous.
 | `dispatch(id, payload)` | Main thread only | Execute an action. Returns `false` if unknown. |
 | `registeredActions()` | Main thread only | List all registered action IDs. |
 
-**Built-in actions:**
+**Plugin-facing actions:**
 
-| Action ID | Description |
-|-----------|-------------|
-| `app.quit` | Quit the application |
-| `app.home` | Return to home (deactivate current plugin) |
-| `theme.toggle` | Toggle day/night mode |
+| Action ID | Payload | Description |
+|-----------|---------|-------------|
+| `app.quit` | — | Quit the application |
+| `app.home` | — | Return to home (deactivate current plugin) |
+| `app.launchPlugin` | `QString` plugin ID | Activate a plugin by ID |
+| `app.openSettings` | — | Navigate to settings view |
+| `theme.toggle` | — | Toggle day/night mode |
+| `aa.sendButton` | `int` keycode | Send an AA button press to the phone |
+
+Additional internal actions exist for navbar gesture routing (`navbar.volume.*`, `navbar.clock.*`, `navbar.brightness.*`, `app.minimize`, `app.restart`) but are not part of the plugin API.
 
 **Stability:** Stable
 
@@ -159,18 +245,21 @@ Plugins can contribute widgets to the home screen dashboard via `widgetDescripto
 
 Each widget descriptor declares a dashboard contribution with typed metadata:
 
-| Field | Type | Description |
-|-------|------|-------------|
-| `id` | `QString` | Unique widget identifier |
-| `displayName` | `QString` | Human-readable name shown in picker |
-| `iconName` | `QString` | Material Icon codepoint (e.g. `"\ue8b5"`) |
-| `qmlComponent` | `QUrl` | QRC URL of the widget's QML file |
-| `pluginId` | `QString` | Source plugin ID (set automatically) |
-| `contributionKind` | `DashboardContributionKind` | `Widget` or `LiveSurfaceWidget` |
-| `defaultConfig` | `QVariantMap` | Default per-instance config |
-| `minCols`, `minRows` | `int` | Minimum grid size |
-| `maxCols`, `maxRows` | `int` | Maximum grid size |
-| `defaultCols`, `defaultRows` | `int` | Default grid size |
+| Field | Type | Default | Description |
+|-------|------|---------|-------------|
+| `id` | `QString` | (required) | Unique widget identifier |
+| `displayName` | `QString` | (required) | Human-readable name shown in picker |
+| `iconName` | `QString` | `""` | Material Icon codepoint (e.g. `"\ue8b5"`) |
+| `category` | `QString` | `""` | Category ID: `"status"`, `"media"`, `"navigation"`, `"launcher"` |
+| `description` | `QString` | `""` | Short description for picker display |
+| `qmlComponent` | `QUrl` | `QUrl()` | QRC URL of the widget's QML file |
+| `pluginId` | `QString` | `""` | Source plugin ID (set automatically) |
+| `contributionKind` | `DashboardContributionKind` | `Widget` | `Widget` or `LiveSurfaceWidget` |
+| `defaultConfig` | `QVariantMap` | `{}` | Default per-instance config |
+| `minCols`, `minRows` | `int` | `1` | Minimum grid size |
+| `maxCols`, `maxRows` | `int` | `6`, `4` | Maximum grid size |
+| `defaultCols`, `defaultRows` | `int` | `1` | Default grid size |
+| `singleton` | `bool` | `false` | System-seeded, non-removable, hidden from picker |
 
 ### Contribution Kinds
 
@@ -185,15 +274,20 @@ Each widget descriptor declares a dashboard contribution with typed metadata:
 
 Widget QML receives a `WidgetInstanceContext` with layout and provider properties:
 
-| Property | Type | Description |
-|----------|------|-------------|
-| `cellWidth` | `int` | Pixel width of the widget's grid cell |
-| `cellHeight` | `int` | Pixel height of the widget's grid cell |
-| `instanceId` | `QString` | Unique instance identifier |
-| `widgetId` | `QString` | Widget descriptor ID |
-| `projectionStatus` | `QObject*` | `IProjectionStatusProvider` — projection connection state |
-| `navigationProvider` | `QObject*` | `INavigationProvider` — nav data (road, maneuver, distance) |
-| `mediaStatus` | `QObject*` | `IMediaStatusProvider` — media metadata and playback controls |
+| Property | Type | Access | Description |
+|----------|------|--------|-------------|
+| `cellWidth` | `int` | WRITE + NOTIFY | Pixel width of one grid cell (reactive, updates on resize) |
+| `cellHeight` | `int` | WRITE + NOTIFY | Pixel height of one grid cell (reactive, updates on resize) |
+| `instanceId` | `QString` | CONSTANT | Unique instance identifier |
+| `widgetId` | `QString` | CONSTANT | Widget descriptor ID |
+| `colSpan` | `int` | WRITE + NOTIFY | Current column span (reactive, updates on resize) |
+| `rowSpan` | `int` | WRITE + NOTIFY | Current row span (reactive, updates on resize) |
+| `isCurrentPage` | `bool` | WRITE + NOTIFY | Whether this widget's page is currently visible |
+| `projectionStatus` | `QObject*` | CONSTANT | `IProjectionStatusProvider` — projection connection state |
+| `navigationProvider` | `QObject*` | CONSTANT | `INavigationProvider` — nav data (road, maneuver, distance) |
+| `mediaStatus` | `QObject*` | CONSTANT | `IMediaStatusProvider` — media metadata and playback controls |
+
+`cellWidth`, `cellHeight`, `colSpan`, `rowSpan`, and `isCurrentPage` are updated by the host via QML `Binding` elements, keeping widget layouts reactive to grid changes and page navigation.
 
 Provider properties are resolved from `IHostContext` and may be `null` if the corresponding service is not registered.
 
@@ -205,7 +299,7 @@ Shell, dashboard, and widget QML access cross-cutting state through narrow provi
 |-----------|-------------------|-----------|----------|
 | `IProjectionStatusProvider` | `ProjectionStatus` | `ProjectionStatusProvider` → `AndroidAutoOrchestrator` | `projectionState`, `statusMessage` |
 | `INavigationProvider` | `NavigationProvider` | `NavigationDataBridge` | `navActive`, `roadName`, `formattedDistance`, maneuver data |
-| `IMediaStatusProvider` | `MediaStatus` | `MediaStatusService` | `title`, `artist`, `album`, `playbackState`, `source`, `playPause()`/`next()`/`previous()` |
+| `IMediaStatusProvider` | `MediaStatus` | `MediaStatusService` | `hasMedia`, `title`, `artist`, `album`, `playbackState`, `source`, `appName`, `playPause()`/`next()`/`previous()` |
 | `ICallStateProvider` | `CallStateProvider` | `PhoneStateService` | `callState`, `callerName`, `callerNumber`, `answer()`/`hangup()` |
 
 **Design rule:** Core platform owns singleton hardware/system state. Plugins are UI wrappers that read from core services, not state owners.
@@ -240,7 +334,9 @@ ActionRegistry.dispatch("aa.sendButton", 85)  // play/pause
 
 **Dynamic plugins** are loaded from `~/.openauto/plugins/<plugin-id>/`:
 - Must contain `plugin.yaml` manifest
-- Must contain a shared library (`.so`) exporting `IPlugin*`
+- Must contain a shared library named `lib<last-segment-of-plugin-id>.so` (e.g., plugin ID `com.example.weather` expects `libweather.so`)
+- The `.so` is loaded via `QPluginLoader` and the instance is cast via `qobject_cast<IPlugin*>`
+- The plugin class must inherit from both `QObject` and `oap::IPlugin`, and declare `Q_OBJECT`, `Q_PLUGIN_METADATA(IID "org.openauto.PluginInterface/1.0")`, and `Q_INTERFACES(oap::IPlugin)`
 - Discovered by `PluginManager::discoverPlugins()`
 
-Dynamic plugin loading is implemented but untested. Prefer static plugins for now.
+Dynamic plugin loading is implemented but untested. There is no in-tree dynamic plugin example. Prefer static plugins for now.
