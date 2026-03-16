@@ -48,7 +48,7 @@ Make `get_proxy_status` reflect actual local pipeline health — redsocks listen
   }
   ```
 - **`checks`:** coarse boolean signals — `listener`, `iptables`, `upstream`. No sub-fields for chain/jump/redirect individually.
-- **`error_code`:** stable, machine-readable. Defined codes: `listener_down`, `routing_missing`, `upstream_unreachable`, `operation_timeout`. Priority when multiple checks fail: `listener_down` > `routing_missing` > `upstream_unreachable`. `operation_timeout` is returned when the lock cannot be acquired within the timeout window.
+- **`error_code`:** stable, machine-readable. Defined codes: `listener_down`, `routing_missing`, `upstream_unreachable`, `operation_timeout`, `invalid_request`, `internal_error`. Priority when multiple checks fail: `listener_down` > `routing_missing` > `upstream_unreachable`. `operation_timeout` is returned when the lock cannot be acquired within the timeout window. `invalid_request` for malformed params (e.g., non-boolean `verify`). `internal_error` for last-resort failures (e.g., `get_status()` itself throws).
 - **`error`:** short human-readable summary (e.g., "redsocks is not listening on 127.0.0.1:12345")
 - **`live_check`:** true if this response came from a live verification pass, false if cached
 - **`verified_at`:** ISO 8601 timestamp of the last verification pass that produced this state
