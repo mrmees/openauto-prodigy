@@ -1,10 +1,10 @@
 ---
 gsd_state_version: 1.0
-milestone: v0.6.3
-milestone_name: Proxy Routing Fix
-status: ready_to_plan
-stopped_at: null
-last_updated: "2026-03-16"
+milestone: v0.6
+milestone_name: milestone
+status: planning
+stopped_at: Phase 15 context gathered
+last_updated: "2026-03-16T01:07:05.726Z"
 last_activity: 2026-03-16 — Roadmap created for v0.6.3 Proxy Routing Fix
 progress:
   total_phases: 4
@@ -62,6 +62,6 @@ None yet.
 
 ## Session Continuity
 
-Last session: 2026-03-16
-Stopped at: Roadmap created, ready to plan Phase 15
-Resume file: None
+Last session: 2026-03-16T01:07:05.724Z
+Stopped at: Phase 15 context gathered
+Resume file: .planning/phases/15-privilege-model-ipc-lockdown/15-CONTEXT.md
