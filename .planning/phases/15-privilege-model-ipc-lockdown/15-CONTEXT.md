@@ -31,22 +31,32 @@ The system daemon (`openauto-system.service`) gains sufficient privilege for all
 - Treat as belt-and-suspenders, not the primary cleanup path
 - Daemon's own `disable()` is the normal cleanup source of truth
 - If proxy mutations expand beyond iptables (DNS etc.), either extend ExecStopPost or document it as "iptables stale-rule cleanup only" with startup self-heal for the rest
+- If non-iptables proxy side effects remain outside ExecStopPost coverage in this phase, document that boundary explicitly in service/install notes rather than implying abnormal-stop cleanup is complete
 
 ### IPC access control
 - Socket mode `0660` (not `0666`)
 - Dedicated `openauto` group — not the installing user's primary group
 - Socket owned by `root:openauto`
+- Authorization policy is explicit:
+  - authorized callers are `root` and non-root processes whose effective UID is a member of the `openauto` group
+  - do not rely on primary GID alone
 - Peer credential validation (SO_PEERCRED) as defense-in-depth on every connection:
   - Accept connection
   - Inspect peer creds (uid/gid/pid)
+  - Resolve whether the caller is authorized under the policy above
   - If unauthorized: return structured JSON error `{"error": {"code": -32600, "message": "permission denied"}}`, log at warning/info with uid/gid/pid, close connection
   - If authorized: proceed normally
 - Group gate is the practical access mechanism; peer creds catch misconfiguration
+- Socket permission/ownership enforcement must happen on the real runtime socket after bind, not just in installer-side filesystem prep
 
 ### Group management
 - Create/use dedicated `openauto` group
 - Installer handles group creation (`groupadd`) and user membership (`usermod -aG openauto $USER`)
 - Qt client user must be a member of `openauto` to connect to the socket
+- Migration messaging must be honest about session semantics:
+  - group membership changes do not take effect in the current login session automatically
+  - installer must print a clear notice if re-login, reboot, or equivalent session refresh is required before non-root clients can access the new socket
+- Do not claim socket access is fully migrated until that caveat is surfaced
 
 ### Unit file template
 - `system-service/openauto-system.service` becomes the canonical template with simple placeholders
@@ -63,17 +73,24 @@ The system daemon (`openauto-system.service`) gains sufficient privilege for all
   2. Clean stale iptables proxy state (delete OUTPUT→OPENAUTO_PROXY jump, flush chain, delete chain — ignore "not found" errors)
   3. Create `openauto` group if needed, add user to it
   4. Replace/update the unit file from template
-  5. Correct socket directory and socket permissions
+  5. Prepare runtime directory ownership/permissions as needed for the new model
   6. Daemon-reload + restart under new privilege model
+  7. Print post-migration status, including any required re-login/reboot/session refresh for group membership to take effect
 - Both `install.sh` and `install-prebuilt.sh` get identical migration logic
 - Stale rule cleanup in installer is explicit — does not depend on Phase 16's startup self-heal
 - Shared helper functions between installers where practical
+- Do not treat installer-side chmod/chown as sufficient for the IPC socket itself; the daemon/runtime path must enforce final socket ownership/mode on the bound socket
 
 ### Claude's Discretion
-- Exact peer credential validation implementation details (Python asyncio SO_PEERCRED specifics)
-- Whether to validate UID membership in `openauto` group or just check GID directly
+- Exact Python asyncio implementation details for SO_PEERCRED retrieval
+- Exact mechanism for resolving whether a UID is a member of `openauto`
 - Exact template placeholder syntax (e.g., `{{PYTHON_PATH}}` vs `@PYTHON_PATH@`)
-- Test structure and granularity for TS-05 (IPC permission tests)
+- Test structure and granularity for IPC permission and migration-session caveat coverage
+
+### Not At Claude's Discretion
+- The authorization policy itself: `root` or member of `openauto`
+- The requirement to surface post-migration session-refresh/re-login caveats honestly
+- The requirement that final socket ownership/mode be enforced on the actual runtime socket, not assumed from installer prep
 
 </decisions>
 
