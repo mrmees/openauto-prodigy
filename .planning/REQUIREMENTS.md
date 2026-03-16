@@ -14,17 +14,17 @@
 ## Proxy Routing Correctness (PX)
 
 - [x] **PX-01**: `set_proxy_route(active=true)` succeeds without privilege errors on real hardware
-- [ ] **PX-02**: The expected redirect rules are installed for the transparent proxy path
-- [ ] **PX-03**: The upstream SOCKS destination is exempt from redirect
-- [ ] **PX-04**: Redsocks/control-plane traffic is exempt from redirect so the proxy path does not self-intercept or loop
+- [x] **PX-02**: The expected redirect rules are installed for the transparent proxy path
+- [x] **PX-03**: The upstream SOCKS destination is exempt from redirect
+- [x] **PX-04**: Redsocks/control-plane traffic is exempt from redirect so the proxy path does not self-intercept or loop
 - [ ] **PX-05**: Representative outbound TCP traffic traverses the companion SOCKS bridge on hardware once routing is enabled (hardware/UAT acceptance)
 
 ## Idempotency & Cleanup (IC)
 
-- [ ] **IC-01**: Repeated enable/disable cycles do not accumulate duplicate redirect rules or duplicate output jumps
-- [ ] **IC-02**: Disable removes routing state completely, including redirect rules and any DNS mutations introduced by enable
-- [ ] **IC-03**: Abnormal stop/restart does not leave persistent routing drift, or startup self-heals that state before reporting success
-- [ ] **IC-04**: Apply and cleanup failures surface honestly in returned state/error; the daemon must not report `disabled` or `active` when teardown/setup actually failed
+- [x] **IC-01**: Repeated enable/disable cycles do not accumulate duplicate redirect rules or duplicate output jumps
+- [x] **IC-02**: Disable removes routing state completely, including redirect rules and any DNS mutations introduced by enable
+- [x] **IC-03**: Abnormal stop/restart does not leave persistent routing drift, or startup self-heals that state before reporting success
+- [x] **IC-04**: Apply and cleanup failures surface honestly in returned state/error; the daemon must not report `disabled` or `active` when teardown/setup actually failed
 
 ## Status Reporting (SR)
 
@@ -57,14 +57,14 @@
 | PR-03 | Phase 15 | Complete |
 | PR-04 | Phase 15 | Complete |
 | PX-01 | Phase 16 | Complete |
-| PX-02 | Phase 16 | Pending |
-| PX-03 | Phase 16 | Pending |
-| PX-04 | Phase 16 | Pending |
+| PX-02 | Phase 16 | Complete |
+| PX-03 | Phase 16 | Complete |
+| PX-04 | Phase 16 | Complete |
 | PX-05 | Phase 18 | Pending |
-| IC-01 | Phase 16 | Pending |
-| IC-02 | Phase 16 | Pending |
-| IC-03 | Phase 16 | Pending |
-| IC-04 | Phase 16 | Pending |
+| IC-01 | Phase 16 | Complete |
+| IC-02 | Phase 16 | Complete |
+| IC-03 | Phase 16 | Complete |
+| IC-04 | Phase 16 | Complete |
 | SR-01 | Phase 17 | Pending |
 | SR-02 | Phase 17 | Pending |
 | SR-03 | Phase 17 | Pending |

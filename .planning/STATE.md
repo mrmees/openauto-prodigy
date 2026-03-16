@@ -3,15 +3,15 @@ gsd_state_version: 1.0
 milestone: v0.6
 milestone_name: milestone
 status: completed
-stopped_at: Completed 16-03 redsocks system user
-last_updated: "2026-03-16T03:23:45.512Z"
-last_activity: 2026-03-16 — Completed 16-01 hardware verification gate
+stopped_at: Completed 16-02-PLAN.md
+last_updated: "2026-03-16T03:25:23.250Z"
+last_activity: 2026-03-16 — Completed 16-03 redsocks system user
 progress:
   total_phases: 4
   completed_phases: 1
   total_plans: 6
-  completed_plans: 4
-  percent: 100
+  completed_plans: 5
+  percent: 94
 ---
 
 # Project State
@@ -46,6 +46,7 @@ Progress: [█████████░] 94%
 | 15 | 2 | 4 min | 2 min |
 | 16 | 1 | checkpoint | - |
 | Phase 16 P03 | 1 min | 2 tasks | 2 files |
+| Phase 16 P02 | 2min | 2 tasks | 2 files |
 
 ## Accumulated Context
 
@@ -63,6 +64,9 @@ Progress: [█████████░] 94%
 - [15-02]: Inline heredoc fallback kept for template-not-found edge case
 - [16-01]: ProtectHome=yes removed from service template — blocks /home access needed by daemon
 - [Phase 16]: Identical redsocks user creation block in both installers per Phase 15 duplication decision
+- [Phase 16]: Flush/recreate iptables model always rebuilds chain (never check-and-reuse)
+- [Phase 16]: disable() sets FAILED on any cleanup step failure, DISABLED only on full success
+- [Phase 16]: Removed port-based exemptions, replaced by owner-based + destination-based exemptions
 
 ### Blockers/Concerns
 
@@ -70,6 +74,6 @@ None yet.
 
 ## Session Continuity
 
-Last session: 2026-03-16T03:23:45.511Z
-Stopped at: Completed 16-03 redsocks system user
+Last session: 2026-03-16T03:25:23.248Z
+Stopped at: Completed 16-02-PLAN.md
 Resume file: None
