@@ -651,3 +651,107 @@ class OpenAutoSystemIPCHandlerTests(unittest.IsolatedAsyncioTestCase):
         self.assertEqual(result["state"], "failed")
         self.assertEqual(result["error_code"], "internal_error")
         self.assertIsNone(result["checks"])  # synthetic fallback
+
+    # -------------------------------------------------------
+    # get_proxy_status extended tests
+    # -------------------------------------------------------
+
+    async def test_get_proxy_status_verify_true_returns_live_check(self):
+        """get_proxy_status with verify=True returns live_check=True in response."""
+        handlers = await self._extract_handlers()
+        handler = handlers["get_proxy_status"]
+
+        self._proxy.get_status = AsyncMock(return_value=_make_status_dict(
+            state="active", listener=True, iptables=True, upstream=True,
+            live_check=True, verified_at="2026-03-16T04:00:00Z",
+        ))
+
+        result = await handler({"verify": True})
+
+        self.assertTrue(result["live_check"])
+        self._proxy.get_status.assert_awaited_once_with(verify=True)
+
+    async def test_get_proxy_status_rejects_integer_verify(self):
+        """get_proxy_status returns invalid_request when verify is integer 1."""
+        handlers = await self._extract_handlers()
+        handler = handlers["get_proxy_status"]
+
+        self._proxy.get_status = AsyncMock(return_value=_make_status_dict())
+
+        result = await handler({"verify": 1})
+
+        self.assertEqual(result["error_code"], "invalid_request")
+        self.assertIn("boolean", result["error"])
+        # Full response shape must still be present
+        self.assertIn("state", result)
+        self.assertIn("checks", result)
+        self.assertIn("verified_at", result)
+
+    async def test_get_proxy_status_full_response_shape_all_keys(self):
+        """get_proxy_status response has every required key from the contract."""
+        handlers = await self._extract_handlers()
+        handler = handlers["get_proxy_status"]
+
+        self._proxy.get_status = AsyncMock(return_value=_make_status_dict(
+            state="degraded", listener=True, iptables=True, upstream=False,
+            error_code="upstream_unreachable", error="upstream not reachable",
+            verified_at="2026-03-16T04:30:00Z",
+        ))
+
+        result = await handler(None)
+
+        required_keys = {"state", "checks", "error_code", "error", "verified_at", "live_check"}
+        self.assertTrue(required_keys.issubset(set(result.keys())),
+                        f"Missing keys: {required_keys - set(result.keys())}")
+        self.assertEqual(result["state"], "degraded")
+        self.assertEqual(result["error_code"], "upstream_unreachable")
+
+    # -------------------------------------------------------
+    # set_proxy_route extended tests
+    # -------------------------------------------------------
+
+    async def test_set_proxy_route_success_full_shape_all_keys(self):
+        """set_proxy_route success returns ok + all status shape keys."""
+        handlers = await self._extract_handlers()
+        handler = handlers["set_proxy_route"]
+
+        self._proxy.get_status = AsyncMock(return_value=_make_status_dict(
+            state="active", listener=True, iptables=True, upstream=True,
+            verified_at="2026-03-16T04:00:00Z",
+        ))
+
+        result = await handler({
+            "active": True,
+            "host": "10.0.0.5",
+            "port": 1080,
+            "password": "deadbeef",
+        })
+
+        required_keys = {"ok", "state", "checks", "error_code", "error", "verified_at", "live_check"}
+        self.assertTrue(required_keys.issubset(set(result.keys())),
+                        f"Missing keys: {required_keys - set(result.keys())}")
+        self.assertTrue(result["ok"])
+
+    async def test_set_proxy_route_failure_full_shape_all_keys(self):
+        """set_proxy_route failure returns ok=false + all status shape keys."""
+        handlers = await self._extract_handlers()
+        handler = handlers["set_proxy_route"]
+
+        self._proxy.enable = AsyncMock(side_effect=RuntimeError("iptables failed"))
+        self._proxy.state = ProxyState.FAILED
+        self._proxy.get_status = AsyncMock(return_value=_make_status_dict(
+            state="failed", error_code="internal_error",
+            error="iptables failed",
+        ))
+
+        result = await handler({
+            "active": True,
+            "host": "10.0.0.5",
+            "port": 1080,
+            "password": "deadbeef",
+        })
+
+        required_keys = {"ok", "state", "checks", "error_code", "error", "verified_at", "live_check"}
+        self.assertTrue(required_keys.issubset(set(result.keys())),
+                        f"Missing keys: {required_keys - set(result.keys())}")
+        self.assertFalse(result["ok"])

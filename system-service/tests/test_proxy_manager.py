@@ -842,6 +842,214 @@ class ProxyManagerTests(unittest.IsolatedAsyncioTestCase):
         self.assertTrue(lock_was_held)
         await self._cleanup_health(pm)
 
+    # -------------------------------------------------------
+    # SR-01 extended: enable() routing verification
+    # -------------------------------------------------------
+
+    async def test_enable_sets_failed_on_routing_missing(self):
+        """enable() sets FAILED when _verify_all reports routing_missing."""
+        pm = ProxyManager(config_path="/tmp/test_redsocks.conf")
+        await self._run_enable_with_mocks(
+            pm,
+            verify_all_mock=_make_verify_all_mock(routing=False),
+        )
+        self.assertEqual(pm.state, ProxyState.FAILED)
+        self.assertEqual(pm._cached_error_code, "routing_missing")
+        await self._cleanup_health(pm)
+
+    # -------------------------------------------------------
+    # SR-02 extended: error code priority
+    # -------------------------------------------------------
+
+    async def test_error_code_priority_listener_over_routing(self):
+        """listener_down has priority over routing_missing when both fail."""
+        pm = ProxyManager()
+        pm._redirect_port = 12345
+        pm._verify_listener = AsyncMock(return_value=False)
+        pm._verify_routing = AsyncMock(return_value=False)
+        pm._verify_upstream = AsyncMock(return_value=True)
+
+        result = await pm._verify_all()
+        self.assertEqual(result["error_code"], "listener_down")
+
+    async def test_error_code_priority_routing_over_upstream(self):
+        """routing_missing has priority over upstream_unreachable when both fail."""
+        pm = ProxyManager()
+        pm._verify_listener = AsyncMock(return_value=True)
+        pm._verify_routing = AsyncMock(return_value=False)
+        pm._verify_upstream = AsyncMock(return_value=False)
+
+        result = await pm._verify_all()
+        self.assertEqual(result["error_code"], "routing_missing")
+
+    # -------------------------------------------------------
+    # SR-03 extended: health loop routing + no corrective action + recovery
+    # -------------------------------------------------------
+
+    async def test_health_loop_detects_routing_failure(self):
+        """Health loop sets FAILED immediately on routing failure."""
+        pm = ProxyManager(config_path="/tmp/test_redsocks.conf")
+        pm._state = ProxyState.ACTIVE
+        pm._redirect_port = 12345
+        pm._proxy_host = "10.0.0.5"
+        pm._proxy_port = 1080
+
+        pm._verify_all = _make_verify_all_mock(routing=False)
+
+        result = await pm._verify_all()
+        pm._update_cached_status(result)
+        pm._apply_verification_state(result)
+
+        self.assertEqual(pm.state, ProxyState.FAILED)
+        self.assertEqual(pm._cached_error_code, "routing_missing")
+
+    async def test_health_loop_no_corrective_action(self):
+        """Health loop only detects and reports — does not call enable/disable/restart."""
+        pm = ProxyManager(config_path="/tmp/test_redsocks.conf")
+        pm._state = ProxyState.ACTIVE
+        pm._redirect_port = 12345
+        pm._proxy_host = "10.0.0.5"
+        pm._proxy_port = 1080
+        pm._verify_all = _make_verify_all_mock(listener=False)
+
+        # Spy on _run_cmd to ensure health loop tick doesn't invoke subprocess
+        pm._run_cmd = AsyncMock()
+
+        result = await pm._verify_all()
+        pm._update_cached_status(result)
+        pm._apply_verification_state(result)
+
+        # _run_cmd should NOT have been called — no corrective action
+        pm._run_cmd.assert_not_awaited()
+        self.assertEqual(pm.state, ProxyState.FAILED)
+
+    async def test_health_loop_degraded_to_active_recovery(self):
+        """Health loop transitions DEGRADED -> ACTIVE when upstream recovers."""
+        pm = ProxyManager(config_path="/tmp/test_redsocks.conf")
+        pm._state = ProxyState.DEGRADED
+        pm._cached_error_code = "upstream_unreachable"
+
+        pm._verify_all = _make_verify_all_mock()  # all OK
+
+        result = await pm._verify_all()
+        pm._update_cached_status(result)
+        pm._apply_verification_state(result)
+
+        self.assertEqual(pm.state, ProxyState.ACTIVE)
+        self.assertIsNone(pm._cached_error_code)
+
+    async def test_health_loop_failed_to_active_external_recovery(self):
+        """Health loop detects external recovery: FAILED -> ACTIVE when pipeline becomes healthy."""
+        pm = ProxyManager(config_path="/tmp/test_redsocks.conf")
+        pm._state = ProxyState.FAILED
+        pm._cached_error_code = "routing_missing"
+
+        # Simulate external fix — someone manually restored iptables + redsocks
+        pm._verify_all = _make_verify_all_mock()  # all OK now
+
+        result = await pm._verify_all()
+        pm._update_cached_status(result)
+        pm._apply_verification_state(result)
+
+        self.assertEqual(pm.state, ProxyState.ACTIVE)
+        self.assertIsNone(pm._cached_error_code)
+
+    # -------------------------------------------------------
+    # Response shape extended
+    # -------------------------------------------------------
+
+    async def test_get_status_checks_has_correct_keys(self):
+        """get_status checks dict has exactly listener, iptables, upstream booleans."""
+        pm = ProxyManager(config_path="/tmp/test_redsocks.conf")
+        pm._state = ProxyState.ACTIVE
+        pm._verify_all = _make_verify_all_mock()
+
+        status = await pm.get_status(verify=True)
+
+        checks = status["checks"]
+        self.assertEqual(set(checks.keys()), {"listener", "iptables", "upstream"})
+        for key, val in checks.items():
+            self.assertIsInstance(val, bool, f"checks[{key}] should be bool, got {type(val)}")
+
+    async def test_get_status_verified_at_iso8601(self):
+        """verified_at is ISO 8601 formatted string after verification."""
+        pm = ProxyManager(config_path="/tmp/test_redsocks.conf")
+        pm._state = ProxyState.ACTIVE
+        pm._verify_all = _make_verify_all_mock()
+
+        status = await pm.get_status(verify=True)
+
+        verified_at = status["verified_at"]
+        self.assertIsNotNone(verified_at)
+        # Must end with Z (UTC) and parse as datetime
+        self.assertTrue(verified_at.endswith("Z"))
+        from datetime import datetime
+        parsed = datetime.fromisoformat(verified_at.replace("Z", "+00:00"))
+        self.assertIsNotNone(parsed)
+
+    # -------------------------------------------------------
+    # Lock behavior extended
+    # -------------------------------------------------------
+
+    async def test_get_status_blocks_while_enable_in_flight(self):
+        """get_status waits for enable to complete before returning (settled state)."""
+        pm = ProxyManager(config_path="/tmp/test_redsocks.conf")
+
+        enable_started = asyncio.Event()
+        enable_continue = asyncio.Event()
+        status_result = {}
+
+        original_enable_locked = pm._enable_locked
+
+        async def slow_enable_locked(*args, **kwargs):
+            enable_started.set()
+            await enable_continue.wait()
+            return await original_enable_locked(*args, **kwargs)
+
+        pm._enable_locked = slow_enable_locked
+        pm._run_cmd = _make_flush_aware_mock()
+        pm._verify_all = _make_verify_all_mock()
+        proc = self._mock_proc()
+
+        async def do_enable():
+            with patch("asyncio.create_subprocess_exec", AsyncMock(return_value=proc)):
+                await pm.enable("10.0.0.5", 1080, "user", "pass")
+
+        async def do_get_status():
+            await enable_started.wait()
+            # enable is holding the lock — get_status should block
+            result = await pm.get_status()
+            status_result.update(result)
+
+        # Start enable, then get_status. Release enable after a moment.
+        enable_task = asyncio.create_task(do_enable())
+        status_task = asyncio.create_task(do_get_status())
+
+        await asyncio.sleep(0.1)
+        enable_continue.set()
+
+        await asyncio.gather(enable_task, status_task)
+
+        # get_status returned AFTER enable completed, so state should be settled (active)
+        self.assertEqual(status_result["state"], "active")
+        await self._cleanup_health(pm)
+
+    async def test_lock_timeout_returns_operation_timeout(self):
+        """get_status returns operation_timeout error_code when lock times out."""
+        pm = ProxyManager(config_path="/tmp/test_redsocks.conf")
+        pm._LOCK_TIMEOUT = 0.1  # very short timeout
+
+        # Acquire lock externally to force timeout
+        await pm._op_lock.acquire()
+
+        try:
+            status = await pm.get_status()
+            self.assertEqual(status["error_code"], "operation_timeout")
+            self.assertIn("timed out", status["error"])
+            self.assertFalse(status["live_check"])
+        finally:
+            pm._op_lock.release()
+
 
 if __name__ == "__main__":
     unittest.main()
