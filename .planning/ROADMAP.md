@@ -141,10 +141,11 @@ Plans:
   1. `get_proxy_status` returns `ACTIVE` only after verifying the local redirect listener (redsocks) is alive and iptables rules are in place
   2. Startup failures, apply failures, and cleanup failures each produce distinct `FAILED` or `DEGRADED` states with actionable error detail
   3. Health checks probe the local redirect pipeline, not just upstream SOCKS reachability
-**Plans**: TBD
+**Plans**: 2 plans
 
 Plans:
-- [ ] 17-01: TBD
+- [ ] 17-01-PLAN.md — Verification logic, lock-guarded operations, and redesigned health loop
+- [ ] 17-02-PLAN.md — Status reporting verification and health check tests
 
 ### Phase 18: Hardware Validation
 **Goal**: End-to-end proof that representative TCP traffic traverses the companion SOCKS bridge on real Pi hardware
@@ -166,5 +167,5 @@ Plans:
 |-------|----------------|--------|-----------|
 | 15. Privilege Model & IPC Lockdown | 2/2 | Complete    | 2026-03-16 |
 | 16. Routing Correctness & Idempotency | 4/4 | Complete    | 2026-03-16 |
-| 17. Status Reporting Hardening | 0/? | Not started | - |
+| 17. Status Reporting Hardening | 0/2 | Not started | - |
 | 18. Hardware Validation | 0/? | Not started | - |
