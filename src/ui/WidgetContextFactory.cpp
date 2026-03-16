@@ -1,6 +1,7 @@
 #include "ui/WidgetContextFactory.hpp"
 #include "ui/WidgetGridModel.hpp"
 #include "ui/WidgetInstanceContext.hpp"
+#include "core/widget/WidgetRegistry.hpp"
 #include "core/plugin/IHostContext.hpp"
 
 namespace oap {
@@ -11,7 +12,19 @@ WidgetContextFactory::WidgetContextFactory(WidgetGridModel* gridModel,
     : QObject(parent)
     , gridModel_(gridModel)
     , hostContext_(hostContext)
-{}
+{
+    if (gridModel_) {
+        connect(gridModel_, &WidgetGridModel::widgetConfigChanged,
+                this, [this](const QString& instanceId, const QVariantMap& /*effectiveConfig*/) {
+            auto* ctx = activeContexts_.value(instanceId, nullptr);
+            if (ctx) {
+                // Pass raw overrides (not merged effective) to setInstanceConfig.
+                // The context's effectiveConfig() getter handles merging with defaults.
+                ctx->setInstanceConfig(gridModel_->widgetConfig(instanceId));
+            }
+        });
+    }
+}
 
 QObject* WidgetContextFactory::createContext(const QString& instanceId, QObject* parent) {
     if (!gridModel_) return nullptr;
@@ -20,8 +33,25 @@ QObject* WidgetContextFactory::createContext(const QString& instanceId, QObject*
     const auto& placements = gridModel_->placements();
     for (const auto& p : placements) {
         if (p.instanceId == instanceId) {
-            // Use cellSide for both width and height (square cells)
-            return new WidgetInstanceContext(p, cellSide_, cellSide_, hostContext_, parent);
+            // Look up defaultConfig from descriptor
+            QVariantMap defaultCfg;
+            if (auto* reg = gridModel_->registry()) {
+                auto desc = reg->descriptor(p.widgetId);
+                if (desc) defaultCfg = desc->defaultConfig;
+            }
+
+            auto* ctx = new WidgetInstanceContext(p, cellSide_, cellSide_, hostContext_,
+                                                   defaultCfg, p.config, parent);
+
+            // Track this context for live config updates
+            activeContexts_[instanceId] = ctx;
+
+            // Clean up tracking when context is destroyed (delegate removed/recycled)
+            connect(ctx, &QObject::destroyed, this, [this, instanceId]() {
+                activeContexts_.remove(instanceId);
+            });
+
+            return ctx;
         }
     }
 

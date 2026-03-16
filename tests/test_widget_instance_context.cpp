@@ -61,6 +61,12 @@ private slots:
     void testIsCurrentPageDefaultsFalse();
     void testSetIsCurrentPageEmitsSignal();
     void testSetIsCurrentPageNoopDoesNotEmit();
+    // effectiveConfig tests
+    void testEffectiveConfigDefaults();
+    void testEffectiveConfigOverride();
+    void testEffectiveConfigMerge();
+    void testSetInstanceConfigEmitsSignal();
+    void testEffectiveConfigEmptyWhenNoSchema();
 };
 
 void TestWidgetInstanceContext::testProperties() {
@@ -72,7 +78,7 @@ void TestWidgetInstanceContext::testProperties() {
     placement.colSpan = 2;
     placement.rowSpan = 2;
 
-    oap::WidgetInstanceContext ctx(placement, 310, 290, nullptr, this);
+    oap::WidgetInstanceContext ctx(placement, 310, 290, nullptr, {}, {}, this);
 
     QCOMPARE(ctx.instanceId(), "clock-0");
     QCOMPARE(ctx.widgetId(), "org.openauto.clock");
@@ -86,7 +92,7 @@ void TestWidgetInstanceContext::testCellDimensions() {
     placement.col = 1;
     placement.row = 1;
 
-    oap::WidgetInstanceContext ctx(placement, 155, 145, nullptr, this);
+    oap::WidgetInstanceContext ctx(placement, 155, 145, nullptr, {}, {}, this);
 
     // Verify QML-accessible properties
     QCOMPARE(ctx.property("cellWidth").toInt(), 155);
@@ -106,7 +112,7 @@ void TestWidgetInstanceContext::testProviderPropertiesWithHostContext() {
 
     oap::GridPlacement placement;
     placement.instanceId = "test-providers";
-    oap::WidgetInstanceContext ctx(placement, 100, 100, hostContext.get(), this);
+    oap::WidgetInstanceContext ctx(placement, 100, 100, hostContext.get(), {}, {}, this);
 
     // Providers should be accessible via Q_PROPERTY
     QObject* proj = ctx.property("projectionStatus").value<QObject*>();
@@ -125,7 +131,7 @@ void TestWidgetInstanceContext::testProviderPropertiesWithHostContext() {
 void TestWidgetInstanceContext::testProviderPropertiesWithoutHostContext() {
     oap::GridPlacement placement;
     placement.instanceId = "test-no-context";
-    oap::WidgetInstanceContext ctx(placement, 100, 100, nullptr, this);
+    oap::WidgetInstanceContext ctx(placement, 100, 100, nullptr, {}, {}, this);
 
     // Without host context, providers should be null
     QVERIFY(ctx.property("projectionStatus").value<QObject*>() == nullptr);
@@ -139,7 +145,7 @@ void TestWidgetInstanceContext::testColSpanDefaultsFromPlacement() {
     placement.colSpan = 3;
     placement.rowSpan = 2;
 
-    oap::WidgetInstanceContext ctx(placement, 100, 100, nullptr, this);
+    oap::WidgetInstanceContext ctx(placement, 100, 100, nullptr, {}, {}, this);
     QCOMPARE(ctx.colSpan(), 3);
 }
 
@@ -149,7 +155,7 @@ void TestWidgetInstanceContext::testRowSpanDefaultsFromPlacement() {
     placement.colSpan = 3;
     placement.rowSpan = 2;
 
-    oap::WidgetInstanceContext ctx(placement, 100, 100, nullptr, this);
+    oap::WidgetInstanceContext ctx(placement, 100, 100, nullptr, {}, {}, this);
     QCOMPARE(ctx.rowSpan(), 2);
 }
 
@@ -159,7 +165,7 @@ void TestWidgetInstanceContext::testSetColSpanEmitsSignal() {
     placement.colSpan = 2;
     placement.rowSpan = 1;
 
-    oap::WidgetInstanceContext ctx(placement, 100, 100, nullptr, this);
+    oap::WidgetInstanceContext ctx(placement, 100, 100, nullptr, {}, {}, this);
     QSignalSpy spy(&ctx, &oap::WidgetInstanceContext::colSpanChanged);
     ctx.setColSpan(4);
     QCOMPARE(spy.count(), 1);
@@ -172,7 +178,7 @@ void TestWidgetInstanceContext::testSetRowSpanEmitsSignal() {
     placement.colSpan = 2;
     placement.rowSpan = 1;
 
-    oap::WidgetInstanceContext ctx(placement, 100, 100, nullptr, this);
+    oap::WidgetInstanceContext ctx(placement, 100, 100, nullptr, {}, {}, this);
     QSignalSpy spy(&ctx, &oap::WidgetInstanceContext::rowSpanChanged);
     ctx.setRowSpan(3);
     QCOMPARE(spy.count(), 1);
@@ -185,7 +191,7 @@ void TestWidgetInstanceContext::testSetColSpanNoopDoesNotEmit() {
     placement.colSpan = 2;
     placement.rowSpan = 1;
 
-    oap::WidgetInstanceContext ctx(placement, 100, 100, nullptr, this);
+    oap::WidgetInstanceContext ctx(placement, 100, 100, nullptr, {}, {}, this);
     QSignalSpy spy(&ctx, &oap::WidgetInstanceContext::colSpanChanged);
     ctx.setColSpan(2);  // same value
     QCOMPARE(spy.count(), 0);
@@ -195,7 +201,7 @@ void TestWidgetInstanceContext::testIsCurrentPageDefaultsFalse() {
     oap::GridPlacement placement;
     placement.instanceId = "test-page";
 
-    oap::WidgetInstanceContext ctx(placement, 100, 100, nullptr, this);
+    oap::WidgetInstanceContext ctx(placement, 100, 100, nullptr, {}, {}, this);
     QCOMPARE(ctx.isCurrentPage(), false);
 }
 
@@ -203,7 +209,7 @@ void TestWidgetInstanceContext::testSetIsCurrentPageEmitsSignal() {
     oap::GridPlacement placement;
     placement.instanceId = "test-page";
 
-    oap::WidgetInstanceContext ctx(placement, 100, 100, nullptr, this);
+    oap::WidgetInstanceContext ctx(placement, 100, 100, nullptr, {}, {}, this);
     QSignalSpy spy(&ctx, &oap::WidgetInstanceContext::isCurrentPageChanged);
     ctx.setIsCurrentPage(true);
     QCOMPARE(spy.count(), 1);
@@ -214,10 +220,81 @@ void TestWidgetInstanceContext::testSetIsCurrentPageNoopDoesNotEmit() {
     oap::GridPlacement placement;
     placement.instanceId = "test-page";
 
-    oap::WidgetInstanceContext ctx(placement, 100, 100, nullptr, this);
+    oap::WidgetInstanceContext ctx(placement, 100, 100, nullptr, {}, {}, this);
     QSignalSpy spy(&ctx, &oap::WidgetInstanceContext::isCurrentPageChanged);
     ctx.setIsCurrentPage(false);  // same as default
     QCOMPARE(spy.count(), 0);
+}
+
+void TestWidgetInstanceContext::testEffectiveConfigDefaults() {
+    oap::GridPlacement placement;
+    placement.instanceId = "test-config";
+
+    QVariantMap defaults = {{"format", "24h"}, {"showSeconds", false}};
+    QVariantMap instance; // empty
+
+    oap::WidgetInstanceContext ctx(placement, 100, 100, nullptr, defaults, instance, this);
+
+    QVariantMap effective = ctx.effectiveConfig();
+    QCOMPARE(effective["format"].toString(), QString("24h"));
+    QCOMPARE(effective["showSeconds"].toBool(), false);
+}
+
+void TestWidgetInstanceContext::testEffectiveConfigOverride() {
+    oap::GridPlacement placement;
+    placement.instanceId = "test-config";
+
+    QVariantMap defaults = {{"format", "24h"}};
+    QVariantMap instance = {{"format", "12h"}};
+
+    oap::WidgetInstanceContext ctx(placement, 100, 100, nullptr, defaults, instance, this);
+
+    QVariantMap effective = ctx.effectiveConfig();
+    QCOMPARE(effective["format"].toString(), QString("12h"));
+}
+
+void TestWidgetInstanceContext::testEffectiveConfigMerge() {
+    oap::GridPlacement placement;
+    placement.instanceId = "test-config";
+
+    QVariantMap defaults = {{"keyA", "defaultA"}, {"keyB", "defaultB"}};
+    QVariantMap instance = {{"keyB", "overrideB"}};
+
+    oap::WidgetInstanceContext ctx(placement, 100, 100, nullptr, defaults, instance, this);
+
+    QVariantMap effective = ctx.effectiveConfig();
+    QCOMPARE(effective["keyA"].toString(), QString("defaultA")); // from defaults
+    QCOMPARE(effective["keyB"].toString(), QString("overrideB")); // from instance
+}
+
+void TestWidgetInstanceContext::testSetInstanceConfigEmitsSignal() {
+    oap::GridPlacement placement;
+    placement.instanceId = "test-config";
+
+    QVariantMap defaults = {{"format", "24h"}};
+    QVariantMap instance;
+
+    oap::WidgetInstanceContext ctx(placement, 100, 100, nullptr, defaults, instance, this);
+
+    QSignalSpy spy(&ctx, &oap::WidgetInstanceContext::effectiveConfigChanged);
+    ctx.setInstanceConfig({{"format", "12h"}});
+    QCOMPARE(spy.count(), 1);
+
+    QVariantMap effective = ctx.effectiveConfig();
+    QCOMPARE(effective["format"].toString(), QString("12h"));
+}
+
+void TestWidgetInstanceContext::testEffectiveConfigEmptyWhenNoSchema() {
+    oap::GridPlacement placement;
+    placement.instanceId = "test-config";
+
+    QVariantMap defaults; // empty
+    QVariantMap instance; // empty
+
+    oap::WidgetInstanceContext ctx(placement, 100, 100, nullptr, defaults, instance, this);
+
+    QVariantMap effective = ctx.effectiveConfig();
+    QVERIFY(effective.isEmpty());
 }
 
 QTEST_GUILESS_MAIN(TestWidgetInstanceContext)

@@ -63,7 +63,7 @@ void TestWidgetContractQml::testContextInjectionThroughLoader() {
     placement.colSpan = 2;
     placement.rowSpan = 3;
 
-    auto* ctx = new oap::WidgetInstanceContext(placement, 100, 100, nullptr, root.data());
+    auto* ctx = new oap::WidgetInstanceContext(placement, 100, 100, nullptr, {}, {}, root.data());
 
     // Set widgetCtx property, which triggers Loader.onLoaded injection
     root->setProperty("widgetCtx", QVariant::fromValue(static_cast<QObject*>(ctx)));
@@ -97,7 +97,7 @@ void TestWidgetContractQml::testColSpanPropagation() {
     placement.colSpan = 2;
     placement.rowSpan = 3;
 
-    auto* ctx = new oap::WidgetInstanceContext(placement, 100, 100, nullptr, root.data());
+    auto* ctx = new oap::WidgetInstanceContext(placement, 100, 100, nullptr, {}, {}, root.data());
     root->setProperty("widgetCtx", QVariant::fromValue(static_cast<QObject*>(ctx)));
 
     QCoreApplication::processEvents();
@@ -128,7 +128,7 @@ void TestWidgetContractQml::testIsCurrentPagePropagation() {
     placement.colSpan = 1;
     placement.rowSpan = 1;
 
-    auto* ctx = new oap::WidgetInstanceContext(placement, 100, 100, nullptr, root.data());
+    auto* ctx = new oap::WidgetInstanceContext(placement, 100, 100, nullptr, {}, {}, root.data());
     root->setProperty("widgetCtx", QVariant::fromValue(static_cast<QObject*>(ctx)));
 
     QCoreApplication::processEvents();

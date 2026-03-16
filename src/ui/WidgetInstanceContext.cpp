@@ -11,6 +11,8 @@ WidgetInstanceContext::WidgetInstanceContext(
     int cellWidth,
     int cellHeight,
     IHostContext* hostContext,
+    const QVariantMap& defaultConfig,
+    const QVariantMap& instanceConfig,
     QObject* parent)
     : QObject(parent)
     , placement_(placement)
@@ -20,6 +22,8 @@ WidgetInstanceContext::WidgetInstanceContext(
     , rowSpan_(placement.rowSpan)
     , isCurrentPage_(false)
     , hostContext_(hostContext)
+    , defaultConfig_(defaultConfig)
+    , instanceConfig_(instanceConfig)
 {}
 
 void WidgetInstanceContext::setCellWidth(int v) {
@@ -50,6 +54,19 @@ void WidgetInstanceContext::setIsCurrentPage(bool v) {
     if (isCurrentPage_ == v) return;
     isCurrentPage_ = v;
     emit isCurrentPageChanged();
+}
+
+QVariantMap WidgetInstanceContext::effectiveConfig() const {
+    QVariantMap result = defaultConfig_;
+    for (auto it = instanceConfig_.constBegin(); it != instanceConfig_.constEnd(); ++it)
+        result[it.key()] = it.value();
+    return result;
+}
+
+void WidgetInstanceContext::setInstanceConfig(const QVariantMap& config) {
+    if (instanceConfig_ == config) return;
+    instanceConfig_ = config;
+    emit effectiveConfigChanged();
 }
 
 QObject* WidgetInstanceContext::projectionStatusObj() const {

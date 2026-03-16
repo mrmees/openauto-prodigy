@@ -1,10 +1,12 @@
 #pragma once
 
 #include <QObject>
+#include <QHash>
 
 namespace oap {
 
 class WidgetGridModel;
+class WidgetInstanceContext;
 class IHostContext;
 
 class WidgetContextFactory : public QObject {
@@ -29,6 +31,7 @@ private:
     WidgetGridModel* gridModel_;
     IHostContext* hostContext_;
     int cellSide_ = 120;
+    QHash<QString, WidgetInstanceContext*> activeContexts_;
 };
 
 } // namespace oap

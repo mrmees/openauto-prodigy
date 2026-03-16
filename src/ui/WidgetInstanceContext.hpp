@@ -22,12 +22,15 @@ class WidgetInstanceContext : public QObject {
     Q_PROPERTY(QObject* projectionStatus READ projectionStatusObj CONSTANT)
     Q_PROPERTY(QObject* navigationProvider READ navigationProviderObj CONSTANT)
     Q_PROPERTY(QObject* mediaStatus READ mediaStatusObj CONSTANT)
+    Q_PROPERTY(QVariantMap effectiveConfig READ effectiveConfig NOTIFY effectiveConfigChanged)
 
 public:
     WidgetInstanceContext(const GridPlacement& placement,
                           int cellWidth,
                           int cellHeight,
                           IHostContext* hostContext,
+                          const QVariantMap& defaultConfig = {},
+                          const QVariantMap& instanceConfig = {},
                           QObject* parent = nullptr);
 
     int cellWidth() const { return cellWidth_; }
@@ -48,6 +51,9 @@ public:
     bool isCurrentPage() const { return isCurrentPage_; }
     void setIsCurrentPage(bool v);
 
+    QVariantMap effectiveConfig() const;
+    void setInstanceConfig(const QVariantMap& config);
+
     QObject* projectionStatusObj() const;
     QObject* navigationProviderObj() const;
     QObject* mediaStatusObj() const;
@@ -58,6 +64,7 @@ signals:
     void colSpanChanged();
     void rowSpanChanged();
     void isCurrentPageChanged();
+    void effectiveConfigChanged();
 
 private:
     GridPlacement placement_;
@@ -67,6 +74,8 @@ private:
     int rowSpan_;
     bool isCurrentPage_ = false;
     IHostContext* hostContext_;
+    QVariantMap defaultConfig_;
+    QVariantMap instanceConfig_;
 };
 
 } // namespace oap
