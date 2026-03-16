@@ -100,6 +100,10 @@ oap_add_test(test_evdev_coord_bridge SOURCES test_evdev_coord_bridge.cpp)
 # --- Navbar tests ---
 
 oap_add_test(test_navbar_controller SOURCES test_navbar_controller.cpp)
+oap_add_test(test_settings_input_boundary
+    SOURCES test_settings_input_boundary.cpp
+    EXTRA_LIBS Qt6::Quick
+)
 oap_add_test(test_settings_menu_structure
     SOURCES test_settings_menu_structure.cpp
     DEFS TEST_SOURCE_DIR="${CMAKE_SOURCE_DIR}"
@@ -164,6 +168,6 @@ add_test(
 set_tests_properties(test_theme_service test_display_service test_plugin_model test_aa_orchestrator
     PROPERTIES ENVIRONMENT "QT_QPA_PLATFORM=offscreen"
 )
-set_tests_properties(test_settings_menu_structure test_gesture_overlay_controller test_widget_contract_qml
+set_tests_properties(test_settings_input_boundary test_settings_menu_structure test_gesture_overlay_controller test_widget_contract_qml
     PROPERTIES ENVIRONMENT "QT_QPA_PLATFORM=offscreen"
 )

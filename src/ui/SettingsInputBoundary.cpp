@@ -72,8 +72,45 @@ void SettingsInputBoundary::touchUngrabEvent()
     clearActivePress();
 }
 
-bool SettingsInputBoundary::childMouseEventFilter(QQuickItem*, QEvent* event)
+bool SettingsInputBoundary::itemBlocksBackHold(const QQuickItem* item) const
 {
+    for (auto* current = item; current; current = current->parentItem()) {
+        if (current == this)
+            break;
+        if (current->property("blocksBackHold").toBool())
+            return true;
+    }
+    return false;
+}
+
+QQuickItem* SettingsInputBoundary::deepestItemAtScenePos(const QPointF& scenePos) const
+{
+    const QPointF boundaryPos = mapFromScene(scenePos);
+    QQuickItem* current = childAt(boundaryPos.x(), boundaryPos.y());
+    if (!current)
+        return nullptr;
+
+    while (true) {
+        const QPointF currentPos = current->mapFromScene(scenePos);
+        QQuickItem* next = current->childAt(currentPos.x(), currentPos.y());
+        if (!next)
+            return current;
+        current = next;
+    }
+}
+
+bool SettingsInputBoundary::scenePosBlocksBackHold(const QPointF& scenePos) const
+{
+    return itemBlocksBackHold(deepestItemAtScenePos(scenePos));
+}
+
+bool SettingsInputBoundary::childMouseEventFilter(QQuickItem* item, QEvent* event)
+{
+    if (item && itemBlocksBackHold(item)) {
+        clearActivePress();
+        return false;
+    }
+
     switch (event->type()) {
     case QEvent::MouseButtonPress:
     case QEvent::MouseMove:
@@ -159,6 +196,10 @@ bool SettingsInputBoundary::handleMouseEvent(QMouseEvent* event)
     case QEvent::MouseButtonPress:
         if (event->button() != Qt::LeftButton)
             return false;
+        if (scenePosBlocksBackHold(event->scenePosition())) {
+            clearActivePress();
+            return false;
+        }
         armMouse(event->scenePosition());
         return false;
 
@@ -207,6 +248,10 @@ bool SettingsInputBoundary::handleTouchEvent(QTouchEvent* event)
     const QEventPoint& point = points.first();
 
     if (point.state() == QEventPoint::Pressed) {
+        if (scenePosBlocksBackHold(point.scenePosition())) {
+            clearActivePress();
+            return false;
+        }
         armTouch(point.id(), point.scenePosition());
         return false;
     }

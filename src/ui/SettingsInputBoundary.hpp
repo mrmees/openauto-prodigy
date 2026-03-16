@@ -40,6 +40,9 @@ private:
     void clearActivePress();
     void maybeCancelForMovement(const QPointF& scenePos);
     void triggerLongPress();
+    QQuickItem* deepestItemAtScenePos(const QPointF& scenePos) const;
+    bool itemBlocksBackHold(const QQuickItem* item) const;
+    bool scenePosBlocksBackHold(const QPointF& scenePos) const;
     bool handleMouseEvent(QMouseEvent* event);
     bool handleTouchEvent(QTouchEvent* event);
     bool isActiveTouchPoint(const QEventPoint& point) const;

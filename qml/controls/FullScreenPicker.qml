@@ -156,6 +156,7 @@ Item {
     // --- Modal bottom-sheet dialog ---
     Dialog {
         id: pickerDialog
+        property bool blocksBackHold: true
         modal: true
         dim: true
         closePolicy: Popup.CloseOnEscape | Popup.CloseOnPressOutside

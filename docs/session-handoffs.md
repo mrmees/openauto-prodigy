@@ -922,3 +922,46 @@ Documentation:
   - Passed
   - `active`
   - `Sun 2026-03-15 09:34:09 CDT`
+
+---
+
+## 2026-03-15 — Fix FullScreenPicker Touch Freeze Regression
+
+**What changed:**
+- Restored `blocksBackHold` awareness inside [`SettingsInputBoundary`](../src/ui/SettingsInputBoundary.cpp) / [`SettingsInputBoundary.hpp`](../src/ui/SettingsInputBoundary.hpp) by:
+  - hit-testing the deepest item at press start
+  - walking ancestor items for `blocksBackHold: true`
+  - skipping long-press/back-hold arming for blocked subtrees
+  - clearing any active hold state when filtered child events come from a blocked subtree
+- Marked [`qml/controls/FullScreenPicker.qml`](../qml/controls/FullScreenPicker.qml) `pickerDialog` as `blocksBackHold: true` so its full-screen modal subtree opts out of settings back-hold handling.
+- Added regression coverage in [`tests/test_settings_input_boundary.cpp`](../tests/test_settings_input_boundary.cpp) for:
+  - normal long-press behavior on interactive children
+  - suppression when the touched child blocks back-hold
+  - suppression when an ancestor blocks back-hold
+- Extended [`tests/test_settings_menu_structure.cpp`](../tests/test_settings_menu_structure.cpp) with a structural guard that `FullScreenPicker` marks the dialog subtree as blocked.
+- Registered the new regression test in [`tests/CMakeLists.txt`](../tests/CMakeLists.txt).
+
+**Why:**
+- The settings back-hold refactor to C++ removed the old `blocksBackHold` hit-test exemption.
+- `FullScreenPicker` still declared `blocksBackHold: true`, but the new boundary ignored it, so full-screen picker touches could be treated as settings-level long-press/back gestures.
+- Once the picker became full-screen, that regression covered essentially the whole display and could leave the modal overlay feeling like Prodigy had frozen.
+
+**Status:** Fixed locally. Local build, full test suite, and Pi cross-build all pass. Hardware deployment/testing on the Pi was not performed in this session.
+
+**Next steps:**
+1. Deploy the new binary to the Pi and re-test theme picker touch behavior on the real touchscreen.
+2. If any other settings dialogs show similar behavior, mark their modal popup subtree with `blocksBackHold: true` and reuse the new regression pattern.
+
+**Verification commands/results:**
+- Targeted TDD/red-green:
+  - `cd build && ctest --output-on-failure -R 'test_settings_input_boundary|test_settings_menu_structure'`
+  - Initial red: failed on missing `blocksBackHold` handling in `SettingsInputBoundary` and missing dialog marker in `FullScreenPicker`
+  - Final green: `100% tests passed, 0 tests failed out of 2`
+- Required repo verification:
+  - `cd build && cmake --build . -j$(nproc)`
+  - Passed
+  - `cd build && ctest --output-on-failure`
+  - Passed: `100% tests passed, 0 tests failed out of 87`
+- Pi cross-compile verification:
+  - `./cross-build.sh`
+  - Passed: `Build complete: build-pi/src/openauto-prodigy`

@@ -212,6 +212,19 @@ private slots:
         QVERIFY2(source.indexOf(QStringLiteral("wallpaper_override")) >= 0,
                  "ThemeSettings should reference wallpaper_override config path");
     }
+
+    void testFullScreenPickerDialogBlocksBackHold()
+    {
+        const QString source = sourceFor(QStringLiteral("qml/controls/FullScreenPicker.qml"));
+        QVERIFY2(!source.isEmpty(), "Failed to read FullScreenPicker.qml");
+
+        const int dialogPos = source.indexOf(QStringLiteral("id: pickerDialog"));
+        QVERIFY2(dialogPos >= 0, "FullScreenPicker should define pickerDialog");
+
+        const int blockedPos = source.indexOf(QStringLiteral("blocksBackHold: true"), dialogPos);
+        QVERIFY2(blockedPos > dialogPos,
+                 "FullScreenPicker dialog subtree should opt out of SettingsInputBoundary long-press handling");
+    }
 };
 
 QTEST_MAIN(TestSettingsMenuStructure)
