@@ -31,8 +31,8 @@ Extend the widget contract so any widget can declare typed configuration options
 
 ### Config schema design
 - **New `configSchema` field on `WidgetDescriptor`** — separate from `defaultConfig`
-- `configSchema` defines editable fields and how the host renders them (key, label, type, options/range, default)
-- `defaultConfig` remains the source of default values (existing field, currently unused)
+- `configSchema` is strictly structural: defines editable fields and how the host renders them (key, label, type, options/range). **No default values in schema.**
+- `defaultConfig` is the **single source of truth for default values** (existing field, currently unused). Every key in configSchema must have a corresponding entry in defaultConfig.
 - **Effective widget config** = persisted per-instance values overlaid on `defaultConfig`
 - **v1 field types only:** `enum/select`, `bool/toggle`, `int/range`
 - No custom widget-defined config editors
@@ -48,10 +48,11 @@ Extend the widget contract so any widget can declare typed configuration options
 
 ### Claude's Discretion
 - Exact C++ struct/class for config schema field definitions
-- How configSchema is populated (compile-time in widget registration, or runtime)
 - YAML serialization format for per-instance config within grid placements
 - Bottom sheet QML implementation details (animation, sizing, scroll behavior)
-- How WidgetInstanceContext exposes effective config to QML (property, method, or model)
+
+### Not At Claude's Discretion (cont.)
+- configSchema is populated statically at descriptor registration in main.cpp (not runtime-generated). Follows the established pattern for all other descriptor fields.
 
 ### Not At Claude's Discretion
 - Schema-driven host-rendered config (not per-widget custom editors)
@@ -105,7 +106,7 @@ Extend the widget contract so any widget can declare typed configuration options
 - `GridPlacement` struct needs `QVariantMap config` field added
 - `YamlConfig::gridPlacements()` and `setGridPlacements()` need config map serialization
 - `WidgetGridModel` needs config read/write methods + new role for QML
-- `WidgetInstanceContext` needs effective config property (defaults merged with instance overrides)
+- `WidgetInstanceContext` needs effective config property (defaults merged with instance overrides). Config sheet writes to `WidgetGridModel`, model updates the `GridPlacement.config` map, `WidgetInstanceContext` re-reads effective config via NOTIFY signal. Widgets bind to context properties — no direct model access from QML widgets.
 - `HomeMenu.qml` edit mode overlay needs gear icon conditionally shown
 - New `WidgetConfigSheet.qml` bottom sheet component renders schema-driven controls
 

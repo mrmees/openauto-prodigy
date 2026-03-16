@@ -6,7 +6,7 @@
 ## Widget Contract (WC)
 
 - [ ] **WC-01**: Widget placements support per-instance configuration (key-value map persisted in YAML)
-- [ ] **WC-02**: Widget config is editable via a config UI triggered from the widget context menu
+- [ ] **WC-02**: Widget config is editable via a host-rendered config sheet opened from a gear icon in edit mode
 - [ ] **WC-03**: Widget config changes persist across restarts and survive grid remap
 
 ## Theme Cycle Widget (TC)
