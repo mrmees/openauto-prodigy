@@ -508,6 +508,15 @@ create_system_service() {
         GROUP_CHANGED=true
     fi
 
+    # Create dedicated redsocks system user for transparent proxy owner-based exemption
+    if ! id -u redsocks &>/dev/null; then
+        info "Creating redsocks system user..."
+        sudo useradd --system --no-create-home --shell /usr/sbin/nologin redsocks
+        info "Created redsocks system user"
+    else
+        info "redsocks system user already exists"
+    fi
+
     # --- Upgrade detection and migration ---
     local UNIT_PATH="/etc/systemd/system/openauto-system.service"
     local MIGRATING=false
