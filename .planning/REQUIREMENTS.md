@@ -55,29 +55,29 @@
 
 | Requirement | Phase | Status |
 |-------------|-------|--------|
-| WC-01 | TBD | Pending |
-| WC-02 | TBD | Pending |
-| WC-03 | TBD | Pending |
-| TC-01 | TBD | Pending |
-| TC-02 | TBD | Pending |
-| WX-01 | TBD | Pending |
-| WX-02 | TBD | Pending |
-| WX-03 | TBD | Pending |
-| WX-04 | TBD | Pending |
-| WX-05 | TBD | Pending |
-| BW-01 | TBD | Pending |
-| CK-01 | TBD | Pending |
-| CK-02 | TBD | Pending |
-| CS-01 | TBD | Pending |
-| CS-02 | TBD | Pending |
-| AF-01 | TBD | Pending |
-| AF-02 | TBD | Pending |
-| AF-03 | TBD | Pending |
+| WC-01 | Phase 19 | Pending |
+| WC-02 | Phase 19 | Pending |
+| WC-03 | Phase 19 | Pending |
+| TC-01 | Phase 20 | Pending |
+| TC-02 | Phase 20 | Pending |
+| BW-01 | Phase 20 | Pending |
+| CS-01 | Phase 20 | Pending |
+| CS-02 | Phase 20 | Pending |
+| AF-01 | Phase 20 | Pending |
+| AF-02 | Phase 20 | Pending |
+| AF-03 | Phase 20 | Pending |
+| CK-01 | Phase 21 | Pending |
+| CK-02 | Phase 21 | Pending |
+| WX-01 | Phase 21 | Pending |
+| WX-02 | Phase 21 | Pending |
+| WX-03 | Phase 21 | Pending |
+| WX-04 | Phase 21 | Pending |
+| WX-05 | Phase 21 | Pending |
 
 **Coverage:**
 - v0.6.4 requirements: 18 total
-- Mapped to phases: 0
-- Unmapped: 18
+- Mapped to phases: 18
+- Unmapped: 0
 
 ---
 *Requirements defined: 2026-03-16*
