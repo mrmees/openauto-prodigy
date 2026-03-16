@@ -9,7 +9,7 @@
 - [x] **PR-01**: `openauto-system` uses a privilege model that is sufficient for all system-level operations it performs, including proxy routing, service restarts, rfkill/sysfs writes, and required permission fixes
 - [x] **PR-02**: The IPC socket is restricted from world-writable access and only intended local clients can call privileged methods
 - [x] **PR-03**: The intended Qt client can still connect successfully after IPC permissions are tightened
-- [ ] **PR-04**: Installers and the checked-in reference unit are updated consistently so deployed behavior matches repo state
+- [x] **PR-04**: Installers and the checked-in reference unit are updated consistently so deployed behavior matches repo state
 
 ## Proxy Routing Correctness (PX)
 
@@ -55,7 +55,7 @@
 | PR-01 | Phase 15 | Complete |
 | PR-02 | Phase 15 | Complete |
 | PR-03 | Phase 15 | Complete |
-| PR-04 | Phase 15 | Pending |
+| PR-04 | Phase 15 | Complete |
 | PX-01 | Phase 16 | Pending |
 | PX-02 | Phase 16 | Pending |
 | PX-03 | Phase 16 | Pending |
