@@ -1,12 +1,16 @@
 import asyncio
 import contextlib
+import os
 import sys
 import types
 import unittest
 from unittest.mock import AsyncMock, MagicMock, patch
 
+sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
+
 import openauto_system
 from openauto_system import parse_set_proxy_route_request
+from proxy_manager import ProxyManager, ProxyState
 
 
 class OpenAutoSystemRouteValidationTests(unittest.TestCase):
@@ -404,3 +408,246 @@ class OpenAutoSystemShutdownTests(unittest.IsolatedAsyncioTestCase):
             start_idx,
             f"cleanup_stale_state must be called before ipc.start, got order: {call_order}",
         )
+
+
+def _make_status_dict(state="disabled", listener=False, iptables=False, upstream=False,
+                       error_code=None, error=None, verified_at=None, live_check=False):
+    """Helper to build a full status response dict."""
+    return {
+        "state": state,
+        "checks": {"listener": listener, "iptables": iptables, "upstream": upstream},
+        "error_code": error_code,
+        "error": error,
+        "verified_at": verified_at,
+        "live_check": live_check,
+    }
+
+
+class OpenAutoSystemIPCHandlerTests(unittest.IsolatedAsyncioTestCase):
+    """Test the IPC handlers defined inside main() by extracting them via register_method spy."""
+
+    async def _extract_handlers(self):
+        """Run main() with spied register_method to capture handler closures."""
+        handlers = {}
+
+        ipc = MagicMock()
+        ipc.start = AsyncMock()
+        ipc.stop = AsyncMock()
+
+        def capture_register(name, handler):
+            handlers[name] = handler
+
+        ipc.register_method = capture_register
+
+        health = MagicMock()
+        health.set_bt_restart_callback = MagicMock()
+        health.check_once = AsyncMock()
+        health.get_health = MagicMock(return_value={})
+
+        async def health_run():
+            await asyncio.sleep(3600)
+
+        health.run = health_run
+
+        config = MagicMock()
+        config.apply_section = MagicMock(return_value={"ok": True, "restarted": []})
+
+        self._proxy = MagicMock()
+        self._proxy.state = ProxyState.DISABLED
+        self._proxy.enable = AsyncMock()
+        self._proxy.disable = AsyncMock()
+        self._proxy.cleanup_stale_state = AsyncMock()
+        self._proxy.get_status = AsyncMock(return_value=_make_status_dict())
+
+        fake_bt_module = types.ModuleType("bt_profiles")
+
+        class _FakeBtProfileManager:
+            async def register_all(self):
+                pass
+
+            async def close(self):
+                pass
+
+        fake_bt_module.BtProfileManager = _FakeBtProfileManager
+
+        created_tasks = []
+        real_create_task = asyncio.create_task
+
+        def tracked_create_task(coro, *args, **kwargs):
+            task = real_create_task(coro, *args, **kwargs)
+            created_tasks.append(task)
+            return task
+
+        with contextlib.ExitStack() as stack:
+            stack.enter_context(patch.dict(sys.modules, {"bt_profiles": fake_bt_module}))
+            stack.enter_context(patch.object(openauto_system, "_notify_systemd_ready", return_value=None))
+            stack.enter_context(patch.object(openauto_system, "IpcServer", return_value=ipc))
+            stack.enter_context(patch.object(openauto_system, "HealthMonitor", return_value=health))
+            stack.enter_context(patch.object(openauto_system, "ConfigApplier", return_value=config))
+            stack.enter_context(patch.object(openauto_system, "ProxyManager", return_value=self._proxy))
+            stack.enter_context(patch("openauto_system.asyncio.Event", _ImmediateStopEvent))
+            stack.enter_context(patch("openauto_system.asyncio.get_running_loop", return_value=_LoopStub()))
+            stack.enter_context(patch("openauto_system.asyncio.create_task", side_effect=tracked_create_task))
+            await openauto_system.main()
+
+        if created_tasks:
+            for task in created_tasks:
+                if not task.done():
+                    task.cancel()
+            await asyncio.gather(*created_tasks, return_exceptions=True)
+
+        return handlers
+
+    # -------------------------------------------------------
+    # get_proxy_status handler
+    # -------------------------------------------------------
+
+    async def test_get_proxy_status_returns_full_shape(self):
+        """get_proxy_status returns the full status response shape."""
+        handlers = await self._extract_handlers()
+        handler = handlers["get_proxy_status"]
+
+        self._proxy.get_status = AsyncMock(return_value=_make_status_dict(
+            state="active", listener=True, iptables=True, upstream=True,
+            verified_at="2026-03-16T04:00:00Z",
+        ))
+
+        result = await handler(None)
+
+        self.assertEqual(result["state"], "active")
+        self.assertIn("checks", result)
+        self.assertIn("error_code", result)
+        self.assertIn("verified_at", result)
+        self.assertIn("live_check", result)
+
+    async def test_get_proxy_status_passes_verify_true(self):
+        """get_proxy_status passes verify=True when requested."""
+        handlers = await self._extract_handlers()
+        handler = handlers["get_proxy_status"]
+
+        self._proxy.get_status = AsyncMock(return_value=_make_status_dict(live_check=True))
+
+        result = await handler({"verify": True})
+
+        self._proxy.get_status.assert_awaited_once_with(verify=True)
+
+    async def test_get_proxy_status_rejects_non_bool_verify(self):
+        """get_proxy_status returns error when verify is not a boolean."""
+        handlers = await self._extract_handlers()
+        handler = handlers["get_proxy_status"]
+
+        self._proxy.get_status = AsyncMock(return_value=_make_status_dict())
+
+        result = await handler({"verify": "true"})
+
+        self.assertEqual(result["error_code"], "invalid_request")
+        self.assertIn("boolean", result["error"])
+
+    async def test_get_proxy_status_no_params(self):
+        """get_proxy_status works with None params (no verify)."""
+        handlers = await self._extract_handlers()
+        handler = handlers["get_proxy_status"]
+
+        self._proxy.get_status = AsyncMock(return_value=_make_status_dict())
+
+        result = await handler(None)
+
+        self._proxy.get_status.assert_awaited_once_with(verify=False)
+
+    # -------------------------------------------------------
+    # set_proxy_route handler — full response shape
+    # -------------------------------------------------------
+
+    async def test_set_proxy_route_enable_returns_full_shape(self):
+        """set_proxy_route returns full status shape after enable."""
+        handlers = await self._extract_handlers()
+        handler = handlers["set_proxy_route"]
+
+        self._proxy.get_status = AsyncMock(return_value=_make_status_dict(
+            state="active", listener=True, iptables=True, upstream=True,
+            verified_at="2026-03-16T04:00:00Z",
+        ))
+
+        result = await handler({
+            "active": True,
+            "host": "10.0.0.5",
+            "port": 1080,
+            "password": "deadbeef",
+        })
+
+        self.assertTrue(result["ok"])
+        self.assertEqual(result["state"], "active")
+        self.assertIn("checks", result)
+        self.assertIn("verified_at", result)
+
+    async def test_set_proxy_route_disable_returns_full_shape(self):
+        """set_proxy_route returns full status shape after disable."""
+        handlers = await self._extract_handlers()
+        handler = handlers["set_proxy_route"]
+
+        self._proxy.get_status = AsyncMock(return_value=_make_status_dict())
+
+        result = await handler({"active": False})
+
+        self.assertTrue(result["ok"])
+        self.assertEqual(result["state"], "disabled")
+        self.assertIn("checks", result)
+
+    async def test_set_proxy_route_failed_returns_full_shape(self):
+        """set_proxy_route returns full status shape even when state is FAILED."""
+        handlers = await self._extract_handlers()
+        handler = handlers["set_proxy_route"]
+
+        self._proxy.get_status = AsyncMock(return_value=_make_status_dict(
+            state="failed", error_code="listener_down",
+            error="redsocks is not listening",
+        ))
+
+        result = await handler({"active": False})
+
+        self.assertFalse(result["ok"])
+        self.assertEqual(result["state"], "failed")
+        self.assertIn("checks", result)
+
+    async def test_set_proxy_route_exception_returns_full_shape(self):
+        """set_proxy_route returns full status shape even on exception."""
+        handlers = await self._extract_handlers()
+        handler = handlers["set_proxy_route"]
+
+        self._proxy.enable = AsyncMock(side_effect=RuntimeError("permission denied"))
+        self._proxy.state = ProxyState.FAILED
+        self._proxy.get_status = AsyncMock(return_value=_make_status_dict(
+            state="failed", error_code="internal_error",
+        ))
+
+        result = await handler({
+            "active": True,
+            "host": "10.0.0.5",
+            "port": 1080,
+            "password": "deadbeef",
+        })
+
+        self.assertFalse(result["ok"])
+        self.assertIn("permission denied", result["error"])
+        self.assertIn("checks", result)
+
+    async def test_set_proxy_route_exception_fallback_when_get_status_fails(self):
+        """set_proxy_route returns synthetic fallback when both enable and get_status fail."""
+        handlers = await self._extract_handlers()
+        handler = handlers["set_proxy_route"]
+
+        self._proxy.enable = AsyncMock(side_effect=RuntimeError("kaboom"))
+        self._proxy.state = ProxyState.FAILED
+        self._proxy.get_status = AsyncMock(side_effect=RuntimeError("double fault"))
+
+        result = await handler({
+            "active": True,
+            "host": "10.0.0.5",
+            "port": 1080,
+            "password": "deadbeef",
+        })
+
+        self.assertFalse(result["ok"])
+        self.assertEqual(result["state"], "failed")
+        self.assertEqual(result["error_code"], "internal_error")
+        self.assertIsNone(result["checks"])  # synthetic fallback

@@ -173,18 +173,39 @@ async def main() -> None:
                 )
             else:
                 await proxy.disable()
-            # Check actual state - disable() may have set FAILED on cleanup error
-            ok = proxy.state != ProxyState.FAILED
-            result = {"ok": ok, "state": proxy.state.value}
-            if not ok:
-                result["error"] = "partial cleanup failure -- see journal for details"
-            return result
+            status = await proxy.get_status()
+            ok = status["state"] != "failed"
+            return {"ok": ok, **status}
         except Exception as e:
             LOG.error("set_proxy_route error: %s", e)
-            return {"ok": False, "error": str(e), "state": proxy.state.value}
+            # Still return full shape — get_status() reflects the post-failure state
+            try:
+                status = await proxy.get_status()
+            except Exception:
+                # Last resort: get_status() itself failed. Synthetic fallback —
+                # checks are unknown (not verified), not necessarily false.
+                status = {
+                    "state": proxy.state.value,
+                    "checks": None,
+                    "error_code": "internal_error",
+                    "error": str(e),
+                    "verified_at": None,
+                    "live_check": False,
+                }
+            return {**status, "ok": False, "error": str(e)}
 
     async def handle_get_proxy_status(params):
-        return {"state": proxy.state.value}
+        verify = False
+        if isinstance(params, dict):
+            v = params.get("verify", False)
+            if not isinstance(v, bool):
+                # Return full response shape even on validation error
+                status = await proxy.get_status()
+                status["error_code"] = "invalid_request"
+                status["error"] = "verify must be a boolean"
+                return status
+            verify = v
+        return await proxy.get_status(verify=verify)
 
     ipc.register_method("get_health", handle_get_health)
     ipc.register_method("get_status", handle_get_status)
