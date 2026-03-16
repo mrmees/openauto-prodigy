@@ -491,6 +491,14 @@ int main(int argc, char *argv[])
         clockDesc.maxCols = 6; clockDesc.maxRows = 4;
         clockDesc.defaultCols = 2; clockDesc.defaultRows = 2;
         clockDesc.qmlComponent = QUrl("qrc:/OpenAutoProdigy/ClockWidget.qml");
+        clockDesc.defaultConfig = {{"format", "24h"}};
+        clockDesc.configSchema = {
+            oap::ConfigSchemaField{
+                "format", "Time Format", oap::ConfigFieldType::Enum,
+                {"12-hour", "24-hour"}, {"12h", "24h"},
+                0, 0, 0
+            }
+        };
         widgetRegistry->registerWidget(clockDesc);
 
         oap::WidgetDescriptor aaStatusDesc;

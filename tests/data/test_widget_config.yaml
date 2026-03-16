@@ -9,6 +9,9 @@ widget_grid:
       col_span: 2
       row_span: 2
       opacity: 0.25
+      config:
+        format: 12h
+        showSeconds: true
     - instance_id: status-1
       widget_id: org.openauto.aa-status
       col: 0

@@ -35,7 +35,11 @@ public:
         DefaultColsRole,
         DefaultRowsRole,
         PageRole,
-        SingletonRole
+        SingletonRole,
+        ConfigRole,
+        HasConfigSchemaRole,
+        DisplayNameRole,
+        IconNameRole
     };
 
     explicit WidgetGridModel(WidgetRegistry* registry, QObject* parent = nullptr);
@@ -52,6 +56,9 @@ public:
     Q_INVOKABLE bool resizeWidget(const QString& instanceId, int newColSpan, int newRowSpan);
     Q_INVOKABLE void removeWidget(const QString& instanceId);
     Q_INVOKABLE void setWidgetOpacity(const QString& instanceId, double opacity);
+    Q_INVOKABLE void setWidgetConfig(const QString& instanceId, const QVariantMap& config);
+    Q_INVOKABLE QVariantMap widgetConfig(const QString& instanceId) const;
+    Q_INVOKABLE QVariantMap effectiveWidgetConfig(const QString& instanceId) const;
     Q_INVOKABLE bool canPlace(int col, int row, int colSpan, int rowSpan,
                                const QString& excludeInstanceId = {}) const;
     Q_INVOKABLE QVariantMap findFirstAvailableCell(int colSpan, int rowSpan) const;
@@ -77,6 +84,9 @@ public:
     void setSavedDimensions(int cols, int rows);
     Q_INVOKABLE void setEditMode(bool editing);
 
+    // Registry accessor (for WidgetContextFactory to look up defaultConfig)
+    WidgetRegistry* registry() const { return registry_; }
+
     // Serialization
     QList<GridPlacement> placements() const;
     void setPlacements(const QList<GridPlacement>& placements, WidgetRegistry* registry = nullptr);
@@ -90,6 +100,7 @@ signals:
     void placementsChanged();
     void activePageChanged();
     void pageCountChanged();
+    void widgetConfigChanged(const QString& instanceId, const QVariantMap& effectiveConfig);
 
 private:
     int findPlacement(const QString& instanceId) const;
@@ -107,6 +118,9 @@ private:
 
     // Singleton page detection
     bool pageHasSingleton(int page) const;
+
+    // Config validation against schema
+    QVariantMap validateConfig(const QString& widgetId, const QVariantMap& raw) const;
 
     // After user edit: promote live state to new base
     void promoteToBase();

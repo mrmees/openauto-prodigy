@@ -14,6 +14,8 @@ private slots:
     void testOldWidgetConfigIgnored();
     void testGridNextInstanceId();
     void testGridNextInstanceIdRoundTrip();
+    void testGridPlacementsConfigRoundTrip();
+    void testGridPlacementsEmptyConfigOmitted();
 };
 
 void TestWidgetConfig::testGridPlacementsFromYaml() {
@@ -29,6 +31,9 @@ void TestWidgetConfig::testGridPlacementsFromYaml() {
     QCOMPARE(placements[0].colSpan, 2);
     QCOMPARE(placements[0].rowSpan, 2);
     QCOMPARE(placements[0].opacity, 0.25);
+    // Verify config was loaded from YAML
+    QCOMPARE(placements[0].config["format"].toString(), QString("12h"));
+    QCOMPARE(placements[0].config["showSeconds"].toBool(), true);
 
     QCOMPARE(placements[1].instanceId, QString("status-1"));
     QCOMPARE(placements[1].widgetId, QString("org.openauto.aa-status"));
@@ -175,6 +180,75 @@ void TestWidgetConfig::testGridNextInstanceIdRoundTrip() {
     oap::YamlConfig reloaded;
     reloaded.load(tmpPath);
     QCOMPARE(reloaded.gridNextInstanceId(), 10);
+}
+
+void TestWidgetConfig::testGridPlacementsConfigRoundTrip() {
+    QTemporaryFile tmpFile;
+    tmpFile.open();
+    QString tmpPath = tmpFile.fileName();
+    tmpFile.close();
+
+    oap::YamlConfig config;
+
+    QList<oap::GridPlacement> placements;
+    {
+        oap::GridPlacement p;
+        p.instanceId = "clock-0";
+        p.widgetId = "org.openauto.clock";
+        p.col = 0; p.row = 0;
+        p.colSpan = 2; p.rowSpan = 2;
+        p.opacity = 0.25;
+        p.config = {{"format", "12h"}, {"showSeconds", true}};
+        placements.append(p);
+    }
+
+    config.setGridPlacements(placements);
+    config.save(tmpPath);
+
+    oap::YamlConfig reloaded;
+    reloaded.load(tmpPath);
+    auto result = reloaded.gridPlacements();
+    QCOMPARE(result.size(), 1);
+    QCOMPARE(result[0].config.size(), 2);
+    QCOMPARE(result[0].config["format"].toString(), QString("12h"));
+    QCOMPARE(result[0].config["showSeconds"].toBool(), true);
+}
+
+void TestWidgetConfig::testGridPlacementsEmptyConfigOmitted() {
+    QTemporaryFile tmpFile;
+    tmpFile.open();
+    QString tmpPath = tmpFile.fileName();
+    tmpFile.close();
+
+    oap::YamlConfig config;
+
+    QList<oap::GridPlacement> placements;
+    {
+        oap::GridPlacement p;
+        p.instanceId = "clock-0";
+        p.widgetId = "org.openauto.clock";
+        p.col = 0; p.row = 0;
+        p.colSpan = 2; p.rowSpan = 2;
+        // config is empty (default)
+        placements.append(p);
+    }
+
+    config.setGridPlacements(placements);
+    config.save(tmpPath);
+
+    // Read raw YAML text and verify no "config:" key within the widget_grid section
+    QFile file(tmpPath);
+    file.open(QIODevice::ReadOnly | QIODevice::Text);
+    QString text = QString::fromUtf8(file.readAll());
+
+    // Extract the widget_grid section only (between "widget_grid:" and next top-level key)
+    int gridStart = text.indexOf("widget_grid:");
+    QVERIFY(gridStart >= 0);
+    // Find next top-level key (line starting without spaces after widget_grid section)
+    int gridEnd = text.indexOf(QRegularExpression("\n[a-z]"), gridStart + 12);
+    QString gridSection = (gridEnd > 0) ? text.mid(gridStart, gridEnd - gridStart)
+                                        : text.mid(gridStart);
+    QVERIFY(!gridSection.contains("config:"));
 }
 
 QTEST_GUILESS_MAIN(TestWidgetConfig)

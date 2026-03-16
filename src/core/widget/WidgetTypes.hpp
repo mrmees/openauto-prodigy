@@ -1,10 +1,25 @@
 #pragma once
 
 #include <QString>
+#include <QStringList>
 #include <QUrl>
+#include <QVariantList>
 #include <QVariantMap>
 
 namespace oap {
+
+enum class ConfigFieldType { Enum, Bool, IntRange };
+
+struct ConfigSchemaField {
+    QString key;           // config map key (e.g. "style")
+    QString label;         // display label (e.g. "Clock Style")
+    ConfigFieldType type = ConfigFieldType::Enum;
+    QStringList options;   // for Enum: display labels
+    QVariantList values;   // for Enum: stored values (parallel to options)
+    int rangeMin = 0;      // for IntRange
+    int rangeMax = 100;    // for IntRange
+    int rangeStep = 1;     // for IntRange
+};
 
 enum class DashboardContributionKind {
     Widget,              // Lightweight data-display widget (clock, now-playing, etc.)
@@ -21,6 +36,7 @@ struct WidgetDescriptor {
     QString pluginId;                   // empty for standalone widgets
     DashboardContributionKind contributionKind = DashboardContributionKind::Widget;
     QVariantMap defaultConfig;          // optional per-widget defaults
+    QList<ConfigSchemaField> configSchema;  // empty = no config UI
 
     // Grid size constraints (replaces WidgetSizeFlags)
     int minCols = 1;
@@ -43,6 +59,7 @@ struct GridPlacement {
     double opacity = 0.25;  // glass card opacity
     int page = 0;           // which grid page this placement belongs to
     bool visible = true;    // false when clamped out (kept in config)
+    QVariantMap config;     // per-instance config (merged over defaultConfig at read time)
 };
 
 // Legacy types -- used by WidgetPlacementModel and YamlConfig until Plan 02 replaces them.

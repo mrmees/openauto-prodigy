@@ -68,7 +68,11 @@ Item {
         triggeredOnStart: true
         onTriggered: {
             var now = new Date()
-            timeText.text = now.toLocaleTimeString(Qt.locale(), "h:mm")
+            var fmt = widgetContext && widgetContext.effectiveConfig
+                      ? widgetContext.effectiveConfig.format || "24h"
+                      : "24h"
+            var timeFmt = (fmt === "12h") ? "h:mm AP" : "HH:mm"
+            timeText.text = now.toLocaleTimeString(Qt.locale(), timeFmt)
             dateText.text = now.toLocaleDateString(Qt.locale(), "MMMM d")
             dayText.text = now.toLocaleDateString(Qt.locale(), "dddd")
         }

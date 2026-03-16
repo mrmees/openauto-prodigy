@@ -40,6 +40,29 @@ QVariant WidgetGridModel::data(const QModelIndex& index, int role) const
         }
         return false;
     }
+    case ConfigRole:
+        return p.config;
+    case HasConfigSchemaRole: {
+        if (registry_) {
+            auto desc = registry_->descriptor(p.widgetId);
+            if (desc) return !desc->configSchema.isEmpty();
+        }
+        return false;
+    }
+    case DisplayNameRole: {
+        if (registry_) {
+            auto desc = registry_->descriptor(p.widgetId);
+            if (desc) return desc->displayName;
+        }
+        return {};
+    }
+    case IconNameRole: {
+        if (registry_) {
+            auto desc = registry_->descriptor(p.widgetId);
+            if (desc) return desc->iconName;
+        }
+        return {};
+    }
     case QmlComponentRole: {
         if (registry_) {
             auto desc = registry_->descriptor(p.widgetId);
@@ -112,7 +135,11 @@ QHash<int, QByteArray> WidgetGridModel::roleNames() const
         {DefaultColsRole, "defaultCols"},
         {DefaultRowsRole, "defaultRows"},
         {PageRole, "page"},
-        {SingletonRole, "isSingleton"}
+        {SingletonRole, "isSingleton"},
+        {ConfigRole, "instanceConfig"},
+        {HasConfigSchemaRole, "hasConfigSchema"},
+        {DisplayNameRole, "displayName"},
+        {IconNameRole, "iconName"}
     };
 }
 
@@ -231,6 +258,101 @@ void WidgetGridModel::setWidgetOpacity(const QString& instanceId, double opacity
     QModelIndex mi = index(idx);
     emit dataChanged(mi, mi, {OpacityRole});
     emit placementsChanged();
+}
+
+// --- Config methods ---
+
+QVariantMap WidgetGridModel::validateConfig(const QString& widgetId, const QVariantMap& raw) const
+{
+    if (!registry_) return {};
+    auto desc = registry_->descriptor(widgetId);
+    if (!desc || desc->configSchema.isEmpty()) return {};
+
+    // Build schema key lookup
+    QHash<QString, const ConfigSchemaField*> schemaMap;
+    for (const auto& field : desc->configSchema)
+        schemaMap[field.key] = &field;
+
+    QVariantMap validated;
+    for (auto it = raw.constBegin(); it != raw.constEnd(); ++it) {
+        auto* field = schemaMap.value(it.key(), nullptr);
+        if (!field) continue;  // reject unknown keys
+
+        switch (field->type) {
+        case ConfigFieldType::Bool: {
+            QVariant v = it.value();
+            if (v.typeId() == QMetaType::QString) {
+                validated[it.key()] = (v.toString().toLower() == "true");
+            } else {
+                validated[it.key()] = v.toBool();
+            }
+            break;
+        }
+        case ConfigFieldType::IntRange: {
+            int val = it.value().toInt();
+            val = qBound(field->rangeMin, val, field->rangeMax);
+            validated[it.key()] = val;
+            break;
+        }
+        case ConfigFieldType::Enum: {
+            if (field->values.contains(it.value())) {
+                validated[it.key()] = it.value();
+            }
+            // else: silently drop invalid enum value (default will apply)
+            break;
+        }
+        }
+    }
+    return validated;
+}
+
+void WidgetGridModel::setWidgetConfig(const QString& instanceId, const QVariantMap& config)
+{
+    int idx = findPlacement(instanceId);
+    if (idx < 0) return;
+
+    auto& p = livePlacements_[idx];
+    QVariantMap validated = validateConfig(p.widgetId, config);
+    p.config = validated;
+
+    QModelIndex mi = index(idx);
+    emit dataChanged(mi, mi, {ConfigRole});
+    promoteToBase();
+    emit placementsChanged();
+
+    // Compute effective config (defaults + validated overrides) for live notification
+    QVariantMap effective;
+    if (registry_) {
+        auto desc = registry_->descriptor(p.widgetId);
+        if (desc) effective = desc->defaultConfig;
+    }
+    for (auto it = validated.constBegin(); it != validated.constEnd(); ++it)
+        effective[it.key()] = it.value();
+
+    emit widgetConfigChanged(instanceId, effective);
+}
+
+QVariantMap WidgetGridModel::widgetConfig(const QString& instanceId) const
+{
+    int idx = findPlacement(instanceId);
+    if (idx < 0) return {};
+    return livePlacements_[idx].config;
+}
+
+QVariantMap WidgetGridModel::effectiveWidgetConfig(const QString& instanceId) const
+{
+    int idx = findPlacement(instanceId);
+    if (idx < 0) return {};
+
+    const auto& p = livePlacements_[idx];
+    QVariantMap result;
+    if (registry_) {
+        auto desc = registry_->descriptor(p.widgetId);
+        if (desc) result = desc->defaultConfig;
+    }
+    for (auto it = p.config.constBegin(); it != p.config.constEnd(); ++it)
+        result[it.key()] = it.value();
+    return result;
 }
 
 bool WidgetGridModel::canPlace(int col, int row, int colSpan, int rowSpan,
@@ -611,8 +733,18 @@ void WidgetGridModel::setPlacements(const QList<GridPlacement>& placements, Widg
 {
     beginResetModel();
     livePlacements_ = placements;
-    basePlacements_ = placements;
     if (reg) registry_ = reg;
+
+    // Validate persisted config against current schema (sanitize stale/malformed values)
+    if (registry_) {
+        for (auto& p : livePlacements_) {
+            if (!p.config.isEmpty()) {
+                p.config = validateConfig(p.widgetId, p.config);
+            }
+        }
+    }
+
+    basePlacements_ = livePlacements_;
     rebuildOccupancy();
     endResetModel();
     emit placementsChanged();

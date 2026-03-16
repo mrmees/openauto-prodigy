@@ -836,6 +836,38 @@ QList<GridPlacement> YamlConfig::gridPlacements() const
         p.opacity = node["opacity"].as<double>(0.25);
         p.page = node["page"].as<int>(0); // default 0 for v2 compat
         p.visible = true; // visibility is runtime state, not persisted
+
+        // Read per-instance config map
+        if (node["config"].IsDefined() && node["config"].IsMap()) {
+            for (auto it = node["config"].begin(); it != node["config"].end(); ++it) {
+                QString key = QString::fromStdString(it->first.as<std::string>());
+                const auto& val = it->second;
+                if (val.IsScalar()) {
+                    const std::string s = val.Scalar();
+                    // Try bool
+                    if (s == "true") { p.config[key] = true; continue; }
+                    if (s == "false") { p.config[key] = false; continue; }
+                    // Try int
+                    try {
+                        int i = val.as<int>();
+                        // Verify it round-trips as int (not a float like "1.5")
+                        if (std::to_string(i) == s) {
+                            p.config[key] = i;
+                            continue;
+                        }
+                    } catch (...) {}
+                    // Try double
+                    try {
+                        double d = val.as<double>();
+                        p.config[key] = d;
+                        continue;
+                    } catch (...) {}
+                    // Fall back to string
+                    p.config[key] = QString::fromStdString(s);
+                }
+            }
+        }
+
         result.append(p);
     }
     return result;
@@ -856,6 +888,31 @@ void YamlConfig::setGridPlacements(const QList<GridPlacement>& placements)
         n["row_span"] = p.rowSpan;
         n["opacity"] = p.opacity;
         n["page"] = p.page;
+
+        // Write per-instance config map (skip if empty for backward compat)
+        if (!p.config.isEmpty()) {
+            YAML::Node configNode;
+            for (auto it = p.config.constBegin(); it != p.config.constEnd(); ++it) {
+                std::string key = it.key().toStdString();
+                switch (it.value().typeId()) {
+                case QMetaType::Bool:
+                    configNode[key] = it.value().toBool();
+                    break;
+                case QMetaType::Int:
+                    configNode[key] = it.value().toInt();
+                    break;
+                case QMetaType::Double:
+                case QMetaType::Float:
+                    configNode[key] = it.value().toDouble();
+                    break;
+                default:
+                    configNode[key] = it.value().toString().toStdString();
+                    break;
+                }
+            }
+            n["config"] = configNode;
+        }
+
         node.push_back(n);
     }
     root_["widget_grid"]["placements"] = node;
