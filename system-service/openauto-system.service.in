@@ -16,8 +16,8 @@ Restart=always
 RestartSec=2
 
 # Minimal hardening — root daemon, not an enterprise sandbox
+# NOTE: No ProtectHome= — daemon lives under /home/matt/openauto-prodigy/
 PrivateTmp=yes
-ProtectHome=yes
 RestrictSUIDSGID=yes
 RestrictRealtime=yes
 LockPersonality=yes
