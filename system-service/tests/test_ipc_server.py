@@ -9,11 +9,16 @@ from ipc_server import IpcServer
 from health_monitor import HealthMonitor
 
 
+def _always_authorized(sock):
+    """Permissive authorizer for tests — always allows connections."""
+    return (True, {"pid": 0, "uid": 0, "gid": 0})
+
+
 class IpcServerTests(unittest.IsolatedAsyncioTestCase):
     async def asyncSetUp(self) -> None:
         self._tmpdir = tempfile.TemporaryDirectory()
         self.socket_path = os.path.join(self._tmpdir.name, "test.sock")
-        self.server = IpcServer(self.socket_path)
+        self.server = IpcServer(self.socket_path, authorizer=_always_authorized)
         await self.server.start()
 
     async def asyncTearDown(self) -> None:
@@ -34,7 +39,7 @@ class IpcServerTests(unittest.IsolatedAsyncioTestCase):
 
     async def test_socket_permissions_allow_non_root_clients(self) -> None:
         mode = stat.S_IMODE(os.stat(self.socket_path).st_mode)
-        self.assertEqual(mode, 0o666)
+        self.assertEqual(mode, 0o660)
 
     async def test_ping_returns_pong(self) -> None:
         request = json.dumps({"id": "1", "method": "ping"}) + "\n"
@@ -76,7 +81,7 @@ class IpcHealthIntegrationTests(unittest.IsolatedAsyncioTestCase):
     async def asyncSetUp(self) -> None:
         self._tmpdir = tempfile.TemporaryDirectory()
         self.socket_path = os.path.join(self._tmpdir.name, "test.sock")
-        self.server = IpcServer(self.socket_path)
+        self.server = IpcServer(self.socket_path, authorizer=_always_authorized)
         self.health = HealthMonitor()
 
         async def handle_get_health(params):
