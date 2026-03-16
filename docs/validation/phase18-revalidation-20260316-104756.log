@@ -1,0 +1,153 @@
+=== PHASE 18 RE-VALIDATION (clean post-fix run) ===
+Timestamp: 20260316-104756
+HEAD: 79f51be
+
+=== STEP 0: PRE-FLIGHT ===
+--- Service status ---
+active
+
+--- Outbound interface ---
+eth0
+
+--- Redirect port ---
+REDIRECT   tcp  --  0.0.0.0/0            0.0.0.0/0            redir ports 12345
+
+--- Proxy status (live check) ---
+{'state': 'active', 'checks': {'listener': True, 'iptables': True, 'upstream': True}, 'error_code': None, 'error': None, 'verified_at': '2026-03-16T15:48:15Z', 'live_check': True}
+
+--- Route was activated by (journal) ---
+Mar 16 10:47:17 prodigy python3[12772]: 1773676037.096501 notice main.c:165 main(...) redsocks started, conn_max=128
+
+--- Companion ADB logcat check ---
+Logcat cleared
+
+NOTE: Route was activated through normal companion flow (no manual IPC calls, no manual iptables/redsocks setup)
+
+=== STEP 1: NEGATIVE BASELINE (proxy DISABLED) ===
+
+--- Disabling proxy ---
+{'ok': True, 'state': 'disabled', 'checks': {'listener': False, 'iptables': False, 'upstream': False}, 'error_code': None, 'error': None, 'verified_at': '2026-03-16T15:48:27Z', 'live_check': False}
+
+--- Clear logcat ---
+--- Curl httpbin (proxy disabled) ---
+{
+  "origin": "72.179.37.177"
+}
+
+--- Companion logcat (should show NO socks events) ---
+NO companion SOCKS events (expected)
+
+NEGATIVE BASELINE: curl succeeded via direct path, no companion SOCKS involvement
+
+=== STEP 2 (retry): PROXY RE-ENABLED VIA COMPANION TOGGLE ===
+
+{
+  "state": "active",
+  "checks": {
+    "listener": true,
+    "iptables": true,
+    "upstream": true
+  },
+  "error_code": null,
+  "error": null,
+  "verified_at": "2026-03-16T15:51:16Z",
+  "live_check": true
+}
+
+--- Journal showing companion-triggered activation ---
+Mar 16 10:50:50 prodigy python3[13511]: 1773676250.097705 notice main.c:165 main(...) redsocks started, conn_max=128
+
+Route activated via normal companion toggle (no manual IPC calls)
+
+=== STEP 3: POSITIVE HTTP TEST (httpbin.org/ip) — FOUR-POINT PROOF ===
+
+Resolved httpbin.org -> 52.23.94.38
+Outbound interface: eth0
+
+Logcat cleared
+--- curl request ---
+{
+  "origin": "166.205.190.58"
+}
+
+--- Loopback capture analysis ---
+Loopback packets captured: 20
+10:51:40.727295 IP localhost.56504 > localhost.12345: Flags [S], seq 572430642, win 65495, options [mss 65495,sackOK,TS val 3709242824 ecr 0,nop,wscale 7], length 0
+10:51:40.727348 IP localhost.12345 > localhost.56504: Flags [S.], seq 1059266494, ack 572430643, win 65483, options [mss 65495,sackOK,TS val 3709242824 ecr 3709242824,nop,wscale 7], length 0
+10:51:40.727398 IP localhost.56504 > localhost.12345: Flags [.], ack 1, win 512, options [nop,nop,TS val 3709242824 ecr 3709242824], length 0
+10:51:40.728458 IP localhost.56504 > localhost.12345: Flags [F.], seq 1, ack 1, win 512, options [nop,nop,TS val 3709242825 ecr 3709242824], length 0
+10:51:40.730689 IP localhost.12345 > localhost.56504: Flags [.], ack 2, win 512, options [nop,nop,TS val 3709242828 ecr 3709242825], length 0
+
+--- Outbound capture analysis ---
+Outbound packets to 52.23.94.38 on eth0: 0
+
+--- Companion logcat ---
+03-16 10:51:41.290  2835  5576 W Binder  : 	at android.os.BinderProxy.transact(BinderProxy.java:566)
+03-16 10:51:41.290  2835  5576 W Binder  : 	at android.bluetooth.IBluetoothGatt$Stub$Proxy.getAdvertisingSetUids(IBluetoothGatt.java:1678)
+03-16 10:51:59.313  2835  5576 W Binder  : 	at android.os.BinderProxy.transact(BinderProxy.java:566)
+03-16 10:51:59.313  2835  5576 W Binder  : 	at android.bluetooth.IBluetoothGatt$Stub$Proxy.getAdvertisingSetUids(IBluetoothGatt.java:1678)
+03-16 10:52:47.204  4648  7002 D SecFgsManagerController: onForegroundStateChanged: [dialog:false]:[isForeground:true]:[packageName:io.homeassistant.companion.android]:[token:android.os.BinderProxy@8b78b11]:[userId:0]
+03-16 10:52:47.207  4648  4812 D SecFgsManagerController: onForegroundStateChanged: [dialog:false]:[isForeground:true]:[packageName:io.homeassistant.companion.android]:[token:android.os.BinderProxy@8b78b11]:[userId:0]
+03-16 10:52:47.514  4648  7002 D SecFgsManagerController: onForegroundStateChanged: [dialog:false]:[isForeground:false]:[packageName:io.homeassistant.companion.android]:[token:android.os.BinderProxy@8b78b11]:[userId:0]
+03-16 10:52:49.320  2835  5576 W Binder  : 	at android.os.BinderProxy.transact(BinderProxy.java:566)
+03-16 10:52:49.320  2835  5576 W Binder  : 	at android.bluetooth.IBluetoothGatt$Stub$Proxy.getAdvertisingSetUids(IBluetoothGatt.java:1678)
+03-16 10:53:05.597  2835  5576 W Binder  : 	at android.os.BinderProxy.transact(BinderProxy.java:566)
+03-16 10:53:05.597  2835  5576 W Binder  : 	at android.bluetooth.IBluetoothGatt$Stub$Proxy.getAdvertisingSetUids(IBluetoothGatt.java:1678)
+
+--- HTTP Proof Points ---
+PROOF 1 (loopback redirect): PASS (20 packets on lo:12345)
+PROOF 2 (outbound bypass): PASS (no direct traffic to 52.23.94.38 on eth0)
+PROOF 3 (companion receipt): see logcat above + origin IP analysis below
+PROOF 4 (request success): see curl output above
+
+=== STEP 4 (retry): POSITIVE HTTPS TEST (www.google.com) ===
+
+Using resolved IP: 142.251.155.119
+--- curl request ---
+HTTP status code: 200
+
+--- Loopback ---
+Loopback packets: 30
+--- Outbound ---
+Outbound packets to 142.251.155.119 on eth0: 0
+
+--- HTTPS Proof Points ---
+PROOF 1 (loopback redirect): PASS (30 packets)
+PROOF 2 (outbound bypass): PASS (0 direct packets)
+PROOF 3 (companion receipt): inference — redirect active + no bypass + success = traversed companion
+PROOF 4 (request success): PASS
+
+=== STEP 5: DISABLE AND CLEANUP ===
+{'ok': True, 'state': 'disabled', 'checks': {'listener': False, 'iptables': False, 'upstream': False}, 'error_code': None, 'error': None, 'verified_at': '2026-03-16T15:58:21Z', 'live_check': False}
+rm: cannot remove '/tmp/phase18-lo-http.pcap': Operation not permitted
+rm: cannot remove '/tmp/phase18-lo-https2.pcap': Operation not permitted
+rm: cannot remove '/tmp/phase18-lo-https.pcap': Operation not permitted
+rm: cannot remove '/tmp/phase18-out-http.pcap': Operation not permitted
+rm: cannot remove '/tmp/phase18-out-https2.pcap': Operation not permitted
+
+=== VERDICT ===
+
+Negative baseline:
+  curl origin: 72.179.37.177 (Pi home IP, direct path)
+  companion SOCKS events: none
+  PASS
+
+HTTP positive (httpbin.org/ip):
+  PROOF 1 (loopback redirect): PASS (20 packets on lo:12345)
+  PROOF 2 (outbound bypass): PASS (0 packets to httpbin IP on eth0)
+  PROOF 3 (companion receipt): PASS (origin IP 166.205.190.58 = phone cellular, not Pi 72.179.37.177)
+  PROOF 4 (request success): PASS (JSON response with origin IP)
+
+HTTPS positive (www.google.com):
+  PROOF 1 (loopback redirect): PASS (30 packets on lo:12345)
+  PROOF 2 (outbound bypass): PASS (0 packets to google IP on eth0)
+  PROOF 3 (companion receipt): INFERENCE (redirect + no bypass + success = traversed companion; no independent companion log)
+  PROOF 4 (request success): PASS (HTTP 200)
+
+Execution path: normal companion flow (companion toggle -> Qt setProxyRoute -> daemon enable). No manual IPC calls, no manual iptables/redsocks setup.
+HEAD: 79f51be
+
+VERDICT: PASS
+
+Known caveat: HTTPS PROOF 3 is inference-based (companion Socks5Server has no per-connection logging). HTTP PROOF 3 is direct (origin IP changed from Pi to phone cellular).
+Known caveat: companion SOCKS server returns 'connection not allowed by ruleset' for health check probes, but actual forwarded traffic succeeds. Auth/ACL mismatch for direct SOCKS connections vs transparent redirect.
