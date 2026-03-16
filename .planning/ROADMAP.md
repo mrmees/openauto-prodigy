@@ -112,8 +112,8 @@ See .planning/milestones/v0.6.2-ROADMAP.md for archived details.
 **Plans**: 2 plans
 
 Plans:
-- [ ] 15-01-PLAN.md — Daemon privilege model + IPC peer credential lockdown
-- [ ] 15-02-PLAN.md — Installer migration and template rendering
+- [x] 15-01-PLAN.md — Daemon privilege model + IPC peer credential lockdown
+- [x] 15-02-PLAN.md — Installer migration and template rendering
 
 ### Phase 16: Routing Correctness & Idempotency
 **Goal**: Proxy routing applies clean iptables rules with correct exemptions, and repeated enable/disable cycles leave no stale state
@@ -125,11 +125,13 @@ Plans:
   3. Redsocks and control-plane traffic (local AP, LAN) are exempt from redirect
   4. Calling enable 5 times in a row produces exactly one OUTPUT jump and one set of redirect rules — no duplicates
   5. Disable removes all routing state completely (chain, jump, DNS mutations) and abnormal restart self-heals on next startup
-**Plans**: TBD
+**Plans**: 4 plans
 
 Plans:
-- [ ] 16-01: TBD
-- [ ] 16-02: TBD
+- [ ] 16-01-PLAN.md — Phase 15 hardware verification gate
+- [ ] 16-02-PLAN.md — ProxyManager routing rewrite with flush/recreate, exemptions, and cleanup honesty
+- [ ] 16-03-PLAN.md — Installer redsocks system user creation
+- [ ] 16-04-PLAN.md — Routing correctness and idempotency tests
 
 ### Phase 17: Status Reporting Hardening
 **Goal**: Proxy status reflects actual local pipeline health, not optimistic assumptions
@@ -163,6 +165,6 @@ Plans:
 | Phase | Plans Complete | Status | Completed |
 |-------|----------------|--------|-----------|
 | 15. Privilege Model & IPC Lockdown | 2/2 | Complete    | 2026-03-16 |
-| 16. Routing Correctness & Idempotency | 0/? | Not started | - |
+| 16. Routing Correctness & Idempotency | 0/4 | Not started | - |
 | 17. Status Reporting Hardening | 0/? | Not started | - |
 | 18. Hardware Validation | 0/? | Not started | - |
