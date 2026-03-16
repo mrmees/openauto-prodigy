@@ -25,9 +25,12 @@ class OpenAutoSystemRouteValidationTests(unittest.TestCase):
         self.assertEqual(result["host"], "10.0.0.10")
         self.assertEqual(result["port"], 1080)
         self.assertEqual(result["user"], "oap")
-        self.assertEqual(result["skip_interfaces"], ["eth0", "lo"])
-        self.assertEqual(result["skip_tcp_ports"], [22])
-        self.assertEqual(result["skip_networks"], [])
+        self.assertEqual(result["skip_interfaces"], ["lo", "eth0"])
+        self.assertNotIn("skip_tcp_ports", result)
+        self.assertEqual(
+            result["skip_networks"],
+            ["127.0.0.0/8", "169.254.0.0/16", "10.0.0.0/24", "192.168.0.0/16"],
+        )
 
     def test_active_request_parses_custom_route_exceptions(self):
         result = parse_set_proxy_route_request({
@@ -37,11 +40,10 @@ class OpenAutoSystemRouteValidationTests(unittest.TestCase):
             "user": "oap",
             "password": "deadbeef",
             "skip_interfaces": ["wlan0"],
-            "skip_tcp_ports": [22, 443],
             "skip_networks": ["172.16.0.0/12", "192.168.0.0/16"],
         })
         self.assertEqual(result["skip_interfaces"], ["wlan0"])
-        self.assertEqual(result["skip_tcp_ports"], [22, 443])
+        self.assertNotIn("skip_tcp_ports", result)
         self.assertEqual(result["skip_networks"], ["172.16.0.0/12", "192.168.0.0/16"])
 
     def test_missing_host_raises(self):
@@ -88,15 +90,39 @@ class OpenAutoSystemRouteValidationTests(unittest.TestCase):
                 "skip_interfaces": "eth0",
             })
 
-    def test_invalid_skip_tcp_ports_rejected(self):
-        with self.assertRaises(ValueError):
-            parse_set_proxy_route_request({
-                "active": True,
-                "host": "10.0.0.10",
-                "port": 1080,
-                "password": "deadbeef",
-                "skip_tcp_ports": [0],
-            })
+    def test_skip_tcp_ports_not_in_output(self):
+        """skip_tcp_ports is no longer a valid field in parsed output."""
+        result = parse_set_proxy_route_request({
+            "active": True,
+            "host": "10.0.0.10",
+            "port": 1080,
+            "password": "deadbeef",
+            "skip_tcp_ports": [22, 443],  # ignored by parser
+        })
+        self.assertNotIn("skip_tcp_ports", result)
+
+    def test_default_skip_networks_are_four_subnets(self):
+        """Default skip_networks includes exactly four subnets."""
+        result = parse_set_proxy_route_request({
+            "active": True,
+            "host": "10.0.0.10",
+            "port": 1080,
+            "password": "deadbeef",
+        })
+        self.assertEqual(
+            result["skip_networks"],
+            ["127.0.0.0/8", "169.254.0.0/16", "10.0.0.0/24", "192.168.0.0/16"],
+        )
+
+    def test_default_skip_interfaces_are_lo_and_eth0(self):
+        """Default skip_interfaces includes lo and eth0."""
+        result = parse_set_proxy_route_request({
+            "active": True,
+            "host": "10.0.0.10",
+            "port": 1080,
+            "password": "deadbeef",
+        })
+        self.assertEqual(result["skip_interfaces"], ["lo", "eth0"])
 
 
 class _ImmediateStopEvent:
@@ -145,6 +171,7 @@ class OpenAutoSystemShutdownTests(unittest.IsolatedAsyncioTestCase):
         proxy.state = types.SimpleNamespace(value=proxy_state)
         proxy.enable = AsyncMock()
         proxy.disable = AsyncMock()
+        proxy.cleanup_stale_state = AsyncMock()
 
         bt = MagicMock()
         bt.register_all = AsyncMock()
@@ -271,4 +298,109 @@ class OpenAutoSystemShutdownTests(unittest.IsolatedAsyncioTestCase):
 
         self.assertTrue(
             any("forced shutdown" in message.lower() for message in captured.output)
+        )
+
+    async def test_startup_cleanup_stale_state_before_ipc_start(self):
+        """IC-03: cleanup_stale_state() is called BEFORE ipc.start()."""
+        call_order = []
+
+        ipc = MagicMock()
+        ipc.register_method = MagicMock()
+
+        async def track_ipc_start():
+            call_order.append("ipc.start")
+
+        ipc.start = track_ipc_start
+        ipc.stop = AsyncMock()
+
+        health = MagicMock()
+        health.set_bt_restart_callback = MagicMock()
+        health.check_once = AsyncMock()
+        health.get_health = MagicMock(return_value={})
+
+        async def health_run():
+            await asyncio.sleep(3600)
+
+        health.run = health_run
+
+        config = MagicMock()
+        config.apply_section = MagicMock(return_value={"ok": True, "restarted": []})
+
+        proxy = MagicMock()
+        proxy.state = types.SimpleNamespace(value="disabled")
+        proxy.enable = AsyncMock()
+        proxy.disable = AsyncMock()
+
+        async def track_cleanup():
+            call_order.append("cleanup_stale_state")
+
+        proxy.cleanup_stale_state = track_cleanup
+
+        bt = MagicMock()
+        bt.register_all = AsyncMock()
+        bt.close = AsyncMock()
+
+        fake_bt_module = types.ModuleType("bt_profiles")
+
+        class _FakeBtProfileManager:
+            async def register_all(self):
+                await bt.register_all()
+
+            async def close(self):
+                await bt.close()
+
+        fake_bt_module.BtProfileManager = _FakeBtProfileManager
+
+        created_tasks = []
+        real_create_task = asyncio.create_task
+
+        def tracked_create_task(coro, *args, **kwargs):
+            task = real_create_task(coro, *args, **kwargs)
+            created_tasks.append(task)
+            return task
+
+        with contextlib.ExitStack() as stack:
+            stack.enter_context(
+                patch.dict(sys.modules, {"bt_profiles": fake_bt_module})
+            )
+            stack.enter_context(
+                patch.object(openauto_system, "_notify_systemd_ready", return_value=None)
+            )
+            stack.enter_context(patch.object(openauto_system, "IpcServer", return_value=ipc))
+            stack.enter_context(
+                patch.object(openauto_system, "HealthMonitor", return_value=health)
+            )
+            stack.enter_context(
+                patch.object(openauto_system, "ConfigApplier", return_value=config)
+            )
+            stack.enter_context(
+                patch.object(openauto_system, "ProxyManager", return_value=proxy)
+            )
+            stack.enter_context(patch("openauto_system.asyncio.Event", _ImmediateStopEvent))
+            stack.enter_context(
+                patch("openauto_system.asyncio.get_running_loop", return_value=_LoopStub())
+            )
+            stack.enter_context(
+                patch(
+                    "openauto_system.asyncio.create_task",
+                    side_effect=tracked_create_task,
+                )
+            )
+            await openauto_system.main()
+
+        if created_tasks:
+            for task in created_tasks:
+                if not task.done():
+                    task.cancel()
+            await asyncio.gather(*created_tasks, return_exceptions=True)
+
+        # Verify ordering: cleanup_stale_state BEFORE ipc.start
+        self.assertIn("cleanup_stale_state", call_order)
+        self.assertIn("ipc.start", call_order)
+        cleanup_idx = call_order.index("cleanup_stale_state")
+        start_idx = call_order.index("ipc.start")
+        self.assertLess(
+            cleanup_idx,
+            start_idx,
+            f"cleanup_stale_state must be called before ipc.start, got order: {call_order}",
         )
