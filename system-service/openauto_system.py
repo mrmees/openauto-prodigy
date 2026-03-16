@@ -38,6 +38,10 @@ def parse_set_proxy_route_request(params: Dict[str, Any]) -> Dict[str, Any]:
     host = params.get("host")
     if not isinstance(host, str) or not host:
         raise ValueError("active proxy route requires a non-empty host")
+    # Qt dual-stack sockets return IPv6-mapped addresses like "::ffff:10.0.0.31"
+    # which contain colons that break redsocks config parsing. Strip the prefix.
+    if host.startswith("::ffff:"):
+        host = host[7:]
 
     try:
         port = int(params.get("port", 0))
@@ -54,7 +58,7 @@ def parse_set_proxy_route_request(params: Dict[str, Any]) -> Dict[str, Any]:
     if not isinstance(password, str) or not password:
         raise ValueError("password must be a non-empty string")
 
-    skip_interfaces = params.get("skip_interfaces", ["lo", "eth0"])
+    skip_interfaces = params.get("skip_interfaces", ["lo"])
     if not isinstance(skip_interfaces, list) or not all(
         isinstance(item, str) and item.strip() for item in skip_interfaces
     ):
