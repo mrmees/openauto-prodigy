@@ -162,7 +162,7 @@ Plans:
 
 | Phase | Plans Complete | Status | Completed |
 |-------|----------------|--------|-----------|
-| 15. Privilege Model & IPC Lockdown | 2/2 | Complete   | 2026-03-16 |
+| 15. Privilege Model & IPC Lockdown | 2/2 | Complete    | 2026-03-16 |
 | 16. Routing Correctness & Idempotency | 0/? | Not started | - |
 | 17. Status Reporting Hardening | 0/? | Not started | - |
 | 18. Hardware Validation | 0/? | Not started | - |
