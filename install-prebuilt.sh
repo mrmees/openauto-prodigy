@@ -495,6 +495,44 @@ create_system_service() {
 
     info "Setting up system service..."
 
+    # --- Group management ---
+    if ! getent group openauto >/dev/null 2>&1; then
+        sudo groupadd openauto
+        ok "Created openauto group"
+    fi
+
+    local GROUP_CHANGED=false
+    if ! id -nG "$USER" | grep -qw openauto; then
+        sudo usermod -aG openauto "$USER"
+        ok "Added $USER to openauto group"
+        GROUP_CHANGED=true
+    fi
+
+    # --- Upgrade detection and migration ---
+    local UNIT_PATH="/etc/systemd/system/openauto-system.service"
+    local MIGRATING=false
+
+    if [[ -f "$UNIT_PATH" ]]; then
+        # Detect old unprivileged unit (has User= line that is NOT root)
+        # NOTE: Use sed, not grep -oP -- Perl regex is not available on minimal Trixie
+        local OLD_USER
+        OLD_USER=$(sed -n 's/^User=//p' "$UNIT_PATH" 2>/dev/null || echo "")
+        if [[ -n "$OLD_USER" && "$OLD_USER" != "root" ]]; then
+            MIGRATING=true
+            info "Migrating system service from User=$OLD_USER to User=root"
+
+            # Stop old service cleanly
+            sudo systemctl stop openauto-system 2>/dev/null || true
+
+            # Clean stale iptables proxy state
+            sudo iptables -t nat -D OUTPUT -p tcp -j OPENAUTO_PROXY 2>/dev/null || true
+            sudo iptables -t nat -F OPENAUTO_PROXY 2>/dev/null || true
+            sudo iptables -t nat -X OPENAUTO_PROXY 2>/dev/null || true
+            info "Cleaned stale iptables proxy state"
+        fi
+    fi
+
+    # --- Python venv setup ---
     local PYTHON_PATH="/usr/bin/python3"
     if python3 -m venv "$VENV_DIR" 2>/dev/null; then
         if "$VENV_DIR/bin/pip" install --quiet -r "$SYS_DIR/requirements.txt" 2>/dev/null; then
@@ -512,7 +550,16 @@ create_system_service() {
         warn "Could not create venv. Using system Python."
     fi
 
-    sudo tee /etc/systemd/system/openauto-system.service > /dev/null << SERVICE
+    # --- Template rendering ---
+    # Render systemd unit from template (single source of truth)
+    local TEMPLATE="$SYS_DIR/openauto-system.service.in"
+    if [[ ! -f "$TEMPLATE" ]]; then
+        TEMPLATE="$PAYLOAD_DIR/system-service/openauto-system.service.in"
+    fi
+
+    if [[ ! -f "$TEMPLATE" ]]; then
+        warn "Service template not found — using inline fallback"
+        sudo tee "$UNIT_PATH" > /dev/null << SERVICE
 [Unit]
 Description=OpenAuto Prodigy System Manager
 Before=${SERVICE_NAME}.service
@@ -520,7 +567,7 @@ After=network.target bluetooth.target
 
 [Service]
 Type=notify
-User=$USER
+User=root
 ExecStart=$PYTHON_PATH $SYS_DIR/openauto_system.py
 ExecStopPost=-/usr/sbin/iptables -t nat -D OUTPUT -p tcp -j OPENAUTO_PROXY
 ExecStopPost=-/usr/sbin/iptables -t nat -F OPENAUTO_PROXY
@@ -529,13 +576,36 @@ WorkingDirectory=$SYS_DIR
 RuntimeDirectory=openauto
 Restart=always
 RestartSec=2
+PrivateTmp=yes
+ProtectHome=yes
+RestrictSUIDSGID=yes
+RestrictRealtime=yes
+LockPersonality=yes
 
 [Install]
 WantedBy=multi-user.target
 SERVICE
+    else
+        sed -e "s|@@PYTHON_PATH@@|$PYTHON_PATH|g" \
+            -e "s|@@SYS_DIR@@|$SYS_DIR|g" \
+            "$TEMPLATE" | sudo tee "$UNIT_PATH" > /dev/null
+    fi
 
+    # --- Reload and enable ---
     sudo systemctl daemon-reload
     sudo systemctl enable openauto-system
+
+    # --- Post-migration notice ---
+    if [[ "$MIGRATING" == "true" ]]; then
+        ok "System service migrated: now runs as root with restricted IPC socket"
+    fi
+
+    if [[ "$GROUP_CHANGED" == "true" ]]; then
+        warn "NOTE: You were added to the 'openauto' group."
+        warn "Group membership takes effect after logging out and back in (or rebooting)."
+        warn "Until then, the Qt client may not be able to connect to the system service socket."
+    fi
+
     ok "System service installed and enabled"
 }
 
