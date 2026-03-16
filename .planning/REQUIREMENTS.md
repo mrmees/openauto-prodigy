@@ -6,9 +6,9 @@
 
 ## Privilege Model (PR)
 
-- [ ] **PR-01**: `openauto-system` uses a privilege model that is sufficient for all system-level operations it performs, including proxy routing, service restarts, rfkill/sysfs writes, and required permission fixes
-- [ ] **PR-02**: The IPC socket is restricted from world-writable access and only intended local clients can call privileged methods
-- [ ] **PR-03**: The intended Qt client can still connect successfully after IPC permissions are tightened
+- [x] **PR-01**: `openauto-system` uses a privilege model that is sufficient for all system-level operations it performs, including proxy routing, service restarts, rfkill/sysfs writes, and required permission fixes
+- [x] **PR-02**: The IPC socket is restricted from world-writable access and only intended local clients can call privileged methods
+- [x] **PR-03**: The intended Qt client can still connect successfully after IPC permissions are tightened
 - [ ] **PR-04**: Installers and the checked-in reference unit are updated consistently so deployed behavior matches repo state
 
 ## Proxy Routing Correctness (PX)
@@ -38,7 +38,7 @@
 - [ ] **TS-02**: Tests cover pre-existing chains/jumps and repeated enable without duplication
 - [ ] **TS-03**: Tests cover upstream destination exemption and redsocks/control-plane self-exemption
 - [ ] **TS-04**: Tests cover cleanup failure truthfulness
-- [ ] **TS-05**: Tests cover restricted IPC permissions while preserving access for the intended client
+- [x] **TS-05**: Tests cover restricted IPC permissions while preserving access for the intended client
 
 ## Out of Scope
 
@@ -52,9 +52,9 @@
 
 | Requirement | Phase | Status |
 |-------------|-------|--------|
-| PR-01 | Phase 15 | Pending |
-| PR-02 | Phase 15 | Pending |
-| PR-03 | Phase 15 | Pending |
+| PR-01 | Phase 15 | Complete |
+| PR-02 | Phase 15 | Complete |
+| PR-03 | Phase 15 | Complete |
 | PR-04 | Phase 15 | Pending |
 | PX-01 | Phase 16 | Pending |
 | PX-02 | Phase 16 | Pending |
@@ -72,7 +72,7 @@
 | TS-02 | Phase 16 | Pending |
 | TS-03 | Phase 16 | Pending |
 | TS-04 | Phase 16 | Pending |
-| TS-05 | Phase 15 | Pending |
+| TS-05 | Phase 15 | Complete |
 
 **Coverage:**
 - v0.6.3 requirements: 21 total
