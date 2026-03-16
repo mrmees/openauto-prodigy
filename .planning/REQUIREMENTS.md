@@ -17,7 +17,7 @@
 - [x] **PX-02**: The expected redirect rules are installed for the transparent proxy path
 - [x] **PX-03**: The upstream SOCKS destination is exempt from redirect
 - [x] **PX-04**: Redsocks/control-plane traffic is exempt from redirect so the proxy path does not self-intercept or loop
-- [ ] **PX-05**: Representative outbound TCP traffic traverses the companion SOCKS bridge on hardware once routing is enabled (hardware/UAT acceptance)
+- [x] **PX-05**: Representative outbound TCP traffic traverses the companion SOCKS bridge on hardware once routing is enabled (hardware/UAT acceptance)
 
 ## Idempotency & Cleanup (IC)
 
@@ -60,7 +60,7 @@
 | PX-02 | Phase 16 | Complete |
 | PX-03 | Phase 16 | Complete |
 | PX-04 | Phase 16 | Complete |
-| PX-05 | Phase 18 | Pending |
+| PX-05 | Phase 18 | Complete |
 | IC-01 | Phase 16 | Complete |
 | IC-02 | Phase 16 | Complete |
 | IC-03 | Phase 16 | Complete |

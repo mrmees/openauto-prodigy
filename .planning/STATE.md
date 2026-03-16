@@ -3,14 +3,14 @@ gsd_state_version: 1.0
 milestone: v0.6
 milestone_name: milestone
 status: completed
-stopped_at: Phase 18 context gathered
-last_updated: "2026-03-16T13:59:41.297Z"
-last_activity: 2026-03-16 — Completed 17-02 status reporting test coverage
+stopped_at: Completed 18-01-PLAN.md
+last_updated: "2026-03-16T14:47:00Z"
+last_activity: 2026-03-16 — Completed 18-01 hardware validation (PASS)
 progress:
   total_phases: 4
-  completed_phases: 3
-  total_plans: 8
-  completed_plans: 8
+  completed_phases: 4
+  total_plans: 9
+  completed_plans: 9
   percent: 100
 ---
 
@@ -21,14 +21,14 @@ progress:
 See: .planning/PROJECT.md (updated 2026-03-16)
 
 **Core value:** A person with a Raspberry Pi 4 and a touchscreen can install this, pair their phone, and get a reliable wireless Android Auto experience -- every time, without SSH.
-**Current focus:** Phase 17 - Status Reporting Hardening
+**Current focus:** v0.6.3 milestone COMPLETE
 
 ## Current Position
 
-Phase: 17 (3 of 4 in v0.6.3)
-Plan: 2 of 2 in current phase (done)
-Status: Phase 17 complete, plans 01+02 done
-Last activity: 2026-03-16 — Completed 17-02 status reporting test coverage
+Phase: 18 (4 of 4 in v0.6.3)
+Plan: 1 of 1 in current phase (done)
+Status: Phase 18 complete, hardware validation PASS
+Last activity: 2026-03-16 — Completed 18-01 hardware validation (PASS, 10/10 proof points)
 
 Progress: [██████████] 100%
 
@@ -50,6 +50,7 @@ Progress: [██████████] 100%
 | Phase 16 P04 | 4min | 2 tasks | 2 files |
 | Phase 17 P01 | 6min | 2 tasks | 4 files |
 | Phase 17 P02 | 3min | 1 task | 2 files |
+| Phase 18 P01 | 12min | 2 tasks | 3 files |
 
 ## Accumulated Context
 
@@ -74,6 +75,9 @@ Progress: [██████████] 100%
 - [Phase 17]: TCP connect as listener truth gate (not PID) for ACTIVE verification
 - [Phase 17]: _enable_locked/_disable_locked pattern avoids self-deadlock on enable->disable rollback
 - [Phase 17]: Local failure = immediate FAILED, upstream failure = DEGRADED (no threshold for local checks)
+- [Phase 18]: eth0 removed from default skip_interfaces — network-based 192.168.0.0/16 covers LAN, interface-based eth0 exemption bypassed all internet REDIRECT
+- [Phase 18]: Redsocks config permissions 0640 root:redsocks (was 0600 root-only, redsocks user couldn't read)
+- [Phase 18]: Origin IP comparison as companion receipt proof when per-connection SOCKS logging unavailable
 
 ### Blockers/Concerns
 
@@ -81,6 +85,6 @@ None yet.
 
 ## Session Continuity
 
-Last session: 2026-03-16T13:59:41.295Z
-Stopped at: Phase 18 context gathered
-Resume file: .planning/phases/18-hardware-validation/18-CONTEXT.md
+Last session: 2026-03-16T14:47:00Z
+Stopped at: Completed 18-01-PLAN.md
+Resume file: .planning/phases/18-hardware-validation/18-01-SUMMARY.md
