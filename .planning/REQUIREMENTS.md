@@ -52,32 +52,32 @@
 
 | Requirement | Phase | Status |
 |-------------|-------|--------|
-| PR-01 | TBD | Pending |
-| PR-02 | TBD | Pending |
-| PR-03 | TBD | Pending |
-| PR-04 | TBD | Pending |
-| PX-01 | TBD | Pending |
-| PX-02 | TBD | Pending |
-| PX-03 | TBD | Pending |
-| PX-04 | TBD | Pending |
-| PX-05 | TBD | Pending |
-| IC-01 | TBD | Pending |
-| IC-02 | TBD | Pending |
-| IC-03 | TBD | Pending |
-| IC-04 | TBD | Pending |
-| SR-01 | TBD | Pending |
-| SR-02 | TBD | Pending |
-| SR-03 | TBD | Pending |
-| TS-01 | TBD | Pending |
-| TS-02 | TBD | Pending |
-| TS-03 | TBD | Pending |
-| TS-04 | TBD | Pending |
-| TS-05 | TBD | Pending |
+| PR-01 | Phase 15 | Pending |
+| PR-02 | Phase 15 | Pending |
+| PR-03 | Phase 15 | Pending |
+| PR-04 | Phase 15 | Pending |
+| PX-01 | Phase 16 | Pending |
+| PX-02 | Phase 16 | Pending |
+| PX-03 | Phase 16 | Pending |
+| PX-04 | Phase 16 | Pending |
+| PX-05 | Phase 18 | Pending |
+| IC-01 | Phase 16 | Pending |
+| IC-02 | Phase 16 | Pending |
+| IC-03 | Phase 16 | Pending |
+| IC-04 | Phase 16 | Pending |
+| SR-01 | Phase 17 | Pending |
+| SR-02 | Phase 17 | Pending |
+| SR-03 | Phase 17 | Pending |
+| TS-01 | Phase 16 | Pending |
+| TS-02 | Phase 16 | Pending |
+| TS-03 | Phase 16 | Pending |
+| TS-04 | Phase 16 | Pending |
+| TS-05 | Phase 15 | Pending |
 
 **Coverage:**
 - v0.6.3 requirements: 21 total
-- Mapped to phases: 0
-- Unmapped: 21
+- Mapped to phases: 21
+- Unmapped: 0
 
 ---
 *Requirements defined: 2026-03-16*
