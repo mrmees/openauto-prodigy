@@ -109,11 +109,11 @@ See .planning/milestones/v0.6.2-ROADMAP.md for archived details.
   3. The Qt client (`SystemServiceClient`) connects and exchanges messages successfully after socket permissions are tightened
   4. The installed systemd unit on a fresh `install.sh` run matches the checked-in reference unit in the repo
   5. Tests confirm that an unauthorized caller is rejected and the intended client is accepted
-**Plans**: TBD
+**Plans**: 2 plans
 
 Plans:
-- [ ] 15-01: TBD
-- [ ] 15-02: TBD
+- [ ] 15-01-PLAN.md — Daemon privilege model + IPC peer credential lockdown
+- [ ] 15-02-PLAN.md — Installer migration and template rendering
 
 ### Phase 16: Routing Correctness & Idempotency
 **Goal**: Proxy routing applies clean iptables rules with correct exemptions, and repeated enable/disable cycles leave no stale state
@@ -162,7 +162,7 @@ Plans:
 
 | Phase | Plans Complete | Status | Completed |
 |-------|----------------|--------|-----------|
-| 15. Privilege Model & IPC Lockdown | 0/? | Not started | - |
+| 15. Privilege Model & IPC Lockdown | 0/2 | Planning complete | - |
 | 16. Routing Correctness & Idempotency | 0/? | Not started | - |
 | 17. Status Reporting Hardening | 0/? | Not started | - |
 | 18. Hardware Validation | 0/? | Not started | - |
