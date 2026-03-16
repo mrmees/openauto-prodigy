@@ -21,14 +21,14 @@ progress:
 See: .planning/PROJECT.md (updated 2026-03-16)
 
 **Core value:** A person with a Raspberry Pi 4 and a touchscreen can install this, pair their phone, and get a reliable wireless Android Auto experience -- every time, without SSH.
-**Current focus:** Phase 16 - Routing Correctness & Idempotency
+**Current focus:** Phase 17 - Status Reporting Hardening
 
 ## Current Position
 
-Phase: 16 (2 of 4 in v0.6.3) -- COMPLETE
-Plan: 4 of 4 in current phase (done)
-Status: Phase 16 complete, all 4 plans done
-Last activity: 2026-03-16 — Completed 16-04 test coverage
+Phase: 17 (3 of 4 in v0.6.3)
+Plan: 1 of 1 in current phase (done)
+Status: Phase 17 complete, plan 01 done
+Last activity: 2026-03-16 — Completed 17-01 status reporting hardening
 
 Progress: [██████████] 100%
 
@@ -48,6 +48,7 @@ Progress: [██████████] 100%
 | Phase 16 P03 | 1 min | 2 tasks | 2 files |
 | Phase 16 P02 | 2min | 2 tasks | 2 files |
 | Phase 16 P04 | 4min | 2 tasks | 2 files |
+| Phase 17 P01 | 6min | 2 tasks | 4 files |
 
 ## Accumulated Context
 
@@ -69,6 +70,9 @@ Progress: [██████████] 100%
 - [Phase 16]: disable() sets FAILED on any cleanup step failure, DISABLED only on full success
 - [Phase 16]: Removed port-based exemptions, replaced by owner-based + destination-based exemptions
 - [Phase 16]: Flush-aware mock helper as reusable pattern for all tests touching iptables while-loop delete
+- [Phase 17]: TCP connect as listener truth gate (not PID) for ACTIVE verification
+- [Phase 17]: _enable_locked/_disable_locked pattern avoids self-deadlock on enable->disable rollback
+- [Phase 17]: Local failure = immediate FAILED, upstream failure = DEGRADED (no threshold for local checks)
 
 ### Blockers/Concerns
 
@@ -76,6 +80,6 @@ None yet.
 
 ## Session Continuity
 
-Last session: 2026-03-16T04:10:44.637Z
-Stopped at: Phase 17 context gathered
-Resume file: .planning/phases/17-status-reporting-hardening/17-CONTEXT.md
+Last session: 2026-03-16T04:41:26Z
+Stopped at: Completed 17-01-PLAN.md
+Resume file: .planning/phases/17-status-reporting-hardening/17-01-SUMMARY.md

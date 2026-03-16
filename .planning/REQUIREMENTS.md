@@ -28,9 +28,9 @@
 
 ## Status Reporting (SR)
 
-- [ ] **SR-01**: `get_proxy_status` reports `ACTIVE` only after the local redirect pipeline is verified alive
-- [ ] **SR-02**: `FAILED` and `DEGRADED` are used meaningfully for startup, apply, runtime, and cleanup failures
-- [ ] **SR-03**: Health/status checks reflect local proxy-pipeline health, not merely upstream SOCKS reachability
+- [x] **SR-01**: `get_proxy_status` reports `ACTIVE` only after the local redirect pipeline is verified alive
+- [x] **SR-02**: `FAILED` and `DEGRADED` are used meaningfully for startup, apply, runtime, and cleanup failures
+- [x] **SR-03**: Health/status checks reflect local proxy-pipeline health, not merely upstream SOCKS reachability
 
 ## Testing (TS)
 
@@ -65,9 +65,9 @@
 | IC-02 | Phase 16 | Complete |
 | IC-03 | Phase 16 | Complete |
 | IC-04 | Phase 16 | Complete |
-| SR-01 | Phase 17 | Pending |
-| SR-02 | Phase 17 | Pending |
-| SR-03 | Phase 17 | Pending |
+| SR-01 | Phase 17 | Complete |
+| SR-02 | Phase 17 | Complete |
+| SR-03 | Phase 17 | Complete |
 | TS-01 | Phase 16 | Complete |
 | TS-02 | Phase 16 | Complete |
 | TS-03 | Phase 16 | Complete |
