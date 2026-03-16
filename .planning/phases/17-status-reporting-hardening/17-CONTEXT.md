@@ -54,7 +54,7 @@ Make `get_proxy_status` reflect actual local pipeline health — redsocks listen
 - **`verified_at`:** ISO 8601 timestamp of the last verification pass that produced this state
 
 ### Live vs cached status
-- **Default:** `get_proxy_status()` returns cached state instantly (background loop keeps it fresh)
+- **Default:** `get_proxy_status()` acquires the operation lock, then returns cached state (background loop keeps it fresh). Normally near-instant; blocks only while enable/disable is in flight to guarantee settled state.
 - **Optional:** `get_proxy_status({verify: true})` runs a synchronous local verification pass before responding
 - **Background loop interval:** 10 seconds (local TCP connect + iptables check is cheap; 30s was too stale)
 - **No auto-recovery in health loop** — detect and report only. Recovery requires explicit `enable()` from caller. This phase is about truthful status, not self-healing.
