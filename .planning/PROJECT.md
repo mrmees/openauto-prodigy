@@ -114,7 +114,13 @@ A person with a Raspberry Pi 4 and a touchscreen can install this, pair their ph
 
 <!-- Current scope. Building toward these. -->
 
-(None — next milestone TBD)
+- [ ] Per-widget instance configuration (style/settings stored per placement, not global)
+- [ ] Theme cycle widget (1x1, tap advances to next theme)
+- [ ] Weather widget with GPS-based location via companion proxy (current conditions + alerts)
+- [ ] Phone battery status widget (1x1, reads companion battery data)
+- [ ] Clock style variants (analog, digital, minimal — per-instance selection)
+- [ ] Companion status widget (1x1 connected indicator, expanded detail at larger sizes)
+- [ ] AA native/projected focus toggle widget (VideoFocusRequest NATIVE/PROJECTED)
 
 ### Backlog
 
@@ -233,7 +239,21 @@ v0.4 shipped logging and theming. v0.4.1 shipped 10-band graphic EQ with per-str
 | skip_interfaces ["lo"] only (not ["lo", "eth0"]) | eth0 is default route — exempting it bypasses all REDIRECT rules | ✓ Good |
 
 ---
-*Last updated: 2026-03-16 after v0.6.3 milestone*
+## Current Milestone: v0.6.4 Widget Work
+
+**Goal:** Expand the widget library with 6 new widgets and extend the widget contract to support per-instance configuration.
+
+**Target features:**
+- Per-widget instance config (style selection, settings per placement)
+- Theme cycle widget (1x1 quick theme switcher for fresh installs)
+- Weather widget (GPS-based, fetched via companion proxy, conditions + alerts)
+- Phone battery status widget (companion data)
+- Clock style variants (analog/digital/minimal, per-instance)
+- Companion status widget (connected indicator → expanded detail)
+- AA focus toggle widget (native/projected via VideoFocusRequest)
+
+---
+*Last updated: 2026-03-16 after v0.6.4 milestone start*
 
 ---
 *Last updated: 2026-03-16 after v0.6.3 milestone start*

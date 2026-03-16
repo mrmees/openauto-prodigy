@@ -21,16 +21,16 @@ progress:
 See: .planning/PROJECT.md (updated 2026-03-16)
 
 **Core value:** A person with a Raspberry Pi 4 and a touchscreen can install this, pair their phone, and get a reliable wireless Android Auto experience -- every time, without SSH.
-**Current focus:** v0.6.3 shipped — next milestone TBD
+**Current focus:** v0.6.4 Widget Work — defining requirements
 
 ## Current Position
 
-Phase: 18 (4 of 4 in v0.6.3)
-Plan: 1 of 1 in current phase (done)
-Status: Phase 18 complete, hardware validation PASS
-Last activity: 2026-03-16 — Completed 18-01 hardware validation (PASS, 10/10 proof points)
+Phase: Not started (defining requirements)
+Plan: —
+Status: Defining requirements
+Last activity: 2026-03-16 — Milestone v0.6.4 started
 
-Progress: [██████████] 100%
+Progress: [░░░░░░░░░░] 0%
 
 ## Performance Metrics
 
