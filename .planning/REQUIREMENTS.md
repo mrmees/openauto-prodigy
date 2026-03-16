@@ -1,0 +1,83 @@
+# Requirements — v0.6.4 Widget Work
+
+**Defined:** 2026-03-16
+**Core Value:** A person with a Raspberry Pi 4 and a touchscreen can install this, pair their phone, and get a reliable wireless Android Auto experience — every time, without SSH.
+
+## Widget Contract (WC)
+
+- [ ] **WC-01**: Widget placements support per-instance configuration (key-value map persisted in YAML)
+- [ ] **WC-02**: Widget config is editable via a config UI triggered from the widget context menu
+- [ ] **WC-03**: Widget config changes persist across restarts and survive grid remap
+
+## Theme Cycle Widget (TC)
+
+- [ ] **TC-01**: 1x1 widget that advances to the next theme on tap
+- [ ] **TC-02**: Widget displays current theme name or color preview
+
+## Weather Widget (WX)
+
+- [ ] **WX-01**: Pi fetches current weather conditions via HTTP API using companion GPS location
+- [ ] **WX-02**: Weather widget displays temperature, condition icon, and location name
+- [ ] **WX-03**: Weather widget displays active weather alerts when present
+- [ ] **WX-04**: Weather data refreshes on a configurable interval (default 30 min)
+- [ ] **WX-05**: API key is configured via YAML config (not hardcoded)
+
+## Battery Widget (BW)
+
+- [ ] **BW-01**: 1x1 widget displays phone battery level and charging state from companion data
+
+## Clock Styles (CK)
+
+- [ ] **CK-01**: Clock widget supports at least 3 visual styles (digital, analog, minimal)
+- [ ] **CK-02**: Clock style is selectable per widget instance via the widget config UI
+
+## Companion Status Widget (CS)
+
+- [ ] **CS-01**: 1x1 widget shows companion connected/disconnected indicator
+- [ ] **CS-02**: At larger sizes, widget shows GPS, battery, proxy status detail
+
+## AA Focus Toggle (AF)
+
+- [ ] **AF-01**: Widget sends VideoFocusRequest(NATIVE) to pause AA projection on tap
+- [ ] **AF-02**: Widget sends VideoFocusRequest(PROJECTED) to resume AA on tap
+- [ ] **AF-03**: Widget reflects current focus state (native vs projected)
+
+## Out of Scope
+
+| Feature | Reason |
+|---------|--------|
+| Weather forecast (multi-day) | Current conditions + alerts is sufficient for v0.6.4 |
+| Widget drag-to-configure | Config UI via context menu is simpler and consistent with existing edit mode |
+| Per-widget theme override | Theme is global; per-widget theming is excessive complexity |
+| Companion app SOCKS logging | Documented gap from v0.6.3, separate repo/timeline |
+
+## Traceability
+
+| Requirement | Phase | Status |
+|-------------|-------|--------|
+| WC-01 | TBD | Pending |
+| WC-02 | TBD | Pending |
+| WC-03 | TBD | Pending |
+| TC-01 | TBD | Pending |
+| TC-02 | TBD | Pending |
+| WX-01 | TBD | Pending |
+| WX-02 | TBD | Pending |
+| WX-03 | TBD | Pending |
+| WX-04 | TBD | Pending |
+| WX-05 | TBD | Pending |
+| BW-01 | TBD | Pending |
+| CK-01 | TBD | Pending |
+| CK-02 | TBD | Pending |
+| CS-01 | TBD | Pending |
+| CS-02 | TBD | Pending |
+| AF-01 | TBD | Pending |
+| AF-02 | TBD | Pending |
+| AF-03 | TBD | Pending |
+
+**Coverage:**
+- v0.6.4 requirements: 18 total
+- Mapped to phases: 0
+- Unmapped: 18
+
+---
+*Requirements defined: 2026-03-16*
