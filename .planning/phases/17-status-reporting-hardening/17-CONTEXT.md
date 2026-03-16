@@ -35,20 +35,20 @@ Make `get_proxy_status` reflect actual local pipeline health — redsocks listen
 - **Single response contract for all callers:**
   ```json
   {
-    "state": "active",
+    "state": "degraded",
     "checks": {
       "listener": true,
       "iptables": true,
       "upstream": false
     },
-    "error_code": null,
-    "error": null,
+    "error_code": "upstream_unreachable",
+    "error": "upstream SOCKS proxy not reachable",
     "verified_at": "2026-03-15T21:34:12Z",
     "live_check": false
   }
   ```
 - **`checks`:** coarse boolean signals — `listener`, `iptables`, `upstream`. No sub-fields for chain/jump/redirect individually.
-- **`error_code`:** stable, machine-readable. Priority order when multiple checks fail: `listener_down` > `routing_missing` > `upstream_unreachable`
+- **`error_code`:** stable, machine-readable. Defined codes: `listener_down`, `routing_missing`, `upstream_unreachable`, `operation_timeout`. Priority when multiple checks fail: `listener_down` > `routing_missing` > `upstream_unreachable`. `operation_timeout` is returned when the lock cannot be acquired within the timeout window.
 - **`error`:** short human-readable summary (e.g., "redsocks is not listening on 127.0.0.1:12345")
 - **`live_check`:** true if this response came from a live verification pass, false if cached
 - **`verified_at`:** ISO 8601 timestamp of the last verification pass that produced this state
@@ -60,11 +60,11 @@ Make `get_proxy_status` reflect actual local pipeline health — redsocks listen
 - **No auto-recovery in health loop** — detect and report only. Recovery requires explicit `enable()` from caller. This phase is about truthful status, not self-healing.
 
 ### Concurrency and race behavior
-- **One `asyncio.Lock`** guards: `enable()`, `disable()`, live `verify:true`, and background health tick
-- **get_proxy_status() without verify:** reads cached state immediately (no lock needed)
+- **One `asyncio.Lock`** guards: `enable()`, `disable()`, `get_proxy_status()` (all variants), and background health tick
+- **get_proxy_status() without verify:** acquires lock, returns cached state once lock is held. This ensures status never reports stale DISABLED during in-flight enable() or stale ACTIVE during in-flight disable(). The lock wait is normally instant (cached read is near-zero), but blocks during operations to guarantee settled state.
 - **get_proxy_status({verify: true}):** acquires lock, runs live checks, returns settled result
 - **Health loop:** acquires lock before probing. If enable/disable is in flight, waits or skips that cycle. Prevents the loop from observing intentionally partial state during operations.
-- **Lock timeout:** 10 seconds. If exceeded, return current cached state with `error_code: "timeout"`
+- **Lock timeout:** 10 seconds. If exceeded, return current cached state with `error_code: "operation_timeout"`
 
 ### Observability and testability
 - **Logging policy:**
