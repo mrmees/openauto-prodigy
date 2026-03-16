@@ -2,16 +2,16 @@
 gsd_state_version: 1.0
 milestone: v0.6
 milestone_name: milestone
-status: verifying
-stopped_at: Phase 14.1 context gathered
-last_updated: "2026-03-15T22:04:18.148Z"
-last_activity: 2026-03-15 — QML color audit, M3 token pairings, state matrix document
+status: complete
+stopped_at: Completed 14.1-01-PLAN.md
+last_updated: "2026-03-16T00:23:54.924Z"
+last_activity: 2026-03-15 — 9 companion themes promoted to bundled defaults, FullScreenPicker GPU fixes
 progress:
   total_phases: 5
-  completed_phases: 4
-  total_plans: 5
-  completed_plans: 5
-  percent: 80
+  completed_phases: 5
+  total_plans: 6
+  completed_plans: 6
+  percent: 100
 ---
 
 # Project State
@@ -21,16 +21,16 @@ progress:
 See: .planning/PROJECT.md (updated 2026-03-15)
 
 **Core value:** A person with a Raspberry Pi 4 and a touchscreen can install this, pair their phone, and get a reliable wireless Android Auto experience -- every time, without SSH.
-**Current focus:** Phase 14 complete; Phase 15 (Color Boldness Slider) next
+**Current focus:** Phase 14.1 complete; Phase 14.2 or Phase 15 next
 
 ## Current Position
 
-Phase: 14 of 14 (Color Audit & M3 Expressive Tokens)
-Plan: 02 complete (2 of 2) -- Phase 14 done
-Status: All color audit fixes applied and Pi-verified; Phase 15 next
-Last activity: 2026-03-15 — QML color audit, M3 token pairings, state matrix document
+Phase: 14.1 of 14.1 (Define New Default Themes)
+Plan: 01 complete (1 of 1) -- Phase 14.1 done
+Status: 9 companion themes promoted to bundled defaults, Pi-verified
+Last activity: 2026-03-15 — 9 companion themes promoted to bundled defaults, FullScreenPicker GPU fixes
 
-Progress: [████████░░] 80%
+Progress: [██████████] 100%
 
 ## Accumulated Context
 
@@ -66,8 +66,12 @@ Progress: [████████░░] 80%
 - ConfigService creation moved before theme loading in main.cpp for persistence wiring
 - Custom Wallpaper toggle derives state from config value (empty=OFF, non-empty=ON)
 - Theme Default removed from wallpaper picker (toggle OFF serves that purpose)
+- Prodigy theme renamed to default (id: default, name: Prodigy) for first-install identity
+- Old hand-crafted themes (ember, ocean, amoled) retired in favor of companion-generated M3 palettes
+- Wallpapers capped at 1440x1440 for Pi GPU/memory constraints
+- FullScreenPicker delegate shadows removed to prevent GPU freeze with 9+ items
 
 ## Session Continuity
 
-Last session: 2026-03-15T22:04:18.144Z
-Stopped at: Phase 14.1 context gathered
+Last session: 2026-03-16T00:22:33Z
+Stopped at: Completed 14.1-01-PLAN.md

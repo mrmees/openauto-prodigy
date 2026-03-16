@@ -30,8 +30,8 @@
 
 ## Theme Migration (TM)
 
-- [ ] **TM-01**: 9 companion-created themes promoted from Pi user directory to bundled `config/themes/`, replacing old defaults
-- [ ] **TM-02**: Prodigy theme renamed to `default` (first-install theme identity)
+- [x] **TM-01**: 9 companion-created themes promoted from Pi user directory to bundled `config/themes/`, replacing old defaults
+- [x] **TM-02**: Prodigy theme renamed to `default` (first-install theme identity)
 
 ## Out of Scope
 
@@ -63,8 +63,8 @@
 | CA-03 | Phase 14 | Complete |
 | ~~CB-01~~ | ~~Phase 15~~ | Removed |
 | ~~CB-02~~ | ~~Phase 15~~ | Removed |
-| TM-01 | Phase 14.1 | Pending |
-| TM-02 | Phase 14.1 | Pending |
+| TM-01 | Phase 14.1 | Complete |
+| TM-02 | Phase 14.1 | Complete |
 
 **Coverage:**
 - v0.6.2 requirements: 13 total (2 removed, 2 added)

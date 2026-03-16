@@ -148,7 +148,7 @@ Plans:
 **Goal:** Promote 9 visually-approved companion-created themes from the Pi into bundled `config/themes/`, replacing the 4 old defaults. Prodigy theme becomes the new `default`.
 **Requirements**: TM-01, TM-02
 **Depends on:** Phase 14
-**Plans:** 1 plan
+**Plans:** 1/1 plans complete
 
 Plans:
 - [ ] 14.1-01-PLAN.md — Pull 9 themes from Pi, replace old defaults, rename prodigy to default
