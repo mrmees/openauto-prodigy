@@ -13,7 +13,7 @@ from typing import Any, Dict
 from ipc_server import IpcServer
 from health_monitor import HealthMonitor
 from config_applier import ConfigApplier
-from proxy_manager import ProxyManager
+from proxy_manager import ProxyManager, ProxyState
 
 DEFAULT_SOCKET_PATH = "/run/openauto/system.sock"
 DEFAULT_CONFIG_PATH = os.path.expanduser("~matt/.openauto/config.yaml")
@@ -54,26 +54,16 @@ def parse_set_proxy_route_request(params: Dict[str, Any]) -> Dict[str, Any]:
     if not isinstance(password, str) or not password:
         raise ValueError("password must be a non-empty string")
 
-    skip_interfaces = params.get("skip_interfaces", ["eth0", "lo"])
+    skip_interfaces = params.get("skip_interfaces", ["lo", "eth0"])
     if not isinstance(skip_interfaces, list) or not all(
         isinstance(item, str) and item.strip() for item in skip_interfaces
     ):
         raise ValueError("skip_interfaces must be a list of non-empty strings")
 
-    skip_ports = params.get("skip_tcp_ports", [22])
-    if not isinstance(skip_ports, list) or not skip_ports:
-        raise ValueError("skip_tcp_ports must be a non-empty list")
-    normalized_skip_ports = []
-    for skip_port in skip_ports:
-        try:
-            skip_port = int(skip_port)
-        except (TypeError, ValueError):
-            raise ValueError("skip_tcp_ports must contain valid integers")
-        if not (1 <= skip_port <= 65535):
-            raise ValueError("skip_tcp_ports values must be in [1, 65535]")
-        normalized_skip_ports.append(skip_port)
-
-    skip_networks = params.get("skip_networks", [])
+    skip_networks = params.get(
+        "skip_networks",
+        ["127.0.0.0/8", "169.254.0.0/16", "10.0.0.0/24", "192.168.0.0/16"],
+    )
     if not isinstance(skip_networks, list):
         raise ValueError("skip_networks must be a list")
     normalized_skip_networks = []
@@ -89,7 +79,6 @@ def parse_set_proxy_route_request(params: Dict[str, Any]) -> Dict[str, Any]:
         "user": user,
         "password": password,
         "skip_interfaces": skip_interfaces,
-        "skip_tcp_ports": normalized_skip_ports,
         "skip_networks": normalized_skip_networks,
     }
 
@@ -180,12 +169,16 @@ async def main() -> None:
                     user=normalized["user"],
                     password=normalized["password"],
                     skip_interfaces=normalized["skip_interfaces"],
-                    skip_ports=normalized["skip_tcp_ports"],
                     skip_networks=normalized["skip_networks"],
                 )
             else:
                 await proxy.disable()
-            return {"ok": True, "state": proxy.state.value}
+            # Check actual state - disable() may have set FAILED on cleanup error
+            ok = proxy.state != ProxyState.FAILED
+            result = {"ok": ok, "state": proxy.state.value}
+            if not ok:
+                result["error"] = "partial cleanup failure -- see journal for details"
+            return result
         except Exception as e:
             LOG.error("set_proxy_route error: %s", e)
             return {"ok": False, "error": str(e), "state": proxy.state.value}
@@ -199,6 +192,9 @@ async def main() -> None:
     ipc.register_method("restart_service", handle_restart_service)
     ipc.register_method("set_proxy_route", handle_set_proxy_route)
     ipc.register_method("get_proxy_status", handle_get_proxy_status)
+
+    # --- Clean stale proxy state from prior crash/abnormal restart ---
+    await proxy.cleanup_stale_state()
 
     # --- Start ---
     await ipc.start()
@@ -245,6 +241,8 @@ async def main() -> None:
         if proxy.state.value != "disabled":
             try:
                 await asyncio.wait_for(proxy.disable(), timeout=5.0)
+                if proxy.state == ProxyState.FAILED:
+                    LOG.warning("Proxy cleanup had partial failures during shutdown")
             except asyncio.TimeoutError:
                 LOG.warning("Proxy disable timed out during shutdown")
 
