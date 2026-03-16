@@ -1750,7 +1750,6 @@ RuntimeDirectory=openauto
 Restart=always
 RestartSec=2
 PrivateTmp=yes
-ProtectHome=yes
 RestrictSUIDSGID=yes
 RestrictRealtime=yes
 LockPersonality=yes
