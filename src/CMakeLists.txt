@@ -245,6 +245,10 @@ set_source_files_properties(../qml/components/ExitDialog.qml PROPERTIES
 )
 
 
+set_source_files_properties(../qml/components/WidgetConfigSheet.qml PROPERTIES
+    QT_QML_SOURCE_TYPENAME "WidgetConfigSheet"
+    QT_RESOURCE_ALIAS "WidgetConfigSheet.qml"
+)
 set_source_files_properties(../qml/components/WidgetPicker.qml PROPERTIES
     QT_QML_SOURCE_TYPENAME "WidgetPicker"
     QT_RESOURCE_ALIAS "WidgetPicker.qml"
@@ -383,6 +387,7 @@ qt_add_qml_module(openauto-prodigy
         ../qml/components/FirstRunBanner.qml
         ../qml/components/NotificationArea.qml
         ../qml/components/ExitDialog.qml
+        ../qml/components/WidgetConfigSheet.qml
         ../qml/components/WidgetPicker.qml
         ../qml/widgets/ClockWidget.qml
         ../qml/widgets/AAStatusWidget.qml

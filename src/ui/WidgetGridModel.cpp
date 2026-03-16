@@ -355,6 +355,40 @@ QVariantMap WidgetGridModel::effectiveWidgetConfig(const QString& instanceId) co
     return result;
 }
 
+QVariantList WidgetGridModel::configSchemaForWidget(const QString& widgetId) const
+{
+    if (!registry_) return {};
+    auto desc = registry_->descriptor(widgetId);
+    if (!desc || desc->configSchema.isEmpty()) return {};
+
+    QVariantList result;
+    for (const auto& field : desc->configSchema) {
+        QVariantMap m;
+        m["key"] = field.key;
+        m["label"] = field.label;
+        switch (field.type) {
+        case ConfigFieldType::Enum:    m["type"] = QStringLiteral("enum"); break;
+        case ConfigFieldType::Bool:    m["type"] = QStringLiteral("bool"); break;
+        case ConfigFieldType::IntRange: m["type"] = QStringLiteral("intrange"); break;
+        }
+        m["options"] = QVariant::fromValue(field.options);
+        m["values"] = field.values;
+        m["rangeMin"] = field.rangeMin;
+        m["rangeMax"] = field.rangeMax;
+        m["rangeStep"] = field.rangeStep;
+        result.append(m);
+    }
+    return result;
+}
+
+QVariantMap WidgetGridModel::defaultConfigForWidget(const QString& widgetId) const
+{
+    if (!registry_) return {};
+    auto desc = registry_->descriptor(widgetId);
+    if (!desc) return {};
+    return desc->defaultConfig;
+}
+
 bool WidgetGridModel::canPlace(int col, int row, int colSpan, int rowSpan,
                                 const QString& excludeInstanceId) const
 {

@@ -456,6 +456,38 @@ Item {
                                             }
                                         }
 
+                                        // Gear config badge (top-left) -- only for widgets with configSchema
+                                        Rectangle {
+                                            id: configGear
+                                            width: 28
+                                            height: 28
+                                            radius: 14
+                                            color: ThemeService.primaryContainer
+                                            anchors.left: parent.left
+                                            anchors.top: parent.top
+                                            anchors.leftMargin: -6
+                                            anchors.topMargin: -6
+                                            visible: homeScreen.editMode && model.hasConfigSchema
+                                            z: 20
+
+                                            MaterialIcon {
+                                                icon: "\ue8b8"
+                                                size: 16
+                                                color: ThemeService.onPrimaryContainer
+                                                anchors.centerIn: parent
+                                            }
+
+                                            MouseArea {
+                                                anchors.fill: parent
+                                                anchors.margins: -4
+                                                onClicked: {
+                                                    configSheet.openConfig(model.instanceId, model.widgetId,
+                                                                           model.displayName, model.iconName)
+                                                    inactivityTimer.restart()
+                                                }
+                                            }
+                                        }
+
                                         // Resize handle (bottom-right) with drag-to-resize
                                         Rectangle {
                                             id: resizeHandle
@@ -999,6 +1031,11 @@ Item {
                 }
             }
         }
+    }
+
+    // ---- Widget config sheet ----
+    WidgetConfigSheet {
+        id: configSheet
     }
 
     // ---- Toast (transient feedback) ----
