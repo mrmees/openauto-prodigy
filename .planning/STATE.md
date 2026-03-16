@@ -2,9 +2,9 @@
 gsd_state_version: 1.0
 milestone: v0.6
 milestone_name: milestone
-status: complete
+status: verifying
 stopped_at: Completed 14.1-01-PLAN.md
-last_updated: "2026-03-16T00:23:54.924Z"
+last_updated: "2026-03-16T00:33:05.548Z"
 last_activity: 2026-03-15 — 9 companion themes promoted to bundled defaults, FullScreenPicker GPU fixes
 progress:
   total_phases: 5
