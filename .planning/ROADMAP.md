@@ -128,7 +128,7 @@ Plans:
 **Plans**: 4 plans
 
 Plans:
-- [ ] 16-01-PLAN.md — Phase 15 hardware verification gate
+- [x] 16-01-PLAN.md — Phase 15 hardware verification gate
 - [ ] 16-02-PLAN.md — ProxyManager routing rewrite with flush/recreate, exemptions, and cleanup honesty
 - [ ] 16-03-PLAN.md — Installer redsocks system user creation
 - [ ] 16-04-PLAN.md — Routing correctness and idempotency tests
@@ -165,6 +165,6 @@ Plans:
 | Phase | Plans Complete | Status | Completed |
 |-------|----------------|--------|-----------|
 | 15. Privilege Model & IPC Lockdown | 2/2 | Complete    | 2026-03-16 |
-| 16. Routing Correctness & Idempotency | 0/4 | Not started | - |
+| 16. Routing Correctness & Idempotency | 1/4 | In progress | - |
 | 17. Status Reporting Hardening | 0/? | Not started | - |
 | 18. Hardware Validation | 0/? | Not started | - |
