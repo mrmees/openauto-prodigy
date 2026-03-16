@@ -144,9 +144,10 @@ class ProxyManagerTests(unittest.IsolatedAsyncioTestCase):
         args = [call.args for call in pm._run_cmd.await_args_list]
         # REDIRECT rule present
         self.assertTrue(any("REDIRECT" in token for call_args in args for token in call_args))
-        # Interface exemptions (defaults: lo, eth0)
-        self.assertTrue(any("-o" in call_args and "eth0" in call_args for call_args in args))
+        # Interface exemptions (default: lo only — eth0 removed to avoid
+        # bypassing REDIRECT for all internet traffic routed via eth0)
         self.assertTrue(any("-o" in call_args and "lo" in call_args for call_args in args))
+        self.assertFalse(any("-o" in call_args and "eth0" in call_args for call_args in args))
         # Network exemptions (defaults)
         self.assertTrue(any("127.0.0.0/8" in token for call_args in args for token in call_args))
         self.assertTrue(any("192.168.0.0/16" in token for call_args in args for token in call_args))
@@ -428,14 +429,19 @@ class ProxyManagerTests(unittest.IsolatedAsyncioTestCase):
         await self._cleanup_health(pm)
 
     async def test_default_interface_exemptions(self):
-        """TS-03: Default interface exemptions include lo and eth0."""
+        """TS-03: Default interface exemption is lo only (eth0 removed —
+        network-based 192.168.0.0/16 covers LAN; eth0 exemption would
+        bypass REDIRECT for all internet traffic routed via eth0)."""
         pm = ProxyManager(config_path="/tmp/test_redsocks.conf")
         await self._run_enable_with_mocks(pm)
 
         args_list = [c.args for c in pm._run_cmd.await_args_list]
-        for iface in ["lo", "eth0"]:
-            matching = [a for a in args_list if "-o" in a and iface in a and "RETURN" in a]
-            self.assertTrue(len(matching) >= 1, f"Expected interface exemption for {iface}")
+        # lo must be exempted
+        matching_lo = [a for a in args_list if "-o" in a and "lo" in a and "RETURN" in a]
+        self.assertTrue(len(matching_lo) >= 1, "Expected interface exemption for lo")
+        # eth0 must NOT be exempted (network exemptions cover LAN)
+        matching_eth0 = [a for a in args_list if "-o" in a and "eth0" in a and "RETURN" in a]
+        self.assertEqual(len(matching_eth0), 0, "eth0 should not be in default interface exemptions")
 
         await self._cleanup_health(pm)
 

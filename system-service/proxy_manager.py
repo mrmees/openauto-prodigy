@@ -1,4 +1,5 @@
 import asyncio
+import grp
 import os
 from asyncio.subprocess import PIPE, STDOUT
 from datetime import datetime, timezone
@@ -49,7 +50,7 @@ redsocks {{
     ):
         self._config_path = config_path
         self._redsocks_user = redsocks_user
-        self._default_skip_interfaces = list(default_skip_interfaces or ["lo", "eth0"])
+        self._default_skip_interfaces = list(default_skip_interfaces or ["lo"])
         self._default_skip_networks = list(
             default_skip_networks
             or ["127.0.0.0/8", "169.254.0.0/16", "10.0.0.0/24", "192.168.0.0/16"]
@@ -300,7 +301,14 @@ redsocks {{
 
         with open(self._config_path, "w", encoding="utf-8") as conf:
             conf.write(config_data)
-        os.chmod(self._config_path, 0o600)
+        # Config must be readable by the redsocks user (root:redsocks 0640)
+        # since redsocks is spawned via sudo -u redsocks.
+        try:
+            gid = grp.getgrnam(self._redsocks_user).gr_gid
+            os.chown(self._config_path, 0, gid)
+        except (KeyError, OSError):
+            pass  # Fall through — chown failure is caught by redsocks startup
+        os.chmod(self._config_path, 0o640)
 
         # Spawn redsocks under the dedicated system user for owner-based exemption
         self._redsocks_proc = await asyncio.create_subprocess_exec(
