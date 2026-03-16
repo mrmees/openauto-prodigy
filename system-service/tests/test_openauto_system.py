@@ -29,7 +29,7 @@ class OpenAutoSystemRouteValidationTests(unittest.TestCase):
         self.assertEqual(result["host"], "10.0.0.10")
         self.assertEqual(result["port"], 1080)
         self.assertEqual(result["user"], "oap")
-        self.assertEqual(result["skip_interfaces"], ["lo", "eth0"])
+        self.assertEqual(result["skip_interfaces"], ["lo"])
         self.assertNotIn("skip_tcp_ports", result)
         self.assertEqual(
             result["skip_networks"],
@@ -118,15 +118,35 @@ class OpenAutoSystemRouteValidationTests(unittest.TestCase):
             ["127.0.0.0/8", "169.254.0.0/16", "10.0.0.0/24", "192.168.0.0/16"],
         )
 
-    def test_default_skip_interfaces_are_lo_and_eth0(self):
-        """Default skip_interfaces includes lo and eth0."""
+    def test_default_skip_interfaces_are_lo_only(self):
+        """Default skip_interfaces is lo only — eth0 exemption bypasses all REDIRECT."""
         result = parse_set_proxy_route_request({
             "active": True,
             "host": "10.0.0.10",
             "port": 1080,
             "password": "deadbeef",
         })
-        self.assertEqual(result["skip_interfaces"], ["lo", "eth0"])
+        self.assertEqual(result["skip_interfaces"], ["lo"])
+
+    def test_ipv6_mapped_host_prefix_stripped(self):
+        """Qt dual-stack sockets send ::ffff:x.x.x.x — must strip to plain IPv4."""
+        result = parse_set_proxy_route_request({
+            "active": True,
+            "host": "::ffff:10.0.0.31",
+            "port": 1080,
+            "password": "deadbeef",
+        })
+        self.assertEqual(result["host"], "10.0.0.31")
+
+    def test_plain_ipv4_host_unchanged(self):
+        """Plain IPv4 host passes through unmodified."""
+        result = parse_set_proxy_route_request({
+            "active": True,
+            "host": "10.0.0.31",
+            "port": 1080,
+            "password": "deadbeef",
+        })
+        self.assertEqual(result["host"], "10.0.0.31")
 
 
 class _ImmediateStopEvent:
