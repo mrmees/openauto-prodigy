@@ -39,14 +39,17 @@ redsocks {{
     def __init__(
         self,
         config_path: str = "/run/openauto/redsocks.conf",
+        redsocks_user: str = "redsocks",
         default_skip_interfaces=None,
-        default_skip_ports=None,
         default_skip_networks=None,
     ):
         self._config_path = config_path
-        self._default_skip_interfaces = list(default_skip_interfaces or ["eth0", "lo"])
-        self._default_skip_ports = list(default_skip_ports or [22])
-        self._default_skip_networks = list(default_skip_networks or [])
+        self._redsocks_user = redsocks_user
+        self._default_skip_interfaces = list(default_skip_interfaces or ["lo", "eth0"])
+        self._default_skip_networks = list(
+            default_skip_networks
+            or ["127.0.0.0/8", "169.254.0.0/16", "10.0.0.0/24", "192.168.0.0/16"]
+        )
         self._state = ProxyState.DISABLED
         self._redsocks_proc = None
         self._proxy_host = ""
@@ -55,7 +58,6 @@ redsocks {{
         self._health_task = None
         self._state_callback = None
         self._skip_interfaces = []
-        self._skip_ports = []
         self._skip_networks = []
         self._redirect_port = self.DEFAULT_REDIRECT_PORT
 
@@ -85,7 +87,6 @@ redsocks {{
         password: str,
         *,
         skip_interfaces=None,
-        skip_ports=None,
         skip_networks=None,
         redirect_port: int = DEFAULT_REDIRECT_PORT,
     ) -> None:
@@ -95,7 +96,6 @@ redsocks {{
         self._proxy_host = host
         self._proxy_port = port
         self._skip_interfaces = list(self._default_skip_interfaces if skip_interfaces is None else skip_interfaces)
-        self._skip_ports = list(self._default_skip_ports if skip_ports is None else skip_ports)
         self._skip_networks = list(self._default_skip_networks if skip_networks is None else skip_networks)
         self._redirect_port = redirect_port
         self._fail_count = 0
@@ -112,10 +112,9 @@ redsocks {{
             conf.write(config_data)
         os.chmod(self._config_path, 0o600)
 
+        # Spawn redsocks under the dedicated system user for owner-based exemption
         self._redsocks_proc = await asyncio.create_subprocess_exec(
-            "redsocks",
-            "-c",
-            self._config_path,
+            "sudo", "-u", self._redsocks_user, "redsocks", "-c", self._config_path,
         )
 
         try:
@@ -141,16 +140,67 @@ redsocks {{
         elif self._health_task is not None:
             self._health_task = None
 
-        await self._iptables_flush()
-        await self._dns_restore()
-        await self._stop_redsocks()
+        errors = []
+
+        try:
+            await self._iptables_flush()
+        except Exception as e:
+            errors.append(f"iptables flush: {e}")
+
+        try:
+            await self._dns_restore()
+        except Exception as e:
+            errors.append(f"dns restore: {e}")
+
+        try:
+            await self._stop_redsocks()
+        except Exception as e:
+            errors.append(f"redsocks stop: {e}")
 
         try:
             os.remove(self._config_path)
         except FileNotFoundError:
             pass
+        except Exception as e:
+            errors.append(f"config cleanup: {e}")
 
-        self._set_state(ProxyState.DISABLED)
+        if errors:
+            logging.error("Proxy cleanup failures: %s", "; ".join(errors))
+            self._set_state(ProxyState.FAILED)
+        else:
+            self._set_state(ProxyState.DISABLED)
+
+    async def cleanup_stale_state(self) -> None:
+        """Clean any stale proxy routing state from prior crash/restart."""
+        logging.info("Cleaning stale proxy routing state...")
+
+        # Kill any orphaned redsocks from prior abnormal exit.
+        # The in-memory handle is lost across daemon restarts, so we must pkill.
+        # If no redsocks is running, pkill returns non-zero - that's fine.
+        try:
+            await self._run_cmd("pkill", "-u", self._redsocks_user, "redsocks")
+        except Exception as e:
+            logging.warning("Stale redsocks cleanup error (non-fatal): %s", e)
+
+        try:
+            await self._iptables_flush()
+        except Exception as e:
+            logging.warning("Stale iptables cleanup error (non-fatal): %s", e)
+
+        try:
+            await self._dns_restore()
+        except Exception as e:
+            logging.warning("Stale DNS cleanup error (non-fatal): %s", e)
+
+        # Clean stale config file
+        try:
+            os.remove(self._config_path)
+        except FileNotFoundError:
+            pass
+        except Exception as e:
+            logging.warning("Stale config cleanup error (non-fatal): %s", e)
+
+        logging.info("Stale proxy state cleanup complete")
 
     async def _stop_redsocks(self) -> None:
         if self._redsocks_proc is None:
@@ -190,86 +240,88 @@ redsocks {{
             self._redsocks_proc = None
 
     async def _iptables_apply(self) -> None:
+        # Step 1: Loop-delete all OUTPUT -> OPENAUTO_PROXY jumps until none remain
+        while True:
+            rc, _ = await self._run_cmd(
+                "iptables", "-t", "nat", "-D", "OUTPUT", "-p", "tcp", "-j", "OPENAUTO_PROXY"
+            )
+            if rc != 0:
+                break
+
+        # Step 2: Flush and delete existing chain (ignore errors - may not exist)
+        await self._run_cmd("iptables", "-t", "nat", "-F", "OPENAUTO_PROXY")
+        await self._run_cmd("iptables", "-t", "nat", "-X", "OPENAUTO_PROXY")
+
+        # Step 3: Create fresh chain
         rc, out = await self._run_cmd("iptables", "-t", "nat", "-N", "OPENAUTO_PROXY")
-        if rc != 0 and "Chain already exists" not in out:
+        if rc != 0:
             raise RuntimeError(f"iptables -N failed: {out}")
-        for iface in self._skip_interfaces:
-            rc, out = await self._run_cmd(
-                "iptables",
-                "-t",
-                "nat",
-                "-A",
-                "OPENAUTO_PROXY",
-                "-o",
-                iface,
-                "-j",
-                "RETURN",
-            )
-            if rc != 0:
-                raise RuntimeError(f"iptables RETURN interface {iface} failed: {out}")
-        for port in self._skip_ports:
-            rc, out = await self._run_cmd(
-                "iptables",
-                "-t",
-                "nat",
-                "-A",
-                "OPENAUTO_PROXY",
-                "-p",
-                "tcp",
-                "--dport",
-                str(port),
-                "-j",
-                "RETURN",
-            )
-            if rc != 0:
-                raise RuntimeError(f"iptables RETURN port {port} failed: {out}")
+
+        # Step 4: Populate exemption rules in correct order
+
+        # 4a. Owner exemption (redsocks user) - prevents redsocks traffic from being redirected
+        rc, out = await self._run_cmd(
+            "iptables", "-t", "nat", "-A", "OPENAUTO_PROXY",
+            "-m", "owner", "--uid-owner", self._redsocks_user, "-j", "RETURN",
+        )
+        if rc != 0:
+            raise RuntimeError(f"iptables owner exemption failed: {out}")
+
+        # 4b. Upstream SOCKS destination exemption (host+port)
+        rc, out = await self._run_cmd(
+            "iptables", "-t", "nat", "-A", "OPENAUTO_PROXY",
+            "-d", self._proxy_host, "-p", "tcp",
+            "--dport", str(self._proxy_port), "-j", "RETURN",
+        )
+        if rc != 0:
+            raise RuntimeError(f"iptables upstream destination exemption failed: {out}")
+
+        # 4c. Network exemptions
         for network in self._skip_networks:
             rc, out = await self._run_cmd(
-                "iptables",
-                "-t",
-                "nat",
-                "-A",
-                "OPENAUTO_PROXY",
-                "-d",
-                network,
-                "-j",
-                "RETURN",
+                "iptables", "-t", "nat", "-A", "OPENAUTO_PROXY",
+                "-d", network, "-j", "RETURN",
             )
             if rc != 0:
                 raise RuntimeError(f"iptables RETURN network {network} failed: {out}")
+
+        # 4d. Interface exemptions
+        for iface in self._skip_interfaces:
+            rc, out = await self._run_cmd(
+                "iptables", "-t", "nat", "-A", "OPENAUTO_PROXY",
+                "-o", iface, "-j", "RETURN",
+            )
+            if rc != 0:
+                raise RuntimeError(f"iptables RETURN interface {iface} failed: {out}")
+
+        # 4e. Final REDIRECT rule
         rc, out = await self._run_cmd(
-            "iptables",
-            "-t",
-            "nat",
-            "-A",
-            "OPENAUTO_PROXY",
-            "-p",
-            "tcp",
-            "-j",
-            "REDIRECT",
-            "--to-ports",
-            str(self._redirect_port),
+            "iptables", "-t", "nat", "-A", "OPENAUTO_PROXY",
+            "-p", "tcp", "-j", "REDIRECT", "--to-ports", str(self._redirect_port),
         )
         if rc != 0:
             raise RuntimeError(f"iptables REDIRECT failed: {out}")
-        rc, out = await self._run_cmd("iptables", "-t", "nat", "-I", "OUTPUT", "-p", "tcp", "-j", "OPENAUTO_PROXY")
+
+        # Step 5: Insert exactly one fresh OUTPUT jump
+        rc, out = await self._run_cmd(
+            "iptables", "-t", "nat", "-I", "OUTPUT", "-p", "tcp", "-j", "OPENAUTO_PROXY"
+        )
         if rc != 0:
             raise RuntimeError(f"iptables output jump failed: {out}")
 
     async def _iptables_flush(self) -> None:
-        commands = [
-            ("iptables", "-t", "nat", "-D", "OUTPUT", "-p", "tcp", "-j", "OPENAUTO_PROXY"),
-            ("iptables", "-t", "nat", "-F", "OPENAUTO_PROXY"),
-            ("iptables", "-t", "nat", "-X", "OPENAUTO_PROXY"),
-        ]
-        for cmd in commands:
-            try:
-                rc, out = await self._run_cmd(*cmd)
-            except Exception as exc:  # pragma: no cover - depends on command execution environment
-                logging.warning("iptables flush failed: %s", exc)
-                continue
+        # Loop-delete all OUTPUT -> OPENAUTO_PROXY jumps until none remain
+        while True:
+            rc, _ = await self._run_cmd(
+                "iptables", "-t", "nat", "-D", "OUTPUT", "-p", "tcp", "-j", "OPENAUTO_PROXY"
+            )
             if rc != 0:
-                logging.warning("iptables flush %s failed with rc=%d: %s", " ".join(cmd), rc, out)
+                break
+
+        # Flush chain (ignore error - may not exist)
+        await self._run_cmd("iptables", "-t", "nat", "-F", "OPENAUTO_PROXY")
+        # Delete chain (ignore error - may not exist)
+        await self._run_cmd("iptables", "-t", "nat", "-X", "OPENAUTO_PROXY")
 
     async def _dns_enable(self) -> None:
         # Prefer systemd-resolved if available; LAN DNS still works via eth0 exclusion otherwise.
