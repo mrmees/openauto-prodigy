@@ -108,7 +108,10 @@ A person with a Raspberry Pi 4 and a touchscreen can install this, pair their ph
 
 <!-- Current scope. Building toward these. -->
 
-(None — milestone complete, next milestone TBD)
+- [ ] System service privilege model fixed (root daemon with restricted IPC socket)
+- [ ] Transparent proxy routing works on real hardware (iptables, redsocks, self-exemption)
+- [ ] Proxy state reporting is truthful (ACTIVE only when actually working)
+- [ ] Proxy rule application is idempotent (no duplicate rules on repeated enable/disable)
 
 ### Backlog
 
@@ -220,4 +223,16 @@ v0.4 shipped logging and theming. v0.4.1 shipped 10-band graphic EQ with per-str
 | State matrix doc as color truth | Single source for control→token assignments, prevents audit drift | ✓ Good |
 
 ---
-*Last updated: 2026-03-16 after v0.6.2 milestone complete*
+## Current Milestone: v0.6.3 Proxy Routing Fix
+
+**Goal:** Fix the system service privilege model, IPC security, and transparent proxy routing so `set_proxy_route` actually works on hardware without privilege errors or self-interception.
+
+**Target features:**
+- System daemon runs with sufficient privilege for iptables/service management
+- IPC socket locked down (not world-writable) when daemon is privileged
+- Proxy routing applies clean iptables rules with self-exemption
+- Idempotent enable/disable with truthful state reporting
+- Tests for permission, idempotency, and self-interception cases
+
+---
+*Last updated: 2026-03-16 after v0.6.3 milestone start*

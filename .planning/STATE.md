@@ -1,36 +1,36 @@
 ---
 gsd_state_version: 1.0
-milestone: v0.6
-milestone_name: milestone
-status: verifying
-stopped_at: Completed 14.1-01-PLAN.md
-last_updated: "2026-03-16T00:37:55.788Z"
-last_activity: 2026-03-15 — 9 companion themes promoted to bundled defaults, FullScreenPicker GPU fixes
+milestone: v0.6.3
+milestone_name: Proxy Routing Fix
+status: defining_requirements
+stopped_at: null
+last_updated: "2026-03-16"
+last_activity: 2026-03-16 — Milestone v0.6.3 started
 progress:
-  total_phases: 5
-  completed_phases: 5
-  total_plans: 6
-  completed_plans: 6
-  percent: 100
+  total_phases: 0
+  completed_phases: 0
+  total_plans: 0
+  completed_plans: 0
+  percent: 0
 ---
 
 # Project State
 
 ## Project Reference
 
-See: .planning/PROJECT.md (updated 2026-03-15)
+See: .planning/PROJECT.md (updated 2026-03-16)
 
 **Core value:** A person with a Raspberry Pi 4 and a touchscreen can install this, pair their phone, and get a reliable wireless Android Auto experience -- every time, without SSH.
-**Current focus:** Phase 14.1 complete; Phase 14.2 or Phase 15 next
+**Current focus:** Defining requirements for v0.6.3 Proxy Routing Fix
 
 ## Current Position
 
-Phase: 14.1 of 14.1 (Define New Default Themes)
-Plan: 01 complete (1 of 1) -- Phase 14.1 done
-Status: 9 companion themes promoted to bundled defaults, Pi-verified
-Last activity: 2026-03-15 — 9 companion themes promoted to bundled defaults, FullScreenPicker GPU fixes
+Phase: Not started (defining requirements)
+Plan: —
+Status: Defining requirements
+Last activity: 2026-03-16 — Milestone v0.6.3 started
 
-Progress: [██████████] 100%
+Progress: [░░░░░░░░░░] 0%
 
 ## Accumulated Context
 
