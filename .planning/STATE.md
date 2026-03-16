@@ -3,13 +3,13 @@ gsd_state_version: 1.0
 milestone: v0.6
 milestone_name: milestone
 status: completed
-stopped_at: Phase 16 context gathered
-last_updated: "2026-03-16T02:26:03.655Z"
+stopped_at: Phase 16 plans verified
+last_updated: "2026-03-16T02:35:52.704Z"
 last_activity: 2026-03-16 — Completed Phase 15 (Privilege Model & IPC Lockdown)
 progress:
   total_phases: 4
   completed_phases: 1
-  total_plans: 2
+  total_plans: 6
   completed_plans: 2
   percent: 100
 ---
@@ -66,6 +66,6 @@ None yet.
 
 ## Session Continuity
 
-Last session: 2026-03-16T02:26:03.653Z
-Stopped at: Phase 16 context gathered
-Resume file: .planning/phases/16-routing-correctness-and-idempotency/16-CONTEXT.md
+Last session: 2026-03-16T02:35:52.702Z
+Stopped at: Phase 16 plans verified
+Resume file: .planning/phases/16-routing-correctness-and-idempotency/16-01-PLAN.md
