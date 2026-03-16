@@ -95,14 +95,20 @@ A person with a Raspberry Pi 4 and a touchscreen can install this, pair their ph
 - ✓ All 6 widgets rewritten to formalized contract (no pixel breakpoints, no root globals) — v0.6.1
 - ✓ Widget developer guide + plugin API reference updated + 15 architecture decision records — v0.6.1
 - ✓ 85 unit tests covering core systems (all passing) — v0.6.1
+- ✓ Wallpaper cover-fit scaling with texture memory cap and transition stability — v0.6.2
+- ✓ Companion reconnect hardening (always-replace, socket cleanup, inactivity timeout) — v0.6.2
+- ✓ Theme persistence (setTheme persists to config, wallpaper toggle gate) — v0.6.2
+- ✓ M3 color audit — solid primaryContainer fills, surface tint properties, warning tokens, night comfort guardrail — v0.6.2
+- ✓ 9 companion-created M3 themes promoted to bundled defaults, Prodigy as first-install identity — v0.6.2
+- ✓ State matrix document as single source of truth for control token assignments — v0.6.2
+- ✓ FullScreenPicker GPU performance fix (removed per-delegate shadows) — v0.6.2
+- ✓ 87 unit tests covering core systems (all passing) — v0.6.2
 
 ### Active
 
 <!-- Current scope. Building toward these. -->
 
-- [ ] M3 Expressive color application across all UI surfaces (navbar, widgets, settings, controls)
-- [ ] Wallpaper cover-fit scaling for resolution/orientation independence
-- [ ] Color audit — ensure accent colors are prominent, not just neutral + tiny primary
+(None — milestone complete, next milestone TBD)
 
 ### Backlog
 
@@ -134,16 +140,7 @@ A person with a Raspberry Pi 4 and a touchscreen can install this, pair their ph
 
 OpenAuto Pro (BlueWave Studio) was a commercial Pi-based AA head unit that went defunct. This project is a clean-room rebuild — no OAP code, no aasdk dependency. The protocol library (`open-android-auto`) is maintained as a separate community resource.
 
-v0.4 shipped logging and theming. v0.4.1 shipped 10-band graphic EQ with per-stream profiles. v0.4.2 shipped service hardening — WiFi AP, Bluetooth SDP, systemd ordering, and clean shutdown all work reliably without manual intervention. v0.4.3 shipped full UI refresh — automotive-minimal styling, 6-category settings, EQ dual-access, shell polish. v0.4.4 shipped resolution independence — unclamped dual-axis UiMetrics, full QML tokenization (zero hardcoded pixels), container-derived grid layouts, runtime auto-detection, and --geometry validation tooling. v0.4.5 shipped navbar rework — zone-based evdev touch routing, 3-control navbar with multi-gesture actions and edge positioning, navbar-aware AA viewport margins, gesture overlay touch fix, and dead UI cleanup (TopBar, NavStrip, sidebar removed). v0.5.0 shipped protocol compliance — proto submodule v1.0, navigation turn events, voice session commands, BT auth exchange, haptic feedback, retracted dead code cleanup after v1.2 proto verification, library renamed to prodigy-oaa-protocol. v0.5.1 shipped DPI sizing & UI polish — EDID-based DPI scaling, scale stepper, clock readability, full 34-role M3 color system, companion theme import, AA rendering fix, navbar status bar cleanup, M3 button components with visual depth effects. v0.5.2 shipped widget system & UI polish — 3-pane home screen with launcher dock and built-in widgets, settings reorganized into 9 categories with touch normalization and automotive-readable font sizes. v0.5.3 shipped widget grid & content widgets — Android-style freeform grid with drag/resize/multi-page, AA navigation turn-by-turn widget, unified now playing widget with AA/BT source priority. v0.6 shipped architecture formalization — typed provider interfaces, core-owned services, legacy Configuration removal, SettingsInputBoundary for settings touch input, 82 unit tests. v0.6.1 shipped widget framework refinement — WidgetDescriptor with size constraints and categories, DPI-based grid sizing with auto-snap, launcher dock replaced by singleton widgets, formalized widget contract (span-based breakpoints, context injection, ActionRegistry egress), all 6 widgets rewritten, developer guide and 15 ADRs, 85 unit tests all passing. Codebase is ~44K LOC C++/QML (30.5K source + 13.4K tests).
-
-## Current Milestone: v0.6.2 Theme Expression & Wallpaper Scaling
-
-**Goal:** Apply M3 Expressive color philosophy boldly across all UI surfaces, and make wallpapers resolution-independent with cover-fit scaling.
-
-**Target features:**
-- Audit and rework color token usage across all QML — accent colors should have visible impact, not just neutral surfaces with tiny primary highlights
-- Wallpaper cover-fit scaling so oversized images work across resolutions and orientations
-- 9 new themes built via companion app, promoted to bundled defaults (replacing old theme set)
+v0.4 shipped logging and theming. v0.4.1 shipped 10-band graphic EQ with per-stream profiles. v0.4.2 shipped service hardening — WiFi AP, Bluetooth SDP, systemd ordering, and clean shutdown all work reliably without manual intervention. v0.4.3 shipped full UI refresh — automotive-minimal styling, 6-category settings, EQ dual-access, shell polish. v0.4.4 shipped resolution independence — unclamped dual-axis UiMetrics, full QML tokenization (zero hardcoded pixels), container-derived grid layouts, runtime auto-detection, and --geometry validation tooling. v0.4.5 shipped navbar rework — zone-based evdev touch routing, 3-control navbar with multi-gesture actions and edge positioning, navbar-aware AA viewport margins, gesture overlay touch fix, and dead UI cleanup (TopBar, NavStrip, sidebar removed). v0.5.0 shipped protocol compliance — proto submodule v1.0, navigation turn events, voice session commands, BT auth exchange, haptic feedback, retracted dead code cleanup after v1.2 proto verification, library renamed to prodigy-oaa-protocol. v0.5.1 shipped DPI sizing & UI polish — EDID-based DPI scaling, scale stepper, clock readability, full 34-role M3 color system, companion theme import, AA rendering fix, navbar status bar cleanup, M3 button components with visual depth effects. v0.5.2 shipped widget system & UI polish — 3-pane home screen with launcher dock and built-in widgets, settings reorganized into 9 categories with touch normalization and automotive-readable font sizes. v0.5.3 shipped widget grid & content widgets — Android-style freeform grid with drag/resize/multi-page, AA navigation turn-by-turn widget, unified now playing widget with AA/BT source priority. v0.6 shipped architecture formalization — typed provider interfaces, core-owned services, legacy Configuration removal, SettingsInputBoundary for settings touch input, 82 unit tests. v0.6.1 shipped widget framework refinement — WidgetDescriptor with size constraints and categories, DPI-based grid sizing with auto-snap, launcher dock replaced by singleton widgets, formalized widget contract (span-based breakpoints, context injection, ActionRegistry egress), all 6 widgets rewritten, developer guide and 15 ADRs, 85 unit tests all passing. v0.6.2 shipped theme expression & wallpaper scaling — wallpaper memory/render hardening, companion reconnect fix, theme persistence, M3 color audit with night comfort guardrail, 9 companion-created themes promoted to bundled defaults with Prodigy as first-install identity, FullScreenPicker GPU fix. Codebase is ~56K LOC C++/QML.
 
 ## Constraints
 
@@ -215,5 +212,12 @@ v0.4 shipped logging and theming. v0.4.1 shipped 10-band graphic EQ with per-str
 | ActionRegistry for widget command egress | Widgets dispatch via named actions, not raw PluginModel/ApplicationController | ✓ Good |
 | promoteToBase on every mutation including opacity | Remap derives from base; all user edits must be preserved | ✓ Good |
 
+| Night comfort guardrail (HSL sat clamp 0.55) | Simpler than HCT chroma, Qt-native, companion handles proper HCT | ✓ Good |
+| Solid primaryContainer fills (not opacity overlays) | True M3 token pairing — onPrimaryContainer needs solid background | ✓ Good |
+| Companion-created themes as bundled defaults | M3 color math from companion app, not hand-crafted YAML | ✓ Good |
+| Prodigy theme as default ID | App identity theme, loads on fresh install | ✓ Good |
+| FullScreenPicker no delegate shadows | Pi 4 GPU freezes with 9+ MultiEffect layers | ✓ Good |
+| State matrix doc as color truth | Single source for control→token assignments, prevents audit drift | ✓ Good |
+
 ---
-*Last updated: 2026-03-15 after v0.6.2 milestone start*
+*Last updated: 2026-03-16 after v0.6.2 milestone complete*

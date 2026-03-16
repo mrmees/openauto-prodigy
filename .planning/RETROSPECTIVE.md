@@ -1,5 +1,45 @@
 # Retrospective
 
+## Milestone: v0.6.2 — Theme Expression & Wallpaper Scaling
+
+**Shipped:** 2026-03-16
+**Phases:** 5 (13, 13.1, 13.2, 14, 14.1) | **Plans:** 6 | 1 day
+
+### What Was Built
+- Wallpaper texture memory capped to display dimensions, cover-fit with clip, transition stability
+- Companion reconnect hardening (always-replace stale clients, socket cleanup, inactivity timeout)
+- Theme persistence (setTheme writes to config, wallpaper picker gated behind toggle)
+- M3 color audit: solid primaryContainer fills, surface tint centralization, warning/onWarning tokens, night comfort guardrail (HSL sat clamp 0.55)
+- State matrix document as single source of truth for control→token assignments
+- 9 companion-created M3 themes promoted to bundled defaults, Prodigy as first-install identity
+- FullScreenPicker GPU fix (removed per-delegate MultiEffect shadows)
+
+### What Worked
+- Code review loop (Claude + Codex) caught 3 real issues in phase 14: false M3 pairing (0.3 opacity overlays), inaccurate state matrix doc, imprecise switch documentation
+- Phase 14.1 context discussion correctly identified this as a promotion/migration phase, not a theme exploration phase — reviewer caught the framing issue
+- Inserting phase 14.1 for theme migration was clean — decimal numbering, context capture, plan, execute in one session
+- Night comfort guardrail (HSL saturation clamp) is simpler and more effective than HCT chroma math — Qt-native, no external dependencies
+
+### What Was Inefficient
+- SCP'd prodigy theme from Pi had stale color values — had to re-pull after companion app resent. Should have verified theme YAML freshness before committing
+- User theme `~/.openauto/themes/default/` on Pi was masking the bundled default — not caught until Pi verification. Plan should have identified all potential user theme overrides upfront
+- FullScreenPicker freeze with 9+ themes was a surprise GPU limitation — MultiEffect shadows on every ListView delegate overwhelmed Pi 4 GPU. Should test picker with realistic item counts during development
+- Three rounds of plan revision for 14.1 (verification gap, Pi deployment, assertion accuracy) — reviewer found real issues each time but the initial plan was too optimistic about verification
+
+### Patterns Established
+- Night comfort guardrail via HSL saturation clamp inside activeColor() — applies to tint blends automatically
+- State matrix document (`docs/state-matrix.md`) as canonical reference for control→token assignments
+- Companion-created themes as bundled defaults — M3 color math from the companion app, not hand-crafted YAML
+- FullScreenPicker delegates use flat backgrounds (no MultiEffect shadows) for GPU safety at scale
+
+### Key Lessons
+1. User theme override masking is a real deployment issue — bundled themes with the same ID as user themes are invisible. Cleanup must be part of the deployment verification plan.
+2. Per-delegate GPU effects (MultiEffect, layer.enabled) don't scale on Pi 4 — 4 items worked fine, 9 froze. Test with realistic list sizes.
+3. Theme YAML freshness matters — SCP captures a snapshot, but companion app palettes can change between SCP and deployment. Verify colors match expectations.
+4. Code review as a workflow step continues to catch real issues — the M3 pairing fix (solid fills vs 0.3 opacity) was a genuine contrast/accessibility improvement.
+
+---
+
 ## Milestone: v0.6.1 — Widget Framework & Layout Refinement
 
 **Shipped:** 2026-03-15

@@ -1,5 +1,14 @@
 # Milestones
 
+## v0.6.2 Theme Expression & Wallpaper Scaling (Shipped: 2026-03-16)
+
+**Phases completed:** 5 phases, 6 plans, 0 tasks
+
+**Key accomplishments:**
+- (none recorded)
+
+---
+
 ## v0.6 Widget Framework & Layout Refinement (Shipped: 2026-03-15)
 
 **Phases completed:** 5 phases, 10 plans, 0 tasks
