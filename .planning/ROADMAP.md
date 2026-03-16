@@ -129,9 +129,9 @@ Plans:
 
 Plans:
 - [x] 16-01-PLAN.md — Phase 15 hardware verification gate
-- [ ] 16-02-PLAN.md — ProxyManager routing rewrite with flush/recreate, exemptions, and cleanup honesty
-- [ ] 16-03-PLAN.md — Installer redsocks system user creation
-- [ ] 16-04-PLAN.md — Routing correctness and idempotency tests
+- [x] 16-02-PLAN.md — ProxyManager routing rewrite with flush/recreate, exemptions, and cleanup honesty
+- [x] 16-03-PLAN.md — Installer redsocks system user creation
+- [x] 16-04-PLAN.md — Routing correctness and idempotency tests
 
 ### Phase 17: Status Reporting Hardening
 **Goal**: Proxy status reflects actual local pipeline health, not optimistic assumptions
@@ -144,8 +144,8 @@ Plans:
 **Plans**: 2 plans
 
 Plans:
-- [ ] 17-01-PLAN.md — Verification logic, lock-guarded operations, and redesigned health loop
-- [ ] 17-02-PLAN.md — Status reporting verification and health check tests
+- [x] 17-01-PLAN.md — Verification logic, lock-guarded operations, and redesigned health loop
+- [x] 17-02-PLAN.md — Status reporting verification and health check tests
 
 ### Phase 18: Hardware Validation
 **Goal**: End-to-end proof that representative TCP traffic traverses the companion SOCKS bridge on real Pi hardware
@@ -154,10 +154,10 @@ Plans:
 **Success Criteria** (what must be TRUE):
   1. On the Pi with a connected phone, `set_proxy_route(active=true)` succeeds and `get_proxy_status` reports `ACTIVE`
   2. Representative outbound TCP traffic (e.g., curl to an external host) is observed traversing the companion SOCKS bridge, not egressing directly via eth0/wlan0
-**Plans**: TBD
+**Plans**: 1 plan
 
 Plans:
-- [ ] 18-01: TBD
+- [ ] 18-01-PLAN.md — Four-point proof chain: hardware validation with negative baseline + HTTP/HTTPS positive cases
 
 ## Progress
 
@@ -168,4 +168,4 @@ Plans:
 | 15. Privilege Model & IPC Lockdown | 2/2 | Complete    | 2026-03-16 |
 | 16. Routing Correctness & Idempotency | 4/4 | Complete    | 2026-03-16 |
 | 17. Status Reporting Hardening | 2/2 | Complete    | 2026-03-16 |
-| 18. Hardware Validation | 0/? | Not started | - |
+| 18. Hardware Validation | 0/1 | Not started | - |
