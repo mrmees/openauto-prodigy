@@ -2,15 +2,15 @@
 gsd_state_version: 1.0
 milestone: v0.6
 milestone_name: milestone
-status: in_progress
-stopped_at: Completed 16-01 hardware verification gate
-last_updated: "2026-03-16T03:20:20.328Z"
+status: completed
+stopped_at: Completed 16-03 redsocks system user
+last_updated: "2026-03-16T03:23:45.512Z"
 last_activity: 2026-03-16 — Completed 16-01 hardware verification gate
 progress:
   total_phases: 4
   completed_phases: 1
   total_plans: 6
-  completed_plans: 3
+  completed_plans: 4
   percent: 100
 ---
 
@@ -26,11 +26,11 @@ See: .planning/PROJECT.md (updated 2026-03-16)
 ## Current Position
 
 Phase: 16 (2 of 4 in v0.6.3)
-Plan: 1 of 4 in current phase (done)
-Status: 16-01 complete, ready for 16-02
-Last activity: 2026-03-16 — Completed 16-01 hardware verification gate
+Plan: 3 of 4 in current phase (done)
+Status: 16-03 complete, ready for 16-04
+Last activity: 2026-03-16 — Completed 16-03 redsocks system user
 
-Progress: [██████████] 100%
+Progress: [█████████░] 94%
 
 ## Performance Metrics
 
@@ -45,6 +45,7 @@ Progress: [██████████] 100%
 |-------|-------|-------|----------|
 | 15 | 2 | 4 min | 2 min |
 | 16 | 1 | checkpoint | - |
+| Phase 16 P03 | 1 min | 2 tasks | 2 files |
 
 ## Accumulated Context
 
@@ -61,6 +62,7 @@ Progress: [██████████] 100%
 - [15-02]: Duplicate migration logic in both installers rather than shared library -- standalone scripts, template is the shared truth
 - [15-02]: Inline heredoc fallback kept for template-not-found edge case
 - [16-01]: ProtectHome=yes removed from service template — blocks /home access needed by daemon
+- [Phase 16]: Identical redsocks user creation block in both installers per Phase 15 duplication decision
 
 ### Blockers/Concerns
 
@@ -68,6 +70,6 @@ None yet.
 
 ## Session Continuity
 
-Last session: 2026-03-16T03:19:40Z
-Stopped at: Completed 16-01 hardware verification gate
-Resume file: .planning/phases/16-routing-correctness-and-idempotency/16-02-PLAN.md
+Last session: 2026-03-16T03:23:45.511Z
+Stopped at: Completed 16-03 redsocks system user
+Resume file: None

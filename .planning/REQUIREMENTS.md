@@ -13,7 +13,7 @@
 
 ## Proxy Routing Correctness (PX)
 
-- [ ] **PX-01**: `set_proxy_route(active=true)` succeeds without privilege errors on real hardware
+- [x] **PX-01**: `set_proxy_route(active=true)` succeeds without privilege errors on real hardware
 - [ ] **PX-02**: The expected redirect rules are installed for the transparent proxy path
 - [ ] **PX-03**: The upstream SOCKS destination is exempt from redirect
 - [ ] **PX-04**: Redsocks/control-plane traffic is exempt from redirect so the proxy path does not self-intercept or loop
@@ -56,7 +56,7 @@
 | PR-02 | Phase 15 | Complete |
 | PR-03 | Phase 15 | Complete |
 | PR-04 | Phase 15 | Complete |
-| PX-01 | Phase 16 | Pending |
+| PX-01 | Phase 16 | Complete |
 | PX-02 | Phase 16 | Pending |
 | PX-03 | Phase 16 | Pending |
 | PX-04 | Phase 16 | Pending |
