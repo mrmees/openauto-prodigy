@@ -118,7 +118,7 @@ See .planning/milestones/v0.6.3-ROADMAP.md for archived details.
   1. A widget placement stores key-value config that is independent from other placements of the same widget
   2. User can open a config sheet from a gear icon in edit mode and change settings
   3. Widget config survives app restart and grid remap without data loss
-**Plans**: TBD
+**Plans**: 2 plans
 
 Plans:
 - [ ] 19-01: Per-instance config storage and YAML persistence
