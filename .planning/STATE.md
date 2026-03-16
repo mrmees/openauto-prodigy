@@ -3,15 +3,15 @@ gsd_state_version: 1.0
 milestone: v0.6
 milestone_name: milestone
 status: completed
-stopped_at: Completed 16-02-PLAN.md
-last_updated: "2026-03-16T03:25:23.250Z"
-last_activity: 2026-03-16 — Completed 16-03 redsocks system user
+stopped_at: Completed 16-04-PLAN.md
+last_updated: "2026-03-16T03:45:46.522Z"
+last_activity: 2026-03-16 — Completed 16-04 test coverage
 progress:
   total_phases: 4
-  completed_phases: 1
+  completed_phases: 2
   total_plans: 6
-  completed_plans: 5
-  percent: 94
+  completed_plans: 6
+  percent: 100
 ---
 
 # Project State
@@ -25,12 +25,12 @@ See: .planning/PROJECT.md (updated 2026-03-16)
 
 ## Current Position
 
-Phase: 16 (2 of 4 in v0.6.3)
-Plan: 3 of 4 in current phase (done)
-Status: 16-03 complete, ready for 16-04
-Last activity: 2026-03-16 — Completed 16-03 redsocks system user
+Phase: 16 (2 of 4 in v0.6.3) -- COMPLETE
+Plan: 4 of 4 in current phase (done)
+Status: Phase 16 complete, all 4 plans done
+Last activity: 2026-03-16 — Completed 16-04 test coverage
 
-Progress: [█████████░] 94%
+Progress: [██████████] 100%
 
 ## Performance Metrics
 
@@ -47,6 +47,7 @@ Progress: [█████████░] 94%
 | 16 | 1 | checkpoint | - |
 | Phase 16 P03 | 1 min | 2 tasks | 2 files |
 | Phase 16 P02 | 2min | 2 tasks | 2 files |
+| Phase 16 P04 | 4min | 2 tasks | 2 files |
 
 ## Accumulated Context
 
@@ -67,6 +68,7 @@ Progress: [█████████░] 94%
 - [Phase 16]: Flush/recreate iptables model always rebuilds chain (never check-and-reuse)
 - [Phase 16]: disable() sets FAILED on any cleanup step failure, DISABLED only on full success
 - [Phase 16]: Removed port-based exemptions, replaced by owner-based + destination-based exemptions
+- [Phase 16]: Flush-aware mock helper as reusable pattern for all tests touching iptables while-loop delete
 
 ### Blockers/Concerns
 
@@ -74,6 +76,6 @@ None yet.
 
 ## Session Continuity
 
-Last session: 2026-03-16T03:25:23.248Z
-Stopped at: Completed 16-02-PLAN.md
+Last session: 2026-03-16T03:45:46.520Z
+Stopped at: Completed 16-04-PLAN.md
 Resume file: None

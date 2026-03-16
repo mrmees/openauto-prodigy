@@ -34,10 +34,10 @@
 
 ## Testing (TS)
 
-- [ ] **TS-01**: Tests cover permission-denied proxy-route setup failures
-- [ ] **TS-02**: Tests cover pre-existing chains/jumps and repeated enable without duplication
-- [ ] **TS-03**: Tests cover upstream destination exemption and redsocks/control-plane self-exemption
-- [ ] **TS-04**: Tests cover cleanup failure truthfulness
+- [x] **TS-01**: Tests cover permission-denied proxy-route setup failures
+- [x] **TS-02**: Tests cover pre-existing chains/jumps and repeated enable without duplication
+- [x] **TS-03**: Tests cover upstream destination exemption and redsocks/control-plane self-exemption
+- [x] **TS-04**: Tests cover cleanup failure truthfulness
 - [x] **TS-05**: Tests cover restricted IPC permissions while preserving access for the intended client
 
 ## Out of Scope
@@ -68,10 +68,10 @@
 | SR-01 | Phase 17 | Pending |
 | SR-02 | Phase 17 | Pending |
 | SR-03 | Phase 17 | Pending |
-| TS-01 | Phase 16 | Pending |
-| TS-02 | Phase 16 | Pending |
-| TS-03 | Phase 16 | Pending |
-| TS-04 | Phase 16 | Pending |
+| TS-01 | Phase 16 | Complete |
+| TS-02 | Phase 16 | Complete |
+| TS-03 | Phase 16 | Complete |
+| TS-04 | Phase 16 | Complete |
 | TS-05 | Phase 15 | Complete |
 
 **Coverage:**

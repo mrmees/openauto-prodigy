@@ -93,7 +93,7 @@ See .planning/milestones/v0.6.2-ROADMAP.md for archived details.
 ### Phases
 
 - [x] **Phase 15: Privilege Model & IPC Lockdown** - System daemon runs privileged with restricted IPC socket (completed 2026-03-16)
-- [ ] **Phase 16: Routing Correctness & Idempotency** - Proxy rules apply cleanly with self-exemption and no duplication
+- [x] **Phase 16: Routing Correctness & Idempotency** - Proxy rules apply cleanly with self-exemption and no duplication (completed 2026-03-16)
 - [ ] **Phase 17: Status Reporting Hardening** - Proxy state reports reflect actual pipeline health
 - [ ] **Phase 18: Hardware Validation** - End-to-end proxy routing verified on real Pi hardware
 
@@ -165,6 +165,6 @@ Plans:
 | Phase | Plans Complete | Status | Completed |
 |-------|----------------|--------|-----------|
 | 15. Privilege Model & IPC Lockdown | 2/2 | Complete    | 2026-03-16 |
-| 16. Routing Correctness & Idempotency | 3/4 | In Progress|  |
+| 16. Routing Correctness & Idempotency | 4/4 | Complete   | 2026-03-16 |
 | 17. Status Reporting Hardening | 0/? | Not started | - |
 | 18. Hardware Validation | 0/? | Not started | - |
