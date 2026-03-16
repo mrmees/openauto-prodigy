@@ -51,10 +51,8 @@ Extend the widget contract so any widget can declare typed configuration options
 - YAML serialization format for per-instance config within grid placements
 - Bottom sheet QML implementation details (animation, sizing, scroll behavior)
 
-### Not At Claude's Discretion (cont.)
-- configSchema is populated statically at descriptor registration in main.cpp (not runtime-generated). Follows the established pattern for all other descriptor fields.
-
 ### Not At Claude's Discretion
+- configSchema is populated statically at descriptor registration in main.cpp (not runtime-generated). Follows the established pattern for all other descriptor fields.
 - Schema-driven host-rendered config (not per-widget custom editors)
 - Gear icon only in edit mode, only for widgets with configSchema
 - Bottom sheet (not dialog, not full-screen)
