@@ -20,17 +20,17 @@ End-to-end proof that representative TCP traffic traverses the companion SOCKS b
   - **Matt:** confirm visible client-side behavior if needed
 - Non-autonomous checkpoint — Matt must confirm physical setup is ready before Claude runs SSH checks
 
-### Traffic verification — three-layer proof chain
-Every proof point requires evidence from all three layers:
+### Traffic verification — four-point proof chain
+Each positive-case request requires all four proof points:
 1. **Pi-side redirect proof (loopback):** `tcpdump -i lo port {redirect_port}` — traffic to external destinations appears on loopback at the redirect port, proving iptables REDIRECT is feeding traffic into redsocks
 2. **Pi-side bypass proof (outbound interface):** `tcpdump -i {active_outbound_interface}` filtered for test destination — no direct connection from Pi to test destination when proxy is enabled. Use active outbound interface (wlan0/eth0 as applicable), don't hardcode wlan0
-3. **Companion-side receipt:** Check companion app logs (logcat or app-level logging) for SOCKS connection/forwarding events. **Must first verify what the companion actually logs** — if companion-side observability is insufficient, note it as a gap rather than fabricating evidence
+3. **Companion-side receipt:** Check companion app logs (logcat or app-level logging) for SOCKS connection/forwarding events. **Must first verify what the companion actually logs** — if companion-side observability is insufficient, Phase 18 cannot PASS (see companion evidence source below)
 4. **Request success:** curl returns expected response content
 
 ### Companion evidence source
 - First inspect existing companion logs / logcat while a test SOCKS request runs
 - If companion already emits a clear connection/forwarding signal, use it
-- If not, document that companion-side observability is insufficient for end-to-end proof — do not pretend evidence exists
+- If not: Phase 18 cannot PASS. Document the gap, file a companion app enhancement for SOCKS proxy logging, and block Phase 18 completion until observability exists. Do not pretend evidence exists or downgrade the proof standard.
 
 ### Test targets (explicit, reproducible)
 - **HTTP:** `http://httpbin.org/ip` — simple response, easy to correlate
@@ -39,7 +39,7 @@ Every proof point requires evidence from all three layers:
 
 ### Pass/fail criteria
 - **Negative case (proxy disabled):** One HTTP request (`httpbin.org/ip`) — verify it does NOT show companion-side traversal. Establishes baseline.
-- **Positive case (proxy enabled):** One HTTP request + one HTTPS request, each with full 3-layer evidence chain (Pi redirect + companion receipt + request success)
+- **Positive case (proxy enabled):** One HTTP request + one HTTPS request, each with full four-point proof chain (Pi redirect + Pi bypass + companion receipt + request success)
 - **Overall verdict:** PASS only if all required proof points succeed. FAIL if any proof point fails.
 - This is a correctness proof, not resilience or soak testing
 
@@ -51,7 +51,7 @@ Every proof point requires evidence from all three layers:
 
 ### Validation artifact
 - Capture SSH-side commands and output to timestamped log on Pi: `/tmp/phase18-validation-YYYYMMDD-HHMMSS.log`
-- Copy to repo: `docs/validation/2026-03-16-phase18-hardware-validation.log`
+- Copy to repo with matching timestamp: `docs/validation/phase18-hardware-validation-YYYYMMDD-HHMMSS.log` (reruns produce distinct files, not overwrites)
 - Repo copy is the canonical artifact, referenced from VERIFICATION.md
 - Chat summary of verdict, structured report deferred unless this becomes a repeatable regression gate
 
@@ -63,7 +63,7 @@ Every proof point requires evidence from all three layers:
 - Validation log format and level of detail
 
 ### Not At Claude's Discretion
-- Three-layer proof chain is mandatory (Pi redirect + companion receipt + request success)
+- Four-point proof chain is mandatory (Pi redirect + Pi bypass + companion receipt + request success)
 - Negative case must be run before positive case
 - Both HTTP and HTTPS in positive case
 - Continue on failure (don't stop early)
