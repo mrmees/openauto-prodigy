@@ -1,5 +1,44 @@
 # Retrospective
 
+## Milestone: v0.6.3 — Proxy Routing Fix
+
+**Shipped:** 2026-03-16
+**Phases:** 4 (15-18) | **Plans:** 9 | **Tasks:** 16 | 1 day
+
+### What Was Built
+- Root daemon with restricted IPC socket (0660, openauto group, SO_PEERCRED peer credential validation)
+- Idempotent iptables routing with flush/recreate model, owner-based + destination-based self-exemption via dedicated redsocks user
+- Truthful ACTIVE/FAILED/DEGRADED status with verified pipeline health (TCP connect + iptables + upstream check)
+- Startup self-heal cleans all stale proxy state before accepting IPC connections
+- Both installers upgraded with consistent migration (group creation, stale rule cleanup, service template rendering)
+- End-to-end hardware validation: transparent proxy routing proven on Pi with companion SOCKS bridge (origin IP changed from Pi to phone cellular)
+
+### What Worked
+- Phase ordering (privilege → routing → status → hardware) prevented debugging cascading failures — each phase built on verified foundations
+- Hardware checkpoints (Phase 16-01 and Phase 18) caught real deployment issues: service needed restart after code deploy, IPv6-mapped addresses from Qt, redsocks config permissions
+- Code review (Codex) caught 6 findings on the Phase 18 plan alone: negative baseline had no companion evidence, stale logcat buffer, ADB location mismatch, grep -oP on Trixie, DNS resolution mismatch for tcpdump, wildcard artifact matching
+- Clean revalidation after bugfixes produced honest PASS — no manual intervention in the final run
+
+### What Was Inefficient
+- Three bugs discovered during hardware validation that should have been caught by unit tests: eth0 skip_interfaces bypass, redsocks config 0600 permissions, IPv6-mapped address prefix. All were in the IPC-to-daemon boundary layer that had no integration-level test coverage.
+- Phase 18 initial validation required manual redsocks/iptables setup mid-session — the validation log shows manual intervention, making the first PASS conditional. Had to rerun on clean HEAD to get an honest artifact.
+- The `skip_interfaces` default was fixed in proxy_manager.py but not in the IPC validator (openauto_system.py) — two places defining the same default is a latent sync bug
+- Qt `peerAddress()` returning IPv6-mapped addresses (`::ffff:x.x.x.x`) was a surprise — no documentation or prior experience flagged this
+
+### Patterns Established
+- Flush/recreate model for iptables (never check-and-reuse) — deterministic state on every enable
+- TCP connect as listener truth gate (not PID check) — only proves the service is actually accepting connections
+- `_enable_locked`/`_disable_locked` pattern avoids self-deadlock on enable→disable rollback
+- Four-point proof chain for hardware validation: loopback redirect, outbound bypass, companion receipt, request success
+
+### Key Lessons
+1. Two places defining the same default (`["lo", "eth0"]` in both proxy_manager.py and openauto_system.py) is a guaranteed desync bug. Use a single constant.
+2. Qt dual-stack sockets return IPv6-mapped addresses — any code writing IP addresses to config files needs to handle `::ffff:` prefix stripping.
+3. Hardware validation that requires mid-session bugfixes produces dishonest artifacts — always rerun on clean HEAD for the canonical evidence.
+4. `eth0` in skip_interfaces seems harmless until you realize the default route uses eth0 — then it exempts ALL internet traffic from redirect. Network exemption semantics must be thought through against actual routing tables.
+
+---
+
 ## Milestone: v0.6.2 — Theme Expression & Wallpaper Scaling
 
 **Shipped:** 2026-03-16

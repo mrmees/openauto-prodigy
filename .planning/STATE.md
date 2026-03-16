@@ -4,7 +4,7 @@ milestone: v0.6
 milestone_name: milestone
 status: completed
 stopped_at: Completed 18-01-PLAN.md
-last_updated: "2026-03-16T14:52:37.636Z"
+last_updated: "2026-03-16T19:30:41.929Z"
 last_activity: 2026-03-16 — Completed 18-01 hardware validation (PASS, 10/10 proof points)
 progress:
   total_phases: 4
@@ -21,7 +21,7 @@ progress:
 See: .planning/PROJECT.md (updated 2026-03-16)
 
 **Core value:** A person with a Raspberry Pi 4 and a touchscreen can install this, pair their phone, and get a reliable wireless Android Auto experience -- every time, without SSH.
-**Current focus:** v0.6.3 milestone COMPLETE
+**Current focus:** v0.6.3 shipped — next milestone TBD
 
 ## Current Position
 

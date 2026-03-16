@@ -103,15 +103,18 @@ A person with a Raspberry Pi 4 and a touchscreen can install this, pair their ph
 - ✓ State matrix document as single source of truth for control token assignments — v0.6.2
 - ✓ FullScreenPicker GPU performance fix (removed per-delegate shadows) — v0.6.2
 - ✓ 87 unit tests covering core systems (all passing) — v0.6.2
+- ✓ System service privilege model (root daemon, 0660 socket, openauto group, SO_PEERCRED auth) — v0.6.3
+- ✓ Transparent proxy routing on real hardware (iptables, redsocks, owner+destination self-exemption) — v0.6.3
+- ✓ Proxy state reporting is truthful (ACTIVE requires verified pipeline, FAILED/DEGRADED with error codes) — v0.6.3
+- ✓ Proxy rule application is idempotent (flush/recreate model, startup self-heal) — v0.6.3
+- ✓ End-to-end hardware validation of companion SOCKS proxy traversal — v0.6.3
+- ✓ 140 Python + 87 C++ tests covering core systems (all passing) — v0.6.3
 
 ### Active
 
 <!-- Current scope. Building toward these. -->
 
-- [ ] System service privilege model fixed (root daemon with restricted IPC socket)
-- [ ] Transparent proxy routing works on real hardware (iptables, redsocks, self-exemption)
-- [ ] Proxy state reporting is truthful (ACTIVE only when actually working)
-- [ ] Proxy rule application is idempotent (no duplicate rules on repeated enable/disable)
+(None — next milestone TBD)
 
 ### Backlog
 
@@ -143,7 +146,7 @@ A person with a Raspberry Pi 4 and a touchscreen can install this, pair their ph
 
 OpenAuto Pro (BlueWave Studio) was a commercial Pi-based AA head unit that went defunct. This project is a clean-room rebuild — no OAP code, no aasdk dependency. The protocol library (`open-android-auto`) is maintained as a separate community resource.
 
-v0.4 shipped logging and theming. v0.4.1 shipped 10-band graphic EQ with per-stream profiles. v0.4.2 shipped service hardening — WiFi AP, Bluetooth SDP, systemd ordering, and clean shutdown all work reliably without manual intervention. v0.4.3 shipped full UI refresh — automotive-minimal styling, 6-category settings, EQ dual-access, shell polish. v0.4.4 shipped resolution independence — unclamped dual-axis UiMetrics, full QML tokenization (zero hardcoded pixels), container-derived grid layouts, runtime auto-detection, and --geometry validation tooling. v0.4.5 shipped navbar rework — zone-based evdev touch routing, 3-control navbar with multi-gesture actions and edge positioning, navbar-aware AA viewport margins, gesture overlay touch fix, and dead UI cleanup (TopBar, NavStrip, sidebar removed). v0.5.0 shipped protocol compliance — proto submodule v1.0, navigation turn events, voice session commands, BT auth exchange, haptic feedback, retracted dead code cleanup after v1.2 proto verification, library renamed to prodigy-oaa-protocol. v0.5.1 shipped DPI sizing & UI polish — EDID-based DPI scaling, scale stepper, clock readability, full 34-role M3 color system, companion theme import, AA rendering fix, navbar status bar cleanup, M3 button components with visual depth effects. v0.5.2 shipped widget system & UI polish — 3-pane home screen with launcher dock and built-in widgets, settings reorganized into 9 categories with touch normalization and automotive-readable font sizes. v0.5.3 shipped widget grid & content widgets — Android-style freeform grid with drag/resize/multi-page, AA navigation turn-by-turn widget, unified now playing widget with AA/BT source priority. v0.6 shipped architecture formalization — typed provider interfaces, core-owned services, legacy Configuration removal, SettingsInputBoundary for settings touch input, 82 unit tests. v0.6.1 shipped widget framework refinement — WidgetDescriptor with size constraints and categories, DPI-based grid sizing with auto-snap, launcher dock replaced by singleton widgets, formalized widget contract (span-based breakpoints, context injection, ActionRegistry egress), all 6 widgets rewritten, developer guide and 15 ADRs, 85 unit tests all passing. v0.6.2 shipped theme expression & wallpaper scaling — wallpaper memory/render hardening, companion reconnect fix, theme persistence, M3 color audit with night comfort guardrail, 9 companion-created themes promoted to bundled defaults with Prodigy as first-install identity, FullScreenPicker GPU fix. Codebase is ~56K LOC C++/QML.
+v0.4 shipped logging and theming. v0.4.1 shipped 10-band graphic EQ with per-stream profiles. v0.4.2 shipped service hardening — WiFi AP, Bluetooth SDP, systemd ordering, and clean shutdown all work reliably without manual intervention. v0.4.3 shipped full UI refresh — automotive-minimal styling, 6-category settings, EQ dual-access, shell polish. v0.4.4 shipped resolution independence — unclamped dual-axis UiMetrics, full QML tokenization (zero hardcoded pixels), container-derived grid layouts, runtime auto-detection, and --geometry validation tooling. v0.4.5 shipped navbar rework — zone-based evdev touch routing, 3-control navbar with multi-gesture actions and edge positioning, navbar-aware AA viewport margins, gesture overlay touch fix, and dead UI cleanup (TopBar, NavStrip, sidebar removed). v0.5.0 shipped protocol compliance — proto submodule v1.0, navigation turn events, voice session commands, BT auth exchange, haptic feedback, retracted dead code cleanup after v1.2 proto verification, library renamed to prodigy-oaa-protocol. v0.5.1 shipped DPI sizing & UI polish — EDID-based DPI scaling, scale stepper, clock readability, full 34-role M3 color system, companion theme import, AA rendering fix, navbar status bar cleanup, M3 button components with visual depth effects. v0.5.2 shipped widget system & UI polish — 3-pane home screen with launcher dock and built-in widgets, settings reorganized into 9 categories with touch normalization and automotive-readable font sizes. v0.5.3 shipped widget grid & content widgets — Android-style freeform grid with drag/resize/multi-page, AA navigation turn-by-turn widget, unified now playing widget with AA/BT source priority. v0.6 shipped architecture formalization — typed provider interfaces, core-owned services, legacy Configuration removal, SettingsInputBoundary for settings touch input, 82 unit tests. v0.6.1 shipped widget framework refinement — WidgetDescriptor with size constraints and categories, DPI-based grid sizing with auto-snap, launcher dock replaced by singleton widgets, formalized widget contract (span-based breakpoints, context injection, ActionRegistry egress), all 6 widgets rewritten, developer guide and 15 ADRs, 85 unit tests all passing. v0.6.2 shipped theme expression & wallpaper scaling — wallpaper memory/render hardening, companion reconnect fix, theme persistence, M3 color audit with night comfort guardrail, 9 companion-created themes promoted to bundled defaults with Prodigy as first-install identity, FullScreenPicker GPU fix. v0.6.3 shipped proxy routing fix — root daemon with restricted IPC socket, idempotent iptables routing with self-exemption via dedicated redsocks user, truthful ACTIVE/FAILED/DEGRADED status reporting, startup self-heal, end-to-end hardware validation proving companion SOCKS bridge traversal. Codebase is ~56K LOC C++/QML + ~2K LOC Python system service.
 
 ## Constraints
 
@@ -221,18 +224,16 @@ v0.4 shipped logging and theming. v0.4.1 shipped 10-band graphic EQ with per-str
 | Prodigy theme as default ID | App identity theme, loads on fresh install | ✓ Good |
 | FullScreenPicker no delegate shadows | Pi 4 GPU freezes with 9+ MultiEffect layers | ✓ Good |
 | State matrix doc as color truth | Single source for control→token assignments, prevents audit drift | ✓ Good |
+| Root daemon (not capabilities-only) | iptables + service restarts + rfkill too broad for capabilities without splitting | ✓ Good |
+| Dedicated redsocks user for owner-based exemption | Root exemption punches giant hole in redirect policy | ✓ Good |
+| Flush/recreate iptables model (not check-and-reuse) | Deterministic state, parameters may change, stale rules must not persist | ✓ Good |
+| TCP connect as listener truth gate (not PID) | PID can exist without listener — only TCP connect proves redsocks is ready | ✓ Good |
+| Local failure = immediate FAILED (no threshold) | Thresholds make sense for noisy remote probes, not local listener checks | ✓ Good |
+| IPv6-mapped address stripping in IPC validator | Qt dual-stack peerAddress() returns ::ffff: prefix that breaks redsocks config | ✓ Good |
+| skip_interfaces ["lo"] only (not ["lo", "eth0"]) | eth0 is default route — exempting it bypasses all REDIRECT rules | ✓ Good |
 
 ---
-## Current Milestone: v0.6.3 Proxy Routing Fix
-
-**Goal:** Fix the system service privilege model, IPC security, and transparent proxy routing so `set_proxy_route` actually works on hardware without privilege errors or self-interception.
-
-**Target features:**
-- System daemon runs with sufficient privilege for iptables/service management
-- IPC socket locked down (not world-writable) when daemon is privileged
-- Proxy routing applies clean iptables rules with self-exemption
-- Idempotent enable/disable with truthful state reporting
-- Tests for permission, idempotency, and self-interception cases
+*Last updated: 2026-03-16 after v0.6.3 milestone*
 
 ---
 *Last updated: 2026-03-16 after v0.6.3 milestone start*

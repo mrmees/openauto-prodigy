@@ -1,5 +1,29 @@
 # Milestones
 
+## v0.6.3 Proxy Routing Fix (Shipped: 2026-03-16)
+
+**Delivered:** Fixed system service privilege model, IPC security, transparent proxy routing, and status reporting so `set_proxy_route` works end-to-end on real hardware with the companion SOCKS bridge.
+
+**Phases completed:** 4 phases, 9 plans, 16 tasks
+
+**Key accomplishments:**
+- Root daemon with restricted IPC socket (0660, openauto group, SO_PEERCRED peer credential validation)
+- Idempotent iptables routing with flush/recreate model, owner-based + destination-based self-exemption via dedicated redsocks user
+- Truthful status reporting — ACTIVE requires verified local pipeline health (TCP connect + iptables check), FAILED/DEGRADED with prioritized error codes
+- Startup self-heal cleans all stale proxy state before accepting IPC connections
+- End-to-end hardware validation: transparent proxy proven on Pi with real companion SOCKS bridge (origin IP changed from Pi to phone cellular)
+- Both installers upgraded with consistent migration path (group creation, stale rule cleanup, service template rendering)
+- IPv6-mapped address fix for Qt dual-stack peerAddress() breaking redsocks config
+
+**Stats:** 66 commits, 50 files changed (+7,318/-310) | Timeline: 1 day (2026-03-15 → 2026-03-16)
+
+**Bugs found during hardware validation:**
+- eth0 in skip_interfaces default bypassed all iptables REDIRECT (default route uses eth0)
+- redsocks config written 0600 but redsocks user needs read access (fixed to 0640 + chown)
+- Qt peerAddress() returns `::ffff:10.0.0.31` — colons broke redsocks config parser
+
+---
+
 ## v0.6.2 Theme Expression & Wallpaper Scaling (Shipped: 2026-03-16)
 
 **Phases completed:** 5 phases, 6 plans, 0 tasks
