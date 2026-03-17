@@ -162,4 +162,4 @@ Phases execute in numeric order: 19 -> 20 -> 21
 |-------|----------------|--------|-----------|
 | 19. Widget Instance Config | 2/2 | Complete    | 2026-03-17 |
 | 20. Simple Widgets | 2/2 | Complete    | 2026-03-17 |
-| 21. Clock Styles & Weather | 2/2 | Complete   | 2026-03-17 |
+| 21. Clock Styles & Weather | 2/2 | Complete    | 2026-03-17 |
