@@ -44,6 +44,7 @@ add_library(openauto-core STATIC
     core/services/ActionRegistry.cpp
     core/services/NotificationService.cpp
     core/services/CompanionListenerService.cpp
+    core/services/WeatherService.cpp
     core/services/SystemServiceClient.cpp
     core/services/BluetoothManager.cpp
     core/services/EqualizerService.cpp

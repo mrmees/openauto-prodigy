@@ -141,6 +141,8 @@ oap_add_test(test_widget_contract_qml
 oap_add_test(test_widget_grid_remap SOURCES test_widget_grid_remap.cpp)
 oap_add_test(test_widget_picker_model SOURCES test_widget_picker_model.cpp)
 
+oap_add_test(test_weather_service SOURCES test_weather_service.cpp)
+
 # --- Media bridge tests ---
 
 oap_add_test(test_android_auto_runtime_bridge SOURCES test_android_auto_runtime_bridge.cpp)
