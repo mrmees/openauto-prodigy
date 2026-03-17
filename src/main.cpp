@@ -491,8 +491,13 @@ int main(int argc, char *argv[])
         clockDesc.maxCols = 6; clockDesc.maxRows = 4;
         clockDesc.defaultCols = 2; clockDesc.defaultRows = 2;
         clockDesc.qmlComponent = QUrl("qrc:/OpenAutoProdigy/ClockWidget.qml");
-        clockDesc.defaultConfig = {{"format", "24h"}};
+        clockDesc.defaultConfig = {{"format", "24h"}, {"style", "digital"}};
         clockDesc.configSchema = {
+            oap::ConfigSchemaField{
+                "style", "Clock Style", oap::ConfigFieldType::Enum,
+                {"Digital", "Analog", "Minimal"}, {"digital", "analog", "minimal"},
+                0, 0, 0
+            },
             oap::ConfigSchemaField{
                 "format", "Time Format", oap::ConfigFieldType::Enum,
                 {"12-hour", "24-hour"}, {"12h", "24h"},
