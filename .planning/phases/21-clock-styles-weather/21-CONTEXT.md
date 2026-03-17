@@ -62,7 +62,6 @@ Enhance the existing clock widget with multiple visual styles selectable per ins
 - Open-Meteo API endpoint selection and response parsing
 - GPS coordinate rounding threshold for cache stability
 - WeatherData object lifecycle and cleanup when no widgets reference a location
-- How city name geocoding works (Open-Meteo has a geocoding API)
 
 ### Not At Claude's Discretion
 - Three clock styles exactly: digital, analog, minimal (not flip clock, binary, word)
@@ -142,7 +141,7 @@ Enhance the existing clock widget with multiple visual styles selectable per ins
 <specifics>
 ## Specific Ideas
 
-- Weather widget architecture: WeatherService owns QNetworkAccessManager, per-location cache keyed by stable location ID. WeatherData is a QObject per location with Q_PROPERTYs (temp, condition, humidity, wind, location, loading, error, lastUpdated). Widget calls `WeatherService.weatherForRequest({lat, lon})` to get/create a shared WeatherData object. Multiple widgets with same effective location share one WeatherData.
+- Weather widget architecture: WeatherService owns QNetworkAccessManager, per-location cache keyed by rounded lat/lon. WeatherData is a QObject per location with Q_PROPERTYs for raw metric values (temp_c, humidity, wind_kph, condition code, location name, loading, error, lastUpdated). Multiple widgets sharing the same GPS location share one WeatherData object. **Unit conversion is widget-side** — WeatherData stores canonical metric units, each widget reads its per-instance unit config and converts for display (e.g., `weatherData.temp_c * 9/5 + 32` for °F). **Refresh cadence is service-owned** — WeatherService uses the shortest requested interval among active subscribers for a given location (or a single internal TTL like the shortest config option, 5min). Widgets don't own fetch timing; they bind to WeatherData properties which update when the service fetches. Per-instance refresh config controls how often the widget considers data "stale" for display purposes (e.g., showing a staleness indicator), not when the service actually fetches.
 - GPS coordinate rounding: Use a movement threshold (e.g., round to ~0.01° ≈ 1km) to prevent tiny GPS changes from exploding the cache with unique location keys.
 - Analog clock should feel like a clean, modern clock face — not overly ornate or skeuomorphic. Think car gauge aesthetic.
 
