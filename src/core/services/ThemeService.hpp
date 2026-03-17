@@ -93,6 +93,7 @@ class ThemeService : public QObject, public IThemeService {
     Q_PROPERTY(bool nightMode READ nightMode WRITE setNightMode NOTIFY modeChanged)
     Q_PROPERTY(bool forceDarkMode READ forceDarkMode WRITE setForceDarkMode NOTIFY forceDarkModeChanged)
 
+    Q_PROPERTY(QString currentThemeId READ currentThemeId NOTIFY currentThemeIdChanged)
     Q_PROPERTY(QStringList availableThemes READ availableThemes NOTIFY availableThemesChanged)
     Q_PROPERTY(QStringList availableThemeNames READ availableThemeNames NOTIFY availableThemesChanged)
     Q_PROPERTY(QString wallpaperSource READ wallpaperSource NOTIFY wallpaperChanged)
@@ -243,6 +244,7 @@ signals:
     void colorsChanged();
     void modeChanged();
     void forceDarkModeChanged();
+    void currentThemeIdChanged();
     void availableThemesChanged();
     void wallpaperChanged();
     void availableWallpapersChanged();

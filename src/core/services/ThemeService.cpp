@@ -187,6 +187,7 @@ bool ThemeService::setTheme(const QString& themeId)
     if (!loadTheme(it.value()))
         return false;
 
+    emit currentThemeIdChanged();
     resolveWallpaper();
 
     if (configService_) {
@@ -544,6 +545,7 @@ bool ThemeService::importCompanionTheme(const QString& name, const QString& seed
     // Auto-switch to it — if already active, force reload colors + wallpaper
     if (themeId_ == slug) {
         loadTheme(themeDir);
+        emit currentThemeIdChanged();
         resolveWallpaper();
     } else {
         setTheme(slug);

@@ -568,6 +568,28 @@ int main(int argc, char *argv[])
         aaDesc.defaultCols = 1; aaDesc.defaultRows = 1;
         aaDesc.qmlComponent = QUrl(QStringLiteral("qrc:/OpenAutoProdigy/AALauncherWidget.qml"));
         widgetRegistry->registerWidget(aaDesc);
+
+        // --- Phase 20: Simple Widgets ---
+        oap::WidgetDescriptor themeCycleDesc;
+        themeCycleDesc.id = "org.openauto.theme-cycle";
+        themeCycleDesc.displayName = "Theme Cycle";
+        themeCycleDesc.iconName = "\ue40a";  // palette
+        themeCycleDesc.category = "status";
+        themeCycleDesc.description = "Tap to cycle through available themes";
+        themeCycleDesc.qmlComponent = QUrl(QStringLiteral("qrc:/OpenAutoProdigy/ThemeCycleWidget.qml"));
+        widgetRegistry->registerWidget(themeCycleDesc);
+
+        oap::WidgetDescriptor batteryDesc;
+        batteryDesc.id = "org.openauto.battery";
+        batteryDesc.displayName = "Battery";
+        batteryDesc.iconName = "\uebd4";  // battery_5_bar
+        batteryDesc.category = "status";
+        batteryDesc.description = "Phone battery level from companion app";
+        batteryDesc.qmlComponent = QUrl(QStringLiteral("qrc:/OpenAutoProdigy/BatteryWidget.qml"));
+        widgetRegistry->registerWidget(batteryDesc);
+
+        // NOTE: companion-status and aa-focus descriptors registered in Plan 02
+        // alongside their QML files so each wave builds independently.
     }
 
     // Collect widget descriptors from plugins
@@ -699,6 +721,12 @@ int main(int argc, char *argv[])
     if (auto* orch = aaPlugin->orchestrator()) {
         actionRegistry->registerAction("aa.sendButton", [orch](const QVariant& v) {
             orch->sendButtonPress(v.toInt());
+        });
+        actionRegistry->registerAction("aa.requestFocus", [orch](const QVariant&) {
+            orch->requestVideoFocus();
+        });
+        actionRegistry->registerAction("aa.exitToCar", [orch](const QVariant&) {
+            orch->requestExitToCar();
         });
     }
 
