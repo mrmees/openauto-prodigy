@@ -104,6 +104,8 @@ private slots:
     void testRemapPreservesConfig();
     void testDisplayNameRole();
     void testIconNameRole();
+    void testValidateConfigRejectsMalformedBool();
+    void testValidateConfigRejectsMalformedInt();
 };
 
 void TestWidgetGridModel::testPlaceWidgetSuccess() {
@@ -1271,6 +1273,78 @@ void TestWidgetGridModel::testIconNameRole() {
     // This just tests the role exists and returns a value
     QVERIFY(idx.data(oap::WidgetGridModel::IconNameRole).toString().isEmpty() ||
             !idx.data(oap::WidgetGridModel::IconNameRole).toString().isEmpty());
+}
+
+void TestWidgetGridModel::testValidateConfigRejectsMalformedBool() {
+    auto* reg = new oap::WidgetRegistry(this);
+    {
+        oap::WidgetDescriptor d;
+        d.id = "configurable";
+        d.displayName = "Configurable";
+        d.qmlComponent = QUrl("qrc:/Configurable.qml");
+        d.configSchema = {
+            oap::ConfigSchemaField{"showSeconds", "Show Seconds", oap::ConfigFieldType::Bool,
+                {}, {}, 0, 0, 0}
+        };
+        d.minCols = 1; d.minRows = 1;
+        reg->registerWidget(d);
+    }
+
+    oap::WidgetGridModel model(reg);
+    model.setGridDimensions(6, 4);
+    model.placeWidget("configurable", 0, 0, 1, 1);
+    auto placements = model.placements();
+    QString instanceId = placements[0].instanceId;
+
+    // Garbage string should be dropped (not coerced to false)
+    model.setWidgetConfig(instanceId, {{"showSeconds", QString("garbage")}});
+    QVariantMap result = model.widgetConfig(instanceId);
+    QVERIFY(!result.contains("showSeconds"));
+
+    // Non-bool, non-string type (int) should be dropped
+    model.setWidgetConfig(instanceId, {{"showSeconds", 42}});
+    result = model.widgetConfig(instanceId);
+    QVERIFY(!result.contains("showSeconds"));
+
+    // "false" string should be accepted and coerced
+    model.setWidgetConfig(instanceId, {{"showSeconds", QString("false")}});
+    result = model.widgetConfig(instanceId);
+    QVERIFY(result.contains("showSeconds"));
+    QCOMPARE(result["showSeconds"].toBool(), false);
+    QCOMPARE(result["showSeconds"].typeId(), static_cast<int>(QMetaType::Bool));
+}
+
+void TestWidgetGridModel::testValidateConfigRejectsMalformedInt() {
+    auto* reg = new oap::WidgetRegistry(this);
+    {
+        oap::WidgetDescriptor d;
+        d.id = "configurable";
+        d.displayName = "Configurable";
+        d.qmlComponent = QUrl("qrc:/Configurable.qml");
+        d.configSchema = {
+            oap::ConfigSchemaField{"brightness", "Brightness", oap::ConfigFieldType::IntRange,
+                {}, {}, 0, 100, 1}
+        };
+        d.minCols = 1; d.minRows = 1;
+        reg->registerWidget(d);
+    }
+
+    oap::WidgetGridModel model(reg);
+    model.setGridDimensions(6, 4);
+    model.placeWidget("configurable", 0, 0, 1, 1);
+    auto placements = model.placements();
+    QString instanceId = placements[0].instanceId;
+
+    // Garbage string should be dropped (not coerced to 0)
+    model.setWidgetConfig(instanceId, {{"brightness", QString("abc")}});
+    QVariantMap result = model.widgetConfig(instanceId);
+    QVERIFY(!result.contains("brightness"));
+
+    // Valid int string should work
+    model.setWidgetConfig(instanceId, {{"brightness", QString("50")}});
+    result = model.widgetConfig(instanceId);
+    QVERIFY(result.contains("brightness"));
+    QCOMPARE(result["brightness"].toInt(), 50);
 }
 
 QTEST_GUILESS_MAIN(TestWidgetGridModel)

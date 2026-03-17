@@ -2,6 +2,7 @@
 
 #include <QObject>
 #include <QHash>
+#include <QSet>
 
 namespace oap {
 
@@ -31,7 +32,7 @@ private:
     WidgetGridModel* gridModel_;
     IHostContext* hostContext_;
     int cellSide_ = 120;
-    QHash<QString, WidgetInstanceContext*> activeContexts_;
+    QHash<QString, QSet<WidgetInstanceContext*>> activeContexts_;
 };
 
 } // namespace oap

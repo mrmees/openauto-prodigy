@@ -281,15 +281,24 @@ QVariantMap WidgetGridModel::validateConfig(const QString& widgetId, const QVari
         switch (field->type) {
         case ConfigFieldType::Bool: {
             QVariant v = it.value();
-            if (v.typeId() == QMetaType::QString) {
-                validated[it.key()] = (v.toString().toLower() == "true");
-            } else {
+            if (v.typeId() == QMetaType::Bool) {
                 validated[it.key()] = v.toBool();
+            } else if (v.typeId() == QMetaType::QString) {
+                const QString s = v.toString().toLower();
+                if (s == "true")
+                    validated[it.key()] = true;
+                else if (s == "false")
+                    validated[it.key()] = false;
+                // else: malformed string — drop key, default will apply
             }
+            // else: non-bool, non-string type — drop key, default will apply
             break;
         }
         case ConfigFieldType::IntRange: {
-            int val = it.value().toInt();
+            QVariant v = it.value();
+            bool ok = false;
+            int val = v.toInt(&ok);
+            if (!ok) break;  // malformed — drop key, default will apply
             val = qBound(field->rangeMin, val, field->rangeMax);
             validated[it.key()] = val;
             break;

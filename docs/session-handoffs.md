@@ -965,3 +965,38 @@ Documentation:
 - Pi cross-compile verification:
   - `./cross-build.sh`
   - Passed: `Build complete: build-pi/src/openauto-prodigy`
+
+---
+
+## 2026-03-16 — Fix Live Widget Config Updates For Duplicate QML Contexts
+
+**What changed:**
+- Updated [`src/ui/WidgetContextFactory.cpp`](../src/ui/WidgetContextFactory.cpp) / [`src/ui/WidgetContextFactory.hpp`](../src/ui/WidgetContextFactory.hpp) so live widget config updates fan out to every active `WidgetInstanceContext` for an `instanceId`, instead of only the most recently created context.
+- Kept per-context cleanup precise by removing only the destroyed context from the tracked set and dropping the map entry only when the last live context is gone.
+- Added regression coverage in [`tests/test_widget_instance_context.cpp`](../tests/test_widget_instance_context.cpp) for:
+  - the prior replacement case where an old context is destroyed after a new one is registered
+  - the real QML case where multiple live contexts exist simultaneously for one widget instance and all must receive `effectiveConfigChanged`
+
+**Why:**
+- `qml/applications/home/HomeMenu.qml` instantiates a full widget repeater inside each active page loader, so adjacent pages can create multiple live `WidgetInstanceContext` objects for the same widget `instanceId`.
+- The factory previously tracked only one pointer per `instanceId`, so `widgetConfigChanged` could update a hidden duplicate context while the visible clock widget stayed stale until restart.
+
+**Status:** Fixed locally. Local build, full test suite, and Pi cross-build pass. Pi deployment/runtime verification has not been performed in this session.
+
+**Next steps:**
+1. Deploy `build-pi/src/openauto-prodigy` to the Pi and verify the clock format flips live in the widget config sheet without requiring restart.
+2. If any live-update issue remains on hardware, add temporary logging around `WidgetContextFactory::createContext` and `widgetConfigChanged` to confirm how many contexts each `instanceId` has at runtime.
+
+**Verification commands/results:**
+- Targeted TDD/red-green:
+  - `cd build && ctest --output-on-failure -R test_widget_instance_context`
+  - Initial red: failed in `testMultipleLiveContextsReceiveLiveUpdates` with `spyA.count() == 0`
+  - Final green: passed
+- Required repo verification:
+  - `cd build && cmake --build . -j$(nproc)`
+  - Passed
+  - `cd build && ctest --output-on-failure`
+  - Passed: `100% tests passed, 0 tests failed out of 87`
+- Pi cross-compile verification:
+  - `./cross-build.sh`
+  - Passed: `Build complete: build-pi/src/openauto-prodigy`

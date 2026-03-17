@@ -386,7 +386,8 @@ Item {
                     }
 
                     Text {
-                        text: String(root.currentConfig[fieldData.key] || fieldData.rangeMin)
+                        text: String(root.currentConfig[fieldData.key] !== undefined
+                                     ? root.currentConfig[fieldData.key] : fieldData.rangeMin)
                         font.pixelSize: UiMetrics.fontBody
                         color: ThemeService.onSurfaceVariant
                     }

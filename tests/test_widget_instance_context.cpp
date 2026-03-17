@@ -2,7 +2,10 @@
 #include <QtTest/QtTest>
 #include <QSignalSpy>
 #include "ui/WidgetInstanceContext.hpp"
+#include "ui/WidgetContextFactory.hpp"
+#include "ui/WidgetGridModel.hpp"
 #include "core/widget/WidgetTypes.hpp"
+#include "core/widget/WidgetRegistry.hpp"
 #include "core/plugin/HostContext.hpp"
 #include "core/services/IProjectionStatusProvider.hpp"
 #include "core/services/INavigationProvider.hpp"
@@ -67,6 +70,8 @@ private slots:
     void testEffectiveConfigMerge();
     void testSetInstanceConfigEmitsSignal();
     void testEffectiveConfigEmptyWhenNoSchema();
+    void testContextReplacementDoesNotBreakLiveUpdates();
+    void testMultipleLiveContextsReceiveLiveUpdates();
 };
 
 void TestWidgetInstanceContext::testProperties() {
@@ -295,6 +300,115 @@ void TestWidgetInstanceContext::testEffectiveConfigEmptyWhenNoSchema() {
 
     QVariantMap effective = ctx.effectiveConfig();
     QVERIFY(effective.isEmpty());
+}
+
+void TestWidgetInstanceContext::testContextReplacementDoesNotBreakLiveUpdates() {
+    // Regression test: if context A is replaced by context B for the same instanceId,
+    // A's deferred destruction must not remove B from the active context map.
+    // Without the pointer check in the destroy hook, A's cleanup would remove B
+    // and future widgetConfigChanged signals would stop reaching the live widget.
+
+    auto* reg = new oap::WidgetRegistry(this);
+    {
+        oap::WidgetDescriptor d;
+        d.id = "configurable";
+        d.displayName = "Configurable";
+        d.qmlComponent = QUrl("qrc:/Configurable.qml");
+        d.defaultConfig = {{"format", "24h"}};
+        d.configSchema = {
+            oap::ConfigSchemaField{"format", "Format", oap::ConfigFieldType::Enum,
+                {"12-hour", "24-hour"}, {"12h", "24h"}, 0, 0, 0}
+        };
+        d.minCols = 1; d.minRows = 1;
+        reg->registerWidget(d);
+    }
+
+    oap::WidgetGridModel model(reg);
+    model.setGridDimensions(6, 4);
+    model.placeWidget("configurable", 0, 0, 1, 1);
+    auto placements = model.placements();
+    QString instanceId = placements[0].instanceId;
+
+    oap::WidgetContextFactory factory(&model, nullptr, this);
+
+    // Create context A (simulates initial delegate creation)
+    auto* parentA = new QObject(this);
+    auto* ctxA = qobject_cast<oap::WidgetInstanceContext*>(
+        factory.createContext(instanceId, parentA));
+    QVERIFY(ctxA);
+
+    // Create context B for the same instanceId (simulates delegate recreation after model reset)
+    auto* parentB = new QObject(this);
+    auto* ctxB = qobject_cast<oap::WidgetInstanceContext*>(
+        factory.createContext(instanceId, parentB));
+    QVERIFY(ctxB);
+    QVERIFY(ctxA != ctxB);
+
+    // Destroy context A (simulates old delegate cleanup)
+    delete parentA;  // destroys ctxA via parent ownership
+
+    // Now set config — widgetConfigChanged should still reach context B
+    QSignalSpy spy(ctxB, &oap::WidgetInstanceContext::effectiveConfigChanged);
+    model.setWidgetConfig(instanceId, {{"format", "12h"}});
+
+    QCOMPARE(spy.count(), 1);
+    QCOMPARE(ctxB->effectiveConfig()["format"].toString(), QString("12h"));
+
+    delete parentB;
+}
+
+void TestWidgetInstanceContext::testMultipleLiveContextsReceiveLiveUpdates() {
+    // Regression test for the real QML structure in HomeMenu.qml: adjacent pages can
+    // instantiate multiple delegates for the same widget instance at the same time.
+    // All live contexts for that instance must receive config updates, not just the
+    // most recently created one.
+
+    auto* reg = new oap::WidgetRegistry(this);
+    {
+        oap::WidgetDescriptor d;
+        d.id = "configurable";
+        d.displayName = "Configurable";
+        d.qmlComponent = QUrl("qrc:/Configurable.qml");
+        d.defaultConfig = {{"format", "24h"}};
+        d.configSchema = {
+            oap::ConfigSchemaField{"format", "Format", oap::ConfigFieldType::Enum,
+                {"12-hour", "24-hour"}, {"12h", "24h"}, 0, 0, 0}
+        };
+        d.minCols = 1;
+        d.minRows = 1;
+        reg->registerWidget(d);
+    }
+
+    oap::WidgetGridModel model(reg);
+    model.setGridDimensions(6, 4);
+    model.placeWidget("configurable", 0, 0, 1, 1);
+    const QString instanceId = model.placements()[0].instanceId;
+
+    oap::WidgetContextFactory factory(&model, nullptr, this);
+
+    auto* parentA = new QObject(this);
+    auto* parentB = new QObject(this);
+    auto* ctxA = qobject_cast<oap::WidgetInstanceContext*>(
+        factory.createContext(instanceId, parentA));
+    auto* ctxB = qobject_cast<oap::WidgetInstanceContext*>(
+        factory.createContext(instanceId, parentB));
+
+    QVERIFY(ctxA);
+    QVERIFY(ctxB);
+    QVERIFY(ctxA != ctxB);
+
+    QSignalSpy spyA(ctxA, &oap::WidgetInstanceContext::effectiveConfigChanged);
+    QSignalSpy spyB(ctxB, &oap::WidgetInstanceContext::effectiveConfigChanged);
+
+    model.setWidgetConfig(instanceId, {{"format", "12h"}});
+
+    QCOMPARE(spyA.count(), 1);
+    QCOMPARE(spyB.count(), 1);
+    QCOMPARE(ctxA->effectiveConfig()["format"].toString(), QString("12h"));
+    QCOMPARE(ctxB->effectiveConfig()["format"].toString(), QString("12h"));
+
+    delete parentA;
+    delete parentB;
 }
 
 QTEST_GUILESS_MAIN(TestWidgetInstanceContext)

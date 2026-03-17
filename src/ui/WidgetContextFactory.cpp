@@ -16,8 +16,8 @@ WidgetContextFactory::WidgetContextFactory(WidgetGridModel* gridModel,
     if (gridModel_) {
         connect(gridModel_, &WidgetGridModel::widgetConfigChanged,
                 this, [this](const QString& instanceId, const QVariantMap& /*effectiveConfig*/) {
-            auto* ctx = activeContexts_.value(instanceId, nullptr);
-            if (ctx) {
+            const auto contexts = activeContexts_.value(instanceId);
+            for (auto* ctx : contexts) {
                 // Pass raw overrides (not merged effective) to setInstanceConfig.
                 // The context's effectiveConfig() getter handles merging with defaults.
                 ctx->setInstanceConfig(gridModel_->widgetConfig(instanceId));
@@ -44,11 +44,17 @@ QObject* WidgetContextFactory::createContext(const QString& instanceId, QObject*
                                                    defaultCfg, p.config, parent);
 
             // Track this context for live config updates
-            activeContexts_[instanceId] = ctx;
+            activeContexts_[instanceId].insert(ctx);
 
-            // Clean up tracking when context is destroyed (delegate removed/recycled)
-            connect(ctx, &QObject::destroyed, this, [this, instanceId]() {
-                activeContexts_.remove(instanceId);
+            // Clean up tracking when context is destroyed (delegate removed/recycled).
+            connect(ctx, &QObject::destroyed, this, [this, instanceId, ctx]() {
+                auto it = activeContexts_.find(instanceId);
+                if (it == activeContexts_.end())
+                    return;
+
+                it->remove(ctx);
+                if (it->isEmpty())
+                    activeContexts_.remove(instanceId);
             });
 
             return ctx;

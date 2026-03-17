@@ -17,6 +17,12 @@ Item {
     // Load-state gating (timer is the one justified polling case)
     readonly property bool isCurrentPage: widgetContext ? widgetContext.isCurrentPage : true
 
+    // Declarative binding to effectiveConfig — ensures QML tracks property changes.
+    // Reading effectiveConfig imperatively inside Timer.onTriggered can return a stale
+    // cached JS object. This binding re-evaluates when effectiveConfigChanged fires.
+    readonly property var currentEffectiveConfig: widgetContext ? widgetContext.effectiveConfig : ({})
+    readonly property string timeFormat: currentEffectiveConfig.format || "24h"
+
     ColumnLayout {
         anchors.centerIn: parent
         width: parent.width - UiMetrics.spacing * 2
@@ -68,10 +74,7 @@ Item {
         triggeredOnStart: true
         onTriggered: {
             var now = new Date()
-            var fmt = widgetContext && widgetContext.effectiveConfig
-                      ? widgetContext.effectiveConfig.format || "24h"
-                      : "24h"
-            var timeFmt = (fmt === "12h") ? "h:mm AP" : "HH:mm"
+            var timeFmt = (clockWidget.timeFormat === "12h") ? "h:mm AP" : "HH:mm"
             timeText.text = now.toLocaleTimeString(Qt.locale(), timeFmt)
             dateText.text = now.toLocaleDateString(Qt.locale(), "MMMM d")
             dayText.text = now.toLocaleDateString(Qt.locale(), "dddd")
