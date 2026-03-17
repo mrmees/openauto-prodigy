@@ -19,7 +19,7 @@ Four new utility widgets for the home screen: theme cycle, phone battery, compan
 - Material palette icon (`\ue40a`) + current theme name text below, centered
 - Icon tinted with ThemeService.primary (widget itself is a live preview of the active theme)
 - Tap advances to the next theme in `ThemeService.availableThemes`, wrapping around after the last
-- **Theme name reactivity:** `currentThemeId()` is currently a plain C++ getter (not a Q_PROPERTY). Phase must add a `Q_PROPERTY(QString currentThemeId READ currentThemeId NOTIFY currentThemeIdChanged)` to ThemeService and emit it from `setTheme()`. Alternatively, derive the display name from `availableThemeNames[availableThemes.indexOf(currentThemeId())]` and re-evaluate on `colorsChanged` (which already fires on theme switch).
+- **Theme name reactivity:** `currentThemeId()` is currently a plain C++ getter — not a Q_PROPERTY and not Q_INVOKABLE, so QML cannot call it. Phase must add a `Q_PROPERTY(QString currentThemeId READ currentThemeId NOTIFY currentThemeIdChanged)` to ThemeService and emit `currentThemeIdChanged` from `setTheme()`. The widget then derives the display name from `ThemeService.availableThemeNames[ThemeService.availableThemes.indexOf(ThemeService.currentThemeId)]`.
 - No configSchema needed (no per-instance settings)
 
 ### Battery widget (BW-01)
@@ -27,6 +27,7 @@ Four new utility widgets for the home screen: theme cycle, phone battery, compan
 - When companion disconnected: battery outline with slash/X icon, "--" instead of percentage, no stale data shown
 - At larger sizes: icon and text scale up proportionally to fill the widget — user can make the indicator as large as they want
 - **Data access:** `CompanionListenerService` is exposed as `CompanionService` root context property in `src/main.cpp:805` — battery widget binds to `CompanionService.phoneBattery` and `CompanionService.connected` directly. NOT via `widgetContext.hostContext` (that's a C++-only getter, not QML-accessible).
+- **CompanionService may be null.** `src/main.cpp:804` only sets the context property when companion support is enabled. All QML bindings must be null-safe (e.g., `CompanionService ? CompanionService.phoneBattery : -1`). When null, battery widget shows the same disconnected state (slash icon + "--") and companion status widget shows disconnected indicator.
 - `batteryIconForLevel()` is a C++ inline function — either expose as Q_INVOKABLE on a helper object, or reimplement the icon lookup in QML (it's a simple level→codepoint map).
 
 ### Companion status widget (CS-01, CS-02)
@@ -34,7 +35,7 @@ Four new utility widgets for the home screen: theme cycle, phone battery, compan
 - At 1x1: phone icon + green dot (connected) or red dot (disconnected)
 - At 2x1+: expanded detail rows showing GPS status, battery, and proxy status
 - Proxy status: simple "Active" / "Off" — not full ACTIVE/FAILED/DEGRADED routing state (too system-level for glanceability)
-- **Data access:** Same as battery — binds to `CompanionService` root context property (`CompanionService.connected`, `CompanionService.gpsLat`, `CompanionService.gpsLon`, `CompanionService.phoneBattery`, `CompanionService.proxyAddress`)
+- **Data access:** Same as battery — binds to `CompanionService` root context property (`CompanionService.connected`, `CompanionService.gpsLat`, `CompanionService.gpsLon`, `CompanionService.phoneBattery`, `CompanionService.proxyAddress`). All bindings null-safe — when `CompanionService` is null (companion disabled), show disconnected indicator.
 
 ### AA focus toggle widget (AF-01, AF-02, AF-03)
 - Toggle with state indicator: phone icon + "AA" label when PROJECTED, car icon + "Car" label when NATIVE (Backgrounded)
@@ -54,7 +55,7 @@ Four new utility widgets for the home screen: theme cycle, phone battery, compan
 - Animation/transition when theme changes or focus toggles
 - Layout of companion status detail rows at expanded sizes
 - How charging state is visually indicated on battery icon
-- Whether to add currentThemeId Q_PROPERTY vs derive name from availableThemes + colorsChanged
+- How to expose batteryIconForLevel to QML (JS rewrite vs Q_INVOKABLE wrapper)
 
 ### Not At Claude's Discretion
 - Palette icon + name for theme cycle (not swatch-only or text-only)
@@ -113,7 +114,7 @@ Four new utility widgets for the home screen: theme cycle, phone battery, compan
 - `batteryIconForLevel()` in StatusIndicatorHelper.hpp: maps 0-100 to Material Symbols battery codepoints — C++ only, needs QML equivalent or wrapper
 
 ### QML API Gaps (must be addressed in this phase)
-- **ThemeService.currentThemeId**: plain C++ getter, not a Q_PROPERTY. Theme cycle widget needs either a new Q_PROPERTY with NOTIFY, or must derive the name from `availableThemes.indexOf()` + `colorsChanged` signal.
+- **ThemeService.currentThemeId**: plain C++ getter, not a Q_PROPERTY or Q_INVOKABLE. Must add `Q_PROPERTY(QString currentThemeId READ currentThemeId NOTIFY currentThemeIdChanged)` and emit from `setTheme()`.
 - **AA focus commands**: `requestVideoFocus()` and `requestExitToCar()` are on AndroidAutoOrchestrator, which is not QML-accessible from home widgets. Must register `aa.requestFocus` and `aa.exitToCar` actions in ActionRegistry (main.cpp).
 - **batteryIconForLevel()**: inline C++ function, not QML-callable. Either reimplement as a JS function in the widget, or expose via a Q_INVOKABLE helper.
 
