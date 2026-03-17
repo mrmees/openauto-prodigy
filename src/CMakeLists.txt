@@ -298,6 +298,11 @@ set_source_files_properties(../qml/widgets/CompanionStatusWidget.qml PROPERTIES
     QT_RESOURCE_ALIAS "CompanionStatusWidget.qml"
     QT_QML_SKIP_CACHEGEN TRUE
 )
+set_source_files_properties(../qml/widgets/AAFocusToggleWidget.qml PROPERTIES
+    QT_QML_SOURCE_TYPENAME "AAFocusToggleWidget"
+    QT_RESOURCE_ALIAS "AAFocusToggleWidget.qml"
+    QT_QML_SKIP_CACHEGEN TRUE
+)
 
 set_source_files_properties(../qml/applications/android_auto/AndroidAutoMenu.qml PROPERTIES
     QT_QML_SOURCE_TYPENAME "AndroidAutoMenu"
@@ -413,6 +418,7 @@ qt_add_qml_module(openauto-prodigy
         ../qml/widgets/ThemeCycleWidget.qml
         ../qml/widgets/BatteryWidget.qml
         ../qml/widgets/CompanionStatusWidget.qml
+        ../qml/widgets/AAFocusToggleWidget.qml
 
         ../qml/applications/android_auto/AndroidAutoMenu.qml
         ../qml/applications/settings/SettingsMenu.qml
