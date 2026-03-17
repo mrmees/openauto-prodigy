@@ -28,6 +28,7 @@
 #include "core/services/ActionRegistry.hpp"
 #include "core/services/NotificationService.hpp"
 #include "core/services/CompanionListenerService.hpp"
+#include "core/services/WeatherService.hpp"
 #include "core/services/SystemServiceClient.hpp"
 #include "core/services/BluetoothManager.hpp"
 #include "core/services/EqualizerService.hpp"
@@ -612,6 +613,32 @@ int main(int argc, char *argv[])
         aaFocusDesc.description = "Toggle Android Auto projection on/off";
         aaFocusDesc.qmlComponent = QUrl(QStringLiteral("qrc:/OpenAutoProdigy/AAFocusToggleWidget.qml"));
         widgetRegistry->registerWidget(aaFocusDesc);
+
+        // --- Phase 21: Weather Widget ---
+        oap::WidgetDescriptor weatherDesc;
+        weatherDesc.id = "org.openauto.weather";
+        weatherDesc.displayName = "Weather";
+        weatherDesc.iconName = "\ue2bd";  // thermostat
+        weatherDesc.category = "status";
+        weatherDesc.description = "Current weather conditions";
+        weatherDesc.minCols = 1; weatherDesc.minRows = 1;
+        weatherDesc.maxCols = 6; weatherDesc.maxRows = 4;
+        weatherDesc.defaultCols = 2; weatherDesc.defaultRows = 2;
+        weatherDesc.qmlComponent = QUrl(QStringLiteral("qrc:/OpenAutoProdigy/WeatherWidget.qml"));
+        weatherDesc.defaultConfig = {{"unit", "fahrenheit"}, {"refresh", "5"}};
+        weatherDesc.configSchema = {
+            oap::ConfigSchemaField{
+                "unit", "Temperature Unit", oap::ConfigFieldType::Enum,
+                {QString::fromUtf8("\u00B0F"), QString::fromUtf8("\u00B0C")}, {"fahrenheit", "celsius"},
+                0, 0, 0
+            },
+            oap::ConfigSchemaField{
+                "refresh", "Refresh Interval", oap::ConfigFieldType::Enum,
+                {"5 minutes", "15 minutes", "30 minutes", "60 minutes"}, {"5", "15", "30", "60"},
+                0, 0, 0
+            }
+        };
+        widgetRegistry->registerWidget(weatherDesc);
     }
 
     // Collect widget descriptors from plugins
@@ -853,6 +880,9 @@ int main(int argc, char *argv[])
 
     if (companionListener)
         engine.rootContext()->setContextProperty("CompanionService", companionListener);
+
+    auto weatherService = new oap::WeatherService(&app);
+    engine.rootContext()->setContextProperty("WeatherService", weatherService);
 
     // WidgetContextFactory for QML-side WidgetInstanceContext creation
     auto* widgetContextFactory = new oap::WidgetContextFactory(widgetGridModel, hostContext.get(), &app);
