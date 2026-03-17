@@ -140,19 +140,18 @@ Plans:
 - [ ] 20-02-PLAN.md — Companion status + AA focus toggle widgets
 
 #### Phase 21: Clock Styles & Weather
-**Goal**: Clock widget supports multiple visual styles and a new weather widget displays live conditions via API
+**Goal**: Clock widget supports 3 visual styles (digital/analog/minimal) and a new weather widget displays live conditions from Open-Meteo using companion GPS
 **Depends on**: Phase 19 (both use per-instance config for style/settings selection)
 **Requirements**: CK-01, CK-02, WX-01, WX-02, WX-03, WX-04, WX-05
 **Success Criteria** (what must be TRUE):
-  1. Clock widget offers at least 3 distinct visual styles (digital, analog, minimal) selectable per instance via config UI
+  1. Clock widget offers 3 distinct visual styles (digital, analog, minimal) selectable per instance via config UI
   2. Weather widget displays current temperature, condition icon, and location name using companion GPS coordinates
-  3. Weather widget shows active weather alerts when present
-  4. Weather data refreshes automatically on a configurable interval and the API key is set in YAML config
-**Plans**: TBD
+  3. Weather data refreshes automatically on a configurable interval (default 5 min)
+**Plans**: 2 plans
 
 Plans:
-- [ ] 21-01: Clock style variants with per-instance selection
-- [ ] 21-02: WeatherService and weather widget
+- [ ] 21-01-PLAN.md — Clock style variants (digital/analog/minimal) with per-instance config selection
+- [ ] 21-02-PLAN.md — WeatherService C++ + WeatherWidget QML with Open-Meteo integration
 
 ## Progress
 
