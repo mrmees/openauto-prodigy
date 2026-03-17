@@ -6,7 +6,7 @@
 ## Widget Contract (WC)
 
 - [x] **WC-01**: Widget placements support per-instance configuration (key-value map persisted in YAML)
-- [ ] **WC-02**: Widget config is editable via a host-rendered config sheet opened from a gear icon in edit mode
+- [x] **WC-02**: Widget config is editable via a host-rendered config sheet opened from a gear icon in edit mode
 - [x] **WC-03**: Widget config changes persist across restarts and survive grid remap
 
 ## Theme Cycle Widget (TC)
@@ -56,7 +56,7 @@
 | Requirement | Phase | Status |
 |-------------|-------|--------|
 | WC-01 | Phase 19 | Complete |
-| WC-02 | Phase 19 | Pending |
+| WC-02 | Phase 19 | Complete |
 | WC-03 | Phase 19 | Complete |
 | TC-01 | Phase 20 | Pending |
 | TC-02 | Phase 20 | Pending |
