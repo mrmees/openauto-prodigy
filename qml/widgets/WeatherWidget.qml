@@ -112,6 +112,7 @@ Item {
     onHasGpsChanged: updateWeatherData()
     onGpsLatChanged: updateWeatherData()
     onGpsLonChanged: updateWeatherData()
+    onRefreshIntervalChanged: updateWeatherData()
     onIsCurrentPageChanged: {
         updateWeatherData()
         // subscribe() internally checks staleness and fetches immediately if needed
