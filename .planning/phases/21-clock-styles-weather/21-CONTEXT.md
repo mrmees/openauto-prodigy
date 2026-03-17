@@ -6,11 +6,12 @@
 <domain>
 ## Phase Boundary
 
-Enhance the existing clock widget with multiple visual styles selectable per instance, and add a new weather widget that fetches live current conditions from Open-Meteo using companion GPS or a manually configured location. Weather alerts are deferred to a future phase.
+Enhance the existing clock widget with multiple visual styles selectable per instance, and add a new weather widget that fetches live current conditions from Open-Meteo using companion GPS coordinates. Weather alerts and manual city entry are deferred to future phases.
 
 **Requirement adjustments from discussion:**
 - WX-03 (weather alerts): **Deferred** — Open-Meteo alert coverage is limited. Ship current conditions only for v1.
 - WX-05 (API key in YAML): **Not applicable** — Open-Meteo requires no API key. Skip dead config.
+- Manual city location: **Deferred** — Requires a new String ConfigSchemaField type not yet in the config system. GPS-only for v1.
 
 </domain>
 
@@ -38,10 +39,10 @@ Enhance the existing clock widget with multiple visual styles selectable per ins
 - **No location state:** Location-off MaterialIcon + "--°" dashes. Unambiguous location issue indicator.
 
 ### Weather location
-- **Per-instance config** — each weather widget can be GPS-based or manual city
-- Config fields: location type (GPS / Manual), city name (when manual), temperature unit (°F / °C), refresh interval
-- GPS-based widgets use CompanionService.gpsLat/gpsLon
-- Multiple weather widgets can show different cities — great use of Phase 19 config system
+- **GPS-only for v1** — weather widget uses CompanionService.gpsLat/gpsLon exclusively
+- Manual city entry deferred (requires new String ConfigSchemaField type — future phase)
+- Per-instance config fields: temperature unit (°F / °C), refresh interval
+- When companion disconnected or GPS unavailable: show "--°" with location-off icon
 
 ### Weather temperature units
 - **Per-instance config** — each widget can independently show °F or °C
@@ -72,7 +73,7 @@ Enhance the existing clock widget with multiple visual styles selectable per ins
 - No alerts in v1 (deferred)
 - 1x1 weather = temp only (not icon + temp)
 - 3x3+ for extended weather info (not 2x1)
-- Per-instance location config (not global)
+- GPS-only location for v1 (manual city deferred — needs String config field type)
 - Per-instance temperature unit (not global)
 - 5-minute default refresh (not 30)
 - Pause refresh when page hidden
@@ -90,7 +91,7 @@ Enhance the existing clock widget with multiple visual styles selectable per ins
 - `src/core/widget/WidgetTypes.hpp` — WidgetDescriptor, ConfigSchemaField, configSchema, defaultConfig
 - `src/ui/WidgetGridModel.hpp` + `.cpp` — Placement model, config roles, setWidgetConfig
 - `src/ui/WidgetInstanceContext.hpp` + `.cpp` — QML context injection (effectiveConfig, isCurrentPage)
-- `src/core/widget/WidgetContextFactory.hpp` + `.cpp` — Creates WidgetInstanceContext per placement
+- `src/ui/WidgetContextFactory.hpp` + `.cpp` — Creates WidgetInstanceContext per placement
 
 ### Existing clock widget
 - `qml/widgets/ClockWidget.qml` — Current digital clock implementation. This file will be extended with style switching.
@@ -106,7 +107,7 @@ Enhance the existing clock widget with multiple visual styles selectable per ins
 - `qml/widgets/NowPlayingWidget.qml` — Service data binding via widgetContext providers
 
 ### Widget config sheet
-- `qml/applications/home/WidgetConfigSheet.qml` — Schema-driven config UI (Phase 19). Weather widget config fields rendered here.
+- `qml/components/WidgetConfigSheet.qml` — Schema-driven config UI (Phase 19). Weather widget config fields rendered here.
 
 </canonical_refs>
 
@@ -115,12 +116,11 @@ Enhance the existing clock widget with multiple visual styles selectable per ins
 
 ### Reusable Assets
 - `ClockWidget.qml` — Current digital clock, already has effectiveConfig binding for time format. Style switching adds another config field and conditional rendering.
-- `ConfigSchemaField` — Enum, Bool, IntRange types ready to use. Weather needs Enum (location type, unit, refresh) and potentially a text field for city name (may need new field type or creative use of existing types).
+- `ConfigSchemaField` — Enum, Bool, IntRange types ready to use. Weather needs Enum (unit, refresh interval). No new field types required (manual city deferred).
 - `WidgetInstanceContext.isCurrentPage` — Already exposed for page visibility. Weather widget uses this to pause/resume refresh.
 - `CompanionService.gpsLat/gpsLon` — GPS coordinates already exposed as Q_PROPERTYs with NOTIFY signals.
 
 ### QML API Gaps
-- **No text input ConfigSchemaField type** — Phase 19 only added Enum, Bool, IntRange. Manual city entry may need a new field type, or city selection could use an Enum populated dynamically (less ideal), or city could be set via YAML config rather than config sheet.
 - **No WeatherService exists** — New C++ service needed. Follows the pattern of ThemeService/AudioService but with HTTP networking (QNetworkAccessManager).
 - **No QML Canvas usage in codebase** — Analog clock face will be the first Canvas-rendered widget. Qt Quick Canvas2D is available in Qt 6.8.
 
@@ -142,10 +142,9 @@ Enhance the existing clock widget with multiple visual styles selectable per ins
 <specifics>
 ## Specific Ideas
 
-- Weather widget architecture: WeatherService owns QNetworkAccessManager, per-location cache keyed by stable location ID. WeatherData is a QObject per location with Q_PROPERTYs (temp, condition, humidity, wind, location, loading, error, lastUpdated). Widget calls `WeatherService.weatherForRequest({type, city, lat, lon})` to get/create a shared WeatherData object. Multiple widgets with same effective location share one WeatherData.
+- Weather widget architecture: WeatherService owns QNetworkAccessManager, per-location cache keyed by stable location ID. WeatherData is a QObject per location with Q_PROPERTYs (temp, condition, humidity, wind, location, loading, error, lastUpdated). Widget calls `WeatherService.weatherForRequest({lat, lon})` to get/create a shared WeatherData object. Multiple widgets with same effective location share one WeatherData.
 - GPS coordinate rounding: Use a movement threshold (e.g., round to ~0.01° ≈ 1km) to prevent tiny GPS changes from exploding the cache with unique location keys.
 - Analog clock should feel like a clean, modern clock face — not overly ornate or skeuomorphic. Think car gauge aesthetic.
-- Config schema may need a new text/string field type for manual city name entry — existing types are Enum, Bool, IntRange only. Alternatively, this could be handled via YAML config or a creative workaround.
 
 </specifics>
 
@@ -153,6 +152,7 @@ Enhance the existing clock widget with multiple visual styles selectable per ins
 ## Deferred Ideas
 
 - Weather alerts (WX-03) — add when a better alert source is available or Open-Meteo improves coverage
+- Manual city location — requires new String ConfigSchemaField type + config sheet text input
 - API key support / alternate providers — add if users need OWM or NWS
 - Multi-day forecast widget — current conditions only for v1
 - Flip clock / binary clock / word clock styles — could be added as additional styles later
