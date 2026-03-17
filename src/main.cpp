@@ -588,8 +588,25 @@ int main(int argc, char *argv[])
         batteryDesc.qmlComponent = QUrl(QStringLiteral("qrc:/OpenAutoProdigy/BatteryWidget.qml"));
         widgetRegistry->registerWidget(batteryDesc);
 
-        // NOTE: companion-status and aa-focus descriptors registered in Plan 02
-        // alongside their QML files so each wave builds independently.
+        oap::WidgetDescriptor companionStatusDesc;
+        companionStatusDesc.id = "org.openauto.companion-status";
+        companionStatusDesc.displayName = "Companion Status";
+        companionStatusDesc.iconName = "\ue325";  // smartphone
+        companionStatusDesc.category = "status";
+        companionStatusDesc.description = "Companion app connection and service status";
+        companionStatusDesc.qmlComponent = QUrl(QStringLiteral("qrc:/OpenAutoProdigy/CompanionStatusWidget.qml"));
+        companionStatusDesc.maxCols = 4;
+        companionStatusDesc.maxRows = 2;
+        widgetRegistry->registerWidget(companionStatusDesc);
+
+        oap::WidgetDescriptor aaFocusDesc;
+        aaFocusDesc.id = "org.openauto.aa-focus";
+        aaFocusDesc.displayName = "AA Focus";
+        aaFocusDesc.iconName = "\ueff7";  // directions_car
+        aaFocusDesc.category = "status";
+        aaFocusDesc.description = "Toggle Android Auto projection on/off";
+        aaFocusDesc.qmlComponent = QUrl(QStringLiteral("qrc:/OpenAutoProdigy/AAFocusToggleWidget.qml"));
+        widgetRegistry->registerWidget(aaFocusDesc);
     }
 
     // Collect widget descriptors from plugins
