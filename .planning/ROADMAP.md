@@ -133,11 +133,11 @@ Plans:
   2. Battery widget displays the phone's current battery level and charging state from companion data
   3. Companion status widget shows connected/disconnected at 1x1 and GPS/battery/proxy detail at larger sizes
   4. AA focus toggle widget pauses and resumes AA projection on tap, reflecting current focus state
-**Plans**: TBD
+**Plans**: 2 plans
 
 Plans:
-- [ ] 20-01: Theme cycle and companion status widgets
-- [ ] 20-02: Battery widget and AA focus toggle widget
+- [ ] 20-01-PLAN.md — C++ API extensions + theme cycle + battery widgets
+- [ ] 20-02-PLAN.md — Companion status + AA focus toggle widgets
 
 #### Phase 21: Clock Styles & Weather
 **Goal**: Clock widget supports multiple visual styles and a new weather widget displays live conditions via API
