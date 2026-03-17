@@ -2,16 +2,16 @@
 gsd_state_version: 1.0
 milestone: v0.6
 milestone_name: milestone
-status: executing
-stopped_at: Completed 21-01-PLAN.md
-last_updated: "2026-03-17T03:17:54.806Z"
-last_activity: "2026-03-17 — Completed 21-01 (clock styles: digital, analog, minimal)"
+status: completed
+stopped_at: Completed 21-02-PLAN.md
+last_updated: "2026-03-17T03:20:50Z"
+last_activity: "2026-03-17 — Completed 21-02 (weather service + widget)"
 progress:
   total_phases: 3
-  completed_phases: 2
+  completed_phases: 3
   total_plans: 6
-  completed_plans: 5
-  percent: 83
+  completed_plans: 6
+  percent: 100
 ---
 
 # Project State
@@ -26,18 +26,18 @@ See: .planning/PROJECT.md (updated 2026-03-16)
 ## Current Position
 
 Phase: 21 of 21 (Clock Styles & Weather) — third of 3 in v0.6.4
-Plan: 1 of 2 complete
-Status: In Progress
-Last activity: 2026-03-17 — Completed 21-01 (clock styles: digital, analog, minimal)
+Plan: 2 of 2 complete
+Status: Complete
+Last activity: 2026-03-17 — Completed 21-02 (weather service + widget)
 
-Progress: [████████░░] 83%
+Progress: [██████████] 100%
 
 ## Performance Metrics
 
 **Velocity:**
-- Total plans completed: 4
-- Average duration: 13min
-- Total execution time: 0.88 hours
+- Total plans completed: 6
+- Average duration: 12min
+- Total execution time: 1.05 hours
 
 **By Phase:**
 
@@ -45,7 +45,7 @@ Progress: [████████░░] 83%
 |-------|-------|-------|----------|
 | 19 | 2/2 | 40min | 20min |
 | 20 | 2/2 | 13min | 6.5min |
-| Phase 21 P01 | 5min | 1 tasks | 2 files |
+| 21 | 2/2 | 14min | 7min |
 
 ## Accumulated Context
 
@@ -71,6 +71,9 @@ Progress: [████████░░] 83%
 - [Phase 20]: Companion status shows disconnected state at any span when CompanionService null or disconnected
 - [Phase 20]: AA focus widget uses root-level opacity 0.4 for not-connected state
 - [Phase 21]: Clock styles use Loader-based Component switching with shared root-level time properties
+- [21-02]: Subscriber list per location stores individual intervals for effective interval computation
+- [21-02]: Single 1-minute timer tick checks per-location intervals (no per-location QTimers)
+- [21-02]: Cache eviction unconditionally protects entries with active subscribers
 
 ### Blockers/Concerns
 
@@ -78,6 +81,6 @@ None yet.
 
 ## Session Continuity
 
-Last session: 2026-03-17T03:17:54.804Z
-Stopped at: Completed 21-01-PLAN.md
+Last session: 2026-03-17T03:20:50Z
+Stopped at: Completed 21-02-PLAN.md — Phase 21 and v0.6.4 milestone complete
 Resume file: None

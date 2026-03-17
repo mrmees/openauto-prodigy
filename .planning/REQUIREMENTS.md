@@ -16,10 +16,10 @@
 
 ## Weather Widget (WX)
 
-- [ ] **WX-01**: Pi fetches current weather conditions via HTTP API using companion GPS location
-- [ ] **WX-02**: Weather widget displays temperature, condition icon, and location name
+- [x] **WX-01**: Pi fetches current weather conditions via HTTP API using companion GPS location
+- [x] **WX-02**: Weather widget displays temperature, condition icon, and location name
 - [ ] **WX-03**: Weather widget displays active weather alerts when present
-- [ ] **WX-04**: Weather data refreshes on a configurable interval (default 30 min)
+- [x] **WX-04**: Weather data refreshes on a configurable interval (default 30 min)
 - [ ] **WX-05**: API key is configured via YAML config (not hardcoded)
 
 ## Battery Widget (BW)
@@ -68,10 +68,10 @@
 | AF-03 | Phase 20 | Complete |
 | CK-01 | Phase 21 | Complete |
 | CK-02 | Phase 21 | Complete |
-| WX-01 | Phase 21 | Pending |
-| WX-02 | Phase 21 | Pending |
+| WX-01 | Phase 21 | Complete |
+| WX-02 | Phase 21 | Complete |
 | WX-03 | Phase 21 | Pending |
-| WX-04 | Phase 21 | Pending |
+| WX-04 | Phase 21 | Complete |
 | WX-05 | Phase 21 | Pending |
 
 **Coverage:**

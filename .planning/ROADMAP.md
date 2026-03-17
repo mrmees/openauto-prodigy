@@ -106,7 +106,7 @@ See .planning/milestones/v0.6.3-ROADMAP.md for archived details.
 
 - [x] **Phase 19: Widget Instance Config** - Per-placement config storage, config UI, and persistence (completed 2026-03-17)
 - [x] **Phase 20: Simple Widgets** - Theme cycle, battery, companion status, and AA focus toggle (completed 2026-03-17)
-- [ ] **Phase 21: Clock Styles & Weather** - Clock visual variants and weather widget with API integration
+- [x] **Phase 21: Clock Styles & Weather** - Clock visual variants and weather widget with API integration (completed 2026-03-17)
 
 ### Phase Details
 
@@ -162,4 +162,4 @@ Phases execute in numeric order: 19 -> 20 -> 21
 |-------|----------------|--------|-----------|
 | 19. Widget Instance Config | 2/2 | Complete    | 2026-03-17 |
 | 20. Simple Widgets | 2/2 | Complete    | 2026-03-17 |
-| 21. Clock Styles & Weather | 1/2 | In Progress|  |
+| 21. Clock Styles & Weather | 2/2 | Complete   | 2026-03-17 |
