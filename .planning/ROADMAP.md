@@ -162,5 +162,5 @@ Phases execute in numeric order: 19 -> 20 -> 21
 | Phase | Plans Complete | Status | Completed |
 |-------|----------------|--------|-----------|
 | 19. Widget Instance Config | 2/2 | Complete    | 2026-03-17 |
-| 20. Simple Widgets | 0/2 | Not started | - |
+| 20. Simple Widgets | 1/2 | In Progress|  |
 | 21. Clock Styles & Weather | 0/2 | Not started | - |

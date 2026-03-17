@@ -11,8 +11,8 @@
 
 ## Theme Cycle Widget (TC)
 
-- [ ] **TC-01**: 1x1 widget that advances to the next theme on tap
-- [ ] **TC-02**: Widget displays current theme name or color preview
+- [x] **TC-01**: 1x1 widget that advances to the next theme on tap
+- [x] **TC-02**: Widget displays current theme name or color preview
 
 ## Weather Widget (WX)
 
@@ -24,7 +24,7 @@
 
 ## Battery Widget (BW)
 
-- [ ] **BW-01**: 1x1 widget displays phone battery level and charging state from companion data
+- [x] **BW-01**: 1x1 widget displays phone battery level and charging state from companion data
 
 ## Clock Styles (CK)
 
@@ -58,9 +58,9 @@
 | WC-01 | Phase 19 | Complete |
 | WC-02 | Phase 19 | Complete |
 | WC-03 | Phase 19 | Complete |
-| TC-01 | Phase 20 | Pending |
-| TC-02 | Phase 20 | Pending |
-| BW-01 | Phase 20 | Pending |
+| TC-01 | Phase 20 | Complete |
+| TC-02 | Phase 20 | Complete |
+| BW-01 | Phase 20 | Complete |
 | CS-01 | Phase 20 | Pending |
 | CS-02 | Phase 20 | Pending |
 | AF-01 | Phase 20 | Pending |
