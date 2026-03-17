@@ -28,8 +28,8 @@
 
 ## Clock Styles (CK)
 
-- [ ] **CK-01**: Clock widget supports at least 3 visual styles (digital, analog, minimal)
-- [ ] **CK-02**: Clock style is selectable per widget instance via the widget config UI
+- [x] **CK-01**: Clock widget supports at least 3 visual styles (digital, analog, minimal)
+- [x] **CK-02**: Clock style is selectable per widget instance via the widget config UI
 
 ## Companion Status Widget (CS)
 
@@ -66,8 +66,8 @@
 | AF-01 | Phase 20 | Complete |
 | AF-02 | Phase 20 | Complete |
 | AF-03 | Phase 20 | Complete |
-| CK-01 | Phase 21 | Pending |
-| CK-02 | Phase 21 | Pending |
+| CK-01 | Phase 21 | Complete |
+| CK-02 | Phase 21 | Complete |
 | WX-01 | Phase 21 | Pending |
 | WX-02 | Phase 21 | Pending |
 | WX-03 | Phase 21 | Pending |
