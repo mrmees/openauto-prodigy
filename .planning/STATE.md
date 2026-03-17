@@ -2,16 +2,16 @@
 gsd_state_version: 1.0
 milestone: v0.6
 milestone_name: milestone
-status: in-progress
-stopped_at: Completed 20-01-PLAN.md
-last_updated: "2026-03-17T01:19:09.620Z"
+status: executing
+stopped_at: Completed 20-02-PLAN.md
+last_updated: "2026-03-17T01:28:17.196Z"
 last_activity: 2026-03-17 — Completed 20-01 (theme cycle + battery widgets)
 progress:
   total_phases: 3
-  completed_phases: 1
+  completed_phases: 2
   total_plans: 4
-  completed_plans: 3
-  percent: 100
+  completed_plans: 4
+  percent: 75
 ---
 
 # Project State
@@ -26,25 +26,25 @@ See: .planning/PROJECT.md (updated 2026-03-16)
 ## Current Position
 
 Phase: 20 of 21 (Simple Widgets) — second of 3 in v0.6.4
-Plan: 1 of 2 complete
-Status: In Progress
-Last activity: 2026-03-17 — Completed 20-01 (theme cycle + battery widgets)
+Plan: 2 of 2 complete
+Status: Complete
+Last activity: 2026-03-17 — Completed 20-02 (companion status + AA focus toggle widgets)
 
-Progress: [████████░░] 75%
+Progress: [██████████] 100%
 
 ## Performance Metrics
 
 **Velocity:**
-- Total plans completed: 3
-- Average duration: 16min
-- Total execution time: 0.78 hours
+- Total plans completed: 4
+- Average duration: 13min
+- Total execution time: 0.88 hours
 
 **By Phase:**
 
 | Phase | Plans | Total | Avg/Plan |
 |-------|-------|-------|----------|
 | 19 | 2/2 | 40min | 20min |
-| 20 | 1/2 | 7min | 7min |
+| 20 | 2/2 | 13min | 6.5min |
 
 ## Accumulated Context
 
@@ -67,6 +67,8 @@ Progress: [████████░░] 75%
 - [20-01]: currentThemeIdChanged emitted from both setTheme() and companion import reload path for complete coverage
 - [20-01]: Battery disconnected state uses battery outline + X overlay rather than battery_alert icon
 - [20-01]: AA focus actions registered in Plan 01 so Plan 02 can use them immediately
+- [Phase 20]: Companion status shows disconnected state at any span when CompanionService null or disconnected
+- [Phase 20]: AA focus widget uses root-level opacity 0.4 for not-connected state
 
 ### Blockers/Concerns
 
@@ -74,6 +76,6 @@ None yet.
 
 ## Session Continuity
 
-Last session: 2026-03-17T01:18:26Z
-Stopped at: Completed 20-01-PLAN.md
-Resume file: .planning/phases/20-simple-widgets/20-02-PLAN.md
+Last session: 2026-03-17T01:28:17.194Z
+Stopped at: Completed 20-02-PLAN.md
+Resume file: None

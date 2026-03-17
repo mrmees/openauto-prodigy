@@ -33,14 +33,14 @@
 
 ## Companion Status Widget (CS)
 
-- [ ] **CS-01**: 1x1 widget shows companion connected/disconnected indicator
-- [ ] **CS-02**: At larger sizes, widget shows GPS, battery, proxy status detail
+- [x] **CS-01**: 1x1 widget shows companion connected/disconnected indicator
+- [x] **CS-02**: At larger sizes, widget shows GPS, battery, proxy status detail
 
 ## AA Focus Toggle (AF)
 
-- [ ] **AF-01**: Widget sends VideoFocusRequest(NATIVE) to pause AA projection on tap
-- [ ] **AF-02**: Widget sends VideoFocusRequest(PROJECTED) to resume AA on tap
-- [ ] **AF-03**: Widget reflects current focus state (native vs projected)
+- [x] **AF-01**: Widget sends VideoFocusRequest(NATIVE) to pause AA projection on tap
+- [x] **AF-02**: Widget sends VideoFocusRequest(PROJECTED) to resume AA on tap
+- [x] **AF-03**: Widget reflects current focus state (native vs projected)
 
 ## Out of Scope
 
@@ -61,11 +61,11 @@
 | TC-01 | Phase 20 | Complete |
 | TC-02 | Phase 20 | Complete |
 | BW-01 | Phase 20 | Complete |
-| CS-01 | Phase 20 | Pending |
-| CS-02 | Phase 20 | Pending |
-| AF-01 | Phase 20 | Pending |
-| AF-02 | Phase 20 | Pending |
-| AF-03 | Phase 20 | Pending |
+| CS-01 | Phase 20 | Complete |
+| CS-02 | Phase 20 | Complete |
+| AF-01 | Phase 20 | Complete |
+| AF-02 | Phase 20 | Complete |
+| AF-03 | Phase 20 | Complete |
 | CK-01 | Phase 21 | Pending |
 | CK-02 | Phase 21 | Pending |
 | WX-01 | Phase 21 | Pending |
