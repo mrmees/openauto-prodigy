@@ -1,5 +1,28 @@
 # Milestones
 
+## v0.6.4 Widget Work (Shipped: 2026-03-17)
+
+**Delivered:** Extended the widget contract with per-instance configuration and shipped 6 new widgets — theme cycle, battery, companion status, AA focus toggle, clock styles, and weather with live Open-Meteo integration.
+
+**Phases completed:** 3 phases (19-21), 6 plans
+
+**Key accomplishments:**
+- Per-instance widget configuration: schema validation, gear icon config sheet in edit mode, YAML persistence surviving restarts and grid remap
+- Theme cycle widget (1x1 tap-to-advance) and phone battery widget (companion data)
+- Companion status widget (1x1 indicator → expanded GPS/battery/proxy detail at larger sizes)
+- AA focus toggle widget (VideoFocusRequest NATIVE/PROJECTED with projection state reflection)
+- Clock widget with 3 visual styles (digital/analog/minimal) selectable per instance via config sheet
+- WeatherService: Open-Meteo HTTP fetch, per-location cache, subscriber-aware refresh timers, GPS via CompanionService
+- WeatherWidget: responsive 3-breakpoint layout (1x1 temp → 2x1 icon+temp → 3x3+ extended with feels-like, humidity, wind, location)
+
+**Stats:** 12 feat/fix commits, 50 files changed (+7,322/-136), 88 unit tests (14 new weather tests) | Timeline: ~5 hours (2026-03-16 → 2026-03-17)
+
+**Known gaps:**
+- WX-03 (weather alerts): Deferred — Open-Meteo alert coverage insufficient
+- WX-05 (API key config): N/A — Open-Meteo requires no API key
+
+---
+
 ## v0.6.3 Proxy Routing Fix (Shipped: 2026-03-16)
 
 **Delivered:** Fixed system service privilege model, IPC security, transparent proxy routing, and status reporting so `set_proxy_route` works end-to-end on real hardware with the companion SOCKS bridge.

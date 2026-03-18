@@ -98,68 +98,13 @@ See .planning/milestones/v0.6.3-ROADMAP.md for archived details.
 
 </details>
 
-## v0.6.4 Widget Work (In Progress)
+<details>
+<summary>v0.6.4 Widget Work (Phases 19-21) - SHIPPED 2026-03-17</summary>
 
-**Milestone Goal:** Expand the widget library with 6 new widgets and extend the widget contract to support per-instance configuration.
+- [x] Phase 19: Widget Instance Config (2/2 plans) -- completed 2026-03-17
+- [x] Phase 20: Simple Widgets (2/2 plans) -- completed 2026-03-17
+- [x] Phase 21: Clock Styles & Weather (2/2 plans) -- completed 2026-03-17
 
-### Phases
+See .planning/milestones/v0.6.4-ROADMAP.md for archived details.
 
-- [x] **Phase 19: Widget Instance Config** - Per-placement config storage, config UI, and persistence (completed 2026-03-17)
-- [x] **Phase 20: Simple Widgets** - Theme cycle, battery, companion status, and AA focus toggle (completed 2026-03-17)
-- [x] **Phase 21: Clock Styles & Weather** - Clock visual variants and weather widget with API integration (completed 2026-03-17)
-
-### Phase Details
-
-#### Phase 19: Widget Instance Config
-**Goal**: Any widget can declare configuration options and users can set them per-placement
-**Depends on**: Nothing (first phase in milestone)
-**Requirements**: WC-01, WC-02, WC-03
-**Success Criteria** (what must be TRUE):
-  1. A widget placement stores key-value config that is independent from other placements of the same widget
-  2. User can open a config sheet from a gear icon in edit mode and change settings
-  3. Widget config survives app restart and grid remap without data loss
-**Plans**: 2 plans
-
-Plans:
-- [ ] 19-01: Per-instance config storage and YAML persistence
-- [ ] 19-02: Widget config sheet UI (gear in edit mode + bottom sheet)
-
-#### Phase 20: Simple Widgets
-**Goal**: Four new utility widgets are available in the widget picker and functional on the home screen
-**Depends on**: Nothing (these widgets do not require per-instance config)
-**Requirements**: TC-01, TC-02, BW-01, CS-01, CS-02, AF-01, AF-02, AF-03
-**Success Criteria** (what must be TRUE):
-  1. Tapping the theme cycle widget advances to the next theme and the UI updates immediately
-  2. Battery widget displays the phone's current battery level and charging state from companion data
-  3. Companion status widget shows connected/disconnected at 1x1 and GPS/battery/proxy detail at larger sizes
-  4. AA focus toggle widget pauses and resumes AA projection on tap, reflecting current focus state
-**Plans**: 2 plans
-
-Plans:
-- [ ] 20-01-PLAN.md — C++ API extensions + theme cycle + battery widgets
-- [ ] 20-02-PLAN.md — Companion status + AA focus toggle widgets
-
-#### Phase 21: Clock Styles & Weather
-**Goal**: Clock widget supports 3 visual styles (digital/analog/minimal) and a new weather widget displays live conditions from Open-Meteo using companion GPS
-**Depends on**: Phase 19 (both use per-instance config for style/settings selection)
-**Requirements**: CK-01, CK-02, WX-01, WX-02, WX-03, WX-04, WX-05
-**Success Criteria** (what must be TRUE):
-  1. Clock widget offers 3 distinct visual styles (digital, analog, minimal) selectable per instance via config UI
-  2. Weather widget displays current temperature, condition icon, and location name using companion GPS coordinates
-  3. Weather data refreshes automatically on a configurable interval (default 5 min)
-**Plans**: 2 plans
-
-Plans:
-- [ ] 21-01-PLAN.md — Clock style variants (digital/analog/minimal) with per-instance config selection
-- [ ] 21-02-PLAN.md — WeatherService C++ + WeatherWidget QML with Open-Meteo integration
-
-## Progress
-
-**Execution Order:**
-Phases execute in numeric order: 19 -> 20 -> 21
-
-| Phase | Plans Complete | Status | Completed |
-|-------|----------------|--------|-----------|
-| 19. Widget Instance Config | 2/2 | Complete    | 2026-03-17 |
-| 20. Simple Widgets | 2/2 | Complete    | 2026-03-17 |
-| 21. Clock Styles & Weather | 2/2 | Complete    | 2026-03-17 |
+</details>

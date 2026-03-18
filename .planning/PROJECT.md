@@ -109,18 +109,20 @@ A person with a Raspberry Pi 4 and a touchscreen can install this, pair their ph
 - ✓ Proxy rule application is idempotent (flush/recreate model, startup self-heal) — v0.6.3
 - ✓ End-to-end hardware validation of companion SOCKS proxy traversal — v0.6.3
 - ✓ 140 Python + 87 C++ tests covering core systems (all passing) — v0.6.3
+- ✓ Per-widget instance configuration with schema validation, gear icon config sheet, YAML persistence — v0.6.4
+- ✓ Theme cycle widget (1x1, tap advances to next theme with name display) — v0.6.4
+- ✓ Phone battery status widget (1x1, companion data with charging indicator) — v0.6.4
+- ✓ Companion status widget (1x1 connected/disconnected, expanded GPS/battery/proxy at 2x1+) — v0.6.4
+- ✓ AA focus toggle widget (VideoFocusRequest NATIVE/PROJECTED with state reflection) — v0.6.4
+- ✓ Clock style variants (digital, analog, minimal — per-instance selection via config sheet) — v0.6.4
+- ✓ Weather widget with Open-Meteo API, companion GPS, subscriber-aware caching, responsive breakpoints — v0.6.4
+- ✓ 88 unit tests covering core systems (all passing) — v0.6.4
 
 ### Active
 
 <!-- Current scope. Building toward these. -->
 
-- [ ] Per-widget instance configuration (style/settings stored per placement, not global)
-- [ ] Theme cycle widget (1x1, tap advances to next theme)
-- [ ] Weather widget with GPS-based location via companion proxy (current conditions + alerts)
-- [ ] Phone battery status widget (1x1, reads companion battery data)
-- [ ] Clock style variants (analog, digital, minimal — per-instance selection)
-- [ ] Companion status widget (1x1 connected indicator, expanded detail at larger sizes)
-- [ ] AA native/projected focus toggle widget (VideoFocusRequest NATIVE/PROJECTED)
+(No active milestone — next milestone TBD)
 
 ### Backlog
 
@@ -152,7 +154,7 @@ A person with a Raspberry Pi 4 and a touchscreen can install this, pair their ph
 
 OpenAuto Pro (BlueWave Studio) was a commercial Pi-based AA head unit that went defunct. This project is a clean-room rebuild — no OAP code, no aasdk dependency. The protocol library (`open-android-auto`) is maintained as a separate community resource.
 
-v0.4 shipped logging and theming. v0.4.1 shipped 10-band graphic EQ with per-stream profiles. v0.4.2 shipped service hardening — WiFi AP, Bluetooth SDP, systemd ordering, and clean shutdown all work reliably without manual intervention. v0.4.3 shipped full UI refresh — automotive-minimal styling, 6-category settings, EQ dual-access, shell polish. v0.4.4 shipped resolution independence — unclamped dual-axis UiMetrics, full QML tokenization (zero hardcoded pixels), container-derived grid layouts, runtime auto-detection, and --geometry validation tooling. v0.4.5 shipped navbar rework — zone-based evdev touch routing, 3-control navbar with multi-gesture actions and edge positioning, navbar-aware AA viewport margins, gesture overlay touch fix, and dead UI cleanup (TopBar, NavStrip, sidebar removed). v0.5.0 shipped protocol compliance — proto submodule v1.0, navigation turn events, voice session commands, BT auth exchange, haptic feedback, retracted dead code cleanup after v1.2 proto verification, library renamed to prodigy-oaa-protocol. v0.5.1 shipped DPI sizing & UI polish — EDID-based DPI scaling, scale stepper, clock readability, full 34-role M3 color system, companion theme import, AA rendering fix, navbar status bar cleanup, M3 button components with visual depth effects. v0.5.2 shipped widget system & UI polish — 3-pane home screen with launcher dock and built-in widgets, settings reorganized into 9 categories with touch normalization and automotive-readable font sizes. v0.5.3 shipped widget grid & content widgets — Android-style freeform grid with drag/resize/multi-page, AA navigation turn-by-turn widget, unified now playing widget with AA/BT source priority. v0.6 shipped architecture formalization — typed provider interfaces, core-owned services, legacy Configuration removal, SettingsInputBoundary for settings touch input, 82 unit tests. v0.6.1 shipped widget framework refinement — WidgetDescriptor with size constraints and categories, DPI-based grid sizing with auto-snap, launcher dock replaced by singleton widgets, formalized widget contract (span-based breakpoints, context injection, ActionRegistry egress), all 6 widgets rewritten, developer guide and 15 ADRs, 85 unit tests all passing. v0.6.2 shipped theme expression & wallpaper scaling — wallpaper memory/render hardening, companion reconnect fix, theme persistence, M3 color audit with night comfort guardrail, 9 companion-created themes promoted to bundled defaults with Prodigy as first-install identity, FullScreenPicker GPU fix. v0.6.3 shipped proxy routing fix — root daemon with restricted IPC socket, idempotent iptables routing with self-exemption via dedicated redsocks user, truthful ACTIVE/FAILED/DEGRADED status reporting, startup self-heal, end-to-end hardware validation proving companion SOCKS bridge traversal. Codebase is ~56K LOC C++/QML + ~2K LOC Python system service.
+v0.4 shipped logging and theming. v0.4.1 shipped 10-band graphic EQ with per-stream profiles. v0.4.2 shipped service hardening — WiFi AP, Bluetooth SDP, systemd ordering, and clean shutdown all work reliably without manual intervention. v0.4.3 shipped full UI refresh — automotive-minimal styling, 6-category settings, EQ dual-access, shell polish. v0.4.4 shipped resolution independence — unclamped dual-axis UiMetrics, full QML tokenization (zero hardcoded pixels), container-derived grid layouts, runtime auto-detection, and --geometry validation tooling. v0.4.5 shipped navbar rework — zone-based evdev touch routing, 3-control navbar with multi-gesture actions and edge positioning, navbar-aware AA viewport margins, gesture overlay touch fix, and dead UI cleanup (TopBar, NavStrip, sidebar removed). v0.5.0 shipped protocol compliance — proto submodule v1.0, navigation turn events, voice session commands, BT auth exchange, haptic feedback, retracted dead code cleanup after v1.2 proto verification, library renamed to prodigy-oaa-protocol. v0.5.1 shipped DPI sizing & UI polish — EDID-based DPI scaling, scale stepper, clock readability, full 34-role M3 color system, companion theme import, AA rendering fix, navbar status bar cleanup, M3 button components with visual depth effects. v0.5.2 shipped widget system & UI polish — 3-pane home screen with launcher dock and built-in widgets, settings reorganized into 9 categories with touch normalization and automotive-readable font sizes. v0.5.3 shipped widget grid & content widgets — Android-style freeform grid with drag/resize/multi-page, AA navigation turn-by-turn widget, unified now playing widget with AA/BT source priority. v0.6 shipped architecture formalization — typed provider interfaces, core-owned services, legacy Configuration removal, SettingsInputBoundary for settings touch input, 82 unit tests. v0.6.1 shipped widget framework refinement — WidgetDescriptor with size constraints and categories, DPI-based grid sizing with auto-snap, launcher dock replaced by singleton widgets, formalized widget contract (span-based breakpoints, context injection, ActionRegistry egress), all 6 widgets rewritten, developer guide and 15 ADRs, 85 unit tests all passing. v0.6.2 shipped theme expression & wallpaper scaling — wallpaper memory/render hardening, companion reconnect fix, theme persistence, M3 color audit with night comfort guardrail, 9 companion-created themes promoted to bundled defaults with Prodigy as first-install identity, FullScreenPicker GPU fix. v0.6.3 shipped proxy routing fix — root daemon with restricted IPC socket, idempotent iptables routing with self-exemption via dedicated redsocks user, truthful ACTIVE/FAILED/DEGRADED status reporting, startup self-heal, end-to-end hardware validation proving companion SOCKS bridge traversal. v0.6.4 shipped widget work — per-instance widget configuration with schema-driven config sheets, 6 new widgets (theme cycle, battery, companion status, AA focus toggle, clock styles, weather), WeatherService with Open-Meteo integration and subscriber-aware caching. Codebase is ~56K LOC C++/QML + ~2K LOC Python system service, 88 unit tests.
 
 ## Constraints
 
@@ -237,23 +239,12 @@ v0.4 shipped logging and theming. v0.4.1 shipped 10-band graphic EQ with per-str
 | Local failure = immediate FAILED (no threshold) | Thresholds make sense for noisy remote probes, not local listener checks | ✓ Good |
 | IPv6-mapped address stripping in IPC validator | Qt dual-stack peerAddress() returns ::ffff: prefix that breaks redsocks config | ✓ Good |
 | skip_interfaces ["lo"] only (not ["lo", "eth0"]) | eth0 is default route — exempting it bypasses all REDIRECT rules | ✓ Good |
+| Schema validation drops unknown keys silently | Defaults fill gaps via effectiveConfig merge — strict rejection would break forward compat | ✓ Good |
+| Config schema exposed as QVariantList (not model) | Avoids dead-weight C++ QAbstractListModel for a one-shot config sheet UI | ✓ Good |
+| Subscriber list per location stores individual intervals | Enables effective interval computation (shortest among active subscribers) | ✓ Good |
+| Single 1-minute timer tick for weather refresh | Avoids per-location QTimers; tick checks per-location intervals | ✓ Good |
+| Open-Meteo (no API key) over OpenWeatherMap | Free, no signup, sufficient for current conditions — alerts deferred | ✓ Good |
+| Clock styles via Loader Component switching | Shared root-level time properties, clean separation of style rendering | ✓ Good |
 
 ---
-## Current Milestone: v0.6.4 Widget Work
-
-**Goal:** Expand the widget library with 6 new widgets and extend the widget contract to support per-instance configuration.
-
-**Target features:**
-- Per-widget instance config (style selection, settings per placement)
-- Theme cycle widget (1x1 quick theme switcher for fresh installs)
-- Weather widget (GPS-based, fetched via companion proxy, conditions + alerts)
-- Phone battery status widget (companion data)
-- Clock style variants (analog/digital/minimal, per-instance)
-- Companion status widget (connected indicator → expanded detail)
-- AA focus toggle widget (native/projected via VideoFocusRequest)
-
----
-*Last updated: 2026-03-16 after v0.6.4 milestone start*
-
----
-*Last updated: 2026-03-16 after v0.6.3 milestone start*
+*Last updated: 2026-03-17 after v0.6.4 milestone*

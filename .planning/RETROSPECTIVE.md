@@ -1,5 +1,47 @@
 # Retrospective
 
+## Milestone: v0.6.4 — Widget Work
+
+**Shipped:** 2026-03-17
+**Phases:** 3 (19-21) | **Plans:** 6 | ~5 hours
+
+### What Was Built
+- Per-instance widget configuration: ConfigSchemaField types (Enum, Bool, IntRange), schema validation, gear icon config sheet, YAML persistence with remap survival
+- Four utility widgets: theme cycle (tap-to-advance), battery (companion data), companion status (1x1→expanded), AA focus toggle (projection state control)
+- Clock widget restructured with 3 visual styles (digital/analog/minimal) via Loader Component switching, per-instance style selection
+- WeatherService: Open-Meteo HTTP fetch, coordinate-rounded per-location cache, subscriber-aware refresh timer (shortest interval wins), safe cache eviction protecting subscribed entries
+- WeatherWidget: 3 responsive breakpoints (1x1 temp → 2x1 icon+temp → 3x3+ extended), GPS lifecycle via CompanionService.gpsStale
+
+### What Worked
+- Parallel wave execution: both Phase 21 plans ran simultaneously (~7min each vs sequential ~14min)
+- Code review (Codex) caught the refresh interval resubscription bug — changing interval in config sheet wouldn't take effect until page hide/show cycle. One-line fix.
+- Phase ordering (config infrastructure → simple widgets → config-dependent widgets) meant Phase 20 widgets were functional without waiting for Phase 19
+- 14 new weather service unit tests caught cache eviction edge cases during implementation — subscriber-protected entries were being evicted by auto-cleanup in getWeatherData()
+
+### What Was Inefficient
+- SUMMARY.md files had no `one_liner` frontmatter field — milestone completion had to derive accomplishments from commit messages and plan objectives
+- Phase 21 weather plan needed 5 rounds of checker revision (subscriber lifecycle, safe eviction, gpsStale, test seams, interval tracking) before execution — the plan was ambitious for what is effectively a data-fetching service
+- CompanionStatusWidget GPS row uses `lat !== 0` check instead of gpsStale — inconsistent with WeatherWidget's correct approach. Should have been caught during plan review, not integration check
+
+### Patterns Established
+- ConfigSchemaField types (Enum, Bool, IntRange) as the widget config vocabulary — extensible without changing the sheet renderer
+- Subscriber-aware service refresh: service tracks per-location subscriber intervals, uses shortest, skips zero-subscriber locations
+- Weather cache eviction protects subscribed entries unconditionally — stale data for active widgets is better than no data
+- Loader Component switching for widget style variants — shared root properties, clean style isolation
+
+### Key Lessons
+1. Config sheet resubscription is easy to miss — any service with per-instance config that affects a subscription must resubscribe on config change, not just on visibility/location changes
+2. Plan checker iterations are expensive but worthwhile — the 5 rounds on weather prevented implementation-time rework on subscriber lifecycle and cache eviction
+3. Parallel plan execution within a wave is a real time saver — two independent plans completing in ~7min vs ~14min sequential
+4. GPS availability detection should use a single canonical signal (gpsStale) project-wide — multiple widgets checking lat/lon !== 0 vs gpsStale creates inconsistency
+
+### Cost Observations
+- Model mix: 100% opus for executors, sonnet for verifier + integration checker
+- Sessions: 1
+- Notable: Entire milestone (3 phases, 6 plans) in a single session, ~5 hours wall clock
+
+---
+
 ## Milestone: v0.6.3 — Proxy Routing Fix
 
 **Shipped:** 2026-03-16
