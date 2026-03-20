@@ -122,7 +122,9 @@ A person with a Raspberry Pi 4 and a touchscreen can install this, pair their ph
 
 <!-- Current scope. Building toward these. -->
 
-(No active milestone — next milestone TBD)
+- [ ] Visual refinement pass on all 9 widgets across target displays
+- [ ] Standalone date widget (split from clock)
+- [ ] Clock widget becomes time-only (all 3 styles)
 
 ### Backlog
 
@@ -247,4 +249,15 @@ v0.4 shipped logging and theming. v0.4.1 shipped 10-band graphic EQ with per-str
 | Clock styles via Loader Component switching | Shared root-level time properties, clean separation of style rendering | ✓ Good |
 
 ---
-*Last updated: 2026-03-17 after v0.6.4 milestone*
+## Current Milestone: v0.6.5 Widget Refinement
+
+**Goal:** Polish all existing widgets via live preview iteration, split date into its own widget, and verify on Pi hardware.
+
+**Target features:**
+- Visual refinement of all 9 widgets at every valid span on both target displays
+- Standalone date widget with responsive breakpoints
+- Clock widget simplified to time-only (all 3 styles)
+- Final hardware verification on Pi
+
+---
+*Last updated: 2026-03-20 after v0.6.5 milestone start*
