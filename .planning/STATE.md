@@ -1,15 +1,15 @@
 ---
 gsd_state_version: 1.0
-milestone: v0.6.5
-milestone_name: Widget Refinement
-status: active
-stopped_at: null
-last_updated: "2026-03-20"
-last_activity: 2026-03-20 — Roadmap created (3 phases, 10 requirements)
+milestone: v0.6
+milestone_name: milestone
+status: planning
+stopped_at: Phase 22 context gathered
+last_updated: "2026-03-20T23:39:15.139Z"
+last_activity: 2026-03-20 — Roadmap created
 progress:
   total_phases: 3
   completed_phases: 0
-  total_plans: 4
+  total_plans: 0
   completed_plans: 0
   percent: 0
 ---
@@ -64,6 +64,6 @@ None yet.
 
 ## Session Continuity
 
-Last session: 2026-03-20
-Stopped at: Roadmap created, ready to plan Phase 22
-Resume file: None
+Last session: 2026-03-20T23:39:15.136Z
+Stopped at: Phase 22 context gathered
+Resume file: .planning/phases/22-date-widget-clock-cleanup/22-CONTEXT.md
