@@ -108,3 +108,67 @@ See .planning/milestones/v0.6.3-ROADMAP.md for archived details.
 See .planning/milestones/v0.6.4-ROADMAP.md for archived details.
 
 </details>
+
+## v0.6.5 Widget Refinement (In Progress)
+
+**Milestone Goal:** Polish all existing widgets via live preview iteration, split date into its own widget, simplify clock to time-only, and verify on Pi hardware.
+
+## Phases
+
+- [ ] **Phase 22: Date Widget & Clock Cleanup** - Create standalone date widget, strip date from clock widget
+- [ ] **Phase 23: Widget Visual Refinement** - Live preview review of all widgets across both target displays
+- [ ] **Phase 24: Hardware Verification** - Deploy and verify all widgets on Pi hardware
+
+## Phase Details
+
+### Phase 22: Date Widget & Clock Cleanup
+**Goal**: Users have a dedicated date widget and a simplified time-only clock widget
+**Depends on**: Nothing (first phase of milestone)
+**Requirements**: DT-01, DT-02, DT-03, CL-01, CL-02
+**Success Criteria** (what must be TRUE):
+  1. A standalone date widget appears in the widget picker with appropriate icon and metadata
+  2. The date widget shows day-of-week and date, with compact layout at 1x1 and more detail at larger spans
+  3. The clock widget (digital, analog, minimal styles) shows only time at every span -- no date or day-of-week
+  4. Clock widget layouts fill available space with time display -- no empty gaps where date used to be
+**Plans**: TBD
+
+Plans:
+- [ ] 22-01: TBD
+- [ ] 22-02: TBD
+
+### Phase 23: Widget Visual Refinement
+**Goal**: Every widget looks correct and legible at every valid span on both target displays
+**Depends on**: Phase 22
+**Requirements**: WR-01, WR-02, WR-03, WR-04
+**Success Criteria** (what must be TRUE):
+  1. Every widget renders without clipping, overflow, or misalignment at all valid span combinations on 1024x600
+  2. Every widget renders without clipping, overflow, or misalignment at all valid span combinations on 800x480
+  3. Widget text and icons are legible at 1x1 minimum span on both displays
+  4. All user-identified visual issues from the preview session are resolved
+**Plans**: TBD
+
+Plans:
+- [ ] 23-01: TBD
+
+### Phase 24: Hardware Verification
+**Goal**: All widget changes verified working on real Pi hardware
+**Depends on**: Phase 23
+**Requirements**: HW-01
+**Success Criteria** (what must be TRUE):
+  1. All widgets display correctly on Pi 4 with DFRobot 1024x600 touchscreen
+  2. Widget touch interactions (config sheets, edit mode drag/resize, tap actions) still work after QML changes
+**Plans**: TBD
+
+Plans:
+- [ ] 24-01: TBD
+
+## Progress
+
+**Execution Order:**
+Phases execute in numeric order: 22 -> 23 -> 24
+
+| Phase | Plans Complete | Status | Completed |
+|-------|----------------|--------|-----------|
+| 22. Date Widget & Clock Cleanup | 0/2 | Not started | - |
+| 23. Widget Visual Refinement | 0/1 | Not started | - |
+| 24. Hardware Verification | 0/1 | Not started | - |

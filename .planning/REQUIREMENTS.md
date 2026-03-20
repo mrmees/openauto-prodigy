@@ -37,21 +37,21 @@
 
 | Requirement | Phase | Status |
 |-------------|-------|--------|
-| WR-01 | TBD | Pending |
-| WR-02 | TBD | Pending |
-| WR-03 | TBD | Pending |
-| WR-04 | TBD | Pending |
-| DT-01 | TBD | Pending |
-| DT-02 | TBD | Pending |
-| DT-03 | TBD | Pending |
-| CL-01 | TBD | Pending |
-| CL-02 | TBD | Pending |
-| HW-01 | TBD | Pending |
+| WR-01 | Phase 23 | Pending |
+| WR-02 | Phase 23 | Pending |
+| WR-03 | Phase 23 | Pending |
+| WR-04 | Phase 23 | Pending |
+| DT-01 | Phase 22 | Pending |
+| DT-02 | Phase 22 | Pending |
+| DT-03 | Phase 22 | Pending |
+| CL-01 | Phase 22 | Pending |
+| CL-02 | Phase 22 | Pending |
+| HW-01 | Phase 24 | Pending |
 
 **Coverage:**
 - v0.6.5 requirements: 10 total
-- Mapped to phases: 0
-- Unmapped: 10
+- Mapped to phases: 10
+- Unmapped: 0
 
 ---
 *Requirements defined: 2026-03-20*
