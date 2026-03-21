@@ -507,6 +507,26 @@ int main(int argc, char *argv[])
         };
         widgetRegistry->registerWidget(clockDesc);
 
+        oap::WidgetDescriptor dateDesc;
+        dateDesc.id = "org.openauto.date";
+        dateDesc.displayName = "Date";
+        dateDesc.iconName = "\ue916";  // calendar_today
+        dateDesc.category = "status";
+        dateDesc.description = "Day and date display";
+        dateDesc.minCols = 1; dateDesc.minRows = 1;
+        dateDesc.maxCols = 6; dateDesc.maxRows = 4;
+        dateDesc.defaultCols = 2; dateDesc.defaultRows = 1;
+        dateDesc.qmlComponent = QUrl("qrc:/OpenAutoProdigy/DateWidget.qml");
+        dateDesc.defaultConfig = {{"dateOrder", "us"}};
+        dateDesc.configSchema = {
+            oap::ConfigSchemaField{
+                "dateOrder", "Date Order", oap::ConfigFieldType::Enum,
+                {"US (March 20)", "International (20 March)"}, {"us", "intl"},
+                0, 0, 0
+            }
+        };
+        widgetRegistry->registerWidget(dateDesc);
+
         oap::WidgetDescriptor aaStatusDesc;
         aaStatusDesc.id = "org.openauto.aa-status";
         aaStatusDesc.displayName = "Android Auto";
