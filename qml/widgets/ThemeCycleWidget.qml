@@ -16,24 +16,26 @@ Item {
         : ThemeService.currentThemeId
 
     ColumnLayout {
-        anchors.centerIn: parent
+        anchors.fill: parent
+        anchors.margins: UiMetrics.spacing
         spacing: UiMetrics.spacing * 0.5
 
         MaterialIcon {
             icon: "\ue40a"  // palette
-            size: UiMetrics.iconSize * 2
+            size: Math.min(parent.width, parent.height) * 0.55
             color: ThemeService.primary  // live preview of active theme
             Layout.alignment: Qt.AlignHCenter
+            Layout.fillHeight: true
         }
 
         NormalText {
             text: themeCycleWidget.themeName
-            font.pixelSize: UiMetrics.fontSmall
+            font.pixelSize: Math.min(parent.width, parent.height) * 0.2
+            font.weight: Font.Bold
             fontSizeMode: Text.Fit
-            minimumPixelSize: UiMetrics.fontSmall * 0.7
+            minimumPixelSize: UiMetrics.fontSmall
             color: ThemeService.onSurface
             Layout.fillWidth: true
-            Layout.maximumWidth: themeCycleWidget.width - UiMetrics.spacing * 2
             horizontalAlignment: Text.AlignHCenter
             elide: Text.ElideRight
             maximumLineCount: 1

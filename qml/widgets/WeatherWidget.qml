@@ -15,8 +15,12 @@ Item {
     readonly property string tempUnit: currentEffectiveConfig.unit || "fahrenheit"
     readonly property string refreshInterval: currentEffectiveConfig.refresh || "5"
 
-    // Breakpoints
-    readonly property bool showIcon: colSpan >= 2 || rowSpan >= 2
+    // Breakpoints (column-driven)
+    readonly property bool showIcon: colSpan >= 2
+    readonly property bool showCity: colSpan >= 3
+    readonly property bool showWind: colSpan >= 4
+    readonly property bool showHumidity: colSpan >= 5
+    readonly property bool showFeelsLike: colSpan >= 6
     readonly property bool showExtended: colSpan >= 3 && rowSpan >= 3
 
     // GPS + companion state (null-safe)
@@ -38,24 +42,24 @@ Item {
     property double subscribedLon: NaN
     property int subscribedInterval: 5
 
-    // Temperature conversion
+    // Temperature conversion (no unit suffix — user knows what they selected)
     function displayTemp(tempC) {
-        if (tempUnit === "celsius") return Math.round(tempC) + "\u00B0C"
-        return Math.round(tempC * 9/5 + 32) + "\u00B0F"
+        if (tempUnit === "celsius") return Math.round(tempC) + "\u00B0"
+        return Math.round(tempC * 9/5 + 32) + "\u00B0"
     }
 
-    // WMO weather code to MaterialIcon mapping
+    // WMO weather code to MaterialIcon mapping (Material Symbols Outlined codepoints)
     function weatherIcon(code, isDay) {
-        if (code === 0) return isDay ? "\ue81a" : "\uf159"  // wb_sunny / dark_mode
-        if (code <= 2) return isDay ? "\ue42d" : "\uf172"   // wb_cloudy / nights_stay
-        if (code === 3) return "\ue42d"                       // cloud
+        if (code === 0) return isDay ? "\ue81a" : "\uf159"  // sunny / bedtime
+        if (code <= 2) return isDay ? "\uf15c" : "\uf174"   // cloud / partly_cloudy_night
+        if (code === 3) return "\uf15c"                       // cloud
         if (code === 45 || code === 48) return "\ue818"       // foggy
         if (code >= 51 && code <= 67) return "\uf176"         // rainy
-        if (code >= 71 && code <= 77) return "\ue80f"         // ac_unit
+        if (code >= 71 && code <= 77) return "\ued5b"         // snowflake
         if (code >= 80 && code <= 82) return "\uf176"         // rainy
-        if (code >= 85 && code <= 86) return "\ue80f"         // ac_unit
-        if (code >= 95) return "\ue31d"                       // thunderstorm
-        return "\ue42d"                                        // cloud fallback
+        if (code >= 85 && code <= 86) return "\ued5b"         // snowflake
+        if (code >= 95) return "\uebdb"                       // thunderstorm
+        return "\uf15c"                                        // cloud fallback
     }
 
     // WMO code to human-readable text
@@ -143,21 +147,22 @@ Item {
         color: weatherWidget.hasGps ? ThemeService.onSurface : ThemeService.onSurfaceVariant
     }
 
-    // --- 2x1 / 2x2 medium: icon + temperature ---
+    // --- 2+ cols, single/double row: progressive horizontal layout ---
     RowLayout {
-        anchors.centerIn: parent
+        anchors.fill: parent
+        anchors.margins: UiMetrics.spacing
         spacing: UiMetrics.spacing
         visible: weatherWidget.showIcon && !weatherWidget.showExtended
 
         MaterialIcon {
             icon: {
-                if (!weatherWidget.hasGps) return "\ue1b7"  // location_off
+                if (!weatherWidget.hasGps) return "\ue0c7"  // location_off
                 if (weatherWidget.hasData)
                     return weatherWidget.weatherIcon(weatherWidget.weatherData.weatherCode,
                                                      weatherWidget.weatherData.isDay)
                 return "\ue818"  // foggy (placeholder)
             }
-            size: UiMetrics.iconSize * 2
+            size: UiMetrics.iconSize * (weatherWidget.rowSpan >= 2 ? 2.5 : 1.5)
             color: weatherWidget.hasGps ? ThemeService.onSurface : ThemeService.onSurfaceVariant
         }
 
@@ -167,8 +172,93 @@ Item {
                 if (weatherWidget.hasData) return weatherWidget.displayTemp(weatherWidget.weatherData.tempC)
                 return "--\u00B0"
             }
-            font.pixelSize: UiMetrics.fontHeading * 1.5
+            font.pixelSize: parent.height * 0.6
+            font.weight: Font.Bold
+            fontSizeMode: Text.Fit
+            minimumPixelSize: UiMetrics.fontHeading
             color: weatherWidget.hasGps ? ThemeService.onSurface : ThemeService.onSurfaceVariant
+        }
+
+        // City name (3+ cols)
+        NormalText {
+            visible: weatherWidget.showCity && weatherWidget.hasData
+            text: weatherWidget.hasData ? weatherWidget.weatherData.locationName : ""
+            font.pixelSize: UiMetrics.fontTitle
+            color: ThemeService.onSurfaceVariant
+            Layout.fillWidth: true
+            elide: Text.ElideRight
+        }
+
+        // Separator before wind
+        NormalText {
+            visible: weatherWidget.showWind && weatherWidget.hasData
+            text: "-"
+            font.pixelSize: UiMetrics.fontTitle
+            color: ThemeService.onSurfaceVariant
+        }
+
+        // Wind (4+ cols) + air icon
+        NormalText {
+            visible: weatherWidget.showWind && weatherWidget.hasData
+            text: weatherWidget.hasData
+                  ? Math.round(weatherWidget.weatherData.windSpeedKph) + " km/h"
+                  : ""
+            font.pixelSize: UiMetrics.fontTitle
+            color: ThemeService.onSurfaceVariant
+        }
+        MaterialIcon {
+            visible: weatherWidget.showWind && weatherWidget.hasData
+            icon: "\uefd8"  // air
+            size: UiMetrics.fontTitle
+            color: ThemeService.onSurfaceVariant
+        }
+
+        // Separator before humidity
+        NormalText {
+            visible: weatherWidget.showHumidity && weatherWidget.hasData
+            text: "-"
+            font.pixelSize: UiMetrics.fontTitle
+            color: ThemeService.onSurfaceVariant
+        }
+
+        // Humidity (5+ cols) + water drop icon
+        NormalText {
+            visible: weatherWidget.showHumidity && weatherWidget.hasData
+            text: weatherWidget.hasData
+                  ? Math.round(weatherWidget.weatherData.humidity) + "%"
+                  : ""
+            font.pixelSize: UiMetrics.fontTitle
+            color: ThemeService.onSurfaceVariant
+        }
+        MaterialIcon {
+            visible: weatherWidget.showHumidity && weatherWidget.hasData
+            icon: "\ue798"  // water_drop
+            size: UiMetrics.fontTitle
+            color: ThemeService.onSurfaceVariant
+        }
+
+        // Separator before feels like
+        NormalText {
+            visible: weatherWidget.showFeelsLike && weatherWidget.hasData
+            text: "-"
+            font.pixelSize: UiMetrics.fontTitle
+            color: ThemeService.onSurfaceVariant
+        }
+
+        // Feels like (6+ cols) — heat icon + temp
+        MaterialIcon {
+            visible: weatherWidget.showFeelsLike && weatherWidget.hasData
+            icon: "\uf537"  // heat
+            size: UiMetrics.fontTitle
+            color: ThemeService.onSurfaceVariant
+        }
+        NormalText {
+            visible: weatherWidget.showFeelsLike && weatherWidget.hasData
+            text: weatherWidget.hasData
+                  ? weatherWidget.displayTemp(weatherWidget.weatherData.feelsLikeC)
+                  : ""
+            font.pixelSize: UiMetrics.fontTitle
+            color: ThemeService.onSurfaceVariant
         }
     }
 
@@ -186,7 +276,7 @@ Item {
 
             MaterialIcon {
                 icon: {
-                    if (!weatherWidget.hasGps) return "\ue1b7"  // location_off
+                    if (!weatherWidget.hasGps) return "\ue0c7"  // location_off
                     if (weatherWidget.hasData)
                         return weatherWidget.weatherIcon(weatherWidget.weatherData.weatherCode,
                                                          weatherWidget.weatherData.isDay)

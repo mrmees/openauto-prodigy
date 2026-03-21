@@ -20,19 +20,27 @@ Item {
     readonly property string timeFormat: currentEffectiveConfig.format || "24h"
     readonly property string clockStyle: currentEffectiveConfig.style || "digital"
 
-    // Time property updated by the root-level Timer
+    // Time property updated by timer and format changes
     property string currentTime: ""
+
+    function updateTime() {
+        var now = new Date()
+        if (timeFormat === "12h") {
+            // Qt requires AP in format to get 12h — strip it from the result
+            currentTime = now.toLocaleTimeString(Qt.locale(), "h:mm AP").replace(/ [AP]M$/i, "")
+        } else {
+            currentTime = now.toLocaleTimeString(Qt.locale(), "HH:mm")
+        }
+    }
+
+    onTimeFormatChanged: updateTime()
 
     Timer {
         interval: 1000
         running: clockWidget.isCurrentPage
         repeat: true
         triggeredOnStart: true
-        onTriggered: {
-            var now = new Date()
-            var timeFmt = (clockWidget.timeFormat === "12h") ? "h:mm AP" : "HH:mm"
-            clockWidget.currentTime = now.toLocaleTimeString(Qt.locale(), timeFmt)
-        }
+        onTriggered: clockWidget.updateTime()
     }
 
     Loader {
@@ -40,31 +48,25 @@ Item {
         sourceComponent: {
             switch (clockWidget.clockStyle) {
                 case "analog": return analogComponent
-                case "minimal": return minimalComponent
                 default: return digitalComponent
             }
         }
     }
 
-    // --- Digital style: time-only display ---
+    // --- Digital style: time-only display, bold, centered with padding ---
     Component {
         id: digitalComponent
-        ColumnLayout {
-            anchors.centerIn: parent
-            width: parent.width - UiMetrics.spacing * 2
-            spacing: 0
-
-            NormalText {
-                text: clockWidget.currentTime
-                font.pixelSize: UiMetrics.fontHeading * 2.5
-                font.weight: Font.Light
-                fontSizeMode: Text.Fit
-                minimumPixelSize: UiMetrics.fontHeading
-                color: ThemeService.onSurface
-                Layout.fillWidth: true
-                Layout.fillHeight: true
-                horizontalAlignment: Text.AlignHCenter
-            }
+        NormalText {
+            anchors.fill: parent
+            anchors.margins: UiMetrics.spacing
+            text: clockWidget.currentTime
+            font.pixelSize: height * 0.8
+            font.weight: Font.Bold
+            fontSizeMode: Text.Fit
+            minimumPixelSize: UiMetrics.fontHeading
+            color: ThemeService.onSurface
+            horizontalAlignment: Text.AlignHCenter
+            verticalAlignment: Text.AlignVCenter
         }
     }
 
@@ -81,7 +83,7 @@ Item {
             MaterialIcon {
                 anchors.centerIn: parent
                 visible: !parent.fullSize
-                icon: "\ue5c9"  // open_in_full
+                icon: "\uf1ce"  // open_in_full
                 font.pixelSize: UiMetrics.fontHeading * 1.5
                 color: ThemeService.onSurfaceVariant
             }
@@ -131,26 +133,20 @@ Item {
                         var now = new Date()
                         var hours = now.getHours() % 12
                         var minutes = now.getMinutes()
-                        var seconds = now.getSeconds()
 
-                        // Hour hand
+                        // Hour hand (bold, accent color)
                         drawHand(ctx, cx, cy,
                             (hours + minutes / 60) * 30 - 90,
-                            radius * 0.50, 3, ThemeService.onSurface)
+                            radius * 0.50, 8, ThemeService.primary)
 
-                        // Minute hand
+                        // Minute hand (bold)
                         drawHand(ctx, cx, cy,
-                            (minutes + seconds / 60) * 6 - 90,
-                            radius * 0.70, 2, ThemeService.onSurface)
-
-                        // Second hand
-                        drawHand(ctx, cx, cy,
-                            seconds * 6 - 90,
-                            radius * 0.80, 1, ThemeService.onSurfaceVariant)
+                            minutes * 6 - 90,
+                            radius * 0.70, 6, ThemeService.onSurface)
 
                         // Center dot
                         ctx.beginPath()
-                        ctx.arc(cx, cy, 3, 0, 2 * Math.PI)
+                        ctx.arc(cx, cy, 5, 0, 2 * Math.PI)
                         ctx.fillStyle = ThemeService.onSurface
                         ctx.fill()
                     }
@@ -172,24 +168,14 @@ Item {
                             analogCanvas.requestPaint()
                         }
                     }
+                    Connections {
+                        target: ThemeService
+                        function onCurrentThemeIdChanged() {
+                            analogCanvas.requestPaint()
+                        }
+                    }
                 }
             }
-        }
-    }
-
-    // --- Minimal style: time only, large thin font ---
-    Component {
-        id: minimalComponent
-        NormalText {
-            anchors.fill: parent
-            text: clockWidget.currentTime
-            font.pixelSize: UiMetrics.fontHeading * 3.0
-            font.weight: Font.Thin
-            fontSizeMode: Text.Fit
-            minimumPixelSize: UiMetrics.fontHeading
-            color: ThemeService.onSurface
-            horizontalAlignment: Text.AlignHCenter
-            verticalAlignment: Text.AlignVCenter
         }
     }
 

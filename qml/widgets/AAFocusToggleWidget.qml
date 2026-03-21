@@ -3,6 +3,7 @@ import QtQuick.Layouts
 
 Item {
     id: aaFocusWidget
+    clip: true
 
     property QtObject widgetContext: null
     readonly property int colSpan: widgetContext ? widgetContext.colSpan : 1
@@ -12,55 +13,22 @@ Item {
     readonly property int projState: widgetContext && widgetContext.projectionStatus
         ? widgetContext.projectionStatus.projectionState : 0
     readonly property bool aaConnected: projState >= 3      // Connected(3) or Backgrounded(4)
-    readonly property bool isProjected: projState === 3     // Connected = projected
-    readonly property bool isBackgrounded: projState === 4  // Backgrounded = native/car mode
 
     opacity: aaConnected ? 1.0 : 0.4
 
-    ColumnLayout {
+    // Icon only, scales with layout
+    MaterialIcon {
         anchors.centerIn: parent
-        spacing: UiMetrics.spacing * 0.5
-
-        MaterialIcon {
-            icon: aaFocusWidget.isProjected ? "\ue325" : "\ueff7"  // smartphone : directions_car
-            size: UiMetrics.iconSize * 2
-            color: {
-                if (aaFocusWidget.isProjected)
-                    return ThemeService.primary
-                if (aaFocusWidget.isBackgrounded)
-                    return ThemeService.onSurface
-                return ThemeService.onSurfaceVariant
-            }
-            Layout.alignment: Qt.AlignHCenter
-        }
-
-        NormalText {
-            text: {
-                if (aaFocusWidget.isProjected)
-                    return "AA"
-                if (aaFocusWidget.isBackgrounded)
-                    return "Car"
-                return "Off"
-            }
-            font.pixelSize: UiMetrics.fontSmall
-            color: {
-                if (aaFocusWidget.isProjected)
-                    return ThemeService.primary
-                if (aaFocusWidget.isBackgrounded)
-                    return ThemeService.onSurface
-                return ThemeService.onSurfaceVariant
-            }
-            Layout.alignment: Qt.AlignHCenter
-        }
+        icon: aaFocusWidget.aaConnected ? "\ue859" : "\uf034"  // android / mobiledata_off
+        size: Math.min(parent.width, parent.height) * 0.6
+        color: aaFocusWidget.aaConnected ? ThemeService.primary : ThemeService.onSurfaceVariant
     }
 
     MouseArea {
         anchors.fill: parent
         pressAndHoldInterval: 500
         onClicked: {
-            if (aaFocusWidget.isProjected)
-                ActionRegistry.dispatch("aa.exitToCar")
-            else if (aaFocusWidget.isBackgrounded)
+            if (aaFocusWidget.aaConnected)
                 ActionRegistry.dispatch("aa.requestFocus")
             // else: not connected, ignore tap
         }

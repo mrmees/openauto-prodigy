@@ -264,11 +264,7 @@ set_source_files_properties(../qml/widgets/DateWidget.qml PROPERTIES
     QT_RESOURCE_ALIAS "DateWidget.qml"
     QT_QML_SKIP_CACHEGEN TRUE
 )
-set_source_files_properties(../qml/widgets/AAStatusWidget.qml PROPERTIES
-    QT_QML_SOURCE_TYPENAME "AAStatusWidget"
-    QT_RESOURCE_ALIAS "AAStatusWidget.qml"
-    QT_QML_SKIP_CACHEGEN TRUE
-)
+
 set_source_files_properties(../qml/widgets/NavigationWidget.qml PROPERTIES
     QT_QML_SOURCE_TYPENAME "NavigationWidget"
     QT_RESOURCE_ALIAS "NavigationWidget.qml"
@@ -422,7 +418,7 @@ qt_add_qml_module(openauto-prodigy
         ../qml/components/WidgetPicker.qml
         ../qml/widgets/ClockWidget.qml
         ../qml/widgets/DateWidget.qml
-        ../qml/widgets/AAStatusWidget.qml
+
         ../qml/widgets/NavigationWidget.qml
         ../qml/widgets/NowPlayingWidget.qml
         ../qml/widgets/SettingsLauncherWidget.qml

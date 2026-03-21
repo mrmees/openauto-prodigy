@@ -12,75 +12,126 @@ Item {
     // Null-safe companion data access
     readonly property bool companionConnected: CompanionService ? CompanionService.connected : false
     readonly property int batteryLevel: CompanionService ? CompanionService.phoneBattery : -1
-    readonly property bool charging: CompanionService ? CompanionService.phoneCharging : false
 
-    // Scale factor for larger sizes
-    readonly property real scaleFactor: Math.min(colSpan, rowSpan, 3)
+    // Orientation: vertical if square or taller, horizontal if wider
+    readonly property bool isVertical: height >= width
 
-    function batteryIconForLevel(level) {
-        if (level < 0)  return "";
-        if (level === 0) return "\ue19c";       // battery_alert
-        if (level <= 19) return "\uebd0";       // battery_1_bar
-        if (level <= 39) return "\uebd2";       // battery_3_bar
-        if (level <= 59) return "\uebd3";       // battery_4_bar
-        if (level <= 79) return "\uebd4";       // battery_5_bar
-        if (level <= 95) return "\uebd5";       // battery_6_bar
-        return "\ue1a4";                         // battery_full (96+)
+    Canvas {
+        id: batteryCanvas
+        anchors.fill: parent
+        anchors.margins: UiMetrics.spacing
+
+        onPaint: {
+            var ctx = getContext("2d")
+            var w = width
+            var h = height
+            ctx.clearRect(0, 0, w, h)
+
+            var level = batteryWidget.companionConnected ? Math.max(0, Math.min(100, batteryWidget.batteryLevel)) : 0
+            var connected = batteryWidget.companionConnected
+
+            var radius = UiMetrics.radius
+            var outlineWidth = 3
+            var tipSize = 6  // battery tip/nub
+            var inset = outlineWidth + 3  // gap between outline and fill
+
+            if (batteryWidget.isVertical) {
+                // --- Vertical battery (bottom to top) ---
+                var bodyX = outlineWidth / 2
+                var bodyY = tipSize + outlineWidth / 2
+                var bodyW = w - outlineWidth
+                var bodyH = h - tipSize - outlineWidth
+
+                // Tip (positive terminal) at top center
+                var tipW = bodyW * 0.35
+                var tipX = (w - tipW) / 2
+                ctx.beginPath()
+                ctx.roundedRect(tipX, 0, tipW, tipSize + radius, radius / 2, radius / 2)
+                ctx.fillStyle = String(ThemeService.onSurfaceVariant)
+                ctx.fill()
+
+                // Body outline
+                ctx.beginPath()
+                ctx.roundedRect(bodyX, bodyY, bodyW, bodyH, radius, radius)
+                ctx.strokeStyle = connected ? String(ThemeService.onSurface) : String(ThemeService.onSurfaceVariant)
+                ctx.lineWidth = outlineWidth
+                ctx.stroke()
+
+                // Fill level (bottom to top)
+                if (connected && level > 0) {
+                    var fillH = Math.max(0, (bodyH - inset * 2) * level / 100)
+                    var fillY = bodyY + inset + (bodyH - inset * 2 - fillH)
+                    var fillR = Math.max(0, radius - inset)
+                    ctx.beginPath()
+                    ctx.roundedRect(bodyX + inset, fillY, bodyW - inset * 2, fillH, fillR, fillR)
+                    ctx.fillStyle = level <= 20 ? String(ThemeService.error) : String(ThemeService.primary)
+                    ctx.fill()
+                }
+            } else {
+                // --- Horizontal battery (left to right) ---
+                var bodyX2 = outlineWidth / 2
+                var bodyY2 = outlineWidth / 2
+                var bodyW2 = w - tipSize - outlineWidth
+                var bodyH2 = h - outlineWidth
+
+                // Tip (positive terminal) at right center
+                var tipH = bodyH2 * 0.35
+                var tipY = (h - tipH) / 2
+                ctx.beginPath()
+                ctx.roundedRect(w - tipSize - radius, tipY, tipSize + radius, tipH, radius / 2, radius / 2)
+                ctx.fillStyle = String(ThemeService.onSurfaceVariant)
+                ctx.fill()
+
+                // Body outline
+                ctx.beginPath()
+                ctx.roundedRect(bodyX2, bodyY2, bodyW2, bodyH2, radius, radius)
+                ctx.strokeStyle = connected ? String(ThemeService.onSurface) : String(ThemeService.onSurfaceVariant)
+                ctx.lineWidth = outlineWidth
+                ctx.stroke()
+
+                // Fill level (left to right)
+                if (connected && level > 0) {
+                    var fillW = Math.max(0, (bodyW2 - inset * 2) * level / 100)
+                    var fillR2 = Math.max(0, radius - inset)
+                    ctx.beginPath()
+                    ctx.roundedRect(bodyX2 + inset, bodyY2 + inset, fillW, bodyH2 - inset * 2, fillR2, fillR2)
+                    ctx.fillStyle = level <= 20 ? String(ThemeService.error) : String(ThemeService.primary)
+                    ctx.fill()
+                }
+            }
+        }
+
+        // Repaint on any state change
+        Connections {
+            target: batteryWidget
+            function onBatteryLevelChanged() { batteryCanvas.requestPaint() }
+            function onCompanionConnectedChanged() { batteryCanvas.requestPaint() }
+            function onIsVerticalChanged() { batteryCanvas.requestPaint() }
+        }
+        Connections {
+            target: ThemeService
+            function onCurrentThemeIdChanged() { batteryCanvas.requestPaint() }
+        }
+        onWidthChanged: requestPaint()
+        onHeightChanged: requestPaint()
     }
 
-    ColumnLayout {
+    // Percentage text centered over the canvas
+    NormalText {
         anchors.centerIn: parent
-        spacing: UiMetrics.spacing * 0.5
-
-        // Disconnected: battery outline + X overlay (per CONTEXT: "slash/X icon")
-        // Connected: normal battery icon or charging icon
-        Item {
-            Layout.preferredWidth: batteryIcon.size
-            Layout.preferredHeight: batteryIcon.size
-            Layout.alignment: Qt.AlignHCenter
-
-            MaterialIcon {
-                id: batteryIcon
-                icon: {
-                    if (!batteryWidget.companionConnected)
-                        return "\uebd0"  // battery_1_bar (outline shape)
-                    if (batteryWidget.charging)
-                        return "\ue1a3"  // battery_charging_full
-                    return batteryWidget.batteryIconForLevel(batteryWidget.batteryLevel)
-                }
-                size: UiMetrics.iconSize * 2 * batteryWidget.scaleFactor
-                color: {
-                    if (!batteryWidget.companionConnected)
-                        return ThemeService.onSurfaceVariant
-                    if (batteryWidget.batteryLevel <= 19)
-                        return ThemeService.error
-                    return ThemeService.onSurface
-                }
-                anchors.centerIn: parent
-            }
-
-            // X overlay when disconnected
-            MaterialIcon {
-                icon: "\ue5cd"  // close (X)
-                size: batteryIcon.size * 0.5
-                color: ThemeService.error
-                anchors.centerIn: parent
-                visible: !batteryWidget.companionConnected
-            }
-        }
-
-        NormalText {
-            text: batteryWidget.companionConnected
-                  ? batteryWidget.batteryLevel + "%"
-                  : "--"
-            font.pixelSize: UiMetrics.fontTitle * batteryWidget.scaleFactor
-            fontSizeMode: Text.Fit
-            minimumPixelSize: UiMetrics.fontSmall
-            color: ThemeService.onSurface
-            Layout.alignment: Qt.AlignHCenter
-        }
+        text: batteryWidget.companionConnected
+              ? batteryWidget.batteryLevel + "%"
+              : "--"
+        font.pixelSize: Math.min(parent.width, parent.height) * 0.3
+        font.weight: Font.Bold
+        fontSizeMode: Text.Fit
+        minimumPixelSize: UiMetrics.fontSmall
+        color: ThemeService.onSurface
+        horizontalAlignment: Text.AlignHCenter
+        verticalAlignment: Text.AlignVCenter
     }
 
+    // pressAndHold forwarding for host context menu
     MouseArea {
         anchors.fill: parent
         z: -1

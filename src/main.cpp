@@ -496,7 +496,7 @@ int main(int argc, char *argv[])
         clockDesc.configSchema = {
             oap::ConfigSchemaField{
                 "style", "Clock Style", oap::ConfigFieldType::Enum,
-                {"Digital", "Analog", "Minimal"}, {"digital", "analog", "minimal"},
+                {"Digital", "Analog"}, {"digital", "analog"},
                 0, 0, 0
             },
             oap::ConfigSchemaField{
@@ -527,17 +527,6 @@ int main(int argc, char *argv[])
         };
         widgetRegistry->registerWidget(dateDesc);
 
-        oap::WidgetDescriptor aaStatusDesc;
-        aaStatusDesc.id = "org.openauto.aa-status";
-        aaStatusDesc.displayName = "Android Auto";
-        aaStatusDesc.iconName = "\ueff7";  // directions_car
-        aaStatusDesc.category = "status";
-        aaStatusDesc.description = "Connection status";
-        aaStatusDesc.minCols = 1; aaStatusDesc.minRows = 1;
-        aaStatusDesc.maxCols = 3; aaStatusDesc.maxRows = 2;
-        aaStatusDesc.defaultCols = 2; aaStatusDesc.defaultRows = 1;
-        aaStatusDesc.qmlComponent = QUrl("qrc:/OpenAutoProdigy/AAStatusWidget.qml");
-        widgetRegistry->registerWidget(aaStatusDesc);
     }
 
     // Phase 06 widget stubs (pre-registered descriptors, no QML yet)
