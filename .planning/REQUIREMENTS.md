@@ -20,7 +20,7 @@ Requirements for Homescreen Layout & Widget Settings Rework. Each maps to roadma
 - [ ] **NAV-02**: Brightness navbar control transforms to delete/trash icon when a widget is selected
 - [ ] **NAV-03**: Tapping settings navbar button opens config sheet for the selected widget
 - [ ] **NAV-04**: Tapping delete navbar button removes the selected widget
-- [ ] **NAV-05**: Navbar automatically reverts to normal controls on deselect, drag start, or timeout
+- [ ] **NAV-05**: Navbar automatically reverts to normal controls on deselect, drag start, or auto-deselect timeout
 
 ### Resize
 
@@ -47,7 +47,7 @@ Requirements for Homescreen Layout & Widget Settings Rework. Each maps to roadma
 - [ ] **CLN-01**: Global edit mode removed (no editMode flag, no all-widgets-edit-simultaneously)
 - [ ] **CLN-02**: All FABs removed (add widget, add page, delete page)
 - [ ] **CLN-03**: All tiny badge buttons removed (X delete, gear config, corner resize handle)
-- [ ] **CLN-04**: Inactivity timer removed
+- [ ] **CLN-04**: Replace global edit mode inactivity timer with per-widget selection auto-deselect timeout
 
 ## Future Requirements
 
@@ -69,36 +69,36 @@ Requirements for Homescreen Layout & Widget Settings Rework. Each maps to roadma
 
 | Requirement | Phase | Status |
 |-------------|-------|--------|
-| SEL-01 | — | Pending |
-| SEL-02 | — | Pending |
-| SEL-03 | — | Pending |
-| SEL-04 | — | Pending |
-| NAV-01 | — | Pending |
-| NAV-02 | — | Pending |
-| NAV-03 | — | Pending |
-| NAV-04 | — | Pending |
-| NAV-05 | — | Pending |
-| RSZ-01 | — | Pending |
-| RSZ-02 | — | Pending |
-| RSZ-03 | — | Pending |
-| RSZ-04 | — | Pending |
-| PKR-01 | — | Pending |
-| PKR-02 | — | Pending |
-| PKR-03 | — | Pending |
-| PGM-01 | — | Pending |
-| PGM-02 | — | Pending |
-| PGM-03 | — | Pending |
-| PGM-04 | — | Pending |
-| CLN-01 | — | Pending |
-| CLN-02 | — | Pending |
-| CLN-03 | — | Pending |
-| CLN-04 | — | Pending |
+| SEL-01 | Phase 25 | Pending |
+| SEL-02 | Phase 25 | Pending |
+| SEL-03 | Phase 25 | Pending |
+| SEL-04 | Phase 25 | Pending |
+| NAV-01 | Phase 26 | Pending |
+| NAV-02 | Phase 26 | Pending |
+| NAV-03 | Phase 26 | Pending |
+| NAV-04 | Phase 26 | Pending |
+| NAV-05 | Phase 26 | Pending |
+| RSZ-01 | Phase 26 | Pending |
+| RSZ-02 | Phase 26 | Pending |
+| RSZ-03 | Phase 26 | Pending |
+| RSZ-04 | Phase 26 | Pending |
+| PKR-01 | Phase 27 | Pending |
+| PKR-02 | Phase 27 | Pending |
+| PKR-03 | Phase 27 | Pending |
+| PGM-01 | Phase 27 | Pending |
+| PGM-02 | Phase 27 | Pending |
+| PGM-03 | Phase 27 | Pending |
+| PGM-04 | Phase 26 | Pending |
+| CLN-01 | Phase 25 | Pending |
+| CLN-02 | Phase 27 | Pending |
+| CLN-03 | Phase 26 | Pending |
+| CLN-04 | Phase 25 | Pending |
 
 **Coverage:**
 - v0.6.6 requirements: 24 total
-- Mapped to phases: 0
-- Unmapped: 24 ⚠️
+- Mapped to phases: 24
+- Unmapped: 0
 
 ---
 *Requirements defined: 2026-03-21*
-*Last updated: 2026-03-21 after initial definition*
+*Last updated: 2026-03-21 after roadmap revision*
