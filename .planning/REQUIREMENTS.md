@@ -24,10 +24,10 @@ Requirements for Homescreen Layout & Widget Settings Rework. Each maps to roadma
 
 ### Resize
 
-- [ ] **RSZ-01**: Selected widget shows visible drag handles on all 4 edges
-- [ ] **RSZ-02**: User can drag any edge handle to resize the widget in that direction
-- [ ] **RSZ-03**: Resize is clamped to widget descriptor min/max constraints with visual feedback at limits
-- [ ] **RSZ-04**: Resize is blocked when it would overlap another widget, with visual collision indicator
+- [x] **RSZ-01**: Selected widget shows visible drag handles on all 4 edges
+- [x] **RSZ-02**: User can drag any edge handle to resize the widget in that direction
+- [x] **RSZ-03**: Resize is clamped to widget descriptor min/max constraints with visual feedback at limits
+- [x] **RSZ-04**: Resize is blocked when it would overlap another widget, with visual collision indicator
 
 ### Widget Picker
 
@@ -78,10 +78,10 @@ Requirements for Homescreen Layout & Widget Settings Rework. Each maps to roadma
 | NAV-03 | Phase 26 | Complete |
 | NAV-04 | Phase 26 | Complete |
 | NAV-05 | Phase 26 | Complete |
-| RSZ-01 | Phase 26 | Pending |
-| RSZ-02 | Phase 26 | Pending |
-| RSZ-03 | Phase 26 | Pending |
-| RSZ-04 | Phase 26 | Pending |
+| RSZ-01 | Phase 26 | Complete |
+| RSZ-02 | Phase 26 | Complete |
+| RSZ-03 | Phase 26 | Complete |
+| RSZ-04 | Phase 26 | Complete |
 | PKR-01 | Phase 27 | Pending |
 | PKR-02 | Phase 27 | Pending |
 | PKR-03 | Phase 27 | Pending |
