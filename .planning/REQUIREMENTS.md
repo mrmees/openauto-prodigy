@@ -31,9 +31,9 @@ Requirements for Homescreen Layout & Widget Settings Rework. Each maps to roadma
 
 ### Widget Picker
 
-- [ ] **PKR-01**: Bottom sheet slides up with scrollable categorized list of available widgets
+- [x] **PKR-01**: Bottom sheet slides up with scrollable categorized list of available widgets
 - [ ] **PKR-02**: Tapping a widget in the picker auto-places it at first available grid cell
-- [ ] **PKR-03**: Picker filters to widgets that fit available grid space
+- [x] **PKR-03**: Picker filters to widgets that fit available grid space
 
 ### Page Management
 
@@ -82,9 +82,9 @@ Requirements for Homescreen Layout & Widget Settings Rework. Each maps to roadma
 | RSZ-02 | Phase 26 | Complete |
 | RSZ-03 | Phase 26 | Complete |
 | RSZ-04 | Phase 26 | Complete |
-| PKR-01 | Phase 27 | Pending |
+| PKR-01 | Phase 27 | Complete |
 | PKR-02 | Phase 27 | Pending |
-| PKR-03 | Phase 27 | Pending |
+| PKR-03 | Phase 27 | Complete |
 | PGM-01 | Phase 27 | Pending |
 | PGM-02 | Phase 27 | Pending |
 | PGM-03 | Phase 27 | Pending |
