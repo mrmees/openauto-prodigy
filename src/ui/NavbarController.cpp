@@ -66,6 +66,7 @@ void NavbarController::handlePress(int controlIndex)
         if (state.pressed) return;
         state.pressed = true;
         state.longHoldFired = false;
+        state.pressedInWidgetMode = true;
         state.pressTimer.start();
         // Do NOT start longHoldTimers_ or progressTimers_
         return;
@@ -79,6 +80,7 @@ void NavbarController::handlePress(int controlIndex)
 
     state.pressed = true;
     state.longHoldFired = false;
+    state.pressedInWidgetMode = false;
     state.pressTimer.start();
 
     // Start long-hold timer
@@ -106,7 +108,8 @@ void NavbarController::handleRelease(int controlIndex)
     // Only emit if long hold hasn't already fired
     if (!state.longHoldFired) {
         // Widget interaction mode: side controls are ALWAYS tap, never shortHold
-        if (widgetInteractionMode_ && controlIndex != 1) {
+        // Use pressedInWidgetMode (captured at press time) to handle mode transitions during press
+        if (state.pressedInWidgetMode && controlIndex != 1) {
             emit gestureTriggered(controlIndex, Tap);
         } else if (elapsed <= tapMaxMs_) {
             emit gestureTriggered(controlIndex, Tap);
@@ -710,6 +713,7 @@ void NavbarController::resetControlState(int index)
 {
     controls_[index].pressed = false;
     controls_[index].longHoldFired = false;
+    controls_[index].pressedInWidgetMode = false;
     controls_[index].activeSlot = -1;
     emit holdProgress(index, 0.0);
 }

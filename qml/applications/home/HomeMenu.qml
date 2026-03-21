@@ -154,8 +154,8 @@ Item {
 
     // Update edge resize ghost with new proposed grid position
     // pageContainer: the pageGridContent Item (passed from delegate context)
-    function updateEdgeResize(newCol, newRow, newColSpan, newRowSpan, instanceId, pageContainer) {
-        var wasAtLimit = false
+    function updateEdgeResize(newCol, newRow, newColSpan, newRowSpan, instanceId, pageContainer, descriptorLimitHit) {
+        var wasAtLimit = descriptorLimitHit || false
         // Grid bounds clamping
         if (newCol < 0) { newCol = 0; wasAtLimit = true }
         if (newRow < 0) { newRow = 0; wasAtLimit = true }
@@ -719,16 +719,19 @@ Item {
                                                     // Top edge: move row (decrease = grow up, increase = shrink down)
                                                     var newRow = startRow + deltaRows
                                                     var newRowSpan = startRowSpan - deltaRows
+                                                    var hitDescriptorLimit = false
 
                                                     // Clamp to min/max constraints, keeping BOTTOM edge anchored
                                                     var bottomEdge = startRow + startRowSpan
                                                     if (newRowSpan < model.minRows) {
                                                         newRowSpan = model.minRows
                                                         newRow = bottomEdge - newRowSpan
+                                                        hitDescriptorLimit = true
                                                     }
                                                     if (newRowSpan > model.maxRows) {
                                                         newRowSpan = model.maxRows
                                                         newRow = bottomEdge - newRowSpan
+                                                        hitDescriptorLimit = true
                                                     }
                                                     if (newRow < 0) {
                                                         newRow = 0
@@ -736,7 +739,7 @@ Item {
                                                     }
 
                                                     homeScreen.updateEdgeResize(model.column, newRow, model.colSpan, newRowSpan,
-                                                        model.instanceId, delegateItem.parent)
+                                                        model.instanceId, delegateItem.parent, hitDescriptorLimit)
                                                     selectionTimer.restart()
                                                 }
 
@@ -795,11 +798,12 @@ Item {
 
                                                     // Bottom edge: position stays, only span changes
                                                     var newRowSpan = startRowSpan + deltaRows
-                                                    if (newRowSpan < model.minRows) newRowSpan = model.minRows
-                                                    if (newRowSpan > model.maxRows) newRowSpan = model.maxRows
+                                                    var hitDescriptorLimit = false
+                                                    if (newRowSpan < model.minRows) { newRowSpan = model.minRows; hitDescriptorLimit = true }
+                                                    if (newRowSpan > model.maxRows) { newRowSpan = model.maxRows; hitDescriptorLimit = true }
 
                                                     homeScreen.updateEdgeResize(model.column, model.row, model.colSpan, newRowSpan,
-                                                        model.instanceId, delegateItem.parent)
+                                                        model.instanceId, delegateItem.parent, hitDescriptorLimit)
                                                     selectionTimer.restart()
                                                 }
 
@@ -861,16 +865,19 @@ Item {
                                                     // Left edge: move col (decrease = grow left, increase = shrink right)
                                                     var newCol = startCol + deltaCols
                                                     var newColSpan = startColSpan - deltaCols
+                                                    var hitDescriptorLimit = false
 
                                                     // Clamp to min/max constraints, keeping RIGHT edge anchored
                                                     var rightEdge = startCol + startColSpan
                                                     if (newColSpan < model.minCols) {
                                                         newColSpan = model.minCols
                                                         newCol = rightEdge - newColSpan
+                                                        hitDescriptorLimit = true
                                                     }
                                                     if (newColSpan > model.maxCols) {
                                                         newColSpan = model.maxCols
                                                         newCol = rightEdge - newColSpan
+                                                        hitDescriptorLimit = true
                                                     }
                                                     if (newCol < 0) {
                                                         newCol = 0
@@ -878,7 +885,7 @@ Item {
                                                     }
 
                                                     homeScreen.updateEdgeResize(newCol, model.row, newColSpan, model.rowSpan,
-                                                        model.instanceId, delegateItem.parent)
+                                                        model.instanceId, delegateItem.parent, hitDescriptorLimit)
                                                     selectionTimer.restart()
                                                 }
 
@@ -937,11 +944,12 @@ Item {
 
                                                     // Right edge: position stays, only span changes
                                                     var newColSpan = startColSpan + deltaCols
-                                                    if (newColSpan < model.minCols) newColSpan = model.minCols
-                                                    if (newColSpan > model.maxCols) newColSpan = model.maxCols
+                                                    var hitDescriptorLimit = false
+                                                    if (newColSpan < model.minCols) { newColSpan = model.minCols; hitDescriptorLimit = true }
+                                                    if (newColSpan > model.maxCols) { newColSpan = model.maxCols; hitDescriptorLimit = true }
 
                                                     homeScreen.updateEdgeResize(model.column, model.row, newColSpan, model.rowSpan,
-                                                        model.instanceId, delegateItem.parent)
+                                                        model.instanceId, delegateItem.parent, hitDescriptorLimit)
                                                     selectionTimer.restart()
                                                 }
 

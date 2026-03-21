@@ -121,6 +121,7 @@ private:
     struct ControlState {
         bool pressed = false;
         bool longHoldFired = false;
+        bool pressedInWidgetMode = false;  // tracks mode at press time for consistent release
         QElapsedTimer pressTimer;
         int activeSlot = -1;
     };

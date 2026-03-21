@@ -158,7 +158,8 @@ Item {
         color: navbar.barFg
         font.pixelSize: Math.round(root.width * 0.35)
         font.weight: Font.Medium
-        wrapMode: Text.WordWrap
+        elide: Text.ElideRight
+        maximumLineCount: 2
         width: root.width * 0.9
         horizontalAlignment: Text.AlignHCenter
         visible: root.showClock && root.isVertical && NavbarController.widgetInteractionMode
@@ -209,6 +210,7 @@ Item {
     MouseArea {
         id: touchArea
         anchors.fill: parent
+        enabled: root.controlEnabled
         onPressed: NavbarController.handlePress(root.controlIndex)
         onReleased: NavbarController.handleRelease(root.controlIndex)
         onExited: NavbarController.handleCancel(root.controlIndex)
