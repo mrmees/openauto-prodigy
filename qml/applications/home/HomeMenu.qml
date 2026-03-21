@@ -23,6 +23,12 @@ Item {
     property int _dragColSpan: 1
     property int _dragRowSpan: 1
 
+    // Edge resize proposed grid position (ghost tracks these)
+    property int proposedCol: 0
+    property int proposedRow: 0
+    property int proposedColSpan: 0
+    property int proposedRowSpan: 0
+
     // Snap-aware grid frame computation (two-stage: base -> snap -> effective)
     readonly property real baseCellSide: DisplayInfo ? DisplayInfo.cellSide : 120
     readonly property real kSnapThreshold: 0.5  // Add row/col when waste > 50% of cell
@@ -123,6 +129,83 @@ Item {
                     pageView.setCurrentIndex(WidgetGridModel.pageCount - 1)
             })
         }
+    }
+
+    // --- Edge resize helper functions ---
+
+    // Start edge resize -- initialize ghost at current widget position
+    // pageContainer: the pageGridContent Item (passed from delegate context)
+    function startEdgeResize(instanceId, col, row, colSpan, rowSpan, pageContainer) {
+        resizingInstanceId = instanceId
+        proposedCol = col
+        proposedRow = row
+        proposedColSpan = colSpan
+        proposedRowSpan = rowSpan
+
+        var ghostPos = pageContainer.mapToItem(homeScreen,
+            offsetX + col * cellSide, offsetY + row * cellSide)
+        resizeGhost.x = ghostPos.x
+        resizeGhost.y = ghostPos.y
+        resizeGhost.width = colSpan * cellSide
+        resizeGhost.height = rowSpan * cellSide
+        resizeGhost.visible = true
+        resizeGhost.isValid = true
+    }
+
+    // Update edge resize ghost with new proposed grid position
+    // pageContainer: the pageGridContent Item (passed from delegate context)
+    function updateEdgeResize(newCol, newRow, newColSpan, newRowSpan, instanceId, pageContainer) {
+        var wasAtLimit = false
+        // Grid bounds clamping
+        if (newCol < 0) { newCol = 0; wasAtLimit = true }
+        if (newRow < 0) { newRow = 0; wasAtLimit = true }
+        if (newColSpan < 1) newColSpan = 1
+        if (newRowSpan < 1) newRowSpan = 1
+        if (newCol + newColSpan > gridCols) {
+            newColSpan = gridCols - newCol
+            wasAtLimit = true
+        }
+        if (newRow + newRowSpan > gridRows) {
+            newRowSpan = gridRows - newRow
+            wasAtLimit = true
+        }
+
+        // Detect limit change (fire flash only on newly-hit limits)
+        if (wasAtLimit && (newCol !== proposedCol || newRow !== proposedRow ||
+                           newColSpan !== proposedColSpan || newRowSpan !== proposedRowSpan)) {
+            limitFlash.restart()
+        }
+
+        proposedCol = newCol
+        proposedRow = newRow
+        proposedColSpan = newColSpan
+        proposedRowSpan = newRowSpan
+
+        var valid = WidgetGridModel.canPlace(newCol, newRow, newColSpan, newRowSpan, instanceId)
+        resizeGhost.isValid = valid
+
+        var ghostPos = pageContainer.mapToItem(homeScreen,
+            offsetX + newCol * cellSide, offsetY + newRow * cellSide)
+        resizeGhost.x = ghostPos.x
+        resizeGhost.y = ghostPos.y
+        resizeGhost.width = newColSpan * cellSide
+        resizeGhost.height = newRowSpan * cellSide
+    }
+
+    // Commit the edge resize if ghost shows valid
+    function commitEdgeResize(instanceId) {
+        resizingInstanceId = ""
+        resizeGhost.visible = false
+
+        if (resizeGhost.isValid) {
+            WidgetGridModel.resizeWidgetFromEdge(instanceId,
+                proposedCol, proposedRow, proposedColSpan, proposedRowSpan)
+        }
+    }
+
+    function cancelEdgeResize() {
+        resizingInstanceId = ""
+        resizeGhost.visible = false
     }
 
     // Auto-deselect timer -- clears selection after 10s of inactivity
@@ -588,7 +671,292 @@ Item {
 
                                         // Badge buttons removed (CLN-03): X delete, gear config, corner resize
                                         // handle are now replaced by navbar gear/trash controls (Phase 26).
-                                        // Edge resize handles will be added in Plan 02.
+
+                                        // --- 4-edge resize handles ---
+
+                                        // Top edge handle
+                                        Rectangle {
+                                            id: topEdgeHandle
+                                            width: parent.width * 0.4
+                                            height: 4
+                                            radius: 2
+                                            color: ThemeService.primary
+                                            opacity: 0.7
+                                            anchors.horizontalCenter: parent.horizontalCenter
+                                            anchors.top: parent.top
+                                            anchors.topMargin: -2
+                                            visible: delegateItem.isSelected
+                                            z: 20
+
+                                            MouseArea {
+                                                anchors.fill: parent
+                                                anchors.margins: -UiMetrics.spacing
+                                                preventStealing: true
+                                                cursorShape: Qt.SizeVerCursor
+
+                                                property real startY: 0
+                                                property int startRow: 0
+                                                property int startRowSpan: 0
+                                                property bool resizing: false
+
+                                                onPressed: function(mouse) {
+                                                    resizing = true
+                                                    var mapped = mapToItem(delegateItem.parent, mouse.x, mouse.y)
+                                                    startY = mapped.y
+                                                    startRow = model.row
+                                                    startRowSpan = model.rowSpan
+                                                    homeScreen.startEdgeResize(model.instanceId, model.column, model.row,
+                                                        model.colSpan, model.rowSpan, delegateItem.parent)
+                                                    selectionTimer.restart()
+                                                    mouse.accepted = true
+                                                }
+
+                                                onPositionChanged: function(mouse) {
+                                                    if (!resizing) return
+                                                    var current = mapToItem(delegateItem.parent, mouse.x, mouse.y)
+                                                    var deltaRows = Math.round((current.y - startY) / homeScreen.cellSide)
+
+                                                    // Top edge: move row (decrease = grow up, increase = shrink down)
+                                                    var newRow = startRow + deltaRows
+                                                    var newRowSpan = startRowSpan - deltaRows
+
+                                                    // Clamp to min/max constraints, keeping BOTTOM edge anchored
+                                                    var bottomEdge = startRow + startRowSpan
+                                                    if (newRowSpan < model.minRows) {
+                                                        newRowSpan = model.minRows
+                                                        newRow = bottomEdge - newRowSpan
+                                                    }
+                                                    if (newRowSpan > model.maxRows) {
+                                                        newRowSpan = model.maxRows
+                                                        newRow = bottomEdge - newRowSpan
+                                                    }
+                                                    if (newRow < 0) {
+                                                        newRow = 0
+                                                        newRowSpan = bottomEdge - newRow
+                                                    }
+
+                                                    homeScreen.updateEdgeResize(model.column, newRow, model.colSpan, newRowSpan,
+                                                        model.instanceId, delegateItem.parent)
+                                                    selectionTimer.restart()
+                                                }
+
+                                                onReleased: {
+                                                    if (!resizing) return
+                                                    resizing = false
+                                                    homeScreen.commitEdgeResize(model.instanceId)
+                                                }
+
+                                                onCanceled: {
+                                                    resizing = false
+                                                    homeScreen.cancelEdgeResize()
+                                                }
+                                            }
+                                        }
+
+                                        // Bottom edge handle
+                                        Rectangle {
+                                            id: bottomEdgeHandle
+                                            width: parent.width * 0.4
+                                            height: 4
+                                            radius: 2
+                                            color: ThemeService.primary
+                                            opacity: 0.7
+                                            anchors.horizontalCenter: parent.horizontalCenter
+                                            anchors.bottom: parent.bottom
+                                            anchors.bottomMargin: -2
+                                            visible: delegateItem.isSelected
+                                            z: 20
+
+                                            MouseArea {
+                                                anchors.fill: parent
+                                                anchors.margins: -UiMetrics.spacing
+                                                preventStealing: true
+                                                cursorShape: Qt.SizeVerCursor
+
+                                                property real startY: 0
+                                                property int startRowSpan: 0
+                                                property bool resizing: false
+
+                                                onPressed: function(mouse) {
+                                                    resizing = true
+                                                    var mapped = mapToItem(delegateItem.parent, mouse.x, mouse.y)
+                                                    startY = mapped.y
+                                                    startRowSpan = model.rowSpan
+                                                    homeScreen.startEdgeResize(model.instanceId, model.column, model.row,
+                                                        model.colSpan, model.rowSpan, delegateItem.parent)
+                                                    selectionTimer.restart()
+                                                    mouse.accepted = true
+                                                }
+
+                                                onPositionChanged: function(mouse) {
+                                                    if (!resizing) return
+                                                    var current = mapToItem(delegateItem.parent, mouse.x, mouse.y)
+                                                    var deltaRows = Math.round((current.y - startY) / homeScreen.cellSide)
+
+                                                    // Bottom edge: position stays, only span changes
+                                                    var newRowSpan = startRowSpan + deltaRows
+                                                    if (newRowSpan < model.minRows) newRowSpan = model.minRows
+                                                    if (newRowSpan > model.maxRows) newRowSpan = model.maxRows
+
+                                                    homeScreen.updateEdgeResize(model.column, model.row, model.colSpan, newRowSpan,
+                                                        model.instanceId, delegateItem.parent)
+                                                    selectionTimer.restart()
+                                                }
+
+                                                onReleased: {
+                                                    if (!resizing) return
+                                                    resizing = false
+                                                    homeScreen.commitEdgeResize(model.instanceId)
+                                                }
+
+                                                onCanceled: {
+                                                    resizing = false
+                                                    homeScreen.cancelEdgeResize()
+                                                }
+                                            }
+                                        }
+
+                                        // Left edge handle
+                                        Rectangle {
+                                            id: leftEdgeHandle
+                                            width: 4
+                                            height: parent.height * 0.4
+                                            radius: 2
+                                            color: ThemeService.primary
+                                            opacity: 0.7
+                                            anchors.verticalCenter: parent.verticalCenter
+                                            anchors.left: parent.left
+                                            anchors.leftMargin: -2
+                                            visible: delegateItem.isSelected
+                                            z: 20
+
+                                            MouseArea {
+                                                anchors.fill: parent
+                                                anchors.margins: -UiMetrics.spacing
+                                                preventStealing: true
+                                                cursorShape: Qt.SizeHorCursor
+
+                                                property real startX: 0
+                                                property int startCol: 0
+                                                property int startColSpan: 0
+                                                property bool resizing: false
+
+                                                onPressed: function(mouse) {
+                                                    resizing = true
+                                                    var mapped = mapToItem(delegateItem.parent, mouse.x, mouse.y)
+                                                    startX = mapped.x
+                                                    startCol = model.column
+                                                    startColSpan = model.colSpan
+                                                    homeScreen.startEdgeResize(model.instanceId, model.column, model.row,
+                                                        model.colSpan, model.rowSpan, delegateItem.parent)
+                                                    selectionTimer.restart()
+                                                    mouse.accepted = true
+                                                }
+
+                                                onPositionChanged: function(mouse) {
+                                                    if (!resizing) return
+                                                    var current = mapToItem(delegateItem.parent, mouse.x, mouse.y)
+                                                    var deltaCols = Math.round((current.x - startX) / homeScreen.cellSide)
+
+                                                    // Left edge: move col (decrease = grow left, increase = shrink right)
+                                                    var newCol = startCol + deltaCols
+                                                    var newColSpan = startColSpan - deltaCols
+
+                                                    // Clamp to min/max constraints, keeping RIGHT edge anchored
+                                                    var rightEdge = startCol + startColSpan
+                                                    if (newColSpan < model.minCols) {
+                                                        newColSpan = model.minCols
+                                                        newCol = rightEdge - newColSpan
+                                                    }
+                                                    if (newColSpan > model.maxCols) {
+                                                        newColSpan = model.maxCols
+                                                        newCol = rightEdge - newColSpan
+                                                    }
+                                                    if (newCol < 0) {
+                                                        newCol = 0
+                                                        newColSpan = rightEdge - newCol
+                                                    }
+
+                                                    homeScreen.updateEdgeResize(newCol, model.row, newColSpan, model.rowSpan,
+                                                        model.instanceId, delegateItem.parent)
+                                                    selectionTimer.restart()
+                                                }
+
+                                                onReleased: {
+                                                    if (!resizing) return
+                                                    resizing = false
+                                                    homeScreen.commitEdgeResize(model.instanceId)
+                                                }
+
+                                                onCanceled: {
+                                                    resizing = false
+                                                    homeScreen.cancelEdgeResize()
+                                                }
+                                            }
+                                        }
+
+                                        // Right edge handle
+                                        Rectangle {
+                                            id: rightEdgeHandle
+                                            width: 4
+                                            height: parent.height * 0.4
+                                            radius: 2
+                                            color: ThemeService.primary
+                                            opacity: 0.7
+                                            anchors.verticalCenter: parent.verticalCenter
+                                            anchors.right: parent.right
+                                            anchors.rightMargin: -2
+                                            visible: delegateItem.isSelected
+                                            z: 20
+
+                                            MouseArea {
+                                                anchors.fill: parent
+                                                anchors.margins: -UiMetrics.spacing
+                                                preventStealing: true
+                                                cursorShape: Qt.SizeHorCursor
+
+                                                property real startX: 0
+                                                property int startColSpan: 0
+                                                property bool resizing: false
+
+                                                onPressed: function(mouse) {
+                                                    resizing = true
+                                                    var mapped = mapToItem(delegateItem.parent, mouse.x, mouse.y)
+                                                    startX = mapped.x
+                                                    startColSpan = model.colSpan
+                                                    homeScreen.startEdgeResize(model.instanceId, model.column, model.row,
+                                                        model.colSpan, model.rowSpan, delegateItem.parent)
+                                                    selectionTimer.restart()
+                                                    mouse.accepted = true
+                                                }
+
+                                                onPositionChanged: function(mouse) {
+                                                    if (!resizing) return
+                                                    var current = mapToItem(delegateItem.parent, mouse.x, mouse.y)
+                                                    var deltaCols = Math.round((current.x - startX) / homeScreen.cellSide)
+
+                                                    // Right edge: position stays, only span changes
+                                                    var newColSpan = startColSpan + deltaCols
+                                                    if (newColSpan < model.minCols) newColSpan = model.minCols
+                                                    if (newColSpan > model.maxCols) newColSpan = model.maxCols
+
+                                                    homeScreen.updateEdgeResize(model.column, model.row, newColSpan, model.rowSpan,
+                                                        model.instanceId, delegateItem.parent)
+                                                    selectionTimer.restart()
+                                                }
+
+                                                onReleased: {
+                                                    if (!resizing) return
+                                                    resizing = false
+                                                    homeScreen.commitEdgeResize(model.instanceId)
+                                                }
+
+                                                onCanceled: {
+                                                    resizing = false
+                                                    homeScreen.cancelEdgeResize()
+                                                }
+                                            }
+                                        }
                                     }
                                 }
                             }
