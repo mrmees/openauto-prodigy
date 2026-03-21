@@ -115,7 +115,7 @@ See .planning/milestones/v0.6.4-ROADMAP.md for archived details.
 
 ## Phases
 
-- [ ] **Phase 22: Date Widget & Clock Cleanup** - Create standalone date widget, strip date from clock widget
+- [x] **Phase 22: Date Widget & Clock Cleanup** - Create standalone date widget, strip date from clock widget (completed 2026-03-21)
 - [ ] **Phase 23: Widget Visual Refinement** - Live preview review of all widgets across both target displays
 - [ ] **Phase 24: Hardware Verification** - Deploy and verify all widgets on Pi hardware
 
@@ -169,6 +169,6 @@ Phases execute in numeric order: 22 -> 23 -> 24
 
 | Phase | Plans Complete | Status | Completed |
 |-------|----------------|--------|-----------|
-| 22. Date Widget & Clock Cleanup | 1/2 | In Progress|  |
+| 22. Date Widget & Clock Cleanup | 2/2 | Complete   | 2026-03-21 |
 | 23. Widget Visual Refinement | 0/1 | Not started | - |
 | 24. Hardware Verification | 0/1 | Not started | - |

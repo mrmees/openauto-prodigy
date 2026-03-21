@@ -12,9 +12,9 @@
 
 ## Date Widget (DT)
 
-- [ ] **DT-01**: Standalone date widget shows day-of-week and date
-- [ ] **DT-02**: Date widget has responsive breakpoints (1x1 compact → larger spans show more detail)
-- [ ] **DT-03**: Date widget is available in the widget picker with appropriate metadata
+- [x] **DT-01**: Standalone date widget shows day-of-week and date
+- [x] **DT-02**: Date widget has responsive breakpoints (1x1 compact → larger spans show more detail)
+- [x] **DT-03**: Date widget is available in the widget picker with appropriate metadata
 
 ## Clock Cleanup (CL)
 
@@ -41,9 +41,9 @@
 | WR-02 | Phase 23 | Pending |
 | WR-03 | Phase 23 | Pending |
 | WR-04 | Phase 23 | Pending |
-| DT-01 | Phase 22 | Pending |
-| DT-02 | Phase 22 | Pending |
-| DT-03 | Phase 22 | Pending |
+| DT-01 | Phase 22 | Complete |
+| DT-02 | Phase 22 | Complete |
+| DT-03 | Phase 22 | Complete |
 | CL-01 | Phase 22 | Complete |
 | CL-02 | Phase 22 | Complete |
 | HW-01 | Phase 24 | Pending |
