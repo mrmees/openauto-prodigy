@@ -48,11 +48,12 @@ Replace global edit mode with per-widget long-press selection. Users long-press 
 - Remove the tap-empty-space-to-exit-edit-mode handler — replace with tap-to-deselect
 
 ### Long-press forwarding on interactive widgets
-- The existing `WidgetHost` z:-1 MouseArea + `requestContextMenu()` forwarding pattern MUST be preserved
-- Widgets with interactive content (Now Playing, AA Focus, Weather) have their own MouseAreas that handle taps
+- Two mechanisms exist and BOTH must work:
+  1. **Non-interactive widgets** (Clock, Date, Battery, etc.): The delegate's z:-1 MouseArea in HomeMenu.qml catches long-press directly — no widget-level forwarding needed since these widgets have no competing MouseAreas
+  2. **Interactive widgets** (Now Playing, AA Focus, Weather, Companion Status): These have their own MouseAreas that steal the press. They MUST explicitly forward long-press via `onPressAndHold` → `requestContextMenu()` at matching 500ms threshold. This is the proven pattern already used in the codebase (see AAFocusToggleWidget.qml, NowPlayingWidget.qml, WeatherWidget.qml).
 - Long-press detection must NOT be moved above widget content (z > 0) — this would steal all taps from widget controls
-- The host MouseArea at z:-1 catches long-press because widget MouseAreas don't set `pressAndHoldInterval` — they accept the press (blocking the host for taps) but the host still receives pressAndHold after 500ms via the underlying item
-- If this mechanism doesn't work reliably for all widgets, fall back to `requestContextMenu()` forwarding from within widget QML
+- Any current or future widget with its own MouseArea that omits `requestContextMenu()` forwarding will be unselectable — this is an implementation requirement for all interactive widgets
+- `requestContextMenu()` currently triggers the old context menu; this phase repurposes it to trigger selection instead
 
 ### State ownership
 - `selectedInstanceId` is a QML string property on `HomeMenu.qml` — NOT a C++ class
