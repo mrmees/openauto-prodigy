@@ -130,11 +130,11 @@ See .planning/milestones/v0.6.4-ROADMAP.md for archived details.
   2. The date widget shows day-of-week and date, with compact layout at 1x1 and more detail at larger spans
   3. The clock widget (digital, analog, minimal styles) shows only time at every span -- no date or day-of-week
   4. Clock widget layouts fill available space with time display -- no empty gaps where date used to be
-**Plans**: TBD
+**Plans**: 2 plans
 
 Plans:
-- [ ] 22-01: TBD
-- [ ] 22-02: TBD
+- [ ] 22-01-PLAN.md — Create date widget with breakpoints, config, and picker registration
+- [ ] 22-02-PLAN.md — Strip date/day from clock widget, simplify to time-only
 
 ### Phase 23: Widget Visual Refinement
 **Goal**: Every widget looks correct and legible at every valid span on both target displays
