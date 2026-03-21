@@ -106,6 +106,9 @@ private slots:
     void testIconNameRole();
     void testValidateConfigRejectsMalformedBool();
     void testValidateConfigRejectsMalformedInt();
+    // widgetMeta tests
+    void testWidgetMetaReturnsCorrectData();
+    void testWidgetMetaUnknownReturnsEmpty();
 };
 
 void TestWidgetGridModel::testPlaceWidgetSuccess() {
@@ -1345,6 +1348,45 @@ void TestWidgetGridModel::testValidateConfigRejectsMalformedInt() {
     result = model.widgetConfig(instanceId);
     QVERIFY(result.contains("brightness"));
     QCOMPARE(result["brightness"].toInt(), 50);
+}
+
+void TestWidgetGridModel::testWidgetMetaReturnsCorrectData() {
+    auto* reg = new oap::WidgetRegistry(this);
+    {
+        oap::WidgetDescriptor d;
+        d.id = "meta-test";
+        d.displayName = "Meta Test Widget";
+        d.iconName = "\\ue8b5";
+        d.qmlComponent = QUrl("qrc:/MetaTestWidget.qml");
+        d.singleton = true;
+        d.configSchema = {
+            oap::ConfigSchemaField{"key", "Label", oap::ConfigFieldType::Bool, {}, {}, 0, 0, 0}
+        };
+        reg->registerWidget(d);
+    }
+
+    oap::WidgetGridModel model(reg);
+    model.setGridDimensions(6, 4);
+    model.placeWidget("meta-test", 0, 0, 1, 1);
+
+    auto placements = model.placements();
+    QString instanceId = placements[0].instanceId;
+
+    QVariantMap meta = model.widgetMeta(instanceId);
+    QCOMPARE(meta["widgetId"].toString(), QString("meta-test"));
+    QCOMPARE(meta["displayName"].toString(), QString("Meta Test Widget"));
+    QCOMPARE(meta["hasConfigSchema"].toBool(), true);
+    QCOMPARE(meta["isSingleton"].toBool(), true);
+    QCOMPARE(meta["instanceId"].toString(), instanceId);
+}
+
+void TestWidgetGridModel::testWidgetMetaUnknownReturnsEmpty() {
+    auto* reg = makeRegistry();
+    oap::WidgetGridModel model(reg);
+    model.setGridDimensions(6, 4);
+
+    QVariantMap meta = model.widgetMeta("nonexistent-instance-id");
+    QVERIFY(meta.isEmpty());
 }
 
 QTEST_GUILESS_MAIN(TestWidgetGridModel)

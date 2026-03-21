@@ -816,6 +816,126 @@ private slots:
         // Full integration testing (actual volume values) happens on the Pi.
     }
 
+    // --- Widget interaction mode ---
+
+    void testWidgetInteractionModeProperty()
+    {
+        auto ctrl = makeController();
+        QSignalSpy spy(ctrl.get(), &oap::NavbarController::widgetInteractionModeChanged);
+
+        QVERIFY(!ctrl->widgetInteractionMode());
+
+        ctrl->setWidgetInteractionMode(true);
+        QVERIFY(ctrl->widgetInteractionMode());
+        QCOMPARE(spy.count(), 1);
+
+        ctrl->setWidgetInteractionMode(true);  // same value, no signal
+        QCOMPARE(spy.count(), 1);
+
+        ctrl->setWidgetInteractionMode(false);
+        QVERIFY(!ctrl->widgetInteractionMode());
+        QCOMPARE(spy.count(), 2);
+    }
+
+    void testControlRoleGearTrashLHD()
+    {
+        auto ctrl = makeController(true);  // LHD
+        ctrl->setWidgetInteractionMode(true);
+
+        QCOMPARE(ctrl->controlRole(0), QString("gear"));
+        QCOMPARE(ctrl->controlRole(1), QString("clock"));
+        QCOMPARE(ctrl->controlRole(2), QString("trash"));
+    }
+
+    void testControlRoleGearTrashRHD()
+    {
+        auto ctrl = makeController(false);  // RHD
+        ctrl->setWidgetInteractionMode(true);
+
+        QCOMPARE(ctrl->controlRole(0), QString("trash"));
+        QCOMPARE(ctrl->controlRole(1), QString("clock"));
+        QCOMPARE(ctrl->controlRole(2), QString("gear"));
+    }
+
+    void testHandlePressNoHoldTimersInWidgetMode()
+    {
+        auto ctrl = makeController();
+        ctrl->setWidgetInteractionMode(true);
+
+        QSignalSpy holdSpy(ctrl.get(), &oap::NavbarController::holdProgress);
+
+        ctrl->handlePress(0);
+        QTest::qWait(400);  // well past tap threshold, would normally emit holdProgress
+
+        // Filter out the reset signal (progress=0) that might come from cancel
+        int nonZeroProgress = 0;
+        for (const auto& call : holdSpy) {
+            if (call.at(1).toReal() > 0.0)
+                nonZeroProgress++;
+        }
+        QCOMPARE(nonZeroProgress, 0);
+
+        ctrl->handleRelease(0);
+    }
+
+    void testHandleReleaseTapOnlyInWidgetMode()
+    {
+        auto ctrl = makeController();
+        ctrl->setWidgetInteractionMode(true);
+
+        QSignalSpy spy(ctrl.get(), &oap::NavbarController::gestureTriggered);
+
+        ctrl->handlePress(0);
+        QTest::qWait(300);  // past tapMaxMs_=200ms, would normally be ShortHold
+        ctrl->handleRelease(0);
+
+        QCOMPARE(spy.count(), 1);
+        QCOMPARE(spy.at(0).at(0).toInt(), 0);  // controlIndex
+        QCOMPARE(spy.at(0).at(1).toInt(), 0);  // Tap (NOT ShortHold)
+    }
+
+    void testGearTapDispatch()
+    {
+        auto ctrl = makeController(true);  // LHD: control 0 = driver = gear in widget mode
+        ctrl->setWidgetInteractionMode(true);
+
+        oap::ActionRegistry registry;
+        ctrl->setActionRegistry(&registry);
+
+        QSignalSpy configSpy(ctrl.get(), &oap::NavbarController::widgetConfigRequested);
+
+        registry.registerAction("navbar.gear.tap", [ctrl = ctrl.get()](const QVariant&) {
+            emit ctrl->widgetConfigRequested();
+        });
+
+        ctrl->handlePress(0);
+        QTest::qWait(50);
+        ctrl->handleRelease(0);
+
+        QCOMPARE(configSpy.count(), 1);
+    }
+
+    void testTrashTapDispatch()
+    {
+        auto ctrl = makeController(true);  // LHD: control 2 = passenger = trash in widget mode
+        ctrl->setWidgetInteractionMode(true);
+
+        oap::ActionRegistry registry;
+        ctrl->setActionRegistry(&registry);
+
+        QSignalSpy deleteSpy(ctrl.get(), &oap::NavbarController::widgetDeleteRequested);
+
+        registry.registerAction("navbar.trash.tap", [ctrl = ctrl.get()](const QVariant&) {
+            emit ctrl->widgetDeleteRequested();
+        });
+
+        ctrl->handlePress(2);
+        QTest::qWait(50);
+        ctrl->handleRelease(2);
+
+        QCOMPARE(deleteSpy.count(), 1);
+    }
+
     // --- Popup dismiss behavior ---
 
     void testPopupDismissOnUpNotDown()
