@@ -398,6 +398,29 @@ QVariantMap WidgetGridModel::defaultConfigForWidget(const QString& widgetId) con
     return desc->defaultConfig;
 }
 
+QVariantMap WidgetGridModel::widgetMeta(const QString& instanceId) const
+{
+    int idx = findPlacement(instanceId);
+    if (idx < 0) return {};
+
+    const auto& p = livePlacements_[idx];
+    QVariantMap meta;
+    meta["widgetId"] = p.widgetId;
+    meta["instanceId"] = p.instanceId;
+
+    if (registry_) {
+        auto desc = registry_->descriptor(p.widgetId);
+        if (desc) {
+            meta["displayName"] = desc->displayName;
+            meta["iconName"] = desc->iconName;
+            meta["hasConfigSchema"] = !desc->configSchema.isEmpty();
+            meta["isSingleton"] = desc->singleton;
+        }
+    }
+
+    return meta;
+}
+
 bool WidgetGridModel::canPlace(int col, int row, int colSpan, int rowSpan,
                                 const QString& excludeInstanceId) const
 {

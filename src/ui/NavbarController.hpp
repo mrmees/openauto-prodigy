@@ -28,6 +28,10 @@ class NavbarController : public QObject {
     Q_PROPERTY(bool leftHandDrive READ leftHandDrive WRITE setLeftHandDrive NOTIFY layoutChanged)
     Q_PROPERTY(bool popupVisible READ popupVisible NOTIFY popupChanged)
     Q_PROPERTY(int popupControlIndex READ popupControlIndex NOTIFY popupChanged)
+    Q_PROPERTY(bool widgetInteractionMode READ widgetInteractionMode WRITE setWidgetInteractionMode NOTIFY widgetInteractionModeChanged)
+    Q_PROPERTY(QString widgetDisplayName READ widgetDisplayName WRITE setWidgetDisplayName NOTIFY widgetInteractionModeChanged)
+    Q_PROPERTY(bool selectedWidgetHasConfig READ selectedWidgetHasConfig WRITE setSelectedWidgetHasConfig NOTIFY widgetInteractionModeChanged)
+    Q_PROPERTY(bool selectedWidgetIsSingleton READ selectedWidgetIsSingleton WRITE setSelectedWidgetIsSingleton NOTIFY widgetInteractionModeChanged)
 
 public:
     /// Gesture types (exposed as int to QML)
@@ -56,6 +60,19 @@ public:
 
     bool popupVisible() const;
     int popupControlIndex() const;
+
+    // Widget interaction mode
+    bool widgetInteractionMode() const;
+    void setWidgetInteractionMode(bool mode);
+
+    QString widgetDisplayName() const;
+    void setWidgetDisplayName(const QString& name);
+
+    bool selectedWidgetHasConfig() const;
+    void setSelectedWidgetHasConfig(bool has);
+
+    bool selectedWidgetIsSingleton() const;
+    void setSelectedWidgetIsSingleton(bool is);
 
     // --- Popup management ---
     Q_INVOKABLE void showPopup(int controlIndex);
@@ -96,6 +113,9 @@ signals:
     void popupChanged();
     void popupDrag(int controlIndex, float normalizedValue);
     void settingsPageRequested(const QString& pageId);
+    void widgetInteractionModeChanged();
+    void widgetConfigRequested();
+    void widgetDeleteRequested();
 
 private:
     struct ControlState {
@@ -118,6 +138,12 @@ private:
     bool leftHandDrive_ = true;
     int tapMaxMs_ = 200;
     int shortHoldMaxMs_ = 600;
+
+    // Widget interaction mode state
+    bool widgetInteractionMode_ = false;
+    QString widgetDisplayName_;
+    bool selectedWidgetHasConfig_ = false;
+    bool selectedWidgetIsSingleton_ = false;
 
     // Popup state
     bool popupVisible_ = false;

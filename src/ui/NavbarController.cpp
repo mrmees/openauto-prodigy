@@ -60,6 +60,17 @@ void NavbarController::handlePress(int controlIndex)
     if (controlIndex < 0 || controlIndex >= 3)
         return;
 
+    // In widget interaction mode, side controls are tap-only -- no hold timers or progress
+    if (widgetInteractionMode_ && controlIndex != 1) {
+        auto& state = controls_[controlIndex];
+        if (state.pressed) return;
+        state.pressed = true;
+        state.longHoldFired = false;
+        state.pressTimer.start();
+        // Do NOT start longHoldTimers_ or progressTimers_
+        return;
+    }
+
     auto& state = controls_[controlIndex];
 
     // Ignore if already pressed (duplicate press)
@@ -94,7 +105,10 @@ void NavbarController::handleRelease(int controlIndex)
 
     // Only emit if long hold hasn't already fired
     if (!state.longHoldFired) {
-        if (elapsed <= tapMaxMs_) {
+        // Widget interaction mode: side controls are ALWAYS tap, never shortHold
+        if (widgetInteractionMode_ && controlIndex != 1) {
+            emit gestureTriggered(controlIndex, Tap);
+        } else if (elapsed <= tapMaxMs_) {
             emit gestureTriggered(controlIndex, Tap);
         } else {
             // Between tap and long-hold thresholds = short hold
@@ -215,17 +229,88 @@ void NavbarController::hidePopup()
 
 QString NavbarController::controlRole(int controlIndex) const
 {
-    // Layout: driver side (0), center (1), passenger side (2)
-    // LHD: driver=left=volume, passenger=right=brightness
-    // RHD: driver=left=brightness, passenger=right=volume (swap 0 and 2)
+    // Center is always clock, regardless of mode
     if (controlIndex == 1)
         return QStringLiteral("clock");
 
+    // Widget interaction mode: gear = driver side, trash = passenger side
+    if (widgetInteractionMode_) {
+        if (leftHandDrive_) {
+            return (controlIndex == 0) ? QStringLiteral("gear") : QStringLiteral("trash");
+        } else {
+            return (controlIndex == 0) ? QStringLiteral("trash") : QStringLiteral("gear");
+        }
+    }
+
+    // Normal mode: volume = driver side, brightness = passenger side
+    // LHD: driver=left=volume, passenger=right=brightness
+    // RHD: driver=left=brightness, passenger=right=volume (swap 0 and 2)
     if (leftHandDrive_) {
         return (controlIndex == 0) ? QStringLiteral("volume") : QStringLiteral("brightness");
     } else {
         return (controlIndex == 0) ? QStringLiteral("brightness") : QStringLiteral("volume");
     }
+}
+
+// --- Widget interaction mode ---
+
+bool NavbarController::widgetInteractionMode() const
+{
+    return widgetInteractionMode_;
+}
+
+void NavbarController::setWidgetInteractionMode(bool mode)
+{
+    if (widgetInteractionMode_ == mode)
+        return;
+    widgetInteractionMode_ = mode;
+
+    // Cancel any active press state on all controls when entering widget mode
+    if (mode) {
+        for (int i = 0; i < 3; ++i)
+            handleCancel(i);
+    }
+
+    emit widgetInteractionModeChanged();
+}
+
+QString NavbarController::widgetDisplayName() const
+{
+    return widgetDisplayName_;
+}
+
+void NavbarController::setWidgetDisplayName(const QString& name)
+{
+    if (widgetDisplayName_ == name)
+        return;
+    widgetDisplayName_ = name;
+    emit widgetInteractionModeChanged();
+}
+
+bool NavbarController::selectedWidgetHasConfig() const
+{
+    return selectedWidgetHasConfig_;
+}
+
+void NavbarController::setSelectedWidgetHasConfig(bool has)
+{
+    if (selectedWidgetHasConfig_ == has)
+        return;
+    selectedWidgetHasConfig_ = has;
+    emit widgetInteractionModeChanged();
+}
+
+bool NavbarController::selectedWidgetIsSingleton() const
+{
+    return selectedWidgetIsSingleton_;
+}
+
+void NavbarController::setSelectedWidgetIsSingleton(bool is)
+{
+    if (selectedWidgetIsSingleton_ == is)
+        return;
+    selectedWidgetIsSingleton_ = is;
+    emit widgetInteractionModeChanged();
 }
 
 // --- Gesture timing ---

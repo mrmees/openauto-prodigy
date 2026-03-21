@@ -866,6 +866,26 @@ int main(int argc, char *argv[])
         themeService->toggleMode();
     });
 
+    // --- Widget interaction mode navbar actions ---
+    actionRegistry->registerAction("navbar.gear.tap", [navbarController](const QVariant&) {
+        emit navbarController->widgetConfigRequested();
+    });
+    actionRegistry->registerAction("navbar.gear.shortHold", [](const QVariant&) {
+        // No-op: gear is tap-only during widget interaction mode
+    });
+    actionRegistry->registerAction("navbar.gear.longHold", [](const QVariant&) {
+        // No-op: gear is tap-only during widget interaction mode
+    });
+    actionRegistry->registerAction("navbar.trash.tap", [navbarController](const QVariant&) {
+        emit navbarController->widgetDeleteRequested();
+    });
+    actionRegistry->registerAction("navbar.trash.shortHold", [](const QVariant&) {
+        // No-op: trash is tap-only during widget interaction mode
+    });
+    actionRegistry->registerAction("navbar.trash.longHold", [](const QVariant&) {
+        // No-op: trash is tap-only during widget interaction mode
+    });
+
     engine.rootContext()->setContextProperty("NavbarController", navbarController);
     engine.rootContext()->setContextProperty("ActionRegistry", actionRegistry);
     engine.rootContext()->setContextProperty("ThemeService", themeService);

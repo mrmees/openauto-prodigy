@@ -61,6 +61,7 @@ public:
     Q_INVOKABLE QVariantMap effectiveWidgetConfig(const QString& instanceId) const;
     Q_INVOKABLE QVariantList configSchemaForWidget(const QString& widgetId) const;
     Q_INVOKABLE QVariantMap defaultConfigForWidget(const QString& widgetId) const;
+    Q_INVOKABLE QVariantMap widgetMeta(const QString& instanceId) const;
     Q_INVOKABLE bool canPlace(int col, int row, int colSpan, int rowSpan,
                                const QString& excludeInstanceId = {}) const;
     Q_INVOKABLE QVariantMap findFirstAvailableCell(int colSpan, int rowSpan) const;
