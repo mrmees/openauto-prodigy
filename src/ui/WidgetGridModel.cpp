@@ -228,6 +228,50 @@ bool WidgetGridModel::resizeWidget(const QString& instanceId, int newColSpan, in
     return true;
 }
 
+bool WidgetGridModel::resizeWidgetFromEdge(const QString& instanceId,
+                                            int newCol, int newRow,
+                                            int newColSpan, int newRowSpan)
+{
+    int idx = findPlacement(instanceId);
+    if (idx < 0) return false;
+
+    const auto& p = livePlacements_[idx];
+
+    // Bounds check
+    if (newCol < 0 || newRow < 0) return false;
+    if (newCol + newColSpan > cols_ || newRow + newRowSpan > rows_) return false;
+    if (newColSpan < 1 || newRowSpan < 1) return false;
+
+    // Check against widget's min/max constraints
+    if (registry_) {
+        auto desc = registry_->descriptor(p.widgetId);
+        if (desc) {
+            if (newColSpan < desc->minCols || newColSpan > desc->maxCols)
+                return false;
+            if (newRowSpan < desc->minRows || newRowSpan > desc->maxRows)
+                return false;
+        }
+    }
+
+    // Collision check on the widget's page
+    if (!canPlaceOnPage(newCol, newRow, newColSpan, newRowSpan, p.page, instanceId))
+        return false;
+
+    // Apply atomically
+    livePlacements_[idx].col = newCol;
+    livePlacements_[idx].row = newRow;
+    livePlacements_[idx].colSpan = newColSpan;
+    livePlacements_[idx].rowSpan = newRowSpan;
+    rebuildOccupancy();
+
+    QModelIndex mi = index(idx);
+    emit dataChanged(mi, mi, {ColumnRole, RowRole, ColSpanRole, RowSpanRole});
+
+    promoteToBase();
+    emit placementsChanged();
+    return true;
+}
+
 void WidgetGridModel::removeWidget(const QString& instanceId)
 {
     int idx = findPlacement(instanceId);

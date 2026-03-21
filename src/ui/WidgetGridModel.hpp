@@ -54,6 +54,9 @@ public:
                                   int colSpan, int rowSpan);
     Q_INVOKABLE bool moveWidget(const QString& instanceId, int newCol, int newRow);
     Q_INVOKABLE bool resizeWidget(const QString& instanceId, int newColSpan, int newRowSpan);
+    Q_INVOKABLE bool resizeWidgetFromEdge(const QString& instanceId,
+                                           int newCol, int newRow,
+                                           int newColSpan, int newRowSpan);
     Q_INVOKABLE void removeWidget(const QString& instanceId);
     Q_INVOKABLE void setWidgetOpacity(const QString& instanceId, double opacity);
     Q_INVOKABLE void setWidgetConfig(const QString& instanceId, const QVariantMap& config);
