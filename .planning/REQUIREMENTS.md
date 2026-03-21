@@ -9,10 +9,10 @@ Requirements for Homescreen Layout & Widget Settings Rework. Each maps to roadma
 
 ### Widget Selection
 
-- [ ] **SEL-01**: User can long-press a widget to lift it (scale up + shadow visual feedback)
-- [ ] **SEL-02**: User can drag a lifted widget to reposition it on the grid with snap-to-cell
-- [ ] **SEL-03**: User can release a long-pressed widget without dragging to enter selected state (border/glow indicator)
-- [ ] **SEL-04**: User can tap empty space or clock-home navbar button to deselect a widget and revert all UI
+- [x] **SEL-01**: User can long-press a widget to lift it (scale up + shadow visual feedback)
+- [x] **SEL-02**: User can drag a lifted widget to reposition it on the grid with snap-to-cell
+- [x] **SEL-03**: User can release a long-pressed widget without dragging to enter selected state (border/glow indicator)
+- [x] **SEL-04**: User can tap empty space or clock-home navbar button to deselect a widget and revert all UI
 
 ### Navbar Transformation
 
@@ -44,10 +44,10 @@ Requirements for Homescreen Layout & Widget Settings Rework. Each maps to roadma
 
 ### Cleanup
 
-- [ ] **CLN-01**: Global edit mode removed (no editMode flag, no all-widgets-edit-simultaneously)
+- [x] **CLN-01**: Global edit mode removed (no editMode flag, no all-widgets-edit-simultaneously)
 - [ ] **CLN-02**: All FABs removed (add widget, add page, delete page)
 - [ ] **CLN-03**: All tiny badge buttons removed (X delete, gear config, corner resize handle)
-- [ ] **CLN-04**: Replace global edit mode inactivity timer with per-widget selection auto-deselect timeout
+- [x] **CLN-04**: Replace global edit mode inactivity timer with per-widget selection auto-deselect timeout
 
 ## Future Requirements
 
@@ -69,10 +69,10 @@ Requirements for Homescreen Layout & Widget Settings Rework. Each maps to roadma
 
 | Requirement | Phase | Status |
 |-------------|-------|--------|
-| SEL-01 | Phase 25 | Pending |
-| SEL-02 | Phase 25 | Pending |
-| SEL-03 | Phase 25 | Pending |
-| SEL-04 | Phase 25 | Pending |
+| SEL-01 | Phase 25 | Complete |
+| SEL-02 | Phase 25 | Complete |
+| SEL-03 | Phase 25 | Complete |
+| SEL-04 | Phase 25 | Complete |
 | NAV-01 | Phase 26 | Pending |
 | NAV-02 | Phase 26 | Pending |
 | NAV-03 | Phase 26 | Pending |
@@ -89,10 +89,10 @@ Requirements for Homescreen Layout & Widget Settings Rework. Each maps to roadma
 | PGM-02 | Phase 27 | Pending |
 | PGM-03 | Phase 27 | Pending |
 | PGM-04 | Phase 26 | Pending |
-| CLN-01 | Phase 25 | Pending |
+| CLN-01 | Phase 25 | Complete |
 | CLN-02 | Phase 27 | Pending |
 | CLN-03 | Phase 26 | Pending |
-| CLN-04 | Phase 25 | Pending |
+| CLN-04 | Phase 25 | Complete |
 
 **Coverage:**
 - v0.6.6 requirements: 24 total

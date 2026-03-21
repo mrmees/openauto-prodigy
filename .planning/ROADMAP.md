@@ -126,7 +126,7 @@ See .planning/milestones/v0.6.5-ROADMAP.md for archived details.
 
 ## Phases
 
-- [ ] **Phase 25: Selection Model & Interaction Foundation** - Per-widget long-press select/drag/deselect replaces global edit mode; auto-deselect timeout replaces global inactivity timer
+- [x] **Phase 25: Selection Model & Interaction Foundation** - Per-widget long-press select/drag/deselect replaces global edit mode; auto-deselect timeout replaces global inactivity timer (completed 2026-03-21)
 - [ ] **Phase 26: Navbar Transformation & Edge Resize** - Navbar morphs to settings/delete during widget selection; 4-edge resize handles with constraint enforcement; widget deletion with empty page auto-cleanup
 - [ ] **Phase 27: Widget Picker & Page Management** - Bottom-sheet categorized picker with auto-placement; long-press empty space menu; FAB removal
 
@@ -146,7 +146,7 @@ See .planning/milestones/v0.6.5-ROADMAP.md for archived details.
   7. Tapping a different widget while one is selected only deselects — does NOT fire the tapped widget's action
   8. AA fullscreen activation force-deselects AND dismisses any open overlays (config sheet, picker)
   9. No global edit mode flag exists in UI or code
-**Plans:** 1 plan
+**Plans:** 1/1 plans complete
 Plans:
 - [ ] 25-01-PLAN.md — Selection model core: WidgetGridModel rename + HomeMenu.qml full refactor (editMode -> selectedInstanceId)
 
@@ -185,6 +185,6 @@ Phases execute in numeric order: 25 -> 26 -> 27
 
 | Phase | Plans Complete | Status | Completed |
 |-------|----------------|--------|-----------|
-| 25. Selection Model & Interaction Foundation | 0/1 | Not started | - |
+| 25. Selection Model & Interaction Foundation | 1/1 | Complete   | 2026-03-21 |
 | 26. Navbar Transformation & Edge Resize | 0/TBD | Not started | - |
 | 27. Widget Picker & Page Management | 0/TBD | Not started | - |
