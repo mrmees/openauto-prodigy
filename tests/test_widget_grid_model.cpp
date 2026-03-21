@@ -109,6 +109,19 @@ private slots:
     // widgetMeta tests
     void testWidgetMetaReturnsCorrectData();
     void testWidgetMetaUnknownReturnsEmpty();
+    // resizeWidgetFromEdge tests
+    void testResizeWidgetFromEdgeRight();
+    void testResizeWidgetFromEdgeBottom();
+    void testResizeWidgetFromEdgeLeft();
+    void testResizeWidgetFromEdgeTop();
+    void testResizeWidgetFromEdgeShrinkRight();
+    void testResizeWidgetFromEdgeShrinkLeft();
+    void testResizeWidgetFromEdgeBoundsCheck();
+    void testResizeWidgetFromEdgeMinConstraint();
+    void testResizeWidgetFromEdgeMaxConstraint();
+    void testResizeWidgetFromEdgeCollision();
+    void testResizeWidgetFromEdgeUnknownId();
+    void testResizeWidgetFromEdgeSignals();
 };
 
 void TestWidgetGridModel::testPlaceWidgetSuccess() {
@@ -1387,6 +1400,226 @@ void TestWidgetGridModel::testWidgetMetaUnknownReturnsEmpty() {
 
     QVariantMap meta = model.widgetMeta("nonexistent-instance-id");
     QVERIFY(meta.isEmpty());
+}
+
+// --- resizeWidgetFromEdge tests ---
+
+void TestWidgetGridModel::testResizeWidgetFromEdgeRight() {
+    auto* reg = makeRegistry();
+    oap::WidgetGridModel model(reg);
+    model.setGridDimensions(6, 4);
+
+    model.placeWidget("clock", 0, 0, 2, 2);
+    auto placements = model.placements();
+    QString id = placements[0].instanceId;
+
+    bool ok = model.resizeWidgetFromEdge(id, 0, 0, 3, 2);
+    QVERIFY(ok);
+    QModelIndex idx = model.index(0);
+    QCOMPARE(idx.data(oap::WidgetGridModel::ColSpanRole).toInt(), 3);
+    QCOMPARE(idx.data(oap::WidgetGridModel::ColumnRole).toInt(), 0);
+}
+
+void TestWidgetGridModel::testResizeWidgetFromEdgeBottom() {
+    auto* reg = makeRegistry();
+    oap::WidgetGridModel model(reg);
+    model.setGridDimensions(6, 4);
+
+    model.placeWidget("clock", 0, 0, 2, 2);
+    auto placements = model.placements();
+    QString id = placements[0].instanceId;
+
+    bool ok = model.resizeWidgetFromEdge(id, 0, 0, 2, 3);
+    QVERIFY(ok);
+    QModelIndex idx = model.index(0);
+    QCOMPARE(idx.data(oap::WidgetGridModel::RowSpanRole).toInt(), 3);
+}
+
+void TestWidgetGridModel::testResizeWidgetFromEdgeLeft() {
+    auto* reg = makeRegistry();
+    oap::WidgetGridModel model(reg);
+    model.setGridDimensions(6, 4);
+
+    model.placeWidget("clock", 2, 0, 2, 2);
+    auto placements = model.placements();
+    QString id = placements[0].instanceId;
+
+    // Grow left: col 2->1, colSpan 2->3
+    bool ok = model.resizeWidgetFromEdge(id, 1, 0, 3, 2);
+    QVERIFY(ok);
+    QModelIndex idx = model.index(0);
+    QCOMPARE(idx.data(oap::WidgetGridModel::ColumnRole).toInt(), 1);
+    QCOMPARE(idx.data(oap::WidgetGridModel::ColSpanRole).toInt(), 3);
+}
+
+void TestWidgetGridModel::testResizeWidgetFromEdgeTop() {
+    auto* reg = makeRegistry();
+    oap::WidgetGridModel model(reg);
+    model.setGridDimensions(6, 4);
+
+    model.placeWidget("clock", 0, 2, 2, 2);
+    auto placements = model.placements();
+    QString id = placements[0].instanceId;
+
+    // Grow top: row 2->1, rowSpan 2->3
+    bool ok = model.resizeWidgetFromEdge(id, 0, 1, 2, 3);
+    QVERIFY(ok);
+    QModelIndex idx = model.index(0);
+    QCOMPARE(idx.data(oap::WidgetGridModel::RowRole).toInt(), 1);
+    QCOMPARE(idx.data(oap::WidgetGridModel::RowSpanRole).toInt(), 3);
+}
+
+void TestWidgetGridModel::testResizeWidgetFromEdgeShrinkRight() {
+    auto* reg = makeRegistry();
+    oap::WidgetGridModel model(reg);
+    model.setGridDimensions(6, 4);
+
+    model.placeWidget("clock", 0, 0, 2, 2);
+    auto placements = model.placements();
+    QString id = placements[0].instanceId;
+    // First grow to 3x2
+    model.resizeWidget(id, 3, 2);
+
+    // Now shrink right edge: (0,0) 3x2 -> (0,0) 2x2
+    bool ok = model.resizeWidgetFromEdge(id, 0, 0, 2, 2);
+    QVERIFY(ok);
+    QModelIndex idx = model.index(0);
+    QCOMPARE(idx.data(oap::WidgetGridModel::ColSpanRole).toInt(), 2);
+}
+
+void TestWidgetGridModel::testResizeWidgetFromEdgeShrinkLeft() {
+    auto* reg = makeRegistry();
+    oap::WidgetGridModel model(reg);
+    model.setGridDimensions(6, 4);
+
+    model.placeWidget("clock", 1, 0, 2, 2);
+    auto placements = model.placements();
+    QString id = placements[0].instanceId;
+    // Grow to 3x2 first
+    model.resizeWidget(id, 3, 2);
+
+    // Shrink left edge: (1,0) 3x2 -> (2,0) 2x2
+    bool ok = model.resizeWidgetFromEdge(id, 2, 0, 2, 2);
+    QVERIFY(ok);
+    QModelIndex idx = model.index(0);
+    QCOMPARE(idx.data(oap::WidgetGridModel::ColumnRole).toInt(), 2);
+    QCOMPARE(idx.data(oap::WidgetGridModel::ColSpanRole).toInt(), 2);
+}
+
+void TestWidgetGridModel::testResizeWidgetFromEdgeBoundsCheck() {
+    auto* reg = makeRegistry();
+    oap::WidgetGridModel model(reg);
+    model.setGridDimensions(6, 4);
+
+    model.placeWidget("clock", 0, 0, 2, 2);
+    auto placements = model.placements();
+    QString id = placements[0].instanceId;
+
+    // newCol=-1 should fail
+    bool ok = model.resizeWidgetFromEdge(id, -1, 0, 3, 2);
+    QVERIFY(!ok);
+}
+
+void TestWidgetGridModel::testResizeWidgetFromEdgeMinConstraint() {
+    // Register widget with minCols=2
+    auto* reg = new oap::WidgetRegistry(this);
+    {
+        oap::WidgetDescriptor d;
+        d.id = "min2";
+        d.displayName = "Min2";
+        d.qmlComponent = QUrl("qrc:/Min2Widget.qml");
+        d.minCols = 2; d.minRows = 2;
+        d.maxCols = 6; d.maxRows = 4;
+        d.defaultCols = 2; d.defaultRows = 2;
+        reg->registerWidget(d);
+    }
+
+    oap::WidgetGridModel model(reg);
+    model.setGridDimensions(6, 4);
+
+    model.placeWidget("min2", 0, 0, 2, 2);
+    auto placements = model.placements();
+    QString id = placements[0].instanceId;
+
+    // Try shrink to 1x2 (below minCols=2)
+    bool ok = model.resizeWidgetFromEdge(id, 0, 0, 1, 2);
+    QVERIFY(!ok);
+}
+
+void TestWidgetGridModel::testResizeWidgetFromEdgeMaxConstraint() {
+    // Register widget with maxCols=3
+    auto* reg = new oap::WidgetRegistry(this);
+    {
+        oap::WidgetDescriptor d;
+        d.id = "max3";
+        d.displayName = "Max3";
+        d.qmlComponent = QUrl("qrc:/Max3Widget.qml");
+        d.minCols = 1; d.minRows = 1;
+        d.maxCols = 3; d.maxRows = 2;
+        d.defaultCols = 2; d.defaultRows = 2;
+        reg->registerWidget(d);
+    }
+
+    oap::WidgetGridModel model(reg);
+    model.setGridDimensions(6, 4);
+
+    model.placeWidget("max3", 0, 0, 2, 2);
+    auto placements = model.placements();
+    QString id = placements[0].instanceId;
+
+    // Try grow to 4x2 (above maxCols=3)
+    bool ok = model.resizeWidgetFromEdge(id, 0, 0, 4, 2);
+    QVERIFY(!ok);
+}
+
+void TestWidgetGridModel::testResizeWidgetFromEdgeCollision() {
+    auto* reg = makeRegistry();
+    oap::WidgetGridModel model(reg);
+    model.setGridDimensions(6, 4);
+
+    model.placeWidget("clock", 0, 0, 2, 2);
+    model.placeWidget("status", 3, 0, 2, 1);
+    auto placements = model.placements();
+    QString idA = placements[0].instanceId;
+
+    // Try to resize A to 4 cols, overlapping B at (3,0)
+    bool ok = model.resizeWidgetFromEdge(idA, 0, 0, 4, 2);
+    QVERIFY(!ok);
+}
+
+void TestWidgetGridModel::testResizeWidgetFromEdgeUnknownId() {
+    auto* reg = makeRegistry();
+    oap::WidgetGridModel model(reg);
+    model.setGridDimensions(6, 4);
+
+    bool ok = model.resizeWidgetFromEdge("nonexistent", 0, 0, 2, 2);
+    QVERIFY(!ok);
+}
+
+void TestWidgetGridModel::testResizeWidgetFromEdgeSignals() {
+    auto* reg = makeRegistry();
+    oap::WidgetGridModel model(reg);
+    model.setGridDimensions(6, 4);
+
+    model.placeWidget("clock", 0, 0, 2, 2);
+    auto placements = model.placements();
+    QString id = placements[0].instanceId;
+
+    QSignalSpy placementsSpy(&model, &oap::WidgetGridModel::placementsChanged);
+    QSignalSpy dataSpy(&model, &oap::WidgetGridModel::dataChanged);
+
+    bool ok = model.resizeWidgetFromEdge(id, 0, 0, 3, 2);
+    QVERIFY(ok);
+    QCOMPARE(placementsSpy.count(), 1);
+    QCOMPARE(dataSpy.count(), 1);
+
+    // Verify dataChanged includes the correct roles
+    auto args = dataSpy.takeFirst();
+    QList<int> roles = args[2].value<QList<int>>();
+    QVERIFY(roles.contains(oap::WidgetGridModel::ColumnRole));
+    QVERIFY(roles.contains(oap::WidgetGridModel::RowRole));
+    QVERIFY(roles.contains(oap::WidgetGridModel::ColSpanRole));
+    QVERIFY(roles.contains(oap::WidgetGridModel::RowSpanRole));
 }
 
 QTEST_GUILESS_MAIN(TestWidgetGridModel)
