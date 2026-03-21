@@ -148,7 +148,7 @@ See .planning/milestones/v0.6.5-ROADMAP.md for archived details.
   9. No global edit mode flag exists in UI or code
 **Plans:** 1/1 plans complete
 Plans:
-- [ ] 25-01-PLAN.md — Selection model core: WidgetGridModel rename + HomeMenu.qml full refactor (editMode -> selectedInstanceId)
+- [x] 25-01-PLAN.md — Selection model core: WidgetGridModel rename + HomeMenu.qml full refactor (editMode -> selectedInstanceId)
 
 ### Phase 26: Navbar Transformation & Edge Resize
 **Goal**: Users manage widget settings, deletion, and sizing through automotive-sized controls instead of tiny overlays
@@ -164,7 +164,10 @@ Plans:
   6. Resize is clamped to widget descriptor min/max constraints with visual feedback at limits (e.g. handle color change or bounce)
   7. Resize is blocked when it would overlap another widget, with a distinct collision indicator (e.g. red flash or shake)
   8. Empty pages are automatically deleted when their last widget is removed via navbar trash
-**Plans**: TBD
+**Plans:** 2 plans
+Plans:
+- [ ] 26-01-PLAN.md — Navbar transformation: widgetInteractionMode C++ property, gear/trash icons, action routing, badge removal, PGM-04 empty page auto-delete
+- [ ] 26-02-PLAN.md — Edge resize handles: resizeWidgetFromEdge C++ method, 4-edge QML handles with ghost preview and constraint feedback
 
 ### Phase 27: Widget Picker & Page Management
 **Goal**: Users can add widgets and manage pages through discoverable long-press interactions on empty space
@@ -186,5 +189,5 @@ Phases execute in numeric order: 25 -> 26 -> 27
 | Phase | Plans Complete | Status | Completed |
 |-------|----------------|--------|-----------|
 | 25. Selection Model & Interaction Foundation | 1/1 | Complete   | 2026-03-21 |
-| 26. Navbar Transformation & Edge Resize | 0/TBD | Not started | - |
+| 26. Navbar Transformation & Edge Resize | 0/2 | Not started | - |
 | 27. Widget Picker & Page Management | 0/TBD | Not started | - |
