@@ -1,11 +1,11 @@
 ---
 gsd_state_version: 1.0
-milestone: v0.6.6
-milestone_name: Homescreen Layout & Widget Settings Rework
-status: active
-stopped_at: null
-last_updated: "2026-03-21T00:00:00.000Z"
-last_activity: 2026-03-21 — Roadmap revised (cleanup redistribution, timer fix, PGM-04 pull-forward, sharpened criteria)
+milestone: v0.6
+milestone_name: milestone
+status: planning
+stopped_at: Phase 25 context gathered
+last_updated: "2026-03-21T17:06:22.199Z"
+last_activity: 2026-03-21 — Roadmap revised
 progress:
   total_phases: 3
   completed_phases: 0
@@ -61,6 +61,6 @@ None yet.
 
 ## Session Continuity
 
-Last session: 2026-03-21
-Stopped at: Roadmap revised, ready to plan Phase 25
-Resume file: None
+Last session: 2026-03-21T17:06:22.197Z
+Stopped at: Phase 25 context gathered
+Resume file: .planning/phases/25-selection-model-interaction-foundation/25-CONTEXT.md
