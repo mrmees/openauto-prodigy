@@ -16,11 +16,11 @@ Requirements for Homescreen Layout & Widget Settings Rework. Each maps to roadma
 
 ### Navbar Transformation
 
-- [ ] **NAV-01**: Volume navbar control transforms to settings gear icon when a widget is selected
-- [ ] **NAV-02**: Brightness navbar control transforms to delete/trash icon when a widget is selected
-- [ ] **NAV-03**: Tapping settings navbar button opens config sheet for the selected widget
-- [ ] **NAV-04**: Tapping delete navbar button removes the selected widget
-- [ ] **NAV-05**: Navbar automatically reverts to normal controls on deselect, drag start, or auto-deselect timeout
+- [x] **NAV-01**: Volume navbar control transforms to settings gear icon when a widget is selected
+- [x] **NAV-02**: Brightness navbar control transforms to delete/trash icon when a widget is selected
+- [x] **NAV-03**: Tapping settings navbar button opens config sheet for the selected widget
+- [x] **NAV-04**: Tapping delete navbar button removes the selected widget
+- [x] **NAV-05**: Navbar automatically reverts to normal controls on deselect, drag start, or auto-deselect timeout
 
 ### Resize
 
@@ -40,13 +40,13 @@ Requirements for Homescreen Layout & Widget Settings Rework. Each maps to roadma
 - [ ] **PGM-01**: Long-press on empty grid space shows menu with "Add Widget" and "Add Page" options
 - [ ] **PGM-02**: "Add Widget" opens the bottom sheet widget picker
 - [ ] **PGM-03**: "Add Page" creates a new page and navigates to it
-- [ ] **PGM-04**: Empty pages are automatically deleted when no widgets remain on them
+- [x] **PGM-04**: Empty pages are automatically deleted when no widgets remain on them
 
 ### Cleanup
 
 - [x] **CLN-01**: Global edit mode removed (no editMode flag, no all-widgets-edit-simultaneously)
 - [ ] **CLN-02**: All FABs removed (add widget, add page, delete page)
-- [ ] **CLN-03**: All tiny badge buttons removed (X delete, gear config, corner resize handle)
+- [x] **CLN-03**: All tiny badge buttons removed (X delete, gear config, corner resize handle)
 - [x] **CLN-04**: Replace global edit mode inactivity timer with per-widget selection auto-deselect timeout
 
 ## Future Requirements
@@ -73,11 +73,11 @@ Requirements for Homescreen Layout & Widget Settings Rework. Each maps to roadma
 | SEL-02 | Phase 25 | Complete |
 | SEL-03 | Phase 25 | Complete |
 | SEL-04 | Phase 25 | Complete |
-| NAV-01 | Phase 26 | Pending |
-| NAV-02 | Phase 26 | Pending |
-| NAV-03 | Phase 26 | Pending |
-| NAV-04 | Phase 26 | Pending |
-| NAV-05 | Phase 26 | Pending |
+| NAV-01 | Phase 26 | Complete |
+| NAV-02 | Phase 26 | Complete |
+| NAV-03 | Phase 26 | Complete |
+| NAV-04 | Phase 26 | Complete |
+| NAV-05 | Phase 26 | Complete |
 | RSZ-01 | Phase 26 | Pending |
 | RSZ-02 | Phase 26 | Pending |
 | RSZ-03 | Phase 26 | Pending |
@@ -88,10 +88,10 @@ Requirements for Homescreen Layout & Widget Settings Rework. Each maps to roadma
 | PGM-01 | Phase 27 | Pending |
 | PGM-02 | Phase 27 | Pending |
 | PGM-03 | Phase 27 | Pending |
-| PGM-04 | Phase 26 | Pending |
+| PGM-04 | Phase 26 | Complete |
 | CLN-01 | Phase 25 | Complete |
 | CLN-02 | Phase 27 | Pending |
-| CLN-03 | Phase 26 | Pending |
+| CLN-03 | Phase 26 | Complete |
 | CLN-04 | Phase 25 | Complete |
 
 **Coverage:**
