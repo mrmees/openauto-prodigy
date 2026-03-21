@@ -1,49 +1,34 @@
 ---
 gsd_state_version: 1.0
-milestone: v0.6
-milestone_name: milestone
-status: completed
-stopped_at: Phase 23 context gathered
-last_updated: "2026-03-21T14:05:39.289Z"
-last_activity: 2026-03-21 — Plan 22-02 clock cleanup complete
+milestone: v0.6.6
+milestone_name: Homescreen Layout & Widget Settings Rework
+status: active
+stopped_at: null
+last_updated: "2026-03-21T00:00:00.000Z"
+last_activity: 2026-03-21 — Milestone v0.6.6 started
 progress:
-  total_phases: 3
-  completed_phases: 1
-  total_plans: 2
-  completed_plans: 2
-  percent: 33
+  total_phases: 0
+  completed_phases: 0
+  total_plans: 0
+  completed_plans: 0
+  percent: 0
 ---
 
 # Project State
 
 ## Project Reference
 
-See: .planning/PROJECT.md (updated 2026-03-20)
+See: .planning/PROJECT.md (updated 2026-03-21)
 
 **Core value:** A person with a Raspberry Pi 4 and a touchscreen can install this, pair their phone, and get a reliable wireless Android Auto experience -- every time, without SSH.
-**Current focus:** Phase 22 - Date Widget & Clock Cleanup
+**Current focus:** Defining requirements for v0.6.6
 
 ## Current Position
 
-Phase: 22 of 24 (Date Widget & Clock Cleanup)
-Plan: 2 of 2 in current phase (COMPLETE)
-Status: Phase 22 complete
-Last activity: 2026-03-21 — Plan 22-02 clock cleanup complete
-
-Progress: [███░░░░░░░] 33%
-
-## Performance Metrics
-
-**Velocity:**
-- Total plans completed: 2
-- Average duration: ~14min
-- Total execution time: ~0.5 hours
-
-**By Phase:**
-
-| Phase | Plans | Total | Avg/Plan |
-|-------|-------|-------|----------|
-| 22 | 2 | ~28min | ~14min |
+Phase: Not started (defining requirements)
+Plan: —
+Status: Defining requirements
+Last activity: 2026-03-21 — Milestone v0.6.6 started
 
 ## Accumulated Context
 
@@ -54,18 +39,8 @@ Progress: [███░░░░░░░] 33%
 
 ### Decisions
 
-- [v0.6.5]: Clock widget loses date entirely -- date becomes its own widget
-- [v0.6.5]: All 9 widgets in scope for refinement, not just v0.6.4 additions
-- [v0.6.5]: Live preview iteration workflow -- edit QML in preview tool, single Pi deploy at end
-- [22-02]: No main.cpp changes needed -- clock descriptor already said "Current time" with no date config
-- [Phase 22]: Single formattedDate() function with colSpan switching rather than Loader/Component pattern for text-only date widget
+(none yet for v0.6.6)
 
 ### Blockers/Concerns
 
 None yet.
-
-## Session Continuity
-
-Last session: 2026-03-21T00:46:24.957Z
-Stopped at: Phase 23 context gathered
-Resume file: .planning/phases/23-widget-visual-refinement/23-CONTEXT.md

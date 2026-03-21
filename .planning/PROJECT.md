@@ -124,11 +124,30 @@ A person with a Raspberry Pi 4 and a touchscreen can install this, pair their ph
 - ✓ AAStatusWidget removed (redundant with AA focus toggle) — v0.6.5
 - ✓ Now Playing reworked with automotive-sized controls, scrolling titles, progressive breakpoints — v0.6.5
 
+## Current Milestone: v0.6.6 Homescreen Layout & Widget Settings Rework
+
+**Goal:** Replace global edit mode with Android-style per-widget interactions — long-press to lift/drag, navbar-hosted settings/delete, edge resize handles, bottom-sheet widget picker, and long-press-empty for page/widget management.
+
+**Target features:**
+- Per-widget long-press interaction (lift, drag, select)
+- Navbar control transformation (volume/brightness → settings/delete during widget interaction)
+- 4-edge resize handles on selected widget
+- Bottom-sheet widget picker with categorized scrollable list and auto-placement
+- Long-press empty space menu (Add Widget / Add Page)
+- Auto-delete empty pages
+- Remove all FABs, tiny badge buttons, global edit mode, inactivity timer
+
 ### Active
 
 <!-- Current scope. Building toward these. -->
 
-(No active milestone — next milestone TBD)
+- [ ] Per-widget long-press lift/drag/select interaction model
+- [ ] Navbar transforms to settings/delete during widget interaction
+- [ ] 4-edge resize handles on selected widget
+- [ ] Bottom-sheet widget picker with auto-placement
+- [ ] Long-press empty space → Add Widget / Add Page menu
+- [ ] Auto-manage pages (auto-delete empty)
+- [ ] Remove global edit mode and all associated UI (FABs, badges, timer)
 
 ### Backlog
 
@@ -253,4 +272,4 @@ v0.4 shipped logging and theming. v0.4.1 shipped 10-band graphic EQ with per-str
 | Clock styles via Loader Component switching | Shared root-level time properties, clean separation of style rendering | ✓ Good |
 
 ---
-*Last updated: 2026-03-21 after v0.6.5 milestone*
+*Last updated: 2026-03-21 after v0.6.6 milestone start*
