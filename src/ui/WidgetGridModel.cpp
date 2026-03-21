@@ -543,8 +543,8 @@ void WidgetGridModel::setGridDimensions(int cols, int rows)
 {
     if (cols == cols_ && rows == rows_) return;
 
-    // Edit mode deferral: queue dims but don't remap
-    if (editMode_) {
+    // Widget-selected deferral: queue dims but don't remap
+    if (widgetSelected_) {
         pendingCols_ = cols;
         pendingRows_ = rows;
         remapPending_ = true;
@@ -799,13 +799,13 @@ void WidgetGridModel::setSavedDimensions(int cols, int rows)
     savedRows_ = rows;
 }
 
-void WidgetGridModel::setEditMode(bool editing)
+void WidgetGridModel::setWidgetSelected(bool selected)
 {
-    if (editMode_ == editing) return;
-    editMode_ = editing;
+    if (widgetSelected_ == selected) return;
+    widgetSelected_ = selected;
 
-    // When exiting edit mode, apply pending remap if any
-    if (!editing && remapPending_) {
+    // When deselecting, apply pending remap if any
+    if (!selected && remapPending_) {
         remapPending_ = false;
         // Dims are already set (cols_/rows_ updated in setGridDimensions)
         // Now apply the actual remap

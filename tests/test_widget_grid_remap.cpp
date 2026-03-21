@@ -303,7 +303,7 @@ void TestWidgetGridRemap::testEditModeDeferral()
     auto* model = setupForRemap(reg, base, 6, 4);
     model->setGridDimensions(6, 4); // initial -- identity
 
-    model->setEditMode(true);
+    model->setWidgetSelected(true);
     model->setGridDimensions(8, 5); // should NOT remap yet
 
     // Placements should still be at original positions
@@ -311,7 +311,7 @@ void TestWidgetGridRemap::testEditModeDeferral()
     QCOMPARE(live[0].col, 3);
     QCOMPARE(live[0].row, 2);
 
-    model->setEditMode(false); // should apply deferred remap
+    model->setWidgetSelected(false); // should apply deferred remap
 
     live = model->placements();
     // Now should be proportionally remapped 6x4 -> 8x5

@@ -84,7 +84,7 @@ public:
 
     // Base snapshot / remap support
     void setSavedDimensions(int cols, int rows);
-    Q_INVOKABLE void setEditMode(bool editing);
+    Q_INVOKABLE void setWidgetSelected(bool selected);
 
     // Registry accessor (for WidgetContextFactory to look up defaultConfig)
     WidgetRegistry* registry() const { return registry_; }
@@ -138,7 +138,7 @@ private:
     int nextInstanceId_ = 0;
     int activePage_ = 0;
     int pageCount_ = 2;
-    bool editMode_ = false;
+    bool widgetSelected_ = false;
     bool remapPending_ = false;
     int pendingCols_ = 0;
     int pendingRows_ = 0;

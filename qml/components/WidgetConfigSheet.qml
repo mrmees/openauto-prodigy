@@ -13,6 +13,11 @@ Item {
     property var defaultConfig: ({})
     property var overrideKeys: ({})
     property var schemaFields: []
+    readonly property bool isOpen: configDialog.visible
+
+    function closeConfig() {
+        configDialog.close()
+    }
 
     function openConfig(instanceId, widgetId, displayName, iconName) {
         root.instanceId = instanceId

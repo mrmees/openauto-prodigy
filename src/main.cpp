@@ -789,10 +789,12 @@ int main(int argc, char *argv[])
     }
 
     // Widget command egress actions
-    actionRegistry->registerAction("app.launchPlugin", [pluginModel](const QVariant& v) {
+    actionRegistry->registerAction("app.launchPlugin", [pluginModel, widgetGridModel](const QVariant& v) {
+        widgetGridModel->setWidgetSelected(false);
         pluginModel->setActivePlugin(v.toString());
     });
-    actionRegistry->registerAction("app.openSettings", [pluginModel, appController](const QVariant&) {
+    actionRegistry->registerAction("app.openSettings", [pluginModel, appController, widgetGridModel](const QVariant&) {
+        widgetGridModel->setWidgetSelected(false);
         pluginModel->setActivePlugin(QString());
         appController->navigateTo(6);
     });
@@ -809,7 +811,8 @@ int main(int argc, char *argv[])
         }
     });
     // Volume short-hold: open audio/EQ settings
-    actionRegistry->registerAction("navbar.volume.shortHold", [appController, pluginModel, navbarController](const QVariant&) {
+    actionRegistry->registerAction("navbar.volume.shortHold", [appController, pluginModel, navbarController, widgetGridModel](const QVariant&) {
+        widgetGridModel->setWidgetSelected(false);
         pluginModel->setActivePlugin(QString());
         appController->navigateTo(6);
         emit navbarController->settingsPageRequested(QStringLiteral("audio"));
@@ -827,12 +830,14 @@ int main(int argc, char *argv[])
         });
     }
     // Clock tap: go home
-    actionRegistry->registerAction("navbar.clock.tap", [pluginModel, appController](const QVariant&) {
+    actionRegistry->registerAction("navbar.clock.tap", [pluginModel, appController, widgetGridModel](const QVariant&) {
+        widgetGridModel->setWidgetSelected(false);
         pluginModel->setActivePlugin(QString());
         appController->navigateTo(0);
     });
     // Clock short-hold: open settings
-    actionRegistry->registerAction("navbar.clock.shortHold", [appController](const QVariant&) {
+    actionRegistry->registerAction("navbar.clock.shortHold", [appController, widgetGridModel](const QVariant&) {
+        widgetGridModel->setWidgetSelected(false);
         appController->navigateTo(6);
     });
     // Clock long-hold: show power menu
@@ -849,7 +854,8 @@ int main(int argc, char *argv[])
         }
     });
     // Brightness short-hold: open display settings
-    actionRegistry->registerAction("navbar.brightness.shortHold", [appController, pluginModel, navbarController](const QVariant&) {
+    actionRegistry->registerAction("navbar.brightness.shortHold", [appController, pluginModel, navbarController, widgetGridModel](const QVariant&) {
+        widgetGridModel->setWidgetSelected(false);
         pluginModel->setActivePlugin(QString());
         appController->navigateTo(6);
         emit navbarController->settingsPageRequested(QStringLiteral("display"));
