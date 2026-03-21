@@ -166,8 +166,8 @@ Plans:
   8. Empty pages are automatically deleted when their last widget is removed via navbar trash
 **Plans:** 2/2 plans complete
 Plans:
-- [ ] 26-01-PLAN.md — Navbar transformation: widgetInteractionMode C++ property, gear/trash icons, action routing, badge removal, PGM-04 empty page auto-delete
-- [ ] 26-02-PLAN.md — Edge resize handles: resizeWidgetFromEdge C++ method, 4-edge QML handles with ghost preview and constraint feedback
+- [x] 26-01-PLAN.md — Navbar transformation: widgetInteractionMode C++ property, gear/trash icons, action routing, badge removal, PGM-04 empty page auto-delete
+- [x] 26-02-PLAN.md — Edge resize handles: resizeWidgetFromEdge C++ method, 4-edge QML handles with ghost preview and constraint feedback
 
 ### Phase 27: Widget Picker & Page Management
 **Goal**: Users can add widgets and manage pages through discoverable long-press interactions on empty space
@@ -179,7 +179,10 @@ Plans:
   3. Picker only shows widgets that fit the available grid space
   4. "Add Page" creates a new page and navigates to it
   5. All FABs removed (add widget, add page, delete page) -- replaced by long-press empty menu and picker
-**Plans**: TBD
+**Plans:** 2 plans
+Plans:
+- [ ] 27-01-PLAN.md — C++ guards (placeWidget empty-id, filterByAvailableSpace "No Widget" suppression) + WidgetPickerSheet.qml bottom sheet component
+- [ ] 27-02-PLAN.md — Long-press empty popup menu, picker integration, FAB removal, overlay lifecycle fixes
 
 ## Progress
 
@@ -190,4 +193,4 @@ Phases execute in numeric order: 25 -> 26 -> 27
 |-------|----------------|--------|-----------|
 | 25. Selection Model & Interaction Foundation | 1/1 | Complete   | 2026-03-21 |
 | 26. Navbar Transformation & Edge Resize | 2/2 | Complete   | 2026-03-21 |
-| 27. Widget Picker & Page Management | 0/TBD | Not started | - |
+| 27. Widget Picker & Page Management | 0/2 | Not started | - |
