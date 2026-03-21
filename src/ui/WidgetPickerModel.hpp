@@ -27,7 +27,7 @@ public:
     QVariant data(const QModelIndex& index, int role) const override;
     QHash<int, QByteArray> roleNames() const override;
 
-    Q_INVOKABLE void filterByAvailableSpace(int availCols, int availRows);
+    Q_INVOKABLE void filterByAvailableSpace(int availCols, int availRows, bool includeNoWidget = true);
 
 private:
     WidgetRegistry* registry_;

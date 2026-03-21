@@ -72,16 +72,18 @@ QHash<int, QByteArray> WidgetPickerModel::roleNames() const {
     };
 }
 
-void WidgetPickerModel::filterByAvailableSpace(int availCols, int availRows) {
+void WidgetPickerModel::filterByAvailableSpace(int availCols, int availRows, bool includeNoWidget) {
     beginResetModel();
     filtered_.clear();
 
-    // Add a "No Widget" option at the top to allow clearing the slot
-    WidgetDescriptor noneDesc;
-    noneDesc.id = QString();
-    noneDesc.displayName = QStringLiteral("No Widget");
-    noneDesc.iconName = QStringLiteral("\ue5cd"); // close/clear icon
-    filtered_.append(noneDesc);
+    if (includeNoWidget) {
+        // Add a "No Widget" option at the top to allow clearing the slot
+        WidgetDescriptor noneDesc;
+        noneDesc.id = QString();
+        noneDesc.displayName = QStringLiteral("No Widget");
+        noneDesc.iconName = QStringLiteral("\ue5cd"); // close/clear icon
+        filtered_.append(noneDesc);
+    }
 
     filtered_.append(registry_->widgetsFittingSpace(availCols, availRows));
 

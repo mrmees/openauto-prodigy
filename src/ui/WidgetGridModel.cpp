@@ -146,6 +146,8 @@ QHash<int, QByteArray> WidgetGridModel::roleNames() const
 bool WidgetGridModel::placeWidget(const QString& widgetId, int col, int row,
                                    int colSpan, int rowSpan)
 {
+    if (widgetId.isEmpty())
+        return false;
     if (!canPlace(col, row, colSpan, rowSpan))
         return false;
 
