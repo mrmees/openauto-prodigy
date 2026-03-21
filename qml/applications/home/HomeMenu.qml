@@ -1230,12 +1230,8 @@ Item {
             defRows = Math.min(defRows, homeScreen.gridRows)
 
             var cell = WidgetGridModel.findFirstAvailableCell(defCols, defRows)
-            if (cell.col < 0)
-                cell = WidgetGridModel.findFirstAvailableCell(1, 1)
             if (cell.col >= 0) {
-                var placeCols = Math.min(defCols, homeScreen.gridCols - cell.col)
-                var placeRows = Math.min(defRows, homeScreen.gridRows - cell.row)
-                WidgetGridModel.placeWidget(widgetId, cell.col, cell.row, placeCols, placeRows)
+                WidgetGridModel.placeWidget(widgetId, cell.col, cell.row, defCols, defRows)
                 widgetPickerSheet.closePicker()
             } else {
                 toast.show("No space available \u2014 remove a widget first")

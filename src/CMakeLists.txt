@@ -250,10 +250,6 @@ set_source_files_properties(../qml/components/WidgetConfigSheet.qml PROPERTIES
     QT_QML_SOURCE_TYPENAME "WidgetConfigSheet"
     QT_RESOURCE_ALIAS "WidgetConfigSheet.qml"
 )
-set_source_files_properties(../qml/components/WidgetPicker.qml PROPERTIES
-    QT_QML_SOURCE_TYPENAME "WidgetPicker"
-    QT_RESOURCE_ALIAS "WidgetPicker.qml"
-)
 set_source_files_properties(../qml/components/WidgetPickerSheet.qml PROPERTIES
     QT_QML_SOURCE_TYPENAME "WidgetPickerSheet"
     QT_RESOURCE_ALIAS "WidgetPickerSheet.qml"
@@ -419,7 +415,6 @@ qt_add_qml_module(openauto-prodigy
         ../qml/components/NotificationArea.qml
         ../qml/components/ExitDialog.qml
         ../qml/components/WidgetConfigSheet.qml
-        ../qml/components/WidgetPicker.qml
         ../qml/components/WidgetPickerSheet.qml
         ../qml/widgets/ClockWidget.qml
         ../qml/widgets/DateWidget.qml
