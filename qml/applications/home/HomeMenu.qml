@@ -114,7 +114,7 @@ Item {
             draggingDelegate = null
         }
         resizingInstanceId = ""
-        pickerOverlay.visible = false
+        widgetPickerSheet.closePicker()
         // Auto-clean empty pages (except page 0 and current page) after settling
         // Skip when trash handler already did page cleanup (avoids shifted-index race)
         if (!_skipPageCleanup) {
@@ -212,7 +212,7 @@ Item {
     Timer {
         id: selectionTimer
         interval: 10000
-        running: homeScreen.selectedInstanceId !== "" && !configSheet.isOpen && !pickerOverlay.visible
+        running: homeScreen.selectedInstanceId !== "" && !configSheet.isOpen && !widgetPickerSheet.isOpen
         onTriggered: homeScreen.deselectWidget()
     }
 
@@ -264,19 +264,34 @@ Item {
     Connections {
         target: WidgetGridModel
         function onWidgetDeselectedFromCpp() {
+            emptySpaceMenu.close()
+            widgetPickerSheet.closePicker()
             if (homeScreen.selectedInstanceId !== "")
                 homeScreen.deselectWidget()
         }
     }
 
-    // AA fullscreen auto-deselect
+    // Plugin activation overlay cleanup (AA fullscreen, plugin launch, etc.)
     Connections {
         target: PluginModel
         function onActivePluginChanged() {
+            // Always dismiss no-selection overlays (menu/picker) on ANY plugin change
+            emptySpaceMenu.close()
+            widgetPickerSheet.closePicker()
+            // Also deselect widget if fullscreen plugin activates while selected
             if (PluginModel.activePluginFullscreen && homeScreen.selectedInstanceId !== "") {
                 configSheet.closeConfig()
                 homeScreen.deselectWidget()
             }
+        }
+    }
+
+    // Dismiss no-selection overlays when navigating to settings or other built-in views
+    Connections {
+        target: ApplicationController
+        function onCurrentApplicationChanged() {
+            emptySpaceMenu.close()
+            widgetPickerSheet.closePicker()
         }
     }
 
@@ -300,6 +315,7 @@ Item {
 
             onCurrentIndexChanged: {
                 WidgetGridModel.activePage = currentIndex
+                emptySpaceMenu.close()
                 if (homeScreen.selectedInstanceId !== "" && !homeScreen._addingPage)
                     homeScreen.deselectWidget()
             }
@@ -324,7 +340,16 @@ Item {
                                 anchors.fill: parent
                                 pressAndHoldInterval: 500
                                 onPressAndHold: function(mouse) {
-                                    /* Phase 27: context menu */
+                                    // Gesture arbitration: only when no widget is selected
+                                    if (homeScreen.selectedInstanceId !== "") return
+                                    // Bounds check: only within the actual grid area, not gutter margins
+                                    if (mouse.x < homeScreen.offsetX || mouse.x > homeScreen.offsetX + homeScreen.gridW) return
+                                    if (mouse.y < homeScreen.offsetY || mouse.y > homeScreen.offsetY + homeScreen.gridH) return
+                                    // Position popup near the touch point
+                                    var globalPos = mapToItem(Overlay.overlay, mouse.x, mouse.y)
+                                    emptySpaceMenu.x = Math.min(globalPos.x, Overlay.overlay.width - emptySpaceMenu.width)
+                                    emptySpaceMenu.y = Math.min(globalPos.y, Overlay.overlay.height - emptySpaceMenu.height)
+                                    emptySpaceMenu.open()
                                 }
                                 onClicked: {
                                     if (homeScreen.selectedInstanceId !== "")
@@ -1076,6 +1101,144 @@ Item {
                 property: "border.color"
                 to: resizeGhost.isValid ? ThemeService.primary : ThemeService.error
                 duration: 100
+            }
+        }
+    }
+
+    // ---- Long-press empty space popup menu (PGM-01) ----
+    Popup {
+        id: emptySpaceMenu
+        modal: true
+        dim: false
+        closePolicy: Popup.CloseOnEscape | Popup.CloseOnPressOutside
+        parent: Overlay.overlay
+        width: Math.min(parent ? parent.width * 0.45 : 200, 220)
+        padding: UiMetrics.spacing * 0.5
+
+        background: Rectangle {
+            color: ThemeService.surfaceContainerHighest
+            radius: UiMetrics.radius
+        }
+
+        contentItem: Column {
+            spacing: 0
+
+            // "Add Widget" option
+            Item {
+                width: emptySpaceMenu.width - UiMetrics.spacing
+                height: UiMetrics.touchMin
+
+                Rectangle {
+                    anchors.fill: parent
+                    radius: UiMetrics.radiusSmall
+                    color: addWidgetMA.pressed ? ThemeService.primaryContainer : "transparent"
+                }
+
+                RowLayout {
+                    anchors.fill: parent
+                    anchors.leftMargin: UiMetrics.marginPage
+                    anchors.rightMargin: UiMetrics.marginPage
+                    spacing: UiMetrics.gap
+
+                    MaterialIcon {
+                        icon: "\ue1bd"  // widgets
+                        size: UiMetrics.iconSize
+                        color: ThemeService.onSurface
+                    }
+                    NormalText {
+                        text: "Add Widget"
+                        font.pixelSize: UiMetrics.fontBody
+                        color: ThemeService.onSurface
+                        Layout.fillWidth: true
+                    }
+                }
+
+                MouseArea {
+                    id: addWidgetMA
+                    anchors.fill: parent
+                    onClicked: {
+                        emptySpaceMenu.close()
+                        widgetPickerSheet.gridCols = homeScreen.gridCols
+                        widgetPickerSheet.gridRows = homeScreen.gridRows
+                        widgetPickerSheet.openPicker()
+                    }
+                }
+            }
+
+            // Divider
+            Rectangle {
+                width: emptySpaceMenu.width - UiMetrics.spacing * 2
+                height: 1
+                color: ThemeService.outlineVariant
+                anchors.horizontalCenter: parent.horizontalCenter
+            }
+
+            // "Add Page" option
+            Item {
+                width: emptySpaceMenu.width - UiMetrics.spacing
+                height: UiMetrics.touchMin
+
+                Rectangle {
+                    anchors.fill: parent
+                    radius: UiMetrics.radiusSmall
+                    color: addPageMA.pressed ? ThemeService.primaryContainer : "transparent"
+                }
+
+                RowLayout {
+                    anchors.fill: parent
+                    anchors.leftMargin: UiMetrics.marginPage
+                    anchors.rightMargin: UiMetrics.marginPage
+                    spacing: UiMetrics.gap
+
+                    MaterialIcon {
+                        icon: "\ue85d"  // library_add
+                        size: UiMetrics.iconSize
+                        color: ThemeService.onSurface
+                    }
+                    NormalText {
+                        text: "Add Page"
+                        font.pixelSize: UiMetrics.fontBody
+                        color: ThemeService.onSurface
+                        Layout.fillWidth: true
+                    }
+                }
+
+                MouseArea {
+                    id: addPageMA
+                    anchors.fill: parent
+                    onClicked: {
+                        emptySpaceMenu.close()
+                        WidgetGridModel.addPage()
+                        pageView.setCurrentIndex(WidgetGridModel.pageCount - 2)
+                    }
+                }
+            }
+        }
+    }
+
+    // ---- Widget picker sheet (Phase 27) ----
+    WidgetPickerSheet {
+        id: widgetPickerSheet
+    }
+
+    Connections {
+        target: widgetPickerSheet
+        function onWidgetChosen(widgetId, defaultCols, defaultRows) {
+            var defCols = defaultCols > 0 ? defaultCols : 2
+            var defRows = defaultRows > 0 ? defaultRows : 2
+            defCols = Math.min(defCols, homeScreen.gridCols)
+            defRows = Math.min(defRows, homeScreen.gridRows)
+
+            var cell = WidgetGridModel.findFirstAvailableCell(defCols, defRows)
+            if (cell.col < 0)
+                cell = WidgetGridModel.findFirstAvailableCell(1, 1)
+            if (cell.col >= 0) {
+                var placeCols = Math.min(defCols, homeScreen.gridCols - cell.col)
+                var placeRows = Math.min(defRows, homeScreen.gridRows - cell.row)
+                WidgetGridModel.placeWidget(widgetId, cell.col, cell.row, placeCols, placeRows)
+                widgetPickerSheet.closePicker()
+            } else {
+                toast.show("No space available \u2014 remove a widget first")
             }
         }
     }
