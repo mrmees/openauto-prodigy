@@ -169,6 +169,6 @@ Phases execute in numeric order: 22 -> 23 -> 24
 
 | Phase | Plans Complete | Status | Completed |
 |-------|----------------|--------|-----------|
-| 22. Date Widget & Clock Cleanup | 0/2 | Not started | - |
+| 22. Date Widget & Clock Cleanup | 1/2 | In Progress|  |
 | 23. Widget Visual Refinement | 0/1 | Not started | - |
 | 24. Hardware Verification | 0/1 | Not started | - |

@@ -18,8 +18,8 @@
 
 ## Clock Cleanup (CL)
 
-- [ ] **CL-01**: Clock widget (all 3 styles) no longer displays date or day-of-week at any span
-- [ ] **CL-02**: Clock widget layout is adjusted for time-only display (no wasted space where date was)
+- [x] **CL-01**: Clock widget (all 3 styles) no longer displays date or day-of-week at any span
+- [x] **CL-02**: Clock widget layout is adjusted for time-only display (no wasted space where date was)
 
 ## Hardware Verification (HW)
 
@@ -44,8 +44,8 @@
 | DT-01 | Phase 22 | Pending |
 | DT-02 | Phase 22 | Pending |
 | DT-03 | Phase 22 | Pending |
-| CL-01 | Phase 22 | Pending |
-| CL-02 | Phase 22 | Pending |
+| CL-01 | Phase 22 | Complete |
+| CL-02 | Phase 22 | Complete |
 | HW-01 | Phase 24 | Pending |
 
 **Coverage:**
