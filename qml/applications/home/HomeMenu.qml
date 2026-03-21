@@ -11,17 +11,18 @@ Item {
     // Keep WidgetContextFactory cell size in sync with snapped grid cell size
     Binding { target: WidgetContextFactory; property: "cellSide"; value: Math.round(homeScreen.cellSide) }
 
-    // Edit mode state
-    property bool editMode: false
+    // Per-widget selection state (replaces global editMode)
+    property string selectedInstanceId: ""
+    property bool _addingPage: false
 
-    // Track active drag/resize for cleanup on exit
+    // Track active drag/resize for cleanup on deselect
     property string draggingInstanceId: ""
     property string resizingInstanceId: ""
     property var draggingDelegate: null
     property int _dragColSpan: 1
     property int _dragRowSpan: 1
 
-    // Snap-aware grid frame computation (two-stage: base → snap → effective)
+    // Snap-aware grid frame computation (two-stage: base -> snap -> effective)
     readonly property real baseCellSide: DisplayInfo ? DisplayInfo.cellSide : 120
     readonly property real kSnapThreshold: 0.5  // Add row/col when waste > 50% of cell
 
@@ -29,17 +30,17 @@ Item {
     readonly property int _baseCols: pageView.width > 0 ? Math.max(3, Math.floor(pageView.width / baseCellSide)) : 3
     readonly property int _baseRows: pageView.height > 0 ? Math.max(2, Math.floor(pageView.height / baseCellSide)) : 2
 
-    // Stage 2: first snap pass — recover wasted gutter space
+    // Stage 2: first snap pass -- recover wasted gutter space
     readonly property real _xWaste1: pageView.width - _baseCols * baseCellSide
     readonly property real _yWaste1: pageView.height - _baseRows * baseCellSide
     readonly property int _snap1Cols: _xWaste1 > kSnapThreshold * baseCellSide ? _baseCols + 1 : _baseCols
     readonly property int _snap1Rows: _yWaste1 > kSnapThreshold * baseCellSide ? _baseRows + 1 : _baseRows
 
-    // Stage 3: second snap pass — only for axes that did NOT snap in pass 1.
-    // Pass 1 may shrink cellSide (e.g., Y snaps 3→4, cell shrinks 132→125),
+    // Stage 3: second snap pass -- only for axes that did NOT snap in pass 1.
+    // Pass 1 may shrink cellSide (e.g., Y snaps 3->4, cell shrinks 132->125),
     // creating new waste on the other axis. Pass 2 catches that cascaded waste.
     // An axis that already snapped in pass 1 is NOT eligible for pass 2
-    // to prevent iterative packing (e.g., 7x4 → 8x5 → 9x5).
+    // to prevent iterative packing (e.g., 7x4 -> 8x5 -> 9x5).
     readonly property bool _xSnapped: _snap1Cols > _baseCols
     readonly property bool _ySnapped: _snap1Rows > _baseRows
     readonly property real _snap1CellSide: (_snap1Cols > 0 && _snap1Rows > 0)
@@ -75,22 +76,34 @@ Item {
     onGridColsChanged: Qt.callLater(_pushGridDims)
     onGridRowsChanged: Qt.callLater(_pushGridDims)
 
-    function exitEditMode() {
-        editMode = false
-        inactivityTimer.stop()
-        pickerOverlay.visible = false
-        // Reset drag state
+    // Select a widget by instanceId
+    function selectWidget(instanceId) {
+        if (selectedInstanceId === instanceId) return
+        selectedInstanceId = instanceId
+        WidgetGridModel.setWidgetSelected(true)
+        selectionTimer.restart()
+    }
+
+    // Deselect the currently selected widget and clean up all interaction state
+    function deselectWidget() {
+        selectedInstanceId = ""
+        WidgetGridModel.setWidgetSelected(false)
+        selectionTimer.stop()
+        // Reset any active drag/resize state
         dropHighlight.visible = false
         dragPlaceholder.visible = false
         resizeGhost.visible = false
-        draggingInstanceId = ""
-        draggingDelegate = null
+        if (draggingInstanceId !== "") {
+            draggingInstanceId = ""
+            draggingDelegate = null
+        }
         resizingInstanceId = ""
-
-        // Auto-clean empty pages (except page 0) after SwipeView settles
+        pickerOverlay.visible = false
+        // Auto-clean empty pages (except page 0 and current page) after settling
+        var currentPage = pageView.currentIndex
         Qt.callLater(function() {
             for (var i = WidgetGridModel.pageCount - 1; i > 0; i--) {
-                if (WidgetGridModel.widgetCountOnPage(i) === 0) {
+                if (i !== currentPage && WidgetGridModel.widgetCountOnPage(i) === 0) {
                     WidgetGridModel.removePage(i)
                 }
             }
@@ -99,28 +112,22 @@ Item {
         })
     }
 
-    // Inactivity timer -- exits edit mode after 10s of no interaction
+    // Auto-deselect timer -- clears selection after 10s of inactivity
     Timer {
-        id: inactivityTimer
+        id: selectionTimer
         interval: 10000
-        onTriggered: homeScreen.exitEditMode()
+        running: homeScreen.selectedInstanceId !== "" && !configSheet.isOpen && !pickerOverlay.visible
+        onTriggered: homeScreen.deselectWidget()
     }
 
-    onEditModeChanged: {
-        WidgetGridModel.setWidgetSelected(editMode)
-        if (editMode) {
-            inactivityTimer.restart()
-        } else {
-            inactivityTimer.stop()
-        }
-    }
-
-    // AA fullscreen auto-exit (EDIT-08)
+    // AA fullscreen auto-deselect
     Connections {
         target: PluginModel
         function onActivePluginChanged() {
-            if (PluginModel.activePluginFullscreen && homeScreen.editMode)
-                homeScreen.exitEditMode()
+            if (PluginModel.activePluginFullscreen && homeScreen.selectedInstanceId !== "") {
+                configSheet.closeConfig()
+                homeScreen.deselectWidget()
+            }
         }
     }
 
@@ -134,7 +141,7 @@ Item {
             id: pageView
             Layout.fillWidth: true
             Layout.fillHeight: true
-            interactive: !homeScreen.editMode
+            interactive: homeScreen.selectedInstanceId === ""
             clip: true
 
             Component.onCompleted: {
@@ -144,6 +151,8 @@ Item {
 
             onCurrentIndexChanged: {
                 WidgetGridModel.activePage = currentIndex
+                if (homeScreen.selectedInstanceId !== "" && !homeScreen._addingPage)
+                    homeScreen.deselectWidget()
             }
 
             Repeater {
@@ -161,29 +170,26 @@ Item {
                         Item {
                             id: pageGridContent
 
-                            // Background long-press / tap detector for empty grid space
+                            // Background tap detector for empty grid space
                             MouseArea {
                                 anchors.fill: parent
                                 pressAndHoldInterval: 500
                                 onPressAndHold: function(mouse) {
-                                    if (!homeScreen.editMode) {
-                                        homeScreen.editMode = true
-                                    }
+                                    /* Phase 27: context menu */
                                 }
                                 onClicked: {
-                                    if (homeScreen.editMode) {
-                                        homeScreen.exitEditMode()
-                                    }
+                                    if (homeScreen.selectedInstanceId !== "")
+                                        homeScreen.deselectWidget()
                                 }
                             }
 
-                            // Dotted grid lines overlay (visible in editMode)
+                            // Dotted grid lines overlay (visible when widget selected)
                             Item {
                                 anchors.fill: parent
-                                visible: homeScreen.editMode
+                                visible: homeScreen.selectedInstanceId !== ""
                                 z: 0
 
-                                // Vertical lines (interior only — skip outer edges to avoid clip)
+                                // Vertical lines (interior only -- skip outer edges to avoid clip)
                                 Repeater {
                                     model: Math.max(0, homeScreen.gridCols - 1)
                                     delegate: Column {
@@ -203,7 +209,7 @@ Item {
                                     }
                                 }
 
-                                // Horizontal lines (interior only — skip outer edges to avoid clip)
+                                // Horizontal lines (interior only -- skip outer edges to avoid clip)
                                 Repeater {
                                     model: Math.max(0, homeScreen.gridRows - 1)
                                     delegate: Row {
@@ -236,7 +242,9 @@ Item {
                                     width: model.colSpan * homeScreen.cellSide
                                     height: model.rowSpan * homeScreen.cellSide
                                     visible: model.page === pageIndex && model.visible
-                                    z: dragging ? 100 : 1
+                                    z: dragging ? 100 : (isSelected ? 50 : 1)
+
+                                    readonly property bool isSelected: model.instanceId === homeScreen.selectedInstanceId
 
                                     // Widget context for provider access and layout info
                                     property QtObject widgetCtx: WidgetContextFactory.createContext(model.instanceId, delegateItem)
@@ -270,6 +278,8 @@ Item {
                                         dragPlaceholder.visible = false
                                         opacity = 1.0
                                         scale = 1.0
+                                        innerContent.scale = 1.0
+                                        liftShadow.visible = false
                                         var targetCol = Math.round((x - homeScreen.offsetX) / homeScreen.cellSide)
                                         var targetRow = Math.round((y - homeScreen.offsetY) / homeScreen.cellSide)
                                         targetCol = Math.max(0, Math.min(targetCol, homeScreen.gridCols - model.colSpan))
@@ -286,11 +296,11 @@ Item {
                                         }
                                     }
 
-                                    // Force-reset drag state when edit mode exits (EVIOCGRAB safety)
+                                    // Force-reset drag state when selection changes (EVIOCGRAB safety)
                                     Connections {
                                         target: homeScreen
-                                        function onEditModeChanged() {
-                                            if (!homeScreen.editMode && delegateItem.dragging) {
+                                        function onSelectedInstanceIdChanged() {
+                                            if (homeScreen.selectedInstanceId !== model.instanceId && delegateItem.dragging) {
                                                 delegateItem.dragging = false
                                                 delegateItem.opacity = 1.0
                                                 delegateItem.scale = 1.0
@@ -314,11 +324,25 @@ Item {
                                         easing.type: Easing.OutCubic
                                     }
 
+                                    // Timer for lift reset on interactive widgets (forwarded long-press)
+                                    Timer {
+                                        id: liftResetTimer
+                                        interval: 300
+                                        onTriggered: {
+                                            if (!delegateItem.dragging) {
+                                                innerContent.scale = 1.0
+                                                liftShadow.visible = false
+                                            }
+                                        }
+                                    }
+
                                     // Inner content with gutter margins
                                     Item {
                                         id: innerContent
                                         anchors.fill: parent
                                         anchors.margins: Math.max(UiMetrics.spacing / 4, 2)
+
+                                        Behavior on scale { NumberAnimation { duration: 150; easing.type: Easing.OutCubic } }
 
                                         // Glass card background
                                         Rectangle {
@@ -326,6 +350,17 @@ Item {
                                             radius: UiMetrics.radius
                                             color: ThemeService.surfaceContainer
                                             opacity: model.opacity
+                                        }
+
+                                        // Lift shadow (visible during press-hold only)
+                                        Rectangle {
+                                            id: liftShadow
+                                            anchors.fill: parent
+                                            anchors.margins: -3
+                                            z: -1
+                                            radius: UiMetrics.radius + 3
+                                            color: "#40000000"
+                                            visible: false
                                         }
 
                                         // Widget content
@@ -336,10 +371,18 @@ Item {
                                             asynchronous: false
 
                                             function requestContextMenu() {
-                                                if (homeScreen.editMode) {
+                                                if (homeScreen.selectedInstanceId === model.instanceId) {
+                                                    // Already selected -- initiate drag from interactive widget
+                                                    innerContent.scale = 1.05
+                                                    liftShadow.visible = true
                                                     widgetMouseArea.initiateDrag()
                                                 } else {
-                                                    homeScreen.editMode = true
+                                                    // Select this widget with brief lift flash
+                                                    innerContent.scale = 1.05
+                                                    liftShadow.visible = true
+                                                    homeScreen.selectWidget(model.instanceId)
+                                                    // Reset scale after a short delay (finger may still be down)
+                                                    liftResetTimer.start()
                                                 }
                                             }
 
@@ -354,13 +397,12 @@ Item {
                                             }
                                         }
 
-                                        // Long-press / tap detector — behind widget content normally,
-                                        // above it in edit mode so taps exit edit mode
+                                        // Long-press detector -- always behind widget content (z:-1)
                                         MouseArea {
                                             id: widgetMouseArea
                                             anchors.fill: parent
-                                            z: homeScreen.editMode ? 10 : -1
-                                            pressAndHoldInterval: homeScreen.editMode ? 200 : 500
+                                            z: -1
+                                            pressAndHoldInterval: 500
 
                                             function initiateDrag() {
                                                 delegateItem.dragging = true
@@ -381,24 +423,71 @@ Item {
                                                 dragPlaceholder.width = model.colSpan * homeScreen.cellSide
                                                 dragPlaceholder.height = model.rowSpan * homeScreen.cellSide
                                                 dragPlaceholder.visible = true
-                                                inactivityTimer.restart()
+                                                selectionTimer.restart()
                                             }
 
                                             onPressAndHold: function(mouse) {
-                                                if (!homeScreen.editMode) {
-                                                    homeScreen.editMode = true
-                                                    return
+                                                innerContent.scale = 1.05
+                                                liftShadow.visible = true
+                                                if (homeScreen.selectedInstanceId === model.instanceId) {
+                                                    // Already selected -- initiate drag
+                                                    delegateItem.pressOffsetX = mouse.x
+                                                    delegateItem.pressOffsetY = mouse.y
+                                                    initiateDrag()
+                                                } else {
+                                                    // Select this widget
+                                                    homeScreen.selectWidget(model.instanceId)
                                                 }
-                                                delegateItem.pressOffsetX = mouse.x
-                                                delegateItem.pressOffsetY = mouse.y
-                                                initiateDrag()
-                                                delegateItem.pressOffsetX = mouse.x
-                                                delegateItem.pressOffsetY = mouse.y
+                                            }
+
+                                            onReleased: {
+                                                if (!delegateItem.dragging) {
+                                                    innerContent.scale = 1.0
+                                                    liftShadow.visible = false
+                                                }
+                                            }
+
+                                            onCanceled: {
+                                                innerContent.scale = 1.0
+                                                liftShadow.visible = false
                                             }
 
                                             onClicked: {
-                                                if (homeScreen.editMode) {
-                                                    homeScreen.exitEditMode()
+                                                // No-op: when selection is active, selectionTapInterceptor handles taps.
+                                                // When no selection, click falls through to widget content (z:-1 means
+                                                // widget MouseAreas get it first for interactive widgets).
+                                            }
+                                        }
+
+                                        // Tap interceptor -- catches taps on ALL delegates during selection
+                                        // When selected, tap deselects. When another widget is selected, tap also deselects.
+                                        // Prevents widget actions (especially launcher widgets) from firing during selection.
+                                        MouseArea {
+                                            id: selectionTapInterceptor
+                                            anchors.fill: parent
+                                            z: 15  // above widget content (z:0), below badges (z:20)
+                                            enabled: homeScreen.selectedInstanceId !== ""
+                                            visible: enabled
+                                            // Swallow taps -- deselect only, do NOT propagate to widget content
+                                            onClicked: homeScreen.deselectWidget()
+                                            // Also handle long-press: on non-selected, deselect. On selected, initiate drag.
+                                            onPressAndHold: function(mouse) {
+                                                if (delegateItem.isSelected) {
+                                                    // Selected widget long-press -> initiate drag
+                                                    innerContent.scale = 1.05
+                                                    liftShadow.visible = true
+                                                    delegateItem.pressOffsetX = mouse.x
+                                                    delegateItem.pressOffsetY = mouse.y
+                                                    widgetMouseArea.initiateDrag()
+                                                } else {
+                                                    homeScreen.deselectWidget()
+                                                }
+                                            }
+                                            onReleased: {
+                                                // Reset lift if we were doing a long-press that didn't start drag
+                                                if (!delegateItem.dragging) {
+                                                    innerContent.scale = 1.0
+                                                    liftShadow.visible = false
                                                 }
                                             }
                                         }
@@ -413,16 +502,16 @@ Item {
                                             }
                                         }
 
-                                        // --- Edit mode overlays ---
+                                        // --- Selection overlays ---
 
-                                        // Accent border
+                                        // Accent border (selected widget only)
                                         Rectangle {
                                             anchors.fill: parent
                                             color: "transparent"
                                             border.width: 2
                                             border.color: ThemeService.primary
                                             radius: UiMetrics.radius
-                                            visible: homeScreen.editMode
+                                            visible: delegateItem.isSelected
                                             z: 10
                                         }
 
@@ -437,7 +526,7 @@ Item {
                                             anchors.top: parent.top
                                             anchors.rightMargin: -6
                                             anchors.topMargin: -6
-                                            visible: homeScreen.editMode && !model.isSingleton
+                                            visible: delegateItem.isSelected && !model.isSingleton
                                             z: 20
 
                                             MaterialIcon {
@@ -450,8 +539,13 @@ Item {
                                             MouseArea {
                                                 anchors.fill: parent
                                                 onClicked: {
+                                                    var wasSelected = delegateItem.isSelected
                                                     WidgetGridModel.removeWidget(model.instanceId)
-                                                    inactivityTimer.restart()
+                                                    if (wasSelected) {
+                                                        homeScreen.deselectWidget()
+                                                    } else {
+                                                        selectionTimer.restart()
+                                                    }
                                                 }
                                             }
                                         }
@@ -467,7 +561,7 @@ Item {
                                             anchors.top: parent.top
                                             anchors.leftMargin: -6
                                             anchors.topMargin: -6
-                                            visible: homeScreen.editMode && model.hasConfigSchema
+                                            visible: delegateItem.isSelected && model.hasConfigSchema
                                             z: 20
 
                                             MaterialIcon {
@@ -483,7 +577,7 @@ Item {
                                                 onClicked: {
                                                     configSheet.openConfig(model.instanceId, model.widgetId,
                                                                            model.displayName, model.iconName)
-                                                    inactivityTimer.restart()
+                                                    selectionTimer.restart()
                                                 }
                                             }
                                         }
@@ -500,7 +594,7 @@ Item {
                                             anchors.bottom: parent.bottom
                                             anchors.rightMargin: UiMetrics.spacing * 0.25
                                             anchors.bottomMargin: UiMetrics.spacing * 0.25
-                                            visible: homeScreen.editMode
+                                            visible: delegateItem.isSelected
                                             z: 20
 
                                             MouseArea {
@@ -538,7 +632,7 @@ Item {
                                                     resizeGhost.visible = true
                                                     resizeGhost.isValid = true
 
-                                                    inactivityTimer.restart()
+                                                    selectionTimer.restart()
                                                     mouse.accepted = true
                                                 }
 
@@ -585,7 +679,7 @@ Item {
                                                     resizeGhost.width = newColSpan * homeScreen.cellSide
                                                     resizeGhost.height = newRowSpan * homeScreen.cellSide
 
-                                                    inactivityTimer.restart()
+                                                    selectionTimer.restart()
                                                 }
 
                                                 onReleased: {
@@ -675,7 +769,7 @@ Item {
             dropHighlight.isValid = valid
             dropHighlight.visible = true
 
-            inactivityTimer.restart()
+            selectionTimer.restart()
         }
 
         onReleased: function(mouse) {
@@ -716,14 +810,14 @@ Item {
 
     // ---- FABs (floating action buttons) ----
 
-    // Add-page FAB (edit mode, above add-widget FAB)
+    // Add-page FAB (visible when widget selected, above add-widget FAB)
     Rectangle {
         id: addPageFab
         width: UiMetrics.touchMin * 1.2
         height: width
         radius: width / 2
         color: ThemeService.primary
-        visible: homeScreen.editMode
+        visible: homeScreen.selectedInstanceId !== ""
         z: 50
         anchors.right: parent.right
         anchors.bottom: fab.top
@@ -740,10 +834,12 @@ Item {
         MouseArea {
             anchors.fill: parent
             onClicked: {
-                inactivityTimer.restart()
+                selectionTimer.restart()
+                homeScreen._addingPage = true
                 WidgetGridModel.addPage()
                 // Navigate to the newly inserted page (second-to-last, since reserved page shifted to last)
                 pageView.setCurrentIndex(WidgetGridModel.pageCount - 2)
+                homeScreen._addingPage = false
             }
         }
     }
@@ -755,7 +851,7 @@ Item {
         height: width
         radius: width / 2
         color: ThemeService.primary
-        visible: homeScreen.editMode
+        visible: homeScreen.selectedInstanceId !== ""
         z: 50
         anchors.right: parent.right
         anchors.bottom: parent.bottom
@@ -772,7 +868,7 @@ Item {
         MouseArea {
             anchors.fill: parent
             onClicked: {
-                inactivityTimer.restart()
+                selectionTimer.restart()
                 var cell = WidgetGridModel.findFirstAvailableCell(1, 1)
                 if (cell.col < 0) {
                     toast.show("No space available \u2014 remove a widget first")
@@ -786,14 +882,14 @@ Item {
         }
     }
 
-    // Delete-page FAB (edit mode, left side, only when pageCount > 1 and not on page 0)
+    // Delete-page FAB (visible when widget selected, left side, only when pageCount > 1 and not on page 0)
     Rectangle {
         id: deletePageFab
         width: UiMetrics.touchMin * 1.2
         height: width
         radius: width / 2
         color: ThemeService.error
-        visible: homeScreen.editMode && WidgetGridModel.pageCount > 1 && pageView.currentIndex > 0 && !WidgetGridModel.isReservedPage(pageView.currentIndex)
+        visible: homeScreen.selectedInstanceId !== "" && WidgetGridModel.pageCount > 1 && pageView.currentIndex > 0 && !WidgetGridModel.isReservedPage(pageView.currentIndex)
         z: 50
         anchors.left: parent.left
         anchors.bottom: parent.bottom
@@ -810,7 +906,7 @@ Item {
         MouseArea {
             anchors.fill: parent
             onClicked: {
-                inactivityTimer.restart()
+                selectionTimer.restart()
                 deletePageDialog.targetPage = pageView.currentIndex
                 deletePageDialog.widgetCount = WidgetGridModel.widgetCountOnPage(pageView.currentIndex)
                 deletePageDialog.visible = true
@@ -910,9 +1006,13 @@ Item {
                                 var savedIndex = deletePageDialog.targetPage
                                 WidgetGridModel.removePage(deletePageDialog.targetPage)
                                 var newIndex = Math.min(savedIndex, WidgetGridModel.pageCount - 1)
+                                homeScreen._addingPage = true  // guard against page-change deselect during setCurrentIndex
                                 pageView.setCurrentIndex(newIndex)
+                                homeScreen._addingPage = false
                                 deletePageDialog.visible = false
-                                inactivityTimer.restart()
+                                // Selected widget may have been on the deleted page
+                                if (homeScreen.selectedInstanceId !== "")
+                                    homeScreen.deselectWidget()
                             }
                         }
                     }
@@ -929,7 +1029,7 @@ Item {
         z: 100
 
         onVisibleChanged: {
-            if (visible) inactivityTimer.restart()
+            if (visible) selectionTimer.restart()
         }
 
         // Scrim
@@ -941,7 +1041,7 @@ Item {
                 anchors.fill: parent
                 onClicked: {
                     pickerOverlay.visible = false
-                    inactivityTimer.restart()
+                    selectionTimer.restart()
                 }
             }
         }
@@ -1024,7 +1124,7 @@ Item {
                                         toast.show("No space available \u2014 remove a widget first")
                                     }
                                     pickerOverlay.visible = false
-                                    inactivityTimer.restart()
+                                    selectionTimer.restart()
                             }
                         }
                     }
