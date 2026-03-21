@@ -3,15 +3,15 @@ gsd_state_version: 1.0
 milestone: v0.6
 milestone_name: milestone
 status: in_progress
-stopped_at: Completed 27-01-PLAN.md
+stopped_at: Completed 27-02-PLAN.md
 last_updated: "2026-03-21T22:50:29.744Z"
-last_activity: 2026-03-21 — Completed plan 27-01
+last_activity: 2026-03-21 — Completed plan 27-02
 progress:
   total_phases: 3
-  completed_phases: 2
+  completed_phases: 3
   total_plans: 5
-  completed_plans: 4
-  percent: 80
+  completed_plans: 5
+  percent: 100
 ---
 
 # Project State
@@ -26,18 +26,18 @@ See: .planning/PROJECT.md (updated 2026-03-21)
 ## Current Position
 
 Phase: 27 of 27 (Widget Picker & Page Management)
-Plan: 1 of 2 (COMPLETE)
-Status: Plan 27-01 complete, plan 27-02 remaining
-Last activity: 2026-03-21 — Completed plan 27-01
+Plan: 2 of 2 (COMPLETE)
+Status: Phase 27 complete -- all plans finished
+Last activity: 2026-03-21 — Completed plan 27-02
 
-Progress: [████████░░] 80%
+Progress: [██████████] 100%
 
 ## Performance Metrics
 
 **Velocity:**
-- Total plans completed: 4
-- Average duration: 7min
-- Total execution time: 0.45 hours
+- Total plans completed: 5
+- Average duration: 6min
+- Total execution time: 0.50 hours
 
 | Phase | Plan | Duration | Tasks | Files |
 |-------|------|----------|-------|-------|
@@ -45,6 +45,7 @@ Progress: [████████░░] 80%
 | 26 | 01 | 9min | 2 | 10 |
 | 26 | 02 | 5min | 2 | 4 |
 | 27 | 01 | 5min | 2 | 5 |
+| 27 | 02 | 3min | 2 | 1 |
 
 ## Accumulated Context
 
@@ -74,6 +75,9 @@ Progress: [████████░░] 80%
 - Top/left edge clamping recomputes span from fixed opposite edge anchor to prevent over-expansion
 - [Phase 27]: filterByAvailableSpace uses default parameter (includeNoWidget=true) for backward compatibility
 - [Phase 27]: WidgetPickerSheet follows WidgetConfigSheet Dialog pattern for visual consistency
+- [Phase 27]: Popup menu positioned near touch point using mapToItem(Overlay.overlay)
+- [Phase 27]: Grid bounds check prevents menu on gutter long-press
+- [Phase 27]: Overlay lifecycle uses onActivePluginChanged + onCurrentApplicationChanged for full no-selection cleanup coverage
 
 ### Blockers/Concerns
 
@@ -81,6 +85,6 @@ None yet.
 
 ## Session Continuity
 
-Last session: 2026-03-21T22:50:29.741Z
-Stopped at: Completed 27-01-PLAN.md
+Last session: 2026-03-21T22:56:05Z
+Stopped at: Completed 27-02-PLAN.md
 Resume file: None

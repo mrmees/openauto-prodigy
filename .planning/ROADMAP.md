@@ -128,7 +128,7 @@ See .planning/milestones/v0.6.5-ROADMAP.md for archived details.
 
 - [x] **Phase 25: Selection Model & Interaction Foundation** - Per-widget long-press select/drag/deselect replaces global edit mode; auto-deselect timeout replaces global inactivity timer (completed 2026-03-21)
 - [x] **Phase 26: Navbar Transformation & Edge Resize** - Navbar morphs to settings/delete during widget selection; 4-edge resize handles with constraint enforcement; widget deletion with empty page auto-cleanup (completed 2026-03-21)
-- [ ] **Phase 27: Widget Picker & Page Management** - Bottom-sheet categorized picker with auto-placement; long-press empty space menu; FAB removal
+- [x] **Phase 27: Widget Picker & Page Management** - Bottom-sheet categorized picker with auto-placement; long-press empty space menu; FAB removal (completed 2026-03-21)
 
 ## Phase Details
 
@@ -179,7 +179,7 @@ Plans:
   3. Picker only shows widgets that fit the available grid space
   4. "Add Page" creates a new page and navigates to it
   5. All FABs removed (add widget, add page, delete page) -- replaced by long-press empty menu and picker
-**Plans:** 1/2 plans executed
+**Plans:** 2/2 plans complete
 Plans:
 - [ ] 27-01-PLAN.md — C++ guards (placeWidget empty-id, filterByAvailableSpace "No Widget" suppression) + WidgetPickerSheet.qml bottom sheet component
 - [ ] 27-02-PLAN.md — Long-press empty popup menu, picker integration, FAB removal, overlay lifecycle fixes
@@ -193,4 +193,4 @@ Phases execute in numeric order: 25 -> 26 -> 27
 |-------|----------------|--------|-----------|
 | 25. Selection Model & Interaction Foundation | 1/1 | Complete   | 2026-03-21 |
 | 26. Navbar Transformation & Edge Resize | 2/2 | Complete   | 2026-03-21 |
-| 27. Widget Picker & Page Management | 1/2 | In Progress|  |
+| 27. Widget Picker & Page Management | 2/2 | Complete   | 2026-03-21 |

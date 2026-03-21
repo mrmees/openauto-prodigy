@@ -32,20 +32,20 @@ Requirements for Homescreen Layout & Widget Settings Rework. Each maps to roadma
 ### Widget Picker
 
 - [x] **PKR-01**: Bottom sheet slides up with scrollable categorized list of available widgets
-- [ ] **PKR-02**: Tapping a widget in the picker auto-places it at first available grid cell
+- [x] **PKR-02**: Tapping a widget in the picker auto-places it at first available grid cell
 - [x] **PKR-03**: Picker filters to widgets that fit available grid space
 
 ### Page Management
 
-- [ ] **PGM-01**: Long-press on empty grid space shows menu with "Add Widget" and "Add Page" options
-- [ ] **PGM-02**: "Add Widget" opens the bottom sheet widget picker
-- [ ] **PGM-03**: "Add Page" creates a new page and navigates to it
+- [x] **PGM-01**: Long-press on empty grid space shows menu with "Add Widget" and "Add Page" options
+- [x] **PGM-02**: "Add Widget" opens the bottom sheet widget picker
+- [x] **PGM-03**: "Add Page" creates a new page and navigates to it
 - [x] **PGM-04**: Empty pages are automatically deleted when no widgets remain on them
 
 ### Cleanup
 
 - [x] **CLN-01**: Global edit mode removed (no editMode flag, no all-widgets-edit-simultaneously)
-- [ ] **CLN-02**: All FABs removed (add widget, add page, delete page)
+- [x] **CLN-02**: All FABs removed (add widget, add page, delete page)
 - [x] **CLN-03**: All tiny badge buttons removed (X delete, gear config, corner resize handle)
 - [x] **CLN-04**: Replace global edit mode inactivity timer with per-widget selection auto-deselect timeout
 
@@ -83,14 +83,14 @@ Requirements for Homescreen Layout & Widget Settings Rework. Each maps to roadma
 | RSZ-03 | Phase 26 | Complete |
 | RSZ-04 | Phase 26 | Complete |
 | PKR-01 | Phase 27 | Complete |
-| PKR-02 | Phase 27 | Pending |
+| PKR-02 | Phase 27 | Complete |
 | PKR-03 | Phase 27 | Complete |
-| PGM-01 | Phase 27 | Pending |
-| PGM-02 | Phase 27 | Pending |
-| PGM-03 | Phase 27 | Pending |
+| PGM-01 | Phase 27 | Complete |
+| PGM-02 | Phase 27 | Complete |
+| PGM-03 | Phase 27 | Complete |
 | PGM-04 | Phase 26 | Complete |
 | CLN-01 | Phase 25 | Complete |
-| CLN-02 | Phase 27 | Pending |
+| CLN-02 | Phase 27 | Complete |
 | CLN-03 | Phase 26 | Complete |
 | CLN-04 | Phase 25 | Complete |
 
