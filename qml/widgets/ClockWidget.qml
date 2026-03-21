@@ -11,8 +11,6 @@ Item {
     // Span-based breakpoints for responsive layout
     readonly property int colSpan: widgetContext ? widgetContext.colSpan : 1
     readonly property int rowSpan: widgetContext ? widgetContext.rowSpan : 1
-    readonly property bool showDate: colSpan >= 2
-    readonly property bool showDay: rowSpan >= 2
 
     // Load-state gating (timer is the one justified polling case)
     readonly property bool isCurrentPage: widgetContext ? widgetContext.isCurrentPage : true
@@ -22,10 +20,8 @@ Item {
     readonly property string timeFormat: currentEffectiveConfig.format || "24h"
     readonly property string clockStyle: currentEffectiveConfig.style || "digital"
 
-    // Shared time properties updated by the root-level Timer
+    // Time property updated by the root-level Timer
     property string currentTime: ""
-    property string currentDate: ""
-    property string currentDay: ""
 
     Timer {
         interval: 1000
@@ -36,8 +32,6 @@ Item {
             var now = new Date()
             var timeFmt = (clockWidget.timeFormat === "12h") ? "h:mm AP" : "HH:mm"
             clockWidget.currentTime = now.toLocaleTimeString(Qt.locale(), timeFmt)
-            clockWidget.currentDate = now.toLocaleDateString(Qt.locale(), "MMMM d")
-            clockWidget.currentDay = now.toLocaleDateString(Qt.locale(), "dddd")
         }
     }
 
@@ -52,49 +46,23 @@ Item {
         }
     }
 
-    // --- Digital style: original clock layout ---
+    // --- Digital style: time-only display ---
     Component {
         id: digitalComponent
         ColumnLayout {
             anchors.centerIn: parent
             width: parent.width - UiMetrics.spacing * 2
-            spacing: clockWidget.showDay ? UiMetrics.spacing * 0.5 : 2
+            spacing: 0
 
             NormalText {
                 text: clockWidget.currentTime
-                font.pixelSize: clockWidget.showDay ? UiMetrics.fontHeading * 2.0
-                              : clockWidget.showDate ? UiMetrics.fontHeading * 1.5
-                              : UiMetrics.fontHeading * 2.0
-                font.weight: clockWidget.showDate ? Font.Light : Font.Bold
+                font.pixelSize: UiMetrics.fontHeading * 2.5
+                font.weight: Font.Light
                 fontSizeMode: Text.Fit
                 minimumPixelSize: UiMetrics.fontHeading
                 color: ThemeService.onSurface
                 Layout.fillWidth: true
-                Layout.maximumHeight: clockWidget.showDay ? parent.height * 0.45
-                                    : clockWidget.showDate ? parent.height * 0.6
-                                    : parent.height
-                horizontalAlignment: Text.AlignHCenter
-            }
-
-            NormalText {
-                visible: clockWidget.showDate
-                text: clockWidget.currentDate
-                font.pixelSize: clockWidget.showDay ? UiMetrics.fontTitle : UiMetrics.fontBody
-                fontSizeMode: Text.Fit
-                minimumPixelSize: UiMetrics.fontSmall
-                color: ThemeService.onSurfaceVariant
-                Layout.fillWidth: true
-                horizontalAlignment: Text.AlignHCenter
-            }
-
-            NormalText {
-                visible: clockWidget.showDay
-                text: clockWidget.currentDay
-                font.pixelSize: UiMetrics.fontBody
-                fontSizeMode: Text.Fit
-                minimumPixelSize: UiMetrics.fontSmall
-                color: ThemeService.onSurfaceVariant
-                Layout.fillWidth: true
+                Layout.fillHeight: true
                 horizontalAlignment: Text.AlignHCenter
             }
         }
@@ -123,13 +91,12 @@ Item {
                 anchors.fill: parent
                 anchors.margins: UiMetrics.spacing
                 visible: parent.fullSize
-                spacing: UiMetrics.spacing * 0.5
+                spacing: 0
 
                 Canvas {
                     id: analogCanvas
                     Layout.fillWidth: true
                     Layout.fillHeight: true
-                    Layout.maximumHeight: parent.height - (clockWidget.showDate ? dateLabel.implicitHeight + parent.spacing : 0)
 
                     onPaint: {
                         var ctx = getContext("2d")
@@ -205,18 +172,6 @@ Item {
                             analogCanvas.requestPaint()
                         }
                     }
-                }
-
-                NormalText {
-                    id: dateLabel
-                    visible: clockWidget.showDate
-                    text: clockWidget.currentDate
-                    font.pixelSize: UiMetrics.fontBody
-                    fontSizeMode: Text.Fit
-                    minimumPixelSize: UiMetrics.fontSmall
-                    color: ThemeService.onSurfaceVariant
-                    Layout.fillWidth: true
-                    horizontalAlignment: Text.AlignHCenter
                 }
             }
         }
