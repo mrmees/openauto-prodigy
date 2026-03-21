@@ -109,66 +109,13 @@ See .planning/milestones/v0.6.4-ROADMAP.md for archived details.
 
 </details>
 
-## v0.6.5 Widget Refinement (In Progress)
+<details>
+<summary>v0.6.5 Widget Refinement (Phases 22-24) - SHIPPED 2026-03-21</summary>
 
-**Milestone Goal:** Polish all existing widgets via live preview iteration, split date into its own widget, simplify clock to time-only, and verify on Pi hardware.
+- [x] Phase 22: Date Widget & Clock Cleanup (2/2 plans) -- completed 2026-03-21
+- [x] Phase 23: Widget Visual Refinement (interactive review) -- completed 2026-03-21
+- [x] Phase 24: Hardware Verification -- completed 2026-03-21
 
-## Phases
+See .planning/milestones/v0.6.5-ROADMAP.md for archived details.
 
-- [x] **Phase 22: Date Widget & Clock Cleanup** - Create standalone date widget, strip date from clock widget (completed 2026-03-21)
-- [x] **Phase 23: Widget Visual Refinement** - Live preview review of all widgets across both target displays (completed 2026-03-21)
-- [x] **Phase 24: Hardware Verification** - Deploy and verify all widgets on Pi hardware (completed 2026-03-21)
-
-## Phase Details
-
-### Phase 22: Date Widget & Clock Cleanup
-**Goal**: Users have a dedicated date widget and a simplified time-only clock widget
-**Depends on**: Nothing (first phase of milestone)
-**Requirements**: DT-01, DT-02, DT-03, CL-01, CL-02
-**Success Criteria** (what must be TRUE):
-  1. A standalone date widget appears in the widget picker with appropriate icon and metadata
-  2. The date widget shows day-of-week and date, with compact layout at 1x1 and more detail at larger spans
-  3. The clock widget (digital, analog, minimal styles) shows only time at every span -- no date or day-of-week
-  4. Clock widget layouts fill available space with time display -- no empty gaps where date used to be
-**Plans**: 2 plans
-
-Plans:
-- [ ] 22-01-PLAN.md — Create date widget with breakpoints, config, and picker registration
-- [ ] 22-02-PLAN.md — Strip date/day from clock widget, simplify to time-only
-
-### Phase 23: Widget Visual Refinement
-**Goal**: Every widget looks correct and legible at every valid span on both target displays
-**Depends on**: Phase 22
-**Requirements**: WR-01, WR-02, WR-03, WR-04
-**Success Criteria** (what must be TRUE):
-  1. Every widget renders without clipping, overflow, or misalignment at all valid span combinations on 1024x600
-  2. Every widget renders without clipping, overflow, or misalignment at all valid span combinations on 800x480
-  3. Widget text and icons are legible at 1x1 minimum span on both displays
-  4. All user-identified visual issues from the preview session are resolved
-**Plans**: TBD
-
-Plans:
-- [ ] 23-01: TBD
-
-### Phase 24: Hardware Verification
-**Goal**: All widget changes verified working on real Pi hardware
-**Depends on**: Phase 23
-**Requirements**: HW-01
-**Success Criteria** (what must be TRUE):
-  1. All widgets display correctly on Pi 4 with DFRobot 1024x600 touchscreen
-  2. Widget touch interactions (config sheets, edit mode drag/resize, tap actions) still work after QML changes
-**Plans**: TBD
-
-Plans:
-- [ ] 24-01: TBD
-
-## Progress
-
-**Execution Order:**
-Phases execute in numeric order: 22 -> 23 -> 24
-
-| Phase | Plans Complete | Status | Completed |
-|-------|----------------|--------|-----------|
-| 22. Date Widget & Clock Cleanup | 2/2 | Complete    | 2026-03-21 |
-| 23. Widget Visual Refinement | 0/1 | Complete    | 2026-03-21 |
-| 24. Hardware Verification | 0/1 | Complete    | 2026-03-21 |
+</details>

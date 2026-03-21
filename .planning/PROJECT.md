@@ -117,14 +117,18 @@ A person with a Raspberry Pi 4 and a touchscreen can install this, pair their ph
 - ✓ Clock style variants (digital, analog, minimal — per-instance selection via config sheet) — v0.6.4
 - ✓ Weather widget with Open-Meteo API, companion GPS, subscriber-aware caching, responsive breakpoints — v0.6.4
 - ✓ 88 unit tests covering core systems (all passing) — v0.6.4
+- ✓ Standalone date widget with column-driven breakpoints and US/intl config — v0.6.5
+- ✓ Clock simplified to digital + analog (minimal removed), bold font, no AM/PM, analog accent hour hand — v0.6.5
+- ✓ Custom battery gauge widget (Canvas, vertical/horizontal orientation, accent fill, red at ≤20%) — v0.6.5
+- ✓ All widgets scale with layout size, Material Symbols font updated (4283 glyphs), all codepoints corrected — v0.6.5
+- ✓ AAStatusWidget removed (redundant with AA focus toggle) — v0.6.5
+- ✓ Now Playing reworked with automotive-sized controls, scrolling titles, progressive breakpoints — v0.6.5
 
 ### Active
 
 <!-- Current scope. Building toward these. -->
 
-- [ ] Visual refinement pass on all 9 widgets across target displays
-- [ ] Standalone date widget (split from clock)
-- [ ] Clock widget becomes time-only (all 3 styles)
+(No active milestone — next milestone TBD)
 
 ### Backlog
 
@@ -156,7 +160,7 @@ A person with a Raspberry Pi 4 and a touchscreen can install this, pair their ph
 
 OpenAuto Pro (BlueWave Studio) was a commercial Pi-based AA head unit that went defunct. This project is a clean-room rebuild — no OAP code, no aasdk dependency. The protocol library (`open-android-auto`) is maintained as a separate community resource.
 
-v0.4 shipped logging and theming. v0.4.1 shipped 10-band graphic EQ with per-stream profiles. v0.4.2 shipped service hardening — WiFi AP, Bluetooth SDP, systemd ordering, and clean shutdown all work reliably without manual intervention. v0.4.3 shipped full UI refresh — automotive-minimal styling, 6-category settings, EQ dual-access, shell polish. v0.4.4 shipped resolution independence — unclamped dual-axis UiMetrics, full QML tokenization (zero hardcoded pixels), container-derived grid layouts, runtime auto-detection, and --geometry validation tooling. v0.4.5 shipped navbar rework — zone-based evdev touch routing, 3-control navbar with multi-gesture actions and edge positioning, navbar-aware AA viewport margins, gesture overlay touch fix, and dead UI cleanup (TopBar, NavStrip, sidebar removed). v0.5.0 shipped protocol compliance — proto submodule v1.0, navigation turn events, voice session commands, BT auth exchange, haptic feedback, retracted dead code cleanup after v1.2 proto verification, library renamed to prodigy-oaa-protocol. v0.5.1 shipped DPI sizing & UI polish — EDID-based DPI scaling, scale stepper, clock readability, full 34-role M3 color system, companion theme import, AA rendering fix, navbar status bar cleanup, M3 button components with visual depth effects. v0.5.2 shipped widget system & UI polish — 3-pane home screen with launcher dock and built-in widgets, settings reorganized into 9 categories with touch normalization and automotive-readable font sizes. v0.5.3 shipped widget grid & content widgets — Android-style freeform grid with drag/resize/multi-page, AA navigation turn-by-turn widget, unified now playing widget with AA/BT source priority. v0.6 shipped architecture formalization — typed provider interfaces, core-owned services, legacy Configuration removal, SettingsInputBoundary for settings touch input, 82 unit tests. v0.6.1 shipped widget framework refinement — WidgetDescriptor with size constraints and categories, DPI-based grid sizing with auto-snap, launcher dock replaced by singleton widgets, formalized widget contract (span-based breakpoints, context injection, ActionRegistry egress), all 6 widgets rewritten, developer guide and 15 ADRs, 85 unit tests all passing. v0.6.2 shipped theme expression & wallpaper scaling — wallpaper memory/render hardening, companion reconnect fix, theme persistence, M3 color audit with night comfort guardrail, 9 companion-created themes promoted to bundled defaults with Prodigy as first-install identity, FullScreenPicker GPU fix. v0.6.3 shipped proxy routing fix — root daemon with restricted IPC socket, idempotent iptables routing with self-exemption via dedicated redsocks user, truthful ACTIVE/FAILED/DEGRADED status reporting, startup self-heal, end-to-end hardware validation proving companion SOCKS bridge traversal. v0.6.4 shipped widget work — per-instance widget configuration with schema-driven config sheets, 6 new widgets (theme cycle, battery, companion status, AA focus toggle, clock styles, weather), WeatherService with Open-Meteo integration and subscriber-aware caching. Codebase is ~56K LOC C++/QML + ~2K LOC Python system service, 88 unit tests.
+v0.4 shipped logging and theming. v0.4.1 shipped 10-band graphic EQ with per-stream profiles. v0.4.2 shipped service hardening — WiFi AP, Bluetooth SDP, systemd ordering, and clean shutdown all work reliably without manual intervention. v0.4.3 shipped full UI refresh — automotive-minimal styling, 6-category settings, EQ dual-access, shell polish. v0.4.4 shipped resolution independence — unclamped dual-axis UiMetrics, full QML tokenization (zero hardcoded pixels), container-derived grid layouts, runtime auto-detection, and --geometry validation tooling. v0.4.5 shipped navbar rework — zone-based evdev touch routing, 3-control navbar with multi-gesture actions and edge positioning, navbar-aware AA viewport margins, gesture overlay touch fix, and dead UI cleanup (TopBar, NavStrip, sidebar removed). v0.5.0 shipped protocol compliance — proto submodule v1.0, navigation turn events, voice session commands, BT auth exchange, haptic feedback, retracted dead code cleanup after v1.2 proto verification, library renamed to prodigy-oaa-protocol. v0.5.1 shipped DPI sizing & UI polish — EDID-based DPI scaling, scale stepper, clock readability, full 34-role M3 color system, companion theme import, AA rendering fix, navbar status bar cleanup, M3 button components with visual depth effects. v0.5.2 shipped widget system & UI polish — 3-pane home screen with launcher dock and built-in widgets, settings reorganized into 9 categories with touch normalization and automotive-readable font sizes. v0.5.3 shipped widget grid & content widgets — Android-style freeform grid with drag/resize/multi-page, AA navigation turn-by-turn widget, unified now playing widget with AA/BT source priority. v0.6 shipped architecture formalization — typed provider interfaces, core-owned services, legacy Configuration removal, SettingsInputBoundary for settings touch input, 82 unit tests. v0.6.1 shipped widget framework refinement — WidgetDescriptor with size constraints and categories, DPI-based grid sizing with auto-snap, launcher dock replaced by singleton widgets, formalized widget contract (span-based breakpoints, context injection, ActionRegistry egress), all 6 widgets rewritten, developer guide and 15 ADRs, 85 unit tests all passing. v0.6.2 shipped theme expression & wallpaper scaling — wallpaper memory/render hardening, companion reconnect fix, theme persistence, M3 color audit with night comfort guardrail, 9 companion-created themes promoted to bundled defaults with Prodigy as first-install identity, FullScreenPicker GPU fix. v0.6.3 shipped proxy routing fix — root daemon with restricted IPC socket, idempotent iptables routing with self-exemption via dedicated redsocks user, truthful ACTIVE/FAILED/DEGRADED status reporting, startup self-heal, end-to-end hardware validation proving companion SOCKS bridge traversal. v0.6.4 shipped widget work — per-instance widget configuration with schema-driven config sheets, 6 new widgets (theme cycle, battery, companion status, AA focus toggle, clock styles, weather), WeatherService with Open-Meteo integration and subscriber-aware caching. v0.6.5 shipped widget refinement — date widget split from clock, custom Canvas battery gauge, all widgets reworked for automotive-sized scaling, Material Symbols font updated with corrected codepoints, AAStatusWidget removed, Now Playing reworked with scrolling titles and progressive breakpoints. Codebase is ~56K LOC C++/QML + ~2K LOC Python system service, 88 unit tests.
 
 ## Constraints
 
@@ -249,15 +253,4 @@ v0.4 shipped logging and theming. v0.4.1 shipped 10-band graphic EQ with per-str
 | Clock styles via Loader Component switching | Shared root-level time properties, clean separation of style rendering | ✓ Good |
 
 ---
-## Current Milestone: v0.6.5 Widget Refinement
-
-**Goal:** Polish all existing widgets via live preview iteration, split date into its own widget, and verify on Pi hardware.
-
-**Target features:**
-- Visual refinement of all 9 widgets at every valid span on both target displays
-- Standalone date widget with responsive breakpoints
-- Clock widget simplified to time-only (all 3 styles)
-- Final hardware verification on Pi
-
----
-*Last updated: 2026-03-20 after v0.6.5 milestone start*
+*Last updated: 2026-03-21 after v0.6.5 milestone*

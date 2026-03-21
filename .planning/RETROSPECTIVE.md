@@ -1,5 +1,52 @@
 # Retrospective
 
+## Milestone: v0.6.5 — Widget Refinement
+
+**Shipped:** 2026-03-21
+**Phases:** 3 (22-24) | **Plans:** 2 formal + 1 interactive session | ~14 hours
+
+### What Was Built
+- Date widget with column-driven breakpoints, ordinal suffixes, US/intl date order
+- Clock simplified: minimal removed, bold font, no AM/PM (Qt `h:mm` gotcha), accent analog hour hand, theme-reactive Canvas
+- Custom Canvas battery gauge with orientation detection and accent fill
+- All widgets reworked for layout-proportional scaling
+- Material Symbols font updated (4283 glyphs) with full codepoint audit
+- AAStatusWidget removed, Now Playing completely reworked with automotive-sized controls
+- Widget preview dev tool for iterative QML development
+
+### What Worked
+- **Widget preview tool** was transformative — iterating live on the VM instead of rebuild/deploy/check cycles saved hours
+- **Interactive review process** (user drives feedback, Claude edits, reload) was faster and more precise than writing specs then executing
+- **Screenshots via freedesktop portal** worked for visual collaboration without leaving the terminal session
+- **Codex diagnosed the 12h clock bug** correctly — Qt `h:mm` without `AP` doesn't produce 12h output, need to format with `AP` then strip it
+
+### What Was Inefficient
+- **Parallel build agents sharing `build/` directory** caused bus errors and Ubuntu crashes — both agents running `rm -rf build && cmake` simultaneously on a 10GB VM
+- **Phase 23 didn't fit the GSD plan/execute model** — interactive review is inherently unplannable. The phase had no PLAN.md or SUMMARY.md, just a CONTEXT.md and direct QML edits
+- **NowPlayingWidget took 4+ iterations** to get button sizing right — ColumnLayout competition for space was the root cause, should have used anchored regions from the start
+- **Material Symbols vs Material Icons codepoint confusion** — the old font file had Icons codepoints, many mapped to completely different glyphs in the Symbols font. Should verify font identity before assuming codepoints
+
+### Patterns Established
+- **Widget preview tool** as standard dev workflow — build once, iterate QML live with mock services
+- **Canvas-drawn custom widgets** (battery gauge) when icon glyphs are limiting
+- **`height * factor` scaling** for widget content instead of fixed UiMetrics tokens — widgets fill any cell size
+- **`fontSizeMode: Text.Fit` pitfall** — it only shrinks, never grows. For scaling text use `height * factor` as pixelSize ceiling
+- **Anchored regions over ColumnLayout** for guaranteed control sizing — controls get fixed percentage, text gets remainder
+
+### Key Lessons
+1. Plans that share a build directory MUST run sequentially, not parallel — two cmake processes fighting over the same build/ caused system-level crashes
+2. Qt 6 `toLocaleTimeString("h:mm")` produces 24h output — must use `"h:mm AP"` then strip the suffix for 12h without AM/PM
+3. Interactive visual review doesn't need the full GSD plan/execute cycle — CONTEXT.md + direct editing is the right process
+4. Canvas `requestPaint()` must be triggered on theme changes — color properties in the paint function don't auto-update
+5. Font codepoints are font-specific — always verify against the actual loaded font file, not web documentation
+
+### Cost Observations
+- Model mix: opus for execution, sonnet for verification, codex for one debugging assist
+- Sessions: 1 (continuous)
+- Notable: Preview tool investment (~30 min) saved hours of rebuild/deploy cycles
+
+---
+
 ## Milestone: v0.6.4 — Widget Work
 
 **Shipped:** 2026-03-17

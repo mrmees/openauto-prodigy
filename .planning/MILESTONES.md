@@ -1,5 +1,26 @@
 # Milestones
 
+## v0.6.5 Widget Refinement (Shipped: 2026-03-21)
+
+**Delivered:** Visual refinement of all widgets via live preview tool iteration, date widget split from clock, custom battery gauge, Material Symbols font update, and hardware verification on Pi.
+
+**Phases completed:** 3 phases (22-24), interactive review session
+
+**Key accomplishments:**
+- Date widget split from clock with column-driven breakpoints and US/intl date order config
+- Clock simplified to digital + analog (minimal removed), bold font, no AM/PM, accent-colored analog hour hand, theme-reactive Canvas
+- Custom Canvas battery gauge replacing icon-based display — vertical/horizontal orientation, accent fill, red at ≤20%
+- All widgets reworked for automotive-sized scaling (icons, text, controls grow with layout)
+- Material Symbols Outlined font updated to latest (4283 glyphs), all icon codepoints audited and corrected
+- AAStatusWidget removed (redundant with AA focus toggle)
+- Now Playing reworked: anchored button regions, scrolling titles, progressive breakpoints, automotive-sized controls
+- Companion Status: captive_portal/public_off icons, satellite_alt GPS, wifi_tethering on/off, bounding box detail view
+- Widget preview dev tool built for iterative QML development with mock services and display presets
+
+**Stats:** 18 files changed (+1,066/-556) | Timeline: ~14 hours (2026-03-20 → 2026-03-21)
+
+---
+
 ## v0.6.4 Widget Work (Shipped: 2026-03-17)
 
 **Delivered:** Extended the widget contract with per-instance configuration and shipped 6 new widgets — theme cycle, battery, companion status, AA focus toggle, clock styles, and weather with live Open-Meteo integration.
