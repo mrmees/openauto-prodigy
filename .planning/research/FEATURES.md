@@ -1,172 +1,211 @@
-# Feature Landscape
+# Feature Landscape: Android-Style Widget Management Interactions
 
-**Domain:** Widget framework conventions, launch bar removal, DPI grid layout refinement for automotive head unit
-**Researched:** 2026-03-14
-**Overall confidence:** HIGH (well-established patterns from Android, Home Assistant, Qt, automotive UX, plus direct codebase inspection)
-
----
+**Domain:** Widget management UX for automotive touchscreen (Qt 6.8 / QML)
+**Researched:** 2026-03-21
+**Overall confidence:** HIGH (based on official Android docs, Pixel Launcher behavior, Android 16 QPR3 Beta 2 changes, and direct codebase inspection of existing Prodigy implementation)
 
 ## Context: What Already Exists
 
-This milestone refines and documents an already-functional widget system. The grid, widgets, and plugin architecture shipped in v0.5.2-v0.6. The work here is about formalizing conventions, removing redundant UI, and tuning layout math.
+This milestone replaces global edit mode with Android-style per-widget interactions. The grid, drag/drop, resize, widget picker, and config sheets all already work. The work here is about interaction model -- how the user engages with individual widgets rather than entering/exiting a global mode.
 
-| Component | Status | v0.6.1 Work |
-|-----------|--------|-------------|
-| `WidgetDescriptor` | Has min/max/default cols/rows, id, displayName, iconName, qmlComponent, pluginId, contributionKind, defaultConfig | Formalize as a contract spec. Add category, description, capability flags. Document all fields. |
-| `WidgetRegistry` | registerWidget, widgetsFittingSpace, descriptorsByKind | Enforce size constraints on registration. Audit widgetsFittingSpace filtering. |
-| `WidgetGridModel` | Full grid: place/move/resize/remove, occupancy tracking, multi-page, YAML persistence | Verify resize clamping against descriptor min/max. Add signals for lifecycle hooks. |
-| `LauncherDock` | Bottom dock with AA/BT Media/Phone/Settings buttons | Remove entirely. Launcher tiles + navbar home button replace it. |
-| `UiMetrics` | DPI-based scaling from EDID, grid density auto-derived | Tune grid column/row formula across display range. |
-| Widget QML (Clock, AA Status, Now Playing, Navigation, AA LiveSurface) | 5 widgets with pixel breakpoints for responsive sizing | Refactor to formalized descriptor fields. Add page visibility guards. |
+| Component | Status | v0.6.6 Change |
+|-----------|--------|---------------|
+| Global edit mode | Long-press anywhere enters mode; all widgets badge simultaneously | **Remove entirely.** Replace with per-widget selection. |
+| FABs (add widget, add page, delete page) | Floating circles in edit mode | **Remove.** Replace with long-press-empty-space menu. |
+| Badge buttons (X, gear) | 28px circles on every widget in edit mode | **Remove.** Move to navbar transformation. |
+| Resize handle | Single bottom-right corner handle | **Expand** to 4-edge handles on selected widget only. |
+| Widget picker | Bottom-sheet with categorized horizontal card list | **Keep.** New entry point from empty-space menu. |
+| WidgetConfigSheet | Bottom-sheet dialog for per-instance config | **Keep.** New entry point from navbar settings button. |
+| Drag-to-reposition | Press-and-hold in edit mode initiates drag | **Refactor.** Drag initiates from per-widget selected state. |
+| Inactivity timer (10s) | Exits global edit mode | **Reuse.** Deselects widget instead. |
+| Drop highlight + ghost preview | Valid/invalid placement and resize feedback | **Keep as-is.** Already works well. |
+| Dotted grid overlay | Shows on all pages in edit mode | **Scope down.** Show only on active page during widget selection. |
 
 ---
 
 ## Table Stakes
 
-Features users and developers expect. Missing = the widget system feels half-baked or the dock removal feels like a regression.
+Features users expect from an Android-like widget management experience. Missing any of these makes the interaction feel broken or unfamiliar to anyone who has used an Android phone.
 
 | Feature | Why Expected | Complexity | Dependencies | Notes |
-|---------|--------------|------------|--------------|-------|
-| **Formal widget manifest spec (documented WidgetDescriptor)** | Android widgets have `AppWidgetProviderInfo` XML. HA cards have type/size declarations. Every mature widget framework has a manifest spec. Without this, third-party devs are guessing at struct fields by reading source code. | LOW | WidgetDescriptor struct (exists) | Write `docs/plugin-widget-guide.md`. Document every field, valid ranges, defaults. This is the single most important deliverable for enabling community widgets. |
-| **Widget size constraint enforcement on resize** | Android hard-stops resize at `minResizeWidth`/`maxResizeWidth`. HA clips cards to declared span range. Users expect that dragging a resize handle stops at reasonable bounds, not that a clock widget can be stretched to 6x4. | LOW | WidgetGridModel.resizeWidget(), WidgetDescriptor min/max fields | Verify `resizeWidget()` checks `descriptor.minCols/maxCols/minRows/maxRows` before accepting. If it doesn't, add clamping. Small but critical correctness item. |
-| **Widget size constraint enforcement on placement** | When placing a widget via the picker, the widget should be placed at its `defaultCols x defaultRows` size. If the available space is smaller than `minCols x minRows`, placement should fail gracefully rather than creating a broken widget. | LOW | WidgetGridModel.placeWidget(), WidgetRegistry.widgetsFittingSpace() | `widgetsFittingSpace()` already filters by available space. Verify the picker uses it. Verify `placeWidget()` rejects placements smaller than min. |
-| **Dock removal with equivalent access** | Removing the LauncherDock (AA/BT Media/Phone/Settings buttons) requires that every action it provides remains reachable within one tap. If users lose quick access to AA or Settings, the product feels regressed. | MED | LauncherDock.qml, launcher tiles, navbar home button, PluginModel | Launcher tiles already provide AA, BT Audio, Phone, Settings, EQ. Navbar home button (center control, tap) already returns to home/launcher. The dock is visually redundant. Removal is safe but must be verified on Pi with real touch. |
-| **Grid density that looks right on tested displays** | A 7" screen at 800x480 (DPI ~133) should show fewer, larger cells than a 10" screen at 1080p (DPI ~220). The formula must produce usable widget sizes at each tested resolution. Home Assistant's grid uses fixed column counts that respond to available width. Android launchers use 4-5 columns on phones, 5-6 on tablets. | MED | UiMetrics auto-derived grid density, DisplayInfo EDID | Grid density is already auto-derived. Refinement means testing the formula output at 800x480/7", 1024x600/7", 1920x1080/10" and tuning if cell counts feel wrong. Document the formula and its expected outputs. |
-| **Widget lifecycle: create and destroy** | Every widget framework (Android, Flutter, Qt, Dojo) has explicit create/destroy lifecycle. Widgets must initialize cleanly when placed and release resources when removed. | LOW | QML Loader already handles this | QML Loader's `active` property already creates/destroys widget QML. Formalizing means documenting the contract: "Your widget QML's `Component.onCompleted` is your create hook. `Component.onDestruction` is your destroy hook." No new code needed -- just documentation. |
-| **Plugin-to-widget registration path** | `IPlugin::widgetDescriptors()` exists but is (based on v0.6 refactor) the formal path. Ensure PluginManager calls it after `initialize()` and registers descriptors automatically. Plugins should not call `WidgetRegistry::registerWidget()` directly. | LOW | IPlugin::widgetDescriptors() (exists), PluginManager, WidgetRegistry | Verify this path works end-to-end. If plugins still register directly, refactor to use widgetDescriptors(). |
+|---------|-------------|------------|--------------|-------|
+| **Per-widget long-press to select** | Android's fundamental widget interaction. Long-press ONE widget to enter its management state. No global mode toggle. This is how every Android launcher has worked since Android 3.1. | Medium | Existing long-press detection in HomeMenu delegate MouseArea | Replaces `editMode` bool with `selectedWidgetId` string. Selected widget gets accent border + scale. Others remain normal. Only one widget selected at a time. |
+| **Long-press lift feedback** | Visual confirmation the long-press registered. Android lifts the widget (scale ~1.05x, elevated shadow, slight transparency). Users need immediate feedback that their press was recognized. | Low | Existing scale/opacity animation in delegate | Already partially built (scale 1.05, opacity 0.5 during drag). Apply on selection, before drag starts. Accent border on selected widget only -- not all widgets. |
+| **Drag to reposition from selected state** | After long-press selects a widget, continued hold + drag moves it. Release to place. Snap-to-grid with drop highlight. This is the core of Android widget management. | Low | Existing drag overlay, finalizeDrop(), snap-back animation | Already fully built. Refactor: drag initiates from per-widget selected state instead of global edit mode. All drag infrastructure (dropHighlight, dragPlaceholder, dragOverlay MouseArea, collision detection) is reusable as-is. |
+| **Resize handles on selected widget** | When selected, a widget shows resize affordances on its edges. Android shows an outline with dots on each edge midpoint. User drags an edge to resize in that direction. | Medium | Existing single bottom-right resize handle + resizeGhost | Android uses 4-edge handles (dots at midpoint of top/bottom/left/right edges). Current system has only a bottom-right corner handle. Must expand to 4 edges. Each handle drags in one axis only (top/bottom = vertical, left/right = horizontal). |
+| **Remove widget action** | Ability to delete a non-singleton widget. Must be discoverable and require minimal precision. On Android, long-press then drag to "Remove" area at top, or tap a remove option. | Low | Existing `WidgetGridModel.removeWidget()` | Currently a tiny 28px X badge. In a car at arm's length, that's too small. Move to navbar-hosted delete button during widget selection -- full navbar control size. |
+| **Widget config access** | Ability to open per-widget configuration for widgets with config schemas (clock style, date format, etc.). | Low | Existing `WidgetConfigSheet` + `configSchemaForWidget()` | Currently a tiny 28px gear badge. Move to navbar-hosted settings button during widget selection. Only appears when selected widget has a config schema. |
+| **Tap empty space to deselect** | Tapping anywhere outside the selected widget dismisses the selection state. Universal dismissal pattern on Android and every other touch UI. | Low | Existing background MouseArea in pageGridContent | Change handler from "exit edit mode" to "deselect widget" (set selectedWidgetId to ""). |
+| **Widget picker for adding widgets** | Browsable list of available widgets with categories, icons, names. Tap to auto-place. | Low | Existing `WidgetPicker.qml` + `WidgetPickerModel` | Already built with categorized horizontal card rows. Needs new entry point from long-press-empty-space menu instead of FAB. |
+| **Auto-placement on add** | Selecting a widget from picker auto-finds first available cell and places it. No drag-to-place. | Low | Existing `findFirstAvailableCell()` + `placeWidget()` | Already implemented. Android 15 added explicit "+ Add" tap-to-place alongside drag-to-place. Tap-to-auto-place is better for automotive. |
 
 ---
 
 ## Differentiators
 
-Features that set the product apart. Not expected by default, but add meaningful value.
+Features that go beyond standard Android behavior. Not expected, but improve the experience -- especially for an automotive touchscreen.
 
 | Feature | Value Proposition | Complexity | Dependencies | Notes |
 |---------|-------------------|------------|--------------|-------|
-| **Widget category field** | Android uses `widgetCategory`. HA uses sections. Grouping widgets by domain (time, media, navigation, status) in the picker makes selection faster as the catalog grows beyond 5 widgets. Even with 5 widgets, categories provide useful context in the picker. | LOW | WidgetDescriptor struct | Add `QString category` field. Simple string. Initial categories: "time", "media", "navigation", "status". Picker can optionally group by category now or in a future milestone. |
-| **Widget capability flags** | Android has `resizeMode` and `widgetFeatures`. Flags like `isSystem` (pinned, cannot be removed), `isResizable`, `isRemovable` let the host enforce policy without hardcoding per-widget behavior. | LOW | WidgetDescriptor struct | Add individual bools: `isSystem`, `isResizable`, `isRemovable`, `isHiddenFromPicker`. All default to the permissive direction (removable=true, resizable=true, system=false, hidden=false). WidgetHost hides the X badge when `isRemovable=false`. |
-| **Breakpoint-based widget content adaptation** | Android 12+ provides different layouts at different `SizeF` ranges. Prodigy already does this -- Clock and AA Status widgets use pixel breakpoints to switch between compact/expanded content. | LOW (documentation) | Existing widget QML patterns | This is already implemented. Formalize as a documented convention: "Use `width`/`height` bindings or `colSpan`/`rowSpan` roles to conditionally show/hide content elements." Provide examples from existing widgets. |
-| **Page visibility optimization** | When a widget is on a non-visible SwipeView page, it should know so it can pause timers and skip updates. Android handles this with `onEnabled`/`onDisabled`. Clock widget currently ticks every second even when off-screen. | LOW | WidgetHost.qml, HomeMenu SwipeView | WidgetHost gets a `pageVisible` bool property derived from SwipeView.isCurrentItem. Widget QML binds Timer.running to `pageVisible`. Clock saves CPU when not visible. |
-| **Widget description in descriptor** | Android 12+ shows description in widget picker. On a 7" touch screen, name + icon alone may not be enough for users to know what an unfamiliar widget does. | LOW | WidgetDescriptor struct | Add `QString description`. Shown in picker if space permits. Low effort, modest value. |
-| **Widget error placeholder** | When widget QML fails to load (wrong path, missing resource), WidgetHost currently shows a blank glass card. A visible placeholder with widget name + error icon tells the user something is wrong vs. just empty space. | LOW | WidgetHost.qml Loader.status | Check Loader.Error state, show fallback Item with displayName and warning icon. Fetches name from WidgetRegistry. |
-| **Widget lifecycle hooks on IPlugin** | Android AppWidgetProvider has `onAppWidgetOptionsChanged` (resize callback). Plugins providing data-driven widgets (navigation) could benefit from knowing when their widget is created, resized, or destroyed in C++. | MED | IPlugin, PluginManager, WidgetGridModel signals | New virtual methods: `onWidgetCreated(instanceId, widgetId)`, `onWidgetDestroyed(instanceId)`, `onWidgetResized(instanceId, newCols, newRows)`. Default no-ops for backward compat. Only add if a concrete plugin needs C++ notification -- may be documentation-only if QML signals suffice. |
-| **Documented plugin-widget contract** | Third-party devs need a single document explaining: register a WidgetDescriptor, provide a QML component, expect these context properties, follow this lifecycle. Without docs, the architecture exists but is inaccessible. | LOW | All table stakes features | Write `docs/plugin-widget-guide.md` with worked examples from built-in widgets. High value per effort. |
+| **Navbar control transformation** | When widget is selected, navbar volume/brightness controls morph into settings/delete buttons. Reuses existing touch-friendly navbar hit zones (full control-sized targets). Android puts actions as floating elements near the widget; Prodigy's fixed navbar provides larger, more predictable touch targets. | Medium | `Navbar.qml`, `NavbarControl.qml`, `NavbarController` C++, existing icon resolution logic | Volume becomes settings (gear icon) when selected widget has configSchema; brightness becomes delete (trash icon) for non-singleton widgets. Clock/home stays as "done"/deselect. Reverse transformation on deselect. This is the key automotive differentiation -- no tiny floating badges. |
+| **Tap-to-resize buttons (Android 16 QPR3 style)** | Plus/minus buttons on widget edges for tap-to-expand/contract. Android 16 QPR3 Beta 2 (Jan 2026) added these alongside drag handles. Better accessibility -- no precision drag needed. Buttons disappear at min/max size. | Medium | 4-edge resize handle infrastructure | Layer on top of edge handles. Each edge gets +/- buttons. Tap + to grow one cell in that direction, - to shrink. Buttons themed with system colors. Auto-hide at size limits. Complementary to drag -- not a replacement. |
+| **Long-press empty space context menu** | Long-pressing empty grid space shows a popup with "Add Widget" and "Add Page". Android shows Widgets/Wallpaper/Settings on empty-space long-press. Replaces FABs with a contextual popup near the touch point. | Low | Existing long-press detection on background MouseArea, existing `addPage()` and picker | Simple popup menu (2 items). Position near touch point. Dismiss on selection or outside tap. Much more discoverable than FABs for new users -- "long-press empty space" is an Android-universal gesture. |
+| **Inactivity auto-deselect** | Widget selection auto-dismisses after 10s of no touch interaction. Prevents stuck selected state while driving. Android doesn't have this -- phone users can take their time. Essential for automotive safety. | Low | Existing `inactivityTimer` | Already implemented for global edit mode. Reuse for per-widget selection. Timer resets on any touch interaction with the selected widget. |
+| **Grid overlay scoped to selection** | Show dotted grid lines only on the active page, only while a widget is selected. Provides spatial reference for placement/sizing without permanent visual clutter. | Low | Existing dotted grid overlay in pageGridContent | Already built. Change visibility binding from `editMode` to `selectedWidgetId !== ""`. |
 
 ---
 
 ## Anti-Features
 
-Features to explicitly NOT build in this milestone.
+Features to explicitly NOT build. Things that seem logical but would hurt the automotive UX or add unjustified complexity.
 
 | Anti-Feature | Why Avoid | What to Do Instead |
 |--------------|-----------|-------------------|
-| **Widget store / marketplace** | Adds cloud dependency, account management, distribution complexity. Violates offline-only constraint. Solo maintainer cannot moderate a store. | Document how to install plugin `.so` + `plugin.yaml` manually. Community shares widgets via GitHub repos. |
-| **Widget-to-widget communication** | Message buses between widgets add coupling and debugging complexity. No comparable system (Android, HA, KDE Plasma) allows direct widget-to-widget communication -- they all use shared state/services. | Widgets read from shared services (MediaStatusService, AndroidAutoRuntimeBridge, ThemeService) via context properties. This is the correct and established pattern. |
-| **Animated widget resize transitions** | Smooth size animation during drag-resize is janky on Pi GPU (already discovered in v0.5.3 -- ghost rectangle is the solution). | Keep ghost rectangle preview. Widget re-renders at new size after drop. Instant swap, no animation. |
-| **Per-widget theme overrides** | Allowing each widget its own color scheme fragments visual consistency. No automotive system does this. Android widgets inherit the launcher theme. | Widgets use ThemeService. Per-widget opacity is the only visual customization knob. |
-| **Custom grid cell aspect ratios** | Configurable cell aspect ratios (e.g., "wide cells") complicate occupancy math and make widget sizing unpredictable. Android uses uniform grid cells. | Cells are derived from screen dimensions / grid density. Widgets span multiple cells for non-square shapes. Uniform cells are simpler and more predictable. |
-| **Widget configuration dialog per-instance** | Android has optional `configure` Activity. Building per-instance config editing UI and storage for this milestone is premature -- no widget currently needs it. `defaultConfig` field exists in WidgetDescriptor for future use. | Defer until a concrete widget needs per-instance config. The descriptor field exists; the UI does not. |
-| **Drag-to-reorder pages** | Multi-page exists with SwipeView. Page reordering adds interaction complexity (long-press ambiguity with widget drag) for minimal value with 2-3 pages. | Pages auto-clean when empty. Users add/remove pages. Order is creation order. Good enough. |
-| **AA LiveSurface widget embedding** | Embedding a live AA projection surface as a widget would be unique but requires secondary video surface or frame extraction from the AA video pipeline. Genuinely hard, already marked deferred in `WidgetTypes.hpp`. | Keep `DashboardContributionKind::LiveSurfaceWidget` declared. Implementation is post-v1.0 at earliest. |
+| **Global edit mode** | Android doesn't have one. It's a desktop/iOS paradigm. Causes all widgets to badge simultaneously, cluttering a small screen. Forces "enter mode, do things, exit mode" workflow. Per-widget interaction is more direct -- one gesture to select and act. | Per-widget long-press to select one widget at a time. |
+| **Floating badge buttons (X, gear, resize) on every widget** | 28px circles are too small for arm's-length automotive touch. They overlap widget content. They clutter the view when all widgets badge simultaneously. Android doesn't show actions on ALL widgets -- only the one being interacted with. | Navbar transformation for settings/delete. Edge resize handles on selected widget only. |
+| **FABs (floating action buttons)** | Hover over content with no fixed spatial anchor. Hard to target while driving. Occlude widget content. Not how Android handles widget/page addition. | Long-press empty space context menu. Actions surface contextually. |
+| **Drag-from-picker-to-homescreen** | Android's traditional flow of dragging from picker to home screen. Too much precision for automotive -- requires holding drag across screen regions. | Auto-placement: tap in picker, widget finds first open spot. Reposition after if needed. |
+| **Widget jiggle/wobble animation** | iOS-style wobbling. Adds visual noise, no functional value, distracting while driving. Android doesn't do this. | Static selected state with clear accent border on the one selected widget. |
+| **Multi-widget selection** | Selecting multiple widgets for batch move/delete. Over-engineering for a head unit with 4-8 widgets. Android doesn't support this either. | Single-widget selection only. |
+| **Widget stacking/overlap** | Visual chaos on a small automotive screen. Android enforces grid occupancy. | Grid-based occupancy with collision detection (already enforced). |
+| **Undo/redo** | State complexity for rare use. Android doesn't offer widget undo. | Snap-back animation on failed drop. Manual reposition. |
+| **Resize animation (smooth size transition)** | Janky on Pi 4 GPU. Already discovered in v0.5.3. | Ghost rectangle preview during drag. Widget re-renders at new size after release. |
 
 ---
 
 ## Feature Dependencies
 
 ```
-Widget manifest spec documentation
-    └──> All descriptor field additions (category, description, flags)
-    └──> Plugin-widget contract documentation (docs/plugin-widget-guide.md)
+Per-widget long-press select (FOUNDATION -- build first)
+  ├── Drag to reposition (requires selected state as entry point)
+  ├── 4-edge resize handles (only appear on selected widget)
+  │   └── Tap-to-resize +/- buttons (optional layer on edge handles)
+  ├── Navbar transformation (triggered by selectedWidgetId !== "")
+  │   ├── Delete button (navbar → removeWidget)
+  │   └── Settings button (navbar → WidgetConfigSheet.openConfig)
+  ├── Inactivity auto-deselect (timer runs during selection)
+  └── Grid overlay scoped to selection (visible when widget selected)
 
-WidgetDescriptor extensions (category, description, flags)
-    └──> Widget picker filtering by capability (isHiddenFromPicker)
-    └──> WidgetHost edit mode behavior (isRemovable, isResizable, isSystem)
+Long-press empty space (INDEPENDENT -- can build in parallel)
+  ├── Context menu popup (positioned near touch point)
+  │   ├── "Add Widget" → Bottom-sheet picker → Auto-place
+  │   └── "Add Page" → WidgetGridModel.addPage()
+  └── Replaces FABs (remove FABs after menu works)
 
-Resize constraint enforcement (verify WidgetGridModel clamps to min/max)
-    └──> Requires WidgetDescriptor min/max fields (already exist)
-    └──> Enables safe resize behavior for all current and future widgets
+Cleanup pass (AFTER both above work)
+  ├── Remove editMode property and all editMode-dependent logic
+  ├── Remove FABs (addWidgetFab, addPageFab, deletePageFab)
+  ├── Remove badge overlays (removeBadge, configGear)
+  ├── Remove deletePageDialog (auto-cleanup handles empty pages)
+  └── Verify auto-cleanup of empty pages runs on widget deselect
 
-Dock removal (delete LauncherDock.qml)
-    └──> Requires: launcher tiles cover all dock actions (AA, BT, Phone, Settings)
-    └──> Requires: navbar home button returns to launcher (already works)
-    └──> Frees vertical space for widget grid (grid gets taller)
-    └──> May require grid row count increase to fill reclaimed space
-
-Grid density DPI refinement
-    └──> Requires: test data from multiple display sizes
-    └──> Informs: widget size constraint validation (min size must be usable at lowest density)
-    └──> Dock removal may change grid height calculation (dock was fixed-height below grid)
-
-Page visibility optimization
-    └──> Requires: WidgetHost gets pageVisible property
-    └──> Enables: Clock timer pause, nav update skip on non-visible pages
-
-Plugin-to-widget registration audit
-    └──> Requires: IPlugin::widgetDescriptors() consumed by PluginManager
-    └──> Enables: removing direct WidgetRegistry calls from plugin initialize() bodies
+Auto-cleanup empty pages
+  └── Runs on deselect (was: on edit mode exit)
 ```
 
 ---
 
 ## MVP Recommendation
 
-Prioritize for v0.6.1:
+Build in this order based on dependencies and incremental value:
 
-1. **Widget manifest spec formalization** -- Document every WidgetDescriptor field as a formal contract. Add `category` and `description` fields (trivial struct additions). This is zero-risk, high-value work that enables everything else and is the primary deliverable for third-party developer enablement.
+1. **Per-widget long-press select** -- Foundation for everything. Replace `editMode: bool` with `selectedWidgetId: string`. Selected widget gets accent border + 1.05 scale. All others remain normal. Tap empty space deselects. Inactivity timer deselects after 10s. Drag-to-reposition works from selected state using existing infrastructure.
 
-2. **Resize constraint enforcement audit** -- Verify `resizeWidget()` and `placeWidget()` clamp against descriptor `minCols/maxCols/minRows/maxRows`. Fix if not enforced. Small code change, critical correctness item. Every widget framework enforces declared size bounds.
+2. **Navbar transformation** -- Settings + delete move from tiny badges to full-size navbar buttons. Volume control becomes settings gear (when widget has configSchema). Brightness control becomes delete trash (when widget is non-singleton). Center clock/home becomes "done" or stays. Reverse on deselect. This is the biggest UX win over the current system.
 
-3. **Launch bar removal** -- Delete `LauncherDock.qml` and its usage in `HomeMenu.qml`. Verify launcher tiles provide equivalent access to AA, BT Audio, Phone, Settings. Confirm navbar home button returns to launcher. Reclaim vertical space for the widget grid. Test on Pi with real touch.
+3. **4-edge resize handles** -- Expand from single bottom-right corner to dot indicators on each edge midpoint. Each handle drags in one axis (top/bottom = vertical, left/right = horizontal). Ghost preview already built. Min/max constraint feedback already built. This is the most complex piece -- handle positioning, per-axis drag math, edge-vs-corner semantics.
 
-4. **Grid density DPI refinement** -- Test grid column/row calculations at 800x480/7", 1024x600/7", 1920x1080/10". Tune the formula if cell counts produce unusably small or wastefully large cells. Document the formula and expected outputs per display.
+4. **Long-press empty space menu** -- Simple 2-item popup near touch point. "Add Widget" opens existing picker. "Add Page" calls existing addPage(). Positioned contextually, more discoverable than FABs.
 
-5. **Plugin-widget registration path audit** -- Verify `IPlugin::widgetDescriptors()` is the registration path consumed by PluginManager. Remove any direct `WidgetRegistry::registerWidget()` calls from plugin `initialize()` bodies if they exist.
+5. **Cleanup pass** -- Delete FABs, badge overlays, editMode property, deletePageDialog, global edit mode logic. Verify auto-cleanup of empty pages triggers on deselect. This is pure code removal -- satisfying.
 
-6. **Page visibility optimization** -- Add `pageVisible` property to WidgetHost. Clock widget binds `Timer.running` to it. Other widgets add visibility guards where appropriate. Low effort, measurable CPU savings.
-
-7. **Plugin-widget contract documentation** -- Write `docs/plugin-widget-guide.md` covering: WidgetDescriptor fields, registration path, QML component requirements, context properties available, lifecycle (create via Component.onCompleted, destroy via Component.onDestruction), size adaptation patterns.
-
-Defer:
-- **Widget capability flags (isSystem, isRemovable, etc.)**: Add the fields when a concrete UX need arises (e.g., preventing removal of AA Status widget). Currently all widgets are equally manageable.
-- **Widget lifecycle hooks on IPlugin C++**: Only add if a plugin's C++ code concretely needs create/resize/destroy notification. QML lifecycle (Component.onCompleted/onDestruction) plus property bindings handle most cases.
-- **Widget error placeholder**: Nice UX improvement, not blocking. Add when convenient.
-- **Widget picker category grouping**: Add the category field now, build grouped picker UI when widget catalog exceeds ~8 widgets.
+**Defer:**
+- **Tap-to-resize +/- buttons (Android 16 QPR3 style):** Nice accessibility feature but not MVP. Drag handles are the established pattern (Android has had them since 3.1). +/- buttons are brand new even on Android. Layer on later.
+- **Bottom-sheet picker polish (M3 drag handle, pull-to-expand):** Current picker works. Polish is post-MVP.
 
 ---
 
-## Comparison: Android AppWidget vs Prodigy Widget Architecture
+## Interaction Flow Comparison
 
-Reference for design decisions. Prodigy should be simpler -- in-process QML widgets don't need Android's remote-process complexity.
+### Current (v0.6.5 -- global edit mode)
+1. Long-press anywhere on home screen
+2. ALL widgets show X/gear/resize badges simultaneously
+3. FABs appear (add widget, add page, delete page)
+4. Dotted grid shows on all pages
+5. Tap a 28px badge to act on that widget
+6. Tap empty space or wait 10s to exit edit mode
 
-| Concept | Android AppWidget | Prodigy Widget | Notes |
-|---------|-------------------|----------------|-------|
-| Manifest | XML `<appwidget-provider>` | `WidgetDescriptor` C++ struct | Android's XML is more declarative; Prodigy's is programmatic. Both work. |
-| Size units | dp + grid cells (`targetCellWidth`) | Grid cells directly | Prodigy is simpler. No dp conversion needed. |
-| Size constraints | minWidth/Height, minResizeW/H, maxResizeW/H | minCols/Rows, maxCols/Rows | Same concept, cell-based in Prodigy. |
-| Responsive layouts | `Map<SizeF, RemoteViews>` breakpoints | QML width/height bindings with conditionals | Prodigy's approach is more natural for in-process QML. |
-| Lifecycle: create | onEnabled (first), onUpdate | Component.onCompleted (QML) | Android is process-boundary; Prodigy is in-process. |
-| Lifecycle: resize | onAppWidgetOptionsChanged | QML width/height binding updates | Prodigy gets this for free from QML property system. |
-| Lifecycle: destroy | onDeleted, onDisabled (last) | Component.onDestruction (QML) | Same concept. |
-| Update mechanism | Host-driven updatePeriodMillis | Widget-driven Timer + signal bindings | Prodigy's approach is better for in-process widgets. |
-| Inter-widget comms | None (intentional) | None (intentional) | Both use shared services/state instead. |
-| Configuration | Optional configure Activity | Per-instance config deferred | Android's is mature; Prodigy can add when needed. |
+### Target (v0.6.6 -- per-widget interactions)
+1. Long-press a specific widget
+2. THAT widget shows accent border + resize handles
+3. Navbar controls transform to settings/delete
+4. Drag the widget to reposition, drag edge handles to resize
+5. Tap navbar settings to configure, trash to remove
+6. Tap empty space or wait 10s to deselect
+7. Long-press empty space shows "Add Widget" / "Add Page" menu
 
-Key takeaway: Android's `AppWidgetProviderInfo` is the gold standard for widget manifest conventions. Prodigy's `WidgetDescriptor` already covers the essential fields (sizing, defaults). The gap is documentation and a few convenience fields (category, description), not fundamental architecture.
+### Key UX Wins
+- **Faster:** One gesture to select and act (no enter-mode step)
+- **Clearer:** Only the targeted widget changes appearance
+- **Bigger targets:** Navbar buttons are full-size touch targets, not 28px floating circles
+- **Less clutter:** No FABs, no badges on every widget, no global visual state change
+- **More Android-like:** Matches the interaction model every Android user already knows
+
+---
+
+## Android Widget Interaction Reference
+
+Detailed breakdown of how Android handles each interaction, for implementation reference.
+
+### Long-Press to Select
+- **Timing:** ~400-500ms press-and-hold (Android default `ViewConfiguration.getLongPressTimeout()`)
+- **Feedback:** Haptic buzz (`LONG_PRESS` HapticFeedbackConstant) + visual lift (scale up, shadow increase)
+- **State:** Widget enters "selected" state. Outline with resize dots appears. Other widgets dim slightly or stay normal.
+- **Pixel Launcher:** Widget lifts (elevation increase), outline with 4-edge dot handles appears, "Remove" text appears at top of screen
+
+### Drag to Reposition
+- **Entry:** Continue holding after long-press feedback fires. Movement threshold triggers drag mode.
+- **Visual:** Widget follows finger at ~0.5 opacity. Original position shows ghost/placeholder. Grid snap preview shows target position.
+- **Drop:** Release finger. Widget snaps to nearest valid grid position. If invalid (overlap), snaps back to original.
+- **Cross-page:** Drag to screen edge to move widget to adjacent page (Prodigy probably doesn't need this with SwipeView).
+
+### Resize Handles
+- **Appearance:** 4 dots at edge midpoints (top, bottom, left, right). Some launchers also show corner dots.
+- **Behavior:** Drag any dot to resize in that direction. Widget snaps to grid cell boundaries.
+- **Constraints:** Handles stop at `minResizeWidth`/`maxResizeWidth`. Visual feedback when hitting limits.
+- **Android 16 QPR3 (new):** +/- buttons alongside dots for tap-to-resize. Buttons disappear at min/max. Theme-colored.
+
+### Widget Removal
+- **Pixel Launcher:** Long-press lifts widget. Drag to top of screen where "Remove" appears. Release over "Remove" to delete.
+- **Samsung/Others:** Long-press shows context popup with "Remove" option.
+- **Prodigy adaptation:** Navbar delete button is better for automotive -- fixed position, known location, no drag-to-top precision needed.
+
+### Empty Space Long-Press
+- **Android:** Long-press empty space shows popup: "Wallpapers", "Widgets", "Home settings"
+- **Prodigy adaptation:** "Add Widget" (opens picker), "Add Page". No wallpaper/settings needed (those are in Settings app).
+
+### Widget Picker
+- **Android 15+:** Full-screen picker scrollable by app. Each app expandable to show its widgets with preview images.
+- **Android 15 addition:** "+ Add" button for tap-to-auto-place (vs. drag from picker to home screen).
+- **Prodigy adaptation:** Bottom-sheet with categorized card list. Tap to auto-place. Already built, just needs new entry point.
 
 ---
 
 ## Sources
 
-- [Android Create a Simple Widget](https://developer.android.com/develop/ui/views/appwidgets) -- HIGH confidence, authoritative manifest spec with AppWidgetProviderInfo attributes
-- [Android Responsive Widget Layouts](https://developer.android.com/develop/ui/views/appwidgets/layouts) -- HIGH confidence, breakpoint-based sizing patterns and SizeF mapping
-- [AppWidgetProviderInfo API Reference](https://developer.android.com/reference/android/appwidget/AppWidgetProviderInfo) -- HIGH confidence, complete attribute list
-- [Home Assistant Dashboard Grid System](https://www.home-assistant.io/blog/2024/03/04/dashboard-chapter-1/) -- MEDIUM confidence, comparable grid/section design for dashboards
-- [Qt Scalability Documentation](https://doc.qt.io/qt-6/scalability.html) -- HIGH confidence, DPI scaling patterns for QML
-- [KDAB: Scalable UIs in QML](https://www.kdab.com/scalable-uis-qml/) -- MEDIUM confidence, practical scaling patterns for embedded/kiosk
-- [Android Automotive Car UI](https://source.android.com/docs/automotive/hmi/car_ui) -- MEDIUM confidence, car UI framework patterns
-- Codebase: `src/core/widget/WidgetTypes.hpp`, `src/core/widget/WidgetRegistry.hpp`, `src/ui/WidgetGridModel.hpp`, `qml/controls/UiMetrics.qml`, `qml/components/LauncherDock.qml`, `qml/applications/home/HomeMenu.qml` -- HIGH confidence, direct source inspection
+- [Android Developers: Create a simple widget](https://developer.android.com/develop/ui/views/appwidgets) -- official widget API, manifest spec, lifecycle
+- [Google Pixel Phone Help: Add widgets](https://support.google.com/pixelphone/answer/2781850) -- official user-facing interaction steps
+- [Android Authority: Widget resize buttons in Android 16 QPR3 Beta 2](https://www.androidauthority.com/widget-resizing-3633307/) -- tap-to-resize feature details
+- [Android Police: Android 16 QPR3 Beta 2 widget resizing](https://www.androidpolice.com/android-16-qpr3-beta-2-home-screen-widgets-resize-button/) -- +/- button UX details
+- [Android Headlines: Accessible widget resizing controls](https://www.androidheadlines.com/2026/01/android-16-qpr3-beta-2-accessible-widget-resizing-controls.html) -- accessibility rationale for +/- buttons
+- [Material Design 3: Bottom sheets](https://m3.material.io/components/bottom-sheets/overview) -- M3 bottom sheet component spec
+- [Android Developers: Haptic feedback](https://developer.android.com/develop/ui/views/haptics/haptic-feedback) -- long-press haptic feedback constants
+- [Android AOSP: Haptics UX design](https://source.android.com/docs/core/interaction/haptics/haptics-ux-design) -- haptic UX design principles
+- [Android Developers: Drag and scale](https://developer.android.com/develop/ui/views/touch-and-input/gestures/scale) -- drag/scale gesture patterns
+- [AOSP: Widgets and shortcuts](https://source.android.com/docs/core/display/widgets-shortcuts) -- AOSP widget system overview
+- Codebase: `qml/applications/home/HomeMenu.qml`, `qml/components/WidgetHost.qml`, `qml/components/WidgetPicker.qml`, `qml/components/WidgetConfigSheet.qml`, `qml/components/Navbar.qml` -- direct source inspection
 
 ---
 
-*Feature research for: OpenAuto Prodigy v0.6.1 Widget Framework & Layout Refinement*
-*Researched: 2026-03-14*
+*Feature research for: OpenAuto Prodigy v0.6.6 Homescreen Layout & Widget Settings Rework*
+*Researched: 2026-03-21*

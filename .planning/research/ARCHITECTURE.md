@@ -1,467 +1,467 @@
 # Architecture Patterns
 
-**Domain:** Widget framework refinement, launch bar removal, DPI grid layout for v0.6.1
-**Researched:** 2026-03-14
-**Confidence:** HIGH (direct codebase analysis -- all components exist and running on dev/0.6)
+**Domain:** Android-style per-widget interactions for Qt 6.8 + QML homescreen (v0.6.6)
+**Researched:** 2026-03-21
+**Confidence:** HIGH (direct codebase analysis of all relevant components)
 
-## Current Architecture Snapshot (v0.6 Baseline)
+## Recommended Architecture
 
-v0.6 shipped the architecture formalization: typed provider interfaces, core-owned services, `WidgetRegistry` accessible via `IHostContext`, `SettingsInputBoundary`. This research covers the v0.6.1 changes that build on top.
+Replace the current global edit mode (enter edit mode -> all widgets editable -> FABs for add/delete/page) with a per-widget interaction model (long-press one widget -> that widget is "selected" -> navbar transforms to show actions -> edge resize handles on selected widget -> long-press empty space for add/page menu). This is an **interaction model change**, not an architecture rewrite. The existing data layer (WidgetGridModel, WidgetRegistry, WidgetPickerModel) stays intact. Changes are concentrated in QML layout and NavbarController state.
 
-### Relevant Components
+### System State Machine
 
-| Component | File(s) | What It Does Now |
-|-----------|---------|------------------|
-| `WidgetDescriptor` | `src/core/widget/WidgetTypes.hpp` | Static metadata: id, displayName, iconName, qmlComponent, pluginId, contributionKind, size constraints (min/max/default cols/rows), defaultConfig |
-| `GridPlacement` | `src/core/widget/WidgetTypes.hpp` | Per-instance: instanceId, widgetId, col, row, colSpan, rowSpan, opacity, page, visible |
-| `DashboardContributionKind` | `src/core/widget/WidgetTypes.hpp` | Enum: `Widget`, `LiveSurfaceWidget` |
-| `WidgetRegistry` | `src/core/widget/WidgetRegistry.{hpp,cpp}` | QMap store. `registerWidget`, `unregisterWidget`, `descriptor`, `allDescriptors`, `widgetsFittingSpace`, `descriptorsByKind` |
-| `WidgetGridModel` | `src/ui/WidgetGridModel.{hpp,cpp}` | QAbstractListModel. Cell occupancy, place/move/resize/remove, page management, clamping on grid dimension change |
-| `DisplayInfo` | `src/ui/DisplayInfo.{hpp,cpp}` | Window size + screen inches (EDID) -> computedDpi. Derives gridColumns/gridRows via `updateGridDimensions()` |
-| `LauncherModel` | `src/ui/LauncherModel.{hpp,cpp}` | QAbstractListModel backed by `YamlConfig::launcherTiles()`. Tiles: {id, label, icon, action} |
-| `UiMetrics` | `qml/controls/UiMetrics.qml` | QML singleton. DPI/reference -> scale factors. All layout tokens (spacing, fonts, radii, tile sizes) |
-| `HomeMenu.qml` | `qml/applications/home/HomeMenu.qml` | ColumnLayout: SwipeView (widget grid pages) + PageIndicator + LauncherDock |
-| `LauncherDock.qml` | `qml/components/LauncherDock.qml` | RowLayout of tiles from LauncherModel, ~90px tall. Actions: `plugin:id` or `navigate:settings` |
-| `WidgetHost.qml` | `qml/components/WidgetHost.qml` | Glass card bg + Loader + long-press MouseArea |
-| `IPlugin` | `src/core/plugin/IPlugin.hpp` | `widgetDescriptors()` returns `QList<WidgetDescriptor>`. Lifecycle: initialize/onActivated/onDeactivated/shutdown |
-
-### Current Data Flow: Grid Dimensions
+The homescreen operates in three mutually exclusive states:
 
 ```
-DisplayInfo::updateGridDimensions()
-  marginPx = 40           (2 * 20px reference margin)
-  dockPx = 56             (reference dock height -- HARDCODED)
-  usableW = windowWidth_ - marginPx
-  usableH = windowHeight_ - marginPx - dockPx
-  targetCellW = 150       (fixed pixels)
-  targetCellH = 125       (fixed pixels)
-  newCols = clamp(usableW / targetCellW, 3, 8)
-  newRows = clamp(usableH / targetCellH, 2, 6)
-
-main.cpp wiring:
-  widgetGridModel->setGridDimensions(displayInfo->gridColumns(), displayInfo->gridRows())
-  connect(displayInfo, gridDimensionsChanged, [&] {
-      widgetGridModel->setGridDimensions(displayInfo->gridColumns(), displayInfo->gridRows())
-  })
-
-HomeMenu.qml:
-  cellWidth = pageView.width / WidgetGridModel.gridColumns
-  cellHeight = pageView.height / WidgetGridModel.gridRows
+IDLE  ──long-press widget──>  WIDGET_SELECTED
+IDLE  ──long-press empty──>   CONTEXT_MENU
+WIDGET_SELECTED ──tap empty / tap navbar-center / timeout──>  IDLE
+WIDGET_SELECTED ──begin drag──>  WIDGET_DRAGGING (sub-state)
+WIDGET_SELECTED ──begin resize──>  WIDGET_RESIZING (sub-state)
+CONTEXT_MENU ──select action / tap outside──>  IDLE
 ```
 
-### Current Data Flow: LauncherDock
+Key difference from current architecture: **no global `editMode` boolean as UI state**. The "selected widget" IS the state. `selectedInstanceId === ""` means IDLE. WidgetGridModel.setEditMode() is retained purely as a remap-deferral gate.
 
-```
-YamlConfig::launcherTiles() -> QList<QVariantMap> {id, label, icon, action}
-  |
-LauncherModel (QAbstractListModel, context property "LauncherModel")
-  |
-LauncherDock.qml (Repeater over LauncherModel, RowLayout, fixed height)
-  |-- onClick: PluginModel.setActivePlugin("org.openauto.android-auto") etc.
-  |-- or: ApplicationController.navigateTo(6) for settings
+### Component Boundaries
 
-HomeMenu.qml ColumnLayout:
-  SwipeView (Layout.fillHeight)
-  PageIndicator
-  LauncherDock (Layout.fillWidth, height: UiMetrics.tileH * 0.5 + UiMetrics.spacing)
-```
+| Component | Responsibility | Status | Communicates With |
+|-----------|---------------|--------|-------------------|
+| **HomeMenu.qml** | Grid rendering, widget delegates, drag/resize overlays, context menu, long-press detection | MODIFY heavily | WidgetGridModel, NavbarController, WidgetPickerModel |
+| **WidgetGridModel (C++)** | Grid state, placement CRUD, collision detection | MODIFY lightly (add `resizeFromEdge`) | HomeMenu (via model roles), NavbarController (via properties) |
+| **NavbarController (C++)** | Gesture dispatch, zone registration, control role mapping, popup management | MODIFY moderately (add selection state, contextual dispatch) | Navbar.qml, HomeMenu.qml (via signals/properties) |
+| **Navbar.qml** | 3-control display with icons/clock, popup sliders, power menu | MODIFY moderately (conditional icons) | NavbarController |
+| **NavbarControl.qml** | Individual control rendering (icon or clock) | MODIFY to support transformed state | NavbarController |
+| **WidgetConfigSheet.qml** | Schema-driven config editor (bottom sheet) | KEEP as-is | WidgetGridModel |
+| **WidgetPickerModel (C++)** | Filter registry by available space | KEEP as-is | BottomSheetPicker |
+| **TouchRouter / EvdevCoordBridge** | Evdev zone dispatch under EVIOCGRAB | NO CHANGE | NavbarController |
+| **ActionRegistry** | Named action dispatch | MINOR (register new actions) | NavbarController |
+| **Shell.qml** | App shell layout | NO CHANGE | -- |
 
----
+### New Components
 
-## Recommended Architecture Changes for v0.6.1
-
-### Change 1: Remove LauncherDock -- Replace with Launcher Widget
-
-**What changes:**
-- DELETE `LauncherDock.qml`
-- DELETE `LauncherModel.hpp/cpp` (C++ class)
-- DELETE `LauncherModel` QML context property from `main.cpp`
-- REMOVE `LauncherDock` from `HomeMenu.qml` ColumnLayout
-- REMOVE `YamlConfig::launcherTiles()` and `setLauncherTiles()` (or keep for YAML migration)
-- CREATE `qml/widgets/LauncherWidget.qml` -- renders plugin launch tiles within a grid cell
-- REGISTER `org.openauto.launcher` as a new `WidgetDescriptor`
-- UPDATE `DisplayInfo::updateGridDimensions()` -- remove `dockPx = 56` deduction
-- UPDATE default layout YAML -- place launcher widget on page 0
-
-**Why this is the right approach:**
-- The dock consumes `~90px` of fixed vertical space on every home page. On 800x480, that is 18.7% of screen height stolen from widgets.
-- Converting it to a widget makes it optional -- users who prefer navbar clock-tap for navigation can remove it.
-- Eliminates `LauncherModel`, a parallel data model that duplicates plugin metadata already in `PluginModel`.
-- Consistent mental model -- everything on the home screen is a widget, no special-case fixed UI.
-
-**LauncherWidget design:**
-
-```
-org.openauto.launcher
-  minCols=2, minRows=1
-  maxCols=6, maxRows=2
-  defaultCols=4, defaultRows=1
-  category="system"
-  userRemovable=true  (user can remove it if they want)
-```
-
-The widget reads `PluginModel` (already a global context property) for available plugins + a settings entry. Renders as adaptive icon row within its cell bounds. Pixel breakpoints determine icon-only vs icon+label layout, similar to existing widget pattern.
-
-**Components deleted:**
-
-| Component | File | Replacement |
-|-----------|------|-------------|
-| `LauncherDock.qml` | `qml/components/LauncherDock.qml` | `LauncherWidget.qml` in grid |
-| `LauncherModel` | `src/ui/LauncherModel.{hpp,cpp}` | Widget reads `PluginModel` directly |
-| `launcherTiles()` | `src/core/YamlConfig.{hpp,cpp}` | Not needed -- widget discovers plugins at runtime |
-
-**Components modified:**
-
-| Component | Change |
-|-----------|--------|
-| `HomeMenu.qml` | Remove `LauncherDock {}` from ColumnLayout. SwipeView + PageIndicator only. |
-| `DisplayInfo.cpp` | Remove `dockPx = 56` from `updateGridDimensions()` |
-| `main.cpp` | Remove `LauncherModel` creation and context property. Add `org.openauto.launcher` registration. |
-| `CMakeLists.txt` | Remove `LauncherModel.cpp` from sources |
-| Default YAML | Add launcher widget placement on page 0 bottom row |
-
-**Components created:**
-
-| Component | File | Purpose |
+| Component | Type | Purpose |
 |-----------|------|---------|
-| `LauncherWidget.qml` | `qml/widgets/LauncherWidget.qml` | Adaptive plugin launch tiles |
+| **BottomSheetPicker.qml** | QML Component | Categorized scrollable widget picker as a proper bottom sheet with drag-to-dismiss. Replaces current `pickerOverlay`. |
+| **ContextMenu.qml** | QML Component | Small popup menu for long-press-empty (Add Widget / Add Page). Positioned at press location. |
 
-**Note:** `LauncherMenu.qml` (full-page launcher grid at `qml/applications/launcher/`) is NOT removed. That is the full launcher view navigated to from the navbar clock, separate from the home screen dock widget.
+### Components NOT Needed
 
----
+| Rejected Component | Rationale |
+|-------------------|-----------|
+| **WidgetInteractionController (C++)** | Selection is a QML presentation concern. Adding C++ adds signal relay overhead for zero benefit. `selectedInstanceId` lives in HomeMenu.qml. NavbarController gets `selectedWidgetId` only for action dispatch context. |
+| **ResizeHandle.qml (extracted)** | Four edge handles are simple enough to inline in the delegate. Extracting to a separate file adds file management overhead for ~20 lines of QML per handle. If they get complex, extract later. |
 
-### Change 2: DPI-Aware Grid Dimensions
+## Integration Analysis
 
-**What changes:**
-- MODIFY `DisplayInfo::updateGridDimensions()` to use DPI-scaled cell targets instead of fixed pixel values
+### 1. Per-Widget Long-Press: Selection Model
 
-**Current algorithm (fixed pixels):**
+**Current:** Long-press any widget OR background -> enters global `editMode`. All widgets show borders, badges, resize handles.
+
+**New:** Long-press a specific widget -> selects THAT widget. Only selected widget shows resize handles.
+
+**Integration point -- HomeMenu.qml:**
+- Replace `property bool editMode` with `property string selectedInstanceId: ""`
+- The `widgetMouseArea` `onPressAndHold` sets `selectedInstanceId = model.instanceId` instead of `editMode = true`
+- Widget delegate conditionally shows selection UI based on `model.instanceId === homeScreen.selectedInstanceId`
+- Drag initiation remains similar but only for the selected widget
+
+**Integration point -- WidgetGridModel.setEditMode():**
+- Still needed to gate dimension remap during drag/resize operations
+- Call `setEditMode(true)` when `selectedInstanceId` becomes non-empty, `setEditMode(false)` when cleared
+- Semantics unchanged -- it prevents remap during manipulation, not "visual edit mode"
+
+**Why QML state, not C++ controller:** The selection state is purely a UI interaction concern. It drives QML visual changes (which widget shows handles, navbar appearance). WidgetGridModel doesn't need to know WHICH widget is selected -- it only needs to know whether any manipulation is happening (editMode). Adding a C++ WidgetInteractionController would add indirection without benefit. HomeMenu already manages drag/resize state in QML properties. `selectedInstanceId` is the same pattern.
+
+### 2. Navbar Control Transformation
+
+**Current:** Navbar always shows volume / clock / brightness. Gestures always dispatch volume/brightness/clock actions.
+
+**New:** When a widget is selected, the driver and passenger controls transform:
+- Driver-side control: Settings gear icon (opens config sheet for selected widget)
+- Passenger-side control: Delete/trash icon (removes selected widget)
+- Center control: Unchanged (clock, tap acts as "done" / deselect)
+
+**Integration point -- NavbarController (C++):**
+
+New properties:
 ```cpp
-const int targetCellW = 150;
-const int targetCellH = 125;
-int newCols = std::clamp(usableW / targetCellW, 3, 8);
-int newRows = std::clamp(usableH / targetCellH, 2, 6);
+Q_PROPERTY(QString selectedWidgetId READ selectedWidgetId WRITE setSelectedWidgetId NOTIFY selectedWidgetChanged)
+Q_PROPERTY(bool widgetInteractionMode READ widgetInteractionMode NOTIFY selectedWidgetChanged)
+Q_PROPERTY(bool selectedWidgetHasConfig READ selectedWidgetHasConfig NOTIFY selectedWidgetChanged)
+Q_PROPERTY(bool selectedWidgetIsSingleton READ selectedWidgetIsSingleton NOTIFY selectedWidgetChanged)
 ```
 
-**Proposed algorithm (DPI-aware):**
+- `widgetInteractionMode` is derived: `return !selectedWidgetId_.isEmpty()`
+- `selectedWidgetHasConfig` looks up the widget in WidgetGridModel/WidgetRegistry (needs registry pointer or model pointer)
+- `selectedWidgetIsSingleton` same lookup -- singletons can't be deleted, so the delete control shows disabled
+
+Action dispatch change in `dispatchAction()`:
 ```cpp
-// Remove dockPx deduction (dock is gone)
-int usableW = windowWidth_ - marginPx;
-int usableH = windowHeight_ - marginPx;
-
-// Reference cell size at 160 DPI (Android mdpi baseline, matching UiMetrics)
-const double refCellW = 150.0;
-const double refCellH = 125.0;
-
-// Scale by DPI ratio -- higher DPI screens get more cells (smaller physical cells)
-// Lower DPI screens get fewer cells (larger physical cells for touch targets)
-double dpiRatio = computedDpi() / 160.0;
-int targetCellW = static_cast<int>(std::round(refCellW * dpiRatio));
-int targetCellH = static_cast<int>(std::round(refCellH * dpiRatio));
-
-// Prevent degenerate values
-targetCellW = std::max(targetCellW, 80);
-targetCellH = std::max(targetCellH, 60);
-
-int newCols = std::clamp(usableW / targetCellW, 3, 8);
-int newRows = std::clamp(usableH / targetCellH, 2, 6);
+if (widgetInteractionMode()) {
+    if (controlIndex == 0) actionId = "widget.settings";
+    else if (controlIndex == 2) actionId = "widget.delete";
+    else if (controlIndex == 1 && gesture == Tap) actionId = "widget.deselect";
+    else return;  // suppress short/long hold during widget mode
+} else {
+    // existing logic unchanged
+}
 ```
 
-**Why DPI-aware:** On a 10" 1920x1080 screen (~203 DPI), the current fixed algorithm gives 6x4 just like a 7" 1024x600 (~170 DPI). But the 10" screen has twice the pixels. DPI-aware sizing gives it 8x5 or similar -- more cells, because the screen is physically larger with more pixels. On a small 800x480 screen (~134 DPI), it produces fewer cells with larger touch targets.
+**Integration point -- Navbar.qml:**
+- `control0Icon` and `control2Icon` conditionally switch:
+  - Driver: `NavbarController.widgetInteractionMode ? "\ue8b8" : volumeIcon` (gear)
+  - Passenger: `NavbarController.widgetInteractionMode ? "\ue872" : brightnessIcon` (delete)
+- Guard: popup sliders should NOT show during widget interaction mode
+- Optional: center clock area shows "Done" text or checkmark hint
 
-**Target hardware verification:**
+**Integration point -- NavbarControl.qml:**
+- Mostly unchanged -- it already shows `iconText` from its parent. The icon switch happens in Navbar.qml's property bindings.
+- One change: suppress hold progress feedback during widget interaction mode (taps are instant actions, not hold-to-reveal)
 
-| Display | Resolution | Size | DPI | Current Grid | Proposed Grid |
-|---------|-----------|------|-----|-------------|---------------|
-| Pi Official | 800x480 | 7" | 134 | 5x3 | 4x3 (larger cells) |
-| DFRobot | 1024x600 | 7" | 170 | 6x3 | 6x4 (gains a row from dock removal) |
-| Generic 10" | 1280x800 | 10.1" | 150 | 8x5 | 7x4 |
-| Full HD 10" | 1920x1080 | 10.1" | 224 | 6x4 (pre-dock) | 8x6 (more cells, DPI-aware) |
+**Integration point -- ActionRegistry:**
+- Register `widget.settings`, `widget.delete`, `widget.deselect` handlers
+- Handlers connect back to HomeMenu (via signals on NavbarController that HomeMenu listens to, or via global function calls)
 
-**Wait -- DPI ratio inversion needed.** Actually, re-examining: if DPI is HIGH, pixels are denser, so MORE pixels are needed per physical cell. The current fixed-pixel approach already produces more columns on wider screens. The DPI scaling should go the OTHER direction -- higher DPI means each cell needs MORE pixels to maintain the same physical size.
+**Data flow for navbar actions:**
+```
+User taps navbar control
+  -> NavbarController.handleRelease() -> gestureTriggered signal
+  -> NavbarController.dispatchAction() checks widgetInteractionMode
+  -> ActionRegistry.dispatch("widget.delete")
+  -> Handler emits NavbarController signal (e.g., widgetDeleteRequested)
+  -> HomeMenu.qml Connections block catches signal
+  -> WidgetGridModel.removeWidget(selectedInstanceId)
+  -> homeScreen.deselectWidget()
+```
 
-Let me reconsider. The actual goal is: cells should be the same **physical size** across displays. A cell should be roughly 25mm wide (touchable). At 160 DPI, 25mm = 157px. At 224 DPI, 25mm = 220px.
+### 3. Four-Edge Resize Handles
 
-**Corrected algorithm:**
+**Current:** Single resize handle at bottom-right corner of every widget in edit mode. Drag changes colSpan/rowSpan.
+
+**New:** Four edge handles (top, bottom, left, right) on the selected widget only. Each handle resizes in one axis, anchored from the opposite edge.
+
+**Integration point -- HomeMenu.qml widget delegate:**
+- Remove the single `resizeHandle` Rectangle+MouseArea
+- Add four handles positioned at each edge of `innerContent`, visible only when `model.instanceId === homeScreen.selectedInstanceId`
+- Each handle constrains drag to one axis:
+  - **Top handle:** Changes row position (moves top edge up/down), adjusts rowSpan inversely
+  - **Bottom handle:** Changes rowSpan (grows/shrinks downward)
+  - **Left handle:** Changes column position + colSpan inversely
+  - **Right handle:** Changes colSpan (grows/shrinks rightward)
+
+**Integration point -- WidgetGridModel (C++):**
+
+New method (recommended over sequential moveWidget + resizeWidget):
 ```cpp
-// Target: ~25mm wide cells, ~22mm tall cells (comfortable touch targets)
-const double targetCellMm_W = 25.0;
-const double targetCellMm_H = 22.0;
-
-double dpi = computedDpi();
-int targetCellW = static_cast<int>(std::round(targetCellMm_W * dpi / 25.4));
-int targetCellH = static_cast<int>(std::round(targetCellMm_H * dpi / 25.4));
-
-// Floor: cells must be at least 80x60 px
-targetCellW = std::max(targetCellW, 80);
-targetCellH = std::max(targetCellH, 60);
-
-int newCols = std::clamp(usableW / targetCellW, 3, 8);
-int newRows = std::clamp(usableH / targetCellH, 2, 6);
+Q_INVOKABLE bool resizeFromEdge(const QString& instanceId,
+                                 const QString& edge, int delta);
 ```
 
-**Re-verification with corrected algorithm:**
+This atomically adjusts position + span for top/left edges, or just span for bottom/right edges. One method, one occupancy rebuild, one promoteToBase. Avoids race condition where intermediate state (after move but before resize) could be invalid.
 
-| Display | Res | Size | DPI | targetCellW | targetCellH | usableW | usableH | Grid |
-|---------|-----|------|-----|------------|------------|---------|---------|------|
-| Pi Official | 800x480 | 7" | 134 | 132 | 116 | 760 | 440 | 5x3 |
-| DFRobot | 1024x600 | 7" | 170 | 167 | 147 | 984 | 560 | 5x3 |
-| Generic 10" | 1280x800 | 10.1" | 150 | 148 | 130 | 1240 | 760 | 8x5 |
-| Full HD 10" | 1920x1080 | 10.1" | 224 | 220 | 194 | 1880 | 1040 | 8x5 |
-
-This is sensible: same physical screen size gives same grid, regardless of resolution. Larger screens get more cells. The DFRobot 7" drops from 6 to 5 columns, which may be too aggressive -- the cells become wider. Could tune target to 22mm wide.
-
-**Recommendation:** Use physical mm targets, tune the exact values empirically on the Pi. The architecture change is: replace fixed pixel targets with `mm * dpi / 25.4` computation. The specific mm values (22-25mm wide) are tunable constants.
-
-**Integration points:**
-- `DisplayInfo.cpp` only -- self-contained change
-- `WidgetGridModel::setGridDimensions()` handles clamping/relayout automatically
-- Existing widgets use pixel breakpoints -- they adapt to whatever cell size they get
-- Unit tests: pass different DPI values, verify grid dimensions
-
----
-
-### Change 3: Formalize Widget Manifest Conventions
-
-**What changes:**
-- EXTEND `WidgetDescriptor` with additional metadata fields for categorization, documentation, and picker grouping
-- DOCUMENT the widget descriptor contract
-
-**New fields on `WidgetDescriptor`:**
-
+Implementation sketch:
 ```cpp
-struct WidgetDescriptor {
-    // --- Existing (unchanged) ---
-    QString id;
-    QString displayName;
-    QString iconName;
-    QUrl qmlComponent;
-    QString pluginId;
-    DashboardContributionKind contributionKind;
-    QVariantMap defaultConfig;
-    int minCols, minRows, maxCols, maxRows, defaultCols, defaultRows;
+bool WidgetGridModel::resizeFromEdge(const QString& instanceId,
+                                      const QString& edge, int delta)
+{
+    int idx = findPlacement(instanceId);
+    if (idx < 0) return false;
+    auto p = livePlacements_[idx];  // copy for validation
 
-    // --- NEW for v0.6.1 ---
-    QString category;            // "system", "media", "connectivity", "info"
-    bool userRemovable = true;   // false = cannot be deleted (e.g., system-critical)
-    QString description;         // one-liner for picker tooltip/subtitle
-};
+    if (edge == "top") {
+        p.row += delta;
+        p.rowSpan -= delta;
+    } else if (edge == "bottom") {
+        p.rowSpan += delta;
+    } else if (edge == "left") {
+        p.col += delta;
+        p.colSpan -= delta;
+    } else if (edge == "right") {
+        p.colSpan += delta;
+    }
+
+    // Validate: bounds, min/max constraints, collision
+    if (!validatePlacement(p, instanceId)) return false;
+
+    livePlacements_[idx] = p;
+    rebuildOccupancy();
+    // Emit appropriate role changes
+    QModelIndex mi = index(idx);
+    emit dataChanged(mi, mi, {ColumnRole, RowRole, ColSpanRole, RowSpanRole});
+    promoteToBase();
+    emit placementsChanged();
+    return true;
+}
 ```
 
-**Why these fields and not others:**
-- `category` -- picker needs to group widgets. 4 categories is enough for the foreseeable widget set.
-- `userRemovable` -- the launcher widget (which replaces the dock) should be removable because users who prefer navbar can ditch it. But this flag exists for future system-critical widgets.
-- `description` -- the picker currently shows icon + name. A one-liner description helps users choose.
-- NOT adding `configSchema` / `isRepositionable` / `tags` / `lifecycle` pointer -- these are future concerns. Keep the struct lean for v0.6.1.
+**Handle visual design:**
+- Thin pill-shaped handle (4px wide, 40% of edge length) centered on each edge
+- Color: `ThemeService.primary` at 70% opacity
+- Touch target: extend MouseArea margins by `UiMetrics.spacing` for fat-finger tolerance
+- Resize ghost (existing `resizeGhost` Rectangle) continues to show during resize drag
 
-**Integration points:**
-- `WidgetTypes.hpp` -- struct change (safe: new fields have defaults)
-- `WidgetGridModel::data()` -- add new roles for `CategoryRole`, `UserRemovableRole`, `DescriptionRole`
-- Widget picker overlay in `HomeMenu.qml` -- minor update to show categories
-- All widget registrations in `main.cpp` -- set category values
-- `WidgetRegistry::widgetsFittingSpace()` -- optionally add category filter overload
+### 4. Bottom-Sheet Widget Picker
 
----
+**Current:** `pickerOverlay` is a simple Item overlay with a fixed-height bottom panel, horizontal ListView.
 
-### Change 4: Widget Lifecycle Signals (QML-Side)
+**New:** Proper bottom sheet with:
+- Drag handle at top (visual)
+- Categorized vertical list (grouped by WidgetDescriptor.category)
+- Widget rows with icon, name, description, size indicator
+- Auto-placement on selection (existing logic from pickerOverlay works)
+- Slide-up animation from bottom
 
-**What changes:**
-- ADD signals to `WidgetHost.qml` for page visibility and resize events
-- Widget QML components can optionally connect to these signals
+**Integration point -- HomeMenu.qml:**
+- Replace `pickerOverlay` Item with `BottomSheetPicker` component
+- Trigger: context menu "Add Widget" action
+- On widget selection: call existing `WidgetGridModel.placeWidget()` with `findFirstAvailableCell()`
 
-**Approach -- QML-only, minimal:**
+**BottomSheetPicker.qml design:**
+- Follow `WidgetConfigSheet.qml` pattern: `Dialog { modal: true; parent: Overlay.overlay }` with enter/exit `NumberAnimation` transitions
+- Vertical `ListView` with section headers by category
+- Each widget row: MaterialIcon + name + description text + size badge ("2x2")
+- Touch to select -> places widget, closes sheet
 
-```qml
-// WidgetHost.qml additions:
-signal widgetActivated()     // page became visible (SwipeView.isCurrentItem)
-signal widgetDeactivated()   // page became hidden
-signal widgetResized()       // cell dimensions changed (after edit mode resize)
+### 5. Long-Press Empty Space Context Menu
+
+**Current:** Long-press empty space -> enters global edit mode. Tap empty -> exits edit mode.
+
+**New:** Long-press empty space -> shows small context menu at press coordinates:
+- "Add Widget" -> opens bottom sheet picker
+- "Add Page" -> calls WidgetGridModel.addPage()
+
+**Integration point -- HomeMenu.qml `pageGridContent` MouseArea:**
+- `onPressAndHold`: position and show `ContextMenu` at `(mouse.x, mouse.y)` instead of setting editMode
+- Context menu: simple Column of buttons in a floating Rectangle with scrim
+- Dismiss on selection or tap-outside
+
+### 6. Auto-Delete Empty Pages
+
+**Current:** Empty page cleanup runs on `exitEditMode()`.
+
+**New:** Runs when `selectedInstanceId` clears (deselect) and when a widget is deleted.
+
+**Integration:** Move cleanup logic from `exitEditMode()` to `function cleanupEmptyPages()` called from deselectWidget() and widget delete handler.
+
+### 7. Removing Global Edit Mode UI
+
+**Components to DELETE from HomeMenu.qml:**
+| Component | What It Is | Replacement |
+|-----------|-----------|-------------|
+| `addPageFab` | FAB for adding pages | Context menu "Add Page" |
+| `fab` | FAB for adding widgets | Context menu "Add Widget" -> bottom sheet |
+| `deletePageFab` | FAB for deleting current page | Auto-cleanup + context menu |
+| `inactivityTimer` | 10s global edit timeout | `selectionTimer` (5-7s per-widget) |
+| `removeBadge` (per widget) | X button badge | Navbar delete control |
+| `configGear` (per widget) | Gear badge | Navbar settings control |
+| Dotted grid lines | Full-page grid overlay | Optional: only around selected widget |
+| Accent border on ALL widgets | Global edit mode indicator | Only on selected widget |
+
+**Components to KEEP:**
+| Component | Why |
+|-----------|-----|
+| `dragOverlay` MouseArea (z:200) | Still needed for drag capture |
+| `dropHighlight` Rectangle | Still needed for drop target preview |
+| `dragPlaceholder` Rectangle | Still needed for original position indicator |
+| `resizeGhost` Rectangle | Still needed for resize preview |
+| `deletePageDialog` | May still need confirmation for pages with widgets |
+
+## Data Flow Changes
+
+### New Flow: Select Widget
+```
+Long-press specific widget
+  -> homeScreen.selectedInstanceId = model.instanceId
+  -> WidgetGridModel.setEditMode(true)  // gates remap
+  -> NavbarController.selectedWidgetId = instanceId
+  -> Navbar transforms controls (gear/delete icons)
+  -> Selected widget shows edge resize handles + selection highlight
+  -> selectionTimer starts (5-7s)
+
+Tap navbar settings (driver side)
+  -> ActionRegistry.dispatch("widget.settings")
+  -> NavbarController emits widgetSettingsRequested(instanceId)
+  -> HomeMenu: configSheet.openConfig(selectedInstanceId, ...)
+  -> selectionTimer pauses while config sheet is open
+
+Tap navbar delete (passenger side)
+  -> ActionRegistry.dispatch("widget.delete")
+  -> NavbarController emits widgetDeleteRequested(instanceId)
+  -> HomeMenu: WidgetGridModel.removeWidget(selectedInstanceId)
+  -> homeScreen.deselectWidget()
+  -> cleanupEmptyPages()
+
+Tap navbar center (clock / "done")
+  -> ActionRegistry.dispatch("widget.deselect")
+  -> NavbarController emits widgetDeselectRequested()
+  -> homeScreen.deselectWidget()
 ```
 
-**How they fire:**
-- `widgetActivated` / `widgetDeactivated`: HomeMenu.qml page Loader `active` property already tracks visibility. When it changes, emit on each WidgetHost in the page.
-- `widgetResized`: After `WidgetGridModel.resizeWidget()` succeeds, the Repeater delegate's `width`/`height` bindings update. WidgetHost emits `widgetResized` on `onWidthChanged` or `onHeightChanged` (debounced to avoid spam during drag).
-
-**Why QML signals (not C++ IWidgetLifecycle):**
-- All current widgets are pure QML. No widget currently needs C++ lifecycle awareness.
-- QML signals are opt-in. Existing widgets that do not connect are unaffected.
-- If a future widget needs C++ lifecycle, `IWidgetLifecycle` can be added then. The QML signals and C++ interface are not mutually exclusive.
-- Keeps v0.6.1 scope tight -- no new C++ interfaces, no WidgetInstanceContext changes.
-
-**Integration points:**
-- `WidgetHost.qml` -- add 3 signal declarations, minor size-change handler
-- `HomeMenu.qml` -- emit activate/deactivate on page visibility changes
-- No C++ changes
-- Document in widget convention guide
-
----
-
-## Component Boundaries (Post v0.6.1)
-
-| Component | Responsibility | Talks To |
-|-----------|---------------|----------|
-| `DisplayInfo` | Window size, DPI, grid dims (DPI-aware, no dock deduction) | `WidgetGridModel` (grid dims), QML `UiMetrics` (DPI/window) |
-| `WidgetRegistry` | Descriptor store with categories | `WidgetGridModel` (lookups), `main.cpp` (registration), `IPlugin` (plugin descriptors) |
-| `WidgetGridModel` | Placement CRUD, occupancy, pages, serialization | `HomeMenu.qml` (model binding), `YamlConfig` (persistence), `WidgetRegistry` (descriptor lookups) |
-| `UiMetrics` | DPI-scaled layout tokens for all QML | All QML components |
-| `WidgetHost` | Glass card + Loader + lifecycle signals | Widget QML (loaded content), `HomeMenu.qml` (long-press, lifecycle) |
-| `HomeMenu.qml` | SwipeView + grid pages + edit mode + overlays (NO dock) | `WidgetGridModel`, `WidgetHost`, picker overlay |
-| `LauncherWidget` (NEW) | Plugin launch tiles in grid cell | `PluginModel`, `ApplicationController` |
-
-## Data Flow (Post v0.6.1)
-
+### New Flow: Empty Space Context Menu
 ```
-DisplayInfo::updateGridDimensions()
-  |-- windowSize + computedDpi -> mm-based targets -> clamp(3..8, 2..6)
-  |-- NO dockPx deduction (dock removed)
-  |-- emits gridDimensionsChanged -> WidgetGridModel.setGridDimensions()
-
-HomeMenu.qml ColumnLayout:
-  SwipeView (fills all available height -- no dock stealing space)
-  PageIndicator
-
-Widget grid cell:
-  WidgetHost.qml wraps each widget
-    |-- Loader { source: qmlComponent }
-    |-- widgetActivated/deactivated signals on page visibility
-    |-- widgetResized signal on cell dimension change
-
-LauncherWidget.qml (within grid like any other widget):
-  Reads PluginModel for available plugins
-  Renders adaptive icon row/grid within cell bounds
-  onClick: PluginModel.setActivePlugin() or ApplicationController.navigateTo()
+Long-press empty grid cell
+  -> Show ContextMenu at (mouse.x, mouse.y)
+  -> "Add Widget" -> open BottomSheetPicker
+  -> "Add Page" -> WidgetGridModel.addPage()
+  -> Tap outside -> dismiss menu
 ```
-
----
 
 ## Patterns to Follow
 
-### Pattern 1: Pixel-Breakpoint Responsive Widgets
-**What:** Widgets use `width >= N` / `height >= N` bindings for content tiers.
-**When:** Every widget. Established pattern across all 4 existing widgets.
-**Example:** ClockWidget: `showDate: width >= 250`, `showDay: height >= 180`
+### Pattern 1: Contextual Navbar Actions (existing pattern)
+**What:** NavbarController already maps control index + gesture to named actions via ActionRegistry. The `dispatchAction()` method resolves `controlRole()` and builds action IDs like `navbar.volume.tap`.
+**When:** Widget interaction mode is a second dimension in the same dispatch logic.
+**Example:**
+```cpp
+void NavbarController::dispatchAction(int controlIndex, int gesture) {
+    if (widgetInteractionMode()) {
+        QString actionId;
+        if (controlIndex == 0) actionId = "widget.settings";
+        else if (controlIndex == 2) actionId = "widget.delete";
+        else if (controlIndex == 1 && gesture == Tap) actionId = "widget.deselect";
+        else return;
+        actionRegistry_->dispatch(actionId);
+    } else {
+        // existing logic
+        QString role = controlRole(controlIndex);
+        QString actionId = QStringLiteral("navbar.%1.%2").arg(role, gestureStr);
+        actionRegistry_->dispatch(actionId);
+    }
+}
+```
 
-### Pattern 2: Widget Registration in main.cpp (Built-In) or initialize() (Plugin)
-**What:** Built-in widgets registered as `WidgetDescriptor` structs. Plugin widgets via `IPlugin::widgetDescriptors()` or `hostContext->widgetRegistry()->registerWidget()`.
-**When:** All widgets. Single point of truth per descriptor.
+### Pattern 2: Popup Region Registration NOT Needed
+**What:** QML popups report interactive regions to NavbarController for evdev zones under EVIOCGRAB.
+**When this applies:** Only during AA mode when EVIOCGRAB is active.
+**Why NOT needed here:** Widget management is a home-screen-only activity. AA is fullscreen and auto-deselects any widget. EVIOCGRAB is NOT engaged when on the homescreen. Standard QML MouseAreas work for the context menu, bottom sheet picker, and resize handles. No new evdev zones needed.
 
-### Pattern 3: WidgetHost as Composition Root
-**What:** Every widget is wrapped by `WidgetHost.qml` (glass card + Loader + interaction + lifecycle).
-**When:** Always. Widgets never render directly in the grid Repeater.
+### Pattern 3: Selection Timeout (adapt inactivity timer)
+**What:** 5-7s timeout deselects the widget. Timer resets on any interaction (drag start, resize drag, config sheet open).
+**Key behavior:** Timer PAUSES while config sheet or picker is visible (check `configSheet.visible || bottomSheetPicker.visible`).
+```qml
+Timer {
+    id: selectionTimer
+    interval: 7000
+    running: homeScreen.selectedInstanceId !== "" && !configSheet.visible && !bottomSheetPicker.visible
+    onTriggered: homeScreen.deselectWidget()
+}
+```
 
-### Pattern 4: Launcher Widget Reads PluginModel
-**What:** The launcher widget derives its tiles from `PluginModel` (already exposed as context property), not from a separate config-backed model.
-**When:** The launcher widget specifically.
-**Why:** Single source of truth for what plugins exist. No YAML duplication.
-
----
+### Pattern 4: Bottom Sheet as Dialog (existing pattern)
+**What:** WidgetConfigSheet.qml uses `Dialog { modal: true; parent: Overlay.overlay }` with `enter`/`exit` NumberAnimation transitions for slide-up behavior.
+**When:** BottomSheetPicker should follow the exact same pattern. Don't invent a new bottom sheet abstraction.
 
 ## Anti-Patterns to Avoid
 
-### Anti-Pattern 1: Parallel Navigation Models
-**What:** Having both `LauncherModel` (config-backed tiles) and `PluginModel` (plugin metadata) to launch the same plugins.
-**Why bad:** Two sources of truth. Adding a plugin requires both registration and launcher config.
-**Instead:** Launcher widget reads `PluginModel` directly. One source of truth.
+### Anti-Pattern 1: Dual Edit Mode + Selection State
+**What:** Keeping `editMode` AND `selectedInstanceId` as separate independent boolean/string state.
+**Why bad:** Two sources of truth for "are we editing?" leads to inconsistent UI states (edit mode on but nothing selected, or widget selected but edit mode off). Every guard condition doubles in complexity.
+**Instead:** `selectedInstanceId` IS the state. `WidgetGridModel.setEditMode()` is a derived gate set mechanically when selection changes -- NOT independent UI state.
 
-### Anti-Pattern 2: Fixed Pixel Deductions in Grid Calculation
-**What:** `dockPx = 56` hardcoded in `updateGridDimensions()`.
-**Why bad:** Couples C++ grid math to specific QML layout. Dock removal requires C++ change.
-**Instead:** After dock removal, only margins are deducted. Margins should be DPI-aware or at least a named constant.
+### Anti-Pattern 2: C++ Controller for Pure UI State
+**What:** Creating a `WidgetInteractionController` C++ class to hold selection state.
+**Why bad:** Selection is a QML presentation concern. WidgetGridModel doesn't need to know which widget is visually selected. Adding C++ adds a signal relay layer and makes it harder to iterate on interaction feel.
+**Instead:** `selectedInstanceId` lives in HomeMenu.qml. NavbarController gets `selectedWidgetId` only because it needs it for action dispatch context (and it's a simple string property set from QML).
 
-### Anti-Pattern 3: Widget QML Importing Global Singletons for Navigation
-**What:** Widgets calling `PluginModel.setActivePlugin()` directly.
-**Current reality:** All widgets do this (AAStatusWidget, LauncherDock). It works because singletons are stable.
-**For v0.6.1:** Acceptable. Document it as the convention. For future third-party plugins, consider a signal-based approach where WidgetHost mediates.
+### Anti-Pattern 3: Mouse Events in Resize Handles During AA
+**What:** Trying to make resize handles work under EVIOCGRAB via evdev zones.
+**Why bad:** Widget manipulation is a home-screen activity. AA is fullscreen. The two never overlap. Adding evdev zones for resize handles adds complexity for zero value.
+**Instead:** Resize handles use standard QML MouseAreas. They're only visible when AA is not active. AA fullscreen auto-deselects (like current AA auto-exits edit mode).
 
-### Anti-Pattern 4: DPI-Unaware Pixel Targets
-**What:** Using `targetCellW = 150` regardless of DPI.
-**Why bad:** A 150px cell is 22mm on a 170 DPI screen but only 17mm on a 224 DPI screen. Touch targets shrink on high-DPI screens -- exactly backward from what you want.
-**Instead:** Define cell targets in physical mm, convert to pixels using DPI.
-
----
+### Anti-Pattern 4: Sequential Move + Resize for Edge Handles
+**What:** QML calling `moveWidget()` then `resizeWidget()` for top/left edge drag.
+**Why bad:** The intermediate state (after move, before resize) may fail collision detection. Two separate model mutations, two occupancy rebuilds, two dataChanged emissions.
+**Instead:** Single `resizeFromEdge()` method validates and applies the combined position+span change atomically.
 
 ## Suggested Build Order
 
-Dependencies flow top-down. Each step is independently testable and leaves the app functional.
+Build order follows dependency chains. Each phase produces a testable intermediate state.
 
-### Step 1: Extend WidgetDescriptor (C++ struct change)
-- **Modify:** `WidgetTypes.hpp` -- add `category`, `userRemovable`, `description`
-- **Modify:** `WidgetGridModel::data()` -- add `CategoryRole`, `UserRemovableRole`, `DescriptionRole`
-- **Modify:** `WidgetGridModel::roleNames()` -- register new role names
-- **Modify:** All registrations in `main.cpp` -- set category on each descriptor
-- **Test:** Unit test for new roles
-- **Risk:** None. New fields have defaults. Existing code compiles unchanged.
-- **Why first:** Everything else needs the enriched descriptor.
+### Phase 1: Selection Model Foundation
+**What:** Replace global `editMode` with `selectedInstanceId`. Remove FABs, badges, global edit UI. Wire selection to WidgetGridModel.setEditMode().
+**Why first:** Everything else depends on the selection state machine.
+**Scope:**
+- HomeMenu.qml: replace `editMode` property with `selectedInstanceId`, add `deselectWidget()` function
+- Remove: `addPageFab`, `fab`, `deletePageFab`, `removeBadge`, `configGear`, `inactivityTimer`, dotted grid lines (all widgets)
+- Add: `selectionTimer`, selected widget gets accent border + slight scale bump
+- Long-press widget -> select it. Tap empty -> deselect. Timeout -> deselect.
+- WidgetGridModel: `setEditMode(true)` when selected, `setEditMode(false)` when deselected
+- AA fullscreen auto-deselect (replaces auto-exit edit mode)
+- Drag still works: select -> long-press again initiates drag (current pattern)
+**Testable:** Long-press a widget, it highlights. Tap away, it unhighlights. Drag works for selected widget. No FABs, no badges.
 
-### Step 2: DPI-Aware Grid Dimensions (C++ only)
-- **Modify:** `DisplayInfo::updateGridDimensions()` -- mm-based cell targets using `computedDpi()`
-- **Modify:** Remove `dockPx = 56` deduction (anticipating Step 5)
-- **Test:** Unit tests with different window sizes and DPI values
-- **Risk:** LOW. Clamping bounds (3..8 cols, 2..6 rows) prevent extremes. May need empirical tuning on Pi.
-- **Why second:** Pure C++ change, no QML dependency. Must come before dock removal so grid rows increase to absorb the reclaimed space.
+### Phase 2: Navbar Transformation
+**What:** NavbarController gains selection awareness and contextual action dispatch. Navbar.qml switches icons.
+**Why second:** With selection working, navbar can react to it.
+**Scope:**
+- NavbarController.hpp/cpp: add `selectedWidgetId`, `widgetInteractionMode`, `selectedWidgetHasConfig`, `selectedWidgetIsSingleton` properties
+- NavbarController: add `widgetSettingsRequested`, `widgetDeleteRequested`, `widgetDeselectRequested` signals
+- NavbarController::dispatchAction(): branch on widgetInteractionMode
+- ActionRegistry: register `widget.settings`, `widget.delete`, `widget.deselect` handlers that emit the signals
+- Navbar.qml: conditional icons (gear/delete vs volume/brightness)
+- NavbarControl.qml: suppress hold progress during widget interaction mode
+- HomeMenu.qml: Connections block on NavbarController for widget actions
+- Guard popup sliders: don't show during widget interaction mode
+**Testable:** Select widget -> navbar shows gear and trash. Tap trash -> widget removed, navbar reverts. Tap gear -> config sheet opens. Tap clock -> deselects.
 
-### Step 3: Create LauncherWidget (QML + registration)
-- **Create:** `qml/widgets/LauncherWidget.qml`
-- **Modify:** `main.cpp` -- register `org.openauto.launcher` descriptor with category="system"
-- **Modify:** Default layout YAML -- place launcher widget on page 0
-- **Test:** Visual verification on dev VM with `--geometry`. Plugin launch works.
-- **Risk:** LOW. New widget, no existing code changed.
-- **Why third:** Must exist before dock can be removed.
+### Phase 3: Edge Resize Handles
+**What:** Replace single bottom-right resize handle with four edge handles on selected widget.
+**Why third:** Independent of navbar transformation. Needs selection model from Phase 1.
+**Scope:**
+- WidgetGridModel: add `resizeFromEdge(instanceId, edge, delta)` method
+- HomeMenu.qml: remove old single `resizeHandle`, add four edge handles on selected widget delegate
+- Each handle: axis-constrained drag, ghost preview, snap-to-grid, min/max enforcement
+- Top/left handles call `resizeFromEdge()`. Bottom/right call existing `resizeWidget()`.
+- Unit test for `resizeFromEdge()`
+**Testable:** Select widget -> four edge handles appear. Drag right edge -> widget grows right. Drag top edge -> widget grows upward.
 
-### Step 4: Remove LauncherDock (QML + C++ cleanup)
-- **Delete:** `LauncherDock.qml`
-- **Delete:** `LauncherModel.hpp/cpp`
-- **Modify:** `HomeMenu.qml` -- remove `LauncherDock {}` from ColumnLayout
-- **Modify:** `main.cpp` -- remove LauncherModel creation and QML context property
-- **Modify:** `CMakeLists.txt` -- remove LauncherModel sources
-- **Modify:** `YamlConfig` -- deprecate/remove `launcherTiles()`
-- **Test:** Build succeeds. Home screen has no dock. LauncherWidget works.
-- **Risk:** MEDIUM. Users with existing configs lose the dock. Migration: if no launcher widget in saved placements, auto-add one at boot.
-- **Why fourth:** Dock replacement (Step 3) must be in place.
+### Phase 4: Bottom-Sheet Widget Picker
+**What:** Replace `pickerOverlay` with categorized bottom-sheet picker.
+**Why fourth:** Independent of resize. Needs triggering mechanism.
+**Scope:**
+- New `BottomSheetPicker.qml` following WidgetConfigSheet pattern
+- Vertical ListView with section headers by category
+- Widget rows: icon + name + description + size badge
+- On selection: existing `placeWidget()` + `findFirstAvailableCell()` logic
+- Remove old `pickerOverlay` from HomeMenu.qml
+**Testable:** Open picker -> slides up. Browse categories. Tap widget -> placed on grid, picker closes.
 
-### Step 5: Widget Lifecycle Signals (QML only)
-- **Modify:** `WidgetHost.qml` -- add 3 signals
-- **Modify:** `HomeMenu.qml` -- emit activate/deactivate on page visibility, resize on cell change
-- **Test:** Add `console.log` connections in ClockWidget, verify signals fire
-- **Risk:** None. Purely additive. Existing widgets unaffected.
-- **Why fifth:** Independent of Steps 1-4 but completes the framework.
+### Phase 5: Context Menu + Page Auto-Management
+**What:** Long-press empty space shows context menu. Auto-delete empty pages.
+**Why last:** Least critical path. Depends on picker (Phase 4).
+**Scope:**
+- Inline `ContextMenu` in HomeMenu.qml: small floating Rectangle at press coords
+- "Add Widget" -> opens BottomSheetPicker. "Add Page" -> WidgetGridModel.addPage()
+- `cleanupEmptyPages()` called on deselect and widget delete
+- `deletePageDialog` retained for explicit page deletion with widgets
+- HomeMenu.qml `pageGridContent` MouseArea: `onPressAndHold` shows context menu
+**Testable:** Long-press empty cell -> menu appears. "Add Widget" -> picker. "Add Page" -> new page. Delete last widget -> page auto-removed on deselect.
 
-### Step 6: Documentation
-- **Create:** Plugin/widget convention document covering:
-  - WidgetDescriptor field contract (all fields, meaning, defaults)
-  - Size constraints and pixel-breakpoint conventions
-  - Lifecycle signal usage
-  - Navigation patterns
-  - Category taxonomy
-- **Why last:** Documents final state.
+## Scalability Considerations
 
----
-
-## Migration Concern: Existing User Configs
-
-When the dock is removed, users with existing `launcher.tiles` YAML config and no launcher widget placement will lose their quick-launch buttons. Two mitigation options:
-
-**Option A (recommended): Auto-inject at boot.** In `main.cpp`, after loading placements from YAML, check if any placement has `widgetId == "org.openauto.launcher"`. If not, and this is an upgrade from a pre-v0.6.1 config, auto-place the launcher widget on page 0 in the first available space. This is a one-time migration.
-
-**Option B: Config schema version bump.** YAML schema v4 with a migration path from v3 that adds the launcher widget placement. Heavier machinery for a simple one-time change.
-
-Option A is simpler and sufficient for a solo-maintainer project.
-
----
+| Concern | Current | After v0.6.6 |
+|---------|---------|--------------|
+| Widget count per page | ~10-15 typical, occupancy O(cols*rows) | Unchanged -- selection doesn't change data model |
+| Touch responsiveness | Direct evdev in AA, QML on homescreen | Unchanged -- no new evdev zones for homescreen interactions |
+| Navbar state transitions | Static 3 controls | +1 string property binding -- negligible |
+| Memory | Widget QML instances per visible page | Unchanged -- no new per-widget allocations |
+| Page management | Manual via FABs | Auto-cleanup reduces dead pages -- slight improvement |
 
 ## Sources
 
-All findings from direct codebase analysis on `dev/0.6` branch:
-- `src/core/widget/WidgetTypes.hpp` -- WidgetDescriptor, GridPlacement, DashboardContributionKind
-- `src/core/widget/WidgetRegistry.{hpp,cpp}` -- descriptor store and filtering
-- `src/ui/WidgetGridModel.{hpp,cpp}` -- grid model, occupancy, page management
-- `src/ui/DisplayInfo.{hpp,cpp}` -- DPI computation, grid dimension derivation
-- `src/ui/LauncherModel.{hpp,cpp}` -- launcher tile model (to be removed)
-- `qml/controls/UiMetrics.qml` -- DPI scaling, layout tokens, reference DPI 160
-- `qml/applications/home/HomeMenu.qml` -- home screen layout with SwipeView + dock
-- `qml/components/LauncherDock.qml` -- current dock implementation
-- `qml/components/WidgetHost.qml` -- widget wrapper
-- `qml/widgets/ClockWidget.qml`, `AAStatusWidget.qml` -- pixel-breakpoint pattern examples
-- `src/core/plugin/IPlugin.hpp` -- plugin interface, widgetDescriptors()
-- `src/main.cpp` -- widget registration, model wiring, DisplayInfo connections
-- `.planning/PROJECT.md` -- v0.6.1 milestone definition and constraints
+- Existing codebase analysis:
+  - `qml/applications/home/HomeMenu.qml` -- current edit mode, drag, resize, FABs, picker overlay
+  - `src/ui/WidgetGridModel.hpp/cpp` -- grid model, CRUD, occupancy, page management, editMode gate
+  - `src/ui/NavbarController.hpp/cpp` -- gesture dispatch, zone registration, popup management, action dispatch
+  - `qml/components/Navbar.qml` -- control layout, icon bindings, popup management, zone registration
+  - `qml/components/NavbarControl.qml` -- individual control rendering, hold progress
+  - `qml/components/NavbarPopup.qml` -- popup slider pattern, evdev zone reporting
+  - `qml/components/WidgetConfigSheet.qml` -- bottom sheet Dialog pattern (model for picker)
+  - `qml/components/Shell.qml` -- app shell structure
+  - `src/core/aa/TouchRouter.hpp` -- zone-based touch dispatch
+  - `src/core/aa/EvdevCoordBridge.hpp` -- pixel-to-evdev coordinate bridge
+  - `src/core/services/ActionRegistry.hpp` -- named action dispatch
+  - `src/ui/WidgetPickerModel.hpp` -- picker model (unchanged)
+- `.planning/PROJECT.md` -- v0.6.6 milestone specification
+- `CLAUDE.md` -- architectural context, gotchas, touch routing constraints

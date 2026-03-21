@@ -1,213 +1,214 @@
 # Domain Pitfalls
 
-**Domain:** Widget framework refinement, launcher dock removal, DPI grid layout in Qt 6.8 QML car head unit
-**Researched:** 2026-03-14
-**Confidence:** HIGH (codebase analysis of current widget/grid/launcher implementation + known Qt/QML behaviors + project-specific gotchas)
+**Domain:** Per-widget interactions, navbar control swapping, edge resize handles, bottom sheet overlays in Qt/QML widget grid
+**Researched:** 2026-03-21
+**Milestone:** v0.6.6 — Replacing global edit mode with Android-style per-widget long-press interactions
+**Confidence:** HIGH (codebase analysis of current touch routing, gesture handling, navbar zone system, widget grid + known project gotchas)
 
 ---
 
 ## Critical Pitfalls
 
-Mistakes that cause broken navigation, invisible widgets, or forced rewrites.
+Mistakes that cause broken interaction, touch routing failures, or forced rewrites.
 
-### Pitfall 1: Removing LauncherDock before replacement navigation paths exist
+### Pitfall 1: Long-Press-to-Select Transition Breaks Widget Content Interactivity
 
-**What goes wrong:** `LauncherDock` is currently the only way to reach AA, BT Audio, Phone, and Settings from the home screen. The navbar provides volume/clock-home/brightness only -- no plugin activation. Removing the dock without equivalent entry points strands users with no way to open Settings or start AA.
+**What goes wrong:** The current system uses `widgetMouseArea` at `z: -1` behind widget content (normal mode) and `z: 10` above content (edit mode). The v0.6.6 model needs a per-widget "selected" state WITHOUT a global edit mode toggle. If the long-press MouseArea stays behind content, interactive widgets (Now Playing play/pause, AA Focus toggle, launcher tiles) consume the press and `pressAndHold` never fires on the host. If it sits above content, widget taps die completely.
 
-**Why it happens:** The dock looks like redundant UI clutter once widgets exist, so it gets removed early. But the widgets that could replace its navigation functions (a "launch AA" tap on AAStatusWidget, a settings shortcut widget, launcher tile widgets) don't fully cover all destinations.
+**Why it happens:** The current binary edit/non-edit toggle flips z-order globally. Per-widget selection requires disambiguation PER WIDGET PER GESTURE: the same press could be a widget tap, widget long-press (select), or content interaction. QML MouseArea has no built-in "pass through tap but catch long-press" behavior.
 
-**Consequences:** Users stuck on home screen. Settings unreachable without SSH. Literally bricked UI for non-technical users on a car-mounted Pi.
-
-**Prevention:**
-- Audit every `LauncherModel` tile action (`plugin:org.openauto.android-auto`, `plugin:org.openauto.bt-audio`, `plugin:org.openauto.phone`, `navigate:settings`) and verify each has a non-dock entry point before removal.
-- Current coverage: AAStatusWidget tap covers AA. Nothing covers Settings, BT Audio, or Phone.
-- Ship a "launcher tile" widget type that can be configured as a shortcut to any plugin/view. Place default launcher tiles on the grid to replace dock functions.
-- Alternative: add a navbar gesture (e.g., long-press clock) that opens Settings. But this is undiscoverable.
-- QA gate: "Can I reach every view in the app without SSH?" must pass before dock removal merges.
-
-**Detection:** Manual test on Pi: navigate to every plugin and Settings starting from a fresh boot. If any destination requires SSH or YAML editing, the dock was removed too early.
-
-**Phase:** Launcher tile widget must ship BEFORE dock removal. Do not combine in the same commit.
-
----
-
-### Pitfall 2: Grid dimension constant changes silently break saved widget layouts
-
-**What goes wrong:** `DisplayInfo::updateGridDimensions()` computes grid cols/rows from hardcoded pixel constants (`targetCellW = 150`, `targetCellH = 125`). Refining these constants changes the grid dimensions for the same display resolution. Saved `GridPlacement` entries with `col + colSpan > newCols` or `row + rowSpan > newRows` become invalid. Widgets either disappear (the `visible = false` clamping path) or overlap.
-
-**Why it happens:** YAML schema v3 stores absolute grid coordinates. There is no migration path when the grid itself changes dimensions. The code handles the "widget too big for new grid" case via the `visible` flag, but the user experience is "my widgets vanished after an update."
-
-**Consequences:** Users update the app, their home screen layout is gone. On a car head unit, this triggers a dangerous "what happened to my stuff" reaction at the wheel.
+**Consequences:** Either widgets stop responding to taps (z above content), or long-press never fires on interactive widgets (z below content). Both are shipping regressions from current behavior.
 
 **Prevention:**
-- Add a `grid_version` or `grid_dimensions` field to the YAML layout section. On load, compare stored dimensions to current dimensions. If they differ, run a migration pass.
-- Migration pass: for each placement, clamp `col` and `row` to fit. If `colSpan > newCols`, reduce span. If widget still can't fit (min constraints violated), mark `visible = false` and emit a notification.
-- Test matrix: save layout on 1024x600 (6x3), load on 800x480 (3x2). Verify widgets are relocated, not lost.
-- Consider storing layouts as proportional positions (fraction of grid) rather than absolute cell indices. This makes resolution changes a smooth remapping rather than a hard break. Tradeoff: snapping to cells after remap needs extra logic.
+- Use the existing `requestContextMenu()` pattern already established in the codebase: interactive widgets call `widgetLoader.requestContextMenu()` from their own `onPressAndHold`. Non-interactive widgets fall through to the background MouseArea at `z: -1`. This pattern is proven and works today.
+- The long-press transitions the individual delegate to "selected" state (visual lift, scale, border) rather than toggling a global boolean. This is per-delegate state.
+- Critical: `pressAndHoldInterval` must be identical (500ms) in both the background MouseArea and any widget-internal MouseArea to avoid timing surprises.
+- For future-proofing against third-party widgets that miss the pattern: consider the `SettingsInputBoundary` approach (C++ `childMouseEventFilter`) already proven in this project for detecting long-press across a widget subtree without stealing child events.
 
-**Detection:** Widget count on home screen decreases after app update with no user action. `grep "visible: false"` in saved YAML shows widgets the user didn't hide.
+**Detection:** After the change, tap Now Playing play/pause, tap AA Focus toggle, tap launcher tile. All must still respond. Then long-press each -- must select.
 
-**Phase:** Address BEFORE any changes to `targetCellW`/`targetCellH` constants.
+### Pitfall 2: Navbar Zone Registration Races with Visual Control Swap
 
----
+**What goes wrong:** The plan transforms navbar controls from volume/clock/brightness to settings/delete when a widget is selected. The C++ `NavbarController` registers evdev touch zones via `registerZones()` based on control geometry. Zone callbacks reference the current control role ("volume") at REGISTRATION time, not dispatch time. If the visual QML swap happens asynchronously from zone re-registration, touches land on stale zone callbacks -- tapping "delete" adjusts volume instead.
 
-### Pitfall 3: Widget size constraint enforcement diverges between C++ model and QML drag logic
+**Why it happens:** Zone registration is triggered by `Qt.callLater(registerZones)` connected to geometry change signals (`onXChanged`, `onWidthChanged`). QML property animations cause multiple intermediate geometry updates. The zone callback closures capture the role at bind time.
 
-**What goes wrong:** `WidgetDescriptor` has `minCols/maxCols/minRows/maxRows` enforced by `WidgetGridModel::resizeWidget()` in C++. The QML drag-to-resize overlay in `HomeMenu.qml` does its own clamping math for the ghost rectangle preview. These are two independent implementations of the same constraint logic. When they diverge, the ghost rectangle shows a valid resize but the model rejects it (or vice versa).
-
-**Why it happens:** The QML drag code reads constraints from model roles (`MinColsRole`, etc.) but does its own `Math.max/Math.min` clamping. The C++ model also clamps. During refactoring, only one side gets updated.
-
-**Consequences:** Resize preview ghost shows 1x1 but widget snaps to 2x1 after release. Or ghost shows 4x4 but nothing happens because model rejects it. User perceives drag-resize as buggy and unreliable.
+**Consequences:** Tapping "delete widget" adjusts volume. Tapping "settings" adjusts brightness. Race condition manifests intermittently depending on animation timing and touch speed. On Pi with EVIOCGRAB active, the evdev zones are the ONLY touch path -- this is not a cosmetic issue.
 
 **Prevention:**
-- Add a `Q_INVOKABLE QVariantMap clampedSize(const QString& instanceId, int proposedCols, int proposedRows)` to `WidgetGridModel`. QML calls this during drag to get the actual allowed size, rather than duplicating the constraint logic.
-- QML ghost rectangle uses the clamped result directly. No independent min/max logic in QML.
-- Unit test: attempt `resizeWidget()` below min and above max for each widget type. Verify both rejection and the clamped values.
+- Swap control roles BEFORE any animation, not during. Use a `NavbarController.mode` property (`"normal"` vs `"widgetEdit"`) that switches the action dispatch table atomically. The visual animation is cosmetic; the logical role swap must be instant.
+- Unregister ALL navbar zones during the swap transition and re-register only after new roles are committed. A 200ms gap where navbar touch does nothing is better than wrong actions firing.
+- The existing zone system uses string IDs (`"navbar-ctrl-0"`, etc.) -- the callbacks should check current mode at dispatch time rather than capturing the role at registration time.
+- Test by triggering rapid select/deselect cycles and tapping navbar controls at each transition.
 
-**Detection:** Ghost rectangle and final widget size disagree. Resize appears to "snap" unexpectedly after release.
+**Detection:** Tap the "delete" control area immediately after widget selection triggers the navbar swap. If volume changes instead, the zone registration raced.
 
-**Phase:** Address during widget framework convention formalization (size constraints).
+### Pitfall 3: SwipeView Page Swipe Conflicts with Widget Drag Gesture
 
----
+**What goes wrong:** Currently `SwipeView.interactive = !homeScreen.editMode` prevents page swiping during edit. Without global edit mode, there is no binary flag. If SwipeView remains interactive, horizontal widget drags near page boundaries trigger page swipes instead of widget movement. If SwipeView is disabled whenever any widget is selected, the user cannot swipe to see other pages.
 
-### Pitfall 4: Sub-pixel cell dimensions cause visible rendering artifacts
+**Why it happens:** SwipeView's internal Flickable consumes horizontal drag gestures at its own level. QML gesture disambiguation gives priority to the outer container (SwipeView) over inner MouseAreas unless `preventStealing: true` is set. But blanket `preventStealing` on the drag overlay prevents SwipeView from EVER swiping.
 
-**What goes wrong:** `cellWidth = pageView.width / WidgetGridModel.gridColumns` produces fractional pixel values. Example: 984px usable width / 6 cols = 164.0px (clean), but with navbar left edge eating 50px: 934 / 6 = 155.67px. On the Pi's non-HiDPI 1024x600 display, fractional positioning produces visible 1px gaps between adjacent widget glass cards, blurry card borders, and inconsistent spacing.
-
-**Why it happens:** QML positions items at floating-point coordinates. On HiDPI displays this is fine (subpixel rendering is invisible). On 1024x600 at native DPI, every fractional pixel is visible.
-
-**Consequences:** Hairline gaps or double-thick borders between adjacent widgets. Users perceive it as unpolished. The effect varies with navbar position (each edge position changes usable area and produces different remainders).
+**Consequences:** Widget drag near edges causes accidental page changes, or pages become non-swipeable during any widget interaction.
 
 **Prevention:**
-- Use `Math.floor()` for cell dimensions. Distribute remainder pixels as extra padding on the grid container edges (visually invisible).
-- Alternative: round cell dimensions and add a single-pixel padding to the outer grid margins.
-- Test with navbar in all 4 edge positions at 1024x600. Each position produces a different usable area and different remainder.
-- Consider adding a `cellPadding` constant (2-4px) that absorbs rounding error while providing intentional spacing between widgets.
+- Disable SwipeView interactive only when `draggingInstanceId !== ""` (active drag in progress), not on selection alone. The binding becomes: `interactive: homeScreen.draggingInstanceId === ""`.
+- Keep `preventStealing: true` ONLY on the drag overlay MouseArea (already present in current code). Only enable the drag overlay when actual dragging begins (finger moved past threshold after long-press).
+- The state transitions must be: `Idle -> Selected (SwipeView enabled) -> Dragging (SwipeView disabled) -> Drop (SwipeView re-enabled)`.
 
-**Detection:** Zoom in on widget boundaries on Pi. Look for inconsistent gap widths between adjacent widgets. Compare left-edge vs right-edge widgets.
+**Detection:** Long-press widget to select, try to swipe to next page. Should work. Start dragging widget horizontally -- page should NOT swipe.
 
-**Phase:** Address during DPI-based grid layout refinement.
+### Pitfall 4: Drag Overlay at z:200 Can Steal Touch from Navbar During Widget Drag
 
----
+**What goes wrong:** The current `dragOverlay` MouseArea sits at `z: 200` with `anchors.fill: parent` covering the entire HomeMenu. The navbar sits at `z: 100` in Shell. Because these are in different parent contexts (HomeMenu inside `pluginContentHost`, navbar in Shell), QML z-ordering is scoped per-parent and should not conflict. BUT: if the overlay is accidentally reparented to Shell for "full coverage" during refactoring, it eats navbar touches.
 
-### Pitfall 5: Interactive widget MouseAreas prevent edit mode entry
+**Why it happens:** During the refactor, the temptation to parent overlays at the shell level (for "clicking outside the content area dismisses selection") creates z-order conflicts with the navbar. The navbar's z:100 is lower than a shell-level overlay at z:200.
 
-**What goes wrong:** Widgets with interactive controls (NowPlayingWidget play/pause/skip, AAStatusWidget tap-to-connect, NavigationWidget tap-to-open-AA) have MouseAreas that consume press events. The WidgetHost's long-press detector sits at `z: -1`, behind widget content. For interactive widgets, the only way to enter edit mode is for each widget to independently implement `onPressAndHold → parent.requestContextMenu()`. Third-party plugin widgets will miss this pattern.
-
-**Why it happens:** The current design relies on convention: each interactive widget must manually forward long-press to the WidgetHost. There is no framework enforcement. Existing widgets do it correctly (hard-won knowledge from v0.5.2), but the pattern is invisible to new widget developers.
-
-**Consequences:** User long-presses on a third-party widget: nothing happens. Edit mode appears broken. Only workaround is finding a different widget or empty space to long-press.
+**Consequences:** User cannot adjust volume or brightness while dragging a widget. On Pi with EVIOCGRAB active, evdev zones bypass QML entirely so this only matters on the home screen -- but that is exactly when widget drag happens.
 
 **Prevention:**
-- Move long-press detection to the framework level. Use `childMouseEventFilter` in WidgetHost (the C++ approach already proven with TapHandler overlays) to intercept long-press regardless of widget internals.
-- If keeping the QML-only approach: make `requestContextMenu()` part of a required widget base component (e.g., `WidgetBase.qml` that all widgets must extend) rather than a convention.
-- Document prominently in widget developer docs: "ALL widgets with MouseAreas MUST forward `pressAndHold` via `parent.requestContextMenu()`."
-- Provide a reference widget template that demonstrates the pattern.
+- Keep the drag overlay strictly inside HomeMenu / `pluginContentHost`. Never parent it to Shell.
+- For "tap outside widget to deselect" behavior, use a HomeMenu-level background MouseArea (the existing page background MouseArea already does `onClicked → exitEditMode`). Adapt this to clear selection instead.
+- The "selected widget" state should NOT deploy a full-screen overlay at all. Only activate the drag overlay when actual finger movement begins.
 
-**Detection:** Long-press on widget does nothing. Only discoverable through manual testing of each widget type.
+**Detection:** During widget drag, try tapping a navbar control (volume/brightness). Must still respond.
 
-**Phase:** Address during plugin-widget contract documentation. Framework-level fix preferred over documentation-only.
+### Pitfall 5: Edge Resize Handles Unusable at Automotive Touch Targets
+
+**What goes wrong:** The current single bottom-right resize handle is `UiMetrics.touchMin * 0.5` (~24px visual) with expanded touch margins. Moving to 4-edge resize handles creates narrow strips (~8-12px) along widget borders that are nearly impossible to hit with a finger in a moving car. Corners where two edge handles meet create ambiguous hit zones.
+
+**Why it happens:** Edge handles look obvious in mockups and on desktop. At 7" 1024x600 with finger-based input and vehicle vibration, the touch target is physically smaller than a fingertip (~7mm at this DPI). The existing corner handle with negative margins is already at the minimum usable size.
+
+**Consequences:** Users cannot resize widgets. They accidentally drag instead of resize. Corner ambiguity means resizing from a corner changes both axes unpredictably.
+
+**Prevention:**
+- **Keep the single bottom-right resize handle.** It works, is discoverable, and allows both single-axis and dual-axis resize from one control. Four edge handles add complexity without proportional value on a 7" touchscreen.
+- If 4-edge handles are required: make them INVISIBLE with large touch margins (`anchors.margins: -UiMetrics.touchMin * 0.5` = ~24px extension). Show them only after widget selection. Corners resize both axes; edges resize one axis only.
+- Minimum effective touch target: `UiMetrics.touchMin` (48dp equivalent). Anything smaller will fail in-car use.
+- Use `preventStealing: true` on resize handle MouseAreas (already done in current code) to prevent the drag overlay from claiming the resize gesture.
+
+**Detection:** On Pi touchscreen, try to resize a 1x1 widget by its edge handle. If it takes more than 2 attempts, the touch target is too small.
 
 ---
 
 ## Moderate Pitfalls
 
-### Pitfall 6: Hardcoded pixel breakpoints in widget QML don't scale with DPI
+### Pitfall 6: Selected Widget State Persists Across Page Swipes
 
-**What goes wrong:** Existing widgets use raw pixel breakpoints: `width >= 250` (ClockWidget, AAStatusWidget), `width >= 400` (NowPlayingWidget, NavigationWidget), `height >= 180`. These were tuned for 1024x600 at 7". On a higher-DPI display at the same physical size (more pixels, same inches), breakpoints fire at physically smaller widget sizes, showing the "full" layout crammed into space that is visually identical to the "compact" layout on the original display.
+**What goes wrong:** User long-presses a widget on page 0 to select it (visual lift, border, navbar transforms to settings/delete). User swipes to page 1. The selected widget is off-screen but selection state persists -- navbar still shows settings/delete, and tapping delete would remove a widget the user cannot see.
 
-**Why it happens:** The project invested heavily in `UiMetrics` for font/spacing/icon scaling, but widget-internal layout breakpoints bypass it. Each widget author picks a pixel value that looks right on their test display.
+**Why it happens:** Selection state is stored as a homeScreen-level property (`selectedInstanceId`) which is page-independent. The visual feedback (border, scale) is on the delegate which becomes invisible off-screen, but the logical state and navbar transformation remain.
 
-**Prevention:**
-- Define a convention: widget breakpoints use grid span thresholds (colSpan >= 2, rowSpan >= 2) rather than pixel widths. The widget can read its span from `WidgetGridModel` role data.
-- Alternative: express breakpoints as `width >= UiMetrics.tileW * 1.5` so they scale with the DPI-derived tile dimensions.
-- Document the convention with before/after examples showing why raw pixels break.
-- Refactor existing 4 widgets to use span-based breakpoints as the reference implementation.
-
-**Detection:** Widget layout looks wrong on a display with different DPI than 1024x600 at 7". Specifically: "full" layout appears at physically small sizes.
-
-**Phase:** Address during DPI-based grid layout refinement. Refactor existing widgets as proof of the convention.
-
-### Pitfall 7: Widget lifecycle -- no deactivation signal when page scrolls off-screen
-
-**What goes wrong:** Widgets with running timers (ClockWidget 1s Timer) or active D-Bus signal connections continue running when their SwipeView page is not visible. Multiple copies of the same widget across pages all run simultaneously.
-
-**Why it happens:** `WidgetInstanceContext` has no `active` property tied to page visibility. SwipeView may keep off-screen pages instantiated (depending on `cacheItemCount`), so widget Items exist but aren't visible.
+**Consequences:** User deletes a widget they did not intend to delete. Navbar shows wrong controls for the current context.
 
 **Prevention:**
-- Add an `active` property to `WidgetInstanceContext` that tracks `activePage === placement.page`.
-- Document the convention: widget timers should bind `running: widgetContext.active`.
-- For a clock timer this is negligible. For widgets doing network polling or D-Bus subscriptions, it prevents unnecessary resource use.
+- Clear widget selection when `pageView.currentIndex` changes. Add a `Connections` watching `pageView.onCurrentIndexChanged` that calls deselect.
+- Alternatively, disable page swiping while a widget is selected. This matches Android launcher behavior where widget selection locks the current page.
+- Show the selected widget's name in the navbar center (replacing the clock) as visual confirmation of what is selected.
 
-**Detection:** CPU usage scales linearly with page count. D-Bus traffic from off-screen widgets.
+**Detection:** Select widget on page 0, swipe to page 1, tap delete. Should either do nothing or auto-deselect on swipe.
 
-### Pitfall 8: LauncherModel config remains as dead YAML after dock removal
+### Pitfall 7: Long-Press Empty Space Fails Due to SwipeView Gesture Stealing
 
-**What goes wrong:** `LauncherModel` reads `launcher.tiles` from YAML config. Removing the `LauncherDock` component doesn't remove the config section. Users editing YAML manually see a `launcher` block that does nothing, or worse, assume it still controls something.
+**What goes wrong:** Long-pressing empty grid space should show an "Add Widget / Add Page" context menu. But SwipeView treats the initial press as a potential swipe start. If the finger moves even ~8px during the 500ms hold interval (trivial with vehicle vibration), SwipeView begins its drag gesture and cancels the MouseArea's `pressAndHold`.
 
-**Prevention:**
-- Add a config migration step: if launcher tiles exist AND new launcher-tile-widgets are available, auto-migrate dock entries into widget placements on the grid.
-- Mark the `launcher` config section as deprecated in comments, or remove it with a logged migration message.
-- Update `docs/development.md` and any config reference to reflect the change.
+**Why it happens:** SwipeView's Flickable has a low drag threshold (~8px). Any movement beyond this converts the gesture to a flick, and the background MouseArea receives `onCanceled`, not `onPressAndHold`.
 
-**Detection:** Users report config settings that "don't do anything."
-
-### Pitfall 9: WidgetPicker doesn't explain why some widgets are missing
-
-**What goes wrong:** `WidgetRegistry::widgetsFittingSpace()` filters out widgets whose `minCols > availCols` or `minRows > availRows`. On 800x480 (3x2 grid), widgets with `minCols = 4` silently disappear from the picker. User doesn't know they exist.
+**Consequences:** Long-press on empty space rarely triggers on a touchscreen in a car. The "Add Widget" entry point becomes unreliable.
 
 **Prevention:**
-- Show filtered-out widgets in the picker as disabled/greyed with a size requirement note ("Needs 4x2 or larger").
-- Alternative: show all widgets but disable the "Add" action with a tooltip explaining the constraint.
+- Use `preventStealing: true` on the background MouseArea during the press interval. Release the steal prevention if the user clearly swipes (movement > 30px threshold).
+- Keep a secondary entry point: the navbar or a persistent "+" indicator that does not rely on the long-press gesture at all. Belt-and-suspenders.
+- The current FAB approach works reliably -- consider keeping a minimal "+" FAB visible only when on a page with available grid space, without requiring edit mode.
 
-**Detection:** User on small display asks "where is the navigation widget?" -- it was filtered out.
+**Detection:** On Pi, try to long-press empty grid space. If it fails > 30% of the time, the gesture is unreliable.
 
-### Pitfall 10: QT_QML_SKIP_CACHEGEN omission for new widget QML files
+### Pitfall 8: Bottom Sheet Widget Picker Overlaps or Hides Behind Navbar
 
-**What goes wrong:** New widget QML files added without `QT_QML_SKIP_CACHEGEN TRUE` in their `qt_add_qml_module` get compiled by Qt 6.8 cachegen. WidgetHost's `Loader { source: url }` can't find the compiled version by URL. Widget appears as blank glass card.
+**What goes wrong:** The current picker panel uses `height: Math.min(parent.height * 0.35, 200)` anchored to `parent.bottom`. If the navbar is at the bottom edge (`navbar.edge === "bottom"`), the picker either overlaps the navbar (if it renders above the navbar's z) or is hidden behind it (if below). If the navbar is transformed to show settings/delete controls, the picker covers those controls.
 
-**Why it happens:** This is a known gotcha (documented in CLAUDE.md) but easily forgotten when adding new files to CMakeLists.txt.
+**Why it happens:** The picker's position calculation does not account for navbar geometry. The navbar is in Shell space, the picker is in HomeMenu space -- they are in different parent contexts with different coordinate origins.
 
-**Prevention:**
-- Consider a dedicated CMake function (`oap_add_widget_qml()`) that wraps `qt_add_qml_module` with SKIP_CACHEGEN always set.
-- Add to the widget developer docs as step 1 of the build setup.
-- CI check (when CI exists): verify all files under `qml/widgets/` have SKIP_CACHEGEN.
-
-**Detection:** Blank glass card where widget should be. `Loader.status === Loader.Error` in console.
-
-### Pitfall 11: Drag coordinate mapping breaks when navbar changes edge position
-
-**What goes wrong:** HomeMenu.qml computes grid cell from mouse position relative to the drag overlay. The navbar's edge position changes Shell's layout margins, which changes the SwipeView's position and size. If the drag math uses raw `mouseX/mouseY` without mapping through `mapToItem(pageView, ...)`, widgets land one cell off when navbar is on left or top edge.
-
-**Why it happens:** Drag coordinates are relative to the overlay's parent, but the grid origin depends on navbar-induced offsets. The existing code likely handles this correctly (v0.4.5 solved analogous issues for evdev touch routing), but refactoring the grid layout can reintroduce it.
+**Consequences:** Picker and navbar overlap. Touch targets collide. User cannot dismiss picker because the scrim behind the navbar is unreachable.
 
 **Prevention:**
-- Always use `mapToItem()` for coordinate transforms, never raw position offsets.
-- Test drag-drop with navbar in all 4 positions after any layout changes.
+- Calculate picker height as `Math.min(parent.height * 0.35, 200)` with a bottom margin of `navbar.barThick` when `navbar.edge === "bottom"`. Use the Shell's content margins that are already applied to the ColumnLayout.
+- Since HomeMenu already lives inside `pluginContentHost` which has navbar margins applied, the picker anchored to `parent.bottom` within HomeMenu should clear the navbar automatically. Verify this is still true after refactoring.
+- If using `Overlay.overlay` as parent (like the current `configSheet`), the picker escapes the content margins and the navbar overlap returns. Keep the picker inside HomeMenu bounds.
 
-**Detection:** Widget lands one cell off from where it was dropped, only when navbar is on left or top.
+**Detection:** Open widget picker with navbar at bottom edge. Picker and navbar should not overlap.
+
+### Pitfall 9: Bottom Sheet / Picker Unreachable During AA (EVIOCGRAB)
+
+**What goes wrong:** If the widget picker is somehow open when AA connects (race condition), or if a user triggers the picker via a QML action right before AA takes over, the bottom sheet renders but cannot receive touch to dismiss or select. EVIOCGRAB routes all touch through evdev, bypassing Qt's event loop entirely. QML Popups become untouchable zombies.
+
+**Why it happens:** EVIOCGRAB is toggled on AA connect. Any QML overlay that was visible at the moment of grab becomes permanently stuck.
+
+**Consequences:** Stuck overlay that can only be cleared by restarting the app.
+
+**Prevention:**
+- The AA fullscreen auto-exit pattern already exists (`EDIT-08` in current code: `PluginModel.activePluginChanged` → `exitEditMode`). Extend this to dismiss any widget selection state, picker visibility, and config sheet.
+- Guard picker open: `if (PluginModel.activePluginId) return` before showing. Same for config sheet.
+- The existing `configSheet` (Dialog with Overlay.overlay parent) has the same vulnerability -- add auto-dismiss there too.
+
+**Detection:** Open widget picker, then immediately connect phone for AA. Picker should auto-dismiss.
+
+### Pitfall 10: Navbar Control Swap Animation Causes GPU Jank on Pi
+
+**What goes wrong:** Crossfading navbar controls (volume icon to settings icon, brightness icon to delete icon) during the transformation. The Pi 4's VideoCore VI GPU struggles with multiple simultaneous opacity layers -- this was already discovered with `FullScreenPicker` delegate shadows causing GPU freezes in v0.6.2.
+
+**Why it happens:** Each opacity-animated item creates a separate render layer. Crossfading two sets of 3 controls = 6 simultaneous opacity layers in the navbar area. The Pi's GPU has limited layer composition bandwidth.
+
+**Consequences:** Visible flicker, frame drops, or momentary freeze during navbar transformation. In a car, any UI freeze during touch interaction is a safety concern.
+
+**Prevention:**
+- Use instant content swap (no animation) for navbar control icons and labels. The navbar is small and peripheral -- snap changes are acceptable and feel responsive.
+- If any animation is desired, limit to a single property (e.g., a brief background color flash on the control that changed) rather than crossfading the entire control content.
+- Test on Pi hardware before committing to any animation approach. Desktop dev VM has no GPU constraints.
+
+**Detection:** Trigger navbar swap rapidly by selecting/deselecting widgets in quick succession. Watch for frame drops on Pi.
+
+### Pitfall 11: `requestContextMenu()` Call Breaks During Loader Source Swap
+
+**What goes wrong:** Widgets call `parent.requestContextMenu()` to forward long-press. This works because the Loader exposes the function. If the widget picker replaces a widget at the same grid position (remove old + place new), the Loader's `source` changes, the old item is destroyed, and during the brief transition `parent` may be null. A long-press during this window crashes or silently fails.
+
+**Why it happens:** QML Loader source changes destroy the old component before the new one loads. During this gap, `parent` references are unstable.
+
+**Consequences:** Crash on rare timing, or first long-press after widget replacement silently fails.
+
+**Prevention:**
+- Guard `requestContextMenu()` calls: `if (parent && typeof parent.requestContextMenu === "function") parent.requestContextMenu()`.
+- Set a brief `interactionLocked` flag (200ms) after any widget add/remove/move operation to suppress long-press gestures during transitions.
+
+**Detection:** Rapidly add a widget and immediately long-press it. If it crashes or does not respond, the timing window exists.
 
 ---
 
 ## Minor Pitfalls
 
-### Pitfall 12: Widget unregistration path untested
+### Pitfall 12: `opacityChanged` Signal Name Collision (Known Gotcha)
 
-**What goes wrong:** `WidgetRegistry::unregisterWidget()` exists but is never called. If dynamic plugin hot-reload is ever added, unloading a plugin leaves its widget descriptors in the registry. Placing them creates empty WidgetHosts.
+**What goes wrong:** QML `Item.opacity` auto-generates `opacityChanged`. Any new "selected widget opacity" property or signal using the name `opacity` or `opacityChanged` on a delegate will shadow the built-in and cause unexpected behavior.
 
-**Prevention:** Wire `unregisterWidget()` into plugin shutdown. Add a guard in `WidgetGridModel::placeWidget()` to verify the widgetId exists in the registry.
+**Prevention:** Name selection-related opacity properties explicitly: `selectionOpacity`, `liftOpacity`. Never shadow built-in Item properties.
 
-### Pitfall 13: typeof guards for context properties are stringly-typed and fragile
+### Pitfall 13: Widget Scale Transform During Selection Breaks Position Math
 
-**What goes wrong:** Widgets use `typeof MediaStatus !== "undefined"` to guard against missing context properties. If a context property is renamed in C++, the guard silently evaluates to true (preventing the fallback from hiding the error) or false (silently showing fallback state when data actually exists).
+**What goes wrong:** Applying `scale: 1.05` for the "lift" visual effect. Scale transforms around `transformOrigin` (default: center). The delegate's `x`/`y` bindings use top-left corner coordinates. If the scale animation runs while position bindings are active, the visual position jumps because the transform origin is not the same as the binding coordinate origin.
 
-**Prevention:** Document every stable context property name in the widget API contract. Consider a `WidgetDataBridge` singleton that wraps all widget-relevant data behind stable names.
+**Prevention:** Apply scale only to the `innerContent` child (which already exists inside the delegate), not the delegate itself. Or explicitly set `transformOrigin: Item.Center` and ensure position bindings are not re-evaluated during scale changes.
 
-### Pitfall 14: Multiple WidgetHost z:-1 MouseAreas at boundaries
+### Pitfall 14: Auto-Delete Empty Pages Races with Widget Placement
 
-**What goes wrong:** Adjacent widgets both have z:-1 long-press MouseAreas. Touch events near the boundary may route to the wrong widget's area depending on QML hit-testing order.
+**What goes wrong:** Auto-deleting empty pages on widget removal. If the last widget on page 2 is deleted, page 2 auto-deletes. If the user then places a new widget targeting page index 2 (from a queued action or auto-place), the page no longer exists.
 
-**Prevention:** Framework-level `childMouseEventFilter` (Pitfall 5) eliminates this class of issue.
+**Prevention:** Auto-delete empty pages only when leaving widget interaction (deselection), not immediately on widget removal. This matches the current `exitEditMode()` cleanup pattern.
+
+### Pitfall 15: Config Sheet and Bottom Sheet Picker Can Stack
+
+**What goes wrong:** User selects a widget, taps settings (config sheet opens), then somehow triggers the widget picker (e.g., via a "replace widget" action). Two overlays stack, creating confusing z-order and touch routing.
+
+**Prevention:** Close any existing overlay before opening a new one. Enforce mutual exclusivity: `configSheet.visible` and `pickerOverlay.visible` should be mutually exclusive, gated by a single `activeOverlay` enum.
 
 ---
 
@@ -215,40 +216,62 @@ Mistakes that cause broken navigation, invisible widgets, or forced rewrites.
 
 | Phase Topic | Likely Pitfall | Mitigation |
 |-------------|---------------|------------|
-| Launcher dock removal | Navigation paths lost (Pitfall 1) | Ship launcher tile widget first, QA "reach every view" |
-| DPI grid constant refinement | Saved layouts break (Pitfall 2) | Grid version in YAML, migration pass, 3-resolution test |
-| DPI grid constant refinement | Sub-pixel artifacts (Pitfall 4) | Floor cell dimensions, test all navbar positions |
-| Widget size constraint formalization | C++/QML enforcement divergence (Pitfall 3) | Single source of truth via Q_INVOKABLE clampedSize() |
-| Widget breakpoint conventions | Pixel breakpoints don't scale (Pitfall 6) | Define span-based or UiMetrics-based breakpoints |
-| Widget lifecycle documentation | Long-press forwarding missed (Pitfall 5) | Framework-level childMouseEventFilter |
-| Widget lifecycle hooks | Off-screen widgets active (Pitfall 7) | active property bound to page visibility |
-| Plugin-widget contract docs | QML resource path gotcha (Pitfall 10) | CMake helper function + prominent docs |
-| Drag/resize interaction | Navbar edge mapping (Pitfall 11) | mapToItem() always, test all 4 positions |
+| Per-widget long-press selection | MouseArea z-ordering breaks interactive widgets (#1) | Use existing requestContextMenu pattern; test all interactive widgets |
+| Navbar control swap | Zone registration races with visual animation (#2) | Atomic mode swap before animation; unregister during transition |
+| Navbar control swap | GPU jank on Pi (#10) | Instant swap, no opacity animation |
+| Edge resize handles | Touch targets too small for automotive (#5) | Keep bottom-right handle; minimum touchMin touch area |
+| Bottom sheet picker | Overlaps navbar at bottom edge (#8) | Account for navbar margins in positioning |
+| Bottom sheet picker | Unreachable during AA EVIOCGRAB (#9) | Auto-dismiss on AA activation, guard open action |
+| Long-press empty space | SwipeView steals gesture (#7) | preventStealing during hold; keep secondary entry point |
+| Widget drag | SwipeView page swipe conflicts (#3) | Disable SwipeView only during active drag, not selection |
+| Widget drag | Drag overlay steals navbar touch (#4) | Keep overlay strictly in HomeMenu, not Shell |
+| Widget selection state | Persists across page swipes (#6) | Clear selection on page change |
+| Selection visual | Scale transform breaks position (#13) | Scale innerContent, not delegate |
+| Page management | Auto-delete races placement (#14) | Defer auto-delete to deselection |
+
+---
+
+## Integration Risk Summary
+
+The highest-risk integration point is the **touch event layering**. This project has FOUR distinct touch input paths that must cooperate:
+
+1. **QML MouseArea** -- normal home screen widget taps, long-press, drag, resize
+2. **QML SwipeView Flickable** -- page swipe gestures (steals horizontal drags)
+3. **C++ NavbarController** -- QML-side `handlePress`/`handleRelease` for launcher mode
+4. **Evdev TouchRouter** -- bypasses Qt entirely during AA (EVIOCGRAB active, priority-based zone dispatch)
+
+Adding per-widget selection, navbar mode swapping, and a bottom sheet overlay means paths 1-3 must negotiate gesture ownership for every touch on the home screen. The existing architecture handles this for the global edit mode case (binary toggle), but per-widget selection creates a **partial-edit state** where some gestures should be forwarded (page swipe when selected-but-not-dragging) and others captured (drag when finger moves past threshold), and the decision depends on which widget is selected and where exactly the touch lands.
+
+**Recommendation:** Implement the widget interaction state machine in C++ (new `WidgetInteractionController` or extension of existing `NavbarController`) rather than in QML properties scattered across HomeMenu. QML property bindings update asynchronously and create race conditions when multiple gesture handlers read the same state on the same frame. A C++ state machine with explicit transitions (`Idle -> Selected -> Dragging -> Resizing`) and `Q_PROPERTY` notifications gives deterministic ordering and is testable with unit tests. The `NavbarController` already proves this pattern works for the gesture state machine -- apply the same approach for widget interaction.
 
 ---
 
 ## Sources
 
 - **Codebase analysis** (HIGH confidence):
-  - `src/ui/DisplayInfo.cpp` -- grid dimension computation from pixel constants (targetCellW=150, targetCellH=125, clamp 3-8 cols / 2-6 rows)
-  - `src/ui/WidgetGridModel.hpp` -- placement model with MinCols/MaxCols/MinRows/MaxRows roles
-  - `src/core/widget/WidgetTypes.hpp` -- WidgetDescriptor size constraints, GridPlacement with page/visible fields
-  - `src/core/widget/WidgetRegistry.hpp` -- widgetsFittingSpace() filter, unregisterWidget() present but unused
+  - `qml/applications/home/HomeMenu.qml` -- current edit mode, drag overlay z:200, resize handle, widget MouseArea z toggle, SwipeView interactive binding, page cleanup
+  - `qml/components/Shell.qml` -- navbar z:100, content area layout with navbar margins, GestureOverlay
+  - `qml/components/Navbar.qml` -- zone registration via Qt.callLater, edge states, power menu popup session, 4-edge anchor states
+  - `qml/components/NavbarControl.qml` -- control role mapping, hold progress, QML handlePress/Release
   - `qml/components/WidgetHost.qml` -- z:-1 MouseArea pattern, requestContextMenu() convention
-  - `qml/components/LauncherDock.qml` -- LauncherModel-backed tile buttons (AA, BT, Phone, Settings)
-  - `qml/widgets/ClockWidget.qml` -- pixel breakpoints (width>=250, height>=180), 1s Timer
-  - `qml/widgets/NowPlayingWidget.qml` -- pixel breakpoints (width>=400, height>=180), typeof guards
-  - `qml/widgets/AAStatusWidget.qml` -- typeof guards, pressAndHold forwarding
-  - `qml/widgets/NavigationWidget.qml` -- pixel breakpoints, typeof guards, pressAndHold forwarding
-  - `qml/applications/home/HomeMenu.qml` -- drag/resize overlay, cell dimension computation, edit mode
-  - `qml/components/Shell.qml` -- navbar margin offsets, LauncherDock + HomeMenu layout
-- **Project memory** (HIGH confidence):
-  - CLAUDE.md: QT_QML_SKIP_CACHEGEN gotcha for Loader-loaded QML
-  - CLAUDE.md: TapHandler/childMouseEventFilter approach for touch event interception
-  - CLAUDE.md: Widget QML resource path prefix requirement (qrc:/OpenAutoProdigy/)
-  - SESSION MEMORY: Widget system v0.5.2 WidgetHost long-press z:-1 fix
-  - SESSION MEMORY: v0.5.3 grid density auto-derived from UiMetrics
+  - `qml/components/WidgetConfigSheet.qml` -- Dialog with Overlay.overlay parent, bottom sheet animation
+  - `src/ui/NavbarController.hpp` -- gesture state machine, evdev zone callbacks, popup session API, zone registration
+  - `src/core/aa/TouchRouter.hpp` -- priority-based zone dispatch, finger stickiness, mutex-guarded zone updates
+  - `src/ui/WidgetGridModel.hpp` -- grid model API, canPlace, editMode flag, page management
+- **Project gotchas** (HIGH confidence):
+  - CLAUDE.md/MEMORY.md: EVIOCGRAB steals all touch from Qt during AA
+  - CLAUDE.md/MEMORY.md: Qt 6 TapHandler overlays steal ALL touch from child controls
+  - CLAUDE.md/MEMORY.md: WidgetHost long-press MouseArea must be at z:-1
+  - CLAUDE.md/MEMORY.md: FullScreenPicker GPU freeze with multiple MultiEffect layers on Pi
+  - CLAUDE.md/MEMORY.md: SettingsInputBoundary childMouseEventFilter for subtree long-press
+  - CLAUDE.md/MEMORY.md: QML Item.opacity auto-generates opacityChanged signal
+  - CLAUDE.md/MEMORY.md: Plugin view self-destruction when calling setActivePlugin("") from within own view
+- **Web research** (MEDIUM confidence):
+  - [Qt 6 MouseArea documentation](https://doc.qt.io/qt-6/qml-qtquick-mousearea.html) -- preventStealing behavior
+  - [Qt 6 DragHandler documentation](https://doc.qt.io/qt-6/qml-qtquick-draghandler.html) -- drag threshold semantics
+  - [QML Swipe gesture overrides other components](https://www.qtcentre.org/threads/60772-QML-Swipe-gesture-overrides-other-components) -- SwipeView gesture stealing is a known platform issue
+  - [Qt 6 SwipeView documentation](https://doc.qt.io/Qt-6/qml-qtquick-controls-swipeview.html) -- interactive property, Flickable behavior
 
 ---
-*Pitfalls research for: OpenAuto Prodigy v0.6.1 Widget Framework & Layout Refinement*
-*Researched: 2026-03-14*
+*Pitfalls research for: OpenAuto Prodigy v0.6.6 Homescreen Layout & Widget Settings Rework*
+*Researched: 2026-03-21*
