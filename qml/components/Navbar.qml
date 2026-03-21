@@ -32,10 +32,26 @@ Item {
     }
 
     // --- Control role mapping: index 0=driver, 1=center, 2=passenger ---
-    readonly property string control0Icon: NavbarController.leftHandDrive ? volumeIcon : brightnessIcon
-    readonly property string control2Icon: NavbarController.leftHandDrive ? brightnessIcon : volumeIcon
+    // Widget interaction mode: gear (\ue8b8) replaces volume, trash (\ue872) replaces brightness
+    readonly property string control0Icon: {
+        if (NavbarController.widgetInteractionMode) {
+            return NavbarController.leftHandDrive ? "\ue8b8" : "\ue872"
+        }
+        return NavbarController.leftHandDrive ? volumeIcon : brightnessIcon
+    }
+    readonly property string control2Icon: {
+        if (NavbarController.widgetInteractionMode) {
+            return NavbarController.leftHandDrive ? "\ue872" : "\ue8b8"
+        }
+        return NavbarController.leftHandDrive ? brightnessIcon : volumeIcon
+    }
     readonly property bool control0IsVolume: NavbarController.leftHandDrive
     readonly property bool control2IsVolume: !NavbarController.leftHandDrive
+
+    // Dimming for gear (no config schema) and trash (singleton)
+    property string widgetDisplayName: NavbarController.widgetDisplayName
+    property bool gearEnabled: NavbarController.selectedWidgetHasConfig
+    property bool trashEnabled: !NavbarController.selectedWidgetIsSingleton
 
     // --- Gradient fade (replaces old 1px barShadow border) ---
     // Renders outside the navbar on its content-facing edge.
@@ -142,6 +158,10 @@ Item {
             isVertical: false
             width: parent.width * 0.20
             height: parent.height
+            controlEnabled: {
+                if (!NavbarController.widgetInteractionMode) return true
+                return NavbarController.leftHandDrive ? navbar.gearEnabled : navbar.trashEnabled
+            }
         }
         NavbarControl {
             id: hControl1
@@ -159,6 +179,10 @@ Item {
             isVertical: false
             width: parent.width * 0.20
             height: parent.height
+            controlEnabled: {
+                if (!NavbarController.widgetInteractionMode) return true
+                return NavbarController.leftHandDrive ? navbar.trashEnabled : navbar.gearEnabled
+            }
         }
     }
 
@@ -176,6 +200,10 @@ Item {
             isVertical: true
             width: parent.width
             height: parent.height * 0.20
+            controlEnabled: {
+                if (!NavbarController.widgetInteractionMode) return true
+                return NavbarController.leftHandDrive ? navbar.gearEnabled : navbar.trashEnabled
+            }
         }
         NavbarControl {
             id: vControl1
@@ -193,6 +221,10 @@ Item {
             isVertical: true
             width: parent.width
             height: parent.height * 0.20
+            controlEnabled: {
+                if (!NavbarController.widgetInteractionMode) return true
+                return NavbarController.leftHandDrive ? navbar.trashEnabled : navbar.gearEnabled
+            }
         }
     }
 

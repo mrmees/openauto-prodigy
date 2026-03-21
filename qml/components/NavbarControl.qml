@@ -9,6 +9,7 @@ Item {
     property string iconText: ""
     property bool showClock: false
     property bool isVertical: false
+    property bool controlEnabled: true
 
     // Page dot data — only when showing clock on home screen
     readonly property bool showDots: root.showClock
@@ -27,8 +28,12 @@ Item {
     Connections {
         target: NavbarController
         function onHoldProgress(idx, progress) {
-            if (idx === root.controlIndex)
+            if (idx === root.controlIndex) {
+                // Suppress hold progress for side controls in widget interaction mode
+                if (NavbarController.widgetInteractionMode && root.controlIndex !== 1)
+                    return
                 root._holdProgress = progress
+            }
         }
         function onGestureTriggered(idx, gesture) {
             if (idx === root.controlIndex)
@@ -60,13 +65,14 @@ Item {
         }
     }
 
-    // Icon display (volume or brightness)
+    // Icon display (volume/brightness or gear/trash)
     MaterialIcon {
         anchors.centerIn: parent
         icon: root.iconText
         size: UiMetrics.iconSize
         color: navbar.aaActive ? navbar.barFg : (root._pressed || root._holdProgress > 0 ? ThemeService.onPrimaryContainer : navbar.barFg)
         visible: !root.showClock
+        opacity: root.controlEnabled ? 1.0 : 0.35
     }
 
     // --- Clock timer (shared between horizontal and vertical) ---
@@ -98,11 +104,25 @@ Item {
         }
     }
 
+    // --- Widget display name (horizontal mode, shown during widget interaction) ---
+    Text {
+        anchors.centerIn: parent
+        text: navbar.widgetDisplayName
+        color: navbar.barFg
+        font.pixelSize: Math.round(root.height * 0.50)
+        font.weight: Font.Medium
+        elide: Text.ElideRight
+        maximumLineCount: 1
+        width: root.width * 0.9
+        horizontalAlignment: Text.AlignHCenter
+        visible: root.showClock && !root.isVertical && NavbarController.widgetInteractionMode
+    }
+
     // --- Clock display -- horizontal mode (with page dots flanking) ---
     Row {
         anchors.centerIn: parent
         spacing: UiMetrics.spacing
-        visible: root.showClock && !root.isVertical
+        visible: root.showClock && !root.isVertical && !NavbarController.widgetInteractionMode
 
         Repeater {
             model: root.leftDotCount
@@ -131,11 +151,24 @@ Item {
         }
     }
 
+    // --- Widget display name (vertical mode, shown during widget interaction) ---
+    Text {
+        anchors.centerIn: parent
+        text: navbar.widgetDisplayName
+        color: navbar.barFg
+        font.pixelSize: Math.round(root.width * 0.35)
+        font.weight: Font.Medium
+        wrapMode: Text.WordWrap
+        width: root.width * 0.9
+        horizontalAlignment: Text.AlignHCenter
+        visible: root.showClock && root.isVertical && NavbarController.widgetInteractionMode
+    }
+
     // --- Clock display -- vertical mode (with page dots above/below) ---
     Column {
         anchors.centerIn: parent
         spacing: UiMetrics.spacing
-        visible: root.showClock && root.isVertical
+        visible: root.showClock && root.isVertical && !NavbarController.widgetInteractionMode
 
         Repeater {
             model: root.leftDotCount  // "left" = above in vertical

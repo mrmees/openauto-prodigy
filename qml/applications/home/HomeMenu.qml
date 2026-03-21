@@ -14,6 +14,7 @@ Item {
     // Per-widget selection state (replaces global editMode)
     property string selectedInstanceId: ""
     property bool _addingPage: false
+    property bool _skipPageCleanup: false
 
     // Track active drag/resize for cleanup on deselect
     property string draggingInstanceId: ""
@@ -81,6 +82,11 @@ Item {
         if (selectedInstanceId === instanceId) return
         selectedInstanceId = instanceId
         WidgetGridModel.setWidgetSelected(true)
+        // Set navbar metadata for widget interaction mode
+        var meta = WidgetGridModel.widgetMeta(instanceId)
+        NavbarController.widgetDisplayName = meta.displayName || ""
+        NavbarController.selectedWidgetHasConfig = meta.hasConfigSchema || false
+        NavbarController.selectedWidgetIsSingleton = meta.isSingleton || false
         selectionTimer.restart()
     }
 
@@ -88,6 +94,10 @@ Item {
     function deselectWidget() {
         selectedInstanceId = ""
         WidgetGridModel.setWidgetSelected(false)
+        // Clear navbar metadata
+        NavbarController.widgetDisplayName = ""
+        NavbarController.selectedWidgetHasConfig = false
+        NavbarController.selectedWidgetIsSingleton = false
         selectionTimer.stop()
         // Reset any active drag/resize state
         dropHighlight.visible = false
@@ -100,16 +110,19 @@ Item {
         resizingInstanceId = ""
         pickerOverlay.visible = false
         // Auto-clean empty pages (except page 0 and current page) after settling
-        var currentPage = pageView.currentIndex
-        Qt.callLater(function() {
-            for (var i = WidgetGridModel.pageCount - 1; i > 0; i--) {
-                if (i !== currentPage && WidgetGridModel.widgetCountOnPage(i) === 0) {
-                    WidgetGridModel.removePage(i)
+        // Skip when trash handler already did page cleanup (avoids shifted-index race)
+        if (!_skipPageCleanup) {
+            var currentPage = pageView.currentIndex
+            Qt.callLater(function() {
+                for (var i = WidgetGridModel.pageCount - 1; i > 0; i--) {
+                    if (i !== currentPage && WidgetGridModel.widgetCountOnPage(i) === 0) {
+                        WidgetGridModel.removePage(i)
+                    }
                 }
-            }
-            if (pageView.currentIndex >= WidgetGridModel.pageCount)
-                pageView.setCurrentIndex(WidgetGridModel.pageCount - 1)
-        })
+                if (pageView.currentIndex >= WidgetGridModel.pageCount)
+                    pageView.setCurrentIndex(WidgetGridModel.pageCount - 1)
+            })
+        }
     }
 
     // Auto-deselect timer -- clears selection after 10s of inactivity
@@ -118,6 +131,49 @@ Item {
         interval: 10000
         running: homeScreen.selectedInstanceId !== "" && !configSheet.isOpen && !pickerOverlay.visible
         onTriggered: homeScreen.deselectWidget()
+    }
+
+    // Navbar widget interaction mode: active when widget is selected and NOT dragging
+    Binding {
+        target: NavbarController
+        property: "widgetInteractionMode"
+        value: homeScreen.selectedInstanceId !== "" && homeScreen.draggingInstanceId === ""
+    }
+
+    // Navbar widget action signals
+    Connections {
+        target: NavbarController
+        function onWidgetConfigRequested() {
+            if (homeScreen.selectedInstanceId === "") return
+            var meta = WidgetGridModel.widgetMeta(homeScreen.selectedInstanceId)
+            if (!meta.hasConfigSchema) return
+            configSheet.openConfig(homeScreen.selectedInstanceId, meta.widgetId,
+                                   meta.displayName, meta.iconName)
+            selectionTimer.restart()
+        }
+        function onWidgetDeleteRequested() {
+            if (homeScreen.selectedInstanceId === "") return
+            var meta = WidgetGridModel.widgetMeta(homeScreen.selectedInstanceId)
+            if (meta.isSingleton) return
+            var deletedPage = WidgetGridModel.activePage
+            var widgetCountBefore = WidgetGridModel.widgetCountOnPage(deletedPage)
+            WidgetGridModel.removeWidget(homeScreen.selectedInstanceId)
+            // PGM-04: if that was the last widget on this page, auto-delete the page
+            if (widgetCountBefore === 1 && deletedPage > 0) {
+                homeScreen._addingPage = true  // prevent deselect side-effect from page change
+                pageView.setCurrentIndex(deletedPage - 1)
+                homeScreen._addingPage = false
+                Qt.callLater(function() {
+                    WidgetGridModel.removePage(deletedPage)
+                })
+            }
+            // Skip deselectWidget's deferred empty-page cleanup since we already handled
+            // page deletion above. removePage() shifts page indices, so the deferred
+            // cleanup in deselectWidget() would iterate over wrong page indices.
+            homeScreen._skipPageCleanup = true
+            homeScreen.deselectWidget()
+            homeScreen._skipPageCleanup = false
+        }
     }
 
     // C++ navigation deselect bridge — when main.cpp calls setWidgetSelected(false),
@@ -530,184 +586,9 @@ Item {
                                             z: 10
                                         }
 
-                                        // X remove badge (top-right)
-                                        Rectangle {
-                                            id: removeBadge
-                                            width: 28
-                                            height: 28
-                                            radius: 14
-                                            color: ThemeService.error
-                                            anchors.right: parent.right
-                                            anchors.top: parent.top
-                                            anchors.rightMargin: -6
-                                            anchors.topMargin: -6
-                                            visible: delegateItem.isSelected && !model.isSingleton
-                                            z: 20
-
-                                            MaterialIcon {
-                                                icon: "\ue5cd"
-                                                size: 16
-                                                color: ThemeService.onError
-                                                anchors.centerIn: parent
-                                            }
-
-                                            MouseArea {
-                                                anchors.fill: parent
-                                                onClicked: {
-                                                    var wasSelected = delegateItem.isSelected
-                                                    WidgetGridModel.removeWidget(model.instanceId)
-                                                    if (wasSelected) {
-                                                        homeScreen.deselectWidget()
-                                                    } else {
-                                                        selectionTimer.restart()
-                                                    }
-                                                }
-                                            }
-                                        }
-
-                                        // Gear config badge (top-left) -- only for widgets with configSchema
-                                        Rectangle {
-                                            id: configGear
-                                            width: 28
-                                            height: 28
-                                            radius: 14
-                                            color: ThemeService.primaryContainer
-                                            anchors.left: parent.left
-                                            anchors.top: parent.top
-                                            anchors.leftMargin: -6
-                                            anchors.topMargin: -6
-                                            visible: delegateItem.isSelected && model.hasConfigSchema
-                                            z: 20
-
-                                            MaterialIcon {
-                                                icon: "\ue8b8"
-                                                size: 16
-                                                color: ThemeService.onPrimaryContainer
-                                                anchors.centerIn: parent
-                                            }
-
-                                            MouseArea {
-                                                anchors.fill: parent
-                                                anchors.margins: -4
-                                                onClicked: {
-                                                    configSheet.openConfig(model.instanceId, model.widgetId,
-                                                                           model.displayName, model.iconName)
-                                                    selectionTimer.restart()
-                                                }
-                                            }
-                                        }
-
-                                        // Resize handle (bottom-right) with drag-to-resize
-                                        Rectangle {
-                                            id: resizeHandle
-                                            width: UiMetrics.touchMin * 0.5
-                                            height: UiMetrics.touchMin * 0.5
-                                            radius: UiMetrics.radiusSmall
-                                            color: ThemeService.primary
-                                            opacity: 0.7
-                                            anchors.right: parent.right
-                                            anchors.bottom: parent.bottom
-                                            anchors.rightMargin: UiMetrics.spacing * 0.25
-                                            anchors.bottomMargin: UiMetrics.spacing * 0.25
-                                            visible: delegateItem.isSelected
-                                            z: 20
-
-                                            MouseArea {
-                                                anchors.fill: parent
-                                                anchors.margins: -UiMetrics.spacing / 2
-                                                preventStealing: true
-
-                                                property point startGlobal: Qt.point(0, 0)
-                                                property int startColSpan: 0
-                                                property int startRowSpan: 0
-                                                property int proposedColSpan: 0
-                                                property int proposedRowSpan: 0
-                                                property bool resizing: false
-                                                property int lastClampedCols: 0
-                                                property int lastClampedRows: 0
-
-                                                onPressed: function(mouse) {
-                                                    resizing = true
-                                                    homeScreen.resizingInstanceId = model.instanceId
-                                                    startGlobal = mapToItem(pageGridContent, mouse.x, mouse.y)
-                                                    startColSpan = model.colSpan
-                                                    startRowSpan = model.rowSpan
-                                                    proposedColSpan = startColSpan
-                                                    proposedRowSpan = startRowSpan
-                                                    lastClampedCols = startColSpan
-                                                    lastClampedRows = startRowSpan
-
-                                                    // Map ghost position from page-local to homeScreen coords
-                                                    var ghostPos = pageGridContent.mapToItem(homeScreen,
-                                                        homeScreen.offsetX + model.column * homeScreen.cellSide, homeScreen.offsetY + model.row * homeScreen.cellSide)
-                                                    resizeGhost.x = ghostPos.x
-                                                    resizeGhost.y = ghostPos.y
-                                                    resizeGhost.width = model.colSpan * homeScreen.cellSide
-                                                    resizeGhost.height = model.rowSpan * homeScreen.cellSide
-                                                    resizeGhost.visible = true
-                                                    resizeGhost.isValid = true
-
-                                                    selectionTimer.restart()
-                                                    mouse.accepted = true
-                                                }
-
-                                                onPositionChanged: function(mouse) {
-                                                    if (!resizing) return
-                                                    var current = mapToItem(pageGridContent, mouse.x, mouse.y)
-                                                    var deltaCols = Math.round((current.x - startGlobal.x) / homeScreen.cellSide)
-                                                    var deltaRows = Math.round((current.y - startGlobal.y) / homeScreen.cellSide)
-
-                                                    var newColSpan = startColSpan + deltaCols
-                                                    var newRowSpan = startRowSpan + deltaRows
-
-                                                    var wasAtLimit = false
-                                                    if (newColSpan < model.minCols) { newColSpan = model.minCols; wasAtLimit = true }
-                                                    if (newColSpan > model.maxCols) { newColSpan = model.maxCols; wasAtLimit = true }
-                                                    if (newRowSpan < model.minRows) { newRowSpan = model.minRows; wasAtLimit = true }
-                                                    if (newRowSpan > model.maxRows) { newRowSpan = model.maxRows; wasAtLimit = true }
-
-                                                    if (model.column + newColSpan > homeScreen.gridCols) {
-                                                        newColSpan = homeScreen.gridCols - model.column
-                                                        wasAtLimit = true
-                                                    }
-                                                    if (model.row + newRowSpan > homeScreen.gridRows) {
-                                                        newRowSpan = homeScreen.gridRows - model.row
-                                                        wasAtLimit = true
-                                                    }
-
-                                                    newColSpan = Math.max(1, newColSpan)
-                                                    newRowSpan = Math.max(1, newRowSpan)
-
-                                                    proposedColSpan = newColSpan
-                                                    proposedRowSpan = newRowSpan
-
-                                                    var valid = WidgetGridModel.canPlace(model.column, model.row,
-                                                        newColSpan, newRowSpan, model.instanceId)
-                                                    resizeGhost.isValid = valid
-
-                                                    if (wasAtLimit && (newColSpan !== lastClampedCols || newRowSpan !== lastClampedRows)) {
-                                                        limitFlash.restart()
-                                                    }
-                                                    lastClampedCols = newColSpan
-                                                    lastClampedRows = newRowSpan
-
-                                                    resizeGhost.width = newColSpan * homeScreen.cellSide
-                                                    resizeGhost.height = newRowSpan * homeScreen.cellSide
-
-                                                    selectionTimer.restart()
-                                                }
-
-                                                onReleased: {
-                                                    resizing = false
-                                                    homeScreen.resizingInstanceId = ""
-                                                    resizeGhost.visible = false
-
-                                                    if (proposedColSpan !== startColSpan || proposedRowSpan !== startRowSpan) {
-                                                        WidgetGridModel.resizeWidget(model.instanceId, proposedColSpan, proposedRowSpan)
-                                                    }
-                                                }
-                                            }
-                                        }
+                                        // Badge buttons removed (CLN-03): X delete, gear config, corner resize
+                                        // handle are now replaced by navbar gear/trash controls (Phase 26).
+                                        // Edge resize handles will be added in Plan 02.
                                     }
                                 }
                             }
