@@ -120,6 +120,16 @@ Item {
         onTriggered: homeScreen.deselectWidget()
     }
 
+    // C++ navigation deselect bridge — when main.cpp calls setWidgetSelected(false),
+    // sync QML selection state so visuals, SwipeView lock, and timer all clear
+    Connections {
+        target: WidgetGridModel
+        function onWidgetDeselectedFromCpp() {
+            if (homeScreen.selectedInstanceId !== "")
+                homeScreen.deselectWidget()
+        }
+    }
+
     // AA fullscreen auto-deselect
     Connections {
         target: PluginModel
@@ -300,12 +310,17 @@ Item {
                                     Connections {
                                         target: homeScreen
                                         function onSelectedInstanceIdChanged() {
-                                            if (homeScreen.selectedInstanceId !== model.instanceId && delegateItem.dragging) {
-                                                delegateItem.dragging = false
-                                                delegateItem.opacity = 1.0
-                                                delegateItem.scale = 1.0
-                                                delegateItem.x = Qt.binding(function() { return homeScreen.offsetX + model.column * homeScreen.cellSide })
-                                                delegateItem.y = Qt.binding(function() { return homeScreen.offsetY + model.row * homeScreen.cellSide })
+                                            if (homeScreen.selectedInstanceId !== model.instanceId) {
+                                                // Reset lift visuals when this delegate loses selection
+                                                innerContent.scale = 1.0
+                                                liftShadow.visible = false
+                                                if (delegateItem.dragging) {
+                                                    delegateItem.dragging = false
+                                                    delegateItem.opacity = 1.0
+                                                    delegateItem.scale = 1.0
+                                                    delegateItem.x = Qt.binding(function() { return homeScreen.offsetX + model.column * homeScreen.cellSide })
+                                                    delegateItem.y = Qt.binding(function() { return homeScreen.offsetY + model.row * homeScreen.cellSide })
+                                                }
                                             }
                                         }
                                     }

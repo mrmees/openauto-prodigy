@@ -103,6 +103,7 @@ signals:
     void activePageChanged();
     void pageCountChanged();
     void widgetConfigChanged(const QString& instanceId, const QVariantMap& effectiveConfig);
+    void widgetDeselectedFromCpp();
 
 private:
     int findPlacement(const QString& instanceId) const;

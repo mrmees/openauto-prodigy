@@ -769,7 +769,8 @@ int main(int argc, char *argv[])
     actionRegistry->registerAction("app.restart", [appController](const QVariant&) {
         appController->restart();
     });
-    actionRegistry->registerAction("app.home", [pluginModel](const QVariant&) {
+    actionRegistry->registerAction("app.home", [pluginModel, widgetGridModel](const QVariant&) {
+        widgetGridModel->setWidgetSelected(false);
         pluginModel->setActivePlugin(QString());
     });
     actionRegistry->registerAction("theme.toggle", [themeService](const QVariant&) {

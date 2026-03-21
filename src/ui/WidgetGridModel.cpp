@@ -804,6 +804,10 @@ void WidgetGridModel::setWidgetSelected(bool selected)
     if (widgetSelected_ == selected) return;
     widgetSelected_ = selected;
 
+    // Notify QML so it can clear selectedInstanceId when C++ navigates away
+    if (!selected)
+        emit widgetDeselectedFromCpp();
+
     // When deselecting, apply pending remap if any
     if (!selected && remapPending_) {
         remapPending_ = false;
