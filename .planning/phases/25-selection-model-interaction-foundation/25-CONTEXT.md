@@ -30,10 +30,10 @@ Replace global edit mode with per-widget long-press selection. Users long-press 
 
 ### Deselect triggers
 - Tap empty grid space → deselect
-- Tap any other widget → deselect (no selection swap — must long-press to select a different widget)
-- Clock-home navbar button → deselect
+- Tap any other widget → deselect ONLY (does NOT fire the tapped widget's normal action — two-step: first tap deselects, second tap activates widget)
+- Clock-home navbar button → deselect (existing `navbar.clock.tap` action routes through ActionRegistry — add deselect before home navigation)
 - Auto-deselect timeout: 10 seconds of inactivity
-- AA fullscreen activation → force deselect (carried from Phase 07)
+- AA fullscreen activation → force deselect AND dismiss any open overlays (config sheet, picker) to prevent EVIOCGRAB zombie-overlay (touch stolen by evdev while QML overlay is visible)
 - SwipeView interactive=false while any widget is selected (prevents accidental page changes)
 - Since SwipeView is locked during selection, page swipe cannot be a deselect method
 
@@ -47,13 +47,25 @@ Replace global edit mode with per-widget long-press selection. Users long-press 
 - Reuse existing visual components: dotted grid lines, drag placeholder, drop highlight — same visuals, new trigger (selection instead of editMode)
 - Remove the tap-empty-space-to-exit-edit-mode handler — replace with tap-to-deselect
 
+### Long-press forwarding on interactive widgets
+- The existing `WidgetHost` z:-1 MouseArea + `requestContextMenu()` forwarding pattern MUST be preserved
+- Widgets with interactive content (Now Playing, AA Focus, Weather) have their own MouseAreas that handle taps
+- Long-press detection must NOT be moved above widget content (z > 0) — this would steal all taps from widget controls
+- The host MouseArea at z:-1 catches long-press because widget MouseAreas don't set `pressAndHoldInterval` — they accept the press (blocking the host for taps) but the host still receives pressAndHold after 500ms via the underlying item
+- If this mechanism doesn't work reliably for all widgets, fall back to `requestContextMenu()` forwarding from within widget QML
+
+### State ownership
+- `selectedInstanceId` is a QML string property on `HomeMenu.qml` — NOT a C++ class
+- C++ interaction state machine is explicitly out of scope (per REQUIREMENTS.md Out of Scope)
+- WidgetGridModel gets a `setWidgetSelected(bool)` method as a thin remap gate only — no selection logic in C++
+- If QML-only state causes gesture races during implementation, document the issue for Phase 26 but do not introduce a C++ controller in this phase
+
 ### Claude's Discretion
 - Exact scale factor for lift animation (suggested ~1.05)
 - Drop shadow implementation approach (simple Rectangle shadow vs MultiEffect — Pi GPU constraint)
 - Drag activation distance threshold (pixels before drag mode activates)
 - Accent border width for selected state
 - Auto-deselect timer restart behavior (which interactions reset the timer)
-- Whether `selectedInstanceId` lives in QML or C++ (start with QML, escalate if gesture races emerge per research)
 
 </decisions>
 
@@ -64,7 +76,7 @@ Replace global edit mode with per-widget long-press selection. Users long-press 
 
 ### Phase requirements
 - `.planning/REQUIREMENTS.md` — SEL-01..04, CLN-01, CLN-04 define this phase's scope
-- `.planning/ROADMAP.md` — Phase 25 success criteria (7 items)
+- `.planning/ROADMAP.md` — Phase 25 success criteria (9 items)
 
 ### Research
 - `.planning/research/SUMMARY.md` — Synthesis of stack/features/architecture/pitfalls

@@ -141,9 +141,11 @@ See .planning/milestones/v0.6.5-ROADMAP.md for archived details.
   2. User can drag a lifted widget to a new grid position with snap-to-cell behavior
   3. User can release a long-pressed widget without dragging to see a selected-state indicator, then tap empty space or clock-home to deselect
   4. Selection automatically clears after inactivity timeout (auto-deselect, replacing the old global edit mode timer)
-  5. Selection clears on page swipe
+  5. SwipeView is locked (non-interactive) while any widget is selected
   6. Long-press still works on interactive widgets (widgets with their own touch handling, e.g. Now Playing controls, AA Focus toggle)
-  7. No global edit mode flag exists in UI or code
+  7. Tapping a different widget while one is selected only deselects — does NOT fire the tapped widget's action
+  8. AA fullscreen activation force-deselects AND dismisses any open overlays (config sheet, picker)
+  9. No global edit mode flag exists in UI or code
 **Plans**: TBD
 
 ### Phase 26: Navbar Transformation & Edge Resize
