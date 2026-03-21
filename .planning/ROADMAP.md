@@ -146,7 +146,9 @@ See .planning/milestones/v0.6.5-ROADMAP.md for archived details.
   7. Tapping a different widget while one is selected only deselects — does NOT fire the tapped widget's action
   8. AA fullscreen activation force-deselects AND dismisses any open overlays (config sheet, picker)
   9. No global edit mode flag exists in UI or code
-**Plans**: TBD
+**Plans:** 1 plan
+Plans:
+- [ ] 25-01-PLAN.md — Selection model core: WidgetGridModel rename + HomeMenu.qml full refactor (editMode -> selectedInstanceId)
 
 ### Phase 26: Navbar Transformation & Edge Resize
 **Goal**: Users manage widget settings, deletion, and sizing through automotive-sized controls instead of tiny overlays
@@ -183,6 +185,6 @@ Phases execute in numeric order: 25 -> 26 -> 27
 
 | Phase | Plans Complete | Status | Completed |
 |-------|----------------|--------|-----------|
-| 25. Selection Model & Interaction Foundation | 0/TBD | Not started | - |
+| 25. Selection Model & Interaction Foundation | 0/1 | Not started | - |
 | 26. Navbar Transformation & Edge Resize | 0/TBD | Not started | - |
 | 27. Widget Picker & Page Management | 0/TBD | Not started | - |
