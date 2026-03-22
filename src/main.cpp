@@ -13,6 +13,7 @@
 #include <QDir>
 #include <QFile>
 #include <QTimer>
+#include <QProcess>
 #include <memory>
 #include <QtQml/qqml.h>
 #include "core/Logging.hpp"
@@ -1052,6 +1053,12 @@ int main(int argc, char *argv[])
     // Signal systemd: app is fully initialized
     sd_notify(0, "READY=1");
     qCInfo(lcCore) << "sd_notify: READY=1 sent";
+
+    // Kill splash screen (swaybg) once the window is actually rendered.
+    // QTimer::singleShot with 0ms fires after pending events (including first paint).
+    QTimer::singleShot(500, []{
+        QProcess::startDetached(QStringLiteral("pkill"), {QStringLiteral("swaybg")});
+    });
 
     // Watchdog heartbeat — if running under systemd with WatchdogSec,
     // fire at half the interval. Falls back to 15s if not set.
