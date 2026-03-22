@@ -114,11 +114,11 @@ else
 fi
 
 # Step registry
-STEP_NAMES=("System" "Dependencies" "Hardware" "Building" "Config" "Network" "Services" "Verify")
-STEP_STATUS=(pending pending pending pending pending pending pending pending)
-STEP_START=(0 0 0 0 0 0 0 0)
-STEP_ELAPSED=(0 0 0 0 0 0 0 0)
-STEP_DETAIL=("" "" "" "" "" "" "" "")
+STEP_NAMES=("System" "Dependencies" "Hardware" "Building" "Config" "Network" "Services" "Verify" "Optimize")
+STEP_STATUS=(pending pending pending pending pending pending pending pending pending)
+STEP_START=(0 0 0 0 0 0 0 0 0)
+STEP_ELAPSED=(0 0 0 0 0 0 0 0 0)
+STEP_DETAIL=("" "" "" "" "" "" "" "" "")
 TOTAL_STEPS=${#STEP_NAMES[@]}
 ACTIVE_STEP=-1
 SPIN_TICK=0
@@ -1865,7 +1865,34 @@ run_diagnostics() {
 
     leave_interactive
     update_step 7 done
+}
 
+# ────────────────────────────────────────────────────
+# Step 10: System optimization
+# ────────────────────────────────────────────────────
+optimize_system() {
+    update_step 8 active
+
+    # Disable wait-online services — Pi typically boots without internet,
+    # these just add 10-14s of timeout waiting for a connection that won't come
+    run_with_spinner "Disabling network wait-online services" bash -c \
+        'sudo systemctl disable systemd-networkd-wait-online.service 2>/dev/null; \
+         sudo systemctl disable NetworkManager-wait-online.service 2>/dev/null; true'
+
+    # Disable cloud-init — cloud VM provisioning, useless on a Pi
+    run_with_spinner "Disabling cloud-init services" bash -c \
+        'sudo systemctl disable cloud-init-local.service cloud-init-main.service \
+         cloud-init-network.service cloud-final.service cloud-config.service 2>/dev/null; \
+         sudo touch /etc/cloud/cloud-init.disabled 2>/dev/null; true'
+
+    # Disable ModemManager — no cellular modem on a Pi head unit
+    run_with_spinner "Disabling ModemManager" bash -c \
+        'sudo systemctl disable ModemManager.service 2>/dev/null; true'
+
+    update_step 8 done
+}
+
+finalize() {
     # Exit TUI mode for final summary
     tui_cleanup
     clear
@@ -2007,6 +2034,8 @@ main() {
     clear_paired_phones
 
     run_diagnostics       # Step 7: Verify
+    optimize_system       # Step 8: Optimize
+    finalize              # Final summary
 
     # Clean up aggregate log on success
     rm -f "$AGGREGATE_LOG"
