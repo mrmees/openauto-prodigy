@@ -1321,7 +1321,7 @@ LABWC
 # the app.  The systemd service kills the panel on start and restores it on
 # clean stop, so no config changes are needed here — just log it.
 suppress_panel_notifications() {
-    ok "wf-panel-pi will be suspended while Prodigy runs (systemd unit handles lifecycle)"
+    ok "wf-panel-pi: no panel management needed (kiosk mode uses separate session without panel)"
 }
 
 # ────────────────────────────────────────────────────
@@ -1628,10 +1628,8 @@ Environment=QT_QPA_PLATFORM=wayland
 Environment=DBUS_SESSION_BUS_ADDRESS=unix:path=/run/user/$USER_ID/bus
 WorkingDirectory=$INSTALL_DIR
 ExecStartPre=+/usr/local/bin/openauto-preflight
-ExecStartPre=-/bin/sh -c 'systemctl --user stop wf-panel-restore.service 2>/dev/null; pkill -f "lwrespawn.*wf-panel-pi"; pkill wf-panel-pi; true'
 ExecStart=$INSTALL_DIR/build/src/openauto-prodigy
 ExecStopPost=-/bin/sh -c '[ "\$SERVICE_RESULT" = "success" ] && timeout 5 /usr/bin/bluetoothctl disconnect || true'
-ExecStopPost=-/bin/sh -c '[ "\$SERVICE_RESULT" = "success" ] && systemd-run --user --unit=wf-panel-restore --setenv=WAYLAND_DISPLAY=wayland-0 /usr/bin/lwrespawn /usr/bin/wf-panel-pi || true'
 Restart=on-failure
 RestartSec=3
 WatchdogSec=30
