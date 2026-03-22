@@ -840,6 +840,9 @@ install_dependencies() {
 
         # Python venv support (for system-service fallback)
         python3-venv
+
+        # Wayland socket wait (preflight uses inotifywait for zero-CPU blocking)
+        inotify-tools
     )
 
     run_with_spinner "Updating package lists" sudo apt-get update -q
@@ -1539,20 +1542,28 @@ else
     fail "rfkill not found"
 fi
 
-# 2. Wayland compositor check (poll up to 10s — compositor may still be starting)
+# 2. Wayland compositor check (wait for socket to appear)
 WAYLAND_SOCKET="${XDG_RUNTIME_DIR:-/run/user/1000}/${WAYLAND_DISPLAY:-wayland-0}"
-WAYLAND_READY=false
-for i in $(seq 1 20); do
-    if [[ -e "$WAYLAND_SOCKET" ]]; then
-        WAYLAND_READY=true
-        break
-    fi
-    sleep 0.5
-done
-if [[ "$WAYLAND_READY" == "true" ]]; then
+if [[ -e "$WAYLAND_SOCKET" ]]; then
     pass "Wayland compositor ready (${WAYLAND_DISPLAY:-wayland-0})"
+elif command -v inotifywait &>/dev/null; then
+    # Block until socket appears (zero CPU, instant reaction, 15s timeout)
+    if inotifywait -t 15 -e create "$(dirname "$WAYLAND_SOCKET")" --include "$(basename "$WAYLAND_SOCKET")" &>/dev/null; then
+        pass "Wayland compositor ready (${WAYLAND_DISPLAY:-wayland-0})"
+    else
+        fail "Wayland socket not found at $WAYLAND_SOCKET after 15s"
+    fi
 else
-    fail "Wayland socket not found at $WAYLAND_SOCKET after 10s"
+    # Fallback poll if inotifywait not available
+    for i in $(seq 1 20); do
+        if [[ -e "$WAYLAND_SOCKET" ]]; then break; fi
+        sleep 0.5
+    done
+    if [[ -e "$WAYLAND_SOCKET" ]]; then
+        pass "Wayland compositor ready (${WAYLAND_DISPLAY:-wayland-0})"
+    else
+        fail "Wayland socket not found at $WAYLAND_SOCKET after 10s"
+    fi
 fi
 
 # 3. SDP socket check (self-healing: fix permissions if wrong)
