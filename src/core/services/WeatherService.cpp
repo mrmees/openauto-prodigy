@@ -140,8 +140,9 @@ void WeatherService::subscribe(double lat, double lon, int intervalMinutes)
         bool stale = !data->lastUpdated().isValid() ||
                      data->lastUpdated().msecsTo(QDateTime::currentDateTime()) > intervalMs;
         if (stale) {
-            auto coords = coordsByKey_.value(key);
-            fetchWeather(key, coords.first, coords.second);
+            const auto it = coordsByKey_.constFind(key);
+            if (it != coordsByKey_.cend())
+                fetchWeather(key, it->first, it->second);
         }
     }
 }
