@@ -1008,17 +1008,13 @@ int main(int argc, char *argv[])
     {
         auto* splashWindow = qobject_cast<QQuickWindow*>(engine.rootObjects().first());
         if (splashWindow) {
-            auto* conn = new QMetaObject::Connection;
-            *conn = QObject::connect(splashWindow, &QQuickWindow::frameSwapped, &app,
-                [conn, &app]() {
+            QObject::connect(splashWindow, &QQuickWindow::frameSwapped, &app,
+                [&app]() {
                     // First frame presented to compositor — dismiss splash
                     QTimer::singleShot(500, &app, []() {
                         QProcess::execute("pkill", {"-f", "swaybg.*splash"});
                     });
-                    // One-shot: disconnect after first fire
-                    QObject::disconnect(*conn);
-                    delete conn;
-                });
+                }, Qt::SingleShotConnection);
         }
     }
 
