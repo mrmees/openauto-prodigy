@@ -1,0 +1,2 @@
+QT_QPA_PLATFORM=wayland
+XDG_CURRENT_DESKTOP=labwc

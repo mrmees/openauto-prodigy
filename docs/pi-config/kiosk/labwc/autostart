@@ -1,0 +1,3 @@
+# Kiosk session autostart
+# Phase 29 will add: swaybg -i /usr/share/openauto-prodigy/splash.png -m fill &
+# The app launches via systemd service (WantedBy=graphical.target), not from here.

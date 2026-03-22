@@ -1,0 +1,17 @@
+<?xml version="1.0"?>
+<labwc_config>
+  <touch deviceName="" mapToOutput="" mouseEmulation="no"/>
+  <core>
+    <decoration>server</decoration>
+    <gap>0</gap>
+  </core>
+  <theme>
+    <cornerRadius>0</cornerRadius>
+    <keepBorder>no</keepBorder>
+  </theme>
+  <windowRules>
+    <windowRule identifier="openauto*" serverDecoration="no">
+      <action name="ToggleFullscreen"/>
+    </windowRule>
+  </windowRules>
+</labwc_config>

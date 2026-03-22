@@ -1,0 +1,6 @@
+[Desktop Entry]
+Name=OpenAuto Kiosk
+Comment=OpenAuto Prodigy kiosk session
+Exec=/usr/bin/labwc -C /etc/openauto-kiosk/labwc
+Type=Application
+DesktopNames=labwc
