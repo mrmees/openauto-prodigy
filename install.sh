@@ -1539,12 +1539,20 @@ else
     fail "rfkill not found"
 fi
 
-# 2. Wayland compositor check
+# 2. Wayland compositor check (poll up to 10s — compositor may still be starting)
 WAYLAND_SOCKET="${XDG_RUNTIME_DIR:-/run/user/1000}/${WAYLAND_DISPLAY:-wayland-0}"
-if [[ -e "$WAYLAND_SOCKET" ]]; then
+WAYLAND_READY=false
+for i in $(seq 1 20); do
+    if [[ -e "$WAYLAND_SOCKET" ]]; then
+        WAYLAND_READY=true
+        break
+    fi
+    sleep 0.5
+done
+if [[ "$WAYLAND_READY" == "true" ]]; then
     pass "Wayland compositor ready (${WAYLAND_DISPLAY:-wayland-0})"
 else
-    fail "Wayland socket not found at $WAYLAND_SOCKET"
+    fail "Wayland socket not found at $WAYLAND_SOCKET after 10s"
 fi
 
 # 3. SDP socket check (self-healing: fix permissions if wrong)
