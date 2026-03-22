@@ -842,8 +842,8 @@ install_dependencies() {
         python3-venv
     )
 
-    run_with_spinner "Updating package lists" sudo apt-get update -qq
-    run_with_spinner "Installing ${#PACKAGES[@]} packages" sudo apt-get install -y -qq "${PACKAGES[@]}"
+    run_with_spinner "Updating package lists" sudo apt-get update -q
+    run_with_spinner "Installing ${#PACKAGES[@]} packages" sudo apt-get install -y -q "${PACKAGES[@]}"
 
     update_step 1 done
 }
