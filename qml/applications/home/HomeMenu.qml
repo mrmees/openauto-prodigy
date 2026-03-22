@@ -1144,7 +1144,7 @@ Item {
         dim: false
         closePolicy: Popup.CloseOnEscape | Popup.CloseOnPressOutside
         parent: Overlay.overlay
-        width: Math.min(parent ? parent.width * 0.45 : 200, 240)
+        width: emptySpaceMenuContent.implicitWidth + leftPadding + rightPadding
         padding: UiMetrics.spacing
 
         background: Rectangle {
@@ -1184,9 +1184,6 @@ Item {
                         font.pixelSize: UiMetrics.fontBody
                         color: ThemeService.onSurface
                         Layout.fillWidth: true
-                        elide: Text.ElideRight
-                        maximumLineCount: 1
-                        clip: true
                     }
                 }
 
@@ -1237,9 +1234,6 @@ Item {
                         font.pixelSize: UiMetrics.fontBody
                         color: ThemeService.onSurface
                         Layout.fillWidth: true
-                        elide: Text.ElideRight
-                        maximumLineCount: 1
-                        clip: true
                     }
                 }
 
