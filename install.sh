@@ -1316,10 +1316,9 @@ LABWC
     fi
 }
 
-# Step 3d: Suppress wf-panel-pi Bluetooth popups
-# The panel's BT plugin shows "Connection successful" dialogs that draw over
-# the app.  The systemd service kills the panel on start and restores it on
-# clean stop, so no config changes are needed here — just log it.
+# Step 3d: Panel notification status
+# In kiosk mode, wf-panel-pi is not started (the kiosk session uses a
+# separate labwc config without panel). No panel management needed.
 suppress_panel_notifications() {
     ok "wf-panel-pi: no panel management needed (kiosk mode uses separate session without panel)"
 }

@@ -10,7 +10,7 @@ Reference configuration files for the OpenAuto Prodigy kiosk session. These file
 | `labwc/rc.xml` | `/etc/openauto-kiosk/labwc/rc.xml` | Stripped labwc config: no decorations, no desktop chrome, multi-touch safe |
 | `labwc/autostart` | `/etc/openauto-kiosk/labwc/autostart` | Kiosk autostart script (splash added in Phase 29; app launches via systemd) |
 | `labwc/environment` | `/etc/openauto-kiosk/labwc/environment` | Environment variables for the kiosk compositor session |
-| `50-openauto-kiosk.conf` | `/etc/lightdm/lightdm.conf.d/50-openauto-kiosk.conf` | LightDM drop-in for autologin into kiosk session |
+| `50-openauto-kiosk.conf` | `/etc/lightdm/lightdm.conf.d/50-openauto-kiosk.conf` | LightDM drop-in for autologin into kiosk session (**note:** `autologin-user=matt` is a placeholder — replace with actual username or use `$USER` in installer) |
 | `accountsservice-user` | `/var/lib/AccountsService/users/$USER` | AccountsService session preference (belt-and-suspenders with LightDM) |
 
 ## How It Works
@@ -53,7 +53,8 @@ sudo cp accountsservice-user /var/lib/AccountsService/users/$USER
 **Test the session** (without rebooting):
 ```bash
 # Switch to the kiosk session from a desktop terminal or SSH
-dm-tool switch-to-user matt openauto-kiosk
+# Replace $USER with the actual username if running from a root shell
+dm-tool switch-to-user $USER openauto-kiosk
 ```
 
 ## AccountsService Entry
@@ -70,15 +71,13 @@ Both should agree on the session name (`openauto-kiosk`).
 To switch back to the standard RPi OS desktop:
 
 ```bash
-# Option 1: Remove the LightDM drop-in (cleanest)
-sudo rm /etc/lightdm/lightdm.conf.d/50-openauto-kiosk.conf
-sudo reboot
-
-# Option 2: Update AccountsService too (belt-and-suspenders)
+# Remove both the LightDM drop-in AND the AccountsService entry
 sudo rm /etc/lightdm/lightdm.conf.d/50-openauto-kiosk.conf
 sudo sed -i 's/Session=openauto-kiosk/Session=rpd-labwc/' /var/lib/AccountsService/users/$USER
 sudo reboot
 ```
+
+**Important:** Both files must be reverted. Removing only the LightDM drop-in may leave the AccountsService entry pointing to the kiosk session, which some LightDM configurations will still honor.
 
 ## Warning: raspi-config and Session Selection
 
