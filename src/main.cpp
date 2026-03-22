@@ -1055,17 +1055,19 @@ int main(int argc, char *argv[])
     sd_notify(0, "READY=1");
     qCInfo(lcCore) << "sd_notify: READY=1 sent";
 
-    // Kill splash screen (swaybg) after the first frame is actually rendered.
-    // Connect to the root window's afterRendering signal — fires when GPU has
-    // composited the first frame. Single-shot via disconnect after first fire.
+    // Kill splash screen (swaybg) after the first frame is presented.
+    // frameSwapped = frame queued to compositor. Add 300ms for compositor
+    // to actually present it on the display before killing the splash.
     if (!engine.rootObjects().isEmpty()) {
         if (auto* window = qobject_cast<QQuickWindow*>(engine.rootObjects().first())) {
-            QObject::connect(window, &QQuickWindow::afterRendering, window, [window]{
-                // Disconnect immediately — only need the first frame
-                QObject::disconnect(window, &QQuickWindow::afterRendering, nullptr, nullptr);
-                QProcess::startDetached(QStringLiteral("pkill"), {QStringLiteral("swaybg")});
-                qCInfo(lcCore) << "Splash screen dismissed (first frame rendered)";
-            }, Qt::DirectConnection);
+            QObject::connect(window, &QQuickWindow::frameSwapped, window, [window]{
+                QObject::disconnect(window, &QQuickWindow::frameSwapped, nullptr, nullptr);
+                QTimer::singleShot(300, []{
+                    QProcess::startDetached(QStringLiteral("pkill"),
+                                            {QStringLiteral("-x"), QStringLiteral("swaybg")});
+                    qCInfo(lcCore) << "Splash screen dismissed (first frame presented)";
+                });
+            });
         }
     }
 
