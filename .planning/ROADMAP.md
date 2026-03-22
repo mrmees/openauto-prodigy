@@ -130,3 +130,54 @@ See .planning/milestones/v0.6.5-ROADMAP.md for archived details.
 See .planning/milestones/v0.6.6-ROADMAP.md for archived details.
 
 </details>
+
+## v0.7.0 Kiosk Session & Boot Experience (Phases 28-32)
+
+**Goal:** Replace the default RPi desktop session with a dedicated kiosk session so the user never sees the bare desktop — from power-on to app, only branded splash and the app are visible.
+
+### Phases
+
+- [ ] **Phase 28: Kiosk Session Infrastructure** — XDG session entry, stripped labwc config, LightDM autologin drop-in, simplified systemd service
+- [ ] **Phase 29: Compositor Splash Handoff** — swaybg splash in kiosk autostart, frameSwapped-based dismissal in main.cpp, splash artwork
+- [ ] **Phase 30: RPi Boot Splash** — rpi-splash-screen-support TGA logo, cmdline.txt repair, Plymouth masking, initramfs verification
+- [ ] **Phase 31: Exit-to-Desktop** — ApplicationController::exitToDesktop(), ActionRegistry wiring, GestureOverlay desktop button, dm-tool session switch
+- [ ] **Phase 32: Installer Integration** — configure_boot_splash() and create_kiosk_session() installer functions, kiosk mode prompt, idempotent upgrade
+
+### Phase Details
+
+#### Phase 28: Kiosk Session Infrastructure
+
+**Goal:** Core session infrastructure everything else depends on. No app code changes — pure config files.
+**Depends on:** Nothing (first phase)
+**Delivers:** `openauto-kiosk.desktop` XDG session, `/etc/openauto-kiosk/labwc/` config (rc.xml + autostart + environment), LightDM drop-in (`50-openauto-kiosk.conf`), simplified systemd service. Pi boots into kiosk session with app running fullscreen, no desktop chrome.
+**Canonical refs:** `.planning/research/ARCHITECTURE.md`, `.planning/research/PITFALLS.md`
+
+#### Phase 29: Compositor Splash Handoff
+
+**Goal:** Eliminate the black gap between compositor start and app first frame.
+**Depends on:** Phase 28 (kiosk autostart file must exist)
+**Delivers:** swaybg in kiosk autostart displaying splash PNG, `QQuickWindow::frameSwapped` one-shot handler in `main.cpp` with 500ms delayed `pkill -f "swaybg.*splash"`, splash artwork at `/usr/share/openauto-prodigy/`.
+**Canonical refs:** `.planning/research/ARCHITECTURE.md`, `.planning/research/PITFALLS.md`
+
+#### Phase 30: RPi Boot Splash
+
+**Goal:** Prodigy logo visible from kernel boot onward. Highest-risk phase — hardware validation required.
+**Depends on:** Phase 29 (same splash artwork, TGA conversion)
+**Delivers:** `rpi-splash-screen-support` configured, TGA generated via ImageMagick, cmdline.txt repaired after configure-splash, Plymouth masked.
+**Canonical refs:** `.planning/research/PITFALLS.md`, `.planning/research/STACK.md`
+**Research flag:** Requires Pi 4 Trixie hardware validation. raspberrypi/linux#7081 is open.
+
+#### Phase 31: Exit-to-Desktop
+
+**Goal:** Safety escape hatch from kiosk mode. Can be developed in parallel with Phase 30.
+**Depends on:** Phase 28 (both sessions must exist for switch)
+**Delivers:** `ApplicationController::exitToDesktop()`, `app.exitToDesktop` ActionRegistry action, "Desktop" button in GestureOverlay, `dm-tool switch-to-user` with 500ms delayed quit.
+**Canonical refs:** `.planning/research/ARCHITECTURE.md`, `.planning/research/PITFALLS.md`
+**Research flag:** dm-tool with Wayland sessions is MEDIUM confidence. Round-trip hardware test required.
+
+#### Phase 32: Installer Integration
+
+**Goal:** Wrap all validated Phase 28-31 work into install.sh for automated setup.
+**Depends on:** Phases 28-31 (must automate proven work only)
+**Delivers:** `configure_boot_splash()` and `create_kiosk_session()` installer functions, kiosk mode prompt, idempotent upgrade handling, revert instructions.
+**Canonical refs:** `.planning/research/FEATURES.md`, `.planning/research/PITFALLS.md`, `install.sh`
