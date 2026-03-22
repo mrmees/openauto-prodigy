@@ -1144,8 +1144,16 @@ Item {
         dim: false
         closePolicy: Popup.CloseOnEscape | Popup.CloseOnPressOutside
         parent: Overlay.overlay
-        width: UiMetrics.touchMin * 4
         padding: UiMetrics.spacing
+
+        // Size from text metrics + chrome, not a fixed cap
+        readonly property int rowChrome: UiMetrics.marginPage * 2
+                                         + UiMetrics.iconSize
+                                         + UiMetrics.gap
+        width: Math.max(Math.round(UiMetrics.touchMin * 4.5),
+                        rowChrome + Math.max(addWidgetText.implicitWidth,
+                                             addPageText.implicitWidth)
+                        + leftPadding + rightPadding)
 
         background: Rectangle {
             color: ThemeService.surfaceContainerHighest
@@ -1153,13 +1161,12 @@ Item {
         }
 
         contentItem: Column {
-            id: emptySpaceMenuContent
             width: emptySpaceMenu.availableWidth
             spacing: 0
 
             // "Add Widget" option
             Item {
-                width: emptySpaceMenuContent.width
+                width: parent.width
                 height: UiMetrics.touchMin
 
                 Rectangle {
@@ -1180,6 +1187,7 @@ Item {
                         color: ThemeService.onSurface
                     }
                     NormalText {
+                        id: addWidgetText
                         text: "Add Widget"
                         font.pixelSize: UiMetrics.fontBody
                         color: ThemeService.onSurface
@@ -1201,15 +1209,14 @@ Item {
 
             // Divider
             Rectangle {
-                width: emptySpaceMenuContent.width
+                width: parent.width
                 height: 1
                 color: ThemeService.outlineVariant
-                anchors.horizontalCenter: parent.horizontalCenter
             }
 
             // "Add Page" option
             Item {
-                width: emptySpaceMenuContent.width
+                width: parent.width
                 height: UiMetrics.touchMin
 
                 Rectangle {
@@ -1230,6 +1237,7 @@ Item {
                         color: ThemeService.onSurface
                     }
                     NormalText {
+                        id: addPageText
                         text: "Add Page"
                         font.pixelSize: UiMetrics.fontBody
                         color: ThemeService.onSurface
