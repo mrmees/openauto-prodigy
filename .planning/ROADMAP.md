@@ -138,7 +138,7 @@ See .planning/milestones/v0.6.6-ROADMAP.md for archived details.
 ### Phases
 
 - [x] **Phase 28: Kiosk Session Infrastructure** — XDG session entry, stripped labwc config, LightDM autologin drop-in, simplified systemd service (completed 2026-03-22)
-- [ ] **Phase 29: Compositor Splash Handoff** — swaybg splash in kiosk autostart, frameSwapped-based dismissal in main.cpp, splash artwork
+- [x] **Phase 29: Compositor Splash Handoff** — swaybg splash in kiosk autostart, frameSwapped-based dismissal in main.cpp (completed 2026-03-22)
 - [ ] **Phase 30: RPi Boot Splash** — rpi-splash-screen-support TGA logo, cmdline.txt repair, Plymouth masking, initramfs verification
 - [ ] **Phase 31: Exit-to-Desktop** — ApplicationController::exitToDesktop(), ActionRegistry wiring, GestureOverlay desktop button, dm-tool session switch
 - [ ] **Phase 32: Installer Integration** — configure_boot_splash() and create_kiosk_session() installer functions, kiosk mode prompt, idempotent upgrade
@@ -162,6 +162,10 @@ Plans:
 **Depends on:** Phase 28 (kiosk autostart file must exist)
 **Delivers:** swaybg in kiosk autostart displaying splash PNG, `QQuickWindow::frameSwapped` one-shot handler in `main.cpp` with 500ms delayed `pkill -f "swaybg.*splash"`, splash artwork at `/usr/share/openauto-prodigy/`.
 **Canonical refs:** `.planning/research/ARCHITECTURE.md`, `.planning/research/PITFALLS.md`
+**Plans:** 1/1 plans complete
+
+Plans:
+- [x] 29-01-PLAN.md -- swaybg splash in kiosk autostart + frameSwapped dismissal in main.cpp
 
 #### Phase 30: RPi Boot Splash
 
