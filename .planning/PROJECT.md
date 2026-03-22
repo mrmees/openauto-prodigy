@@ -132,11 +132,29 @@ A person with a Raspberry Pi 4 and a touchscreen can install this, pair their ph
 - ✓ All FABs, badge buttons (X delete, gear config, corner resize), and global edit mode removed — v0.6.6
 - ✓ Overlay lifecycle cleanup for no-selection states (AA fullscreen, plugin change, settings navigation, page change) — v0.6.6
 
+## Current Milestone: v0.7.0 Kiosk Session & Boot Experience
+
+**Goal:** Replace the default RPi desktop session with a dedicated kiosk session so the user never sees the bare desktop — from power-on to app, only branded splash and the app are visible.
+
+**Target features:**
+- RPi boot splash (rpi-splash-screen-support) replacing default raspberries/boot text with Prodigy logo
+- Dedicated kiosk XDG session (no panel, no taskbar, no wallpaper daemon)
+- Compositor-owned splash (swaybg) as first Wayland surface
+- App-controlled splash dismissal on first rendered frame
+- Exit-to-desktop via 3-finger overlay exit button (restores normal session)
+- Installer creates and configures kiosk session, boot splash, and all supporting config
+
 ### Active
 
 <!-- Current scope. Building toward these. -->
 
-(No active milestone — next milestone TBD)
+- [ ] RPi kernel boot splash with Prodigy logo via rpi-splash-screen-support
+- [ ] Dedicated kiosk XDG session replacing default RPi desktop
+- [ ] Stripped labwc config for kiosk mode (no panel, no taskbar, black background)
+- [ ] Compositor-owned splash (swaybg) as first Wayland surface after compositor starts
+- [ ] App dismisses splash after first frame is presented
+- [ ] Exit-to-desktop via 3-finger overlay exit button
+- [ ] Installer configures kiosk session, boot splash, and LightDM autologin
 
 ### Backlog
 
@@ -270,4 +288,4 @@ v0.4 shipped logging and theming. v0.4.1 shipped 10-band graphic EQ with per-str
 | _skipPageCleanup flag for PGM-04 race prevention | removePage shifts indices; deferred cleanup in deselectWidget would iterate wrong pages | ✓ Good |
 
 ---
-*Last updated: 2026-03-22 after v0.6.6 milestone*
+*Last updated: 2026-03-22 after v0.7.0 milestone start*
