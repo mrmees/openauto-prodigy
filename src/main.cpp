@@ -9,6 +9,7 @@
 #include <QQmlApplicationEngine>
 #include <QQmlContext>
 #include <QQuickItem>
+#include <QQuickWindow>
 #include <QQuickStyle>
 #include <QDir>
 #include <QFile>
@@ -1054,11 +1055,19 @@ int main(int argc, char *argv[])
     sd_notify(0, "READY=1");
     qCInfo(lcCore) << "sd_notify: READY=1 sent";
 
-    // Kill splash screen (swaybg) once the window is actually rendered.
-    // QTimer::singleShot with 0ms fires after pending events (including first paint).
-    QTimer::singleShot(500, []{
-        QProcess::startDetached(QStringLiteral("pkill"), {QStringLiteral("swaybg")});
-    });
+    // Kill splash screen (swaybg) after the first frame is actually rendered.
+    // Connect to the root window's afterRendering signal — fires when GPU has
+    // composited the first frame. Single-shot via disconnect after first fire.
+    if (!engine.rootObjects().isEmpty()) {
+        if (auto* window = qobject_cast<QQuickWindow*>(engine.rootObjects().first())) {
+            QObject::connect(window, &QQuickWindow::afterRendering, window, [window]{
+                // Disconnect immediately — only need the first frame
+                QObject::disconnect(window, &QQuickWindow::afterRendering, nullptr, nullptr);
+                QProcess::startDetached(QStringLiteral("pkill"), {QStringLiteral("swaybg")});
+                qCInfo(lcCore) << "Splash screen dismissed (first frame rendered)";
+            }, Qt::DirectConnection);
+        }
+    }
 
     // Watchdog heartbeat — if running under systemd with WatchdogSec,
     // fire at half the interval. Falls back to 15s if not set.
