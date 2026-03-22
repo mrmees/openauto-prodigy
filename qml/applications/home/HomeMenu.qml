@@ -1144,7 +1144,7 @@ Item {
         dim: false
         closePolicy: Popup.CloseOnEscape | Popup.CloseOnPressOutside
         parent: Overlay.overlay
-        width: emptySpaceMenuContent.implicitWidth + leftPadding + rightPadding
+        width: UiMetrics.touchMin * 4
         padding: UiMetrics.spacing
 
         background: Rectangle {
