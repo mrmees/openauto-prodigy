@@ -641,29 +641,44 @@ Item {
                                         // Tap interceptor -- catches taps on ALL delegates during selection
                                         // When selected, tap deselects. When another widget is selected, tap also deselects.
                                         // Prevents widget actions (especially launcher widgets) from firing during selection.
+                                        // For the SELECTED widget: press immediately lifts, any movement starts drag.
                                         MouseArea {
                                             id: selectionTapInterceptor
                                             anchors.fill: parent
-                                            z: 15  // above widget content (z:0), below badges (z:20)
+                                            z: 15  // above widget content (z:0), below edge handles (z:20)
                                             enabled: homeScreen.selectedInstanceId !== ""
                                             visible: enabled
-                                            // Swallow taps -- deselect only, do NOT propagate to widget content
-                                            onClicked: homeScreen.deselectWidget()
-                                            // Also handle long-press: on non-selected, deselect. On selected, initiate drag.
-                                            onPressAndHold: function(mouse) {
+                                            property bool _movedDuringPress: false
+
+                                            onPressed: function(mouse) {
+                                                _movedDuringPress = false
                                                 if (delegateItem.isSelected) {
-                                                    // Selected widget long-press -> initiate drag
+                                                    // Immediately lift the selected widget (ready to drag)
                                                     innerContent.scale = 1.05
                                                     liftShadow.visible = true
                                                     delegateItem.pressOffsetX = mouse.x
                                                     delegateItem.pressOffsetY = mouse.y
-                                                    widgetMouseArea.initiateDrag()
-                                                } else {
-                                                    homeScreen.deselectWidget()
                                                 }
                                             }
+                                            onPositionChanged: function(mouse) {
+                                                if (delegateItem.isSelected && !delegateItem.dragging) {
+                                                    // Movement detected — start drag immediately (no long-press wait)
+                                                    _movedDuringPress = true
+                                                    widgetMouseArea.initiateDrag()
+                                                }
+                                            }
+                                            // Tap (press+release without movement) deselects
+                                            onClicked: {
+                                                if (!_movedDuringPress)
+                                                    homeScreen.deselectWidget()
+                                            }
+                                            // Also handle long-press on NON-selected widgets: deselect
+                                            onPressAndHold: function(mouse) {
+                                                if (!delegateItem.isSelected)
+                                                    homeScreen.deselectWidget()
+                                            }
                                             onReleased: {
-                                                // Reset lift if we were doing a long-press that didn't start drag
+                                                // Reset lift if press didn't start a drag
                                                 if (!delegateItem.dragging) {
                                                     innerContent.scale = 1.0
                                                     liftShadow.visible = false
@@ -1112,8 +1127,8 @@ Item {
         dim: false
         closePolicy: Popup.CloseOnEscape | Popup.CloseOnPressOutside
         parent: Overlay.overlay
-        width: Math.min(parent ? parent.width * 0.45 : 200, 220)
-        padding: UiMetrics.spacing * 0.5
+        width: Math.min(parent ? parent.width * 0.45 : 200, 240)
+        padding: UiMetrics.spacing
 
         background: Rectangle {
             color: ThemeService.surfaceContainerHighest
@@ -1125,7 +1140,7 @@ Item {
 
             // "Add Widget" option
             Item {
-                width: emptySpaceMenu.width - UiMetrics.spacing
+                width: parent.width
                 height: UiMetrics.touchMin
 
                 Rectangle {
@@ -1167,7 +1182,7 @@ Item {
 
             // Divider
             Rectangle {
-                width: emptySpaceMenu.width - UiMetrics.spacing * 2
+                width: parent.width
                 height: 1
                 color: ThemeService.outlineVariant
                 anchors.horizontalCenter: parent.horizontalCenter
@@ -1175,7 +1190,7 @@ Item {
 
             // "Add Page" option
             Item {
-                width: emptySpaceMenu.width - UiMetrics.spacing
+                width: parent.width
                 height: UiMetrics.touchMin
 
                 Rectangle {
