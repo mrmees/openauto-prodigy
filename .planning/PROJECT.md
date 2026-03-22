@@ -123,31 +123,20 @@ A person with a Raspberry Pi 4 and a touchscreen can install this, pair their ph
 - ✓ All widgets scale with layout size, Material Symbols font updated (4283 glyphs), all codepoints corrected — v0.6.5
 - ✓ AAStatusWidget removed (redundant with AA focus toggle) — v0.6.5
 - ✓ Now Playing reworked with automotive-sized controls, scrolling titles, progressive breakpoints — v0.6.5
-
-## Current Milestone: v0.6.6 Homescreen Layout & Widget Settings Rework
-
-**Goal:** Replace global edit mode with Android-style per-widget interactions — long-press to lift/drag, navbar-hosted settings/delete, edge resize handles, bottom-sheet widget picker, and long-press-empty for page/widget management.
-
-**Target features:**
-- Per-widget long-press interaction (lift, drag, select)
-- Navbar control transformation (volume/brightness → settings/delete during widget interaction)
-- 4-edge resize handles on selected widget
-- Bottom-sheet widget picker with categorized scrollable list and auto-placement
-- Long-press empty space menu (Add Widget / Add Page)
-- Auto-delete empty pages
-- Remove all FABs, tiny badge buttons, global edit mode, inactivity timer
+- ✓ Per-widget long-press selection model replacing global edit mode (lift animation, accent border, auto-deselect) — v0.6.6
+- ✓ Navbar gear/trash transformation during widget selection with tap-only enforcement and widget name display — v0.6.6
+- ✓ 4-edge resize handles with atomic resizeWidgetFromEdge API, ghost preview, min/max clamping, collision detection — v0.6.6
+- ✓ Bottom-sheet widget picker with categorized list, auto-placement, and "No Widget" entry suppression — v0.6.6
+- ✓ Long-press empty space popup menu for Add Widget / Add Page with grid bounds check and gesture arbitration — v0.6.6
+- ✓ Empty page auto-delete on widget removal via navbar trash with shifted-index race prevention — v0.6.6
+- ✓ All FABs, badge buttons (X delete, gear config, corner resize), and global edit mode removed — v0.6.6
+- ✓ Overlay lifecycle cleanup for no-selection states (AA fullscreen, plugin change, settings navigation, page change) — v0.6.6
 
 ### Active
 
 <!-- Current scope. Building toward these. -->
 
-- [ ] Per-widget long-press lift/drag/select interaction model
-- [ ] Navbar transforms to settings/delete during widget interaction
-- [ ] 4-edge resize handles on selected widget
-- [ ] Bottom-sheet widget picker with auto-placement
-- [ ] Long-press empty space → Add Widget / Add Page menu
-- [ ] Auto-manage pages (auto-delete empty)
-- [ ] Remove global edit mode and all associated UI (FABs, badges, timer)
+(No active milestone — next milestone TBD)
 
 ### Backlog
 
@@ -179,7 +168,7 @@ A person with a Raspberry Pi 4 and a touchscreen can install this, pair their ph
 
 OpenAuto Pro (BlueWave Studio) was a commercial Pi-based AA head unit that went defunct. This project is a clean-room rebuild — no OAP code, no aasdk dependency. The protocol library (`open-android-auto`) is maintained as a separate community resource.
 
-v0.4 shipped logging and theming. v0.4.1 shipped 10-band graphic EQ with per-stream profiles. v0.4.2 shipped service hardening — WiFi AP, Bluetooth SDP, systemd ordering, and clean shutdown all work reliably without manual intervention. v0.4.3 shipped full UI refresh — automotive-minimal styling, 6-category settings, EQ dual-access, shell polish. v0.4.4 shipped resolution independence — unclamped dual-axis UiMetrics, full QML tokenization (zero hardcoded pixels), container-derived grid layouts, runtime auto-detection, and --geometry validation tooling. v0.4.5 shipped navbar rework — zone-based evdev touch routing, 3-control navbar with multi-gesture actions and edge positioning, navbar-aware AA viewport margins, gesture overlay touch fix, and dead UI cleanup (TopBar, NavStrip, sidebar removed). v0.5.0 shipped protocol compliance — proto submodule v1.0, navigation turn events, voice session commands, BT auth exchange, haptic feedback, retracted dead code cleanup after v1.2 proto verification, library renamed to prodigy-oaa-protocol. v0.5.1 shipped DPI sizing & UI polish — EDID-based DPI scaling, scale stepper, clock readability, full 34-role M3 color system, companion theme import, AA rendering fix, navbar status bar cleanup, M3 button components with visual depth effects. v0.5.2 shipped widget system & UI polish — 3-pane home screen with launcher dock and built-in widgets, settings reorganized into 9 categories with touch normalization and automotive-readable font sizes. v0.5.3 shipped widget grid & content widgets — Android-style freeform grid with drag/resize/multi-page, AA navigation turn-by-turn widget, unified now playing widget with AA/BT source priority. v0.6 shipped architecture formalization — typed provider interfaces, core-owned services, legacy Configuration removal, SettingsInputBoundary for settings touch input, 82 unit tests. v0.6.1 shipped widget framework refinement — WidgetDescriptor with size constraints and categories, DPI-based grid sizing with auto-snap, launcher dock replaced by singleton widgets, formalized widget contract (span-based breakpoints, context injection, ActionRegistry egress), all 6 widgets rewritten, developer guide and 15 ADRs, 85 unit tests all passing. v0.6.2 shipped theme expression & wallpaper scaling — wallpaper memory/render hardening, companion reconnect fix, theme persistence, M3 color audit with night comfort guardrail, 9 companion-created themes promoted to bundled defaults with Prodigy as first-install identity, FullScreenPicker GPU fix. v0.6.3 shipped proxy routing fix — root daemon with restricted IPC socket, idempotent iptables routing with self-exemption via dedicated redsocks user, truthful ACTIVE/FAILED/DEGRADED status reporting, startup self-heal, end-to-end hardware validation proving companion SOCKS bridge traversal. v0.6.4 shipped widget work — per-instance widget configuration with schema-driven config sheets, 6 new widgets (theme cycle, battery, companion status, AA focus toggle, clock styles, weather), WeatherService with Open-Meteo integration and subscriber-aware caching. v0.6.5 shipped widget refinement — date widget split from clock, custom Canvas battery gauge, all widgets reworked for automotive-sized scaling, Material Symbols font updated with corrected codepoints, AAStatusWidget removed, Now Playing reworked with scrolling titles and progressive breakpoints. Codebase is ~56K LOC C++/QML + ~2K LOC Python system service, 88 unit tests.
+v0.4 shipped logging and theming. v0.4.1 shipped 10-band graphic EQ with per-stream profiles. v0.4.2 shipped service hardening — WiFi AP, Bluetooth SDP, systemd ordering, and clean shutdown all work reliably without manual intervention. v0.4.3 shipped full UI refresh — automotive-minimal styling, 6-category settings, EQ dual-access, shell polish. v0.4.4 shipped resolution independence — unclamped dual-axis UiMetrics, full QML tokenization (zero hardcoded pixels), container-derived grid layouts, runtime auto-detection, and --geometry validation tooling. v0.4.5 shipped navbar rework — zone-based evdev touch routing, 3-control navbar with multi-gesture actions and edge positioning, navbar-aware AA viewport margins, gesture overlay touch fix, and dead UI cleanup (TopBar, NavStrip, sidebar removed). v0.5.0 shipped protocol compliance — proto submodule v1.0, navigation turn events, voice session commands, BT auth exchange, haptic feedback, retracted dead code cleanup after v1.2 proto verification, library renamed to prodigy-oaa-protocol. v0.5.1 shipped DPI sizing & UI polish — EDID-based DPI scaling, scale stepper, clock readability, full 34-role M3 color system, companion theme import, AA rendering fix, navbar status bar cleanup, M3 button components with visual depth effects. v0.5.2 shipped widget system & UI polish — 3-pane home screen with launcher dock and built-in widgets, settings reorganized into 9 categories with touch normalization and automotive-readable font sizes. v0.5.3 shipped widget grid & content widgets — Android-style freeform grid with drag/resize/multi-page, AA navigation turn-by-turn widget, unified now playing widget with AA/BT source priority. v0.6 shipped architecture formalization — typed provider interfaces, core-owned services, legacy Configuration removal, SettingsInputBoundary for settings touch input, 82 unit tests. v0.6.1 shipped widget framework refinement — WidgetDescriptor with size constraints and categories, DPI-based grid sizing with auto-snap, launcher dock replaced by singleton widgets, formalized widget contract (span-based breakpoints, context injection, ActionRegistry egress), all 6 widgets rewritten, developer guide and 15 ADRs, 85 unit tests all passing. v0.6.2 shipped theme expression & wallpaper scaling — wallpaper memory/render hardening, companion reconnect fix, theme persistence, M3 color audit with night comfort guardrail, 9 companion-created themes promoted to bundled defaults with Prodigy as first-install identity, FullScreenPicker GPU fix. v0.6.3 shipped proxy routing fix — root daemon with restricted IPC socket, idempotent iptables routing with self-exemption via dedicated redsocks user, truthful ACTIVE/FAILED/DEGRADED status reporting, startup self-heal, end-to-end hardware validation proving companion SOCKS bridge traversal. v0.6.4 shipped widget work — per-instance widget configuration with schema-driven config sheets, 6 new widgets (theme cycle, battery, companion status, AA focus toggle, clock styles, weather), WeatherService with Open-Meteo integration and subscriber-aware caching. v0.6.5 shipped widget refinement — date widget split from clock, custom Canvas battery gauge, all widgets reworked for automotive-sized scaling, Material Symbols font updated with corrected codepoints, AAStatusWidget removed, Now Playing reworked with scrolling titles and progressive breakpoints. v0.6.6 shipped homescreen layout & widget settings rework — replaced global edit mode with Android-style per-widget long-press selection, navbar gear/trash transformation with tap-only enforcement, 4-edge resize handles with atomic API, bottom-sheet widget picker with categorized list, long-press empty space popup menu, all FABs and badge buttons removed, overlay lifecycle cleanup for no-selection states. Codebase is ~71K LOC C++/QML + ~2K LOC Python system service, 88 unit tests.
 
 ## Constraints
 
@@ -270,6 +259,15 @@ v0.4 shipped logging and theming. v0.4.1 shipped 10-band graphic EQ with per-str
 | Single 1-minute timer tick for weather refresh | Avoids per-location QTimers; tick checks per-location intervals | ✓ Good |
 | Open-Meteo (no API key) over OpenWeatherMap | Free, no signup, sufficient for current conditions — alerts deferred | ✓ Good |
 | Clock styles via Loader Component switching | Shared root-level time properties, clean separation of style rendering | ✓ Good |
+| Per-widget selection (not global edit mode) | Android-style individual widget interaction, no all-widgets-edit simultaneously | ✓ Good |
+| selectedInstanceId in QML (not C++) | Avoids split-brain state; C++ only gets thin remap gate via setWidgetSelected(bool) | ✓ Good |
+| selectionTapInterceptor at z:15 covering ALL delegates | Prevents launcher widget navigation escape; interceptor owns drag gesture for Pi touch | ✓ Good |
+| widgetInteractionMode on NavbarController (not re-registration) | controlRole() mode-aware dispatch; ActionRegistry naturally dispatches gear/trash roles | ✓ Good |
+| Tap-only enforcement for gear/trash (pressedInWidgetMode flag) | Automotive touchscreen in bumpy cars produces >200ms presses — force Tap regardless of duration | ✓ Good |
+| resizeWidgetFromEdge atomic API | Sequential move+resize has invalid intermediate state; atomic validation prevents it | ✓ Good |
+| Popup menu width from text implicitWidth + chrome | Scales with DPI/font size instead of hardcoded pixel cap | ✓ Good |
+| widgetDeselectedFromCpp signal for C++ → QML deselect bridge | 7 navigation actions call setWidgetSelected(false) in C++; signal syncs QML selectedInstanceId | ✓ Good |
+| _skipPageCleanup flag for PGM-04 race prevention | removePage shifts indices; deferred cleanup in deselectWidget would iterate wrong pages | ✓ Good |
 
 ---
-*Last updated: 2026-03-21 after v0.6.6 milestone start*
+*Last updated: 2026-03-22 after v0.6.6 milestone*

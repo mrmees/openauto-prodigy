@@ -120,77 +120,13 @@ See .planning/milestones/v0.6.5-ROADMAP.md for archived details.
 
 </details>
 
-## v0.6.6 Homescreen Layout & Widget Settings Rework (In Progress)
+<details>
+<summary>v0.6.6 Homescreen Layout & Widget Settings Rework (Phases 25-27) - SHIPPED 2026-03-22</summary>
 
-**Milestone Goal:** Replace global edit mode with Android-style per-widget interactions -- long-press to lift/drag, navbar-hosted settings/delete, edge resize handles, bottom-sheet widget picker, and long-press-empty for page/widget management.
+- [x] Phase 25: Selection Model & Interaction Foundation (1/1 plan) -- completed 2026-03-21
+- [x] Phase 26: Navbar Transformation & Edge Resize (2/2 plans) -- completed 2026-03-21
+- [x] Phase 27: Widget Picker & Page Management (2/2 plans) -- completed 2026-03-21
 
-## Phases
+See .planning/milestones/v0.6.6-ROADMAP.md for archived details.
 
-- [x] **Phase 25: Selection Model & Interaction Foundation** - Per-widget long-press select/drag/deselect replaces global edit mode; auto-deselect timeout replaces global inactivity timer (completed 2026-03-21)
-- [x] **Phase 26: Navbar Transformation & Edge Resize** - Navbar morphs to settings/delete during widget selection; 4-edge resize handles with constraint enforcement; widget deletion with empty page auto-cleanup (completed 2026-03-21)
-- [x] **Phase 27: Widget Picker & Page Management** - Bottom-sheet categorized picker with auto-placement; long-press empty space menu; FAB removal (completed 2026-03-21)
-
-## Phase Details
-
-### Phase 25: Selection Model & Interaction Foundation
-**Goal**: Users interact with individual widgets via long-press rather than entering a global edit mode
-**Depends on**: Nothing (first phase of v0.6.6)
-**Requirements**: SEL-01, SEL-02, SEL-03, SEL-04, CLN-01, CLN-04
-**Success Criteria** (what must be TRUE):
-  1. User can long-press a single widget to see it visually lift (scale + border feedback) without affecting other widgets
-  2. User can drag a lifted widget to a new grid position with snap-to-cell behavior
-  3. User can release a long-pressed widget without dragging to see a selected-state indicator, then tap empty space or clock-home to deselect
-  4. Selection automatically clears after inactivity timeout (auto-deselect, replacing the old global edit mode timer)
-  5. SwipeView is locked (non-interactive) while any widget is selected
-  6. Long-press still works on interactive widgets (widgets with their own touch handling, e.g. Now Playing controls, AA Focus toggle)
-  7. Tapping a different widget while one is selected only deselects — does NOT fire the tapped widget's action
-  8. AA fullscreen activation force-deselects AND dismisses any open overlays (config sheet, picker)
-  9. No global edit mode flag exists in UI or code
-**Plans:** 1/1 plans complete
-Plans:
-- [x] 25-01-PLAN.md — Selection model core: WidgetGridModel rename + HomeMenu.qml full refactor (editMode -> selectedInstanceId)
-
-### Phase 26: Navbar Transformation & Edge Resize
-**Goal**: Users manage widget settings, deletion, and sizing through automotive-sized controls instead of tiny overlays
-**Depends on**: Phase 25
-**Requirements**: NAV-01, NAV-02, NAV-03, NAV-04, NAV-05, RSZ-01, RSZ-02, RSZ-03, RSZ-04, CLN-03, PGM-04
-**Gated substep**: Navbar transformation must be verified working (select widget -> navbar shows gear/trash -> tap each -> correct action) BEFORE resize handle implementation begins.
-**Success Criteria** (what must be TRUE):
-  1. When a widget is selected, volume control shows a settings gear and brightness control shows a trash icon; tapping gear opens the widget config sheet
-  2. Tapping the trash icon removes the selected widget and reverts navbar to normal controls
-  3. Navbar automatically reverts to volume/brightness on deselect, drag start, or auto-deselect timeout
-  4. All tiny badge buttons removed (X delete, gear config, corner resize handle) -- replaced by navbar controls
-  5. Selected widget shows drag handles on all 4 edges; dragging any edge resizes the widget in that direction
-  6. Resize is clamped to widget descriptor min/max constraints with visual feedback at limits (e.g. handle color change or bounce)
-  7. Resize is blocked when it would overlap another widget, with a distinct collision indicator (e.g. red flash or shake)
-  8. Empty pages are automatically deleted when their last widget is removed via navbar trash
-**Plans:** 2/2 plans complete
-Plans:
-- [x] 26-01-PLAN.md — Navbar transformation: widgetInteractionMode C++ property, gear/trash icons, action routing, badge removal, PGM-04 empty page auto-delete
-- [x] 26-02-PLAN.md — Edge resize handles: resizeWidgetFromEdge C++ method, 4-edge QML handles with ghost preview and constraint feedback
-
-### Phase 27: Widget Picker & Page Management
-**Goal**: Users can add widgets and manage pages through discoverable long-press interactions on empty space
-**Depends on**: Phase 26
-**Requirements**: PKR-01, PKR-02, PKR-03, PGM-01, PGM-02, PGM-03, CLN-02
-**Success Criteria** (what must be TRUE):
-  1. Long-pressing empty grid space shows a menu with "Add Widget" and "Add Page" options
-  2. "Add Widget" opens a bottom sheet with categorized scrollable widget list; tapping a widget auto-places it at the first available cell
-  3. Picker only shows widgets that fit the available grid space
-  4. "Add Page" creates a new page and navigates to it
-  5. All FABs removed (add widget, add page, delete page) -- replaced by long-press empty menu and picker
-**Plans:** 2/2 plans complete
-Plans:
-- [ ] 27-01-PLAN.md — C++ guards (placeWidget empty-id, filterByAvailableSpace "No Widget" suppression) + WidgetPickerSheet.qml bottom sheet component
-- [ ] 27-02-PLAN.md — Long-press empty popup menu, picker integration, FAB removal, overlay lifecycle fixes
-
-## Progress
-
-**Execution Order:**
-Phases execute in numeric order: 25 -> 26 -> 27
-
-| Phase | Plans Complete | Status | Completed |
-|-------|----------------|--------|-----------|
-| 25. Selection Model & Interaction Foundation | 1/1 | Complete   | 2026-03-21 |
-| 26. Navbar Transformation & Edge Resize | 2/2 | Complete   | 2026-03-21 |
-| 27. Widget Picker & Page Management | 2/2 | Complete   | 2026-03-21 |
+</details>

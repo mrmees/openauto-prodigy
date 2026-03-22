@@ -1,5 +1,14 @@
 # Milestones
 
+## v0.6.6 Homescreen Layout & Widget Settings Rework (Shipped: 2026-03-22)
+
+**Phases completed:** 3 phases, 5 plans, 0 tasks
+
+**Key accomplishments:**
+- (none recorded)
+
+---
+
 ## v0.6.5 Widget Refinement (Shipped: 2026-03-21)
 
 **Delivered:** Visual refinement of all widgets via live preview tool iteration, date widget split from clock, custom battery gauge, Material Symbols font update, and hardware verification on Pi.
