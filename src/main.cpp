@@ -953,6 +953,24 @@ int main(int argc, char *argv[])
     if (QFile::exists(QStringLiteral(":/qt/qml/OpenAutoProdigy/main.qml")))
         url = QUrl(QStringLiteral("qrc:/qt/qml/OpenAutoProdigy/main.qml"));
 
+    // Launch splash screen (swaybg) before QML loads — covers the gap between
+    // Wayland ready and first app frame. Must be app's child process, not systemd's
+    // ExecStartPre (systemd kills leftover pre-start processes).
+    QProcess* splashProc = nullptr;
+    {
+        // Binary is at build/src/openauto-prodigy, assets at ../../assets/
+        QString splashPath = QDir(app.applicationDirPath())
+            .absoluteFilePath(QStringLiteral("../../assets/splash.png"));
+        if (QFile::exists(splashPath)) {
+            splashProc = new QProcess(&app);
+            splashProc->start(QStringLiteral("swaybg"),
+                              {QStringLiteral("-i"), splashPath,
+                               QStringLiteral("-m"), QStringLiteral("fit"),
+                               QStringLiteral("-c"), QStringLiteral("#000000")});
+            qCInfo(lcCore) << "Splash screen launched:" << splashPath;
+        }
+    }
+
     engine.load(url);
 
     if (engine.rootObjects().isEmpty())
@@ -1055,16 +1073,17 @@ int main(int argc, char *argv[])
     sd_notify(0, "READY=1");
     qCInfo(lcCore) << "sd_notify: READY=1 sent";
 
-    // Kill splash screen (swaybg) after the first frame is presented.
+    // Kill splash screen after the first frame is presented.
     // frameSwapped = frame queued to compositor. Add 300ms for compositor
     // to actually present it on the display before killing the splash.
-    if (!engine.rootObjects().isEmpty()) {
+    if (splashProc && !engine.rootObjects().isEmpty()) {
         if (auto* window = qobject_cast<QQuickWindow*>(engine.rootObjects().first())) {
-            QObject::connect(window, &QQuickWindow::frameSwapped, window, [window]{
+            QObject::connect(window, &QQuickWindow::frameSwapped, window, [window, splashProc]{
                 QObject::disconnect(window, &QQuickWindow::frameSwapped, nullptr, nullptr);
-                QTimer::singleShot(300, []{
-                    QProcess::startDetached(QStringLiteral("pkill"),
-                                            {QStringLiteral("-x"), QStringLiteral("swaybg")});
+                QTimer::singleShot(300, [splashProc]{
+                    splashProc->terminate();
+                    splashProc->waitForFinished(1000);
+                    splashProc->deleteLater();
                     qCInfo(lcCore) << "Splash screen dismissed (first frame presented)";
                 });
             });
