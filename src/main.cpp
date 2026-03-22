@@ -13,6 +13,7 @@
 #include <QDir>
 #include <QFile>
 #include <QTimer>
+#include <QProcess>
 #include <memory>
 #include <QtQml/qqml.h>
 #include "core/Logging.hpp"
@@ -996,6 +997,28 @@ int main(int argc, char *argv[])
                                      displayInfo, &oap::DisplayInfo::setQScreenDpi);
                 }
             });
+        }
+    }
+
+    // --- Splash dismissal: kill swaybg after first frame is visible ---
+    // The kiosk session's labwc autostart runs swaybg to cover the screen
+    // with a branded splash while the app initializes. Once we render our
+    // first frame, the app window occludes swaybg (wlr-layer-shell background
+    // layer), but we still kill the process to free memory.
+    {
+        auto* splashWindow = qobject_cast<QQuickWindow*>(engine.rootObjects().first());
+        if (splashWindow) {
+            auto* conn = new QMetaObject::Connection;
+            *conn = QObject::connect(splashWindow, &QQuickWindow::frameSwapped, &app,
+                [conn, &app]() {
+                    // First frame presented to compositor — dismiss splash
+                    QTimer::singleShot(500, &app, []() {
+                        QProcess::execute("pkill", {"-f", "swaybg.*splash"});
+                    });
+                    // One-shot: disconnect after first fire
+                    QObject::disconnect(*conn);
+                    delete conn;
+                });
         }
     }
 
