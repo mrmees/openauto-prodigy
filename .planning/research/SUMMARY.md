@@ -1,205 +1,187 @@
 # Project Research Summary
 
-**Project:** OpenAuto Prodigy v0.6.6 — Homescreen Layout & Widget Settings Rework
-**Domain:** Android-style per-widget interaction model for Qt 6.8 / QML automotive touchscreen
-**Researched:** 2026-03-21
-**Confidence:** HIGH
+**Project:** OpenAuto Prodigy v0.7.0 — Kiosk Session & Boot Experience
+**Domain:** Embedded Linux kiosk session management and boot splash for automotive head unit
+**Researched:** 2026-03-22
+**Confidence:** HIGH (all four research areas supported by official documentation and codebase analysis; boot splash layer MEDIUM due to sparse rpi-splash-screen-support Trixie testing)
 
 ## Executive Summary
 
-v0.6.6 is an interaction model rework, not a technology or architecture expansion. The goal is to replace the current global-edit-mode design (long-press anywhere -> all widgets badge -> FABs appear) with the Android-launcher per-widget model: long-press one widget to select it, then act on it via transformed navbar controls or drag handles. Every feature in this milestone maps directly to QML primitives and interaction patterns already proven in the codebase. There are zero new dependencies, zero new Qt modules, and zero new C++ classes required at minimum viable scope.
+This milestone is fundamentally a system-configuration exercise, not a software development one. The goal is to transform the Pi from "a computer running an app" into "a dedicated appliance that owns the screen from boot." Almost no new C++ or QML is required — the work is creating five configuration files, two installer functions, adding ~10 lines to `main.cpp`, and one new button in the 3-finger overlay. The core deliverable is a dedicated XDG session (`openauto-kiosk`) that replaces the default `rpd-labwc` desktop session with a stripped compositor config that runs nothing but a splash screen and the app itself. This eliminates the 3-second desktop flash that currently betrays the "it's just a Pi running stuff" origin.
 
-The recommended approach is to build in strict dependency order: selection model first (everything depends on `selectedInstanceId`), navbar transformation second (requires selection signal), edge resize handles third (independent of navbar, requires selection), bottom-sheet picker fourth (requires a trigger mechanism from the context menu), and context menu + cleanup last. This ordering gives a testable intermediate state after each phase and avoids building atop an unstable foundation. The core data layer (WidgetGridModel, WidgetRegistry, WidgetPickerModel) is unchanged — changes are concentrated in HomeMenu.qml and NavbarController.
+The recommended approach is a three-layer boot handoff: kernel splash (rpi-splash-screen-support TGA image) covers post-firmware early boot, compositor splash (swaybg in labwc autostart) covers the gap between kernel framebuffer handoff and app readiness, and the app dismisses swaybg on its first rendered frame via `QQuickWindow::frameSwapped`. All three layers display the same Prodigy logo so transitions are invisible. The critical architectural decision is that swaybg is owned by the compositor (labwc autostart), not by the app — this ensures the branded splash persists through app crashes, while systemd's restart logic brings the app back cleanly.
 
-The dominant risk in this milestone is touch event layering. Four distinct input paths coexist on the home screen: QML MouseArea, SwipeView Flickable, C++ NavbarController, and the evdev TouchRouter (active during AA). The per-widget selection model introduces a partial-edit state (selected-but-not-dragging) where SwipeView should remain enabled, but active dragging must disable it. Navbar zone registration has a documented race condition risk with animation timing. The pitfalls research found 5 critical issues, all with clear prevention strategies rooted in established patterns already in the codebase (requestContextMenu, SettingsInputBoundary, instant icon swap without opacity animation).
-
----
+The main risks are in the boot splash layer. The `rpi-splash-screen-support` kernel boot package has an open issue (raspberrypi/linux#7081) where kernel boot messages can overlay the splash image — mitigated with `loglevel=0` in cmdline.txt but requires hardware verification. Additionally, `configure-splash` strips `quiet` from cmdline.txt, requiring the installer to re-add it. The exit-to-desktop feature requires a true LightDM session switch (`dm-tool switch-to-user`), not just an app kill — killing the app in the kiosk session leaves nothing but a black screen since there is no desktop infrastructure underneath.
 
 ## Key Findings
 
 ### Recommended Stack
 
-No new dependencies are needed. The entire milestone runs on Qt 6.8 QML primitives already used in this codebase: `MouseArea.pressAndHold`, `NumberAnimation`, `State`/`PropertyChanges`, `Dialog` for the bottom sheet, `Flickable` for scrollable content. The "What NOT to Add" list from the stack research is as important as the additions — `DragHandler`/`TapHandler` conflict with existing MouseArea architecture, `MultiEffect` layers freeze the Pi 4 GPU, and `Drawer` has the wrong gesture trigger semantics for a button-activated picker.
+This milestone adds exactly two new packages (`rpi-splash-screen-support` and `imagemagick`, both install-time only) and touches no production runtime dependencies. The existing stack — Qt 6.8, labwc, LightDM, swaybg, systemd — handles everything needed. The implementation involves configuration files and heredocs in `install.sh` more than any new compiled code.
 
-**Core technologies (all unchanged):**
-- Qt 6.8.2 / QML: all rendering, animation, state management — no version change, no new modules
-- C++17: minor property additions to NavbarController and WidgetGridModel (~45 lines total, no new classes)
-- CMake 3.22+: no changes to build system, no new source files beyond BottomSheetPicker.qml
+**Core technologies (existing, repurposed):**
+- **labwc with `-C` flag**: purpose-built kiosk config at `/etc/openauto-kiosk/labwc/` — avoids polluting the user's desktop config and survives labwc package upgrades
+- **swaybg**: promoted from unused dependency to compositor-owned Wayland splash surface — started in labwc autostart, lives on the `background` wlr-layer-shell layer beneath the Qt app window, killed by the app after first frame
+- **LightDM drop-in config**: `/etc/lightdm/lightdm.conf.d/50-openauto-kiosk.conf` overrides autologin session without touching `lightdm.conf` directly — survives raspi-config edits to the base file
+- **rpi-splash-screen-support** (new, install-time): installs a TGA into initramfs and sets `fullscreen_logo=1` in cmdline.txt — replaces the four-raspberry kernel framebuffer logo
+- **`QQuickWindow::frameSwapped`**: stable Qt 5+ signal, fires after first frame is submitted to the compositor — used for one-shot swaybg cleanup after a 200-500ms grace period
 
-**Critical "do not add" technologies:**
-- `DragHandler`/`TapHandler`: steals touch from child controls — documented crash in v0.6 SettingsInputBoundary work
-- `MultiEffect`/`GraphicalEffects`: GPU freeze on Pi 4 with multiple simultaneous layers — v0.6.2 FullScreenPicker fix
-- `Qt.Quick.Controls.Drawer`: wrong gesture trigger for button-activated picker; edge-swipe detection is unwanted
+**Technologies explicitly NOT adding:**
+- **Plymouth custom theme**: Plymouth on Trixie has documented breakage after `apt full-upgrade`; static kernel splash via rpi-splash-screen-support is more reliable
+- **cage (kiosk compositor)**: would require abandoning labwc which is already tested and handles multi-touch correctly
+- **greetd**: LightDM is already installed; replacing it fights upstream RPi packaging
+- **swayidle/swaylock**: car head units must never sleep; omitting these from kiosk autostart is the entire solution
 
 ### Expected Features
 
-See `FEATURES.md` for the full feature table with complexity, dependency, and Android reference analysis.
+The research clearly separates what must be done from what adds polish from what to skip entirely.
 
-**Must have (table stakes — the Android interaction model core):**
-- Per-widget long-press to select (replaces `editMode: bool` with `selectedInstanceId: string`)
-- Long-press lift feedback: scale 1.05, accent border on selected widget only
-- Drag-to-reposition from selected state (infrastructure already built, wiring changes only)
-- Remove widget action via navbar delete control (replaces 28px X badge — automotive-critical touch target upgrade)
-- Widget config access via navbar settings control (replaces 28px gear badge)
-- Tap empty space to deselect (existing background MouseArea, behavior change only)
-- Widget picker for adding widgets (existing WidgetPicker.qml, new entry point only)
-- Auto-placement on add (existing `findFirstAvailableCell` + `placeWidget`, unchanged)
+**Must have (table stakes):**
+- No visible boot text — `quiet loglevel=0 vt.global_cursor_default=0` in cmdline.txt
+- Custom boot splash logo — replaces default raspberry logo via rpi-splash-screen-support TGA
+- No desktop flash between compositor and app — kiosk XDG session with stripped labwc config
+- App auto-starts on power-on — LightDM autologin to `openauto-kiosk` session
+- No rainbow GPU test screen — `disable_splash=1` in config.txt (one-liner)
+- No screen blanking in kiosk mode — omit swayidle from kiosk autostart entirely
+- Crash shows splash not bare desktop — compositor-owned swaybg survives app crashes
 
-**Should have (differentiators for automotive use):**
-- Navbar control transformation (volume/brightness to settings/delete during selection) — key automotive differentiation, replaces tiny badges with full-size navbar hit targets
-- 4-edge resize handles on selected widget only (expands from current single bottom-right handle)
-- Long-press empty space context menu (Add Widget / Add Page, replaces FABs)
-- Inactivity auto-deselect at 5-7s (existing timer, repurposed for per-widget selection)
-- Grid overlay scoped to selected widget (visibility change only, existing dotted grid component)
+**Should have (differentiators):**
+- Seamless splash-to-app handoff — frameSwapped-based dismissal, not a timer; no black flash
+- Exit-to-desktop — 3-finger overlay button for maintenance access via `dm-tool switch-to-user`
+- Installer session revert capability — documented revert path, helper script or settings toggle
 
-**Defer to later:**
-- Tap-to-resize +/- buttons (Android 16 QPR3 style) — drag handles are established; +/- are brand new even on Android
-- Bottom-sheet picker M3 polish (drag handle, pull-to-expand) — current picker works, polish is post-MVP
-
-**Remove entirely (anti-features):**
-- Global `editMode` boolean and all dependent logic
-- FABs (addWidgetFab, addPageFab, deletePageFab)
-- Badge overlays (removeBadge, configGear on every widget simultaneously)
-- `deletePageDialog` (auto-cleanup replaces explicit deletion)
-- 10s inactivity timer in global-mode form
+**Defer to v2+:**
+- Boot speed optimization — profiling is a separate milestone; silent boot already masks perceived latency
+- Animated Plymouth splash — fragile on Trixie; static PNG is reliable and sufficient
+- Power off button — car ignition handles power lifecycle; risk of filesystem corruption during drive
 
 ### Architecture Approach
 
-This is an interaction model change concentrated in QML and minor C++ property additions. The data layer is untouched. The system state machine has three states: IDLE, WIDGET_SELECTED (with DRAGGING and RESIZING sub-states), and CONTEXT_MENU. The key architectural decision: `selectedInstanceId` IS the state — no separate `editMode` boolean alongside it. `WidgetGridModel.setEditMode()` becomes a derived gate called mechanically when selection changes, not independent UI state.
+The architecture follows four design patterns consistently across all research files: (1) drop-in configs over base file modifications, (2) compositor-owned splash with app-owned dismissal, (3) session switch via `dm-tool` rather than logout/login, and (4) systemd as the sole app lifecycle manager with labwc autostart handling only compositor-level concerns. These patterns together ensure clean session separation, crash-safe splash behavior, and no double-launch conflicts.
 
-**Major components and their v0.6.6 changes:**
-1. HomeMenu.qml — heavy modification: replaces editMode with selectedInstanceId, removes FABs/badges, adds 4-edge handles, adds ContextMenu inline component, triggers BottomSheetPicker
-2. NavbarController (C++) — moderate modification: adds `selectedWidgetId`, `widgetInteractionMode`, `selectedWidgetHasConfig` properties; contextual action dispatch branch; 3 new signals
-3. WidgetGridModel (C++) — light modification: adds `resizeFromEdge()` atomic method for top/left edge resize (avoids the intermediate-invalid-state bug of sequential move + resize calls)
-4. BottomSheetPicker.qml — new component, follows existing WidgetConfigSheet Dialog pattern exactly
-5. ContextMenu in HomeMenu.qml — inline component, follows existing power menu popup pattern in Navbar.qml
-
-**Components explicitly NOT needed:**
-- WidgetInteractionController (C++): selection is a QML presentation concern; no benefit to adding C++ indirection (see gap note below re: PITFALLS disagreement)
-- ResizeHandle.qml (extracted): 4 edge handles are simple enough to inline in the delegate
+**Major components:**
+1. **openauto-kiosk.desktop** — XDG session entry pointing labwc at `/etc/openauto-kiosk/labwc/` via `-C` flag; LightDM autologin target
+2. **Kiosk labwc config** — three files: `rc.xml` (mouseEmulation="no", no decorations, fullscreen windowRule for the app), `autostart` (swaybg splash only — one line), `environment` (Qt Wayland platform hint)
+3. **rpi-splash-screen-support config** — TGA conversion via ImageMagick, `configure-splash` invocation, cmdline.txt repair (re-add `quiet` after configure-splash strips it)
+4. **`main.cpp` frameSwapped handler** — one-shot connection to `QQuickWindow::frameSwapped`, `QTimer::singleShot(500ms)` then `pkill -f "swaybg.*splash"` (pattern avoids killing desktop wallpaper swaybg on other VTs)
+5. **ApplicationController::exitToDesktop()** — `dm-tool switch-to-user matt rpd-labwc` + 500ms delayed `QCoreApplication::quit()`
+6. **GestureOverlay.qml** — fourth ElevatedButton ("Desktop"), dispatches `app.exitToDesktop` via ActionRegistry
+7. **install.sh** — new `configure_boot_splash()` and `create_kiosk_session()` functions, simplified service file (remove wf-panel-pi kill/restore lines that are irrelevant in kiosk mode)
 
 ### Critical Pitfalls
 
-Full detail in `PITFALLS.md`. Top 5 requiring explicit mitigation in the roadmap:
+Full detail in `PITFALLS.md`. Top five requiring explicit mitigation:
 
-1. **Long-press-to-select breaks interactive widget content** — The MouseArea z-order toggle that works globally in edit mode doesn't transfer cleanly to per-widget selection. Use the existing `requestContextMenu()` pattern in WidgetHost; interactive widgets forward their own long-press. Test Now Playing, AA Focus toggle, and launcher tiles after every interaction change.
+1. **Exit-to-desktop requires a real session switch, not an app kill** — In kiosk mode there is no desktop underneath the app. Killing the app leaves a black screen. Must use `dm-tool switch-to-user USERNAME rpd-labwc` for an actual LightDM session switch. A 500ms delay before `QCoreApplication::quit()` gives LightDM time to register the switch before the kiosk session ends.
 
-2. **Navbar zone registration races with visual control swap** — Zone callbacks capture control role at registration time. Visual swap before zone re-registration causes tapping "delete" to adjust volume instead. Prevention: swap action dispatch table in NavbarController atomically BEFORE any animation; use instant icon swap (no opacity crossfade); unregister all zones during transition.
+2. **configure-splash strips `quiet` from cmdline.txt** — The tool intentionally removes `quiet` and `plymouth.ignore-serial-consoles`. Installer must re-add `quiet loglevel=0 logo.nologo vt.global_cursor_default=0` after running configure-splash. Failure causes kernel messages to overlay the splash.
 
-3. **SwipeView page swipe conflicts with widget drag** — Without global editMode, there is no binary flag to gate `SwipeView.interactive`. Bind it to `draggingInstanceId === ""`, NOT `selectedInstanceId === ""`. Selected-but-not-dragging must still allow page swiping.
+3. **raspi-config overwrites LightDM session config** — raspi-config modifies `/etc/lightdm/lightdm.conf` directly. Use a drop-in file in `lightdm.conf.d/` (which raspi-config does not touch) for the session override. Document clearly that users must not use raspi-config for boot/login settings after installation.
 
-4. **Edge resize handles unusable at automotive touch targets** — 4-edge handles are physically smaller than a fingertip on 7" 1024x600, worse with vehicle vibration. Minimum MouseArea hit size of `UiMetrics.touchMin` (~48dp) with negative margins extending into the widget body. Test on Pi hardware before committing.
+4. **Double app launch from systemd + labwc autostart** — labwc autostart must contain ONLY `swaybg` (compositor concerns). The systemd service is the sole app launcher. Any app invocation in autostart causes socket conflicts or double instances.
 
-5. **Selected widget state persists across page swipes** — Selection is page-independent; swiping away leaves navbar showing settings/delete for an off-screen widget. Clear `selectedInstanceId` when `pageView.currentIndex` changes.
-
----
+5. **Kernel update clears initramfs splash** — `apt upgrade` triggers `update-initramfs` which rebuilds without the TGA if the hook was corrupted or TGA moved. Installer should verify hook existence and executability after configure-splash. Detection: `lsinitramfs /boot/firmware/initrd.img-$(uname -r) | grep logo.tga`.
 
 ## Implications for Roadmap
 
-Based on the dependency graph from FEATURES.md and the build order from ARCHITECTURE.md, a 5-phase roadmap is recommended. Each phase produces a testable, shippable intermediate state.
+The dependency chain is clear and maps directly to a five-phase build order. Each phase is independently testable and produces a shippable intermediate state.
 
-### Phase 1: Selection Model Foundation
-**Rationale:** Everything in this milestone depends on `selectedInstanceId` replacing `editMode`. Build this first so subsequent phases have a stable signal to react to. This is the largest single conceptual change but involves the simplest code — a string property replacing a boolean, with corresponding visual changes.
-**Delivers:** Working per-widget long-press select with visual lift (accent border + scale 1.05 on innerContent), drag-to-reposition from selected state, tap-to-deselect, inactivity auto-deselect at 5-7s. FABs, badges, and global editMode removed.
-**Addresses:** Per-widget long-press select (table stakes #1-3), remove/config via deselect path (#5-6), inactivity auto-deselect (differentiator)
-**Avoids:** Dual edit mode + selection state anti-pattern; SwipeView conflict requires `draggingInstanceId` binding here (Pitfall #3); scale transform on innerContent not delegate (Pitfall #13); `opacityChanged` signal name collision (Pitfall #12); page swipe clears selection (Pitfall #6)
+### Phase 1: Kiosk Session Infrastructure
+**Rationale:** Core infrastructure everything else depends on. No app code changes — pure config files. Lowest risk phase; validates the session architecture before touching boot splash or app code.
+**Delivers:** `openauto-kiosk.desktop`, `/etc/openauto-kiosk/labwc/` config directory (rc.xml + autostart + environment), LightDM drop-in (`50-openauto-kiosk.conf`), simplified systemd service (wf-panel-pi kill/restore lines removed). Pi boots into kiosk session with app running fullscreen, no desktop chrome visible.
+**Addresses:** "no desktop flash" (table stakes), "app auto-starts" (table stakes), "no screen blanking" (table stakes)
+**Avoids:** Pitfall 8 (kiosk config contaminating desktop session) via labwc `-C` flag; Pitfall 10 (double launch) by keeping systemd as sole launcher; Pitfall 16 (apt upgrade overwrites) by using installer-owned config directories only
 
-### Phase 2: Navbar Transformation
-**Rationale:** With selection working and emitting a signal, NavbarController can react to it. This is the highest-value UX change in the milestone — it moves widget actions from 28px badges to full-size automotive touch targets.
-**Delivers:** Navbar controls morph to settings/delete when widget selected. Tap settings opens config sheet. Tap delete removes widget and reverts navbar. Tap center clock deselects. Navbar reverts cleanly on deselect or AA activation.
-**Addresses:** Navbar control transformation (differentiator #1), remove widget action (table stakes), widget config access (table stakes)
-**Avoids:** Zone registration race (Pitfall #2) — atomic mode swap before any animation, instant icon swap not crossfade; GPU jank on Pi (Pitfall #10) — no opacity animation on navbar controls; popup sliders guarded during widget interaction mode; AA activation auto-dismisses (Pitfall #9)
+### Phase 2: Compositor Splash Handoff
+**Rationale:** Depends on the kiosk session from Phase 1 (needs the autostart file to exist). Delivers the most visible UX improvement — eliminates the black gap between labwc start and app first frame. Also moves swaybg from fragile app-child-process ownership to compositor ownership.
+**Delivers:** swaybg in kiosk autostart, `frameSwapped` handler in `main.cpp` (one-shot, 500ms delay, pattern-matched pkill), splash PNG deployed to `/usr/share/openauto-prodigy/`. Seamless transition from labwc start through app first frame with no flash.
+**Uses:** `QQuickWindow::frameSwapped`, `pkill -f "swaybg.*splash"` (avoids killing desktop VT swaybg)
+**Avoids:** Pitfall 5 (layer-shell stacking misunderstanding — swaybg on background layer is occluded automatically by app window; pkill is cleanup not visual handoff); Pitfall 6 (frameSwapped timing — 500ms grace period ensures compositor has composited the frame); Pitfall 4 (autostart race — swaybg is the first and only autostart command, lightweight enough to win the race)
 
-### Phase 3: Edge Resize Handles
-**Rationale:** Independent of navbar transformation. Requires only the selection model from Phase 1. The most complex implementation in this milestone (axis-constrained drag math, 4-handle positioning) but well-contained in HomeMenu.qml and one new WidgetGridModel method.
-**Delivers:** Four edge handles (top/bottom/left/right) on selected widget only. Each drags in one constrained axis. Ghost preview continues working. `resizeFromEdge()` atomic model method with unit test. Min/max constraint enforcement at handle boundaries.
-**Addresses:** Resize handles on selected widget (table stakes #4)
-**Avoids:** Sequential move+resize anti-pattern — use atomic `resizeFromEdge()` (ARCHITECTURE anti-pattern #4); touch targets too small (Pitfall #5) — `UiMetrics.touchMin` minimum with negative margins, Pi hardware validation required; handle drag during AA (irrelevant — home screen inactive during AA)
-**Pi gate:** Test on Pi hardware before merging. If any edge handle requires more than 2 attempts to hit, widen MouseArea margins.
+### Phase 3: RPi Boot Splash
+**Rationale:** Depends on splash artwork from Phase 2 (same image deployed as TGA). Isolated to boot configuration — a mistake here doesn't break the running app or kiosk session. Highest-risk phase due to hardware dependency; test in isolation before proceeding to Phase 4.
+**Delivers:** Prodigy logo visible from kernel boot onward. `rpi-splash-screen-support` installed and configured, TGA generated from splash.png with exact ImageMagick parameters, cmdline.txt repaired post configure-splash, Plymouth masked (`systemctl mask plymouth-start.service`).
+**Avoids:** Pitfall 12 (TGA conversion — exact `magick` command with `-flip -colors 224 -alpha off -compress none`, pre-validate with `file` and `identify`); Pitfall 13 (re-add `quiet loglevel=0` after configure-splash strips them); Pitfall 3 (initramfs hook verification after configure-splash runs)
+**Research flag:** Requires hardware validation on Pi 4 Trixie. raspberrypi/linux#7081 (console text overlay) is an open issue; `loglevel=0` is the expected mitigation but must be confirmed on real hardware. Test by watching a full cold boot cycle before marking this phase complete.
 
-### Phase 4: Bottom-Sheet Widget Picker
-**Rationale:** Requires a trigger mechanism (long-press empty space from Phase 5) but can be built and tested independently by calling it directly. Follows the existing WidgetConfigSheet Dialog pattern exactly — this is essentially a copy-adapt.
-**Delivers:** New BottomSheetPicker.qml — categorized vertical scrollable list of available widgets by category, slide-up from bottom, tap-to-auto-place, slide-down dismiss.
-**Addresses:** Widget picker for adding widgets (table stakes #7), auto-placement on add (table stakes #8)
-**Avoids:** Picker overlapping navbar at bottom edge (Pitfall #8) — keep inside HomeMenu bounds, not Overlay.overlay parent; picker unreachable during AA EVIOCGRAB (Pitfall #9) — auto-dismiss on AA activation, guard open action; config sheet + picker stacking (Pitfall #15) — mutual exclusivity via single `activeOverlay` guard; `requestContextMenu()` race on Loader source swap (Pitfall #11) — `interactionLocked` flag 200ms after placement
+### Phase 4: Exit-to-Desktop
+**Rationale:** Depends on Phase 1 (both sessions must exist for the switch to make sense). Pure app code — can be developed in parallel with Phase 3 since they touch different subsystems. Critical safety feature; validates the full round-trip before installer locks users into kiosk mode.
+**Delivers:** `ApplicationController::exitToDesktop()`, `app.exitToDesktop` ActionRegistry registration, "Desktop" ElevatedButton in GestureOverlay.qml, full round-trip kiosk→desktop→kiosk verified on hardware.
+**Implements:** `dm-tool switch-to-user` pattern with 500ms delayed quit, ActionRegistry dispatch wiring
+**Avoids:** Pitfall 9 (black screen after app exit — this entire phase IS the prevention; session switch not app kill)
+**Research flag:** `dm-tool switch-to-user` with Wayland sessions is MEDIUM confidence. Round-trip hardware test is the gate for Phase 5. If dm-tool is unreliable, fallback is config-flip + `loginctl terminate-session` (also documented in PITFALLS.md).
 
-### Phase 5: Context Menu + Page Auto-Management
-**Rationale:** Least critical path. Depends on picker (Phase 4) for "Add Widget". Completes FAB removal and makes empty-space long-press the canonical entry point for page and widget management.
-**Delivers:** Long-press empty space shows inline ContextMenu at press coordinates with "Add Widget" and "Add Page" options. Auto-delete empty pages on deselect/widget removal. Global edit mode infrastructure fully removed.
-**Addresses:** Long-press empty space menu (differentiator #3), auto-delete empty pages (milestone requirement), complete removal of global edit mode
-**Avoids:** SwipeView stealing long-press gesture (Pitfall #7) — `preventStealing: true` on background MouseArea during hold interval; keep secondary entry point (navbar or persistent indicator) as belt-and-suspenders; page auto-delete races placement (Pitfall #14) — defer cleanup to deselection, not immediate on removal
+### Phase 5: Installer Integration
+**Rationale:** Final phase — wraps all validated Phase 1-4 work into `install.sh` so a fresh install produces the full kiosk experience automatically. Must not proceed until Phase 1-4 are verified on hardware, because the installer must faithfully automate what has been proven to work.
+**Delivers:** `configure_boot_splash()` and `create_kiosk_session()` installer functions, kiosk mode prompt in install flow ("Enable kiosk mode? [Y/n]"), idempotent upgrade handling (overwrite existing kiosk config), revert instructions in installer summary, `desktop-file-validate` on session file before enabling autologin.
+**Avoids:** Pitfall 7 (desktop file syntax errors — validate before enabling autologin, keep `rpd-labwc.desktop` intact); Pitfall 2 (raspi-config overwrite — drop-in strategy correctly implemented); Pitfall 1 (black flash between kernel and compositor splash — accepted and documented; `loglevel=0` minimizes it but cannot eliminate the DRM/KMS mode-set gap)
 
 ### Phase Ordering Rationale
 
-- Phase 1 before all others: `selectedInstanceId` is the prerequisite signal for every other phase
-- Phase 2 before Phase 3: navbar transformation validates the signal flow end-to-end before adding resize complexity; higher user-visible value per effort
-- Phase 3 independent of Phase 2: could be swapped if preferred, but navbar wins on UX impact
-- Phase 4 before Phase 5: picker must exist before the context menu can open it
-- Phase 5 last: cleanup and secondary entry point; no dependencies from other phases
+- Phase 1 before all others: the XDG session is the load-bearing foundation — splash, exit, and installer all assume it exists
+- Phase 2 before Phase 3: both phases need the same splash artwork; Phase 2 establishes the compositor-level splash pattern that Phase 3 merely prepends to
+- Phase 3 isolated to boot config so high-risk cmdline.txt mutations don't block Phase 4 development
+- Phases 3 and 4 are parallel-capable (different subsystems: boot config vs. app code)
+- Phase 5 last because it must automate validated Phase 1-4 work — installer that ships broken config is worse than no installer
 
 ### Research Flags
 
-Phases with established patterns (no additional research needed):
-- **Phase 1:** Direct rework of existing editMode logic. All QML primitives proven in codebase.
-- **Phase 2:** NavbarController dispatch extension. Follows existing 4-state edge pattern exactly.
-- **Phase 4:** Dialog bottom sheet. WidgetConfigSheet is the template; copy-adapt.
-- **Phase 5:** Inline context menu. Power menu popup in Navbar.qml is the template.
+Phases requiring hardware validation before sign-off:
+- **Phase 3 (boot splash):** rpi-splash-screen-support behavior on Trixie is MEDIUM confidence. The raspberrypi/linux#7081 console overlay issue is open and unresolved. Also need to confirm `configure-splash` cmdline.txt mutations on the actual Pi. Do not proceed to Phase 5 until a full cold boot cycle from power-on shows the expected splash behavior.
+- **Phase 4 (exit-to-desktop):** `dm-tool switch-to-user` with Wayland sessions has documented reliability concerns. Full round-trip test (kiosk→desktop→kiosk) on Pi hardware is the gate for the Phase 5 installer.
 
-Phases requiring Pi hardware validation before sign-off:
-- **Phase 3:** Edge resize handles. Touch target sizes cannot be validated on desktop VM. Plan a Pi smoke test after implementation: try resizing a 1x1 widget from each edge handle. If > 2 attempts needed, widen margins.
-
----
+Phases with well-documented patterns (standard implementation, no additional research needed):
+- **Phase 1:** XDG session files and LightDM drop-in configs are stable freedesktop.org standards with HIGH confidence documentation.
+- **Phase 2:** `QQuickWindow::frameSwapped` and swaybg layer-shell behavior are both well-understood and HIGH confidence. This phase follows the exact `pkill` + `QTimer::singleShot` pattern already prototyped in the codebase.
+- **Phase 5:** Installer idempotency patterns are established within this codebase's existing install.sh structure.
 
 ## Confidence Assessment
 
 | Area | Confidence | Notes |
 |------|------------|-------|
-| Stack | HIGH | Direct codebase inspection — every primitive mapped to an existing usage in this codebase |
-| Features | HIGH | Official Android docs, Android Authority/Police QPR3 coverage, direct codebase inspection |
-| Architecture | HIGH | Full analysis of all relevant source files: HomeMenu.qml, WidgetGridModel, NavbarController, Navbar.qml, WidgetConfigSheet.qml, TouchRouter |
-| Pitfalls | HIGH | Majority from documented project gotchas (CLAUDE.md/MEMORY.md) + codebase analysis; SwipeView threshold research is MEDIUM |
+| Stack | HIGH | Two new packages with clear purposes; all other tools already in use and understood in this project |
+| Features | HIGH | Table stakes unambiguous; anti-features well-reasoned with clear alternatives documented |
+| Architecture | HIGH | Direct codebase analysis + official docs; all patterns consistent with existing project conventions |
+| Pitfalls | MEDIUM-HIGH | Critical pitfalls are HIGH confidence (boot sequence, session switching, double-launch); boot splash pitfalls MEDIUM due to sparse rpi-splash-screen-support Trixie documentation |
 
-**Overall confidence:** HIGH
+**Overall confidence:** HIGH for app code and session configuration; MEDIUM for kernel boot splash layer (hardware validation required before installer ships it)
 
 ### Gaps to Address
 
-- **4-edge handle usability on Pi hardware:** Research recommends `UiMetrics.touchMin` minimum and negative margins, but actual usability can only be proven with a finger on the 1024x600 DFRobot screen. Plan a Pi smoke test after Phase 3 before proceeding to Phase 4.
+- **rpi-splash-screen-support on Trixie:** The package was designed for Bookworm. If `configure-splash` fails or produces unexpected cmdline.txt results on Trixie, the fallback is manual cmdline.txt editing with direct initramfs hook installation. Validate early in Phase 3 implementation.
 
-- **Navbar zone re-registration timing:** The exact timing gap between icon swap and zone re-registration depends on Pi GPU performance. The prevention strategy (instant swap, unregister during transition) is sound but needs verification on Pi. Test with rapid select/deselect cycles.
+- **Qt app_id for labwc window rule:** The windowRule `identifier="openauto-prodigy"` in kiosk rc.xml depends on Qt setting its Wayland app_id to match. May require `app.setDesktopFileName("openauto-prodigy")` in `main.cpp`, or use wildcard pattern `identifier="openauto*"` as a safer fallback. Verify on hardware during Phase 1.
 
-- **PITFALLS vs ARCHITECTURE disagreement on C++ state machine:** PITFALLS.md's integration risk section recommends a C++ WidgetInteractionController for deterministic gesture state, while ARCHITECTURE.md argues against it (QML presentation concern, unnecessary indirection). Resolution: start with QML state in HomeMenu.qml. If gesture race conditions emerge during Phase 1-2 implementation, escalate to C++ state machine as the PITFALLS recommendation suggests.
+- **dm-tool VT switching behavior:** The switch between kiosk (VT 8) and desktop (VT 7+) sessions may produce a brief black flash as VTs change. This is a LightDM limitation and acceptable for a maintenance escape hatch, but should be observed on Pi hardware during Phase 4.
 
-- **SwipeView long-press steal threshold:** Documented as ~8px in Qt forums, but the exact value on the Pi's actual touch driver has not been verified. If the Pitfall #7 long-press empty space proves unreliable, the fallback is a persistent "+" indicator that does not rely on gesture at all.
+- **swaybg layer stacking confirmation:** Research confirms swaybg runs on `background` wlr-layer-shell layer and the Qt app window occludes it automatically once mapped. The `pkill` after frameSwapped is cleanup, not a visual handoff trigger. Verify visually during Phase 2 — if there is a flash between splash and app, the 500ms grace period may need tuning.
 
----
+- **Black flash between kernel and compositor splash (Pitfall 1):** This is a known DRM/KMS limitation — when labwc takes ownership of the DRM device it discards the kernel framebuffer, creating a brief black gap before swaybg's first Wayland surface renders (~200-500ms). This cannot be fully eliminated. Accept it, minimize with early swaybg placement in autostart, document as known behavior.
 
 ## Sources
 
-### Primary (HIGH confidence — direct codebase inspection)
-- `qml/applications/home/HomeMenu.qml` — current editMode, drag overlay z:200, resize handle, widget MouseArea z toggle, SwipeView interactive binding, page cleanup
-- `qml/components/Navbar.qml` — zone registration, edge states, power menu popup pattern
-- `qml/components/NavbarControl.qml` — control role mapping, hold progress
-- `qml/components/WidgetConfigSheet.qml` — Dialog bottom sheet pattern (model for BottomSheetPicker)
-- `qml/components/WidgetHost.qml` — z:-1 MouseArea pattern, requestContextMenu() convention
-- `qml/components/Shell.qml` — navbar z:100, content area layout with margins
-- `src/ui/WidgetGridModel.hpp/cpp` — grid model, CRUD, occupancy, page management, editMode gate
-- `src/ui/NavbarController.hpp/cpp` — gesture state machine, evdev zone callbacks, action dispatch
-- `src/core/aa/TouchRouter.hpp` — zone-based touch dispatch, EVIOCGRAB interaction
-- `src/core/services/ActionRegistry.hpp` — named action dispatch pattern
-- `.planning/PROJECT.md` — v0.6.6 milestone specification and prior milestone history
-- CLAUDE.md and MEMORY.md — established gotchas: TapHandler grab conflict, MultiEffect GPU freeze, EVIOCGRAB behavior, WidgetHost z:-1 long-press pattern, opacityChanged signal collision
+### Primary (HIGH confidence)
+- labwc configuration manual (labwc.github.io) — `-C` flag, rc.xml format, autostart, environment, windowRules, LABWC_PID
+- LightDM ArchWiki — autologin-session, wayland-sessions directory, conf.d override mechanism, dm-tool
+- Qt 6 QQuickWindow docs (doc.qt.io) — frameSwapped signal semantics and timing
+- rpi-splash-screen-support configure-splash source (GitHub) — cmdline.txt mutations, TGA requirements, initramfs hook
+- dm-tool man page (manpages.debian.org) — switch-to-user, switch-to-greeter commands
+- swaybg GitHub — layer-shell background usage, image modes, process lifecycle
+- wlr-layer-shell protocol spec — layer ordering (background/bottom/top/overlay)
+- Existing codebase: `install.sh`, `src/main.cpp`, `src/ui/ApplicationController.cpp`, `qml/components/GestureOverlay.qml`, `docs/pi-config/`
 
 ### Secondary (MEDIUM confidence)
-- [Android Developers: Create a simple widget](https://developer.android.com/develop/ui/views/appwidgets) — interaction model reference
-- [Google Pixel Phone Help: Add widgets](https://support.google.com/pixelphone/answer/2781850) — user-facing interaction steps
-- [Android Authority: Android 16 QPR3 Beta 2 widget resize buttons](https://www.androidauthority.com/widget-resizing-3633307/) — tap-to-resize feature details
-- [Material Design 3: Bottom sheets](https://m3.material.io/components/bottom-sheets/overview) — M3 bottom sheet spec
-- [Qt 6 MouseArea documentation](https://doc.qt.io/qt-6/qml-qtquick-mousearea.html) — preventStealing behavior
-- [Qt 6 SwipeView documentation](https://doc.qt.io/Qt-6/qml-qtquick-controls-swipeview.html) — interactive property, Flickable behavior
+- raspberrypi/linux#7081 — fullscreen_logo console text overlay issue (open, unresolved)
+- labwc kiosk discussion #2301 (GitHub) — autostart kiosk patterns, window rules
+- labwc autostart race discussion #2515 (GitHub) — first-boot ordering issue
+- RPi Forums: kiosk with labwc — autostart patterns, panel suppression, swaybg splash
+- RPi Forums: splash breakage after apt upgrade — initramfs hook vulnerability on kernel updates
+- `.planning/notes/kiosk-session-splash.md` — Codex architecture recommendation (project-internal)
 
 ### Tertiary (LOW confidence — needs hardware validation)
-- SwipeView gesture threshold (~8px) causing long-press cancellation: documented as platform issue in Qt forums; specific threshold on Pi's DFRobot touch driver not verified
+- `loginctl terminate-session` for session exit — standard systemd/logind API, untested with this exact labwc+LightDM+Wayland combination; fallback if dm-tool is unreliable
+- `LABWC_CONFIG_DIR` environment override — alternate to `-C` flag, consistent with XDG handling but not tested in this project's Trixie setup
 
 ---
-*Research completed: 2026-03-21*
+*Research completed: 2026-03-22*
 *Ready for roadmap: yes*

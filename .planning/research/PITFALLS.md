@@ -1,214 +1,344 @@
 # Domain Pitfalls
 
-**Domain:** Per-widget interactions, navbar control swapping, edge resize handles, bottom sheet overlays in Qt/QML widget grid
-**Researched:** 2026-03-21
-**Milestone:** v0.6.6 — Replacing global edit mode with Android-style per-widget long-press interactions
-**Confidence:** HIGH (codebase analysis of current touch routing, gesture handling, navbar zone system, widget grid + known project gotchas)
+**Domain:** Kiosk session, boot splash, compositor splash handoff, session switching on RPi OS Trixie with labwc
+**Researched:** 2026-03-22
+**Milestone:** v0.7.0 -- Kiosk Session & Boot Experience
+**Confidence:** MEDIUM-HIGH (WebSearch + official docs + project codebase analysis; some areas LOW due to sparse rpi-splash-screen-support documentation)
 
 ---
 
 ## Critical Pitfalls
 
-Mistakes that cause broken interaction, touch routing failures, or forced rewrites.
+Mistakes that cause boot failures, black screens, or force manual SSH recovery.
 
-### Pitfall 1: Long-Press-to-Select Transition Breaks Widget Content Interactivity
+### Pitfall 1: Black Flash Between Kernel Splash and Compositor Splash
 
-**What goes wrong:** The current system uses `widgetMouseArea` at `z: -1` behind widget content (normal mode) and `z: 10` above content (edit mode). The v0.6.6 model needs a per-widget "selected" state WITHOUT a global edit mode toggle. If the long-press MouseArea stays behind content, interactive widgets (Now Playing play/pause, AA Focus toggle, launcher tiles) consume the press and `pressAndHold` never fires on the host. If it sits above content, widget taps die completely.
+**What goes wrong:** The kernel splash (rpi-splash-screen-support TGA in initramfs) is drawn on the kernel framebuffer. When labwc starts, the DRM/KMS driver reinitializes the display to set up its own framebuffer, erasing the kernel splash. There is a gap -- typically 1-3 seconds on Pi 4 -- between the kernel splash disappearing and the first Wayland surface (swaybg) rendering. During this gap the screen is black.
 
-**Why it happens:** The current binary edit/non-edit toggle flips z-order globally. Per-widget selection requires disambiguation PER WIDGET PER GESTURE: the same press could be a widget tap, widget long-press (select), or content interaction. QML MouseArea has no built-in "pass through tap but catch long-press" behavior.
+**Why it happens:** The KMS mode-set is unavoidable. The kernel framebuffer and the compositor's DRM framebuffer are different surfaces. When the compositor takes ownership of the DRM device, the kernel's framebuffer contents are discarded. The swaybg client must then: connect to the compositor's Wayland socket, allocate a wl_buffer, attach it, and commit -- all of which takes nonzero time after the compositor is ready.
 
-**Consequences:** Either widgets stop responding to taps (z above content), or long-press never fires on interactive widgets (z below content). Both are shipping regressions from current behavior.
-
-**Prevention:**
-- Use the existing `requestContextMenu()` pattern already established in the codebase: interactive widgets call `widgetLoader.requestContextMenu()` from their own `onPressAndHold`. Non-interactive widgets fall through to the background MouseArea at `z: -1`. This pattern is proven and works today.
-- The long-press transitions the individual delegate to "selected" state (visual lift, scale, border) rather than toggling a global boolean. This is per-delegate state.
-- Critical: `pressAndHoldInterval` must be identical (500ms) in both the background MouseArea and any widget-internal MouseArea to avoid timing surprises.
-- For future-proofing against third-party widgets that miss the pattern: consider the `SettingsInputBoundary` approach (C++ `childMouseEventFilter`) already proven in this project for detecting long-press across a widget subtree without stealing child events.
-
-**Detection:** After the change, tap Now Playing play/pause, tap AA Focus toggle, tap launcher tile. All must still respond. Then long-press each -- must select.
-
-### Pitfall 2: Navbar Zone Registration Races with Visual Control Swap
-
-**What goes wrong:** The plan transforms navbar controls from volume/clock/brightness to settings/delete when a widget is selected. The C++ `NavbarController` registers evdev touch zones via `registerZones()` based on control geometry. Zone callbacks reference the current control role ("volume") at REGISTRATION time, not dispatch time. If the visual QML swap happens asynchronously from zone re-registration, touches land on stale zone callbacks -- tapping "delete" adjusts volume instead.
-
-**Why it happens:** Zone registration is triggered by `Qt.callLater(registerZones)` connected to geometry change signals (`onXChanged`, `onWidthChanged`). QML property animations cause multiple intermediate geometry updates. The zone callback closures capture the role at bind time.
-
-**Consequences:** Tapping "delete widget" adjusts volume. Tapping "settings" adjusts brightness. Race condition manifests intermittently depending on animation timing and touch speed. On Pi with EVIOCGRAB active, the evdev zones are the ONLY touch path -- this is not a cosmetic issue.
+**Consequences:** User sees: branded splash -> black -> compositor splash -> app. The black gap defeats the purpose of a seamless boot experience.
 
 **Prevention:**
-- Swap control roles BEFORE any animation, not during. Use a `NavbarController.mode` property (`"normal"` vs `"widgetEdit"`) that switches the action dispatch table atomically. The visual animation is cosmetic; the logical role swap must be instant.
-- Unregister ALL navbar zones during the swap transition and re-register only after new roles are committed. A 200ms gap where navbar touch does nothing is better than wrong actions firing.
-- The existing zone system uses string IDs (`"navbar-ctrl-0"`, etc.) -- the callbacks should check current mode at dispatch time rather than capturing the role at registration time.
-- Test by triggering rapid select/deselect cycles and tapping navbar controls at each transition.
+- Accept the gap exists and minimize it rather than eliminate it. This is the same problem Plymouth solves on desktop Linux, and even Plymouth has a handoff moment.
+- Start swaybg as the FIRST command in labwc autostart (before anything else) and background it. This minimizes the gap to the time swaybg takes to connect + render (~200-500ms on Pi 4).
+- Use `quiet splash logo.nologo loglevel=0 vt.global_cursor_default=0` in cmdline.txt so the gap shows solid black (no text, no cursor, no kernel messages) rather than noisy output.
+- Do NOT attempt to "hold" the kernel framebuffer image with a userspace fbdev tool (fbi, etc.) -- once KMS takes over, fbdev writes are ignored or cause conflicts.
+- Phase this as "good enough for v0.7.0" with a note that boot speed optimization is a future milestone.
 
-**Detection:** Tap the "delete" control area immediately after widget selection triggers the navbar swap. If volume changes instead, the zone registration raced.
+**Detection:** Boot the Pi and watch the display. If you see kernel messages, boot text, or a cursor between splash and app, the cmdline.txt parameters are wrong.
 
-### Pitfall 3: SwipeView Page Swipe Conflicts with Widget Drag Gesture
+**Confidence:** HIGH -- this is a well-documented DRM/KMS handoff limitation, confirmed by Raspberry Pi forum reports.
 
-**What goes wrong:** Currently `SwipeView.interactive = !homeScreen.editMode` prevents page swiping during edit. Without global edit mode, there is no binary flag. If SwipeView remains interactive, horizontal widget drags near page boundaries trigger page swipes instead of widget movement. If SwipeView is disabled whenever any widget is selected, the user cannot swipe to see other pages.
+---
 
-**Why it happens:** SwipeView's internal Flickable consumes horizontal drag gestures at its own level. QML gesture disambiguation gives priority to the outer container (SwipeView) over inner MouseAreas unless `preventStealing: true` is set. But blanket `preventStealing` on the drag overlay prevents SwipeView from EVER swiping.
+### Pitfall 2: raspi-config Overwrites Custom Session Selection
 
-**Consequences:** Widget drag near edges causes accidental page changes, or pages become non-swipeable during any widget interaction.
+**What goes wrong:** The installer configures LightDM to autologin into `openauto-kiosk` session. Later, the user runs `raspi-config` (System Options -> Boot / Auto Login) and raspi-config rewrites `/etc/lightdm/lightdm.conf` with `autologin-session=rpd-labwc`, silently undoing the kiosk session. Next boot shows the full RPi desktop instead of the kiosk.
 
-**Prevention:**
-- Disable SwipeView interactive only when `draggingInstanceId !== ""` (active drag in progress), not on selection alone. The binding becomes: `interactive: homeScreen.draggingInstanceId === ""`.
-- Keep `preventStealing: true` ONLY on the drag overlay MouseArea (already present in current code). Only enable the drag overlay when actual dragging begins (finger moved past threshold after long-press).
-- The state transitions must be: `Idle -> Selected (SwipeView enabled) -> Dragging (SwipeView disabled) -> Drop (SwipeView re-enabled)`.
+**Why it happens:** raspi-config directly modifies `/etc/lightdm/lightdm.conf` and `/var/lib/AccountsService/users/$USER`. It has no awareness of custom sessions. It assumes the session is either `rpd-labwc` (Wayland) or `rpd-x` (X11). It will also overwrite the AccountsService user file's `XSession` and `Session` fields.
 
-**Detection:** Long-press widget to select, try to swipe to next page. Should work. Start dragging widget horizontally -- page should NOT swipe.
-
-### Pitfall 4: Drag Overlay at z:200 Can Steal Touch from Navbar During Widget Drag
-
-**What goes wrong:** The current `dragOverlay` MouseArea sits at `z: 200` with `anchors.fill: parent` covering the entire HomeMenu. The navbar sits at `z: 100` in Shell. Because these are in different parent contexts (HomeMenu inside `pluginContentHost`, navbar in Shell), QML z-ordering is scoped per-parent and should not conflict. BUT: if the overlay is accidentally reparented to Shell for "full coverage" during refactoring, it eats navbar touches.
-
-**Why it happens:** During the refactor, the temptation to parent overlays at the shell level (for "clicking outside the content area dismisses selection") creates z-order conflicts with the navbar. The navbar's z:100 is lower than a shell-level overlay at z:200.
-
-**Consequences:** User cannot adjust volume or brightness while dragging a widget. On Pi with EVIOCGRAB active, evdev zones bypass QML entirely so this only matters on the home screen -- but that is exactly when widget drag happens.
+**Consequences:** User loses kiosk boot without understanding why. They may not even connect the raspi-config interaction to the symptom (which appears on next boot, not immediately).
 
 **Prevention:**
-- Keep the drag overlay strictly inside HomeMenu / `pluginContentHost`. Never parent it to Shell.
-- For "tap outside widget to deselect" behavior, use a HomeMenu-level background MouseArea (the existing page background MouseArea already does `onClicked → exitEditMode`). Adapt this to clear selection instead.
-- The "selected widget" state should NOT deploy a full-screen overlay at all. Only activate the drag overlay when actual finger movement begins.
+- Use `/etc/lightdm/lightdm.conf.d/` drop-in files (e.g., `50-openauto-kiosk.conf`) instead of modifying `lightdm.conf` directly. Drop-in files in `conf.d/` are read AFTER the main config and override matching keys. raspi-config modifies the main file but does NOT touch `conf.d/`.
+- ALSO set the AccountsService user file at `/var/lib/AccountsService/users/$USER` with `Session=openauto-kiosk` -- but document that raspi-config may clobber this.
+- Include a health check in the preflight script or installer that warns if the active LightDM session is not `openauto-kiosk`.
+- Document prominently: "Do not use raspi-config to change boot/login settings. Use the Prodigy installer to switch between kiosk and desktop modes."
 
-**Detection:** During widget drag, try tapping a navbar control (volume/brightness). Must still respond.
+**Detection:** After any `apt upgrade` or raspi-config use, check `grep autologin-session /etc/lightdm/lightdm.conf.d/50-openauto-kiosk.conf` and `grep Session /var/lib/AccountsService/users/$USER`.
 
-### Pitfall 5: Edge Resize Handles Unusable at Automotive Touch Targets
+**Confidence:** HIGH -- confirmed behavior from RPi forum reports where AccountsService user files revert after raspi-config runs.
 
-**What goes wrong:** The current single bottom-right resize handle is `UiMetrics.touchMin * 0.5` (~24px visual) with expanded touch margins. Moving to 4-edge resize handles creates narrow strips (~8-12px) along widget borders that are nearly impossible to hit with a finger in a moving car. Corners where two edge handles meet create ambiguous hit zones.
+---
 
-**Why it happens:** Edge handles look obvious in mockups and on desktop. At 7" 1024x600 with finger-based input and vehicle vibration, the touch target is physically smaller than a fingertip (~7mm at this DPI). The existing corner handle with negative margins is already at the minimum usable size.
+### Pitfall 3: Kernel Update Breaks Boot Splash (initramfs Not Rebuilt)
 
-**Consequences:** Users cannot resize widgets. They accidentally drag instead of resize. Corner ambiguity means resizing from a corner changes both axes unpredictably.
+**What goes wrong:** `apt upgrade` installs a new kernel. The new kernel package triggers `update-initramfs` which rebuilds the initramfs. If the splash hook (`/etc/initramfs-tools/hooks/splash-screen-hook.sh`) is missing, malformed, or fails silently, the new initramfs lacks the TGA image. The kernel boots with `fullscreen_logo=1` but finds no `logo.tga` in initramfs -- result is either no splash (black screen + boot text) or a kernel panic if the firmware path is required.
+
+**Why it happens:** The rpi-splash-screen-support `configure-splash` tool installs a hook script at `/etc/initramfs-tools/hooks/splash-screen-hook.sh` that copies `/lib/firmware/logo.tga` into the initramfs. Kernel updates trigger `update-initramfs -u` which re-runs all hooks. If the hook was accidentally deleted, has wrong permissions, or the TGA file at `/lib/firmware/logo.tga` was removed, the rebuild succeeds but produces an initramfs without the splash image.
+
+**Consequences:** Silent degradation -- boot splash disappears after an apt upgrade. User sees boot text or black screen but the system still boots. Hard to diagnose because "it worked before the update."
 
 **Prevention:**
-- **Keep the single bottom-right resize handle.** It works, is discoverable, and allows both single-axis and dual-axis resize from one control. Four edge handles add complexity without proportional value on a 7" touchscreen.
-- If 4-edge handles are required: make them INVISIBLE with large touch margins (`anchors.margins: -UiMetrics.touchMin * 0.5` = ~24px extension). Show them only after widget selection. Corners resize both axes; edges resize one axis only.
-- Minimum effective touch target: `UiMetrics.touchMin` (48dp equivalent). Anything smaller will fail in-car use.
-- Use `preventStealing: true` on resize handle MouseAreas (already done in current code) to prevent the drag overlay from claiming the resize gesture.
+- Installer must verify the hook script exists AND is executable after running `configure-splash`.
+- Installer health check should verify `/lib/firmware/logo.tga` exists and `/etc/initramfs-tools/hooks/splash-screen-hook.sh` exists and is executable.
+- Consider adding a dpkg trigger or apt hook that re-runs `configure-splash` after kernel package installation (defense in depth).
+- Test the splash by running `sudo update-initramfs -u` manually during installer verification, then rebooting.
 
-**Detection:** On Pi touchscreen, try to resize a 1x1 widget by its edge handle. If it takes more than 2 attempts, the touch target is too small.
+**Detection:** After `apt upgrade`, check `lsinitramfs /boot/firmware/initrd.img-$(uname -r) | grep logo.tga`. If empty, the splash image was not included.
+
+**Confidence:** MEDIUM -- rpi-splash-screen-support is relatively new and has 4 open issues. The `update-initramfs -u -k all` command has been confirmed to break splash screens on RPi forums.
+
+---
+
+### Pitfall 4: labwc Autostart Runs Before Dependent Services Are Ready (First Boot Race)
+
+**What goes wrong:** On first boot after power-on, labwc's autostart script executes before D-Bus, PipeWire, or BlueZ are fully initialized. swaybg may fail to connect to the compositor socket (timing), or the main app may start before PipeWire/BlueZ are ready and fail to initialize audio/bluetooth.
+
+**Why it happens:** labwc autostart runs as a shell script immediately after the compositor reads its config. There is no dependency management -- it does not wait for systemd targets or D-Bus services. On first boot, systemd is still bringing up user services in parallel. On subsequent logins (without reboot), these services are already running.
+
+**Consequences:** On first boot: swaybg might not appear (splash missing), app might crash or degrade (no audio, no bluetooth). On subsequent reboots: works fine, making the bug intermittent and hard to reproduce.
+
+**Prevention:**
+- swaybg is simple enough that it should work reliably -- it only needs the Wayland socket which labwc guarantees before autostart. Verify this on Pi hardware.
+- The existing systemd service (`openauto-prodigy.service`) already has `After=graphical.target hostapd.service bluetooth.target pipewire.service` -- this is CORRECT. Do NOT move app launch from the systemd service to labwc autostart. Keep the service file as the app launcher; use autostart ONLY for the splash (swaybg) and other compositor-level concerns.
+- If swaybg occasionally fails on cold boot, add a small retry: `swaybg ... & sleep 0.3 && pgrep swaybg || swaybg ... &`
+
+**Detection:** Cold-boot the Pi 5 times and check if splash appears every time. If it fails even once, there's a race.
+
+**Confidence:** MEDIUM -- confirmed as a general labwc autostart issue in GitHub discussions, but swaybg specifically is lightweight enough that it may not be affected.
 
 ---
 
 ## Moderate Pitfalls
 
-### Pitfall 6: Selected Widget State Persists Across Page Swipes
+### Pitfall 5: swaybg Renders on Background Layer -- App Window Covers It Automatically
 
-**What goes wrong:** User long-presses a widget on page 0 to select it (visual lift, border, navbar transforms to settings/delete). User swipes to page 1. The selected widget is off-screen but selection state persists -- navbar still shows settings/delete, and tapping delete would remove a widget the user cannot see.
+**What goes wrong:** Developer expects to need explicit splash dismissal logic (kill swaybg) to reveal the app. But swaybg uses wlr-layer-shell's `background` layer, which is the LOWEST z-layer. Any normal Wayland toplevel window (like the Qt app) renders ABOVE the background layer by default. The "splash" is effectively invisible as soon as the app window maps.
 
-**Why it happens:** Selection state is stored as a homeScreen-level property (`selectedInstanceId`) which is page-independent. The visual feedback (border, scale) is on the delegate which becomes invisible off-screen, but the logical state and navbar transformation remain.
-
-**Consequences:** User deletes a widget they did not intend to delete. Navbar shows wrong controls for the current context.
+**Why this is a pitfall (not a feature):** If the developer writes complex splash-dismissal logic based on frameSwapped timing and SIGTERM signals, they're solving a problem that doesn't exist. BUT -- if the app window is transparent or takes time to render its first frame, the splash WILL be visible underneath during that time, which IS the desired behavior. The pitfall is misunderstanding when explicit dismissal is needed vs. when occlusion handles it.
 
 **Prevention:**
-- Clear widget selection when `pageView.currentIndex` changes. Add a `Connections` watching `pageView.onCurrentIndexChanged` that calls deselect.
-- Alternatively, disable page swiping while a widget is selected. This matches Android launcher behavior where widget selection locks the current page.
-- Show the selected widget's name in the navbar center (replacing the clock) as visual confirmation of what is selected.
+- Understand the wlr-layer-shell layer ordering: background < bottom < top < overlay. swaybg runs at `background` layer.
+- The Qt app is a normal toplevel surface and renders above background layer. Once the app window maps with content, swaybg is occluded.
+- Still kill swaybg after the app is confirmed visible (to free memory and avoid a zombie process), but this is cleanup, not visual handoff.
+- The real visual handoff happens automatically via surface stacking. The question is: how long between labwc start and Qt app's first frame? That's the window where the splash is visible and doing its job.
 
-**Detection:** Select widget on page 0, swipe to page 1, tap delete. Should either do nothing or auto-deselect on swipe.
+**Detection:** Run `wlr-randr` or check layer-shell surface list to verify swaybg is on background layer.
 
-### Pitfall 7: Long-Press Empty Space Fails Due to SwipeView Gesture Stealing
+**Confidence:** HIGH -- wlr-layer-shell protocol defines layer ordering, and swaybg's source code confirms it uses the background layer.
 
-**What goes wrong:** Long-pressing empty grid space should show an "Add Widget / Add Page" context menu. But SwipeView treats the initial press as a potential swipe start. If the finger moves even ~8px during the 500ms hold interval (trivial with vehicle vibration), SwipeView begins its drag gesture and cancels the MouseArea's `pressAndHold`.
+---
 
-**Why it happens:** SwipeView's Flickable has a low drag threshold (~8px). Any movement beyond this converts the gesture to a flick, and the background MouseArea receives `onCanceled`, not `onPressAndHold`.
+### Pitfall 6: frameSwapped Does Not Mean "Frame Is Visible on Screen"
 
-**Consequences:** Long-press on empty space rarely triggers on a touchscreen in a car. The "Add Widget" entry point becomes unreliable.
+**What goes wrong:** The architecture notes say "App dismisses splash after first frame is presented (frameSwapped signal)." But `QQuickWindow::frameSwapped` fires when the rendering thread has submitted a frame to the GPU/compositor, NOT when the compositor has actually presented it to the display. On Wayland, there is additional latency between the client committing a frame and the compositor compositing + presenting it at the next vblank.
 
-**Prevention:**
-- Use `preventStealing: true` on the background MouseArea during the press interval. Release the steal prevention if the user clearly swipes (movement > 30px threshold).
-- Keep a secondary entry point: the navbar or a persistent "+" indicator that does not rely on the long-press gesture at all. Belt-and-suspenders.
-- The current FAB approach works reliably -- consider keeping a minimal "+" FAB visible only when on a page with available grid space, without requiring edit mode.
+**Why it happens:** Qt's frameSwapped is a client-side signal. The Wayland protocol's `wl_surface.frame` callback fires when the compositor is READY for the next frame, not when the previous frame was displayed. There is no reliable Wayland client API to know "my frame is now physically on the monitor" (the `wp_presentation` protocol exists but is not universally supported and adds complexity).
 
-**Detection:** On Pi, try to long-press empty grid space. If it fails > 30% of the time, the gesture is unreliable.
-
-### Pitfall 8: Bottom Sheet Widget Picker Overlaps or Hides Behind Navbar
-
-**What goes wrong:** The current picker panel uses `height: Math.min(parent.height * 0.35, 200)` anchored to `parent.bottom`. If the navbar is at the bottom edge (`navbar.edge === "bottom"`), the picker either overlaps the navbar (if it renders above the navbar's z) or is hidden behind it (if below). If the navbar is transformed to show settings/delete controls, the picker covers those controls.
-
-**Why it happens:** The picker's position calculation does not account for navbar geometry. The navbar is in Shell space, the picker is in HomeMenu space -- they are in different parent contexts with different coordinate origins.
-
-**Consequences:** Picker and navbar overlap. Touch targets collide. User cannot dismiss picker because the scrim behind the navbar is unreachable.
+**Consequences:** If splash is killed on frameSwapped, there may be a 1-2 frame gap (16-33ms at 60Hz) where the splash is gone but the app's first frame hasn't been presented yet. On Pi 4, this is a brief black flash between splash and app.
 
 **Prevention:**
-- Calculate picker height as `Math.min(parent.height * 0.35, 200)` with a bottom margin of `navbar.barThick` when `navbar.edge === "bottom"`. Use the Shell's content margins that are already applied to the ColumnLayout.
-- Since HomeMenu already lives inside `pluginContentHost` which has navbar margins applied, the picker anchored to `parent.bottom` within HomeMenu should clear the navbar automatically. Verify this is still true after refactoring.
-- If using `Overlay.overlay` as parent (like the current `configSheet`), the picker escapes the content margins and the navbar overlap returns. Keep the picker inside HomeMenu bounds.
+- Add a small delay after frameSwapped before killing swaybg. The architecture notes mention 300ms -- this is reasonable and conservative.
+- Since swaybg is on the background layer (Pitfall 5), it's actually occluded by the app window, so killing it is cosmetic cleanup. The visual handoff happens when the app window maps, not when swaybg dies.
+- The practical approach: connect to `frameSwapped`, use `QTimer::singleShot(500, ...)` to kill swaybg. This ensures the app has had multiple frames presented before the background process is cleaned up.
+- Do NOT use `QQuickWindow::afterRendering` -- this fires even EARLIER in the pipeline (before the frame is submitted to the compositor).
 
-**Detection:** Open widget picker with navbar at bottom edge. Picker and navbar should not overlap.
+**Detection:** Known project gotcha already documented in milestone context. Test on Pi hardware at 60Hz -- if there's a flash between splash and app, increase the delay.
 
-### Pitfall 9: Bottom Sheet / Picker Unreachable During AA (EVIOCGRAB)
+**Confidence:** HIGH -- Qt documentation explicitly states frameSwapped fires after "the scene has completed rendering, before swapbuffers is called" (Qt 5) or after buffer swap but before compositor presentation (Qt 6).
 
-**What goes wrong:** If the widget picker is somehow open when AA connects (race condition), or if a user triggers the picker via a QML action right before AA takes over, the bottom sheet renders but cannot receive touch to dismiss or select. EVIOCGRAB routes all touch through evdev, bypassing Qt's event loop entirely. QML Popups become untouchable zombies.
+---
 
-**Why it happens:** EVIOCGRAB is toggled on AA connect. Any QML overlay that was visible at the moment of grab becomes permanently stuck.
+### Pitfall 7: Kiosk Session Desktop File Syntax Errors Cause Boot to Black Screen
 
-**Consequences:** Stuck overlay that can only be cleared by restarting the app.
+**What goes wrong:** A syntax error in `/usr/share/wayland-sessions/openauto-kiosk.desktop` (missing `Exec=` line, wrong `Type=`, bad `DesktopNames=`) causes LightDM to fail to start the session. With autologin enabled, LightDM attempts to start the session, fails, and either: (a) shows the greeter (if installed and configured), (b) shows a black screen with a cursor, or (c) enters a login loop.
 
-**Prevention:**
-- The AA fullscreen auto-exit pattern already exists (`EDIT-08` in current code: `PluginModel.activePluginChanged` → `exitEditMode`). Extend this to dismiss any widget selection state, picker visibility, and config sheet.
-- Guard picker open: `if (PluginModel.activePluginId) return` before showing. Same for config sheet.
-- The existing `configSheet` (Dialog with Overlay.overlay parent) has the same vulnerability -- add auto-dismiss there too.
+**Why it happens:** XDG desktop files have strict format requirements. Common mistakes: wrong `Type` (must be `Application`), `Exec` pointing to nonexistent binary, missing `DesktopNames` field, or using X11-specific fields for a Wayland session. LightDM does not provide helpful error messages for malformed session files.
 
-**Detection:** Open widget picker, then immediately connect phone for AA. Picker should auto-dismiss.
-
-### Pitfall 10: Navbar Control Swap Animation Causes GPU Jank on Pi
-
-**What goes wrong:** Crossfading navbar controls (volume icon to settings icon, brightness icon to delete icon) during the transformation. The Pi 4's VideoCore VI GPU struggles with multiple simultaneous opacity layers -- this was already discovered with `FullScreenPicker` delegate shadows causing GPU freezes in v0.6.2.
-
-**Why it happens:** Each opacity-animated item creates a separate render layer. Crossfading two sets of 3 controls = 6 simultaneous opacity layers in the navbar area. The Pi's GPU has limited layer composition bandwidth.
-
-**Consequences:** Visible flicker, frame drops, or momentary freeze during navbar transformation. In a car, any UI freeze during touch interaction is a safety concern.
+**Consequences:** Pi boots to black screen. User cannot get to a desktop. Recovery requires SSH or serial console to fix the desktop file or revert LightDM config.
 
 **Prevention:**
-- Use instant content swap (no animation) for navbar control icons and labels. The navbar is small and peripheral -- snap changes are acceptable and feel responsive.
-- If any animation is desired, limit to a single property (e.g., a brief background color flash on the control that changed) rather than crossfading the entire control content.
-- Test on Pi hardware before committing to any animation approach. Desktop dev VM has no GPU constraints.
+- Validate the desktop file format in the installer BEFORE enabling autologin:
+  ```bash
+  desktop-file-validate /usr/share/wayland-sessions/openauto-kiosk.desktop
+  ```
+- Test that `labwc` can actually be launched from the session before making it the default.
+- Installer MUST provide a rollback mechanism: if first boot into kiosk fails, have a systemd timer or watchdog that reverts to the default `rpd-labwc` session after N consecutive failures.
+- Keep the default `rpd-labwc.desktop` session file intact -- never modify or delete it.
+- Session file template:
+  ```ini
+  [Desktop Entry]
+  Name=OpenAuto Kiosk
+  Comment=OpenAuto Prodigy Kiosk Session
+  Exec=labwc -C /etc/openauto-kiosk/labwc -s /etc/openauto-kiosk/labwc/autostart
+  Type=Application
+  DesktopNames=wlroots
+  ```
 
-**Detection:** Trigger navbar swap rapidly by selecting/deselecting widgets in quick succession. Watch for frame drops on Pi.
+**Detection:** `desktop-file-validate` on the session file. Attempt `sudo -u matt labwc -C /path/to/kiosk/config` from SSH to verify it starts.
 
-### Pitfall 11: `requestContextMenu()` Call Breaks During Loader Source Swap
+**Confidence:** HIGH -- standard XDG/LightDM behavior, well-documented in Arch Wiki and Debian Wiki.
 
-**What goes wrong:** Widgets call `parent.requestContextMenu()` to forward long-press. This works because the Loader exposes the function. If the widget picker replaces a widget at the same grid position (remove old + place new), the Loader's `source` changes, the old item is destroyed, and during the brief transition `parent` may be null. A long-press during this window crashes or silently fails.
+---
 
-**Why it happens:** QML Loader source changes destroy the old component before the new one loads. During this gap, `parent` references are unstable.
+### Pitfall 8: Kiosk labwc Config Conflicts with User's ~/.config/labwc
 
-**Consequences:** Crash on rare timing, or first long-press after widget replacement silently fails.
+**What goes wrong:** The kiosk session uses a stripped labwc config (no panel, no taskbar). But labwc loads config from `~/.config/labwc/` first, then falls back to `/etc/xdg/labwc/`. If the kiosk session writes its config to `~/.config/labwc/`, the normal desktop session (rpd-labwc) ALSO picks up the kiosk config -- no panel, no taskbar on the regular desktop.
+
+**Why it happens:** labwc has a single config search path per user. There is no built-in "profile" or "session-specific config" mechanism. Both the kiosk session and the normal desktop session read from the same `~/.config/labwc/` directory.
+
+**Consequences:** Switching from kiosk to desktop gives a broken desktop (no taskbar, no file manager). User thinks the system is broken.
 
 **Prevention:**
-- Guard `requestContextMenu()` calls: `if (parent && typeof parent.requestContextMenu === "function") parent.requestContextMenu()`.
-- Set a brief `interactionLocked` flag (200ms) after any widget add/remove/move operation to suppress long-press gestures during transitions.
+- Do NOT put kiosk config in `~/.config/labwc/`. Use labwc's `-C` flag to specify an alternative config directory:
+  ```
+  Exec=labwc -C /etc/openauto-kiosk/labwc
+  ```
+  This tells labwc to look at `/etc/openauto-kiosk/labwc/rc.xml`, `/etc/openauto-kiosk/labwc/autostart`, etc., leaving `~/.config/labwc/` untouched for the normal desktop session.
+- The kiosk config directory should contain: `rc.xml` (with mouseEmulation="no", ToggleFullscreen windowRule for openauto), `autostart` (swaybg launch + app service trigger), and `environment` (if needed).
+- The existing `~/.config/labwc/rc.xml` with `mouseEmulation="no"` (created by the current installer) should remain -- it's needed for both sessions.
 
-**Detection:** Rapidly add a widget and immediately long-press it. If it crashes or does not respond, the timing window exists.
+**Detection:** After switching sessions, verify `wf-panel-pi` is running in the desktop session and NOT running in the kiosk session.
+
+**Confidence:** HIGH -- labwc documentation confirms config search path behavior and `-C` override flag.
+
+---
+
+### Pitfall 9: Exit-to-Desktop Requires Full Session Switch, Not Just App Kill
+
+**What goes wrong:** The 3-finger overlay "Exit to Desktop" button kills the app process. But in the kiosk session, there IS no desktop -- labwc was launched with a stripped config (no panel, no pcmanfm, no wallpaper daemon). Killing the app leaves the user staring at a black screen with nothing to interact with.
+
+**Why it happens:** In the normal rpd-labwc session, killing the app reveals the desktop environment underneath (wf-panel-pi, pcmanfm, etc.). In the kiosk session, there is no "underneath" -- the compositor only has swaybg (if still running) and the app. Removing the app removes everything useful.
+
+**Consequences:** User presses "Exit to Desktop" and gets a black screen. Only recovery is SSH or physical reboot.
+
+**Prevention:**
+- "Exit to Desktop" must actually switch sessions, not just kill the app. The flow should be:
+  1. App requests session switch via a script/command.
+  2. Script terminates labwc (which returns control to LightDM).
+  3. LightDM starts the `rpd-labwc` session instead.
+- Implementation options:
+  - **Option A:** Write a helper script that modifies LightDM's autologin-session and then sends SIGTERM to labwc (PID from `$LABWC_PID`). Next login starts the desktop session.
+  - **Option B:** Use `loginctl terminate-session` to end the current session, triggering LightDM to restart. Pre-configure the next session to be `rpd-labwc`.
+  - **Option C (simplest):** Write the desired session to `/var/lib/AccountsService/users/$USER` (Session=rpd-labwc), then send SIGTERM to labwc. LightDM autologins into the new session.
+- Must also have a "Return to Kiosk" mechanism from the desktop (run a command or use raspi-config alternative).
+
+**Detection:** Press Exit to Desktop in kiosk mode. If you see a black screen instead of the desktop, the session switch is broken.
+
+**Confidence:** HIGH -- this is architectural, not implementation-dependent. Labwc's `--startup` option can help: if the Exec line uses `labwc --startup /path/to/app`, labwc exits when the startup command exits, returning to LightDM.
+
+---
+
+### Pitfall 10: systemd Service vs. labwc autostart -- Double Launch or Missing Launch
+
+**What goes wrong:** The app currently launches via a systemd user service (`openauto-prodigy.service`) with `After=graphical.target`. The kiosk session's labwc autostart might ALSO try to launch the app. Result: either the app launches twice (crashes on port/socket conflicts) or neither approach works (systemd service waits for graphical.target which depends on the session which depends on autostart which waits for...).
+
+**Why it happens:** There are two competing launch mechanisms: systemd (service file, dependency ordering, sd_notify) and labwc autostart (shell script, no dependency management). The current installer creates the systemd service. The kiosk session may tempt adding the app to autostart. Using both creates conflicts.
+
+**Consequences:** Double launch: socket bind fails, IPC conflicts, crashes. Or circular dependency: service waits for graphical.target, graphical.target waits for labwc, labwc autostart waits for nothing but the service never starts because graphical.target isn't reached yet.
+
+**Prevention:**
+- Keep ONE launch mechanism. The systemd service is the right choice because it provides:
+  - Dependency ordering (`After=` hostapd, bluetooth, pipewire)
+  - Restart-on-failure
+  - WatchdogSec
+  - sd_notify readiness
+  - Clean ExecStartPre/ExecStopPost hooks
+- labwc autostart should launch ONLY compositor-level concerns: swaybg (splash) and potentially kanshi (display config). NOT the app.
+- The autostart file should look like:
+  ```bash
+  swaybg -m fill -i /usr/share/openauto-prodigy/splash.png &
+  ```
+  That's it. The systemd service handles app launch.
+- Verify that `graphical.target` is reached BEFORE the systemd service tries to start. On RPi OS Trixie with LightDM + labwc, `graphical.target` is reached when the display manager starts a session. The service's `After=graphical.target` should work correctly.
+
+**Detection:** `systemctl status openauto-prodigy.service` should show the service running. `pgrep openauto-prodigy` should show exactly ONE process. If zero or two, the launch mechanism is wrong.
+
+**Confidence:** HIGH -- this is a known class of problem. The existing service file already works correctly; the pitfall is introducing a second launch path.
+
+---
+
+### Pitfall 11: wf-panel-pi Lifecycle Breaks on Session Switch
+
+**What goes wrong:** The current systemd service kills wf-panel-pi on start and restores it on clean stop (via ExecStartPre/ExecStopPost). In the kiosk session, wf-panel-pi is never started (no lwrespawn in autostart). The ExecStartPre that kills wf-panel-pi is harmless (nothing to kill), but the ExecStopPost that restores it will try to start wf-panel-pi in a session that has no panel infrastructure -- either failing silently or leaving orphan processes.
+
+**Why it happens:** The ExecStopPost logic assumes the app is running in the default rpd-labwc session where wf-panel-pi should exist. In the kiosk session, restoring wf-panel-pi is wrong.
+
+**Consequences:** Orphan wf-panel-pi process in kiosk session after app restart, or failed restore attempts cluttering journal logs.
+
+**Prevention:**
+- Make the panel restore conditional on the current session:
+  ```bash
+  ExecStopPost=-/bin/sh -c '[ "$SERVICE_RESULT" = "success" ] && \
+    [ "$(cat /etc/lightdm/lightdm.conf.d/50-openauto-kiosk.conf 2>/dev/null | grep autologin-session)" != "autologin-session=openauto-kiosk" ] && \
+    systemd-run --user ... /usr/bin/lwrespawn /usr/bin/wf-panel-pi || true'
+  ```
+- Or simpler: check if the current session is the kiosk session by looking at `$XDG_CURRENT_DESKTOP` or labwc's config path.
+- Best approach: move wf-panel-pi suppression entirely to the session definition. In the kiosk session, wf-panel-pi is simply not in autostart. In the desktop session, wf-panel-pi is in autostart. No need for the service to manage it at all -- the kiosk session naturally excludes it.
+
+**Detection:** After app crash/restart in kiosk mode, check `pgrep wf-panel-pi`. Should be zero in kiosk session.
+
+**Confidence:** HIGH -- follows directly from existing codebase analysis.
 
 ---
 
 ## Minor Pitfalls
 
-### Pitfall 12: `opacityChanged` Signal Name Collision (Known Gotcha)
+### Pitfall 12: TGA Image Conversion Gotchas
 
-**What goes wrong:** QML `Item.opacity` auto-generates `opacityChanged`. Any new "selected widget opacity" property or signal using the name `opacity` or `opacityChanged` on a delegate will shadow the built-in and cause unexpected behavior.
+**What goes wrong:** The splash image must be: uncompressed TGA, 24-bit (no alpha), less than 224 colors, smaller than 1920x1080. Common failure: PNG with alpha channel -> 32-bit TGA (rejected). Common failure: complex image with >224 colors (quantization artifacts). Common failure: image is not vertically flipped (TGA origin convention).
 
-**Prevention:** Name selection-related opacity properties explicitly: `selectionOpacity`, `liftOpacity`. Never shadow built-in Item properties.
+**Prevention:**
+- Use the exact ImageMagick conversion command:
+  ```bash
+  convert logo.png -flip -colors 224 -depth 8 -type TrueColor \
+    -alpha off -compress none -define tga:bits-per-sample=8 logo.tga
+  ```
+- Note the `-flip` -- TGA format stores images bottom-to-top by default. Without it, the splash appears upside-down.
+- Validate with `file logo.tga` (should say "Targa image data") and check dimensions with `identify logo.tga`.
+- Bundle a pre-converted TGA in the repo assets. Do NOT rely on the user having ImageMagick installed.
 
-### Pitfall 13: Widget Scale Transform During Selection Breaks Position Math
+**Confidence:** HIGH -- ImageMagick conversion is documented in rpi-splash-screen-support README.
 
-**What goes wrong:** Applying `scale: 1.05` for the "lift" visual effect. Scale transforms around `transformOrigin` (default: center). The delegate's `x`/`y` bindings use top-left corner coordinates. If the scale animation runs while position bindings are active, the visual position jumps because the transform origin is not the same as the binding coordinate origin.
+---
 
-**Prevention:** Apply scale only to the `innerContent` child (which already exists inside the delegate), not the delegate itself. Or explicitly set `transformOrigin: Item.Center` and ensure position bindings are not re-evaluated during scale changes.
+### Pitfall 13: `configure-splash` Removes `quiet` from cmdline.txt
 
-### Pitfall 14: Auto-Delete Empty Pages Races with Widget Placement
+**What goes wrong:** The `configure-splash` script explicitly removes `quiet` and `plymouth.ignore-serial-consoles` from cmdline.txt before adding its own parameters. If the installer had previously set `quiet` for clean boot output, running `configure-splash` removes it. Boot may then show kernel messages before the splash appears.
 
-**What goes wrong:** Auto-deleting empty pages on widget removal. If the last widget on page 2 is deleted, page 2 auto-deletes. If the user then places a new widget targeting page index 2 (from a queued action or auto-place), the page no longer exists.
+**Prevention:**
+- After running `configure-splash`, re-add `quiet loglevel=0 logo.nologo` to cmdline.txt.
+- Or use `configure-splash --no-cmdline` and manage cmdline.txt parameters manually in the installer.
+- The full desired cmdline.txt additions: `quiet loglevel=0 logo.nologo vt.global_cursor_default=0 fullscreen_logo=1 fullscreen_logo_name=logo.tga`
 
-**Prevention:** Auto-delete empty pages only when leaving widget interaction (deselection), not immediately on widget removal. This matches the current `exitEditMode()` cleanup pattern.
+**Confidence:** MEDIUM -- confirmed by reading the configure-splash script source. The removal of `quiet` is intentional (the tool assumes it knows best about boot parameters).
 
-### Pitfall 15: Config Sheet and Bottom Sheet Picker Can Stack
+---
 
-**What goes wrong:** User selects a widget, taps settings (config sheet opens), then somehow triggers the widget picker (e.g., via a "replace widget" action). Two overlays stack, creating confusing z-order and touch routing.
+### Pitfall 14: labwc autostart `&` Requirement for Background Processes
 
-**Prevention:** Close any existing overlay before opening a new one. Enforce mutual exclusivity: `configSheet.visible` and `pickerOverlay.visible` should be mutually exclusive, gated by a single `activeOverlay` enum.
+**What goes wrong:** Commands in labwc autostart without `&` block the rest of the autostart script. If swaybg is launched without `&`, the app service never starts (systemd-wise this doesn't matter since the service is separate, but any subsequent autostart commands are blocked).
+
+**Prevention:**
+- Always background long-running processes in autostart with `&`.
+- swaybg MUST be backgrounded: `swaybg -m fill -i /path/to/splash.png &`
+- This is different from the old wayfire behavior where everything was automatically backgrounded.
+
+**Confidence:** HIGH -- documented in labwc autostart docs and confirmed by multiple RPi forum reports.
+
+---
+
+### Pitfall 15: labwc Window Rule app_id Mismatch
+
+**What goes wrong:** The kiosk rc.xml has a windowRule with `identifier="openauto-prodigy"` to auto-fullscreen the app. But Qt's Wayland shell uses the application's `desktopFileName` or a compositor-assigned app_id. If the app doesn't set its app_id explicitly, labwc may see a different identifier and the fullscreen rule won't trigger.
+
+**Prevention:**
+- Set the app_id explicitly in the Qt application:
+  ```cpp
+  app.setDesktopFileName("openauto-prodigy");
+  ```
+  Or set the `QT_WAYLAND_SHELL_INTEGRATION` or use `QGuiApplication::setDesktopFileName()`.
+- Verify the actual app_id by running `labwc` with debug logging or using `wlr-foreign-toplevel-management` to inspect running surfaces.
+- labwc windowRule matching is case-insensitive and supports wildcards (`*`), so `identifier="openauto*"` is a safer pattern.
+
+**Confidence:** MEDIUM -- Qt's app_id behavior varies between versions. Needs hardware verification.
+
+---
+
+### Pitfall 16: Installer Config Files Overwritten by apt upgrade of labwc/lightdm
+
+**What goes wrong:** Files in `/etc/xdg/labwc/` are owned by the `labwc` package. If the installer modifies `/etc/xdg/labwc/autostart` or `/etc/xdg/labwc/rc.xml`, a `labwc` package upgrade will prompt to overwrite (or silently overwrite if dpkg is configured that way).
+
+**Prevention:**
+- NEVER modify package-owned config files. Use these strategies instead:
+  - labwc: Use `-C /etc/openauto-kiosk/labwc` to point at a completely separate config directory owned by the installer.
+  - LightDM: Use `/etc/lightdm/lightdm.conf.d/50-openauto-kiosk.conf` (drop-in directory is safe from package updates).
+  - Session file: `/usr/share/wayland-sessions/openauto-kiosk.desktop` is not owned by any package (we create it), so it survives upgrades.
+- The kiosk session's Exec line should point labwc at the custom config dir, not rely on the system-wide config.
+
+**Confidence:** HIGH -- standard dpkg conffile behavior.
 
 ---
 
@@ -216,62 +346,41 @@ Mistakes that cause broken interaction, touch routing failures, or forced rewrit
 
 | Phase Topic | Likely Pitfall | Mitigation |
 |-------------|---------------|------------|
-| Per-widget long-press selection | MouseArea z-ordering breaks interactive widgets (#1) | Use existing requestContextMenu pattern; test all interactive widgets |
-| Navbar control swap | Zone registration races with visual animation (#2) | Atomic mode swap before animation; unregister during transition |
-| Navbar control swap | GPU jank on Pi (#10) | Instant swap, no opacity animation |
-| Edge resize handles | Touch targets too small for automotive (#5) | Keep bottom-right handle; minimum touchMin touch area |
-| Bottom sheet picker | Overlaps navbar at bottom edge (#8) | Account for navbar margins in positioning |
-| Bottom sheet picker | Unreachable during AA EVIOCGRAB (#9) | Auto-dismiss on AA activation, guard open action |
-| Long-press empty space | SwipeView steals gesture (#7) | preventStealing during hold; keep secondary entry point |
-| Widget drag | SwipeView page swipe conflicts (#3) | Disable SwipeView only during active drag, not selection |
-| Widget drag | Drag overlay steals navbar touch (#4) | Keep overlay strictly in HomeMenu, not Shell |
-| Widget selection state | Persists across page swipes (#6) | Clear selection on page change |
-| Selection visual | Scale transform breaks position (#13) | Scale innerContent, not delegate |
-| Page management | Auto-delete races placement (#14) | Defer auto-delete to deselection |
-
----
-
-## Integration Risk Summary
-
-The highest-risk integration point is the **touch event layering**. This project has FOUR distinct touch input paths that must cooperate:
-
-1. **QML MouseArea** -- normal home screen widget taps, long-press, drag, resize
-2. **QML SwipeView Flickable** -- page swipe gestures (steals horizontal drags)
-3. **C++ NavbarController** -- QML-side `handlePress`/`handleRelease` for launcher mode
-4. **Evdev TouchRouter** -- bypasses Qt entirely during AA (EVIOCGRAB active, priority-based zone dispatch)
-
-Adding per-widget selection, navbar mode swapping, and a bottom sheet overlay means paths 1-3 must negotiate gesture ownership for every touch on the home screen. The existing architecture handles this for the global edit mode case (binary toggle), but per-widget selection creates a **partial-edit state** where some gestures should be forwarded (page swipe when selected-but-not-dragging) and others captured (drag when finger moves past threshold), and the decision depends on which widget is selected and where exactly the touch lands.
-
-**Recommendation:** Implement the widget interaction state machine in C++ (new `WidgetInteractionController` or extension of existing `NavbarController`) rather than in QML properties scattered across HomeMenu. QML property bindings update asynchronously and create race conditions when multiple gesture handlers read the same state on the same frame. A C++ state machine with explicit transitions (`Idle -> Selected -> Dragging -> Resizing`) and `Q_PROPERTY` notifications gives deterministic ordering and is testable with unit tests. The `NavbarController` already proves this pattern works for the gesture state machine -- apply the same approach for widget interaction.
-
----
+| Boot splash setup | TGA conversion wrong (Pitfall 12), configure-splash removes quiet (Pitfall 13) | Bundle pre-converted TGA, manage cmdline.txt manually |
+| Kiosk session creation | Desktop file syntax error causes black screen (Pitfall 7) | Validate with desktop-file-validate, test before enabling |
+| LightDM configuration | raspi-config overwrites session (Pitfall 2) | Use conf.d drop-in files, document limitation |
+| labwc kiosk config | Config conflicts with desktop session (Pitfall 8) | Use labwc -C flag for separate config directory |
+| Splash-to-app handoff | frameSwapped timing (Pitfall 6), layer misunderstanding (Pitfall 5) | Use timer delay for cleanup, understand layer-shell stacking |
+| Boot splash to compositor transition | Black flash (Pitfall 1) | Accept gap, minimize with early swaybg launch |
+| Exit-to-desktop | Black screen after app exit (Pitfall 9) | Implement full session switch via LightDM |
+| App launch mechanism | Double launch from systemd + autostart (Pitfall 10) | Keep systemd service as sole launch mechanism |
+| Service lifecycle | wf-panel-pi restore in kiosk (Pitfall 11) | Session-aware panel management |
+| Kernel updates | initramfs splash lost (Pitfall 3) | Verify hook + TGA after updates |
+| Autostart ordering | Race on first boot (Pitfall 4), missing & (Pitfall 14) | Lightweight autostart, background everything |
+| Window rules | app_id mismatch (Pitfall 15) | Set app_id explicitly, use wildcards |
+| Config persistence | apt upgrade overwrites (Pitfall 16) | Own config directory, drop-in files |
 
 ## Sources
 
-- **Codebase analysis** (HIGH confidence):
-  - `qml/applications/home/HomeMenu.qml` -- current edit mode, drag overlay z:200, resize handle, widget MouseArea z toggle, SwipeView interactive binding, page cleanup
-  - `qml/components/Shell.qml` -- navbar z:100, content area layout with navbar margins, GestureOverlay
-  - `qml/components/Navbar.qml` -- zone registration via Qt.callLater, edge states, power menu popup session, 4-edge anchor states
-  - `qml/components/NavbarControl.qml` -- control role mapping, hold progress, QML handlePress/Release
-  - `qml/components/WidgetHost.qml` -- z:-1 MouseArea pattern, requestContextMenu() convention
-  - `qml/components/WidgetConfigSheet.qml` -- Dialog with Overlay.overlay parent, bottom sheet animation
-  - `src/ui/NavbarController.hpp` -- gesture state machine, evdev zone callbacks, popup session API, zone registration
-  - `src/core/aa/TouchRouter.hpp` -- priority-based zone dispatch, finger stickiness, mutex-guarded zone updates
-  - `src/ui/WidgetGridModel.hpp` -- grid model API, canPlace, editMode flag, page management
-- **Project gotchas** (HIGH confidence):
-  - CLAUDE.md/MEMORY.md: EVIOCGRAB steals all touch from Qt during AA
-  - CLAUDE.md/MEMORY.md: Qt 6 TapHandler overlays steal ALL touch from child controls
-  - CLAUDE.md/MEMORY.md: WidgetHost long-press MouseArea must be at z:-1
-  - CLAUDE.md/MEMORY.md: FullScreenPicker GPU freeze with multiple MultiEffect layers on Pi
-  - CLAUDE.md/MEMORY.md: SettingsInputBoundary childMouseEventFilter for subtree long-press
-  - CLAUDE.md/MEMORY.md: QML Item.opacity auto-generates opacityChanged signal
-  - CLAUDE.md/MEMORY.md: Plugin view self-destruction when calling setActivePlugin("") from within own view
-- **Web research** (MEDIUM confidence):
-  - [Qt 6 MouseArea documentation](https://doc.qt.io/qt-6/qml-qtquick-mousearea.html) -- preventStealing behavior
-  - [Qt 6 DragHandler documentation](https://doc.qt.io/qt-6/qml-qtquick-draghandler.html) -- drag threshold semantics
-  - [QML Swipe gesture overrides other components](https://www.qtcentre.org/threads/60772-QML-Swipe-gesture-overrides-other-components) -- SwipeView gesture stealing is a known platform issue
-  - [Qt 6 SwipeView documentation](https://doc.qt.io/Qt-6/qml-qtquick-controls-swipeview.html) -- interactive property, Flickable behavior
-
----
-*Pitfalls research for: OpenAuto Prodigy v0.6.6 Homescreen Layout & Widget Settings Rework*
-*Researched: 2026-03-21*
+- [rpi-splash-screen-support GitHub](https://github.com/raspberrypi/rpi-splash-screen-support) -- TGA requirements, configure-splash behavior
+- [rpi-splash-screen-support configure-splash source](https://github.com/raspberrypi/rpi-splash-screen-support/blob/master/configure-splash) -- cmdline.txt modifications, image validation
+- [Splash Screen Configuration (DeepWiki)](https://deepwiki.com/raspberrypi/rpi-image-gen/7.5-splash-screen-configuration) -- initramfs hook details, file modifications
+- [labwc configuration docs](https://labwc.github.io/labwc-config.5.html) -- autostart format, environment variables, windowRules
+- [labwc rc.xml.all reference](https://github.com/labwc/labwc/blob/master/docs/rc.xml.all) -- windowRule properties and actions
+- [labwc kiosk discussion #2301](https://github.com/labwc/labwc/discussions/2301) -- kiosk mode limitations, cage alternative suggestion
+- [labwc autostart not running on first boot (discussion #2515)](https://github.com/labwc/labwc/discussions/2515) -- first-boot race condition
+- [labwc man page](https://man.archlinux.org/man/labwc.1.en) -- --startup option, SIGTERM exit behavior, LABWC_PID
+- [LightDM ArchWiki](https://wiki.archlinux.org/title/LightDM) -- session discovery, conf.d override mechanism
+- [LightDM Debian Wiki](https://wiki.debian.org/LightDM) -- configuration file hierarchy
+- [Wayland Protocol Book: Surface lifecycle](https://wayland-book.com/surfaces-in-depth/lifecycle.html) -- surface mapping, first frame requirements
+- [Wayland Protocol Book: Frame callbacks](https://wayland-book.com/surfaces-in-depth/frame-callbacks.html) -- frame callback semantics
+- [wlr-layer-shell protocol](https://wayland.app/protocols/wlr-layer-shell-unstable-v1) -- layer ordering (background/bottom/top/overlay)
+- [swaybg GitHub](https://github.com/swaywm/swaybg) -- layer-shell background usage, process lifecycle
+- [QQuickWindow documentation (Qt 6)](https://doc.qt.io/qt-6/qquickwindow.html) -- frameSwapped signal semantics
+- [RPi Forums: update-initramfs breaks splash](https://forums.raspberrypi.com/viewtopic.php?t=384811) -- kernel update splash breakage
+- [RPi Forums: Kiosk tutorial with labwc](https://forums.raspberrypi.com/viewtopic.php?t=378883) -- kiosk mode limitations
+- [RPi Forums: Autostart with labwc](https://forums.raspberrypi.com/viewtopic.php?t=379321) -- autostart ordering, backgrounding
+- [RPi Forums: Autologin after boot loader upgrade](https://forums.raspberrypi.com/viewtopic.php?t=340632) -- LightDM autologin breakage
+- [RPi Forums: Session selection issues](https://forums.raspberrypi.com/viewtopic.php?t=366649) -- AccountsService behavior
+- [Raspberry Pi Configuration docs](https://www.raspberrypi.com/documentation/computers/configuration.html) -- boot parameters
+- [Weston splashscreen mailing list](https://lists.freedesktop.org/archives/wayland-devel/2017-January/032612.html) -- compositor splash handoff pattern
