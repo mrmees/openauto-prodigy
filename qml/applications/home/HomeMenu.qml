@@ -470,6 +470,32 @@ Item {
                                         }
                                     }
 
+                                    // Update drag position from any source MouseArea (interceptor or dragOverlay)
+                                    function updateDragFrom(sourceItem, localX, localY) {
+                                        var pageLocal = sourceItem.mapToItem(delegateItem.parent, localX, localY)
+                                        x = pageLocal.x - pressOffsetX
+                                        y = pageLocal.y - pressOffsetY
+
+                                        var cs = homeScreen._dragColSpan
+                                        var rs = homeScreen._dragRowSpan
+                                        var targetCol = Math.round((x - homeScreen.offsetX) / homeScreen.cellSide)
+                                        var targetRow = Math.round((y - homeScreen.offsetY) / homeScreen.cellSide)
+                                        targetCol = Math.max(0, Math.min(targetCol, homeScreen.gridCols - cs))
+                                        targetRow = Math.max(0, Math.min(targetRow, homeScreen.gridRows - rs))
+                                        var valid = WidgetGridModel.canPlace(targetCol, targetRow, cs, rs, homeScreen.draggingInstanceId)
+
+                                        var hlPos = delegateItem.parent.mapToItem(homeScreen,
+                                            homeScreen.offsetX + targetCol * homeScreen.cellSide,
+                                            homeScreen.offsetY + targetRow * homeScreen.cellSide)
+                                        dropHighlight.x = hlPos.x
+                                        dropHighlight.y = hlPos.y
+                                        dropHighlight.width = cs * homeScreen.cellSide
+                                        dropHighlight.height = rs * homeScreen.cellSide
+                                        dropHighlight.isValid = valid
+                                        dropHighlight.visible = true
+                                        selectionTimer.restart()
+                                    }
+
                                     // Force-reset drag state when selection changes (EVIOCGRAB safety)
                                     Connections {
                                         target: homeScreen
@@ -583,7 +609,7 @@ Item {
                                             z: -1
                                             pressAndHoldInterval: 500
 
-                                            function initiateDrag() {
+                                            function initiateDrag(preservePressOffset) {
                                                 delegateItem.dragging = true
                                                 homeScreen.draggingInstanceId = model.instanceId
                                                 homeScreen.draggingDelegate = delegateItem
@@ -591,8 +617,10 @@ Item {
                                                 homeScreen._dragRowSpan = model.rowSpan
                                                 delegateItem.originalX = delegateItem.x
                                                 delegateItem.originalY = delegateItem.y
-                                                delegateItem.pressOffsetX = delegateItem.width / 2
-                                                delegateItem.pressOffsetY = delegateItem.height / 2
+                                                if (!preservePressOffset) {
+                                                    delegateItem.pressOffsetX = delegateItem.width / 2
+                                                    delegateItem.pressOffsetY = delegateItem.height / 2
+                                                }
                                                 delegateItem.opacity = 0.5
                                                 delegateItem.scale = 1.05
                                                 // Map placeholder position from page-local to homeScreen coords
@@ -649,9 +677,11 @@ Item {
                                             enabled: homeScreen.selectedInstanceId !== ""
                                             visible: enabled
                                             property bool _movedDuringPress: false
+                                            property bool _dragOwnedHere: false
 
                                             onPressed: function(mouse) {
                                                 _movedDuringPress = false
+                                                _dragOwnedHere = false
                                                 if (delegateItem.isSelected) {
                                                     // Immediately lift the selected widget (ready to drag)
                                                     innerContent.scale = 1.05
@@ -661,11 +691,16 @@ Item {
                                                 }
                                             }
                                             onPositionChanged: function(mouse) {
-                                                if (delegateItem.isSelected && !delegateItem.dragging) {
+                                                if (!delegateItem.isSelected) return
+                                                if (!delegateItem.dragging) {
                                                     // Movement detected — start drag immediately (no long-press wait)
                                                     _movedDuringPress = true
-                                                    widgetMouseArea.initiateDrag()
+                                                    _dragOwnedHere = true
+                                                    widgetMouseArea.initiateDrag(true)
                                                 }
+                                                // Keep drag updates in this MouseArea (touch grab stays here)
+                                                if (_dragOwnedHere)
+                                                    delegateItem.updateDragFrom(selectionTapInterceptor, mouse.x, mouse.y)
                                             }
                                             // Tap (press+release without movement) deselects
                                             onClicked: {
@@ -678,6 +713,12 @@ Item {
                                                     homeScreen.deselectWidget()
                                             }
                                             onReleased: {
+                                                // If we owned the drag, finalize it
+                                                if (_dragOwnedHere && delegateItem.dragging) {
+                                                    _dragOwnedHere = false
+                                                    delegateItem.finalizeDrop()
+                                                    return
+                                                }
                                                 // Reset lift if press didn't start a drag
                                                 if (!delegateItem.dragging) {
                                                     innerContent.scale = 1.0
@@ -1057,31 +1098,7 @@ Item {
         onPositionChanged: function(mouse) {
             var d = homeScreen.draggingDelegate
             if (!d) return
-            // Convert mouse position to page-local coordinates
-            var pageLocal = mapToItem(d.parent, mouse.x, mouse.y)
-            d.x = pageLocal.x - d.pressOffsetX
-            d.y = pageLocal.y - d.pressOffsetY
-            var cs = homeScreen._dragColSpan
-            var rs = homeScreen._dragRowSpan
-            var targetCol = Math.round((d.x - homeScreen.offsetX) / homeScreen.cellSide)
-            var targetRow = Math.round((d.y - homeScreen.offsetY) / homeScreen.cellSide)
-            targetCol = Math.max(0, Math.min(targetCol, homeScreen.gridCols - cs))
-            targetRow = Math.max(0, Math.min(targetRow, homeScreen.gridRows - rs))
-            var valid = WidgetGridModel.canPlace(targetCol, targetRow, cs, rs, homeScreen.draggingInstanceId)
-
-            // Position drop highlight -- map from page-local to homeScreen coords
-            var pageItem = d.parent
-            var hlPos = pageItem.mapToItem(homeScreen,
-                homeScreen.offsetX + targetCol * homeScreen.cellSide,
-                homeScreen.offsetY + targetRow * homeScreen.cellSide)
-            dropHighlight.x = hlPos.x
-            dropHighlight.y = hlPos.y
-            dropHighlight.width = cs * homeScreen.cellSide
-            dropHighlight.height = rs * homeScreen.cellSide
-            dropHighlight.isValid = valid
-            dropHighlight.visible = true
-
-            selectionTimer.restart()
+            d.updateDragFrom(dragOverlay, mouse.x, mouse.y)
         }
 
         onReleased: function(mouse) {
@@ -1136,11 +1153,13 @@ Item {
         }
 
         contentItem: Column {
+            id: emptySpaceMenuContent
+            width: emptySpaceMenu.availableWidth
             spacing: 0
 
             // "Add Widget" option
             Item {
-                width: parent.width
+                width: emptySpaceMenuContent.width
                 height: UiMetrics.touchMin
 
                 Rectangle {
@@ -1165,6 +1184,9 @@ Item {
                         font.pixelSize: UiMetrics.fontBody
                         color: ThemeService.onSurface
                         Layout.fillWidth: true
+                        elide: Text.ElideRight
+                        maximumLineCount: 1
+                        clip: true
                     }
                 }
 
@@ -1182,7 +1204,7 @@ Item {
 
             // Divider
             Rectangle {
-                width: parent.width
+                width: emptySpaceMenuContent.width
                 height: 1
                 color: ThemeService.outlineVariant
                 anchors.horizontalCenter: parent.horizontalCenter
@@ -1190,7 +1212,7 @@ Item {
 
             // "Add Page" option
             Item {
-                width: parent.width
+                width: emptySpaceMenuContent.width
                 height: UiMetrics.touchMin
 
                 Rectangle {
@@ -1215,6 +1237,9 @@ Item {
                         font.pixelSize: UiMetrics.fontBody
                         color: ThemeService.onSurface
                         Layout.fillWidth: true
+                        elide: Text.ElideRight
+                        maximumLineCount: 1
+                        clip: true
                     }
                 }
 
