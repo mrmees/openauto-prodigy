@@ -1038,8 +1038,7 @@ setup_hardware() {
         WIFI_PASS=$(head -c 12 /dev/urandom | base64 | tr -dc 'a-zA-Z0-9' | head -c 16)
         info "Generated random WiFi password (sent to phone automatically over BT)"
 
-        read -p "AP static IP [10.0.0.1]: " AP_IP
-        AP_IP=${AP_IP:-10.0.0.1}
+        AP_IP="10.0.0.1"
 
         COUNTRY_CODE=""
         CC_SOURCE=""
@@ -1127,8 +1126,7 @@ setup_hardware() {
     # ── General settings ──
     clear_body
     tput cup "$HEADER_ROWS" 0
-    read -p "Android Auto TCP port [5277]: " TCP_PORT
-    TCP_PORT=${TCP_PORT:-5277}
+    TCP_PORT=5277
 
     echo
     read -p "Start OpenAuto Prodigy automatically on boot? [Y/n] " -n 1 -r
