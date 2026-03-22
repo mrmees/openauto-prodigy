@@ -1,3 +1,5 @@
 [submodule "libs/prodigy-oaa-protocol/proto"]
 	path = libs/prodigy-oaa-protocol/proto
 	url = https://github.com/mrmees/open-android-auto.git
+	shallow = true
+	branch = dist
