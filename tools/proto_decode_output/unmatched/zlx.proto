@@ -1,8 +1,0 @@
-// Decoded from APK class: zlx
-// Field count: 1, range: 3-3
-
-syntax = "proto2";
-
-message zlx {
-    optional bytes /* message ? */ d = 3;
-}

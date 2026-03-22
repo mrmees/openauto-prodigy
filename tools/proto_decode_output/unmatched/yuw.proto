@@ -1,8 +1,0 @@
-// Decoded from APK class: yuw
-// Field count: 1, range: 2-2
-
-syntax = "proto2";
-
-message yuw {
-    optional bytes /* message ? */ d = 2;
-}

@@ -1,8 +1,0 @@
-// Decoded from APK class: aaqh
-// Field count: 1, range: 3-3
-
-syntax = "proto2";
-
-message aaqh {
-    optional int32 c = 3;
-}

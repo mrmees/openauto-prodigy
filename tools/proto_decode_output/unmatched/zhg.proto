@@ -1,8 +1,0 @@
-// Decoded from APK class: zhg
-// Field count: 1, range: 20-20
-
-syntax = "proto2";
-
-message zhg {
-    optional bool b = 20;
-}

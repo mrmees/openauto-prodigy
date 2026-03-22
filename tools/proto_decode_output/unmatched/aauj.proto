@@ -1,8 +1,0 @@
-// Decoded from APK class: aauj
-// Field count: 1, range: 2-2
-
-syntax = "proto2";
-
-message aauj {
-    optional bytes /* message ? */ d = 2;
-}

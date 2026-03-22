@@ -1,0 +1,2 @@
+# Exclude planning artifacts from git archive exports
+.planning/ export-ignore

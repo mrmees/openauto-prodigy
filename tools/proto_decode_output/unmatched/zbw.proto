@@ -1,8 +1,0 @@
-// Decoded from APK class: zbw
-// Field count: 1, range: 3-3
-
-syntax = "proto2";
-
-message zbw {
-    optional bytes /* message ? */ d = 3;
-}

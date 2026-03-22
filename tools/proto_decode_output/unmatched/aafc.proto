@@ -1,8 +1,0 @@
-// Decoded from APK class: aafc
-// Field count: 1, range: 2-2
-
-syntax = "proto2";
-
-message aafc {
-    optional bytes /* message ? */ d = 2;
-}

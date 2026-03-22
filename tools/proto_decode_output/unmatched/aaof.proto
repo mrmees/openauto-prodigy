@@ -1,8 +1,0 @@
-// Decoded from APK class: aaof
-// Field count: 1, range: 6-6
-
-syntax = "proto2";
-
-message aaof {
-    optional bool b = 6;
-}

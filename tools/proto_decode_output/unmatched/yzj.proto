@@ -1,8 +1,0 @@
-// Decoded from APK class: yzj
-// Field count: 1, range: 3-3
-
-syntax = "proto2";
-
-message yzj {
-    optional bytes /* message ? */ d = 3;
-}

@@ -1,8 +1,0 @@
-// Decoded from APK class: zto
-// Field count: 1, range: 3-3
-
-syntax = "proto2";
-
-message zto {
-    optional fixed64 c = 3;
-}

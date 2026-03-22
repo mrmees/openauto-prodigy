@@ -1,8 +1,0 @@
-// Decoded from APK class: aadx
-// Field count: 1, range: 3-3
-
-syntax = "proto2";
-
-message aadx {
-    optional bytes /* message ? */ d = 3;
-}

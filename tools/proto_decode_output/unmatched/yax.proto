@@ -1,8 +1,0 @@
-// Decoded from APK class: yax
-// Field count: 1, range: 3-3
-
-syntax = "proto2";
-
-message yax {
-    optional bytes /* message ? */ d = 3;
-}

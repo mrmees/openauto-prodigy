@@ -28,5 +28,8 @@ analysis-projection/
 __pycache__/
 .venv/
 
+# Proto decode research output (moved to ../research-archive/)
+tools/proto_decode_output/
+
 # Local-only artifacts (kept for reference, not public)
 archive/
