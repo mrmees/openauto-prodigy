@@ -1,3 +1,6 @@
 # Kiosk session autostart
-# Phase 29 will add: swaybg -i /usr/share/openauto-prodigy/splash.png -m fill &
+# Splash: show branded image immediately as first Wayland surface
+swaybg -i /usr/share/openauto-prodigy/splash.png -m fill &
+
 # The app launches via systemd service (WantedBy=graphical.target), not from here.
+# The app dismisses the splash after its first frame renders (pkill swaybg).
