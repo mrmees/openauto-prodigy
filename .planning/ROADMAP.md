@@ -151,6 +151,10 @@ See .planning/milestones/v0.6.6-ROADMAP.md for archived details.
 **Depends on:** Nothing (first phase)
 **Delivers:** `openauto-kiosk.desktop` XDG session, `/etc/openauto-kiosk/labwc/` config (rc.xml + autostart + environment), LightDM drop-in (`50-openauto-kiosk.conf`), simplified systemd service. Pi boots into kiosk session with app running fullscreen, no desktop chrome.
 **Canonical refs:** `.planning/research/ARCHITECTURE.md`, `.planning/research/PITFALLS.md`
+**Plans:** 1 plan
+
+Plans:
+- [ ] 28-01-PLAN.md — Kiosk session config files + systemd service simplification
 
 #### Phase 29: Compositor Splash Handoff
 
