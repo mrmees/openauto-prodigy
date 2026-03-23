@@ -1905,6 +1905,15 @@ configure_boot_splash() {
     # Boot splash is a nice-to-have -- failures log warnings and continue.
     # Follows docs/pi-config/kiosk/boot-splash.md step-by-step.
 
+    # Step 0: Install rpi-splash-screen-support (RPi-specific, non-fatal if unavailable)
+    if ! command -v configure-splash &>/dev/null; then
+        if sudo apt-get install -y -q rpi-splash-screen-support 2>/dev/null; then
+            ok "Boot splash: rpi-splash-screen-support installed"
+        else
+            warn "Boot splash: rpi-splash-screen-support not available — using manual fallback"
+        fi
+    fi
+
     # Step 1: Deploy TGA to /lib/firmware/logo.tga
     if [[ -f "$INSTALL_DIR/assets/splash.tga" ]]; then
         sudo cp "$INSTALL_DIR/assets/splash.tga" /lib/firmware/logo.tga
