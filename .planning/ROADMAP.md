@@ -197,3 +197,8 @@ Plans:
 **Depends on:** Phases 28-31 (must automate proven work only)
 **Delivers:** `configure_boot_splash()` and `create_kiosk_session()` installer functions, kiosk mode prompt, idempotent upgrade handling, revert instructions.
 **Canonical refs:** `.planning/research/FEATURES.md`, `.planning/research/PITFALLS.md`, `install.sh`
+**Plans:** 1/2 plans complete
+
+Plans:
+- [ ] 32-01-PLAN.md -- install.sh kiosk session creation + boot splash + kiosk mode prompt
+- [x] 32-02-PLAN.md -- install-prebuilt.sh kiosk session creation + boot splash + kiosk mode prompt

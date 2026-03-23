@@ -2,14 +2,14 @@
 gsd_state_version: 1.0
 milestone: v0.7
 milestone_name: milestone
-status: Phase 31 complete, ready for Phase 32
-last_updated: "2026-03-23T02:18:00Z"
-last_activity: 2026-03-23 — Completed Phase 31 Plan 01
+status: Phase 32 in progress, Plan 02 complete
+last_updated: "2026-03-23T03:54:00Z"
+last_activity: 2026-03-23 — Completed Phase 32 Plan 02
 progress:
   total_phases: 5
   completed_phases: 4
-  total_plans: 4
-  completed_plans: 4
+  total_plans: 6
+  completed_plans: 5
 ---
 
 # Project State
@@ -19,14 +19,14 @@ progress:
 See: .planning/PROJECT.md (updated 2026-03-22)
 
 **Core value:** A person with a Raspberry Pi 4 and a touchscreen can install this, pair their phone, and get a reliable wireless Android Auto experience -- every time, without SSH.
-**Current focus:** v0.7.0 Kiosk Session & Boot Experience — Phase 31 complete, Phase 32 next
+**Current focus:** v0.7.0 Kiosk Session & Boot Experience — Phase 32 (installer integration) in progress
 
 ## Current Position
 
-Phase: 31 of 32 — Exit-to-Desktop (COMPLETE)
-Plan: 1 of 1 (complete)
-Status: Phase 31 complete, ready for Phase 32
-Last activity: 2026-03-23 — Completed 31-01 exit-to-desktop (dm-tool session switch + GestureOverlay button)
+Phase: 32 of 32 — Installer Integration (IN PROGRESS)
+Plan: 2 of 2 (32-02 complete)
+Status: Phase 32 in progress, Plan 02 complete
+Last activity: 2026-03-23 — Completed 32-02 prebuilt installer kiosk integration
 
 ## Accumulated Context
 
@@ -46,6 +46,9 @@ Last activity: 2026-03-23 — Completed 31-01 exit-to-desktop (dm-tool session s
 - [31-01] dm-tool switch-to-user for atomic LightDM session switch -- no auth prompt for same user
 - [31-01] 500ms delayed quit after dm-tool to let LightDM register the switch before kiosk exits
 - [31-01] Desktop button placed between Day/Night and Close in GestureOverlay
+- [32-02] Kiosk mode prompt defaults to Y (recommended) -- kiosk is the expected deployment mode
+- [32-02] Boot splash is non-fatal -- all steps wrapped in error handling, failures warn and continue
+- [32-02] Service template upgraded in prebuilt installer to match install.sh production quality
 
 ### Blockers/Concerns
 
