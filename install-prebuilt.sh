@@ -31,7 +31,7 @@ AP_IP="10.0.0.1"
 COUNTRY_CODE="US"
 TCP_PORT="5277"
 VIDEO_FPS="30"
-AUTOSTART=false
+KIOSK_MODE=false
 KIOSK_MODE=false
 
 print_header() {
@@ -245,15 +245,8 @@ setup_hardware() {
     read -p "Enable kiosk mode? (recommended) [Y/n] " -n 1 -r
     echo
     KIOSK_MODE=false
-    AUTOSTART=false
     if [[ ! $REPLY =~ ^[Nn]$ ]]; then
         KIOSK_MODE=true
-        AUTOSTART=true
-    else
-        # Without kiosk, still offer basic autostart
-        read -p "Start OpenAuto Prodigy automatically on boot? [y/N] " -n 1 -r
-        echo
-        [[ $REPLY =~ ^[Yy]$ ]] && AUTOSTART=true
     fi
 }
 
@@ -476,12 +469,8 @@ SERVICE
 
     sudo systemctl daemon-reload
 
-    if [[ "$AUTOSTART" == "true" ]]; then
-        sudo systemctl enable ${SERVICE_NAME}
-        ok "Service created and enabled (auto-start on boot)"
-    else
-        ok "Service created (manual start: sudo systemctl start ${SERVICE_NAME})"
-    fi
+    sudo systemctl enable ${SERVICE_NAME}
+    ok "Service created and enabled"
 }
 
 # ────────────────────────────────────────────────────
@@ -682,14 +671,14 @@ RCXML
     ok "Kiosk labwc rc.xml written"
 
     # --- Kiosk autostart ---
-    sudo tee /etc/openauto-kiosk/labwc/autostart > /dev/null << 'AUTOSTART'
+    sudo tee /etc/openauto-kiosk/labwc/autostart > /dev/null << 'LABWC_KIOSK'
 # Kiosk session autostart
 # Splash: show branded image immediately as first Wayland surface
 swaybg -i /usr/share/openauto-prodigy/splash.png -m fill &
 
 # The app launches via systemd service (WantedBy=graphical.target), not from here.
 # The app dismisses the splash after its first frame renders (pkill swaybg).
-AUTOSTART
+LABWC_KIOSK
     ok "Kiosk autostart written"
 
     # --- Kiosk environment ---
@@ -826,7 +815,7 @@ HOOK
         CMDLINE=$(echo "$CMDLINE" | sed 's/ plymouth\.ignore-serial-consoles//g')
 
         # Add required boot parameters (only if not already present)
-        for param in "quiet" "loglevel=0" "logo.nologo"; do
+        for param in "quiet" "loglevel=0" "logo.nologo" "vt.global_cursor_default=0" "fullscreen_logo=1" "fullscreen_logo_name=logo.tga"; do
             if ! echo "$CMDLINE" | grep -q "$param"; then
                 CMDLINE="$CMDLINE $param"
             fi

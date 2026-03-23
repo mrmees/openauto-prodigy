@@ -82,7 +82,6 @@ AP_IP="10.0.0.1"
 COUNTRY_CODE="US"
 TCP_PORT="5277"
 VIDEO_FPS="30"
-AUTOSTART=false
 KIOSK_MODE=false
 SCREEN_SIZE="7.0"
 
@@ -1153,18 +1152,8 @@ setup_hardware() {
     echo
     if [[ $REPLY =~ ^[Nn]$ ]]; then
         KIOSK_MODE=false
-        AUTOSTART=false
-        echo
-        read -p "Start OpenAuto Prodigy automatically on boot? [Y/n] " -n 1 -r
-        echo
-        if [[ $REPLY =~ ^[Nn]$ ]]; then
-            AUTOSTART=false
-        else
-            AUTOSTART=true
-        fi
     else
         KIOSK_MODE=true
-        AUTOSTART=true
     fi
 
     leave_interactive
@@ -1664,12 +1653,8 @@ SERVICE
 
     sudo systemctl daemon-reload
 
-    if [[ "$AUTOSTART" == "true" ]]; then
-        sudo systemctl enable --quiet ${SERVICE_NAME}
-        ok "Service created and enabled (auto-start on boot)"
-    else
-        ok "Service created (manual start: sudo systemctl start ${SERVICE_NAME})"
-    fi
+    sudo systemctl enable --quiet ${SERVICE_NAME}
+    ok "Service created and enabled"
 }
 
 # ────────────────────────────────────────────────────
@@ -1880,14 +1865,14 @@ RCXML
     ok "Kiosk: labwc rc.xml installed"
 
     # Deploy kiosk autostart (splash as first Wayland surface, app via systemd)
-    sudo tee /etc/openauto-kiosk/labwc/autostart > /dev/null << 'AUTOSTART'
+    sudo tee /etc/openauto-kiosk/labwc/autostart > /dev/null << 'LABWC_KIOSK'
 # Kiosk session autostart
 # Splash: show branded image immediately as first Wayland surface
 swaybg -i /usr/share/openauto-prodigy/splash.png -m fill &
 
 # The app launches via systemd service (WantedBy=graphical.target), not from here.
 # The app dismisses the splash after its first frame renders (pkill swaybg).
-AUTOSTART
+LABWC_KIOSK
     ok "Kiosk: labwc autostart installed"
 
     # Deploy kiosk environment
@@ -2165,7 +2150,6 @@ finalize() {
     else
         echo -e "  ${BOLD}Touch device:${NC}   auto-detect"
     fi
-    echo -e "  ${BOLD}Auto-start:${NC}     $(if [[ "$AUTOSTART" == "true" ]]; then echo "yes"; else echo "no"; fi)"
     if [[ "$KIOSK_MODE" == "true" ]]; then
         echo -e "  ${BOLD}Kiosk mode:${NC}     ${GREEN}enabled${NC} (branded boot + fullscreen)"
     else
@@ -2192,9 +2176,11 @@ finalize() {
     if [[ "$KIOSK_MODE" == "true" ]]; then
         echo
         echo -e "  ${BOLD}${CYAN}Kiosk Mode${NC}"
-        echo -e "  To switch back to the standard RPi desktop:"
-        echo -e "  ${BOLD}sudo rm /etc/lightdm/lightdm.conf.d/50-openauto-kiosk.conf && sudo reboot${NC}"
-        echo -e "  Or use the 3-finger overlay's Desktop button while the app is running."
+        echo -e "  To switch back to the standard RPi desktop permanently:"
+        echo -e "  ${BOLD}sudo rm /etc/lightdm/lightdm.conf.d/50-openauto-kiosk.conf${NC}"
+        echo -e "  ${BOLD}sudo sed -i 's/Session=openauto-kiosk/Session=rpd-labwc/' /var/lib/AccountsService/users/\$USER${NC}"
+        echo -e "  ${BOLD}sudo reboot${NC}"
+        echo -e "  Or use the Exit button in the clock long-press menu for a temporary switch."
     fi
 
     if [[ "$needs_relogin" == "true" ]]; then
