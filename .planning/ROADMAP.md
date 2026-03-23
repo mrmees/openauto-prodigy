@@ -141,7 +141,7 @@ See .planning/milestones/v0.6.6-ROADMAP.md for archived details.
 - [x] **Phase 29: Compositor Splash Handoff** — swaybg splash in kiosk autostart, frameSwapped-based dismissal in main.cpp (completed 2026-03-22)
 - [x] **Phase 30: RPi Boot Splash** — rpi-splash-screen-support TGA logo, cmdline.txt repair, Plymouth masking, initramfs verification (completed 2026-03-22)
 - [x] **Phase 31: Exit-to-Desktop** — ApplicationController::exitToDesktop(), ActionRegistry wiring, GestureOverlay desktop button, dm-tool session switch (completed 2026-03-23)
-- [ ] **Phase 32: Installer Integration** — configure_boot_splash() and create_kiosk_session() installer functions, kiosk mode prompt, idempotent upgrade
+- [x] **Phase 32: Installer Integration** — configure_boot_splash() and create_kiosk_session() installer functions, kiosk mode prompt, idempotent upgrade (completed 2026-03-23)
 
 ### Phase Details
 
@@ -197,8 +197,8 @@ Plans:
 **Depends on:** Phases 28-31 (must automate proven work only)
 **Delivers:** `configure_boot_splash()` and `create_kiosk_session()` installer functions, kiosk mode prompt, idempotent upgrade handling, revert instructions.
 **Canonical refs:** `.planning/research/FEATURES.md`, `.planning/research/PITFALLS.md`, `install.sh`
-**Plans:** 1/2 plans complete
+**Plans:** 2/2 plans complete
 
 Plans:
-- [ ] 32-01-PLAN.md -- install.sh kiosk session creation + boot splash + kiosk mode prompt
+- [x] 32-01-PLAN.md -- install.sh kiosk session creation + boot splash + kiosk mode prompt
 - [x] 32-02-PLAN.md -- install-prebuilt.sh kiosk session creation + boot splash + kiosk mode prompt

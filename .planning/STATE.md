@@ -2,14 +2,14 @@
 gsd_state_version: 1.0
 milestone: v0.7
 milestone_name: milestone
-status: Phase 32 in progress, Plan 02 complete
-last_updated: "2026-03-23T03:54:00Z"
-last_activity: 2026-03-23 — Completed Phase 32 Plan 02
+status: Phase 32 complete — v0.7.0 milestone complete
+last_updated: "2026-03-23T03:57:15Z"
+last_activity: 2026-03-23 — Completed Phase 32 Plan 01 (installer integration)
 progress:
   total_phases: 5
-  completed_phases: 4
+  completed_phases: 5
   total_plans: 6
-  completed_plans: 5
+  completed_plans: 6
 ---
 
 # Project State
@@ -19,14 +19,14 @@ progress:
 See: .planning/PROJECT.md (updated 2026-03-22)
 
 **Core value:** A person with a Raspberry Pi 4 and a touchscreen can install this, pair their phone, and get a reliable wireless Android Auto experience -- every time, without SSH.
-**Current focus:** v0.7.0 Kiosk Session & Boot Experience — Phase 32 (installer integration) in progress
+**Current focus:** v0.7.0 Kiosk Session & Boot Experience — COMPLETE (all 5 phases done)
 
 ## Current Position
 
-Phase: 32 of 32 — Installer Integration (IN PROGRESS)
-Plan: 2 of 2 (32-02 complete)
-Status: Phase 32 in progress, Plan 02 complete
-Last activity: 2026-03-23 — Completed 32-02 prebuilt installer kiosk integration
+Phase: 32 of 32 — Installer Integration (COMPLETE)
+Plan: 2 of 2 (all plans complete)
+Status: Phase 32 complete — v0.7.0 milestone complete
+Last activity: 2026-03-23 — Completed 32-01 source installer kiosk integration
 
 ## Accumulated Context
 
@@ -49,6 +49,9 @@ Last activity: 2026-03-23 — Completed 32-02 prebuilt installer kiosk integrati
 - [32-02] Kiosk mode prompt defaults to Y (recommended) -- kiosk is the expected deployment mode
 - [32-02] Boot splash is non-fatal -- all steps wrapped in error handling, failures warn and continue
 - [32-02] Service template upgraded in prebuilt installer to match install.sh production quality
+- [32-01] rpi-splash-screen-support installed on-demand in configure_boot_splash() -- RPi-specific package would fail apt-get on other systems
+- [32-01] Kiosk mode prompt replaces AUTOSTART -- kiosk implies autostart, non-kiosk gets legacy prompt
+- [32-01] Reboot prompt when kiosk enabled -- kiosk takes effect on LightDM restart, not service start
 
 ### Blockers/Concerns
 
