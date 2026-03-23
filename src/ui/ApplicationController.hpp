@@ -29,6 +29,7 @@ public:
     Q_INVOKABLE void quit();
     Q_INVOKABLE void restart();
     Q_INVOKABLE void minimize();
+    Q_INVOKABLE void exitToDesktop();
 
 signals:
     void currentApplicationChanged();

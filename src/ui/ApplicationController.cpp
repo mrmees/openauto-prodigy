@@ -1,5 +1,7 @@
 #include "ui/ApplicationController.hpp"
 #include <QGuiApplication>
+#include <QProcess>
+#include <QTimer>
 #include <QWindow>
 
 namespace oap {
@@ -63,6 +65,25 @@ void ApplicationController::minimize()
     auto windows = QGuiApplication::topLevelWindows();
     if (!windows.isEmpty())
         windows.first()->showMinimized();
+}
+
+void ApplicationController::exitToDesktop()
+{
+    qInfo() << "[App] Exit to desktop requested";
+
+    // Tell LightDM to switch to the normal desktop session for current user.
+    // dm-tool switch-to-user does an atomic session switch: LightDM starts the
+    // rpd-labwc desktop session on a new VT and switches the display to it.
+    QProcess::startDetached("dm-tool", {"switch-to-user",
+        qEnvironmentVariable("USER", "matt"), "rpd-labwc"});
+
+    // Delay quit to give dm-tool time to register the switch with LightDM.
+    // If the app quits immediately, labwc exits, and LightDM might restart
+    // the kiosk session (autologin) before the switch request is processed.
+    // Exit code 0 = clean exit, so systemd Restart=on-failure won't restart.
+    QTimer::singleShot(500, []() {
+        QCoreApplication::quit();
+    });
 }
 
 } // namespace oap
