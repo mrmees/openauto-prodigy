@@ -217,19 +217,6 @@ Rectangle {
                 }
 
                 ElevatedButton {
-                    objectName: "overlayDesktopBtn"
-                    text: "Desktop"
-                    iconCode: "\uef6e"  // desktop_windows
-                    buttonEnabled: overlay.acceptInput
-                    implicitWidth: UiMetrics.overlayBtnW
-                    implicitHeight: UiMetrics.overlayBtnH
-                    onClicked: {
-                        ActionRegistry.dispatch("app.exitToDesktop")
-                        overlay.dismiss()
-                    }
-                }
-
-                ElevatedButton {
                     objectName: "overlayCloseBtn"
                     text: "Close"
                     iconCode: "\ue5cd"

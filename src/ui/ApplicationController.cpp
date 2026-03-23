@@ -71,19 +71,31 @@ void ApplicationController::exitToDesktop()
 {
     qInfo() << "[App] Exit to desktop requested";
 
-    // Tell LightDM to switch to the normal desktop session for current user.
-    // dm-tool switch-to-user does an atomic session switch: LightDM starts the
-    // rpd-labwc desktop session on a new VT and switches the display to it.
-    QProcess::startDetached("dm-tool", {"switch-to-user",
-        qEnvironmentVariable("USER", "matt"), "rpd-labwc"});
+    const bool isKiosk = qEnvironmentVariableIsSet("OPENAUTO_KIOSK");
 
-    // Delay quit to give dm-tool time to register the switch with LightDM.
-    // If the app quits immediately, labwc exits, and LightDM might restart
-    // the kiosk session (autologin) before the switch request is processed.
-    // Exit code 0 = clean exit, so systemd Restart=on-failure won't restart.
-    QTimer::singleShot(500, []() {
+    if (isKiosk) {
+        // Kiosk mode: tell LightDM to switch to the normal desktop session.
+        // dm-tool switch-to-user does an atomic session switch: LightDM starts
+        // rpd-labwc on a new VT and switches the display to it.
+        bool launched = QProcess::startDetached("dm-tool", {"switch-to-user",
+            qEnvironmentVariable("USER", "matt"), "rpd-labwc"});
+
+        if (!launched) {
+            // dm-tool failed — do NOT quit or we'll strand on a black screen
+            // (Pitfall 9). User can still SSH in or reboot.
+            qWarning() << "[App] dm-tool launch failed — staying in kiosk mode";
+            return;
+        }
+
+        // Delay quit to give dm-tool time to register the switch with LightDM.
+        // Exit code 0 = clean exit, so systemd Restart=on-failure won't restart.
+        QTimer::singleShot(500, []() {
+            QCoreApplication::quit();
+        });
+    } else {
+        // Desktop mode: just quit — the desktop is already underneath.
         QCoreApplication::quit();
-    });
+    }
 }
 
 } // namespace oap

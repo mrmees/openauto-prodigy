@@ -770,7 +770,7 @@ int main(int argc, char *argv[])
     actionRegistry->registerAction("app.restart", [appController](const QVariant&) {
         appController->restart();
     });
-    actionRegistry->registerAction("app.exitToDesktop", [appController](const QVariant&) {
+    actionRegistry->registerAction("app.exit", [appController](const QVariant&) {
         appController->exitToDesktop();
     });
     actionRegistry->registerAction("app.home", [pluginModel, widgetGridModel](const QVariant&) {

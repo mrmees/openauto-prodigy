@@ -284,7 +284,7 @@ Item {
                 navbar.powerMenuGeneration = NavbarController.beginPopupSession(1)
                 Qt.callLater(function() {
                     var regions = []
-                    var actions = ["minimize", "restart", "quit"]
+                    var actions = ["minimize", "restart", "exit"]
                     for (var i = 0; i < powerMenuCol.children.length; i++) {
                         var btn = powerMenuCol.children[i]
                         if (btn.visible && btn.width > 0 && i < actions.length) {
@@ -334,7 +334,7 @@ Item {
                     model: [
                         { label: "Minimize", icon: "\ue5d0", action: "minimize" },
                         { label: "Restart", icon: "\ue5d5", action: "restart" },
-                        { label: "Quit", icon: "\ue5cd", action: "quit" }
+                        { label: "Exit", icon: "\ue5cd", action: "exit" }
                     ]
 
                     ElevatedButton {
@@ -356,8 +356,8 @@ Item {
                                     ApplicationController.minimize()
                                 else if (modelData.action === "restart")
                                     ApplicationController.restart()
-                                else if (modelData.action === "quit")
-                                    ApplicationController.quit()
+                                else if (modelData.action === "exit")
+                                    ApplicationController.exitToDesktop()
                             })
                         }
                     }
