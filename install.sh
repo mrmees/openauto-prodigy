@@ -1345,7 +1345,7 @@ build_project() {
     cd "$INSTALL_DIR"
     # Clone proto submodule from dist branch (lightweight, proto definitions only)
     # The dist branch excludes research archive (~1600 files), keeping clone small
-    if [[ ! -d "$INSTALL_DIR/libs/prodigy-oaa-protocol/proto/.git" ]]; then
+    if [[ ! -e "$INSTALL_DIR/libs/prodigy-oaa-protocol/proto/.git" ]]; then
         run_with_spinner "Initializing submodules" git clone --depth 1 -b dist \
             https://github.com/mrmees/open-android-auto.git \
             "$INSTALL_DIR/libs/prodigy-oaa-protocol/proto"
