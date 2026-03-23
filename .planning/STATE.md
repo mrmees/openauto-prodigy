@@ -2,14 +2,14 @@
 gsd_state_version: 1.0
 milestone: v0.7
 milestone_name: milestone
-status: Phase 30 complete, ready for Phase 31
-last_updated: "2026-03-22T23:59:00Z"
-last_activity: 2026-03-22 — Completed Phase 30 Plan 01
+status: Phase 31 complete, ready for Phase 32
+last_updated: "2026-03-23T02:18:00Z"
+last_activity: 2026-03-23 — Completed Phase 31 Plan 01
 progress:
   total_phases: 5
-  completed_phases: 3
-  total_plans: 3
-  completed_plans: 3
+  completed_phases: 4
+  total_plans: 4
+  completed_plans: 4
 ---
 
 # Project State
@@ -19,14 +19,14 @@ progress:
 See: .planning/PROJECT.md (updated 2026-03-22)
 
 **Core value:** A person with a Raspberry Pi 4 and a touchscreen can install this, pair their phone, and get a reliable wireless Android Auto experience -- every time, without SSH.
-**Current focus:** v0.7.0 Kiosk Session & Boot Experience — Phase 30 complete, Phase 31 next
+**Current focus:** v0.7.0 Kiosk Session & Boot Experience — Phase 31 complete, Phase 32 next
 
 ## Current Position
 
-Phase: 30 of 32 — RPi Boot Splash (COMPLETE)
+Phase: 31 of 32 — Exit-to-Desktop (COMPLETE)
 Plan: 1 of 1 (complete)
-Status: Phase 30 complete, ready for Phase 31
-Last activity: 2026-03-22 — Completed 30-01 pre-converted TGA + boot splash docs
+Status: Phase 31 complete, ready for Phase 32
+Last activity: 2026-03-23 — Completed 31-01 exit-to-desktop (dm-tool session switch + GestureOverlay button)
 
 ## Accumulated Context
 
@@ -43,6 +43,9 @@ Last activity: 2026-03-22 — Completed 30-01 pre-converted TGA + boot splash do
 - [29-01] 500ms delay after frameSwapped before pkill swaybg -- ensures compositor presentation
 - [29-01] pkill -f "swaybg.*splash" pattern targets only kiosk splash instance
 - [29-01] Heap-allocated QMetaObject::Connection for one-shot disconnect pattern
+- [31-01] dm-tool switch-to-user for atomic LightDM session switch -- no auth prompt for same user
+- [31-01] 500ms delayed quit after dm-tool to let LightDM register the switch before kiosk exits
+- [31-01] Desktop button placed between Day/Night and Close in GestureOverlay
 
 ### Blockers/Concerns
 

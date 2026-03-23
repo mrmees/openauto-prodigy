@@ -140,7 +140,7 @@ See .planning/milestones/v0.6.6-ROADMAP.md for archived details.
 - [x] **Phase 28: Kiosk Session Infrastructure** — XDG session entry, stripped labwc config, LightDM autologin drop-in, simplified systemd service (completed 2026-03-22)
 - [x] **Phase 29: Compositor Splash Handoff** — swaybg splash in kiosk autostart, frameSwapped-based dismissal in main.cpp (completed 2026-03-22)
 - [x] **Phase 30: RPi Boot Splash** — rpi-splash-screen-support TGA logo, cmdline.txt repair, Plymouth masking, initramfs verification (completed 2026-03-22)
-- [ ] **Phase 31: Exit-to-Desktop** — ApplicationController::exitToDesktop(), ActionRegistry wiring, GestureOverlay desktop button, dm-tool session switch
+- [x] **Phase 31: Exit-to-Desktop** — ApplicationController::exitToDesktop(), ActionRegistry wiring, GestureOverlay desktop button, dm-tool session switch (completed 2026-03-23)
 - [ ] **Phase 32: Installer Integration** — configure_boot_splash() and create_kiosk_session() installer functions, kiosk mode prompt, idempotent upgrade
 
 ### Phase Details
@@ -186,6 +186,10 @@ Plans:
 **Delivers:** `ApplicationController::exitToDesktop()`, `app.exitToDesktop` ActionRegistry action, "Desktop" button in GestureOverlay, `dm-tool switch-to-user` with 500ms delayed quit.
 **Canonical refs:** `.planning/research/ARCHITECTURE.md`, `.planning/research/PITFALLS.md`
 **Research flag:** dm-tool with Wayland sessions is MEDIUM confidence. Round-trip hardware test required.
+**Plans:** 1/1 plans complete
+
+Plans:
+- [x] 31-01-PLAN.md — exitToDesktop() + ActionRegistry + GestureOverlay Desktop button
 
 #### Phase 32: Installer Integration
 
