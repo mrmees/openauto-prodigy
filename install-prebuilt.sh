@@ -32,6 +32,7 @@ COUNTRY_CODE="US"
 TCP_PORT="5277"
 VIDEO_FPS="30"
 AUTOSTART=false
+KIOSK_MODE=false
 
 print_header() {
     echo -e "\n${CYAN}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${NC}"
@@ -64,6 +65,14 @@ require_payload() {
     done
 
     ok "Payload looks complete"
+
+    # Optional kiosk assets (warn if missing, don't fail)
+    if [[ ! -f "$PAYLOAD_DIR/assets/splash.png" && ! -f "$SCRIPT_DIR/assets/splash.png" ]]; then
+        warn "splash.png not found — kiosk splash will show black background"
+    fi
+    if [[ ! -f "$PAYLOAD_DIR/assets/splash.tga" && ! -f "$SCRIPT_DIR/assets/splash.tga" ]]; then
+        warn "splash.tga not found — boot splash will not be configured"
+    fi
 }
 
 # ────────────────────────────────────────────────────
@@ -228,10 +237,24 @@ setup_hardware() {
     ok "Hardware configuration complete"
 
     echo
-    read -p "Start OpenAuto Prodigy automatically on boot? [y/N] " -n 1 -r
+    info "Kiosk mode provides a dedicated boot experience:"
+    info "  - Branded splash screen from power-on to app"
+    info "  - No desktop, no taskbar — straight to OpenAuto Prodigy"
+    info "  - Exit to desktop available via 3-finger gesture overlay"
     echo
+    read -p "Enable kiosk mode? (recommended) [Y/n] " -n 1 -r
+    echo
+    KIOSK_MODE=false
     AUTOSTART=false
-    [[ $REPLY =~ ^[Yy]$ ]] && AUTOSTART=true
+    if [[ ! $REPLY =~ ^[Nn]$ ]]; then
+        KIOSK_MODE=true
+        AUTOSTART=true
+    else
+        # Without kiosk, still offer basic autostart
+        read -p "Start OpenAuto Prodigy automatically on boot? [y/N] " -n 1 -r
+        echo
+        [[ $REPLY =~ ^[Yy]$ ]] && AUTOSTART=true
+    fi
 }
 
 # ────────────────────────────────────────────────────
@@ -425,20 +448,27 @@ create_service() {
     sudo tee /etc/systemd/system/${SERVICE_NAME}.service > /dev/null << SERVICE
 [Unit]
 Description=OpenAuto Prodigy
-After=graphical.target
+After=graphical.target hostapd.service bluetooth.target pipewire.service
 Wants=openauto-system.service
+BindsTo=hostapd.service
+StartLimitBurst=5
+StartLimitIntervalSec=60
 
 [Service]
-Type=simple
+Type=notify
 User=$USER
 Environment=XDG_RUNTIME_DIR=/run/user/$USER_ID
 Environment=WAYLAND_DISPLAY=wayland-0
 Environment=QT_QPA_PLATFORM=wayland
 Environment=DBUS_SESSION_BUS_ADDRESS=unix:path=/run/user/$USER_ID/bus
 WorkingDirectory=$INSTALL_DIR
+ExecStartPre=+/usr/local/bin/openauto-preflight
 ExecStart=$INSTALL_DIR/build/src/openauto-prodigy
+ExecStopPost=-/bin/sh -c '[ "\$SERVICE_RESULT" = "success" ] && timeout 5 /usr/bin/bluetoothctl disconnect || true'
 Restart=on-failure
 RestartSec=3
+WatchdogSec=30
+NotifyAccess=main
 
 [Install]
 WantedBy=graphical.target
@@ -872,11 +902,54 @@ run_diagnostics() {
         warn "Config: not found"
     fi
 
+    # Kiosk session diagnostics
+    if [[ "$KIOSK_MODE" == "true" ]]; then
+        if [[ -f /usr/share/wayland-sessions/openauto-kiosk.desktop ]]; then
+            ok "Kiosk session: installed"
+        else
+            warn "Kiosk session: XDG session file missing"
+        fi
+
+        if [[ -f /etc/lightdm/lightdm.conf.d/50-openauto-kiosk.conf ]]; then
+            ok "LightDM kiosk autologin: configured"
+        else
+            warn "LightDM kiosk autologin: not configured"
+        fi
+
+        if [[ -f /etc/openauto-kiosk/labwc/rc.xml ]]; then
+            ok "Kiosk labwc config: present"
+        else
+            warn "Kiosk labwc config: missing"
+        fi
+
+        if [[ -f /usr/share/openauto-prodigy/splash.png ]]; then
+            ok "Compositor splash: deployed"
+        else
+            warn "Compositor splash: missing"
+        fi
+    fi
+
+    echo
+    echo -e "\n${CYAN}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${NC}"
+    echo -e "${CYAN}  Installation Complete!${NC}"
+    echo -e "${CYAN}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${NC}"
     echo
     echo -e "  Start:  ${BLUE}sudo systemctl start ${SERVICE_NAME}${NC}"
     echo -e "  Web:    ${BLUE}http://$(hostname -I | awk '{print $1}'):8080${NC}"
     echo -e "  Logs:   ${BLUE}journalctl -u ${SERVICE_NAME} -f${NC}"
     echo -e "  Config: ${BLUE}$CONFIG_DIR/config.yaml${NC}"
+
+    if [[ "$KIOSK_MODE" == "true" ]]; then
+        echo
+        echo -e "  ${CYAN}Kiosk Mode: enabled${NC}"
+        echo -e "  On next reboot, the Pi will boot directly into OpenAuto Prodigy."
+        echo -e "  Use the 3-finger gesture overlay to exit to desktop if needed."
+        echo
+        echo -e "  ${YELLOW}To revert to normal desktop boot:${NC}"
+        echo -e "  ${BLUE}sudo rm /etc/lightdm/lightdm.conf.d/50-openauto-kiosk.conf${NC}"
+        echo -e "  ${BLUE}sudo sed -i 's/Session=openauto-kiosk/Session=rpd-labwc/' /var/lib/AccountsService/users/$USER${NC}"
+        echo -e "  ${BLUE}sudo reboot${NC}"
+    fi
     echo
 }
 
@@ -893,6 +966,13 @@ main() {
     create_service
     create_web_service
     create_system_service
+
+    # Kiosk session and boot splash (only when user opted in)
+    if [[ "$KIOSK_MODE" == "true" ]]; then
+        create_kiosk_session
+        configure_boot_splash
+    fi
+
     run_diagnostics
 }
 
