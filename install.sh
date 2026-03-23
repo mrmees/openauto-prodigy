@@ -83,6 +83,7 @@ COUNTRY_CODE="US"
 TCP_PORT="5277"
 VIDEO_FPS="30"
 AUTOSTART=false
+KIOSK_MODE=false
 SCREEN_SIZE="7.0"
 
 # Simple mode header (used when TUI is disabled)
@@ -114,11 +115,11 @@ else
 fi
 
 # Step registry
-STEP_NAMES=("System" "Dependencies" "Hardware" "Building" "Config" "Network" "Services" "Verify" "Optimize")
-STEP_STATUS=(pending pending pending pending pending pending pending pending pending)
-STEP_START=(0 0 0 0 0 0 0 0 0)
-STEP_ELAPSED=(0 0 0 0 0 0 0 0 0)
-STEP_DETAIL=("" "" "" "" "" "" "" "" "")
+STEP_NAMES=("System" "Dependencies" "Hardware" "Building" "Config" "Network" "Services" "Kiosk" "Verify" "Optimize")
+STEP_STATUS=(pending pending pending pending pending pending pending pending pending pending)
+STEP_START=(0 0 0 0 0 0 0 0 0 0)
+STEP_ELAPSED=(0 0 0 0 0 0 0 0 0 0)
+STEP_DETAIL=("" "" "" "" "" "" "" "" "" "")
 TOTAL_STEPS=${#STEP_NAMES[@]}
 ACTIVE_STEP=-1
 SPIN_TICK=0
@@ -226,6 +227,9 @@ _draw_step() {
         fail)
             printf ' %b%s%b %-14s' "${RED}" "$CROSS" "${NC}" "$name"
             ;;
+        skipped)
+            printf ' %b-%b %-14s %b(skipped)%b' "${CYAN}" "${NC}" "$name" "${CYAN}" "${NC}"
+            ;;
     esac
 }
 
@@ -328,6 +332,12 @@ update_step() {
         fail)
             STEP_STATUS[$idx]="fail"
             STEP_ELAPSED[$idx]=$(( SECONDS - ${STEP_START[$idx]} ))
+            STEP_DETAIL[$idx]=""
+            ACTIVE_STEP=-1
+            ;;
+        skipped)
+            STEP_STATUS[$idx]="skipped"
+            STEP_ELAPSED[$idx]=0
             STEP_DETAIL[$idx]=""
             ACTIVE_STEP=-1
             ;;
@@ -1135,11 +1145,25 @@ setup_hardware() {
     TCP_PORT=5277
 
     echo
-    read -p "Start OpenAuto Prodigy automatically on boot? [Y/n] " -n 1 -r
+    info "Kiosk mode boots directly into OpenAuto Prodigy with a branded splash"
+    info "screen. The standard RPi desktop is still accessible via the 3-finger"
+    info "overlay's Desktop button."
+    echo
+    read -p "Enable kiosk mode? (recommended) [Y/n] " -n 1 -r
     echo
     if [[ $REPLY =~ ^[Nn]$ ]]; then
+        KIOSK_MODE=false
         AUTOSTART=false
+        echo
+        read -p "Start OpenAuto Prodigy automatically on boot? [Y/n] " -n 1 -r
+        echo
+        if [[ $REPLY =~ ^[Nn]$ ]]; then
+            AUTOSTART=false
+        else
+            AUTOSTART=true
+        fi
     else
+        KIOSK_MODE=true
         AUTOSTART=true
     fi
 
@@ -2016,7 +2040,7 @@ HOOK
 # Step 9: Diagnostics
 # ────────────────────────────────────────────────────
 run_diagnostics() {
-    update_step 7 active
+    update_step 8 active
     enter_interactive
 
     warnings=()
@@ -2080,14 +2104,14 @@ run_diagnostics() {
     fi
 
     leave_interactive
-    update_step 7 done
+    update_step 8 done
 }
 
 # ────────────────────────────────────────────────────
 # Step 10: System optimization
 # ────────────────────────────────────────────────────
 optimize_system() {
-    update_step 8 active
+    update_step 9 active
 
     # Disable wait-online services — Pi typically boots without internet,
     # these just add 10-14s of timeout waiting for a connection that won't come
@@ -2105,7 +2129,7 @@ optimize_system() {
     run_with_spinner "Disabling ModemManager" bash -c \
         'sudo systemctl disable ModemManager.service 2>/dev/null; true'
 
-    update_step 8 done
+    update_step 9 done
 }
 
 finalize() {
@@ -2142,6 +2166,11 @@ finalize() {
         echo -e "  ${BOLD}Touch device:${NC}   auto-detect"
     fi
     echo -e "  ${BOLD}Auto-start:${NC}     $(if [[ "$AUTOSTART" == "true" ]]; then echo "yes"; else echo "no"; fi)"
+    if [[ "$KIOSK_MODE" == "true" ]]; then
+        echo -e "  ${BOLD}Kiosk mode:${NC}     ${GREEN}enabled${NC} (branded boot + fullscreen)"
+    else
+        echo -e "  ${BOLD}Kiosk mode:${NC}     disabled"
+    fi
     echo
 
     # Diagnostics warnings
@@ -2160,24 +2189,42 @@ finalize() {
     echo -e "  ${BOLD}Web:${NC}      http://$(hostname -I | awk '{print $1}'):8080"
     echo -e "  ${BOLD}Config:${NC}   $CONFIG_DIR/config.yaml"
 
+    if [[ "$KIOSK_MODE" == "true" ]]; then
+        echo
+        echo -e "  ${BOLD}${CYAN}Kiosk Mode${NC}"
+        echo -e "  To switch back to the standard RPi desktop:"
+        echo -e "  ${BOLD}sudo rm /etc/lightdm/lightdm.conf.d/50-openauto-kiosk.conf && sudo reboot${NC}"
+        echo -e "  Or use the 3-finger overlay's Desktop button while the app is running."
+    fi
+
     if [[ "$needs_relogin" == "true" ]]; then
         echo
         echo -e "  ${YELLOW}Reboot required for group membership changes.${NC}"
     fi
     echo
 
-    # Offer to launch immediately
-    read -p "Start OpenAuto Prodigy now? [Y/n] " -n 1 -r
-    echo
-    if [[ ! $REPLY =~ ^[Nn]$ ]]; then
-        # systemd resolves groups fresh from /etc/group, so this works pre-relogin
-        sudo systemctl start ${SERVICE_NAME}
-        sleep 2
-        if systemctl is-active --quiet ${SERVICE_NAME}; then
-            ok "Started! Logs: journalctl -u ${SERVICE_NAME} -f"
-        else
-            fail "Service failed to start. Check: journalctl -u ${SERVICE_NAME} -n 30"
-            journalctl -u ${SERVICE_NAME} -n 10 --no-pager 2>/dev/null || true
+    # Offer to launch or reboot
+    if [[ "$KIOSK_MODE" == "true" ]]; then
+        echo -e "  ${BOLD}Reboot to enter kiosk mode with branded boot splash.${NC}"
+        echo
+        read -p "Reboot now? [Y/n] " -n 1 -r
+        echo
+        if [[ ! $REPLY =~ ^[Nn]$ ]]; then
+            sudo reboot
+        fi
+    else
+        read -p "Start OpenAuto Prodigy now? [Y/n] " -n 1 -r
+        echo
+        if [[ ! $REPLY =~ ^[Nn]$ ]]; then
+            # systemd resolves groups fresh from /etc/group, so this works pre-relogin
+            sudo systemctl start ${SERVICE_NAME}
+            sleep 2
+            if systemctl is-active --quiet ${SERVICE_NAME}; then
+                ok "Started! Logs: journalctl -u ${SERVICE_NAME} -f"
+            else
+                fail "Service failed to start. Check: journalctl -u ${SERVICE_NAME} -n 30"
+                journalctl -u ${SERVICE_NAME} -n 10 --no-pager 2>/dev/null || true
+            fi
         fi
     fi
 }
@@ -2249,8 +2296,18 @@ main() {
     # Clean up stale phone pairings (survived from previous install)
     clear_paired_phones
 
-    run_diagnostics       # Step 7: Verify
-    optimize_system       # Step 8: Optimize
+    # Step 7: Kiosk session + boot splash
+    if [[ "$KIOSK_MODE" == "true" ]]; then
+        update_step 7 active
+        create_kiosk_session
+        configure_boot_splash
+        update_step 7 done
+    else
+        update_step 7 skipped
+    fi
+
+    run_diagnostics       # Step 8: Verify
+    optimize_system       # Step 9: Optimize
     finalize              # Final summary
 
     # Clean up aggregate log on success
