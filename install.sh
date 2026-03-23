@@ -1816,6 +1816,194 @@ SERVICE
 }
 
 # ────────────────────────────────────────────────────
+# Kiosk session setup
+# ────────────────────────────────────────────────────
+create_kiosk_session() {
+    # Deploy XDG session file
+    sudo tee /usr/share/wayland-sessions/openauto-kiosk.desktop > /dev/null << 'DESKTOP'
+[Desktop Entry]
+Name=OpenAuto Kiosk
+Comment=OpenAuto Prodigy kiosk session
+Exec=/usr/bin/labwc -C /etc/openauto-kiosk/labwc
+Type=Application
+DesktopNames=labwc
+DESKTOP
+    ok "Kiosk: XDG session file installed"
+
+    # Create kiosk labwc config directory
+    sudo mkdir -p /etc/openauto-kiosk/labwc
+
+    # Deploy kiosk rc.xml (stripped: no decorations, no desktop chrome, multi-touch safe)
+    sudo tee /etc/openauto-kiosk/labwc/rc.xml > /dev/null << 'RCXML'
+<?xml version="1.0"?>
+<labwc_config>
+  <touch deviceName="" mapToOutput="" mouseEmulation="no"/>
+  <core>
+    <decoration>server</decoration>
+    <gap>0</gap>
+  </core>
+  <theme>
+    <cornerRadius>0</cornerRadius>
+    <keepBorder>no</keepBorder>
+  </theme>
+  <windowRules>
+    <windowRule identifier="openauto*" serverDecoration="no">
+      <action name="ToggleFullscreen"/>
+    </windowRule>
+  </windowRules>
+</labwc_config>
+RCXML
+    ok "Kiosk: labwc rc.xml installed"
+
+    # Deploy kiosk autostart (splash as first Wayland surface, app via systemd)
+    sudo tee /etc/openauto-kiosk/labwc/autostart > /dev/null << 'AUTOSTART'
+# Kiosk session autostart
+# Splash: show branded image immediately as first Wayland surface
+swaybg -i /usr/share/openauto-prodigy/splash.png -m fill &
+
+# The app launches via systemd service (WantedBy=graphical.target), not from here.
+# The app dismisses the splash after its first frame renders (pkill swaybg).
+AUTOSTART
+    ok "Kiosk: labwc autostart installed"
+
+    # Deploy kiosk environment
+    sudo tee /etc/openauto-kiosk/labwc/environment > /dev/null << 'KIOSKENV'
+QT_QPA_PLATFORM=wayland
+XDG_CURRENT_DESKTOP=labwc
+OPENAUTO_KIOSK=1
+KIOSKENV
+    ok "Kiosk: labwc environment installed"
+
+    # Deploy LightDM drop-in for autologin into kiosk session
+    sudo mkdir -p /etc/lightdm/lightdm.conf.d
+    sudo tee /etc/lightdm/lightdm.conf.d/50-openauto-kiosk.conf > /dev/null << LIGHTDM
+[Seat:*]
+autologin-user=$USER
+autologin-session=openauto-kiosk
+LIGHTDM
+    ok "Kiosk: LightDM autologin configured"
+
+    # Deploy AccountsService session entry (belt-and-suspenders with LightDM)
+    sudo mkdir -p /var/lib/AccountsService/users
+    echo -e "[User]\nSession=openauto-kiosk" | sudo tee "/var/lib/AccountsService/users/$USER" > /dev/null
+    ok "Kiosk: AccountsService session set"
+
+    # Deploy splash image for swaybg
+    sudo mkdir -p /usr/share/openauto-prodigy
+    if [[ -f "$INSTALL_DIR/assets/splash.png" ]]; then
+        sudo cp "$INSTALL_DIR/assets/splash.png" /usr/share/openauto-prodigy/splash.png
+        ok "Kiosk: splash image deployed"
+    else
+        warn "Kiosk: splash.png not found in assets/ — swaybg will show black background"
+    fi
+}
+
+# ────────────────────────────────────────────────────
+# Boot splash configuration (nice-to-have, non-fatal)
+# ────────────────────────────────────────────────────
+configure_boot_splash() {
+    # Boot splash is a nice-to-have -- failures log warnings and continue.
+    # Follows docs/pi-config/kiosk/boot-splash.md step-by-step.
+
+    # Step 1: Deploy TGA to /lib/firmware/logo.tga
+    if [[ -f "$INSTALL_DIR/assets/splash.tga" ]]; then
+        sudo cp "$INSTALL_DIR/assets/splash.tga" /lib/firmware/logo.tga
+        ok "Boot splash: TGA deployed to /lib/firmware/"
+    else
+        warn "Boot splash: splash.tga not found in assets/ — skipping boot splash"
+        return
+    fi
+
+    # Step 2: Run configure-splash (sets up initramfs hook + cmdline.txt params)
+    if command -v configure-splash &>/dev/null; then
+        if sudo configure-splash /lib/firmware/logo.tga 2>/dev/null; then
+            ok "Boot splash: configure-splash completed"
+        else
+            warn "Boot splash: configure-splash failed — using manual fallback"
+            # Manual fallback: create the initramfs hook ourselves
+            sudo tee /etc/initramfs-tools/hooks/splash-screen-hook.sh > /dev/null << 'HOOK'
+#!/bin/sh
+if [ -f /lib/firmware/logo.tga ]; then
+    mkdir -p "${DESTDIR}/lib/firmware"
+    cp /lib/firmware/logo.tga "${DESTDIR}/lib/firmware/logo.tga"
+fi
+HOOK
+            sudo chmod +x /etc/initramfs-tools/hooks/splash-screen-hook.sh
+            ok "Boot splash: manual initramfs hook created"
+        fi
+    else
+        warn "Boot splash: configure-splash not found — using manual fallback"
+        # Manual fallback
+        sudo tee /etc/initramfs-tools/hooks/splash-screen-hook.sh > /dev/null << 'HOOK'
+#!/bin/sh
+if [ -f /lib/firmware/logo.tga ]; then
+    mkdir -p "${DESTDIR}/lib/firmware"
+    cp /lib/firmware/logo.tga "${DESTDIR}/lib/firmware/logo.tga"
+fi
+HOOK
+        sudo chmod +x /etc/initramfs-tools/hooks/splash-screen-hook.sh
+        ok "Boot splash: manual initramfs hook created"
+    fi
+
+    # Step 3: Repair cmdline.txt
+    # configure-splash strips 'quiet' and 'plymouth.ignore-serial-consoles'.
+    # We re-add quiet boot params and remove Plymouth's 'splash' parameter.
+    if [[ -f /boot/firmware/cmdline.txt ]]; then
+        local CMDLINE
+        CMDLINE=$(cat /boot/firmware/cmdline.txt)
+        # Remove Plymouth 'splash' parameter
+        CMDLINE=$(echo "$CMDLINE" | sed 's/ splash / /g; s/^splash //; s/ splash$//')
+        # Remove plymouth.ignore-serial-consoles if present
+        CMDLINE=$(echo "$CMDLINE" | sed 's/ plymouth\.ignore-serial-consoles//g')
+        # Append quiet boot parameters (only if not already present)
+        for param in "quiet" "loglevel=0" "logo.nologo" "vt.global_cursor_default=0" "fullscreen_logo=1" "fullscreen_logo_name=logo.tga"; do
+            if ! echo "$CMDLINE" | grep -q "$param"; then
+                CMDLINE="$CMDLINE $param"
+            fi
+        done
+        echo "$CMDLINE" | sudo tee /boot/firmware/cmdline.txt > /dev/null
+        ok "Boot splash: cmdline.txt configured"
+    else
+        warn "Boot splash: /boot/firmware/cmdline.txt not found — skipping cmdline repair"
+    fi
+
+    # Step 4: Mask Plymouth services (replaced by rpi-splash-screen-support)
+    sudo systemctl mask plymouth-start.service 2>/dev/null || true
+    sudo systemctl mask plymouth-quit.service 2>/dev/null || true
+    sudo systemctl mask plymouth-quit-wait.service 2>/dev/null || true
+    ok "Boot splash: Plymouth services masked"
+
+    # Step 5: Rebuild initramfs to include TGA
+    if sudo update-initramfs -u 2>/dev/null; then
+        ok "Boot splash: initramfs rebuilt"
+    else
+        warn "Boot splash: update-initramfs failed — splash may not appear on boot"
+    fi
+
+    # Verification
+    local SPLASH_OK=true
+    if [[ ! -x /etc/initramfs-tools/hooks/splash-screen-hook.sh ]]; then
+        warn "Boot splash: initramfs hook missing or not executable"
+        SPLASH_OK=false
+    fi
+    if [[ ! -f /lib/firmware/logo.tga ]]; then
+        warn "Boot splash: TGA not found at /lib/firmware/logo.tga"
+        SPLASH_OK=false
+    fi
+    if [[ -f /boot/firmware/cmdline.txt ]]; then
+        if ! grep -q "fullscreen_logo=1" /boot/firmware/cmdline.txt; then
+            warn "Boot splash: fullscreen_logo=1 missing from cmdline.txt"
+            SPLASH_OK=false
+        fi
+    fi
+    if [[ "$SPLASH_OK" == "true" ]]; then
+        ok "Boot splash: all verification checks passed"
+    else
+        warn "Boot splash: some checks failed — re-run install.sh to retry"
+    fi
+}
+
+# ────────────────────────────────────────────────────
 # Step 9: Diagnostics
 # ────────────────────────────────────────────────────
 run_diagnostics() {
