@@ -139,7 +139,7 @@ See .planning/milestones/v0.6.6-ROADMAP.md for archived details.
 
 - [x] **Phase 28: Kiosk Session Infrastructure** — XDG session entry, stripped labwc config, LightDM autologin drop-in, simplified systemd service (completed 2026-03-22)
 - [x] **Phase 29: Compositor Splash Handoff** — swaybg splash in kiosk autostart, frameSwapped-based dismissal in main.cpp (completed 2026-03-22)
-- [ ] **Phase 30: RPi Boot Splash** — rpi-splash-screen-support TGA logo, cmdline.txt repair, Plymouth masking, initramfs verification
+- [x] **Phase 30: RPi Boot Splash** — rpi-splash-screen-support TGA logo, cmdline.txt repair, Plymouth masking, initramfs verification (completed 2026-03-22)
 - [ ] **Phase 31: Exit-to-Desktop** — ApplicationController::exitToDesktop(), ActionRegistry wiring, GestureOverlay desktop button, dm-tool session switch
 - [ ] **Phase 32: Installer Integration** — configure_boot_splash() and create_kiosk_session() installer functions, kiosk mode prompt, idempotent upgrade
 
@@ -174,6 +174,10 @@ Plans:
 **Delivers:** `rpi-splash-screen-support` configured, TGA generated via ImageMagick, cmdline.txt repaired after configure-splash, Plymouth masked.
 **Canonical refs:** `.planning/research/PITFALLS.md`, `.planning/research/STACK.md`
 **Research flag:** Requires Pi 4 Trixie hardware validation. raspberrypi/linux#7081 is open.
+**Plans:** 1/1 plans complete
+
+Plans:
+- [x] 30-01-PLAN.md — Pre-converted TGA + boot splash deployment documentation
 
 #### Phase 31: Exit-to-Desktop
 
