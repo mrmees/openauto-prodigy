@@ -477,7 +477,7 @@ WantedBy=multi-user.target
 SERVICE
 
     sudo systemctl daemon-reload
-    sudo systemctl enable ${SERVICE_NAME}-web
+    sudo systemctl enable --now ${SERVICE_NAME}-web
     ok "Web config service created (port 8080)"
 }
 
