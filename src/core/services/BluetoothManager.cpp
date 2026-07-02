@@ -712,7 +712,10 @@ void BluetoothManager::refreshPairedDevices()
     arg.endMap();
 
     pairedDevicesModel_->setDevices(devices);
-    qCDebug(lcBT) << "Found" << devices.size() << "paired device(s)";
+    if (devices.size() != lastPairedCount_) {
+        qCInfo(lcBT) << "Found" << devices.size() << "paired device(s)";
+        lastPairedCount_ = devices.size();
+    }
 }
 
 void BluetoothManager::updateConnectedDevice()

@@ -117,6 +117,7 @@ private:
     QDBusMessage pendingPairingMessage_;
     QString pendingPairingDevicePath_;
     PairedDevicesModel* pairedDevicesModel_ = nullptr;
+    int lastPairedCount_ = -1;  // last logged paired-device count (log on change only)
     bool shutdown_ = false;
     bool needsFirstPairing_ = false;
     QTimer* pairableRenewTimer_ = nullptr;
