@@ -17,12 +17,11 @@ Newest entries first.
 
 **Decisions (Matthew):** interleave parity work with v0.7.0 kiosk milestone; API stays prodigy-private; HTML/JS is a primary future feature path; FM radio deferred; **GSD workflow dropped — use superpowers skills for process**
 
-**Status:** NOT BUILT — this machine has no build env (no /opt/qt, no docker, no qmake6). BluetoothManager change is a 4-line edit needing compile + Pi check.
+**Status (updated same day):** MINIMEES WSL is now a full build env — Debian Trixie distro, system Qt 6.8.2 + all deps + `libbluetooth-dev` (was missing from docs, now added), Docker with the `openauto-cross-pi4` image prebuilt. **Build green, 88/88 tests pass** (includes the BluetoothManager change). The old Ubuntu VM ("claude-dev", aqt `/opt/qt`) is retired.
 
-**Verification needed (claude-dev or Pi):**
-1. Build + `ctest` (BluetoothManager change)
-2. On Pi: `sudo systemctl start openauto-prodigy-web` → panel should load at `:8080` immediately (or `journalctl -u openauto-prodigy-web` if flask is missing on old installs)
-3. Startup logs: exactly one "Found N paired device(s)" line, again only on pair/unpair
+**Verification still needed (Pi only):**
+1. On Pi: `sudo systemctl start openauto-prodigy-web` → panel should load at `:8080` immediately (or `journalctl -u openauto-prodigy-web` if flask is missing on old installs)
+2. Startup logs: exactly one "Found N paired device(s)" line, again only on pair/unpair
 
 ---
 

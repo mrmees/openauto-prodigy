@@ -47,13 +47,13 @@ See `docs/roadmap-current.md` for current status and priorities.
 
 ## Build & Test
 
-Both claude-dev and the Pi now run Qt 6.8. Local builds use the aqt-installed Qt at `/opt/qt/6.8.2/gcc_64`.
+Dev builds run on WSL2 Debian Trixie (MINIMEES) — same OS and Qt (6.8.2, system packages) as the Pi, full Bluetooth support included. No `CMAKE_PREFIX_PATH` needed. (The old Ubuntu VM with aqt Qt at `/opt/qt` is retired.)
 
 ```bash
 mkdir build && cd build
-cmake -DCMAKE_PREFIX_PATH=/opt/qt/6.8.2/gcc_64 ..
+cmake ..
 make -j$(nproc)
-ctest --output-on-failure  # 82 tests
+ctest --output-on-failure  # 88 tests
 ```
 
 **Dependencies:** See `docs/development.md` for full package list.

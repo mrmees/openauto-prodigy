@@ -25,12 +25,18 @@ sudo apt install cmake g++ git pkg-config \
   libprotobuf-dev protobuf-compiler libssl-dev \
   libavcodec-dev libavutil-dev \
   libpipewire-0.3-dev libspa-0.2-dev \
-  libyaml-cpp-dev \
+  libyaml-cpp-dev libbluetooth-dev \
   hostapd dnsmasq bluez \
   python3-flask
 ```
 
-### Ubuntu 24.04 (Dev VM)
+Note: `libbluetooth-dev` (raw BlueZ headers, `bluetooth/bluetooth.h`) is required in addition to `qt6-connectivity-dev` — `BluetoothDiscoveryService` uses BlueZ sockets/SDP directly. `install.sh` already includes it.
+
+### WSL2 Debian Trixie (Dev — MINIMEES)
+
+Same OS and Qt (6.8.2) as the Pi, so use the Pi package list minus `hostapd dnsmasq` (no AP on a dev box). System Qt works directly — no `CMAKE_PREFIX_PATH` needed. Docker (`docker.io`) enables `cross-build.sh` for Pi binaries. Note the repo lives on `/mnt/e` (drvfs); builds are I/O-slower than a native-filesystem clone.
+
+### Ubuntu 24.04 (Dev VM — retired)
 
 Same packages minus `qt6-connectivity-dev` (Bluetooth), `qt6-wayland`, `hostapd`, `dnsmasq`, and `bluez`. Build/test still works — Bluetooth features are `#ifdef HAS_BLUETOOTH` guarded, PipeWire tests handle missing daemon gracefully.
 
