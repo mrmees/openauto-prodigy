@@ -4,6 +4,28 @@ Newest entries first.
 
 ---
 
+## 2026-07-02 — HUDIY parity roadmap, repo resync, parallel quick wins
+
+**What changed:**
+- Resynced this machine (MINIMEES/WSL) from 1407 commits behind origin; reset CRLF-noise working tree; moved orphaned `libs/aasdk/` leftover out of the repo
+- HUDIY parity gap analysis written and committed (`docs/superpowers/specs/2026-07-02-hudiy-parity-roadmap-design.md`); HUDIY reference materials cloned to `../hudiy-reference/` (their GitHub repo is docs/proto/examples only, **no license → read for understanding, never copy**)
+- Roadmap promotions (Later): HTML/JS extensibility (spike → runtime), prodigy-private external API (TCP+WS protobuf), multi-dashboard + overlay framework, local media player. Wishlist: FM radio (deferred), companion notifications, key bindings
+- Extensibility plan audited against source: **fully implemented** despite stale NOT STARTED header (EventBus, ActionRegistry, NotificationService, PluginViewHost, lifecycle, contract docs all exist with the plan's tests) — archived to `docs/plans/` with corrected header, along with the completed proto-migration plans
+- Web config panel diagnosed: **code is healthy** (all pages/endpoints verified with mock IpcServer + graceful degradation without Qt app). Root cause was deployment — installers enabled but never started the service → both installers now `systemctl enable --now`
+- `BluetoothManager::refreshPairedDevices()` now logs "Found N paired device(s)" only when the count changes (info level, new `lastPairedCount_` member); NavStrip QML warnings confirmed obsolete (NavStrip deleted in v0.4.5)
+- WebEngine spike pre-check: `qml6-module-qtwebengine` 6.8.2+dfsg-4 exists in Trixie arm64 — packaging gate passes, spike is purely memory/perf on the Pi
+
+**Decisions (Matthew):** interleave parity work with v0.7.0 kiosk milestone; API stays prodigy-private; HTML/JS is a primary future feature path; FM radio deferred; **GSD workflow dropped — use superpowers skills for process**
+
+**Status:** NOT BUILT — this machine has no build env (no /opt/qt, no docker, no qmake6). BluetoothManager change is a 4-line edit needing compile + Pi check.
+
+**Verification needed (claude-dev or Pi):**
+1. Build + `ctest` (BluetoothManager change)
+2. On Pi: `sudo systemctl start openauto-prodigy-web` → panel should load at `:8080` immediately (or `journalctl -u openauto-prodigy-web` if flask is missing on old installs)
+3. Startup logs: exactly one "Found N paired device(s)" line, again only on pair/unpair
+
+---
+
 ## 2026-03-15 — Theme persistence fix + wallpaper toggle UX (Phase 13.2)
 
 **What changed:**

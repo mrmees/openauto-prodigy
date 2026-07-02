@@ -1,5 +1,5 @@
 # Architecture Extensibility Implementation Plan
-> **Status:** NOT STARTED
+> **Status:** COMPLETE (audited 2026-07-02 against source; the previous NOT STARTED header was stale). All four priorities landed — EventBus, ActionRegistry, NotificationService, PluginViewHost, plugin activation lifecycle, gesture actions, and contract docs are implemented (largely verbatim, with the plan's specified tests). The config-driven launcher slice (Tasks 3, 4, 6, NavStrip) was superseded by the v0.6 widget-grid home screen (HomeMenu + WidgetGridModel + launcher widgets + Navbar) — a stronger, user-customizable mechanism. Only the plan's own explicitly deferred items remain (settings-as-plugin, InputFocusManager, versioned IPC).
 
 > **For Claude:** REQUIRED SUB-SKILL: Use superpowers:executing-plans to implement this plan task-by-task.
 

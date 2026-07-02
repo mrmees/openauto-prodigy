@@ -39,7 +39,7 @@ Prodigy has independently converged on much of HUDIY's architecture — and exce
 | Native extensibility | **DONE (different approach)** — C++ plugin system (static + dynamic `.so` + `plugin.yaml`), typed dashboard contributions, provider interfaces |
 | Install/distribution | **DONE** — interactive installer + prebuilt release tarballs |
 | Companion app | **EXISTS (different focus)** — [mrmees/openauto-companion](https://github.com/mrmees/openauto-companion) (Kotlin): GPS, time, battery, internet sharing over WiFi, plus a theme builder with wallpaper crop and palette transfer. HUDIY's companion does phone notifications + time sync over BT; notification display is the remaining gap |
-| Actions system | **PLANNED** — `docs/plans/active/2026-02-21-architecture-extensibility-plan.md` (EventBus + ActionRegistry + notifications + config-driven launcher), explicitly "hudiy-style extensibility," status NOT STARTED; likely needs rebasing against the completed v0.6 refactor |
+| Actions system | **DONE** — audit (2026-07-02) found the extensibility plan fully implemented despite its stale NOT STARTED header: EventBus, ActionRegistry (with built-in + navbar/AA actions, QML-dispatchable), NotificationService + NotificationArea, PluginViewHost, plugin activation lifecycle, contract docs (`docs/plugin-api.md`, `docs/config-schema.md`). Launcher delivered as v0.6 widget-grid home screen instead of YAML tiles. Plan archived to `docs/plans/` |
 | OBD-II, reverse camera, GPIO | **PLANNED** — roadmap "Later" (plugin system expansion) |
 | Theme engine / user theme selection | **PLANNED** — roadmap "Later," scope undefined |
 | Multi-display / resolutions | **PLANNED** — roadmap "Later" |
@@ -48,12 +48,12 @@ Prodigy has independently converged on much of HUDIY's architecture — and exce
 ## 4. Genuine Gaps (HUDIY has it; prodigy has nothing planned)
 
 1. **External API** — HUDIY exposes protobuf over TCP + WebSocket: status streams (media/nav/projection/phone), action dispatch, notifications/toasts, theme switching, overlay control, EQ presets, OBD queries, cover-art injection. Prodigy's only comparable surface is the local Unix-socket IPC for the web config panel — a seed, but not an external API. This is HUDIY's biggest integration moat, and prodigy is well positioned: protobuf already in-stack, and the API could become part of the open-android-auto community story. Original schema design (see §2).
-2. **User-composable dashboards** — prodigy's widget/dashboard machinery (`WidgetRegistry`, `DashboardContributionKind`) is plugin-facing, not user-facing. HUDIY lets users arrange widgets (2 widths × 3 heights) into multiple dashboards via config.
+2. **Multiple dashboards + widget sizing** — the v0.6 widget-grid home screen already gives users a composable widget surface (`WidgetGridModel`, `WidgetPickerModel`, launcher widgets). Remaining HUDIY delta: multiple named dashboards, widget size options (HUDIY: 2 widths × 3 heights), and web-view widgets.
 3. **Overlay framework** — prodigy has purpose-built overlays (incoming call, pairing, gesture); HUDIY has a general system: user-defined overlays with position/size config, drag-to-move, visibility via actions/API, split-screen layouts.
 4. **HTML/JS custom content** — HUDIY's headline extensibility: Chromium web views as widgets/apps/overlays with a `hudiy` JS object (theme, input, API, Media Session). Prodigy equivalent would be Qt WebEngine + a `prodigy` JS bridge. Needs a Pi 4 memory/perf spike before committing. Prodigy's native plugin SDK is arguably the better foundation; HTML/JS is the low-floor community on-ramp.
 5. **Local file media playback** — HUDIY plays local files with metadata/cover art. Prodigy has BT audio only; no media player plugin.
 6. **FM radio** — RTL-SDR + RDS decoding in HUDIY. Nothing in prodigy. *(Decided: nice-to-have, deferred to long tail.)*
-7. **Companion notifications** — HUDIY's companion displays phone notifications on the head unit. Prodigy's companion app exists (see §3) but doesn't do notifications; depends on the head-unit notification service from the extensibility plan (Priority 3).
+7. **Companion notifications** — HUDIY's companion displays phone notifications on the head unit. Prodigy's companion app exists (see §3) but doesn't do notifications. The head-unit side is already unblocked: NotificationService + NotificationArea exist (extensibility plan, verified 2026-07-02) — remaining work is companion-side capture + a transport + wiring into NotificationService.
 8. **Key-event navigation map** — HUDIY has full keyboard/button bindings (focus movement, media keys, projection focus toggle). Prodigy is touch-first; unverified whether any key bindings exist. Relevant for steering-wheel buttons via GPIO/keyboard HID.
 
 ## 5. Sequencing (decided 2026-07-02: interleaved with v0.7.0)
@@ -61,7 +61,7 @@ Prodigy has independently converged on much of HUDIY's architecture — and exce
 Parity work is **interleaved** with the v0.7.0 Kiosk milestone rather than queued behind it — alternate between kiosk phases and parity items as motivation dictates, keeping reliability work moving.
 
 1. **Finish the "Now" items** — HFP call audio, equalizer. Both are already parity items.
-2. **Revive the extensibility plan** (actions/EventBus/notifications/config-driven launcher) — rebase it against post-v0.6 code first; parts of Priority 1/3 may already be superseded. This is the substrate for dashboards, overlays, the API, and the JS bridge.
+2. ~~Revive the extensibility plan~~ **Already complete** (audited 2026-07-02): EventBus/ActionRegistry/NotificationService/plugin lifecycle all landed; plan archived. The substrate for dashboards, overlays, the API, and the JS bridge exists today.
 3. **HTML/JS runtime spike** *(new, pulled early per decision)* — Qt WebEngine memory/perf on Pi 4 go/no-go. Matthew wants HTML/JS as a primary way to develop new features going forward, so this spike gates architecture decisions and runs early — cheap, informative, parallel-friendly.
 4. **External API v1** *(new)* — original protobuf schema over TCP + WebSocket; status streams + action dispatch + notifications first. **Prodigy-private** (not under the open-android-auto umbrella). Also the backbone the JS bridge talks to.
 5. **HTML/JS runtime proper** *(new, if spike passes)* — WebEngine widgets/apps/overlays with a `prodigy` JS object (theme tokens, input events, API access).
@@ -83,7 +83,7 @@ Items 3–7 and the long-tail additions are new wishlist entries; the rest alrea
 
 | Risk | Mitigation |
 |---|---|
-| Extensibility plan is stale vs. v0.6 refactor | Rebase/re-review the plan before executing; don't run it blind |
+| ~~Extensibility plan is stale vs. v0.6 refactor~~ | Resolved: audit found it complete; archived with corrected status header |
 | Qt WebEngine too heavy on Pi 4 | Spike before committing; native plugin SDK remains the primary extensibility story |
 | API scope creep (~50 HUDIY message types) | v1 = status streams + actions + notifications only; grow by demand |
 | Parity work starves v0.7.0 reliability milestone | Wishlist-then-promote governance; finish kiosk milestone unless Matthew reprioritizes |
