@@ -21,6 +21,12 @@ Ideas captured here. Promote to `roadmap-current.md` when ready to commit.
 
 ## Candidate Ideas
 
+- **FM radio (RTL-SDR + RDS)** — HUDIY-parity feature, explicitly deferred as a nice-to-have (Matthew, 2026-07-02). RTL-SDR dongle for tuning, RDS decode for station/track text, integrated as a media source.
+
+- **Companion notifications on head unit** — The companion app ([openauto-companion](https://github.com/mrmees/openauto-companion)) already does GPS/time/battery/internet sharing + theme transfer. Remaining HUDIY-parity gap: displaying phone notifications on the head unit. Depends on the head-unit notification service (extensibility plan Priority 3).
+
+- **Key-event navigation map** — HUDIY-style keyboard/button bindings (focus movement, back, media keys, projection focus toggle) for steering-wheel buttons via GPIO/keyboard HID. Prodigy is touch-first today.
+
 - **Per-connection WiFi password rotation** — Generate a fresh random WPA password each time a phone connects via BT RFCOMM, update hostapd (`hostapd_cli set wpa_passphrase` + reload), then send the new password to the phone. Eliminates any static credential. Requires coordinating hostapd reload timing with the BT handshake.
 
 - **Three-tier community architecture** — Long-term goal is a clean separation into three public layers:

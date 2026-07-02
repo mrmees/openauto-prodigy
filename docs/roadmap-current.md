@@ -42,6 +42,18 @@ Governance: capture new ideas in `docs/wishlist.md`; only promoted items should 
   - Outcome: clean default log output, `--verbose` / config toggle for debug-level logging.
 - Plugin system expansion (OBD-II, backup camera, GPIO control).
 - Theme engine and user-facing theme selection.
+- HTML/JS extensibility — spike, then runtime. (HUDIY parity; see `docs/superpowers/specs/2026-07-02-hudiy-parity-roadmap-design.md`.)
+  - Rationale: HTML/JS widgets/apps as a primary path for developing new features going forward; HUDIY validates the model (embedded web views + JS bridge). Spike first: Qt WebEngine memory/perf on Pi 4 go/no-go.
+  - Outcome: WebEngine-based widgets/apps/overlays with a `prodigy` JS object (theme tokens, input events, API access), gated on spike results.
+- External API (TCP + WebSocket, protobuf).
+  - Rationale: an external integration surface (status streams, action dispatch, notifications) is HUDIY's biggest moat and the backbone the JS bridge talks to. Prodigy-private original schema — no HUDIY wire compatibility (their repo is unlicensed).
+  - Outcome: API v1 exposing media/nav/projection/phone status streams, action dispatch/register, and notification/toast display.
+- User-composable dashboards + general overlay framework.
+  - Rationale: WidgetRegistry/dashboard contributions are plugin-facing only today; user-arranged widgets and configurable overlays (position/size/visibility via actions/API, split-screen) are the visible customization win.
+  - Outcome: config-driven dashboards with sized widgets (native + web), generalized overlay system replacing the current purpose-built overlays.
+- Local media player plugin.
+  - Rationale: local file playback with metadata/cover art is table stakes for a head unit; prodigy currently only plays BT audio.
+  - Outcome: media player plugin (Qt Multimedia) integrated with MediaStatusService and the now-playing UI.
 - CI automation for builds and tests.
 - Multi-display / resolution support beyond 1024x600.
 - Community contribution workflow (issue templates, PR guidelines).
