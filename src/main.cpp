@@ -34,6 +34,9 @@
 #include "core/services/EqualizerService.hpp"
 #include "core/services/ProjectionStatusProvider.hpp"
 #include "core/services/PhoneStateService.hpp"
+#include "core/services/TelephonyClient.hpp"
+#include "core/services/CallAudioPolicy.hpp"
+#include "core/audio/ScoNodeMonitor.hpp"
 #include "core/services/MediaStatusService.hpp"
 #include "ui/NotificationModel.hpp"
 #include "core/plugin/HostContext.hpp"
@@ -362,8 +365,20 @@ int main(int argc, char *argv[])
     // --- Core phone state service (owns HFP D-Bus + call state machine) ---
     auto phoneStateService = new oap::PhoneStateService(&app);
     phoneStateService->setNotificationService(notificationService);
+    phoneStateService->setSettleGraceMs(
+        yamlConfig->valueByPath("phone.settle_grace_ms").toInt());
     phoneStateService->startDBusMonitoring();
     hostContext->setCallStateProvider(phoneStateService);
+
+    // PipeWire telephony (org.pipewire.Telephony, session bus): real HFP
+    // call control. See docs/superpowers/specs/2026-07-05-hfp-call-audio-design.md
+    auto telephonyClient = new oap::TelephonyClient(&app);
+    auto scoMonitor = new oap::ScoNodeMonitor(&app);
+    if (audioService->isAvailable())
+        scoMonitor->start(audioService->pwThreadLoop(), audioService->pwCore());
+    phoneStateService->attachTelephony(telephonyClient);
+    phoneStateService->attachScoMonitor(scoMonitor);
+    telephonyClient->start();
 
     auto phonePlugin = new oap::plugins::PhonePlugin(&app);
     pluginManager.registerStaticPlugin(phonePlugin);
@@ -476,6 +491,15 @@ int main(int argc, char *argv[])
         projectionStatusProvider = new oap::ProjectionStatusProvider(orch, &app);
         hostContext->setProjectionStatusProvider(projectionStatusProvider);
     }
+
+    // AA-coexistence policy for call audio (design §6). With no projection
+    // provider the policy is inert and SCO is always accepted.
+    auto callAudioPolicy = new oap::CallAudioPolicy(
+        projectionStatusProvider,
+        yamlConfig->valueByPath("phone.reject_sco_during_aa").toBool(), &app);
+    QObject::connect(callAudioPolicy, &oap::CallAudioPolicy::rejectScoWanted,
+                     telephonyClient, &oap::TelephonyClient::setRejectSco);
+    telephonyClient->setRejectSco(callAudioPolicy->wantReject());
 
     // --- Widget system ---
     auto widgetRegistry = new oap::WidgetRegistry(&app);
