@@ -40,13 +40,14 @@ Extracted from the **exact Debian Trixie package the Pi uses** (`libspa-0.2-blue
 2. **PhonePlugin architecture (D2 input):** replace mock call methods with a `TelephonyClient` D-Bus adapter (ObjectManager watch on PipeWire's telephony service; per-AG and per-call proxies). `PhoneStateService` maps `Call1` states into `ICallStateProvider` (extend enum: today's Idle/Ringing/Active is too narrow — add Dialing/Held at minimum, per §3 semantics).
 3. **AA coexistence lever (D2 input):** `RejectSCO` + `bluez5.telephony.default-reject-sco` is the designed mechanism for "AA owns call audio while projecting; HFP takes over when AA is gone" — toggle per AA session state rather than tearing profiles down.
 4. **D-Bus deserialization gotcha applies** (CLAUDE.md): manual `beginMap()/endMap()` for QVariantMap extraction in the new client code.
+5. **Delete prodigy's HFP AG + HSP HS profile registration** (`BluetoothManager.cpp:540-586`, registrations at `:551-552`). Live evidence (Pi, 2026-07-05): the registration **fails every boot** with `"UUID already registered"` — PipeWire's native backend owns 0x111f and 0x1108 — and AA wireless discovery works regardless (its SDP record is separate, registered at boot per the same log). The `BluezProfile1Handler` fds land in `profileFds_`, which nothing ever reads (only closed in cleanup). Worse, it's a latent hazard: prodigy is a *system* service, WirePlumber a *user* service — if boot ordering ever flips, prodigy would WIN the registration race and silently break PipeWire telephony. Remove `registerProfiles()`/`unregisterProfiles()`, `BluezProfile1Handler`, and `profileFds_` wholesale.
 
 ## 6. Live verification checklist (Pi; ~15 min once Pi is powered and phone available)
 
 Pre-req: none of this changes the decision — it pins config values and confirms interop.
 
-1. `busctl --user list | grep -i pipewire` then `busctl --user tree org.pipewire.Telephony` (if absent, try system bus per `bluez5.telephony.use-system-bus`) — service name TBC by introspection.
-2. Find the enablement key location: check `/usr/share/pipewire/pipewire.conf`, WirePlumber 0.5 bluez monitor conf (`/usr/share/wireplumber/wireplumber.conf.d/`, `monitor.bluez.properties`); expected: set `bluez5.telephony-dbus-service = true` in a drop-in under `/etc/wireplumber/wireplumber.conf.d/`. Record the exact working drop-in in this doc when confirmed.
+1. ~~Service discovery~~ **DONE 2026-07-05 (Pi, live):** `org.pipewire.Telephony` is running on the **session bus**, owned by WirePlumber; object root `/org/pipewire/Telephony` present with no children while no phone is connected.
+2. ~~Enablement key~~ **DONE 2026-07-05 (Pi, live):** enabled **by default** in Trixie's build — no telephony key exists in any shipped config and the service is up anyway. **No config drop-in needed.**
 3. Pair + connect phone (HFP): verify an `AudioGateway1` object appears; place a test call; observe `Call1` lifecycle properties; `Answer()`/`Hangup()`/`SendTones()` from `busctl call`.
 4. Confirm SCO audio flows both directions (PipeWire source/sink nodes appear; check codec — expect mSBC on modern phones).
 5. Test with both household phones (Samsung S25 Ultra, Moto G Play 2024) — the known-quirky one is the Moto.
