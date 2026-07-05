@@ -12,11 +12,15 @@
 #include "api/media.pb.h"
 #include "api/projection.pb.h"
 #include "api/system.pb.h"
+#include "api/phone.pb.h"
+#include "api/navigation.pb.h"
 
 #include "core/services/IMediaStatusProvider.hpp"
 #include "core/services/IProjectionStatusProvider.hpp"
 #include "core/services/ThemeService.hpp"
 #include "core/services/BluetoothManager.hpp"
+#include "core/services/IPhoneStateService.hpp"
+#include "core/services/INavigationProvider.hpp"
 
 namespace oap::api::serial {
 
@@ -38,5 +42,28 @@ prodigy::api::v1::ProjectionStatus buildProjectionStatus(const oap::IProjectionS
 prodigy::api::v1::SystemStatus buildSystemStatus(oap::ThemeService& theme,
                                                   const QString& appVersion,
                                                   oap::BluetoothManager* bt);
+
+/// Build a PhoneStatus snapshot. CallState is normalized from the provider's
+/// widened HFP-derived callState() int via an explicit switch (mapCallState
+/// in ApiSerializers.cpp) -- Idle produces an empty calls[] list, any other
+/// state produces exactly one Call (v1 is single-call). `activeCallStartedAtMs`
+/// is echoed onto that Call's started_at_unix_ms ONLY while the call is
+/// Active (0 otherwise); the caller captures the timestamp at the moment of
+/// the transition into Active (see design doc §8.4) -- this function is pure
+/// and does no timekeeping itself. Capabilities (can_dial/can_answer/
+/// can_hangup/can_send_dtmf) mirror p.telephonyAvailable() -- the frozen
+/// contract is that they never claim availability the provider doesn't back.
+/// can_hold_swap/can_multiparty are hard-false in v1, permanently.
+prodigy::api::v1::PhoneStatus buildPhoneStatus(const oap::IPhoneStateService& p,
+                                                qint64 activeCallStartedAtMs);
+
+/// Build a NavigationStatus snapshot. ManeuverType/TurnSide are normalized
+/// from the raw AA maneuver code (p.maneuverType()) via one switch -- see
+/// ApiSerializers.cpp for the full table. p.turnDirection() is intentionally
+/// never read: the side is encoded in the maneuver code itself, and using a
+/// single source avoids the two ever disagreeing. distance_meters is left 0
+/// in this task -- Task 13 populates it once the provider interface is
+/// promoted to carry raw meters.
+prodigy::api::v1::NavigationStatus buildNavigationStatus(const oap::INavigationProvider& p);
 
 } // namespace oap::api::serial

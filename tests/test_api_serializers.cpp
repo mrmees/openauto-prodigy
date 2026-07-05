@@ -7,9 +7,30 @@
 #include "core/services/ThemeService.hpp"
 #include "core/services/BluetoothManager.hpp"
 #include "core/services/IConfigService.hpp"
+#include "core/services/PhoneStateService.hpp"
+#include "core/services/INavigationProvider.hpp"
 
 namespace pb = prodigy::api::v1;
 using namespace oap::api::serial;
+
+// ~15-line fake INavigationProvider: plain member fields, no signal wiring
+// needed since buildNavigationStatus only reads the getters.
+class FakeNavProvider : public oap::INavigationProvider {
+public:
+    bool navActive() const override { return navActive_; }
+    QString roadName() const override { return roadName_; }
+    int maneuverType() const override { return maneuverType_; }
+    int turnDirection() const override { return turnDirection_; }
+    QString formattedDistance() const override { return formattedDistance_; }
+    bool hasManeuverIcon() const override { return false; }
+    int iconVersion() const override { return 0; }
+
+    bool navActive_ = true;
+    QString roadName_;
+    int maneuverType_ = 0;
+    int turnDirection_ = 0;
+    QString formattedDistance_;
+};
 
 // Minimal mock ConfigService, same shape as test_bluetooth_manager.cpp, so we
 // can construct a real (adapter-less) BluetoothManager in this test env.
@@ -35,6 +56,14 @@ private slots:
     void testSystemThemeTokensAndVersion();
     void testSystemBluetoothNullptr();
     void testSystemBluetoothDisconnectedRealManager();
+    void testPhoneIdleEmptyCallsAndCapabilitiesFalse();
+    void testPhoneRingingIncoming();
+    void testPhoneAnswerActiveEchoesStartedAt();
+    void testPhoneHangupEmptyCalls();
+    void testPhoneCapabilitiesTrackTelephonyAvailable();
+    void testPhoneHoldSwapAndMultipartyAlwaysFalse();
+    void testNavManeuverTable();
+    void testNavInactivePassesThroughFields();
 };
 
 void TestApiSerializers::testMediaBluetoothPlaying() {
@@ -177,6 +206,131 @@ void TestApiSerializers::testSystemBluetoothDisconnectedRealManager() {
     pb::SystemStatus status = buildSystemStatus(theme, "1.0.0 (deadbeef)", &bt);
     QVERIFY(!status.bluetooth().connected());
     QVERIFY(status.bluetooth().device_name().empty());
+}
+
+void TestApiSerializers::testPhoneIdleEmptyCallsAndCapabilitiesFalse() {
+    // Constructor takes parent only; do NOT call startDBusMonitoring() —
+    // this exercises mock mode.
+    oap::PhoneStateService phone;
+
+    pb::PhoneStatus status = buildPhoneStatus(phone, 0);
+    QCOMPARE(status.calls_size(), 0);
+    QCOMPARE(status.hfp_connected(), phone.phoneConnected());
+    QCOMPARE(QString::fromStdString(status.device_name()), phone.deviceName());
+    QVERIFY(!status.capabilities().can_dial());
+    QVERIFY(!status.capabilities().can_answer());
+    QVERIFY(!status.capabilities().can_hangup());
+    QVERIFY(!status.capabilities().can_send_dtmf());
+    QVERIFY(!status.capabilities().can_hold_swap());
+    QVERIFY(!status.capabilities().can_multiparty());
+}
+
+void TestApiSerializers::testPhoneRingingIncoming() {
+    oap::PhoneStateService phone;
+    phone.setIncomingCall("+15551234567", "Alice");
+
+    pb::PhoneStatus status = buildPhoneStatus(phone, 0);
+    QCOMPARE(status.calls_size(), 1);
+    const auto& call = status.calls(0);
+    QCOMPARE(call.state(), pb::CALL_STATE_INCOMING);
+    QCOMPARE(QString::fromStdString(call.line_identification()), QString("+15551234567"));
+    QCOMPARE(QString::fromStdString(call.display_name()), QString("Alice"));
+    QCOMPARE(call.started_at_unix_ms(), qint64(0));
+}
+
+void TestApiSerializers::testPhoneAnswerActiveEchoesStartedAt() {
+    oap::PhoneStateService phone;
+    phone.setIncomingCall("+15551234567", "Alice");
+    QVERIFY(phone.answer());
+
+    const qint64 startedAt = 1720000000123LL;
+    pb::PhoneStatus status = buildPhoneStatus(phone, startedAt);
+    QCOMPARE(status.calls_size(), 1);
+    const auto& call = status.calls(0);
+    QCOMPARE(call.state(), pb::CALL_STATE_ACTIVE);
+    QCOMPARE(call.started_at_unix_ms(), startedAt);
+    // Still echoes the caller identity captured at ring time.
+    QCOMPARE(QString::fromStdString(call.line_identification()), QString("+15551234567"));
+}
+
+void TestApiSerializers::testPhoneHangupEmptyCalls() {
+    oap::PhoneStateService phone;
+    phone.setIncomingCall("+15551234567", "Alice");
+    QVERIFY(phone.answer());
+    QVERIFY(phone.hangup());
+
+    pb::PhoneStatus status = buildPhoneStatus(phone, 1720000000123LL);
+    QCOMPARE(status.calls_size(), 0);
+}
+
+void TestApiSerializers::testPhoneCapabilitiesTrackTelephonyAvailable() {
+    oap::PhoneStateService phone;
+
+    pb::PhoneStatus before = buildPhoneStatus(phone, 0);
+    QVERIFY(!before.capabilities().can_dial());
+    QVERIFY(!before.capabilities().can_answer());
+    QVERIFY(!before.capabilities().can_hangup());
+    QVERIFY(!before.capabilities().can_send_dtmf());
+
+    phone.onTelephonyAvailable(true);
+
+    pb::PhoneStatus after = buildPhoneStatus(phone, 0);
+    QVERIFY(after.capabilities().can_dial());
+    QVERIFY(after.capabilities().can_answer());
+    QVERIFY(after.capabilities().can_hangup());
+    QVERIFY(after.capabilities().can_send_dtmf());
+}
+
+void TestApiSerializers::testPhoneHoldSwapAndMultipartyAlwaysFalse() {
+    // Frozen contract: can_hold_swap/can_multiparty are hard-false in v1
+    // regardless of telephony availability or call state.
+    oap::PhoneStateService phone;
+    phone.onTelephonyAvailable(true);
+    phone.setIncomingCall("+15551234567", "Alice");
+    QVERIFY(phone.answer());
+
+    pb::PhoneStatus status = buildPhoneStatus(phone, 42);
+    QVERIFY(!status.capabilities().can_hold_swap());
+    QVERIFY(!status.capabilities().can_multiparty());
+}
+
+void TestApiSerializers::testNavManeuverTable() {
+    FakeNavProvider nav;
+    nav.navActive_ = true;
+    nav.roadName_ = "Main St";
+    nav.formattedDistance_ = "500 ft";
+
+    auto check = [&](int raw, pb::ManeuverType type, pb::TurnSide side) {
+        nav.maneuverType_ = raw;
+        // Deliberately contradictory: turnDirection() must be ignored, side
+        // comes from the maneuver code itself.
+        nav.turnDirection_ = (side == pb::TURN_SIDE_LEFT) ? 2 : 1;
+        pb::NavigationStatus status = buildNavigationStatus(nav);
+        QCOMPARE(status.maneuver(), type);
+        QCOMPARE(status.turn_side(), side);
+    };
+
+    check(7, pb::MANEUVER_TYPE_TURN, pb::TURN_SIDE_LEFT);
+    check(14, pb::MANEUVER_TYPE_ON_RAMP, pb::TURN_SIDE_RIGHT);
+    check(36, pb::MANEUVER_TYPE_STRAIGHT, pb::TURN_SIDE_UNSPECIFIED);
+    check(39, pb::MANEUVER_TYPE_DESTINATION, pb::TURN_SIDE_UNSPECIFIED);
+    check(51, pb::MANEUVER_TYPE_OTHER, pb::TURN_SIDE_UNSPECIFIED);
+    check(33, pb::MANEUVER_TYPE_ROUNDABOUT_ENTER_AND_EXIT, pb::TURN_SIDE_UNSPECIFIED);
+}
+
+void TestApiSerializers::testNavInactivePassesThroughFields() {
+    FakeNavProvider nav;
+    nav.navActive_ = false;
+    nav.roadName_ = "";
+    nav.formattedDistance_ = "";
+    nav.maneuverType_ = 0;
+
+    pb::NavigationStatus status = buildNavigationStatus(nav);
+    QVERIFY(!status.nav_active());
+    QCOMPARE(status.maneuver(), pb::MANEUVER_TYPE_UNSPECIFIED);
+    QCOMPARE(status.turn_side(), pb::TURN_SIDE_UNSPECIFIED);
+    // distance_meters is left at 0 in this task — populated by Task 13.
+    QCOMPARE(status.distance_meters(), 0);
 }
 
 QTEST_MAIN(TestApiSerializers)
