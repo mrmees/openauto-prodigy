@@ -4,7 +4,7 @@
 **Status:** DRAFT — proto freeze pending Codex review loop (do not treat `proto/api/` as frozen until the review gate clears and this line changes).
 **Grounded against:** `fable-design-sprint` at `a748121` + two code-level substrate scouts (2026-07-05/06). If the substrate has moved since, re-verify the mapping tables in §8 before implementing.
 **Rails consumed:** `2026-07-05-extensibility-architecture-design.md` §2 (R1–R5), §3 (transport/auth/threading/backpressure — locked), §4 (schema conventions — locked), §8 (invariants). Phone semantics: `2026-07-05-hfp-call-control-decision.md` §5–§6 (live-verified). WS-first-class rationale: `2026-07-05-webengine-spike-results.md` (GO; web widgets are WebSocket API clients).
-**Audience:** the implementing agent. Read this whole doc plus the Executor Guidance (§17) before writing any code. The companion implementation plan is `docs/superpowers/plans/external-api-v1-implementation.md`.
+**Audience:** the implementing agent. Read this whole doc plus the Executor Guidance (§17) before writing any code. The companion implementation plan is `docs/superpowers/plans/2026-07-06-external-api-v1-implementation.md`.
 
 ## 1. Purpose
 
