@@ -3,6 +3,7 @@ add_library(openauto-core STATIC
     core/Logging.cpp
     core/YamlConfig.cpp
     core/InputDeviceScanner.cpp
+    core/api/ApiFramer.cpp
     core/system/HostapdConfig.cpp
     core/aa/VideoDecoder.cpp
     core/aa/DmaBufVideoBuffer.cpp
@@ -97,6 +98,7 @@ target_link_libraries(openauto-core PUBLIC
     Qt6::WebSockets
     Qt6::DBus
     prodigy-oaa-protocol
+    prodigy-api-proto
     OpenSSL::SSL
     OpenSSL::Crypto
     protobuf::libprotobuf

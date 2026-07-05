@@ -164,6 +164,8 @@ oap_add_test(test_api_proto_roundtrip
     SOURCES test_api_proto_roundtrip.cpp
     EXTRA_LIBS prodigy-api-proto)
 
+oap_add_test(test_api_framing SOURCES test_api_framing.cpp)
+
 # --- Script tests (no compilation) ---
 
 add_test(
