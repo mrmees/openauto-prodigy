@@ -158,6 +158,12 @@ oap_add_test(test_media_data_bridge SOURCES test_media_data_bridge.cpp)
 oap_add_test(test_navigation_data_bridge SOURCES test_navigation_data_bridge.cpp)
 oap_add_test(test_maneuver_icon_provider SOURCES test_maneuver_icon_provider.cpp)
 
+# --- External API proto tests ---
+
+oap_add_test(test_api_proto_roundtrip
+    SOURCES test_api_proto_roundtrip.cpp
+    EXTRA_LIBS prodigy-api-proto)
+
 # --- Script tests (no compilation) ---
 
 add_test(

@@ -30,6 +30,9 @@ find_package(yaml-cpp REQUIRED)
 # prodigy-oaa-protocol — Qt-native AA protocol library
 add_subdirectory(libs/prodigy-oaa-protocol)
 
+# External API v1 protobuf contract (prodigy-private, NOT the AA submodule)
+add_subdirectory(proto)
+
 # Capture git hash at configure time for version identification
 execute_process(
     COMMAND git rev-parse --short HEAD
