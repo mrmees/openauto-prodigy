@@ -28,6 +28,7 @@ private slots:
     void testCallWaitingIgnoredWhileActive();
     void testAgVanishResetsToIdle();
     void testDialGuards();
+    void testSetupDisconnectedEndsImmediately();
 };
 
 void TestPhoneStateService::testImplementsICallStateProvider() {
@@ -245,6 +246,20 @@ void TestPhoneStateService::testDialGuards() {
     QCOMPARE(s->callState(), (int)CS::Dialing);
     QVERIFY(!s->dial("5551234"));              // not Idle → rejected
     QVERIFY(!s->sendDtmf("1"));                // not Active → rejected
+}
+
+void TestPhoneStateService::testSetupDisconnectedEndsImmediately() {
+    // Live-verified (L2, Pixel 8): a rejected/failed call emits Call1
+    // State→"disconnected" before InterfacesRemoved — end immediately,
+    // no Settling wait.
+    QObject root; auto* s = makeFastService(&root);
+    s->onCallSetupStarted("incoming", "+15125551212", "");
+    QCOMPARE(s->callState(), (int)CS::Ringing);
+    s->onCallSetupChanged("disconnected");
+    QCOMPARE(s->callState(), (int)CS::Idle);   // immediate, not via grace timeout
+    QVERIFY(s->callerNumber().isEmpty());
+    s->onCallSetupEnded();                      // subsequent removal: no-op
+    QCOMPARE(s->callState(), (int)CS::Idle);
 }
 
 QTEST_GUILESS_MAIN(TestPhoneStateService)

@@ -73,7 +73,8 @@ Accepted, documented consequences (v1 limitations, each with an additive escape 
 
 D-Bus mechanics only — no call-state policy. Same integration pattern as the bt_audio plugin's BlueZ client, pointed at WirePlumber.
 
-- **Bus & discovery:** `QDBusConnection::sessionBus()`. `QDBusServiceWatcher` on `org.pipewire.Telephony` (registration + unregistration). On service up (and at start if already up): `GetManagedObjects` on `/org/pipewire/Telephony` — this enumerates **AudioGateway objects only, never Call1 children** (D1 §6.4, live-verified). Subscribe `InterfacesAdded`/`InterfacesRemoved` on the root and `PropertiesChanged` with path-namespace match — calls are tracked **exclusively** via these signals.
+- **Bus & discovery:** `QDBusConnection::sessionBus()`. `QDBusServiceWatcher` on `org.pipewire.Telephony` (registration + unregistration). On service up (and at start if already up): `GetManagedObjects` on `/org/pipewire/Telephony` — this enumerates **AudioGateway objects only, never Call1 children** (D1 §6.4, live-verified). Subscribe `InterfacesAdded`/`InterfacesRemoved` **service-wide (empty path match)** and `PropertiesChanged` likewise — calls are tracked **exclusively** via these signals.
+  > **REVISED 2026-07-05 (execution, live L2 evidence):** originally "subscribe on the root" — wrong. PipeWire puts a **second ObjectManager on each AG object** (`/org/pipewire/Telephony/ag1` carries `org.freedesktop.DBus.ObjectManager` too), and **Call1 add/remove signals are emitted by the per-AG ObjectManager**, not the root. A root-path match never sees them (bug found because the deployed head unit stayed Idle through live calls). Match rule must be service-wide.
 - **Objects tracked:** first `org.pipewire.Telephony.AudioGateway1` object (path pattern `/org/pipewire/Telephony/agN`) — single-AG assumption for v1; additional AGs are logged and ignored. The transport interface (`org.pipewire.Telephony.AudioGatewayTransport1`) is expected on/adjacent to the same object — the adapter must **discover the path carrying the transport interface from the `InterfacesAdded` payload, not hardcode it** (D1 §7: discover, don't hardcode).
 - **Call1 handling:** `InterfacesAdded` carrying `org.pipewire.Telephony.Call1` → emit `callSetupStarted(state, lineIdentification, name)`. `PropertiesChanged` on that path → `callSetupChanged(state)`. `InterfacesRemoved` → `callSetupEnded()`. Call1 objects are **ephemeral, setup-phase only** (D1 §6.4) — the client never assumes one exists for an active call.
 - **Commands** (all async via `QDBusPendingCallWatcher`; errors logged with the D-Bus error string, surfaced as a `commandFailed(op, message)` signal): `dial(number)` → `AudioGateway1.Dial(s)`; `answer()` → `Call1.Answer()` on the current setup object (fails cleanly if none); `hangupAll()` → `AudioGateway1.HangupAll()`; `sendTones(tones)` → `AudioGateway1.SendTones(s)`.
@@ -146,8 +147,9 @@ Transitions (anything not listed: log at debug, no transition):
 | Idle | E-SETUP("dialing") | Dialing | outgoing initiated (by us or on the handset) |
 | Idle | E-SETUP("alerting") | Alerting | first observation may already be alerting |
 | Dialing | E-SETUP-CHG("alerting") | Alerting | |
-| Ringing/Dialing/Alerting | E-SETUP-CHG("active") | Active | clean path if PipeWire fires it before destroying Call1 — live check L2 confirms |
-| Ringing/Dialing/Alerting | E-SETUP-END | **Settling** | disambiguation below |
+| Ringing/Dialing/Alerting | E-SETUP-CHG("active") | Active | clean path — **L2 CONFIRMED primary** (Call1 fires State→"active" and persists through the call on Pixel 8) |
+| Ringing/Dialing/Alerting | E-SETUP-CHG("disconnected") | Idle | **ADDED from L2 evidence:** reject/failure emits State→"disconnected" before InterfacesRemoved — resolve immediately, skip Settling |
+| Ringing/Dialing/Alerting | E-SETUP-END | **Settling** | disambiguation below (reached only if neither "active" nor "disconnected" was seen — e.g. other phones) |
 | Settling | E-SCO(true), or already true at entry | Active | answered/connected |
 | Settling | grace timeout (default 2000 ms, injectable for tests) | Idle | rejected / failed / cancelled |
 | Idle | E-SCO(true) ∧ AG present | Active | recovery: prodigy restarted mid-call, or user routed audio back to car; caller info = last known (may be empty) |
@@ -182,6 +184,7 @@ No prodigy code negotiates codecs — PipeWire does. Expectations for logging/di
 - **mSBC** (wideband, 16 kHz): expected fallback for most phones.
 - **CVSD** (narrowband, 8 kHz): guaranteed floor per HFP spec.
 - `TelephonyClient` logs the transport `Codec` property on change (qCInfo) — that is the interop-pass instrument. Not exposed on the provider or API in v1 (additive later if a diagnostics surface wants it).
+- **REVISED (L1):** the `Codec` property is a **byte** (HFP codec ID: 1=CVSD, 2=mSBC, 3=LC3-SWB), not a string. `TelephonyClient` maps it to a name for logging. Pixel 8 negotiated `3` (LC3-SWB) live — confirms D1 §6.3.
 
 ## 8. Deletions (with proof of safety)
 
@@ -230,11 +233,18 @@ busctl --user introspect org.pipewire.Telephony /org/pipewire/Telephony/ag1
 ```
 Confirm: which object carries `AudioGatewayTransport1` (same path as `AudioGateway1`?); property list matches D1 §3. Record the transport path pattern — `TelephonyClient` discovers it, but the executor should know what "right" looks like.
 
+> **L1 RESULT (2026-07-05, Pixel 8, live):** CONFIRMED — `AudioGatewayTransport1` is on the **same object** as `AudioGateway1` (`/org/pipewire/Telephony/ag1`), alongside the ofono-compat `org.ofono.VoiceCallManager` aliases. Property list matches D1 §3 with two refinements: (1) **`Codec` is type `y` (byte)**, not string — HFP codec IDs (1=CVSD, 2=mSBC, 3=LC3-SWB); value `0` pre-call. (2) **`Address` is `const`** and readable via introspection but arrived **empty in the `InterfacesAdded` payload** — PipeWire omits it there; log-only impact in v1. `busctl tree` shows only the root (ag1 not listed as a child — consistent with the GetManagedObjects ephemerality findings). Transport `State` was `"idle"` pre-call at HFP connect — the D1 §6.4 pre-call `"active"` quirk did not reproduce here.
+
 **L2 — Call1 State sequence (10 min, any phone).** In one terminal:
 ```
 busctl --user monitor org.pipewire.Telephony
 ```
 Then: (a) receive a call, answer on the head unit; (b) receive a call, reject from the phone; (c) place a call from the head unit, let it connect, hang up. Question to answer: **does `Call1.State` fire a `PropertiesChanged` to `"active"` before `InterfacesRemoved`?** If yes, the §5 clean path (`E-SETUP-CHG("active")`) is primary and Settling is rare; if no, every answered call resolves through Settling (still correct, just note it). Also record the transport `State` values seen at each step and whether the pre-call `"active"` quirk (D1 §6.4) reproduces.
+
+> **L2 RESULT (2026-07-05, Pixel 8, live, from busctl monitor capture):**
+> - **YES — `Call1.State` → `"active"` fires before `InterfacesRemoved`.** Clean path is PRIMARY. Moreover Call1 is **not destroyed at call-active on this phone** — it persists through the call, emits `State → "disconnected"` at hangup, then `InterfacesRemoved`. (Softer than D1 §6.4's ephemerality claim; the state machine handles both lifetimes.)
+> - Rejected call: Call1 added → transport `pending → active → idle` → Call1 `"disconnected"` → removed — Call1 never went `"active"`. **Transport `"active"` during ring = in-band ringtone over SCO**, which explains D1's "transport active is not authoritative" quirk precisely.
+> - **Design amendments applied from this evidence:** (1) `InterfacesAdded/Removed` are emitted by a per-AG ObjectManager — subscription must be service-wide (§4.1 revision; this was a live-found implementation bug). (2) New §5 row: setup + `E-SETUP-CHG("disconnected")` → Idle immediately, skipping Settling. (3) Codec property is a byte; 3=LC3-SWB observed (§7).
 
 **L3 — SendTones DTMF (5 min, any phone).** Call an IVR (e.g. a voicemail menu). During the active call:
 ```

@@ -18,6 +18,18 @@ const QString kTransportIface = QStringLiteral("org.pipewire.Telephony.AudioGate
 const QString kCallIface = QStringLiteral("org.pipewire.Telephony.Call1");
 const QString kPropsIface = QStringLiteral("org.freedesktop.DBus.Properties");
 const QString kObjMgrIface = QStringLiteral("org.freedesktop.DBus.ObjectManager");
+
+// Transport Codec is a BYTE (HFP codec ID), not a string — live-verified L1.
+QString codecName(const QVariant& v)
+{
+    switch (v.toUInt()) {
+    case 0: return QStringLiteral("none");
+    case 1: return QStringLiteral("CVSD");
+    case 2: return QStringLiteral("mSBC");
+    case 3: return QStringLiteral("LC3-SWB");
+    default: return QStringLiteral("codec-%1").arg(v.toUInt());
+    }
+}
 } // namespace
 
 namespace oap {
@@ -41,11 +53,13 @@ void TelephonyClient::start()
     connect(watcher_, &QDBusServiceWatcher::serviceRegistered, this, [this]() { onServiceUp(); });
     connect(watcher_, &QDBusServiceWatcher::serviceUnregistered, this, [this]() { onServiceDown(); });
 
-    bus.connect(kService, kRoot, kObjMgrIface, QStringLiteral("InterfacesAdded"),
+    // Empty path = all objects of the service. REQUIRED for InterfacesAdded/
+    // InterfacesRemoved: Call1 children are announced by a PER-AG ObjectManager
+    // at /org/pipewire/Telephony/agN, not by the root (live-verified, L2).
+    bus.connect(kService, QString(), kObjMgrIface, QStringLiteral("InterfacesAdded"),
         this, SLOT(onInterfacesAdded(QDBusObjectPath,QVariantMap)));
-    bus.connect(kService, kRoot, kObjMgrIface, QStringLiteral("InterfacesRemoved"),
+    bus.connect(kService, QString(), kObjMgrIface, QStringLiteral("InterfacesRemoved"),
         this, SLOT(onInterfacesRemoved(QDBusObjectPath,QStringList)));
-    // Empty path = all objects of the service; QDBusMessage tail arg gives the sender path.
     bus.connect(kService, QString(), kPropsIface, QStringLiteral("PropertiesChanged"),
         this, SLOT(onPropertiesChanged(QString,QVariantMap,QStringList,QDBusMessage)));
 
@@ -59,9 +73,9 @@ void TelephonyClient::stop()
 {
     if (!started_) return;
     auto bus = QDBusConnection::sessionBus();
-    bus.disconnect(kService, kRoot, kObjMgrIface, QStringLiteral("InterfacesAdded"),
+    bus.disconnect(kService, QString(), kObjMgrIface, QStringLiteral("InterfacesAdded"),
         this, SLOT(onInterfacesAdded(QDBusObjectPath,QVariantMap)));
-    bus.disconnect(kService, kRoot, kObjMgrIface, QStringLiteral("InterfacesRemoved"),
+    bus.disconnect(kService, QString(), kObjMgrIface, QStringLiteral("InterfacesRemoved"),
         this, SLOT(onInterfacesRemoved(QDBusObjectPath,QStringList)));
     bus.disconnect(kService, QString(), kPropsIface, QStringLiteral("PropertiesChanged"),
         this, SLOT(onPropertiesChanged(QString,QVariantMap,QStringList,QDBusMessage)));
@@ -178,7 +192,8 @@ void TelephonyClient::adoptTransport(const QString& path, const QVariantMap& pro
 {
     transportPath_ = path;
     const QString state = props.value(QStringLiteral("State")).toString();
-    const QString codec = props.value(QStringLiteral("Codec")).toString();
+    const QString codec = props.contains(QStringLiteral("Codec"))
+        ? codecName(props.value(QStringLiteral("Codec"))) : QString();
     if (!state.isEmpty() && state != transportState_) {
         transportState_ = state;
         emit transportStateChanged(state);
@@ -252,7 +267,7 @@ void TelephonyClient::onPropertiesChanged(const QString& interface, const QVaria
             emit transportStateChanged(transportState_);
         }
         if (changed.contains(QStringLiteral("Codec"))) {
-            codec_ = changed.value(QStringLiteral("Codec")).toString();
+            codec_ = codecName(changed.value(QStringLiteral("Codec")));
             qCInfo(lcTel) << "HFP codec:" << codec_;
             emit codecChanged(codec_);
         }

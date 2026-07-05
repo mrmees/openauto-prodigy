@@ -146,6 +146,14 @@ void PhoneStateService::onCallSetupChanged(const QString& state)
         inSettle_ = false;
         settleTimer_.stop();
         setCallStateInternal(ICallStateProvider::Active);
+    } else if (state == QLatin1String("disconnected")) {
+        // Live-verified (L2): reject/failure emits State→"disconnected"
+        // before InterfacesRemoved — resolve now, skip the Settling wait.
+        inSettle_ = false;
+        settleTimer_.stop();
+        callerNumber_.clear();
+        callerName_.clear();
+        setCallStateInternal(ICallStateProvider::Idle);
     }
 }
 
