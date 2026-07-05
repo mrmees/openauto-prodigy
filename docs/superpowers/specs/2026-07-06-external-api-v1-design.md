@@ -1,14 +1,14 @@
 # External API v1 — Design (Phase B)
 
 **Date:** 2026-07-06
-**Status:** DRAFT — proto freeze pending Codex review loop (do not treat `proto/api/` as frozen until the review gate clears and this line changes).
+**Status:** FROZEN — Codex review 2026-07-06 verdict "freeze with fixes"; all four findings applied (notification `priority` made optional; phone commands strictly capability-gated so contract and behavior cannot contradict; `ConnectivityReport.socks5_password` added for companion proxy parity; version-minor lives in ServerHello only). `proto/api/` is now ADDITIVE-ONLY (rail R5).
 **Grounded against:** `fable-design-sprint` at `a748121` + two code-level substrate scouts (2026-07-05/06). If the substrate has moved since, re-verify the mapping tables in §8 before implementing.
 **Rails consumed:** `2026-07-05-extensibility-architecture-design.md` §2 (R1–R5), §3 (transport/auth/threading/backpressure — locked), §4 (schema conventions — locked), §8 (invariants). Phone semantics: `2026-07-05-hfp-call-control-decision.md` §5–§6 (live-verified). WS-first-class rationale: `2026-07-05-webengine-spike-results.md` (GO; web widgets are WebSocket API clients).
 **Audience:** the implementing agent. Read this whole doc plus the Executor Guidance (§17) before writing any code. The companion implementation plan is `docs/superpowers/plans/2026-07-06-external-api-v1-implementation.md`.
 
 ## 1. Purpose
 
-One protobuf API over TCP + WebSocket is the single external integration surface for OpenAuto Prodigy (rail R2): companion app (rewrite), web widgets (in-process WebEngine, connecting to 127.0.0.1), and third-party clients. This doc fixes the session layer, auth, delivery model, per-domain semantics, and test plan. The wire contract itself lives in `proto/api/` (authored with this doc; frozen only after the Codex review gate).
+One protobuf API over TCP + WebSocket is the single external integration surface for OpenAuto Prodigy (rail R2): companion app (rewrite), web widgets (in-process WebEngine, connecting to 127.0.0.1), and third-party clients. This doc fixes the session layer, auth, delivery model, per-domain semantics, and test plan. The wire contract itself lives in `proto/api/` (authored with this doc; FROZEN 2026-07-06 after the Codex review gate — additive-only from here).
 
 ## 2. Scope (v1 fence) and two flagged fence deltas
 
@@ -150,7 +150,7 @@ Storage is a **separate file**, not `config.yaml` — Matthew pastes `config.yam
 
 `ClientHello{requested_api_version_major/minor, client_name, client_kind, auth}` / `ServerHello{api_version_major=1, api_version_minor, server_name, app_version, session_id, granted_client_id?, capabilities}`.
 
-**Capability discovery:** `ServerHello.capabilities` = `Capabilities{supported_topics[], phone: PhoneCapabilities, api_version_minor}` — the static shape at connect time. `GetCapabilitiesRequest` → `CapabilitiesResponse{capabilities}` re-queries it. *Dynamic* capability truth (is dial possible *right now*) additionally lives in each `PhoneStatus` snapshot (§8.4), because it changes with phone connect/disconnect and clients already handle "no phone connected" — same mechanism, per the program doc's de-risking principle.
+**Capability discovery:** `ServerHello.capabilities` = `Capabilities{supported_topics[], phone: PhoneCapabilities}` — the static shape at connect time (the API minor version lives in `ServerHello` only; it cannot change mid-session, so `Capabilities` does not repeat it). `GetCapabilitiesRequest` → `CapabilitiesResponse{capabilities}` re-queries it. *Dynamic* capability truth (is dial possible *right now*) additionally lives in each `PhoneStatus` snapshot (§8.4), because it changes with phone connect/disconnect and clients already handle "no phone connected" — same mechanism, per the program doc's de-risking principle.
 
 ## 8. Domain semantics — service → proto mapping (normative)
 
@@ -214,13 +214,13 @@ Modeled on the **live-verified PipeWire Telephony semantics** (HFP decision §6)
 
 ### 9.2 Notifications (`notifications.proto`)
 
-- `PostNotificationRequest{message, kind = TOAST, priority (0–100, default 50), ttl_ms (0 = persistent)}` → `PostNotificationResponse{notification_id}`. Maps onto `INotificationService::post()`'s QVariantMap with `sourcePluginId = "api:" + client_id` (or `"api:localhost"`). `kind` is an enum with only `NOTIFICATION_KIND_TOAST` beyond `_UNSPECIFIED` — the service's other kinds (`incoming_call`, `status_icon`) have no UI path today (scout) and are system-internal; not exposed.
+- `PostNotificationRequest{message, kind = TOAST, priority (optional, 0–100; omitted → head-unit default 50, explicit 0 honored), ttl_ms (0 = persistent)}` → `PostNotificationResponse{notification_id}`. Maps onto `INotificationService::post()`'s QVariantMap with `sourcePluginId = "api:" + client_id` (or `"api:localhost"`). `kind` is an enum with only `NOTIFICATION_KIND_TOAST` beyond `_UNSPECIFIED` — the service's other kinds (`incoming_call`, `status_icon`) have no UI path today (scout) and are system-internal; not exposed.
 - `DismissNotificationRequest{notification_id}` → `Ack` or `Error{NOT_FOUND}`. **Ownership rule:** a session may dismiss only notifications it posted (tracked per session) — a web widget must not nuke system toasts. Enforced in the bridge, stated in the proto comment.
 - Note: the service's `post()` parses only `kind/message/sourcePluginId/priority/ttlMs` and there is no title/body split (single `message` string, scout-verified) — the proto mirrors reality instead of inventing fields the renderer would drop.
 
 ### 9.3 Phone commands (`phone.proto`)
 
-Typed requests — not action-dispatch strings — because they carry payloads, are capability-gated, and are the API's most safety-relevant surface: `DialRequest{number}`, `AnswerCallRequest{}`, `HangupRequest{}` (AG-level semantics — ends the call/rejects the ring, per `HangupAll`), `SendDtmfRequest{tones}` (AG-level `SendTones`). Each → `PhoneCommandResponse{result: OK/UNAVAILABLE/FAILED, detail}`. `UNAVAILABLE` = the corresponding capability flag is false (mock today; real after D2). The bridge calls `IPhoneStateService` invokables — never PipeWire/BlueZ directly (rail R1; the D-Bus client is D2's `TelephonyClient` behind the provider).
+Typed requests — not action-dispatch strings — because they carry payloads, are capability-gated, and are the API's most safety-relevant surface: `DialRequest{number}`, `AnswerCallRequest{}`, `HangupRequest{}` (AG-level semantics — ends the call/rejects the ring, per `HangupAll`), `SendDtmfRequest{tones}` (AG-level `SendTones`). Each → `PhoneCommandResponse{result: OK/UNAVAILABLE/FAILED, detail}`. **Capability flags and command results must never contradict** (Codex review, contract-level): `UNAVAILABLE` iff the corresponding capability flag is false, and in v1 all four flags are false — so all four commands return `UNAVAILABLE` until D2's `TelephonyClient` lands real call control and flips the flags from Telephony object discovery. The mock provider's `answer()`/`hangup()` are NOT exposed through the API: they only flip local UI state, and reporting `can_answer=true` for that would lie to remote clients. The bridge calls `IPhoneStateService` invokables — never PipeWire/BlueZ directly (rail R1; the D-Bus client is D2's `TelephonyClient` behind the provider).
 
 ### 9.4 Capability query — §7. Ping/Pong — §4.
 
@@ -230,7 +230,7 @@ Fire-and-forget client→server messages (`request_id = 0`, no response; a malfo
 
 - `GpsReport{latitude, longitude, speed_mps, bearing_deg, accuracy_m, age_ms, altitude_m?}` — field set mirrors today's live JSON (`lat/lon/speed/accuracy/bearing/age_ms`, staleness by `age_ms` not timestamp, >30 s = stale) plus optional altitude for the rewrite (greenfield contract, harmless now, awkward to want later).
 - `BatteryReport{percent, charging}`.
-- `ConnectivityReport{internet_available, socks5_active, socks5_port}` — proxy host comes from the socket peer address, same as today (`CompanionListenerService.cpp:427`); on receipt the ingest forwards the route to `SystemServiceClient::setProxyRoute()` exactly as the legacy service does.
+- `ConnectivityReport{internet_available, socks5_active, socks5_port, socks5_password?}` — proxy host comes from the socket peer address, same as today (`CompanionListenerService.cpp:427`); on receipt the ingest forwards route + password to `SystemServiceClient::setProxyRoute()` exactly as the legacy service does. The password travels in-band (Codex review: the legacy flow derived it from the shared companion secret, `CompanionListenerService.cpp:496-500` — that derivation dies with the single global secret; the rewritten companion generates/sends its proxy password explicitly, which is simpler and avoids coupling both ends to a derivation rule).
 - `TimeReport{unix_time_ms}` — fence delta #1 (§2): drives clock adjust on the RTC-less Pi.
 
 Reports land in `ApiInboundState` (Q_PROPERTYs + signals mirroring `CompanionListenerService`'s surface: GPS fix, `phoneBattery`, `phoneCharging`, `internetAvailable`, `proxyAddress`) so QML (`CompanionService` context property) and `SystemServiceClient` consumers migrate by swapping one object. Actually retiring `CompanionListenerService`/port 9876 is the companion-rewrite executor phase, **not** Phase B (arch §5.A) — v1 ships the ingest path dormant-but-tested alongside the legacy service.

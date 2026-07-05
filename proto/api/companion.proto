@@ -63,7 +63,13 @@ message ConnectivityReport {
   // SOCKS5 port on the phone. Meaningful only when socks5_active is true.
   uint32 socks5_port = 3;
 
-  reserved 4 to 10;
+  // SOCKS5 password, if the phone's proxy requires one (the head unit's
+  // proxy route plumbing takes a password only, no username). Sent in-band:
+  // the connection is already authenticated (paired client) and
+  // WPA2-encrypted on the AP link. Omit when the proxy is open.
+  optional string socks5_password = 4;
+
+  reserved 5 to 10;
 }
 
 // Wall-clock synchronization for the RTC-less head unit. The head unit may

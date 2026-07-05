@@ -1,7 +1,7 @@
 # HTML/JS Runtime — Design (Phase C part 2)
 
 **Date:** 2026-07-06
-**Status:** DRAFT — depends on External API v1 (Phase B) shipping; proto freeze gate pending Codex review.
+**Status:** APPROVED-PENDING-REVIEW — depends on External API v1 (Phase B) implementation shipping; the API proto froze 2026-07-06 (Codex review passed), so the shim's wire contract is stable.
 **Grounded against:** `fable-design-sprint` at `be7b6b5`; spike verdict `2026-07-05-webengine-spike-results.md` (GO on all six thresholds); rails `2026-07-05-extensibility-architecture-design.md` §5 (locked: web widgets are WebSocket API clients; QWebChannel rejected; `prodigy` object is a bootstrap shim only) and §6 (WebWidgetHost enters as a normal `WidgetDescriptor`).
 **Audience:** future implementing agents. The Phase C implementation plan is written against this doc (not yet authored — see §9).
 

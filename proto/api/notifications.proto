@@ -28,9 +28,9 @@ message PostNotificationRequest {
   string message = 2;
 
   // 0-100; higher sorts above lower in concurrent display. Values outside
-  // the range are clamped. Default (unset = 0) is remapped server-side to
-  // the head unit's standard priority (50).
-  uint32 priority = 3;
+  // the range are clamped. When omitted, the head unit's standard priority
+  // (50) applies; an explicit 0 is honored as lowest priority.
+  optional uint32 priority = 3;
 
   // Auto-dismiss after this many milliseconds. 0 = persistent until
   // explicitly dismissed.

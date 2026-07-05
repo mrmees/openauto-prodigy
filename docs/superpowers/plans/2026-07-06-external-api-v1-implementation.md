@@ -972,12 +972,14 @@ class ApiInboundState : public QObject {
     Q_PROPERTY(bool internetAvailable READ internetAvailable NOTIFY internetChanged)
     Q_PROPERTY(QString proxyAddress READ proxyAddress NOTIFY internetChanged)
 public:
-    // setters used by the handler: setGps(...), setBattery(...), setConnectivity(peerHost, active, port)
+    // setters used by the handler: setGps(...), setBattery(...),
+    // setConnectivity(peerHost, active, port, password)  // password from
+    //   ConnectivityReport.socks5_password ("" when unset)
     // proxyAddress composes "socks5://<peerHost>:<port>" like CompanionListenerService.cpp:427
 signals:
     void gpsChanged(); void batteryChanged(); void internetChanged();
     void timeReported(qint64 unixMs);
-    void proxyRouteChanged(bool active, QString host, quint16 port);
+    void proxyRouteChanged(bool active, QString host, quint16 port, QString password);
 };
 
 class ApiRequestHandlers : public QObject, public IApiRequestSink {
@@ -1001,13 +1003,13 @@ Behavior (design doc §9–§10 — implement exactly):
 - **register_actions**: per spec — reject when `actions->registeredActions().contains(id)` ("duplicate id") or id starts with any of `{"app.","aa.","navbar.","theme.","media.","phone.","system.","overlay.","api."}` ("reserved prefix"). Accept: `actions->registerAction(id, [this, id](const QVariant& payload){ forwardInvocation(id, payload); })`; record `clientOwners_[id] = session`, `clientLabels_[id] = label`. `forwardInvocation`: serialize payload back to JSON (`QJsonDocument(QJsonArray{QJsonValue::fromVariant(payload)})` → strip brackets, or store raw string alongside) and `owner->sendMessage(0, envelope with ActionInvokedEvent)`.
 - **unregister_actions**: only ids where `clientOwners_[id] == session`: `actions->unregisterAction(id)`, erase maps. Respond Ack.
 - **sessionClosed**: same loop over every id owned by that session (the auto-unregister invariant), plus drop its notification ownership set.
-- **post_notification**: build QVariantMap `{{"kind","toast"},{"message",...},{"sourcePluginId","api:"+ (session->clientId().isEmpty() ? "localhost" : session->clientId())},{"priority", clamp 0-100, 0→50},{"ttlMs", ttl}}` → `notifications->post(map)`; record id in `notificationOwners_[session]`; respond PostNotificationResponse.
+- **post_notification**: build QVariantMap `{{"kind","toast"},{"message",...},{"sourcePluginId","api:"+ (session->clientId().isEmpty() ? "localhost" : session->clientId())},{"priority", req.has_priority() ? qBound(0u, req.priority(), 100u) : 50},{"ttlMs", ttl}}` → `notifications->post(map)`; record id in `notificationOwners_[session]`; respond PostNotificationResponse. `priority` is proto3 `optional` (Codex fix) — an explicit 0 must reach the service as 0; only an ABSENT field becomes 50.
 - **dismiss_notification**: if id in `notificationOwners_[session]` → `notifications->dismiss(id)` + Ack; else Error NOT_FOUND.
-- **dial/answer/hangup/send_dtmf**: v1 capabilities are all-false (Task 7), so respond `PhoneCommandResponse{UNAVAILABLE}` unconditionally EXCEPT answer/hangup which map to the real `phone->answer()`/`phone->hangup()` when `phone->callState() != Idle` — respond OK then; dial/DTMF stay UNAVAILABLE until D2. (This mirrors what the UI mock can actually do; keep the logic in one `phoneCommand()` helper so D2 swaps it in one place.)
+- **dial/answer/hangup/send_dtmf**: capability flags and command results MUST NOT contradict (Codex review 2026-07-06 — the proto is the client contract, phone.proto file header). v1 capabilities are all-false (Task 7), so ALL FOUR commands respond `PhoneCommandResponse{UNAVAILABLE}` unconditionally. Do NOT wire the mock provider's `answer()`/`hangup()` — they only flip local UI state, which is not answering a real call. Keep the logic in one `phoneCommand()` helper so D2 swaps in real `TelephonyClient` calls and truthful flags in one place.
 - **gps/battery/connectivity/time reports**: update `inbound` setters (connectivity uses `session` transport peer host); NO response ever. Malformed/out-of-range → log qWarning and drop.
 - Anything else → `session->closeWithError(requestId, INVALID_REQUEST, "unroutable payload")`.
 
-- [ ] **Step 1: Write the failing test.** Reuse the `FakeTransport` pattern (copy the ~30-line fake into this file; tests may not share headers). Build real `ActionRegistry`, `NotificationService`, `PhoneStateService`, `ApiInboundState`, session in Ready state (loopback trust) with the handler as sink. Cases: `testListContainsRegistered`, `testDispatchUnknownFalse`, `testRegisterReservedPrefixRejected` (try `"media.hack"`), `testRegisterDuplicateRejected`, `testClientActionRoundTrip` (register `"testapp.ping"`, dispatch it via `ActionRegistry::dispatch` directly → session receives ActionInvokedEvent), `testDisconnectUnregisters` (teardown session → `registeredActions()` no longer contains it), `testNotificationOwnership` (post from session A, dismiss from B → NOT_FOUND; from A → gone), `testPhoneAnswerViaApi` (setIncomingCall, inject AnswerCallRequest → OK + `callState()==Active`), `testDialUnavailable`, `testGpsReportUpdatesState` (+ spy on gpsChanged), `testConnectivityEmitsProxyRoute`, `testTimeReportSignal`.
+- [ ] **Step 1: Write the failing test.** Reuse the `FakeTransport` pattern (copy the ~30-line fake into this file; tests may not share headers). Build real `ActionRegistry`, `NotificationService`, `PhoneStateService`, `ApiInboundState`, session in Ready state (loopback trust) with the handler as sink. Cases: `testListContainsRegistered`, `testDispatchUnknownFalse`, `testRegisterReservedPrefixRejected` (try `"media.hack"`), `testRegisterDuplicateRejected`, `testClientActionRoundTrip` (register `"testapp.ping"`, dispatch it via `ActionRegistry::dispatch` directly → session receives ActionInvokedEvent), `testDisconnectUnregisters` (teardown session → `registeredActions()` no longer contains it), `testNotificationOwnership` (post from session A, dismiss from B → NOT_FOUND; from A → gone), `testNotificationPriorityZeroHonored` (post with explicit `priority=0` → service map carries 0; post with priority ABSENT → 50), `testAllPhoneCommandsUnavailable` (inject Dial, Answer, Hangup, SendDtmf — each → `PHONE_COMMAND_RESULT_UNAVAILABLE`, even after `setIncomingCall(...)`: capabilities are false, the contract wins over the mock), `testGpsReportUpdatesState` (+ spy on gpsChanged), `testConnectivityEmitsProxyRoute` (report WITH `socks5_password` → signal carries it; without → empty QString), `testTimeReportSignal`.
 - [ ] **Step 2: Verify failure.**
 - [ ] **Step 3: Implement both classes.**
 - [ ] **Step 4: Verify pass** — `ctest -R test_api_request_handlers --output-on-failure`.
@@ -1147,11 +1149,12 @@ if (!apiServer->start())
     qWarning() << "[main] External API disabled or failed to start";
 engine.rootContext()->setContextProperty("ApiService", apiServer);
 QObject::connect(apiServer->inboundState(), &oap::api::ApiInboundState::proxyRouteChanged,
-                 &app, [systemClient](bool active, const QString& host, quint16 port) {
-    if (systemClient) systemClient->setProxyRoute(active, host, port, QString());
+                 &app, [systemClient](bool active, const QString& host, quint16 port,
+                                      const QString& password) {
+    if (systemClient) systemClient->setProxyRoute(active, host, port, password);
 });
 ```
-Match the ACTUAL local variable names at the cited lines (scout inventory: services created `main.cpp:270-477`; QML props `889-940`) — e.g. the nav bridge local may be named differently; read the surrounding 20 lines first and adapt names, NOT structure. `setProxyRoute`'s real signature is in `SystemServiceClient.hpp:10-59` — check the password argument; the API path has no SOCKS password (that was a companion-secret derivation, `CompanionListenerService.cpp:496-500`) — pass empty and note it. If `systemClient` does not exist at this point in main.cpp, connect nothing and log — companion retirement (when this matters) is a later phase.
+Match the ACTUAL local variable names at the cited lines (scout inventory: services created `main.cpp:270-477`; QML props `889-940`) — e.g. the nav bridge local may be named differently; read the surrounding 20 lines first and adapt names, NOT structure. `setProxyRoute`'s real signature is in `SystemServiceClient.hpp:10-59` — check the password argument's exact type/position. The password comes in-band from `ConnectivityReport.socks5_password` (Codex fix — the legacy secret-derivation at `CompanionListenerService.cpp:496-500` dies with the single global companion secret; the rewritten companion sends its proxy password explicitly). If `systemClient` does not exist at this point in main.cpp, connect nothing and log — companion retirement (when this matters) is a later phase.
 
 - [ ] **Step 5: Build + full test pass** — `cd build && cmake .. && make -j$(nproc) && ctest --output-on-failure` — Expected: all green including the two extended tests.
 - [ ] **Step 6: Run the app locally (WSL)** — `./build/src/openauto-prodigy` (offscreen is fine: `QT_QPA_PLATFORM=offscreen`), then from another shell verify the listener: `python3 -c "import socket; s=socket.create_connection(('127.0.0.1',9810),2); print('tcp ok')"`. Expected: `tcp ok`, app log shows no API errors. Ctrl-C the app.
@@ -1286,7 +1289,7 @@ This is the design doc §15 mandatory list, end to end over real sockets. One fi
   5. `testSlowConsumerDisconnect` — client A subscribes then STOPS reading (do not call read; keep socket open); flood: `for (int i=0;i<20000;++i) media.updateBtMetadata(QString::number(i),"a","b")` with `QCoreApplication::processEvents()` every 100 iterations; expect A's socket to hit disconnected/readChannelFinished within 10 s while client B (draining) keeps receiving. This validates the `bytesToWrite` cap end-to-end.
   6. `testClientActionLifecycle` — register `"looptest.act"` over the socket; `ActionRegistry::dispatch("looptest.act", 5)` server-side → ActionInvokedEvent arrives with payload_json "5"; drop the socket; `QTRY_VERIFY(!registry.registeredActions().contains("looptest.act"))`; dispatch again → returns false.
   7. `testNotificationOwnershipE2E` — A posts, B dismiss → Error NOT_FOUND; A dismiss → Ack.
-  8. `testPhoneUnavailableE2E` — DialRequest → PhoneCommandResponse UNAVAILABLE.
+  8. `testPhoneUnavailableE2E` — DialRequest AND AnswerCallRequest → PhoneCommandResponse UNAVAILABLE (capabilities all-false in v1; contract and behavior must agree).
   9. `testInboundReportsE2E` — GpsReport + TimeReport over the wire → ApiInboundState props updated, timeReported spy fired, no response frames arrive (200 ms quiet read).
 - [ ] **Step 2: Run** — `ctest -R test_api_loopback --output-on-failure` — Expected: 9 PASS. If testSlowConsumerDisconnect is flaky on queue timing, raise the flood count — do NOT raise the byte cap.
 - [ ] **Step 3: Full suite** — `ctest --output-on-failure` — everything green.
@@ -1312,5 +1315,5 @@ This is the design doc §15 mandatory list, end to end over real sockets. One fi
 
 - Spec coverage: design §3.1/3.2 (Tasks 1–2, 8, 12), §4 (Task 10), §5 (Tasks 4–5, 12, 14), §6 (Tasks 9, 10, 15), §7 (Tasks 10, 12), §8 tables (Tasks 6–7 — values verified against `BtAudioPlugin.hpp:50-53`, `MediaStatusChannelHandler.hpp:20-23`, oaa `ManeuverTypeEnum.proto`), §9 (Task 11), §10 (Task 11), §12 (Tasks 12–13), §15 (Tasks 3–12 unit + Task 15 loopback), §2 fence deltas (Task 13 media actions; Task 11 TimeReport ingest).
 - Known deliberate gap: remote-peer auth cannot be integration-tested over loopback; covered at session level with the trust override seam (Task 10) — recorded inside Task 15 case 2.
-- Phone answer/hangup mapping in Task 11 intentionally exceeds all-false capabilities (mirrors the UI mock's real ability); PhoneCommandResponse still reports UNAVAILABLE for dial/DTMF. D2 replaces one helper.
+- Codex review 2026-07-06 fixes folded in: notification `priority` is proto3 `optional` (explicit 0 honored, absent → 50); ALL phone commands return UNAVAILABLE in v1 so capability flags and results never contradict (the earlier answer/hangup special case is DELETED — do not resurrect it); `ConnectivityReport.socks5_password` flows in-band through `proxyRouteChanged` to `setProxyRoute`.
 - Type consistency check: `IApiTransport` signatures match between Tasks 8/10/11; `ApiSessionDeps.snapshotFor` empty-QByteArray convention consistent in Tasks 10/12; `pb` alias used throughout.
