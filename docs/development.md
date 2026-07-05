@@ -18,7 +18,7 @@ The codebase must compile cleanly on both. See the Qt compatibility section belo
 ```bash
 sudo apt install cmake g++ git pkg-config \
   qt6-base-dev qt6-declarative-dev qt6-wayland \
-  qt6-connectivity-dev qt6-multimedia-dev \
+  qt6-connectivity-dev qt6-multimedia-dev qt6-websockets-dev \
   qml6-module-qtquick-controls qml6-module-qtquick-layouts \
   qml6-module-qtquick-window qml6-module-qtqml-workerscript \
   libboost-system-dev libboost-log-dev \

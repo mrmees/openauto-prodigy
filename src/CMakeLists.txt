@@ -94,6 +94,7 @@ target_link_libraries(openauto-core PUBLIC
     Qt6::QuickControls2
     Qt6::Multimedia
     Qt6::Network
+    Qt6::WebSockets
     Qt6::DBus
     prodigy-oaa-protocol
     OpenSSL::SSL
