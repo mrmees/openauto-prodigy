@@ -1021,3 +1021,26 @@ Documentation:
 - Pi cross-compile verification:
   - `./cross-build.sh`
   - Passed: `Build complete: build-pi/src/openauto-prodigy`
+
+---
+
+## 2026-07-05 — Fable Sprint Session 3: Phase D2 (HFP call audio) + Phase E (dashboards/overlays) + Executor Handbook
+
+**What changed (all docs — design only, no implementation, per sprint program):**
+- Phase D2: [`specs/2026-07-05-hfp-call-audio-design.md`](superpowers/specs/2026-07-05-hfp-call-audio-design.md) + [`plans/2026-07-05-hfp-call-audio-implementation.md`](superpowers/plans/2026-07-05-hfp-call-audio-implementation.md) (9 tasks). Key decisions: SCO audio routes via WirePlumber natively (NOT through AudioService's 3-stream model — that model is AA-session-scoped and never coexists with SCO); TelephonyClient (session-bus D-Bus adapter) + ScoNodeMonitor (PipeWire node-state watch) feed a normative call state machine in PhoneStateService (§5 table); `phone.reject_sco_during_aa` defaults **false** (HFP owns call audio always, commercial-HU behavior) pending live check L4; provider command invokables return bool (API FAILED-vs-OK truth); BluetoothManager's dead AG/HSP registration deletion verified safe (`updateConnectedDevice()` at BluetoothManager.cpp:736 already covers auto-connect cancel — `profileNewConnection` wiring was fully redundant).
+- Phase E: [`specs/2026-07-05-dashboards-overlays-design.md`](superpowers/specs/2026-07-05-dashboards-overlays-design.md) + two plans: [`multi-dashboards`](superpowers/plans/2026-07-05-multi-dashboards-implementation.md) (7 tasks: YAML v4 `dashboards[]` + v3 migration, DashboardManager with context-property re-pointing, WebWidget kind, switcher pills, picker size presets) and [`overlay-framework`](superpowers/plans/2026-07-05-overlay-framework-implementation.md) (4 tasks: OverlayService with z-bands + action auto-registration, OverlayHost as root-Repeater, PairingDialog migration proof).
+- Cross-cutting: [`plans/README-executor-handbook.md`](superpowers/plans/README-executor-handbook.md) — pickup workflow, verification gate, guardrails, cross-plan dependency map.
+
+**Bugs found during substrate reading (fixes are plan tasks, not applied):**
+- `IncomingCallOverlay.qml:11` triggers on `callState === 2` = provider **Active**, not Ringing (comment claims Ringing; numbering confusion with PhonePlugin's private enum). Fix in HFP plan Task 7.
+- Shell z-stack violates the arch §6 band contract: IncomingCall (z:1000) above Gesture (999); Pairing/NotificationArea/dim collide at 998. Re-pin is overlay plan Task 2.
+
+**Status:** Sprint phases A, B (proto frozen 875feaf), C1+C2, D1, D2, E complete. NOT done: Phase F light plans (media player, EQ parity audit, 0x8012 wire protocol, key-event nav — lowest leverage, cut per program §6), HFP live checks L1–L6 (self-contained in design doc §11, needs Pi + phone).
+
+**Next steps:**
+1. Execute plans per handbook dependency map (external-api-v1 and hfp-call-audio are the "Now" roadmap items).
+2. Run HFP design doc §11 checklist L1–L6 when Matthew + phone are available (L4 decides the reject_sco default).
+3. Phase F light plans if another design session happens; otherwise executors work from the roadmap directly.
+4. Sprint end: PR `fable-design-sprint` → main (ask Matthew before push).
+
+**Verification:** docs-only session — no build/test cycle applicable. All commits on `fable-design-sprint`: 3762fd9 (D2 design), 5ff16e6 (D2 plan), 4560117 (E design), daee267 (E plans), plus this handoff.
