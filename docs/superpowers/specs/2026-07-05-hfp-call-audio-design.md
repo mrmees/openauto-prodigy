@@ -108,7 +108,7 @@ enum CallState { Idle = 0, Ringing, Active, Dialing, Alerting, Held, Waiting };
 ```
 
 - `Dialing`(3)/`Alerting`(4) are produced by v1. `Held`(5)/`Waiting`(6) are declared for enum-completeness with the frozen proto's `CallState` but **unproducible in v1** (Call1 ephemerality — D1 §6.4); the serializer mapping table covers them so nothing breaks if PipeWire grows them.
-- `IPhoneStateService` gains: `Q_INVOKABLE void dial(const QString& number)`, `Q_INVOKABLE void sendDtmf(const QString& tones)`, `virtual bool telephonyAvailable() const`, signal `telephonyAvailableChanged()`.
+- `IPhoneStateService` gains: `Q_INVOKABLE bool dial(const QString& number)`, `Q_INVOKABLE bool sendDtmf(const QString& tones)`, `virtual bool telephonyAvailable() const`, signal `telephonyAvailableChanged()`. `ICallStateProvider::answer()/hangup()` change to return `bool`. The bool = "dispatched" (state guard passed); it is how the API bridge distinguishes `FAILED` (wrong call state) from `OK` without duplicating guard logic — QML callers ignore the return value, so the signature change is free.
 - API serializer mapping (grows the table in `ApiSerializers.cpp` **iff API v1 has landed** — D2 and the API plan are order-independent): `Ringing→CALL_STATE_INCOMING`, `Dialing→CALL_STATE_DIALING`, `Alerting→CALL_STATE_ALERTING`, `Active→CALL_STATE_ACTIVE`, `Held→CALL_STATE_HELD`, `Waiting→CALL_STATE_WAITING`, `Idle→` empty `calls[]`. The API plan's Task 11 `phoneCommand()` helper swaps its unconditional-`UNAVAILABLE` body for: flag check (from `telephonyAvailable()`) → provider invokable → `OK`/`FAILED`. Capability flags and command results must never contradict (frozen contract).
 
 ### 4.5 `CallAudioPolicy` (new: `src/core/services/CallAudioPolicy.{hpp,cpp}`)
