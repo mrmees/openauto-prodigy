@@ -139,6 +139,23 @@ void TestApiSerializers::testSystemThemeTokensAndVersion() {
                                 .arg(QString::fromStdString(kv.first))
                                 .arg(QString::fromStdString(kv.second))));
     }
+
+    // These six tokens are derived getters, not YAML-backed colors -- assert
+    // against the getters' own .name() (not hardcoded hex) so a regression in
+    // activeColor()'s routing can't hide behind the generic hex-format check
+    // above. Compare as strings, not QColor objects: surface-tint-high/highest
+    // are computed blends via fromRgbF, whose 16-bit-per-channel rounding
+    // doesn't necessarily match a QColor parsed back from an 8-bit hex
+    // string bit-for-bit, even when both display the same #rrggbb.
+    auto tokenName = [&status](const char* name) {
+        return QString::fromStdString(status.theme_tokens().at(name));
+    };
+    QCOMPARE(tokenName("success"), theme.success().name());
+    QCOMPARE(tokenName("on-success"), theme.onSuccess().name());
+    QCOMPARE(tokenName("warning"), theme.warning().name());
+    QCOMPARE(tokenName("on-warning"), theme.onWarning().name());
+    QCOMPARE(tokenName("surface-tint-high"), theme.surfaceTintHigh().name());
+    QCOMPARE(tokenName("surface-tint-highest"), theme.surfaceTintHighest().name());
 }
 
 void TestApiSerializers::testSystemBluetoothNullptr() {

@@ -672,6 +672,20 @@ bool ThemeService::isAccentRole(const QString& key)
 
 QColor ThemeService::activeColor(const QString& key) const
 {
+    // Derived tokens: these six names are not stored in the YAML day/night
+    // color maps -- they're computed by dedicated getters (fixed constants
+    // for success/warning, blended values for the surface-tint pair). Route
+    // to those getters here so color()/activeColor() resolve them like any
+    // other token name, instead of falling through to the transparent-on-miss
+    // path below. Keeps the "color(name) resolves hyphenated names" contract
+    // true for all callers (API serializer, QML, etc.).
+    if (key == QLatin1String("success")) return success();
+    if (key == QLatin1String("on-success")) return onSuccess();
+    if (key == QLatin1String("warning")) return warning();
+    if (key == QLatin1String("on-warning")) return onWarning();
+    if (key == QLatin1String("surface-tint-high")) return surfaceTintHigh();
+    if (key == QLatin1String("surface-tint-highest")) return surfaceTintHighest();
+
     const bool night = nightMode();  // respects forceDarkMode_ override
     const auto& colors = night ? nightColors_ : dayColors_;
     QColor color;

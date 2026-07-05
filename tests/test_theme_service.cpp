@@ -1312,6 +1312,23 @@ private slots:
         QCOMPARE(service.onWarning(), QColor("#FFFFFF"));
     }
 
+    void colorByNameResolvesDerivedTokens()
+    {
+        // color(name)/activeColor(name) must resolve the six derived-getter
+        // tokens (not stored in the YAML day/night maps) the same way the
+        // dedicated getters do -- these are the exact names the API
+        // serializer's kThemeTokens loop looks up via theme.color(name).
+        oap::ThemeService service;
+        service.loadThemeFile(QFINDTESTDATA("data/themes/default/theme.yaml"));
+
+        QCOMPARE(service.color("success"), service.success());
+        QCOMPARE(service.color("on-success"), service.onSuccess());
+        QCOMPARE(service.color("warning"), service.warning());
+        QCOMPARE(service.color("on-warning"), service.onWarning());
+        QCOMPARE(service.color("surface-tint-high"), service.surfaceTintHigh());
+        QCOMPARE(service.color("surface-tint-highest"), service.surfaceTintHighest());
+    }
+
     void nightGuardrailClampsAccent()
     {
         // Use a theme with highly saturated primary in night mode
