@@ -1,0 +1,129 @@
+// OpenAuto Prodigy External API v1 — phone status stream (TOPIC_PHONE) and
+// call-control requests.
+//
+// Semantics are modeled on hands-free telephony (HFP) indicator state, as
+// live-verified against the head unit's telephony backend (PipeWire
+// org.pipewire.Telephony, decision record 2026-07-05):
+//   - Call state uses the HFP-standard set (incoming/dialing/alerting/
+//     active/held/waiting), NOT a reduced UI enum.
+//   - calls[] is repeated because HFP is multi-call, even though current
+//     backends surface at most one; clients MUST handle any count.
+//   - Mid-call control is gateway-level in v1: HangupRequest ends/rejects
+//     whatever call exists; there is no per-call addressing (backend call
+//     objects are ephemeral — setup-phase only). Per-call ids arrive
+//     additively if the backend ever grows persistent call objects.
+//   - can_hold_swap and can_multiparty are ALWAYS false in v1 (not reachable
+//     in the backend's control surface for existing calls).
+//
+// Capability gating: every command's availability is a PhoneCapabilities
+// flag carried in each PhoneStatus. Flags are RUNTIME truth (phone connected,
+// telephony objects discovered) — clients must already handle "no phone
+// connected", and "dial unavailable" is the same mechanism. Commands sent
+// while the flag is false fail with PHONE_COMMAND_RESULT_UNAVAILABLE.
+//
+// Delivery: full-snapshot semantics — current PhoneStatus on subscribe, then
+// a fresh full snapshot on any change. There is deliberately NO ticking
+// call-duration field: compute elapsed time client-side from
+// Call.started_at_unix_ms.
+
+syntax = "proto3";
+
+package prodigy.api.v1;
+
+enum CallState {
+  CALL_STATE_UNSPECIFIED = 0;
+  CALL_STATE_INCOMING = 1;  // remote party calling, not yet answered
+  CALL_STATE_DIALING = 2;   // outgoing call being set up
+  CALL_STATE_ALERTING = 3;  // outgoing call ringing at the remote end
+  CALL_STATE_ACTIVE = 4;    // call connected, audio flowing
+  CALL_STATE_HELD = 5;      // on hold (not produced in v1; reserved semantics)
+  CALL_STATE_WAITING = 6;   // second incoming while another call is active
+                            // (not produced in v1; reserved semantics)
+  reserved 7 to 12;
+}
+
+message Call {
+  CallState state = 1;
+
+  // Remote party number as reported by the phone (typically E.164 with
+  // leading "+"). May be empty (withheld/unknown).
+  string line_identification = 2;
+
+  // Remote party display name, if the phone resolved one. May be empty.
+  string display_name = 3;
+
+  // Unix epoch milliseconds when this call entered CALL_STATE_ACTIVE.
+  // 0 until then. Stable for the lifetime of the call; render ticking
+  // duration client-side from this.
+  int64 started_at_unix_ms = 4;
+
+  reserved 5 to 12;  // per-call id is the anticipated addition
+}
+
+message PhoneCapabilities {
+  bool can_dial = 1;
+  bool can_answer = 2;
+  bool can_hangup = 3;
+  bool can_send_dtmf = 4;
+  bool can_hold_swap = 5;   // always false in v1 — see file header
+  bool can_multiparty = 6;  // always false in v1 — see file header
+  reserved 7 to 15;
+}
+
+message PhoneStatus {
+  // True while a phone is connected for hands-free telephony (HFP service
+  // link up). Calls can only exist while true.
+  bool hfp_connected = 1;
+
+  // Connected phone's display name. Empty when hfp_connected is false.
+  string device_name = 2;
+
+  // Zero or more current calls. Order is not meaningful.
+  repeated Call calls = 3;
+
+  // Runtime command availability — see file header.
+  PhoneCapabilities capabilities = 4;
+
+  reserved 5 to 15;
+}
+
+// ---- Commands ----------------------------------------------------------
+// Each request receives exactly one PhoneCommandResponse echoing its
+// request_id. Requests are accepted only in READY session state.
+
+enum PhoneCommandResult {
+  PHONE_COMMAND_RESULT_UNSPECIFIED = 0;
+  PHONE_COMMAND_RESULT_OK = 1;           // command accepted by the backend
+  PHONE_COMMAND_RESULT_UNAVAILABLE = 2;  // capability flag is false
+  PHONE_COMMAND_RESULT_FAILED = 3;       // backend rejected/errored
+  reserved 4 to 8;
+}
+
+// Place an outgoing call. Gated by can_dial.
+message DialRequest {
+  // Number to dial. Digits, "+", "*", "#" — passed to the phone as-is.
+  string number = 1;
+}
+
+// Answer the incoming call. Gated by can_answer. Fails with FAILED if no
+// call is in CALL_STATE_INCOMING.
+message AnswerCallRequest {
+}
+
+// End or reject the current call(s). Gateway-level semantics: terminates the
+// active call, or rejects the incoming ring. Gated by can_hangup.
+message HangupRequest {
+}
+
+// Send DTMF tones into the active call. Gated by can_send_dtmf.
+message SendDtmfRequest {
+  // One or more of 0-9, A-D, "*", "#".
+  string tones = 1;
+}
+
+message PhoneCommandResponse {
+  PhoneCommandResult result = 1;
+
+  // Optional human-readable failure detail. Empty on OK.
+  string detail = 2;
+}

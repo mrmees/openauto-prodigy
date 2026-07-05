@@ -1,0 +1,50 @@
+// OpenAuto Prodigy External API v1 — system status stream (TOPIC_SYSTEM).
+//
+// Day/night mode, active theme tokens, software version, and a connected-
+// device summary. This is the stream a themed client (web widget, companion)
+// subscribes to for live re-theming: theme_tokens carries the full active
+// color palette, so a client re-renders from one message with no follow-up
+// queries.
+//
+// Delivery: full-snapshot semantics — current SystemStatus on subscribe,
+// then a fresh full snapshot on any change (theme switch, day/night flip,
+// Bluetooth device connect/disconnect). Theme changes are rare; the full
+// token map per event is intentional.
+
+syntax = "proto3";
+
+package prodigy.api.v1;
+
+message BtDeviceSummary {
+  // True while a Bluetooth device is connected to the head unit.
+  bool connected = 1;
+
+  // Connected device's display name. Empty when connected is false.
+  string device_name = 2;
+
+  reserved 3 to 8;
+}
+
+message SystemStatus {
+  // Effective night mode after any head-unit override (what the UI actually
+  // renders). True = night/dark.
+  bool night_mode = 1;
+
+  // Active theme identifier (head-unit theme id string).
+  string theme_id = 2;
+
+  // Active theme palette: hyphenated token name -> "#RRGGBB" hex color.
+  // Token names: "primary", "on-primary", "surface-container-high", ... —
+  // the same vocabulary the head unit uses internally and that the web
+  // runtime exposes as CSS custom properties ("--prodigy-<token>"). The map
+  // always carries the COMPLETE active palette.
+  map<string, string> theme_tokens = 3;
+
+  // Head-unit software version string (product version plus build hash).
+  string app_version = 4;
+
+  // Bluetooth connection summary.
+  BtDeviceSummary bluetooth = 5;
+
+  reserved 6 to 15;
+}

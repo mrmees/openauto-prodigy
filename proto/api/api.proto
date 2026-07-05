@@ -1,0 +1,296 @@
+// OpenAuto Prodigy External API v1 — envelope, handshake, authentication,
+// pairing, subscription, and capability discovery.
+//
+// ============================= TRANSPORT =============================
+// Two listeners, one protocol:
+//   - WebSocket (default port 9811): binary frames, exactly one serialized
+//     ApiMessage per frame. Text frames are a protocol violation.
+//   - TCP (default port 9810): length-prefixed stream — 4-byte big-endian
+//     unsigned length, then that many bytes of one serialized ApiMessage.
+//     Lengths above the server's frame cap (default 256 KiB) disconnect.
+//
+// ============================= SESSIONS ==============================
+// The FIRST client message on any connection MUST be ClientHello, sent
+// within the server's handshake timeout (default 5 s). The server replies:
+//   - ServerHello                    -> session READY
+//   - AuthRequired  (known client)   -> client sends AuthResponse
+//                                       -> ServerHello or AuthReject
+//   - PairingChallenge (pairing)     -> client sends PairingResponse
+//                                       -> ServerHello or AuthReject
+//   - Error + disconnect otherwise.
+// No other message is accepted before READY; violations disconnect.
+//
+// Localhost connections are TRUSTED: no auth, straight to ServerHello (the
+// head unit is a single-user appliance; in-process web widgets connect to
+// 127.0.0.1). Remote clients authenticate; unknown remote clients pair once
+// while the head unit's pairing window is open (opened from Settings).
+//
+// request_id: clients pick a nonzero id per request; the direct response
+// echoes it. Server-initiated messages (stream events, ActionInvokedEvent)
+// carry request_id 0. Inbound reports (companion.proto) are sent with 0 and
+// get no response.
+//
+// ============================ BACKPRESSURE ===========================
+// Status delivery is snapshot-on-subscribe + full-snapshot deltas (see the
+// domain files). The server enforces a per-client outbound cap (default
+// 1 MiB of unsent bytes): a client that stops reading is DISCONNECTED, not
+// buffered — a slow consumer must never stall the head unit. Reconnect and
+// resubscribe restores full state by design.
+
+syntax = "proto3";
+
+package prodigy.api.v1;
+
+import "api/common.proto";
+import "api/media.proto";
+import "api/navigation.proto";
+import "api/projection.proto";
+import "api/phone.proto";
+import "api/system.proto";
+import "api/actions.proto";
+import "api/notifications.proto";
+import "api/companion.proto";
+
+// ---- Handshake -----------------------------------------------------------
+
+enum ClientKind {
+  CLIENT_KIND_UNSPECIFIED = 0;
+  CLIENT_KIND_COMPANION = 1;    // the companion phone app
+  CLIENT_KIND_WEB_WIDGET = 2;   // in-process web runtime widget/app
+  CLIENT_KIND_THIRD_PARTY = 3;  // external integration
+  CLIENT_KIND_DIAGNOSTIC = 4;   // dev/test tooling
+  reserved 5 to 10;
+}
+
+message AuthCredentials {
+  // Persistent id issued at pairing. Empty on first-ever contact.
+  string client_id = 1;
+
+  // True to request pairing (unknown client, pairing window open on the
+  // head unit). Mutually exclusive with client_id.
+  bool pairing_request = 2;
+
+  reserved 3 to 8;
+}
+
+message ClientHello {
+  // Major version of this package the client speaks. Must be 1; anything
+  // else is answered with Error{UNSUPPORTED_VERSION} + disconnect.
+  uint32 requested_api_version_major = 1;
+
+  // Highest minor the client knows. Informational (server telemetry/logs);
+  // feature detection is via Capabilities, never version comparison.
+  uint32 requested_api_version_minor = 2;
+
+  // Human-readable client name, shown in pairing UI and logs.
+  string client_name = 3;
+
+  ClientKind client_kind = 4;
+
+  // Ignored for localhost connections (trusted). Required for remote.
+  AuthCredentials auth = 5;
+
+  reserved 6 to 12;
+}
+
+message ServerHello {
+  // Always 1 for this package.
+  uint32 api_version_major = 1;
+
+  // Highest minor this server implements. Bumps with additive schema growth.
+  uint32 api_version_minor = 2;
+
+  // Head-unit name (config identity), for client display.
+  string server_name = 3;
+
+  // Head-unit software version string.
+  string app_version = 4;
+
+  // Unique id for this session (logging/diagnostics correlation).
+  string session_id = 5;
+
+  // Set ONLY on the ServerHello that concludes a successful pairing: the
+  // client's newly-issued persistent id. Store it with the derived secret
+  // for future AuthCredentials.client_id logins.
+  optional string granted_client_id = 6;
+
+  Capabilities capabilities = 7;
+
+  reserved 8 to 15;
+}
+
+// ---- Challenge/response auth (remote, previously-paired clients) ---------
+//
+// Proof for both auth and pairing is HMAC-SHA256 over the raw nonce bytes,
+// keyed with the client's 32-byte secret. The secret is derived at pairing
+// time as SHA256(pin_utf8 || salt) — see PairingChallenge.
+
+message AuthRequired {
+  // Random challenge, 32 bytes. Single-use, this connection only.
+  bytes nonce = 1;
+}
+
+message AuthResponse {
+  string client_id = 1;
+
+  // HMAC-SHA256(key = stored secret, data = AuthRequired.nonce).
+  bytes proof = 2;
+}
+
+message AuthReject {
+  // Human-readable reason. The connection is closed after this message.
+  string reason = 1;
+  reserved 2 to 5;
+}
+
+// ---- Pairing (remote, first contact; window opened from Settings) --------
+
+message PairingChallenge {
+  // Random challenge, 32 bytes. Single-use.
+  bytes nonce = 1;
+
+  // Random salt for secret derivation, unique per pairing session:
+  //   secret = SHA256(utf8(pin_displayed_on_head_unit) || salt)
+  bytes salt = 2;
+
+  reserved 3 to 6;
+}
+
+message PairingResponse {
+  // HMAC-SHA256(key = derived secret, data = PairingChallenge.nonce).
+  // Proves the user read the PIN off the head-unit screen. On success the
+  // concluding ServerHello carries granted_client_id; persist it plus the
+  // derived secret.
+  bytes proof = 1;
+}
+
+// ---- Capability discovery -------------------------------------------------
+
+message Capabilities {
+  // Topics this server can actually serve right now (a provider may be
+  // absent on this head unit). Subscribing to anything else is rejected
+  // per-topic.
+  repeated Topic supported_topics = 1;
+
+  // Static phone-command surface shape. RUNTIME availability (phone
+  // actually connected, etc.) is the PhoneCapabilities inside each
+  // PhoneStatus — always check that one before enabling call UI.
+  PhoneCapabilities phone = 2;
+
+  reserved 3 to 12;
+}
+
+// Re-query capabilities mid-session (they are also in ServerHello).
+message GetCapabilitiesRequest {
+}
+
+message CapabilitiesResponse {
+  Capabilities capabilities = 1;
+}
+
+// ---- Subscription ----------------------------------------------------------
+
+// Subscribe to status topics. For every ACCEPTED topic the server
+// immediately sends the current full snapshot as a normal stream event
+// (request_id 0), ordered after SubscribeResponse on this connection; deltas
+// (fresh full snapshots) follow on change. Subscribing twice to the same
+// topic is idempotent (re-sends the snapshot).
+message SubscribeRequest {
+  repeated Topic topics = 1;
+}
+
+message TopicSubscriptionResult {
+  Topic topic = 1;
+  bool accepted = 2;
+
+  // Reason when accepted is false (e.g. "topic unavailable").
+  string reason = 3;
+}
+
+message SubscribeResponse {
+  repeated TopicSubscriptionResult results = 1;
+}
+
+// Stop delivery for the given topics. Idempotent. Response: Ack.
+message UnsubscribeRequest {
+  repeated Topic topics = 1;
+}
+
+// ---- Envelope ---------------------------------------------------------------
+//
+// Exactly one ApiMessage per WebSocket binary frame / per TCP length-prefixed
+// frame. Payload field numbers are allocated in blocks per domain; gaps are
+// reserved for additive growth (never reused, never renumbered):
+//   2-9    cross-cutting        40-49  actions
+//   10-19  handshake/auth       50-59  notifications
+//   20-29  subscribe/caps       60-69  phone commands
+//   30-39  status streams       70-79  inbound reports
+//   80-99  future domains
+
+message ApiMessage {
+  // Correlation id — see SESSIONS in the file header.
+  uint64 request_id = 1;
+
+  oneof payload {
+    // Cross-cutting (2-9)
+    Error error = 2;
+    Ack ack = 3;
+    Ping ping = 4;
+    Pong pong = 5;
+
+    // Handshake, auth, pairing (10-19)
+    ClientHello client_hello = 10;
+    ServerHello server_hello = 11;
+    AuthRequired auth_required = 12;
+    AuthResponse auth_response = 13;
+    AuthReject auth_reject = 14;
+    PairingChallenge pairing_challenge = 15;
+    PairingResponse pairing_response = 16;
+
+    // Subscription + capabilities (20-29)
+    SubscribeRequest subscribe_request = 20;
+    SubscribeResponse subscribe_response = 21;
+    UnsubscribeRequest unsubscribe_request = 22;
+    GetCapabilitiesRequest get_capabilities_request = 25;
+    CapabilitiesResponse capabilities_response = 26;
+
+    // Status stream events, server -> client, request_id 0 (30-39)
+    MediaStatus media_status = 30;
+    NavigationStatus navigation_status = 31;
+    ProjectionStatus projection_status = 32;
+    PhoneStatus phone_status = 33;
+    SystemStatus system_status = 34;
+
+    // Actions (40-49)
+    ListActionsRequest list_actions_request = 40;
+    ListActionsResponse list_actions_response = 41;
+    DispatchActionRequest dispatch_action_request = 42;
+    DispatchActionResponse dispatch_action_response = 43;
+    RegisterActionsRequest register_actions_request = 44;
+    RegisterActionsResponse register_actions_response = 45;
+    UnregisterActionsRequest unregister_actions_request = 46;
+    ActionInvokedEvent action_invoked = 47;
+
+    // Notifications (50-59)
+    PostNotificationRequest post_notification_request = 50;
+    PostNotificationResponse post_notification_response = 51;
+    DismissNotificationRequest dismiss_notification_request = 52;
+
+    // Phone commands (60-69)
+    DialRequest dial_request = 60;
+    AnswerCallRequest answer_call_request = 61;
+    HangupRequest hangup_request = 62;
+    SendDtmfRequest send_dtmf_request = 63;
+    PhoneCommandResponse phone_command_response = 64;
+
+    // Inbound reports, client -> server, request_id 0, no response (70-79)
+    GpsReport gps_report = 70;
+    BatteryReport battery_report = 71;
+    ConnectivityReport connectivity_report = 72;
+    TimeReport time_report = 73;
+  }
+
+  // Unused block numbers, reserved for additive growth.
+  reserved 6 to 9, 17 to 19, 23, 24, 27 to 29, 35 to 39, 48, 49, 53 to 59,
+           65 to 69, 74 to 79, 80 to 99;
+}
