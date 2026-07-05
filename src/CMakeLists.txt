@@ -57,6 +57,7 @@ add_library(openauto-core STATIC
     core/services/IPhoneStateService.cpp
     core/services/PhoneStateService.cpp
     core/services/TelephonyClient.cpp
+    core/services/CallAudioPolicy.cpp
     core/services/IMediaStatusService.cpp
     core/services/MediaStatusService.cpp
     ui/NotificationModel.cpp
