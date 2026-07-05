@@ -48,10 +48,19 @@ Pre-req: none of this changes the decision — it pins config values and confirm
 
 1. ~~Service discovery~~ **DONE 2026-07-05 (Pi, live):** `org.pipewire.Telephony` is running on the **session bus**, owned by WirePlumber; object root `/org/pipewire/Telephony` present with no children while no phone is connected.
 2. ~~Enablement key~~ **DONE 2026-07-05 (Pi, live):** enabled **by default** in Trixie's build — no telephony key exists in any shipped config and the service is up anyway. **No config drop-in needed.**
-3. Pair + connect phone (HFP): verify an `AudioGateway1` object appears; place a test call; observe `Call1` lifecycle properties; `Answer()`/`Hangup()`/`SendTones()` from `busctl call`.
-4. Confirm SCO audio flows both directions (PipeWire source/sink nodes appear; check codec — expect mSBC on modern phones).
-5. Test with both household phones (Samsung S25 Ultra, Moto G Play 2024) — the known-quirky one is the Moto.
-6. Record results in this doc + session handoff.
+3. ~~Phone test~~ **DONE 2026-07-05 (Pixel 8, live).** Results:
+   - `AudioGateway1` object `/org/pipewire/Telephony/ag1` appeared on HFP connect; codec negotiated **LC3-SWB** (super-wideband) with zero config.
+   - **Outgoing via API:** `Dial("5127733773")` returned `/org/pipewire/Telephony/ag1/call1`, the phone placed the call, `HangupAll()` ended it; transport `State` went `active → idle`.
+   - **Incoming via API:** during ring, `call1` carried `State: "incoming"` and `LineIdentification: "+15127733773"` (E.164 with `+`); **`Answer()` connected the call** and SCO went `running` both directions. Head-unit answer confirmed working.
+   - SCO nodes: `bluez_input.<MAC>.0` / `bluez_output.<MAC>.1`, `api.bluez5.profile: headset-audio-gateway`; node state `suspended → running` is the reliable in-call signal.
+4. **Observed semantics executors MUST design around:**
+   - **`Call1` objects are ephemeral in 1.4.2** — they exist during call *setup* (incoming ring / outgoing dialing) and disappear once the call is active (HFP `callsetup` indicator returning to 0 appears to destroy them). Answer during ring works; mid-call per-call control does not exist.
+   - **`GetManagedObjects` does not enumerate call children** (only `ag1` is listed even while a call object is introspectable). Track calls via `InterfacesAdded`/`InterfacesRemoved` signals — never by polling enumeration.
+   - **Mid-call control is AG-level:** `HangupAll()` (verified) and `SendTones()` (untested) on `AudioGateway1`; "call active" UI state comes from transport `State` + SCO node state, not from a `Call1` object.
+   - Transport `State: "active"` was also observed pre-call right after HFP connect — treat it as SLC/SCO-related, not authoritative call state; combine signals.
+   - Consequence for `ICallStateProvider`: hold/swap/multiparty are **not reachable** in 1.4.2's surface for existing calls — capability flags for those stay false in API v1 until PipeWire grows persistent call objects.
+5. Remaining (executor checklist, non-blocking): `SendTones()` DTMF during an active call; `RejectSCO` toggle behavior (the AA-coexistence lever); interop pass with Samsung S25 Ultra and Moto G Play 2024 (Pixel 8 is the daily phone and is confirmed); mic/speaker audio quality check in-car.
+6. Results recorded here 2026-07-05; session handoff pending at sprint end.
 
 ## 7. Executor guidance
 
