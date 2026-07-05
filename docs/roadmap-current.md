@@ -50,6 +50,9 @@ Governance: capture new ideas in `docs/wishlist.md`; only promoted items should 
 - External API (TCP + WebSocket, protobuf).
   - Rationale: an external integration surface (status streams, action dispatch, notifications) is HUDIY's biggest moat and the backbone the JS bridge talks to. Prodigy-private original schema — no HUDIY wire compatibility (their repo is unlicensed).
   - Outcome: API v1 exposing media/nav/projection/phone status streams, action dispatch/register, and notification/toast display.
+- Companion app migration to API v1.
+  - The companion app **already exists and is well established** — Android (Kotlin/Gradle) app at `personal/openautopro/openauto-companion` (sibling repo, own AGENTS.md/docs). The 2026-07-05 arch decision "REPLACE" means *replace the wire protocol*, not the app: it migrates from the legacy port-9876 JSON/HMAC protocol (`CompanionListenerService`) to API v1 (`proto/api/`, WebSocket + PIN pairing, inbound reports per `companion.proto`). After migration, `CompanionListenerService` and port 9876 retire on the head-unit side.
+  - Outcome: companion app speaks API v1 (GPS/battery/connectivity/time reports, pairing); legacy companion listener deleted.
 - Multi-dashboard support + general overlay framework.
   - Rationale: the v0.6 widget-grid home screen already gives users a composable widget surface (WidgetGridModel/WidgetPickerModel). Remaining HUDIY delta: multiple named dashboards, widget size options (2 widths × 3 heights), web-view widgets, and configurable overlays (position/size/visibility via actions/API, split-screen).
   - Outcome: multiple config-driven dashboards with sized widgets (native + web), generalized overlay system alongside the current purpose-built overlays.
