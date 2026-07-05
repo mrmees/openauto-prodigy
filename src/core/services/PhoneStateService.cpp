@@ -1,5 +1,7 @@
 #include "PhoneStateService.hpp"
 #include "INotificationService.hpp"
+#include "TelephonyClient.hpp"
+#include "core/audio/ScoNodeMonitor.hpp"
 #include <QDBusConnection>
 #include <QDBusInterface>
 #include <QDBusMessage>
@@ -14,6 +16,11 @@ PhoneStateService::PhoneStateService(QObject* parent)
 {
     callTimer_.setInterval(1000);
     connect(&callTimer_, &QTimer::timeout, this, &PhoneStateService::updateCallDuration);
+
+    settleTimer_.setSingleShot(true);
+    connect(&settleTimer_, &QTimer::timeout, this, &PhoneStateService::onSettleTimeout);
+    scoDebounceTimer_.setSingleShot(true);
+    connect(&scoDebounceTimer_, &QTimer::timeout, this, &PhoneStateService::onScoDebounceTimeout);
 }
 
 PhoneStateService::~PhoneStateService()
@@ -33,18 +40,197 @@ QString PhoneStateService::callerNumber() const {
     return callerNumber_;
 }
 
-void PhoneStateService::answer()
+bool PhoneStateService::answer()
 {
-    if (callState_ != ICallStateProvider::Ringing) return;
-    setCallStateInternal(ICallStateProvider::Active);
+    if (callState_ != ICallStateProvider::Ringing) return false;
+    if (telephony_ && telephonyAvailable_) {
+        // Real mode: request only. The transition arrives via telephony/SCO
+        // events — never optimistically (design §12.5).
+        telephony_->answer();
+        return true;
+    }
+    setCallStateInternal(ICallStateProvider::Active);  // mock mode
+    return true;
 }
 
-void PhoneStateService::hangup()
+bool PhoneStateService::hangup()
 {
-    if (callState_ == ICallStateProvider::Idle) return;
+    if (callState_ == ICallStateProvider::Idle) return false;
+    if (telephony_ && telephonyAvailable_) {
+        telephony_->hangupAll();
+        return true;
+    }
+    callerNumber_.clear();  // mock mode
+    callerName_.clear();
+    setCallStateInternal(ICallStateProvider::Idle);
+    return true;
+}
+
+bool PhoneStateService::dial(const QString& number)
+{
+    if (callState_ != ICallStateProvider::Idle || number.isEmpty()) return false;
+    if (telephony_ && telephonyAvailable_) {
+        telephony_->dial(number);
+        return true;
+    }
+    if (!telephony_) {                          // mock mode: keep dev UI alive
+        callerNumber_ = number;
+        callerName_.clear();
+        setCallStateInternal(ICallStateProvider::Dialing);
+        return true;
+    }
+    return false;                               // attached but no phone
+}
+
+bool PhoneStateService::sendDtmf(const QString& tones)
+{
+    if (callState_ != ICallStateProvider::Active || tones.isEmpty()) return false;
+    if (telephony_ && telephonyAvailable_) {
+        telephony_->sendTones(tones);
+        return true;
+    }
+    return telephony_ == nullptr;               // mock mode pretends success
+}
+
+void PhoneStateService::attachTelephony(TelephonyClient* client)
+{
+    telephony_ = client;
+    if (!client) return;
+    connect(client, &TelephonyClient::callSetupStarted,
+            this, &PhoneStateService::onCallSetupStarted);
+    connect(client, &TelephonyClient::callSetupChanged,
+            this, &PhoneStateService::onCallSetupChanged);
+    connect(client, &TelephonyClient::callSetupEnded,
+            this, &PhoneStateService::onCallSetupEnded);
+    connect(client, &TelephonyClient::transportStateChanged,
+            this, &PhoneStateService::onTransportStateChanged);
+    connect(client, &TelephonyClient::availableChanged,
+            this, &PhoneStateService::onTelephonyAvailable);
+    onTelephonyAvailable(client->available());
+}
+
+void PhoneStateService::attachScoMonitor(ScoNodeMonitor* monitor)
+{
+    if (!monitor) return;
+    connect(monitor, &ScoNodeMonitor::scoRunningChanged,
+            this, &PhoneStateService::onScoRunningChanged);
+    onScoRunningChanged(monitor->scoRunning());
+}
+
+void PhoneStateService::onCallSetupStarted(const QString& state, const QString& line,
+                                           const QString& name)
+{
+    if (callState_ == ICallStateProvider::Active) {
+        // Call-waiting: single-call model in v1 — log and ignore (design §5).
+        qWarning() << "PhoneStateService: second call ignored (call-waiting unsupported):" << line;
+        return;
+    }
+    callerNumber_ = line;
+    callerName_ = name;
+    if (state == QLatin1String("incoming"))
+        setCallStateInternal(ICallStateProvider::Ringing);
+    else if (state == QLatin1String("dialing"))
+        setCallStateInternal(ICallStateProvider::Dialing);
+    else if (state == QLatin1String("alerting"))
+        setCallStateInternal(ICallStateProvider::Alerting);
+    else
+        qWarning() << "PhoneStateService: unknown setup state" << state;
+}
+
+void PhoneStateService::onCallSetupChanged(const QString& state)
+{
+    if (!inSetupState()) return;
+    if (state == QLatin1String("alerting")) {
+        setCallStateInternal(ICallStateProvider::Alerting);
+    } else if (state == QLatin1String("active")) {
+        inSettle_ = false;
+        settleTimer_.stop();
+        setCallStateInternal(ICallStateProvider::Active);
+    }
+}
+
+void PhoneStateService::onCallSetupEnded()
+{
+    if (!inSetupState()) return;   // Active: waiting-call resolution etc. — no transition
+    if (scoRunning_) {
+        setCallStateInternal(ICallStateProvider::Active);
+        return;
+    }
+    // Ambiguous: answered (SCO imminent) or rejected/cancelled. Keep
+    // reporting the setup state during the grace window (no UI flap).
+    inSettle_ = true;
+    settleTimer_.start(settleGraceMs_);
+}
+
+void PhoneStateService::onSettleTimeout()
+{
+    if (!inSettle_) return;
+    inSettle_ = false;
     callerNumber_.clear();
     callerName_.clear();
     setCallStateInternal(ICallStateProvider::Idle);
+}
+
+void PhoneStateService::onScoRunningChanged(bool running)
+{
+    scoRunning_ = running;
+    if (running) {
+        scoDebounceTimer_.stop();
+        if (inSettle_) {
+            inSettle_ = false;
+            settleTimer_.stop();
+            setCallStateInternal(ICallStateProvider::Active);
+        } else if (callState_ == ICallStateProvider::Idle && telephonyAvailable_) {
+            // Recovery: restarted mid-call, or user routed audio back to car.
+            setCallStateInternal(ICallStateProvider::Active);
+        }
+    } else {
+        if (callState_ == ICallStateProvider::Active)
+            scoDebounceTimer_.start(scoDebounceMs_);
+    }
+}
+
+void PhoneStateService::onScoDebounceTimeout()
+{
+    if (callState_ == ICallStateProvider::Active && !scoRunning_) {
+        callerNumber_.clear();
+        callerName_.clear();
+        setCallStateInternal(ICallStateProvider::Idle);
+    }
+}
+
+void PhoneStateService::onTransportStateChanged(const QString& state)
+{
+    transportState_ = state;
+    // Transport state is ADVISORY (pre-call "active" quirk, decision §6.4):
+    // trusted only (a) as the settle-window accept signal when SCO is
+    // unobservable, (b) as an end signal while Active with SCO down.
+    if (state == QLatin1String("active") && inSettle_) {
+        inSettle_ = false;
+        settleTimer_.stop();
+        setCallStateInternal(ICallStateProvider::Active);
+    } else if (state == QLatin1String("idle")
+               && callState_ == ICallStateProvider::Active && !scoRunning_) {
+        scoDebounceTimer_.stop();
+        callerNumber_.clear();
+        callerName_.clear();
+        setCallStateInternal(ICallStateProvider::Idle);
+    }
+}
+
+void PhoneStateService::onTelephonyAvailable(bool available)
+{
+    if (available == telephonyAvailable_) return;
+    telephonyAvailable_ = available;
+    if (!available) {
+        inSettle_ = false;
+        settleTimer_.stop();
+        scoDebounceTimer_.stop();
+        callerNumber_.clear();
+        callerName_.clear();
+        setCallStateInternal(ICallStateProvider::Idle);
+    }
+    emit telephonyAvailableChanged();
 }
 
 void PhoneStateService::setIncomingCall(const QString& number, const QString& name)

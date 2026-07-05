@@ -14,6 +14,20 @@ private slots:
     void testHangupFromRinging();
     void testCallerInfoPreservedDuringCall();
     void testSignalEmittedOnStateChange();
+
+    // --- D2 state machine (design doc §5 table) ---
+    void testTelephonyAvailability();
+    void testIncomingAnsweredCleanPath();
+    void testIncomingAnsweredViaScoSettle();
+    void testIncomingRejectedSettleTimeout();
+    void testOutgoingFullPath();
+    void testActiveEndsOnScoDropDebounced();
+    void testActiveSurvivesScoBlip();
+    void testActiveEndsOnTransportIdle();
+    void testRecoveryScoRunningFromIdle();
+    void testCallWaitingIgnoredWhileActive();
+    void testAgVanishResetsToIdle();
+    void testDialGuards();
 };
 
 void TestPhoneStateService::testImplementsICallStateProvider() {
@@ -98,6 +112,139 @@ void TestPhoneStateService::testSignalEmittedOnStateChange() {
 
     service.hangup();
     QCOMPARE(spy.count(), 3);
+}
+
+// --- D2 state machine tests (design doc §5 table) ---
+
+using CS = oap::ICallStateProvider;
+
+static oap::PhoneStateService* makeFastService(QObject* parent = nullptr) {
+    auto* s = new oap::PhoneStateService(parent);
+    s->setSettleGraceMs(50);
+    s->setScoDebounceMs(50);
+    s->onTelephonyAvailable(true);
+    return s;
+}
+
+void TestPhoneStateService::testTelephonyAvailability() {
+    oap::PhoneStateService s;
+    QVERIFY(!s.telephonyAvailable());
+    QSignalSpy spy(&s, &oap::IPhoneStateService::telephonyAvailableChanged);
+    s.onTelephonyAvailable(true);
+    QVERIFY(s.telephonyAvailable());
+    QCOMPARE(spy.count(), 1);
+}
+
+void TestPhoneStateService::testIncomingAnsweredCleanPath() {
+    QObject root; auto* s = makeFastService(&root);
+    s->onCallSetupStarted("incoming", "+15125551212", "Test Caller");
+    QCOMPARE(s->callState(), (int)CS::Ringing);
+    QCOMPARE(s->callerNumber(), QString("+15125551212"));
+    QCOMPARE(s->callerName(), QString("Test Caller"));
+    s->onCallSetupChanged("active");          // Call1 State → active before removal
+    QCOMPARE(s->callState(), (int)CS::Active);
+    s->onCallSetupEnded();                     // ephemeral object destroyed — stays Active
+    QCOMPARE(s->callState(), (int)CS::Active);
+}
+
+void TestPhoneStateService::testIncomingAnsweredViaScoSettle() {
+    QObject root; auto* s = makeFastService(&root);
+    s->onCallSetupStarted("incoming", "+15125551212", "");
+    s->onCallSetupEnded();                     // no State→active seen: settling
+    QCOMPARE(s->callState(), (int)CS::Ringing); // keeps reporting prior state
+    s->onScoRunningChanged(true);
+    QCOMPARE(s->callState(), (int)CS::Active);
+}
+
+void TestPhoneStateService::testIncomingRejectedSettleTimeout() {
+    QObject root; auto* s = makeFastService(&root);
+    s->onCallSetupStarted("incoming", "+15125551212", "");
+    s->onCallSetupEnded();
+    QTRY_COMPARE_WITH_TIMEOUT(s->callState(), (int)CS::Idle, 500); // grace 50ms expires
+    QVERIFY(s->callerNumber().isEmpty());
+}
+
+void TestPhoneStateService::testOutgoingFullPath() {
+    QObject root; auto* s = makeFastService(&root);
+    s->onCallSetupStarted("dialing", "+15125551212", "");
+    QCOMPARE(s->callState(), (int)CS::Dialing);
+    s->onCallSetupChanged("alerting");
+    QCOMPARE(s->callState(), (int)CS::Alerting);
+    s->onCallSetupChanged("active");
+    QCOMPARE(s->callState(), (int)CS::Active);
+    s->onCallSetupEnded();
+    QCOMPARE(s->callState(), (int)CS::Active);
+    s->onScoRunningChanged(true);
+    s->onScoRunningChanged(false);            // hangup: SCO drops
+    QTRY_COMPARE_WITH_TIMEOUT(s->callState(), (int)CS::Idle, 500);
+}
+
+void TestPhoneStateService::testActiveEndsOnScoDropDebounced() {
+    QObject root; auto* s = makeFastService(&root);
+    s->onCallSetupStarted("incoming", "1", "");
+    s->onCallSetupEnded();
+    s->onScoRunningChanged(true);
+    QCOMPARE(s->callState(), (int)CS::Active);
+    s->onScoRunningChanged(false);
+    QCOMPARE(s->callState(), (int)CS::Active); // debounce window — not yet
+    QTRY_COMPARE_WITH_TIMEOUT(s->callState(), (int)CS::Idle, 500);
+}
+
+void TestPhoneStateService::testActiveSurvivesScoBlip() {
+    QObject root; auto* s = makeFastService(&root);
+    s->onCallSetupStarted("incoming", "1", "");
+    s->onCallSetupEnded();
+    s->onScoRunningChanged(true);
+    s->onScoRunningChanged(false);
+    s->onScoRunningChanged(true);              // back within debounce
+    QTest::qWait(150);
+    QCOMPARE(s->callState(), (int)CS::Active); // blip did not end the call
+}
+
+void TestPhoneStateService::testActiveEndsOnTransportIdle() {
+    QObject root; auto* s = makeFastService(&root);
+    s->onCallSetupStarted("incoming", "1", "");
+    s->onCallSetupChanged("active");
+    // SCO never observed running (monitor inert): transport idle ends it
+    s->onTransportStateChanged("idle");
+    QCOMPARE(s->callState(), (int)CS::Idle);
+}
+
+void TestPhoneStateService::testRecoveryScoRunningFromIdle() {
+    QObject root; auto* s = makeFastService(&root);
+    QCOMPARE(s->callState(), (int)CS::Idle);
+    s->onScoRunningChanged(true);              // restarted mid-call / audio routed back
+    QCOMPARE(s->callState(), (int)CS::Active);
+}
+
+void TestPhoneStateService::testCallWaitingIgnoredWhileActive() {
+    QObject root; auto* s = makeFastService(&root);
+    s->onCallSetupStarted("incoming", "+1111", "First");
+    s->onCallSetupChanged("active");
+    s->onCallSetupStarted("incoming", "+2222", "Second"); // call-waiting: ignored in v1
+    QCOMPARE(s->callState(), (int)CS::Active);
+    QCOMPARE(s->callerNumber(), QString("+1111"));
+    s->onCallSetupEnded();                     // waiting call resolved — no transition
+    QCOMPARE(s->callState(), (int)CS::Active);
+}
+
+void TestPhoneStateService::testAgVanishResetsToIdle() {
+    QObject root; auto* s = makeFastService(&root);
+    s->onCallSetupStarted("incoming", "1", "");
+    s->onCallSetupChanged("active");
+    s->onTelephonyAvailable(false);
+    QCOMPARE(s->callState(), (int)CS::Idle);
+    QVERIFY(!s->telephonyAvailable());
+}
+
+void TestPhoneStateService::testDialGuards() {
+    QObject root; auto* s = makeFastService(&root);
+    // telephony marked available but no TelephonyClient attached →
+    // mock-mode dial: transitions locally so the dev VM UI still works
+    QVERIFY(s->dial("5551234"));
+    QCOMPARE(s->callState(), (int)CS::Dialing);
+    QVERIFY(!s->dial("5551234"));              // not Idle → rejected
+    QVERIFY(!s->sendDtmf("1"));                // not Active → rejected
 }
 
 QTEST_GUILESS_MAIN(TestPhoneStateService)
