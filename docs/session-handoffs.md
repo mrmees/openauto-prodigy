@@ -1035,12 +1035,11 @@ Documentation:
 - `IncomingCallOverlay.qml:11` triggers on `callState === 2` = provider **Active**, not Ringing (comment claims Ringing; numbering confusion with PhonePlugin's private enum). Fix in HFP plan Task 7.
 - Shell z-stack violates the arch §6 band contract: IncomingCall (z:1000) above Gesture (999); Pairing/NotificationArea/dim collide at 998. Re-pin is overlay plan Task 2.
 
-**Status:** Sprint phases A, B (proto frozen 875feaf), C1+C2, D1, D2, E complete. NOT done: Phase F light plans (media player, EQ parity audit, 0x8012 wire protocol, key-event nav — lowest leverage, cut per program §6), HFP live checks L1–L6 (self-contained in design doc §11, needs Pi + phone).
+**Status:** Sprint phases A, B (proto frozen 875feaf), C1+C2, D1, D2, E, F ALL complete (F as light plans: [`plans/2026-07-05-phase-f-light-plans.md`](superpowers/plans/2026-07-05-phase-f-light-plans.md) — media player, EQ parity audit, 0x8012 experiment protocol, key-event nav sketch). NOT done: HFP live checks L1–L6 (self-contained in design doc §11, needs Pi + phone); JS-runtime impl plan (deliberately deferred until API v1 lands, JS design §9).
 
 **Next steps:**
 1. Execute plans per handbook dependency map (external-api-v1 and hfp-call-audio are the "Now" roadmap items).
 2. Run HFP design doc §11 checklist L1–L6 when Matthew + phone are available (L4 decides the reject_sco default).
-3. Phase F light plans if another design session happens; otherwise executors work from the roadmap directly.
-4. Sprint end: PR `fable-design-sprint` → main (ask Matthew before push).
+3. Sprint end: PR `fable-design-sprint` → main (ask Matthew before push).
 
 **Verification:** docs-only session — no build/test cycle applicable. All commits on `fable-design-sprint`: 3762fd9 (D2 design), 5ff16e6 (D2 plan), 4560117 (E design), daee267 (E plans), plus this handoff.
