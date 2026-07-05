@@ -1,13 +1,7 @@
 #include "PhonePlugin.hpp"
 #include "core/plugin/IHostContext.hpp"
-#include "core/services/INotificationService.hpp"
+#include "core/services/IPhoneStateService.hpp"
 #include <QQmlContext>
-#include <QDBusConnection>
-#include <QDBusInterface>
-#include <QDBusMessage>
-#include <QDBusArgument>
-#include <QDBusVariant>
-#include <QDBusServiceWatcher>
 #include <QTimer>
 
 namespace oap {
@@ -27,352 +21,97 @@ bool PhonePlugin::initialize(IHostContext* context)
 {
     hostContext_ = context;
 
-    // Call duration timer
-    callTimer_ = new QTimer(this);
-    callTimer_->setInterval(1000);
-    connect(callTimer_, &QTimer::timeout, this, &PhonePlugin::updateCallDuration);
+    endedFlashTimer_ = new QTimer(this);
+    endedFlashTimer_->setSingleShot(true);
+    endedFlashTimer_->setInterval(1500);
+    connect(endedFlashTimer_, &QTimer::timeout, this, [this]() {
+        if (callState_ == Ended)
+            setUiState(Idle);
+    });
 
-    startDBusMonitoring();
+    service_ = qobject_cast<IPhoneStateService*>(
+        context ? context->callStateProvider() : nullptr);
+    if (service_) {
+        connect(service_, &ICallStateProvider::callStateChanged,
+                this, &PhonePlugin::onProviderStateChanged);
+        connect(service_, &IPhoneStateService::callDurationChanged,
+                this, &PhonePlugin::callDurationChanged);
+        connect(service_, &IPhoneStateService::connectionChanged,
+                this, &PhonePlugin::connectionChanged);
+        onProviderStateChanged();
+    } else if (hostContext_) {
+        hostContext_->log(LogLevel::Warning,
+            QStringLiteral("Phone: no IPhoneStateService — plugin inert"));
+    }
 
     if (hostContext_)
         hostContext_->log(LogLevel::Info, QStringLiteral("Phone plugin initialized"));
-
     return true;
 }
 
 void PhonePlugin::shutdown()
 {
-    stopDBusMonitoring();
-    if (callTimer_) {
-        callTimer_->stop();
-        callTimer_ = nullptr;
+    if (endedFlashTimer_) {
+        endedFlashTimer_->stop();
+        endedFlashTimer_ = nullptr;
     }
+    service_ = nullptr;
 }
 
-void PhonePlugin::startDBusMonitoring()
+void PhonePlugin::onProviderStateChanged()
 {
-    if (monitoring_) return;
-
-    auto bus = QDBusConnection::systemBus();
-    if (!bus.isConnected()) {
-        if (hostContext_)
-            hostContext_->log(LogLevel::Warning,
-                QStringLiteral("Phone: Cannot connect to system D-Bus — HFP monitoring disabled"));
-        return;
+    const int ps = service_->callState();
+    CallState mapped = Idle;
+    switch (ps) {
+    case ICallStateProvider::Ringing:  mapped = Ringing; break;
+    case ICallStateProvider::Active:   mapped = Active; break;
+    case ICallStateProvider::Dialing:
+    case ICallStateProvider::Alerting: mapped = Dialing; break;
+    case ICallStateProvider::Held:
+    case ICallStateProvider::Waiting:  mapped = HeldActive; break;
+    default:                           mapped = Idle; break;
     }
 
-    bluezWatcher_ = new QDBusServiceWatcher(
-        QStringLiteral("org.bluez"),
-        bus,
-        QDBusServiceWatcher::WatchForRegistration | QDBusServiceWatcher::WatchForUnregistration,
-        this);
+    if (mapped == Ringing && callState_ != Ringing)
+        emit incomingCall(service_->callerNumber(), service_->callerName());
 
-    connect(bluezWatcher_, &QDBusServiceWatcher::serviceRegistered, this, [this]() {
-        scanExistingDevices();
-    });
-
-    connect(bluezWatcher_, &QDBusServiceWatcher::serviceUnregistered, this, [this]() {
-        if (phoneConnected_) {
-            phoneConnected_ = false;
-            deviceName_.clear();
-            devicePath_.clear();
-            emit connectionChanged();
-        }
-        setCallState(Idle);
-    });
-
-    // InterfacesAdded/Removed for device connect/disconnect
-    bus.connect(
-        QStringLiteral("org.bluez"),
-        QStringLiteral("/"),
-        QStringLiteral("org.freedesktop.DBus.ObjectManager"),
-        QStringLiteral("InterfacesAdded"),
-        this,
-        SLOT(onInterfacesAdded(QDBusObjectPath,QVariantMap)));
-
-    bus.connect(
-        QStringLiteral("org.bluez"),
-        QStringLiteral("/"),
-        QStringLiteral("org.freedesktop.DBus.ObjectManager"),
-        QStringLiteral("InterfacesRemoved"),
-        this,
-        SLOT(onInterfacesRemoved(QDBusObjectPath,QStringList)));
-
-    // PropertiesChanged for device state updates
-    bus.connect(
-        QStringLiteral("org.bluez"),
-        QString(),
-        QStringLiteral("org.freedesktop.DBus.Properties"),
-        QStringLiteral("PropertiesChanged"),
-        this,
-        SLOT(onPropertiesChanged(QString,QVariantMap,QStringList)));
-
-    monitoring_ = true;
-    scanExistingDevices();
-}
-
-void PhonePlugin::stopDBusMonitoring()
-{
-    if (!monitoring_) return;
-
-    auto bus = QDBusConnection::systemBus();
-    bus.disconnect(
-        QStringLiteral("org.bluez"), QStringLiteral("/"),
-        QStringLiteral("org.freedesktop.DBus.ObjectManager"),
-        QStringLiteral("InterfacesAdded"),
-        this, SLOT(onInterfacesAdded(QDBusObjectPath,QVariantMap)));
-    bus.disconnect(
-        QStringLiteral("org.bluez"), QStringLiteral("/"),
-        QStringLiteral("org.freedesktop.DBus.ObjectManager"),
-        QStringLiteral("InterfacesRemoved"),
-        this, SLOT(onInterfacesRemoved(QDBusObjectPath,QStringList)));
-    bus.disconnect(
-        QStringLiteral("org.bluez"), QString(),
-        QStringLiteral("org.freedesktop.DBus.Properties"),
-        QStringLiteral("PropertiesChanged"),
-        this, SLOT(onPropertiesChanged(QString,QVariantMap,QStringList)));
-
-    delete bluezWatcher_;
-    bluezWatcher_ = nullptr;
-    monitoring_ = false;
-}
-
-void PhonePlugin::scanExistingDevices()
-{
-    // Look for connected BT devices with HandsfreeGateway UUID
-    QDBusMessage msg = QDBusMessage::createMethodCall(
-        QStringLiteral("org.bluez"),
-        QStringLiteral("/"),
-        QStringLiteral("org.freedesktop.DBus.ObjectManager"),
-        QStringLiteral("GetManagedObjects"));
-
-    QDBusMessage reply = QDBusConnection::systemBus().call(msg, QDBus::Block, 2000);
-    if (reply.type() != QDBusMessage::ReplyMessage) return;
-
-    const QDBusArgument arg = reply.arguments().at(0).value<QDBusArgument>();
-    arg.beginMap();
-    while (!arg.atEnd()) {
-        arg.beginMapEntry();
-
-        QDBusObjectPath objPath;
-        arg >> objPath;
-        QString path = objPath.path();
-
-        const QDBusArgument ifacesArg = qvariant_cast<QDBusArgument>(arg.asVariant());
-        ifacesArg.beginMap();
-        while (!ifacesArg.atEnd()) {
-            ifacesArg.beginMapEntry();
-
-            QString iface;
-            ifacesArg >> iface;
-
-            // Skip the properties — just check for Device1
-            const QDBusArgument propsArg = qvariant_cast<QDBusArgument>(ifacesArg.asVariant());
-            QVariantMap props;
-            propsArg.beginMap();
-            while (!propsArg.atEnd()) {
-                propsArg.beginMapEntry();
-                QString key;
-                QDBusVariant dbusVal;
-                propsArg >> key >> dbusVal;
-                props[key] = dbusVal.variant();
-                propsArg.endMapEntry();
-            }
-            propsArg.endMap();
-
-            ifacesArg.endMapEntry();
-
-            if (iface == QLatin1String("org.bluez.Device1")) {
-                bool connected = props.value(QStringLiteral("Connected")).toBool();
-                QStringList uuids = props.value(QStringLiteral("UUIDs")).toStringList();
-
-                // Check for HFP Handsfree UUID (0000111e) or HFP AG UUID (0000111f)
-                bool hasHfp = false;
-                for (const auto& uuid : uuids) {
-                    if (uuid.startsWith(QLatin1String("0000111e"))
-                        || uuid.startsWith(QLatin1String("0000111f"))) {
-                        hasHfp = true;
-                        break;
-                    }
-                }
-
-                if (connected && hasHfp) {
-                    devicePath_ = path;
-                    deviceName_ = props.value(QStringLiteral("Alias")).toString();
-                    phoneConnected_ = true;
-                    emit connectionChanged();
-                }
-            }
-        }
-        ifacesArg.endMap();
-
-        arg.endMapEntry();
+    if (mapped == Idle
+        && (callState_ == Active || callState_ == Dialing || callState_ == Ringing)) {
+        setUiState(Ended);                 // brief "Call ended" flash
+        endedFlashTimer_->start();
+    } else {
+        setUiState(mapped);
     }
-    arg.endMap();
+    emit callInfoChanged();
 }
 
-void PhonePlugin::onInterfacesAdded(const QDBusObjectPath& path, const QVariantMap& interfaces)
-{
-    Q_UNUSED(interfaces)
-
-    // Check if a Device1 appeared with HFP
-    const QString pathStr = path.path();
-    if (!pathStr.contains(QLatin1String("/dev_"))) return;
-
-    QDBusInterface iface(
-        QStringLiteral("org.bluez"), pathStr,
-        QStringLiteral("org.bluez.Device1"),
-        QDBusConnection::systemBus());
-    if (!iface.isValid()) return;
-
-    bool connected = iface.property("Connected").toBool();
-    QStringList uuids = iface.property("UUIDs").toStringList();
-
-    bool hasHfp = false;
-    for (const auto& uuid : uuids) {
-        if (uuid.startsWith(QLatin1String("0000111e"))
-            || uuid.startsWith(QLatin1String("0000111f"))) {
-            hasHfp = true;
-            break;
-        }
-    }
-
-    if (connected && hasHfp && !phoneConnected_) {
-        devicePath_ = pathStr;
-        deviceName_ = iface.property("Alias").toString();
-        phoneConnected_ = true;
-        emit connectionChanged();
-
-        if (hostContext_)
-            hostContext_->log(LogLevel::Info,
-                QStringLiteral("Phone: HFP device connected: %1").arg(deviceName_));
-    }
-}
-
-void PhonePlugin::onInterfacesRemoved(const QDBusObjectPath& path, const QStringList& interfaces)
-{
-    if (path.path() == devicePath_ && interfaces.contains(QStringLiteral("org.bluez.Device1"))) {
-        phoneConnected_ = false;
-        deviceName_.clear();
-        devicePath_.clear();
-        emit connectionChanged();
-        setCallState(Idle);
-    }
-}
-
-void PhonePlugin::onPropertiesChanged(const QString& interface, const QVariantMap& changed,
-                                       const QStringList& /*invalidated*/)
-{
-    if (interface == QLatin1String("org.bluez.Device1")) {
-        if (changed.contains(QStringLiteral("Connected"))) {
-            bool connected = changed.value(QStringLiteral("Connected")).toBool();
-            if (!connected && phoneConnected_) {
-                phoneConnected_ = false;
-                deviceName_.clear();
-                emit connectionChanged();
-                setCallState(Idle);
-            }
-        }
-    }
-}
-
-void PhonePlugin::setCallState(CallState state)
+void PhonePlugin::setUiState(CallState state)
 {
     if (state == callState_) return;
     callState_ = state;
-
-    if (state == Active) {
-        callDuration_ = 0;
-        callTimer_->start();
-    } else {
-        callTimer_->stop();
-    }
-
-    // Dismiss incoming call notification when no longer ringing
-    if (state != Ringing && !activeCallNotificationId_.isEmpty()) {
-        if (hostContext_ && hostContext_->notificationService())
-            hostContext_->notificationService()->dismiss(activeCallNotificationId_);
-        activeCallNotificationId_.clear();
-    }
-
-    if (state == Ringing) {
-        emit incomingCall(callerNumber_, callerName_);
-        // Post notification via NotificationService
-        if (hostContext_ && hostContext_->notificationService()) {
-            QString displayName = callerName_.isEmpty() ? callerNumber_ : callerName_;
-            activeCallNotificationId_ = hostContext_->notificationService()->post({
-                {"kind", "incoming_call"},
-                {"message", displayName},
-                {"sourcePluginId", id()},
-                {"priority", 90}
-            });
-        }
-    }
-
     emit callStateChanged();
 }
 
-void PhonePlugin::updateCallDuration()
-{
-    callDuration_++;
-    emit callDurationChanged();
-}
-
-void PhonePlugin::onActivated(QQmlContext* context)
-{
-    if (!context) return;
-    context->setContextProperty("PhonePlugin", this);
-}
-
-void PhonePlugin::onDeactivated()
-{
-    // Child context destroyed by PluginRuntimeContext
-}
-
-QUrl PhonePlugin::qmlComponent() const
-{
-    return QUrl(QStringLiteral("qrc:/OpenAutoProdigy/PhoneView.qml"));
-}
-
-QUrl PhonePlugin::iconSource() const
-{
-    return {};  // Font-based icons — see MaterialIcon.qml (\uf0d4 phone)
-}
+QString PhonePlugin::callerNumber() const { return service_ ? service_->callerNumber() : QString(); }
+QString PhonePlugin::callerName() const { return service_ ? service_->callerName() : QString(); }
+int PhonePlugin::callDuration() const { return service_ ? service_->callDuration() : 0; }
+bool PhonePlugin::phoneConnected() const { return service_ && service_->phoneConnected(); }
+QString PhonePlugin::deviceName() const { return service_ ? service_->deviceName() : QString(); }
 
 void PhonePlugin::dial(const QString& number)
 {
-    if (!phoneConnected_ || number.isEmpty()) return;
-
-    // TODO: Initiate call via BlueZ telephony D-Bus interface
-    // For now, just update state for UI testing
-    callerNumber_ = number;
-    callerName_.clear();
-    emit callInfoChanged();
-    setCallState(Dialing);
-
-    if (hostContext_)
-        hostContext_->log(LogLevel::Info,
-            QStringLiteral("Phone: Dialing %1").arg(number));
+    if (service_ && service_->dial(number) && hostContext_)
+        hostContext_->log(LogLevel::Info, QStringLiteral("Phone: Dialing %1").arg(number));
 }
 
 void PhonePlugin::answer()
 {
-    if (callState_ != Ringing) return;
-    setCallState(Active);
+    if (service_) service_->answer();
 }
 
 void PhonePlugin::hangup()
 {
-    if (callState_ == Idle) return;
-    setCallState(Ended);
-
-    // Brief delay then reset to idle
-    QTimer::singleShot(1500, this, [this]() {
-        callerNumber_.clear();
-        callerName_.clear();
-        emit callInfoChanged();
-        setCallState(Idle);
-    });
+    if (service_) service_->hangup();
 }
 
 void PhonePlugin::appendDigit(const QString& digit)
@@ -394,8 +133,28 @@ void PhonePlugin::clearDialed()
 
 void PhonePlugin::sendDTMF(const QString& tone)
 {
-    Q_UNUSED(tone)
-    // TODO: Send DTMF tone via BlueZ HFP
+    if (service_) service_->sendDtmf(tone);
+}
+
+void PhonePlugin::onActivated(QQmlContext* context)
+{
+    if (!context) return;
+    context->setContextProperty("PhonePlugin", this);
+}
+
+void PhonePlugin::onDeactivated()
+{
+    // Child context destroyed by PluginRuntimeContext
+}
+
+QUrl PhonePlugin::qmlComponent() const
+{
+    return QUrl(QStringLiteral("qrc:/OpenAutoProdigy/PhoneView.qml"));
+}
+
+QUrl PhonePlugin::iconSource() const
+{
+    return {};  // Font-based icons — see MaterialIcon.qml ( phone)
 }
 
 } // namespace plugins

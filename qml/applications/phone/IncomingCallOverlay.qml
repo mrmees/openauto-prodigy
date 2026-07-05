@@ -3,12 +3,12 @@ import QtQuick.Controls
 import QtQuick.Layouts
 
 /// Incoming call overlay -- shown on top of any active view.
-/// Shell.qml should instantiate this and show it when CallStateProvider.callState === 2 (Ringing).
+/// Shell.qml instantiates this; visible while CallStateProvider.callState === 1 (Ringing).
 Rectangle {
     id: overlay
     anchors.fill: parent
     color: ThemeService.scrim
-    visible: CallStateProvider && CallStateProvider.callState === 2
+    visible: CallStateProvider && CallStateProvider.callState === 1
     z: 1000  // above everything
 
     MouseArea {
