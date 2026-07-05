@@ -70,6 +70,11 @@ public:
     /// Whether PipeWire was successfully initialized.
     bool isAvailable() const { return threadLoop_ != nullptr; }
 
+    /// PipeWire handles for auxiliary watchers (e.g. ScoNodeMonitor).
+    /// Null when PipeWire is unavailable.
+    struct pw_thread_loop* pwThreadLoop() const { return threadLoop_; }
+    struct pw_core* pwCore() const { return core_; }
+
     // IAudioService — output
     AudioStreamHandle* createStream(const QString& name, int priority,
                                      int sampleRate = 48000, int channels = 2,

@@ -56,6 +56,7 @@ oap_add_test(test_bluetooth_manager SOURCES test_bluetooth_manager.cpp)
 oap_add_test(test_projection_status_provider SOURCES test_projection_status_provider.cpp)
 oap_add_test(test_phone_state_service SOURCES test_phone_state_service.cpp)
 oap_add_test(test_telephony_client SOURCES test_telephony_client.cpp)
+oap_add_test(test_sco_node_monitor SOURCES test_sco_node_monitor.cpp)
 oap_add_test(test_media_status_service SOURCES test_media_status_service.cpp)
 
 # --- Device / hardware tests ---
