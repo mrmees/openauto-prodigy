@@ -33,3 +33,6 @@ tools/proto_decode_output/
 
 # Local-only artifacts (kept for reference, not public)
 archive/
+
+# Private competitive-analysis / reference material — never public
+docs/private/

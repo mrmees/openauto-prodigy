@@ -3,7 +3,7 @@
 
 > **For Claude:** REQUIRED SUB-SKILL: Use superpowers:executing-plans to implement this plan task-by-task.
 
-**Goal:** Complete Shell migration to plugin-driven architecture, add EventBus + ActionRegistry foundation, and build notification system — enabling hudiy-style extensibility without over-engineering.
+**Goal:** Complete Shell migration to plugin-driven architecture, add EventBus + ActionRegistry foundation, and build notification system — enabling paid-alternative-style extensibility without over-engineering.
 
 **Architecture:** Four priority tiers transform the codebase from its current partially-migrated state (hardcoded Shell + global context hacks) to a fully plugin-driven system with event-based communication. Each tier builds on the previous. All changes maintain backward compatibility with the existing 3 static plugins.
 

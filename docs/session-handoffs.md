@@ -4,11 +4,11 @@ Newest entries first.
 
 ---
 
-## 2026-07-02 — HUDIY parity roadmap, repo resync, parallel quick wins
+## 2026-07-02 — Paid-alternative parity roadmap, repo resync, parallel quick wins
 
 **What changed:**
 - Resynced this machine (MINIMEES/WSL) from 1407 commits behind origin; reset CRLF-noise working tree; moved orphaned `libs/aasdk/` leftover out of the repo
-- HUDIY parity gap analysis written and committed (`docs/superpowers/specs/2026-07-02-hudiy-parity-roadmap-design.md`); HUDIY reference materials cloned to `../hudiy-reference/` (their GitHub repo is docs/proto/examples only, **no license → read for understanding, never copy**)
+- Paid-alternative parity gap analysis written (kept in a gitignored private doc, out of the public repo); reference materials for the paid alternative cloned outside the repo (their GitHub repo is docs/proto/examples only, **no license → read for understanding, never copy**)
 - Roadmap promotions (Later): HTML/JS extensibility (spike → runtime), prodigy-private external API (TCP+WS protobuf), multi-dashboard + overlay framework, local media player. Wishlist: FM radio (deferred), companion notifications, key bindings
 - Extensibility plan audited against source: **fully implemented** despite stale NOT STARTED header (EventBus, ActionRegistry, NotificationService, PluginViewHost, lifecycle, contract docs all exist with the plan's tests) — archived to `docs/plans/` with corrected header, along with the completed proto-migration plans
 - Web config panel diagnosed: **code is healthy** (all pages/endpoints verified with mock IpcServer + graceful degradation without Qt app). Root cause was deployment — installers enabled but never started the service → both installers now `systemctl enable --now`

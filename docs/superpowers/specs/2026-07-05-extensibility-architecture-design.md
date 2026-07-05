@@ -75,7 +75,7 @@ Status streams: `media`, `navigation`, `projection`, `phone`, `system` (day/nigh
 ## 4. Schema conventions (Phase B implements)
 
 - proto3, package `prodigy.api.v1`, one file per domain (`api.proto` envelope + `common.proto`, `media.proto`, `navigation.proto`, `phone.proto`, `projection.proto`, `system.proto`, `actions.proto`, `notifications.proto`, `companion.proto`).
-- Original schema — no HUDIY message names, field layouts, or wire compatibility (licensing stance, standing decision).
+- Original schema — no message names, field layouts, or wire compatibility borrowed from any paid alternative (licensing stance, standing decision).
 - Every message carries doc comments including delivery semantics. `reserved` ranges declared up front for future use. Enums get `_UNSPECIFIED = 0`.
 - Lives in `proto/api/` in the prodigy repo (NOT in `libs/prodigy-oaa-protocol/` — that submodule is the AA wire protocol, community-managed, hands-off; the External API is prodigy-private by decision).
 
@@ -94,7 +94,7 @@ Consequence for sequencing: **the JS runtime (Phase C proper) depends on API v1 
 
 ## 6. Dashboards & overlays — contracts Phase E must honor
 
-- **Dashboards:** multiple named dashboards = multiple `WidgetGridModel` instances keyed by dashboard id; YAML `widget_grid` (v3) grows to `dashboards[]` with a documented v3→v4 migration (v3 config becomes `dashboards[0]`, name "Home"). Widget *sizing* already exists (col/row spans + min/max in `WidgetDescriptor`) — HUDIY-style size options are picker UX over existing spans, not a new model.
+- **Dashboards:** multiple named dashboards = multiple `WidgetGridModel` instances keyed by dashboard id; YAML `widget_grid` (v3) grows to `dashboards[]` with a documented v3→v4 migration (v3 config becomes `dashboards[0]`, name "Home"). Widget *sizing* already exists (col/row spans + min/max in `WidgetDescriptor`) — paid-alternative-style size options are picker UX over existing spans, not a new model.
 - **Web widgets** enter as `WidgetDescriptor { qmlComponent: WebWidgetHost.qml, defaultConfig: { url, … } }` — one host component, config-schema-driven, `DashboardContributionKind` gains `WebWidget`. Gated on the Phase C spike verdict.
 - **Overlays:** generalize the hardcoded Shell.qml sibling stack (NotificationArea / dim / GestureOverlay / PairingDialog / IncomingCallOverlay, `Shell.qml:73-100`) into an `OverlayService` (C++ registry: id, source plugin, geometry, z-band, visibility) + `OverlayHost` (QML Repeater over a model). Visibility/position mutations are **actions** (`overlay.<id>.show/hide/toggle/move`) so QML, key bindings, and the API all drive overlays through one path (rail R4). Existing overlays migrate incrementally — new framework first, migration as separate tasks, `NotificationService`'s unrendered kinds (`incoming_call`, `status_icon` — `NotificationArea.qml:33` renders toasts only) become overlay-framework consumers.
 - **Z-order contract:** fixed bands — content < notifications < overlays(user) < pairing/call(system-modal) < gesture. Within a band, registration order. No per-overlay arbitrary z.

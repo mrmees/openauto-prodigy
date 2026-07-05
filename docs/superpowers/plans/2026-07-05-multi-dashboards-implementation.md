@@ -665,7 +665,7 @@ onClicked: {
 ```
 (c) add to the root item:
 ```qml
-    // HUDIY-parity size options: fixed preset set clamped to the descriptor's bounds
+    // Paid-alternative-parity size options: fixed preset set clamped to the descriptor's bounds
     function presetsFor(w) {
         var candidates = [[1,1],[2,1],[2,2],[3,2]]
         var out = []
@@ -721,7 +721,7 @@ onClicked: {
     }
 ```
 The HomeMenu handler (`HomeMenu.qml:1268-1281`) already receives `(widgetId, cols, rows)` and clamps — unchanged.
-- [ ] **Step 3: Build + model test + full suite. Step 4: Commit** — `git commit -am "feat(ui): widget size presets in the picker (HUDIY-parity size options)"`
+- [ ] **Step 3: Build + model test + full suite. Step 4: Commit** — `git commit -am "feat(ui): widget size presets in the picker (paid-alternative-parity size options)"`
 
 ---
 

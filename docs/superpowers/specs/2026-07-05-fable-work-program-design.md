@@ -1,4 +1,4 @@
-# Fable Work Program — HUDIY-Parity Deep Design Sprint
+# Fable Work Program — Paid-Alternative Parity Deep Design Sprint
 
 **Date:** 2026-07-05
 **Status:** DRAFT — awaiting Matthew's approval. Nothing below executes until approved.
@@ -36,7 +36,7 @@ Matthew loses access to Claude Fable 5 in ~2 days. Spend that time on the design
 ## 4. Non-Goals
 
 - No production feature implementation during the sprint (plans are the product). Exceptions: the spike harness (throwaway) and committing the v1 `.proto` contract (cheap now, locks the contract while the designer is present).
-- No HUDIY wire/config compatibility (standing decision, licensing).
+- No wire/config compatibility with any paid alternative (standing decision, licensing).
 - No new roadmap items — this program covers only already-promoted items plus stretch light-plans.
 
 ## 5. The Program
@@ -88,7 +88,7 @@ Split in two (Codex review — the call-control decision gates the proto freeze)
 
 ### Phase E — Dashboards + Overlay Framework Design + Plan
 
-- Multiple named dashboards on top of WidgetGridModel/WidgetPickerModel; widget size options (HUDIY: 2 widths × 3 heights); web-view widgets as first-class citizens (post-spike).
+- Multiple named dashboards on top of WidgetGridModel/WidgetPickerModel; widget size options (paid alternatives: 2 widths × 3 heights); web-view widgets as first-class citizens (post-spike).
 - Generalized overlay system: position/size/visibility driven by ActionRegistry actions and the API; migration story for the purpose-built overlays (incoming call, pairing, gesture).
 - Depends on Phase A contracts; web-widget parts depend on Phase C verdict.
 

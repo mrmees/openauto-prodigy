@@ -251,7 +251,7 @@ Reports land in `ApiInboundState` (Q_PROPERTYs + signals mirroring `CompanionLis
 | 70–79 | inbound reports |
 | 80–99 | reserved for future domains |
 
-Files per the locked convention (arch §4): `api.proto` (envelope + handshake + subscription + capabilities), `common.proto` (`Error`, `Ack`, `Ping`, `Pong`, `Topic`), one file per domain. Package `prodigy.api.v1`, proto3, `optional` for presence-relevant scalars, every enum's zero value `*_UNSPECIFIED`, every message doc-commented with delivery semantics. **Original schema — no HUDIY names, layouts, or wire compatibility** (standing licensing decision).
+Files per the locked convention (arch §4): `api.proto` (envelope + handshake + subscription + capabilities), `common.proto` (`Error`, `Ack`, `Ping`, `Pong`, `Topic`), one file per domain. Package `prodigy.api.v1`, proto3, `optional` for presence-relevant scalars, every enum's zero value `*_UNSPECIFIED`, every message doc-commented with delivery semantics. **Original schema — no names, layouts, or wire compatibility borrowed from any paid alternative** (standing licensing decision).
 
 ## 12. Config & persistence
 

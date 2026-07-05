@@ -73,7 +73,7 @@ All ~30 existing `HomeMenu.qml` references keep working; GridView delegates rebu
 - **Actions** (registered in main.cpp beside the existing `app.*` block, `main.cpp:763+`): `app.dashboard.next`, `app.dashboard.previous`, `app.dashboard.select` (payload: dashboard id string). QML, key bindings, and the External API all switch through these (`DispatchActionRequest` gets it free).
 - **Switcher UI:** a dashboard pill row (name chips + add "+" chip) shown in HomeMenu **edit mode only** (the mode that already exists for widget placement), top-center. Tap = switch (dispatches `app.dashboard.select`); long-press a chip = rename/remove sheet; "+" = add. Normal (non-edit) switching: `app.dashboard.next/previous` — bindable to steering-wheel keys later; no always-visible chrome on the driving screen.
 
-### 3.5 Widget size options (HUDIY-parity picker UX)
+### 3.5 Widget size options (paid-alternative-parity picker UX)
 
 Placement today uses `defaultCols×defaultRows` with post-placement edge-drag resize. The picker sheet gains **size preset chips** on the selected widget: the set {1×1, 2×1, 2×2, 3×2} intersected with the descriptor's `[minCols..maxCols]×[minRows..maxRows]`, default chip = descriptor default. Chips only (no free-form input); `WidgetPickerModel` already exposes the needed roles (`DefaultCols/Rows`; add `MinCols/MinRows/MaxCols/MaxRows` roles). Placement calls the existing `placeWidget(widgetId, col, row, colSpan, rowSpan)` with the chosen span — no model changes.
 
