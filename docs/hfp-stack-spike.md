@@ -1,5 +1,8 @@
 # HFP Stack Spike — ofono vs BlueZ on RPi OS Trixie
 
+> **⚠️ CORRECTED 2026-07-05 — read `docs/superpowers/specs/2026-07-05-hfp-call-control-decision.md` first.**
+> Two errors in this doc: (1) the role model is inverted — the head unit is the HFP **HF** role (0x111e), the phone is the AG (0x111f), not the other way around; (2) "send AT commands via BlueZ D-Bus" is not a thing — BlueZ core has no AT-command API. The chosen call-control path is PipeWire's Telephony D-Bus API (`org.pipewire.Telephony.*`, shipped in Trixie's pipewire 1.4.2). The "no ofono, PipeWire handles SCO" conclusion below remains correct.
+
 **Date:** 2026-02-18
 **Hardware:** Raspberry Pi 4, RPi OS Trixie (Debian 13)
 **BlueZ:** 5.82-1.1+rpt1
