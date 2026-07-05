@@ -9,8 +9,6 @@
 #include <QAbstractListModel>
 #include <QTimer>
 #include <QStringList>
-#include <memory>
-#include <vector>
 
 class BluezAgentAdaptor;
 
@@ -63,7 +61,6 @@ signals:
     void pairingActiveChanged();
     void connectedDeviceChanged();
     void needsFirstPairingChanged();
-    void profileNewConnection();  // RFCOMM NewConnection — auto-connect stop signal
 
 private slots:
     void onDevicePropertiesChanged(const QString& interface,
@@ -78,8 +75,6 @@ private:
     void setupAdapter();
     void registerAgent();
     void unregisterAgent();
-    void registerProfiles();
-    void unregisterProfiles();
     void setAdapterProperty(const QString& property, const QVariant& value);
     QVariant getAdapterProperty(const QString& property);
     QString findAdapterPath();
@@ -121,11 +116,6 @@ private:
     bool shutdown_ = false;
     bool needsFirstPairing_ = false;
     QTimer* pairableRenewTimer_ = nullptr;
-
-    // Profile registration state
-    QStringList registeredProfilePaths_;
-    std::vector<std::unique_ptr<QObject>> profileObjects_;
-    std::vector<int> profileFds_;
 
     // Auto-connect state
     QTimer* autoConnectTimer_ = nullptr;

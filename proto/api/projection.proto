@@ -1,0 +1,33 @@
+// OpenAuto Prodigy External API v1 — projection status stream
+// (TOPIC_PROJECTION).
+//
+// Source: the head unit's projection status provider (phone-projection
+// session lifecycle, e.g. wireless Android Auto). States are Prodigy's own
+// enum, mapped server-side by explicit switch — never a numeric passthrough.
+//
+// Delivery: full-snapshot semantics — current ProjectionStatus on subscribe,
+// then a fresh full snapshot on any change.
+
+syntax = "proto3";
+
+package prodigy.api.v1;
+
+enum ProjectionState {
+  PROJECTION_STATE_UNSPECIFIED = 0;
+  PROJECTION_STATE_DISCONNECTED = 1;        // no phone session
+  PROJECTION_STATE_WAITING_FOR_DEVICE = 2;  // advertising/listening
+  PROJECTION_STATE_CONNECTING = 3;          // transport up, session handshaking
+  PROJECTION_STATE_PROJECTING = 4;          // video session active
+  PROJECTION_STATE_BACKGROUNDED = 5;        // session alive, native UI in front
+  reserved 6 to 10;
+}
+
+message ProjectionStatus {
+  ProjectionState state = 1;
+
+  // Human-readable status detail suitable for direct display
+  // (e.g. connection progress or error text). May be empty.
+  string status_message = 2;
+
+  reserved 3 to 10;
+}

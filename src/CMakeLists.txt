@@ -38,6 +38,7 @@ add_library(openauto-core STATIC
     core/services/DisplayService.cpp
     core/services/AudioService.cpp
     core/audio/PipeWireDeviceRegistry.cpp
+    core/audio/ScoNodeMonitor.cpp
     core/audio/EqualizerEngine.cpp
     core/services/IpcServer.cpp
     core/services/EventBus.cpp
@@ -55,6 +56,8 @@ add_library(openauto-core STATIC
     core/services/ProjectionStatusProvider.cpp
     core/services/IPhoneStateService.cpp
     core/services/PhoneStateService.cpp
+    core/services/TelephonyClient.cpp
+    core/services/CallAudioPolicy.cpp
     core/services/IMediaStatusService.cpp
     core/services/MediaStatusService.cpp
     ui/NotificationModel.cpp

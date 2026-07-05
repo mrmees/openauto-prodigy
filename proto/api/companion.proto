@@ -1,0 +1,82 @@
+// OpenAuto Prodigy External API v1 — inbound reports from the companion
+// phone app.
+//
+// The companion app runs on the driver's phone and feeds the head unit data
+// the car otherwise lacks: GPS fix, phone battery state, internet
+// availability (with an optional SOCKS5 proxy the head unit can route
+// through), and wall-clock time (the head unit has no RTC).
+//
+// Delivery: all reports are FIRE-AND-FORGET, client -> server, sent with
+// request_id 0. The server never responds — not even Error; malformed
+// reports are logged and dropped. Send each report whenever its data
+// changes, plus GpsReport at ~1 Hz while the vehicle moves and TimeReport at
+// least once shortly after connecting.
+//
+// Any authenticated client may send reports (v1 has no per-capability ACLs);
+// last writer wins per report type.
+
+syntax = "proto3";
+
+package prodigy.api.v1;
+
+message GpsReport {
+  // WGS84 degrees.
+  double latitude = 1;
+  double longitude = 2;
+
+  // Ground speed, meters/second. 0 when unknown.
+  double speed_mps = 3;
+
+  // Course over ground, degrees clockwise from true north, [0, 360).
+  double bearing_deg = 4;
+
+  // Estimated horizontal accuracy radius, meters. 0 when unknown.
+  double accuracy_m = 5;
+
+  // Age of this fix when sent, milliseconds (how stale the phone's own fix
+  // already was). The head unit treats fixes older than ~30 s as stale.
+  uint32 age_ms = 6;
+
+  // Altitude above the WGS84 ellipsoid, meters.
+  optional double altitude_m = 7;
+
+  reserved 8 to 15;
+}
+
+message BatteryReport {
+  // Phone battery percentage, 0-100.
+  uint32 percent = 1;
+
+  bool charging = 2;
+
+  reserved 3 to 8;
+}
+
+message ConnectivityReport {
+  // True when the phone currently has internet access.
+  bool internet_available = 1;
+
+  // True when the phone is exposing a SOCKS5 proxy for the head unit.
+  // The proxy HOST is implicitly this connection's peer address.
+  bool socks5_active = 2;
+
+  // SOCKS5 port on the phone. Meaningful only when socks5_active is true.
+  uint32 socks5_port = 3;
+
+  // SOCKS5 password, if the phone's proxy requires one (the head unit's
+  // proxy route plumbing takes a password only, no username). Sent in-band:
+  // the connection is already authenticated (paired client) and
+  // WPA2-encrypted on the AP link. Omit when the proxy is open.
+  optional string socks5_password = 4;
+
+  reserved 5 to 10;
+}
+
+// Wall-clock synchronization for the RTC-less head unit. The head unit may
+// step its system clock toward this value.
+message TimeReport {
+  // Current time on the phone, Unix epoch milliseconds (UTC).
+  int64 unix_time_ms = 1;
+
+  reserved 2 to 6;
+}

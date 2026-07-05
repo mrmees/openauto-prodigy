@@ -1,0 +1,69 @@
+// OpenAuto Prodigy External API v1 — shared primitives.
+//
+// Original schema for OpenAuto Prodigy. Not wire- or name-compatible with any
+// other head-unit product, by design.
+//
+// Evolution policy (applies to every file in this package): once frozen,
+// changes are ADDITIVE ONLY — field numbers are never reused, messages are
+// never renamed, semantics never silently change. New capability = new
+// field/message plus a capability flag.
+
+syntax = "proto3";
+
+package prodigy.api.v1;
+
+// Subscribable status stream topics. Availability at runtime is advertised in
+// Capabilities.supported_topics (a provider may be absent, e.g. no projection
+// stack); subscribing to an unavailable topic is rejected per-topic in
+// SubscribeResponse, not an error for the whole request.
+enum Topic {
+  TOPIC_UNSPECIFIED = 0;
+  TOPIC_MEDIA = 1;       // MediaStatus events
+  TOPIC_NAVIGATION = 2;  // NavigationStatus events
+  TOPIC_PROJECTION = 3;  // ProjectionStatus events
+  TOPIC_PHONE = 4;       // PhoneStatus events
+  TOPIC_SYSTEM = 5;      // SystemStatus events
+  // 6..15 reserved for future topics (6 is the anticipated location stream).
+  reserved 6 to 15;
+}
+
+enum ErrorCode {
+  ERROR_CODE_UNSPECIFIED = 0;
+  ERROR_CODE_INVALID_REQUEST = 1;        // malformed/illegal for session state
+  ERROR_CODE_UNSUPPORTED_VERSION = 2;    // ClientHello major version not served
+  ERROR_CODE_NOT_AUTHENTICATED = 3;      // message requires READY state
+  ERROR_CODE_AUTH_FAILED = 4;            // bad challenge proof / unknown client
+  ERROR_CODE_PAIRING_WINDOW_CLOSED = 5;  // pairing_request outside a window
+  ERROR_CODE_NOT_FOUND = 6;              // e.g. dismiss of unknown/foreign id
+  ERROR_CODE_UNKNOWN_ACTION = 7;         // dispatch/unregister of unknown id
+  ERROR_CODE_REJECTED = 8;               // valid but refused (e.g. reserved prefix)
+  ERROR_CODE_UNAVAILABLE = 9;            // capability currently false
+  ERROR_CODE_INTERNAL = 10;              // server-side fault
+  reserved 11 to 20;
+}
+
+// Sent in response to a failed request, echoing that request's request_id in
+// the envelope. request_id 0 = connection-level fault emitted best-effort
+// immediately before a server-initiated disconnect (handshake violation,
+// framing violation, queue overflow).
+// Request-scoped errors never disconnect the session.
+message Error {
+  ErrorCode code = 1;
+  string message = 2;  // human-readable detail; not for programmatic matching
+}
+
+// Generic success response for requests that carry no result payload
+// (e.g. UnsubscribeRequest, DismissNotificationRequest,
+// UnregisterActionsRequest). Echoes the request_id in the envelope.
+message Ack {
+}
+
+// Liveness probe. Legal in READY state, either direction. The receiver
+// answers with Pong echoing the same request_id. The server never initiates
+// pings in v1; TCP clients on lossy links should ping if they care about
+// half-open detection.
+message Ping {
+}
+
+message Pong {
+}

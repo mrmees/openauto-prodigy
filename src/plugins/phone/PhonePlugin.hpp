@@ -3,32 +3,27 @@
 #include "core/plugin/IPlugin.hpp"
 #include <QObject>
 #include <QString>
-#include <QDBusObjectPath>
 #include <QTimer>
 
 class QQmlContext;
-class QDBusServiceWatcher;
 
 namespace oap {
 
 class IHostContext;
+class IPhoneStateService;
 
 namespace plugins {
 
-/// Bluetooth HFP (Hands-Free Profile) phone plugin.
+/// Bluetooth HFP (Hands-Free Profile) phone plugin — UI layer only.
 ///
-/// The Pi acts as HFP Audio Gateway — when a phone pairs, PipeWire + BlueZ
-/// handle SCO audio routing and codec negotiation natively.
+/// Role: the Pi is the HFP Hands-Free (HF) unit; the PHONE is the Audio
+/// Gateway. Call control and state come from the core PhoneStateService
+/// (PipeWire org.pipewire.Telephony backend); SCO audio is routed by
+/// PipeWire/WirePlumber natively. This plugin holds no D-Bus code.
 ///
-/// This plugin provides:
-///   - Dialer UI (number pad, call/hangup)
-///   - Call state monitoring via BlueZ D-Bus (org.bluez.Device1 + telephony)
-///   - Incoming call notification overlay via EventBus
-///   - Audio focus management (calls mute all other audio)
-///
-/// D-Bus interfaces used:
-///   org.freedesktop.DBus.ObjectManager — device/profile add/remove
-///   org.bluez.Device1 — connected device info
+/// Provides:
+///   - Dialer UI (number pad, call/hangup, DTMF passthrough)
+///   - A UI-facing CallState (adds a transient "Ended" flash state)
 class PhonePlugin : public QObject, public IPlugin {
     Q_OBJECT
     Q_INTERFACES(oap::IPlugin)
@@ -42,13 +37,14 @@ class PhonePlugin : public QObject, public IPlugin {
     Q_PROPERTY(QString deviceName READ deviceName NOTIFY connectionChanged)
 
 public:
+    /// UI-facing states. Values are frozen — PhoneView.qml compares ints.
     enum CallState {
         Idle = 0,
-        Dialing,
+        Dialing,     // outgoing (provider Dialing or Alerting)
         Ringing,     // incoming
         Active,
-        HeldActive,  // call on hold
-        Ended
+        HeldActive,  // provider Held/Waiting (unproducible in v1)
+        Ended        // 1.5 s flash after a call ends
     };
     Q_ENUM(CallState)
 
@@ -81,14 +77,14 @@ public:
 
     // Properties
     int callState() const { return callState_; }
-    QString callerNumber() const { return callerNumber_; }
-    QString callerName() const { return callerName_; }
+    QString callerNumber() const;
+    QString callerName() const;
     QString dialedNumber() const { return dialedNumber_; }
-    int callDuration() const { return callDuration_; }
-    bool phoneConnected() const { return phoneConnected_; }
-    QString deviceName() const { return deviceName_; }
+    int callDuration() const;
+    bool phoneConnected() const;
+    QString deviceName() const;
 
-    // Call controls (invokable from QML)
+    // Call controls (invokable from QML) — all forwarded to the service
     Q_INVOKABLE void dial(const QString& number);
     Q_INVOKABLE void answer();
     Q_INVOKABLE void hangup();
@@ -105,30 +101,14 @@ signals:
     void incomingCall(const QString& number, const QString& name);
 
 private:
-    void startDBusMonitoring();
-    void stopDBusMonitoring();
-    void scanExistingDevices();
-    void onInterfacesAdded(const QDBusObjectPath& path, const QVariantMap& interfaces);
-    void onInterfacesRemoved(const QDBusObjectPath& path, const QStringList& interfaces);
-    void onPropertiesChanged(const QString& interface, const QVariantMap& changed,
-                             const QStringList& invalidated);
-    void setCallState(CallState state);
-    void updateCallDuration();
+    void onProviderStateChanged();
+    void setUiState(CallState state);
 
     IHostContext* hostContext_ = nullptr;
-    QDBusServiceWatcher* bluezWatcher_ = nullptr;
-    QTimer* callTimer_ = nullptr;
-    bool monitoring_ = false;
-
+    IPhoneStateService* service_ = nullptr;
+    QTimer* endedFlashTimer_ = nullptr;
     CallState callState_ = Idle;
-    QString callerNumber_;
-    QString callerName_;
     QString dialedNumber_;
-    int callDuration_ = 0;  // seconds
-    bool phoneConnected_ = false;
-    QString deviceName_;
-    QString devicePath_;
-    QString activeCallNotificationId_;
 };
 
 } // namespace plugins

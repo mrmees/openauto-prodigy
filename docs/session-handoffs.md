@@ -4,11 +4,11 @@ Newest entries first.
 
 ---
 
-## 2026-07-02 — HUDIY parity roadmap, repo resync, parallel quick wins
+## 2026-07-02 — Paid-alternative parity roadmap, repo resync, parallel quick wins
 
 **What changed:**
 - Resynced this machine (MINIMEES/WSL) from 1407 commits behind origin; reset CRLF-noise working tree; moved orphaned `libs/aasdk/` leftover out of the repo
-- HUDIY parity gap analysis written and committed (`docs/superpowers/specs/2026-07-02-hudiy-parity-roadmap-design.md`); HUDIY reference materials cloned to `../hudiy-reference/` (their GitHub repo is docs/proto/examples only, **no license → read for understanding, never copy**)
+- Paid-alternative parity gap analysis written (kept in a gitignored private doc, out of the public repo); reference materials for the paid alternative cloned outside the repo (their GitHub repo is docs/proto/examples only, **no license → read for understanding, never copy**)
 - Roadmap promotions (Later): HTML/JS extensibility (spike → runtime), prodigy-private external API (TCP+WS protobuf), multi-dashboard + overlay framework, local media player. Wishlist: FM radio (deferred), companion notifications, key bindings
 - Extensibility plan audited against source: **fully implemented** despite stale NOT STARTED header (EventBus, ActionRegistry, NotificationService, PluginViewHost, lifecycle, contract docs all exist with the plan's tests) — archived to `docs/plans/` with corrected header, along with the completed proto-migration plans
 - Web config panel diagnosed: **code is healthy** (all pages/endpoints verified with mock IpcServer + graceful degradation without Qt app). Root cause was deployment — installers enabled but never started the service → both installers now `systemctl enable --now`
@@ -1021,3 +1021,66 @@ Documentation:
 - Pi cross-compile verification:
   - `./cross-build.sh`
   - Passed: `Build complete: build-pi/src/openauto-prodigy`
+
+---
+
+## 2026-07-05 — Fable Sprint Session 3: Phase D2 (HFP call audio) + Phase E (dashboards/overlays) + Executor Handbook
+
+**What changed (all docs — design only, no implementation, per sprint program):**
+- Phase D2: [`specs/2026-07-05-hfp-call-audio-design.md`](superpowers/specs/2026-07-05-hfp-call-audio-design.md) + [`plans/2026-07-05-hfp-call-audio-implementation.md`](superpowers/plans/2026-07-05-hfp-call-audio-implementation.md) (9 tasks). Key decisions: SCO audio routes via WirePlumber natively (NOT through AudioService's 3-stream model — that model is AA-session-scoped and never coexists with SCO); TelephonyClient (session-bus D-Bus adapter) + ScoNodeMonitor (PipeWire node-state watch) feed a normative call state machine in PhoneStateService (§5 table); `phone.reject_sco_during_aa` defaults **false** (HFP owns call audio always, commercial-HU behavior) pending live check L4; provider command invokables return bool (API FAILED-vs-OK truth); BluetoothManager's dead AG/HSP registration deletion verified safe (`updateConnectedDevice()` at BluetoothManager.cpp:736 already covers auto-connect cancel — `profileNewConnection` wiring was fully redundant).
+- Phase E: [`specs/2026-07-05-dashboards-overlays-design.md`](superpowers/specs/2026-07-05-dashboards-overlays-design.md) + two plans: [`multi-dashboards`](superpowers/plans/2026-07-05-multi-dashboards-implementation.md) (7 tasks: YAML v4 `dashboards[]` + v3 migration, DashboardManager with context-property re-pointing, WebWidget kind, switcher pills, picker size presets) and [`overlay-framework`](superpowers/plans/2026-07-05-overlay-framework-implementation.md) (4 tasks: OverlayService with z-bands + action auto-registration, OverlayHost as root-Repeater, PairingDialog migration proof).
+- Cross-cutting: [`plans/README-executor-handbook.md`](superpowers/plans/README-executor-handbook.md) — pickup workflow, verification gate, guardrails, cross-plan dependency map.
+
+**Bugs found during substrate reading (fixes are plan tasks, not applied):**
+- `IncomingCallOverlay.qml:11` triggers on `callState === 2` = provider **Active**, not Ringing (comment claims Ringing; numbering confusion with PhonePlugin's private enum). Fix in HFP plan Task 7.
+- Shell z-stack violates the arch §6 band contract: IncomingCall (z:1000) above Gesture (999); Pairing/NotificationArea/dim collide at 998. Re-pin is overlay plan Task 2.
+
+**Status:** Sprint phases A, B (proto frozen 875feaf), C1+C2, D1, D2, E, F ALL complete (F as light plans: [`plans/2026-07-05-phase-f-light-plans.md`](superpowers/plans/2026-07-05-phase-f-light-plans.md) — media player, EQ parity audit, 0x8012 experiment protocol, key-event nav sketch). NOT done: HFP live checks L1–L6 (self-contained in design doc §11, needs Pi + phone); JS-runtime impl plan (deliberately deferred until API v1 lands, JS design §9).
+
+**Next steps:**
+1. Execute plans per handbook dependency map (external-api-v1 and hfp-call-audio are the "Now" roadmap items).
+2. Run HFP design doc §11 checklist L1–L6 when Matthew + phone are available (L4 decides the reject_sco default).
+3. Sprint end: PR `fable-design-sprint` → main (ask Matthew before push).
+
+**Verification:** docs-only session — no build/test cycle applicable. All commits on `fable-design-sprint`: 3762fd9 (D2 design), 5ff16e6 (D2 plan), 4560117 (E design), daee267 (E plans), plus this handoff.
+
+---
+
+## 2026-07-05 — HFP Call Audio (D2) — Implementation Execution (Fable, live hardware)
+
+**Branch:** `hfp-call-audio` off `fable-design-sprint` (10 commits). NOT merged to fable-design-sprint. Sprint-docs PR to main still pending Matthew's go-ahead.
+
+**What changed — all 9 plan tasks executed, TDD per task, 91/91 tests green:**
+- **T1** `refactor(bt)`: deleted dead HFP AG/HSP profile registration from BluetoothManager (`BluezProfile1Handler`, `registerProfiles`/`unregisterProfiles`, `profileNewConnection`) — 129 lines. Verified redundant (`updateConnectedDevice()` already cancels auto-connect). Kills the boot-order race + "UUID already registered" spam.
+- **T2** `feat(phone)`: `TelephonyClient` — session-bus D-Bus adapter to `org.pipewire.Telephony` (AG/transport/Call1 tracking, Dial/Answer/HangupAll/SendTones, RejectSCO).
+- **T3** `feat(audio)`: `ScoNodeMonitor` — PipeWire registry watch for `headset-audio-gateway` node RUNNING state; `AudioService::pwThreadLoop()/pwCore()` accessors.
+- **T4** `feat(phone)`: widened `ICallStateProvider` (Dialing/Alerting/Held/Waiting, bool commands), added `dial/sendDtmf/telephonyAvailable` to `IPhoneStateService`, implemented the §5 state machine in `PhoneStateService`; `phone.reject_sco_during_aa` + `phone.settle_grace_ms` config keys. 12 new state-machine tests. Mock mode preserved.
+- **T5** `feat(phone)`: `CallAudioPolicy` — RejectSCO follows projection state.
+- **T6** `feat(phone)`: wired TelephonyClient/ScoNodeMonitor/CallAudioPolicy in main.cpp.
+- **T7** `refactor(phone)`: PhonePlugin gutted to a pure view over `IPhoneStateService` (−363 lines of duplicate BlueZ); fixed role-inverted header comment; fixed `IncomingCallOverlay.qml` triggering on Active (`=== 2`) instead of Ringing (`=== 1`).
+- **T8**: API integration — `src/core/api/` is empty (only `.gitkeep`), so took the "API lands later" branch; note left above for the API executor.
+- **T9**: final gate + Pi deploy + live checks (below).
+
+**Deviations from the design (all recorded in the design doc in place, with evidence):**
+1. **[live-found implementation bug, then fixed]** `InterfacesAdded/Removed` for Call1 are emitted by a **per-AG ObjectManager** (`/org/pipewire/Telephony/ag1`), not the root — subscription changed to service-wide (empty path). Design §4.1 amended.
+2. **[live-found, THE fix that made calls work]** QtDBus silently drops `InterfacesAdded` when the slot takes `QVariantMap`: the payload is `a{sa{sv}}`, which needs a registered metatype. Added `oap::InterfaceMap` (`QMap<QString,QVariantMap>`) + `Q_DECLARE_METATYPE` + `qDBusRegisterMetaType`. Codex independently confirmed root cause; also added explicit wire-signatures + logged connect() bools as hardening. (Codex also flagged the BlueZ `InterfacesAdded` handler in PhoneStateService uses the same bad signature but is masked because it ignores its payload and re-reads via QDBusInterface — pre-existing, not touched.)
+3. **[from L2 evidence]** New §5 row: setup + Call1 `State→"disconnected"` → Idle immediately (skip Settling). Live-verified reject path.
+4. **[from L1 evidence]** Transport `Codec` is a **byte** (1=CVSD/2=mSBC/3=LC3-SWB), not a string. `TelephonyClient` maps it.
+
+**Live checks L1–L6 (Pixel 8, Pi at 192.168.1.149 — DHCP drift from .152; results in design §11):**
+- **L1 topology: DONE.** Transport iface shares the ag1 object; codec is a byte; Address empty in the InterfacesAdded payload (present via introspection).
+- **L2 Call1 sequence: DONE.** Call1 State→"active" fires before InterfacesRemoved → clean path is PRIMARY; Call1 persists through the call on Pixel 8 (softer than D1's ephemerality claim). Reject emits "disconnected". Transport "active" during ring = in-band ringtone.
+- **L3 DTMF: NOT RUN** (pre-empted by L6). SendTones wired + unit-tested; AG method confirmed in L1.
+- **L4 RejectSCO under AA: PARTIAL.** Baseline (`false`) works, downlink audio over SCO during AA, no obvious video stutter (not rigorously timed). Reject-true half not exercised. **Verdict: keep default `false`** — no evidence to flip.
+- **L5 interop: NOT RUN** — only Pixel 8 available (confirmed working). Samsung/Moto pending.
+- **L6 audio quality: PARTIAL — one OPEN interop bug.** Downlink (phone→car) WORKS. **Uplink (car mic→far end) SILENT at far end.** Exhaustively isolated: mic hardware good (ALSA 19% FS, works on Windows), PipeWire captures it (18% FS during call), graph correct+live (mic→`bluez_output` linked, Running, vol 1.0, LC3-SWB). Audio reaches the SCO uplink node correctly but the far end hears nothing → **platform-level PipeWire/BlueZ SCO uplink-encode or phone-decode issue, NOT a prodigy defect** (likely LC3-SWB-specific; D1 never verified far-end uplink audio, so latent since D1). mSBC-force diagnostic was INCONCLUSIVE (`bluez5.codecs` drop-in didn't gate HFP SWB; removed, Pi restored clean).
+
+**State machine works end-to-end (journal-verified):** `Call setup: incoming +1512…` → `call state Idle→Ringing` → (answer) `Ringing→Active` → (hangup) `Active→Idle`; reject → `Ringing→Idle` immediately.
+
+**Next steps (open items, none block the D2 code which is complete + verified):**
+1. **L6 mic uplink** — find the correct PipeWire/WirePlumber HFP-codec property to force mSBC/CVSD (NOT `bluez5.codecs`); if mSBC uplink is audible → LC3-SWB PipeWire/BlueZ bug, file upstream + pin fallback. Or capture BlueZ SCO debug logs.
+2. **Persistent in-call control** (→ wishlist) — no hangup affordance once a call is Active and you're off the Phone view; belongs in the Phase E overlay framework, bound to `callState == Active`.
+3. **L3/L4-reject/L5** — remaining live checks (DTMF via IVR, RejectSCO=true comparison, Samsung/Moto interop).
+4. Wire API Tasks 7/11 to the widened provider when API v1 lands (T8 note above).
+
+**Verification:** local `cmake && make && ctest` = 91/91 across every task; `./cross-build.sh` succeeded each deploy; deployed to Pi (.149), service active, journal clean (no "UUID already registered"). Builds moved to an ext4 out-of-source dir (`~/builds/openauto-prodigy`) with ccache — WSL drvfs relinking was the bottleneck; source tree untouched.

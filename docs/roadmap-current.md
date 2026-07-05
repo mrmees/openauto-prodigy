@@ -2,6 +2,8 @@
 
 Governance: capture new ideas in `docs/wishlist.md`; only promoted items should appear in this roadmap.
 
+> **Design sprint 2026-07-05:** deep design docs + implementation plans for the parity items below are being produced ahead of the roadmap's execution order (see `docs/superpowers/specs/2026-07-05-fable-work-program-design.md`). This changes design attention only — the "Now" items keep their delivery priority; HFP execution is in fact unblocked by the sprint's Phase D. Do not read the sprint doc and this roadmap as conflicting.
+
 ## Done (recent)
 
 - Wireless BT AA flow — RFCOMM server + SDP registration + TCP listener. Phone discovers, pairs, and connects without manual scripts. COMPLETE.
@@ -42,14 +44,17 @@ Governance: capture new ideas in `docs/wishlist.md`; only promoted items should 
   - Remaining: a general startup-log audit on the Pi to catch any other noise sources.
 - Plugin system expansion (OBD-II, backup camera, GPIO control).
 - Theme engine and user-facing theme selection.
-- HTML/JS extensibility — spike, then runtime. (HUDIY parity; see `docs/superpowers/specs/2026-07-02-hudiy-parity-roadmap-design.md`.)
-  - Rationale: HTML/JS widgets/apps as a primary path for developing new features going forward; HUDIY validates the model (embedded web views + JS bridge). Spike first: Qt WebEngine memory/perf on Pi 4 go/no-go. Packaging gate already verified: `qml6-module-qtwebengine` 6.8.2+dfsg-4 exists in Debian Trixie arm64 (checked 2026-07-02), matching our Qt 6.8.2 — the spike is purely a runtime memory/perf question.
+- HTML/JS extensibility — spike, then runtime. (Parity with paid alternatives.)
+  - Rationale: HTML/JS widgets/apps as a primary path for developing new features going forward; paid alternatives validate the model (embedded web views + JS bridge). Spike first: Qt WebEngine memory/perf on Pi 4 go/no-go. Packaging gate already verified: `qml6-module-qtwebengine` 6.8.2+dfsg-4 exists in Debian Trixie arm64 (checked 2026-07-02), matching our Qt 6.8.2 — the spike is purely a runtime memory/perf question.
   - Outcome: WebEngine-based widgets/apps/overlays with a `prodigy` JS object (theme tokens, input events, API access), gated on spike results.
 - External API (TCP + WebSocket, protobuf).
-  - Rationale: an external integration surface (status streams, action dispatch, notifications) is HUDIY's biggest moat and the backbone the JS bridge talks to. Prodigy-private original schema — no HUDIY wire compatibility (their repo is unlicensed).
+  - Rationale: an external integration surface (status streams, action dispatch, notifications) is the paid alternatives' biggest moat and the backbone the JS bridge talks to. Prodigy-private original schema — no wire compatibility with any paid alternative (their code is unlicensed).
   - Outcome: API v1 exposing media/nav/projection/phone status streams, action dispatch/register, and notification/toast display.
+- Companion app migration to API v1.
+  - The companion app **already exists and is well established** — Android (Kotlin/Gradle) app at `personal/openautopro/openauto-companion` (sibling repo, own AGENTS.md/docs). The 2026-07-05 arch decision "REPLACE" means *replace the wire protocol*, not the app: it migrates from the legacy port-9876 JSON/HMAC protocol (`CompanionListenerService`) to API v1 (`proto/api/`, WebSocket + PIN pairing, inbound reports per `companion.proto`). After migration, `CompanionListenerService` and port 9876 retire on the head-unit side.
+  - Outcome: companion app speaks API v1 (GPS/battery/connectivity/time reports, pairing); legacy companion listener deleted.
 - Multi-dashboard support + general overlay framework.
-  - Rationale: the v0.6 widget-grid home screen already gives users a composable widget surface (WidgetGridModel/WidgetPickerModel). Remaining HUDIY delta: multiple named dashboards, widget size options (2 widths × 3 heights), web-view widgets, and configurable overlays (position/size/visibility via actions/API, split-screen).
+  - Rationale: the v0.6 widget-grid home screen already gives users a composable widget surface (WidgetGridModel/WidgetPickerModel). Remaining delta vs paid alternatives: multiple named dashboards, widget size options (2 widths × 3 heights), web-view widgets, and configurable overlays (position/size/visibility via actions/API, split-screen).
   - Outcome: multiple config-driven dashboards with sized widgets (native + web), generalized overlay system alongside the current purpose-built overlays.
 - Local media player plugin.
   - Rationale: local file playback with metadata/cover art is table stakes for a head unit; prodigy currently only plays BT audio.

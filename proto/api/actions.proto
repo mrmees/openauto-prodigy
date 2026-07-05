@@ -1,0 +1,106 @@
+// OpenAuto Prodigy External API v1 — action discovery, dispatch, and
+// client-registered actions.
+//
+// Actions are the head unit's uniform mutation surface: named operations
+// ("media.playPause", "app.openSettings", ...) dispatched by the UI, key
+// bindings, and this API through one path. Anything the head unit exposes as
+// an action is reachable here without schema changes — this is how the API
+// acquires new capabilities (e.g. overlay controls) "for free".
+//
+// Clients may also REGISTER their own actions, making them dispatchable by
+// the head unit (and other clients). A registered action's invocations are
+// delivered to the owning session as ActionInvokedEvent. All of a session's
+// registrations are automatically removed when the session disconnects.
+//
+// Naming: action ids are dotted lowercase strings. The prefixes "app.",
+// "aa.", "navbar.", "theme.", "media.", "phone.", "system.", "overlay." and
+// "api." are reserved for the head unit; registrations under them are
+// rejected. Use an application prefix or reverse-dns for your own ids
+// (e.g. "obddash.startLogging").
+
+syntax = "proto3";
+
+package prodigy.api.v1;
+
+message ActionInfo {
+  string id = 1;
+
+  // Display label. Best-effort: empty for head-unit built-ins in v1 (the
+  // registry keeps no metadata yet); populated for client-registered actions
+  // from their ActionSpec.
+  string label = 2;
+
+  // True if a connected API client registered this action.
+  bool client_owned = 3;
+
+  reserved 4 to 10;  // category/icon are anticipated additions
+}
+
+// Enumerate all currently-registered actions (built-in + client-registered).
+message ListActionsRequest {
+}
+
+message ListActionsResponse {
+  repeated ActionInfo actions = 1;
+}
+
+// Dispatch an action by id.
+message DispatchActionRequest {
+  string id = 1;
+
+  // Optional action argument, JSON-encoded. Conventions per action; existing
+  // built-ins take a bare JSON value (e.g. "85" for aa.sendButton's keycode,
+  // "\"org.openauto.phone\"" for app.launchPlugin). Omit when the action
+  // takes no argument.
+  optional string payload_json = 2;
+}
+
+message DispatchActionResponse {
+  // False when no action with that id exists. (Handler-level failures are
+  // not observable in v1 — dispatch is fire-into-the-registry.)
+  bool dispatched = 1;
+}
+
+message ActionSpec {
+  string id = 1;
+
+  // Display label shown wherever the head unit lists actions.
+  string label = 2;
+
+  reserved 3 to 8;
+}
+
+// Register one or more actions owned by this session. Per-action results:
+// a registration is rejected if the id is already registered or uses a
+// reserved prefix (see file header). Partial success is normal.
+message RegisterActionsRequest {
+  repeated ActionSpec actions = 1;
+}
+
+message ActionRegistrationResult {
+  string id = 1;
+  bool accepted = 2;
+
+  // Reason when accepted is false (e.g. "duplicate id", "reserved prefix").
+  string reason = 3;
+}
+
+message RegisterActionsResponse {
+  repeated ActionRegistrationResult results = 1;
+}
+
+// Remove this session's own registrations. Ids not owned by this session are
+// silently skipped. Response: Ack.
+message UnregisterActionsRequest {
+  repeated string ids = 1;
+}
+
+// Server -> owning client: one of this session's registered actions was
+// dispatched (by the head unit UI, a key binding, or another API client).
+// Sent with request_id 0.
+message ActionInvokedEvent {
+  string id = 1;
+
+  // JSON-encoded dispatch argument, if the dispatcher supplied one.
+  optional string payload_json = 2;
+}

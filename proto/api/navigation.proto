@@ -1,0 +1,73 @@
+// OpenAuto Prodigy External API v1 — navigation status stream
+// (TOPIC_NAVIGATION).
+//
+// Source: the head unit's navigation provider (turn-by-turn data surfaced by
+// the projection session). v1 carries NEXT-MANEUVER data only — there is no
+// ETA, destination, or total-remaining-distance in the underlying provider;
+// those arrive additively if/when the provider grows them.
+//
+// Maneuver and side values are Prodigy's own enums, mapped server-side from
+// the source's internal codes; unmappable codes surface as
+// MANEUVER_TYPE_OTHER, never as raw integers.
+//
+// Delivery: full-snapshot semantics — current NavigationStatus on subscribe,
+// then a fresh full snapshot on any change (coalesced per event-loop turn).
+
+syntax = "proto3";
+
+package prodigy.api.v1;
+
+enum ManeuverType {
+  MANEUVER_TYPE_UNSPECIFIED = 0;
+  MANEUVER_TYPE_OTHER = 1;  // source code with no mapping; road_name /
+                            // formatted_distance remain usable
+  MANEUVER_TYPE_DEPART = 2;
+  MANEUVER_TYPE_STRAIGHT = 3;
+  MANEUVER_TYPE_KEEP = 4;    // keep left/right at a split (see turn_side)
+  MANEUVER_TYPE_TURN = 5;    // normal turn (see turn_side)
+  MANEUVER_TYPE_SHARP_TURN = 6;
+  MANEUVER_TYPE_SLIGHT_TURN = 7;
+  MANEUVER_TYPE_U_TURN = 8;
+  MANEUVER_TYPE_ON_RAMP = 9;
+  MANEUVER_TYPE_OFF_RAMP = 10;
+  MANEUVER_TYPE_FORK = 11;
+  MANEUVER_TYPE_MERGE = 12;
+  MANEUVER_TYPE_ROUNDABOUT_ENTER = 13;
+  MANEUVER_TYPE_ROUNDABOUT_EXIT = 14;
+  MANEUVER_TYPE_ROUNDABOUT_ENTER_AND_EXIT = 15;
+  MANEUVER_TYPE_FERRY = 16;
+  MANEUVER_TYPE_DESTINATION = 17;
+  MANEUVER_TYPE_NAME_CHANGE = 18;  // road name changes, no turn
+  reserved 19 to 30;
+}
+
+enum TurnSide {
+  TURN_SIDE_UNSPECIFIED = 0;  // not applicable (e.g. STRAIGHT, DESTINATION)
+  TURN_SIDE_LEFT = 1;
+  TURN_SIDE_RIGHT = 2;
+  reserved 3 to 6;
+}
+
+message NavigationStatus {
+  // True while turn-by-turn guidance is active. When false, all other fields
+  // are empty/zero and should be ignored.
+  bool nav_active = 1;
+
+  // Road/exit name for the next maneuver, as provided by the source.
+  string road_name = 2;
+
+  ManeuverType maneuver = 3;
+  TurnSide turn_side = 4;
+
+  // Distance to the next maneuver in meters. 0 when unknown — check
+  // formatted_distance, which may still carry a display string.
+  int32 distance_meters = 5;
+
+  // Display-ready localized distance string (e.g. "500 ft", "1.2 km"),
+  // pre-formatted by the source. Prefer this for direct display.
+  string formatted_distance = 6;
+
+  // 7..15 reserved for future additive fields (instruction text, ETA,
+  // destination are anticipated).
+  reserved 7 to 15;
+}

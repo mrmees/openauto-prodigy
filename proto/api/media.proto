@@ -1,0 +1,54 @@
+// OpenAuto Prodigy External API v1 — media status stream (TOPIC_MEDIA).
+//
+// Source: the head unit's media status service, which arbitrates between
+// Bluetooth (A2DP/AVRCP) and projection (Android Auto) sources. The API never
+// exposes raw source-native state codes; everything is normalized server-side
+// to the enums below.
+//
+// Delivery: full-snapshot semantics. On subscribe, the current MediaStatus is
+// sent immediately; afterwards a fresh full MediaStatus is sent whenever any
+// field changes (bursts within one server event-loop turn are coalesced into
+// one message). Latest message wins; clients keep no merge logic.
+//
+// Media transport CONTROL is not a typed request — dispatch the built-in
+// actions "media.playPause", "media.next", "media.previous" (actions.proto).
+
+syntax = "proto3";
+
+package prodigy.api.v1;
+
+enum MediaSource {
+  MEDIA_SOURCE_UNSPECIFIED = 0;
+  MEDIA_SOURCE_NONE = 1;          // no active media source
+  MEDIA_SOURCE_BLUETOOTH = 2;     // A2DP/AVRCP
+  MEDIA_SOURCE_ANDROID_AUTO = 3;  // projection media channel
+  reserved 4 to 10;
+}
+
+enum PlaybackState {
+  PLAYBACK_STATE_UNSPECIFIED = 0;  // unknown / not reported by source
+  PLAYBACK_STATE_STOPPED = 1;
+  PLAYBACK_STATE_PLAYING = 2;
+  PLAYBACK_STATE_PAUSED = 3;
+  reserved 4 to 10;
+}
+
+message MediaStatus {
+  // True when the active source reports any track metadata.
+  bool has_media = 1;
+
+  string title = 2;
+  string artist = 3;
+  string album = 4;
+
+  PlaybackState playback_state = 5;
+  MediaSource source = 6;
+
+  // Name of the media app on the phone (projection source only; empty for
+  // Bluetooth).
+  string app_name = 7;
+
+  // 8..15 reserved for future additive fields (track position/duration are
+  // the anticipated additions once the underlying service carries them).
+  reserved 8 to 15;
+}

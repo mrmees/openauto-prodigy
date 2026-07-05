@@ -75,6 +75,8 @@ void TestConfigKeyCoverage::testAllRuntimeKeys()
         "navbar.edge",
         "navbar.show_during_aa",
         "touch.device",
+        "phone.reject_sco_during_aa",
+        "phone.settle_grace_ms",
     };
 
     for (const auto& key : keys) {

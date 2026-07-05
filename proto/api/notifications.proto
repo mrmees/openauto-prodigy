@@ -1,0 +1,51 @@
+// OpenAuto Prodigy External API v1 — posting notifications on the head unit.
+//
+// v1 exposes toast display only: a single short message string rendered by
+// the head unit's notification UI (there is no title/body split in the
+// renderer). System-internal notification kinds (incoming-call banners,
+// status icons) are not postable through the API.
+//
+// Ownership: a session may dismiss ONLY notifications it posted. Dismissing
+// anything else fails with ERROR_CODE_NOT_FOUND (indistinguishable from an
+// unknown id, deliberately). Notifications posted by a session are NOT
+// auto-dismissed on disconnect — a persistent toast someone posted on
+// purpose survives its poster.
+
+syntax = "proto3";
+
+package prodigy.api.v1;
+
+enum NotificationKind {
+  NOTIFICATION_KIND_UNSPECIFIED = 0;  // treated as TOAST in v1
+  NOTIFICATION_KIND_TOAST = 1;
+  reserved 2 to 8;
+}
+
+message PostNotificationRequest {
+  NotificationKind kind = 1;
+
+  // The text to display. Keep it short; the renderer is a toast, not a page.
+  string message = 2;
+
+  // 0-100; higher sorts above lower in concurrent display. Values outside
+  // the range are clamped. When omitted, the head unit's standard priority
+  // (50) applies; an explicit 0 is honored as lowest priority.
+  optional uint32 priority = 3;
+
+  // Auto-dismiss after this many milliseconds. 0 = persistent until
+  // explicitly dismissed.
+  uint32 ttl_ms = 4;
+
+  reserved 5 to 12;
+}
+
+message PostNotificationResponse {
+  // Server-assigned id, usable in DismissNotificationRequest.
+  string notification_id = 1;
+}
+
+// Response: Ack on success; Error{NOT_FOUND} for unknown ids and
+// notifications this session does not own.
+message DismissNotificationRequest {
+  string notification_id = 1;
+}

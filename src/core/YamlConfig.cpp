@@ -48,6 +48,9 @@ void YamlConfig::initDefaults()
 
     root_["touch"]["device"] = "";
 
+    root_["phone"]["reject_sco_during_aa"] = false;  // design §6: flip only after live check L4
+    root_["phone"]["settle_grace_ms"] = 2000;
+
     root_["video"]["fps"] = 30;
     root_["video"]["resolution"] = "720p";
     root_["video"]["dpi"] = 140;
