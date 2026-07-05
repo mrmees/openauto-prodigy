@@ -168,6 +168,8 @@ oap_add_test(test_api_framing SOURCES test_api_framing.cpp)
 oap_add_test(test_api_auth SOURCES test_api_auth.cpp)
 oap_add_test(test_api_pairing SOURCES test_api_pairing.cpp)
 oap_add_test(test_api_serializers SOURCES test_api_serializers.cpp)
+oap_add_test(test_api_transports SOURCES test_api_transports.cpp)
+set_tests_properties(test_api_transports PROPERTIES ENVIRONMENT "QT_QPA_PLATFORM=offscreen")
 
 # --- Script tests (no compilation) ---
 
