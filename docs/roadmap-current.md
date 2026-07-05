@@ -2,6 +2,8 @@
 
 Governance: capture new ideas in `docs/wishlist.md`; only promoted items should appear in this roadmap.
 
+> **Design sprint 2026-07-05:** deep design docs + implementation plans for the parity items below are being produced ahead of the roadmap's execution order (see `docs/superpowers/specs/2026-07-05-fable-work-program-design.md`). This changes design attention only — the "Now" items keep their delivery priority; HFP execution is in fact unblocked by the sprint's Phase D. Do not read the sprint doc and this roadmap as conflicting.
+
 ## Done (recent)
 
 - Wireless BT AA flow — RFCOMM server + SDP registration + TCP listener. Phone discovers, pairs, and connects without manual scripts. COMPLETE.
