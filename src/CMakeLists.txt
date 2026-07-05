@@ -6,6 +6,7 @@ add_library(openauto-core STATIC
     core/api/ApiFramer.cpp
     core/api/ApiAuth.cpp
     core/api/PairingManager.cpp
+    core/api/ApiSerializers.cpp
     core/system/HostapdConfig.cpp
     core/aa/VideoDecoder.cpp
     core/aa/DmaBufVideoBuffer.cpp
