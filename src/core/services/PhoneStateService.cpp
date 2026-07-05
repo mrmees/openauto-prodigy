@@ -251,6 +251,7 @@ void PhoneStateService::setIncomingCall(const QString& number, const QString& na
 void PhoneStateService::setCallStateInternal(ICallStateProvider::CallState state)
 {
     if (state == callState_) return;
+    qInfo() << "PhoneStateService: call state" << callState_ << "→" << state;
     callState_ = state;
 
     if (state == ICallStateProvider::Active) {

@@ -6,6 +6,7 @@
 #include <QDBusPendingCallWatcher>
 #include <QDBusArgument>
 #include <QDBusVariant>
+#include <QDBusMetaType>
 #include <QLoggingCategory>
 
 Q_LOGGING_CATEGORY(lcTel, "oap.telephony")
@@ -41,6 +42,7 @@ TelephonyClient::~TelephonyClient() { stop(); }
 void TelephonyClient::start()
 {
     if (started_) return;
+    qDBusRegisterMetaType<oap::InterfaceMap>();
     auto bus = QDBusConnection::sessionBus();
     if (!bus.isConnected()) {
         qCWarning(lcTel) << "No session bus — telephony disabled";
@@ -56,12 +58,23 @@ void TelephonyClient::start()
     // Empty path = all objects of the service. REQUIRED for InterfacesAdded/
     // InterfacesRemoved: Call1 children are announced by a PER-AG ObjectManager
     // at /org/pipewire/Telephony/agN, not by the root (live-verified, L2).
-    bus.connect(kService, QString(), kObjMgrIface, QStringLiteral("InterfacesAdded"),
-        this, SLOT(onInterfacesAdded(QDBusObjectPath,QVariantMap)));
-    bus.connect(kService, QString(), kObjMgrIface, QStringLiteral("InterfacesRemoved"),
+    // Slot takes oap::InterfaceMap (registered above) — QtDBus cannot deliver
+    // a{sa{sv}} into a QVariantMap slot and drops the signal silently. The
+    // explicit wire signature makes the type match unambiguous; the bool
+    // return is logged so a future signature mismatch cannot fail silently
+    // again (this bug cost a live debugging session — 2026-07-05).
+    const bool okAdded = bus.connect(kService, QString(), kObjMgrIface,
+        QStringLiteral("InterfacesAdded"), QStringLiteral("oa{sa{sv}}"),
+        this, SLOT(onInterfacesAdded(QDBusObjectPath,oap::InterfaceMap)));
+    const bool okRemoved = bus.connect(kService, QString(), kObjMgrIface,
+        QStringLiteral("InterfacesRemoved"), QStringLiteral("oas"),
         this, SLOT(onInterfacesRemoved(QDBusObjectPath,QStringList)));
-    bus.connect(kService, QString(), kPropsIface, QStringLiteral("PropertiesChanged"),
+    const bool okProps = bus.connect(kService, QString(), kPropsIface,
+        QStringLiteral("PropertiesChanged"),
         this, SLOT(onPropertiesChanged(QString,QVariantMap,QStringList,QDBusMessage)));
+    if (!okAdded || !okRemoved || !okProps)
+        qCWarning(lcTel) << "D-Bus signal subscription failed:" << "InterfacesAdded" << okAdded
+                         << "InterfacesRemoved" << okRemoved << "PropertiesChanged" << okProps;
 
     started_ = true;
 
@@ -74,7 +87,7 @@ void TelephonyClient::stop()
     if (!started_) return;
     auto bus = QDBusConnection::sessionBus();
     bus.disconnect(kService, QString(), kObjMgrIface, QStringLiteral("InterfacesAdded"),
-        this, SLOT(onInterfacesAdded(QDBusObjectPath,QVariantMap)));
+        this, SLOT(onInterfacesAdded(QDBusObjectPath,oap::InterfaceMap)));
     bus.disconnect(kService, QString(), kObjMgrIface, QStringLiteral("InterfacesRemoved"),
         this, SLOT(onInterfacesRemoved(QDBusObjectPath,QStringList)));
     bus.disconnect(kService, QString(), kPropsIface, QStringLiteral("PropertiesChanged"),
@@ -159,23 +172,6 @@ void TelephonyClient::scanExistingObjects()
     arg.endMap();
 }
 
-QVariantMap TelephonyClient::demarshalProps(const QVariant& v)
-{
-    QVariantMap out;
-    const QDBusArgument arg = qvariant_cast<QDBusArgument>(v);
-    arg.beginMap();
-    while (!arg.atEnd()) {
-        arg.beginMapEntry();
-        QString key;
-        QDBusVariant val;
-        arg >> key >> val;
-        out[key] = val.variant();
-        arg.endMapEntry();
-    }
-    arg.endMap();
-    return out;
-}
-
 void TelephonyClient::adoptAg(const QString& path, const QVariantMap& props)
 {
     if (!agPath_.isEmpty() && agPath_ != path) {
@@ -214,21 +210,20 @@ void TelephonyClient::adoptCall(const QString& path, const QVariantMap& props)
         qCInfo(lcTel) << "Additional Call1 during setup:" << path;
     }
     callPath_ = path;
-    emit callSetupStarted(
-        props.value(QStringLiteral("State")).toString(),
-        props.value(QStringLiteral("LineIdentification")).toString(),
-        props.value(QStringLiteral("Name")).toString());
+    const QString state = props.value(QStringLiteral("State")).toString();
+    const QString line = props.value(QStringLiteral("LineIdentification")).toString();
+    qCInfo(lcTel) << "Call setup:" << state << line;
+    emit callSetupStarted(state, line, props.value(QStringLiteral("Name")).toString());
 }
 
-void TelephonyClient::onInterfacesAdded(const QDBusObjectPath& path, const QVariantMap& interfaces)
+void TelephonyClient::onInterfacesAdded(const QDBusObjectPath& path, const oap::InterfaceMap& interfaces)
 {
-    // interfaces: keys are interface names; values are QDBusArgument-wrapped a{sv}.
     if (interfaces.contains(kAgIface))
-        adoptAg(path.path(), demarshalProps(interfaces.value(kAgIface)));
+        adoptAg(path.path(), interfaces.value(kAgIface));
     if (interfaces.contains(kTransportIface))
-        adoptTransport(path.path(), demarshalProps(interfaces.value(kTransportIface)));
+        adoptTransport(path.path(), interfaces.value(kTransportIface));
     if (interfaces.contains(kCallIface))
-        adoptCall(path.path(), demarshalProps(interfaces.value(kCallIface)));
+        adoptCall(path.path(), interfaces.value(kCallIface));
 }
 
 void TelephonyClient::onInterfacesRemoved(const QDBusObjectPath& path, const QStringList& interfaces)

@@ -253,6 +253,8 @@ busctl --user call org.pipewire.Telephony /org/pipewire/Telephony/ag1 \
 ```
 Confirm the IVR reacts. Failure here = `can_send_dtmf` must be decoupled from `telephonyAvailable()` (make it its own flag, hard-false) — flag to the designer via session handoff before shipping the capability as true.
 
+> **L3 RESULT (2026-07-05):** NOT RUN this session — the outgoing-call/DTMF pass was pre-empted by the L6 mic-uplink investigation (below). `SendTones` wiring is implemented and unit-tested; the D-Bus method exists on the AG object (confirmed in L1 introspection). Pending an IVR call. No blocker — `can_send_dtmf` stays coupled to `telephonyAvailable()` as designed until L3 disproves it.
+
 **L4 — RejectSCO behavior under AA (15 min, Pixel 8 — THE config-default decider).** With AA projecting:
 1. Baseline (`RejectSCO=false`, our default): place/receive a call. Where does audio flow (car speakers via SCO / handset)? Does AA video stutter during the call (2.4 GHz coexistence)? `pw-cli ls Node | grep bluez` — SCO node states during call.
 2. Then set:
@@ -263,9 +265,23 @@ busctl --user set-property org.pipewire.Telephony <transport-path> \
 Call again. Does call audio route through the AA session (car speakers, no SCO nodes running) or stay on the handset?
 Decision rule: default stays `false` unless (1) shows unusable AA degradation AND (2) shows working call-over-AA audio. Record the verdict next to §6.
 
+> **L4 RESULT (2026-07-05, Pixel 8, partial):** Baseline (`RejectSCO=false`) exercised with AA projecting — the state machine drove Idle→Ringing→Active→Idle correctly through several calls with AA live, and **downlink (phone→car) audio worked over SCO during projection**. AA video was **not observed to stutter** during calls, but this was not rigorously timed/measured, so treat as "no obvious degradation" rather than a clean pass. The `RejectSCO=true` half (does call route over the AA session instead) was **not** exercised. **Verdict: keep default `false`** — no evidence found to justify flipping, consistent with §6's rationale. Full L4 (the reject-true comparison + timed video assessment) remains open, but the shipped default stands.
+
 **L5 — Interop pass (10 min per phone: Samsung S25 Ultra, Moto G Play 2024).** Pair, HFP-connect, then per phone: codec (`busctl --user get-property ... AudioGatewayTransport1 Codec` during a call), incoming ring → answer from head unit, outgoing dial via `Dial()`, hangup via `HangupAll()`, caller-ID presence (`LineIdentification`/`Name` on the Call1 object during ring — from the L2 monitor).
 
+> **L5 RESULT (2026-07-05):** NOT RUN — only the Pixel 8 (daily phone) was on hand. Pixel 8 is confirmed working for call control (incoming ring, answer-from-head-unit, caller-ID `+15127733773` present, codec LC3-SWB). Samsung S25 Ultra / Moto G Play 2024 interop remains open.
+
 **L6 — Volume & audio quality (in-car, 10 min).** During an active call: phone volume rocker — does downlink volume on the car speakers track it (PipeWire HFP volume sync)? Subjective mic/speaker quality both directions (echo, level). If the mic is wrong/silent: `wpctl status` → is the default source the intended mic (§3 limitations table)?
+
+> **L6 RESULT (2026-07-05, Pixel 8, bench — PARTIAL, one open interop bug):**
+> - **Downlink (phone → head unit speakers): WORKS.** Far-end voice audible on the car output during the call.
+> - **Uplink (head unit mic → far end): SILENT at the far end — OPEN ISSUE, platform-level, NOT a prodigy defect.** Exhaustively isolated on the Pi during a live call:
+>   - Mic hardware good: `arecord -D plughw:3,0` captured speech at **19% FS**; same dongle+mic worked on a Windows box.
+>   - PipeWire capture good: `pw-record` from the default source (node id of `alsa_input.usb-C-Media…mono-fallback`) captured speech at **18% FS** *during the call*.
+>   - Graph correct and live: `pw-link` showed `…mono-fallback:capture_MONO → bluez_output.<MAC>.1:input_MONO` (mic → SCO uplink); uplink node **Running**, volume **1.00**, format `S24_32 mono 32000` (LC3-SWB uplink).
+>   - So audio is captured, routed, and pushed into the SCO uplink correctly — yet the far end hears nothing. The fault is **below prodigy and below WirePlumber routing**, in the PipeWire/BlueZ **SCO uplink encode** (or the phone's decode of the HF's uplink). The exotic variable is **LC3-SWB**; downlink decode works but uplink encode is suspect. Note D1 §6.3 only ever confirmed "SCO running both directions," never that the far end *heard* the uplink — so this has likely been latent since D1.
+> - **mSBC diagnostic attempt (to test the LC3-SWB hypothesis): INCONCLUSIVE.** A temporary WirePlumber drop-in `monitor.bluez.properties = { bluez5.codecs = [ cvsd msbc ] }` did **not** override HFP super-wideband — the transport re-negotiated LC3-SWB (`Codec = 3`) anyway, so `bluez5.codecs` does not gate HFP SCO codec selection (it's A2DP-oriented). The drop-in was removed and the Pi restored to clean shipping state. **Next step for whoever picks this up:** find the correct PipeWire/WirePlumber HFP-codec property to force mSBC/CVSD (candidates: a `bluez5.enable-msbc`/SWB-disable monitor key, or device-level), re-test; if mSBC uplink is audible, it's an LC3-SWB-specific PipeWire/BlueZ bug → file upstream + pin the fallback. This is out of D2 scope (§3 delegated SCO routing to WirePlumber; the mic-steering limitation is documented there).
+> - **Volume rocker / echo / level checks: NOT REACHED** (blocked behind the uplink issue and deferred with the rest of the in-car pass).
 
 ## 12. Executor Guidance (mandatory)
 

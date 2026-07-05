@@ -41,3 +41,5 @@ Ideas captured here. Promote to `roadmap-current.md` when ready to commit.
 
   **Open items in `open-android-auto`:**
   - `NavigationTurnEventMessage.proto` has unused imports (`ManeuverTypeEnum.proto`, `TurnSideEnum.proto`) — fields 2 and 3 should use the enum types instead of raw `int32`.
+
+- **Persistent in-call control (global call bar/overlay)** — Found during HFP D2 live testing (2026-07-05): after answering a call, if you're not in the Phone view (e.g. home screen or a dashboard), there's no way to hang up — the incoming-call overlay only shows during `Ringing`, and PhoneView is one plugin among many. Need a small persistent call-control affordance (an "active call" status-bar chip or a slim overlay) visible whenever `CallStateProvider.callState == Active`, with at least a hangup button (and ideally mute/DTMF). Overlay-framework (Phase E) is the natural home — this is a z-banded overlay bound to the call provider, not a change to the phone plugin. Note: during fullscreen AA the phone renders its own in-call UI, so this matters most on the prodigy shell (launcher/dashboards).

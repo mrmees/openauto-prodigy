@@ -10,6 +10,12 @@ class QDBusServiceWatcher;
 
 namespace oap {
 
+/// ObjectManager InterfacesAdded payload type (a{sa{sv}}). Registered with
+/// qDBusRegisterMetaType in TelephonyClient::start() — without this QtDBus
+/// CANNOT deliver the signal to a slot (a{sa{sv}} is not QVariantMap; the
+/// mismatch fails silently). Live-debugged 2026-07-05.
+using InterfaceMap = QMap<QString, QVariantMap>;
+
 /// D-Bus client for PipeWire's telephony service (org.pipewire.Telephony,
 /// SESSION bus, owned by WirePlumber). Mechanics only — call-state policy
 /// lives in PhoneStateService.
@@ -50,7 +56,7 @@ signals:
     void commandFailed(const QString& op, const QString& message);
 
 private slots:
-    void onInterfacesAdded(const QDBusObjectPath& path, const QVariantMap& interfaces);
+    void onInterfacesAdded(const QDBusObjectPath& path, const oap::InterfaceMap& interfaces);
     void onInterfacesRemoved(const QDBusObjectPath& path, const QStringList& interfaces);
     void onPropertiesChanged(const QString& interface, const QVariantMap& changed,
                              const QStringList& invalidated, const QDBusMessage& msg);
@@ -64,8 +70,6 @@ private:
     void adoptCall(const QString& path, const QVariantMap& props);
     void applyRejectSco();
     void asyncCall(const QString& op, QDBusMessage msg);
-    /// Extract a{sv} that arrived as a QDBusArgument inside a QVariant.
-    static QVariantMap demarshalProps(const QVariant& v);
 
     QDBusServiceWatcher* watcher_ = nullptr;
     bool started_ = false;
@@ -81,3 +85,5 @@ private:
 };
 
 } // namespace oap
+
+Q_DECLARE_METATYPE(oap::InterfaceMap)
