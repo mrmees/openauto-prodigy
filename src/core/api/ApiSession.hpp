@@ -72,6 +72,7 @@ public:
     State state() const { return state_; }
     QString clientId() const { return clientId_; }    // "" for localhost-trusted
     QString clientName() const { return clientName_; }
+    QString peerHost() const;    // transport peer address, "" if no transport
     bool subscribedTo(prodigy::api::v1::Topic t) const;
 
     void deliver(const QByteArray& envelopeBytes);           // enforces queue cap

@@ -65,6 +65,10 @@ bool ApiSession::subscribedTo(pb::Topic t) const {
     return subscriptions_.contains(static_cast<int>(t));
 }
 
+QString ApiSession::peerHost() const {
+    return transport_ ? transport_->peerAddress().toString() : QString();
+}
+
 // ---- Inbound dispatch ------------------------------------------------------
 
 void ApiSession::onMessageReceived(const QByteArray& serialized) {

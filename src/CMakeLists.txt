@@ -10,6 +10,8 @@ add_library(openauto-core STATIC
     core/api/ApiTransport.cpp
     core/api/ApiPublishers.cpp
     core/api/ApiSession.cpp
+    core/api/ApiInboundState.cpp
+    core/api/ApiRequestHandlers.cpp
     core/system/HostapdConfig.cpp
     core/aa/VideoDecoder.cpp
     core/aa/DmaBufVideoBuffer.cpp
