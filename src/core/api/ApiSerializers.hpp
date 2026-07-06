@@ -59,11 +59,13 @@ prodigy::api::v1::PhoneStatus buildPhoneStatus(const oap::IPhoneStateService& p,
 
 /// Build a NavigationStatus snapshot. ManeuverType/TurnSide are normalized
 /// from the raw AA maneuver code (p.maneuverType()) via one switch -- see
-/// ApiSerializers.cpp for the full table. p.turnDirection() is intentionally
-/// never read: the side is encoded in the maneuver code itself, and using a
-/// single source avoids the two ever disagreeing. distance_meters is left 0
-/// in this task -- Task 13 populates it once the provider interface is
-/// promoted to carry raw meters.
+/// ApiSerializers.cpp for the full table. TurnSide is a hybrid: the
+/// maneuver-code table is the primary/authoritative source, and
+/// p.turnDirection() (raw AA TurnSide.Enum) is consulted ONLY as a fallback
+/// when the code encodes no side (DECIDED 2026-07-06 after Codex review of
+/// PR #12; see design doc §8.2). distance_meters is left 0 in this task --
+/// Task 13 populates it once the provider interface is promoted to carry
+/// raw meters.
 prodigy::api::v1::NavigationStatus buildNavigationStatus(const oap::INavigationProvider& p);
 
 } // namespace oap::api::serial

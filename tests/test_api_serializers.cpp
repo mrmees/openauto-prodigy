@@ -67,6 +67,7 @@ private slots:
     void testNavManeuverTable();
     void testNavInactivePassesThroughFields();
     void testNavDistanceMetersPopulated();
+    void testNavTurnSideHybridFallback();
 };
 
 void TestApiSerializers::testMediaBluetoothPlaying() {
@@ -305,9 +306,12 @@ void TestApiSerializers::testNavManeuverTable() {
 
     auto check = [&](int raw, pb::ManeuverType type, pb::TurnSide side) {
         nav.maneuverType_ = raw;
-        // Deliberately contradictory: turnDirection() must be ignored, side
-        // comes from the maneuver code itself.
-        nav.turnDirection_ = (side == pb::TURN_SIDE_LEFT) ? 2 : 1;
+        // No fallback data here (turnDirection unknown/0) -- this table is
+        // exercising mapManeuver()'s own code->side mapping in isolation.
+        // The turnDirection() fallback (used only when the maneuver code
+        // itself is silent on side) is covered separately by
+        // testNavTurnSideHybridFallback.
+        nav.turnDirection_ = 0;
         pb::NavigationStatus status = buildNavigationStatus(nav);
         QCOMPARE(status.maneuver(), type);
         QCOMPARE(status.turn_side(), side);
@@ -345,6 +349,47 @@ void TestApiSerializers::testNavDistanceMetersPopulated() {
 
     pb::NavigationStatus status = buildNavigationStatus(nav);
     QCOMPARE(status.distance_meters(), 500);
+}
+
+void TestApiSerializers::testNavTurnSideHybridFallback() {
+    // turn_side hybrid (design doc §8.2, DECIDED 2026-07-06 after Codex
+    // review of PR #12): the maneuver-code table is PRIMARY; turnDirection()
+    // (raw oaa TurnSide.Enum: 0=UNKNOWN, 1=LEFT, 2=RIGHT) is consulted only
+    // as a FALLBACK when the code itself yields TURN_SIDE_UNSPECIFIED.
+    FakeNavProvider nav;
+    nav.navActive_ = true;
+
+    // (a) Roundabout code 33 encodes no side -> fallback to
+    // turnDirection()=LEFT(1) wins.
+    nav.maneuverType_ = 33;
+    nav.turnDirection_ = 1;
+    pb::NavigationStatus a = buildNavigationStatus(nav);
+    QCOMPARE(a.maneuver(), pb::MANEUVER_TYPE_ROUNDABOUT_ENTER_AND_EXIT);
+    QCOMPARE(a.turn_side(), pb::TURN_SIDE_LEFT);
+
+    // (b) Code 7 (TURN/LEFT) already has a primary side -> it wins even
+    // though turnDirection() disagrees (RIGHT=2).
+    nav.maneuverType_ = 7;
+    nav.turnDirection_ = 2;
+    pb::NavigationStatus b = buildNavigationStatus(nav);
+    QCOMPARE(b.maneuver(), pb::MANEUVER_TYPE_TURN);
+    QCOMPARE(b.turn_side(), pb::TURN_SIDE_LEFT);
+
+    // (c) Unmapped code 51 -> MANEUVER_TYPE_OTHER with no primary side ->
+    // fallback to turnDirection()=RIGHT(2).
+    nav.maneuverType_ = 51;
+    nav.turnDirection_ = 2;
+    pb::NavigationStatus c = buildNavigationStatus(nav);
+    QCOMPARE(c.maneuver(), pb::MANEUVER_TYPE_OTHER);
+    QCOMPARE(c.turn_side(), pb::TURN_SIDE_RIGHT);
+
+    // (d) Code 36 (STRAIGHT) has no primary side, and turnDirection()=0
+    // (UNKNOWN) has nothing to offer either -> stays unspecified.
+    nav.maneuverType_ = 36;
+    nav.turnDirection_ = 0;
+    pb::NavigationStatus d = buildNavigationStatus(nav);
+    QCOMPARE(d.maneuver(), pb::MANEUVER_TYPE_STRAIGHT);
+    QCOMPARE(d.turn_side(), pb::TURN_SIDE_UNSPECIFIED);
 }
 
 QTEST_MAIN(TestApiSerializers)

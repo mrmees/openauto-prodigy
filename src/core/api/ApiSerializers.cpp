@@ -46,9 +46,12 @@ pb::CallState mapCallState(int s) {
 
 // Maneuver normalization -- raw AA maneuver code (INavigationProvider::
 // maneuverType(), the oaa ManeuverTypeEnum.proto list) -> (ManeuverType,
-// TurnSide) pair. One switch, normative table in the Task 7 brief. Side is
-// derived entirely from the maneuver code -- turnDirection() is never
-// consulted here (redundant AA data; one source avoids disagreement).
+// TurnSide) pair. One switch, normative table in the Task 7 brief. The
+// maneuver code is the PRIMARY side source; when it yields
+// TURN_SIDE_UNSPECIFIED, buildNavigationStatus() falls back to
+// mapTurnDirectionFallback(p.turnDirection()) below (design doc §8.2,
+// DECIDED 2026-07-06 after Codex review of PR #12 -- hybrid, primary wins
+// whenever it encodes a side).
 struct ManeuverMapping {
     pb::ManeuverType type;
     pb::TurnSide side;
@@ -101,6 +104,22 @@ ManeuverMapping mapManeuver(int raw) {
         return {pb::MANEUVER_TYPE_FERRY, pb::TURN_SIDE_RIGHT};
     default:
         return {pb::MANEUVER_TYPE_OTHER, pb::TURN_SIDE_UNSPECIFIED};
+    }
+}
+
+// Turn-side fallback -- raw AA turn_direction int (INavigationProvider::
+// turnDirection(), sourced from NavigationTurnEvent.turn_direction, an
+// oaa.proto.enums.TurnSide.Enum: UNKNOWN=0, LEFT=1, RIGHT=2 --
+// libs/prodigy-oaa-protocol/proto/oaa/navigation/TurnSideEnum.proto,
+// forwarded unchanged as static_cast<int> by
+// NavigationChannelHandler::handleTurnEvent) -> wire TurnSide. Used ONLY
+// when mapManeuver()'s code-derived side is TURN_SIDE_UNSPECIFIED -- the
+// maneuver code always wins when it has an opinion.
+pb::TurnSide mapTurnDirectionFallback(int raw) {
+    switch (raw) {
+    case 1:  return pb::TURN_SIDE_LEFT;
+    case 2:  return pb::TURN_SIDE_RIGHT;
+    default: return pb::TURN_SIDE_UNSPECIFIED;
     }
 }
 
@@ -246,7 +265,9 @@ prodigy::api::v1::NavigationStatus buildNavigationStatus(const oap::INavigationP
 
     const ManeuverMapping m = mapManeuver(p.maneuverType());
     status.set_maneuver(m.type);
-    status.set_turn_side(m.side);
+    status.set_turn_side(m.side != pb::TURN_SIDE_UNSPECIFIED
+                              ? m.side
+                              : mapTurnDirectionFallback(p.turnDirection()));
 
     return status;
 }

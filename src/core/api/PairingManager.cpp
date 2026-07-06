@@ -4,6 +4,7 @@
 #include <QUuid>
 #include <QDateTime>
 #include <QTimer>
+#include <QDebug>
 
 namespace oap::api {
 
@@ -89,7 +90,16 @@ std::optional<QString> PairingManager::completePairing(const QByteArray& nonce, 
     client.pairedAtIso = QDateTime::currentDateTimeUtc().toString(Qt::ISODate) + "Z";
 
     store_->upsert(client);
-    store_->save();
+    if (!store_->save()) {
+        // Persistence failed: don't hand out a "durable" credential that
+        // vanishes on restart. Undo the in-memory upsert and leave the
+        // pairing window OPEN, same as a wrong-proof attempt — the user can
+        // just retry the PIN.
+        store_->remove(clientId);
+        qWarning() << "API: pairing succeeded but persisting client failed; rejecting"
+                   << clientId;
+        return std::nullopt;
+    }
     cancelWindow();
 
     return clientId;

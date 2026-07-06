@@ -175,7 +175,7 @@ No position/duration in v1 — the service has none (scout-verified). Adding the
 | `nav_active` | `navActive()` | — |
 | `road_name` | `roadName()` | — |
 | `maneuver` | `maneuverType()` int | raw AA maneuver code — **must not leak** (rail R1 spirit). Map to `prodigy.api.v1.ManeuverType` via table; unmapped → `MANEUVER_TYPE_OTHER`. Executor builds the table from the oaa protocol's maneuver enum (read-only) |
-| `turn_side` | `turnDirection()` int | same treatment → `TurnSide{UNSPECIFIED/LEFT/RIGHT/UNSPECIFIED_SIDE}` mapping table |
+| `turn_side` | `maneuverType()` code, `turnDirection()` int | **DECIDED 2026-07-06 (Codex review of PR #12): hybrid** — the maneuver-code side table (same table as `maneuver`, see `ApiSerializers.cpp::mapManeuver`) is the PRIMARY source; `turnDirection()` (raw oaa `TurnSide.Enum`: `UNKNOWN=0/LEFT=1/RIGHT=2`) is the FALLBACK, consulted only when the maneuver code itself encodes no side (`TURN_SIDE_UNSPECIFIED`). Primary always wins when it has an opinion |
 | `distance_meters` | not on the interface — `distanceMeters` is a `NavigationDataBridge` extra | **v1 binds the interface only**: omit until the getter is promoted to `INavigationProvider` (tiny executor task, listed in the plan) — after which it populates. Field exists in the proto from day one |
 | `formatted_distance` | `formattedDistance()` | display-ready string, pass through |
 

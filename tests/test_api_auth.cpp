@@ -13,6 +13,7 @@ private slots:
     void testStoreRoundTrip();
     void testStorePermissions();
     void testUpsertReplaces();
+    void testSaveReturnsFalseOnOpenFailure();
 };
 
 void TestApiAuth::testDeriveSecretDeterministic() {
@@ -53,7 +54,7 @@ void TestApiAuth::testStoreRoundTrip() {
 
     PairedClient c{"id-1", QByteArray(32, 's'), "TestPhone", 1, "2026-07-06T00:00:00Z"};
     store.upsert(c);
-    store.save();
+    QVERIFY(store.save());
 
     PairedClientStore store2(path);
     QVERIFY(store2.load());
@@ -69,7 +70,7 @@ void TestApiAuth::testStorePermissions() {
     QFile::remove(path);
     PairedClientStore store(path);
     store.upsert({"id", QByteArray(32, 'k'), "n", 0, ""});
-    store.save();
+    QVERIFY(store.save());
     auto perms = QFile(path).permissions();
     QVERIFY(!(perms & QFileDevice::ReadGroup));
     QVERIFY(!(perms & QFileDevice::ReadOther));
@@ -81,6 +82,14 @@ void TestApiAuth::testUpsertReplaces() {
     store.upsert({"id-1", QByteArray(32, 'b'), "B", 0, ""});
     QCOMPARE(store.all().size(), 1);
     QCOMPARE(store.find("id-1")->name, QString("B"));
+}
+
+void TestApiAuth::testSaveReturnsFalseOnOpenFailure() {
+    // Directory component doesn't exist -> QFile::open() fails -> save() must
+    // report failure rather than silently swallowing it.
+    PairedClientStore store("/nonexistent-oap-dir/clients.yaml");
+    store.upsert({"id", QByteArray(32, 'k'), "n", 0, ""});
+    QVERIFY(!store.save());
 }
 
 QTEST_MAIN(TestApiAuth)

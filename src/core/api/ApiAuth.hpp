@@ -26,7 +26,7 @@ class PairedClientStore {
 public:
     explicit PairedClientStore(const QString& yamlPath);
     bool load();                       // missing file = ok, empty store
-    void save();                       // writes file with 0600 perms
+    bool save();                       // writes file with 0600 perms; false on open failure or short write
     std::optional<PairedClient> find(const QString& clientId) const;
     void upsert(const PairedClient& c);
     bool remove(const QString& clientId);

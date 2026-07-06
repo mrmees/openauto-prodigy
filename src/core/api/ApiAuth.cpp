@@ -62,7 +62,7 @@ bool PairedClientStore::load() {
     }
 }
 
-void PairedClientStore::save() {
+bool PairedClientStore::save() {
     YAML::Node doc;
     YAML::Node clientsNode;
 
@@ -84,17 +84,19 @@ void PairedClientStore::save() {
     QFile file(path_);
     if (!file.open(QIODevice::WriteOnly | QIODevice::Text)) {
         qWarning() << "API: failed to open paired-client store for writing:" << path_;
-        return;
+        return false;
     }
 
     const qint64 written = file.write(yamlContent.c_str());
     file.close();
     if (written < 0 || static_cast<size_t>(written) != yamlContent.size()) {
         qWarning() << "API: short write persisting paired-client store:" << path_;
+        return false;
     }
 
     // Set permissions to 0600 (owner read/write only)
     QFile::setPermissions(path_, QFileDevice::ReadOwner | QFileDevice::WriteOwner);
+    return true;
 }
 
 std::optional<PairedClient> PairedClientStore::find(const QString& clientId) const {

@@ -12,6 +12,7 @@ private slots:
     void testWrongPinRejected();
     void testClosedWindowRejects();
     void testWindowExpiry();
+    void testCompletePairingPersistFailure();
 };
 
 void TestApiPairing::testWindowLifecycle() {
@@ -96,6 +97,23 @@ void TestApiPairing::testWindowExpiry() {
     QTest::qWait(1100);
     QVERIFY(!mgr.windowOpen());
     QCOMPARE(mgr.currentPin(), QString(""));
+}
+
+void TestApiPairing::testCompletePairingPersistFailure() {
+    // Store path lives in a directory that doesn't exist, so save() will fail
+    // to open the file. A correct proof must still be rejected: no client id
+    // handed out, no entry left in the in-memory store, and the pairing
+    // window stays open so the user can retry (mirrors a wrong-proof attempt).
+    PairedClientStore store("/nonexistent-oap-dir/clients.yaml");
+    PairingManager mgr(&store);
+    mgr.startWindow(60);
+    QByteArray nonce = mgr.makeNonce();
+    QByteArray secret = deriveSecret(mgr.currentPin(), mgr.currentSalt());
+
+    auto id = mgr.completePairing(nonce, hmacProof(secret, nonce), "TestPhone", 3);
+    QVERIFY(!id.has_value());
+    QVERIFY(mgr.windowOpen());
+    QVERIFY(store.all().isEmpty());
 }
 
 QTEST_MAIN(TestApiPairing)

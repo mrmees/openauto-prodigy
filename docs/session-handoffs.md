@@ -42,6 +42,9 @@ Newest entries first.
 - `ApiServer::start()` double-invocation guard.
 - `WsApiTransport`: `setMaxAllowedIncomingMessageSize(maxFrameBytes)` for TCP/WS symmetry.
 - Loopback `init()` should wipe `kConfigPath` alongside `kStorePath`; alpha-drop comment at `buildSystemStatus` `.name()` call; `PhonePublisher` `startedAtMs` synthesis for calls already `Active` at construction.
+- QML: gate `ApiSettings` pairing controls on a real `apiRunning` server property (Codex finding — PIN can be displayed while listeners are down if `start()` failed).
+
+Codex review of PR #12 (2026-07-06): 3 majors fixed in this commit (TimeReport clock wiring, pairing persist-failure rejection, turn_side hybrid); QML gating deferred.
 
 **Verification:**
 - Local: `cd ~/builds/openauto-prodigy && cmake . && make -j$(nproc) && ctest --output-on-failure` → clean build, `100% tests passed, 0 tests failed out of 102` (26.49s).
