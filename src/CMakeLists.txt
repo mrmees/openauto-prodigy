@@ -9,6 +9,7 @@ add_library(openauto-core STATIC
     core/api/ApiSerializers.cpp
     core/api/ApiTransport.cpp
     core/api/ApiPublishers.cpp
+    core/api/ApiSession.cpp
     core/system/HostapdConfig.cpp
     core/aa/VideoDecoder.cpp
     core/aa/DmaBufVideoBuffer.cpp

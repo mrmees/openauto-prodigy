@@ -172,6 +172,8 @@ oap_add_test(test_api_transports SOURCES test_api_transports.cpp)
 set_tests_properties(test_api_transports PROPERTIES ENVIRONMENT "QT_QPA_PLATFORM=offscreen")
 oap_add_test(test_api_publishers SOURCES test_api_publishers.cpp)
 set_tests_properties(test_api_publishers PROPERTIES ENVIRONMENT "QT_QPA_PLATFORM=offscreen")
+oap_add_test(test_api_session SOURCES test_api_session.cpp)
+set_tests_properties(test_api_session PROPERTIES ENVIRONMENT "QT_QPA_PLATFORM=offscreen")
 
 # --- Script tests (no compilation) ---
 
