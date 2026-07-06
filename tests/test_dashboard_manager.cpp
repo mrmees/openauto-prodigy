@@ -194,8 +194,8 @@ void TestDashboardManager::testNavPersistSemantics() {
 }
 
 // Regression for the ~DashboardManager use-after-free: main.cpp's YamlConfig
-// is declared before QGuiApplication, so at process-exit it used to be
-// destroyed BEFORE this app-lifetime manager, and the dtor's pending-persist
+// is declared after QGuiApplication, so stack unwinding at process-exit
+// destroyed it BEFORE this app-lifetime manager, and the dtor's pending-persist
 // flush (config_->save()) dereferenced freed memory. The fix makes the
 // manager hold its own std::shared_ptr ref to the config, so even after an
 // external owner drops its reference, the config stays alive until the

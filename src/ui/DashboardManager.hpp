@@ -30,8 +30,8 @@ class DashboardManager : public QObject {
 public:
     // config is a shared_ptr (not a raw YamlConfig*) so the manager keeps
     // the config alive through its own destruction. main.cpp's YamlConfig
-    // is declared before QGuiApplication, so at process-exit it would
-    // otherwise be destroyed before this manager (an app-lifetime QObject
+    // is declared after QGuiApplication, so stack unwinding at process-exit
+    // would otherwise destroy it before this manager (an app-lifetime QObject
     // child) — leaving the dtor's pending-persist flush (config_->save())
     // dereferencing freed memory. Holding a ref here makes that flush safe
     // unconditionally, regardless of teardown order elsewhere.
