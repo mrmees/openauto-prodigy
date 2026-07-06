@@ -1,5 +1,5 @@
 widget_grid:
-  version: 2
+  version: 3
   next_instance_id: 2
   placements:
     - instance_id: clock-0

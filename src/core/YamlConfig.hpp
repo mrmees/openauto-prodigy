@@ -120,13 +120,11 @@ public:
     int gridDensityBias() const;
     void setGridDensityBias(int bias);
 
-    // Grid-based widget config (v3 with page support)
-    QList<GridPlacement> gridPlacements() const;
-    void setGridPlacements(const QList<GridPlacement>& placements);
-    int gridNextInstanceId() const;
-    void setGridNextInstanceId(int id);
-    int gridPageCount() const;
-    void setGridPageCount(int count);
+    // Grid-based widget config (v4 with multi-dashboard support)
+    QList<DashboardConfig> dashboards() const;
+    void setDashboards(const QList<DashboardConfig>& list);
+    QString activeDashboardId() const;                 // default "home"
+    void setActiveDashboardId(const QString& id);
     int gridSavedCols() const;
     int gridSavedRows() const;
     void setGridSavedDims(int cols, int rows);
@@ -149,6 +147,9 @@ private:
 
     void initDefaults();
     static YAML::Node buildDefaultsNode();
+    void migrateWidgetGridV3();
+    static QList<GridPlacement> placementsFromNode(const YAML::Node& placements);
+    static YAML::Node placementsToNode(const QList<GridPlacement>& placements);
 };
 
 } // namespace oap

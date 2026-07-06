@@ -62,6 +62,14 @@ struct GridPlacement {
     QVariantMap config;     // per-instance config (merged over defaultConfig at read time)
 };
 
+struct DashboardConfig {
+    QString id;                       // stable slug ("home")
+    QString name;                     // display label ("Home")
+    int nextInstanceId = 0;
+    int pageCount = 2;
+    QList<GridPlacement> placements;
+};
+
 // Legacy types -- used by WidgetPlacementModel and YamlConfig until Plan 02 replaces them.
 // Do NOT use in new code. Use GridPlacement and the new grid config API instead.
 struct PageDescriptor {

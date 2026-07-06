@@ -748,19 +748,22 @@ int main(int argc, char *argv[])
     // Load placements and page count from config BEFORE connecting auto-save.
     // setGridDimensions() emits placementsChanged() — connecting save first would
     // persist empty placements on startup, wiping the saved config.
-    widgetGridModel->setPageCount(yamlConfig->gridPageCount());
-    auto savedPlacements = yamlConfig->gridPlacements();
-    if (!savedPlacements.isEmpty()) {
-        widgetGridModel->setPlacements(savedPlacements, widgetRegistry);
-        widgetGridModel->setNextInstanceId(yamlConfig->gridNextInstanceId());
+    auto dashList = yamlConfig->dashboards();
+    oap::DashboardConfig homeDash = dashList.isEmpty()
+        ? oap::DashboardConfig{ "home", "Home", 0, 2, {} } : dashList.first();
+    widgetGridModel->setPageCount(homeDash.pageCount);
+    if (!homeDash.placements.isEmpty()) {
+        widgetGridModel->setPlacements(homeDash.placements, widgetRegistry);
+        widgetGridModel->setNextInstanceId(homeDash.nextInstanceId);
     }
     widgetGridModel->setSavedDimensions(yamlConfig->gridSavedCols(), yamlConfig->gridSavedRows());
 
     // Auto-save grid placements on change (connected after load to avoid clobbering)
     auto saveGridState = [yamlConfig = yamlConfig.get(), widgetGridModel, yamlPath]() {
-        yamlConfig->setGridPlacements(widgetGridModel->placements());
-        yamlConfig->setGridNextInstanceId(widgetGridModel->nextInstanceId());
-        yamlConfig->setGridPageCount(widgetGridModel->pageCount());
+        oap::DashboardConfig d{ "home", "Home",
+            widgetGridModel->nextInstanceId(), widgetGridModel->pageCount(),
+            widgetGridModel->placements() };
+        yamlConfig->setDashboards({d});
         yamlConfig->setGridSavedDims(widgetGridModel->gridColumns(), widgetGridModel->gridRows());
         yamlConfig->save(yamlPath);
     };
@@ -770,7 +773,7 @@ int main(int argc, char *argv[])
                      widgetGridModel, saveGridState);
 
     // Fresh-install seeding: place singleton launcher widgets on the reserved (last) page
-    if (savedPlacements.isEmpty()) {
+    if (homeDash.placements.isEmpty()) {
         int reservedPage = widgetGridModel->pageCount() - 1;
         QList<oap::GridPlacement> seedPlacements;
         {
