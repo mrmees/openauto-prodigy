@@ -23,6 +23,7 @@ private slots:
     void testUnregisterRemovesActions();
     void testMoveGeometry();
     void testUnregisterReregisterNoCollision();
+    void testReentrantCorrectiveHide();
 };
 
 void TestOverlayService::testRegisterAndRoles() {
@@ -128,6 +129,28 @@ void TestOverlayService::testUnregisterReregisterNoCollision() {
     QVERIFY(u2Z != u3Z);
     QCOMPARE(svc.data(svc.index(0,0), OS::OverlayIdRole).toString(), QString("u2"));
     QCOMPARE(svc.data(svc.index(1,0), OS::OverlayIdRole).toString(), QString("u3"));
+}
+
+void TestOverlayService::testReentrantCorrectiveHide() {
+    oap::ActionRegistry ar; OS svc(&ar);
+    svc.registerOverlay(desc("a", OS::ZBand::User));
+
+    // Spy created before the corrective connect so it records both emissions.
+    QSignalSpy spy(&svc, &OS::overlayVisibilityChanged);
+
+    QObject::connect(&svc, &OS::overlayVisibilityChanged, [&](const QString& id, bool visible) {
+        if (visible)
+            ar.dispatch("overlay.a.hide");
+    });
+
+    // No hang/crash: the test completing is itself the assertion that the
+    // reentrant corrective dispatch terminates rather than recursing forever.
+    QVERIFY(ar.dispatch("overlay.a.show"));
+
+    QVERIFY(!svc.isVisible("a"));
+    QCOMPARE(spy.count(), 2);
+    QCOMPARE(spy.at(0).at(1).toBool(), true);
+    QCOMPARE(spy.at(1).at(1).toBool(), false);
 }
 
 QTEST_MAIN(TestOverlayService)

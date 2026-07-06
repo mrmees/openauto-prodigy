@@ -86,6 +86,7 @@ Item {
 
     // Framework-registered overlays (OverlayService)
     OverlayHost {
+        id: overlayHost
     }
 
     // Gesture overlay (on top of everything)
@@ -94,6 +95,7 @@ Item {
         objectName: "gestureOverlay"
     }
 
+    // z 3000 ties with framework SystemModal overlays; as a later sibling of OverlayHost's delegates it wins the tie. Migrate this into the framework BEFORE registering a second SystemModal overlay, or the z:3001 assignment will invert this priority.
     // Incoming call overlay (binds to CallStateProvider root-context property)
     IncomingCallOverlay {
         id: callOverlay

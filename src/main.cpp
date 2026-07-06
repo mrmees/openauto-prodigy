@@ -363,6 +363,17 @@ int main(int argc, char *argv[])
         QObject::connect(bluetoothManager, &oap::BluetoothManager::pairingActiveChanged,
                          overlayService, syncPairing);
         syncPairing();
+
+        // State authority (design §4.4): if anything shows the pairing overlay
+        // while BluetoothManager says pairing is inactive, immediately hide it
+        // through the same action path. Safe reentrancy: setVisible mutates
+        // before emitting, so the nested hide sees visible==false and stops.
+        QObject::connect(overlayService, &oap::OverlayService::overlayVisibilityChanged,
+                         bluetoothManager,
+                         [actionRegistry, bluetoothManager](const QString& id, bool visible) {
+                             if (id == QLatin1String("pairing") && visible && !bluetoothManager->isPairingActive())
+                                 actionRegistry->dispatch(QStringLiteral("overlay.pairing.hide"));
+                         });
     }
 
     hostContext->setOverlayService(overlayService);
