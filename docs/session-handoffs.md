@@ -1132,3 +1132,28 @@ Documentation:
 4. Wire API Tasks 7/11 to the widened provider when API v1 lands (T8 note above).
 
 **Verification:** local `cmake && make && ctest` = 91/91 across every task; `./cross-build.sh` succeeded each deploy; deployed to Pi (.149), service active, journal clean (no "UUID already registered"). Builds moved to an ext4 out-of-source dir (`~/builds/openauto-prodigy`) with ccache — WSL drvfs relinking was the bottleneck; source tree untouched.
+
+## 2026-07-06 — Multi-Dashboards (Phase E) — Implementation Execution (Fable)
+
+**Branch:** `multi-dashboards` off main (3aeb683), independent of the sibling `overlay-framework` branch (same session, also ready). 10 code commits + handoff. Final review verdict: **Ready to merge** (contingent cross-build confirmed clean). Push/PR awaiting Matthew.
+
+**What changed — plan tasks 1-6 executed (subagent-driven development, per-task review + fable whole-branch review):**
+- **T1** `feat(config)` (8f7e0c5): widget_grid **v4 `dashboards[]`** + idempotent v3→v4 migration (merge-then-migrate; yaml-cpp node aliasing verified sound); flat v3 accessors deleted; grid coverage from test_yaml_config AND test_widget_config ported to v4.
+- **T2** `feat(ui)` (03c81ba + fix 34a4271): **DashboardManager** — per-dashboard (WidgetGridModel + WidgetContextFactory) pairs, two-phase load-before-connect (spec §6.4), home seeding parity with the old main.cpp block, slug ids, cap 8, home/last-remove refusal, **debounced active-id persist on nav** (750ms, saveAll cancels, quit-flush) vs immediate saveAll on edits.
+- **T3** `feat(widgets)` (ae47dfc): WebWidget contribution kind appended (order frozen), picker filter extended.
+- **T4** `feat(ui)` (97eda5b): main.cpp rewired — call-time `activeModel()` resolution everywhere (no cached pointers), `app.dashboard.next/previous/select` actions, WidgetGridModel/WidgetContextFactory context properties re-pointed on switch.
+- **T5** `feat(ui)` (49dcbbd + fix 5415d10): **DashboardSwitcher** edit-mode pills + modal manage sheet (add/rename/remove). Fix wave: wasHeld guard, deselect-on-switch, sibling-pattern modal Dialog, idle-timer guard, touchMin targets.
+- **T6** `feat(ui)` (3c0584e + fix a90486e): picker size presets (roles 265-268, preset popup). Implementer caught the brief's popup-behind-Overlay compositing bug; fix wave added full dismissal hygiene (dual reset + tap-outside cancel).
+- **Final-review fix wave** (1762349 + comment fix 9beb74d): **[CRITICAL] ~DashboardManager UAF on normal quit** — config shared_ptr ownership + aboutToQuit flush (the debounce flush could write through a freed YamlConfig into config.yaml); outgoing-model selection clear on switch (stale widgetSelected latch deferred grid remaps forever); configSheet/emptySpaceMenu close on API-driven switch (cross-dashboard setWidgetConfig collision); **migration gate widened** (flat-shape placements trigger the wrap regardless of pre-v4 version — v2/versionless flat configs no longer lose placements).
+
+**Deviations from the plan (recorded per handbook, all reviewer-verified):** plan fixture used nonexistent saved_cols/saved_rows keys (production: grid_cols/grid_rows — test fixed); test_widget_config.cpp was an unlisted flat-accessor consumer (ported, fixture v2→3); nav persistence debounced (plan had full saveAll per switch); DashboardManager ctor takes shared_ptr<YamlConfig> (UAF fix — mandated test text adapted); sizePopup nested in Dialog contentItem (brief's placement rendered behind the modal).
+
+**Immediate fast-follow (filed, not in this branch):** atomic YamlConfig::save (temp+fsync+rename) + try/catch on load with corrupt-file fallback — pre-existing, but all dashboards now live in one file and the debounce moves writes closer to ignition-off.
+
+**Track-after bundle (final review Minors 6-14 + carried a-e, none merge-gating):** activeIndex NOTIFY on non-active removal; saveAll coalescing on dims fan-out; API rate-limiting for action dispatch (switch spam = Pi jank, no state-authority violation possible); duplicate display names from add-chip; pill-row overflow at 8 long names; loadFromConfig re-entry guard; empty-id dashboard qWarning; on-device rename keyboard check (shared with EQ preset naming); test hygiene (temp files, saveAll-cancels-pending interleave).
+
+**Merge sequencing vs `overlay-framework`:** main.cpp hunks disjoint (near-clean auto-merge either order); CMakeLists both append (trivial adjacent conflicts, keep both). Whichever merges second re-runs the full gate. Semantic note filed in wishlist: QQuickOverlay modals composite above ALL Shell z-bands including incoming-call — pre-existing pattern, needs a doc rule or modal migration.
+
+**Status:** Complete and verified on WSL. **Pi deploy + first-boot v3→v4 migration check NOT run** (hardware gate). The final review's on-device checklist for that pass: back up the Pi config first; verify version 4 + single home dashboard carrying ALL pre-migration placements + flat keys gone; reboot twice (idempotence, no reseed); add dashboard → place widget → reboot → both restored; kill -9 within 750ms of a pill switch → config intact.
+
+**Verification:** per-task make + full ctest (102 baseline → 103 with test_dashboard_manager; controller-verified 103/103 at final HEAD, 24.1s); offscreen boot smokes at every integration task (incl. config-intact check at T4); `./cross-build.sh` clean at a90486e and 1762349.
