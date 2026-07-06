@@ -18,6 +18,7 @@ class IProjectionStatusProvider;
 class INavigationProvider;
 class IMediaStatusProvider;
 class ICallStateProvider;
+class OverlayService;
 
 enum class LogLevel { Debug, Info, Warning, Error };
 
@@ -41,6 +42,10 @@ public:
     virtual INavigationProvider* navigationProvider() = 0;
     virtual IMediaStatusProvider* mediaStatusProvider() = 0;
     virtual ICallStateProvider* callStateProvider() = 0;
+
+    /// Access to the overlay framework (design §4.4) — plugins register/toggle
+    /// overlays through this. Returns nullptr if not yet registered.
+    virtual OverlayService* overlayService() = 0;
 
     /// Log a message through the host's logging system.
     /// Thread-safe.

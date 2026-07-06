@@ -347,6 +347,26 @@ int main(int argc, char *argv[])
     // --- OverlayService ---
     auto overlayService = new oap::OverlayService(actionRegistry, &app);
 
+    // --- Pairing dialog: migrated onto the overlay framework ---
+    {
+        oap::OverlayService::OverlayDescriptor d;
+        d.id = QStringLiteral("pairing");
+        d.qmlComponent = QUrl(QStringLiteral("qrc:/OpenAutoProdigy/PairingDialog.qml"));
+        d.band = oap::OverlayService::ZBand::SystemModal;
+        overlayService->registerOverlay(d);
+        // Visibility rides the action path (rail R4): state source stays authoritative.
+        auto syncPairing = [actionRegistry, bluetoothManager]() {
+            actionRegistry->dispatch(bluetoothManager->isPairingActive()
+                ? QStringLiteral("overlay.pairing.show")
+                : QStringLiteral("overlay.pairing.hide"));
+        };
+        QObject::connect(bluetoothManager, &oap::BluetoothManager::pairingActiveChanged,
+                         overlayService, syncPairing);
+        syncPairing();
+    }
+
+    hostContext->setOverlayService(overlayService);
+
     // --- NavbarController ---
     auto navbarController = new oap::NavbarController(&app);
     navbarController->setActionRegistry(actionRegistry);

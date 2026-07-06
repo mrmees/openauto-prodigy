@@ -20,6 +20,7 @@ public:
     void setNavigationProvider(INavigationProvider* p) { nav_ = p; }
     void setMediaStatusProvider(IMediaStatusProvider* p) { media_ = p; }
     void setCallStateProvider(ICallStateProvider* p) { call_ = p; }
+    void setOverlayService(OverlayService* s) { overlay_ = s; }
 
     IAudioService* audioService() override { return audio_; }
     IBluetoothService* bluetoothService() override { return bt_; }
@@ -35,6 +36,7 @@ public:
     INavigationProvider* navigationProvider() override { return nav_; }
     IMediaStatusProvider* mediaStatusProvider() override { return media_; }
     ICallStateProvider* callStateProvider() override { return call_; }
+    OverlayService* overlayService() override { return overlay_; }
 
     void log(LogLevel level, const QString& message) override;
 
@@ -53,6 +55,7 @@ private:
     INavigationProvider* nav_ = nullptr;
     IMediaStatusProvider* media_ = nullptr;
     ICallStateProvider* call_ = nullptr;
+    OverlayService* overlay_ = nullptr;
 };
 
 } // namespace oap

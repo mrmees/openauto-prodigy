@@ -94,11 +94,6 @@ Item {
         objectName: "gestureOverlay"
     }
 
-    // Bluetooth pairing confirmation dialog
-    PairingDialog {
-        id: pairingDialog
-    }
-
     // Incoming call overlay (binds to CallStateProvider root-context property)
     IncomingCallOverlay {
         id: callOverlay

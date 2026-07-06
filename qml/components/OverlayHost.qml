@@ -9,6 +9,10 @@ import QtQuick
 /// competes in the same stacking context as the legacy overlays. Wrapping
 /// this in an Item would trap all framework overlays at the wrapper's z=0
 /// and every legacy overlay (1000-4000) would beat them.
+///
+/// Geometry contract: a descriptor's geometry map is effectively all-or-nothing —
+/// the delegate only leaves self-anchoring (fill) mode when geometry.width is
+/// defined. x/y-only maps are treated as self-anchoring; their position is ignored.
 Repeater {
     model: OverlayService
     delegate: Loader {
