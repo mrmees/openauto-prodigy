@@ -22,6 +22,7 @@ public:
     int maneuverType() const override { return maneuverType_; }
     int turnDirection() const override { return turnDirection_; }
     QString formattedDistance() const override { return formattedDistance_; }
+    int distanceMeters() const override { return distanceMeters_; }
     bool hasManeuverIcon() const override { return false; }
     int iconVersion() const override { return 0; }
 
@@ -30,6 +31,7 @@ public:
     int maneuverType_ = 0;
     int turnDirection_ = 0;
     QString formattedDistance_;
+    int distanceMeters_ = 0;
 };
 
 // Minimal mock ConfigService, same shape as test_bluetooth_manager.cpp, so we
@@ -64,6 +66,7 @@ private slots:
     void testPhoneHoldSwapAndMultipartyAlwaysFalse();
     void testNavManeuverTable();
     void testNavInactivePassesThroughFields();
+    void testNavDistanceMetersPopulated();
 };
 
 void TestApiSerializers::testMediaBluetoothPlaying() {
@@ -329,8 +332,19 @@ void TestApiSerializers::testNavInactivePassesThroughFields() {
     QVERIFY(!status.nav_active());
     QCOMPARE(status.maneuver(), pb::MANEUVER_TYPE_UNSPECIFIED);
     QCOMPARE(status.turn_side(), pb::TURN_SIDE_UNSPECIFIED);
-    // distance_meters is left at 0 in this task — populated by Task 13.
+    // FakeNavProvider defaults distanceMeters_ to 0.
     QCOMPARE(status.distance_meters(), 0);
+}
+
+void TestApiSerializers::testNavDistanceMetersPopulated() {
+    FakeNavProvider nav;
+    nav.navActive_ = true;
+    nav.roadName_ = "Main St";
+    nav.formattedDistance_ = "500 ft";
+    nav.distanceMeters_ = 500;
+
+    pb::NavigationStatus status = buildNavigationStatus(nav);
+    QCOMPARE(status.distance_meters(), 500);
 }
 
 QTEST_MAIN(TestApiSerializers)

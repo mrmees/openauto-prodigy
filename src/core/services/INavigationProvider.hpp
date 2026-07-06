@@ -12,6 +12,7 @@ class INavigationProvider : public QObject {
     Q_PROPERTY(int maneuverType READ maneuverType NOTIFY turnDataChanged)
     Q_PROPERTY(int turnDirection READ turnDirection NOTIFY turnDataChanged)
     Q_PROPERTY(QString formattedDistance READ formattedDistance NOTIFY distanceChanged)
+    Q_PROPERTY(int distanceMeters READ distanceMeters NOTIFY distanceChanged)
     Q_PROPERTY(bool hasManeuverIcon READ hasManeuverIcon NOTIFY turnDataChanged)
     Q_PROPERTY(int iconVersion READ iconVersion NOTIFY turnDataChanged)
 public:
@@ -22,6 +23,7 @@ public:
     virtual int maneuverType() const = 0;
     virtual int turnDirection() const = 0;
     virtual QString formattedDistance() const = 0;
+    virtual int distanceMeters() const = 0;
     virtual bool hasManeuverIcon() const = 0;
     virtual int iconVersion() const = 0;
 

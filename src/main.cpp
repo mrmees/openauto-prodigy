@@ -38,6 +38,7 @@
 #include "core/services/CallAudioPolicy.hpp"
 #include "core/audio/ScoNodeMonitor.hpp"
 #include "core/services/MediaStatusService.hpp"
+#include "core/api/ApiServer.hpp"
 #include "ui/NotificationModel.hpp"
 #include "core/plugin/HostContext.hpp"
 #include "core/plugin/PluginManager.hpp"
@@ -800,6 +801,15 @@ int main(int argc, char *argv[])
     actionRegistry->registerAction("theme.toggle", [themeService](const QVariant&) {
         themeService->toggleMode();
     });
+    actionRegistry->registerAction("media.playPause", [mediaStatusService](const QVariant&) {
+        mediaStatusService->playPause();
+    });
+    actionRegistry->registerAction("media.next", [mediaStatusService](const QVariant&) {
+        mediaStatusService->next();
+    });
+    actionRegistry->registerAction("media.previous", [mediaStatusService](const QVariant&) {
+        mediaStatusService->previous();
+    });
     // AA button press action (used by DebugSettings via ActionRegistry.dispatch)
     if (auto* orch = aaPlugin->orchestrator()) {
         actionRegistry->registerAction("aa.sendButton", [orch](const QVariant& v) {
@@ -969,6 +979,34 @@ int main(int argc, char *argv[])
     // Geometry override for windowed resolution testing
     engine.rootContext()->setContextProperty("_geomW", geomW);
     engine.rootContext()->setContextProperty("_geomH", geomH);
+
+    // External API v1 — the single external integration surface (design doc
+    // docs/superpowers/specs/2026-07-06-external-api-v1-design.md). Every ref
+    // below is an app-lifetime object (parented to &app, or — for navBridge/
+    // mediaStatusService/etc. — created earlier in main() with &app as an
+    // ancestor), and ApiServer itself is instantiated here, after all of them,
+    // parented to &app: this satisfies the provider-outlives-server lifetime
+    // contract documented at the top of ApiServer.hpp.
+    oap::api::ApiServiceRefs apiRefs;
+    apiRefs.media = mediaStatusService;
+    apiRefs.navigation = navBridge;                 // always constructed; inert without an AA orchestrator
+    apiRefs.projection = projectionStatusProvider;   // nullptr when aaPlugin has no orchestrator
+    apiRefs.phone = phoneStateService;
+    apiRefs.theme = themeService;
+    apiRefs.notifications = notificationService;
+    apiRefs.actions = actionRegistry;
+    apiRefs.config = configService.get();
+    apiRefs.bluetooth = bluetoothManager;
+    auto* apiServer = new oap::api::ApiServer(apiRefs, &app);
+    if (!apiServer->start())
+        qWarning() << "[main] External API disabled or failed to start";
+    engine.rootContext()->setContextProperty("ApiService", apiServer);
+    QObject::connect(apiServer->inboundState(), &oap::api::ApiInboundState::proxyRouteChanged,
+                     &app, [systemClient](bool active, const QString& host, quint16 port,
+                                          const QString& password) {
+        if (systemClient)
+            systemClient->setProxyRoute(active, host, static_cast<int>(port), password);
+    });
 
     // Qt 6.5+ uses /qt/qml/ prefix, Qt 6.4 uses direct URI prefix
     QUrl url(QStringLiteral("qrc:/OpenAutoProdigy/main.qml"));

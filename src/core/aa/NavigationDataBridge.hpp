@@ -18,7 +18,6 @@ class NavigationDataBridge : public INavigationProvider {
     Q_PROPERTY(int maneuverType READ maneuverType NOTIFY turnDataChanged)
     Q_PROPERTY(int turnDirection READ turnDirection NOTIFY turnDataChanged)
     Q_PROPERTY(QString formattedDistance READ formattedDistance NOTIFY distanceChanged)
-    Q_PROPERTY(int distanceMeters READ distanceMeters NOTIFY distanceChanged)
     Q_PROPERTY(bool hasManeuverIcon READ hasManeuverIcon NOTIFY turnDataChanged)
     Q_PROPERTY(int iconVersion READ iconVersion NOTIFY turnDataChanged)
 
@@ -33,7 +32,7 @@ public:
     int maneuverType() const override { return maneuverType_; }
     int turnDirection() const override { return turnDirection_; }
     QString formattedDistance() const override;
-    int distanceMeters() const { return distanceMeters_; }
+    int distanceMeters() const override { return distanceMeters_; }
     QString instruction() const { return instruction_; }
     bool hasManeuverIcon() const override { return !currentIcon_.isEmpty(); }
     int iconVersion() const override { return iconVersion_; }

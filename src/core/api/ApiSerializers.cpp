@@ -242,7 +242,7 @@ prodigy::api::v1::NavigationStatus buildNavigationStatus(const oap::INavigationP
     status.set_nav_active(p.navActive());
     status.set_road_name(p.roadName().toStdString());
     status.set_formatted_distance(p.formattedDistance().toStdString());
-    status.set_distance_meters(0);  // Task 13 populates this
+    status.set_distance_meters(p.distanceMeters());
 
     const ManeuverMapping m = mapManeuver(p.maneuverType());
     status.set_maneuver(m.type);
