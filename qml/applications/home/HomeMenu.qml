@@ -76,7 +76,7 @@ Item {
     // to avoid intermediate states when cols and rows update independently)
     function _pushGridDims() {
         if (gridCols > 0 && gridRows > 0 && pageView.width > 0 && pageView.height > 0) {
-            WidgetGridModel.setGridDimensions(gridCols, gridRows)
+            DashboardManager.setGridDimensions(gridCols, gridRows)
             gridReady = true
         }
     }
@@ -1261,6 +1261,13 @@ Item {
     // ---- Widget picker sheet (Phase 27) ----
     WidgetPickerSheet {
         id: widgetPickerSheet
+    }
+
+    // ---- Dashboard switcher pills (edit mode only) ----
+    DashboardSwitcher {
+        anchors { top: parent.top; topMargin: UiMetrics.spacing; left: parent.left; right: parent.right }
+        editing: homeScreen.selectedInstanceId !== ""
+        z: 150
     }
 
     Connections {
