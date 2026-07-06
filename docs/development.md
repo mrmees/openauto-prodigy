@@ -18,7 +18,7 @@ The codebase must compile cleanly on both. See the Qt compatibility section belo
 ```bash
 sudo apt install cmake g++ git pkg-config \
   qt6-base-dev qt6-declarative-dev qt6-wayland \
-  qt6-connectivity-dev qt6-multimedia-dev \
+  qt6-connectivity-dev qt6-multimedia-dev qt6-websockets-dev \
   qml6-module-qtquick-controls qml6-module-qtquick-layouts \
   qml6-module-qtquick-window qml6-module-qtqml-workerscript \
   libboost-system-dev libboost-log-dev \
@@ -243,11 +243,12 @@ openauto-prodigy/
 │   │   │   ├── PluginDiscovery.hpp/cpp
 │   │   │   ├── PluginLoader.hpp/cpp
 │   │   │   └── PluginManager.hpp/cpp
-│   │   └── services/               # Shared services
-│   │       ├── ConfigService.hpp/cpp
-│   │       ├── ThemeService.hpp/cpp
-│   │       ├── AudioService.hpp/cpp
-│   │       └── IpcServer.hpp/cpp
+│   │   ├── services/               # Shared services
+│   │   │   ├── ConfigService.hpp/cpp
+│   │   │   ├── ThemeService.hpp/cpp
+│   │   │   ├── AudioService.hpp/cpp
+│   │   │   └── IpcServer.hpp/cpp
+│   │   └── api/                     # External API v1 server (see below)
 │   ├── plugins/                     # Static plugins
 │   │   ├── android_auto/AndroidAutoPlugin.hpp/cpp
 │   │   ├── bt_audio/BtAudioPlugin.hpp/cpp
@@ -272,9 +273,14 @@ openauto-prodigy/
 │   └── templates/                   # HTML templates (base, index, settings, themes, plugins)
 ├── libs/
 │   └── prodigy-oaa-protocol/          # AA protocol library (proto defs via git submodule)
+├── proto/api/                       # External API v1 contract (prodigy-private, additive-only)
 ├── tests/                           # Unit tests (8 tests)
 └── docs/                            # Design docs, plans
 ```
+
+### External API v1
+
+TCP (`9810`) + WebSocket (`9811`) protobuf server for companion app, in-process web widgets, and third-party clients — implemented in `src/core/api/`. Design doc: `docs/superpowers/specs/2026-07-06-external-api-v1-design.md`. Config keys live under `api.*` in `config.yaml` (enable, ports, LAN exposure, pairing/queue timeouts).
 
 ## Debugging Tips
 

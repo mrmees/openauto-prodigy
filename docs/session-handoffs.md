@@ -4,6 +4,54 @@ Newest entries first.
 
 ---
 
+## 2026-07-06 — External API v1 — Implementation Complete (Tasks 1–16)
+
+**Branch:** `external-api-v1` (18 commits since `main`). Design doc: [`superpowers/specs/2026-07-06-external-api-v1-design.md`](superpowers/specs/2026-07-06-external-api-v1-design.md). Plan: [`superpowers/plans/2026-07-06-external-api-v1-implementation.md`](superpowers/plans/2026-07-06-external-api-v1-implementation.md).
+
+**What changed — all 16 plan tasks executed, TDD per task, 102/102 tests green:**
+- `proto/api/` — new protobuf contract (`api`, `common`, `media`, `navigation`, `projection`, `phone`, `system`, `notifications`, `actions`, `companion`), package `prodigy.api.v1`, additive-only from freeze.
+- `src/core/api/` — full server: `ApiFramer` (TCP length-prefix framing), `ApiAuth`/`PairingManager` (windowed PIN challenge/response + `PairedClientStore`), `ApiSerializers` (service state → proto, per §8 normalization tables), `ApiTransport` (`IApiTransport` + `TcpApiTransport`/`WsApiTransport`), `ApiPublishers` (coalescing publishers for media/navigation/projection/phone/system), `ApiSession` (per-connection state machine: hello → auth/pairing → ready, backpressure disconnect), `ApiRequestHandlers`+`ApiInboundState` (action/notification/phone bridges, companion ingest for GPS/battery/connectivity/time), `ApiServer` (listeners on 9810/tcp + 9811/ws, peer-subnet admission policy, lifecycle).
+- Wired into `main.cpp`: `ApiServiceRefs` struct binds concrete service pointers (media/navigation/projection/phone/theme/notifications/actions/config/bluetooth); `api.*` config defaults added to `YamlConfig::initDefaults()`; three media-transport actions (`media.playPause`/`media.next`/`media.previous`) registered so the API can dispatch playback control.
+- `qml/applications/settings/ApiSettings.qml` — enable toggle, LAN exposure toggle, pairing PIN flow.
+- `tests/test_api_*.cpp` — 11 new suites, including a full loopback integration suite (`test_api_loopback`) covering the design's §15 mandatory cases (auth, subscribe/publish, backpressure disconnect, capability-gated phone commands, companion ingest).
+
+**Deviations from the design (all recorded, each with a reason):**
+1. **Phone seam (Tasks 7/9/11).** HFP D2 (call audio) landed before API v1, so per the executor handbook's dependency map the API applied the truthful-capability code path from the HFP plan's Task 8 instead of the stale all-false mock branch: widened call-state mapping (Dialing/Alerting/Held/Waiting), capability flags sourced from `IPhoneStateService::telephonyAvailable()` (`hold_swap`/`multiparty` remain hard-false — not reachable in PipeWire 1.4.2's surface), `phoneCommand()` returns UNAVAILABLE/FAILED/OK, and `PhonePublisher` is also wired to `telephonyAvailableChanged`. Static `Capabilities.phone` in `ServerHello` stays all-false per the API plan — runtime truth lives in `PhoneStatus.capabilities`, not the handshake.
+2. **ThemeService fix (Task 6, Matthew-approved).** Six derived color tokens (success / on-success / warning / on-warning / surface-tint-high / highest) were resolving to transparent via `color(name)`. Fixed by routing them through `ThemeService::activeColor()` (commit `44e61cf`); the API serializer stays plan-exact and just consumes the corrected values.
+3. **Connectivity fold fix (Task 11, review-driven).** The `system` proto's proxy route is `internet_available && socks5_active` (commit `628af0a`), not internet alone — kills a false-positive where the proxy shows "up" while the phone is actually offline. Raw internet-only bit is not separately exposed in v1.
+4. **`api.*` YamlConfig defaults pulled forward from Task 13 into Task 12.** `setValueByPath` validates keys against the defaults schema, so the defaults had to land before the config-write path that depends on them; values are exactly per the design doc's §12 table.
+5. **Task 11 additions.** `ApiSession::peerHost()` accessor added — the connectivity ingest handler needs the peer host to attribute a proxy report to a connection. Dismiss-not-owned now responds with a request-scoped `Error NOT_FOUND` (no disconnect), matching `notifications.proto`'s intent rather than the stricter default.
+6. **Task 15 adaptations.** The slow-consumer backpressure test caps client A's receive buffer and floods ~5.8M send iterations to force the condition under loopback buffer physics — the config byte cap (`api.max_queue_bytes`) itself is untouched; the test asserts server-side cap enforcement then observes the client-side close. Peer-admission policy was pulled out as static seams `ApiServer::inApSubnet`/`ApiServer::peerAllowed` and unit-tested directly — the design didn't call for this but it was zero-coverage otherwise.
+7. **`distanceMeters` promotion (Task 13) also fixed a second fake provider** (`tests/test_widget_instance_context.cpp`) that the plan didn't list as in-scope. Also noted: `navBridge`/`bluetoothManager` are non-nullable in this `main.cpp` — the plan's comments said "may be nullptr" for both, but only `projectionStatusProvider` actually can be.
+8. **Companion gap review (mid-execution, Matthew decisions, commit `6068190`).** Theme/wallpaper transfer to a companion routes via a new web-config HTTP endpoint (separate work item, not the TCP/WS API); the API v1.1 additive batch (SystemStatus display dims, `TimeReport.timezone_id`, `ServerHello.server_id`) was approved as a post-plan follow-up; SOCKS5 password travels in-band, password-only (no separate derivation scheme). Already recorded in the roadmap/design doc/wishlist — referenced here, not duplicated.
+
+**Test trajectory:** 91 baseline → 102 final (11 new test binaries/suites: `test_api_proto_roundtrip`, `test_api_framing`, `test_api_auth`, `test_api_pairing`, `test_api_serializers`, `test_api_transports`, `test_api_publishers`, `test_api_session`, `test_api_request_handlers`, `test_api_server`, `test_api_loopback`). All green throughout — every task TDD'd with a per-task review + fix loop; 2 fix commits total (`44e61cf` theme, `628af0a` connectivity fold), both folded into the deviation list above.
+
+**Status:** Implementation complete, Tasks 1–16 done. Local and cross builds both green (see Verification). Not yet deployed to or exercised on Pi hardware — no client (web or TCP) has driven the server against a live AP connection.
+
+**Next steps:**
+1. Pi deploy + live check — deploy per the standard cross-build + rsync workflow, then exercise the server from a real client (web widget or a small TCP/WS test client) against the actual AP, not loopback.
+2. JS-runtime implementation plan is now unblocked (JS design §9 was gated on API v1 landing) — pick it up next per the roadmap.
+3. API v1.1 additive batch (SystemStatus display dims, `TimeReport.timezone_id`, `ServerHello.server_id`) — approved, not yet scheduled.
+4. Web-config theme/wallpaper transfer HTTP endpoint — approved, separate work item from this API.
+5. Companion app migration onto this API continues in the sibling companion repo.
+
+**Post-review follow-ups (final whole-branch review, 2026-07-05):**
+- Proxy-route teardown on companion-session disconnect (legacy parity: `CompanionListenerService` cleared `setProxyRoute(false)` on drop; API v1 `sessionClosed` does not — dormant while the companion dual-stacks on 9876; needs a small design decision on route ownership before the companion migrates fully).
+- RNG hygiene pass: nonce/salt generation to `QRandomGenerator::system()` (`ApiSession` + `PairingManager`, 3 sites).
+- `ApiServer::start()` double-invocation guard.
+- `WsApiTransport`: `setMaxAllowedIncomingMessageSize(maxFrameBytes)` for TCP/WS symmetry.
+- Loopback `init()` should wipe `kConfigPath` alongside `kStorePath`; alpha-drop comment at `buildSystemStatus` `.name()` call; `PhonePublisher` `startedAtMs` synthesis for calls already `Active` at construction.
+- QML: gate `ApiSettings` pairing controls on a real `apiRunning` server property (Codex finding — PIN can be displayed while listeners are down if `start()` failed).
+
+Codex review of PR #12 (2026-07-06): 3 majors fixed in this commit (TimeReport clock wiring, pairing persist-failure rejection, turn_side hybrid); QML gating deferred.
+
+**Verification:**
+- Local: `cd ~/builds/openauto-prodigy && cmake . && make -j$(nproc) && ctest --output-on-failure` → clean build, `100% tests passed, 0 tests failed out of 102` (26.49s).
+- Cross-compile: `sg docker -c "./cross-build.sh"` → clean aarch64 build to `build-pi/src/openauto-prodigy` (only pre-existing benign `qt6_import_qml_plugins` warnings for unused QML plugins, not errors).
+
+---
+
 ## 2026-07-02 — Paid-alternative parity roadmap, repo resync, parallel quick wins
 
 **What changed:**

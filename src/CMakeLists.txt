@@ -3,6 +3,16 @@ add_library(openauto-core STATIC
     core/Logging.cpp
     core/YamlConfig.cpp
     core/InputDeviceScanner.cpp
+    core/api/ApiFramer.cpp
+    core/api/ApiAuth.cpp
+    core/api/PairingManager.cpp
+    core/api/ApiSerializers.cpp
+    core/api/ApiTransport.cpp
+    core/api/ApiPublishers.cpp
+    core/api/ApiSession.cpp
+    core/api/ApiInboundState.cpp
+    core/api/ApiRequestHandlers.cpp
+    core/api/ApiServer.cpp
     core/system/HostapdConfig.cpp
     core/aa/VideoDecoder.cpp
     core/aa/DmaBufVideoBuffer.cpp
@@ -94,8 +104,10 @@ target_link_libraries(openauto-core PUBLIC
     Qt6::QuickControls2
     Qt6::Multimedia
     Qt6::Network
+    Qt6::WebSockets
     Qt6::DBus
     prodigy-oaa-protocol
+    prodigy-api-proto
     OpenSSL::SSL
     OpenSSL::Crypto
     protobuf::libprotobuf
@@ -362,6 +374,10 @@ set_source_files_properties(../qml/applications/settings/CompanionSettings.qml P
     QT_QML_SOURCE_TYPENAME "CompanionSettings"
     QT_RESOURCE_ALIAS "CompanionSettings.qml"
 )
+set_source_files_properties(../qml/applications/settings/ApiSettings.qml PROPERTIES
+    QT_QML_SOURCE_TYPENAME "ApiSettings"
+    QT_RESOURCE_ALIAS "ApiSettings.qml"
+)
 set_source_files_properties(../qml/applications/settings/EqSettings.qml PROPERTIES
     QT_QML_SOURCE_TYPENAME "EqSettings"
     QT_RESOURCE_ALIAS "EqSettings.qml"
@@ -444,6 +460,7 @@ qt_add_qml_module(openauto-prodigy
         ../qml/applications/settings/ConnectionSettings.qml
         ../qml/applications/settings/SystemSettings.qml
         ../qml/applications/settings/CompanionSettings.qml
+        ../qml/applications/settings/ApiSettings.qml
         ../qml/applications/settings/EqSettings.qml
         ../qml/applications/settings/ThemeSettings.qml
         ../qml/applications/settings/InformationSettings.qml

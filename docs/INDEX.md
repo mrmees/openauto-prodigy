@@ -49,6 +49,10 @@ Protocol definitions and generic reference docs are in [open-android-auto](https
 ## Active Plans
 
 - [plans/active/](plans/active/) — in-progress or not-yet-started design/implementation plans
+- [superpowers/specs/](superpowers/specs/) — design docs from the 2026-07 design sprint
+- [superpowers/plans/](superpowers/plans/) — implementation plans from the 2026-07 design sprint
+- [superpowers/specs/2026-07-06-external-api-v1-design.md](superpowers/specs/2026-07-06-external-api-v1-design.md) — External API v1 design (TCP 9810 / WS 9811, protobuf, pairing) — implemented 2026-07-06
+- [superpowers/plans/2026-07-06-external-api-v1-implementation.md](superpowers/plans/2026-07-06-external-api-v1-implementation.md) — External API v1 implementation plan (Tasks 1–16, complete)
 
 ## Pi Configuration
 

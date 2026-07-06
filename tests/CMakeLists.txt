@@ -158,6 +158,29 @@ oap_add_test(test_media_data_bridge SOURCES test_media_data_bridge.cpp)
 oap_add_test(test_navigation_data_bridge SOURCES test_navigation_data_bridge.cpp)
 oap_add_test(test_maneuver_icon_provider SOURCES test_maneuver_icon_provider.cpp)
 
+# --- External API proto tests ---
+
+oap_add_test(test_api_proto_roundtrip
+    SOURCES test_api_proto_roundtrip.cpp
+    EXTRA_LIBS prodigy-api-proto)
+
+oap_add_test(test_api_framing SOURCES test_api_framing.cpp)
+oap_add_test(test_api_auth SOURCES test_api_auth.cpp)
+oap_add_test(test_api_pairing SOURCES test_api_pairing.cpp)
+oap_add_test(test_api_serializers SOURCES test_api_serializers.cpp)
+oap_add_test(test_api_transports SOURCES test_api_transports.cpp)
+set_tests_properties(test_api_transports PROPERTIES ENVIRONMENT "QT_QPA_PLATFORM=offscreen")
+oap_add_test(test_api_publishers SOURCES test_api_publishers.cpp)
+set_tests_properties(test_api_publishers PROPERTIES ENVIRONMENT "QT_QPA_PLATFORM=offscreen")
+oap_add_test(test_api_session SOURCES test_api_session.cpp)
+set_tests_properties(test_api_session PROPERTIES ENVIRONMENT "QT_QPA_PLATFORM=offscreen")
+oap_add_test(test_api_request_handlers SOURCES test_api_request_handlers.cpp)
+set_tests_properties(test_api_request_handlers PROPERTIES ENVIRONMENT "QT_QPA_PLATFORM=offscreen")
+oap_add_test(test_api_server SOURCES test_api_server.cpp)
+set_tests_properties(test_api_server PROPERTIES ENVIRONMENT "QT_QPA_PLATFORM=offscreen")
+oap_add_test(test_api_loopback SOURCES test_api_loopback.cpp)
+set_tests_properties(test_api_loopback PROPERTIES ENVIRONMENT "QT_QPA_PLATFORM=offscreen")
+
 # --- Script tests (no compilation) ---
 
 add_test(

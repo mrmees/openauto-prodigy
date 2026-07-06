@@ -175,7 +175,7 @@ No position/duration in v1 — the service has none (scout-verified). Adding the
 | `nav_active` | `navActive()` | — |
 | `road_name` | `roadName()` | — |
 | `maneuver` | `maneuverType()` int | raw AA maneuver code — **must not leak** (rail R1 spirit). Map to `prodigy.api.v1.ManeuverType` via table; unmapped → `MANEUVER_TYPE_OTHER`. Executor builds the table from the oaa protocol's maneuver enum (read-only) |
-| `turn_side` | `turnDirection()` int | same treatment → `TurnSide{UNSPECIFIED/LEFT/RIGHT/UNSPECIFIED_SIDE}` mapping table |
+| `turn_side` | `maneuverType()` code, `turnDirection()` int | **DECIDED 2026-07-06 (Codex review of PR #12): hybrid** — the maneuver-code side table (same table as `maneuver`, see `ApiSerializers.cpp::mapManeuver`) is the PRIMARY source; `turnDirection()` (raw oaa `TurnSide.Enum`: `UNKNOWN=0/LEFT=1/RIGHT=2`) is the FALLBACK, consulted only when the maneuver code itself encodes no side (`TURN_SIDE_UNSPECIFIED`). Primary always wins when it has an opinion |
 | `distance_meters` | not on the interface — `distanceMeters` is a `NavigationDataBridge` extra | **v1 binds the interface only**: omit until the getter is promoted to `INavigationProvider` (tiny executor task, listed in the plan) — after which it populates. Field exists in the proto from day one |
 | `formatted_distance` | `formattedDistance()` | display-ready string, pass through |
 
@@ -306,7 +306,8 @@ Build gates: `cmake .. && make -j$(nproc)` (WSL2 Trixie), `ctest --output-on-fai
 | Item | Where it lands |
 |---|---|
 | `location` status topic (rebroadcast companion GPS) | v1.1 — reserved slot 35 |
-| Theme/wallpaper push from companion | companion-rewrite phase |
+| Theme/wallpaper push from companion | **DECIDED 2026-07-05 (Matthew, companion-rewrite gap review): NOT an API concern — moves to a new web-config HTTP upload/install endpoint** (blobs over HTTP beat chunking under the 256 KiB frame cap; same WPA2-AP trust model). Head-unit work item on the roadmap. Companion keeps theme transfer on legacy 9876 (dual-stack) until that endpoint ships; 9876 retires after. |
+| **v1.1 additive batch (approved 2026-07-05):** `SystemStatus` display width/height, `TimeReport.timezone_id` (IANA), `ServerHello.server_id` (stable head-unit identity for multi-vehicle disambiguation — every AP puts the server at 10.0.0.1) | post-Task-16 follow-up; minor bump to 1.1; all proto3 `optional`, clients feature-detect by field presence |
 | Notification event stream | v1.1 if a client needs it |
 | Web-config panel `api.*` settings page + paired-client management UI | executor follow-up post-v1 |
 | Per-capability ACLs, TLS | v2, if a third-party ecosystem materializes |

@@ -29,6 +29,7 @@ public:
     int maneuverType() const override { return 1; }
     int turnDirection() const override { return 2; }
     QString formattedDistance() const override { return "500 ft"; }
+    int distanceMeters() const override { return 500; }
     bool hasManeuverIcon() const override { return false; }
     int iconVersion() const override { return 0; }
 };

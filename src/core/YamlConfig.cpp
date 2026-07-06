@@ -73,6 +73,16 @@ void YamlConfig::initDefaults()
     root_["identity"]["car_year"] = "";
     root_["identity"]["left_hand_drive"] = true;
 
+    // External API v1 (ApiServer). Defaults mirror the api.proto documented
+    // values; ApiServer still reads each key defensively with a fallback.
+    root_["api"]["enabled"] = true;
+    root_["api"]["tcp_port"] = 9810;
+    root_["api"]["ws_port"] = 9811;
+    root_["api"]["expose_lan"] = false;
+    root_["api"]["max_queue_bytes"] = 1048576;
+    root_["api"]["pairing_timeout_s"] = 120;
+    root_["api"]["handshake_timeout_ms"] = 5000;
+
     root_["sensors"]["night_mode"]["source"] = "time";
     root_["sensors"]["night_mode"]["day_start"] = "07:00";
     root_["sensors"]["night_mode"]["night_start"] = "19:00";
