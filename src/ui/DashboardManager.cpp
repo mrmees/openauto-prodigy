@@ -19,6 +19,23 @@ DashboardManager::DashboardManager(WidgetRegistry* registry, IHostContext* hostC
     , config_(config)
     , configPath_(configPath)
 {
+    persistTimer_.setSingleShot(true);
+    persistTimer_.setInterval(750);
+    connect(&persistTimer_, &QTimer::timeout, this, [this]() {
+        config_->save(configPath_);
+    });
+}
+
+DashboardManager::~DashboardManager()
+{
+    // Flush a pending debounced active-id write so quitting right after a
+    // nav tap doesn't silently lose it. The in-memory config already has
+    // the new active id set (schedulePersistActiveId sets it eagerly) —
+    // this just performs the deferred file write synchronously.
+    if (persistTimer_.isActive()) {
+        persistTimer_.stop();
+        config_->save(configPath_);
+    }
 }
 
 void DashboardManager::loadFromConfig(int initialCols, int initialRows)
@@ -150,35 +167,37 @@ bool DashboardManager::switchTo(const QString& id)
 {
     const int idx = indexOf(id);
     if (idx < 0) return false;
+    if (idx == active_) return true;  // already active: no-op
     active_ = idx;
-    saveAll();
     emit activeDashboardChanged();
+    schedulePersistActiveId();
     return true;
 }
 
 bool DashboardManager::switchToIndex(int index)
 {
     if (index < 0 || index >= entries_.size()) return false;
+    if (index == active_) return true;  // already active: no-op
     active_ = index;
-    saveAll();
     emit activeDashboardChanged();
+    schedulePersistActiveId();
     return true;
 }
 
 void DashboardManager::nextDashboard()
 {
-    if (entries_.isEmpty()) return;
+    if (entries_.size() <= 1) return;
     active_ = (active_ + 1) % entries_.size();
-    saveAll();
     emit activeDashboardChanged();
+    schedulePersistActiveId();
 }
 
 void DashboardManager::previousDashboard()
 {
-    if (entries_.isEmpty()) return;
+    if (entries_.size() <= 1) return;
     active_ = (active_ - 1 + entries_.size()) % entries_.size();
-    saveAll();
     emit activeDashboardChanged();
+    schedulePersistActiveId();
 }
 
 QString DashboardManager::addDashboard(const QString& name)
@@ -278,6 +297,12 @@ void DashboardManager::saveAll()
 {
     if (loading_) return;
 
+    // A full save always persists the current active id too (see below),
+    // so any pending debounced nav-only persist is now redundant.
+    if (persistTimer_.isActive()) {
+        persistTimer_.stop();
+    }
+
     QList<DashboardConfig> list;
     list.reserve(entries_.size());
     for (const auto& e : entries_) {
@@ -295,6 +320,17 @@ void DashboardManager::saveAll()
         config_->setGridSavedDims(am->gridColumns(), am->gridRows());
     }
     config_->save(configPath_);
+}
+
+void DashboardManager::schedulePersistActiveId()
+{
+    // Set the active id in-memory immediately (so a concurrent saveAll
+    // triggered by another dashboard's edits, or the dtor flush, always
+    // sees the latest value), but defer the actual file write — restart
+    // the single-shot timer so a burst of nav taps collapses into one
+    // write instead of one synchronous full-config write per tap.
+    config_->setActiveDashboardId(activeDashboardId());
+    persistTimer_.start();
 }
 
 QString DashboardManager::slugify(const QString& name) const

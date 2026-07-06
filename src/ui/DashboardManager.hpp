@@ -4,6 +4,7 @@
 #include <QString>
 #include <QStringList>
 #include <QList>
+#include <QTimer>
 
 namespace oap {
 
@@ -29,6 +30,7 @@ public:
     DashboardManager(WidgetRegistry* registry, IHostContext* hostContext,
                      YamlConfig* config, const QString& configPath,
                      QObject* parent = nullptr);
+    ~DashboardManager() override;
 
     // Builds a WidgetGridModel + WidgetContextFactory per configured dashboard,
     // seeds "home" with the reserved launcher placements on fresh installs,
@@ -67,6 +69,10 @@ private:
     };
 
     void saveAll();
+    // Pure navigation (no placement/page-count change): persists only the
+    // active dashboard id, debounced via persistTimer_, instead of
+    // reserializing every dashboard through saveAll(). See class docs.
+    void schedulePersistActiveId();
     QString slugify(const QString& name) const;
     int indexOf(const QString& id) const;
 
@@ -78,6 +84,15 @@ private:
     QList<Entry> entries_;
     int active_ = 0;
     bool loading_ = false;
+
+    // Debounced persistence for nav-only active-id changes (switchTo/
+    // switchToIndex/next/previousDashboard). Nav taps update active_ and
+    // config_'s in-memory active id immediately (so it's never lost to a
+    // concurrent saveAll from another dashboard's edits), but the actual
+    // file write is coalesced: rapid taps restart this single-shot timer
+    // rather than issuing a synchronous full-config write per tap. See
+    // CLAUDE.md gotcha: QTimer needs a real #include, not a fwd-decl.
+    QTimer persistTimer_;
 };
 
 } // namespace oap

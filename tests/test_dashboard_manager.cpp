@@ -30,6 +30,8 @@ private slots:
     void testPersistAcrossReload();
     void testRemoveHomeRefused();
     void testWrapNavigation();
+    void testSlugFallbackAndCollision();
+    void testNavPersistSemantics();
 };
 
 void TestDashboardManager::testFreshLoadSeedsHome() {
@@ -110,6 +112,82 @@ void TestDashboardManager::testWrapNavigation() {
     dm.nextDashboard(); QCOMPARE(dm.activeIndex(), 1);
     dm.nextDashboard(); QCOMPARE(dm.activeIndex(), 0);   // wraps
     dm.previousDashboard(); QCOMPARE(dm.activeIndex(), 1);
+}
+
+void TestDashboardManager::testSlugFallbackAndCollision() {
+    oap::WidgetRegistry reg; registerSeedWidgets(reg);
+    oap::YamlConfig cfg;
+    oap::DashboardManager dm(&reg, nullptr, &cfg, path_);
+    dm.loadFromConfig(6, 4);
+
+    const int before = dm.count();
+
+    // All-punctuation name slugifies to empty -> falls back to "dashboard".
+    const QString fallbackId = dm.addDashboard("!!!");
+    QCOMPARE(fallbackId, QString("dashboard"));
+    QCOMPARE(dm.count(), before + 1);
+
+    const QString firstTripId = dm.addDashboard("Road Trip");
+    QCOMPARE(firstTripId, QString("road-trip"));
+    QCOMPARE(dm.count(), before + 2);
+
+    // Same name again -> same slug base, must not collide with the first.
+    const QString secondTripId = dm.addDashboard("Road Trip");
+    QVERIFY(!secondTripId.isEmpty());
+    QVERIFY(secondTripId != firstTripId);
+    QVERIFY(secondTripId.startsWith(QStringLiteral("road-trip")));
+    QCOMPARE(dm.count(), before + 3);
+
+    // idAt / dashboardNames consistency across all three additions.
+    QCOMPARE(dm.dashboardNames().size(), dm.count());
+    int fallbackIdx = -1, firstIdx = -1, secondIdx = -1;
+    for (int i = 0; i < dm.count(); ++i) {
+        const QString thisId = dm.idAt(i);
+        if (thisId == fallbackId) fallbackIdx = i;
+        if (thisId == firstTripId) firstIdx = i;
+        if (thisId == secondTripId) secondIdx = i;
+    }
+    QVERIFY(fallbackIdx >= 0);
+    QVERIFY(firstIdx >= 0);
+    QVERIFY(secondIdx >= 0);
+    QCOMPARE(dm.dashboardNames().at(fallbackIdx), QString("!!!"));
+    QCOMPARE(dm.dashboardNames().at(firstIdx), QString("Road Trip"));
+    QCOMPARE(dm.dashboardNames().at(secondIdx), QString("Road Trip"));
+}
+
+void TestDashboardManager::testNavPersistSemantics() {
+    oap::WidgetRegistry reg; registerSeedWidgets(reg);
+    QString id;
+    {
+        oap::YamlConfig cfg;
+        oap::DashboardManager dm(&reg, nullptr, &cfg, path_);
+        dm.loadFromConfig(6, 4);
+
+        id = dm.addDashboard("B");
+        QVERIFY(!id.isEmpty());
+
+        // addDashboard's saveAll() already ran a full synchronous write —
+        // active is still "home" on disk (nav hasn't happened yet).
+        oap::YamlConfig onDiskAfterAdd; onDiskAfterAdd.load(path_);
+        QCOMPARE(onDiskAfterAdd.activeDashboardId(), QString("home"));
+
+        QSignalSpy activeSpy(&dm, &oap::DashboardManager::activeDashboardChanged);
+        QVERIFY(dm.switchTo(id));
+        QCOMPARE(activeSpy.count(), 1);
+
+        // Nav must NOT synchronously rewrite the file — only the debounced
+        // persistTimer_ does that, and it hasn't fired yet.
+        oap::YamlConfig onDiskAfterSwitch; onDiskAfterSwitch.load(path_);
+        QCOMPARE(onDiskAfterSwitch.activeDashboardId(), QString("home"));  // still old
+
+        // Already-active short-circuit: switching to the same id again is a
+        // no-op — no additional emit, no additional persist scheduling.
+        QVERIFY(dm.switchTo(id));
+        QCOMPARE(activeSpy.count(), 1);
+    } // dm destroyed here -> dtor flushes the pending debounced write
+
+    oap::YamlConfig onDiskAfterDtor; onDiskAfterDtor.load(path_);
+    QCOMPARE(onDiskAfterDtor.activeDashboardId(), id);  // now persisted
 }
 
 QTEST_MAIN(TestDashboardManager)
