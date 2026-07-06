@@ -738,13 +738,22 @@ int main(int argc, char *argv[])
 
     // --- Dashboards: per-dashboard widget grids (design 2026-07-05 §3) ---
     auto dashboardManager = new oap::DashboardManager(
-        widgetRegistry, hostContext.get(), yamlConfig.get(), yamlPath, &app);
+        widgetRegistry, hostContext.get(), yamlConfig, yamlPath, &app);
     {
         qreal cs = displayInfo->cellSide();
         int initCols = qMax(3, static_cast<int>(std::floor(displayInfo->windowWidth() / cs)));
         int initRows = qMax(2, static_cast<int>(std::floor(displayInfo->windowHeight() / cs)));
         dashboardManager->loadFromConfig(initCols, initRows);
     }
+
+    // Flush any pending debounced dashboard persist on quit (belt-and-
+    // suspenders alongside DashboardManager's shared_ptr YamlConfig ref —
+    // see EqualizerService::saveNow precedent above). yamlConfig is a
+    // shared_ptr now held by dashboardManager too, so its dtor flush is
+    // safe regardless of teardown order, but doing it here means the write
+    // happens during normal event-loop teardown rather than at destruction.
+    QObject::connect(&app, &QGuiApplication::aboutToQuit,
+                     dashboardManager, &oap::DashboardManager::flushPendingPersist);
 
     // QML (HomeMenu.qml) is the sole authority for grid dimensions.
     // It applies snap-aware computation on top of DisplayInfo.cellSide.

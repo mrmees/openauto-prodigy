@@ -986,7 +986,14 @@ void YamlConfig::setActiveDashboardId(const QString& id)
 void YamlConfig::migrateWidgetGridV3()
 {
     YAML::Node wg = root_["widget_grid"];
-    if (!wg.IsDefined() || wg["version"].as<int>(4) != 3) return;
+    // A flat placements sequence only ever appears in pre-v4 (versionless or
+    // v2/v3) shapes -- v4 files always nest placements under dashboards[].
+    // Gate strictly on version==3 missed flat v2/versionless configs, which
+    // then loaded as an empty default dashboard and the next save clobbered
+    // the user's placements on disk. Migrate whenever the flat shape is
+    // present, regardless of the (possibly absent/wrong) version tag.
+    const bool flatShape = wg["placements"].IsDefined() && wg["placements"].IsSequence();
+    if (!wg.IsDefined() || (!flatShape && wg["version"].as<int>(4) != 3)) return;
 
     YAML::Node home;
     home["id"] = "home";

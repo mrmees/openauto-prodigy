@@ -5,6 +5,7 @@
 #include <QStringList>
 #include <QList>
 #include <QTimer>
+#include <memory>
 
 namespace oap {
 
@@ -27,8 +28,15 @@ class DashboardManager : public QObject {
     Q_PROPERTY(QStringList dashboardNames READ dashboardNames NOTIFY dashboardsChanged)
 
 public:
+    // config is a shared_ptr (not a raw YamlConfig*) so the manager keeps
+    // the config alive through its own destruction. main.cpp's YamlConfig
+    // is declared before QGuiApplication, so at process-exit it would
+    // otherwise be destroyed before this manager (an app-lifetime QObject
+    // child) — leaving the dtor's pending-persist flush (config_->save())
+    // dereferencing freed memory. Holding a ref here makes that flush safe
+    // unconditionally, regardless of teardown order elsewhere.
     DashboardManager(WidgetRegistry* registry, IHostContext* hostContext,
-                     YamlConfig* config, const QString& configPath,
+                     std::shared_ptr<YamlConfig> config, const QString& configPath,
                      QObject* parent = nullptr);
     ~DashboardManager() override;
 
@@ -56,6 +64,12 @@ public:
     Q_INVOKABLE QString idAt(int index) const;
     Q_INVOKABLE void setGridDimensions(int cols, int rows); // fans out to ALL models
 
+    // Belt-and-suspenders alongside the shared_ptr fix: flush any pending
+    // debounced persist during normal event-loop teardown (aboutToQuit)
+    // rather than relying solely on the destructor. Safe to call even with
+    // no pending write (persistTimer_ simply isn't active).
+    Q_INVOKABLE void flushPendingPersist();
+
 signals:
     void activeDashboardChanged();
     void dashboardsChanged();
@@ -78,7 +92,7 @@ private:
 
     WidgetRegistry* registry_;
     IHostContext* hostContext_;
-    YamlConfig* config_;
+    std::shared_ptr<YamlConfig> config_;
     QString configPath_;
 
     QList<Entry> entries_;

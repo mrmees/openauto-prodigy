@@ -11,12 +11,12 @@
 namespace oap {
 
 DashboardManager::DashboardManager(WidgetRegistry* registry, IHostContext* hostContext,
-                                   YamlConfig* config, const QString& configPath,
+                                   std::shared_ptr<YamlConfig> config, const QString& configPath,
                                    QObject* parent)
     : QObject(parent)
     , registry_(registry)
     , hostContext_(hostContext)
-    , config_(config)
+    , config_(std::move(config))
     , configPath_(configPath)
 {
     persistTimer_.setSingleShot(true);
@@ -32,6 +32,18 @@ DashboardManager::~DashboardManager()
     // nav tap doesn't silently lose it. The in-memory config already has
     // the new active id set (schedulePersistActiveId sets it eagerly) —
     // this just performs the deferred file write synchronously.
+    if (persistTimer_.isActive()) {
+        persistTimer_.stop();
+        config_->save(configPath_);
+    }
+}
+
+void DashboardManager::flushPendingPersist()
+{
+    // Same flush as the dtor above, but invoked from aboutToQuit so the
+    // write happens during normal event-loop teardown instead of relying
+    // solely on destruction order (belt-and-suspenders with the shared_ptr
+    // config lifetime fix — see header doc comment on the ctor).
     if (persistTimer_.isActive()) {
         persistTimer_.stop();
         config_->save(configPath_);
@@ -168,6 +180,12 @@ bool DashboardManager::switchTo(const QString& id)
     const int idx = indexOf(id);
     if (idx < 0) return false;
     if (idx == active_) return true;  // already active: no-op
+    // Clear the OUTGOING model's selection latch before repointing the
+    // active dashboard (activeDashboardChanged causes QML to re-point its
+    // WidgetGridModel context property to the new model). Doing this after
+    // the emit would deselect the wrong (incoming) model and strand the
+    // outgoing model's deferred grid remap. See DashboardManager class docs.
+    if (auto* outgoing = activeModel()) outgoing->setWidgetSelected(false);
     active_ = idx;
     emit activeDashboardChanged();
     schedulePersistActiveId();
@@ -178,6 +196,7 @@ bool DashboardManager::switchToIndex(int index)
 {
     if (index < 0 || index >= entries_.size()) return false;
     if (index == active_) return true;  // already active: no-op
+    if (auto* outgoing = activeModel()) outgoing->setWidgetSelected(false);
     active_ = index;
     emit activeDashboardChanged();
     schedulePersistActiveId();
@@ -187,6 +206,7 @@ bool DashboardManager::switchToIndex(int index)
 void DashboardManager::nextDashboard()
 {
     if (entries_.size() <= 1) return;
+    if (auto* outgoing = activeModel()) outgoing->setWidgetSelected(false);
     active_ = (active_ + 1) % entries_.size();
     emit activeDashboardChanged();
     schedulePersistActiveId();
@@ -195,6 +215,7 @@ void DashboardManager::nextDashboard()
 void DashboardManager::previousDashboard()
 {
     if (entries_.size() <= 1) return;
+    if (auto* outgoing = activeModel()) outgoing->setWidgetSelected(false);
     active_ = (active_ - 1 + entries_.size()) % entries_.size();
     emit activeDashboardChanged();
     schedulePersistActiveId();
@@ -252,6 +273,10 @@ bool DashboardManager::removeDashboard(const QString& id)
     Entry removed = entries_.takeAt(idx);
 
     if (wasActive) {
+        // Same outgoing-selection-clear as switchTo/etc — the removed
+        // dashboard was the active one, so its model is the "outgoing"
+        // model for the activeDashboardChanged emitted below.
+        removed.model->setWidgetSelected(false);
         const int homeIdx = indexOf(QStringLiteral("home"));
         active_ = homeIdx >= 0 ? homeIdx : 0;
     } else if (idx < active_) {

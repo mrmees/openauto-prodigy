@@ -1,4 +1,5 @@
 #include <QtTest/QtTest>
+#include <memory>
 #include "ui/DashboardManager.hpp"
 #include "ui/WidgetGridModel.hpp"
 #include "core/widget/WidgetRegistry.hpp"
@@ -32,12 +33,14 @@ private slots:
     void testWrapNavigation();
     void testSlugFallbackAndCollision();
     void testNavPersistSemantics();
+    void testConfigOutlivesManagerViaSharedPtr();
+    void testSwitchClearsOutgoingSelection();
 };
 
 void TestDashboardManager::testFreshLoadSeedsHome() {
     oap::WidgetRegistry reg; registerSeedWidgets(reg);
-    oap::YamlConfig cfg;
-    oap::DashboardManager dm(&reg, nullptr, &cfg, path_);
+    auto cfg = std::make_shared<oap::YamlConfig>();
+    oap::DashboardManager dm(&reg, nullptr, cfg, path_);
     dm.loadFromConfig(6, 4);
     QCOMPARE(dm.count(), 1);
     QCOMPARE(dm.activeDashboardId(), QString("home"));
@@ -49,8 +52,8 @@ void TestDashboardManager::testFreshLoadSeedsHome() {
 
 void TestDashboardManager::testAddSwitchRemove() {
     oap::WidgetRegistry reg; registerSeedWidgets(reg);
-    oap::YamlConfig cfg;
-    oap::DashboardManager dm(&reg, nullptr, &cfg, path_);
+    auto cfg = std::make_shared<oap::YamlConfig>();
+    oap::DashboardManager dm(&reg, nullptr, cfg, path_);
     dm.loadFromConfig(6, 4);
     QSignalSpy dashSpy(&dm, &oap::DashboardManager::dashboardsChanged);
     QSignalSpy activeSpy(&dm, &oap::DashboardManager::activeDashboardChanged);
@@ -74,15 +77,15 @@ void TestDashboardManager::testAddSwitchRemove() {
 void TestDashboardManager::testPersistAcrossReload() {
     oap::WidgetRegistry reg; registerSeedWidgets(reg);
     {
-        oap::YamlConfig cfg;
-        oap::DashboardManager dm(&reg, nullptr, &cfg, path_);
+        auto cfg = std::make_shared<oap::YamlConfig>();
+        oap::DashboardManager dm(&reg, nullptr, cfg, path_);
         dm.loadFromConfig(6, 4);
         const QString id = dm.addDashboard("Trip");
         dm.switchTo(id);
         dm.activeModel()->placeWidget("org.openauto.clock", 0, 0, 1, 1); // triggers save
     }
-    oap::YamlConfig cfg2; cfg2.load(path_);
-    oap::DashboardManager dm2(&reg, nullptr, &cfg2, path_);
+    auto cfg2 = std::make_shared<oap::YamlConfig>(); cfg2->load(path_);
+    oap::DashboardManager dm2(&reg, nullptr, cfg2, path_);
     dm2.loadFromConfig(6, 4);
     QCOMPARE(dm2.count(), 2);
     QCOMPARE(dm2.activeDashboardId(), QString("trip"));   // restored
@@ -93,8 +96,8 @@ void TestDashboardManager::testPersistAcrossReload() {
 
 void TestDashboardManager::testRemoveHomeRefused() {
     oap::WidgetRegistry reg; registerSeedWidgets(reg);
-    oap::YamlConfig cfg;
-    oap::DashboardManager dm(&reg, nullptr, &cfg, path_);
+    auto cfg = std::make_shared<oap::YamlConfig>();
+    oap::DashboardManager dm(&reg, nullptr, cfg, path_);
     dm.loadFromConfig(6, 4);
     QVERIFY(!dm.removeDashboard("home"));
     const QString id = dm.addDashboard("X");
@@ -104,8 +107,8 @@ void TestDashboardManager::testRemoveHomeRefused() {
 
 void TestDashboardManager::testWrapNavigation() {
     oap::WidgetRegistry reg; registerSeedWidgets(reg);
-    oap::YamlConfig cfg;
-    oap::DashboardManager dm(&reg, nullptr, &cfg, path_);
+    auto cfg = std::make_shared<oap::YamlConfig>();
+    oap::DashboardManager dm(&reg, nullptr, cfg, path_);
     dm.loadFromConfig(6, 4);
     dm.addDashboard("B");
     QCOMPARE(dm.activeIndex(), 0);
@@ -116,8 +119,8 @@ void TestDashboardManager::testWrapNavigation() {
 
 void TestDashboardManager::testSlugFallbackAndCollision() {
     oap::WidgetRegistry reg; registerSeedWidgets(reg);
-    oap::YamlConfig cfg;
-    oap::DashboardManager dm(&reg, nullptr, &cfg, path_);
+    auto cfg = std::make_shared<oap::YamlConfig>();
+    oap::DashboardManager dm(&reg, nullptr, cfg, path_);
     dm.loadFromConfig(6, 4);
 
     const int before = dm.count();
@@ -159,8 +162,8 @@ void TestDashboardManager::testNavPersistSemantics() {
     oap::WidgetRegistry reg; registerSeedWidgets(reg);
     QString id;
     {
-        oap::YamlConfig cfg;
-        oap::DashboardManager dm(&reg, nullptr, &cfg, path_);
+        auto cfg = std::make_shared<oap::YamlConfig>();
+        oap::DashboardManager dm(&reg, nullptr, cfg, path_);
         dm.loadFromConfig(6, 4);
 
         id = dm.addDashboard("B");
@@ -188,6 +191,66 @@ void TestDashboardManager::testNavPersistSemantics() {
 
     oap::YamlConfig onDiskAfterDtor; onDiskAfterDtor.load(path_);
     QCOMPARE(onDiskAfterDtor.activeDashboardId(), id);  // now persisted
+}
+
+// Regression for the ~DashboardManager use-after-free: main.cpp's YamlConfig
+// is declared before QGuiApplication, so at process-exit it used to be
+// destroyed BEFORE this app-lifetime manager, and the dtor's pending-persist
+// flush (config_->save()) dereferenced freed memory. The fix makes the
+// manager hold its own std::shared_ptr ref to the config, so even after an
+// external owner drops its reference, the config stays alive until the
+// manager itself is destroyed. Not run pre-fix: a UAF here would manifest as
+// a crash or silent memory corruption rather than a clean assertion failure
+// (undefined behavior isn't reliably reproducible), so RED is skipped as
+// acceptable for this case per the task brief -- the shared_ptr type change
+// itself is the fix, and this test only proves the happy path stays correct.
+void TestDashboardManager::testConfigOutlivesManagerViaSharedPtr() {
+    oap::WidgetRegistry reg; registerSeedWidgets(reg);
+    QString id;
+    {
+        auto cfg = std::make_shared<oap::YamlConfig>();
+        oap::DashboardManager dm(&reg, nullptr, cfg, path_);
+        dm.loadFromConfig(6, 4);
+
+        id = dm.addDashboard("Other");
+        QVERIFY(!id.isEmpty());
+        QVERIFY(dm.switchTo(id));   // starts the debounced pending persist
+
+        cfg.reset();   // drop the external reference -- dm's own ref must
+                        // be the only thing keeping YamlConfig alive now
+    }   // dm destroyed here: dtor flush must not UAF against the dropped cfg
+
+    oap::YamlConfig onDisk;
+    onDisk.load(path_);
+    QCOMPARE(onDisk.activeDashboardId(), id);  // dtor flush succeeded
+}
+
+// Regression for the deselect-on-switch bug: switchTo (and friends) must
+// clear the OUTGOING model's selection latch before emitting
+// activeDashboardChanged, not rely on QML to do it after the context
+// re-point (by then QML's WidgetGridModel context property already points
+// at the INCOMING model). widgetDeselectedFromCpp is the only observable
+// proxy WidgetGridModel exposes for "selection was cleared" (there's no
+// public getter for widgetSelected_), and it only fires on an actual
+// true->false transition -- exactly what we need to prove happened on the
+// home model specifically.
+void TestDashboardManager::testSwitchClearsOutgoingSelection() {
+    oap::WidgetRegistry reg; registerSeedWidgets(reg);
+    auto cfg = std::make_shared<oap::YamlConfig>();
+    oap::DashboardManager dm(&reg, nullptr, cfg, path_);
+    dm.loadFromConfig(6, 4);
+
+    auto* homeModel = dm.activeModel();
+    QVERIFY(homeModel != nullptr);
+    homeModel->setWidgetSelected(true);
+
+    QSignalSpy deselectSpy(homeModel, &oap::WidgetGridModel::widgetDeselectedFromCpp);
+
+    const QString id = dm.addDashboard("Other");
+    QVERIFY(!id.isEmpty());
+    QVERIFY(dm.switchTo(id));
+
+    QCOMPARE(deselectSpy.count(), 1);  // home (outgoing) model's latch was cleared
 }
 
 QTEST_MAIN(TestDashboardManager)

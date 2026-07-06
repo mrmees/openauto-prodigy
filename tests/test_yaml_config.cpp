@@ -44,6 +44,7 @@ private slots:
     void testV4DefaultsOneHomeDashboard();
     void testDashboardsRoundTrip();
     void testV3MigratesToV4();
+    void testV2FlatShapeMigrates();
 };
 
 void TestYamlConfig::testLoadDefaults()
@@ -558,6 +559,45 @@ void TestYamlConfig::testV3MigratesToV4()
         QFile f(path); QVERIFY(f.open(QIODevice::WriteOnly | QIODevice::Truncate));
         f.write("widget_grid:\n"
                 "  version: 3\n"
+                "  next_instance_id: 7\n"
+                "  page_count: 3\n"
+                "  grid_cols: 8\n"
+                "  grid_rows: 4\n"
+                "  placements:\n"
+                "    - instance_id: org.openauto.clock-4\n"
+                "      widget_id: org.openauto.clock\n"
+                "      col: 0\n      row: 0\n      col_span: 2\n      row_span: 2\n"
+                "      opacity: 0.25\n      page: 1\n");
+    }
+    oap::YamlConfig cfg;
+    cfg.load(path);
+    auto ds = cfg.dashboards();
+    QCOMPARE(ds.size(), 1);
+    QCOMPARE(ds[0].id, QString("home"));
+    QCOMPARE(ds[0].nextInstanceId, 7);
+    QCOMPARE(ds[0].pageCount, 3);
+    QCOMPARE(ds[0].placements.size(), 1);
+    QCOMPARE(ds[0].placements[0].page, 1);
+    QCOMPARE(cfg.activeDashboardId(), QString("home"));
+    QCOMPARE(cfg.gridSavedCols(), 8);            // global key untouched
+    // Idempotence: save then reload — still one dashboard, still v4 shape.
+    cfg.save(path);
+    oap::YamlConfig again; again.load(path);
+    QCOMPARE(again.dashboards().size(), 1);
+    QCOMPARE(again.dashboards()[0].nextInstanceId, 7);
+}
+
+void TestYamlConfig::testV2FlatShapeMigrates()
+{
+    // Literal v2 (flat, pre-dashboards) file — the migration gate keyed
+    // strictly on version==3 skips this shape entirely, dropping the
+    // user's placements on load. version==2 is on-disk-plausible (older
+    // installs); a missing version key is also possible pre-versioning.
+    const QString path = QDir::temp().filePath("oap_test_dash_v2.yaml");
+    {
+        QFile f(path); QVERIFY(f.open(QIODevice::WriteOnly | QIODevice::Truncate));
+        f.write("widget_grid:\n"
+                "  version: 2\n"
                 "  next_instance_id: 7\n"
                 "  page_count: 3\n"
                 "  grid_cols: 8\n"
