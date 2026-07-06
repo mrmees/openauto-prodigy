@@ -26,6 +26,7 @@
 #include "core/services/IpcServer.hpp"
 #include "core/services/EventBus.hpp"
 #include "core/services/ActionRegistry.hpp"
+#include "core/services/OverlayService.hpp"
 #include "core/services/NotificationService.hpp"
 #include "core/services/CompanionListenerService.hpp"
 #include "core/services/WeatherService.hpp"
@@ -343,6 +344,40 @@ int main(int argc, char *argv[])
     // --- ActionRegistry ---
     auto actionRegistry = new oap::ActionRegistry(&app);
     hostContext->setActionRegistry(actionRegistry);
+
+    // --- OverlayService ---
+    auto overlayService = new oap::OverlayService(actionRegistry, &app);
+
+    // --- Pairing dialog: migrated onto the overlay framework ---
+    {
+        oap::OverlayService::OverlayDescriptor d;
+        d.id = QStringLiteral("pairing");
+        d.qmlComponent = QUrl(QStringLiteral("qrc:/OpenAutoProdigy/PairingDialog.qml"));
+        d.band = oap::OverlayService::ZBand::SystemModal;
+        overlayService->registerOverlay(d);
+        // Visibility rides the action path (rail R4): state source stays authoritative.
+        auto syncPairing = [actionRegistry, bluetoothManager]() {
+            actionRegistry->dispatch(bluetoothManager->isPairingActive()
+                ? QStringLiteral("overlay.pairing.show")
+                : QStringLiteral("overlay.pairing.hide"));
+        };
+        QObject::connect(bluetoothManager, &oap::BluetoothManager::pairingActiveChanged,
+                         overlayService, syncPairing);
+        syncPairing();
+
+        // State authority (design §4.4): if anything shows the pairing overlay
+        // while BluetoothManager says pairing is inactive, immediately hide it
+        // through the same action path. Safe reentrancy: setVisible mutates
+        // before emitting, so the nested hide sees visible==false and stops.
+        QObject::connect(overlayService, &oap::OverlayService::overlayVisibilityChanged,
+                         bluetoothManager,
+                         [actionRegistry, bluetoothManager](const QString& id, bool visible) {
+                             if (id == QLatin1String("pairing") && visible && !bluetoothManager->isPairingActive())
+                                 actionRegistry->dispatch(QStringLiteral("overlay.pairing.hide"));
+                         });
+    }
+
+    hostContext->setOverlayService(overlayService);
 
     // --- NavbarController ---
     auto navbarController = new oap::NavbarController(&app);
@@ -938,6 +973,7 @@ int main(int argc, char *argv[])
 
     engine.rootContext()->setContextProperty("NavbarController", navbarController);
     engine.rootContext()->setContextProperty("ActionRegistry", actionRegistry);
+    engine.rootContext()->setContextProperty("OverlayService", overlayService);
     engine.rootContext()->setContextProperty("ThemeService", themeService);
     engine.rootContext()->setContextProperty("ApplicationController", appController);
     engine.rootContext()->setContextProperty("PluginModel", pluginModel);

@@ -7,8 +7,6 @@ Rectangle {
     id: overlay
     anchors.fill: parent
     color: ThemeService.scrim
-    visible: BluetoothManager ? BluetoothManager.pairingActive : false
-    z: 998
 
     // Block touch passthrough
     MouseArea {

@@ -11,7 +11,7 @@ Item {
     anchors.top: parent.top
     anchors.topMargin: UiMetrics.spacing
     height: notificationColumn.implicitHeight
-    z: 998  // below GestureOverlay (999), above everything else
+    z: 1000  // Notifications band
 
     ColumnLayout {
         id: notificationColumn

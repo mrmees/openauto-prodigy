@@ -9,7 +9,7 @@ Rectangle {
     anchors.fill: parent
     color: ThemeService.scrim
     visible: CallStateProvider && CallStateProvider.callState === 1
-    z: 1000  // above everything
+    z: 3000  // SystemModal band
 
     MouseArea {
         anchors.fill: parent
