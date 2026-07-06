@@ -25,19 +25,6 @@ namespace {
 
 constexpr quint32 kMaxFrameBytes = 262144;
 
-// AP subnet membership with v4-mapped-v6 normalization: a peer arriving as
-// ::ffff:10.0.0.5 must be tested as the IPv4 it maps to. toIPv4Address()
-// yields the embedded v4 (nonzero) for v4-mapped-v6 and 0 for a genuine IPv6.
-bool inApSubnet(const QHostAddress& addr) {
-    QHostAddress a = addr;
-    if (a.protocol() != QAbstractSocket::IPv4Protocol) {
-        const quint32 v4 = addr.toIPv4Address();
-        if (v4 != 0)
-            a = QHostAddress(v4);
-    }
-    return a.isInSubnet(QHostAddress(QStringLiteral("10.0.0.0")), 24);
-}
-
 } // namespace
 
 ApiServer::ApiServer(ApiServiceRefs refs, QObject* parent)
@@ -164,8 +151,25 @@ void ApiServer::stop() {
 
 // ---- Peer admission --------------------------------------------------------
 
+// AP subnet membership with v4-mapped-v6 normalization: a peer arriving as
+// ::ffff:10.0.0.5 must be tested as the IPv4 it maps to. toIPv4Address()
+// yields the embedded v4 (nonzero) for v4-mapped-v6 and 0 for a genuine IPv6.
+bool ApiServer::inApSubnet(const QHostAddress& addr) {
+    QHostAddress a = addr;
+    if (a.protocol() != QAbstractSocket::IPv4Protocol) {
+        const quint32 v4 = addr.toIPv4Address();
+        if (v4 != 0)
+            a = QHostAddress(v4);
+    }
+    return a.isInSubnet(QHostAddress(QStringLiteral("10.0.0.0")), 24);
+}
+
+bool ApiServer::peerAllowed(const QHostAddress& addr, bool exposeLan) {
+    return addr.isLoopback() || inApSubnet(addr) || exposeLan;
+}
+
 bool ApiServer::peerAllowed(const QHostAddress& addr) const {
-    return addr.isLoopback() || inApSubnet(addr) || exposeLan_;
+    return peerAllowed(addr, exposeLan_);
 }
 
 void ApiServer::onNewTcpConnection() {

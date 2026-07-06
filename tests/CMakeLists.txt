@@ -178,6 +178,8 @@ oap_add_test(test_api_request_handlers SOURCES test_api_request_handlers.cpp)
 set_tests_properties(test_api_request_handlers PROPERTIES ENVIRONMENT "QT_QPA_PLATFORM=offscreen")
 oap_add_test(test_api_server SOURCES test_api_server.cpp)
 set_tests_properties(test_api_server PROPERTIES ENVIRONMENT "QT_QPA_PLATFORM=offscreen")
+oap_add_test(test_api_loopback SOURCES test_api_loopback.cpp)
+set_tests_properties(test_api_loopback PROPERTIES ENVIRONMENT "QT_QPA_PLATFORM=offscreen")
 
 # --- Script tests (no compilation) ---
 

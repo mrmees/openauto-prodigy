@@ -91,6 +91,14 @@ public:
     // start(), so tests never touch ~/.openauto/api_clients.yaml.
     void setStorePathForTest(const QString& path);
 
+    // Peer-admission policy exposed as pure static seams for unit testing
+    // (Task 15 addendum). inApSubnet() performs the v4-mapped-v6 normalization;
+    // the 2-arg peerAllowed() is the full admission decision for an explicit
+    // exposeLan flag. The private instance peerAllowed() below delegates to it
+    // with exposeLan_ — behavior is identical to the pre-refactor member.
+    static bool inApSubnet(const QHostAddress& addr);
+    static bool peerAllowed(const QHostAddress& addr, bool exposeLan);
+
 signals:
     void pairingChanged();
 
