@@ -39,6 +39,19 @@ Item {
         categoryList = cats;
     }
 
+    // Paid-alternative-parity size options: fixed preset set clamped to the descriptor's bounds
+    function presetsFor(w) {
+        var candidates = [[1,1],[2,1],[2,2],[3,2]]
+        var out = []
+        for (var i = 0; i < candidates.length; ++i) {
+            var c = candidates[i][0], r = candidates[i][1]
+            if (c >= w.minCols && c <= w.maxCols && r >= w.minRows && r <= w.maxRows)
+                out.push({cols: c, rows: r})
+        }
+        if (out.length === 0) out.push({cols: w.defaultCols, rows: w.defaultRows})
+        return out
+    }
+
     Connections {
         target: WidgetPickerModel
         function onModelReset() { root.rebuildCategories(); }
@@ -143,12 +156,16 @@ Item {
             }
         }
 
-        contentItem: Flickable {
-            id: pickerFlickable
-            clip: true
-            contentHeight: pickerColumn.height
-            boundsBehavior: Flickable.StopAtBounds
-            flickableDirection: Flickable.VerticalFlick
+        contentItem: Item {
+            id: pickerContentArea
+
+            Flickable {
+                id: pickerFlickable
+                anchors.fill: parent
+                clip: true
+                contentHeight: pickerColumn.height
+                boundsBehavior: Flickable.StopAtBounds
+                flickableDirection: Flickable.VerticalFlick
 
             Column {
                 id: pickerColumn
@@ -198,7 +215,11 @@ Item {
                                             iconName: WidgetPickerModel.data(idx, 259),    // IconNameRole
                                             description: WidgetPickerModel.data(idx, 263), // DescriptionRole
                                             defaultCols: WidgetPickerModel.data(idx, 260), // DefaultColsRole
-                                            defaultRows: WidgetPickerModel.data(idx, 261)  // DefaultRowsRole
+                                            defaultRows: WidgetPickerModel.data(idx, 261), // DefaultRowsRole
+                                            minCols: WidgetPickerModel.data(idx, 265),     // MinColsRole
+                                            minRows: WidgetPickerModel.data(idx, 266),     // MinRowsRole
+                                            maxCols: WidgetPickerModel.data(idx, 267),     // MaxColsRole
+                                            maxRows: WidgetPickerModel.data(idx, 268)      // MaxRowsRole
                                         });
                                     }
                                 }
@@ -246,7 +267,61 @@ Item {
                                 MouseArea {
                                     id: cardMa
                                     anchors.fill: parent
-                                    onClicked: root.widgetChosen(modelData.widgetId, modelData.defaultCols, modelData.defaultRows)
+                                    onClicked: {
+                                        var presets = root.presetsFor(modelData)
+                                        if (presets.length <= 1)
+                                            root.widgetChosen(modelData.widgetId, modelData.defaultCols, modelData.defaultRows)
+                                        else
+                                            sizePopup.openFor(modelData, presets)
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+            }
+
+            // In-sheet size preset popup — nested inside the Dialog's content area
+            // (not a sibling of the Dialog under root) so it actually renders above
+            // the open Dialog's cards: the Dialog reparents to Overlay.overlay, which
+            // composites above root's normal children, so a popup living under root
+            // would be hidden behind the modal Dialog instead of stacking above it.
+            Rectangle {
+                id: sizePopup
+                property var widget: null
+                property var presets: []
+                function openFor(w, p) { widget = w; presets = p; visible = true }
+                visible: false
+                anchors.centerIn: parent
+                width: presetRow.implicitWidth + UiMetrics.marginPage * 2
+                height: presetRow.implicitHeight + UiMetrics.marginPage * 2
+                radius: UiMetrics.radius
+                color: ThemeService.surfaceContainerHigh
+                border.width: 1; border.color: ThemeService.outline
+                z: 10
+                Row {
+                    id: presetRow
+                    anchors.centerIn: parent
+                    spacing: UiMetrics.spacing
+                    Repeater {
+                        model: sizePopup.presets
+                        delegate: Rectangle {
+                            width: UiMetrics.tileW * 0.3; height: UiMetrics.tileH * 0.3
+                            radius: UiMetrics.radiusSmall
+                            color: ThemeService.surfaceContainer
+                            border.width: 1; border.color: ThemeService.outlineVariant
+                            NormalText {
+                                anchors.centerIn: parent
+                                text: modelData.cols + "×" + modelData.rows
+                                color: ThemeService.onSurface
+                            }
+                            MouseArea {
+                                anchors.fill: parent
+                                onClicked: {
+                                    root.widgetChosen(sizePopup.widget.widgetId,
+                                                      modelData.cols, modelData.rows)
+                                    sizePopup.visible = false
                                 }
                             }
                         }

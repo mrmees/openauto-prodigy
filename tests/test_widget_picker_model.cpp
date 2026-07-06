@@ -17,6 +17,7 @@ private slots:
     void testUncategorizedSortLast();
     void testUnknownCategoryCapitalized();
     void testSingletonHiddenFromPicker();
+    void testSizeConstraintRoles();
 
 private:
     oap::WidgetRegistry* registry_ = nullptr;
@@ -170,6 +171,34 @@ void TestWidgetPickerModel::testSingletonHiddenFromPicker() {
     }
     // But normal widget and "No Widget" should be there
     QCOMPARE(model.rowCount(), 2); // "No Widget" + Clock
+}
+
+void TestWidgetPickerModel::testSizeConstraintRoles() {
+    oap::WidgetDescriptor desc;
+    desc.id = "test.sizeconstrained";
+    desc.displayName = "Sizeable";
+    desc.iconName = "";
+    desc.category = "status";
+    desc.description = "Has size constraints";
+    desc.qmlComponent = QUrl("qrc:/test.qml");
+    desc.minCols = 2;
+    desc.minRows = 1;
+    desc.maxCols = 3;
+    desc.maxRows = 2;
+    registry_->registerWidget(desc);
+
+    oap::WidgetPickerModel model(registry_);
+    model.filterByAvailableSpace(6, 4);
+
+    for (int i = 0; i < model.rowCount(); ++i) {
+        QModelIndex idx = model.index(i, 0);
+        if (model.data(idx, oap::WidgetPickerModel::WidgetIdRole).toString() == "test.sizeconstrained") {
+            QCOMPARE(model.data(idx, 265).toInt(), 2); // MinColsRole
+            QCOMPARE(model.data(idx, 267).toInt(), 3); // MaxColsRole
+            return;
+        }
+    }
+    QFAIL("Sizeable widget not found in model");
 }
 
 QTEST_GUILESS_MAIN(TestWidgetPickerModel)

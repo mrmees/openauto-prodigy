@@ -18,7 +18,11 @@ public:
         DefaultRowsRole,
         CategoryRole,
         DescriptionRole,
-        CategoryLabelRole
+        CategoryLabelRole,
+        MinColsRole,
+        MinRowsRole,
+        MaxColsRole,
+        MaxRowsRole
     };
 
     explicit WidgetPickerModel(WidgetRegistry* registry, QObject* parent = nullptr);

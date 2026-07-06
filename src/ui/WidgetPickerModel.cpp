@@ -55,6 +55,10 @@ QVariant WidgetPickerModel::data(const QModelIndex& index, int role) const {
                 return QString();
             return categoryLabel(desc.category);
         }
+        case MinColsRole: return desc.minCols;
+        case MinRowsRole: return desc.minRows;
+        case MaxColsRole: return desc.maxCols;
+        case MaxRowsRole: return desc.maxRows;
         default: return {};
     }
 }
@@ -68,7 +72,11 @@ QHash<int, QByteArray> WidgetPickerModel::roleNames() const {
         {DefaultRowsRole, "defaultRows"},
         {CategoryRole, "category"},
         {DescriptionRole, "description"},
-        {CategoryLabelRole, "categoryLabel"}
+        {CategoryLabelRole, "categoryLabel"},
+        {MinColsRole, "minCols"},
+        {MinRowsRole, "minRows"},
+        {MaxColsRole, "maxCols"},
+        {MaxRowsRole, "maxRows"}
     };
 }
 
