@@ -1132,3 +1132,26 @@ Documentation:
 4. Wire API Tasks 7/11 to the widened provider when API v1 lands (T8 note above).
 
 **Verification:** local `cmake && make && ctest` = 91/91 across every task; `./cross-build.sh` succeeded each deploy; deployed to Pi (.149), service active, journal clean (no "UUID already registered"). Builds moved to an ext4 out-of-source dir (`~/builds/openauto-prodigy`) with ccache — WSL drvfs relinking was the bottleneck; source tree untouched.
+
+## 2026-07-06 — Overlay Framework (Phase E) — Implementation Execution (Fable)
+
+**Branch:** `overlay-framework` off main (3aeb683). 5 code commits, ready to merge (final review verdict: Yes) — push/PR awaiting Matthew's go-ahead.
+
+**What changed — all 4 plan tasks executed (subagent-driven development, per-task review + final whole-branch review):**
+- **T1** `feat(ui)` (3bdec23 + fix 579a388): `OverlayService` — QAbstractListModel overlay registry with fixed z-bands (Notifications=1000/User=2000/SystemModal=3000/Gesture=4000), auto-registered `overlay.<id>.show/hide/toggle/move` actions (rail R4), 10 unit test slots.
+- **T2** `feat(ui)` (0ec9096): `OverlayHost.qml` — root-Repeater of lazy Loaders in Shell (root IS the Repeater so delegate z competes in Shell's stacking context); re-pinned all five legacy overlays to band constants — **fixes the IncomingCall(1000)-above-Gesture(999) inversion** and the 998 three-way collision. Dim fixture at 3500.
+- **T3** `refactor(ui)` (340e645): PairingDialog rides the framework (descriptor `pairing`, SystemModal, visibility synced from `BluetoothManager::pairingActiveChanged` through the action path); removed from Shell; `IHostContext::overlayService()` exposed to plugins (set before plugin init).
+- **Final-review fix wave** (e6baa49): **pairing-state authority guard** — any `overlay.pairing.show` while pairing is inactive (e.g. from a paired External-API client) is immediately corrected via `overlay.pairing.hide`; without this, a buggy client could raise an unrecoverable full-screen modal. Reentrancy contract (setVisible mutates before emitting → corrective dispatch terminates) pinned by `testReentrantCorrectiveHide`. Plus SystemModal tie-rule comment in Shell + `id: overlayHost`.
+
+**Deviations from the plan (all uphold plan constraints over its example code, recorded per handbook):**
+1. Plan's verbatim intra-band z-count had an unregister→reregister collision — replaced with band-bounded renormalization (z = band base + index among live same-band entries; z can never leave its band). Regression-tested.
+2. `OverlayService::actions_` is `QPointer` (QObject children destroy in construction order; ActionRegistry dies before OverlayService — raw pointer in the dtor would dangle).
+3. `bluetoothManager->isPairingActive()` (real getter; plan said `pairingActive()`).
+4. Plan's `grep ": public IHostContext"` missed the namespaced `oap::IHostContext` mocks in test_plugin_manager/test_plugin_model — both gained the nullptr override.
+5. OverlayHost geometry documented as all-or-nothing (x/y-only maps self-anchor; position ignored) rather than changing plan behavior.
+
+**Tracked follow-ups (final review, none merge-gating):** migrate IncomingCallOverlay into the framework BEFORE registering any second SystemModal overlay (z-3001 would silently invert the tie — comment in Shell.qml records this); PluginManager sweep of overlays by `sourcePluginId` on plugin shutdown; `move` geometry validation/clamp (with the API-visible x/y-only wart, same fix site); `overlay.pairing.hide`-while-active is benign divergence (client dismiss until next edge) — revisit at incoming-call migration; 3-entry mid-band renorm test case.
+
+**Status:** Complete and verified on WSL. **Pi deploy + on-device pairing flow NOT run** (hardware gate — Matthew wasn't around); that's the immediate post-merge step. Multi-dashboards plan (independent per handbook) starting next this session.
+
+**Verification:** per-task `make` + full ctest at every step (102 baseline → 103 with test_overlay_service; final 103/103, 23.9s); offscreen runtime proof of the framework path (show→Loader-instantiates-PairingDialog→hide, dispatch true/visible true, zero QML/Loader/ReferenceError output; task-3-report §Runtime Framework-Path Evidence); `./cross-build.sh` clean at both 340e645 and e6baa49.

@@ -46,6 +46,7 @@ public:
     oap::INavigationProvider* navigationProvider() override { return nullptr; }
     oap::IMediaStatusProvider* mediaStatusProvider() override { return nullptr; }
     oap::ICallStateProvider* callStateProvider() override { return nullptr; }
+    oap::OverlayService* overlayService() override { return nullptr; }
     void log(oap::LogLevel, const QString&) override {}
 };
 

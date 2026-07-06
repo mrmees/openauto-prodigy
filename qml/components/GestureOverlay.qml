@@ -11,7 +11,7 @@ Rectangle {
     anchors.fill: parent
     color: ThemeService.scrim
     visible: false
-    z: 999
+    z: 4000  // Gesture band — beats everything interactive
 
     property int autoDismissMs: 15000
     property bool acceptInput: false

@@ -53,6 +53,7 @@ add_library(openauto-core STATIC
     core/services/IpcServer.cpp
     core/services/EventBus.cpp
     core/services/ActionRegistry.cpp
+    core/services/OverlayService.cpp
     core/services/NotificationService.cpp
     core/services/CompanionListenerService.cpp
     core/services/WeatherService.cpp
@@ -255,6 +256,10 @@ set_source_files_properties(../qml/components/NotificationArea.qml PROPERTIES
     QT_QML_SOURCE_TYPENAME "NotificationArea"
     QT_RESOURCE_ALIAS "NotificationArea.qml"
 )
+set_source_files_properties(../qml/components/OverlayHost.qml PROPERTIES
+    QT_QML_SOURCE_TYPENAME "OverlayHost"
+    QT_RESOURCE_ALIAS "OverlayHost.qml"
+)
 set_source_files_properties(../qml/components/ExitDialog.qml PROPERTIES
     QT_QML_SOURCE_TYPENAME "ExitDialog"
     QT_RESOURCE_ALIAS "ExitDialog.qml"
@@ -432,6 +437,7 @@ qt_add_qml_module(openauto-prodigy
         ../qml/components/PairingDialog.qml
         ../qml/components/FirstRunBanner.qml
         ../qml/components/NotificationArea.qml
+        ../qml/components/OverlayHost.qml
         ../qml/components/ExitDialog.qml
         ../qml/components/WidgetConfigSheet.qml
         ../qml/components/WidgetPickerSheet.qml
