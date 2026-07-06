@@ -29,6 +29,7 @@ public:
                  VisibleRole, GeometryRole };
 
     explicit OverlayService(ActionRegistry* actions, QObject* parent = nullptr);
+    ~OverlayService() override;
 
     // QAbstractListModel
     int rowCount(const QModelIndex& parent = {}) const override;
@@ -52,6 +53,8 @@ private:
     };
 
     int findOverlay(const QString& id) const;
+    void renormalizeBand(ZBand band);
+    void unregisterOverlayActions(const QString& id);
     ActionRegistry* actions_;
     QList<Entry> overlays_;
 };

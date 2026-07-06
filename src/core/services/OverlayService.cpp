@@ -11,6 +11,14 @@ OverlayService::OverlayService(ActionRegistry* actions, QObject* parent)
 {
 }
 
+OverlayService::~OverlayService()
+{
+    // Defense-in-depth: ensure no dangling overlay.<id>.* actions survive
+    // this service. No model signaling needed — the model is being destroyed.
+    for (const auto& e : overlays_)
+        unregisterOverlayActions(e.desc.id);
+}
+
 int OverlayService::rowCount(const QModelIndex& parent) const
 {
     return parent.isValid() ? 0 : overlays_.size();
@@ -71,14 +79,12 @@ void OverlayService::unregisterOverlay(const QString& id)
 {
     const int i = findOverlay(id);
     if (i < 0) return;
-    if (actions_) {
-        const QString base = QStringLiteral("overlay.%1.").arg(id);
-        for (const char* suffix : {"show", "hide", "toggle", "move"})
-            actions_->unregisterAction(base + suffix);
-    }
+    const ZBand band = overlays_[i].desc.band;
+    unregisterOverlayActions(id);
     beginRemoveRows({}, i, i);
     overlays_.removeAt(i);
     endRemoveRows();
+    renormalizeBand(band);
 }
 
 void OverlayService::setVisible(const QString& id, bool visible)
@@ -118,6 +124,35 @@ int OverlayService::findOverlay(const QString& id) const
     for (int i = 0; i < overlays_.size(); ++i)
         if (overlays_[i].desc.id == id) return i;
     return -1;
+}
+
+void OverlayService::unregisterOverlayActions(const QString& id)
+{
+    if (!actions_) return;
+    const QString base = QStringLiteral("overlay.%1.").arg(id);
+    for (const char* suffix : {"show", "hide", "toggle", "move"})
+        actions_->unregisterAction(base + suffix);
+}
+
+void OverlayService::renormalizeBand(ZBand band)
+{
+    // Band-bounded renormalization: after a removal, every surviving overlay
+    // in `band` gets z = band base + its position among same-band survivors
+    // (list order == registration order, since inserts append). This keeps z
+    // values contained inside their band forever, avoiding drift into the
+    // next band as entries are unregistered and re-registered over time.
+    int intra = 0;
+    for (int i = 0; i < overlays_.size(); ++i) {
+        auto& e = overlays_[i];
+        if (e.desc.band != band) continue;
+        const int newZ = static_cast<int>(band) + intra;
+        ++intra;
+        if (e.z != newZ) {
+            e.z = newZ;
+            const auto idx = index(i, 0);
+            emit dataChanged(idx, idx, {ZRole});
+        }
+    }
 }
 
 } // namespace oap

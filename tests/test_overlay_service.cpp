@@ -22,6 +22,7 @@ private slots:
     void testActionsAutoRegistered();
     void testUnregisterRemovesActions();
     void testMoveGeometry();
+    void testUnregisterReregisterNoCollision();
 };
 
 void TestOverlayService::testRegisterAndRoles() {
@@ -97,6 +98,36 @@ void TestOverlayService::testMoveGeometry() {
     QVariantMap g{{"x", 10}, {"y", 20}, {"width", 300}, {"height", 200}};
     QVERIFY(ar.dispatch("overlay.a.move", g));
     QCOMPARE(svc.data(svc.index(0,0), OS::GeometryRole).toMap().value("x").toInt(), 10);
+}
+
+void TestOverlayService::testUnregisterReregisterNoCollision() {
+    oap::ActionRegistry ar; OS svc(&ar);
+    svc.registerOverlay(desc("u1", OS::ZBand::User));       // 2000
+    svc.registerOverlay(desc("u2", OS::ZBand::User));       // 2001
+    QCOMPARE(svc.data(svc.index(0,0), OS::ZRole).toInt(), 2000);
+    QCOMPARE(svc.data(svc.index(1,0), OS::ZRole).toInt(), 2001);
+
+    QSignalSpy dataSpy(&svc, &OS::dataChanged);
+    svc.unregisterOverlay("u1");
+    // u2 renormalizes down to 2000 (band base + its new position among survivors)
+    QCOMPARE(svc.rowCount(), 1);
+    QCOMPARE(svc.data(svc.index(0,0), OS::ZRole).toInt(), 2000);
+    bool sawZRoleChange = false;
+    for (const auto& call : dataSpy) {
+        const auto roles = call.at(2).value<QVector<int>>();
+        if (roles.contains(OS::ZRole)) sawZRoleChange = true;
+    }
+    QVERIFY(sawZRoleChange);
+
+    QVERIFY(svc.registerOverlay(desc("u3", OS::ZBand::User)));
+    QCOMPARE(svc.rowCount(), 2);
+    const int u2Z = svc.data(svc.index(0,0), OS::ZRole).toInt();
+    const int u3Z = svc.data(svc.index(1,0), OS::ZRole).toInt();
+    QCOMPARE(u2Z, 2000);
+    QCOMPARE(u3Z, 2001);
+    QVERIFY(u2Z != u3Z);
+    QCOMPARE(svc.data(svc.index(0,0), OS::OverlayIdRole).toString(), QString("u2"));
+    QCOMPARE(svc.data(svc.index(1,0), OS::OverlayIdRole).toString(), QString("u3"));
 }
 
 QTEST_MAIN(TestOverlayService)
