@@ -37,12 +37,14 @@ private slots:
     void testNavbarShowDuringAADefault();
     void testSidebarDefaultsRemoved();
     void testDisplayScreenSizeDefault();
-    void testWidgetGridDefaults();
-    void testGridPlacementPageRoundTrip();
-    void testGridPageCountRoundTrip();
-    void testGridPageCountDefault();
     void testGridSavedDimsDefaults();
     void testGridSavedDimsRoundTrip();
+    void testDashboardDefaultsNextInstanceIdZero();
+    void testDashboardsPlacementPageRoundTrip();
+    void testV4DefaultsOneHomeDashboard();
+    void testDashboardsRoundTrip();
+    void testV3MigratesToV4();
+    void testV2FlatShapeMigrates();
 };
 
 void TestYamlConfig::testLoadDefaults()
@@ -419,20 +421,27 @@ void TestYamlConfig::testDisplayScreenSizeDefault()
     QCOMPARE(v.toDouble(), 7.0);
 }
 
-void TestYamlConfig::testWidgetGridDefaults()
+void TestYamlConfig::testDashboardDefaultsNextInstanceIdZero()
 {
+    // Ported from testWidgetGridDefaults (flat gridNextInstanceId()==0 on fresh
+    // config) — the empty-placements half of the original assertion is already
+    // covered by testV4DefaultsOneHomeDashboard.
     oap::YamlConfig config;
-    // Default grid config should have version 2 and empty placements
-    auto placements = config.gridPlacements();
-    QVERIFY(placements.isEmpty());
-    QCOMPARE(config.gridNextInstanceId(), 0);
+    auto ds = config.dashboards();
+    QCOMPARE(ds.size(), 1);
+    QVERIFY(ds[0].placements.isEmpty());
+    QCOMPARE(ds[0].nextInstanceId, 0);
 }
 
-void TestYamlConfig::testGridPlacementPageRoundTrip()
+void TestYamlConfig::testDashboardsPlacementPageRoundTrip()
 {
+    // Ported from testGridPlacementPageRoundTrip — two placements on different
+    // pages within a single dashboard, round-tripped through save/load.
     oap::YamlConfig config;
 
-    QList<oap::GridPlacement> placements;
+    oap::DashboardConfig home;
+    home.id = "home";
+    home.name = "Home";
     {
         oap::GridPlacement p;
         p.instanceId = "clock-0";
@@ -441,7 +450,7 @@ void TestYamlConfig::testGridPlacementPageRoundTrip()
         p.colSpan = 2; p.rowSpan = 2;
         p.opacity = 0.25;
         p.page = 0;
-        placements.append(p);
+        home.placements.append(p);
     }
     {
         oap::GridPlacement p;
@@ -451,17 +460,17 @@ void TestYamlConfig::testGridPlacementPageRoundTrip()
         p.colSpan = 2; p.rowSpan = 1;
         p.opacity = 0.5;
         p.page = 1;
-        placements.append(p);
+        home.placements.append(p);
     }
 
-    config.setGridPlacements(placements);
+    config.setDashboards({home});
 
     QString tmpPath = QDir::tempPath() + "/oap_test_grid_page.yaml";
     config.save(tmpPath);
 
     oap::YamlConfig loaded;
     loaded.load(tmpPath);
-    auto loadedPlacements = loaded.gridPlacements();
+    auto loadedPlacements = loaded.dashboards()[0].placements;
 
     QCOMPARE(loadedPlacements.size(), 2);
     QCOMPARE(loadedPlacements[0].page, 0);
@@ -471,26 +480,10 @@ void TestYamlConfig::testGridPlacementPageRoundTrip()
     QFile::remove(tmpPath);
 }
 
-void TestYamlConfig::testGridPageCountRoundTrip()
-{
-    oap::YamlConfig config;
-    config.setGridPageCount(3);
-
-    QString tmpPath = QDir::tempPath() + "/oap_test_grid_pagecount.yaml";
-    config.save(tmpPath);
-
-    oap::YamlConfig loaded;
-    loaded.load(tmpPath);
-    QCOMPARE(loaded.gridPageCount(), 3);
-
-    QFile::remove(tmpPath);
-}
-
-void TestYamlConfig::testGridPageCountDefault()
-{
-    oap::YamlConfig config;
-    QCOMPARE(config.gridPageCount(), 2);
-}
+// testGridPageCountRoundTrip dropped — pageCount save/reload fidelity is
+// exactly exercised by testDashboardsRoundTrip (ds[1].pageCount == 1).
+// testGridPageCountDefault dropped — exact duplicate of
+// testV4DefaultsOneHomeDashboard's QCOMPARE(ds[0].pageCount, 2).
 
 void TestYamlConfig::testGridSavedDimsDefaults()
 {
@@ -516,6 +509,121 @@ void TestYamlConfig::testGridSavedDimsRoundTrip()
     QCOMPARE(loaded.gridSavedRows(), 5);
 
     QFile::remove(tmpPath);
+}
+
+void TestYamlConfig::testV4DefaultsOneHomeDashboard()
+{
+    oap::YamlConfig cfg;
+    auto ds = cfg.dashboards();
+    QCOMPARE(ds.size(), 1);
+    QCOMPARE(ds[0].id, QString("home"));
+    QCOMPARE(ds[0].name, QString("Home"));
+    QCOMPARE(ds[0].pageCount, 2);
+    QVERIFY(ds[0].placements.isEmpty());
+    QCOMPARE(cfg.activeDashboardId(), QString("home"));
+}
+
+void TestYamlConfig::testDashboardsRoundTrip()
+{
+    oap::YamlConfig cfg;
+    oap::DashboardConfig home{ "home", "Home", 5, 2, {} };
+    oap::GridPlacement p;
+    p.instanceId = "org.openauto.clock-0"; p.widgetId = "org.openauto.clock";
+    p.col = 1; p.row = 2; p.colSpan = 2; p.rowSpan = 1; p.opacity = 0.5; p.page = 0;
+    p.config["style"] = QString("analog");
+    home.placements.append(p);
+    oap::DashboardConfig work{ "work", "Work", 0, 1, {} };
+    cfg.setDashboards({home, work});
+    cfg.setActiveDashboardId("work");
+
+    const QString path = QDir::temp().filePath("oap_test_dash_v4.yaml");
+    cfg.save(path);
+    oap::YamlConfig loaded;
+    loaded.load(path);
+    auto ds = loaded.dashboards();
+    QCOMPARE(ds.size(), 2);
+    QCOMPARE(ds[0].nextInstanceId, 5);
+    QCOMPARE(ds[0].placements.size(), 1);
+    QCOMPARE(ds[0].placements[0].colSpan, 2);
+    QCOMPARE(ds[0].placements[0].config.value("style").toString(), QString("analog"));
+    QCOMPARE(ds[1].id, QString("work"));
+    QCOMPARE(ds[1].pageCount, 1);
+    QCOMPARE(loaded.activeDashboardId(), QString("work"));
+}
+
+void TestYamlConfig::testV3MigratesToV4()
+{
+    // Literal v3 file — exactly what a pre-migration install has on disk.
+    const QString path = QDir::temp().filePath("oap_test_dash_v3.yaml");
+    {
+        QFile f(path); QVERIFY(f.open(QIODevice::WriteOnly | QIODevice::Truncate));
+        f.write("widget_grid:\n"
+                "  version: 3\n"
+                "  next_instance_id: 7\n"
+                "  page_count: 3\n"
+                "  grid_cols: 8\n"
+                "  grid_rows: 4\n"
+                "  placements:\n"
+                "    - instance_id: org.openauto.clock-4\n"
+                "      widget_id: org.openauto.clock\n"
+                "      col: 0\n      row: 0\n      col_span: 2\n      row_span: 2\n"
+                "      opacity: 0.25\n      page: 1\n");
+    }
+    oap::YamlConfig cfg;
+    cfg.load(path);
+    auto ds = cfg.dashboards();
+    QCOMPARE(ds.size(), 1);
+    QCOMPARE(ds[0].id, QString("home"));
+    QCOMPARE(ds[0].nextInstanceId, 7);
+    QCOMPARE(ds[0].pageCount, 3);
+    QCOMPARE(ds[0].placements.size(), 1);
+    QCOMPARE(ds[0].placements[0].page, 1);
+    QCOMPARE(cfg.activeDashboardId(), QString("home"));
+    QCOMPARE(cfg.gridSavedCols(), 8);            // global key untouched
+    // Idempotence: save then reload — still one dashboard, still v4 shape.
+    cfg.save(path);
+    oap::YamlConfig again; again.load(path);
+    QCOMPARE(again.dashboards().size(), 1);
+    QCOMPARE(again.dashboards()[0].nextInstanceId, 7);
+}
+
+void TestYamlConfig::testV2FlatShapeMigrates()
+{
+    // Literal v2 (flat, pre-dashboards) file — the migration gate keyed
+    // strictly on version==3 skips this shape entirely, dropping the
+    // user's placements on load. version==2 is on-disk-plausible (older
+    // installs); a missing version key is also possible pre-versioning.
+    const QString path = QDir::temp().filePath("oap_test_dash_v2.yaml");
+    {
+        QFile f(path); QVERIFY(f.open(QIODevice::WriteOnly | QIODevice::Truncate));
+        f.write("widget_grid:\n"
+                "  version: 2\n"
+                "  next_instance_id: 7\n"
+                "  page_count: 3\n"
+                "  grid_cols: 8\n"
+                "  grid_rows: 4\n"
+                "  placements:\n"
+                "    - instance_id: org.openauto.clock-4\n"
+                "      widget_id: org.openauto.clock\n"
+                "      col: 0\n      row: 0\n      col_span: 2\n      row_span: 2\n"
+                "      opacity: 0.25\n      page: 1\n");
+    }
+    oap::YamlConfig cfg;
+    cfg.load(path);
+    auto ds = cfg.dashboards();
+    QCOMPARE(ds.size(), 1);
+    QCOMPARE(ds[0].id, QString("home"));
+    QCOMPARE(ds[0].nextInstanceId, 7);
+    QCOMPARE(ds[0].pageCount, 3);
+    QCOMPARE(ds[0].placements.size(), 1);
+    QCOMPARE(ds[0].placements[0].page, 1);
+    QCOMPARE(cfg.activeDashboardId(), QString("home"));
+    QCOMPARE(cfg.gridSavedCols(), 8);            // global key untouched
+    // Idempotence: save then reload — still one dashboard, still v4 shape.
+    cfg.save(path);
+    oap::YamlConfig again; again.load(path);
+    QCOMPARE(again.dashboards().size(), 1);
+    QCOMPARE(again.dashboards()[0].nextInstanceId, 7);
 }
 
 QTEST_MAIN(TestYamlConfig)

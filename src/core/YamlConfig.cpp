@@ -167,11 +167,20 @@ void YamlConfig::initDefaults()
 
     root_["widget_config"]["placements"] = defaultPlacements;
 
-    // Grid-based widget config defaults (v3 with page support)
-    root_["widget_grid"]["version"] = 3;
-    root_["widget_grid"]["next_instance_id"] = 0;
-    root_["widget_grid"]["page_count"] = 2;
-    root_["widget_grid"]["placements"] = YAML::Node(YAML::NodeType::Sequence);
+    // Grid-based widget config defaults (v4 with multi-dashboard support)
+    root_["widget_grid"]["version"] = 4;
+    root_["widget_grid"]["active_dashboard"] = "home";
+    {
+        YAML::Node home;
+        home["id"] = "home";
+        home["name"] = "Home";
+        home["next_instance_id"] = 0;
+        home["page_count"] = 2;
+        home["placements"] = YAML::Node(YAML::NodeType::Sequence);
+        YAML::Node seq(YAML::NodeType::Sequence);
+        seq.push_back(home);
+        root_["widget_grid"]["dashboards"] = seq;
+    }
 
     // Home screen grid density
     root_["home"]["gridDensityBias"] = 0;
@@ -191,6 +200,8 @@ void YamlConfig::load(const QString& filePath)
 
     YAML::Node loaded = YAML::LoadFile(filePath.toStdString());
     root_ = mergeYaml(defaults, loaded);
+
+    migrateWidgetGridV3();
 }
 
 void YamlConfig::save(const QString& filePath) const
@@ -829,12 +840,11 @@ void YamlConfig::setGridDensityBias(int bias)
     root_["home"]["gridDensityBias"] = std::clamp(bias, -1, 1);
 }
 
-// --- Grid-based widget config (v2) ---
+// --- Grid-based widget config (v4 — multi-dashboard) ---
 
-QList<GridPlacement> YamlConfig::gridPlacements() const
+QList<GridPlacement> YamlConfig::placementsFromNode(const YAML::Node& placements)
 {
     QList<GridPlacement> result;
-    auto placements = root_["widget_grid"]["placements"];
     if (!placements.IsDefined() || !placements.IsSequence())
         return result;
 
@@ -886,10 +896,8 @@ QList<GridPlacement> YamlConfig::gridPlacements() const
     return result;
 }
 
-void YamlConfig::setGridPlacements(const QList<GridPlacement>& placements)
+YAML::Node YamlConfig::placementsToNode(const QList<GridPlacement>& placements)
 {
-    root_["widget_grid"]["version"] = 3;
-
     YAML::Node node(YAML::NodeType::Sequence);
     for (const auto& p : placements) {
         YAML::Node n;
@@ -928,27 +936,80 @@ void YamlConfig::setGridPlacements(const QList<GridPlacement>& placements)
 
         node.push_back(n);
     }
-    root_["widget_grid"]["placements"] = node;
+    return node;
 }
 
-int YamlConfig::gridNextInstanceId() const
+QList<DashboardConfig> YamlConfig::dashboards() const
 {
-    return root_["widget_grid"]["next_instance_id"].as<int>(0);
+    QList<DashboardConfig> result;
+    auto seq = root_["widget_grid"]["dashboards"];
+    if (!seq.IsDefined() || !seq.IsSequence()) return result;
+    for (const auto& n : seq) {
+        DashboardConfig d;
+        d.id = QString::fromStdString(n["id"].as<std::string>(""));
+        d.name = QString::fromStdString(n["name"].as<std::string>(d.id.toStdString()));
+        d.nextInstanceId = n["next_instance_id"].as<int>(0);
+        d.pageCount = n["page_count"].as<int>(1);
+        d.placements = placementsFromNode(n["placements"]);
+        if (!d.id.isEmpty()) result.append(d);
+    }
+    return result;
 }
 
-void YamlConfig::setGridNextInstanceId(int id)
+void YamlConfig::setDashboards(const QList<DashboardConfig>& list)
 {
-    root_["widget_grid"]["next_instance_id"] = id;
+    root_["widget_grid"]["version"] = 4;
+    YAML::Node seq(YAML::NodeType::Sequence);
+    for (const auto& d : list) {
+        YAML::Node n;
+        n["id"] = d.id.toStdString();
+        n["name"] = d.name.toStdString();
+        n["next_instance_id"] = d.nextInstanceId;
+        n["page_count"] = d.pageCount;
+        n["placements"] = placementsToNode(d.placements);
+        seq.push_back(n);
+    }
+    root_["widget_grid"]["dashboards"] = seq;
 }
 
-int YamlConfig::gridPageCount() const
+QString YamlConfig::activeDashboardId() const
 {
-    return root_["widget_grid"]["page_count"].as<int>(2);
+    return QString::fromStdString(
+        root_["widget_grid"]["active_dashboard"].as<std::string>("home"));
 }
 
-void YamlConfig::setGridPageCount(int count)
+void YamlConfig::setActiveDashboardId(const QString& id)
 {
-    root_["widget_grid"]["page_count"] = count;
+    root_["widget_grid"]["active_dashboard"] = id.toStdString();
+}
+
+void YamlConfig::migrateWidgetGridV3()
+{
+    YAML::Node wg = root_["widget_grid"];
+    // A flat placements sequence only ever appears in pre-v4 (versionless or
+    // v2/v3) shapes -- v4 files always nest placements under dashboards[].
+    // Gate strictly on version==3 missed flat v2/versionless configs, which
+    // then loaded as an empty default dashboard and the next save clobbered
+    // the user's placements on disk. Migrate whenever the flat shape is
+    // present, regardless of the (possibly absent/wrong) version tag.
+    const bool flatShape = wg["placements"].IsDefined() && wg["placements"].IsSequence();
+    if (!wg.IsDefined() || (!flatShape && wg["version"].as<int>(4) != 3)) return;
+
+    YAML::Node home;
+    home["id"] = "home";
+    home["name"] = "Home";
+    home["next_instance_id"] = wg["next_instance_id"].as<int>(0);
+    home["page_count"] = wg["page_count"].as<int>(2);
+    home["placements"] = (wg["placements"].IsDefined() && wg["placements"].IsSequence())
+                             ? wg["placements"] : YAML::Node(YAML::NodeType::Sequence);
+    YAML::Node seq(YAML::NodeType::Sequence);
+    seq.push_back(home);
+    wg["dashboards"] = seq;                 // replaces the defaults-merged empty v4 skeleton
+    wg["active_dashboard"] = "home";
+    wg["version"] = 4;
+    wg.remove("next_instance_id");
+    wg.remove("page_count");
+    wg.remove("placements");
 }
 
 int YamlConfig::gridSavedCols() const

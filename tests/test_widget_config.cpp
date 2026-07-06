@@ -1,4 +1,10 @@
-// tests/test_widget_config.cpp -- YAML grid placement persistence tests
+// tests/test_widget_config.cpp -- YAML v4 dashboards() placement persistence tests
+//
+// Ported from the flat v3 gridPlacements()/gridNextInstanceId() API to the v4
+// dashboards()/setDashboards() API (see docs/.../task-1-brief.md). Behavioral
+// coverage preserved 1:1 except where explicitly noted as folded/dropped
+// because it duplicated coverage added elsewhere (test_yaml_config.cpp's new
+// v4 slots, or another test in this file).
 #include <QtTest/QtTest>
 #include <QTemporaryFile>
 #include "core/YamlConfig.hpp"
@@ -7,22 +13,28 @@
 class TestWidgetConfig : public QObject {
     Q_OBJECT
 private slots:
-    void testGridPlacementsFromYaml();
-    void testSetGridPlacements();
-    void testGridPlacementsRoundTrip();
-    void testMissingWidgetGridReturnsEmpty();
-    void testOldWidgetConfigIgnored();
-    void testGridNextInstanceId();
-    void testGridNextInstanceIdRoundTrip();
-    void testGridPlacementsConfigRoundTrip();
-    void testGridPlacementsEmptyConfigOmitted();
+    void testDashboardPlacementsFromLegacyFixture();
+    void testDashboardsSetInMemory();
+    void testDashboardsMultiPlacementRoundTrip();
+    void testMissingWidgetGridDefaultsToHomeDashboard();
+    void testOldWidgetConfigIgnoredByDashboards();
+    void testDashboardsConfigMapRoundTrip();
+    void testDashboardsEmptyConfigOmitted();
 };
 
-void TestWidgetConfig::testGridPlacementsFromYaml() {
+// Ported from testGridPlacementsFromYaml. The fixture was a literal pre-v4
+// flat widget_grid file (version bumped 2->3 so migrateWidgetGridV3() picks
+// it up -- v2 was never a recognized/migrated format, only v3 is). Exercises
+// the *read*-side config-value type sniffing (string "12h", bool true) via a
+// real on-disk file rather than a value round-tripped through setDashboards().
+void TestWidgetConfig::testDashboardPlacementsFromLegacyFixture() {
     oap::YamlConfig config;
     config.load(TEST_DATA_DIR "/test_widget_config.yaml");
 
-    auto placements = config.gridPlacements();
+    auto ds = config.dashboards();
+    QCOMPARE(ds.size(), 1);
+    QCOMPARE(ds[0].id, QString("home"));
+    auto placements = ds[0].placements;
     QCOMPARE(placements.size(), 2);
     QCOMPARE(placements[0].instanceId, QString("clock-0"));
     QCOMPARE(placements[0].widgetId, QString("org.openauto.clock"));
@@ -43,10 +55,16 @@ void TestWidgetConfig::testGridPlacementsFromYaml() {
     QCOMPARE(placements[1].rowSpan, 1);
 }
 
-void TestWidgetConfig::testSetGridPlacements() {
+// Ported from testSetGridPlacements (in-memory set+get, no file round trip)
+// and testGridNextInstanceId's "set then get" half (its default-value half
+// is folded into test_yaml_config.cpp's testDashboardDefaultsNextInstanceIdZero).
+void TestWidgetConfig::testDashboardsSetInMemory() {
     oap::YamlConfig config;
 
-    QList<oap::GridPlacement> placements;
+    oap::DashboardConfig home;
+    home.id = "home";
+    home.name = "Home";
+    home.nextInstanceId = 42;
     oap::GridPlacement p;
     p.instanceId = "test-0";
     p.widgetId = "org.openauto.clock";
@@ -55,21 +73,26 @@ void TestWidgetConfig::testSetGridPlacements() {
     p.colSpan = 3;
     p.rowSpan = 1;
     p.opacity = 0.5;
-    placements.append(p);
+    home.placements.append(p);
 
-    config.setGridPlacements(placements);
+    config.setDashboards({home});
 
-    auto result = config.gridPlacements();
-    QCOMPARE(result.size(), 1);
-    QCOMPARE(result[0].instanceId, QString("test-0"));
-    QCOMPARE(result[0].col, 1);
-    QCOMPARE(result[0].row, 2);
-    QCOMPARE(result[0].colSpan, 3);
-    QCOMPARE(result[0].rowSpan, 1);
-    QCOMPARE(result[0].opacity, 0.5);
+    auto ds = config.dashboards();
+    QCOMPARE(ds.size(), 1);
+    QCOMPARE(ds[0].nextInstanceId, 42);
+    QCOMPARE(ds[0].placements.size(), 1);
+    QCOMPARE(ds[0].placements[0].instanceId, QString("test-0"));
+    QCOMPARE(ds[0].placements[0].col, 1);
+    QCOMPARE(ds[0].placements[0].row, 2);
+    QCOMPARE(ds[0].placements[0].colSpan, 3);
+    QCOMPARE(ds[0].placements[0].rowSpan, 1);
+    QCOMPARE(ds[0].placements[0].opacity, 0.5);
 }
 
-void TestWidgetConfig::testGridPlacementsRoundTrip() {
+// Ported from testGridPlacementsRoundTrip (+ testGridNextInstanceIdRoundTrip's
+// persistence check, folded in here via nextInstanceId). Two placements in a
+// single dashboard survive save/reload with all fields intact.
+void TestWidgetConfig::testDashboardsMultiPlacementRoundTrip() {
     QTemporaryFile tmpFile;
     tmpFile.open();
     QString tmpPath = tmpFile.fileName();
@@ -77,7 +100,10 @@ void TestWidgetConfig::testGridPlacementsRoundTrip() {
 
     oap::YamlConfig config;
 
-    QList<oap::GridPlacement> placements;
+    oap::DashboardConfig home;
+    home.id = "home";
+    home.name = "Home";
+    home.nextInstanceId = 5;
     {
         oap::GridPlacement p;
         p.instanceId = "clock-0";
@@ -85,7 +111,7 @@ void TestWidgetConfig::testGridPlacementsRoundTrip() {
         p.col = 0; p.row = 0;
         p.colSpan = 2; p.rowSpan = 2;
         p.opacity = 0.3;
-        placements.append(p);
+        home.placements.append(p);
     }
     {
         oap::GridPlacement p;
@@ -94,16 +120,17 @@ void TestWidgetConfig::testGridPlacementsRoundTrip() {
         p.col = 2; p.row = 0;
         p.colSpan = 3; p.rowSpan = 2;
         p.opacity = 0.25;
-        placements.append(p);
+        home.placements.append(p);
     }
 
-    config.setGridPlacements(placements);
-    config.setGridNextInstanceId(5);
+    config.setDashboards({home});
     config.save(tmpPath);
 
     oap::YamlConfig reloaded;
     reloaded.load(tmpPath);
-    auto result = reloaded.gridPlacements();
+    auto ds = reloaded.dashboards();
+    QCOMPARE(ds.size(), 1);
+    auto result = ds[0].placements;
     QCOMPARE(result.size(), 2);
     QCOMPARE(result[0].instanceId, QString("clock-0"));
     QCOMPARE(result[0].widgetId, QString("org.openauto.clock"));
@@ -118,10 +145,13 @@ void TestWidgetConfig::testGridPlacementsRoundTrip() {
     QCOMPARE(result[1].colSpan, 3);
     QCOMPARE(result[1].rowSpan, 2);
 
-    QCOMPARE(reloaded.gridNextInstanceId(), 5);
+    QCOMPARE(ds[0].nextInstanceId, 5);
 }
 
-void TestWidgetConfig::testMissingWidgetGridReturnsEmpty() {
+// Ported from testMissingWidgetGridReturnsEmpty. A config file with no
+// widget_grid section at all should fall back cleanly to the default single
+// "home" dashboard with no placements (not crash, not fabricate garbage).
+void TestWidgetConfig::testMissingWidgetGridDefaultsToHomeDashboard() {
     QTemporaryFile tmpFile;
     tmpFile.open();
     tmpFile.write("# empty config\n");
@@ -130,12 +160,16 @@ void TestWidgetConfig::testMissingWidgetGridReturnsEmpty() {
     oap::YamlConfig config;
     config.load(tmpFile.fileName());
 
-    auto placements = config.gridPlacements();
-    QVERIFY(placements.isEmpty());
+    auto ds = config.dashboards();
+    QCOMPARE(ds.size(), 1);
+    QCOMPARE(ds[0].id, QString("home"));
+    QVERIFY(ds[0].placements.isEmpty());
 }
 
-void TestWidgetConfig::testOldWidgetConfigIgnored() {
-    // Old widget_config key should not crash or produce grid placements
+// Ported from testOldWidgetConfigIgnored. A file carrying only the legacy
+// pane-based widget_config key (no widget_grid key) must not be misread as
+// grid data, and must not crash the loader/migration.
+void TestWidgetConfig::testOldWidgetConfigIgnoredByDashboards() {
     QTemporaryFile tmpFile;
     tmpFile.open();
     tmpFile.write(
@@ -154,35 +188,18 @@ void TestWidgetConfig::testOldWidgetConfigIgnored() {
     oap::YamlConfig config;
     config.load(tmpFile.fileName());
 
-    // Should return empty (no widget_grid key)
-    auto placements = config.gridPlacements();
-    QVERIFY(placements.isEmpty());
+    // Should fall back to the default single home dashboard with no placements.
+    auto ds = config.dashboards();
+    QCOMPARE(ds.size(), 1);
+    QVERIFY(ds[0].placements.isEmpty());
 }
 
-void TestWidgetConfig::testGridNextInstanceId() {
-    oap::YamlConfig config;
-    QCOMPARE(config.gridNextInstanceId(), 0);
-
-    config.setGridNextInstanceId(42);
-    QCOMPARE(config.gridNextInstanceId(), 42);
-}
-
-void TestWidgetConfig::testGridNextInstanceIdRoundTrip() {
-    QTemporaryFile tmpFile;
-    tmpFile.open();
-    QString tmpPath = tmpFile.fileName();
-    tmpFile.close();
-
-    oap::YamlConfig config;
-    config.setGridNextInstanceId(10);
-    config.save(tmpPath);
-
-    oap::YamlConfig reloaded;
-    reloaded.load(tmpPath);
-    QCOMPARE(reloaded.gridNextInstanceId(), 10);
-}
-
-void TestWidgetConfig::testGridPlacementsConfigRoundTrip() {
+// Ported from testGridPlacementsConfigRoundTrip, extended to also cover the
+// int/double branches of the config-value type sniffing (originally only
+// string+bool were exercised here). This hits the *write*-side type switch
+// in placementsToNode(), complementing the read-side coverage in
+// testDashboardPlacementsFromLegacyFixture above.
+void TestWidgetConfig::testDashboardsConfigMapRoundTrip() {
     QTemporaryFile tmpFile;
     tmpFile.open();
     QString tmpPath = tmpFile.fileName();
@@ -190,7 +207,9 @@ void TestWidgetConfig::testGridPlacementsConfigRoundTrip() {
 
     oap::YamlConfig config;
 
-    QList<oap::GridPlacement> placements;
+    oap::DashboardConfig home;
+    home.id = "home";
+    home.name = "Home";
     {
         oap::GridPlacement p;
         p.instanceId = "clock-0";
@@ -198,23 +217,27 @@ void TestWidgetConfig::testGridPlacementsConfigRoundTrip() {
         p.col = 0; p.row = 0;
         p.colSpan = 2; p.rowSpan = 2;
         p.opacity = 0.25;
-        p.config = {{"format", "12h"}, {"showSeconds", true}};
-        placements.append(p);
+        p.config = {{"format", "12h"}, {"showSeconds", true},
+                    {"refreshMinutes", 5}, {"gain", 1.5}};
+        home.placements.append(p);
     }
 
-    config.setGridPlacements(placements);
+    config.setDashboards({home});
     config.save(tmpPath);
 
     oap::YamlConfig reloaded;
     reloaded.load(tmpPath);
-    auto result = reloaded.gridPlacements();
+    auto result = reloaded.dashboards()[0].placements;
     QCOMPARE(result.size(), 1);
-    QCOMPARE(result[0].config.size(), 2);
+    QCOMPARE(result[0].config.size(), 4);
     QCOMPARE(result[0].config["format"].toString(), QString("12h"));
     QCOMPARE(result[0].config["showSeconds"].toBool(), true);
+    QCOMPARE(result[0].config["refreshMinutes"].toInt(), 5);
+    QCOMPARE(result[0].config["gain"].toDouble(), 1.5);
 }
 
-void TestWidgetConfig::testGridPlacementsEmptyConfigOmitted() {
+// Ported from testGridPlacementsEmptyConfigOmitted.
+void TestWidgetConfig::testDashboardsEmptyConfigOmitted() {
     QTemporaryFile tmpFile;
     tmpFile.open();
     QString tmpPath = tmpFile.fileName();
@@ -222,7 +245,9 @@ void TestWidgetConfig::testGridPlacementsEmptyConfigOmitted() {
 
     oap::YamlConfig config;
 
-    QList<oap::GridPlacement> placements;
+    oap::DashboardConfig home;
+    home.id = "home";
+    home.name = "Home";
     {
         oap::GridPlacement p;
         p.instanceId = "clock-0";
@@ -230,10 +255,10 @@ void TestWidgetConfig::testGridPlacementsEmptyConfigOmitted() {
         p.col = 0; p.row = 0;
         p.colSpan = 2; p.rowSpan = 2;
         // config is empty (default)
-        placements.append(p);
+        home.placements.append(p);
     }
 
-    config.setGridPlacements(placements);
+    config.setDashboards({home});
     config.save(tmpPath);
 
     // Read raw YAML text and verify no "config:" key within the widget_grid section

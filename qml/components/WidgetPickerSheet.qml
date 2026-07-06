@@ -14,6 +14,7 @@ Item {
     property var categoryList: []
 
     function openPicker() {
+        sizePopup.reset()
         WidgetPickerModel.filterByAvailableSpace(gridCols, gridRows, false)
         rebuildCategories()
         pickerDialog.open()
@@ -37,6 +38,19 @@ Item {
             }
         }
         categoryList = cats;
+    }
+
+    // Paid-alternative-parity size options: fixed preset set clamped to the descriptor's bounds
+    function presetsFor(w) {
+        var candidates = [[1,1],[2,1],[2,2],[3,2]]
+        var out = []
+        for (var i = 0; i < candidates.length; ++i) {
+            var c = candidates[i][0], r = candidates[i][1]
+            if (c >= w.minCols && c <= w.maxCols && r >= w.minRows && r <= w.maxRows)
+                out.push({cols: c, rows: r})
+        }
+        if (out.length === 0) out.push({cols: w.defaultCols, rows: w.defaultRows})
+        return out
     }
 
     Connections {
@@ -82,6 +96,14 @@ Item {
 
         onOpened: {
             y = parent ? parent.height * 0.4 : 0
+        }
+
+        // Belt: the Dialog's own closed signal covers every dismissal path
+        // (Escape, tap-outside, header back icon, or a single-preset card
+        // firing widgetChosen directly) — reset the floating size popup so
+        // it never reappears stale on the next openPicker().
+        onClosed: {
+            sizePopup.reset()
         }
 
         background: Rectangle {
@@ -143,110 +165,185 @@ Item {
             }
         }
 
-        contentItem: Flickable {
-            id: pickerFlickable
-            clip: true
-            contentHeight: pickerColumn.height
-            boundsBehavior: Flickable.StopAtBounds
-            flickableDirection: Flickable.VerticalFlick
+        contentItem: Item {
+            id: pickerContentArea
 
-            Column {
-                id: pickerColumn
-                width: parent.width
-                spacing: UiMetrics.spacing
+            Flickable {
+                id: pickerFlickable
+                anchors.fill: parent
+                clip: true
+                contentHeight: pickerColumn.height
+                boundsBehavior: Flickable.StopAtBounds
+                flickableDirection: Flickable.VerticalFlick
 
-                topPadding: UiMetrics.spacing
-                bottomPadding: UiMetrics.spacing
+                Column {
+                    id: pickerColumn
+                    width: parent.width
+                    spacing: UiMetrics.spacing
 
-                Repeater {
-                    model: root.categoryList
+                    topPadding: UiMetrics.spacing
+                    bottomPadding: UiMetrics.spacing
 
-                    Column {
-                        width: pickerColumn.width
-                        spacing: UiMetrics.spacing * 0.5
+                    Repeater {
+                        model: root.categoryList
 
-                        property string catLabel: modelData
+                        Column {
+                            width: pickerColumn.width
+                            spacing: UiMetrics.spacing * 0.5
 
-                        // Category header
-                        NormalText {
-                            text: catLabel
-                            font.pixelSize: UiMetrics.fontBody
-                            color: ThemeService.onSurfaceVariant
-                            leftPadding: UiMetrics.marginPage * 0.5
-                        }
+                            property string catLabel: modelData
 
-                        // Horizontal card row
-                        ListView {
-                            id: cardRow
-                            width: parent.width
-                            height: UiMetrics.tileH * 0.55
-                            orientation: ListView.Horizontal
-                            spacing: UiMetrics.spacing
-                            clip: true
-                            boundsBehavior: Flickable.StopAtBounds
-                            leftMargin: UiMetrics.marginPage * 0.5
-
-                            model: {
-                                var items = [];
-                                for (var i = 0; i < WidgetPickerModel.rowCount(); ++i) {
-                                    var idx = WidgetPickerModel.index(i, 0);
-                                    var itemLabel = WidgetPickerModel.data(idx, 264); // CategoryLabelRole
-                                    if (itemLabel === catLabel) {
-                                        items.push({
-                                            widgetId: WidgetPickerModel.data(idx, 257),    // WidgetIdRole
-                                            displayName: WidgetPickerModel.data(idx, 258), // DisplayNameRole
-                                            iconName: WidgetPickerModel.data(idx, 259),    // IconNameRole
-                                            description: WidgetPickerModel.data(idx, 263), // DescriptionRole
-                                            defaultCols: WidgetPickerModel.data(idx, 260), // DefaultColsRole
-                                            defaultRows: WidgetPickerModel.data(idx, 261)  // DefaultRowsRole
-                                        });
-                                    }
-                                }
-                                return items;
+                            // Category header
+                            NormalText {
+                                text: catLabel
+                                font.pixelSize: UiMetrics.fontBody
+                                color: ThemeService.onSurfaceVariant
+                                leftPadding: UiMetrics.marginPage * 0.5
                             }
 
-                            delegate: Rectangle {
-                                width: UiMetrics.tileW * 0.55
-                                height: cardRow.height
-                                radius: UiMetrics.radius
-                                color: cardMa.pressed ? ThemeService.primaryContainer : ThemeService.surfaceContainer
+                            // Horizontal card row
+                            ListView {
+                                id: cardRow
+                                width: parent.width
+                                height: UiMetrics.tileH * 0.55
+                                orientation: ListView.Horizontal
+                                spacing: UiMetrics.spacing
+                                clip: true
+                                boundsBehavior: Flickable.StopAtBounds
+                                leftMargin: UiMetrics.marginPage * 0.5
 
-                                ColumnLayout {
-                                    anchors.fill: parent
-                                    anchors.margins: UiMetrics.spacing
-                                    spacing: UiMetrics.spacing * 0.5
-
-                                    MaterialIcon {
-                                        icon: modelData.iconName
-                                        size: UiMetrics.iconSize
-                                        color: ThemeService.onSurface
-                                        Layout.alignment: Qt.AlignHCenter
+                                model: {
+                                    var items = [];
+                                    for (var i = 0; i < WidgetPickerModel.rowCount(); ++i) {
+                                        var idx = WidgetPickerModel.index(i, 0);
+                                        var itemLabel = WidgetPickerModel.data(idx, 264); // CategoryLabelRole
+                                        if (itemLabel === catLabel) {
+                                            items.push({
+                                                widgetId: WidgetPickerModel.data(idx, 257),    // WidgetIdRole
+                                                displayName: WidgetPickerModel.data(idx, 258), // DisplayNameRole
+                                                iconName: WidgetPickerModel.data(idx, 259),    // IconNameRole
+                                                description: WidgetPickerModel.data(idx, 263), // DescriptionRole
+                                                defaultCols: WidgetPickerModel.data(idx, 260), // DefaultColsRole
+                                                defaultRows: WidgetPickerModel.data(idx, 261), // DefaultRowsRole
+                                                minCols: WidgetPickerModel.data(idx, 265),     // MinColsRole
+                                                minRows: WidgetPickerModel.data(idx, 266),     // MinRowsRole
+                                                maxCols: WidgetPickerModel.data(idx, 267),     // MaxColsRole
+                                                maxRows: WidgetPickerModel.data(idx, 268)      // MaxRowsRole
+                                            });
+                                        }
                                     }
-                                    NormalText {
-                                        text: modelData.displayName
-                                        font.pixelSize: UiMetrics.fontBody
-                                        color: ThemeService.onSurface
-                                        Layout.alignment: Qt.AlignHCenter
-                                        horizontalAlignment: Text.AlignHCenter
-                                        Layout.fillWidth: true
-                                        elide: Text.ElideRight
-                                    }
-                                    NormalText {
-                                        text: modelData.description || ""
-                                        font.pixelSize: UiMetrics.fontSmall
-                                        color: ThemeService.onSurfaceVariant
-                                        Layout.alignment: Qt.AlignHCenter
-                                        horizontalAlignment: Text.AlignHCenter
-                                        Layout.fillWidth: true
-                                        elide: Text.ElideRight
-                                    }
-                                    Item { Layout.fillHeight: true }
+                                    return items;
                                 }
 
-                                MouseArea {
-                                    id: cardMa
-                                    anchors.fill: parent
-                                    onClicked: root.widgetChosen(modelData.widgetId, modelData.defaultCols, modelData.defaultRows)
+                                delegate: Rectangle {
+                                    width: UiMetrics.tileW * 0.55
+                                    height: cardRow.height
+                                    radius: UiMetrics.radius
+                                    color: cardMa.pressed ? ThemeService.primaryContainer : ThemeService.surfaceContainer
+
+                                    ColumnLayout {
+                                        anchors.fill: parent
+                                        anchors.margins: UiMetrics.spacing
+                                        spacing: UiMetrics.spacing * 0.5
+
+                                        MaterialIcon {
+                                            icon: modelData.iconName
+                                            size: UiMetrics.iconSize
+                                            color: ThemeService.onSurface
+                                            Layout.alignment: Qt.AlignHCenter
+                                        }
+                                        NormalText {
+                                            text: modelData.displayName
+                                            font.pixelSize: UiMetrics.fontBody
+                                            color: ThemeService.onSurface
+                                            Layout.alignment: Qt.AlignHCenter
+                                            horizontalAlignment: Text.AlignHCenter
+                                            Layout.fillWidth: true
+                                            elide: Text.ElideRight
+                                        }
+                                        NormalText {
+                                            text: modelData.description || ""
+                                            font.pixelSize: UiMetrics.fontSmall
+                                            color: ThemeService.onSurfaceVariant
+                                            Layout.alignment: Qt.AlignHCenter
+                                            horizontalAlignment: Text.AlignHCenter
+                                            Layout.fillWidth: true
+                                            elide: Text.ElideRight
+                                        }
+                                        Item { Layout.fillHeight: true }
+                                    }
+
+                                    MouseArea {
+                                        id: cardMa
+                                        anchors.fill: parent
+                                        onClicked: {
+                                            var presets = root.presetsFor(modelData)
+                                            if (presets.length <= 1)
+                                                root.widgetChosen(modelData.widgetId, modelData.defaultCols, modelData.defaultRows)
+                                            else
+                                                sizePopup.openFor(modelData, presets)
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+
+            // Catch-all cancel layer for the size popup: fills the same content
+            // area, sits just behind the popup (z:9 vs. the popup's z:10), and
+            // only intercepts taps while the popup is open. Lets a tap anywhere
+            // in the sheet outside the popup dismiss it without choosing a size.
+            MouseArea {
+                anchors.fill: parent
+                z: 9
+                visible: sizePopup.visible
+                enabled: sizePopup.visible
+                onClicked: sizePopup.reset()
+            }
+
+            // In-sheet size preset popup — nested inside the Dialog's content area
+            // (not a sibling of the Dialog under root) so it actually renders above
+            // the open Dialog's cards: the Dialog reparents to Overlay.overlay, which
+            // composites above root's normal children, so a popup living under root
+            // would be hidden behind the modal Dialog instead of stacking above it.
+            Rectangle {
+                id: sizePopup
+                property var widget: null
+                property var presets: []
+                function openFor(w, p) { widget = w; presets = p; visible = true }
+                function reset() { visible = false; widget = null; presets = [] }
+                visible: false
+                anchors.centerIn: parent
+                width: presetRow.implicitWidth + UiMetrics.marginPage * 2
+                height: presetRow.implicitHeight + UiMetrics.marginPage * 2
+                radius: UiMetrics.radius
+                color: ThemeService.surfaceContainerHigh
+                border.width: 1; border.color: ThemeService.outline
+                z: 10
+                Row {
+                    id: presetRow
+                    anchors.centerIn: parent
+                    spacing: UiMetrics.spacing
+                    Repeater {
+                        model: sizePopup.presets
+                        delegate: Rectangle {
+                            width: UiMetrics.tileW * 0.3; height: UiMetrics.tileH * 0.3
+                            radius: UiMetrics.radiusSmall
+                            color: ThemeService.surfaceContainer
+                            border.width: 1; border.color: ThemeService.outlineVariant
+                            NormalText {
+                                anchors.centerIn: parent
+                                text: modelData.cols + "×" + modelData.rows
+                                color: ThemeService.onSurface
+                            }
+                            MouseArea {
+                                anchors.fill: parent
+                                onClicked: {
+                                    root.widgetChosen(sizePopup.widget.widgetId,
+                                                      modelData.cols, modelData.rows)
+                                    sizePopup.visible = false
                                 }
                             }
                         }

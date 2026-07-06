@@ -16,6 +16,7 @@ private slots:
     void testWidgetsFittingSpaceExcludesLiveSurface();
     void testContributionKindPreservedOnRegister();
     void testPickerModelExcludesLiveSurface();
+    void testWebWidgetKindFitsSpace();
 };
 
 void TestWidgetRegistry::testRegisterAndLookup() {
@@ -219,6 +220,19 @@ void TestWidgetRegistry::testPickerModelExcludesLiveSurface() {
     }
     QVERIFY(foundNormal);
     QVERIFY(!foundLive);
+}
+
+void TestWidgetRegistry::testWebWidgetKindFitsSpace() {
+    oap::WidgetRegistry reg;
+    oap::WidgetDescriptor d;
+    d.id = "com.example.webclock"; d.displayName = "Web Clock";
+    d.qmlComponent = QUrl("qrc:/OpenAutoProdigy/qml/widgets/WebWidgetHost.qml");
+    d.contributionKind = oap::DashboardContributionKind::WebWidget;
+    reg.registerWidget(d);
+    auto fits = reg.widgetsFittingSpace(6, 4);
+    bool found = false;
+    for (const auto& w : fits) if (w.id == d.id) found = true;
+    QVERIFY(found);
 }
 
 QTEST_GUILESS_MAIN(TestWidgetRegistry)

@@ -24,6 +24,7 @@ struct ConfigSchemaField {
 enum class DashboardContributionKind {
     Widget,              // Lightweight data-display widget (clock, now-playing, etc.)
     LiveSurfaceWidget,   // Embedded live content from a plugin (deferred — no host path yet)
+    WebWidget,           // Web content widget (iframe, web view, etc.)
 };
 
 struct WidgetDescriptor {
@@ -60,6 +61,14 @@ struct GridPlacement {
     int page = 0;           // which grid page this placement belongs to
     bool visible = true;    // false when clamped out (kept in config)
     QVariantMap config;     // per-instance config (merged over defaultConfig at read time)
+};
+
+struct DashboardConfig {
+    QString id;                       // stable slug ("home")
+    QString name;                     // display label ("Home")
+    int nextInstanceId = 0;
+    int pageCount = 2;
+    QList<GridPlacement> placements;
 };
 
 // Legacy types -- used by WidgetPlacementModel and YamlConfig until Plan 02 replaces them.

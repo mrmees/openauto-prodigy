@@ -66,6 +66,7 @@
 #include "ui/WidgetPickerModel.hpp"
 #include "ui/WidgetGridModel.hpp"
 #include "ui/WidgetContextFactory.hpp"
+#include "ui/DashboardManager.hpp"
 #include <QQuickWindow>
 #include <QWindow>
 #include <QDateTime>
@@ -770,68 +771,24 @@ int main(int argc, char *argv[])
         }
     }
 
-    // --- Grid-based widget model (replaces pane-based WidgetPlacementModel) ---
-    auto widgetGridModel = new oap::WidgetGridModel(widgetRegistry, &app);
-    // Initial grid dimensions from cellSide (QML will take over once loaded)
+    // --- Dashboards: per-dashboard widget grids (design 2026-07-05 §3) ---
+    auto dashboardManager = new oap::DashboardManager(
+        widgetRegistry, hostContext.get(), yamlConfig, yamlPath, &app);
     {
         qreal cs = displayInfo->cellSide();
         int initCols = qMax(3, static_cast<int>(std::floor(displayInfo->windowWidth() / cs)));
         int initRows = qMax(2, static_cast<int>(std::floor(displayInfo->windowHeight() / cs)));
-        widgetGridModel->setGridDimensions(initCols, initRows);
+        dashboardManager->loadFromConfig(initCols, initRows);
     }
 
-    // Load placements and page count from config BEFORE connecting auto-save.
-    // setGridDimensions() emits placementsChanged() — connecting save first would
-    // persist empty placements on startup, wiping the saved config.
-    widgetGridModel->setPageCount(yamlConfig->gridPageCount());
-    auto savedPlacements = yamlConfig->gridPlacements();
-    if (!savedPlacements.isEmpty()) {
-        widgetGridModel->setPlacements(savedPlacements, widgetRegistry);
-        widgetGridModel->setNextInstanceId(yamlConfig->gridNextInstanceId());
-    }
-    widgetGridModel->setSavedDimensions(yamlConfig->gridSavedCols(), yamlConfig->gridSavedRows());
-
-    // Auto-save grid placements on change (connected after load to avoid clobbering)
-    auto saveGridState = [yamlConfig = yamlConfig.get(), widgetGridModel, yamlPath]() {
-        yamlConfig->setGridPlacements(widgetGridModel->placements());
-        yamlConfig->setGridNextInstanceId(widgetGridModel->nextInstanceId());
-        yamlConfig->setGridPageCount(widgetGridModel->pageCount());
-        yamlConfig->setGridSavedDims(widgetGridModel->gridColumns(), widgetGridModel->gridRows());
-        yamlConfig->save(yamlPath);
-    };
-    QObject::connect(widgetGridModel, &oap::WidgetGridModel::placementsChanged,
-                     widgetGridModel, saveGridState);
-    QObject::connect(widgetGridModel, &oap::WidgetGridModel::pageCountChanged,
-                     widgetGridModel, saveGridState);
-
-    // Fresh-install seeding: place singleton launcher widgets on the reserved (last) page
-    if (savedPlacements.isEmpty()) {
-        int reservedPage = widgetGridModel->pageCount() - 1;
-        QList<oap::GridPlacement> seedPlacements;
-        {
-            oap::GridPlacement p;
-            p.instanceId = QStringLiteral("aa-launcher-reserved");
-            p.widgetId = QStringLiteral("org.openauto.aa-launcher");
-            p.col = 0; p.row = 0;
-            p.colSpan = 1; p.rowSpan = 1;
-            p.opacity = 0.25;
-            p.page = reservedPage;
-            p.visible = true;
-            seedPlacements.append(p);
-        }
-        {
-            oap::GridPlacement p;
-            p.instanceId = QStringLiteral("settings-launcher-reserved");
-            p.widgetId = QStringLiteral("org.openauto.settings-launcher");
-            p.col = 0; p.row = 1;
-            p.colSpan = 1; p.rowSpan = 1;
-            p.opacity = 0.25;
-            p.page = reservedPage;
-            p.visible = true;
-            seedPlacements.append(p);
-        }
-        widgetGridModel->setPlacements(seedPlacements, widgetRegistry);
-    }
+    // Flush any pending debounced dashboard persist on quit (belt-and-
+    // suspenders alongside DashboardManager's shared_ptr YamlConfig ref —
+    // see EqualizerService::saveNow precedent above). yamlConfig is a
+    // shared_ptr now held by dashboardManager too, so its dtor flush is
+    // safe regardless of teardown order, but doing it here means the write
+    // happens during normal event-loop teardown rather than at destruction.
+    QObject::connect(&app, &QGuiApplication::aboutToQuit,
+                     dashboardManager, &oap::DashboardManager::flushPendingPersist);
 
     // QML (HomeMenu.qml) is the sole authority for grid dimensions.
     // It applies snap-aware computation on top of DisplayInfo.cellSide.
@@ -882,10 +839,16 @@ int main(int argc, char *argv[])
     actionRegistry->registerAction("app.restart", [appController](const QVariant&) {
         appController->restart();
     });
-    actionRegistry->registerAction("app.home", [pluginModel, widgetGridModel](const QVariant&) {
-        widgetGridModel->setWidgetSelected(false);
+    actionRegistry->registerAction("app.home", [pluginModel, dashboardManager](const QVariant&) {
+        if (auto* m = dashboardManager->activeModel()) m->setWidgetSelected(false);
         pluginModel->setActivePlugin(QString());
     });
+    actionRegistry->registerAction("app.dashboard.next",
+        [dashboardManager](const QVariant&) { dashboardManager->nextDashboard(); });
+    actionRegistry->registerAction("app.dashboard.previous",
+        [dashboardManager](const QVariant&) { dashboardManager->previousDashboard(); });
+    actionRegistry->registerAction("app.dashboard.select",
+        [dashboardManager](const QVariant& v) { dashboardManager->switchTo(v.toString()); });
     actionRegistry->registerAction("theme.toggle", [themeService](const QVariant&) {
         themeService->toggleMode();
     });
@@ -912,12 +875,12 @@ int main(int argc, char *argv[])
     }
 
     // Widget command egress actions
-    actionRegistry->registerAction("app.launchPlugin", [pluginModel, widgetGridModel](const QVariant& v) {
-        widgetGridModel->setWidgetSelected(false);
+    actionRegistry->registerAction("app.launchPlugin", [pluginModel, dashboardManager](const QVariant& v) {
+        if (auto* m = dashboardManager->activeModel()) m->setWidgetSelected(false);
         pluginModel->setActivePlugin(v.toString());
     });
-    actionRegistry->registerAction("app.openSettings", [pluginModel, appController, widgetGridModel](const QVariant&) {
-        widgetGridModel->setWidgetSelected(false);
+    actionRegistry->registerAction("app.openSettings", [pluginModel, appController, dashboardManager](const QVariant&) {
+        if (auto* m = dashboardManager->activeModel()) m->setWidgetSelected(false);
         pluginModel->setActivePlugin(QString());
         appController->navigateTo(6);
     });
@@ -934,8 +897,8 @@ int main(int argc, char *argv[])
         }
     });
     // Volume short-hold: open audio/EQ settings
-    actionRegistry->registerAction("navbar.volume.shortHold", [appController, pluginModel, navbarController, widgetGridModel](const QVariant&) {
-        widgetGridModel->setWidgetSelected(false);
+    actionRegistry->registerAction("navbar.volume.shortHold", [appController, pluginModel, navbarController, dashboardManager](const QVariant&) {
+        if (auto* m = dashboardManager->activeModel()) m->setWidgetSelected(false);
         pluginModel->setActivePlugin(QString());
         appController->navigateTo(6);
         emit navbarController->settingsPageRequested(QStringLiteral("audio"));
@@ -953,14 +916,14 @@ int main(int argc, char *argv[])
         });
     }
     // Clock tap: go home
-    actionRegistry->registerAction("navbar.clock.tap", [pluginModel, appController, widgetGridModel](const QVariant&) {
-        widgetGridModel->setWidgetSelected(false);
+    actionRegistry->registerAction("navbar.clock.tap", [pluginModel, appController, dashboardManager](const QVariant&) {
+        if (auto* m = dashboardManager->activeModel()) m->setWidgetSelected(false);
         pluginModel->setActivePlugin(QString());
         appController->navigateTo(0);
     });
     // Clock short-hold: open settings
-    actionRegistry->registerAction("navbar.clock.shortHold", [appController, widgetGridModel](const QVariant&) {
-        widgetGridModel->setWidgetSelected(false);
+    actionRegistry->registerAction("navbar.clock.shortHold", [appController, dashboardManager](const QVariant&) {
+        if (auto* m = dashboardManager->activeModel()) m->setWidgetSelected(false);
         appController->navigateTo(6);
     });
     // Clock long-hold: show power menu
@@ -977,8 +940,8 @@ int main(int argc, char *argv[])
         }
     });
     // Brightness short-hold: open display settings
-    actionRegistry->registerAction("navbar.brightness.shortHold", [appController, pluginModel, navbarController, widgetGridModel](const QVariant&) {
-        widgetGridModel->setWidgetSelected(false);
+    actionRegistry->registerAction("navbar.brightness.shortHold", [appController, pluginModel, navbarController, dashboardManager](const QVariant&) {
+        if (auto* m = dashboardManager->activeModel()) m->setWidgetSelected(false);
         pluginModel->setActivePlugin(QString());
         appController->navigateTo(6);
         emit navbarController->settingsPageRequested(QStringLiteral("display"));
@@ -1043,11 +1006,18 @@ int main(int argc, char *argv[])
     auto weatherService = new oap::WeatherService(&app);
     engine.rootContext()->setContextProperty("WeatherService", weatherService);
 
-    // WidgetContextFactory for QML-side WidgetInstanceContext creation
-    auto* widgetContextFactory = new oap::WidgetContextFactory(widgetGridModel, hostContext.get(), &app);
-    engine.rootContext()->setContextProperty("WidgetContextFactory", widgetContextFactory);
+    // DashboardManager + per-dashboard WidgetGridModel/WidgetContextFactory.
+    // NEVER cache activeModel()/activeFactory() beyond repointGridContext —
+    // the active dashboard changes at runtime; re-point on every switch.
+    engine.rootContext()->setContextProperty("DashboardManager", dashboardManager);
+    auto repointGridContext = [&engine, dashboardManager]() {
+        engine.rootContext()->setContextProperty("WidgetGridModel", dashboardManager->activeModel());
+        engine.rootContext()->setContextProperty("WidgetContextFactory", dashboardManager->activeFactory());
+    };
+    repointGridContext();
+    QObject::connect(dashboardManager, &oap::DashboardManager::activeDashboardChanged,
+                     &engine, repointGridContext);
 
-    engine.rootContext()->setContextProperty("WidgetGridModel", widgetGridModel);
     engine.rootContext()->setContextProperty("WidgetRegistry", widgetRegistry);
 
     auto widgetPickerModel = new oap::WidgetPickerModel(widgetRegistry, &app);

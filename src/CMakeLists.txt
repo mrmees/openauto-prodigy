@@ -86,6 +86,7 @@ add_library(openauto-core STATIC
     ui/WidgetPlacementModel.cpp
     ui/WidgetPickerModel.cpp
     ui/WidgetGridModel.cpp
+    ui/DashboardManager.cpp
     ${CMAKE_SOURCE_DIR}/libs/qrcodegen/qrcodegen.cpp
 )
 
@@ -274,6 +275,10 @@ set_source_files_properties(../qml/components/WidgetPickerSheet.qml PROPERTIES
     QT_QML_SOURCE_TYPENAME "WidgetPickerSheet"
     QT_RESOURCE_ALIAS "WidgetPickerSheet.qml"
 )
+set_source_files_properties(../qml/components/DashboardSwitcher.qml PROPERTIES
+    QT_QML_SOURCE_TYPENAME "DashboardSwitcher"
+    QT_RESOURCE_ALIAS "DashboardSwitcher.qml"
+)
 set_source_files_properties(../qml/widgets/ClockWidget.qml PROPERTIES
     QT_QML_SOURCE_TYPENAME "ClockWidget"
     QT_RESOURCE_ALIAS "ClockWidget.qml"
@@ -441,6 +446,7 @@ qt_add_qml_module(openauto-prodigy
         ../qml/components/ExitDialog.qml
         ../qml/components/WidgetConfigSheet.qml
         ../qml/components/WidgetPickerSheet.qml
+        ../qml/components/DashboardSwitcher.qml
         ../qml/widgets/ClockWidget.qml
         ../qml/widgets/DateWidget.qml
 
