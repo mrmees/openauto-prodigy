@@ -24,6 +24,7 @@ struct ConfigSchemaField {
 enum class DashboardContributionKind {
     Widget,              // Lightweight data-display widget (clock, now-playing, etc.)
     LiveSurfaceWidget,   // Embedded live content from a plugin (deferred — no host path yet)
+    WebWidget,           // Web content widget (iframe, web view, etc.)
 };
 
 struct WidgetDescriptor {
