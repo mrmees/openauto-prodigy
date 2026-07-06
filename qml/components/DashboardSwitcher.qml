@@ -7,8 +7,12 @@ import QtQuick.Controls
 Item {
     id: root
     property bool editing: false      // bound by HomeMenu to its selection state
+    readonly property bool manageSheetOpen: manageSheet.visible
     visible: editing && DashboardManager.count > 0
     implicitHeight: UiMetrics.tileH * 0.35
+
+    // Manage sheet has no reason to stay open once edit mode exits (pills hide)
+    onEditingChanged: if (!editing && manageSheet.visible) manageSheet.close()
 
     RowLayout {
         anchors.horizontalCenter: parent.horizontalCenter
@@ -35,8 +39,13 @@ Item {
                 }
                 MouseArea {
                     anchors.fill: parent
-                    onClicked: ActionRegistry.dispatch("app.dashboard.select",
-                                                       DashboardManager.idAt(index))
+                    // pressAndHold also fires clicked on release -- only dispatch the
+                    // switch when this wasn't a long-press (Qt's documented guard)
+                    onClicked: function(mouse) {
+                        if (!mouse.wasHeld)
+                            ActionRegistry.dispatch("app.dashboard.select",
+                                                     DashboardManager.idAt(index))
+                    }
                     onPressAndHold: manageSheet.openFor(DashboardManager.idAt(index), modelData)
                 }
             }
@@ -62,22 +71,38 @@ Item {
     }
 
     // Rename / remove sheet
-    Rectangle {
+    Dialog {
         id: manageSheet
-        property string dashId: ""
-        function openFor(id, name) { dashId = id; nameField.text = name; visible = true }
-        visible: false
+        parent: Overlay.overlay
+        modal: true
+        dim: true
+        closePolicy: Popup.CloseOnEscape | Popup.CloseOnPressOutside
+
         anchors.centerIn: parent
-        width: 360; height: col.implicitHeight + UiMetrics.marginPage * 2
-        radius: UiMetrics.radius
-        color: ThemeService.surfaceContainerHigh
-        border.width: 1; border.color: ThemeService.outline
-        z: 50
-        ColumnLayout {
+        width: Math.min(parent ? parent.width * 0.6 : 360, 400)
+        padding: UiMetrics.marginPage
+
+        property string dashId: ""
+        property string _originalName: ""  // skip no-op rename if unchanged
+
+        function openFor(id, name) {
+            dashId = id
+            _originalName = name
+            nameField.text = name
+            open()
+        }
+
+        background: Rectangle {
+            color: ThemeService.surfaceContainerHigh
+            radius: UiMetrics.radius
+            border.width: 1
+            border.color: ThemeService.outline
+        }
+
+        contentItem: ColumnLayout {
             id: col
-            anchors.centerIn: parent
-            width: parent.width - UiMetrics.marginPage * 2
             spacing: UiMetrics.spacing
+
             TextField {
                 id: nameField
                 Layout.fillWidth: true
@@ -88,34 +113,57 @@ Item {
                     radius: UiMetrics.radius / 2
                 }
                 onAccepted: {
-                    DashboardManager.renameDashboard(manageSheet.dashId, text)
-                    manageSheet.visible = false
+                    if (text !== manageSheet._originalName)
+                        DashboardManager.renameDashboard(manageSheet.dashId, text)
+                    manageSheet.close()
                 }
             }
+
             RowLayout {
                 spacing: UiMetrics.spacing
-                NormalText {
-                    text: "Remove"
-                    color: manageSheet.dashId === "home"
-                           ? ThemeService.onSurfaceVariant : ThemeService.error
+
+                // touchMin-sized hit area, text kept visually unchanged
+                Item {
+                    Layout.preferredWidth: removeText.implicitWidth + UiMetrics.spacing * 2
+                    Layout.preferredHeight: UiMetrics.touchMin
+
+                    NormalText {
+                        id: removeText
+                        anchors.centerIn: parent
+                        text: "Remove"
+                        color: manageSheet.dashId === "home"
+                               ? ThemeService.onSurfaceVariant : ThemeService.error
+                    }
+
                     MouseArea {
                         anchors.fill: parent
                         enabled: manageSheet.dashId !== "home"
                         onClicked: {
                             DashboardManager.removeDashboard(manageSheet.dashId)
-                            manageSheet.visible = false
+                            manageSheet.close()
                         }
                     }
                 }
+
                 Item { Layout.fillWidth: true }
-                NormalText {
-                    text: "Done"
-                    color: ThemeService.primary
+
+                Item {
+                    Layout.preferredWidth: doneText.implicitWidth + UiMetrics.spacing * 2
+                    Layout.preferredHeight: UiMetrics.touchMin
+
+                    NormalText {
+                        id: doneText
+                        anchors.centerIn: parent
+                        text: "Done"
+                        color: ThemeService.primary
+                    }
+
                     MouseArea {
                         anchors.fill: parent
                         onClicked: {
-                            DashboardManager.renameDashboard(manageSheet.dashId, nameField.text)
-                            manageSheet.visible = false
+                            if (nameField.text !== manageSheet._originalName)
+                                DashboardManager.renameDashboard(manageSheet.dashId, nameField.text)
+                            manageSheet.close()
                         }
                     }
                 }

@@ -213,6 +213,7 @@ Item {
         id: selectionTimer
         interval: 10000
         running: homeScreen.selectedInstanceId !== "" && !configSheet.isOpen && !widgetPickerSheet.isOpen
+                 && !dashboardSwitcher.manageSheetOpen
         onTriggered: homeScreen.deselectWidget()
     }
 
@@ -292,6 +293,17 @@ Item {
         function onCurrentApplicationChanged() {
             emptySpaceMenu.close()
             widgetPickerSheet.closePicker()
+        }
+    }
+
+    // Switching dashboards swaps the active WidgetGridModel out from under any
+    // selected instanceId -- deselect so Navbar config/delete can't target a
+    // dead selection on the new dashboard (accepted: this hides the pills too).
+    Connections {
+        target: DashboardManager
+        function onActiveDashboardChanged() {
+            if (homeScreen.selectedInstanceId !== "")
+                homeScreen.deselectWidget()
         }
     }
 
@@ -1265,6 +1277,7 @@ Item {
 
     // ---- Dashboard switcher pills (edit mode only) ----
     DashboardSwitcher {
+        id: dashboardSwitcher
         anchors { top: parent.top; topMargin: UiMetrics.spacing; left: parent.left; right: parent.right }
         editing: homeScreen.selectedInstanceId !== ""
         z: 150
