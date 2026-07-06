@@ -36,6 +36,13 @@ Newest entries first.
 4. Web-config theme/wallpaper transfer HTTP endpoint — approved, separate work item from this API.
 5. Companion app migration onto this API continues in the sibling companion repo.
 
+**Post-review follow-ups (final whole-branch review, 2026-07-05):**
+- Proxy-route teardown on companion-session disconnect (legacy parity: `CompanionListenerService` cleared `setProxyRoute(false)` on drop; API v1 `sessionClosed` does not — dormant while the companion dual-stacks on 9876; needs a small design decision on route ownership before the companion migrates fully).
+- RNG hygiene pass: nonce/salt generation to `QRandomGenerator::system()` (`ApiSession` + `PairingManager`, 3 sites).
+- `ApiServer::start()` double-invocation guard.
+- `WsApiTransport`: `setMaxAllowedIncomingMessageSize(maxFrameBytes)` for TCP/WS symmetry.
+- Loopback `init()` should wipe `kConfigPath` alongside `kStorePath`; alpha-drop comment at `buildSystemStatus` `.name()` call; `PhonePublisher` `startedAtMs` synthesis for calls already `Active` at construction.
+
 **Verification:**
 - Local: `cd ~/builds/openauto-prodigy && cmake . && make -j$(nproc) && ctest --output-on-failure` → clean build, `100% tests passed, 0 tests failed out of 102` (26.49s).
 - Cross-compile: `sg docker -c "./cross-build.sh"` → clean aarch64 build to `build-pi/src/openauto-prodigy` (only pre-existing benign `qt6_import_qml_plugins` warnings for unused QML plugins, not errors).

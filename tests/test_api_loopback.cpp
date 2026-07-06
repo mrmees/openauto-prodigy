@@ -575,6 +575,13 @@ void TestApiLoopback::testPhoneUnavailableE2E() {
     QCOMPARE(hello.payload_case(), pb::ApiMessage::kServerHello);
     // Static phone command surface is present but all-false in v1.
     QVERIFY(hello.server_hello().capabilities().has_phone());
+    const auto& phoneCaps = hello.server_hello().capabilities().phone();
+    QVERIFY(!phoneCaps.can_dial());
+    QVERIFY(!phoneCaps.can_answer());
+    QVERIFY(!phoneCaps.can_hangup());
+    QVERIFY(!phoneCaps.can_send_dtmf());
+    QVERIFY(!phoneCaps.can_hold_swap());
+    QVERIFY(!phoneCaps.can_multiparty());
 
     pb::ApiMessage dial;
     dial.set_request_id(2);

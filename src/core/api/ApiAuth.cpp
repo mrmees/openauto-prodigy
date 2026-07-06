@@ -3,9 +3,8 @@
 #include <QCryptographicHash>
 #include <QMessageAuthenticationCode>
 #include <QFile>
-#include <QSaveFile>
+#include <QDebug>
 #include <yaml-cpp/yaml.h>
-#include <fstream>
 
 namespace oap::api {
 
@@ -83,13 +82,19 @@ void PairedClientStore::save() {
     std::string yamlContent = YAML::Dump(doc);
 
     QFile file(path_);
-    if (file.open(QIODevice::WriteOnly | QIODevice::Text)) {
-        file.write(yamlContent.c_str());
-        file.close();
-
-        // Set permissions to 0600 (owner read/write only)
-        QFile::setPermissions(path_, QFileDevice::ReadOwner | QFileDevice::WriteOwner);
+    if (!file.open(QIODevice::WriteOnly | QIODevice::Text)) {
+        qWarning() << "API: failed to open paired-client store for writing:" << path_;
+        return;
     }
+
+    const qint64 written = file.write(yamlContent.c_str());
+    file.close();
+    if (written < 0 || static_cast<size_t>(written) != yamlContent.size()) {
+        qWarning() << "API: short write persisting paired-client store:" << path_;
+    }
+
+    // Set permissions to 0600 (owner read/write only)
+    QFile::setPermissions(path_, QFileDevice::ReadOwner | QFileDevice::WriteOwner);
 }
 
 std::optional<PairedClient> PairedClientStore::find(const QString& clientId) const {
