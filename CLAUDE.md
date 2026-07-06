@@ -38,6 +38,7 @@ See `docs/roadmap-current.md` for current status and priorities.
   - `qml/controls/` — Reusable controls (Tile, Icon, NormalText, SpecialText)
   - `qml/applications/` — Plugin views (launcher, android_auto, settings, home, bt_audio, phone)
 - `libs/prodigy-oaa-protocol/` — AA protocol library (Transport, Messenger, Session, Channel, HU handlers)
+- `proto/api/` — External API v1 protobuf contract (prodigy-private; additive-only)
 - `tests/` — Unit tests (47 tests covering config, plugins, theme, audio, events, notifications, device registry, protocol, codecs, video)
 - `web-config/` — Flask web config panel (Python, HTML/CSS/JS)
 - `docs/` — Design decisions, development guide, wireless setup, plans
@@ -156,6 +157,7 @@ Flask server (`web-config/server.py`) communicates with Qt app via Unix domain s
 | `src/ui/AudioDeviceModel.cpp` | QAbstractListModel for device selection ComboBoxes |
 | `src/core/InputDeviceScanner.cpp` | Touch device auto-detection via INPUT_PROP_DIRECT |
 | `src/core/services/IpcServer.cpp` | Unix socket IPC for web config |
+| `src/core/api/ApiServer.cpp` | External API v1 server — sessions, pairing, publishers |
 | `src/plugins/android_auto/AndroidAutoPlugin.cpp` | AA plugin (wraps all AA protocol code) |
 | `src/plugins/bt_audio/BtAudioPlugin.cpp` | BT audio with BlueZ D-Bus A2DP/AVRCP |
 | `src/plugins/phone/PhonePlugin.cpp` | Phone with BlueZ D-Bus HFP |
