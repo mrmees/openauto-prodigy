@@ -75,20 +75,20 @@ Output: `build-pi/src/openauto-prodigy`
 **Standard workflow — cross-build + rsync:**
 ```bash
 ./cross-build.sh
-rsync -av build-pi/src/openauto-prodigy matt@192.168.1.152:~/openauto-prodigy/build/src/
-ssh matt@192.168.1.152 'sudo systemctl restart openauto-prodigy.service'
+rsync -av build-pi/src/openauto-prodigy matt@192.168.1.149:~/openauto-prodigy/build/src/
+ssh matt@192.168.1.149 'sudo systemctl restart openauto-prodigy.service'
 ```
 
-Use this for anything that doesn't require the install script to set up system-level config. Push QML changes via git (`git push` + `ssh matt@192.168.1.152 'cd ~/openauto-prodigy && git pull'`) since QML isn't in the binary.
+Use this for anything that doesn't require the install script to set up system-level config. Push QML changes via git (`git push` + `ssh matt@192.168.1.149 'cd ~/openauto-prodigy && git pull'`) since QML isn't in the binary.
 
 **Fallback — native build on Pi** (if cross-build has ABI issues):
 ```bash
-ssh matt@192.168.1.152 "cd /home/matt/openauto-prodigy/build && cmake --build . -j3"
+ssh matt@192.168.1.149 "cd /home/matt/openauto-prodigy/build && cmake --build . -j3"
 ```
 
 **Force restart** (for stuck processes):
 ```bash
-ssh matt@192.168.1.152 '~/openauto-prodigy/restart.sh --force-kill'
+ssh matt@192.168.1.149 '~/openauto-prodigy/restart.sh --force-kill'
 ```
 
 ## Architecture
@@ -244,5 +244,5 @@ AA supports fixed resolutions only:
 | Touch | DFRobot USB Multi Touch (10-point, MT Type B, 0-4095 range) |
 | WiFi | Built-in (used as AP for phone connection) |
 | BT | Built-in (RFCOMM for AA discovery, A2DP sink, HFP) |
-| IP | 192.168.1.152 (LAN), 10.0.0.1 (wlan0 AP) |
+| IP | 192.168.1.149 (LAN), 10.0.0.1 (wlan0 AP) |
 | OS | RPi OS Trixie, labwc compositor |

@@ -107,7 +107,7 @@ install_dependencies() {
     local PACKAGES=(
         # Qt 6 runtime/development packages (matches current project expectations)
         qt6-base-dev qt6-declarative-dev qt6-wayland
-        qt6-connectivity-dev qt6-multimedia-dev
+        qt6-connectivity-dev qt6-multimedia-dev qt6-websockets-dev
         qml6-module-qtquick-controls qml6-module-qtquick-layouts
         qml6-module-qtquick-window qml6-module-qtqml-workerscript
 

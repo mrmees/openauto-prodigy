@@ -28,4 +28,4 @@ docker run --rm \
     "
 
 echo "==> Build complete: build-pi/src/openauto-prodigy"
-echo "    Deploy: rsync -av build-pi/src/openauto-prodigy matt@192.168.1.152:~/openauto-prodigy/build/src/"
+echo "    Deploy: rsync -av build-pi/src/openauto-prodigy matt@192.168.1.149:~/openauto-prodigy/build/src/"
