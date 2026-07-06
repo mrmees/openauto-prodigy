@@ -498,6 +498,41 @@ void TestApiRequestHandlers::testConnectivityEmitsProxyRoute() {
         const QList<QVariant> args = spy.takeFirst();
         QCOMPARE(args.at(3).toString(), QString());       // no password
     }
+
+    // Mixed bits: proxy process running but phone has no upstream internet ->
+    // not a usable route (proxyRouteChanged still fires, but with active=false).
+    pb::ApiMessage c3;
+    c3.set_request_id(0);
+    auto* r3 = c3.mutable_connectivity_report();
+    r3->set_internet_available(false);
+    r3->set_socks5_active(true);
+    r3->set_socks5_port(1080);
+    transport->injectMessage(serialize(c3));
+
+    QCOMPARE(spy.count(), 1);
+    {
+        const QList<QVariant> args = spy.takeFirst();
+        QCOMPARE(args.at(0).toBool(), false);              // active
+    }
+    QVERIFY(!inbound.internetAvailable());
+    QVERIFY(inbound.proxyAddress().isEmpty());
+
+    // Mixed bits: phone has upstream internet but the proxy isn't up -> also
+    // not a usable route.
+    pb::ApiMessage c4;
+    c4.set_request_id(0);
+    auto* r4 = c4.mutable_connectivity_report();
+    r4->set_internet_available(true);
+    r4->set_socks5_active(false);
+    transport->injectMessage(serialize(c4));
+
+    QCOMPARE(spy.count(), 1);
+    {
+        const QList<QVariant> args = spy.takeFirst();
+        QCOMPARE(args.at(0).toBool(), false);              // active
+    }
+    QVERIFY(!inbound.internetAvailable());
+    QVERIFY(inbound.proxyAddress().isEmpty());
 }
 
 void TestApiRequestHandlers::testTimeReportSignal() {

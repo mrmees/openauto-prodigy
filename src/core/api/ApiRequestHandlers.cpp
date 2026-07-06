@@ -350,7 +350,11 @@ void ApiRequestHandlers::handleReport(ApiSession* session, const pb::ApiMessage&
         }
         case pb::ApiMessage::kConnectivityReport: {
             const auto& r = msg.connectivity_report();
-            const bool active = r.socks5_active();   // proxy route availability
+            // Route is advertised only when the phone has upstream internet AND
+            // the proxy is up; the raw internet_available bit is not separately
+            // exposed in v1 (a running proxy with no upstream internet is not a
+            // usable route).
+            const bool active = r.internet_available() && r.socks5_active();
             const uint32_t port = r.socks5_port();
             const QString host = session->peerHost();   // proxy host = peer
             if (active && (port == 0 || port > 65535 || host.isEmpty())) {
