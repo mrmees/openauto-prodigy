@@ -53,6 +53,7 @@ add_library(openauto-core STATIC
     core/services/IpcServer.cpp
     core/services/EventBus.cpp
     core/services/ActionRegistry.cpp
+    core/services/OverlayService.cpp
     core/services/NotificationService.cpp
     core/services/CompanionListenerService.cpp
     core/services/WeatherService.cpp
