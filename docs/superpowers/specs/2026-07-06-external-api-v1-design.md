@@ -306,7 +306,8 @@ Build gates: `cmake .. && make -j$(nproc)` (WSL2 Trixie), `ctest --output-on-fai
 | Item | Where it lands |
 |---|---|
 | `location` status topic (rebroadcast companion GPS) | v1.1 — reserved slot 35 |
-| Theme/wallpaper push from companion | companion-rewrite phase |
+| Theme/wallpaper push from companion | **DECIDED 2026-07-05 (Matthew, companion-rewrite gap review): NOT an API concern — moves to a new web-config HTTP upload/install endpoint** (blobs over HTTP beat chunking under the 256 KiB frame cap; same WPA2-AP trust model). Head-unit work item on the roadmap. Companion keeps theme transfer on legacy 9876 (dual-stack) until that endpoint ships; 9876 retires after. |
+| **v1.1 additive batch (approved 2026-07-05):** `SystemStatus` display width/height, `TimeReport.timezone_id` (IANA), `ServerHello.server_id` (stable head-unit identity for multi-vehicle disambiguation — every AP puts the server at 10.0.0.1) | post-Task-16 follow-up; minor bump to 1.1; all proto3 `optional`, clients feature-detect by field presence |
 | Notification event stream | v1.1 if a client needs it |
 | Web-config panel `api.*` settings page + paired-client management UI | executor follow-up post-v1 |
 | Per-capability ACLs, TLS | v2, if a third-party ecosystem materializes |
