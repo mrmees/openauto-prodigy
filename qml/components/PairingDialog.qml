@@ -8,7 +8,7 @@ Rectangle {
     anchors.fill: parent
     color: ThemeService.scrim
     visible: BluetoothManager ? BluetoothManager.pairingActive : false
-    z: 998
+    z: 3000  // SystemModal band
 
     // Block touch passthrough
     MouseArea {

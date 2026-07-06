@@ -5,6 +5,7 @@
 #include <QVariantMap>
 #include <QList>
 #include <QString>
+#include <QPointer>
 
 namespace oap {
 
@@ -55,7 +56,7 @@ private:
     int findOverlay(const QString& id) const;
     void renormalizeBand(ZBand band);
     void unregisterOverlayActions(const QString& id);
-    ActionRegistry* actions_;
+    QPointer<ActionRegistry> actions_;
     QList<Entry> overlays_;
 };
 

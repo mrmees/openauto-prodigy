@@ -80,8 +80,12 @@ Item {
         color: "black"
         opacity: typeof DisplayService !== "undefined" ? DisplayService.dimOverlayOpacity : 0
         visible: opacity > 0
-        z: 998
+        z: 3500  // dim fixture: above modals, below gesture (design §4.1)
         enabled: false  // Don't capture mouse/touch events
+    }
+
+    // Framework-registered overlays (OverlayService)
+    OverlayHost {
     }
 
     // Gesture overlay (on top of everything)

@@ -26,6 +26,7 @@
 #include "core/services/IpcServer.hpp"
 #include "core/services/EventBus.hpp"
 #include "core/services/ActionRegistry.hpp"
+#include "core/services/OverlayService.hpp"
 #include "core/services/NotificationService.hpp"
 #include "core/services/CompanionListenerService.hpp"
 #include "core/services/WeatherService.hpp"
@@ -342,6 +343,9 @@ int main(int argc, char *argv[])
     // --- ActionRegistry ---
     auto actionRegistry = new oap::ActionRegistry(&app);
     hostContext->setActionRegistry(actionRegistry);
+
+    // --- OverlayService ---
+    auto overlayService = new oap::OverlayService(actionRegistry, &app);
 
     // --- NavbarController ---
     auto navbarController = new oap::NavbarController(&app);
@@ -975,6 +979,7 @@ int main(int argc, char *argv[])
 
     engine.rootContext()->setContextProperty("NavbarController", navbarController);
     engine.rootContext()->setContextProperty("ActionRegistry", actionRegistry);
+    engine.rootContext()->setContextProperty("OverlayService", overlayService);
     engine.rootContext()->setContextProperty("ThemeService", themeService);
     engine.rootContext()->setContextProperty("ApplicationController", appController);
     engine.rootContext()->setContextProperty("PluginModel", pluginModel);
