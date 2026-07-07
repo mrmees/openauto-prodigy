@@ -8,6 +8,12 @@ import QtWebEngine
 Item {
     id: hostRoot
 
+    // Marker for HomeMenu.qml's delegate: identifies this Loader's item as a
+    // web widget host so the passive-grab TapHandler (edit-mode entry) knows
+    // to enable itself -- WebEngineView eats every touch, so native widgets
+    // must NOT get this behavior (they already have the z:-1 detector).
+    readonly property bool isWebWidgetHost: true
+
     property QtObject widgetContext: null
     readonly property var effectiveCfg: widgetContext ? widgetContext.effectiveConfig : ({})
     readonly property string widgetUrl: effectiveCfg && effectiveCfg.url ? effectiveCfg.url : ""

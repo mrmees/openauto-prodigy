@@ -745,6 +745,24 @@ Item {
                                             }
                                         }
 
+                                        // Web widgets: WebEngineView consumes every touch, so the z:-1 long-press
+                                        // detector (widgetMouseArea) never fires for them. A TapHandler takes only
+                                        // a passive grab -- the view still gets all events -- and gives them the
+                                        // same selection entry. Native widgets: disabled via the marker gate, so
+                                        // zero behavior change.
+                                        TapHandler {
+                                            enabled: widgetLoader.item ? (widgetLoader.item.isWebWidgetHost === true) : false
+                                            longPressThreshold: 0.5   // match widgetMouseArea.pressAndHoldInterval (500ms)
+                                            onLongPressed: {
+                                                if (homeScreen.selectedInstanceId !== model.instanceId) {
+                                                    innerContent.scale = 1.05
+                                                    liftShadow.visible = true
+                                                    homeScreen.selectWidget(model.instanceId)
+                                                    liftResetTimer.start()
+                                                }
+                                            }
+                                        }
+
                                         // Timer to rebind position after snap-back animation
                                         Timer {
                                             id: snapBackTimer
