@@ -1,6 +1,7 @@
 #include "IpcServer.hpp"
 #include "../YamlConfig.hpp"
 #include "ThemeService.hpp"
+#include "core/services/ThemeInstallRequest.hpp"
 #include "AudioService.hpp"
 #include "CompanionListenerService.hpp"
 #include "../plugin/PluginManager.hpp"
@@ -131,6 +132,8 @@ QByteArray IpcServer::handleRequest(const QByteArray& request)
         return handleGetTheme();
     if (command == QLatin1String("set_theme"))
         return handleSetTheme(data);
+    if (command == QLatin1String("install_theme"))
+        return handleInstallTheme(data);
     if (command == QLatin1String("list_plugins"))
         return handleListPlugins();
     if (command == QLatin1String("status"))
@@ -276,6 +279,32 @@ QByteArray IpcServer::handleSetTheme(const QVariantMap& data)
         return R"({"ok":false,"error":"Theme reload failed"})";
 
     return R"({"ok":true})";
+}
+
+QByteArray IpcServer::handleInstallTheme(const QVariantMap& data)
+{
+    if (!themeService_)
+        return R"({"ok":false,"error":"Theme service not available"})";
+
+    // Temp dir Flask writes the wallpaper into; the path in `data` must resolve here.
+    const QString uploadDir = QStringLiteral("/tmp/oap-theme-upload");
+    const ThemeInstallParseResult res = parseThemeInstall(data, uploadDir);
+    if (!res.ok) {
+        const QJsonObject o{{"ok", false}, {"error", res.error}};
+        return QJsonDocument(o).toJson(QJsonDocument::Compact);
+    }
+
+    const ThemeInstallRequest& req = res.request;
+    const bool ok = themeService_->importCompanionTheme(
+        req.name, req.seed, req.dayColors, req.nightColors, req.wallpaperJpeg);
+
+    QJsonObject o;
+    o["ok"] = ok;
+    if (ok)
+        o["slug"] = ThemeService::slugify(req.name);
+    else
+        o["error"] = QStringLiteral("theme import failed");
+    return QJsonDocument(o).toJson(QJsonDocument::Compact);
 }
 
 QByteArray IpcServer::handleListPlugins()
