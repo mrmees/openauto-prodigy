@@ -502,19 +502,24 @@ void ThemeService::persistConnectedDeviceTheme()
     }
 }
 
+QString ThemeService::slugify(const QString& name)
+{
+    QString slug = name.toLower().trimmed();
+    static const QRegularExpression nonAlnum("[^a-z0-9]+");
+    slug.replace(nonAlnum, "-");
+    while (slug.startsWith('-')) slug.remove(0, 1);
+    while (slug.endsWith('-')) slug.chop(1);
+    if (slug.isEmpty()) slug = "companion-theme";
+    return slug;
+}
+
 bool ThemeService::importCompanionTheme(const QString& name, const QString& seed,
                                          const QMap<QString, QColor>& dayColors,
                                          const QMap<QString, QColor>& nightColors,
                                          const QByteArray& wallpaperJpeg)
 {
     // Generate slug from name
-    QString slug = name.toLower().trimmed();
-    static QRegularExpression nonAlnum("[^a-z0-9]+");
-    slug.replace(nonAlnum, "-");
-    // Trim leading/trailing hyphens
-    while (slug.startsWith('-')) slug.remove(0, 1);
-    while (slug.endsWith('-')) slug.chop(1);
-    if (slug.isEmpty()) slug = "companion-theme";
+    QString slug = slugify(name);
 
     // Find the first search path that looks like the user themes dir
     // (search paths are ordered: user themes first, then bundled)

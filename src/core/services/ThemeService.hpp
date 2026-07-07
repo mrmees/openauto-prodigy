@@ -132,6 +132,10 @@ public:
     /// Stores search paths for later rescan.
     void scanThemeDirectories(const QStringList& searchPaths);
 
+    /// Convert a display name into a theme id: lowercase, collapse runs of
+    /// non-alphanumerics to '-', trim leading/trailing '-'; empty -> "companion-theme".
+    static QString slugify(const QString& name);
+
     /// Import a companion-app theme: creates named theme dir, writes YAML + wallpaper, auto-switches.
     /// Returns true on success.
     bool importCompanionTheme(const QString& name, const QString& seed,
