@@ -123,6 +123,7 @@ Item {
                 if (loadingInfo.status === WebEngineView.LoadSucceededStatus) {
                     hostRoot.retryCount = 0
                     errorCard.visible = false
+                    hostRoot.pushContext()          // refresh live spans (creation-time bootstrap may be stale after crash-reload)
                 }
             }
             onNavigationRequested: function (request) {

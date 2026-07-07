@@ -74,6 +74,10 @@
     function request(fields) {
         return readyPromise.then(function () {
             return new Promise(function (resolve, reject) {
+                if (!ws || ws.readyState !== 1) {   // 1 = OPEN; send() on CLOSED silently drops -> black-holed pending
+                    reject(new Error('prodigy: not connected'));
+                    return;
+                }
                 var id = nextRequestId++;
                 fields.requestId = id;
                 pending[id] = { resolve: resolve, reject: reject };
@@ -164,7 +168,8 @@
         apiUrl: boot.apiUrl,
 
         subscribe: function (topic, cb) {
-            if (!(topic in TOPIC)) throw new Error('prodigy: unknown topic ' + topic);
+            if (!Object.prototype.hasOwnProperty.call(TOPIC, topic))
+                throw new Error('prodigy: unknown topic ' + topic);
             (subs[topic] = subs[topic] || []).push(cb);
             readyPromise.then(function () {
                 try { ws.send(encode({ requestId: nextRequestId++,
