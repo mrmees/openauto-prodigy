@@ -449,8 +449,13 @@ Item {
                                     Binding { target: widgetCtx; property: "cellWidth"; value: Math.round(homeScreen.cellSide); when: widgetCtx !== null }
                                     Binding { target: widgetCtx; property: "cellHeight"; value: Math.round(homeScreen.cellSide); when: widgetCtx !== null }
 
-                                    // isCurrentPage: true when this widget's page is the active SwipeView page
-                                    Binding { target: widgetCtx; property: "isCurrentPage"; value: model.page === pageView.currentIndex; when: widgetCtx !== null }
+                                    // isCurrentPage: true only when this delegate copy lives in the
+                                    // page-Loader that owns the widget's page AND that page is the one
+                                    // being shown. Foreign page-Loader copies (SwipeView pre-renders
+                                    // current/next/previous pages, each with a full unfiltered Repeater)
+                                    // must stay dormant -- a second live WebWidgetHost copy means a
+                                    // duplicate WebEngineView/renderer/WS.
+                                    Binding { target: widgetCtx; property: "isCurrentPage"; value: model.page === pageIndex && pageIndex === pageView.currentIndex; when: widgetCtx !== null }
 
                                     // Drag state
                                     property bool dragging: false
