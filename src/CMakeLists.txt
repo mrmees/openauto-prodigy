@@ -82,6 +82,7 @@ add_library(openauto-core STATIC
     plugins/equalizer/EqualizerPlugin.cpp
     core/widget/WebWidgetManifest.cpp
     core/widget/WidgetRegistry.cpp
+    core/widget/WebWidgetScanner.cpp
     core/webwidget/WebWidgetContentResolver.cpp
     ui/WidgetInstanceContext.cpp
     ui/WidgetContextFactory.cpp

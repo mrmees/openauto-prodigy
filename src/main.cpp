@@ -5,6 +5,10 @@
 #ifdef HAS_WEBENGINE
 #include <QtWebEngineQuick/qtwebenginequickglobal.h>
 #include <QWebEngineUrlScheme>
+#include <QtWebEngineQuick/QQuickWebEngineProfile>
+#include "core/webwidget/WebWidgetContentResolver.hpp"
+#include "core/webwidget/WebWidgetSchemeHandler.hpp"
+#include "core/widget/WebWidgetScanner.hpp"
 #endif
 #include <QGuiApplication>
 #include <QScreen>
@@ -802,6 +806,21 @@ int main(int argc, char *argv[])
         };
         widgetRegistry->registerWidget(weatherDesc);
     }
+
+#ifdef HAS_WEBENGINE
+    // Web widget runtime: serve scanned packages over prodigy:// and
+    // register them as grid widgets (design 2026-07-06-js-runtime §3-§4).
+    auto* webWidgetResolver = new oap::WebWidgetContentResolver();
+    auto* webWidgetSchemeHandler =
+        new oap::WebWidgetSchemeHandler(webWidgetResolver, &app);
+    QQuickWebEngineProfile::defaultProfile()->installUrlSchemeHandler(
+        "prodigy", webWidgetSchemeHandler);
+    const int webWidgetCount = oap::WebWidgetScanner::scan(
+        QDir::homePath() + QStringLiteral("/.openauto/webwidgets"),
+        *widgetRegistry, webWidgetResolver);
+    if (webWidgetCount > 0)
+        qInfo() << "Registered" << webWidgetCount << "web widget(s)";
+#endif
 
     // Collect widget descriptors from plugins
     for (auto* plugin : pluginManager.plugins()) {
