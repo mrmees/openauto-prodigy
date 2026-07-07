@@ -145,6 +145,7 @@ oap_add_test(test_widget_contract_qml
 )
 oap_add_test(test_widget_grid_remap SOURCES test_widget_grid_remap.cpp)
 oap_add_test(test_widget_picker_model SOURCES test_widget_picker_model.cpp)
+oap_add_test(test_web_widget_manifest SOURCES test_web_widget_manifest.cpp)
 
 oap_add_test(test_weather_service SOURCES test_weather_service.cpp)
 

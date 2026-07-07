@@ -80,6 +80,7 @@ add_library(openauto-core STATIC
     plugins/bt_audio/BtAudioPlugin.cpp
     plugins/phone/PhonePlugin.cpp
     plugins/equalizer/EqualizerPlugin.cpp
+    core/widget/WebWidgetManifest.cpp
     core/widget/WidgetRegistry.cpp
     ui/WidgetInstanceContext.cpp
     ui/WidgetContextFactory.cpp
