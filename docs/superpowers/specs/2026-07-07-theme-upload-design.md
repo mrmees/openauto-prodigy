@@ -60,6 +60,8 @@ Flask maps ok/error → HTTP status + JSON body;   finally: os.unlink(temp file)
 | `manifest`  | text form field (JSON)  | yes      | UTF-8 JSON string, schema below |
 | `wallpaper` | file part               | no       | `Content-Type: image/jpeg`; ≤ **5 MiB** (5 × 1024 × 1024 bytes). Omit for a color-only theme. |
 
+> **Companion-maintainer note:** send `manifest` as a plain multipart form field (no `filename` on that part). If the part carries a filename, Werkzeug/Flask routes it to `request.files` instead of `request.form` and the endpoint returns **400 "missing manifest"**. Only the `wallpaper` part carries a filename.
+
 **`manifest` JSON schema:**
 ```jsonc
 {

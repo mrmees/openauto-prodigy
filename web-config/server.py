@@ -18,6 +18,9 @@ from flask import Flask, render_template, request, jsonify
 app = Flask(__name__)
 app.config["MAX_CONTENT_LENGTH"] = 6 * 1024 * 1024  # 5 MiB wallpaper + JSON headroom
 
+# Wallpaper temp dir. MUST match the `uploadDir` literal in
+# IpcServer::handleInstallTheme (src/core/services/IpcServer.cpp) — the Qt side
+# only accepts a wallpaper_path that canonicalizes under this exact dir. Keep in sync.
 UPLOAD_TMP_DIR = "/tmp/oap-theme-upload"
 
 

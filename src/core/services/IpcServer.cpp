@@ -287,6 +287,8 @@ QByteArray IpcServer::handleInstallTheme(const QVariantMap& data)
         return R"({"ok":false,"error":"Theme service not available"})";
 
     // Temp dir Flask writes the wallpaper into; the path in `data` must resolve here.
+    // MUST match UPLOAD_TMP_DIR in web-config/server.py — a mismatch rejects every
+    // wallpaper upload via parseThemeInstall's path-safety check. Keep in sync.
     const QString uploadDir = QStringLiteral("/tmp/oap-theme-upload");
     const ThemeInstallParseResult res = parseThemeInstall(data, uploadDir);
     if (!res.ok) {
