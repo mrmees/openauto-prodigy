@@ -82,6 +82,7 @@ add_library(openauto-core STATIC
     plugins/equalizer/EqualizerPlugin.cpp
     core/widget/WebWidgetManifest.cpp
     core/widget/WidgetRegistry.cpp
+    core/webwidget/WebWidgetContentResolver.cpp
     ui/WidgetInstanceContext.cpp
     ui/WidgetContextFactory.cpp
     ui/WidgetPlacementModel.cpp
@@ -528,6 +529,9 @@ endif()
 if(TARGET Qt6::WebEngineQuick)
     target_link_libraries(openauto-core PUBLIC Qt6::WebEngineQuick)
     target_compile_definitions(openauto-core PUBLIC HAS_WEBENGINE)
+    target_sources(openauto-core PRIVATE
+        core/webwidget/WebWidgetSchemeHandler.cpp
+    )
     message(STATUS "Qt6::WebEngineQuick found — web widget runtime enabled")
 else()
     message(STATUS "Qt6::WebEngineQuick NOT found — web widget runtime disabled")
