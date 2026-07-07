@@ -64,9 +64,12 @@ ctest --output-on-failure  # 88 tests
 Use `cross-build.sh` — Docker-based cross-compile for aarch64. Do NOT use `toolchain-pi4.cmake` directly (CMakeCache confusion outside Docker).
 
 ```bash
-./cross-build.sh                              # build
+./cross-build.sh                              # build (fast: app target only, ~4-6 min)
 ./cross-build.sh -DCMAKE_BUILD_TYPE=Release   # release build
+./cross-build.sh --full                       # build all targets incl. ARM test binaries (~20 min)
 ```
+
+Default builds only the `openauto-prodigy` app target — that's all a Pi deploy ever needs. Pass `--full` to also build the ~30 ARM test binaries.
 
 Output: `build-pi/src/openauto-prodigy`
 

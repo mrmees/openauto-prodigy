@@ -102,6 +102,8 @@ To create a prebuilt package from this repo:
 ./tools/package-prebuilt-release.sh --build-dir build-pi --version-tag <tag>
 ```
 
+`cross-build.sh` defaults to building only the app target (`openauto-prodigy`), which is all a Pi deploy or package needs (~4-6 min); pass `--full` to also build the ~30 ARM test binaries (~20 min).
+
 Prebuilt release convention:
 - Asset: `openauto-prodigy-prebuilt-<tag>-pi4-aarch64.tar.gz`
 - Root dir: `openauto-prodigy-prebuilt-<tag>-pi4-aarch64/`

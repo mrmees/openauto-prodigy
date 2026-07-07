@@ -32,7 +32,7 @@ Per-task: run the plan's targeted `ctest -R <test>` red→green cycle first (TDD
 
 End of plan (or before any Pi deploy):
 ```bash
-./cross-build.sh                              # Docker aarch64 cross-compile — NOT toolchain-pi4.cmake directly
+./cross-build.sh                              # Docker aarch64 cross-compile — NOT toolchain-pi4.cmake directly (fast default: app target only, ~4-6 min; use --full for all targets incl. ARM test binaries, ~20 min)
 rsync -av build-pi/src/openauto-prodigy matt@<pi-ip>:~/openauto-prodigy/build/src/
 ssh matt@<pi-ip> 'sudo systemctl restart openauto-prodigy.service'
 ```
