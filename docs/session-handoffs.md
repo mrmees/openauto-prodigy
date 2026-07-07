@@ -30,10 +30,12 @@ Full brainstorm → design → plan → implementation, all this session.
 ### Wishlist added this session
 All-routes web-config auth pass; browser theme-upload UI (fast-follow); conversion/slugify dedup at 9876 retirement; `/tmp/oap-theme-upload` janitor; theme-upload temp-dir agreement integration test + T1 test precision; 503-vs-500 IPC-status mapping.
 
+### Pi deploy — DONE (2026-07-07 ~17:32 CDT)
+Cross-build (fast app-only, aarch64 verified: fresh mtime, `install_theme` symbol present) → rsync binary → `git pull` (Pi d5088f7 → **88f5324**) → restart `openauto-prodigy.service` → **enable+start `openauto-prodigy-web`** (it was enabled-but-never-started — the known "installer never started it" gap; Flask 3.1.1 present, came up clean). On-device verified: app **active NRestarts=0** (and mid-AA-session — H.265 HW decode, restart reconnected AA cleanly, no errors); web **active** on `0.0.0.0:8080`; `POST /api/theme/install` (empty) → **400 "missing manifest"** (route live, not 404); dashboard → 200; `/tmp/openauto-prodigy.sock` present (web↔app IPC path intact). The whole QB/QC/QD batch also rode this binary/`git pull`.
+
 ### Pending / next session
-- **Pi deploy (theme-upload):** cross-build + rsync the C++ binary (new `install_theme` handler) + `git pull` for web-config + `sudo systemctl restart openauto-prodigy-web`. Then exercise a **real wallpaper upload end-to-end** — only the color-only path is unit-covered (the wallpaper path goes through the handler's hardcoded `/tmp/oap-theme-upload`, currently unexercised by any test; see wishlist temp-dir agreement test).
-- **Companion maintainer:** the HTTP contract (design §4) is ready to hand off; they were blocked on it.
-- Web-widget quality batch (QB/QC/QD) needs no deploy (resource/logging/doc only) but rides the next binary push.
+- **Real wallpaper upload end-to-end on-device (Matthew's check):** NOT run at deploy time on purpose — `importCompanionTheme` auto-switches the active theme, so a smoke test would change the live UI. Only the color-only path is unit-covered (the wallpaper path goes through the handler's hardcoded `/tmp/oap-theme-upload`, unexercised by any test — see wishlist temp-dir agreement test).
+- **Companion maintainer:** the HTTP contract (design §4, incl. the manifest-form-field note) is ready to hand off; they were blocked on it.
 
 ---
 
