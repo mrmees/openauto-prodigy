@@ -2,7 +2,12 @@
 #include "core/YamlMerge.hpp"
 #include <QFile>
 #include <QDir>
-#include <fstream>
+#include <QDebug>
+#include <sstream>
+#include <cerrno>
+#include <cstring>
+#include <fcntl.h>
+#include <unistd.h>
 
 namespace oap {
 
@@ -201,16 +206,91 @@ void YamlConfig::load(const QString& filePath)
     initDefaults();
     defaults = YAML::Clone(root_);
 
-    YAML::Node loaded = YAML::LoadFile(filePath.toStdString());
-    root_ = mergeYaml(defaults, loaded);
+    const std::string path = filePath.toStdString();
+    const bool fileExists = QFile::exists(filePath);
 
-    migrateWidgetGridV3();
+    try {
+        YAML::Node loaded = YAML::LoadFile(path);
+        root_ = mergeYaml(defaults, loaded);
+        migrateWidgetGridV3();
+    } catch (const std::exception& e) {
+        // Guarantee: load() never throws and always leaves a usable config.
+        // Reset explicitly rather than trusting whatever partial state
+        // merge/migration left root_ in.
+        root_ = defaults;
+
+        if (fileExists) {
+            const std::string corruptPath = path + ".corrupt";
+            if (::rename(path.c_str(), corruptPath.c_str()) == 0) {
+                qWarning() << "[YamlConfig] Corrupt config" << filePath
+                           << "moved aside to" << QString::fromStdString(corruptPath)
+                           << "- falling back to defaults. Reason:" << e.what();
+            } else {
+                qWarning() << "[YamlConfig] Corrupt config" << filePath
+                           << "- falling back to defaults. Reason:" << e.what()
+                           << "- additionally failed to rename aside:" << strerror(errno);
+            }
+        }
+        // Missing file (YAML::BadFile) is benign/expected (e.g. first boot) --
+        // defaults are already applied, nothing to move aside, stay quiet.
+    }
 }
 
-void YamlConfig::save(const QString& filePath) const
+bool YamlConfig::save(const QString& filePath) const
 {
-    std::ofstream fout(filePath.toStdString());
-    fout << root_;
+    std::ostringstream oss;
+    oss << root_;
+    const std::string content = oss.str();
+
+    const std::string path = filePath.toStdString();
+    const std::string tmpPath = path + ".tmp";
+
+    int fd = ::open(tmpPath.c_str(), O_WRONLY | O_CREAT | O_TRUNC, 0644);
+    if (fd < 0) {
+        qWarning() << "[YamlConfig] save: failed to open" << QString::fromStdString(tmpPath)
+                   << "-" << strerror(errno);
+        return false;
+    }
+
+    const char* data = content.data();
+    size_t remaining = content.size();
+    while (remaining > 0) {
+        ssize_t written = ::write(fd, data, remaining);
+        if (written < 0) {
+            if (errno == EINTR) continue;
+            qWarning() << "[YamlConfig] save: write failed for" << QString::fromStdString(tmpPath)
+                       << "-" << strerror(errno);
+            ::close(fd);
+            ::unlink(tmpPath.c_str());
+            return false;
+        }
+        data += written;
+        remaining -= static_cast<size_t>(written);
+    }
+
+    if (::fsync(fd) != 0) {
+        qWarning() << "[YamlConfig] save: fsync failed for" << QString::fromStdString(tmpPath)
+                   << "-" << strerror(errno);
+        ::close(fd);
+        ::unlink(tmpPath.c_str());
+        return false;
+    }
+
+    if (::close(fd) != 0) {
+        qWarning() << "[YamlConfig] save: close failed for" << QString::fromStdString(tmpPath)
+                   << "-" << strerror(errno);
+        ::unlink(tmpPath.c_str());
+        return false;
+    }
+
+    if (::rename(tmpPath.c_str(), path.c_str()) != 0) {
+        qWarning() << "[YamlConfig] save: rename failed" << QString::fromStdString(tmpPath)
+                   << "->" << QString::fromStdString(path) << "-" << strerror(errno);
+        ::unlink(tmpPath.c_str());
+        return false;
+    }
+
+    return true;
 }
 
 // --- Hardware profile ---

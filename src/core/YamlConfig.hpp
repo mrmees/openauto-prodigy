@@ -14,7 +14,7 @@ public:
     YamlConfig();
 
     void load(const QString& filePath);
-    void save(const QString& filePath) const;
+    bool save(const QString& filePath) const;
 
     // Hardware profile
     QString hardwareProfile() const;

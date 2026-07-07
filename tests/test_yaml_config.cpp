@@ -1,4 +1,6 @@
 #include <QtTest>
+#include <QTemporaryFile>
+#include <QTemporaryDir>
 #include "core/YamlConfig.hpp"
 
 class TestYamlConfig : public QObject {
@@ -45,6 +47,11 @@ private slots:
     void testDashboardsRoundTrip();
     void testV3MigratesToV4();
     void testV2FlatShapeMigrates();
+    void testLoadCorruptFileFallsBackToDefaults();
+    void testLoadCorruptOverwritesPreviousCorruptAside();
+    void testLoadMissingFileYieldsDefaults();
+    void testSaveAtomicReplacesExisting();
+    void testSaveFailureReturnsFalse();
 };
 
 void TestYamlConfig::testLoadDefaults()
@@ -624,6 +631,125 @@ void TestYamlConfig::testV2FlatShapeMigrates()
     oap::YamlConfig again; again.load(path);
     QCOMPARE(again.dashboards().size(), 1);
     QCOMPARE(again.dashboards()[0].nextInstanceId, 7);
+}
+
+// Task C: atomic save + corrupt-load fallback. A corrupt config on disk must
+// not crash the app at startup -- load() degrades to defaults and moves the
+// bad file aside for post-mortem inspection instead of throwing.
+void TestYamlConfig::testLoadCorruptFileFallsBackToDefaults()
+{
+    QTemporaryFile tmpFile;
+    QVERIFY(tmpFile.open());
+    const QString path = tmpFile.fileName();
+    tmpFile.close();
+
+    const QByteArray garbage = "widgets: [unclosed\n\t: {{";
+    {
+        QFile f(path);
+        QVERIFY(f.open(QIODevice::WriteOnly | QIODevice::Truncate));
+        f.write(garbage);
+    }
+
+    oap::YamlConfig config;
+    config.load(path);  // must not throw
+
+    // Known default survives (mirrors testLoadDefaults).
+    QCOMPARE(config.displayBrightness(), 80);
+    QCOMPARE(config.hardwareProfile(), QString("rpi4"));
+
+    // Original path no longer exists; garbage moved to <path>.corrupt.
+    QVERIFY(!QFile::exists(path));
+    const QString corruptPath = path + ".corrupt";
+    QVERIFY(QFile::exists(corruptPath));
+    {
+        QFile f(corruptPath);
+        QVERIFY(f.open(QIODevice::ReadOnly));
+        QCOMPARE(f.readAll(), garbage);
+    }
+
+    QFile::remove(corruptPath);
+}
+
+void TestYamlConfig::testLoadCorruptOverwritesPreviousCorruptAside()
+{
+    QTemporaryFile tmpFile;
+    QVERIFY(tmpFile.open());
+    const QString path = tmpFile.fileName();
+    tmpFile.close();
+
+    const QString corruptPath = path + ".corrupt";
+    {
+        QFile f(corruptPath);
+        QVERIFY(f.open(QIODevice::WriteOnly | QIODevice::Truncate));
+        f.write("old junk from a previous crash");
+    }
+
+    const QByteArray newGarbage = "widgets: [also-unclosed\n\t: }}";
+    {
+        QFile f(path);
+        QVERIFY(f.open(QIODevice::WriteOnly | QIODevice::Truncate));
+        f.write(newGarbage);
+    }
+
+    oap::YamlConfig config;
+    config.load(path);  // must not throw
+
+    QVERIFY(QFile::exists(corruptPath));
+    {
+        QFile f(corruptPath);
+        QVERIFY(f.open(QIODevice::ReadOnly));
+        QCOMPARE(f.readAll(), newGarbage);
+    }
+
+    QFile::remove(corruptPath);
+}
+
+void TestYamlConfig::testLoadMissingFileYieldsDefaults()
+{
+    QTemporaryDir tmpDir;
+    QVERIFY(tmpDir.isValid());
+    const QString path = tmpDir.filePath("nonexistent.yaml");
+    QVERIFY(!QFile::exists(path));
+
+    oap::YamlConfig config;
+    config.load(path);  // must not throw
+
+    QCOMPARE(config.displayBrightness(), 80);
+    QCOMPARE(config.hardwareProfile(), QString("rpi4"));
+    QVERIFY(!QFile::exists(path + ".corrupt"));
+}
+
+void TestYamlConfig::testSaveAtomicReplacesExisting()
+{
+    QTemporaryFile tmpFile;
+    QVERIFY(tmpFile.open());
+    const QString path = tmpFile.fileName();
+    tmpFile.write("hardware_profile: old-stale-content\n");
+    tmpFile.close();
+
+    oap::YamlConfig config;
+    config.setWifiSsid("AtomicSaveSSID");
+
+    QVERIFY(config.save(path));
+    QVERIFY(!QFile::exists(path + ".tmp"));
+
+    oap::YamlConfig loaded;
+    loaded.load(path);
+    QCOMPARE(loaded.wifiSsid(), QString("AtomicSaveSSID"));
+
+    QFile::remove(path);
+}
+
+void TestYamlConfig::testSaveFailureReturnsFalse()
+{
+    QTemporaryDir tmpDir;
+    QVERIFY(tmpDir.isValid());
+    const QString path = tmpDir.filePath("no-such-dir/config.yaml");
+
+    oap::YamlConfig config;
+    QVERIFY(!config.save(path));  // must not throw
+    QVERIFY(!QFile::exists(path));
+    QVERIFY(!QFile::exists(path + ".tmp"));
 }
 
 QTEST_MAIN(TestYamlConfig)
