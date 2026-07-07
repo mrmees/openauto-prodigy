@@ -18,7 +18,7 @@ namespace {
 QByteArray randomBytes(int count) {
     QByteArray bytes(count, '\0');
     for (int i = 0; i < count; ++i)
-        bytes[i] = static_cast<char>(QRandomGenerator::global()->bounded(256));
+        bytes[i] = static_cast<char>(QRandomGenerator::system()->bounded(256));
     return bytes;
 }
 

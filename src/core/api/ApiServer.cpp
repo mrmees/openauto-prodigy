@@ -77,6 +77,15 @@ void ApiServer::setStorePathForTest(const QString& path) {
 }
 
 bool ApiServer::start() {
+    // Idempotent re-entry: the server is already running, so there is
+    // nothing to (re)build -- a second start() must not append duplicate
+    // publishers or leak the previous tcpServer_/wsServer_ by overwriting
+    // them with a fresh listen() on the same port.
+    if (started_) {
+        qWarning() << "API: start() called while already running; ignoring";
+        return true;
+    }
+
     auto cfgInt = [this](const char* key, int def) {
         const QVariant v = refs_.config ? refs_.config->value(QString::fromLatin1(key))
                                         : QVariant();
@@ -133,10 +142,13 @@ bool ApiServer::start() {
             this, &ApiServer::onNewWebSocketConnection);
     const bool wsOk = wsServer_->listen(QHostAddress::Any, wsPort);
 
-    return tcpOk || wsOk;
+    started_ = tcpOk || wsOk;
+    return started_;
 }
 
 void ApiServer::stop() {
+    started_ = false;
+
     // 1. Destroy publishers FIRST. Each owns a 0-ms coalesce timer whose
     //    deferred buildEnvelope() reads its provider on the next event-loop
     //    turn; a provider may be torn down right after stop(), so no deferred

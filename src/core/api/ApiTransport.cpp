@@ -49,6 +49,12 @@ void TcpApiTransport::onDisconnected() {
 WsApiTransport::WsApiTransport(QWebSocket* socket, quint32 maxFrameBytes, QObject* parent)
     : IApiTransport(parent), socket_(socket), maxFrameBytes_(maxFrameBytes) {
     socket_->setParent(this);
+    // Reject oversized messages at the WebSocket protocol level, before Qt
+    // buffers the full message -- symmetric with the TCP side, where
+    // ApiFramer rejects from the 4-byte length prefix before reading the
+    // body. The size check in onBinaryMessageReceived() below stays as
+    // defense in depth.
+    socket_->setMaxAllowedIncomingMessageSize(maxFrameBytes_);
     connect(socket_, &QWebSocket::binaryMessageReceived,
             this, &WsApiTransport::onBinaryMessageReceived);
     connect(socket_, &QWebSocket::textMessageReceived,

@@ -130,6 +130,7 @@ private:
     // Listeners (created in start()).
     QTcpServer* tcpServer_ = nullptr;
     QWebSocketServer* wsServer_ = nullptr;
+    bool started_ = false;   // guards double-invocation of start(); see stop()
 
     QList<TopicPublisher*> publishers_;
     QList<ApiSession*> sessions_;
