@@ -82,6 +82,10 @@ private slots:
     void testPhoneCommandsFollowCapability();
     void testGpsReportUpdatesState();
     void testConnectivityEmitsProxyRoute();
+    void testOwnerSessionCloseClearsRoute();
+    void testNonOwnerSessionCloseLeavesRoute();
+    void testInactiveReportReleasesOwnership();
+    void testNewOwnerTakesOver();
     void testTimeReportSignal();
     void testTimeReportValidTimezoneEmitsBoth();
     void testTimeReportInvalidTimezoneDropsZoneOnly();
@@ -536,6 +540,173 @@ void TestApiRequestHandlers::testConnectivityEmitsProxyRoute() {
     }
     QVERIFY(!inbound.internetAvailable());
     QVERIFY(inbound.proxyAddress().isEmpty());
+}
+
+// Task D — proxy-route teardown on companion session disconnect. Route
+// ownership follows the session that last reported it active; the owner's
+// disconnect must tear the route down (legacy CompanionListenerService
+// parity). A non-owner disconnecting must never touch it.
+
+void TestApiRequestHandlers::testOwnerSessionCloseClearsRoute() {
+    oap::ActionRegistry actions;
+    oap::NotificationService notifications;
+    oap::PhoneStateService phone;
+    ApiInboundState inbound;
+    ApiRequestHandlers handler({&actions, &notifications, &phone, &inbound});
+
+    auto* transport = new FakeTransport();
+    ApiSessionDeps deps;
+    deps.requests = &handler;
+    ApiSession session(transport, deps);
+    transport->injectMessage(clientHello());
+
+    QSignalSpy spy(&inbound, &ApiInboundState::proxyRouteChanged);
+
+    // Session reports an active route -> becomes owner.
+    pb::ApiMessage c1;
+    c1.set_request_id(0);
+    auto* r1 = c1.mutable_connectivity_report();
+    r1->set_internet_available(true);
+    r1->set_socks5_active(true);
+    r1->set_socks5_port(1080);
+    transport->injectMessage(serialize(c1));
+    QCOMPARE(spy.count(), 1);
+    spy.clear();
+    QVERIFY(inbound.internetAvailable());
+
+    // Owner disconnects -> route must be torn down.
+    transport->close();
+
+    QCOMPARE(spy.count(), 1);
+    const QList<QVariant> args = spy.takeFirst();
+    QCOMPARE(args.at(0).toBool(), false);
+    QVERIFY(!inbound.internetAvailable());
+}
+
+void TestApiRequestHandlers::testNonOwnerSessionCloseLeavesRoute() {
+    oap::ActionRegistry actions;
+    oap::NotificationService notifications;
+    oap::PhoneStateService phone;
+    ApiInboundState inbound;
+    ApiRequestHandlers handler({&actions, &notifications, &phone, &inbound});
+
+    auto* tA = new FakeTransport();
+    ApiSessionDeps depsA; depsA.requests = &handler;
+    ApiSession sessionA(tA, depsA);
+    tA->injectMessage(clientHello());
+
+    auto* tB = new FakeTransport();
+    ApiSessionDeps depsB; depsB.requests = &handler;
+    ApiSession sessionB(tB, depsB);
+    tB->injectMessage(clientHello());
+
+    QSignalSpy spy(&inbound, &ApiInboundState::proxyRouteChanged);
+
+    // A reports active -> A becomes owner. B never reports anything.
+    pb::ApiMessage c1;
+    c1.set_request_id(0);
+    auto* r1 = c1.mutable_connectivity_report();
+    r1->set_internet_available(true);
+    r1->set_socks5_active(true);
+    r1->set_socks5_port(1080);
+    tA->injectMessage(serialize(c1));
+    QCOMPARE(spy.count(), 1);
+    spy.clear();
+
+    // Non-owner B disconnects -> must not touch the route.
+    tB->close();
+
+    QCOMPARE(spy.count(), 0);
+    QVERIFY(inbound.internetAvailable());
+}
+
+void TestApiRequestHandlers::testInactiveReportReleasesOwnership() {
+    oap::ActionRegistry actions;
+    oap::NotificationService notifications;
+    oap::PhoneStateService phone;
+    ApiInboundState inbound;
+    ApiRequestHandlers handler({&actions, &notifications, &phone, &inbound});
+
+    auto* transport = new FakeTransport();
+    ApiSessionDeps deps;
+    deps.requests = &handler;
+    ApiSession session(transport, deps);
+    transport->injectMessage(clientHello());
+
+    QSignalSpy spy(&inbound, &ApiInboundState::proxyRouteChanged);
+
+    // Reports active, then inactive -> ownership already released by the
+    // report itself (rule: whoever reports inactive is the last writer).
+    pb::ApiMessage c1;
+    c1.set_request_id(0);
+    auto* r1 = c1.mutable_connectivity_report();
+    r1->set_internet_available(true);
+    r1->set_socks5_active(true);
+    r1->set_socks5_port(1080);
+    transport->injectMessage(serialize(c1));
+    QCOMPARE(spy.count(), 1);
+
+    pb::ApiMessage c2;
+    c2.set_request_id(0);
+    auto* r2 = c2.mutable_connectivity_report();
+    r2->set_internet_available(false);
+    r2->set_socks5_active(false);
+    transport->injectMessage(serialize(c2));
+    QCOMPARE(spy.count(), 2);
+
+    // Session (no longer owner) disconnects -> no further emission.
+    transport->close();
+    QCOMPARE(spy.count(), 2);
+}
+
+void TestApiRequestHandlers::testNewOwnerTakesOver() {
+    oap::ActionRegistry actions;
+    oap::NotificationService notifications;
+    oap::PhoneStateService phone;
+    ApiInboundState inbound;
+    ApiRequestHandlers handler({&actions, &notifications, &phone, &inbound});
+
+    auto* tA = new FakeTransport();
+    ApiSessionDeps depsA; depsA.requests = &handler;
+    ApiSession sessionA(tA, depsA);
+    tA->injectMessage(clientHello());
+
+    auto* tB = new FakeTransport();
+    ApiSessionDeps depsB; depsB.requests = &handler;
+    ApiSession sessionB(tB, depsB);
+    tB->injectMessage(clientHello());
+
+    QSignalSpy spy(&inbound, &ApiInboundState::proxyRouteChanged);
+
+    // A reports active -> A is owner.
+    pb::ApiMessage c1;
+    c1.set_request_id(0);
+    auto* r1 = c1.mutable_connectivity_report();
+    r1->set_internet_available(true);
+    r1->set_socks5_active(true);
+    r1->set_socks5_port(1080);
+    tA->injectMessage(serialize(c1));
+    QCOMPARE(spy.count(), 1);
+
+    // B reports active -> last-writer-wins, B is now owner.
+    pb::ApiMessage c2;
+    c2.set_request_id(0);
+    auto* r2 = c2.mutable_connectivity_report();
+    r2->set_internet_available(true);
+    r2->set_socks5_active(true);
+    r2->set_socks5_port(1080);
+    tB->injectMessage(serialize(c2));
+    QCOMPARE(spy.count(), 2);
+
+    // A (no longer owner) disconnects -> no emission.
+    tA->close();
+    QCOMPARE(spy.count(), 2);
+
+    // B (current owner) disconnects -> route torn down.
+    tB->close();
+    QCOMPARE(spy.count(), 3);
+    const QList<QVariant> args = spy.last();
+    QCOMPARE(args.at(0).toBool(), false);
 }
 
 void TestApiRequestHandlers::testTimeReportSignal() {

@@ -137,6 +137,15 @@ void ApiRequestHandlers::sessionClosed(ApiSession* session) {
     // Notifications are not auto-dismissed on disconnect, but ownership
     // tracking for this (now dead) session is dropped.
     notificationOwners_.remove(session);
+
+    // If this session owned the proxy route, tear it down (legacy
+    // CompanionListenerService parity: clearClientSession() -> setProxyRoute
+    // (false)). A non-owner closing must never touch connectivity state.
+    if (session == connectivityOwner_) {
+        connectivityOwner_ = nullptr;
+        if (deps_.inbound)
+            deps_.inbound->setConnectivity(QString(), false, 0, QString());
+    }
 }
 
 // ---- Actions ---------------------------------------------------------------
@@ -368,6 +377,11 @@ void ApiRequestHandlers::handleReport(ApiSession* session, const pb::ApiMessage&
                                          : QString();
             deps_.inbound->setConnectivity(host, active,
                                            static_cast<quint16>(port), password);
+            // Route ownership follows the reporting session: an active report
+            // claims ownership; an inactive report releases it (whoever
+            // reports inactive is the last writer, matching the existing
+            // last-writer-wins global-state model).
+            connectivityOwner_ = active ? session : nullptr;
             break;
         }
         case pb::ApiMessage::kTimeReport: {

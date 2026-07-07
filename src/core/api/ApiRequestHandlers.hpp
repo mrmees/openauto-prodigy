@@ -81,6 +81,10 @@ private:
     QHash<QString, ApiSession*> clientOwners_;   // action id -> owning session
     QHash<QString, QString> clientLabels_;        // action id -> display label
     QHash<ApiSession*, QSet<QString>> notificationOwners_;
+    // Route ownership = last session to assert an active proxy route; cleared
+    // (and the route torn down) when that session closes. Legacy
+    // CompanionListenerService parity (clearClientSession() -> setProxyRoute(false)).
+    ApiSession* connectivityOwner_ = nullptr;
 };
 
 } // namespace oap::api
