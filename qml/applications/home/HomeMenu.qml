@@ -750,15 +750,32 @@ Item {
                                             }
                                         }
 
-                                        // Web widgets: WebEngineView consumes every touch, so the z:-1 long-press
-                                        // detector (widgetMouseArea) never fires for them. A TapHandler takes only
-                                        // a passive grab -- the view still gets all events -- and gives them the
-                                        // same selection entry. Native widgets: disabled via the marker gate, so
-                                        // zero behavior change.
-                                        TapHandler {
+                                        // Web widgets: the WebEngineView takes the exclusive touch grab, which
+                                        // cancels a passive TapHandler's gesture (proven on-device 2026-07-07).
+                                        // PointHandler never grabs and is immune to other grabs -- it keeps
+                                        // tracking the pressed point regardless, so a timer + move threshold
+                                        // reproduces long-press-to-select for web widgets only. Native widgets:
+                                        // disabled via the marker gate, so zero behavior change.
+                                        PointHandler {
+                                            id: webWidgetPressPoint
                                             enabled: widgetLoader.item ? (widgetLoader.item.isWebWidgetHost === true) : false
-                                            longPressThreshold: 0.5   // match widgetMouseArea.pressAndHoldInterval (500ms)
-                                            onLongPressed: {
+                                            onActiveChanged: {
+                                                if (active) webWidgetHoldTimer.restart()
+                                                else webWidgetHoldTimer.stop()
+                                            }
+                                            onPointChanged: {
+                                                if (active && webWidgetHoldTimer.running) {
+                                                    var dx = point.position.x - point.pressPosition.x
+                                                    var dy = point.position.y - point.pressPosition.y
+                                                    if (dx * dx + dy * dy > 144)   // ~12px -- treat as drag, not hold
+                                                        webWidgetHoldTimer.stop()
+                                                }
+                                            }
+                                        }
+                                        Timer {
+                                            id: webWidgetHoldTimer
+                                            interval: 500   // match widgetMouseArea.pressAndHoldInterval
+                                            onTriggered: {
                                                 if (homeScreen.selectedInstanceId !== model.instanceId) {
                                                     innerContent.scale = 1.05
                                                     liftShadow.visible = true
