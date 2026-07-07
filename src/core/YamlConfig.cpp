@@ -5,6 +5,7 @@
 #include <QDebug>
 #include <sstream>
 #include <cerrno>
+#include <cstdio>
 #include <cstring>
 #include <fcntl.h>
 #include <unistd.h>
@@ -238,9 +239,16 @@ void YamlConfig::load(const QString& filePath)
 
 bool YamlConfig::save(const QString& filePath) const
 {
-    std::ostringstream oss;
-    oss << root_;
-    const std::string content = oss.str();
+    std::string content;
+    try {
+        std::ostringstream oss;
+        oss << root_;
+        content = oss.str();
+    } catch (const std::exception& e) {
+        qWarning() << "[YamlConfig] save: serialization failed for" << filePath
+                   << "-" << e.what();
+        return false;
+    }
 
     const std::string path = filePath.toStdString();
     const std::string tmpPath = path + ".tmp";
