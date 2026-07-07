@@ -4,6 +4,8 @@ This guide walks you through creating a widget for the OpenAuto Prodigy home scr
 
 For the full plugin lifecycle and IHostContext services reference, see [plugin-api.md](plugin-api.md). This guide focuses specifically on widget development.
 
+For **HTML/JS web widgets** (as opposed to native QML widgets), see [web-widget-authoring.md](web-widget-authoring.md).
+
 ---
 
 ## Prerequisites

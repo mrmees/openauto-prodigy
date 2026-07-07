@@ -19,6 +19,7 @@
 - [design-philosophy.md](design-philosophy.md) — core design principles (detailed)
 - [plugin-api.md](plugin-api.md) — IPlugin interface, lifecycle, IHostContext
 - [widget-developer-guide.md](widget-developer-guide.md) — widget development tutorial and manifest reference
+- [web-widget-authoring.md](web-widget-authoring.md) — HTML/JS web-widget authoring guide + v1 known limitations
 - [hfp-stack-spike.md](hfp-stack-spike.md) — HFP audio routing research
 - [release-packaging.md](release-packaging.md) — prebuilt release naming and archive conventions
 - [debugging-notes.md](debugging-notes.md) — common issues and fixes
@@ -55,6 +56,7 @@ Protocol definitions and generic reference docs are in [open-android-auto](https
 - [superpowers/plans/2026-07-06-external-api-v1-implementation.md](superpowers/plans/2026-07-06-external-api-v1-implementation.md) — External API v1 implementation plan (Tasks 1–16, complete)
 - [superpowers/specs/2026-07-06-js-runtime-design.md](superpowers/specs/2026-07-06-js-runtime-design.md) — HTML/JS runtime design (Phase C2): `prodigy://` scheme, WebWidgetHost, `prodigy` shim as an External API v1 WebSocket client — implemented 2026-07-07
 - [superpowers/plans/2026-07-06-js-runtime-implementation.md](superpowers/plans/2026-07-06-js-runtime-implementation.md) — JS/web-widget runtime implementation plan (Tasks 1–9, complete)
+- [web-widget-authoring.md](web-widget-authoring.md) — HTML/JS web-widget authoring guide + v1 known limitations
 
 ## Pi Configuration
 
