@@ -1205,3 +1205,38 @@ Documentation:
 **Deploy incident — the blackhole was LIVE:** the Pi had a stale `OPENAUTO_PROXY` iptables REDIRECT + running redsocks pointing at a long-gone phone proxy — all internet-bound TCP dead (curl → 000) while LAN worked; NTP (UDP) kept the clock fine, masking it. Exactly the failure mode the owner-teardown fix addresses, pre-dating the fix. Cleared cleanly via the system daemon (`set_proxy_route {active:false}` over `/run/openauto/system.sock`, newline-JSON) → curl 200. This is hard field evidence for the wishlisted daemon-side auto-teardown watchdog: the route had been silently killing head-unit internet for an unknown period.
 
 **Verification:** per-task make + full ctest at every step (104/104 throughout — no new test binaries, 19 new test functions inside existing suites incl. Task D's 4); `sg docker -c ./cross-build.sh` clean at dd2c68f, 079243f, and 44f1262.
+
+## 2026-07-07 — JS-Runtime / Web Widgets (Phase C2) — Implementation Execution (Fable)
+
+**Branch:** `develop` direct (single-develop-branch workflow), 12 commits bc8051e → 24f900a: 41c4189 / c9a2ef6 / 37bd150 / 9009496 / b49aaf8 / 2b66be5 / 229d1ee / 0c1704e / 93ab619 / 9f0a446 / 8e9aa5a / 24f900a. Plan: `docs/superpowers/plans/2026-07-06-js-runtime-implementation.md` (9 tasks, subagent-driven development, per-task review + fable whole-branch review). Design §6.4 desktop dev-auth stayed DEFERRED per the plan header.
+
+**What shipped (all 9 tasks):**
+- **T1** (41c4189): optional `HAS_WEBENGINE` gate (mirrors HAS_BLUETOOTH), `prodigy://` scheme registered before QGuiApplication, installer + prebuilt packages, **cross-build Docker image rebuilt with qt6-webengine-dev:arm64** — config log prints "WebEngineQuick found", aarch64 binary links libQt6WebEngineQuick.
+- **T2** (c9a2ef6 + fix 37bd150): `WebWidgetManifest` widget.yaml parser. Review found 2 real defects in the plan's own code (lib-verified): scalar `size:` threw and discarded the whole manifest (fixed: IsMap guard → defaults) and the id regex `$` accepted trailing-newline ids (fixed: `\z` anchor). Controller decision per project precedent — fixes uphold the plan's stated URL-safety/graceful-fallback intent.
+- **T3** (9009496): `WebWidgetContentResolver` (canonical-path jail; reviewer verified sibling-prefix/dir-self/symlink/traversal/percent-encoding angles against real Qt) + thin `WebWidgetSchemeHandler` shell (gated).
+- **T4** (b49aaf8): `WebWidgetScanner` → WidgetRegistry + main.cpp wiring (profile handler install + scan, ordering verified vs QML engine construction). Settled the URL question: **`qrc:/OpenAutoProdigy/WebWidgetHost.qml`** (built rcc uses basename-only aliases; the design doc's `qml/widgets/` path form was wrong).
+- **T5** (2b66be5): `ThemeService::themeTokenMap()` — 42-token vocabulary moved verbatim from ApiSerializers (single source; wire parity reviewer-traced; serializer + QML bootstrap both consume).
+- **T6** (229d1ee): protobufjs toolchain — `tools/gen-proto-js.sh` (**deviation: `-p proto`** — protos import `api/...` relative to `proto/` root; brief's literal command ENOENTs), committed `prodigy-proto.js` (pbjs static-module, root `prodigy-api`) + vendored `protobuf.min.js` v7.6.5 minimal (sets `window.protobuf` unconditionally — byte-verified). qrc: `qrc:/web/*.js`.
+- **T7** (0c1704e): `prodigy.js` shim — exact R3 surface, all 7 wire-fact groups verified against proto (ClientKind top-level enum, request_id uint64 = the two brick-risks), reconnect/correlation traced correct (monotonic IDs + pending sweep).
+- **T8** (93ab619): `WebWidgetHost.qml` — lazy latch (D4), crash recovery 2s/4s/8s + error card (D5), lockdown incl. **fullScreenSupportEnabled: false (design-mandated; plan sample omitted it)**, same-origin nav policy, 4 user scripts at DocumentCreation/MainWorld, span push via `_updateContext`. All 5 flagged API shapes verified against qmltypes/source before writing.
+- **T9** (8e9aa5a + fix 9f0a446): hello-theme reference package, docs/development.md + INDEX.md, **WSLg live check (adapted: config-preseed instead of picker clicks) that caught two real integration bugs pre-hardware**: WebWidgetHost.qml was the only widget QML missing its `set_source_files_properties` alias block (scanner URL unresolvable → placement load failed + teardown SIGSEGV), and prodigy.js threw at DocumentCreation (`documentElement` null → `window.prodigy` never defined; fixed with a MutationObserver that still themes before first paint, D6 preserved). Live evidence: "Registered 1 web widget(s)", prodigy:-scheme renderer, ESTABLISHED loopback WS on 9811, zero scheme/404/JS errors, config restored md5-identical.
+
+**Design erratum (Matthew veto point):** final review found design §3's mandated scheme flags (`SecureScheme | LocalAccessAllowed`) contradict §7's security model — `LocalAccessAllowed` let widget pages load `file:`/`qrc:` subresources, bypassing the resolver jail, and nothing in the shipped architecture needs it (injected scripts are host-read; ws:// rides SecureScheme + loopback). Dropped in 24f900a with a live re-check gate: full pipeline still works, Chromium-level proof `prodigy:hsL` → `prodigy:hs`. Erratum noted in design §3; re-adding the flag is a one-liner if vetoed.
+
+**Final review (fable): "With fixes" → 24f900a → closing verdict READY TO MERGE, zero Critical/Important remaining.** Cross-task seams all verified (token chain end-to-end incl. example HTML, URL/alias chain, injection contract, wire fields, frozen surfaces byte-identical, scan-once thread-reachability airtight, build matrix consistent).
+
+**Tracked follow-ups:** wishlist "From JS-runtime execution (2026-07-07)" — shim v1 hardening block, widget-author known-limitations doc, api.enabled zombie widgets, field-debugging logging, hygiene batch (resolver freeze comment, URL latch, entry `..` over-reject, gen-script comment+pins), persistent-profile decision.
+
+**Pi checklist (needs Matthew at the touchscreen; deploy + headless items done this session — see Status):**
+1. Add "Hello Theme" from the widget picker → themed card renders (CSS vars pre-connect), status flips to "connected as org.openauto.example.hello-theme".
+2. BT playback → media title/artist update live; Play/Pause button dispatches (action round-trip).
+3. Crash recovery: `pkill -x QtWebEngineProcess` on the Pi → card auto-reloads within ~4s, launcher unaffected. Also note behavior if the widget's page is not the current dashboard page (crash-reload-while-hidden is expected/accepted).
+4. Day/night flip in settings → card re-colors within a frame (themechange path).
+5. Resize the widget in edit mode → spans update (contextchange; devtools or temporary on-page readout).
+6. Renderer/memory: expect a second renderer+WS from the initial about:blank document (it also runs the DocumentCreation scripts — final-review explanation; QML double-instantiation ruled out). Confirm the about:blank WS/renderer tears down rather than leaking; QtWebEngineProcess PSS within the spike budget (≤350 MB total).
+7. Confirm a widget with an https subresource loads it (nav policy must not block subresources) — optional, needs a test widget with an https img.
+8. Narrowed scheme flags (24f900a) re-confirmed on-device implicitly by items 1-2.
+
+**Status:** Complete and verified on WSL (107/107 per task and at head; WSLg live checks ×2 — Task 9 + flag-fix). Cross-builds clean at 41c4189, 8e9aa5a; 24f900a cross-build + Pi deploy recorded below when done.
+
+**Verification:** TDD per task (RED evidence in .superpowers/sdd reports); per-task reviews (sonnet/opus) all approved, two with fix waves (T2 manifest hardening, final-review flag drop); suite 104 → 107 binaries (manifest/resolver/scanner), 108th not added (QML host is Pi-checklist by design §9).
