@@ -63,6 +63,10 @@ ThemeInstallParseResult parseThemeInstall(const QVariantMap& data,
             r.error = QStringLiteral("wallpaper path is invalid");
             return r;
         }
+        if (QFileInfo(canon).size() > maxWallpaperBytes) {
+            r.error = QStringLiteral("wallpaper too large");
+            return r;
+        }
         QFile f(canon);
         if (!f.open(QIODevice::ReadOnly)) {
             r.error = QStringLiteral("cannot read wallpaper");
@@ -70,10 +74,6 @@ ThemeInstallParseResult parseThemeInstall(const QVariantMap& data,
         }
         const QByteArray bytes = f.readAll();
         f.close();
-        if (bytes.size() > maxWallpaperBytes) {
-            r.error = QStringLiteral("wallpaper too large");
-            return r;
-        }
         if (bytes.size() < 3
             || static_cast<unsigned char>(bytes[0]) != 0xFF
             || static_cast<unsigned char>(bytes[1]) != 0xD8
