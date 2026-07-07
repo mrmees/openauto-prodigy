@@ -21,8 +21,10 @@ int WebWidgetScanner::scan(const QString& rootDir, WidgetRegistry& registry,
     const auto dirs = root.entryList(QDir::Dirs | QDir::NoDotAndDotDot, QDir::Name);
     for (const QString& dirName : dirs) {
         const QString manifestPath = root.filePath(dirName + QStringLiteral("/widget.yaml"));
-        if (!QFile::exists(manifestPath))
+        if (!QFile::exists(manifestPath)) {
+            qInfo() << "WebWidgetScanner: skipping" << dirName << "— no widget.yaml";
             continue;
+        }
         const WebWidgetManifest m = WebWidgetManifest::fromFile(manifestPath);
         if (!m.isValid()) {
             qWarning() << "WebWidgetScanner: skipping invalid package" << manifestPath;

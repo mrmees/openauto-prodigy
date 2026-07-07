@@ -823,8 +823,16 @@ int main(int argc, char *argv[])
     const int webWidgetCount = oap::WebWidgetScanner::scan(
         QDir::homePath() + QStringLiteral("/.openauto/webwidgets"),
         *widgetRegistry, webWidgetResolver);
-    if (webWidgetCount > 0)
-        qInfo() << "Registered" << webWidgetCount << "web widget(s)";
+    qInfo() << "Registered" << webWidgetCount << "web widget(s) from"
+            << (QDir::homePath() + QStringLiteral("/.openauto/webwidgets"));
+    if (webWidgetCount > 0) {
+        const QVariant apiEnabledV = configService->value(QStringLiteral("api.enabled"));
+        const bool apiEnabled = apiEnabledV.isValid() ? apiEnabledV.toBool() : true;
+        if (!apiEnabled)
+            qWarning() << "Web widgets are registered but api.enabled is false — "
+                          "they will render and spin 'connecting…' forever "
+                          "(web widgets require the External API; set api.enabled: true)";
+    }
 #endif
 
     // Collect widget descriptors from plugins
