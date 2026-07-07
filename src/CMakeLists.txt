@@ -520,3 +520,14 @@ if(TARGET Qt6::Bluetooth)
 else()
     message(STATUS "Qt6::Bluetooth NOT found — Bluetooth discovery disabled (wireless requires manual TCP)")
 endif()
+
+# Web widget runtime (JS/HTML widgets) — optional; needs qt6-webengine-dev
+# to build, qml6-module-qtwebengine at runtime. Non-WebEngine builds keep
+# the scanner/resolver logic (headless-testable) but never register widgets.
+if(TARGET Qt6::WebEngineQuick)
+    target_link_libraries(openauto-core PUBLIC Qt6::WebEngineQuick)
+    target_compile_definitions(openauto-core PUBLIC HAS_WEBENGINE)
+    message(STATUS "Qt6::WebEngineQuick found — web widget runtime enabled")
+else()
+    message(STATUS "Qt6::WebEngineQuick NOT found — web widget runtime disabled")
+endif()

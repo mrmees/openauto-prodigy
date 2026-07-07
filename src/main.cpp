@@ -2,6 +2,10 @@
 #ifdef HAS_SYSTEMD
 #include <systemd/sd-daemon.h>
 #endif
+#ifdef HAS_WEBENGINE
+#include <QtWebEngineQuick/qtwebenginequickglobal.h>
+#include <QWebEngineUrlScheme>
+#endif
 #include <QGuiApplication>
 #include <QScreen>
 #include <QCommandLineParser>
@@ -150,6 +154,18 @@ static void adjustTimezoneFromApiTimeReport(const QString& ianaId)
 
 int main(int argc, char *argv[])
 {
+#ifdef HAS_WEBENGINE
+    // Chromium requires custom schemes registered before the app object
+    // exists (design §3/§9); initialize() must also precede QGuiApplication.
+    {
+        QWebEngineUrlScheme scheme("prodigy");
+        scheme.setSyntax(QWebEngineUrlScheme::Syntax::Host);
+        scheme.setFlags(QWebEngineUrlScheme::SecureScheme
+                        | QWebEngineUrlScheme::LocalAccessAllowed);
+        QWebEngineUrlScheme::registerScheme(scheme);
+    }
+    QtWebEngineQuick::initialize();
+#endif
     QGuiApplication app(argc, argv);
     app.setApplicationName("OpenAuto Prodigy");
     app.setApplicationVersion("0.1.0");
