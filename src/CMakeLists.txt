@@ -462,6 +462,7 @@ qt_add_qml_module(openauto-prodigy
         ../qml/widgets/CompanionStatusWidget.qml
         ../qml/widgets/AAFocusToggleWidget.qml
         ../qml/widgets/WeatherWidget.qml
+        ../qml/widgets/WebWidgetHost.qml
 
         ../qml/applications/android_auto/AndroidAutoMenu.qml
         ../qml/applications/settings/SettingsMenu.qml
