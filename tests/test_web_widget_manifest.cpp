@@ -74,6 +74,31 @@ private slots:
         QVERIFY(!oap::WebWidgetManifest::fromFile(
             QStringLiteral("/nonexistent/widget.yaml")).isValid());
     }
+    void testScalarSizeFallsBackToDefaults() {
+        // A malformed `size:` node (scalar, not a map) must not discard the
+        // whole manifest -- it should be treated as absent, same as any
+        // other malformed field.
+        QTemporaryDir dir;
+        const auto m = oap::WebWidgetManifest::fromFile(
+            writeManifest(dir, "id: a.b\nname: X\nsize: 5\n"));
+        QVERIFY(m.isValid());
+        QCOMPARE(m.id, QStringLiteral("a.b"));
+        QCOMPARE(m.name, QStringLiteral("X"));
+        QCOMPARE(m.minCols, 1); QCOMPARE(m.minRows, 1);
+        QCOMPARE(m.maxCols, 6); QCOMPARE(m.maxRows, 4);
+        QCOMPARE(m.defaultCols, 1); QCOMPARE(m.defaultRows, 1);
+    }
+    void testIdWithTrailingNewlineInvalid() {
+        // Double-quoted YAML scalar embeds a literal trailing newline in
+        // the id. QRegularExpression's `$` matches before a trailing line
+        // terminator, so this must NOT be accepted -- id becomes a
+        // prodigy:// URL path segment and resolver key.
+        QTemporaryDir dir;
+        const auto m = oap::WebWidgetManifest::fromFile(
+            writeManifest(dir, "id: \"abc\\n\"\nname: X\n"));
+        QCOMPARE(m.id, QStringLiteral("abc\n"));
+        QVERIFY(!m.isValid());
+    }
 };
 QTEST_GUILESS_MAIN(TestWebWidgetManifest)
 #include "test_web_widget_manifest.moc"

@@ -11,7 +11,7 @@ bool WebWidgetManifest::isValid() const
 {
     // id is used verbatim as a URL path segment and resolver key.
     static const QRegularExpression safeId(
-        QStringLiteral("^[A-Za-z0-9][A-Za-z0-9._-]*$"));
+        QStringLiteral("^[A-Za-z0-9][A-Za-z0-9._-]*\\z"));
     if (id.isEmpty() || name.isEmpty() || !safeId.match(id).hasMatch())
         return false;
     if (entry.isEmpty() || entry.startsWith(u'/') || entry.contains(QStringLiteral("..")))
@@ -37,7 +37,7 @@ WebWidgetManifest WebWidgetManifest::fromFile(const QString& filePath)
         m.description = QString::fromStdString(root["description"].as<std::string>(""));
         m.icon = QString::fromStdString(root["icon"].as<std::string>(""));
 
-        if (root["size"]) {
+        if (root["size"] && root["size"].IsMap()) {
             const auto& s = root["size"];
             m.minCols = s["minCols"].as<int>(m.minCols);
             m.minRows = s["minRows"].as<int>(m.minRows);
