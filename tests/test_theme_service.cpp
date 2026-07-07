@@ -1316,8 +1316,8 @@ private slots:
     {
         // color(name)/activeColor(name) must resolve the six derived-getter
         // tokens (not stored in the YAML day/night maps) the same way the
-        // dedicated getters do -- these are the exact names the API
-        // serializer's kThemeTokens loop looks up via theme.color(name).
+        // dedicated getters do -- these are the exact names
+        // themeTokenMap()'s kThemeTokens loop looks up via color(name).
         oap::ThemeService service;
         service.loadThemeFile(QFINDTESTDATA("data/themes/default/theme.yaml"));
 

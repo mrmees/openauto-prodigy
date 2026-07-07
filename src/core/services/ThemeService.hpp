@@ -7,6 +7,7 @@
 #include <QMap>
 #include <QString>
 #include <QStringList>
+#include <QVariantMap>
 
 namespace oap {
 
@@ -239,6 +240,11 @@ public:
     /// Read-only access to color maps (for IPC export without signal side-effects)
     const QMap<QString, QColor>& dayColors() const { return dayColors_; }
     const QMap<QString, QColor>& nightColors() const { return nightColors_; }
+
+    // The API/web-runtime theme vocabulary: hyphenated token -> "#rrggbb".
+    // Single source for SystemStatus.theme_tokens and the web bootstrap's
+    // CSS custom properties (--prodigy-<token>).
+    Q_INVOKABLE QVariantMap themeTokenMap() const;
 
 signals:
     void colorsChanged();

@@ -57,6 +57,7 @@ private slots:
     void testProjectionProjecting();
     void testProjectionUnknownRawDefaultsUnspecified();
     void testSystemThemeTokensAndVersion();
+    void testThemeTokenMapMatchesSerializer();
     void testSystemBluetoothNullptr();
     void testSystemBluetoothDisconnectedRealManager();
     void testSystemDisplayDims();
@@ -191,6 +192,27 @@ void TestApiSerializers::testSystemThemeTokensAndVersion() {
     QCOMPARE(tokenName("on-warning"), theme.onWarning().name());
     QCOMPARE(tokenName("surface-tint-high"), theme.surfaceTintHigh().name());
     QCOMPARE(tokenName("surface-tint-highest"), theme.surfaceTintHighest().name());
+}
+
+void TestApiSerializers::testThemeTokenMapMatchesSerializer() {
+    // themeTokenMap() is the single source of the theme vocabulary now --
+    // the serializer's theme_tokens output must be built FROM this map, so
+    // the two must agree entry-for-entry (proves the move didn't fork the
+    // vocabulary or the color accessor).
+    oap::ThemeService theme;
+    theme.loadThemeFile(QFINDTESTDATA("data/themes/default/theme.yaml"));
+    const QVariantMap map = theme.themeTokenMap();
+    QCOMPARE(map.size(), 42);
+    QVERIFY(map.contains(QStringLiteral("on-primary")));
+    QVERIFY(map.contains(QStringLiteral("surface-container-high")));
+
+    const auto status = buildSystemStatus(theme, QStringLiteral("1.0.0 (test)"), nullptr, nullptr);
+    QCOMPARE(int(status.theme_tokens_size()), map.size());
+    for (auto it = map.constBegin(); it != map.constEnd(); ++it) {
+        const auto tok = status.theme_tokens().find(it.key().toStdString());
+        QVERIFY2(tok != status.theme_tokens().end(), qPrintable(it.key()));
+        QCOMPARE(QString::fromStdString(tok->second), it.value().toString());
+    }
 }
 
 void TestApiSerializers::testSystemBluetoothNullptr() {

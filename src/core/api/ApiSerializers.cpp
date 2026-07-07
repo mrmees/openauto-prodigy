@@ -6,26 +6,6 @@ namespace pb = prodigy::api::v1;
 
 namespace {
 
-// Active theme palette, exposed verbatim over the wire as
-// "--prodigy-<token>" CSS custom properties by the web runtime. Order does
-// not matter (destination is a map), but this is the full and exact set --
-// see design doc §8.
-static const char* kThemeTokens[] = {
-    "primary","on-primary","primary-container","on-primary-container",
-    "secondary","on-secondary","secondary-container","on-secondary-container",
-    "tertiary","on-tertiary","tertiary-container","on-tertiary-container",
-    "error","on-error","error-container","on-error-container",
-    "background","on-background","surface","on-surface",
-    "surface-variant","on-surface-variant","surface-dim","surface-bright",
-    "surface-container-lowest","surface-container-low","surface-container",
-    "surface-container-high","surface-container-highest",
-    "outline","outline-variant",
-    "inverse-surface","inverse-on-surface","inverse-primary",
-    "scrim","shadow",
-    "success","on-success","surface-tint-high","surface-tint-highest",
-    "warning","on-warning",
-};
-
 // Call-state normalization -- HFP-derived raw int (oap::ICallStateProvider::
 // CallState) -> wire CallState. Explicit switch, never a static_cast: the
 // two enums' numeric values intentionally diverge (Idle has no wire
@@ -210,10 +190,12 @@ prodigy::api::v1::SystemStatus buildSystemStatus(oap::ThemeService& theme,
     status.set_theme_id(theme.currentThemeId().toStdString());
     status.set_app_version(appVersion.toStdString());
 
-    auto* tokens = status.mutable_theme_tokens();
-    for (const char* name : kThemeTokens) {
-        (*tokens)[name] = theme.color(QString::fromUtf8(name)).name().toStdString();
-    }
+    // Single source of the theme vocabulary: ThemeService::themeTokenMap()
+    // (also consumed by the web bootstrap's CSS custom properties).
+    const QVariantMap tokens = theme.themeTokenMap();
+    for (auto it = tokens.constBegin(); it != tokens.constEnd(); ++it)
+        (*status.mutable_theme_tokens())[it.key().toStdString()] =
+            it.value().toString().toStdString();
 
     auto* summary = status.mutable_bluetooth();
     const QString deviceName = (bt != nullptr) ? bt->connectedDeviceName() : QString();

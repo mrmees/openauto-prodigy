@@ -110,6 +110,38 @@ QColor ThemeService::color(const QString& name) const
     return activeColor(name);
 }
 
+// The API/web-runtime theme vocabulary -- moved verbatim from
+// ApiSerializers.cpp (Task 5). This array, and only this array, defines
+// what SystemStatus.theme_tokens (external API) and the web bootstrap's
+// "--prodigy-<token>" CSS custom properties can contain. Order does not
+// matter (destination is a map), but this is the full and exact set --
+// see design doc §8.
+static const char* kThemeTokens[] = {
+    "primary","on-primary","primary-container","on-primary-container",
+    "secondary","on-secondary","secondary-container","on-secondary-container",
+    "tertiary","on-tertiary","tertiary-container","on-tertiary-container",
+    "error","on-error","error-container","on-error-container",
+    "background","on-background","surface","on-surface",
+    "surface-variant","on-surface-variant","surface-dim","surface-bright",
+    "surface-container-lowest","surface-container-low","surface-container",
+    "surface-container-high","surface-container-highest",
+    "outline","outline-variant",
+    "inverse-surface","inverse-on-surface","inverse-primary",
+    "scrim","shadow",
+    "success","on-success","surface-tint-high","surface-tint-highest",
+    "warning","on-warning",
+};
+
+QVariantMap ThemeService::themeTokenMap() const
+{
+    QVariantMap map;
+    for (const char* name : kThemeTokens) {
+        const QString key = QString::fromUtf8(name);
+        map.insert(key, color(key).name());
+    }
+    return map;
+}
+
 QString ThemeService::fontFamily() const
 {
     return fontFamily_;
