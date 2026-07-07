@@ -338,6 +338,11 @@ set_source_files_properties(../qml/widgets/WeatherWidget.qml PROPERTIES
     QT_RESOURCE_ALIAS "WeatherWidget.qml"
     QT_QML_SKIP_CACHEGEN TRUE
 )
+set_source_files_properties(../qml/widgets/WebWidgetHost.qml PROPERTIES
+    QT_QML_SOURCE_TYPENAME "WebWidgetHost"
+    QT_RESOURCE_ALIAS "WebWidgetHost.qml"
+    QT_QML_SKIP_CACHEGEN TRUE
+)
 
 set_source_files_properties(../qml/applications/android_auto/AndroidAutoMenu.qml PROPERTIES
     QT_QML_SOURCE_TYPENAME "AndroidAutoMenu"

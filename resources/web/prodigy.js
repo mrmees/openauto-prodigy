@@ -13,12 +13,29 @@
     var pb = root && root.prodigy && root.prodigy.api ? root.prodigy.api.v1 : null;
 
     // ---- theme tokens -> CSS custom properties (--prodigy-<token>) ------
-    function applyTokens(tokens) {
-        if (!tokens) return;
-        var el = document.documentElement;
+    function setVars(el, tokens) {
         Object.keys(tokens).forEach(function (k) {
             el.style.setProperty('--prodigy-' + k, tokens[k]);
         });
+    }
+    function applyTokens(tokens) {
+        if (!tokens) return;
+        if (document.documentElement) {
+            setVars(document.documentElement, tokens);
+            return;
+        }
+        // This script runs at WebEngineScript.DocumentCreation, which fires
+        // before <html> exists — document.documentElement is still null here.
+        // Apply as soon as it appears (well before body/CSS content, so first
+        // paint is still themed per D6) instead of throwing and aborting the
+        // rest of this IIFE (which left window.prodigy undefined).
+        var mo = new MutationObserver(function () {
+            if (document.documentElement) {
+                mo.disconnect();
+                setVars(document.documentElement, tokens);
+            }
+        });
+        mo.observe(document, { childList: true });
     }
     applyTokens(boot.themeTokens);   // first paint is already themed (D6)
 
