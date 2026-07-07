@@ -66,7 +66,7 @@ There's no `config:` schema field yet — per-widget configuration UI is a v1.1 
 
 ## The `prodigy` API Surface
 
-Two things get injected into every widget document at `DocumentCreation`: a per-instance bootstrap object (`window.__prodigyBootstrap` — API URL, widget context, a themed CSS-token snapshot) and the static shim (`resources/web/prodigy.js`), which builds `window.prodigy` from it. First paint is already themed from the bootstrap snapshot — no flash-of-unthemed-content while the WebSocket connects.
+At `DocumentCreation`, the host (`qml/widgets/WebWidgetHost.qml`) injects a chain of scripts into every widget document: a per-instance bootstrap object (`window.__prodigyBootstrap` — API URL, widget context, a themed CSS-token snapshot), the protobuf runtime + generated API types, the static shim (`resources/web/prodigy.js`) that builds `window.prodigy` from the bootstrap, and an internal host-gestures helper (edit-mode long-press). The two you interact with are the bootstrap and the shim; the rest is plumbing. First paint is already themed from the bootstrap snapshot — no flash-of-unthemed-content while the WebSocket connects.
 
 Theme tokens land as CSS custom properties on `<html>`: token `on-primary` → `--prodigy-on-primary`. A pure-CSS widget gets full day/night theming with zero widget JS.
 
@@ -111,7 +111,7 @@ Read this section before you build anything you plan to rely on. Every item belo
 
 ### Requires `api.enabled: true`
 
-The shim is nothing more than an External API WebSocket client. If the External API is disabled in config, your widget will render (HTML/CSS load fine — the scheme handler doesn't care about the API) but `prodigy.ready` never resolves and every `subscribe`/`dispatch`/`notify`/`request` call sits there or rejects — the widget is stuck showing "connecting…" forever behind a capped reconnect loop. As of the current build the app logs this for you: if web widgets are registered but `api.enabled` is false, startup emits `qWarning() << "Web widgets are registered but api.enabled is false — they will render and spin 'connecting…' forever…"` (`src/main.cpp`, web widget registration block). There's no code-side fix on the widget's end — tell your users to check `api.enabled: true` in config, and don't assume the API is up just because your widget loaded.
+The shim is nothing more than an External API WebSocket client. If the External API is disabled in config, your widget will render (HTML/CSS load fine — the scheme handler doesn't care about the API) but `prodigy.ready` never resolves and every `subscribe`/`dispatch`/`notify`/`request` call sits there or rejects — the widget is stuck showing "connecting…" forever behind a capped reconnect loop. As of the current build the app logs this for you: if web widgets are registered but `api.enabled` is false, startup emits a warning — *"Web widgets are registered but api.enabled is false — they will render and spin 'connecting…' forever (web widgets require the External API; set api.enabled: true)"* (`src/main.cpp`, web widget registration block). There's no code-side fix on the widget's end — tell your users to check `api.enabled: true` in config, and don't assume the API is up just because your widget loaded.
 
 ### localStorage / sessionStorage / IndexedDB are ephemeral & off-the-record
 
