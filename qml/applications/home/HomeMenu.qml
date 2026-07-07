@@ -750,32 +750,19 @@ Item {
                                             }
                                         }
 
-                                        // Web widgets: the WebEngineView takes the exclusive touch grab, which
-                                        // cancels a passive TapHandler's gesture (proven on-device 2026-07-07).
-                                        // PointHandler never grabs and is immune to other grabs -- it keeps
-                                        // tracking the pressed point regardless, so a timer + move threshold
-                                        // reproduces long-press-to-select for web widgets only. Native widgets:
-                                        // disabled via the marker gate, so zero behavior change.
-                                        PointHandler {
-                                            id: webWidgetPressPoint
-                                            enabled: widgetLoader.item ? (widgetLoader.item.isWebWidgetHost === true) : false
-                                            onActiveChanged: {
-                                                if (active) webWidgetHoldTimer.restart()
-                                                else webWidgetHoldTimer.stop()
-                                            }
-                                            onPointChanged: {
-                                                if (active && webWidgetHoldTimer.running) {
-                                                    var dx = point.position.x - point.pressPosition.x
-                                                    var dy = point.position.y - point.pressPosition.y
-                                                    if (dx * dx + dy * dy > 144)   // ~12px -- treat as drag, not hold
-                                                        webWidgetHoldTimer.stop()
-                                                }
-                                            }
-                                        }
-                                        Timer {
-                                            id: webWidgetHoldTimer
-                                            interval: 500   // match widgetMouseArea.pressAndHoldInterval
-                                            onTriggered: {
+                                        // Web widgets: the WebEngineView eats every touch (z:-1 detector never
+                                        // fires) and ANY Qt pointer handler over the view SIGSEGVs the UI
+                                        // process when the scene mutates mid-touch-stream (on-device
+                                        // 2026-07-07, Codex-diagnosed). Long-press is instead detected INSIDE
+                                        // the page (injected host-gestures.js) and WebWidgetHost emits
+                                        // longPressed() only after the finger LIFTS -- so the selection
+                                        // mutation below never happens while the view owns an active touch
+                                        // stream. Native widgets have no such signal; ignoreUnknownSignals
+                                        // keeps this a silent no-op for them.
+                                        Connections {
+                                            target: widgetLoader.item
+                                            ignoreUnknownSignals: true
+                                            function onLongPressed() {
                                                 if (homeScreen.selectedInstanceId !== model.instanceId) {
                                                     innerContent.scale = 1.05
                                                     liftShadow.visible = true

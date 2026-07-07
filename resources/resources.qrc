@@ -8,5 +8,6 @@
         <file>web/protobuf.min.js</file>
         <file>web/prodigy-proto.js</file>
         <file>web/prodigy.js</file>
+        <file>web/host-gestures.js</file>
     </qresource>
 </RCC>

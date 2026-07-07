@@ -9,10 +9,17 @@ Item {
     id: hostRoot
 
     // Marker for HomeMenu.qml's delegate: identifies this Loader's item as a
-    // web widget host so the passive-grab TapHandler (edit-mode entry) knows
-    // to enable itself -- WebEngineView eats every touch, so native widgets
-    // must NOT get this behavior (they already have the z:-1 detector).
+    // web widget host (web widgets need their own edit-mode entry -- the
+    // WebEngineView eats every touch, so the z:-1 long-press detector never
+    // fires for them; native widgets must NOT get this behavior).
     readonly property bool isWebWidgetHost: true
+
+    // Emitted when the injected host-gestures.js detects a >=500ms hold that
+    // ends with the finger LIFTING in place (in-page detection + sentinel
+    // navigation). Deliberately fires only after pointer release: any Qt
+    // pointer handler over the view SIGSEGVs the UI process when the scene
+    // mutates mid-touch-stream (on-device 2026-07-07, Codex-diagnosed).
+    signal longPressed()
 
     property QtObject widgetContext: null
     readonly property var effectiveCfg: widgetContext ? widgetContext.effectiveConfig : ({})
@@ -93,7 +100,13 @@ Item {
                 shim.worldId = WebEngineScript.MainWorld
                 shim.sourceUrl = "qrc:/web/prodigy.js"
 
-                userScripts.collection = [bs, rt, gen, shim]
+                var gestures = WebEngine.script()
+                gestures.name = "host-gestures"
+                gestures.injectionPoint = WebEngineScript.DocumentCreation
+                gestures.worldId = WebEngineScript.MainWorld
+                gestures.sourceUrl = "qrc:/web/host-gestures.js"
+
+                userScripts.collection = [bs, rt, gen, shim, gestures]
                 url = hostRoot.widgetUrl
             }
 
@@ -113,9 +126,21 @@ Item {
                 }
             }
             onNavigationRequested: function (request) {
+                // Sentinel from host-gestures.js: long-press completed (finger
+                // lifted). Never navigates -- ignore + signal the host.
+                if (request.url.toString().indexOf("prodigy://host/longpress") === 0) {
+                    request.action = WebEngineNavigationRequest.IgnoreRequest
+                    hostRoot.longPressed()
+                    return
+                }
                 // Same-origin top-level navigation only (§5).
                 if (request.url.toString().indexOf("prodigy://widgets/") !== 0)
                     request.action = WebEngineNavigationRequest.IgnoreRequest
+            }
+            onTouchSelectionMenuRequested: function (request) {
+                // Suppress Chromium's touch-selection menu on long-press
+                // (Codex hardening: it races the host's long-press path).
+                request.accepted = true
             }
         }
     }
