@@ -7,5 +7,6 @@
         <file>icons/prodigy-logo.svg</file>
         <file>web/protobuf.min.js</file>
         <file>web/prodigy-proto.js</file>
+        <file>web/prodigy.js</file>
     </qresource>
 </RCC>
