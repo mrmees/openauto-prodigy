@@ -27,7 +27,8 @@ sudo apt install cmake g++ git pkg-config \
   libpipewire-0.3-dev libspa-0.2-dev \
   libyaml-cpp-dev libbluetooth-dev \
   hostapd dnsmasq bluez \
-  python3-flask
+  python3-flask \
+  qt6-webengine-dev qml6-module-qtwebengine  # optional — web widget runtime; builds fine without
 ```
 
 Note: `libbluetooth-dev` (raw BlueZ headers, `bluetooth/bluetooth.h`) is required in addition to `qt6-connectivity-dev` — `BluetoothDiscoveryService` uses BlueZ sockets/SDP directly. `install.sh` already includes it.

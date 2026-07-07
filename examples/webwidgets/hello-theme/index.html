@@ -1,0 +1,49 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<style>
+  body {
+    margin: 0; padding: 12px;
+    background: transparent;
+    color: var(--prodigy-on-surface, #eee);
+    font-family: sans-serif;
+  }
+  .card {
+    background: var(--prodigy-surface-container-high, #333);
+    border: 1px solid var(--prodigy-outline-variant, #555);
+    border-radius: 10px; padding: 12px;
+  }
+  h3 { margin: 0 0 6px 0; color: var(--prodigy-primary, #8cf); }
+  button {
+    background: var(--prodigy-primary-container, #246);
+    color: var(--prodigy-on-primary-container, #fff);
+    border: none; border-radius: 6px; padding: 8px 12px; margin-top: 8px;
+  }
+</style>
+</head>
+<body>
+<div class="card">
+  <h3>Hello Theme</h3>
+  <div id="status">connecting…</div>
+  <div id="track"></div>
+  <button id="pp">Play / Pause</button>
+</div>
+<script>
+  prodigy.ready.then(function () {
+    document.getElementById('status').textContent =
+      'connected as ' + prodigy.context.widgetId;
+  });
+  prodigy.subscribe('media', function (m) {
+    document.getElementById('track').textContent =
+      (m.title || '(no title)') + (m.artist ? ' — ' + m.artist : '');
+  });
+  prodigy.on('themechange', function () {
+    // CSS vars update automatically; hook shown for completeness
+  });
+  document.getElementById('pp').addEventListener('click', function () {
+    prodigy.dispatch('media.playPause');
+  });
+</script>
+</body>
+</html>

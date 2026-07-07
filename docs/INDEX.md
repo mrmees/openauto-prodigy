@@ -53,6 +53,8 @@ Protocol definitions and generic reference docs are in [open-android-auto](https
 - [superpowers/plans/](superpowers/plans/) — implementation plans from the 2026-07 design sprint
 - [superpowers/specs/2026-07-06-external-api-v1-design.md](superpowers/specs/2026-07-06-external-api-v1-design.md) — External API v1 design (TCP 9810 / WS 9811, protobuf, pairing) — implemented 2026-07-06
 - [superpowers/plans/2026-07-06-external-api-v1-implementation.md](superpowers/plans/2026-07-06-external-api-v1-implementation.md) — External API v1 implementation plan (Tasks 1–16, complete)
+- [superpowers/specs/2026-07-06-js-runtime-design.md](superpowers/specs/2026-07-06-js-runtime-design.md) — HTML/JS runtime design (Phase C2): `prodigy://` scheme, WebWidgetHost, `prodigy` shim as an External API v1 WebSocket client — implemented 2026-07-07
+- [superpowers/plans/2026-07-06-js-runtime-implementation.md](superpowers/plans/2026-07-06-js-runtime-implementation.md) — JS/web-widget runtime implementation plan (Tasks 1–9, complete)
 
 ## Pi Configuration
 

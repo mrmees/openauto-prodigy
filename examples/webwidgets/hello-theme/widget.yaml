@@ -1,0 +1,8 @@
+id: org.openauto.example.hello-theme
+name: "Hello Theme"
+entry: index.html
+category: status
+description: "Reference web widget: themed card, live media title, action dispatch"
+size:
+  defaultCols: 2
+  defaultRows: 2
