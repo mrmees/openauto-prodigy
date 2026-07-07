@@ -4,6 +4,39 @@ Newest entries first.
 
 ---
 
+## 2026-07-07 — Web-widget quality batch + Theme-upload endpoint (design → plan → implementation)
+
+**Branch:** `develop` (direct, per single-develop-branch workflow). All work pushed. No Pi deploy this session (see Pending).
+
+### Part 1 — Web-widget quality mini-batch (QB/QC/QD), each per-task reviewed, zero Critical/Important
+Follow-ups from the JS-runtime FINAL REVIEW, dispatched SDD-style (sonnet implementer + independent sonnet review):
+- **QB (`8b10c7f`) — shim hardening trio** (`resources/web/prodigy.js`, `qml/widgets/WebWidgetHost.qml`): (1) `subscribe()` uses `hasOwnProperty` not `in` (prototype-chain topics like `'toString'` were passing validation → garbage on the wire); (2) `pushContext()` on `LoadSucceededStatus` (a renderer crash-reload reuses the same WebEngineView, so the creation-time bootstrap spans go stale — reviewer confirmed); (3) `request()` guards `ws.readyState !== 1` (WebSocket `send()` on a CLOSED socket *silently discards* per WHATWG — reviewer independently spec-verified — so a request in the disconnect window black-holed a `pending` entry forever). Out-of-scope residual (deferred): OPEN-but-pre-serverHello window still black-holes since `readyPromise` never re-pends.
+- **QC (`f66a387`) — field-debug logging + api.enabled warning** (`src/core/widget/WebWidgetScanner.cpp`, `src/main.cpp`): qInfo on a subdir skipped for missing `widget.yaml`; always-log the scan count+path (even 0); qWarning when web widgets are registered but `api.enabled` is false (zombie "connecting…" widgets). `api.enabled` defaults true (missing key does NOT warn — reviewer-verified not off-by-default).
+- **QD (`382611d` + accuracy fix `81cfd8e`) — web-widget authoring guide** (`docs/web-widget-authoring.md` + cross-links): shim surface + v1 known-limitations (off-the-record ephemeral localStorage, D2 shared-origin quoted verbatim, `api.enabled` dependency, reconnect-gap request rejection, locked-down sandbox, D5 crash recovery). Reviewer traced every claim to source; two accuracy nits fixed forward (real api.enabled warning text; "five scripts inject" not two). NOTE: `382611d` got pushed pre-review (a concurrent `git push` for QC swept it up) — reviewed post-hoc, fixed forward. No force-push.
+
+### Part 2 — Theme/wallpaper upload endpoint (companion migration off legacy port 9876)
+Full brainstorm → design → plan → implementation, all this session.
+- **Brainstorm decisions (Matthew):** Q1 auth = **none** (match web-config; a proper all-routes auth pass is wishlisted — the endpoint adds nothing `set_config` doesn't already expose unauthenticated); Q2 scope = **companion-only** (browser upload UI is a fast-follow); Q3 blob transport = **temp-file handoff** (Flask writes the wallpaper to a temp file, passes the *path* over IPC — not base64 inline); endpoint name `/api/theme/install`; require both `light`+`dark`; 5 MiB cap.
+- **Design doc `911d325`:** [`superpowers/specs/2026-07-07-theme-upload-design.md`](superpowers/specs/2026-07-07-theme-upload-design.md). §4 is the **HTTP contract handoff artifact** the companion maintainer is blocked on (endpoint, `manifest` schema, response codes). Fixes the legacy ack-lie (`CompanionListenerService` sends `accepted:true` even on failure — the new endpoint returns the real `importCompanionTheme` result).
+- **Plan `3c695d6`:** [`superpowers/plans/2026-07-07-theme-upload-implementation.md`](superpowers/plans/2026-07-07-theme-upload-implementation.md) — 3 SDD tasks, full code in every step.
+- **Implementation (opus implementers, per Matthew; independent review each task):**
+  - **T1 `5f0de8c` + fix `de87c16`:** pure `oap::parseThemeInstall()` validation module (`src/core/services/ThemeInstallRequest.{hpp,cpp}`) — name/color/camelCase→hyphen/wallpaper magic+size+canonical-path-under-`/tmp/oap-theme-upload` — plus a behavior-preserving `static ThemeService::slugify()` extraction. Fix: size-check before `readAll` (bound the read). 16-slot unit test incl. path-injection.
+  - **T2 `47885c5`:** `install_theme` IPC command + thin `IpcServer::handleInstallTheme` (parse → `importCompanionTheme` → slugify). Socket round-trip test (implementer added a `processEvents` pump loop matching `test_companion_listener.cpp` — the brief's `waitForReadyRead`-only helper can't dispatch server slots on a shared thread; reviewer verified non-vacuous).
+  - **T3 `0efc813`:** Flask `POST /api/theme/install` (`web-config/server.py`) — multipart → temp file → IPC; `MAX_CONTENT_LENGTH` 413; status mapping; `finally` unlink. 6 Python tests (reviewer re-ran 6/6).
+- **Final whole-branch review (opus): READY TO MERGE, zero Critical/Important.** All 6 cross-task seams traced clean (field names, temp-dir literal, camelCase→hyphen applied exactly once + round-trips through ThemeService, response shape, ack-lie fix, size-cap coherence). `camelToHyphen` verified char-identical to the frozen `CompanionListenerService` lambda (intentional dup, wishlisted for dedup at 9876 retirement).
+- **Polish `2029b64`:** temp-dir cross-reference comments (server.py ↔ IpcServer.cpp) + companion-maintainer note in design §4 (send `manifest` as a form field with **no filename**, else Werkzeug → `request.files` → 400).
+- Suite: 107 → **109** C++ (T1 +1, T2 +1) + **6** Flask tests.
+
+### Wishlist added this session
+All-routes web-config auth pass; browser theme-upload UI (fast-follow); conversion/slugify dedup at 9876 retirement; `/tmp/oap-theme-upload` janitor; theme-upload temp-dir agreement integration test + T1 test precision; 503-vs-500 IPC-status mapping.
+
+### Pending / next session
+- **Pi deploy (theme-upload):** cross-build + rsync the C++ binary (new `install_theme` handler) + `git pull` for web-config + `sudo systemctl restart openauto-prodigy-web`. Then exercise a **real wallpaper upload end-to-end** — only the color-only path is unit-covered (the wallpaper path goes through the handler's hardcoded `/tmp/oap-theme-upload`, currently unexercised by any test; see wishlist temp-dir agreement test).
+- **Companion maintainer:** the HTTP contract (design §4) is ready to hand off; they were blocked on it.
+- Web-widget quality batch (QB/QC/QD) needs no deploy (resource/logging/doc only) but rides the next binary push.
+
+---
+
 ## 2026-07-06 — External API v1 — Implementation Complete (Tasks 1–16)
 
 **Branch:** `external-api-v1` (18 commits since `main`). Design doc: [`superpowers/specs/2026-07-06-external-api-v1-design.md`](superpowers/specs/2026-07-06-external-api-v1-design.md). Plan: [`superpowers/plans/2026-07-06-external-api-v1-implementation.md`](superpowers/plans/2026-07-06-external-api-v1-implementation.md).
