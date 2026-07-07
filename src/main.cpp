@@ -161,11 +161,16 @@ int main(int argc, char *argv[])
 #ifdef HAS_WEBENGINE
     // Chromium requires custom schemes registered before the app object
     // exists (design §3/§9); initialize() must also precede QGuiApplication.
+    //
+    // Scheme is Secure (trustworthy origin so ws://127.0.0.1 connects) but
+    // deliberately NOT LocalAccessAllowed — widget pages must not load
+    // file:/qrc: subresources; all content flows through the prodigy://
+    // resolver jail (design §7; erratum vs design §3's flag list,
+    // final-review 2026-07-07).
     {
         QWebEngineUrlScheme scheme("prodigy");
         scheme.setSyntax(QWebEngineUrlScheme::Syntax::Host);
-        scheme.setFlags(QWebEngineUrlScheme::SecureScheme
-                        | QWebEngineUrlScheme::LocalAccessAllowed);
+        scheme.setFlags(QWebEngineUrlScheme::SecureScheme);
         QWebEngineUrlScheme::registerScheme(scheme);
     }
     QtWebEngineQuick::initialize();
