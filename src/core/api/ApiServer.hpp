@@ -41,6 +41,7 @@ class INotificationService;
 class ActionRegistry;
 class IConfigService;
 class BluetoothManager;
+class DisplayInfo;
 } // namespace oap
 
 namespace oap::api {
@@ -64,6 +65,7 @@ struct ApiServiceRefs {
     oap::ActionRegistry* actions = nullptr;
     oap::IConfigService* config = nullptr;
     oap::BluetoothManager* bluetooth = nullptr;            // nullable
+    oap::DisplayInfo* display = nullptr;                    // nullable
 };
 
 class ApiServer : public QObject {
@@ -139,6 +141,7 @@ private:
     int handshakeTimeoutMs_ = 5000;
     QString serverName_;
     QString appVersion_;
+    QString serverId_;   // stable head-unit identity (v1.1); minted+persisted in start()
 };
 
 } // namespace oap::api

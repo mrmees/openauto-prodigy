@@ -7,6 +7,7 @@
 #include "core/services/IPhoneStateService.hpp"
 #include "core/services/ThemeService.hpp"
 #include "core/services/BluetoothManager.hpp"
+#include "ui/DisplayInfo.hpp"
 
 #include <QDateTime>
 #include <string>
@@ -94,9 +95,10 @@ prodigy::api::v1::ApiMessage ProjectionPublisher::buildEnvelope() {
 // ---- SystemPublisher -----------------------------------------------------------
 
 SystemPublisher::SystemPublisher(oap::ThemeService* theme, QString appVersion,
-                                  oap::BluetoothManager* bt, QObject* parent)
+                                  oap::BluetoothManager* bt, oap::DisplayInfo* display,
+                                  QObject* parent)
     : TopicPublisher(prodigy::api::v1::TOPIC_SYSTEM, parent),
-      theme_(theme), appVersion_(std::move(appVersion)), bt_(bt)
+      theme_(theme), appVersion_(std::move(appVersion)), bt_(bt), display_(display)
 {
     connect(theme_, &oap::ThemeService::modeChanged, this, [this] { scheduleEmit(); });
     connect(theme_, &oap::ThemeService::colorsChanged, this, [this] { scheduleEmit(); });
@@ -104,12 +106,17 @@ SystemPublisher::SystemPublisher(oap::ThemeService* theme, QString appVersion,
     if (bt_) {
         connect(bt_, &oap::BluetoothManager::connectedDeviceChanged, this, [this] { scheduleEmit(); });
     }
+    if (display_) {
+        // Both windowWidth/windowHeight NOTIFY through the same signal --
+        // one connection re-publishes on any window resize.
+        connect(display_, &oap::DisplayInfo::windowSizeChanged, this, [this] { scheduleEmit(); });
+    }
 }
 
 prodigy::api::v1::ApiMessage SystemPublisher::buildEnvelope() {
     prodigy::api::v1::ApiMessage m;
     m.set_request_id(0);
-    *m.mutable_system_status() = oap::api::serial::buildSystemStatus(*theme_, appVersion_, bt_);
+    *m.mutable_system_status() = oap::api::serial::buildSystemStatus(*theme_, appVersion_, bt_, display_);
     return m;
 }
 

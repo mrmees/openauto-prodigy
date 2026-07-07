@@ -47,12 +47,16 @@ public:
     void setConnectivity(const QString& peerHost, bool active, quint16 port,
                          const QString& password);
     void setTime(qint64 unixMs);
+    // ianaId is already validated (QTimeZone::isTimeZoneIdAvailable) by the
+    // caller (ApiRequestHandlers) -- mirrors setTime()'s store-nothing style.
+    void setTimezone(const QString& ianaId);
 
 signals:
     void gpsChanged();
     void batteryChanged();
     void internetChanged();
     void timeReported(qint64 unixMs);
+    void timezoneReported(const QString& ianaId);
     void proxyRouteChanged(bool active, QString host, quint16 port, QString password);
 
 private:

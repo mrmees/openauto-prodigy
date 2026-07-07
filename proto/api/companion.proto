@@ -78,5 +78,9 @@ message TimeReport {
   // Current time on the phone, Unix epoch milliseconds (UTC).
   int64 unix_time_ms = 1;
 
-  reserved 2 to 6;
+  // IANA time zone id (e.g. "America/Chicago"). When present and valid,
+  // the head unit applies it alongside the clock step.
+  optional string timezone_id = 2;
+
+  reserved 3 to 6;
 }

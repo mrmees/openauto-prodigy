@@ -6,6 +6,7 @@
 #include <QCoreApplication>
 #include <QDeadlineTimer>
 #include <QEventLoop>
+#include <QRegularExpression>
 
 #include "core/api/ApiServer.hpp"
 #include "core/api/ApiFramer.hpp"
@@ -117,6 +118,7 @@ private slots:
     void testWsEndToEnd();
     void testDisabledDoesNotListen();
     void testPairingActionRegistered();
+    void testServerIdMintedAndStable();
 };
 
 void TestApiServer::testStartsAndBindsEphemeral() {
@@ -259,6 +261,35 @@ void TestApiServer::testPairingActionRegistered() {
 
     QVERIFY(f.actions.dispatch(QStringLiteral("api.pairing.cancel")));
     QVERIFY(!server.pairingActive());
+}
+
+void TestApiServer::testServerIdMintedAndStable() {
+    Fixture f;
+    f.config.setValue("api.tcp_port", 0);
+    f.config.setValue("api.ws_port", 0);
+
+    QVERIFY(f.config.value("identity.server_id").toString().isEmpty());
+
+    ApiServer server(f.refs());
+    server.setStorePathForTest("/tmp/oap_test_api_server_clients.yaml");
+    QVERIFY(server.start());
+
+    const QString mintedId = f.config.value("identity.server_id").toString();
+    static const QRegularExpression kUuidRe(
+        "^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$");
+    QVERIFY2(kUuidRe.match(mintedId).hasMatch(),
+             qPrintable(QString("server_id '%1' is not a UUID").arg(mintedId)));
+
+    server.stop();
+
+    // A fresh ApiServer against the SAME (in-memory) config reuses the
+    // already-minted id -- never re-mints on a subsequent start().
+    ApiServer server2(f.refs());
+    server2.setStorePathForTest("/tmp/oap_test_api_server_clients.yaml");
+    QVERIFY(server2.start());
+
+    QCOMPARE(f.config.value("identity.server_id").toString(), mintedId);
+    server2.stop();
 }
 
 QTEST_MAIN(TestApiServer)

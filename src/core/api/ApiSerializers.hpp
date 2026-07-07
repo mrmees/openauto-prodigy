@@ -21,6 +21,7 @@
 #include "core/services/BluetoothManager.hpp"
 #include "core/services/IPhoneStateService.hpp"
 #include "core/services/INavigationProvider.hpp"
+#include "ui/DisplayInfo.hpp"
 
 namespace oap::api::serial {
 
@@ -36,12 +37,17 @@ prodigy::api::v1::MediaStatus buildMediaStatus(const oap::IMediaStatusProvider& 
 prodigy::api::v1::ProjectionStatus buildProjectionStatus(const oap::IProjectionStatusProvider& p);
 
 /// Build a SystemStatus snapshot: night mode + active theme id/tokens, the
-/// caller-composed app version string, and a Bluetooth connection summary.
-/// `bt` is nullable (Bluetooth stack unavailable) -- in that case the
-/// bluetooth summary reports connected=false with an empty device name.
+/// caller-composed app version string, a Bluetooth connection summary, and
+/// the head-unit display dimensions. `bt` is nullable (Bluetooth stack
+/// unavailable) -- in that case the bluetooth summary reports
+/// connected=false with an empty device name. `display` is nullable
+/// (feature-detect contract, v1.1): when null, display_width/display_height
+/// are left unset; when non-null, they are set from
+/// windowWidth()/windowHeight().
 prodigy::api::v1::SystemStatus buildSystemStatus(oap::ThemeService& theme,
                                                   const QString& appVersion,
-                                                  oap::BluetoothManager* bt);
+                                                  oap::BluetoothManager* bt,
+                                                  const oap::DisplayInfo* display);
 
 /// Build a PhoneStatus snapshot. CallState is normalized from the provider's
 /// widened HFP-derived callState() int via an explicit switch (mapCallState

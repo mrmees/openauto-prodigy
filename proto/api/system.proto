@@ -46,5 +46,10 @@ message SystemStatus {
   // Bluetooth connection summary.
   BtDeviceSummary bluetooth = 5;
 
-  reserved 6 to 15;
+  // Head-unit UI window size in pixels (the size API clients should
+  // target for previews/layout). Absent on servers below v1.1.
+  optional uint32 display_width = 6;
+  optional uint32 display_height = 7;
+
+  reserved 8 to 15;
 }

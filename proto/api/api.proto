@@ -116,7 +116,12 @@ message ServerHello {
 
   Capabilities capabilities = 7;
 
-  reserved 8 to 15;
+  // Stable head-unit identity, constant across sessions and reboots.
+  // Disambiguates multiple vehicles (every AP puts the server at
+  // 10.0.0.1, so the address cannot). Absent on servers below v1.1.
+  optional string server_id = 8;
+
+  reserved 9 to 15;
 }
 
 // ---- Challenge/response auth (remote, previously-paired clients) ---------

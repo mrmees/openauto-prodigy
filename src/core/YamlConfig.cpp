@@ -72,6 +72,9 @@ void YamlConfig::initDefaults()
     root_["identity"]["car_model"] = "";
     root_["identity"]["car_year"] = "";
     root_["identity"]["left_hand_drive"] = true;
+    // Stable head-unit identity for the External API (v1.1, ServerHello.
+    // server_id). Empty until minted on first API start; see ApiServer::start().
+    root_["identity"]["server_id"] = "";
 
     // External API v1 (ApiServer). Defaults mirror the api.proto documented
     // values; ApiServer still reads each key defensively with a fallback.

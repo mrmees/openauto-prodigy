@@ -203,7 +203,8 @@ prodigy::api::v1::ProjectionStatus buildProjectionStatus(const oap::IProjectionS
 
 prodigy::api::v1::SystemStatus buildSystemStatus(oap::ThemeService& theme,
                                                   const QString& appVersion,
-                                                  oap::BluetoothManager* bt) {
+                                                  oap::BluetoothManager* bt,
+                                                  const oap::DisplayInfo* display) {
     pb::SystemStatus status;
     status.set_night_mode(theme.realNightMode());
     status.set_theme_id(theme.currentThemeId().toStdString());
@@ -218,6 +219,13 @@ prodigy::api::v1::SystemStatus buildSystemStatus(oap::ThemeService& theme,
     const QString deviceName = (bt != nullptr) ? bt->connectedDeviceName() : QString();
     summary->set_connected(!deviceName.isEmpty());
     summary->set_device_name(deviceName.toStdString());
+
+    // v1.1 additive: absent on servers below v1.1 (feature-detect contract) --
+    // only set when a live DisplayInfo was provided.
+    if (display != nullptr) {
+        status.set_display_width(static_cast<uint32_t>(display->windowWidth()));
+        status.set_display_height(static_cast<uint32_t>(display->windowHeight()));
+    }
 
     return status;
 }

@@ -11,6 +11,7 @@
 #include <QJsonValue>
 #include <QVariantMap>
 #include <QDebug>
+#include <QTimeZone>
 
 #include <array>
 #include <cmath>
@@ -370,12 +371,26 @@ void ApiRequestHandlers::handleReport(ApiSession* session, const pb::ApiMessage&
             break;
         }
         case pb::ApiMessage::kTimeReport: {
-            const qint64 t = msg.time_report().unix_time_ms();
+            const auto& r = msg.time_report();
+            const qint64 t = r.unix_time_ms();
             if (t <= 0) {
                 qWarning() << "API: dropping malformed TimeReport unix_time_ms=" << t;
                 return;
             }
             deps_.inbound->setTime(t);
+
+            // timezone_id is optional (v1.1) -- validate and forward
+            // separately; an invalid zone drops ONLY the zone, the time
+            // report above still applies.
+            if (r.has_timezone_id()) {
+                const QByteArray tz = QByteArray::fromStdString(r.timezone_id());
+                if (QTimeZone::isTimeZoneIdAvailable(tz)) {
+                    deps_.inbound->setTimezone(QString::fromUtf8(tz));
+                } else {
+                    qWarning() << "API: dropping malformed TimeReport.timezone_id="
+                               << tz;
+                }
+            }
             break;
         }
         default:

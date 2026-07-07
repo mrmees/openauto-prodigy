@@ -71,6 +71,7 @@
 #include <QWindow>
 #include <QDateTime>
 #include <QProcess>
+#include <QTimeZone>
 #include <algorithm>
 #include <cmath>
 
@@ -122,6 +123,28 @@ static void adjustClockFromApiTimeReport(qint64 phoneTimeMs)
                 << "(" << piTimeMs << "->" << phoneTimeMs << ")";
     } else {
         qCWarning(lcCore) << "API: timedatectl failed:" << proc.readAllStandardError();
+    }
+}
+
+// Companion TimeReport.timezone_id (v1.1, ApiInboundState::timezoneReported).
+// Reports can arrive ~continuously (once shortly after connect at minimum,
+// but nothing stops a client from sending more) -- skip the timedatectl call
+// entirely when the reported zone already matches the system zone, so a
+// steady stream of reports doesn't spam the polkit-authorized call.
+static void adjustTimezoneFromApiTimeReport(const QString& ianaId)
+{
+    if (ianaId.toUtf8() == QTimeZone::systemTimeZoneId())
+        return;
+
+    QProcess proc;
+    proc.start("timedatectl", {"set-timezone", ianaId});
+    proc.waitForFinished(5000);
+
+    if (proc.exitCode() == 0) {
+        qCInfo(lcCore) << "API: timezone adjusted to" << ianaId;
+    } else {
+        qCWarning(lcCore) << "API: timedatectl set-timezone failed:"
+                          << proc.readAllStandardError();
     }
 }
 
@@ -1056,6 +1079,7 @@ int main(int argc, char *argv[])
     apiRefs.actions = actionRegistry;
     apiRefs.config = configService.get();
     apiRefs.bluetooth = bluetoothManager;
+    apiRefs.display = displayInfo;
     auto* apiServer = new oap::api::ApiServer(apiRefs, &app);
     if (!apiServer->start())
         qWarning() << "[main] External API disabled or failed to start";
@@ -1068,6 +1092,8 @@ int main(int argc, char *argv[])
     });
     QObject::connect(apiServer->inboundState(), &oap::api::ApiInboundState::timeReported,
                      &app, [](qint64 unixMs) { adjustClockFromApiTimeReport(unixMs); });
+    QObject::connect(apiServer->inboundState(), &oap::api::ApiInboundState::timezoneReported,
+                     &app, [](const QString& ianaId) { adjustTimezoneFromApiTimeReport(ianaId); });
 
     // Qt 6.5+ uses /qt/qml/ prefix, Qt 6.4 uses direct URI prefix
     QUrl url(QStringLiteral("qrc:/OpenAutoProdigy/main.qml"));

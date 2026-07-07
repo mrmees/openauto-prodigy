@@ -9,6 +9,7 @@
 #include "core/services/IConfigService.hpp"
 #include "core/services/PhoneStateService.hpp"
 #include "core/services/INavigationProvider.hpp"
+#include "ui/DisplayInfo.hpp"
 
 namespace pb = prodigy::api::v1;
 using namespace oap::api::serial;
@@ -58,6 +59,7 @@ private slots:
     void testSystemThemeTokensAndVersion();
     void testSystemBluetoothNullptr();
     void testSystemBluetoothDisconnectedRealManager();
+    void testSystemDisplayDims();
     void testPhoneIdleEmptyCallsAndCapabilitiesFalse();
     void testPhoneRingingIncoming();
     void testPhoneAnswerActiveEchoesStartedAt();
@@ -158,7 +160,7 @@ void TestApiSerializers::testSystemThemeTokensAndVersion() {
     oap::ThemeService theme;
     theme.loadThemeFile(QFINDTESTDATA("data/themes/default/theme.yaml"));
 
-    pb::SystemStatus status = buildSystemStatus(theme, "1.0.0 (deadbeef)", nullptr);
+    pb::SystemStatus status = buildSystemStatus(theme, "1.0.0 (deadbeef)", nullptr, nullptr);
 
     QCOMPARE(status.night_mode(), theme.realNightMode());
     QCOMPARE(QString::fromStdString(status.theme_id()), theme.currentThemeId());
@@ -195,7 +197,7 @@ void TestApiSerializers::testSystemBluetoothNullptr() {
     oap::ThemeService theme;
     theme.loadThemeFile(QFINDTESTDATA("data/themes/default/theme.yaml"));
 
-    pb::SystemStatus status = buildSystemStatus(theme, "1.0.0 (deadbeef)", nullptr);
+    pb::SystemStatus status = buildSystemStatus(theme, "1.0.0 (deadbeef)", nullptr, nullptr);
     QVERIFY(!status.bluetooth().connected());
     QVERIFY(status.bluetooth().device_name().empty());
 }
@@ -207,9 +209,28 @@ void TestApiSerializers::testSystemBluetoothDisconnectedRealManager() {
     MockConfigService config;
     oap::BluetoothManager bt(&config);  // no adapter in test env -> disconnected
 
-    pb::SystemStatus status = buildSystemStatus(theme, "1.0.0 (deadbeef)", &bt);
+    pb::SystemStatus status = buildSystemStatus(theme, "1.0.0 (deadbeef)", &bt, nullptr);
     QVERIFY(!status.bluetooth().connected());
     QVERIFY(status.bluetooth().device_name().empty());
+}
+
+void TestApiSerializers::testSystemDisplayDims() {
+    oap::ThemeService theme;
+    theme.loadThemeFile(QFINDTESTDATA("data/themes/default/theme.yaml"));
+
+    // Non-null DisplayInfo -- dims are set from windowWidth()/windowHeight().
+    oap::DisplayInfo display;
+    display.setWindowSize(800, 480);
+    pb::SystemStatus withDisplay = buildSystemStatus(theme, "1.0.0 (deadbeef)", nullptr, &display);
+    QVERIFY(withDisplay.has_display_width());
+    QVERIFY(withDisplay.has_display_height());
+    QCOMPARE(withDisplay.display_width(), quint32(800));
+    QCOMPARE(withDisplay.display_height(), quint32(480));
+
+    // Null DisplayInfo -- feature-detect contract: both fields stay unset.
+    pb::SystemStatus withoutDisplay = buildSystemStatus(theme, "1.0.0 (deadbeef)", nullptr, nullptr);
+    QVERIFY(!withoutDisplay.has_display_width());
+    QVERIFY(!withoutDisplay.has_display_height());
 }
 
 void TestApiSerializers::testPhoneIdleEmptyCallsAndCapabilitiesFalse() {

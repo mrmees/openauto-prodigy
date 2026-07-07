@@ -83,6 +83,9 @@ private slots:
     void testGpsReportUpdatesState();
     void testConnectivityEmitsProxyRoute();
     void testTimeReportSignal();
+    void testTimeReportValidTimezoneEmitsBoth();
+    void testTimeReportInvalidTimezoneDropsZoneOnly();
+    void testTimeReportNoTimezoneNoZoneSignal();
     void testUnroutablePayloadClosesSession();
 };
 
@@ -557,6 +560,88 @@ void TestApiRequestHandlers::testTimeReportSignal() {
 
     QCOMPARE(spy.count(), 1);
     QCOMPARE(spy.takeFirst().at(0).toLongLong(), Q_INT64_C(1751731200000));
+}
+
+void TestApiRequestHandlers::testTimeReportValidTimezoneEmitsBoth() {
+    oap::ActionRegistry actions;
+    oap::NotificationService notifications;
+    oap::PhoneStateService phone;
+    ApiInboundState inbound;
+    ApiRequestHandlers handler({&actions, &notifications, &phone, &inbound});
+
+    auto* transport = new FakeTransport();
+    ApiSessionDeps deps;
+    deps.requests = &handler;
+    ApiSession session(transport, deps);
+    transport->injectMessage(clientHello());
+
+    QSignalSpy timeSpy(&inbound, &ApiInboundState::timeReported);
+    QSignalSpy tzSpy(&inbound, &ApiInboundState::timezoneReported);
+
+    pb::ApiMessage t;
+    t.set_request_id(0);
+    auto* tr = t.mutable_time_report();
+    tr->set_unix_time_ms(Q_INT64_C(1751731200000));
+    tr->set_timezone_id("America/Chicago");
+    transport->injectMessage(serialize(t));
+
+    QCOMPARE(timeSpy.count(), 1);
+    QCOMPARE(tzSpy.count(), 1);
+    QCOMPARE(tzSpy.takeFirst().at(0).toString(), QString("America/Chicago"));
+}
+
+void TestApiRequestHandlers::testTimeReportInvalidTimezoneDropsZoneOnly() {
+    oap::ActionRegistry actions;
+    oap::NotificationService notifications;
+    oap::PhoneStateService phone;
+    ApiInboundState inbound;
+    ApiRequestHandlers handler({&actions, &notifications, &phone, &inbound});
+
+    auto* transport = new FakeTransport();
+    ApiSessionDeps deps;
+    deps.requests = &handler;
+    ApiSession session(transport, deps);
+    transport->injectMessage(clientHello());
+
+    QSignalSpy timeSpy(&inbound, &ApiInboundState::timeReported);
+    QSignalSpy tzSpy(&inbound, &ApiInboundState::timezoneReported);
+
+    pb::ApiMessage t;
+    t.set_request_id(0);
+    auto* tr = t.mutable_time_report();
+    tr->set_unix_time_ms(Q_INT64_C(1751731200000));
+    tr->set_timezone_id("Not/AZone");
+    transport->injectMessage(serialize(t));
+
+    // Invalid zone is dropped, but the time report itself still applies.
+    QCOMPARE(timeSpy.count(), 1);
+    QCOMPARE(tzSpy.count(), 0);
+}
+
+void TestApiRequestHandlers::testTimeReportNoTimezoneNoZoneSignal() {
+    oap::ActionRegistry actions;
+    oap::NotificationService notifications;
+    oap::PhoneStateService phone;
+    ApiInboundState inbound;
+    ApiRequestHandlers handler({&actions, &notifications, &phone, &inbound});
+
+    auto* transport = new FakeTransport();
+    ApiSessionDeps deps;
+    deps.requests = &handler;
+    ApiSession session(transport, deps);
+    transport->injectMessage(clientHello());
+
+    QSignalSpy timeSpy(&inbound, &ApiInboundState::timeReported);
+    QSignalSpy tzSpy(&inbound, &ApiInboundState::timezoneReported);
+
+    pb::ApiMessage t;
+    t.set_request_id(0);
+    t.mutable_time_report()->set_unix_time_ms(Q_INT64_C(1751731200000));
+    // No timezone_id set at all.
+    transport->injectMessage(serialize(t));
+
+    QCOMPARE(timeSpy.count(), 1);
+    QCOMPARE(tzSpy.count(), 0);
 }
 
 void TestApiRequestHandlers::testUnroutablePayloadClosesSession() {
