@@ -7,6 +7,8 @@
 (function () {
     'use strict';
     if (window.prodigy) return;
+    if (window.location.protocol === 'about:') return;   // initial about:blank gets
+    // the DocumentCreation scripts too — never theme/connect there (leaked WS + renderer)
 
     var boot = window.__prodigyBootstrap || {};
     var root = (window.protobuf && protobuf.roots && protobuf.roots['prodigy-api']) || null;
