@@ -12,6 +12,7 @@ private slots:
     void testAdvanceLinearAndStopsAtEnd();
     void testRepeatAllWraps();
     void testRepeatOneAutoStaysManualMoves();
+    void testRepeatOneManualWrapsAtEnd();
     void testRetreat();
     void testShuffleDeterministicCoversAllCurrentFirst();
     void testShuffleOffRestoresLinear();
@@ -68,6 +69,16 @@ void TestPlayQueue::testRepeatOneAutoStaysManualMoves() {
     QVERIFY(spy.count() >= 1);                        // re-emitted for replay
     QVERIFY(q.advance(true));                         // manual: really moves
     QCOMPARE(q.currentTrack(), QString("/m/c.mp3"));
+}
+
+void TestPlayQueue::testRepeatOneManualWrapsAtEnd() {
+    PlayQueue q;
+    q.setTracks(tracks5(), 4);              // start on the last track
+    q.setRepeatMode(PlayQueue::RepeatOne);
+    QVERIFY(q.advance(true));               // manual next at queue end: wraps
+    QCOMPARE(q.currentTrack(), QString("/m/a.mp3"));
+    QVERIFY(q.advance(false));              // auto under RepeatOne: replays
+    QCOMPARE(q.currentTrack(), QString("/m/a.mp3"));
 }
 
 void TestPlayQueue::testRetreat() {
@@ -130,10 +141,15 @@ void TestPlayQueue::testJumpToSyncsShuffleOrder() {
     q.setShuffle(true);
     q.jumpTo(3);
     QCOMPARE(q.currentIndex(), 3);
+    QCOMPARE(q.currentTrack(), QString("/m/d.mp3"));
+    // A desynced orderPos_ would revisit an already-passed track (including
+    // /m/d.mp3 itself) during the remaining walk. Assert no revisits.
     QSet<QString> seen{q.currentTrack()};
-    while (q.advance(false))
+    while (q.advance(false)) {
+        QVERIFY2(!seen.contains(q.currentTrack()),
+                 "advance revisited a track after jumpTo — orderPos_ desync");
         seen.insert(q.currentTrack());
-    QVERIFY(seen.size() >= 1);                        // no crash, coherent walk
+    }
 }
 
 QTEST_GUILESS_MAIN(TestPlayQueue)
