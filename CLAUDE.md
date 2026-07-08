@@ -152,7 +152,7 @@ Flask server (`web-config/server.py`) communicates with Qt app via Unix domain s
 | `src/core/plugin/PluginManager.cpp` | Plugin lifecycle orchestration |
 | `src/core/plugin/HostContext.cpp` | Shared service access for plugins |
 | `src/ui/PluginRuntimeContext.cpp` | Scoped QML context per plugin activation |
-| `src/ui/PluginModel.cpp` | QAbstractListModel for QML nav strip |
+| `src/ui/PluginModel.cpp` | QAbstractListModel of registered plugins (activation state; apps open via dashboard launcher widgets — there is NO nav strip since v0.4.5) |
 | `src/core/YamlConfig.cpp` | YAML config with deep merge |
 | `src/core/services/ThemeService.cpp` | Day/night theme, color Q_PROPERTYs |
 | `src/core/services/AudioService.cpp` | PipeWire stream management, ring buffer bridge |
@@ -172,7 +172,7 @@ Flask server (`web-config/server.py`) communicates with Qt app via Unix domain s
 | `src/ui/SettingsInputBoundary.cpp` | C++ subtree event filter for settings long-press-back |
 | `src/core/aa/EvdevTouchReader.cpp` | Direct evdev multi-touch + 3-finger gesture |
 | `src/core/aa/TouchHandler.hpp` | Touch → AA protobuf bridge |
-| `qml/components/Shell.qml` | App shell (status bar + content area + nav strip) |
+| `qml/components/Shell.qml` | App shell (status bar + content area + Navbar; apps launch from dashboard launcher widgets) |
 | `qml/components/GestureOverlay.qml` | 3-finger tap quick controls overlay |
 | `web-config/server.py` | Flask web config server |
 | `install.sh` | Interactive RPi OS Trixie installer |
