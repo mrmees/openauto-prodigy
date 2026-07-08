@@ -242,7 +242,7 @@ Item {
             spacing: UiMetrics.spacing * 0.75
 
             Item {
-                width: 48; height: 56
+                width: 56; height: 56
                 MaterialIcon {
                     anchors.centerIn: parent
                     icon: "\ue043"  // shuffle
@@ -287,7 +287,7 @@ Item {
             }
 
             Item {
-                width: 48; height: 56
+                width: 56; height: 56
                 MaterialIcon {
                     anchors.centerIn: parent
                     // repeat / repeat_one; dimmed when off
