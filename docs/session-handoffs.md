@@ -21,7 +21,7 @@ Newest entries first.
 
 **Decision table:** ratio was ≈1.0 in all three runs from the outset (never racing ahead near-instantly) — the muted-sink retest (`QAudioOutput` @ volume 0) was **not needed** and not run.
 
-**Verdict: GO.** Task 6 proceeds as written — `QAudioBufferOutput` tap with no device sink, paced by the media clock, no crutch required. Only addendum: guard `isValid()`/`byteCount()>0` on incoming buffers (documented above).
+**Verdict: GO.** Task 6 proceeds as written — `QAudioBufferOutput` tap with no device sink, paced by the media clock, no crutch required. Only addendum: guard `isValid()`/`byteCount()>0` on incoming buffers (documented above). Harness updated post-review: sentinel buffers are now skipped, so re-runs report formatOk=1 without needing this note.
 
 **Files:** `tools/spike-qmp-tap/{main.cpp,CMakeLists.txt}` (spike tool, kept in-tree as a reusable harness — not wired into the main build). Full raw output + self-review: `.superpowers/sdd/task-1-report.md`.
 

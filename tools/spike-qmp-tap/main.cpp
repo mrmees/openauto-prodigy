@@ -39,6 +39,8 @@ int main(int argc, char** argv) {
 
     QObject::connect(&tap, &QAudioBufferOutput::audioBufferReceived,
                      [&](const QAudioBuffer& buf) {
+        if (!buf.isValid() || buf.byteCount() == 0)
+            return;  // end-of-stream sentinel buffer — not audio
         if (firstBufWallMs < 0) firstBufWallMs = wall.elapsed();
         pcmBytes += buf.byteCount();
         if (buf.format().sampleRate() != 48000 || buf.format().channelCount() != 2
