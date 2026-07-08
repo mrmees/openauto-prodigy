@@ -104,7 +104,10 @@ int PlaybackEngine::playbackState() const {
 
 void PlaybackEngine::ensureStream() {
     if (stream_ || !audioService_) return;
-    stream_ = audioService_->createStream(QStringLiteral("Local Media"), 50,
+    // Priority 51: one above AA Media (50) so a Gain-focus tie resolves to
+    // the most recent user action (local play) instead of stream-creation
+    // order muting us. Nav speech (60) still ducks/mutes local playback.
+    stream_ = audioService_->createStream(QStringLiteral("Local Media"), 51,
                                           48000, 2, QStringLiteral("auto"), bufferMs_);
     if (!stream_) {
         qCWarning(lcMediaPlayer) << "AudioService stream creation failed";
