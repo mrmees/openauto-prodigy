@@ -85,6 +85,7 @@ oap_add_test(test_paired_devices_model SOURCES test_paired_devices_model.cpp)
 # --- Audio pipeline tests ---
 
 oap_add_test(test_audio_ring_buffer SOURCES test_audio_ring_buffer.cpp)
+oap_add_test(test_focus_gain SOURCES test_focus_gain.cpp)
 
 # --- AA protocol tests ---
 
