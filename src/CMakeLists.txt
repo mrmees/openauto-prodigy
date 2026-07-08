@@ -2,6 +2,7 @@
 add_library(openauto-core STATIC
     core/Logging.cpp
     core/YamlConfig.cpp
+    core/WidevineCdm.cpp
     core/InputDeviceScanner.cpp
     core/api/ApiFramer.cpp
     core/api/ApiAuth.cpp

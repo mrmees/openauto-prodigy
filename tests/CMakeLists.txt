@@ -21,6 +21,7 @@ configure_file(data/test_config.yaml ${CMAKE_CURRENT_BINARY_DIR}/data/test_confi
 
 oap_add_test(test_logging SOURCES test_logging.cpp)
 oap_add_test(test_hostapd_config SOURCES test_hostapd_config.cpp)
+oap_add_test(test_widevine_cdm SOURCES test_widevine_cdm.cpp)
 
 oap_add_test(test_config_service SOURCES test_config_service.cpp)
 oap_add_test(test_config_key_coverage SOURCES test_config_key_coverage.cpp)
