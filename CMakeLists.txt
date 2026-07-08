@@ -46,6 +46,7 @@ if(NOT OAP_GIT_HASH)
 endif()
 
 add_subdirectory(src)
+add_subdirectory(tools/eme-probe)
 
 option(BUILD_TESTING "Build test executables" ON)
 if(BUILD_TESTING)
