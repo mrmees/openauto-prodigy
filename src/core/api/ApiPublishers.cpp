@@ -50,6 +50,7 @@ MediaPublisher::MediaPublisher(oap::IMediaStatusProvider* p, QObject* parent)
     : TopicPublisher(prodigy::api::v1::TOPIC_MEDIA, parent), p_(p)
 {
     connect(p_, &oap::IMediaStatusProvider::mediaStatusChanged, this, [this] { scheduleEmit(); });
+    connect(p_, &oap::IMediaStatusProvider::progressChanged, this, [this] { scheduleEmit(); });
 }
 
 prodigy::api::v1::ApiMessage MediaPublisher::buildEnvelope() {

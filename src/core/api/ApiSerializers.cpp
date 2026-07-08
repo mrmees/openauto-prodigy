@@ -122,6 +122,8 @@ prodigy::api::v1::MediaStatus buildMediaStatus(const oap::IMediaStatusProvider& 
         source = pb::MEDIA_SOURCE_BLUETOOTH;
     } else if (sourceStr == QStringLiteral("AndroidAuto")) {
         source = pb::MEDIA_SOURCE_ANDROID_AUTO;
+    } else if (sourceStr == QStringLiteral("MediaPlayer")) {
+        source = pb::MEDIA_SOURCE_LOCAL_MEDIA;
     } else {
         source = pb::MEDIA_SOURCE_UNSPECIFIED;
     }
@@ -151,6 +153,15 @@ prodigy::api::v1::MediaStatus buildMediaStatus(const oap::IMediaStatusProvider& 
         default: playback = pb::PLAYBACK_STATE_UNSPECIFIED; break;
         }
         break;
+    case pb::MEDIA_SOURCE_LOCAL_MEDIA:
+        // MediaPlayer (MediaPlayerPlugin): 0=Stopped, 1=Playing, 2=Paused.
+        switch (raw) {
+        case 0: playback = pb::PLAYBACK_STATE_STOPPED; break;
+        case 1: playback = pb::PLAYBACK_STATE_PLAYING; break;
+        case 2: playback = pb::PLAYBACK_STATE_PAUSED; break;
+        default: playback = pb::PLAYBACK_STATE_UNSPECIFIED; break;
+        }
+        break;
     case pb::MEDIA_SOURCE_NONE:
     case pb::MEDIA_SOURCE_UNSPECIFIED:
     default:
@@ -158,6 +169,12 @@ prodigy::api::v1::MediaStatus buildMediaStatus(const oap::IMediaStatusProvider& 
         break;
     }
     status.set_playback_state(playback);
+
+    // Progress (additive v1 fields 8-10). Passed through verbatim from the
+    // provider; has_position gates client-side progress rendering.
+    status.set_position_ms(p.position());
+    status.set_duration_ms(p.duration());
+    status.set_has_position(p.hasPosition());
 
     return status;
 }

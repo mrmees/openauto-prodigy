@@ -54,6 +54,9 @@ private slots:
     void testMediaBluetoothPlaying();
     void testMediaAaTrap();
     void testMediaNoneSource();
+    void testMediaLocalMediaPlaying();
+    void testMediaProgressFieldsBtAndLocal();
+    void testMediaAaNoPosition();
     void testProjectionProjecting();
     void testProjectionUnknownRawDefaultsUnspecified();
     void testSystemThemeTokensAndVersion();
@@ -127,6 +130,42 @@ void TestApiSerializers::testMediaNoneSource() {
     QCOMPARE(status.source(), pb::MEDIA_SOURCE_NONE);
     QCOMPARE(status.playback_state(), pb::PLAYBACK_STATE_UNSPECIFIED);
     QVERIFY(!status.has_media());
+}
+
+void TestApiSerializers::testMediaLocalMediaPlaying() {
+    oap::MediaStatusService media;
+    media.setMediaPlayerConnected(true);
+    media.updateMediaPlayerMetadata("L", "LA", "LAl");
+    media.updateMediaPlayerPlaybackState(1);  // MP raw 1 = Playing
+    const pb::MediaStatus st = buildMediaStatus(media);
+    QCOMPARE(st.source(), pb::MEDIA_SOURCE_LOCAL_MEDIA);
+    QCOMPARE(st.playback_state(), pb::PLAYBACK_STATE_PLAYING);
+    QCOMPARE(QString::fromStdString(st.title()), QString("L"));
+
+    media.updateMediaPlayerPlaybackState(2);  // MP raw 2 = Paused
+    QCOMPARE(buildMediaStatus(media).playback_state(), pb::PLAYBACK_STATE_PAUSED);
+    media.updateMediaPlayerPlaybackState(0);  // MP raw 0 = Stopped
+    QCOMPARE(buildMediaStatus(media).playback_state(), pb::PLAYBACK_STATE_STOPPED);
+}
+
+void TestApiSerializers::testMediaProgressFieldsBtAndLocal() {
+    oap::MediaStatusService media;
+    media.setMediaPlayerConnected(true);
+    media.updateMediaPlayerPlaybackState(1);
+    media.updateMediaPlayerProgress(61000, 245000);
+    const pb::MediaStatus st = buildMediaStatus(media);
+    QCOMPARE(st.position_ms(), (long long)61000);
+    QCOMPARE(st.duration_ms(), (long long)245000);
+    QVERIFY(st.has_position());
+}
+
+void TestApiSerializers::testMediaAaNoPosition() {
+    oap::MediaStatusService media;
+    media.setAaConnected(true);
+    media.updateAaPlaybackState(2, "App");
+    const pb::MediaStatus st = buildMediaStatus(media);
+    QVERIFY(!st.has_position());
+    QCOMPARE(st.position_ms(), (long long)-1);
 }
 
 void TestApiSerializers::testProjectionProjecting() {
