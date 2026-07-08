@@ -9,6 +9,7 @@
 #include "core/webwidget/WebWidgetContentResolver.hpp"
 #include "core/webwidget/WebWidgetSchemeHandler.hpp"
 #include "core/widget/WebWidgetScanner.hpp"
+#include "core/WidevineCdm.hpp"
 #endif
 #include <QGuiApplication>
 #include <QScreen>
@@ -172,6 +173,23 @@ int main(int argc, char *argv[])
         scheme.setSyntax(QWebEngineUrlScheme::Syntax::Host);
         scheme.setFlags(QWebEngineUrlScheme::SecureScheme);
         QWebEngineUrlScheme::registerScheme(scheme);
+    }
+    // Widevine CDM auto-wiring (spec 2026-07-07-web-surface-strategy §Slice 1):
+    // point Chromium at the system CDM so DRM (EME) content can play. Must
+    // happen before initialize(); an operator-supplied widevine-path in
+    // QTWEBENGINE_CHROMIUM_FLAGS wins.
+    {
+        const QString cdm = oap::resolveWidevineCdmPath(oap::widevineCdmCandidates());
+        const QByteArray flags = qgetenv("QTWEBENGINE_CHROMIUM_FLAGS");
+        const QByteArray updated = oap::appendWidevineFlag(flags, cdm);
+        if (updated != flags) {
+            qputenv("QTWEBENGINE_CHROMIUM_FLAGS", updated);
+            qCInfo(lcCore) << "Widevine CDM wired:" << cdm;
+        } else if (cdm.isEmpty()) {
+            qCInfo(lcCore) << "No Widevine CDM found — DRM content unavailable";
+        } else {
+            qCInfo(lcCore) << "Widevine flags preset by environment — leaving untouched";
+        }
     }
     QtWebEngineQuick::initialize();
 #endif
