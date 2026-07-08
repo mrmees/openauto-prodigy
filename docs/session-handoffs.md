@@ -1345,6 +1345,28 @@ Documentation:
 
 **Edit-mode entry saga — RESOLVED on-device (2026-07-07 afternoon, develop @ d5088f7):** the TapHandler entry (e72d979) never fired on real touch (WebEngineView takes the exclusive grab; DragThreshold TapHandler cancels), and its replacement PointHandler (a417380) SIGSEGV'd the app on every long-press (3/3, silent UI-process death). Codex read-only investigation ranked the cause: the 500ms timer mutated the scene (scale/lift/selectWidget/interceptor-enable) MID-touch-stream while the view owned the exclusive grab; runner-up = Qt 6.8.2 passive-grab bookkeeping over WebEngineView. Fix (d5088f7, Codex-recommended shape, opus-reviewed "Ready to deploy"): NO Qt pointer handler — `resources/web/host-gestures.js` (5th injected script, observe-only capture pointer listeners, no preventDefault) detects ≥500ms/<12px holds and on pointer-UP navigates to sentinel `prodigy://host/longpress`; WebWidgetHost intercepts it in onNavigationRequested (IgnoreRequest, before the same-origin guard) and emits `longPressed()`; HomeMenu Connections (ignoreUnknownSignals — natives unaffected, verified across all 11 registry widgets) runs the guarded select-flash strictly AFTER the touch stream ends (renderer→browser IPC round-trip = structural crash immunity; worst case is silent no-gesture). Also added `onTouchSelectionMenuRequested: accepted=true` (suppress text-selection menus in widgets). **Matthew confirmed on the touchscreen: long-press (hold, then lift) selects; drag/resize work; page buttons unaffected.** Deliberate UX divergence: web widgets select on finger-lift after the hold, natives at the 500ms mark. Never re-try Qt pointer handlers over WebEngineView — the QML comments + this entry record why. Checklist final: items 1-6 PASS (3 with the corrected renderer-PID drill; 6 = 1 WS/1 renderer), 7 n/a (no https-subresource widget yet), 8 was a note. **Deploy speed note:** targeted app-only cross-build (`cmake --build . --target openauto-prodigy` in the container against the warm build-pi cache) took ~4 min vs ~20 for the full build — scripted adoption in cross-build.sh is wishlisted.
 
+## 2026-07-08 — SESSION WRAP: media player stage 1 bench-ready — Handoff to fresh session
+
+**State:** develop @ d25430d, 23 commits ahead of origin, NOT pushed (push gates on
+bench pass). Pi @ 192.168.1.149 runs the CURRENT build (includes launcher widget,
+all final-review fixes): service active, clean journal. Fixtures at ~/Music/fixtures/
+(two 0.5s test tones — real music recommended for the audible rows).
+
+**Immediate next step (Matthew + fresh session):** the 12-row bench checklist in the
+2026-07-08 deploy entry above, PLUS row 13 (start local while AA music playing —
+expect local audible, AA muted at HU mixer) and row 11 addendum (corrupt restored
+track at boot → silence + paused UI). First: add the Media Player launcher tile via
+dashboard edit mode → widget picker (picker-visible, not seeded — bench finding #1:
+apps launch ONLY via dashboard launcher widgets; the plan had assumed the v0.4.5-deleted
+nav strip; CLAUDE.md corrected).
+
+**After bench passes:** push develop, then plan stage 2 (library scanner + udisks2
+automount). Stage-2 planning inputs are in .superpowers/sdd/progress.md (machine-local)
+and the final-review triage: shared-EQ-engine coexistence, main-thread PCM watch,
+plugin-ABI policy, restorePaused unit test, fmtTime hours, case-insensitive sort
+fixture, AA focus-push bench experiment (Task 11 sketch). Lesson recorded: verify
+launch/UX surfaces against the live shell, not doc phrasing.
+
 ## 2026-07-08 — Media Player Stage 1: final review + fix batch + redeploy — Arc execution complete (bench pending)
 
 Final whole-branch review (a85096d..e758cf4, 18 commits): **With fixes** — zero Critical.
