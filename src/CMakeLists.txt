@@ -84,6 +84,7 @@ add_library(openauto-core STATIC
     plugins/media_player/FolderModel.cpp
     plugins/media_player/PlaybackEngine.cpp
     plugins/media_player/MediaArtProvider.cpp
+    plugins/media_player/MediaPlayerPlugin.cpp
     plugins/phone/PhonePlugin.cpp
     plugins/equalizer/EqualizerPlugin.cpp
     core/widget/WebWidgetManifest.cpp
@@ -366,6 +367,10 @@ set_source_files_properties(../qml/applications/bt_audio/BtAudioView.qml PROPERT
     QT_QML_SOURCE_TYPENAME "BtAudioView"
     QT_RESOURCE_ALIAS "BtAudioView.qml"
 )
+set_source_files_properties(../qml/applications/media_player/MediaPlayerView.qml PROPERTIES
+    QT_QML_SOURCE_TYPENAME "MediaPlayerView"
+    QT_RESOURCE_ALIAS "MediaPlayerView.qml"
+)
 set_source_files_properties(../qml/applications/phone/PhoneView.qml PROPERTIES
     QT_QML_SOURCE_TYPENAME "PhoneView"
     QT_RESOURCE_ALIAS "PhoneView.qml"
@@ -479,6 +484,7 @@ qt_add_qml_module(openauto-prodigy
         ../qml/applications/settings/SettingsMenu.qml
         ../qml/applications/home/HomeMenu.qml
         ../qml/applications/bt_audio/BtAudioView.qml
+        ../qml/applications/media_player/MediaPlayerView.qml
         ../qml/applications/phone/PhoneView.qml
         ../qml/applications/phone/IncomingCallOverlay.qml
         ../qml/applications/settings/AASettings.qml

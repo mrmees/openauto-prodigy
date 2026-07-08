@@ -58,6 +58,8 @@
 #include "core/aa/ManeuverIconProvider.hpp"
 #include <oaa/HU/Handlers/MediaStatusChannelHandler.hpp>
 #include "plugins/bt_audio/BtAudioPlugin.hpp"
+#include "plugins/media_player/MediaPlayerPlugin.hpp"
+#include "plugins/media_player/MediaArtProvider.hpp"
 #include "plugins/phone/PhonePlugin.hpp"
 #include "plugins/equalizer/EqualizerPlugin.hpp"
 #include "ui/ApplicationController.hpp"
@@ -518,6 +520,11 @@ int main(int argc, char *argv[])
     auto btAudioPlugin = new oap::plugins::BtAudioPlugin(&app);
     pluginManager.registerStaticPlugin(btAudioPlugin);
 
+    auto mediaPlayerPlugin = new oap::plugins::MediaPlayerPlugin(&app);
+    auto* mediaArtProvider = new oap::plugins::MediaArtProvider();
+    mediaPlayerPlugin->setArtProvider(mediaArtProvider);  // non-owning; engine owns it (see addImageProvider below)
+    pluginManager.registerStaticPlugin(mediaPlayerPlugin);
+
     // --- Core phone state service (owns HFP D-Bus + call state machine) ---
     auto phoneStateService = new oap::PhoneStateService(&app);
     phoneStateService->setNotificationService(notificationService);
@@ -614,31 +621,93 @@ int main(int argc, char *argv[])
         mediaStatusService->updateBtPlaybackState(btAudioPlugin->playbackState());
     }
 
+    // Wire MediaStatusService to the local media player plugin
+    QObject::connect(mediaPlayerPlugin, &oap::plugins::MediaPlayerPlugin::metadataChanged,
+                     mediaStatusService, [mediaStatusService, mediaPlayerPlugin]() {
+        mediaStatusService->updateMediaPlayerMetadata(mediaPlayerPlugin->trackTitle(),
+                                                      mediaPlayerPlugin->trackArtist(),
+                                                      mediaPlayerPlugin->trackAlbum());
+        mediaStatusService->updateMediaPlayerArt(mediaPlayerPlugin->artUrl());
+    });
+    QObject::connect(mediaPlayerPlugin, &oap::plugins::MediaPlayerPlugin::playbackStateChanged,
+                     mediaStatusService, [mediaStatusService, mediaPlayerPlugin]() {
+        mediaStatusService->updateMediaPlayerPlaybackState(mediaPlayerPlugin->playbackState());
+    });
+    QObject::connect(mediaPlayerPlugin, &oap::plugins::MediaPlayerPlugin::progressChanged,
+                     mediaStatusService, [mediaStatusService](qint64 pos, qint64 dur) {
+        mediaStatusService->updateMediaPlayerProgress(pos, dur);
+    });
+    QObject::connect(mediaPlayerPlugin, &oap::plugins::MediaPlayerPlugin::hasTrackChanged,
+                     mediaStatusService, [mediaStatusService, mediaPlayerPlugin]() {
+        mediaStatusService->setMediaPlayerConnected(mediaPlayerPlugin->hasTrack());
+    });
+    if (mediaPlayerPlugin->hasTrack()) {   // queue restored at initialize()
+        mediaStatusService->setMediaPlayerConnected(true);
+        mediaStatusService->updateMediaPlayerMetadata(mediaPlayerPlugin->trackTitle(),
+                                                      mediaPlayerPlugin->trackArtist(),
+                                                      mediaPlayerPlugin->trackAlbum());
+        mediaStatusService->updateMediaPlayerPlaybackState(mediaPlayerPlugin->playbackState());
+    }
+
+    // BT progress into the widened surface (cheap win — BtAudioPlugin already
+    // tracks position/duration from AVRCP)
+    QObject::connect(btAudioPlugin, &oap::plugins::BtAudioPlugin::positionChanged,
+                     mediaStatusService, [mediaStatusService, btAudioPlugin]() {
+        mediaStatusService->updateBtProgress(btAudioPlugin->trackPosition(),
+                                             btAudioPlugin->trackDuration());
+    });
+
     // Playback control delegation
     {
         auto* orch = aaPlugin->orchestrator();
         mediaStatusService->setPlaybackCallbacks(
-            [mediaStatusService, orch, btAudioPlugin]() {
+            [mediaStatusService, orch, btAudioPlugin, mediaPlayerPlugin]() {
                 if (mediaStatusService->source() == "AndroidAuto" && orch)
                     orch->sendButtonPress(85);
                 else if (mediaStatusService->source() == "Bluetooth" && btAudioPlugin) {
                     if (btAudioPlugin->playbackState() == 1) btAudioPlugin->pause();
                     else btAudioPlugin->play();
                 }
+                else if (mediaStatusService->source() == "MediaPlayer" && mediaPlayerPlugin)
+                    mediaPlayerPlugin->playPause();
             },
-            [mediaStatusService, orch, btAudioPlugin]() {
+            [mediaStatusService, orch, btAudioPlugin, mediaPlayerPlugin]() {
                 if (mediaStatusService->source() == "AndroidAuto" && orch)
                     orch->sendButtonPress(87);
                 else if (mediaStatusService->source() == "Bluetooth" && btAudioPlugin)
                     btAudioPlugin->next();
+                else if (mediaStatusService->source() == "MediaPlayer" && mediaPlayerPlugin)
+                    mediaPlayerPlugin->next();
             },
-            [mediaStatusService, orch, btAudioPlugin]() {
+            [mediaStatusService, orch, btAudioPlugin, mediaPlayerPlugin]() {
                 if (mediaStatusService->source() == "AndroidAuto" && orch)
                     orch->sendButtonPress(88);
                 else if (mediaStatusService->source() == "Bluetooth" && btAudioPlugin)
                     btAudioPlugin->previous();
+                else if (mediaStatusService->source() == "MediaPlayer" && mediaPlayerPlugin)
+                    mediaPlayerPlugin->previous();
             }
         );
+    }
+
+    // One audible music source at a time (spec §6): starting one pauses the
+    // others. AA-side: pausing the PHONE's media on local play-start is Task
+    // 11's investigation; here we only pause local when AA reports playing.
+    QObject::connect(mediaPlayerPlugin, &oap::plugins::MediaPlayerPlugin::playbackStarted,
+                     btAudioPlugin, [btAudioPlugin]() {
+        if (btAudioPlugin->playbackState() == 1) btAudioPlugin->pause();
+    });
+    QObject::connect(btAudioPlugin, &oap::plugins::BtAudioPlugin::playbackStateChanged,
+                     mediaPlayerPlugin, [mediaPlayerPlugin, btAudioPlugin]() {
+        if (btAudioPlugin->playbackState() == 1) mediaPlayerPlugin->pauseIfPlaying();
+    });
+    if (auto* orchForPolicy = aaPlugin->orchestrator()) {
+        if (auto* mshForPolicy = orchForPolicy->mediaStatusHandler()) {
+            QObject::connect(mshForPolicy, &oaa::hu::MediaStatusChannelHandler::playbackStateChanged,
+                             mediaPlayerPlugin, [mediaPlayerPlugin](int state, const QString&) {
+                if (state == 2) mediaPlayerPlugin->pauseIfPlaying();  // AA raw 2 = playing
+            }, Qt::QueuedConnection);
+        }
     }
 
     // --- Projection status provider (wraps orchestrator for narrow interface) ---
@@ -1123,6 +1192,7 @@ int main(int argc, char *argv[])
 
     // Navigation icon image provider
     engine.addImageProvider(QStringLiteral("navicon"), maneuverIconProvider);
+    engine.addImageProvider(QStringLiteral("mediaart"), mediaArtProvider);  // engine takes ownership
 
     // Geometry override for windowed resolution testing
     engine.rootContext()->setContextProperty("_geomW", geomW);
