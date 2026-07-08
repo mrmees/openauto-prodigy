@@ -82,7 +82,7 @@ rsync -av build-pi/src/openauto-prodigy matt@192.168.1.149:~/openauto-prodigy/bu
 ssh matt@192.168.1.149 'sudo systemctl restart openauto-prodigy.service'
 ```
 
-Use this for anything that doesn't require the install script to set up system-level config. Push QML changes via git (`git push` + `ssh matt@192.168.1.149 'cd ~/openauto-prodigy && git pull'`) since QML isn't in the binary.
+Use this for anything that doesn't require the install script to set up system-level config. QML ships inside the binary (qt_add_qml_module + qmlcache, verified 2026-07-08) — QML changes also require cross-build + binary rsync; a git pull alone will NOT update the UI.
 
 **Fallback — native build on Pi** (if cross-build has ABI issues):
 ```bash
