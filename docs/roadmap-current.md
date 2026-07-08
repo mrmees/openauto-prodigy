@@ -37,9 +37,9 @@ Governance: capture new ideas in `docs/wishlist.md`; only promoted items should 
   aac=probably, vp9=probably; qrc secureContext=true; widget-runtime regression
   clean (renderer alive, zero webwidget errors). Desktop Chromium deliberately
   left installed (user's browser). Real-service bench check (Shaka/Spotify)
-  pending ~10 min with Matthew — note: currently blocked by the Pi's broken
-  outbound internet (LAN fine, TLS/HTTP to internet dies mid-transfer —
-  discovered during Task 5 deploy). Spec:
+  pending ~10 min with Matthew — unblocked same evening: the "broken outbound
+  internet" was the companion proxy route with the phone's mobile data off
+  (diagnosis in the wishlist proxy-blackhole entry). Spec:
   `docs/superpowers/specs/2026-07-07-web-surface-strategy-design.md`. COMPLETE.
 
 ## Now
