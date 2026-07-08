@@ -80,6 +80,7 @@ add_library(openauto-core STATIC
     core/plugin/PluginManager.cpp
     plugins/android_auto/AndroidAutoPlugin.cpp
     plugins/bt_audio/BtAudioPlugin.cpp
+    plugins/media_player/PlayQueue.cpp
     plugins/phone/PhonePlugin.cpp
     plugins/equalizer/EqualizerPlugin.cpp
     core/widget/WebWidgetManifest.cpp
