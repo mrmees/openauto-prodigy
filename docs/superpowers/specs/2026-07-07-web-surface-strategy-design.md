@@ -46,14 +46,16 @@ player. **All stay native QML.** Rationale:
 Corollaries: the media player arc (roadmap Now) is native (Qt Multimedia backend feeding
 MediaStatusService, native QML UI). The EQ UI stays native.
 
-## Decision 2 — Keep QtWebEngine; purge desktop Chromium at install
+## Decision 2 — Keep QtWebEngine; leave desktop Chromium alone
 
-No engine swap, no fork:
+No engine swap, no fork, no purge:
 
 - QtWebEngine already is the "de-Googled trimmed Chromium": Qt's embed strips sync, sign-in,
   Safe Browsing, Google API keys, and variations/field-trial telemetry; our hosts add
-  locked-down settings on top. The Google-service bloat Matthew objects to lives in the unused
-  desktop Chromium.
+  locked-down settings on top. The Google-service bloat Matthew objects to lives in the
+  desktop Chromium — which prodigy never launches, so it costs disk, not runtime.
+- Desktop Chromium stays installed (Matthew's call, 2026-07-07): it's the user's system, and
+  they may want a real browser when not using prodigy. The installer must not remove it.
 - A self-maintained Chromium fork is not lighter at runtime and forfeits Debian security
   updates — a liability on a car computer.
 - WPE WebKit (the one genuinely lighter engine with a real DRM story) has no Qt 6 integration
@@ -81,23 +83,20 @@ resource cap (one app alive at a time?); whether librespot (Spotify Connect targ
 DRM-free, Premium-only, no on-HU browse) complements the web player. Entry goes to
 `docs/wishlist.md` pending promotion; the media player remains the committed Now arc.
 
-## Slice 1 — engine hygiene + Widevine enablement (implement now)
+## Slice 1 — Widevine enablement (implement now)
 
 Day-scale, de-risks Decision 3 before anything is designed around it.
 
-### 1. Installer: de-google + CDM guarantee (`install.sh`)
+### 1. Installer: CDM guarantee (`install.sh`)
 
-In `install_dependencies()` (or an adjacent step following its `run_with_spinner` convention):
+In `install_dependencies()`:
 
-- **Purge desktop Chromium** — `chromium chromium-common chromium-l10n chromium-sandbox
-  rpi-chromium-mods` — as an interactive yes/no step, default yes, framed as "unused by
-  OpenAuto Prodigy, frees ~300MB". Non-interactive/prebuilt mode follows the same default.
-  Packages absent (e.g. Trixie Lite base) → step is a silent no-op.
-- **Ordering guard:** `apt-mark manual libwidevinecdm0` *before* the purge, so autoremove
-  can't collect it as an orphaned dependency of the chromium stack.
 - **Ensure the CDM:** add `libwidevinecdm0` to the install set (available from the RPi OS
-  archive; already present on the current unit). If the package is unavailable (non-RPi
-  repos), warn and continue — Widevine is an enhancement, not a dependency.
+  archive; already present on the current unit, where the chromium stack pulled it in). On
+  Trixie Lite bases without chromium this is what provides the CDM. If the package is
+  unavailable (non-RPi repos), warn and continue — Widevine is an enhancement, not a
+  dependency.
+- Desktop Chromium, where present, is left untouched (Decision 2).
 
 ### 2. App: Widevine CDM wiring (`src/main.cpp`)
 
@@ -124,8 +123,7 @@ Before `QtWebEngineQuick::initialize()` (main.cpp:176):
 - **Real-service check (needs Matthew):** Spotify Web Player login + playback in the probe.
   ~10 min bench time; also exercises persistent-profile assumptions for the future arc.
 - **Regression:** existing dashboard web widget still loads post-change (flag append must not
-  disturb the widget runtime); full test suite still passes; app on a chromium-purged system
-  shows no regressions (nothing links it).
+  disturb the widget runtime); full test suite still passes.
 
 ### 4. Documentation deliverables
 
