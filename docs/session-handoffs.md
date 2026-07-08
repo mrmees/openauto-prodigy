@@ -1345,6 +1345,32 @@ Documentation:
 
 **Edit-mode entry saga — RESOLVED on-device (2026-07-07 afternoon, develop @ d5088f7):** the TapHandler entry (e72d979) never fired on real touch (WebEngineView takes the exclusive grab; DragThreshold TapHandler cancels), and its replacement PointHandler (a417380) SIGSEGV'd the app on every long-press (3/3, silent UI-process death). Codex read-only investigation ranked the cause: the 500ms timer mutated the scene (scale/lift/selectWidget/interceptor-enable) MID-touch-stream while the view owned the exclusive grab; runner-up = Qt 6.8.2 passive-grab bookkeeping over WebEngineView. Fix (d5088f7, Codex-recommended shape, opus-reviewed "Ready to deploy"): NO Qt pointer handler — `resources/web/host-gestures.js` (5th injected script, observe-only capture pointer listeners, no preventDefault) detects ≥500ms/<12px holds and on pointer-UP navigates to sentinel `prodigy://host/longpress`; WebWidgetHost intercepts it in onNavigationRequested (IgnoreRequest, before the same-origin guard) and emits `longPressed()`; HomeMenu Connections (ignoreUnknownSignals — natives unaffected, verified across all 11 registry widgets) runs the guarded select-flash strictly AFTER the touch stream ends (renderer→browser IPC round-trip = structural crash immunity; worst case is silent no-gesture). Also added `onTouchSelectionMenuRequested: accepted=true` (suppress text-selection menus in widgets). **Matthew confirmed on the touchscreen: long-press (hold, then lift) selects; drag/resize work; page buttons unaffected.** Deliberate UX divergence: web widgets select on finger-lift after the hold, natives at the 500ms mark. Never re-try Qt pointer handlers over WebEngineView — the QML comments + this entry record why. Checklist final: items 1-6 PASS (3 with the corrected renderer-PID drill; 6 = 1 WS/1 renderer), 7 n/a (no https-subresource widget yet), 8 was a note. **Deploy speed note:** targeted app-only cross-build (`cmake --build . --target openauto-prodigy` in the container against the warm build-pi cache) took ~4 min vs ~20 for the full build — scripted adoption in cross-build.sh is wishlisted.
 
+## 2026-07-08 — Media Player Stage 1: final review + fix batch + redeploy — Arc execution complete (bench pending)
+
+Final whole-branch review (a85096d..e758cf4, 18 commits): **With fixes** — zero Critical.
+Fix batch landed + verified (suite 114/114): Local Media stream priority 51 (focus tie
+vs AA Media at 50 would have MUTED the newest player by creation order — display/audio
+contradiction; spec §13.2 was assigned to no task, now resolved this way), restore-error
+no-autoplay guard (`restoring_` flag — a corrupt restored track at boot now stays
+stopped instead of auto-skipping into audible playback), CLAUDE.md deploy note corrected
+(QML ships IN-BINARY via qmlcache; git pull alone will NOT update the UI), `.superpowers/`
+now in tracked .gitignore. Redeployed to Pi @ fcfff3c: active, NRestarts=0, plugin
+initialized, zero QML/binding-loop warnings.
+
+**Bench checklist status:** rows await Matthew (see 2026-07-08 deploy entry above for
+the 12-row table). **NEW ROW 13:** start local playback while AA music is playing —
+expected: local audible + AA music muted at the HU mixer (phone still thinks it's
+playing until paused phone-side; the unprompted focus-push to fix that properly is
+investigated + sketched, deferred — see Task 11 entry + wishlist). Row 11 addendum:
+also test the corrupt-restored-track case (replace the saved track's file with garbage,
+restart service — expect silence, warning log, paused UI).
+
+**Not pushed** — push gates on Matthew's bench pass per workflow. Stage 2 planning
+(library scanner + udisks2 automount) starts after bench. Stage-2 planning inputs
+recorded in the SDD ledger: shared-EQ-engine coexistence, main-thread PCM path watch
+(bufferMs hardcoded 50), plugin-ABI policy for provider widening (apiVersion unbumped),
+restorePaused unit test, fmtTime hour rollover, case-insensitive sort fixture.
+
 ## 2026-07-08 — AA Audio-Focus Push Investigation (Task 11) — Investigation
 
 **Scope:** Spec §6 plan-verify item (b) — can the HU tell an AA-playing phone to
