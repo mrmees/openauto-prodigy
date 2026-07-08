@@ -36,3 +36,6 @@ archive/
 
 # Private competitive-analysis / reference material — never public
 docs/private/
+
+# SDD scratch (briefs, reports, review packages) — machine-local
+.superpowers/
