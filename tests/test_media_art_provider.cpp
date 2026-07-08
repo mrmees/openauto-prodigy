@@ -10,6 +10,7 @@ private slots:
     void testEmptyByDefault();
     void testSetArtBumpsRevisionAndServesImage();
     void testClearArt();
+    void testRequestedSizeScalesButReportsOriginalSize();
 };
 
 void TestMediaArtProvider::testEmptyByDefault() {
@@ -45,6 +46,17 @@ void TestMediaArtProvider::testClearArt() {
     QVERIFY(!p.currentUrl().isEmpty());
     p.setCurrentArt(QImage());
     QCOMPARE(p.currentUrl(), QString());
+}
+
+void TestMediaArtProvider::testRequestedSizeScalesButReportsOriginalSize() {
+    MediaArtProvider p;
+    QImage art(64, 32, QImage::Format_RGB32);
+    art.fill(Qt::red);
+    p.setCurrentArt(art);
+    QSize size;
+    const QImage served = p.requestImage("current/1", &size, QSize(32, 32));
+    QCOMPARE(size, QSize(64, 32));             // original size per Qt contract
+    QCOMPARE(served.size(), QSize(32, 16));    // scaled, KeepAspectRatio
 }
 
 QTEST_GUILESS_MAIN(TestMediaArtProvider)

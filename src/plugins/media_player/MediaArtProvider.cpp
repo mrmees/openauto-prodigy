@@ -23,9 +23,9 @@ QImage MediaArtProvider::requestImage(const QString& /*id*/, QSize* size,
         img = QImage(1, 1, QImage::Format_ARGB32);
         img.fill(Qt::transparent);
     }
+    if (size) *size = img.size();  // ORIGINAL size — Qt contract: used for implicit Image sizing
     if (requestedSize.isValid() && !requestedSize.isEmpty())
         img = img.scaled(requestedSize, Qt::KeepAspectRatio, Qt::SmoothTransformation);
-    if (size) *size = img.size();
     return img;
 }
 
