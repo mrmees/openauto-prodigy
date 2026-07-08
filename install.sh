@@ -858,7 +858,8 @@ install_dependencies() {
     # Chromium (if installed) is deliberately left untouched.
     if apt-cache show libwidevinecdm0 >/dev/null 2>&1; then
         run_with_spinner "Installing Widevine CDM (libwidevinecdm0)" \
-            sudo apt-get install -y -q libwidevinecdm0
+            sudo apt-get install -y -q libwidevinecdm0 \
+            || warn "libwidevinecdm0 install failed — DRM (Widevine) web content will not play"
     else
         warn "libwidevinecdm0 not found in APT repos — DRM (Widevine) web content will not play"
     fi
