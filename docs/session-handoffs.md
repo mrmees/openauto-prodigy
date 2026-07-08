@@ -1305,4 +1305,51 @@ Documentation:
 
 **Edit-mode entry saga — RESOLVED on-device (2026-07-07 afternoon, develop @ d5088f7):** the TapHandler entry (e72d979) never fired on real touch (WebEngineView takes the exclusive grab; DragThreshold TapHandler cancels), and its replacement PointHandler (a417380) SIGSEGV'd the app on every long-press (3/3, silent UI-process death). Codex read-only investigation ranked the cause: the 500ms timer mutated the scene (scale/lift/selectWidget/interceptor-enable) MID-touch-stream while the view owned the exclusive grab; runner-up = Qt 6.8.2 passive-grab bookkeeping over WebEngineView. Fix (d5088f7, Codex-recommended shape, opus-reviewed "Ready to deploy"): NO Qt pointer handler — `resources/web/host-gestures.js` (5th injected script, observe-only capture pointer listeners, no preventDefault) detects ≥500ms/<12px holds and on pointer-UP navigates to sentinel `prodigy://host/longpress`; WebWidgetHost intercepts it in onNavigationRequested (IgnoreRequest, before the same-origin guard) and emits `longPressed()`; HomeMenu Connections (ignoreUnknownSignals — natives unaffected, verified across all 11 registry widgets) runs the guarded select-flash strictly AFTER the touch stream ends (renderer→browser IPC round-trip = structural crash immunity; worst case is silent no-gesture). Also added `onTouchSelectionMenuRequested: accepted=true` (suppress text-selection menus in widgets). **Matthew confirmed on the touchscreen: long-press (hold, then lift) selects; drag/resize work; page buttons unaffected.** Deliberate UX divergence: web widgets select on finger-lift after the hold, natives at the 500ms mark. Never re-try Qt pointer handlers over WebEngineView — the QML comments + this entry record why. Checklist final: items 1-6 PASS (3 with the corrected renderer-PID drill; 6 = 1 WS/1 renderer), 7 n/a (no https-subresource widget yet), 8 was a note. **Deploy speed note:** targeted app-only cross-build (`cmake --build . --target openauto-prodigy` in the container against the warm build-pi cache) took ~4 min vs ~20 for the full build — scripted adoption in cross-build.sh is wishlisted.
 
+## 2026-07-08 — AA Audio-Focus Push Investigation (Task 11) — Investigation
+
+**Scope:** Spec §6 plan-verify item (b) — can the HU tell an AA-playing phone to
+pause its media when local (BT/MediaPlayer) playback starts? This is the reverse of
+Task 8(d)'s pause-others policy (landed, `src/main.cpp:696-711`), which only pauses
+LOCAL playback when AA reports playing. Grep-and-read investigation against
+`libs/prodigy-oaa-protocol/` (read-only submodule, untouched) and `src/core/aa/`; no
+Pi/phone bench available this session, so nothing was wired in per controller
+constraint — investigation + sketch only. `src/` and `libs/` are unmodified.
+
+**Findings:** The phone→HU direction (`AudioFocusRequest`, control channel msg
+`0x0012`) is fully handled with a grant-all policy in
+`libs/prodigy-oaa-protocol/src/Session/AASession.cpp:64-93` — every request gets an
+immediate `AudioFocusResponse` (msg `0x0013`) plus an `audioFocusChanged(int)` signal
+that `AndroidAutoOrchestrator.cpp:369-393` uses to duck/gain local PipeWire streams.
+The reverse (HU-initiated, unprompted) direction has the wire plumbing already
+in place — `ControlChannel::sendAudioFocusResponse(QByteArray)`
+(`ControlChannel.hpp:27` / `.cpp:229`) is a generic, non-request-gated send of msg
+`0x0013`, and `AASession::controlChannel()` is a public accessor — but **zero
+call sites exist for it** outside the request-driven reply in `AASession.cpp:89`.
+No orchestrator-level "push a focus state to the phone now" method exists in `src/`.
+
+**Verdict: implementable, ~20 lines** (a `notifyAudioFocusLoss()`/
+`notifyAudioFocusGain()` pair on `AndroidAutoOrchestrator`, reusing the existing
+`session_->controlChannel()->sendAudioFocusResponse()` + `AudioFocusResponse`/
+`AudioFocusState` proto types with zero protocol-library changes) — clears the
+brief's ≤30-line bar comfortably. **Deferred, not wired in**, because the decision
+gate's second condition (same-day bench test on Pi + phone) can't be satisfied
+without hardware access this session. Full ready-to-apply code sketch (header +
+cpp + the `main.cpp` Step-3 wiring, unchanged from the brief) is in
+`.superpowers/sdd/task-11-report.md`, ready for a future bench session to apply and
+test directly — no further investigation needed first.
+
+**Risks flagged for that bench session:** whether the phone actually honors an
+*unprompted* `AudioFocusResponse` (the proto's gold-confidence trace covers the
+*reply* path, not an unsolicited push — inferred but not proven); per-phone-model
+variance (test at least Moto G Play 2024 + Samsung S25 Ultra, both already
+characterized for other AA quirks); session-wedge safety around AA
+connect/disconnect races; correct trigger timing for `notifyAudioFocusGain()` on
+local stop (avoid ping-pong on pause/resume scrubbing); avoid clobbering an
+in-flight phone-side `GAIN_TRANSIENT`/`GAIN_TRANSIENT_MAY_DUCK` (nav-guidance duck)
+with an unconditional `LOSS` push. Full detail in the report.
+
+**Wishlist:** "AA focus push-to-phone for local playback coexistence" entry added,
+pointing at the report. Shipping stage 1 without this remains explicitly acceptable
+per spec §6 ("annoying, not broken").
+
 **Session wrap (2026-07-07 ~15:30 CDT, context limit):** Post-checklist all green (see entries above; Pi verified end-to-end). Started two follow-on streams, both handed to next session: (1) **web-widget quality mini-batch** — Task QA (cross-build fast app-only default + --full flag) was mid-flight at wrap (subagent commits autonomously; verify + review + push next session); QB shim-hardening trio / QC logging / QD widget-author-limitations doc not yet dispatched (briefs from the wishlist JS-runtime section; ledger has the task letters). (2) **Theme-upload endpoint brainstorm** — exploration complete, notes at `docs/superpowers/specs/2026-07-07-theme-upload-context-notes.md` (open questions Q1-Q4 inside; Q1 auth posture was asked and not yet answered). EQ design sprint remains the next big roadmap item after these.
