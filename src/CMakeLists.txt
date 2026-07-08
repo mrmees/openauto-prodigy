@@ -82,6 +82,7 @@ add_library(openauto-core STATIC
     plugins/bt_audio/BtAudioPlugin.cpp
     plugins/media_player/PlayQueue.cpp
     plugins/media_player/FolderModel.cpp
+    plugins/media_player/PlaybackEngine.cpp
     plugins/phone/PhonePlugin.cpp
     plugins/equalizer/EqualizerPlugin.cpp
     core/widget/WebWidgetManifest.cpp

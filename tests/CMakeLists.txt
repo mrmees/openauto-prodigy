@@ -40,6 +40,12 @@ oap_add_test(test_plugin_model SOURCES test_plugin_model.cpp)
 oap_add_test(test_play_queue SOURCES test_play_queue.cpp)
 oap_add_test(test_folder_model SOURCES test_folder_model.cpp)
 
+oap_add_test(test_playback_engine
+    SOURCES test_playback_engine.cpp
+    DEFS TEST_DATA_DIR="${CMAKE_CURRENT_BINARY_DIR}/data"
+)
+file(COPY data/media DESTINATION ${CMAKE_CURRENT_BINARY_DIR}/data)
+
 # --- Service tests ---
 
 oap_add_test(test_theme_service
