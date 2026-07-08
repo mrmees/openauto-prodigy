@@ -20,15 +20,24 @@ Item {
     property string mediaSource: widgetContext && widgetContext.mediaStatus
                                  ? (widgetContext.mediaStatus.source || "") : ""
     property bool isPlaying: widgetContext && widgetContext.mediaStatus
-                             ? widgetContext.mediaStatus.playbackState === 1 : false
+                             ? widgetContext.mediaStatus.isPlaying === true : false
     property string title: widgetContext && widgetContext.mediaStatus
                            ? (widgetContext.mediaStatus.title || "") : ""
     property string artist: widgetContext && widgetContext.mediaStatus
                             ? (widgetContext.mediaStatus.artist || "") : ""
+    property string artUrl: widgetContext && widgetContext.mediaStatus
+                            ? (widgetContext.mediaStatus.artUrl || "") : ""
+    property bool hasPosition: widgetContext && widgetContext.mediaStatus
+                               ? widgetContext.mediaStatus.hasPosition === true : false
+    property real trackPosition: widgetContext && widgetContext.mediaStatus
+                                 ? widgetContext.mediaStatus.position : -1
+    property real trackDuration: widgetContext && widgetContext.mediaStatus
+                                 ? widgetContext.mediaStatus.duration : 0
 
     // Source icon codepoints
     readonly property string btIcon: "\uf032"       // media_bluetooth_on
     readonly property string aaIcon: "\ue859"       // android
+    readonly property string localIcon: "\ue030"    // library_music (local media player)
 
     // Scaling helpers — buttons should be large and easy to hit
     // In tall layout, buttons get 40% of widget height
@@ -60,10 +69,26 @@ Item {
         readonly property real btnFromWidth: showSkip ? width / 3.6 : width / 1.2
         readonly property real btnSize: Math.min(btnFromHeight, btnFromWidth)
 
+        // Cover art (tall layout, 3+ cols, when the source provides it)
+        Image {
+            id: tallArt
+            visible: nowPlayingWidget.colSpan >= 3 && nowPlayingWidget.artUrl !== ""
+                     && status === Image.Ready
+            source: nowPlayingWidget.colSpan >= 3 ? nowPlayingWidget.artUrl : ""
+            anchors.left: parent.left
+            anchors.top: parent.top
+            anchors.bottom: controlRegion.top
+            anchors.bottomMargin: UiMetrics.spacing
+            width: visible ? height : 0
+            fillMode: Image.PreserveAspectCrop
+            asynchronous: true
+        }
+
         // Top region: title + artist — vertically centered (hidden at 1x1)
         Column {
             visible: nowPlayingWidget.colSpan >= 2 || nowPlayingWidget.rowSpan >= 2
-            anchors.left: parent.left
+            anchors.left: tallArt.visible ? tallArt.right : parent.left
+            anchors.leftMargin: tallArt.visible ? UiMetrics.spacing : 0
             anchors.right: parent.right
             anchors.top: parent.top
             anchors.bottom: controlRegion.top
@@ -193,6 +218,17 @@ Item {
         spacing: UiMetrics.spacing
         visible: nowPlayingWidget.hasMedia && !nowPlayingWidget.isTall
 
+        // Cover art thumbnail (wide row layouts, when available)
+        Image {
+            source: nowPlayingWidget.isWide ? nowPlayingWidget.artUrl : ""
+            visible: nowPlayingWidget.isWide && nowPlayingWidget.artUrl !== ""
+                     && status === Image.Ready
+            Layout.preferredWidth: visible ? nowPlayingWidget.height * 0.8 : 0
+            Layout.preferredHeight: Layout.preferredWidth
+            fillMode: Image.PreserveAspectCrop
+            asynchronous: true
+        }
+
         // Metadata — fills available width
         ColumnLayout {
             Layout.fillWidth: true
@@ -291,6 +327,46 @@ Item {
                 enabled: mediaSource !== ""
                 onClicked: ActionRegistry.dispatch("media.next")
             }
+        }
+    }
+
+    // Source badge (top-right): which source owns the display right now
+    MaterialIcon {
+        visible: nowPlayingWidget.hasMedia && nowPlayingWidget.mediaSource !== ""
+        anchors.top: parent.top
+        anchors.right: parent.right
+        anchors.margins: UiMetrics.spacing * 0.5
+        icon: nowPlayingWidget.mediaSource === "Bluetooth" ? nowPlayingWidget.btIcon
+            : nowPlayingWidget.mediaSource === "AndroidAuto" ? nowPlayingWidget.aaIcon
+            : nowPlayingWidget.localIcon
+        size: Math.max(14, nowPlayingWidget.height * 0.10)
+        color: ThemeService.onSurfaceVariant
+        opacity: 0.7
+    }
+
+    // Track progress along the bottom edge (only when the source reports it).
+    // Container is an Item, NOT a Rectangle: child opacity multiplies under a
+    // translucent parent, so track and fill must be siblings.
+    Item {
+        visible: nowPlayingWidget.hasMedia && nowPlayingWidget.hasPosition
+                 && nowPlayingWidget.trackDuration > 0
+        anchors.left: parent.left
+        anchors.right: parent.right
+        anchors.bottom: parent.bottom
+        height: 3
+
+        Rectangle {  // track
+            anchors.fill: parent
+            color: ThemeService.onSurfaceVariant
+            opacity: 0.25
+        }
+        Rectangle {  // fill
+            anchors.left: parent.left
+            anchors.top: parent.top
+            anchors.bottom: parent.bottom
+            width: parent.width * Math.min(1, nowPlayingWidget.trackPosition / nowPlayingWidget.trackDuration)
+            color: ThemeService.primary
+            opacity: 0.85
         }
     }
 
