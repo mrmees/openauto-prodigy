@@ -23,6 +23,8 @@ Ideas captured here. Promote to `roadmap-current.md` when ready to commit.
 
 ## Candidate Ideas
 
+- **Installer: offer example web widgets on fresh installs** — discovered on the 2026-07-08 clean reinstall: web widgets are user content (`~/.openauto/webwidgets/`), so a reflash silently loses them all and the dashboard comes up bare ("Registered 0 web widget(s)"); recovery was a manual `cp -r examples/webwidgets/hello-theme ~/.openauto/webwidgets/` + app restart. Installer (or first-run) could offer to seed `examples/webwidgets/*`. Related: user-content backup/restore (widgets + themes + config) across reinstalls.
+
 - **FM radio (RTL-SDR + RDS)** — paid-alternative-parity feature, explicitly deferred as a nice-to-have (Matthew, 2026-07-02). RTL-SDR dongle for tuning, RDS decode for station/track text, integrated as a media source.
 
 - **Companion notifications on head unit** — The companion app ([openauto-companion](https://github.com/mrmees/openauto-companion)) already does GPS/time/battery/internet sharing + theme transfer. Remaining paid-alternative-parity gap: displaying phone notifications on the head unit. Depends on the head-unit notification service (extensibility plan Priority 3).
