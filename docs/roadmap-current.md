@@ -36,10 +36,13 @@ Governance: capture new ideas in `docs/wishlist.md`; only promoted items should 
   access WIDEVINE SUPPORTED (mp4) and (webm) on-device; codecs h264=probably,
   aac=probably, vp9=probably; qrc secureContext=true; widget-runtime regression
   clean (renderer alive, zero webwidget errors). Desktop Chromium deliberately
-  left installed (user's browser). Real-service bench check (Shaka/Spotify)
-  pending ~10 min with Matthew — unblocked same evening: the "broken outbound
-  internet" was the companion proxy route with the phone's mobile data off
-  (diagnosis in the wishlist proxy-blackhole entry). Spec:
+  left installed (user's browser). Real-service bench check PASSED same evening
+  (Matthew, on-device): Shaka demo "Angel One" Widevine asset played with video +
+  audio — full DRM chain (license request → CDM decrypt → decode → render) proven
+  against a real license server. Bench notes: the head-unit app must be stopped
+  for browser bench tools (it owns the touchscreen), and stopping it reproduced
+  the proxy-blackhole (third incident; wishlist entry updated). Spotify login
+  round not run (optional; the WebAppHost arc will cover login UX). Spec:
   `docs/superpowers/specs/2026-07-07-web-surface-strategy-design.md`. COMPLETE.
 
 ## Now
