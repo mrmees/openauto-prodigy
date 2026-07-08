@@ -4,6 +4,46 @@ Newest entries first.
 
 ---
 
+## 2026-07-08 — Media-player arc, Task 12: integration verification + Pi deploy — bench checklist pending Matthew
+
+**Branch:** `develop` @ `2aeb411` (`docs(aa): audio-focus push investigation`), 18 unpushed commits since `192b0fa` — the whole stage-1 media-player arc (Tasks 1–11). Working tree clean at build time; binary and QML both built/deployed from this commit.
+
+### Verification results (automatable portion; Matthew not present for touch/audible rows)
+
+1. **Full local suite:** `cmake` + `make -j16` + `ctest` in `~/builds/openauto-prodigy` — **114/114 passed, 0 failed** (26.77s). (The task brief's "92 tests" figure was stale — the suite grew with API v1 etc.; 100% pass is the gate.)
+2. **Cross-build:** `sg docker -c './cross-build.sh'` (stale-group workaround needed as expected) — fast app-only mode, exit 0, `build-pi/src/openauto-prodigy` produced: `ELF 64-bit LSB pie executable, ARM aarch64`, 29.9 MB, `MediaPlayerView_qml.cpp.o` visible in the qmlcache compile.
+3. **Deploy (17:00 EDT):** `mkdir -p ~/openauto-prodigy/build/src ~/Music` → rsync binary → rsync `qml/` → rsync `tests/data/media/` → `~/Music/fixtures/` (tone-44k.mp3, tone-48k.flac) → `systemctl restart openauto-prodigy.service`. All clean. Note: journal QML paths are `qrc:/…` — QML ships inside the binary via qmlcache, so the disk `qml/` rsync is belt-and-braces. The Pi's git clone is still at `9599ec6` (commits go over git after review, per plan).
+4. **Health checks (all PASS):**
+   - Service **active**; preflight 4/4 PASS; `sd_notify READY=1`; watchdog heartbeat started.
+   - Journal: `Registered static plugin: "org.openauto.media-player"` + `Plugin initialized: "org.openauto.media-player"` (registration → init 09.197 → 09.514, clean).
+   - **NRestarts=0**, MainPID 193378 stable across a 60s watch — no crash loop. Crash-keyword journal sweep: only routine lines (my own restart's "Stopped", MediaStatusChannel "STOPPED" debug from the auto-connected Pixel 8 / idle YouTube Music).
+   - QML: **no errors**. One repeated **warning**: `NowPlayingWidget.qml:48:5 QML MaterialIcon: Binding loop detected for property "size"` — line 52 `size: Math.min(width, height) * 0.5` reads the MaterialIcon's *own* width/height (which derive from `size`) instead of `nowPlayingWidget`'s. Cosmetic, app healthy; **follow-up fix needed** (should be caught in the review pass before push).
+
+### Bench checklist (spec §12 stage 1) — status
+
+| # | Check | Result |
+|---|-------|--------|
+| 1 | Media Player appears in nav; Folders browse works by touch | [pending bench] — plugin registered + initialized in journal; view compiled into binary |
+| 2 | Local file plays with audio out | [pending bench] — fixtures seeded at `~/Music/fixtures/` |
+| 3 | **[M]** EQ preset audibly changes local playback | [pending bench] |
+| 4 | Master volume applies to local playback | [pending bench] |
+| 5 | Now-playing bar: art, title, progress advance, seek works | [pending bench] |
+| 6 | Dashboard NowPlayingWidget: art, progress, source badge, play state correct | [pending bench] — widget instantiates on dashboard (binding-loop warning proves it's live); visual correctness needs eyes |
+| 7 | Widget transport controls drive local playback | [pending bench] |
+| 8 | **[M]** BT pauses when local starts; local pauses when BT starts | [pending bench] — Pixel 8 auto-connected via BT post-restart, so the BT side is ready |
+| 9 | **[M]** AA nav prompt ducks local audio (not pause) | [pending bench] |
+| 10 | API v1 media stream reports LOCAL_MEDIA + position fields | [pending bench] — serializer unit-covered in suite; live WS observation not run (no local playback possible without touch) |
+| 11 | State restores paused after service restart | [pending bench] — needs a playing session first |
+| 12 | Unplayable-file policy (skip once / 3-in-a-row stops with toast) | [pending bench] |
+
+Phone re-pairing NOT needed: the fresh install already has the Pixel 8 paired (journal: `Found 1 paired device(s)`, `Phone connected via BT: "Pixel 8"`).
+
+**Next:** (1) Matthew runs the 12-row checklist on the bench (~20 min incl. rows 8–9 with phone); (2) fix the NowPlayingWidget binding loop; (3) `superpowers:requesting-code-review` over the arc, push on pass; (4) plan stage 2 (library + USB automount).
+
+Full verification evidence: `.superpowers/sdd/task-12-report.md`.
+
+---
+
 ## 2026-07-08 — Media-player arc, Task 1 spike: QAudioBufferOutput real-time pacing — VERDICT: GO
 
 **Branch:** `develop`. Standalone spike tool (own CMakeLists, builds outside the main tree) — gates Task 6 (PlaybackEngine) of the media-player arc; nothing else in Tasks 2–5 depended on it.

@@ -47,9 +47,10 @@ Governance: capture new ideas in `docs/wishlist.md`; only promoted items should 
 
 ## Now
 
-- Local media player plugin. *(promoted from Later 2026-07-07 — next Fable arc)*
-  - Rationale: local file playback with metadata/cover art is table stakes for a head unit; prodigy currently only plays BT audio. Biggest remaining daily-driver parity gap. Light plan exists (Phase F1); needs the full design → plan → execute arc.
-  - Outcome: media player plugin (Qt Multimedia) integrated with MediaStatusService and the now-playing UI.
+- Local media player plugin — **stage 1 code-complete + deployed to Pi (2026-07-08)**; bench checklist pending Matthew.
+  - Stage 1 shipped (develop @ `2aeb411`, 18 commits): MediaPlayerPlugin (folder browse + now-playing bar), PlaybackEngine (QMediaPlayer PCM tap → AudioService, spike-gated GO), PlayQueue (shuffle/repeat, TDD), FolderModel, MediaArtProvider, 3-source playing-wins arbitration, NowPlayingWidget (art/progress/source badge/transport), API v1 LOCAL_MEDIA source + position fields. Suite 114/114 green; cross-build + Pi deploy verified healthy (service active, plugin registered, NRestarts=0).
+  - Remaining stage 1: 12-row bench checklist with Matthew (touch/audible rows — see session-handoffs 2026-07-08 deploy record), then review + push.
+  - Next: **stage 2 (library + USB automount) planning.**
 
 - Audio equalizer — parity audit only. *(scoped down 2026-07-05: the substrate scout found the EQ already functional — EqualizerService runs 3 engines with presets + persistence, applied on the PipeWire RT thread)*
   - Remaining: audit web-config advanced-profile parity against the original outcome statement (on-HU preset swapping vs web-based advanced EQ setup / profile creation). Audit protocol in Phase F2 light plan.
