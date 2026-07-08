@@ -28,6 +28,19 @@ Governance: capture new ideas in `docs/wishlist.md`; only promoted items should 
 - HTML/JS web-widget runtime (sprint Phase C2) — `prodigy://` scheme + WebWidgetHost (locked-down WebEngine) + `prodigy` JS shim riding the External API WebSocket; packaged widgets under `~/.openauto/webwidgets/`. Pi-verified end-to-end incl. full touchscreen checklist; shim-hardening batch + authoring guide (`docs/web-widget-authoring.md`) landed 2026-07-07. COMPLETE.
 - Theme/wallpaper upload endpoint — `POST /api/theme/install` (web-config multipart → temp-file handoff → IPC `install_theme` → `importCompanionTheme`), real success/failure in the response (fixes the legacy 9876 ack-lie). Deployed to Pi 2026-07-07; HTTP contract handed to the companion maintainer. COMPLETE (legacy 9876 retirement now gates only on the companion shipping its client).
 - Cross-build fast mode — app-only default + `--full` flag; Pi deploy builds dropped ~20 min → ~4 min. COMPLETE.
+- Widevine enablement (web-surface strategy Slice 1) — CDM auto-wiring in main.cpp
+  (`--widevine-path` from `/opt/WidevineCdm`, env-override respected), best-effort
+  `libwidevinecdm0` in install.sh, `tools/eme-probe` verification harness. Verified
+  on Pi 2026-07-07: CDM loaded YES (journal: `Widevine CDM wired:
+  "/opt/WidevineCdm/gmp-widevinecdm/latest/libwidevinecdm.so"`); EME key-system
+  access WIDEVINE SUPPORTED (mp4) and (webm) on-device; codecs h264=probably,
+  aac=probably, vp9=probably; qrc secureContext=true; widget-runtime regression
+  clean (renderer alive, zero webwidget errors). Desktop Chromium deliberately
+  left installed (user's browser). Real-service bench check (Shaka/Spotify)
+  pending ~10 min with Matthew — note: currently blocked by the Pi's broken
+  outbound internet (LAN fine, TLS/HTTP to internet dies mid-transfer —
+  discovered during Task 5 deploy). Spec:
+  `docs/superpowers/specs/2026-07-07-web-surface-strategy-design.md`. COMPLETE.
 
 ## Now
 
@@ -54,6 +67,9 @@ Governance: capture new ideas in `docs/wishlist.md`; only promoted items should 
   - The companion (Android app, sibling repo `personal/openautopro/openauto-companion`) migrates from the legacy port-9876 JSON/HMAC protocol to API v1 (WebSocket + PIN pairing, `companion.proto` reports) + the new theme-upload HTTP endpoint. All head-unit prerequisites have shipped: API v1 + v1.1 additive batch (2026-07-06) and the theme-upload endpoint (2026-07-07, contract handed off).
   - Remaining (this repo): **retire `CompanionListenerService` + port 9876** once the companion ships its API v1 + HTTP theme client. At retirement: dedup the camelCase→hyphen conversion + fix-or-delete the legacy RNG hygiene items (see wishlist).
   - Companion-parity follow-up idea (wishlist, not promoted): phone notifications displayed on the head unit — blockers dissolved (NotificationService + overlay framework both exist), but it waits on the companion's API v1 migration.
+- Streaming web apps (WebAppHost) — fullscreen Spotify/YouTube/parked-video surface
+  riding the slice-1 Widevine wiring. Scoped (Decision 3 of the web-surface spec);
+  wishlist entry has the open questions. Queued behind the media player arc.
 - Key-event navigation map (steering-wheel / hardware buttons) — sketch in Phase F4 light plan.
 - CI automation for builds and tests.
 - Multi-display / resolution support beyond 1024x600.

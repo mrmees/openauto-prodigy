@@ -10,6 +10,8 @@ Ideas captured here. Promote to `roadmap-current.md` when ready to commit.
 
 - **Boot/reboot startup reliability** — After a reboot, `graphical.target` was slow to activate (stuck on `systemd-networkd-wait-online.service` timeout). Prodigy service depends on `graphical.target` so it sat in `inactive (dead)` until the timeout passed. Need to verify clean boot sequence, measure time-to-app, and possibly mask the networkd-wait service (NetworkManager is the actual manager). Phase 4 territory.
 
+- **Pi outbound internet broken** — discovered 2026-07-07 during the Widevine slice deploy: LAN works, but TLS *and* plain HTTP to the internet die mid-transfer on the Pi (apt, git https, curl all affected; worked around via git bundle + deb sideload over SSH). Blocks the Widevine real-service bench check and any actual streaming use. Needs network diagnosis (MTU? conntrack? router?) before the WebAppHost arc can demo anything live.
+
 ## Deferred UI Features
 
 - **Live sidebar toggle reactivity** — Toggling sidebar enable/disable mid-AA-session doesn't update AA video margins or evdev touch zones. Sidebar draws over AA content and touch passes through. Requires app restart. Needs: config change signal → margin recalculation → touch zone update pipeline for mid-session changes.
@@ -47,6 +49,18 @@ Ideas captured here. Promote to `roadmap-current.md` when ready to commit.
 - **API: head-unit proxy-route status feedback** — From the 2026-07-05 companion gap review: the companion reports "SOCKS5 active" via `ConnectivityReport`, but the API never tells the client whether the head unit actually applied the proxy route. A v1.1+ additive status field/event would help bridge reliability debugging. (Companion UI shows local state only for now.) Related non-item from the same review: advertising the web-config settings URL over the API was considered and rejected — web-config stays the canonical HTTP channel, apps construct the URL from the host convention.
 
 - **Web-config: theme/wallpaper upload endpoint** — PROMOTED (decided 2026-07-05): companion theme/wallpaper transfer moves off legacy port 9876 onto a new web-config HTTP upload/install endpoint (multipart upload → validate → apply via existing IPC). Blocks legacy-9876 retirement; see roadmap companion-migration item.
+
+- **WebAppHost — fullscreen streaming web apps (Spotify / YouTube / parked video)** —
+  Sibling of the widget runtime with inverted policy: manifest-driven app packages
+  under `~/.openauto/webapps/` surfacing as launcher tiles, persistent per-app
+  WebEngine profiles (log in once), external navigation + fullscreen allowed,
+  Widevine via the slice-1 CDM wiring, TV user-agents where they help (YouTube
+  leanback = touch-friendly + code-pairing login). Open questions for its design
+  arc: keyboard for non-code logins (Qt VirtualKeyboard vs. pair-from-phone),
+  audio-focus policy for background playback under the AA view, one-app-alive
+  resource cap, librespot as a Spotify Connect complement. Scoped in
+  `docs/superpowers/specs/2026-07-07-web-surface-strategy-design.md` (Decision 3);
+  queued behind the media player arc.
 
 ## From multi-dashboards execution (2026-07-06)
 - **Persistent edit-mode latch across dashboard switches** — deselect-on-switch currently exits edit mode on every pill tap (correctness fix); a dedicated latch would allow browsing dashboards while editing. Prereq: the outgoing-selection clear (landed in 1762349) — the stale-latch bug it fixed is what deselect-on-switch papered over.
