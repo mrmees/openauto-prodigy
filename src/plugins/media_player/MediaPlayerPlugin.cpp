@@ -50,6 +50,11 @@ bool MediaPlayerPlugin::initialize(IHostContext* context) {
     // Unplayable-file policy (spec §11): skip forward; after 3 consecutive
     // failures stop and toast (a dead USB stick must not machine-gun skips).
     connect(engine_, &PlaybackEngine::errorOccurred, this, [this](const QString& msg) {
+        if (restoring_) {
+            restoring_ = false;
+            qCWarning(lcMediaPlayerPlugin) << "restored track failed to load; staying stopped:" << msg;
+            return;  // no auto-skip at boot — nothing may auto-play (spec §10)
+        }
         ++consecutiveErrors_;
         if (consecutiveErrors_ >= kMaxConsecutiveErrors) {
             engine_->stop();
@@ -84,7 +89,10 @@ bool MediaPlayerPlugin::initialize(IHostContext* context) {
 
     connect(engine_, &PlaybackEngine::progressChanged, this,
             [this](qint64 pos, qint64 dur) {
-        if (pos > 500) consecutiveErrors_ = 0;  // decode demonstrably working
+        if (pos > 500) {
+            consecutiveErrors_ = 0;  // decode demonstrably working
+            restoring_ = false;
+        }
         emit progressChanged(pos, dur);
         emit progressUpdated();
     });
@@ -134,6 +142,7 @@ void MediaPlayerPlugin::setHasTrack(bool has) {
 }
 
 void MediaPlayerPlugin::playFileFromFolder(const QString& path) {
+    restoring_ = false;  // user action supersedes restore state
     const QStringList files = folderModel_->audioFilesInCurrentDir();
     const int idx = files.indexOf(path);
     if (idx < 0) return;
@@ -144,6 +153,7 @@ void MediaPlayerPlugin::playFileFromFolder(const QString& path) {
 }
 
 void MediaPlayerPlugin::playPause() {
+    restoring_ = false;  // user action supersedes restore state
     if (!hasTrack_) return;
     switch (engine_->playbackState()) {
     case 1:  engine_->pause(); break;
@@ -255,6 +265,7 @@ void MediaPlayerPlugin::restoreState() {
     // Restore PAUSED at the saved position — nothing auto-plays on boot
     // (spec §10, Matthew's explicit call). One tap on play resumes.
     const qint64 pos = cfg->pluginValue(kPluginId, QStringLiteral("last_position_ms")).toLongLong();
+    restoring_ = true;
     engine_->restorePaused(queue_->currentTrack(), pos);
 }
 

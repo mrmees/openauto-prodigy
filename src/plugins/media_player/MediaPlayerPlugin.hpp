@@ -113,6 +113,7 @@ private:
     bool hasTrack_ = false;
     bool wasPlaying_ = false;
     int consecutiveErrors_ = 0;
+    bool restoring_ = false;
 };
 
 } // namespace plugins
