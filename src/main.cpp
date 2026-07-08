@@ -691,8 +691,12 @@ int main(int argc, char *argv[])
     }
 
     // One audible music source at a time (spec §6): starting one pauses the
-    // others. AA-side: pausing the PHONE's media on local play-start is Task
-    // 11's investigation; here we only pause local when AA reports playing.
+    // others. AA↔local is bidirectional: an AA not-playing→playing edge
+    // pauses local, and a local play-start sends KEYCODE_MEDIA_PAUSE so the
+    // phone's MediaSession actually pauses (bench 2026-07-08 row 13). The AA
+    // hook must be edge-triggered — the phone re-reports "playing" for a
+    // moment after we send pause, and a level-triggered hook would re-pause
+    // local right back.
     QObject::connect(mediaPlayerPlugin, &oap::plugins::MediaPlayerPlugin::playbackStarted,
                      btAudioPlugin, [btAudioPlugin]() {
         if (btAudioPlugin->playbackState() == 1) btAudioPlugin->pause();
@@ -703,10 +707,18 @@ int main(int argc, char *argv[])
     });
     if (auto* orchForPolicy = aaPlugin->orchestrator()) {
         if (auto* mshForPolicy = orchForPolicy->mediaStatusHandler()) {
+            auto aaPlaybackState = std::make_shared<int>(0);  // AA raw state: 2 = playing
             QObject::connect(mshForPolicy, &oaa::hu::MediaStatusChannelHandler::playbackStateChanged,
-                             mediaPlayerPlugin, [mediaPlayerPlugin](int state, const QString&) {
-                if (state == 2) mediaPlayerPlugin->pauseIfPlaying();  // AA raw 2 = playing
+                             mediaPlayerPlugin, [mediaPlayerPlugin, aaPlaybackState](int state, const QString&) {
+                const bool becamePlaying = (state == 2 && *aaPlaybackState != 2);
+                *aaPlaybackState = state;
+                if (becamePlaying) mediaPlayerPlugin->pauseIfPlaying();
             }, Qt::QueuedConnection);
+            QObject::connect(mediaPlayerPlugin, &oap::plugins::MediaPlayerPlugin::playbackStarted,
+                             orchForPolicy, [orchForPolicy, aaPlaybackState]() {
+                if (*aaPlaybackState == 2)
+                    orchForPolicy->sendButtonPress(127);  // KEYCODE_MEDIA_PAUSE
+            });
         }
     }
 
