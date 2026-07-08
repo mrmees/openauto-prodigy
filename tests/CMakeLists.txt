@@ -38,6 +38,7 @@ oap_add_test(test_plugin_discovery SOURCES test_plugin_discovery.cpp)
 oap_add_test(test_plugin_manager SOURCES test_plugin_manager.cpp)
 oap_add_test(test_plugin_model SOURCES test_plugin_model.cpp)
 oap_add_test(test_play_queue SOURCES test_play_queue.cpp)
+oap_add_test(test_folder_model SOURCES test_folder_model.cpp)
 
 # --- Service tests ---
 
