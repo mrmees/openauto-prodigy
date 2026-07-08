@@ -49,7 +49,7 @@ Item {
         anchors.centerIn: parent
         visible: !nowPlayingWidget.hasMedia
         icon: "\ue405"  // music_note
-        size: Math.min(width, height) * 0.5
+        size: Math.min(nowPlayingWidget.width, nowPlayingWidget.height) * 0.5
         color: ThemeService.onSurfaceVariant
         opacity: 0.4
     }
