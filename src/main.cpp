@@ -803,6 +803,20 @@ int main(int argc, char *argv[])
         npDesc.defaultCols = 3; npDesc.defaultRows = 2;
         npDesc.qmlComponent = QUrl(QStringLiteral("qrc:/OpenAutoProdigy/NowPlayingWidget.qml"));
         widgetRegistry->registerWidget(npDesc);
+
+        // Media Player launcher tile — picker-visible (NOT singleton-seeded):
+        // launcher widgets are the only way to open an app in this shell.
+        oap::WidgetDescriptor mpLaunchDesc;
+        mpLaunchDesc.id = "org.openauto.media-player-launcher";
+        mpLaunchDesc.displayName = "Media Player";
+        mpLaunchDesc.iconName = "\ue030";  // library_music
+        mpLaunchDesc.category = "launcher";
+        mpLaunchDesc.description = "Open the local media player";
+        mpLaunchDesc.minCols = 1; mpLaunchDesc.minRows = 1;
+        mpLaunchDesc.maxCols = 3; mpLaunchDesc.maxRows = 3;
+        mpLaunchDesc.defaultCols = 1; mpLaunchDesc.defaultRows = 1;
+        mpLaunchDesc.qmlComponent = QUrl(QStringLiteral("qrc:/OpenAutoProdigy/MediaPlayerLauncherWidget.qml"));
+        widgetRegistry->registerWidget(mpLaunchDesc);
     }
 
     // Singleton launcher widgets (system-seeded, non-removable, hidden from picker)

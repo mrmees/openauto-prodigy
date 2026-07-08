@@ -320,6 +320,11 @@ set_source_files_properties(../qml/widgets/AALauncherWidget.qml PROPERTIES
     QT_RESOURCE_ALIAS "AALauncherWidget.qml"
     QT_QML_SKIP_CACHEGEN TRUE
 )
+set_source_files_properties(../qml/widgets/MediaPlayerLauncherWidget.qml PROPERTIES
+    QT_QML_SOURCE_TYPENAME "MediaPlayerLauncherWidget"
+    QT_RESOURCE_ALIAS "MediaPlayerLauncherWidget.qml"
+    QT_QML_SKIP_CACHEGEN TRUE
+)
 set_source_files_properties(../qml/widgets/ThemeCycleWidget.qml PROPERTIES
     QT_QML_SOURCE_TYPENAME "ThemeCycleWidget"
     QT_RESOURCE_ALIAS "ThemeCycleWidget.qml"
@@ -473,6 +478,7 @@ qt_add_qml_module(openauto-prodigy
         ../qml/widgets/NowPlayingWidget.qml
         ../qml/widgets/SettingsLauncherWidget.qml
         ../qml/widgets/AALauncherWidget.qml
+        ../qml/widgets/MediaPlayerLauncherWidget.qml
         ../qml/widgets/ThemeCycleWidget.qml
         ../qml/widgets/BatteryWidget.qml
         ../qml/widgets/CompanionStatusWidget.qml
