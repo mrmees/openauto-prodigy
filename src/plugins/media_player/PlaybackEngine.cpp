@@ -45,6 +45,8 @@ PlaybackEngine::PlaybackEngine(QObject* parent)
     connect(&player_, &QMediaPlayer::errorOccurred, this,
             [this](QMediaPlayer::Error, const QString& msg) {
         qCWarning(lcMediaPlayer) << "playback error:" << msg << "file:" << player_.source();
+        if (audioService_ && stream_)
+            audioService_->releaseAudioFocus(stream_);
         emit errorOccurred(msg);
     });
     connect(&player_, &QMediaPlayer::positionChanged, this, [this](qint64 pos) {
