@@ -4,6 +4,29 @@ Newest entries first.
 
 ---
 
+## 2026-07-08 — Media-player arc, Task 1 spike: QAudioBufferOutput real-time pacing — VERDICT: GO
+
+**Branch:** `develop`. Standalone spike tool (own CMakeLists, builds outside the main tree) — gates Task 6 (PlaybackEngine) of the media-player arc; nothing else in Tasks 2–5 depended on it.
+
+**Question:** does `QMediaPlayer` pace PCM delivery through `QAudioBufferOutput` in real time with **no** `QAudioOutput` device sink attached, or does it decode as-fast-as-possible? Built `tools/spike-qmp-tap` (`main.cpp` + `CMakeLists.txt`, exactly as specced) against system Qt 6.8.2, ran three invocations against throwaway 20s 440Hz tones generated with ffmpeg (44.1kHz mp3 + 48kHz flac, `/tmp/claude-spike-media/`, not committed).
+
+**Results (RESULT lines):**
+- mp3 (44.1kHz→48kHz convert): `RESULT: pcm=20.00s wall=20.04s ratio=1.00 formatOk=0 bufs=768` — steady-state ratio 1.00 throughout (verified at every buf#20 checkpoint from buf#20 to buf#760).
+- flac (48kHz, no rate conversion): `RESULT: pcm=20.00s wall=20.00s ratio=1.00 formatOk=0 bufs=210` — ratio settles from 1.05→1.01→1.00 as the startup transient washes out.
+- mp3 + seek to 15000ms at wall≈2s: seek accepted (`pos before: 1828`), **pos 1s after seek: 15882 ms** (within the 15000–16200 expected band), ratio stayed 1.00 pre- and post-seek, `RESULT: pcm=6.91s wall=6.94s ratio=1.00 formatOk=0 bufs=267` — EndOfMedia fired ~5s after the jump (15000→20035ms of remaining media), exactly as expected.
+
+**`formatOk=0` in all three RESULT lines is a false alarm, not a format-conversion failure** — diagnosed with a scratch-only instrumented copy (not committed): in every run the *only* mismatching buffer is the very last one delivered, and it is `isValid()=false, byteCount=0, startTime=-1` — a default-constructed end-of-stream sentinel, not real PCM. Every real audio buffer (767/768 mp3, 209/210 flac) matched the requested 48kHz/stereo/Int16 format exactly, confirming Qt performs the 44.1→48kHz conversion transparently. **Real gotcha for Task 6:** `PlaybackEngine`'s `audioBufferReceived` handler must guard `buf.isValid()` (or `byteCount() > 0`) before touching format/data — the naive check-every-buffer approach in the spike's own harness code trips on this sentinel.
+
+**Metadata:** title `'Spike Tone 44'` / `'Spike Tone 48'` visible on every `mediaStatus=` line as specced.
+
+**Decision table:** ratio was ≈1.0 in all three runs from the outset (never racing ahead near-instantly) — the muted-sink retest (`QAudioOutput` @ volume 0) was **not needed** and not run.
+
+**Verdict: GO.** Task 6 proceeds as written — `QAudioBufferOutput` tap with no device sink, paced by the media clock, no crutch required. Only addendum: guard `isValid()`/`byteCount()>0` on incoming buffers (documented above).
+
+**Files:** `tools/spike-qmp-tap/{main.cpp,CMakeLists.txt}` (spike tool, kept in-tree as a reusable harness — not wired into the main build). Full raw output + self-review: `.superpowers/sdd/task-1-report.md`.
+
+---
+
 ## 2026-07-07 — Web-widget quality batch + Theme-upload endpoint (design → plan → implementation)
 
 **Branch:** `develop` (direct, per single-develop-branch workflow). All work pushed. No Pi deploy this session (see Pending).

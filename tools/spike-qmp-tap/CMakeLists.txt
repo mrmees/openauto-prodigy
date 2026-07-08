@@ -1,0 +1,6 @@
+cmake_minimum_required(VERSION 3.22)
+project(spike-qmp-tap CXX)
+set(CMAKE_CXX_STANDARD 17)
+find_package(Qt6 REQUIRED COMPONENTS Core Multimedia)
+add_executable(spike-qmp-tap main.cpp)
+target_link_libraries(spike-qmp-tap PRIVATE Qt6::Core Qt6::Multimedia)
