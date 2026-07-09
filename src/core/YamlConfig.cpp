@@ -736,6 +736,13 @@ QVariant YamlConfig::pluginValue(const QString& pluginId, const QString& key) co
 
     // Try to return the most specific type
     try {
+        if (valNode.IsSequence()) {
+            QStringList list;
+            for (const auto& item : valNode)
+                list << QString::fromStdString(item.as<std::string>());
+            return QVariant(list);
+        }
+
         if (valNode.IsScalar()) {
             // Try bool first
             try {
@@ -777,10 +784,23 @@ void YamlConfig::setPluginValue(const QString& pluginId, const QString& key, con
     case QMetaType::Int:
         root_["plugin_config"][idStr][keyStr] = value.toInt();
         break;
+    case QMetaType::LongLong:
+    case QMetaType::ULongLong:
+        root_["plugin_config"][idStr][keyStr] = value.toLongLong();
+        break;
     case QMetaType::Double:
     case QMetaType::Float:
         root_["plugin_config"][idStr][keyStr] = value.toDouble();
         break;
+    case QMetaType::QStringList: {
+        // QVariant(QStringList).toString() is "" — must emit a real sequence
+        // (media player's last_queue; bench 2026-07-09).
+        YAML::Node seq(YAML::NodeType::Sequence);
+        for (const QString& s : value.toStringList())
+            seq.push_back(s.toStdString());
+        root_["plugin_config"][idStr][keyStr] = seq;
+        break;
+    }
     default:
         root_["plugin_config"][idStr][keyStr] = value.toString().toStdString();
         break;

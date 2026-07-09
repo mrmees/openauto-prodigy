@@ -10,6 +10,7 @@ private slots:
     void testLoadFromFile();
     void testSaveAndReload();
     void testPluginScoping();
+    void testPluginValueListRoundTrip();
     void testIdentityDefaults();
     void testIdentityFromFile();
     void testVideoDpi();
@@ -109,6 +110,35 @@ void TestYamlConfig::testPluginScoping()
     QCOMPARE(config.pluginValue("org.openauto.android-auto", "video_fps").toInt(), 60);
     // Different plugin returns invalid
     QVERIFY(!config.pluginValue("org.openauto.bt-audio", "auto_connect").isValid());
+}
+
+void TestYamlConfig::testPluginValueListRoundTrip()
+{
+    // Media player persists its play queue as a QStringList; qint64 track
+    // position rides along. Both must survive a save + reload through real
+    // YAML — bench 2026-07-09 caught last_queue silently becoming "".
+    oap::YamlConfig config;
+    const QStringList queue{QStringLiteral("/home/matt/Music/a.mp3"),
+                            QStringLiteral("/home/matt/Music/b — with dash.mp3"),
+                            QStringLiteral("/home/matt/Music/c'quote.flac")};
+    config.setPluginValue("org.openauto.media-player", "last_queue", queue);
+    config.setPluginValue("org.openauto.media-player", "last_position_ms",
+                          QVariant(qint64(21681)));
+
+    // In-memory read-back
+    QCOMPARE(config.pluginValue("org.openauto.media-player", "last_queue").toStringList(),
+             queue);
+
+    // Round-trip through the YAML emitter and parser
+    QString tmpPath = QDir::tempPath() + "/oap_test_plugin_list.yaml";
+    config.save(tmpPath);
+    oap::YamlConfig loaded;
+    loaded.load(tmpPath);
+    QCOMPARE(loaded.pluginValue("org.openauto.media-player", "last_queue").toStringList(),
+             queue);
+    QCOMPARE(loaded.pluginValue("org.openauto.media-player", "last_position_ms").toLongLong(),
+             qint64(21681));
+    QFile::remove(tmpPath);
 }
 
 void TestYamlConfig::testIdentityDefaults()
