@@ -812,11 +812,11 @@ git commit -m "feat: add config key coverage test, add missing display/touch def
 ### Task 7: Rewrite Config Schema Documentation
 
 **Files:**
-- Modify: `docs/config-schema.md`
+- Modify: `docs/reference/config-schema.md`
 
 **Step 1: Rewrite from scratch**
 
-Replace the entire contents of `docs/config-schema.md` with documentation generated from `YamlConfig::initDefaults()`. Document every key with its type, default value, and which component reads it.
+Replace the entire contents of `docs/reference/config-schema.md` with documentation generated from `YamlConfig::initDefaults()`. Document every key with its type, default value, and which component reads it.
 
 The document should include:
 - Full YAML example with all keys and their defaults
@@ -834,7 +834,7 @@ Ask Codex to cross-reference the new docs against `YamlConfig::initDefaults()` a
 **Step 3: Commit**
 
 ```bash
-git add docs/config-schema.md
+git add docs/reference/config-schema.md
 git commit -m "docs: rewrite config-schema.md from actual YamlConfig code"
 ```
 

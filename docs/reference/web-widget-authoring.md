@@ -10,7 +10,7 @@ Read [Known Limitations (v1)](#known-limitations-v1) before you write any code. 
 
 A web widget is a directory of HTML/CSS/JS served over a custom `prodigy://widgets/<id>/<entry>` scheme and rendered inside a `WebEngineView` tile on the dashboard grid — the same grid, same sizing contract, same picker as native QML widgets. Content never touches the filesystem or the network directly; it's read in-process from the package directory by a scheme handler.
 
-Web widgets talk to the head unit exclusively through the **External API** (WebSocket, `ws://127.0.0.1:<api.ws_port>`) via an injected `window.prodigy` convenience shim — there is no QWebChannel, no direct QML access, no second RPC surface. If you want the full architecture (why `prodigy://` instead of `file://`, single-origin rationale, packaging/discovery, shim internals, security model), read the design doc: `docs/superpowers/specs/2026-07-06-js-runtime-design.md`. This guide doesn't re-derive that — it's the practical "how do I build one" companion.
+Web widgets talk to the head unit exclusively through the **External API** (WebSocket, `ws://127.0.0.1:<api.ws_port>`) via an injected `window.prodigy` convenience shim — there is no QWebChannel, no direct QML access, no second RPC surface. If you want the full architecture (why `prodigy://` instead of `file://`, single-origin rationale, packaging/discovery, shim internals, security model), read the design doc (design history): `docs/archive/plans/2026-07-06-js-runtime-design.md`. This guide doesn't re-derive that — it's the practical "how do I build one" companion.
 
 ---
 
@@ -83,7 +83,7 @@ Theme tokens land as CSS custom properties on `<html>`: token `on-primary` → `
 | `prodigy.request(apiMessageObject)` | `(object) -> Promise<response>` | Low-level escape hatch — build your own `ApiMessage` field for anything not covered above. |
 | `prodigy.on(name, cb)` | `("themechange"\|"contextchange", fn)` | Fires on live theme flips and span/placement changes. |
 
-For the full wire protocol behind all of this (subscription/delivery model, requests, error model), see `docs/superpowers/specs/2026-07-06-external-api-v1-design.md` §6 (Subscription & delivery model) and the rest of that doc.
+For the full wire protocol behind all of this (subscription/delivery model, requests, error model), see `docs/archive/plans/2026-07-06-external-api-v1-design.md` (design history) §6 (Subscription & delivery model) and the rest of that doc.
 
 Minimal example:
 
@@ -119,7 +119,7 @@ The shim is nothing more than an External API WebSocket client. If the External 
 
 ### Shared origin across widgets (D2)
 
-All web widgets in v1 share **one** browser origin — there is no per-widget isolation. From the design doc (`docs/superpowers/specs/2026-07-06-js-runtime-design.md`, §3, "Single origin (D2)"):
+All web widgets in v1 share **one** browser origin — there is no per-widget isolation. From the design doc (`docs/archive/plans/2026-07-06-js-runtime-design.md`, design history, §3, "Single origin (D2)"):
 
 > **Single origin (D2):** all widgets share the `prodigy://widgets` origin, so all views share one renderer process — the spike's measured cheap case. Consequence, accepted for v1: widgets share localStorage and could read each other's DOM-visible state if they embedded each other (they can't — see navigation policy §5). Web widgets are user-installed local content with the same trust level as native QML widgets (which already have full QML runtime access), so isolation between them buys little today. Per-widget origins (`prodigy://<id>`) are the recorded v2 hardening path if third-party widget distribution ever materializes; the spike says even hostile per-origin isolation (~60–100 MB/origin) stays in budget.
 
@@ -168,7 +168,7 @@ If the widget's renderer process dies (a rendering bug, an OOM, whatever), `WebW
 
 ## See Also
 
-- `docs/superpowers/specs/2026-07-06-js-runtime-design.md` — full architecture: `prodigy://` scheme, packaging/discovery, `WebWidgetHost.qml` lifecycle, shim internals, security model, deferred v2 items.
-- `docs/superpowers/specs/2026-07-06-external-api-v1-design.md` — the External API wire protocol the shim rides on top of.
+- `docs/archive/plans/2026-07-06-js-runtime-design.md` (design history) — full architecture: `prodigy://` scheme, packaging/discovery, `WebWidgetHost.qml` lifecycle, shim internals, security model, deferred v2 items.
+- `docs/archive/plans/2026-07-06-external-api-v1-design.md` (design history) — the External API wire protocol the shim rides on top of.
 - [widget-developer-guide.md](widget-developer-guide.md) — native QML widget development (the other widget path).
 - `docs/wishlist.md` — "From JS-runtime execution (2026-07-07)" — tracked follow-ups for the shim hardening items and persistent storage.

@@ -43,3 +43,6 @@ docs/private/
 
 # Codex review gate artifacts (verdicts + diff copies) — machine-local
 reviews/
+
+# Generated AA protocol reference (tools/aa_proto_graph.py output) — regenerate on demand
+docs/aa-protocol/protocol-reference.md

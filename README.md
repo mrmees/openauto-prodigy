@@ -182,8 +182,8 @@ installs dependencies, writes config, and installs/enables systemd services.
 - `docs/INDEX.md` - doc index
 - `docs/development.md` - build/dev environments
 - `docs/design-decisions.md` - rationale and tradeoffs
-- `docs/config-schema.md` - YAML schema and keys
-- `docs/plugin-api.md` - plugin contract and host services
+- `docs/reference/config-schema.md` - YAML schema and keys
+- `docs/reference/plugin-api.md` - plugin contract and host services
 
 ## License
 

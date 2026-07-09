@@ -172,7 +172,7 @@ python3 analysis/tools/apk_indexer/run_indexer.py \
   --analysis-root analysis
 ```
 
-See `docs/apk-indexing.md` for full output structure and query examples.
+See `docs/aa-protocol/apk-indexing.md` for full output structure and query examples.
 
 ## Qt 6.4 vs 6.8 Compatibility
 
@@ -283,7 +283,7 @@ openauto-prodigy/
 
 ### External API v1
 
-TCP (`9810`) + WebSocket (`9811`) protobuf server for companion app, in-process web widgets, and third-party clients — implemented in `src/core/api/`. Design doc: `docs/superpowers/specs/2026-07-06-external-api-v1-design.md`. Config keys live under `api.*` in `config.yaml` (enable, ports, LAN exposure, pairing/queue timeouts).
+TCP (`9810`) + WebSocket (`9811`) protobuf server for companion app, in-process web widgets, and third-party clients — implemented in `src/core/api/`. Design doc: `docs/archive/plans/2026-07-06-external-api-v1-design.md`. Config keys live under `api.*` in `config.yaml` (enable, ports, LAN exposure, pairing/queue timeouts).
 
 ## Debugging Tips
 
@@ -342,4 +342,4 @@ Phone state can degrade after rapid connect/disconnect cycles during development
 
 ## Contributing
 
-This is early-stage development. The most helpful thing right now is testing with different phones and reporting connection behavior. See [debugging-notes.md](debugging-notes.md) for known issues and discoveries.
+This is early-stage development. The most helpful thing right now is testing with different phones and reporting connection behavior. See [debugging-notes.md](how-to/debugging-notes.md) for known issues and discoveries.

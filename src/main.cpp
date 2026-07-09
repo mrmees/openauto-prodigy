@@ -543,7 +543,7 @@ int main(int argc, char *argv[])
     hostContext->setCallStateProvider(phoneStateService);
 
     // PipeWire telephony (org.pipewire.Telephony, session bus): real HFP
-    // call control. See docs/superpowers/specs/2026-07-05-hfp-call-audio-design.md
+    // call control. See docs/archive/plans/2026-07-05-hfp-call-audio-design.md
     auto telephonyClient = new oap::TelephonyClient(&app);
     auto scoMonitor = new oap::ScoNodeMonitor(&app);
     if (audioService->isAvailable())
@@ -1261,7 +1261,7 @@ int main(int argc, char *argv[])
     engine.rootContext()->setContextProperty("_geomH", geomH);
 
     // External API v1 — the single external integration surface (design doc
-    // docs/superpowers/specs/2026-07-06-external-api-v1-design.md). Every ref
+    // docs/archive/plans/2026-07-06-external-api-v1-design.md). Every ref
     // below is an app-lifetime object (parented to &app, or — for navBridge/
     // mediaStatusService/etc. — created earlier in main() with &app as an
     // ancestor), and ApiServer itself is instantiated here, after all of them,

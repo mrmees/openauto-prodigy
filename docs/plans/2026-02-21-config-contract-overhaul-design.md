@@ -90,7 +90,7 @@ Add `set_tests_properties(test_configuration test_theme_service PROPERTIES ENVIR
 
 ### 7. Config Schema Docs
 
-Rewrite `docs/config-schema.md` from scratch based on `YamlConfig::initDefaults()`. Every key, type, default, and consumer documented.
+Rewrite `docs/reference/config-schema.md` from scratch based on `YamlConfig::initDefaults()`. Every key, type, default, and consumer documented.
 
 ### 8. Config Key Coverage Test
 
@@ -115,7 +115,7 @@ New `test_config_key_coverage` that creates a default config, wraps in ConfigSer
 | `tests/CMakeLists.txt` | Add headless env, add new test target |
 | `tests/test_config_service.cpp` | Add traversal tests |
 | `tests/test_config_key_coverage.cpp` | New test file |
-| `docs/config-schema.md` | Full rewrite |
+| `docs/reference/config-schema.md` | Full rewrite |
 
 ## Review Process
 

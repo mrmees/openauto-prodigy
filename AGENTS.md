@@ -18,7 +18,7 @@ For behavior-changing work in this repository:
 
 ## Tiered Execution Workflow
 
-Full design: `docs/superpowers/specs/2026-07-09-tiered-execution-codex-gate-design.md`.
+Full design: `docs/archive/plans/2026-07-09-tiered-execution-codex-gate-design.md`.
 Planning stays interactive in the main (Fable) session via superpowers
 brainstorming + writing-plans; the conventions below govern how plans are
 tagged, executed, and reviewed.

@@ -4,7 +4,7 @@ Status: ACTIVE (stage 1 shipped 2026-07-09; stages 2+ pending)
 
 **Date:** 2026-07-08 · **Status:** approved (brainstorm 2026-07-08, Matthew)
 **Roadmap item:** Now #1 — "Local media player plugin" (`docs/roadmap-current.md`)
-**Supersedes:** the F1 light-plan sketch (`docs/superpowers/plans/2026-07-05-phase-f-light-plans.md` §F1) — this is the full design the sketch called for.
+**Supersedes:** the F1 light-plan sketch (`docs/plans/2026-07-05-phase-f-light-plans.md` §F1) — this is the full design the sketch called for.
 **Grounding:** integration seams verified against develop @ `192b0fa` (MediaStatusService, IMediaStatusProvider, NowPlayingWidget, ActionRegistry, ApiSerializers, AudioService, plugin/CMake/main.cpp registration pattern).
 
 ## 1. Outcome

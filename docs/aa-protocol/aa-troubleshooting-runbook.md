@@ -3,8 +3,8 @@
 Living troubleshooting guide for OpenAuto Prodigy AA sessions. Covers tools, debug workflows, failure modes, and observations.
 
 **Companion to:** `docs/skills/aa-troubleshooting/SKILL.md` (quick reference skill)
-**Protocol reference:** `docs/aa-protocol-reference.md` (wire format, message IDs, channels)
-**Phone-side logging:** `docs/aa-phone-side-debug.md` (logcat tags, dev settings, process architecture)
+**Protocol reference:** generate with `python3 tools/aa_proto_graph.py` → `docs/aa-protocol/protocol-reference.md` (untracked, generated); protocol definitions live in the open-android-auto repo.
+**Phone-side logging:** `docs/aa-protocol/aa-phone-side-debug.md` (logcat tags, dev settings, process architecture)
 **Protocol cross-reference:** `../openauto-pro-community/docs/android-auto-protocol-cross-reference.md` (Sony HU + APK mapped together)
 
 ---
@@ -377,7 +377,7 @@ TIME    SOURCE          CHANNEL    MESSAGE              PAYLOAD
 
 ## Phone-Side Debug Quick Reference
 
-Full details in `docs/aa-phone-side-debug.md`. Key points:
+Full details in `docs/aa-protocol/aa-phone-side-debug.md`. Key points:
 
 **Enable AA Developer Settings:**
 1. Phone Settings → Apps → Android Auto
