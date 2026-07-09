@@ -4,6 +4,69 @@ Newest entries first.
 
 ---
 
+## 2026-07-09 — MEDIA PLAYER STAGE 1 BENCH: COMPLETE — all rows pass; 8 bench bugs found+fixed live
+
+**Bench verdict (Matthew on Pi hardware, 2026-07-08 evening → 07-09):** rows 1–7, 9–13
+incl. row 11 addendum ALL PASS. Row 8 (BT coexistence) SKIPPED — Matthew deprioritized
+BT support entirely ("not sure I even want to support it"; decision wishlisted).
+Row 10 verified over the wire with a scratch Python API client (localhost = trusted,
+TCP 9810; `ServerHello` v1.1 → subscribe TOPIC_MEDIA → LOCAL_MEDIA + advancing pos).
+
+**8 bugs found by the bench, fixed + verified same session** (commits `37899da..61e7988`):
+1. **Focus duck/mute was decorative** — `applyDucking()` wrote `AudioStreamHandle::volume`
+   and NOTHING read it; unit tests asserted the field, so 115/115 green while row 9/13
+   silently failed. Fix: `FocusGain.hpp` ramped gain (~20ms swing) applied in the PW RT
+   callback next to EQ; `volume` → atomic `targetGain` + RT-only `rtCurrentGain`.
+   **Lesson: assert observable output (samples), not intermediate fields.**
+2. **destroyStream() left survivors muted** — never re-ran applyDucking; AA teardown
+   mid-playback would have muted local forever (became real once #1 landed).
+3. **Row 13 policy conflict** — main.cpp §6 hook (AA playing → pause local, level-triggered)
+   fought the priority-51 design. Fix: local play-start sends **KEYCODE_MEDIA_PAUSE (127)**
+   over the AA input channel (same proven path as next/prev) → phone's MediaSession
+   actually pauses; AA→local hook now EDGE-triggered (phone re-reports "playing" while
+   our pause is in flight — level-trigger whack-a-moles local).
+4. **Duck engaged but never released; later nav prompts muted** — focus lifetime keyed to
+   phone AUDIO_FOCUS messages, but phones hold nav focus across prompts (no release), and
+   one RELEASE after our pause killed speech focus while local Gain muted the channel.
+   Fix: focus follows **AV channel streamStarted/streamStopped** (ground truth of audible
+   audio); phone's request type kept only as duck-vs-mute hint (GAIN_TRANSIENT=mute,
+   GAIN_NAVI=duck) for the speech stream.
+5. **QStringList plugin values serialized as ""** — YamlConfig setPluginValue default
+   branch (`QVariant(QStringList).toString()`); read side only handled scalars. last_queue
+   never survived. Fix: real YAML sequence + sequence read + LongLong; round-trip test.
+   (This was the deferred "restorePaused unit test" gap — the bench found it first.)
+6. **SIGTERM never reached shutdown** — no handler anywhere; `systemctl restart` killed
+   the app before `app.exec()` returned, so `shutdownAll()`/saveState never ran under
+   systemd AT ALL. Fix: SIGTERM/SIGINT → queued `QCoreApplication::quit()` (SIGUSR1
+   pattern). PLUS: state now saves on every play/pause/stop/track edge — a car head
+   unit dies by power cut, shutdown-only persistence was the wrong model.
+7. **Stop-edge save clobbered position** — shutdown() saves pos then engine_->stop();
+   QMediaPlayer resets pos to 0 on stop → the new edge-save overwrote 29s with 0.
+   Fix: `shuttingDown_` gates the edge save (user stop still saves 0 intentionally).
+8. **Restore guard defeated by its own seek; zero-frame garbage walked the queue** —
+   (a) progressChanged pos>500 cleared `restoring_` because restorePaused's seek echoes
+   the position back pre-decode → corrupt restored track auto-skip-played at boot (spec
+   §10 violation). `restoring_` now = "no user interaction since restore"; only user
+   actions clear it (next/previous were missing the clear).
+   (b) FFmpeg misdetects urandom as MP3 (probe score 1), zero decodable frames,
+   instant EndOfMedia, NO error → skip/toast policy never engaged. Fix: per-track
+   progress high-water mark; trackFinished under 500ms routes into the same
+   `handleUnplayable()` policy. Real-world case: corrupt files on USB sticks.
+
+**State:** develop @ `61e7988`, ~36 commits ahead of origin, UNPUSHED. Final review of
+the 8 bench commits dispatched (subagent) — push on pass per workflow. Pi runs the
+current build; bench fixtures live at `~/Music/bench-row12/` (01/03 good copies,
+02/04/05/06 urandom garbage) — kept for future benches. `~/Music` has real music.
+Phone-side note: YT Music auto-resumes on AA reconnect (phone setting, not our bug);
+"suppress via MEDIA_PAUSE after connect" is a possible wishlist item if it annoys.
+
+**Next:** (1) review verdict → push develop; (2) stage 2 planning (library scanner +
+udisks2 automount) — planning inputs in `.superpowers/sdd/progress.md` + wishlist
+(per-AA-channel volume sliders from Matthew's bench feedback pairs with EQ page);
+(3) BT support keep/demote/drop decision before §6 wiring gets more complex;
+(4) NavigationTurnLabel UTF-8 journal spam (~1 line/s during nav) — proto `bytes`
+fix belongs to open-android-auto (note filed in wishlist).
+
 ## 2026-07-08 — Media-player arc, Task 12: integration verification + Pi deploy — bench checklist pending Matthew
 
 **Branch:** `develop` @ `2aeb411` (`docs(aa): audio-focus push investigation`), 18 unpushed commits since `192b0fa` — the whole stage-1 media-player arc (Tasks 1–11). Working tree clean at build time; binary and QML both built/deployed from this commit.
