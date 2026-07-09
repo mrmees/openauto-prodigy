@@ -94,10 +94,14 @@ bool MediaPlayerPlugin::initialize(IHostContext* context) {
 
     connect(engine_, &PlaybackEngine::progressChanged, this,
             [this](qint64 pos, qint64 dur) {
-        if (pos > 500) {
+        if (pos > 500)
             consecutiveErrors_ = 0;  // decode demonstrably working
-            restoring_ = false;
-        }
+        // NOTE: restoring_ is NOT cleared here — restorePaused() seeks to the
+        // saved position and QMediaPlayer echoes it back before any decode,
+        // so pos>500 fires even for a corrupt file (bench 2026-07-09 row 11
+        // addendum: the restore-seek defeated its own no-autoplay guard and
+        // the skip policy walked the queue at boot). restoring_ means "no
+        // user interaction since restore" and only user actions clear it.
         emit progressChanged(pos, dur);
         emit progressUpdated();
     });
@@ -169,12 +173,14 @@ void MediaPlayerPlugin::playPause() {
 }
 
 void MediaPlayerPlugin::next() {
+    restoring_ = false;  // user action supersedes restore state
     if (!hasTrack_) return;
     if (queue_->advance(true))
         engine_->playFile(queue_->currentTrack());
 }
 
 void MediaPlayerPlugin::previous() {
+    restoring_ = false;  // user action supersedes restore state
     if (!hasTrack_) return;
     // Classic head-unit behavior: >3 s into the track = restart it.
     if (engine_->position() > 3000) {
