@@ -25,6 +25,7 @@ Hard-won protocol behavior for the Android Auto runtime. Root `AGENTS.md` holds 
 - **EVIOCGRAB toggles with AA connection state** — grab on connect (route touch to AA), ungrab on disconnect (return touch to Wayland/libinput). A permanent grab steals touch from the launcher UI.
 - **During AA, sidebar touch = evdev hit zones in `EvdevTouchReader`** — EVIOCGRAB steals all touch from Qt, so QML `MouseArea` there is visual-only on the Pi.
 - **3-finger gesture:** 3 simultaneous touches within 200ms → suppress AA forwarding, emit the overlay signal.
+- **Qt's evdevtouch plugin causes duplicate events** — direct evdev with EVIOCGRAB is the only supported touch path (why `EvdevTouchReader` exists).
 
 ## Sockets
 

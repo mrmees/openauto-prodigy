@@ -8,7 +8,7 @@ System map: what the components are, where the boundaries sit, and how data move
 
 Wires the entire system:
 
-- Loads config (`~/.openauto/config.yaml`, with INI migration fallback) via `YamlConfig` (schema-backed, defaults + deep merge).
+- Loads config (`~/.openauto/config.yaml`) via `YamlConfig` (schema-backed, defaults + deep merge, versioned widget-grid migrations).
 - Initializes shared services (theme, audio, config, event bus, actions, notifications, companion listener, IPC, External API).
 - Registers and initializes plugins through `PluginManager`.
 - Exposes models/services to QML context, boots the QML shell, and binds plugin view hosting.
