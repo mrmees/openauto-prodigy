@@ -374,6 +374,7 @@ void AndroidAutoOrchestrator::onNewConnection()
     // kept only as a hint for how speech audio treats music: GAIN_TRANSIENT
     // (assistant/voice) mutes it, GAIN_NAVI (guidance) ducks it to 20%.
     if (audioService_) {
+        speechFocusHint_ = oap::AudioFocusType::GainTransientMayDuck;  // fresh session, fresh hint
         connect(&mediaAudioHandler_, &oaa::hu::AudioChannelHandler::streamStarted,
                 this, [this](int32_t) {
             if (mediaStream_)
@@ -416,6 +417,9 @@ void AndroidAutoOrchestrator::onNewConnection()
                 if (mediaStream_)  audioService_->releaseAudioFocus(mediaStream_);
                 if (speechStream_) audioService_->releaseAudioFocus(speechStream_);
                 if (systemStream_) audioService_->releaseAudioFocus(systemStream_);
+                // Hint resets with the focus session — one assistant use must
+                // not ratchet nav prompts from duck to mute (review 2026-07-09)
+                speechFocusHint_ = oap::AudioFocusType::GainTransientMayDuck;
                 break;
             }
         }, Qt::QueuedConnection);

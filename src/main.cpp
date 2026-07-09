@@ -719,6 +719,14 @@ int main(int argc, char *argv[])
                 if (*aaPlaybackState == 2)
                     orchForPolicy->sendButtonPress(127);  // KEYCODE_MEDIA_PAUSE
             });
+            // The status channel emits nothing on close — without this reset a
+            // disconnect-while-playing leaves the flag stuck at 2, so the next
+            // reconnect's first "playing" report is not an edge (review 2026-07-09).
+            QObject::connect(orchForPolicy, &oap::AndroidAutoOrchestrator::connectionStateChanged,
+                             mediaPlayerPlugin, [orchForPolicy, aaPlaybackState]() {
+                if (orchForPolicy->connectionState() == oap::AndroidAutoOrchestrator::Disconnected)
+                    *aaPlaybackState = 0;
+            });
         }
     }
 
