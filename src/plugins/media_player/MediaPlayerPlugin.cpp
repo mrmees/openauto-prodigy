@@ -40,38 +40,23 @@ bool MediaPlayerPlugin::initialize(IHostContext* context) {
     if (auto* eqService = dynamic_cast<oap::EqualizerService*>(context->equalizerService()))
         engine_->setEqEngine(eqService->engineForStream(oap::StreamId::Media));
 
-    // Auto-advance on track end.
+    // Auto-advance on track end. A track that "finishes" without ever
+    // producing audio is unplayable in disguise: FFmpeg misdetects random
+    // bytes as MP3 with zero decodable frames — load "succeeds", EndOfMedia
+    // fires instantly, and no error is ever emitted (bench 2026-07-09 row
+    // 12: three garbage files walked the queue silently, no skip, no toast).
     connect(engine_, &PlaybackEngine::trackFinished, this, [this]() {
+        if (lastProgressMs_ < 500) {
+            handleUnplayable(QStringLiteral("track ended with no audio (misdetected format?)"));
+            return;
+        }
         if (queue_->advance(false))
-            engine_->playFile(queue_->currentTrack());
+            startTrack(queue_->currentTrack());
         // else: end of queue, repeat off — remain stopped on the last track.
     });
 
-    // Unplayable-file policy (spec §11): skip forward; after 3 consecutive
-    // failures stop and toast (a dead USB stick must not machine-gun skips).
-    connect(engine_, &PlaybackEngine::errorOccurred, this, [this](const QString& msg) {
-        if (restoring_) {
-            restoring_ = false;
-            qCWarning(lcMediaPlayerPlugin) << "restored track failed to load; staying stopped:" << msg;
-            return;  // no auto-skip at boot — nothing may auto-play (spec §10)
-        }
-        ++consecutiveErrors_;
-        if (consecutiveErrors_ >= kMaxConsecutiveErrors) {
-            engine_->stop();
-            if (hostContext_ && hostContext_->notificationService())
-                hostContext_->notificationService()->post({
-                    {"kind", "toast"},
-                    {"message", QStringLiteral("Media Player: Playback stopped: %1 unplayable files in a row")
-                                    .arg(consecutiveErrors_)},
-                    {"sourcePluginId", kPluginId}
-                });
-            consecutiveErrors_ = 0;
-            return;
-        }
-        qCWarning(lcMediaPlayerPlugin) << "skipping unplayable file:" << msg;
-        if (queue_->advance(true))          // manual semantics: never re-loop one broken file
-            engine_->playFile(queue_->currentTrack());
-    });
+    connect(engine_, &PlaybackEngine::errorOccurred, this,
+            [this](const QString& msg) { handleUnplayable(msg); });
 
     connect(engine_, &PlaybackEngine::playbackStateChanged, this, [this]() {
         const bool playing = (engine_->playbackState() == 1);
@@ -94,6 +79,7 @@ bool MediaPlayerPlugin::initialize(IHostContext* context) {
 
     connect(engine_, &PlaybackEngine::progressChanged, this,
             [this](qint64 pos, qint64 dur) {
+        lastProgressMs_ = qMax(lastProgressMs_, pos);
         if (pos > 500)
             consecutiveErrors_ = 0;  // decode demonstrably working
         // NOTE: restoring_ is NOT cleared here — restorePaused() seeks to the
@@ -151,6 +137,38 @@ void MediaPlayerPlugin::setHasTrack(bool has) {
     emit hasTrackChanged();
 }
 
+void MediaPlayerPlugin::startTrack(const QString& path) {
+    lastProgressMs_ = 0;
+    engine_->playFile(path);
+}
+
+// Unplayable-file policy (spec §11): skip forward; after 3 consecutive
+// failures stop and toast (a dead USB stick must not machine-gun skips).
+// Reached from errorOccurred AND from zero-progress trackFinished.
+void MediaPlayerPlugin::handleUnplayable(const QString& reason) {
+    if (restoring_) {
+        restoring_ = false;
+        qCWarning(lcMediaPlayerPlugin) << "restored track failed to load; staying stopped:" << reason;
+        return;  // no auto-skip at boot — nothing may auto-play (spec §10)
+    }
+    ++consecutiveErrors_;
+    if (consecutiveErrors_ >= kMaxConsecutiveErrors) {
+        engine_->stop();
+        if (hostContext_ && hostContext_->notificationService())
+            hostContext_->notificationService()->post({
+                {"kind", "toast"},
+                {"message", QStringLiteral("Media Player: Playback stopped: %1 unplayable files in a row")
+                                .arg(consecutiveErrors_)},
+                {"sourcePluginId", kPluginId}
+            });
+        consecutiveErrors_ = 0;
+        return;
+    }
+    qCWarning(lcMediaPlayerPlugin) << "skipping unplayable file:" << reason;
+    if (queue_->advance(true))          // manual semantics: never re-loop one broken file
+        startTrack(queue_->currentTrack());
+}
+
 void MediaPlayerPlugin::playFileFromFolder(const QString& path) {
     restoring_ = false;  // user action supersedes restore state
     const QStringList files = folderModel_->audioFilesInCurrentDir();
@@ -159,7 +177,7 @@ void MediaPlayerPlugin::playFileFromFolder(const QString& path) {
     consecutiveErrors_ = 0;
     queue_->setTracks(files, idx);
     setHasTrack(true);
-    engine_->playFile(path);
+    startTrack(path);
 }
 
 void MediaPlayerPlugin::playPause() {
@@ -168,7 +186,7 @@ void MediaPlayerPlugin::playPause() {
     switch (engine_->playbackState()) {
     case 1:  engine_->pause(); break;
     case 2:  engine_->play(); break;
-    default: engine_->playFile(queue_->currentTrack()); break;  // stopped: restart
+    default: startTrack(queue_->currentTrack()); break;  // stopped: restart
     }
 }
 
@@ -176,7 +194,7 @@ void MediaPlayerPlugin::next() {
     restoring_ = false;  // user action supersedes restore state
     if (!hasTrack_) return;
     if (queue_->advance(true))
-        engine_->playFile(queue_->currentTrack());
+        startTrack(queue_->currentTrack());
 }
 
 void MediaPlayerPlugin::previous() {
@@ -186,7 +204,7 @@ void MediaPlayerPlugin::previous() {
     if (engine_->position() > 3000) {
         engine_->seek(0);
     } else if (queue_->retreat()) {
-        engine_->playFile(queue_->currentTrack());
+        startTrack(queue_->currentTrack());
     } else {
         engine_->seek(0);
     }

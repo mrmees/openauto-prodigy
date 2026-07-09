@@ -104,6 +104,8 @@ private:
     void setHasTrack(bool has);
     void saveState();
     void restoreState();
+    void startTrack(const QString& path);       ///< playFile + reset progress watermark
+    void handleUnplayable(const QString& reason);  ///< spec §11 skip/stop policy
 
     IHostContext* hostContext_ = nullptr;
     PlaybackEngine* engine_ = nullptr;
@@ -113,6 +115,10 @@ private:
     bool hasTrack_ = false;
     bool wasPlaying_ = false;
     int consecutiveErrors_ = 0;
+    qint64 lastProgressMs_ = 0;  // high-water mark for the current track —
+                                 // a track that "finishes" below 500ms never
+                                 // produced audio (FFmpeg misdetection) and
+                                 // counts as unplayable
     bool restoring_ = false;
     bool shuttingDown_ = false;  // gate: engine_->stop() in shutdown() fires a
                                  // stopped edge whose save would clobber the
