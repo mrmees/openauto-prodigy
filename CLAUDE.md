@@ -11,6 +11,9 @@ The proto definitions at `libs/prodigy-oaa-protocol/proto/` are a git submodule 
 ## Workflow
 
 This project follows a structured workflow. See `AGENTS.md` for the full loop.
+Plan tasks carry tier tags (`opus`/`sonnet`/`main`) with an Opus→Codex→Fable
+escalation ladder, and every feature passes the pre-push Codex review gate
+(`bash scripts/codex-review.sh`) — see AGENTS.md § Tiered Execution Workflow.
 
 - **Vision & principles:** `docs/project-vision.md`
 - **Current priorities:** `docs/roadmap-current.md`
