@@ -1358,6 +1358,19 @@ int main(int argc, char *argv[])
                                    Qt::QueuedConnection);
     });
 
+    // SIGTERM/SIGINT → clean Qt quit. Without this, `systemctl restart`
+    // kills the process before app.exec() returns, so aboutToQuit handlers
+    // and pluginManager.shutdownAll() (plugin state saves) never run
+    // (bench 2026-07-09 row 11).
+    signal(SIGTERM, [](int) {
+        QMetaObject::invokeMethod(qApp, []() { QCoreApplication::quit(); },
+                                   Qt::QueuedConnection);
+    });
+    signal(SIGINT, [](int) {
+        QMetaObject::invokeMethod(qApp, []() { QCoreApplication::quit(); },
+                                   Qt::QueuedConnection);
+    });
+
     // --- systemd integration (Type=notify + watchdog) ---
 #ifdef HAS_SYSTEMD
     // Signal systemd: app is fully initialized

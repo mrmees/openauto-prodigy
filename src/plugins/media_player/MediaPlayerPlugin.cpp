@@ -79,6 +79,11 @@ bool MediaPlayerPlugin::initialize(IHostContext* context) {
             emit playbackStarted();
         wasPlaying_ = playing;
         emit playbackStateChanged();
+        // Persist on every play/pause/stop/track edge — a head unit's normal
+        // death is a power cut, so waiting for shutdown() loses everything
+        // (bench 2026-07-09 row 11). Playing edges persist the new queue and
+        // index; position stays from the last pause (start-of-track on cut).
+        if (!restoring_) saveState();
     });
 
     connect(engine_, &PlaybackEngine::metadataChanged, this, [this]() {
