@@ -20,8 +20,12 @@ Clean-room open-source rebuild of OpenAuto Pro (BlueWave Studio, defunct): a Ras
 ## Commands
 
 ```bash
-# Local build + tests (WSL2 Debian Trixie, Qt 6.8 system packages)
-cd build && cmake --build . -j$(nproc)
+# Local build + tests (WSL2 Debian Trixie, Qt 6.8 system packages).
+# Build dir lives on the Linux filesystem — the repo sits on a Windows drive
+# (9p mount) and object churn there is painfully slow. Never build in the
+# in-repo build/ dir. If the build dir is missing, configure it first:
+#   cmake -S . -B ~/builds/openauto-prodigy
+cd ~/builds/openauto-prodigy && cmake --build . -j$(nproc)
 ctest --output-on-failure
 ```
 

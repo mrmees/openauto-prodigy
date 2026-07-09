@@ -37,8 +37,8 @@ Precedence when they disagree: **AGENTS.md constraints > design doc > plan detai
 ## Verification workflow (every task, no exceptions)
 
 ```bash
-cd build && cmake .. && make -j$(nproc)      # local build (WSL2 Debian Trixie, Qt 6.8 system)
-ctest --output-on-failure                     # full suite, all green
+cd ~/builds/openauto-prodigy && cmake --build . -j$(nproc)   # ext4 build dir — never in-repo build/ (9p IO, see AGENTS.md)
+ctest --output-on-failure                                     # full suite, all green
 ```
 
 **ctest does NOT compile the app target** — always build `openauto-prodigy` too (`cmake --build . --target openauto-prodigy`) before claiming green; a broken `main.cpp` is invisible to the test suite.
