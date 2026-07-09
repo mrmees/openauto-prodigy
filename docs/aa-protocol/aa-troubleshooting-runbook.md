@@ -2,10 +2,9 @@
 
 Living troubleshooting guide for OpenAuto Prodigy AA sessions. Covers tools, debug workflows, failure modes, and observations.
 
-**Companion to:** `docs/skills/aa-troubleshooting/SKILL.md` (quick reference skill)
 **Protocol reference:** generate with `python3 tools/aa_proto_graph.py` → `docs/aa-protocol/protocol-reference.md` (untracked, generated); protocol definitions live in the open-android-auto repo.
 **Phone-side logging:** `docs/aa-protocol/aa-phone-side-debug.md` (logcat tags, dev settings, process architecture)
-**Protocol cross-reference:** `../openauto-pro-community/docs/android-auto-protocol-cross-reference.md` (Sony HU + APK mapped together)
+**Protocol cross-reference:** `android-auto-protocol-cross-reference.md` (same directory; Sony HU + APK mapped together)
 
 ---
 
@@ -32,7 +31,7 @@ Living troubleshooting guide for OpenAuto Prodigy AA sessions. Covers tools, deb
 
 ### Testing/reconnect.sh — Session Reset — BROKEN
 
-> **WARNING:** This script has hardcoded BT MACs, unreliable ADB WiFi toggling, and unvalidated log format checks. Kept as reference for the reconnect **sequence**, but do not run as-is. See the Manual Test Cycle section of `docs/skills/aa-troubleshooting/SKILL.md` (not yet created) for the current approach.
+> **WARNING:** This script has hardcoded BT MACs, unreliable ADB WiFi toggling, and unvalidated log format checks. Kept as reference for the reconnect **sequence**, but do not run as-is; use the manual workflow under "I changed code, now test it" below instead.
 
 **Sequence (still valid conceptually):**
 1. Pi BT disconnect + phone WiFi off (via ADB)
@@ -49,7 +48,7 @@ Living troubleshooting guide for OpenAuto Prodigy AA sessions. Covers tools, deb
 
 ### Testing/capture.sh — Protocol Capture — BROKEN
 
-> **WARNING:** Depends on reconnect.sh. The log collection steps (3/4, 4/4) are still valid — it's the reconnect that needs fixing. See the Manual Log Capture section of `docs/skills/aa-troubleshooting/SKILL.md` (not yet created).
+> **WARNING:** Depends on reconnect.sh. The log collection steps (3/4, 4/4) are still valid — it's the reconnect that needs fixing; collect the logs manually per the workflow below.
 
 **Output in `Testing/captures/<name>/`:**
 - `pi-protocol.log` — TSV protocol messages from ProtocolLogger
@@ -130,7 +129,7 @@ cd build && ctest --output-on-failure
    ./platform-tools/adb logcat -d | grep -E 'CAR\.|GH\.|WIRELESS|PROJECTION|WPP' | tail -50
    ```
 
-6. **If needed, do a full capture** — see the Manual Log Capture section of `docs/skills/aa-troubleshooting/SKILL.md` (not yet created).
+6. **If needed, do a full capture** — pull `pi-protocol.log`, the journal, and logcat manually (the capture.sh log-collection steps above are still valid).
 
 ### Workflow: "I changed code, now test it"
 
@@ -158,11 +157,11 @@ cd build && ctest --output-on-failure
 
 5. **Restart the app:**
    ```bash
-   ssh matt@192.168.1.152 '~/openauto-prodigy/restart.sh'
+   ssh matt@192.168.1.149 '~/openauto-prodigy/restart.sh'
    # If process is stuck, use --force-kill
    ```
 
-6. **Reconnect phone** — see the Manual Test Cycle section of `docs/skills/aa-troubleshooting/SKILL.md` (not yet created) (steps 1, 7-10).
+6. **Reconnect phone** — Pi BT disconnect + phone WiFi toggle, then let auto-reconnect run (the reconnect.sh sequence above, done manually).
 
 ### Workflow: "I need a screenshot of the Pi display"
 
@@ -175,7 +174,7 @@ scp matt@192.168.1.149:/tmp/screenshot.png /tmp/pi-screenshot.png
 
 ## Failure Mode Playbooks
 
-> **Step 0 for ALL failure modes:** Confirm the app is running and visible first. See the Step 0 section of `docs/skills/aa-troubleshooting/SKILL.md` (not yet created).
+> **Step 0 for ALL failure modes:** Confirm the app is running and visible first (`systemctl status openauto-prodigy` + a screenshot — see the workflows above).
 
 ### Session Establishment Failures
 
