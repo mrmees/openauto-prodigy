@@ -71,7 +71,10 @@ mid-execution.
 
 ### Review gate (per feature, pre-push)
 
-After a plan's tasks are done and tests are green:
+After a plan's tasks are done, **the `openauto-prodigy` app target builds**,
+and tests are green. (ctest does not compile `main.cpp` — a cached object file
+masked an app-target break on 2026-07-09; always build the app target
+explicitly before gating.)
 
 1. Run `bash scripts/codex-review.sh` — reviews `@{upstream}..HEAD` in a
    read-only sandbox and saves structured P1/P2/P3 findings to `reviews/`

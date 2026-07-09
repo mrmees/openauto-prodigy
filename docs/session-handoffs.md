@@ -1504,3 +1504,24 @@ pointing at the report. Shipping stage 1 without this remains explicitly accepta
 per spec §6 ("annoying, not broken").
 
 **Session wrap (2026-07-07 ~15:30 CDT, context limit):** Post-checklist all green (see entries above; Pi verified end-to-end). Started two follow-on streams, both handed to next session: (1) **web-widget quality mini-batch** — Task QA (cross-build fast app-only default + --full flag) was mid-flight at wrap (subagent commits autonomously; verify + review + push next session); QB shim-hardening trio / QC logging / QD widget-author-limitations doc not yet dispatched (briefs from the wishlist JS-runtime section; ledger has the task letters). (2) **Theme-upload endpoint brainstorm** — exploration complete, notes at `docs/superpowers/specs/2026-07-07-theme-upload-context-notes.md` (open questions Q1-Q4 inside; Q1 auth posture was asked and not yet answered). EQ design sprint remains the next big roadmap item after these.
+
+## 2026-07-09 — Tiered workflow adoption + Codex pre-push gate shakedown — Complete, push pending go-ahead
+
+**What changed:**
+- Adopted concepts from the `fabletieredworkflow` review repo into the superpowers loop (spec: `docs/superpowers/specs/2026-07-09-tiered-execution-codex-gate-design.md`): plan-time tier tags (`opus`/`sonnet`/`main`) + Definition of Ready, model-pinned dispatch, Opus→Codex(GPT-5.5)→Fable escalation ladder, per-feature pre-push Codex review gate. Deliberately NOT adopted: handoffs/ dir, RUN-STATE.md, /tier command, autonomous architect (duplicate ceremony).
+- New `scripts/codex-review.sh` (read-only sandbox, stdin prompt + `-o` verdict, exit contract 0/1/2/4, artifacts in gitignored `reviews/`), TDD'd against a 10-check fake-codex harness. Workflow documented in AGENTS.md §Tiered Execution Workflow; CLAUDE.md pointer.
+- Shakedown = the gate run this push was waiting on. Round 1 (43 commits, 386KB diff): 5 findings → 3 confirmed+fixed (`e1bac4f`: AA focus RELEASE muting in-flight prompts — per-stream active flags; non-async-signal-safe SIGUSR1/SIGTERM/SIGINT — socketpair+QSocketNotifier self-pipe; BT metadata cleared on connect flip when AVRCP beats A2DP — runtime re-publish), 2 dismissed (startTrack persistence — setSource emits save-triggering edges, bench row 11; sub-500ms unplayable heuristic — deliberate bench row 12 trade-off).
+- Bonus: fix worker found a PRE-EXISTING app-target build break from `e6c77e8` (`oap::`→`oap::aa::`, main.cpp:746/748) masked by a cached main.cpp.o — ctest never compiles main.cpp (`1927959`). AGENTS.md gate precondition now requires an explicit app-target build.
+- Round 2 gate re-run: fix commits drew zero findings; 4 new/deeper findings → 2 confirmed+fixed (`e10920c`: shutdown-order UAF — AudioService is an earlier app child, destroyed before ~PlaybackEngine; became REACHABLE via the new clean SIGTERM quit; fixed via idempotent `releaseAudioResources()` called from plugin shutdown + new idempotency test; AA coexistence reset checked `==Disconnected` but teardown lands on `WaitingForDevice` — now resets on any non-projecting state, KEYCODE_MEDIA_PAUSE gated on `isAaConnected()`), 1 deferred to wishlist (PlaybackEngine ring-buffer flush — needs bench listen + RT-safe API design), 1 re-dismissed (sub-500ms, adjudication stands).
+- Wishlist: signal-handler item marked DONE (Codex independently re-found it — nice outside-family validation); deferred flush finding added.
+
+**Why:** Fable usage limits (token-heavy middle now routed to Opus/Sonnet) + formalizing the ad-hoc pre-push Codex review into a standing adjudicated gate.
+
+**Status:** All tasks complete. 115/115 ctest green, app target builds. develop ahead of origin by 46 commits, NOT pushed — awaiting Matthew's go-ahead (gate passed, adjudication recorded).
+
+**Next steps:**
+1. Push develop after go-ahead (immediately after, no parallel work — commit/push race rule).
+2. Pi deploy + bench: `systemctl restart` clean-quit path (self-pipe + shutdown-order fix), AA focus RELEASE with active nav prompt, BT reconnect metadata (AVRCP-first phones).
+3. Media player stage 2 (per roadmap).
+
+**Verification:** `cd build && cmake --build . -j$(nproc) && ctest --output-on-failure` → app target links, 115/115 pass. Gate: `bash scripts/codex-review.sh` → verdicts in `reviews/2026-07-09-{121741,130359}-codex-review.md` (gitignored, on MINIMEES).
