@@ -11,6 +11,9 @@ The proto definitions at `libs/prodigy-oaa-protocol/proto/` are a git submodule 
 ## Workflow
 
 This project follows a structured workflow. See `AGENTS.md` for the full loop.
+Plan tasks carry tier tags (`opus`/`sonnet`/`main`) with an Opus→Codex→Fable
+escalation ladder, and every feature passes the pre-push Codex review gate
+(`bash scripts/codex-review.sh`) — see AGENTS.md § Tiered Execution Workflow.
 
 - **Vision & principles:** `docs/project-vision.md`
 - **Current priorities:** `docs/roadmap-current.md`
@@ -64,9 +67,12 @@ ctest --output-on-failure  # 88 tests
 Use `cross-build.sh` — Docker-based cross-compile for aarch64. Do NOT use `toolchain-pi4.cmake` directly (CMakeCache confusion outside Docker).
 
 ```bash
-./cross-build.sh                              # build
+./cross-build.sh                              # build (fast: app target only, ~4-6 min)
 ./cross-build.sh -DCMAKE_BUILD_TYPE=Release   # release build
+./cross-build.sh --full                       # build all targets incl. ARM test binaries (~20 min)
 ```
+
+Default builds only the `openauto-prodigy` app target — that's all a Pi deploy ever needs. Pass `--full` to also build the ~30 ARM test binaries.
 
 Output: `build-pi/src/openauto-prodigy`
 
@@ -75,20 +81,20 @@ Output: `build-pi/src/openauto-prodigy`
 **Standard workflow — cross-build + rsync:**
 ```bash
 ./cross-build.sh
-rsync -av build-pi/src/openauto-prodigy matt@192.168.1.152:~/openauto-prodigy/build/src/
-ssh matt@192.168.1.152 'sudo systemctl restart openauto-prodigy.service'
+rsync -av build-pi/src/openauto-prodigy matt@192.168.1.149:~/openauto-prodigy/build/src/
+ssh matt@192.168.1.149 'sudo systemctl restart openauto-prodigy.service'
 ```
 
-Use this for anything that doesn't require the install script to set up system-level config. Push QML changes via git (`git push` + `ssh matt@192.168.1.152 'cd ~/openauto-prodigy && git pull'`) since QML isn't in the binary.
+Use this for anything that doesn't require the install script to set up system-level config. QML ships inside the binary (qt_add_qml_module + qmlcache, verified 2026-07-08) — QML changes also require cross-build + binary rsync; a git pull alone will NOT update the UI.
 
 **Fallback — native build on Pi** (if cross-build has ABI issues):
 ```bash
-ssh matt@192.168.1.152 "cd /home/matt/openauto-prodigy/build && cmake --build . -j3"
+ssh matt@192.168.1.149 "cd /home/matt/openauto-prodigy/build && cmake --build . -j3"
 ```
 
 **Force restart** (for stuck processes):
 ```bash
-ssh matt@192.168.1.152 '~/openauto-prodigy/restart.sh --force-kill'
+ssh matt@192.168.1.149 '~/openauto-prodigy/restart.sh --force-kill'
 ```
 
 ## Architecture
@@ -149,7 +155,7 @@ Flask server (`web-config/server.py`) communicates with Qt app via Unix domain s
 | `src/core/plugin/PluginManager.cpp` | Plugin lifecycle orchestration |
 | `src/core/plugin/HostContext.cpp` | Shared service access for plugins |
 | `src/ui/PluginRuntimeContext.cpp` | Scoped QML context per plugin activation |
-| `src/ui/PluginModel.cpp` | QAbstractListModel for QML nav strip |
+| `src/ui/PluginModel.cpp` | QAbstractListModel of registered plugins (activation state; apps open via dashboard launcher widgets — there is NO nav strip since v0.4.5) |
 | `src/core/YamlConfig.cpp` | YAML config with deep merge |
 | `src/core/services/ThemeService.cpp` | Day/night theme, color Q_PROPERTYs |
 | `src/core/services/AudioService.cpp` | PipeWire stream management, ring buffer bridge |
@@ -169,7 +175,7 @@ Flask server (`web-config/server.py`) communicates with Qt app via Unix domain s
 | `src/ui/SettingsInputBoundary.cpp` | C++ subtree event filter for settings long-press-back |
 | `src/core/aa/EvdevTouchReader.cpp` | Direct evdev multi-touch + 3-finger gesture |
 | `src/core/aa/TouchHandler.hpp` | Touch → AA protobuf bridge |
-| `qml/components/Shell.qml` | App shell (status bar + content area + nav strip) |
+| `qml/components/Shell.qml` | App shell (status bar + content area + Navbar; apps launch from dashboard launcher widgets) |
 | `qml/components/GestureOverlay.qml` | 3-finger tap quick controls overlay |
 | `web-config/server.py` | Flask web config server |
 | `install.sh` | Interactive RPi OS Trixie installer |
@@ -244,5 +250,5 @@ AA supports fixed resolutions only:
 | Touch | DFRobot USB Multi Touch (10-point, MT Type B, 0-4095 range) |
 | WiFi | Built-in (used as AP for phone connection) |
 | BT | Built-in (RFCOMM for AA discovery, A2DP sink, HFP) |
-| IP | 192.168.1.152 (LAN), 10.0.0.1 (wlan0 AP) |
+| IP | 192.168.1.149 (LAN), 10.0.0.1 (wlan0 AP) |
 | OS | RPi OS Trixie, labwc compositor |

@@ -7,6 +7,7 @@
 #include <QMap>
 #include <QString>
 #include <QStringList>
+#include <QVariantMap>
 
 namespace oap {
 
@@ -131,6 +132,10 @@ public:
     /// Stores search paths for later rescan.
     void scanThemeDirectories(const QStringList& searchPaths);
 
+    /// Convert a display name into a theme id: lowercase, collapse runs of
+    /// non-alphanumerics to '-', trim leading/trailing '-'; empty -> "companion-theme".
+    static QString slugify(const QString& name);
+
     /// Import a companion-app theme: creates named theme dir, writes YAML + wallpaper, auto-switches.
     /// Returns true on success.
     bool importCompanionTheme(const QString& name, const QString& seed,
@@ -239,6 +244,11 @@ public:
     /// Read-only access to color maps (for IPC export without signal side-effects)
     const QMap<QString, QColor>& dayColors() const { return dayColors_; }
     const QMap<QString, QColor>& nightColors() const { return nightColors_; }
+
+    // The API/web-runtime theme vocabulary: hyphenated token -> "#rrggbb".
+    // Single source for SystemStatus.theme_tokens and the web bootstrap's
+    // CSS custom properties (--prodigy-<token>).
+    Q_INVOKABLE QVariantMap themeTokenMap() const;
 
 signals:
     void colorsChanged();

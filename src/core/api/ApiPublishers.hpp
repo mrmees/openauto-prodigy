@@ -25,6 +25,7 @@ class IProjectionStatusProvider;
 class IPhoneStateService;
 class ThemeService;
 class BluetoothManager;
+class DisplayInfo;
 } // namespace oap
 
 namespace oap::api {
@@ -98,10 +99,12 @@ private:
 class SystemPublisher : public TopicPublisher {
     Q_OBJECT
 public:
-    /// `bt` is nullable -- Bluetooth stack may be unavailable on this head
-    /// unit (see ApiSerializers buildSystemStatus).
+    /// `bt` and `display` are both nullable -- Bluetooth stack may be
+    /// unavailable, and display dims are a v1.1 feature-detect addition (see
+    /// ApiSerializers buildSystemStatus).
     SystemPublisher(oap::ThemeService* theme, QString appVersion,
-                     oap::BluetoothManager* bt, QObject* parent = nullptr);
+                     oap::BluetoothManager* bt, oap::DisplayInfo* display,
+                     QObject* parent = nullptr);
 
 protected:
     prodigy::api::v1::ApiMessage buildEnvelope() override;
@@ -110,6 +113,7 @@ private:
     oap::ThemeService* theme_;
     QString appVersion_;
     oap::BluetoothManager* bt_;
+    oap::DisplayInfo* display_;
 };
 
 class PhonePublisher : public TopicPublisher {

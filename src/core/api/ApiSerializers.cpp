@@ -6,26 +6,6 @@ namespace pb = prodigy::api::v1;
 
 namespace {
 
-// Active theme palette, exposed verbatim over the wire as
-// "--prodigy-<token>" CSS custom properties by the web runtime. Order does
-// not matter (destination is a map), but this is the full and exact set --
-// see design doc §8.
-static const char* kThemeTokens[] = {
-    "primary","on-primary","primary-container","on-primary-container",
-    "secondary","on-secondary","secondary-container","on-secondary-container",
-    "tertiary","on-tertiary","tertiary-container","on-tertiary-container",
-    "error","on-error","error-container","on-error-container",
-    "background","on-background","surface","on-surface",
-    "surface-variant","on-surface-variant","surface-dim","surface-bright",
-    "surface-container-lowest","surface-container-low","surface-container",
-    "surface-container-high","surface-container-highest",
-    "outline","outline-variant",
-    "inverse-surface","inverse-on-surface","inverse-primary",
-    "scrim","shadow",
-    "success","on-success","surface-tint-high","surface-tint-highest",
-    "warning","on-warning",
-};
-
 // Call-state normalization -- HFP-derived raw int (oap::ICallStateProvider::
 // CallState) -> wire CallState. Explicit switch, never a static_cast: the
 // two enums' numeric values intentionally diverge (Idle has no wire
@@ -142,6 +122,8 @@ prodigy::api::v1::MediaStatus buildMediaStatus(const oap::IMediaStatusProvider& 
         source = pb::MEDIA_SOURCE_BLUETOOTH;
     } else if (sourceStr == QStringLiteral("AndroidAuto")) {
         source = pb::MEDIA_SOURCE_ANDROID_AUTO;
+    } else if (sourceStr == QStringLiteral("MediaPlayer")) {
+        source = pb::MEDIA_SOURCE_LOCAL_MEDIA;
     } else {
         source = pb::MEDIA_SOURCE_UNSPECIFIED;
     }
@@ -171,6 +153,15 @@ prodigy::api::v1::MediaStatus buildMediaStatus(const oap::IMediaStatusProvider& 
         default: playback = pb::PLAYBACK_STATE_UNSPECIFIED; break;
         }
         break;
+    case pb::MEDIA_SOURCE_LOCAL_MEDIA:
+        // MediaPlayer (MediaPlayerPlugin): 0=Stopped, 1=Playing, 2=Paused.
+        switch (raw) {
+        case 0: playback = pb::PLAYBACK_STATE_STOPPED; break;
+        case 1: playback = pb::PLAYBACK_STATE_PLAYING; break;
+        case 2: playback = pb::PLAYBACK_STATE_PAUSED; break;
+        default: playback = pb::PLAYBACK_STATE_UNSPECIFIED; break;
+        }
+        break;
     case pb::MEDIA_SOURCE_NONE:
     case pb::MEDIA_SOURCE_UNSPECIFIED:
     default:
@@ -178,6 +169,12 @@ prodigy::api::v1::MediaStatus buildMediaStatus(const oap::IMediaStatusProvider& 
         break;
     }
     status.set_playback_state(playback);
+
+    // Progress (additive v1 fields 8-10). Passed through verbatim from the
+    // provider; has_position gates client-side progress rendering.
+    status.set_position_ms(p.position());
+    status.set_duration_ms(p.duration());
+    status.set_has_position(p.hasPosition());
 
     return status;
 }
@@ -203,21 +200,31 @@ prodigy::api::v1::ProjectionStatus buildProjectionStatus(const oap::IProjectionS
 
 prodigy::api::v1::SystemStatus buildSystemStatus(oap::ThemeService& theme,
                                                   const QString& appVersion,
-                                                  oap::BluetoothManager* bt) {
+                                                  oap::BluetoothManager* bt,
+                                                  const oap::DisplayInfo* display) {
     pb::SystemStatus status;
     status.set_night_mode(theme.realNightMode());
     status.set_theme_id(theme.currentThemeId().toStdString());
     status.set_app_version(appVersion.toStdString());
 
-    auto* tokens = status.mutable_theme_tokens();
-    for (const char* name : kThemeTokens) {
-        (*tokens)[name] = theme.color(QString::fromUtf8(name)).name().toStdString();
-    }
+    // Single source of the theme vocabulary: ThemeService::themeTokenMap()
+    // (also consumed by the web bootstrap's CSS custom properties).
+    const QVariantMap tokens = theme.themeTokenMap();
+    for (auto it = tokens.constBegin(); it != tokens.constEnd(); ++it)
+        (*status.mutable_theme_tokens())[it.key().toStdString()] =
+            it.value().toString().toStdString();
 
     auto* summary = status.mutable_bluetooth();
     const QString deviceName = (bt != nullptr) ? bt->connectedDeviceName() : QString();
     summary->set_connected(!deviceName.isEmpty());
     summary->set_device_name(deviceName.toStdString());
+
+    // v1.1 additive: absent on servers below v1.1 (feature-detect contract) --
+    // only set when a live DisplayInfo was provided.
+    if (display != nullptr) {
+        status.set_display_width(static_cast<uint32_t>(display->windowWidth()));
+        status.set_display_height(static_cast<uint32_t>(display->windowHeight()));
+    }
 
     return status;
 }

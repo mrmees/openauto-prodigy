@@ -1,0 +1,39 @@
+<!doctype html>
+<html>
+<body style="background:#111;color:#eee;font-family:sans-serif">
+<h2>Prodigy EME probe</h2>
+<pre id="out"></pre>
+<script>
+function log(m) {
+    document.getElementById('out').textContent += m + '\n';
+    console.log(m);
+}
+log('EME-PROBE: secureContext=' + window.isSecureContext);
+const v = document.createElement('video');
+log('EME-PROBE: h264=' + (v.canPlayType('video/mp4; codecs="avc1.42E01E"') || 'no'));
+log('EME-PROBE: aac=' + (v.canPlayType('audio/mp4; codecs="mp4a.40.2"') || 'no'));
+log('EME-PROBE: vp9=' + (v.canPlayType('video/webm; codecs="vp9"') || 'no'));
+
+// Two attempts: mp4 needs proprietary codecs; webm isolates "CDM loads at
+// all" from "proprietary codecs missing".
+const attempts = [
+    ['mp4', {
+        initDataTypes: ['cenc'],
+        audioCapabilities: [{contentType: 'audio/mp4; codecs="mp4a.40.2"'}],
+        videoCapabilities: [{contentType: 'video/mp4; codecs="avc1.42E01E"'}]
+    }],
+    ['webm', {
+        initDataTypes: ['cenc'],
+        audioCapabilities: [{contentType: 'audio/webm; codecs="opus"'}],
+        videoCapabilities: [{contentType: 'video/webm; codecs="vp9"'}]
+    }]
+];
+for (const [label, config] of attempts) {
+    navigator.requestMediaKeySystemAccess('com.widevine.alpha', [config]).then(
+        () => log('EME-PROBE: WIDEVINE SUPPORTED (' + label + ')'),
+        (e) => log('EME-PROBE: WIDEVINE UNAVAILABLE (' + label + ') — ' + e.name + ': ' + e.message)
+    );
+}
+</script>
+</body>
+</html>

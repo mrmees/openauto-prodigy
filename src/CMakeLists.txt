@@ -2,6 +2,7 @@
 add_library(openauto-core STATIC
     core/Logging.cpp
     core/YamlConfig.cpp
+    core/WidevineCdm.cpp
     core/InputDeviceScanner.cpp
     core/api/ApiFramer.cpp
     core/api/ApiAuth.cpp
@@ -45,6 +46,7 @@ add_library(openauto-core STATIC
     core/plugin/HostContext.cpp
     core/services/ConfigService.cpp
     core/services/ThemeService.cpp
+    core/services/ThemeInstallRequest.cpp
     core/services/DisplayService.cpp
     core/services/AudioService.cpp
     core/audio/PipeWireDeviceRegistry.cpp
@@ -78,9 +80,17 @@ add_library(openauto-core STATIC
     core/plugin/PluginManager.cpp
     plugins/android_auto/AndroidAutoPlugin.cpp
     plugins/bt_audio/BtAudioPlugin.cpp
+    plugins/media_player/PlayQueue.cpp
+    plugins/media_player/FolderModel.cpp
+    plugins/media_player/PlaybackEngine.cpp
+    plugins/media_player/MediaArtProvider.cpp
+    plugins/media_player/MediaPlayerPlugin.cpp
     plugins/phone/PhonePlugin.cpp
     plugins/equalizer/EqualizerPlugin.cpp
+    core/widget/WebWidgetManifest.cpp
     core/widget/WidgetRegistry.cpp
+    core/widget/WebWidgetScanner.cpp
+    core/webwidget/WebWidgetContentResolver.cpp
     ui/WidgetInstanceContext.cpp
     ui/WidgetContextFactory.cpp
     ui/WidgetPlacementModel.cpp
@@ -310,6 +320,11 @@ set_source_files_properties(../qml/widgets/AALauncherWidget.qml PROPERTIES
     QT_RESOURCE_ALIAS "AALauncherWidget.qml"
     QT_QML_SKIP_CACHEGEN TRUE
 )
+set_source_files_properties(../qml/widgets/MediaPlayerLauncherWidget.qml PROPERTIES
+    QT_QML_SOURCE_TYPENAME "MediaPlayerLauncherWidget"
+    QT_RESOURCE_ALIAS "MediaPlayerLauncherWidget.qml"
+    QT_QML_SKIP_CACHEGEN TRUE
+)
 set_source_files_properties(../qml/widgets/ThemeCycleWidget.qml PROPERTIES
     QT_QML_SOURCE_TYPENAME "ThemeCycleWidget"
     QT_RESOURCE_ALIAS "ThemeCycleWidget.qml"
@@ -335,6 +350,11 @@ set_source_files_properties(../qml/widgets/WeatherWidget.qml PROPERTIES
     QT_RESOURCE_ALIAS "WeatherWidget.qml"
     QT_QML_SKIP_CACHEGEN TRUE
 )
+set_source_files_properties(../qml/widgets/WebWidgetHost.qml PROPERTIES
+    QT_QML_SOURCE_TYPENAME "WebWidgetHost"
+    QT_RESOURCE_ALIAS "WebWidgetHost.qml"
+    QT_QML_SKIP_CACHEGEN TRUE
+)
 
 set_source_files_properties(../qml/applications/android_auto/AndroidAutoMenu.qml PROPERTIES
     QT_QML_SOURCE_TYPENAME "AndroidAutoMenu"
@@ -351,6 +371,10 @@ set_source_files_properties(../qml/applications/home/HomeMenu.qml PROPERTIES
 set_source_files_properties(../qml/applications/bt_audio/BtAudioView.qml PROPERTIES
     QT_QML_SOURCE_TYPENAME "BtAudioView"
     QT_RESOURCE_ALIAS "BtAudioView.qml"
+)
+set_source_files_properties(../qml/applications/media_player/MediaPlayerView.qml PROPERTIES
+    QT_QML_SOURCE_TYPENAME "MediaPlayerView"
+    QT_RESOURCE_ALIAS "MediaPlayerView.qml"
 )
 set_source_files_properties(../qml/applications/phone/PhoneView.qml PROPERTIES
     QT_QML_SOURCE_TYPENAME "PhoneView"
@@ -454,16 +478,19 @@ qt_add_qml_module(openauto-prodigy
         ../qml/widgets/NowPlayingWidget.qml
         ../qml/widgets/SettingsLauncherWidget.qml
         ../qml/widgets/AALauncherWidget.qml
+        ../qml/widgets/MediaPlayerLauncherWidget.qml
         ../qml/widgets/ThemeCycleWidget.qml
         ../qml/widgets/BatteryWidget.qml
         ../qml/widgets/CompanionStatusWidget.qml
         ../qml/widgets/AAFocusToggleWidget.qml
         ../qml/widgets/WeatherWidget.qml
+        ../qml/widgets/WebWidgetHost.qml
 
         ../qml/applications/android_auto/AndroidAutoMenu.qml
         ../qml/applications/settings/SettingsMenu.qml
         ../qml/applications/home/HomeMenu.qml
         ../qml/applications/bt_audio/BtAudioView.qml
+        ../qml/applications/media_player/MediaPlayerView.qml
         ../qml/applications/phone/PhoneView.qml
         ../qml/applications/phone/IncomingCallOverlay.qml
         ../qml/applications/settings/AASettings.qml
@@ -519,4 +546,18 @@ if(TARGET Qt6::Bluetooth)
     message(STATUS "Qt6::Bluetooth found — Bluetooth discovery enabled")
 else()
     message(STATUS "Qt6::Bluetooth NOT found — Bluetooth discovery disabled (wireless requires manual TCP)")
+endif()
+
+# Web widget runtime (JS/HTML widgets) — optional; needs qt6-webengine-dev
+# to build, qml6-module-qtwebengine at runtime. Non-WebEngine builds keep
+# the scanner/resolver logic (headless-testable) but never register widgets.
+if(TARGET Qt6::WebEngineQuick)
+    target_link_libraries(openauto-core PUBLIC Qt6::WebEngineQuick)
+    target_compile_definitions(openauto-core PUBLIC HAS_WEBENGINE)
+    target_sources(openauto-core PRIVATE
+        core/webwidget/WebWidgetSchemeHandler.cpp
+    )
+    message(STATUS "Qt6::WebEngineQuick found — web widget runtime enabled")
+else()
+    message(STATUS "Qt6::WebEngineQuick NOT found — web widget runtime disabled")
 endif()

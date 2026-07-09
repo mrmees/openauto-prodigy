@@ -24,8 +24,11 @@ struct AudioStreamHandle {
     struct pw_stream* stream = nullptr;
     AudioFocusType focusType = AudioFocusType::Gain;
     bool hasFocus = false;
-    float volume = 1.0f;  // 0.0 - 1.0 (current, may be ducked)
-    float baseVolume = 1.0f;  // Volume before ducking
+    // Focus gain: applyDucking() (Qt thread) stores the target; the playback
+    // process callback (PW RT thread) ramps toward it sample-by-sample.
+    std::atomic<float> targetGain{1.0f};  // 0.0 - 1.0 (may be ducked/muted)
+    float baseVolume = 1.0f;   // gain before ducking (Qt thread only)
+    float rtCurrentGain = 1.0f;  // ramp state (PW RT thread only)
     int bufferMs = 50;  // ring buffer size in milliseconds
     int maxBufferMs = 100;  // adaptive growth cap
 

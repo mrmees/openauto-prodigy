@@ -449,8 +449,13 @@ Item {
                                     Binding { target: widgetCtx; property: "cellWidth"; value: Math.round(homeScreen.cellSide); when: widgetCtx !== null }
                                     Binding { target: widgetCtx; property: "cellHeight"; value: Math.round(homeScreen.cellSide); when: widgetCtx !== null }
 
-                                    // isCurrentPage: true when this widget's page is the active SwipeView page
-                                    Binding { target: widgetCtx; property: "isCurrentPage"; value: model.page === pageView.currentIndex; when: widgetCtx !== null }
+                                    // isCurrentPage: true only when this delegate copy lives in the
+                                    // page-Loader that owns the widget's page AND that page is the one
+                                    // being shown. Foreign page-Loader copies (SwipeView pre-renders
+                                    // current/next/previous pages, each with a full unfiltered Repeater)
+                                    // must stay dormant -- a second live WebWidgetHost copy means a
+                                    // duplicate WebEngineView/renderer/WS.
+                                    Binding { target: widgetCtx; property: "isCurrentPage"; value: model.page === pageIndex && pageIndex === pageView.currentIndex; when: widgetCtx !== null }
 
                                     // Drag state
                                     property bool dragging: false
@@ -741,6 +746,28 @@ Item {
                                                 if (!delegateItem.dragging) {
                                                     innerContent.scale = 1.0
                                                     liftShadow.visible = false
+                                                }
+                                            }
+                                        }
+
+                                        // Web widgets: the WebEngineView eats every touch (z:-1 detector never
+                                        // fires) and ANY Qt pointer handler over the view SIGSEGVs the UI
+                                        // process when the scene mutates mid-touch-stream (on-device
+                                        // 2026-07-07, Codex-diagnosed). Long-press is instead detected INSIDE
+                                        // the page (injected host-gestures.js) and WebWidgetHost emits
+                                        // longPressed() only after the finger LIFTS -- so the selection
+                                        // mutation below never happens while the view owns an active touch
+                                        // stream. Native widgets have no such signal; ignoreUnknownSignals
+                                        // keeps this a silent no-op for them.
+                                        Connections {
+                                            target: widgetLoader.item
+                                            ignoreUnknownSignals: true
+                                            function onLongPressed() {
+                                                if (homeScreen.selectedInstanceId !== model.instanceId) {
+                                                    innerContent.scale = 1.05
+                                                    liftShadow.visible = true
+                                                    homeScreen.selectWidget(model.instanceId)
+                                                    liftResetTimer.start()
                                                 }
                                             }
                                         }

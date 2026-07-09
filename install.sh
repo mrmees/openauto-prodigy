@@ -799,6 +799,7 @@ install_dependencies() {
         qt6-connectivity-dev qt6-multimedia-dev qt6-websockets-dev
         qml6-module-qtquick-controls qml6-module-qtquick-layouts
         qml6-module-qtquick-window qml6-module-qtqml-workerscript
+        qt6-webengine-dev qml6-module-qtwebengine
 
         # Boost
         libboost-system-dev libboost-log-dev
@@ -850,6 +851,18 @@ install_dependencies() {
 
     run_with_spinner "Updating package lists" sudo apt-get update -q
     run_with_spinner "Installing ${#PACKAGES[@]} packages" sudo apt-get install -y -q "${PACKAGES[@]}"
+
+    # Widevine CDM — enables DRM (EME) playback in the web runtime (spec
+    # 2026-07-07-web-surface-strategy §Slice 1.1). Present in RPi OS repos,
+    # absent on plain Debian: best-effort, never a hard dependency. Desktop
+    # Chromium (if installed) is deliberately left untouched.
+    if apt-cache show libwidevinecdm0 >/dev/null 2>&1; then
+        run_with_spinner "Installing Widevine CDM (libwidevinecdm0)" \
+            sudo apt-get install -y -q libwidevinecdm0 \
+            || warn "libwidevinecdm0 install failed — DRM (Widevine) web content will not play"
+    else
+        warn "libwidevinecdm0 not found in APT repos — DRM (Widevine) web content will not play"
+    fi
 
     update_step 1 done
 }

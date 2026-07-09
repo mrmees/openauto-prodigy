@@ -18,7 +18,7 @@ namespace {
 QByteArray randomBytes(int count) {
     QByteArray bytes(count, '\0');
     for (int i = 0; i < count; ++i)
-        bytes[i] = static_cast<char>(QRandomGenerator::global()->bounded(256));
+        bytes[i] = static_cast<char>(QRandomGenerator::system()->bounded(256));
     return bytes;
 }
 
@@ -214,13 +214,15 @@ void ApiSession::goReady(quint64 requestId, const QString& grantedClientId) {
     pb::ApiMessage msg;
     auto* sh = msg.mutable_server_hello();
     sh->set_api_version_major(1);
-    sh->set_api_version_minor(0);
+    sh->set_api_version_minor(1);
     sh->set_server_name(deps_.serverName.toStdString());
     sh->set_app_version(deps_.appVersion.toStdString());
     sh->set_session_id(
         QUuid::createUuid().toString(QUuid::WithoutBraces).toStdString());
     if (!grantedClientId.isEmpty())
         sh->set_granted_client_id(grantedClientId.toStdString());
+    if (!deps_.serverId.isEmpty())
+        sh->set_server_id(deps_.serverId.toStdString());
     if (deps_.capabilities)
         *sh->mutable_capabilities() = deps_.capabilities();
 

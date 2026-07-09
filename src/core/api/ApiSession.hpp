@@ -46,6 +46,9 @@ struct ApiSessionDeps {
     class IApiRequestSink* requests = nullptr;
     QString serverName;
     QString appVersion;
+    // Stable head-unit identity (v1.1, config-persisted). Empty -> omitted
+    // from ServerHello (feature-detect contract).
+    QString serverId;
     qint64 maxQueueBytes = 1048576;
     int handshakeTimeoutMs = 5000;
 };

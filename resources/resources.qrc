@@ -5,5 +5,9 @@
         <file>icons/prodigy-128.png</file>
         <file>icons/prodigy-256.png</file>
         <file>icons/prodigy-logo.svg</file>
+        <file>web/protobuf.min.js</file>
+        <file>web/prodigy-proto.js</file>
+        <file>web/prodigy.js</file>
+        <file>web/host-gestures.js</file>
     </qresource>
 </RCC>

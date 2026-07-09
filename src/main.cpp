@@ -1,6 +1,18 @@
 #include <signal.h>
+#include <sys/socket.h>
+#include <unistd.h>
+#include <cerrno>
 #ifdef HAS_SYSTEMD
 #include <systemd/sd-daemon.h>
+#endif
+#ifdef HAS_WEBENGINE
+#include <QtWebEngineQuick/qtwebenginequickglobal.h>
+#include <QWebEngineUrlScheme>
+#include <QtWebEngineQuick/QQuickWebEngineProfile>
+#include "core/webwidget/WebWidgetContentResolver.hpp"
+#include "core/webwidget/WebWidgetSchemeHandler.hpp"
+#include "core/widget/WebWidgetScanner.hpp"
+#include "core/WidevineCdm.hpp"
 #endif
 #include <QGuiApplication>
 #include <QScreen>
@@ -49,6 +61,8 @@
 #include "core/aa/ManeuverIconProvider.hpp"
 #include <oaa/HU/Handlers/MediaStatusChannelHandler.hpp>
 #include "plugins/bt_audio/BtAudioPlugin.hpp"
+#include "plugins/media_player/MediaPlayerPlugin.hpp"
+#include "plugins/media_player/MediaArtProvider.hpp"
 #include "plugins/phone/PhonePlugin.hpp"
 #include "plugins/equalizer/EqualizerPlugin.hpp"
 #include "ui/ApplicationController.hpp"
@@ -69,8 +83,10 @@
 #include "ui/DashboardManager.hpp"
 #include <QQuickWindow>
 #include <QWindow>
+#include <QSocketNotifier>
 #include <QDateTime>
 #include <QProcess>
+#include <QTimeZone>
 #include <algorithm>
 #include <cmath>
 
@@ -125,8 +141,69 @@ static void adjustClockFromApiTimeReport(qint64 phoneTimeMs)
     }
 }
 
+// Companion TimeReport.timezone_id (v1.1, ApiInboundState::timezoneReported).
+// Reports can arrive ~continuously (once shortly after connect at minimum,
+// but nothing stops a client from sending more) -- skip the timedatectl call
+// entirely when the reported zone already matches the system zone, so a
+// steady stream of reports doesn't spam the polkit-authorized call.
+static void adjustTimezoneFromApiTimeReport(const QString& ianaId)
+{
+    if (ianaId.toUtf8() == QTimeZone::systemTimeZoneId())
+        return;
+
+    QProcess proc;
+    proc.start("timedatectl", {"set-timezone", ianaId});
+    proc.waitForFinished(5000);
+
+    if (proc.exitCode() == 0) {
+        qCInfo(lcCore) << "API: timezone adjusted to" << ianaId;
+    } else {
+        qCWarning(lcCore) << "API: timedatectl set-timezone failed:"
+                          << proc.readAllStandardError();
+    }
+}
+
+// Self-pipe for async-signal-safe Unix signal handling. POSIX signal handlers
+// may only touch this pipe; a QSocketNotifier on the main thread does the real
+// (Qt) work. See Qt docs "Calling Qt Functions From Unix Signal Handlers".
+static int g_signalFds[2] = {-1, -1};
+
 int main(int argc, char *argv[])
 {
+#ifdef HAS_WEBENGINE
+    // Chromium requires custom schemes registered before the app object
+    // exists (design §3/§9); initialize() must also precede QGuiApplication.
+    //
+    // Scheme is Secure (trustworthy origin so ws://127.0.0.1 connects) but
+    // deliberately NOT LocalAccessAllowed — widget pages must not load
+    // file:/qrc: subresources; all content flows through the prodigy://
+    // resolver jail (design §7; erratum vs design §3's flag list,
+    // final-review 2026-07-07).
+    {
+        QWebEngineUrlScheme scheme("prodigy");
+        scheme.setSyntax(QWebEngineUrlScheme::Syntax::Host);
+        scheme.setFlags(QWebEngineUrlScheme::SecureScheme);
+        QWebEngineUrlScheme::registerScheme(scheme);
+    }
+    // Widevine CDM auto-wiring (spec 2026-07-07-web-surface-strategy §Slice 1):
+    // point Chromium at the system CDM so DRM (EME) content can play. Must
+    // happen before initialize(); an operator-supplied widevine-path in
+    // QTWEBENGINE_CHROMIUM_FLAGS wins.
+    {
+        const QString cdm = oap::resolveWidevineCdmPath(oap::widevineCdmCandidates());
+        const QByteArray flags = qgetenv("QTWEBENGINE_CHROMIUM_FLAGS");
+        const QByteArray updated = oap::appendWidevineFlag(flags, cdm);
+        if (updated != flags) {
+            qputenv("QTWEBENGINE_CHROMIUM_FLAGS", updated);
+            qCInfo(lcCore) << "Widevine CDM wired:" << cdm;
+        } else if (cdm.isEmpty()) {
+            qCInfo(lcCore) << "No Widevine CDM found — DRM content unavailable";
+        } else {
+            qCInfo(lcCore) << "Widevine flags preset by environment — leaving untouched";
+        }
+    }
+    QtWebEngineQuick::initialize();
+#endif
     QGuiApplication app(argc, argv);
     app.setApplicationName("OpenAuto Prodigy");
     app.setApplicationVersion("0.1.0");
@@ -452,6 +529,11 @@ int main(int argc, char *argv[])
     auto btAudioPlugin = new oap::plugins::BtAudioPlugin(&app);
     pluginManager.registerStaticPlugin(btAudioPlugin);
 
+    auto mediaPlayerPlugin = new oap::plugins::MediaPlayerPlugin(&app);
+    auto* mediaArtProvider = new oap::plugins::MediaArtProvider();
+    mediaPlayerPlugin->setArtProvider(mediaArtProvider);  // non-owning; engine owns it (see addImageProvider below)
+    pluginManager.registerStaticPlugin(mediaPlayerPlugin);
+
     // --- Core phone state service (owns HFP D-Bus + call state machine) ---
     auto phoneStateService = new oap::PhoneStateService(&app);
     phoneStateService->setNotificationService(notificationService);
@@ -538,7 +620,19 @@ int main(int argc, char *argv[])
     });
     QObject::connect(btAudioPlugin, &oap::plugins::BtAudioPlugin::connectionStateChanged,
                      mediaStatusService, [mediaStatusService, btAudioPlugin]() {
-        mediaStatusService->setBtConnected(btAudioPlugin->connectionState() == 1);
+        const bool connected = btAudioPlugin->connectionState() == 1;
+        mediaStatusService->setBtConnected(connected);
+        // setBtConnected(true) clears cached metadata (fresh-session semantics).
+        // If AVRCP (MediaPlayer1) connected before A2DP (drives connectionState),
+        // metadata already arrived and was just cleared — re-publish it now so
+        // now-playing doesn't stay blank until the next AVRCP event (which can be
+        // a whole track away). Mirrors the startup seed block below.
+        if (connected) {
+            mediaStatusService->updateBtMetadata(btAudioPlugin->trackTitle(),
+                                                  btAudioPlugin->trackArtist(),
+                                                  btAudioPlugin->trackAlbum());
+            mediaStatusService->updateBtPlaybackState(btAudioPlugin->playbackState());
+        }
     });
     if (btAudioPlugin->connectionState() == 1) {
         mediaStatusService->setBtConnected(true);
@@ -548,31 +642,120 @@ int main(int argc, char *argv[])
         mediaStatusService->updateBtPlaybackState(btAudioPlugin->playbackState());
     }
 
+    // Wire MediaStatusService to the local media player plugin
+    QObject::connect(mediaPlayerPlugin, &oap::plugins::MediaPlayerPlugin::metadataChanged,
+                     mediaStatusService, [mediaStatusService, mediaPlayerPlugin]() {
+        mediaStatusService->updateMediaPlayerMetadata(mediaPlayerPlugin->trackTitle(),
+                                                      mediaPlayerPlugin->trackArtist(),
+                                                      mediaPlayerPlugin->trackAlbum());
+        mediaStatusService->updateMediaPlayerArt(mediaPlayerPlugin->artUrl());
+    });
+    QObject::connect(mediaPlayerPlugin, &oap::plugins::MediaPlayerPlugin::playbackStateChanged,
+                     mediaStatusService, [mediaStatusService, mediaPlayerPlugin]() {
+        mediaStatusService->updateMediaPlayerPlaybackState(mediaPlayerPlugin->playbackState());
+    });
+    QObject::connect(mediaPlayerPlugin, &oap::plugins::MediaPlayerPlugin::progressChanged,
+                     mediaStatusService, [mediaStatusService](qint64 pos, qint64 dur) {
+        mediaStatusService->updateMediaPlayerProgress(pos, dur);
+    });
+    QObject::connect(mediaPlayerPlugin, &oap::plugins::MediaPlayerPlugin::hasTrackChanged,
+                     mediaStatusService, [mediaStatusService, mediaPlayerPlugin]() {
+        mediaStatusService->setMediaPlayerConnected(mediaPlayerPlugin->hasTrack());
+    });
+    if (mediaPlayerPlugin->hasTrack()) {   // queue restored at initialize()
+        mediaStatusService->setMediaPlayerConnected(true);
+        mediaStatusService->updateMediaPlayerMetadata(mediaPlayerPlugin->trackTitle(),
+                                                      mediaPlayerPlugin->trackArtist(),
+                                                      mediaPlayerPlugin->trackAlbum());
+        mediaStatusService->updateMediaPlayerPlaybackState(mediaPlayerPlugin->playbackState());
+    }
+
+    // BT progress into the widened surface (cheap win — BtAudioPlugin already
+    // tracks position/duration from AVRCP)
+    QObject::connect(btAudioPlugin, &oap::plugins::BtAudioPlugin::positionChanged,
+                     mediaStatusService, [mediaStatusService, btAudioPlugin]() {
+        mediaStatusService->updateBtProgress(btAudioPlugin->trackPosition(),
+                                             btAudioPlugin->trackDuration());
+    });
+
     // Playback control delegation
     {
         auto* orch = aaPlugin->orchestrator();
         mediaStatusService->setPlaybackCallbacks(
-            [mediaStatusService, orch, btAudioPlugin]() {
+            [mediaStatusService, orch, btAudioPlugin, mediaPlayerPlugin]() {
                 if (mediaStatusService->source() == "AndroidAuto" && orch)
                     orch->sendButtonPress(85);
                 else if (mediaStatusService->source() == "Bluetooth" && btAudioPlugin) {
                     if (btAudioPlugin->playbackState() == 1) btAudioPlugin->pause();
                     else btAudioPlugin->play();
                 }
+                else if (mediaStatusService->source() == "MediaPlayer" && mediaPlayerPlugin)
+                    mediaPlayerPlugin->playPause();
             },
-            [mediaStatusService, orch, btAudioPlugin]() {
+            [mediaStatusService, orch, btAudioPlugin, mediaPlayerPlugin]() {
                 if (mediaStatusService->source() == "AndroidAuto" && orch)
                     orch->sendButtonPress(87);
                 else if (mediaStatusService->source() == "Bluetooth" && btAudioPlugin)
                     btAudioPlugin->next();
+                else if (mediaStatusService->source() == "MediaPlayer" && mediaPlayerPlugin)
+                    mediaPlayerPlugin->next();
             },
-            [mediaStatusService, orch, btAudioPlugin]() {
+            [mediaStatusService, orch, btAudioPlugin, mediaPlayerPlugin]() {
                 if (mediaStatusService->source() == "AndroidAuto" && orch)
                     orch->sendButtonPress(88);
                 else if (mediaStatusService->source() == "Bluetooth" && btAudioPlugin)
                     btAudioPlugin->previous();
+                else if (mediaStatusService->source() == "MediaPlayer" && mediaPlayerPlugin)
+                    mediaPlayerPlugin->previous();
             }
         );
+    }
+
+    // One audible music source at a time (spec §6): starting one pauses the
+    // others. AA↔local is bidirectional: an AA not-playing→playing edge
+    // pauses local, and a local play-start sends KEYCODE_MEDIA_PAUSE so the
+    // phone's MediaSession actually pauses (bench 2026-07-08 row 13). The AA
+    // hook must be edge-triggered — the phone re-reports "playing" for a
+    // moment after we send pause, and a level-triggered hook would re-pause
+    // local right back.
+    QObject::connect(mediaPlayerPlugin, &oap::plugins::MediaPlayerPlugin::playbackStarted,
+                     btAudioPlugin, [btAudioPlugin]() {
+        if (btAudioPlugin->playbackState() == 1) btAudioPlugin->pause();
+    });
+    QObject::connect(btAudioPlugin, &oap::plugins::BtAudioPlugin::playbackStateChanged,
+                     mediaPlayerPlugin, [mediaPlayerPlugin, btAudioPlugin]() {
+        if (btAudioPlugin->playbackState() == 1) mediaPlayerPlugin->pauseIfPlaying();
+    });
+    if (auto* orchForPolicy = aaPlugin->orchestrator()) {
+        if (auto* mshForPolicy = orchForPolicy->mediaStatusHandler()) {
+            auto aaPlaybackState = std::make_shared<int>(0);  // AA raw state: 2 = playing
+            QObject::connect(mshForPolicy, &oaa::hu::MediaStatusChannelHandler::playbackStateChanged,
+                             mediaPlayerPlugin, [mediaPlayerPlugin, aaPlaybackState](int state, const QString&) {
+                const bool becamePlaying = (state == 2 && *aaPlaybackState != 2);
+                *aaPlaybackState = state;
+                if (becamePlaying) mediaPlayerPlugin->pauseIfPlaying();
+            }, Qt::QueuedConnection);
+            QObject::connect(mediaPlayerPlugin, &oap::plugins::MediaPlayerPlugin::playbackStarted,
+                             orchForPolicy, [orchForPolicy, aaPlaybackState]() {
+                if (*aaPlaybackState == 2 && orchForPolicy->isAaConnected())
+                    orchForPolicy->sendButtonPress(127);  // KEYCODE_MEDIA_PAUSE
+            });
+            // The status channel emits nothing on close — without this reset a
+            // disconnect-while-playing leaves the flag stuck at 2, so the next
+            // reconnect's first "playing" report is not an edge (review 2026-07-09).
+            // AA teardown lands on WaitingForDevice, not Disconnected (which
+            // only comes from stop()/listen failure), so reset on any
+            // non-projecting state — anything that is neither Connected nor
+            // Backgrounded means AA is no longer echoing edges (gate re-run
+            // 2026-07-09).
+            QObject::connect(orchForPolicy, &oap::aa::AndroidAutoOrchestrator::connectionStateChanged,
+                             mediaPlayerPlugin, [orchForPolicy, aaPlaybackState]() {
+                const auto state = orchForPolicy->connectionState();
+                if (state != oap::aa::AndroidAutoOrchestrator::Connected
+                    && state != oap::aa::AndroidAutoOrchestrator::Backgrounded)
+                    *aaPlaybackState = 0;
+            });
+        }
     }
 
     // --- Projection status provider (wraps orchestrator for narrow interface) ---
@@ -668,6 +851,20 @@ int main(int argc, char *argv[])
         npDesc.defaultCols = 3; npDesc.defaultRows = 2;
         npDesc.qmlComponent = QUrl(QStringLiteral("qrc:/OpenAutoProdigy/NowPlayingWidget.qml"));
         widgetRegistry->registerWidget(npDesc);
+
+        // Media Player launcher tile — picker-visible (NOT singleton-seeded):
+        // launcher widgets are the only way to open an app in this shell.
+        oap::WidgetDescriptor mpLaunchDesc;
+        mpLaunchDesc.id = "org.openauto.media-player-launcher";
+        mpLaunchDesc.displayName = "Media Player";
+        mpLaunchDesc.iconName = "\ue030";  // library_music
+        mpLaunchDesc.category = "launcher";
+        mpLaunchDesc.description = "Open the local media player";
+        mpLaunchDesc.minCols = 1; mpLaunchDesc.minRows = 1;
+        mpLaunchDesc.maxCols = 3; mpLaunchDesc.maxRows = 3;
+        mpLaunchDesc.defaultCols = 1; mpLaunchDesc.defaultRows = 1;
+        mpLaunchDesc.qmlComponent = QUrl(QStringLiteral("qrc:/OpenAutoProdigy/MediaPlayerLauncherWidget.qml"));
+        widgetRegistry->registerWidget(mpLaunchDesc);
     }
 
     // Singleton launcher widgets (system-seeded, non-removable, hidden from picker)
@@ -763,6 +960,29 @@ int main(int argc, char *argv[])
         };
         widgetRegistry->registerWidget(weatherDesc);
     }
+
+#ifdef HAS_WEBENGINE
+    // Web widget runtime: serve scanned packages over prodigy:// and
+    // register them as grid widgets (design 2026-07-06-js-runtime §3-§4).
+    auto* webWidgetResolver = new oap::WebWidgetContentResolver();
+    auto* webWidgetSchemeHandler =
+        new oap::WebWidgetSchemeHandler(webWidgetResolver, &app);
+    QQuickWebEngineProfile::defaultProfile()->installUrlSchemeHandler(
+        "prodigy", webWidgetSchemeHandler);
+    const int webWidgetCount = oap::WebWidgetScanner::scan(
+        QDir::homePath() + QStringLiteral("/.openauto/webwidgets"),
+        *widgetRegistry, webWidgetResolver);
+    qInfo() << "Registered" << webWidgetCount << "web widget(s) from"
+            << (QDir::homePath() + QStringLiteral("/.openauto/webwidgets"));
+    if (webWidgetCount > 0) {
+        const QVariant apiEnabledV = configService->value(QStringLiteral("api.enabled"));
+        const bool apiEnabled = apiEnabledV.isValid() ? apiEnabledV.toBool() : true;
+        if (!apiEnabled)
+            qWarning() << "Web widgets are registered but api.enabled is false — "
+                          "they will render and spin 'connecting…' forever "
+                          "(web widgets require the External API; set api.enabled: true)";
+    }
+#endif
 
     // Collect widget descriptors from plugins
     for (auto* plugin : pluginManager.plugins()) {
@@ -1034,6 +1254,7 @@ int main(int argc, char *argv[])
 
     // Navigation icon image provider
     engine.addImageProvider(QStringLiteral("navicon"), maneuverIconProvider);
+    engine.addImageProvider(QStringLiteral("mediaart"), mediaArtProvider);  // engine takes ownership
 
     // Geometry override for windowed resolution testing
     engine.rootContext()->setContextProperty("_geomW", geomW);
@@ -1056,6 +1277,7 @@ int main(int argc, char *argv[])
     apiRefs.actions = actionRegistry;
     apiRefs.config = configService.get();
     apiRefs.bluetooth = bluetoothManager;
+    apiRefs.display = displayInfo;
     auto* apiServer = new oap::api::ApiServer(apiRefs, &app);
     if (!apiServer->start())
         qWarning() << "[main] External API disabled or failed to start";
@@ -1068,6 +1290,8 @@ int main(int argc, char *argv[])
     });
     QObject::connect(apiServer->inboundState(), &oap::api::ApiInboundState::timeReported,
                      &app, [](qint64 unixMs) { adjustClockFromApiTimeReport(unixMs); });
+    QObject::connect(apiServer->inboundState(), &oap::api::ApiInboundState::timezoneReported,
+                     &app, [](const QString& ianaId) { adjustTimezoneFromApiTimeReport(ianaId); });
 
     // Qt 6.5+ uses /qt/qml/ prefix, Qt 6.4 uses direct URI prefix
     QUrl url(QStringLiteral("qrc:/OpenAutoProdigy/main.qml"));
@@ -1163,12 +1387,50 @@ int main(int argc, char *argv[])
                                        displayInfo->windowHeight());
     });
 
-    // SIGUSR1 → disconnect AA session (ShutdownRequest + teardown, keep listening)
+    // Unix signals, handled async-signal-safely via a self-pipe. The raw
+    // handlers below only write() a byte — no Qt calls, no allocation — because
+    // QMetaObject::invokeMethod takes event-queue locks and can deadlock if a
+    // signal (e.g. SIGTERM from `systemctl restart`) lands while the main thread
+    // is inside postEvent. A QSocketNotifier drains the pipe on the main thread
+    // and does the real work:
+    //   SIGUSR1 → disconnect AA session (ShutdownRequest + teardown, keep listening)
+    //   SIGTERM/SIGINT → clean Qt quit. Without this, `systemctl restart` kills
+    //     the process before app.exec() returns, so aboutToQuit handlers and
+    //     pluginManager.shutdownAll() (plugin state saves) never run
+    //     (bench 2026-07-09 row 11).
     static oap::plugins::AndroidAutoPlugin* g_aaPlugin = aaPlugin;
-    signal(SIGUSR1, [](int) {
-        QMetaObject::invokeMethod(g_aaPlugin, [](){ g_aaPlugin->stopAA(); },
-                                   Qt::QueuedConnection);
-    });
+    if (::socketpair(AF_UNIX, SOCK_STREAM | SOCK_CLOEXEC, 0, g_signalFds) != 0) {
+        qCWarning(lcCore) << "socketpair for signal self-pipe failed — "
+                             "signal handlers not installed";
+    } else {
+        auto handler = [](int sig) {
+            const int savedErrno = errno;
+            char b = static_cast<char>(sig);
+            ssize_t n = ::write(g_signalFds[0], &b, 1);
+            (void)n;
+            errno = savedErrno;
+        };
+        signal(SIGUSR1, handler);
+        signal(SIGTERM, handler);
+        signal(SIGINT, handler);
+
+        auto* signalNotifier = new QSocketNotifier(g_signalFds[1],
+                                                   QSocketNotifier::Read, &app);
+        QObject::connect(signalNotifier, &QSocketNotifier::activated, &app, [](){
+            char b = 0;
+            if (::read(g_signalFds[1], &b, 1) != 1)
+                return;
+            switch (static_cast<int>(b)) {
+            case SIGUSR1:
+                if (g_aaPlugin) g_aaPlugin->stopAA();
+                break;
+            case SIGTERM:
+            case SIGINT:
+                QCoreApplication::quit();
+                break;
+            }
+        });
+    }
 
     // --- systemd integration (Type=notify + watchdog) ---
 #ifdef HAS_SYSTEMD

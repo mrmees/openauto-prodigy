@@ -72,6 +72,25 @@ cd openauto-prodigy
 
 The installer handles dependencies, builds from source, configures hostapd/WiFi, sets up systemd services, and walks the user through Bluetooth pairing. If something fails, the error message should tell them what to do — not send them to Stack Overflow.
 
+### 8. Native Core, Web Extensions
+
+Native QML for anything core, driving-relevant, or latency-sensitive (projection,
+phone, BT audio, settings, launcher, media playback). The web runtime
+(QtWebEngine) is the extension surface: glanceable dashboard content, optional
+add-ons, and third-party/community work that shouldn't require touching C++.
+
+Two consequences:
+
+- **WebEngine stays optional.** The app must build and run fully without
+  qt6-webengine installed (`HAS_WEBENGINE`). No core function may depend on a
+  browser stack existing.
+- **No core plugin migrates to web.** Renderer processes can crash and reload
+  (the widget host has retry machinery for exactly that); a weather tile
+  tolerates this, an incoming-call overlay does not.
+
+Decided 2026-07-07 after the web-widget ship — full rationale in
+`docs/superpowers/specs/2026-07-07-web-surface-strategy-design.md`.
+
 ## What We Don't Do
 
 | Decision | Reason |

@@ -6,6 +6,7 @@
 #include <QCoreApplication>
 #include <QDeadlineTimer>
 #include <QEventLoop>
+#include <QRegularExpression>
 
 #include "core/api/ApiServer.hpp"
 #include "core/api/ApiFramer.hpp"
@@ -117,6 +118,8 @@ private slots:
     void testWsEndToEnd();
     void testDisabledDoesNotListen();
     void testPairingActionRegistered();
+    void testServerIdMintedAndStable();
+    void testDoubleStartIsIdempotentNoOp();
 };
 
 void TestApiServer::testStartsAndBindsEphemeral() {
@@ -259,6 +262,96 @@ void TestApiServer::testPairingActionRegistered() {
 
     QVERIFY(f.actions.dispatch(QStringLiteral("api.pairing.cancel")));
     QVERIFY(!server.pairingActive());
+}
+
+void TestApiServer::testServerIdMintedAndStable() {
+    Fixture f;
+    f.config.setValue("api.tcp_port", 0);
+    f.config.setValue("api.ws_port", 0);
+
+    QVERIFY(f.config.value("identity.server_id").toString().isEmpty());
+
+    ApiServer server(f.refs());
+    server.setStorePathForTest("/tmp/oap_test_api_server_clients.yaml");
+    QVERIFY(server.start());
+
+    const QString mintedId = f.config.value("identity.server_id").toString();
+    static const QRegularExpression kUuidRe(
+        "^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$");
+    QVERIFY2(kUuidRe.match(mintedId).hasMatch(),
+             qPrintable(QString("server_id '%1' is not a UUID").arg(mintedId)));
+
+    server.stop();
+
+    // A fresh ApiServer against the SAME (in-memory) config reuses the
+    // already-minted id -- never re-mints on a subsequent start().
+    ApiServer server2(f.refs());
+    server2.setStorePathForTest("/tmp/oap_test_api_server_clients.yaml");
+    QVERIFY(server2.start());
+
+    QCOMPARE(f.config.value("identity.server_id").toString(), mintedId);
+    server2.stop();
+}
+
+void TestApiServer::testDoubleStartIsIdempotentNoOp() {
+    Fixture f;
+    f.config.setValue("api.tcp_port", 0);
+    f.config.setValue("api.ws_port", 0);
+    f.media.setBtConnected(true);
+    f.media.updateBtMetadata("SnapshotSong", "Artist", "Album");
+
+    ApiServer server(f.refs());
+    server.setStorePathForTest("/tmp/oap_test_api_server_clients.yaml");
+    QVERIFY(server.start());
+    const quint16 tcpPort = server.tcpPort();
+    const quint16 wsPort = server.wsPort();
+
+    // Second start() must be an idempotent no-op: same ports (a rebuilt
+    // listener bound to config port 0 would pick a NEW ephemeral port), and
+    // no duplicate publishers/listeners left behind.
+    QVERIFY(server.start());
+    QCOMPARE(server.tcpPort(), tcpPort);
+    QCOMPARE(server.wsPort(), wsPort);
+
+    QTcpSocket sock;
+    sock.connectToHost(QHostAddress::LocalHost, tcpPort);
+    QVERIFY(sock.waitForConnected(3000));
+
+    ApiFramer framer;
+    QList<QByteArray> queue;
+
+    sendFramed(sock, clientHello(1));
+    pb::ApiMessage hello = readFramed(sock, framer, queue);
+    QCOMPARE(hello.payload_case(), pb::ApiMessage::kServerHello);
+
+    sendFramed(sock, subscribe(2, pb::TOPIC_MEDIA));
+    pb::ApiMessage subResp = readFramed(sock, framer, queue);
+    QCOMPARE(subResp.payload_case(), pb::ApiMessage::kSubscribeResponse);
+    pb::ApiMessage snapshot = readFramed(sock, framer, queue);
+    QCOMPARE(snapshot.payload_case(), pb::ApiMessage::kMediaStatus);
+
+    // A single provider update must fan out exactly ONE delta. Pre-fix, a
+    // duplicate start() appends a second MediaPublisher wired to the same
+    // provider, so this update would be delivered twice.
+    f.media.updateBtMetadata("DeltaSong", "Artist2", "Album2");
+    pb::ApiMessage delta = readFramed(sock, framer, queue);
+    QCOMPARE(delta.payload_case(), pb::ApiMessage::kMediaStatus);
+    QCOMPARE(QString::fromStdString(delta.media_status().title()),
+             QString("DeltaSong"));
+
+    // Drain anything else that shows up briefly, then confirm nothing did:
+    // no second (duplicate) delta.
+    QCoreApplication::processEvents(QEventLoop::AllEvents, 200);
+    if (sock.bytesAvailable() > 0)
+        queue.append(framer.feed(sock.readAll()));
+    QCOMPARE(queue.size(), 0);
+
+    server.stop();
+
+    // Restart path: stop() clears started_, so a fresh start() must succeed.
+    QVERIFY(server.start());
+    QVERIFY(server.tcpPort() != 0);
+    server.stop();
 }
 
 QTEST_MAIN(TestApiServer)

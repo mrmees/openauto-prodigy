@@ -14,11 +14,11 @@ QByteArray randomBytes(int count) {
     QByteArray bytes(count, '\0');
     quint32* data = reinterpret_cast<quint32*>(bytes.data());
     int wholeWords = count / static_cast<int>(sizeof(quint32));
-    QRandomGenerator::global()->fillRange(data, wholeWords);
+    QRandomGenerator::system()->fillRange(data, wholeWords);
 
     int consumed = wholeWords * static_cast<int>(sizeof(quint32));
     for (int i = consumed; i < count; ++i) {
-        bytes[i] = static_cast<char>(QRandomGenerator::global()->bounded(256));
+        bytes[i] = static_cast<char>(QRandomGenerator::system()->bounded(256));
     }
     return bytes;
 }
@@ -34,7 +34,7 @@ PairingManager::PairingManager(PairedClientStore* store, QObject* parent)
 }
 
 void PairingManager::startWindow(int timeoutSeconds) {
-    int pin = QRandomGenerator::global()->bounded(100000, 999999);
+    int pin = QRandomGenerator::system()->bounded(100000, 999999);
     pin_ = QString::number(pin);
     salt_ = randomBytes(16);
     windowOpen_ = true;

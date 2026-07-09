@@ -1,13 +1,16 @@
 #pragma once
 
 #include "IMediaStatusService.hpp"
-#include <QByteArray>
+#include <array>
 #include <functional>
 
 namespace oap {
 
-/// Core service owning media status merging from AA and BT sources.
-/// Lives independently of the BT audio UI plugin.
+/// Core service merging media status from AA, BT, and the local MediaPlayer.
+/// Arbitration is "playing wins" (spec 2026-07-08 §6): the actively-playing
+/// source owns the display; most-recently-started-playing breaks ties; when
+/// nothing plays, the current source keeps the display while connected, else
+/// the most recently active connected source takes over.
 class MediaStatusService : public IMediaStatusService {
     Q_OBJECT
 public:
@@ -19,45 +22,64 @@ public:
     QString artist() const override;
     QString album() const override;
     int playbackState() const override;
+    bool isPlaying() const override;
     QString source() const override;
     QString appName() const override;
+    qint64 position() const override;
+    qint64 duration() const override;
+    bool hasPosition() const override;
+    QString artUrl() const override;
     void playPause() override;
     void next() override;
     void previous() override;
 
-    /// Set playback control callbacks (delegated to active source)
+    /// Set playback control callbacks (delegated to active source by the
+    /// main.cpp wiring, which branches on source()).
     using Callback = std::function<void()>;
     void setPlaybackCallbacks(Callback play, Callback next, Callback prev);
 
-    // AA source management
+    // AA source (raw states: 1=stopped, 2=playing, 3=paused)
     void setAaConnected(bool connected);
     void updateAaMetadata(const QString& title, const QString& artist, const QString& album);
     void updateAaPlaybackState(int state, const QString& appName = {});
 
-    // BT source management
+    // BT source (raw states: 0=stopped, 1=playing, 2=paused)
     void setBtConnected(bool connected);
     void updateBtMetadata(const QString& title, const QString& artist, const QString& album);
     void updateBtPlaybackState(int state);
+    void updateBtProgress(qint64 positionMs, qint64 durationMs);
+
+    // Local MediaPlayer source (raw states: 0=stopped, 1=playing, 2=paused)
+    void setMediaPlayerConnected(bool connected);
+    void updateMediaPlayerMetadata(const QString& title, const QString& artist, const QString& album);
+    void updateMediaPlayerPlaybackState(int state);
+    void updateMediaPlayerProgress(qint64 positionMs, qint64 durationMs);
+    void updateMediaPlayerArt(const QString& artUrl);
 
 private:
-    enum ActiveSource { None, Bluetooth, AndroidAuto };
+    enum SourceId { SrcBluetooth = 0, SrcAndroidAuto = 1, SrcMediaPlayer = 2, SrcCount = 3 };
+    static constexpr int SrcNone = -1;
 
-    void setActiveSource(ActiveSource src);
-    void emitCurrentMetadata();
+    struct SourceState {
+        bool connected = false;
+        bool playing = false;
+        QString title, artist, album, appName, artUrl;
+        int playbackState = 0;
+        qint64 position = -1;
+        qint64 duration = 0;
+        quint64 seq = 0;   ///< bumped on connect and on transition-to-playing
+    };
 
-    ActiveSource activeSource_ = None;
+    static bool isPlayingState(int sourceId, int rawState);
+    void setConnected(int id, bool connected);
+    void applyPlaybackState(int id, int rawState);
+    void recompute(bool emitEvenIfUnchanged);
+    void clearSource(int id);
+    const SourceState* active() const;
 
-    // AA cached state
-    QString aaTitle_, aaArtist_, aaAlbum_, aaAppName_;
-    int aaPlaybackState_ = 0;
-
-    // BT cached state
-    QString btTitle_, btArtist_, btAlbum_;
-    int btPlaybackState_ = 0;
-
-    bool aaConnected_ = false;
-    bool btConnected_ = false;
-
+    std::array<SourceState, SrcCount> src_;
+    int active_ = SrcNone;
+    quint64 seq_ = 0;
     Callback playCallback_, nextCallback_, prevCallback_;
 };
 

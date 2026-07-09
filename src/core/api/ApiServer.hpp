@@ -41,6 +41,7 @@ class INotificationService;
 class ActionRegistry;
 class IConfigService;
 class BluetoothManager;
+class DisplayInfo;
 } // namespace oap
 
 namespace oap::api {
@@ -64,6 +65,7 @@ struct ApiServiceRefs {
     oap::ActionRegistry* actions = nullptr;
     oap::IConfigService* config = nullptr;
     oap::BluetoothManager* bluetooth = nullptr;            // nullable
+    oap::DisplayInfo* display = nullptr;                    // nullable
 };
 
 class ApiServer : public QObject {
@@ -128,6 +130,7 @@ private:
     // Listeners (created in start()).
     QTcpServer* tcpServer_ = nullptr;
     QWebSocketServer* wsServer_ = nullptr;
+    bool started_ = false;   // guards double-invocation of start(); see stop()
 
     QList<TopicPublisher*> publishers_;
     QList<ApiSession*> sessions_;
@@ -139,6 +142,7 @@ private:
     int handshakeTimeoutMs_ = 5000;
     QString serverName_;
     QString appVersion_;
+    QString serverId_;   // stable head-unit identity (v1.1); minted+persisted in start()
 };
 
 } // namespace oap::api

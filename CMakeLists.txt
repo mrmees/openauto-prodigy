@@ -9,7 +9,7 @@ set(CMAKE_AUTORCC ON)
 # Qt 6.8+ — Required for MultiEffect (QtQuick.Effects) shadow/depth system.
 # Dev VM: cmake -DCMAKE_PREFIX_PATH=~/Qt/6.8.2/gcc_64 ..
 find_package(Qt6 6.8 REQUIRED COMPONENTS Core Gui Quick QuickControls2 Multimedia Network WebSockets DBus)
-find_package(Qt6 OPTIONAL_COMPONENTS Bluetooth)
+find_package(Qt6 OPTIONAL_COMPONENTS Bluetooth WebEngineQuick)
 qt_standard_project_setup()
 
 # Suppress Qt QML static plugin import warnings on shared-library Qt builds
@@ -46,6 +46,7 @@ if(NOT OAP_GIT_HASH)
 endif()
 
 add_subdirectory(src)
+add_subdirectory(tools/eme-probe)
 
 option(BUILD_TESTING "Build test executables" ON)
 if(BUILD_TESTING)

@@ -11,6 +11,7 @@
 #include <QJsonValue>
 #include <QVariantMap>
 #include <QDebug>
+#include <QTimeZone>
 
 #include <array>
 #include <cmath>
@@ -136,6 +137,15 @@ void ApiRequestHandlers::sessionClosed(ApiSession* session) {
     // Notifications are not auto-dismissed on disconnect, but ownership
     // tracking for this (now dead) session is dropped.
     notificationOwners_.remove(session);
+
+    // If this session owned the proxy route, tear it down (legacy
+    // CompanionListenerService parity: clearClientSession() -> setProxyRoute
+    // (false)). A non-owner closing must never touch connectivity state.
+    if (session == connectivityOwner_) {
+        connectivityOwner_ = nullptr;
+        if (deps_.inbound)
+            deps_.inbound->setConnectivity(QString(), false, 0, QString());
+    }
 }
 
 // ---- Actions ---------------------------------------------------------------
@@ -367,15 +377,34 @@ void ApiRequestHandlers::handleReport(ApiSession* session, const pb::ApiMessage&
                                          : QString();
             deps_.inbound->setConnectivity(host, active,
                                            static_cast<quint16>(port), password);
+            // Route ownership follows the reporting session: an active report
+            // claims ownership; an inactive report releases it (whoever
+            // reports inactive is the last writer, matching the existing
+            // last-writer-wins global-state model).
+            connectivityOwner_ = active ? session : nullptr;
             break;
         }
         case pb::ApiMessage::kTimeReport: {
-            const qint64 t = msg.time_report().unix_time_ms();
+            const auto& r = msg.time_report();
+            const qint64 t = r.unix_time_ms();
             if (t <= 0) {
                 qWarning() << "API: dropping malformed TimeReport unix_time_ms=" << t;
                 return;
             }
             deps_.inbound->setTime(t);
+
+            // timezone_id is optional (v1.1) -- validate and forward
+            // separately; an invalid zone drops ONLY the zone, the time
+            // report above still applies.
+            if (r.has_timezone_id()) {
+                const QByteArray tz = QByteArray::fromStdString(r.timezone_id());
+                if (QTimeZone::isTimeZoneIdAvailable(tz)) {
+                    deps_.inbound->setTimezone(QString::fromUtf8(tz));
+                } else {
+                    qWarning() << "API: dropping malformed TimeReport.timezone_id="
+                               << tz;
+                }
+            }
             break;
         }
         default:

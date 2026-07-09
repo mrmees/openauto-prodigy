@@ -32,11 +32,11 @@ Per-task: run the plan's targeted `ctest -R <test>` red→green cycle first (TDD
 
 End of plan (or before any Pi deploy):
 ```bash
-./cross-build.sh                              # Docker aarch64 cross-compile — NOT toolchain-pi4.cmake directly
+./cross-build.sh                              # Docker aarch64 cross-compile — NOT toolchain-pi4.cmake directly (fast default: app target only, ~4-6 min; use --full for all targets incl. ARM test binaries, ~20 min)
 rsync -av build-pi/src/openauto-prodigy matt@<pi-ip>:~/openauto-prodigy/build/src/
 ssh matt@<pi-ip> 'sudo systemctl restart openauto-prodigy.service'
 ```
-Pi IP: nominally `192.168.1.152`, observed at `.149` (DHCP drift) — verify before assuming, QML changes go via `git pull` on the Pi (not in the binary). Never claim a task done on a failing or skipped verification — report what actually happened (superpowers:verification-before-completion).
+Pi IP: `192.168.1.149` (static — the old `.152` address is retired), QML changes go via `git pull` on the Pi (not in the binary). Never claim a task done on a failing or skipped verification — report what actually happened (superpowers:verification-before-completion).
 
 ## 4. Standing guardrails
 

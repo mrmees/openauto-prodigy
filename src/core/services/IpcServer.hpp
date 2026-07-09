@@ -47,6 +47,7 @@ private:
     QByteArray handleSetConfig(const QVariantMap& data);
     QByteArray handleGetTheme();
     QByteArray handleSetTheme(const QVariantMap& data);
+    QByteArray handleInstallTheme(const QVariantMap& data);
     QByteArray handleListPlugins();
     QByteArray handleStatus();
     QByteArray handleGetAudioDevices();

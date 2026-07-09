@@ -21,6 +21,7 @@ configure_file(data/test_config.yaml ${CMAKE_CURRENT_BINARY_DIR}/data/test_confi
 
 oap_add_test(test_logging SOURCES test_logging.cpp)
 oap_add_test(test_hostapd_config SOURCES test_hostapd_config.cpp)
+oap_add_test(test_widevine_cdm SOURCES test_widevine_cdm.cpp)
 
 oap_add_test(test_config_service SOURCES test_config_service.cpp)
 oap_add_test(test_config_key_coverage SOURCES test_config_key_coverage.cpp)
@@ -36,6 +37,16 @@ configure_file(data/test_plugin.yaml ${CMAKE_CURRENT_BINARY_DIR}/data/test_plugi
 oap_add_test(test_plugin_discovery SOURCES test_plugin_discovery.cpp)
 oap_add_test(test_plugin_manager SOURCES test_plugin_manager.cpp)
 oap_add_test(test_plugin_model SOURCES test_plugin_model.cpp)
+oap_add_test(test_play_queue SOURCES test_play_queue.cpp)
+oap_add_test(test_folder_model SOURCES test_folder_model.cpp)
+
+oap_add_test(test_playback_engine
+    SOURCES test_playback_engine.cpp
+    DEFS TEST_DATA_DIR="${CMAKE_CURRENT_BINARY_DIR}/data"
+)
+file(COPY data/media DESTINATION ${CMAKE_CURRENT_BINARY_DIR}/data)
+
+oap_add_test(test_media_art_provider SOURCES test_media_art_provider.cpp)
 
 # --- Service tests ---
 
@@ -44,6 +55,9 @@ oap_add_test(test_theme_service
     DEFS TEST_DATA_DIR="${CMAKE_CURRENT_BINARY_DIR}/data"
 )
 file(COPY data/themes DESTINATION ${CMAKE_CURRENT_BINARY_DIR}/data)
+
+oap_add_test(test_theme_install_request SOURCES test_theme_install_request.cpp)
+oap_add_test(test_ipc_install_theme SOURCES test_ipc_install_theme.cpp)
 
 oap_add_test(test_display_info SOURCES test_display_info.cpp)
 oap_add_test(test_display_service SOURCES test_display_service.cpp)
@@ -71,6 +85,7 @@ oap_add_test(test_paired_devices_model SOURCES test_paired_devices_model.cpp)
 # --- Audio pipeline tests ---
 
 oap_add_test(test_audio_ring_buffer SOURCES test_audio_ring_buffer.cpp)
+oap_add_test(test_focus_gain SOURCES test_focus_gain.cpp)
 
 # --- AA protocol tests ---
 
@@ -145,6 +160,9 @@ oap_add_test(test_widget_contract_qml
 )
 oap_add_test(test_widget_grid_remap SOURCES test_widget_grid_remap.cpp)
 oap_add_test(test_widget_picker_model SOURCES test_widget_picker_model.cpp)
+oap_add_test(test_web_widget_manifest SOURCES test_web_widget_manifest.cpp)
+oap_add_test(test_web_widget_resolver SOURCES test_web_widget_resolver.cpp)
+oap_add_test(test_web_widget_scanner SOURCES test_web_widget_scanner.cpp)
 
 oap_add_test(test_weather_service SOURCES test_weather_service.cpp)
 

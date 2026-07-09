@@ -31,7 +31,7 @@ Why not the alternatives:
 - **Local HTTP server** — another listening port to manage/firewall, plus either a QtHttpServer dependency or hand-rolled HTTP. The scheme handler is in-process, serves only what the handler chooses, and exposes nothing to the network.
 
 Scheme registration and behavior:
-- `QWebEngineUrlScheme::registerScheme("prodigy")` with flags `SecureScheme | LocalAccessAllowed` — **must run before `QApplication` is constructed** (Chromium requirement; this goes at the top of `main()`).
+- `QWebEngineUrlScheme::registerScheme("prodigy")` with flags `SecureScheme | LocalAccessAllowed` — **must run before `QApplication` is constructed** (Chromium requirement; this goes at the top of `main()`). **ERRATUM (2026-07-07 final review, fixed in 24f900a): `LocalAccessAllowed` is NOT used** — it would let widget pages load `file:`/`qrc:` subresources, bypassing the §7 jail, and nothing in the shipped architecture needs it (injected scripts are host-read at registration; the ws:// connection rides `SecureScheme` + loopback trustworthiness). §7 governs; the shipped flag set is `SecureScheme` alone.
 - `SecureScheme` makes the origin potentially-trustworthy, and `ws://127.0.0.1` is itself potentially-trustworthy, so the shim's WebSocket connects without mixed-content blocks.
 - The handler resolves `widgets/<id>/<path>` against the scanned package root for `<id>`, with a canonical-path check (`QFileInfo::canonicalFilePath()` must stay inside the package dir) — no traversal, no symlink escape. Unknown id or path → `request->fail(QWebEngineUrlRequestJob::UrlNotFound)`.
 - Content types by extension (html/js/css/svg/png/jpg/woff2/json); default `application/octet-stream`.

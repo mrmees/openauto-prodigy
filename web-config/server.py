@@ -10,11 +10,23 @@ import json
 import os
 import socket
 import sys
+import tempfile
 from pathlib import Path
 
 from flask import Flask, render_template, request, jsonify
 
 app = Flask(__name__)
+app.config["MAX_CONTENT_LENGTH"] = 6 * 1024 * 1024  # 5 MiB wallpaper + JSON headroom
+
+# Wallpaper temp dir. MUST match the `uploadDir` literal in
+# IpcServer::handleInstallTheme (src/core/services/IpcServer.cpp) — the Qt side
+# only accepts a wallpaper_path that canonicalizes under this exact dir. Keep in sync.
+UPLOAD_TMP_DIR = "/tmp/oap-theme-upload"
+
+
+@app.errorhandler(413)
+def _too_large(_e):
+    return jsonify({"installed": False, "error": "payload too large"}), 413
 
 # Unix socket path for IPC with the Qt app
 IPC_SOCKET = os.environ.get("OAP_IPC_SOCKET", "/tmp/openauto-prodigy.sock")
@@ -118,6 +130,51 @@ def api_set_theme():
     if not data:
         return jsonify({"error": "No JSON data"}), 400
     return jsonify(ipc_request("set_theme", data))
+
+
+@app.route("/api/theme/install", methods=["POST"])
+def api_install_theme():
+    """Companion theme+wallpaper upload → validate → apply via IPC install_theme."""
+    raw = request.form.get("manifest")
+    if not raw:
+        return jsonify({"installed": False, "error": "missing manifest"}), 400
+    try:
+        manifest = json.loads(raw)
+    except (ValueError, TypeError):
+        return jsonify({"installed": False, "error": "manifest is not valid JSON"}), 400
+    name = (manifest.get("name") or "").strip()
+    if not name:
+        return jsonify({"installed": False, "error": "manifest.name is required"}), 400
+
+    data = {
+        "name": name,
+        "seed": manifest.get("seed", ""),
+        "light": manifest.get("light", {}),
+        "dark": manifest.get("dark", {}),
+    }
+
+    temp_path = None
+    wp = request.files.get("wallpaper")
+    if wp is not None and wp.filename:
+        if (wp.mimetype or "") != "image/jpeg":
+            return jsonify({"installed": False, "error": "wallpaper must be image/jpeg"}), 400
+        os.makedirs(UPLOAD_TMP_DIR, mode=0o700, exist_ok=True)
+        fd, temp_path = tempfile.mkstemp(dir=UPLOAD_TMP_DIR, suffix=".jpg")
+        os.close(fd)
+        wp.save(temp_path)
+        data["wallpaper_path"] = temp_path
+
+    try:
+        resp = ipc_request("install_theme", data)
+        if resp.get("ok"):
+            return jsonify({"installed": True, "slug": resp.get("slug", ""), "applied": True}), 200
+        err = resp.get("error", "unknown error")
+        if "not running" in err or "not found" in err or "not accepting" in err or "timed out" in err:
+            return jsonify({"installed": False, "error": "Qt app not running"}), 503
+        return jsonify({"installed": False, "error": err}), 500
+    finally:
+        if temp_path and os.path.exists(temp_path):
+            os.unlink(temp_path)
 
 
 @app.route("/api/audio/devices", methods=["GET"])

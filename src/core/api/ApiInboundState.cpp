@@ -37,4 +37,9 @@ void ApiInboundState::setTime(qint64 unixMs) {
     emit timeReported(unixMs);
 }
 
+void ApiInboundState::setTimezone(const QString& ianaId) {
+    // No stored property here either -- same store-nothing style as setTime().
+    emit timezoneReported(ianaId);
+}
+
 } // namespace oap::api

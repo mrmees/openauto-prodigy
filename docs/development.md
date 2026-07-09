@@ -27,7 +27,8 @@ sudo apt install cmake g++ git pkg-config \
   libpipewire-0.3-dev libspa-0.2-dev \
   libyaml-cpp-dev libbluetooth-dev \
   hostapd dnsmasq bluez \
-  python3-flask
+  python3-flask \
+  qt6-webengine-dev qml6-module-qtwebengine  # optional — web widget runtime; builds fine without
 ```
 
 Note: `libbluetooth-dev` (raw BlueZ headers, `bluetooth/bluetooth.h`) is required in addition to `qt6-connectivity-dev` — `BluetoothDiscoveryService` uses BlueZ sockets/SDP directly. `install.sh` already includes it.
@@ -100,6 +101,8 @@ To create a prebuilt package from this repo:
 ./cross-build.sh -DCMAKE_BUILD_TYPE=Release
 ./tools/package-prebuilt-release.sh --build-dir build-pi --version-tag <tag>
 ```
+
+`cross-build.sh` defaults to building only the app target (`openauto-prodigy`), which is all a Pi deploy or package needs (~4-6 min); pass `--full` to also build the ~30 ARM test binaries (~20 min).
 
 Prebuilt release convention:
 - Asset: `openauto-prodigy-prebuilt-<tag>-pi4-aarch64.tar.gz`

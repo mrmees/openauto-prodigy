@@ -9,6 +9,7 @@
 #include "core/services/IConfigService.hpp"
 #include "core/services/PhoneStateService.hpp"
 #include "core/services/INavigationProvider.hpp"
+#include "ui/DisplayInfo.hpp"
 
 namespace pb = prodigy::api::v1;
 using namespace oap::api::serial;
@@ -53,11 +54,16 @@ private slots:
     void testMediaBluetoothPlaying();
     void testMediaAaTrap();
     void testMediaNoneSource();
+    void testMediaLocalMediaPlaying();
+    void testMediaProgressFieldsBtAndLocal();
+    void testMediaAaNoPosition();
     void testProjectionProjecting();
     void testProjectionUnknownRawDefaultsUnspecified();
     void testSystemThemeTokensAndVersion();
+    void testThemeTokenMapMatchesSerializer();
     void testSystemBluetoothNullptr();
     void testSystemBluetoothDisconnectedRealManager();
+    void testSystemDisplayDims();
     void testPhoneIdleEmptyCallsAndCapabilitiesFalse();
     void testPhoneRingingIncoming();
     void testPhoneAnswerActiveEchoesStartedAt();
@@ -126,6 +132,42 @@ void TestApiSerializers::testMediaNoneSource() {
     QVERIFY(!status.has_media());
 }
 
+void TestApiSerializers::testMediaLocalMediaPlaying() {
+    oap::MediaStatusService media;
+    media.setMediaPlayerConnected(true);
+    media.updateMediaPlayerMetadata("L", "LA", "LAl");
+    media.updateMediaPlayerPlaybackState(1);  // MP raw 1 = Playing
+    const pb::MediaStatus st = buildMediaStatus(media);
+    QCOMPARE(st.source(), pb::MEDIA_SOURCE_LOCAL_MEDIA);
+    QCOMPARE(st.playback_state(), pb::PLAYBACK_STATE_PLAYING);
+    QCOMPARE(QString::fromStdString(st.title()), QString("L"));
+
+    media.updateMediaPlayerPlaybackState(2);  // MP raw 2 = Paused
+    QCOMPARE(buildMediaStatus(media).playback_state(), pb::PLAYBACK_STATE_PAUSED);
+    media.updateMediaPlayerPlaybackState(0);  // MP raw 0 = Stopped
+    QCOMPARE(buildMediaStatus(media).playback_state(), pb::PLAYBACK_STATE_STOPPED);
+}
+
+void TestApiSerializers::testMediaProgressFieldsBtAndLocal() {
+    oap::MediaStatusService media;
+    media.setMediaPlayerConnected(true);
+    media.updateMediaPlayerPlaybackState(1);
+    media.updateMediaPlayerProgress(61000, 245000);
+    const pb::MediaStatus st = buildMediaStatus(media);
+    QCOMPARE(st.position_ms(), (long long)61000);
+    QCOMPARE(st.duration_ms(), (long long)245000);
+    QVERIFY(st.has_position());
+}
+
+void TestApiSerializers::testMediaAaNoPosition() {
+    oap::MediaStatusService media;
+    media.setAaConnected(true);
+    media.updateAaPlaybackState(2, "App");
+    const pb::MediaStatus st = buildMediaStatus(media);
+    QVERIFY(!st.has_position());
+    QCOMPARE(st.position_ms(), (long long)-1);
+}
+
 void TestApiSerializers::testProjectionProjecting() {
     QObject src;
     src.setProperty("connectionState", 3);
@@ -158,7 +200,7 @@ void TestApiSerializers::testSystemThemeTokensAndVersion() {
     oap::ThemeService theme;
     theme.loadThemeFile(QFINDTESTDATA("data/themes/default/theme.yaml"));
 
-    pb::SystemStatus status = buildSystemStatus(theme, "1.0.0 (deadbeef)", nullptr);
+    pb::SystemStatus status = buildSystemStatus(theme, "1.0.0 (deadbeef)", nullptr, nullptr);
 
     QCOMPARE(status.night_mode(), theme.realNightMode());
     QCOMPARE(QString::fromStdString(status.theme_id()), theme.currentThemeId());
@@ -191,11 +233,32 @@ void TestApiSerializers::testSystemThemeTokensAndVersion() {
     QCOMPARE(tokenName("surface-tint-highest"), theme.surfaceTintHighest().name());
 }
 
+void TestApiSerializers::testThemeTokenMapMatchesSerializer() {
+    // themeTokenMap() is the single source of the theme vocabulary now --
+    // the serializer's theme_tokens output must be built FROM this map, so
+    // the two must agree entry-for-entry (proves the move didn't fork the
+    // vocabulary or the color accessor).
+    oap::ThemeService theme;
+    theme.loadThemeFile(QFINDTESTDATA("data/themes/default/theme.yaml"));
+    const QVariantMap map = theme.themeTokenMap();
+    QCOMPARE(map.size(), 42);
+    QVERIFY(map.contains(QStringLiteral("on-primary")));
+    QVERIFY(map.contains(QStringLiteral("surface-container-high")));
+
+    const auto status = buildSystemStatus(theme, QStringLiteral("1.0.0 (test)"), nullptr, nullptr);
+    QCOMPARE(int(status.theme_tokens_size()), map.size());
+    for (auto it = map.constBegin(); it != map.constEnd(); ++it) {
+        const auto tok = status.theme_tokens().find(it.key().toStdString());
+        QVERIFY2(tok != status.theme_tokens().end(), qPrintable(it.key()));
+        QCOMPARE(QString::fromStdString(tok->second), it.value().toString());
+    }
+}
+
 void TestApiSerializers::testSystemBluetoothNullptr() {
     oap::ThemeService theme;
     theme.loadThemeFile(QFINDTESTDATA("data/themes/default/theme.yaml"));
 
-    pb::SystemStatus status = buildSystemStatus(theme, "1.0.0 (deadbeef)", nullptr);
+    pb::SystemStatus status = buildSystemStatus(theme, "1.0.0 (deadbeef)", nullptr, nullptr);
     QVERIFY(!status.bluetooth().connected());
     QVERIFY(status.bluetooth().device_name().empty());
 }
@@ -207,9 +270,28 @@ void TestApiSerializers::testSystemBluetoothDisconnectedRealManager() {
     MockConfigService config;
     oap::BluetoothManager bt(&config);  // no adapter in test env -> disconnected
 
-    pb::SystemStatus status = buildSystemStatus(theme, "1.0.0 (deadbeef)", &bt);
+    pb::SystemStatus status = buildSystemStatus(theme, "1.0.0 (deadbeef)", &bt, nullptr);
     QVERIFY(!status.bluetooth().connected());
     QVERIFY(status.bluetooth().device_name().empty());
+}
+
+void TestApiSerializers::testSystemDisplayDims() {
+    oap::ThemeService theme;
+    theme.loadThemeFile(QFINDTESTDATA("data/themes/default/theme.yaml"));
+
+    // Non-null DisplayInfo -- dims are set from windowWidth()/windowHeight().
+    oap::DisplayInfo display;
+    display.setWindowSize(800, 480);
+    pb::SystemStatus withDisplay = buildSystemStatus(theme, "1.0.0 (deadbeef)", nullptr, &display);
+    QVERIFY(withDisplay.has_display_width());
+    QVERIFY(withDisplay.has_display_height());
+    QCOMPARE(withDisplay.display_width(), quint32(800));
+    QCOMPARE(withDisplay.display_height(), quint32(480));
+
+    // Null DisplayInfo -- feature-detect contract: both fields stay unset.
+    pb::SystemStatus withoutDisplay = buildSystemStatus(theme, "1.0.0 (deadbeef)", nullptr, nullptr);
+    QVERIFY(!withoutDisplay.has_display_width());
+    QVERIFY(!withoutDisplay.has_display_height());
 }
 
 void TestApiSerializers::testPhoneIdleEmptyCallsAndCapabilitiesFalse() {

@@ -7,6 +7,7 @@
 #include <QAbstractSocket>
 #include <QDir>
 #include <QVariant>
+#include <QUuid>
 
 #include "core/api/ApiTransport.hpp"
 #include "core/api/ApiPublishers.hpp"
@@ -76,6 +77,15 @@ void ApiServer::setStorePathForTest(const QString& path) {
 }
 
 bool ApiServer::start() {
+    // Idempotent re-entry: the server is already running, so there is
+    // nothing to (re)build -- a second start() must not append duplicate
+    // publishers or leak the previous tcpServer_/wsServer_ by overwriting
+    // them with a fresh listen() on the same port.
+    if (started_) {
+        qWarning() << "API: start() called while already running; ignoring";
+        return true;
+    }
+
     auto cfgInt = [this](const char* key, int def) {
         const QVariant v = refs_.config ? refs_.config->value(QString::fromLatin1(key))
                                         : QVariant();
@@ -106,6 +116,17 @@ bool ApiServer::start() {
     const QString sw = cfgStr("identity.sw_version", QString());
     appVersion_ = sw + QStringLiteral(" (" OAP_GIT_HASH ")");
 
+    // Stable head-unit identity (v1.1, ServerHello.server_id): mint once on
+    // first API start and persist it, so it survives sessions and reboots.
+    serverId_ = cfgStr("identity.server_id", QString());
+    if (serverId_.isEmpty()) {
+        serverId_ = QUuid::createUuid().toString(QUuid::WithoutBraces);
+        if (refs_.config) {
+            refs_.config->setValue(QStringLiteral("identity.server_id"), serverId_);
+            refs_.config->save();
+        }
+    }
+
     const quint16 tcpPort = static_cast<quint16>(cfgInt("api.tcp_port", 9810));
     const quint16 wsPort  = static_cast<quint16>(cfgInt("api.ws_port", 9811));
 
@@ -121,10 +142,13 @@ bool ApiServer::start() {
             this, &ApiServer::onNewWebSocketConnection);
     const bool wsOk = wsServer_->listen(QHostAddress::Any, wsPort);
 
-    return tcpOk || wsOk;
+    started_ = tcpOk || wsOk;
+    return started_;
 }
 
 void ApiServer::stop() {
+    started_ = false;
+
     // 1. Destroy publishers FIRST. Each owns a 0-ms coalesce timer whose
     //    deferred buildEnvelope() reads its provider on the next event-loop
     //    turn; a provider may be torn down right after stop(), so no deferred
@@ -212,6 +236,7 @@ ApiSessionDeps ApiServer::buildDeps() const {
     deps.requests = handlers_;
     deps.serverName = serverName_;
     deps.appVersion = appVersion_;
+    deps.serverId = serverId_;
     deps.maxQueueBytes = maxQueueBytes_;
     deps.handshakeTimeoutMs = handshakeTimeoutMs_;
     deps.capabilities = [this]() { return buildCapabilities(); };
@@ -248,7 +273,7 @@ void ApiServer::createPublishers() {
     if (refs_.projection) wirePublisher(new ProjectionPublisher(refs_.projection, this));
     if (refs_.phone)      wirePublisher(new PhonePublisher(refs_.phone, this));
     if (refs_.theme)      wirePublisher(new SystemPublisher(refs_.theme, appVersion_,
-                                                            refs_.bluetooth, this));
+                                                            refs_.bluetooth, refs_.display, this));
 }
 
 void ApiServer::wirePublisher(TopicPublisher* pub) {

@@ -24,6 +24,7 @@ private slots:
     void testTcpFramingViolationCloses();
     void testWsRoundTrip();
     void testWsTextFrameCloses();
+    void testWsOversizedMessageCloses();
 };
 
 void TestApiTransports::testTcpRoundTrip() {
@@ -146,6 +147,33 @@ void TestApiTransports::testWsTextFrameCloses() {
     client.sendTextMessage("nope");
 
     QTRY_COMPARE(closedSpy.count(), 1);
+}
+
+void TestApiTransports::testWsOversizedMessageCloses() {
+    QWebSocketServer server(QStringLiteral("t"), QWebSocketServer::NonSecureMode);
+    QVERIFY(server.listen(QHostAddress::LocalHost, 0));
+    quint16 port = server.serverPort();
+
+    QWebSocket client;
+    client.open(QUrl(QString("ws://127.0.0.1:%1").arg(port)));
+
+    QTRY_VERIFY(server.hasPendingConnections());
+    QWebSocket* serverSocket = server.nextPendingConnection();
+    QVERIFY(serverSocket);
+    WsApiTransport transport(serverSocket, kMaxFrameBytes);
+
+    QSignalSpy closedSpy(&transport, &IApiTransport::closed);
+    QSignalSpy messageSpy(&transport, &IApiTransport::messageReceived);
+
+    // One byte over the cap. The ctor-level setMaxAllowedIncomingMessageSize()
+    // rejects this before Qt ever buffers the full message; the pre-existing
+    // onBinaryMessageReceived() size check is a second line of defense that
+    // would also close on this same input (see report for the RED caveat).
+    const QByteArray oversized(int(kMaxFrameBytes) + 1, 'x');
+    client.sendBinaryMessage(oversized);
+
+    QTRY_COMPARE(closedSpy.count(), 1);
+    QCOMPARE(messageSpy.count(), 0);
 }
 
 QTEST_MAIN(TestApiTransports)

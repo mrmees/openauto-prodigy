@@ -93,6 +93,8 @@ private slots:
     void testQueueCapDisconnects();
     void testPingPong();
     void testReentrantMessageThenClose();
+    void testServerHelloCarriesServerId();
+    void testServerHelloOmitsServerIdWhenEmpty();
 };
 
 void TestApiSession::testHelloTrustedGoesReady() {
@@ -110,6 +112,7 @@ void TestApiSession::testHelloTrustedGoesReady() {
     QCOMPARE(last.payload_case(), pb::ApiMessage::kServerHello);
     QVERIFY(!last.server_hello().session_id().empty());
     QCOMPARE(last.server_hello().api_version_major(), quint32(1));
+    QCOMPARE(last.server_hello().api_version_minor(), quint32(1));
 }
 
 void TestApiSession::testBadVersionRejected() {
@@ -372,6 +375,37 @@ void TestApiSession::testPingPong() {
     pb::ApiMessage last = parse(transport->sent.last());
     QCOMPARE(last.payload_case(), pb::ApiMessage::kPong);
     QCOMPARE(last.request_id(), quint64(7));
+}
+
+void TestApiSession::testServerHelloCarriesServerId() {
+    auto* transport = new FakeTransport();
+    ApiSessionDeps deps;
+    deps.serverName = "HeadUnit";
+    deps.appVersion = "1.2.3";
+    deps.serverId = "hu-test-id";
+    ApiSession session(transport, deps);
+
+    transport->injectMessage(clientHello(1));
+
+    pb::ApiMessage last = parse(transport->sent.last());
+    QCOMPARE(last.payload_case(), pb::ApiMessage::kServerHello);
+    QVERIFY(last.server_hello().has_server_id());
+    QCOMPARE(QString::fromStdString(last.server_hello().server_id()), QString("hu-test-id"));
+}
+
+void TestApiSession::testServerHelloOmitsServerIdWhenEmpty() {
+    auto* transport = new FakeTransport();
+    ApiSessionDeps deps;
+    deps.serverName = "HeadUnit";
+    deps.appVersion = "1.2.3";
+    // deps.serverId left empty (default).
+    ApiSession session(transport, deps);
+
+    transport->injectMessage(clientHello(1));
+
+    pb::ApiMessage last = parse(transport->sent.last());
+    QCOMPARE(last.payload_case(), pb::ApiMessage::kServerHello);
+    QVERIFY(!last.server_hello().has_server_id());
 }
 
 void TestApiSession::testReentrantMessageThenClose() {

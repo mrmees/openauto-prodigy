@@ -22,7 +22,8 @@ enum MediaSource {
   MEDIA_SOURCE_NONE = 1;          // no active media source
   MEDIA_SOURCE_BLUETOOTH = 2;     // A2DP/AVRCP
   MEDIA_SOURCE_ANDROID_AUTO = 3;  // projection media channel
-  reserved 4 to 10;
+  MEDIA_SOURCE_LOCAL_MEDIA = 4;   // head-unit local media player plugin
+  reserved 5 to 10;
 }
 
 enum PlaybackState {
@@ -48,7 +49,15 @@ message MediaStatus {
   // Bluetooth).
   string app_name = 7;
 
-  // 8..15 reserved for future additive fields (track position/duration are
-  // the anticipated additions once the underlying service carries them).
-  reserved 8 to 15;
+  // Track progress (2026-07-08 media-player design). position_ms is -1 when
+  // the active source does not report progress (e.g. Android Auto);
+  // duration_ms is 0 when unknown. has_position is the display gate: clients
+  // must not render a progress bar when it is false.
+  int64 position_ms = 8;
+  int64 duration_ms = 9;
+  bool has_position = 10;
+
+  // 11..15 reserved for future additive fields (artwork reference is the
+  // anticipated addition once a network-consumable art transport exists).
+  reserved 11 to 15;
 }

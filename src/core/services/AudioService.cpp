@@ -1,6 +1,7 @@
 #include "AudioService.hpp"
 #include "../Logging.hpp"
 #include "core/audio/EqualizerEngine.hpp"
+#include "core/audio/FocusGain.hpp"
 #include <cstring>
 #include <spa/param/props.h>
 #include <pipewire/version.h>
@@ -157,6 +158,17 @@ void AudioService::onPlaybackProcess(void* userdata)
         handle->eqEngine->process(
             reinterpret_cast<int16_t*>(static_cast<uint8_t*>(d.data)),
             frames);
+    }
+
+    // Focus gain (duck/mute from applyDucking) — ramped to avoid clicks
+    if (bytesRead > 0) {
+        const float target = handle->targetGain.load(std::memory_order_relaxed);
+        if (target != 1.0f || handle->rtCurrentGain != 1.0f) {
+            int frames = static_cast<int>(bytesRead / handle->bytesPerFrame);
+            handle->rtCurrentGain = applyFocusGain(
+                reinterpret_cast<int16_t*>(static_cast<uint8_t*>(d.data)),
+                frames, handle->channels, handle->rtCurrentGain, target);
+        }
     }
 
     // Silence-fill any gap — PipeWire graph timing is fixed by quantum/rate,
@@ -352,6 +364,9 @@ void AudioService::destroyStream(AudioStreamHandle* handle)
 
     QMutexLocker lock(&mutex_);
     streams_.removeOne(handle);
+    // The destroyed stream may have been the dominant focus holder (e.g. AA
+    // teardown mid-playback) — recompute so survivors aren't muted forever.
+    applyDucking();
     lock.unlock();
 
     if (handle->stream && threadLoop_) {
@@ -446,19 +461,19 @@ void AudioService::applyDucking()
     if (!dominant) {
         // No stream has focus — restore all volumes
         for (auto* s : streams_)
-            s->volume = s->baseVolume;
+            s->targetGain.store(s->baseVolume, std::memory_order_relaxed);
         return;
     }
 
     for (auto* s : streams_) {
         if (s == dominant) {
-            s->volume = s->baseVolume;
+            s->targetGain.store(s->baseVolume, std::memory_order_relaxed);
         } else if (dominant->focusType == AudioFocusType::GainTransientMayDuck) {
             // Duck lower-priority streams to 20%
-            s->volume = s->baseVolume * 0.2f;
+            s->targetGain.store(s->baseVolume * 0.2f, std::memory_order_relaxed);
         } else {
             // Gain or GainTransient — mute lower-priority streams
-            s->volume = 0.0f;
+            s->targetGain.store(0.0f, std::memory_order_relaxed);
         }
     }
 }
