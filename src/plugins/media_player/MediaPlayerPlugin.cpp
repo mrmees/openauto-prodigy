@@ -102,8 +102,11 @@ bool MediaPlayerPlugin::initialize(IHostContext* context) {
 
 void MediaPlayerPlugin::shutdown() {
     shuttingDown_ = true;
-    saveState();
-    if (engine_) engine_->stop();
+    saveState();  // must precede the stop — saveState reads engine position
+    // Fully release the PipeWire stream now: AudioService is an earlier app
+    // child and dies first at teardown, so leaving the release to
+    // ~PlaybackEngine ran use-after-free on every clean quit.
+    if (engine_) engine_->releaseAudioResources();
 }
 
 void MediaPlayerPlugin::onActivated(QQmlContext* context) {

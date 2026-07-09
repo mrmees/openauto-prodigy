@@ -48,6 +48,7 @@ private slots:
     void testPlaysFixtureToCompletion();
     void testMetadataAndState();
     void testErrorOnGarbagePath();
+    void testReleaseAudioResourcesIdempotent();
 private:
     QString fixture(const char* name) const {
         return QStringLiteral(TEST_DATA_DIR "/media/") + QLatin1String(name);
@@ -106,6 +107,33 @@ void TestPlaybackEngine::testErrorOnGarbagePath() {
     QSignalSpy errors(&eng, &PlaybackEngine::errorOccurred);
     eng.playFile("/nonexistent/nope.mp3");
     QTRY_VERIFY_WITH_TIMEOUT(errors.count() >= 1, 10000);
+}
+
+// Fix (gate re-run 2026-07-09): plugin shutdown() calls releaseAudioResources()
+// to free the AudioService stream BEFORE the service (an earlier app child) is
+// destroyed. The destructor then calls the same method — it must be idempotent
+// (stream_ nulled) so the post-shutdown ~PlaybackEngine does not double-release
+// / use-after-free.
+void TestPlaybackEngine::testReleaseAudioResourcesIdempotent() {
+    FakeAudioService audio;
+    PlaybackEngine eng;
+    eng.setAudioService(&audio);
+    QSignalSpy errors(&eng, &PlaybackEngine::errorOccurred);
+
+    eng.playFile(fixture("tone-44k.mp3"));
+    // Wait until a stream actually exists (audio began flowing).
+    QTRY_VERIFY_WITH_TIMEOUT(audio.created == 1 || errors.count() > 0, 15000);
+    if (errors.count() > 0)
+        QSKIP("Multimedia backend unavailable in this environment");
+
+    QCOMPARE(audio.destroyed, 0);            // stream lives during playback
+    eng.releaseAudioResources();             // shutdown() path
+    QCOMPARE(audio.destroyed, 1);            // released exactly once
+    const int releasesAfterFirst = audio.focusReleases;
+
+    eng.releaseAudioResources();             // simulates later ~PlaybackEngine
+    QCOMPARE(audio.destroyed, 1);            // idempotent: no second destroy
+    QCOMPARE(audio.focusReleases, releasesAfterFirst);  // no re-release on null stream
 }
 
 QTEST_GUILESS_MAIN(TestPlaybackEngine)

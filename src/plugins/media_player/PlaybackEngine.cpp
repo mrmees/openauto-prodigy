@@ -61,6 +61,10 @@ PlaybackEngine::PlaybackEngine(QObject* parent)
 }
 
 PlaybackEngine::~PlaybackEngine() {
+    releaseAudioResources();
+}
+
+void PlaybackEngine::releaseAudioResources() {
     player_.stop();
     if (audioService_ && stream_) {
         audioService_->releaseAudioFocus(stream_);

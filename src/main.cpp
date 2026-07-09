@@ -737,15 +737,22 @@ int main(int argc, char *argv[])
             }, Qt::QueuedConnection);
             QObject::connect(mediaPlayerPlugin, &oap::plugins::MediaPlayerPlugin::playbackStarted,
                              orchForPolicy, [orchForPolicy, aaPlaybackState]() {
-                if (*aaPlaybackState == 2)
+                if (*aaPlaybackState == 2 && orchForPolicy->isAaConnected())
                     orchForPolicy->sendButtonPress(127);  // KEYCODE_MEDIA_PAUSE
             });
             // The status channel emits nothing on close — without this reset a
             // disconnect-while-playing leaves the flag stuck at 2, so the next
             // reconnect's first "playing" report is not an edge (review 2026-07-09).
+            // AA teardown lands on WaitingForDevice, not Disconnected (which
+            // only comes from stop()/listen failure), so reset on any
+            // non-projecting state — anything that is neither Connected nor
+            // Backgrounded means AA is no longer echoing edges (gate re-run
+            // 2026-07-09).
             QObject::connect(orchForPolicy, &oap::aa::AndroidAutoOrchestrator::connectionStateChanged,
                              mediaPlayerPlugin, [orchForPolicy, aaPlaybackState]() {
-                if (orchForPolicy->connectionState() == oap::aa::AndroidAutoOrchestrator::Disconnected)
+                const auto state = orchForPolicy->connectionState();
+                if (state != oap::aa::AndroidAutoOrchestrator::Connected
+                    && state != oap::aa::AndroidAutoOrchestrator::Backgrounded)
                     *aaPlaybackState = 0;
             });
         }

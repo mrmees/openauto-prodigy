@@ -39,6 +39,12 @@ public:
     void stop();
     void seek(qint64 ms);
 
+    /// Fully release AudioService resources (focus + stream). Idempotent:
+    /// stream_ is nulled, so a later destructor call is a no-op. Must run at
+    /// plugin shutdown because AudioService is an earlier app child and is
+    /// destroyed first — releasing only in ~PlaybackEngine is a use-after-free.
+    void releaseAudioResources();
+
     /// 0=Stopped, 1=Playing, 2=Paused (the MediaPlayer source convention).
     int playbackState() const;
     qint64 position() const { return player_.position(); }
