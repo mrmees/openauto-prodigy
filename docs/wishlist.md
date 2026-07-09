@@ -112,3 +112,6 @@ Ideas captured here. Promote to `roadmap-current.md` when ready to commit.
 
 ## From docs-structure cleanup (2026-07-09)
 - **Miata GPIO/ignition/amp-control plugin** — the OAP-era hardware behavior (power latch, ignition sense, amp switching, dimmer servo, MCP23017 toggles) is a natural Prodigy plugin. Hardware reference preserved outside this repo at `personal/miata/miata-hardware-reference.md` (moved out during needs-review triage — car wiring doesn't belong in a public repo).
+- **Fix version mismatch** — CMakeLists.txt `project(... VERSION 0.1.0)` + `src/main.cpp setApplicationVersion("0.1.0")` disagree with YamlConfig's `identity.sw_version = "0.3.0"`. Pick one source of truth (probably CMake's `PROJECT_VERSION` injected via configure header) and derive the rest.
+- **Author `docs/reference/external-api.md`** — External API v1 is a shipped public feature but its only documentation is the archived design doc (`docs/archive/plans/2026-07-06-external-api-v1-design.md`). Distill a user-facing reference: endpoints, pairing flow, proto contract, capability flags.
+- **Re-triage the PARKED config-contract overhaul** — `docs/plans/2026-02-21-config-contract-overhaul-{design,plan}.md` (approved 2026-02-21, never executed). Decide: still wanted, needs rewrite against the current config surface, or ABANDONED.
