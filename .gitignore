@@ -31,8 +31,9 @@ __pycache__/
 # Proto decode research output (moved to ../research-archive/)
 tools/proto_decode_output/
 
-# Local-only artifacts (kept for reference, not public)
-archive/
+# Local-only artifacts (kept for reference, not public) — root only;
+# docs/archive/ is tracked history and must NOT be ignored
+/archive/
 
 # Private competitive-analysis / reference material — never public
 docs/private/
