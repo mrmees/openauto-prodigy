@@ -1,6 +1,6 @@
 # Docs & Repo Structure Cleanup — Design
 
-Status: ACTIVE
+Status: COMPLETED 2026-07-09
 Date: 2026-07-09
 Author: Fable session with Matthew (brainstorming skill)
 Guiding reference: `E:\claude\personal\github\ai_repo_layout.md` (workspace, not in repo)

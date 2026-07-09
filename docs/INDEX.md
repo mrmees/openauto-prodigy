@@ -52,8 +52,6 @@ Live plans:
 
 - [2026-07-08-media-player-design.md](plans/2026-07-08-media-player-design.md) — ACTIVE (stage 1 shipped; stages 2+ pending)
 - [2026-07-05-phase-f-light-plans.md](plans/2026-07-05-phase-f-light-plans.md) — ACTIVE (EQ parity audit, 0x8012 experiment, key-event nav remain)
-- [2026-07-09-docs-structure-cleanup-design.md](plans/2026-07-09-docs-structure-cleanup-design.md) — ACTIVE (this cleanup; archives on completion)
-- [2026-07-09-docs-structure-cleanup-plan.md](plans/2026-07-09-docs-structure-cleanup-plan.md) — ACTIVE (this cleanup; archives on completion)
 - [2026-02-21-config-contract-overhaul-design.md](plans/2026-02-21-config-contract-overhaul-design.md) — PARKED (needs re-triage)
 - [2026-02-21-config-contract-overhaul-plan.md](plans/2026-02-21-config-contract-overhaul-plan.md) — PARKED (needs re-triage)
 

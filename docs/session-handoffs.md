@@ -6,6 +6,45 @@ Newest entries first.
 
 > Older entries (2026-02 / 2026-03) are archived in `docs/archive/session-handoffs/2026-02--2026-03-handoffs.md`.
 
+## 2026-07-09 — DOCS/REPO STRUCTURE CLEANUP: COMPLETE — Diátaxis-lite tree, AGENTS.md SSOT, public face
+
+**What changed:** executed `docs/plans/2026-07-09-docs-structure-cleanup-plan.md` (15 tasks, subagent-driven).
+Docs tree restructured: `docs/reference/` (7), `docs/aa-protocol/` (8), `docs/how-to/` (2), single
+`docs/archive/` (plans incl. milestones, session-handoffs, validation, research, openauto-pro). Every
+plan file carries a `Status:` header; `docs/plans/` holds only live plans + README (conventions +
+refreshed executor guidance). Feb/Mar handoffs rotated out of this file (16 kept / 30 archived,
+byte-verified). All live pointers re-targeted; `tools/aa_proto_graph.py` output moved to
+`docs/aa-protocol/protocol-reference.md` (gitignored). New: `docs/architecture.md`, root `AGENTS.md`
+rewritten as agent-instruction SSOT + 4 nested AGENTS.md (src/, src/core/aa/, libs/prodigy-oaa-protocol/,
+qml/), CLAUDE.md reduced to pointer stub, tests/scripts/tools READMEs, contributor-facing README,
+CONTRIBUTING.md + .github templates, `scripts/check-doc-links.py`. needs-review triage (Matthew):
+2 research docs → archive/research, codex corrections → archive/plans, miata hardware ref moved OUT
+of repo to personal/miata/. Bonus fix: bare `archive/` gitignore rule anchored to root (was silently
+ignoring new files under docs/archive/).
+
+**Why:** contributor-ready public face + one authoritative instruction surface for agents; stale
+paths and dead guidance were accumulating (46-entry handoff log, 40+ unstatused plans, README dated Feb).
+
+**Status:** COMPLETE. All 16 commits on `dev`, NOT pushed (awaiting go-ahead).
+
+**Codex gate (range 6b6dfce..19be155):** exit 0, 2 findings, both CONFIRMED + fixed (2bb8a8c), 0 dismissed:
+(1) P1 — real hostapd `wpa_passphrase` preserved in the rotated Feb/Mar archive → redacted (deliberate
+archive-edit exception). NOTE: the value sits in already-pushed history via the pre-rotation
+session-handoffs.md — **rotate the Pi AP passphrase** (cheap: it's our own AP; re-pair phone once).
+pi-config/hostapd.conf + wireless-setup.md verified sanitized. (2) P3 — runbook's dead SKILL.md
+pointers + stale `../openauto-pro-community/` cross-ref + retired `.152` IP → fixed. Small fixes,
+no gate re-run per AGENTS.md convention. Secret-scan + checker-hardening wishlisted.
+
+**Verification:** `scripts/check-doc-links.py` → OK: 0 broken links. Stale-path sweeps clean
+(self-references inside the cleanup plan/design docs are spec content, sanctioned). App target builds;
+`ctest --output-on-failure` → 100% passed, count identical to pre-cleanup baseline. Per-task subagent
+reviews: Tasks 1–4, 6, 11–14 spec ✅; Tasks 7–10 opus batch review → 1 Important (false INI-migration
+claim in architecture.md) fixed 69ac1c6.
+
+**Next 1–3 steps:** 1) push `dev` (needs Matthew go-ahead — 20 commits incl. 4 pre-cleanup);
+2) rotate Pi AP passphrase; 3) delete the empty `docs/superpowers/` shell on MINIMEES once whatever
+Windows process holds it lets go (git-invisible, cosmetic).
+
 ## 2026-07-09 — MEDIA PLAYER STAGE 1 BENCH: COMPLETE — all rows pass; 8 bench bugs found+fixed live
 
 **Bench verdict (Matthew on Pi hardware, 2026-07-08 evening → 07-09):** rows 1–7, 9–13

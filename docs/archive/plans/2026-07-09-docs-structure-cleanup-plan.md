@@ -2,7 +2,7 @@
 
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
-Status: ACTIVE
+Status: COMPLETED 2026-07-09
 Date: 2026-07-09
 Spec: `docs/plans/2026-07-09-docs-structure-cleanup-design.md` (approved by Matthew; Codex-reviewed, 9 findings adjudicated)
 
