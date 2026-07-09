@@ -114,6 +114,9 @@ private:
     bool wasPlaying_ = false;
     int consecutiveErrors_ = 0;
     bool restoring_ = false;
+    bool shuttingDown_ = false;  // gate: engine_->stop() in shutdown() fires a
+                                 // stopped edge whose save would clobber the
+                                 // just-saved position with 0
 };
 
 } // namespace plugins

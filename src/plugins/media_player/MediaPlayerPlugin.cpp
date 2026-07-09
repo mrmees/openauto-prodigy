@@ -83,7 +83,7 @@ bool MediaPlayerPlugin::initialize(IHostContext* context) {
         // death is a power cut, so waiting for shutdown() loses everything
         // (bench 2026-07-09 row 11). Playing edges persist the new queue and
         // index; position stays from the last pause (start-of-track on cut).
-        if (!restoring_) saveState();
+        if (!restoring_ && !shuttingDown_) saveState();
     });
 
     connect(engine_, &PlaybackEngine::metadataChanged, this, [this]() {
@@ -111,6 +111,7 @@ bool MediaPlayerPlugin::initialize(IHostContext* context) {
 }
 
 void MediaPlayerPlugin::shutdown() {
+    shuttingDown_ = true;
     saveState();
     if (engine_) engine_->stop();
 }
