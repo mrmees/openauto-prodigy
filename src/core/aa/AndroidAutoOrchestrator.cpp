@@ -375,31 +375,40 @@ void AndroidAutoOrchestrator::onNewConnection()
     // (assistant/voice) mutes it, GAIN_NAVI (guidance) ducks it to 20%.
     if (audioService_) {
         speechFocusHint_ = oap::AudioFocusType::GainTransientMayDuck;  // fresh session, fresh hint
+        mediaStreamActive_ = false;   // fresh session, fresh activity state
+        speechStreamActive_ = false;
+        systemStreamActive_ = false;
         connect(&mediaAudioHandler_, &oaa::hu::AudioChannelHandler::streamStarted,
                 this, [this](int32_t) {
+            mediaStreamActive_ = true;
             if (mediaStream_)
                 audioService_->requestAudioFocus(mediaStream_, oap::AudioFocusType::Gain);
         }, Qt::QueuedConnection);
         connect(&mediaAudioHandler_, &oaa::hu::AudioChannelHandler::streamStopped,
                 this, [this]() {
+            mediaStreamActive_ = false;
             if (mediaStream_) audioService_->releaseAudioFocus(mediaStream_);
         }, Qt::QueuedConnection);
         connect(&speechAudioHandler_, &oaa::hu::AudioChannelHandler::streamStarted,
                 this, [this](int32_t) {
+            speechStreamActive_ = true;
             if (speechStream_)
                 audioService_->requestAudioFocus(speechStream_, speechFocusHint_);
         }, Qt::QueuedConnection);
         connect(&speechAudioHandler_, &oaa::hu::AudioChannelHandler::streamStopped,
                 this, [this]() {
+            speechStreamActive_ = false;
             if (speechStream_) audioService_->releaseAudioFocus(speechStream_);
         }, Qt::QueuedConnection);
         connect(&systemAudioHandler_, &oaa::hu::AudioChannelHandler::streamStarted,
                 this, [this](int32_t) {
+            systemStreamActive_ = true;
             if (systemStream_)
                 audioService_->requestAudioFocus(systemStream_, oap::AudioFocusType::GainTransientMayDuck);
         }, Qt::QueuedConnection);
         connect(&systemAudioHandler_, &oaa::hu::AudioChannelHandler::streamStopped,
                 this, [this]() {
+            systemStreamActive_ = false;
             if (systemStream_) audioService_->releaseAudioFocus(systemStream_);
         }, Qt::QueuedConnection);
 
@@ -413,10 +422,15 @@ void AndroidAutoOrchestrator::onNewConnection()
             case 3:
                 speechFocusHint_ = oap::AudioFocusType::GainTransientMayDuck;
                 break;
-            case 4: // RELEASE — defensively drop anything still held
-                if (mediaStream_)  audioService_->releaseAudioFocus(mediaStream_);
-                if (speechStream_) audioService_->releaseAudioFocus(speechStream_);
-                if (systemStream_) audioService_->releaseAudioFocus(systemStream_);
+            case 4: // RELEASE — defensively drop focus still held by INACTIVE
+                    // streams only. An active stream's focus is owned by
+                    // streamStarted/streamStopped, and a phone RELEASE
+                    // mid-prompt must not mute in-flight audio (a stream without
+                    // focus is ducked to 0 by AudioService while another holds
+                    // Gain).
+                if (mediaStream_  && !mediaStreamActive_)  audioService_->releaseAudioFocus(mediaStream_);
+                if (speechStream_ && !speechStreamActive_) audioService_->releaseAudioFocus(speechStream_);
+                if (systemStream_ && !systemStreamActive_) audioService_->releaseAudioFocus(systemStream_);
                 // Hint resets with the focus session — one assistant use must
                 // not ratchet nav prompts from duck to mute (review 2026-07-09)
                 speechFocusHint_ = oap::AudioFocusType::GainTransientMayDuck;

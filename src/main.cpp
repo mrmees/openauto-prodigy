@@ -1,4 +1,7 @@
 #include <signal.h>
+#include <sys/socket.h>
+#include <unistd.h>
+#include <cerrno>
 #ifdef HAS_SYSTEMD
 #include <systemd/sd-daemon.h>
 #endif
@@ -80,6 +83,7 @@
 #include "ui/DashboardManager.hpp"
 #include <QQuickWindow>
 #include <QWindow>
+#include <QSocketNotifier>
 #include <QDateTime>
 #include <QProcess>
 #include <QTimeZone>
@@ -158,6 +162,11 @@ static void adjustTimezoneFromApiTimeReport(const QString& ianaId)
                           << proc.readAllStandardError();
     }
 }
+
+// Self-pipe for async-signal-safe Unix signal handling. POSIX signal handlers
+// may only touch this pipe; a QSocketNotifier on the main thread does the real
+// (Qt) work. See Qt docs "Calling Qt Functions From Unix Signal Handlers".
+static int g_signalFds[2] = {-1, -1};
 
 int main(int argc, char *argv[])
 {
@@ -611,7 +620,19 @@ int main(int argc, char *argv[])
     });
     QObject::connect(btAudioPlugin, &oap::plugins::BtAudioPlugin::connectionStateChanged,
                      mediaStatusService, [mediaStatusService, btAudioPlugin]() {
-        mediaStatusService->setBtConnected(btAudioPlugin->connectionState() == 1);
+        const bool connected = btAudioPlugin->connectionState() == 1;
+        mediaStatusService->setBtConnected(connected);
+        // setBtConnected(true) clears cached metadata (fresh-session semantics).
+        // If AVRCP (MediaPlayer1) connected before A2DP (drives connectionState),
+        // metadata already arrived and was just cleared — re-publish it now so
+        // now-playing doesn't stay blank until the next AVRCP event (which can be
+        // a whole track away). Mirrors the startup seed block below.
+        if (connected) {
+            mediaStatusService->updateBtMetadata(btAudioPlugin->trackTitle(),
+                                                  btAudioPlugin->trackArtist(),
+                                                  btAudioPlugin->trackAlbum());
+            mediaStatusService->updateBtPlaybackState(btAudioPlugin->playbackState());
+        }
     });
     if (btAudioPlugin->connectionState() == 1) {
         mediaStatusService->setBtConnected(true);
@@ -1359,25 +1380,50 @@ int main(int argc, char *argv[])
                                        displayInfo->windowHeight());
     });
 
-    // SIGUSR1 → disconnect AA session (ShutdownRequest + teardown, keep listening)
+    // Unix signals, handled async-signal-safely via a self-pipe. The raw
+    // handlers below only write() a byte — no Qt calls, no allocation — because
+    // QMetaObject::invokeMethod takes event-queue locks and can deadlock if a
+    // signal (e.g. SIGTERM from `systemctl restart`) lands while the main thread
+    // is inside postEvent. A QSocketNotifier drains the pipe on the main thread
+    // and does the real work:
+    //   SIGUSR1 → disconnect AA session (ShutdownRequest + teardown, keep listening)
+    //   SIGTERM/SIGINT → clean Qt quit. Without this, `systemctl restart` kills
+    //     the process before app.exec() returns, so aboutToQuit handlers and
+    //     pluginManager.shutdownAll() (plugin state saves) never run
+    //     (bench 2026-07-09 row 11).
     static oap::plugins::AndroidAutoPlugin* g_aaPlugin = aaPlugin;
-    signal(SIGUSR1, [](int) {
-        QMetaObject::invokeMethod(g_aaPlugin, [](){ g_aaPlugin->stopAA(); },
-                                   Qt::QueuedConnection);
-    });
+    if (::socketpair(AF_UNIX, SOCK_STREAM | SOCK_CLOEXEC, 0, g_signalFds) != 0) {
+        qCWarning(lcCore) << "socketpair for signal self-pipe failed — "
+                             "signal handlers not installed";
+    } else {
+        auto handler = [](int sig) {
+            const int savedErrno = errno;
+            char b = static_cast<char>(sig);
+            ssize_t n = ::write(g_signalFds[0], &b, 1);
+            (void)n;
+            errno = savedErrno;
+        };
+        signal(SIGUSR1, handler);
+        signal(SIGTERM, handler);
+        signal(SIGINT, handler);
 
-    // SIGTERM/SIGINT → clean Qt quit. Without this, `systemctl restart`
-    // kills the process before app.exec() returns, so aboutToQuit handlers
-    // and pluginManager.shutdownAll() (plugin state saves) never run
-    // (bench 2026-07-09 row 11).
-    signal(SIGTERM, [](int) {
-        QMetaObject::invokeMethod(qApp, []() { QCoreApplication::quit(); },
-                                   Qt::QueuedConnection);
-    });
-    signal(SIGINT, [](int) {
-        QMetaObject::invokeMethod(qApp, []() { QCoreApplication::quit(); },
-                                   Qt::QueuedConnection);
-    });
+        auto* signalNotifier = new QSocketNotifier(g_signalFds[1],
+                                                   QSocketNotifier::Read, &app);
+        QObject::connect(signalNotifier, &QSocketNotifier::activated, &app, [](){
+            char b = 0;
+            if (::read(g_signalFds[1], &b, 1) != 1)
+                return;
+            switch (static_cast<int>(b)) {
+            case SIGUSR1:
+                if (g_aaPlugin) g_aaPlugin->stopAA();
+                break;
+            case SIGTERM:
+            case SIGINT:
+                QCoreApplication::quit();
+                break;
+            }
+        });
+    }
 
     // --- systemd integration (Type=notify + watchdog) ---
 #ifdef HAS_SYSTEMD

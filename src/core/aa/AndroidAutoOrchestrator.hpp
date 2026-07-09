@@ -159,6 +159,13 @@ private:
     // focus request sets it (GAIN_TRANSIENT = mute, GAIN_NAVI = duck).
     oap::AudioFocusType speechFocusHint_ = oap::AudioFocusType::GainTransientMayDuck;
 
+    // Per-stream activity, tracked from streamStarted/streamStopped. A phone
+    // RELEASE must only drop focus still held by INACTIVE streams — an active
+    // stream's focus is owned by streamStarted/streamStopped (bench 2026-07-09).
+    bool mediaStreamActive_ = false;
+    bool speechStreamActive_ = false;
+    bool systemStreamActive_ = false;
+
     std::unique_ptr<oaa::ProtocolLogger> protocolLogger_;
 
     ConnectionState state_ = Disconnected;
