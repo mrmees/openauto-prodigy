@@ -15,9 +15,11 @@ since February ("loosey-goosey" era).
 ## Problems Being Solved
 
 1. **Stale docs presented as current.** README's "Current State" is dated Feb 26
-   (48 tests vs 88 now; predates dashboards, widgets, External API v1, HFP, media
-   player). CLAUDE.md references `docs/aa-protocol/` which does not exist, and
-   states two different test counts.
+   (claims 48 tests; the suite is 115 as of 2026-07-09; predates dashboards,
+   widgets, External API v1, HFP, media player). CLAUDE.md references
+   `docs/aa-protocol/` which does not exist, and states two different test
+   counts (47 and 88) — both wrong. Rule going forward: docs never state exact
+   test counts; they state the command that reports them.
 2. **Agent-instruction split-brain.** CLAUDE.md (254 lines) holds build commands,
    architecture, and the Gotchas section; AGENTS.md (102 lines) holds workflow.
    Codex reads only AGENTS.md and never sees the gotchas.
@@ -112,6 +114,17 @@ repo root
 - Every plan/spec/design file gets a status header (see vocabulary below) as the
   first body line: `Status: ...`.
 
+### Blanket rule: legacy plans (Codex finding, P1)
+
+Every immediate `docs/plans/*.md` dated 2026-02-* / 2026-03-* (all ~33
+design/plan/change-request files, plus the five milestone docs) →
+`docs/archive/plans/`, `Status: COMPLETED <date>` — **after** verifying
+completion against `docs/session-handoffs.md` / milestone docs during
+execution. Any file whose completion cannot be confirmed gets
+`Status: ABANDONED — unverified, archived 2026-07-09` instead; none are
+silently guessed. The July `docs/superpowers/{specs,plans}/*` files follow the
+same verify-then-archive rule, with the exceptions below.
+
 ### Known non-obvious dispositions
 
 | File | Disposition |
@@ -125,6 +138,8 @@ repo root
 | `docs/baselines/2026-02-26-video-pipeline-baseline.md` | → `docs/archive/validation/` |
 | `docs/plans/milestone-0[1-5]-*.md` | → `docs/archive/plans/`, `Status: COMPLETED` (milestone summaries; INDEX keeps a "Milestone History" section pointing at archive) |
 | `pi-screenshot.png`, `pi-screenshot2.png` | → `assets/` |
+| `docs/OpenAutoPro_archive_information/needs-review/*` (4 files) | NOT silently archived — phase 1 includes a triage checkpoint with Matthew per file; `miata-hardware-reference.md` likely moves out of this repo to `personal/miata/` |
+| `tools/aa_proto_graph.py` generated output | tool's default output path changes to `docs/aa-protocol/protocol-reference.md`; fix the dead link in `aa-troubleshooting-runbook.md` (currently points at nonexistent `docs/aa-protocol-reference.md`) |
 
 ### Statuses requiring verification during execution (do not guess)
 
@@ -158,6 +173,9 @@ in the same commit that completes it.
 - Existing workflow content stays: management loop, tier tags, DoR, escalation
   ladder, Codex review gate.
 - Short repo map pointing at `docs/architecture.md` (no duplication).
+- **Explicit list of the four nested AGENTS.md files** with a "read the nearest
+  one before editing that subsystem" instruction — so the scheme works even for
+  tooling that does not auto-load nested instruction files (Codex finding, P2).
 - Conventions: plan status vocabulary, archive rule, session-handoff rotation,
   doc-update rule ("behavior-changing PRs update the matching doc or state none
   applies"), superpowers spec/plan output location = `docs/plans/`.
@@ -177,8 +195,14 @@ hardware, pkill -f, udev) move to `docs/how-to/debugging-notes.md`.
 ### CLAUDE.md stub
 
 ~10 lines: "AGENTS.md is the source of truth for this repo" + pointer to
-`docs/INDEX.md`. No duplicated commands or gotchas. (Claude Code reads AGENTS.md
-natively; nested files win by proximity for both Claude and Codex.)
+`docs/INDEX.md` + the same nested-AGENTS.md list. No duplicated commands or
+gotchas.
+
+**CLAUDE.md reference sweep (Codex finding, P2):** phase 2 greps the repo for
+references to CLAUDE.md and its gotchas — known sites: `AGENTS.md` ("workers
+inherit the repo CLAUDE.md"), `src/core/aa/NightModeProvider.cpp`,
+`src/ui/DashboardManager.hpp`, the executor handbook — and updates each to the
+appropriate root/nested AGENTS.md target.
 
 ### New subdirectory READMEs
 
@@ -239,10 +263,14 @@ Human workflow only; defers to AGENTS.md for commands. Issues/PR flow
 - **Phase 1 — Move & mark (mechanical; sonnet-tier):** create new dirs; all
   `git mv`s per disposition rules; add status headers; rotate session-handoffs
   (keep 2026-07 entries; Feb–Mar entries → `docs/archive/session-handoffs/`);
-  move screenshots; delete `.gitkeep`; rewrite INDEX.md; merge executor handbook
-  into `docs/plans/README.md`; repo-wide link-fix sweep (grep every moved path,
-  including references inside `install.sh`, `web-config/`, `tools/`, tests, and
-  the moved docs themselves).
+  move screenshots; delete `.gitkeep`; repo-wide link-fix sweep (grep every
+  moved path in BOTH absolute `docs/...` and relative `superpowers/...` forms,
+  covering `install.sh`, `web-config/`, `tools/`, `scripts/`, tests, CMake,
+  source comments, and the moved docs themselves); needs-review triage
+  checkpoint with Matthew (4 files). **Explicit content-edit exceptions to
+  "move, don't rewrite"** (Codex finding, P2): INDEX.md rewrite, new
+  `docs/plans/README.md` (executor-handbook merge), status headers, link-path
+  fixes, `tools/aa_proto_graph.py` output-path constant. Nothing else.
 - **Phase 2 — Agent instructions (main-tier):** write `docs/architecture.md`;
   rewrite AGENTS.md as SSOT; create 4 nested AGENTS.md files; reduce CLAUDE.md
   to stub; add tests/scripts/tools READMEs.
@@ -254,16 +282,34 @@ Human workflow only; defers to AGENTS.md for commands. Issues/PR flow
 
 ### Verification
 
-- Phase 1: `git grep` for every old path returns no live references (archive
-  content may keep historical references to old paths — acceptable, it's history);
-  `docs/INDEX.md` links all resolve; working tree builds (no code touched).
+- Phase 1: markdown link check over **all live (non-archive) docs** — every
+  relative and absolute link resolves (Codex finding, P1: grep-for-old-paths
+  alone misses relative links like `superpowers/specs/...` in
+  session-handoffs.md); `git grep` for every old path returns no live
+  references (archive content may keep historical references — acceptable);
+  working tree builds.
 - Phase 2: AGENTS.md ≤ ~150 lines; no command/gotcha exists in two places;
   CLAUDE.md stub contains no operational content.
 - Phase 3: README contains no dated state claims; all image links resolve.
 
+### Archived-spec references from live docs/code (Codex finding, P2)
+
+Live docs and source comments cite completed superpowers specs (e.g.
+`docs/web-widget-authoring.md` → External API / JS-runtime designs;
+`src/core/services/PhoneStateService.hpp`, `src/main.cpp`,
+`src/plugins/media_player/MediaPlayerPlugin.hpp` cite spec paths in comments).
+Resolution: phase 1 updates these references to the new archive paths,
+annotated "(design history)" where a doc implies the target is current
+guidance. Authoring living reference docs distilled from the shipped designs
+(`docs/reference/external-api.md` first — it's a shipped public feature whose
+only documentation is a design spec) is a wishlist follow-up, not part of this
+cleanup.
+
 ## Out of Scope
 
 - Fixing the 0.1.0 / 0.3.0 version mismatch in code (wishlist entry instead).
+- Authoring `docs/reference/external-api.md` and similar living reference docs
+  distilled from shipped designs (wishlist entry; see above).
 - CHANGELOG.md (revisit at next tagged release).
 - Restructuring `tools/` contents (README only).
 - Any change under `libs/prodigy-oaa-protocol/proto/` (submodule).
@@ -280,3 +326,7 @@ Human workflow only; defers to AGENTS.md for commands. Issues/PR flow
   re-word stale ones and note the change in the phase 2 commit message.
 - Whether `docs/private/` should eventually be tracked or moved out of the repo
   entirely — explicitly not decided here.
+- `.superpowers/sdd/` (untracked tool scratch) references old
+  `docs/superpowers/...` paths. Decision: left as historical scratch; active
+  work must not resume from those stale paths. Reset/clear it after the cleanup
+  lands if it causes confusion.
