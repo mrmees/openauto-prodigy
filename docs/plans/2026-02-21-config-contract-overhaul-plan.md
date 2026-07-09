@@ -856,6 +856,6 @@ Expected: All tests pass — the CMake `set_tests_properties` handles it.
 
 Ask Codex to review the complete set of changes across all tasks for consistency, regressions, and anything missed from the original stability report.
 
-**Step 4: Update CLAUDE.md if needed**
+**Step 4: Update AGENTS.md if needed**
 
 If any key gotchas or architectural decisions should be captured for future sessions.

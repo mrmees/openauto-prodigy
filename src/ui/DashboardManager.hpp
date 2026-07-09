@@ -105,7 +105,7 @@ private:
     // concurrent saveAll from another dashboard's edits), but the actual
     // file write is coalesced: rapid taps restart this single-shot timer
     // rather than issuing a synchronous full-config write per tap. See
-    // CLAUDE.md gotcha: QTimer needs a real #include, not a fwd-decl.
+    // src/AGENTS.md gotcha: QTimer needs a real #include, not a fwd-decl.
     QTimer persistTimer_;
 };
 

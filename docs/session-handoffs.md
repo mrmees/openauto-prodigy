@@ -424,7 +424,7 @@ expect local audible, AA muted at HU mixer) and row 11 addendum (corrupt restore
 track at boot → silence + paused UI). First: add the Media Player launcher tile via
 dashboard edit mode → widget picker (picker-visible, not seeded — bench finding #1:
 apps launch ONLY via dashboard launcher widgets; the plan had assumed the v0.4.5-deleted
-nav strip; CLAUDE.md corrected).
+nav strip; agent-instructions doc corrected).
 
 **After bench passes:** push develop, then plan stage 2 (library scanner + udisks2
 automount). Stage-2 planning inputs are in .superpowers/sdd/progress.md (machine-local)
@@ -440,7 +440,7 @@ Fix batch landed + verified (suite 114/114): Local Media stream priority 51 (foc
 vs AA Media at 50 would have MUTED the newest player by creation order — display/audio
 contradiction; spec §13.2 was assigned to no task, now resolved this way), restore-error
 no-autoplay guard (`restoring_` flag — a corrupt restored track at boot now stays
-stopped instead of auto-skipping into audible playback), CLAUDE.md deploy note corrected
+stopped instead of auto-skipping into audible playback), agent-instructions deploy note corrected
 (QML ships IN-BINARY via qmlcache; git pull alone will NOT update the UI), `.superpowers/`
 now in tracked .gitignore. Redeployed to Pi @ fcfff3c: active, NRestarts=0, plugin
 initialized, zero QML/binding-loop warnings.
@@ -512,7 +512,7 @@ per spec §6 ("annoying, not broken").
 
 **What changed:**
 - Adopted concepts from the `fabletieredworkflow` review repo into the superpowers loop (spec: `docs/archive/plans/2026-07-09-tiered-execution-codex-gate-design.md`): plan-time tier tags (`opus`/`sonnet`/`main`) + Definition of Ready, model-pinned dispatch, Opus→Codex(GPT-5.5)→Fable escalation ladder, per-feature pre-push Codex review gate. Deliberately NOT adopted: handoffs/ dir, RUN-STATE.md, /tier command, autonomous architect (duplicate ceremony).
-- New `scripts/codex-review.sh` (read-only sandbox, stdin prompt + `-o` verdict, exit contract 0/1/2/4, artifacts in gitignored `reviews/`), TDD'd against a 10-check fake-codex harness. Workflow documented in AGENTS.md §Tiered Execution Workflow; CLAUDE.md pointer.
+- New `scripts/codex-review.sh` (read-only sandbox, stdin prompt + `-o` verdict, exit contract 0/1/2/4, artifacts in gitignored `reviews/`), TDD'd against a 10-check fake-codex harness. Workflow documented in AGENTS.md §Tiered Execution Workflow; pointer from the repo instructions stub.
 - Shakedown = the gate run this push was waiting on. Round 1 (43 commits, 386KB diff): 5 findings → 3 confirmed+fixed (`e1bac4f`: AA focus RELEASE muting in-flight prompts — per-stream active flags; non-async-signal-safe SIGUSR1/SIGTERM/SIGINT — socketpair+QSocketNotifier self-pipe; BT metadata cleared on connect flip when AVRCP beats A2DP — runtime re-publish), 2 dismissed (startTrack persistence — setSource emits save-triggering edges, bench row 11; sub-500ms unplayable heuristic — deliberate bench row 12 trade-off).
 - Bonus: fix worker found a PRE-EXISTING app-target build break from `e6c77e8` (`oap::`→`oap::aa::`, main.cpp:746/748) masked by a cached main.cpp.o — ctest never compiles main.cpp (`1927959`). AGENTS.md gate precondition now requires an explicit app-target build.
 - Round 2 gate re-run: fix commits drew zero findings; 4 new/deeper findings → 2 confirmed+fixed (`e10920c`: shutdown-order UAF — AudioService is an earlier app child, destroyed before ~PlaybackEngine; became REACHABLE via the new clean SIGTERM quit; fixed via idempotent `releaseAudioResources()` called from plugin shutdown + new idempotency test; AA coexistence reset checked `==Disconnected` but teardown lands on `WaitingForDevice` — now resets on any non-projecting state, KEYCODE_MEDIA_PAUSE gated on `isAaConnected()`), 1 deferred to wishlist (PlaybackEngine ring-buffer flush — needs bench listen + RT-safe API design), 1 re-dismissed (sub-500ms, adjudication stands).

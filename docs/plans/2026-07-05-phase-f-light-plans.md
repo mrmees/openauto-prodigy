@@ -46,13 +46,13 @@ Status: ACTIVE (media player done; EQ parity audit, 0x8012 experiment, key-event
 **Outcome (roadmap discovery item):** determine whether 0x8012 (from `UiConfigMessages.proto`, open-android-auto 2026-02-28) actually lets the HU push margins/content-insets/day-night at runtime — replacing the sensor-based night-mode workaround and unlocking runtime sidebar resize. **This is an experiment protocol, not a feature plan — needs Pi + phone.**
 
 **Protocol:**
-1. Baseline capture: enable `connection.protocol_capture` (exists in YamlConfig: `enabled`, `format: jsonl`, `path`) and record a normal session start — confirm margins are in the initial `VideoConfig` (CLAUDE.md gotcha: margins locked at session start).
+1. Baseline capture: enable `connection.protocol_capture` (exists in YamlConfig: `enabled`, `format: jsonl`, `path`) and record a normal session start — confirm margins are in the initial `VideoConfig` (src/core/aa/AGENTS.md gotcha: margins locked at session start).
 2. Implement a throwaway send path: a debug action (`aa.debug.sendUiConfig`, behind a config flag, NOT for merge) that serializes `UpdateHuUiConfigRequest` with changed `margin_width/height` and/or day-night flag, sent on the video AV channel, message id 0x8012. Reference the proto in `libs/prodigy-oaa-protocol` READ-ONLY.
 3. Matrix per phone (Pixel 8, S25 Ultra, Moto G Play 2024): (a) margin change mid-session — does the phone re-render into the new sub-region (observe letterboxing + touch alignment)? (b) day/night push — does AA theme flip without the sensor channel? (c) does the phone ACK/NAK or silently ignore (capture the reply message id)?
 4. Record per-phone results in `docs/aa-protocol/` (new note file) + handoff; the go/no-go verdict decides whether a real feature plan (runtime sidebar + native night-mode) gets written.
 5. Delete the throwaway send path or keep it behind the debug flag — either way, note it.
 
-**Verify:** capture files show the 0x8012 frames on the wire; touch coordinates still map correctly after any margin change (CLAUDE.md touch gotchas apply in full).
+**Verify:** capture files show the 0x8012 frames on the wire; touch coordinates still map correctly after any margin change (the src/core/aa/AGENTS.md touch gotchas apply in full).
 
 ---
 
