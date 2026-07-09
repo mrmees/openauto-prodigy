@@ -1,5 +1,7 @@
 # Architecture Migration Plan --- Corrections & Clarifications
 
+Status: COMPLETED — archived 2026-07-09 (corrections applied during the plugin-architecture migration; promoted from openauto-pro/needs-review triage)
+
 > **Purpose:** This document refines the Architecture Migration
 > Implementation Plan to address structural risks discovered during
 > design review.\

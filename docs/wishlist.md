@@ -109,3 +109,6 @@ Ideas captured here. Promote to `roadmap-current.md` when ready to commit.
 
 ## From Codex pre-push gate (2026-07-09)
 - **PlaybackEngine stream flush on track change/seek/stop** (gate re-run P2, deferred) — `playFile()`/`stop()`/`seek()` reuse the AudioService stream without flushing its ring buffer, so queued PCM from the previous position could be briefly audible before new audio takes over. Unverified on hardware (bench next/prev/seek rows passed without audible-artifact notes), and a proper fix needs an RT-safe `IAudioService::flushStream()` designed against the PipeWire process callback — not a push-gate patch. Bench-listen first (manual next/seek while a track plays), then design the flush if audible. `AudioRingBuffer::reset()` exists but has no safe service-level path.
+
+## From docs-structure cleanup (2026-07-09)
+- **Miata GPIO/ignition/amp-control plugin** — the OAP-era hardware behavior (power latch, ignition sense, amp switching, dimmer servo, MCP23017 toggles) is a natural Prodigy plugin. Hardware reference preserved outside this repo at `personal/miata/miata-hardware-reference.md` (moved out during needs-review triage — car wiring doesn't belong in a public repo).
