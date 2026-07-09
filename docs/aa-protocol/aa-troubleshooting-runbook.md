@@ -32,7 +32,7 @@ Living troubleshooting guide for OpenAuto Prodigy AA sessions. Covers tools, deb
 
 ### Testing/reconnect.sh — Session Reset — BROKEN
 
-> **WARNING:** This script has hardcoded BT MACs, unreliable ADB WiFi toggling, and unvalidated log format checks. Kept as reference for the reconnect **sequence**, but do not run as-is. See the [Manual Test Cycle](docs/skills/aa-troubleshooting/SKILL.md#manual-test-cycle-replaces-reconnectsh-for-now) in the skill for the current approach.
+> **WARNING:** This script has hardcoded BT MACs, unreliable ADB WiFi toggling, and unvalidated log format checks. Kept as reference for the reconnect **sequence**, but do not run as-is. See the Manual Test Cycle section of `docs/skills/aa-troubleshooting/SKILL.md` (not yet created) for the current approach.
 
 **Sequence (still valid conceptually):**
 1. Pi BT disconnect + phone WiFi off (via ADB)
@@ -49,7 +49,7 @@ Living troubleshooting guide for OpenAuto Prodigy AA sessions. Covers tools, deb
 
 ### Testing/capture.sh — Protocol Capture — BROKEN
 
-> **WARNING:** Depends on reconnect.sh. The log collection steps (3/4, 4/4) are still valid — it's the reconnect that needs fixing. See [Manual Log Capture](docs/skills/aa-troubleshooting/SKILL.md#manual-log-capture-replaces-capturesh-for-now) in the skill.
+> **WARNING:** Depends on reconnect.sh. The log collection steps (3/4, 4/4) are still valid — it's the reconnect that needs fixing. See the Manual Log Capture section of `docs/skills/aa-troubleshooting/SKILL.md` (not yet created).
 
 **Output in `Testing/captures/<name>/`:**
 - `pi-protocol.log` — TSV protocol messages from ProtocolLogger
@@ -130,7 +130,7 @@ cd build && ctest --output-on-failure
    ./platform-tools/adb logcat -d | grep -E 'CAR\.|GH\.|WIRELESS|PROJECTION|WPP' | tail -50
    ```
 
-6. **If needed, do a full capture** — see [Manual Log Capture](docs/skills/aa-troubleshooting/SKILL.md#manual-log-capture-replaces-capturesh-for-now) in the skill.
+6. **If needed, do a full capture** — see the Manual Log Capture section of `docs/skills/aa-troubleshooting/SKILL.md` (not yet created).
 
 ### Workflow: "I changed code, now test it"
 
@@ -162,7 +162,7 @@ cd build && ctest --output-on-failure
    # If process is stuck, use --force-kill
    ```
 
-6. **Reconnect phone** — see [Manual Test Cycle](docs/skills/aa-troubleshooting/SKILL.md#manual-test-cycle-replaces-reconnectsh-for-now) in the skill (steps 1, 7-10).
+6. **Reconnect phone** — see the Manual Test Cycle section of `docs/skills/aa-troubleshooting/SKILL.md` (not yet created) (steps 1, 7-10).
 
 ### Workflow: "I need a screenshot of the Pi display"
 
@@ -175,7 +175,7 @@ scp matt@192.168.1.149:/tmp/screenshot.png /tmp/pi-screenshot.png
 
 ## Failure Mode Playbooks
 
-> **Step 0 for ALL failure modes:** Confirm the app is running and visible first. See [Step 0](docs/skills/aa-troubleshooting/SKILL.md#step-0-is-the-app-actually-running-and-visible-always-do-this-first) in the skill.
+> **Step 0 for ALL failure modes:** Confirm the app is running and visible first. See the Step 0 section of `docs/skills/aa-troubleshooting/SKILL.md` (not yet created).
 
 ### Session Establishment Failures
 

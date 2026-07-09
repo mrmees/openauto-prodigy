@@ -11,7 +11,7 @@ For **HTML/JS web widgets** (as opposed to native QML widgets), see [web-widget-
 ## Prerequisites
 
 - Qt 6.8, CMake, C++17
-- Project builds and runs successfully (see [development.md](development.md))
+- Project builds and runs successfully (see [development.md](../development.md))
 - Familiarity with QML basics
 
 ---
@@ -331,7 +331,7 @@ For the full list of M3 tokens, see [plugin-api.md](plugin-api.md#themeservice-i
 
 ### UiMetrics
 
-UiMetrics provides resolution-independent sizing. See [design-philosophy.md](design-philosophy.md) for the rationale.
+UiMetrics provides resolution-independent sizing. See [design-philosophy.md](../design-philosophy.md) for the rationale.
 
 **Do NOT hardcode pixel values in widget QML.** Use UiMetrics constants:
 
