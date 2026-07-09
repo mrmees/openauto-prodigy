@@ -24,6 +24,7 @@
 #include <oaa/HU/Handlers/PhoneStatusChannelHandler.hpp>
 #include "ServiceDiscoveryBuilder.hpp"
 #include "VideoDecoder.hpp"
+#include "core/services/IAudioService.hpp"
 #include "TouchHandler.hpp"
 #include "NightModeProvider.hpp"
 
@@ -153,6 +154,10 @@ private:
     oap::AudioStreamHandle* mediaStream_ = nullptr;
     oap::AudioStreamHandle* speechStream_ = nullptr;
     oap::AudioStreamHandle* systemStream_ = nullptr;
+
+    // How speech-channel audio treats music while active: the phone's last
+    // focus request sets it (GAIN_TRANSIENT = mute, GAIN_NAVI = duck).
+    oap::AudioFocusType speechFocusHint_ = oap::AudioFocusType::GainTransientMayDuck;
 
     std::unique_ptr<oaa::ProtocolLogger> protocolLogger_;
 

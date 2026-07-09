@@ -366,27 +366,56 @@ void AndroidAutoOrchestrator::onNewConnection()
         }
     }
 
-    // Bridge AA audio focus requests to PipeWire stream ducking
+    // Bridge AA audio activity to PipeWire stream ducking. Focus lifetime
+    // follows CHANNEL ACTIVITY (streamStarted/streamStopped), not the phone's
+    // focus messages — phones hold nav focus across prompts and send no
+    // release per prompt, which left local media ducked forever and muted
+    // later prompts (bench 2026-07-08). The phone's focus-request type is
+    // kept only as a hint for how speech audio treats music: GAIN_TRANSIENT
+    // (assistant/voice) mutes it, GAIN_NAVI (guidance) ducks it to 20%.
     if (audioService_) {
+        connect(&mediaAudioHandler_, &oaa::hu::AudioChannelHandler::streamStarted,
+                this, [this](int32_t) {
+            if (mediaStream_)
+                audioService_->requestAudioFocus(mediaStream_, oap::AudioFocusType::Gain);
+        }, Qt::QueuedConnection);
+        connect(&mediaAudioHandler_, &oaa::hu::AudioChannelHandler::streamStopped,
+                this, [this]() {
+            if (mediaStream_) audioService_->releaseAudioFocus(mediaStream_);
+        }, Qt::QueuedConnection);
+        connect(&speechAudioHandler_, &oaa::hu::AudioChannelHandler::streamStarted,
+                this, [this](int32_t) {
+            if (speechStream_)
+                audioService_->requestAudioFocus(speechStream_, speechFocusHint_);
+        }, Qt::QueuedConnection);
+        connect(&speechAudioHandler_, &oaa::hu::AudioChannelHandler::streamStopped,
+                this, [this]() {
+            if (speechStream_) audioService_->releaseAudioFocus(speechStream_);
+        }, Qt::QueuedConnection);
+        connect(&systemAudioHandler_, &oaa::hu::AudioChannelHandler::streamStarted,
+                this, [this](int32_t) {
+            if (systemStream_)
+                audioService_->requestAudioFocus(systemStream_, oap::AudioFocusType::GainTransientMayDuck);
+        }, Qt::QueuedConnection);
+        connect(&systemAudioHandler_, &oaa::hu::AudioChannelHandler::streamStopped,
+                this, [this]() {
+            if (systemStream_) audioService_->releaseAudioFocus(systemStream_);
+        }, Qt::QueuedConnection);
+
         connect(session_, &oaa::AASession::audioFocusChanged,
                 this, [this](int focusType) {
             // AudioFocusType enum: GAIN=1, GAIN_TRANSIENT=2, GAIN_NAVI=3, RELEASE=4
             switch (focusType) {
-            case 1: // GAIN — media playback (exclusive)
-                if (mediaStream_)
-                    audioService_->requestAudioFocus(mediaStream_, oap::AudioFocusType::Gain);
+            case 2:
+                speechFocusHint_ = oap::AudioFocusType::GainTransient;
                 break;
-            case 2: // GAIN_TRANSIENT — voice/speech (pause others)
-                if (speechStream_)
-                    audioService_->requestAudioFocus(speechStream_, oap::AudioFocusType::GainTransient);
+            case 3:
+                speechFocusHint_ = oap::AudioFocusType::GainTransientMayDuck;
                 break;
-            case 3: // GAIN_NAVI — navigation prompt (duck others)
-                if (speechStream_)
-                    audioService_->requestAudioFocus(speechStream_, oap::AudioFocusType::GainTransientMayDuck);
-                break;
-            case 4: // RELEASE — give up focus
+            case 4: // RELEASE — defensively drop anything still held
                 if (mediaStream_)  audioService_->releaseAudioFocus(mediaStream_);
                 if (speechStream_) audioService_->releaseAudioFocus(speechStream_);
+                if (systemStream_) audioService_->releaseAudioFocus(systemStream_);
                 break;
             }
         }, Qt::QueuedConnection);
