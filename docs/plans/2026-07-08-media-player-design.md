@@ -3,6 +3,11 @@
 Status: ACTIVE (stage 1 shipped 2026-07-09; stages 2+ pending)
 
 **Date:** 2026-07-08 · **Status:** approved (brainstorm 2026-07-08, Matthew)
+**Amended 2026-07-09** (prior-art brainstorm, Matthew): scanner heuristics +
+credits folded into §8, Elisa UI reference in §7. Survey outcome: no existing
+project fits libavformat+QML+zero-deps (ecosystem standard is TagLib+SQLite);
+adopt heuristics as credited reference, not code — Yarock and VLC medialibrary
+adoption explicitly rejected (deps, Widgets→QML mismatch, weight).
 **Roadmap item:** Now #1 — "Local media player plugin" (`docs/roadmap-current.md`)
 **Supersedes:** the F1 light-plan sketch (`docs/plans/2026-07-05-phase-f-light-plans.md` §F1) — this is the full design the sketch called for.
 **Grounding:** integration seams verified against develop @ `192b0fa` (MediaStatusService, IMediaStatusProvider, NowPlayingWidget, ActionRegistry, ApiSerializers, AudioService, plugin/CMake/main.cpp registration pattern).
@@ -163,6 +168,8 @@ only; library tabs light up in stage 2.
 - Tap a track → container becomes the queue at that track.
 - Built from existing controls (Tile, NormalText, ThemeService colors), same
   idiom as other app views. Touch targets sized for gloves-off driving use.
+- Visual reference for the Albums grid: Elisa's (KDE) QML album views —
+  reference only, no KDE dependencies.
 
 ## 8. Library scanner (stage 2)
 
@@ -179,6 +186,29 @@ to install.sh, docs/development.md, or the cross-build Docker image).
 - Extracted art → `~/.openauto/cache/art/<hash>.jpg`; `artUrl` points there.
 - Scale target: a few-thousand-track USB stick — seconds incremental, under a
   minute cold.
+
+### Prior art & heuristics (amendment 2026-07-09)
+
+Requirements distilled from Yarock's and Strawberry's collection code —
+the mistakes hand-rolled scanners make on the first pass:
+
+1. **Album identity:** group by `(albumartist ?: artist, album)`. Same album
+   name + differing track-artists + no albumartist → ONE "Various Artists"
+   album (compilation flag in the index), never N duplicate albums.
+2. **Tag fallbacks:** missing title ← filename stem; missing artist/album ←
+   "Unknown Artist"/"Unknown Album" buckets; track number parses both `3` and
+   `3/12`; disc number folds into the sort key (`disc*1000 + track`) so
+   multi-disc albums order correctly.
+3. **Art priority:** embedded `ATTACHED_PIC` → else
+   `cover|folder|front.{jpg,png}` in the track's directory → else none.
+   Cached per-album, not per-track.
+4. **Scan hygiene:** skip hidden files/dirs; symlink-loop guard via
+   canonical-path visited set.
+5. **Credits:** header comment in the scanner/MediaLibrary sources + this
+   note: *library heuristics informed by Yarock (GPL-3.0,
+   github.com/sebaro/Yarock) and Strawberry (GPL-3.0); no code copied.* If
+   implementation does copy code (GPL3↔GPL3, permitted), that file carries
+   per-file attribution instead.
 
 ## 9. USB handling (stage 2)
 
