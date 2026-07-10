@@ -1,13 +1,18 @@
 import QtQuick
+import QtQuick.Layouts
 
-// Local media player — stage 1: Folders browse + persistent now-playing bar.
-// Bound to the MediaPlayerPlugin context property (set in onActivated).
-// Stage 2 adds Artists/Albums/Tracks tabs in the header row.
+// Local media player — stage 2: Artists/Albums/Tracks/Folders tabs +
+// persistent now-playing bar. Bound to the MediaPlayerPlugin context property
+// (set in onActivated). The Folders tab is the stage-1 browser, unchanged.
 Item {
     id: mediaPlayerView
 
     readonly property var plugin: typeof MediaPlayerPlugin !== "undefined" ? MediaPlayerPlugin : null
     readonly property var folders: plugin ? plugin.folderModel : null
+
+    // Selected tab: 0=Artists, 1=Albums, 2=Tracks, 3=Folders. Folders is the
+    // default so stage-1 behavior is preserved until the user switches.
+    property int currentTab: 3
 
     function fmtTime(ms) {
         if (ms <= 0) return "0:00"
@@ -17,49 +22,51 @@ Item {
         return m + ":" + (s < 10 ? "0" : "") + s
     }
 
-    // ---- Header: back + breadcrumb + refresh ----
+    // ---- Tab row (Artists / Albums / Tracks / Folders) ----
     Item {
-        id: header
+        id: tabBar
         anchors.top: parent.top
         anchors.left: parent.left
         anchors.right: parent.right
         height: 56
 
-        Item {
-            id: backButton
-            width: 56; height: parent.height
-            MaterialIcon {
-                anchors.centerIn: parent
-                icon: "\ue5c4"  // arrow_back
-                size: 28
-                color: ThemeService.onSurface
-                opacity: folders && !folders.atTopLevel ? 1.0 : 0.3
-            }
-            MouseArea { anchors.fill: parent; onClicked: if (folders) folders.up() }
-        }
+        Row {
+            anchors.fill: parent
 
-        NormalText {
-            anchors.left: backButton.right
-            anchors.right: refreshButton.left
-            anchors.verticalCenter: parent.verticalCenter
-            text: folders ? folders.breadcrumb : ""
-            font.pixelSize: 22
-            font.weight: Font.Medium
-            color: ThemeService.onSurface
-            elide: Text.ElideLeft
-        }
+            Repeater {
+                model: ["Artists", "Albums", "Tracks", "Folders"]
 
-        Item {
-            id: refreshButton
-            anchors.right: parent.right
-            width: 56; height: parent.height
-            MaterialIcon {
-                anchors.centerIn: parent
-                icon: "\ue5d5"  // refresh
-                size: 26
-                color: ThemeService.onSurfaceVariant
+                delegate: Item {
+                    width: tabBar.width / 4
+                    height: tabBar.height
+
+                    readonly property bool selected: mediaPlayerView.currentTab === index
+
+                    NormalText {
+                        anchors.centerIn: parent
+                        text: modelData
+                        font.pixelSize: 20
+                        font.weight: parent.selected ? Font.Bold : Font.Medium
+                        color: parent.selected ? ThemeService.primary : ThemeService.onSurfaceVariant
+                    }
+
+                    // Selected-tab underline indicator.
+                    Rectangle {
+                        anchors.bottom: parent.bottom
+                        anchors.horizontalCenter: parent.horizontalCenter
+                        width: parent.width * 0.55
+                        height: 3
+                        radius: 1.5
+                        color: ThemeService.primary
+                        visible: parent.selected
+                    }
+
+                    MouseArea {
+                        anchors.fill: parent
+                        onClicked: mediaPlayerView.currentTab = index
+                    }
+                }
             }
-            MouseArea { anchors.fill: parent; onClicked: if (plugin) plugin.refreshSources() }
         }
 
         Rectangle {
@@ -72,69 +79,143 @@ Item {
         }
     }
 
-    // ---- Browse list ----
-    ListView {
-        id: browseList
-        anchors.top: header.bottom
+    // ---- Tab content ----
+    StackLayout {
+        id: tabStack
+        anchors.top: tabBar.bottom
         anchors.left: parent.left
         anchors.right: parent.right
         anchors.bottom: nowPlayingBar.top
-        clip: true
-        model: mediaPlayerView.folders
+        currentIndex: mediaPlayerView.currentTab
 
-        delegate: Item {
-            width: browseList.width
-            height: 64
+        LibraryArtistsTab {}
+        LibraryAlbumsTab {}
+        LibraryTracksTab {}
 
-            MaterialIcon {
-                id: rowIcon
-                anchors.left: parent.left
-                anchors.leftMargin: UiMetrics.spacing
-                anchors.verticalCenter: parent.verticalCenter
-                icon: model.isDir ? "\ue2c7" : "\ue405"  // folder / music_note
-                size: 30
-                color: model.isDir ? ThemeService.primary : ThemeService.onSurfaceVariant
-            }
+        // ---- Folders tab (stage-1 browser, unchanged) ----
+        Item {
+            id: foldersTab
 
-            NormalText {
-                anchors.left: rowIcon.right
-                anchors.leftMargin: UiMetrics.spacing
-                anchors.right: parent.right
-                anchors.rightMargin: UiMetrics.spacing
-                anchors.verticalCenter: parent.verticalCenter
-                text: model.name
-                font.pixelSize: 20
-                color: ThemeService.onSurface
-                elide: Text.ElideRight
-            }
-
-            Rectangle {
-                anchors.bottom: parent.bottom
+            // Header: back + breadcrumb + refresh
+            Item {
+                id: folderHeader
+                anchors.top: parent.top
                 anchors.left: parent.left
                 anchors.right: parent.right
-                height: 1
-                color: ThemeService.onSurfaceVariant
-                opacity: 0.10
-            }
+                height: 56
 
-            MouseArea {
-                anchors.fill: parent
-                onClicked: {
-                    if (model.isDir) mediaPlayerView.folders.enter(model.path)
-                    else if (mediaPlayerView.plugin) mediaPlayerView.plugin.playFileFromFolder(model.path)
+                Item {
+                    id: backButton
+                    width: 56; height: parent.height
+                    MaterialIcon {
+                        anchors.centerIn: parent
+                        icon: "\ue5c4"  // arrow_back
+                        size: 28
+                        color: ThemeService.onSurface
+                        opacity: folders && !folders.atTopLevel ? 1.0 : 0.3
+                    }
+                    MouseArea { anchors.fill: parent; onClicked: if (folders) folders.up() }
+                }
+
+                NormalText {
+                    anchors.left: backButton.right
+                    anchors.right: refreshButton.left
+                    anchors.verticalCenter: parent.verticalCenter
+                    text: folders ? folders.breadcrumb : ""
+                    font.pixelSize: 22
+                    font.weight: Font.Medium
+                    color: ThemeService.onSurface
+                    elide: Text.ElideLeft
+                }
+
+                Item {
+                    id: refreshButton
+                    anchors.right: parent.right
+                    width: 56; height: parent.height
+                    MaterialIcon {
+                        anchors.centerIn: parent
+                        icon: "\ue5d5"  // refresh
+                        size: 26
+                        color: ThemeService.onSurfaceVariant
+                    }
+                    MouseArea { anchors.fill: parent; onClicked: if (plugin) plugin.refreshSources() }
+                }
+
+                Rectangle {
+                    anchors.bottom: parent.bottom
+                    anchors.left: parent.left
+                    anchors.right: parent.right
+                    height: 1
+                    color: ThemeService.onSurfaceVariant
+                    opacity: 0.15
                 }
             }
-        }
 
-        NormalText {
-            visible: browseList.count === 0
-            anchors.centerIn: parent
-            text: folders && folders.atTopLevel
-                  ? "No music sources found.\nAdd files to ~/Music or plug in a USB drive."
-                  : "No playable files here."
-            horizontalAlignment: Text.AlignHCenter
-            font.pixelSize: 18
-            color: ThemeService.onSurfaceVariant
+            // Browse list
+            ListView {
+                id: browseList
+                anchors.top: folderHeader.bottom
+                anchors.left: parent.left
+                anchors.right: parent.right
+                anchors.bottom: parent.bottom
+                clip: true
+                model: mediaPlayerView.folders
+
+                delegate: Item {
+                    width: browseList.width
+                    height: 64
+
+                    MaterialIcon {
+                        id: rowIcon
+                        anchors.left: parent.left
+                        anchors.leftMargin: UiMetrics.spacing
+                        anchors.verticalCenter: parent.verticalCenter
+                        icon: model.isDir ? "\ue2c7" : "\ue405"  // folder / music_note
+                        size: 30
+                        color: model.isDir ? ThemeService.primary : ThemeService.onSurfaceVariant
+                    }
+
+                    NormalText {
+                        anchors.left: rowIcon.right
+                        anchors.leftMargin: UiMetrics.spacing
+                        anchors.right: parent.right
+                        anchors.rightMargin: UiMetrics.spacing
+                        anchors.verticalCenter: parent.verticalCenter
+                        text: model.name
+                        font.pixelSize: 20
+                        color: ThemeService.onSurface
+                        elide: Text.ElideRight
+                    }
+
+                    Rectangle {
+                        anchors.bottom: parent.bottom
+                        anchors.left: parent.left
+                        anchors.right: parent.right
+                        height: 1
+                        color: ThemeService.onSurfaceVariant
+                        opacity: 0.10
+                    }
+
+                    MouseArea {
+                        anchors.fill: parent
+                        onClicked: {
+                            if (model.isDir) mediaPlayerView.folders.enter(model.path)
+                            else if (mediaPlayerView.plugin) mediaPlayerView.plugin.playFileFromFolder(model.path)
+                        }
+                    }
+                }
+
+                NormalText {
+                    visible: browseList.count === 0
+                    anchors.centerIn: parent
+                    text: folders && folders.atTopLevel
+                          ? "No music sources found.\nAdd files to ~/Music or plug in a USB drive."
+                          : "No playable files here."
+                    horizontalAlignment: Text.AlignHCenter
+                    font.pixelSize: 18
+                    color: ThemeService.onSurfaceVariant
+                }
+            }
         }
     }
 

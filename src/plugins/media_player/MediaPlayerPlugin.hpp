@@ -2,8 +2,12 @@
 
 #include "core/plugin/IPlugin.hpp"
 #include "PlaybackPolicy.hpp"
+#include "MediaScanner.hpp"   // MediaScanner::Root (currentRoots_ member) + MediaLibrary
+#include <QHash>
 #include <QObject>
 #include <QString>
+#include <QVariantList>
+#include <QVector>
 
 class QQmlContext;
 
@@ -15,6 +19,7 @@ namespace plugins {
 
 class FolderModel;
 class MediaArtProvider;
+class MediaLibrary;
 class PlaybackEngine;
 class PlayQueue;
 
@@ -39,6 +44,13 @@ class MediaPlayerPlugin : public QObject, public IPlugin {
     Q_PROPERTY(int repeatMode READ repeatMode NOTIFY modesChanged)
     Q_PROPERTY(bool hasTrack READ hasTrack NOTIFY hasTrackChanged)
     Q_PROPERTY(QObject* folderModel READ folderModelObject CONSTANT)
+    // Library (Tasks 3/4) surfaces — models are stable QObjects created in
+    // initialize() before QML reads them, hence CONSTANT.
+    Q_PROPERTY(QObject* artistsModel READ artistsModel CONSTANT)
+    Q_PROPERTY(QObject* albumsModel READ albumsModel CONSTANT)
+    Q_PROPERTY(QObject* tracksModel READ tracksModel CONSTANT)
+    Q_PROPERTY(bool libraryScanning READ libraryScanning NOTIFY libraryScanningChanged)
+    Q_PROPERTY(int libraryTrackCount READ libraryTrackCount NOTIFY libraryChanged)
 
 public:
     explicit MediaPlayerPlugin(QObject* parent = nullptr);
@@ -80,6 +92,11 @@ public:
     int repeatMode() const;
     bool hasTrack() const { return hasTrack_; }
     QObject* folderModelObject() const;
+    QObject* artistsModel() const;
+    QObject* albumsModel() const;
+    QObject* tracksModel() const;
+    bool libraryScanning() const;
+    int libraryTrackCount() const;
 
     // Controls (QML + main.cpp callback routing)
     Q_INVOKABLE void playFileFromFolder(const QString& path);
@@ -92,6 +109,14 @@ public:
     Q_INVOKABLE void cycleRepeat();
     Q_INVOKABLE void refreshSources();
 
+    // Library playback + drill-down (Task 5). Guards validate BEFORE mutating
+    // any transport state (Codex P2).
+    Q_INVOKABLE void playAlbum(const QString& albumKey, int startIndex);
+    Q_INVOKABLE void playAllTracks(int startIndex);
+    Q_INVOKABLE QVariantList albumsForArtist(const QString& artistKey) const;
+    Q_INVOKABLE QVariantList tracksForAlbum(const QString& albumKey) const;
+    Q_INVOKABLE void rescanLibrary();
+
 signals:
     void playbackStateChanged();
     void metadataChanged();
@@ -100,6 +125,8 @@ signals:
     void modesChanged();
     void hasTrackChanged();
     void playbackStarted();   ///< false->true playing edge, for pause-others wiring
+    void libraryScanningChanged();   ///< both edges of a scan (Codex P1)
+    void libraryChanged();           ///< library rebuilt (also after removeVolume, Codex P2)
 
 private:
     void setHasTrack(bool has);
@@ -112,11 +139,19 @@ private:
     PlaybackEngine* engine_ = nullptr;
     PlayQueue* queue_ = nullptr;
     FolderModel* folderModel_ = nullptr;
+    MediaLibrary* library_ = nullptr;
+    MediaScanner* scanner_ = nullptr;
     MediaArtProvider* artProvider_ = nullptr;  // non-owning
     bool hasTrack_ = false;
     bool wasPlaying_ = false;
+    bool queueDirty_ = false;  // set from PlayQueue::queueChanged; gates ONLY the
+                               // last_queue write in saveState() (Codex P2 scale guard)
     PlaybackPolicy policy_;  // extracted state machine; invariants locked
                              // by tests/test_media_playback_policy.cpp
+    // Roots captured by refreshSources() so Task 6 can rescan/purge per-root;
+    // keys captured at ADD time, never recomputed from a dead mount (Codex P1).
+    QVector<MediaScanner::Root> currentRoots_;
+    QHash<QString, QString> mountKeys_;  // mount path -> volume key (filled by Task 6)
 };
 
 } // namespace plugins

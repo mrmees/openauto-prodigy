@@ -3,11 +3,16 @@
 #include <QDir>
 #include <QLoggingCategory>
 #include <QQmlContext>
+#include <QSet>
 #include <QStorageInfo>
 #include <QUrl>
 
+#include <algorithm>
+
 #include "FolderModel.hpp"
 #include "MediaArtProvider.hpp"
+#include "MediaLibrary.hpp"
+#include "MediaScanner.hpp"
 #include "PlaybackEngine.hpp"
 #include "PlayQueue.hpp"
 #include "core/plugin/IHostContext.hpp"
@@ -32,6 +37,8 @@ bool MediaPlayerPlugin::initialize(IHostContext* context) {
     engine_ = new PlaybackEngine(this);
     queue_ = new PlayQueue(this);
     folderModel_ = new FolderModel(this);
+    library_ = new MediaLibrary(this);
+    scanner_ = new MediaScanner(this);
 
     engine_->setAudioService(context->audioService());
     // Same EQ attach pattern as AndroidAutoPlugin.cpp:51 — the concrete
@@ -85,6 +92,30 @@ bool MediaPlayerPlugin::initialize(IHostContext* context) {
 
     connect(queue_, &PlayQueue::shuffleChanged, this, &MediaPlayerPlugin::modesChanged);
     connect(queue_, &PlayQueue::repeatModeChanged, this, &MediaPlayerPlugin::modesChanged);
+    // The queue path list only changes on setTracks()/clear(); mark dirty so
+    // saveState() writes the (potentially huge) last_queue only when it moved.
+    connect(queue_, &PlayQueue::queueChanged, this, [this]() { queueDirty_ = true; });
+
+    // Scan results land here on the owner thread. Filter to keys still present
+    // in currentRoots_ so a stale in-flight result cannot resurrect a yanked
+    // volume (belt to the scanner's coalescing braces — Codex P1).
+    connect(scanner_, &MediaScanner::finished, this,
+            [this](QVector<MediaTrackRecord> records) {
+        QSet<QString> liveKeys;
+        for (const MediaScanner::Root& r : currentRoots_) liveKeys.insert(r.key);
+        records.erase(std::remove_if(records.begin(), records.end(),
+                          [&](const MediaTrackRecord& rec) {
+                              return !liveKeys.contains(rec.volumeKey);
+                          }),
+                      records.end());
+        library_->setTracks(std::move(records));
+    });
+    // BOTH edges: the QML "Scanning…" indicator turns on at scan start too.
+    connect(scanner_, &MediaScanner::scanningChanged, this,
+            &MediaPlayerPlugin::libraryScanningChanged);
+    // libraryTrackCount stays true after removeVolume() as well (Codex P2).
+    connect(library_, &MediaLibrary::libraryChanged, this,
+            &MediaPlayerPlugin::libraryChanged);
 
     refreshSources();
     restoreState();
@@ -124,6 +155,11 @@ QString MediaPlayerPlugin::artUrl() const { return artProvider_ ? artProvider_->
 bool MediaPlayerPlugin::shuffle() const { return queue_ && queue_->shuffle(); }
 int MediaPlayerPlugin::repeatMode() const { return queue_ ? queue_->repeatMode() : 0; }
 QObject* MediaPlayerPlugin::folderModelObject() const { return folderModel_; }
+QObject* MediaPlayerPlugin::artistsModel() const { return library_ ? library_->artistsModel() : nullptr; }
+QObject* MediaPlayerPlugin::albumsModel() const { return library_ ? library_->albumsModel() : nullptr; }
+QObject* MediaPlayerPlugin::tracksModel() const { return library_ ? library_->tracksModel() : nullptr; }
+bool MediaPlayerPlugin::libraryScanning() const { return scanner_ && scanner_->scanning(); }
+int MediaPlayerPlugin::libraryTrackCount() const { return library_ ? library_->trackCount() : 0; }
 
 void MediaPlayerPlugin::setHasTrack(bool has) {
     if (hasTrack_ == has) return;
@@ -174,6 +210,43 @@ void MediaPlayerPlugin::playFileFromFolder(const QString& path) {
     startTrack(path);
 }
 
+void MediaPlayerPlugin::playAlbum(const QString& albumKey, int startIndex) {
+    // Validate BEFORE mutating any transport state (Codex P2): resolve the
+    // paths, bail on an empty/unknown album, then clamp the tap index.
+    const QStringList paths = library_->trackPathsForAlbum(albumKey);
+    if (paths.isEmpty()) return;
+    const int start = qBound(0, startIndex, paths.size() - 1);
+    policy_.onUserAction();
+    policy_.onNewQueue();
+    queue_->setTracks(paths, start);
+    setHasTrack(true);
+    startTrack(queue_->currentTrack());
+}
+
+void MediaPlayerPlugin::playAllTracks(int startIndex) {
+    const QStringList paths = library_->allTrackPathsSorted();
+    if (paths.isEmpty()) return;
+    const int start = qBound(0, startIndex, paths.size() - 1);
+    policy_.onUserAction();
+    policy_.onNewQueue();
+    queue_->setTracks(paths, start);
+    setHasTrack(true);
+    startTrack(queue_->currentTrack());
+}
+
+QVariantList MediaPlayerPlugin::albumsForArtist(const QString& artistKey) const {
+    return library_ ? library_->albumsForArtist(artistKey) : QVariantList();
+}
+
+QVariantList MediaPlayerPlugin::tracksForAlbum(const QString& albumKey) const {
+    return library_ ? library_->tracksForAlbum(albumKey) : QVariantList();
+}
+
+void MediaPlayerPlugin::rescanLibrary() {
+    // Recompute roots (picks up newly mounted volumes) and re-scan.
+    refreshSources();
+}
+
 void MediaPlayerPlugin::playPause() {
     policy_.onUserAction();  // user action supersedes restore state
     if (!hasTrack_) return;
@@ -220,7 +293,11 @@ void MediaPlayerPlugin::cycleRepeat() {
 }
 
 void MediaPlayerPlugin::refreshSources() {
-    QVector<QPair<QString, QString>> roots;
+    // Build the canonical root set once (with scanner keys), then derive the
+    // FolderModel's (label,path) view from it. currentRoots_ is captured so
+    // Task 6 can rescan/purge per-root; each key is captured at ADD time and
+    // never recomputed from a possibly-dead mount later (Codex P1).
+    QVector<MediaScanner::Root> roots;
 
     QStringList musicDirs;
     if (hostContext_ && hostContext_->configService()) {
@@ -234,7 +311,8 @@ void MediaPlayerPlugin::refreshSources() {
         if (dir.startsWith(QLatin1String("~/")))
             dir = QDir::homePath() + dir.mid(1);
         if (QDir(dir).exists())
-            roots.append({QFileInfo(dir).fileName(), dir});
+            roots.append({QFileInfo(dir).fileName(), dir,
+                          MediaScanner::rootKeyForPath(dir)});
     }
 
     // Already-mounted removable volumes (stage 1: snapshot; stage 2 adds
@@ -249,16 +327,37 @@ void MediaPlayerPlugin::refreshSources() {
         QString label = vol.displayName();
         if (label.isEmpty() || label == mount)
             label = QFileInfo(mount).fileName();
-        roots.append({label, mount});
+        // Prefer a udisks-derived key (Task 6's watcher); fall back to the path
+        // hash for volumes that predate the watcher.
+        const QString key = mountKeys_.value(mount, MediaScanner::rootKeyForPath(mount));
+        roots.append({label, mount, key});
     }
 
-    folderModel_->setRoots(roots);
+    currentRoots_ = roots;
+
+    QVector<QPair<QString, QString>> folderRoots;
+    folderRoots.reserve(roots.size());
+    for (const MediaScanner::Root& r : roots)
+        folderRoots.append({r.label, r.path});
+    folderModel_->setRoots(folderRoots);
+
+    // The scanner coalesces when busy, so this is always safe to fire.
+    scanner_->scan(currentRoots_);
 }
 
 void MediaPlayerPlugin::saveState() {
     if (!hostContext_ || !hostContext_->configService()) return;
     auto* cfg = hostContext_->configService();
-    cfg->setPluginValue(kPluginId, QStringLiteral("last_queue"), queue_->tracks());
+    // Scale guard (Codex P2): last_queue is the full path list — a
+    // playAllTracks queue can be thousands of paths. It only changes on
+    // setTracks()/clear(), so rewrite it ONLY when the queue actually moved.
+    if (queueDirty_) {
+        cfg->setPluginValue(kPluginId, QStringLiteral("last_queue"), queue_->tracks());
+        queueDirty_ = false;
+    }
+    // Index/position/modes still persist on every edge — advance()/retreat()/
+    // jumpTo() emit only currentChanged, so gating last_index on queueDirty_
+    // would persist a stale index against the current queue.
     cfg->setPluginValue(kPluginId, QStringLiteral("last_index"), queue_->currentIndex());
     cfg->setPluginValue(kPluginId, QStringLiteral("last_position_ms"),
                         hasTrack_ ? engine_->position() : qint64(0));
