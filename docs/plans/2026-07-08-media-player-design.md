@@ -175,8 +175,18 @@ only; library tabs light up in stage 2.
 
 **libavformat, not TagLib** — FFmpeg is already linked for video decode;
 `avformat_open_input` + `av_dict_get` reads tags and embedded art
-(`AV_DISPOSITION_ATTACHED_PIC`) with **zero new dependencies** (nothing added
-to install.sh, docs/development.md, or the cross-build Docker image).
+(`AV_DISPOSITION_ATTACHED_PIC`) with **no new third-party libraries linked**.
+
+*Amendment 2026-07-09/10:* the "nothing added to install.sh,
+docs/development.md, or the cross-build Docker image" phrasing above no
+longer holds literally. `libavformat-dev`/`libavcodec-dev`/`libavutil-dev`
+(2026-07-09, `741fe6b`) were added at all three build sites — but they're
+the dev-header half of the FFmpeg package family already linked for video,
+not a new external library. Separately, §9's USB handling landed a genuine
+new **runtime-only** package, `udisks2`, plus its polkit rule, in
+`install.sh` and `docs/development.md` (Task 7, 2026-07-10). The original
+intent stands: no new third-party library is *linked into the binary* for
+either the tag reader or USB handling.
 
 - Worker-thread scan with progress signal; UI (and the Folders tab) stay
   usable during scans.
