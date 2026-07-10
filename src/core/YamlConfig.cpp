@@ -74,7 +74,6 @@ void YamlConfig::initDefaults()
     root_["identity"]["head_unit_name"] = "OpenAuto Prodigy";
     root_["identity"]["manufacturer"] = "OpenAuto Project";
     root_["identity"]["model"] = "Raspberry Pi 4";
-    root_["identity"]["sw_version"] = "0.3.0";
     root_["identity"]["car_model"] = "";
     root_["identity"]["car_year"] = "";
     root_["identity"]["left_hand_drive"] = true;
@@ -498,16 +497,6 @@ QString YamlConfig::model() const
 void YamlConfig::setModel(const QString& v)
 {
     root_["identity"]["model"] = v.toStdString();
-}
-
-QString YamlConfig::swVersion() const
-{
-    return QString::fromStdString(root_["identity"]["sw_version"].as<std::string>("0.3.0"));
-}
-
-void YamlConfig::setSwVersion(const QString& v)
-{
-    root_["identity"]["sw_version"] = v.toStdString();
 }
 
 QString YamlConfig::carModel() const

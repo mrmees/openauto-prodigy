@@ -65,8 +65,6 @@ public:
     void setManufacturer(const QString& v);
     QString model() const;
     void setModel(const QString& v);
-    QString swVersion() const;
-    void setSwVersion(const QString& v);
     QString carModel() const;
     void setCarModel(const QString& v);
     QString carYear() const;

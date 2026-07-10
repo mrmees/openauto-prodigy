@@ -147,7 +147,11 @@ void TestYamlConfig::testIdentityDefaults()
     QCOMPARE(config.headUnitName(), QString("OpenAuto Prodigy"));
     QCOMPARE(config.manufacturer(), QString("OpenAuto Project"));
     QCOMPARE(config.model(), QString("Raspberry Pi 4"));
-    QCOMPARE(config.swVersion(), QString("0.3.0"));
+    // identity.sw_version was removed 2026-07-09 (version is compiled in —
+    // OAP_VERSION). setValueByPath validates against the defaults schema,
+    // so writes to the dead key must now be rejected.
+    QVERIFY(!config.setValueByPath(QStringLiteral("identity.sw_version"),
+                                   QStringLiteral("9.9.9")));
     QCOMPARE(config.carModel(), QString(""));
     QCOMPARE(config.carYear(), QString(""));
     QCOMPARE(config.leftHandDrive(), true);
@@ -161,7 +165,6 @@ void TestYamlConfig::testIdentityFromFile()
     QCOMPARE(config.headUnitName(), QString("Test Unit"));
     QCOMPARE(config.manufacturer(), QString("Test Manufacturer"));
     QCOMPARE(config.model(), QString("Test Model X"));
-    QCOMPARE(config.swVersion(), QString("9.9.9"));
     QCOMPARE(config.carModel(), QString("Miata"));
     QCOMPARE(config.carYear(), QString("2000"));
     QCOMPARE(config.leftHandDrive(), false);

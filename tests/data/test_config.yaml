@@ -34,7 +34,6 @@ identity:
   head_unit_name: "Test Unit"
   manufacturer: "Test Manufacturer"
   model: "Test Model X"
-  sw_version: "9.9.9"
   car_model: "Miata"
   car_year: "2000"
   left_hand_drive: false
