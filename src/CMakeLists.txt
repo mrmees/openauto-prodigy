@@ -85,6 +85,7 @@ add_library(openauto-core STATIC
     plugins/media_player/PlaybackEngine.cpp
     plugins/media_player/PlaybackPolicy.cpp
     plugins/media_player/MediaArtProvider.cpp
+    plugins/media_player/MediaTagReader.cpp
     plugins/media_player/MediaPlayerPlugin.cpp
     plugins/phone/PhonePlugin.cpp
     plugins/equalizer/EqualizerPlugin.cpp

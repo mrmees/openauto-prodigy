@@ -24,7 +24,7 @@ sudo apt install cmake g++ git pkg-config \
   qml6-module-qtquick-window qml6-module-qtqml-workerscript \
   libboost-system-dev libboost-log-dev \
   libprotobuf-dev protobuf-compiler libssl-dev \
-  libavcodec-dev libavutil-dev \
+  libavformat-dev libavcodec-dev libavutil-dev \
   libpipewire-0.3-dev libspa-0.2-dev \
   libyaml-cpp-dev libbluetooth-dev \
   hostapd dnsmasq bluez \

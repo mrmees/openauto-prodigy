@@ -811,7 +811,7 @@ install_dependencies() {
         libssl-dev
 
         # FFmpeg (video decoding)
-        libavcodec-dev libavutil-dev
+        libavformat-dev libavcodec-dev libavutil-dev
 
         # PipeWire (audio)
         libpipewire-0.3-dev libspa-0.2-dev
