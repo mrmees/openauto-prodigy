@@ -25,6 +25,7 @@ oap_add_test(test_widevine_cdm SOURCES test_widevine_cdm.cpp)
 
 oap_add_test(test_config_service SOURCES test_config_service.cpp)
 oap_add_test(test_config_key_coverage SOURCES test_config_key_coverage.cpp)
+oap_add_test(test_oap_version SOURCES test_oap_version.cpp)
 
 # --- Plugin tests ---
 

@@ -514,9 +514,12 @@ endif()
 
 target_link_libraries(openauto-prodigy PRIVATE openauto-core)
 
-# Git hash for ServiceDiscoveryResponse sw_build field
+# Version identity for every user-visible surface: Qt applicationVersion
+# (--version, QML Qt.application.version), IPC status, External API
+# ServerHello + SystemStatus, AA ServiceDiscovery sw_build/sw_version.
 target_compile_definitions(openauto-core PUBLIC
     OAP_GIT_HASH="${OAP_GIT_HASH}"
+    OAP_VERSION="${OAP_VERSION}"
 )
 
 # systemd notification — optional, for Type=notify service unit + watchdog
