@@ -86,7 +86,24 @@ QString deviceBasename(const QVariantMap& blockProps) {
 }
 
 QString drivePathOf(const QVariantMap& blockProps) {
-    return blockProps.value(QStringLiteral("Drive")).value<QDBusObjectPath>().path();
+    // The Drive property ('o') reaches us in different variant shapes per
+    // delivery path: QDBusObjectPath from the manual GetManagedObjects
+    // demarshal, but potentially a plain string or an argument-wrapped path
+    // from the registered-metatype InterfacesAdded delivery (bench
+    // 2026-07-10 round 3: hot-plug skipped as "unresolved" because only the
+    // first shape was handled). Accept all three.
+    const QVariant v = blockProps.value(QStringLiteral("Drive"));
+    if (v.canConvert<QDBusObjectPath>()) {
+        const QString p = v.value<QDBusObjectPath>().path();
+        if (!p.isEmpty()) return p;
+    }
+    if (v.userType() == QMetaType::QString) return v.toString();
+    if (v.canConvert<QDBusArgument>()) {
+        QDBusObjectPath op;
+        v.value<QDBusArgument>() >> op;
+        return op.path();
+    }
+    return QString();
 }
 
 } // namespace
@@ -440,9 +457,12 @@ void UsbMediaWatcher::onInterfacesAdded(const QDBusObjectPath& path,
     const QString objPath = path.path();
     const QVariantMap blockProps = interfaces.value(kBlockIface);
     const QVariantMap fsProps = interfaces.value(kFilesystemIface);
+    const QString drivePath = drivePathOf(blockProps);
     qCInfo(lcUsbWatcher) << "InterfacesAdded" << objPath << "ifaces" << interfaces.keys()
-                         << "blockProps" << blockProps.size();
-    processFilesystem(objPath, blockProps, fsProps, resolveDrive(drivePathOf(blockProps)));
+                         << "blockProps" << blockProps.size()
+                         << "drive" << drivePath
+                         << "(raw type" << blockProps.value(QStringLiteral("Drive")).typeName() << ")";
+    processFilesystem(objPath, blockProps, fsProps, resolveDrive(drivePath));
 }
 
 void UsbMediaWatcher::onInterfacesRemoved(const QDBusObjectPath& path, const QStringList& interfaces) {
