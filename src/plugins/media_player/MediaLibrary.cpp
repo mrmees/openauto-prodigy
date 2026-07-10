@@ -280,9 +280,9 @@ QVariantList MediaLibrary::albumsForArtist(const QString& artistKey) const {
 }
 
 QVariantList MediaLibrary::tracksForAlbum(const QString& albumKey) const {
-    // Rich rows for the drill-down track list (Codex P2): index order here
-    // is EXACTLY the order trackPathsForAlbum() returns, so a tap at row N
-    // maps to playAlbum(albumKey, N).
+    // Rich rows for the drill-down track list (Codex P2): index order here is
+    // EXACTLY the order trackPathsForAlbum() returns, so playAlbumFromPath()
+    // can resolve a tapped row's PATH back to its current album index.
     QVariantList out;
     for (int i : albumTracks_.value(albumKey)) {
         const MediaTrackRecord& r = tracks_[i];

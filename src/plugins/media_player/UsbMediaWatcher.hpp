@@ -98,6 +98,11 @@ private:
     QDBusServiceWatcher* serviceWatcher_ = nullptr;
     bool disabled_ = false;   ///< system bus wholly unavailable
     bool connected_ = false;  ///< ObjectManager signals hooked up
+    // Teardown guard (Codex gate P2): stop() disconnects the ObjectManager
+    // signals, but outstanding Mount/Unmount/PowerOff QDBusPendingCallWatcher
+    // callbacks can still fire afterwards. Set in stop(), cleared in start();
+    // every async reply lambda early-returns without emitting when set.
+    bool stopped_ = true;
 
     QHash<QString, FsRecord> objects_;   ///< object path -> live filesystem record
     QSet<QString> mountInFlight_;        ///< object paths with a Mount() pending

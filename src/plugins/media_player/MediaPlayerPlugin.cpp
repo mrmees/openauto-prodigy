@@ -8,6 +8,7 @@
 #include <QUrl>
 
 #include <algorithm>
+#include <utility>
 
 #include "FolderModel.hpp"
 #include "MediaArtProvider.hpp"
@@ -130,6 +131,10 @@ bool MediaPlayerPlugin::initialize(IHostContext* context) {
             ? MediaScanner::rootKeyForPath(mount)
             : (QStringLiteral("uuid-") + uuid);
         refreshSources();
+        // A stick carrying the saved queue's current track may have just
+        // finished mounting — finish the boot restore that initialize() could
+        // not (Codex gate P1). No-op unless a restore is pending.
+        retryPendingRestore();
     });
     connect(watcher_, &UsbMediaWatcher::volumeRemoved, this, [this](const QString& mount) {
         // Eject-initiated removal already ran purgeVolume() in ejectVolume();
@@ -270,6 +275,7 @@ void MediaPlayerPlugin::playFileFromFolder(const QString& path) {
     const int idx = files.indexOf(path);
     if (idx < 0) return;
     policy_.onNewQueue();
+    clearPendingRestore();  // user chose a queue — kill any pending boot restore
     queue_->setTracks(files, idx);
     setHasTrack(true);
     startTrack(path);
@@ -283,9 +289,21 @@ void MediaPlayerPlugin::playAlbum(const QString& albumKey, int startIndex) {
     const int start = qBound(0, startIndex, paths.size() - 1);
     policy_.onUserAction();
     policy_.onNewQueue();
+    clearPendingRestore();  // user chose a queue — kill any pending boot restore
     queue_->setTracks(paths, start);
     setHasTrack(true);
     startTrack(queue_->currentTrack());
+}
+
+void MediaPlayerPlugin::playAlbumFromPath(const QString& albumKey, const QString& path) {
+    // Drill-down snapshots (LibraryAlbumsTab/LibraryArtistsTab) are QVariantList
+    // copies; a rescan/yank can reorder the album between snapshot and tap, so
+    // playing by the snapshot row index would hit the WRONG track (Codex gate
+    // P2). Resolve the tapped PATH against the CURRENT album ordering instead.
+    if (!library_) return;
+    const int idx = library_->trackPathsForAlbum(albumKey).indexOf(path);
+    if (idx < 0) return;   // stale row (track gone) — no state change
+    playAlbum(albumKey, idx);   // exact existing guard sequence
 }
 
 void MediaPlayerPlugin::playAllTracks(int startIndex) {
@@ -294,6 +312,7 @@ void MediaPlayerPlugin::playAllTracks(int startIndex) {
     const int start = qBound(0, startIndex, paths.size() - 1);
     policy_.onUserAction();
     policy_.onNewQueue();
+    clearPendingRestore();  // user chose a queue — kill any pending boot restore
     queue_->setTracks(paths, start);
     setHasTrack(true);
     startTrack(queue_->currentTrack());
@@ -494,10 +513,25 @@ void MediaPlayerPlugin::restoreState() {
 
     const QStringList saved = cfg->pluginValue(kPluginId, QStringLiteral("last_queue")).toStringList();
     if (saved.isEmpty()) return;
-    // Files may have vanished (USB stick removed) — keep only what exists.
-    QStringList existing;
     const QString savedCurrent =
         saved.value(cfg->pluginValue(kPluginId, QStringLiteral("last_index")).toInt());
+    const qint64 pos = cfg->pluginValue(kPluginId, QStringLiteral("last_position_ms")).toLongLong();
+
+    // USB volumes mount ASYNCHRONOUSLY after initialize() runs this, so a queue
+    // saved on an inserted-but-not-yet-mounted stick would be dropped below (or
+    // a mixed queue would restore the wrong survivor). Whenever the SAVED
+    // CURRENT path is absent right now, stash the RAW saved state and let
+    // volumeMounted retry the restore once its stick appears (Codex gate P1).
+    // Stashed regardless of whether the partial restore below proceeds.
+    if (!QFileInfo::exists(savedCurrent)) {
+        pendingRestoreQueue_ = saved;
+        pendingRestoreCurrent_ = savedCurrent;
+        pendingRestorePosMs_ = pos;
+        hasPendingRestore_ = true;
+    }
+
+    // Files may have vanished (USB stick removed) — keep only what exists.
+    QStringList existing;
     for (const QString& p : saved)
         if (QFileInfo::exists(p)) existing << p;
     if (existing.isEmpty()) return;
@@ -507,9 +541,39 @@ void MediaPlayerPlugin::restoreState() {
     setHasTrack(true);
     // Restore PAUSED at the saved position — nothing auto-plays on boot
     // (spec §10, Matthew's explicit call). One tap on play resumes.
-    const qint64 pos = cfg->pluginValue(kPluginId, QStringLiteral("last_position_ms")).toLongLong();
     policy_.onRestoreBegan();
     engine_->restorePaused(queue_->currentTrack(), pos);
+}
+
+void MediaPlayerPlugin::retryPendingRestore() {
+    if (!hasPendingRestore_) return;
+    // Only while the boot restore still owns the transport: policy_.restoring()
+    // is true from restorePaused() until the first user action (covers the
+    // partial-restore case); !hasTrack_ covers the nothing-restored case. Once
+    // the user has taken over, never clobber their choice (Codex gate P1).
+    if (!(policy_.restoring() || !hasTrack_)) return;
+
+    // Re-filter the RAW saved list against what exists now. Rebuild only once
+    // the saved current is actually present; otherwise wait for the next mount.
+    QStringList existing;
+    for (const QString& p : std::as_const(pendingRestoreQueue_))
+        if (QFileInfo::exists(p)) existing << p;
+    const int idx = existing.indexOf(pendingRestoreCurrent_);
+    if (idx < 0) return;
+
+    // Rebuild exactly like restoreState() — restore PAUSED, nothing auto-plays.
+    queue_->setTracks(existing, idx);
+    setHasTrack(true);
+    policy_.onRestoreBegan();
+    engine_->restorePaused(queue_->currentTrack(), pendingRestorePosMs_);
+    clearPendingRestore();
+}
+
+void MediaPlayerPlugin::clearPendingRestore() {
+    hasPendingRestore_ = false;
+    pendingRestoreQueue_.clear();
+    pendingRestoreCurrent_.clear();
+    pendingRestorePosMs_ = 0;
 }
 
 } // namespace plugins

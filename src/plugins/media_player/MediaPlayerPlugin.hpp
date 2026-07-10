@@ -7,6 +7,7 @@
 #include <QObject>
 #include <QSet>
 #include <QString>
+#include <QStringList>
 #include <QVariantList>
 #include <QVector>
 
@@ -114,6 +115,12 @@ public:
     // Library playback + drill-down (Task 5). Guards validate BEFORE mutating
     // any transport state (Codex P2).
     Q_INVOKABLE void playAlbum(const QString& albumKey, int startIndex);
+    /// Play an album track by PATH, not by a stale drill-down snapshot index:
+    /// a rescan/yank can reorder the library between the QVariantList snapshot
+    /// and the tap, so index N would play the WRONG track (Codex gate P2).
+    /// Resolves path -> current album index, then runs the exact playAlbum()
+    /// guard sequence; a path no longer in the album is a silent no-op.
+    Q_INVOKABLE void playAlbumFromPath(const QString& albumKey, const QString& path);
     Q_INVOKABLE void playAllTracks(int startIndex);
     Q_INVOKABLE QVariantList albumsForArtist(const QString& artistKey) const;
     Q_INVOKABLE QVariantList tracksForAlbum(const QString& albumKey) const;
@@ -138,6 +145,8 @@ private:
     void setHasTrack(bool has);
     void saveState();
     void restoreState();
+    void retryPendingRestore();   ///< re-attempt a boot restore after a late USB mount (P1)
+    void clearPendingRestore();   ///< drop stashed restore state (user took over)
     void startTrack(const QString& path);       ///< playFile + reset progress watermark
     void handleUnplayable(const QString& reason);  ///< spec §11 skip/stop policy
     /// Shared yank/eject cleanup (design §9): drop the volume from library +
@@ -166,6 +175,16 @@ private:
     // Mounts mid-eject: refreshSources() SKIPS these so the purge's rescan
     // cannot re-enumerate a still-mounted volume and reopen its files (Codex P1).
     QSet<QString> ejectingMounts_;
+    // Boot-restore retry (Codex gate P1): USB volumes mount ASYNCHRONOUSLY
+    // after initialize()'s restoreState(), so a queue saved on a not-yet-mounted
+    // stick would be dropped (or a mixed queue would restore the wrong
+    // survivor). Stash the RAW saved state whenever the saved current path is
+    // absent at boot and re-attempt on each volumeMounted until it appears or
+    // the user starts a new queue (cleared in the onNewQueue() paths).
+    QStringList pendingRestoreQueue_;
+    QString pendingRestoreCurrent_;
+    qint64 pendingRestorePosMs_ = 0;
+    bool hasPendingRestore_ = false;
 };
 
 } // namespace plugins

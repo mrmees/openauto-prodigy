@@ -2,8 +2,9 @@ import QtQuick
 
 // Albums tab: a grid of album art. Tapping an album drills into an inline
 // track list (same back-header pattern as the Folders breadcrumb); tapping a
-// track row starts that album from that row. tracksForAlbum() row order is
-// identical to trackPathsForAlbum(), so row N maps to playAlbum(key, N).
+// track row starts that album from that row. The drill-down list is a stale
+// snapshot, so taps play by PATH (playAlbumFromPath) — a rescan/yank could
+// reorder the library and make a bare row index hit the wrong track.
 Item {
     id: albumsTab
 
@@ -250,7 +251,7 @@ Item {
 
                 MouseArea {
                     anchors.fill: parent
-                    onClicked: if (plugin) plugin.playAlbum(albumsTab.selectedAlbumKey, index)
+                    onClicked: if (plugin) plugin.playAlbumFromPath(albumsTab.selectedAlbumKey, modelData.path)
                 }
             }
         }

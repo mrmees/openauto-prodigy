@@ -2,7 +2,6 @@
 
 #include <QDBusArgument>
 #include <QDBusConnectionInterface>
-#include <QDBusInterface>
 #include <QDBusMessage>
 #include <QDBusPendingCall>
 #include <QDBusPendingCallWatcher>
@@ -44,6 +43,24 @@ QVariantMap propsFor(const QVariantMap& interfaces, const QString& iface) {
         return props;
     }
     return v.toMap();
+}
+
+/// Demarshal a bare `a{sv}` reply argument (e.g. Properties.GetAll) into a map.
+QVariantMap demarshalPropsReply(const QVariant& v) {
+    QVariantMap props;
+    if (!v.canConvert<QDBusArgument>()) return props;
+    QDBusArgument arg = v.value<QDBusArgument>();
+    arg.beginMap();
+    while (!arg.atEnd()) {
+        arg.beginMapEntry();
+        QString key;
+        QDBusVariant val;
+        arg >> key >> val;
+        props.insert(key, val.variant());
+        arg.endMapEntry();
+    }
+    arg.endMap();
+    return props;
 }
 
 /// MountPoints (`aay`) -> list of raw byte arrays for parseFirstMountPoint().
@@ -102,6 +119,7 @@ void UsbMediaWatcher::start() {
         disabled_ = true;
         return;
     }
+    stopped_ = false;   // re-arm async reply lambdas (Codex gate P2)
 
     // Re-scan when udisks2 (re)appears; drop stale state when it leaves.
     serviceWatcher_ = new QDBusServiceWatcher(
@@ -140,6 +158,9 @@ void UsbMediaWatcher::start() {
 }
 
 void UsbMediaWatcher::stop() {
+    // Disarm any outstanding Mount/Unmount/PowerOff callbacks BEFORE tearing
+    // down: they early-return without emitting once this is set (Codex gate P2).
+    stopped_ = true;
     if (connected_) {
         bus_.disconnect(kService, kRootPath, kObjectManager, QStringLiteral("InterfacesAdded"),
                         this, SLOT(onInterfacesAdded(QDBusObjectPath, QVariantMap)));
@@ -261,6 +282,7 @@ void UsbMediaWatcher::startMount(const QString& objPath, const QString& uuid, co
             [this, objPath, uuid, label, deviceName, drivePath, canPowerOff](
                 QDBusPendingCallWatcher* cw) {
         cw->deleteLater();
+        if (stopped_) return;   // watcher torn down mid-flight — do not emit
         mountInFlight_.remove(objPath);
         const QDBusPendingReply<QString> reply = *cw;
         if (reply.isError()) {
@@ -306,6 +328,7 @@ void UsbMediaWatcher::ejectMount(const QString& mountPath) {
     connect(watcher, &QDBusPendingCallWatcher::finished, this,
             [this, mountPath, drivePath, canPowerOff](QDBusPendingCallWatcher* cw) {
         cw->deleteLater();
+        if (stopped_) return;   // watcher torn down mid-flight — do not emit
         const QDBusPendingReply<> reply = *cw;
         if (reply.isError()) {
             // Still mounted — leave the source in place, report failure.
@@ -327,6 +350,7 @@ void UsbMediaWatcher::ejectMount(const QString& mountPath) {
             connect(pw, &QDBusPendingCallWatcher::finished, this,
                     [this, mountPath](QDBusPendingCallWatcher* pcw) {
                 pcw->deleteLater();
+                if (stopped_) return;   // watcher torn down mid-flight — do not emit
                 const QDBusPendingReply<> preply = *pcw;
                 if (preply.isError())   // best effort — the unmount already made it safe
                     qCWarning(lcUsbWatcher) << "PowerOff failed for" << mountPath << ":"
@@ -376,11 +400,23 @@ void UsbMediaWatcher::emitRemovedForMount(const QString& mountPath) {
 UsbMediaWatcher::DriveInfo UsbMediaWatcher::resolveDrive(const QString& drivePath) const {
     DriveInfo di;
     if (drivePath.isEmpty() || drivePath == QLatin1String("/")) return di;
-    QDBusInterface iface(kService, drivePath, kDriveIface, bus_);
-    if (iface.isValid()) {
-        di.removable = iface.property("Removable").toBool();
-        di.canPowerOff = iface.property("CanPowerOff").toBool();
+    // Direct low-level Properties.GetAll with the SAME 3 s bound as the
+    // GetManagedObjects scan. NEVER QDBusInterface in this hot-plug path: its
+    // constructor does synchronous introspection and property reads default to
+    // a 25 s timeout, either of which can stall the UI thread (Codex gate P2).
+    QDBusMessage msg = QDBusMessage::createMethodCall(
+        kService, drivePath, QStringLiteral("org.freedesktop.DBus.Properties"),
+        QStringLiteral("GetAll"));
+    msg << kDriveIface;   // interface_name argument
+    const QDBusMessage reply = bus_.call(msg, QDBus::Block, 3000);
+    if (reply.type() != QDBusMessage::ReplyMessage) {
+        qCWarning(lcUsbWatcher) << "Drive GetAll failed for" << drivePath << ":"
+                                << reply.errorMessage();
+        return di;
     }
+    const QVariantMap props = demarshalPropsReply(reply.arguments().value(0));
+    di.removable = props.value(QStringLiteral("Removable")).toBool();
+    di.canPowerOff = props.value(QStringLiteral("CanPowerOff")).toBool();
     return di;
 }
 

@@ -62,6 +62,34 @@ private slots:
         QCOMPARE(third.size(), 2);
         QCOMPARE(s.lastScanTagReads(), 1);
     }
+    void corruptFileCachedNotReprobed() {
+        // Codex gate P2: an invalid/corrupt file must be cached (valid=false)
+        // so a later incremental scan never re-opens and re-probes it. Generate
+        // the corrupt fixture IN-TEST (garbage bytes with a .mp3 name) alongside
+        // the two real AlbumA fixtures — no committed garbage fixture.
+        QTemporaryDir tree, cache;
+        for (const QFileInfo& fi : QDir(fixtures() + "/AlbumA").entryInfoList(QDir::Files))
+            QFile::copy(fi.absoluteFilePath(), tree.path() + "/" + fi.fileName());
+        {
+            // Repeated 0xA5 bytes: no MP3 frame sync (0xFF) can form, so
+            // avformat finds no audio stream -> MediaTrackInfo.valid == false.
+            QFile bad(tree.path() + "/99-corrupt.mp3");
+            QVERIFY(bad.open(QIODevice::WriteOnly));
+            bad.write(QByteArray(8192, '\xA5'));
+            bad.close();
+        }
+        MediaScanner s; s.setCacheDir(cache.path());
+        // Scan 1: 2 valid records; the corrupt file is probed (tag reads > 0)
+        // but excluded from the library.
+        auto first = runScan(s, tree.path());
+        QCOMPARE(first.size(), 2);
+        QVERIFY(s.lastScanTagReads() > 0);
+        // Scan 2: everything cached — including the corrupt file. Zero tag
+        // reads: the corrupt file must NOT be reprobed.
+        auto second = runScan(s, tree.path());
+        QCOMPARE(second.size(), 2);
+        QCOMPARE(s.lastScanTagReads(), 0);
+    }
     void vanishedFilesDropFromCache() {
         QTemporaryDir tree, cache;
         for (const QFileInfo& fi : QDir(fixtures() + "/Comp").entryInfoList(QDir::Files))

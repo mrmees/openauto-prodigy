@@ -183,8 +183,12 @@ void MediaScanner::runScan(const QVector<Root>& roots, ScanOutcome* out) {
             }
         }
 
-        // Read (cache-aware).
+        // Read (cache-aware). `vol` holds only VALID records (library +
+        // finished()); `invalid` holds valid=false candidates so they can be
+        // cached too — otherwise an unchanged corrupt/mislabeled file cache-
+        // misses and is re-opened and re-probed on EVERY scan (Codex gate P2).
         QVector<MediaTrackRecord> vol;
+        QVector<MediaTrackRecord> invalid;
         int scanned = 0, cacheHits = 0, unreadable = 0, rootTagReads = 0;
         for (const QString& path : files) {
             if (QThread::currentThread()->isInterruptionRequested()) return;
@@ -196,6 +200,8 @@ void MediaScanner::runScan(const QVector<Root>& roots, ScanOutcome* out) {
             rec.volumeKey = root.key;
             const auto it = cache.constFind(path);
             if (it != cache.constEnd() && it->mtimeMs == mtime && it->size == size) {
+                // Cache hit honors a cached valid=false: no tag read, no vol
+                // append — just counted as an (unchanged) unreadable file.
                 rec.info = it->info;
                 rec.artFile = it->artFile;
                 ++cacheHits;
@@ -204,7 +210,7 @@ void MediaScanner::runScan(const QVector<Root>& roots, ScanOutcome* out) {
                 ++rootTagReads;
             }
             if (rec.info.valid) vol.append(rec);
-            else ++unreadable;
+            else { invalid.append(rec); ++unreadable; }
             emit progress(++scanned, files.size());
         }
 
@@ -240,18 +246,22 @@ void MediaScanner::runScan(const QVector<Root>& roots, ScanOutcome* out) {
         }
 
         // Rewrite cache for this root — atomically (Codex P2: a power cut
-        // must never leave a truncated cache).
+        // must never leave a truncated cache). Writes BOTH valid records (with
+        // art) and invalid ones (art empty) so nothing is reprobed next scan.
         {
             QSaveFile f(cacheFile);
             if (f.open(QIODevice::WriteOnly)) {
                 QDataStream str(&f);
                 str.setVersion(QDataStream::Qt_6_5);
-                str << kCacheMagic << kCacheVersion << qint32(vol.size());
-                for (const MediaTrackRecord& rec : vol) {
+                str << kCacheMagic << kCacheVersion
+                    << qint32(vol.size() + invalid.size());
+                const auto writeRec = [&str](const MediaTrackRecord& rec) {
                     const QFileInfo fi(rec.path);
                     str << rec.path << fi.lastModified().toMSecsSinceEpoch()
                         << fi.size() << rec.info << rec.artFile;
-                }
+                };
+                for (const MediaTrackRecord& rec : vol) writeRec(rec);
+                for (const MediaTrackRecord& rec : invalid) writeRec(rec);
                 f.commit();
             }
         }
