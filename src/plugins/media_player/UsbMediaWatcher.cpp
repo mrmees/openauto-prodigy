@@ -3,6 +3,7 @@
 #include <QDBusArgument>
 #include <QDBusConnectionInterface>
 #include <QDBusMessage>
+#include <QDBusMetaType>
 #include <QDBusPendingCall>
 #include <QDBusPendingCallWatcher>
 #include <QDBusPendingReply>
@@ -23,27 +24,9 @@ const QString kBlockIface = QStringLiteral("org.freedesktop.UDisks2.Block");
 const QString kFilesystemIface = QStringLiteral("org.freedesktop.UDisks2.Filesystem");
 const QString kDriveIface = QStringLiteral("org.freedesktop.UDisks2.Drive");
 
-/// Demarshal one interface's `a{sv}` property dict out of an InterfacesAdded
-/// payload (or return it directly if Qt already flattened it to a QVariantMap).
-QVariantMap propsFor(const QVariantMap& interfaces, const QString& iface) {
-    const QVariant v = interfaces.value(iface);
-    if (v.canConvert<QDBusArgument>()) {
-        QVariantMap props;
-        QDBusArgument arg = v.value<QDBusArgument>();
-        arg.beginMap();
-        while (!arg.atEnd()) {
-            arg.beginMapEntry();
-            QString key;
-            QDBusVariant val;
-            arg >> key >> val;
-            props.insert(key, val.variant());
-            arg.endMapEntry();
-        }
-        arg.endMap();
-        return props;
-    }
-    return v.toMap();
-}
+// (propsFor removed 2026-07-10: with the registered UsbInterfaceMap slot
+// parameter, QtDBus delivers each interface's props as a QVariantMap
+// directly — no per-interface demarshal needed in onInterfacesAdded.)
 
 /// Demarshal a bare `a{sv}` reply argument (e.g. Properties.GetAll) into a map.
 /// QtDBus delivers a{sv} either as an UNCONVERTED QDBusArgument or as an
@@ -112,7 +95,11 @@ namespace oap {
 namespace plugins {
 
 UsbMediaWatcher::UsbMediaWatcher(QObject* parent)
-    : QObject(parent), bus_(QDBusConnection::systemBus()) {}
+    : QObject(parent), bus_(QDBusConnection::systemBus()) {
+    // Without this registration the InterfacesAdded connect below fails at
+    // runtime and hot-plug is silently deaf (bench 2026-07-10 root cause).
+    qDBusRegisterMetaType<UsbInterfaceMap>();
+}
 
 UsbMediaWatcher::~UsbMediaWatcher() {
     stop();
@@ -144,10 +131,17 @@ void UsbMediaWatcher::start() {
         mountInFlight_.clear();
     });
 
-    bus_.connect(kService, kRootPath, kObjectManager, QStringLiteral("InterfacesAdded"),
-                 this, SLOT(onInterfacesAdded(QDBusObjectPath, QVariantMap)));
-    bus_.connect(kService, kRootPath, kObjectManager, QStringLiteral("InterfacesRemoved"),
-                 this, SLOT(onInterfacesRemoved(QDBusObjectPath, QStringList)));
+    const bool addedOk =
+        bus_.connect(kService, kRootPath, kObjectManager, QStringLiteral("InterfacesAdded"),
+                     this, SLOT(onInterfacesAdded(QDBusObjectPath, UsbInterfaceMap)));
+    const bool removedOk =
+        bus_.connect(kService, kRootPath, kObjectManager, QStringLiteral("InterfacesRemoved"),
+                     this, SLOT(onInterfacesRemoved(QDBusObjectPath, QStringList)));
+    if (!addedOk || !removedOk)
+        qCWarning(lcUsbWatcher) << "ObjectManager signal connect FAILED (added:" << addedOk
+                                << "removed:" << removedOk << ") — hot-plug will be deaf";
+    else
+        qCInfo(lcUsbWatcher) << "ObjectManager hot-plug signals connected";
     connected_ = true;
 
     // If udisks2 isn't registered yet, stay dormant — the service watcher above
@@ -169,7 +163,7 @@ void UsbMediaWatcher::stop() {
     stopped_ = true;
     if (connected_) {
         bus_.disconnect(kService, kRootPath, kObjectManager, QStringLiteral("InterfacesAdded"),
-                        this, SLOT(onInterfacesAdded(QDBusObjectPath, QVariantMap)));
+                        this, SLOT(onInterfacesAdded(QDBusObjectPath, UsbInterfaceMap)));
         bus_.disconnect(kService, kRootPath, kObjectManager, QStringLiteral("InterfacesRemoved"),
                         this, SLOT(onInterfacesRemoved(QDBusObjectPath, QStringList)));
         connected_ = false;
@@ -274,6 +268,16 @@ void UsbMediaWatcher::processFilesystem(const QString& objPath, const QVariantMa
     const QString drivePath = drivePathOf(blockProps);
 
     if (!mount.isEmpty()) {
+        // Internal media (the SD-card boot/root partitions) report
+        // Removable=true through their card-reader drive — only track mounts
+        // under the removable prefixes the source list itself uses (bench
+        // 2026-07-10: sda1 -> /boot/firmware and sda2 -> / self-registered).
+        if (!mount.startsWith(QLatin1String("/media/"))
+            && !mount.startsWith(QLatin1String("/run/media/"))
+            && !mount.startsWith(QLatin1String("/mnt/"))) {
+            qCInfo(lcUsbWatcher) << objPath << "skipped: mount outside removable prefixes:" << mount;
+            return;
+        }
         objects_.insert(objPath, {mount, uuid, label, drivePath, drive.canPowerOff});
         qCInfo(lcUsbWatcher) << "registered mounted volume" << objPath << "at" << mount;
         emit volumeMounted(mount, label.isEmpty() ? deviceBasename(blockProps) : label, uuid);
@@ -430,11 +434,12 @@ void UsbMediaWatcher::reconcileMountedState(const QString& objPath, const QStrin
     });
 }
 
-void UsbMediaWatcher::onInterfacesAdded(const QDBusObjectPath& path, const QVariantMap& interfaces) {
+void UsbMediaWatcher::onInterfacesAdded(const QDBusObjectPath& path,
+                                        const UsbInterfaceMap& interfaces) {
     if (!interfaces.contains(kFilesystemIface)) return;
     const QString objPath = path.path();
-    const QVariantMap blockProps = propsFor(interfaces, kBlockIface);
-    const QVariantMap fsProps = propsFor(interfaces, kFilesystemIface);
+    const QVariantMap blockProps = interfaces.value(kBlockIface);
+    const QVariantMap fsProps = interfaces.value(kFilesystemIface);
     qCInfo(lcUsbWatcher) << "InterfacesAdded" << objPath << "ifaces" << interfaces.keys()
                          << "blockProps" << blockProps.size();
     processFilesystem(objPath, blockProps, fsProps, resolveDrive(drivePathOf(blockProps)));

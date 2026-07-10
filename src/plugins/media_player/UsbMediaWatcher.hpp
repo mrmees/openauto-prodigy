@@ -5,6 +5,7 @@
 #include <QDBusObjectPath>
 #include <QHash>
 #include <QList>
+#include <QMap>
 #include <QObject>
 #include <QSet>
 #include <QString>
@@ -15,6 +16,12 @@ class QDBusServiceWatcher;
 
 namespace oap {
 namespace plugins {
+
+/// D-Bus ObjectManager `a{sa{sv}}` payload (interface name -> properties).
+/// Registered with qDBusRegisterMetaType in the watcher ctor — a QVariantMap
+/// slot parameter does NOT match this signature and the connect fails at
+/// runtime (bench 2026-07-10).
+using UsbInterfaceMap = QMap<QString, QVariantMap>;
 
 /// UDisks `MountPoints` is `aay` — a list of NUL-terminated byte arrays.
 /// Returns the first mount point (trailing NULs stripped) or an empty string
@@ -76,7 +83,13 @@ signals:
     void ejectCompleted(const QString& mountPath, bool ok);
 
 private slots:
-    void onInterfacesAdded(const QDBusObjectPath& path, const QVariantMap& interfaces);
+    // NOTE the parameter type: ObjectManager's InterfacesAdded carries
+    // a{sa{sv}}, which QtDBus REFUSES to deliver into a QVariantMap slot —
+    // the connect fails at runtime ("Could not connect ... onInterfacesAdded")
+    // and hot-plug goes silently deaf (bench 2026-07-10 root cause). The
+    // registered QMap<QString,QVariantMap> metatype matches the signature.
+    void onInterfacesAdded(const QDBusObjectPath& path,
+                           const UsbInterfaceMap& interfaces);
     void onInterfacesRemoved(const QDBusObjectPath& path, const QStringList& interfaces);
 
 private:
