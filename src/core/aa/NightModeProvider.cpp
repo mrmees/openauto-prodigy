@@ -1,5 +1,5 @@
 // NightModeProvider.cpp — exists solely so MOC can generate vtable/meta-object
-// for the Q_OBJECT interface class. See gotchas in CLAUDE.md.
+// for the Q_OBJECT interface class. See src/AGENTS.md gotchas.
 #include "NightModeProvider.hpp"
 
 namespace oap {

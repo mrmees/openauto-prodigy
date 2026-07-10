@@ -18,7 +18,7 @@ class ScoNodeMonitor;
 /// objects, transport state), ScoNodeMonitor (SCO node running = call audio
 /// flowing), BlueZ Device1 monitoring (phone connected / device name).
 ///
-/// State machine: docs/superpowers/specs/2026-07-05-hfp-call-audio-design.md §5.
+/// State machine: docs/archive/plans/2026-07-05-hfp-call-audio-design.md §5.
 /// Key semantics (live-verified): Call1 objects exist during call SETUP only;
 /// "active call" truth comes from SCO node state, with transport state as a
 /// fallback inside the settle window. Transitions come only from telephony/

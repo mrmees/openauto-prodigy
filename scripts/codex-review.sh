@@ -2,7 +2,7 @@
 # codex-review.sh — pre-push second-opinion review via the OpenAI Codex CLI.
 #
 # Part of the tiered workflow (see AGENTS.md and
-# docs/superpowers/specs/2026-07-09-tiered-execution-codex-gate-design.md):
+# docs/archive/plans/2026-07-09-tiered-execution-codex-gate-design.md):
 # after a plan's execution completes, this sends the unpushed range to Codex
 # (a different model family) for structured P1/P2/P3 findings. The main Fable
 # session adjudicates every finding; the push happens only after.

@@ -21,7 +21,7 @@ class PlayQueue;
 /// Composition of PlaybackEngine (transport + PCM tap into AudioService),
 /// PlayQueue (order/shuffle/repeat) and FolderModel (browse). Feeds
 /// MediaStatusService as source "MediaPlayer" via main.cpp wiring.
-/// Spec: docs/superpowers/specs/2026-07-08-media-player-design.md
+/// Spec: docs/plans/2026-07-08-media-player-design.md
 class MediaPlayerPlugin : public QObject, public IPlugin {
     Q_OBJECT
     Q_INTERFACES(oap::IPlugin)

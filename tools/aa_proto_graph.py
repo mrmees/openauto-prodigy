@@ -11,7 +11,7 @@ Builds a complete AA protocol reference by:
 Input: tools/proto_decode_output/apk_protos.json (from proto_decoder.py)
 Output:
   - tools/aa_proto_graph.json (machine-readable knowledge base)
-  - docs/aa-protocol-reference.md (human-readable reference)
+  - docs/aa-protocol/protocol-reference.md (human-readable reference)
 """
 
 import json
@@ -27,7 +27,7 @@ SCRIPT_DIR = Path(__file__).parent
 PROJECT_ROOT = SCRIPT_DIR.parent
 PROTO_JSON = SCRIPT_DIR / "proto_decode_output" / "apk_protos.json"
 OUTPUT_JSON = SCRIPT_DIR / "aa_proto_graph.json"
-OUTPUT_MD = PROJECT_ROOT / "docs" / "aa-protocol-reference.md"
+OUTPUT_MD = PROJECT_ROOT / "docs" / "aa-protocol" / "protocol-reference.md"
 
 # Decompiled APK source location
 APK_SOURCE = PROJECT_ROOT / "analysis-projection" / \

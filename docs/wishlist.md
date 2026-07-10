@@ -61,7 +61,7 @@ Ideas captured here. Promote to `roadmap-current.md` when ready to commit.
   arc: keyboard for non-code logins (Qt VirtualKeyboard vs. pair-from-phone),
   audio-focus policy for background playback under the AA view, one-app-alive
   resource cap, librespot as a Spotify Connect complement. Scoped in
-  `docs/superpowers/specs/2026-07-07-web-surface-strategy-design.md` (Decision 3);
+  `docs/archive/plans/2026-07-07-web-surface-strategy-design.md` (Decision 3);
   queued behind the media player arc.
 
 ## From multi-dashboards execution (2026-07-06)
@@ -86,7 +86,7 @@ Ideas captured here. Promote to `roadmap-current.md` when ready to commit.
 - **Cross-build speed — remaining half (ext4 + ccache + orphan guard)** — Target-scoping SHIPPED 2026-07-07 (`b86ded8`: fast app-only default + `--full`; deploys now ~4 min). Still open from the original entry: relocate `build-pi/` off drvfs to ext4 (docker volume or ~/builds bind mount) + ccache in the container. NEW (found during b86ded8 verification): `docker run` through `sg docker -c` doesn't die with the client — a killed/timed-out invocation leaves an orphan container mutating the bind-mounted `build-pi/` (one truncated the app binary to 0 bytes with a fresh mtime, fooling make). Add `--name` + pre-run `docker rm -f` guard (or `--init`) to cross-build.sh.
 
 ## From theme-upload design (2026-07-07)
-- **All-routes web-config auth pass** — web-config binds `0.0.0.0:8080` with ZERO auth on every route, incl. `set_config` (can change any setting) and the new `install_theme` upload. Per-endpoint auth is theater while `set_config` is open; do ONE proper auth pass across the whole panel instead. (Decided during theme-upload Q1: match web-config's no-auth for the new endpoint, fix the real hole separately. See `docs/superpowers/specs/2026-07-07-theme-upload-design.md` §10.)
+- **All-routes web-config auth pass** — web-config binds `0.0.0.0:8080` with ZERO auth on every route, incl. `set_config` (can change any setting) and the new `install_theme` upload. Per-endpoint auth is theater while `set_config` is open; do ONE proper auth pass across the whole panel instead. (Decided during theme-upload Q1: match web-config's no-auth for the new endpoint, fix the real hole separately. See `docs/archive/plans/2026-07-07-theme-upload-design.md` §10.)
 - **Browser-facing theme/wallpaper upload UI (themes.html)** — fast-follow to the companion-only `POST /api/theme/install` endpoint: a drag-drop wallpaper/theme uploader with preview + progress, hitting the same endpoint. Deferred from the theme-upload work item (Q2 = companion-only now). Cheap add-on once the endpoint ships.
 - **Dedup camelCase→hyphen conversion + slugify at 9876 retirement** — the theme-upload IPC handler copies `CompanionListenerService`'s color-key conversion lambda (frozen file, dual-stack). When legacy 9876 retires, collapse the duplicate into the shared `ThemeService` path.
 - **`/tmp/oap-theme-upload/` janitor** — Flask deletes its wallpaper temp file in a `finally`, but a Flask crash mid-request leaks a stale temp file (reboot clears it). A periodic sweep or per-request stale-file cleanup is a tidiness nicety, not a v1 need.
@@ -109,3 +109,13 @@ Ideas captured here. Promote to `roadmap-current.md` when ready to commit.
 
 ## From Codex pre-push gate (2026-07-09)
 - **PlaybackEngine stream flush on track change/seek/stop** (gate re-run P2, deferred) — `playFile()`/`stop()`/`seek()` reuse the AudioService stream without flushing its ring buffer, so queued PCM from the previous position could be briefly audible before new audio takes over. Unverified on hardware (bench next/prev/seek rows passed without audible-artifact notes), and a proper fix needs an RT-safe `IAudioService::flushStream()` designed against the PipeWire process callback — not a push-gate patch. Bench-listen first (manual next/seek while a track plays), then design the flush if audible. `AudioRingBuffer::reset()` exists but has no safe service-level path.
+
+## From docs-structure cleanup (2026-07-09)
+- **Miata GPIO/ignition/amp-control plugin** — the OAP-era hardware behavior (power latch, ignition sense, amp switching, dimmer servo, MCP23017 toggles) is a natural Prodigy plugin. Hardware reference preserved outside this repo at `personal/miata/miata-hardware-reference.md` (moved out during needs-review triage — car wiring doesn't belong in a public repo).
+- **Fix version mismatch** — CMakeLists.txt `project(... VERSION 0.1.0)` + `src/main.cpp setApplicationVersion("0.1.0")` disagree with YamlConfig's `identity.sw_version = "0.3.0"`. Pick one source of truth (probably CMake's `PROJECT_VERSION` injected via configure header) and derive the rest.
+- **Author `docs/reference/external-api.md`** — External API v1 is a shipped public feature but its only documentation is the archived design doc (`docs/archive/plans/2026-07-06-external-api-v1-design.md`). Distill a user-facing reference: endpoints, pairing flow, proto contract, capability flags.
+- **Re-triage the PARKED config-contract overhaul** — `docs/plans/2026-02-21-config-contract-overhaul-{design,plan}.md` (approved 2026-02-21, never executed). Decide: still wanted, needs rewrite against the current config surface, or ABANDONED.
+- **Secret scan + checker hardening** (from 2026-07-09 Codex gate) — run a proper secret scanner (e.g. gitleaks) over the repo/history; extend `scripts/check-doc-links.py` to also validate backticked `.md` paths in live docs (the gate caught stale backticked pointers the link syntax check can't see).
+
+## From PR #16 post-review (2026-07-09)
+- **`test_companion_listener` intermittent timing failure** — Codex's full-suite run failed it once, then it passed on three focused reruns and a subsequent full run. Known-flaky candidate: find the timing assumption (likely a wait/timeout race) and make it deterministic before it starts eating CI credibility.

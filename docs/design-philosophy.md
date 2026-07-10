@@ -89,7 +89,7 @@ Two consequences:
   tolerates this, an incoming-call overlay does not.
 
 Decided 2026-07-07 after the web-widget ship — full rationale in
-`docs/superpowers/specs/2026-07-07-web-surface-strategy-design.md`.
+`docs/archive/plans/2026-07-07-web-surface-strategy-design.md`.
 
 ## What We Don't Do
 

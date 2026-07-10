@@ -2,7 +2,7 @@
 
 Governance: capture new ideas in `docs/wishlist.md`; only promoted items should appear in this roadmap.
 
-> **Parity program status (updated 2026-07-07):** the 2026-07-05 design sprint (`docs/superpowers/specs/2026-07-05-fable-work-program-design.md`, phases A–F) has been designed **and executed**: External API v1, HTML/JS web widgets, HFP call audio, multi-dashboards + overlay framework, and the theme-upload endpoint are all shipped (see Done). What remains from the program: the Phase F light-plan items (`docs/superpowers/plans/2026-07-05-phase-f-light-plans.md` — media player, EQ parity audit, 0x8012 experiment, key-event nav) and the HFP live checks (L3/L4/L5, need Matthew + phone).
+> **Parity program status (updated 2026-07-07):** the 2026-07-05 design sprint (`docs/archive/plans/2026-07-05-fable-work-program-design.md`, phases A–F) has been designed **and executed**: External API v1, HTML/JS web widgets, HFP call audio, multi-dashboards + overlay framework, and the theme-upload endpoint are all shipped (see Done). What remains from the program: the Phase F light-plan items (`docs/plans/2026-07-05-phase-f-light-plans.md` — media player, EQ parity audit, 0x8012 experiment, key-event nav) and the HFP live checks (L3/L4/L5, need Matthew + phone).
 
 ## Done (recent)
 
@@ -25,7 +25,7 @@ Governance: capture new ideas in `docs/wishlist.md`; only promoted items should 
 - HFP call audio (sprint Phase D2) — TelephonyClient (BlueZ D-Bus) + ScoNodeMonitor (PipeWire) feeding a normative call state machine in PhoneStateService; SCO routes via WirePlumber natively. Executed on live hardware 2026-07-05. COMPLETE (interop live checks L3/L4/L5 — DTMF via IVR, RejectSCO comparison, Samsung/Moto — pending ~15 min bench time with Matthew + phone; checklist self-contained in the D2 design doc §11).
 - External API v1 + v1.1 (sprint Phase B) — TCP 9810 / WebSocket 9811 protobuf server: pairing (PIN challenge), status publishers (media/nav/projection/phone/system), action dispatch, notifications, companion ingest (GPS/battery/connectivity/time); v1.1 additive fields + hardening docket + atomic YAML config save. Live on Pi. COMPLETE.
 - Multi-dashboards + overlay framework (sprint Phase E) — named dashboards (YAML v4 + v3 migration, DashboardManager, switcher pills, widget size presets) and OverlayService (z-bands, action auto-registration, OverlayHost; PairingDialog migrated as proof). Pi-verified. COMPLETE.
-- HTML/JS web-widget runtime (sprint Phase C2) — `prodigy://` scheme + WebWidgetHost (locked-down WebEngine) + `prodigy` JS shim riding the External API WebSocket; packaged widgets under `~/.openauto/webwidgets/`. Pi-verified end-to-end incl. full touchscreen checklist; shim-hardening batch + authoring guide (`docs/web-widget-authoring.md`) landed 2026-07-07. COMPLETE.
+- HTML/JS web-widget runtime (sprint Phase C2) — `prodigy://` scheme + WebWidgetHost (locked-down WebEngine) + `prodigy` JS shim riding the External API WebSocket; packaged widgets under `~/.openauto/webwidgets/`. Pi-verified end-to-end incl. full touchscreen checklist; shim-hardening batch + authoring guide (`docs/reference/web-widget-authoring.md`) landed 2026-07-07. COMPLETE.
 - Theme/wallpaper upload endpoint — `POST /api/theme/install` (web-config multipart → temp-file handoff → IPC `install_theme` → `importCompanionTheme`), real success/failure in the response (fixes the legacy 9876 ack-lie). Deployed to Pi 2026-07-07; HTTP contract handed to the companion maintainer. COMPLETE (legacy 9876 retirement now gates only on the companion shipping its client).
 - Cross-build fast mode — app-only default + `--full` flag; Pi deploy builds dropped ~20 min → ~4 min. COMPLETE.
 - Widevine enablement (web-surface strategy Slice 1) — CDM auto-wiring in main.cpp
@@ -43,7 +43,7 @@ Governance: capture new ideas in `docs/wishlist.md`; only promoted items should 
   for browser bench tools (it owns the touchscreen), and stopping it reproduced
   the proxy-blackhole (third incident; wishlist entry updated). Spotify login
   round not run (optional; the WebAppHost arc will cover login UX). Spec:
-  `docs/superpowers/specs/2026-07-07-web-surface-strategy-design.md`. COMPLETE.
+  `docs/archive/plans/2026-07-07-web-surface-strategy-design.md`. COMPLETE.
 
 ## Now
 
