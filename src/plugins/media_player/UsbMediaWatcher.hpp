@@ -60,6 +60,13 @@ public:
     /// open into Unmount().
     void ejectMount(const QString& mountPath);
 
+    /// True if mountPath is a currently-tracked udisks Filesystem mount.
+    /// Synchronous local lookup in the object map — NO D-Bus. Lets the plugin
+    /// reject eject on fstab/NAS mounts under /mnt BEFORE the disruptive purge
+    /// (Codex gate re-run P2). Returns false when the watcher is inactive
+    /// (disabled/stopped leave the object map empty).
+    bool isKnownMount(const QString& mountPath) const;
+
 signals:
     /// uuid: udisks Block.IdUUID (may be empty — the caller falls back to a
     /// path-derived key). Captured at mount time; never recomputed later.

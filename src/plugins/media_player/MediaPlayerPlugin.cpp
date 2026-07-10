@@ -354,7 +354,10 @@ void MediaPlayerPlugin::purgeVolume(const QString& mount) {
     // 5. Recover playback per §9.
     if (currentGone) {
         if (queue_->count() == 0) {
-            engine_->stop();
+            // No survivor to start: fully release the media source, not just
+            // stop() — a bare stop() keeps the purged USB file open and can
+            // fail the pending Unmount() with EBUSY (Codex gate re-run P1).
+            engine_->unload();
             setHasTrack(false);
         } else if (wasPlaying) {
             // Mid-session playing yank: continue with what remains.
@@ -363,7 +366,9 @@ void MediaPlayerPlugin::purgeVolume(const QString& mount) {
         } else {
             // Paused / stopped / restored-at-boot: the queue points at the
             // survivor but NOTHING auto-plays (stage-1 no-autoplay invariant).
-            engine_->stop();
+            // unload() (not stop()) so the purged USB file is released before
+            // the pending Unmount() — stop() alone leaves it open (Codex P1).
+            engine_->unload();
         }
     }
 
@@ -373,6 +378,20 @@ void MediaPlayerPlugin::purgeVolume(const QString& mount) {
 
 void MediaPlayerPlugin::ejectVolume(const QString& mountPath) {
     if (mountPath.isEmpty()) return;
+    // 0. Validate the mount is udisks-managed BEFORE the disruptive purge (Codex
+    //    gate re-run P2). Tapping eject on an fstab/NAS mount under /mnt would
+    //    otherwise stop playback and clear the queue, then fail the unmount.
+    //    isKnownMount() is a synchronous local lookup (no D-Bus) and returns
+    //    false when the watcher is inactive — so this path never disrupts state.
+    if (!watcher_ || !watcher_->isKnownMount(mountPath)) {
+        if (hostContext_ && hostContext_->notificationService())
+            hostContext_->notificationService()->post({
+                {"kind", "toast"},
+                {"message", QStringLiteral("Media Player: Eject not available for this source")},
+                {"sourcePluginId", kPluginId}
+            });
+        return;
+    }
     // 1. Guard the mount so purgeVolume()'s refresh cannot re-enumerate it.
     ejectingMounts_.insert(mountPath);
     // 2. Cleanup FIRST (stops playback if the current track lives here) so
@@ -435,6 +454,20 @@ void MediaPlayerPlugin::refreshSources() {
     // never recomputed from a possibly-dead mount later (Codex P1).
     QVector<MediaScanner::Root> roots;
 
+    // Canonical dedupe (Codex gate re-run P2): identical roots listed twice in
+    // music_dirs, or a mount reached via BOTH config and volume enumeration,
+    // would otherwise scan twice and duplicate every library row. Skip a root
+    // whose canonical path already appeared. Exact-duplicate only — nested-root
+    // precedence is deliberately out of scope (wishlisted).
+    QSet<QString> seenCanonical;
+    auto alreadySeen = [&seenCanonical](const QString& path) {
+        const QString canon = QFileInfo(path).canonicalFilePath();
+        if (canon.isEmpty()) return false;   // unresolvable — never dedupe blindly
+        if (seenCanonical.contains(canon)) return true;
+        seenCanonical.insert(canon);
+        return false;
+    };
+
     QStringList musicDirs;
     if (hostContext_ && hostContext_->configService()) {
         const QVariant v = hostContext_->configService()->pluginValue(
@@ -446,7 +479,7 @@ void MediaPlayerPlugin::refreshSources() {
     for (QString dir : musicDirs) {
         if (dir.startsWith(QLatin1String("~/")))
             dir = QDir::homePath() + dir.mid(1);
-        if (QDir(dir).exists())
+        if (QDir(dir).exists() && !alreadySeen(dir))
             roots.append({QFileInfo(dir).fileName(), dir,
                           MediaScanner::rootKeyForPath(dir)});
     }
@@ -469,6 +502,9 @@ void MediaPlayerPlugin::refreshSources() {
         // Prefer a udisks-derived key (Task 6's watcher); fall back to the path
         // hash for volumes that predate the watcher.
         const QString key = mountKeys_.value(mount, MediaScanner::rootKeyForPath(mount));
+        // Skip a volume already added via config (or listed twice) — same
+        // canonical path, one scan (Codex gate re-run P2).
+        if (alreadySeen(mount)) continue;
         roots.append({label, mount, key});
     }
 
@@ -542,6 +578,13 @@ void MediaPlayerPlugin::restoreState() {
     // Restore PAUSED at the saved position — nothing auto-plays on boot
     // (spec §10, Matthew's explicit call). One tap on play resumes.
     policy_.onRestoreBegan();
+    // Reset the audibility watermark before EVERY restorePaused (Codex gate
+    // re-run P1): the restore path bypasses startTrack(), which normally does
+    // this. A prior partial restore's seek-echo can leave the watermark above
+    // the audible floor, so a corrupt just-mounted track that "ends" silently
+    // reads as playable and auto-advances into REAL playback — violating the
+    // no-autoplay invariant (spec §10).
+    policy_.onTrackStarted();
     engine_->restorePaused(queue_->currentTrack(), pos);
 }
 
@@ -565,6 +608,12 @@ void MediaPlayerPlugin::retryPendingRestore() {
     queue_->setTracks(existing, idx);
     setHasTrack(true);
     policy_.onRestoreBegan();
+    // Reset the audibility watermark before restorePaused (Codex gate re-run
+    // P1): this path bypasses startTrack() too, and a prior partial restore's
+    // seek-echo can otherwise leave the watermark above the audible floor — a
+    // corrupt just-mounted track would then read as playable and auto-advance
+    // into REAL playback, violating the no-autoplay invariant (spec §10).
+    policy_.onTrackStarted();
     engine_->restorePaused(queue_->currentTrack(), pendingRestorePosMs_);
     clearPendingRestore();
 }

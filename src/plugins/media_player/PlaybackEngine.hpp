@@ -37,6 +37,12 @@ public:
     void play();
     void pause();
     void stop();
+    /// Fully unload the current media: stop AND drop the source
+    /// (setSource(QUrl())). QMediaPlayer::stop() alone keeps the media loaded,
+    /// so a paused/stopped purge would leave a USB file as the active source and
+    /// Unmount() could fail EBUSY (Qt 6.8; Codex gate re-run P1). Focus/stream
+    /// handling matches stop() — the stream itself is retained.
+    void unload();
     void seek(qint64 ms);
 
     /// Fully release AudioService resources (focus + stream). Idempotent:

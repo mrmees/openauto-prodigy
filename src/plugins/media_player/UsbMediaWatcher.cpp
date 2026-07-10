@@ -363,6 +363,12 @@ void UsbMediaWatcher::ejectMount(const QString& mountPath) {
     });
 }
 
+bool UsbMediaWatcher::isKnownMount(const QString& mountPath) const {
+    for (auto it = objects_.constBegin(); it != objects_.constEnd(); ++it)
+        if (it->mountPath == mountPath) return true;
+    return false;
+}
+
 void UsbMediaWatcher::onInterfacesAdded(const QDBusObjectPath& path, const QVariantMap& interfaces) {
     if (!interfaces.contains(kFilesystemIface)) return;
     const QString objPath = path.path();

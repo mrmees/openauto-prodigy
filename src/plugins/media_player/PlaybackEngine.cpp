@@ -96,6 +96,17 @@ void PlaybackEngine::stop() {
         audioService_->releaseAudioFocus(stream_);
 }
 
+void PlaybackEngine::unload() {
+    // stop() leaves the media loaded — only setSource(QUrl()) actually releases
+    // the underlying file handle (Qt 6.8), which an eject/purge needs so a
+    // following Unmount() cannot fail EBUSY. Focus handling mirrors stop(); the
+    // AudioService stream itself is retained (stop() does not destroy it).
+    player_.stop();
+    player_.setSource(QUrl());
+    if (audioService_ && stream_)
+        audioService_->releaseAudioFocus(stream_);
+}
+
 void PlaybackEngine::seek(qint64 ms) { player_.setPosition(ms); }
 
 int PlaybackEngine::playbackState() const {

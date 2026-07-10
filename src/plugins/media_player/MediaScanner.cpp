@@ -137,6 +137,12 @@ void MediaScanner::runScan(const QVector<Root>& roots, ScanOutcome* out) {
 
     for (const Root& root : roots) {
         const QString rootPath = root.path;
+        // Root-escape guard baseline (Codex gate re-run P2): resolve the root
+        // once so the walk below can reject any directory whose canonical path
+        // leaves it — a symlink on an untrusted stick pointing at `/` would
+        // otherwise walk the whole filesystem. Empty = unresolvable root; the
+        // walk's own canonical-empty check then skips everything for it.
+        const QString canonicalRoot = QFileInfo(rootPath).canonicalFilePath();
         const QString cacheFile =
             cacheDir_ + QStringLiteral("/medialib/") + root.key + QStringLiteral(".bin");
 
@@ -172,6 +178,12 @@ void MediaScanner::runScan(const QVector<Root>& roots, ScanOutcome* out) {
             const QString dirPath = pendingDirs.takeLast();
             const QString canonical = QFileInfo(dirPath).canonicalFilePath();
             if (canonical.isEmpty() || visitedDirs.contains(canonical)) continue;
+            // Stay within the root (Codex gate re-run P2): skip any directory
+            // whose canonical path escaped the root via a symlink. Keep the
+            // visited-set loop guard below intact.
+            if (canonical != canonicalRoot
+                && !canonical.startsWith(canonicalRoot + QLatin1Char('/')))
+                continue;
             visitedDirs.insert(canonical);
             const QDir dir(dirPath);
             for (const QFileInfo& fi :

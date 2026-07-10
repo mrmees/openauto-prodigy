@@ -133,6 +133,26 @@ private slots:
             }
         QVERIFY(!compArt.isEmpty());
     }
+    void symlinkRootEscapeBlocked() {
+#ifdef Q_OS_UNIX
+        // Codex gate re-run P2: a symlink on an untrusted stick pointing OUTSIDE
+        // the scan root must NOT let the walk escape and index files elsewhere.
+        // Build a root with one real audio file + a symlink to a SECOND temp dir
+        // holding another audio file; the scan must find only the in-root file.
+        QTemporaryDir tree, outside, cache;
+        QFile::copy(fixtures() + "/no-tags-here.ogg", tree.path() + "/inside.ogg");
+        QFile::copy(fixtures() + "/no-tags-here.ogg", outside.path() + "/outside.ogg");
+        // link named tree/escape -> the outside dir (a symlink to a directory).
+        QVERIFY(QFile::link(outside.path(), tree.path() + "/escape"));
+        MediaScanner s; s.setCacheDir(cache.path());
+        const auto recs = runScan(s, tree.path());
+        QCOMPARE(recs.size(), 1);
+        QVERIFY2(recs.first().path.endsWith(QLatin1String("/inside.ogg")),
+                 qPrintable(recs.first().path));
+#else
+        QSKIP("symlink root-escape guard test requires Q_OS_UNIX");
+#endif
+    }
     void scanWhileBusyCoalesces() {
         // Codex P1: second scan() while busy replaces the in-flight one;
         // exactly ONE finished(), reflecting the newest roots.
