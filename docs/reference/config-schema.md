@@ -67,7 +67,6 @@ identity:
   head_unit_name: "OpenAuto Prodigy"  # friendly name
   manufacturer: "OpenAuto Project"    # OEM name (appears in phone AA settings)
   model: "Raspberry Pi 4"             # hardware model name
-  sw_version: "0.3.0"                 # app version
   car_model: ""                       # optional: car model name
   car_year: ""                        # optional: car year
   left_hand_drive: true               # true = LHS, false = RHS (affects UI mirroring)
@@ -139,7 +138,6 @@ All keys are documented with their dot-path (for `valueByPath()`), type, default
 | `identity.head_unit_name` | string | `"OpenAuto Prodigy"` | Friendly name shown in phone AA settings |
 | `identity.manufacturer` | string | `"OpenAuto Project"` | OEM manufacturer name |
 | `identity.model` | string | `"Raspberry Pi 4"` | Hardware model name |
-| `identity.sw_version` | string | `"0.3.0"` | App software version |
 | `identity.car_model` | string | `""` | Optional car model name |
 | `identity.car_year` | string | `""` | Optional car year |
 | `identity.left_hand_drive` | bool | `true` | `true` = LHS, `false` = RHS (may affect UI layout) |
@@ -327,6 +325,12 @@ Themes are loaded by `ThemeService::loadTheme(themeName)` and colors are exposed
 **Default values:** Any key missing from the user's config.yaml inherits its default from `YamlConfig::initDefaults()`. This allows new installations to work immediately and new keys to be introduced without breaking existing configs.
 
 **Schema validation:** `setValueByPath()` validates against `buildDefaultsNode()` — you can only set values for keys that exist in the defaults schema. This prevents accidental creation of invalid keys.
+
+**Removed keys:**
+- 2026-07-09: `identity.sw_version` — the app version is compiled in
+  (`OAP_VERSION`, git-derived; see `AGENTS.md` § Versioning).
+  `setValueByPath()` rejects writes to it; a leftover `sw_version:` entry in
+  an existing `config.yaml` is retained on save but read by nothing.
 
 ---
 

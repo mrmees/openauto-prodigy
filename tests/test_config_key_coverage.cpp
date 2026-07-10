@@ -61,7 +61,6 @@ void TestConfigKeyCoverage::testAllRuntimeKeys()
         "identity.head_unit_name",
         "identity.manufacturer",
         "identity.model",
-        "identity.sw_version",
         "identity.car_model",
         "identity.car_year",
         "identity.left_hand_drive",

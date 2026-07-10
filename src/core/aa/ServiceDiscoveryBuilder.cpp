@@ -71,8 +71,8 @@ oaa::SessionConfig ServiceDiscoveryBuilder::build() const
     config.leftHandDrive = true;
     config.manufacturer = "f1x";
     config.model = "Crankshaft-NG Autoapp";
-    config.swBuild = "1";
-    config.swVersion = "1.0";
+    config.swBuild = OAP_VERSION;
+    config.swVersion = OAP_VERSION;
     config.canPlayNativeMediaDuringVr = true;
 
     // Build channel descriptors

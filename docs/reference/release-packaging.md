@@ -10,11 +10,14 @@ This document defines the canonical naming and structure for prebuilt Raspberry 
 
 ## Naming Convention
 
-- Git release tag: `v<major>.<minor>.<patch>`
-  - Example: `v0.3.0`
+- Git release tag (alpha era): `ALPHA-YY-MM-DD-NN` — see `AGENTS.md`
+  § Versioning
+  - Example: `ALPHA-26-07-09-01`
+  - Legacy pre-alpha releases used `v<major>.<minor>.<patch>` (e.g.
+    `v0.6.6`); those tags remain valid history.
 - Prebuilt asset filename:
   - `openauto-prodigy-prebuilt-<tag>-pi4-aarch64.tar.gz`
-  - Example: `openauto-prodigy-prebuilt-v0.3.0-pi4-aarch64.tar.gz`
+  - Example: `openauto-prodigy-prebuilt-ALPHA-26-07-09-01-pi4-aarch64.tar.gz`
 - Archive root directory:
   - `openauto-prodigy-prebuilt-<tag>-pi4-aarch64/`
 

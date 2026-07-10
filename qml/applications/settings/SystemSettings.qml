@@ -115,7 +115,7 @@ Flickable {
         SettingsRow { rowIndex: 0
             ReadOnlyField {
                 label: "Version"
-                configPath: "identity.sw_version"
+                value: Qt.application.version
             }
         }
 

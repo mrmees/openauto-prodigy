@@ -129,7 +129,7 @@ Dynamic list from `CodecCapabilityModel`. Per codec:
 | ReadOnly | Head Unit Name | `identity.head_unit_name` | |
 | ReadOnly | Manufacturer | `identity.manufacturer` | |
 | ReadOnly | Model | `identity.model` | |
-| ReadOnly | Software Version | `identity.sw_version` | |
+| ReadOnly | Version | *(compiled — `Qt.application.version`)* | |
 | ReadOnly | Car Model | `identity.car_model` | |
 | ReadOnly | Car Year | `identity.car_year` | |
 | Toggle | Left-Hand Drive | `identity.left_hand_drive` | |
@@ -171,5 +171,5 @@ Dynamic list from `CodecCapabilityModel`. Per codec:
 | Control | Label | Notes |
 |---------|-------|-------|
 | *(text)* | OpenAuto Prodigy | Heading |
-| *(text)* | Version X.Y.Z | From `identity.sw_version` |
+| *(text)* | Version ALPHA-YY-MM-DD-NN | From `Qt.application.version` (compiled `OAP_VERSION`) |
 | Button | Close App | Opens exit confirmation dialog |

@@ -206,7 +206,7 @@ int main(int argc, char *argv[])
 #endif
     QGuiApplication app(argc, argv);
     app.setApplicationName("OpenAuto Prodigy");
-    app.setApplicationVersion("0.1.0");
+    app.setApplicationVersion(QStringLiteral(OAP_VERSION));
     app.setOrganizationName("OpenAutoProdigy");
     app.setWindowIcon(QIcon(":/icons/prodigy-64.png"));
 

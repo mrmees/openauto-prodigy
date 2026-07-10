@@ -329,7 +329,7 @@ QByteArray IpcServer::handleListPlugins()
 QByteArray IpcServer::handleStatus()
 {
     QJsonObject obj;
-    obj["version"] = QStringLiteral("0.1.0");
+    obj["version"] = QStringLiteral(OAP_VERSION);
     obj["plugin_count"] = pluginManager_ ? pluginManager_->plugins().count() : 0;
     return QJsonDocument(obj).toJson(QJsonDocument::Compact);
 }

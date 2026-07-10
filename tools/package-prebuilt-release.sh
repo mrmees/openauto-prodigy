@@ -6,7 +6,7 @@
 #   ./tools/package-prebuilt-release.sh \
 #     --build-dir build-pi \
 #     --output-dir dist \
-#     --version-tag v0.1.0
+#     --version-tag ALPHA-26-07-09-01
 #
 set -euo pipefail
 
