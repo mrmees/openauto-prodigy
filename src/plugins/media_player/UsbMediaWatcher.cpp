@@ -46,7 +46,13 @@ QVariantMap propsFor(const QVariantMap& interfaces, const QString& iface) {
 }
 
 /// Demarshal a bare `a{sv}` reply argument (e.g. Properties.GetAll) into a map.
+/// QtDBus delivers a{sv} either as an UNCONVERTED QDBusArgument or as an
+/// already-converted QVariantMap depending on backend/path. The original
+/// QDBusArgument-only version returned {} for the converted shape — on the Pi
+/// that read Removable as false and hot-plug registration silently skipped
+/// every volume (bench 2026-07-10, root cause of dead eject + missed yank).
 QVariantMap demarshalPropsReply(const QVariant& v) {
+    if (v.userType() == QMetaType::QVariantMap) return v.toMap();
     QVariantMap props;
     if (!v.canConvert<QDBusArgument>()) return props;
     QDBusArgument arg = v.value<QDBusArgument>();
@@ -246,13 +252,20 @@ void UsbMediaWatcher::scanExistingObjects() {
     }
     arg.endMap();
 
+    qCInfo(lcUsbWatcher) << "initial scan:" << cands.size() << "filesystem candidate(s),"
+                         << drives.size() << "drive(s)";
     for (const FsCand& c : cands)
         processFilesystem(c.objPath, c.block, c.fs, drives.value(drivePathOf(c.block)));
 }
 
 void UsbMediaWatcher::processFilesystem(const QString& objPath, const QVariantMap& blockProps,
                                         const QVariantMap& fsProps, const DriveInfo& drive) {
-    if (!drive.removable) return;   // internal disks are not our business
+    if (!drive.removable) {
+        // Also the silent exit taken when resolveDrive gets an empty/failed
+        // reply — keep it visible (bench 2026-07-10 root-cause lesson).
+        qCInfo(lcUsbWatcher) << objPath << "skipped: drive not removable (or unresolved)";
+        return;
+    }
 
     const QString mount =
         parseFirstMountPoint(extractMountPoints(fsProps.value(QStringLiteral("MountPoints"))));
@@ -262,6 +275,7 @@ void UsbMediaWatcher::processFilesystem(const QString& objPath, const QVariantMa
 
     if (!mount.isEmpty()) {
         objects_.insert(objPath, {mount, uuid, label, drivePath, drive.canPowerOff});
+        qCInfo(lcUsbWatcher) << "registered mounted volume" << objPath << "at" << mount;
         emit volumeMounted(mount, label.isEmpty() ? deviceBasename(blockProps) : label, uuid);
     } else {
         if (mountInFlight_.contains(objPath)) return;   // no double-mount on races
@@ -286,13 +300,20 @@ void UsbMediaWatcher::startMount(const QString& objPath, const QString& uuid, co
         mountInFlight_.remove(objPath);
         const QDBusPendingReply<QString> reply = *cw;
         if (reply.isError()) {
+            // A competing automounter (the Pi image runs pcmanfm --desktop +
+            // gvfs-udisks2-volume-monitor) can win the mount race — our Mount
+            // then fails AlreadyMounted but the volume IS mounted and MUST be
+            // registered, or eject/yank handling goes blind (bench 2026-07-10).
             qCWarning(lcUsbWatcher) << "Mount failed for" << objPath << ":"
-                                    << reply.error().message();
+                                    << reply.error().message()
+                                    << "— reconciling actual mount state";
+            reconcileMountedState(objPath, uuid, label, deviceName, drivePath, canPowerOff);
             return;
         }
         const QString mount = reply.value();
         if (mount.isEmpty()) return;
         objects_.insert(objPath, {mount, uuid, label, drivePath, canPowerOff});
+        qCInfo(lcUsbWatcher) << "mounted" << objPath << "at" << mount;
         emit volumeMounted(mount, label.isEmpty() ? deviceName : label, uuid);
     });
 }
@@ -364,9 +385,49 @@ void UsbMediaWatcher::ejectMount(const QString& mountPath) {
 }
 
 bool UsbMediaWatcher::isKnownMount(const QString& mountPath) const {
-    for (auto it = objects_.constBegin(); it != objects_.constEnd(); ++it)
+    QStringList known;
+    for (auto it = objects_.constBegin(); it != objects_.constEnd(); ++it) {
         if (it->mountPath == mountPath) return true;
+        known << it->mountPath;
+    }
+    // A miss here disables eject for a volume the app may be serving — make
+    // the mismatch diagnosable from the journal (bench 2026-07-10).
+    qCWarning(lcUsbWatcher) << "isKnownMount MISS for" << mountPath
+                            << "— tracked mounts:" << known;
     return false;
+}
+
+void UsbMediaWatcher::reconcileMountedState(const QString& objPath, const QString& uuid,
+                                            const QString& label, const QString& deviceName,
+                                            const QString& drivePath, bool canPowerOff) {
+    QDBusMessage msg = QDBusMessage::createMethodCall(
+        kService, objPath, QStringLiteral("org.freedesktop.DBus.Properties"),
+        QStringLiteral("GetAll"));
+    msg << kFilesystemIface;
+    auto* watcher = new QDBusPendingCallWatcher(bus_.asyncCall(msg), this);
+    connect(watcher, &QDBusPendingCallWatcher::finished, this,
+            [this, objPath, uuid, label, deviceName, drivePath, canPowerOff](
+                QDBusPendingCallWatcher* cw) {
+        cw->deleteLater();
+        if (stopped_) return;   // watcher torn down mid-flight — do not emit
+        const QDBusMessage reply = cw->reply();
+        if (reply.type() != QDBusMessage::ReplyMessage) {
+            qCWarning(lcUsbWatcher) << "reconcile GetAll failed for" << objPath << ":"
+                                    << reply.errorMessage();
+            return;
+        }
+        const QVariantMap fsProps = demarshalPropsReply(reply.arguments().value(0));
+        const QString mount = parseFirstMountPoint(
+            extractMountPoints(fsProps.value(QStringLiteral("MountPoints"))));
+        if (mount.isEmpty()) {
+            qCWarning(lcUsbWatcher) << objPath
+                                    << "genuinely unmounted after Mount failure — not registered";
+            return;
+        }
+        objects_.insert(objPath, {mount, uuid, label, drivePath, canPowerOff});
+        qCInfo(lcUsbWatcher) << "reconciled" << objPath << "— already mounted at" << mount;
+        emit volumeMounted(mount, label.isEmpty() ? deviceName : label, uuid);
+    });
 }
 
 void UsbMediaWatcher::onInterfacesAdded(const QDBusObjectPath& path, const QVariantMap& interfaces) {
@@ -374,6 +435,8 @@ void UsbMediaWatcher::onInterfacesAdded(const QDBusObjectPath& path, const QVari
     const QString objPath = path.path();
     const QVariantMap blockProps = propsFor(interfaces, kBlockIface);
     const QVariantMap fsProps = propsFor(interfaces, kFilesystemIface);
+    qCInfo(lcUsbWatcher) << "InterfacesAdded" << objPath << "ifaces" << interfaces.keys()
+                         << "blockProps" << blockProps.size();
     processFilesystem(objPath, blockProps, fsProps, resolveDrive(drivePathOf(blockProps)));
 }
 
@@ -386,9 +449,14 @@ void UsbMediaWatcher::onInterfacesRemoved(const QDBusObjectPath& path, const QSt
 
 void UsbMediaWatcher::emitRemovedForObject(const QString& objPath) {
     auto it = objects_.find(objPath);
-    if (it == objects_.end()) return;   // already emitted (e.g. via eject) — dedupe
+    if (it == objects_.end()) {
+        qCInfo(lcUsbWatcher) << "removal for untracked object" << objPath
+                             << "(already emitted, or was never registered)";
+        return;   // already emitted (e.g. via eject) — dedupe
+    }
     const QString mount = it->mountPath;
     objects_.erase(it);
+    qCInfo(lcUsbWatcher) << "volume removed" << objPath << "was at" << mount;
     if (!mount.isEmpty()) emit volumeRemoved(mount);
 }
 
@@ -421,8 +489,17 @@ UsbMediaWatcher::DriveInfo UsbMediaWatcher::resolveDrive(const QString& drivePat
         return di;
     }
     const QVariantMap props = demarshalPropsReply(reply.arguments().value(0));
+    if (props.isEmpty()) {
+        // Never fail silently again — an empty map here disabled ALL hot-plug
+        // handling on the Pi with zero log output (bench 2026-07-10).
+        qCWarning(lcUsbWatcher) << "Drive GetAll returned no properties for" << drivePath
+                                << "(reply arg type:" << reply.arguments().value(0).typeName() << ")";
+        return di;
+    }
     di.removable = props.value(QStringLiteral("Removable")).toBool();
     di.canPowerOff = props.value(QStringLiteral("CanPowerOff")).toBool();
+    qCInfo(lcUsbWatcher) << "drive" << drivePath << "removable" << di.removable
+                         << "canPowerOff" << di.canPowerOff;
     return di;
 }
 

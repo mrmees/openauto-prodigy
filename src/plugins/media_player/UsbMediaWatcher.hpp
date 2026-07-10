@@ -97,6 +97,14 @@ private:
                            const QVariantMap& fsProps, const DriveInfo& drive);
     void startMount(const QString& objPath, const QString& uuid, const QString& label,
                     const QString& deviceName, const QString& drivePath, bool canPowerOff);
+    /// Mount() lost a race against a competing automounter (pcmanfm/gvfs run
+    /// on the Pi desktop image): query the Filesystem's actual MountPoints
+    /// asynchronously and register + emit volumeMounted when it IS mounted —
+    /// a race loss must never leave a served volume untracked (bench
+    /// 2026-07-10: blind eject + missed yank purge).
+    void reconcileMountedState(const QString& objPath, const QString& uuid,
+                               const QString& label, const QString& deviceName,
+                               const QString& drivePath, bool canPowerOff);
     void emitRemovedForObject(const QString& objPath);
     void emitRemovedForMount(const QString& mountPath);
     DriveInfo resolveDrive(const QString& drivePath) const;
