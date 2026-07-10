@@ -95,6 +95,82 @@ private slots:
                  QStringLiteral("/media/usb"));
         QCOMPARE(oap::plugins::parseFirstMountPoint({}), QString());
     }
+
+    // --- usbCandidateDecision(): pure eligibility + Block-hint policy ---
+    // Mirrors the persistent-cache design (usb-cache-design-sol.md items 4-6):
+    // Drive props settle LATER than the hot-plug event, so the verdict must be
+    // recomputable and must defer (not reject) until identity is known.
+
+    void deferWhileDriveUnknownThenRegisters() {
+        using D = oap::plugins::UsbCandidateDecision;
+        // 3 ms after hot-plug the Drive is unknown -> Defer, never a hard reject.
+        QCOMPARE(oap::plugins::usbCandidateDecision(
+                     /*driveKnown*/ false, /*removable*/ false, /*bus*/ QString(),
+                     /*hintIgnore*/ false, /*hintSystem*/ false, /*hintAuto*/ true,
+                     /*mounted*/ false),
+                 D::Defer);
+        // Seconds later Removable settles true; still unmounted + HintAuto -> mount.
+        QCOMPARE(oap::plugins::usbCandidateDecision(
+                     true, true, QString(), false, false, true, false),
+                 D::AutoMount);
+        // If it settled true AND was already mounted, register it straight away.
+        QCOMPARE(oap::plugins::usbCandidateDecision(
+                     true, true, QString(), false, false, false, true),
+                 D::RegisterMounted);
+    }
+
+    void usbFallbackEligibility() {
+        using D = oap::plugins::UsbCandidateDecision;
+        // Removable=false but ConnectionBus="usb" -> eligible (USB thumb drives
+        // carry non-removable media inside a removable device).
+        QCOMPARE(oap::plugins::usbCandidateDecision(
+                     true, false, QStringLiteral("usb"), false, false, true, false),
+                 D::AutoMount);
+        QCOMPARE(oap::plugins::usbCandidateDecision(
+                     true, false, QStringLiteral("usb"), false, false, false, true),
+                 D::RegisterMounted);
+        // Drive known, not removable, not usb -> stays dormant (Defer), never a
+        // reject: a later PropertiesChanged could still flip Removable true.
+        QCOMPARE(oap::plugins::usbCandidateDecision(
+                     true, false, QStringLiteral("sata"), false, false, true, false),
+                 D::Defer);
+    }
+
+    void hintSystemAndIgnoreAlwaysReject() {
+        using D = oap::plugins::UsbCandidateDecision;
+        // HintSystem rejects even a removable, mounted, USB device.
+        QCOMPARE(oap::plugins::usbCandidateDecision(
+                     true, true, QStringLiteral("usb"), false, true, true, true),
+                 D::Reject);
+        // HintIgnore likewise.
+        QCOMPARE(oap::plugins::usbCandidateDecision(
+                     true, true, QStringLiteral("usb"), true, false, true, false),
+                 D::Reject);
+        // And the hard reject applies even before the Drive is known.
+        QCOMPARE(oap::plugins::usbCandidateDecision(
+                     false, false, QString(), false, true, false, false),
+                 D::Reject);
+    }
+
+    void hintAutoGatesUnmountedMount() {
+        using D = oap::plugins::UsbCandidateDecision;
+        // Eligible + unmounted + HintAuto -> auto-mount.
+        QCOMPARE(oap::plugins::usbCandidateDecision(
+                     true, true, QString(), false, false, true, false),
+                 D::AutoMount);
+        // Same but HintAuto=false -> track only, do NOT mount.
+        QCOMPARE(oap::plugins::usbCandidateDecision(
+                     true, true, QString(), false, false, false, false),
+                 D::TrackOnly);
+    }
+
+    void mountedRegistersRegardlessOfHintAuto() {
+        using D = oap::plugins::UsbCandidateDecision;
+        // Eligible + already mounted registers even when HintAuto is false.
+        QCOMPARE(oap::plugins::usbCandidateDecision(
+                     true, true, QString(), false, false, false, true),
+                 D::RegisterMounted);
+    }
 };
 
 QTEST_APPLESS_MAIN(TestMediaUsbPolicy)

@@ -145,7 +145,14 @@ bool MediaPlayerPlugin::initialize(IHostContext* context) {
     connect(watcher_, &UsbMediaWatcher::ejectCompleted, this,
             [this](const QString& mount, bool ok) {
         if (ok) return;   // success removal is handled by volumeRemoved above
-        // Unmount failed (drive busy): bring the source back and toast.
+        // Unmount failed (drive busy). ejectVolume() already ran purgeVolume()
+        // BEFORE the unmount, tearing down this source's library rows, queue
+        // tracks, mountKeys_ entry, and (if it held the current track) playback.
+        // All we do here is drop the eject guard and RE-LIST the still-mounted
+        // volume via refreshSources() — it reappears as a source and rescans.
+        // The prior queue, current index, playback state, and mountKeys_ entry
+        // are NOT restored; the source returns emptied of its old session.
+        // (Full queue/playback restore-on-eject-failure is wishlisted.)
         ejectingMounts_.remove(mount);
         refreshSources();
         if (hostContext_ && hostContext_->notificationService())
