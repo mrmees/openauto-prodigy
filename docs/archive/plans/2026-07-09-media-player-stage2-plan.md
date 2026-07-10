@@ -2,7 +2,7 @@
 
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
-Status: ACTIVE
+Status: COMPLETED 2026-07-10
 Date: 2026-07-09
 Design: `docs/plans/2026-07-08-media-player-design.md` §§4/7/8/9/12 + the
 2026-07-09 prior-art amendment (§8 heuristics; credits requirements).

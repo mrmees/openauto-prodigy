@@ -1,6 +1,6 @@
 # Local Media Player Plugin — Design
 
-Status: ACTIVE (stage 1 shipped 2026-07-09; stages 2+ pending)
+Status: ACTIVE (stages 1-2 shipped 2026-07-09/10; stage-2 bench pending; stage 3+ unscoped)
 
 **Date:** 2026-07-08 · **Status:** approved (brainstorm 2026-07-08, Matthew)
 **Amended 2026-07-09** (prior-art brainstorm, Matthew): scanner heuristics +
