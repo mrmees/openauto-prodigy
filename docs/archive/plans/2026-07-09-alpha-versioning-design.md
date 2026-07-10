@@ -1,6 +1,6 @@
 # ALPHA-YY-MM-DD-NN Versioning Scheme — Design
 
-Status: ACTIVE
+Status: COMPLETED 2026-07-09
 Date: 2026-07-09
 Grounded: c65d939 (dev)
 Approved: Matthew, 2026-07-09 (design + kill `identity.sw_version` + tag on landing)

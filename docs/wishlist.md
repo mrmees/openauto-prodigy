@@ -118,3 +118,7 @@ Ideas captured here. Promote to `roadmap-current.md` when ready to commit.
 
 ## From PR #16 post-review (2026-07-09)
 - **`test_companion_listener` intermittent timing failure** — Codex's full-suite run failed it once, then it passed on three focused reruns and a subsequent full run. Known-flaky candidate: find the timing assumption (likely a wait/timeout race) and make it deterministic before it starts eating CI credibility.
+
+## From ALPHA versioning landing (2026-07-09)
+- **Packager hardening** (Codex gate P2, pre-existing) — `tools/package-prebuilt-release.sh` defaults to a timestamp version, never verifies `--version-tag` against an annotated tag on HEAD or the binary's embedded `OAP_VERSION`, and passes unvalidated `--version-tag`/`--target-name` path components into `STAGE_DIR` which feeds `rm -rf`. Validate with strict allowlists, reject path separators, cross-check tag ↔ binary before publishing.
+- **settings-tree.md structural accuracy pass** (Task-5 review finding) — the "Identity" table documents rows that actually render elsewhere (Version and Left-Hand Drive live in `SystemSettings.qml`, not `InformationSettings.qml`), and the Software section has no heading of its own. Re-map the tables to the QML files that own each row.
