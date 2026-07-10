@@ -22,6 +22,13 @@ scan coalescing + stale-result filtering (T4/T5), paused-yank no-autoplay
 (T6), polkit other-seat + install-before-restart (T7/T8). P2s: 9 accepted,
 1 partially (QML instantiation test infeasible — module lives in the app
 target; offscreen smoke + first bench row instead).
+Re-run (gpt-5.6-sol, 2026-07-09 — the one permitted): prior fixes verified
+by hand-trace; 6 new P1 + 4 P2 in the revision code confirmed and folded
+(hpp include, cross-dir art propagation in rebuild, shared_ptr ScanOutcome,
+last_queue-only dirty gating, ejectingMounts_ re-enumeration guard, test
+include/linkage; ordinal-deterministic displays, per-root log counts,
+full-traversal shuffle test + wrap contract, mount-table error detection —
+no strike consumed on yank). Plan review closed; execution next.
 
 **Goal:** Library tabs (Artists/Albums/Tracks) backed by a libavformat
 scanner with incremental cache, plus udisks2 USB hot-plug/automount with
@@ -122,7 +129,7 @@ Semantics contract (verbatim from the stage-1 code being replaced):
 | `trackFinished` lambda `lastProgressMs_ < 500` check (cpp:49) | `onTrackFinished()` returns `Unplayable` when watermark < 500 ms, else `Advance` |
 | `errorOccurred` → `handleUnplayable` (cpp:58) | `onUnplayableEdge()` |
 | `handleUnplayable` restoring branch (cpp:152-156) | `onUnplayableEdge()` returns `StayStopped` AND clears restoring (first edge only) |
-| 3rd consecutive error stops + toast, counter resets (cpp:157-168) | `onUnplayableEdge()` returns `StopAndNotify` on the 3rd, resets counter |
+| 3rd consecutive error stops + toast, counter resets (cpp:157-168) | `onUnplayableEdge()` returns `StopAndNotify` on the 3rd; CALLER toasts `consecutiveErrors()` then calls `resetStrikes()` (same order: stop → toast → reset) |
 | otherwise skip (cpp:170-172) | returns `SkipNext` |
 | `progressChanged` watermark + `pos>500` error reset, restoring NOT cleared (cpp:80-93) | `onProgress(pos)` |
 | `startTrack` resets watermark (cpp:144) | `onTrackStarted()` |
@@ -359,7 +366,7 @@ Add to `src/CMakeLists.txt` in the media_player block (after line 85's
 cmake --build ~/builds/openauto-prodigy --target test_media_playback_policy -j"$(nproc)"
 cd ~/builds/openauto-prodigy && ctest -R test_media_playback_policy --output-on-failure
 ```
-Expected: PASS (9/9 slots).
+Expected: PASS, all slots.
 
 - [ ] **Step 5: Refactor MediaPlayerPlugin to delegate**
 
@@ -951,6 +958,19 @@ private slots:
         auto* m = qobject_cast<QAbstractListModel*>(lib.albumsModel());
         QCOMPARE(m->data(m->index(0, 0), m->roleNames().key("compilation")).toBool(), true);
     }
+    void artPropagatesAcrossMergedDirs() {
+        // Codex re-run P1: scanner art is provisional-bucket scoped; the
+        // merged final album must propagate art to its artless records.
+        auto withArt = rec("/disc1/1.mp3", "T1", "Band", "", "Double LP", 1, 1);
+        withArt.artFile = QStringLiteral("/cache/art/x.jpg");
+        MediaLibrary lib;
+        lib.setTracks({ withArt,
+                        rec("/disc2/1.mp3", "T2", "Band", "", "Double LP", 1, 2) });
+        const auto rows = lib.tracksForAlbum(lib.albumsModelKeyAt(0));
+        QCOMPARE(rows.size(), 2);
+        for (const QVariant& v : rows)
+            QVERIFY(!v.toMap().value(QStringLiteral("artUrl")).toString().isEmpty());
+    }
     void unknownBuckets() {
         MediaLibrary lib;
         lib.setTracks({ rec("/u/x.mp3", "x", "", "", "") });
@@ -1016,6 +1036,7 @@ Create `src/plugins/media_player/MediaLibrary.hpp`:
 
 #include "MediaTagReader.hpp"
 #include <QAbstractListModel>
+#include <QFileInfo>
 #include <QHash>
 #include <QObject>
 #include <QVariantList>
@@ -1109,6 +1130,7 @@ Create `src/plugins/media_player/MediaLibrary.cpp` implementing:
 #include <QSet>
 #include <QUrl>
 #include <algorithm>
+#include <climits>
 
 namespace oap {
 namespace plugins {
@@ -1200,17 +1222,24 @@ void MediaLibrary::rebuild() {
         QSet<QString> trackArtistsLower;
         QHash<QString, QString> artistDisplayByLower;  // lower -> first-seen case
         bool compilation = false;
+        int firstOrdinal = INT_MAX;   // lowest track index — deterministic
+                                      // "first-seen" across QHash merges
         QVector<int> trackIdx;
     };
     const auto mergeInto = [](AlbumAgg& dst, const AlbumAgg& src) {
-        if (dst.display.isEmpty()) dst.display = src.display;
-        if (dst.artistDisplay.isEmpty()) dst.artistDisplay = src.artistDisplay;
+        // Display fields follow the LOWEST ordinal (input order), not hash
+        // iteration order (Codex re-run P2 — determinism).
+        if (dst.display.isEmpty() || src.firstOrdinal < dst.firstOrdinal) {
+            dst.display = src.display;
+            if (!src.artistDisplay.isEmpty()) dst.artistDisplay = src.artistDisplay;
+        }
         if (dst.artUrl.isEmpty()) dst.artUrl = src.artUrl;
         dst.trackArtistsLower.unite(src.trackArtistsLower);
         for (auto it = src.artistDisplayByLower.begin(); it != src.artistDisplayByLower.end(); ++it)
             if (!dst.artistDisplayByLower.contains(it.key()))
                 dst.artistDisplayByLower.insert(it.key(), it.value());
         dst.compilation = dst.compilation || src.compilation;
+        dst.firstOrdinal = qMin(dst.firstOrdinal, src.firstOrdinal);
         dst.trackIdx += src.trackIdx;
     };
 
@@ -1234,6 +1263,7 @@ void MediaLibrary::rebuild() {
         QHash<QString, AlbumAgg>* bucketMap =
             hasAlbumArtist ? &keyed : hasAlbum ? &dirScoped : &unknownAlbum;
         AlbumAgg& a = (*bucketMap)[bucketKey];
+        a.firstOrdinal = qMin(a.firstOrdinal, i);
         if (a.display.isEmpty()) {
             a.display = hasAlbum ? t.album : kUnknownAlbum;
             if (hasAlbumArtist) a.artistDisplay = t.albumArtist;
@@ -1281,11 +1311,33 @@ void MediaLibrary::rebuild() {
                               + a.display.toLower()], a);
     }
 
-    // Order tracks inside each album; build model rows.
+    // Art propagation (Codex re-run P1): the scanner groups art by
+    // PROVISIONAL buckets, so a final album merged across directories can
+    // hold artless records from the art-free directory — give every record
+    // in a final album the album's first non-empty artFile.
+    for (auto it = finalAlbums.begin(); it != finalAlbums.end(); ++it) {
+        QString art;
+        for (int i : it.value().trackIdx)
+            if (!tracks_[i].artFile.isEmpty()) { art = tracks_[i].artFile; break; }
+        if (art.isEmpty()) continue;
+        for (int i : it.value().trackIdx)
+            if (tracks_[i].artFile.isEmpty()) tracks_[i].artFile = art;
+        if (it.value().artUrl.isEmpty())
+            it.value().artUrl = QUrl::fromLocalFile(art).toString();
+    }
+
+    // Order tracks inside each album; build model rows. Iterate albums in
+    // firstOrdinal order so artist display casing is deterministic too.
     QVector<LibraryListModel::Row> albumRows, artistRows, trackRows;
     QHash<QString, QString> artistKeyToDisplay;
+    QStringList orderedKeys = finalAlbums.keys();
+    std::sort(orderedKeys.begin(), orderedKeys.end(),
+              [&](const QString& l, const QString& r) {
+                  return finalAlbums[l].firstOrdinal < finalAlbums[r].firstOrdinal;
+              });
 
-    for (auto it = finalAlbums.begin(); it != finalAlbums.end(); ++it) {
+    for (const QString& albumKey : orderedKeys) {
+        auto it = finalAlbums.find(albumKey);
         AlbumAgg& a = it.value();
         std::sort(a.trackIdx.begin(), a.trackIdx.end(), [this](int l, int r) {
             const auto& lt = tracks_[l].info; const auto& rt = tracks_[r].info;
@@ -1761,6 +1813,9 @@ contract above. Complete implementation:
 #include <QSet>
 #include <QThread>
 
+#include <memory>
+#include <utility>
+
 // Library heuristics informed by Yarock (GPL-3.0, github.com/sebaro/Yarock)
 // and Strawberry (GPL-3.0); no code copied.
 
@@ -1850,16 +1905,18 @@ void MediaScanner::startScan(QVector<Root> roots) {
         scanning_ = true;
         emit scanningChanged();
     }
-    auto* outcome = new ScanOutcome;
+    // shared_ptr, not raw new: the destructor disconnects the completion
+    // handler, which must not leak the box (Codex re-run P1) — the lambdas'
+    // captured copies release it whichever path runs.
+    auto outcome = std::make_shared<ScanOutcome>();
     thread_ = QThread::create([this, roots, outcome]() {
-        runScan(roots, outcome);   // worker fills the box; NO signal from here
+        runScan(roots, outcome.get());   // worker fills the box; NO signal from here
     });
     connect(thread_, &QThread::finished, this, [this, outcome]() {
         thread_->deleteLater();
         thread_ = nullptr;
         lastScanTagReads_ = outcome->tagReads;
         QVector<MediaTrackRecord> records = std::move(outcome->records);
-        delete outcome;
         if (hasPending_) {
             // Stale result: roots changed mid-scan (hot-plug or yank) —
             // discard and rescan the newest set immediately.
@@ -1928,7 +1985,7 @@ void MediaScanner::runScan(const QVector<Root>& roots, ScanOutcome* out) {
 
         // Read (cache-aware).
         QVector<MediaTrackRecord> vol;
-        int scanned = 0, cacheHits = 0, unreadable = 0;
+        int scanned = 0, cacheHits = 0, unreadable = 0, rootTagReads = 0;
         for (const QString& path : files) {
             if (QThread::currentThread()->isInterruptionRequested()) return;
             const QFileInfo fi(path);
@@ -1944,7 +2001,7 @@ void MediaScanner::runScan(const QVector<Root>& roots, ScanOutcome* out) {
                 ++cacheHits;
             } else {
                 rec.info = MediaTagReader::read(path);
-                ++out->tagReads;
+                ++rootTagReads;
             }
             if (rec.info.valid) vol.append(rec);
             else ++unreadable;
@@ -2000,8 +2057,9 @@ void MediaScanner::runScan(const QVector<Root>& roots, ScanOutcome* out) {
         }
 
         qCInfo(lcMediaScanner) << root.label << ": " << files.size() << "files,"
-                               << cacheHits << "cache hits," << out->tagReads
+                               << cacheHits << "cache hits," << rootTagReads
                                << "tag reads," << unreadable << "unreadable";
+        out->tagReads += rootTagReads;
         out->records += vol;
     }
 }
@@ -2115,13 +2173,15 @@ Wiring contract:
   missing-container guard playFileFromFolder gets from its `idx < 0`
   check).
 - `playAllTracks(idx)`: same guards with `library_->allTrackPathsSorted()`.
-- **Persistence scale guard (Codex P2):** `saveState()` currently rewrites
-  `last_queue` (the full path list) on EVERY playback edge; a
-  `playAllTracks` queue can be thousands of paths. Add a `queueDirty_`
-  flag set from `PlayQueue::queueChanged` and write the `last_queue` +
-  `last_index` keys only when dirty (clearing the flag after save);
-  position/shuffle/repeat keys keep saving every edge as today. Same
-  restore behavior, ~zero disk churn during normal playback.
+- **Persistence scale guard (Codex P2, scope corrected in re-run P1):**
+  `saveState()` currently rewrites `last_queue` (the full path list) on
+  EVERY playback edge; a `playAllTracks` queue can be thousands of paths.
+  Add a `queueDirty_` flag set from `PlayQueue::queueChanged` and gate
+  ONLY the `last_queue` write on it (clearing after save). `last_index`,
+  `last_position_ms`, `shuffle`, `repeat_mode` keep saving on every edge —
+  `advance()/retreat()/jumpTo()` emit only `currentChanged`, so gating the
+  index on `queueDirty_` would persist a stale index against the current
+  queue.
 
 QML contract (all three tabs):
 - `MediaPlayerView.qml` gains a 4-button tab row (Artists / Albums /
@@ -2221,7 +2281,9 @@ git commit -m "feat: library tabs (artists/albums/tracks) wired to MediaLibrary 
   "org.freedesktop.DBus.ObjectManager", "InterfacesAdded", this,
   SLOT(...))`, `QDBusServiceWatcher`, `GetManagedObjects` initial scan at
   `BtAudioPlugin.cpp:143-222`); `MediaLibrary::removeVolume` (Task 3);
-  `MediaScanner::volumeKeyFor` (Task 4); `PlaybackPolicy` (Task 1).
+  `MediaScanner::rootKeyForPath` + the caller-supplied `Root::key`
+  contract and the plugin's `mountKeys_` map (Tasks 4/5); `PlaybackPolicy`
+  (Task 1).
 - Produces:
 
 ```cpp
@@ -2252,8 +2314,9 @@ int removeTracksUnder(const QString& pathPrefix);
 // and traversal position (shuffle history intact — already-played tracks
 // do NOT become eligible again). Current survives -> stays current.
 // Current removed -> the next survivor in the OLD TRAVERSAL ORDER (shuffle
-// order when shuffled, list order otherwise) becomes current; queue empty
-// -> currentIndex -1 / currentTrack() empty. Returns #removed.
+// order when shuffled, list order otherwise) becomes current; if NO
+// survivor follows in traversal order, WRAP to the first survivor; queue
+// empty -> currentIndex -1 / currentTrack() empty. Returns #removed.
 ```
 
 udisks2 mapping (mirror the BlueZ code shape — `BtAudioPlugin.cpp:42-222`:
@@ -2315,18 +2378,33 @@ Plugin wiring (`MediaPlayerPlugin`):
        auto-plays (Codex P1 — preserves the stage-1 no-autoplay invariant;
        one tap on play resumes on the survivor)
   6. `refreshSources()`
-- **Playback-error path** (design §9, Codex P2): in `handleUnplayable`'s
-  `SkipNext` branch, before skipping — if the failed current track lives
-  under a removable mount root that is no longer mounted
-  (`!QFileInfo::exists(mount)` for its `mountKeys_` entry), call
-  `purgeVolume(mount)` instead of the skip policy (idempotent with the
-  watcher signal via the `mountKeys_.take` dedupe).
+- **Playback-error path** (design §9; detection corrected in re-run P2):
+  at the TOP of `handleUnplayable`, BEFORE any `onUnplayableEdge()` call —
+  if the failed current track lies under a `mountKeys_` mount that is no
+  longer in the mount table (compare against
+  `QStorageInfo::mountedVolumes()` root paths — a mount DIRECTORY usually
+  survives unmount, so `QFileInfo::exists` is NOT the test), call
+  `purgeVolume(mount)` and return. No strike is consumed and a
+  third-strike yank cannot take the StopAndNotify path. Idempotent with
+  the watcher signal via the `mountKeys_.take` dedupe.
 - New Q_INVOKABLE `ejectVolume(QString mountPath)` (Codex P1 — cleanup
   BEFORE unmount so QMediaPlayer never holds the file open into
-  `Unmount()`): run `purgeVolume(mountPath)` first (stops playback if the
-  current track lives there — the not-playing branch above), THEN
-  `watcher_->ejectMount(mountPath)`; `ejectCompleted(mount, false)` →
-  toast via notificationService ("Eject failed — drive still in use").
+  `Unmount()`; re-entry fixed in re-run P1):
+  1. add `mountPath` to `ejectingMounts_` (QSet) — `refreshSources()`
+     SKIPS mounts in this set, so the purge's refresh cannot re-enumerate
+     and rescan the still-mounted volume (which would reopen files and
+     defeat the cleanup);
+  2. `purgeVolume(mountPath)` (stops playback if the current track lives
+     there — the not-playing branch above);
+  3. `watcher_->ejectMount(mountPath)`;
+  4. on `volumeRemoved(mount)`: drop from `ejectingMounts_` (normal path —
+     refresh already ran in purge);
+  5. on `ejectCompleted(mount, ok=false)`: drop from `ejectingMounts_`,
+     `refreshSources()` (volume comes back as a source), toast via
+     notificationService ("Eject failed — drive still in use").
+  Note: an in-flight scan holding files open can make `Unmount()` return
+  busy → the failure path above; the user retries. Scan cancellation
+  plumbing is deliberately NOT in scope (stated limit).
 - `shutdown()`: `watcher_->stop()`.
 - QML: Folders top-level rows whose path starts with `/media/`,
   `/run/media/`, or `/mnt/` show an eject icon calling `ejectVolume`.
@@ -2336,6 +2414,9 @@ Plugin wiring (`MediaPlayerPlugin`):
 ```cpp
 #include <QtTest>
 #include "plugins/media_player/PlayQueue.hpp"
+#include "plugins/media_player/UsbMediaWatcher.hpp"  // parseFirstMountPoint
+// (Step 3 creates a minimal UsbMediaWatcher.hpp with the helper defined
+// INLINE so this test compiles and links before the D-Bus glue exists.)
 
 using oap::plugins::PlayQueue;
 
@@ -2369,23 +2450,39 @@ private slots:
         QCOMPARE(q.removeTracksUnder("/media/usb/"), 1);   // usb2 survives
         QCOMPARE(q.count(), 1);
     }
-    void shuffledPurgeKeepsCurrentAndHistory() {
-        // Codex P1: purge must NOT reshuffle — surviving current stays
-        // current and traversal history is preserved (no re-eligibility).
+    void shuffledPurgeKeepsCurrentAndFullTraversal() {
+        // Codex re-run P2: assert the ENTIRE remaining traversal, not just
+        // the current path — a purge that reshuffles must fail here.
+        const QStringList tracks{"/h/a.mp3", "/media/usb/x.mp3", "/h/b.mp3", "/h/c.mp3"};
+        // Twin: record the full seeded traversal from the same start.
+        PlayQueue twin;
+        twin.setShuffleSeed(42);
+        twin.setTracks(tracks, 0);
+        twin.setShuffle(true);
+        QStringList expected{twin.currentTrack()};
+        while (twin.advance(true)) expected << twin.currentTrack();
+        // Expected post-purge traversal: the same sequence minus USB tracks.
+        QStringList expectedSurvivors;
+        for (const QString& t : expected)
+            if (!t.startsWith(QLatin1String("/media/usb/"))) expectedSurvivors << t;
+
         PlayQueue q;
         q.setShuffleSeed(42);
-        q.setTracks({"/h/a.mp3", "/media/usb/x.mp3", "/h/b.mp3", "/h/c.mp3"}, 0);
+        q.setTracks(tracks, 0);
         q.setShuffle(true);
-        q.advance(true);
-        const QString cur = q.currentTrack();
-        if (cur.startsWith(QLatin1String("/media/usb/"))) {
-            // seeded order landed on the USB track; removal semantics are
-            // covered by the next slot — just assert the removal count here
-            QCOMPARE(q.removeTracksUnder("/media/usb/"), 1);
-            return;
-        }
         q.removeTracksUnder("/media/usb/");
-        QCOMPARE(q.currentTrack(), cur);
+        QStringList actual{q.currentTrack()};
+        while (q.advance(true)) actual << q.currentTrack();
+        QCOMPARE(actual, expectedSurvivors);
+    }
+    void wrapToFirstSurvivorWhenNoneFollow() {
+        // Contract: current removed and no survivor FOLLOWS it in traversal
+        // order -> wrap to the FIRST survivor (queue stays loaded; the
+        // plugin decides whether anything plays).
+        PlayQueue q;
+        q.setTracks({"/h/b.mp3", "/media/usb/c.mp3"}, 1);
+        QCOMPARE(q.removeTracksUnder("/media/usb/"), 1);
+        QCOMPARE(q.currentTrack(), QStringLiteral("/h/b.mp3"));
     }
     void shuffledPurgeOfCurrentPicksTraversalSuccessor() {
         // Twin queue with the same seed tells us the traversal successor;
