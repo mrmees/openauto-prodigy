@@ -4,6 +4,9 @@ Status: ACTIVE
 Date: 2026-07-09
 Grounded: c65d939 (dev)
 Approved: Matthew, 2026-07-09 (design + kill `identity.sw_version` + tag on landing)
+Reviewed: Codex plan review 2026-07-09 — revisions folded into this design
+and the plan (AA `swVersion` stamped too; NN = max+1 semantics; describe
+output validated; stale docs swept)
 
 ## Problem
 
@@ -65,8 +68,11 @@ Defined alongside `OAP_GIT_HASH` as a PUBLIC compile definition on
 3. `src/core/api/ApiServer.cpp` — `appVersion_ = OAP_VERSION " (" OAP_GIT_HASH ")"`.
    **Stops reading `identity.sw_version`; the config key is removed** —
    config must not be able to lie about which binary is running.
-4. `src/core/aa/ServiceDiscoveryBuilder.cpp` — `config.swBuild = OAP_VERSION`
-   (phone-side AA logs then identify the real build).
+4. `src/core/aa/ServiceDiscoveryBuilder.cpp` — `config.swBuild` AND
+   `config.swVersion` both become `OAP_VERSION` (each is serialized into the
+   AA ServiceDiscoveryResponse — phone-side logs then identify the real
+   build). The Crankshaft-NG match keys (manufacturer/model/year/serial)
+   stay untouched. Locked by a new `test_service_discovery_builder` slot.
 5. `CMakeLists.txt:2` — `VERSION 0.1.0` stays (CMake requires numeric dotted
    versions; it surfaces nowhere after this change) with a comment pointing
    at the git-derived scheme. Fix the false `sw_build` comment at
@@ -80,13 +86,17 @@ Removing `identity.sw_version` fans out to: `YamlConfig.{cpp,hpp}` (default
 write + `swVersion()`/`setSwVersion()` accessors — no production callers,
 tests only), `tests/test_yaml_config.cpp`, `tests/data/test_config.yaml`,
 `tests/test_config_key_coverage.cpp`, `docs/reference/config-schema.md`.
-No config migration needed: once nothing reads the key, a leftover
-`sw_version` entry in an existing `config.yaml` is simply ignored.
+No config migration needed: `YamlMerge` preserves unknown overlay keys, so a
+leftover `sw_version` entry is retained in the file (and re-emitted on save)
+but read by nothing; `setValueByPath()` rejects writes to it once it leaves
+the defaults schema (locked by a test).
 
 ### Tagging workflow — `scripts/tag-alpha.sh`
 
-- Computes `ALPHA-$(date +%y-%m-%d)-NN` where NN = count of existing tags
-  matching today's prefix + 1, zero-padded.
+- Computes `ALPHA-$(date +%y-%m-%d)-NN` where NN = highest existing NN for
+  today + 1, zero-padded two digits (grows to three past 99). Deleting the
+  day's newest tag frees its number for reuse — never delete a tag that
+  shipped.
 - Creates an **annotated** tag on HEAD; prints the tag plus reminders:
   push the tag, reconfigure before the milestone build.
 - Does NOT push (repo rule: pushes are deliberate).
@@ -98,7 +108,16 @@ deploy.
 
 - `AGENTS.md`: record the convention (format, milestone-triggered, tag
   script, beta transition).
-- `docs/reference/config-schema.md`: remove `identity.sw_version` rows/examples.
+- `docs/reference/config-schema.md`: remove `identity.sw_version`
+  rows/examples; note the removed key under Migration Policy.
+- `docs/reference/settings-tree.md`: two rows still cite
+  `identity.sw_version` as the displayed version — point at the compiled
+  `OAP_VERSION` via `Qt.application.version`.
+- `docs/reference/release-packaging.md`: naming convention still defines
+  semver `vX.Y.Z` tags as canonical — switch to `ALPHA-YY-MM-DD-NN` with the
+  old `v*` tags noted as legacy history.
+- `docs/wishlist.md`: delete the "Fix version mismatch" entry — this design
+  completes it.
 
 ## First tag
 
