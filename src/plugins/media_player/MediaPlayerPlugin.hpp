@@ -1,6 +1,7 @@
 #pragma once
 
 #include "core/plugin/IPlugin.hpp"
+#include "PlaybackPolicy.hpp"
 #include <QObject>
 #include <QString>
 
@@ -114,15 +115,8 @@ private:
     MediaArtProvider* artProvider_ = nullptr;  // non-owning
     bool hasTrack_ = false;
     bool wasPlaying_ = false;
-    int consecutiveErrors_ = 0;
-    qint64 lastProgressMs_ = 0;  // high-water mark for the current track —
-                                 // a track that "finishes" below 500ms never
-                                 // produced audio (FFmpeg misdetection) and
-                                 // counts as unplayable
-    bool restoring_ = false;
-    bool shuttingDown_ = false;  // gate: engine_->stop() in shutdown() fires a
-                                 // stopped edge whose save would clobber the
-                                 // just-saved position with 0
+    PlaybackPolicy policy_;  // extracted state machine; invariants locked
+                             // by tests/test_media_playback_policy.cpp
 };
 
 } // namespace plugins

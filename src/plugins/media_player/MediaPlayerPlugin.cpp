@@ -19,7 +19,6 @@ Q_LOGGING_CATEGORY(lcMediaPlayerPlugin, "oap.mediaplayer.plugin")
 
 namespace {
 const QString kPluginId = QStringLiteral("org.openauto.media-player");
-constexpr int kMaxConsecutiveErrors = 3;
 } // namespace
 
 namespace oap {
@@ -46,7 +45,7 @@ bool MediaPlayerPlugin::initialize(IHostContext* context) {
     // fires instantly, and no error is ever emitted (bench 2026-07-09 row
     // 12: three garbage files walked the queue silently, no skip, no toast).
     connect(engine_, &PlaybackEngine::trackFinished, this, [this]() {
-        if (lastProgressMs_ < 500) {
+        if (policy_.onTrackFinished() == PlaybackPolicy::TrackEndVerdict::Unplayable) {
             handleUnplayable(QStringLiteral("track ended with no audio (misdetected format?)"));
             return;
         }
@@ -68,7 +67,7 @@ bool MediaPlayerPlugin::initialize(IHostContext* context) {
         // death is a power cut, so waiting for shutdown() loses everything
         // (bench 2026-07-09 row 11). Playing edges persist the new queue and
         // index; position stays from the last pause (start-of-track on cut).
-        if (!restoring_ && !shuttingDown_) saveState();
+        if (policy_.saveAllowed()) saveState();
     });
 
     connect(engine_, &PlaybackEngine::metadataChanged, this, [this]() {
@@ -79,15 +78,7 @@ bool MediaPlayerPlugin::initialize(IHostContext* context) {
 
     connect(engine_, &PlaybackEngine::progressChanged, this,
             [this](qint64 pos, qint64 dur) {
-        lastProgressMs_ = qMax(lastProgressMs_, pos);
-        if (pos > 500)
-            consecutiveErrors_ = 0;  // decode demonstrably working
-        // NOTE: restoring_ is NOT cleared here — restorePaused() seeks to the
-        // saved position and QMediaPlayer echoes it back before any decode,
-        // so pos>500 fires even for a corrupt file (bench 2026-07-09 row 11
-        // addendum: the restore-seek defeated its own no-autoplay guard and
-        // the skip policy walked the queue at boot). restoring_ means "no
-        // user interaction since restore" and only user actions clear it.
+        policy_.onProgress(pos);
         emit progressChanged(pos, dur);
         emit progressUpdated();
     });
@@ -101,7 +92,7 @@ bool MediaPlayerPlugin::initialize(IHostContext* context) {
 }
 
 void MediaPlayerPlugin::shutdown() {
-    shuttingDown_ = true;
+    policy_.onShutdownBegan();
     saveState();  // must precede the stop — saveState reads engine position
     // Fully release the PipeWire stream now: AudioService is an earlier app
     // child and dies first at teardown, so leaving the release to
@@ -141,7 +132,7 @@ void MediaPlayerPlugin::setHasTrack(bool has) {
 }
 
 void MediaPlayerPlugin::startTrack(const QString& path) {
-    lastProgressMs_ = 0;
+    policy_.onTrackStarted();
     engine_->playFile(path);
 }
 
@@ -149,42 +140,42 @@ void MediaPlayerPlugin::startTrack(const QString& path) {
 // failures stop and toast (a dead USB stick must not machine-gun skips).
 // Reached from errorOccurred AND from zero-progress trackFinished.
 void MediaPlayerPlugin::handleUnplayable(const QString& reason) {
-    if (restoring_) {
-        restoring_ = false;
+    switch (policy_.onUnplayableEdge()) {
+    case PlaybackPolicy::UnplayableVerdict::StayStopped:
         qCWarning(lcMediaPlayerPlugin) << "restored track failed to load; staying stopped:" << reason;
         return;  // no auto-skip at boot — nothing may auto-play (spec §10)
-    }
-    ++consecutiveErrors_;
-    if (consecutiveErrors_ >= kMaxConsecutiveErrors) {
+    case PlaybackPolicy::UnplayableVerdict::StopAndNotify:
         engine_->stop();
         if (hostContext_ && hostContext_->notificationService())
             hostContext_->notificationService()->post({
                 {"kind", "toast"},
                 {"message", QStringLiteral("Media Player: Playback stopped: %1 unplayable files in a row")
-                                .arg(consecutiveErrors_)},
+                                .arg(policy_.consecutiveErrors())},
                 {"sourcePluginId", kPluginId}
             });
-        consecutiveErrors_ = 0;
+        policy_.resetStrikes();
+        return;
+    case PlaybackPolicy::UnplayableVerdict::SkipNext:
+        qCWarning(lcMediaPlayerPlugin) << "skipping unplayable file:" << reason;
+        if (queue_->advance(true))          // manual semantics: never re-loop one broken file
+            startTrack(queue_->currentTrack());
         return;
     }
-    qCWarning(lcMediaPlayerPlugin) << "skipping unplayable file:" << reason;
-    if (queue_->advance(true))          // manual semantics: never re-loop one broken file
-        startTrack(queue_->currentTrack());
 }
 
 void MediaPlayerPlugin::playFileFromFolder(const QString& path) {
-    restoring_ = false;  // user action supersedes restore state
+    policy_.onUserAction();  // user action supersedes restore state
     const QStringList files = folderModel_->audioFilesInCurrentDir();
     const int idx = files.indexOf(path);
     if (idx < 0) return;
-    consecutiveErrors_ = 0;
+    policy_.onNewQueue();
     queue_->setTracks(files, idx);
     setHasTrack(true);
     startTrack(path);
 }
 
 void MediaPlayerPlugin::playPause() {
-    restoring_ = false;  // user action supersedes restore state
+    policy_.onUserAction();  // user action supersedes restore state
     if (!hasTrack_) return;
     switch (engine_->playbackState()) {
     case 1:  engine_->pause(); break;
@@ -194,14 +185,14 @@ void MediaPlayerPlugin::playPause() {
 }
 
 void MediaPlayerPlugin::next() {
-    restoring_ = false;  // user action supersedes restore state
+    policy_.onUserAction();  // user action supersedes restore state
     if (!hasTrack_) return;
     if (queue_->advance(true))
         startTrack(queue_->currentTrack());
 }
 
 void MediaPlayerPlugin::previous() {
-    restoring_ = false;  // user action supersedes restore state
+    policy_.onUserAction();  // user action supersedes restore state
     if (!hasTrack_) return;
     // Classic head-unit behavior: >3 s into the track = restart it.
     if (engine_->position() > 3000) {
@@ -298,7 +289,7 @@ void MediaPlayerPlugin::restoreState() {
     // Restore PAUSED at the saved position — nothing auto-plays on boot
     // (spec §10, Matthew's explicit call). One tap on play resumes.
     const qint64 pos = cfg->pluginValue(kPluginId, QStringLiteral("last_position_ms")).toLongLong();
-    restoring_ = true;
+    policy_.onRestoreBegan();
     engine_->restorePaused(queue_->currentTrack(), pos);
 }
 
