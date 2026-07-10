@@ -153,6 +153,30 @@ Not all tooling auto-loads nested files — read the nearest one before editing 
 - Docs never state exact test counts — state the command (`ctest --output-on-failure`) instead.
 - **Wishlist-then-promote:** new feature ideas go to `docs/wishlist.md`, not into scope. Plans don't grow features mid-execution.
 
+## Versioning
+
+- Alpha scheme: **`ALPHA-YY-MM-DD-NN`** ANNOTATED git tags (date from
+  `date +%y-%m-%d`, NN = build number of the day, two digits). Tags are
+  created ONLY when Matthew declares a milestone — never per deploy or per
+  build. Mint the next one with `bash scripts/tag-alpha.sh` (NN = today's
+  max + 1; deleting the day's newest tag frees its number — never delete a
+  tag that shipped).
+- The binary derives its version at CMake **configure time**
+  (`git describe --match "ALPHA-*" --dirty`, annotated tags only, output
+  format-validated → `OAP_VERSION` compile definition on `openauto-core`).
+  After tagging, reconfigure + rebuild or the binary keeps the previous
+  string. Untagged builds report `ALPHA-<tag>-<n>-g<hash>` /
+  `ALPHA-untagged-<hash>`.
+- Every user-visible surface reads `OAP_VERSION` (Qt applicationVersion and
+  `--version`, QML `Qt.application.version`, IPC status, External API
+  ServerHello + SystemStatus, AA ServiceDiscovery `sw_build`/`sw_version`).
+  Never hardcode a version string. `identity.sw_version` was removed
+  2026-07-09.
+- Beta transition checklist (all five together): `PREFIX` in
+  `scripts/tag-alpha.sh`; the `--match` pattern AND validation regex in
+  top-level `CMakeLists.txt`; the regex in `tests/test_oap_version.cpp`; this
+  section.
+
 ## Scope Note
 
 This file defines repo-specific workflow expectations. Platform-level safety and skill instructions still apply.
