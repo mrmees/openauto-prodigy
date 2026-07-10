@@ -58,6 +58,11 @@ oap_add_test(test_media_tag_reader
 
 oap_add_test(test_media_library SOURCES test_media_library.cpp)
 
+oap_add_test(test_media_scanner
+    SOURCES test_media_scanner.cpp
+    DEFS TEST_DATA_DIR="${CMAKE_CURRENT_BINARY_DIR}/data"
+)
+
 # --- Service tests ---
 
 oap_add_test(test_theme_service

@@ -95,8 +95,16 @@ MediaTrackInfo read(const QString& path) {
 
 QByteArray embeddedArt(const QString& path) {
     FormatCtx f;
-    if (avformat_open_input(&f.ctx, path.toUtf8().constData(), nullptr, nullptr) != 0)
+    // Same bounded probing as read(): a bulk art pass over a full library
+    // must not deep-probe every file (Codex P2). Attached-pic streams live in
+    // the header, so 1 MiB / 1 s of analysis is ample.
+    AVDictionary* opts = nullptr;
+    av_dict_set(&opts, "probesize", "1048576", 0);  // 1 MiB
+    const int rc = avformat_open_input(&f.ctx, path.toUtf8().constData(), nullptr, &opts);
+    av_dict_free(&opts);
+    if (rc != 0)
         return {};
+    f.ctx->max_analyze_duration = AV_TIME_BASE;     // 1 s
     if (avformat_find_stream_info(f.ctx, nullptr) < 0)
         return {};
     const AVStream* pic = attachedPic(f.ctx);
