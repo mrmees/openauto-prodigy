@@ -1,6 +1,12 @@
 # APK Indexing
 
-This project includes a lightweight preprocessing/indexing pipeline for decompiled Android Auto APK sources.
+> **Note:** The indexer tool itself moved to the
+> [open-android-auto](https://github.com/mrmees/open-android-auto) repo
+> (commit `e0df0cd`, 2026-02) — the `analysis/tools/apk_indexer/` paths below
+> run from a checkout of that repo, not this one. The output layout and query
+> examples remain accurate.
+
+This project uses a lightweight preprocessing/indexing pipeline for decompiled Android Auto APK sources.
 
 ## Run
 

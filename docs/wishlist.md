@@ -116,3 +116,6 @@ Ideas captured here. Promote to `roadmap-current.md` when ready to commit.
 - **Author `docs/reference/external-api.md`** — External API v1 is a shipped public feature but its only documentation is the archived design doc (`docs/archive/plans/2026-07-06-external-api-v1-design.md`). Distill a user-facing reference: endpoints, pairing flow, proto contract, capability flags.
 - **Re-triage the PARKED config-contract overhaul** — `docs/plans/2026-02-21-config-contract-overhaul-{design,plan}.md` (approved 2026-02-21, never executed). Decide: still wanted, needs rewrite against the current config surface, or ABANDONED.
 - **Secret scan + checker hardening** (from 2026-07-09 Codex gate) — run a proper secret scanner (e.g. gitleaks) over the repo/history; extend `scripts/check-doc-links.py` to also validate backticked `.md` paths in live docs (the gate caught stale backticked pointers the link syntax check can't see).
+
+## From PR #16 post-review (2026-07-09)
+- **`test_companion_listener` intermittent timing failure** — Codex's full-suite run failed it once, then it passed on three focused reruns and a subsequent full run. Known-flaky candidate: find the timing assumption (likely a wait/timeout race) and make it deterministic before it starts eating CI credibility.

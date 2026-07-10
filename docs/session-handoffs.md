@@ -6,6 +6,25 @@ Newest entries first.
 
 > Older entries (2026-02 / 2026-03) are archived in `docs/archive/session-handoffs/2026-02--2026-03-handoffs.md`.
 
+## 2026-07-09 — PR #16 opened + post-review fixes: build-dir docs, development.md refresh
+
+**What changed:** PR #16 (`dev` → `main`) opened for the structure cleanup. Two ride-along commits:
+(1) AGENTS.md + docs/plans/README.md now point local builds at the ext4 build dir
+(`~/builds/openauto-prodigy`) — building in-repo on `/mnt/e` fights the 9p IO hit (6bae217).
+(2) `docs/development.md` refreshed after Matthew's external Codex review flagged it P2-stale:
+dropped retired Ubuntu/Qt 6.4 platform framing + dead dual-Qt compat items, replaced the
+hardcoded 8-test list with the command per docs convention (suite is far larger), replaced the
+rotted component tree with a top-level map pointing at `architecture.md`, fixed stale Pi IP
+(.152 → .149), dropped the APK-indexer section (tool moved to open-android-auto in Feb, e0df0cd)
+and added a pointer note to `docs/aa-protocol/apk-indexing.md`, updated INDEX.md description.
+
+**Codex review adjudication (post-PR, Matthew-run):** 1 finding (P2 development.md staleness) —
+CONFIRMED via tree/ctest checks and fixed as above; 0 dismissed. Codex verification note: one
+intermittent `test_companion_listener` timing failure on first full ctest run, passed on reruns —
+known-flaky candidate, parked in wishlist.
+
+**Status:** pushed to `dev`, riding in PR #16. Next: merge PR #16.
+
 ## 2026-07-09 — DOCS/REPO STRUCTURE CLEANUP: COMPLETE — Diátaxis-lite tree, AGENTS.md SSOT, public face
 
 **What changed:** executed `docs/plans/2026-07-09-docs-structure-cleanup-plan.md` (15 tasks, subagent-driven).

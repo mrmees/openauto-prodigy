@@ -4,7 +4,7 @@
 
 - [README.md](../README.md) — project intro, features, quickstart
 - [architecture.md](architecture.md) — components, boundaries, data flow, threading, hardware
-- [development.md](development.md) — build, dependencies, cross-compile, dual-platform
+- [development.md](development.md) — build environments, dependencies, install/prebuilt, running, tests
 - [wireless-setup.md](wireless-setup.md) — WiFi AP + Bluetooth for wireless AA
 
 ## Project Management
