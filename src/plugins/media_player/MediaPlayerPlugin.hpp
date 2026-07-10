@@ -5,6 +5,7 @@
 #include "MediaScanner.hpp"   // MediaScanner::Root (currentRoots_ member) + MediaLibrary
 #include <QHash>
 #include <QObject>
+#include <QSet>
 #include <QString>
 #include <QVariantList>
 #include <QVector>
@@ -22,6 +23,7 @@ class MediaArtProvider;
 class MediaLibrary;
 class PlaybackEngine;
 class PlayQueue;
+class UsbMediaWatcher;
 
 /// Local media player: folder-browse playback of USB / ~/Music files.
 /// Composition of PlaybackEngine (transport + PCM tap into AudioService),
@@ -117,6 +119,10 @@ public:
     Q_INVOKABLE QVariantList tracksForAlbum(const QString& albumKey) const;
     Q_INVOKABLE void rescanLibrary();
 
+    /// Safe-eject a removable volume (Task 6). Cleanup runs BEFORE the async
+    /// unmount so QMediaPlayer never holds a file open into Unmount().
+    Q_INVOKABLE void ejectVolume(const QString& mountPath);
+
 signals:
     void playbackStateChanged();
     void metadataChanged();
@@ -134,6 +140,10 @@ private:
     void restoreState();
     void startTrack(const QString& path);       ///< playFile + reset progress watermark
     void handleUnplayable(const QString& reason);  ///< spec §11 skip/stop policy
+    /// Shared yank/eject cleanup (design §9): drop the volume from library +
+    /// queue and recover playback. Runs for volumeRemoved, the playback-error
+    /// yank path, AND the eject sequence. Idempotent via mountKeys_.take().
+    void purgeVolume(const QString& mount);
 
     IHostContext* hostContext_ = nullptr;
     PlaybackEngine* engine_ = nullptr;
@@ -141,6 +151,7 @@ private:
     FolderModel* folderModel_ = nullptr;
     MediaLibrary* library_ = nullptr;
     MediaScanner* scanner_ = nullptr;
+    UsbMediaWatcher* watcher_ = nullptr;   // udisks2 hot-plug + safe eject (Task 6)
     MediaArtProvider* artProvider_ = nullptr;  // non-owning
     bool hasTrack_ = false;
     bool wasPlaying_ = false;
@@ -151,7 +162,10 @@ private:
     // Roots captured by refreshSources() so Task 6 can rescan/purge per-root;
     // keys captured at ADD time, never recomputed from a dead mount (Codex P1).
     QVector<MediaScanner::Root> currentRoots_;
-    QHash<QString, QString> mountKeys_;  // mount path -> volume key (filled by Task 6)
+    QHash<QString, QString> mountKeys_;  // mount path -> volume key (captured at mount time)
+    // Mounts mid-eject: refreshSources() SKIPS these so the purge's rescan
+    // cannot re-enumerate a still-mounted volume and reopen its files (Codex P1).
+    QSet<QString> ejectingMounts_;
 };
 
 } // namespace plugins

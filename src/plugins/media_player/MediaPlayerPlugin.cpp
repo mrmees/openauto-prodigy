@@ -15,6 +15,7 @@
 #include "MediaScanner.hpp"
 #include "PlaybackEngine.hpp"
 #include "PlayQueue.hpp"
+#include "UsbMediaWatcher.hpp"
 #include "core/plugin/IHostContext.hpp"
 #include "core/services/EqualizerService.hpp"
 #include "core/services/IConfigService.hpp"
@@ -117,6 +118,40 @@ bool MediaPlayerPlugin::initialize(IHostContext* context) {
     connect(library_, &MediaLibrary::libraryChanged, this,
             &MediaPlayerPlugin::libraryChanged);
 
+    // udisks2 hot-plug watcher (Task 6). Created after the scanner; start()
+    // scans already-mounted volumes and (on a host with udisks2) emits
+    // volumeMounted synchronously — which upgrades mountKeys_ to uuid keys.
+    watcher_ = new UsbMediaWatcher(this);
+    connect(watcher_, &UsbMediaWatcher::volumeMounted, this,
+            [this](const QString& mount, const QString& /*label*/, const QString& uuid) {
+        // Key captured at mount time — never recomputed from a dead mount
+        // later (Codex P1). Store BEFORE refreshSources() rescans.
+        mountKeys_[mount] = uuid.isEmpty()
+            ? MediaScanner::rootKeyForPath(mount)
+            : (QStringLiteral("uuid-") + uuid);
+        refreshSources();
+    });
+    connect(watcher_, &UsbMediaWatcher::volumeRemoved, this, [this](const QString& mount) {
+        // Eject-initiated removal already ran purgeVolume() in ejectVolume();
+        // just clear the guard. A real yank runs the shared purge.
+        if (ejectingMounts_.remove(mount)) return;
+        purgeVolume(mount);
+    });
+    connect(watcher_, &UsbMediaWatcher::ejectCompleted, this,
+            [this](const QString& mount, bool ok) {
+        if (ok) return;   // success removal is handled by volumeRemoved above
+        // Unmount failed (drive busy): bring the source back and toast.
+        ejectingMounts_.remove(mount);
+        refreshSources();
+        if (hostContext_ && hostContext_->notificationService())
+            hostContext_->notificationService()->post({
+                {"kind", "toast"},
+                {"message", QStringLiteral("Media Player: Eject failed — drive still in use")},
+                {"sourcePluginId", kPluginId}
+            });
+    });
+    watcher_->start();
+
     refreshSources();
     restoreState();
     return true;
@@ -124,6 +159,7 @@ bool MediaPlayerPlugin::initialize(IHostContext* context) {
 
 void MediaPlayerPlugin::shutdown() {
     policy_.onShutdownBegan();
+    if (watcher_) watcher_->stop();
     saveState();  // must precede the stop — saveState reads engine position
     // Fully release the PipeWire stream now: AudioService is an earlier app
     // child and dies first at teardown, so leaving the release to
@@ -176,6 +212,35 @@ void MediaPlayerPlugin::startTrack(const QString& path) {
 // failures stop and toast (a dead USB stick must not machine-gun skips).
 // Reached from errorOccurred AND from zero-progress trackFinished.
 void MediaPlayerPlugin::handleUnplayable(const QString& reason) {
+    // USB-yank detection (design §9, re-run P2): BEFORE consuming any strike,
+    // check whether the failing current track lives under a known mount that
+    // has vanished from the mount table. A mount DIRECTORY usually survives an
+    // unmount, so QFileInfo::exists is the wrong test — compare against the
+    // live mount table. On a hit this is a volume removal, not a decode error:
+    // purge and return, consuming no strike (so a third strike cannot take the
+    // StopAndNotify path). Idempotent with the watcher signal via mountKeys_.take().
+    const QString cur = queue_ ? queue_->currentTrack() : QString();
+    if (!cur.isEmpty()) {
+        QString vanishedMount;
+        for (auto it = mountKeys_.constBegin(); it != mountKeys_.constEnd(); ++it) {
+            const QString mount = it.key();
+            if (!cur.startsWith(mount + QLatin1Char('/'))) continue;
+            bool stillMounted = false;
+            for (const QStorageInfo& vol : QStorageInfo::mountedVolumes()) {
+                if (vol.rootPath() == mount) { stillMounted = true; break; }
+            }
+            if (!stillMounted) vanishedMount = mount;
+            break;   // the track matched this mount — done either way
+        }
+        if (!vanishedMount.isEmpty()) {
+            qCWarning(lcMediaPlayerPlugin)
+                << "current track's volume vanished — treating as yank, not a decode error:"
+                << vanishedMount;
+            purgeVolume(vanishedMount);
+            return;
+        }
+    }
+
     switch (policy_.onUnplayableEdge()) {
     case PlaybackPolicy::UnplayableVerdict::StayStopped:
         qCWarning(lcMediaPlayerPlugin) << "restored track failed to load; staying stopped:" << reason;
@@ -245,6 +310,58 @@ QVariantList MediaPlayerPlugin::tracksForAlbum(const QString& albumKey) const {
 void MediaPlayerPlugin::rescanLibrary() {
     // Recompute roots (picks up newly mounted volumes) and re-scan.
     refreshSources();
+}
+
+// Shared yank/eject cleanup (design §9). Runs for a real yank (volumeRemoved),
+// the playback-error yank path, and the eject sequence. Idempotent: mountKeys_
+// .take() means a second call for the same mount finds no key and no tracks.
+void MediaPlayerPlugin::purgeVolume(const QString& mount) {
+    // 1. Key captured at mount time; NEVER recomputed from a dead mount
+    //    (Codex P1). Fallback for volumes that predate the watcher.
+    QString key = mountKeys_.take(mount);
+    if (key.isEmpty()) key = MediaScanner::rootKeyForPath(mount);
+
+    // 2. Drop the volume's tracks from the library.
+    if (library_) library_->removeVolume(key);
+
+    // 3. Capture playback state BEFORE the purge mutates the queue.
+    const bool wasPlaying = (engine_ && engine_->playbackState() == 1);
+    const QString prefix = mount + QStringLiteral("/");
+    const bool currentGone = queue_ && queue_->currentTrack().startsWith(prefix);
+
+    // 4. Purge the queue (order-preserving; selects the survivor).
+    if (queue_) queue_->removeTracksUnder(prefix);
+
+    // 5. Recover playback per §9.
+    if (currentGone) {
+        if (queue_->count() == 0) {
+            engine_->stop();
+            setHasTrack(false);
+        } else if (wasPlaying) {
+            // Mid-session playing yank: continue with what remains.
+            policy_.onNewQueue();
+            startTrack(queue_->currentTrack());
+        } else {
+            // Paused / stopped / restored-at-boot: the queue points at the
+            // survivor but NOTHING auto-plays (stage-1 no-autoplay invariant).
+            engine_->stop();
+        }
+    }
+
+    // 6. Refresh sources (drops the dead root, rescans survivors).
+    refreshSources();
+}
+
+void MediaPlayerPlugin::ejectVolume(const QString& mountPath) {
+    if (mountPath.isEmpty()) return;
+    // 1. Guard the mount so purgeVolume()'s refresh cannot re-enumerate it.
+    ejectingMounts_.insert(mountPath);
+    // 2. Cleanup FIRST (stops playback if the current track lives here) so
+    //    QMediaPlayer never holds the file open into Unmount().
+    purgeVolume(mountPath);
+    // 3. Ask the watcher to unmount (+ power off if supported). The signal
+    //    handlers wired in initialize() drop the guard and, on failure, restore.
+    if (watcher_) watcher_->ejectMount(mountPath);
 }
 
 void MediaPlayerPlugin::playPause() {
@@ -324,6 +441,9 @@ void MediaPlayerPlugin::refreshSources() {
             && !mount.startsWith(QLatin1String("/run/media/"))
             && !mount.startsWith(QLatin1String("/mnt/")))
             continue;
+        // Mid-eject: do NOT re-enumerate/rescan a still-mounted volume — that
+        // would reopen its files and defeat the pre-unmount cleanup (Codex P1).
+        if (ejectingMounts_.contains(mount)) continue;
         QString label = vol.displayName();
         if (label.isEmpty() || label == mount)
             label = QFileInfo(mount).fileName();

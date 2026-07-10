@@ -178,7 +178,7 @@ Item {
                     NormalText {
                         anchors.left: rowIcon.right
                         anchors.leftMargin: UiMetrics.spacing
-                        anchors.right: parent.right
+                        anchors.right: ejectButton.left
                         anchors.rightMargin: UiMetrics.spacing
                         anchors.verticalCenter: parent.verticalCenter
                         text: model.name
@@ -201,6 +201,33 @@ Item {
                         onClicked: {
                             if (model.isDir) mediaPlayerView.folders.enter(model.path)
                             else if (mediaPlayerView.plugin) mediaPlayerView.plugin.playFileFromFolder(model.path)
+                        }
+                    }
+
+                    // Eject button — only on removable roots at the top level.
+                    // Declared AFTER the row MouseArea so its own click wins.
+                    Item {
+                        id: ejectButton
+                        anchors.right: parent.right
+                        anchors.verticalCenter: parent.verticalCenter
+                        height: parent.height
+                        readonly property bool removable:
+                            mediaPlayerView.folders && mediaPlayerView.folders.atTopLevel
+                            && (model.path.indexOf("/media/") === 0
+                                || model.path.indexOf("/run/media/") === 0
+                                || model.path.indexOf("/mnt/") === 0)
+                        width: removable ? 56 : 0
+                        visible: removable
+
+                        MaterialIcon {
+                            anchors.centerIn: parent
+                            icon: "\ue8fb"  // eject
+                            size: 26
+                            color: ThemeService.onSurfaceVariant
+                        }
+                        MouseArea {
+                            anchors.fill: parent
+                            onClicked: if (mediaPlayerView.plugin) mediaPlayerView.plugin.ejectVolume(model.path)
                         }
                     }
                 }

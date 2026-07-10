@@ -63,6 +63,8 @@ oap_add_test(test_media_scanner
     DEFS TEST_DATA_DIR="${CMAKE_CURRENT_BINARY_DIR}/data"
 )
 
+oap_add_test(test_media_usb_policy SOURCES test_media_usb_policy.cpp)
+
 # --- Service tests ---
 
 oap_add_test(test_theme_service

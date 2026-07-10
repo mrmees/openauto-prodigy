@@ -49,6 +49,16 @@ public:
     /// Jump to an absolute index in tracks() (e.g. user taps a row).
     void jumpTo(int index);
 
+    /// Remove every track whose path startsWith(pathPrefix) — the USB-yank /
+    /// safe-eject purge (Codex P1). Filters tracks_ AND order_ IN PLACE,
+    /// preserving survivors' relative order and the current traversal position
+    /// (NO rebuildOrder(): no reshuffle, no replay-eligibility churn, shuffle
+    /// history intact). A surviving current stays current; a removed current
+    /// advances to the next survivor in the OLD traversal order, wrapping to
+    /// the first survivor when none follow; an emptied queue drops to
+    /// currentIndex -1. Returns the number of tracks removed.
+    int removeTracksUnder(const QString& pathPrefix);
+
     /// Test hook: deterministic shuffle order.
     void setShuffleSeed(quint32 seed);
 
