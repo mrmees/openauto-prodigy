@@ -20,6 +20,15 @@ private slots:
         QCOMPARE(config.channels.size(), 12);
     }
 
+    void testVersionIdentityIsCompiledIn() {
+        oap::aa::ServiceDiscoveryBuilder builder;
+        auto config = builder.build();
+        // Both fields are serialized into the AA ServiceDiscoveryResponse
+        // (AASession.cpp set_sw_build/set_sw_version) — the phone logs them.
+        QCOMPARE(config.swBuild, QString::fromLatin1(OAP_VERSION));
+        QCOMPARE(config.swVersion, QString::fromLatin1(OAP_VERSION));
+    }
+
     void testVideoChannelDescriptor() {
         oap::aa::ServiceDiscoveryBuilder builder;
         auto config = builder.build();

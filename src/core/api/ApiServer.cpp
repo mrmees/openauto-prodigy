@@ -113,8 +113,7 @@ bool ApiServer::start() {
     handshakeTimeoutMs_ = cfgInt("api.handshake_timeout_ms", 5000);
 
     serverName_ = cfgStr("identity.head_unit_name", QStringLiteral("OpenAuto Prodigy"));
-    const QString sw = cfgStr("identity.sw_version", QString());
-    appVersion_ = sw + QStringLiteral(" (" OAP_GIT_HASH ")");
+    appVersion_ = QStringLiteral(OAP_VERSION " (" OAP_GIT_HASH ")");
 
     // Stable head-unit identity (v1.1, ServerHello.server_id): mint once on
     // first API start and persist it, so it survives sessions and reboots.
