@@ -97,7 +97,7 @@ their working files. Workers own the build/fix/test loop and report
 pass/fail counts, deviations. Raw logs stay out of the main session's context.
 Workers commit per task; nobody pushes mid-execution.
 
-### Escalation ladder: Opus → Codex (GPT-5.5) → Fable
+### Escalation ladder: Opus → Codex (gpt-5.6-sol) → Fable
 
 1. **Opus worker** — owns the task. Two focused attempts at green, then
    escalate instead of grinding.
