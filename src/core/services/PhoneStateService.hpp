@@ -88,6 +88,13 @@ public:
     /// the state-machine event slots above).
     void adoptBluezDevice(const QString& path, const QVariantMap& deviceProps);
 
+    /// Pure decision: should a Device1 PropertiesChanged trigger a full
+    /// managed-objects rescan? True only when no phone is adopted yet AND the
+    /// change carries Connected=true or a UUIDs arrival (a freshly paired phone
+    /// whose Connected/UUIDs land after the disconnected Device1 was created).
+    /// Static + public because it IS the unit-test surface for late adoption.
+    static bool shouldRescanOnDeviceChange(bool phoneConnected, const QVariantMap& changed);
+
 public slots:
     // State-machine event API — public because it IS the unit-test surface.
     void onCallSetupStarted(const QString& state, const QString& line, const QString& name);

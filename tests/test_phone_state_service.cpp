@@ -34,6 +34,10 @@ private slots:
     void adoptBluezDevice_connectedHfpPhone_adopts();
     void adoptBluezDevice_nonHfp_ignored();
     void interfacesAdded_payloadConsumed_noBusReadback();
+
+    // --- Late-arriving fresh-pair adoption (PropertiesChanged rescan) ---
+    void shouldRescanOnDeviceChange_truthTable();
+    void propertiesChanged_connectedTrue_noCrashOnBuslessPath();
 };
 
 void TestPhoneStateService::testImplementsICallStateProvider() {
@@ -313,6 +317,48 @@ void TestPhoneStateService::interfacesAdded_payloadConsumed_noBusReadback()
         Q_ARG(QDBusObjectPath, QDBusObjectPath(QStringLiteral("/org/bluez/hci0/dev_AA_BB"))),
         Q_ARG(oap::BluezInterfaceMap, ifaces));
     QCOMPARE(spy.count(), 1);
+}
+
+// A freshly paired phone can appear as a disconnected Device1, with BlueZ
+// delivering Connected=true / UUIDs later via PropertiesChanged. The slot must
+// decide to re-run the managed-objects scan on those late signals. The pure
+// decision helper is unit-tested here across its truth table.
+void TestPhoneStateService::shouldRescanOnDeviceChange_truthTable()
+{
+    using S = oap::PhoneStateService;
+    const QStringList hfp{QStringLiteral("0000111e-0000-1000-8000-00805f9b34fb")};
+
+    // connected-true → rescan
+    QVERIFY(S::shouldRescanOnDeviceChange(false,
+        QVariantMap{{QStringLiteral("Connected"), true}}));
+    // uuids-arrival → rescan
+    QVERIFY(S::shouldRescanOnDeviceChange(false,
+        QVariantMap{{QStringLiteral("UUIDs"), hfp}}));
+    // connected-false → no rescan
+    QVERIFY(!S::shouldRescanOnDeviceChange(false,
+        QVariantMap{{QStringLiteral("Connected"), false}}));
+    // already-adopted → no rescan (single-phone model, first connected wins)
+    QVERIFY(!S::shouldRescanOnDeviceChange(true,
+        QVariantMap{{QStringLiteral("Connected"), true}}));
+    // wrong keys → no rescan
+    QVERIFY(!S::shouldRescanOnDeviceChange(false,
+        QVariantMap{{QStringLiteral("Alias"), QStringLiteral("Pixel 8")}}));
+}
+
+// Invoking the slot on the busless CI path (Connected=true, not yet adopted)
+// must not crash: scanExistingDevices() hits the system bus and fails fast when
+// no BlueZ/managed objects are present, leaving the phone unadopted.
+void TestPhoneStateService::propertiesChanged_connectedTrue_noCrashOnBuslessPath()
+{
+    oap::PhoneStateService svc;
+    QVariantMap changed{{QStringLiteral("Connected"), true}};
+    const bool ok = QMetaObject::invokeMethod(&svc, "onPropertiesChanged",
+        Qt::DirectConnection,
+        Q_ARG(QString, QStringLiteral("org.bluez.Device1")),
+        Q_ARG(QVariantMap, changed),
+        Q_ARG(QStringList, QStringList{}));
+    QVERIFY(ok);
+    QVERIFY(!svc.phoneConnected());   // no managed objects in CI -> nothing adopted
 }
 
 QTEST_GUILESS_MAIN(TestPhoneStateService)

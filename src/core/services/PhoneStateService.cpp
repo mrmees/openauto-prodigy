@@ -461,20 +461,38 @@ void PhoneStateService::onInterfacesRemoved(const QDBusObjectPath& path, const Q
     }
 }
 
+bool PhoneStateService::shouldRescanOnDeviceChange(bool phoneConnected,
+                                                   const QVariantMap& changed)
+{
+    if (phoneConnected) return false;   // single-phone model — first connected wins
+    if (changed.value(QStringLiteral("Connected")).toBool()) return true;
+    if (changed.contains(QStringLiteral("UUIDs"))) return true;
+    return false;
+}
+
 void PhoneStateService::onPropertiesChanged(const QString& interface, const QVariantMap& changed,
                                              const QStringList& /*invalidated*/)
 {
-    if (interface == QLatin1String("org.bluez.Device1")) {
-        if (changed.contains(QStringLiteral("Connected"))) {
-            bool connected = changed.value(QStringLiteral("Connected")).toBool();
-            if (!connected && phoneConnected_) {
-                phoneConnected_ = false;
-                deviceName_.clear();
-                emit connectionChanged();
-                setCallStateInternal(ICallStateProvider::Idle);
-            }
+    if (interface != QLatin1String("org.bluez.Device1")) return;
+
+    // Disconnection branch (unchanged): a live phone dropping Connected tears
+    // the session down.
+    if (changed.contains(QStringLiteral("Connected"))) {
+        bool connected = changed.value(QStringLiteral("Connected")).toBool();
+        if (!connected && phoneConnected_) {
+            phoneConnected_ = false;
+            deviceName_.clear();
+            emit connectionChanged();
+            setCallStateInternal(ICallStateProvider::Idle);
         }
     }
+
+    // Late-arriving fresh pair: BlueZ can create Device1 disconnected and
+    // deliver Connected=true / UUIDs later. Re-run the managed-objects scan —
+    // it demarshals full device state and routes through adoptBluezDevice(),
+    // so a phone paired after boot is adopted without a restart.
+    if (shouldRescanOnDeviceChange(phoneConnected_, changed))
+        scanExistingDevices();
 }
 
 } // namespace oap
