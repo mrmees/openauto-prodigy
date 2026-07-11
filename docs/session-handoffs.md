@@ -4,6 +4,21 @@ Newest entries first.
 
 ---
 
+## 2026-07-11 — HFP/9876 phase stage-1 code-complete: dead-slot fixes, codec kits, CompanionState migration
+
+**What changed:** Executed `docs/plans/2026-07-11-hfp-mic-9876-retirement-plan.md` (11 tasks, SDD with per-task review; branch `worktree-hfp-mic-9876-retirement` off `ae7bf8b`). Commits `e501a3d..03fdba3`:
+(1) PhoneStateService hot-plug fixed — registered `QMap<QString,QVariantMap>` slot + `adoptBluezDevice` seam, no live read-back (`56c5dbc`); (2) BtAudioPlugin's three handlers made real slots + sender-path filtering on PropertiesChanged + connect-result logging (`ea14ba0`); (3) CVSD WirePlumber drop-in `config/50-prodigy-hfp-cvsd.conf` (`9215750`); (4) patched-mSBC PipeWire build kit `tools/pipewire-msbc/` — **real package is `libspa-0.2-bluetooth` (RPi OS `1.4.2-1+rpt3`)**, strict dep pinned, deb built + staged at `matt@192.168.1.149:~/pipewire-msbc/`, NOT installed (`bbac826`); (5) ApiInboundState parity — GPS bearing/accuracy/age, staleness (30 s, injectable), per-report owner tracking + disconnect clears, `connected` (`e2f577a`); (6-8) all consumers migrated to new QML context `CompanionState`: 3 widgets incl. dead-`proxyStatus` fix (`ef4c61d`), CompanionSettings status rows — legacy controls annotated for B2 (`e127c4e`), IPC `companion_status` prefers inbound + `"source":"api"` (`65c01e4`); (9) bench runbook `docs/plans/2026-07-11-hfp-bench-runbook.md`; (10) companion handoff prompt at `personal/openautopro/companion-9876-migration-prompt.md` (outside repo); (11) roadmap Now entry (`3f2be13`) + package-fact corrections (`03fdba3`).
+
+**Why:** Mic uplink silent at far end (L6, LC3-SWB encode below prodigy — pin mSBC via patch, CVSD as config diagnostic/fallback); HFP hot-plug + BT plugin subscriptions silently dead (`a{sa{sv}}` family); 9876 retirement gated on companion migration, which needed head-unit inbound parity first (sol review finding — legacy deletion would have broken 4 QML surfaces + IPC).
+
+**Status:** Code-complete, all task reviews Approved (no Critical/Important findings; Minors ledgered in `.superpowers/sdd/progress.md`). Local suite 122/122 + app target green. Cross-built binary rsync'd to the Pi; **service restart + journal check pending Matthew** (remote restart perms) — two positive "D-Bus subscriptions" log lines expected, no "Could not connect". Codex review gate: next step in this session.
+
+**Next 1-3 steps:** (1) codex gate adjudication, then Matthew's push/merge call (worktree branch → dev landing to be decided); (2) Matthew runs the companion migration prompt in the companion repo; (3) bench session per the runbook (mic A1a→A1b decides shipped codec + installer wiring; cutover validation gates B2 teardown planning).
+
+**Verification:** `ctest --output-on-failure` (all green) + `cmake --build . --target openauto-prodigy` in `~/builds/oap-hfp-9876`; per-task TDD evidence in `/home/matt/.claude/jobs/bbd97254/tmp/task-*-report.md`; deb presence on Pi verified by `ls` (367,840 bytes, matches local).
+
+---
+
 > Older entries are archived in `docs/archive/session-handoffs/` (2026-02--2026-03 and 2026-07-02--2026-07-08 rollups).
 
 ## 2026-07-09 — PR #16 opened + post-review fixes: build-dir docs, development.md refresh
