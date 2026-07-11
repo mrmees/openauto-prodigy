@@ -111,7 +111,7 @@ EOF
 # --- call codex: read-only sandbox (the gate advises, it never edits);
 # --- prompt via stdin file, verdict via -o (never prompt-as-argument) ---
 echo "Sending diff to Codex for review ($SCOPE_DESC)..." >&2
-if ! codex exec -C "$REPO_ROOT" -s read-only -o "$REVIEW_FILE" - < "$PROMPT_FILE"; then
+if ! codex exec -m gpt-5.6-sol -C "$REPO_ROOT" -s read-only -o "$REVIEW_FILE" - < "$PROMPT_FILE"; then
   echo "ERROR: codex exec failed. If this is an auth issue, run: codex login" >&2
   exit 4
 fi

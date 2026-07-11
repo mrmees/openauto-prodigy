@@ -83,7 +83,12 @@ add_library(openauto-core STATIC
     plugins/media_player/PlayQueue.cpp
     plugins/media_player/FolderModel.cpp
     plugins/media_player/PlaybackEngine.cpp
+    plugins/media_player/PlaybackPolicy.cpp
     plugins/media_player/MediaArtProvider.cpp
+    plugins/media_player/MediaTagReader.cpp
+    plugins/media_player/MediaLibrary.cpp
+    plugins/media_player/MediaScanner.cpp
+    plugins/media_player/UsbMediaWatcher.cpp
     plugins/media_player/MediaPlayerPlugin.cpp
     plugins/phone/PhonePlugin.cpp
     plugins/equalizer/EqualizerPlugin.cpp
@@ -376,6 +381,18 @@ set_source_files_properties(../qml/applications/media_player/MediaPlayerView.qml
     QT_QML_SOURCE_TYPENAME "MediaPlayerView"
     QT_RESOURCE_ALIAS "MediaPlayerView.qml"
 )
+set_source_files_properties(../qml/applications/media_player/LibraryArtistsTab.qml PROPERTIES
+    QT_QML_SOURCE_TYPENAME "LibraryArtistsTab"
+    QT_RESOURCE_ALIAS "LibraryArtistsTab.qml"
+)
+set_source_files_properties(../qml/applications/media_player/LibraryAlbumsTab.qml PROPERTIES
+    QT_QML_SOURCE_TYPENAME "LibraryAlbumsTab"
+    QT_RESOURCE_ALIAS "LibraryAlbumsTab.qml"
+)
+set_source_files_properties(../qml/applications/media_player/LibraryTracksTab.qml PROPERTIES
+    QT_QML_SOURCE_TYPENAME "LibraryTracksTab"
+    QT_RESOURCE_ALIAS "LibraryTracksTab.qml"
+)
 set_source_files_properties(../qml/applications/phone/PhoneView.qml PROPERTIES
     QT_QML_SOURCE_TYPENAME "PhoneView"
     QT_RESOURCE_ALIAS "PhoneView.qml"
@@ -491,6 +508,9 @@ qt_add_qml_module(openauto-prodigy
         ../qml/applications/home/HomeMenu.qml
         ../qml/applications/bt_audio/BtAudioView.qml
         ../qml/applications/media_player/MediaPlayerView.qml
+        ../qml/applications/media_player/LibraryArtistsTab.qml
+        ../qml/applications/media_player/LibraryAlbumsTab.qml
+        ../qml/applications/media_player/LibraryTracksTab.qml
         ../qml/applications/phone/PhoneView.qml
         ../qml/applications/phone/IncomingCallOverlay.qml
         ../qml/applications/settings/AASettings.qml

@@ -64,8 +64,12 @@ Item {
                         color: ThemeService.onSurfaceVariant
 
                         MouseArea {
-                            anchors.fill: parent
-                            anchors.margins: -4
+                            // 44px minimum touch target — the icon-sized area
+                            // was untappable on the car touchscreen (bench
+                            // 2026-07-10; gloves-off driving rule).
+                            anchors.centerIn: parent
+                            width: Math.max(44, parent.width + 8)
+                            height: Math.max(44, parent.height + 8)
                             onClicked: NotificationService.dismiss(model.notificationId)
                         }
                     }

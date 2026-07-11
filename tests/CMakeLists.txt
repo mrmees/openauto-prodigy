@@ -47,7 +47,23 @@ oap_add_test(test_playback_engine
 )
 file(COPY data/media DESTINATION ${CMAKE_CURRENT_BINARY_DIR}/data)
 
+oap_add_test(test_media_playback_policy SOURCES test_media_playback_policy.cpp)
+
 oap_add_test(test_media_art_provider SOURCES test_media_art_provider.cpp)
+
+oap_add_test(test_media_tag_reader
+    SOURCES test_media_tag_reader.cpp
+    DEFS TEST_DATA_DIR="${CMAKE_CURRENT_BINARY_DIR}/data"
+)
+
+oap_add_test(test_media_library SOURCES test_media_library.cpp)
+
+oap_add_test(test_media_scanner
+    SOURCES test_media_scanner.cpp
+    DEFS TEST_DATA_DIR="${CMAKE_CURRENT_BINARY_DIR}/data"
+)
+
+oap_add_test(test_media_usb_policy SOURCES test_media_usb_policy.cpp)
 
 # --- Service tests ---
 

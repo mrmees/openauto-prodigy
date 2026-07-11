@@ -87,6 +87,70 @@ void PlayQueue::jumpTo(int index) {
     emit currentChanged();
 }
 
+int PlayQueue::removeTracksUnder(const QString& pathPrefix) {
+    if (tracks_.isEmpty()) return 0;
+
+    const int oldN = tracks_.size();
+    QVector<int> oldToNew(oldN, -1);   // old index -> new index, -1 = removed
+    QStringList newTracks;
+    newTracks.reserve(oldN);
+    int removed = 0;
+    for (int i = 0; i < oldN; ++i) {
+        if (tracks_.at(i).startsWith(pathPrefix)) {
+            ++removed;
+        } else {
+            oldToNew[i] = newTracks.size();
+            newTracks.append(tracks_.at(i));
+        }
+    }
+    if (removed == 0) return 0;
+
+    const int oldCurrent = currentIndex_;
+    const bool currentSurvives = (oldCurrent >= 0 && oldToNew[oldCurrent] >= 0);
+
+    // If the current track is going away, find its traversal successor in the
+    // OLD order_ (the first survivor AFTER the current traversal position)
+    // BEFORE we mutate anything. -1 => none follows, so we'll wrap to the
+    // first survivor in traversal order.
+    int successorOld = -1;
+    if (!currentSurvives && oldCurrent >= 0) {
+        for (int p = orderPos_ + 1; p < order_.size(); ++p) {
+            const int oldIdx = order_.at(p);
+            if (oldToNew[oldIdx] >= 0) { successorOld = oldIdx; break; }
+        }
+    }
+
+    // Filter order_ in place: drop removed entries, remap survivors to their
+    // new indices. Relative sequence (shuffle history) is preserved — nothing
+    // is reshuffled and already-played entries keep their positions.
+    QVector<int> newOrder;
+    newOrder.reserve(newTracks.size());
+    for (const int e : order_) {
+        const int mapped = oldToNew[e];
+        if (mapped >= 0) newOrder.append(mapped);
+    }
+
+    tracks_ = std::move(newTracks);
+    order_ = std::move(newOrder);
+
+    if (tracks_.isEmpty()) {
+        currentIndex_ = -1;
+        orderPos_ = -1;
+    } else if (currentSurvives) {
+        currentIndex_ = oldToNew[oldCurrent];
+        orderPos_ = order_.indexOf(currentIndex_);
+    } else {
+        // Current removed: land on the traversal successor, or wrap to the
+        // first survivor in traversal order when nothing followed.
+        currentIndex_ = (successorOld >= 0) ? oldToNew[successorOld] : order_.first();
+        orderPos_ = order_.indexOf(currentIndex_);
+    }
+
+    emit queueChanged();
+    emit currentChanged();
+    return removed;
+}
+
 void PlayQueue::rebuildOrder() {
     order_.resize(tracks_.size());
     std::iota(order_.begin(), order_.end(), 0);

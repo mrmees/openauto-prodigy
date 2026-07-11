@@ -811,7 +811,7 @@ install_dependencies() {
         libssl-dev
 
         # FFmpeg (video decoding)
-        libavcodec-dev libavutil-dev
+        libavformat-dev libavcodec-dev libavutil-dev
 
         # PipeWire (audio)
         libpipewire-0.3-dev libspa-0.2-dev
@@ -847,6 +847,10 @@ install_dependencies() {
 
         # Splash screen (displays logo while app initializes)
         swaybg
+
+        # USB media auto-mount (UsbMediaWatcher D-Bus client, runtime only —
+        # no -dev headers needed)
+        udisks2
     )
 
     run_with_spinner "Updating package lists" sudo apt-get update -q
@@ -1440,6 +1444,13 @@ YAML
     if [[ -f "$INSTALL_DIR/config/bluez-agent-polkit.rules" ]]; then
         sudo cp "$INSTALL_DIR/config/bluez-agent-polkit.rules" /etc/polkit-1/rules.d/50-openauto-bluez.rules
         ok "BlueZ agent polkit rule installed"
+    fi
+
+    # udisks2 polkit rule (allows the service user to mount/unmount and
+    # power off USB media without a password prompt)
+    if [[ -f "$INSTALL_DIR/config/udisks-polkit.rules" ]]; then
+        sudo cp "$INSTALL_DIR/config/udisks-polkit.rules" /etc/polkit-1/rules.d/50-openauto-udisks.rules
+        ok "udisks2 polkit rule installed"
     fi
 
     # Ensure user is in required groups

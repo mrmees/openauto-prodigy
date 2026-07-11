@@ -47,7 +47,7 @@ Governance: capture new ideas in `docs/wishlist.md`; only promoted items should 
 
 ## Now
 
-- Local media player plugin — **stage 1 code-complete + deployed to Pi (2026-07-08)**; bench checklist pending Matthew.
+- Local media player plugin — **stage 2 (library + USB automount) code-complete + gated (2026-07-10)**; Pi deploy + stage-2 bench rows pending Matthew. Stage 1 shipped + benched 2026-07-09.
   - Stage 1 shipped (develop @ `2aeb411`, 18 commits): MediaPlayerPlugin (folder browse + now-playing bar), PlaybackEngine (QMediaPlayer PCM tap → AudioService, spike-gated GO), PlayQueue (shuffle/repeat, TDD), FolderModel, MediaArtProvider, 3-source playing-wins arbitration, NowPlayingWidget (art/progress/source badge/transport), API v1 LOCAL_MEDIA source + position fields. Suite 114/114 green; cross-build + Pi deploy verified healthy (service active, plugin registered, NRestarts=0).
   - Remaining stage 1: 12-row bench checklist with Matthew (touch/audible rows — see session-handoffs 2026-07-08 deploy record), then review + push.
   - Next: **stage 2 (library + USB automount) planning.**

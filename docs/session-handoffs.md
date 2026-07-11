@@ -165,3 +165,33 @@ fix belongs to open-android-auto (note filed in wishlist).
 **Next 1-3 steps:** (1) tag `ALPHA-26-07-09-01` on this landing commit (Matthew pre-approved "tag it when it lands"); reconfigure + rebuild, `--version` must equal the bare tag. (2) cross-build, deploy to Pi, live-verify (Settings row / web widget / binary strings); AA phone-connect check pending if no phone at hand. (3) push dev + tag — requires Matthew's explicit go-ahead.
 
 **Landed (same session):** `ALPHA-26-07-09-01` minted on `086ed24` via `bash scripts/tag-alpha.sh`; reconfigure+rebuild → `--version` = bare tag, `test_oap_version` passes against tagged form; cross-build embeds tag (strings-verified); Pi deployed + service active + journal clean; deployed binary strings-verified on Pi. Pending: AA phone-connect check and eyes-on Settings-row/web-widget check (no phone/bench this session). Push (dev + tag) awaiting Matthew's go-ahead. Gotcha for the record: `git mv` after editing does NOT stage the edits — the landing commit needed an amend + tag re-mint (delete-newest-reuses-number behavior worked as documented).
+
+## 2026-07-10 — Media player STAGE 2 (library + USB automount): executed + gated — Pi deploy + bench pending rows
+
+**What changed:** Stage 2 executed per `docs/plans/2026-07-09-media-player-stage2-plan.md` (Codex-reviewed ×2 pre-execution). Eight tasks: PlaybackPolicy extracted (promoted wishlist item — pure state machine, 10-slot lock incl. both 500ms boundaries); libavformat wired at 4 build sites + MediaTagReader (per-tag fallback, bounded probing) + committed ffmpeg fixtures; MediaLibrary (shared `mediaAlbumBucketKey`, dir-scoped VA collapse, merge resolution, ordinal-deterministic displays, art propagation, compilation role); MediaScanner (worker lifecycle w/ coalescing, per-root QSaveFile cache, grouped art pass, invalid-file caching); QML library tabs (Artists/Albums/Tracks + Folders preserved, play-by-path drill-downs); UsbMediaWatcher (udisks2 async, 3-source volumeRemoved dedupe, order-preserving queue purge w/ wrap, wasPlaying-gated yank recovery, validated eject w/ engine unload); installer polkit rule (5 actions incl. other-seat) + udisks2 runtime dep; docs swept.
+
+**Process:** SDD, 7 worker tasks all review-approved (2 fix loops total: metatype form T3; none T1/2/4-7). Two workers survived session interrupts via transcript resume. Gate (gpt-5.6-sol): run 1 → 1 P1 + 6 P2 (P1: USB-mount race lost saved queue at boot → pending-restore retry on volumeMounted); re-run (THE one) → 2 P1 + 6 P2 (P1s: restore-retry watermark autoplay hazard → onTrackStarted before every restorePaused; eject didn't release the file → PlaybackEngine::unload via setSource(QUrl())). Final fix batch Fable-reviewed (Codex closed per one-re-run rule). Deferred-with-reasons → wishlist §"From media player stage 2 gate".
+
+**Gotcha (recorded):** the cross-build Docker image is CACHED — Task 2's libavformat-dev:arm64 Dockerfile line didn't exist in the image until a manual `docker build`; cross-build failed at pkg_check until the image was rebuilt. Any future build-dep addition needs the image rebuilt too.
+
+**Verification:** suite 121/121 + app target green at 27cf5df; offscreen smoke clean (single udisks-unavailable warning on WSL); cross-build green post-image-rebuild; Pi polkit rule installed (udisks2 pkg already present on Trixie image).
+
+**Next 1-3 steps:** (1) deploy clean-stamped binary + restart, verify watcher armed in journal; (2) Matthew's 12-row bench (tabs-switch first row — no USB; USB rows last: hot-plug/eject/yank playing+paused, yank-race observation, late-Filesystem-interface case, boot-restore-from-USB row for the gate P1 fix); (3) push on go-ahead. NO tag unless Matthew declares a milestone.
+
+## 2026-07-10 — Stage-2 bench saga: 5 rounds, 3 stacked root causes, sol-designed fix — USB hot-plug VERIFIED
+
+**Symptoms (bench):** eject "not available" on served volumes; yank-while-playing undetected (buffer ride-out + strike-walking); replug invisible until manual refresh; immortal toasts with untappable X.
+
+**Root causes (stacked — each fix exposed the next):**
+1. QtDBus NEVER CONNECTED ObjectManager `InterfacesAdded` to a `QVariantMap` slot (`a{sa{sv}}` mismatch, runtime "Could not connect") — hot-plug deaf since Task 6; volumes only registered via restart initial scans. Fix: registered `UsbInterfaceMap` (QMap<QString,QVariantMap>) slot type. **BtAudioPlugin carries the SAME dead pattern** (its InterfacesAdded + PropertiesChanged connects fail in every startup journal) — latent, masked by agent/profile callbacks; wishlist.
+2. `drivePathOf` only handled `QDBusObjectPath` variants; the newly-opened delivery path can carry other shapes. Fix: accept path/string/argument + log raw type.
+3. udisks exports Drives BEFORE probing settles — `Removable`/`CanPowerOff` false ~3ms post-hot-plug, true later via `PropertiesChanged` (never subscribed). One-shot `resolveDrive` sampled the transient and permanently rejected. **Diagnosed by gpt-5.6-sol** (read-only codex escalation after 3 Fable rounds; design in `.superpowers/sdd/usb-cache-design-sol.md`). Fix (b5ffe05): persistent drives_/fsCandidates_ cache, Drive PropertiesChanged subscription, re-evaluation on settle, eligibility `Removable || ConnectionBus=="usb"`, Block Hint policy, consume-on-register, live CanPowerOff at eject, liveness guards; pure `usbCandidateDecision()` unit-locked (5 slots).
+Also fixed en route: toast ttlMs=0 immortality (kind-scoped 5s default), 44px notification close target, SD-card partitions self-registering (prefix filter), competing-automounter reality (pcmanfm --desktop + gvfs RUN ON THE IMAGE — run-1 gate dismissal premise corrected in wishlist).
+
+**Verified live (journal, 2 full plug cycles):** yank→instant purge; replug→defer-while-awaiting→registered+mounted in ~130ms; drive-before-block ordering handled; repeat ejects work; toasts self-dismiss. Rows i–ix of the stage-2 bench PASS.
+
+**Remaining:** bench row — boot with saved queue on the stick (gate-P1 pending-restore retry; now exercisable since hot-plug works). Wishlist: Filesystem MountPoints PropertiesChanged; BT plugin dead-slot cleanup; eject-failure queue restore (sol latent #3); polkit scoping.
+
+**Method note:** instrumentation-first debugging carried this — each round's qCInfo/qCWarning at decision boundaries turned the next layer's failure from theory into one journal line. Keep the logs; they are product code now.
+
+**Stage-2 bench COMPLETE (2026-07-10):** boot-restore-from-USB row PASSED (queue restored paused post-reboot once the stick auto-mounted — the gate-P1 pending-restore retry verified live). All stage-2 rows green. Matthew declared the milestone: ALPHA-26-07-10-01.

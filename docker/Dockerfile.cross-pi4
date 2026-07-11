@@ -29,6 +29,7 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     libprotobuf-dev:arm64 \
     protobuf-compiler \
     libssl-dev:arm64 \
+    libavformat-dev:arm64 \
     libavcodec-dev:arm64 \
     libavutil-dev:arm64 \
     libpipewire-0.3-dev:arm64 \

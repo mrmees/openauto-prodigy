@@ -24,15 +24,23 @@ sudo apt install cmake g++ git pkg-config \
   qml6-module-qtquick-window qml6-module-qtqml-workerscript \
   libboost-system-dev libboost-log-dev \
   libprotobuf-dev protobuf-compiler libssl-dev \
-  libavcodec-dev libavutil-dev \
+  libavformat-dev libavcodec-dev libavutil-dev \
   libpipewire-0.3-dev libspa-0.2-dev \
   libyaml-cpp-dev libbluetooth-dev \
   hostapd dnsmasq bluez \
   python3-flask \
+  udisks2 \
   qt6-webengine-dev qml6-module-qtwebengine  # optional — web widget runtime; builds fine without
 ```
 
 Note: `libbluetooth-dev` (raw BlueZ headers, `bluetooth/bluetooth.h`) is required in addition to `qt6-connectivity-dev` — `BluetoothDiscoveryService` uses BlueZ sockets/SDP directly. `install.sh` already includes it.
+
+Note: `udisks2` is a Pi **runtime** dependency, not a build dep — it ships no
+headers/libraries to link against. `UsbMediaWatcher` talks to its D-Bus
+service to detect and mount USB media; the polkit grant that lets the
+service user drive it without a password lives in
+`config/udisks-polkit.rules` (installed by `install.sh` alongside the BlueZ
+agent rule).
 
 ### WSL2 Debian Trixie (dev box)
 
