@@ -39,10 +39,18 @@ void ApiInboundState::clearGps() {
     staleTicker_.stop();
     fixTimer_.invalidate();
     fixAgeMs_ = 0;
+    // Reset ALL fields, not just the valid flag (legacy parity): unconditional
+    // readers such as IpcServer::handleCompanionStatus return lat/lon/etc.
+    // directly, so retained coordinates would leak after the owner drops.
+    gpsLat_ = 0.0;
+    gpsLon_ = 0.0;
+    gpsSpeedMps_ = 0.0;
+    gpsBearing_ = 0.0;
+    gpsAccuracy_ = 0.0;
     const bool wasValid = gpsValid_;
     gpsValid_ = false;
-    // Last lat/lon are left in place; gpsValid/gpsStale gate any read. Emit so
-    // a binding on gpsValid/gpsStale re-evaluates when the owner drops.
+    // Emit once so bindings on gpsValid/gpsStale re-evaluate when the owner
+    // drops; idempotent — a clear on already-invalid state emits nothing.
     if (wasValid)
         emit gpsChanged();
 }

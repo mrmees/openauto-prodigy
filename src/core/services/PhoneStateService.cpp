@@ -334,7 +334,7 @@ void PhoneStateService::startDBusMonitoring()
     const bool okProps = bus.connect(QStringLiteral("org.bluez"), QString(),
         QStringLiteral("org.freedesktop.DBus.Properties"),
         QStringLiteral("PropertiesChanged"),
-        this, SLOT(onPropertiesChanged(QString,QVariantMap,QStringList)));
+        this, SLOT(onPropertiesChanged(QString,QVariantMap,QStringList,QDBusMessage)));
 
     qInfo() << "PhoneStateService D-Bus subscriptions: InterfacesAdded=" << okAdded
             << "InterfacesRemoved=" << okRemoved << "PropertiesChanged=" << okProps;
@@ -359,7 +359,7 @@ void PhoneStateService::stopDBusMonitoring()
     bus.disconnect(QStringLiteral("org.bluez"), QString(),
         QStringLiteral("org.freedesktop.DBus.Properties"),
         QStringLiteral("PropertiesChanged"),
-        this, SLOT(onPropertiesChanged(QString,QVariantMap,QStringList)));
+        this, SLOT(onPropertiesChanged(QString,QVariantMap,QStringList,QDBusMessage)));
 
     delete bluezWatcher_;
     bluezWatcher_ = nullptr;
@@ -471,17 +471,21 @@ bool PhoneStateService::shouldRescanOnDeviceChange(bool phoneConnected,
 }
 
 void PhoneStateService::onPropertiesChanged(const QString& interface, const QVariantMap& changed,
-                                             const QStringList& /*invalidated*/)
+                                             const QStringList& /*invalidated*/,
+                                             const QDBusMessage& message)
 {
     if (interface != QLatin1String("org.bluez.Device1")) return;
 
-    // Disconnection branch (unchanged): a live phone dropping Connected tears
-    // the session down.
+    // Disconnection branch: only the ADOPTED phone's own object path may tear
+    // the session down. PropertiesChanged is subscribed on ALL BlueZ paths, so
+    // without this guard an unrelated device (headphones, watch) dropping
+    // Connected would clear the phone and reset the call to Idle.
     if (changed.contains(QStringLiteral("Connected"))) {
         bool connected = changed.value(QStringLiteral("Connected")).toBool();
-        if (!connected && phoneConnected_) {
+        if (!connected && phoneConnected_ && message.path() == devicePath_) {
             phoneConnected_ = false;
             deviceName_.clear();
+            devicePath_.clear();
             emit connectionChanged();
             setCallStateInternal(ICallStateProvider::Idle);
         }

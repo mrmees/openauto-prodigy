@@ -15,6 +15,7 @@
 #include <QVariantMap>
 
 class QDBusServiceWatcher;
+class QDBusMessage;
 
 namespace oap {
 
@@ -107,8 +108,13 @@ public slots:
 private slots:
     void onInterfacesAdded(const QDBusObjectPath& path, const BluezInterfaceMap& interfaces);
     void onInterfacesRemoved(const QDBusObjectPath& path, const QStringList& interfaces);
+    // Sender path arrives in the trailing QDBusMessage (BtAudioPlugin
+    // onPropertiesChanged pattern); the disconnect branch filters against
+    // devicePath_ so an unrelated BlueZ device dropping Connected cannot tear
+    // down the tracked phone. The rescan path is sender-agnostic (a scan reads
+    // full state).
     void onPropertiesChanged(const QString& interface, const QVariantMap& changed,
-                             const QStringList& invalidated);
+                             const QStringList& invalidated, const QDBusMessage& message);
     void onSettleTimeout();
     void onScoDebounceTimeout();
 

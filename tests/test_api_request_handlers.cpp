@@ -86,6 +86,7 @@ private slots:
     void testGpsReportUpdatesState();
     void testGpsReportForwardsAllFields();
     void testGpsReportRejectsInvalidExtras();
+    void testClearGpsResetsAllFields();
     void testGpsReportAcceptsBoundaryBearing();
     void testGpsRejectedReportLeavesStateUnchanged();
     void testInactiveConnectivityReportMarksPresence();
@@ -553,6 +554,31 @@ void TestApiRequestHandlers::testGpsReportRejectsInvalidExtras() {
     QCOMPARE(spy.count(), 0);
     QVERIFY(!inbound.gpsValid());
     QVERIFY(!inbound.connected());
+}
+
+// Finding 2: clearGps must reset ALL cached GPS values (legacy parity), not
+// just the valid flag — otherwise stale coordinates leak through readers
+// (e.g. IpcServer::handleCompanionStatus) after the owner disconnects.
+void TestApiRequestHandlers::testClearGpsResetsAllFields() {
+    ApiInboundState inbound;
+    inbound.setGps(45.5, -122.6, 13.4, 275.0, 4.2, 120);
+    QVERIFY(inbound.gpsValid());
+
+    QSignalSpy spy(&inbound, &ApiInboundState::gpsChanged);
+    inbound.clearGps();
+
+    QCOMPARE(spy.count(), 1);            // single emission
+    QVERIFY(!inbound.gpsValid());
+    QVERIFY(inbound.gpsStale());
+    QCOMPARE(inbound.gpsLat(), 0.0);
+    QCOMPARE(inbound.gpsLon(), 0.0);
+    QCOMPARE(inbound.gpsSpeedMps(), 0.0);
+    QCOMPARE(inbound.gpsBearing(), 0.0);
+    QCOMPARE(inbound.gpsAccuracy(), 0.0);
+
+    // Idempotent: a second clear on already-cleared state emits nothing.
+    inbound.clearGps();
+    QCOMPARE(spy.count(), 1);
 }
 
 void TestApiRequestHandlers::testGpsReportAcceptsBoundaryBearing() {

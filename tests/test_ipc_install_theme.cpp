@@ -93,6 +93,25 @@ private slots:
         QVERIFY(resp.value("charging").toBool());
         QCOMPARE(resp.value("source").toString(), QString("api"));
     }
+
+    // Finding 2: after the GPS owner disconnects (clearGps), companion_status
+    // must not leak the last coordinates — clearGps resets lat/lon to 0.
+    void companionStatusClearsStaleGpsAfterOwnerDrop() {
+        QTemporaryDir sockDir;
+        oap::api::ApiInboundState inbound;
+        IpcServer server;
+        server.setInboundState(&inbound);
+        inbound.setGps(45.5, -122.6, 13.4, 275.0, 4.2, 0);
+        inbound.clearGps();   // owner disconnected
+        const QString sockPath = sockDir.path() + "/ipc.sock";
+        QVERIFY(server.start(sockPath));
+
+        QJsonObject req{{"command", "companion_status"}};
+        const QJsonObject resp = roundTrip(sockPath, req);
+        QCOMPARE(resp.value("gps_lat").toDouble(), 0.0);
+        QCOMPARE(resp.value("gps_lon").toDouble(), 0.0);
+        QCOMPARE(resp.value("source").toString(), QString("api"));
+    }
 };
 
 QTEST_MAIN(TestIpcInstallTheme)
