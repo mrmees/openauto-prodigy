@@ -74,7 +74,9 @@ uplink transport, but does not by itself prove A1b will work.
 making `device_supports_codec()` return false for `HFP_AUDIO_CODEC_LC3_SWB`
 (≈3 lines — LC3-SWB drops out of `+BAC`, mSBC stays), rebuild for arm64 in
 the existing Docker aarch64 infra, install on the Pi with `apt-mark hold
-pipewire libspa-0.2-bluez5` (exact package set per what the patch touches).
+libspa-0.2-bluetooth` (T4 finding: that is the real Trixie/RPi-OS binary
+package; the Pi runs RPi OS pipewire `1.4.2-1+rpt3`, and the kit pins the
+strict `libspa-0.2-modules` dep so the lone deb installs cleanly).
 Keep the patch + build script in `tools/` so the package can be rebuilt when
 Debian bumps pipewire. If mSBC ships as the fix, document the hold + rebuild
 procedure in `docs/architecture.md` and the installers get NO drop-in.

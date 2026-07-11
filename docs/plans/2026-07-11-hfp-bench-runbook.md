@@ -46,15 +46,19 @@ Far-end check: call Matthew's second phone, speak at the Pi, listen on the far p
 
 ## 2. Mic — A1b patched-mSBC attempt (only if §1 was audible)
 
+Package facts (T4 build): the real binary package is **`libspa-0.2-bluetooth`** (RPi OS pipewire `1.4.2-1+rpt3`); the patched deb pins its `libspa-0.2-modules` dependency to the stock base version so installing the single deb removes nothing. Full install/revert detail: `tools/pipewire-msbc/README.md`.
+
 ```
-ssh matt@192.168.1.149 'sudo rm /etc/wireplumber/wireplumber.conf.d/50-prodigy-hfp-cvsd.conf && sudo apt install ~/pipewire-msbc/libspa-0.2-bluez5_*+prodigy*_arm64.deb && sudo apt-mark hold libspa-0.2-bluez5'
+ssh matt@192.168.1.149 'sudo rm /etc/wireplumber/wireplumber.conf.d/50-prodigy-hfp-cvsd.conf'
+ssh matt@192.168.1.149 'apt-get -s install ~/pipewire-msbc/libspa-0.2-bluetooth_*+prodigy*_arm64.deb'   # sanity: MUST say "1 upgraded, 0 to remove"
+ssh matt@192.168.1.149 'sudo apt install ~/pipewire-msbc/libspa-0.2-bluetooth_*+prodigy*_arm64.deb && sudo apt-mark hold libspa-0.2-bluetooth'
 ```
 Restart `wireplumber pipewire`, reconnect phone, call, read Codec (expect `y 2` = mSBC — validity gate as above), premise re-check, far-end check.
 
 > RESULT:
 
 - Audible → **mSBC is the shipped fix.** Keep the hold; drop-in stays deleted. Quality note vs CVSD:
-- Silent → revert: `sudo apt-mark unhold libspa-0.2-bluez5 && sudo apt install --reinstall libspa-0.2-bluez5`, re-deploy the §1 drop-in. **CVSD ships.** Finding (software-encode path implicated generally) goes in the upstream report.
+- Silent → revert: `sudo apt-mark unhold libspa-0.2-bluetooth && sudo apt install --reinstall libspa-0.2-bluetooth`, re-deploy the §1 drop-in. **CVSD ships.** Finding (software-encode path implicated generally) goes in the upstream report.
 
 ## 3. L3 — DTMF into a real IVR (5 min, Pixel 8)
 
