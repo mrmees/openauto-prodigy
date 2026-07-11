@@ -10,8 +10,8 @@ Item {
     readonly property int rowSpan: widgetContext ? widgetContext.rowSpan : 1
 
     // Null-safe companion data access
-    readonly property bool companionConnected: CompanionService ? CompanionService.connected : false
-    readonly property int batteryLevel: CompanionService ? CompanionService.phoneBattery : -1
+    readonly property bool companionConnected: CompanionState ? CompanionState.connected : false
+    readonly property int batteryLevel: CompanionState ? CompanionState.phoneBattery : -1
 
     // Orientation: vertical if square or taller, horizontal if wider
     readonly property bool isVertical: height >= width

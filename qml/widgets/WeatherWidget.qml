@@ -27,12 +27,12 @@ Item {
     // IMPORTANT: Use gpsStale to detect GPS availability. Checking lat/lon values
     // would reject valid equator coordinates. gpsStale is the proper signal from
     // CompanionListenerService for "GPS data is available and current".
-    readonly property bool companionConnected: CompanionService ? CompanionService.connected : false
+    readonly property bool companionConnected: CompanionState ? CompanionState.connected : false
     readonly property bool hasGps: companionConnected
-                                   && CompanionService
-                                   && !CompanionService.gpsStale
-    readonly property double gpsLat: CompanionService ? CompanionService.gpsLat : 0
-    readonly property double gpsLon: CompanionService ? CompanionService.gpsLon : 0
+                                   && CompanionState
+                                   && !CompanionState.gpsStale
+    readonly property double gpsLat: CompanionState ? CompanionState.gpsLat : 0
+    readonly property double gpsLon: CompanionState ? CompanionState.gpsLon : 0
 
     // Weather data object (requested imperatively, not in binding)
     property QtObject weatherData: null

@@ -10,12 +10,12 @@ Item {
     readonly property int rowSpan: widgetContext ? widgetContext.rowSpan : 1
 
     // Null-safe companion data access
-    readonly property bool companionConnected: CompanionService ? CompanionService.connected : false
-    readonly property bool gpsStale: CompanionService ? CompanionService.gpsStale : true
+    readonly property bool companionConnected: CompanionState ? CompanionState.connected : false
+    readonly property bool gpsStale: CompanionState ? CompanionState.gpsStale : true
     readonly property bool hasGps: companionConnected && !gpsStale
-    readonly property int battery: CompanionService ? CompanionService.phoneBattery : -1
-    readonly property bool charging: CompanionService ? CompanionService.phoneCharging : false
-    readonly property string proxy: CompanionService ? CompanionService.proxyStatus : ""
+    readonly property int battery: CompanionState ? CompanionState.phoneBattery : -1
+    readonly property bool charging: CompanionState ? CompanionState.phoneCharging : false
+    readonly property bool proxyOn: CompanionState ? CompanionState.proxyActive : false
 
     // Show detail list when wide enough (regardless of connection state)
     readonly property bool showDetails: colSpan >= 2
@@ -134,18 +134,18 @@ Item {
             spacing: UiMetrics.spacing * 0.5
             Layout.fillHeight: true
             MaterialIcon {
-                icon: companionStatusWidget.proxy === "active"
+                icon: companionStatusWidget.proxyOn
                       ? "\ue1e2" : "\uf087"  // wifi_tethering / wifi_tethering_off
                 size: companionStatusWidget.detailIconSize
-                color: companionStatusWidget.proxy === "active"
+                color: companionStatusWidget.proxyOn
                        ? ThemeService.primary : ThemeService.onSurfaceVariant
             }
             NormalText {
-                text: companionStatusWidget.proxy === "active" ? "Proxy On" : "Proxy Off"
+                text: companionStatusWidget.proxyOn ? "Proxy On" : "Proxy Off"
                 font.pixelSize: companionStatusWidget.detailFontSize
                 fontSizeMode: Text.Fit
                 minimumPixelSize: UiMetrics.fontSmall
-                color: companionStatusWidget.proxy === "active"
+                color: companionStatusWidget.proxyOn
                        ? ThemeService.onSurface : ThemeService.onSurfaceVariant
                 Layout.fillWidth: true
             }

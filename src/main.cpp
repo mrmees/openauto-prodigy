@@ -1282,6 +1282,13 @@ int main(int argc, char *argv[])
     if (!apiServer->start())
         qWarning() << "[main] External API disabled or failed to start";
     engine.rootContext()->setContextProperty("ApiService", apiServer);
+    // Companion phone reports (GPS / battery / connectivity) surfaced to QML
+    // widgets via API v1 inbound state (design §B0b). ApiServer is constructed
+    // above — well before engine.load() below — so this is set before the
+    // null-guarded widgets first paint; no hoist of the ApiServer construction
+    // was required. The legacy CompanionService property remains for now
+    // (CompanionSettings.qml still reads it; removal is B2).
+    engine.rootContext()->setContextProperty("CompanionState", apiServer->inboundState());
     QObject::connect(apiServer->inboundState(), &oap::api::ApiInboundState::proxyRouteChanged,
                      &app, [systemClient](bool active, const QString& host, quint16 port,
                                           const QString& password) {
