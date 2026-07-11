@@ -76,14 +76,20 @@ private:
                                                       QString* detail);
     void forwardInvocation(const QString& id, const QVariant& payload);
     static bool hasReservedPrefix(const QString& id);
+    // Re-derive `connected` from the live report owners: present when any
+    // report type still has an owning session (connectivity owner counts).
+    void recomputeOwnerPresence();
 
     Deps deps_;
     QHash<QString, ApiSession*> clientOwners_;   // action id -> owning session
     QHash<QString, QString> clientLabels_;        // action id -> display label
     QHash<ApiSession*, QSet<QString>> notificationOwners_;
-    // Route ownership = last session to assert an active proxy route; cleared
-    // (and the route torn down) when that session closes. Legacy
-    // CompanionListenerService parity (clearClientSession() -> setProxyRoute(false)).
+    // Per-report-type ownership = last session to source that report; cleared
+    // (and the cached state torn down) when that session closes. Legacy
+    // CompanionListenerService parity (clearClientSession() clears everything
+    // the departing companion had reported).
+    ApiSession* gpsOwner_ = nullptr;
+    ApiSession* batteryOwner_ = nullptr;
     ApiSession* connectivityOwner_ = nullptr;
 };
 

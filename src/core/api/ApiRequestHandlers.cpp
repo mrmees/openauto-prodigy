@@ -138,14 +138,32 @@ void ApiRequestHandlers::sessionClosed(ApiSession* session) {
     // tracking for this (now dead) session is dropped.
     notificationOwners_.remove(session);
 
-    // If this session owned the proxy route, tear it down (legacy
-    // CompanionListenerService parity: clearClientSession() -> setProxyRoute
-    // (false)). A non-owner closing must never touch connectivity state.
+    // Clear every report type this session owned (legacy
+    // CompanionListenerService parity: clearClientSession() drops everything
+    // the departing companion had reported). A non-owner closing must never
+    // touch a report type it doesn't own.
+    if (session == gpsOwner_) {
+        gpsOwner_ = nullptr;
+        if (deps_.inbound) deps_.inbound->clearGps();
+    }
+    if (session == batteryOwner_) {
+        batteryOwner_ = nullptr;
+        if (deps_.inbound) deps_.inbound->clearBattery();
+    }
     if (session == connectivityOwner_) {
         connectivityOwner_ = nullptr;
         if (deps_.inbound)
             deps_.inbound->setConnectivity(QString(), false, 0, QString());
     }
+    // Owner-presence follows the surviving owners (false once none remain).
+    recomputeOwnerPresence();
+}
+
+void ApiRequestHandlers::recomputeOwnerPresence() {
+    const bool present =
+        gpsOwner_ != nullptr || batteryOwner_ != nullptr || connectivityOwner_ != nullptr;
+    if (deps_.inbound)
+        deps_.inbound->setOwnerPresent(present);
 }
 
 // ---- Actions ---------------------------------------------------------------
@@ -345,7 +363,10 @@ void ApiRequestHandlers::handleReport(ApiSession* session, const pb::ApiMessage&
                            << "lon=" << lon;
                 return;
             }
-            deps_.inbound->setGps(lat, lon, r.speed_mps());
+            deps_.inbound->setGps(lat, lon, r.speed_mps(), r.bearing_deg(),
+                                  r.accuracy_m(), r.age_ms());
+            gpsOwner_ = session;
+            recomputeOwnerPresence();
             break;
         }
         case pb::ApiMessage::kBatteryReport: {
@@ -356,6 +377,8 @@ void ApiRequestHandlers::handleReport(ApiSession* session, const pb::ApiMessage&
                 return;
             }
             deps_.inbound->setBattery(static_cast<int>(r.percent()), r.charging());
+            batteryOwner_ = session;
+            recomputeOwnerPresence();
             break;
         }
         case pb::ApiMessage::kConnectivityReport: {
@@ -382,6 +405,7 @@ void ApiRequestHandlers::handleReport(ApiSession* session, const pb::ApiMessage&
             // reports inactive is the last writer, matching the existing
             // last-writer-wins global-state model).
             connectivityOwner_ = active ? session : nullptr;
+            recomputeOwnerPresence();
             break;
         }
         case pb::ApiMessage::kTimeReport: {
