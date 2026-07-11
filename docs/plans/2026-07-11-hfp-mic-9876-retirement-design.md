@@ -37,30 +37,47 @@ decision.
 
 ## 2. Workstream A — HFP
 
-### A1. Mic fix: force-CVSD WirePlumber pin (top priority)
+### A1. Mic fix: two prepped codec interventions, one bench (top priority)
 
-**Mechanism** (verified against PipeWire source at both 1.2 and current
-master — the 1.4 series between them has identical HFP gating; the new
-`lc3-a127` knob is a separate codec, not LC3-SWB): the HF advertises codecs
-via `AT+BAC` built from `device_supports_codec()`
+**Mechanism** (verified against PipeWire source at 1.2, 1.4 — the Pi's
+series — and master, plus repo-wide code search of pipewire and wireplumber):
+the HF advertises codecs via `AT+BAC` built from `device_supports_codec()`
 (`spa/plugins/bluez5/backend-native.c`). mSBC **and** LC3-SWB are both gated
-by the same `SPA_BT_FEATURE_MSBC` feature bit; there is no LC3-SWB-only
-toggle, and `bluez5.codecs` is A2DP-only (why the 2026-07-05 drop-in attempt
-failed). Therefore `bluez5.enable-msbc = false` removes both wideband codecs
-from `+BAC` → the AG must select **CVSD** (codec id 1, classic narrowband).
+by the same `SPA_BT_FEATURE_MSBC` feature bit; no LC3-SWB-only toggle exists
+in any branch (`bluez5.enable-swb` is an AI hallucination — zero hits
+repo-wide), and `bluez5.codecs` feeds only the A2DP/media codec machinery in
+`bluez5-dbus.c` — the native HFP backend never reads it (why the 2026-07-05
+drop-in attempt failed live). **Consequence: mSBC-without-LC3-SWB is
+unreachable by configuration; the only levers are the shared feature bit
+(→ CVSD) or a source patch (→ mSBC).** Matthew wants mSBC quality, so both
+interventions are prepped before the bench and tested in one sitting:
 
-**Change:** ship a WirePlumber drop-in as `config/50-prodigy-hfp-cvsd.conf`
-(sibling of the existing udev/polkit assets), installed to
-`/etc/wireplumber/wireplumber.conf.d/` (directory creation + fixed
-permissions) by **both** `install.sh` and `install-prebuilt.sh`; deploy to the
-bench Pi manually for Stage 2. Document in `docs/architecture.md`'s audio
-section.
+**A1a — CVSD drop-in (config, the diagnostic).** Ship
+`config/50-prodigy-hfp-cvsd.conf` (sibling of the existing udev/polkit
+assets), installed to `/etc/wireplumber/wireplumber.conf.d/` (directory
+creation + fixed permissions) by **both** `install.sh` and
+`install-prebuilt.sh` — installer wiring happens only if A1a ends up the
+shipped fix. Deploy to the bench Pi manually for Stage 2.
 
 ```
 monitor.bluez.properties = {
   bluez5.enable-msbc = false
 }
 ```
+
+Note: CVSD is encoded in the BT controller hardware, while mSBC and LC3-SWB
+both use software encode over transparent eSCO — so A1a working proves the
+uplink transport, but does not by itself prove A1b will work.
+
+**A1b — patched-mSBC PipeWire build (the preferred fix).** Pull the Debian
+`pipewire` source package matching the Pi (1.4.x), add a minimal quilt patch
+making `device_supports_codec()` return false for `HFP_AUDIO_CODEC_LC3_SWB`
+(≈3 lines — LC3-SWB drops out of `+BAC`, mSBC stays), rebuild for arm64 in
+the existing Docker aarch64 infra, install on the Pi with `apt-mark hold
+pipewire libspa-0.2-bluez5` (exact package set per what the patch touches).
+Keep the patch + build script in `tools/` so the package can be rebuilt when
+Debian bumps pipewire. If mSBC ships as the fix, document the hold + rebuild
+procedure in `docs/architecture.md` and the installers get NO drop-in.
 
 **Bench verification (runbook §A3), in order:**
 1. Record the substrate: `pipewire --version`, `wireplumber --version`,
@@ -75,27 +92,32 @@ monitor.bluez.properties = {
    /org/pipewire/Telephony/ag1
    org.pipewire.Telephony.AudioGatewayTransport1 Codec`.
 
-**Decision tree (three outcomes, not two):**
-- **Codec = 1:** pin took effect → run the uplink test (far-end listener).
-- **Codec = 2 or 3:** the pin did NOT take effect — this says nothing about
-  the codec hypothesis. Debug the config path (user overrides, fragment
-  parsing, service environment, restart/reconnect), do not interpret audio.
-- **Transport absent / no Telephony object:** restore the BT/HFP connection
-  before drawing any conclusion.
+**Per-attempt validity gate (applies to BOTH A1a and A1b):** an intervention
+is only "in effect" when the expected codec is observed — A1a expects
+`Codec = 1`, A1b expects `Codec = 2`. Any other value = the intervention did
+not take; debug the config/package path (user-fragment overrides, fragment
+parsing, service environment, restart/reconnect, package actually installed),
+do not interpret audio. Transport absent → restore the BT/HFP connection
+first. And silence is only meaningful with premises re-established during the
+same call — a wireplumber restart can silently change the default source,
+links, or node states, so repeat the minimal L6 controls each attempt: SCO
+uplink node Running; intended mic linked to `bluez_output…:input_MONO`
+(`pw-link -l`); nonzero capture level from the mic path; downlink audible;
+neither end muted.
 
-**CVSD-silent is only meaningful with premises re-established.** A wireplumber
-restart can silently change the default source, links, or node states, so
-during the same codec-1 call repeat the minimal L6 controls before declaring
-the codec hypothesis dead: SCO uplink node Running; intended mic linked to
-`bluez_output…:input_MONO` (`pw-link -l`); nonzero capture level from the mic
-path; downlink audible; neither end muted. Only then:
-- CVSD uplink audible → pin stays, phase item done. Draft the upstream
-  PipeWire issue (LC3-SWB HFP uplink silent at far end; L6 + this bench's
-  evidence); **Matthew reviews and approves the text before anything is posted
-  externally.**
-- CVSD uplink silent **with all premises green** → codec hypothesis dead.
-  Stop; record findings; regroup as its own
-  `superpowers:systematic-debugging` investigation. No bench rabbit-holing.
+**Bench order + decision tree:**
+1. **A1a (CVSD) first.** Audible → uplink transport works; bug is in the
+   wideband/software-encode path. Silent with premises green → codec
+   hypothesis dead; skip A1b (it shares the transport), stop, record, regroup
+   as its own `superpowers:systematic-debugging` investigation.
+2. **A1b (mSBC) second** (only if A1a was audible). Audible → **mSBC is the
+   shipped fix** (remove the A1a drop-in; hold + rebuild procedure
+   documented). Silent → the bug covers software-encode/transparent-eSCO
+   generally, not just LC3-SWB; **CVSD becomes the shipped fix** (installer
+   wiring for the drop-in) and that finding goes in the upstream report.
+3. Either way: draft the upstream PipeWire issue (LC3-SWB HFP uplink silent
+   at far end, plus the A1b datapoint; L6 + this bench's evidence). **Matthew
+   reviews and approves the text before anything is posted externally.**
 
 ### A2. Dead-slot D-Bus fixes (no bench required)
 
@@ -143,8 +165,8 @@ every D-Bus subscription returned true on the Pi (not merely the absence of
 
 One self-contained doc, `docs/plans/2026-07-11-hfp-bench-runbook.md`, ordered:
 
-1. Substrate recording + override check + mic/CVSD verification per A1's
-   decision tree — first, it's the priority.
+1. Substrate recording + override check + the A1a→A1b codec sequence per
+   A1's decision tree — first, it's the priority.
 2. L3 — DTMF into a real IVR (`SendTones`); resolves the `can_send_dtmf`
    coupling question.
 3. L4 — the unexercised `RejectSCO=true` half under AA projection (Pixel 8);
@@ -252,7 +274,7 @@ Full inventory (sol P2.6/P2.9/P3.11 — the pre-review spec missed most of it):
 
 | Stage | What | Needs Matthew? |
 |---|---|---|
-| 1 (parallel, now) | A2 dead-slot fixes; A1 drop-in prepped + deployed; A3 runbook; **B0 parity + consumer migration (deployed to Pi)**; B1 prompt authored | No (he runs B1's prompt in the companion repo whenever) |
+| 1 (parallel, now) | A2 dead-slot fixes; A1a drop-in + A1b patched deb both prepped (deb staged on the Pi, not installed); A3 runbook; **B0 parity + consumer migration (deployed to Pi)**; B1 prompt authored | No (he runs B1's prompt in the companion repo whenever) |
 | 2 | Bench session, runbook top to bottom; §A3.6 runs with `companion.enabled: false` — companion proven on v1 exclusively | Yes (~45-60 min, phones + Pi) |
 | 3 | Post-bench: record L-results; upstream issue draft → Matthew approves; B2 teardown; codex review gate (`bash scripts/codex-review.sh`); handoff entry; ship | Approval points only |
 
@@ -266,8 +288,10 @@ Matthew at ship time.
 
 ## 5. Success criteria
 
-- Far end hears prodigy on a live call — codec property = 1 first, minimal
-  L6 controls green during the same call, then audibility confirmed.
+- Far end hears prodigy on a live call — expected codec property observed
+  for the attempt (1 for CVSD, 2 for the mSBC patch), minimal L6 controls
+  green during the same call, then audibility confirmed; shipped fix is mSBC
+  if A1b passes, else CVSD.
 - L3/L4/L5 + L6-tail rows recorded; `can_send_dtmf` decision resolved by L3.
 - Positive startup logging: every PhoneStateService/BtAudioPlugin D-Bus
   subscription logged true on the Pi; new unit tests (incl. sender-path
