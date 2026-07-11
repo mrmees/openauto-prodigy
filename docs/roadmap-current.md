@@ -47,6 +47,10 @@ Governance: capture new ideas in `docs/wishlist.md`; only promoted items should 
 
 ## Now
 
+- HFP mic fix + live checks + 9876 retirement stage-1 — **code-complete (2026-07-11)**; design + plan in `docs/plans/2026-07-11-hfp-mic-9876-retirement-{design,plan}.md`.
+  - Shipped on the phase branch: dead-slot D-Bus fixes (PhoneStateService hot-plug, BtAudioPlugin slots + sender filtering), CVSD WirePlumber drop-in (A1a), patched-mSBC PipeWire build kit (A1b), ApiInboundState parity + all consumers migrated to `CompanionState` (widgets, CompanionSettings status, IPC `companion_status`).
+  - Remaining: bench session with Matthew (`docs/plans/2026-07-11-hfp-bench-runbook.md` — mic codec A1a→A1b, L3/L4/L5/L6-tail, companion cutover validation with 9876 disabled); companion-side migration runs from `personal/openautopro/companion-9876-migration-prompt.md`; B2 teardown planned post-bench.
+
 - Local media player plugin — **stage 2 (library + USB automount) code-complete + gated (2026-07-10)**; Pi deploy + stage-2 bench rows pending Matthew. Stage 1 shipped + benched 2026-07-09.
   - Stage 1 shipped (develop @ `2aeb411`, 18 commits): MediaPlayerPlugin (folder browse + now-playing bar), PlaybackEngine (QMediaPlayer PCM tap → AudioService, spike-gated GO), PlayQueue (shuffle/repeat, TDD), FolderModel, MediaArtProvider, 3-source playing-wins arbitration, NowPlayingWidget (art/progress/source badge/transport), API v1 LOCAL_MEDIA source + position fields. Suite 114/114 green; cross-build + Pi deploy verified healthy (service active, plugin registered, NRestarts=0).
   - Remaining stage 1: 12-row bench checklist with Matthew (touch/audible rows — see session-handoffs 2026-07-08 deploy record), then review + push.
@@ -69,7 +73,7 @@ Governance: capture new ideas in `docs/wishlist.md`; only promoted items should 
   - Delta narrowed 2026-07-07: companion theme/wallpaper upload (`/api/theme/install`) and the web-config themes page both exist; remaining is an audit of in-car theme selection UX.
 - Companion app work — head-unit side DONE; ball is in the companion's court.
   - The companion (Android app, sibling repo `personal/openautopro/openauto-companion`) migrates from the legacy port-9876 JSON/HMAC protocol to API v1 (WebSocket + PIN pairing, `companion.proto` reports) + the new theme-upload HTTP endpoint. All head-unit prerequisites have shipped: API v1 + v1.1 additive batch (2026-07-06) and the theme-upload endpoint (2026-07-07, contract handed off).
-  - Remaining (this repo): **retire `CompanionListenerService` + port 9876** once the companion ships its API v1 + HTTP theme client. At retirement: dedup the camelCase→hyphen conversion + fix-or-delete the legacy RNG hygiene items (see wishlist).
+  - Remaining (this repo): **retire `CompanionListenerService` + port 9876** once the companion ships its API v1 client and the cutover validates at the bench — now governed by `docs/plans/2026-07-11-hfp-mic-9876-retirement-design.md` §B2 (teardown inventory incl. the camelCase→hyphen dedup + RNG hygiene items; stage-1 status in the "Now" entry above).
   - Companion-parity follow-up idea (wishlist, not promoted): phone notifications displayed on the head unit — blockers dissolved (NotificationService + overlay framework both exist), but it waits on the companion's API v1 migration.
 - Streaming web apps (WebAppHost) — fullscreen Spotify/YouTube/parked-video surface
   riding the slice-1 Widevine wiring. Scoped (Decision 3 of the web-surface spec);
