@@ -29,6 +29,11 @@ private slots:
     void testAgVanishResetsToIdle();
     void testDialGuards();
     void testSetupDisconnectedEndsImmediately();
+
+    // --- HFP hot-plug: registered map slot + adoptBluezDevice seam ---
+    void adoptBluezDevice_connectedHfpPhone_adopts();
+    void adoptBluezDevice_nonHfp_ignored();
+    void interfacesAdded_payloadConsumed_noBusReadback();
 };
 
 void TestPhoneStateService::testImplementsICallStateProvider() {
@@ -260,6 +265,54 @@ void TestPhoneStateService::testSetupDisconnectedEndsImmediately() {
     QVERIFY(s->callerNumber().isEmpty());
     s->onCallSetupEnded();                      // subsequent removal: no-op
     QCOMPARE(s->callState(), (int)CS::Idle);
+}
+
+// --- HFP hot-plug: registered map slot + adoptBluezDevice seam ---
+
+void TestPhoneStateService::adoptBluezDevice_connectedHfpPhone_adopts()
+{
+    oap::PhoneStateService svc;
+    QSignalSpy spy(&svc, &oap::PhoneStateService::connectionChanged);
+    QVariantMap props{
+        {QStringLiteral("Connected"), true},
+        {QStringLiteral("Alias"), QStringLiteral("Pixel 8")},
+        {QStringLiteral("UUIDs"), QStringList{QStringLiteral("0000111e-0000-1000-8000-00805f9b34fb")}},
+    };
+    svc.adoptBluezDevice(QStringLiteral("/org/bluez/hci0/dev_AA_BB"), props);
+    QCOMPARE(spy.count(), 1);
+    QVERIFY(svc.phoneConnected());
+    QCOMPARE(svc.deviceName(), QStringLiteral("Pixel 8"));
+}
+
+void TestPhoneStateService::adoptBluezDevice_nonHfp_ignored()
+{
+    oap::PhoneStateService svc;
+    QSignalSpy spy(&svc, &oap::PhoneStateService::connectionChanged);
+    QVariantMap props{
+        {QStringLiteral("Connected"), true},
+        {QStringLiteral("UUIDs"), QStringList{QStringLiteral("0000110b-0000-1000-8000-00805f9b34fb")}}, // A2DP sink only
+    };
+    svc.adoptBluezDevice(QStringLiteral("/org/bluez/hci0/dev_CC_DD"), props);
+    QCOMPARE(spy.count(), 0);
+    QVERIFY(!svc.phoneConnected());
+}
+
+void TestPhoneStateService::interfacesAdded_payloadConsumed_noBusReadback()
+{
+    oap::PhoneStateService svc;
+    QSignalSpy spy(&svc, &oap::PhoneStateService::connectionChanged);
+    oap::BluezInterfaceMap ifaces;
+    ifaces.insert(QStringLiteral("org.bluez.Device1"), QVariantMap{
+        {QStringLiteral("Connected"), true},
+        {QStringLiteral("Alias"), QStringLiteral("Pixel 8")},
+        {QStringLiteral("UUIDs"), QStringList{QStringLiteral("0000111e-0000-1000-8000-00805f9b34fb")}},
+    });
+    // private slot → invoke through the meta-object (also proves the
+    // signature is invokable with the registered type)
+    QMetaObject::invokeMethod(&svc, "onInterfacesAdded", Qt::DirectConnection,
+        Q_ARG(QDBusObjectPath, QDBusObjectPath(QStringLiteral("/org/bluez/hci0/dev_AA_BB"))),
+        Q_ARG(oap::BluezInterfaceMap, ifaces));
+    QCOMPARE(spy.count(), 1);
 }
 
 QTEST_GUILESS_MAIN(TestPhoneStateService)
