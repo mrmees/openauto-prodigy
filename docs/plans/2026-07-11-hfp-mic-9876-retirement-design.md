@@ -2,6 +2,8 @@
 
 Status: ACTIVE
 Grounded on: `ae7bf8b` (dev == main, 2026-07-11)
+Revised: 2026-07-11 after sol (gpt-5.6-sol) design review — verdict REWORK,
+12/12 findings confirmed and incorporated (3 P1, 7 P2, 2 P3; none dismissed).
 Design doc lineage: extends `docs/archive/plans/2026-07-05-hfp-call-audio-design.md` (D2, esp. §11 L-results) and the 9876 gate in `docs/roadmap-current.md` (Later §, companion migration).
 
 ## 1. Why
@@ -19,13 +21,15 @@ Three items, one phase:
 2. **Deferred HFP live checks** — L3 (DTMF), L4 (`RejectSCO=true` half), L5
    (Samsung S25 Ultra / Moto G Play interop), L6 tail (volume sync, echo/levels)
    never ran.
-3. **Port-9876 retirement** — every head-unit prerequisite shipped (API v1 on
-   9810/9811, theme upload via web-config HTTP). The legacy
-   `CompanionListenerService` survives only because the companion app still
-   sends non-theme status traffic (time/GPS/battery/charging/proxy) over 9876.
-   Closing the gate = companion swaps that traffic to API v1 (Matthew drives
-   that repo via a handoff prompt authored here), then this repo deletes the
-   service.
+3. **Port-9876 retirement** — API v1 (9810/9811) and the HTTP theme endpoint
+   shipped; the legacy `CompanionListenerService` survives only because the
+   companion app still sends non-theme status traffic (time/GPS/battery/
+   charging/proxy) over 9876. Closing the gate requires, in order: head-unit
+   **inbound-state parity + consumer migration** (B0 — sol found the API path
+   is not yet at semantic parity and four QML surfaces still read the legacy
+   object), the companion swapping its traffic to v1 (B1, Matthew drives that
+   repo via a handoff prompt authored here), a cutover validation with 9876
+   **disabled**, and only then deletion (B2).
 
 Out of scope: persistent call bar (stays on `docs/wishlist.md`), EQ parity
 audit, any LC3-SWB investigation beyond the upstream bug report, A2DP support
@@ -35,17 +39,22 @@ decision.
 
 ### A1. Mic fix: force-CVSD WirePlumber pin (top priority)
 
-**Mechanism** (verified against PipeWire 1.2 source, `spa/plugins/bluez5/
-{backend-native.c,quirks.c}`): the HF advertises codecs via `AT+BAC` built from
-`device_supports_codec()`. mSBC **and** LC3-SWB are both gated by the same
-`SPA_BT_FEATURE_MSBC` feature bit; there is no LC3-SWB-only toggle in 1.2, and
-`bluez5.codecs` is A2DP-only (why the 2026-07-05 drop-in attempt failed).
-Therefore `bluez5.enable-msbc = false` removes both wideband codecs from
-`+BAC` → the AG must select **CVSD** (codec id 1, classic narrowband — the
-codec every BT car kit used for decades).
+**Mechanism** (verified against PipeWire source at both 1.2 and current
+master — the 1.4 series between them has identical HFP gating; the new
+`lc3-a127` knob is a separate codec, not LC3-SWB): the HF advertises codecs
+via `AT+BAC` built from `device_supports_codec()`
+(`spa/plugins/bluez5/backend-native.c`). mSBC **and** LC3-SWB are both gated
+by the same `SPA_BT_FEATURE_MSBC` feature bit; there is no LC3-SWB-only
+toggle, and `bluez5.codecs` is A2DP-only (why the 2026-07-05 drop-in attempt
+failed). Therefore `bluez5.enable-msbc = false` removes both wideband codecs
+from `+BAC` → the AG must select **CVSD** (codec id 1, classic narrowband).
 
-**Change:** ship a WirePlumber drop-in, deployed to the Pi at
-`/etc/wireplumber/wireplumber.conf.d/50-prodigy-hfp-cvsd.conf`:
+**Change:** ship a WirePlumber drop-in as `config/50-prodigy-hfp-cvsd.conf`
+(sibling of the existing udev/polkit assets), installed to
+`/etc/wireplumber/wireplumber.conf.d/` (directory creation + fixed
+permissions) by **both** `install.sh` and `install-prebuilt.sh`; deploy to the
+bench Pi manually for Stage 2. Document in `docs/architecture.md`'s audio
+section.
 
 ```
 monitor.bluez.properties = {
@@ -53,62 +62,100 @@ monitor.bluez.properties = {
 }
 ```
 
-Add the file to the repo as `config/50-prodigy-hfp-cvsd.conf` (sibling of the
-existing udev/polkit assets) with an `install.sh` step copying it to
-`/etc/wireplumber/wireplumber.conf.d/`; deploy it to the bench Pi manually for
-Stage 2. Document it in `docs/architecture.md`'s audio section.
+**Bench verification (runbook §A3), in order:**
+1. Record the substrate: `pipewire --version`, `wireplumber --version`,
+   `bluetoothctl --version` (expected PipeWire 1.4.2 per the D2
+   implementation notes — the archived doc, not this spec, is authoritative
+   for what the Pi runs).
+2. Check `~/.config/wireplumber/wireplumber.conf.d/` and
+   `WIREPLUMBER_CONFIG_DIR` for user-level fragments that would override the
+   `/etc` drop-in.
+3. Restart wireplumber, HFP-connect, place a call, read
+   `busctl --user get-property org.pipewire.Telephony
+   /org/pipewire/Telephony/ag1
+   org.pipewire.Telephony.AudioGatewayTransport1 Codec`.
 
-**Bench verification (runbook §A3):** restart wireplumber → place a call →
-`busctl --user get-property org.pipewire.Telephony /org/pipewire/Telephony/ag1
-org.pipewire.Telephony.AudioGatewayTransport1 Codec` must return `1` → far-end
-listener confirms uplink audible.
+**Decision tree (three outcomes, not two):**
+- **Codec = 1:** pin took effect → run the uplink test (far-end listener).
+- **Codec = 2 or 3:** the pin did NOT take effect — this says nothing about
+  the codec hypothesis. Debug the config path (user overrides, fragment
+  parsing, service environment, restart/reconnect), do not interpret audio.
+- **Transport absent / no Telephony object:** restore the BT/HFP connection
+  before drawing any conclusion.
 
-**Decision rules:**
+**CVSD-silent is only meaningful with premises re-established.** A wireplumber
+restart can silently change the default source, links, or node states, so
+during the same codec-1 call repeat the minimal L6 controls before declaring
+the codec hypothesis dead: SCO uplink node Running; intended mic linked to
+`bluez_output…:input_MONO` (`pw-link -l`); nonzero capture level from the mic
+path; downlink audible; neither end muted. Only then:
 - CVSD uplink audible → pin stays, phase item done. Draft the upstream
-  PipeWire issue (LC3-SWB HFP uplink silent at far end; attach L6 + this
-  bench's evidence); **Matthew reviews and approves the text before anything is
-  posted externally.**
-- CVSD uplink **also** silent → the codec hypothesis is dead. Stop; do not
-  iterate at the bench. Record findings, regroup with
-  `superpowers:systematic-debugging` as its own investigation.
+  PipeWire issue (LC3-SWB HFP uplink silent at far end; L6 + this bench's
+  evidence); **Matthew reviews and approves the text before anything is posted
+  externally.**
+- CVSD uplink silent **with all premises green** → codec hypothesis dead.
+  Stop; record findings; regroup as its own
+  `superpowers:systematic-debugging` investigation. No bench rabbit-holing.
 
 ### A2. Dead-slot D-Bus fixes (no bench required)
 
-Same bug class as the USB bench saga: `a{sa{sv}}` never delivers to a
-`QVariantMap` slot; the connect fails at startup ("Could not connect" in the
-journal) and the slot is silently dead.
+Same bug family as the USB bench saga, but sol's review sharpened the
+diagnosis — the two files fail differently:
 
-- `src/core/services/PhoneStateService.cpp` (~:319, :343): `InterfacesAdded` →
-  `SLOT(onInterfacesAdded(QDBusObjectPath,QVariantMap))` — dead. Masked today
-  because the initial `GetManagedObjects` scan demarshals manually and
-  `PropertiesChanged` is correctly typed; the broken path is a phone that
-  HFP-appears *after* startup (fresh pairing / re-pair).
-- `src/plugins/bt_audio/BtAudioPlugin.cpp` (~:89, :123): same dead
-  `InterfacesAdded` pattern, and its `PropertiesChanged` connect also fails per
-  the startup journal (see `docs/session-handoffs.md` 2026-07-10 entry). Masked
-  by agent/profile callbacks. This closes the standing "BT plugin still broken"
-  note.
+**`PhoneStateService`** (`src/core/services/PhoneStateService.cpp` ~:319,
+:343): `InterfacesAdded` connected to a `QVariantMap` slot — the `a{sa{sv}}`
+type mismatch; connect fails at startup. Masked because the initial
+`GetManagedObjects` scan demarshals manually and `PropertiesChanged` is
+correctly typed; the broken path is a phone that HFP-appears *after* startup
+(fresh pairing / re-pair). Additional defect (sol P2.4): the current
+`onInterfacesAdded` discards its payload (`Q_UNUSED`) and performs a second,
+racy live D-Bus read — and no test seam can exercise it.
+**Fix:** register `QMap<QString,QVariantMap>` (the `UsbMediaWatcher`
+pattern), retype the slot, and refactor to a testable
+`adoptBluezDevice(path, propertyMap)` helper consumed by BOTH the initial
+scan and the signal handler — the handler uses the delivered `Device1`
+property map instead of re-reading the bus. Unit tests drive
+`adoptBluezDevice` and the retyped slot with synthetic payloads (extend
+`tests/test_phone_state_service.cpp` with this new seam — it does not exist
+yet).
 
-**Fix pattern** (copy `UsbMediaWatcher`): register
-`QMap<QString,QVariantMap>` via `qDBusRegisterMetaType`, type the slots to
-match the real signature. Unit tests drive the slots with synthetic payloads
-(existing test seams in `tests/test_phone_state_service.cpp`); acceptance also
-includes a Pi startup journal free of `Could not connect` for these two files.
+**`BtAudioPlugin`** (`src/plugins/bt_audio/BtAudioPlugin.cpp` ~:83-106,
+disconnects ~:119-133): all three handlers (`onInterfacesAdded`,
+`onInterfacesRemoved`, `onPropertiesChanged`) are declared under plain
+`private:` — **not slots at all** (`BtAudioPlugin.hpp` ~:109-116), so all
+three string-based connects fail regardless of argument types.
+**Fix:** move all three under `private slots:`; retype **only**
+`InterfacesAdded` to the registered map alias (`InterfacesRemoved`'s
+`(o, as)` and `PropertiesChanged`'s `(s, a{sv}, as)` signatures are already
+correct as written); add a trailing `QDBusMessage` parameter to
+`onPropertiesChanged` and filter by sender path against
+`transportPath_`/`playerPath_` (sol P2.5 — once the connect works, every
+BlueZ object's updates would otherwise stomp the selected transport/player);
+capture and log every `QDBusConnection::connect()` return value (the
+`TelephonyClient`/`UsbMediaWatcher` pattern); dedicated test seam + tests,
+including one asserting updates from an unrelated object path are ignored.
+
+**Acceptance for both:** unit tests green; **positive** startup logging shows
+every D-Bus subscription returned true on the Pi (not merely the absence of
+"Could not connect").
 
 ### A3. Bench runbook (authored now, executed by Matthew at the bench)
 
 One self-contained doc, `docs/plans/2026-07-11-hfp-bench-runbook.md`, ordered:
 
-1. Mic/CVSD verification (A1) — first, it's the priority.
-2. L3 — DTMF into a real IVR (`SendTones`).
+1. Substrate recording + override check + mic/CVSD verification per A1's
+   decision tree — first, it's the priority.
+2. L3 — DTMF into a real IVR (`SendTones`); resolves the `can_send_dtmf`
+   coupling question.
 3. L4 — the unexercised `RejectSCO=true` half under AA projection (Pixel 8);
-   default stays `false` unless the §6 decision rule from the D2 design fires.
-4. L5 — interop rows: Samsung S25 Ultra, Moto G Play 2024 (codec, ring, answer
-   from head unit, outgoing dial, hangup, caller-ID).
+   default stays `false` unless the D2 §6 decision rule fires.
+4. L5 — interop rows: Samsung S25 Ultra, Moto G Play 2024 (codec, ring,
+   answer from head unit, outgoing dial, hangup, caller-ID).
 5. L6 tail — phone volume rocker tracking, echo/level subjective check (now
    meaningful with an audible uplink).
-6. Companion v1 live validation (B1's checklist tail: pairing window, reports
-   visible via ApiInboundState).
+6. Companion v1 cutover validation — **with the legacy listener disabled**
+   (`companion.enabled: false`, restart; `ss -ltnp` shows nothing on 9876 and
+   a connection attempt is refused). Per-payload observable checks (§5).
 
 Every row records its result inline in the runbook, with a summary in
 `docs/session-handoffs.md` — the archived D2 doc is history and is not edited.
@@ -116,6 +163,35 @@ Interop failures on Samsung/Moto are recorded and triaged separately; they do
 not block the phase.
 
 ## 3. Workstream B — Port-9876 retirement
+
+### B0. Head-unit inbound-state parity + consumer migration (NEW — before any cutover)
+
+Sol's review (P2.6/P2.7) established that proto coverage is **complete** — no
+additive fields needed — but `ApiInboundState` is not at semantic parity with
+the legacy service, and four QML surfaces plus IPC still read the legacy
+object. Deleting the service without this work breaks live UI. Tasks:
+
+- **Report semantics parity** (`src/core/api/ApiRequestHandlers.cpp`,
+  `ApiInboundState.{hpp,cpp}`): consume and expose GPS `age_ms`, accuracy,
+  bearing (currently dropped, handler forwards only lat/lon/speed); define
+  GPS staleness (report age + local elapsed time — `gpsValid` currently never
+  goes stale); track last-writer ownership **per report type** and clear that
+  report's state when its owner disconnects (legacy cleared GPS/battery/
+  connectivity on disconnect; API today clears only proxy ownership).
+- **"Companion connected" semantics:** define as report ownership/freshness
+  (an authenticated API session alone is not evidence — web widgets and other
+  clients connect too), or delete the UI concept. Default: freshness-based.
+- **Consumer migration** (while legacy still runs — dual-read window is fine,
+  dual-write is not): `qml/widgets/BatteryWidget.qml`,
+  `qml/widgets/WeatherWidget.qml`, `qml/widgets/CompanionStatusWidget.qml`,
+  `qml/applications/settings/CompanionSettings.qml` (decide: migrate to API
+  pairing/state vs. merge into API settings surface — executor proposes,
+  Matthew picks), the `CompanionService` root-context exposure
+  (`src/main.cpp` ~:1223), and `IpcServer` `companion_status`
+  (`src/core/services/IpcServer.cpp` ~:400-415) — rebind to inbound state or
+  delete with its callers.
+- Tests: disconnect/reset clearing, stale-GPS transition, and the migrated
+  QML settings-menu structure (`tests/test_settings_menu_structure.cpp`).
 
 ### B1. Companion handoff prompt (authored here, run by Matthew in the companion repo)
 
@@ -125,47 +201,64 @@ Deliverable: `personal/openautopro/companion-9876-migration-prompt.md`
 - Inventory every remaining legacy-9876 sender in the companion (theme is
   already on HTTP; expected: time/clock-step, GPS, battery, charging,
   internet/proxy status).
-- Map each to its API v1 `companion.proto` report (GPS/battery/connectivity/
-  time already exist). Any payload with no v1 home (charging flag? proxy
-  detail?) → **additive-only** proto extension per the frozen-API process,
-  flagged back to this repo first — the companion never invents fields.
+- **Coverage is confirmed complete** against `proto/api/companion.proto`
+  (GPS incl. age/accuracy/bearing :22-43; battery + charging :46-53;
+  internet/SOCKS5 state/port/password :55-73; time/timezone :75-86). No proto
+  changes. If the companion session believes otherwise, it flags back here —
+  it never edits proto.
 - Switch the runtime to the v1 transport (9810/9811) using the
-  already-unit-tested codec/handshake/credential layer; preserve SOCKS5
-  signaling behavior through the swap; delete or flag-off the legacy client.
-- Validation checklist ending in the live pairing test (runbook §A3.6).
+  already-unit-tested codec/handshake/credential layer; **transports are
+  mutually exclusive during cutover** — no dual publishing, in particular no
+  simultaneous legacy+v1 proxy or time publishers (either path's disconnect
+  tears down system state the other just applied); preserve SOCKS5 signaling
+  behavior through the swap; delete or flag-off the legacy client.
+- Validation checklist ending in the live cutover test (runbook §A3.6, legacy
+  listener disabled) and a companion-log check: v1 transport only, zero
+  legacy fallback attempts.
 
-### B2. Head-unit teardown (gated: only after B1 validates live at the bench)
+### B2. Head-unit teardown (gated: only after the §A3.6 cutover validation passes)
 
-- Pre-deletion mapping (executor does this before touching code): what
-  `ipcServer->setCompanionListenerService()` and
-  `hostContext->setCompanionListenerService()` actually serve, and confirm the
-  API-path proxy-route handling fully covers `syncProxyRoute()`
-  (`src/main.cpp` ~:1025-1036). Audit `config/companion-polkit.rules`: if it
-  grants the clock-step mechanism the API inbound time path also uses, it stays
-  (possibly renamed); if it's listener-specific, it goes. Any consumer without
-  an API-path home is a stop-and-ask.
-- Delete `src/core/services/CompanionListenerService.{hpp,cpp}`, the
-  `src/main.cpp` wiring (~:478-517 and ~:1025-1036), `companion.port` config
-  key + schema/docs mentions, `tests/test_companion_listener.cpp`, CMake
+Full inventory (sol P2.6/P2.9/P3.11 — the pre-review spec missed most of it):
+
+- Delete `src/core/services/CompanionListenerService.{hpp,cpp}`, `main.cpp`
+  wiring (~:478-517, ~:1025-1036), `tests/test_companion_listener.cpp`, CMake
   entries.
+- Remove the service from `IHostContext`/`HostContext`
+  (`src/core/plugin/IHostContext.hpp` :16,:37; `HostContext.hpp`) and update
+  the mocks in `tests/test_plugin_model.cpp` / `tests/test_plugin_manager.cpp`.
+- Retire the **whole `companion.*` config namespace** (`companion.enabled` +
+  `companion.port`), in `main.cpp`, both installers' default-config blocks
+  (`install.sh` ~:1421, `install-prebuilt.sh` ~:302), and
+  `docs/reference/settings-tree.md`.
+- Audit `config/companion-polkit.rules`: if it grants the clock-step
+  mechanism the API inbound time path also uses, it stays (possibly renamed);
+  if listener-specific, it goes. Any consumer without an API-path home is a
+  stop-and-ask.
 - Dedup the camelCase→hyphen theme-key conversion into the shared
-  `ThemeService` path (`docs/wishlist.md:91`) — the IPC `install_theme` handler
-  keeps a single copy.
+  `ThemeService` path (`docs/wishlist.md:91`) — the IPC `install_theme`
+  handler keeps a single copy.
+- Legacy user state (`~/.openauto/companion.key`, `~/.openauto/vehicle.id`):
+  **retained harmlessly** — never silently delete user state; note them as
+  orphaned in the upgrade docs.
+- Sweep stale references: comments in `ThemeInstallRequest.cpp`,
+  `ApiInboundState.cpp`, `ApiRequestHandlers.*`;
+  `docs/reference/plugin-api.md:298`; `WeatherWidget.qml` comment.
 - Close out `docs/wishlist.md` items that die with the service (RNG hygiene
-  :74, dedup :91, the :53 blocker note); update `WeatherWidget.qml` comment,
-  `docs/roadmap-current.md` (gate → Done), `docs/architecture.md`, and any
-  `docs/INDEX.md` mentions — same commit as the deletion per repo convention.
+  :74, dedup :91, the :53 blocker note); update `docs/roadmap-current.md`
+  (gate → Done), `docs/architecture.md`, `docs/INDEX.md` — same commit as the
+  deletion per repo convention.
 
-## 4. Sequencing
+## 4. Sequencing — staged cutover
 
 | Stage | What | Needs Matthew? |
 |---|---|---|
-| 1 (parallel, now) | A2 dead-slot fixes; A1 drop-in prepped + deployed; A3 runbook; B1 prompt authored | No (he runs B1's prompt in the companion repo whenever) |
-| 2 | Bench session: runbook top to bottom | Yes (~30-45 min, phones + Pi) |
+| 1 (parallel, now) | A2 dead-slot fixes; A1 drop-in prepped + deployed; A3 runbook; **B0 parity + consumer migration (deployed to Pi)**; B1 prompt authored | No (he runs B1's prompt in the companion repo whenever) |
+| 2 | Bench session, runbook top to bottom; §A3.6 runs with `companion.enabled: false` — companion proven on v1 exclusively | Yes (~45-60 min, phones + Pi) |
 | 3 | Post-bench: record L-results; upstream issue draft → Matthew approves; B2 teardown; codex review gate (`bash scripts/codex-review.sh`); handoff entry; ship | Approval points only |
 
-If companion validation slips, B2 flips to `PARKED — companion not yet on v1`
-and everything else ships without it.
+If companion validation slips, B2 flips to `PARKED — companion not yet on v1`;
+A-workstream items and B0 ship regardless (B0 is pure improvement — the legacy
+service keeps working beside it during the dual-read window).
 
 Branch note: work happens on `worktree-hfp-mic-9876-retirement` (session
 isolation); landing back onto `dev` (single-branch workflow) is decided with
@@ -173,23 +266,33 @@ Matthew at ship time.
 
 ## 5. Success criteria
 
-- Far end hears prodigy on a live call (CVSD pinned, codec property = 1).
+- Far end hears prodigy on a live call — codec property = 1 first, minimal
+  L6 controls green during the same call, then audibility confirmed.
 - L3/L4/L5 + L6-tail rows recorded; `can_send_dtmf` decision resolved by L3.
-- Pi startup journal free of dead-slot `Could not connect` errors for
-  `PhoneStateService` and `BtAudioPlugin`; new unit tests green.
-- Companion sends all former-9876 traffic over API v1, validated live.
-- `CompanionListenerService` and port 9876 gone from the binary; theme-key
-  conversion single-sourced; wishlist/roadmap/docs updated in the same commits.
+- Positive startup logging: every PhoneStateService/BtAudioPlugin D-Bus
+  subscription logged true on the Pi; new unit tests (incl. sender-path
+  filtering and `adoptBluezDevice`) green.
+- Per-payload cutover observables, legacy listener disabled: GPS position +
+  staleness visible in migrated UI; battery %/charging toggles track the
+  phone; SOCKS route goes active in SystemService and tears down on
+  disable/disconnect; time report produces its controlled journal entry;
+  `ss -ltnp` shows no 9876 listener and connection attempts are refused;
+  companion log shows v1 only.
+- `CompanionListenerService`, `companion.*` config, and the 9876 listener
+  gone from the binary (`git grep -I` over tracked files, `docs/archive/`
+  excluded); theme-key conversion single-sourced; wishlist/roadmap/docs
+  updated in the same commits.
 - Full suite + app target build green; codex review gate adjudicated; upstream
   issue text approved by Matthew before posting.
 
 ## 6. Testing strategy
 
-- A2: TDD against the state-service test seams (synthetic `InterfacesAdded`
-  payloads with the registered map type); full `ctest` + app-target build.
-- B2: existing suite minus the deleted companion test; grep-level assertion
-  that no `9876`/`CompanionListenerService` references survive outside
-  `docs/archive/`.
+- A2/B0: TDD via the new seams (`adoptBluezDevice`, BtAudio test target,
+  inbound-state disconnect/staleness tests); meta-object signature tests for
+  all repaired subscriptions; full `ctest` + app-target build per repo rule.
+- B2: suite minus deleted tests; `git grep -I -e 9876 -e CompanionListener`
+  over tracked files with `docs/archive/` excluded must return only
+  intentional history.
 - Live behavior: bench runbook is the verification instrument; no result, no
   claim (per `superpowers:verification-before-completion`).
 
@@ -198,9 +301,10 @@ Matthew at ship time.
 - HF role only (0x111e); registering 0x111f/0x1108 on the Pi = stop (root
   `AGENTS.md`).
 - No ofono anywhere; telephony stays on `org.pipewire.Telephony`.
-- `proto/api/` is frozen additive-only; proto gaps found during B1 come back
-  here as questions, never as edits in the companion.
-- Archived docs are history — L-results land in this doc, the runbook, and
-  `docs/session-handoffs.md`, not by editing `docs/archive/`.
+- `proto/api/` is frozen additive-only; coverage is confirmed complete for
+  this phase — any perceived gap comes back as a question, never an edit.
+- Never silently delete user state (`companion.key`, `vehicle.id`).
+- Archived docs are history — new results land in this doc, the runbook, and
+  `docs/session-handoffs.md`, not in `docs/archive/`.
 - Wishlist-then-promote: anything new found at the bench goes to
   `docs/wishlist.md`, not into this phase.
