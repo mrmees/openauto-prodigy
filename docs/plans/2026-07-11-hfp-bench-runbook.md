@@ -34,7 +34,7 @@ busctl --user get-property org.pipewire.Telephony /org/pipewire/Telephony/ag1 \
 ```
 pw-cli ls Node | grep -A2 bluez          # SCO uplink node present + running
 pw-link -l | grep -i input_MONO          # mic capture_MONO -> bluez_output...input_MONO
-pw-record --target <mic-node-id> /tmp/lvl.wav (3 s) && aplay /tmp/lvl.wav   # nonzero capture
+timeout -s INT 3 pw-record /tmp/lvl.wav; aplay /tmp/lvl.wav   # records the DEFAULT source (verified = USB mic in the wpctl step below); SIGINT finalizes the wav; expect audible speech
 wpctl status | grep -A4 Sources          # default source = the USB mic, not muted
 ```
 Far-end check: call Matthew's second phone, speak at the Pi, listen on the far phone.
