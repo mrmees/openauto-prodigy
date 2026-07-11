@@ -1289,6 +1289,10 @@ int main(int argc, char *argv[])
     // was required. The legacy CompanionService property remains for now
     // (CompanionSettings.qml still reads it; removal is B2).
     engine.rootContext()->setContextProperty("CompanionState", apiServer->inboundState());
+    // IPC companion_status (design §B0d): ipcServer was constructed earlier
+    // (~:1020), before ApiServer existed, so this wiring is deferred to here
+    // rather than sitting next to setCompanionListenerService() above.
+    ipcServer->setInboundState(apiServer->inboundState());
     QObject::connect(apiServer->inboundState(), &oap::api::ApiInboundState::proxyRouteChanged,
                      &app, [systemClient](bool active, const QString& host, quint16 port,
                                           const QString& password) {

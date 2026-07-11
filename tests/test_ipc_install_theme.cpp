@@ -9,6 +9,7 @@
 
 #include "core/services/IpcServer.hpp"
 #include "core/services/ThemeService.hpp"
+#include "core/api/ApiInboundState.hpp"
 
 using namespace oap;
 
@@ -75,6 +76,22 @@ private slots:
         const QJsonObject resp = roundTrip(sockPath, req);
         QVERIFY(!resp.value("ok").toBool());
         QVERIFY(!resp.value("error").toString().isEmpty());
+    }
+
+    void companionStatusPrefersInboundStateWhenSet() {
+        QTemporaryDir sockDir;
+        oap::api::ApiInboundState inbound;
+        IpcServer server;
+        server.setInboundState(&inbound);
+        inbound.setBattery(55, true);
+        const QString sockPath = sockDir.path() + "/ipc.sock";
+        QVERIFY(server.start(sockPath));
+
+        QJsonObject req{{"command", "companion_status"}};
+        const QJsonObject resp = roundTrip(sockPath, req);
+        QCOMPARE(resp.value("battery").toInt(), 55);
+        QVERIFY(resp.value("charging").toBool());
+        QCOMPARE(resp.value("source").toString(), QString("api"));
     }
 };
 
