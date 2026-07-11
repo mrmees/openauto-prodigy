@@ -193,3 +193,5 @@ Also fixed en route: toast ttlMs=0 immortality (kind-scoped 5s default), 44px no
 **Remaining:** bench row — boot with saved queue on the stick (gate-P1 pending-restore retry; now exercisable since hot-plug works). Wishlist: Filesystem MountPoints PropertiesChanged; BT plugin dead-slot cleanup; eject-failure queue restore (sol latent #3); polkit scoping.
 
 **Method note:** instrumentation-first debugging carried this — each round's qCInfo/qCWarning at decision boundaries turned the next layer's failure from theory into one journal line. Keep the logs; they are product code now.
+
+**Stage-2 bench COMPLETE (2026-07-10):** boot-restore-from-USB row PASSED (queue restored paused post-reboot once the stick auto-mounted — the gate-P1 pending-restore retry verified live). All stage-2 rows green. Matthew declared the milestone: ALPHA-26-07-10-01.
