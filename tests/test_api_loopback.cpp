@@ -23,6 +23,7 @@
 #include <QDeadlineTimer>
 #include <QEventLoop>
 #include <QFile>
+#include <QImage>
 
 #include "core/api/ApiServer.hpp"
 #include "core/api/ApiFramer.hpp"
@@ -723,10 +724,40 @@ void TestApiLoopback::testPairingQrPayloadAndProperty() {
         QByteArray::fromBase64(uri.section(QLatin1Char(','), 1).toLatin1());
     QVERIFY(png.startsWith(QByteArray("\x89PNG", 4)));
 
+    // Scanner reliability: ISO 18004 wants a 4-module quiet zone. At 8 px
+    // per module the outer 32 px band must be pure white, with real modules
+    // (black pixels) further in.
+    QImage img;
+    QVERIFY(img.loadFromData(png));
+    const int quiet = 4 * 8;
+    bool quietZoneWhite = true;
+    bool hasBlackModule = false;
+    for (int y = 0; y < img.height(); ++y) {
+        for (int x = 0; x < img.width(); ++x) {
+            const bool inBand = x < quiet || y < quiet
+                                || x >= img.width() - quiet
+                                || y >= img.height() - quiet;
+            const bool white = qGray(img.pixel(x, y)) > 200;
+            if (inBand && !white) quietZoneWhite = false;
+            if (!inBand && !white) hasBlackModule = true;
+        }
+    }
+    QVERIFY(quietZoneWhite);
+    QVERIFY(hasBlackModule);
+
     server.cancelPairing();
     QCOMPARE(server.pairingQrDataUri(), QString());   // cancel clears it
 
     server.stop();
+
+    // A pairing window without live listeners must not advertise dead
+    // endpoints (tcp=0&ws=0): no QR until both transports are up. The PIN
+    // path stays available for manual pairing.
+    ApiServer unstarted(f.refs());
+    unstarted.setStorePathForTest(kStorePath);
+    unstarted.startPairing();
+    QVERIFY(unstarted.pairingActive());
+    QCOMPARE(unstarted.pairingQrDataUri(), QString());
 }
 
 QTEST_MAIN(TestApiLoopback)

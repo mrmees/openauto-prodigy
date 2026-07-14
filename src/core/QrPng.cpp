@@ -12,7 +12,7 @@ QString qrPngDataUri(const QString& payload)
     QrCode qr = QrCode::encodeText(payload.toUtf8().constData(), QrCode::Ecc::MEDIUM);
 
     int size = qr.getSize();
-    int border = 2;
+    int border = 4;   // ISO 18004 quiet zone: 4 modules minimum
     int total = size + border * 2;
     int scale = 8;  // pixels per module — crisp at 200x200 display
 

@@ -123,6 +123,21 @@ cp -a "$REPO_ROOT/web-config" "$STAGE_DIR/payload/"
 cp "$RESTART_SCRIPT" "$STAGE_DIR/payload/restart.sh"
 chmod +x "$STAGE_DIR/payload/restart.sh"
 
+# HFP mSBC codec fix: ship the patched libspa-0.2-bluetooth deb when one has
+# been built (tools/pipewire-msbc/build.sh — version-locked to the target's
+# pipewire base, so it is NOT in git). Without it a fresh prebuilt install
+# warns and calls risk LC3-SWB's silent uplink until the deb is provided.
+MSBC_DEB="$(ls "$REPO_ROOT/tools/pipewire-msbc/out"/libspa-0.2-bluetooth_*+prodigy*_arm64.deb 2>/dev/null | head -1 || true)"
+if [[ -n "$MSBC_DEB" ]]; then
+    mkdir -p "$STAGE_DIR/payload/pipewire-msbc"
+    cp "$MSBC_DEB" "$STAGE_DIR/payload/pipewire-msbc/"
+    echo "[OK] staged HFP mSBC codec fix: $(basename "$MSBC_DEB")"
+else
+    echo "[WARN] no patched libspa-0.2-bluetooth deb in tools/pipewire-msbc/out/ —" >&2
+    echo "[WARN] this release will install WITHOUT the HFP mSBC codec fix" >&2
+    echo "[WARN] (LC3-SWB uplink is silent; see tools/pipewire-msbc/README.md)" >&2
+fi
+
 # Keep package size focused on runtime content only
 rm -rf \
     "$STAGE_DIR/payload/system-service/.pytest_cache" \

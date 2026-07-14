@@ -13,7 +13,16 @@ int runTimedatectl(const QStringList& args)
 {
     QProcess proc;
     proc.start(QStringLiteral("timedatectl"), args);
-    proc.waitForFinished(5000);
+    // exitCode() is meaningless unless the process actually ran to normal
+    // completion — a missing binary or a hang would otherwise read as
+    // exit 0 and log a success that never happened.
+    if (!proc.waitForFinished(5000) || proc.exitStatus() != QProcess::NormalExit) {
+        proc.kill();
+        proc.waitForFinished(1000);
+        qCWarning(lcCore) << "ClockSync: timedatectl" << args.value(0)
+                          << "did not complete:" << proc.errorString();
+        return -1;
+    }
     if (proc.exitCode() != 0) {
         qCWarning(lcCore) << "ClockSync: timedatectl" << args.value(0)
                           << "failed:" << proc.readAllStandardError();

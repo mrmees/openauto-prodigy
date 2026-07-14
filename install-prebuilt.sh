@@ -335,8 +335,12 @@ YAML
 # the hold survives 'apt upgrade'; a pipewire base upgrade breaks the
 # held package's dependency LOUDLY, which is the cue to rebuild).
 install_msbc_codec_fix() {
+    # Release payloads carry the deb under payload/pipewire-msbc (staged by
+    # tools/package-prebuilt-release.sh); the other paths cover a repo build
+    # output or a hand-staged copy. Last match wins.
     local deb="" d
-    for d in "$INSTALL_DIR/tools/pipewire-msbc/out"/libspa-0.2-bluetooth_*+prodigy*_arm64.deb \
+    for d in "$PAYLOAD_DIR/pipewire-msbc"/libspa-0.2-bluetooth_*+prodigy*_arm64.deb \
+             "$INSTALL_DIR/tools/pipewire-msbc/out"/libspa-0.2-bluetooth_*+prodigy*_arm64.deb \
              "$HOME/pipewire-msbc"/libspa-0.2-bluetooth_*+prodigy*_arm64.deb; do
         [[ -f "$d" ]] && deb="$d"
     done
@@ -371,7 +375,15 @@ install_msbc_codec_fix() {
 
     sudo apt install -y "$deb"
     sudo apt-mark hold libspa-0.2-bluetooth
+
+    # Activate: a running audio stack keeps the OLD plugin loaded until
+    # PipeWire restarts. Restart bluetooth first — audio restarts can race
+    # BlueZ profile registration (RegisterProfile NotPermitted leaves HFP
+    # silently dead). Best-effort: a reboot also activates it.
+    sudo systemctl try-restart bluetooth 2>/dev/null || true
+    systemctl --user try-restart pipewire pipewire-pulse wireplumber 2>/dev/null || true
     ok "HFP mSBC codec fix installed + held ($(basename "$deb"))"
+    ok "  (active after the audio-stack restart just attempted, or after reboot)"
 }
 
 # ────────────────────────────────────────────────────

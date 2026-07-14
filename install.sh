@@ -1509,7 +1509,15 @@ install_msbc_codec_fix() {
 
     sudo apt install -y "$deb"
     sudo apt-mark hold libspa-0.2-bluetooth
+
+    # Activate: a running audio stack keeps the OLD plugin loaded until
+    # PipeWire restarts. Restart bluetooth first — audio restarts can race
+    # BlueZ profile registration (RegisterProfile NotPermitted leaves HFP
+    # silently dead). Best-effort: a reboot also activates it.
+    sudo systemctl try-restart bluetooth 2>/dev/null || true
+    systemctl --user try-restart pipewire pipewire-pulse wireplumber 2>/dev/null || true
     ok "HFP mSBC codec fix installed + held ($(basename "$deb"))"
+    ok "  (active after the audio-stack restart just attempted, or after reboot)"
 }
 
 # ────────────────────────────────────────────────────
