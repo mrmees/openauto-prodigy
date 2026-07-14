@@ -4,6 +4,26 @@ Newest entries first.
 
 ---
 
+## 2026-07-13 — HFP bench + companion v1 cutover: mSBC ships, LC3-SWB bug confirmed clean, time-sync regression found (B2 blocker)
+
+**What happened:** Full bench session per `docs/plans/2026-07-11-hfp-bench-runbook.md` (all RESULT rows filled inline there — that file is the detailed record). Service restart + journal check passed (both D-Bus subscription lines, zero failures; BtAudio caught live A2DP/AVRCP on hot connect).
+
+**Codec track (§0-§2):** Bench mic on the Unitek was ANALOG-DEAD (USB capture running, mixer clean, pure zeros) — the original "far end hears nothing" evidence was contaminated; mic swapped (Jieli UACDemoV1.0, default persisted via `wpctl set-default`). Matthew-approved deviation: stock LC3-SWB retest with working mic BEFORE the patch — Codec `y 3` live, premises green, far end SILENT → **LC3-SWB encode bug CONFIRMED with a controlled A/B** (same hardware/path: CVSD `y 1` audible, LC3-SWB silent). Patched deb installed + held (`libspa-0.2-bluetooth 1.4.2-1+rpt3+prodigy1`); mSBC `y 2` negotiated, far end clear, wideband quality good. **mSBC IS THE SHIPPED FIX**; CVSD drop-in deleted from /etc (kept in repo as fallback).
+
+**L-rows (§3-§6):** DTMF ✓ (IVR reacted to "1"/"8"). RejectSCO=true half ✓ — no SCO nodes, call stays on handset, no AA degradation → **default stays `false`**. Samsung S25 Ultra row: mSBC ✓, caller-ID ✓, Phone-view dial ✓, HU hangup ✓, far-end mic ✓; answer/reject buttons DEAD during AA (wishlisted, zero journal trace on press). Moto G Play 2024: NO cell service — pairing + HFP SLC ✓, rest N/A. Volume rocker tracks car output ✓, echo fine ✓.
+
+**§7 cutover (`companion.enabled: false`, migrated companion app):** Port 9876 dead (refused from LAN) ✓. GPS/battery/charging/SOCKS5 all validated over API v1 (redsocks actively relaying; owner-disconnect clearing verified via adb force-stop → full reset + widget offline + clean reconnect) ✓. Legacy fallback: **wire-proven zero** — 90 s packet sniff across app relaunch, 0 packets on 9876 ✓. **TIME PAYLOAD FAILED — cutover regression:** `ApiInboundState::timeReported` is a dangling signal (nothing consumes it); legacy `adjustClock()` (timedatectl/polkit, drift+backward guards) never wired to v1. RTC-less Pi in the car will never sync its clock. **This blocks B2 teardown.**
+
+**Ops rules discovered:** restart order `bluetooth` → `pipewire wireplumber` → `openauto-prodigy.service` (RegisterProfile NotPermitted race kills HFP silently; app's PipeWire enumeration dies with the daemon). Telephony `Codec` property lingers with no call — always pair with SCO-nodes-present check; verify ag1 by property read (`busctl tree` shows no children). Units are SYSTEM-level (`journalctl -u`, not `--user`). Canonical adb: `E:\android\sdk\platform-tools`.
+
+**Next 1-3 steps:** (1) **Wire `timeReported` → adjustClock logic** (extract from CompanionListenerService; small, TDD) and re-validate §7 time row — B2 planning stays blocked until then; (2) installer wiring for the shipped codec: patched-deb install + `apt-mark hold` procedure into both installers (per §2 verdict; document the hold + upgrade caveat); (3) upstream PipeWire issue draft with the A/B evidence (CVSD audible / LC3-SWB silent, same stack) — **Matthew approves text BEFORE posting**. New findings in `docs/wishlist.md` "From HFP/9876 bench (2026-07-13)" (8 items + adb tooling note).
+
+**dev→main PR gates (Matthew, 2026-07-13):** the PR waits on BOTH (a) the time-sync fix + §7 time-row re-validation, and (b) **QR-code pairing for API access working** — companion onboarding needs the QR path functional before this ships to main.
+
+**Verification:** All claims instrumented live on the Pi during calls (busctl property reads with SCO-node cross-checks, pw-link topology, level-metered captures, packet sniffer); per-payload IPC polls for §7. Bench hardware casualties: Unitek-attached mic (dead capsule) + bench amp (died mid-session, replaced/power-cycled).
+
+---
+
 ## 2026-07-11 — HFP/9876 phase stage-1 code-complete: dead-slot fixes, codec kits, CompanionState migration
 
 **What changed:** Executed `docs/plans/2026-07-11-hfp-mic-9876-retirement-plan.md` (11 tasks, SDD with per-task review; branch `worktree-hfp-mic-9876-retirement` off `ae7bf8b`). Commits `e501a3d..03fdba3`:
