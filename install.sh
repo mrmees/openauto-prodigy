@@ -1434,7 +1434,7 @@ YAML
         cp -n "$INSTALL_DIR/config/wallpapers/"*.jpg "$CONFIG_DIR/wallpapers/" 2>/dev/null || true
     fi
 
-    # Companion app polkit rule (allows timedatectl set-time without sudo)
+    # Companion app polkit rule (allows timedatectl set-time/set-timezone without sudo)
     if [[ -f "$INSTALL_DIR/config/companion-polkit.rules" ]]; then
         sudo cp "$INSTALL_DIR/config/companion-polkit.rules" /etc/polkit-1/rules.d/50-openauto-time.rules
         ok "Companion polkit rule installed"
@@ -1460,6 +1460,54 @@ YAML
     ok "Configuration written to $CONFIG_DIR/config.yaml"
 
     leave_interactive
+}
+
+# ────────────────────────────────────────────────────
+# HFP mSBC codec fix (patched libspa-0.2-bluetooth)
+# ────────────────────────────────────────────────────
+# PipeWire's HFP LC3-SWB uplink encode is silent at the far end of a call;
+# the patched deb drops LC3-SWB from the +BAC advertisement so the phone
+# negotiates mSBC (bench-validated 2026-07-13). The deb is version-locked
+# to the installed pipewire base and is NOT in git — build it with
+# tools/pipewire-msbc/build.sh (see that README for the upgrade caveat:
+# the hold survives 'apt upgrade'; a pipewire base upgrade breaks the
+# held package's dependency LOUDLY, which is the cue to rebuild).
+install_msbc_codec_fix() {
+    local deb="" d
+    for d in "$INSTALL_DIR/tools/pipewire-msbc/out"/libspa-0.2-bluetooth_*+prodigy*_arm64.deb \
+             "$HOME/pipewire-msbc"/libspa-0.2-bluetooth_*+prodigy*_arm64.deb; do
+        [[ -f "$d" ]] && deb="$d"
+    done
+
+    if dpkg -s libspa-0.2-bluetooth 2>/dev/null | grep -q '+prodigy'; then
+        sudo apt-mark hold libspa-0.2-bluetooth >/dev/null
+        ok "HFP mSBC codec fix already installed; apt hold confirmed"
+        return 0
+    fi
+
+    if [[ -z "$deb" ]]; then
+        warn "HFP mSBC codec fix: no patched libspa-0.2-bluetooth deb found."
+        warn "  Without it the phone can negotiate LC3-SWB and the far end hears"
+        warn "  NOTHING during calls. Build it: tools/pipewire-msbc/README.md"
+        return 0
+    fi
+
+    # The deb pins Depends: libspa-0.2-modules (= stock base). Simulate first:
+    # a base mismatch (Pi upgraded pipewire since the deb was built) must fail
+    # loudly here instead of mixing plugin/module ABIs or removing the stack.
+    local sim
+    sim=$(apt-get -s install "$deb" 2>/dev/null)
+    if ! grep -q '^Inst libspa-0.2-bluetooth' <<<"$sim" || grep -q '^Remv' <<<"$sim"; then
+        warn "HFP mSBC codec fix: $(basename "$deb") does not install cleanly"
+        warn "  against the current pipewire base — rebuild it first"
+        warn "  (tools/pipewire-msbc/README.md). Skipping; calls may negotiate"
+        warn "  LC3-SWB (silent far-end mic)."
+        return 0
+    fi
+
+    sudo apt install -y "$deb"
+    sudo apt-mark hold libspa-0.2-bluetooth
+    ok "HFP mSBC codec fix installed + held ($(basename "$deb"))"
 }
 
 # ────────────────────────────────────────────────────
@@ -2057,6 +2105,7 @@ main() {
     # Step 4: Config
     update_step 4 active
     generate_config
+    install_msbc_codec_fix
     update_step 4 done
 
     # Step 5: Network
