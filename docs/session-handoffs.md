@@ -4,6 +4,16 @@ Newest entries first.
 
 ---
 
+## 2026-07-14 — Official tags now ship a Pi release; first GitHub prerelease published
+
+**What changed:** process adoption (Matthew): every official ALPHA tag also ships a prebuilt Pi release — cross-build → `tools/package-prebuilt-release.sh` → `gh release create --prerelease`. Codified in AGENTS.md § Versioning and tag-alpha.sh's next-steps output. Executed for ALPHA-26-07-14-01: the repo's FIRST GitHub release is live (<https://github.com/mrmees/openauto-prodigy/releases/tag/ALPHA-26-07-14-01>, asset `openauto-prodigy-prebuilt-ALPHA-26-07-14-01-pi4-aarch64.tar.gz`, `git_commit 300ab23`). The codec deb (`1.4.2-1+rpt3+prodigy1`) was pulled from the Pi's `~/pipewire-msbc/` into `tools/pipewire-msbc/out/` (both gitignored — the deb stays out of git). Earlier same session: tagged binary cross-built + deployed to the Pi (journal healthy, on-device `--version` = ALPHA-26-07-14-01; SSH `--version` needs `QT_QPA_PLATFORM=offscreen`).
+
+**Verification:** tarball contents checked (installer, tagged binary, codec deb, RELEASE.json fields); release page live with the asset attached.
+
+**Next 1-3 steps:** (1) B2 teardown planning; (2) upstream PipeWire draft approval (Matthew); (3) companion-repo rotation-blip fix (shape in memory).
+
+---
+
 ## 2026-07-14 — PR #19 final pre-merge Codex gate: 9 findings adjudicated, 3 fixed
 
 **What changed:** final `gpt-5.6-sol` review of the FULL PR #19 range (`origin/main..dev`, 57 files) before merge to main. 9 findings (8 P2, 1 P3) — 3 confirmed + fixed, 2 deferred to wishlist with reasons, 4 dismissed (3 as prior-round adjudications that stand, 1 as technically incorrect). No P1s.

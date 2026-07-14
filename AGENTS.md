@@ -161,6 +161,14 @@ Not all tooling auto-loads nested files — read the nearest one before editing 
   build. Mint the next one with `bash scripts/tag-alpha.sh` (NN = today's
   max + 1; deleting the day's newest tag frees its number — never delete a
   tag that shipped).
+- **Official tags ship a Pi release** (adopted 2026-07-14): after tagging and
+  pushing, cross-build (`./cross-build.sh`), package
+  (`tools/package-prebuilt-release.sh --build-dir build-pi --output-dir dist
+  --version-tag <TAG>`), and publish
+  (`gh release create <TAG> dist/<asset>.tar.gz --prerelease` — alphas are
+  always prereleases). The packager requires the patched libspa deb in
+  `tools/pipewire-msbc/out/` (not in git; canonical copy lives on the Pi at
+  `~/pipewire-msbc/`).
 - The binary derives its version at CMake **configure time**
   (`git describe --match "ALPHA-*" --dirty`, annotated tags only, output
   format-validated → `OAP_VERSION` compile definition on `openauto-core`).
