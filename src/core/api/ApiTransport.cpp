@@ -36,7 +36,7 @@ void TcpApiTransport::close() {
 
 void TcpApiTransport::abort() {
     socket_->abort();   // discard queued data, RST — the peer learns NOW
-    emit closed();      // QTcpSocket::abort() does not emit disconnected()
+    emitClosedOnce();   // deterministic regardless of what Qt emitted above
 }
 
 QHostAddress TcpApiTransport::peerAddress() const {
@@ -54,6 +54,14 @@ void TcpApiTransport::onReadyRead() {
 }
 
 void TcpApiTransport::onDisconnected() {
+    emitClosedOnce();
+}
+
+void TcpApiTransport::emitClosedOnce() {
+    // Both Qt's disconnected() (graceful close, and possibly abort) and the
+    // explicit abort() path funnel here: consumers get exactly ONE closed().
+    if (closedEmitted_) return;
+    closedEmitted_ = true;
     emit closed();
 }
 
@@ -94,7 +102,7 @@ void WsApiTransport::close() {
 
 void WsApiTransport::abort() {
     socket_->abort();
-    emit closed();      // QWebSocket::abort() does not emit disconnected()
+    emitClosedOnce();   // deterministic regardless of what Qt emitted above
 }
 
 QHostAddress WsApiTransport::peerAddress() const {
@@ -115,6 +123,12 @@ void WsApiTransport::onTextMessageReceived(const QString&) {
 }
 
 void WsApiTransport::onDisconnected() {
+    emitClosedOnce();
+}
+
+void WsApiTransport::emitClosedOnce() {
+    if (closedEmitted_) return;
+    closedEmitted_ = true;
     emit closed();
 }
 

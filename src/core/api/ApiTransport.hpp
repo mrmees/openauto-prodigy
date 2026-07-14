@@ -53,8 +53,11 @@ private slots:
     void onDisconnected();
 
 private:
+    void emitClosedOnce();
+
     QTcpSocket* socket_;
     ApiFramer framer_;
+    bool closedEmitted_ = false;
 };
 
 // Frame-per-WebSocket-message transport over a QWebSocket.
@@ -75,8 +78,11 @@ private slots:
     void onDisconnected();
 
 private:
+    void emitClosedOnce();
+
     QWebSocket* socket_;
     quint32 maxFrameBytes_;
+    bool closedEmitted_ = false;
 };
 
 } // namespace oap::api

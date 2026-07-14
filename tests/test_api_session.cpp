@@ -98,6 +98,7 @@ private slots:
     void testPairingFlow();
     void testPairingWindowClosedTypedError();
     void testPairingWindowClosedRealTcpWire();
+    void testTransportAbortEmitsClosedExactlyOnce();
     void testSubscribeSnapshotAndAck();
     void testQueueCapDisconnects();
     void testPingPong();
@@ -418,6 +419,29 @@ void TestApiSession::testPairingWindowClosedRealTcpWire() {
     QCOMPARE(client.bytesAvailable(), qint64(0));
 }
 
+// abort() must produce exactly ONE closed() — Qt's own disconnected() and
+// the transport's explicit emission funnel through a once-guard (duplicate
+// lifecycle signals were only masked by the session's teardown idempotency).
+void TestApiSession::testTransportAbortEmitsClosedExactlyOnce() {
+    QTcpServer srv;
+    QVERIFY(srv.listen(QHostAddress::LocalHost, 0));
+    QTcpSocket client;
+    client.connectToHost(QHostAddress::LocalHost, srv.serverPort());
+    QVERIFY(client.waitForConnected(3000));
+    QVERIFY(srv.waitForNewConnection(3000));
+    QTcpSocket* serverSide = srv.nextPendingConnection();
+    QVERIFY(serverSide != nullptr);
+
+    TcpApiTransport transport(serverSide, 262144);
+    QSignalSpy closedSpy(&transport, &IApiTransport::closed);
+
+    transport.abort();
+    for (int i = 0; i < 20; ++i)
+        QCoreApplication::processEvents(QEventLoop::AllEvents, 5);
+
+    QCOMPARE(closedSpy.count(), 1);
+}
+
 void TestApiSession::testSubscribeSnapshotAndAck() {
     QByteArray cannedMedia("CANNED_MEDIA_SNAPSHOT");
     auto* transport = new FakeTransport();
@@ -486,6 +510,9 @@ void TestApiSession::testQueueCapDisconnects() {
 
     QCOMPARE(terminatedSpy.count(), 1);
     QCOMPARE(session.state(), ApiSession::State::Closed);
+    // The kill must be the DISCARD path — a graceful close would wait
+    // behind the very buffer the slow consumer isn't draining.
+    QVERIFY(transport->aborted);
 }
 
 void TestApiSession::testPingPong() {
