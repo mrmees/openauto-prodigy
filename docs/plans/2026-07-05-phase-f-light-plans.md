@@ -1,6 +1,6 @@
 # Phase F — Light Plans (commodity items)
 
-Status: ACTIVE (media player done; EQ parity audit, 0x8012 experiment, key-event nav remain)
+Status: ACTIVE (media player done; EQ parity audit done 2026-07-14; 0x8012 experiment, key-event nav remain)
 
 **Date:** 2026-07-05 · **Grounded against:** `fable-design-sprint` at `db2e7eb`.
 **Nature: LIGHT plans** (sprint program §5.F — commodity work, "light plans suffice"). Unlike the deep plans in this directory, these are scoped outlines: an executor with judgment can work from them directly; a low-power executor should first expand one into full `writing-plans` format (read `README-executor-handbook.md` §2 either way). Roadmap outcomes quoted are canonical (`docs/roadmap-current.md`).
@@ -26,7 +26,14 @@ Status: ACTIVE (media player done; EQ parity audit, 0x8012 experiment, key-event
 
 ---
 
-## F2. Equalizer completion — parity audit only
+## F2. Equalizer completion — parity audit only — COMPLETED 2026-07-14
+
+> **Audit executed 2026-07-14** (session-handoffs entry same date): on-HU + YAML
+> legs hold, web advanced-EQ leg absent; gaps + quirks filed to `docs/wishlist.md`
+> § "From EQ parity audit (2026-07-14)". No code changed. Note: the verify line
+> below ("audible preset change during BT playback") is unsatisfiable as written —
+> BT A2DP routes BlueZ→PipeWire natively and never passes through an EQ engine
+> (one of the filed findings).
 
 **Outcome (roadmap):** EQ plugin with YAML settings, on-HU basic changes/profile swapping, web backend for advanced setup.
 

@@ -147,3 +147,40 @@ Ideas captured here. Promote to `roadmap-current.md` when ready to commit.
 ## From PR #19 pre-merge gate (2026-07-14)
 - **Patched libspa deb has no upgrade path** (gate finding, deferred) — both installers take the idempotent return on ANY installed `+prodigy` version, so a future release bundling a rebuilt deb (`+prodigy2`, or a rebuild against a newer pipewire base) never replaces the installed one. Tolerable while exactly one patched-deb revision exists: a base upgrade breaks the held package's dependency LOUDLY (documented cue to rebuild), and a candidate built for a newer base fails the pre-install simulation on an old base anyway. Fix shape when the first revision bump ships: single-candidate selection + `dpkg --compare-versions` installed-vs-candidate, unhold → install → re-hold only when the candidate is newer. Not patched at the gate: touching the hold/upgrade logic in both installers right before a release adds untested risk to a bench-validated path.
 - **Companion reporting sessions have no liveness expiry** — SHIPPED 2026-07-14 in the B2 teardown — 30 s report-age expiry per owning session, 5 s sweep, reporting-role-only (actions/notifications/socket untouched).
+
+## From EQ parity audit (2026-07-14)
+
+Audit verdict: on-HU and YAML legs of the original outcome statement hold (the on-HU
+UI exceeds "basic changes"); the **web-config advanced-EQ leg is entirely absent**.
+Coverage/labeling quirks below were confirmed against the current tree. None of these
+were fixed mid-audit (wishlist-then-promote); a web EQ editor or coverage fix is a
+brainstorm → plan cycle on Matthew's go-ahead.
+
+- **Web-config advanced EQ editor (the parity gap)** — the original outcome statement
+  promises "web settings backend for advanced EQ setup and profile creation"; nothing
+  exists at any layer: no `web-config` routes/templates, no `IpcServer` EQ commands,
+  no External API EQ surface. `EqualizerService` already exposes everything an editor
+  needs (per-stream gains/presets/bypass, user-preset save/delete/rename — rename is
+  UI-less today, a web editor would surface it). Fix shape: IPC commands
+  (`get_eq_state`, `set_eq_gain`, `set_eq_preset`, preset CRUD) + a web-config page
+  with per-stream band sliders; decide whether the External API also gets a (frozen
+  additive) EQ surface or web/IPC stays the only remote channel.
+- **Manual EQ gains and bypass state don't survive restart** — `writeToConfig()`
+  persists per-stream *preset names* + the user-preset library only. Manual slider
+  tweaks clear `activePreset` to "" (UI shows "Custom"), and `loadFromConfig()` skips
+  empty names — so unsaved slider positions silently reset to the last named preset
+  (or Flat/Voice defaults) on restart; bypass always resets to off. User-visible:
+  fiddle sliders, don't save, reboot the car → EQ quietly reverts. Fix shape: persist
+  raw gains when `activePreset` is empty, plus a per-stream `bypassed` key.
+- **"Phone" EQ engine is attached to the AA *system* stream** — pre-existing quirk
+  (flagged in F2, re-confirmed at `AndroidAutoOrchestrator.cpp:343`): the on-HU
+  "Phone" tab actually EQs AA system sounds (nav beeps etc.); nothing EQs real call
+  audio (HFP SCO bypasses `AudioService`, the accepted 2026-07-05 design limitation).
+  Decision needed: relabel the tab/stream "System" (honest, cheap) vs route SCO
+  through AudioService (real work, revisits the HFP design).
+- **BT A2DP music bypasses the EQ entirely** — BlueZ→PipeWire routes phone music
+  natively; `BtAudioPlugin` only monitors transports over D-Bus. The Media EQ governs
+  AA media + the local media player only. Original OAP applied a sink-level 15-band
+  LADSPA EQ to *all* audio. Fix shape if wanted: PipeWire `filter-chain` on the sink
+  (mirrors the original's architecture) or an app-side loopback tap; note F2's verify
+  line ("audible preset change during BT playback") was never satisfiable as written.

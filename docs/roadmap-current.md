@@ -2,7 +2,7 @@
 
 Governance: capture new ideas in `docs/wishlist.md`; only promoted items should appear in this roadmap.
 
-> **Parity program status (updated 2026-07-07):** the 2026-07-05 design sprint (`docs/archive/plans/2026-07-05-fable-work-program-design.md`, phases A–F) has been designed **and executed**: External API v1, HTML/JS web widgets, HFP call audio, multi-dashboards + overlay framework, and the theme-upload endpoint are all shipped (see Done). What remains from the program: the Phase F light-plan items (`docs/plans/2026-07-05-phase-f-light-plans.md` — media player, EQ parity audit, 0x8012 experiment, key-event nav) and the HFP live checks (L3/L4/L5, need Matthew + phone).
+> **Parity program status (updated 2026-07-14):** the 2026-07-05 design sprint (`docs/archive/plans/2026-07-05-fable-work-program-design.md`, phases A–F) has been designed **and executed**: External API v1, HTML/JS web widgets, HFP call audio (bench-complete 2026-07-13), multi-dashboards + overlay framework, and the theme-upload endpoint are all shipped; the media player shipped through stage 2; the EQ parity audit closed 2026-07-14 (see Done). What remains from the program: the two experimental Phase F light-plan items (`docs/plans/2026-07-05-phase-f-light-plans.md` — 0x8012 experiment, key-event nav notes).
 
 ## Done (recent)
 
@@ -44,6 +44,14 @@ Governance: capture new ideas in `docs/wishlist.md`; only promoted items should 
   the proxy-blackhole (third incident; wishlist entry updated). Spotify login
   round not run (optional; the WebAppHost arc will cover login UX). Spec:
   `docs/archive/plans/2026-07-07-web-surface-strategy-design.md`. COMPLETE.
+- Audio equalizer parity audit (Phase F2) — verdict 2026-07-14: on-HU and YAML
+  legs of the original outcome statement hold (on-HU UI exceeds "basic changes":
+  per-stream 10-band sliders, bypass, preset picker, user-preset save/delete;
+  QML→C++ save path verified empirically). The **web advanced-EQ leg is entirely
+  absent** (no web-config routes, no IPC commands, no API surface) — precise gaps
+  + three coverage/labeling quirks filed to `docs/wishlist.md` § "From EQ parity
+  audit (2026-07-14)". Building the web editor is a wishlist-promote decision.
+  COMPLETE (audit; no code changed).
 
 ## Now
 
@@ -56,9 +64,6 @@ Governance: capture new ideas in `docs/wishlist.md`; only promoted items should 
   - Stage 1 shipped (develop @ `2aeb411`, 18 commits): MediaPlayerPlugin (folder browse + now-playing bar), PlaybackEngine (QMediaPlayer PCM tap → AudioService, spike-gated GO), PlayQueue (shuffle/repeat, TDD), FolderModel, MediaArtProvider, 3-source playing-wins arbitration, NowPlayingWidget (art/progress/source badge/transport), API v1 LOCAL_MEDIA source + position fields. Suite 114/114 green; cross-build + Pi deploy verified healthy (service active, plugin registered, NRestarts=0).
   - Remaining stage 1: 12-row bench checklist with Matthew (touch/audible rows — see session-handoffs 2026-07-08 deploy record), then review + push.
   - Next: **stage 2 (library + USB automount) planning.**
-
-- Audio equalizer — parity audit only. *(scoped down 2026-07-05: the substrate scout found the EQ already functional — EqualizerService runs 3 engines with presets + persistence, applied on the PipeWire RT thread)*
-  - Remaining: audit web-config advanced-profile parity against the original outcome statement (on-HU preset swapping vs web-based advanced EQ setup / profile creation). Audit protocol in Phase F2 light plan.
 
 ## Later
 
