@@ -92,6 +92,8 @@ private slots:
         QCOMPARE(resp.value("battery").toInt(), 55);
         QVERIFY(resp.value("charging").toBool());
         QCOMPARE(resp.value("source").toString(), QString("api"));
+        QVERIFY2(resp.contains("gps_stale"),
+                 "companion_status must expose gps_stale (wishlist 2026-07-13)");
     }
 
     // Finding 2: after the GPS owner disconnects (clearGps), companion_status

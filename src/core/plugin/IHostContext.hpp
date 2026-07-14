@@ -13,7 +13,6 @@ class IDisplayService;
 class IEventBus;
 class ActionRegistry;
 class INotificationService;
-class CompanionListenerService;
 class IProjectionStatusProvider;
 class INavigationProvider;
 class IMediaStatusProvider;
@@ -34,7 +33,6 @@ public:
     virtual IEventBus* eventBus() = 0;
     virtual ActionRegistry* actionRegistry() = 0;
     virtual INotificationService* notificationService() = 0;
-    virtual CompanionListenerService* companionListenerService() = 0;
     virtual IEqualizerService* equalizerService() = 0;
 
     // Provider interfaces — return nullptr if not yet registered

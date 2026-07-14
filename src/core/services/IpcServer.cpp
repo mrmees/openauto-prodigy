@@ -3,7 +3,6 @@
 #include "ThemeService.hpp"
 #include "core/services/ThemeInstallRequest.hpp"
 #include "AudioService.hpp"
-#include "CompanionListenerService.hpp"
 #include "core/api/ApiInboundState.hpp"
 #include "../plugin/PluginManager.hpp"
 #include "../plugin/IPlugin.hpp"
@@ -81,11 +80,6 @@ void IpcServer::setAudioService(AudioService* audioService)
 void IpcServer::setPluginManager(PluginManager* pluginManager)
 {
     pluginManager_ = pluginManager;
-}
-
-void IpcServer::setCompanionListenerService(CompanionListenerService* svc)
-{
-    companion_ = svc;
 }
 
 void IpcServer::setInboundState(oap::api::ApiInboundState* state)
@@ -405,39 +399,21 @@ QByteArray IpcServer::handleSetAudioConfig(const QVariantMap& data)
 
 QByteArray IpcServer::handleCompanionStatus()
 {
-    // API v1 inbound state (design §B0d) is preferred once set; companion_
-    // (legacy CompanionListenerService) remains only as the vehicle_id
-    // source until it's retired (B2). Key names are unchanged so the
-    // web-config panel's consumers don't need to change.
-    if (inbound_) {
-        QJsonObject obj;
-        obj["connected"] = inbound_->connected();
-        obj["gps_lat"] = inbound_->gpsLat();
-        obj["gps_lon"] = inbound_->gpsLon();
-        obj["gps_speed"] = inbound_->gpsSpeedMps();
-        obj["battery"] = inbound_->phoneBattery();
-        obj["charging"] = inbound_->phoneCharging();
-        obj["internet"] = inbound_->internetAvailable();
-        obj["proxy"] = inbound_->proxyAddress();
-        obj["source"] = "api";
-        if (companion_ && !companion_->vehicleId().isEmpty())
-            obj["vehicle_id"] = companion_->vehicleId();
-        return QJsonDocument(obj).toJson(QJsonDocument::Compact);
-    }
-
-    if (!companion_) return R"({"error":"Companion service not available"})";
+    // Companion phone state over API v1 (ApiInboundState). Key names predate
+    // v1 and stay stable for the web-config panel's consumers.
+    if (!inbound_) return R"({"error":"Companion service not available"})";
 
     QJsonObject obj;
-    obj["connected"] = companion_->isConnected();
-    obj["gps_lat"] = companion_->gpsLat();
-    obj["gps_lon"] = companion_->gpsLon();
-    obj["gps_speed"] = companion_->gpsSpeed();
-    obj["battery"] = companion_->phoneBattery();
-    obj["charging"] = companion_->isPhoneCharging();
-    obj["internet"] = companion_->isInternetAvailable();
-    obj["proxy"] = companion_->proxyAddress();
-    if (!companion_->vehicleId().isEmpty())
-        obj["vehicle_id"] = companion_->vehicleId();
+    obj["connected"] = inbound_->connected();
+    obj["gps_lat"] = inbound_->gpsLat();
+    obj["gps_lon"] = inbound_->gpsLon();
+    obj["gps_speed"] = inbound_->gpsSpeedMps();
+    obj["gps_stale"] = inbound_->gpsStale();
+    obj["battery"] = inbound_->phoneBattery();
+    obj["charging"] = inbound_->phoneCharging();
+    obj["internet"] = inbound_->internetAvailable();
+    obj["proxy"] = inbound_->proxyAddress();
+    obj["source"] = "api";
     return QJsonDocument(obj).toJson(QJsonDocument::Compact);
 }
 
