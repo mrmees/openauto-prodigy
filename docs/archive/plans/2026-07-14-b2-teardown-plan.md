@@ -2,7 +2,7 @@
 
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
-Status: ACTIVE
+Status: COMPLETED 2026-07-14
 Design: `docs/plans/2026-07-14-b2-teardown-design.md` (Matthew-approved 2026-07-14)
 Grounded on: `27b4392` (dev)
 

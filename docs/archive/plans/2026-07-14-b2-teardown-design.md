@@ -1,6 +1,6 @@
 # B2 Teardown — Legacy Companion Stack Retirement — Design
 
-Status: ACTIVE
+Status: COMPLETED 2026-07-14
 Grounded on: `6310dcc` (dev == origin/dev, 2026-07-14, post-PR #19 / ALPHA-26-07-14-01)
 Design doc lineage: executes and supersedes the §B2 inventory in
 `docs/plans/2026-07-11-hfp-mic-9876-retirement-design.md` (that section's line
