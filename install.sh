@@ -1495,8 +1495,10 @@ install_msbc_codec_fix() {
     # The deb pins Depends: libspa-0.2-modules (= stock base). Simulate first:
     # a base mismatch (Pi upgraded pipewire since the deb was built) must fail
     # loudly here instead of mixing plugin/module ABIs or removing the stack.
+    # (|| true: a failed simulation is the expected probe result on mismatch —
+    # without it, set -e would kill the installer instead of reaching the warn.)
     local sim
-    sim=$(apt-get -s install "$deb" 2>/dev/null)
+    sim=$(apt-get -s install "$deb" 2>/dev/null || true)
     if ! grep -q '^Inst libspa-0.2-bluetooth' <<<"$sim" || grep -q '^Remv' <<<"$sim"; then
         warn "HFP mSBC codec fix: $(basename "$deb") does not install cleanly"
         warn "  against the current pipewire base — rebuild it first"
