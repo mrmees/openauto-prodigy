@@ -295,23 +295,6 @@ Per-stream audio equalization with presets and manual band control.
 
 **Stability:** Stable
 
-### CompanionListenerService
-
-TCP listener for the Prodigy Companion Android app. Provides GPS, phone battery, and internet proxy data.
-
-| Property | Type | Description |
-|----------|------|-------------|
-| `connected` | `bool` | Whether a companion device is connected |
-| `gpsLat` / `gpsLon` / `gpsSpeed` / `gpsAccuracy` / `gpsBearing` | `double` | GPS data from phone |
-| `gpsStale` | `bool` | Whether GPS data is stale (getter: `isGpsStale()`) |
-| `phoneBattery` | `int` | Phone battery level |
-| `phoneCharging` | `bool` | Phone charging state |
-| `internetAvailable` | `bool` | Whether internet proxy is available |
-
-**Note:** This is a concrete class, not an interface — accessed directly via `IHostContext::companionListenerService()`.
-
-**Stability:** Experimental
-
 ## Error Handling
 
 - Plugin methods should not throw exceptions.

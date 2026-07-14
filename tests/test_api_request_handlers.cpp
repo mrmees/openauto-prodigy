@@ -986,8 +986,8 @@ void TestApiRequestHandlers::testConnectivityEmitsProxyRoute() {
 
 // Task D — proxy-route teardown on companion session disconnect. Route
 // ownership follows the session that last reported it active; the owner's
-// disconnect must tear the route down (legacy CompanionListenerService
-// parity). A non-owner disconnecting must never touch it.
+// disconnect must tear the route down (parity with the retired legacy
+// listener). A non-owner disconnecting must never touch it.
 
 void TestApiRequestHandlers::testOwnerSessionCloseClearsRoute() {
     oap::ActionRegistry actions;

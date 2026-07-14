@@ -80,7 +80,7 @@ void ApiInboundState::setConnectivity(const QString& peerHost, bool active,
     proxyActive_ = active;
     if (active)
         // Compose the head unit's SOCKS5 route: the proxy host is the phone's
-        // (this connection's) peer address (CompanionListenerService.cpp:448).
+        // (this connection's) peer address.
         proxyAddress_ = QStringLiteral("socks5://%1:%2").arg(peerHost).arg(port);
     else
         proxyAddress_.clear();

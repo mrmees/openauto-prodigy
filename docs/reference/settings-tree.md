@@ -146,9 +146,12 @@ Dynamic list from `CodecCapabilityModel`. Per codec:
 
 Single merged page (2026-07-14; menu label "Companion", page file
 `ApiSettings.qml`). Replaces the former separate Companion and External API
-pages; the legacy 9876 pairing controls (`Generate Pairing Code`,
+pages; the legacy pairing controls (`Generate Pairing Code`,
 `companion.enabled` toggle) were removed with it. The `companion.*` config
-keys still exist without UI until the B2 teardown retires them.
+namespace was retired in the B2 teardown
+(2026-07-14). Stale `companion:` blocks in existing user configs are ignored
+harmlessly; `~/.openauto/companion.key` and `~/.openauto/vehicle.id` are
+orphaned legacy files (never auto-deleted).
 
 ### Remote Client Pairing
 | Control | Label | Notes |

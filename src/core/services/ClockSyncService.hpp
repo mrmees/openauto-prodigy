@@ -8,14 +8,14 @@ namespace oap {
 
 // Steps the RTC-less head unit's clock and timezone from the phone's
 // wall-clock report (API v1 TimeReport). Single tested home for the logic
-// that previously lived twice: CompanionListenerService::adjustClock (legacy
-// 9876 path, retired at B2) and a static mirror in main.cpp.
+// that previously lived twice (the legacy companion listener and a static
+// mirror in main.cpp; both retired in the B2 teardown, 2026-07-14).
 //
 // Semantics: 30 s drift trigger; steps backward larger than 5 minutes need
 // 3 consecutive reports agreeing on the same target before they apply;
 // timezone steps are skipped when the reported zone already matches the
 // system zone. All steps go through timedatectl (polkit-authorized, see
-// config/companion-polkit.rules).
+// config/clock-sync-polkit.rules).
 //
 // The set-time argument carries an explicit " UTC" suffix: timedatectl
 // parses a bare timestamp as LOCAL time, so the bare UTC wall-clock string

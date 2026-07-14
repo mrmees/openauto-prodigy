@@ -2,7 +2,7 @@
 
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
-Status: ACTIVE
+Status: COMPLETED 2026-07-14
 Design doc: `docs/plans/2026-07-11-hfp-mic-9876-retirement-design.md` (read its §7 executor guidance first)
 Grounded on: `02472f8`
 

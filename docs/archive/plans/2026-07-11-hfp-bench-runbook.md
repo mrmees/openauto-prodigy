@@ -1,6 +1,6 @@
 # HFP + Cutover Bench Runbook — 2026-07-11 phase
 
-Status: ACTIVE
+Status: COMPLETED 2026-07-14
 Design: `docs/plans/2026-07-11-hfp-mic-9876-retirement-design.md` (§A1 decision tree governs)
 Executor: Matthew at the bench Pi (192.168.1.149), phones: Pixel 8 (daily), Samsung S25 Ultra, Moto G Play 2024. All `busctl`/`pw-*` commands run ON THE PI as user `matt` (session bus). Record every RESULT inline; summary goes to `docs/session-handoffs.md` afterward.
 

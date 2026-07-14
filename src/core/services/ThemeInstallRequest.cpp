@@ -7,7 +7,7 @@ namespace oap {
 
 // Companion sends camelCase M3 role names; theme.yaml uses hyphenated keys.
 // Insert a hyphen before each uppercase letter and lowercase it (matches the
-// legacy CompanionListenerService::applyReceivedTheme conversion exactly).
+// retired legacy listener's conversion exactly).
 static QString camelToHyphen(const QString& in) {
     QString out;
     for (QChar ch : in) {

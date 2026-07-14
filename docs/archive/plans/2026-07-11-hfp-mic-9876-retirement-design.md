@@ -1,6 +1,6 @@
 # HFP Mic Fix + Live Checks + Port-9876 Retirement — Phase Design
 
-Status: ACTIVE
+Status: COMPLETED 2026-07-14
 Grounded on: `ae7bf8b` (dev == main, 2026-07-11)
 Revised: 2026-07-11 after sol (gpt-5.6-sol) design review — verdict REWORK,
 12/12 findings confirmed and incorporated (3 P1, 7 P2, 2 P3; none dismissed).

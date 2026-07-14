@@ -15,7 +15,7 @@ Wires the entire system:
 
 ### Core services (`src/core/services/`)
 
-Shared host services reached through `IHostContext`: `ConfigService`, `ThemeService`, `AudioService` (PipeWire streams, volume, audio focus/ducking), `PipeWireDeviceRegistry`, `EventBus`, `ActionRegistry`, `NotificationService`, `MediaStatusService` (playing-wins arbitration across AA/BT/local sources), `PhoneStateService`, `OverlayService`, `EqualizerService`, `DisplayService`, `BluetoothManager`, `CompanionListenerService`, `IpcServer`.
+Shared host services reached through `IHostContext`: `ConfigService`, `ThemeService`, `AudioService` (PipeWire streams, volume, audio focus/ducking), `PipeWireDeviceRegistry`, `EventBus`, `ActionRegistry`, `NotificationService`, `MediaStatusService` (playing-wins arbitration across AA/BT/local sources), `PhoneStateService`, `OverlayService`, `EqualizerService`, `DisplayService`, `BluetoothManager`, `IpcServer`.
 
 ### External API (`src/core/api/`)
 

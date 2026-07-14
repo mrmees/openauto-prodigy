@@ -74,7 +74,7 @@ Governance: capture new ideas in `docs/wishlist.md`; only promoted items should 
   - Delta narrowed 2026-07-07: companion theme/wallpaper upload (`/api/theme/install`) and the web-config themes page both exist; remaining is an audit of in-car theme selection UX.
 - Companion app work — head-unit side DONE; ball is in the companion's court.
   - The companion (Android app, sibling repo `personal/openautopro/openauto-companion`) migrates from the legacy port-9876 JSON/HMAC protocol to API v1 (WebSocket + PIN pairing, `companion.proto` reports) + the new theme-upload HTTP endpoint. All head-unit prerequisites have shipped: API v1 + v1.1 additive batch (2026-07-06) and the theme-upload endpoint (2026-07-07, contract handed off).
-  - Remaining (this repo): **retire `CompanionListenerService` + port 9876** once the companion ships its API v1 client and the cutover validates at the bench — now governed by `docs/plans/2026-07-11-hfp-mic-9876-retirement-design.md` §B2 (teardown inventory incl. the camelCase→hyphen dedup + RNG hygiene items; stage-1 status in the "Now" entry above).
+  - **DONE (2026-07-14):** `CompanionListenerService` + port 9876 retired (B2 teardown, `docs/plans/2026-07-14-b2-teardown-design.md`). Reporting-session liveness expiry shipped with it — a silently-vanished phone drops `connected` within ~35 s.
   - Companion-parity follow-up idea (wishlist, not promoted): phone notifications displayed on the head unit — blockers dissolved (NotificationService + overlay framework both exist), but it waits on the companion's API v1 migration.
 - Streaming web apps (WebAppHost) — fullscreen Spotify/YouTube/parked-video surface
   riding the slice-1 Widevine wiring. Scoped (Decision 3 of the web-surface spec);
