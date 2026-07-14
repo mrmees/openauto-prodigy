@@ -89,6 +89,7 @@ private slots:
     void testRemoteAuthHappyPath();
     void testRemoteAuthBadProof();
     void testPairingFlow();
+    void testPairingWindowClosedTypedError();
     void testSubscribeSnapshotAndAck();
     void testQueueCapDisconnects();
     void testPingPong();
@@ -291,6 +292,45 @@ void TestApiSession::testPairingFlow() {
     QVERIFY(!grantedId.isEmpty());
     QVERIFY(store.find(grantedId).has_value());
     QCOMPARE(session.state(), ApiSession::State::Ready);
+}
+
+// COMPANION WIRE CONTRACT: a pairing_request outside an open window (never
+// opened, cancelled, or expired — all one branch) answers with the TYPED
+// Error{ERROR_CODE_PAIRING_WINDOW_CLOSED, "Pairing window closed"} echoing
+// the ClientHello's request_id, then closes the connection. The companion
+// matches the code, not the message string.
+void TestApiSession::testPairingWindowClosedTypedError() {
+    PairedClientStore store("/tmp/oap_test_session_window_closed.yaml");
+    QFile::remove("/tmp/oap_test_session_window_closed.yaml");
+    PairingManager pairing(&store);   // window never opened = closed
+
+    auto* transport = new FakeTransport();
+    ApiSessionDeps deps;
+    deps.store = &store;
+    deps.pairing = &pairing;
+    deps.serverName = "HeadUnit";
+    deps.appVersion = "1.0";
+    ApiSession session(transport, deps);
+    session.setPeerTrustOverrideForTest(false);
+    QSignalSpy terminatedSpy(&session, &ApiSession::terminated);
+
+    pb::ApiMessage hello;
+    hello.set_request_id(7);
+    auto* h = hello.mutable_client_hello();
+    h->set_requested_api_version_major(1);
+    h->set_client_name("NewPhone");
+    h->set_client_kind(pb::CLIENT_KIND_COMPANION);
+    h->mutable_auth()->set_pairing_request(true);
+    transport->injectMessage(serialize(hello));
+
+    pb::ApiMessage reject = parse(transport->sent.last());
+    QCOMPARE(reject.payload_case(), pb::ApiMessage::kError);
+    QCOMPARE(reject.request_id(), quint64(7));
+    QCOMPARE(reject.error().code(), pb::ERROR_CODE_PAIRING_WINDOW_CLOSED);
+    QCOMPARE(QString::fromStdString(reject.error().message()),
+             QString("Pairing window closed"));
+    QCOMPARE(terminatedSpy.count(), 1);
+    QCOMPARE(session.state(), ApiSession::State::Closed);
 }
 
 void TestApiSession::testSubscribeSnapshotAndAck() {

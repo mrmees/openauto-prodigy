@@ -141,7 +141,11 @@ void ApiSession::handleExpectHello(const pb::ApiMessage& m) {
 
     if (auth.pairing_request()) {
         if (!deps_.pairing || !deps_.pairing->windowOpen()) {
-            sendAuthReject(m.request_id(), "pairing window closed");
+            // Companion wire contract: typed code (never opened / cancelled /
+            // expired — one branch), then a clean close. The client matches
+            // the code; the message string is informational only.
+            closeWithError(m.request_id(), pb::ERROR_CODE_PAIRING_WINDOW_CLOSED,
+                           QStringLiteral("Pairing window closed"));
             return;
         }
         nonce_ = deps_.pairing->makeNonce();

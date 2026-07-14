@@ -702,9 +702,20 @@ void TestApiLoopback::testPeerAdmissionPolicy() {
 // app's scanner (prodigy://pair?host=&tcp=&ws=&pin=), and the data-URI
 // property tracks the pairing window's lifecycle.
 void TestApiLoopback::testPairingQrPayloadAndProperty() {
+    // COMPANION SCANNER CONTRACT: ssid is a required additive field (Android
+    // can redact the AA-owned network's SSID, so the companion persists it
+    // from the QR for reconnect). SSIDs are percent-encoded as a query value;
+    // unknown future query params must be ignored by scanners.
     QCOMPARE(ApiServer::pairingQrPayload(QStringLiteral("10.0.0.1"), 9810, 9811,
-                                         QStringLiteral("123456")),
-             QStringLiteral("prodigy://pair?host=10.0.0.1&tcp=9810&ws=9811&pin=123456"));
+                                         QStringLiteral("123456"),
+                                         QStringLiteral("OpenAutoProdigy-A3F2")),
+             QStringLiteral("prodigy://pair?host=10.0.0.1&tcp=9810&ws=9811"
+                            "&pin=123456&ssid=OpenAutoProdigy-A3F2"));
+    QCOMPARE(ApiServer::pairingQrPayload(QStringLiteral("10.0.0.1"), 9810, 9811,
+                                         QStringLiteral("123456"),
+                                         QStringLiteral("My Car AP+5G&more")),
+             QStringLiteral("prodigy://pair?host=10.0.0.1&tcp=9810&ws=9811"
+                            "&pin=123456&ssid=My%20Car%20AP%2B5G%26more"));
 
     Fixture f;
     f.config.setValue("api.tcp_port", 0);

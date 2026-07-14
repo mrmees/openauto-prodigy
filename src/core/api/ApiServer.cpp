@@ -8,6 +8,7 @@
 #include <QWebSocket>
 #include <QAbstractSocket>
 #include <QDir>
+#include <QUrl>
 #include <QVariant>
 #include <QUuid>
 
@@ -115,6 +116,9 @@ bool ApiServer::start() {
     handshakeTimeoutMs_ = cfgInt("api.handshake_timeout_ms", 5000);
 
     serverName_ = cfgStr("identity.head_unit_name", QStringLiteral("OpenAuto Prodigy"));
+    // Same key + default as YamlConfig::wifiSsid() — the SSID hostapd is
+    // provisioned with; rides the pairing QR for companion reconnect.
+    pairingSsid_ = cfgStr("connection.wifi_ap.ssid", QStringLiteral("OpenAutoProdigy"));
     appVersion_ = QStringLiteral(OAP_VERSION " (" OAP_GIT_HASH ")");
 
     // Stable head-unit identity (v1.1, ServerHello.server_id): mint once on
@@ -312,9 +316,11 @@ QString ApiServer::pairingPin() const {
 }
 
 QString ApiServer::pairingQrPayload(const QString& host, quint16 tcpPort,
-                                    quint16 wsPort, const QString& pin) {
-    return QStringLiteral("prodigy://pair?host=%1&tcp=%2&ws=%3&pin=%4")
-        .arg(host).arg(tcpPort).arg(wsPort).arg(pin);
+                                    quint16 wsPort, const QString& pin,
+                                    const QString& ssid) {
+    return QStringLiteral("prodigy://pair?host=%1&tcp=%2&ws=%3&pin=%4&ssid=%5")
+        .arg(host).arg(tcpPort).arg(wsPort).arg(pin)
+        .arg(QString::fromLatin1(QUrl::toPercentEncoding(ssid)));
 }
 
 QString ApiServer::pairingQrDataUri() const {
@@ -330,7 +336,8 @@ QString ApiServer::pairingQrDataUri() const {
     // 10.0.0.0/24 peer-admission subnet above).
     return qrPngDataUri(pairingQrPayload(QStringLiteral("10.0.0.1"),
                                          tcpPort(), wsPort(),
-                                         pairing_->currentPin()));
+                                         pairing_->currentPin(),
+                                         pairingSsid_));
 }
 
 int ApiServer::sessionCount() const {
