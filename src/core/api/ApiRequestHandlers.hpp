@@ -23,6 +23,10 @@
 #include <QSet>
 #include <QString>
 #include <QVariant>
+#include <QTimer>
+#include <QElapsedTimer>
+
+#include <functional>
 
 #include "core/api/ApiSession.hpp"   // ApiSession, IApiRequestSink, api.pb.h
 
@@ -51,6 +55,19 @@ public:
     void handleRequest(ApiSession* session, quint64 requestId,
                        const prodigy::api::v1::ApiMessage& msg) override;
     void sessionClosed(ApiSession* session) override;
+
+    // Liveness expiry (B2 design §5): a reporting session whose last accepted
+    // report is older than the threshold loses its reporting role — presence,
+    // per-type report ownership, cached inbound state, proxy route. Its
+    // registered actions, notifications, and the socket itself are untouched;
+    // a later accepted report re-registers it exactly like a first report.
+    // The sweep runs on a coarse timer only while reporting sessions exist.
+    // Threshold = 30 s (~30 missed beats at the companion's ~1 Hz contract
+    // cadence, symmetric with the GPS staleness window).
+    void setLivenessThresholdMs(int ms) { livenessThresholdMs_ = ms; }
+    void setLivenessNowFnForTest(std::function<qint64()> fn) { livenessNow_ = std::move(fn); }
+    bool livenessTimerActiveForTest() const { return livenessTimer_.isActive(); }
+    void expireStaleReportingSessions();
 
 private:
     enum class PhoneOp { Dial, Answer, Hangup, SendDtmf };
@@ -82,23 +99,38 @@ private:
     // connectivity or time-only report still marks a companion present.
     void recomputeOwnerPresence();
 
+    // Strip the session's reporting role: presence-set membership, per-type
+    // report ownership + the cached state each owned (GPS, battery, proxy
+    // route). Shared by sessionClosed() and liveness expiry. Never touches
+    // actions/notifications/the socket.
+    void clearReportingState(ApiSession* session);
+    // Accepted-report bookkeeping: presence set + liveness stamp + timer arm.
+    void noteReportAccepted(ApiSession* session);
+    void updateLivenessTimer();
+    qint64 livenessNowMs() const;
+
     Deps deps_;
     QHash<QString, ApiSession*> clientOwners_;   // action id -> owning session
     QHash<QString, QString> clientLabels_;        // action id -> display label
     QHash<ApiSession*, QSet<QString>> notificationOwners_;
     // Presence set: every session that has delivered any accepted companion
     // report (GPS, battery, connectivity — active or not — or time). Drives
-    // `connected`; a session is removed on close. Separate from the per-report
-    // owners below, which govern cached-state teardown and proxy-route
-    // ownership, NOT presence.
+    // `connected`; a session is removed on close or when its reporting role
+    // expires (liveness). Separate from the per-report owners below, which
+    // govern cached-state teardown and proxy-route ownership, NOT presence.
     QSet<ApiSession*> reportingSessions_;
-    // Per-report-type ownership = last session to source that report; cleared
-    // (and the cached state torn down) when that session closes. Legacy
-    // CompanionListenerService parity (clearClientSession() clears everything
-    // the departing companion had reported).
+    // Per-report-type ownership = last session to source that report; cleared —
+    // with the cached state — by clearReportingState() when the owning session
+    // closes or expires.
     ApiSession* gpsOwner_ = nullptr;
     ApiSession* batteryOwner_ = nullptr;
     ApiSession* connectivityOwner_ = nullptr;
+
+    QHash<ApiSession*, qint64> lastReportMs_;   // monotonic ms of last accepted report
+    int livenessThresholdMs_ = 30000;
+    QTimer livenessTimer_;
+    QElapsedTimer livenessClock_;
+    std::function<qint64()> livenessNow_;       // test seam; default = livenessClock_
 };
 
 } // namespace oap::api

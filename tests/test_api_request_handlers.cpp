@@ -68,6 +68,31 @@ QByteArray clientHello() {
     return serialize(m);
 }
 
+QByteArray batteryReport(int percent, bool charging) {
+    pb::ApiMessage m;
+    auto* r = m.mutable_battery_report();
+    r->set_percent(percent);
+    r->set_charging(charging);
+    return serialize(m);
+}
+
+QByteArray gpsReport(double lat, double lon) {
+    pb::ApiMessage m;
+    auto* r = m.mutable_gps_report();
+    r->set_latitude(lat);
+    r->set_longitude(lon);
+    return serialize(m);
+}
+
+QByteArray connectivityReport(bool internet, bool socks, quint16 port) {
+    pb::ApiMessage m;
+    auto* r = m.mutable_connectivity_report();
+    r->set_internet_available(internet);
+    r->set_socks5_active(socks);
+    r->set_socks5_port(port);
+    return serialize(m);
+}
+
 } // namespace
 
 // -----------------------------------------------------------------------------
@@ -106,6 +131,13 @@ private slots:
     void testTimeReportInvalidTimezoneDropsZoneOnly();
     void testTimeReportNoTimezoneNoZoneSignal();
     void testUnroutablePayloadClosesSession();
+    void testLivenessExpiryClearsReportingRole();
+    void testLivenessExpiryTearsProxyRoute();
+    void testLivenessExpirySparesNonReportingRoles();
+    void testLivenessRevivalOnNextReport();
+    void testLivenessPerSessionIndependence();
+    void testLivenessBoundaryNotExpiredAtThreshold();
+    void testLivenessTimerArmsAndDisarms();
 };
 
 // -----------------------------------------------------------------------------
@@ -1250,6 +1282,180 @@ void TestApiRequestHandlers::testUnroutablePayloadClosesSession() {
     QCOMPARE(resp.error().code(), pb::ERROR_CODE_INVALID_REQUEST);
     QCOMPARE(terminatedSpy.count(), 1);
     QCOMPARE(session.state(), ApiSession::State::Closed);
+}
+
+void TestApiRequestHandlers::testLivenessExpiryClearsReportingRole() {
+    oap::ActionRegistry actions;
+    oap::NotificationService notifications;
+    oap::PhoneStateService phone;
+    ApiInboundState inbound;
+    ApiRequestHandlers handler({&actions, &notifications, &phone, &inbound});
+    qint64 fakeNow = 0;
+    handler.setLivenessNowFnForTest([&] { return fakeNow; });
+
+    auto* transport = new FakeTransport();
+    ApiSessionDeps deps; deps.requests = &handler;
+    ApiSession session(transport, deps);
+    transport->injectMessage(clientHello());
+    transport->injectMessage(batteryReport(80, true));
+    transport->injectMessage(gpsReport(45.0, -93.0));
+    QVERIFY(inbound.connected());
+    QCOMPARE(inbound.phoneBattery(), 80);
+    QVERIFY(inbound.gpsValid());
+
+    fakeNow = 30001;   // strictly past the 30 s default threshold
+    handler.expireStaleReportingSessions();
+    QVERIFY(!inbound.connected());
+    QCOMPARE(inbound.phoneBattery(), -1);
+    QVERIFY(!inbound.gpsValid());
+}
+
+void TestApiRequestHandlers::testLivenessExpiryTearsProxyRoute() {
+    oap::ActionRegistry actions;
+    oap::NotificationService notifications;
+    oap::PhoneStateService phone;
+    ApiInboundState inbound;
+    ApiRequestHandlers handler({&actions, &notifications, &phone, &inbound});
+    qint64 fakeNow = 0;
+    handler.setLivenessNowFnForTest([&] { return fakeNow; });
+
+    auto* transport = new FakeTransport();
+    ApiSessionDeps deps; deps.requests = &handler;
+    ApiSession session(transport, deps);
+    transport->injectMessage(clientHello());
+    transport->injectMessage(connectivityReport(true, true, 1080));
+    QVERIFY(inbound.proxyActive());
+
+    QSignalSpy routeSpy(&inbound, &ApiInboundState::proxyRouteChanged);
+    fakeNow = 30001;
+    handler.expireStaleReportingSessions();
+    QVERIFY(!inbound.proxyActive());
+    QVERIFY(routeSpy.count() >= 1);
+    QCOMPARE(routeSpy.last().at(0).toBool(), false);   // route torn down
+}
+
+void TestApiRequestHandlers::testLivenessExpirySparesNonReportingRoles() {
+    oap::ActionRegistry actions;
+    oap::NotificationService notifications;
+    oap::PhoneStateService phone;
+    ApiInboundState inbound;
+    ApiRequestHandlers handler({&actions, &notifications, &phone, &inbound});
+    qint64 fakeNow = 0;
+    handler.setLivenessNowFnForTest([&] { return fakeNow; });
+
+    auto* transport = new FakeTransport();
+    ApiSessionDeps deps; deps.requests = &handler;
+    ApiSession session(transport, deps);
+    transport->injectMessage(clientHello());
+
+    pb::ApiMessage reg;
+    reg.set_request_id(5);
+    reg.mutable_register_actions_request()->add_actions()->set_id("testapp.hello");
+    transport->injectMessage(serialize(reg));
+    transport->injectMessage(batteryReport(50, false));
+
+    fakeNow = 30001;
+    handler.expireStaleReportingSessions();
+    QVERIFY(!inbound.connected());                       // reporting role expired...
+    QCOMPARE(session.state(), ApiSession::State::Ready);  // ...but the session lives
+    QVERIFY(actions.registeredActions().contains("testapp.hello"));  // ...and keeps its action
+}
+
+void TestApiRequestHandlers::testLivenessRevivalOnNextReport() {
+    oap::ActionRegistry actions;
+    oap::NotificationService notifications;
+    oap::PhoneStateService phone;
+    ApiInboundState inbound;
+    ApiRequestHandlers handler({&actions, &notifications, &phone, &inbound});
+    qint64 fakeNow = 0;
+    handler.setLivenessNowFnForTest([&] { return fakeNow; });
+
+    auto* transport = new FakeTransport();
+    ApiSessionDeps deps; deps.requests = &handler;
+    ApiSession session(transport, deps);
+    transport->injectMessage(clientHello());
+    transport->injectMessage(batteryReport(80, true));
+
+    fakeNow = 30001;
+    handler.expireStaleReportingSessions();
+    QVERIFY(!inbound.connected());
+
+    transport->injectMessage(batteryReport(75, true));   // wedged phone woke up
+    QVERIFY(inbound.connected());
+    QCOMPARE(inbound.phoneBattery(), 75);
+}
+
+void TestApiRequestHandlers::testLivenessPerSessionIndependence() {
+    oap::ActionRegistry actions;
+    oap::NotificationService notifications;
+    oap::PhoneStateService phone;
+    ApiInboundState inbound;
+    ApiRequestHandlers handler({&actions, &notifications, &phone, &inbound});
+    qint64 fakeNow = 0;
+    handler.setLivenessNowFnForTest([&] { return fakeNow; });
+
+    auto* transportA = new FakeTransport();
+    ApiSessionDeps depsA; depsA.requests = &handler;
+    ApiSession sessionA(transportA, depsA);
+    transportA->injectMessage(clientHello());
+    transportA->injectMessage(batteryReport(80, true));
+
+    auto* transportB = new FakeTransport();
+    ApiSessionDeps depsB; depsB.requests = &handler;
+    ApiSession sessionB(transportB, depsB);
+    fakeNow = 20000;
+    transportB->injectMessage(clientHello());
+    transportB->injectMessage(gpsReport(45.0, -93.0));
+
+    fakeNow = 31000;   // A is 31 s stale, B only 11 s
+    handler.expireStaleReportingSessions();
+    QCOMPARE(inbound.phoneBattery(), -1);   // A's battery cleared
+    QVERIFY(inbound.gpsValid());            // B's GPS intact
+    QVERIFY(inbound.connected());           // presence survives via B
+}
+
+void TestApiRequestHandlers::testLivenessBoundaryNotExpiredAtThreshold() {
+    oap::ActionRegistry actions;
+    oap::NotificationService notifications;
+    oap::PhoneStateService phone;
+    ApiInboundState inbound;
+    ApiRequestHandlers handler({&actions, &notifications, &phone, &inbound});
+    qint64 fakeNow = 0;
+    handler.setLivenessNowFnForTest([&] { return fakeNow; });
+
+    auto* transport = new FakeTransport();
+    ApiSessionDeps deps; deps.requests = &handler;
+    ApiSession session(transport, deps);
+    transport->injectMessage(clientHello());
+    transport->injectMessage(batteryReport(80, true));
+
+    fakeNow = 30000;   // exactly the threshold: NOT expired (strict >)
+    handler.expireStaleReportingSessions();
+    QVERIFY(inbound.connected());
+
+    fakeNow = 30001;
+    handler.expireStaleReportingSessions();
+    QVERIFY(!inbound.connected());
+}
+
+void TestApiRequestHandlers::testLivenessTimerArmsAndDisarms() {
+    oap::ActionRegistry actions;
+    oap::NotificationService notifications;
+    oap::PhoneStateService phone;
+    ApiInboundState inbound;
+    ApiRequestHandlers handler({&actions, &notifications, &phone, &inbound});
+
+    QVERIFY(!handler.livenessTimerActiveForTest());   // idle until a report
+
+    auto* transport = new FakeTransport();
+    ApiSessionDeps deps; deps.requests = &handler;
+    ApiSession session(transport, deps);
+    transport->injectMessage(clientHello());
+    transport->injectMessage(batteryReport(80, true));
+    QVERIFY(handler.livenessTimerActiveForTest());
+
+    transport->close();   // session teardown -> reporting set empties
+    QVERIFY(!handler.livenessTimerActiveForTest());
 }
 
 QTEST_MAIN(TestApiRequestHandlers)
