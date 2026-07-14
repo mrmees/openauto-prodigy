@@ -1,11 +1,14 @@
 #include "core/api/ApiServer.hpp"
 
+#include "core/QrPng.hpp"
+
 #include <QTcpServer>
 #include <QTcpSocket>
 #include <QWebSocketServer>
 #include <QWebSocket>
 #include <QAbstractSocket>
 #include <QDir>
+#include <QUrl>
 #include <QVariant>
 #include <QUuid>
 
@@ -113,6 +116,9 @@ bool ApiServer::start() {
     handshakeTimeoutMs_ = cfgInt("api.handshake_timeout_ms", 5000);
 
     serverName_ = cfgStr("identity.head_unit_name", QStringLiteral("OpenAuto Prodigy"));
+    // Same key + default as YamlConfig::wifiSsid() — the SSID hostapd is
+    // provisioned with; rides the pairing QR for companion reconnect.
+    pairingSsid_ = cfgStr("connection.wifi_ap.ssid", QStringLiteral("OpenAutoProdigy"));
     appVersion_ = QStringLiteral(OAP_VERSION " (" OAP_GIT_HASH ")");
 
     // Stable head-unit identity (v1.1, ServerHello.server_id): mint once on
@@ -142,11 +148,20 @@ bool ApiServer::start() {
     const bool wsOk = wsServer_->listen(QHostAddress::Any, wsPort);
 
     started_ = tcpOk || wsOk;
+    if (started_) emit runningChanged();
     return started_;
 }
 
 void ApiServer::stop() {
+    const bool wasRunning = started_;
     started_ = false;
+    if (wasRunning) emit runningChanged();
+
+    // 0. Close any open pairing window. Its PIN must not survive into a
+    //    later start() (a stopped-then-restarted server would accept the
+    //    stale PIN for the rest of the window), and QML must be told the
+    //    QR/PIN are gone (cancelWindow -> windowChanged -> pairingChanged).
+    if (pairing_) pairing_->cancelWindow();
 
     // 1. Destroy publishers FIRST. Each owns a 0-ms coalesce timer whose
     //    deferred buildEnvelope() reads its provider on the next event-loop
@@ -294,7 +309,11 @@ void ApiServer::wirePublisher(TopicPublisher* pub) {
 // ---- Pairing / accessors ---------------------------------------------------
 
 void ApiServer::startPairing() {
-    if (pairing_) pairing_->startWindow(pairingTimeoutS_);
+    // No listener, no window: a PIN with nothing to pair through is zombie
+    // UI (also reachable via the api.pairing.start action, so guard here,
+    // not just in QML).
+    if (!started_ || !pairing_) return;
+    pairing_->startWindow(pairingTimeoutS_);
 }
 
 void ApiServer::cancelPairing() {
@@ -307,6 +326,34 @@ bool ApiServer::pairingActive() const {
 
 QString ApiServer::pairingPin() const {
     return pairing_ ? pairing_->currentPin() : QString();
+}
+
+QString ApiServer::pairingQrPayload(const QString& host, quint16 tcpPort,
+                                    quint16 wsPort, const QString& pin,
+                                    const QString& ssid) {
+    return QStringLiteral("prodigy://pair?host=%1&tcp=%2&ws=%3&pin=%4&ssid=%5")
+        .arg(host).arg(tcpPort).arg(wsPort).arg(pin)
+        .arg(QString::fromLatin1(QUrl::toPercentEncoding(ssid)));
+}
+
+QString ApiServer::pairingQrPayloadForTest() const {
+    if (!pairing_ || !pairing_->windowOpen())
+        return QString();
+    // Never advertise dead endpoints: a QR with tcp=0/ws=0 (server not
+    // started, or a listener failed) would send the scanner somewhere
+    // unreachable. Manual PIN pairing stays available in that state.
+    if (tcpPort() == 0 || wsPort() == 0)
+        return QString();
+    // The phone reaches the head unit over the Pi's own AP, where the Pi is
+    // always 10.0.0.1 (same assumption as the legacy companion QR and the
+    // 10.0.0.0/24 peer-admission subnet above).
+    return pairingQrPayload(QStringLiteral("10.0.0.1"), tcpPort(), wsPort(),
+                            pairing_->currentPin(), pairingSsid_);
+}
+
+QString ApiServer::pairingQrDataUri() const {
+    const QString payload = pairingQrPayloadForTest();
+    return payload.isEmpty() ? QString() : qrPngDataUri(payload);
 }
 
 int ApiServer::sessionCount() const {

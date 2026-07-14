@@ -3,9 +3,9 @@
 #include "TelephonyClient.hpp"
 #include "core/audio/ScoNodeMonitor.hpp"
 #include <QDBusConnection>
-#include <QDBusInterface>
 #include <QDBusMessage>
 #include <QDBusArgument>
+#include <QDBusMetaType>
 #include <QDBusVariant>
 #include <QDBusServiceWatcher>
 
@@ -294,6 +294,14 @@ void PhoneStateService::startDBusMonitoring()
     auto bus = QDBusConnection::systemBus();
     if (!bus.isConnected()) return;
 
+    // ObjectManager InterfacesAdded is a{sa{sv}} — QtDBus refuses to deliver it
+    // into a QVariantMap slot, so the connect below fails silently unless the
+    // QMap<QString,QVariantMap> metatype is registered first (bench 2026-07-10
+    // root cause). The named registration lets QMetaObject::invokeMethod resolve
+    // the type too.
+    qDBusRegisterMetaType<BluezInterfaceMap>();
+    qRegisterMetaType<oap::BluezInterfaceMap>("oap::BluezInterfaceMap");
+
     bluezWatcher_ = new QDBusServiceWatcher(
         QStringLiteral("org.bluez"), bus,
         QDBusServiceWatcher::WatchForRegistration | QDBusServiceWatcher::WatchForUnregistration,
@@ -313,20 +321,23 @@ void PhoneStateService::startDBusMonitoring()
         setCallStateInternal(ICallStateProvider::Idle);
     });
 
-    bus.connect(QStringLiteral("org.bluez"), QStringLiteral("/"),
+    const bool okAdded = bus.connect(QStringLiteral("org.bluez"), QStringLiteral("/"),
         QStringLiteral("org.freedesktop.DBus.ObjectManager"),
         QStringLiteral("InterfacesAdded"),
-        this, SLOT(onInterfacesAdded(QDBusObjectPath,QVariantMap)));
+        this, SLOT(onInterfacesAdded(QDBusObjectPath,BluezInterfaceMap)));
 
-    bus.connect(QStringLiteral("org.bluez"), QStringLiteral("/"),
+    const bool okRemoved = bus.connect(QStringLiteral("org.bluez"), QStringLiteral("/"),
         QStringLiteral("org.freedesktop.DBus.ObjectManager"),
         QStringLiteral("InterfacesRemoved"),
         this, SLOT(onInterfacesRemoved(QDBusObjectPath,QStringList)));
 
-    bus.connect(QStringLiteral("org.bluez"), QString(),
+    const bool okProps = bus.connect(QStringLiteral("org.bluez"), QString(),
         QStringLiteral("org.freedesktop.DBus.Properties"),
         QStringLiteral("PropertiesChanged"),
-        this, SLOT(onPropertiesChanged(QString,QVariantMap,QStringList)));
+        this, SLOT(onPropertiesChanged(QString,QVariantMap,QStringList,QDBusMessage)));
+
+    qInfo() << "PhoneStateService D-Bus subscriptions: InterfacesAdded=" << okAdded
+            << "InterfacesRemoved=" << okRemoved << "PropertiesChanged=" << okProps;
 
     monitoring_ = true;
     scanExistingDevices();
@@ -340,7 +351,7 @@ void PhoneStateService::stopDBusMonitoring()
     bus.disconnect(QStringLiteral("org.bluez"), QStringLiteral("/"),
         QStringLiteral("org.freedesktop.DBus.ObjectManager"),
         QStringLiteral("InterfacesAdded"),
-        this, SLOT(onInterfacesAdded(QDBusObjectPath,QVariantMap)));
+        this, SLOT(onInterfacesAdded(QDBusObjectPath,BluezInterfaceMap)));
     bus.disconnect(QStringLiteral("org.bluez"), QStringLiteral("/"),
         QStringLiteral("org.freedesktop.DBus.ObjectManager"),
         QStringLiteral("InterfacesRemoved"),
@@ -348,7 +359,7 @@ void PhoneStateService::stopDBusMonitoring()
     bus.disconnect(QStringLiteral("org.bluez"), QString(),
         QStringLiteral("org.freedesktop.DBus.Properties"),
         QStringLiteral("PropertiesChanged"),
-        this, SLOT(onPropertiesChanged(QString,QVariantMap,QStringList)));
+        this, SLOT(onPropertiesChanged(QString,QVariantMap,QStringList,QDBusMessage)));
 
     delete bluezWatcher_;
     bluezWatcher_ = nullptr;
@@ -394,26 +405,8 @@ void PhoneStateService::scanExistingDevices()
             propsArg.endMap();
             ifacesArg.endMapEntry();
 
-            if (iface == QLatin1String("org.bluez.Device1")) {
-                bool connected = props.value(QStringLiteral("Connected")).toBool();
-                QStringList uuids = props.value(QStringLiteral("UUIDs")).toStringList();
-
-                bool hasHfp = false;
-                for (const auto& uuid : uuids) {
-                    if (uuid.startsWith(QLatin1String("0000111e"))
-                        || uuid.startsWith(QLatin1String("0000111f"))) {
-                        hasHfp = true;
-                        break;
-                    }
-                }
-
-                if (connected && hasHfp) {
-                    devicePath_ = path;
-                    deviceName_ = props.value(QStringLiteral("Alias")).toString();
-                    phoneConnected_ = true;
-                    emit connectionChanged();
-                }
-            }
+            if (iface == QLatin1String("org.bluez.Device1"))
+                adoptBluezDevice(path, props);
         }
         ifacesArg.endMap();
         arg.endMapEntry();
@@ -421,18 +414,24 @@ void PhoneStateService::scanExistingDevices()
     arg.endMap();
 }
 
-void PhoneStateService::onInterfacesAdded(const QDBusObjectPath& path, const QVariantMap& interfaces)
+void PhoneStateService::onInterfacesAdded(const QDBusObjectPath& path,
+                                          const BluezInterfaceMap& interfaces)
 {
-    Q_UNUSED(interfaces)
-    const QString pathStr = path.path();
-    if (!pathStr.contains(QLatin1String("/dev_"))) return;
+    // The Device1 properties ride along in the signal payload — adopt straight
+    // from it. NO QDBusInterface read-back: the old synchronous property query
+    // was both an extra round-trip and, coupled with the QVariantMap slot
+    // signature that never connected, dead code (bench 2026-07-10).
+    auto it = interfaces.constFind(QStringLiteral("org.bluez.Device1"));
+    if (it == interfaces.constEnd()) return;
+    adoptBluezDevice(path.path(), it.value());
+}
 
-    QDBusInterface iface(QStringLiteral("org.bluez"), pathStr,
-        QStringLiteral("org.bluez.Device1"), QDBusConnection::systemBus());
-    if (!iface.isValid()) return;
+void PhoneStateService::adoptBluezDevice(const QString& path, const QVariantMap& deviceProps)
+{
+    if (phoneConnected_) return;   // single-phone model — first connected HFP wins
 
-    bool connected = iface.property("Connected").toBool();
-    QStringList uuids = iface.property("UUIDs").toStringList();
+    const bool connected = deviceProps.value(QStringLiteral("Connected")).toBool();
+    const QStringList uuids = deviceProps.value(QStringLiteral("UUIDs")).toStringList();
 
     bool hasHfp = false;
     for (const auto& uuid : uuids) {
@@ -443,9 +442,9 @@ void PhoneStateService::onInterfacesAdded(const QDBusObjectPath& path, const QVa
         }
     }
 
-    if (connected && hasHfp && !phoneConnected_) {
-        devicePath_ = pathStr;
-        deviceName_ = iface.property("Alias").toString();
+    if (connected && hasHfp) {
+        devicePath_ = path;
+        deviceName_ = deviceProps.value(QStringLiteral("Alias")).toString();
         phoneConnected_ = true;
         emit connectionChanged();
     }
@@ -462,20 +461,42 @@ void PhoneStateService::onInterfacesRemoved(const QDBusObjectPath& path, const Q
     }
 }
 
-void PhoneStateService::onPropertiesChanged(const QString& interface, const QVariantMap& changed,
-                                             const QStringList& /*invalidated*/)
+bool PhoneStateService::shouldRescanOnDeviceChange(bool phoneConnected,
+                                                   const QVariantMap& changed)
 {
-    if (interface == QLatin1String("org.bluez.Device1")) {
-        if (changed.contains(QStringLiteral("Connected"))) {
-            bool connected = changed.value(QStringLiteral("Connected")).toBool();
-            if (!connected && phoneConnected_) {
-                phoneConnected_ = false;
-                deviceName_.clear();
-                emit connectionChanged();
-                setCallStateInternal(ICallStateProvider::Idle);
-            }
+    if (phoneConnected) return false;   // single-phone model — first connected wins
+    if (changed.value(QStringLiteral("Connected")).toBool()) return true;
+    if (changed.contains(QStringLiteral("UUIDs"))) return true;
+    return false;
+}
+
+void PhoneStateService::onPropertiesChanged(const QString& interface, const QVariantMap& changed,
+                                             const QStringList& /*invalidated*/,
+                                             const QDBusMessage& message)
+{
+    if (interface != QLatin1String("org.bluez.Device1")) return;
+
+    // Disconnection branch: only the ADOPTED phone's own object path may tear
+    // the session down. PropertiesChanged is subscribed on ALL BlueZ paths, so
+    // without this guard an unrelated device (headphones, watch) dropping
+    // Connected would clear the phone and reset the call to Idle.
+    if (changed.contains(QStringLiteral("Connected"))) {
+        bool connected = changed.value(QStringLiteral("Connected")).toBool();
+        if (!connected && phoneConnected_ && message.path() == devicePath_) {
+            phoneConnected_ = false;
+            deviceName_.clear();
+            devicePath_.clear();
+            emit connectionChanged();
+            setCallStateInternal(ICallStateProvider::Idle);
         }
     }
+
+    // Late-arriving fresh pair: BlueZ can create Device1 disconnected and
+    // deliver Connected=true / UUIDs later. Re-run the managed-objects scan —
+    // it demarshals full device state and routes through adoptBluezDevice(),
+    // so a phone paired after boot is adopted without a restart.
+    if (shouldRescanOnDeviceChange(phoneConnected_, changed))
+        scanExistingDevices();
 }
 
 } // namespace oap

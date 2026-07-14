@@ -23,7 +23,20 @@ qint64 TcpApiTransport::bytesToWrite() const {
 }
 
 void TcpApiTransport::close() {
+    // Terminal frames (Error/AuthReject) are written in the SAME event-loop
+    // turn as this close, and the session's deleteLater destroys this socket
+    // on the next turn — before the loop would flush Qt's write buffer.
+    // A destroyed socket aborts, discarding the frame: a real client saw
+    // EOF with zero bytes (companion live bench, 2026-07-13). flush() pushes
+    // the pending bytes into the kernel now; the kernel delivers them and
+    // FINs even if the object dies immediately after.
+    socket_->flush();
     socket_->close();
+}
+
+void TcpApiTransport::abort() {
+    socket_->abort();   // discard queued data, RST — the peer learns NOW
+    emitClosedOnce();   // deterministic regardless of what Qt emitted above
 }
 
 QHostAddress TcpApiTransport::peerAddress() const {
@@ -41,6 +54,14 @@ void TcpApiTransport::onReadyRead() {
 }
 
 void TcpApiTransport::onDisconnected() {
+    emitClosedOnce();
+}
+
+void TcpApiTransport::emitClosedOnce() {
+    // Both Qt's disconnected() (graceful close, and possibly abort) and the
+    // explicit abort() path funnel here: consumers get exactly ONE closed().
+    if (closedEmitted_) return;
+    closedEmitted_ = true;
     emit closed();
 }
 
@@ -71,7 +92,17 @@ qint64 WsApiTransport::bytesToWrite() const {
 }
 
 void WsApiTransport::close() {
+    // Same hazard class as the TCP transport (see above): make sure queued
+    // binary frames reach the kernel before the deferred delete can destroy
+    // the socket. QWebSocket::close() also flushes internally after writing
+    // its close frame; this is defense in depth for the data frames.
+    socket_->flush();
     socket_->close();
+}
+
+void WsApiTransport::abort() {
+    socket_->abort();
+    emitClosedOnce();   // deterministic regardless of what Qt emitted above
 }
 
 QHostAddress WsApiTransport::peerAddress() const {
@@ -92,6 +123,12 @@ void WsApiTransport::onTextMessageReceived(const QString&) {
 }
 
 void WsApiTransport::onDisconnected() {
+    emitClosedOnce();
+}
+
+void WsApiTransport::emitClosedOnce() {
+    if (closedEmitted_) return;
+    closedEmitted_ = true;
     emit closed();
 }
 

@@ -84,84 +84,9 @@
 #include <QQuickWindow>
 #include <QWindow>
 #include <QSocketNotifier>
-#include <QDateTime>
-#include <QProcess>
-#include <QTimeZone>
 #include <algorithm>
 #include <cmath>
-
-// Mirrors CompanionListenerService::adjustClock (src/core/services/
-// CompanionListenerService.cpp) so RTC-less clock stepping from the phone's
-// wall-clock report survives the legacy companion service's retirement: same
-// 30s trigger threshold, same 5-minute-backward guard requiring 3 consecutive
-// agreeing reports before stepping backward, same timedatectl invocation. Safe
-// to run alongside the legacy path — both are keyed off the same phone clock
-// and the threshold prevents thrashing if both ever fire.
-static void adjustClockFromApiTimeReport(qint64 phoneTimeMs)
-{
-    static int backwardJumpCount = 0;
-    static qint64 lastBackwardTarget = 0;
-
-    qint64 piTimeMs = QDateTime::currentMSecsSinceEpoch();
-    qint64 deltaMs = phoneTimeMs - piTimeMs;
-
-    // Only adjust if delta > 30 seconds
-    if (qAbs(deltaMs) < 30000) return;
-
-    // Backward jump protection: reject >5min backward unless 3 consecutive agree
-    if (deltaMs < -300000) {
-        if (phoneTimeMs == lastBackwardTarget) {
-            backwardJumpCount++;
-        } else {
-            backwardJumpCount = 1;
-            lastBackwardTarget = phoneTimeMs;
-        }
-        if (backwardJumpCount < 3) return;  // Need 3 agreements
-    }
-    backwardJumpCount = 0;
-    lastBackwardTarget = 0;
-
-    // Set via timedatectl (polkit-authorized)
-    // Qt 6.4: Qt::UTC, Qt 6.5+: QTimeZone::UTC (suppress deprecation on 6.8)
-    QT_WARNING_PUSH
-    QT_WARNING_DISABLE_DEPRECATED
-    QDateTime newTime = QDateTime::fromMSecsSinceEpoch(phoneTimeMs, Qt::UTC);
-    QT_WARNING_POP
-    QString timeStr = newTime.toString("yyyy-MM-dd hh:mm:ss");
-
-    QProcess proc;
-    proc.start("timedatectl", {"set-time", timeStr});
-    proc.waitForFinished(5000);
-
-    if (proc.exitCode() == 0) {
-        qCInfo(lcCore) << "API: clock adjusted by" << deltaMs << "ms"
-                << "(" << piTimeMs << "->" << phoneTimeMs << ")";
-    } else {
-        qCWarning(lcCore) << "API: timedatectl failed:" << proc.readAllStandardError();
-    }
-}
-
-// Companion TimeReport.timezone_id (v1.1, ApiInboundState::timezoneReported).
-// Reports can arrive ~continuously (once shortly after connect at minimum,
-// but nothing stops a client from sending more) -- skip the timedatectl call
-// entirely when the reported zone already matches the system zone, so a
-// steady stream of reports doesn't spam the polkit-authorized call.
-static void adjustTimezoneFromApiTimeReport(const QString& ianaId)
-{
-    if (ianaId.toUtf8() == QTimeZone::systemTimeZoneId())
-        return;
-
-    QProcess proc;
-    proc.start("timedatectl", {"set-timezone", ianaId});
-    proc.waitForFinished(5000);
-
-    if (proc.exitCode() == 0) {
-        qCInfo(lcCore) << "API: timezone adjusted to" << ianaId;
-    } else {
-        qCWarning(lcCore) << "API: timedatectl set-timezone failed:"
-                          << proc.readAllStandardError();
-    }
-}
+#include "core/services/ClockSyncService.hpp"
 
 // Self-pipe for async-signal-safe Unix signal handling. POSIX signal handlers
 // may only touch this pipe; a QSocketNotifier on the main thread does the real
@@ -1282,16 +1207,31 @@ int main(int argc, char *argv[])
     if (!apiServer->start())
         qWarning() << "[main] External API disabled or failed to start";
     engine.rootContext()->setContextProperty("ApiService", apiServer);
+    // Companion phone reports (GPS / battery / connectivity) surfaced to QML
+    // widgets via API v1 inbound state (design §B0b). ApiServer is constructed
+    // above — well before engine.load() below — so this is set before the
+    // null-guarded widgets first paint; no hoist of the ApiServer construction
+    // was required. The legacy CompanionService property now has ZERO QML
+    // consumers (CompanionSettings.qml died in the 2026-07-14 settings merge);
+    // the property and the service itself are removed at B2.
+    engine.rootContext()->setContextProperty("CompanionState", apiServer->inboundState());
+    // IPC companion_status (design §B0d): ipcServer was constructed earlier
+    // (~:1020), before ApiServer existed, so this wiring is deferred to here
+    // rather than sitting next to setCompanionListenerService() above.
+    ipcServer->setInboundState(apiServer->inboundState());
     QObject::connect(apiServer->inboundState(), &oap::api::ApiInboundState::proxyRouteChanged,
                      &app, [systemClient](bool active, const QString& host, quint16 port,
                                           const QString& password) {
         if (systemClient)
             systemClient->setProxyRoute(active, host, static_cast<int>(port), password);
     });
+    // RTC-less clock/timezone stepping from the companion's TimeReport
+    // (drift threshold + backward guard live in the tested ClockSyncService).
+    auto* clockSync = new oap::ClockSyncService(&app);
     QObject::connect(apiServer->inboundState(), &oap::api::ApiInboundState::timeReported,
-                     &app, [](qint64 unixMs) { adjustClockFromApiTimeReport(unixMs); });
+                     clockSync, &oap::ClockSyncService::onTimeReported);
     QObject::connect(apiServer->inboundState(), &oap::api::ApiInboundState::timezoneReported,
-                     &app, [](const QString& ianaId) { adjustTimezoneFromApiTimeReport(ianaId); });
+                     clockSync, &oap::ClockSyncService::onTimezoneReported);
 
     // Qt 6.5+ uses /qt/qml/ prefix, Qt 6.4 uses direct URI prefix
     QUrl url(QStringLiteral("qrc:/OpenAutoProdigy/main.qml"));

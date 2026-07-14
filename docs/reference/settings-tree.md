@@ -144,25 +144,32 @@ Dynamic list from `CodecCapabilityModel`. Per codec:
 
 ## Companion
 
-### Status
+Single merged page (2026-07-14; menu label "Companion", page file
+`ApiSettings.qml`). Replaces the former separate Companion and External API
+pages; the legacy 9876 pairing controls (`Generate Pairing Code`,
+`companion.enabled` toggle) were removed with it. The `companion.*` config
+keys still exist without UI until the B2 teardown retires them.
+
+### Remote Client Pairing
 | Control | Label | Notes |
 |---------|-------|-------|
-| StatusRow | *(connection indicator)* | Green dot + "Phone Connected" / "Not Connected" |
+| StatusRow + Button | PIN / Start Pairing / Cancel Pairing | API v1 pairing window (120 s default) |
+| Image | *(QR code)* | `prodigy://pair?host=&tcp=&ws=&pin=&ssid=`; shown only while a window is open and both listeners are up |
+
+### Phone Status
+| Control | Label | Notes |
+|---------|-------|-------|
+| StatusRow | *(connection indicator)* | Green dot + "Phone Connected" / "Not Connected" (`CompanionState.connected`) |
 | StatusRow | GPS | Lat/lon, visible when connected + not stale |
 | StatusRow | Phone Battery | Percentage + charging state, visible when connected |
 | StatusRow | Internet Proxy | Proxy address, visible when available |
 | StatusRow | Route Active | Green/orange/red dot + state text, visible when internet available |
 
-### Pairing
-| Control | Label | Notes |
-|---------|-------|-------|
-| Button | Generate Pairing Code | Shows QR code + PIN |
-
-### Configuration
+### Advanced
 | Control | Label | Config Key | Notes |
 |---------|-------|------------|-------|
-| Toggle | Companion Enabled | `companion.enabled` | Restart required |
-| ReadOnly | Listen Port | `companion.port` | |
+| Toggle | External API Enabled | `api.enabled` | Restart required; powers companion, web widgets, and remote clients |
+| Toggle | Allow LAN Clients | `api.expose_lan` | Restart required |
 
 ---
 

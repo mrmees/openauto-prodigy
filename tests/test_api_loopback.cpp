@@ -23,6 +23,7 @@
 #include <QDeadlineTimer>
 #include <QEventLoop>
 #include <QFile>
+#include <QImage>
 
 #include "core/api/ApiServer.hpp"
 #include "core/api/ApiFramer.hpp"
@@ -168,6 +169,9 @@ private slots:
 
     // Task 15 addendum: peer-admission policy edges (static seam, no sockets).
     void testPeerAdmissionPolicy();
+
+    // QR pairing surface: payload contract + data-URI property lifecycle.
+    void testPairingQrPayloadAndProperty();
 };
 
 void TestApiLoopback::init() {
@@ -692,6 +696,92 @@ void TestApiLoopback::testPeerAdmissionPolicy() {
     QVERIFY(!ApiServer::inApSubnet(globalV6));
     QVERIFY(!ApiServer::peerAllowed(globalV6, false));
     QVERIFY(ApiServer::peerAllowed(globalV6, true));
+}
+
+// QR pairing: the payload string is a stable contract with the companion
+// app's scanner (prodigy://pair?host=&tcp=&ws=&pin=), and the data-URI
+// property tracks the pairing window's lifecycle.
+void TestApiLoopback::testPairingQrPayloadAndProperty() {
+    // COMPANION SCANNER CONTRACT: ssid is a required additive field (Android
+    // can redact the AA-owned network's SSID, so the companion persists it
+    // from the QR for reconnect). SSIDs are percent-encoded as a query value;
+    // unknown future query params must be ignored by scanners.
+    QCOMPARE(ApiServer::pairingQrPayload(QStringLiteral("10.0.0.1"), 9810, 9811,
+                                         QStringLiteral("123456"),
+                                         QStringLiteral("OpenAutoProdigy-A3F2")),
+             QStringLiteral("prodigy://pair?host=10.0.0.1&tcp=9810&ws=9811"
+                            "&pin=123456&ssid=OpenAutoProdigy-A3F2"));
+    QCOMPARE(ApiServer::pairingQrPayload(QStringLiteral("10.0.0.1"), 9810, 9811,
+                                         QStringLiteral("123456"),
+                                         QStringLiteral("My Car AP+5G&more")),
+             QStringLiteral("prodigy://pair?host=10.0.0.1&tcp=9810&ws=9811"
+                            "&pin=123456&ssid=My%20Car%20AP%2B5G%26more"));
+
+    Fixture f;
+    f.config.setValue("api.tcp_port", 0);
+    f.config.setValue("api.ws_port", 0);
+    f.config.setValue("connection.wifi_ap.ssid", "Bench AP 5G");
+
+    ApiServer server(f.refs());
+    server.setStorePathForTest(kStorePath);
+    QVERIFY(server.start());
+    QVERIFY(server.isRunning());
+
+    QCOMPARE(server.pairingQrDataUri(), QString());   // window closed: no QR
+
+    server.startPairing();
+    QVERIFY(server.pairingActive());
+
+    // Config-to-QR wiring: the LIVE payload must carry the configured SSID
+    // (encoded), the window's PIN, and the actually-bound ports.
+    const QString live = server.pairingQrPayloadForTest();
+    QVERIFY(live.contains(QStringLiteral("&ssid=Bench%20AP%205G")));
+    QVERIFY(live.contains(QStringLiteral("&pin=") + server.pairingPin()));
+    QVERIFY(live.contains(QStringLiteral("&tcp=%1").arg(server.tcpPort())));
+    QVERIFY(live.contains(QStringLiteral("&ws=%1").arg(server.wsPort())));
+    const QString uri = server.pairingQrDataUri();
+    QVERIFY(uri.startsWith(QStringLiteral("data:image/png;base64,")));
+    const QByteArray png =
+        QByteArray::fromBase64(uri.section(QLatin1Char(','), 1).toLatin1());
+    QVERIFY(png.startsWith(QByteArray("\x89PNG", 4)));
+
+    // Scanner reliability: ISO 18004 wants a 4-module quiet zone. At 8 px
+    // per module the outer 32 px band must be pure white, with real modules
+    // (black pixels) further in.
+    QImage img;
+    QVERIFY(img.loadFromData(png));
+    const int quiet = 4 * 8;
+    bool quietZoneWhite = true;
+    bool hasBlackModule = false;
+    for (int y = 0; y < img.height(); ++y) {
+        for (int x = 0; x < img.width(); ++x) {
+            const bool inBand = x < quiet || y < quiet
+                                || x >= img.width() - quiet
+                                || y >= img.height() - quiet;
+            const bool white = qGray(img.pixel(x, y)) > 200;
+            if (inBand && !white) quietZoneWhite = false;
+            if (!inBand && !white) hasBlackModule = true;
+        }
+    }
+    QVERIFY(quietZoneWhite);
+    QVERIFY(hasBlackModule);
+
+    server.cancelPairing();
+    QCOMPARE(server.pairingQrDataUri(), QString());   // cancel clears it
+
+    server.stop();
+
+    // A server that is not running must not open pairing windows at all —
+    // there is no listener to pair through, so an "active" window with a
+    // PIN would be zombie UI (2026-07-14 settings-merge gate finding).
+    ApiServer unstarted(f.refs());
+    unstarted.setStorePathForTest(kStorePath);
+    QVERIFY(!unstarted.isRunning());
+    unstarted.startPairing();
+    QVERIFY(!unstarted.pairingActive());
+    QCOMPARE(unstarted.pairingQrDataUri(), QString());
+
+    QVERIFY(!server.isRunning());   // stop() above cleared running too
 }
 
 QTEST_MAIN(TestApiLoopback)

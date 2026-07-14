@@ -1,5 +1,6 @@
 // tests/test_phone_state_service.cpp
 #include <QtTest/QtTest>
+#include <QDBusMessage>
 #include "core/services/PhoneStateService.hpp"
 #include "core/services/ICallStateProvider.hpp"
 
@@ -29,6 +30,20 @@ private slots:
     void testAgVanishResetsToIdle();
     void testDialGuards();
     void testSetupDisconnectedEndsImmediately();
+
+    // --- HFP hot-plug: registered map slot + adoptBluezDevice seam ---
+    void adoptBluezDevice_connectedHfpPhone_adopts();
+    void adoptBluezDevice_nonHfp_ignored();
+    void interfacesAdded_payloadConsumed_noBusReadback();
+
+    // --- Late-arriving fresh-pair adoption (PropertiesChanged rescan) ---
+    void shouldRescanOnDeviceChange_truthTable();
+    void propertiesChanged_connectedTrue_noCrashOnBuslessPath();
+
+    // --- Finding 1: disconnect must be gated by the sending device path ---
+    void propertiesChanged_matchingPathDisconnect_clearsPhone();
+    void propertiesChanged_unrelatedPathDisconnect_leavesPhoneAndCall();
+    void propertiesChanged_matchingDisconnect_clearsDevicePath();
 };
 
 void TestPhoneStateService::testImplementsICallStateProvider() {
@@ -260,6 +275,177 @@ void TestPhoneStateService::testSetupDisconnectedEndsImmediately() {
     QVERIFY(s->callerNumber().isEmpty());
     s->onCallSetupEnded();                      // subsequent removal: no-op
     QCOMPARE(s->callState(), (int)CS::Idle);
+}
+
+// --- HFP hot-plug: registered map slot + adoptBluezDevice seam ---
+
+void TestPhoneStateService::adoptBluezDevice_connectedHfpPhone_adopts()
+{
+    oap::PhoneStateService svc;
+    QSignalSpy spy(&svc, &oap::PhoneStateService::connectionChanged);
+    QVariantMap props{
+        {QStringLiteral("Connected"), true},
+        {QStringLiteral("Alias"), QStringLiteral("Pixel 8")},
+        {QStringLiteral("UUIDs"), QStringList{QStringLiteral("0000111e-0000-1000-8000-00805f9b34fb")}},
+    };
+    svc.adoptBluezDevice(QStringLiteral("/org/bluez/hci0/dev_AA_BB"), props);
+    QCOMPARE(spy.count(), 1);
+    QVERIFY(svc.phoneConnected());
+    QCOMPARE(svc.deviceName(), QStringLiteral("Pixel 8"));
+}
+
+void TestPhoneStateService::adoptBluezDevice_nonHfp_ignored()
+{
+    oap::PhoneStateService svc;
+    QSignalSpy spy(&svc, &oap::PhoneStateService::connectionChanged);
+    QVariantMap props{
+        {QStringLiteral("Connected"), true},
+        {QStringLiteral("UUIDs"), QStringList{QStringLiteral("0000110b-0000-1000-8000-00805f9b34fb")}}, // A2DP sink only
+    };
+    svc.adoptBluezDevice(QStringLiteral("/org/bluez/hci0/dev_CC_DD"), props);
+    QCOMPARE(spy.count(), 0);
+    QVERIFY(!svc.phoneConnected());
+}
+
+void TestPhoneStateService::interfacesAdded_payloadConsumed_noBusReadback()
+{
+    oap::PhoneStateService svc;
+    QSignalSpy spy(&svc, &oap::PhoneStateService::connectionChanged);
+    oap::BluezInterfaceMap ifaces;
+    ifaces.insert(QStringLiteral("org.bluez.Device1"), QVariantMap{
+        {QStringLiteral("Connected"), true},
+        {QStringLiteral("Alias"), QStringLiteral("Pixel 8")},
+        {QStringLiteral("UUIDs"), QStringList{QStringLiteral("0000111e-0000-1000-8000-00805f9b34fb")}},
+    });
+    // private slot → invoke through the meta-object (also proves the
+    // signature is invokable with the registered type)
+    QMetaObject::invokeMethod(&svc, "onInterfacesAdded", Qt::DirectConnection,
+        Q_ARG(QDBusObjectPath, QDBusObjectPath(QStringLiteral("/org/bluez/hci0/dev_AA_BB"))),
+        Q_ARG(oap::BluezInterfaceMap, ifaces));
+    QCOMPARE(spy.count(), 1);
+}
+
+// A freshly paired phone can appear as a disconnected Device1, with BlueZ
+// delivering Connected=true / UUIDs later via PropertiesChanged. The slot must
+// decide to re-run the managed-objects scan on those late signals. The pure
+// decision helper is unit-tested here across its truth table.
+void TestPhoneStateService::shouldRescanOnDeviceChange_truthTable()
+{
+    using S = oap::PhoneStateService;
+    const QStringList hfp{QStringLiteral("0000111e-0000-1000-8000-00805f9b34fb")};
+
+    // connected-true → rescan
+    QVERIFY(S::shouldRescanOnDeviceChange(false,
+        QVariantMap{{QStringLiteral("Connected"), true}}));
+    // uuids-arrival → rescan
+    QVERIFY(S::shouldRescanOnDeviceChange(false,
+        QVariantMap{{QStringLiteral("UUIDs"), hfp}}));
+    // connected-false → no rescan
+    QVERIFY(!S::shouldRescanOnDeviceChange(false,
+        QVariantMap{{QStringLiteral("Connected"), false}}));
+    // already-adopted → no rescan (single-phone model, first connected wins)
+    QVERIFY(!S::shouldRescanOnDeviceChange(true,
+        QVariantMap{{QStringLiteral("Connected"), true}}));
+    // wrong keys → no rescan
+    QVERIFY(!S::shouldRescanOnDeviceChange(false,
+        QVariantMap{{QStringLiteral("Alias"), QStringLiteral("Pixel 8")}}));
+}
+
+// Invoking the slot on the busless CI path (Connected=true, not yet adopted)
+// must not crash: scanExistingDevices() hits the system bus and fails fast when
+// no BlueZ/managed objects are present, leaving the phone unadopted.
+void TestPhoneStateService::propertiesChanged_connectedTrue_noCrashOnBuslessPath()
+{
+    oap::PhoneStateService svc;
+    QVariantMap changed{{QStringLiteral("Connected"), true}};
+    QDBusMessage msg = QDBusMessage::createSignal(
+        QStringLiteral("/org/bluez/hci0/dev_AA_BB"),
+        QStringLiteral("org.freedesktop.DBus.Properties"),
+        QStringLiteral("PropertiesChanged"));
+    const bool ok = QMetaObject::invokeMethod(&svc, "onPropertiesChanged",
+        Qt::DirectConnection,
+        Q_ARG(QString, QStringLiteral("org.bluez.Device1")),
+        Q_ARG(QVariantMap, changed),
+        Q_ARG(QStringList, QStringList{}),
+        Q_ARG(QDBusMessage, msg));
+    QVERIFY(ok);
+    QVERIFY(!svc.phoneConnected());   // no managed objects in CI -> nothing adopted
+}
+
+// --- Finding 1: disconnect must be gated by the sending device path ---
+
+static void adoptTestPhone(oap::PhoneStateService& svc, const QString& path) {
+    svc.adoptBluezDevice(path, QVariantMap{
+        {QStringLiteral("Connected"), true},
+        {QStringLiteral("Alias"), QStringLiteral("Pixel 8")},
+        {QStringLiteral("UUIDs"),
+         QStringList{QStringLiteral("0000111e-0000-1000-8000-00805f9b34fb")}},
+    });
+}
+
+static bool invokeDisconnect(oap::PhoneStateService& svc, const QString& senderPath) {
+    QDBusMessage msg = QDBusMessage::createSignal(senderPath,
+        QStringLiteral("org.freedesktop.DBus.Properties"),
+        QStringLiteral("PropertiesChanged"));
+    QVariantMap changed{{QStringLiteral("Connected"), false}};
+    return QMetaObject::invokeMethod(&svc, "onPropertiesChanged", Qt::DirectConnection,
+        Q_ARG(QString, QStringLiteral("org.bluez.Device1")),
+        Q_ARG(QVariantMap, changed),
+        Q_ARG(QStringList, QStringList{}),
+        Q_ARG(QDBusMessage, msg));
+}
+
+// A Device1 PropertiesChanged Connected=false whose sender path IS the adopted
+// phone's object path tears the session down (phone + call state → Idle).
+void TestPhoneStateService::propertiesChanged_matchingPathDisconnect_clearsPhone()
+{
+    oap::PhoneStateService svc;
+    const QString devPath = QStringLiteral("/org/bluez/hci0/dev_AA_BB");
+    adoptTestPhone(svc, devPath);
+    QVERIFY(svc.phoneConnected());
+    svc.setIncomingCall(QStringLiteral("+15125551212"), QStringLiteral("Caller"));
+    QCOMPARE(svc.callState(), (int)CS::Ringing);
+
+    QVERIFY(invokeDisconnect(svc, devPath));
+    QVERIFY(!svc.phoneConnected());
+    QCOMPARE(svc.callState(), (int)CS::Idle);
+}
+
+// An UNRELATED BlueZ device (headphones, watch) dropping Connected must not
+// touch the tracked phone or the call state.
+void TestPhoneStateService::propertiesChanged_unrelatedPathDisconnect_leavesPhoneAndCall()
+{
+    oap::PhoneStateService svc;
+    adoptTestPhone(svc, QStringLiteral("/org/bluez/hci0/dev_AA_BB"));
+    svc.setIncomingCall(QStringLiteral("+15125551212"), QStringLiteral("Caller"));
+    QCOMPARE(svc.callState(), (int)CS::Ringing);
+
+    QVERIFY(invokeDisconnect(svc, QStringLiteral("/org/bluez/hci0/dev_CC_DD")));
+    QVERIFY(svc.phoneConnected());
+    QCOMPARE(svc.callState(), (int)CS::Ringing);
+    QCOMPARE(svc.deviceName(), QStringLiteral("Pixel 8"));
+}
+
+// After a matching-path disconnect, devicePath_ must be cleared: a subsequent
+// stale InterfacesRemoved for that SAME path is path-guarded and must be a
+// no-op (no spurious connectionChanged), which it only can be if devicePath_
+// was emptied.
+void TestPhoneStateService::propertiesChanged_matchingDisconnect_clearsDevicePath()
+{
+    oap::PhoneStateService svc;
+    QSignalSpy spy(&svc, &oap::PhoneStateService::connectionChanged);
+    const QString devPath = QStringLiteral("/org/bluez/hci0/dev_AA_BB");
+    adoptTestPhone(svc, devPath);
+    QCOMPARE(spy.count(), 1);                 // adopt
+
+    QVERIFY(invokeDisconnect(svc, devPath));
+    QCOMPARE(spy.count(), 2);                 // disconnect
+    QVERIFY(!svc.phoneConnected());
+
+    QMetaObject::invokeMethod(&svc, "onInterfacesRemoved", Qt::DirectConnection,
+        Q_ARG(QDBusObjectPath, QDBusObjectPath(devPath)),
+        Q_ARG(QStringList, QStringList{QStringLiteral("org.bluez.Device1")}));
+    QCOMPARE(spy.count(), 2);                 // no re-emit → devicePath_ cleared
 }
 
 QTEST_GUILESS_MAIN(TestPhoneStateService)

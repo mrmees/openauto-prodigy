@@ -1,6 +1,7 @@
 # Static library of all app code (shared between main executable and tests)
 add_library(openauto-core STATIC
     core/Logging.cpp
+    core/QrPng.cpp
     core/YamlConfig.cpp
     core/WidevineCdm.cpp
     core/InputDeviceScanner.cpp
@@ -57,6 +58,7 @@ add_library(openauto-core STATIC
     core/services/ActionRegistry.cpp
     core/services/OverlayService.cpp
     core/services/NotificationService.cpp
+    core/services/ClockSyncService.cpp
     core/services/CompanionListenerService.cpp
     core/services/WeatherService.cpp
     core/services/SystemServiceClient.cpp
@@ -421,10 +423,6 @@ set_source_files_properties(../qml/applications/settings/SystemSettings.qml PROP
     QT_QML_SOURCE_TYPENAME "SystemSettings"
     QT_RESOURCE_ALIAS "SystemSettings.qml"
 )
-set_source_files_properties(../qml/applications/settings/CompanionSettings.qml PROPERTIES
-    QT_QML_SOURCE_TYPENAME "CompanionSettings"
-    QT_RESOURCE_ALIAS "CompanionSettings.qml"
-)
 set_source_files_properties(../qml/applications/settings/ApiSettings.qml PROPERTIES
     QT_QML_SOURCE_TYPENAME "ApiSettings"
     QT_RESOURCE_ALIAS "ApiSettings.qml"
@@ -518,7 +516,6 @@ qt_add_qml_module(openauto-prodigy
         ../qml/applications/settings/AudioSettings.qml
         ../qml/applications/settings/ConnectionSettings.qml
         ../qml/applications/settings/SystemSettings.qml
-        ../qml/applications/settings/CompanionSettings.qml
         ../qml/applications/settings/ApiSettings.qml
         ../qml/applications/settings/EqSettings.qml
         ../qml/applications/settings/ThemeSettings.qml

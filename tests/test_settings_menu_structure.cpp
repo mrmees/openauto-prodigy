@@ -87,8 +87,8 @@ private slots:
 
         const QStringList pagePaths = {
             QStringLiteral("qml/applications/settings/AASettings.qml"),
+            QStringLiteral("qml/applications/settings/ApiSettings.qml"),
             QStringLiteral("qml/applications/settings/AudioSettings.qml"),
-            QStringLiteral("qml/applications/settings/CompanionSettings.qml"),
             QStringLiteral("qml/applications/settings/ConnectionSettings.qml"),
             QStringLiteral("qml/applications/settings/DebugSettings.qml"),
             QStringLiteral("qml/applications/settings/DisplaySettings.qml"),
@@ -167,8 +167,8 @@ private slots:
 
         const QStringList pagePaths = {
             QStringLiteral("qml/applications/settings/AASettings.qml"),
+            QStringLiteral("qml/applications/settings/ApiSettings.qml"),
             QStringLiteral("qml/applications/settings/AudioSettings.qml"),
-            QStringLiteral("qml/applications/settings/CompanionSettings.qml"),
             QStringLiteral("qml/applications/settings/ConnectionSettings.qml"),
             QStringLiteral("qml/applications/settings/DebugSettings.qml"),
             QStringLiteral("qml/applications/settings/DisplaySettings.qml"),
@@ -224,6 +224,46 @@ private slots:
         const int blockedPos = source.indexOf(QStringLiteral("blocksBackHold: true"), dialogPos);
         QVERIFY2(blockedPos > dialogPos,
                  "FullScreenPicker dialog subtree should opt out of SettingsInputBoundary long-press handling");
+    }
+    // 2026-07-14 Companion/External-API merge contract: exactly one menu
+    // entry ("Companion" -> pageId api), no legacy companion page or
+    // controls, and the merged page carries all three sections.
+    void testCompanionApiMergeContract()
+    {
+        const QString menuSource = sourceFor(QStringLiteral("qml/applications/settings/SettingsMenu.qml"));
+        QVERIFY2(!menuSource.isEmpty(), "Failed to read SettingsMenu.qml");
+
+        QVERIFY2(menuSource.indexOf(QStringLiteral("name: \"Companion\"; icon: \"\\ue324\"; pageId: \"api\"")) >= 0,
+                 "Menu should have a single Companion entry mapped to the api page");
+        QVERIFY2(menuSource.indexOf(QStringLiteral("pageId: \"companion\"")) < 0,
+                 "The legacy companion pageId must not come back");
+        QVERIFY2(menuSource.indexOf(QStringLiteral("CompanionSettings")) < 0,
+                 "SettingsMenu must not reference the deleted CompanionSettings page");
+        QVERIFY2(menuSource.indexOf(QStringLiteral("\"External API\"")) < 0,
+                 "The separate External API menu title is gone (merged into Companion)");
+
+        const QString pageSource = sourceFor(QStringLiteral("qml/applications/settings/ApiSettings.qml"));
+        QVERIFY2(!pageSource.isEmpty(), "Failed to read ApiSettings.qml");
+
+        // Three sections, in spirit: pairing, status, advanced.
+        QVERIFY2(pageSource.indexOf(QStringLiteral("text: \"Remote Client Pairing\"")) >= 0,
+                 "Merged page should keep the pairing section");
+        QVERIFY2(pageSource.indexOf(QStringLiteral("text: \"Phone Status\"")) >= 0,
+                 "Merged page should carry the phone status section");
+        QVERIFY2(pageSource.indexOf(QStringLiteral("text: \"Advanced\"")) >= 0,
+                 "Merged page should keep the API toggles under Advanced");
+        QVERIFY2(pageSource.indexOf(QStringLiteral("configPath: \"api.enabled\"")) >= 0,
+                 "Merged page should expose api.enabled");
+        QVERIFY2(pageSource.indexOf(QStringLiteral("configPath: \"api.expose_lan\"")) >= 0,
+                 "Merged page should expose api.expose_lan");
+        QVERIFY2(pageSource.indexOf(QStringLiteral("CompanionState.connected")) >= 0,
+                 "Merged page should bind the live companion state");
+
+        // Legacy 9876 pairing controls must not resurface.
+        QVERIFY2(pageSource.indexOf(QStringLiteral("companion.enabled")) < 0,
+                 "The legacy companion.enabled toggle stays dead until B2 retires the namespace");
+        QVERIFY2(pageSource.indexOf(QStringLiteral("generatePairingPin")) < 0,
+                 "The legacy CompanionService pairing flow must not resurface");
     }
 };
 

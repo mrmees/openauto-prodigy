@@ -7,6 +7,7 @@
 #include <QDBusReply>
 #include <QDBusServiceWatcher>
 #include <QDBusArgument>
+#include <QDBusMetaType>
 #include <QDBusVariant>
 
 namespace oap {
@@ -79,16 +80,24 @@ void BtAudioPlugin::startDBusMonitoring()
         }
     });
 
+    // ObjectManager InterfacesAdded is a{sa{sv}} — QtDBus refuses to deliver it
+    // into a QVariantMap slot, so the connect below fails silently unless the
+    // QMap<QString,QVariantMap> metatype is registered first (bench 2026-07-10
+    // root cause). The named registration lets QMetaObject::invokeMethod resolve
+    // the type too.
+    qDBusRegisterMetaType<BtInterfaceMap>();
+    qRegisterMetaType<oap::plugins::BtInterfaceMap>("oap::plugins::BtInterfaceMap");
+
     // Listen for InterfacesAdded/Removed on the BlueZ ObjectManager
-    bus.connect(
+    const bool okAdded = bus.connect(
         QStringLiteral("org.bluez"),
         QStringLiteral("/"),
         QStringLiteral("org.freedesktop.DBus.ObjectManager"),
         QStringLiteral("InterfacesAdded"),
         this,
-        SLOT(onInterfacesAdded(QDBusObjectPath,QVariantMap)));
+        SLOT(onInterfacesAdded(QDBusObjectPath,BtInterfaceMap)));
 
-    bus.connect(
+    const bool okRemoved = bus.connect(
         QStringLiteral("org.bluez"),
         QStringLiteral("/"),
         QStringLiteral("org.freedesktop.DBus.ObjectManager"),
@@ -96,14 +105,22 @@ void BtAudioPlugin::startDBusMonitoring()
         this,
         SLOT(onInterfacesRemoved(QDBusObjectPath,QStringList)));
 
-    // Listen for PropertiesChanged on any BlueZ object (match by sender)
-    bus.connect(
+    // Listen for PropertiesChanged on any BlueZ object; the trailing
+    // QDBusMessage carries the sender path so onPropertiesChanged can filter to
+    // the currently-tracked transport/player.
+    const bool okProps = bus.connect(
         QStringLiteral("org.bluez"),
         QString(),  // any path
         QStringLiteral("org.freedesktop.DBus.Properties"),
         QStringLiteral("PropertiesChanged"),
         this,
-        SLOT(onPropertiesChanged(QString,QVariantMap,QStringList)));
+        SLOT(onPropertiesChanged(QString,QVariantMap,QStringList,QDBusMessage)));
+
+    if (hostContext_)
+        hostContext_->log(LogLevel::Info,
+            QStringLiteral("BtAudio D-Bus subscriptions: InterfacesAdded=%1 InterfacesRemoved=%2 "
+                           "PropertiesChanged=%3")
+                .arg(okAdded).arg(okRemoved).arg(okProps));
 
     monitoring_ = true;
 
@@ -120,7 +137,7 @@ void BtAudioPlugin::stopDBusMonitoring()
         QStringLiteral("org.bluez"), QStringLiteral("/"),
         QStringLiteral("org.freedesktop.DBus.ObjectManager"),
         QStringLiteral("InterfacesAdded"),
-        this, SLOT(onInterfacesAdded(QDBusObjectPath,QVariantMap)));
+        this, SLOT(onInterfacesAdded(QDBusObjectPath,BtInterfaceMap)));
     bus.disconnect(
         QStringLiteral("org.bluez"), QStringLiteral("/"),
         QStringLiteral("org.freedesktop.DBus.ObjectManager"),
@@ -130,7 +147,7 @@ void BtAudioPlugin::stopDBusMonitoring()
         QStringLiteral("org.bluez"), QString(),
         QStringLiteral("org.freedesktop.DBus.Properties"),
         QStringLiteral("PropertiesChanged"),
-        this, SLOT(onPropertiesChanged(QString,QVariantMap,QStringList)));
+        this, SLOT(onPropertiesChanged(QString,QVariantMap,QStringList,QDBusMessage)));
 
     delete bluezWatcher_;
     bluezWatcher_ = nullptr;
@@ -221,7 +238,7 @@ void BtAudioPlugin::scanExistingObjects()
     arg.endMap();
 }
 
-void BtAudioPlugin::onInterfacesAdded(const QDBusObjectPath& path, const QVariantMap& interfaces)
+void BtAudioPlugin::onInterfacesAdded(const QDBusObjectPath& path, const BtInterfaceMap& interfaces)
 {
     const QString pathStr = path.path();
 
@@ -310,8 +327,16 @@ void BtAudioPlugin::onInterfacesRemoved(const QDBusObjectPath& path, const QStri
 }
 
 void BtAudioPlugin::onPropertiesChanged(const QString& interface, const QVariantMap& changed,
-                                         const QStringList& /*invalidated*/)
+                                         const QStringList& /*invalidated*/,
+                                         const QDBusMessage& message)
 {
+    // PropertiesChanged is subscribed on ANY BlueZ path; the sender path rides
+    // in the QDBusMessage. Ignore updates from objects other than the ones we
+    // currently track, or a foreign transport/player would stomp our state.
+    const QString sender = message.path();
+    if (interface == QLatin1String("org.bluez.MediaTransport1") && sender != transportPath_) return;
+    if (interface == QLatin1String("org.bluez.MediaPlayer1") && sender != playerPath_) return;
+
     if (interface == QLatin1String("org.bluez.MediaTransport1")) {
         if (changed.contains(QStringLiteral("State")))
             updateTransportState(changed.value(QStringLiteral("State")).toString());

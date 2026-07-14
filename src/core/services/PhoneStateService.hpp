@@ -1,16 +1,33 @@
 #pragma once
 
 #include "IPhoneStateService.hpp"
+// Pulls Q_DECLARE_METATYPE(oap::InterfaceMap) — the SAME underlying
+// QMap<QString,QVariantMap> that BluezInterfaceMap aliases below. openauto-core
+// aggregates every class's MOC into one translation unit; that explicit
+// metatype specialization MUST be visible before this slot's parameter type is
+// first used, or the built-in QMap metatype gets implicitly instantiated first
+// and TelephonyClient's declaration becomes a "specialization after
+// instantiation" error.
+#include "TelephonyClient.hpp"
 #include <QDBusObjectPath>
+#include <QMap>
 #include <QTimer>
+#include <QVariantMap>
 
 class QDBusServiceWatcher;
+class QDBusMessage;
 
 namespace oap {
 
 class INotificationService;
-class TelephonyClient;
 class ScoNodeMonitor;
+
+/// ObjectManager InterfacesAdded carries a{sa{sv}}; QtDBus refuses to deliver
+/// it to a QVariantMap slot (connect fails at runtime — bench 2026-07-10 root
+/// cause, same family as UsbInterfaceMap). Its metatype is the shared
+/// QMap<QString,QVariantMap> already declared via TelephonyClient's
+/// Q_DECLARE_METATYPE(oap::InterfaceMap); re-registered in startDBusMonitoring().
+using BluezInterfaceMap = QMap<QString, QVariantMap>;
 
 /// Core service owning the HFP call state machine.
 ///
@@ -66,6 +83,19 @@ public:
     void startDBusMonitoring();
     void stopDBusMonitoring();
 
+    /// Evaluate one BlueZ Device1 property map (from the initial scan or a
+    /// live InterfacesAdded) and adopt the device if it is a connected HFP
+    /// phone. Public because it IS the unit-test surface (same convention as
+    /// the state-machine event slots above).
+    void adoptBluezDevice(const QString& path, const QVariantMap& deviceProps);
+
+    /// Pure decision: should a Device1 PropertiesChanged trigger a full
+    /// managed-objects rescan? True only when no phone is adopted yet AND the
+    /// change carries Connected=true or a UUIDs arrival (a freshly paired phone
+    /// whose Connected/UUIDs land after the disconnected Device1 was created).
+    /// Static + public because it IS the unit-test surface for late adoption.
+    static bool shouldRescanOnDeviceChange(bool phoneConnected, const QVariantMap& changed);
+
 public slots:
     // State-machine event API — public because it IS the unit-test surface.
     void onCallSetupStarted(const QString& state, const QString& line, const QString& name);
@@ -76,10 +106,15 @@ public slots:
     void onTelephonyAvailable(bool available);
 
 private slots:
-    void onInterfacesAdded(const QDBusObjectPath& path, const QVariantMap& interfaces);
+    void onInterfacesAdded(const QDBusObjectPath& path, const BluezInterfaceMap& interfaces);
     void onInterfacesRemoved(const QDBusObjectPath& path, const QStringList& interfaces);
+    // Sender path arrives in the trailing QDBusMessage (BtAudioPlugin
+    // onPropertiesChanged pattern); the disconnect branch filters against
+    // devicePath_ so an unrelated BlueZ device dropping Connected cannot tear
+    // down the tracked phone. The rescan path is sender-agnostic (a scan reads
+    // full state).
     void onPropertiesChanged(const QString& interface, const QVariantMap& changed,
-                             const QStringList& invalidated);
+                             const QStringList& invalidated, const QDBusMessage& message);
     void onSettleTimeout();
     void onScoDebounceTimeout();
 

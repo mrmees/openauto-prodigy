@@ -141,7 +141,11 @@ void ApiSession::handleExpectHello(const pb::ApiMessage& m) {
 
     if (auth.pairing_request()) {
         if (!deps_.pairing || !deps_.pairing->windowOpen()) {
-            sendAuthReject(m.request_id(), "pairing window closed");
+            // Companion wire contract: typed code (never opened / cancelled /
+            // expired — one branch), then a clean close. The client matches
+            // the code; the message string is informational only.
+            closeWithError(m.request_id(), pb::ERROR_CODE_PAIRING_WINDOW_CLOSED,
+                           QStringLiteral("Pairing window closed"));
             return;
         }
         nonce_ = deps_.pairing->makeNonce();
@@ -335,8 +339,8 @@ void ApiSession::writeOrTeardown(const QByteArray& bytes) {
     if (tornDown_ || !transport_) return;
     if (transport_->bytesToWrite() + static_cast<qint64>(bytes.size())
             > deps_.maxQueueBytes) {
-        teardown();   // slow consumer — disconnect, never buffer
-        return;
+        teardown(CloseMode::Discard);   // slow consumer — disconnect NOW,
+        return;                          // never wait behind its full buffer
     }
     transport_->sendMessage(bytes);
 }
@@ -371,13 +375,16 @@ void ApiSession::sendAuthReject(quint64 requestId, const QString& reason) {
 
 // ---- Teardown (single, idempotent path) ------------------------------------
 
-void ApiSession::teardown() {
+void ApiSession::teardown(CloseMode mode) {
     if (tornDown_) return;   // guard: close paths can re-enter within one frame
     tornDown_ = true;
     state_ = State::Closed;
     if (handshakeTimer_) handshakeTimer_->stop();
     if (deps_.requests) deps_.requests->sessionClosed(this);
-    if (transport_) transport_->close();   // may synchronously re-enter teardown
+    if (transport_) {        // either close may synchronously re-enter teardown
+        if (mode == CloseMode::Discard) transport_->abort();
+        else transport_->close();
+    }
     emit terminated();                      // exactly once
 }
 

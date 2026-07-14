@@ -138,14 +138,32 @@ void ApiRequestHandlers::sessionClosed(ApiSession* session) {
     // tracking for this (now dead) session is dropped.
     notificationOwners_.remove(session);
 
-    // If this session owned the proxy route, tear it down (legacy
-    // CompanionListenerService parity: clearClientSession() -> setProxyRoute
-    // (false)). A non-owner closing must never touch connectivity state.
+    // Clear every report type this session owned (legacy
+    // CompanionListenerService parity: clearClientSession() drops everything
+    // the departing companion had reported). A non-owner closing must never
+    // touch a report type it doesn't own.
+    if (session == gpsOwner_) {
+        gpsOwner_ = nullptr;
+        if (deps_.inbound) deps_.inbound->clearGps();
+    }
+    if (session == batteryOwner_) {
+        batteryOwner_ = nullptr;
+        if (deps_.inbound) deps_.inbound->clearBattery();
+    }
     if (session == connectivityOwner_) {
         connectivityOwner_ = nullptr;
         if (deps_.inbound)
             deps_.inbound->setConnectivity(QString(), false, 0, QString());
     }
+    // Presence follows the surviving reporting sessions (false once none remain).
+    reportingSessions_.remove(session);
+    recomputeOwnerPresence();
+}
+
+void ApiRequestHandlers::recomputeOwnerPresence() {
+    const bool present = !reportingSessions_.isEmpty();
+    if (deps_.inbound)
+        deps_.inbound->setOwnerPresent(present);
 }
 
 // ---- Actions ---------------------------------------------------------------
@@ -345,7 +363,24 @@ void ApiRequestHandlers::handleReport(ApiSession* session, const pb::ApiMessage&
                            << "lon=" << lon;
                 return;
             }
-            deps_.inbound->setGps(lat, lon, r.speed_mps());
+            // Extras must honour the proto contract: all finite, speed and
+            // accuracy nonnegative (0 = unknown), bearing in [0, 360). These
+            // flow to shared QML/IPC state, so reject the whole report on any
+            // violation rather than propagate NaN/inf/out-of-range values.
+            const double speed = r.speed_mps();
+            const double bearing = r.bearing_deg();
+            const double accuracy = r.accuracy_m();
+            if (!std::isfinite(speed) || !std::isfinite(bearing) ||
+                !std::isfinite(accuracy) || speed < 0.0 || accuracy < 0.0 ||
+                bearing < 0.0 || bearing >= 360.0) {
+                qWarning() << "API: dropping malformed GpsReport speed=" << speed
+                           << "bearing=" << bearing << "accuracy=" << accuracy;
+                return;
+            }
+            deps_.inbound->setGps(lat, lon, speed, bearing, accuracy, r.age_ms());
+            gpsOwner_ = session;
+            reportingSessions_.insert(session);
+            recomputeOwnerPresence();
             break;
         }
         case pb::ApiMessage::kBatteryReport: {
@@ -356,6 +391,9 @@ void ApiRequestHandlers::handleReport(ApiSession* session, const pb::ApiMessage&
                 return;
             }
             deps_.inbound->setBattery(static_cast<int>(r.percent()), r.charging());
+            batteryOwner_ = session;
+            reportingSessions_.insert(session);
+            recomputeOwnerPresence();
             break;
         }
         case pb::ApiMessage::kConnectivityReport: {
@@ -380,8 +418,11 @@ void ApiRequestHandlers::handleReport(ApiSession* session, const pb::ApiMessage&
             // Route ownership follows the reporting session: an active report
             // claims ownership; an inactive report releases it (whoever
             // reports inactive is the last writer, matching the existing
-            // last-writer-wins global-state model).
+            // last-writer-wins global-state model). Presence, however, tracks
+            // the session on EVERY accepted report — active or not.
             connectivityOwner_ = active ? session : nullptr;
+            reportingSessions_.insert(session);
+            recomputeOwnerPresence();
             break;
         }
         case pb::ApiMessage::kTimeReport: {
@@ -392,6 +433,9 @@ void ApiRequestHandlers::handleReport(ApiSession* session, const pb::ApiMessage&
                 return;
             }
             deps_.inbound->setTime(t);
+            // A time-only companion is still a present reporting session.
+            reportingSessions_.insert(session);
+            recomputeOwnerPresence();
 
             // timezone_id is optional (v1.1) -- validate and forward
             // separately; an invalid zone drops ONLY the zone, the time

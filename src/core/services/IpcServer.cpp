@@ -4,6 +4,7 @@
 #include "core/services/ThemeInstallRequest.hpp"
 #include "AudioService.hpp"
 #include "CompanionListenerService.hpp"
+#include "core/api/ApiInboundState.hpp"
 #include "../plugin/PluginManager.hpp"
 #include "../plugin/IPlugin.hpp"
 #include <QJsonDocument>
@@ -85,6 +86,11 @@ void IpcServer::setPluginManager(PluginManager* pluginManager)
 void IpcServer::setCompanionListenerService(CompanionListenerService* svc)
 {
     companion_ = svc;
+}
+
+void IpcServer::setInboundState(oap::api::ApiInboundState* state)
+{
+    inbound_ = state;
 }
 
 void IpcServer::onNewConnection()
@@ -399,6 +405,26 @@ QByteArray IpcServer::handleSetAudioConfig(const QVariantMap& data)
 
 QByteArray IpcServer::handleCompanionStatus()
 {
+    // API v1 inbound state (design §B0d) is preferred once set; companion_
+    // (legacy CompanionListenerService) remains only as the vehicle_id
+    // source until it's retired (B2). Key names are unchanged so the
+    // web-config panel's consumers don't need to change.
+    if (inbound_) {
+        QJsonObject obj;
+        obj["connected"] = inbound_->connected();
+        obj["gps_lat"] = inbound_->gpsLat();
+        obj["gps_lon"] = inbound_->gpsLon();
+        obj["gps_speed"] = inbound_->gpsSpeedMps();
+        obj["battery"] = inbound_->phoneBattery();
+        obj["charging"] = inbound_->phoneCharging();
+        obj["internet"] = inbound_->internetAvailable();
+        obj["proxy"] = inbound_->proxyAddress();
+        obj["source"] = "api";
+        if (companion_ && !companion_->vehicleId().isEmpty())
+            obj["vehicle_id"] = companion_->vehicleId();
+        return QJsonDocument(obj).toJson(QJsonDocument::Compact);
+    }
+
     if (!companion_) return R"({"error":"Companion service not available"})";
 
     QJsonObject obj;

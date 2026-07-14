@@ -1,0 +1,33 @@
+Description: Disable HFP LC3-SWB advertisement (silent uplink); force mSBC
+ PipeWire's HFP LC3-SWB (Super Wide Band) uplink is silent at the far end of a
+ call (bench 2026-07-05 and 2026-07-11 on a Raspberry Pi 4 head unit). Making
+ device_supports_codec() return false for HFP_AUDIO_CODEC_LC3_SWB drops SWB
+ from the +BAC (Bluetooth Available Codecs) advertisement, so the Audio Gateway
+ (the phone) falls back to selecting mSBC, whose uplink works. CVSD and mSBC
+ remain advertised. Remove this patch when upstream fixes SWB uplink encode.
+Author: openauto-prodigy
+Forwarded: not-needed
+Last-Update: 2026-07-11
+--- a/spa/plugins/bluez5/backend-native.c
++++ b/spa/plugins/bluez5/backend-native.c
+@@ -713,17 +713,10 @@
+ 		alt6_ok = msbc_alt6_ok;
+ 		break;
+ 	case HFP_AUDIO_CODEC_LC3_SWB:
+-#ifdef HAVE_LC3
+-		/* LC3-SWB has same transport requirements as msbc.
+-		 * However, ALT1/ALT5 modes don't appear to work, seem
+-		 * to lose frame sync so output is garbled.
+-		 */
+-		alt1_ok = false;
+-		alt6_ok = msbc_alt6_ok;
+-		break;
+-#else
++		/* prodigy: LC3-SWB uplink is silent at the far end (bench
++		 * 2026-07-05/07-11); drop it from +BAC so the AG selects mSBC.
++		 * Remove when upstream fixes SWB uplink encode. */
+ 		return false;
+-#endif
+ 	default:
+ 		return false;
+ 	}

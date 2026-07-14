@@ -1,6 +1,11 @@
 polkit.addRule(function(action, subject) {
-    if (action.id === "org.freedesktop.timedate1.set-time" &&
-        subject.user === "matt") {
+    var timedateActions = [
+        "org.freedesktop.timedate1.set-time",
+        "org.freedesktop.timedate1.set-timezone",
+        "org.freedesktop.timedate1.set-ntp"
+    ];
+    if (timedateActions.indexOf(action.id) !== -1 &&
+        subject.isInGroup("bluetooth")) {
         return polkit.Result.YES;
     }
 });

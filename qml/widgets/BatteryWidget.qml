@@ -10,8 +10,8 @@ Item {
     readonly property int rowSpan: widgetContext ? widgetContext.rowSpan : 1
 
     // Null-safe companion data access
-    readonly property bool companionConnected: CompanionService ? CompanionService.connected : false
-    readonly property int batteryLevel: CompanionService ? CompanionService.phoneBattery : -1
+    readonly property bool companionConnected: CompanionState ? CompanionState.connected : false
+    readonly property int batteryLevel: CompanionState ? CompanionState.phoneBattery : -1
 
     // Orientation: vertical if square or taller, horizontal if wider
     readonly property bool isVertical: height >= width
@@ -119,7 +119,9 @@ Item {
     // Percentage text centered over the canvas
     NormalText {
         anchors.centerIn: parent
-        text: batteryWidget.companionConnected
+        // batteryLevel is -1 until the companion's first BatteryReport — a
+        // connected phone that has only sent time/GPS must not render "-1%".
+        text: batteryWidget.companionConnected && batteryWidget.batteryLevel >= 0
               ? batteryWidget.batteryLevel + "%"
               : "--"
         font.pixelSize: Math.min(parent.width, parent.height) * 0.3

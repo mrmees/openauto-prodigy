@@ -2,6 +2,9 @@
 #include <QSignalSpy>
 #include <QHostAddress>
 
+#include <cmath>
+#include <limits>
+
 #include "core/api/ApiSession.hpp"
 #include "core/api/ApiTransport.hpp"
 #include "core/api/ApiRequestHandlers.hpp"
@@ -34,6 +37,7 @@ public:
     void sendMessage(const QByteArray& serialized) override { sent.append(serialized); }
     qint64 bytesToWrite() const override { return fakeBytesToWrite; }
     void close() override { emit closed(); }
+    void abort() override { emit closed(); }
     QHostAddress peerAddress() const override { return peer; }
 
     void injectMessage(const QByteArray& bytes) { emit messageReceived(bytes); }
@@ -81,6 +85,17 @@ private slots:
     void testAllPhoneCommandsUnavailable();
     void testPhoneCommandsFollowCapability();
     void testGpsReportUpdatesState();
+    void testGpsReportForwardsAllFields();
+    void testGpsReportRejectsInvalidExtras();
+    void testClearGpsResetsAllFields();
+    void testGpsReportAcceptsBoundaryBearing();
+    void testGpsRejectedReportLeavesStateUnchanged();
+    void testInactiveConnectivityReportMarksPresence();
+    void testTimeOnlyReportMarksPresence();
+    void testReportOwnerCloseClearsState();
+    void testNonOwnerCloseKeepsReportState();
+    void testGpsStaleAfterThreshold();
+    void testProxyActiveReflectsConnectivity();
     void testConnectivityEmitsProxyRoute();
     void testOwnerSessionCloseClearsRoute();
     void testNonOwnerSessionCloseLeavesRoute();
@@ -453,6 +468,401 @@ void TestApiRequestHandlers::testGpsReportUpdatesState() {
     QCOMPARE(inbound.gpsSpeedMps(), 13.4);
     // Reports are fire-and-forget: no response frame is ever produced.
     QCOMPARE(transport->sent.size(), before);
+}
+
+// GpsReport must forward all six fields (lat/lon/speed already covered above;
+// this pins bearing/accuracy/age, which the legacy path silently dropped).
+void TestApiRequestHandlers::testGpsReportForwardsAllFields() {
+    oap::ActionRegistry actions;
+    oap::NotificationService notifications;
+    oap::PhoneStateService phone;
+    ApiInboundState inbound;
+    ApiRequestHandlers handler({&actions, &notifications, &phone, &inbound});
+
+    auto* transport = new FakeTransport();
+    ApiSessionDeps deps;
+    deps.requests = &handler;
+    ApiSession session(transport, deps);
+    transport->injectMessage(clientHello());
+
+    QSignalSpy spy(&inbound, &ApiInboundState::gpsChanged);
+
+    pb::ApiMessage rpt;
+    rpt.set_request_id(0);
+    auto* g = rpt.mutable_gps_report();
+    g->set_latitude(45.5);
+    g->set_longitude(-122.6);
+    g->set_speed_mps(13.4);
+    g->set_bearing_deg(275.0);
+    g->set_accuracy_m(4.2);
+    g->set_age_ms(120);
+    transport->injectMessage(serialize(rpt));
+
+    QCOMPARE(spy.count(), 1);
+    QVERIFY(inbound.gpsValid());
+    QCOMPARE(inbound.gpsBearing(), 275.0);
+    QCOMPARE(inbound.gpsAccuracy(), 4.2);
+    QCOMPARE(inbound.gpsSpeedMps(), 13.4);
+    // gpsSpeed is a legacy alias for gpsSpeedMps.
+    QCOMPARE(inbound.property("gpsSpeed").toDouble(), 13.4);
+    // Fresh 120 ms fix is well under the 30 s window.
+    QVERIFY(!inbound.gpsStale());
+    // Any accepted report marks an owner present.
+    QVERIFY(inbound.connected());
+}
+
+// GPS extras (speed/bearing/accuracy) must meet the proto contract: all finite,
+// speed >= 0, accuracy >= 0, bearing in [0, 360). A violation drops the whole
+// report (parity with the lat/lon rejection) and never reaches shared state.
+void TestApiRequestHandlers::testGpsReportRejectsInvalidExtras() {
+    oap::ActionRegistry actions;
+    oap::NotificationService notifications;
+    oap::PhoneStateService phone;
+    ApiInboundState inbound;
+    ApiRequestHandlers handler({&actions, &notifications, &phone, &inbound});
+
+    auto* transport = new FakeTransport();
+    ApiSessionDeps deps;
+    deps.requests = &handler;
+    ApiSession session(transport, deps);
+    transport->injectMessage(clientHello());
+
+    QSignalSpy spy(&inbound, &ApiInboundState::gpsChanged);
+
+    auto sendGps = [&](double speed, double bearing, double accuracy) {
+        pb::ApiMessage rpt;
+        rpt.set_request_id(0);
+        auto* g = rpt.mutable_gps_report();
+        g->set_latitude(45.5);
+        g->set_longitude(-122.6);
+        g->set_speed_mps(speed);
+        g->set_bearing_deg(bearing);
+        g->set_accuracy_m(accuracy);
+        transport->injectMessage(serialize(rpt));
+    };
+
+    const double nan = std::numeric_limits<double>::quiet_NaN();
+    const double inf = std::numeric_limits<double>::infinity();
+
+    sendGps(nan, 90.0, 5.0);    // NaN speed
+    sendGps(10.0, 90.0, inf);   // infinite accuracy
+    sendGps(10.0, 360.0, 5.0);  // bearing == 360 (out of [0,360))
+    sendGps(10.0, -1.0, 5.0);   // bearing < 0
+    sendGps(-1.0, 90.0, 5.0);   // negative speed
+    sendGps(10.0, 90.0, -1.0);  // negative accuracy
+
+    // Every report was dropped: no state change, no owner presence.
+    QCOMPARE(spy.count(), 0);
+    QVERIFY(!inbound.gpsValid());
+    QVERIFY(!inbound.connected());
+}
+
+// Finding 2: clearGps must reset ALL cached GPS values (legacy parity), not
+// just the valid flag — otherwise stale coordinates leak through readers
+// (e.g. IpcServer::handleCompanionStatus) after the owner disconnects.
+void TestApiRequestHandlers::testClearGpsResetsAllFields() {
+    ApiInboundState inbound;
+    inbound.setGps(45.5, -122.6, 13.4, 275.0, 4.2, 120);
+    QVERIFY(inbound.gpsValid());
+
+    QSignalSpy spy(&inbound, &ApiInboundState::gpsChanged);
+    inbound.clearGps();
+
+    QCOMPARE(spy.count(), 1);            // single emission
+    QVERIFY(!inbound.gpsValid());
+    QVERIFY(inbound.gpsStale());
+    QCOMPARE(inbound.gpsLat(), 0.0);
+    QCOMPARE(inbound.gpsLon(), 0.0);
+    QCOMPARE(inbound.gpsSpeedMps(), 0.0);
+    QCOMPARE(inbound.gpsBearing(), 0.0);
+    QCOMPARE(inbound.gpsAccuracy(), 0.0);
+
+    // Idempotent: a second clear on already-cleared state emits nothing.
+    inbound.clearGps();
+    QCOMPARE(spy.count(), 1);
+}
+
+void TestApiRequestHandlers::testGpsReportAcceptsBoundaryBearing() {
+    oap::ActionRegistry actions;
+    oap::NotificationService notifications;
+    oap::PhoneStateService phone;
+    ApiInboundState inbound;
+    ApiRequestHandlers handler({&actions, &notifications, &phone, &inbound});
+
+    auto* transport = new FakeTransport();
+    ApiSessionDeps deps;
+    deps.requests = &handler;
+    ApiSession session(transport, deps);
+    transport->injectMessage(clientHello());
+
+    QSignalSpy spy(&inbound, &ApiInboundState::gpsChanged);
+
+    auto sendBearing = [&](double bearing) {
+        pb::ApiMessage rpt;
+        rpt.set_request_id(0);
+        auto* g = rpt.mutable_gps_report();
+        g->set_latitude(45.5);
+        g->set_longitude(-122.6);
+        g->set_speed_mps(0.0);       // 0 = unknown, still valid
+        g->set_bearing_deg(bearing);
+        g->set_accuracy_m(0.0);      // 0 = unknown, still valid
+        transport->injectMessage(serialize(rpt));
+    };
+
+    sendBearing(0.0);      // lower boundary accepted
+    QCOMPARE(spy.count(), 1);
+    QCOMPARE(inbound.gpsBearing(), 0.0);
+
+    sendBearing(359.9);    // just under the upper bound accepted
+    QCOMPARE(spy.count(), 2);
+    QCOMPARE(inbound.gpsBearing(), 359.9);
+    QVERIFY(inbound.gpsValid());
+}
+
+void TestApiRequestHandlers::testGpsRejectedReportLeavesStateUnchanged() {
+    oap::ActionRegistry actions;
+    oap::NotificationService notifications;
+    oap::PhoneStateService phone;
+    ApiInboundState inbound;
+    ApiRequestHandlers handler({&actions, &notifications, &phone, &inbound});
+
+    auto* transport = new FakeTransport();
+    ApiSessionDeps deps;
+    deps.requests = &handler;
+    ApiSession session(transport, deps);
+    transport->injectMessage(clientHello());
+
+    // Establish a valid fix.
+    pb::ApiMessage good;
+    good.set_request_id(0);
+    auto* g = good.mutable_gps_report();
+    g->set_latitude(45.5);
+    g->set_longitude(-122.6);
+    g->set_speed_mps(12.0);
+    g->set_bearing_deg(100.0);
+    g->set_accuracy_m(3.0);
+    transport->injectMessage(serialize(good));
+
+    QSignalSpy spy(&inbound, &ApiInboundState::gpsChanged);
+
+    // A subsequent malformed report (NaN speed) must not mutate the good state.
+    pb::ApiMessage bad;
+    bad.set_request_id(0);
+    auto* b = bad.mutable_gps_report();
+    b->set_latitude(10.0);
+    b->set_longitude(10.0);
+    b->set_speed_mps(std::numeric_limits<double>::quiet_NaN());
+    b->set_bearing_deg(200.0);
+    b->set_accuracy_m(1.0);
+    transport->injectMessage(serialize(bad));
+
+    QCOMPARE(spy.count(), 0);            // rejected report emitted nothing
+    QCOMPARE(inbound.gpsLat(), 45.5);   // prior fix intact
+    QCOMPARE(inbound.gpsBearing(), 100.0);
+    QCOMPARE(inbound.gpsSpeedMps(), 12.0);
+}
+
+// Presence (`connected`) must reflect a live reporting session regardless of
+// route ownership: a companion reporting INACTIVE connectivity is still
+// present, and drops presence only when it closes.
+void TestApiRequestHandlers::testInactiveConnectivityReportMarksPresence() {
+    oap::ActionRegistry actions;
+    oap::NotificationService notifications;
+    oap::PhoneStateService phone;
+    ApiInboundState inbound;
+    ApiRequestHandlers handler({&actions, &notifications, &phone, &inbound});
+
+    auto* transport = new FakeTransport();
+    ApiSessionDeps deps;
+    deps.requests = &handler;
+    ApiSession session(transport, deps);
+    transport->injectMessage(clientHello());
+
+    // Inactive connectivity: no usable route, so connectivityOwner stays null,
+    // but the session IS reporting -> present.
+    pb::ApiMessage c;
+    c.set_request_id(0);
+    auto* r = c.mutable_connectivity_report();
+    r->set_internet_available(false);
+    r->set_socks5_active(false);
+    transport->injectMessage(serialize(c));
+
+    QVERIFY(!inbound.proxyActive());   // route not active
+    QVERIFY(inbound.connected());      // but a reporting session is present
+
+    transport->close();
+    QVERIFY(!inbound.connected());     // presence drops when it disconnects
+}
+
+// A time-only reporting session (no GPS/battery/connectivity) also counts as a
+// present companion.
+void TestApiRequestHandlers::testTimeOnlyReportMarksPresence() {
+    oap::ActionRegistry actions;
+    oap::NotificationService notifications;
+    oap::PhoneStateService phone;
+    ApiInboundState inbound;
+    ApiRequestHandlers handler({&actions, &notifications, &phone, &inbound});
+
+    auto* transport = new FakeTransport();
+    ApiSessionDeps deps;
+    deps.requests = &handler;
+    ApiSession session(transport, deps);
+    transport->injectMessage(clientHello());
+
+    pb::ApiMessage t;
+    t.set_request_id(0);
+    t.mutable_time_report()->set_unix_time_ms(Q_INT64_C(1751731200000));
+    transport->injectMessage(serialize(t));
+
+    QVERIFY(inbound.connected());
+
+    transport->close();
+    QVERIFY(!inbound.connected());
+}
+
+// A report's owning session disconnecting must clear that report's cached
+// state (owner-tracked clear) and drop owner-presence when nothing remains.
+void TestApiRequestHandlers::testReportOwnerCloseClearsState() {
+    oap::ActionRegistry actions;
+    oap::NotificationService notifications;
+    oap::PhoneStateService phone;
+    ApiInboundState inbound;
+    ApiRequestHandlers handler({&actions, &notifications, &phone, &inbound});
+
+    auto* transport = new FakeTransport();
+    ApiSessionDeps deps;
+    deps.requests = &handler;
+    ApiSession session(transport, deps);
+    transport->injectMessage(clientHello());
+
+    pb::ApiMessage gps;
+    gps.set_request_id(0);
+    auto* g = gps.mutable_gps_report();
+    g->set_latitude(45.5);
+    g->set_longitude(-122.6);
+    transport->injectMessage(serialize(gps));
+
+    pb::ApiMessage bat;
+    bat.set_request_id(0);
+    auto* b = bat.mutable_battery_report();
+    b->set_percent(77);
+    b->set_charging(true);
+    transport->injectMessage(serialize(bat));
+
+    QVERIFY(inbound.gpsValid());
+    QCOMPARE(inbound.phoneBattery(), 77);
+    QVERIFY(inbound.connected());
+
+    // Owner disconnects -> every report type it sourced is cleared.
+    transport->close();
+
+    QVERIFY(!inbound.gpsValid());
+    QVERIFY(inbound.gpsStale());
+    QCOMPARE(inbound.phoneBattery(), -1);
+    QVERIFY(!inbound.connected());
+}
+
+// A session that never sourced a report closing must not touch another
+// session's cached state, and owner-presence must remain true.
+void TestApiRequestHandlers::testNonOwnerCloseKeepsReportState() {
+    oap::ActionRegistry actions;
+    oap::NotificationService notifications;
+    oap::PhoneStateService phone;
+    ApiInboundState inbound;
+    ApiRequestHandlers handler({&actions, &notifications, &phone, &inbound});
+
+    auto* tA = new FakeTransport();
+    ApiSessionDeps depsA; depsA.requests = &handler;
+    ApiSession sessionA(tA, depsA);
+    tA->injectMessage(clientHello());
+
+    auto* tB = new FakeTransport();
+    ApiSessionDeps depsB; depsB.requests = &handler;
+    ApiSession sessionB(tB, depsB);
+    tB->injectMessage(clientHello());
+
+    // A sources GPS + battery -> A owns both.
+    pb::ApiMessage gps;
+    gps.set_request_id(0);
+    auto* g = gps.mutable_gps_report();
+    g->set_latitude(45.5);
+    g->set_longitude(-122.6);
+    tA->injectMessage(serialize(gps));
+
+    pb::ApiMessage bat;
+    bat.set_request_id(0);
+    bat.mutable_battery_report()->set_percent(77);
+    tA->injectMessage(serialize(bat));
+    QVERIFY(inbound.connected());
+
+    // Non-owner B disconnects -> A's state and presence untouched.
+    tB->close();
+
+    QVERIFY(inbound.gpsValid());
+    QCOMPARE(inbound.phoneBattery(), 77);
+    QVERIFY(inbound.connected());
+}
+
+// gpsStale flips true once the effective age crosses the threshold. The
+// injectable threshold keeps the test off the real 30 s clock.
+void TestApiRequestHandlers::testGpsStaleAfterThreshold() {
+    oap::ActionRegistry actions;
+    oap::NotificationService notifications;
+    oap::PhoneStateService phone;
+    ApiInboundState inbound;
+    inbound.setStaleThresholdMs(50);
+    ApiRequestHandlers handler({&actions, &notifications, &phone, &inbound});
+
+    auto* transport = new FakeTransport();
+    ApiSessionDeps deps;
+    deps.requests = &handler;
+    ApiSession session(transport, deps);
+    transport->injectMessage(clientHello());
+
+    pb::ApiMessage gps;
+    gps.set_request_id(0);
+    auto* g = gps.mutable_gps_report();
+    g->set_latitude(45.5);
+    g->set_longitude(-122.6);
+    g->set_age_ms(0);
+    transport->injectMessage(serialize(gps));
+
+    // Fresh fix is not stale...
+    QVERIFY(!inbound.gpsStale());
+    // ...but goes stale once the effective age exceeds the 50 ms window.
+    QTRY_VERIFY(inbound.gpsStale());
+}
+
+// proxyActive mirrors the SOCKS5 route state (the property that fixes the
+// dead proxyStatus read), and a connectivity owner counts toward `connected`.
+void TestApiRequestHandlers::testProxyActiveReflectsConnectivity() {
+    oap::ActionRegistry actions;
+    oap::NotificationService notifications;
+    oap::PhoneStateService phone;
+    ApiInboundState inbound;
+    ApiRequestHandlers handler({&actions, &notifications, &phone, &inbound});
+
+    auto* transport = new FakeTransport();
+    ApiSessionDeps deps;
+    deps.requests = &handler;
+    ApiSession session(transport, deps);
+    transport->injectMessage(clientHello());
+
+    pb::ApiMessage c;
+    c.set_request_id(0);
+    auto* r = c.mutable_connectivity_report();
+    r->set_internet_available(true);
+    r->set_socks5_active(true);
+    r->set_socks5_port(1080);
+    transport->injectMessage(serialize(c));
+
+    QVERIFY(inbound.proxyActive());
+    QVERIFY(inbound.connected());   // connectivity owner counts
+
+    // Owner disconnects -> route torn down, proxy inactive, presence dropped.
+    transport->close();
+    QVERIFY(!inbound.proxyActive());
+    QVERIFY(!inbound.connected());
 }
 
 void TestApiRequestHandlers::testConnectivityEmitsProxyRoute() {

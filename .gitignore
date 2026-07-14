@@ -10,6 +10,9 @@ CMakeLists.txt.user
 .DS_Store
 .worktrees/
 
+# Patched-mSBC PipeWire build output (arm64 .deb — rebuild via build.sh)
+tools/pipewire-msbc/out/
+
 # Android SDK tools (local install)
 build-tools/
 cmdline-tools/

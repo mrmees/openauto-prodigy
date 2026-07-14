@@ -70,14 +70,20 @@ struct ApiServiceRefs {
 
 class ApiServer : public QObject {
     Q_OBJECT
+    Q_PROPERTY(bool running READ isRunning NOTIFY runningChanged)
     Q_PROPERTY(bool pairingActive READ pairingActive NOTIFY pairingChanged)
     Q_PROPERTY(QString pairingPin READ pairingPin NOTIFY pairingChanged)
+    Q_PROPERTY(QString pairingQrDataUri READ pairingQrDataUri NOTIFY pairingChanged)
 public:
     explicit ApiServer(ApiServiceRefs refs, QObject* parent = nullptr);
     ~ApiServer() override;
 
     bool start();     // reads api.* config; false if disabled or both listens fail
     void stop();      // idempotent; destroys publishers before other teardown
+    // True while at least one listener is bound. main.cpp exposes ApiService
+    // unconditionally, so QML gates the pairing UI on this — a pairing window
+    // on a non-running server is zombie UI (no listener to pair through).
+    bool isRunning() const { return started_; }
 
     quint16 tcpPort() const;   // actual bound port (config 0 -> ephemeral)
     quint16 wsPort() const;
@@ -87,11 +93,28 @@ public:
     Q_INVOKABLE void cancelPairing();  // also registered as action api.pairing.cancel
     bool pairingActive() const;
     QString pairingPin() const;
+    // QR for the open pairing window ("" when closed). Rendered lazily per
+    // read so it can never go stale against the window state, whatever order
+    // pairingChanged consumers fire in.
+    QString pairingQrDataUri() const;
     int sessionCount() const;
+
+    // Companion-scanner contract (kept stable, additive-only):
+    // prodigy://pair?host=&tcp=&ws=&pin=&ssid=  — ssid percent-encoded
+    // (Android can redact the AA-owned network's SSID, so the companion
+    // persists it from the QR for reconnect). Pure static seam, unit-tested
+    // like inApSubnet/peerAllowed below.
+    static QString pairingQrPayload(const QString& host, quint16 tcpPort,
+                                    quint16 wsPort, const QString& pin,
+                                    const QString& ssid);
 
     // Test seam: rebinds the paired-client store to a scratch path BEFORE
     // start(), so tests never touch ~/.openauto/api_clients.yaml.
     void setStorePathForTest(const QString& path);
+
+    // Test seam: the live QR payload string (what pairingQrDataUri encodes),
+    // so tests can pin the config-to-QR wiring without decoding the PNG.
+    QString pairingQrPayloadForTest() const;
 
     // Peer-admission policy exposed as pure static seams for unit testing
     // (Task 15 addendum). inApSubnet() performs the v4-mapped-v6 normalization;
@@ -103,6 +126,7 @@ public:
 
 signals:
     void pairingChanged();
+    void runningChanged();
 
 private slots:
     void onNewTcpConnection();
@@ -141,6 +165,7 @@ private:
     int pairingTimeoutS_ = 120;
     int handshakeTimeoutMs_ = 5000;
     QString serverName_;
+    QString pairingSsid_;   // connection.wifi_ap.ssid, read in start(); QR field
     QString appVersion_;
     QString serverId_;   // stable head-unit identity (v1.1); minted+persisted in start()
 };

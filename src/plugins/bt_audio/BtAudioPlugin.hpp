@@ -2,18 +2,39 @@
 
 #include "core/plugin/IPlugin.hpp"
 #include "core/widget/WidgetTypes.hpp"
+// Pulls Q_DECLARE_METATYPE(oap::InterfaceMap) — the SAME underlying
+// QMap<QString,QVariantMap> that BtInterfaceMap aliases below. openauto-core
+// aggregates every class's MOC into one translation unit, and moc_BtAudioPlugin
+// is compiled before moc_TelephonyClient (alphabetical): unless the explicit
+// specialization is visible here, this slot's map parameter implicitly
+// instantiates the built-in QMap metatype first and TelephonyClient's
+// declaration becomes a "specialization of QMetaTypeId after instantiation"
+// error. Reusing the existing specialization (per Task-1 resolution) avoids a
+// duplicate Q_DECLARE_METATYPE for the identical type.
+#include "core/services/TelephonyClient.hpp"
 #include <QObject>
 #include <QString>
 #include <QDBusObjectPath>
+#include <QMap>
+#include <QVariantMap>
 
 class QQmlContext;
 class QDBusServiceWatcher;
+class QDBusMessage;
 
 namespace oap {
 
 class IHostContext;
 
 namespace plugins {
+
+/// BlueZ ObjectManager InterfacesAdded carries a{sa{sv}}; QtDBus refuses to
+/// deliver it into a QVariantMap slot, so the connect fails at runtime and
+/// hot-plug goes silently deaf (same fix family as UsbInterfaceMap /
+/// BluezInterfaceMap, bench 2026-07-10). Its metatype is the shared
+/// QMap<QString,QVariantMap> already declared via TelephonyClient's
+/// Q_DECLARE_METATYPE(oap::InterfaceMap); re-registered in startDBusMonitoring().
+using BtInterfaceMap = QMap<QString, QVariantMap>;
 
 /// Bluetooth A2DP audio sink plugin.
 ///
@@ -106,14 +127,21 @@ signals:
     void metadataChanged();
     void positionChanged();
 
+private slots:
+    // D-Bus signal handlers — MUST be slots or every string-based bus.connect()
+    // in startDBusMonitoring() fails at startup and the plugin runs blind.
+    void onInterfacesAdded(const QDBusObjectPath& path, const BtInterfaceMap& interfaces);
+    void onInterfacesRemoved(const QDBusObjectPath& path, const QStringList& interfaces);
+    // Sender path arrives in the trailing QDBusMessage (UsbMediaWatcher
+    // onDrivePropertiesChanged pattern); filtered against transportPath_/
+    // playerPath_ so a foreign BlueZ object's update cannot stomp our state.
+    void onPropertiesChanged(const QString& interface, const QVariantMap& changed,
+                             const QStringList& invalidated, const QDBusMessage& message);
+
 private:
     void startDBusMonitoring();
     void stopDBusMonitoring();
     void scanExistingObjects();
-    void onInterfacesAdded(const QDBusObjectPath& path, const QVariantMap& interfaces);
-    void onInterfacesRemoved(const QDBusObjectPath& path, const QStringList& interfaces);
-    void onPropertiesChanged(const QString& interface, const QVariantMap& changed,
-                             const QStringList& invalidated);
     void updateTransportState(const QString& state);
     void updatePlayerProperties(const QVariantMap& props);
     void sendPlayerCommand(const QString& command);

@@ -23,7 +23,11 @@ public:
 
     virtual void sendMessage(const QByteArray& serialized) = 0;
     virtual qint64 bytesToWrite() const = 0;
+    // Graceful: pending frames (e.g. a terminal Error) reach the wire first.
     virtual void close() = 0;
+    // Punitive: drop the connection NOW, discarding anything queued — the
+    // slow-consumer kill must not wait behind a buffer the peer won't drain.
+    virtual void abort() = 0;
     virtual QHostAddress peerAddress() const = 0;
 
 signals:
@@ -41,6 +45,7 @@ public:
     void sendMessage(const QByteArray& serialized) override;
     qint64 bytesToWrite() const override;
     void close() override;
+    void abort() override;
     QHostAddress peerAddress() const override;
 
 private slots:
@@ -48,8 +53,11 @@ private slots:
     void onDisconnected();
 
 private:
+    void emitClosedOnce();
+
     QTcpSocket* socket_;
     ApiFramer framer_;
+    bool closedEmitted_ = false;
 };
 
 // Frame-per-WebSocket-message transport over a QWebSocket.
@@ -61,6 +69,7 @@ public:
     void sendMessage(const QByteArray& serialized) override;
     qint64 bytesToWrite() const override;
     void close() override;
+    void abort() override;
     QHostAddress peerAddress() const override;
 
 private slots:
@@ -69,8 +78,11 @@ private slots:
     void onDisconnected();
 
 private:
+    void emitClosedOnce();
+
     QWebSocket* socket_;
     quint32 maxFrameBytes_;
+    bool closedEmitted_ = false;
 };
 
 } // namespace oap::api

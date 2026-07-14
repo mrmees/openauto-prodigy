@@ -13,6 +13,14 @@ class AudioService;
 class PluginManager;
 class CompanionListenerService;
 
+} // namespace oap
+
+namespace oap::api {
+class ApiInboundState;
+} // namespace oap::api
+
+namespace oap {
+
 /// Unix domain socket IPC server for the web config panel.
 ///
 /// Listens on /tmp/openauto-prodigy.sock for JSON requests from the
@@ -35,6 +43,10 @@ public:
     void setAudioService(AudioService* audioService);
     void setPluginManager(PluginManager* pluginManager);
     void setCompanionListenerService(CompanionListenerService* svc);
+    // API v1 inbound state (design §B0d) — when set, handleCompanionStatus()
+    // prefers it over the legacy companion_ body (source:"api"). companion_
+    // remains the vehicle_id source until it's retired (B2).
+    void setInboundState(oap::api::ApiInboundState* state);
 
 private slots:
     void onNewConnection();
@@ -64,6 +76,7 @@ private:
     AudioService* audioService_ = nullptr;
     PluginManager* pluginManager_ = nullptr;
     CompanionListenerService* companion_ = nullptr;
+    oap::api::ApiInboundState* inbound_ = nullptr;
 };
 
 } // namespace oap
