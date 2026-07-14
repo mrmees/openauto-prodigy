@@ -118,6 +118,7 @@ private slots:
     void testWsEndToEnd();
     void testDisabledDoesNotListen();
     void testPairingActionRegistered();
+    void testStopCancelsPairingWindow();
     void testServerIdMintedAndStable();
     void testDoubleStartIsIdempotentNoOp();
 };
@@ -271,6 +272,33 @@ void TestApiServer::testPairingActionRegistered() {
 
     QVERIFY(f.actions.dispatch(QStringLiteral("api.pairing.cancel")));
     QVERIFY(!server.pairingActive());
+    server.stop();
+}
+
+void TestApiServer::testStopCancelsPairingWindow() {
+    Fixture f;
+    f.config.setValue("api.tcp_port", 0);
+    f.config.setValue("api.ws_port", 0);
+    ApiServer server(f.refs());
+    server.setStorePathForTest("/tmp/oap_test_api_server_clients.yaml");
+
+    QVERIFY(server.start());
+    server.startPairing();
+    QVERIFY(server.pairingActive());
+    QVERIFY(!server.pairingPin().isEmpty());
+
+    // stop() must close the window (stale-PIN hazard) and notify QML so the
+    // displayed PIN/QR clear (2026-07-14 pre-merge gate finding).
+    QSignalSpy pairingSpy(&server, &ApiServer::pairingChanged);
+    server.stop();
+    QVERIFY(!server.pairingActive());
+    QVERIFY(server.pairingPin().isEmpty());
+    QVERIFY(pairingSpy.count() >= 1);
+
+    // A restart within the old window's timeout must NOT resurrect it.
+    QVERIFY(server.start());
+    QVERIFY(!server.pairingActive());
+    QVERIFY(server.pairingPin().isEmpty());
     server.stop();
 }
 

@@ -106,6 +106,20 @@ def main() -> int:
         if not archive3.is_file():
             raise AssertionError(f"missing archive: {archive3}")
 
+        # Case 4: a deb whose basename the installer's glob would never match
+        # must be refused — it would package "successfully" and then be
+        # silently skipped at install time (silent-mic HFP release).
+        misnamed_deb = tmp_dir / "codec-fix.deb"
+        misnamed_deb.write_bytes(b"!<arch>fake-deb")
+        output_dir4 = tmp_dir / "dist4"
+        result = run_packager(build_dir, output_dir4, "--msbc-deb", str(misnamed_deb))
+        if result.returncode == 0:
+            raise AssertionError("packaging accepted a misnamed --msbc-deb")
+        if "basename must match" not in (result.stdout + result.stderr):
+            raise AssertionError(
+                f"misnamed --msbc-deb rejected for the wrong reason:\n{result.stderr}"
+            )
+
     return 0
 
 

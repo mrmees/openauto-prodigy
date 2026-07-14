@@ -119,7 +119,9 @@ Item {
     // Percentage text centered over the canvas
     NormalText {
         anchors.centerIn: parent
-        text: batteryWidget.companionConnected
+        // batteryLevel is -1 until the companion's first BatteryReport — a
+        // connected phone that has only sent time/GPS must not render "-1%".
+        text: batteryWidget.companionConnected && batteryWidget.batteryLevel >= 0
               ? batteryWidget.batteryLevel + "%"
               : "--"
         font.pixelSize: Math.min(parent.width, parent.height) * 0.3

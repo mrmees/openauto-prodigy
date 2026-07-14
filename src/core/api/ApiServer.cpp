@@ -157,6 +157,12 @@ void ApiServer::stop() {
     started_ = false;
     if (wasRunning) emit runningChanged();
 
+    // 0. Close any open pairing window. Its PIN must not survive into a
+    //    later start() (a stopped-then-restarted server would accept the
+    //    stale PIN for the rest of the window), and QML must be told the
+    //    QR/PIN are gone (cancelWindow -> windowChanged -> pairingChanged).
+    if (pairing_) pairing_->cancelWindow();
+
     // 1. Destroy publishers FIRST. Each owns a 0-ms coalesce timer whose
     //    deferred buildEnvelope() reads its provider on the next event-loop
     //    turn; a provider may be torn down right after stop(), so no deferred

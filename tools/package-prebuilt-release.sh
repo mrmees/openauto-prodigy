@@ -145,6 +145,12 @@ chmod +x "$STAGE_DIR/payload/restart.sh"
 # development-only --allow-missing-msbc-deb override is given.
 if [[ -n "$MSBC_DEB_ARG" ]]; then
     [[ -f "$MSBC_DEB_ARG" ]] || fail "--msbc-deb not found: $MSBC_DEB_ARG"
+    # The installer locates the staged deb by this exact glob; any other
+    # basename ships a codec fix that install-prebuilt.sh silently skips.
+    case "$(basename "$MSBC_DEB_ARG")" in
+        libspa-0.2-bluetooth_*+prodigy*_arm64.deb) ;;
+        *) fail "--msbc-deb basename must match libspa-0.2-bluetooth_*+prodigy*_arm64.deb (installer glob): $(basename "$MSBC_DEB_ARG")" ;;
+    esac
     MSBC_DEB="$MSBC_DEB_ARG"
 else
     mapfile -t MSBC_CANDIDATES < <(ls "$REPO_ROOT/tools/pipewire-msbc/out"/libspa-0.2-bluetooth_*+prodigy*_arm64.deb 2>/dev/null || true)

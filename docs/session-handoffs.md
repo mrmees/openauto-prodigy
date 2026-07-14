@@ -4,6 +4,22 @@ Newest entries first.
 
 ---
 
+## 2026-07-14 — PR #19 final pre-merge Codex gate: 9 findings adjudicated, 3 fixed
+
+**What changed:** final `gpt-5.6-sol` review of the FULL PR #19 range (`origin/main..dev`, 57 files) before merge to main. 9 findings (8 P2, 1 P3) — 3 confirmed + fixed, 2 deferred to wishlist with reasons, 4 dismissed (3 as prior-round adjudications that stand, 1 as technically incorrect). No P1s.
+
+**Confirmed + fixed:** (1) `ApiServer::stop()` left an open pairing window live — a stop/start cycle within the timeout would accept the stale PIN, and QML kept the QR (PIN/QR now cancelled in `stop()` with `pairingChanged` notify; `testStopCancelsPairingWindow` covers stop-during-pairing + restart). (2) packager accepted any `--msbc-deb` filename while `install-prebuilt.sh` finds the staged deb only by the `libspa-0.2-bluetooth_*+prodigy*_arm64.deb` glob — a misnamed deb packaged "successfully" and was then silently skipped at install (basename now validated against the installer glob; negative packaging test case 4). (3) `BatteryWidget` rendered `-1%` for a connected companion that had only sent time/GPS reports (text now requires `batteryLevel >= 0`; canvas fill was already clamped safe).
+
+**Deferred to wishlist (§ PR #19 pre-merge gate):** patched-deb upgrade path (any installed `+prodigy` blocks future `+prodigy2`/rebuild candidates — tolerable while exactly one revision exists; touching hold/upgrade logic in both installers pre-release adds untested risk) and companion reporting-session liveness expiry (silent phone death leaves `CompanionState.connected` true until TCP gives up — expiry cadence is a companion-contract decision, settle at B2).
+
+**Dismissed:** ClockSync blocking exec (pre-wishlisted 2026-07-06, re-dismissed 2026-07-13 — adjudication stands); custom-AP QR/admission hardcoding (wishlisted 2026-07-13, decision is Matthew's); backpressured terminal-frame drain (dismissed-to-wishlist in the wire-fix round — handshake frames are first-bytes-on-fresh-connection); BT `Track` demarshal "cannot extract nested a{sv}" — incorrect: `QDBusArgument >> QVariantMap` is the canonical registered demarshal for `a{sv}` (QtDBus's delivery refusal applies to `a{sa{sv}}`, which this PR fixed via `qDBusRegisterMetaType<BtInterfaceMap>`), the block is pre-existing (2026-02-18) and live-proven on the Pi via the initial-read callers; residual property-read warning already wishlisted (Startup QDBus warnings).
+
+**Verification:** suite 123/123 (`ctest --output-on-failure`), `test_api_server` 10/10 incl. the new slot, `test_prebuilt_release_package` incl. case 4, app target green in `~/builds/openauto-prodigy`. Verdict: `reviews/2026-07-14-074451-codex-review.md` (gitignored, MINIMEES). Fixes are small/scoped — no gate re-run per AGENTS.md (re-run is for substantial fixes).
+
+**Next 1-3 steps:** (1) merge PR #19 dev→main; (2) mint + push the ALPHA milestone tag, reconfigure + rebuild; (3) B2 teardown planning.
+
+---
+
 ## 2026-07-14 — Settings merge: Companion + External API become one Companion page
 
 **What changed:** Matthew-approved design (archived: `docs/archive/plans/2026-07-14-companion-settings-merge-design.md`) executed in `2a35275` + gate fixes. One menu entry ("Companion", phone icon, pageId `api`); `ApiSettings.qml` is the merged page — Remote Client Pairing (PIN + QR), Phone Status (five live rows ported verbatim, `CompanionState`/`SystemService` bound), Advanced (`api.enabled` with a "powers companion, web widgets, and remote clients" caption; `api.expose_lan`). `CompanionSettings.qml` DELETED with its legacy 9876 pairing controls (companion.enabled toggle, Generate Pairing Code, legacy QR dialog — pre-approved B2 content that was driving a DISABLED listener). `companion.*` config keys work UI-less until B2; `CompanionService` context property now has zero QML consumers (comment updated; B2 sweeps it). `settings-tree.md` + `state-matrix.md` updated same-commit.
