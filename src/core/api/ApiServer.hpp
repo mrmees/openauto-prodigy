@@ -107,6 +107,10 @@ public:
     // start(), so tests never touch ~/.openauto/api_clients.yaml.
     void setStorePathForTest(const QString& path);
 
+    // Test seam: the live QR payload string (what pairingQrDataUri encodes),
+    // so tests can pin the config-to-QR wiring without decoding the PNG.
+    QString pairingQrPayloadForTest() const;
+
     // Peer-admission policy exposed as pure static seams for unit testing
     // (Task 15 addendum). inApSubnet() performs the v4-mapped-v6 normalization;
     // the 2-arg peerAllowed() is the full admission decision for an explicit

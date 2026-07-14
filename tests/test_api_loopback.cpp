@@ -720,6 +720,7 @@ void TestApiLoopback::testPairingQrPayloadAndProperty() {
     Fixture f;
     f.config.setValue("api.tcp_port", 0);
     f.config.setValue("api.ws_port", 0);
+    f.config.setValue("connection.wifi_ap.ssid", "Bench AP 5G");
 
     ApiServer server(f.refs());
     server.setStorePathForTest(kStorePath);
@@ -729,6 +730,14 @@ void TestApiLoopback::testPairingQrPayloadAndProperty() {
 
     server.startPairing();
     QVERIFY(server.pairingActive());
+
+    // Config-to-QR wiring: the LIVE payload must carry the configured SSID
+    // (encoded), the window's PIN, and the actually-bound ports.
+    const QString live = server.pairingQrPayloadForTest();
+    QVERIFY(live.contains(QStringLiteral("&ssid=Bench%20AP%205G")));
+    QVERIFY(live.contains(QStringLiteral("&pin=") + server.pairingPin()));
+    QVERIFY(live.contains(QStringLiteral("&tcp=%1").arg(server.tcpPort())));
+    QVERIFY(live.contains(QStringLiteral("&ws=%1").arg(server.wsPort())));
     const QString uri = server.pairingQrDataUri();
     QVERIFY(uri.startsWith(QStringLiteral("data:image/png;base64,")));
     const QByteArray png =

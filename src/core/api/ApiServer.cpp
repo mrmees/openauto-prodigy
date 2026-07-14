@@ -323,7 +323,7 @@ QString ApiServer::pairingQrPayload(const QString& host, quint16 tcpPort,
         .arg(QString::fromLatin1(QUrl::toPercentEncoding(ssid)));
 }
 
-QString ApiServer::pairingQrDataUri() const {
+QString ApiServer::pairingQrPayloadForTest() const {
     if (!pairing_ || !pairing_->windowOpen())
         return QString();
     // Never advertise dead endpoints: a QR with tcp=0/ws=0 (server not
@@ -334,10 +334,13 @@ QString ApiServer::pairingQrDataUri() const {
     // The phone reaches the head unit over the Pi's own AP, where the Pi is
     // always 10.0.0.1 (same assumption as the legacy companion QR and the
     // 10.0.0.0/24 peer-admission subnet above).
-    return qrPngDataUri(pairingQrPayload(QStringLiteral("10.0.0.1"),
-                                         tcpPort(), wsPort(),
-                                         pairing_->currentPin(),
-                                         pairingSsid_));
+    return pairingQrPayload(QStringLiteral("10.0.0.1"), tcpPort(), wsPort(),
+                            pairing_->currentPin(), pairingSsid_);
+}
+
+QString ApiServer::pairingQrDataUri() const {
+    const QString payload = pairingQrPayloadForTest();
+    return payload.isEmpty() ? QString() : qrPngDataUri(payload);
 }
 
 int ApiServer::sessionCount() const {
