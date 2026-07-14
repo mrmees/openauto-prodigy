@@ -16,7 +16,7 @@ public:
     QString id() const override { return id_; }
     QString name() const override { return "Mock"; }
     QString version() const override { return "1.0"; }
-    int apiVersion() const override { return 1; }
+    int apiVersion() const override { return 2; }
 
     bool initialize(oap::IHostContext*) override {
         initialized_ = true;

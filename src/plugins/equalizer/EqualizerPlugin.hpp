@@ -22,7 +22,7 @@ public:
     QString id() const override { return QStringLiteral("org.openauto.equalizer"); }
     QString name() const override { return QStringLiteral("Equalizer"); }
     QString version() const override { return QStringLiteral("1.0.0"); }
-    int apiVersion() const override { return 1; }
+    int apiVersion() const override { return 2; }
 
     // IPlugin — Lifecycle
     bool initialize(IHostContext* context) override;
