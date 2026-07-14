@@ -4,6 +4,26 @@ Newest entries first.
 
 ---
 
+## 2026-07-13 (2) — Post-bench execution: time "regression" was a false positive (3 real bugs fixed + live-validated), QR pairing shipped, installers wire the codec, upstream draft ready
+
+**What changed:** All four post-bench work items executed same-day (commits `aad49fc..3a1e60e` + this entry).
+
+**(1) §7 time row — the headline: the bench diagnosis was WRONG, and the investigation found worse.** `timeReported` was never dangling — `main.cpp` has consumed it since `8e7878c` (2026-07-06, in the deployed lineage). The FAIL verdict came from a bad grep + `journalctl --user` on a SYSTEM unit + an observable that can't fire on an NTP-synced Pi. Systematic re-investigation surfaced **four real bugs**, all fixed: (a) both clock-step copies passed a UTC wall-clock string to `timedatectl set-time`, which parses LOCAL time — the clock would step ~5 h wrong on the Chicago Pi; (b) no polkit rule for `set-timezone` (v1.1 zone step was dead on arrival); (c) **timedated refuses `SetTime` entirely while NTP is enabled — even offline/unsynced, i.e. ALWAYS in the car** (gate re-run P1; refusal reproduced verbatim; the legacy path shared this flaw, so in-car phone clock sync never worked); (d) the logic lived in two untested copies. Now: tested `ClockSyncService` (injectable exec/clock/zone; " UTC" suffix; `set-ntp false/true` sandwich restored on failure; timedatectl exit semantics hardened), `main.cpp` wired to it, polkit rule grants all three timedate1 actions to `isInGroup("bluetooth")` (was hardcoded `matt`, set-time only). Legacy copy untouched — dies at B2. **Live-validated twice on the Pi**: induced −2 min drift → `ClockSync: clock adjusted by 119922 ms` + tz round-trip Denver/Chicago; then again with NTP ENABLED + udp/123 blocked (true in-car state) → `ClockSync: clock adjusted by 119865 ms`, timesyncd journal showing the sandwich. **B2 teardown planning unblocked.** Runbook §7 row carries the dated correction + both re-validations.
+
+**(2) QR pairing (PR gate item):** `ApiServer.pairingQrDataUri` — lazily rendered QR of `prodigy://pair?host=10.0.0.1&tcp=&ws=&pin=` while a window is open (hidden when either listener is down — no dead-endpoint QRs), shown beside the PIN in ApiSettings.qml; shared `core/QrPng` (4-module quiet zone per ISO 18004, raster-verified in test). Payload contract unit-tested. Companion-side scanner task: `personal/openautopro/companion-qr-pairing-prompt.md` — **end-to-end scan needs Matthew's companion update + bench**. New binary deployed to the Pi (journal healthy).
+
+**(3) Installers/packager wire the shipped codec:** both installers gain `install_msbc_codec_fix` (payload > repo-out > home deb search, first match wins; apt `-s` simulation guarded against `set -e`; install + hold; bluetooth-first activation restarts; idempotent path live-verified on the Pi). `package-prebuilt-release.sh` now REQUIRES the deb (`--msbc-deb <path>` explicit, `--allow-missing-msbc-deb` dev override); release test covers staged/refused/override. CVSD drop-in stays out of installers (repo fallback only).
+
+**(4) Upstream PipeWire issue:** draft with the controlled A/B at `personal/openautopro/pipewire-lc3-swb-issue-draft.md` — **Matthew approves BEFORE posting** (post-approval checklist inside).
+
+**Codex gate:** round 1 — 7 findings (1 P1, 6 P2), all confirmed, 0 dismissed: 6 fixed (`cb2a285`; one self-caught pre-report, `19bd32f`), 1 wishlisted as pre-existing systemic (custom-AP address unsupported by admission + both QRs — decision is Matthew's). Re-run — 5 findings (2 P1, 3 P2): 3 fixed (`3a1e60e`, incl. the NTP P1 above), 2 dismissed to wishlist with reasons (backward-guard identical-target semantics; blocking exec — both pre-wishlisted, legacy-identical, async is a one-spot seam change). One re-run max; dismissals stand.
+
+**Verification:** suite 123/123 (`ctest --output-on-failure`) + app target green in `~/builds/openauto-prodigy`; release-package test green; `bash -n` on all three shell scripts; live Pi evidence inline in the runbook §7 rows; Pi left clean (NTP re-synced, zone Chicago, service healthy, both D-Bus subscription lines).
+
+**Next 1-3 steps:** (1) Matthew: run the companion QR prompt in the companion repo, then bench the end-to-end scan — last PR gate; (2) Matthew: approve/edit the upstream draft, then post + link the issue in `tools/pipewire-msbc/README.md`; (3) B2 teardown planning (design §B2) — now unblocked; fold in the legacy ClockSync/QR copies and the custom-AP wishlist decision.
+
+---
+
 ## 2026-07-13 — HFP bench + companion v1 cutover: mSBC ships, LC3-SWB bug confirmed clean, time-sync regression found (B2 blocker)
 
 **What happened:** Full bench session per `docs/plans/2026-07-11-hfp-bench-runbook.md` (all RESULT rows filled inline there — that file is the detailed record). Service restart + journal check passed (both D-Bus subscription lines, zero failures; BtAudio caught live A2DP/AVRCP on hot connect).
