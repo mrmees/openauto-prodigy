@@ -22,6 +22,8 @@ Newest entries first.
 
 **Next 1-3 steps:** (1) Matthew: run the companion QR prompt in the companion repo, then bench the end-to-end scan — last PR gate; (2) Matthew: approve/edit the upstream draft, then post + link the issue in `tools/pipewire-msbc/README.md`; (3) B2 teardown planning (design §B2) — now unblocked; fold in the legacy ClockSync/QR copies and the custom-AP wishlist decision.
 
+**ADDENDUM (same day, contract rev 2 — companion integration feedback):** two head-unit contract gaps fixed (`f01f338` + `d947693`, gated: 1 P3 confirmed+fixed, 0 P1/P2): (a) QR gains required additive `ssid` field, percent-encoded, from `connection.wifi_ap.ssid` (Android can redact the AA-owned network's SSID; companion persists it for reconnect) — bench Pi emits `...&ssid=Prodigy_e57d`; (b) closed/expired pairing window now answers the TYPED `Error{ERROR_CODE_PAIRING_WINDOW_CLOSED(5), "Pairing window closed"}` echoing the ClientHello request_id, then clean close (was untyped AuthReject; other auth failures keep AuthReject). Wire frame pinned byte-exact in `test_api_session` + maintainer doc (`companion-qr-pairing-prompt.md`, exact bytes verified against a reference encoder). Companion side reported DONE same day — end-to-end bench scan is the remaining PR-gate step. Deployed to the Pi; suite 123/123.
+
 ---
 
 ## 2026-07-13 — HFP bench + companion v1 cutover: mSBC ships, LC3-SWB bug confirmed clean, time-sync regression found (B2 blocker)
