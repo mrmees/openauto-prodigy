@@ -156,6 +156,12 @@ Coverage/labeling quirks below were confirmed against the current tree. None of 
 were fixed mid-audit (wishlist-then-promote); a web EQ editor or coverage fix is a
 brainstorm → plan cycle on Matthew's go-ahead.
 
+**Promotion decisions (Matthew, 2026-07-14):** items 2–4 below PROMOTED to the
+roadmap (design: `docs/plans/2026-07-14-bt-a2dp-eq-design.md` — BT A2DP tap +
+persistence + relabel riders); item 1 (web EQ editor) PARKED — the on-HU UI
+already covers advanced setup and profile creation, revisit if remote tuning
+demand materializes.
+
 - **Web-config advanced EQ editor (the parity gap)** — the original outcome statement
   promises "web settings backend for advanced EQ setup and profile creation"; nothing
   exists at any layer: no `web-config` routes/templates, no `IpcServer` EQ commands,
