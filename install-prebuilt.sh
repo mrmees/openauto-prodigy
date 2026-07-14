@@ -209,9 +209,6 @@ setup_hardware() {
         WIFI_PASS=$(head -c 12 /dev/urandom | base64 | tr -dc 'a-zA-Z0-9' | head -c 16)
         info "Generated random WiFi password (sent to phone automatically over BT)"
 
-        read -p "AP static IP [10.0.0.1]: " AP_IP
-        AP_IP=${AP_IP:-10.0.0.1}
-
         read -p "Country code (for 5GHz) [US]: " COUNTRY_CODE
         COUNTRY_CODE=${COUNTRY_CODE:-US}
     fi
@@ -298,24 +295,27 @@ display:
 
 touch:
   device: ""
-
-companion:
-  enabled: true
-  port: 9876
 YAML
 
     if [[ -f "$INSTALL_DIR/config/themes/default/theme.yaml" ]]; then
         cp "$INSTALL_DIR/config/themes/default/theme.yaml" "$CONFIG_DIR/themes/default/"
     fi
 
-    if [[ -f "$INSTALL_DIR/config/companion-polkit.rules" ]]; then
-        sudo cp "$INSTALL_DIR/config/companion-polkit.rules" /etc/polkit-1/rules.d/50-openauto-time.rules
-        ok "Companion polkit rule installed"
+    if [[ -f "$INSTALL_DIR/config/clock-sync-polkit.rules" ]]; then
+        sudo cp "$INSTALL_DIR/config/clock-sync-polkit.rules" /etc/polkit-1/rules.d/50-openauto-time.rules
+        ok "Clock-sync polkit rule installed"
     fi
 
     if [[ -f "$INSTALL_DIR/config/bluez-agent-polkit.rules" ]]; then
         sudo cp "$INSTALL_DIR/config/bluez-agent-polkit.rules" /etc/polkit-1/rules.d/50-openauto-bluez.rules
         ok "BlueZ agent polkit rule installed"
+    fi
+
+    # udisks2 polkit rule (allows the service user to mount/unmount and
+    # power off USB media without a password prompt)
+    if [[ -f "$INSTALL_DIR/config/udisks-polkit.rules" ]]; then
+        sudo cp "$INSTALL_DIR/config/udisks-polkit.rules" /etc/polkit-1/rules.d/50-openauto-udisks.rules
+        ok "udisks2 polkit rule installed"
     fi
 
     sudo usermod -aG bluetooth "$USER"
