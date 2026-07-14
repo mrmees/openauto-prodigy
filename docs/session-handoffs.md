@@ -4,7 +4,7 @@ Newest entries first.
 
 ---
 
-## 2026-07-14 — Bench liveness check RESULT: expiry PASS (31.99 s, route torn down), self-heal FAIL companion-side (stale Network handle; app restart recovers)
+## 2026-07-14 — Bench liveness check RESULT: expiry PASS (31.99 s, route torn down); self-heal FAIL companion-side → companion FIXED + re-run PASS same evening
 
 **What changed:** ran the B2 liveness live check remotely — no code changed. Setup: Pixel 8 on canonical adb (`E:\Android\Sdk\platform-tools\adb.exe`, serial 39260DLJH000LX), companion connected + reporting with an active SOCKS route (`socks5://10.0.0.21:1080`), AA projecting. Toggled airplane mode via `adb shell cmd connectivity airplane-mode enable` at 17:41:48 CDT — true silent death (no FIN; phone BT stayed up per Android's connected-devices airplane exemption, so gearhead kept retrying wireless-AA over RFCOMM every ~5 s throughout).
 
@@ -14,7 +14,9 @@ Newest entries first.
 
 **Verification:** journal lines + `companion_status` transitions quoted above (queried via `nc -U /tmp/openauto-prodigy.sock`); bench left healthy (companion reporting, AA projecting, route active).
 
-**Next 1-3 steps:** (1) companion-repo fix session from the prompt file, then re-run this exact adb procedure end-to-end (expect unattended self-heal ≤ ~40 s); (2) web EQ editor promote-or-park (see EQ audit entry below); (3) milestone tag on Matthew's call.
+**RE-RUN after companion fix — self-heal now PASSES (same evening).** Matthew shipped the companion-side fix (APK `lastUpdateTime` 17:57:29) and the full cycle was re-run unattended: airplane ON 18:19:24 → `18:19:57.830 API: reporting session expired after 34615 ms without an accepted report` (34.6 s, within spec) → route disabled 88 ms later → airplane OFF 18:20:10 → AA transport back 18:20:24 → `18:20:57 route state update: "set_proxy_route" state= "active"` — companion reconnected, re-sent ConnectivityReport, SOCKS route re-applied **~33 s after WiFi rejoin with zero intervention**; `companion_status` fully repopulated (battery/GPS fresh). **Both legs of the B2 liveness contract are now bench-validated end-to-end.** Fix prompt file marked resolved.
+
+**Next 1-3 steps:** (1) web EQ editor promote-or-park (see EQ audit entry below); (2) milestone tag on Matthew's call.
 
 ---
 
