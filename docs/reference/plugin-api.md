@@ -15,7 +15,7 @@ All plugins must implement `src/core/plugin/IPlugin.hpp`.
 | `id()` | `QString` | Unique reverse-DNS identifier (e.g. `org.openauto.android-auto`) |
 | `name()` | `QString` | Human-readable display name |
 | `version()` | `QString` | SemVer version string |
-| `apiVersion()` | `int` | Plugin API version (currently `1`) |
+| `apiVersion()` | `int` | Plugin API version (currently `2`). Bumped 1→2 in the B2 teardown (2026-07-14): the `IHostContext` vtable changed when `companionListenerService()` was removed. The host accepts a plugin only if its `apiVersion()` exactly matches — a stale v1 `.so` is rejected, not mis-dispatched. |
 
 ### Lifecycle
 
