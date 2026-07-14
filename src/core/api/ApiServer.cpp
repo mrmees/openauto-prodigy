@@ -1,5 +1,7 @@
 #include "core/api/ApiServer.hpp"
 
+#include "core/QrPng.hpp"
+
 #include <QTcpServer>
 #include <QTcpSocket>
 #include <QWebSocketServer>
@@ -307,6 +309,22 @@ bool ApiServer::pairingActive() const {
 
 QString ApiServer::pairingPin() const {
     return pairing_ ? pairing_->currentPin() : QString();
+}
+
+QString ApiServer::pairingQrPayload(const QString& host, quint16 tcpPort,
+                                    quint16 wsPort, const QString& pin) {
+    return QStringLiteral("prodigy://pair?host=%1&tcp=%2&ws=%3&pin=%4")
+        .arg(host).arg(tcpPort).arg(wsPort).arg(pin);
+}
+
+QString ApiServer::pairingQrDataUri() const {
+    if (!pairing_ || !pairing_->windowOpen())
+        return QString();
+    // The phone reaches the head unit over the Pi's own AP, where the Pi is
+    // always 10.0.0.1 (same assumption as the legacy companion QR).
+    return qrPngDataUri(pairingQrPayload(QStringLiteral("10.0.0.1"),
+                                         tcpPort(), wsPort(),
+                                         pairing_->currentPin()));
 }
 
 int ApiServer::sessionCount() const {

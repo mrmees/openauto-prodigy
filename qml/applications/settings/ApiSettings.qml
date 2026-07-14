@@ -87,6 +87,20 @@ Flickable {
                 }
             }
         }
+
+        // Scannable pairing QR (prodigy://pair?...) — companion app scans
+        // this instead of typing the PIN. Shown only while a window is open.
+        Image {
+            visible: root.hasService && ApiService.pairingActive
+                     && ApiService.pairingQrDataUri !== ""
+            Layout.alignment: Qt.AlignHCenter
+            Layout.topMargin: UiMetrics.gap
+            Layout.preferredWidth: Math.round(200 * UiMetrics.scale)
+            Layout.preferredHeight: Math.round(200 * UiMetrics.scale)
+            source: root.hasService ? ApiService.pairingQrDataUri : ""
+            fillMode: Image.PreserveAspectFit
+            smooth: false
+        }
     }
 
     SettingsScrollHints {

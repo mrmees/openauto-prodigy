@@ -1,6 +1,7 @@
 # Static library of all app code (shared between main executable and tests)
 add_library(openauto-core STATIC
     core/Logging.cpp
+    core/QrPng.cpp
     core/YamlConfig.cpp
     core/WidevineCdm.cpp
     core/InputDeviceScanner.cpp

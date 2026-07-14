@@ -168,6 +168,9 @@ private slots:
 
     // Task 15 addendum: peer-admission policy edges (static seam, no sockets).
     void testPeerAdmissionPolicy();
+
+    // QR pairing surface: payload contract + data-URI property lifecycle.
+    void testPairingQrPayloadAndProperty();
 };
 
 void TestApiLoopback::init() {
@@ -692,6 +695,38 @@ void TestApiLoopback::testPeerAdmissionPolicy() {
     QVERIFY(!ApiServer::inApSubnet(globalV6));
     QVERIFY(!ApiServer::peerAllowed(globalV6, false));
     QVERIFY(ApiServer::peerAllowed(globalV6, true));
+}
+
+// QR pairing: the payload string is a stable contract with the companion
+// app's scanner (prodigy://pair?host=&tcp=&ws=&pin=), and the data-URI
+// property tracks the pairing window's lifecycle.
+void TestApiLoopback::testPairingQrPayloadAndProperty() {
+    QCOMPARE(ApiServer::pairingQrPayload(QStringLiteral("10.0.0.1"), 9810, 9811,
+                                         QStringLiteral("123456")),
+             QStringLiteral("prodigy://pair?host=10.0.0.1&tcp=9810&ws=9811&pin=123456"));
+
+    Fixture f;
+    f.config.setValue("api.tcp_port", 0);
+    f.config.setValue("api.ws_port", 0);
+
+    ApiServer server(f.refs());
+    server.setStorePathForTest(kStorePath);
+    QVERIFY(server.start());
+
+    QCOMPARE(server.pairingQrDataUri(), QString());   // window closed: no QR
+
+    server.startPairing();
+    QVERIFY(server.pairingActive());
+    const QString uri = server.pairingQrDataUri();
+    QVERIFY(uri.startsWith(QStringLiteral("data:image/png;base64,")));
+    const QByteArray png =
+        QByteArray::fromBase64(uri.section(QLatin1Char(','), 1).toLatin1());
+    QVERIFY(png.startsWith(QByteArray("\x89PNG", 4)));
+
+    server.cancelPairing();
+    QCOMPARE(server.pairingQrDataUri(), QString());   // cancel clears it
+
+    server.stop();
 }
 
 QTEST_MAIN(TestApiLoopback)

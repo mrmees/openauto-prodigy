@@ -72,6 +72,7 @@ class ApiServer : public QObject {
     Q_OBJECT
     Q_PROPERTY(bool pairingActive READ pairingActive NOTIFY pairingChanged)
     Q_PROPERTY(QString pairingPin READ pairingPin NOTIFY pairingChanged)
+    Q_PROPERTY(QString pairingQrDataUri READ pairingQrDataUri NOTIFY pairingChanged)
 public:
     explicit ApiServer(ApiServiceRefs refs, QObject* parent = nullptr);
     ~ApiServer() override;
@@ -87,7 +88,16 @@ public:
     Q_INVOKABLE void cancelPairing();  // also registered as action api.pairing.cancel
     bool pairingActive() const;
     QString pairingPin() const;
+    // QR for the open pairing window ("" when closed). Rendered lazily per
+    // read so it can never go stale against the window state, whatever order
+    // pairingChanged consumers fire in.
+    QString pairingQrDataUri() const;
     int sessionCount() const;
+
+    // Companion-scanner contract (kept stable): prodigy://pair?host=&tcp=&ws=&pin=
+    // Pure static seam, unit-tested like inApSubnet/peerAllowed below.
+    static QString pairingQrPayload(const QString& host, quint16 tcpPort,
+                                    quint16 wsPort, const QString& pin);
 
     // Test seam: rebinds the paired-client store to a scratch path BEFORE
     // start(), so tests never touch ~/.openauto/api_clients.yaml.
