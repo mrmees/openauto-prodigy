@@ -66,7 +66,17 @@ void ClockSyncService::onTimeReported(qint64 phoneTimeMs)
     const QString timeStr =
         newTime.toString(QStringLiteral("yyyy-MM-dd hh:mm:ss")) + QStringLiteral(" UTC");
 
-    if (exec_({QStringLiteral("set-time"), timeStr}) == 0) {
+    // timedated REFUSES SetTime while NTP is enabled — even offline and
+    // unsynchronized, the normal state of an RTC-less unit in the car. Step
+    // inside a set-ntp sandwich and re-enable unconditionally afterwards
+    // (success or not): NTP-on is the appliance's steady state, and real NTP
+    // should win whenever the car actually has internet (e.g. over the
+    // companion's SOCKS5 route).
+    exec_({QStringLiteral("set-ntp"), QStringLiteral("false")});
+    const int rc = exec_({QStringLiteral("set-time"), timeStr});
+    exec_({QStringLiteral("set-ntp"), QStringLiteral("true")});
+
+    if (rc == 0) {
         qCInfo(lcCore) << "ClockSync: clock adjusted by" << deltaMs << "ms"
                        << "(" << piTimeMs << "->" << phoneTimeMs << ")";
     }

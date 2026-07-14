@@ -337,12 +337,13 @@ YAML
 install_msbc_codec_fix() {
     # Release payloads carry the deb under payload/pipewire-msbc (staged by
     # tools/package-prebuilt-release.sh); the other paths cover a repo build
-    # output or a hand-staged copy. Last match wins.
+    # output or a hand-staged copy. FIRST match wins — the shipped payload
+    # must not be shadowed by a stale hand-staged deb in $HOME.
     local deb="" d
     for d in "$PAYLOAD_DIR/pipewire-msbc"/libspa-0.2-bluetooth_*+prodigy*_arm64.deb \
              "$INSTALL_DIR/tools/pipewire-msbc/out"/libspa-0.2-bluetooth_*+prodigy*_arm64.deb \
              "$HOME/pipewire-msbc"/libspa-0.2-bluetooth_*+prodigy*_arm64.deb; do
-        [[ -f "$d" ]] && deb="$d"
+        if [[ -f "$d" ]]; then deb="$d"; break; fi
     done
 
     if dpkg -s libspa-0.2-bluetooth 2>/dev/null | grep -q '+prodigy'; then

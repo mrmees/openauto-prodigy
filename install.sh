@@ -1473,10 +1473,12 @@ YAML
 # the hold survives 'apt upgrade'; a pipewire base upgrade breaks the
 # held package's dependency LOUDLY, which is the cue to rebuild).
 install_msbc_codec_fix() {
+    # FIRST match wins — the repo build output must not be shadowed by a
+    # stale hand-staged deb in $HOME.
     local deb="" d
     for d in "$INSTALL_DIR/tools/pipewire-msbc/out"/libspa-0.2-bluetooth_*+prodigy*_arm64.deb \
              "$HOME/pipewire-msbc"/libspa-0.2-bluetooth_*+prodigy*_arm64.deb; do
-        [[ -f "$d" ]] && deb="$d"
+        if [[ -f "$d" ]]; then deb="$d"; break; fi
     done
 
     if dpkg -s libspa-0.2-bluetooth 2>/dev/null | grep -q '+prodigy'; then

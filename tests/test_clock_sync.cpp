@@ -26,6 +26,13 @@ struct ExecRecorder {
             return nextExitCode;
         };
     }
+
+    int setTimeCalls() const {
+        int n = 0;
+        for (const auto& c : calls)
+            if (c.value(0) == QLatin1String("set-time")) ++n;
+        return n;
+    }
 };
 
 QString utcString(qint64 ms) {
@@ -53,7 +60,12 @@ private slots:
         QCOMPARE(exec.calls.size(), 0);
     }
 
-    void forwardDriftStepsWithUtcSuffix() {
+    // timedated REFUSES SetTime while NTP is enabled (even offline and
+    // unsynchronized — the normal state of an RTC-less unit in the car), so
+    // every step is sandwiched: set-ntp false, set-time, set-ntp true. NTP
+    // is re-enabled unconditionally: the appliance's steady state is NTP-on,
+    // and real NTP should win whenever the car actually has internet.
+    void forwardDriftStepsWithUtcSuffixInsideNtpSandwich() {
         oap::ClockSyncService sync;
         ExecRecorder exec;
         sync.setExecForTest(exec.fn());
@@ -62,9 +74,29 @@ private slots:
         const qint64 phone = kNow + 35000;
         sync.onTimeReported(phone);
 
-        QCOMPARE(exec.calls.size(), 1);
+        QCOMPARE(exec.calls.size(), 3);
         QCOMPARE(exec.calls[0],
+                 (QStringList{QStringLiteral("set-ntp"), QStringLiteral("false")}));
+        QCOMPARE(exec.calls[1],
                  (QStringList{QStringLiteral("set-time"), utcString(phone)}));
+        QCOMPARE(exec.calls[2],
+                 (QStringList{QStringLiteral("set-ntp"), QStringLiteral("true")}));
+    }
+
+    void failedSetTimeStillRestoresNtp() {
+        oap::ClockSyncService sync;
+        ExecRecorder exec;
+        sync.setExecForTest([&exec](const QStringList& args) {
+            exec.calls.append(args);
+            return args.value(0) == QLatin1String("set-time") ? 1 : 0;
+        });
+        sync.setClockForTest([] { return kNow; });
+
+        sync.onTimeReported(kNow + 35000);
+
+        QCOMPARE(exec.calls.size(), 3);
+        QCOMPARE(exec.calls[2],
+                 (QStringList{QStringLiteral("set-ntp"), QStringLiteral("true")}));
     }
 
     void backwardWithinFiveMinutesStepsImmediately() {
@@ -76,8 +108,8 @@ private slots:
         const qint64 phone = kNow - 60000;   // -60 s: over trigger, under 5 min
         sync.onTimeReported(phone);
 
-        QCOMPARE(exec.calls.size(), 1);
-        QCOMPARE(exec.calls[0],
+        QCOMPARE(exec.calls.size(), 3);      // set-ntp false / set-time / set-ntp true
+        QCOMPARE(exec.calls[1],
                  (QStringList{QStringLiteral("set-time"), utcString(phone)}));
     }
 
@@ -93,8 +125,8 @@ private slots:
         sync.onTimeReported(phone);
         QCOMPARE(exec.calls.size(), 0);
         sync.onTimeReported(phone);           // third agreement steps
-        QCOMPARE(exec.calls.size(), 1);
-        QCOMPARE(exec.calls[0],
+        QCOMPARE(exec.calls.size(), 3);
+        QCOMPARE(exec.calls[1],
                  (QStringList{QStringLiteral("set-time"), utcString(phone)}));
     }
 
@@ -122,13 +154,13 @@ private slots:
         sync.onTimeReported(back);
         sync.onTimeReported(back);            // two agreements banked
         sync.onTimeReported(kNow + 35000);    // forward step resets the bank
-        QCOMPARE(exec.calls.size(), 1);
+        QCOMPARE(exec.setTimeCalls(), 1);
 
         sync.onTimeReported(back);
         sync.onTimeReported(back);            // only two fresh agreements
-        QCOMPARE(exec.calls.size(), 1);
+        QCOMPARE(exec.setTimeCalls(), 1);
         sync.onTimeReported(back);            // third steps
-        QCOMPARE(exec.calls.size(), 2);
+        QCOMPARE(exec.setTimeCalls(), 2);
     }
 
     void execFailureIsToleratedAndRetriedNextReport() {
@@ -139,11 +171,11 @@ private slots:
         sync.setClockForTest([] { return kNow; });
 
         sync.onTimeReported(kNow + 35000);
-        QCOMPARE(exec.calls.size(), 1);       // attempted, failed, no crash
+        QCOMPARE(exec.setTimeCalls(), 1);     // attempted, failed, no crash
 
         exec.nextExitCode = 0;
         sync.onTimeReported(kNow + 35000);    // next report tries again
-        QCOMPARE(exec.calls.size(), 2);
+        QCOMPARE(exec.setTimeCalls(), 2);
     }
 
     void timezoneMatchingSystemZoneDoesNotStep() {

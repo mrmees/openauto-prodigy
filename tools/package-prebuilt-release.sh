@@ -17,6 +17,8 @@ BUILD_DIR="$REPO_ROOT/build-pi"
 OUTPUT_DIR="$REPO_ROOT/dist"
 VERSION_TAG="$(date -u +%Y%m%d-%H%M%S)"
 TARGET_NAME="pi4-aarch64"
+MSBC_DEB_ARG=""
+ALLOW_MISSING_MSBC_DEB=false
 
 usage() {
     cat <<'USAGE'
@@ -31,6 +33,11 @@ Options:
                         (default: UTC timestamp YYYYMMDD-HHMMSS)
   --target <name>       Target suffix used in asset naming
                         (default: pi4-aarch64)
+  --msbc-deb <path>     Patched libspa-0.2-bluetooth deb to ship
+                        (default: the single deb in tools/pipewire-msbc/out)
+  --allow-missing-msbc-deb
+                        Development override: package without the HFP mSBC
+                        codec fix (installs then risk a silent far-end mic)
   --help                Show this help text
 USAGE
 }
@@ -57,6 +64,14 @@ while [[ $# -gt 0 ]]; do
         --target)
             TARGET_NAME="$2"
             shift 2
+            ;;
+        --msbc-deb)
+            MSBC_DEB_ARG="$2"
+            shift 2
+            ;;
+        --allow-missing-msbc-deb)
+            ALLOW_MISSING_MSBC_DEB=true
+            shift
             ;;
         --help|-h)
             usage
@@ -123,19 +138,31 @@ cp -a "$REPO_ROOT/web-config" "$STAGE_DIR/payload/"
 cp "$RESTART_SCRIPT" "$STAGE_DIR/payload/restart.sh"
 chmod +x "$STAGE_DIR/payload/restart.sh"
 
-# HFP mSBC codec fix: ship the patched libspa-0.2-bluetooth deb when one has
-# been built (tools/pipewire-msbc/build.sh — version-locked to the target's
-# pipewire base, so it is NOT in git). Without it a fresh prebuilt install
-# warns and calls risk LC3-SWB's silent uplink until the deb is provided.
-MSBC_DEB="$(ls "$REPO_ROOT/tools/pipewire-msbc/out"/libspa-0.2-bluetooth_*+prodigy*_arm64.deb 2>/dev/null | head -1 || true)"
+# HFP mSBC codec fix: releases MUST ship the patched libspa-0.2-bluetooth
+# deb (tools/pipewire-msbc/build.sh — version-locked to the target's
+# pipewire base, so it is NOT in git). A release without it installs with
+# LC3-SWB's silent far-end mic, so packaging refuses unless the
+# development-only --allow-missing-msbc-deb override is given.
+if [[ -n "$MSBC_DEB_ARG" ]]; then
+    [[ -f "$MSBC_DEB_ARG" ]] || fail "--msbc-deb not found: $MSBC_DEB_ARG"
+    MSBC_DEB="$MSBC_DEB_ARG"
+else
+    mapfile -t MSBC_CANDIDATES < <(ls "$REPO_ROOT/tools/pipewire-msbc/out"/libspa-0.2-bluetooth_*+prodigy*_arm64.deb 2>/dev/null || true)
+    if [[ ${#MSBC_CANDIDATES[@]} -gt 1 ]]; then
+        fail "multiple debs in tools/pipewire-msbc/out/ — pick one with --msbc-deb"
+    fi
+    MSBC_DEB="${MSBC_CANDIDATES[0]:-}"
+fi
 if [[ -n "$MSBC_DEB" ]]; then
     mkdir -p "$STAGE_DIR/payload/pipewire-msbc"
     cp "$MSBC_DEB" "$STAGE_DIR/payload/pipewire-msbc/"
     echo "[OK] staged HFP mSBC codec fix: $(basename "$MSBC_DEB")"
+elif [[ "$ALLOW_MISSING_MSBC_DEB" == "true" ]]; then
+    echo "[WARN] packaging WITHOUT the HFP mSBC codec fix (--allow-missing-msbc-deb):" >&2
+    echo "[WARN] installs from this release risk LC3-SWB's silent far-end mic" >&2
+    echo "[WARN] (see tools/pipewire-msbc/README.md)" >&2
 else
-    echo "[WARN] no patched libspa-0.2-bluetooth deb in tools/pipewire-msbc/out/ —" >&2
-    echo "[WARN] this release will install WITHOUT the HFP mSBC codec fix" >&2
-    echo "[WARN] (LC3-SWB uplink is silent; see tools/pipewire-msbc/README.md)" >&2
+    fail "no patched libspa-0.2-bluetooth deb (tools/pipewire-msbc/out/ or --msbc-deb); build it with tools/pipewire-msbc/build.sh or pass --allow-missing-msbc-deb for a dev build"
 fi
 
 # Keep package size focused on runtime content only
