@@ -725,6 +725,7 @@ void TestApiLoopback::testPairingQrPayloadAndProperty() {
     ApiServer server(f.refs());
     server.setStorePathForTest(kStorePath);
     QVERIFY(server.start());
+    QVERIFY(server.isRunning());
 
     QCOMPARE(server.pairingQrDataUri(), QString());   // window closed: no QR
 
@@ -770,14 +771,17 @@ void TestApiLoopback::testPairingQrPayloadAndProperty() {
 
     server.stop();
 
-    // A pairing window without live listeners must not advertise dead
-    // endpoints (tcp=0&ws=0): no QR until both transports are up. The PIN
-    // path stays available for manual pairing.
+    // A server that is not running must not open pairing windows at all —
+    // there is no listener to pair through, so an "active" window with a
+    // PIN would be zombie UI (2026-07-14 settings-merge gate finding).
     ApiServer unstarted(f.refs());
     unstarted.setStorePathForTest(kStorePath);
+    QVERIFY(!unstarted.isRunning());
     unstarted.startPairing();
-    QVERIFY(unstarted.pairingActive());
+    QVERIFY(!unstarted.pairingActive());
     QCOMPARE(unstarted.pairingQrDataUri(), QString());
+
+    QVERIFY(!server.isRunning());   // stop() above cleared running too
 }
 
 QTEST_MAIN(TestApiLoopback)

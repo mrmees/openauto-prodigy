@@ -4,6 +4,20 @@ Newest entries first.
 
 ---
 
+## 2026-07-14 — Settings merge: Companion + External API become one Companion page
+
+**What changed:** Matthew-approved design (archived: `docs/archive/plans/2026-07-14-companion-settings-merge-design.md`) executed in `2a35275` + gate fixes. One menu entry ("Companion", phone icon, pageId `api`); `ApiSettings.qml` is the merged page — Remote Client Pairing (PIN + QR), Phone Status (five live rows ported verbatim, `CompanionState`/`SystemService` bound), Advanced (`api.enabled` with a "powers companion, web widgets, and remote clients" caption; `api.expose_lan`). `CompanionSettings.qml` DELETED with its legacy 9876 pairing controls (companion.enabled toggle, Generate Pairing Code, legacy QR dialog — pre-approved B2 content that was driving a DISABLED listener). `companion.*` config keys work UI-less until B2; `CompanionService` context property now has zero QML consumers (comment updated; B2 sweeps it). `settings-tree.md` + `state-matrix.md` updated same-commit.
+
+**Why:** two overlapping settings sections for one feature area, one of them half-dead — a user could "pair" the retired legacy protocol against a listener that isn't running.
+
+**Codex gate (2 P2 + 1 P3, all confirmed, 0 dismissed):** (1) pairing UI was enabled even when the API server wasn't running (main.cpp exposes ApiService unconditionally) — `ApiServer` gains a `running` Q_PROPERTY (+`runningChanged` on start/stop transitions), `startPairing()` refuses on a non-running server (guards the action path too), QML gates the section with an "API not running — enable it under Advanced" hint; `testPairingActionRegistered` updated to the new contract (registration pre-start ✓, window pre-start ✗) and the loopback QR test asserts the unstarted no-op. (2) this handoff entry (was planned post-gate; gate correctly wants it pre-push). (3) merge-contract regression test added (`testCompanionApiMergeContract`: single Companion→api menu entry, no legacy pageId/page/controls, all three sections + config paths present).
+
+**Verification:** suite 123/123 (`ctest --output-on-failure`) + app target green in `~/builds/openauto-prodigy`; `scripts/check-doc-links.py` OK; cross-built + deployed to the Pi (journal healthy). On-device eyeball of the merged page = Matthew, at the same bench visit as the QR scan.
+
+**Next 1-3 steps:** unchanged from 2026-07-13 (2): (1) companion QR end-to-end scan at the bench — last PR gate; (2) upstream PipeWire draft approval; (3) B2 teardown planning.
+
+---
+
 ## 2026-07-13 (2) — Post-bench execution: time "regression" was a false positive (3 real bugs fixed + live-validated), QR pairing shipped, installers wire the codec, upstream draft ready
 
 **What changed:** All four post-bench work items executed same-day (commits `aad49fc..3a1e60e` + this entry).

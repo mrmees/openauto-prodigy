@@ -14,9 +14,13 @@ Flickable {
     boundsBehavior: Flickable.StopAtBounds
 
     // Guards: ApiService may not exist if the external API is disabled or
-    // failed; CompanionState is set alongside it in main.cpp.
+    // failed; CompanionState is set alongside it in main.cpp. apiRunning
+    // additionally requires a live listener — main.cpp exposes ApiService
+    // even when start() failed, and pairing against a dead server is the
+    // zombie UI this page's merge removed.
     readonly property bool hasService: typeof ApiService !== "undefined"
     readonly property bool hasState: typeof CompanionState !== "undefined"
+    readonly property bool apiRunning: hasService && ApiService.running
 
     ColumnLayout {
         id: content
@@ -38,12 +42,13 @@ Flickable {
                 Text {
                     text: {
                         if (!root.hasService) return "API service unavailable"
+                        if (!root.apiRunning) return "API not running — enable it under Advanced"
                         return ApiService.pairingActive
                                ? "PIN: " + ApiService.pairingPin
                                : "No pairing in progress"
                     }
                     font.pixelSize: UiMetrics.fontBody
-                    color: root.hasService && ApiService.pairingActive
+                    color: root.apiRunning && ApiService.pairingActive
                            ? ThemeService.primary : ThemeService.onSurface
                     Layout.fillWidth: true
                 }
@@ -57,12 +62,12 @@ Flickable {
                            : ThemeService.surfaceContainerLow
                     border.color: ThemeService.onSurfaceVariant
                     border.width: 1
-                    opacity: root.hasService ? 1.0 : 0.4
+                    opacity: root.apiRunning ? 1.0 : 0.4
 
                     Text {
                         id: pairLabel
                         anchors.centerIn: parent
-                        text: root.hasService && ApiService.pairingActive
+                        text: root.apiRunning && ApiService.pairingActive
                               ? "Cancel Pairing" : "Start Pairing"
                         font.pixelSize: UiMetrics.fontSmall
                         color: ThemeService.onSurface
@@ -71,7 +76,7 @@ Flickable {
                     SettingsHoldArea {
                         id: pairArea
                         anchors.fill: parent
-                        enabled: root.hasService
+                        enabled: root.apiRunning
                         onShortClicked: ApiService.pairingActive
                                         ? ApiService.cancelPairing()
                                         : ApiService.startPairing()

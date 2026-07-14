@@ -70,6 +70,7 @@ struct ApiServiceRefs {
 
 class ApiServer : public QObject {
     Q_OBJECT
+    Q_PROPERTY(bool running READ isRunning NOTIFY runningChanged)
     Q_PROPERTY(bool pairingActive READ pairingActive NOTIFY pairingChanged)
     Q_PROPERTY(QString pairingPin READ pairingPin NOTIFY pairingChanged)
     Q_PROPERTY(QString pairingQrDataUri READ pairingQrDataUri NOTIFY pairingChanged)
@@ -79,6 +80,10 @@ public:
 
     bool start();     // reads api.* config; false if disabled or both listens fail
     void stop();      // idempotent; destroys publishers before other teardown
+    // True while at least one listener is bound. main.cpp exposes ApiService
+    // unconditionally, so QML gates the pairing UI on this — a pairing window
+    // on a non-running server is zombie UI (no listener to pair through).
+    bool isRunning() const { return started_; }
 
     quint16 tcpPort() const;   // actual bound port (config 0 -> ephemeral)
     quint16 wsPort() const;
@@ -121,6 +126,7 @@ public:
 
 signals:
     void pairingChanged();
+    void runningChanged();
 
 private slots:
     void onNewTcpConnection();

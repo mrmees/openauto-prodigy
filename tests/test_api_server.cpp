@@ -246,13 +246,22 @@ void TestApiServer::testDisabledDoesNotListen() {
 
 void TestApiServer::testPairingActionRegistered() {
     Fixture f;
+    f.config.setValue("api.tcp_port", 0);
+    f.config.setValue("api.ws_port", 0);
     ApiServer server(f.refs());
     server.setStorePathForTest("/tmp/oap_test_api_server_clients.yaml");
 
+    // Actions register in the ctor (dispatch works pre-start)...
     QVERIFY(f.actions.registeredActions().contains(QStringLiteral("api.pairing.start")));
     QVERIFY(f.actions.registeredActions().contains(QStringLiteral("api.pairing.cancel")));
 
+    // ...but a window only OPENS on a running server — no listener means a
+    // PIN with nothing to pair through (2026-07-14 settings-merge finding).
     QVERIFY(!server.pairingActive());
+    QVERIFY(f.actions.dispatch(QStringLiteral("api.pairing.start")));
+    QVERIFY(!server.pairingActive());
+
+    QVERIFY(server.start());
     QVERIFY(f.actions.dispatch(QStringLiteral("api.pairing.start")));
     QVERIFY(server.pairingActive());
 
@@ -262,6 +271,7 @@ void TestApiServer::testPairingActionRegistered() {
 
     QVERIFY(f.actions.dispatch(QStringLiteral("api.pairing.cancel")));
     QVERIFY(!server.pairingActive());
+    server.stop();
 }
 
 void TestApiServer::testServerIdMintedAndStable() {

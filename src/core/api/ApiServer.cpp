@@ -148,11 +148,14 @@ bool ApiServer::start() {
     const bool wsOk = wsServer_->listen(QHostAddress::Any, wsPort);
 
     started_ = tcpOk || wsOk;
+    if (started_) emit runningChanged();
     return started_;
 }
 
 void ApiServer::stop() {
+    const bool wasRunning = started_;
     started_ = false;
+    if (wasRunning) emit runningChanged();
 
     // 1. Destroy publishers FIRST. Each owns a 0-ms coalesce timer whose
     //    deferred buildEnvelope() reads its provider on the next event-loop
@@ -300,7 +303,11 @@ void ApiServer::wirePublisher(TopicPublisher* pub) {
 // ---- Pairing / accessors ---------------------------------------------------
 
 void ApiServer::startPairing() {
-    if (pairing_) pairing_->startWindow(pairingTimeoutS_);
+    // No listener, no window: a PIN with nothing to pair through is zombie
+    // UI (also reachable via the api.pairing.start action, so guard here,
+    // not just in QML).
+    if (!started_ || !pairing_) return;
+    pairing_->startWindow(pairingTimeoutS_);
 }
 
 void ApiServer::cancelPairing() {
