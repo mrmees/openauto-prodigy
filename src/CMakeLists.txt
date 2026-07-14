@@ -423,10 +423,6 @@ set_source_files_properties(../qml/applications/settings/SystemSettings.qml PROP
     QT_QML_SOURCE_TYPENAME "SystemSettings"
     QT_RESOURCE_ALIAS "SystemSettings.qml"
 )
-set_source_files_properties(../qml/applications/settings/CompanionSettings.qml PROPERTIES
-    QT_QML_SOURCE_TYPENAME "CompanionSettings"
-    QT_RESOURCE_ALIAS "CompanionSettings.qml"
-)
 set_source_files_properties(../qml/applications/settings/ApiSettings.qml PROPERTIES
     QT_QML_SOURCE_TYPENAME "ApiSettings"
     QT_RESOURCE_ALIAS "ApiSettings.qml"
@@ -520,7 +516,6 @@ qt_add_qml_module(openauto-prodigy
         ../qml/applications/settings/AudioSettings.qml
         ../qml/applications/settings/ConnectionSettings.qml
         ../qml/applications/settings/SystemSettings.qml
-        ../qml/applications/settings/CompanionSettings.qml
         ../qml/applications/settings/ApiSettings.qml
         ../qml/applications/settings/EqSettings.qml
         ../qml/applications/settings/ThemeSettings.qml

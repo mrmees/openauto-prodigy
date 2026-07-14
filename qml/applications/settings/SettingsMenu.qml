@@ -189,8 +189,7 @@ SettingsInputBoundary {
                     ListElement { name: "Audio"; icon: "\ue050"; pageId: "audio" }
                     ListElement { name: "Bluetooth"; icon: "\ue1a7"; pageId: "connection" }
                     ListElement { name: "Theme"; icon: "\ue40a"; pageId: "theme" }
-                    ListElement { name: "Companion"; icon: "\ue324"; pageId: "companion" }
-                    ListElement { name: "External API"; icon: "\uf1b7"; pageId: "api" }
+                    ListElement { name: "Companion"; icon: "\ue324"; pageId: "api" }
                     ListElement { name: "System"; icon: "\uf8cd"; pageId: "system" }
                     ListElement { name: "Information"; icon: "\ue88e"; pageId: "information" }
                     ListElement { name: "Debug"; icon: "\ue868"; pageId: "debug" }
@@ -242,7 +241,6 @@ SettingsInputBoundary {
     Component { id: connectionPage; ConnectionSettings {} }
     Component { id: themePage; ThemeSettings {} }
     Component { id: systemPage; SystemSettings {} }
-    Component { id: companionPage; CompanionSettings {} }
     Component { id: apiPage; ApiSettings {} }
     Component { id: informationPage; InformationSettings {} }
     Component { id: debugPage; DebugSettings {} }
@@ -256,8 +254,7 @@ SettingsInputBoundary {
             "connection": "Bluetooth",
             "theme": "Theme",
             "system": "System",
-            "companion": "Companion",
-            "api": "External API",
+            "api": "Companion",
             "information": "Information",
             "debug": "Debug"
         }
@@ -268,7 +265,6 @@ SettingsInputBoundary {
             "connection": connectionPage,
             "theme": themePage,
             "system": systemPage,
-            "companion": companionPage,
             "api": apiPage,
             "information": informationPage,
             "debug": debugPage

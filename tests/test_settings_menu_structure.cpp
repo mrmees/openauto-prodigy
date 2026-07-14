@@ -87,8 +87,8 @@ private slots:
 
         const QStringList pagePaths = {
             QStringLiteral("qml/applications/settings/AASettings.qml"),
+            QStringLiteral("qml/applications/settings/ApiSettings.qml"),
             QStringLiteral("qml/applications/settings/AudioSettings.qml"),
-            QStringLiteral("qml/applications/settings/CompanionSettings.qml"),
             QStringLiteral("qml/applications/settings/ConnectionSettings.qml"),
             QStringLiteral("qml/applications/settings/DebugSettings.qml"),
             QStringLiteral("qml/applications/settings/DisplaySettings.qml"),
@@ -167,8 +167,8 @@ private slots:
 
         const QStringList pagePaths = {
             QStringLiteral("qml/applications/settings/AASettings.qml"),
+            QStringLiteral("qml/applications/settings/ApiSettings.qml"),
             QStringLiteral("qml/applications/settings/AudioSettings.qml"),
-            QStringLiteral("qml/applications/settings/CompanionSettings.qml"),
             QStringLiteral("qml/applications/settings/ConnectionSettings.qml"),
             QStringLiteral("qml/applications/settings/DebugSettings.qml"),
             QStringLiteral("qml/applications/settings/DisplaySettings.qml"),

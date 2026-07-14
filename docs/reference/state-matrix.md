@@ -136,7 +136,7 @@ Semantic colors always win over theme accent for status indicators. These are NO
 | error | M3 error token | Failed states, destructive actions |
 | onError | M3 onError token | Content on error backgrounds |
 
-**Key rule:** CompanionSettings degraded route status uses `warning` token, NOT `tertiary`. Tertiary is a theme accent color, not a semantic status indicator.
+**Key rule:** the Companion settings page's degraded route status (Route Active row, `ApiSettings.qml` since the 2026-07-14 merge) uses `warning` token, NOT `tertiary`. Tertiary is a theme accent color, not a semantic status indicator.
 
 ## Expression Principle
 

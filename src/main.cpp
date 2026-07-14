@@ -1211,8 +1211,9 @@ int main(int argc, char *argv[])
     // widgets via API v1 inbound state (design §B0b). ApiServer is constructed
     // above — well before engine.load() below — so this is set before the
     // null-guarded widgets first paint; no hoist of the ApiServer construction
-    // was required. The legacy CompanionService property remains for now
-    // (CompanionSettings.qml still reads it; removal is B2).
+    // was required. The legacy CompanionService property now has ZERO QML
+    // consumers (CompanionSettings.qml died in the 2026-07-14 settings merge);
+    // the property and the service itself are removed at B2.
     engine.rootContext()->setContextProperty("CompanionState", apiServer->inboundState());
     // IPC companion_status (design §B0d): ipcServer was constructed earlier
     // (~:1020), before ApiServer existed, so this wiring is deferred to here
