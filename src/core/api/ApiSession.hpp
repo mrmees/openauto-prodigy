@@ -113,7 +113,11 @@ private:
     // Transitions / terminal messages.
     void goReady(quint64 requestId, const QString& grantedClientId);
     void sendAuthReject(quint64 requestId, const QString& reason);
-    void teardown();
+    // Graceful flushes pending terminal frames to the wire; Discard drops
+    // the connection immediately (slow-consumer kill — never wait behind a
+    // buffer the peer won't drain).
+    enum class CloseMode { Graceful, Discard };
+    void teardown(CloseMode mode = CloseMode::Graceful);
 
     // Low-level writes. writeOrTeardown enforces the queue cap; sendRaw is a
     // best-effort terminal write (Error / AuthReject) that never re-tears-down.

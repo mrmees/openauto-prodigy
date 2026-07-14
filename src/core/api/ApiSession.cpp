@@ -339,8 +339,8 @@ void ApiSession::writeOrTeardown(const QByteArray& bytes) {
     if (tornDown_ || !transport_) return;
     if (transport_->bytesToWrite() + static_cast<qint64>(bytes.size())
             > deps_.maxQueueBytes) {
-        teardown();   // slow consumer — disconnect, never buffer
-        return;
+        teardown(CloseMode::Discard);   // slow consumer — disconnect NOW,
+        return;                          // never wait behind its full buffer
     }
     transport_->sendMessage(bytes);
 }
@@ -375,13 +375,16 @@ void ApiSession::sendAuthReject(quint64 requestId, const QString& reason) {
 
 // ---- Teardown (single, idempotent path) ------------------------------------
 
-void ApiSession::teardown() {
+void ApiSession::teardown(CloseMode mode) {
     if (tornDown_) return;   // guard: close paths can re-enter within one frame
     tornDown_ = true;
     state_ = State::Closed;
     if (handshakeTimer_) handshakeTimer_->stop();
     if (deps_.requests) deps_.requests->sessionClosed(this);
-    if (transport_) transport_->close();   // may synchronously re-enter teardown
+    if (transport_) {        // either close may synchronously re-enter teardown
+        if (mode == CloseMode::Discard) transport_->abort();
+        else transport_->close();
+    }
     emit terminated();                      // exactly once
 }
 

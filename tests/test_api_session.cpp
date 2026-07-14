@@ -1,6 +1,9 @@
 #include <QtTest>
 #include <QSignalSpy>
 #include <QHostAddress>
+#include <QTcpServer>
+#include <QTcpSocket>
+#include <QDeadlineTimer>
 
 #include "core/api/ApiSession.hpp"
 #include "core/api/ApiTransport.hpp"
@@ -9,9 +12,11 @@
 #include "api/api.pb.h"
 
 namespace pb = prodigy::api::v1;
+using oap::api::ApiFramer;
 using oap::api::ApiSession;
 using oap::api::ApiSessionDeps;
 using oap::api::IApiTransport;
+using oap::api::TcpApiTransport;
 using oap::api::PairedClient;
 using oap::api::PairedClientStore;
 using oap::api::PairingManager;
@@ -35,7 +40,9 @@ public:
     void sendMessage(const QByteArray& serialized) override { sent.append(serialized); }
     qint64 bytesToWrite() const override { return fakeBytesToWrite; }
     void close() override { emit closed(); }
+    void abort() override { aborted = true; emit closed(); }
     QHostAddress peerAddress() const override { return peer; }
+    bool aborted = false;
 
     void injectMessage(const QByteArray& bytes) { emit messageReceived(bytes); }
     void injectMessageThenClose(const QByteArray& bytes) {
@@ -90,6 +97,7 @@ private slots:
     void testRemoteAuthBadProof();
     void testPairingFlow();
     void testPairingWindowClosedTypedError();
+    void testPairingWindowClosedRealTcpWire();
     void testSubscribeSnapshotAndAck();
     void testQueueCapDisconnects();
     void testPingPong();
@@ -331,6 +339,83 @@ void TestApiSession::testPairingWindowClosedTypedError() {
              QString("Pairing window closed"));
     QCOMPARE(terminatedSpy.count(), 1);
     QCOMPARE(session.state(), ApiSession::State::Closed);
+}
+
+// LIVE-BENCH REGRESSION (companion, 2026-07-13): the terminal Error frame
+// must actually reach the wire. FakeTransport masked a real-socket bug: the
+// frame was queued and teardown's QTcpSocket::close() discarded the
+// still-unflushed write buffer in the same event-loop turn — a real client
+// got EOF before any bytes. This test speaks REAL TCP end-to-end: the client
+// must read the 4-byte prefix (00 00 00 1d) plus all 29 payload bytes of
+// Error{PAIRING_WINDOW_CLOSED} (request_id=1) BEFORE the EOF.
+void TestApiSession::testPairingWindowClosedRealTcpWire() {
+    PairedClientStore store("/tmp/oap_test_session_wire_closed.yaml");
+    QFile::remove("/tmp/oap_test_session_wire_closed.yaml");
+    PairingManager pairing(&store);   // window never opened = closed
+
+    QTcpServer srv;
+    QVERIFY(srv.listen(QHostAddress::LocalHost, 0));
+    QTcpSocket client;
+    client.connectToHost(QHostAddress::LocalHost, srv.serverPort());
+    QVERIFY(client.waitForConnected(3000));
+    QVERIFY(srv.waitForNewConnection(3000));
+    QTcpSocket* serverSide = srv.nextPendingConnection();
+    QVERIFY(serverSide != nullptr);
+
+    auto* transport = new TcpApiTransport(serverSide, 262144);
+    ApiSessionDeps deps;
+    deps.store = &store;
+    deps.pairing = &pairing;
+    deps.serverName = "HeadUnit";
+    deps.appVersion = "1.0";
+    // Mirror ApiServer::adoptSession EXACTLY: heap session + deleteLater on
+    // terminated. The deferred delete races the socket's flush on the next
+    // event-loop turn — destroying the socket mid-close aborts it and
+    // discards the terminal frame; a stack session would mask that.
+    auto* session = new ApiSession(transport, deps);
+    session->setPeerTrustOverrideForTest(false);
+    connect(session, &ApiSession::terminated, session,
+            [session]() { session->deleteLater(); });
+
+    pb::ApiMessage hello;
+    hello.set_request_id(1);
+    auto* h = hello.mutable_client_hello();
+    h->set_requested_api_version_major(1);
+    h->set_client_name("WireProbe");
+    h->set_client_kind(pb::CLIENT_KIND_COMPANION);
+    h->mutable_auth()->set_pairing_request(true);
+    client.write(ApiFramer::encode(serialize(hello)));
+    QVERIFY(client.waitForBytesWritten(3000));
+
+    // Pump both endpoints until the full terminal frame arrives (33 bytes).
+    QDeadlineTimer deadline(3000);
+    while (client.bytesAvailable() < 33 && !deadline.hasExpired()) {
+        QCoreApplication::processEvents(QEventLoop::AllEvents, 10);
+        client.waitForReadyRead(10);
+    }
+    QCOMPARE(client.bytesAvailable(), qint64(33));
+
+    const QByteArray prefix = client.read(4);
+    QCOMPARE(prefix, QByteArray::fromHex("0000001d"));
+    const QByteArray body = client.read(29);
+    QCOMPARE(body.size(), 29);
+    pb::ApiMessage reject;
+    QVERIFY(reject.ParseFromArray(body.constData(), body.size()));
+    QCOMPARE(reject.payload_case(), pb::ApiMessage::kError);
+    QCOMPARE(reject.request_id(), quint64(1));
+    QCOMPARE(reject.error().code(), pb::ERROR_CODE_PAIRING_WINDOW_CLOSED);
+    QCOMPARE(QString::fromStdString(reject.error().message()),
+             QString("Pairing window closed"));
+
+    // ...and only THEN the EOF (server-initiated graceful close).
+    deadline = QDeadlineTimer(3000);
+    while (client.state() != QAbstractSocket::UnconnectedState
+           && !deadline.hasExpired()) {
+        QCoreApplication::processEvents(QEventLoop::AllEvents, 10);
+        client.waitForReadyRead(10);
+    }
+    QCOMPARE(client.state(), QAbstractSocket::UnconnectedState);
+    QCOMPARE(client.bytesAvailable(), qint64(0));
 }
 
 void TestApiSession::testSubscribeSnapshotAndAck() {

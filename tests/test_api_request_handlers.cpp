@@ -37,6 +37,7 @@ public:
     void sendMessage(const QByteArray& serialized) override { sent.append(serialized); }
     qint64 bytesToWrite() const override { return fakeBytesToWrite; }
     void close() override { emit closed(); }
+    void abort() override { emit closed(); }
     QHostAddress peerAddress() const override { return peer; }
 
     void injectMessage(const QByteArray& bytes) { emit messageReceived(bytes); }
