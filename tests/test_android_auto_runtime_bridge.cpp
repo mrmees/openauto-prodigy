@@ -14,7 +14,7 @@ public:
     }
     QVariant pluginValue(const QString&, const QString&) const override { return {}; }
     void setPluginValue(const QString&, const QString&, const QVariant&) override {}
-    bool save() override { return true; }
+    void save() override {}
 
     QMap<QString, QVariant> values_;
 };

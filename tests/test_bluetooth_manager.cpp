@@ -12,7 +12,7 @@ public:
     void setValue(const QString& path, const QVariant& value) override {
         values_[path] = value;
     }
-    bool save() override { return true; }
+    void save() override {}
     QVariant pluginValue(const QString&, const QString&) const override { return {}; }
     void setPluginValue(const QString&, const QString&, const QVariant&) override {}
 
