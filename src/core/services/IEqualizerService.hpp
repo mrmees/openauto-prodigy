@@ -12,7 +12,9 @@ namespace oap {
 enum class StreamId {
     Media,
     Navigation,
-    Phone
+    System,           // renamed from Phone — value stays 2 (processes AA system
+                      // sounds, not telephony; honest labeling, design §4.6)
+    Phone = System    // deprecated source-compat alias for external plugins
 };
 
 /// Pure virtual interface for the equalizer service (testability)

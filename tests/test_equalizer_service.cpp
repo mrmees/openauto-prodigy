@@ -19,7 +19,7 @@ private slots:
         oap::EqualizerService svc;
         QCOMPARE(svc.activePreset(StreamId::Media), QString("Flat"));
         QCOMPARE(svc.activePreset(StreamId::Navigation), QString("Voice"));
-        QCOMPARE(svc.activePreset(StreamId::Phone), QString("Voice"));
+        QCOMPARE(svc.activePreset(StreamId::System), QString("Voice"));
     }
 
     void testApplyPresetChangesOnlyTargetStream()
@@ -29,7 +29,7 @@ private slots:
         QCOMPARE(svc.activePreset(StreamId::Media), QString("Rock"));
         // Others unchanged
         QCOMPARE(svc.activePreset(StreamId::Navigation), QString("Voice"));
-        QCOMPARE(svc.activePreset(StreamId::Phone), QString("Voice"));
+        QCOMPARE(svc.activePreset(StreamId::System), QString("Voice"));
 
         // Verify gains match Rock preset
         const auto* rock = oap::findBundledPreset("Rock");
@@ -278,7 +278,7 @@ private slots:
         oap::EqualizerService svc(&config);
         QCOMPARE(svc.activePreset(StreamId::Media), QString("Rock"));
         QCOMPARE(svc.activePreset(StreamId::Navigation), QString("Bass Boost"));
-        QCOMPARE(svc.activePreset(StreamId::Phone), QString("Voice")); // default
+        QCOMPARE(svc.activePreset(StreamId::System), QString("Voice")); // default
     }
 
     void testConfigMissingPresetFallsBackToFlat()
@@ -288,6 +288,19 @@ private slots:
 
         oap::EqualizerService svc(&config);
         QCOMPARE(svc.activePreset(StreamId::Media), QString("Flat"));
+    }
+
+    void testLegacyPhoneKeyRestoresSystemStream()
+    {
+        const QString path = QDir::temp().filePath("eqmig3-test.yaml");
+        QFile f(path); QVERIFY(f.open(QIODevice::WriteOnly));
+        f.write("audio:\n  equalizer:\n    streams:\n"
+                "      phone: { preset: Rock }\n");
+        f.close();
+        oap::YamlConfig cfg; cfg.load(path);
+        oap::EqualizerService svc(&cfg);
+        QCOMPARE(svc.activePreset(StreamId::System), QString("Rock"));
+        QFile::remove(path);
     }
 
     void testApplyPresetTriggersScheduleSave()

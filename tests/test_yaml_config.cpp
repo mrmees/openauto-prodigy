@@ -29,6 +29,8 @@ private slots:
     void testProtocolCaptureDefaults();
     void testProtocolCaptureSetValueByPath();
     void testEqStreamPresetDefaults();
+    void testPhoneToSystemMigration();
+    void testPhoneToSystemBothPresentKeepsSystem();
     void testEqStreamPresetSetAndGet();
     void testEqStreamPresetSaveReload();
     void testEqUserPresetsEmpty();
@@ -315,7 +317,47 @@ void TestYamlConfig::testEqStreamPresetDefaults()
     oap::YamlConfig config;
     QCOMPARE(config.eqStreamPreset("media"), QString("Flat"));
     QCOMPARE(config.eqStreamPreset("navigation"), QString("Voice"));
-    QCOMPARE(config.eqStreamPreset("phone"), QString("Voice"));
+    QCOMPARE(config.eqStreamPreset("system"), QString("Voice"));
+}
+
+void TestYamlConfig::testPhoneToSystemMigration()
+{
+    const QString path = QDir::temp().filePath("eqmig-test.yaml");
+    QFile f(path); QVERIFY(f.open(QIODevice::WriteOnly));
+    f.write("audio:\n  equalizer:\n    streams:\n"
+            "      phone: { preset: Rock }\n");
+    f.close();
+    oap::YamlConfig cfg; cfg.load(path);
+    QCOMPARE(cfg.eqStreamPreset("system"), QString("Rock"));  // migrated
+    QVERIFY(cfg.save(path));
+    QFile rf(path); QVERIFY(rf.open(QIODevice::ReadOnly));
+    const QByteArray out = rf.readAll();
+    // Scope the key-presence checks to the EQ streams block. The unrelated
+    // top-level telephony `phone:` default (reject_sco_during_aa /
+    // settle_grace_ms, design §6) legitimately survives and must NOT be
+    // migrated (design §4.6) — a whole-file contains("phone:") would collide
+    // with it. streams: always precedes its sibling user_presets: under
+    // equalizer, so that window isolates the migrated stream keys.
+    const int sIdx = out.indexOf("streams:");
+    const int eIdx = out.indexOf("user_presets:");
+    QVERIFY(sIdx >= 0 && eIdx > sIdx);
+    const QByteArray streamsBlock = out.mid(sIdx, eIdx - sIdx);
+    QVERIFY(!streamsBlock.contains("phone:"));                 // old EQ key gone
+    QVERIFY(streamsBlock.contains("system:"));
+    QFile::remove(path);
+}
+
+void TestYamlConfig::testPhoneToSystemBothPresentKeepsSystem()
+{
+    const QString path = QDir::temp().filePath("eqmig2-test.yaml");
+    QFile f(path); QVERIFY(f.open(QIODevice::WriteOnly));
+    f.write("audio:\n  equalizer:\n    streams:\n"
+            "      phone: { preset: Rock }\n"
+            "      system: { preset: Jazz }\n");
+    f.close();
+    oap::YamlConfig cfg; cfg.load(path);
+    QCOMPARE(cfg.eqStreamPreset("system"), QString("Jazz"));
+    QFile::remove(path);
 }
 
 void TestYamlConfig::testEqStreamPresetSetAndGet()

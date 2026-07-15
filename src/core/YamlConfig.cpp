@@ -119,7 +119,9 @@ void YamlConfig::initDefaults()
     // EQ defaults
     root_["audio"]["equalizer"]["streams"]["media"]["preset"] = "Flat";
     root_["audio"]["equalizer"]["streams"]["navigation"]["preset"] = "Voice";
-    root_["audio"]["equalizer"]["streams"]["phone"]["preset"] = "Voice";
+    // "system" (renamed from "phone", Task 5): EQ for AA system sounds, not
+    // telephony. Legacy "phone:" EQ keys migrate to it (migrateEqPhoneToSystem).
+    root_["audio"]["equalizer"]["streams"]["system"]["preset"] = "Voice";
     root_["audio"]["equalizer"]["user_presets"] = YAML::Node(YAML::NodeType::Sequence);
 
     // UI override defaults (0 = "not set, use auto-derived")
@@ -222,6 +224,11 @@ void YamlConfig::load(const QString& filePath)
 
     try {
         YAML::Node loaded = YAML::LoadFile(path);
+        // Rename the legacy EQ "phone" stream key to "system" on the RAW user
+        // YAML BEFORE the defaults merge (design §4.6, round-1 F5). The merge
+        // injects a default "system" key, so a post-merge fallback read could
+        // never see the migrated value — this placement is load-bearing.
+        migrateEqPhoneToSystem(loaded);
         root_ = mergeYaml(defaults, loaded);
         migrateWidgetGridV3();
     } catch (const std::exception& e) {
@@ -1185,6 +1192,20 @@ void YamlConfig::migrateWidgetGridV3()
     wg.remove("next_instance_id");
     wg.remove("page_count");
     wg.remove("placements");
+}
+
+void YamlConfig::migrateEqPhoneToSystem(YAML::Node& loaded)
+{
+    // Legacy "phone" EQ stream key -> "system" (Task 5, honest labeling). Runs
+    // on the raw user YAML before mergeYaml; an existing "system" key wins so a
+    // hand-authored/newer config is never clobbered.
+    auto streams = loaded["audio"]["equalizer"]["streams"];
+    if (!streams || !streams.IsMap()) return;
+    if (streams["phone"]) {
+        if (!streams["system"])
+            streams["system"] = YAML::Clone(streams["phone"]);
+        streams.remove("phone");
+    }
 }
 
 int YamlConfig::gridSavedCols() const

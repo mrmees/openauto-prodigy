@@ -22,7 +22,7 @@ EqualizerService::EqualizerService(QObject* parent)
     // Apply default presets
     applyPreset(StreamId::Media, "Flat");
     applyPreset(StreamId::Navigation, "Voice");
-    applyPreset(StreamId::Phone, "Voice");
+    applyPreset(StreamId::System, "Voice");
 }
 
 EqualizerService::EqualizerService(YamlConfig* config, QObject* parent)
@@ -35,7 +35,7 @@ EqualizerService::EqualizerService(YamlConfig* config, QObject* parent)
     // Apply default presets first
     applyPreset(StreamId::Media, "Flat");
     applyPreset(StreamId::Navigation, "Voice");
-    applyPreset(StreamId::Phone, "Voice");
+    applyPreset(StreamId::System, "Voice");
 
     // Override from config if available
     if (config_)
@@ -320,7 +320,7 @@ void EqualizerService::emitPresetSignal(StreamId stream)
     switch (stream) {
         case StreamId::Media:      emit mediaPresetChanged(); break;
         case StreamId::Navigation: emit navigationPresetChanged(); break;
-        case StreamId::Phone:      emit phonePresetChanged(); break;
+        case StreamId::System:     emit systemPresetChanged(); break;
     }
 }
 
@@ -394,8 +394,8 @@ void EqualizerService::loadFromConfig()
     }
 
     // Restore per-stream state
-    static const char* streamNames[] = {"media", "navigation", "phone"};
-    static const StreamId streamIds[] = {StreamId::Media, StreamId::Navigation, StreamId::Phone};
+    static const char* streamNames[] = {"media", "navigation", "system"};
+    static const StreamId streamIds[] = {StreamId::Media, StreamId::Navigation, StreamId::System};
     for (int i = 0; i < 3; ++i) {
         const QString name = QString::fromLatin1(streamNames[i]);
         const QString presetName = config_->eqStreamPreset(name);
@@ -441,7 +441,7 @@ void EqualizerService::writeToConfig()
     // Write per-stream preset assignment, raw gains, and authoritative bypass.
     // Gains + bypass are ALWAYS written so a Custom (no-preset) state and a
     // bypass toggle survive a power cut (design §4.5 / round-2 F7).
-    static const char* streamNames[] = {"media", "navigation", "phone"};
+    static const char* streamNames[] = {"media", "navigation", "system"};
     for (int i = 0; i < 3; ++i) {
         const QString name = QString::fromLatin1(streamNames[i]);
         config_->setEqStreamPreset(name, streams_[i].activePreset);

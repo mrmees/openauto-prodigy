@@ -158,6 +158,10 @@ private:
     // both eqStreamGains() and eqUserPresets().
     static QList<float> validatedGains(const YAML::Node& node);
     void migrateWidgetGridV3();
+    // Rename the legacy EQ "phone" stream key to "system" on the raw user YAML
+    // before the defaults merge (Task 5, design §4.6). Idempotent; an existing
+    // "system" key takes precedence.
+    static void migrateEqPhoneToSystem(YAML::Node& loaded);
     static QList<GridPlacement> placementsFromNode(const YAML::Node& placements);
     static YAML::Node placementsToNode(const QList<GridPlacement>& placements);
 };

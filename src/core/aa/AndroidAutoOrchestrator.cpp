@@ -334,12 +334,12 @@ void AndroidAutoOrchestrator::onNewConnection()
         // so each engine attaches pre-connect (RT ordering contract §4.4).
         // Each is a private instance fanned out from the shared per-stream
         // gains — no consumer shares an engine. Released in teardownSession()
-        // after the streams are destroyed. (System stream uses the Phone curve
-        // until the Task 5 StreamId::System rename.)
+        // after the streams are destroyed. The system stream carries AA system
+        // sounds and now labels honestly as StreamId::System (Task 5).
         if (eqService_) {
             mediaEq_  = eqService_->acquireEngine(oap::StreamId::Media, 48000.0f, 2);
             speechEq_ = eqService_->acquireEngine(oap::StreamId::Navigation, 48000.0f, 1);
-            systemEq_ = eqService_->acquireEngine(oap::StreamId::Phone, 16000.0f, 1);
+            systemEq_ = eqService_->acquireEngine(oap::StreamId::System, 16000.0f, 1);
         }
 
         if (concreteAudio_) {

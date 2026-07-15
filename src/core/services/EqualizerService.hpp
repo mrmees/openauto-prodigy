@@ -18,13 +18,15 @@ namespace oap { class YamlConfig; }
 
 namespace oap {
 
-/// Qt service layer wrapping 3 EqualizerEngine instances (media, navigation, phone).
+/// Qt service layer wrapping 3 EqualizerEngine instances (media, navigation, system).
 /// Manages bundled + user presets and exposes Q_INVOKABLE/Q_PROPERTY for QML.
 class EqualizerService : public QObject, public IEqualizerService {
     Q_OBJECT
     Q_PROPERTY(QString mediaPreset READ mediaPreset NOTIFY mediaPresetChanged)
     Q_PROPERTY(QString navigationPreset READ navigationPreset NOTIFY navigationPresetChanged)
-    Q_PROPERTY(QString phonePreset READ phonePreset NOTIFY phonePresetChanged)
+    // Renamed from phonePreset (Task 5, honest labeling). Declared in-tree QML
+    // break — no alias; the QML consumer moves to onSystemPresetChanged.
+    Q_PROPERTY(QString systemPreset READ systemPreset NOTIFY systemPresetChanged)
 
 public:
     explicit EqualizerService(QObject* parent = nullptr);
@@ -34,7 +36,7 @@ public:
     // --- Q_PROPERTY readers ---
     QString mediaPreset() const { return streams_[0].activePreset; }
     QString navigationPreset() const { return streams_[1].activePreset; }
-    QString phonePreset() const { return streams_[2].activePreset; }
+    QString systemPreset() const { return streams_[2].activePreset; }
 
     // --- IEqualizerService implementation ---
     Q_INVOKABLE QString activePreset(StreamId stream) const override;
@@ -90,7 +92,7 @@ public:
 signals:
     void mediaPresetChanged();
     void navigationPresetChanged();
-    void phonePresetChanged();
+    void systemPresetChanged();
     void gainsChanged(StreamId stream);
     void gainsChangedForStream(int stream);
     void bypassedChanged(int stream);
@@ -128,7 +130,7 @@ private:
     // per-band preset clearing, no scheduleSave). loadFromConfig-only.
     void applyRawGains(StreamId stream, const std::array<float, kNumBands>& gains);
 
-    // Per-stream state (Media / Navigation / Phone). Engine sample-rate and
+    // Per-stream state (Media / Navigation / System). Engine sample-rate and
     // channel counts now travel with each acquireEngine() call, not the state.
     StreamState streams_[3];
 
