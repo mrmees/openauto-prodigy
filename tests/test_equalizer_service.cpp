@@ -230,6 +230,44 @@ private slots:
         QCOMPARE(svc.gain(StreamId::Media, 0), 5.0f);          // unchanged
     }
 
+    // setGain clamps to the engine's +-12 dB range at the service boundary, so
+    // the stored/getter value agrees with what the engine applies (round-2 F6:
+    // service used to store the raw out-of-range value).
+    void testSetGainClampsToEngineRange()
+    {
+        oap::EqualizerService svc;
+        svc.setGain(StreamId::Media, 0, 20.0f);
+        QCOMPARE(svc.gain(StreamId::Media, 0), 12.0f);   // clamped to +12
+        svc.setGain(StreamId::Media, 1, -30.0f);
+        QCOMPARE(svc.gain(StreamId::Media, 1), -12.0f);  // clamped to -12
+
+        // Fan-out also sees the clamped value, not the raw one.
+        auto* e = svc.acquireEngine(StreamId::Media, 48000.0f, 2);
+        svc.setGain(StreamId::Media, 2, 99.0f);
+        QCOMPARE(svc.gain(StreamId::Media, 2), 12.0f);
+        QCOMPARE(e->getGain(2), 12.0f);
+        svc.releaseEngine(e);
+    }
+
+    // A clamped gain persists as the clamped value and reloads unchanged — no
+    // restart "snap" from a stored 20 dB down to the engine's 12 dB.
+    void testClampedGainPersistsClamped()
+    {
+        const QString path = QDir::temp().filePath("eqclamp-test.yaml");
+        QFile::remove(path);
+        auto cfg = std::make_unique<oap::YamlConfig>(); cfg->load(path);
+        {
+            oap::EqualizerService svc(cfg.get());
+            svc.setFlushHook([&]{ return cfg->save(path); });
+            svc.setGain(StreamId::Media, 0, 20.0f);   // clamps to 12
+            svc.saveNow();
+        }
+        auto cfg2 = std::make_unique<oap::YamlConfig>(); cfg2->load(path);
+        oap::EqualizerService svc2(cfg2.get());
+        QCOMPARE(svc2.gain(StreamId::Media, 0), 12.0f);   // reloads at 12, no snap
+        QFile::remove(path);
+    }
+
     void testBypassPerStream()
     {
         oap::EqualizerService svc;

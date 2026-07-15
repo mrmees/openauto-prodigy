@@ -68,6 +68,12 @@ struct AudioStreamHandle {
     // read against a concurrent legacy-path mutation on the Qt thread.
     IAudioService::CaptureCallback captureCallback;      // immutable after connect
     std::atomic<bool> captureCallbackActive{false};      // legacy-path guard only
+    // True ONLY for handles that installed a pre-connect (options-path)
+    // callback: those are immutable and setCaptureCallback refuses them. Legacy
+    // handles leave this false and keep replace/clear semantics — the presence
+    // of a callback alone must NOT lock a legacy handle (round-2 finding: a
+    // legacy first-set once made the handle permanently immutable).
+    bool captureCallbackImmutable = false;
 
     // Playback error hook — dispatched to the Qt main thread when the stream
     // enters PW_STREAM_STATE_ERROR (never invoked on the PW RT thread).
@@ -173,12 +179,14 @@ public:
     /// Activate/deactivate a stream (loop-locked). No-op on null/uninitialised.
     void setStreamActive(AudioStreamHandle* handle, bool active);
 
-    /// Drain a stream's ring buffer (reader-side, writer-safe). The caller MUST
-    /// have deactivated PLAYBACK first so the READER (process callback) is
-    /// quiesced; the WRITER (e.g. a still-linked BT capture callback on the RT
-    /// data thread) may remain live — drain() only advances the read index, so
-    /// no tear is possible against it (a plain reset() would tear the write
-    /// index — see AudioRingBuffer::drain()).
+    /// Drain a stream's ring buffer (reader-side, plain read-index catch-up).
+    /// Precondition: BOTH the reader AND the writer are quiesced. The reader is
+    /// quiesced by deactivating PLAYBACK first (stops the process callback); the
+    /// writer is quiesced by the caller (the BT tap gates its capture callback
+    /// off before draining). drain() is NOT writer-safe: write() advances the
+    /// read index on overflow, so an overflowing writer would be a second
+    /// concurrent read-index mutator and could overwrite the flush — leaving
+    /// stale pre-drain audio readable (see AudioRingBuffer::drain()).
     void resetStreamRing(AudioStreamHandle* handle);
 
     /// Perceptual cubic volume curve: (v/100)^3, clamped to [0,100].
@@ -200,6 +208,11 @@ private slots:
 
 private:
     void applyDucking();
+    // Push a single gain onto a stream's channelVolumes control. Caps the value
+    // count at min(channels, 2) — app streams are mono/stereo and the on-stack
+    // volume array is sized 2, so a >2-channel handle must not read past it.
+    // Caller MUST hold the PW thread-loop lock. Logs on set-control failure.
+    void applyVolumeToStream(AudioStreamHandle* handle, float vol);
     void checkAdaptiveBuffers();
     static void onPlaybackProcess(void* userdata);
     static void onPlaybackStateChanged(void* userdata, enum pw_stream_state old,

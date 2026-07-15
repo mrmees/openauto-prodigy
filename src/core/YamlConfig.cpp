@@ -316,12 +316,24 @@ bool YamlConfig::save(const QString& filePath) const
     }
 
     // Durability: fsync the parent directory so the rename itself survives a
-    // power cut (round-2 F7 — a car's normal shutdown IS a power cut). Best
-    // effort: a failure here doesn't invalidate the already-committed rename.
+    // power cut (round-2 F7 — a car's normal shutdown IS a power cut). If the
+    // directory cannot be opened OR its fsync fails, the rename is NOT durably
+    // committed, so report failure: the EQ save-debounce retry then stays armed
+    // and re-attempts on the next tick. Only the close() stays best-effort.
     const std::string dirPath = QFileInfo(filePath).absolutePath().toStdString();
     int dfd = ::open(dirPath.c_str(), O_RDONLY | O_DIRECTORY);
-    if (dfd >= 0) { ::fsync(dfd); ::close(dfd); }
-    else qWarning() << "[YamlConfig] save: cannot fsync parent dir" << QString::fromStdString(dirPath);
+    if (dfd < 0) {
+        qWarning() << "[YamlConfig] save: cannot open parent dir to fsync"
+                   << QString::fromStdString(dirPath) << "-" << strerror(errno);
+        return false;
+    }
+    if (::fsync(dfd) != 0) {
+        qWarning() << "[YamlConfig] save: parent dir fsync failed"
+                   << QString::fromStdString(dirPath) << "-" << strerror(errno);
+        ::close(dfd);   // best-effort
+        return false;
+    }
+    ::close(dfd);       // best-effort
 
     return true;
 }

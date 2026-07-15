@@ -3,6 +3,7 @@
 #include "core/audio/EqualizerEngine.hpp"
 #include "core/audio/FocusGain.hpp"
 #include <QCoreApplication>
+#include <algorithm>
 #include <cstring>
 #include <spa/param/props.h>
 #include <pipewire/version.h>
@@ -301,12 +302,24 @@ AudioStreamHandle* AudioService::createStreamWithOptions(const PlaybackStreamOpt
         return nullptr;
     }
 
+    // App playback streams are mono/stereo. Clamp into [1,2] up front: the EQ
+    // engine already clamps to 1-2, the bytesPerFrame math assumes it, and the
+    // volume control writes a 2-slot array — a >2-channel request would desync
+    // the format from those assumptions. Nothing currently requests >2, so this
+    // is defensive.
+    int channels = opts.channels;
+    if (channels < 1 || channels > 2) {
+        qCWarning(lcAudio) << "AudioService::createStreamWithOptions: channels" << channels
+                           << "out of [1,2] for" << opts.name << "- clamping";
+        channels = qBound(1, channels, 2);
+    }
+
     auto* handle = new AudioStreamHandle();
     handle->name = opts.name;
     handle->priority = opts.priority;
     handle->sampleRate = opts.sampleRate;
-    handle->channels = opts.channels;
-    handle->bytesPerFrame = opts.channels * 2; // 16-bit PCM
+    handle->channels = channels;
+    handle->bytesPerFrame = channels * 2; // 16-bit PCM
     handle->eqEngine = opts.eqEngine;                     // attached BEFORE connect
     handle->disableRateMatching = opts.disableRateMatching;
     handle->onStreamError = opts.onStreamError;
@@ -317,7 +330,7 @@ AudioStreamHandle* AudioService::createStreamWithOptions(const PlaybackStreamOpt
     int bufferMs = opts.bufferMs;
     if (bufferMs < 500) bufferMs = 500;
     handle->bufferMs = bufferMs;
-    uint32_t rbSize = static_cast<uint32_t>(opts.sampleRate * opts.channels * 2 * (bufferMs / 1000.0f));
+    uint32_t rbSize = static_cast<uint32_t>(opts.sampleRate * channels * 2 * (bufferMs / 1000.0f));
     uint32_t pow2 = 1;
     while (pow2 < rbSize) pow2 <<= 1;
     handle->ringBuffer = std::make_unique<AudioRingBuffer>(pow2);
@@ -368,7 +381,7 @@ AudioStreamHandle* AudioService::createStreamWithOptions(const PlaybackStreamOpt
     struct spa_audio_info_raw rawInfo{};
     rawInfo.format = SPA_AUDIO_FORMAT_S16_LE;
     rawInfo.rate = static_cast<uint32_t>(opts.sampleRate);
-    rawInfo.channels = static_cast<uint32_t>(opts.channels);
+    rawInfo.channels = static_cast<uint32_t>(channels);
 
     const struct spa_pod* params[1];
     params[0] = spa_format_audio_raw_build(&b, SPA_PARAM_EnumFormat, &rawInfo);
@@ -401,11 +414,7 @@ AudioStreamHandle* AudioService::createStreamWithOptions(const PlaybackStreamOpt
     // setMasterVolume() to prevent ABBA deadlock.
     {
         QMutexLocker lock(&mutex_);
-        float vol = cubicVolume(masterVolume_);
-        float volumes[] = {vol, vol}; // up to stereo
-        pw_stream_set_control(handle->stream,
-            SPA_PROP_channelVolumes,
-            static_cast<uint32_t>(handle->channels), volumes, 0);
+        applyVolumeToStream(handle, cubicVolume(masterVolume_));
     }
 
     pw_thread_loop_unlock(threadLoop_);
@@ -451,6 +460,21 @@ int AudioService::writeAudio(AudioStreamHandle* handle, const uint8_t* data, int
 
 // ---- Volume & Audio Focus ----
 
+void AudioService::applyVolumeToStream(AudioStreamHandle* handle, float vol)
+{
+    if (!handle || !handle->stream) return;
+    // App streams are mono/stereo; a sized 2-slot array bounds the control write.
+    // A >2-channel volume would need a larger array — cap the count so we never
+    // hand pw_stream_set_control a length past the array (design §4.2 / OOB fix).
+    const uint32_t nch = static_cast<uint32_t>(std::min(handle->channels, 2));
+    float volumes[2] = {vol, vol};
+    int r = pw_stream_set_control(handle->stream, SPA_PROP_channelVolumes,
+                                  nch, volumes, 0);
+    if (r < 0)
+        qCWarning(lcAudio) << "AudioService: set channelVolumes failed for"
+                           << handle->name << "err" << r;
+}
+
 float AudioService::cubicVolume(int masterVolume0to100)
 {
     // Perceptual cubic curve: (v/100)^3. Clamped so the curve is total.
@@ -476,14 +500,8 @@ void AudioService::setMasterVolume(int volume)
         // Cubic curve for perceptual volume scaling
         float vol = cubicVolume(masterVolume_);
 
-        for (auto* handle : streams_) {
-            if (handle->stream) {
-                float volumes[] = {vol, vol}; // up to stereo
-                pw_stream_set_control(handle->stream,
-                    SPA_PROP_channelVolumes,
-                    static_cast<uint32_t>(handle->channels), volumes, 0);
-            }
-        }
+        for (auto* handle : streams_)
+            applyVolumeToStream(handle, vol);
     }
     pw_thread_loop_unlock(threadLoop_);
     emit masterVolumeChanged();
@@ -637,8 +655,11 @@ AudioStreamHandle* AudioService::openCaptureStreamWithOptions(const CaptureStrea
     handle->channels = opts.channels;
     handle->bytesPerFrame = opts.channels * (opts.bitDepth == 32 ? 4 : 2);
     // A pre-connect callback is immutable — installed before connect and
-    // published for the RT thread here (no daemon has run any callback yet).
+    // published for the RT thread here (no daemon has run any callback yet). The
+    // immutable flag is set ONLY when such a callback is actually present, so a
+    // capture handle opened WITHOUT one stays a mutable legacy handle.
     handle->captureCallback = opts.callback;
+    handle->captureCallbackImmutable = static_cast<bool>(opts.callback);
     handle->captureCallbackActive.store(static_cast<bool>(opts.callback),
                                         std::memory_order_release);
 
@@ -756,14 +777,20 @@ void AudioService::setCaptureCallback(AudioStreamHandle* handle, CaptureCallback
 {
     if (!handle) return;
 
-    // Handles created with a pre-connect callback are immutable — refuse.
-    if (handle->captureCallback) {
+    // Only handles created WITH a pre-connect callback are immutable — refuse
+    // those. A legacy handle (no options-path callback) keeps replace/clear
+    // semantics even after its first set, so the presence of a callback alone
+    // never locks it.
+    if (handle->captureCallbackImmutable) {
         qCWarning(lcAudio) << "AudioService::setCaptureCallback: handle" << handle->name
-                           << "already has an immutable capture callback; ignoring";
+                           << "has an immutable pre-connect capture callback; ignoring";
         return;
     }
 
-    // Legacy path: install the callback, then publish via the atomic guard.
+    // Legacy path: quiesce the RT guard BEFORE swapping the std::function (so the
+    // RT thread never reads a half-updated callback), swap (or clear via a null
+    // cb), then re-publish through the atomic guard (false when cleared).
+    handle->captureCallbackActive.store(false, std::memory_order_release);
     handle->captureCallback = std::move(cb);
     handle->captureCallbackActive.store(static_cast<bool>(handle->captureCallback),
                                         std::memory_order_release);
@@ -781,15 +808,15 @@ void AudioService::setStreamActive(AudioStreamHandle* h, bool active)
 
 void AudioService::resetStreamRing(AudioStreamHandle* h)
 {
-    // Precondition: the caller has deactivated PLAYBACK first, so the READER
-    // (onPlaybackProcess) is quiesced. The WRITER may still be live — in the BT
-    // A2DP tap the capture stream keeps writing into this handle's ring across
-    // activity transitions regardless of playback activity. The loop lock does
-    // NOT serialize RT process/capture callbacks (PW_STREAM_FLAG_RT_PROCESS runs
-    // on PipeWire's data thread), so a plain reset() (non-atomic write-index
-    // clear) would tear against that live writer. drain() is reader-side only —
-    // it advances the read index to the current write index without touching
-    // writer state — so it is safe against a concurrent writer.
+    // Precondition: BOTH reader AND writer are quiesced. The caller deactivates
+    // PLAYBACK first so the READER (onPlaybackProcess) is quiesced; in the BT
+    // A2DP tap the caller ALSO gates its capture callback off (captureEnabled_)
+    // before draining, so the WRITER is quiesced too. drain() is a plain
+    // read-index catch-up — it is NOT writer-safe: write() advances the read
+    // index on overflow (drop-oldest), so an overflowing writer would race
+    // drain() for the read index and could overwrite the flush. With the writer
+    // gated off the ring cannot overflow under it and drain() is the sole
+    // read-index mutator (see AudioRingBuffer::drain()).
     if (!h || !h->ringBuffer) return;
     h->ringBuffer->drain();
 }

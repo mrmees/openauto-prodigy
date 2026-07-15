@@ -122,6 +122,48 @@ private slots:
         oap::AudioStreamHandle a; a.priority = 50; a.hasFocus = false;
         QCOMPARE(oap::AudioService::selectDominant({&a}), nullptr);
     }
+
+    // setCaptureCallback discriminates mutability by the explicit
+    // captureCallbackImmutable flag, NOT by "a callback is already installed".
+    // A legacy handle (no pre-connect callback) keeps replace/clear semantics
+    // through its first set and beyond; an options-path handle is refused.
+    // Operates directly on handles — no PipeWire daemon required.
+    void testSetCaptureCallbackImmutabilityByFlag()
+    {
+        oap::AudioService svc;
+
+        // --- Legacy handle: mutable set -> replace -> clear(nullptr). ---
+        oap::AudioStreamHandle legacy;
+        legacy.isCapture = true;
+        QVERIFY(!legacy.captureCallbackImmutable);
+        QVERIFY(!static_cast<bool>(legacy.captureCallback));
+
+        int tag = 0;
+        svc.setCaptureCallback(&legacy, [&tag](const uint8_t*, int){ tag = 1; });
+        QVERIFY(static_cast<bool>(legacy.captureCallback));
+        QVERIFY(legacy.captureCallbackActive.load());
+
+        // Replace works — first set did NOT lock the legacy handle.
+        svc.setCaptureCallback(&legacy, [&tag](const uint8_t*, int){ tag = 2; });
+        QVERIFY(static_cast<bool>(legacy.captureCallback));
+        QVERIFY(legacy.captureCallbackActive.load());
+
+        // Clear via nullptr disables through the atomic guard.
+        svc.setCaptureCallback(&legacy, nullptr);
+        QVERIFY(!static_cast<bool>(legacy.captureCallback));
+        QVERIFY(!legacy.captureCallbackActive.load());
+
+        // --- Options-path handle: pre-connect callback => immutable => refused. ---
+        oap::AudioStreamHandle opt;
+        opt.isCapture = true;
+        opt.captureCallback = [](const uint8_t*, int){};
+        opt.captureCallbackImmutable = true;
+        opt.captureCallbackActive.store(true);
+
+        svc.setCaptureCallback(&opt, nullptr);              // refused — no clear
+        QVERIFY(static_cast<bool>(opt.captureCallback));    // still installed
+        QVERIFY(opt.captureCallbackActive.load());          // still active
+    }
 };
 
 QTEST_MAIN(TestAudioService)

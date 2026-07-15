@@ -87,6 +87,12 @@ void EqualizerService::setGain(StreamId stream, int band, float dB)
     // Reject non-finite input at the service boundary (design §4.5 / round-2
     // F5) so no caller path (QML, config, future API) can feed NaN downstream.
     if (!std::isfinite(dB)) return;
+    // Clamp to the engine range (+-12 dB) HERE, at the boundary, so the stored
+    // value, the getters, and the persisted YAML all agree with what the engine
+    // actually applies. Without this the service kept the raw value while the
+    // engine clamped, so getters/config reported e.g. 20 dB while audio used 12
+    // dB, and a restart snapped the UI to 12.
+    dB = std::clamp(dB, -12.0f, 12.0f);
 
     auto& s = streamAt(stream);
     for (auto* e : s.engines) e->setGain(band, dB);
