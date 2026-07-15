@@ -6,6 +6,7 @@
 #include <QDir>
 #include <QFile>
 #include <cmath>
+#include <memory>
 
 using oap::StreamId;
 
@@ -348,6 +349,41 @@ private slots:
         svc.applyPreset(StreamId::Media, "Saved Custom");
         QCOMPARE(svc.activePreset(StreamId::Media), QString("Saved Custom"));
         QCOMPARE(svc.gain(StreamId::Media, 0), 1.0f);
+    }
+
+    // --- Durable persistence (Task 4) ---
+
+    void testUnsavedGainsAndBypassSurviveRestart()
+    {
+        const QString path = QDir::temp().filePath("eqsvc-test.yaml");
+        QFile::remove(path);
+        auto cfg = std::make_unique<oap::YamlConfig>(); cfg->load(path);
+        {
+            oap::EqualizerService svc(cfg.get());
+            svc.setFlushHook([&]{ return cfg->save(path); });
+            svc.setGain(StreamId::Media, 0, 7.5f);   // "Custom" — no preset saved
+            svc.setBypassed(StreamId::Navigation, true);
+            svc.saveNow();
+        }
+        auto cfg2 = std::make_unique<oap::YamlConfig>(); cfg2->load(path);
+        oap::EqualizerService svc2(cfg2.get());
+        QCOMPARE(svc2.gain(StreamId::Media, 0), 7.5f);
+        QCOMPARE(svc2.activePreset(StreamId::Media), QString(""));  // still Custom
+        QVERIFY(svc2.isBypassed(StreamId::Navigation));
+        QFile::remove(path);
+    }
+
+    void testFlushFailureRearmsDebounce()
+    {
+        oap::YamlConfig cfg;
+        oap::EqualizerService svc(&cfg);
+        int calls = 0;
+        svc.setFlushHook([&]{ ++calls; return false; });
+        svc.setGain(StreamId::Media, 0, 1.0f);
+        svc.saveNow();
+        QCOMPARE(calls, 1);
+        // debounce re-armed on failure: saveTimer_ active again
+        QTRY_VERIFY_WITH_TIMEOUT(calls >= 2, 5000);
     }
 };
 

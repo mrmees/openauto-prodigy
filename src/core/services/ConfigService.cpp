@@ -31,9 +31,9 @@ void ConfigService::setPluginValue(const QString& pluginId, const QString& key, 
     // TODO: emit pluginConfigChanged signal when plugin settings UI exists
 }
 
-void ConfigService::save()
+bool ConfigService::save()
 {
-    config_->save(configPath_);
+    return config_->save(configPath_);
 }
 
 } // namespace oap

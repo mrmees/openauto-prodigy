@@ -1,7 +1,15 @@
 #include "core/services/EqualizerService.hpp"
 #include "core/YamlConfig.hpp"
+#include "core/Logging.hpp"
 #include <algorithm>
 #include <cmath>
+#include <utility>
+
+namespace {
+// Save-debounce interval. Shared by scheduleSave() and the flush-failure
+// retry in writeToConfig() so both stay in lockstep.
+constexpr int kSaveDebounceMs = 2000;
+} // namespace
 
 namespace oap {
 
@@ -362,6 +370,16 @@ QString EqualizerService::generateAutoName() const
 
 // --- Config persistence ---
 
+void EqualizerService::applyRawGains(StreamId stream, const std::array<float, kNumBands>& gains)
+{
+    // Internal, side-effect-free restore path: set the stored gains and fan out
+    // to any live engines WITHOUT clearing the preset name or scheduling a save
+    // (loadFromConfig relies on both). Callers set activePreset explicitly.
+    auto& s = streamAt(stream);
+    s.currentGains = gains;
+    for (auto* e : s.engines) e->setAllGains(gains);
+}
+
 void EqualizerService::loadFromConfig()
 {
     if (!config_) return;
@@ -375,33 +393,65 @@ void EqualizerService::loadFromConfig()
         userPresets_.append(up);
     }
 
-    // Load per-stream preset assignments
+    // Restore per-stream state
     static const char* streamNames[] = {"media", "navigation", "phone"};
     static const StreamId streamIds[] = {StreamId::Media, StreamId::Navigation, StreamId::Phone};
     for (int i = 0; i < 3; ++i) {
-        QString presetName = config_->eqStreamPreset(QString::fromLatin1(streamNames[i]));
+        const QString name = QString::fromLatin1(streamNames[i]);
+        const QString presetName = config_->eqStreamPreset(name);
         if (!presetName.isEmpty()) {
+            // Named preset (bundled or user): applyPreset seeds gains from it.
             applyPreset(streamIds[i], presetName);
+        } else {
+            // Custom (no preset on disk): restore the raw gains verbatim if
+            // valid. The stored preset name reflects the empty on-disk value —
+            // NOT setGain's per-band clear — and no save is scheduled (§4.5).
+            const QList<float> disk = config_->eqStreamGains(name);
+            if (static_cast<int>(disk.size()) == kNumBands) {
+                std::array<float, kNumBands> g{};
+                for (int b = 0; b < kNumBands; ++b) g[b] = disk[b];
+                applyRawGains(streamIds[i], g);
+            }
+            streamAt(streamIds[i]).activePreset = presetName;   // "" ⇒ Custom
         }
+
+        // Bypass is authoritative (§4.4): always restore from disk and fan out
+        // to any live engines. Set directly so load stays save-free.
+        auto& s = streamAt(streamIds[i]);
+        s.bypassed = config_->eqStreamBypassed(name);
+        for (auto* e : s.engines) e->setBypassed(s.bypassed);
     }
 }
 
 void EqualizerService::scheduleSave()
 {
     if (!config_) return;
-    saveTimer_.start(2000);
+    saveTimer_.start(kSaveDebounceMs);
+}
+
+void EqualizerService::setFlushHook(FlushFn fn)
+{
+    flushFn_ = std::move(fn);
 }
 
 void EqualizerService::writeToConfig()
 {
     if (!config_) return;
 
-    // Write stream preset assignments
+    // Write per-stream preset assignment, raw gains, and authoritative bypass.
+    // Gains + bypass are ALWAYS written so a Custom (no-preset) state and a
+    // bypass toggle survive a power cut (design §4.5 / round-2 F7).
     static const char* streamNames[] = {"media", "navigation", "phone"};
     for (int i = 0; i < 3; ++i) {
-        config_->setEqStreamPreset(
-            QString::fromLatin1(streamNames[i]),
-            streams_[i].activePreset);
+        const QString name = QString::fromLatin1(streamNames[i]);
+        config_->setEqStreamPreset(name, streams_[i].activePreset);
+
+        QList<float> gains;
+        gains.reserve(kNumBands);
+        for (int b = 0; b < kNumBands; ++b)
+            gains.append(streams_[i].currentGains[b]);
+        config_->setEqStreamGains(name, gains);
+        config_->setEqStreamBypassed(name, streams_[i].bypassed);
     }
 
     // Write user presets
@@ -413,6 +463,13 @@ void EqualizerService::writeToConfig()
         cfgPresets.append(cp);
     }
     config_->setEqUserPresets(cfgPresets);
+
+    // Surface the flush to disk (round-2 F7). On failure, retain the dirty
+    // in-memory state and re-arm the debounce so the next tick retries.
+    if (flushFn_ && !flushFn_()) {
+        qCWarning(lcEq) << "EQ config flush failed; retrying";
+        saveTimer_.start(kSaveDebounceMs);
+    }
 }
 
 void EqualizerService::saveNow()

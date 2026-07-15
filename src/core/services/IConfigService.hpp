@@ -28,9 +28,10 @@ public:
     /// Must be called from the main thread (single-writer rule).
     virtual void setPluginValue(const QString& pluginId, const QString& key, const QVariant& value) = 0;
 
-    /// Flush config to disk.
+    /// Flush config to disk. Returns true on success (round-2 F7 — callers can
+    /// surface/retry failures instead of silently discarding the result).
     /// Must be called from the main thread.
-    virtual void save() = 0;
+    virtual bool save() = 0;
 };
 
 } // namespace oap

@@ -15,7 +15,7 @@ public:
     }
     QVariant pluginValue(const QString&, const QString&) const override { return {}; }
     void setPluginValue(const QString&, const QString&, const QVariant&) override {}
-    void save() override { saveCalls++; }
+    bool save() override { saveCalls++; return true; }
 
     QString lastKey;
     QVariant lastValue;

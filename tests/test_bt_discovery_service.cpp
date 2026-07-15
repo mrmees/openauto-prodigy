@@ -15,7 +15,7 @@ public:
     }
     QVariant pluginValue(const QString&, const QString&) const override { return {}; }
     void setPluginValue(const QString&, const QString&, const QVariant&) override {}
-    void save() override {}
+    bool save() override { return true; }
 };
 
 class TestBtDiscoveryService : public QObject {

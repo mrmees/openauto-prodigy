@@ -41,7 +41,7 @@ class MockConfigService : public oap::IConfigService {
 public:
     QVariant value(const QString& path) const override { return values_.value(path); }
     void setValue(const QString& path, const QVariant& value) override { values_[path] = value; }
-    void save() override {}
+    bool save() override { return true; }
     QVariant pluginValue(const QString&, const QString&) const override { return {}; }
     void setPluginValue(const QString&, const QString&, const QVariant&) override {}
 

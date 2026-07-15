@@ -12,6 +12,7 @@ Q_LOGGING_CATEGORY(lcAudio,  "oap.audio",  QtInfoMsg)
 Q_LOGGING_CATEGORY(lcPlugin, "oap.plugin", QtInfoMsg)
 Q_LOGGING_CATEGORY(lcUI,     "oap.ui",     QtInfoMsg)
 Q_LOGGING_CATEGORY(lcCore,   "oap.core",   QtInfoMsg)
+Q_LOGGING_CATEGORY(lcEq,     "oap.eq",     QtInfoMsg)
 
 namespace {
 
@@ -53,6 +54,7 @@ const char* shortTag(const char* category)
     if (qstrcmp(category, "oap.plugin") == 0) return "Plugin";
     if (qstrcmp(category, "oap.ui") == 0)     return "UI";
     if (qstrcmp(category, "oap.core") == 0)   return "Core";
+    if (qstrcmp(category, "oap.eq") == 0)     return "EQ";
 
     // Library categories
     if (qstrncmp(category, "oaa.", 4) == 0) return "Lib";

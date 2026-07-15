@@ -323,6 +323,13 @@ int main(int argc, char *argv[])
     // --- Equalizer service (depends on YamlConfig) ---
     auto eqService = new oap::EqualizerService(yamlConfig.get(), &app);
 
+    // Durable EQ persistence: after writeToConfig mutates the YAML in memory,
+    // flush the whole config to disk (Task 4). yamlConfig is app-scoped and
+    // outlives eqService, so capturing the raw pointer + path is safe.
+    eqService->setFlushHook([yc = yamlConfig.get(), path = yamlPath]() {
+        return yc->save(path);
+    });
+
     // Flush EQ config on shutdown
     QObject::connect(&app, &QGuiApplication::aboutToQuit, eqService, &oap::EqualizerService::saveNow);
 

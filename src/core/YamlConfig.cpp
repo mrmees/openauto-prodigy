@@ -1,14 +1,25 @@
 #include "core/YamlConfig.hpp"
 #include "core/YamlMerge.hpp"
 #include <QFile>
+#include <QFileInfo>
 #include <QDir>
 #include <QDebug>
+#include <algorithm>
+#include <cmath>
 #include <sstream>
 #include <cerrno>
 #include <cstdio>
 #include <cstring>
 #include <fcntl.h>
 #include <unistd.h>
+
+namespace {
+// EQ graphic-EQ band count (matches oap::kNumBands from BiquadFilter.hpp; kept
+// local so YamlConfig need not depend on the audio module).
+constexpr int kEqBands = 10;
+// Per-band gain clamp bound in dB (design §4.5).
+constexpr float kEqGainLimitDb = 12.0f;
+} // namespace
 
 namespace oap {
 
@@ -296,6 +307,14 @@ bool YamlConfig::save(const QString& filePath) const
         ::unlink(tmpPath.c_str());
         return false;
     }
+
+    // Durability: fsync the parent directory so the rename itself survives a
+    // power cut (round-2 F7 — a car's normal shutdown IS a power cut). Best
+    // effort: a failure here doesn't invalidate the already-committed rename.
+    const std::string dirPath = QFileInfo(filePath).absolutePath().toStdString();
+    int dfd = ::open(dirPath.c_str(), O_RDONLY | O_DIRECTORY);
+    if (dfd >= 0) { ::fsync(dfd); ::close(dfd); }
+    else qWarning() << "[YamlConfig] save: cannot fsync parent dir" << QString::fromStdString(dirPath);
 
     return true;
 }
@@ -653,6 +672,59 @@ void YamlConfig::setEqStreamPreset(const QString& streamName, const QString& pre
     root_["audio"]["equalizer"]["streams"][streamName.toStdString()]["preset"] = presetName.toStdString();
 }
 
+QList<float> YamlConfig::validatedGains(const YAML::Node& node)
+{
+    // Valid iff a Sequence of exactly kEqBands finite float scalars. Any other
+    // shape (absent, wrong length, non-scalar, unparseable, NaN/Inf) is
+    // rejected wholesale so a malformed file can never poison the filter chain.
+    if (!node.IsDefined() || !node.IsSequence() || static_cast<int>(node.size()) != kEqBands)
+        return {};
+
+    QList<float> gains;
+    gains.reserve(kEqBands);
+    for (const auto& g : node) {
+        if (!g.IsScalar())
+            return {};
+        float v;
+        try {
+            v = g.as<float>();
+        } catch (...) {
+            return {};   // unparseable scalar
+        }
+        if (!std::isfinite(v))
+            return {};   // .nan / .inf / -.inf
+        gains.append(std::clamp(v, -kEqGainLimitDb, kEqGainLimitDb));
+    }
+    return gains;
+}
+
+QList<float> YamlConfig::eqStreamGains(const QString& streamName) const
+{
+    return validatedGains(
+        root_["audio"]["equalizer"]["streams"][streamName.toStdString()]["gains"]);
+}
+
+void YamlConfig::setEqStreamGains(const QString& streamName, const QList<float>& gains)
+{
+    YAML::Node seq(YAML::NodeType::Sequence);
+    for (float g : gains)
+        seq.push_back(g);
+    root_["audio"]["equalizer"]["streams"][streamName.toStdString()]["gains"] = seq;
+}
+
+bool YamlConfig::eqStreamBypassed(const QString& streamName) const
+{
+    auto node = root_["audio"]["equalizer"]["streams"][streamName.toStdString()]["bypassed"];
+    if (node.IsDefined() && node.IsScalar())
+        return node.as<bool>(false);
+    return false;
+}
+
+void YamlConfig::setEqStreamBypassed(const QString& streamName, bool bypassed)
+{
+    root_["audio"]["equalizer"]["streams"][streamName.toStdString()]["bypassed"] = bypassed;
+}
+
 QList<YamlConfig::EqUserPreset> YamlConfig::eqUserPresets() const
 {
     QList<EqUserPreset> result;
@@ -664,14 +736,17 @@ QList<YamlConfig::EqUserPreset> YamlConfig::eqUserPresets() const
         EqUserPreset preset;
         if (entry["name"].IsDefined())
             preset.name = QString::fromStdString(entry["name"].as<std::string>());
-        preset.gains.fill(0.0f);
-        if (entry["gains"].IsDefined() && entry["gains"].IsSequence()) {
-            int i = 0;
-            for (const auto& g : entry["gains"]) {
-                if (i >= 10) break;
-                preset.gains[i++] = g.as<float>(0.0f);
-            }
+
+        // Same validator as eqStreamGains: an invalid gains array drops the
+        // whole preset (design §4.5 / round-2 F5) rather than loading garbage.
+        const QList<float> gains = validatedGains(entry["gains"]);
+        if (static_cast<int>(gains.size()) != kEqBands) {
+            qWarning() << "[YamlConfig] Dropping EQ user preset with invalid gains:"
+                       << (preset.name.isEmpty() ? QStringLiteral("<unnamed>") : preset.name);
+            continue;
         }
+        for (int i = 0; i < kEqBands; ++i)
+            preset.gains[i] = gains[i];
         result.append(preset);
     }
     return result;

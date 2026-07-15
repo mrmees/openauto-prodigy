@@ -19,7 +19,7 @@ public:
     Q_INVOKABLE void setValue(const QString& key, const QVariant& value) override;
     Q_INVOKABLE QVariant pluginValue(const QString& pluginId, const QString& key) const override;
     Q_INVOKABLE void setPluginValue(const QString& pluginId, const QString& key, const QVariant& value) override;
-    Q_INVOKABLE void save() override;
+    Q_INVOKABLE bool save() override;
 
 signals:
     void configChanged(const QString& path, const QVariant& value);

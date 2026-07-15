@@ -1,6 +1,8 @@
 #include <QtTest>
 #include <QTemporaryFile>
 #include <QTemporaryDir>
+#include <QDir>
+#include <QFile>
 #include "core/YamlConfig.hpp"
 
 class TestYamlConfig : public QObject {
@@ -31,6 +33,8 @@ private slots:
     void testEqStreamPresetSaveReload();
     void testEqUserPresetsEmpty();
     void testEqUserPresetsSaveReload();
+    void testEqGainsRoundTripToDisk();
+    void testEqGainsValidationRejectsMalformed();
     void testUiScaleDefaults();
     void testUiTokenDefaults();
     void testUiScaleSetAndGet();
@@ -377,6 +381,45 @@ void TestYamlConfig::testEqUserPresetsSaveReload()
     }
 
     QFile::remove(tmpPath);
+}
+
+void TestYamlConfig::testEqGainsRoundTripToDisk()
+{
+    const QString path = QDir::temp().filePath("eqgains-test.yaml");
+    QFile::remove(path);
+    {
+        oap::YamlConfig cfg; cfg.load(path);
+        QList<float> g; for (int i = 0; i < 10; ++i) g << float(i) - 4.5f;
+        cfg.setEqStreamGains("media", g);
+        cfg.setEqStreamBypassed("media", true);
+        QVERIFY(cfg.save(path));
+    }
+    oap::YamlConfig fresh; fresh.load(path);          // brand-new object
+    auto g2 = fresh.eqStreamGains("media");
+    QCOMPARE(g2.size(), 10);
+    QCOMPARE(g2[0], -4.5f);
+    QVERIFY(fresh.eqStreamBypassed("media"));
+    QFile::remove(path);
+}
+
+void TestYamlConfig::testEqGainsValidationRejectsMalformed()
+{
+    const QString path = QDir::temp().filePath("eqbad-test.yaml");
+    QFile f(path); QVERIFY(f.open(QIODevice::WriteOnly));
+    f.write("audio:\n  equalizer:\n    streams:\n"
+            "      media: { gains: [1, 2, .nan, 4, 5, 6, 7, 8, 9, 10] }\n"
+            "      navigation: { gains: [1, 2, 3] }\n"
+            "    user_presets:\n"
+            "      - { name: Bad, gains: [.inf, 2, 3, 4, 5, 6, 7, 8, 9, 10] }\n"
+            "      - { name: Good, gains: [1, 1, 1, 1, 1, 1, 1, 1, 1, 1] }\n");
+    f.close();
+    oap::YamlConfig cfg; cfg.load(path);
+    QVERIFY(cfg.eqStreamGains("media").isEmpty());        // NaN ⇒ invalid
+    QVERIFY(cfg.eqStreamGains("navigation").isEmpty());   // short ⇒ invalid
+    auto presets = cfg.eqUserPresets();
+    QCOMPARE(presets.size(), 1);                          // "Bad" dropped
+    QCOMPARE(presets[0].name, QString("Good"));
+    QFile::remove(path);
 }
 
 void TestYamlConfig::testUiScaleDefaults()

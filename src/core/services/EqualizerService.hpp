@@ -8,6 +8,7 @@
 #include <QVariantList>
 #include <QTimer>
 #include <array>
+#include <functional>
 #include "core/audio/BiquadFilter.hpp"
 #include "core/audio/EqualizerEngine.hpp"
 #include "core/audio/EqualizerPresets.hpp"
@@ -78,6 +79,14 @@ public:
     /// Flush pending config changes immediately (call on app shutdown)
     void saveNow();
 
+    /// Persist-to-disk hook. writeToConfig() calls this after mutating the
+    /// YamlConfig in memory; it returns true on a successful disk flush. On
+    /// false, writeToConfig re-arms the debounce so the next tick retries and
+    /// the dirty state is retained (design §4.5 / round-2 F7). Not set in tests
+    /// that don't exercise persistence ⇒ writeToConfig only mutates in memory.
+    using FlushFn = std::function<bool()>;
+    void setFlushHook(FlushFn fn);
+
 signals:
     void mediaPresetChanged();
     void navigationPresetChanged();
@@ -115,6 +124,9 @@ private:
     void loadFromConfig();
     void scheduleSave();
     void writeToConfig();
+    // Restore raw gains for a stream without setGain's side effects (no
+    // per-band preset clearing, no scheduleSave). loadFromConfig-only.
+    void applyRawGains(StreamId stream, const std::array<float, kNumBands>& gains);
 
     // Per-stream state (Media / Navigation / Phone). Engine sample-rate and
     // channel counts now travel with each acquireEngine() call, not the state.
@@ -122,6 +134,7 @@ private:
 
     QList<UserPreset> userPresets_;
     YamlConfig* config_ = nullptr;
+    FlushFn flushFn_;
     QTimer saveTimer_;
 };
 
