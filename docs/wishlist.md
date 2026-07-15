@@ -148,6 +148,21 @@ Ideas captured here. Promote to `roadmap-current.md` when ready to commit.
 - **Patched libspa deb has no upgrade path** (gate finding, deferred) — both installers take the idempotent return on ANY installed `+prodigy` version, so a future release bundling a rebuilt deb (`+prodigy2`, or a rebuild against a newer pipewire base) never replaces the installed one. Tolerable while exactly one patched-deb revision exists: a base upgrade breaks the held package's dependency LOUDLY (documented cue to rebuild), and a candidate built for a newer base fails the pre-install simulation on an old base anyway. Fix shape when the first revision bump ships: single-candidate selection + `dpkg --compare-versions` installed-vs-candidate, unhold → install → re-hold only when the candidate is newer. Not patched at the gate: touching the hold/upgrade logic in both installers right before a release adds untested risk to a bench-validated path.
 - **Companion reporting sessions have no liveness expiry** — SHIPPED 2026-07-14 in the B2 teardown — 30 s report-age expiry per owning session, 5 s sweep, reporting-role-only (actions/notifications/socket untouched).
 
+## From bench-findings batch spec review (2026-07-15)
+
+- **AA assistant microphone transport is unimplemented** — Codex spec-review
+  discovery (verified in-tree): the protocol handler emits
+  `micCaptureRequested(bool)` (`AVInputChannelHandler`) but NO production code
+  consumes it; `AndroidAutoOrchestrator` owns playback handles only, and the
+  sole in-tree capture consumer is `BtAudioTap`. The assistant mic has never
+  worked — the 2026-07-15 "input-device selection" wishlist premise ("blocks
+  AA-assistant mic config") was necessary-but-not-sufficient. Fix shape:
+  connect `micCaptureRequested` to an `AudioService`
+  `openCaptureStreamWithOptions` capture stream (target = configured mic
+  device, mic-gain applied) feeding the AVInput channel per the AA protocol.
+  Protocol-critical: `Tier: main`, own promotion cycle; bench row = assistant
+  end-to-end round-trip on the Pixel.
+
 ## From BT A2DP EQ bench (2026-07-15)
 
 - **Two-minute pairing window is invisible in the UI** — diagnosed at the bench
