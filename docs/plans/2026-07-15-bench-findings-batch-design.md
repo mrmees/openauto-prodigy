@@ -11,6 +11,17 @@ settings-slider is a second racing volume-persist path (removed);
 emit-under-mutex deadlock edge on the no-PipeWire path; picker live-sync
 claim narrowed; settings-tree + roadmap added to scope; manual
 `audio.input_device` YAML stays an ignored unknown key. Incorporated below.
+**Round 2 (same day, full six-item spec):** verdict REWORK — 1 P1 / 3 P2 /
+2 P3, ALL verified and accepted (zero dismissals): Stage B would leave the
+installed WirePlumber drop-in active (installers copy-if-present, never
+clean up) — deployment cleanup now required; Stage A restricted to a
+positively verified `a2dp-source` match; Stage B bounded (continuous
+registry watch + sweep-on-active, `Tier: main`); item 4 consequence chain
+and call bench row tightened; item 5 rescoped around an owning loader
+record (stack-local `QPluginLoader` today — unload was unimplementable);
+`docs/architecture.md` added to item 4 scope; DoR test-naming requirement
+pushed to the plan. Per the one-re-run convention there is no round 3;
+remaining risk burns down at the pre-push code gate.
 **Origin:** BT A2DP EQ bench findings (wishlist § "From BT A2DP EQ bench
 (2026-07-15)"). Promoted by Matthew 2026-07-15: items 1–3 as one batch;
 pairing-window UI stays wishlisted (stretch, not promoted). ExecStopPost
@@ -168,7 +179,9 @@ vestige read only at startup.
 
 - Unit-level: `set_audio_config` IPC with `input_device` → config.yaml gains
   `audio: microphone: device:`; `setValueByPath("audio.microphone.device", …)`
-  returns true. (Exact tests at plan time.)
+  returns true. The implementation plan names the exact test sources and
+  focused `ctest -R … --output-on-failure` commands before dispatch (DoR —
+  spec-review round 2).
 - Bench: select mic on HU → key lands in config.yaml → app restart → combo
   shows the selection and `AudioService.inputDevice()` matches. Acceptance
   ends at YAML round-trip + service restoration + picker restoration — no AA
@@ -260,12 +273,12 @@ relies on WirePlumber's default auto-link to the sink ("the routing problem is
 already solved by the platform"). The conf's comment claiming the only other
 bluez node is `bluez_midi.server` forgot SCO.
 
-Consequence chain: during a call the SCO downlink node is created → rule
-retargets it into the tap → `BtAudioTap` **drops** all captured samples while
-its A2DP gate is closed (`BtAudioTap.cpp:88`, gate follows A2DP
-`MediaTransport1.State == "active"`, which is idle during a call) → **far-end
-call audio silently discarded**. If A2DP activity lingers, call audio instead
-plays through the Media EQ/focus path as "BT Audio" — also wrong.
+Consequence chain (precise form, spec-review round 2): **SCO is always
+misrouted into the tap.** If the A2DP gate is closed (`BtAudioTap.cpp:88`,
+gate follows A2DP `MediaTransport1.State == "active"` — typically but not
+invariantly idle during a call), its samples are **discarded**; if the gate
+is open, call audio traverses the Media EQ/focus path as "BT Audio". Both
+are wrong; which one occurs depends on A2DP transport state at the moment.
 
 **The deployed Pi (`ALPHA-26-07-15-01` + this conf) likely has silent phone
 calls whenever the app is running.** The 7/7 bench had no HFP-call row with
@@ -276,29 +289,54 @@ reverts to un-EQ'd).
 ### Fix — two-stage, empirically gated (bench lesson: verify what monitor
 rules can actually see)
 
-- **Stage A (preferred, one-line conf fix):** discriminate A2DP positively in
-  the monitor rule — candidate `api.bluez5.profile = "a2dp-source"` (or
-  negative-match `headset-audio-gateway`). MUST be verified live first:
-  `media.class` was bench-proven absent at monitor-rule evaluation
-  (2026-07-15, commit `9077e17`); `api.bluez5.profile` may or may not be
-  available at that point. Verification: SSH + btmon/pw-dump while Matthew
-  places a call; confirm (a) the property is visible to the rule, (b) SCO
-  routes direct-to-sink, (c) A2DP still retargets to the tap.
-- **Stage B (fallback if no property discriminates at rule-eval time):** drop
-  the WirePlumber rule and move selection into the app — on A2DP transport
-  activation, positively identify the A2DP `bluez_input.*` node in the
-  registry (props ARE readable there — `ScoNodeMonitor.cpp:72` proves it) and
-  retarget it via metadata. This path also absorbs the wishlisted
-  "sweep pre-existing live nodes" item (app restart during live streaming
-  would relink into the tap immediately).
+The plan splits this into a **live discriminator task first** (SSH +
+btmon/pw-dump while Matthew places a call: what properties are actually
+visible at monitor-rule evaluation on the A2DP and SCO nodes), then **exactly
+one** bounded Stage-A or Stage-B implementation task.
 
-### Acceptance / bench rows
+- **Stage A (preferred, one-line conf fix):** match
+  `api.bluez5.profile = "a2dp-source"` **positively** — allowed ONLY if the
+  discriminator task proves that exact property/value is visible at
+  monitor-rule evaluation on the A2DP node (registry visibility for the SCO
+  profile — `ScoNodeMonitor.cpp:72` — proves neither rule-time availability
+  nor the `a2dp-source` value; `media.class` was bench-proven absent at
+  rule-eval, commit `9077e17`). The broader negative HFP exclusion is NOT
+  acceptable (fails open for future profiles). Acceptance: SCO routes
+  direct-to-sink, A2DP still retargets to the tap.
+- **Stage B (fallback if no property discriminates at rule-eval time):**
+  remove the WirePlumber rule and move selection into the app. Bounded shape
+  (spec-review round 2): continuously watch registry node add/remove events;
+  verify the live `api.bluez5.profile == "a2dp-source"` value on each
+  candidate; bind the default metadata object; **sweep existing nodes
+  whenever the A2DP transport becomes active AND retarget matching nodes
+  that appear while active** (a one-shot sweep on the active edge would miss
+  nodes whose registry global arrives after the edge). `Tier: main` — adds
+  PipeWire-thread callbacks. This path absorbs the wishlisted "sweep
+  pre-existing live nodes" item.
+- **Stage B deployment cleanup (spec-review round 2 P1):** both installers
+  only copy the conf when present (`install.sh` / `install-prebuilt.sh`
+  BT-EQ blocks) and never remove an installed copy — deleting the source
+  file alone leaves `/etc/wireplumber/wireplumber.conf.d/50-openauto-bt-eq.conf`
+  active on deployed systems and SCO stays hijacked. Stage B must: remove
+  the source rule, add upgrade cleanup to BOTH installers that deletes the
+  installed drop-in, and delete it on the live Pi before restarting
+  WirePlumber. Acceptance verifies the installed file is ABSENT and SCO
+  routes directly with the app running.
+- `docs/architecture.md:49-53` is stale either way (still claims the
+  `Stream/Output/Audio` discriminator dropped in `9077e17`, and misstates
+  the tap lifecycle) — update it to the selected mechanism as part of this
+  item.
 
-- Incoming AND outgoing HFP call with the tap active: far-end voice audible,
-  routed direct (NOT through tap/EQ), mic uplink works, music duck/resume
-  around the call intact.
+### Acceptance / bench rows (tightened, spec-review round 2)
+
+- Start from **active A2DP playback through the tap**, then incoming AND
+  outgoing HFP calls: far-end voice audible and routed direct (NOT through
+  tap/EQ), in-call volume via phone rocker/VGS works, mic uplink works, and
+  **post-hangup A2DP resumes back through the tap — audible EQ + HU master
+  volume — without restarting the app**.
 - BT music still tap-routed/EQ'd after the change (audible preset swap).
 - App-not-running fallback unchanged (no `node.dont-fallback`).
+- Stage B only: installed drop-in verified ABSENT on the Pi.
 
 ---
 
@@ -318,13 +356,23 @@ Field exposure today is nil — all five in-tree plugins register statically
 (`main.cpp:414-446`); the dynamic path loads nothing in a stock install. This
 is cheap hardening of the supported third-party surface, not a live bug.
 
-### Fix
+### Fix (rescoped, spec-review round 2)
 
-In `PluginManager`'s dynamic-load path, after `PluginLoader::load` and before
-registration/`initialize()`: reject (unload + `pluginFailed`) when
-`plugin->apiVersion() != HOST_API_VERSION` or `plugin->id() != manifest.id`.
-Test: manifest/binary-mismatch case at the PluginManager level (mock or
-fixture plugin lying about its version/ID).
+`PluginLoader::load()` today creates a stack-local `QPluginLoader` and
+returns a bare `IPlugin*` (`PluginLoader.cpp:8-25`) — there is no handle to
+unload through, so "reject + unload" needs a small ownership refactor:
+
+- `PluginLoader` returns an owning load record (the `QPluginLoader` — or
+  equivalent handle — plus the `IPlugin*`); `PluginManager` retains it in
+  each dynamic `PluginEntry`.
+- After load, before registration/`initialize()`: when
+  `plugin->apiVersion() != HOST_API_VERSION` or `plugin->id() != manifest.id`,
+  unload through the record, emit exactly one `pluginFailed`, and never
+  register or initialize the plugin.
+- Tests: a compiled fixture-plugin target (lying about version/ID) +
+  `tests/test_plugin_manager.cpp` cases for API mismatch and ID mismatch.
+  The implementation plan names the exact fixture target and the focused
+  `ctest -R` command before the task is dispatched (DoR).
 
 ---
 
