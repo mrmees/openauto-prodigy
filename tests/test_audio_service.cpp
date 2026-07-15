@@ -1,4 +1,5 @@
 #include <QTest>
+#include <QSignalSpy>
 #include "core/services/AudioService.hpp"
 
 /// Tests for AudioService.
@@ -163,6 +164,38 @@ private slots:
         svc.setCaptureCallback(&opt, nullptr);              // refused — no clear
         QVERIFY(static_cast<bool>(opt.captureCallback));    // still installed
         QVERIFY(opt.captureCallbackActive.load());          // still active
+    }
+
+    void masterVolumeSignalOnlyOnChange()
+    {
+        oap::AudioService svc;
+        QSignalSpy spy(&svc, &oap::AudioService::masterVolumeChanged);
+        svc.setMasterVolume(50);
+        QCOMPARE(spy.count(), 1);
+        svc.setMasterVolume(50);           // same value — no signal
+        QCOMPARE(spy.count(), 1);
+        svc.setMasterVolume(200);          // clamps to 100 — one signal
+        QCOMPARE(spy.count(), 2);
+        svc.setMasterVolume(150);          // clamps to 100 again — no signal
+        QCOMPARE(spy.count(), 2);
+    }
+
+    void masterVolumeGetterReentrantFromSignal()
+    {
+        // Regression: the no-PipeWire branch used to emit while holding
+        // mutex_; a direct-connected slot reading masterVolume() deadlocked.
+        // Only the !threadLoop_ branch had the bug — skip when a live
+        // PipeWire daemon means that branch isn't the one under test
+        // (file convention, and pre-fix this test would HANG there... on the
+        // buggy branch; the skip keeps the red run bounded either way).
+        oap::AudioService svc;
+        if (svc.isAvailable())
+            QSKIP("PipeWire daemon running — no-daemon branch not exercised");
+        int seen = -1;
+        QObject::connect(&svc, &oap::AudioService::masterVolumeChanged,
+                         [&]() { seen = svc.masterVolume(); });
+        svc.setMasterVolume(42);
+        QCOMPARE(seen, 42);
     }
 };
 
