@@ -80,6 +80,26 @@ private slots:
 
         service.destroyStream(handle);
     }
+
+    void testCubicVolumeCurve()
+    {
+        QCOMPARE(oap::AudioService::cubicVolume(0),   0.0f);
+        QCOMPARE(oap::AudioService::cubicVolume(100), 1.0f);
+        QVERIFY(qAbs(oap::AudioService::cubicVolume(50) - 0.125f) < 1e-6f);
+    }
+
+    void testOptionsFactoriesNullWithoutPipeWire()
+    {
+        // Only meaningful when PW is unavailable; skip otherwise.
+        oap::AudioService svc;
+        if (svc.isAvailable()) QSKIP("PipeWire available; factory paths bench-verified");
+        oap::AudioService::PlaybackStreamOptions po; po.name = "T";
+        QCOMPARE(svc.createStreamWithOptions(po), nullptr);
+        oap::AudioService::CaptureStreamOptions co; co.name = "C";
+        QCOMPARE(svc.openCaptureStreamWithOptions(co), nullptr);
+        svc.setStreamActive(nullptr, true);   // must not crash
+        svc.resetStreamRing(nullptr);         // must not crash
+    }
 };
 
 QTEST_MAIN(TestAudioService)

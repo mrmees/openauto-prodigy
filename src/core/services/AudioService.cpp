@@ -2,6 +2,7 @@
 #include "../Logging.hpp"
 #include "core/audio/EqualizerEngine.hpp"
 #include "core/audio/FocusGain.hpp"
+#include <QCoreApplication>
 #include <cstring>
 #include <spa/param/props.h>
 #include <pipewire/version.h>
@@ -83,21 +84,21 @@ AudioService::~AudioService()
         // Stop device registry (removes PW listener + proxy)
         deviceRegistry_.stop();
 
-        // Disable capture callback before tearing down capture stream
-        capture_.callbackActive.store(false, std::memory_order_release);
-
-        // Destroy capture stream if active
-        if (capture_.handle) {
-            spa_hook_remove(&captureListener_);
-            if (capture_.handle->stream)
-                pw_stream_destroy(capture_.handle->stream);
-            delete capture_.handle;
-            capture_.handle = nullptr;
-            capture_.callback = nullptr;
-        }
-
         {
             QMutexLocker lock(&mutex_);
+
+            // Tear down capture streams — each carries its own listener.
+            for (auto* handle : captures_) {
+                // Disable the RT callback guard before destroying the stream.
+                handle->captureCallbackActive.store(false, std::memory_order_release);
+                if (handle->stream) {
+                    spa_hook_remove(&handle->listener);
+                    pw_stream_destroy(handle->stream);
+                }
+                delete handle;
+            }
+            captures_.clear();
+
             for (auto* handle : streams_) {
                 if (handle->stream) {
                     spa_hook_remove(&handle->listener);
@@ -185,69 +186,90 @@ void AudioService::onPlaybackProcess(void* userdata)
     // The phone's audio clock and PipeWire's graph clock drift independently.
     // We steer PipeWire's built-in adaptive resampler via pw_stream_set_rate()
     // to keep the ring buffer fill level near the target (50% of capacity).
+    // Opt-out per handle (e.g. BT A2DP loopback tap owns its own clocking).
+    if (!handle->disableRateMatching) {
+        uint32_t avail = handle->ringBuffer->available();
 
-    uint32_t avail = handle->ringBuffer->available();
+        // Track activity and update EMA every callback for proper smoothing
+        if (bytesRead > 0)
+            handle->activeCallbacks++;
 
-    // Track activity and update EMA every callback for proper smoothing
-    if (bytesRead > 0)
-        handle->activeCallbacks++;
+        float fillNorm = static_cast<float>(avail) /
+                         static_cast<float>(handle->ringBuffer->capacity());
+        constexpr float alpha = 0.02f; // ~50 callback time constant (~1s)
+        handle->filteredFill += alpha * (fillNorm - handle->filteredFill);
 
-    float fillNorm = static_cast<float>(avail) /
-                     static_cast<float>(handle->ringBuffer->capacity());
-    constexpr float alpha = 0.02f; // ~50 callback time constant (~1s)
-    handle->filteredFill += alpha * (fillNorm - handle->filteredFill);
+        // Apply rate correction every ~16 callbacks (~340ms)
+        handle->rateCtlCount++;
+        if (handle->rateCtlCount >= 16) {
+            bool active = handle->activeCallbacks > 0;
+            handle->activeCallbacks = 0;
+            handle->rateCtlCount = 0;
 
-    // Apply rate correction every ~16 callbacks (~340ms)
-    handle->rateCtlCount++;
-    if (handle->rateCtlCount >= 16) {
-        bool active = handle->activeCallbacks > 0;
-        handle->activeCallbacks = 0;
-        handle->rateCtlCount = 0;
+            if (active) {
+                // Target 25% fill — with 500ms buffer this is ~125ms of audio.
+                // The phone naturally delivers at roughly playback rate, so the
+                // buffer settles around 20%. Targeting too high (75%) saturates
+                // the integrator and prevents the controller from responding to
+                // actual variations.
+                float error = handle->filteredFill - 0.25f;
 
-        if (active) {
-            // Target 25% fill — with 500ms buffer this is ~125ms of audio.
-            // The phone naturally delivers at roughly playback rate, so the
-            // buffer settles around 20%. Targeting too high (75%) saturates
-            // the integrator and prevents the controller from responding to
-            // actual variations.
-            float error = handle->filteredFill - 0.25f;
+                // PI controller — gentle gains to avoid oscillation
+                constexpr float kP = 0.001f;
+                constexpr float kI = 0.00005f;
 
-            // PI controller — gentle gains to avoid oscillation
-            constexpr float kP = 0.001f;
-            constexpr float kI = 0.00005f;
+                handle->rateIntegral += error;
+                // Anti-windup
+                if (handle->rateIntegral > 10.0f) handle->rateIntegral = 10.0f;
+                if (handle->rateIntegral < -10.0f) handle->rateIntegral = -10.0f;
 
-            handle->rateIntegral += error;
-            // Anti-windup
-            if (handle->rateIntegral > 10.0f) handle->rateIntegral = 10.0f;
-            if (handle->rateIntegral < -10.0f) handle->rateIntegral = -10.0f;
+                float correction = (kP * error) + (kI * handle->rateIntegral);
 
-            float correction = (kP * error) + (kI * handle->rateIntegral);
+                // Clamp to ±5000 ppm (±0.5%)
+                if (correction > 0.005f) correction = 0.005f;
+                if (correction < -0.005f) correction = -0.005f;
 
-            // Clamp to ±5000 ppm (±0.5%)
-            if (correction > 0.005f) correction = 0.005f;
-            if (correction < -0.005f) correction = -0.005f;
+                double newRate = 1.0 + static_cast<double>(correction);
+                pw_stream_set_rate(handle->stream, newRate);
 
-            double newRate = 1.0 + static_cast<double>(correction);
-            pw_stream_set_rate(handle->stream, newRate);
-
-            // Periodic diagnostic (every ~10s)
-            handle->diagCount++;
-            if (handle->diagCount % 30 == 0) {
-                uint32_t drops = handle->ringBuffer->resetDropCount();
-                fprintf(stderr, "[AudioRate %s] fill=%.1f%% err=%.4f integ=%.2f corr=%.6f avail=%u/%u drops=%u\n",
-                        handle->name.toUtf8().constData(),
-                        handle->filteredFill * 100.0f, error,
-                        handle->rateIntegral, correction,
-                        avail, handle->ringBuffer->capacity(), drops);
+                // Periodic diagnostic (every ~10s)
+                handle->diagCount++;
+                if (handle->diagCount % 30 == 0) {
+                    uint32_t drops = handle->ringBuffer->resetDropCount();
+                    fprintf(stderr, "[AudioRate %s] fill=%.1f%% err=%.4f integ=%.2f corr=%.6f avail=%u/%u drops=%u\n",
+                            handle->name.toUtf8().constData(),
+                            handle->filteredFill * 100.0f, error,
+                            handle->rateIntegral, correction,
+                            avail, handle->ringBuffer->capacity(), drops);
+                }
+            } else {
+                handle->filteredFill = 0.25f;
+                handle->rateIntegral = 0.0f;
+                pw_stream_set_rate(handle->stream, 1.0);
             }
-        } else {
-            handle->filteredFill = 0.25f;
-            handle->rateIntegral = 0.0f;
-            pw_stream_set_rate(handle->stream, 1.0);
         }
     }
 
     pw_stream_queue_buffer(handle->stream, buf);
+}
+
+// ---- Playback state-change callback (PipeWire thread) ----
+
+void AudioService::onPlaybackStateChanged(void* userdata, enum pw_stream_state old,
+                                          enum pw_stream_state state, const char* error)
+{
+    Q_UNUSED(old);
+    Q_UNUSED(error);
+    auto* handle = static_cast<AudioStreamHandle*>(userdata);
+    if (!handle)
+        return;
+
+    // onStreamError is set before connect and never mutated, so this read is
+    // safe on the PW thread. Never run the hook here — marshal it to the Qt
+    // main thread.
+    if (state == PW_STREAM_STATE_ERROR && handle->onStreamError) {
+        QMetaObject::invokeMethod(qApp, handle->onStreamError, Qt::QueuedConnection);
+    }
 }
 
 // ---- Stream creation / destruction ----
@@ -257,34 +279,50 @@ AudioStreamHandle* AudioService::createStream(
     int sampleRate, int channels, const QString& targetDevice,
     int bufferMs)
 {
+    // Legacy virtual — one code path through createStreamWithOptions().
+    PlaybackStreamOptions opts;
+    opts.name = name;
+    opts.priority = priority;
+    opts.sampleRate = sampleRate;
+    opts.channels = channels;
+    opts.targetDevice = targetDevice;
+    opts.bufferMs = bufferMs;
+    return createStreamWithOptions(opts);
+}
+
+AudioStreamHandle* AudioService::createStreamWithOptions(const PlaybackStreamOptions& opts)
+{
     if (!isAvailable()) {
-        qCWarning(lcAudio) << "AudioService::createStream: PipeWire not available, returning nullptr";
+        qCWarning(lcAudio) << "AudioService::createStreamWithOptions: PipeWire not available, returning nullptr";
         return nullptr;
     }
 
     auto* handle = new AudioStreamHandle();
-    handle->name = name;
-    handle->priority = priority;
-    handle->sampleRate = sampleRate;
-    handle->channels = channels;
-    handle->bytesPerFrame = channels * 2; // 16-bit PCM
-    handle->bufferMs = bufferMs;
+    handle->name = opts.name;
+    handle->priority = opts.priority;
+    handle->sampleRate = opts.sampleRate;
+    handle->channels = opts.channels;
+    handle->bytesPerFrame = opts.channels * 2; // 16-bit PCM
+    handle->eqEngine = opts.eqEngine;                     // attached BEFORE connect
+    handle->disableRateMatching = opts.disableRateMatching;
+    handle->onStreamError = opts.onStreamError;
 
     // Ring buffer: sized per-stream via bufferMs, minimum 500ms for burst absorption
     // AA sends audio in large protobuf bursts over TCP, not sample-by-sample.
+    int bufferMs = opts.bufferMs;
     if (bufferMs < 500) bufferMs = 500;
     handle->bufferMs = bufferMs;
-    uint32_t rbSize = static_cast<uint32_t>(sampleRate * channels * 2 * (bufferMs / 1000.0f));
+    uint32_t rbSize = static_cast<uint32_t>(opts.sampleRate * opts.channels * 2 * (bufferMs / 1000.0f));
     uint32_t pow2 = 1;
     while (pow2 < rbSize) pow2 <<= 1;
     handle->ringBuffer = std::make_unique<AudioRingBuffer>(pow2);
-    qCDebug(lcAudio) << "AudioService: Ring buffer for" << name << ":" << pow2 << "bytes (" << bufferMs << "ms)";
+    qCDebug(lcAudio) << "AudioService: Ring buffer for" << opts.name << ":" << pow2 << "bytes (" << bufferMs << "ms)";
 
     // Determine PipeWire role based on stream name
     const char* role = "Music";
-    if (name.contains("Navigation") || name.contains("Speech"))
+    if (opts.name.contains("Navigation") || opts.name.contains("Speech"))
         role = "Communication";
-    else if (name.contains("System"))
+    else if (opts.name.contains("System"))
         role = "Notification";
 
     pw_thread_loop_lock(threadLoop_);
@@ -293,28 +331,29 @@ AudioStreamHandle* AudioService::createStream(
         PW_KEY_MEDIA_TYPE, "Audio",
         PW_KEY_MEDIA_CATEGORY, "Playback",
         PW_KEY_MEDIA_ROLE, role,
-        PW_KEY_NODE_NAME, name.toUtf8().constData(),
+        PW_KEY_NODE_NAME, opts.name.toUtf8().constData(),
         PW_KEY_APP_NAME, "OpenAuto Prodigy",
         nullptr);
 
     // Target specific device if not "auto"
-    QString device = targetDevice == "auto" ? outputDevice_ : targetDevice;
+    QString device = opts.targetDevice == "auto" ? outputDevice_ : opts.targetDevice;
     if (device != "auto" && !device.isEmpty()) {
         pw_properties_set(props, PW_KEY_TARGET_OBJECT, device.toUtf8().constData());
     }
 
-    handle->stream = pw_stream_new(core_, name.toUtf8().constData(), props);
+    handle->stream = pw_stream_new(core_, opts.name.toUtf8().constData(), props);
     if (!handle->stream) {
-        qCWarning(lcAudio) << "AudioService: Failed to create PipeWire stream:" << name;
+        qCWarning(lcAudio) << "AudioService: Failed to create PipeWire stream:" << opts.name;
         pw_thread_loop_unlock(threadLoop_);
         delete handle;
         return nullptr;
     }
 
-    // Set up process callback — userdata is the handle itself
+    // Set up process + state-change callbacks — userdata is the handle itself
     handle->events = {};
     handle->events.version = PW_VERSION_STREAM_EVENTS;
     handle->events.process = &AudioService::onPlaybackProcess;
+    handle->events.state_changed = &AudioService::onPlaybackStateChanged;
     pw_stream_add_listener(handle->stream, &handle->listener, &handle->events, handle);
 
     // Build format params
@@ -323,23 +362,27 @@ AudioStreamHandle* AudioService::createStream(
 
     struct spa_audio_info_raw rawInfo{};
     rawInfo.format = SPA_AUDIO_FORMAT_S16_LE;
-    rawInfo.rate = static_cast<uint32_t>(sampleRate);
-    rawInfo.channels = static_cast<uint32_t>(channels);
+    rawInfo.rate = static_cast<uint32_t>(opts.sampleRate);
+    rawInfo.channels = static_cast<uint32_t>(opts.channels);
 
     const struct spa_pod* params[1];
     params[0] = spa_format_audio_raw_build(&b, SPA_PARAM_EnumFormat, &rawInfo);
 
+    pw_stream_flags connectFlags = static_cast<pw_stream_flags>(
+        PW_STREAM_FLAG_AUTOCONNECT |
+        PW_STREAM_FLAG_MAP_BUFFERS |
+        PW_STREAM_FLAG_RT_PROCESS);
+    if (opts.startInactive)
+        connectFlags = static_cast<pw_stream_flags>(connectFlags | PW_STREAM_FLAG_INACTIVE);
+
     int ret = pw_stream_connect(handle->stream,
         PW_DIRECTION_OUTPUT,
         PW_ID_ANY,
-        static_cast<pw_stream_flags>(
-            PW_STREAM_FLAG_AUTOCONNECT |
-            PW_STREAM_FLAG_MAP_BUFFERS |
-            PW_STREAM_FLAG_RT_PROCESS),
+        connectFlags,
         params, 1);
 
     if (ret < 0) {
-        qCWarning(lcAudio) << "AudioService: Failed to connect stream:" << name << "error:" << ret;
+        qCWarning(lcAudio) << "AudioService: Failed to connect stream:" << opts.name << "error:" << ret;
         spa_hook_remove(&handle->listener);
         pw_stream_destroy(handle->stream);
         pw_thread_loop_unlock(threadLoop_);
@@ -347,14 +390,27 @@ AudioStreamHandle* AudioService::createStream(
         return nullptr;
     }
 
+    // Volume-at-creation (design §4.2): apply the current master volume now, so a
+    // stream born at reduced volume never plays a full-volume first period.
+    // Read masterVolume_ under mutex_ INSIDE the PW lock — same order as
+    // setMasterVolume() to prevent ABBA deadlock.
+    {
+        QMutexLocker lock(&mutex_);
+        float vol = cubicVolume(masterVolume_);
+        float volumes[] = {vol, vol}; // up to stereo
+        pw_stream_set_control(handle->stream,
+            SPA_PROP_channelVolumes,
+            static_cast<uint32_t>(handle->channels), volumes, 0);
+    }
+
     pw_thread_loop_unlock(threadLoop_);
 
     QMutexLocker lock(&mutex_);
     streams_.append(handle);
 
-    qCInfo(lcAudio) << "AudioService: Created stream" << name
-            << sampleRate << "Hz" << channels << "ch"
-            << "priority:" << priority;
+    qCInfo(lcAudio) << "AudioService: Created stream" << opts.name
+            << opts.sampleRate << "Hz" << opts.channels << "ch"
+            << "priority:" << opts.priority;
     return handle;
 }
 
@@ -390,6 +446,13 @@ int AudioService::writeAudio(AudioStreamHandle* handle, const uint8_t* data, int
 
 // ---- Volume & Audio Focus ----
 
+float AudioService::cubicVolume(int masterVolume0to100)
+{
+    // Perceptual cubic curve: (v/100)^3. Clamped so the curve is total.
+    float vol = static_cast<float>(qBound(0, masterVolume0to100, 100)) / 100.0f;
+    return vol * vol * vol;
+}
+
 void AudioService::setMasterVolume(int volume)
 {
     // Lock ordering: PW lock first, then mutex_ (same as destructor)
@@ -406,8 +469,7 @@ void AudioService::setMasterVolume(int volume)
         masterVolume_ = qBound(0, volume, 100);
 
         // Cubic curve for perceptual volume scaling
-        float vol = static_cast<float>(masterVolume_) / 100.0f;
-        vol = vol * vol * vol;
+        float vol = cubicVolume(masterVolume_);
 
         for (auto* handle : streams_) {
             if (handle->stream) {
@@ -506,48 +568,65 @@ QString AudioService::inputDevice() const
     return inputDevice_;
 }
 
-// ---- Capture (microphone input) ----
+// ---- Capture (microphone / loopback input) ----
 
 void AudioService::onCaptureProcess(void* userdata)
 {
-    auto* self = static_cast<AudioService*>(userdata);
-
-    if (!self->capture_.handle || !self->capture_.handle->stream)
+    // userdata is the capture handle (like playback), not the service.
+    auto* handle = static_cast<AudioStreamHandle*>(userdata);
+    if (!handle || !handle->stream)
         return;
 
-    struct pw_buffer* buf = pw_stream_dequeue_buffer(self->capture_.handle->stream);
+    struct pw_buffer* buf = pw_stream_dequeue_buffer(handle->stream);
     if (!buf) return;
 
     struct spa_data& d = buf->buffer->datas[0];
-    // Use atomic guard to safely check callback — avoids race with
-    // closeCaptureStream() clearing the std::function on another thread.
+    // Atomic guard: a legacy setCaptureCallback / close may be mutating the
+    // std::function on the Qt thread. Only touch it when published active.
     if (d.data && d.chunk->size > 0 &&
-        self->capture_.callbackActive.load(std::memory_order_acquire)) {
+        handle->captureCallbackActive.load(std::memory_order_acquire) &&
+        handle->captureCallback) {
         auto* ptr = static_cast<const uint8_t*>(d.data) + d.chunk->offset;
         int size = static_cast<int>(d.chunk->size);
-        self->capture_.callback(ptr, size);
+        handle->captureCallback(ptr, size);
     }
 
-    pw_stream_queue_buffer(self->capture_.handle->stream, buf);
+    pw_stream_queue_buffer(handle->stream, buf);
 }
 
 AudioStreamHandle* AudioService::openCaptureStream(const QString& name,
                                                      int sampleRate, int channels, int bitDepth)
 {
+    // Legacy virtual — autoconnecting, no pre-connect callback (installed later
+    // via setCaptureCallback).
+    CaptureStreamOptions opts;
+    opts.name = name;
+    opts.sampleRate = sampleRate;
+    opts.channels = channels;
+    opts.bitDepth = bitDepth;
+    opts.autoconnect = true;
+    return openCaptureStreamWithOptions(opts);
+}
+
+AudioStreamHandle* AudioService::openCaptureStreamWithOptions(const CaptureStreamOptions& opts)
+{
     if (!isAvailable()) {
-        qCWarning(lcAudio) << "AudioService::openCaptureStream: PipeWire not available";
+        qCWarning(lcAudio) << "AudioService::openCaptureStreamWithOptions: PipeWire not available";
         return nullptr;
     }
 
-    // Only one capture stream at a time
-    if (capture_.handle) {
-        qCWarning(lcAudio) << "AudioService::openCaptureStream: capture already open, closing previous";
-        closeCaptureStream(capture_.handle);
-    }
-
     auto* handle = new AudioStreamHandle();
-    handle->name = name;
+    handle->name = opts.name;
     handle->priority = 0;
+    handle->isCapture = true;
+    handle->sampleRate = opts.sampleRate;
+    handle->channels = opts.channels;
+    handle->bytesPerFrame = opts.channels * (opts.bitDepth == 32 ? 4 : 2);
+    // A pre-connect callback is immutable — installed before connect and
+    // published for the RT thread here (no daemon has run any callback yet).
+    handle->captureCallback = opts.callback;
+    handle->captureCallbackActive.store(static_cast<bool>(opts.callback),
+                                        std::memory_order_release);
 
     pw_thread_loop_lock(threadLoop_);
 
@@ -555,95 +634,105 @@ AudioStreamHandle* AudioService::openCaptureStream(const QString& name,
         PW_KEY_MEDIA_TYPE, "Audio",
         PW_KEY_MEDIA_CATEGORY, "Capture",
         PW_KEY_MEDIA_ROLE, "Communication",
-        PW_KEY_NODE_NAME, name.toUtf8().constData(),
+        PW_KEY_NODE_NAME, opts.name.toUtf8().constData(),
         PW_KEY_APP_NAME, "OpenAuto Prodigy",
         nullptr);
 
-    // Target specific input device if not "auto"
-    {
+    // Target specific input device only when autoconnecting.
+    if (opts.autoconnect) {
         QMutexLocker lock(&mutex_);
         if (inputDevice_ != "auto" && !inputDevice_.isEmpty()) {
             pw_properties_set(props, PW_KEY_TARGET_OBJECT, inputDevice_.toUtf8().constData());
         }
     }
 
-    handle->stream = pw_stream_new(core_, name.toUtf8().constData(), props);
+    handle->stream = pw_stream_new(core_, opts.name.toUtf8().constData(), props);
     if (!handle->stream) {
-        qCWarning(lcAudio) << "AudioService: Failed to create PipeWire capture stream:" << name;
+        qCWarning(lcAudio) << "AudioService: Failed to create PipeWire capture stream:" << opts.name;
         pw_thread_loop_unlock(threadLoop_);
         delete handle;
         return nullptr;
     }
 
-    // Set up process callback
-    capture_.handle = handle;
-    capture_.events = {};
-    capture_.events.version = PW_VERSION_STREAM_EVENTS;
-    capture_.events.process = &AudioService::onCaptureProcess;
-
-    pw_stream_add_listener(handle->stream, &captureListener_,
-                           &capture_.events, this);
+    // Set up process callback — userdata is the handle, with its own listener.
+    handle->events = {};
+    handle->events.version = PW_VERSION_STREAM_EVENTS;
+    handle->events.process = &AudioService::onCaptureProcess;
+    pw_stream_add_listener(handle->stream, &handle->listener, &handle->events, handle);
 
     // Build audio format params
     uint8_t paramBuf[1024];
     struct spa_pod_builder b = SPA_POD_BUILDER_INIT(paramBuf, sizeof(paramBuf));
 
     struct spa_audio_info_raw rawInfo{};
-    rawInfo.format = (bitDepth == 32) ? SPA_AUDIO_FORMAT_S32_LE : SPA_AUDIO_FORMAT_S16_LE;
-    rawInfo.rate = static_cast<uint32_t>(sampleRate);
-    rawInfo.channels = static_cast<uint32_t>(channels);
+    rawInfo.format = (opts.bitDepth == 32) ? SPA_AUDIO_FORMAT_S32_LE : SPA_AUDIO_FORMAT_S16_LE;
+    rawInfo.rate = static_cast<uint32_t>(opts.sampleRate);
+    rawInfo.channels = static_cast<uint32_t>(opts.channels);
 
     const struct spa_pod* params[1];
     params[0] = spa_format_audio_raw_build(&b, SPA_PARAM_EnumFormat, &rawInfo);
 
+    pw_stream_flags connectFlags = static_cast<pw_stream_flags>(
+        PW_STREAM_FLAG_MAP_BUFFERS | PW_STREAM_FLAG_RT_PROCESS);
+    if (opts.autoconnect)
+        connectFlags = static_cast<pw_stream_flags>(connectFlags | PW_STREAM_FLAG_AUTOCONNECT);
+
     int ret = pw_stream_connect(handle->stream,
         PW_DIRECTION_INPUT,
         PW_ID_ANY,
-        static_cast<pw_stream_flags>(PW_STREAM_FLAG_AUTOCONNECT | PW_STREAM_FLAG_MAP_BUFFERS | PW_STREAM_FLAG_RT_PROCESS),
+        connectFlags,
         params, 1);
 
     if (ret < 0) {
-        qCWarning(lcAudio) << "AudioService: Failed to connect capture stream:" << name << "error:" << ret;
-        spa_hook_remove(&captureListener_);
+        qCWarning(lcAudio) << "AudioService: Failed to connect capture stream:" << opts.name << "error:" << ret;
+        spa_hook_remove(&handle->listener);
         pw_stream_destroy(handle->stream);
         pw_thread_loop_unlock(threadLoop_);
-        capture_.handle = nullptr;
         delete handle;
         return nullptr;
     }
 
     pw_thread_loop_unlock(threadLoop_);
 
-    qCInfo(lcAudio) << "AudioService: Opened capture stream" << name
-            << sampleRate << "Hz" << channels << "ch" << bitDepth << "bit";
+    {
+        QMutexLocker lock(&mutex_);
+        captures_.append(handle);
+    }
+
+    qCInfo(lcAudio) << "AudioService: Opened capture stream" << opts.name
+            << opts.sampleRate << "Hz" << opts.channels << "ch" << opts.bitDepth << "bit"
+            << (opts.autoconnect ? "(autoconnect)" : "(manual link)");
     return handle;
 }
 
 void AudioService::closeCaptureStream(AudioStreamHandle* handle)
 {
+    closeCaptureStreamHandle(handle);
+}
+
+void AudioService::closeCaptureStreamHandle(AudioStreamHandle* handle)
+{
     if (!handle) return;
 
-    if (capture_.handle == handle) {
-        // Disable callback atomically first — stops RT thread from invoking it
-        capture_.callbackActive.store(false, std::memory_order_release);
-        capture_.callback = nullptr;
-
-        if (threadLoop_) {
-            pw_thread_loop_lock(threadLoop_);
-            // Remove the spa_hook BEFORE destroying the stream — otherwise the
-            // hook's list pointers dangle and the next openCaptureStream triggers
-            // a use-after-free when pw_stream_add_listener reuses captureListener_.
-            spa_hook_remove(&captureListener_);
-            if (handle->stream)
-                pw_stream_destroy(handle->stream);
-            pw_thread_loop_unlock(threadLoop_);
-        } else {
-            if (handle->stream)
-                pw_stream_destroy(handle->stream);
-        }
-
-        capture_.handle = nullptr;
+    {
+        QMutexLocker lock(&mutex_);
+        captures_.removeOne(handle);
     }
+
+    // Disable the RT callback guard first — stops the RT thread from invoking it.
+    handle->captureCallbackActive.store(false, std::memory_order_release);
+
+    if (handle->stream && threadLoop_) {
+        pw_thread_loop_lock(threadLoop_);
+        // Remove the spa_hook BEFORE destroying the stream — otherwise the
+        // hook's list pointers dangle.
+        spa_hook_remove(&handle->listener);
+        pw_stream_destroy(handle->stream);
+        pw_thread_loop_unlock(threadLoop_);
+    } else if (handle->stream) {
+        pw_stream_destroy(handle->stream);
+    }
+    handle->captureCallback = nullptr;
 
     qCInfo(lcAudio) << "AudioService: Closed capture stream" << handle->name;
     delete handle;
@@ -651,10 +740,40 @@ void AudioService::closeCaptureStream(AudioStreamHandle* handle)
 
 void AudioService::setCaptureCallback(AudioStreamHandle* handle, CaptureCallback cb)
 {
-    if (handle && capture_.handle == handle) {
-        capture_.callback = std::move(cb);
-        capture_.callbackActive.store(capture_.callback != nullptr, std::memory_order_release);
+    if (!handle) return;
+
+    // Handles created with a pre-connect callback are immutable — refuse.
+    if (handle->captureCallback) {
+        qCWarning(lcAudio) << "AudioService::setCaptureCallback: handle" << handle->name
+                           << "already has an immutable capture callback; ignoring";
+        return;
     }
+
+    // Legacy path: install the callback, then publish via the atomic guard.
+    handle->captureCallback = std::move(cb);
+    handle->captureCallbackActive.store(static_cast<bool>(handle->captureCallback),
+                                        std::memory_order_release);
+}
+
+// ---- Stream activity / ring primitives ----
+
+void AudioService::setStreamActive(AudioStreamHandle* h, bool active)
+{
+    if (!h || !h->stream || !threadLoop_) return;
+    pw_thread_loop_lock(threadLoop_);
+    pw_stream_set_active(h->stream, active);
+    pw_thread_loop_unlock(threadLoop_);
+}
+
+void AudioService::resetStreamRing(AudioStreamHandle* h)
+{
+    // Caller must have deactivated the stream first: the lock excludes
+    // concurrent process callbacks, and inactivity keeps the reset meaningful.
+    if (!h || !h->ringBuffer) return;
+    if (!threadLoop_) { h->ringBuffer->reset(); return; }
+    pw_thread_loop_lock(threadLoop_);   // excludes process callbacks
+    h->ringBuffer->reset();
+    pw_thread_loop_unlock(threadLoop_);
 }
 
 // ---- Adaptive buffer growth ----

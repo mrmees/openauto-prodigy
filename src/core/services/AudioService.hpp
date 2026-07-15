@@ -8,6 +8,7 @@
 #include <QList>
 #include <QTimer>
 #include <atomic>
+#include <functional>
 #include <memory>
 #include <pipewire/pipewire.h>
 #include <spa/param/audio/format-utils.h>
@@ -50,8 +51,24 @@ struct AudioStreamHandle {
     // Ring buffer for ASIO → PipeWire bridging
     std::unique_ptr<oap::AudioRingBuffer> ringBuffer;
 
-    // EQ engine — non-owning, set by orchestrator after stream creation
+    // EQ engine — non-owning, set by orchestrator or createStreamWithOptions
+    // (attached BEFORE pw_stream_connect when supplied via options).
     EqualizerEngine* eqEngine = nullptr;
+
+    // Stream-kind + per-handle behaviour flags
+    bool isCapture = false;
+    bool disableRateMatching = false;  // skips the adaptive rate-match block
+
+    // Capture callback (per-handle). For pre-connect capture handles the
+    // callback is installed at creation and is immutable; legacy handles
+    // install it via setCaptureCallback. captureCallbackActive guards the RT
+    // read against a concurrent legacy-path mutation on the Qt thread.
+    IAudioService::CaptureCallback captureCallback;      // immutable after connect
+    std::atomic<bool> captureCallbackActive{false};      // legacy-path guard only
+
+    // Playback error hook — dispatched to the Qt main thread when the stream
+    // enters PW_STREAM_STATE_ERROR (never invoked on the PW RT thread).
+    std::function<void()> onStreamError;
 
     // PipeWire listener (must outlive stream)
     struct spa_hook listener{};
@@ -69,6 +86,31 @@ class AudioService : public QObject, public IAudioService {
 public:
     explicit AudioService(QObject* parent = nullptr);
     ~AudioService() override;
+
+    /// Options for createStreamWithOptions(). Concrete-class API — later tasks
+    /// (focus, EQ, BT A2DP) rely on these exact fields.
+    struct PlaybackStreamOptions {
+        QString name;
+        int priority = 50;
+        int sampleRate = 48000;
+        int channels = 2;
+        QString targetDevice = QStringLiteral("auto");
+        int bufferMs = 50;
+        EqualizerEngine* eqEngine = nullptr;   // attached BEFORE pw_stream_connect
+        bool startInactive = false;            // adds PW_STREAM_FLAG_INACTIVE
+        bool disableRateMatching = false;      // skips the PI controller + set_rate
+        std::function<void()> onStreamError;   // PW_STREAM_STATE_ERROR → Qt thread
+    };
+
+    /// Options for openCaptureStreamWithOptions(). Concrete-class API.
+    struct CaptureStreamOptions {
+        QString name;
+        int sampleRate = 48000;
+        int channels = 2;
+        int bitDepth = 16;
+        bool autoconnect = true;   // false ⇒ no AUTOCONNECT flag, inputDevice_ ignored
+        IAudioService::CaptureCallback callback;  // installed BEFORE connect, immutable
+    };
 
     /// Whether PipeWire was successfully initialized.
     bool isAvailable() const { return threadLoop_ != nullptr; }
@@ -105,6 +147,32 @@ public:
     void closeCaptureStream(AudioStreamHandle* handle) override;
     void setCaptureCallback(AudioStreamHandle* handle, CaptureCallback cb) override;
 
+    // ---- Concrete-class API (NOT on IAudioService) ----
+    // Options-based factories and stream primitives that later tasks build on.
+
+    /// Create a playback stream from options (superset of createStream()).
+    /// Returns nullptr when PipeWire is unavailable. Caller owns the handle.
+    AudioStreamHandle* createStreamWithOptions(const PlaybackStreamOptions& opts);
+
+    /// Open a capture stream from options. Returns nullptr when PipeWire is
+    /// unavailable. Caller owns the handle.
+    AudioStreamHandle* openCaptureStreamWithOptions(const CaptureStreamOptions& opts);
+
+    /// Close and destroy a capture stream by handle. Safe to call with nullptr.
+    void closeCaptureStreamHandle(AudioStreamHandle* handle);
+
+    /// Activate/deactivate a stream (loop-locked). No-op on null/uninitialised.
+    void setStreamActive(AudioStreamHandle* handle, bool active);
+
+    /// Reset a stream's ring buffer (loop-locked, excludes process callbacks).
+    /// The caller MUST have deactivated the stream first — the lock excludes
+    /// concurrent callbacks, but inactivity is what keeps the reset meaningful.
+    void resetStreamRing(AudioStreamHandle* handle);
+
+    /// Perceptual cubic volume curve: (v/100)^3, clamped to [0,100].
+    /// Pure/static so the curve is testable without a PipeWire daemon.
+    static float cubicVolume(int masterVolume0to100);
+
 signals:
     void masterVolumeChanged();
     void deviceFallback(const QString& lostDevice);
@@ -116,6 +184,8 @@ private:
     void applyDucking();
     void checkAdaptiveBuffers();
     static void onPlaybackProcess(void* userdata);
+    static void onPlaybackStateChanged(void* userdata, enum pw_stream_state old,
+                                       enum pw_stream_state state, const char* error);
     static void onCaptureProcess(void* userdata);
 
     struct pw_thread_loop* threadLoop_ = nullptr;
@@ -129,15 +199,8 @@ private:
     QList<AudioStreamHandle*> streams_;
     int masterVolume_ = 80;
 
-    // Capture state — one capture stream at a time (mic)
-    struct CaptureState {
-        AudioStreamHandle* handle = nullptr;
-        CaptureCallback callback;
-        std::atomic<bool> callbackActive{false}; // RT-safe guard for callback access
-        struct pw_stream_events events{};
-    };
-    CaptureState capture_;
-    struct spa_hook captureListener_{};
+    // Capture streams — per-handle listeners live on the handles themselves.
+    QList<AudioStreamHandle*> captures_;
 
     PipeWireDeviceRegistry deviceRegistry_{this};
 
