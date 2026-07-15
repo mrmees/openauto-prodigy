@@ -81,6 +81,7 @@ add_library(openauto-core STATIC
     core/plugin/PluginManager.cpp
     plugins/android_auto/AndroidAutoPlugin.cpp
     plugins/bt_audio/BtAudioPlugin.cpp
+    plugins/bt_audio/BtAudioTap.cpp
     plugins/media_player/PlayQueue.cpp
     plugins/media_player/FolderModel.cpp
     plugins/media_player/PlaybackEngine.cpp

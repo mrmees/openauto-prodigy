@@ -66,6 +66,7 @@ oap_add_test(test_media_scanner
 oap_add_test(test_media_usb_policy SOURCES test_media_usb_policy.cpp)
 
 oap_add_test(test_bt_audio_plugin SOURCES test_bt_audio_plugin.cpp)
+oap_add_test(test_bt_tap_controller SOURCES test_bt_tap_controller.cpp)
 
 # --- Service tests ---
 

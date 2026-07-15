@@ -1,5 +1,8 @@
 #include "BtAudioPlugin.hpp"
+#include "BtAudioTap.hpp"
 #include "core/plugin/IHostContext.hpp"
+#include "core/services/AudioService.hpp"
+#include "core/services/EqualizerService.hpp"
 #include <QQmlContext>
 #include <QDBusConnection>
 #include <QDBusInterface>
@@ -29,6 +32,30 @@ bool BtAudioPlugin::initialize(IHostContext* context)
 
     startDBusMonitoring();
 
+    // BT A2DP loopback tap (Task 7): route phone audio through the app EQ,
+    // master volume, and focus arbitration. Wires only when BOTH concrete
+    // services resolve AND PipeWire is up; a failed start leaves BT audio on
+    // the direct (un-EQ'd) path and is never fatal.
+    if (context) {
+        auto* audio = dynamic_cast<oap::AudioService*>(context->audioService());
+        auto* eq = dynamic_cast<oap::EqualizerService*>(context->equalizerService());
+        if (audio && eq && audio->isAvailable()) {
+            tap_ = new BtAudioTap(audio, eq, this);
+            if (tap_->start()) {
+                connect(this, &BtAudioPlugin::transportActiveChanged,
+                        tap_, &BtAudioTap::setTransportActive);
+                if (transportActive_)
+                    tap_->setTransportActive(true);  // late-start catch-up
+                if (hostContext_)
+                    hostContext_->log(LogLevel::Info,
+                        QStringLiteral("BtAudio: EQ tap running (openauto-bt-eq-in)"));
+            } else if (hostContext_) {
+                hostContext_->log(LogLevel::Warning,
+                    QStringLiteral("BtAudio: EQ tap failed to start — BT audio direct (un-EQ'd)"));
+            }
+        }
+    }
+
     if (hostContext_)
         hostContext_->log(LogLevel::Info, QStringLiteral("Bluetooth Audio plugin initialized"));
 
@@ -37,6 +64,10 @@ bool BtAudioPlugin::initialize(IHostContext* context)
 
 void BtAudioPlugin::shutdown()
 {
+    // Capture-first teardown BEFORE dropping D-Bus monitoring so no transport
+    // edge can fire into a half-torn-down tap.
+    if (tap_)
+        tap_->stop();
     stopDBusMonitoring();
 }
 

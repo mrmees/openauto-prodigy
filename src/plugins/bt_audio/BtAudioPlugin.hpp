@@ -28,6 +28,8 @@ class IHostContext;
 
 namespace plugins {
 
+class BtAudioTap;  // BT A2DP loopback tap (Task 7) — owned + wired in initialize()
+
 /// BlueZ ObjectManager InterfacesAdded carries a{sa{sv}}; QtDBus refuses to
 /// deliver it into a QVariantMap slot, so the connect fails at runtime and
 /// hot-plug goes silently deaf (same fix family as UsbInterfaceMap /
@@ -165,6 +167,10 @@ private:
     IHostContext* hostContext_ = nullptr;
     QDBusServiceWatcher* bluezWatcher_ = nullptr;
     bool monitoring_ = false;
+
+    // BT A2DP loopback tap — non-owning raw pointer; parented to this QObject.
+    // Null when PipeWire is down or the concrete services don't resolve.
+    BtAudioTap* tap_ = nullptr;
 
     ConnectionState connectionState_ = Disconnected;
     PlaybackState playbackState_ = Stopped;
