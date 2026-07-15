@@ -148,6 +148,29 @@ Ideas captured here. Promote to `roadmap-current.md` when ready to commit.
 - **Patched libspa deb has no upgrade path** (gate finding, deferred) — both installers take the idempotent return on ANY installed `+prodigy` version, so a future release bundling a rebuilt deb (`+prodigy2`, or a rebuild against a newer pipewire base) never replaces the installed one. Tolerable while exactly one patched-deb revision exists: a base upgrade breaks the held package's dependency LOUDLY (documented cue to rebuild), and a candidate built for a newer base fails the pre-install simulation on an old base anyway. Fix shape when the first revision bump ships: single-candidate selection + `dpkg --compare-versions` installed-vs-candidate, unhold → install → re-hold only when the candidate is newer. Not patched at the gate: touching the hold/upgrade logic in both installers right before a release adds untested risk to a bench-validated path.
 - **Companion reporting sessions have no liveness expiry** — SHIPPED 2026-07-14 in the B2 teardown — 30 s report-age expiry per owning session, 5 s sweep, reporting-role-only (actions/notifications/socket untouched).
 
+## From BT A2DP EQ pre-push gate (2026-07-14)
+
+- **Epoch-quiesced ring transitions** (gate re-run P1, dismissed with reason) — after
+  the gated-writer fix, a theoretical race window remains: a capture callback
+  in flight past the `captureEnabled_` gate check (~µs) could race an
+  activate-side `drain()` if transitions recurred within microseconds — but
+  transition cadence is bounded by BlueZ D-Bus round-trips (ms+), and the worst
+  case is ONE stale 512-byte chunk (~2.7 ms of audio). Also pre-existing and
+  unchanged: `AudioRingBuffer::write()`'s overflow path advances the read index
+  concurrently with a live reader on ALL audio streams (AA incl.) — a design
+  trait, overflow-while-reading is rare. Proper fix = consumer-owned overrun
+  handling + RT epoch acknowledgment before drains, verified under TSAN — an
+  AudioRingBuffer redesign touching every audio path. **Promote if the bench
+  ever shows transition artifacts** (stale-audio blips on BT pause/resume).
+- **Legacy capture-callback replace race** (gate re-run P2, dismissed with
+  reason) — `setCaptureCallback`'s atomic flag doesn't stop an RT invocation
+  already past the check, so replacing/clearing races the in-flight call.
+  Pre-existing pattern from the original single-slot code; ZERO in-tree
+  callers of the legacy capture API exist (the options path installs
+  immutable pre-connect callbacks and is unaffected). Fix rides with the
+  first real legacy consumer — or delete the legacy capture virtuals
+  entirely, which is cleaner.
+
 ## From EQ parity audit (2026-07-14)
 
 Audit verdict: on-HU and YAML legs of the original outcome statement hold (the on-HU
