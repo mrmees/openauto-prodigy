@@ -43,10 +43,15 @@ bool MediaPlayerPlugin::initialize(IHostContext* context) {
     scanner_ = new MediaScanner(this);
 
     engine_->setAudioService(context->audioService());
-    // Same EQ attach pattern as AndroidAutoPlugin.cpp:51 — the concrete
-    // service exposes engineForStream(); local playback shares the Media EQ.
-    if (auto* eqService = dynamic_cast<oap::EqualizerService*>(context->equalizerService()))
-        engine_->setEqEngine(eqService->engineForStream(oap::StreamId::Media));
+    // Acquire a dedicated Media-curve EQ engine instance (fanned out from the
+    // shared Media gains — local playback no longer shares one engine with AA
+    // media). Released in shutdown() after PlaybackEngine tears down its stream
+    // (RT ordering contract §4.4).
+    if (auto* eqService = dynamic_cast<oap::EqualizerService*>(context->equalizerService())) {
+        eqService_ = eqService;
+        eqEngine_ = eqService->acquireEngine(oap::StreamId::Media, 48000.0f, 2);
+        engine_->setEqEngine(eqEngine_);
+    }
 
     // Auto-advance on track end. A track that "finishes" without ever
     // producing audio is unplayable in disguise: FFmpeg misdetects random
@@ -177,6 +182,12 @@ void MediaPlayerPlugin::shutdown() {
     // child and dies first at teardown, so leaving the release to
     // ~PlaybackEngine ran use-after-free on every clean quit.
     if (engine_) engine_->releaseAudioResources();
+    // Stream is gone — now release the EQ engine (RT ordering contract §4.4:
+    // the stream must be destroyed before its engine pointer is freed).
+    if (eqService_ && eqEngine_) {
+        eqService_->releaseEngine(eqEngine_);
+        eqEngine_ = nullptr;
+    }
 }
 
 void MediaPlayerPlugin::onActivated(QQmlContext* context) {

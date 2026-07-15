@@ -28,6 +28,7 @@ class EqualizerService : public QObject, public IEqualizerService {
 public:
     explicit EqualizerService(QObject* parent = nullptr);
     explicit EqualizerService(YamlConfig* config, QObject* parent = nullptr);
+    ~EqualizerService() override;
 
     // --- Q_PROPERTY readers ---
     QString mediaPreset() const { return streams_[0].activePreset; }
@@ -58,8 +59,21 @@ public:
     Q_INVOKABLE QString activePresetForStream(int streamIndex) const;
     Q_INVOKABLE void applyPresetForStream(int streamIndex, const QString& presetName);
 
-    /// Get raw engine pointer for AudioService stream hookup
-    EqualizerEngine* engineForStream(StreamId stream);
+    /// Acquire a dedicated EqualizerEngine instance for a consumer's audio
+    /// stream. The engine is heap-owned by the service and initialized from
+    /// the StreamId's current gains AND bypass state. Subsequent
+    /// setGain/applyPreset/setBypassed on that StreamId fan out to every live
+    /// instance. The caller MUST releaseEngine() it once its stream is
+    /// destroyed (RT ordering contract, design §4.4). Every consumer owning a
+    /// private instance is what removes the shared-Media-engine state
+    /// corruption. Qt owner thread only.
+    EqualizerEngine* acquireEngine(StreamId stream, float sampleRate, int channels);
+
+    /// Release an engine previously returned by acquireEngine(): drops it from
+    /// the fan-out list and deletes it. The stream that used it MUST already be
+    /// destroyed/quiesced (RT ordering contract, design §4.4). Passing a null
+    /// or unknown pointer is a harmless no-op. Qt owner thread only.
+    void releaseEngine(EqualizerEngine* engine);
 
     /// Flush pending config changes immediately (call on app shutdown)
     void saveNow();
@@ -80,12 +94,15 @@ private:
     };
 
     struct StreamState {
-        EqualizerEngine engine;
         QString activePreset;
         std::array<float, kNumBands> currentGains{};
-
-        StreamState(float sampleRate, int channels)
-            : engine(sampleRate, channels) {}
+        // Live engine instances fanned out to consumers of this StreamId
+        // (non-owning list; the service owns and deletes each on releaseEngine).
+        QList<EqualizerEngine*> engines;
+        // Authoritative bypass state (design §4.4 / round-1 F7): the fan-out
+        // list can be empty, so bypass cannot live only in an engine. New
+        // engines inherit this at acquire; isBypassed() reads it.
+        bool bypassed = false;
     };
 
     int streamIndex(StreamId stream) const;
@@ -99,11 +116,9 @@ private:
     void scheduleSave();
     void writeToConfig();
 
-    StreamState streams_[3] = {
-        {48000.0f, 2},  // Media: stereo 48kHz
-        {48000.0f, 1},  // Navigation: mono 48kHz
-        {16000.0f, 1},  // Phone: mono 16kHz
-    };
+    // Per-stream state (Media / Navigation / Phone). Engine sample-rate and
+    // channel counts now travel with each acquireEngine() call, not the state.
+    StreamState streams_[3];
 
     QList<UserPreset> userPresets_;
     YamlConfig* config_ = nullptr;

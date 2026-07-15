@@ -122,13 +122,28 @@ void PlaybackEngine::ensureStream() {
     // Priority 50: all music sources (AA Media, Local Media, BT Audio) share one
     // priority class; focus recency (focusSequence) makes the most recently
     // started source win. Nav speech (60) still ducks/mutes local playback.
-    stream_ = audioService_->createStream(QStringLiteral("Local Media"), 50,
-                                          48000, 2, QStringLiteral("auto"), bufferMs_);
+    if (auto* concrete = dynamic_cast<oap::AudioService*>(audioService_)) {
+        // Attach the EQ engine via options so it is in place BEFORE
+        // pw_stream_connect (RT ordering contract §4.4).
+        oap::AudioService::PlaybackStreamOptions opts;
+        opts.name = QStringLiteral("Local Media");
+        opts.priority = 50;
+        opts.sampleRate = 48000;
+        opts.channels = 2;
+        opts.bufferMs = bufferMs_;
+        opts.eqEngine = eqEngine_;
+        stream_ = concrete->createStreamWithOptions(opts);
+    } else {
+        // Fallback (mock IAudioService in tests): legacy createStream +
+        // post-assign; the mock never runs the RT graph, so ordering is moot.
+        stream_ = audioService_->createStream(QStringLiteral("Local Media"), 50,
+                                              48000, 2, QStringLiteral("auto"), bufferMs_);
+        if (stream_) stream_->eqEngine = eqEngine_;
+    }
     if (!stream_) {
         qCWarning(lcMediaPlayer) << "AudioService stream creation failed";
         return;
     }
-    stream_->eqEngine = eqEngine_;  // same attach pattern as AA media
 }
 
 void PlaybackEngine::onAudioBuffer(const QAudioBuffer& buffer) {

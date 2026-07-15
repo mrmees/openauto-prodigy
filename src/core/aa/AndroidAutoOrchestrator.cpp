@@ -41,6 +41,7 @@ AndroidAutoOrchestrator::AndroidAutoOrchestrator(
     : QObject(parent)
     , configService_(configService)
     , audioService_(audioService)
+    , concreteAudio_(dynamic_cast<oap::AudioService*>(audioService))
     , yamlConfig_(yamlConfig)
     , eventBus_(eventBus)
     , eqService_(eqService)
@@ -329,18 +330,44 @@ void AndroidAutoOrchestrator::onNewConnection()
         int speechBufMs = yamlConfig_ ? yamlConfig_->audioBufferMs("speech") : 200;
         int systemBufMs = yamlConfig_ ? yamlConfig_->audioBufferMs("system") : 200;
 
-        mediaStream_  = audioService_->createStream("AA Media",  50, 48000, 2, "auto", mediaBufMs);
-        speechStream_ = audioService_->createStream("AA Speech", 60, 48000, 1, "auto", speechBufMs);
-        systemStream_ = audioService_->createStream("AA System", 40, 16000, 1, "auto", systemBufMs);
-
-        // Assign EQ engines to stream handles
+        // Acquire a dedicated EQ engine per stream BEFORE creating the streams,
+        // so each engine attaches pre-connect (RT ordering contract §4.4).
+        // Each is a private instance fanned out from the shared per-stream
+        // gains — no consumer shares an engine. Released in teardownSession()
+        // after the streams are destroyed. (System stream uses the Phone curve
+        // until the Task 5 StreamId::System rename.)
         if (eqService_) {
-            if (mediaStream_)
-                mediaStream_->eqEngine = eqService_->engineForStream(oap::StreamId::Media);
-            if (speechStream_)
-                speechStream_->eqEngine = eqService_->engineForStream(oap::StreamId::Navigation);
-            if (systemStream_)
-                systemStream_->eqEngine = eqService_->engineForStream(oap::StreamId::Phone);
+            mediaEq_  = eqService_->acquireEngine(oap::StreamId::Media, 48000.0f, 2);
+            speechEq_ = eqService_->acquireEngine(oap::StreamId::Navigation, 48000.0f, 1);
+            systemEq_ = eqService_->acquireEngine(oap::StreamId::Phone, 16000.0f, 1);
+        }
+
+        if (concreteAudio_) {
+            // Preferred path: attach the engine via options (before connect).
+            oap::AudioService::PlaybackStreamOptions mo;
+            mo.name = "AA Media"; mo.priority = 50; mo.sampleRate = 48000;
+            mo.channels = 2; mo.bufferMs = mediaBufMs; mo.eqEngine = mediaEq_;
+            mediaStream_ = concreteAudio_->createStreamWithOptions(mo);
+
+            oap::AudioService::PlaybackStreamOptions so;
+            so.name = "AA Speech"; so.priority = 60; so.sampleRate = 48000;
+            so.channels = 1; so.bufferMs = speechBufMs; so.eqEngine = speechEq_;
+            speechStream_ = concreteAudio_->createStreamWithOptions(so);
+
+            oap::AudioService::PlaybackStreamOptions syso;
+            syso.name = "AA System"; syso.priority = 40; syso.sampleRate = 16000;
+            syso.channels = 1; syso.bufferMs = systemBufMs; syso.eqEngine = systemEq_;
+            systemStream_ = concreteAudio_->createStreamWithOptions(syso);
+        } else {
+            // Fallback (mock IAudioService in tests): legacy createStream +
+            // post-assign. The mock never runs the RT graph, so attach ordering
+            // is moot here.
+            mediaStream_  = audioService_->createStream("AA Media",  50, 48000, 2, "auto", mediaBufMs);
+            speechStream_ = audioService_->createStream("AA Speech", 60, 48000, 1, "auto", speechBufMs);
+            systemStream_ = audioService_->createStream("AA System", 40, 16000, 1, "auto", systemBufMs);
+            if (mediaStream_)  mediaStream_->eqEngine  = mediaEq_;
+            if (speechStream_) speechStream_->eqEngine = speechEq_;
+            if (systemStream_) systemStream_->eqEngine = systemEq_;
         }
 
         if (mediaStream_) {
@@ -783,11 +810,19 @@ void AndroidAutoOrchestrator::teardownSession()
     }
     activeSocket_ = nullptr;  // owned by transport
 
-    // Destroy audio streams
+    // Destroy audio streams, THEN release their EQ engines: a stream must be
+    // fully destroyed/quiesced before its engine pointer is freed (RT ordering
+    // contract §4.4), otherwise the RT process callback could touch a deleted
+    // engine.
     if (audioService_) {
         if (mediaStream_) { audioService_->destroyStream(mediaStream_); mediaStream_ = nullptr; }
         if (speechStream_) { audioService_->destroyStream(speechStream_); speechStream_ = nullptr; }
         if (systemStream_) { audioService_->destroyStream(systemStream_); systemStream_ = nullptr; }
+    }
+    if (eqService_) {
+        if (mediaEq_)  { eqService_->releaseEngine(mediaEq_);  mediaEq_  = nullptr; }
+        if (speechEq_) { eqService_->releaseEngine(speechEq_); speechEq_ = nullptr; }
+        if (systemEq_) { eqService_->releaseEngine(systemEq_); systemEq_ = nullptr; }
     }
 }
 

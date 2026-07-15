@@ -1,9 +1,11 @@
 #include <QtTest>
 #include "core/services/EqualizerService.hpp"
+#include "core/audio/EqualizerEngine.hpp"
 #include "core/audio/EqualizerPresets.hpp"
 #include "core/YamlConfig.hpp"
 #include <QDir>
 #include <QFile>
+#include <cmath>
 
 using oap::StreamId;
 
@@ -179,19 +181,52 @@ private slots:
         QVERIFY(svc.userPresetNames().isEmpty());
     }
 
-    void testEngineForStreamDistinct()
+    void testAcquireReturnsDistinctInitializedInstances()
     {
         oap::EqualizerService svc;
-        auto* media = svc.engineForStream(StreamId::Media);
-        auto* nav = svc.engineForStream(StreamId::Navigation);
-        auto* phone = svc.engineForStream(StreamId::Phone);
+        svc.setGain(StreamId::Media, 0, 5.0f);
+        auto* e1 = svc.acquireEngine(StreamId::Media, 48000.0f, 2);
+        auto* e2 = svc.acquireEngine(StreamId::Media, 48000.0f, 2);
+        QVERIFY(e1 && e2 && e1 != e2);
+        QCOMPARE(e1->getGain(0), 5.0f);
+        QCOMPARE(e2->getGain(0), 5.0f);
+        svc.releaseEngine(e1); svc.releaseEngine(e2);
+    }
 
-        QVERIFY(media != nullptr);
-        QVERIFY(nav != nullptr);
-        QVERIFY(phone != nullptr);
-        QVERIFY(media != nav);
-        QVERIFY(media != phone);
-        QVERIFY(nav != phone);
+    void testFanOutPropagatesToAllInstances()
+    {
+        oap::EqualizerService svc;
+        auto* e1 = svc.acquireEngine(StreamId::Media, 48000.0f, 2);
+        auto* e2 = svc.acquireEngine(StreamId::Media, 44100.0f, 2);
+        svc.applyPreset(StreamId::Media, "Rock");
+        const auto* rock = oap::findBundledPreset("Rock");
+        QCOMPARE(e1->getGain(0), rock->gains[0]);
+        QCOMPARE(e2->getGain(0), rock->gains[0]);
+        svc.setBypassed(StreamId::Media, true);
+        QVERIFY(e1->isBypassed() && e2->isBypassed());
+        svc.releaseEngine(e2);
+        svc.setGain(StreamId::Media, 1, -3.0f);
+        QCOMPARE(e1->getGain(1), -3.0f);        // still fans out to live engine
+        svc.releaseEngine(e1);
+        svc.setGain(StreamId::Media, 2, 4.0f);  // no engines — must not crash
+    }
+
+    void testBypassAuthoritativeWithoutEngines()
+    {
+        oap::EqualizerService svc;
+        svc.setBypassed(StreamId::Media, true);
+        QVERIFY(svc.isBypassed(StreamId::Media));              // no engine involved
+        auto* e = svc.acquireEngine(StreamId::Media, 48000.0f, 2);
+        QVERIFY(e->isBypassed());                              // inherited at acquire
+        svc.releaseEngine(e);
+    }
+
+    void testNonFiniteGainRejected()
+    {
+        oap::EqualizerService svc;
+        svc.setGain(StreamId::Media, 0, 5.0f);
+        svc.setGain(StreamId::Media, 0, std::nanf(""));
+        QCOMPARE(svc.gain(StreamId::Media, 0), 5.0f);          // unchanged
     }
 
     void testBypassPerStream()

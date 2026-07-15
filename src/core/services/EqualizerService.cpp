@@ -1,6 +1,7 @@
 #include "core/services/EqualizerService.hpp"
 #include "core/YamlConfig.hpp"
 #include <algorithm>
+#include <cmath>
 
 namespace oap {
 
@@ -33,6 +34,17 @@ EqualizerService::EqualizerService(YamlConfig* config, QObject* parent)
         loadFromConfig();
 }
 
+EqualizerService::~EqualizerService()
+{
+    // Safety net: consumers are expected to releaseEngine() before teardown
+    // (RT ordering contract §4.4), but delete any that outlived their owner so
+    // the service never leaks heap engines.
+    for (auto& s : streams_) {
+        qDeleteAll(s.engines);
+        s.engines.clear();
+    }
+}
+
 QString EqualizerService::activePreset(StreamId stream) const
 {
     return streamAt(stream).activePreset;
@@ -44,13 +56,13 @@ void EqualizerService::applyPreset(StreamId stream, const QString& presetName)
     auto& s = streamAt(stream);
 
     if (gains) {
-        s.engine.setAllGains(*gains);
+        for (auto* e : s.engines) e->setAllGains(*gains);
         s.currentGains = *gains;
         s.activePreset = presetName;
     } else {
         // Fall back to Flat
         const auto* flat = findBundledPreset("Flat");
-        s.engine.setAllGains(flat->gains);
+        for (auto* e : s.engines) e->setAllGains(flat->gains);
         s.currentGains = flat->gains;
         s.activePreset = QStringLiteral("Flat");
     }
@@ -64,9 +76,12 @@ void EqualizerService::applyPreset(StreamId stream, const QString& presetName)
 void EqualizerService::setGain(StreamId stream, int band, float dB)
 {
     if (band < 0 || band >= kNumBands) return;
+    // Reject non-finite input at the service boundary (design §4.5 / round-2
+    // F5) so no caller path (QML, config, future API) can feed NaN downstream.
+    if (!std::isfinite(dB)) return;
 
     auto& s = streamAt(stream);
-    s.engine.setGain(band, dB);
+    for (auto* e : s.engines) e->setGain(band, dB);
     s.currentGains[band] = dB;
     s.activePreset.clear();
 
@@ -89,13 +104,16 @@ std::array<float, kNumBands> EqualizerService::gainsForStream(StreamId stream) c
 
 void EqualizerService::setBypassed(StreamId stream, bool bypassed)
 {
-    streamAt(stream).engine.setBypassed(bypassed);
+    auto& s = streamAt(stream);
+    s.bypassed = bypassed;                     // authoritative (§4.4 / round-1 F7)
+    for (auto* e : s.engines) e->setBypassed(bypassed);
     emit bypassedChanged(static_cast<int>(stream));
+    scheduleSave();                            // round-1 F4 — arm the save debounce
 }
 
 bool EqualizerService::isBypassed(StreamId stream) const
 {
-    return streamAt(stream).engine.isBypassed();
+    return streamAt(stream).bypassed;
 }
 
 QStringList EqualizerService::bundledPresetNames() const
@@ -247,9 +265,29 @@ void EqualizerService::applyPresetForStream(int streamIndex, const QString& pres
     applyPreset(static_cast<StreamId>(streamIndex), presetName);
 }
 
-EqualizerEngine* EqualizerService::engineForStream(StreamId stream)
+EqualizerEngine* EqualizerService::acquireEngine(StreamId stream, float sampleRate, int channels)
 {
-    return &streamAt(stream).engine;
+    // Qt owner thread only (see header). Heap-own a fresh instance seeded with
+    // the stream's current gains and bypass, then register it for fan-out.
+    auto& s = streamAt(stream);
+    auto* engine = new EqualizerEngine(sampleRate, channels);
+    engine->setAllGains(s.currentGains);
+    engine->setBypassed(s.bypassed);
+    s.engines.append(engine);
+    return engine;
+}
+
+void EqualizerService::releaseEngine(EqualizerEngine* engine)
+{
+    // Qt owner thread only (see header). Find the owning stream, unregister,
+    // and delete. Null / unknown pointers are harmless no-ops.
+    if (!engine) return;
+    for (auto& s : streams_) {
+        if (s.engines.removeOne(engine)) {
+            delete engine;
+            return;
+        }
+    }
 }
 
 // --- Private helpers ---
