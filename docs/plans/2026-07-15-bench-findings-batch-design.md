@@ -2,6 +2,15 @@
 
 Status: ACTIVE
 **Date:** 2026-07-15 · **Grounded against:** `dev` at `69fc78b`.
+**Codex spec review (gpt-5.6-sol, 2026-07-15):** round 1 verdict REWORK —
+2 P1 / 4 P2 / 1 P3, ALL verified against the tree and accepted (zero
+dismissals): AA-assistant mic row impossible (no AVInput→capture wiring
+exists — acceptance narrowed, mic transport is separate protocol-critical
+work); master-volume shutdown flush required (debounce alone loses saves);
+settings-slider is a second racing volume-persist path (removed);
+emit-under-mutex deadlock edge on the no-PipeWire path; picker live-sync
+claim narrowed; settings-tree + roadmap added to scope; manual
+`audio.input_device` YAML stays an ignored unknown key. Incorporated below.
 **Origin:** BT A2DP EQ bench findings (wishlist § "From BT A2DP EQ bench
 (2026-07-15)"). Promoted by Matthew 2026-07-15: items 1–3 as one batch;
 pairing-window UI stays wishlisted (stretch, not promoted). ExecStopPost
@@ -66,6 +75,12 @@ loss exactly as when walking out of range; an explicit disconnect buys nothing.
 - Docs: wishlist entry flips on ship; session-handoffs entry. No other doc
   describes the disconnect-on-clean-stop behavior (`docs/how-to/testing-reconnect.md`
   mentions a *manual* `bluetoothctl disconnect` — unrelated, unchanged).
+- Codex-verified (spec review round 1): the source installer's service heredoc
+  is the ONLY generator of the hook — re-running `install.sh` after the edit
+  cannot resurrect it, and `install-prebuilt.sh` (release installs) already
+  generates a unit with no disconnect hook. Nuance: on real shutdowns the
+  explicit disconnect shortened the link by the remaining OS-shutdown
+  interval; no behavior depends on that.
 
 ### Acceptance / bench row
 
@@ -109,14 +124,25 @@ identically (the live `setInputDevice` call at :382 works).
 
 - `AudioSettings.qml` input picker: on selection write
   `audio.microphone.device` (keep the existing `ConfigService.save()` and the
-  live `AudioService.setInputDevice()` call); repopulate the combo from the
+  live `AudioService.setInputDevice()` call); populate the combo from the
   **live** `AudioService.inputDevice()` value (Q_INVOKABLE,
-  `AudioService.hpp:156`), falling back to the config key — live truth also
-  reflects IPC-set changes mid-session.
+  `AudioService.hpp` `inputDevice()`) at construction, and resync selection on
+  `AudioInputDeviceModel` count changes (device enumeration resets the model,
+  `AudioDeviceModel.cpp:60`). Scope note: `setInputDevice` has no change
+  signal / Q_PROPERTY, so an already-open picker does NOT track IPC-set
+  changes — accepted; no new signal added (YAGNI).
 - `IpcServer.cpp:391`: persist to `audio.microphone.device`. The JSON field
   name `input_device` in the IPC API is **unchanged** (get at :370 already
-  reads the live service value).
+  reads the live service value; `web-config/templates/audio.html` binds the
+  JSON field only — unaffected).
+- `docs/reference/settings-tree.md:72`: currently advertises the dead
+  `audio.input_device` key and "restart required" — update to
+  `audio.microphone.device`, applies to newly created capture streams.
 - No YamlConfig schema changes, no new keys, startup path untouched.
+- Migration: none required — the rejected UI/IPC writes could never create
+  `audio.input_device` in app-generated configs. A manually authored
+  `audio.input_device` is preserved by the unknown-key merge
+  (`YamlMerge.hpp:18`) but ignored; optional cleanup NOT included.
 
 **Alternative rejected:** adding `audio.input_device` to the defaults schema —
 leaves two keys meaning the same thing and `microphone.device` as a dead
@@ -125,9 +151,15 @@ vestige read only at startup.
 ### Behavior notes
 
 - `AudioService::setInputDevice` only affects capture streams created
-  afterwards (`PW_KEY_TARGET_OBJECT` set at stream creation,
-  `AudioService.cpp:687-688`). AA assistant capture is created per invocation,
-  so a new selection applies from the next assistant use — no restart needed.
+  afterwards (`PW_KEY_TARGET_OBJECT` set at stream creation, in
+  `openCaptureStreamWithOptions`).
+- **The AA assistant mic is NOT unblocked by this fix** (Codex spec review
+  P1, verified): the protocol handler emits `micCaptureRequested` but NO
+  production code consumes it, and the orchestrator owns no capture handle —
+  the only in-tree capture consumer is `BtAudioTap`. AA microphone transport
+  is separate protocol-critical work (`Tier: main`, own promotion cycle);
+  this batch only makes the device *preference* real. The wishlist premise
+  "unblocks AA-assistant mic config" was necessary-but-not-sufficient.
 - If the persisted device is absent at boot, the combo shows no selection and
   routing targets a missing node (PipeWire falls back). Same pre-existing
   behavior as output-device; not worsened, not fixed here.
@@ -137,38 +169,63 @@ vestige read only at startup.
 - Unit-level: `set_audio_config` IPC with `input_device` → config.yaml gains
   `audio: microphone: device:`; `setValueByPath("audio.microphone.device", …)`
   returns true. (Exact tests at plan time.)
-- Bench (needs Matthew + Pixel): select mic on HU → key lands in config.yaml →
-  app restart → combo shows the selection and `AudioService.inputDevice()`
-  matches → **AA assistant end-to-end mic round-trip** — this path has NEVER
-  been testable before this fix.
+- Bench: select mic on HU → key lands in config.yaml → app restart → combo
+  shows the selection and `AudioService.inputDevice()` matches. Acceptance
+  ends at YAML round-trip + service restoration + picker restoration — no AA
+  assistant row (impossible until AVInput capture wiring exists).
 
 ---
 
 ## Item 3 — Master-volume persistence
 
-### Root cause
+### Root cause (corrected by spec review round 1)
 
 All runtime volume changes funnel through `AudioService::setMasterVolume`
 (`AudioService.cpp:488`) → `masterVolumeChanged` — gesture overlay
 (`GestureOverlayController.cpp:112`), mute toggle (`main.cpp:1006-1010`), IPC
-(`IpcServer.cpp:384`). Startup loads from config (`main.cpp:321`,
-`YamlConfig::masterVolume` default 80), but nothing ever flushes runtime
-changes back to disk (bench: runtime 0→59 while disk stayed 89; restart
-reloaded 89).
+(`IpcServer.cpp:384`), settings slider. Startup loads from config
+(`main.cpp:321`, `YamlConfig::masterVolume` default 80). Persistence is
+**inconsistent, not absent**: the settings-screen slider independently
+persists via `configPath: "audio.master_volume"` (`AudioSettings.qml:24`;
+`SettingsSlider` writes + saves after 300 ms and on destruction) while the
+gesture/navbar/mute/IPC paths never flush (bench: gesture 0→59 while disk
+stayed 89; restart reloaded 89). Any centralized fix must also REMOVE the
+slider's independent write path or there are two racing writers.
 
-### Fix — debounced persist-on-change in the main.cpp wiring
+### Fix — single centralized persist path, debounced, with shutdown flush
 
-- Connect `AudioService::masterVolumeChanged` → single-shot **2000 ms**
-  debounce `QTimer` (mirrors `EqualizerService`'s `kSaveDebounceMs` pattern,
-  `EqualizerService.cpp:11`) → `yamlConfig->setMasterVolume(audioService->masterVolume())`
-  + `configService->save()`. `YamlConfig::save` already has the durable
-  tmp-write + fsync + rename + parent-dir-fsync treatment from the shipped EQ
-  persistence rider (`YamlConfig.cpp:257`).
+- Connect `AudioService::masterVolumeChanged` → dirty flag + single-shot
+  **2000 ms** debounce `QTimer` (mirrors `EqualizerService`'s
+  `kSaveDebounceMs`, `EqualizerService.cpp:11`) →
+  `yamlConfig->setMasterVolume(audioService->masterVolume())` + save.
+  Observe `YamlConfig::save()`'s boolean and retry transient failure like the
+  EQ pattern (`EqualizerService.cpp:473`); note `ConfigService::save()`
+  swallows the result — persist via a path that surfaces it. The save is
+  durable (tmp-write + fsync + rename + parent-dir fsync, `YamlConfig::save`).
+- **Shutdown flush (spec review P1):** a pending debounce gets no event-loop
+  turn once `app.exec()` returns — connect `aboutToQuit` → stop timer +
+  synchronous save-if-dirty, mirroring the EQ flush (`main.cpp:333` →
+  `EqualizerService::saveNow`). Hard crash/power loss inside the 2 s window
+  is the accepted debounce tradeoff (documented, not defended).
+- Timer is main-thread, context-bound (receiver-context connection), lifetime
+  ends before `ConfigService`/`YamlConfig`. `setMasterVolume` is documented
+  thread-safe API — the queued/context-bound connection keeps a future
+  worker-thread caller from touching the timer cross-thread.
+- **Emit-under-lock rider (spec review P2):** the no-PipeWire branch of
+  `setMasterVolume` emits `masterVolumeChanged` while holding `mutex_`
+  (`AudioService.cpp:489-494`); QML handlers read `masterVolume()` (same
+  non-recursive mutex) from the signal → deadlock on the dev path. Hoist the
+  emit out of the locked scope, and emit in both branches only when the
+  clamped value actually changed.
 - Place the connection **after** the initial load at `main.cpp:321` (natural
   ordering) so the boot-time apply doesn't trigger a redundant save.
-- Remove the now-redundant direct write at `IpcServer.cpp:393`
-  (`config_->setMasterVolume(...)`) so there is a **single** persist path; the
-  IPC handler's immediate `save()` for device keys stays.
+- **Single writer:** remove the settings slider's
+  `configPath: "audio.master_volume"` (initialize + sync it from live
+  `AudioService.masterVolume`; keep its `onMoved` → `setMasterVolume`).
+  Remove the direct write at `IpcServer.cpp:393`, and make the IPC handler's
+  immediate `save()` fire only when a device field was actually persisted —
+  otherwise a master-only IPC request saves the stale in-memory volume before
+  the debounce lands.
 
 ### Mute semantics (decided)
 
@@ -180,10 +237,13 @@ boot-at-0 is safe: genuine streaming at vol 0, smooth fade-in on raise).
 ### Acceptance / bench row
 
 - `main.cpp` wiring is NOT covered by ctest (ctest never compiles `main.cpp` —
-  standing trap) → verification is app-target build + bench row.
+  standing trap) → verification is app-target build + bench rows. The
+  AudioService emit-under-lock rider IS unit-testable.
 - Bench: change volume via gesture → wait >2 s → config.yaml reflects it →
   restart app → volume restored (no stale reload). Rapid volume drag produces
   one write, not a write per step (journal/inotify spot-check).
+- Bench (spec review P1): change volume, clean-restart **within 2 s** →
+  new value survives (the aboutToQuit flush row).
 
 ---
 
@@ -274,7 +334,9 @@ fixture plugin lying about its version/ID).
 (:58) and cites `docs/plans/...` paths that moved to `docs/archive/plans/`
 (at least the bt-a2dp-eq design at :59 and the hfp-mic-9876 pair at :70; sweep
 the whole file for `docs/plans/` refs whose targets moved). Docs-only fix:
-move shipped work to "Done", repoint refs at `docs/archive/plans/`.
+move shipped work to "Done", repoint refs at `docs/archive/plans/`, and add
+THIS batch under "Now" (AGENTS.md requires roadmap updates when priorities
+change — spec review P2).
 
 ---
 
@@ -290,9 +352,12 @@ move shipped work to "Done", repoint refs at `docs/archive/plans/`.
   not a Pi-side `git pull`.
 - Execution order: item 4 first (live call-audio regression), then 1–3, 5, 6
   in any order.
-- Bench rows needing Matthew present: item 4 call rows (any phone), item 2 AA
-  assistant mic round-trip (Pixel).
+- Bench rows needing Matthew present: item 4 call rows (any phone). The
+  item 2 AA-assistant mic row was REMOVED (impossible — see item 2); item 2
+  verifies over SSH + one restart.
 - Opportunistic bench cleanup while in there: remove the stale one-way S25
   bond from the HU.
 - Wishlist-then-promote: anything new found mid-execution goes to
   `docs/wishlist.md`, not into scope.
+- Line numbers in this doc are accurate at the grounded revision but will
+  drift — the implementation plan pairs them with symbol names.
