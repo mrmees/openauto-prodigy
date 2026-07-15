@@ -65,20 +65,8 @@ void BtAudioPlugin::startDBusMonitoring()
         scanExistingObjects();
     });
 
-    connect(bluezWatcher_, &QDBusServiceWatcher::serviceUnregistered, this, [this]() {
-        if (hostContext_)
-            hostContext_->log(LogLevel::Info, QStringLiteral("BtAudio: BlueZ disappeared from D-Bus"));
-        transportPath_.clear();
-        playerPath_.clear();
-        if (connectionState_ != Disconnected) {
-            connectionState_ = Disconnected;
-            emit connectionStateChanged();
-        }
-        if (playbackState_ != Stopped) {
-            playbackState_ = Stopped;
-            emit playbackStateChanged();
-        }
-    });
+    connect(bluezWatcher_, &QDBusServiceWatcher::serviceUnregistered,
+            this, &BtAudioPlugin::onBluezServiceUnregistered);
 
     // ObjectManager InterfacesAdded is a{sa{sv}} — QtDBus refuses to deliver it
     // into a QVariantMap slot, so the connect below fails silently unless the
@@ -152,6 +140,25 @@ void BtAudioPlugin::stopDBusMonitoring()
     delete bluezWatcher_;
     bluezWatcher_ = nullptr;
     monitoring_ = false;
+}
+
+void BtAudioPlugin::onBluezServiceUnregistered()
+{
+    if (hostContext_)
+        hostContext_->log(LogLevel::Info, QStringLiteral("BtAudio: BlueZ disappeared from D-Bus"));
+    transportPath_.clear();
+    playerPath_.clear();
+    // BlueZ gone => no transport => no audio activity. Force the edge false
+    // before the UI-state resets below so the tap releases focus.
+    setTransportActive(false);
+    if (connectionState_ != Disconnected) {
+        connectionState_ = Disconnected;
+        emit connectionStateChanged();
+    }
+    if (playbackState_ != Stopped) {
+        playbackState_ = Stopped;
+        emit playbackStateChanged();
+    }
 }
 
 void BtAudioPlugin::scanExistingObjects()
@@ -305,6 +312,9 @@ void BtAudioPlugin::onInterfacesRemoved(const QDBusObjectPath& path, const QStri
             hostContext_->log(LogLevel::Info,
                 QStringLiteral("BtAudio: A2DP transport removed"));
 
+        // Interface gone => audio activity gone. Force the edge false.
+        setTransportActive(false);
+
         connectionState_ = Disconnected;
         deviceName_.clear();
         emit connectionStateChanged();
@@ -358,6 +368,18 @@ void BtAudioPlugin::updateTransportState(const QString& state)
         connectionState_ = newState;
         emit connectionStateChanged();
     }
+
+    // Truthful audio-activity edge alongside the UI mapping above: idle and
+    // pending are connected-but-silent, only "active" is real playback. This is
+    // the signal the BT loopback tap (Task 7) grabs audio focus off of.
+    setTransportActive(state == QLatin1String("active"));
+}
+
+void BtAudioPlugin::setTransportActive(bool active)
+{
+    if (active == transportActive_) return;
+    transportActive_ = active;
+    emit transportActiveChanged(transportActive_);
 }
 
 void BtAudioPlugin::updatePlayerProperties(const QVariantMap& props)

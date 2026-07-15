@@ -115,6 +115,14 @@ public:
     int trackPosition() const { return trackPosition_; }
     QString deviceName() const { return deviceName_; }
 
+    /// True iff the tracked A2DP transport's MediaTransport1.State == "active".
+    /// This is audio activity, NOT interface presence: a connected-but-silent
+    /// phone leaves the transport idle/pending, which reads false here even
+    /// though connectionState() reports Connected. The BT loopback tap (Task 7)
+    /// grabs audio focus off this edge, so a false positive would mute Android
+    /// Auto while the phone is silent — precision matters.
+    bool transportActive() const { return transportActive_; }
+
     // Playback controls (invokable from QML)
     Q_INVOKABLE void play();
     Q_INVOKABLE void pause();
@@ -126,6 +134,9 @@ signals:
     void playbackStateChanged();
     void metadataChanged();
     void positionChanged();
+    /// Edge-only: emitted just when the tracked transport's audio activity
+    /// flips (idle/pending/removed/BlueZ-loss -> false, active -> true).
+    void transportActiveChanged(bool active);
 
 private slots:
     // D-Bus signal handlers — MUST be slots or every string-based bus.connect()
@@ -137,6 +148,9 @@ private slots:
     // playerPath_ so a foreign BlueZ object's update cannot stomp our state.
     void onPropertiesChanged(const QString& interface, const QVariantMap& changed,
                              const QStringList& invalidated, const QDBusMessage& message);
+    // BlueZ vanished from the bus (QDBusServiceWatcher::serviceUnregistered).
+    // A slot so the meta-object test seam can drive it without a live bus.
+    void onBluezServiceUnregistered();
 
 private:
     void startDBusMonitoring();
@@ -145,6 +159,8 @@ private:
     void updateTransportState(const QString& state);
     void updatePlayerProperties(const QVariantMap& props);
     void sendPlayerCommand(const QString& command);
+    // Edge-emits transportActiveChanged only when the value actually flips.
+    void setTransportActive(bool active);
 
     IHostContext* hostContext_ = nullptr;
     QDBusServiceWatcher* bluezWatcher_ = nullptr;
@@ -152,6 +168,7 @@ private:
 
     ConnectionState connectionState_ = Disconnected;
     PlaybackState playbackState_ = Stopped;
+    bool transportActive_ = false;
 
     QString trackTitle_;
     QString trackArtist_;
