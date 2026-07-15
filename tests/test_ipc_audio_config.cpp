@@ -89,6 +89,27 @@ private slots:
         reloaded.load(yamlPath);
         QCOMPARE(reloaded.masterVolume(), 80);
     }
+
+    void setAudioConfigReportsPersistenceFailure() {
+        QTemporaryDir dir;
+        YamlConfig cfg;
+        AudioService audio;
+        IpcServer server;
+        server.setAudioService(&audio);
+        // Parent directory does not exist — YamlConfig::save cannot create
+        // its tmp file there and returns false.
+        server.setConfig(&cfg, dir.path() + "/no-such-subdir/config.yaml");
+        const QString sockPath = dir.path() + "/ipc.sock";
+        QVERIFY(server.start(sockPath));
+
+        QJsonObject req{{"command", "set_audio_config"},
+                        {"data", QJsonObject{{"input_device", "alsa_input.usb-mic"}}}};
+        const QJsonObject resp = roundTrip(sockPath, req);
+        QVERIFY(!resp.value("ok").toBool());
+        QVERIFY(!resp.value("error").toString().isEmpty());
+        // Live apply still happened before the failed persist (deliberate).
+        QCOMPARE(audio.inputDevice(), QString("alsa_input.usb-mic"));
+    }
 };
 
 QTEST_MAIN(TestIpcAudioConfig)

@@ -389,18 +389,22 @@ QByteArray IpcServer::handleSetAudioConfig(const QVariantMap& data)
     // unconditional save here would flush the stale in-memory value first.
     if (config_) {
         bool persisted = false;
+        bool persistOk = true;
         if (data.contains("output_device")) {
-            config_->setValueByPath("audio.output_device",
-                                    data.value("output_device").toString());
+            persistOk = config_->setValueByPath("audio.output_device",
+                            data.value("output_device").toString()) && persistOk;
             persisted = true;
         }
         if (data.contains("input_device")) {
-            config_->setValueByPath("audio.microphone.device",
-                                    data.value("input_device").toString());
+            persistOk = config_->setValueByPath("audio.microphone.device",
+                            data.value("input_device").toString()) && persistOk;
             persisted = true;
         }
-        if (persisted)
-            config_->save(configPath_);
+        if (persisted) {
+            persistOk = config_->save(configPath_) && persistOk;
+            if (!persistOk)
+                return R"({"ok":false,"error":"Failed to persist audio config"})";
+        }
     }
 
     return R"({"ok":true})";
