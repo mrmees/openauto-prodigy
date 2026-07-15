@@ -15,7 +15,7 @@ Wires the entire system:
 
 ### Core services (`src/core/services/`)
 
-Shared host services reached through `IHostContext`: `ConfigService`, `ThemeService`, `AudioService` (PipeWire streams, volume, audio focus/ducking), `PipeWireDeviceRegistry`, `EventBus`, `ActionRegistry`, `NotificationService`, `MediaStatusService` (playing-wins arbitration across AA/BT/local sources), `PhoneStateService`, `OverlayService`, `EqualizerService`, `DisplayService`, `BluetoothManager`, `IpcServer`.
+Shared host services reached through `IHostContext`: `ConfigService`, `ThemeService`, `AudioService` (PipeWire streams, volume, audio focus/ducking with recency tie-break — see Runtime Data Flow), `PipeWireDeviceRegistry`, `EventBus`, `ActionRegistry`, `NotificationService`, `MediaStatusService` (playing-wins arbitration across AA/BT/local sources), `PhoneStateService`, `OverlayService`, `EqualizerService` (per-stream gains/preset/bypass state, fans out to a dedicated `EqualizerEngine` instance per consumer via `acquireEngine(StreamId, ...)` — AA media, local playback, and the BT tap each hold their own engine so a preset/gain change updates every live consumer of that stream), `DisplayService`, `BluetoothManager`, `IpcServer`.
 
 ### External API (`src/core/api/`)
 
@@ -37,12 +37,30 @@ In-tree static library implementing the AA protocol: transport (`TCPTransport`, 
 Static plugins compiled into the binary, implementing `IPlugin` (see [reference/plugin-api.md](reference/plugin-api.md)):
 
 - `android_auto` — projection lifecycle, activation/deactivation hooks, touch integration, AA focus controls.
-- `bt_audio` — BlueZ D-Bus monitoring for A2DP media transport/player state and AVRCP controls.
+- `bt_audio` — BlueZ D-Bus monitoring for A2DP media transport/player state and AVRCP controls; owns `BtAudioTap`, which routes BT music through the app's EQ (see "BT A2DP EQ tap" below).
 - `phone` — BlueZ D-Bus monitoring for HFP device/call state and incoming-call UI integration.
 - `media_player` — local file playback (`PlaybackEngine`, `PlayQueue`, `FolderModel`, `MediaArtProvider`).
 - `equalizer` — EQ control over `EqualizerService`.
 
 Dynamic plugins load from `~/.openauto/plugins/` (manifest + `.so`). Apps open via dashboard launcher widgets — there is no nav strip.
+
+### BT A2DP EQ tap
+
+A WirePlumber rule (`config/50-openauto-bt-eq.conf`, installed to
+`/etc/wireplumber/wireplumber.conf.d/`) retargets BlueZ A2DP input streams
+(`~bluez_input.*`, `Stream/Output/Audio`) onto the app's capture node
+`openauto-bt-eq-in`, which only exists while `BtAudioTap` (owned by
+`BtAudioPlugin`) has brought it up for an active transport. `BtAudioTap`
+drains the capture through a ring buffer into a dedicated "BT Audio"
+playback stream carrying its own Media-curve `EqualizerEngine` instance
+(one of the per-consumer engines `EqualizerService::acquireEngine` hands
+out — see Core services), so BT music now gets the same preset/gain
+treatment as AA media and local playback, plays through the HU master
+volume, and participates in focus arbitration like any other music source.
+When the app isn't running (or the tap hasn't brought the node up yet) the
+retarget has nothing to attach to and WirePlumber falls back to the
+default sink — BT audio still plays, just un-EQ'd; the rule deliberately
+omits `node.dont-fallback` so that fallback stays available.
 
 ### UI layer (`qml/` + `src/ui/`)
 
@@ -71,7 +89,7 @@ Wireless AA session path (high-level):
 3. `AndroidAutoOrchestrator` creates `oaa::AASession` and registers channel handlers.
 4. Video/audio/input/sensor events flow through handlers into app services.
 5. Video frames decode in `VideoDecoder`, then render via QML `VideoOutput`.
-6. Audio packets route through `AudioService` into PipeWire streams (media/navigation/phone, with focus/ducking).
+6. Audio packets route through `AudioService` into PipeWire streams (media/navigation/system, with focus/ducking). Music sources (AA media, local playback, the BT tap) all request focus at priority 50; the holder is the most-recently-started of the three (a monotonic sequence number breaks priority ties), so starting any one of them takes focus from the others. Speech/nav prompts (priority 60) still duck whatever music holds focus.
 7. Plugin/UI state updates propagate via Q_PROPERTY signals and event bus publications.
 
 ## Threading Model

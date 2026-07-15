@@ -318,6 +318,15 @@ YAML
         ok "udisks2 polkit rule installed"
     fi
 
+    # WirePlumber rule: BT A2DP audio routes through the app EQ tap (falls
+    # back to direct playback when the app is down).
+    if [[ -f "$INSTALL_DIR/config/50-openauto-bt-eq.conf" ]]; then
+        sudo mkdir -p /etc/wireplumber/wireplumber.conf.d
+        sudo cp "$INSTALL_DIR/config/50-openauto-bt-eq.conf" /etc/wireplumber/wireplumber.conf.d/
+        systemctl --user try-restart wireplumber 2>/dev/null || true
+        ok "BT-EQ WirePlumber rule installed"
+    fi
+
     sudo usermod -aG bluetooth "$USER"
     sudo usermod -aG input "$USER"
 

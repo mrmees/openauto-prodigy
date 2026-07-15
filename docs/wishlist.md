@@ -171,20 +171,23 @@ demand materializes.
   (`get_eq_state`, `set_eq_gain`, `set_eq_preset`, preset CRUD) + a web-config page
   with per-stream band sliders; decide whether the External API also gets a (frozen
   additive) EQ surface or web/IPC stays the only remote channel.
-- **Manual EQ gains and bypass state don't survive restart** — `writeToConfig()`
+- **Manual EQ gains and bypass state don't survive restart** — SHIPPING — 2026-07-14
+  plan in execution — `writeToConfig()`
   persists per-stream *preset names* + the user-preset library only. Manual slider
   tweaks clear `activePreset` to "" (UI shows "Custom"), and `loadFromConfig()` skips
   empty names — so unsaved slider positions silently reset to the last named preset
   (or Flat/Voice defaults) on restart; bypass always resets to off. User-visible:
   fiddle sliders, don't save, reboot the car → EQ quietly reverts. Fix shape: persist
   raw gains when `activePreset` is empty, plus a per-stream `bypassed` key.
-- **"Phone" EQ engine is attached to the AA *system* stream** — pre-existing quirk
+- **"Phone" EQ engine is attached to the AA *system* stream** — SHIPPING — 2026-07-14
+  plan in execution — pre-existing quirk
   (flagged in F2, re-confirmed at `AndroidAutoOrchestrator.cpp:343`): the on-HU
   "Phone" tab actually EQs AA system sounds (nav beeps etc.); nothing EQs real call
   audio (HFP SCO bypasses `AudioService`, the accepted 2026-07-05 design limitation).
   Decision needed: relabel the tab/stream "System" (honest, cheap) vs route SCO
   through AudioService (real work, revisits the HFP design).
-- **BT A2DP music bypasses the EQ entirely** — BlueZ→PipeWire routes phone music
+- **BT A2DP music bypasses the EQ entirely** — SHIPPING — 2026-07-14 plan in
+  execution — BlueZ→PipeWire routes phone music
   natively; `BtAudioPlugin` only monitors transports over D-Bus. The Media EQ governs
   AA media + the local media player only. Original OAP applied a sink-level 15-band
   LADSPA EQ to *all* audio. Fix shape if wanted: PipeWire `filter-chain` on the sink

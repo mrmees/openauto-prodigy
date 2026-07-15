@@ -51,6 +51,23 @@ audio:
   microphone:
     device: "auto"                  # PipeWire input device ("auto" = system default)
     gain: 1.0                       # microphone gain multiplier
+  equalizer:
+    streams:
+      media:                        # AA media + local playback + the BT A2DP tap
+        preset: "Flat"               # bundled/user preset name, or "" for raw gains ("Custom" in UI)
+        gains: [0, 0, 0, 0, 0, 0, 0, 0, 0, 0]  # 10 bands, dB, -12.0..12.0
+        bypassed: false
+      navigation:
+        preset: "Voice"
+        gains: [0, 0, 0, 0, 0, 0, 0, 0, 0, 0]
+        bypassed: false
+      system:                       # AA system sounds (nav beeps etc.) — NOT phone/HFP call audio
+        preset: "Voice"
+        gains: [0, 0, 0, 0, 0, 0, 0, 0, 0, 0]
+        bypassed: false
+    user_presets:                   # user-saved presets, referenced by name from streams.*.preset
+      - name: "My Preset"
+        gains: [0, 0, 0, 0, 0, 0, 0, 0, 0, 0]
 
 # Touch input configuration
 touch:
@@ -131,6 +148,10 @@ All keys are documented with their dot-path (for `valueByPath()`), type, default
 | `audio.output_device` | string | `"auto"` | PipeWire output device name (`"auto"` = system default) |
 | `audio.microphone.device` | string | `"auto"` | PipeWire input device name (`"auto"` = system default) |
 | `audio.microphone.gain` | double | `1.0` | Microphone input gain multiplier (0.5-4.0 typical) |
+| `audio.equalizer.streams.<name>.preset` | string | `"Flat"` / `"Voice"` | Active preset name for stream `media`, `navigation`, or `system` (`""` = raw `gains`, shown as "Custom" in the UI) |
+| `audio.equalizer.streams.<name>.gains` | list[float] (10) | all `0.0` | Per-band gain in dB, one stream. Must be exactly 10 finite values; each clamps to ±12 dB; a malformed array (wrong length, NaN/Inf, non-scalar) is rejected wholesale and the preset/default path is used instead |
+| `audio.equalizer.streams.<name>.bypassed` | bool | `false` | Bypasses this stream's EQ engine (passthrough) without losing the stored preset/gains |
+| `audio.equalizer.user_presets` | list[{name, gains}] | `[]` | User-saved presets; each `gains` entry follows the same 10-value/±12 dB validation as the per-stream gains, or the whole preset is dropped on load |
 | `touch.device` | string | `""` | evdev device path (`""` = auto-detect DFRobot USB Multi Touch by VID:PID 3343:5710) |
 | `video.fps` | int | `30` | Target framerate (30 or 60; phone will adapt) |
 | `video.resolution` | string | `"720p"` | AA video resolution (`"480p"`, `"720p"`, `"1080p"`) |
@@ -331,6 +352,16 @@ Themes are loaded by `ThemeService::loadTheme(themeName)` and colors are exposed
   (`OAP_VERSION`, git-derived; see `AGENTS.md` § Versioning).
   `setValueByPath()` rejects writes to it; a leftover `sw_version:` entry in
   an existing `config.yaml` is retained on save but read by nothing.
+
+**Renamed keys:**
+- 2026-07-14: `audio.equalizer.streams.phone` → `audio.equalizer.streams.system`
+  — honest labeling; this stream is AA system sounds (nav beeps etc.), not
+  phone/HFP call audio (HFP SCO bypasses `AudioService` entirely). The
+  migration runs on the raw user YAML before the defaults merge: an existing
+  `phone` block with no `system` block is copied to `system` and `phone` is
+  deleted; if both are present, `system` wins and `phone` is deleted. A
+  config with only `system` (new installs, or already-migrated files) is a
+  no-op.
 
 ---
 
