@@ -10,7 +10,13 @@ tag + dev→main PR follow this work.
 6 P1 / 8 P2 / 1 P3; all accepted and incorporated below except the
 deprecated-QML-alias half of one P2 (dismissed: no external consumers exist at
 alpha; in-tree QML migrates in the same commit; the `Phone = System` enum
-alias IS kept for plugin source compat).
+alias IS kept for plugin source compat). Round 2 (same day): 2 P1 / 5 P2, all
+accepted and incorporated (transport-State activity edge, quiesced ring
+transitions, focus (priority, sequence) redesign, concrete options-factory
+instead of interface virtuals, full NaN-ingress validation, src/AGENTS.md
+buffer-rule correction, fsync-parent durability). Round-1 dispositions stand;
+per the one-re-run rule, no round 3 — remaining risk burns down at the
+pre-push code gate.
 
 ## 1. Problem
 
@@ -110,11 +116,32 @@ non-autoconnected capture with no peer is truly idle.
 The **playback** stream is NOT permanently active: our playback callback
 always emits full periods (silence-filling underruns), which keeps the graph
 running, the sink awake, and CPU busy. So: playback stream exists but
-`pw_stream_set_active(false)`; `BtAudioPlugin`'s existing A2DP transport
-D-Bus watch toggles it — transport acquired → reset ring, activate;
-transport released → deactivate, reset ring. Toggling *activity* does not
-create/destroy the capture node, so the linking race stays closed. Bench
-measures idle CPU and sink suspend state (§7).
+`pw_stream_set_active(false)`, toggled by a transport-activity edge.
+
+**The activity edge (round-2 P1):** there are no "TransportAdded" signals,
+and `BtAudioPlugin::updateTransportState()` currently maps
+`MediaTransport1.State` `idle`/`pending`/`active` all to one Connected UI
+state — interface presence is NOT audio activity (a connected-but-idle phone
+must not grab focus and mute AA). New: the plugin derives a
+`transportActiveChanged(bool)` edge strictly from
+`MediaTransport1.State == "active"` — via `PropertiesChanged`, initialized
+from `GetManagedObjects`, and forced `false` on `idle`, `pending`, interface
+removal, or BlueZ service disappearance. Playback activity and focus (§3.5)
+are driven exclusively by this edge (AVRCP state plays no part). The existing
+Connected UI state mapping is untouched. Every transition (incl. BlueZ loss)
+is unit-tested.
+
+**Quiesced transitions (round-2 P1):** the edge arrives on the Qt thread
+while capture/playback process callbacks run on the PipeWire RT thread, and
+`AudioRingBuffer::reset()` is a plain non-atomic store — resetting a live
+ring is a data race. Transitions therefore run under `pw_thread_loop_lock`
+with the affected streams deactivated first: active→inactive = deactivate
+playback, then reset ring; inactive→active = reset ring, then activate.
+Concurrent transition/process stress coverage is required, not just a plain
+state-machine test.
+
+Toggling *activity* does not create/destroy the capture node, so the linking
+race stays closed. Bench measures idle CPU and sink suspend state (§7).
 
 ### 3.3 Clock domains
 
@@ -156,20 +183,35 @@ playback and confirm `node.name` / `media.class` / absence of
 `node.dont-fallback` before freezing the fragment. Never set
 `node.dont-fallback` — fallback IS the failure mode.
 
-### 3.5 Focus policy (corrected)
+### 3.5 Focus policy (corrected twice — round-2 P2 redesign)
 
 `applyDucking` semantics today: the focus holder plays at base volume;
 with GAIN focus held, **all other streams mute to 0.0** (speech focus ducks
-others to 0.2). Streams do not mix, and priority only orders focus-holder
-selection. The original spec's "sources mix" was wrong.
+others to 0.2). Streams do not mix. Holder selection is **strictly-greater
+priority with first-in-list ties** — there is no recency in the current
+code, and local media sits at priority **51** (above AA media's 50)
+precisely because that was the only way to make it win. "Last claimant
+wins" therefore does not fall out of the existing mechanism; it must be
+built:
 
-Policy: the BT tap **participates in the existing focus system** — it
-requests GAIN focus when its transport activates (§3.2) and releases on
-transport release. Consequences, intentional: starting BT playback silences
-AA media (and vice versa — last claimant wins, matching user intent of
-"I just started playing this"); speech/nav prompts duck BT to the same 0.2
-factor as other music. Exact focus API wiring is read at plan time from the
-`applyDucking`/focus-request call sites.
+- `AudioService` focus requests gain a **monotonically increasing sequence
+  number**; `applyDucking` selects the holder by `(priority, sequence)` —
+  highest priority first, most recent request among equals.
+- **Music priority unifies at 50**: AA media stays 50, the BT tap enters at
+  50, and local media drops 51 → 50. The 51 was a tie-break hack; with
+  sequence ordering, "the music source you started last wins" holds for all
+  three, in both directions (this changes one edge: AA media starting
+  *after* local playback now takes focus — which matches the user's action).
+  Speech (60) still trumps all music; AA system (40) stays below.
+- The BT tap requests GAIN focus on the §3.2 activity edge going true and
+  releases on it going false.
+
+Consequences, intentional: starting BT playback silences AA media and vice
+versa; same for BT↔local; speech/nav prompts duck whatever music holds
+focus to the 0.2 factor. Plan-time task: read the existing focus-request
+call sites (AA orchestrator, `PlaybackEngine.cpp:120` area) and migrate them
+onto the sequence mechanism; takeover is tested in both directions for
+BT↔AA and BT↔local, plus speech over each.
 
 ## 4. Components
 
@@ -190,6 +232,19 @@ invocation). The refactor that adds the second slot fixes this pattern:
   only. The AA mic slot keeps today's autoconnect+target semantics
   unchanged.
 
+**API shape (round-2 P2):** the pre-connect requirements above (immutable
+callback, non-autoconnect, start-inactive, adaptive-rate policy, EQ attached
+before connect) cannot ride the existing `IAudioService` virtuals
+(`createStream` + `openCaptureStream`/`setCaptureCallback`) without either
+racy post-hoc setters or a vtable change (= plugin ABI break +
+`HOST_API_VERSION` bump). Instead: a **concrete `AudioService` factory**
+taking an options struct (capture: callback, autoconnect policy, target
+semantics; playback: eq engine, start-inactive, adaptive-rate off), reached
+by the tap via checked `dynamic_cast` from the `IAudioService*` it gets from
+IHostContext — the same concrete-class pattern MediaPlayerPlugin already
+uses for `engineForStream`. The pure interfaces do not change; no
+`HOST_API_VERSION` bump.
+
 ### 4.2 AudioService: volume-at-creation fix
 
 `createStream` applies the current cubic master volume to the new stream
@@ -204,9 +259,9 @@ A `BtAudioTap` in `src/plugins/bt_audio/`, owned by `BtAudioPlugin` (the
 BT-audio domain home; it reaches AudioService/EqualizerService via
 IHostContext like MediaPlayerPlugin does), that:
 
-- implements §3.1 ordering, §3.2 activity toggling (driven by the plugin's
-  existing TransportAdded/TransportRemoved D-Bus signals), and focus
-  requests per §3.5,
+- implements §3.1 ordering, §3.2 activity toggling (driven by the new
+  `transportActiveChanged` edge derived from `MediaTransport1.State`), and
+  focus requests per §3.5,
 - acquires a Media-curve engine (`acquireEngine(StreamId::Media, 48000, 2)`)
   and attaches it per the §4.4 ordering contract,
 - releases everything capture-first on shutdown.
@@ -245,15 +300,28 @@ itself is a bench item.
   et al. persist): the 2 s debounce and `saveNow()` (aboutToQuit) both write
   the file, not just the in-memory tree. Power-cut durability = last change
   older than the debounce is on disk.
+- **Durability of the save primitive itself (round-2 P2):**
+  `YamlConfig::save()` fsyncs the temp file and renames, but never fsyncs
+  the parent directory — a power cut after "success" can still lose the
+  directory entry. Add the parent-dir fsync after rename. And save failures
+  must be *surfaced*, not swallowed (`IConfigService::save()` currently
+  discards the bool): the EQ debounce logs failure and retries without
+  clearing its dirty state; `saveNow()` logs loudly.
 - Written per stream, always: preset name (as today), `gains: [10 floats]`,
   `bypassed: bool`.
 - Load order per stream: named preset (bundled or user) wins if set; else
   raw `gains`; `bypassed` always restored. Missing keys ⇒ current defaults
   (Flat/Voice/Voice, bypass off).
-- **Validation:** a gains entry must be exactly 10 finite numbers; each
-  value clamps to ±12 dB; NaN/inf/non-scalar/short/long arrays reject the
-  array (fall back to the preset-or-default path). No NaN may ever reach
-  coefficient generation.
+- **Validation — every gains ingress (round-2 P2):** a gains array must be
+  exactly 10 finite numbers; each value clamps to ±12 dB;
+  NaN/inf/non-scalar/short/long arrays are rejected wholesale (fall back to
+  the preset-or-default path). This applies to per-stream raw gains AND
+  `user_presets[*].gains` (a malformed active user preset reaches
+  `setAllGains` today). Additionally, finiteness is enforced at the
+  `EqualizerService`/`EqualizerEngine` boundary — `setGain`/`setAllGains`
+  reject non-finite values — so no caller path (config, QML, future API)
+  can feed NaN into coefficient generation. `std::clamp` alone does not
+  sanitize NaN.
 
 ### 4.6 Relabel rider: Phone → System
 
@@ -283,9 +351,10 @@ itself is a bench item.
 1. BT music obeys the Media EQ curve (preset swaps audible mid-playback).
 2. HU master volume now controls BT playback level (and volume-at-creation
    fixes the latent AA boot-volume gap).
-3. BT music joins focus arbitration: speech/nav prompts duck it; starting BT
-   playback silences AA media and vice versa (last claimant wins — no more
-   two-sources-mixing).
+3. BT music joins focus arbitration: speech/nav prompts duck it; the music
+   source you started last wins among BT / AA media / local files (all
+   unified at priority 50 with recency tie-break — includes one edge change:
+   AA media starting after local playback now takes focus).
 4. EQ slider positions and bypass survive restart — including power-cut —
    without saving a preset.
 5. The third EQ tab reads "System" (AA system sounds), not "Phone".
@@ -309,17 +378,26 @@ itself is a bench item.
   propagation; acquire-after-set inherits current gains + bypass.
 - Persistence: disk round-trip through a real temp YAML file (write →
   destroy objects → fresh YamlConfig → reload); preset-name-wins ordering;
-  bypass persists; debounce and saveNow both flush; malformed-gains matrix
-  (NaN, inf, short, long, non-scalar).
+  bypass persists; debounce and saveNow both flush; save-failure path
+  (failure surfaced, debounce retries, dirty state retained);
+  malformed-gains matrix (NaN, inf, short, long, non-scalar) for BOTH
+  per-stream gains and user presets; direct `setGain(NaN)` rejected at the
+  service/engine boundary.
 - Migration: raw-YAML `phone`→`system` (only-phone, both, neither);
   serialized output asserted.
 - Volume-at-creation: set master volume (incl. 0) → createStream → stream
   has the volume applied.
 - Tap lifecycle state machine: bring-up ordering, failure at each step →
-  capture-first teardown, transport activate/deactivate transitions, focus
-  request/release pairing.
+  capture-first teardown; the `transportActiveChanged` edge across ALL
+  `MediaTransport1.State` transitions (idle/pending/active), interface
+  removal, and BlueZ service disappearance; focus request/release pairing
+  with the edge.
+- Focus (priority, sequence): takeover in both directions for BT↔AA and
+  BT↔local (all at priority 50), speech-over-each, release restores the
+  previous holder correctly.
 - Capture refactor: two concurrent slots; concurrent close/process stress on
-  the callback handoff.
+  the callback handoff; concurrent transition/process stress on the quiesced
+  ring reset (§3.2).
 - Existing suites stay green: `test_equalizer_service`,
   `test_equalizer_engine`, `test_audio_service`, plus the app target build
   (ctest never compiles main.cpp).
@@ -361,6 +439,10 @@ itself is a bench item.
   (`wantBytes`, bounded by `d.maxsize`), silence-filling gaps — the existing
   callback honors `buf->requested` deliberately (resampler contract); do not
   change it to raw maxsize, and do not fork the callback for BT.
+  **`src/AGENTS.md` §PipeWire currently commands the opposite
+  (`d.chunk->size = maxSize`) — this work MUST correct that line** (maxsize
+  is buffer capacity, not the resampler's request), or a future executor
+  will dutifully reintroduce the bug.
 - `IEqualizerService` (pure interface) must not change beyond the additive
   `StreamId` alias — new methods go on the concrete `EqualizerService` only.
   No `HOST_API_VERSION` bump is required (no vtable/layout change).
@@ -376,8 +458,14 @@ itself is a bench item.
 - WirePlumber 0.5 conf fragments are SPA-JSON under `wireplumber.conf.d/`
   (not Lua); rules APPEND to `monitor.bluez.rules`. Verify live with
   `wpctl status` + `pw-dump` after restart.
-- A2DP transport D-Bus events toggle stream *activity* only — never create
-  or destroy the capture node from them (that reopens the linking race).
+- `MediaTransport1.State == "active"` is the ONLY activity trigger —
+  interface presence/absence and AVRCP state are not (a connected-but-idle
+  phone must not take focus). And these events toggle stream *activity*
+  only — never create or destroy the capture node from them (that reopens
+  the linking race).
+- Ring resets happen only with the affected streams deactivated, under
+  `pw_thread_loop_lock` — `AudioRingBuffer::reset()` is not RT-safe against
+  live callbacks.
 - Boot-with-volume-0 is a real case (car powered off mid-mute) — test it.
 - `git mv` doesn't stage edits made after the move (repo gotcha).
 - Docker cross image is cached — this work adds no new build deps, so no
