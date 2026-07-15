@@ -264,11 +264,15 @@ void AudioService::onPlaybackStateChanged(void* userdata, enum pw_stream_state o
     if (!handle)
         return;
 
-    // onStreamError is set before connect and never mutated, so this read is
-    // safe on the PW thread. Never run the hook here — marshal it to the Qt
-    // main thread.
+    // onStreamError / errorContext are set before connect and never mutated, so
+    // these reads are safe on the PW thread. Never run the hook here — marshal
+    // it to the Qt main thread. Dispatch against errorContext when supplied so
+    // Qt auto-cancels the queued call if the consumer is destroyed first;
+    // otherwise fall back to qApp.
     if (state == PW_STREAM_STATE_ERROR && handle->onStreamError) {
-        QMetaObject::invokeMethod(qApp, handle->onStreamError, Qt::QueuedConnection);
+        QObject* ctx = handle->errorContext ? handle->errorContext
+                                            : static_cast<QObject*>(qApp);
+        QMetaObject::invokeMethod(ctx, handle->onStreamError, Qt::QueuedConnection);
     }
 }
 
@@ -306,6 +310,7 @@ AudioStreamHandle* AudioService::createStreamWithOptions(const PlaybackStreamOpt
     handle->eqEngine = opts.eqEngine;                     // attached BEFORE connect
     handle->disableRateMatching = opts.disableRateMatching;
     handle->onStreamError = opts.onStreamError;
+    handle->errorContext = opts.errorContext;
 
     // Ring buffer: sized per-stream via bufferMs, minimum 500ms for burst absorption
     // AA sends audio in large protobuf bursts over TCP, not sample-by-sample.
@@ -776,13 +781,17 @@ void AudioService::setStreamActive(AudioStreamHandle* h, bool active)
 
 void AudioService::resetStreamRing(AudioStreamHandle* h)
 {
-    // Caller must have deactivated the stream first: the lock excludes
-    // concurrent process callbacks, and inactivity keeps the reset meaningful.
+    // Precondition: the caller has deactivated PLAYBACK first, so the READER
+    // (onPlaybackProcess) is quiesced. The WRITER may still be live — in the BT
+    // A2DP tap the capture stream keeps writing into this handle's ring across
+    // activity transitions regardless of playback activity. The loop lock does
+    // NOT serialize RT process/capture callbacks (PW_STREAM_FLAG_RT_PROCESS runs
+    // on PipeWire's data thread), so a plain reset() (non-atomic write-index
+    // clear) would tear against that live writer. drain() is reader-side only —
+    // it advances the read index to the current write index without touching
+    // writer state — so it is safe against a concurrent writer.
     if (!h || !h->ringBuffer) return;
-    if (!threadLoop_) { h->ringBuffer->reset(); return; }
-    pw_thread_loop_lock(threadLoop_);   // excludes process callbacks
-    h->ringBuffer->reset();
-    pw_thread_loop_unlock(threadLoop_);
+    h->ringBuffer->drain();
 }
 
 // ---- Adaptive buffer growth ----

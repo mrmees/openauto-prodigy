@@ -78,9 +78,35 @@ public:
         return toRead;
     }
 
+    // Full re-init of both indices. NOT writer-safe: the non-atomic reset of
+    // write index tears against a live writer. Use ONLY in genuinely-quiescent
+    // contexts (e.g. construction) — never while an RT process/capture callback
+    // may be writing. For runtime flushing use drain() instead.
     void reset()
     {
         spa_ringbuffer_init(&ring_);
+    }
+
+    // Reader-side drain: snapshot the write index and advance the read index to
+    // it, discarding all currently-buffered data. Unlike reset() this touches
+    // ONLY the read index — the writer's write index is never disturbed, so it
+    // cannot tear a concurrent write_update(). Uses the same spa_ringbuffer
+    // primitives as read().
+    //
+    // Precondition: the READER is quiesced (no concurrent read()), which the
+    // caller guarantees by deactivating playback before calling. The WRITER may
+    // stay live. Note: write() advances the read index on overflow (drop-oldest),
+    // so if the writer overflow-drops *concurrently* with a drain the read index
+    // has two mutators and could momentarily regress — the caller's contract
+    // avoids this by draining only when the ring is not full (playback has been
+    // consuming it), so no overflow occurs inside the brief drain window.
+    void drain()
+    {
+        uint32_t readIdx;
+        int32_t avail = spa_ringbuffer_get_read_index(&ring_, &readIdx);
+        if (avail <= 0) return;
+        spa_ringbuffer_read_update(&ring_,
+            static_cast<int32_t>(readIdx + static_cast<uint32_t>(avail)));
     }
 
     uint32_t dropCount() const

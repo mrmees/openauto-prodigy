@@ -25,6 +25,7 @@ namespace plugins {
 /// before `playback_` is cleared, so the PW-thread read of `playback_` never
 /// races the Qt-thread clear.
 class BtAudioTap : public QObject {
+    Q_OBJECT
 public:
     BtAudioTap(oap::AudioService* audio, oap::EqualizerService* eq,
                QObject* parent = nullptr);

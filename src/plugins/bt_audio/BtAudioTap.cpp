@@ -64,6 +64,8 @@ BtTapController::Effects BtAudioTap::makeEffects()
         po.startInactive = true;
         po.disableRateMatching = true;
         po.onStreamError = [this]() { controller_.onStreamError(); };
+        po.errorContext = this;  // queued error dispatch dies with this tap
+
         playback_ = audio_->createStreamWithOptions(po);
         return playback_ != nullptr;
     };

@@ -72,6 +72,11 @@ struct AudioStreamHandle {
     // Playback error hook — dispatched to the Qt main thread when the stream
     // enters PW_STREAM_STATE_ERROR (never invoked on the PW RT thread).
     std::function<void()> onStreamError;
+    // Receiver context for the queued onStreamError dispatch. When non-null,
+    // QMetaObject::invokeMethod uses it so Qt auto-cancels the pending call if
+    // the object is destroyed before it runs; falls back to qApp when null. Set
+    // before connect and never mutated — safe to read on the PW RT thread.
+    QObject* errorContext = nullptr;
 
     // PipeWire listener (must outlive stream)
     struct spa_hook listener{};
@@ -103,6 +108,7 @@ public:
         bool startInactive = false;            // adds PW_STREAM_FLAG_INACTIVE
         bool disableRateMatching = false;      // skips the PI controller + set_rate
         std::function<void()> onStreamError;   // PW_STREAM_STATE_ERROR → Qt thread
+        QObject* errorContext = nullptr;       // onStreamError receiver; queued call auto-cancels if it dies (qApp when null)
     };
 
     /// Options for openCaptureStreamWithOptions(). Concrete-class API.
@@ -167,9 +173,12 @@ public:
     /// Activate/deactivate a stream (loop-locked). No-op on null/uninitialised.
     void setStreamActive(AudioStreamHandle* handle, bool active);
 
-    /// Reset a stream's ring buffer (loop-locked, excludes process callbacks).
-    /// The caller MUST have deactivated the stream first — the lock excludes
-    /// concurrent callbacks, but inactivity is what keeps the reset meaningful.
+    /// Drain a stream's ring buffer (reader-side, writer-safe). The caller MUST
+    /// have deactivated PLAYBACK first so the READER (process callback) is
+    /// quiesced; the WRITER (e.g. a still-linked BT capture callback on the RT
+    /// data thread) may remain live — drain() only advances the read index, so
+    /// no tear is possible against it (a plain reset() would tear the write
+    /// index — see AudioRingBuffer::drain()).
     void resetStreamRing(AudioStreamHandle* handle);
 
     /// Perceptual cubic volume curve: (v/100)^3, clamped to [0,100].
