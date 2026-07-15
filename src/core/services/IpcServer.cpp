@@ -388,7 +388,7 @@ QByteArray IpcServer::handleSetAudioConfig(const QVariantMap& data)
         if (data.contains("output_device"))
             config_->setValueByPath("audio.output_device", data.value("output_device").toString());
         if (data.contains("input_device"))
-            config_->setValueByPath("audio.input_device", data.value("input_device").toString());
+            config_->setValueByPath("audio.microphone.device", data.value("input_device").toString());
         if (data.contains("master_volume"))
             config_->setMasterVolume(data.value("master_volume").toInt());
         config_->save(configPath_);

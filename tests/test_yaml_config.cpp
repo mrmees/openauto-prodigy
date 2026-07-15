@@ -20,6 +20,7 @@ private slots:
     void testSensorsFromFile();
     void testMicDefaults();
     void testMicFromFile();
+    void testMicrophoneDevicePathWrite();
     void testValueByPath();
     void testValueByPathNested();
     void testValueByPathMissing();
@@ -233,6 +234,19 @@ void TestYamlConfig::testMicFromFile()
     config.setMicrophoneGain(2.0);
     QCOMPARE(config.microphoneDevice(), QString("pulse"));
     QCOMPARE(config.microphoneGain(), 2.0);
+}
+
+void TestYamlConfig::testMicrophoneDevicePathWrite()
+{
+    oap::YamlConfig cfg;
+    // Canonical key: schema-valid, round-trips, feeds the startup getter.
+    QVERIFY(cfg.setValueByPath("audio.microphone.device", "alsa_input.usb-mic"));
+    QCOMPARE(cfg.valueByPath("audio.microphone.device").toString(),
+             QString("alsa_input.usb-mic"));
+    QCOMPARE(cfg.microphoneDevice(), QString("alsa_input.usb-mic"));
+    // Regression pin for the 2026-07-15 root cause: the dead key the UI used
+    // to write is NOT in the defaults schema and must stay rejected.
+    QVERIFY(!cfg.setValueByPath("audio.input_device", "anything"));
 }
 
 void TestYamlConfig::testValueByPath()

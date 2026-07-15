@@ -78,6 +78,7 @@ file(COPY data/themes DESTINATION ${CMAKE_CURRENT_BINARY_DIR}/data)
 
 oap_add_test(test_theme_install_request SOURCES test_theme_install_request.cpp)
 oap_add_test(test_ipc_install_theme SOURCES test_ipc_install_theme.cpp)
+oap_add_test(test_ipc_audio_config SOURCES test_ipc_audio_config.cpp)
 
 oap_add_test(test_display_info SOURCES test_display_info.cpp)
 oap_add_test(test_display_service SOURCES test_display_service.cpp)
