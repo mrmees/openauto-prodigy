@@ -6,6 +6,8 @@
 #include <QMap>
 #include <QString>
 
+class QPluginLoader;
+
 namespace oap {
 
 class IPlugin;
@@ -61,6 +63,7 @@ signals:
 private:
     struct PluginEntry {
         IPlugin* plugin = nullptr;
+        QPluginLoader* loader = nullptr;  // dynamic plugins only; owned
         PluginManifest manifest;
         bool isStatic = false;
         bool initialized = false;

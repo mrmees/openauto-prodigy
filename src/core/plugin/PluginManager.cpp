@@ -4,6 +4,7 @@
 #include "IPlugin.hpp"
 #include "IHostContext.hpp"
 #include "../Logging.hpp"
+#include <QPluginLoader>
 
 namespace oap {
 
@@ -15,6 +16,8 @@ PluginManager::PluginManager(QObject* parent)
 PluginManager::~PluginManager()
 {
     shutdownAll();
+    for (auto& entry : entries_)
+        delete entry.loader;   // does NOT unload; loader object cleanup only
 }
 
 void PluginManager::registerStaticPlugin(IPlugin* plugin)
@@ -56,14 +59,37 @@ void PluginManager::discoverPlugins(const QString& pluginsDir)
 
         // Try to load the .so
         QString soPath = manifest.dirPath + "/lib" + manifest.id.split('.').last() + ".so";
-        IPlugin* plugin = PluginLoader::load(soPath);
-        if (!plugin) {
+        auto result = PluginLoader::load(soPath);
+        if (!result.ok()) {
             emit pluginFailed(manifest.id, "Failed to load shared library");
             continue;
         }
 
+        // Runtime ABI gate: the MANIFEST passed discovery, but the BINARY is
+        // what dispatches against IHostContext's vtable. Trust the binary.
+        QString mismatch;
+        if (result.plugin->apiVersion() != PluginDiscovery::HOST_API_VERSION) {
+            mismatch = QStringLiteral("binary API v%1 != host v%2")
+                           .arg(result.plugin->apiVersion())
+                           .arg(PluginDiscovery::HOST_API_VERSION);
+        } else if (result.plugin->id() != manifest.id) {
+            mismatch = QStringLiteral("binary id '%1' != manifest id '%2'")
+                           .arg(result.plugin->id(), manifest.id);
+        }
+        if (!mismatch.isEmpty()) {
+            qCCritical(lcPlugin) << "Rejecting plugin " << manifest.id
+                                 << ": " << mismatch;
+            if (!result.loader->unload())
+                qCWarning(lcPlugin) << "unload failed for rejected plugin "
+                                    << manifest.id;
+            delete result.loader;
+            emit pluginFailed(manifest.id, mismatch);
+            continue;
+        }
+
         PluginEntry entry;
-        entry.plugin = plugin;
+        entry.plugin = result.plugin;
+        entry.loader = result.loader;
         entry.manifest = manifest;
         entry.isStatic = false;
 

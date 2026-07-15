@@ -11,6 +11,23 @@ function(oap_add_test NAME)
     add_test(NAME ${NAME} COMMAND ${NAME})
 endfunction()
 
+# --- Fixture plugins: real .so files for dynamic-load validation tests ---
+# Layout matches PluginManager's naming rule: <dir>/plugin.yaml +
+# lib<last-id-segment>.so
+function(oap_add_fixture_plugin TARGET SRC OUT_NAME DIRNAME MANIFEST)
+    add_library(${TARGET} MODULE fixtures/${SRC})
+    target_link_libraries(${TARGET} PRIVATE openauto-core)
+    set_target_properties(${TARGET} PROPERTIES
+        OUTPUT_NAME ${OUT_NAME}
+        LIBRARY_OUTPUT_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}/fixture_plugins/${DIRNAME})
+    configure_file(data/${MANIFEST}
+        ${CMAKE_CURRENT_BINARY_DIR}/fixture_plugins/${DIRNAME}/plugin.yaml COPYONLY)
+endfunction()
+
+oap_add_fixture_plugin(fixture_stale_plugin    fixture_stale_plugin.cpp    stale    stale    fixture_stale.yaml)
+oap_add_fixture_plugin(fixture_imposter_plugin fixture_imposter_plugin.cpp other    imposter fixture_imposter.yaml)
+oap_add_fixture_plugin(fixture_valid_plugin    fixture_valid_plugin.cpp    valid    valid    fixture_valid.yaml)
+
 # --- Core tests ---
 
 oap_add_test(test_yaml_config
@@ -36,7 +53,10 @@ oap_add_test(test_plugin_manifest
 configure_file(data/test_plugin.yaml ${CMAKE_CURRENT_BINARY_DIR}/data/test_plugin.yaml COPYONLY)
 
 oap_add_test(test_plugin_discovery SOURCES test_plugin_discovery.cpp)
-oap_add_test(test_plugin_manager SOURCES test_plugin_manager.cpp)
+oap_add_test(test_plugin_manager SOURCES test_plugin_manager.cpp
+    DEFS FIXTURE_PLUGINS_DIR="${CMAKE_CURRENT_BINARY_DIR}/fixture_plugins")
+add_dependencies(test_plugin_manager
+    fixture_stale_plugin fixture_imposter_plugin fixture_valid_plugin)
 oap_add_test(test_plugin_model SOURCES test_plugin_model.cpp)
 oap_add_test(test_play_queue SOURCES test_play_queue.cpp)
 oap_add_test(test_folder_model SOURCES test_folder_model.cpp)
