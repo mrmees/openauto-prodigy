@@ -289,26 +289,44 @@ void BtAudioPlugin::onInterfacesAdded(const QDBusObjectPath& path, const BtInter
             hostContext_->log(LogLevel::Info,
                 QStringLiteral("BtAudio: A2DP transport appeared: %1").arg(pathStr));
 
-        // Read transport properties. A read-back failure (e.g. no live bus)
-        // leaves state empty ⇒ the transport is still tracked as present (not
-        // active) so connectionState reads Connected while its edge stays false.
-        QString state;
-        QDBusInterface iface(
-            QStringLiteral("org.bluez"), pathStr,
-            QStringLiteral("org.bluez.MediaTransport1"),
-            QDBusConnection::systemBus());
-        if (iface.isValid()) {
-            state = iface.property("State").toString();
+        // Prefer the State/Device already carried in this InterfacesAdded payload
+        // — a separate synchronous property read can fail or race BlueZ, and an
+        // already-active transport recorded inactive would have no later
+        // PropertiesChanged to correct it. Only fall back to a synchronous read
+        // when the payload lacks the State key. A read-back failure (e.g. no live
+        // bus) leaves state empty ⇒ the transport is still tracked as present
+        // (not active) so connectionState reads Connected while its edge stays false.
+        const QVariantMap transportProps =
+            interfaces.value(QStringLiteral("org.bluez.MediaTransport1"));
 
-            QString devicePath = iface.property("Device").value<QDBusObjectPath>().path();
-            if (!devicePath.isEmpty()) {
-                QDBusInterface deviceIface(
-                    QStringLiteral("org.bluez"), devicePath,
-                    QStringLiteral("org.bluez.Device1"),
-                    QDBusConnection::systemBus());
-                if (deviceIface.isValid()) {
-                    deviceName_ = deviceIface.property("Alias").toString();
-                }
+        QString state;
+        QString devicePath;
+        if (transportProps.contains(QStringLiteral("State"))) {
+            state = transportProps.value(QStringLiteral("State")).toString();
+            devicePath = transportProps.value(QStringLiteral("Device"))
+                             .value<QDBusObjectPath>().path();
+        } else {
+            QDBusInterface iface(
+                QStringLiteral("org.bluez"), pathStr,
+                QStringLiteral("org.bluez.MediaTransport1"),
+                QDBusConnection::systemBus());
+            if (iface.isValid()) {
+                state = iface.property("State").toString();
+                devicePath = iface.property("Device").value<QDBusObjectPath>().path();
+            }
+        }
+
+        // Resolve the human-readable device name (Device1.Alias is never in the
+        // transport payload, so this stays a D-Bus read; skipped without a path).
+        if (!devicePath.isEmpty()) {
+            QDBusInterface deviceIface(
+                QStringLiteral("org.bluez"), devicePath,
+                QStringLiteral("org.bluez.Device1"),
+                QDBusConnection::systemBus());
+            if (deviceIface.isValid()) {
+                const QString alias = deviceIface.property("Alias").toString();
+                if (!alias.isEmpty())
+                    deviceName_ = alias;
             }
         }
 

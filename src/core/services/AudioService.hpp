@@ -125,6 +125,8 @@ public:
         int bitDepth = 16;
         bool autoconnect = true;   // false ⇒ no AUTOCONNECT flag, inputDevice_ ignored
         IAudioService::CaptureCallback callback;  // installed BEFORE connect, immutable
+        std::function<void()> onStreamError;   // PW_STREAM_STATE_ERROR → Qt thread (parity with playback)
+        QObject* errorContext = nullptr;       // onStreamError receiver; queued call auto-cancels if it dies (qApp when null)
     };
 
     /// Whether PipeWire was successfully initialized.
@@ -176,8 +178,11 @@ public:
     /// Close and destroy a capture stream by handle. Safe to call with nullptr.
     void closeCaptureStreamHandle(AudioStreamHandle* handle);
 
-    /// Activate/deactivate a stream (loop-locked). No-op on null/uninitialised.
-    void setStreamActive(AudioStreamHandle* handle, bool active);
+    /// Activate/deactivate a stream (loop-locked). Returns true when
+    /// pw_stream_set_active() succeeds (>= 0); false on a null/uninitialised
+    /// handle OR when the underlying call fails, so callers can refuse to
+    /// proceed on a failed activation (design §3.1 — no silent failure).
+    bool setStreamActive(AudioStreamHandle* handle, bool active);
 
     /// Drain a stream's ring buffer (reader-side, plain read-index catch-up).
     /// Precondition: BOTH the reader AND the writer are quiesced. The reader is
@@ -215,8 +220,11 @@ private:
     void applyVolumeToStream(AudioStreamHandle* handle, float vol);
     void checkAdaptiveBuffers();
     static void onPlaybackProcess(void* userdata);
-    static void onPlaybackStateChanged(void* userdata, enum pw_stream_state old,
-                                       enum pw_stream_state state, const char* error);
+    // Shared PW state-change hook for BOTH playback and capture streams: on
+    // PW_STREAM_STATE_ERROR it marshals handle->onStreamError to the Qt thread.
+    // userdata is the AudioStreamHandle in both cases.
+    static void onStreamStateChanged(void* userdata, enum pw_stream_state old,
+                                     enum pw_stream_state state, const char* error);
     static void onCaptureProcess(void* userdata);
 
     struct pw_thread_loop* threadLoop_ = nullptr;

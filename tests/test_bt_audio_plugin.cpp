@@ -37,6 +37,9 @@ private slots:
     void transportActive_bothIdleClearsEdge();
     void transportActive_secondPathFlipsActiveEvenIfArrivedFirst();
     void transportActive_bluezLossClearsAllTransports();
+    // Finding B: onInterfacesAdded must honour the State carried in its own
+    // payload instead of a racy synchronous read-back.
+    void transportActive_payloadStateActivatesWithoutPropertiesChanged();
 
 private:
     // Seed the plugin's tracked player path through its adoption flow: an
@@ -385,6 +388,35 @@ void TestBtAudioPlugin::transportActive_bluezLossClearsAllTransports()
     QVERIFY(driveTransportState(plugin, a, QStringLiteral("active")));
     QVERIFY(!plugin.transportActive());
     QCOMPARE(spy.count(), 1);
+}
+
+// An InterfacesAdded whose payload already carries State: "active" must fire the
+// audio-activity edge true immediately — no follow-up PropertiesChanged, and NO
+// synchronous read-back (the build box has no BlueZ, so a read-back would leave
+// State empty and the edge false, exactly the race Finding B closes).
+void TestBtAudioPlugin::transportActive_payloadStateActivatesWithoutPropertiesChanged()
+{
+    BtAudioPlugin plugin;
+    const QString transportPath = QStringLiteral("/org/bluez/hci0/dev_AA_BB/fd0");
+
+    QSignalSpy spy(&plugin, &BtAudioPlugin::transportActiveChanged);
+
+    BtInterfaceMap ifaces;
+    QVariantMap props;
+    props.insert(QStringLiteral("State"), QStringLiteral("active"));
+    ifaces.insert(QStringLiteral("org.bluez.MediaTransport1"), props);
+
+    bool ok = QMetaObject::invokeMethod(
+        &plugin, "onInterfacesAdded", Qt::DirectConnection,
+        Q_ARG(QDBusObjectPath, QDBusObjectPath(transportPath)),
+        Q_ARG(BtInterfaceMap, ifaces));
+    QVERIFY(ok);
+
+    // Edge fired true straight from the payload — no PropertiesChanged delivered.
+    QVERIFY(plugin.transportActive());
+    QCOMPARE(spy.count(), 1);
+    QCOMPARE(spy.last().at(0).toBool(), true);
+    QCOMPARE(plugin.connectionState(), static_cast<int>(BtAudioPlugin::Connected));
 }
 
 QTEST_GUILESS_MAIN(TestBtAudioPlugin)

@@ -254,10 +254,13 @@ void AudioService::onPlaybackProcess(void* userdata)
     pw_stream_queue_buffer(handle->stream, buf);
 }
 
-// ---- Playback state-change callback (PipeWire thread) ----
+// ---- Stream state-change callback (PipeWire thread) ----
+// Shared by playback AND capture streams — both register it with the handle as
+// userdata. A dead capture node (post-connect negotiation/runtime error) would
+// otherwise stay published while silently eating BT audio (design §3.1).
 
-void AudioService::onPlaybackStateChanged(void* userdata, enum pw_stream_state old,
-                                          enum pw_stream_state state, const char* error)
+void AudioService::onStreamStateChanged(void* userdata, enum pw_stream_state old,
+                                        enum pw_stream_state state, const char* error)
 {
     Q_UNUSED(old);
     Q_UNUSED(error);
@@ -371,7 +374,7 @@ AudioStreamHandle* AudioService::createStreamWithOptions(const PlaybackStreamOpt
     handle->events = {};
     handle->events.version = PW_VERSION_STREAM_EVENTS;
     handle->events.process = &AudioService::onPlaybackProcess;
-    handle->events.state_changed = &AudioService::onPlaybackStateChanged;
+    handle->events.state_changed = &AudioService::onStreamStateChanged;
     pw_stream_add_listener(handle->stream, &handle->listener, &handle->events, handle);
 
     // Build format params
@@ -662,6 +665,11 @@ AudioStreamHandle* AudioService::openCaptureStreamWithOptions(const CaptureStrea
     handle->captureCallbackImmutable = static_cast<bool>(opts.callback);
     handle->captureCallbackActive.store(static_cast<bool>(opts.callback),
                                         std::memory_order_release);
+    // Error surfacing parity with playback: a capture stream that dies after
+    // connect (async negotiation/runtime error) must not stay published while
+    // silently eating BT audio. Set before connect, never mutated (PW-thread safe).
+    handle->onStreamError = opts.onStreamError;
+    handle->errorContext = opts.errorContext;
 
     pw_thread_loop_lock(threadLoop_);
 
@@ -689,10 +697,13 @@ AudioStreamHandle* AudioService::openCaptureStreamWithOptions(const CaptureStrea
         return nullptr;
     }
 
-    // Set up process callback — userdata is the handle, with its own listener.
+    // Set up process + state-change callbacks — userdata is the handle, with its
+    // own listener. The SAME state-change hook as playback surfaces post-connect
+    // errors (design §3.1: no dead-but-published capture node).
     handle->events = {};
     handle->events.version = PW_VERSION_STREAM_EVENTS;
     handle->events.process = &AudioService::onCaptureProcess;
+    handle->events.state_changed = &AudioService::onStreamStateChanged;
     pw_stream_add_listener(handle->stream, &handle->listener, &handle->events, handle);
 
     // Build audio format params
@@ -798,12 +809,16 @@ void AudioService::setCaptureCallback(AudioStreamHandle* handle, CaptureCallback
 
 // ---- Stream activity / ring primitives ----
 
-void AudioService::setStreamActive(AudioStreamHandle* h, bool active)
+bool AudioService::setStreamActive(AudioStreamHandle* h, bool active)
 {
-    if (!h || !h->stream || !threadLoop_) return;
+    if (!h || !h->stream || !threadLoop_) return false;
     pw_thread_loop_lock(threadLoop_);
-    pw_stream_set_active(h->stream, active);
+    const int r = pw_stream_set_active(h->stream, active);
     pw_thread_loop_unlock(threadLoop_);
+    if (r < 0)
+        qCWarning(lcAudio) << "AudioService: set_active" << active << "failed for"
+                           << h->name << "err" << r;
+    return r >= 0;
 }
 
 void AudioService::resetStreamRing(AudioStreamHandle* h)

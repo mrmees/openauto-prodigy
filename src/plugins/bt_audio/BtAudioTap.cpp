@@ -1,8 +1,10 @@
 #include "BtAudioTap.hpp"
 
+#include "core/Logging.hpp"
 #include "core/services/AudioService.hpp"
 #include "core/services/EqualizerService.hpp"
 
+#include <QMetaObject>
 #include <QString>
 #include <cstdint>
 
@@ -86,6 +88,11 @@ BtTapController::Effects BtAudioTap::makeEffects()
             if (!captureEnabled_.load(std::memory_order_relaxed)) return;
             audio_->writeAudio(playback_, d, n);
         };
+        // Error surfacing parity with playback: a capture node that dies after
+        // connect routes back into the controller for capture-first teardown so
+        // a dead node never stays published eating BT audio (design §3.1).
+        co.onStreamError = [this]() { controller_.onStreamError(); };
+        co.errorContext = this;  // queued error dispatch dies with this tap
         capture_ = audio_->openCaptureStreamWithOptions(co);
         return capture_ != nullptr;
     };
@@ -112,18 +119,31 @@ BtTapController::Effects BtAudioTap::makeEffects()
     // capture gate, then take focus.
     fx.activate = [this]() {
         audio_->resetStreamRing(playback_);
-        audio_->setStreamActive(playback_, true);
+        // If activation fails, do NOT open the capture gate or take focus — a
+        // gate over a dead playback stream would eat BT audio into a stream that
+        // never runs. Post a QUEUED self-invocation of the error path: the
+        // teardown must run AFTER this transition completes (direct re-entry into
+        // the state machine mid-transition is forbidden). The queued teardown
+        // then runs from Active → onStreamError → capture-first teardown → Stopped.
+        if (!audio_->setStreamActive(playback_, true)) {
+            qCWarning(lcBT) << "BtAudioTap: playback activation failed — tearing down tap";
+            QMetaObject::invokeMethod(this, [this]() { controller_.onStreamError(); },
+                                      Qt::QueuedConnection);
+            return;
+        }
         captureEnabled_.store(true);
         audio_->requestAudioFocus(playback_, oap::AudioFocusType::Gain);
     };
     // Deactivate order: release focus, close the capture gate, stop playback. No
     // drain here — the next activate drains before use, and a single stale
     // in-flight capture write landing just after the gate clears is harmless
-    // (it lands in a ring that is drained before it is read again).
+    // (it lands in a ring that is drained before it is read again). A failed
+    // deactivate is log-only: teardown must proceed regardless.
     fx.deactivate = [this]() {
         audio_->releaseAudioFocus(playback_);
         captureEnabled_.store(false);
-        audio_->setStreamActive(playback_, false);
+        if (!audio_->setStreamActive(playback_, false))
+            qCWarning(lcBT) << "BtAudioTap: playback deactivation failed (continuing teardown)";
     };
 
     return fx;
