@@ -259,9 +259,9 @@ private slots:
         QVERIFY2(pageSource.indexOf(QStringLiteral("CompanionState.connected")) >= 0,
                  "Merged page should bind the live companion state");
 
-        // Legacy 9876 pairing controls must not resurface.
+        // Retired pairing controls must not resurface (B2 teardown 2026-07-14).
         QVERIFY2(pageSource.indexOf(QStringLiteral("companion.enabled")) < 0,
-                 "The legacy companion.enabled toggle stays dead until B2 retires the namespace");
+                 "The retired companion.enabled toggle must not resurface (B2 teardown 2026-07-14)");
         QVERIFY2(pageSource.indexOf(QStringLiteral("generatePairingPin")) < 0,
                  "The legacy CompanionService pairing flow must not resurface");
     }

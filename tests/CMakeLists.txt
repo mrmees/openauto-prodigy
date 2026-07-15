@@ -66,6 +66,7 @@ oap_add_test(test_media_scanner
 oap_add_test(test_media_usb_policy SOURCES test_media_usb_policy.cpp)
 
 oap_add_test(test_bt_audio_plugin SOURCES test_bt_audio_plugin.cpp)
+oap_add_test(test_bt_tap_controller SOURCES test_bt_tap_controller.cpp)
 
 # --- Service tests ---
 
@@ -85,7 +86,6 @@ oap_add_test(test_event_bus SOURCES test_event_bus.cpp)
 oap_add_test(test_action_registry SOURCES test_action_registry.cpp)
 oap_add_test(test_overlay_service SOURCES test_overlay_service.cpp)
 oap_add_test(test_notification_service SOURCES test_notification_service.cpp)
-oap_add_test(test_companion_listener SOURCES test_companion_listener.cpp)
 oap_add_test(test_clock_sync SOURCES test_clock_sync.cpp)
 oap_add_test(test_bluetooth_manager SOURCES test_bluetooth_manager.cpp)
 oap_add_test(test_projection_status_provider SOURCES test_projection_status_provider.cpp)

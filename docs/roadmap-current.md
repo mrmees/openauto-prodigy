@@ -2,7 +2,7 @@
 
 Governance: capture new ideas in `docs/wishlist.md`; only promoted items should appear in this roadmap.
 
-> **Parity program status (updated 2026-07-07):** the 2026-07-05 design sprint (`docs/archive/plans/2026-07-05-fable-work-program-design.md`, phases A–F) has been designed **and executed**: External API v1, HTML/JS web widgets, HFP call audio, multi-dashboards + overlay framework, and the theme-upload endpoint are all shipped (see Done). What remains from the program: the Phase F light-plan items (`docs/plans/2026-07-05-phase-f-light-plans.md` — media player, EQ parity audit, 0x8012 experiment, key-event nav) and the HFP live checks (L3/L4/L5, need Matthew + phone).
+> **Parity program status (updated 2026-07-14):** the 2026-07-05 design sprint (`docs/archive/plans/2026-07-05-fable-work-program-design.md`, phases A–F) has been designed **and executed**: External API v1, HTML/JS web widgets, HFP call audio (bench-complete 2026-07-13), multi-dashboards + overlay framework, and the theme-upload endpoint are all shipped; the media player shipped through stage 2; the EQ parity audit closed 2026-07-14 (see Done). What remains from the program: the two experimental Phase F light-plan items (`docs/plans/2026-07-05-phase-f-light-plans.md` — 0x8012 experiment, key-event nav notes).
 
 ## Done (recent)
 
@@ -44,8 +44,28 @@ Governance: capture new ideas in `docs/wishlist.md`; only promoted items should 
   the proxy-blackhole (third incident; wishlist entry updated). Spotify login
   round not run (optional; the WebAppHost arc will cover login UX). Spec:
   `docs/archive/plans/2026-07-07-web-surface-strategy-design.md`. COMPLETE.
+- Audio equalizer parity audit (Phase F2) — verdict 2026-07-14: on-HU and YAML
+  legs of the original outcome statement hold (on-HU UI exceeds "basic changes":
+  per-stream 10-band sliders, bypass, preset picker, user-preset save/delete;
+  QML→C++ save path verified empirically). The **web advanced-EQ leg is entirely
+  absent** (no web-config routes, no IPC commands, no API surface) — precise gaps
+  + three coverage/labeling quirks filed to `docs/wishlist.md` § "From EQ parity
+  audit (2026-07-14)". Building the web editor is a wishlist-promote decision.
+  COMPLETE (audit; no code changed).
 
 ## Now
+
+- BT A2DP through the equalizer + EQ hygiene — **PROMOTED 2026-07-14** from the EQ
+  parity audit findings (design: `docs/plans/2026-07-14-bt-a2dp-eq-design.md`,
+  approach approved by Matthew same day).
+  - Outcome: BT music obeys the Media EQ curve, HU master volume, and
+    ducking (app-side loopback tap via WirePlumber retarget, direct-to-sink
+    fallback). Riders: per-consumer EQ engine instances (fixes the shared
+    Media-engine defect), unsaved gains/bypass persist across restart,
+    Phone→System relabel with config migration.
+  - Web EQ editor stays parked in the wishlist (on-HU UI already covers
+    profile creation). Milestone tag + dev→main PR follow this work
+    (Matthew, 2026-07-14).
 
 - HFP mic fix + live checks + 9876 retirement stage-1 — **bench COMPLETE (2026-07-13)**; design + plan in `docs/plans/2026-07-11-hfp-mic-9876-retirement-{design,plan}.md`, all RESULT rows in `docs/plans/2026-07-11-hfp-bench-runbook.md`.
   - Bench verdicts: **mSBC is the shipped codec** (patched `libspa-0.2-bluetooth 1.4.2-1+rpt3+prodigy1` installed + held on the Pi; LC3-SWB encode bug confirmed with a clean A/B; CVSD drop-in = repo fallback only); L3 DTMF ✓, L4 RejectSCO default stays `false`, L5 Samsung mostly ✓ (answer/reject-during-AA wishlisted) / Moto no-service partial, L6 volume/echo ✓; §7 cutover fully validated with 9876 dead — including the time row, whose bench FAIL turned out to be a false-positive diagnosis (wiring existed; investigation found + fixed real bugs instead: timedatectl local-time parse, missing set-timezone polkit rule, untested duplicated logic → tested `ClockSyncService`; re-validated live with induced drift 2026-07-13). **B2 teardown planning is unblocked.**
@@ -56,9 +76,6 @@ Governance: capture new ideas in `docs/wishlist.md`; only promoted items should 
   - Stage 1 shipped (develop @ `2aeb411`, 18 commits): MediaPlayerPlugin (folder browse + now-playing bar), PlaybackEngine (QMediaPlayer PCM tap → AudioService, spike-gated GO), PlayQueue (shuffle/repeat, TDD), FolderModel, MediaArtProvider, 3-source playing-wins arbitration, NowPlayingWidget (art/progress/source badge/transport), API v1 LOCAL_MEDIA source + position fields. Suite 114/114 green; cross-build + Pi deploy verified healthy (service active, plugin registered, NRestarts=0).
   - Remaining stage 1: 12-row bench checklist with Matthew (touch/audible rows — see session-handoffs 2026-07-08 deploy record), then review + push.
   - Next: **stage 2 (library + USB automount) planning.**
-
-- Audio equalizer — parity audit only. *(scoped down 2026-07-05: the substrate scout found the EQ already functional — EqualizerService runs 3 engines with presets + persistence, applied on the PipeWire RT thread)*
-  - Remaining: audit web-config advanced-profile parity against the original outcome statement (on-HU preset swapping vs web-based advanced EQ setup / profile creation). Audit protocol in Phase F2 light plan.
 
 ## Later
 
@@ -74,7 +91,7 @@ Governance: capture new ideas in `docs/wishlist.md`; only promoted items should 
   - Delta narrowed 2026-07-07: companion theme/wallpaper upload (`/api/theme/install`) and the web-config themes page both exist; remaining is an audit of in-car theme selection UX.
 - Companion app work — head-unit side DONE; ball is in the companion's court.
   - The companion (Android app, sibling repo `personal/openautopro/openauto-companion`) migrates from the legacy port-9876 JSON/HMAC protocol to API v1 (WebSocket + PIN pairing, `companion.proto` reports) + the new theme-upload HTTP endpoint. All head-unit prerequisites have shipped: API v1 + v1.1 additive batch (2026-07-06) and the theme-upload endpoint (2026-07-07, contract handed off).
-  - Remaining (this repo): **retire `CompanionListenerService` + port 9876** once the companion ships its API v1 client and the cutover validates at the bench — now governed by `docs/plans/2026-07-11-hfp-mic-9876-retirement-design.md` §B2 (teardown inventory incl. the camelCase→hyphen dedup + RNG hygiene items; stage-1 status in the "Now" entry above).
+  - **DONE (2026-07-14):** `CompanionListenerService` + port 9876 retired (B2 teardown, `docs/archive/plans/2026-07-14-b2-teardown-design.md`). Reporting-session liveness expiry shipped with it — a silently-vanished phone drops `connected` within ~35 s.
   - Companion-parity follow-up idea (wishlist, not promoted): phone notifications displayed on the head unit — blockers dissolved (NotificationService + overlay framework both exist), but it waits on the companion's API v1 migration.
 - Streaming web apps (WebAppHost) — fullscreen Spotify/YouTube/parked-video surface
   riding the slice-1 Widevine wiring. Scoped (Decision 3 of the web-surface spec);

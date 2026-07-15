@@ -39,7 +39,6 @@ public:
     oap::IEventBus* eventBus() override { return nullptr; }
     oap::ActionRegistry* actionRegistry() override { return nullptr; }
     oap::INotificationService* notificationService() override { return nullptr; }
-    oap::CompanionListenerService* companionListenerService() override { return nullptr; }
     oap::IEqualizerService* equalizerService() override { return nullptr; }
     oap::IProjectionStatusProvider* projectionStatusProvider() override { return nullptr; }
     oap::INavigationProvider* navigationProvider() override { return nullptr; }

@@ -1,6 +1,8 @@
 #include <QtTest>
 #include <QTemporaryFile>
 #include <QTemporaryDir>
+#include <QDir>
+#include <QFile>
 #include "core/YamlConfig.hpp"
 
 class TestYamlConfig : public QObject {
@@ -27,10 +29,14 @@ private slots:
     void testProtocolCaptureDefaults();
     void testProtocolCaptureSetValueByPath();
     void testEqStreamPresetDefaults();
+    void testPhoneToSystemMigration();
+    void testPhoneToSystemBothPresentKeepsSystem();
     void testEqStreamPresetSetAndGet();
     void testEqStreamPresetSaveReload();
     void testEqUserPresetsEmpty();
     void testEqUserPresetsSaveReload();
+    void testEqGainsRoundTripToDisk();
+    void testEqGainsValidationRejectsMalformed();
     void testUiScaleDefaults();
     void testUiTokenDefaults();
     void testUiScaleSetAndGet();
@@ -311,7 +317,47 @@ void TestYamlConfig::testEqStreamPresetDefaults()
     oap::YamlConfig config;
     QCOMPARE(config.eqStreamPreset("media"), QString("Flat"));
     QCOMPARE(config.eqStreamPreset("navigation"), QString("Voice"));
-    QCOMPARE(config.eqStreamPreset("phone"), QString("Voice"));
+    QCOMPARE(config.eqStreamPreset("system"), QString("Voice"));
+}
+
+void TestYamlConfig::testPhoneToSystemMigration()
+{
+    const QString path = QDir::temp().filePath("eqmig-test.yaml");
+    QFile f(path); QVERIFY(f.open(QIODevice::WriteOnly));
+    f.write("audio:\n  equalizer:\n    streams:\n"
+            "      phone: { preset: Rock }\n");
+    f.close();
+    oap::YamlConfig cfg; cfg.load(path);
+    QCOMPARE(cfg.eqStreamPreset("system"), QString("Rock"));  // migrated
+    QVERIFY(cfg.save(path));
+    QFile rf(path); QVERIFY(rf.open(QIODevice::ReadOnly));
+    const QByteArray out = rf.readAll();
+    // Scope the key-presence checks to the EQ streams block. The unrelated
+    // top-level telephony `phone:` default (reject_sco_during_aa /
+    // settle_grace_ms, design §6) legitimately survives and must NOT be
+    // migrated (design §4.6) — a whole-file contains("phone:") would collide
+    // with it. streams: always precedes its sibling user_presets: under
+    // equalizer, so that window isolates the migrated stream keys.
+    const int sIdx = out.indexOf("streams:");
+    const int eIdx = out.indexOf("user_presets:");
+    QVERIFY(sIdx >= 0 && eIdx > sIdx);
+    const QByteArray streamsBlock = out.mid(sIdx, eIdx - sIdx);
+    QVERIFY(!streamsBlock.contains("phone:"));                 // old EQ key gone
+    QVERIFY(streamsBlock.contains("system:"));
+    QFile::remove(path);
+}
+
+void TestYamlConfig::testPhoneToSystemBothPresentKeepsSystem()
+{
+    const QString path = QDir::temp().filePath("eqmig2-test.yaml");
+    QFile f(path); QVERIFY(f.open(QIODevice::WriteOnly));
+    f.write("audio:\n  equalizer:\n    streams:\n"
+            "      phone: { preset: Rock }\n"
+            "      system: { preset: Jazz }\n");
+    f.close();
+    oap::YamlConfig cfg; cfg.load(path);
+    QCOMPARE(cfg.eqStreamPreset("system"), QString("Jazz"));
+    QFile::remove(path);
 }
 
 void TestYamlConfig::testEqStreamPresetSetAndGet()
@@ -377,6 +423,45 @@ void TestYamlConfig::testEqUserPresetsSaveReload()
     }
 
     QFile::remove(tmpPath);
+}
+
+void TestYamlConfig::testEqGainsRoundTripToDisk()
+{
+    const QString path = QDir::temp().filePath("eqgains-test.yaml");
+    QFile::remove(path);
+    {
+        oap::YamlConfig cfg; cfg.load(path);
+        QList<float> g; for (int i = 0; i < 10; ++i) g << float(i) - 4.5f;
+        cfg.setEqStreamGains("media", g);
+        cfg.setEqStreamBypassed("media", true);
+        QVERIFY(cfg.save(path));
+    }
+    oap::YamlConfig fresh; fresh.load(path);          // brand-new object
+    auto g2 = fresh.eqStreamGains("media");
+    QCOMPARE(g2.size(), 10);
+    QCOMPARE(g2[0], -4.5f);
+    QVERIFY(fresh.eqStreamBypassed("media"));
+    QFile::remove(path);
+}
+
+void TestYamlConfig::testEqGainsValidationRejectsMalformed()
+{
+    const QString path = QDir::temp().filePath("eqbad-test.yaml");
+    QFile f(path); QVERIFY(f.open(QIODevice::WriteOnly));
+    f.write("audio:\n  equalizer:\n    streams:\n"
+            "      media: { gains: [1, 2, .nan, 4, 5, 6, 7, 8, 9, 10] }\n"
+            "      navigation: { gains: [1, 2, 3] }\n"
+            "    user_presets:\n"
+            "      - { name: Bad, gains: [.inf, 2, 3, 4, 5, 6, 7, 8, 9, 10] }\n"
+            "      - { name: Good, gains: [1, 1, 1, 1, 1, 1, 1, 1, 1, 1] }\n");
+    f.close();
+    oap::YamlConfig cfg; cfg.load(path);
+    QVERIFY(cfg.eqStreamGains("media").isEmpty());        // NaN ⇒ invalid
+    QVERIFY(cfg.eqStreamGains("navigation").isEmpty());   // short ⇒ invalid
+    auto presets = cfg.eqUserPresets();
+    QCOMPARE(presets.size(), 1);                          // "Bad" dropped
+    QCOMPARE(presets[0].name, QString("Good"));
+    QFile::remove(path);
 }
 
 void TestYamlConfig::testUiScaleDefaults()

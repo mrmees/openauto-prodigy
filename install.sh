@@ -1417,10 +1417,6 @@ display:
 
 touch:
   device: ""
-
-companion:
-  enabled: true
-  port: 9876
 YAML
 
     # Install default theme
@@ -1434,10 +1430,11 @@ YAML
         cp -n "$INSTALL_DIR/config/wallpapers/"*.jpg "$CONFIG_DIR/wallpapers/" 2>/dev/null || true
     fi
 
-    # Companion app polkit rule (allows timedatectl set-time/set-timezone without sudo)
-    if [[ -f "$INSTALL_DIR/config/companion-polkit.rules" ]]; then
-        sudo cp "$INSTALL_DIR/config/companion-polkit.rules" /etc/polkit-1/rules.d/50-openauto-time.rules
-        ok "Companion polkit rule installed"
+    # Clock-sync polkit rule (allows timedatectl set-time/set-timezone/set-ntp
+    # without sudo, for ClockSyncService's TimeReport clock stepping)
+    if [[ -f "$INSTALL_DIR/config/clock-sync-polkit.rules" ]]; then
+        sudo cp "$INSTALL_DIR/config/clock-sync-polkit.rules" /etc/polkit-1/rules.d/50-openauto-time.rules
+        ok "Clock-sync polkit rule installed"
     fi
 
     # BlueZ agent polkit rule (allows non-root pairing agent registration)
@@ -1451,6 +1448,15 @@ YAML
     if [[ -f "$INSTALL_DIR/config/udisks-polkit.rules" ]]; then
         sudo cp "$INSTALL_DIR/config/udisks-polkit.rules" /etc/polkit-1/rules.d/50-openauto-udisks.rules
         ok "udisks2 polkit rule installed"
+    fi
+
+    # WirePlumber rule: BT A2DP audio routes through the app EQ tap (falls
+    # back to direct playback when the app is down).
+    if [[ -f "$INSTALL_DIR/config/50-openauto-bt-eq.conf" ]]; then
+        sudo mkdir -p /etc/wireplumber/wireplumber.conf.d
+        sudo cp "$INSTALL_DIR/config/50-openauto-bt-eq.conf" /etc/wireplumber/wireplumber.conf.d/
+        systemctl --user try-restart wireplumber 2>/dev/null || true
+        ok "BT-EQ WirePlumber rule installed"
     fi
 
     # Ensure user is in required groups

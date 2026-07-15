@@ -11,7 +11,6 @@ class YamlConfig;
 class ThemeService;
 class AudioService;
 class PluginManager;
-class CompanionListenerService;
 
 } // namespace oap
 
@@ -42,10 +41,8 @@ public:
     void setThemeService(ThemeService* themeService);
     void setAudioService(AudioService* audioService);
     void setPluginManager(PluginManager* pluginManager);
-    void setCompanionListenerService(CompanionListenerService* svc);
-    // API v1 inbound state (design §B0d) — when set, handleCompanionStatus()
-    // prefers it over the legacy companion_ body (source:"api"). companion_
-    // remains the vehicle_id source until it's retired (B2).
+    // API v1 inbound state — the only companion_status source since the B2
+    // teardown (2026-07-14). Key names are stable for the web-config panel.
     void setInboundState(oap::api::ApiInboundState* state);
 
 private slots:
@@ -75,7 +72,6 @@ private:
     ThemeService* themeService_ = nullptr;
     AudioService* audioService_ = nullptr;
     PluginManager* pluginManager_ = nullptr;
-    CompanionListenerService* companion_ = nullptr;
     oap::api::ApiInboundState* inbound_ = nullptr;
 };
 

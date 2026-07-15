@@ -14,7 +14,6 @@ public:
     void setEventBus(IEventBus* bus) { eventBus_ = bus; }
     void setActionRegistry(ActionRegistry* reg) { actions_ = reg; }
     void setNotificationService(INotificationService* svc) { notifications_ = svc; }
-    void setCompanionListenerService(CompanionListenerService* svc) { companion_ = svc; }
     void setEqualizerService(IEqualizerService* svc) { equalizer_ = svc; }
     void setProjectionStatusProvider(IProjectionStatusProvider* p) { projection_ = p; }
     void setNavigationProvider(INavigationProvider* p) { nav_ = p; }
@@ -30,7 +29,6 @@ public:
     IEventBus* eventBus() override { return eventBus_; }
     ActionRegistry* actionRegistry() override { return actions_; }
     INotificationService* notificationService() override { return notifications_; }
-    CompanionListenerService* companionListenerService() override { return companion_; }
     IEqualizerService* equalizerService() override { return equalizer_; }
     IProjectionStatusProvider* projectionStatusProvider() override { return projection_; }
     INavigationProvider* navigationProvider() override { return nav_; }
@@ -49,7 +47,6 @@ private:
     IEventBus* eventBus_ = nullptr;
     ActionRegistry* actions_ = nullptr;
     INotificationService* notifications_ = nullptr;
-    CompanionListenerService* companion_ = nullptr;
     IEqualizerService* equalizer_ = nullptr;
     IProjectionStatusProvider* projection_ = nullptr;
     INavigationProvider* nav_ = nullptr;

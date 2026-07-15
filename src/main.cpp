@@ -40,7 +40,6 @@
 #include "core/services/ActionRegistry.hpp"
 #include "core/services/OverlayService.hpp"
 #include "core/services/NotificationService.hpp"
-#include "core/services/CompanionListenerService.hpp"
 #include "core/services/WeatherService.hpp"
 #include "core/services/SystemServiceClient.hpp"
 #include "core/services/BluetoothManager.hpp"
@@ -324,6 +323,13 @@ int main(int argc, char *argv[])
     // --- Equalizer service (depends on YamlConfig) ---
     auto eqService = new oap::EqualizerService(yamlConfig.get(), &app);
 
+    // Durable EQ persistence: after writeToConfig mutates the YAML in memory,
+    // flush the whole config to disk (Task 4). yamlConfig is app-scoped and
+    // outlives eqService, so capturing the raw pointer + path is safe.
+    eqService->setFlushHook([yc = yamlConfig.get(), path = yamlPath]() {
+        return yc->save(path);
+    });
+
     // Flush EQ config on shutdown
     QObject::connect(&app, &QGuiApplication::aboutToQuit, eqService, &oap::EqualizerService::saveNow);
 
@@ -399,50 +405,6 @@ int main(int argc, char *argv[])
     // --- NotificationService ---
     auto notificationService = new oap::NotificationService(&app);
     hostContext->setNotificationService(notificationService);
-
-    // --- Companion Listener ---
-    oap::CompanionListenerService* companionListener = nullptr;
-    QVariant companionEnabledVar = yamlConfig->valueByPath("companion.enabled");
-    bool companionEnabled = companionEnabledVar.isValid() ? companionEnabledVar.toBool() : true;
-    QVariant companionPortVar = yamlConfig->valueByPath("companion.port");
-    int companionPort = companionPortVar.isValid() ? companionPortVar.toInt() : 9876;
-    qCInfo(lcCore) << "Companion: enabled=" << companionEnabled << "port=" << companionPort;
-    if (companionEnabled) {
-        companionListener = new oap::CompanionListenerService(&app);
-        companionListener->setWifiSsid(yamlConfig->wifiSsid());
-        companionListener->loadOrGenerateVehicleId();
-        QFile secretFile(QDir::homePath() + "/.openauto/companion.key");
-        if (secretFile.open(QIODevice::ReadOnly)) {
-            QByteArray secret = secretFile.readAll().trimmed();
-            companionListener->setSharedSecret(QString::fromUtf8(secret));
-            qCInfo(lcCore) << "Companion: loaded secret from" << secretFile.fileName()
-                     << "(" << secret.length() << "bytes)";
-        } else {
-            qCWarning(lcCore) << "Companion: no secret file at" << secretFile.fileName()
-                        << "— pairing required";
-        }
-        companionListener->setThemeService(themeService);
-
-        // Set display size for companion wallpaper cropping
-        if (geomW > 0 && geomH > 0) {
-            companionListener->setDisplaySize(geomW, geomH);
-        } else {
-            auto* screen = QGuiApplication::primaryScreen();
-            if (screen) {
-                QRect geom = screen->geometry();
-                companionListener->setDisplaySize(geom.width(), geom.height());
-            }
-        }
-
-        if (companionListener->start(companionPort)) {
-            qCInfo(lcCore) << "Companion: listening on port" << companionPort;
-        } else {
-            qCWarning(lcCore) << "Companion: FAILED to bind port" << companionPort;
-        }
-        hostContext->setCompanionListenerService(companionListener);
-    } else {
-        qCInfo(lcCore) << "Companion: disabled in config";
-    }
 
     oap::PluginManager pluginManager(&app);
 
@@ -947,21 +909,10 @@ int main(int argc, char *argv[])
     ipcServer->setThemeService(themeService);
     ipcServer->setAudioService(audioService);
     ipcServer->setPluginManager(&pluginManager);
-    if (companionListener)
-        ipcServer->setCompanionListenerService(companionListener);
     ipcServer->start();
 
     // --- System service client (IPC to openauto-system daemon) ---
     auto* systemClient = new oap::SystemServiceClient(&app);
-    if (companionListener)
-        companionListener->setSystemServiceClient(systemClient);
-    if (companionListener && systemClient) {
-        QObject::connect(systemClient, &oap::SystemServiceClient::connectedChanged, systemClient, [=]() {
-            if (systemClient->isConnected()) {
-                companionListener->syncProxyRoute();
-            }
-        });
-    }
 
     QQuickStyle::setStyle("Material");
 
@@ -1145,9 +1096,6 @@ int main(int argc, char *argv[])
     engine.rootContext()->setContextProperty("ConfigService", configService.get());
     engine.rootContext()->setContextProperty("DisplayInfo", displayInfo);
 
-    if (companionListener)
-        engine.rootContext()->setContextProperty("CompanionService", companionListener);
-
     auto weatherService = new oap::WeatherService(&app);
     engine.rootContext()->setContextProperty("WeatherService", weatherService);
 
@@ -1208,16 +1156,10 @@ int main(int argc, char *argv[])
         qWarning() << "[main] External API disabled or failed to start";
     engine.rootContext()->setContextProperty("ApiService", apiServer);
     // Companion phone reports (GPS / battery / connectivity) surfaced to QML
-    // widgets via API v1 inbound state (design §B0b). ApiServer is constructed
-    // above — well before engine.load() below — so this is set before the
-    // null-guarded widgets first paint; no hoist of the ApiServer construction
-    // was required. The legacy CompanionService property now has ZERO QML
-    // consumers (CompanionSettings.qml died in the 2026-07-14 settings merge);
-    // the property and the service itself are removed at B2.
+    // via the API v1 inbound cache (design §B0). Registered unconditionally —
+    // widgets bind CompanionState whether or not the API server is running.
     engine.rootContext()->setContextProperty("CompanionState", apiServer->inboundState());
-    // IPC companion_status (design §B0d): ipcServer was constructed earlier
-    // (~:1020), before ApiServer existed, so this wiring is deferred to here
-    // rather than sitting next to setCompanionListenerService() above.
+    // IPC companion_status reads the same inbound state.
     ipcServer->setInboundState(apiServer->inboundState());
     QObject::connect(apiServer->inboundState(), &oap::api::ApiInboundState::proxyRouteChanged,
                      &app, [systemClient](bool active, const QString& host, quint16 port,

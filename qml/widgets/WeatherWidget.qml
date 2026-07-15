@@ -26,7 +26,7 @@ Item {
     // GPS + companion state (null-safe)
     // IMPORTANT: Use gpsStale to detect GPS availability. Checking lat/lon values
     // would reject valid equator coordinates. gpsStale is the proper signal from
-    // CompanionListenerService for "GPS data is available and current".
+    // CompanionState for "GPS data is available and current".
     readonly property bool companionConnected: CompanionState ? CompanionState.connected : false
     readonly property bool hasGps: companionConnected
                                    && CompanionState

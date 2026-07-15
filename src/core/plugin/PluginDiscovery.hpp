@@ -10,7 +10,11 @@ namespace oap {
 /// Pure file scanning + parsing — no .so loading, fully unit-testable.
 class PluginDiscovery {
 public:
-    static constexpr int HOST_API_VERSION = 1;
+    // v2: the IHostContext vtable changed in the B2 teardown
+    // (companionListenerService() removed, 2026-07-14). The C++ plugin ABI has
+    // no cross-version vtable compatibility, so acceptance is exact-match — a
+    // stale v1 .so must be rejected, not mis-dispatched (see validateManifest).
+    static constexpr int HOST_API_VERSION = 2;
 
     /// Scan pluginsDir for subdirectories containing plugin.yaml.
     /// Returns list of parsed and validated manifests.

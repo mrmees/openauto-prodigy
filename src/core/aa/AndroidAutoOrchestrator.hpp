@@ -32,10 +32,12 @@ namespace oap {
 
 class YamlConfig;
 class IAudioService;
+class AudioService;
 class IEventBus;
 class IThemeService;
 class IConfigService;
 class EqualizerService;
+class EqualizerEngine;
 struct AudioStreamHandle;
 
 namespace aa {
@@ -117,6 +119,11 @@ private:
 
     oap::IConfigService* configService_;
     oap::IAudioService* audioService_;
+    // Concrete AudioService (createStreamWithOptions), cached from a
+    // dynamic_cast of audioService_ in the constructor; null when a mock
+    // IAudioService is injected (tests) — the legacy createStream path is used
+    // in that case.
+    oap::AudioService* concreteAudio_ = nullptr;
     oap::YamlConfig* yamlConfig_;
     oap::IEventBus* eventBus_;
     oap::EqualizerService* eqService_;
@@ -154,6 +161,13 @@ private:
     oap::AudioStreamHandle* mediaStream_ = nullptr;
     oap::AudioStreamHandle* speechStream_ = nullptr;
     oap::AudioStreamHandle* systemStream_ = nullptr;
+
+    // Dedicated EQ engine instances (acquired from eqService_ per session,
+    // released in teardownSession() AFTER the streams are destroyed — RT
+    // ordering contract §4.4). Non-owning here; the service owns them.
+    oap::EqualizerEngine* mediaEq_ = nullptr;
+    oap::EqualizerEngine* speechEq_ = nullptr;
+    oap::EqualizerEngine* systemEq_ = nullptr;
 
     // How speech-channel audio treats music while active: the phone's last
     // focus request sets it (GAIN_TRANSIENT = mute, GAIN_NAVI = duck).

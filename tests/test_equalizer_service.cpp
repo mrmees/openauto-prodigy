@@ -1,9 +1,12 @@
 #include <QtTest>
 #include "core/services/EqualizerService.hpp"
+#include "core/audio/EqualizerEngine.hpp"
 #include "core/audio/EqualizerPresets.hpp"
 #include "core/YamlConfig.hpp"
 #include <QDir>
 #include <QFile>
+#include <cmath>
+#include <memory>
 
 using oap::StreamId;
 
@@ -16,7 +19,7 @@ private slots:
         oap::EqualizerService svc;
         QCOMPARE(svc.activePreset(StreamId::Media), QString("Flat"));
         QCOMPARE(svc.activePreset(StreamId::Navigation), QString("Voice"));
-        QCOMPARE(svc.activePreset(StreamId::Phone), QString("Voice"));
+        QCOMPARE(svc.activePreset(StreamId::System), QString("Voice"));
     }
 
     void testApplyPresetChangesOnlyTargetStream()
@@ -26,7 +29,7 @@ private slots:
         QCOMPARE(svc.activePreset(StreamId::Media), QString("Rock"));
         // Others unchanged
         QCOMPARE(svc.activePreset(StreamId::Navigation), QString("Voice"));
-        QCOMPARE(svc.activePreset(StreamId::Phone), QString("Voice"));
+        QCOMPARE(svc.activePreset(StreamId::System), QString("Voice"));
 
         // Verify gains match Rock preset
         const auto* rock = oap::findBundledPreset("Rock");
@@ -179,19 +182,90 @@ private slots:
         QVERIFY(svc.userPresetNames().isEmpty());
     }
 
-    void testEngineForStreamDistinct()
+    void testAcquireReturnsDistinctInitializedInstances()
     {
         oap::EqualizerService svc;
-        auto* media = svc.engineForStream(StreamId::Media);
-        auto* nav = svc.engineForStream(StreamId::Navigation);
-        auto* phone = svc.engineForStream(StreamId::Phone);
+        svc.setGain(StreamId::Media, 0, 5.0f);
+        auto* e1 = svc.acquireEngine(StreamId::Media, 48000.0f, 2);
+        auto* e2 = svc.acquireEngine(StreamId::Media, 48000.0f, 2);
+        QVERIFY(e1 && e2 && e1 != e2);
+        QCOMPARE(e1->getGain(0), 5.0f);
+        QCOMPARE(e2->getGain(0), 5.0f);
+        svc.releaseEngine(e1); svc.releaseEngine(e2);
+    }
 
-        QVERIFY(media != nullptr);
-        QVERIFY(nav != nullptr);
-        QVERIFY(phone != nullptr);
-        QVERIFY(media != nav);
-        QVERIFY(media != phone);
-        QVERIFY(nav != phone);
+    void testFanOutPropagatesToAllInstances()
+    {
+        oap::EqualizerService svc;
+        auto* e1 = svc.acquireEngine(StreamId::Media, 48000.0f, 2);
+        auto* e2 = svc.acquireEngine(StreamId::Media, 44100.0f, 2);
+        svc.applyPreset(StreamId::Media, "Rock");
+        const auto* rock = oap::findBundledPreset("Rock");
+        QCOMPARE(e1->getGain(0), rock->gains[0]);
+        QCOMPARE(e2->getGain(0), rock->gains[0]);
+        svc.setBypassed(StreamId::Media, true);
+        QVERIFY(e1->isBypassed() && e2->isBypassed());
+        svc.releaseEngine(e2);
+        svc.setGain(StreamId::Media, 1, -3.0f);
+        QCOMPARE(e1->getGain(1), -3.0f);        // still fans out to live engine
+        svc.releaseEngine(e1);
+        svc.setGain(StreamId::Media, 2, 4.0f);  // no engines — must not crash
+    }
+
+    void testBypassAuthoritativeWithoutEngines()
+    {
+        oap::EqualizerService svc;
+        svc.setBypassed(StreamId::Media, true);
+        QVERIFY(svc.isBypassed(StreamId::Media));              // no engine involved
+        auto* e = svc.acquireEngine(StreamId::Media, 48000.0f, 2);
+        QVERIFY(e->isBypassed());                              // inherited at acquire
+        svc.releaseEngine(e);
+    }
+
+    void testNonFiniteGainRejected()
+    {
+        oap::EqualizerService svc;
+        svc.setGain(StreamId::Media, 0, 5.0f);
+        svc.setGain(StreamId::Media, 0, std::nanf(""));
+        QCOMPARE(svc.gain(StreamId::Media, 0), 5.0f);          // unchanged
+    }
+
+    // setGain clamps to the engine's +-12 dB range at the service boundary, so
+    // the stored/getter value agrees with what the engine applies (round-2 F6:
+    // service used to store the raw out-of-range value).
+    void testSetGainClampsToEngineRange()
+    {
+        oap::EqualizerService svc;
+        svc.setGain(StreamId::Media, 0, 20.0f);
+        QCOMPARE(svc.gain(StreamId::Media, 0), 12.0f);   // clamped to +12
+        svc.setGain(StreamId::Media, 1, -30.0f);
+        QCOMPARE(svc.gain(StreamId::Media, 1), -12.0f);  // clamped to -12
+
+        // Fan-out also sees the clamped value, not the raw one.
+        auto* e = svc.acquireEngine(StreamId::Media, 48000.0f, 2);
+        svc.setGain(StreamId::Media, 2, 99.0f);
+        QCOMPARE(svc.gain(StreamId::Media, 2), 12.0f);
+        QCOMPARE(e->getGain(2), 12.0f);
+        svc.releaseEngine(e);
+    }
+
+    // A clamped gain persists as the clamped value and reloads unchanged — no
+    // restart "snap" from a stored 20 dB down to the engine's 12 dB.
+    void testClampedGainPersistsClamped()
+    {
+        const QString path = QDir::temp().filePath("eqclamp-test.yaml");
+        QFile::remove(path);
+        auto cfg = std::make_unique<oap::YamlConfig>(); cfg->load(path);
+        {
+            oap::EqualizerService svc(cfg.get());
+            svc.setFlushHook([&]{ return cfg->save(path); });
+            svc.setGain(StreamId::Media, 0, 20.0f);   // clamps to 12
+            svc.saveNow();
+        }
+        auto cfg2 = std::make_unique<oap::YamlConfig>(); cfg2->load(path);
+        oap::EqualizerService svc2(cfg2.get());
+        QCOMPARE(svc2.gain(StreamId::Media, 0), 12.0f);   // reloads at 12, no snap
+        QFile::remove(path);
     }
 
     void testBypassPerStream()
@@ -242,7 +316,7 @@ private slots:
         oap::EqualizerService svc(&config);
         QCOMPARE(svc.activePreset(StreamId::Media), QString("Rock"));
         QCOMPARE(svc.activePreset(StreamId::Navigation), QString("Bass Boost"));
-        QCOMPARE(svc.activePreset(StreamId::Phone), QString("Voice")); // default
+        QCOMPARE(svc.activePreset(StreamId::System), QString("Voice")); // default
     }
 
     void testConfigMissingPresetFallsBackToFlat()
@@ -252,6 +326,19 @@ private slots:
 
         oap::EqualizerService svc(&config);
         QCOMPARE(svc.activePreset(StreamId::Media), QString("Flat"));
+    }
+
+    void testLegacyPhoneKeyRestoresSystemStream()
+    {
+        const QString path = QDir::temp().filePath("eqmig3-test.yaml");
+        QFile f(path); QVERIFY(f.open(QIODevice::WriteOnly));
+        f.write("audio:\n  equalizer:\n    streams:\n"
+                "      phone: { preset: Rock }\n");
+        f.close();
+        oap::YamlConfig cfg; cfg.load(path);
+        oap::EqualizerService svc(&cfg);
+        QCOMPARE(svc.activePreset(StreamId::System), QString("Rock"));
+        QFile::remove(path);
     }
 
     void testApplyPresetTriggersScheduleSave()
@@ -313,6 +400,41 @@ private slots:
         svc.applyPreset(StreamId::Media, "Saved Custom");
         QCOMPARE(svc.activePreset(StreamId::Media), QString("Saved Custom"));
         QCOMPARE(svc.gain(StreamId::Media, 0), 1.0f);
+    }
+
+    // --- Durable persistence (Task 4) ---
+
+    void testUnsavedGainsAndBypassSurviveRestart()
+    {
+        const QString path = QDir::temp().filePath("eqsvc-test.yaml");
+        QFile::remove(path);
+        auto cfg = std::make_unique<oap::YamlConfig>(); cfg->load(path);
+        {
+            oap::EqualizerService svc(cfg.get());
+            svc.setFlushHook([&]{ return cfg->save(path); });
+            svc.setGain(StreamId::Media, 0, 7.5f);   // "Custom" — no preset saved
+            svc.setBypassed(StreamId::Navigation, true);
+            svc.saveNow();
+        }
+        auto cfg2 = std::make_unique<oap::YamlConfig>(); cfg2->load(path);
+        oap::EqualizerService svc2(cfg2.get());
+        QCOMPARE(svc2.gain(StreamId::Media, 0), 7.5f);
+        QCOMPARE(svc2.activePreset(StreamId::Media), QString(""));  // still Custom
+        QVERIFY(svc2.isBypassed(StreamId::Navigation));
+        QFile::remove(path);
+    }
+
+    void testFlushFailureRearmsDebounce()
+    {
+        oap::YamlConfig cfg;
+        oap::EqualizerService svc(&cfg);
+        int calls = 0;
+        svc.setFlushHook([&]{ ++calls; return false; });
+        svc.setGain(StreamId::Media, 0, 1.0f);
+        svc.saveNow();
+        QCOMPARE(calls, 1);
+        // debounce re-armed on failure: saveTimer_ active again
+        QTRY_VERIFY_WITH_TIMEOUT(calls >= 2, 5000);
     }
 };
 

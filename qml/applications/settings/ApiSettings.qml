@@ -4,9 +4,8 @@ import QtQuick.Controls
 
 // The merged "Companion" settings page (design 2026-07-14): API v1 pairing,
 // live phone status (CompanionState = ApiInboundState), and the API toggles.
-// The legacy CompanionSettings page died here — its status rows moved in,
-// its 9876-era pairing controls were deleted (design 2026-07-11 §B2 content,
-// retired early because they drove a disabled listener).
+// The legacy CompanionSettings page died in the merge; the legacy listener
+// itself was deleted in the B2 teardown (2026-07-14).
 Flickable {
     id: root
     contentHeight: content.implicitHeight + UiMetrics.marginPage * 2

@@ -16,5 +16,5 @@ Subsystem rules for C++ code under `src/`. Root `AGENTS.md` holds the hard const
 
 ## PipeWire
 
-- **Playback: always output full periods.** Set `d.chunk->size = maxSize` and silence-fill any gap. PipeWire's graph timing is fixed by quantum/rate; variable `chunk->size` values cause tempo wobble ("skippy" audio).
+- **Playback: always fill and publish the full requested period.** Compute `wantBytes` from `buf->requested` (bounded by `d.maxsize` — that is buffer *capacity*, not the request) and silence-fill any gap; PipeWire's resampler sets `requested` to exactly what it needs. Variable short `chunk->size` values cause tempo wobble ("skippy" audio).
 - **`SPA_DICT_INIT_ARRAY` inline syntax** triggers "taking address of temporary array" — use named `spa_dict_item` arrays with `SPA_DICT_INIT` instead.

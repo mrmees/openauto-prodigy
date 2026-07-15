@@ -28,6 +28,8 @@ class IHostContext;
 
 namespace plugins {
 
+class BtAudioTap;  // BT A2DP loopback tap (Task 7) — owned + wired in initialize()
+
 /// BlueZ ObjectManager InterfacesAdded carries a{sa{sv}}; QtDBus refuses to
 /// deliver it into a QVariantMap slot, so the connect fails at runtime and
 /// hot-plug goes silently deaf (same fix family as UsbInterfaceMap /
@@ -82,7 +84,7 @@ public:
     QString id() const override { return QStringLiteral("org.openauto.bt-audio"); }
     QString name() const override { return QStringLiteral("Bluetooth Audio"); }
     QString version() const override { return QStringLiteral("1.0.0"); }
-    int apiVersion() const override { return 1; }
+    int apiVersion() const override { return 2; }
 
     // IPlugin — Lifecycle
     bool initialize(IHostContext* context) override;
@@ -115,6 +117,14 @@ public:
     int trackPosition() const { return trackPosition_; }
     QString deviceName() const { return deviceName_; }
 
+    /// True iff the tracked A2DP transport's MediaTransport1.State == "active".
+    /// This is audio activity, NOT interface presence: a connected-but-silent
+    /// phone leaves the transport idle/pending, which reads false here even
+    /// though connectionState() reports Connected. The BT loopback tap (Task 7)
+    /// grabs audio focus off this edge, so a false positive would mute Android
+    /// Auto while the phone is silent — precision matters.
+    bool transportActive() const { return transportActive_; }
+
     // Playback controls (invokable from QML)
     Q_INVOKABLE void play();
     Q_INVOKABLE void pause();
@@ -126,6 +136,9 @@ signals:
     void playbackStateChanged();
     void metadataChanged();
     void positionChanged();
+    /// Edge-only: emitted just when the tracked transport's audio activity
+    /// flips (idle/pending/removed/BlueZ-loss -> false, active -> true).
+    void transportActiveChanged(bool active);
 
 private slots:
     // D-Bus signal handlers — MUST be slots or every string-based bus.connect()
@@ -137,21 +150,37 @@ private slots:
     // playerPath_ so a foreign BlueZ object's update cannot stomp our state.
     void onPropertiesChanged(const QString& interface, const QVariantMap& changed,
                              const QStringList& invalidated, const QDBusMessage& message);
+    // BlueZ vanished from the bus (QDBusServiceWatcher::serviceUnregistered).
+    // A slot so the meta-object test seam can drive it without a live bus.
+    void onBluezServiceUnregistered();
 
 private:
     void startDBusMonitoring();
     void stopDBusMonitoring();
     void scanExistingObjects();
-    void updateTransportState(const QString& state);
+    // Record one transport's audio activity (State=="active") under its own
+    // path, then recompute the aggregate connection/activity edges.
+    void updateTransportState(const QString& path, const QString& state);
+    // Derive connectionState_ (Connected while ANY transport exists) and the
+    // audio-activity edge (true while ANY tracked transport is active) from
+    // transportActiveByPath_, emitting only on real changes.
+    void recomputeTransportState();
     void updatePlayerProperties(const QVariantMap& props);
     void sendPlayerCommand(const QString& command);
+    // Edge-emits transportActiveChanged only when the value actually flips.
+    void setTransportActive(bool active);
 
     IHostContext* hostContext_ = nullptr;
     QDBusServiceWatcher* bluezWatcher_ = nullptr;
     bool monitoring_ = false;
 
+    // BT A2DP loopback tap — non-owning raw pointer; parented to this QObject.
+    // Null when PipeWire is down or the concrete services don't resolve.
+    BtAudioTap* tap_ = nullptr;
+
     ConnectionState connectionState_ = Disconnected;
     PlaybackState playbackState_ = Stopped;
+    bool transportActive_ = false;
 
     QString trackTitle_;
     QString trackArtist_;
@@ -160,7 +189,14 @@ private:
     int trackPosition_ = 0;   // milliseconds
     QString deviceName_;
 
-    // D-Bus object paths for the active transport and player
+    // Per-transport audio activity: path -> (MediaTransport1.State == "active").
+    // A second, idle phone must not force the aggregate edge false while the
+    // first is still playing, so activity is tracked per transport and the edge
+    // derives from "ANY tracked transport active" (not last-writer-wins).
+    QMap<QString, bool> transportActiveByPath_;
+
+    // D-Bus object paths: transportPath_ is the MOST-RECENT transport (used for
+    // device-name display only); playerPath_ is the tracked AVRCP player.
     QString transportPath_;
     QString playerPath_;
 };

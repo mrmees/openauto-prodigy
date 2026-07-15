@@ -38,6 +38,10 @@ void EqualizerEngine::setGain(int band, float dB)
 {
     if (band < 0 || band >= kNumBands) return;
 
+    // Sanitize non-finite input to 0 before clamping (defense in depth,
+    // design §4.5 / round-2 F5): std::clamp(NaN) does not sanitize NaN, and
+    // a NaN reaching coefficient generation would poison the RT filter.
+    if (!std::isfinite(dB)) dB = 0.0f;
     dB = std::clamp(dB, -12.0f, 12.0f);
     gains_[band] = dB;
 
@@ -47,7 +51,9 @@ void EqualizerEngine::setGain(int band, float dB)
 void EqualizerEngine::setAllGains(const std::array<float, kNumBands>& gainsDb)
 {
     for (int i = 0; i < kNumBands; ++i) {
-        gains_[i] = std::clamp(gainsDb[i], -12.0f, 12.0f);
+        float g = gainsDb[i];
+        if (!std::isfinite(g)) g = 0.0f;   // sanitize before clamp (§4.5 / round-2 F5)
+        gains_[i] = std::clamp(g, -12.0f, 12.0f);
     }
 
     recomputeCoeffs();

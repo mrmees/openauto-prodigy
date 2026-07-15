@@ -50,7 +50,7 @@ Ideas captured here. Promote to `roadmap-current.md` when ready to commit.
 
 - **API: head-unit proxy-route status feedback** — From the 2026-07-05 companion gap review: the companion reports "SOCKS5 active" via `ConnectivityReport`, but the API never tells the client whether the head unit actually applied the proxy route. A v1.1+ additive status field/event would help bridge reliability debugging. (Companion UI shows local state only for now.) Related non-item from the same review: advertising the web-config settings URL over the API was considered and rejected — web-config stays the canonical HTTP channel, apps construct the URL from the host convention.
 
-- **Web-config: theme/wallpaper upload endpoint** — PROMOTED (decided 2026-07-05): companion theme/wallpaper transfer moves off legacy port 9876 onto a new web-config HTTP upload/install endpoint (multipart upload → validate → apply via existing IPC). Blocks legacy-9876 retirement; see roadmap companion-migration item.
+- **Web-config: theme/wallpaper upload endpoint** — PROMOTED (decided 2026-07-05): companion theme/wallpaper transfer moves off legacy port 9876 onto a new web-config HTTP upload/install endpoint (multipart upload → validate → apply via existing IPC). The 9876 retirement it blocked landed 2026-07-14 (B2).
 
 - **WebAppHost — fullscreen streaming web apps (Spotify / YouTube / parked video)** —
   Sibling of the widget runtime with inverted policy: manifest-driven app packages
@@ -70,8 +70,8 @@ Ideas captured here. Promote to `roadmap-current.md` when ready to commit.
 - **Overlay design doc: document that QQuickOverlay-parented modal Dialogs (config/picker/manage sheets) composite ABOVE all Shell z-bands** — or plan migrating modals into the overlay framework. Surfaced by the dashboards final review as a cross-branch semantic note.
 
 ## From companion support batch (2026-07-06)
-- **Daemon-side proxy-route auto-teardown (vanished-phone net)** — Follow-up to the owner-teardown decision (2026-07-06): the API now clears the route when the owning session closes, but a phone that silently vanishes (AP association drop, no TCP FIN — the AA tcp_info gotcha) can hold a zombie session and leave the iptables/redsocks blackhole up. The Python system daemon already health-checks the route every 10s and marks DEGRADED/FAILED without tearing down; let it auto-disable after ~3 consecutive failures. Needs a small design pass: interaction with legacy `CompanionListenerService::proxyRouteApplied_` (won't re-apply after a behind-its-back disable) and flap risk on transient congestion. Caller-agnostic — protects legacy AND API paths.
-- **Legacy CompanionListenerService RNG hygiene** — `QRandomGenerator::global()` at CompanionListenerService.cpp:111 (pairing PIN), :223, :281 (challenge nonce, session key) — same weakness the API hardening fixed with `::system()`. Three-line fix if the service survives another release; otherwise dies with 9876 retirement. (Final-review finding, 2026-07-06.)
+- **Daemon-side proxy-route auto-teardown (vanished-phone net)** — Follow-up to the owner-teardown decision (2026-07-06): the API now clears the route when the owning session closes, but a phone that silently vanishes (AP association drop, no TCP FIN — the AA tcp_info gotcha) can hold a zombie session and leave the iptables/redsocks blackhole up. The Python system daemon already health-checks the route every 10s and marks DEGRADED/FAILED without tearing down; let it auto-disable after ~3 consecutive failures. Needs a small design pass: flap risk on transient congestion. Caller-agnostic — protects legacy AND API paths. App-side note: B2's liveness expiry (2026-07-14) already tears the route when the owning session goes silent >30 s; the daemon-side auto-disable remains as defense in depth below the app.
+- **Legacy CompanionListenerService RNG hygiene** — CLOSED 2026-07-14 — the service was deleted in the B2 teardown.
 - **ApiServer failed-start retry hygiene** — if both listens fail, a retry re-news QTcpServer/QWebSocketServer without deleting the failed pair AND appends a duplicate publisher set (`createPublishers()` runs before the listen calls). Unreachable in production (main.cpp calls start() once); fix shape: clean up on the failure path or make the guard require stop() first. (Final-review finding, 2026-07-06.)
 - **timedatectl handlers block the main thread** — `ClockSyncService`'s default exec (`waitForFinished(5000)`; both time and timezone steps route through it since the 2026-07-13 extraction); a hung timedatectl stalls UI for 5s. Convert to async QProcess — the exec seam makes this a one-spot change now. (Final-review finding, 2026-07-06.)
 
@@ -88,7 +88,7 @@ Ideas captured here. Promote to `roadmap-current.md` when ready to commit.
 ## From theme-upload design (2026-07-07)
 - **All-routes web-config auth pass** — web-config binds `0.0.0.0:8080` with ZERO auth on every route, incl. `set_config` (can change any setting) and the new `install_theme` upload. Per-endpoint auth is theater while `set_config` is open; do ONE proper auth pass across the whole panel instead. (Decided during theme-upload Q1: match web-config's no-auth for the new endpoint, fix the real hole separately. See `docs/archive/plans/2026-07-07-theme-upload-design.md` §10.)
 - **Browser-facing theme/wallpaper upload UI (themes.html)** — fast-follow to the companion-only `POST /api/theme/install` endpoint: a drag-drop wallpaper/theme uploader with preview + progress, hitting the same endpoint. Deferred from the theme-upload work item (Q2 = companion-only now). Cheap add-on once the endpoint ships.
-- **Dedup camelCase→hyphen conversion + slugify at 9876 retirement** — the theme-upload IPC handler copies `CompanionListenerService`'s color-key conversion lambda (frozen file, dual-stack). When legacy 9876 retires, collapse the duplicate into the shared `ThemeService` path.
+- **Dedup camelCase→hyphen conversion + slugify at 9876 retirement** — CLOSED 2026-07-14 — legacy copy deleted (B2); the ThemeInstallRequest copy is the single shared implementation.
 - **`/tmp/oap-theme-upload/` janitor** — Flask deletes its wallpaper temp file in a `finally`, but a Flask crash mid-request leaks a stale temp file (reboot clears it). A periodic sweep or per-request stale-file cleanup is a tidiness nicety, not a v1 need.
 - **Theme-upload temp-dir agreement test** (final-review Rec 1) — `/tmp/oap-theme-upload` is a literal in BOTH `web-config/server.py` (`UPLOAD_TMP_DIR`) and `IpcServer::handleInstallTheme`. Cross-reference comments now guard against a future typo, but no test covers the agreement (the C++ IPC test only exercises the color-only path). A C++ integration slot that round-trips a real wallpaper JPEG through the handler's hardcoded dir would catch a handler-literal typo that would otherwise silently reject every wallpaper upload in production. Also strengthen the T1 unit tests: `wallpaperPathIsDirectory` should point at a real *subdir* under the allowed dir (to hit the `!isFile()` branch, not the containment check), and `wallpaperHappy` should assert byte-content not just size.
 - **Theme-upload 503-vs-500 status mapping** (final-review T3a) — Flask's socket-failure→503 substring list ("not running"/"not found"/"not accepting"/"timed out") misses `ipc_request`'s `"Empty response from app"` and generic-exception strings, so those app-availability failures map to 500 instead of 503. No silent success (still `installed:false` + real error), but a companion retry policy keyed on 503 would miss them. Cleaner fix: have `ipc_request` return a structured transport-vs-app status instead of English substring-sniffing.
@@ -132,18 +132,153 @@ Ideas captured here. Promote to `roadmap-current.md` when ready to commit.
 ## From HFP/9876 bench (2026-07-13)
 - **Call popup answer/reject dead during AA projection** (Samsung row) — popup renders over the AA surface but button presses leave ZERO journal trace: touch likely falls through to the AA layer. Second half of the same fix: the native call popup shouldn't show at all while an AA session owns call UI (AA renders its own). Reproduced with incoming call, S25 Ultra projecting.
 - **BT advertising stops after device disconnect until app restart** — hit twice back-to-back (pairing Samsung after Pixel disconnect, then Moto after Samsung). New phone can't discover the head unit; `systemctl restart openauto-prodigy` restores it. Likely the BT discovery/advertisement isn't re-armed on disconnect.
-- **App PipeWire connection doesn't survive daemon restart** — after `systemctl --user restart pipewire`, the settings audio-devices list shows empty (occasionally) and device selection doesn't persist; app restart fixes. Root: the app's registry connection dies with the daemon and never re-enumerates. Related ops rule: restart order is `bluetooth` → `pipewire wireplumber` → `openauto-prodigy.service`.
+- **App PipeWire connection doesn't survive daemon restart** — after `systemctl --user restart pipewire`, the settings audio-devices list shows empty (occasionally) and device selection doesn't persist; app restart fixes. Root: the app's registry connection dies with the daemon and never re-enumerates. Related ops rule: restart order is `bluetooth` → `pipewire wireplumber` → `openauto-prodigy.service`. Same family, observed at the 2026-07-15 BT EQ bench: a stream error (e.g. wireplumber-only restart) takes the BT EQ tap down and it stays down until app restart — teardown/fallback fire correctly, but nothing re-creates the tap streams.
 - **WirePlumber/BlueZ RegisterProfile restart race** (ops/installer note) — restarting the audio stack can yield `spa.bluez5.native: RegisterProfile() failed: org.bluez.Error.NotPermitted`, leaving HFP silently dead (phone connects A2DP-only, calls stay on handset). Restarting `bluetooth` first clears it. Installer/service files should encode the ordering; consider detection (ag-object absent after connect) + auto-remediation.
 - **BatteryWidget: no charging indicator** — `CompanionState.phoneCharging` arrives correctly (verified end-to-end); the canvas renders only outline/fill/%. Add a bolt glyph when charging.
-- **IPC `companion_status`: expose `gps_stale`** — staleness is QML-visible (`CompanionState.gpsStale`) but absent from the IPC JSON, so scripts can't observe the stale transition (bench had to use widget-eyeball verification).
+- **IPC `companion_status`: expose `gps_stale`** — SHIPPED 2026-07-14 in the B2 teardown — companion_status now carries gps_stale (test-locked in test_ipc_install_theme).
 - **Startup QDBus warnings** — `QDBusArgument: write from a read-only object` ×3 at app start, and `QDBusRawType<0x617b73767d>* must be registered` when BtAudio reads `MediaPlayer1.Track`. Log hygiene + possible latent marshalling bugs in the same `a{sv}` family as the fixed dead-slot issues.
 - **redsocks localhost self-probe rejected by phone SOCKS ruleset** — "connection not allowed by ruleset (2)" for 127.0.0.1:12345 while real traffic relays fine. Probably the app's SOCKS server policy; confirm it's intended and silence the health-probe noise if so.
 - **Bench tooling: adb** — canonical adb on MINIMEES is `E:\android\sdk\platform-tools\adb.exe` (three other adb installs exist; version-mismatched clients kill each other's servers — probe with the canonical one ONLY). Pixel 8 over USB (serial 39260DLJH000LX) worked for location toggles, force-stop, logcat. Consider wireless-debug pairing for benches where the phone isn't cabled.
 - **Bounded-drain session teardown for backpressured terminal frames** (2026-07-13 gate finding, dismissed as theoretical) — `flush()` before close fully drains handshake-path terminal frames (first bytes on a fresh connection, empty send buffer), but a mid-session `closeWithError` to a peer with a backlogged-yet-under-cap send buffer can still lose the frame's tail when the deferred delete destroys the socket. Fix shape: keep the transport alive until Qt reports the drain (or a bounded timeout → abort). `sendRaw` is documented best-effort; promote only if a real client ever hits it.
-- **Custom AP address is systemically unsupported by API v1** (2026-07-13 gate finding, pre-existing) — install-prebuilt.sh prompts for a custom AP static IP but only writes it into systemd-networkd config; the app never learns it. Peer admission hardcodes `10.0.0.0/24` (`ApiServer::inApSubnet`) and both pairing QRs (legacy + API v1) hardcode `host=10.0.0.1`, so a custom-AP install rejects phone clients regardless of QR. One coherent fix: persist the AP address into config.yaml at install time and read it in admission + QR payload; or drop the prompt and enforce the 10.0.0.1/24 invariant. Decision is Matthew's (prompt-removal is a UX call).
-- **install-prebuilt.sh missing udisks polkit rule** — install.sh installs all three polkit rules (companion/time, bluez-agent, udisks) but the prebuilt installer only installs the first two; a prebuilt install would hit password prompts (or failures) on USB media mount/eject. Copy the udisks block over. (Spotted during 2026-07-13 codec installer wiring.)
+- **Custom AP address is systemically unsupported by API v1** (2026-07-13 gate finding, pre-existing) — install-prebuilt.sh prompts for a custom AP static IP but only writes it into systemd-networkd config; the app never learns it. Peer admission hardcodes `10.0.0.0/24` (`ApiServer::inApSubnet`) and both pairing QRs (legacy + API v1) hardcode `host=10.0.0.1`, so a custom-AP install rejects phone clients regardless of QR. One coherent fix: persist the AP address into config.yaml at install time and read it in admission + QR payload; or drop the prompt and enforce the 10.0.0.1/24 invariant. Decision is Matthew's (prompt-removal is a UX call). **Decision (Matthew, 2026-07-14):** prompt dropped from install-prebuilt.sh (B2); 10.0.0.1/24 is the enforced invariant. Revisit only if a real custom-subnet need appears.
+- **install-prebuilt.sh missing udisks polkit rule** — SHIPPED 2026-07-14 in the B2 teardown — install-prebuilt.sh installs all three polkit rules.
 - **Backward clock-step guard can never fire from live traffic** — `ClockSyncService` (semantics inherited from legacy `adjustClock`) requires 3 consecutive reports agreeing on the IDENTICAL millisecond target before stepping backward >5 min, but a real phone's reports advance between sends, so the agreements never accumulate and large backward corrections are effectively impossible without a restart. Probably tolerable (backward jumps >5 min are almost always phone-side nonsense) but the guard should compare against a drift-adjusted target, not a raw timestamp. (Found during the 2026-07-13 ClockSyncService extraction.)
 
 ## From PR #19 pre-merge gate (2026-07-14)
 - **Patched libspa deb has no upgrade path** (gate finding, deferred) — both installers take the idempotent return on ANY installed `+prodigy` version, so a future release bundling a rebuilt deb (`+prodigy2`, or a rebuild against a newer pipewire base) never replaces the installed one. Tolerable while exactly one patched-deb revision exists: a base upgrade breaks the held package's dependency LOUDLY (documented cue to rebuild), and a candidate built for a newer base fails the pre-install simulation on an old base anyway. Fix shape when the first revision bump ships: single-candidate selection + `dpkg --compare-versions` installed-vs-candidate, unhold → install → re-hold only when the candidate is newer. Not patched at the gate: touching the hold/upgrade logic in both installers right before a release adds untested risk to a bench-validated path.
-- **Companion reporting sessions have no liveness expiry** (gate finding, deferred) — `reportingSessions_` membership (drives `CompanionState.connected`) persists until transport close, so a phone that dies without a TCP FIN (wifi drop, walked away) leaves `connected: true` + last battery state visible until TCP itself gives up (~15 min, and only if a publisher writes to the socket). GPS already has independent staleness. Fix shape: report-age expiry per owning session (clear owner + presence when the last accepted report is older than N× the companion's report cadence) — cadence is a companion-contract decision, so settle it with the companion app work at B2.
+- **Companion reporting sessions have no liveness expiry** — SHIPPED 2026-07-14 in the B2 teardown — 30 s report-age expiry per owning session, 5 s sweep, reporting-role-only (actions/notifications/socket untouched).
+
+## From BT A2DP EQ bench (2026-07-15)
+
+- **Two-minute pairing window is invisible in the UI** — diagnosed at the bench
+  (btmon: kernel sends `IO Capability Negative Reply — Pairing Not Allowed (0x18)`
+  before the agent is ever consulted) and Codex-confirmed by design archaeology:
+  `PairableTimeout=120` + startup `Pairable=false` is DELIBERATE security design
+  (2026-02-27 bluetooth-cleanup design §"auto-toggles off after 120 seconds";
+  commits 617f269/a38e5b5/dc725a1/8ad2e6a) — an app crash must not leave the HU
+  indefinitely pairable. Only first-run mode (zero paired devices) renews the
+  window, so the trap only bites when adding a SECOND phone. Fix shape (Codex):
+  rename the ConnectionSettings control to "Allow New Pairings for 2 Minutes" as
+  a momentary action with "pairing window open" feedback driven by the existing
+  PropertiesChanged path (do NOT zero the timeout); hardening rider:
+  `setupAdapter()` assigns `pairable_ = false` without emitting `pairableChanged`,
+  so the QML switch can show stale-checked after a BlueZ restart
+  (`BluetoothManager.cpp:435` area). NOTE: distinct from the existing
+  "BT advertising stops after device disconnect" item — discoverability never
+  times out and is a separate flag; that item stands on its own.
+
+- **ExecStopPost `bluetoothctl disconnect` kicks the phone on every clean
+  stop/restart** — DESIGN DECISION NEEDED. `install.sh:1723` ships
+  `[ "$SERVICE_RESULT" = "success" ] && bluetoothctl disconnect` in the unit,
+  so every deploy/restart deliberately boots the connected phone off BT (crash
+  paths skip it — why fallback "held through every app stop/error" on 2026-07-14
+  but a clean `systemctl stop` at the 2026-07-15 bench killed the music). This
+  is the primary mechanism behind "funky BT during automated SSH ops" (with the
+  120 s pairing re-arm and, that day, a degraded phone stack stacking on top).
+  Options: remove entirely (WirePlumber fallback keeps audio alive and phones
+  handle dead HUs fine), or scope it to real shutdowns (condition on
+  `systemctl is-system-running` / shutdown target) so app restarts stop kicking
+  the phone.
+- **Input-device selection doesn't stick** — pre-existing (branch untouched;
+  verified 2026-07-15). The audio-settings dropdown applies the selection live
+  only while the screen is open; leaving the screen reverts it, `input_device`
+  is never written to config.yaml, and the UI repopulates from the stale
+  source. Practical impact: the AA assistant mic can't be configured. Fix
+  shape: persist on selection (config + disk) and repopulate the combo from the
+  live service value.
+- **Master volume doesn't survive restart** — runtime volume changes are never
+  flushed to disk (bench: runtime 0 to 59 while disk stayed 89; app restart
+  reloaded 89). Same persist-on-change family as the (now fixed) EQ-gains item;
+  fix shape mirrors it.
+- **Send AVRCP Pause to the BT source on music focus loss** — Matthew
+  preference from the bench: when another music source takes over, pausing the
+  phone beats duck-to-silence-while-it-keeps-playing (battery + "why is my
+  phone playing to nobody"). Today's duck behavior is correct per design;
+  this is an upgrade, gated on AVRCP control via BlueZ MediaPlayer1.Pause().
+- **Tap bring-up should sweep pre-existing live bluez_input nodes** — bench
+  row 4: WirePlumber applies the retarget rule only at node creation, so an
+  app (re)start during live BT streaming leaves the stream direct-to-sink
+  (un-EQ'd, no HU volume) until the next transport cycle. Fresh
+  nodes/reconnects are tap-routed from birth. Fix shape: on tap activation,
+  enumerate existing `bluez_input.*` nodes and relink (or metadata-retarget)
+  them into the tap.
+- **AA system-sound channel full-ducks media for the whole channel-open
+  window** — every AA touch click opens AudioChannel 5 (System) for ~5 s
+  (gearhead holds it) and focus ducks media to silence the entire time; a
+  50 ms click costs 5 s of dead music. Fix shape: System-channel focus should
+  partial-duck (or mix-over) rather than full-duck, and/or use a fast-release
+  duck curve. Phone-side workaround: disable touch sounds.
+
+## From BT A2DP EQ pre-push gate (2026-07-14)
+
+- **Epoch-quiesced ring transitions** (gate re-run P1, dismissed with reason) — after
+  the gated-writer fix, a theoretical race window remains: a capture callback
+  in flight past the `captureEnabled_` gate check (~µs) could race an
+  activate-side `drain()` if transitions recurred within microseconds — but
+  transition cadence is bounded by BlueZ D-Bus round-trips (ms+), and the worst
+  case is ONE stale 512-byte chunk (~2.7 ms of audio). Also pre-existing and
+  unchanged: `AudioRingBuffer::write()`'s overflow path advances the read index
+  concurrently with a live reader on ALL audio streams (AA incl.) — a design
+  trait, overflow-while-reading is rare. Proper fix = consumer-owned overrun
+  handling + RT epoch acknowledgment before drains, verified under TSAN — an
+  AudioRingBuffer redesign touching every audio path. **Promote if the bench
+  ever shows transition artifacts** (stale-audio blips on BT pause/resume).
+- **Legacy capture-callback replace race** (gate re-run P2, dismissed with
+  reason) — `setCaptureCallback`'s atomic flag doesn't stop an RT invocation
+  already past the check, so replacing/clearing races the in-flight call.
+  Pre-existing pattern from the original single-slot code; ZERO in-tree
+  callers of the legacy capture API exist (the options path installs
+  immutable pre-connect callbacks and is unaffected). Fix rides with the
+  first real legacy consumer — or delete the legacy capture virtuals
+  entirely, which is cleaner.
+
+## From EQ parity audit (2026-07-14)
+
+Audit verdict: on-HU and YAML legs of the original outcome statement hold (the on-HU
+UI exceeds "basic changes"); the **web-config advanced-EQ leg is entirely absent**.
+Coverage/labeling quirks below were confirmed against the current tree. None of these
+were fixed mid-audit (wishlist-then-promote); a web EQ editor or coverage fix is a
+brainstorm → plan cycle on Matthew's go-ahead.
+
+**Promotion decisions (Matthew, 2026-07-14):** items 2–4 below PROMOTED to the
+roadmap (design: `docs/plans/2026-07-14-bt-a2dp-eq-design.md` — BT A2DP tap +
+persistence + relabel riders); item 1 (web EQ editor) PARKED — the on-HU UI
+already covers advanced setup and profile creation, revisit if remote tuning
+demand materializes.
+
+- **Web-config advanced EQ editor (the parity gap)** — the original outcome statement
+  promises "web settings backend for advanced EQ setup and profile creation"; nothing
+  exists at any layer: no `web-config` routes/templates, no `IpcServer` EQ commands,
+  no External API EQ surface. `EqualizerService` already exposes everything an editor
+  needs (per-stream gains/presets/bypass, user-preset save/delete/rename — rename is
+  UI-less today, a web editor would surface it). Fix shape: IPC commands
+  (`get_eq_state`, `set_eq_gain`, `set_eq_preset`, preset CRUD) + a web-config page
+  with per-stream band sliders; decide whether the External API also gets a (frozen
+  additive) EQ surface or web/IPC stays the only remote channel.
+- **Manual EQ gains and bypass state don't survive restart** — SHIPPED 2026-07-15
+  (durable-persistence rider: gains/bypass round-trip to disk with validation at every
+  ingress + parent-dir fsync; bench-validated across a Pi power-cycle) — `writeToConfig()`
+  persists per-stream *preset names* + the user-preset library only. Manual slider
+  tweaks clear `activePreset` to "" (UI shows "Custom"), and `loadFromConfig()` skips
+  empty names — so unsaved slider positions silently reset to the last named preset
+  (or Flat/Voice defaults) on restart; bypass always resets to off. User-visible:
+  fiddle sliders, don't save, reboot the car → EQ quietly reverts. Fix shape: persist
+  raw gains when `activePreset` is empty, plus a per-stream `bypassed` key.
+- **"Phone" EQ engine is attached to the AA *system* stream** — SHIPPED 2026-07-15
+  (relabel leg: `StreamId::Phone`→`System` + QML tab reads "System"; SCO call audio
+  remains un-EQ'd, the accepted 2026-07-05 design limitation stands) — pre-existing quirk
+  (flagged in F2, re-confirmed at `AndroidAutoOrchestrator.cpp:343`): the on-HU
+  "Phone" tab actually EQs AA system sounds (nav beeps etc.); nothing EQs real call
+  audio (HFP SCO bypasses `AudioService`, the accepted 2026-07-05 design limitation).
+  Decision needed: relabel the tab/stream "System" (honest, cheap) vs route SCO
+  through AudioService (real work, revisits the HFP design).
+- **BT A2DP music bypasses the EQ entirely** — SHIPPED 2026-07-15 (WirePlumber
+  retarget → gated capture → ring → activity-toggled "BT Audio" playback with Media
+  EQ + master volume + focus; bench-validated 7/7 runbook rows incl. 10-min soak +
+  pause/resume hammer; F2's "audible preset change during BT playback" line finally
+  satisfied) — BlueZ→PipeWire routes phone music
+  natively; `BtAudioPlugin` only monitors transports over D-Bus. The Media EQ governs
+  AA media + the local media player only. Original OAP applied a sink-level 15-band
+  LADSPA EQ to *all* audio. Fix shape if wanted: PipeWire `filter-chain` on the sink
+  (mirrors the original's architecture) or an app-side loopback tap; note F2's verify
+  line ("audible preset change during BT playback") was never satisfiable as written.

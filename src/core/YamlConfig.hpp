@@ -104,6 +104,13 @@ public:
 
     QString eqStreamPreset(const QString& streamName) const;
     void setEqStreamPreset(const QString& streamName, const QString& presetName);
+    // Raw per-stream gains + bypass (durable persistence, Task 4). Valid gains
+    // are exactly kNumBands entries; an empty return means absent OR invalid
+    // (validation below). Bypass defaults to false when absent.
+    QList<float> eqStreamGains(const QString& streamName) const;
+    void setEqStreamGains(const QString& streamName, const QList<float>& gains);
+    bool eqStreamBypassed(const QString& streamName) const;
+    void setEqStreamBypassed(const QString& streamName, bool bypassed);
     QList<EqUserPreset> eqUserPresets() const;
     void setEqUserPresets(const QList<EqUserPreset>& presets);
 
@@ -145,7 +152,16 @@ private:
 
     void initDefaults();
     static YAML::Node buildDefaultsNode();
+    // Shared EQ-gains validator (design §4.5): a node is valid iff it is a
+    // Sequence of exactly kNumBands finite float scalars. Returns the values
+    // clamped to ±12 dB on success, or an empty list on any failure. Used by
+    // both eqStreamGains() and eqUserPresets().
+    static QList<float> validatedGains(const YAML::Node& node);
     void migrateWidgetGridV3();
+    // Rename the legacy EQ "phone" stream key to "system" on the raw user YAML
+    // before the defaults merge (Task 5, design §4.6). Idempotent; an existing
+    // "system" key takes precedence.
+    static void migrateEqPhoneToSystem(YAML::Node& loaded);
     static QList<GridPlacement> placementsFromNode(const YAML::Node& placements);
     static YAML::Node placementsToNode(const QList<GridPlacement>& placements);
 };

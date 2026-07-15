@@ -70,7 +70,8 @@ void TestPlaybackEngine::testPlaysFixtureToCompletion() {
 
     QCOMPARE(audio.created, 1);
     QCOMPARE(audio.lastName, QString("Local Media"));
-    QCOMPARE(audio.lastPriority, 51);
+    // Priority 50: all music sources share one class; focus recency breaks ties.
+    QCOMPARE(audio.lastPriority, 50);
     QCOMPARE(audio.lastRate, 48000);
     QCOMPARE(audio.lastChannels, 2);
     // 0.5 s @ 48kHz stereo S16 = 96000 bytes; tolerate codec padding/trim.

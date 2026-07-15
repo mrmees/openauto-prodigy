@@ -15,7 +15,7 @@ All plugins must implement `src/core/plugin/IPlugin.hpp`.
 | `id()` | `QString` | Unique reverse-DNS identifier (e.g. `org.openauto.android-auto`) |
 | `name()` | `QString` | Human-readable display name |
 | `version()` | `QString` | SemVer version string |
-| `apiVersion()` | `int` | Plugin API version (currently `1`) |
+| `apiVersion()` | `int` | Plugin API version (currently `2`). Bumped 1→2 in the B2 teardown (2026-07-14): the `IHostContext` vtable changed when `companionListenerService()` was removed. The host accepts a plugin only if its `apiVersion()` exactly matches — a stale v1 `.so` is rejected, not mis-dispatched. |
 
 ### Lifecycle
 
@@ -294,23 +294,6 @@ Per-stream audio equalization with presets and manual band control.
 `StreamId` values: `Media`, `Navigation`, `Phone`.
 
 **Stability:** Stable
-
-### CompanionListenerService
-
-TCP listener for the Prodigy Companion Android app. Provides GPS, phone battery, and internet proxy data.
-
-| Property | Type | Description |
-|----------|------|-------------|
-| `connected` | `bool` | Whether a companion device is connected |
-| `gpsLat` / `gpsLon` / `gpsSpeed` / `gpsAccuracy` / `gpsBearing` | `double` | GPS data from phone |
-| `gpsStale` | `bool` | Whether GPS data is stale (getter: `isGpsStale()`) |
-| `phoneBattery` | `int` | Phone battery level |
-| `phoneCharging` | `bool` | Phone charging state |
-| `internetAvailable` | `bool` | Whether internet proxy is available |
-
-**Note:** This is a concrete class, not an interface — accessed directly via `IHostContext::companionListenerService()`.
-
-**Stability:** Experimental
 
 ## Error Handling
 

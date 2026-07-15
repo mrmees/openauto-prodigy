@@ -16,6 +16,8 @@ class QQmlContext;
 namespace oap {
 
 class IHostContext;
+class EqualizerService;
+class EqualizerEngine;
 
 namespace plugins {
 
@@ -63,7 +65,7 @@ public:
     QString id() const override { return QStringLiteral("org.openauto.media-player"); }
     QString name() const override { return QStringLiteral("Media Player"); }
     QString version() const override { return QStringLiteral("1.0.0"); }
-    int apiVersion() const override { return 1; }
+    int apiVersion() const override { return 2; }
 
     // IPlugin — Lifecycle
     bool initialize(IHostContext* context) override;
@@ -156,6 +158,11 @@ private:
 
     IHostContext* hostContext_ = nullptr;
     PlaybackEngine* engine_ = nullptr;
+    // Dedicated Media-curve EQ engine acquired from the equalizer service;
+    // released in shutdown() AFTER the playback stream is torn down (RT
+    // ordering contract §4.4). Both non-owning: the service owns the engine.
+    oap::EqualizerService* eqService_ = nullptr;
+    oap::EqualizerEngine* eqEngine_ = nullptr;
     PlayQueue* queue_ = nullptr;
     FolderModel* folderModel_ = nullptr;
     MediaLibrary* library_ = nullptr;

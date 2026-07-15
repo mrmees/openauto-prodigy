@@ -44,7 +44,10 @@ bool PluginDiscovery::validateManifest(const PluginManifest& manifest, int hostA
 {
     if (!manifest.isValid())
         return false;
-    return manifest.apiVersion <= hostApiVersion;
+    // Exact-match only: the C++ plugin ABI has no cross-version vtable
+    // compatibility (see HOST_API_VERSION), so a manifest built against any
+    // other host API version is rejected rather than accepted and mis-dispatched.
+    return manifest.apiVersion == hostApiVersion;
 }
 
 } // namespace oap

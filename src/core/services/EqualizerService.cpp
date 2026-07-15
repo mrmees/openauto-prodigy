@@ -1,6 +1,15 @@
 #include "core/services/EqualizerService.hpp"
 #include "core/YamlConfig.hpp"
+#include "core/Logging.hpp"
 #include <algorithm>
+#include <cmath>
+#include <utility>
+
+namespace {
+// Save-debounce interval. Shared by scheduleSave() and the flush-failure
+// retry in writeToConfig() so both stay in lockstep.
+constexpr int kSaveDebounceMs = 2000;
+} // namespace
 
 namespace oap {
 
@@ -13,7 +22,7 @@ EqualizerService::EqualizerService(QObject* parent)
     // Apply default presets
     applyPreset(StreamId::Media, "Flat");
     applyPreset(StreamId::Navigation, "Voice");
-    applyPreset(StreamId::Phone, "Voice");
+    applyPreset(StreamId::System, "Voice");
 }
 
 EqualizerService::EqualizerService(YamlConfig* config, QObject* parent)
@@ -26,11 +35,22 @@ EqualizerService::EqualizerService(YamlConfig* config, QObject* parent)
     // Apply default presets first
     applyPreset(StreamId::Media, "Flat");
     applyPreset(StreamId::Navigation, "Voice");
-    applyPreset(StreamId::Phone, "Voice");
+    applyPreset(StreamId::System, "Voice");
 
     // Override from config if available
     if (config_)
         loadFromConfig();
+}
+
+EqualizerService::~EqualizerService()
+{
+    // Safety net: consumers are expected to releaseEngine() before teardown
+    // (RT ordering contract §4.4), but delete any that outlived their owner so
+    // the service never leaks heap engines.
+    for (auto& s : streams_) {
+        qDeleteAll(s.engines);
+        s.engines.clear();
+    }
 }
 
 QString EqualizerService::activePreset(StreamId stream) const
@@ -44,13 +64,13 @@ void EqualizerService::applyPreset(StreamId stream, const QString& presetName)
     auto& s = streamAt(stream);
 
     if (gains) {
-        s.engine.setAllGains(*gains);
+        for (auto* e : s.engines) e->setAllGains(*gains);
         s.currentGains = *gains;
         s.activePreset = presetName;
     } else {
         // Fall back to Flat
         const auto* flat = findBundledPreset("Flat");
-        s.engine.setAllGains(flat->gains);
+        for (auto* e : s.engines) e->setAllGains(flat->gains);
         s.currentGains = flat->gains;
         s.activePreset = QStringLiteral("Flat");
     }
@@ -64,9 +84,18 @@ void EqualizerService::applyPreset(StreamId stream, const QString& presetName)
 void EqualizerService::setGain(StreamId stream, int band, float dB)
 {
     if (band < 0 || band >= kNumBands) return;
+    // Reject non-finite input at the service boundary (design §4.5 / round-2
+    // F5) so no caller path (QML, config, future API) can feed NaN downstream.
+    if (!std::isfinite(dB)) return;
+    // Clamp to the engine range (+-12 dB) HERE, at the boundary, so the stored
+    // value, the getters, and the persisted YAML all agree with what the engine
+    // actually applies. Without this the service kept the raw value while the
+    // engine clamped, so getters/config reported e.g. 20 dB while audio used 12
+    // dB, and a restart snapped the UI to 12.
+    dB = std::clamp(dB, -12.0f, 12.0f);
 
     auto& s = streamAt(stream);
-    s.engine.setGain(band, dB);
+    for (auto* e : s.engines) e->setGain(band, dB);
     s.currentGains[band] = dB;
     s.activePreset.clear();
 
@@ -89,13 +118,16 @@ std::array<float, kNumBands> EqualizerService::gainsForStream(StreamId stream) c
 
 void EqualizerService::setBypassed(StreamId stream, bool bypassed)
 {
-    streamAt(stream).engine.setBypassed(bypassed);
+    auto& s = streamAt(stream);
+    s.bypassed = bypassed;                     // authoritative (§4.4 / round-1 F7)
+    for (auto* e : s.engines) e->setBypassed(bypassed);
     emit bypassedChanged(static_cast<int>(stream));
+    scheduleSave();                            // round-1 F4 — arm the save debounce
 }
 
 bool EqualizerService::isBypassed(StreamId stream) const
 {
-    return streamAt(stream).engine.isBypassed();
+    return streamAt(stream).bypassed;
 }
 
 QStringList EqualizerService::bundledPresetNames() const
@@ -247,9 +279,29 @@ void EqualizerService::applyPresetForStream(int streamIndex, const QString& pres
     applyPreset(static_cast<StreamId>(streamIndex), presetName);
 }
 
-EqualizerEngine* EqualizerService::engineForStream(StreamId stream)
+EqualizerEngine* EqualizerService::acquireEngine(StreamId stream, float sampleRate, int channels)
 {
-    return &streamAt(stream).engine;
+    // Qt owner thread only (see header). Heap-own a fresh instance seeded with
+    // the stream's current gains and bypass, then register it for fan-out.
+    auto& s = streamAt(stream);
+    auto* engine = new EqualizerEngine(sampleRate, channels);
+    engine->setAllGains(s.currentGains);
+    engine->setBypassed(s.bypassed);
+    s.engines.append(engine);
+    return engine;
+}
+
+void EqualizerService::releaseEngine(EqualizerEngine* engine)
+{
+    // Qt owner thread only (see header). Find the owning stream, unregister,
+    // and delete. Null / unknown pointers are harmless no-ops.
+    if (!engine) return;
+    for (auto& s : streams_) {
+        if (s.engines.removeOne(engine)) {
+            delete engine;
+            return;
+        }
+    }
 }
 
 // --- Private helpers ---
@@ -274,7 +326,7 @@ void EqualizerService::emitPresetSignal(StreamId stream)
     switch (stream) {
         case StreamId::Media:      emit mediaPresetChanged(); break;
         case StreamId::Navigation: emit navigationPresetChanged(); break;
-        case StreamId::Phone:      emit phonePresetChanged(); break;
+        case StreamId::System:     emit systemPresetChanged(); break;
     }
 }
 
@@ -324,6 +376,16 @@ QString EqualizerService::generateAutoName() const
 
 // --- Config persistence ---
 
+void EqualizerService::applyRawGains(StreamId stream, const std::array<float, kNumBands>& gains)
+{
+    // Internal, side-effect-free restore path: set the stored gains and fan out
+    // to any live engines WITHOUT clearing the preset name or scheduling a save
+    // (loadFromConfig relies on both). Callers set activePreset explicitly.
+    auto& s = streamAt(stream);
+    s.currentGains = gains;
+    for (auto* e : s.engines) e->setAllGains(gains);
+}
+
 void EqualizerService::loadFromConfig()
 {
     if (!config_) return;
@@ -337,33 +399,65 @@ void EqualizerService::loadFromConfig()
         userPresets_.append(up);
     }
 
-    // Load per-stream preset assignments
-    static const char* streamNames[] = {"media", "navigation", "phone"};
-    static const StreamId streamIds[] = {StreamId::Media, StreamId::Navigation, StreamId::Phone};
+    // Restore per-stream state
+    static const char* streamNames[] = {"media", "navigation", "system"};
+    static const StreamId streamIds[] = {StreamId::Media, StreamId::Navigation, StreamId::System};
     for (int i = 0; i < 3; ++i) {
-        QString presetName = config_->eqStreamPreset(QString::fromLatin1(streamNames[i]));
+        const QString name = QString::fromLatin1(streamNames[i]);
+        const QString presetName = config_->eqStreamPreset(name);
         if (!presetName.isEmpty()) {
+            // Named preset (bundled or user): applyPreset seeds gains from it.
             applyPreset(streamIds[i], presetName);
+        } else {
+            // Custom (no preset on disk): restore the raw gains verbatim if
+            // valid. The stored preset name reflects the empty on-disk value —
+            // NOT setGain's per-band clear — and no save is scheduled (§4.5).
+            const QList<float> disk = config_->eqStreamGains(name);
+            if (static_cast<int>(disk.size()) == kNumBands) {
+                std::array<float, kNumBands> g{};
+                for (int b = 0; b < kNumBands; ++b) g[b] = disk[b];
+                applyRawGains(streamIds[i], g);
+            }
+            streamAt(streamIds[i]).activePreset = presetName;   // "" ⇒ Custom
         }
+
+        // Bypass is authoritative (§4.4): always restore from disk and fan out
+        // to any live engines. Set directly so load stays save-free.
+        auto& s = streamAt(streamIds[i]);
+        s.bypassed = config_->eqStreamBypassed(name);
+        for (auto* e : s.engines) e->setBypassed(s.bypassed);
     }
 }
 
 void EqualizerService::scheduleSave()
 {
     if (!config_) return;
-    saveTimer_.start(2000);
+    saveTimer_.start(kSaveDebounceMs);
+}
+
+void EqualizerService::setFlushHook(FlushFn fn)
+{
+    flushFn_ = std::move(fn);
 }
 
 void EqualizerService::writeToConfig()
 {
     if (!config_) return;
 
-    // Write stream preset assignments
-    static const char* streamNames[] = {"media", "navigation", "phone"};
+    // Write per-stream preset assignment, raw gains, and authoritative bypass.
+    // Gains + bypass are ALWAYS written so a Custom (no-preset) state and a
+    // bypass toggle survive a power cut (design §4.5 / round-2 F7).
+    static const char* streamNames[] = {"media", "navigation", "system"};
     for (int i = 0; i < 3; ++i) {
-        config_->setEqStreamPreset(
-            QString::fromLatin1(streamNames[i]),
-            streams_[i].activePreset);
+        const QString name = QString::fromLatin1(streamNames[i]);
+        config_->setEqStreamPreset(name, streams_[i].activePreset);
+
+        QList<float> gains;
+        gains.reserve(kNumBands);
+        for (int b = 0; b < kNumBands; ++b)
+            gains.append(streams_[i].currentGains[b]);
+        config_->setEqStreamGains(name, gains);
+        config_->setEqStreamBypassed(name, streams_[i].bypassed);
     }
 
     // Write user presets
@@ -375,6 +469,13 @@ void EqualizerService::writeToConfig()
         cfgPresets.append(cp);
     }
     config_->setEqUserPresets(cfgPresets);
+
+    // Surface the flush to disk (round-2 F7). On failure, retain the dirty
+    // in-memory state and re-arm the debounce so the next tick retries.
+    if (flushFn_ && !flushFn_()) {
+        qCWarning(lcEq) << "EQ config flush failed; retrying";
+        saveTimer_.start(kSaveDebounceMs);
+    }
 }
 
 void EqualizerService::saveNow()

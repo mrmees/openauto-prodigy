@@ -430,6 +430,46 @@ private slots:
         engine.setGain(5, -20.0f); // under -12
         QCOMPARE(engine.getGain(5), -12.0f);
     }
+
+    void testEngineSanitizesNonFinite()
+    {
+        oap::EqualizerEngine eng(48000.0f, 2);
+        eng.setGain(0, std::nanf(""));
+        QCOMPARE(eng.getGain(0), 0.0f);
+        std::array<float, oap::kNumBands> g{}; g[3] = INFINITY;
+        eng.setAllGains(g);
+        QCOMPARE(eng.getGain(3), 0.0f);
+    }
+
+    void testInstanceStateIndependence()
+    {
+        // Two engines with identical config must not share filter state:
+        // driving one must not perturb the other. Regression guard for the
+        // per-consumer fan-out change — each consumer owns a dedicated
+        // instance instead of sharing one Media engine.
+        oap::EqualizerEngine e1(48000.0f, 2);
+        oap::EqualizerEngine e2(48000.0f, 2);
+        oap::EqualizerEngine reference(48000.0f, 2);
+
+        e1.setGain(5, 12.0f);
+        e2.setGain(5, 12.0f);
+        reference.setGain(5, 12.0f);
+
+        // Advance e1's internal filter state with a long run of signal.
+        auto churn = generateStereoSine(1000.0f, 8000.0f, 9600);
+        e1.process(churn.data(), 9600);
+
+        // Process the SAME signal through e2 and the untouched reference.
+        auto sigA = generateStereoSine(1000.0f, 8000.0f, 4800);
+        auto sigB = sigA;  // identical copy
+        e2.process(sigA.data(), 4800);
+        reference.process(sigB.data(), 4800);
+
+        // e2's output must be bit-identical to the fresh reference — e1's
+        // churn must not have leaked into e2's state.
+        for (int i = 0; i < 4800 * 2; ++i)
+            QCOMPARE(sigA[i], sigB[i]);
+    }
 };
 
 QTEST_MAIN(TestEqualizerEngine)

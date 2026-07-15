@@ -4,10 +4,11 @@
 #include "core/services/ClockSyncService.hpp"
 
 // ClockSyncService: extracted clock-step / timezone-step logic shared by the
-// API v1 TimeReport consumer (main.cpp) and, historically, the legacy
-// CompanionListenerService::adjustClock. Semantics preserved from the legacy
-// implementation: 30 s drift trigger, >5 min backward steps need 3 consecutive
-// reports agreeing on the same target, timedatectl via polkit.
+// API v1 TimeReport consumer (main.cpp) and, historically, the retired legacy
+// companion listener's adjustClock (both retired in the B2 teardown,
+// 2026-07-14). Semantics preserved from the legacy implementation: 30 s drift
+// trigger, >5 min backward steps need 3 consecutive reports agreeing on the
+// same target, timedatectl via polkit.
 //
 // One deliberate deviation from legacy (bug fix): the set-time argument
 // carries an explicit " UTC" suffix. timedatectl parses a bare timestamp as

@@ -20,7 +20,7 @@ class TestIpcInstallTheme : public QObject {
     // Server and client live in this same thread, so the client's blocking
     // waitFor* calls do NOT dispatch the server's newConnection/readyRead
     // signals — we must pump the event loop for the round-trip to complete
-    // (same pattern as test_companion_listener.cpp).
+    // (same-thread QLocalSocket pattern).
     QJsonObject roundTrip(const QString& socketPath, const QJsonObject& request) {
         QLocalSocket sock;
         sock.connectToServer(socketPath);
@@ -92,6 +92,8 @@ private slots:
         QCOMPARE(resp.value("battery").toInt(), 55);
         QVERIFY(resp.value("charging").toBool());
         QCOMPARE(resp.value("source").toString(), QString("api"));
+        QVERIFY2(resp.contains("gps_stale"),
+                 "companion_status must expose gps_stale (wishlist 2026-07-13)");
     }
 
     // Finding 2: after the GPS owner disconnects (clearGps), companion_status

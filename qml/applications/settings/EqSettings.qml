@@ -51,7 +51,7 @@ Item {
         SegmentedButton {
             label: ""
             configPath: ""
-            options: ["Media", "Nav", "Phone"]
+            options: ["Media", "Nav", "System"]
             Layout.fillWidth: true
 
             onCurrentIndexChanged: {
@@ -211,7 +211,7 @@ Item {
             if (root.currentStream === 1) root.updatePresetLabel()
         }
 
-        function onPhonePresetChanged() {
+        function onSystemPresetChanged() {
             if (root.currentStream === 2) root.updatePresetLabel()
         }
     }

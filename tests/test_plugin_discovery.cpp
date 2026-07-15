@@ -10,7 +10,9 @@ private slots:
     void testDiscoverSkipsInvalid();
     void testDiscoverEmptyDir();
     void testDiscoverNonexistentDir();
-    void testValidateManifestApiVersion();
+    void testValidateManifestExactMatch_data();
+    void testValidateManifestExactMatch();
+    void testValidateManifestDefaultHost();
 };
 
 void TestPluginDiscovery::testDiscoverFindsPlugins()
@@ -21,7 +23,7 @@ void TestPluginDiscovery::testDiscoverFindsPlugins()
 
     QFile f(tmpDir + "/test-plugin/plugin.yaml");
     f.open(QIODevice::WriteOnly);
-    f.write("id: org.test.disco\nname: Disco\nversion: '1.0'\napi_version: 1\n");
+    f.write("id: org.test.disco\nname: Disco\nversion: '1.0'\napi_version: 2\n");
     f.close();
 
     oap::PluginDiscovery discovery;
@@ -69,18 +71,54 @@ void TestPluginDiscovery::testDiscoverNonexistentDir()
     QCOMPARE(results.size(), 0);
 }
 
-void TestPluginDiscovery::testValidateManifestApiVersion()
+void TestPluginDiscovery::testValidateManifestExactMatch_data()
 {
+    QTest::addColumn<int>("manifestApiVersion");
+    QTest::addColumn<int>("hostApiVersion");
+    QTest::addColumn<bool>("expected");
+
+    // The C++ plugin ABI has no cross-version vtable compatibility, so
+    // acceptance is exact-match. A stale v1 .so built against the pre-B2
+    // IHostContext vtable (companionListenerService() removed) must be
+    // rejected, not accepted and mis-dispatched.
+    QTest::newRow("v1 plugin, v2 host -> rejected") << 1 << 2 << false;
+    QTest::newRow("v2 plugin, v2 host -> accepted") << 2 << 2 << true;
+    QTest::newRow("v3 plugin, v2 host -> rejected") << 3 << 2 << false;
+}
+
+void TestPluginDiscovery::testValidateManifestExactMatch()
+{
+    QFETCH(int, manifestApiVersion);
+    QFETCH(int, hostApiVersion);
+    QFETCH(bool, expected);
+
     oap::PluginManifest m;
     m.id = "test";
     m.name = "Test";
     m.version = "1.0";
-    m.apiVersion = 1;
+    m.apiVersion = manifestApiVersion;
 
-    QVERIFY(oap::PluginDiscovery::validateManifest(m, 1));
-    QVERIFY(oap::PluginDiscovery::validateManifest(m, 2)); // forward compatible
+    QCOMPARE(oap::PluginDiscovery::validateManifest(m, hostApiVersion), expected);
+}
+
+void TestPluginDiscovery::testValidateManifestDefaultHost()
+{
+    // Lock the real compile-time default: a silent HOST_API_VERSION bump or a
+    // regression back to <=-style (forward-compatible) acceptance trips here.
+    QCOMPARE(oap::PluginDiscovery::HOST_API_VERSION, 2);
+
+    oap::PluginManifest m;
+    m.id = "test";
+    m.name = "Test";
+    m.version = "1.0";
+
+    // Exercises the default hostApiVersion argument (== HOST_API_VERSION).
+    m.apiVersion = 2;
+    QVERIFY(oap::PluginDiscovery::validateManifest(m));   // exact match -> accepted
+    m.apiVersion = 1;
+    QVERIFY(!oap::PluginDiscovery::validateManifest(m));  // stale v1 .so -> rejected (catches <= revert)
     m.apiVersion = 3;
-    QVERIFY(!oap::PluginDiscovery::validateManifest(m, 2)); // too new
+    QVERIFY(!oap::PluginDiscovery::validateManifest(m));  // too new -> rejected
 }
 
 QTEST_MAIN(TestPluginDiscovery)

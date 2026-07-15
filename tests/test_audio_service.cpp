@@ -80,6 +80,90 @@ private slots:
 
         service.destroyStream(handle);
     }
+
+    void testCubicVolumeCurve()
+    {
+        QCOMPARE(oap::AudioService::cubicVolume(0),   0.0f);
+        QCOMPARE(oap::AudioService::cubicVolume(100), 1.0f);
+        QVERIFY(qAbs(oap::AudioService::cubicVolume(50) - 0.125f) < 1e-6f);
+    }
+
+    void testOptionsFactoriesNullWithoutPipeWire()
+    {
+        // Only meaningful when PW is unavailable; skip otherwise.
+        oap::AudioService svc;
+        if (svc.isAvailable()) QSKIP("PipeWire available; factory paths bench-verified");
+        oap::AudioService::PlaybackStreamOptions po; po.name = "T";
+        QCOMPARE(svc.createStreamWithOptions(po), nullptr);
+        oap::AudioService::CaptureStreamOptions co; co.name = "C";
+        QCOMPARE(svc.openCaptureStreamWithOptions(co), nullptr);
+        svc.setStreamActive(nullptr, true);   // must not crash
+        svc.resetStreamRing(nullptr);         // must not crash
+    }
+
+    void testFocusRecencyBreaksTies()
+    {
+        oap::AudioStreamHandle a, b;
+        a.priority = 50; a.hasFocus = true; a.focusSequence = 1;
+        b.priority = 50; b.hasFocus = true; b.focusSequence = 2;
+        QCOMPARE(oap::AudioService::selectDominant({&a, &b}), &b);
+        a.focusSequence = 3;                    // a re-requests focus
+        QCOMPARE(oap::AudioService::selectDominant({&a, &b}), &a);
+    }
+    void testHigherPriorityStillWinsRegardlessOfRecency()
+    {
+        oap::AudioStreamHandle music, speech;
+        music.priority = 50;  music.hasFocus = true; music.focusSequence = 99;
+        speech.priority = 60; speech.hasFocus = true; speech.focusSequence = 1;
+        QCOMPARE(oap::AudioService::selectDominant({&music, &speech}), &speech);
+    }
+    void testNoFocusReturnsNull()
+    {
+        oap::AudioStreamHandle a; a.priority = 50; a.hasFocus = false;
+        QCOMPARE(oap::AudioService::selectDominant({&a}), nullptr);
+    }
+
+    // setCaptureCallback discriminates mutability by the explicit
+    // captureCallbackImmutable flag, NOT by "a callback is already installed".
+    // A legacy handle (no pre-connect callback) keeps replace/clear semantics
+    // through its first set and beyond; an options-path handle is refused.
+    // Operates directly on handles — no PipeWire daemon required.
+    void testSetCaptureCallbackImmutabilityByFlag()
+    {
+        oap::AudioService svc;
+
+        // --- Legacy handle: mutable set -> replace -> clear(nullptr). ---
+        oap::AudioStreamHandle legacy;
+        legacy.isCapture = true;
+        QVERIFY(!legacy.captureCallbackImmutable);
+        QVERIFY(!static_cast<bool>(legacy.captureCallback));
+
+        int tag = 0;
+        svc.setCaptureCallback(&legacy, [&tag](const uint8_t*, int){ tag = 1; });
+        QVERIFY(static_cast<bool>(legacy.captureCallback));
+        QVERIFY(legacy.captureCallbackActive.load());
+
+        // Replace works — first set did NOT lock the legacy handle.
+        svc.setCaptureCallback(&legacy, [&tag](const uint8_t*, int){ tag = 2; });
+        QVERIFY(static_cast<bool>(legacy.captureCallback));
+        QVERIFY(legacy.captureCallbackActive.load());
+
+        // Clear via nullptr disables through the atomic guard.
+        svc.setCaptureCallback(&legacy, nullptr);
+        QVERIFY(!static_cast<bool>(legacy.captureCallback));
+        QVERIFY(!legacy.captureCallbackActive.load());
+
+        // --- Options-path handle: pre-connect callback => immutable => refused. ---
+        oap::AudioStreamHandle opt;
+        opt.isCapture = true;
+        opt.captureCallback = [](const uint8_t*, int){};
+        opt.captureCallbackImmutable = true;
+        opt.captureCallbackActive.store(true);
+
+        svc.setCaptureCallback(&opt, nullptr);              // refused — no clear
+        QVERIFY(static_cast<bool>(opt.captureCallback));    // still installed
+        QVERIFY(opt.captureCallbackActive.load());          // still active
+    }
 };
 
 QTEST_MAIN(TestAudioService)

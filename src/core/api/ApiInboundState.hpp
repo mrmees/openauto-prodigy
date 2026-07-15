@@ -5,8 +5,8 @@
 // availability, wall-clock time). Reports are client -> server only and never
 // answered; the request handler validates each report and pushes it here.
 //
-// Q_PROPERTY surface is consumed by QML widgets (companion status) and mirrors
-// the legacy CompanionListenerService names it replaces (design §B0). The
+// Q_PROPERTY surface is consumed by QML widgets (companion status); the names
+// are kept from the retired legacy listener for QML/IPC stability (§B0). The
 // proxyRouteChanged / timeReported signals are the imperative side channels
 // for plumbing that isn't a simple property (proxy route sync, RTC-less clock
 // stepping). Lives on the Qt main thread.
