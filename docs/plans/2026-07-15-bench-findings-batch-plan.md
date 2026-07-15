@@ -6,6 +6,16 @@ Status: ACTIVE
 **Design (read it first):** `docs/plans/2026-07-15-bench-findings-batch-design.md`
 — twice Codex-reviewed (rounds 1+2 adjudicated; header records dispositions).
 **Grounded against:** `dev` at `3aa21a2`.
+**Codex plan review (gpt-5.6-sol, 2026-07-15):** verdict REWORK — 5 P1 /
+5 P2 / 0 P3, ALL verified and accepted (zero dismissals) and incorporated:
+QSignalSpy include + inline-slot/QSKIP conventions (Task 5), Stage B build +
+ownership files (Task 2B), QPluginLoader complete-type include +
+PreventUnloadHint clearing (Task 7), brace-aware stale-ref sweep + archival
+restaleness guard (Task 8 / Ship Ceremony), rebuild-before-green + cd fixes,
+IPC-level persistence test added (Task 4), test-class placement + exactly-one
+pluginFailed assertions (Task 7), DoR out-of-scope lines on all dispatched
+tasks. Probe methodology, QML patterns, and fixture setup validated by the
+review with no findings.
 
 **Goal:** Fix the HFP-SCO/EQ-tap routing collision (live regression), stop
 deploys kicking the phone off BT, make input-device and master-volume settings
@@ -213,12 +223,20 @@ it.
 - Create: `src/plugins/bt_audio/BtEqRetargeter.{hpp,cpp}` (pattern:
   `src/core/audio/ScoNodeMonitor.{hpp,cpp}` — registry watch, props match,
   tracked map, `pw_thread_loop_lock` discipline)
-- Modify: `src/plugins/bt_audio/BtAudioPlugin.cpp` (own + wire the retargeter)
+- Modify: `src/CMakeLists.txt` — the source list is EXPLICIT (BT sources
+  around `:83`); add `plugins/bt_audio/BtEqRetargeter.cpp` or it never
+  compiles
+- Modify: `src/plugins/bt_audio/BtAudioPlugin.hpp` (forward-declare + own the
+  retargeter next to the existing tap state ~`:177`; explicit shutdown/reset
+  in the capture-first teardown path) and `BtAudioPlugin.cpp` (wire it)
 - Delete: `config/50-openauto-bt-eq.conf`
 - Modify: `install.sh` (BT-EQ conf block ~`:1454-1460`),
   `install-prebuilt.sh` (BT-EQ conf block ~`:321-328`)
 - Modify: `docs/architecture.md:47-56`
 - Modify: `src/AGENTS.md` if new PW-thread rules emerge
+
+**Out of scope:** no EQ/tap behavior changes beyond retargeting; no
+`node.dont-fallback`; no HFP/SCO routing logic (exclusion only).
 
 **Contract (from the design — all five bullets are acceptance criteria):**
 1. Continuously watch registry node add/remove events (NOT a one-shot sweep);
@@ -254,6 +272,11 @@ it.
 This task also swallows the wishlisted "tap sweep of pre-existing live
 bluez_input nodes" — record that in the wishlist flip at ship time.
 
+Final step (explicit): full build + suite + app target
+(`cd ~/builds/openauto-prodigy && cmake --build . -j$(nproc) && ctest --output-on-failure && cmake --build . --target openauto-prodigy -j$(nproc)`),
+then commit all files above in one commit:
+`git commit -m "fix(bt-eq): app-side A2DP retargeting — SCO excluded, WirePlumber rule retired"`.
+
 ---
 
 ### Task 3: Remove the ExecStopPost `bluetoothctl disconnect` hook
@@ -267,6 +290,10 @@ bluez_input nodes" — record that in the wishlist flip at ship time.
 **Interfaces:**
 - Consumes: nothing. Produces: nothing other tasks rely on. The LIVE Pi unit
   edit happens at deploy time (Ship Ceremony step 3), not in this task.
+
+**Out of scope:** no other unit-file changes (the `wf-panel-restore`
+ExecStopPost stays); no `install-prebuilt.sh` changes (it never had the
+hook); no Pi-side edits.
 
 - [ ] **Step 1: Delete exactly this line from the heredoc**
 
@@ -306,6 +333,12 @@ git commit -m "fix(install): stop kicking the phone off BT on every clean servic
   (`handleSetAudioConfig`, the `input_device` persist branch)
 - Modify: `docs/reference/settings-tree.md:72` (Input Device row)
 - Test: `tests/test_yaml_config.cpp` (extend)
+- Test: Create `tests/test_ipc_audio_config.cpp` + register in
+  `tests/CMakeLists.txt`
+
+**Out of scope:** NO AA microphone transport work (wishlisted separately); no
+`inputDeviceChanged` signal / Q_PROPERTY on AudioService; no schema changes;
+no migration of manually authored `audio.input_device` keys.
 
 **Interfaces:**
 - Consumes: `YamlConfig::setValueByPath` / `microphoneDevice()`,
@@ -344,6 +377,97 @@ cd ~/builds/openauto-prodigy && cmake --build . --target test_yaml_config -j$(np
 
 Expected: PASS. (This is a characterization test, not TDD red — the C++
 behavior is already correct; the bug is the callers' key choice.)
+
+- [ ] **Step 2b: Write the failing IPC persistence test**
+
+Create `tests/test_ipc_audio_config.cpp` (same-thread `QLocalSocket`
+round-trip pattern — copy the `roundTrip` helper verbatim from
+`tests/test_ipc_install_theme.cpp:24-40`):
+
+```cpp
+#include <QTest>
+#include <QTemporaryDir>
+#include <QLocalSocket>
+#include <QJsonDocument>
+#include <QJsonObject>
+#include <QCoreApplication>
+#include <QElapsedTimer>
+
+#include "core/services/IpcServer.hpp"
+#include "core/services/AudioService.hpp"
+#include "core/YamlConfig.hpp"
+
+using namespace oap;
+
+class TestIpcAudioConfig : public QObject {
+    Q_OBJECT
+
+    // Send one newline-framed request, return the parsed JSON response
+    // object (same-thread QLocalSocket pattern — see test_ipc_install_theme).
+    QJsonObject roundTrip(const QString& socketPath, const QJsonObject& request) {
+        QLocalSocket sock;
+        sock.connectToServer(socketPath);
+        if (!sock.waitForConnected(2000)) return {};
+        sock.write(QJsonDocument(request).toJson(QJsonDocument::Compact) + "\n");
+        sock.flush();
+        QElapsedTimer timer;
+        timer.start();
+        while (sock.bytesAvailable() == 0 && timer.elapsed() < 2000) {
+            QCoreApplication::processEvents(QEventLoop::AllEvents, 20);
+            sock.waitForReadyRead(20);
+        }
+        const QByteArray buf = sock.readAll();
+        sock.disconnectFromServer();
+        return QJsonDocument::fromJson(buf.trimmed()).object();
+    }
+
+private slots:
+    void setAudioConfigPersistsMicrophoneDevice() {
+        QTemporaryDir dir;
+        const QString yamlPath = dir.path() + "/config.yaml";
+        YamlConfig cfg;
+        AudioService audio;
+        IpcServer server;
+        server.setAudioService(&audio);
+        server.setConfig(&cfg, yamlPath);
+        const QString sockPath = dir.path() + "/ipc.sock";
+        QVERIFY(server.start(sockPath));
+
+        QJsonObject req{{"command", "set_audio_config"},
+                        {"data", QJsonObject{{"input_device", "alsa_input.usb-mic"}}}};
+        const QJsonObject resp = roundTrip(sockPath, req);
+        QVERIFY(resp.value("ok").toBool());
+
+        // Live service value applied (works without a PipeWire daemon)
+        QCOMPARE(audio.inputDevice(), QString("alsa_input.usb-mic"));
+
+        // Persisted on the CANONICAL key — reload from disk and check the
+        // getter main.cpp uses at startup.
+        YamlConfig reloaded;
+        reloaded.load(yamlPath);
+        QCOMPARE(reloaded.microphoneDevice(), QString("alsa_input.usb-mic"));
+    }
+};
+
+QTEST_MAIN(TestIpcAudioConfig)
+#include "test_ipc_audio_config.moc"
+```
+
+Register in `tests/CMakeLists.txt` next to `test_ipc_install_theme`:
+
+```cmake
+oap_add_test(test_ipc_audio_config SOURCES test_ipc_audio_config.cpp)
+```
+
+- [ ] **Step 2c: Run to verify it fails**
+
+```bash
+cd ~/builds/openauto-prodigy && cmake . && cmake --build . --target test_ipc_audio_config -j$(nproc) && ctest -R test_ipc_audio_config --output-on-failure
+```
+
+Expected: FAIL on the `reloaded.microphoneDevice()` compare — the current
+IPC branch writes the schema-rejected `audio.input_device` key, so nothing
+lands on disk and the getter returns the `"auto"` default.
 
 - [ ] **Step 3: Fix the QML picker**
 
@@ -425,15 +549,16 @@ with:
 - [ ] **Step 6: Build + test**
 
 ```bash
-cd ~/builds/openauto-prodigy && cmake --build . -j$(nproc) && ctest -R "test_yaml_config|test_config_key_coverage" --output-on-failure && cmake --build . --target openauto-prodigy -j$(nproc)
+cd ~/builds/openauto-prodigy && cmake --build . -j$(nproc) && ctest -R "test_yaml_config|test_config_key_coverage|test_ipc_audio_config" --output-on-failure && cmake --build . --target openauto-prodigy -j$(nproc)
 ```
 
-Expected: all PASS, app target builds (QML ships in the binary).
+Expected: all PASS (the Step-2c red test goes green on the key fix), app
+target builds (QML ships in the binary).
 
 - [ ] **Step 7: Commit**
 
 ```bash
-git add qml/applications/settings/AudioSettings.qml src/core/services/IpcServer.cpp docs/reference/settings-tree.md tests/test_yaml_config.cpp
+git add qml/applications/settings/AudioSettings.qml src/core/services/IpcServer.cpp docs/reference/settings-tree.md tests/test_yaml_config.cpp tests/test_ipc_audio_config.cpp tests/CMakeLists.txt
 git commit -m "fix(audio): persist input-device selection on the canonical audio.microphone.device key"
 ```
 
@@ -454,50 +579,67 @@ git commit -m "fix(audio): persist input-device selection on the canonical audio
   emit-only-on-change (boot-time re-apply of the same value must not
   schedule a save).
 
+**Out of scope:** no `IAudioService` virtual-signature changes (plugin ABI);
+no persistence wiring (that is Task 6); volume is still APPLIED to streams
+even when unchanged (only the emit is gated).
+
 - [ ] **Step 1: Write the failing test**
 
-In `tests/test_audio_service.cpp` (match the file's existing fixture style —
-AudioService constructed without PipeWire in the test environment, so the
-`!threadLoop_` branch is the one under test):
+`tests/test_audio_service.cpp` includes only `<QTest>` — FIRST add:
 
 ```cpp
-void testMasterVolumeSignalOnlyOnChange()
-{
-    oap::AudioService svc;
-    QSignalSpy spy(&svc, &oap::AudioService::masterVolumeChanged);
-    svc.setMasterVolume(50);
-    QCOMPARE(spy.count(), 1);
-    svc.setMasterVolume(50);           // same value — no signal
-    QCOMPARE(spy.count(), 1);
-    svc.setMasterVolume(200);          // clamps to 100 — one signal
-    QCOMPARE(spy.count(), 2);
-    svc.setMasterVolume(150);          // clamps to 100 again — no signal
-    QCOMPARE(spy.count(), 2);
-}
-
-void testMasterVolumeGetterReentrantFromSignal()
-{
-    // Regression: the no-PipeWire branch used to emit while holding mutex_;
-    // a direct-connected slot reading masterVolume() deadlocked.
-    oap::AudioService svc;
-    int seen = -1;
-    QObject::connect(&svc, &oap::AudioService::masterVolumeChanged,
-                     [&]() { seen = svc.masterVolume(); });
-    svc.setMasterVolume(42);
-    QCOMPARE(seen, 42);
-}
+#include <QSignalSpy>
 ```
 
-- [ ] **Step 2: Run to verify the first test fails**
+The file defines its slots INLINE in the class body (`private slots:` with
+bodies) and uses `isAvailable()` + `QSKIP` as its PipeWire seam — follow both
+conventions. Add these two slots inside the class:
+
+```cpp
+    void masterVolumeSignalOnlyOnChange()
+    {
+        oap::AudioService svc;
+        QSignalSpy spy(&svc, &oap::AudioService::masterVolumeChanged);
+        svc.setMasterVolume(50);
+        QCOMPARE(spy.count(), 1);
+        svc.setMasterVolume(50);           // same value — no signal
+        QCOMPARE(spy.count(), 1);
+        svc.setMasterVolume(200);          // clamps to 100 — one signal
+        QCOMPARE(spy.count(), 2);
+        svc.setMasterVolume(150);          // clamps to 100 again — no signal
+        QCOMPARE(spy.count(), 2);
+    }
+
+    void masterVolumeGetterReentrantFromSignal()
+    {
+        // Regression: the no-PipeWire branch used to emit while holding
+        // mutex_; a direct-connected slot reading masterVolume() deadlocked.
+        // Only the !threadLoop_ branch had the bug — skip when a live
+        // PipeWire daemon means that branch isn't the one under test
+        // (file convention, and pre-fix this test would HANG there... on the
+        // buggy branch; the skip keeps the red run bounded either way).
+        oap::AudioService svc;
+        if (svc.isAvailable())
+            QSKIP("PipeWire daemon running — no-daemon branch not exercised");
+        int seen = -1;
+        QObject::connect(&svc, &oap::AudioService::masterVolumeChanged,
+                         [&]() { seen = svc.masterVolume(); });
+        svc.setMasterVolume(42);
+        QCOMPARE(seen, 42);
+    }
+```
+
+- [ ] **Step 2: Run to verify it fails (bounded — the deadlock case hangs)**
 
 ```bash
-cd ~/builds/openauto-prodigy && cmake --build . --target test_audio_service -j$(nproc) && ctest -R test_audio_service --output-on-failure
+cd ~/builds/openauto-prodigy && cmake --build . --target test_audio_service -j$(nproc) && timeout 60 ctest -R test_audio_service --output-on-failure; echo "exit: $?"
 ```
 
-Expected: `testMasterVolumeSignalOnlyOnChange` FAILS (current code emits
-unconditionally). `testMasterVolumeGetterReentrantFromSignal` HANGS or fails
-on the deadlock — if the run wedges, that confirms the bug; kill it and
-proceed.
+Expected: `masterVolumeSignalOnlyOnChange` FAILS (current code emits
+unconditionally — this fails in BOTH PipeWire environments).
+`masterVolumeGetterReentrantFromSignal`: with no PipeWire daemon the run
+deadlocks and `timeout` kills it (exit 124) — that IS the red confirmation;
+with a daemon it SKIPs.
 
 - [ ] **Step 3: Implement**
 
@@ -539,13 +681,14 @@ void AudioService::setMasterVolume(int volume)
 }
 ```
 
-- [ ] **Step 4: Run tests to verify they pass**
+- [ ] **Step 4: Rebuild and run tests to verify they pass**
 
 ```bash
-ctest -R test_audio_service --output-on-failure
+cd ~/builds/openauto-prodigy && cmake --build . --target test_audio_service -j$(nproc) && ctest -R test_audio_service --output-on-failure
 ```
 
-Expected: PASS (both new tests, plus the existing suite for the file).
+Expected: PASS (both new tests, plus the existing suite for the file). No
+`timeout` needed — the fix removes the hang.
 
 - [ ] **Step 5: Commit**
 
@@ -577,6 +720,11 @@ git commit -m "fix(audio): emit masterVolumeChanged outside locks and only on ch
   Task 4's IPC key change (this task rewrites the same block — final shape
   below INCLUDES Task 4's `audio.microphone.device` key).
 - Produces: the single persist path for `audio.master_volume`.
+
+**Out of scope:** no changes to `SettingsSlider`'s configPath behavior for
+OTHER sliders (mic gain etc. keep using it); no mute-semantics change
+(volume 0 persists — accepted); no `EqualizerService`-style service class
+for volume (the main.cpp wiring IS the design).
 
 - [ ] **Step 1: Wire the debounced persist in `main.cpp`**
 
@@ -727,6 +875,11 @@ git commit -m "feat(audio): persist master volume — single debounced writer wi
   — heap loader, ownership passes to `PluginEntry::loader`. `IPlugin`
   virtuals are UNTOUCHED (plugin ABI constraint).
 
+**Out of scope:** NO `HOST_API_VERSION` bump and NO `IPlugin`/`IHostContext`
+signature changes; no unload of ACCEPTED plugins at manager teardown (loader
+objects deleted without unload — today's semantics); no manifest-schema
+changes.
+
 - [ ] **Step 1: Build the fixture plugins**
 
 `tests/fixtures/fixture_stale_plugin.cpp` — lies about API version (binary
@@ -873,11 +1026,31 @@ add_dependencies(test_plugin_manager
 
 - [ ] **Step 3: Write the failing tests**
 
-Append to `tests/test_plugin_manager.cpp` (the file already has `MockPlugin`
-and `MockHostContext`; add slots to the existing test class):
+`tests/test_plugin_manager.cpp` declares slots in the class and DEFINES them
+later, before `QTEST_MAIN` (`tests/test_plugin_manager.cpp:52` area) — follow
+that split or the functions won't be test slots. Also add
+`#include <QSignalSpy>` if the file lacks it. Declarations, inside the test
+class's `private slots:`:
 
 ```cpp
-void testDynamicLoadRejectsStaleBinary()
+    void testDynamicLoadRejectsStaleBinary();
+    void testDynamicLoadRejectsIdMismatch();
+    void testDynamicLoadAcceptsValidBinary();
+```
+
+Definitions, with the other definitions BEFORE `QTEST_MAIN` (helper first —
+the design's contract is EXACTLY ONE `pluginFailed` per rejected plugin):
+
+```cpp
+static int failuresFor(const QSignalSpy& spy, const QString& id)
+{
+    int n = 0;
+    for (const auto& args : spy)
+        if (args.at(0).toString() == id) ++n;
+    return n;
+}
+
+void TestPluginManager::testDynamicLoadRejectsStaleBinary()
 {
     oap::PluginManager mgr;
     QSignalSpy failedSpy(&mgr, &oap::PluginManager::pluginFailed);
@@ -885,13 +1058,10 @@ void testDynamicLoadRejectsStaleBinary()
 
     // stale: manifest v2 passes discovery, binary reports apiVersion 1.
     QVERIFY(mgr.plugin("org.test.stale") == nullptr);
-    bool sawStale = false;
-    for (const auto& args : failedSpy)
-        if (args.at(0).toString() == "org.test.stale") sawStale = true;
-    QVERIFY(sawStale);
+    QCOMPARE(failuresFor(failedSpy, "org.test.stale"), 1);
 }
 
-void testDynamicLoadRejectsIdMismatch()
+void TestPluginManager::testDynamicLoadRejectsIdMismatch()
 {
     oap::PluginManager mgr;
     QSignalSpy failedSpy(&mgr, &oap::PluginManager::pluginFailed);
@@ -900,22 +1070,24 @@ void testDynamicLoadRejectsIdMismatch()
     // imposter: manifest id org.test.other, binary id org.test.imposter.
     QVERIFY(mgr.plugin("org.test.other") == nullptr);
     QVERIFY(mgr.plugin("org.test.imposter") == nullptr);
-    bool sawOther = false;
-    for (const auto& args : failedSpy)
-        if (args.at(0).toString() == "org.test.other") sawOther = true;
-    QVERIFY(sawOther);
+    QCOMPARE(failuresFor(failedSpy, "org.test.other"), 1);
 }
 
-void testDynamicLoadAcceptsValidBinary()
+void TestPluginManager::testDynamicLoadAcceptsValidBinary()
 {
     oap::PluginManager mgr;
+    QSignalSpy failedSpy(&mgr, &oap::PluginManager::pluginFailed);
     mgr.discoverPlugins(QStringLiteral(FIXTURE_PLUGINS_DIR));
     QVERIFY(mgr.plugin("org.test.valid") != nullptr);
+    QCOMPARE(failuresFor(failedSpy, "org.test.valid"), 0);
     MockHostContext ctx;
     mgr.initializeAll(&ctx);
     QCOMPARE(mgr.plugin("org.test.valid")->apiVersion(), 2);
 }
 ```
+
+(If the test class has a different name than `TestPluginManager`, use the
+file's actual class name.)
 
 - [ ] **Step 4: Run to verify the reject cases fail**
 
@@ -965,6 +1137,7 @@ public:
 ```cpp
 #include "PluginLoader.hpp"
 #include "IPlugin.hpp"
+#include <QLibrary>
 #include <QPluginLoader>
 #include "../Logging.hpp"
 
@@ -973,6 +1146,10 @@ namespace oap {
 PluginLoader::LoadResult PluginLoader::load(const QString& soPath)
 {
     auto* loader = new QPluginLoader(soPath);
+    // Qt 6 sets QLibrary::PreventUnloadHint by DEFAULT on plugin loads —
+    // clear it BEFORE instance() so a rejected binary can actually be
+    // unloaded from the address space (the whole point of the ABI gate).
+    loader->setLoadHints(loader->loadHints() & ~QLibrary::PreventUnloadHint);
     QObject* instance = loader->instance();
     if (!instance) {
         qCCritical(lcPlugin) << "Failed to load plugin: " << soPath
@@ -985,7 +1162,8 @@ PluginLoader::LoadResult PluginLoader::load(const QString& soPath)
     if (!plugin) {
         qCCritical(lcPlugin) << "Loaded object from " << soPath
                              << " does not implement IPlugin";
-        loader->unload();
+        if (!loader->unload())
+            qCWarning(lcPlugin) << "unload failed for" << soPath;
         delete loader;
         return {};
     }
@@ -1011,7 +1189,15 @@ manager-internal):
 
 (add `class QPluginLoader;` forward declaration above the namespace.)
 
-`PluginManager.cpp` `discoverPlugins` — replace the load block:
+`PluginManager.cpp` — FIRST add the include (the header only
+forward-declares `QPluginLoader`; `unload()`/`delete` need the complete
+type — do NOT rely on transitive includes):
+
+```cpp
+#include <QPluginLoader>
+```
+
+Then in `discoverPlugins`, replace the load block:
 
 ```cpp
         // Try to load the .so
@@ -1036,7 +1222,9 @@ manager-internal):
         if (!mismatch.isEmpty()) {
             qCCritical(lcPlugin) << "Rejecting plugin " << manifest.id
                                  << ": " << mismatch;
-            result.loader->unload();
+            if (!result.loader->unload())
+                qCWarning(lcPlugin) << "unload failed for rejected plugin "
+                                    << manifest.id;
             delete result.loader;
             emit pluginFailed(manifest.id, mismatch);
             continue;
@@ -1068,7 +1256,7 @@ reachable — verify includes compile.)
 - [ ] **Step 6: Run tests to verify all pass**
 
 ```bash
-cmake --build . -j$(nproc) && ctest -R "test_plugin_manager|test_plugin_discovery|test_plugin_model" --output-on-failure
+cd ~/builds/openauto-prodigy && cmake --build . -j$(nproc) && ctest -R "test_plugin_manager|test_plugin_discovery|test_plugin_model" --output-on-failure
 ```
 
 Expected: PASS (all three reject/accept cases + no regressions in the
@@ -1092,6 +1280,10 @@ git commit -m "fix(plugin): validate dynamic plugin binary API version and ID be
 
 **Interfaces:** none — docs only.
 
+**Out of scope:** no edits under `docs/archive/` (history, never "fixed");
+no wishlist changes (those flip at ship); no INDEX.md restructuring beyond
+what stale refs require.
+
 - [ ] **Step 1: Move shipped BT-EQ work out of "Now"**
 
 In `docs/roadmap-current.md`: move the "BT A2DP through the equalizer + EQ
@@ -1114,15 +1306,23 @@ refs to `docs/archive/plans/2026-07-14-bt-a2dp-eq-{design,plan}.md`.
 
 - [ ] **Step 3: Sweep every `docs/plans/` reference in the file**
 
+The file contains brace-expanded shorthand
+(e.g. `...-{design,plan}.md` at `docs/roadmap-current.md:70`) — FIRST rewrite
+any braced reference into explicit full paths, THEN validate every match on
+every line (no `head -1`):
+
 ```bash
-grep -n "docs/plans/" docs/roadmap-current.md | while read -r line; do
-  f=$(echo "$line" | grep -oE "docs/plans/[A-Za-z0-9._-]+\.md" | head -1)
-  [ -n "$f" ] && [ ! -f "$f" ] && echo "STALE: $line"
+grep -oE "docs/plans/[A-Za-z0-9._{},-]+\.md" docs/roadmap-current.md | sort -u | while read -r f; do
+  case "$f" in
+    *"{"*) echo "BRACED (expand by hand first): $f" ;;
+    *) [ ! -f "$f" ] && echo "STALE: $f" ;;
+  esac
 done
 ```
 
 For every STALE hit, repoint to the file's actual location (usually
-`docs/archive/plans/<same name>`); verify each replacement target exists.
+`docs/archive/plans/<same name>`); verify each replacement target exists
+(`ls` it). Re-run the loop until it prints nothing.
 
 - [ ] **Step 4: Commit**
 
@@ -1167,7 +1367,10 @@ git commit -m "docs(roadmap): BT-EQ shipped, bench-findings batch promoted, stal
 5. **Docs:** wishlist flips (ExecStopPost, input-device, master-volume,
    + sweep-item absorption if Stage B ran), this plan + design →
    COMPLETED + `docs/archive/plans/` (same commit), session-handoffs entry
-   (adjudication counts included).
+   (adjudication counts included). **In that same archival commit:** move
+   Task 8's "Bench-findings batch" roadmap entry from "Now" to "Done" and
+   repoint its design+plan refs to `docs/archive/plans/` — otherwise the
+   archival itself recreates the exact staleness Task 8 fixed.
 6. **Push on Matthew's go. Tag ONLY on Matthew's declaration**
    (`bash scripts/tag-alpha.sh` → reconfigure → cross-build → package →
    `gh release create --prerelease`).
