@@ -34,8 +34,8 @@ public:
         std::function<void()> destroyCapture;  ///< teardown FIRST
         std::function<void()> destroyPlayback;
         std::function<void()> releaseEngine;
-        std::function<void()> activate;        ///< reset ring (inactive) → set active → request focus
-        std::function<void()> deactivate;      ///< release focus → set inactive → reset ring
+        std::function<void()> activate;        ///< drain quiesced ring → set active → open capture gate → request focus
+        std::function<void()> deactivate;      ///< release focus → close capture gate → set inactive
     };
 
     explicit BtTapController(Effects fx) : fx_(std::move(fx)) {}

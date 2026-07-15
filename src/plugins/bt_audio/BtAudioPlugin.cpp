@@ -177,9 +177,10 @@ void BtAudioPlugin::onBluezServiceUnregistered()
 {
     if (hostContext_)
         hostContext_->log(LogLevel::Info, QStringLiteral("BtAudio: BlueZ disappeared from D-Bus"));
+    transportActiveByPath_.clear();
     transportPath_.clear();
     playerPath_.clear();
-    // BlueZ gone => no transport => no audio activity. Force the edge false
+    // BlueZ gone => no transports => no audio activity. Force the edge false
     // before the UI-state resets below so the tap releases focus.
     setTransportActive(false);
     if (connectionState_ != Disconnected) {
@@ -243,11 +244,12 @@ void BtAudioPlugin::scanExistingObjects()
             ifacesArg.endMapEntry();
 
             if (iface == QLatin1String("org.bluez.MediaTransport1")) {
-                transportPath_ = path;
-                QString state = props.value(QStringLiteral("State")).toString();
-                updateTransportState(state);
+                transportPath_ = path;  // most-recent transport (device-name display)
+                const QString state = props.value(QStringLiteral("State")).toString();
 
-                // Try to get device name from the Device property
+                // Try to get device name from the Device property (set BEFORE the
+                // recompute below so its connectionStateChanged also notifies the
+                // deviceName property binding).
                 QString devicePath = props.value(QStringLiteral("Device")).value<QDBusObjectPath>().path();
                 if (!devicePath.isEmpty()) {
                     QDBusInterface deviceIface(
@@ -256,12 +258,13 @@ void BtAudioPlugin::scanExistingObjects()
                         QDBusConnection::systemBus());
                     if (deviceIface.isValid()) {
                         QString alias = deviceIface.property("Alias").toString();
-                        if (!alias.isEmpty() && alias != deviceName_) {
+                        if (!alias.isEmpty())
                             deviceName_ = alias;
-                            emit connectionStateChanged();
-                        }
                     }
                 }
+
+                // Register this transport + its activity, then recompute edges.
+                updateTransportState(path, state);
             }
 
             if (iface == QLatin1String("org.bluez.MediaPlayer1")) {
@@ -281,18 +284,21 @@ void BtAudioPlugin::onInterfacesAdded(const QDBusObjectPath& path, const BtInter
     const QString pathStr = path.path();
 
     if (interfaces.contains(QStringLiteral("org.bluez.MediaTransport1"))) {
-        transportPath_ = pathStr;
+        transportPath_ = pathStr;  // most-recent transport (device-name display)
         if (hostContext_)
             hostContext_->log(LogLevel::Info,
                 QStringLiteral("BtAudio: A2DP transport appeared: %1").arg(pathStr));
 
-        // Read transport properties
+        // Read transport properties. A read-back failure (e.g. no live bus)
+        // leaves state empty ⇒ the transport is still tracked as present (not
+        // active) so connectionState reads Connected while its edge stays false.
+        QString state;
         QDBusInterface iface(
             QStringLiteral("org.bluez"), pathStr,
             QStringLiteral("org.bluez.MediaTransport1"),
             QDBusConnection::systemBus());
         if (iface.isValid()) {
-            updateTransportState(iface.property("State").toString());
+            state = iface.property("State").toString();
 
             QString devicePath = iface.property("Device").value<QDBusObjectPath>().path();
             if (!devicePath.isEmpty()) {
@@ -306,10 +312,9 @@ void BtAudioPlugin::onInterfacesAdded(const QDBusObjectPath& path, const BtInter
             }
         }
 
-        if (connectionState_ != Connected) {
-            connectionState_ = Connected;
-            emit connectionStateChanged();
-        }
+        // Track this transport + its activity, then recompute connection/edge
+        // (Connected because the map is now non-empty).
+        updateTransportState(pathStr, state);
     }
 
     if (interfaces.contains(QStringLiteral("org.bluez.MediaPlayer1"))) {
@@ -337,21 +342,30 @@ void BtAudioPlugin::onInterfacesRemoved(const QDBusObjectPath& path, const QStri
     const QString pathStr = path.path();
 
     if (interfaces.contains(QStringLiteral("org.bluez.MediaTransport1"))
-        && pathStr == transportPath_) {
-        transportPath_.clear();
+        && transportActiveByPath_.contains(pathStr)) {
+        transportActiveByPath_.remove(pathStr);
+        // transportPath_ tracks the most-recent transport for device-name
+        // display; hand it off to a survivor, else clear.
+        if (pathStr == transportPath_)
+            transportPath_ = transportActiveByPath_.isEmpty()
+                ? QString() : transportActiveByPath_.lastKey();
+
         if (hostContext_)
             hostContext_->log(LogLevel::Info,
-                QStringLiteral("BtAudio: A2DP transport removed"));
+                QStringLiteral("BtAudio: A2DP transport removed: %1").arg(pathStr));
 
-        // Interface gone => audio activity gone. Force the edge false.
-        setTransportActive(false);
+        const bool nowEmpty = transportActiveByPath_.isEmpty();
 
-        connectionState_ = Disconnected;
-        deviceName_.clear();
-        emit connectionStateChanged();
+        // Recompute connection (Disconnected iff no transports remain) + the
+        // audio-activity edge (still true if another transport is active).
+        recomputeTransportState();
 
-        playbackState_ = Stopped;
-        emit playbackStateChanged();
+        // Playback state follows the AVRCP player, but the last transport
+        // leaving means no phone is streaming — stop playback for the UI.
+        if (nowEmpty && playbackState_ != Stopped) {
+            playbackState_ = Stopped;
+            emit playbackStateChanged();
+        }
     }
 
     if (interfaces.contains(QStringLiteral("org.bluez.MediaPlayer1"))
@@ -373,14 +387,18 @@ void BtAudioPlugin::onPropertiesChanged(const QString& interface, const QVariant
 {
     // PropertiesChanged is subscribed on ANY BlueZ path; the sender path rides
     // in the QDBusMessage. Ignore updates from objects other than the ones we
-    // currently track, or a foreign transport/player would stomp our state.
+    // currently track, or a foreign transport/player would stomp our state. For
+    // transports, ANY path we track (not just the most-recent one) is accepted
+    // so a second phone's State updates are honoured; the player filter stays
+    // single-path.
     const QString sender = message.path();
-    if (interface == QLatin1String("org.bluez.MediaTransport1") && sender != transportPath_) return;
+    if (interface == QLatin1String("org.bluez.MediaTransport1")
+        && !transportActiveByPath_.contains(sender)) return;
     if (interface == QLatin1String("org.bluez.MediaPlayer1") && sender != playerPath_) return;
 
     if (interface == QLatin1String("org.bluez.MediaTransport1")) {
         if (changed.contains(QStringLiteral("State")))
-            updateTransportState(changed.value(QStringLiteral("State")).toString());
+            updateTransportState(sender, changed.value(QStringLiteral("State")).toString());
     }
 
     if (interface == QLatin1String("org.bluez.MediaPlayer1")) {
@@ -388,22 +406,39 @@ void BtAudioPlugin::onPropertiesChanged(const QString& interface, const QVariant
     }
 }
 
-void BtAudioPlugin::updateTransportState(const QString& state)
+void BtAudioPlugin::updateTransportState(const QString& path, const QString& state)
 {
-    // BlueZ MediaTransport1.State: "idle", "pending", "active"
-    ConnectionState newState = (state == QLatin1String("active") || state == QLatin1String("idle")
-                                || state == QLatin1String("pending"))
-                               ? Connected : Disconnected;
+    // BlueZ MediaTransport1.State: "idle", "pending", "active". Only "active" is
+    // real playback; idle/pending are connected-but-silent. Record this
+    // transport's activity under its own path (inserting it if newly seen — the
+    // transport's mere presence is what makes connectionState read Connected),
+    // then recompute the aggregate connection/activity edges.
+    transportActiveByPath_[path] = (state == QLatin1String("active"));
+    recomputeTransportState();
+}
 
-    if (newState != connectionState_) {
-        connectionState_ = newState;
+void BtAudioPlugin::recomputeTransportState()
+{
+    // UI connection: Connected while ANY transport interface exists (audio
+    // activity is a separate edge). Clearing to Disconnected also clears the
+    // device name (whose property notifies via connectionStateChanged).
+    const ConnectionState newConn =
+        transportActiveByPath_.isEmpty() ? Disconnected : Connected;
+    if (newConn != connectionState_) {
+        connectionState_ = newConn;
+        if (newConn == Disconnected)
+            deviceName_.clear();
         emit connectionStateChanged();
     }
 
-    // Truthful audio-activity edge alongside the UI mapping above: idle and
-    // pending are connected-but-silent, only "active" is real playback. This is
-    // the signal the BT loopback tap (Task 7) grabs audio focus off of.
-    setTransportActive(state == QLatin1String("active"));
+    // Audio-activity edge: true iff ANY tracked transport reports "active" — a
+    // single idle phone can no longer force it false while another is playing.
+    // This is the signal the BT loopback tap (Task 7) grabs audio focus off of.
+    bool anyActive = false;
+    for (auto it = transportActiveByPath_.cbegin(); it != transportActiveByPath_.cend(); ++it) {
+        if (it.value()) { anyActive = true; break; }
+    }
+    setTransportActive(anyActive);
 }
 
 void BtAudioPlugin::setTransportActive(bool active)

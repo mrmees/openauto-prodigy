@@ -2,6 +2,7 @@
 
 #include "BtTapController.hpp"
 #include <QObject>
+#include <atomic>
 
 namespace oap {
 
@@ -52,6 +53,15 @@ private:
     oap::EqualizerEngine* engine_ = nullptr;
     oap::AudioStreamHandle* playback_ = nullptr;
     oap::AudioStreamHandle* capture_ = nullptr;
+
+    // Capture-write gate. The PW-thread capture callback drops all writes while
+    // this is false, so the playback ring has NO writer except across the narrow
+    // active window (activate raises it AFTER draining a quiesced ring; deactivate
+    // clears it). This makes drain() run fully quiescent (see AudioRingBuffer::
+    // drain precondition) — the writer never overflow-drops against a drain.
+    // Read on the PW data thread, written on the Qt main thread.
+    std::atomic<bool> captureEnabled_{false};
+
     BtTapController controller_;
 };
 

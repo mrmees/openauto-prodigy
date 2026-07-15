@@ -158,7 +158,13 @@ private:
     void startDBusMonitoring();
     void stopDBusMonitoring();
     void scanExistingObjects();
-    void updateTransportState(const QString& state);
+    // Record one transport's audio activity (State=="active") under its own
+    // path, then recompute the aggregate connection/activity edges.
+    void updateTransportState(const QString& path, const QString& state);
+    // Derive connectionState_ (Connected while ANY transport exists) and the
+    // audio-activity edge (true while ANY tracked transport is active) from
+    // transportActiveByPath_, emitting only on real changes.
+    void recomputeTransportState();
     void updatePlayerProperties(const QVariantMap& props);
     void sendPlayerCommand(const QString& command);
     // Edge-emits transportActiveChanged only when the value actually flips.
@@ -183,7 +189,14 @@ private:
     int trackPosition_ = 0;   // milliseconds
     QString deviceName_;
 
-    // D-Bus object paths for the active transport and player
+    // Per-transport audio activity: path -> (MediaTransport1.State == "active").
+    // A second, idle phone must not force the aggregate edge false while the
+    // first is still playing, so activity is tracked per transport and the edge
+    // derives from "ANY tracked transport active" (not last-writer-wins).
+    QMap<QString, bool> transportActiveByPath_;
+
+    // D-Bus object paths: transportPath_ is the MOST-RECENT transport (used for
+    // device-name display only); playerPath_ is the tracked AVRCP player.
     QString transportPath_;
     QString playerPath_;
 };

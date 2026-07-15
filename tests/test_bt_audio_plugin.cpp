@@ -30,6 +30,13 @@ private slots:
     void transportActive_removalForcesInactive();
     void transportActive_bluezLossForcesInactive();
     void transportActive_uiConnectedStateDecoupled();
+    // Per-transport activity tracking: a second idle phone must not force the
+    // aggregate edge false while the first is still playing.
+    void transportActive_secondIdleDoesNotSilenceFirst();
+    void transportActive_removeActiveKeepsOtherActive();
+    void transportActive_bothIdleClearsEdge();
+    void transportActive_secondPathFlipsActiveEvenIfArrivedFirst();
+    void transportActive_bluezLossClearsAllTransports();
 
 private:
     // Seed the plugin's tracked player path through its adoption flow: an
@@ -56,6 +63,15 @@ private:
             &plugin, "onInterfacesAdded", Qt::DirectConnection,
             Q_ARG(QDBusObjectPath, QDBusObjectPath(path)),
             Q_ARG(BtInterfaceMap, ifaces));
+    }
+
+    // Remove a transport interface through onInterfacesRemoved (the seam BlueZ
+    // fires when an A2DP transport disappears).
+    static bool removeTransport(BtAudioPlugin& plugin, const QString& path) {
+        return QMetaObject::invokeMethod(
+            &plugin, "onInterfacesRemoved", Qt::DirectConnection,
+            Q_ARG(QDBusObjectPath, QDBusObjectPath(path)),
+            Q_ARG(QStringList, QStringList{ QStringLiteral("org.bluez.MediaTransport1") }));
     }
 
     // Deliver a MediaTransport1 PropertiesChanged carrying a new State value from
@@ -249,6 +265,126 @@ void TestBtAudioPlugin::transportActive_uiConnectedStateDecoupled()
     QVERIFY(driveTransportState(plugin, transportPath, QStringLiteral("active")));
     QCOMPARE(plugin.connectionState(), static_cast<int>(BtAudioPlugin::Connected));
     QVERIFY(plugin.transportActive());
+}
+
+// Two transports: A active, B idle arrives — the aggregate edge STAYS true (a
+// second silent phone must not silence the one that is playing).
+void TestBtAudioPlugin::transportActive_secondIdleDoesNotSilenceFirst()
+{
+    BtAudioPlugin plugin;
+    const QString a = QStringLiteral("/org/bluez/hci0/dev_AA/fd0");
+    const QString b = QStringLiteral("/org/bluez/hci0/dev_BB/fd0");
+
+    QVERIFY(adoptTransport(plugin, a));
+    QVERIFY(driveTransportState(plugin, a, QStringLiteral("active")));
+    QVERIFY(plugin.transportActive());
+
+    QSignalSpy spy(&plugin, &BtAudioPlugin::transportActiveChanged);
+
+    // B arrives (idle) then explicitly reports idle — edge must stay true.
+    QVERIFY(adoptTransport(plugin, b));
+    QVERIFY(driveTransportState(plugin, b, QStringLiteral("idle")));
+    QVERIFY(plugin.transportActive());
+    QCOMPARE(spy.count(), 0);   // no false edge emitted
+}
+
+// A active + B active; removing A leaves B active — edge stays true.
+void TestBtAudioPlugin::transportActive_removeActiveKeepsOtherActive()
+{
+    BtAudioPlugin plugin;
+    const QString a = QStringLiteral("/org/bluez/hci0/dev_AA/fd0");
+    const QString b = QStringLiteral("/org/bluez/hci0/dev_BB/fd0");
+
+    QVERIFY(adoptTransport(plugin, a));
+    QVERIFY(driveTransportState(plugin, a, QStringLiteral("active")));
+    QVERIFY(adoptTransport(plugin, b));
+    QVERIFY(driveTransportState(plugin, b, QStringLiteral("active")));
+    QVERIFY(plugin.transportActive());
+
+    QSignalSpy spy(&plugin, &BtAudioPlugin::transportActiveChanged);
+
+    QVERIFY(removeTransport(plugin, a));
+    QVERIFY(plugin.transportActive());          // B still active
+    QCOMPARE(spy.count(), 0);                   // no edge change
+    QCOMPARE(plugin.connectionState(), static_cast<int>(BtAudioPlugin::Connected));
+}
+
+// Both transports active, then both go idle — only when the LAST active one
+// drops does the aggregate edge fall to false.
+void TestBtAudioPlugin::transportActive_bothIdleClearsEdge()
+{
+    BtAudioPlugin plugin;
+    const QString a = QStringLiteral("/org/bluez/hci0/dev_AA/fd0");
+    const QString b = QStringLiteral("/org/bluez/hci0/dev_BB/fd0");
+
+    QVERIFY(adoptTransport(plugin, a));
+    QVERIFY(driveTransportState(plugin, a, QStringLiteral("active")));
+    QVERIFY(adoptTransport(plugin, b));
+    QVERIFY(driveTransportState(plugin, b, QStringLiteral("active")));
+    QVERIFY(plugin.transportActive());
+
+    QSignalSpy spy(&plugin, &BtAudioPlugin::transportActiveChanged);
+
+    QVERIFY(driveTransportState(plugin, a, QStringLiteral("idle")));
+    QVERIFY(plugin.transportActive());          // B still active — no edge
+    QCOMPARE(spy.count(), 0);
+
+    QVERIFY(driveTransportState(plugin, b, QStringLiteral("idle")));
+    QVERIFY(!plugin.transportActive());         // both idle now — one false edge
+    QCOMPARE(spy.count(), 1);
+    QCOMPARE(spy.last().at(0).toBool(), false);
+}
+
+// B is adopted FIRST, then A (so transportPath_ == A, the most-recent). A
+// State-active PropertiesChanged from B's sender path must still be honoured —
+// the old single-path filter (sender != transportPath_) dropped it, silencing
+// the actually-playing phone.
+void TestBtAudioPlugin::transportActive_secondPathFlipsActiveEvenIfArrivedFirst()
+{
+    BtAudioPlugin plugin;
+    const QString a = QStringLiteral("/org/bluez/hci0/dev_AA/fd0");
+    const QString b = QStringLiteral("/org/bluez/hci0/dev_BB/fd0");
+
+    QVERIFY(adoptTransport(plugin, b));   // B first
+    QVERIFY(adoptTransport(plugin, a));   // A last => transportPath_ == A
+    QVERIFY(!plugin.transportActive());
+
+    QSignalSpy spy(&plugin, &BtAudioPlugin::transportActiveChanged);
+
+    // B (NOT the most-recent path) goes active — must be accepted.
+    QVERIFY(driveTransportState(plugin, b, QStringLiteral("active")));
+    QVERIFY(plugin.transportActive());
+    QCOMPARE(spy.count(), 1);
+    QCOMPARE(spy.last().at(0).toBool(), true);
+}
+
+// BlueZ vanishing clears ALL tracked transports and forces the edge false.
+void TestBtAudioPlugin::transportActive_bluezLossClearsAllTransports()
+{
+    BtAudioPlugin plugin;
+    const QString a = QStringLiteral("/org/bluez/hci0/dev_AA/fd0");
+    const QString b = QStringLiteral("/org/bluez/hci0/dev_BB/fd0");
+
+    QVERIFY(adoptTransport(plugin, a));
+    QVERIFY(driveTransportState(plugin, a, QStringLiteral("active")));
+    QVERIFY(adoptTransport(plugin, b));
+    QVERIFY(driveTransportState(plugin, b, QStringLiteral("active")));
+    QVERIFY(plugin.transportActive());
+
+    QSignalSpy spy(&plugin, &BtAudioPlugin::transportActiveChanged);
+
+    QVERIFY(QMetaObject::invokeMethod(&plugin, "onBluezServiceUnregistered",
+                                      Qt::DirectConnection));
+    QVERIFY(!plugin.transportActive());
+    QCOMPARE(spy.count(), 1);
+    QCOMPARE(spy.last().at(0).toBool(), false);
+    QCOMPARE(plugin.connectionState(), static_cast<int>(BtAudioPlugin::Disconnected));
+
+    // With all transports cleared, a stale PropertiesChanged from A is ignored
+    // (no longer tracked) and cannot resurrect the edge.
+    QVERIFY(driveTransportState(plugin, a, QStringLiteral("active")));
+    QVERIFY(!plugin.transportActive());
+    QCOMPARE(spy.count(), 1);
 }
 
 QTEST_GUILESS_MAIN(TestBtAudioPlugin)

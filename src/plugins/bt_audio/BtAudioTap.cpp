@@ -72,7 +72,9 @@ BtTapController::Effects BtAudioTap::makeEffects()
 
     // Step 3 (LAST): open the capture node that publishes the retarget target.
     // Its callback runs on the PW thread and ONLY writes to the playback ring
-    // (any-thread-safe) — no Qt calls.
+    // (any-thread-safe) — no Qt calls. The captureEnabled_ gate drops writes
+    // while inactive, so the ring has no writer outside the active window and a
+    // never-drained ring can never sit permanently full/overflowing.
     fx.createCapture = [this]() -> bool {
         oap::AudioService::CaptureStreamOptions co;
         co.name = QStringLiteral("openauto-bt-eq-in");
@@ -81,6 +83,7 @@ BtTapController::Effects BtAudioTap::makeEffects()
         co.bitDepth = 16;
         co.autoconnect = false;
         co.callback = [this](const uint8_t* d, int n) {
+            if (!captureEnabled_.load(std::memory_order_relaxed)) return;
             audio_->writeAudio(playback_, d, n);
         };
         capture_ = audio_->openCaptureStreamWithOptions(co);
@@ -103,15 +106,24 @@ BtTapController::Effects BtAudioTap::makeEffects()
     };
 
     // Activity toggle (transport edges) — playback only, never the capture node.
+    // Activate order: drain the ring while it is FULLY quiescent (writer gated
+    // off from the prior deactivate/Ready state AND playback still inactive ⇒ no
+    // concurrent ring mutators, race-free), then start playback, then open the
+    // capture gate, then take focus.
     fx.activate = [this]() {
         audio_->resetStreamRing(playback_);
         audio_->setStreamActive(playback_, true);
+        captureEnabled_.store(true);
         audio_->requestAudioFocus(playback_, oap::AudioFocusType::Gain);
     };
+    // Deactivate order: release focus, close the capture gate, stop playback. No
+    // drain here — the next activate drains before use, and a single stale
+    // in-flight capture write landing just after the gate clears is harmless
+    // (it lands in a ring that is drained before it is read again).
     fx.deactivate = [this]() {
         audio_->releaseAudioFocus(playback_);
+        captureEnabled_.store(false);
         audio_->setStreamActive(playback_, false);
-        audio_->resetStreamRing(playback_);
     };
 
     return fx;

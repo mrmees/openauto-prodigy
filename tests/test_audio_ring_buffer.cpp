@@ -79,13 +79,49 @@ private slots:
         QCOMPARE(rest[0], static_cast<uint8_t>(100));
     }
 
-    // drain() must be safe against a LIVE writer (the BT tap keeps its capture
-    // stream writing across playback activity transitions). A plain reset()
-    // re-inits the WRITE index and tears against that writer; drain() only
-    // advances the READ index, leaving the writer's write index untouched, so it
-    // can race a live writer without tearing its writes. This mirrors
-    // resetStreamRing's precondition: the reader is quiesced (only this thread
-    // reads/drains) while the writer stays live on another thread.
+    // Drain's flush contract is now FULLY quiescent (both reader and writer are
+    // stopped — the BT tap gates its capture writer off before draining), so a
+    // quiescent drain is a total flush: after it, no pre-drain byte is readable.
+    // Fill the ring to overflow with pattern A, drain, write pattern B, read it
+    // all back, and assert every byte is B — not one A survives the drain.
+    void drainFullyFlushesPreDrainBytes()
+    {
+        constexpr uint32_t kCap = 1024;
+        oap::AudioRingBuffer rb(kCap);
+
+        // Pattern A: write past capacity so the ring overflow-drops and ends up
+        // exactly full of 0xAA.
+        uint8_t a[kCap];
+        memset(a, 0xAA, sizeof(a));
+        rb.write(a, kCap);
+        rb.write(a, kCap);            // force at least one overflow-drop
+        QVERIFY(rb.available() > 0);
+
+        // Quiescent drain — total flush, ring is empty afterwards.
+        rb.drain();
+        QCOMPARE(rb.available(), 0u);
+
+        // Pattern B into the drained ring.
+        constexpr uint32_t kB = 512;
+        uint8_t b[kB];
+        memset(b, 0xBB, sizeof(b));
+        QCOMPARE(rb.write(b, kB), kB);
+        QCOMPARE(rb.available(), kB);
+
+        // Read all — every byte must be B; no 0xAA leaks past the drain.
+        uint8_t out[kB] = {};
+        QCOMPARE(rb.read(out, kB), kB);
+        for (uint32_t i = 0; i < kB; ++i)
+            QCOMPARE(out[i], static_cast<uint8_t>(0xBB));
+    }
+
+    // Bounded-fill robustness under a CONTINUOUSLY-OVERFLOWING live writer. This
+    // is NOT the drain-flush-safety guarantee (that now requires a quiesced
+    // writer — see drainFullyFlushesPreDrainBytes above). It instead documents
+    // that write()'s own drop-oldest keeps the ring bounded under an unrelenting
+    // writer, and that a concurrent drain() never yields a wrapped/near-2^32
+    // garbage available() reading even though it is racing write()'s read-index
+    // advance (a torn index would surface as exactly that garbage).
     //
     // The writer is deliberately much FASTER than the real threat model (a
     // PipeWire RT capture stream, 48 kHz stereo S16 ≈ 192 KB/s): ~25 MB/s keeps
@@ -97,7 +133,7 @@ private slots:
     // GB/s writes the write index races ahead between those two loads, inflating
     // the *reported* fill without any actual ring defect. Pacing keeps that skew
     // negligible so the capacity invariant is a meaningful signal.)
-    void drainIsWriterSafeUnderStress()
+    void boundedFillUnderLiveWriter()
     {
         constexpr uint32_t kCap = 4096;
         constexpr uint32_t kChunk = 512;

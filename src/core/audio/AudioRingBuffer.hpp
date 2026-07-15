@@ -88,18 +88,19 @@ public:
     }
 
     // Reader-side drain: snapshot the write index and advance the read index to
-    // it, discarding all currently-buffered data. Unlike reset() this touches
-    // ONLY the read index — the writer's write index is never disturbed, so it
-    // cannot tear a concurrent write_update(). Uses the same spa_ringbuffer
-    // primitives as read().
+    // it, discarding all currently-buffered data. Touches ONLY the read index
+    // (never the write index) using the same spa_ringbuffer primitives as
+    // read(). This is a plain read-index catch-up — NOT writer-safe.
     //
-    // Precondition: the READER is quiesced (no concurrent read()), which the
-    // caller guarantees by deactivating playback before calling. The WRITER may
-    // stay live. Note: write() advances the read index on overflow (drop-oldest),
-    // so if the writer overflow-drops *concurrently* with a drain the read index
-    // has two mutators and could momentarily regress — the caller's contract
-    // avoids this by draining only when the ring is not full (playback has been
-    // consuming it), so no overflow occurs inside the brief drain window.
+    // Precondition (as of the BT-tap capture-gate rework): BOTH the reader AND
+    // the writer are quiesced. The reader is quiesced by deactivating playback;
+    // the writer is quiesced by the BT tap gating its capture callback off
+    // (captureEnabled_ == false) before any drain. The reason both are required:
+    // write() advances the READ index on overflow (drop-oldest), so an
+    // overflowing writer is a second concurrent mutator of the read index and
+    // could overwrite drain()'s update — leaving stale pre-drain bytes readable.
+    // With the writer gated off (and the ring therefore not overflowing under
+    // it) drain() is the sole read-index mutator and the flush is race-free.
     void drain()
     {
         uint32_t readIdx;
