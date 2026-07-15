@@ -132,7 +132,7 @@ Ideas captured here. Promote to `roadmap-current.md` when ready to commit.
 ## From HFP/9876 bench (2026-07-13)
 - **Call popup answer/reject dead during AA projection** (Samsung row) — popup renders over the AA surface but button presses leave ZERO journal trace: touch likely falls through to the AA layer. Second half of the same fix: the native call popup shouldn't show at all while an AA session owns call UI (AA renders its own). Reproduced with incoming call, S25 Ultra projecting.
 - **BT advertising stops after device disconnect until app restart** — hit twice back-to-back (pairing Samsung after Pixel disconnect, then Moto after Samsung). New phone can't discover the head unit; `systemctl restart openauto-prodigy` restores it. Likely the BT discovery/advertisement isn't re-armed on disconnect.
-- **App PipeWire connection doesn't survive daemon restart** — after `systemctl --user restart pipewire`, the settings audio-devices list shows empty (occasionally) and device selection doesn't persist; app restart fixes. Root: the app's registry connection dies with the daemon and never re-enumerates. Related ops rule: restart order is `bluetooth` → `pipewire wireplumber` → `openauto-prodigy.service`.
+- **App PipeWire connection doesn't survive daemon restart** — after `systemctl --user restart pipewire`, the settings audio-devices list shows empty (occasionally) and device selection doesn't persist; app restart fixes. Root: the app's registry connection dies with the daemon and never re-enumerates. Related ops rule: restart order is `bluetooth` → `pipewire wireplumber` → `openauto-prodigy.service`. Same family, observed at the 2026-07-15 BT EQ bench: a stream error (e.g. wireplumber-only restart) takes the BT EQ tap down and it stays down until app restart — teardown/fallback fire correctly, but nothing re-creates the tap streams.
 - **WirePlumber/BlueZ RegisterProfile restart race** (ops/installer note) — restarting the audio stack can yield `spa.bluez5.native: RegisterProfile() failed: org.bluez.Error.NotPermitted`, leaving HFP silently dead (phone connects A2DP-only, calls stay on handset). Restarting `bluetooth` first clears it. Installer/service files should encode the ordering; consider detection (ag-object absent after connect) + auto-remediation.
 - **BatteryWidget: no charging indicator** — `CompanionState.phoneCharging` arrives correctly (verified end-to-end); the canvas renders only outline/fill/%. Add a bolt glyph when charging.
 - **IPC `companion_status`: expose `gps_stale`** — SHIPPED 2026-07-14 in the B2 teardown — companion_status now carries gps_stale (test-locked in test_ipc_install_theme).
@@ -166,6 +166,48 @@ Ideas captured here. Promote to `roadmap-current.md` when ready to commit.
   (`BluetoothManager.cpp:435` area). NOTE: distinct from the existing
   "BT advertising stops after device disconnect" item — discoverability never
   times out and is a separate flag; that item stands on its own.
+
+- **ExecStopPost `bluetoothctl disconnect` kicks the phone on every clean
+  stop/restart** — DESIGN DECISION NEEDED. `install.sh:1723` ships
+  `[ "$SERVICE_RESULT" = "success" ] && bluetoothctl disconnect` in the unit,
+  so every deploy/restart deliberately boots the connected phone off BT (crash
+  paths skip it — why fallback "held through every app stop/error" on 2026-07-14
+  but a clean `systemctl stop` at the 2026-07-15 bench killed the music). This
+  is the primary mechanism behind "funky BT during automated SSH ops" (with the
+  120 s pairing re-arm and, that day, a degraded phone stack stacking on top).
+  Options: remove entirely (WirePlumber fallback keeps audio alive and phones
+  handle dead HUs fine), or scope it to real shutdowns (condition on
+  `systemctl is-system-running` / shutdown target) so app restarts stop kicking
+  the phone.
+- **Input-device selection doesn't stick** — pre-existing (branch untouched;
+  verified 2026-07-15). The audio-settings dropdown applies the selection live
+  only while the screen is open; leaving the screen reverts it, `input_device`
+  is never written to config.yaml, and the UI repopulates from the stale
+  source. Practical impact: the AA assistant mic can't be configured. Fix
+  shape: persist on selection (config + disk) and repopulate the combo from the
+  live service value.
+- **Master volume doesn't survive restart** — runtime volume changes are never
+  flushed to disk (bench: runtime 0 to 59 while disk stayed 89; app restart
+  reloaded 89). Same persist-on-change family as the (now fixed) EQ-gains item;
+  fix shape mirrors it.
+- **Send AVRCP Pause to the BT source on music focus loss** — Matthew
+  preference from the bench: when another music source takes over, pausing the
+  phone beats duck-to-silence-while-it-keeps-playing (battery + "why is my
+  phone playing to nobody"). Today's duck behavior is correct per design;
+  this is an upgrade, gated on AVRCP control via BlueZ MediaPlayer1.Pause().
+- **Tap bring-up should sweep pre-existing live bluez_input nodes** — bench
+  row 4: WirePlumber applies the retarget rule only at node creation, so an
+  app (re)start during live BT streaming leaves the stream direct-to-sink
+  (un-EQ'd, no HU volume) until the next transport cycle. Fresh
+  nodes/reconnects are tap-routed from birth. Fix shape: on tap activation,
+  enumerate existing `bluez_input.*` nodes and relink (or metadata-retarget)
+  them into the tap.
+- **AA system-sound channel full-ducks media for the whole channel-open
+  window** — every AA touch click opens AudioChannel 5 (System) for ~5 s
+  (gearhead holds it) and focus ducks media to silence the entire time; a
+  50 ms click costs 5 s of dead music. Fix shape: System-channel focus should
+  partial-duck (or mix-over) rather than full-duck, and/or use a fast-release
+  duck curve. Phone-side workaround: disable touch sounds.
 
 ## From BT A2DP EQ pre-push gate (2026-07-14)
 
@@ -213,23 +255,28 @@ demand materializes.
   (`get_eq_state`, `set_eq_gain`, `set_eq_preset`, preset CRUD) + a web-config page
   with per-stream band sliders; decide whether the External API also gets a (frozen
   additive) EQ surface or web/IPC stays the only remote channel.
-- **Manual EQ gains and bypass state don't survive restart** — SHIPPING — 2026-07-14
-  plan in execution — `writeToConfig()`
+- **Manual EQ gains and bypass state don't survive restart** — SHIPPED 2026-07-15
+  (durable-persistence rider: gains/bypass round-trip to disk with validation at every
+  ingress + parent-dir fsync; bench-validated across a Pi power-cycle) — `writeToConfig()`
   persists per-stream *preset names* + the user-preset library only. Manual slider
   tweaks clear `activePreset` to "" (UI shows "Custom"), and `loadFromConfig()` skips
   empty names — so unsaved slider positions silently reset to the last named preset
   (or Flat/Voice defaults) on restart; bypass always resets to off. User-visible:
   fiddle sliders, don't save, reboot the car → EQ quietly reverts. Fix shape: persist
   raw gains when `activePreset` is empty, plus a per-stream `bypassed` key.
-- **"Phone" EQ engine is attached to the AA *system* stream** — SHIPPING — 2026-07-14
-  plan in execution — pre-existing quirk
+- **"Phone" EQ engine is attached to the AA *system* stream** — SHIPPED 2026-07-15
+  (relabel leg: `StreamId::Phone`→`System` + QML tab reads "System"; SCO call audio
+  remains un-EQ'd, the accepted 2026-07-05 design limitation stands) — pre-existing quirk
   (flagged in F2, re-confirmed at `AndroidAutoOrchestrator.cpp:343`): the on-HU
   "Phone" tab actually EQs AA system sounds (nav beeps etc.); nothing EQs real call
   audio (HFP SCO bypasses `AudioService`, the accepted 2026-07-05 design limitation).
   Decision needed: relabel the tab/stream "System" (honest, cheap) vs route SCO
   through AudioService (real work, revisits the HFP design).
-- **BT A2DP music bypasses the EQ entirely** — SHIPPING — 2026-07-14 plan in
-  execution — BlueZ→PipeWire routes phone music
+- **BT A2DP music bypasses the EQ entirely** — SHIPPED 2026-07-15 (WirePlumber
+  retarget → gated capture → ring → activity-toggled "BT Audio" playback with Media
+  EQ + master volume + focus; bench-validated 7/7 runbook rows incl. 10-min soak +
+  pause/resume hammer; F2's "audible preset change during BT playback" line finally
+  satisfied) — BlueZ→PipeWire routes phone music
   natively; `BtAudioPlugin` only monitors transports over D-Bus. The Media EQ governs
   AA media + the local media player only. Original OAP applied a sink-level 15-band
   LADSPA EQ to *all* audio. Fix shape if wanted: PipeWire `filter-chain` on the sink

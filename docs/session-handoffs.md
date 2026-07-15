@@ -4,6 +4,22 @@ Newest entries first.
 
 ---
 
+## 2026-07-15 — BT A2DP EQ bench COMPLETE: 7/7 runbook rows PASS; automated-ops BT funk root-caused (unit ExecStopPost hook); feature SHIPPED
+
+**What changed (docs only):** completed the bench runbook from the 2026-07-15 partial (rows: boot-muted volume, focus BT↔local + speech duck, BT↔AA two-phone takeover, formal fallback/relink, idle economics, 10-min soak + pause/resume hammer, AA regression — ALL PASS). Wishlist: 3 SHIPPING→SHIPPED flips (BT-A2DP-bypasses-EQ, EQ-persistence, Phone→System relabel) + 6 new bench findings; plan+design flipped COMPLETED and archived.
+
+**Row highlights:** volume-at-creation proven (silence at vol 0 while genuinely streaming — verified via graph — then smooth fade-in). Focus matrix green in all directions, last-started wins, loser ducks in-process and keeps playing. Fable-review relink row answered: **app start during live BT streaming does NOT relink the stream into the tap** — stays direct (un-EQ'd) until a transport cycle; fresh nodes/reconnects tap-route from birth (wishlisted sweep-on-bring-up). Idle economics: transport idle → BT Audio + tap idle, feature idle cost ≈ 0 (lost in AA-projection noise, ~19-23% either way). Soak (plain **aptX** — the Moto has no HD; earlier "aptX HD" notes were a vendor-codec-255 misread): 10 min zero disconnects, zero errors, ONE startup xrun total; hammer (~12 pause/resume cycles) clean — **epoch-quiesce dismissal stands, no promotion**. AA regression: media EQ'd (audible preset swap), nav-prompt duck+restore intact.
+
+**Automated-ops BT funk ROOT-CAUSED (bench-opened investigation, closed same day):** `install.sh:1723` ships `ExecStopPost=[ "$SERVICE_RESULT" = "success" ] && bluetoothctl disconnect` — every clean stop/restart (= every deploy) deliberately kicks the phone; crash paths skip it (why 2026-07-14's "fallback held through every stop/error" vs the clean-stop kill at this bench). Stacked on top that day: the 120 s pairing re-arm (known) and a **degraded Moto BT stack** — btmon forensics: sniff-transition failures (LMP Response Timeout 0x22 / Connection Timeout 0x08 immediately after sniff→active), zombie profile-less ACL connects correctly reaped by bluetoothd's temp window, L2CAP `Invalid CID`, transport held "active" while paused 10+ min, reconnect stalls until the phone's BT settings screen opened. Phone reboot cured all of it; HU-side re-page recovery worked every time. Wishlist now carries the ExecStopPost DESIGN DECISION (remove vs scope-to-shutdown).
+
+**Other new findings (all wishlisted):** input-device selection never persists (live only while the settings screen is open; pre-existing — blocks AA-assistant mic config); master volume not flushed to disk (restart reloads stale value); AA touch clicks open the System channel for ~5 s and focus full-ducks media the whole window (partial-duck/mix-over fix shape); AVRCP-pause-on-focus-loss preference (Matthew); tap-stays-down-after-stream-error folded into the existing PipeWire-daemon-restart item.
+
+**Verification:** all bench claims grounded in live SSH/btmon/pw-dump/journal evidence in-session; docs-only change set (no build ceremony per convention). Bench technique that worked again: one Matthew-step at a time, controller runs every check; instrument-first (btmon) before theorizing.
+
+**Next 1-3 steps:** (1) push dev on Matthew's go; (2) dev→main PR; (3) `bash scripts/tag-alpha.sh` → reconfigure → cross-build → package → `gh release create --prerelease` (milestone declared 2026-07-14). After: pairing-window UI fix and/or ExecStopPost decision are the top wishlist candidates.
+
+---
+
 ## 2026-07-15 — BT A2DP EQ bench PARTIAL: core path PROVEN end-to-end (rule fix required); paused mid-runbook, pickup file written
 
 **What changed:** first live bench of the BT A2DP EQ tap (deployed `ALPHA-26-07-14-01-33-g755f162` + WirePlumber conf; full ordered stack restart). **Headline: the feature works** — Moto G Play (aptX HD) routes phone → `openauto-bt-eq-in` → ring → "BT Audio" playback → EQ → sink fully automatically; preset swaps audibly change BT music (the F2 verify line, satisfied for the first time); stereo sane; HU master volume now controls BT level (row part A).

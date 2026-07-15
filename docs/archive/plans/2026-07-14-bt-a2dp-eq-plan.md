@@ -2,7 +2,7 @@
 
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
-Status: ACTIVE
+Status: COMPLETED 2026-07-15 — executed, gate-adjudicated, bench-validated 7/7 runbook rows
 **Design (read it first):** `docs/plans/2026-07-14-bt-a2dp-eq-design.md` — twice
 Codex-reviewed (rounds 1+2 adjudicated; header records dispositions).
 **Grounded against:** `dev` at `bdd5d74`.

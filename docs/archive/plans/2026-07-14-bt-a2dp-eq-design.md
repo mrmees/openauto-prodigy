@@ -1,6 +1,6 @@
 # BT A2DP Through the Equalizer (+ EQ Hygiene Riders) — Design
 
-Status: ACTIVE
+Status: COMPLETED 2026-07-15 — executed, gate-adjudicated, bench-validated 7/7 runbook rows
 **Date:** 2026-07-14 · **Grounded against:** `dev` at `7b5d9dd`.
 **Origin:** EQ parity audit 2026-07-14 (session-handoffs entry; wishlist § "From
 EQ parity audit (2026-07-14)"). Promoted by Matthew same day: BT A2DP → EQ,
