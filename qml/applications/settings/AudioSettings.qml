@@ -22,12 +22,23 @@ Flickable {
 
         SettingsRow { rowIndex: 0
             SettingsSlider {
+                id: masterVolumeSlider
                 label: "Master Volume"
-                configPath: "audio.master_volume"
                 from: 0; to: 100; stepSize: 1
                 onMoved: {
                     if (typeof AudioService !== "undefined")
                         AudioService.setMasterVolume(value)
+                }
+                Component.onCompleted: {
+                    if (typeof AudioService !== "undefined")
+                        value = AudioService.masterVolume
+                }
+                Connections {
+                    target: typeof AudioService !== "undefined" ? AudioService : null
+                    function onMasterVolumeChanged() {
+                        if (!masterVolumeSlider.pressed)
+                            masterVolumeSlider.value = AudioService.masterVolume
+                    }
                 }
             }
         }

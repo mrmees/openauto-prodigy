@@ -13,6 +13,7 @@ Item {
     property real stepSize: 1
     property bool restartRequired: false
     property alias value: slider.value
+    readonly property alias pressed: slider.pressed
     signal moved()
 
     Layout.fillWidth: true
