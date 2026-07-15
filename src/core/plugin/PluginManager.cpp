@@ -66,15 +66,29 @@ void PluginManager::discoverPlugins(const QString& pluginsDir)
         }
 
         // Runtime ABI gate: the MANIFEST passed discovery, but the BINARY is
-        // what dispatches against IHostContext's vtable. Trust the binary.
+        // what dispatches against IHostContext's vtable. Trust the binary —
+        // and treat its metadata calls as untrusted code (they can throw).
         QString mismatch;
-        if (result.plugin->apiVersion() != PluginDiscovery::HOST_API_VERSION) {
-            mismatch = QStringLiteral("binary API v%1 != host v%2")
-                           .arg(result.plugin->apiVersion())
-                           .arg(PluginDiscovery::HOST_API_VERSION);
-        } else if (result.plugin->id() != manifest.id) {
-            mismatch = QStringLiteral("binary id '%1' != manifest id '%2'")
-                           .arg(result.plugin->id(), manifest.id);
+        int binaryApi = -1;
+        QString binaryId;
+        try {
+            binaryApi = result.plugin->apiVersion();
+            binaryId = result.plugin->id();
+        } catch (const std::exception& e) {
+            mismatch = QStringLiteral("binary metadata threw: %1")
+                           .arg(QString::fromUtf8(e.what()));
+        } catch (...) {
+            mismatch = QStringLiteral("binary metadata threw (unknown exception)");
+        }
+        if (mismatch.isEmpty()) {
+            if (binaryApi != PluginDiscovery::HOST_API_VERSION) {
+                mismatch = QStringLiteral("binary API v%1 != host v%2")
+                               .arg(binaryApi)
+                               .arg(PluginDiscovery::HOST_API_VERSION);
+            } else if (binaryId != manifest.id) {
+                mismatch = QStringLiteral("binary id '%1' != manifest id '%2'")
+                               .arg(binaryId, manifest.id);
+            }
         }
         if (!mismatch.isEmpty()) {
             qCCritical(lcPlugin) << "Rejecting plugin " << manifest.id

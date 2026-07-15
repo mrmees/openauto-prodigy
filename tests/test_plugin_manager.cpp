@@ -64,6 +64,7 @@ private slots:
     void testDynamicLoadRejectsStaleBinary();
     void testDynamicLoadRejectsIdMismatch();
     void testDynamicLoadAcceptsValidBinary();
+    void testDynamicLoadRejectsThrowingMetadata();
 };
 
 void TestPluginManager::testRegisterStaticPlugin()
@@ -231,6 +232,18 @@ void TestPluginManager::testDynamicLoadAcceptsValidBinary()
     MockHostContext ctx;
     mgr.initializeAll(&ctx);
     QCOMPARE(mgr.plugin("org.test.valid")->apiVersion(), oap::PluginDiscovery::HOST_API_VERSION);
+}
+
+void TestPluginManager::testDynamicLoadRejectsThrowingMetadata()
+{
+    oap::PluginManager mgr;
+    QSignalSpy failedSpy(&mgr, &oap::PluginManager::pluginFailed);
+    mgr.discoverPlugins(QStringLiteral(FIXTURE_PLUGINS_DIR));
+
+    // throwing: manifest v2 passes discovery, but the binary's apiVersion()
+    // throws — the host must catch it and reject, not crash.
+    QVERIFY(mgr.plugin("org.test.throwing") == nullptr);
+    QCOMPARE(failuresFor(failedSpy, "org.test.throwing"), 1);
 }
 
 QTEST_MAIN(TestPluginManager)

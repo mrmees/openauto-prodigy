@@ -27,6 +27,7 @@ endfunction()
 oap_add_fixture_plugin(fixture_stale_plugin    fixture_stale_plugin.cpp    stale    stale    fixture_stale.yaml)
 oap_add_fixture_plugin(fixture_imposter_plugin fixture_imposter_plugin.cpp other    imposter fixture_imposter.yaml)
 oap_add_fixture_plugin(fixture_valid_plugin    fixture_valid_plugin.cpp    valid    valid    fixture_valid.yaml)
+oap_add_fixture_plugin(fixture_throwing_plugin fixture_throwing_plugin.cpp throwing throwing fixture_throwing.yaml)
 
 # --- Core tests ---
 
@@ -56,7 +57,7 @@ oap_add_test(test_plugin_discovery SOURCES test_plugin_discovery.cpp)
 oap_add_test(test_plugin_manager SOURCES test_plugin_manager.cpp
     DEFS FIXTURE_PLUGINS_DIR="${CMAKE_CURRENT_BINARY_DIR}/fixture_plugins")
 add_dependencies(test_plugin_manager
-    fixture_stale_plugin fixture_imposter_plugin fixture_valid_plugin)
+    fixture_stale_plugin fixture_imposter_plugin fixture_valid_plugin fixture_throwing_plugin)
 oap_add_test(test_plugin_model SOURCES test_plugin_model.cpp)
 oap_add_test(test_play_queue SOURCES test_play_queue.cpp)
 oap_add_test(test_folder_model SOURCES test_folder_model.cpp)

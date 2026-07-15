@@ -33,6 +33,12 @@ Flickable {
                     if (typeof AudioService !== "undefined")
                         value = AudioService.masterVolume
                 }
+                onPressedChanged: {
+                    // External updates are ignored mid-drag; resync on release
+                    // so a change landing during the drag isn't lost.
+                    if (!pressed && typeof AudioService !== "undefined")
+                        value = AudioService.masterVolume
+                }
                 Connections {
                     target: typeof AudioService !== "undefined" ? AudioService : null
                     function onMasterVolumeChanged() {
@@ -94,8 +100,10 @@ Flickable {
                     if (!current)
                         current = ConfigService.value("audio.microphone.device")
                     if (!current) current = "auto"
-                    var idx = AudioInputDeviceModel.indexOfDevice(current)
-                    if (idx >= 0) currentIndex = idx
+                    // Always assign — including -1 — so a device that
+                    // disappeared at model reset clears the selection instead
+                    // of leaving a stale index pointing at a different row.
+                    currentIndex = AudioInputDeviceModel.indexOfDevice(current)
                 }
 
                 onActivated: function(index) {
