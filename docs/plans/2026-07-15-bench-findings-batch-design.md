@@ -9,16 +9,25 @@ decision: **remove entirely** (Matthew, 2026-07-15).
 
 ## Scope
 
-Three small, independent fixes; one cycle (SDD → codex gate → bench spot-checks).
+Six fixes; one cycle (SDD → codex gate → bench spot-checks). Items 1–3 are the
+original bench-findings promotion; items 4–6 are Codex post-merge findings on
+PR #20, verified against the tree and folded in by Matthew 2026-07-15.
 
 1. Remove the unit's `ExecStopPost` `bluetoothctl disconnect` hook.
 2. Make input-device (mic) selection persist and survive restart.
 3. Make master-volume changes persist to disk (debounced).
+4. **Stop the A2DP retarget rule from hijacking HFP SCO call audio**
+   (post-merge P1 — live regression on the deployed Pi; execute FIRST).
+5. Validate the loaded plugin binary's API version/ID against its manifest
+   before `initialize()` (post-merge P2 hardening).
+6. Fix stale roadmap references left by the BT-EQ archival (post-merge P3).
 
 **Out of scope** (wishlisted, not promoted): pairing-window UI fix +
-`pairableChanged` cache bug; AVRCP-pause-on-focus-loss; tap sweep of
-pre-existing live `bluez_input.*` nodes; AA System-channel duck softening;
-epoch-quiesced ring transitions; web EQ editor (PARKED).
+`pairableChanged` cache bug; AVRCP-pause-on-focus-loss; AA System-channel duck
+softening; epoch-quiesced ring transitions; web EQ editor (PARKED). The
+wishlisted "tap sweep of pre-existing live `bluez_input.*` nodes" stays out of
+scope **unless** item 4 lands on the app-side-retarget fallback, which absorbs
+it naturally (see item 4).
 
 ---
 
@@ -178,6 +187,97 @@ boot-at-0 is safe: genuine streaming at vol 0, smooth fade-in on raise).
 
 ---
 
+## Item 4 — A2DP retarget rule hijacks HFP SCO call audio (post-merge P1)
+
+### Root cause (verified 2026-07-15)
+
+`config/50-openauto-bt-eq.conf:14` matches `node.name = "~bluez_input.*"`
+alone and retargets matches to the tap (`target.object = "openauto-bt-eq-in"`).
+But HFP SCO far-end voice is ALSO a `bluez_input.<MAC>` node
+(`api.bluez5.profile = headset-audio-gateway`) — documented in the shipped HFP
+design (`docs/archive/plans/2026-07-05-hfp-call-audio-design.md:32`), which
+relies on WirePlumber's default auto-link to the sink ("the routing problem is
+already solved by the platform"). The conf's comment claiming the only other
+bluez node is `bluez_midi.server` forgot SCO.
+
+Consequence chain: during a call the SCO downlink node is created → rule
+retargets it into the tap → `BtAudioTap` **drops** all captured samples while
+its A2DP gate is closed (`BtAudioTap.cpp:88`, gate follows A2DP
+`MediaTransport1.State == "active"`, which is idle during a call) → **far-end
+call audio silently discarded**. If A2DP activity lingers, call audio instead
+plays through the Media EQ/focus path as "BT Audio" — also wrong.
+
+**The deployed Pi (`ALPHA-26-07-15-01` + this conf) likely has silent phone
+calls whenever the app is running.** The 7/7 bench had no HFP-call row with
+the rule installed. Interim mitigation if calls are needed before the fix:
+remove `50-openauto-bt-eq.conf` on the Pi + restart wireplumber (BT music
+reverts to un-EQ'd).
+
+### Fix — two-stage, empirically gated (bench lesson: verify what monitor
+rules can actually see)
+
+- **Stage A (preferred, one-line conf fix):** discriminate A2DP positively in
+  the monitor rule — candidate `api.bluez5.profile = "a2dp-source"` (or
+  negative-match `headset-audio-gateway`). MUST be verified live first:
+  `media.class` was bench-proven absent at monitor-rule evaluation
+  (2026-07-15, commit `9077e17`); `api.bluez5.profile` may or may not be
+  available at that point. Verification: SSH + btmon/pw-dump while Matthew
+  places a call; confirm (a) the property is visible to the rule, (b) SCO
+  routes direct-to-sink, (c) A2DP still retargets to the tap.
+- **Stage B (fallback if no property discriminates at rule-eval time):** drop
+  the WirePlumber rule and move selection into the app — on A2DP transport
+  activation, positively identify the A2DP `bluez_input.*` node in the
+  registry (props ARE readable there — `ScoNodeMonitor.cpp:72` proves it) and
+  retarget it via metadata. This path also absorbs the wishlisted
+  "sweep pre-existing live nodes" item (app restart during live streaming
+  would relink into the tap immediately).
+
+### Acceptance / bench rows
+
+- Incoming AND outgoing HFP call with the tap active: far-end voice audible,
+  routed direct (NOT through tap/EQ), mic uplink works, music duck/resume
+  around the call intact.
+- BT music still tap-routed/EQ'd after the change (audible preset swap).
+- App-not-running fallback unchanged (no `node.dont-fallback`).
+
+---
+
+## Item 5 — Plugin ABI gate trusts manifest, not the loaded binary (post-merge P2)
+
+### Root cause (verified 2026-07-15)
+
+`PluginDiscovery.cpp:50` enforces `manifest.apiVersion == HOST_API_VERSION`
+from `plugin.yaml` only. The dynamic-load path (`PluginManager.cpp:57-75`)
+then loads the `.so` and calls `initialize(context)` (:88) without ever
+comparing `plugin->apiVersion()` (`IPlugin.hpp:24`) or `plugin->id()` against
+the manifest. A stale v1 binary beside a v2 manifest initializes against the
+shifted `IHostContext` vtable — the exact crash the 2026-07-14
+HOST_API_VERSION=2 bump (exact-match acceptance) was added to prevent.
+
+Field exposure today is nil — all five in-tree plugins register statically
+(`main.cpp:414-446`); the dynamic path loads nothing in a stock install. This
+is cheap hardening of the supported third-party surface, not a live bug.
+
+### Fix
+
+In `PluginManager`'s dynamic-load path, after `PluginLoader::load` and before
+registration/`initialize()`: reject (unload + `pluginFailed`) when
+`plugin->apiVersion() != HOST_API_VERSION` or `plugin->id() != manifest.id`.
+Test: manifest/binary-mismatch case at the PluginManager level (mock or
+fixture plugin lying about its version/ID).
+
+---
+
+## Item 6 — Stale roadmap references after BT-EQ archival (post-merge P3)
+
+`docs/roadmap-current.md` still lists the shipped BT A2DP EQ work under "Now"
+(:58) and cites `docs/plans/...` paths that moved to `docs/archive/plans/`
+(at least the bt-a2dp-eq design at :59 and the hfp-mic-9876 pair at :70; sweep
+the whole file for `docs/plans/` refs whose targets moved). Docs-only fix:
+move shipped work to "Done", repoint refs at `docs/archive/plans/`.
+
+---
+
 ## Shared constraints & execution notes
 
 - Build in `~/builds/openauto-prodigy` (ext4); never in-repo on /mnt/e. Build
@@ -188,6 +288,10 @@ boot-at-0 is safe: genuine streaming at vol 0, smooth fade-in on raise).
   Until item 1 lands on the Pi, expect deploys to kick the phone.
 - QML changes ship inside the binary — item 2 needs cross-build + binary rsync,
   not a Pi-side `git pull`.
+- Execution order: item 4 first (live call-audio regression), then 1–3, 5, 6
+  in any order.
+- Bench rows needing Matthew present: item 4 call rows (any phone), item 2 AA
+  assistant mic round-trip (Pixel).
 - Opportunistic bench cleanup while in there: remove the stale one-way S25
   bond from the HU.
 - Wishlist-then-promote: anything new found mid-execution goes to
