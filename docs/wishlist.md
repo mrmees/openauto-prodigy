@@ -148,6 +148,25 @@ Ideas captured here. Promote to `roadmap-current.md` when ready to commit.
 - **Patched libspa deb has no upgrade path** (gate finding, deferred) — both installers take the idempotent return on ANY installed `+prodigy` version, so a future release bundling a rebuilt deb (`+prodigy2`, or a rebuild against a newer pipewire base) never replaces the installed one. Tolerable while exactly one patched-deb revision exists: a base upgrade breaks the held package's dependency LOUDLY (documented cue to rebuild), and a candidate built for a newer base fails the pre-install simulation on an old base anyway. Fix shape when the first revision bump ships: single-candidate selection + `dpkg --compare-versions` installed-vs-candidate, unhold → install → re-hold only when the candidate is newer. Not patched at the gate: touching the hold/upgrade logic in both installers right before a release adds untested risk to a bench-validated path.
 - **Companion reporting sessions have no liveness expiry** — SHIPPED 2026-07-14 in the B2 teardown — 30 s report-age expiry per owning session, 5 s sweep, reporting-role-only (actions/notifications/socket untouched).
 
+## From BT A2DP EQ bench (2026-07-15)
+
+- **Two-minute pairing window is invisible in the UI** — diagnosed at the bench
+  (btmon: kernel sends `IO Capability Negative Reply — Pairing Not Allowed (0x18)`
+  before the agent is ever consulted) and Codex-confirmed by design archaeology:
+  `PairableTimeout=120` + startup `Pairable=false` is DELIBERATE security design
+  (2026-02-27 bluetooth-cleanup design §"auto-toggles off after 120 seconds";
+  commits 617f269/a38e5b5/dc725a1/8ad2e6a) — an app crash must not leave the HU
+  indefinitely pairable. Only first-run mode (zero paired devices) renews the
+  window, so the trap only bites when adding a SECOND phone. Fix shape (Codex):
+  rename the ConnectionSettings control to "Allow New Pairings for 2 Minutes" as
+  a momentary action with "pairing window open" feedback driven by the existing
+  PropertiesChanged path (do NOT zero the timeout); hardening rider:
+  `setupAdapter()` assigns `pairable_ = false` without emitting `pairableChanged`,
+  so the QML switch can show stale-checked after a BlueZ restart
+  (`BluetoothManager.cpp:435` area). NOTE: distinct from the existing
+  "BT advertising stops after device disconnect" item — discoverability never
+  times out and is a separate flag; that item stands on its own.
+
 ## From BT A2DP EQ pre-push gate (2026-07-14)
 
 - **Epoch-quiesced ring transitions** (gate re-run P1, dismissed with reason) — after
