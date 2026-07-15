@@ -25,6 +25,9 @@ struct AudioStreamHandle {
     struct pw_stream* stream = nullptr;
     AudioFocusType focusType = AudioFocusType::Gain;
     bool hasFocus = false;
+    // Monotonic stamp of the most recent focus request. Breaks priority ties
+    // in selectDominant() so the most recently started source wins among equals.
+    uint64_t focusSequence = 0;
     // Focus gain: applyDucking() (Qt thread) stores the target; the playback
     // process callback (PW RT thread) ramps toward it sample-by-sample.
     std::atomic<float> targetGain{1.0f};  // 0.0 - 1.0 (may be ducked/muted)
@@ -173,6 +176,12 @@ public:
     /// Pure/static so the curve is testable without a PipeWire daemon.
     static float cubicVolume(int masterVolume0to100);
 
+    /// Select the dominant focus holder: among streams with hasFocus, the
+    /// highest priority; ties broken by highest focusSequence (most recently
+    /// requested). Returns nullptr when no stream holds focus. Pure and
+    /// lock-free — testable without a PipeWire daemon.
+    static AudioStreamHandle* selectDominant(const QList<AudioStreamHandle*>& streams);
+
 signals:
     void masterVolumeChanged();
     void deviceFallback(const QString& lostDevice);
@@ -198,6 +207,9 @@ private:
     mutable QMutex mutex_;
     QList<AudioStreamHandle*> streams_;
     int masterVolume_ = 80;
+    // Monotonic focus-request counter (guarded by mutex_ like the rest of focus
+    // state). Stamped onto handle->focusSequence on each requestAudioFocus().
+    uint64_t focusSeqCounter_ = 0;
 
     // Capture streams — per-handle listeners live on the handles themselves.
     QList<AudioStreamHandle*> captures_;

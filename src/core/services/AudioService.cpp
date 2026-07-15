@@ -497,6 +497,7 @@ void AudioService::requestAudioFocus(AudioStreamHandle* handle, AudioFocusType t
     QMutexLocker lock(&mutex_);
     handle->hasFocus = true;
     handle->focusType = type;
+    handle->focusSequence = ++focusSeqCounter_;  // stamp recency for tie-breaks
     applyDucking();
 }
 
@@ -509,16 +510,24 @@ void AudioService::releaseAudioFocus(AudioStreamHandle* handle)
     applyDucking();
 }
 
+AudioStreamHandle* AudioService::selectDominant(const QList<AudioStreamHandle*>& streams)
+{
+    AudioStreamHandle* dominant = nullptr;
+    for (auto* s : streams) {
+        if (!s->hasFocus) continue;
+        if (!dominant
+            || s->priority > dominant->priority
+            || (s->priority == dominant->priority
+                && s->focusSequence > dominant->focusSequence))
+            dominant = s;
+    }
+    return dominant;
+}
+
 void AudioService::applyDucking()
 {
-    // Find the highest-priority stream with focus
-    AudioStreamHandle* dominant = nullptr;
-    for (auto* s : streams_) {
-        if (s->hasFocus) {
-            if (!dominant || s->priority > dominant->priority)
-                dominant = s;
-        }
-    }
+    // Dominant = highest-priority focus holder; ties broken by focus recency.
+    AudioStreamHandle* dominant = selectDominant(streams_);
 
     if (!dominant) {
         // No stream has focus — restore all volumes

@@ -100,6 +100,28 @@ private slots:
         svc.setStreamActive(nullptr, true);   // must not crash
         svc.resetStreamRing(nullptr);         // must not crash
     }
+
+    void testFocusRecencyBreaksTies()
+    {
+        oap::AudioStreamHandle a, b;
+        a.priority = 50; a.hasFocus = true; a.focusSequence = 1;
+        b.priority = 50; b.hasFocus = true; b.focusSequence = 2;
+        QCOMPARE(oap::AudioService::selectDominant({&a, &b}), &b);
+        a.focusSequence = 3;                    // a re-requests focus
+        QCOMPARE(oap::AudioService::selectDominant({&a, &b}), &a);
+    }
+    void testHigherPriorityStillWinsRegardlessOfRecency()
+    {
+        oap::AudioStreamHandle music, speech;
+        music.priority = 50;  music.hasFocus = true; music.focusSequence = 99;
+        speech.priority = 60; speech.hasFocus = true; speech.focusSequence = 1;
+        QCOMPARE(oap::AudioService::selectDominant({&music, &speech}), &speech);
+    }
+    void testNoFocusReturnsNull()
+    {
+        oap::AudioStreamHandle a; a.priority = 50; a.hasFocus = false;
+        QCOMPARE(oap::AudioService::selectDominant({&a}), nullptr);
+    }
 };
 
 QTEST_MAIN(TestAudioService)
