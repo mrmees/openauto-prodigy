@@ -163,6 +163,15 @@ Ideas captured here. Promote to `roadmap-current.md` when ready to commit.
   Protocol-critical: `Tier: main`, own promotion cycle; bench row = assistant
   end-to-end round-trip on the Pixel.
 
+## From bench-findings batch final review (2026-07-15)
+
+- **Master-volume flush retry is unbounded** — final-review minor, plan-faithful
+  implementation (the design mandated re-arm-on-failure with no cap). On a
+  persistently unwritable config (full/read-only SD card — plausible in a car),
+  one volume change starts an eternal 2 s write-attempt + warning loop until
+  shutdown. Fix shape when next touched: bounded retry count (e.g. give up
+  after 5 with one final warning), and the design doc gains the cap rule.
+
 ## From BT A2DP EQ bench (2026-07-15)
 
 - **Two-minute pairing window is invisible in the UI** — diagnosed at the bench

@@ -1,4 +1,5 @@
 #include "core/plugin/IPlugin.hpp"
+#include "core/plugin/PluginDiscovery.hpp"
 #include <QObject>
 
 class FixtureValidPlugin : public QObject, public oap::IPlugin {
@@ -9,7 +10,7 @@ public:
     QString id() const override { return "org.test.valid"; }
     QString name() const override { return "Valid Fixture"; }
     QString version() const override { return "1.0"; }
-    int apiVersion() const override { return 2; }
+    int apiVersion() const override { return oap::PluginDiscovery::HOST_API_VERSION; }
     bool initialize(oap::IHostContext*) override { return true; }
     void shutdown() override {}
     QUrl qmlComponent() const override { return {}; }

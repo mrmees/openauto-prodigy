@@ -60,6 +60,35 @@ private slots:
         reloaded.load(yamlPath);
         QCOMPARE(reloaded.microphoneDevice(), QString("alsa_input.usb-mic"));
     }
+
+    void setAudioConfigDoesNotPersistMasterVolume() {
+        QTemporaryDir dir;
+        const QString yamlPath = dir.path() + "/config.yaml";
+        YamlConfig cfg;
+        AudioService audio;
+        IpcServer server;
+        server.setAudioService(&audio);
+        server.setConfig(&cfg, yamlPath);
+        const QString sockPath = dir.path() + "/ipc.sock";
+        QVERIFY(server.start(sockPath));
+
+        // One request carrying BOTH a device field (triggers the immediate
+        // save) and master_volume (must NOT ride that save — the debounced
+        // main.cpp path is the single writer for audio.master_volume).
+        QJsonObject req{{"command", "set_audio_config"},
+                        {"data", QJsonObject{{"input_device", "alsa_input.usb-mic"},
+                                             {"master_volume", 55}}}};
+        const QJsonObject resp = roundTrip(sockPath, req);
+        QVERIFY(resp.value("ok").toBool());
+
+        // Applied live...
+        QCOMPARE(audio.masterVolume(), 55);
+        // ...but the file written by the device-field save keeps the default:
+        // master_volume was NOT flushed by the IPC handler.
+        YamlConfig reloaded;
+        reloaded.load(yamlPath);
+        QCOMPARE(reloaded.masterVolume(), 80);
+    }
 };
 
 QTEST_MAIN(TestIpcAudioConfig)

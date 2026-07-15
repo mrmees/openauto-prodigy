@@ -3,6 +3,7 @@
 #include "core/plugin/PluginManager.hpp"
 #include "core/plugin/IPlugin.hpp"
 #include "core/plugin/IHostContext.hpp"
+#include "core/plugin/PluginDiscovery.hpp"
 
 // Mock plugin for testing
 class MockPlugin : public QObject, public oap::IPlugin {
@@ -229,7 +230,7 @@ void TestPluginManager::testDynamicLoadAcceptsValidBinary()
     QCOMPARE(failuresFor(failedSpy, "org.test.valid"), 0);
     MockHostContext ctx;
     mgr.initializeAll(&ctx);
-    QCOMPARE(mgr.plugin("org.test.valid")->apiVersion(), 2);
+    QCOMPARE(mgr.plugin("org.test.valid")->apiVersion(), oap::PluginDiscovery::HOST_API_VERSION);
 }
 
 QTEST_MAIN(TestPluginManager)
