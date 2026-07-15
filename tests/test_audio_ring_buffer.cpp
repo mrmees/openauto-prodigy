@@ -87,8 +87,11 @@ private slots:
     // resetStreamRing's precondition: the reader is quiesced (only this thread
     // reads/drains) while the writer stays live on another thread.
     //
-    // The writer is paced to represent the real threat model — a PipeWire RT
-    // capture stream (48 kHz stereo S16 ≈ 192 KB/s), NOT an unbounded hammer.
+    // The writer is deliberately much FASTER than the real threat model (a
+    // PipeWire RT capture stream, 48 kHz stereo S16 ≈ 192 KB/s): ~25 MB/s keeps
+    // the ring overflowing continuously so write()'s own read-index advance
+    // races drain() for the whole test. It is bounded (not a GB/s hammer) only
+    // to keep available()'s sampling skew within one chunk.
     // (An unbounded writer only produces measurement skew in available(), whose
     // get_read_index() loads the read then the write index non-atomically: with
     // GB/s writes the write index races ahead between those two loads, inflating
