@@ -48,9 +48,12 @@ Dynamic plugins load from `~/.openauto/plugins/` (manifest + `.so`). Apps open v
 
 A WirePlumber rule (`config/50-openauto-bt-eq.conf`, installed to
 `/etc/wireplumber/wireplumber.conf.d/`) retargets BlueZ A2DP input streams
-(`~bluez_input.*`, `Stream/Output/Audio`) onto the app's capture node
-`openauto-bt-eq-in`, which only exists while `BtAudioTap` (owned by
-`BtAudioPlugin`) has brought it up for an active transport. `BtAudioTap`
+(matched by `node.name = ~bluez_input.*` AND
+`api.bluez5.profile = a2dp-source` — HFP SCO voice shares the name pattern
+and is deliberately excluded) onto the app's capture node
+`openauto-bt-eq-in`. The capture node exists while `BtAudioTap` (owned by
+`BtAudioPlugin`) is up; the tap's "BT Audio" playback leg is what toggles
+with A2DP transport activity. `BtAudioTap`
 drains the capture through a ring buffer into a dedicated "BT Audio"
 playback stream carrying its own Media-curve `EqualizerEngine` instance
 (one of the per-consumer engines `EqualizerService::acquireEngine` hands

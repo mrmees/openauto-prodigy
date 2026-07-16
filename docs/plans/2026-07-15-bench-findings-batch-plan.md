@@ -129,15 +129,19 @@ will show `target.object = "openauto-bt-eq-in"`, confirming the hijack live.
 ssh matt@192.168.1.149 'sudo rm /etc/wireplumber/wireplumber.conf.d/99-oap-probe.conf && systemctl --user restart wireplumber'
 ```
 
-- [ ] **Step 6: Record the verdict**
+- [x] **Step 6: Record the verdict — STAGE A GO (2026-07-15 bench)**
 
-Decision matrix:
-- `probeA2dp` present on the A2DP node AND absent on the SCO node → **Stage A
-  GO** — execute Task 2A with the verified property, skip Task 2B.
-- Otherwise → **Stage A NO-GO** — skip Task 2A, execute Task 2B.
-
-Write the verdict + captured props into the session-handoffs entry and tick
-this box with the verdict inline.
+RESULT: `api.bluez5.profile` IS visible at monitor-rule evaluation.
+A2DP node `bluez_input.D4_5B_51_B3_66_15.2` (aptX): probeA2dp=true,
+probeName=true, probeHfp=absent. SCO downlink `bluez_input.94_45_60_27_A2_9A.0`
+(headset-audio-gateway): probeHfp=true, probeName=true, probeA2dp=absent —
+AND carried `target.object = openauto-bt-eq-in` under the shipped rule (the
+hijack observed LIVE mid-call; caller's voice mixed into the tap with music).
+SCO uplink `bluez_output.94_45_60_27_A2_9A.1` untouched (name pattern miss).
+Bonus finding: with HFP torn down (post-wireplumber-restart), the Pixel-in-AA
+routes call downlink over the AA link and uses the PHONE mic for uplink —
+gearhead degrades gracefully around our unimplemented AVInput (wishlist
+intel). Steps 1-5 all executed as written (jq absent on Pi — python3 used).
 
 ---
 
@@ -212,7 +216,7 @@ git commit -m "fix(bt-eq): exclude HFP SCO from the A2DP tap retarget rule"
 
 ---
 
-### Task 2B: Stage B — app-side A2DP retargeting (ONLY on Task 1 NO-GO)
+### Task 2B: Stage B — app-side A2DP retargeting (ONLY on Task 1 NO-GO) — **SKIPPED: Task 1 verdict was Stage A GO (2026-07-15)**
 
 **Tier:** main — executed by the main (Fable) session directly, NOT
 dispatched; it adds PipeWire-thread callbacks. This task is a bounded
