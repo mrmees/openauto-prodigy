@@ -66,14 +66,17 @@ Governance: capture new ideas in `docs/wishlist.md`; only promoted items should 
 
 ## Now
 
-- Bench-findings batch — **PROMOTED 2026-07-15** (items 1-3 by Matthew from
-  the BT-EQ bench findings; items 4-6 from the Codex post-merge review of
-  PR #20, folded in same day). Design:
-  `docs/plans/2026-07-15-bench-findings-batch-design.md` (twice
-  Codex-reviewed), plan: `docs/plans/2026-07-15-bench-findings-batch-plan.md`.
-  Headline: HFP-SCO/EQ-tap routing collision (live call-audio regression),
-  ExecStopPost phone-kick removal, input-device + master-volume persistence,
-  plugin ABI runtime validation, doc-reference hygiene.
+- Bench-findings batch — **COMPLETE 2026-07-15** (bench-validated, all rows
+  PASS; push + tag pending Matthew's declaration). Items 1-3 promoted by
+  Matthew from the BT-EQ bench findings; items 4-6 from the Codex post-merge
+  review of PR #20. Design:
+  `docs/archive/plans/2026-07-15-bench-findings-batch-design.md` (twice
+  Codex-reviewed), plan:
+  `docs/archive/plans/2026-07-15-bench-findings-batch-plan.md`.
+  Delivered: HFP-SCO no longer hijacked into the EQ tap (probe-verified
+  `a2dp-source` positive match), deploys no longer kick the phone off BT,
+  input-device + master-volume persistence, plugin ABI runtime validation
+  (binary vs manifest, unload-on-reject), doc-reference hygiene.
 
 - HFP mic fix + live checks + 9876 retirement stage-1 — **bench COMPLETE (2026-07-13)**; design + plan in `docs/archive/plans/2026-07-11-hfp-mic-9876-retirement-design.md` and `docs/archive/plans/2026-07-11-hfp-mic-9876-retirement-plan.md`, all RESULT rows in `docs/archive/plans/2026-07-11-hfp-bench-runbook.md`.
   - Bench verdicts: **mSBC is the shipped codec** (patched `libspa-0.2-bluetooth 1.4.2-1+rpt3+prodigy1` installed + held on the Pi; LC3-SWB encode bug confirmed with a clean A/B; CVSD drop-in = repo fallback only); L3 DTMF ✓, L4 RejectSCO default stays `false`, L5 Samsung mostly ✓ (answer/reject-during-AA wishlisted) / Moto no-service partial, L6 volume/echo ✓; §7 cutover fully validated with 9876 dead — including the time row, whose bench FAIL turned out to be a false-positive diagnosis (wiring existed; investigation found + fixed real bugs instead: timedatectl local-time parse, missing set-timezone polkit rule, untested duplicated logic → tested `ClockSyncService`; re-validated live with induced drift 2026-07-13). **B2 teardown planning is unblocked.**

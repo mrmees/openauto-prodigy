@@ -1,6 +1,6 @@
 # Bench-Findings Batch: ExecStopPost Removal + Input-Device & Master-Volume Persistence — Design
 
-Status: ACTIVE
+Status: COMPLETED 2026-07-15 — executed (Phase B SDD + Stage A conf fix), twice-gated, bench-validated (all rows PASS; item-1 acceptance amended in the field: phone auto-pauses on clean stop, accepted)
 **Date:** 2026-07-15 · **Grounded against:** `dev` at `69fc78b`.
 **Codex spec review (gpt-5.6-sol, 2026-07-15):** round 1 verdict REWORK —
 2 P1 / 4 P2 / 1 P3, ALL verified against the tree and accepted (zero
