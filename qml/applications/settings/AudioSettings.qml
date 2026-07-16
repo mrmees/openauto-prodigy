@@ -22,12 +22,29 @@ Flickable {
 
         SettingsRow { rowIndex: 0
             SettingsSlider {
+                id: masterVolumeSlider
                 label: "Master Volume"
-                configPath: "audio.master_volume"
                 from: 0; to: 100; stepSize: 1
                 onMoved: {
                     if (typeof AudioService !== "undefined")
                         AudioService.setMasterVolume(value)
+                }
+                Component.onCompleted: {
+                    if (typeof AudioService !== "undefined")
+                        value = AudioService.masterVolume
+                }
+                onPressedChanged: {
+                    // External updates are ignored mid-drag; resync on release
+                    // so a change landing during the drag isn't lost.
+                    if (!pressed && typeof AudioService !== "undefined")
+                        value = AudioService.masterVolume
+                }
+                Connections {
+                    target: typeof AudioService !== "undefined" ? AudioService : null
+                    function onMasterVolumeChanged() {
+                        if (!masterVolumeSlider.pressed)
+                            masterVolumeSlider.value = AudioService.masterVolume
+                    }
                 }
             }
         }
@@ -75,21 +92,37 @@ Flickable {
                 label: "Input Device"
                 model: typeof AudioInputDeviceModel !== "undefined" ? AudioInputDeviceModel : null
                 textRole: "description"
+
+                function syncSelection() {
+                    if (typeof AudioInputDeviceModel === "undefined") return
+                    var current = (typeof AudioService !== "undefined")
+                        ? AudioService.inputDevice() : ""
+                    if (!current)
+                        current = ConfigService.value("audio.microphone.device")
+                    if (!current) current = "auto"
+                    // Always assign — including -1 — so a device that
+                    // disappeared at model reset clears the selection instead
+                    // of leaving a stale index pointing at a different row.
+                    currentIndex = AudioInputDeviceModel.indexOfDevice(current)
+                }
+
                 onActivated: function(index) {
                     if (typeof AudioInputDeviceModel === "undefined") return
                     var nodeName = AudioInputDeviceModel.data(
                         AudioInputDeviceModel.index(index, 0), Qt.UserRole + 1)
-                    ConfigService.setValue("audio.input_device", nodeName)
+                    ConfigService.setValue("audio.microphone.device", nodeName)
                     ConfigService.save()
                     if (typeof AudioService !== "undefined")
                         AudioService.setInputDevice(nodeName)
                 }
-                Component.onCompleted: {
-                    if (typeof AudioInputDeviceModel === "undefined") return
-                    var current = ConfigService.value("audio.input_device")
-                    if (!current) current = "auto"
-                    var idx = AudioInputDeviceModel.indexOfDevice(current)
-                    if (idx >= 0) currentIndex = idx
+
+                Component.onCompleted: syncSelection()
+
+                // Device enumeration resets the model after construction
+                // (AudioDeviceModel::refresh) — re-apply the selection.
+                Connections {
+                    target: typeof AudioInputDeviceModel !== "undefined" ? AudioInputDeviceModel : null
+                    function onCountChanged() { inputPicker.syncSelection() }
                 }
             }
         }

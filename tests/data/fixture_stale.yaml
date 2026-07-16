@@ -1,0 +1,5 @@
+id: org.test.stale
+name: "Stale Fixture"
+version: "1.0"
+api_version: 2
+type: full

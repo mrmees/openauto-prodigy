@@ -8,6 +8,12 @@ Ideas captured here. Promote to `roadmap-current.md` when ready to commit.
 
 - **Web config panel broken** — DIAGNOSED 2026-07-02: the panel code is healthy. All 5 pages + 10 API endpoints verified working, both without the Qt app (graceful "Qt app not running" degradation) and against a mock IpcServer with matching schema/framing (`{"command",...}` newline-delimited JSON, commands match `IpcServer.cpp` 1:1). Root cause is deployment: both installers `systemctl enable`d the web service but never *started* it (fixed 2026-07-02 → `enable --now` in `install.sh` + `install-prebuilt.sh`); the other candidate on old installs is missing `python3-flask` (crash-loop — check `journalctl -u openauto-prodigy-web`). On the Pi: `sudo systemctl start openauto-prodigy-web` should bring it up immediately. Minor follow-up: the settings form sends `video_resolution`/`brightness`/`night_mode`, which `handleSetConfig` silently ignores.
 
+- **Pi user journald is not persistent** — bench 2026-07-15: `journalctl
+  --user -u wireplumber` reports "No journal files were found", so
+  WirePlumber/user-service logs are unavailable for forensics. Fix shape:
+  `Storage=persistent` in journald.conf (or persistent /var/log/journal) on
+  the Pi image + installer.
+
 - **Boot/reboot startup reliability** — After a reboot, `graphical.target` was slow to activate (stuck on `systemd-networkd-wait-online.service` timeout). Prodigy service depends on `graphical.target` so it sat in `inactive (dead)` until the timeout passed. Need to verify clean boot sequence, measure time-to-app, and possibly mask the networkd-wait service (NetworkManager is the actual manager). Phase 4 territory.
 
 - **Companion proxy blackholes silently when the phone's upstream dies** — RESOLVED-as-diagnosis 2026-07-07 (same evening): the "broken outbound internet" seen during the Widevine slice deploy (LAN fine, TLS *and* HTTP to internet dying mid-transfer; worked around via git bundle + deb sideload) was NOT an infra bug — the companion proxy route was active (`OPENAUTO_PROXY` iptables → redsocks → phone SOCKS at 10.0.0.49:1080) while the phone's mobile data was toggled off. Internet restored the moment data came back on. This is the second field incident of the proxy route masking a dead upstream (first: the stale-route blackhole on the 2026-07-06 deploy) — strengthens the case for the existing daemon-watchdog/auto-teardown item: the route should health-check its upstream and fail open (or at least log loudly) instead of blackholing every TCP connection.
@@ -148,6 +154,30 @@ Ideas captured here. Promote to `roadmap-current.md` when ready to commit.
 - **Patched libspa deb has no upgrade path** (gate finding, deferred) — both installers take the idempotent return on ANY installed `+prodigy` version, so a future release bundling a rebuilt deb (`+prodigy2`, or a rebuild against a newer pipewire base) never replaces the installed one. Tolerable while exactly one patched-deb revision exists: a base upgrade breaks the held package's dependency LOUDLY (documented cue to rebuild), and a candidate built for a newer base fails the pre-install simulation on an old base anyway. Fix shape when the first revision bump ships: single-candidate selection + `dpkg --compare-versions` installed-vs-candidate, unhold → install → re-hold only when the candidate is newer. Not patched at the gate: touching the hold/upgrade logic in both installers right before a release adds untested risk to a bench-validated path.
 - **Companion reporting sessions have no liveness expiry** — SHIPPED 2026-07-14 in the B2 teardown — 30 s report-age expiry per owning session, 5 s sweep, reporting-role-only (actions/notifications/socket untouched).
 
+## From bench-findings batch spec review (2026-07-15)
+
+- **AA assistant microphone transport is unimplemented** — Codex spec-review
+  discovery (verified in-tree): the protocol handler emits
+  `micCaptureRequested(bool)` (`AVInputChannelHandler`) but NO production code
+  consumes it; `AndroidAutoOrchestrator` owns playback handles only, and the
+  sole in-tree capture consumer is `BtAudioTap`. The assistant mic has never
+  worked — the 2026-07-15 "input-device selection" wishlist premise ("blocks
+  AA-assistant mic config") was necessary-but-not-sufficient. Fix shape:
+  connect `micCaptureRequested` to an `AudioService`
+  `openCaptureStreamWithOptions` capture stream (target = configured mic
+  device, mic-gain applied) feeding the AVInput channel per the AA protocol.
+  Protocol-critical: `Tier: main`, own promotion cycle; bench row = assistant
+  end-to-end round-trip on the Pixel.
+
+## From bench-findings batch final review (2026-07-15)
+
+- **Master-volume flush retry is unbounded** — final-review minor, plan-faithful
+  implementation (the design mandated re-arm-on-failure with no cap). On a
+  persistently unwritable config (full/read-only SD card — plausible in a car),
+  one volume change starts an eternal 2 s write-attempt + warning loop until
+  shutdown. Fix shape when next touched: bounded retry count (e.g. give up
+  after 5 with one final warning), and the design doc gains the cap rule.
+
 ## From BT A2DP EQ bench (2026-07-15)
 
 - **Two-minute pairing window is invisible in the UI** — diagnosed at the bench
@@ -168,7 +198,12 @@ Ideas captured here. Promote to `roadmap-current.md` when ready to commit.
   times out and is a separate flag; that item stands on its own.
 
 - **ExecStopPost `bluetoothctl disconnect` kicks the phone on every clean
-  stop/restart** — DESIGN DECISION NEEDED. `install.sh:1723` ships
+  stop/restart** — SHIPPED 2026-07-15 (decision: removed entirely; install.sh
+  + live unit; bench: clean restart while streaming, both phones stayed
+  connected. Field amendment: the phone auto-pauses on clean app stop —
+  transport released by graceful teardown — accepted by Matthew as correct
+  behavior, arguably better than the designed keep-playing fallback) —
+  original entry: DESIGN DECISION NEEDED. `install.sh:1723` ships
   `[ "$SERVICE_RESULT" = "success" ] && bluetoothctl disconnect` in the unit,
   so every deploy/restart deliberately boots the connected phone off BT (crash
   paths skip it — why fallback "held through every app stop/error" on 2026-07-14
@@ -179,14 +214,21 @@ Ideas captured here. Promote to `roadmap-current.md` when ready to commit.
   handle dead HUs fine), or scope it to real shutdowns (condition on
   `systemctl is-system-running` / shutdown target) so app restarts stop kicking
   the phone.
-- **Input-device selection doesn't stick** — pre-existing (branch untouched;
-  verified 2026-07-15). The audio-settings dropdown applies the selection live
+- **Input-device selection doesn't stick** — SHIPPED 2026-07-15 (root cause
+  was split-key + setValueByPath schema rejection, NOT a missing write;
+  consolidated on `audio.microphone.device`; bench: selection → disk →
+  restart → picker + live value restored. NOTE: the "unblocks AA-assistant
+  mic" premise was wrong — see the AVInput entry above) — pre-existing
+  (branch untouched; verified 2026-07-15). The audio-settings dropdown applies the selection live
   only while the screen is open; leaving the screen reverts it, `input_device`
   is never written to config.yaml, and the UI repopulates from the stale
   source. Practical impact: the AA assistant mic can't be configured. Fix
   shape: persist on selection (config + disk) and repopulate the combo from the
   live service value.
-- **Master volume doesn't survive restart** — runtime volume changes are never
+- **Master volume doesn't survive restart** — SHIPPED 2026-07-15 (single
+  debounced writer + aboutToQuit flush; bench: drag→final-value write,
+  restart restores, within-2s restart survives via the flush) — original:
+  runtime volume changes are never
   flushed to disk (bench: runtime 0 to 59 while disk stayed 89; app restart
   reloaded 89). Same persist-on-change family as the (now fixed) EQ-gains item;
   fix shape mirrors it.

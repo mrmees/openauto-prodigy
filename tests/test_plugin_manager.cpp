@@ -1,7 +1,9 @@
 #include <QtTest>
+#include <QSignalSpy>
 #include "core/plugin/PluginManager.hpp"
 #include "core/plugin/IPlugin.hpp"
 #include "core/plugin/IHostContext.hpp"
+#include "core/plugin/PluginDiscovery.hpp"
 
 // Mock plugin for testing
 class MockPlugin : public QObject, public oap::IPlugin {
@@ -59,6 +61,10 @@ private slots:
     void testLookupById();
     void testMultiplePlugins();
     void testActivateDeactivate();
+    void testDynamicLoadRejectsStaleBinary();
+    void testDynamicLoadRejectsIdMismatch();
+    void testDynamicLoadAcceptsValidBinary();
+    void testDynamicLoadRejectsThrowingMetadata();
 };
 
 void TestPluginManager::testRegisterStaticPlugin()
@@ -183,6 +189,61 @@ void TestPluginManager::testActivateDeactivate()
     // Activate nonexistent plugin fails
     QVERIFY(!mgr.activatePlugin("nonexistent"));
     QCOMPARE(mgr.activePluginId(), QString());
+}
+
+static int failuresFor(const QSignalSpy& spy, const QString& id)
+{
+    int n = 0;
+    for (const auto& args : spy)
+        if (args.at(0).toString() == id) ++n;
+    return n;
+}
+
+void TestPluginManager::testDynamicLoadRejectsStaleBinary()
+{
+    oap::PluginManager mgr;
+    QSignalSpy failedSpy(&mgr, &oap::PluginManager::pluginFailed);
+    mgr.discoverPlugins(QStringLiteral(FIXTURE_PLUGINS_DIR));
+
+    // stale: manifest v2 passes discovery, binary reports apiVersion 1.
+    QVERIFY(mgr.plugin("org.test.stale") == nullptr);
+    QCOMPARE(failuresFor(failedSpy, "org.test.stale"), 1);
+}
+
+void TestPluginManager::testDynamicLoadRejectsIdMismatch()
+{
+    oap::PluginManager mgr;
+    QSignalSpy failedSpy(&mgr, &oap::PluginManager::pluginFailed);
+    mgr.discoverPlugins(QStringLiteral(FIXTURE_PLUGINS_DIR));
+
+    // imposter: manifest id org.test.other, binary id org.test.imposter.
+    QVERIFY(mgr.plugin("org.test.other") == nullptr);
+    QVERIFY(mgr.plugin("org.test.imposter") == nullptr);
+    QCOMPARE(failuresFor(failedSpy, "org.test.other"), 1);
+}
+
+void TestPluginManager::testDynamicLoadAcceptsValidBinary()
+{
+    oap::PluginManager mgr;
+    QSignalSpy failedSpy(&mgr, &oap::PluginManager::pluginFailed);
+    mgr.discoverPlugins(QStringLiteral(FIXTURE_PLUGINS_DIR));
+    QVERIFY(mgr.plugin("org.test.valid") != nullptr);
+    QCOMPARE(failuresFor(failedSpy, "org.test.valid"), 0);
+    MockHostContext ctx;
+    mgr.initializeAll(&ctx);
+    QCOMPARE(mgr.plugin("org.test.valid")->apiVersion(), oap::PluginDiscovery::HOST_API_VERSION);
+}
+
+void TestPluginManager::testDynamicLoadRejectsThrowingMetadata()
+{
+    oap::PluginManager mgr;
+    QSignalSpy failedSpy(&mgr, &oap::PluginManager::pluginFailed);
+    mgr.discoverPlugins(QStringLiteral(FIXTURE_PLUGINS_DIR));
+
+    // throwing: manifest v2 passes discovery, but the binary's apiVersion()
+    // throws — the host must catch it and reject, not crash.
+    QVERIFY(mgr.plugin("org.test.throwing") == nullptr);
+    QCOMPARE(failuresFor(failedSpy, "org.test.throwing"), 1);
 }
 
 QTEST_MAIN(TestPluginManager)

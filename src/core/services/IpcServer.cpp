@@ -383,15 +383,28 @@ QByteArray IpcServer::handleSetAudioConfig(const QVariantMap& data)
     if (data.contains("master_volume"))
         audioService_->setMasterVolume(data.value("master_volume").toInt());
 
-    // Persist to config if available
+    // Persist device selections immediately. Master volume is deliberately
+    // NOT written here — the centralized debounced path (main.cpp, driven by
+    // masterVolumeChanged) is the single writer for audio.master_volume; an
+    // unconditional save here would flush the stale in-memory value first.
     if (config_) {
-        if (data.contains("output_device"))
-            config_->setValueByPath("audio.output_device", data.value("output_device").toString());
-        if (data.contains("input_device"))
-            config_->setValueByPath("audio.input_device", data.value("input_device").toString());
-        if (data.contains("master_volume"))
-            config_->setMasterVolume(data.value("master_volume").toInt());
-        config_->save(configPath_);
+        bool persisted = false;
+        bool persistOk = true;
+        if (data.contains("output_device")) {
+            persistOk = config_->setValueByPath("audio.output_device",
+                            data.value("output_device").toString()) && persistOk;
+            persisted = true;
+        }
+        if (data.contains("input_device")) {
+            persistOk = config_->setValueByPath("audio.microphone.device",
+                            data.value("input_device").toString()) && persistOk;
+            persisted = true;
+        }
+        if (persisted) {
+            persistOk = config_->save(configPath_) && persistOk;
+            if (!persistOk)
+                return R"({"ok":false,"error":"Failed to persist audio config"})";
+        }
     }
 
     return R"({"ok":true})";

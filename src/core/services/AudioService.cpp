@@ -487,18 +487,27 @@ float AudioService::cubicVolume(int masterVolume0to100)
 
 void AudioService::setMasterVolume(int volume)
 {
-    // Lock ordering: PW lock first, then mutex_ (same as destructor)
+    const int clamped = qBound(0, volume, 100);
+    bool changed = false;
+
+    // Lock ordering: PW lock first, then mutex_ (same as destructor).
+    // Emit AFTER all locks are released — QML slots read masterVolume(),
+    // which takes mutex_ (non-recursive).
     if (!threadLoop_) {
-        QMutexLocker lock(&mutex_);
-        masterVolume_ = qBound(0, volume, 100);
-        emit masterVolumeChanged();
+        {
+            QMutexLocker lock(&mutex_);
+            changed = (masterVolume_ != clamped);
+            masterVolume_ = clamped;
+        }
+        if (changed) emit masterVolumeChanged();
         return;
     }
 
     pw_thread_loop_lock(threadLoop_);
     {
         QMutexLocker lock(&mutex_);
-        masterVolume_ = qBound(0, volume, 100);
+        changed = (masterVolume_ != clamped);
+        masterVolume_ = clamped;
 
         // Cubic curve for perceptual volume scaling
         float vol = cubicVolume(masterVolume_);
@@ -507,7 +516,7 @@ void AudioService::setMasterVolume(int volume)
             applyVolumeToStream(handle, vol);
     }
     pw_thread_loop_unlock(threadLoop_);
-    emit masterVolumeChanged();
+    if (changed) emit masterVolumeChanged();
 }
 
 int AudioService::masterVolume() const

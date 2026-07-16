@@ -320,6 +320,36 @@ int main(int argc, char *argv[])
     audioService->setInputDevice(yamlConfig->microphoneDevice());
     audioService->setMasterVolume(yamlConfig->masterVolume());
 
+    // Master-volume persistence: every runtime mutation (gesture, navbar,
+    // mute toggle, IPC, settings slider) funnels through setMasterVolume;
+    // flush debounced, mirror EqualizerService::kSaveDebounceMs. Timer-active
+    // IS the dirty flag. Receiver-context connection keeps a future
+    // worker-thread setMasterVolume caller off the timer's thread.
+    {
+        auto* volSaveTimer = new QTimer(&app);
+        volSaveTimer->setSingleShot(true);
+        volSaveTimer->setInterval(2000);
+        auto flushVolume = [audioService, yc = yamlConfig.get(),
+                            path = yamlPath, volSaveTimer]() {
+            yc->setMasterVolume(audioService->masterVolume());
+            if (!yc->save(path)) {
+                qCWarning(lcCore) << "Master-volume flush failed; re-arming";
+                volSaveTimer->start();
+            }
+        };
+        QObject::connect(audioService, &oap::AudioService::masterVolumeChanged,
+                         volSaveTimer, qOverload<>(&QTimer::start));
+        QObject::connect(volSaveTimer, &QTimer::timeout,
+                         volSaveTimer, flushVolume);
+        QObject::connect(&app, &QGuiApplication::aboutToQuit, volSaveTimer,
+                         [volSaveTimer, flushVolume]() {
+                             if (volSaveTimer->isActive()) {
+                                 volSaveTimer->stop();
+                                 flushVolume();   // synchronous, last chance
+                             }
+                         });
+    }
+
     // --- Equalizer service (depends on YamlConfig) ---
     auto eqService = new oap::EqualizerService(yamlConfig.get(), &app);
 

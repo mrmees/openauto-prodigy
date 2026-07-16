@@ -69,7 +69,7 @@ Scrollable list. Icon + label per row, chevron on right. Tap opens subpage.
 | Control | Label | Config Key | Notes |
 |---------|-------|------------|-------|
 | Slider | Mic Gain | `audio.microphone.gain` | 0.5–4.0 |
-| Picker | Input Device | `audio.input_device` | PipeWire device list, restart required |
+| Picker | Input Device | `audio.microphone.device` | PipeWire device list; applies to capture streams created after the change |
 
 ---
 
