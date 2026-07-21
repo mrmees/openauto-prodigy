@@ -50,8 +50,6 @@ Protocol definitions and generic reference docs are in [open-android-auto](https
 
 Live plans:
 
-- [2026-07-20-memory-teardown-safety-design.md](plans/2026-07-20-memory-teardown-safety-design.md) — ACTIVE (approved; Pi-bench-gated closure)
-- [2026-07-20-memory-teardown-safety-plan.md](plans/2026-07-20-memory-teardown-safety-plan.md) — ACTIVE (approved; ready for execution)
 - [2026-07-08-media-player-design.md](plans/2026-07-08-media-player-design.md) — ACTIVE (stage 1 shipped; stages 2+ pending)
 - [2026-07-05-phase-f-light-plans.md](plans/2026-07-05-phase-f-light-plans.md) — ACTIVE (EQ parity audit, 0x8012 experiment, key-event nav remain)
 - [2026-02-21-config-contract-overhaul-design.md](plans/2026-02-21-config-contract-overhaul-design.md) — PARKED (needs re-triage)

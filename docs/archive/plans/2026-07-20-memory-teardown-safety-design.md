@@ -1,6 +1,6 @@
 # Memory and Teardown Safety Stabilization — Design
 
-Status: ACTIVE — approved 2026-07-20; implementation plan drafted
+Status: COMPLETED 2026-07-21
 
 **Date:** 2026-07-20  
 **Grounded against:** `dev` at `ade13b4`  

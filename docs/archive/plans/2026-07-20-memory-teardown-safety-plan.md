@@ -1,9 +1,9 @@
 # Memory and Teardown Safety Stabilization — Implementation Plan
 
-Status: ACTIVE — approved 2026-07-20; ready for execution
+Status: COMPLETED 2026-07-21
 
 **Design (read first):**
-`docs/plans/2026-07-20-memory-teardown-safety-design.md` — approved by
+`docs/archive/plans/2026-07-20-memory-teardown-safety-design.md` — approved by
 Matthew 2026-07-20.  
 **Grounded against:** `dev` at `ade13b4` plus the approved, uncommitted design.  
 **Execution order:** Task 1 → Task 2 → Task 3 → phase gate.  
@@ -108,7 +108,7 @@ pointer; that would leave the destruction hazard open.
 
 ### Steps
 
-- [ ] Add `testHeldOldFrameDiscardedAfterLargerReset()` to
+- [x] Add `testHeldOldFrameDiscardedAfterLargerReset()` to
   `tests/test_video_frame_pool.cpp`:
   - acquire and retain an 800×480 frame;
   - reset to 1920×1080;
@@ -116,7 +116,7 @@ pointer; that would leave the destruction hazard open.
   - assert `freeCount() == 0` and `totalRecycled() == 0`;
   - acquire/map a 1920×1080 frame and verify its size, three planes, strides,
     and plane data sizes match YUV420P expectations.
-- [ ] Build and run the focused target before the fix:
+- [x] Build and run the focused target before the fix:
 
   ```bash
   cd ~/builds/openauto-prodigy
@@ -128,20 +128,20 @@ pointer; that would leave the destruction hazard open.
   queue or increments recycling after reset. Do not proceed to the larger-frame
   copy through the known undersized allocation if the assertion does not stop
   the test first.
-- [ ] Implement the generation-aware weak return state in
+- [x] Implement the generation-aware weak return state in
   `VideoFramePool.hpp` and the explicit decoder cleanup in `VideoDecoder.cpp`.
-- [ ] Correct the `src/AGENTS.md` QVideoFrame rule to distinguish wrappers from
+- [x] Correct the `src/AGENTS.md` QVideoFrame rule to distinguish wrappers from
   backing storage: each decoded output gets a fresh ref-counted `QVideoFrame`
   wrapper; backing storage may be recycled only through generation-, size-, and
   lifetime-safe pool state.
-- [ ] Add `testFrameCanOutlivePool()`:
+- [x] Add `testFrameCanOutlivePool()`:
   - retain a `QVideoFrame` outside a scope containing the pool;
   - destroy the pool;
   - release the frame;
   - verify the test completes without touching freed state.
-- [ ] Preserve and run the existing allocation/recycle tests to prove
+- [x] Preserve and run the existing allocation/recycle tests to prove
   same-format pooling still works.
-- [ ] Run focused green verification:
+- [x] Run focused green verification:
 
   ```bash
   cd ~/builds/openauto-prodigy
@@ -150,7 +150,7 @@ pointer; that would leave the destruction hazard open.
   cmake --build . --target openauto-prodigy -j$(nproc)
   ```
 
-- [ ] Inspect the diff for raw return dependencies:
+- [x] Inspect the diff for raw return dependencies:
 
   ```bash
   rg -n 'VideoFramePool\*|returnBuffer' src/core/aa/VideoFramePool.hpp
@@ -158,7 +158,7 @@ pointer; that would leave the destruction hazard open.
 
   Acceptance: no `RecycledVideoBuffer` member or constructor argument is a raw
   `VideoFramePool*`; every return is generation- and capacity-checked.
-- [ ] Commit only the four Task 1 files.
+- [x] Commit only the four Task 1 files.
 
 ### Task 1 acceptance
 
@@ -209,7 +209,7 @@ a `QObject`, and Qt already invalidates guarded pointers at destruction.
 
 ### Steps
 
-- [ ] Replace the existing cleanup test's permissive comments/assertions with
+- [x] Replace the existing cleanup test's permissive comments/assertions with
   explicit regression slots:
   - `testNewEntrySurvivesCapacityCleanup()` seeds five older unsubscribed
     entries, assigns them valid increasing timestamps via the existing seam,
@@ -220,7 +220,7 @@ a `QObject`, and Qt already invalidates guarded pointers at destruction.
     requests and subscribes a sixth, and asserts all six remain alive. After
     unsubscribing the sixth, trigger cleanup and assert the cache returns to its
     nominal bound without removing the five subscribers.
-- [ ] Build and run the focused target before the fix:
+- [x] Build and run the focused target before the fix:
 
   ```bash
   cd ~/builds/openauto-prodigy
@@ -230,9 +230,9 @@ a `QObject`, and Qt already invalidates guarded pointers at destruction.
 
   Expected red evidence: the newly requested invalid-timestamp entry is selected
   for deletion or the all-subscribed case cannot preserve the new object.
-- [ ] Implement protected-key cleanup, the soft-cap retry on unsubscribe, and
+- [x] Implement protected-key cleanup, the soft-cap retry on unsubscribe, and
   `QPointer` guards for both reply paths.
-- [ ] Add the minimum read-only cache-membership seam needed by the regression
+- [x] Add the minimum read-only cache-membership seam needed by the regression
   tests:
 
   ```cpp
@@ -240,7 +240,7 @@ a `QObject`, and Qt already invalidates guarded pointers at destruction.
   ```
 
   Do not expose or mutate the full cache.
-- [ ] Change both internal completion handlers to accept a guarded
+- [x] Change both internal completion handlers to accept a guarded
   `QPointer<WeatherData>`. Add these narrow public wrappers beside the service's
   existing `// For testing` seams; each delegates directly to the corresponding
   production handler:
@@ -251,7 +251,7 @@ a `QObject`, and Qt already invalidates guarded pointers at destruction.
   void finishGeocodingReplyForTest(
       QNetworkReply* reply, const QPointer<WeatherData>& target);
   ```
-- [ ] In `tests/test_weather_service.cpp`, add a minimal in-memory
+- [x] In `tests/test_weather_service.cpp`, add a minimal in-memory
   `QNetworkReply` fake implementing only `abort()` and `readData()`, and two
   tests that:
   - delete a guarded weather target;
@@ -260,7 +260,7 @@ a `QObject`, and Qt already invalidates guarded pointers at destruction.
   - process deferred deletion and assert the reply is cleaned up without a
     target dereference.
   Do not add live-internet dependencies or a production network abstraction.
-- [ ] Run focused green verification:
+- [x] Run focused green verification:
 
   ```bash
   cd ~/builds/openauto-prodigy
@@ -268,14 +268,14 @@ a `QObject`, and Qt already invalidates guarded pointers at destruction.
   ctest -R '^test_weather_service$' --output-on-failure
   ```
 
-- [ ] Verify both asynchronous sites use guarded targets:
+- [x] Verify both asynchronous sites use guarded targets:
 
   ```bash
   rg -n 'QPointer<WeatherData>|onWeatherReplyFinished|onGeocodingReplyFinished' \
     src/core/services/WeatherService.cpp
   ```
 
-- [ ] Commit only the three Task 2 files.
+- [x] Commit only the three Task 2 files.
 
 ### Task 2 acceptance
 
@@ -336,7 +336,7 @@ leave an early-return or ordering hole.
 
 ### Steps
 
-- [ ] Extend `tests/test_sco_node_monitor.cpp` with
+- [x] Extend `tests/test_sco_node_monitor.cpp` with
   `testAudioOwnerStopsMonitorBeforeTeardown()`:
   - allocate `AudioService` while a `ScoNodeMonitor` remains alive;
   - connect `aboutToDestroyPipeWire` to `stop()` with `Qt::DirectConnection`;
@@ -345,10 +345,10 @@ leave an early-return or ordering hole.
   - call `monitor.stop()` again and assert it is safe and
     `scoRunning() == false`.
   This runs meaningfully with or without a local PipeWire daemon.
-- [ ] Add a signal-order assertion in the same test: a direct observer of
+- [x] Add a signal-order assertion in the same test: a direct observer of
   `aboutToDestroyPipeWire` must run before the `AudioService` destructor
   completes. Keep the observer external to the deleted service.
-- [ ] Build and run the focused target before the fix:
+- [x] Build and run the focused target before the fix:
 
   ```bash
   cd ~/builds/openauto-prodigy
@@ -357,13 +357,13 @@ leave an early-return or ordering hole.
 
   Expected red evidence: compilation fails because the owner signal does not
   exist. That is the red state for this lifetime API.
-- [ ] Add the AudioService signal/emission, main composition-root connection,
+- [x] Add the AudioService signal/emission, main composition-root connection,
   normalized stop path, and queued-delivery active/epoch guard.
-- [ ] Add the PipeWire ownership rule to `src/AGENTS.md`: any auxiliary object
+- [x] Add the PipeWire ownership rule to `src/AGENTS.md`: any auxiliary object
   retaining raw `AudioService` PW loop/core/proxy handles must connect a direct
   pre-teardown stop edge before it starts; QObject child order and
   `aboutToQuit` are not sufficient ownership mechanisms.
-- [ ] Run focused green verification and build the real app target:
+- [x] Run focused green verification and build the real app target:
 
   ```bash
   cd ~/builds/openauto-prodigy
@@ -372,7 +372,7 @@ leave an early-return or ordering hole.
   cmake --build . --target openauto-prodigy -j$(nproc)
   ```
 
-- [ ] Inspect the ownership edge and lock placement:
+- [x] Inspect the ownership edge and lock placement:
 
   ```bash
   rg -n 'aboutToDestroyPipeWire|ScoNodeMonitor::stop|Qt::DirectConnection' \
@@ -382,7 +382,7 @@ leave an early-return or ordering hole.
   Acceptance: the signal emission precedes the first PW teardown/lock in the
   AudioService destructor; main connects before monitor start; stop removes PW
   objects only while the loop is valid.
-- [ ] Commit only the seven Task 3 files.
+- [x] Commit only the seven Task 3 files.
 
 ### Task 3 local acceptance
 

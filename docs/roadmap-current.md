@@ -6,6 +6,17 @@ Governance: capture new ideas in `docs/wishlist.md`; only promoted items should 
 
 ## Done (recent)
 
+- Memory and teardown safety stabilization — **COMPLETE 2026-07-21**
+  (Pi-bench-validated). Generation- and lifetime-safe software video buffers
+  prevent stale-size recycling and pool-destruction returns; WeatherData cache
+  cleanup preserves the object being returned and both network completions use
+  guarded targets; ScoNodeMonitor now stops through a direct AudioService
+  pre-teardown edge, suppresses stale queued state, and rolls back failed
+  registry-listener setup. Five clean Pi restart cycles and an active-mSBC-SCO
+  restart plus subsequent call passed. Design and plan:
+  `docs/archive/plans/2026-07-20-memory-teardown-safety-design.md` and
+  `docs/archive/plans/2026-07-20-memory-teardown-safety-plan.md`.
+
 - Bench-findings batch — **COMPLETE 2026-07-15** (bench-validated, all rows
   PASS; merged to main via PR #21). Items 1-3 promoted by Matthew from the
   BT-EQ bench findings; items 4-6 from the Codex post-merge review of PR #20.
@@ -76,16 +87,6 @@ Governance: capture new ideas in `docs/wishlist.md`; only promoted items should 
     profile creation). COMPLETE.
 
 ## Now
-
-- Memory and teardown safety stabilization — **ACTIVE DESIGN (2026-07-20)**.
-  One bench-gated phase with three atomic tasks: video frame lifetime across
-  pool reset/decoder destruction, WeatherData eviction + asynchronous reply
-  lifetime, then SCO monitor teardown before AudioService releases PipeWire.
-  Design: `docs/plans/2026-07-20-memory-teardown-safety-design.md`;
-  implementation plan:
-  `docs/plans/2026-07-20-memory-teardown-safety-plan.md` (approved 2026-07-20;
-  ready for execution). Broader reliability findings remain outside this
-  tranche.
 
 - HFP mic fix + live checks + 9876 retirement stage-1 — **bench COMPLETE (2026-07-13)**; design + plan in `docs/archive/plans/2026-07-11-hfp-mic-9876-retirement-design.md` and `docs/archive/plans/2026-07-11-hfp-mic-9876-retirement-plan.md`, all RESULT rows in `docs/archive/plans/2026-07-11-hfp-bench-runbook.md`.
   - Bench verdicts: **mSBC is the shipped codec** (patched `libspa-0.2-bluetooth 1.4.2-1+rpt3+prodigy1` installed + held on the Pi; LC3-SWB encode bug confirmed with a clean A/B; CVSD drop-in = repo fallback only); L3 DTMF ✓, L4 RejectSCO default stays `false`, L5 Samsung mostly ✓ (answer/reject-during-AA wishlisted) / Moto no-service partial, L6 volume/echo ✓; §7 cutover fully validated with 9876 dead — including the time row, whose bench FAIL turned out to be a false-positive diagnosis (wiring existed; investigation found + fixed real bugs instead: timedatectl local-time parse, missing set-timezone polkit rule, untested duplicated logic → tested `ClockSyncService`; re-validated live with induced drift 2026-07-13). **B2 teardown planning is unblocked.**

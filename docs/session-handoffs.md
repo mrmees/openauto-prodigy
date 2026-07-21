@@ -4,6 +4,56 @@ Newest entries first.
 
 ---
 
+## 2026-07-21 — Memory and teardown safety tranche COMPLETE: local, ARM, Pi, and review gates passed
+
+**What changed:** completed the approved three-task safety tranche. `c6a5a02`
+makes software video-frame reuse generation/capacity aware through weak shared
+return state and explicitly releases the decoder's latest frame before pool
+reset. `57256d3` protects the WeatherData returned during cache cleanup, treats
+capacity as soft while entries are subscribed, retries cleanup on unsubscribe,
+and carries `QPointer` targets through weather and geocoding completions.
+`2b756e8` adds a direct AudioService pre-PipeWire-teardown stop edge for
+ScoNodeMonitor, normalizes partial/repeated stop, and epoch-guards queued state
+delivery. Review fix `d372b93` rolls back registry proxy/state when PipeWire
+listener registration fails instead of leaving the monitor falsely active.
+
+**Why:** the three defects could recycle undersized video allocations, update or
+return deleted weather objects, or let an auxiliary monitor touch PipeWire
+resources after their owner destroyed them. The batch stayed inside the approved
+root-cause boundaries; no protocol, HFP-role, telephony, routing, codec, cache
+redesign, or unrelated teardown behavior changed.
+
+**Status:** COMPLETE and deployed; not pushed. Pi row S1 passed five clean
+service restarts with a new PID each time, `ActiveState=active`,
+`SubState=running`, `NRestarts=0`, and no post-deploy teardown errors. Pi row S2
+passed with live running mSBC SCO source/sink nodes: restart during the active
+call cleanly replaced the process, mSBC recovered, and a subsequent call again
+produced running SCO endpoints. The final reviewed binary also passed a clean
+sanity restart (`MainPID=47013`, `NRestarts=0`).
+
+**Review gate:** `bash scripts/codex-review.sh ade13b4` returned 0 P1, 1 P2,
+and 2 P3. The P2 was confirmed and fixed in `d372b93` (listener-registration
+failure rollback). Both P3s were dismissed as test-depth suggestions rather
+than product defects: the SCO owner edge received live Pi coverage with real
+PipeWire/SCO resources, and Weather separately proves real cache eviction plus
+guarded null-target completion while the production callback captures the
+`QPointer` by value. The confirmed change was small and focused, so no review
+re-run was required by the gate policy. Verdict:
+`reviews/2026-07-21-150330-codex-review.md` (gitignored).
+
+**Verification:** `cmake --build . -j$(nproc)`,
+`cmake --build . --target openauto-prodigy -j$(nproc)`, and
+`ctest --output-on-failure` passed in `~/builds/openauto-prodigy`; focused video,
+weather, and SCO targets passed; `./cross-build.sh` passed at final head; the
+final aarch64 binary was rsynced to the Pi and restarted healthy. Plan and design
+marked COMPLETED and archived in this commit.
+
+**Next 1-3 steps:** (1) push `dev` only on Matthew's go-ahead; (2) open the
+dev-to-main PR and run its normal checks; (3) select the next bounded audit
+tranche rather than expanding this completed batch.
+
+---
+
 ## 2026-07-15 — Bench-findings batch COMPLETE: Phase A Stage A shipped (SCO un-hijacked, probe-verified) + ALL bench rows PASS; push/tag pending Matthew
 
 **What changed:** Phase A executed at the bench and the whole batch bench-validated. Task 1 marker probe (Pi, live): `api.bluez5.profile` IS visible at monitor-rule eval — A2DP node fired the `a2dp-source` marker, SCO fired only the HFP marker, and the shipped rule was observed hijacking a live call (SCO downlink `target.object = openauto-bt-eq-in`, caller's voice mixing through the tap with music). **Stage A GO** → `f354003`: positive `a2dp-source` match added to `config/50-openauto-bt-eq.conf` + `docs/architecture.md` corrected; deployed + verified. Task 2B skipped. Phase B binary deployed; live unit sed'd (disconnect hook gone) + daemon-reload; stale S25 bond removed from the HU.
@@ -197,4 +247,3 @@ Newest entries first.
 **Verification:** All claims instrumented live on the Pi during calls (busctl property reads with SCO-node cross-checks, pw-link topology, level-metered captures, packet sniffer); per-payload IPC polls for §7. Bench hardware casualties: Unitek-attached mic (dead capsule) + bench amp (died mid-session, replaced/power-cycled).
 
 ---
-
