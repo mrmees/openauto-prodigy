@@ -463,6 +463,9 @@ int main(int argc, char *argv[])
     // call control. See docs/archive/plans/2026-07-05-hfp-call-audio-design.md
     auto telephonyClient = new oap::TelephonyClient(&app);
     auto scoMonitor = new oap::ScoNodeMonitor(&app);
+    QObject::connect(audioService, &oap::AudioService::aboutToDestroyPipeWire,
+                     scoMonitor, &oap::ScoNodeMonitor::stop,
+                     Qt::DirectConnection);
     if (audioService->isAvailable())
         scoMonitor->start(audioService->pwThreadLoop(), audioService->pwCore());
     phoneStateService->attachTelephony(telephonyClient);

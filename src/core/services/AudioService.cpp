@@ -76,6 +76,8 @@ AudioService::AudioService(QObject* parent)
 
 AudioService::~AudioService()
 {
+    emit aboutToDestroyPipeWire();
+
     if (threadLoop_) {
         // All PW object teardown must happen under the PW lock while
         // the loop is still running.  Acquire PW lock FIRST, then mutex_
