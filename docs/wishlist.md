@@ -2,6 +2,20 @@
 
 Ideas captured here. Promote to `roadmap-current.md` when ready to commit.
 
+## Audit backlog — 2026-07-20
+
+- **Full-repo adversarial audit findings await triage** — 153 confirmed items
+  (21 P1 / 60 P2 / 72 P3; ~2/3 code defects, ~1/3 documentation drift), each
+  verified by a refute-by-default 3-agent panel. Report and per-finding evidence
+  live in `docs/private/audit-2026-07-20-findings.{md,json}` — **kept out of the
+  repo on purpose**, since they catalogue *unfixed* issues (including security
+  ones) in software people run in their cars. Promote items into this file
+  individually as they are fixed, rather than publishing the list wholesale.
+  Coverage caveat: the run was cut short by usage limits — the final round and
+  the completeness/gap pass never ran, so cross-cutting concerns (startup
+  ordering, config migration, systemd interplay, cross-plugin interaction) are
+  under-audited, and more findings almost certainly remain.
+
 ## Bugs / Infrastructure
 
 - **SDP `/var/run/sdp` permissions race** — BlueZ `ExecStartPost` wait loop (5x 0.5s) loses the race; socket stays `root:root` instead of `root:bluetooth`. App-side retry (2s x 30) helps but doesn't fix root cause. Need `inotifywait` on socket creation or a longer/smarter polling loop in the systemd override. Reproduces on every fresh boot.
