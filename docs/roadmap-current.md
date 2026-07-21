@@ -77,6 +77,16 @@ Governance: capture new ideas in `docs/wishlist.md`; only promoted items should 
 
 ## Now
 
+- Memory and teardown safety stabilization — **ACTIVE DESIGN (2026-07-20)**.
+  One bench-gated phase with three atomic tasks: video frame lifetime across
+  pool reset/decoder destruction, WeatherData eviction + asynchronous reply
+  lifetime, then SCO monitor teardown before AudioService releases PipeWire.
+  Design: `docs/plans/2026-07-20-memory-teardown-safety-design.md`;
+  implementation plan:
+  `docs/plans/2026-07-20-memory-teardown-safety-plan.md` (approved 2026-07-20;
+  ready for execution). Broader reliability findings remain outside this
+  tranche.
+
 - HFP mic fix + live checks + 9876 retirement stage-1 — **bench COMPLETE (2026-07-13)**; design + plan in `docs/archive/plans/2026-07-11-hfp-mic-9876-retirement-design.md` and `docs/archive/plans/2026-07-11-hfp-mic-9876-retirement-plan.md`, all RESULT rows in `docs/archive/plans/2026-07-11-hfp-bench-runbook.md`.
   - Bench verdicts: **mSBC is the shipped codec** (patched `libspa-0.2-bluetooth 1.4.2-1+rpt3+prodigy1` installed + held on the Pi; LC3-SWB encode bug confirmed with a clean A/B; CVSD drop-in = repo fallback only); L3 DTMF ✓, L4 RejectSCO default stays `false`, L5 Samsung mostly ✓ (answer/reject-during-AA wishlisted) / Moto no-service partial, L6 volume/echo ✓; §7 cutover fully validated with 9876 dead — including the time row, whose bench FAIL turned out to be a false-positive diagnosis (wiring existed; investigation found + fixed real bugs instead: timedatectl local-time parse, missing set-timezone polkit rule, untested duplicated logic → tested `ClockSyncService`; re-validated live with induced drift 2026-07-13). **B2 teardown planning is unblocked.**
   - Also shipped 2026-07-13: installers wire the patched-deb install + apt hold; scannable QR for API pairing (`prodigy://pair?...`, head-unit side) — companion-side scanner runs from `personal/openautopro/companion-qr-pairing-prompt.md`.
