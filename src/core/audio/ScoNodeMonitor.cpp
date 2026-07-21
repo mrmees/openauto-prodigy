@@ -27,15 +27,23 @@ void ScoNodeMonitor::start(struct pw_thread_loop* loop, struct pw_core* core)
     pw_thread_loop_lock(threadLoop_);
     registry_ = pw_core_get_registry(core, PW_VERSION_REGISTRY, 0);
     if (registry_) {
-        epoch_.fetch_add(1, std::memory_order_acq_rel);
-        active_.store(true, std::memory_order_release);
         static const struct pw_registry_events registryEvents = {
             .version = PW_VERSION_REGISTRY_EVENTS,
             .global = onGlobal,
             .global_remove = onGlobalRemove,
         };
         spa_zero(registryListener_);
-        pw_registry_add_listener(registry_, &registryListener_, &registryEvents, this);
+        const int listenerResult = pw_registry_add_listener(
+            registry_, &registryListener_, &registryEvents, this);
+        if (listenerResult < 0) {
+            qCWarning(lcSco) << "Failed to add PipeWire registry listener:"
+                             << listenerResult;
+            pw_proxy_destroy(reinterpret_cast<struct pw_proxy*>(registry_));
+            registry_ = nullptr;
+        } else {
+            epoch_.fetch_add(1, std::memory_order_acq_rel);
+            active_.store(true, std::memory_order_release);
+        }
     }
     pw_thread_loop_unlock(threadLoop_);
 
