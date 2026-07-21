@@ -2,6 +2,7 @@
 #include <QObject>
 #include <QHash>
 #include <QDateTime>
+#include <QPointer>
 #include <QTimer>
 
 class QNetworkAccessManager;
@@ -79,20 +80,27 @@ public:
     // For testing -- expose internals
     int subscriberCount(const QString& key) const;
     int effectiveIntervalMs(const QString& key) const;
+    bool containsCachedKeyForTest(const QString& key) const;
     void triggerRefreshTimer();     // calls onRefreshTimer() -- test seam
     void triggerCleanup();          // calls cleanupStaleEntries() -- test seam
+    void finishWeatherReplyForTest(
+        QNetworkReply* reply, const QPointer<WeatherData>& target);
+    void finishGeocodingReplyForTest(
+        QNetworkReply* reply, const QPointer<WeatherData>& target);
 
     int cacheSize() const { return cache_.size(); }
 
 private slots:
-    void onWeatherReplyFinished(QNetworkReply* reply, WeatherData* data);
-    void onGeocodingReplyFinished(QNetworkReply* reply, WeatherData* data);
+    void onWeatherReplyFinished(
+        QNetworkReply* reply, const QPointer<WeatherData>& target);
+    void onGeocodingReplyFinished(
+        QNetworkReply* reply, const QPointer<WeatherData>& target);
     void onRefreshTimer();
 
 private:
     void fetchWeather(const QString& key, double lat, double lon);
     void fetchLocationName(WeatherData* data, double lat, double lon);
-    void cleanupStaleEntries();
+    void cleanupStaleEntries(const QString& protectedKey = {});
 
     QNetworkAccessManager* nam_;
     QHash<QString, WeatherData*> cache_;

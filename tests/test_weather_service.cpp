@@ -3,6 +3,9 @@
 #include <QJsonDocument>
 #include <QJsonObject>
 #include <QJsonArray>
+#include <QNetworkReply>
+#include <QPointer>
+#include <QUrl>
 #include "core/services/WeatherService.hpp"
 
 static const QByteArray VALID_RESPONSE = R"({
@@ -16,6 +19,22 @@ static const QByteArray VALID_RESPONSE = R"({
         "is_day": 1
     }
 })";
+
+class FakeNetworkReply final : public QNetworkReply {
+public:
+    explicit FakeNetworkReply(QObject* parent = nullptr)
+        : QNetworkReply(parent)
+    {
+        setUrl(QUrl(QStringLiteral("https://example.invalid/weather")));
+        open(QIODevice::ReadOnly);
+        setFinished(true);
+    }
+
+    void abort() override {}
+
+protected:
+    qint64 readData(char*, qint64) override { return -1; }
+};
 
 class TestWeatherService : public QObject {
     Q_OBJECT
@@ -178,49 +197,97 @@ private slots:
         QVERIFY(data->isLoading());  // Immediate fetch triggered
     }
 
-    void testCleanupNeverEvictsSubscribed()
+    void testNewEntrySurvivesCapacityCleanup()
     {
         oap::WeatherService service;
 
-        // Create MAX_CACHE_SIZE (5) entries, subscribe to 4 of them
-        double lats[] = {10.0, 20.0, 30.0, 40.0, 50.0, 60.0, 70.0};
-        for (int i = 0; i < 5; ++i)
-            service.getWeatherData(lats[i], 0.0);
-        for (int i = 0; i < 4; ++i)
-            service.subscribe(lats[i], 0.0);
+        const QDateTime oldest = QDateTime::currentDateTime().addSecs(-600);
+        for (int i = 0; i < 5; ++i) {
+            auto* data = qobject_cast<oap::WeatherData*>(
+                service.getWeatherData(10.0 + i * 10.0, 0.0));
+            QVERIFY(data);
+            data->setLastUpdated(oldest.addSecs(i));
+        }
         QCOMPARE(service.cacheSize(), 5);
 
-        // Add 6th entry -- auto-cleanup triggers and evicts lats[4] (no subscribers)
-        service.getWeatherData(lats[5], 0.0);
-        QCOMPARE(service.cacheSize(), 5);  // evicted unsubscribed lats[4]
+        QPointer<oap::WeatherData> sixth = qobject_cast<oap::WeatherData*>(
+            service.getWeatherData(60.0, 0.0));
+        QVERIFY(sixth);
+        QCoreApplication::sendPostedEvents(nullptr, QEvent::DeferredDelete);
 
-        // Subscribe to lats[5] so all 5 are now subscribed
-        service.subscribe(lats[5], 0.0);
+        QVERIFY(sixth);
+        QCOMPARE(service.cacheSize(), 5);
+        const QString sixthKey =
+            oap::WeatherService::roundCoordinate(60.0, 0.0);
+        QVERIFY(service.containsCachedKeyForTest(sixthKey));
+        QVERIFY(!service.containsCachedKeyForTest(
+            oap::WeatherService::roundCoordinate(10.0, 0.0)));
+        QCOMPARE(service.getWeatherData(60.0, 0.0), sixth.data());
+        service.subscribe(60.0, 0.0);
+        QCOMPARE(service.subscriberCount(sixthKey), 1);
+    }
 
-        // Add 7th entry -- auto-cleanup triggers but all existing 5 are subscribed
-        // so it can only evict the new one (lats[6], no subscribers yet)
-        service.getWeatherData(lats[6], 0.0);
-        // The new entry lats[6] has no subscribers, so cleanup may evict it
-        // but the point is: none of the 5 subscribed entries were evicted
+    void testCapacityIsSoftWhenAllEntriesSubscribed()
+    {
+        oap::WeatherService service;
+        QList<QPointer<oap::WeatherData>> entries;
 
-        // Verify subscribed entries are all still intact
-        for (int i = 0; i < 4; ++i) {
-            QString key = oap::WeatherService::roundCoordinate(lats[i], 0.0);
-            QVERIFY2(service.subscriberCount(key) > 0,
-                     qPrintable(QString("lats[%1] should still be subscribed").arg(i)));
+        for (int i = 0; i < 5; ++i) {
+            const double lat = 10.0 + i * 10.0;
+            entries.append(qobject_cast<oap::WeatherData*>(
+                service.getWeatherData(lat, 0.0)));
+            QVERIFY(entries.back());
+            service.subscribe(lat, 0.0);
         }
-        {
-            QString key5 = oap::WeatherService::roundCoordinate(lats[5], 0.0);
-            QVERIFY(service.subscriberCount(key5) > 0);
-        }
 
-        // Explicit triggerCleanup on all-subscribed should not reduce count
-        int sizeBeforeCleanup = service.cacheSize();
-        service.triggerCleanup();
-        // All subscribed entries preserved (only unsubscribed lats[6] may have been evicted earlier)
-        // size should not decrease further
-        QVERIFY(service.cacheSize() >= sizeBeforeCleanup
-                || service.cacheSize() == 5);  // at most evicts the unsubscribed one
+        QPointer<oap::WeatherData> sixth = qobject_cast<oap::WeatherData*>(
+            service.getWeatherData(60.0, 0.0));
+        QVERIFY(sixth);
+        entries.append(sixth);
+        service.subscribe(60.0, 0.0);
+
+        QCoreApplication::sendPostedEvents(nullptr, QEvent::DeferredDelete);
+        QCOMPARE(service.cacheSize(), 6);
+        for (const auto& entry : entries)
+            QVERIFY(entry);
+
+        service.unsubscribe(60.0, 0.0);
+        QCOMPARE(service.cacheSize(), 5);
+        QCoreApplication::sendPostedEvents(nullptr, QEvent::DeferredDelete);
+        QVERIFY(!sixth);
+        for (int i = 0; i < 5; ++i) {
+            QVERIFY(entries[i]);
+            QCOMPARE(service.subscriberCount(
+                         oap::WeatherService::roundCoordinate(
+                             10.0 + i * 10.0, 0.0)),
+                     1);
+        }
+    }
+
+    void testWeatherReplyIgnoresDeletedTarget()
+    {
+        oap::WeatherService service;
+        QPointer<oap::WeatherData> target = new oap::WeatherData;
+        delete target.data();
+        QVERIFY(!target);
+
+        QPointer<FakeNetworkReply> reply = new FakeNetworkReply;
+        service.finishWeatherReplyForTest(reply, target);
+        QCoreApplication::sendPostedEvents(nullptr, QEvent::DeferredDelete);
+        QVERIFY(!reply);
+    }
+
+    void testGeocodingReplyIgnoresDeletedTarget()
+    {
+        oap::WeatherService service;
+        QPointer<oap::WeatherData> target = new oap::WeatherData;
+        delete target.data();
+        QVERIFY(!target);
+
+        QPointer<FakeNetworkReply> reply = new FakeNetworkReply;
+        service.finishGeocodingReplyForTest(reply, target);
+        QCoreApplication::sendPostedEvents(nullptr, QEvent::DeferredDelete);
+        QVERIFY(!reply);
     }
 
     void testRefreshIntervalRespected()
