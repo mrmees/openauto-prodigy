@@ -50,7 +50,7 @@ Protocol definitions and generic reference docs are in [open-android-auto](https
 
 Active plans:
 
-- None.
+- [2026-07-22-bt-avrcp-time-units-remediation-design.md](plans/2026-07-22-bt-avrcp-time-units-remediation-design.md) and [implementation plan](plans/2026-07-22-bt-avrcp-time-units-remediation-plan.md) — ACTIVE Bluetooth AVRCP millisecond-boundary correction
 
 Parked plans (not current guidance):
 

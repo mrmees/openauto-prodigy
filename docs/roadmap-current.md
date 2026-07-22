@@ -140,7 +140,14 @@ Governance: capture new ideas in `docs/wishlist.md`; only promoted items should 
 
 ## Now
 
-No implementation tranche is currently active.
+- Bluetooth AVRCP duration/position time-unit remediation — **ACTIVE
+  2026-07-22**. Preserve BlueZ `MediaPlayer1` millisecond values through
+  startup adoption, later property delivery, shared media state, QML
+  consumers, and External API serialization. Include duration-only Track
+  updates and startup progress catch-up without changing routing, controls,
+  protocol, or public API surfaces. Design and plan:
+  `docs/plans/2026-07-22-bt-avrcp-time-units-remediation-design.md` and
+  `docs/plans/2026-07-22-bt-avrcp-time-units-remediation-plan.md`.
 
 ## Later
 
