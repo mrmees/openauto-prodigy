@@ -14,6 +14,18 @@ Governance: capture new ideas in `docs/wishlist.md`; only promoted items should 
 
 ## Done (recent)
 
+- Operations deployment reliability remediation — **COMPLETE 2026-07-22**
+  (Pi-live-validated). Source and prebuilt installs now share the canonical
+  BlueZ SDP compatibility setup; application and hostapd lifetimes are
+  optional and independently recoverable; both install modes provide a
+  readiness-aware, systemd-owned restart path; and the application enforces
+  one IPC owner before acquiring hardware resources. Normal and forced Pi
+  restarts each left one application process and responsive IPC while hostapd
+  and BlueZ retained their PIDs; wireless Android Auto reconnected and
+  projected successfully. Design and plan:
+  `docs/archive/plans/2026-07-22-ops-deploy-p1-remediation-design.md` and
+  `docs/archive/plans/2026-07-22-ops-deploy-p1-remediation-plan.md`.
+
 - Memory and teardown safety stabilization — **COMPLETE 2026-07-21**
   (Pi-bench-validated). Generation- and lifetime-safe software video buffers
   prevent stale-size recycling and pool-destruction returns; WeatherData cache
@@ -116,13 +128,7 @@ Governance: capture new ideas in `docs/wishlist.md`; only promoted items should 
 
 ## Now
 
-- Operations deployment reliability remediation — **ACTIVE 2026-07-22**.
-  Align source and prebuilt BlueZ SDP setup, replace fatal/reverse hostapd
-  lifetime coupling with optional recoverable service relationships, and make
-  the packaged restart path preserve a single systemd-owned application and IPC
-  socket. Design and plan:
-  `docs/plans/2026-07-22-ops-deploy-p1-remediation-design.md` and
-  `docs/plans/2026-07-22-ops-deploy-p1-remediation-plan.md`.
+- No promoted implementation tranche is active.
 
 ## Later
 

@@ -1,6 +1,6 @@
 # Operations Deployment Reliability Remediation — Design
 
-Status: ACTIVE
+Status: COMPLETED 2026-07-22
 
 **Date:** 2026-07-22
 **Grounded against:** `origin/main` at `2366cf88`

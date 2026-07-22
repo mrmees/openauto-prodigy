@@ -1,9 +1,9 @@
 # Operations Deployment Reliability Remediation — Implementation Plan
 
-Status: ACTIVE
+Status: COMPLETED 2026-07-22
 
 **Design (read first):**
-`docs/plans/2026-07-22-ops-deploy-p1-remediation-design.md`
+`docs/archive/plans/2026-07-22-ops-deploy-p1-remediation-design.md`
 **Approved by Matthew:** 2026-07-22
 **Grounded against:** `origin/main` at `2366cf88`
 **Branch:** `agent/ops-deploy-p1-remediation`

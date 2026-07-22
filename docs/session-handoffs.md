@@ -4,6 +4,53 @@ Newest entries first.
 
 ---
 
+## 2026-07-22 — Operations deployment reliability remediation COMPLETE
+
+**What changed:** source and prebuilt installs now deploy the same canonical
+BlueZ SDP compatibility drop-in. Hostapd integration uses an optional
+application `Wants`/`After` drop-in with no `BindsTo` or reverse `PartOf`, and
+hostapd owns bounded on-failure recovery. Both install modes provide the same
+canonical restart helper and readiness-aware application unit. Forced recovery
+stops the unit before exact executable/UID/cgroup legacy-orphan cleanup, while
+the application acquires a lock-backed single-instance boundary before
+hardware initialization and opens IPC only after dependencies are wired.
+
+**Why:** prebuilt installs could omit wireless-AA discovery prerequisites,
+hostapd failures or clean application restarts could tear down the other
+service, and the old detached restart path could race systemd into multiple
+hardware-owning processes or a stolen IPC socket.
+
+**Status:** COMPLETE on `agent/ops-deploy-p1-remediation`, based on
+`origin/main`. The final aarch64 binary, helper, and project-owned unit changes
+were deployed to the Pi after approval. Normal and forced helper restarts each
+left one systemd `MainPID`, one exact application process, and responsive IPC.
+Hostapd and BlueZ remained active on their original PIDs throughout; Bluetooth
+and hostapd were not restarted. Wireless Android Auto rediscovered the phone,
+reconnected over WiFi, and resumed H.265 projection. The pre-deploy rollback
+snapshot remains under `/var/backups/openauto-prodigy/20260722T120501Z`. The
+Pi checkout's pre-existing dirty QML/submodule state was preserved; no pull or
+reset was performed.
+
+**Review gate:** the initial repository review returned one P1, two P2, and one
+P3; all four were confirmed and fixed in `8bf9959`. The required one-time rerun
+returned three P2 findings; all were confirmed and fixed in `2ba534d`. The
+one-rerun gate is closed with no dismissals or unadjudicated findings.
+
+**Verification:** `bash -n` passed for every changed shell script. The focused
+installer, package, real-user-systemd lifecycle, and cross-process IPC tests
+passed. `cmake --build . -j$(nproc)`, the explicit `openauto-prodigy` target,
+and `ctest --output-on-failure` passed in `~/builds/openauto-prodigy`.
+Documentation links and `git diff --check` passed. `./cross-build.sh` produced
+the reviewed aarch64 binary. On the Pi, `systemd-analyze verify`, effective-unit
+inspection, exact process scans, IPC status requests, service PID checks, and
+the live wireless-AA reconnect all passed.
+
+**Next 1-3 steps:** (1) push this branch and open a new draft PR targeting
+`main`; (2) review and merge it independently of prior merged branches; (3)
+choose the next bounded remediation tranche from the remaining private queue.
+
+---
+
 ## 2026-07-22 — Current documentation reconciliation COMPLETE; docs-only publication ready
 
 **What changed:** reconciled present-tense guidance with the shipped C++, QML,
