@@ -25,6 +25,7 @@ public:
 
     /// Caller must NOT hold the thread-loop lock (start takes it itself).
     void start(struct pw_thread_loop* loop, struct pw_core* core);
+    /// Must be called on this object's Qt thread.
     void stop();
 
     bool scoRunning() const { return anyRunning_.load(); }
@@ -33,6 +34,8 @@ signals:
     void scoRunningChanged(bool running);
 
 private:
+    friend class ScoNodeMonitorTestAccess;
+
     struct Tracked {
         ScoNodeMonitor* owner = nullptr;
         uint32_t id = 0;
@@ -47,6 +50,7 @@ private:
     static void onGlobalRemove(void* data, uint32_t id);
     static void onNodeInfo(void* data, const struct pw_node_info* info);
     void recomputeRunning();   // PW thread only
+    void updateRunning(bool running);  // PW thread only; queues Qt delivery
     void destroyTracked(Tracked* t);  // PW thread or under loop lock
 
     struct pw_thread_loop* threadLoop_ = nullptr;
@@ -54,6 +58,7 @@ private:
     struct spa_hook registryListener_{};
     std::map<uint32_t, Tracked*> tracked_;   // PW thread only (+ stop() under lock)
     std::atomic<bool> anyRunning_{false};
+    bool lastDeliveredRunning_ = false;      // Qt main thread only
     std::atomic<bool> active_{false};
     std::atomic<uint64_t> epoch_{0};
 };
