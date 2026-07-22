@@ -2,6 +2,7 @@
 #include <spa/utils/dict.h>
 #include <pipewire/keys.h>
 #include <QLoggingCategory>
+#include <QThread>
 #include <cstring>
 
 Q_LOGGING_CATEGORY(lcSco, "oap.sco")
@@ -53,6 +54,9 @@ void ScoNodeMonitor::start(struct pw_thread_loop* loop, struct pw_core* core)
 
 void ScoNodeMonitor::stop()
 {
+    Q_ASSERT_X(QThread::currentThread() == thread(), "ScoNodeMonitor::stop",
+               "stop must run on the monitor's Qt thread");
+
     active_.store(false, std::memory_order_release);
     epoch_.fetch_add(1, std::memory_order_acq_rel);
 
@@ -72,7 +76,16 @@ void ScoNodeMonitor::stop()
 
     registry_ = nullptr;
     threadLoop_ = nullptr;
-    anyRunning_.store(false, std::memory_order_release);
+
+    // A true state is consumer-visible either through a delivered signal or a
+    // connect-then-snapshot read of scoRunning(). Clear both sources before
+    // emitting so recursive and repeated stop calls remain idempotent.
+    const bool observedRunning =
+        anyRunning_.exchange(false, std::memory_order_acq_rel);
+    const bool emitFallingEdge = observedRunning || lastDeliveredRunning_;
+    lastDeliveredRunning_ = false;
+    if (emitFallingEdge)
+        emit scoRunningChanged(false);
 }
 
 void ScoNodeMonitor::destroyTracked(Tracked* t)
@@ -146,16 +159,24 @@ void ScoNodeMonitor::recomputeRunning()
     for (const auto& [id, t] : tracked_)
         if (t->running) { any = true; break; }
 
-    const bool prev = anyRunning_.exchange(any, std::memory_order_acq_rel);
-    if (prev == any) return;
+    updateRunning(any);
+}
+
+void ScoNodeMonitor::updateRunning(bool running)
+{
+    const bool prev = anyRunning_.exchange(running, std::memory_order_acq_rel);
+    if (prev == running) return;
 
     const uint64_t deliveryEpoch = epoch_.load(std::memory_order_acquire);
-    QMetaObject::invokeMethod(this, [this, any, deliveryEpoch]() {
+    QMetaObject::invokeMethod(this, [this, running, deliveryEpoch]() {
         if (!active_.load(std::memory_order_acquire)
             || epoch_.load(std::memory_order_acquire) != deliveryEpoch)
             return;
-        qCInfo(lcSco) << "SCO running:" << any;
-        emit scoRunningChanged(any);
+        if (lastDeliveredRunning_ == running)
+            return;
+        lastDeliveredRunning_ = running;
+        qCInfo(lcSco) << "SCO running:" << running;
+        emit scoRunningChanged(running);
     }, Qt::QueuedConnection);
 }
 

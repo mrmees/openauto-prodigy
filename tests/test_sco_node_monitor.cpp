@@ -4,11 +4,29 @@
 #include "core/audio/ScoNodeMonitor.hpp"
 #include "core/services/AudioService.hpp"
 
+namespace oap {
+
+class ScoNodeMonitorTestAccess {
+public:
+    static void activate(ScoNodeMonitor& monitor) {
+        monitor.epoch_.store(1, std::memory_order_release);
+        monitor.active_.store(true, std::memory_order_release);
+    }
+
+    static void observe(ScoNodeMonitor& monitor, bool running) {
+        monitor.updateRunning(running);
+    }
+};
+
+} // namespace oap
+
 class TestScoNodeMonitor : public QObject {
     Q_OBJECT
 private slots:
     void testInertWithoutPipeWire();
     void testAudioOwnerStopsMonitorBeforeTeardown();
+    void testStopDeliversQueuedFallingEdgeExactlyOnce();
+    void testStopDeliversSnapshotFallingEdgeExactlyOnce();
 };
 
 void TestScoNodeMonitor::testInertWithoutPipeWire() {
@@ -39,6 +57,46 @@ void TestScoNodeMonitor::testAudioOwnerStopsMonitorBeforeTeardown() {
     QVERIFY(preTeardownObserved);
     monitor.stop();
     QVERIFY(!monitor.scoRunning());
+}
+
+void TestScoNodeMonitor::testStopDeliversQueuedFallingEdgeExactlyOnce() {
+    oap::ScoNodeMonitor monitor;
+    QSignalSpy spy(&monitor, &oap::ScoNodeMonitor::scoRunningChanged);
+
+    // Model the PW callback sequence without requiring a daemon: first deliver
+    // RUNNING=true, then observe false and stop before that queued edge runs.
+    oap::ScoNodeMonitorTestAccess::activate(monitor);
+
+    oap::ScoNodeMonitorTestAccess::observe(monitor, true);
+    QCoreApplication::processEvents();
+    QCOMPARE(spy.count(), 1);
+    QCOMPARE(spy.at(0).at(0).toBool(), true);
+
+    oap::ScoNodeMonitorTestAccess::observe(monitor, false);
+    monitor.stop();
+    monitor.stop();
+    QCoreApplication::processEvents();
+
+    QCOMPARE(spy.count(), 2);
+    QCOMPARE(spy.at(1).at(0).toBool(), false);
+}
+
+void TestScoNodeMonitor::testStopDeliversSnapshotFallingEdgeExactlyOnce() {
+    oap::ScoNodeMonitor monitor;
+    QSignalSpy spy(&monitor, &oap::ScoNodeMonitor::scoRunningChanged);
+    oap::ScoNodeMonitorTestAccess::activate(monitor);
+
+    // PhoneStateService connects and then snapshots scoRunning(). If stop runs
+    // before this queued rising edge, the snapshot still requires a false edge.
+    oap::ScoNodeMonitorTestAccess::observe(monitor, true);
+    QVERIFY(monitor.scoRunning());
+
+    monitor.stop();
+    monitor.stop();
+    QCoreApplication::processEvents();
+
+    QCOMPARE(spy.count(), 1);
+    QCOMPARE(spy.at(0).at(0).toBool(), false);
 }
 
 QTEST_MAIN(TestScoNodeMonitor)

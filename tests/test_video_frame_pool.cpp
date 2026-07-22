@@ -13,6 +13,7 @@ private slots:
     void testFormatChange();
     void testHeldOldFrameDiscardedAfterLargerReset();
     void testFrameCanOutlivePool();
+    void testFreeListBoundedByPoolSize();
     void testResetClearsCount();
     void testRecycledBufferReturnsToPool();
 };
@@ -64,9 +65,10 @@ void TestVideoFramePool::testPoolGrowsOnDemand()
     QCOMPARE(pool.totalAllocated(), 5);
     QCOMPARE(pool.freeCount(), 0);
 
-    // Release all
+    // Release all — the free list is bounded by poolSize (2 here), so only that
+    // many buffers are retained for reuse and the rest are freed.
     held.clear();
-    QCOMPARE(pool.freeCount(), 5);
+    QCOMPARE(pool.freeCount(), 2);
 }
 
 void TestVideoFramePool::testFormatChange()
@@ -135,6 +137,24 @@ void TestVideoFramePool::testFrameCanOutlivePool()
     // destroyed pool.
     frame = {};
     QVERIFY(!frame.isValid());
+}
+
+void TestVideoFramePool::testFreeListBoundedByPoolSize()
+{
+    QVideoFrameFormat fmt({800, 480}, QVideoFrameFormat::Format_YUV420P);
+    oap::aa::VideoFramePool pool(fmt, 3);
+
+    // Force more simultaneous allocations than the pool bound.
+    std::vector<QVideoFrame> held;
+    for (int i = 0; i < 6; ++i)
+        held.push_back(pool.acquireRecycled());
+    QCOMPARE(pool.totalAllocated(), 6);
+    QCOMPARE(pool.freeCount(), 0);
+
+    // Releasing them all must retain at most poolSize buffers; the excess is
+    // freed rather than growing the free list without bound.
+    held.clear();
+    QCOMPARE(pool.freeCount(), 3);
 }
 
 void TestVideoFramePool::testResetClearsCount()
