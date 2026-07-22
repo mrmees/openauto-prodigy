@@ -257,6 +257,10 @@ add_test(
     NAME test_ops_install_contracts
     COMMAND python3 ${CMAKE_SOURCE_DIR}/tests/test_ops_install_contracts.py
 )
+add_test(
+    NAME test_ops_systemd_lifecycle
+    COMMAND python3 ${CMAKE_SOURCE_DIR}/tests/test_ops_systemd_lifecycle.py
+)
 
 # GUI/Quick tests need offscreen platform when no display is available
 set_tests_properties(test_theme_service test_display_service test_plugin_model test_aa_orchestrator

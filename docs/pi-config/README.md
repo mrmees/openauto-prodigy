@@ -28,9 +28,20 @@ configuration at startup.
 live Bluetooth drop-in. The similarly named file in this reference directory
 is retained only as a deployment snapshot.
 
+The hostapd lifecycle sources of truth are
+`config/systemd/openauto-prodigy-hostapd.conf` and
+`config/systemd/hostapd-openauto.conf`. When an AP is configured, the
+installers deploy them as project-owned drop-ins for the application and
+hostapd services. The application only wants and orders hostapd; it is not
+bound to the AP lifetime. Hostapd has bounded failure recovery of its own, so
+an AP crash does not stop the shell and an application restart does not bounce
+the AP. A no-AP install removes both project-owned hostapd drop-ins.
+
 ## Expected services
 
-A guided source install configures `bluetooth.service`, `hostapd.service`, and
-`systemd-networkd.service`. It also creates the OpenAuto Prodigy application,
+A guided install configures `bluetooth.service` in both install modes. When an
+AP interface is selected, it also configures `hostapd.service` and
+`systemd-networkd.service`; without an AP interface, the main application has
+no hostapd dependency. The install creates the OpenAuto Prodigy application,
 web-config, and privileged system-service units. Whether the main application
 unit starts automatically follows the choice made during installation.

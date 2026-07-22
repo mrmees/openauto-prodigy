@@ -1185,8 +1185,32 @@ configure_bluetooth() {
 # ────────────────────────────────────────────────────
 # Step 3c: Configure WiFi AP networking
 # ────────────────────────────────────────────────────
+configure_hostapd_lifecycle() {
+    local app_source="$INSTALL_DIR/config/systemd/openauto-prodigy-hostapd.conf"
+    local hostapd_source="$INSTALL_DIR/config/systemd/hostapd-openauto.conf"
+    local app_destination="/etc/systemd/system/${SERVICE_NAME}.service.d/hostapd.conf"
+    local hostapd_destination="/etc/systemd/system/hostapd.service.d/openauto.conf"
+
+    if [[ -z "$WIFI_IFACE" ]]; then
+        sudo rm -f "$app_destination" "$hostapd_destination"
+        sudo systemctl daemon-reload
+        return
+    fi
+
+    if [[ ! -f "$app_source" || ! -f "$hostapd_source" ]]; then
+        fail "Missing hostapd lifecycle assets under $INSTALL_DIR/config/systemd"
+        return 1
+    fi
+
+    sudo install -D -m 0644 "$app_source" "$app_destination"
+    sudo install -D -m 0644 "$hostapd_source" "$hostapd_destination"
+    sudo systemctl daemon-reload
+}
+
 configure_network() {
     enter_interactive
+
+    configure_hostapd_lifecycle
 
     if [[ -z "$WIFI_IFACE" ]]; then
         warn "Skipping network configuration (no wireless interface)"
@@ -1283,16 +1307,6 @@ HOSTAPD
     if [[ -f /etc/default/hostapd ]]; then
         sudo sed -i 's|^#\?DAEMON_CONF=.*|DAEMON_CONF="/etc/hostapd/hostapd.conf"|' /etc/default/hostapd
     fi
-
-    # hostapd drop-ins: rfkill unblock before start + stop with Prodigy on clean shutdown
-    sudo mkdir -p /etc/systemd/system/hostapd.service.d
-    sudo tee /etc/systemd/system/hostapd.service.d/openauto.conf > /dev/null << 'HOSTAPD_DROPIN'
-[Unit]
-PartOf=openauto-prodigy.service
-
-[Service]
-ExecStartPre=/usr/sbin/rfkill unblock wlan
-HOSTAPD_DROPIN
 
     # Enable and start services
     sudo systemctl unmask hostapd 2>/dev/null || true
@@ -1709,9 +1723,8 @@ create_service() {
     sudo tee /etc/systemd/system/${SERVICE_NAME}.service > /dev/null << SERVICE
 [Unit]
 Description=OpenAuto Prodigy
-After=graphical.target hostapd.service bluetooth.target pipewire.service
+After=graphical.target bluetooth.target pipewire.service
 Wants=openauto-system.service
-BindsTo=hostapd.service
 StartLimitBurst=5
 StartLimitIntervalSec=60
 

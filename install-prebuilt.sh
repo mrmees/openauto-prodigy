@@ -51,6 +51,8 @@ require_payload() {
         "$PAYLOAD_DIR/build/src/openauto-prodigy"
         "$PAYLOAD_DIR/config/themes/default/theme.yaml"
         "$PAYLOAD_DIR/config/systemd/bluetooth-compat.conf"
+        "$PAYLOAD_DIR/config/systemd/openauto-prodigy-hostapd.conf"
+        "$PAYLOAD_DIR/config/systemd/hostapd-openauto.conf"
         "$PAYLOAD_DIR/system-service/openauto_system.py"
         "$PAYLOAD_DIR/web-config/server.py"
         "$PAYLOAD_DIR/restart.sh"
@@ -418,7 +420,31 @@ configure_bluetooth() {
 # ────────────────────────────────────────────────────
 # Step 6: Configure WiFi AP networking
 # ────────────────────────────────────────────────────
+configure_hostapd_lifecycle() {
+    local app_source="$PAYLOAD_DIR/config/systemd/openauto-prodigy-hostapd.conf"
+    local hostapd_source="$PAYLOAD_DIR/config/systemd/hostapd-openauto.conf"
+    local app_destination="/etc/systemd/system/${SERVICE_NAME}.service.d/hostapd.conf"
+    local hostapd_destination="/etc/systemd/system/hostapd.service.d/openauto.conf"
+
+    if [[ -z "$WIFI_IFACE" ]]; then
+        sudo rm -f "$app_destination" "$hostapd_destination"
+        sudo systemctl daemon-reload
+        return
+    fi
+
+    if [[ ! -f "$app_source" || ! -f "$hostapd_source" ]]; then
+        fail "Missing hostapd lifecycle assets under $PAYLOAD_DIR/config/systemd"
+        return 1
+    fi
+
+    sudo install -D -m 0644 "$app_source" "$app_destination"
+    sudo install -D -m 0644 "$hostapd_source" "$hostapd_destination"
+    sudo systemctl daemon-reload
+}
+
 configure_network() {
+    configure_hostapd_lifecycle
+
     if [[ -z "$WIFI_IFACE" ]]; then
         warn "Skipping network configuration (no wireless interface)"
         return

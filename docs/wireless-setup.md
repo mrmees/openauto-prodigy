@@ -27,6 +27,13 @@ adapter that supports the prebuilt WiFi configuration, or use the manual 2.4
 GHz settings when needed. The remaining sections are for manual configuration
 or troubleshooting.
 
+When an AP interface is selected, both installers add an optional
+`Wants=hostapd.service` relationship from the application and configure
+bounded `Restart=on-failure` recovery for hostapd. An AP failure therefore
+restarts hostapd without stopping the shell, and restarting the shell does not
+restart the AP. An install with no detected AP interface removes these
+project-owned drop-ins and leaves the application independent of hostapd.
+
 ## 1. WiFi Access Point (hostapd + systemd-networkd)
 
 ### Install packages
@@ -104,8 +111,18 @@ For manual setup without the install script, create this file and adjust the int
 
 ### Enable and start
 
+The automated installers copy the application and hostapd drop-ins from
+`config/systemd/openauto-prodigy-hostapd.conf` and
+`config/systemd/hostapd-openauto.conf`. For a manual setup, install those
+fragments as
+`/etc/systemd/system/openauto-prodigy.service.d/hostapd.conf` and
+`/etc/systemd/system/hostapd.service.d/openauto.conf`, then reload systemd.
+The relationship is intentionally one-way and optional: do not add `BindsTo=`
+or a reverse `PartOf=` relationship between these services.
+
 ```bash
 sudo systemctl unmask hostapd
+sudo systemctl daemon-reload
 sudo systemctl enable hostapd systemd-networkd
 sudo systemctl start hostapd systemd-networkd
 ```
@@ -187,7 +204,9 @@ into its configuration, making hostapd the operational source of truth.
 ## Troubleshooting
 
 - **Phone doesn't see Pi:** Check `bluetoothctl show` — adapter must be powered and discoverable
-- **WiFi connection fails:** Verify hostapd is running (`systemctl status hostapd`), check channel compatibility
+- **WiFi connection fails:** Verify hostapd recovery and its final error with
+  `systemctl status hostapd` and `journalctl -u hostapd`; the application
+  should remain running while the AP recovers. Also check channel compatibility.
 - **TCP connection fails:** Ensure the app is running and the configured port
   is listening (`ss -tlnp | grep 5277` for the default)
 - **"Incorrect credentials" error:** SSID/password in `config.yaml` must exactly match `hostapd.conf`
