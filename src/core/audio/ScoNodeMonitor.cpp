@@ -72,7 +72,15 @@ void ScoNodeMonitor::stop()
 
     registry_ = nullptr;
     threadLoop_ = nullptr;
-    anyRunning_.store(false, std::memory_order_release);
+
+    // Deliver the falling edge synchronously. stop() only runs on the main
+    // thread (owner teardown edge, dtor, or start() self-heal), and the
+    // recomputeRunning() queued path is now suppressed by active_==false, so a
+    // direct emit here is the only way a consumer that observed scoRunning()==
+    // true learns it went false across a start()/stop() cycle. exchange()
+    // avoids a spurious emit when nothing was running.
+    if (anyRunning_.exchange(false, std::memory_order_acq_rel))
+        emit scoRunningChanged(false);
 }
 
 void ScoNodeMonitor::destroyTracked(Tracked* t)
