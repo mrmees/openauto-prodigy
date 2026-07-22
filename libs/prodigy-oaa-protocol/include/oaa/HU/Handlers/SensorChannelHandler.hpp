@@ -26,6 +26,7 @@ private:
     void handleSensorStartRequest(const QByteArray& payload);
 
     bool channelOpen_ = false;
+    bool nightMode_ = false;
     QSet<int> activeSensors_;
 };
 

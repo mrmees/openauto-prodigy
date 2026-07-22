@@ -629,6 +629,7 @@ void AndroidAutoOrchestrator::onNewConnection()
                 &sensorHandler_, &oaa::hu::SensorChannelHandler::pushNightMode);
 
         nightProvider_->start();
+        sensorHandler_.pushNightMode(nightProvider_->isNight());
         qCInfo(lcAA) << "Night mode provider started (source=" << nightSource << ")";
     }
 

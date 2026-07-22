@@ -47,6 +47,11 @@ to a dedicated `EqualizerEngine` for each live audio consumer.
   messages, and 3-finger gesture detection. The device is grabbed only while
   projection owns input.
 - `BluetoothDiscoveryService`, night-mode providers, navigation/media data bridges.
+  The selected night provider is evaluated and explicitly seeds the sensor
+  handler before the AA session starts. The handler retains that latest value
+  independently of channel/subscription readiness, sends it when the phone
+  subscribes to NIGHT_DATA, and preserves it across channel close/reopen while
+  clearing only the subscription set.
 
 ### Protocol library (`libs/prodigy-oaa-protocol/`)
 
