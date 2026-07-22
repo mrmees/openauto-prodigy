@@ -176,7 +176,7 @@ SDP_REQUEST_SENT → SDP_RESPONSE_RECEIVED (9 services)
 ```
 Services registered:
   - SensorSourceService (id=2): sensors=[type=10, type=13, type=1]
-  - BluetoothService (id=8): carAddress=DC:A6:32:E7:5A:FF, pairingMethods=[4]
+  - BluetoothService (id=8): carAddress=<HU-BT-MAC>, pairingMethods=[4]
 
 Channels opened (in order): 0, 3, 4, 5, 6, 7, 1, 2, 8, 14
 Per-channel queues created:
@@ -295,7 +295,7 @@ channels:
   ch6: AUDIO SYSTEM — 16kHz mono 16-bit
   ch1: INPUT — touch_screen 800x410, keycodes: [3, 4, 84]
   ch2: SENSOR — NIGHT_DATA, DRIVING_STATUS, LOCATION
-  ch8: BLUETOOTH — DC:A6:32:E7:5A:FF, pairing: HFP
+  ch8: BLUETOOTH — <HU-BT-MAC>, pairing: HFP
   ch14: WIFI — ssid: "OpenAutoProdigy"
   ch7: AV_INPUT (microphone)
 
@@ -313,11 +313,11 @@ device_brand: "samsung SM-S938U"
 
 ### Pi-Side Connection Sequence
 ```
-[BTDiscovery] Phone connected via BT: MATTHEW's S25 Ultra
+[BTDiscovery] Phone connected via BT: <PHONE-NAME>
 [BTDiscovery] Sending WifiStartRequest: ip=10.0.0.1 port=5288
-[BTDiscovery] Sending WifiInfoResponse: ssid=OpenAutoProdigy bssid=DC:A6:32:E7:5A:FE
+[BTDiscovery] Sending WifiInfoResponse: ssid=OpenAutoProdigy bssid=<HU-WIFI-BSSID>
 [BTDiscovery] WifiConnectionStatus: STATUS_SUCCESS
-[AAService] Wireless AA connection from 10.0.0.26:47550
+[AAService] Wireless AA connection from 10.0.0.x:<EPHEMERAL-PORT>
 [AAService] TCP keepalive: idle=5s, interval=3s, count=3
 [AndroidAutoEntity] Version request sent (v1.1)
 [AndroidAutoEntity] Version response: 1.7 status=0
