@@ -128,7 +128,14 @@ Governance: capture new ideas in `docs/wishlist.md`; only promoted items should 
 
 ## Now
 
-- No promoted implementation tranche is active.
+- Android Auto initial night-state delivery — **ACTIVE 2026-07-22**. Retain
+  provider state before the sensor channel/subscription becomes active, seed it
+  explicitly before session start, and send that authoritative snapshot when
+  the phone subscribes to NIGHT_DATA. Scope is limited to the in-tree sensor
+  handler, orchestrator seeding, decoded regression coverage, and current
+  behavior documentation. Design and plan:
+  `docs/plans/2026-07-22-aa-night-initial-state-remediation-design.md` and
+  `docs/plans/2026-07-22-aa-night-initial-state-remediation-plan.md`.
 
 ## Later
 

@@ -50,7 +50,10 @@ Protocol definitions and generic reference docs are in [open-android-auto](https
 
 Active plans:
 
-- None.
+- [2026-07-22-aa-night-initial-state-remediation-design.md](plans/2026-07-22-aa-night-initial-state-remediation-design.md)
+  and [implementation plan](plans/2026-07-22-aa-night-initial-state-remediation-plan.md)
+  — correct Android Auto's first NIGHT_DATA indication without protocol-schema
+  changes.
 
 Parked plans (not current guidance):
 
