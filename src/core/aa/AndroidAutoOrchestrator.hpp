@@ -42,6 +42,8 @@ struct AudioStreamHandle;
 
 namespace aa {
 
+class AndroidAutoOrchestratorTestAccess;
+
 class AndroidAutoOrchestrator : public QObject {
     Q_OBJECT
     Q_PROPERTY(int connectionState READ connectionState NOTIFY connectionStateChanged)
@@ -106,6 +108,8 @@ signals:
     void phoneSignalChanged();
 
 private:
+    friend class AndroidAutoOrchestratorTestAccess;
+
     void onNewConnection();
     void onSessionStateChanged(oaa::SessionState state);
     void onSessionDisconnected(oaa::DisconnectReason reason);
@@ -113,7 +117,8 @@ private:
     void setState(ConnectionState state, const QString& message);
     void startConnectionWatchdog();
     void stopConnectionWatchdog();
-    void teardownSession();
+    void teardownSession(bool deferDeletion = true);
+    void activateNightModeProvider(std::unique_ptr<NightModeProvider> provider);
     void startProtocolCapture();
     void stopProtocolCapture();
 

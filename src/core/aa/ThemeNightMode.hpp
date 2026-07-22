@@ -17,6 +17,7 @@ public:
     explicit ThemeNightMode(oap::ThemeService* themeService, QObject* parent = nullptr);
 
     bool isNight() const override;
+    bool hasValidState() const override { return themeService_ != nullptr; }
     void start() override;
     void stop() override;
 

@@ -1,6 +1,19 @@
 #include <QTest>
 #include <QSignalSpy>
 #include "core/aa/TimedNightMode.hpp"
+#include "core/aa/GpioNightMode.hpp"
+
+namespace oap::aa {
+
+class GpioNightModeTestAccess {
+public:
+    static void applyValue(GpioNightMode& provider, const QString& value)
+    {
+        provider.applyValue(value);
+    }
+};
+
+} // namespace oap::aa
 
 class TestNightMode : public QObject {
     Q_OBJECT
@@ -10,7 +23,9 @@ private slots:
     {
         // Day 07:00 - 19:00 (normal range)
         oap::aa::TimedNightMode provider("07:00", "19:00");
+        QVERIFY(!provider.hasValidState());
         provider.start();
+        QVERIFY(provider.hasValidState());
 
         // isNight() should return a valid bool (we can't control QTime::currentTime(),
         // but we can verify it doesn't crash and returns a consistent value)
@@ -102,6 +117,30 @@ private slots:
         Q_UNUSED(state);
 
         provider.stop();
+    }
+
+    void gpioNightMode_firstValidDefaultStateEmits()
+    {
+        oap::aa::GpioNightMode provider(17, true);
+        QSignalSpy spy(&provider, &oap::aa::NightModeProvider::nightModeChanged);
+
+        oap::aa::GpioNightModeTestAccess::applyValue(provider, "invalid");
+        QVERIFY(!provider.hasValidState());
+        QCOMPARE(spy.count(), 0);
+
+        // The first valid day sample must publish even though false matches the
+        // provider's default storage value.
+        oap::aa::GpioNightModeTestAccess::applyValue(provider, "0");
+        QVERIFY(provider.hasValidState());
+        QCOMPARE(provider.isNight(), false);
+        QCOMPARE(spy.count(), 1);
+        QCOMPARE(spy[0][0].toBool(), false);
+
+        oap::aa::GpioNightModeTestAccess::applyValue(provider, "0");
+        QCOMPARE(spy.count(), 1);
+        oap::aa::GpioNightModeTestAccess::applyValue(provider, "1");
+        QCOMPARE(spy.count(), 2);
+        QCOMPARE(spy[1][0].toBool(), true);
     }
 };
 

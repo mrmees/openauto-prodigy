@@ -19,8 +19,14 @@ bool GpioNightMode::isNight() const
     return currentState_;
 }
 
+bool GpioNightMode::hasValidState() const
+{
+    return hasValidState_;
+}
+
 void GpioNightMode::start()
 {
+    hasValidState_ = false;
     qCInfo(lcCore) << "Starting — pin=" << gpioPin_
                             << " activeHigh=" << (activeHigh_ ? "true" : "false");
 
@@ -54,11 +60,23 @@ void GpioNightMode::poll()
     QString val = in.readLine().trimmed();
     file.close();
 
+    applyValue(val);
+}
+
+void GpioNightMode::applyValue(const QString& val)
+{
+    if (val != "0" && val != "1") {
+        qCWarning(lcCore) << "Invalid GPIO value for pin" << gpioPin_ << ":" << val;
+        return;
+    }
+
     bool pinHigh = (val == "1");
     bool night = activeHigh_ ? pinHigh : !pinHigh;
+    const bool wasValid = hasValidState_.exchange(true);
+    const bool stateChanged = (night != currentState_);
+    currentState_ = night;
 
-    if (night != currentState_) {
-        currentState_ = night;
+    if (!wasValid || stateChanged) {
         qCInfo(lcCore) << "Pin " << gpioPin_ << " = " << val
                                 << " -> " << (night ? "NIGHT" : "DAY");
         emit nightModeChanged(night);

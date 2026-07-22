@@ -18,6 +18,9 @@ public:
     /// Returns true if currently in night mode.
     virtual bool isNight() const = 0;
 
+    /// Returns true once isNight() reflects a successful source evaluation.
+    virtual bool hasValidState() const = 0;
+
     /// Begin monitoring for night mode changes.
     virtual void start() = 0;
 

@@ -73,7 +73,7 @@ void SensorChannelHandler::handleSensorStartRequest(const QByteArray& payload)
 
     // Send initial data for the requested sensor
     if (sensorType == oaa::proto::enums::SensorType::NIGHT_DATA) {
-        pushNightMode(false); // Default: day mode
+        pushNightMode(nightMode_);
     } else if (sensorType == oaa::proto::enums::SensorType::DRIVING_STATUS) {
         pushDrivingStatus(0); // UNRESTRICTED
     } else if (sensorType == oaa::proto::enums::SensorType::PARKING_BRAKE) {
@@ -83,6 +83,8 @@ void SensorChannelHandler::handleSensorStartRequest(const QByteArray& payload)
 
 void SensorChannelHandler::pushNightMode(bool isNight)
 {
+    nightMode_ = isNight;
+
     if (!channelOpen_ || !activeSensors_.contains(
             static_cast<int>(oaa::proto::enums::SensorType::NIGHT_DATA)))
         return;

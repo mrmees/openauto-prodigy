@@ -30,6 +30,11 @@ bool TimedNightMode::isNight() const
     return currentState_;
 }
 
+bool TimedNightMode::hasValidState() const
+{
+    return hasValidState_;
+}
+
 void TimedNightMode::start()
 {
     qCInfo(lcCore) << "Starting — day=" << dayStart_.toString("HH:mm")
@@ -57,6 +62,8 @@ void TimedNightMode::evaluate()
         // It's nighttime if now >= nightStart AND now < dayStart
         night = (now >= nightStart_ && now < dayStart_);
     }
+
+    hasValidState_ = true;
 
     if (night != currentState_) {
         currentState_ = night;
