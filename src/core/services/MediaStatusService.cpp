@@ -127,6 +127,14 @@ void MediaStatusService::updateBtProgress(qint64 positionMs, qint64 durationMs) 
     if (active_ == SrcBluetooth) emit progressChanged();
 }
 
+void MediaStatusService::updateBtSnapshot(const QString& title, const QString& artist,
+                                          const QString& album, int playbackState,
+                                          qint64 positionMs, qint64 durationMs) {
+    updateBtMetadata(title, artist, album);
+    updateBtPlaybackState(playbackState);
+    updateBtProgress(positionMs, durationMs);
+}
+
 // ---- Local MediaPlayer ----
 void MediaStatusService::setMediaPlayerConnected(bool connected) { setConnected(SrcMediaPlayer, connected); }
 

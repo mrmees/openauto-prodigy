@@ -68,6 +68,7 @@ private slots:
     void playerTimes_invalidatedValuesUseUnknowns();
     void playerTimes_newPlayerClearsMissingState();
     void playerTimes_bluezLossClearsState();
+    void playerTimes_startupAndReconnectCatchupPreservesMilliseconds();
     void playerTimes_flowUnchangedToMediaStatusService();
 
 private:
@@ -695,6 +696,39 @@ void TestBtAudioPlugin::playerTimes_bluezLossClearsState()
     QCOMPARE(progressSpy.count(), 1);
     QCOMPARE(progressSpy.first().at(0).toLongLong(), qint64(-1));
     QCOMPARE(progressSpy.first().at(1).toLongLong(), qint64(0));
+}
+
+void TestBtAudioPlugin::playerTimes_startupAndReconnectCatchupPreservesMilliseconds()
+{
+    BtAudioPlugin plugin;
+    const QString path = QStringLiteral("/org/bluez/hci0/dev_AA_BB/player0");
+    QVERIFY(adoptPlayer(plugin, path,
+                        playerProperties(QStringLiteral("Track"), 215000u, 61000u)));
+
+    // MediaStatusService is created after plugin initialization in main.cpp.
+    // Seed the already-adopted snapshot through the same production helper.
+    oap::MediaStatusService media;
+    media.setBtConnected(true);
+    media.updateBtSnapshot(plugin.trackTitle(), plugin.trackArtist(),
+                           plugin.trackAlbum(), plugin.playbackState(),
+                           plugin.hasTrackPosition() ? plugin.trackPosition() : -1,
+                           plugin.trackDuration());
+    QCOMPARE(media.position(), qint64(61000));
+    QCOMPARE(media.duration(), qint64(215000));
+    QVERIFY(media.hasPosition());
+
+    // A fresh connection clears cached source state; the same catch-up must
+    // restore exact milliseconds even without another AVRCP event.
+    media.setBtConnected(false);
+    media.setBtConnected(true);
+    QVERIFY(!media.hasPosition());
+    media.updateBtSnapshot(plugin.trackTitle(), plugin.trackArtist(),
+                           plugin.trackAlbum(), plugin.playbackState(),
+                           plugin.hasTrackPosition() ? plugin.trackPosition() : -1,
+                           plugin.trackDuration());
+    QCOMPARE(media.position(), qint64(61000));
+    QCOMPARE(media.duration(), qint64(215000));
+    QVERIFY(media.hasPosition());
 }
 
 void TestBtAudioPlugin::playerTimes_flowUnchangedToMediaStatusService()

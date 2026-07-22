@@ -48,6 +48,11 @@ public:
     void updateBtMetadata(const QString& title, const QString& artist, const QString& album);
     void updateBtPlaybackState(int state);
     void updateBtProgress(qint64 positionMs, qint64 durationMs);
+    /// Publish one already-observed Bluetooth state snapshot after source
+    /// connection/reset, preserving the same millisecond progress contract.
+    void updateBtSnapshot(const QString& title, const QString& artist,
+                          const QString& album, int playbackState,
+                          qint64 positionMs, qint64 durationMs);
 
     // Local MediaPlayer source (raw states: 0=stopped, 1=playing, 2=paused)
     void setMediaPlayerConnected(bool connected);
