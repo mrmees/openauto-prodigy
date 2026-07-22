@@ -20,6 +20,7 @@ struct PooledVideoAllocation {
 struct VideoFramePoolState {
     mutable std::mutex mutex;
     int bufferSize = 0;
+    int maxFree = 0;          // cap on retained free buffers (from poolSize)
     uint64_t generation = 0;
     int totalAllocated = 0;
     int totalRecycled = 0;
@@ -43,9 +44,9 @@ public:
     explicit VideoFramePool(const QVideoFrameFormat& fmt, int poolSize = 5)
         : state_(std::make_shared<VideoFramePoolState>())
         , format_(fmt)
-        , poolSize_(poolSize)
     {
         state_->bufferSize = computeBufferSize(fmt);
+        state_->maxFree = poolSize;
     }
 
     /// Returns a QVideoFrame backed by a recycled buffer.
@@ -70,7 +71,6 @@ public:
     int totalRecycled() const { std::lock_guard<std::mutex> lock(state_->mutex); return state_->totalRecycled; }
     int freeCount() const { std::lock_guard<std::mutex> lock(state_->mutex); return static_cast<int>(state_->freeBuffers.size()); }
     const QVideoFrameFormat& format() const { return format_; }
-    int bufferSize() const { std::lock_guard<std::mutex> lock(state_->mutex); return state_->bufferSize; }
 
 private:
     static int computeBufferSize(const QVideoFrameFormat& fmt)
@@ -104,7 +104,6 @@ private:
 
     std::shared_ptr<VideoFramePoolState> state_;
     QVideoFrameFormat format_;
-    int poolSize_;
 };
 
 /**
@@ -140,6 +139,9 @@ public:
 
         std::lock_guard<std::mutex> lock(state->mutex);
         if (generation_ != state->generation || capacity_ < state->bufferSize)
+            return;
+        // Bound the free list to poolSize; drop excess buffers (freed here).
+        if (static_cast<int>(state->freeBuffers.size()) >= state->maxFree)
             return;
 
         state->freeBuffers.push({std::move(data_), capacity_, generation_});
