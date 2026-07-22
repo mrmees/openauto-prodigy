@@ -1,6 +1,6 @@
 # Android Auto Night Initial-State Remediation — Design
 
-Status: ACTIVE
+Status: COMPLETED 2026-07-22
 
 **Date:** 2026-07-22
 **Grounded against:** `origin/main` at `e81c0686`

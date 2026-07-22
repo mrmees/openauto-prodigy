@@ -14,6 +14,18 @@ Governance: capture new ideas in `docs/wishlist.md`; only promoted items should 
 
 ## Done (recent)
 
+- Android Auto initial night-state delivery — **COMPLETE 2026-07-22**
+  (Pi-live-validated). The sensor handler now retains authoritative night state
+  before channel open or subscription, sends that snapshot when the phone
+  subscribes, and preserves the latest state across reconnects. Provider
+  startup is explicitly seeded, including invalid-to-valid GPIO recovery.
+  Forced day and night sessions decoded the first outgoing NIGHT_DATA value
+  correctly and immediately selected the matching phone presentation. Design
+  and plan:
+  `docs/archive/plans/2026-07-22-aa-night-initial-state-remediation-design.md`
+  and
+  `docs/archive/plans/2026-07-22-aa-night-initial-state-remediation-plan.md`.
+
 - Operations deployment reliability remediation — **COMPLETE 2026-07-22**
   (Pi-live-validated). Source and prebuilt installs now share the canonical
   BlueZ SDP compatibility setup; application and hostapd lifetimes are
@@ -128,14 +140,7 @@ Governance: capture new ideas in `docs/wishlist.md`; only promoted items should 
 
 ## Now
 
-- Android Auto initial night-state delivery — **ACTIVE 2026-07-22**. Retain
-  provider state before the sensor channel/subscription becomes active, seed it
-  explicitly before session start, and send that authoritative snapshot when
-  the phone subscribes to NIGHT_DATA. Scope is limited to the in-tree sensor
-  handler, orchestrator seeding, decoded regression coverage, and current
-  behavior documentation. Design and plan:
-  `docs/plans/2026-07-22-aa-night-initial-state-remediation-design.md` and
-  `docs/plans/2026-07-22-aa-night-initial-state-remediation-plan.md`.
+No implementation tranche is currently active.
 
 ## Later
 

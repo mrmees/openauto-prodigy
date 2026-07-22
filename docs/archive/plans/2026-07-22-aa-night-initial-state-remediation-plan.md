@@ -1,9 +1,9 @@
 # Android Auto Night Initial-State Remediation — Implementation Plan
 
-Status: ACTIVE
+Status: COMPLETED 2026-07-22
 
 **Design (read first):**
-`docs/plans/2026-07-22-aa-night-initial-state-remediation-design.md`
+`docs/archive/plans/2026-07-22-aa-night-initial-state-remediation-design.md`
 **Approved by Matthew:** 2026-07-22
 **Grounded against:** `origin/main` at `e81c0686`
 **Branch:** `agent/aa-night-initial-state-remediation`

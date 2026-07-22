@@ -50,10 +50,7 @@ Protocol definitions and generic reference docs are in [open-android-auto](https
 
 Active plans:
 
-- [2026-07-22-aa-night-initial-state-remediation-design.md](plans/2026-07-22-aa-night-initial-state-remediation-design.md)
-  and [implementation plan](plans/2026-07-22-aa-night-initial-state-remediation-plan.md)
-  — correct Android Auto's first NIGHT_DATA indication without protocol-schema
-  changes.
+- None.
 
 Parked plans (not current guidance):
 
@@ -69,6 +66,7 @@ Parked plans (not current guidance):
 Everything under `archive/` is history, not guidance. Internal links there may point at pre-restructure paths by design.
 
 - [archive/plans/](archive/plans/) — completed/superseded designs and implementation plans, incl. milestone-01..05 history and pre-restructure proto docs
+- [2026-07-22-aa-night-initial-state-remediation-design.md](archive/plans/2026-07-22-aa-night-initial-state-remediation-design.md) and [implementation plan](archive/plans/2026-07-22-aa-night-initial-state-remediation-plan.md) — completed Android Auto initial night-state delivery correction
 - [2026-07-21-documentation-drift-remediation-design.md](archive/plans/2026-07-21-documentation-drift-remediation-design.md) and [implementation plan](archive/plans/2026-07-21-documentation-drift-remediation-plan.md) — completed current-guidance reconciliation
 - [2026-07-05-phase-f-light-plans.md](archive/plans/2026-07-05-phase-f-light-plans.md) — completed Phase F record; the disproven `0x8012` premise is closed and the unpromoted key-event idea remains in the wishlist
 - [archive/session-handoffs/](archive/session-handoffs/) — rotated handoff months + vestigial per-session files
