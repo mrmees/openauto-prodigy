@@ -1,5 +1,11 @@
 # Android Auto APK Deep Dive — Complete Protocol Knowledge
 
+> **Dated research snapshot — not current feature status or roadmap.** The
+> “Handled,” “missing,” and priority labels below reflect the implementation at
+> extraction time. Preserve them as analysis evidence; check current code,
+> [Architecture](../architecture.md), and [Roadmap](../roadmap-current.md) before
+> making implementation or planning decisions.
+
 *Extracted from AA v16.1.660414-release via APK indexer + graph walker*
 *1,946 proto classes, 180K cross-references, 3,391 enum mappings analyzed*
 

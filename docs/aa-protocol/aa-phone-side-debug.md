@@ -1,5 +1,13 @@
 # Android Auto Phone-Side Debug Findings
 
+> **Dated research snapshot — not current operational guidance.** This file
+> preserves a 2026-02-22 capture from the pre-migration runtime, including its
+> then-current port, protocol-stack names, service inventory, and hypotheses.
+> Do not copy configuration values or execute its “Actionable Findings” against
+> the current tree. Use [AA Troubleshooting Runbook](aa-troubleshooting-runbook.md)
+> for current commands and [Architecture](../architecture.md) for current
+> implementation ownership.
+
 ## Date: 2026-02-22
 
 ## Setup

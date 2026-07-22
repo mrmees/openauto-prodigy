@@ -1,5 +1,11 @@
 # Android Auto Protocol Cross-Reference
 
+> **Dated research snapshot — not an implementation-status matrix.** The source
+> comparison below is intentionally frozen to the named firmware, APK, and
+> legacy libraries inspected in February 2026. Columns and priority notes record
+> that investigation; they do not describe what the current Prodigy runtime
+> implements. Use [Architecture](../architecture.md) and current code for that.
+>
 > **Sources:** Sony XAV-AX100 firmware (GAL Protocol, debug symbols) + Android Auto APK v16.1 (phone-side, decompiled)
 > **Date:** 2026-02-23
 > **Purpose:** Definitive protocol reference for OpenAuto Prodigy, cross-referencing both sides of the AA connection
