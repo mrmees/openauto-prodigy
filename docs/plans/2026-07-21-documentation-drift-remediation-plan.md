@@ -225,6 +225,7 @@ old document.
 - Modify: `docs/wireless-setup.md`
 - Modify: `docs/how-to/testing-reconnect.md`
 - Modify: `docs/how-to/debugging-notes.md`
+- Modify: `docs/aa-protocol/aa-troubleshooting-runbook.md`
 - Modify: `docs/pi-config/README.md`
 - Modify if needed: `docs/pi-config/bluetooth-service-override.conf`
 - Delete if confirmed unused: `docs/pi-config/dnsmasq.conf`
@@ -246,6 +247,10 @@ installer behavior, or network/Bluetooth policy.
 - Dependency instructions include required systemd development support and do
   not install an unused DHCP daemon.
 - Reconnect testing names only scripts/commands that exist now.
+- The indexed AA troubleshooting runbook uses the current protocol-library
+  path, capture configuration, service logs, build directory, and binary/QML
+  deployment flow; it links to the reconnect guide instead of naming deleted
+  helper scripts.
 - Manual Bluetooth setup includes the required compatibility mode using the
   same sanitized shape as the installer.
 - Connection examples and troubleshooting use the current configured port.
@@ -258,7 +263,8 @@ installer behavior, or network/Bluetooth policy.
 
   ```bash
   rg -n '5288|dnsmasq|testing-reconnect\.sh|Touch Calibration \(ACTIVE\)' \
-    docs/development.md docs/wireless-setup.md docs/how-to docs/pi-config
+    docs/development.md docs/wireless-setup.md docs/how-to docs/pi-config \
+    docs/aa-protocol/aa-troubleshooting-runbook.md
   ```
 
   Acceptance: no stale matches; any required historical/negative explanation is

@@ -1,491 +1,373 @@
-# AA Troubleshooting Runbook
+# Android Auto Troubleshooting Runbook
 
-Living troubleshooting guide for OpenAuto Prodigy AA sessions. Covers tools, debug workflows, failure modes, and observations.
+Use this guide to diagnose wireless Android Auto sessions in OpenAuto Prodigy.
+It covers the current Qt-based AA runtime, service logs, protocol capture,
+failure isolation, and Pi deployment.
 
-**Protocol reference:** generate with `python3 tools/aa_proto_graph.py` → `docs/aa-protocol/protocol-reference.md` (untracked, generated); protocol definitions live in the open-android-auto repo.
-**Phone-side logging:** `docs/aa-protocol/aa-phone-side-debug.md` (logcat tags, dev settings, process architecture)
-**Protocol cross-reference:** `android-auto-protocol-cross-reference.md` (same directory; Sony HU + APK mapped together)
+- [Phone-side debugging](aa-phone-side-debug.md) records useful Android Auto
+  developer settings and logcat tags. Treat device- and release-specific
+  observations there as evidence from that capture, not as current head-unit
+  configuration.
+- [Protocol cross-reference](android-auto-protocol-cross-reference.md) maps
+  observed Android and head-unit concepts.
+- Generate the untracked protocol catalog with
+  `python3 tools/aa_proto_graph.py`. The implementation library is
+  `libs/prodigy-oaa-protocol/`; its `proto/` directory is a hands-off community
+  submodule.
 
----
+## Tool inventory
 
-## Table of Contents
+### Service state and logs
 
-1. [Tool Inventory](#tool-inventory)
-2. [Debug Workflows](#debug-workflows)
-3. [Failure Mode Playbooks](#failure-mode-playbooks)
-   - [Session Establishment Failures](#session-establishment-failures)
-   - [Post-Handshake Stalls](#post-handshake-stalls)
-   - [Video Issues](#video-issues)
-   - [Audio Issues](#audio-issues)
-   - [Touch Issues](#touch-issues)
-   - [App Crash / Restart Issues](#app-crash--restart-issues)
-4. [Protocol Logger Reference](#protocol-logger-reference)
-5. [Phone-Side Debug Quick Reference](#phone-side-debug-quick-reference)
-6. [Capture Data Index](#capture-data-index)
-7. [Deployment Checklist](#deployment-checklist)
-8. [Notes & Observations](#notes--observations)
-
----
-
-## Tool Inventory
-
-### Testing/reconnect.sh — Session Reset — BROKEN
-
-> **WARNING:** This script has hardcoded BT MACs, unreliable ADB WiFi toggling, and unvalidated log format checks. Kept as reference for the reconnect **sequence**, but do not run as-is; use the manual workflow under "I changed code, now test it" below instead.
-
-**Sequence (still valid conceptually):**
-1. Pi BT disconnect + phone WiFi off (via ADB)
-2. Kill app on Pi (graceful then SIGKILL)
-3. Wait for clean state (configurable, default 10s)
-4. Restart app on Pi (waits 8s for RFCOMM listener registration)
-5. BT connect with A2DP UUID (retry loop: 6 attempts, 10s timeout each, 5s between)
-6. Wait 20s for AA session, validate with VIDEO frame count
-
-**Known issues:**
-- `PHONE_MAC` is hardcoded — BT MACs randomize, must discover dynamically via `bluetoothctl devices Paired`
-- `svc wifi disable` via ADB is unreliable for dropping the phone's AA connection
-- VIDEO grep validation may not match new open-androidauto log format
-
-### Testing/capture.sh — Protocol Capture — BROKEN
-
-> **WARNING:** Depends on reconnect.sh. The log collection steps (3/4, 4/4) are still valid — it's the reconnect that needs fixing; collect the logs manually per the workflow below.
-
-**Output in `Testing/captures/<name>/`:**
-- `pi-protocol.log` — TSV protocol messages from ProtocolLogger
-- `phone-logcat-raw.log` — Full phone logcat dump
-- `phone-logcat.log` — Filtered for AA tags (CAR.*, GH.*, WIRELESS, PROJECTION, WPP)
-
-### Testing/merge-logs.py — Timeline Merger
-
-Merges Pi protocol log + phone logcat into a single chronological timeline.
-
-**Usage:**
-```bash
-python3 Testing/merge-logs.py \
-    Testing/captures/my-test/pi-protocol.log \
-    Testing/captures/my-test/phone-logcat-raw.log \
-    Testing/captures/my-test/timeline.md
-```
-
-**How it works:**
-- Pi log: TSV with float seconds (from ProtocolLogger)
-- Phone log: logcat timestamps (MM-DD HH:MM:SS.mmm)
-- Alignment: finds `VERSION_REQUEST` on Pi side and `Socket connected` on phone side
-- Clock offset calculated and applied to phone timestamps
-- Output: markdown with `[PI]` / `[PHONE]` annotations, sorted by time
-
-### Unit Tests (ctest)
-
-44 C++ tests covering protocol, config, plugins, audio, display, touch.
+Normal Pi installs run the app as `openauto-prodigy.service`. Start diagnosis
+with the service and its journal rather than a detached process log:
 
 ```bash
-cd build && ctest --output-on-failure
+systemctl status openauto-prodigy.service --no-pager
+journalctl -u openauto-prodigy.service -n 200 --no-pager
+journalctl -u openauto-prodigy.service -f
 ```
 
-**Known:** 1 pre-existing failure in `test_tcp_transport` (unrelated to current work).
-
-**Key test files for AA troubleshooting:**
-- `tests/test_oaa_integration.cpp` — open-androidauto library integration
-- `libs/open-androidauto/tests/test_protocol_logger.cpp` — Protocol capture logging (TSV + JSONL)
-- `tests/test_video_channel_handler.cpp` — Video stream + flow control
-- `tests/test_audio_channel_handler.cpp` — Audio stream handlers
-- `tests/test_sensor_channel_handler.cpp` — Sensor (GPS, night mode)
-- `tests/test_aa_orchestrator.cpp` — AA session lifecycle
-- `tests/test_service_discovery_builder.cpp` — Capability advertisement
-- `libs/open-androidauto/tests/test_control_channel.cpp` — Version/SSL/service discovery
-- `libs/open-androidauto/tests/test_session_fsm.cpp` — Connection state machine
-- `libs/open-androidauto/tests/test_messenger.cpp` — Message routing
-
----
-
-## Debug Workflows
-
-### Workflow: "Something broke, where do I start?"
-
-1. **Is the app actually running?**
-   ```bash
-   ssh matt@192.168.1.149 'pgrep -f openauto-prodigy'
-   ssh matt@192.168.1.149 'ps -o pid,lstart,cmd -p $(pgrep -f openauto-prodigy)'
-   ```
-
-2. **What's on screen right now?**
-   ```bash
-   ssh matt@192.168.1.149 'WAYLAND_DISPLAY=wayland-0 XDG_RUNTIME_DIR=/run/user/1000 grim /tmp/screenshot.png' && scp matt@192.168.1.149:/tmp/screenshot.png /tmp/
-   ```
-
-3. **Are you looking at current logs?**
-   ```bash
-   ssh matt@192.168.1.149 'ls -la /tmp/oap.log /tmp/oap-protocol.log'
-   ssh matt@192.168.1.149 'tail -50 /tmp/oap.log'
-   ```
-
-4. **Check protocol log (if session attempted):**
-   ```bash
-   ssh matt@192.168.1.149 'cat /tmp/oap-protocol.log'
-   ```
-
-5. **Check phone logcat (AA-filtered):**
-   ```bash
-   ./platform-tools/adb logcat -d | grep -E 'CAR\.|GH\.|WIRELESS|PROJECTION|WPP' | tail -50
-   ```
-
-6. **If needed, do a full capture** — pull `pi-protocol.log`, the journal, and logcat manually (the capture.sh log-collection steps above are still valid).
-
-### Workflow: "I changed code, now test it"
-
-1. **Build locally (sanity check):**
-   ```bash
-   cd build && cmake --build . -j$(nproc) && ctest --output-on-failure
-   ```
-
-2. **Deploy to Pi (source only, never binaries):**
-   ```bash
-   rsync -avz --relative src/ qml/ libs/open-androidauto/ CMakeLists.txt \
-       matt@192.168.1.149:/home/matt/openauto-prodigy/
-   ```
-   **WARNING:** Never rsync `libs/open-androidauto/build/` — x86 .so files will overwrite ARM64 builds.
-
-3. **Build on Pi:**
-   ```bash
-   ssh matt@192.168.1.149 'cd /home/matt/openauto-prodigy/build && cmake --build . -j3'
-   ```
-
-4. **If CMake doesn't detect changes:** Touch changed files with future timestamps:
-   ```bash
-   ssh matt@192.168.1.149 'touch -t 203001010000 /home/matt/openauto-prodigy/src/path/to/changed/file.cpp'
-   ```
-
-5. **Restart the app:**
-   ```bash
-   ssh matt@192.168.1.149 '~/openauto-prodigy/restart.sh'
-   # If process is stuck, use --force-kill
-   ```
-
-6. **Reconnect phone** — Pi BT disconnect + phone WiFi toggle, then let auto-reconnect run (the reconnect.sh sequence above, done manually).
-
-### Workflow: "I need a screenshot of the Pi display"
+The installer also creates `openauto-system.service`, which owns privileged
+network and Bluetooth operations. Include it when failures involve the AP,
+BlueZ, or configuration application:
 
 ```bash
-ssh matt@192.168.1.149 'WAYLAND_DISPLAY=wayland-0 XDG_RUNTIME_DIR=/run/user/1000 grim /tmp/screenshot.png'
-scp matt@192.168.1.149:/tmp/screenshot.png /tmp/pi-screenshot.png
+systemctl status openauto-system.service hostapd.service \
+  systemd-networkd.service bluetooth.service --no-pager
+journalctl -u openauto-system.service -n 200 --no-pager
+sudo openauto-preflight --check-only
 ```
 
----
+### Protocol capture
 
-## Failure Mode Playbooks
+Protocol capture is built into the current AA runtime. Enable it in
+`~/.openauto/config.yaml` before starting a new session:
 
-> **Step 0 for ALL failure modes:** Confirm the app is running and visible first (`systemctl status openauto-prodigy` + a screenshot — see the workflows above).
+```yaml
+connection:
+  protocol_capture:
+    enabled: true
+    format: jsonl
+    include_media: false
+    path: /tmp/oaa-protocol-capture.jsonl
+```
 
-### Session Establishment Failures
+Supported formats are `jsonl` and `tsv`. JSONL records elapsed milliseconds,
+direction, channel and message identifiers, a resolved message name, and the
+payload as hexadecimal. TSV uses a compact preview intended for reading in a
+terminal.
 
-**Symptom:** Phone never connects to AA. No protocol log entries. App running but idle.
+Capture attaches when the TCP session is created and truncates the configured
+file when a new session starts. Copy a useful capture before reconnecting.
+Leave `include_media` false for handshake work; enabling it records media
+payloads, grows quickly, and may retain sensitive projected content. Disable
+capture again after collecting the evidence you need.
 
-**Check BT pairing:**
+Confirm activation and inspect the configured output:
+
 ```bash
-# Find paired phone (don't hardcode MAC — BT MACs randomize)
-ssh matt@192.168.1.149 'bluetoothctl devices Paired'
-
-# Check specific device info
-ssh matt@192.168.1.149 'bluetoothctl info <PHONE_MAC>'
+journalctl -u openauto-prodigy.service -b --no-pager | grep 'Protocol capture'
+less /tmp/oaa-protocol-capture.jsonl
 ```
-- Look for `Paired: yes`, `Connected: yes`
-- If not paired: `bluetoothctl pair <PHONE_MAC>`
-- If "key-missing" error: phone BT MAC changed (randomization, factory reset). Remove old pairing and re-pair.
 
-**Check WiFi AP:**
+### Tests and protocol tools
+
+Use an out-of-repository build directory:
+
 ```bash
-ssh matt@192.168.1.149 'ip addr show wlan0'
+cmake -S . -B ~/builds/openauto-prodigy
+cmake --build ~/builds/openauto-prodigy -j$(nproc)
+cmake --build ~/builds/openauto-prodigy --target openauto-prodigy -j$(nproc)
+cd ~/builds/openauto-prodigy && ctest --output-on-failure
 ```
-- Must show `10.0.0.1` — if missing, `wlan0` IP didn't survive reboot
-- Check hostapd: `ssh matt@192.168.1.149 'systemctl status hostapd'`
-- WiFi SSID/password in app config must match `hostapd.conf` exactly
 
-**Check RFCOMM listener:**
+Relevant coverage includes the AA orchestrator, runtime bridge, service
+discovery, channel handlers, touch routing, video decode queue, and
+`tests/test_oaa_integration.cpp`. Library-level session, transport, messenger,
+capture, and handler tests live under `libs/prodigy-oaa-protocol/tests/` and are
+registered by the normal CMake build.
+
+For schema exploration:
+
 ```bash
-ssh matt@192.168.1.149 'ss -tlnp | grep openauto'
+python3 tools/aa_proto_graph.py
+python3 -m pytest tools/
 ```
-- App needs ~8s after launch to register RFCOMM listener
-- If no listener: check app log for BT initialization errors
 
-**Check phone side:**
-- Phone Settings → Connected devices → Connection preferences → Android Auto
-- Should show "OpenAutoProdigy — Wireless Android Auto available"
-- If not listed: phone hasn't discovered the Pi via BT. Check BT pairing.
+The graph script refreshes the tracked machine-readable graph and generates an
+untracked Markdown catalog under `docs/aa-protocol/`. Proto validation tools
+are described in [tools/README.md](../../tools/README.md).
 
-### Post-Handshake Stalls
+## Debug workflows
 
-**Symptom:** Protocol log shows VERSION → TLS → AUTH → SERVICE_DISCOVERY, channels open, but phone won't start video projection.
+### Something broke: first pass
 
-This was a **known blocker under the old aasdk stack** (as of 2026-02-23). The phone entered `STATE_WAITING_FOR_USER_AUTHORIZATION` and never progressed. Status under open-androidauto is unknown — needs revalidation.
+1. Check `openauto-prodigy.service` and the current boot's journal.
+2. Run `sudo openauto-preflight --check-only` to validate radio state, the
+   Wayland socket, and the BlueZ SDP socket.
+3. Confirm `hostapd`, `systemd-networkd`, and `bluetooth` are active.
+4. Confirm the configured AA TCP listener. The default is `5277`, but
+   `connection.tcp_port` is authoritative:
 
-**What to check in protocol log:**
-1. All 9 channels should open (3,4,5,6,1,2,8,14,7)
-2. `AV_SETUP_REQUEST` should arrive for video/audio channels
-3. `AV_SETUP_RESPONSE` should be sent for each
-4. `SENSOR_START_REQUEST` × 3 should arrive and be responded to
-5. `INPUT_BINDING_REQUEST` should arrive
-6. Pings should be flowing (session alive)
+   ```bash
+   ss -tlnp | grep 5277
+   ```
 
-**What to check in phone logcat:**
+5. Follow the journal while initiating a connection. A healthy wireless path
+   progresses through RFCOMM/SDP discovery, WiFi credential exchange, a TCP
+   connection, protocol negotiation, service discovery, and an active session.
+6. If journal evidence is insufficient, enable protocol capture for one clean
+   reproduction and collect phone logcat over the same interval.
+
+### Collect a bounded reproduction
+
+Before reproducing, note the app version and clear only the evidence stream you
+control. Do not delete the phone pairing unless first-pair behavior is the
+subject of the test.
+
 ```bash
-./platform-tools/adb logcat -d | grep -E 'AUTHORIZATION|WirelessStartup|FirstActivity|consent'
+adb logcat -c
+journalctl -u openauto-prodigy.service -f
 ```
-- `STATE_WAITING_FOR_USER_AUTHORIZATION` — phone waiting for user to accept
-- `AUTHORIZATION_COMPLETE` — fires but setup may tear down anyway
-- `sendSensorRequest timed-out` — likely symptom, not cause
-- No consent dialog appearing = the phone's AA UI never fully launches
 
-**Known observations (from aasdk era — revalidate):**
-- Phone "Connected vehicles" page shows: Accepted=None, Rejected=None
-- `WirelessStartupActivity` and `FirstActivityImpl` launch then immediately self-destruct
-- Phone shows "Connecting to Android Auto" notification indefinitely
+Run the manual sequence in
+[Testing Android Auto Disconnect and Reconnect](../how-to/testing-reconnect.md).
+That guide is the canonical reconnect procedure; keep reconnection mechanics
+there instead of duplicating them in protocol investigations.
 
-### Video Issues
+After the reproduction:
 
-**Symptom:** AA session active (pings flowing) but no video on display.
-
-**Black screen — check decoder pixel format:**
-- Some phones output `AV_PIX_FMT_YUVJ420P` (fmt=12) instead of `AV_PIX_FMT_YUV420P` (fmt=0)
-- Must accept both formats or frames are silently discarded
-- Moto G Play 2024 → YUVJ420P; Samsung S25 Ultra → YUV420P
-
-**No video frames at all:**
-1. Check `VIDEO_FOCUS_INDICATION(FOCUSED)` was sent after `AV_SETUP_RESPONSE`
-2. Check `max_unacked` in video flow control (should be ≥10)
-3. Check protocol log for `AV_MEDIA_INDICATION` on channel 3 (video)
-4. Verify video resolution config: 720p is default, 1080p works but may need more CPU
-
-**Choppy/stuttering video:**
-- FFmpeg `thread_count` must be 1 for real-time AA decode — `thread_count=2` causes internal buffering that breaks small P-frame phones
-- Check Pi CPU usage: `ssh matt@192.168.1.149 'top -bn1 | head -5'`
-
-**Video focus gotcha:**
-- Phone aggressively re-requests `VIDEO_FOCUS_INDICATION(FOCUSED)`
-- Sending `UNFOCUSED` is treated as an exit signal — don't suppress focus requests
-
-### Audio Issues
-
-**Symptom:** AA active with video but no sound, or choppy audio.
-
-**Check PipeWire on Pi:**
 ```bash
-ssh matt@192.168.1.149 'pw-cli ls Node'        # list audio nodes
-ssh matt@192.168.1.149 'wpctl status'            # WirePlumber status
+journalctl -u openauto-prodigy.service --since '10 minutes ago' --no-pager \
+  > app-journal.log
+adb logcat -d > phone-logcat.log
 ```
 
-**Check audio device config:**
-- App config must specify valid PipeWire device
-- "Default" device label shows first registry device, not PipeWire's actual default
-- Audio device switching requires app restart
+Copy the configured protocol-capture file before starting another session.
+Record the configuration values that affect the result, especially TCP port,
+WiFi interface, video resolution/codecs, Navbar placement, touch device, and
+capture media policy.
 
-**Choppy audio:**
-- PipeWire `d.chunk->size` must report actual bytes read, not `maxSize` with zero-fill
-- Check ring buffer utilization in audio service
+### Build and deploy a change
 
-**Audio channels:**
-| Channel | Content | Sample Rate |
-|---------|---------|-------------|
-| 4 | Media (music) | 48kHz stereo |
-| 5 | Speech (TTS nav) | 48kHz mono (was 16kHz, upgraded in probe-2) |
-| 6 | System sounds | 16kHz mono |
-| 7 | Microphone input | ≥16kHz mono (HU → phone) |
+Run the local build, explicit app-target build, and tests first. Then build the
+Pi binary through the supported Docker cross-build path:
 
-### Touch Issues
-
-**Symptom:** Touch doesn't work during AA, or touches land in wrong place.
-
-**EVIOCGRAB state:**
-- During AA: evdev device should be grabbed (touch routed to AA, not Wayland)
-- When AA disconnects: ungrab must happen (return touch to Wayland/libinput)
-- Permanent grab = launcher UI unresponsive
-- Check app log for EVIOCGRAB/UNGRAB messages around AA connect/disconnect
-
-**Touch misalignment:**
-- `touch_screen_config` MUST be set to video resolution (1280x720), NOT display resolution (1024x600)
-- Touch coordinates are sent in video resolution space
-- Evdev range is 0-4095, mapped to 1280x720
-
-**Touch device not found:**
-- App scans for `INPUT_PROP_DIRECT` devices on startup
-- DFRobot USB Multi Touch: vendor 3343:5710, 10 points, MT Type B
-- Check: `ssh matt@192.168.1.149 'cat /proc/bus/input/devices'`
-
-**Sidebar touch during AA:**
-- QML MouseAreas don't work during EVIOCGRAB — visual only
-- Sidebar touch handled via evdev hit zones in `EvdevTouchReader`
-- Sidebar config changes require app restart (margins locked at AA session start)
-
-### App Crash / Restart Issues
-
-**Symptom:** App crashes or won't restart cleanly.
-
-**Port bind failure after restart:**
-- TCP sockets may not set `SOCK_CLOEXEC` — forked processes (e.g. QProcess::startDetached for restart) inherit the acceptor FD, preventing port rebind
-- Fix: `fcntl(fd, F_SETFD, FD_CLOEXEC)` after socket open
-- Or: `SO_REUSEADDR` must be set before bind (not after)
-
-**Plugin view crash:**
-- Calling `PluginModel.setActivePlugin("")` from within a plugin's own QML view crashes
-- The click handler is still on the stack when the view is destroyed
-- Fix: wrap in `Qt.callLater(function() { ... })`
-
-**Phone won't reconnect after restart:**
-- Phone doesn't cleanly reconnect after app restart
-- User must manually cycle BT/WiFi on phone
-- TODO: Find reliable method to drop/re-establish AA connection on phone side
-
-**`pkill` silently fails:**
-- Process names >15 chars truncated in procfs
-- Must use `pkill -f 'build/src/openauto-prodigy'` (full command match)
-
----
-
-## Protocol Logger Reference
-
-The ProtocolLogger hooks into the Messenger layer and logs every protobuf message exchanged.
-
-**Output location:** `/tmp/oap-protocol.log`
-
-**Format:** TSV (tab-separated values)
-```
-TIME    SOURCE          CHANNEL    MESSAGE              PAYLOAD
-0.000   HU->Phone       0          VERSION_REQUEST      major=1 minor=7
-0.015   Phone->HU       0          VERSION_RESPONSE     major=1 minor=7 status=MATCH
-...
-```
-
-**Fields:**
-- `TIME` — seconds since session start (float)
-- `SOURCE` — `HU->Phone` or `Phone->HU`
-- `CHANNEL` — channel ID (0-14)
-- `MESSAGE` — human-readable message name
-- `PAYLOAD` — protobuf summary (truncated to 500 chars for AV data)
-
-**Key messages to look for:**
-- `VERSION_REQUEST/RESPONSE` — protocol version negotiation
-- `SSL_HANDSHAKE` — TLS setup (multiple rounds)
-- `AUTH_COMPLETE` — authentication done
-- `SERVICE_DISCOVERY_REQUEST/RESPONSE` — capability exchange
-- `CHANNEL_OPEN_REQUEST/RESPONSE` — per-channel setup
-- `AV_SETUP_REQUEST/RESPONSE` — audio/video stream config
-- `VIDEO_FOCUS_INDICATION` — video projection state
-- `PING_REQUEST/RESPONSE` — keepalive (should be regular)
-- `SHUTDOWN_REQUEST/RESPONSE` — graceful disconnect
-
----
-
-## Phone-Side Debug Quick Reference
-
-Full details in `docs/aa-protocol/aa-phone-side-debug.md`. Key points:
-
-**Enable AA Developer Settings:**
-1. Phone Settings → Apps → Android Auto
-2. Tap version number 10 times
-3. Three-dot menu → Developer Settings appears
-
-**Useful dev toggles:**
-- Force debug logging (verbose protocol logs)
-- Save video/audio/mic capture to disk
-- Audio codec selector (PCM vs AAC-LC)
-
-**Key logcat tags:**
-
-| Tag | What it shows |
-|-----|---------------|
-| `CAR.GAL.LITE` | Core protocol (GAL) |
-| `CAR.BT.LITE` | Bluetooth state |
-| `GH.WPP.CONN` / `GH.WPP.TCP` | WiFi Projection Protocol |
-| `GH.WIRELESS.SETUP` | Wireless setup state machine |
-| `GH.ConnLoggerV2` | Session event timeline |
-| `GH.CarClientManager` | Car client lifecycle |
-
-**Phone AA processes:**
-- `:projection` — main projection UI
-- `:car` — protocol engine
-- `:shared` — shared services
-- `:watchdog` — health monitoring
-- `:provider` — content provider
-
-**Filtering:**
 ```bash
-# Live AA-only logcat
-./platform-tools/adb logcat | grep -E 'CAR\.|GH\.|WIRELESS|PROJECTION|WPP'
-
-# Dump and filter
-./platform-tools/adb logcat -d | grep -E 'CAR\.|GH\.|WIRELESS|PROJECTION|WPP'
-
-# Clear before test
-./platform-tools/adb logcat -c
+./cross-build.sh
 ```
 
----
+Deploy the cross-built binary. Set deployment-specific values in the shell
+instead of embedding a personal account or address in commands:
 
-## Capture Data Index
+```bash
+PI_TARGET="user@pi-host"
+PI_APP_DIR="/path/to/openauto-prodigy"
+rsync -av build-pi/src/openauto-prodigy \
+  "$PI_TARGET:$PI_APP_DIR/build/src/"
+ssh "$PI_TARGET" 'sudo systemctl restart openauto-prodigy.service'
+ssh "$PI_TARGET" 'systemctl status openauto-prodigy.service --no-pager'
+```
 
-**HISTORICAL — captured under old aasdk stack.** Protocol behavior at the wire level should still be valid, but Pi-side log formats and message names may differ from the new open-androidauto stack.
+QML is compiled into the application binary. A QML change therefore requires
+the same cross-build and binary deployment; syncing QML source or pulling the
+repository on the Pi does not update the running UI.
 
-All captures in `Testing/captures/`. Each directory contains:
-- `pi-protocol.log` — TSV protocol messages
-- `phone-logcat-raw.log` — Full logcat
-- `phone-logcat.log` — AA-filtered logcat
-- `findings.md` (probes only) — Observations and conclusions
-- `timeline.md` (if merged) — Chronological merged view
+## Failure-mode playbooks
 
-| Capture | Date | What Was Tested | Outcome |
-|---------|------|-----------------|---------|
-| `baseline/` | 2026-02-23 | Normal AA session reference | 49 Pi msgs, full session lifecycle captured |
-| `probe-1-version-bump/` | 2026-02-23 | Protocol v1.7 negotiation | Phone responds v1.7, stores HU version |
-| `probe-2-48khz-speech/` | 2026-02-23 | 48kHz speech audio | Works — frame size doubles, phone captures at 48kHz |
-| `probe-3-night-mode/` | 2026-02-23 | Night mode sensor push | Phone correctly reads sensor event |
-| `probe-4-palette-v2/` | 2026-02-23 | Material You (theme v2) | **BLOCKED** — field number undiscovered |
-| `probe-5-8-hideclock-sensors/` | 2026-02-23 | hide_clock + COMPASS/ACCEL/GYRO | hide_clock dead; phone requests COMPASS+ACCEL, ignores GYRO |
-| `probe-6-alarm-audio/` | 2026-02-23 | ALARM audio channel | Can't test — channel ID undocumented |
-| `probe-7-1080p/` | 2026-02-23 | 1920x1080 video | Works — phone renders full res, triggers xlrg layout |
+### Session never starts
 
----
+Symptoms include no TCP connection, no protocol-capture entries, or an app that
+remains in its waiting state.
 
-## Deployment Checklist
+Check the layers in order:
 
-Before testing changes on Pi:
+1. **App:** the service is active and the configured TCP port is listening.
+2. **BlueZ:** `bluetoothctl show` reports a powered adapter; the journal shows
+   the RFCOMM listener and successful AA SDP registration. An SDP error usually
+   means BlueZ is not using compatibility mode or `/var/run/sdp` is unavailable
+   to the service account.
+3. **Pairing:** `bluetoothctl devices` lists the phone and
+   `bluetoothctl info <phone-address>` reports the expected paired state. Use
+   the actual address reported by BlueZ rather than documenting one.
+4. **AP:** `hostapd` and `systemd-networkd` are active, the selected interface
+   has the AP address, and the live hostapd credentials match those advertised
+   by the app. The app synchronizes SSID/password from the live hostapd file at
+   startup.
+5. **Phone:** wireless Android Auto is enabled and the paired car appears in
+   Android Auto settings.
 
-- [ ] Local build passes (`cmake --build . -j$(nproc)`)
-- [ ] Unit tests pass (`ctest --output-on-failure`) — expect 1 known failure in `test_tcp_transport`
-- [ ] Rsync **source files only** (never `build/` or `.so` files from x86)
-- [ ] Pi build succeeds (`cmake --build . -j3` on Pi)
-- [ ] Old app instance killed before launching new one
-- [ ] 8s wait after launch before attempting BT connect (RFCOMM registration time)
-- [ ] WiFi AP up (`ip addr show wlan0` shows 10.0.0.1)
-- [ ] Phone BT paired and discoverable
+Useful journal milestones include `RFCOMM listening`, `SDP service registered`,
+`Phone connected via BT`, `Phone connected to WiFi`, `TCP listener started`,
+and `Wireless AA connection`.
 
----
+### Negotiation or service-discovery stall
 
-## Notes & Observations
+A session that reaches TCP but never becomes active should progress through:
 
-*This section is for observations, hunches, and things noticed during testing that aren't captured elsewhere. Add freely.*
+1. version request/response;
+2. TLS handshake and authentication completion;
+3. service-discovery request/response;
+4. channel-open request/response for advertised services;
+5. AV setup/start, input binding, and sensor requests as needed;
+6. regular ping traffic once active.
 
-### Authorization State Issue (2026-02-23, aasdk era — needs revalidation)
+Use a capture with media excluded to find the first missing response. Compare
+that timestamp with phone logcat. Do not infer a certificate, consent, or
+authorization defect solely from a later phone timeout; identify the last
+request and response visible on both sides first.
 
-Under the old aasdk stack, the phone completed the entire handshake (VERSION → TLS → AUTH → SERVICE_DISCOVERY → all channels open → AV setup → sensors → input binding → WiFi credentials → pings flowing) but entered `STATE_WAITING_FOR_USER_AUTHORIZATION` and never progressed to video projection.
+Unhandled channel traffic is reported in the app journal with an
+`[AA:unhandled]` prefix and a payload preview. Preserve that evidence and map it
+against the generated protocol catalog before proposing a schema change. The
+community proto submodule remains hands-off.
 
-**What we observed (aasdk stack):**
-- `AUTHORIZATION_COMPLETE` fires in logcat, but BT FSM enters auth-wait state AFTER
-- `WirelessStartupActivity` and `FirstActivityImpl` launch then immediately self-destruct
-- No consent dialog ever appears for user to tap Accept
-- Phone "Connected vehicles" shows: Accepted=None, Rejected=None
-- `sendSensorRequest timed-out` × 3 in phone logcat (likely symptom, not cause)
+### Video is absent, black, or unstable
 
-**Protocol fixes applied during aasdk Pi validation:**
-- MessageType: ch0 → Specific(0x00), non-zero → Control(0x04)
-- AASession: auto-respond audio/nav focus, intercept CHANNEL_OPEN_REQUEST on non-zero channels
-- VideoChannelHandler: VIDEO_FOCUS_INDICATION(FOCUSED) after AV_SETUP_RESPONSE, max_unacked=10
-- TCPTransport: hex dump logging for writes
+First separate channel setup from decode/display:
 
-**Open questions (carry forward to open-androidauto testing):**
-- Is this a cert/identity issue? Phone may not trust the HU certificate.
-- Is the phone expecting something in SERVICE_DISCOVERY_RESPONSE that we're not providing?
-- Could this be an Android version-specific behavior? (Test phone: Moto G Play 2024, Android 14)
-- Does DHU (Desktop Head Unit, `extras/google/auto/desktop-head-unit`, USB-only) exhibit the same state machine? Worth comparing.
+- No `AV_SETUP_REQUEST`, `AV_START_INDICATION`, or video media messages points
+  to session/channel setup rather than FFmpeg.
+- Media messages with no `First frame decoded` entry point to codec/parser or
+  decoder selection.
+- Decoded frames with no visible projection point to the video sink, focus, or
+  QML presentation path.
 
----
+The shipped service discovery advertises the configured landscape mode and
+enabled codecs. The current decode path supports H.264/AVC and H.265/HEVC,
+auto-detects the incoming stream, attempts configured/hardware decoders, and
+falls back to software when possible. Check journal entries for the selected
+decoder, codec switching, first packet, parse/send/receive errors, and first
+decoded frame.
 
-*Last updated: 2026-02-23*
+Protocol details that remain important:
+
+- SPS/PPS configuration can arrive in `AV_MEDIA_INDICATION` without a
+  timestamp and must reach the decoder.
+- Encoded data already contains Annex B start codes; adding another prefix
+  corrupts the stream.
+- Both `AV_PIX_FMT_YUV420P` and `AV_PIX_FMT_YUVJ420P` are accepted.
+- FFmpeg decode stays single-threaded to avoid latency from internal frame
+  buffering.
+- Video focus requests must receive a projected/unprojected response that
+  matches the current UI state.
+
+Use `video.resolution`, `video.codecs`, and `video.decoder.*` configuration to
+test deliberate variants. Do not substitute the physical display dimensions
+for the negotiated video mode.
+
+### Audio is absent or choppy
+
+Check PipeWire and WirePlumber before changing AA protocol behavior:
+
+```bash
+wpctl status
+pw-cli ls Node
+journalctl -u openauto-prodigy.service -b --no-pager | grep -E 'PipeWire|Audio|audio'
+```
+
+The advertised playback streams are media at 48 kHz stereo, speech/navigation
+at 48 kHz mono, and system sounds at 16 kHz mono. The microphone input stream is
+16 kHz mono. Confirm AV setup/start for the affected channel, the selected
+PipeWire device, focus changes, and buffer-pressure logs.
+
+For stutter, distinguish missing input packets from playback underruns. The
+playback callback must publish the full requested PipeWire period and
+silence-fill any gap; a protocol capture with media enabled can establish
+whether packet delivery itself is discontinuous, but enable it only for a
+short, controlled reproduction.
+
+### Touch is absent or misaligned
+
+The Pi touch path reads a Linux evdev multi-touch device directly. It
+auto-detects a direct-input device unless `touch.device` is set. During an AA
+session the device is grabbed so events route to AA; on disconnect it is
+released to Wayland/libinput.
+
+Check the journal for the detected device, raw axis range, display viewport,
+advertised content dimensions, Navbar zone, and computed evdev mapping. The AA
+coordinate space is the advertised `touch_screen_config` content area: the
+configured video mode minus declared margins. It is not necessarily the full
+encoded frame or the physical display size.
+
+If the launcher loses touch after disconnect, check for the ungrab message. If
+the Navbar is visible during AA, its touch is handled by evdev zones registered
+through the runtime bridge; QML pointer handlers do not receive Pi touch while
+the device is grabbed.
+
+Useful device checks:
+
+```bash
+cat /proc/bus/input/devices
+ls -l /dev/input/event*
+```
+
+The service account must belong to the `input` group.
+
+### Crash, restart, or stale connection
+
+Use systemd for normal restart and inspect the result immediately:
+
+```bash
+sudo systemctl restart openauto-prodigy.service
+systemctl status openauto-prodigy.service --no-pager
+journalctl -u openauto-prodigy.service -n 200 --no-pager
+```
+
+If the AA port cannot bind, use `ss -tlnp` to identify the owner. The current
+listener sets close-on-exec and configures address reuse before bind, so a
+repeatable ownership leak is a regression worth capturing rather than a reason
+to normalize force-killing processes.
+
+If the app exits under watchdog supervision, inspect the lines preceding the
+restart for Qt fatal messages, decoder errors, PipeWire teardown, TCP watchdog
+backoff, or session timeout. Follow the canonical reconnect guide after the
+service is stable; deleting pairing data changes the failure being tested.
+
+## Phone-side quick reference
+
+Enable Android Auto developer settings from the Android Auto app's version
+screen, then enable verbose/debug logging for the reproduction. Menu wording
+and available capture toggles vary by Android Auto release.
+
+Commonly useful logcat filters include core car protocol, wireless setup, WPP,
+projection, and Bluetooth tags:
+
+```bash
+adb logcat | grep -E 'CAR\.|GH\.|WIRELESS|PROJECTION|WPP'
+adb logcat -d | grep -E 'CAR\.|GH\.|WIRELESS|PROJECTION|WPP'
+```
+
+Correlate phone events with the Pi journal and protocol capture by recording a
+clear test start time and one reconnect attempt. Avoid treating process names,
+tag spelling, or UI labels observed on one phone release as a stable protocol
+contract.
+
+## Deployment checklist
+
+Before a Pi validation pass:
+
+- [ ] Local build completes in the external build directory.
+- [ ] The explicit `openauto-prodigy` app target builds.
+- [ ] `ctest --output-on-failure` is green; no failure is assumed or waived.
+- [ ] `./cross-build.sh` produces the Pi application binary.
+- [ ] The cross-built binary is synced to the selected Pi install directory.
+- [ ] `openauto-prodigy.service` restarts and remains active.
+- [ ] QML changes are present through the rebuilt binary, not a source sync.
+- [ ] Pre-flight, AP, networkd, and Bluetooth services are healthy.
+- [ ] The test configuration and capture policy are recorded.
+- [ ] Reconnect follows the canonical guide and preserves pairing unless the
+      test explicitly concerns pairing.
+
+## Investigation discipline
+
+- Keep implementation evidence, phone evidence, and hypotheses separate.
+- Record the last successful protocol transition before diagnosing a later
+  symptom.
+- Prefer named configuration keys and observed service state over fixed ports,
+  interfaces, addresses, or device identifiers.
+- Never edit `libs/prodigy-oaa-protocol/proto/` in this repository. Record a
+  required community protocol change for the upstream submodule instead.
+- Do not turn a one-phone observation into a universal AA requirement without
+  another capture or implementation-level proof.
