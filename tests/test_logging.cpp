@@ -1,6 +1,66 @@
 #include <QtTest>
 #include "core/Logging.hpp"
 
+#include <cstdio>
+#include <unistd.h>
+
+namespace {
+
+class StderrCapture
+{
+public:
+    StderrCapture()
+        : file_(tmpfile())
+    {
+        fflush(stderr);
+        savedFd_ = dup(fileno(stderr));
+        if (file_ && savedFd_ >= 0)
+            dup2(fileno(file_), fileno(stderr));
+    }
+
+    ~StderrCapture()
+    {
+        fflush(stderr);
+        if (savedFd_ >= 0) {
+            dup2(savedFd_, fileno(stderr));
+            close(savedFd_);
+        }
+        if (file_)
+            fclose(file_);
+    }
+
+    QByteArray output()
+    {
+        QByteArray result;
+        if (!file_)
+            return result;
+
+        fflush(stderr);
+        rewind(file_);
+        char buffer[256];
+        while (const size_t read = fread(buffer, 1, sizeof(buffer), file_))
+            result.append(buffer, static_cast<qsizetype>(read));
+        return result;
+    }
+
+private:
+    int savedFd_{-1};
+    FILE* file_{nullptr};
+};
+
+QByteArray emitLibraryMessage(QLoggingCategory& category, QtMsgType type,
+                              const QString& marker)
+{
+    StderrCapture capture;
+    if (type == QtDebugMsg)
+        qCDebug(category).noquote() << marker;
+    else
+        qCInfo(category).noquote() << marker;
+    return capture.output();
+}
+
+} // namespace
+
 class TestLogging : public QObject
 {
     Q_OBJECT
@@ -19,6 +79,7 @@ private slots:
     // Selective category enabling
     void testSetDebugCategoriesSelective();
     void testSetDebugCategoriesAaEnablesLibrary();
+    void testLibraryOutputHandlerPolicy();
     void testInvalidDebugCategoriesAreIgnored();
     void testApplyLoggingPolicyRestoresSelectiveCategories();
 
@@ -30,6 +91,7 @@ private slots:
     void testLibraryDetectionNewTags();
     void testNonLibraryMessage();
 
+    void cleanup();
     void cleanupTestCase();
 };
 
@@ -121,6 +183,35 @@ void TestLogging::testSetDebugCategoriesAaEnablesLibrary()
     QVERIFY(testOaa.isDebugEnabled());
 }
 
+void TestLogging::testLibraryOutputHandlerPolicy()
+{
+    QLoggingCategory libraryCategory("oaa.logging-test", QtInfoMsg);
+    const QString suppressedMarker = QStringLiteral("library-output-suppressed-without-aa");
+    const QString selectiveDebugMarker = QStringLiteral("library-debug-output-with-aa");
+    const QString selectiveInfoMarker = QStringLiteral("library-info-output-with-aa");
+    const QString verboseMarker = QStringLiteral("library-output-with-global-verbose");
+
+    oap::setDebugCategories({"bt"});
+    QVERIFY(!oap::isVerbose());
+    QVERIFY(!libraryCategory.isDebugEnabled());
+    QVERIFY(!emitLibraryMessage(libraryCategory, QtInfoMsg, suppressedMarker)
+                 .contains(suppressedMarker.toUtf8()));
+
+    oap::setDebugCategories({"aa"});
+    QVERIFY(!oap::isVerbose());
+    QVERIFY(libraryCategory.isDebugEnabled());
+    QVERIFY(!lcBT().isDebugEnabled());
+    QVERIFY(emitLibraryMessage(libraryCategory, QtDebugMsg, selectiveDebugMarker)
+                 .contains(selectiveDebugMarker.toUtf8()));
+    QVERIFY(emitLibraryMessage(libraryCategory, QtInfoMsg, selectiveInfoMarker)
+                 .contains(selectiveInfoMarker.toUtf8()));
+
+    oap::setVerbose(true);
+    QVERIFY(oap::isVerbose());
+    QVERIFY(emitLibraryMessage(libraryCategory, QtInfoMsg, verboseMarker)
+                 .contains(verboseMarker.toUtf8()));
+}
+
 void TestLogging::testInvalidDebugCategoriesAreIgnored()
 {
     oap::setDebugCategories({"aa", "oap.core\n*.debug=true", "oap.core"});
@@ -184,6 +275,12 @@ void TestLogging::testNonLibraryMessage()
     QVERIFY(!oap::isLibraryMessage("oap.aa", nullptr, QStringLiteral("Starting AA service")));
     QVERIFY(!oap::isLibraryMessage("default", nullptr, QStringLiteral("Application started")));
     QVERIFY(!oap::isLibraryMessage("default", "src/main.cpp", QStringLiteral("Hello")));
+}
+
+void TestLogging::cleanup()
+{
+    // Every test leaves the installed handler with quiet defaults.
+    oap::setVerbose(false);
 }
 
 void TestLogging::cleanupTestCase()
