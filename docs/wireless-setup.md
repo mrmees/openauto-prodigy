@@ -14,7 +14,8 @@ The install script (`install.sh`) handles WiFi AP configuration automatically:
 - Lets you choose which interface to use for the AP
 - Configures systemd-networkd for static IP + DHCP server
 - Writes hostapd.conf with your SSID/password
-- Sets up 5GHz (channel 36) with your country code
+- Prefers 5GHz (channel 36) when the selected adapter supports it and falls
+  back to 2.4GHz otherwise
 
 Run `bash install.sh` for the guided setup. The sections below are for manual configuration or troubleshooting.
 
@@ -35,10 +36,9 @@ interface=wlan0
 driver=nl80211
 ssid=OpenAutoProdigy
 
-# 5GHz is MANDATORY for wireless Android Auto on Pi 4/5.
-# The CYW43455 combo chip shares one antenna for WiFi and Bluetooth.
-# Running on 2.4GHz causes severe BT coexistence interference — the phone
-# can't maintain BT RFCOMM and WiFi simultaneously on the same radio band.
+# 5GHz is preferred on the Pi's combo radio to reduce WiFi/Bluetooth
+# coexistence interference. The installer detects adapter capabilities and
+# falls back to 2.4GHz when 5GHz is unavailable.
 hw_mode=a
 channel=36
 ieee80211n=1
@@ -76,6 +76,7 @@ Name=wlan0
 [Network]
 Address=10.0.0.1/24
 DHCPServer=yes
+ConfigureWithoutCarrier=yes
 
 [DHCPServer]
 PoolOffset=10
@@ -83,7 +84,8 @@ PoolSize=40
 EmitDNS=no
 ```
 
-This replaces dnsmasq — systemd-networkd has a built-in DHCP server. Enable it:
+The built-in systemd-networkd DHCP server supplies addresses to phones. Enable
+networkd:
 
 ```bash
 sudo systemctl enable systemd-networkd
@@ -110,14 +112,30 @@ to advertise during Bluetooth discovery.
 
 ## 2. Bluetooth
 
-The Pi's Bluetooth must be discoverable. OpenAuto Prodigy handles the BT RFCOMM server and SDP registration automatically — no manual bluetoothctl setup needed beyond making sure the adapter is powered on.
+The Pi's Bluetooth must be powered. OpenAuto Prodigy handles the BT RFCOMM
+server and SDP registration, but BlueZ must run in compatibility mode so its
+legacy SDP socket is available. Create
+`/etc/systemd/system/bluetooth.service.d/override.conf`:
 
-```bash
-sudo systemctl enable bluetooth
-sudo systemctl start bluetooth
+```ini
+[Service]
+ExecStart=
+ExecStart=/usr/libexec/bluetooth/bluetoothd --compat
+ExecStartPost=/bin/sh -c 'for i in 1 2 3 4 5; do [ -e /var/run/sdp ] && { chgrp bluetooth /var/run/sdp; chmod g+rw /var/run/sdp; exit 0; }; sleep 0.5; done'
 ```
 
-If the adapter isn't powering on automatically:
+Add the account that runs OpenAuto Prodigy to the `bluetooth` group, reload the
+unit, and restart BlueZ:
+
+```bash
+sudo usermod -aG bluetooth "$USER"
+sudo systemctl daemon-reload
+sudo systemctl enable bluetooth
+sudo systemctl restart bluetooth
+```
+
+Log out and back in after changing group membership. If the adapter is not
+powered after the restart:
 
 ```bash
 sudo bluetoothctl power on
@@ -139,10 +157,12 @@ connection:
     interface: "wlan0"
     ssid: "OpenAutoProdigy"
     password: "prodigy1234"
-  tcp_port: 5288
+  tcp_port: 5277
 ```
 
-The SSID and password here **must match** your hostapd configuration.
+The SSID and password here must match your hostapd configuration. At startup,
+the app reads `/etc/hostapd/hostapd.conf` and synchronizes those credentials
+into its configuration, making hostapd the operational source of truth.
 
 ## 4. Connecting
 
@@ -156,5 +176,6 @@ The SSID and password here **must match** your hostapd configuration.
 
 - **Phone doesn't see Pi:** Check `bluetoothctl show` — adapter must be powered and discoverable
 - **WiFi connection fails:** Verify hostapd is running (`systemctl status hostapd`), check channel compatibility
-- **TCP connection fails:** Ensure the app is running and port 5288 is not blocked (`ss -tlnp | grep 5288`)
+- **TCP connection fails:** Ensure the app is running and the configured port
+  is listening (`ss -tlnp | grep 5277` for the default)
 - **"Incorrect credentials" error:** SSID/password in `config.yaml` must exactly match `hostapd.conf`
