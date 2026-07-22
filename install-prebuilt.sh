@@ -50,6 +50,7 @@ require_payload() {
     local required=(
         "$PAYLOAD_DIR/build/src/openauto-prodigy"
         "$PAYLOAD_DIR/config/themes/default/theme.yaml"
+        "$PAYLOAD_DIR/config/systemd/bluetooth-compat.conf"
         "$PAYLOAD_DIR/system-service/openauto_system.py"
         "$PAYLOAD_DIR/web-config/server.py"
         "$PAYLOAD_DIR/restart.sh"
@@ -397,6 +398,24 @@ install_msbc_codec_fix() {
 }
 
 # ────────────────────────────────────────────────────
+# Step 5c: Configure Bluetooth compatibility
+# ────────────────────────────────────────────────────
+configure_bluetooth() {
+    local source="$PAYLOAD_DIR/config/systemd/bluetooth-compat.conf"
+    local destination="/etc/systemd/system/bluetooth.service.d/override.conf"
+
+    if [[ ! -f "$source" ]]; then
+        fail "Missing BlueZ compatibility asset: $source"
+        return 1
+    fi
+
+    sudo install -D -m 0644 "$source" "$destination"
+    sudo systemctl daemon-reload
+    sudo systemctl restart bluetooth
+    ok "BlueZ SDP compatibility enabled"
+}
+
+# ────────────────────────────────────────────────────
 # Step 6: Configure WiFi AP networking
 # ────────────────────────────────────────────────────
 configure_network() {
@@ -733,6 +752,7 @@ main() {
     deploy_payload
     generate_config
     install_msbc_codec_fix
+    configure_bluetooth
     configure_network
     configure_labwc
     create_service

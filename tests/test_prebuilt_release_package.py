@@ -70,6 +70,7 @@ def main() -> int:
             f"{package_root}/RELEASE.json",
             f"{package_root}/payload/build/src/openauto-prodigy",
             f"{package_root}/payload/config/themes/default/theme.yaml",
+            f"{package_root}/payload/config/systemd/bluetooth-compat.conf",
             f"{package_root}/payload/system-service/openauto_system.py",
             f"{package_root}/payload/system-service/requirements.txt",
             f"{package_root}/payload/web-config/server.py",

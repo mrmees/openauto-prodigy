@@ -1165,7 +1165,25 @@ setup_hardware() {
 }
 
 # ────────────────────────────────────────────────────
-# Step 3b: Configure WiFi AP networking
+# Step 3b: Configure Bluetooth compatibility
+# ────────────────────────────────────────────────────
+configure_bluetooth() {
+    local source="$INSTALL_DIR/config/systemd/bluetooth-compat.conf"
+    local destination="/etc/systemd/system/bluetooth.service.d/override.conf"
+
+    if [[ ! -f "$source" ]]; then
+        fail "Missing BlueZ compatibility asset: $source"
+        return 1
+    fi
+
+    sudo install -D -m 0644 "$source" "$destination"
+    sudo systemctl daemon-reload
+    sudo systemctl restart bluetooth
+    ok "BlueZ SDP compatibility enabled"
+}
+
+# ────────────────────────────────────────────────────
+# Step 3c: Configure WiFi AP networking
 # ────────────────────────────────────────────────────
 configure_network() {
     enter_interactive
@@ -1177,18 +1195,6 @@ configure_network() {
     fi
 
     # rfkill unblock moved to pre-flight script (runs on every service start)
-
-    # BlueZ needs --compat for SDP service registration (AA RFCOMM discovery)
-    local BT_OVERRIDE="/etc/systemd/system/bluetooth.service.d"
-    sudo mkdir -p "$BT_OVERRIDE"
-    sudo tee "$BT_OVERRIDE/override.conf" > /dev/null << 'BTCONF'
-[Service]
-ExecStart=
-ExecStart=/usr/libexec/bluetooth/bluetoothd --compat
-ExecStartPost=/bin/sh -c 'for i in 1 2 3 4 5; do [ -e /var/run/sdp ] && { chgrp bluetooth /var/run/sdp; chmod g+rw /var/run/sdp; exit 0; }; sleep 0.5; done'
-BTCONF
-
-    run_with_spinner "Restarting BlueZ (SDP compat)" bash -c 'sudo systemctl daemon-reload && sudo systemctl restart bluetooth'
 
     # systemd-networkd config for static IP + built-in DHCP server
     sudo mkdir -p /etc/systemd/network
@@ -1303,7 +1309,7 @@ HOSTAPD_DROPIN
 }
 
 # ────────────────────────────────────────────────────
-# Step 3c: Configure labwc for multi-touch
+# Step 3d: Configure labwc for multi-touch
 # ────────────────────────────────────────────────────
 configure_labwc() {
     local LABWC_DIR="$HOME/.config/labwc"
@@ -1333,7 +1339,7 @@ LABWC
     fi
 }
 
-# Step 3d: Suppress wf-panel-pi Bluetooth popups
+# Step 3e: Suppress wf-panel-pi Bluetooth popups
 # The panel's BT plugin shows "Connection successful" dialogs that draw over
 # the app.  The systemd service kills the panel on start and restores it on
 # clean stop, so no config changes are needed here — just log it.
@@ -2127,6 +2133,7 @@ main() {
 
     # Step 5: Network
     update_step 5 active
+    configure_bluetooth
     configure_network
     configure_labwc
     suppress_panel_notifications

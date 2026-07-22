@@ -21,11 +21,11 @@ automatically:
 
 Run `bash install.sh` and select the source-build path for that capability
 detection. The prebuilt path currently configures 5 GHz channel 36 without an
-adapter capability probe and does not install the BlueZ SDP compatibility
-drop-in or `openauto-preflight` helper. Use an adapter that supports the
-prebuilt WiFi configuration, then apply the Bluetooth steps below; use the
-manual 2.4 GHz settings when needed. The remaining sections are for manual
-configuration or troubleshooting.
+adapter capability probe and does not install the `openauto-preflight` helper.
+Both install paths install the same BlueZ SDP compatibility drop-in. Use an
+adapter that supports the prebuilt WiFi configuration, or use the manual 2.4
+GHz settings when needed. The remaining sections are for manual configuration
+or troubleshooting.
 
 ## 1. WiFi Access Point (hostapd + systemd-networkd)
 
@@ -124,6 +124,10 @@ The Pi's Bluetooth must be powered. OpenAuto Prodigy handles the BT RFCOMM
 server and SDP registration, but BlueZ must run in compatibility mode so its
 legacy SDP socket is available. Create
 `/etc/systemd/system/bluetooth.service.d/override.conf`:
+
+Both automated install paths copy this fragment from
+`config/systemd/bluetooth-compat.conf`; create it manually only when configuring
+the system without an installer.
 
 ```ini
 [Service]
