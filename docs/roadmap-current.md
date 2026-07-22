@@ -153,7 +153,13 @@ Governance: capture new ideas in `docs/wishlist.md`; only promoted items should 
 
 ## Now
 
-No promoted work is active.
+- Configuration startup contract remediation — **ACTIVE 2026-07-22**. Register
+  the logging settings already consumed by startup, settings, and IPC; preserve
+  selective debug categories through restart; reject known map/scalar YAML
+  shape conflicts through the existing corrupt-config fallback; and ensure a
+  saved default brightness reaches the selected backend once. Design and plan:
+  `docs/plans/2026-07-22-config-startup-contract-remediation-design.md` and
+  `docs/plans/2026-07-22-config-startup-contract-remediation-plan.md`.
 
 ## Later
 

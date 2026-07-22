@@ -50,7 +50,8 @@ Protocol definitions and generic reference docs are in [open-android-auto](https
 
 Active plans:
 
-None.
+- [2026-07-22-config-startup-contract-remediation-design.md](plans/2026-07-22-config-startup-contract-remediation-design.md) — ACTIVE configuration/startup contract design
+- [2026-07-22-config-startup-contract-remediation-plan.md](plans/2026-07-22-config-startup-contract-remediation-plan.md) — ACTIVE tiered implementation plan
 
 Parked plans (not current guidance):
 
