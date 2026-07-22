@@ -125,6 +125,7 @@ install_dependencies() {
 
         # WiFi AP / Bluetooth / proxy
         hostapd
+        rfkill
         bluez
         redsocks
         iptables
@@ -544,7 +545,8 @@ After=graphical.target
 Wants=openauto-system.service
 
 [Service]
-Type=simple
+Type=notify
+NotifyAccess=main
 User=$USER
 Environment=XDG_RUNTIME_DIR=/run/user/$USER_ID
 Environment=WAYLAND_DISPLAY=wayland-0

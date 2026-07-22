@@ -89,7 +89,11 @@ To list available precompiled release assets without installing:
 bash install.sh --list-prebuilt
 ```
 
-The source mode installs dependencies, builds from source, generates config, and creates systemd services.
+The source mode installs dependencies, builds from source, generates config,
+installs the canonical `restart.sh` in the checkout root, and creates systemd
+services. Both source and prebuilt application units use `Type=notify`; their
+blocking systemd start/restart jobs complete at the application's `READY=1`
+boundary.
 
 ### Prebuilt Install (RPi OS Trixie)
 

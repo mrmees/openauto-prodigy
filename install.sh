@@ -1716,6 +1716,20 @@ PREFLIGHT
 }
 
 # ────────────────────────────────────────────────────
+install_restart_helper() {
+    local SOURCE="$INSTALL_DIR/docs/pi-config/restart.sh"
+    local DESTINATION="$INSTALL_DIR/restart.sh"
+
+    if [[ ! -f "$SOURCE" ]]; then
+        fail "Canonical restart helper not found: $SOURCE"
+        return 1
+    fi
+
+    install -m 0755 "$SOURCE" "$DESTINATION"
+    ok "Restart helper installed at $DESTINATION"
+}
+
+# ────────────────────────────────────────────────────
 create_service() {
     local USER_ID
     USER_ID=$(id -u)
@@ -2155,6 +2169,7 @@ main() {
     # Step 6: Services
     update_step 6 active
     enter_interactive
+    install_restart_helper
     create_preflight_script
     create_service
     create_web_service

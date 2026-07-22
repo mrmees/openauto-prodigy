@@ -352,6 +352,125 @@ def test_hostapd() -> None:
     assert_installer_materializes_hostapd_assets(PREBUILT_INSTALLER, "PAYLOAD_DIR")
     verify_hostapd_fragments()
 
+    prebuilt_dependencies = extract_function(PREBUILT_INSTALLER, "install_dependencies")
+    with tempfile.TemporaryDirectory(prefix="oap-prebuilt-dependencies-") as tmp:
+        installed_packages = pathlib.Path(tmp) / "packages"
+        shell = f"""
+set -euo pipefail
+TEST_PACKAGES={shlex.quote(str(installed_packages))}
+info() {{ :; }}
+ok() {{ :; }}
+sudo() {{
+    if [[ "$1" == apt && "$2" == update ]]; then
+        return 0
+    fi
+    [[ "$1" == apt && "$2" == install && "$3" == -y ]]
+    printf '%s\n' "${{@:4}}" > "$TEST_PACKAGES"
+}}
+{prebuilt_dependencies}
+install_dependencies
+"""
+        result = subprocess.run(
+            ["bash", "-c", shell], cwd=REPO_ROOT, capture_output=True, text=True
+        )
+        if result.returncode != 0:
+            raise AssertionError(
+                "prebuilt dependency harness failed:\n"
+                f"{result.stdout}\n{result.stderr}"
+            )
+
+        rfkill_command = next(
+            line.split("=", 1)[1].split()[0]
+            for line in HOSTAPD_ASSET.read_text().splitlines()
+            if line.startswith("ExecStartPre=") and "rfkill" in line
+        )
+        dependency = pathlib.PurePosixPath(rfkill_command).name
+        if dependency not in installed_packages.read_text().splitlines():
+            raise AssertionError(
+                "prebuilt installer does not provide the executable required by "
+                "the canonical hostapd drop-in"
+            )
+
+
+def materialize_app_service(script: pathlib.Path) -> str:
+    function = extract_function(script, "create_service")
+    with tempfile.TemporaryDirectory(prefix="oap-app-service-") as tmp:
+        tmp_dir = pathlib.Path(tmp)
+        unit = tmp_dir / "openauto-prodigy.service"
+        systemctl_log = tmp_dir / "systemctl.log"
+        shell = f"""
+set -euo pipefail
+INSTALL_DIR=/opt/openauto-prodigy
+SERVICE_NAME=openauto-prodigy
+AUTOSTART=false
+TEST_UNIT={shlex.quote(str(unit))}
+TEST_SYSTEMCTL_LOG={shlex.quote(str(systemctl_log))}
+info() {{ :; }}
+ok() {{ :; }}
+sudo() {{
+    case "$1" in
+        tee)
+            [[ "$2" == /etc/systemd/system/openauto-prodigy.service ]]
+            /usr/bin/tee "$TEST_UNIT"
+            ;;
+        systemctl)
+            printf '%s\n' "$*" >> "$TEST_SYSTEMCTL_LOG"
+            ;;
+        *)
+            printf 'unexpected sudo command: %s\n' "$*" >&2
+            return 1
+            ;;
+    esac
+}}
+{function}
+create_service
+"""
+        result = subprocess.run(
+            ["bash", "-c", shell], cwd=REPO_ROOT, capture_output=True, text=True
+        )
+        if result.returncode != 0:
+            raise AssertionError(
+                f"{script.name} service harness failed:\n"
+                f"{result.stdout}\n{result.stderr}"
+            )
+        if systemctl_log.read_text().splitlines() != ["systemctl daemon-reload"]:
+            raise AssertionError(f"{script.name} did not reload its application unit")
+        return unit.read_text()
+
+
+def assert_source_installs_restart_helper() -> None:
+    function = extract_function(SOURCE_INSTALLER, "install_restart_helper")
+    source_main = extract_function(SOURCE_INSTALLER, "main")
+    if source_main.index("install_restart_helper") > source_main.index("create_service"):
+        raise AssertionError("source installer creates the service before its helper")
+
+    with tempfile.TemporaryDirectory(prefix="oap-source-restart-install-") as tmp:
+        install_dir = pathlib.Path(tmp) / "openauto-prodigy"
+        source = install_dir / "docs/pi-config/restart.sh"
+        destination = install_dir / "restart.sh"
+        source.parent.mkdir(parents=True)
+        shutil.copyfile(RESTART_HELPER, source)
+        shell = f"""
+set -euo pipefail
+INSTALL_DIR={shlex.quote(str(install_dir))}
+ok() {{ :; }}
+fail() {{ printf '%s\n' "$*" >&2; }}
+{function}
+install_restart_helper
+"""
+        result = subprocess.run(
+            ["bash", "-c", shell], cwd=REPO_ROOT, capture_output=True, text=True
+        )
+        if result.returncode != 0:
+            raise AssertionError(
+                "source restart-helper install harness failed:\n"
+                f"{result.stdout}\n{result.stderr}"
+            )
+        if destination.read_bytes() != RESTART_HELPER.read_bytes():
+            raise AssertionError("source installer changed the canonical helper bytes")
+        if stat.S_IMODE(destination.stat().st_mode) != 0o755:
+            raise AssertionError("source installer did not make the helper executable")
+
 
 def run_restart_helper(
     *arguments: str,
@@ -427,6 +546,15 @@ def test_restart() -> None:
         f"show {service} --property=ActiveState,SubState,MainPID,NRestarts",
     ]:
         raise AssertionError("normal restart does not stay within systemd ownership")
+
+    for script in (SOURCE_INSTALLER, PREBUILT_INSTALLER):
+        unit_lines = materialize_app_service(script).splitlines()
+        for required in ("Type=notify", "NotifyAccess=main", "Restart=on-failure"):
+            if required not in unit_lines:
+                raise AssertionError(
+                    f"{script.name} application unit is missing {required}"
+                )
+    assert_source_installs_restart_helper()
 
     with tempfile.TemporaryDirectory(prefix="oap-restart-processes-") as tmp:
         tmp_dir = pathlib.Path(tmp)

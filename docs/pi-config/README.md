@@ -17,7 +17,7 @@ inventory or copied without adapting deployment-specific values.
 | `cmdline.txt` | `/boot/firmware/cmdline.txt` | Reference boot-command-line snapshot; not installed by the project. |
 | `config.txt` | `/boot/firmware/config.txt` | Reference Pi firmware snapshot; not installed by the project. |
 | `udev-rules.txt` | `/etc/udev/rules.d/*.rules` | Reference rules collected from a deployment; not installed from this snapshot. |
-| `restart.sh` | Installed checkout root | Canonical systemd restart helper, included in prebuilt payloads. It never launches the application outside `openauto-prodigy.service`; forced upgrade recovery can terminate only a verified legacy unmanaged instance. |
+| `restart.sh` | Installed checkout root | Canonical systemd restart helper, copied by both install modes (and included in prebuilt payloads). It never launches the application outside `openauto-prodigy.service`; forced upgrade recovery can terminate only a verified legacy unmanaged instance. |
 | `openauto-prodigy.desktop` | User desktop | Example shortcut; not installed as system configuration. |
 
 The installer also generates `~/.openauto/config.yaml`. Application defaults
@@ -48,7 +48,10 @@ unit starts automatically follows the choice made during installation.
 
 ## Application restart and single-instance ownership
 
-Run `./restart.sh` for a normal graceful service restart. The
+Run `./restart.sh` for a normal graceful service restart. Both install modes
+configure the application as `Type=notify`, so the helper's blocking systemd
+start/restart returns only after the application sends its existing readiness
+notification. The
 `./restart.sh --force-kill` path queues a systemd stop job before killing the
 unit cgroup, which prevents `Restart=on-failure` from racing a replacement
 process. Once the unit is stopped, it also removes upgrade-era unmanaged
