@@ -180,7 +180,7 @@ int main(int argc, char *argv[])
     // displaced; systemd can then report this second process as a failed start
     // without two application instances contending for hardware.
     auto* ipcServer = new oap::IpcServer(&app);
-    if (!ipcServer->start()) {
+    if (!ipcServer->acquireOwnership()) {
         qCCritical(lcCore) << "Another OpenAuto Prodigy instance owns the IPC socket";
         return 1;
     }
@@ -1353,6 +1353,14 @@ int main(int argc, char *argv[])
                 break;
             }
         });
+    }
+
+    // Dependencies are complete and the event loop is about to begin. Bind the
+    // IPC socket only at this readiness boundary so callers cannot queue a
+    // request during hardware and plugin initialization.
+    if (!ipcServer->startListening()) {
+        qCCritical(lcCore) << "OpenAuto Prodigy could not start its IPC listener";
+        return 1;
     }
 
     // --- systemd integration (Type=notify + watchdog) ---

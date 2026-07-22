@@ -15,6 +15,7 @@ import uuid
 REPO_ROOT = pathlib.Path(__file__).resolve().parents[1]
 APP_HOSTAPD_ASSET = REPO_ROOT / "config/systemd/openauto-prodigy-hostapd.conf"
 HOSTAPD_ASSET = REPO_ROOT / "config/systemd/hostapd-openauto.conf"
+SKIP_RETURN_CODE = 77
 
 
 def systemctl(*args: str, check: bool = True) -> subprocess.CompletedProcess[str]:
@@ -69,9 +70,12 @@ def write_unit(path: pathlib.Path, description: str, helper: pathlib.Path) -> No
 
 def main() -> int:
     if shutil.which("systemctl") is None:
-        raise AssertionError("systemctl is required for the lifecycle test")
-    if systemctl("is-system-running", check=False).returncode not in (0, 1):
-        raise AssertionError("a running user systemd manager is required")
+        print("SKIP: systemctl is unavailable")
+        return SKIP_RETURN_CODE
+    manager_probe = systemctl("show-environment", check=False)
+    if manager_probe.returncode != 0:
+        print("SKIP: a running user systemd manager is unavailable")
+        return SKIP_RETURN_CODE
 
     runtime_dir = pathlib.Path(
         os.environ.get("XDG_RUNTIME_DIR", f"/run/user/{os.getuid()}")

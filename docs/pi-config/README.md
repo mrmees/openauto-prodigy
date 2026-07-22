@@ -17,7 +17,7 @@ inventory or copied without adapting deployment-specific values.
 | `cmdline.txt` | `/boot/firmware/cmdline.txt` | Reference boot-command-line snapshot; not installed by the project. |
 | `config.txt` | `/boot/firmware/config.txt` | Reference Pi firmware snapshot; not installed by the project. |
 | `udev-rules.txt` | `/etc/udev/rules.d/*.rules` | Reference rules collected from a deployment; not installed from this snapshot. |
-| `restart.sh` | Installed checkout root | Canonical systemd restart helper, included in prebuilt payloads. It never launches or kills the application outside `openauto-prodigy.service`. |
+| `restart.sh` | Installed checkout root | Canonical systemd restart helper, included in prebuilt payloads. It never launches the application outside `openauto-prodigy.service`; forced upgrade recovery can terminate only a verified legacy unmanaged instance. |
 | `openauto-prodigy.desktop` | User desktop | Example shortcut; not installed as system configuration. |
 
 The installer also generates `~/.openauto/config.yaml`. Application defaults
@@ -51,11 +51,15 @@ unit starts automatically follows the choice made during installation.
 Run `./restart.sh` for a normal graceful service restart. The
 `./restart.sh --force-kill` path queues a systemd stop job before killing the
 unit cgroup, which prevents `Restart=on-failure` from racing a replacement
-process; systemd then starts the unit once. `./restart.sh --check` only reports
-the unit state. Set `OAP_SERVICE_NAME` only when testing a deliberately renamed
-unit.
+process. Once the unit is stopped, it also removes upgrade-era unmanaged
+instances only when `/proc` proves an exact match to the unit's executable and
+user UID; members of the unit cgroup and same-name processes at other paths are
+excluded. Termination is bounded and revalidated before escalation, then
+systemd starts the unit once. `./restart.sh --check` only reports the unit
+state. Set `OAP_SERVICE_NAME` only when testing a deliberately renamed unit.
 
-The application acquires `/tmp/openauto-prodigy.sock` before initializing
-Bluetooth, PipeWire, Android Auto, or input resources. A second process exits
-without disturbing a live listener. A socket left behind by a terminated
-owner is recovered automatically.
+The application acquires ownership of `/tmp/openauto-prodigy.sock` before
+initializing Bluetooth, PipeWire, Android Auto, or input resources, but does
+not listen until dependencies are wired and it is ready to enter the event
+loop. A second process exits without disturbing a live listener. A lock and
+socket left behind by a terminated owner are recovered automatically.

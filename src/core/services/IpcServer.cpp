@@ -35,7 +35,7 @@ bool IpcServer::isExplicitlyStaleSocketError(QLocalSocket::LocalSocketError erro
         || error == QLocalSocket::ServerNotFoundError;
 }
 
-bool IpcServer::start(const QString& socketPath)
+bool IpcServer::acquireOwnership(const QString& socketPath)
 {
     if (server_ || ownershipLock_) return false;
 
@@ -52,43 +52,78 @@ bool IpcServer::start(const QString& socketPath)
         return false;
     }
 
+    // A pre-lock-file application can own the socket without owning this
+    // lock. Detect that legacy owner now, before the caller initializes
+    // hardware. Explicit no-listener errors are safe to defer to the later
+    // stale-path recovery; ambiguous errors fail closed and preserve the path.
+    QLocalSocket probe;
+    probe.connectToServer(socketPath);
+    if (probe.waitForConnected(250)) {
+        qCWarning(lcCore) << "IpcServer: A live legacy listener already owns"
+                          << socketPath;
+        ownershipLock_.reset();
+        return false;
+    }
+    if (!isExplicitlyStaleSocketError(probe.error())) {
+        qCWarning(lcCore) << "IpcServer: Early socket ownership probe was inconclusive for"
+                          << socketPath << "— preserving pathname; error:"
+                          << probe.errorString();
+        ownershipLock_.reset();
+        return false;
+    }
+
+    socketPath_ = socketPath;
+    qCInfo(lcCore) << "IpcServer: Acquired socket ownership for" << socketPath_;
+    return true;
+}
+
+bool IpcServer::startListening()
+{
+    if (server_ || !ownershipLock_ || socketPath_.isEmpty()) return false;
+
     server_ = new QLocalServer(this);
     server_->setSocketOptions(QLocalServer::WorldAccessOption);
 
     connect(server_, &QLocalServer::newConnection, this, &IpcServer::onNewConnection);
 
-    if (!server_->listen(socketPath)
+    if (!server_->listen(socketPath_)
         && server_->serverError() == QAbstractSocket::AddressInUseError) {
         // A pre-lock-file version of the application may still own the socket.
         // Probe it before removing anything. A refused connection means the
         // filesystem entry is genuinely stale and safe to replace.
         QLocalSocket probe;
-        probe.connectToServer(socketPath);
+        probe.connectToServer(socketPath_);
         if (probe.waitForConnected(250)) {
             qCWarning(lcCore) << "IpcServer: A live listener already owns"
-                              << socketPath;
+                              << socketPath_;
         } else if (!isExplicitlyStaleSocketError(probe.error())) {
             qCWarning(lcCore) << "IpcServer: Socket ownership probe was inconclusive for"
-                              << socketPath << "— preserving pathname; error:"
+                              << socketPath_ << "— preserving pathname; error:"
                               << probe.errorString();
-        } else if (QLocalServer::removeServer(socketPath)
-                   && server_->listen(socketPath)) {
-            qCInfo(lcCore) << "IpcServer: Recovered stale socket" << socketPath;
+        } else if (QLocalServer::removeServer(socketPath_)
+                   && server_->listen(socketPath_)) {
+            qCInfo(lcCore) << "IpcServer: Recovered stale socket" << socketPath_;
             return true;
         }
     }
 
     if (!server_->isListening()) {
-        qCWarning(lcCore) << "IpcServer: Failed to listen on" << socketPath
+        qCWarning(lcCore) << "IpcServer: Failed to listen on" << socketPath_
                    << "—" << server_->errorString();
         delete server_;
         server_ = nullptr;
         ownershipLock_.reset();
+        socketPath_.clear();
         return false;
     }
 
-    qCInfo(lcCore) << "IpcServer: Listening on" << socketPath;
+    qCInfo(lcCore) << "IpcServer: Listening on" << socketPath_;
     return true;
+}
+
+bool IpcServer::start(const QString& socketPath)
+{
+    return acquireOwnership(socketPath) && startListening();
 }
 
 void IpcServer::stop()
@@ -99,6 +134,7 @@ void IpcServer::stop()
         server_ = nullptr;
     }
     ownershipLock_.reset();
+    socketPath_.clear();
 }
 
 void IpcServer::setConfig(YamlConfig* config, const QString& configPath)

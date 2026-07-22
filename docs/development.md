@@ -134,7 +134,7 @@ The Pi runs labwc as its Wayland compositor. Do **not** use `eglfs` — it won't
 ssh <pi-user>@<pi-host> 'sudo systemctl restart openauto-prodigy.service'
 # Equivalent helper from an installed checkout (systemd remains the owner):
 ssh <pi-user>@<pi-host> 'cd openauto-prodigy && ./restart.sh'
-# Forced recovery queues a stop before killing the service cgroup:
+# Forced recovery stops the unit, cleans exact-identity legacy orphans, and starts once:
 ssh <pi-user>@<pi-host> 'cd openauto-prodigy && ./restart.sh --force-kill'
 # Validate installed pre-flight requirements:
 ssh <pi-user>@<pi-host> 'sudo openauto-preflight --check-only'
@@ -149,9 +149,13 @@ ssh <pi-user>@<pi-host> 'systemctl status openauto-prodigy.service --no-pager'
 journalctl -u openauto-prodigy.service -n 200
 ```
 
-The helper does not create a detached process or a separate log file. Both
-normal and forced recovery remain under `openauto-prodigy.service`, so logs
-always remain in the journal and `MainPID` identifies the sole app process.
+The helper does not create a detached process or a separate log file. Normal
+restarts are systemd-only. Forced recovery additionally checks for an
+upgrade-era unmanaged process by the unit's exact executable path and user UID
+after the service is stopped; it excludes service-cgroup members and unrelated
+same-name processes before bounded TERM/KILL cleanup. The replacement is still
+started exactly once by `openauto-prodigy.service`, so logs remain in the
+journal and `MainPID` identifies the sole app process.
 
 ### Web Config Panel
 

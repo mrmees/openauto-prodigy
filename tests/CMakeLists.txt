@@ -262,6 +262,7 @@ add_test(
     NAME test_ops_systemd_lifecycle
     COMMAND python3 ${CMAKE_SOURCE_DIR}/tests/test_ops_systemd_lifecycle.py
 )
+set_tests_properties(test_ops_systemd_lifecycle PROPERTIES SKIP_RETURN_CODE 77)
 
 # GUI/Quick tests need offscreen platform when no display is available
 set_tests_properties(test_theme_service test_display_service test_plugin_model test_aa_orchestrator

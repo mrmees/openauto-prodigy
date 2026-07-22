@@ -4,14 +4,10 @@
 #include <QJsonDocument>
 #include <QJsonObject>
 #include <QLocalSocket>
+#include <QProcess>
 #include <QTemporaryDir>
 #include <QTest>
-
-#include <cstddef>
-#include <cstring>
-#include <sys/socket.h>
-#include <sys/un.h>
-#include <unistd.h>
+#include <QTextStream>
 
 #include "core/services/IpcServer.hpp"
 
@@ -39,25 +35,25 @@ class TestIpcSingleInstance : public QObject {
         return QJsonDocument::fromJson(socket.readAll().trimmed()).object();
     }
 
-    static void createStaleUnixSocket(const QString& socketPath)
+    static bool launchOwner(QProcess& process, const QString& socketPath)
     {
-        const QByteArray nativePath = QFile::encodeName(socketPath);
-        QVERIFY2(nativePath.size() < static_cast<int>(sizeof(sockaddr_un::sun_path)),
-                 "temporary socket path exceeds sockaddr_un capacity");
+        process.start(QCoreApplication::applicationFilePath(),
+                      {QStringLiteral("--ipc-owner"), socketPath});
+        if (!process.waitForStarted(2000))
+            return false;
 
-        const int fd = ::socket(AF_UNIX, SOCK_STREAM, 0);
-        QVERIFY(fd >= 0);
-
-        sockaddr_un address{};
-        address.sun_family = AF_UNIX;
-        std::memcpy(address.sun_path, nativePath.constData(), nativePath.size() + 1);
-        const socklen_t addressLength = static_cast<socklen_t>(
-            offsetof(sockaddr_un, sun_path) + nativePath.size() + 1);
-        const int bindResult = ::bind(
-            fd, reinterpret_cast<const sockaddr*>(&address), addressLength);
-        ::close(fd);
-        QVERIFY(bindResult == 0);
-        QVERIFY(QFile::exists(socketPath));
+        QByteArray output;
+        QElapsedTimer timer;
+        timer.start();
+        while (timer.elapsed() < 3000) {
+            if (process.waitForReadyRead(100))
+                output += process.readAllStandardOutput();
+            if (output.contains("READY\n"))
+                return true;
+            if (process.state() == QProcess::NotRunning)
+                return false;
+        }
+        return false;
     }
 
 private slots:
@@ -86,34 +82,81 @@ private slots:
         QVERIFY(dir.isValid());
         const QString socketPath = dir.path() + QStringLiteral("/ipc.sock");
 
-        IpcServer first;
-        QVERIFY(first.start(socketPath));
+        QProcess first;
+        QVERIFY2(launchOwner(first, socketPath), qPrintable(first.readAllStandardError()));
         QVERIFY(!roundTrip(socketPath).isEmpty());
 
-        IpcServer second;
-        QVERIFY(!second.start(socketPath));
+        QProcess second;
+        second.start(QCoreApplication::applicationFilePath(),
+                     {QStringLiteral("--ipc-contender"), socketPath});
+        QVERIFY(second.waitForStarted(2000));
+        QVERIFY(second.waitForFinished(3000));
+        QCOMPARE(second.exitStatus(), QProcess::NormalExit);
+        QCOMPARE(second.exitCode(), 73);
 
         // The refusal must leave both the pathname and original listener live.
         QVERIFY(QFile::exists(socketPath));
         const QJsonObject response = roundTrip(socketPath);
         QVERIFY(!response.isEmpty());
         QVERIFY(response.contains(QStringLiteral("version")));
+
+        first.kill();
+        QVERIFY(first.waitForFinished(2000));
     }
 
-    void staleSocketIsRecovered()
+    void sigkillArtifactsAreRecoveredByANewProcess()
     {
         QTemporaryDir dir;
         QVERIFY(dir.isValid());
         const QString socketPath = dir.path() + QStringLiteral("/ipc.sock");
-        createStaleUnixSocket(socketPath);
+        const QString lockPath = socketPath + QStringLiteral(".lock");
 
-        IpcServer server;
-        QVERIFY(server.start(socketPath));
+        QProcess first;
+        QVERIFY2(launchOwner(first, socketPath), qPrintable(first.readAllStandardError()));
+        QVERIFY(!roundTrip(socketPath).isEmpty());
+        first.kill();
+        QVERIFY(first.waitForFinished(2000));
+        QVERIFY(QFile::exists(socketPath));
+        QVERIFY(QFile::exists(lockPath));
+
+        QProcess recovered;
+        QVERIFY2(launchOwner(recovered, socketPath),
+                 qPrintable(recovered.readAllStandardError()));
         const QJsonObject response = roundTrip(socketPath);
         QVERIFY(!response.isEmpty());
         QVERIFY(response.contains(QStringLiteral("version")));
+        recovered.kill();
+        QVERIFY(recovered.waitForFinished(2000));
     }
 };
 
-QTEST_MAIN(TestIpcSingleInstance)
+static int runHelper(int argc, char** argv)
+{
+    QCoreApplication app(argc, argv);
+    const QString mode = QString::fromLocal8Bit(argv[1]);
+    const QString socketPath = QString::fromLocal8Bit(argv[2]);
+    IpcServer server;
+
+    if (mode == QLatin1String("--ipc-contender"))
+        return server.acquireOwnership(socketPath) ? 0 : 73;
+
+    if (!server.acquireOwnership(socketPath) || !server.startListening())
+        return 74;
+    QTextStream(stdout) << "READY\n" << Qt::flush;
+    return app.exec();
+}
+
+int main(int argc, char** argv)
+{
+    if (argc == 3
+        && (QString::fromLocal8Bit(argv[1]) == QLatin1String("--ipc-owner")
+            || QString::fromLocal8Bit(argv[1]) == QLatin1String("--ipc-contender"))) {
+        return runHelper(argc, argv);
+    }
+
+    QCoreApplication app(argc, argv);
+    TestIpcSingleInstance test;
+    return QTest::qExec(&test, argc, argv);
+}
+
 #include "test_ipc_single_instance.moc"

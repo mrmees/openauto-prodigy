@@ -35,7 +35,14 @@ public:
     explicit IpcServer(QObject* parent = nullptr);
     ~IpcServer() override;
 
-    /// Start listening. Returns false if socket already in use.
+    /// Acquire the process ownership boundary without accepting requests.
+    bool acquireOwnership(
+        const QString& socketPath = QStringLiteral("/tmp/openauto-prodigy.sock"));
+
+    /// Start accepting requests after dependencies are fully wired.
+    bool startListening();
+
+    /// Convenience for tests and callers that are ready immediately.
     bool start(const QString& socketPath = QStringLiteral("/tmp/openauto-prodigy.sock"));
     void stop();
 
@@ -75,6 +82,7 @@ private:
 
     QLocalServer* server_ = nullptr;
     std::unique_ptr<QLockFile> ownershipLock_;
+    QString socketPath_;
     YamlConfig* config_ = nullptr;
     QString configPath_;
     ThemeService* themeService_ = nullptr;
