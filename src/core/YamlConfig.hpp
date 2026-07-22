@@ -30,6 +30,12 @@ public:
     QString touchDevice() const;
     void setTouchDevice(const QString& v);
 
+    // Logging
+    bool loggingVerbose() const;
+    void setLoggingVerbose(bool v);
+    QStringList loggingDebugCategories() const;
+    void setLoggingDebugCategories(const QStringList& categories);
+
     // Connection
     bool autoConnectAA() const;
     void setAutoConnectAA(bool v);

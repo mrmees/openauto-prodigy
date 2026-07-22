@@ -73,6 +73,10 @@ audio:
 touch:
   device: ""
 
+logging:
+  verbose: false
+  debug_categories: []
+
 phone:
   reject_sco_during_aa: false
   settle_grace_ms: 2000
@@ -171,6 +175,12 @@ therefore readable and writable with `ConfigService` dot paths.
 | `navbar.gesture.tap_max_ms` | int | `200` | Maximum tap duration. |
 | `navbar.gesture.short_hold_max_ms` | int | `600` | Upper bound for a short hold. |
 
+### Logging
+
+| Dot Path | Type | Default | Description |
+|---|---|---|---|
+| `logging.verbose` | bool | `false` | Enables verbose logging; writable through generic scalar dot paths. |
+
 ### Connection and API
 
 | Dot Path | Type | Default | Description |
@@ -259,6 +269,7 @@ The following maps or sequences are not writable as whole values through
 | Path | Default / Shape | Owner |
 |---|---|---|
 | `video.codecs` | `[h264, h265]` | Service-discovery codec list read by the typed `videoCodecs()` accessor. Edit it in YAML: the current QML scalar bridge cannot read or write the sequence. Keep it to H.264/H.265 because the decoder does not identify VP9/AV1 streams. |
+| `logging.debug_categories` | `[]` of strings | Typed `loggingDebugCategories()` / `setLoggingDebugCategories()` accessors. Generic dot-path access remains scalar-only. |
 | `audio.equalizer.streams.<stream>.gains` | Optional list of exactly ten finite values, clamped to ±12 dB | `EqualizerService` dedicated accessors. |
 | `audio.equalizer.streams.<stream>.bypassed` | Optional bool, effectively `false` when absent | `EqualizerService` dedicated accessors. |
 | `audio.equalizer.user_presets` | `[]`; entries contain `name` and ten `gains` | `EqualizerService` dedicated accessors. |

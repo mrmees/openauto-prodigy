@@ -65,6 +65,9 @@ void YamlConfig::initDefaults()
 
     root_["touch"]["device"] = "";
 
+    root_["logging"]["verbose"] = false;
+    root_["logging"]["debug_categories"] = YAML::Node(YAML::NodeType::Sequence);
+
     root_["phone"]["reject_sco_during_aa"] = false;  // design §6: flip only after live check L4
     root_["phone"]["settle_grace_ms"] = 2000;
 
@@ -382,6 +385,40 @@ QString YamlConfig::touchDevice() const
 void YamlConfig::setTouchDevice(const QString& v)
 {
     root_["touch"]["device"] = v.toStdString();
+}
+
+// --- Logging ---
+
+bool YamlConfig::loggingVerbose() const
+{
+    return root_["logging"]["verbose"].as<bool>(false);
+}
+
+void YamlConfig::setLoggingVerbose(bool v)
+{
+    root_["logging"]["verbose"] = v;
+}
+
+QStringList YamlConfig::loggingDebugCategories() const
+{
+    QStringList categories;
+    const YAML::Node node = root_["logging"]["debug_categories"];
+    if (!node.IsSequence())
+        return categories;
+
+    for (const auto& category : node) {
+        if (category.IsScalar())
+            categories.append(QString::fromStdString(category.as<std::string>()));
+    }
+    return categories;
+}
+
+void YamlConfig::setLoggingDebugCategories(const QStringList& categories)
+{
+    YAML::Node sequence(YAML::NodeType::Sequence);
+    for (const QString& category : categories)
+        sequence.push_back(category.toStdString());
+    root_["logging"]["debug_categories"] = sequence;
 }
 
 // --- Connection ---
