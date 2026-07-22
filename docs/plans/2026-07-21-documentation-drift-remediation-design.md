@@ -2,8 +2,8 @@
 
 Status: ACTIVE
 
-**Date:** 2026-07-21  
-**Grounded against:** `origin/main` at `1157de0`  
+**Date:** 2026-07-21
+**Grounded against:** `origin/main` at `1157de0`
 **Publication:** one docs-only series, independent of runtime follow-up work
 
 ## 1. Outcome

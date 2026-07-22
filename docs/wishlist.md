@@ -73,7 +73,10 @@ Ideas captured here. Promote to `roadmap-current.md` when ready to commit.
   3. **Application** (`openauto-prodigy`) — Qt/QML head unit that consumes the above two as submodules.
 
   **What needs to happen:**
-  - De-Qt the protocol library: replace QObject signals/slots with `std::function` callbacks or Boost.Signals2, QByteArray/QString with STL, QTcpSocket with Boost.ASIO (already used elsewhere), QTimer with ASIO timers.
+  - De-Qt the protocol library: replace QObject signals/slots, Qt value types,
+    sockets, and timers with a deliberately selected non-Qt abstraction. This
+    would introduce a new dependency and ownership model; the current runtime
+    does not already provide one to reuse.
   - Split into its own public repo once Qt-free.
   - Openauto-prodigy consumes both repos as submodules, adds the Qt/QML application layer on top.
 

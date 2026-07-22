@@ -4,9 +4,9 @@ Status: ACTIVE
 
 **Design (read first):**
 `docs/plans/2026-07-21-documentation-drift-remediation-design.md` — approved by
-Matthew 2026-07-21.  
-**Grounded against:** `origin/main` at `1157de0`.  
-**Execution order:** Task 1 through Task 5, then Task 6 closure.  
+Matthew 2026-07-21.
+**Grounded against:** `origin/main` at `1157de0`.
+**Execution order:** Task 1 through Task 5, then Task 6 closure.
 **Publication:** local commit per task; push only after the complete docs series
 passes its review gate.
 
@@ -50,8 +50,8 @@ docs-only branch.
 
 ## Task 1 — Current status, roadmap, and wishlist
 
-**Tier:** sonnet  
-**Depends on:** baseline  
+**Tier:** sonnet
+**Depends on:** baseline
 **Commit:** `docs: reconcile current delivery status`
 
 ### Files
@@ -95,8 +95,8 @@ or editing archived plans.
 
 ## Task 2 — Architecture and design guidance
 
-**Tier:** sonnet  
-**Depends on:** Task 1 committed  
+**Tier:** sonnet
+**Depends on:** Task 1 committed
 **Commit:** `docs: align architecture guidance with implementation`
 
 ### Files
@@ -132,8 +132,8 @@ old document.
 
 ## Task 3 — Reference documentation
 
-**Tier:** sonnet  
-**Depends on:** Task 2 committed  
+**Tier:** sonnet
+**Depends on:** Task 2 committed
 **Commit:** `docs: refresh settings and extension references`
 
 ### Files
@@ -179,8 +179,8 @@ old document.
 
 ## Task 4 — Contributor AGENTS guidance
 
-**Tier:** sonnet  
-**Depends on:** Task 3 committed  
+**Tier:** sonnet
+**Depends on:** Task 3 committed
 **Commit:** `docs: correct contributor subsystem rules`
 
 ### Files
@@ -215,8 +215,8 @@ old document.
 
 ## Task 5 — Development, setup, and troubleshooting
 
-**Tier:** sonnet  
-**Depends on:** Task 4 committed  
+**Tier:** sonnet
+**Depends on:** Task 4 committed
 **Commit:** `docs: update setup and troubleshooting guides`
 
 ### Files
@@ -275,8 +275,8 @@ installer behavior, or network/Bluetooth policy.
 
 ## Task 6 — Adjudication, review gate, and closure
 
-**Tier:** main  
-**Depends on:** Tasks 1–5 committed  
+**Tier:** main
+**Depends on:** Tasks 1–5 committed
 **Commit:** `docs: complete documentation drift remediation`
 
 ### Files
