@@ -20,6 +20,18 @@ Ideas captured here. Promote to `roadmap-current.md` when ready to commit.
 
 - **Boot/reboot startup reliability** — After a reboot, `graphical.target` was slow to activate (stuck on `systemd-networkd-wait-online.service` timeout). Prodigy service depends on `graphical.target` so it sat in `inactive (dead)` until the timeout passed. Need to verify clean boot sequence, measure time-to-app, and possibly mask the networkd-wait service (NetworkManager is the actual manager). Phase 4 territory.
 
+- **Register debug logging keys in the configuration schema** — the Debug
+  settings page, startup path, and IPC handlers use `logging.verbose` and
+  `logging.debug_categories`, but `YamlConfig` does not define those leaves.
+  Generic writes therefore reject them and startup reads cannot restore them.
+  Add typed defaults plus coverage for UI/IPC writes and restart persistence.
+
+- **Reconcile installer-only configuration keys** — the installer still writes
+  display pixel dimensions that runtime does not consume, while
+  `connection.bt_name` works only because load-time unknown keys are retained
+  and `BluetoothManager` reads it directly. Either make the intended keys part
+  of the supported schema with coverage or stop writing them.
+
 ## Deferred UI Features
 
 - **Live sidebar toggle reactivity** — Toggling sidebar enable/disable mid-AA-session doesn't update AA video margins or evdev touch zones. Sidebar draws over AA content and touch passes through. Requires app restart. Needs: config change signal → margin recalculation → touch zone update pipeline for mid-session changes.
@@ -101,7 +113,6 @@ Ideas captured here. Promote to `roadmap-current.md` when ready to commit.
 
 ## From media-player bench (2026-07-08)
 - **Per-AA-channel volume sliders in settings** (Matthew, on-bench) — individual user volumes for the AA audio roles: media, calls/voice, notifications+guidance. `AudioStreamHandle.baseVolume` already exists and `applyDucking()` already computes duck/mute relative to it — the missing pieces are a config key per role, a settings UI (three sliders), and plumbing base volume into the AA/local/BT stream creation sites. Cheap after the 2026-07-09 focus-gain work; pairs naturally with the EQ settings page.
-- **BT audio support decision** — Matthew on-bench: BT (A2DP) coexistence is "super low priority… not sure I even want to support it"; users with a phone will be on AA/companion. Bench row 8 skipped. At some point decide: keep BtAudioPlugin as-is, demote to config-off-by-default, or drop — affects the §6 one-source policy wiring and HFP scope.
 - **NavigationTurnLabel UTF-8 journal spam** — during AA navigation the journal fills with `libprotobuf ERROR … NavigationTurnLabel.label contains invalid UTF-8` (~1 line/sec, drowns everything). The phone sends non-UTF-8 bytes in a `string` field; proto-side fix is `bytes` (submodule change — note for open-android-auto), or sanitize/suppress at our parse site. Log hygiene, not a functional bug.
 
 ## From bench-fix final review (2026-07-09)
