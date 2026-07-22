@@ -558,18 +558,20 @@ int main(int argc, char *argv[])
         // now-playing doesn't stay blank until the next AVRCP event (which can be
         // a whole track away). Mirrors the startup seed block below.
         if (connected) {
-            mediaStatusService->updateBtMetadata(btAudioPlugin->trackTitle(),
-                                                  btAudioPlugin->trackArtist(),
-                                                  btAudioPlugin->trackAlbum());
-            mediaStatusService->updateBtPlaybackState(btAudioPlugin->playbackState());
+            mediaStatusService->updateBtSnapshot(
+                btAudioPlugin->trackTitle(), btAudioPlugin->trackArtist(),
+                btAudioPlugin->trackAlbum(), btAudioPlugin->playbackState(),
+                btAudioPlugin->hasTrackPosition() ? btAudioPlugin->trackPosition() : -1,
+                btAudioPlugin->trackDuration());
         }
     });
     if (btAudioPlugin->connectionState() == 1) {
         mediaStatusService->setBtConnected(true);
-        mediaStatusService->updateBtMetadata(btAudioPlugin->trackTitle(),
-                                              btAudioPlugin->trackArtist(),
-                                              btAudioPlugin->trackAlbum());
-        mediaStatusService->updateBtPlaybackState(btAudioPlugin->playbackState());
+        mediaStatusService->updateBtSnapshot(
+            btAudioPlugin->trackTitle(), btAudioPlugin->trackArtist(),
+            btAudioPlugin->trackAlbum(), btAudioPlugin->playbackState(),
+            btAudioPlugin->hasTrackPosition() ? btAudioPlugin->trackPosition() : -1,
+            btAudioPlugin->trackDuration());
     }
 
     // Wire MediaStatusService to the local media player plugin
@@ -600,13 +602,11 @@ int main(int argc, char *argv[])
         mediaStatusService->updateMediaPlayerPlaybackState(mediaPlayerPlugin->playbackState());
     }
 
-    // BT progress into the widened surface (cheap win — BtAudioPlugin already
-    // tracks position/duration from AVRCP)
-    QObject::connect(btAudioPlugin, &oap::plugins::BtAudioPlugin::positionChanged,
-                     mediaStatusService, [mediaStatusService, btAudioPlugin]() {
-        mediaStatusService->updateBtProgress(btAudioPlugin->trackPosition(),
-                                             btAudioPlugin->trackDuration());
-    });
+    // BlueZ MediaPlayer1 reports uint32 milliseconds. BtAudioPlugin widens
+    // those values and emits one coherent snapshot after each D-Bus property
+    // batch; MediaStatusService forwards the same millisecond contract.
+    QObject::connect(btAudioPlugin, &oap::plugins::BtAudioPlugin::progressChanged,
+                     mediaStatusService, &oap::MediaStatusService::updateBtProgress);
 
     // Playback control delegation
     {

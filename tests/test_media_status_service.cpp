@@ -16,6 +16,7 @@ private slots:
     void testAaConnectDoesNotStealFromPlayingLocal();
     void testIsPlayingNormalizationPerSource();
     void testProgressFieldsFlowForBtAndMediaPlayer();
+    void testBtProgressSignalOnlyOnObservableChange();
     void testAaHasNoPosition();
     void testArtUrlOnlyFromMediaPlayer();
     void testPlaybackControlsDelegate();
@@ -145,6 +146,19 @@ void TestMediaStatusService::testProgressFieldsFlowForBtAndMediaPlayer() {
     QCOMPARE(s.position(), qint64(5000));
     QCOMPARE(s.duration(), qint64(180000));
     QVERIFY(s.hasPosition());
+}
+
+void TestMediaStatusService::testBtProgressSignalOnlyOnObservableChange() {
+    oap::MediaStatusService s;
+    s.setBtConnected(true);
+    QSignalSpy spy(&s, &oap::IMediaStatusProvider::progressChanged);
+
+    s.updateBtProgress(61000, 215000);
+    QCOMPARE(spy.count(), 1);
+    s.updateBtProgress(61000, 215000);
+    QCOMPARE(spy.count(), 1);
+    s.updateBtProgress(62000, 215000);
+    QCOMPARE(spy.count(), 2);
 }
 
 void TestMediaStatusService::testAaHasNoPosition() {

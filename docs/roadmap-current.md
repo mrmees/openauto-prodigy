@@ -14,6 +14,19 @@ Governance: capture new ideas in `docs/wishlist.md`; only promoted items should 
 
 ## Done (recent)
 
+- Bluetooth AVRCP duration/position time-unit remediation — **COMPLETE
+  2026-07-22** (Pi-live-validated). BlueZ `MediaPlayer1` millisecond values
+  now remain unchanged through initial adoption, later property delivery,
+  shared media state, and External API serialization. Duration-only Track
+  updates, invalidation/stale-player clearing, and startup progress catch-up
+  use the same bounded contract. Live validation reproduced the original
+  1000x error, then proved exact Duration and Position propagation after
+  deployment; Matthew confirmed correct time/progress UI and audible Moto A2DP
+  playback through the EQ tap. Design and plan:
+  `docs/archive/plans/2026-07-22-bt-avrcp-time-units-remediation-design.md`
+  and
+  `docs/archive/plans/2026-07-22-bt-avrcp-time-units-remediation-plan.md`.
+
 - Android Auto initial night-state delivery — **COMPLETE 2026-07-22**
   (Pi-live-validated). The sensor handler now retains authoritative night state
   before channel open or subscription, sends that snapshot when the phone
@@ -140,7 +153,7 @@ Governance: capture new ideas in `docs/wishlist.md`; only promoted items should 
 
 ## Now
 
-No implementation tranche is currently active.
+No promoted work is active.
 
 ## Later
 

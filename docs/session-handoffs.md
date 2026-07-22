@@ -4,6 +4,65 @@ Newest entries first.
 
 ---
 
+## 2026-07-22 — Bluetooth AVRCP time-unit remediation COMPLETE
+
+**What changed:** BlueZ `MediaPlayer1.Track.Duration` and top-level `Position`
+now enter `BtAudioPlugin` as widened milliseconds without the erroneous
+divide-by-1000 conversion. Initial player adoption and later
+`PropertiesChanged` delivery share the same parser and notification contract;
+duration-only Track changes update independently, while invalid time fields,
+player replacement, removal, and BlueZ loss clear stale observable state.
+`MediaStatusService` receives coherent, duplicate-suppressed progress and a
+bounded startup/reconnect snapshot seam. The work is recorded in `3e2d504`,
+`89300eb`, review hardening `1af734f`, and catch-up coverage `ffe3f60`.
+
+**Why:** BlueZ already reports AVRCP time in milliseconds, but the ingestion
+boundary treated those values as microseconds. A normal multi-minute track was
+therefore reduced to a fraction of a second across Bluetooth labels, shared
+now-playing state, progress, and the External API; duration could also remain
+stale when text metadata did not change.
+
+**Status:** COMPLETE on `agent/bt-avrcp-time-units-remediation`, based on
+`origin/main`; the branch remains unpushed. The reviewed aarch64 binary through
+`ffe3f60` was deployed after Matthew's approval. Predeployment live evidence
+reproduced BlueZ Duration `252000` becoming API `252`; after deployment BlueZ
+and API Duration were exactly `131239`, and a pause edge exposed Position
+`84556` identically through BlueZ and the API. The Moto A2DP PipeWire node was
+running through `openauto-bt-eq-in`; Matthew confirmed audible playback and
+correct Bluetooth/shared time labels and progress. One application process
+(PID `169509`) owned responsive IPC. Hostapd PID `46989` and Bluetooth PID
+`672` were unchanged with zero restarts. The deployment rollback snapshot is
+`/var/backups/openauto-prodigy/20260722T214321Z`.
+
+**Review gate:** the initial repository review returned three findings; all
+were confirmed and fixed, with no dismissals. The fixes bounded stale-state
+and invalidation handling at the same BlueZ player boundary and made the real
+QtDBus delivery test mandatory. The permitted single rerun returned one
+startup/reconnect catch-up coverage finding; it was confirmed and fixed, with
+no dismissal. No finding was left unadjudicated.
+
+**Verification:** focused Bluetooth audio, media-status, and API serializer
+tests passed. `cmake --build . -j$(nproc)`, the explicit
+`openauto-prodigy` target, and `ctest --output-on-failure` passed in
+`~/builds/openauto-prodigy`. Documentation links and `git diff --check`
+passed, and `./cross-build.sh` produced the deployed aarch64 binary. Live
+validation covered the failing predeploy unit boundary, exact postdeploy
+Duration and Position propagation, A2DP/EQ routing, UI/API agreement,
+process/IPC health, and unchanged hostapd/Bluetooth lifetimes. The Pi's
+pre-existing dirty QML/submodule state was preserved; no pull, reset, clean,
+Bluetooth daemon restart, re-pairing, HFP call test, or AA capture occurred.
+
+**Deviations:** none from the approved product scope. Review-driven
+stale-state/invalidation hardening and the startup catch-up seam stayed within
+the same AVRCP time-state contract; optional second-player and track-change
+rows were not required after the approved Moto playback and pause/resume proof.
+
+**Next 1-3 steps:** (1) obtain Matthew's push approval; (2) push this branch
+and open a standalone draft PR targeting `main`; (3) after review and merge,
+select the next bounded remediation tranche from the private queue.
+
+---
+
 ## 2026-07-22 — Android Auto initial night-state delivery remediation COMPLETE
 
 **What changed:** `SensorChannelHandler` now retains the latest authoritative

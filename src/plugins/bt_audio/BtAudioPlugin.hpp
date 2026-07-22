@@ -59,8 +59,8 @@ class BtAudioPlugin : public QObject, public IPlugin {
     Q_PROPERTY(QString trackTitle READ trackTitle NOTIFY metadataChanged)
     Q_PROPERTY(QString trackArtist READ trackArtist NOTIFY metadataChanged)
     Q_PROPERTY(QString trackAlbum READ trackAlbum NOTIFY metadataChanged)
-    Q_PROPERTY(int trackDuration READ trackDuration NOTIFY metadataChanged)
-    Q_PROPERTY(int trackPosition READ trackPosition NOTIFY positionChanged)
+    Q_PROPERTY(qint64 trackDuration READ trackDuration NOTIFY durationChanged)
+    Q_PROPERTY(qint64 trackPosition READ trackPosition NOTIFY positionChanged)
     Q_PROPERTY(QString deviceName READ deviceName NOTIFY connectionStateChanged)
 
 public:
@@ -113,8 +113,9 @@ public:
     QString trackTitle() const { return trackTitle_; }
     QString trackArtist() const { return trackArtist_; }
     QString trackAlbum() const { return trackAlbum_; }
-    int trackDuration() const { return trackDuration_; }
-    int trackPosition() const { return trackPosition_; }
+    qint64 trackDuration() const { return trackDuration_; }
+    qint64 trackPosition() const { return trackPosition_; }
+    bool hasTrackPosition() const { return trackPositionKnown_; }
     QString deviceName() const { return deviceName_; }
 
     /// True iff the tracked A2DP transport's MediaTransport1.State == "active".
@@ -135,7 +136,11 @@ signals:
     void connectionStateChanged();
     void playbackStateChanged();
     void metadataChanged();
+    void durationChanged();
     void positionChanged();
+    /// Coherent millisecond snapshot emitted once after a delivered property
+    /// batch changes duration, position, or position validity.
+    void progressChanged(qint64 positionMs, qint64 durationMs);
     /// Edge-only: emitted just when the tracked transport's audio activity
     /// flips (idle/pending/removed/BlueZ-loss -> false, active -> true).
     void transportActiveChanged(bool active);
@@ -165,7 +170,8 @@ private:
     // audio-activity edge (true while ANY tracked transport is active) from
     // transportActiveByPath_, emitting only on real changes.
     void recomputeTransportState();
-    void updatePlayerProperties(const QVariantMap& props);
+    void adoptPlayer(const QString& path, const QVariantMap& props);
+    void updatePlayerProperties(const QVariantMap& props, bool resetBeforeApply = false);
     void sendPlayerCommand(const QString& command);
     // Edge-emits transportActiveChanged only when the value actually flips.
     void setTransportActive(bool active);
@@ -185,8 +191,9 @@ private:
     QString trackTitle_;
     QString trackArtist_;
     QString trackAlbum_;
-    int trackDuration_ = 0;   // milliseconds
-    int trackPosition_ = 0;   // milliseconds
+    qint64 trackDuration_ = 0;   // milliseconds; 0 = unknown
+    qint64 trackPosition_ = 0;   // milliseconds; zero-safe UI fallback
+    bool trackPositionKnown_ = false;
     QString deviceName_;
 
     // Per-transport audio activity: path -> (MediaTransport1.State == "active").
