@@ -222,4 +222,3 @@ service operations. After approval:
   based on `origin/main`.
 - Nothing has been pushed. Publication occurs only after Matthew's go-ahead,
   using this branch for a new draft PR targeting `main`.
-

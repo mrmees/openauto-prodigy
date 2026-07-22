@@ -74,4 +74,3 @@ suite, documentation links, `git diff --check`, and the repository review gate.
 Pi validation stops at an explicit approval boundary. The restart/socket row is
 required before the batch can be called complete; operations that restart
 Bluetooth or hostapd remain separately opt-in because they disrupt connectivity.
-
