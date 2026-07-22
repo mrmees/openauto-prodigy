@@ -2,409 +2,365 @@
 
 ## Overview
 
-OpenAuto Prodigy uses YAML configuration stored at `~/.openauto/config.yaml`. The config is managed by the `YamlConfig` class and accessed by core code and plugins through `ConfigService`. Configuration is loaded at startup with defaults from `YamlConfig::initDefaults()`, allowing new installations to work immediately without manual configuration.
+OpenAuto Prodigy reads `~/.openauto/config.yaml` at startup. `YamlConfig`
+constructs the built-in defaults, deep-merges the user's YAML over them, and
+exposes the result through typed accessors and `ConfigService`.
 
-**Key characteristics:**
-- Single source of truth: YAML file backed by `YamlConfig::root_` (YAML::Node tree)
-- Deep merge on load: user config overlays on defaults (missing keys inherit defaults)
-- Typed accessors: C++ getters/setters for common keys (e.g., `config->displayBrightness()`)
-- Dot-path access: generic `valueByPath("display.brightness")` for scalar config keys (maps/sequences use typed accessors)
-- Plugin-scoped storage: `plugin_config` section for per-plugin settings
+Important behavior:
 
----
+- Missing keys inherit built-in defaults.
+- Unknown keys loaded from an existing file are retained, but generic writes
+  accept only scalar keys registered in the defaults tree.
+- Maps and sequences use dedicated accessors rather than generic dot-path
+  writes.
+- Plugin data belongs under `plugin_config` and is accessed with
+  `pluginValue()` / `setPluginValue()`.
+- A malformed existing file is moved aside with a `.corrupt` suffix and the
+  process continues with defaults.
+- Saving replaces the file atomically.
 
-## Complete YAML Example
+## Practical YAML Example
+
+This example uses current public keys and relies on defaults for everything
+not shown.
 
 ```yaml
-# Hardware profile — identifies the target platform
-hardware_profile: "rpi4"
+hardware_profile: rpi4
 
-# Display configuration
 display:
-  brightness: 80                    # 0-100, screen brightness level
-  theme: "default"                  # theme filename (without .yaml) in ~/.openauto/themes/
-  orientation: "landscape"          # "landscape" or "portrait"
-  width: 1024                       # display width in pixels
-  height: 600                       # display height in pixels
+  brightness: 80
+  screen_size: 7.0
+  theme: default
+  wallpaper_override: ""
+  clock_24h: false
+  force_dark_mode: true
 
-# WiFi and Android Auto connection
 connection:
-  auto_connect_aa: true             # auto-connect to phone if AA service is available
-  bt_discoverable: true             # allow Bluetooth discovery (for AA/BT Audio/Phone)
+  bt_name: OpenAutoProdigy       # written by the installer; read as the adapter alias
+  auto_connect_aa: true
+  bt_discoverable: true
   wifi_ap:
-    interface: "wlan0"              # wireless interface name for AP mode
-    ssid: "OpenAutoProdigy"         # WiFi SSID (must match hostapd.conf)
-    password: "prodigy"             # WiFi WPA2 passphrase (must match hostapd.conf)
-    channel: 36                     # WiFi channel (5 GHz: 36-48, 149-165)
-    band: "a"                       # WiFi band ("a" = 5 GHz, "g" = 2.4 GHz)
-  tcp_port: 5277                    # TCP port for AA connection handshake
+    interface: wlan0
+    ssid: OpenAutoProdigy
+    password: prodigy1234
+    channel: 36
+    band: a
+  tcp_port: 5277
   protocol_capture:
-    enabled: false                  # write AA frame dumps for protobuf regression validation
-    format: "jsonl"                 # "jsonl" (validator-ready) or "tsv" (human-readable)
-    include_media: false            # include noisy AV media payload frames (usually keep false)
-    path: "/tmp/oaa-protocol-capture.jsonl"  # capture output path
+    enabled: false
+    format: jsonl
+    include_media: false
+    path: /tmp/oaa-protocol-capture.jsonl
 
-# Audio configuration
 audio:
-  master_volume: 80                 # 0-100, app-wide volume level
-  output_device: "auto"             # PipeWire output device ("auto" = system default)
+  master_volume: 80
+  output_device: auto
+  buffer_ms:
+    media: 100
+    speech: 100
+    system: 100
+  adaptive: true
   microphone:
-    device: "auto"                  # PipeWire input device ("auto" = system default)
-    gain: 1.0                       # microphone gain multiplier
+    device: auto
+    gain: 1.0
   equalizer:
     streams:
-      media:                        # AA media + local playback + the BT A2DP tap
-        preset: "Flat"               # bundled/user preset name, or "" for raw gains ("Custom" in UI)
-        gains: [0, 0, 0, 0, 0, 0, 0, 0, 0, 0]  # 10 bands, dB, -12.0..12.0
-        bypassed: false
-      navigation:
-        preset: "Voice"
-        gains: [0, 0, 0, 0, 0, 0, 0, 0, 0, 0]
-        bypassed: false
-      system:                       # AA system sounds (nav beeps etc.) — NOT phone/HFP call audio
-        preset: "Voice"
-        gains: [0, 0, 0, 0, 0, 0, 0, 0, 0, 0]
-        bypassed: false
-    user_presets:                   # user-saved presets, referenced by name from streams.*.preset
-      - name: "My Preset"
-        gains: [0, 0, 0, 0, 0, 0, 0, 0, 0, 0]
+      media: { preset: Flat }
+      navigation: { preset: Voice }
+      system: { preset: Voice }
+    user_presets: []
 
-# Touch input configuration
 touch:
-  device: ""                        # evdev device path (empty = auto-detect by VID:PID 3343:5710)
+  device: ""
 
-# Video configuration
+phone:
+  reject_sco_during_aa: false
+  settle_grace_ms: 2000
+
 video:
-  fps: 30                           # framerate (30 or 60, phone will adapt to this)
-  resolution: "720p"               # "480p" (800x480), "720p" (1280x720), "1080p" (1920x1080)
-  dpi: 140                         # screen DPI (affects AA scaling hints)
+  fps: 30
+  resolution: 720p
+  dpi: 140
+  codecs: [h264, h265]
+  decoder:
+    h264: auto
+    h265: auto
+    vp9: auto
+    av1: auto
 
-# Head unit identity — sent to phone during AA discovery
 identity:
-  head_unit_name: "OpenAuto Prodigy"  # friendly name
-  manufacturer: "OpenAuto Project"    # OEM name (appears in phone AA settings)
-  model: "Raspberry Pi 4"             # hardware model name
-  car_model: ""                       # optional: car model name
-  car_year: ""                        # optional: car year
-  left_hand_drive: true               # true = LHS, false = RHS (affects UI mirroring)
+  head_unit_name: OpenAuto Prodigy
+  manufacturer: OpenAuto Project
+  model: Raspberry Pi 4
+  car_model: ""
+  car_year: ""
+  left_hand_drive: true
+  server_id: ""
 
-# Sensors and automatic features
+api:
+  enabled: true
+  tcp_port: 9810
+  ws_port: 9811
+  expose_lan: false
+  max_queue_bytes: 1048576
+  pairing_timeout_s: 120
+  handshake_timeout_ms: 5000
+
 sensors:
   night_mode:
-    source: "time"                  # "time" = clock-based, "gpio" = GPIO input, "none" = disabled
-    day_start: "07:00"              # time to enable day mode (HH:MM)
-    night_start: "19:00"            # time to enable night mode (HH:MM)
-    gpio_pin: 17                    # GPIO pin for GPIO-based mode
-    gpio_active_high: true          # true = active high, false = active low
+    source: time
+    day_start: "07:00"
+    night_start: "19:00"
+    gpio_pin: 17
+    gpio_active_high: true
   gps:
-    enabled: true                   # enable GPS features (map auto-pan, ETA, etc.)
-    source: "none"                  # GPS source ("none", "gpsd", "android", "ublox", etc.)
+    enabled: true
+    source: none
 
-# Navigation strip (icon bar at bottom)
-nav_strip:
-  order:
-    - "org.openauto.android-auto"  # list of enabled plugin IDs in display order
-  show_labels: true                 # show text labels under icons (false = icons only)
-
-# Plugin management
 plugins:
-  enabled:
-    - "org.openauto.android-auto"  # list of enabled plugin IDs (loaded at startup)
-  disabled: []                      # plugins to disable (plugin IDs that exist but shouldn't load)
+  enabled: [org.openauto.android-auto]
+  disabled: []
 
-# Plugin-scoped configuration — plugins store their settings here
 plugin_config:
-  org.openauto.bt-audio:
-    # example: plugins can define custom keys under their plugin ID
-    some_setting: "some_value"
-  org.openauto.phone:
-    another_setting: 42
+  org.example.my-plugin:
+    auto_connect: true
+
+ui:
+  scale: 0
+  fontScale: 0
+
+home:
+  gridDensityBias: 0
+
+navbar:
+  edge: bottom
+  show_during_aa: true
+  gesture:
+    tap_max_ms: 200
+    short_hold_max_ms: 600
 ```
 
----
+`connection.bt_name` is an installer-owned value read by
+`BluetoothManager`; it is not part of the generic writable defaults schema.
+The example uses a valid WPA2 passphrase; normal installers generate one. The
+shorter built-in configuration fallback is not suitable as a hostapd
+passphrase.
+The application does not use display pixel dimensions from YAML. Window
+geometry comes from the runtime display/command-line geometry path.
 
-## Key Reference Table
+## Scalar Key Reference
 
-All keys are documented with their dot-path (for `valueByPath()`), type, default value, and description.
+These are the scalar leaves registered by `YamlConfig::initDefaults()` and
+therefore readable and writable with `ConfigService` dot paths.
 
-| Dot-Path | Type | Default | Description |
-|----------|------|---------|-------------|
-| `hardware_profile` | string | `"rpi4"` | Hardware profile ID (currently only `"rpi4"` is defined) |
-| `display.brightness` | int | `80` | Display brightness level (0-100) |
-| `display.theme` | string | `"default"` | Theme filename to load from `~/.openauto/themes/` |
-| `connection.auto_connect_aa` | bool | `true` | Auto-connect to AA when phone becomes available |
-| `connection.bt_discoverable` | bool | `true` | Allow Bluetooth discovery from phone (required for AA) |
-| `connection.wifi_ap.interface` | string | `"wlan0"` | WiFi interface name for AP mode |
-| `connection.wifi_ap.ssid` | string | `"OpenAutoProdigy"` | WiFi SSID broadcast by AP (must match hostapd.conf) |
-| `connection.wifi_ap.password` | string | `"prodigy"` | WiFi passphrase (must match hostapd.conf) |
-| `connection.wifi_ap.channel` | int | `36` | WiFi channel (5 GHz: 36-48, 149-165; 2.4 GHz: 1-13) |
-| `connection.wifi_ap.band` | string | `"a"` | WiFi band (`"a"` = 5 GHz, `"g"` = 2.4 GHz) |
-| `connection.tcp_port` | int | `5277` | TCP port for AA handshake and connection |
-| `connection.protocol_capture.enabled` | bool | `false` | Enable protocol frame capture dumps |
-| `connection.protocol_capture.format` | string | `"jsonl"` | Capture format (`"jsonl"` for tooling, `"tsv"` for manual inspection) |
-| `connection.protocol_capture.include_media` | bool | `false` | Include AV media data frames (large/noisy) |
-| `connection.protocol_capture.path` | string | `"/tmp/oaa-protocol-capture.jsonl"` | Output file path for capture dump |
-| `audio.master_volume` | int | `80` | Master volume level (0-100, used by audio plugins) |
-| `audio.output_device` | string | `"auto"` | PipeWire output device name (`"auto"` = system default) |
-| `audio.microphone.device` | string | `"auto"` | PipeWire input device name (`"auto"` = system default) |
-| `audio.microphone.gain` | double | `1.0` | Microphone input gain multiplier (0.5-4.0 typical) |
-| `audio.equalizer.streams.<name>.preset` | string | `"Flat"` / `"Voice"` | Active preset name for stream `media`, `navigation`, or `system` (`""` = raw `gains`, shown as "Custom" in the UI) |
-| `audio.equalizer.streams.<name>.gains` | list[float] (10) | all `0.0` | Per-band gain in dB, one stream. Must be exactly 10 finite values; each clamps to ±12 dB; a malformed array (wrong length, NaN/Inf, non-scalar) is rejected wholesale and the preset/default path is used instead |
-| `audio.equalizer.streams.<name>.bypassed` | bool | `false` | Bypasses this stream's EQ engine (passthrough) without losing the stored preset/gains |
-| `audio.equalizer.user_presets` | list[{name, gains}] | `[]` | User-saved presets; each `gains` entry follows the same 10-value/±12 dB validation as the per-stream gains, or the whole preset is dropped on load |
-| `touch.device` | string | `""` | evdev device path (`""` = auto-detect DFRobot USB Multi Touch by VID:PID 3343:5710) |
-| `video.fps` | int | `30` | Target framerate (30 or 60; phone will adapt) |
-| `video.resolution` | string | `"720p"` | AA video resolution (`"480p"`, `"720p"`, `"1080p"`) |
-| `video.dpi` | int | `140` | Screen DPI (hints to Android Auto for scaling) |
-| `identity.head_unit_name` | string | `"OpenAuto Prodigy"` | Friendly name shown in phone AA settings |
-| `identity.manufacturer` | string | `"OpenAuto Project"` | OEM manufacturer name |
-| `identity.model` | string | `"Raspberry Pi 4"` | Hardware model name |
-| `identity.car_model` | string | `""` | Optional car model name |
-| `identity.car_year` | string | `""` | Optional car year |
-| `identity.left_hand_drive` | bool | `true` | `true` = LHS, `false` = RHS (may affect UI layout) |
-| `sensors.night_mode.source` | string | `"time"` | Night mode source (`"time"`, `"gpio"`, `"none"`) |
-| `sensors.night_mode.day_start` | string | `"07:00"` | Time to enable day mode (HH:MM format) |
-| `sensors.night_mode.night_start` | string | `"19:00"` | Time to enable night mode (HH:MM format) |
-| `sensors.night_mode.gpio_pin` | int | `17` | GPIO pin number for GPIO-based night mode |
-| `sensors.night_mode.gpio_active_high` | bool | `true` | `true` = high activates night mode, `false` = low activates |
-| `sensors.gps.enabled` | bool | `true` | Enable GPS features (when source is configured) |
-| `sensors.gps.source` | string | `"none"` | GPS source (`"none"`, `"gpsd"`, `"android"`, `"ublox"`, etc.) |
-| `nav_strip.show_labels` | bool | `true` | Show text labels under navigation strip icons |
-| `plugins.enabled` | list[string] | `["org.openauto.android-auto"]` | Plugin IDs to load at startup |
-| `plugins.disabled` | list[string] | `[]` | Plugin IDs to disable (if discovered) |
+### Platform, Display, and Input
 
-**Note:** `nav_strip.order` is an array with complex structure; see examples below.
+| Dot Path | Type | Default | Description |
+|---|---|---|---|
+| `hardware_profile` | string | `rpi4` | Target hardware profile. |
+| `display.brightness` | int | `80` | Brightness/dimming level. |
+| `display.screen_size` | double | `7.0` | Physical screen diagonal in inches, used for layout and PPI calculations. |
+| `display.theme` | string | `default` | Selected theme ID. |
+| `display.wallpaper_override` | string | empty | Empty uses the theme wallpaper; `none` disables it; custom choices are `file://` URLs. |
+| `display.clock_24h` | bool | `false` | Clock-format preference. |
+| `display.force_dark_mode` | bool | `true` | Forces the dark palette while real night state continues to drive AA sensors. |
+| `touch.device` | string | empty | evdev device path; empty enables device scanning. |
+| `home.gridDensityBias` | int | `0` | Grid density bias; typed access clamps it to -1 through 1. |
+| `navbar.edge` | string | `bottom` | `bottom`, `top`, `left`, or `right`. |
+| `navbar.show_during_aa` | bool | `true` | Whether the navbar remains visible during projection. |
+| `navbar.gesture.tap_max_ms` | int | `200` | Maximum tap duration. |
+| `navbar.gesture.short_hold_max_ms` | int | `600` | Upper bound for a short hold. |
 
----
+### Connection and API
+
+| Dot Path | Type | Default | Description |
+|---|---|---|---|
+| `connection.auto_connect_aa` | bool | `true` | Automatically connect when the phone's AA service is available. |
+| `connection.bt_discoverable` | bool | `true` | Bluetooth discoverability preference. |
+| `connection.wifi_ap.interface` | string | `wlan0` | AP network interface. |
+| `connection.wifi_ap.ssid` | string | `OpenAutoProdigy` | AP SSID; runtime startup may synchronize it from hostapd. |
+| `connection.wifi_ap.password` | string | `prodigy` | AP passphrase; runtime startup may synchronize it from hostapd. |
+| `connection.wifi_ap.channel` | int | `36` | AP channel. |
+| `connection.wifi_ap.band` | string | `a` | hostapd band (`a` for 5 GHz, `g` for 2.4 GHz). |
+| `connection.tcp_port` | int | `5277` | Wireless Android Auto TCP port. |
+| `connection.protocol_capture.enabled` | bool | `false` | Enables protocol frame capture. |
+| `connection.protocol_capture.format` | string | `jsonl` | `jsonl` or `tsv`. |
+| `connection.protocol_capture.include_media` | bool | `false` | Includes high-volume media frames. |
+| `connection.protocol_capture.path` | string | `/tmp/oaa-protocol-capture.jsonl` | Capture output path. |
+| `api.enabled` | bool | `true` | Enables the External API listeners. |
+| `api.tcp_port` | int | `9810` | External API TCP listener port. |
+| `api.ws_port` | int | `9811` | External API WebSocket listener port. |
+| `api.expose_lan` | bool | `false` | Binds listeners beyond loopback when enabled. |
+| `api.max_queue_bytes` | int | `1048576` | Per-session queued-output limit. |
+| `api.pairing_timeout_s` | int | `120` | Pairing-window duration. |
+| `api.handshake_timeout_ms` | int | `5000` | Client handshake timeout. |
+
+### Audio, Phone, and Video
+
+| Dot Path | Type | Default | Description |
+|---|---|---|---|
+| `audio.master_volume` | int | `80` | Master output volume. |
+| `audio.output_device` | string | `auto` | PipeWire output node or automatic selection. |
+| `audio.buffer_ms.media` | int | `100` | Media playback buffer target. |
+| `audio.buffer_ms.speech` | int | `100` | Speech/navigation playback buffer target. |
+| `audio.buffer_ms.system` | int | `100` | AA system-sound playback buffer target. |
+| `audio.adaptive` | bool | `true` | Enables adaptive audio buffering. |
+| `audio.microphone.device` | string | `auto` | PipeWire capture node or automatic selection. |
+| `audio.microphone.gain` | double | `1.0` | Microphone gain multiplier. |
+| `audio.equalizer.streams.media.preset` | string | `Flat` | Media/local/BT-tap EQ preset. |
+| `audio.equalizer.streams.navigation.preset` | string | `Voice` | Navigation EQ preset. |
+| `audio.equalizer.streams.system.preset` | string | `Voice` | AA system-sound EQ preset; this is not HFP call audio. |
+| `phone.reject_sco_during_aa` | bool | `false` | Call-audio coexistence policy switch. |
+| `phone.settle_grace_ms` | int | `2000` | HFP settle grace interval. |
+| `video.fps` | int | `30` | Requested projection frame rate. |
+| `video.resolution` | string | `720p` | Requested mode: `480p`, `720p`, or `1080p`. |
+| `video.dpi` | int | `140` | Android Auto density hint. |
+| `video.decoder.h264` | string | `auto` | H.264 decoder choice. |
+| `video.decoder.h265` | string | `auto` | H.265 decoder choice. |
+| `video.decoder.vp9` | string | `auto` | VP9 decoder choice if the codec is enabled. |
+| `video.decoder.av1` | string | `auto` | AV1 decoder choice if the codec is enabled. |
+
+### Identity and Sensors
+
+| Dot Path | Type | Default | Description |
+|---|---|---|---|
+| `identity.head_unit_name` | string | `OpenAuto Prodigy` | Friendly head-unit name. |
+| `identity.manufacturer` | string | `OpenAuto Project` | Informational manufacturer shown in the on-screen Information page. AA discovery uses a fixed compatibility identity instead. |
+| `identity.model` | string | `Raspberry Pi 4` | Informational model shown in the on-screen Information page. AA discovery uses a fixed compatibility identity instead. |
+| `identity.car_model` | string | empty | Optional vehicle model. |
+| `identity.car_year` | string | empty | Optional vehicle year. |
+| `identity.left_hand_drive` | bool | `true` | Handedness for UI layout. |
+| `identity.server_id` | string | empty | Stable External API server ID, minted on first API start. |
+| `sensors.night_mode.source` | string | `time` | `time`, `gpio`, or `none`. |
+| `sensors.night_mode.day_start` | string | `07:00` | Day-mode start in `HH:MM` form. |
+| `sensors.night_mode.night_start` | string | `19:00` | Night-mode start in `HH:MM` form. |
+| `sensors.night_mode.gpio_pin` | int | `17` | GPIO pin used by GPIO night mode. |
+| `sensors.night_mode.gpio_active_high` | bool | `true` | GPIO active polarity. |
+| `sensors.gps.enabled` | bool | `true` | Enables the configured GPS source. |
+| `sensors.gps.source` | string | `none` | GPS source identifier. |
+
+### UI Overrides
+
+All UI overrides default to `0`, meaning “use the automatically derived
+value.” `ui.scale` and `ui.fontScale` are global multipliers. `ui.fontFloor`
+is the legacy global font floor. The following token leaves are registered
+under `ui.tokens`:
+
+`rowH`, `touchMin`, `fontTitle`, `fontBody`, `fontSmall`, `fontHeading`,
+`fontTiny`, `headerH`, `iconSize`, `radius`, `radiusSmall`, `radiusLarge`,
+`tileW`, `tileH`, `trackThick`, `trackThin`, `knobSize`, `knobSizeSmall`,
+`albumArt`, `callBtnSize`, `overlayBtnW`, `overlayBtnH`, and `navbarThick`.
+
+## Structured Configuration
+
+The following maps or sequences are not writable as whole values through
+`setValueByPath()`:
+
+| Path | Default / Shape | Owner |
+|---|---|---|
+| `video.codecs` | `[h264, h265]` | Service-discovery codec list read by the typed `videoCodecs()` accessor. Edit it in YAML: the current QML scalar bridge cannot read or write the sequence. Keep it to H.264/H.265 because the decoder does not identify VP9/AV1 streams. |
+| `audio.equalizer.streams.<stream>.gains` | Optional list of exactly ten finite values, clamped to ±12 dB | `EqualizerService` dedicated accessors. |
+| `audio.equalizer.streams.<stream>.bypassed` | Optional bool, effectively `false` when absent | `EqualizerService` dedicated accessors. |
+| `audio.equalizer.user_presets` | `[]`; entries contain `name` and ten `gains` | `EqualizerService` dedicated accessors. |
+| `plugins.enabled` | `[org.openauto.android-auto]` | Plugin manager / typed accessor. |
+| `plugins.disabled` | `[]` | Reserved plugin-disable list. |
+| `plugin_config.<plugin-id>` | Empty map by default | Per-plugin scalar or string-list storage. |
+| `widget_grid` | Version 4, active dashboard `home`, one two-page Home dashboard with no placements | Dashboard manager. |
+| `widget_config` | Version 1 legacy pane layout | Retained only for backward compatibility. |
+
+Current grid dashboard entries use this shape:
+
+```yaml
+widget_grid:
+  version: 4
+  active_dashboard: home
+  grid_cols: 8                 # optional saved dimensions
+  grid_rows: 5
+  dashboards:
+    - id: home
+      name: Home
+      next_instance_id: 1
+      page_count: 2
+      placements:
+        - instance_id: org.openauto.clock-0
+          widget_id: org.openauto.clock
+          col: 0
+          row: 0
+          col_span: 2
+          row_span: 2
+          opacity: 0.25
+          page: 0
+          config: { style: digital }
+```
+
+The placement field names are persistent API: append fields rather than
+renaming or repurposing them.
 
 ## Access Patterns
 
-### From Core Code (C++)
-
-**Typed accessors** — the most common and recommended pattern:
+### Generic Config Values
 
 ```cpp
-#include "core/YamlConfig.hpp"
+oap::IConfigService* config = context->configService();
 
-// In core services or UI code with access to YamlConfig:
-YamlConfig* config = /* obtained from initialization */;
-
-int fps = config->videoFps();                         // get: 30
-config->setVideoFps(60);                              // set
-
-QString ssid = config->wifiSsid();                    // get: "OpenAutoProdigy"
-config->setWifiSsid("MyWiFi");                        // set
-
-bool autoConnect = config->autoConnectAA();           // get: true
-config->setAutoConnectAA(false);                      // set
+int fps = config->value("video.fps").toInt();
+config->setValue("video.fps", 60);
+config->save();
 ```
 
-**Dot-path access** — for generic or dynamic keys:
+Generic writes accept scalar paths present in the built-in defaults. They do
+not perform range validation, so callers must enforce the documented domain.
+
+### Plugin-Scoped Values
 
 ```cpp
-#include "core/services/ConfigService.hpp"
+oap::IConfigService* config = context->configService();
 
-// In plugins or services with ConfigService:
-ConfigService* configService = /* from HostContext */;
-
-QVariant value = configService->value("display.brightness");  // QVariant(80)
-configService->setValue("display.brightness", 50);             // set to 50
-
-// Read with automatic type conversion:
-int brightness = configService->value("display.brightness").toInt();
-QString ssid = configService->value("connection.wifi_ap.ssid").toString();
-bool autoConnect = configService->value("connection.auto_connect_aa").toBool();
+bool enabled = config->pluginValue(id(), "auto_connect").toBool();
+config->setPluginValue(id(), "auto_connect", true);
+config->save();
 ```
 
-### From Plugins (via ConfigService)
+Plugin IDs are literal keys, including dots. Do not try to address a plugin's
+namespace through a generic dotted path; use the plugin-scoped methods.
 
-**Plugin-scoped config** — each plugin reads/writes its own namespace:
+## Themes
 
-```cpp
-#include "core/services/ConfigService.hpp"
-
-ConfigService* configService = /* from HostContext in initialize() */;
-
-// Read plugin-specific settings (from plugin_config.<plugin_id>.*)
-QVariant customValue = configService->pluginValue(
-    "org.openauto.bt-audio",
-    "auto_connect"
-);
-
-// Write plugin-specific settings
-configService->setPluginValue(
-    "org.openauto.bt-audio",
-    "auto_connect",
-    true
-);
-```
-
-**Generic dot-path access** — plugins can also read general config:
-
-```cpp
-int fps = configService->value("video.fps").toInt();
-QString ssid = configService->value("connection.wifi_ap.ssid").toString();
-```
-
----
-
-## Plugin Config Namespace
-
-Plugin-scoped configuration is stored under the `plugin_config` section:
+Themes live in `~/.openauto/themes/<theme-id>/theme.yaml`, and
+`display.theme` stores `<theme-id>`. A theme file declares `id`, `name`,
+`version`, `font_family`, and `day`/`night` Material Design 3 color maps. For
+example, the bundled `default` ID has the display name `Prodigy`:
 
 ```yaml
-plugin_config:
-  org.openauto.bt-audio:
-    auto_connect: true
-    volume_on_connect: 80
-  org.openauto.phone:
-    dialer_theme: "dark"
-    ring_volume: 100
-  org.example.custom-plugin:
-    custom_key_1: "value1"
-    custom_key_2: 42
-```
-
-**Access in C++:**
-
-```cpp
-// From ConfigService (preferred for plugins):
-ConfigService* config = context->configService();
-
-bool autoConnect = config->pluginValue("org.openauto.bt-audio", "auto_connect").toBool();
-config->setPluginValue("org.openauto.bt-audio", "auto_connect", false);
-
-// Or via dot-path (if you prefer):
-QVariant val = config->value("plugin_config.org.openauto.bt-audio.auto_connect");
-```
-
-**Type safety:** `pluginValue()` and `setPluginValue()` automatically handle type conversion (bool, int, double, string).
-
----
-
-## Navigation Strip Order
-
-The navigation strip (icon bar) displays plugin shortcuts. The order and visibility are controlled by `nav_strip.order` and `nav_strip.show_labels`:
-
-```yaml
-nav_strip:
-  order:
-    - "org.openauto.android-auto"
-    - "org.openauto.bt-audio"
-    - "org.openauto.phone"
-  show_labels: true                 # false = icon-only (recommended for 1024x600)
-```
-
-**Access in C++:**
-
-```cpp
-QStringList enabled = config->enabledPlugins();  // reads plugins.enabled
-// nav_strip.order is a separate list accessed via typed accessor (not dot-path)
-bool showLabels = config->value("nav_strip.show_labels").toBool();
-```
-
----
-
-## Theme Configuration
-
-Themes are separate from the main config.yaml and live in `~/.openauto/themes/<theme_name>/theme.yaml`. The selected theme is referenced by name in `display.theme`:
-
-```yaml
-# From config.yaml:
-display:
-  theme: "default"
-
-# This loads ~/.openauto/themes/default/theme.yaml
-```
-
-**Theme file structure** (`~/.openauto/themes/default/theme.yaml`):
-
-```yaml
-name: "Default"
+id: default
+name: Prodigy
+version: 2.0.0
+font_family: Lato
 day:
-  background: "#1a1a2e"
-  text: "#e0e0e0"
-  accent: "#0f3460"
-  accent_secondary: "#16a34a"
+  primary: "#ff3531e0"
+  on-primary: "#ffffffff"
+  surface: "#fffcf8ff"
+  on-surface: "#ff1b1b24"
 night:
-  background: "#0d0d1a"
-  text: "#c0c0d0"
-  accent: "#0a2540"
-  accent_secondary: "#15803d"
+  primary: "#ffc1c1ff"
+  on-primary: "#ff1200a9"
+  surface: "#ff12131c"
+  on-surface: "#ffe4e1ee"
 ```
 
-Themes are loaded by `ThemeService::loadTheme(themeName)` and colors are exposed as Q_PROPERTY bindings for QML. See `docs/development.md` for theme development details.
+Theme selection and wallpaper overrides apply live through `ThemeService`.
 
----
+## Migration and Removed Keys
 
-## Migration Policy
+- The legacy EQ stream `audio.equalizer.streams.phone` migrates to
+  `audio.equalizer.streams.system`. If both exist, `system` wins.
+- Legacy widget-grid versions are migrated to the version-4 dashboard shape.
+- `identity.sw_version` is removed. Version identity comes from compiled
+  `OAP_VERSION`; leftover YAML is retained but ignored.
 
-**Versioning & Changes:**
-- **Additive changes** (minor versions): new keys added to `initDefaults()`, existing keys keep their meaning. No migration needed.
-- **Breaking changes** (major versions): require a new migration function in `YamlConfig::load()` to transform old config to new schema.
+## File Location and Reloading
 
-**Default values:** Any key missing from the user's config.yaml inherits its default from `YamlConfig::initDefaults()`. This allows new installations to work immediately and new keys to be introduced without breaking existing configs.
-
-**Schema validation:** `setValueByPath()` validates against `buildDefaultsNode()` — you can only set values for keys that exist in the defaults schema. This prevents accidental creation of invalid keys.
-
-**Removed keys:**
-- 2026-07-09: `identity.sw_version` — the app version is compiled in
-  (`OAP_VERSION`, git-derived; see `AGENTS.md` § Versioning).
-  `setValueByPath()` rejects writes to it; a leftover `sw_version:` entry in
-  an existing `config.yaml` is retained on save but read by nothing.
-
-**Renamed keys:**
-- 2026-07-14: `audio.equalizer.streams.phone` → `audio.equalizer.streams.system`
-  — honest labeling; this stream is AA system sounds (nav beeps etc.), not
-  phone/HFP call audio (HFP SCO bypasses `AudioService` entirely). The
-  migration runs on the raw user YAML before the defaults merge: an existing
-  `phone` block with no `system` block is copied to `system` and `phone` is
-  deleted; if both are present, `system` wins and `phone` is deleted. A
-  config with only `system` (new installs, or already-migrated files) is a
-  no-op.
-
----
-
-## Config File Location
-
-- **Default:** `~/.openauto/config.yaml`
-- **Environment override:** set `OPENAUTO_CONFIG_PATH` to use a different location
-- **Web config panel:** provides a GUI for common settings (uses IPC to communicate with the app)
-- **Hot reload:** currently not supported; changes require app restart
-
----
-
-## Example: Adding a New Plugin Setting
-
-To add a plugin-specific setting that can be toggled from the settings UI:
-
-**1. In `config.yaml`:**
-```yaml
-plugin_config:
-  org.openauto.my-plugin:
-    my_setting: true
-```
-
-**2. In plugin code:**
-```cpp
-void MyPlugin::initialize(IHostContext* context) {
-    ConfigService* config = context->configService();
-    bool mySetting = config->pluginValue("org.openauto.my-plugin", "my_setting").toBool();
-}
-
-void MyPlugin::updateSetting(bool value) {
-    ConfigService* config = context->configService();
-    config->setPluginValue("org.openauto.my-plugin", "my_setting", value);
-}
-```
-
-**3. In settings UI (QML), access via:** `ApplicationController` exposes config service to QML bindings.
-
----
-
-## Known Limitations & TODOs
-
-- **Hot reload:** Config changes require app restart; live reload on config file change not yet implemented
-- **Validation:** `setValueByPath()` only validates against schema presence; no type checking or range validation
-- **Migrations:** Only additive changes are currently tested; breaking change migration is untested
-- **Theme live switch:** Theme changes require app restart
+The runtime path is fixed to `~/.openauto/config.yaml`. The application does
+not provide a configuration-path environment override. On-screen settings and
+IPC operations can save individual changes, but the application does not watch
+the file for arbitrary external edits; restart after editing YAML by hand.

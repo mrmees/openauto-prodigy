@@ -30,10 +30,28 @@ openauto-prodigy-prebuilt-<tag>-pi4-aarch64/
   payload/
     build/src/openauto-prodigy
     config/
+    pipewire-msbc/
+      libspa-0.2-bluetooth_*+prodigy*_arm64.deb
     system-service/
     web-config/
     restart.sh
 ```
+
+The package contains the complete tracked `config/`, `system-service/`, and
+`web-config/` directories. The packager removes Python cache directories from
+the staged system-service payload.
+
+## Required HFP Codec Package
+
+An official release must include exactly one patched
+`libspa-0.2-bluetooth_*+prodigy*_arm64.deb`. By default the packager discovers
+it under `tools/pipewire-msbc/out/`; `--msbc-deb <path>` selects an explicit
+file. The basename is part of the installer contract and is validated before
+packaging.
+
+`--allow-missing-msbc-deb` is a development-only override. It produces an
+archive without `payload/pipewire-msbc/` and must not be used for an official
+release.
 
 ## Metadata (`RELEASE.json`)
 

@@ -1,6 +1,10 @@
 # Android Auto APK v16.1 — Proto Reference
 
-> Extracted from decompiled Google Android Auto APK (v16.1). ProGuard-obfuscated class names preserved for traceability. Field numbers and types are reliable; message/field names are inferred from context.
+> **Dated research snapshot — not current implementation status.** Extracted
+> from decompiled Google Android Auto APK v16.1. ProGuard-obfuscated class names
+> are preserved for traceability. Field numbers and types are evidence from that
+> APK; message/field names are inferred, and the “Status” column reflects the
+> repository at extraction time. Check current code before planning work.
 
 ## Service Types (from `qlf.java`)
 

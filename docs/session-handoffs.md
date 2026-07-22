@@ -4,6 +4,53 @@ Newest entries first.
 
 ---
 
+## 2026-07-22 — Current documentation reconciliation COMPLETE; docs-only publication ready
+
+**What changed:** reconciled present-tense guidance with the shipped C++, QML,
+configuration, installer, packaging, and test surfaces. The pass covered
+delivery status and wishlist state; architecture/design ownership and
+threading; settings, configuration, plugin, widget, and release references;
+root and subsystem contributor rules; and development, wireless, reconnect,
+debugging, and Pi setup guides. Dated AA research is now labeled as snapshot
+evidence, while the indexed runbooks describe current commands and owners.
+Unused dnsmasq snapshots were removed. Completed media and Phase F plans were
+archived; review restored the full Phase F task record and added only a dated
+closure note so its history was not replaced by a retrospective summary.
+
+**Why:** current guidance had accumulated shipped-as-pending status, deleted
+names and helpers, wrong configuration and port claims, obsolete transport and
+touch descriptions, incomplete setup contracts, and references that no longer
+matched implementation. The corrections are subsystem-level so nearby prose
+does not contradict the repaired claim.
+
+**Status:** COMPLETE on the dedicated documentation branch. The range is
+documentation and contributor guidance only; it contains no executable source,
+runtime behavior, build, cross-build, deployment, or Pi change. Runtime defects
+discovered while comparing docs to code remain unpromoted wishlist items.
+Historical handoff entries were not rewritten, and the runtime follow-up series
+remains on its separate branch and pull request.
+
+**Review gate:** the first repository review returned six P2 findings; all were
+confirmed and fixed in `6839d1f`. The required rerun returned five P2 findings
+and one P3. Each had an actionable component corrected in `cbc6afc`; one mixed
+finding also requested restoring a public pointer to controlled internal
+material, which was dismissed to preserve the repository's publication
+boundary. No finding was left unadjudicated, and the one-rerun gate is closed.
+
+**Verification:** `python3 scripts/check-doc-links.py`,
+`python3 tests/test_prebuilt_release_package.py`, targeted current-guidance
+searches, and `git diff --check` passed. Corrected claims were compared directly
+with their owning C++, QML, defaults, installers, packager, tests, and Git
+state. The final path and history checks confirm a docs-only range based on
+`origin/main`, independent of the runtime follow-up. No build was run because
+the approved plan prohibited executable changes and none occurred.
+
+**Next 1-3 steps:** (1) review the separate docs-only draft pull request; (2)
+merge or otherwise sequence the runtime follow-up independently; (3) promote a
+new bounded remediation tranche only through the normal wishlist/design loop.
+
+---
+
 ## 2026-07-21 — Post-merge video/SCO review follow-up COMPLETE
 
 **What changed:** added three bounded follow-ups after the memory and teardown

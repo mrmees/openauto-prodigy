@@ -4,147 +4,136 @@ Architectural rationale for OpenAuto Prodigy implementation choices. This docume
 
 ---
 
-## Task 5: Android Auto Service Layer
+## Android Auto Service Layer
 
-### Threading Model: 4 ASIO + Qt main
+### Qt-native wireless transport
 
-aasdk's promise-based async runs on Boost.ASIO `io_service`. Qt UI lives on the main thread. We bridge with `QMetaObject::invokeMethod(Qt::QueuedConnection)` for ASIO-to-Qt, and `strand_.dispatch()` for Qt-to-ASIO.
+**Decision:** Run the wireless AA listener, TCP transport, session state
+machine, and channel handlers as Qt objects on the main event loop.
 
-- 4 ASIO threads: matches original openauto, enough parallelism for 10 channels
-- All QObject state mutations happen on Qt main thread via queued invocations
-- Touch events flow from Qt main thread → ASIO strand via `strand_.dispatch()` in TouchHandler
+**Rationale:** `QTcpServer`, `QTcpSocket`, signals, and timers provide one
+ownership model for session lifecycle and eliminate a separate protocol thread
+pool. The configured `connection.tcp_port` is used throughout discovery and
+listening; its default is 5277. Bluetooth discovery supplies WiFi AP
+credentials, the phone joins the AP, and the same Qt transport carries version
+exchange, TLS, service discovery, and channel traffic.
 
-### Transport: Wireless Only (TCP)
-
-USB (AOAP) was abandoned after extensive testing showed that while the full handshake completes successfully, service channels **never open** over USB. The phone sends ServiceDiscoveryRequest, we respond, then silence — no data on any channel. This was consistent across code revisions and phone reboots.
-
-Wireless AA works reliably on first connection: BT discovery → WiFi AP → TCP on port 5288. The TCP transport feeds the same messenger/entity stack that USB would have.
-
-### aasdk fork: SonOfGib's
-
-SonOfGib's fork fixes WiFi message routing (message ID `0x8001` properly handled per channel) and has various threading safety improvements over f1xpl's original.
+**Historical context:** An earlier prototype used a third-party protocol stack
+and explored USB AOAP. Neither is part of the current architecture. The
+wireless-only product decision remains, but the implementation is now the
+in-tree `prodigy-oaa-protocol` library.
 
 ---
 
-## Task 6: Video Pipeline
+## Video Pipeline
 
-### Video Decode: FFmpeg software over V4L2 hardware
+### FFmpeg with automatic hardware selection and software fallback
 
-**Decision:** Use `libavcodec` software H.264 decoder, not V4L2 `h264_v4l2m2m`.
+**Decision:** Decode the two shipped projection codecs, H.264 and H.265/HEVC,
+through `VideoDecoder` using FFmpeg.
 
-**Rationale:**
-- V4L2 `h264_v4l2m2m` has a known kernel 6.x regression ([raspberrypi/linux#6554](https://github.com/raspberrypi/linux/issues/6554), [jc-kynesim/rpi-ffmpeg#97](https://github.com/jc-kynesim/rpi-ffmpeg/issues/97)) — still unresolved as of Feb 2026
-- Software H.264 decode benchmarks at ~243 fps for 720p on Pi 4's Cortex-A72 (NEON optimized). We need 30fps = ~12% of one core. Plenty of headroom.
-- Hardware decode outputs `AV_PIX_FMT_DRM_PRIME` or `NV12` requiring extra format handling; software outputs `YUV420P` which maps directly to `QVideoFrameFormat::Format_YUV420P`
-- Same code runs on Pi and dev VM — zero `#ifdef` platform-specific code
-- Architecture isolates the decoder behind `VideoDecoder` class — swap in HW decode later when kernel bug is fixed, no other code changes needed
+**Rationale:** The configured decoder name wins when present. In automatic mode
+the decoder tries available hardware paths, including DRM/V4L2-request
+acceleration for HEVC on the Pi, then falls back to FFmpeg's software decoder.
+Software output uses recycled YUV420P `QVideoFrame` storage; DRM-prime output is
+wrapped by `DmaBufVideoBuffer`. Keeping selection and fallback behind one
+decoder preserves the same rendering contract on the Pi and development
+machines.
 
-**Confirmed in practice:** First frame decoded at 1280x720, sustained 30fps with no dropped frames on Pi 4.
+### Rendering: `QVideoSink` + QML `VideoOutput`
 
-### Rendering: QVideoSink + VideoOutput over GStreamer/QMediaPlayer/custom OpenGL
+**Decision:** Deliver decoded `QVideoFrame`s to `QVideoSink::setVideoFrame()`
+and render them with QML `VideoOutput`.
 
-**Decision:** Use `QVideoSink::setVideoFrame()` + QML `VideoOutput`.
+**Rationale:** Qt owns the render-side YUV conversion and QML integration. The
+decoder keeps a latest-frame slot so display latency does not grow when more
+than one decoded frame becomes ready before the UI consumes it.
 
-**Rationale:**
-- Canonical Qt 6 approach for custom video sources
-- API stable across Qt 6.4 (dev VM) and 6.8 (Pi target)
-- Qt RHI layer handles YUV→RGB conversion in GPU shaders — no manual pixel format conversion
-- QMediaPlayer approach (piping H.264 into QIODevice buffer) was how original openauto did it on Qt 5, but unreliable in Qt 6 with FFmpeg backend — needs proper container framing that raw NAL units don't have
-- GStreamer pipeline adds unnecessary complexity. Direct FFmpeg is ~50 lines of code.
-- Custom QQuickItem with OpenGL texture gives maximum control + zero-copy DMA-BUF, but way more code. Only worth it if QVideoSink latency is unacceptable at 30fps (unlikely).
+### Annex B framing and codec configuration packets
 
-### NAL Framing: No start code prepending needed
+**Decision:** Feed the received Annex B byte stream to FFmpeg's parser without
+prepending start codes, and forward both timestamped and untimestamped AV media
+payloads.
 
-**Decision:** Feed H.264 data directly to FFmpeg's `av_parser_parse2()` without modification.
+**Rationale:** Codec configuration units can arrive in the untimestamped media
+form while regular frames use the timestamped form. Both reach
+`VideoChannelHandler::onMediaData`; dropping the configuration payload leaves
+the decoder without the parameter sets required for subsequent frames.
 
-**Rationale:**
-- **Original assumption was wrong:** We initially believed aasdk delivered raw NAL units WITHOUT AnnexB start codes, and prepended `00 00 00 01` before each packet. This corrupted the bitstream.
-- **Reality:** aasdk delivers data WITH AnnexB start codes already present. Confirmed by hex-dumping first bytes of video data: `00 00 00 01 67 42 80 1F` (SPS NAL with start code).
-- FFmpeg's `av_parser_parse2()` handles the AnnexB stream directly.
+### Configurable negotiated video mode
 
-### SPS/PPS Delivery: Two message types, both must be handled
+**Decision:** Advertise the configured fixed AA resolution (480p, 720p, or
+1080p), frame rate, and enabled codec descriptors. The default mode is 720p.
 
-**Decision:** Forward data from both `onAVMediaWithTimestampIndication` and `onAVMediaIndication` to the decoder.
+**Rationale:** Service discovery computes content margins for the actual display
+viewport and optional navbar. The matching content dimensions also define the
+phone's touch coordinate space, so video crop and input mapping remain aligned.
 
-**Rationale:**
-- Android Auto sends SPS/PPS codec configuration as `AV_MEDIA_INDICATION` (message ID 0x0001, **no timestamp**)
-- Regular video frames (IDR, P-frames) arrive as `AV_MEDIA_WITH_TIMESTAMP_INDICATION` (message ID 0x0000, 8-byte timestamp prefix)
-- The original `onAVMediaIndication` handler discarded the data with a comment about it being "unlikely for video" — this was the root cause of the decoder failing with `non-existing PPS 0 referenced` on every frame
-- Without SPS/PPS, the H.264 decoder has no codec parameters and cannot decode any frames
-- This was confirmed by examining the raw wire payloads: first video message after channel open is always SPS+PPS via message ID 0x0001
+### Decode worker, Qt-owned sink
 
-### Resolution: 720p
+**Decision:** Parse and decode compressed frames on `VideoDecoder::DecodeWorker`
+and update `QVideoSink` on the Qt main thread.
 
-**Decision:** Offer 720p (1280x720) in service discovery.
+**Rationale:** Decode can run independently without blocking UI and socket
+handling, while `frameReady` returns through Qt signal delivery to the sink's
+owning thread. Queue-depth load shedding may skip non-reference output, but it
+never drops compressed packets that the reference chain needs.
 
-**Rationale:**
-- DFRobot screen is 1024x600 — the phone renders at 1280x720 and Qt scales to fit via `VideoOutput.Stretch`
-- Phone chose 1280x720 automatically when offered
-- 720p software decode is well within Pi 4 budget (~12% of one core)
-- Higher resolution means more detail even at slightly different aspect ratio
+### OpenMAX IL remains out of scope
 
-### OpenMAX IL: Not an option
-
-Original openauto used OMX via `ilclient` for zero-copy GPU decode — fastest path on Pi 3. OMX and `bcm_host.h` are completely removed in Trixie/Bookworm. Dead end.
-
-### Threading: Decode on Qt main thread
-
-**Decision:** Marshal H.264 data from ASIO thread to Qt main thread for decoding.
-
-**Rationale:**
-- Video data arrives on ASIO worker thread via `onAVMediaWithTimestampIndication()` and `onAVMediaIndication()`
-- `QVideoFrame`/`QVideoSink` aren't thread-safe — must be used from the thread owning the sink
-- 720p30 software decode is fast enough for main thread (~3ms per frame)
-- Bridge via `QMetaObject::invokeMethod(Qt::QueuedConnection)` — same proven pattern used for connection state updates
+Original openauto used OMX via `ilclient` for a Pi-era zero-copy path. The
+current Trixie stack uses FFmpeg and Qt Multimedia instead; there is no OMX
+compatibility path.
 
 ---
 
 ## Touch Input
 
-### Multi-touch via MultiPointTouchArea
+### Direct evdev ownership during projection
 
-**Decision:** Use QML `MultiPointTouchArea` instead of `MouseArea` for touch input.
+**Decision:** Read Linux MT Type B events with `EvdevTouchReader` instead of
+placing a QML touch handler over projection video.
 
-**Rationale:**
-- Android Auto supports multi-touch (pinch-to-zoom in maps, etc.)
-- `MouseArea` only supports single touch point
-- `MultiPointTouchArea` provides per-finger `pointId` which maps to AA's `pointer_id` in `TouchLocation`
-- Touch coordinates mapped from screen space (QML item dimensions) to AA touch space (1024x600 as declared in `touch_screen_config`)
+**Rationale:** While Android Auto owns input, `EVIOCGRAB` prevents duplicate
+Wayland/libinput delivery. The reader tracks the complete active pointer set,
+maps raw coordinates into the same content space advertised to the phone, and
+emits Android MotionEvent-compatible down, move, and up messages. Leaving the
+AA view or backgrounding/disconnecting projection releases the grab so normal
+QML input resumes.
 
-### TouchHandler: QObject bridge pattern
+### Touch routing and the navbar
 
-**Decision:** Separate `TouchHandler` QObject that QML calls via `Q_INVOKABLE` methods.
+**Decision:** Route grabbed evdev input through `TouchRouter` before forwarding
+unclaimed pointers to AA.
 
-**Rationale:**
-- QML needs to call into the AA Input service channel, which lives on ASIO strand
-- TouchHandler holds a reference to `InputServiceChannel` and the ASIO strand
-- `Q_INVOKABLE` methods dispatch to the strand for thread-safe protobuf construction and sending
-- Exposed to QML as a context property (`TouchHandler`)
-- Wired to the InputServiceChannel by ServiceFactory during service creation
+**Rationale:** `NavbarController` registers priority hit zones through
+`EvdevCoordBridge`; those zones can consume a pointer for head-unit controls
+even though QML `MouseArea`s cannot receive the grabbed device. Unclaimed
+pointers fall through to `TouchHandler` and the AA input channel. A 3-finger
+gesture suppresses AA forwarding and opens the system overlay.
 
 ### Touch debug overlay
 
-**Decision:** Add an optional visual overlay showing touch points with coordinates.
+**Decision:** Keep an optional QML overlay showing the AA-space touch points
+reported by the evdev path.
 
-**Rationale:**
-- First hardware test revealed touch was registering but may need calibration
-- Overlay shows green crosshair circles at each touch point with AA-space coordinates displayed
-- Essential for diagnosing coordinate mapping issues without printf debugging
-- Uses a `ListModel` + `Repeater` pattern to track active touch points
+**Rationale:** `TouchHandler` queues only the debug model update to the main
+thread. The overlay is diagnostic; it is not the source of projection input.
 
 ---
 
-## Fullscreen
+## Fullscreen and Navbar Ownership
 
-### Window.FullScreen for true fullscreen
+**Decision:** The normal application window starts in `Window.FullScreen`; the
+`--geometry` development override is windowed. Plugin fullscreen preference is
+an in-shell navbar decision.
 
-**Decision:** Toggle `Window.visibility` between `Window.FullScreen` and `Window.Windowed` based on AA connection state.
-
-**Rationale:**
-- Simply hiding TopBar/BottomBar within the app still leaves the labwc taskbar and window decorations visible
-- `Window.FullScreen` tells the Wayland compositor to give us the entire screen
-- Toggled automatically: fullscreen when AA is connected (state 3) and current app is AndroidAuto, windowed otherwise
-- TopBar/BottomBar also hidden (Layout.preferredHeight: 0) to reclaim internal layout space
+**Rationale:** `PluginModel.activePluginFullscreen` controls whether `Navbar`
+is visible and therefore whether content receives edge-to-edge shell space. It
+does not toggle native window visibility. Android Auto returns
+`wantsFullscreen() == false` by default because `navbar.show_during_aa` defaults
+to enabled; disabling that setting hides the navbar and gives projection the
+full shell viewport.
 
 ---
 
@@ -154,19 +143,37 @@ Original openauto used OMX via `ilclient` for zero-copy GPU decode — fastest p
 
 **Decision:** `cellSide = diagPx / (9.0 + bias * 0.8)` where `diagPx` is the pixel diagonal and `bias` is a user-adjustable density parameter.
 
-**Rationale:** The grid needs to be resolution-independent. A fixed pixel cell size breaks on different displays; a fixed cell count wastes space on large screens and cramps small ones. The diagonal-based divisor naturally scales: a 1024x600 display gets ~7-8 columns while a 1920x1080 display gets proportionally more. The DPI cascade in `DisplayInfo::updateCellSide()` validates screen DPI trustworthiness but currently all paths produce the same formula — this is structural scaffolding for a future mm-based targeting path where physical DPI would produce different output. Constants `kBaseDivisor = 9.0` and `kBiasStep = 0.8` are in `DisplayInfo.hpp`.
+**Rationale:** The grid needs to be resolution-independent. A fixed pixel cell
+size breaks on different displays; a fixed cell count wastes space on large
+screens and cramps small ones. The diagonal-based divisor scales with the
+available pixels. The DPI cascade in `DisplayInfo::updateCellSide()` validates
+screen-DPI trustworthiness, but every current path produces the same formula.
+Constants `kBaseDivisor` and `kBiasStep` live in `DisplayInfo.hpp`.
 
 ### Grid Cols/Rows Computed in QML
 
-**Decision:** Grid columns and rows are computed as reactive QML bindings from `DisplayInfo.cellSide`. C++ computes the initial grid dimensions at startup (`main.cpp` line 560) for widget seeding and model initialization, then QML takes over the reactive path.
+**Decision:** Grid columns and rows are computed as reactive QML bindings from
+`DisplayInfo.cellSide`. C++ supplies initial dimensions while
+`DashboardManager` loads and seeds models, then QML owns the reactive path.
 
-**Rationale:** QML bindings automatically re-evaluate when the window resizes, density bias changes, or any input to the formula changes. The C++ startup computation is needed before the QML engine is running to seed initial placements. After startup, the QML approach in `HomeMenu.qml` (lines 25-55) keeps the grid layout fully reactive with zero imperative code.
+**Rationale:** QML bindings automatically re-evaluate when the window resizes,
+density bias changes, or any input to the formula changes. The startup
+dimensions let dashboard models load before the QML engine is ready. After
+startup, `HomeMenu.qml` pushes its snap-aware dimensions to all dashboard
+models.
 
 ### Auto-Snap Threshold for Gutter Space Recovery
 
-**Decision:** Two-pass snap with 50% waste threshold (`kSnapThreshold: 0.5`) against `baseCellSide`, with a cascade guard preventing runaway iteration.
+**Decision:** Two-pass snap with a 50% waste threshold
+(`kSnapThreshold: 0.5`) and a cascade guard preventing runaway iteration.
 
-**Rationale:** When the computed grid has significant wasted space (gutter), adding one more column or row recovers it at the cost of slightly smaller cells. Pass 1 snaps axes where waste exceeds 50% of the base cell size. Pass 2 catches cascaded waste from Pass 1's cell shrinkage, but only on axes that did NOT snap in Pass 1. This prevents iterative packing (e.g., 7x4 -> 8x5 -> 9x5). The single re-evaluation is sufficient because the cell shrinkage from one additional row/column is bounded. Implementation is in `HomeMenu.qml` lines 26-50.
+**Rationale:** When the computed grid has significant wasted space (gutter),
+adding one more column or row recovers it at the cost of slightly smaller
+cells. Pass 1 snaps axes where waste exceeds 50% of the base cell size. Pass 2
+catches cascaded waste from Pass 1's cell shrinkage, but only on axes that did
+not snap in Pass 1. This prevents iterative packing (for example, 7x4 -> 8x5
+-> 9x5). The single re-evaluation is sufficient because the cell shrinkage
+from one additional row or column is bounded.
 
 ### Dock Replaced by Singleton Widgets
 
@@ -174,17 +181,24 @@ Original openauto used OMX via `ilclient` for zero-copy GPU decode — fastest p
 
 **Rationale:** The dock consumed fixed vertical space that could not be reclaimed by the grid. Singleton widgets (e.g., `org.openauto.settings-launcher`, `org.openauto.aa-launcher`) participate in the same grid model as regular widgets, unifying the layout system. They are marked `singleton = true` — system-seeded, non-removable, and hidden from the picker. The reserved page is derived from singleton presence, not stored as explicit state.
 
-### JS-Based Category Filtering in QML
+### Model filtering with lightweight QML grouping
 
-**Decision:** Widget picker categories are filtered using JavaScript array operations in QML, not a C++ proxy model.
+**Decision:** `WidgetPickerModel` filters descriptors by available space and
+sorts them by category/name; QML uses small JavaScript arrays to build category
+sections and their cards rather than adding another proxy model.
 
-**Rationale:** The widget catalog is small (6 widgets currently). A C++ `QSortFilterProxyModel` would add a class, header, registration, and maintenance for no performance benefit. The JS filtering in the QML Repeater handles the current scale and is trivially understandable. If the catalog grows to hundreds of widgets, a C++ model would be warranted.
+**Rationale:** The registry is assembled at startup from built-ins, plugin
+contributions, and optional web-widget packages, so its size is not a stable
+constant. Space filtering and ordering belong in the typed model; presentation
+grouping remains simple enough to keep in the picker QML.
 
 ### Category Order Hardcoded
 
 **Decision:** Category display order is a static map: status=0, media=1, navigation=2, launcher=3.
 
-**Rationale:** Four categories with fixed semantics do not need a dynamic ordering system. The hardcoded map in the picker is simple, matches the spec, and has no extensibility requirement. If user-defined categories are ever added, this becomes a data-driven lookup.
+**Rationale:** The four built-in categories have fixed semantics. The ordering
+map in `WidgetPickerModel` handles those categories explicitly and places
+unknown extension categories after them without rejecting them.
 
 ### Remap Clamps Oversized Spans
 
@@ -214,19 +228,30 @@ Original openauto used OMX via `ilclient` for zero-copy GPU decode — fastest p
 
 **Decision:** System-seeded singleton widgets get deterministic instance IDs like `"aa-launcher-reserved"` and `"settings-launcher-reserved"`.
 
-**Rationale:** Seeding only runs when `savedPlacements.isEmpty()` (fresh install, `main.cpp` line 593), so duplicates are prevented by the empty-check gate, not by ID-based deduplication. The fixed IDs serve a different purpose: they make the seeded placements predictable and debuggable, and ensure consistency across fresh installs. YAML load/save does not deduplicate by instance ID.
+**Rationale:** `DashboardManager` seeds only the `home` dashboard when its
+loaded placement list is empty, so duplicates are prevented by that empty-check
+gate rather than ID-based deduplication. The fixed IDs make the seeded
+placements predictable and consistent. YAML load/save does not deduplicate by
+instance ID.
 
 ### Clock as Active Page Indicator
 
 **Decision:** The navbar clock control shows page indicator dots: `leftDotCount = activePage`, `rightDotCount = pageCount - activePage - 1`.
 
-**Rationale:** Repurposes an existing navbar element instead of adding a separate page indicator UI. The dot pattern is intuitive (dots to the left = pages before, dots to the right = pages after). Implementation is in `NavbarControl.qml` lines 18-19.
+**Rationale:** Repurposes an existing navbar element instead of adding a
+separate page indicator UI. The dot pattern is intuitive: dots on either side
+represent pages before and after the active page.
 
 ### WidgetContextFactory as Dedicated Class
 
 **Decision:** Context creation for widget instances is handled by `WidgetContextFactory`, a separate QObject, not by methods on `WidgetGridModel`.
 
-**Rationale:** Keeps the model as pure data (placements, roles, CRUD). The factory owns the `IHostContext` reference and cell geometry needed to construct `WidgetInstanceContext` instances. This separation prevents the model from accumulating service dependencies. The factory's `cellSide` Q_PROPERTY provides the initial cell dimensions at context creation time. Ongoing reactivity comes from `HomeMenu.qml` `Binding` elements that update `cellWidth`, `cellHeight`, `colSpan`, `rowSpan`, and `isCurrentPage` directly on each `WidgetInstanceContext` instance (HomeMenu.qml lines 245-251).
+**Rationale:** Keeps the model as pure data (placements, roles, CRUD). The
+factory receives the `IHostContext` reference and cell geometry needed to
+construct `WidgetInstanceContext` instances. This separation prevents the
+model from accumulating service dependencies. The factory's `cellSide`
+property provides the initial dimensions; bindings in `HomeMenu.qml` keep cell
+size, spans, and current-page state reactive on each instance context.
 
 ### Context Injection via Loader.onLoaded + Binding
 
@@ -234,11 +259,16 @@ Original openauto used OMX via `ilclient` for zero-copy GPU decode — fastest p
 
 **Rationale:** Context properties are untyped, undocumented, and invisible to tooling. The `property QtObject widgetContext: null` declaration in widget QML is typed, documented, and supports NOTIFY. `Binding` elements for `colSpan`, `rowSpan`, `cellWidth`, `cellHeight`, and `isCurrentPage` keep values reactive without imperative update code. The `when: widgetCtx !== null` guard prevents binding errors during the brief Loader initialization window.
 
-### NowPlayingWidget Controls as Provider Methods
+### NowPlayingWidget controls through shared actions
 
-**Decision:** Media transport controls (play/pause, next, previous) are invoked as typed methods on `IMediaStatusProvider`, not dispatched through `ActionRegistry`.
+**Decision:** The widget reads state from its `IMediaStatusProvider`-backed
+instance context and dispatches `media.playPause`, `media.next`, and
+`media.previous` through `ActionRegistry`.
 
-**Rationale:** Transport controls are media-specific operations that only make sense in the context of an active media source. `ActionRegistry` is for general-purpose application commands (`app.home`, `theme.toggle`). Making transport controls into registry actions would require the caller to know which media source is active and route accordingly — logic that `MediaStatusService` already encapsulates.
+**Rationale:** The widget does not need to know whether Android Auto,
+Bluetooth, or local playback currently owns the media surface.
+`MediaStatusService` remains the routing authority, while the action path gives
+QML and external clients the same mutation boundary.
 
 ---
 

@@ -1,9 +1,17 @@
 # Phase F — Light Plans (commodity items)
 
-Status: ACTIVE (media player done; EQ parity audit done 2026-07-14; 0x8012 experiment, key-event nav remain)
+Status: COMPLETED 2026-07-21
 
 **Date:** 2026-07-05 · **Grounded against:** `fable-design-sprint` at `db2e7eb`.
 **Nature: LIGHT plans** (sprint program §5.F — commodity work, "light plans suffice"). Unlike the deep plans in this directory, these are scoped outlines: an executor with judgment can work from them directly; a low-power executor should first expand one into full `writing-plans` format (read `README-executor-handbook.md` §2 either way). Roadmap outcomes quoted are canonical (`docs/roadmap-current.md`).
+
+> **Closure note (2026-07-21):** F1 shipped 2026-07-10. The F2 audit
+> completed 2026-07-14 and its promoted follow-up shipped 2026-07-15. F3's
+> proposed `0x8012` experiment was closed without implementation after the
+> gold-traced protocol contract disproved its premise: `0x8012` is the HU
+> response to the phone's `0x8011` theming-token request, not an HU margin
+> push. F4 was never promoted and remains wishlist-only. This archive retains
+> the original task outlines below as historical planning context.
 
 ---
 

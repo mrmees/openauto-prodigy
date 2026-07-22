@@ -1,185 +1,205 @@
 # Settings Tree
 
-This document describes every page, section, and control in the on-screen settings UI. Edit this file to describe what you want, and Claude will make the QML match.
+This document describes the settings pages and controls shipped in the
+on-screen UI. The top-level menu is a scrollable list; selecting a row pushes
+that page onto the settings stack.
 
 ## Control Types
 
 | Type | Description |
-|------|-------------|
-| **Slider** | Drag handle, label + value. Config key auto-saved. |
-| **Toggle** | On/off switch. Config key auto-saved. |
-| **SegmentedButton** | 2-4 mutually exclusive options shown inline. |
-| **Picker** | Taps to open full-screen selection list. |
-| **ReadOnly** | Shows current config value, not editable on-screen (use web panel). |
-| **Button** | Tappable action (not a config value). |
-| **StatusRow** | Live data display (indicator dot + label + value). |
+|---|---|
+| Slider | Drag control with a displayed value. |
+| Toggle | On/off switch. |
+| Segmented button | Small mutually exclusive choice set shown inline. |
+| Picker | Opens a full-screen choice list. |
+| Read-only field | Displays configuration or runtime information. |
+| Action | Performs an operation instead of editing a value. |
+| Status row | Displays live service state. |
 
----
+Controls with a `Config Key` persist through `ConfigService` only when the key
+is registered in the scalar defaults tree or has a dedicated typed accessor.
+Exceptions are called out below. Rows driven directly by a runtime service
+apply immediately.
 
-## Settings Menu (top level)
+## Top-Level Menu
 
-Scrollable list. Icon + label per row, chevron on right. Tap opens subpage.
+The fixed pages, in order, are:
 
-### General
-- Display
-- Audio
-- Connection
-- Video
-- System
+1. Android Auto
+2. Display
+3. Audio
+4. Bluetooth
+5. Theme
+6. Companion
+7. System
+8. Information
+9. Debug
 
-### Companion
-- Companion
+The settings stack can also open a plugin-provided `settingsComponent` by
+plugin ID, although the fixed menu does not currently add dynamic plugin rows.
 
-### Plugins
-- *(dynamic — one row per plugin that has a settingsComponent)*
+## Android Auto
 
-### *(separator)*
-- About
+| Control | Label | Config Key | Notes |
+|---|---|---|---|
+| Picker | Resolution | `video.resolution` | `480p`, `720p`, or `1080p`. |
+| Slider | DPI | `video.dpi` | 80–400, step 10; restart required. |
+| Toggle | Auto-connect | `connection.auto_connect_aa` | Enables automatic AA connection. |
 
----
+Decoder selection and protocol diagnostics live on the Debug page.
 
 ## Display
 
-### General
-| Control | Label | Config Key | Notes |
-|---------|-------|------------|-------|
-| Slider | Brightness | `display.brightness` | 0–100 |
-| ReadOnly | Theme | `display.theme` | |
-
-### Day / Night Mode
-| Control | Label | Config Key | Notes |
-|---------|-------|------------|-------|
-| Picker | Source | `sensors.night_mode.source` | time / gpio / none |
-| ReadOnly | Day starts at | `sensors.night_mode.day_start` | visible when source=time |
-| ReadOnly | Night starts at | `sensors.night_mode.night_start` | visible when source=time |
-| Slider | GPIO Pin | `sensors.night_mode.gpio_pin` | 0–40, visible when source=gpio |
-| Toggle | GPIO Active High | `sensors.night_mode.gpio_active_high` | visible when source=gpio |
-
----
+| Section | Control | Label | Config Key / Source | Notes |
+|---|---|---|---|---|
+| Screen | Read-only field | Screen | `DisplayInfo` | Physical diagonal and computed PPI. |
+| Screen | Stepper + reset | UI Scale | `ui.scale` | 0.5–2.0 in 0.1 steps; reset stores `1.0`. |
+| Display | Slider | Brightness / Screen Dimming | `display.brightness` | 5–100; label depends on hardware backlight support and applies through `DisplayService`. |
+| Navbar | Picker | Navbar Position | `navbar.edge` | Bottom, top, left, or right. The shell moves immediately; during active AA, reconnect/restart before relying on updated video margins and touch mapping. |
+| Navbar | Toggle | Show Navbar during Android Auto | `navbar.show_during_aa` | Restart required. |
 
 ## Audio
 
 ### Output
-| Control | Label | Config Key | Notes |
-|---------|-------|------------|-------|
-| Slider | Master Volume | `audio.master_volume` | 0–100, live-applies via AudioService |
-| Picker | Output Device | `audio.output_device` | PipeWire device list, restart required |
+
+| Control | Label | Config Key / Source | Notes |
+|---|---|---|---|
+| Slider | Master Volume | `AudioService.masterVolume` | 0–100; live and synchronized with external changes. |
+| Picker | Output Device | `audio.output_device` | PipeWire output-node list; saved and applied immediately for new streams. |
 
 ### Microphone
+
 | Control | Label | Config Key | Notes |
-|---------|-------|------------|-------|
-| Slider | Mic Gain | `audio.microphone.gain` | 0.5–4.0 |
-| Picker | Input Device | `audio.microphone.device` | PipeWire device list; applies to capture streams created after the change |
+|---|---|---|---|
+| Slider | Mic Gain | `audio.microphone.gain` | 0.5–4.0, step 0.1. |
+| Picker | Input Device | `audio.microphone.device` | PipeWire input-node list; saved and applied to subsequently created capture streams. |
 
----
+### Equalizer
 
-## Connection
+The Equalizer row opens a dedicated editor. Its stream selector is Media, Nav,
+or System. Each stream has ten gain bands, bundled and user presets, a save
+action, and a bypass control. The active preset name appears in the Audio-page
+row.
 
-### Android Auto
-| Control | Label | Config Key | Notes |
-|---------|-------|------------|-------|
-| Toggle | Auto-connect | `connection.auto_connect_aa` | |
-| ReadOnly | TCP Port | `connection.tcp_port` | Default 5277. Read by `AndroidAutoOrchestrator` and `BluetoothDiscoveryService` via `IConfigService`. |
+## Bluetooth
 
-### WiFi Access Point
-| Control | Label | Config Key | Notes |
-|---------|-------|------------|-------|
-| Picker | Channel | `connection.wifi_ap.channel` | 1–11, 36/40/44/48. Restart required. |
-| SegmentedButton | Band | `connection.wifi_ap.band` | 2.4 GHz / 5 GHz. Restart required. |
+| Control | Label | Config Key / Source | Notes |
+|---|---|---|---|
+| Read-only field | Device Name | `connection.bt_name` | Installer-supplied adapter alias; falls back visually to `OpenAutoProdigy`. |
+| Toggle | Accept New Pairings | `BluetoothManager.pairable` | Runtime pairable state, not a persisted setting. |
+| Action per device | Forget | `PairedDevicesModel` | Removes that paired device; the row also shows connection state. |
 
-### Bluetooth
-| Control | Label | Config Key | Notes |
-|---------|-------|------------|-------|
-| Toggle | Discoverable | `connection.bt_discoverable` | |
+## Theme
 
----
+| Control | Label | Config Key / Source | Notes |
+|---|---|---|---|
+| Picker | Theme | `display.theme` | Uses theme IDs and display names discovered by `ThemeService`; applies immediately. |
+| Toggle | Custom Wallpaper | `display.wallpaper_override` | Clearing the toggle restores the selected theme's wallpaper. |
+| Picker | Wallpaper | `display.wallpaper_override` | Visible while Custom Wallpaper is on. |
+| Toggle | Always Use Dark Mode | `display.force_dark_mode` | Applies to the UI immediately. |
+| Action | Delete Theme | `ThemeService` | Visible only for a user-installed theme; requires confirmation. |
 
-## Video
-
-### Playback
-| Control | Label | Config Key | Notes |
-|---------|-------|------------|-------|
-| SegmentedButton | FPS | `video.fps` | 30 / 60 |
-| Picker | Resolution | `video.resolution` | 480p / 720p / 1080p |
-| Slider | DPI | `video.dpi` | 80–400, step 10. Restart required. |
-
-### Video Decoding
-Dynamic list from `CodecCapabilityModel`. Per codec:
-
-| Control | Label | Notes |
-|---------|-------|-------|
-| Toggle | *(codec name: H.264, H.265, VP9, AV1)* | H.264 always on, others toggleable |
-| SegmentedButton | Decoder | Software / Hardware (when codec enabled) |
-| Picker | Decoder name | Shown when >1 decoder available |
-
-### Sidebar
-| Control | Label | Config Key | Notes |
-|---------|-------|------------|-------|
-| Toggle | Show sidebar during Android Auto | `video.sidebar.enabled` | Restart required |
-| SegmentedButton | Position | `video.sidebar.position` | Left / Right. Restart required. |
-| Slider | Sidebar Width (px) | `video.sidebar.width` | 80–300, step 10. Restart required. |
-
----
-
-## System
-
-### Identity
-| Control | Label | Config Key | Notes |
-|---------|-------|------------|-------|
-| ReadOnly | Head Unit Name | `identity.head_unit_name` | |
-| ReadOnly | Manufacturer | `identity.manufacturer` | |
-| ReadOnly | Model | `identity.model` | |
-| ReadOnly | Version | *(compiled — `Qt.application.version`)* | |
-| ReadOnly | Car Model | `identity.car_model` | |
-| ReadOnly | Car Year | `identity.car_year` | |
-| Toggle | Left-Hand Drive | `identity.left_hand_drive` | |
-
-### Hardware
-| Control | Label | Config Key | Notes |
-|---------|-------|------------|-------|
-| ReadOnly | Hardware Profile | `hardware_profile` | |
-| ReadOnly | Touch Device | `touch.device` | |
-
----
+Bundled theme IDs include `default`, `black`, `colors`, `connected-device`,
+`ferns`, `leather`, `retro`, `squares`, `vaporwave`, and `waves`. The default
+theme's display name is **Prodigy**; configuration stores the ID, not the
+display name.
 
 ## Companion
 
-Single merged page (2026-07-14; menu label "Companion", page file
-`ApiSettings.qml`). Replaces the former separate Companion and External API
-pages; the legacy pairing controls (`Generate Pairing Code`,
-`companion.enabled` toggle) were removed with it. The `companion.*` config
-namespace was retired in the B2 teardown
-(2026-07-14). Stale `companion:` blocks in existing user configs are ignored
-harmlessly; `~/.openauto/companion.key` and `~/.openauto/vehicle.id` are
-orphaned legacy files (never auto-deleted).
+This merged page covers External API pairing, live phone state, and API
+listener controls. There is no separate External API or legacy Companion page.
 
 ### Remote Client Pairing
-| Control | Label | Notes |
-|---------|-------|-------|
-| StatusRow + Button | PIN / Start Pairing / Cancel Pairing | API v1 pairing window (120 s default) |
-| Image | *(QR code)* | `prodigy://pair?host=&tcp=&ws=&pin=&ssid=`; shown only while a window is open and both listeners are up |
+
+| Control | Label / State | Notes |
+|---|---|---|
+| Status + action | PIN / Start Pairing / Cancel Pairing | Opens or cancels the API pairing window when the API listener is running. |
+| Image | Pairing QR | Visible only while pairing is active and QR data is available. |
 
 ### Phone Status
-| Control | Label | Notes |
-|---------|-------|-------|
-| StatusRow | *(connection indicator)* | Green dot + "Phone Connected" / "Not Connected" (`CompanionState.connected`) |
-| StatusRow | GPS | Lat/lon, visible when connected + not stale |
-| StatusRow | Phone Battery | Percentage + charging state, visible when connected |
-| StatusRow | Internet Proxy | Proxy address, visible when available |
-| StatusRow | Route Active | Green/orange/red dot + state text, visible when internet available |
+
+| Status | Visibility / Meaning |
+|---|---|
+| Phone Connected / Not Connected | Always shown when companion state is available. |
+| GPS | Shown while connected and the location is not stale. |
+| Phone Battery | Shown while connected after battery state has been reported. |
+| Internet Proxy | Shown when phone-provided internet is available. |
+| Route Active | Shows active, degraded, failed, or inactive system-route state. |
 
 ### Advanced
+
 | Control | Label | Config Key | Notes |
-|---------|-------|------------|-------|
-| Toggle | External API Enabled | `api.enabled` | Restart required; powers companion, web widgets, and remote clients |
-| Toggle | Allow LAN Clients | `api.expose_lan` | Restart required |
+|---|---|---|---|
+| Toggle | External API Enabled | `api.enabled` | Restart required; powers companion, web widgets, and remote clients. |
+| Toggle | Allow LAN Clients | `api.expose_lan` | Restart required. |
 
----
+## System
 
-## About
+### General
 
-| Control | Label | Notes |
-|---------|-------|-------|
-| *(text)* | OpenAuto Prodigy | Heading |
-| *(text)* | Version ALPHA-YY-MM-DD-NN | From `Qt.application.version` (compiled `OAP_VERSION`) |
-| Button | Close App | Opens exit confirmation dialog |
+| Control | Label | Config Key | Notes |
+|---|---|---|---|
+| Toggle | Left-Hand Drive | `identity.left_hand_drive` | Controls handed UI placement. |
+| Toggle | 24-Hour Clock | `display.clock_24h` | Clock-format preference. |
+| Toggle | Always Use Dark Mode | `display.force_dark_mode` | Same setting exposed on the Theme page. |
+
+### Day / Night Mode
+
+This section is disabled visually while Always Use Dark Mode is enabled.
+
+| Control | Label | Config Key | Notes |
+|---|---|---|---|
+| Picker | Source | `sensors.night_mode.source` | `time`, `gpio`, or `none`. |
+| Read-only field | Day starts at | `sensors.night_mode.day_start` | Visible for `time`. |
+| Read-only field | Night starts at | `sensors.night_mode.night_start` | Visible for `time`. |
+| Slider | GPIO Pin | `sensors.night_mode.gpio_pin` | 0–40; visible for `gpio`. |
+| Toggle | GPIO Active High | `sensors.night_mode.gpio_active_high` | Visible for `gpio`. |
+
+### Software
+
+| Control | Label | Source | Notes |
+|---|---|---|---|
+| Read-only field | Version | `Qt.application.version` | Compiled `OAP_VERSION`. |
+| Action | Close App | Application action | Opens the exit confirmation dialog. |
+
+## Information
+
+| Section | Control | Label | Config Key |
+|---|---|---|---|
+| Identity | Read-only field | Head Unit Name | `identity.head_unit_name` |
+| Identity | Read-only field | Manufacturer | `identity.manufacturer` |
+| Identity | Read-only field | Model | `identity.model` |
+| Identity | Read-only field | Car Model | `identity.car_model` |
+| Identity | Read-only field | Car Year | `identity.car_year` |
+| Hardware | Read-only field | Hardware Profile | `hardware_profile` |
+| Hardware | Read-only field | Touch Device | `touch.device` |
+
+## Debug
+
+### Video Decoding
+
+A dynamic list from `CodecCapabilityModel` shows every detected codec. Each row
+offers an enable control where permitted, software/hardware mode selection, and
+a named decoder picker when more than one concrete decoder exists. Decoder
+choices persist through the scalar `video.decoder.<codec>` keys.
+
+The enable controls are currently display-only in practice: the QML attempts
+to read and write the `video.codecs` sequence through the scalar
+`ConfigService` path, which cannot round-trip sequences. Toggling one does not
+change the service-discovery codec list or persist across reopening the page.
+Until a typed sequence API is added, edit `video.codecs` in YAML and restart;
+keep it to H.264/H.265 because the decoder does not identify VP9 or AV1 streams.
+
+### Diagnostics
+
+| Section | Control | Label | Config Key / Source |
+|---|---|---|---|
+| Logging | Toggle | Verbose Logging | `logging.verbose` (currently unregistered; the toggle does not apply or persist) |
+| Protocol Capture | Toggle | Enable Capture | `connection.protocol_capture.enabled` |
+| Protocol Capture | Segmented button | Format | `connection.protocol_capture.format` (`jsonl` / `tsv`) |
+| Protocol Capture | Toggle | Include Media Frames | `connection.protocol_capture.include_media` |
+| Protocol Capture | Read-only field | Capture Path | `connection.protocol_capture.path` |
+| Connection Info | Read-only field | TCP Port | `connection.tcp_port` |
+| WiFi Access Point | Read-only field | Channel | `connection.wifi_ap.channel` |
+| WiFi Access Point | Read-only field | Band | `connection.wifi_ap.band` |
+| AA Protocol Test | Expandable actions | Media and assistant buttons | Enabled only while projection is connected; dispatches `aa.sendButton` through `ActionRegistry`. |

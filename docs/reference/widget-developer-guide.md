@@ -32,7 +32,7 @@ Widgets are grouped into four categories, displayed in this fixed order in the w
 
 | Category | Order | Purpose | Example |
 |----------|-------|---------|---------|
-| `status` | 0 | System/connection state | Clock, AA Status |
+| `status` | 0 | System/connection state | Clock, Date |
 | `media` | 1 | Audio/media information | Now Playing |
 | `navigation` | 2 | Turn-by-turn / map data | Navigation |
 | `launcher` | 3 | App launchers | Settings, Android Auto |
@@ -50,10 +50,11 @@ You are building from source and adding a widget to your own install. This is th
 1. **Write an IPlugin subclass** that overrides `widgetDescriptors()` to return your widget descriptors
 2. **Create the QML file** implementing the widget UI
 3. **Register the plugin** as a static plugin in `main.cpp` via `PluginManager::registerStaticPlugin()`
-4. **Add CMake setup** for the QML file with `QT_QML_SKIP_CACHEGEN TRUE`
+4. **Add the QML file to CMake** with a source-properties block and a
+   `QML_FILES` entry
 5. **Rebuild** — the widget appears in the picker
 
-If your widget is standalone (not backed by a plugin's services), you can skip the IPlugin subclass entirely and register descriptors directly in `main.cpp`, the way the built-in Clock and AA Status widgets are registered:
+If your widget is standalone (not backed by a plugin's services), you can skip the IPlugin subclass entirely and register descriptors directly in `main.cpp`, the way the built-in Clock and Date widgets are registered:
 
 ```cpp
 oap::WidgetDescriptor clockDesc;
@@ -196,8 +197,8 @@ widgetRegistry->registerWidget(sysInfoDesc);
 ### 4. Build and Verify
 
 ```bash
-cd build
-cmake --build . -j$(nproc)
+cd ~/builds/openauto-prodigy
+cmake --build . --target openauto-prodigy -j$(nproc)
 ```
 
 Launch the app. Long-press an empty area on the home screen to open the widget picker. Your "System Info" widget should appear under the "Status" category.
@@ -217,8 +218,9 @@ Every widget is described by a `WidgetDescriptor` struct defined in `src/core/wi
 | `description` | `QString` | `""` | Short description displayed in the widget picker |
 | `qmlComponent` | `QUrl` | `QUrl()` | QRC URL to the widget QML file, e.g. `"qrc:/OpenAutoProdigy/ClockWidget.qml"` |
 | `pluginId` | `QString` | `""` | Source plugin ID. **You must set this to your plugin's `id()` in `widgetDescriptors()`.** It is not set automatically. |
-| `contributionKind` | `DashboardContributionKind` | `Widget` | `Widget` (lightweight display) or `LiveSurfaceWidget` (deferred, no host path yet) |
+| `contributionKind` | `DashboardContributionKind` | `Widget` | Native `Widget`, deferred `LiveSurfaceWidget`, or manifest-backed `WebWidget`. |
 | `defaultConfig` | `QVariantMap` | `{}` | Optional per-widget default configuration |
+| `configSchema` | `QList<ConfigSchemaField>` | `{}` | Optional host-rendered per-instance settings schema. |
 | `minCols` | `int` | `1` | Minimum column span |
 | `minRows` | `int` | `1` | Minimum row span |
 | `maxCols` | `int` | `6` | Maximum column span |
@@ -226,6 +228,15 @@ Every widget is described by a `WidgetDescriptor` struct defined in `src/core/wi
 | `defaultCols` | `int` | `1` | Default column span when placed |
 | `defaultRows` | `int` | `1` | Default row span when placed |
 | `singleton` | `bool` | `false` | If true: system-seeded, non-removable, hidden from picker. Used for launcher widgets. |
+
+`DashboardContributionKind` also contains `WebWidget`, used by scanned
+manifest-backed HTML/JS widgets. Native QML widgets use `Widget`.
+
+`ConfigSchemaField` supports `Enum`, `Bool`, and `IntRange` fields. It contains
+`key`, `label`, parallel enum `options`/`values`, and integer range
+`rangeMin`/`rangeMax`/`rangeStep` values. The host merges `defaultConfig` with
+the placement's overrides and exposes the result as
+`widgetContext.effectiveConfig`.
 
 ### Icon Codepoints
 
@@ -268,6 +279,7 @@ The host injects a `WidgetInstanceContext` into this property after the Loader c
 | `projectionStatus` | `QObject*` | CONSTANT | `IProjectionStatusProvider` instance (may be null) |
 | `navigationProvider` | `QObject*` | CONSTANT | `INavigationProvider` instance (may be null) |
 | `mediaStatus` | `QObject*` | CONSTANT | `IMediaStatusProvider` instance (may be null) |
+| `effectiveConfig` | `QVariantMap` | READ + NOTIFY | Descriptor defaults merged with per-instance overrides. |
 
 ### Provider Access
 
@@ -289,9 +301,13 @@ The `IMediaStatusProvider` interface exposes:
 | `title` | `QString` | Current track title |
 | `artist` | `QString` | Current artist |
 | `album` | `QString` | Current album |
-| `playbackState` | `int` | 0 = stopped, 1 = playing, 2 = paused |
-| `source` | `QString` | `"Bluetooth"` or `"AndroidAuto"` |
+| `playbackState` | `int` | Raw source-native state; use `isPlaying` for source-independent UI. |
+| `isPlaying` | `bool` | Normalized playing state. |
+| `source` | `QString` | `"Bluetooth"`, `"AndroidAuto"`, or `"MediaPlayer"` |
 | `appName` | `QString` | Source app name |
+| `artUrl` | `QString` | QML-loadable artwork URL, or empty. |
+| `position` / `duration` | `qint64` | Millisecond playback progress; unknown position is -1 and unknown duration is 0. |
+| `hasPosition` | `bool` | Whether usable progress is available. |
 | `playPause()` | method | Toggle play/pause |
 | `next()` | method | Skip to next track |
 | `previous()` | method | Skip to previous track |
@@ -419,7 +435,10 @@ Common patterns:
 
 ### Remap Behavior
 
-When the grid dimensions change (display resize, density bias change), the system remaps widget placements. Widgets that no longer fit are clamped to the new grid dimensions rather than hidden — maximizing visibility.
+When grid dimensions change, the system proportionally remaps positions while
+preserving spans. It clamps positions, nudges overlaps, and can spill a widget
+to a later page. A placement whose minimum span is larger than the entire grid
+is retained but marked invisible.
 
 ---
 
@@ -427,13 +446,27 @@ When the grid dimensions change (display resize, density bias change), the syste
 
 ### Adding a Widget QML File
 
-In `src/CMakeLists.txt`, inside the `qt_add_qml_module` block, add three properties for each widget file:
+In `src/CMakeLists.txt`, add a source-properties block before
+`qt_add_qml_module`:
 
 ```cmake
-    ${CMAKE_SOURCE_DIR}/qml/widgets/MyWidget.qml
+set_source_files_properties(../qml/widgets/MyWidget.qml PROPERTIES
     QT_QML_SOURCE_TYPENAME "MyWidget"
     QT_RESOURCE_ALIAS "MyWidget.qml"
     QT_QML_SKIP_CACHEGEN TRUE
+)
+```
+
+Then add the same relative path to the module's `QML_FILES` list:
+
+```cmake
+qt_add_qml_module(openauto-prodigy
+    URI OpenAutoProdigy
+    VERSION 1.0
+    QML_FILES
+        # Existing entries...
+        ../qml/widgets/MyWidget.qml
+)
 ```
 
 - **`QT_QML_SOURCE_TYPENAME`** — The QML type name (must match the filename without extension)
@@ -487,4 +520,6 @@ Timer {
 
 ### Cross-Build + QML Deploy Mismatch
 
-When deploying to the Pi, the binary and QML must both be updated. Push QML changes via git (`git push` + `git pull` on the Pi). Push binary changes via `rsync`. If only one is updated, you may see stale or mismatched behavior.
+QML is embedded in the executable by `qt_add_qml_module`. After a widget QML
+change, cross-build and deploy the rebuilt binary; updating the source checkout
+on the Pi alone does not update the running UI.

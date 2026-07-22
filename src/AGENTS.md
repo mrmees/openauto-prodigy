@@ -5,7 +5,9 @@ Subsystem rules for C++ code under `src/`. Root `AGENTS.md` holds the hard const
 ## Qt
 
 - **QTimer needs `#include <QTimer>`** — a forward declaration alone produces "not declared in scope" errors.
-- **QTimer only works on threads with a Qt event loop.** Starting a QTimer from a Boost.ASIO thread silently does nothing. Marshal to the main thread with `QMetaObject::invokeMethod(obj, lambda, Qt::QueuedConnection)`.
+- **QTimer follows QObject thread affinity and needs a running Qt event loop.**
+  Start and stop it from the timer's owning thread; marshal cross-thread work to
+  that owner with `QMetaObject::invokeMethod(obj, lambda, Qt::QueuedConnection)`.
 - **Q_OBJECT in a header-only class needs a .cpp file listed in CMakeLists.txt** — otherwise MOC never runs and you get undefined vtable references.
 - **`QColor` needs `Qt6::Gui`** in the link line, not `Qt6::Core`.
 - **QVideoFrame is ref-counted — use a fresh wrapper for each decoded output.**

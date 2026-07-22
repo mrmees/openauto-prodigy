@@ -2,7 +2,15 @@
 
 Governance: capture new ideas in `docs/wishlist.md`; only promoted items should appear in this roadmap.
 
-> **Parity program status (updated 2026-07-14):** the 2026-07-05 design sprint (`docs/archive/plans/2026-07-05-fable-work-program-design.md`, phases A–F) has been designed **and executed**: External API v1, HTML/JS web widgets, HFP call audio (bench-complete 2026-07-13), multi-dashboards + overlay framework, and the theme-upload endpoint are all shipped; the media player shipped through stage 2; the EQ parity audit closed 2026-07-14 (see Done). What remains from the program: the two experimental Phase F light-plan items (`docs/plans/2026-07-05-phase-f-light-plans.md` — 0x8012 experiment, key-event nav notes).
+> **Parity program status (updated 2026-07-21):** the 2026-07-05 design sprint
+> (`docs/archive/plans/2026-07-05-fable-work-program-design.md`, phases A–F)
+> shipped External API v1, HTML/JS web widgets, HFP call audio,
+> multi-dashboards + overlays, theme upload, and the two-stage local media
+> player. The EQ parity audit is complete. No promoted Phase F work remains:
+> the proposed `0x8012` margin-push experiment was closed after the gold-traced
+> protocol definition established that the message is a theming-token response,
+> and the key-event map remains an unpromoted wishlist idea. The completed Phase
+> F light-plan record is archived.
 
 ## Done (recent)
 
@@ -44,11 +52,21 @@ Governance: capture new ideas in `docs/wishlist.md`; only promoted items should 
 - Platform/plugin architecture refactor (v0.6) — formalized runtime boundaries between core platform, shell/dashboard, and feature plugins. Typed dashboard contributions (`DashboardContributionKind`), narrow provider interfaces (`IProjectionStatusProvider`, `INavigationProvider`, `IMediaStatusProvider`, `ICallStateProvider`), core-owned services (`PhoneStateService`, `MediaStatusService`, `AndroidAutoRuntimeBridge`, `GestureOverlayController`), legacy `Configuration` class deleted, root-context globals replaced with provider-backed properties. Pi hardware verified. COMPLETE.
 - Settings touch input fix (v0.6) — replaced QML TapHandler overlays (which stole all touch from child controls) with `SettingsInputBoundary`, a C++ QQuickItem using `childMouseEventFilter()` for subtree-wide long-press-back detection without interfering with Sliders, Toggles, or other controls. Removed per-row/per-control back-hold plumbing from SettingsRow, SettingsHoldArea, SettingsSlider. Pi hardware verified. COMPLETE.
 - AA connection validation on fresh install — full AA session (BT discovery → WiFi → TCP → video) verified on clean Trixie install. COMPLETE.
-- HFP call audio (sprint Phase D2) — TelephonyClient (BlueZ D-Bus) + ScoNodeMonitor (PipeWire) feeding a normative call state machine in PhoneStateService; SCO routes via WirePlumber natively. Executed on live hardware 2026-07-05. COMPLETE (interop live checks L3/L4/L5 — DTMF via IVR, RejectSCO comparison, Samsung/Moto — pending ~15 min bench time with Matthew + phone; checklist self-contained in the D2 design doc §11).
+- HFP call audio and companion cutover — TelephonyClient (BlueZ D-Bus) +
+  ScoNodeMonitor (PipeWire) feed the PhoneStateService call-state machine, with
+  SCO routed natively through WirePlumber. The live interop matrix completed
+  2026-07-13 with mSBC selected as the shipped codec, and the legacy companion
+  listener/port was retired by the B2 teardown on 2026-07-14. External API
+  reporting-session liveness and QR pairing are implemented and test-covered.
+  COMPLETE.
 - External API v1 + v1.1 (sprint Phase B) — TCP 9810 / WebSocket 9811 protobuf server: pairing (PIN challenge), status publishers (media/nav/projection/phone/system), action dispatch, notifications, companion ingest (GPS/battery/connectivity/time); v1.1 additive fields + hardening docket + atomic YAML config save. Live on Pi. COMPLETE.
 - Multi-dashboards + overlay framework (sprint Phase E) — named dashboards (YAML v4 + v3 migration, DashboardManager, switcher pills, widget size presets) and OverlayService (z-bands, action auto-registration, OverlayHost; PairingDialog migrated as proof). Pi-verified. COMPLETE.
 - HTML/JS web-widget runtime (sprint Phase C2) — `prodigy://` scheme + WebWidgetHost (locked-down WebEngine) + `prodigy` JS shim riding the External API WebSocket; packaged widgets under `~/.openauto/webwidgets/`. Pi-verified end-to-end incl. full touchscreen checklist; shim-hardening batch + authoring guide (`docs/reference/web-widget-authoring.md`) landed 2026-07-07. COMPLETE.
-- Theme/wallpaper upload endpoint — `POST /api/theme/install` (web-config multipart → temp-file handoff → IPC `install_theme` → `importCompanionTheme`), real success/failure in the response (fixes the legacy 9876 ack-lie). Deployed to Pi 2026-07-07; HTTP contract handed to the companion maintainer. COMPLETE (legacy 9876 retirement now gates only on the companion shipping its client).
+- Theme/wallpaper upload endpoint — `POST /api/theme/install` (web-config
+  multipart → temp-file handoff → IPC `install_theme` →
+  `importCompanionTheme`), with real success/failure in the response. Deployed
+  to Pi 2026-07-07; the legacy companion listener was retired 2026-07-14.
+  COMPLETE.
 - Cross-build fast mode — app-only default + `--full` flag; Pi deploy builds dropped ~20 min → ~4 min. COMPLETE.
 - Widevine enablement (web-surface strategy Slice 1) — CDM auto-wiring in main.cpp
   (`--widevine-path` from `/opt/WidevineCdm`, env-override respected), best-effort
@@ -86,38 +104,39 @@ Governance: capture new ideas in `docs/wishlist.md`; only promoted items should 
   - Web EQ editor stays parked in the wishlist (on-HU UI already covers
     profile creation). COMPLETE.
 
+- Local media player plugin — **SHIPPED AND BENCH-COMPLETE 2026-07-10
+  (ALPHA-26-07-10-01)**. The static plugin provides folder browsing, scanned
+  Artists/Albums/Tracks library views, incremental metadata/art caching,
+  udisks2 USB automount/eject/recovery, persisted paused-state restore,
+  three-source playing-wins arbitration, the shared now-playing widget, and
+  External API `LOCAL_MEDIA` status. Design:
+  `docs/archive/plans/2026-07-08-media-player-design.md`; stage plans:
+  `docs/archive/plans/2026-07-08-media-player-stage1.md` and
+  `docs/archive/plans/2026-07-09-media-player-stage2-plan.md`.
+
 ## Now
 
-- HFP mic fix + live checks + 9876 retirement stage-1 — **bench COMPLETE (2026-07-13)**; design + plan in `docs/archive/plans/2026-07-11-hfp-mic-9876-retirement-design.md` and `docs/archive/plans/2026-07-11-hfp-mic-9876-retirement-plan.md`, all RESULT rows in `docs/archive/plans/2026-07-11-hfp-bench-runbook.md`.
-  - Bench verdicts: **mSBC is the shipped codec** (patched `libspa-0.2-bluetooth 1.4.2-1+rpt3+prodigy1` installed + held on the Pi; LC3-SWB encode bug confirmed with a clean A/B; CVSD drop-in = repo fallback only); L3 DTMF ✓, L4 RejectSCO default stays `false`, L5 Samsung mostly ✓ (answer/reject-during-AA wishlisted) / Moto no-service partial, L6 volume/echo ✓; §7 cutover fully validated with 9876 dead — including the time row, whose bench FAIL turned out to be a false-positive diagnosis (wiring existed; investigation found + fixed real bugs instead: timedatectl local-time parse, missing set-timezone polkit rule, untested duplicated logic → tested `ClockSyncService`; re-validated live with induced drift 2026-07-13). **B2 teardown planning is unblocked.**
-  - Also shipped 2026-07-13: installers wire the patched-deb install + apt hold; scannable QR for API pairing (`prodigy://pair?...`, head-unit side) — companion-side scanner runs from `personal/openautopro/companion-qr-pairing-prompt.md`.
-  - Remaining: dev→main PR (gates: §7 time row ✓ done; QR pairing end-to-end scan at the bench with the updated companion app — Matthew); upstream PipeWire issue (draft at `personal/openautopro/pipewire-lc3-swb-issue-draft.md`, Matthew approves before posting); then B2 teardown planning per design §B2.
-
-- Local media player plugin — **stage 2 (library + USB automount) code-complete + gated (2026-07-10)**; Pi deploy + stage-2 bench rows pending Matthew. Stage 1 shipped + benched 2026-07-09.
-  - Stage 1 shipped (develop @ `2aeb411`, 18 commits): MediaPlayerPlugin (folder browse + now-playing bar), PlaybackEngine (QMediaPlayer PCM tap → AudioService, spike-gated GO), PlayQueue (shuffle/repeat, TDD), FolderModel, MediaArtProvider, 3-source playing-wins arbitration, NowPlayingWidget (art/progress/source badge/transport), API v1 LOCAL_MEDIA source + position fields. Suite 114/114 green; cross-build + Pi deploy verified healthy (service active, plugin registered, NRestarts=0).
-  - Remaining stage 1: 12-row bench checklist with Matthew (touch/audible rows — see session-handoffs 2026-07-08 deploy record), then review + push.
-  - Next: **stage 2 (library + USB automount) planning.**
+No product feature batch is currently promoted for implementation. Open ideas
+remain in `docs/wishlist.md` until they pass the promotion process.
 
 ## Later
 
-- Dynamic AA video reconfiguration for sidebar changes.
-  - Rationale: toggling the sidebar on/off or changing its position (left/right/top/bottom) requires recalculating the AA video content area (margin_width/margin_height in VideoConfig). Currently this isn't handled dynamically — the video config is locked at session start.
-  - Discovery: `UiConfigMessages.proto` (added to open-android-auto 2026-02-28) defines `UpdateHuUiConfigRequest` (0x8012) — an HU-initiated push of margins, content insets, and day/night theme over the video AV channel. This may be the proper mechanism for runtime sidebar/margin changes and night mode, replacing the sensor-based workaround. Needs wire verification — the experiment protocol is written (Phase F3 light plan).
-  - Outcome: sidebar show/hide and position changes trigger AA video renegotiation or margin recalculation within the active session, so the phone renders correctly for the new layout without reconnecting.
 - Reduce unnecessary logging / enable debug logging options. MOSTLY RESOLVED 2026-07-02:
   - BtManager paired-device spam now logs only when the count changes (info level, `BluetoothManager.cpp`). NavStrip QML color warnings died with NavStrip itself (deleted in the v0.4.5 Navbar rework; all 43 ThemeService QML references audited as resolving). Verbose infrastructure already exists (`lcBT` defaults to info threshold, `--verbose` flag).
   - Remaining: a general startup-log audit on the Pi to catch any other noise sources.
 - Plugin system expansion (OBD-II, backup camera, GPIO control).
 - Theme engine and user-facing theme selection.
   - Delta narrowed 2026-07-07: companion theme/wallpaper upload (`/api/theme/install`) and the web-config themes page both exist; remaining is an audit of in-car theme selection UX.
-- Companion app work — head-unit side DONE; ball is in the companion's court.
-  - The companion (Android app, sibling repo `personal/openautopro/openauto-companion`) migrates from the legacy port-9876 JSON/HMAC protocol to API v1 (WebSocket + PIN pairing, `companion.proto` reports) + the new theme-upload HTTP endpoint. All head-unit prerequisites have shipped: API v1 + v1.1 additive batch (2026-07-06) and the theme-upload endpoint (2026-07-07, contract handed off).
-  - **DONE (2026-07-14):** `CompanionListenerService` + port 9876 retired (B2 teardown, `docs/archive/plans/2026-07-14-b2-teardown-design.md`). Reporting-session liveness expiry shipped with it — a silently-vanished phone drops `connected` within ~35 s.
-  - Companion-parity follow-up idea (wishlist, not promoted): phone notifications displayed on the head unit — blockers dissolved (NotificationService + overlay framework both exist), but it waits on the companion's API v1 migration.
+- Companion API integration — **COMPLETE 2026-07-14**. The Android companion's
+  API v1 reporting, pairing, connectivity, and theme-transfer paths passed the
+  live cutover before the head unit retired `CompanionListenerService` and its
+  legacy listener. Reporting-session expiry and reconnect self-heal were also
+  bench-validated. The separate phone-notification idea remains unpromoted; its
+  remaining scope is an additive notification contract and display policy, not
+  an API migration prerequisite.
 - Streaming web apps (WebAppHost) — fullscreen Spotify/YouTube/parked-video surface
   riding the slice-1 Widevine wiring. Scoped (Decision 3 of the web-surface spec);
-  wishlist entry has the open questions. Queued behind the media player arc.
-- Key-event navigation map (steering-wheel / hardware buttons) — sketch in Phase F4 light plan.
+  wishlist entry has the open questions. Not yet promoted.
 - CI automation for builds and tests.
 - Multi-display / resolution support beyond 1024x600.
 - Community contribution workflow (issue templates, PR guidelines).

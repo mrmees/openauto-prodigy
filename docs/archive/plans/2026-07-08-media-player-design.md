@@ -1,6 +1,11 @@
 # Local Media Player Plugin — Design
 
-Status: ACTIVE (stages 1-2 shipped 2026-07-09/10; stage-2 bench pending; stage 3+ unscoped)
+Status: COMPLETED 2026-07-21
+
+**Completion:** Stages 1 and 2 shipped and completed their Pi bench matrix by
+2026-07-10; `ALPHA-26-07-10-01` is the declared stage-2 milestone. Further
+media-player ideas remain in `docs/wishlist.md` and require promotion into a
+new design.
 
 **Date:** 2026-07-08 · **Status:** approved (brainstorm 2026-07-08, Matthew)
 **Amended 2026-07-09** (prior-art brainstorm, Matthew): scanner heuristics +
@@ -8,7 +13,7 @@ credits folded into §8, Elisa UI reference in §7. Survey outcome: no existing
 project fits libavformat+QML+zero-deps (ecosystem standard is TagLib+SQLite);
 adopt heuristics as credited reference, not code — Yarock and VLC medialibrary
 adoption explicitly rejected (deps, Widgets→QML mismatch, weight).
-**Roadmap item:** Now #1 — "Local media player plugin" (`docs/roadmap-current.md`)
+**Roadmap item:** Done — "Local media player plugin" (`docs/roadmap-current.md`)
 **Supersedes:** the F1 light-plan sketch (`docs/plans/2026-07-05-phase-f-light-plans.md` §F1) — this is the full design the sketch called for.
 **Grounding:** integration seams verified against develop @ `192b0fa` (MediaStatusService, IMediaStatusProvider, NowPlayingWidget, ActionRegistry, ApiSerializers, AudioService, plugin/CMake/main.cpp registration pattern).
 

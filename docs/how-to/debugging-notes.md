@@ -94,26 +94,29 @@ Removed the start code prepend. Feed raw data directly to `av_parser_parse2()`.
 
 ---
 
-## Touch Calibration (ACTIVE)
+## Touch Coordinate Mapping (RESOLVED)
 
-**Status:** Under investigation
+**Status:** Current evdev routing accounts for the advertised AA content area
 
 ### Problem
 
-Touch input is working (events reach the phone, UI responds) but the user reports it "seems like we need to calibrate" — touches may not be landing exactly where expected.
+An early implementation scaled QML pointer coordinates directly into a fixed
+AA coordinate space. That made display, video, and touch dimensions easy to
+confuse and led to suspected calibration errors.
 
-### Current State
+### Resolution
 
-- Touch debug overlay added showing green crosshair circles at each touch point
-- Each circle displays the mapped AA-space coordinates (1024x600)
-- Coordinate mapping: `nx = Math.round(tp.x / width * 1024)`, `ny = Math.round(tp.y / height * 600)`
-- The display is 1024x600, video is 1280x720, AA touch config is 1024x600
+The Android Auto runtime now reads the touchscreen directly through evdev. It
+auto-detects the device unless `touch.device` is configured, reads the device's
+axis ranges, and maps the visible display viewport into the same content
+dimensions advertised in `touch_screen_config`. Navbar margins and video
+letterboxing are included in that mapping.
 
-### Next Steps
-
-1. Use the debug overlay to observe where touches register vs where they should land
-2. Check if the offset is consistent (translation) or proportional (scaling)
-3. Verify the `VideoOutput.Stretch` fill mode doesn't create an aspect ratio mismatch between touch area and video area (1280x720 ≠ 1024x600 aspect ratio)
+The device is grabbed only while Android Auto is connected. On disconnect it
+is released back to Wayland/libinput, preventing duplicate input while keeping
+the launcher usable. Current diagnostics log the detected device, display and
+content dimensions, evdev mapping, and resulting touch range; use those values
+when investigating a device-specific offset.
 
 ---
 

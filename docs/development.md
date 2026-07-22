@@ -17,7 +17,7 @@ it is retired and dual-Qt-version compatibility is no longer a constraint.)
 ### Raspberry Pi OS Trixie (Debian 13)
 
 ```bash
-sudo apt install cmake g++ git pkg-config \
+sudo apt install cmake g++ git pkg-config ccache \
   qt6-base-dev qt6-declarative-dev qt6-wayland \
   qt6-connectivity-dev qt6-multimedia-dev qt6-websockets-dev \
   qml6-module-qtquick-controls qml6-module-qtquick-layouts \
@@ -26,14 +26,19 @@ sudo apt install cmake g++ git pkg-config \
   libprotobuf-dev protobuf-compiler libssl-dev \
   libavformat-dev libavcodec-dev libavutil-dev \
   libpipewire-0.3-dev libspa-0.2-dev \
-  libyaml-cpp-dev libbluetooth-dev \
-  hostapd dnsmasq bluez \
-  python3-flask \
-  udisks2 \
+  libyaml-cpp-dev libsystemd-dev libbluetooth-dev \
+  hostapd rfkill bluez \
+  pipewire-pulse pulseaudio-utils \
+  python3-flask python3-dbus-next python3-yaml python3-venv \
+  redsocks iptables inotify-tools swaybg udisks2 \
   qt6-webengine-dev qml6-module-qtwebengine  # optional — web widget runtime; builds fine without
 ```
 
 Note: `libbluetooth-dev` (raw BlueZ headers, `bluetooth/bluetooth.h`) is required in addition to `qt6-connectivity-dev` — `BluetoothDiscoveryService` uses BlueZ sockets/SDP directly. `install.sh` already includes it.
+
+Note: `libsystemd-dev` enables the `sd_notify` readiness and watchdog support
+used by the installed `Type=notify` service. CMake can build without it for a
+standalone development process, but Pi service installs require the integration.
 
 Note: `udisks2` is a Pi **runtime** dependency, not a build dep — it ships no
 headers/libraries to link against. `UsbMediaWatcher` talks to its D-Bus
@@ -44,8 +49,10 @@ agent rule).
 
 ### WSL2 Debian Trixie (dev box)
 
-Same package list minus `hostapd dnsmasq` (no AP on a dev box). Docker
-(`docker.io`) enables `cross-build.sh` for Pi binaries.
+Use the same build dependencies. Pi-only runtime packages such as `hostapd`,
+`rfkill`, `bluez`, `pipewire-pulse`, `redsocks`, `iptables`, `swaybg`, and
+`udisks2` are not needed for unit tests on a dev box. Docker (`docker.io`)
+enables `cross-build.sh` for Pi binaries.
 
 If the repo checkout lives on a Windows drive (`/mnt/...`), keep the CMake
 build directory on the Linux filesystem — object churn through the 9p mount
@@ -56,9 +63,8 @@ makes in-repo builds painfully slow. See `AGENTS.md` → Commands.
 ```bash
 git clone --recurse-submodules https://github.com/mrmees/openauto-prodigy.git
 cd openauto-prodigy
-mkdir build && cd build
-cmake ..
-make -j$(nproc)
+cmake -S . -B ~/builds/openauto-prodigy
+cmake --build ~/builds/openauto-prodigy -j$(nproc)
 ```
 
 **Important:** Don't forget `--recurse-submodules` — the [open-android-auto](https://github.com/mrmees/open-android-auto) protobuf definitions are a git submodule under `libs/prodigy-oaa-protocol/proto/`.
@@ -114,7 +120,7 @@ Prebuilt release convention:
 ### On Raspberry Pi (Wayland/labwc)
 
 ```bash
-export XDG_RUNTIME_DIR=/run/user/1000
+export XDG_RUNTIME_DIR="/run/user/$(id -u)"
 export WAYLAND_DISPLAY=wayland-0
 export QT_QPA_PLATFORM=wayland
 ./src/openauto-prodigy
@@ -125,14 +131,12 @@ The Pi runs labwc as its Wayland compositor. Do **not** use `eglfs` — it won't
 ### Via SSH
 
 ```bash
-ssh matt@192.168.1.149 '~/openauto-prodigy/restart.sh'
-# Validate without restarting:
-ssh matt@192.168.1.149 '~/openauto-prodigy/restart.sh --check'
-# Force-kill stuck process:
-ssh matt@192.168.1.149 '~/openauto-prodigy/restart.sh --force-kill'
+ssh <pi-user>@<pi-host> 'sudo systemctl restart openauto-prodigy.service'
+# Validate installed pre-flight requirements:
+ssh <pi-user>@<pi-host> 'sudo openauto-preflight --check-only'
+# Inspect service state:
+ssh <pi-user>@<pi-host> 'systemctl status openauto-prodigy.service --no-pager'
 ```
-
-See `docs/pi-config/restart.sh` for the script source of truth.
 
 ### Logs
 
@@ -158,7 +162,7 @@ sudo systemctl start openauto-prodigy-web
 ## Running Tests
 
 ```bash
-cd build && ctest --output-on-failure
+cd ~/builds/openauto-prodigy && ctest --output-on-failure
 ```
 
 **ctest does NOT compile the app target** — always build `openauto-prodigy`

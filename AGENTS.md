@@ -106,7 +106,7 @@ Workers commit per task; nobody pushes mid-execution.
    access so it can apply the fix:
 
    ```bash
-   codex exec -C <repo-abs-path> -s workspace-write -o <scratchpad>/codex-task-verdict.txt - < <scratchpad>/codex-task-prompt.txt
+   codex exec -m gpt-5.6-sol -C <repo-abs-path> -s workspace-write -o <scratchpad>/codex-task-verdict.txt - < <scratchpad>/codex-task-prompt.txt
    ```
 
    Afterwards the main session reads the verdict file AND `git diff`, verifies
