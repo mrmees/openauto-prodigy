@@ -35,8 +35,8 @@ All plugins must implement `src/core/plugin/IPlugin.hpp`.
 | Method | Return | Description |
 |--------|--------|-------------|
 | `qmlComponent()` | `QUrl` | QRC URL of the plugin's main QML view. Empty = no view. |
-| `iconSource()` | `QUrl` | Icon URL for nav strip (image-based). Empty = fall back to `iconText()`. |
-| `iconText()` | `QString` | Material icon codepoint for nav strip (e.g. `"\ue8b5"`). Preferred over `iconSource()` for font-based icons. Default: empty. |
+| `iconSource()` | `QUrl` | Optional image URL retained as plugin UI metadata. |
+| `iconText()` | `QString` | Optional Material icon codepoint (for example `"\ue8b5"`) retained as plugin UI metadata. Default: empty. |
 | `settingsComponent()` | `QUrl` | QRC URL of settings panel. Empty = no settings. |
 
 ### Capabilities
@@ -44,11 +44,32 @@ All plugins must implement `src/core/plugin/IPlugin.hpp`.
 | Method | Return | Description |
 |--------|--------|-------------|
 | `requiredServices()` | `QStringList` | Service IDs this plugin requires (reserved for future). |
-| `wantsFullscreen()` | `bool` | `true` = hide nav strip and status bar when active. |
+| `wantsFullscreen()` | `bool` | Requests the plugin's full application surface; the shell hides the navbar while it is active. |
 
 ## IHostContext Services
 
 Plugins receive an `IHostContext*` in `initialize()`. All service pointers are valid until `shutdown()`.
+
+The host context currently exposes:
+
+| Accessor | Interface / Type |
+|---|---|
+| `audioService()` | `IAudioService` |
+| `bluetoothService()` | `IBluetoothService` |
+| `configService()` | `IConfigService` |
+| `themeService()` | `IThemeService` |
+| `displayService()` | `IDisplayService` |
+| `eventBus()` | `IEventBus` |
+| `actionRegistry()` | `ActionRegistry` |
+| `notificationService()` | `INotificationService` |
+| `equalizerService()` | `IEqualizerService` |
+| `projectionStatusProvider()` | `IProjectionStatusProvider`, nullable |
+| `navigationProvider()` | `INavigationProvider`, nullable |
+| `mediaStatusProvider()` | `IMediaStatusProvider`, nullable |
+| `callStateProvider()` | `ICallStateProvider`, nullable |
+| `overlayService()` | `OverlayService`, nullable |
+
+`log(level, message)` is the host-owned diagnostic path and is thread-safe.
 
 **Note:** The tables below document the primary plugin-facing methods for each service. Some services expose additional internal methods (lifecycle, auto-connect, device management, etc.) that are used by core code. For the complete API surface, refer to the interface headers in `src/core/services/`.
 
@@ -68,7 +89,15 @@ Read/write YAML configuration values. Plugin-scoped methods isolate each plugin'
 
 ### ThemeService (`IThemeService`)
 
-Day/night theme with Material Design 3 color tokens. All color properties are Q_PROPERTY bindings usable directly from QML via the `ThemeService` root context object. Colors auto-switch between day and night mode palettes.
+The plugin-facing C++ interface exposes `currentThemeId()`, `color(name)`,
+`fontFamily()`, `iconPath(relativePath)`, `setTheme(themeId)`, and
+`applyAATokens(dayTokens, nightTokens)`. Theme lookup methods are thread-safe;
+theme mutation runs on the main thread.
+
+The concrete `ThemeService` root-context object also exposes the following QML
+properties. These are useful to plugin and widget QML, but they are not virtual
+members of `IThemeService`. Colors switch automatically between day and night
+palettes.
 
 **Primary group:**
 
@@ -147,6 +176,10 @@ Day/night theme with Material Design 3 color tokens. All color properties are Q_
 | `shadow` | `QColor` | Shadow color |
 | `success` | `QColor` | Success state (derived, computed) |
 | `onSuccess` | `QColor` | Text on success (derived, computed) |
+| `warning` | `QColor` | Warning state (derived, computed) |
+| `onWarning` | `QColor` | Text on warning (derived, computed) |
+| `surfaceTintHigh` | `QColor` | Derived high-elevation tinted surface. |
+| `surfaceTintHighest` | `QColor` | Derived highest-elevation tinted surface. |
 
 **Mode control:**
 
@@ -181,6 +214,9 @@ PipeWire stream management with audio focus and device selection.
 | `setInputDevice(deviceName)` | Main thread | Set default input device |
 | `outputDevice()` | Main thread | Get current output device name |
 | `inputDevice()` | Main thread | Get current input device name |
+| `openCaptureStream(name, sampleRate, channels, bitDepth)` | Main thread | Open a PipeWire microphone stream; returns null on failure. |
+| `closeCaptureStream(handle)` | Main thread | Close a capture stream. |
+| `setCaptureCallback(handle, callback)` | Main thread setup; callback on PipeWire thread | Receive captured PCM buffers. |
 
 **Stability:** Experimental — API may change.
 
@@ -258,6 +294,8 @@ Adapter management, pairing, and paired device access.
 | `pairingDeviceName()` / `pairingPasskey()` | Main thread | Current pairing request details |
 | `confirmPairing()` / `rejectPairing()` | Main thread | Respond to pairing request |
 | `pairedDevicesModel()` | Main thread | `QAbstractListModel*` of paired devices |
+| `forgetDevice(address)` | Main thread | Remove a paired device. |
+| `connectedDeviceName()` / `connectedDeviceAddress()` | Main thread | Current connected-device identity. |
 
 **Stability:** Stable
 
@@ -291,9 +329,29 @@ Per-stream audio equalization with presets and manual band control.
 | `deleteUserPreset(name)` | Main thread | Delete a user preset. Streams using it revert to Flat. |
 | `renameUserPreset(old, new)` | Main thread | Rename a user preset |
 
-`StreamId` values: `Media`, `Navigation`, `Phone`.
+`StreamId` values are `Media`, `Navigation`, and `System`. `Phone` remains a
+deprecated source-compatibility alias for `System`; numeric value 2 processes
+AA system sounds, not HFP call audio.
 
 **Stability:** Stable
+
+### OverlayService
+
+Plugins register QML overlays through the host overlay framework instead of
+placing ad hoc items in the shell.
+
+| Method | Description |
+|---|---|
+| `registerOverlay(descriptor)` | Register an overlay; returns `false` for a duplicate ID. |
+| `unregisterOverlay(id)` | Remove the overlay and its generated actions. |
+| `setVisible(id, visible)` / `toggle(id)` | Control visibility. |
+| `move(id, geometry)` | Update optional `x`, `y`, `width`, and `height` geometry. |
+| `isVisible(id)` | Query current visibility. |
+
+`OverlayDescriptor` contains `id`, `sourcePluginId`, `qmlComponent`, `band`,
+`visible`, and optional `geometry`. Registration bands are Notifications 1000,
+User 2000, SystemModal 3000, and Gesture 4000. The shell reserves z=3500 for
+its dim fixture between system-modal and gesture content.
 
 ## Error Handling
 
@@ -319,8 +377,9 @@ Each widget descriptor declares a dashboard contribution with typed metadata:
 | `description` | `QString` | `""` | Short description for picker display |
 | `qmlComponent` | `QUrl` | `QUrl()` | QRC URL of the widget's QML file |
 | `pluginId` | `QString` | `""` | Source plugin ID. Must be set explicitly to your plugin's `id()` in `widgetDescriptors()`. |
-| `contributionKind` | `DashboardContributionKind` | `Widget` | `Widget` or `LiveSurfaceWidget` |
+| `contributionKind` | `DashboardContributionKind` | `Widget` | `Widget`, deferred `LiveSurfaceWidget`, or manifest-backed `WebWidget`. |
 | `defaultConfig` | `QVariantMap` | `{}` | Default per-instance config |
+| `configSchema` | `QList<ConfigSchemaField>` | `{}` | Optional host-rendered widget settings (`Enum`, `Bool`, or `IntRange`). |
 | `minCols`, `minRows` | `int` | `1` | Minimum grid size |
 | `maxCols`, `maxRows` | `int` | `6`, `4` | Maximum grid size |
 | `defaultCols`, `defaultRows` | `int` | `1` | Default grid size |
@@ -330,10 +389,14 @@ Each widget descriptor declares a dashboard contribution with typed metadata:
 
 | Kind | Description | Status |
 |------|-------------|--------|
-| `Widget` | Lightweight data-display widget (clock, status, now playing) | Active |
-| `LiveSurfaceWidget` | Full interactive surface (embedded AA pane, camera feed) | Declared but deferred — no runtime host exists yet |
+| `Widget` | Native QML data-display or control widget | Active |
+| `LiveSurfaceWidget` | Full interactive native surface (embedded AA pane, camera feed) | Declared but deferred — no runtime host exists yet |
+| `WebWidget` | Manifest-backed HTML/JS content hosted by `WebWidgetHost.qml` | Active when Qt WebEngine support is built |
 
-`WidgetPickerModel` excludes `LiveSurfaceWidget` entries from the picker UI until a host path is implemented. Plugins may declare `LiveSurfaceWidget` descriptors now; they will become available when the runtime support ships.
+The widget picker accepts `Widget` and `WebWidget` descriptors that fit the
+available space and have a component URL. Web widgets are discovered and
+registered through the web-widget scanner. `LiveSurfaceWidget` remains
+excluded until a runtime host is implemented.
 
 ### WidgetInstanceContext
 
@@ -351,6 +414,7 @@ Widget QML receives a `WidgetInstanceContext` with layout and provider propertie
 | `projectionStatus` | `QObject*` | CONSTANT | `IProjectionStatusProvider` — projection connection state |
 | `navigationProvider` | `QObject*` | CONSTANT | `INavigationProvider` — nav data (road, maneuver, distance) |
 | `mediaStatus` | `QObject*` | CONSTANT | `IMediaStatusProvider` — media metadata and playback controls |
+| `effectiveConfig` | `QVariantMap` | READ + NOTIFY | Descriptor defaults merged with this instance's overrides. |
 
 `cellWidth`, `cellHeight`, `colSpan`, `rowSpan`, and `isCurrentPage` are updated by the host via QML `Binding` elements, keeping widget layouts reactive to grid changes and page navigation.
 
@@ -364,8 +428,15 @@ Shell, dashboard, and widget QML access cross-cutting state through narrow provi
 |-----------|-------------------|-----------|----------|
 | `IProjectionStatusProvider` | `ProjectionStatus` | `ProjectionStatusProvider` → `AndroidAutoOrchestrator` | `projectionState`, `statusMessage` |
 | `INavigationProvider` | `NavigationProvider` | `NavigationDataBridge` | `navActive`, `roadName`, `formattedDistance`, maneuver data |
-| `IMediaStatusProvider` | `MediaStatus` | `MediaStatusService` | `hasMedia`, `title`, `artist`, `album`, `playbackState`, `source`, `appName`, `playPause()`/`next()`/`previous()` |
+| `IMediaStatusProvider` | `MediaStatus` | `MediaStatusService` | Metadata, source-native playback state, normalized `isPlaying`, artwork/progress, and playback controls |
 | `ICallStateProvider` | `CallStateProvider` | `PhoneStateService` | `callState`, `callerName`, `callerNumber`, `answer()`/`hangup()` |
+
+`IMediaStatusProvider.source` returns `"AndroidAuto"`, `"Bluetooth"`, or
+`"MediaPlayer"` (or an empty string when no source is active). Its
+`playbackState` is deliberately source-native: Bluetooth and MediaPlayer use
+0/1/2 for stopped/playing/paused, while Android Auto uses 1/2/3. QML should
+normally consume the normalized `isPlaying` property. The provider also
+exposes `artUrl`, `position`, `duration`, and `hasPosition`.
 
 **Design rule:** Core platform owns singleton hardware/system state. Plugins are UI wrappers that read from core services, not state owners.
 
@@ -382,7 +453,7 @@ ActionRegistry.dispatch("aa.sendButton", 85)  // play/pause
 | Service | Owner | Role |
 |---------|-------|------|
 | `PhoneStateService` | Core | Owns HFP D-Bus monitoring + call state machine. Survives regardless of PhonePlugin activation. |
-| `MediaStatusService` | Core | Owns AA + BT media source merging with priority logic. Survives regardless of BtAudioPlugin activation. |
+| `MediaStatusService` | Core | Merges Android Auto, Bluetooth, and local Media Player state with recency/playing priority logic. |
 | `NavigationDataBridge` | Core | Single-source AA navigation data. Implements `INavigationProvider` directly. |
 | `AndroidAutoRuntimeBridge` | Core | Owns touch device detection, EvdevTouchReader lifecycle, EvdevCoordBridge, display dimension injection, navbar thickness. |
 | `GestureOverlayController` | Core | Owns three-finger overlay zone registration, slider handling, volume/brightness dispatch. |
