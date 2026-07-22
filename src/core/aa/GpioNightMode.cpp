@@ -65,7 +65,6 @@ void GpioNightMode::poll()
 
 void GpioNightMode::applyValue(const QString& val)
 {
-
     if (val != "0" && val != "1") {
         qCWarning(lcCore) << "Invalid GPIO value for pin" << gpioPin_ << ":" << val;
         return;

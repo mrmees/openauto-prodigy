@@ -644,6 +644,11 @@ void AndroidAutoOrchestrator::activateNightModeProvider(
             &sensorHandler_, &oaa::hu::SensorChannelHandler::pushNightMode);
 
     nightProvider_->start();
+    // Explicitly seed the handler even though start() may have already emitted
+    // nightModeChanged: a provider whose initial state equals its default (e.g.
+    // day) emits no change signal, so the seed is what captures that case. Any
+    // resulting double-push is a harmless cache-only write — the sensor channel
+    // is not open yet, so nothing goes on the wire.
     if (nightProvider_->hasValidState()) {
         sensorHandler_.pushNightMode(nightProvider_->isNight());
     } else {
