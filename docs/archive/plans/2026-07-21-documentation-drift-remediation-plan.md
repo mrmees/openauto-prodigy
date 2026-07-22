@@ -1,6 +1,6 @@
 # Current Documentation Drift Remediation — Implementation Plan
 
-Status: ACTIVE
+Status: COMPLETED 2026-07-22
 
 **Design (read first):**
 `docs/plans/2026-07-21-documentation-drift-remediation-design.md` — approved by
