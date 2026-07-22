@@ -116,8 +116,13 @@ Governance: capture new ideas in `docs/wishlist.md`; only promoted items should 
 
 ## Now
 
-No product feature batch is currently promoted for implementation. Open ideas
-remain in `docs/wishlist.md` until they pass the promotion process.
+- Operations deployment reliability remediation — **ACTIVE 2026-07-22**.
+  Align source and prebuilt BlueZ SDP setup, replace fatal/reverse hostapd
+  lifetime coupling with optional recoverable service relationships, and make
+  the packaged restart path preserve a single systemd-owned application and IPC
+  socket. Design and plan:
+  `docs/plans/2026-07-22-ops-deploy-p1-remediation-design.md` and
+  `docs/plans/2026-07-22-ops-deploy-p1-remediation-plan.md`.
 
 ## Later
 
