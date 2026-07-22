@@ -100,6 +100,7 @@ file(COPY data/themes DESTINATION ${CMAKE_CURRENT_BINARY_DIR}/data)
 oap_add_test(test_theme_install_request SOURCES test_theme_install_request.cpp)
 oap_add_test(test_ipc_install_theme SOURCES test_ipc_install_theme.cpp)
 oap_add_test(test_ipc_audio_config SOURCES test_ipc_audio_config.cpp)
+oap_add_test(test_ipc_single_instance SOURCES test_ipc_single_instance.cpp)
 
 oap_add_test(test_display_info SOURCES test_display_info.cpp)
 oap_add_test(test_display_service SOURCES test_display_service.cpp)
@@ -253,6 +254,15 @@ add_test(
     NAME test_install_list_prebuilt
     COMMAND python3 ${CMAKE_SOURCE_DIR}/tests/test_install_list_prebuilt.py
 )
+add_test(
+    NAME test_ops_install_contracts
+    COMMAND python3 ${CMAKE_SOURCE_DIR}/tests/test_ops_install_contracts.py
+)
+add_test(
+    NAME test_ops_systemd_lifecycle
+    COMMAND python3 ${CMAKE_SOURCE_DIR}/tests/test_ops_systemd_lifecycle.py
+)
+set_tests_properties(test_ops_systemd_lifecycle PROPERTIES SKIP_RETURN_CODE 77)
 
 # GUI/Quick tests need offscreen platform when no display is available
 set_tests_properties(test_theme_service test_display_service test_plugin_model test_aa_orchestrator

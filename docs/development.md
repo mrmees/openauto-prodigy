@@ -89,7 +89,11 @@ To list available precompiled release assets without installing:
 bash install.sh --list-prebuilt
 ```
 
-The source mode installs dependencies, builds from source, generates config, and creates systemd services.
+The source mode installs dependencies, builds from source, generates config,
+installs the canonical `restart.sh` in the checkout root, and creates systemd
+services. Both source and prebuilt application units use `Type=notify`; their
+blocking systemd start/restart jobs complete at the application's `READY=1`
+boundary.
 
 ### Prebuilt Install (RPi OS Trixie)
 
@@ -132,6 +136,10 @@ The Pi runs labwc as its Wayland compositor. Do **not** use `eglfs` — it won't
 
 ```bash
 ssh <pi-user>@<pi-host> 'sudo systemctl restart openauto-prodigy.service'
+# Equivalent helper from an installed checkout (systemd remains the owner):
+ssh <pi-user>@<pi-host> 'cd openauto-prodigy && ./restart.sh'
+# Forced recovery stops the unit, cleans exact-identity legacy orphans, and starts once:
+ssh <pi-user>@<pi-host> 'cd openauto-prodigy && ./restart.sh --force-kill'
 # Validate installed pre-flight requirements:
 ssh <pi-user>@<pi-host> 'sudo openauto-preflight --check-only'
 # Inspect service state:
@@ -143,9 +151,15 @@ ssh <pi-user>@<pi-host> 'systemctl status openauto-prodigy.service --no-pager'
 ```bash
 # systemd service (normal operation)
 journalctl -u openauto-prodigy.service -n 200
-# restart.sh runs log here instead
-tail -f /tmp/oap.log
 ```
+
+The helper does not create a detached process or a separate log file. Normal
+restarts are systemd-only. Forced recovery additionally checks for an
+upgrade-era unmanaged process by the unit's exact executable path and user UID
+after the service is stopped; it excludes service-cgroup members and unrelated
+same-name processes before bounded TERM/KILL cleanup. The replacement is still
+started exactly once by `openauto-prodigy.service`, so logs remain in the
+journal and `MainPID` identifies the sole app process.
 
 ### Web Config Panel
 

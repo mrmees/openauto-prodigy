@@ -175,6 +175,16 @@ int main(int argc, char *argv[])
         oap::setLogFile(parser.value(logFileOption));
     oap::installLogHandler();
 
+    // Acquire the single-instance boundary before Bluetooth, PipeWire,
+    // projection, or input resources are initialized. A live owner is never
+    // displaced; systemd can then report this second process as a failed start
+    // without two application instances contending for hardware.
+    auto* ipcServer = new oap::IpcServer(&app);
+    if (!ipcServer->acquireOwnership()) {
+        qCCritical(lcCore) << "Another OpenAuto Prodigy instance owns the IPC socket";
+        return 1;
+    }
+
     // Load YAML config
     QString yamlPath = QDir::homePath() + "/.openauto/config.yaml";
     auto yamlConfig = std::make_shared<oap::YamlConfig>();
@@ -936,13 +946,11 @@ int main(int argc, char *argv[])
     // snapped values and can persist intermediate (wrong) dimensions.
     // The web config panel does not change grid dimensions directly.
 
-    // --- IPC server for web config panel ---
-    auto ipcServer = new oap::IpcServer(&app);
+    // --- Complete IPC dependency wiring for the web config panel ---
     ipcServer->setConfig(yamlConfig.get(), yamlPath);
     ipcServer->setThemeService(themeService);
     ipcServer->setAudioService(audioService);
     ipcServer->setPluginManager(&pluginManager);
-    ipcServer->start();
 
     // --- System service client (IPC to openauto-system daemon) ---
     auto* systemClient = new oap::SystemServiceClient(&app);
@@ -1345,6 +1353,14 @@ int main(int argc, char *argv[])
                 break;
             }
         });
+    }
+
+    // Dependencies are complete and the event loop is about to begin. Bind the
+    // IPC socket only at this readiness boundary so callers cannot queue a
+    // request during hardware and plugin initialization.
+    if (!ipcServer->startListening()) {
+        qCCritical(lcCore) << "OpenAuto Prodigy could not start its IPC listener";
+        return 1;
     }
 
     // --- systemd integration (Type=notify + watchdog) ---

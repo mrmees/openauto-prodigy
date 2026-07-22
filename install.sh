@@ -1165,10 +1165,52 @@ setup_hardware() {
 }
 
 # ────────────────────────────────────────────────────
-# Step 3b: Configure WiFi AP networking
+# Step 3b: Configure Bluetooth compatibility
 # ────────────────────────────────────────────────────
+configure_bluetooth() {
+    local source="$INSTALL_DIR/config/systemd/bluetooth-compat.conf"
+    local destination="/etc/systemd/system/bluetooth.service.d/override.conf"
+
+    if [[ ! -f "$source" ]]; then
+        fail "Missing BlueZ compatibility asset: $source"
+        return 1
+    fi
+
+    sudo install -D -m 0644 "$source" "$destination"
+    sudo systemctl daemon-reload
+    sudo systemctl restart bluetooth
+    ok "BlueZ SDP compatibility enabled"
+}
+
+# ────────────────────────────────────────────────────
+# Step 3c: Configure WiFi AP networking
+# ────────────────────────────────────────────────────
+configure_hostapd_lifecycle() {
+    local app_source="$INSTALL_DIR/config/systemd/openauto-prodigy-hostapd.conf"
+    local hostapd_source="$INSTALL_DIR/config/systemd/hostapd-openauto.conf"
+    local app_destination="/etc/systemd/system/${SERVICE_NAME}.service.d/hostapd.conf"
+    local hostapd_destination="/etc/systemd/system/hostapd.service.d/openauto.conf"
+
+    if [[ -z "$WIFI_IFACE" ]]; then
+        sudo rm -f "$app_destination" "$hostapd_destination"
+        sudo systemctl daemon-reload
+        return
+    fi
+
+    if [[ ! -f "$app_source" || ! -f "$hostapd_source" ]]; then
+        fail "Missing hostapd lifecycle assets under $INSTALL_DIR/config/systemd"
+        return 1
+    fi
+
+    sudo install -D -m 0644 "$app_source" "$app_destination"
+    sudo install -D -m 0644 "$hostapd_source" "$hostapd_destination"
+    sudo systemctl daemon-reload
+}
+
 configure_network() {
     enter_interactive
+
+    configure_hostapd_lifecycle
 
     if [[ -z "$WIFI_IFACE" ]]; then
         warn "Skipping network configuration (no wireless interface)"
@@ -1177,18 +1219,6 @@ configure_network() {
     fi
 
     # rfkill unblock moved to pre-flight script (runs on every service start)
-
-    # BlueZ needs --compat for SDP service registration (AA RFCOMM discovery)
-    local BT_OVERRIDE="/etc/systemd/system/bluetooth.service.d"
-    sudo mkdir -p "$BT_OVERRIDE"
-    sudo tee "$BT_OVERRIDE/override.conf" > /dev/null << 'BTCONF'
-[Service]
-ExecStart=
-ExecStart=/usr/libexec/bluetooth/bluetoothd --compat
-ExecStartPost=/bin/sh -c 'for i in 1 2 3 4 5; do [ -e /var/run/sdp ] && { chgrp bluetooth /var/run/sdp; chmod g+rw /var/run/sdp; exit 0; }; sleep 0.5; done'
-BTCONF
-
-    run_with_spinner "Restarting BlueZ (SDP compat)" bash -c 'sudo systemctl daemon-reload && sudo systemctl restart bluetooth'
 
     # systemd-networkd config for static IP + built-in DHCP server
     sudo mkdir -p /etc/systemd/network
@@ -1278,16 +1308,6 @@ HOSTAPD
         sudo sed -i 's|^#\?DAEMON_CONF=.*|DAEMON_CONF="/etc/hostapd/hostapd.conf"|' /etc/default/hostapd
     fi
 
-    # hostapd drop-ins: rfkill unblock before start + stop with Prodigy on clean shutdown
-    sudo mkdir -p /etc/systemd/system/hostapd.service.d
-    sudo tee /etc/systemd/system/hostapd.service.d/openauto.conf > /dev/null << 'HOSTAPD_DROPIN'
-[Unit]
-PartOf=openauto-prodigy.service
-
-[Service]
-ExecStartPre=/usr/sbin/rfkill unblock wlan
-HOSTAPD_DROPIN
-
     # Enable and start services
     sudo systemctl unmask hostapd 2>/dev/null || true
     sudo systemctl enable --quiet hostapd
@@ -1303,7 +1323,7 @@ HOSTAPD_DROPIN
 }
 
 # ────────────────────────────────────────────────────
-# Step 3c: Configure labwc for multi-touch
+# Step 3d: Configure labwc for multi-touch
 # ────────────────────────────────────────────────────
 configure_labwc() {
     local LABWC_DIR="$HOME/.config/labwc"
@@ -1333,7 +1353,7 @@ LABWC
     fi
 }
 
-# Step 3d: Suppress wf-panel-pi Bluetooth popups
+# Step 3e: Suppress wf-panel-pi Bluetooth popups
 # The panel's BT plugin shows "Connection successful" dialogs that draw over
 # the app.  The systemd service kills the panel on start and restores it on
 # clean stop, so no config changes are needed here — just log it.
@@ -1696,6 +1716,20 @@ PREFLIGHT
 }
 
 # ────────────────────────────────────────────────────
+install_restart_helper() {
+    local SOURCE="$INSTALL_DIR/docs/pi-config/restart.sh"
+    local DESTINATION="$INSTALL_DIR/restart.sh"
+
+    if [[ ! -f "$SOURCE" ]]; then
+        fail "Canonical restart helper not found: $SOURCE"
+        return 1
+    fi
+
+    install -m 0755 "$SOURCE" "$DESTINATION"
+    ok "Restart helper installed at $DESTINATION"
+}
+
+# ────────────────────────────────────────────────────
 create_service() {
     local USER_ID
     USER_ID=$(id -u)
@@ -1703,9 +1737,8 @@ create_service() {
     sudo tee /etc/systemd/system/${SERVICE_NAME}.service > /dev/null << SERVICE
 [Unit]
 Description=OpenAuto Prodigy
-After=graphical.target hostapd.service bluetooth.target pipewire.service
+After=graphical.target bluetooth.target pipewire.service
 Wants=openauto-system.service
-BindsTo=hostapd.service
 StartLimitBurst=5
 StartLimitIntervalSec=60
 
@@ -2127,6 +2160,7 @@ main() {
 
     # Step 5: Network
     update_step 5 active
+    configure_bluetooth
     configure_network
     configure_labwc
     suppress_panel_notifications
@@ -2135,6 +2169,7 @@ main() {
     # Step 6: Services
     update_step 6 active
     enter_interactive
+    install_restart_helper
     create_preflight_script
     create_service
     create_web_service

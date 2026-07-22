@@ -39,11 +39,10 @@ journalctl -u openauto-system.service -n 200 --no-pager
 ```
 
 Source installs also create `/usr/local/bin/openauto-preflight`; for those
-installs, run `sudo openauto-preflight --check-only`. The current prebuilt
-installer does not install that helper or the BlueZ SDP compatibility drop-in.
-On a prebuilt install, use the manual SDP checks in
-[Wireless Android Auto Setup](../wireless-setup.md#2-bluetooth) and apply that
-drop-in if it is absent.
+installs, run `sudo openauto-preflight --check-only`. Both source and prebuilt
+installers install the BlueZ SDP compatibility drop-in. The prebuilt installer
+does not install the preflight helper, so use the manual SDP checks in
+[Wireless Android Auto Setup](../wireless-setup.md#2-bluetooth).
 
 ### Protocol capture
 

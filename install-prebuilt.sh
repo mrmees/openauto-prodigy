@@ -50,6 +50,9 @@ require_payload() {
     local required=(
         "$PAYLOAD_DIR/build/src/openauto-prodigy"
         "$PAYLOAD_DIR/config/themes/default/theme.yaml"
+        "$PAYLOAD_DIR/config/systemd/bluetooth-compat.conf"
+        "$PAYLOAD_DIR/config/systemd/openauto-prodigy-hostapd.conf"
+        "$PAYLOAD_DIR/config/systemd/hostapd-openauto.conf"
         "$PAYLOAD_DIR/system-service/openauto_system.py"
         "$PAYLOAD_DIR/web-config/server.py"
         "$PAYLOAD_DIR/restart.sh"
@@ -122,6 +125,7 @@ install_dependencies() {
 
         # WiFi AP / Bluetooth / proxy
         hostapd
+        rfkill
         bluez
         redsocks
         iptables
@@ -397,9 +401,51 @@ install_msbc_codec_fix() {
 }
 
 # ────────────────────────────────────────────────────
+# Step 5c: Configure Bluetooth compatibility
+# ────────────────────────────────────────────────────
+configure_bluetooth() {
+    local source="$PAYLOAD_DIR/config/systemd/bluetooth-compat.conf"
+    local destination="/etc/systemd/system/bluetooth.service.d/override.conf"
+
+    if [[ ! -f "$source" ]]; then
+        fail "Missing BlueZ compatibility asset: $source"
+        return 1
+    fi
+
+    sudo install -D -m 0644 "$source" "$destination"
+    sudo systemctl daemon-reload
+    sudo systemctl restart bluetooth
+    ok "BlueZ SDP compatibility enabled"
+}
+
+# ────────────────────────────────────────────────────
 # Step 6: Configure WiFi AP networking
 # ────────────────────────────────────────────────────
+configure_hostapd_lifecycle() {
+    local app_source="$PAYLOAD_DIR/config/systemd/openauto-prodigy-hostapd.conf"
+    local hostapd_source="$PAYLOAD_DIR/config/systemd/hostapd-openauto.conf"
+    local app_destination="/etc/systemd/system/${SERVICE_NAME}.service.d/hostapd.conf"
+    local hostapd_destination="/etc/systemd/system/hostapd.service.d/openauto.conf"
+
+    if [[ -z "$WIFI_IFACE" ]]; then
+        sudo rm -f "$app_destination" "$hostapd_destination"
+        sudo systemctl daemon-reload
+        return
+    fi
+
+    if [[ ! -f "$app_source" || ! -f "$hostapd_source" ]]; then
+        fail "Missing hostapd lifecycle assets under $PAYLOAD_DIR/config/systemd"
+        return 1
+    fi
+
+    sudo install -D -m 0644 "$app_source" "$app_destination"
+    sudo install -D -m 0644 "$hostapd_source" "$hostapd_destination"
+    sudo systemctl daemon-reload
+}
+
 configure_network() {
+    configure_hostapd_lifecycle
+
     if [[ -z "$WIFI_IFACE" ]]; then
         warn "Skipping network configuration (no wireless interface)"
         return
@@ -499,7 +545,8 @@ After=graphical.target
 Wants=openauto-system.service
 
 [Service]
-Type=simple
+Type=notify
+NotifyAccess=main
 User=$USER
 Environment=XDG_RUNTIME_DIR=/run/user/$USER_ID
 Environment=WAYLAND_DISPLAY=wayland-0
@@ -733,6 +780,7 @@ main() {
     deploy_payload
     generate_config
     install_msbc_codec_fix
+    configure_bluetooth
     configure_network
     configure_labwc
     create_service
