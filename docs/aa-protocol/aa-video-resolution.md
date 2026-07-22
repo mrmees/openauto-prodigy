@@ -1,135 +1,149 @@
-# Android Auto Video Resolution & Margins
+# Android Auto Video Resolution and Margins
 
-## Resolution Negotiation
+## Shipped negotiation model
 
-AA uses fixed, enumerated resolutions — no custom dimensions. During service discovery, the head unit advertises supported `VideoConfig` entries in the `ServiceDiscoveryResponse`. The phone picks one and begins streaming H.264 video at that resolution.
+Android Auto uses enumerated video modes rather than arbitrary encoded-frame
+dimensions. OpenAuto Prodigy selects one configured landscape mode and
+advertises one `VideoConfig` for each enabled, recognized codec. All advertised
+configs therefore have the same resolution, frame rate, density, and margins;
+only the codec differs.
 
-### Available Resolutions
+| `video.resolution` | Protocol enum | Encoded dimensions |
+|---|---|---:|
+| `480p` | `VIDEO_800x480` | 800×480 |
+| `720p` (default) | `VIDEO_1280x720` | 1280×720 |
+| `1080p` | `VIDEO_1920x1080` | 1920×1080 |
 
-| Enum Value | Dimensions | Notes |
-|-----------|-----------|-------|
-| `_480p` | 800×480 | Smallest, good for low-power devices |
-| `_720p` | 1280×720 | **Default for OpenAuto Prodigy** |
-| `_1080p` | 1920×1080 | High quality, more decode overhead |
-| `_1440p` | 2560×1440 | Newer protocol versions |
-| `_4K` | 3840×2160 | Newer protocol versions |
-| `_720p_p` | 720×1280 | Portrait mode |
-| `_1080p_p` | 1080×1920 | Portrait mode |
-| `_1440p_p` | 1440×2560 | Portrait mode |
-| `_4K_p` | 2160×3840 | Portrait mode |
+The protocol enum also defines 1440p, 4K, and portrait modes. The shipped
+service-discovery path does not select or advertise those modes.
 
-Portrait resolutions were added around Android 8+ (late 2022). Our protobuf definitions may need updating to include enum values 4-9 for full support.
+The default codec list is H.264/AVC plus H.265/HEVC. The decoder detects those
+two bitstreams and selects the configured or available FFmpeg decoder, with
+software fallback. Keep `video.codecs` aligned with that shipped decode path.
+If the configured list contains no recognized entry, service discovery falls
+back to one H.264 config.
 
-### VideoConfig Fields
+The relevant `VideoConfig` fields are:
 
 ```protobuf
 message VideoConfig {
-    required VideoResolution.Enum video_resolution = 1;
-    required VideoFPS.Enum video_fps = 2;
-    required uint32 margin_width = 3;
-    required uint32 margin_height = 4;
-    required uint32 dpi = 5;
-    optional uint32 additional_depth = 6;
+    optional VideoResolution.Enum video_resolution = 1;
+    optional VideoFPS.Enum video_fps = 2;
+    optional uint32 margin_width = 3;
+    optional uint32 margin_height = 4;
+    optional uint32 dpi = 5;
+    optional MediaCodecType.Enum codec = 10;
 }
 ```
 
-- `video_fps`: `_30` or `_60`
-- `dpi`: Screen density (informational, affects font/icon sizing on phone)
-- `margin_width` / `margin_height`: **The key to non-standard screen sizes** (see below)
+`margin_width` and `margin_height` are total margins across both opposing
+edges. For example, `margin_width = 100` describes approximately 50 encoded
+pixels on each side of a centered content region.
 
-## The Margin Trick
+## Navbar-aware viewport
 
-The phone respects `margin_width` and `margin_height` — it renders its UI into a centered sub-region within the chosen resolution, filling the margins with black. This allows head units with non-standard aspect ratios to receive correctly-proportioned AA content without distortion.
+`AndroidAutoRuntimeBridge` obtains the display dimensions from `DisplayInfo`
+and supplies them to service discovery and touch mapping. If detection is not
+available, the built-in fallback is 1024×600. This fallback is not an AA
+protocol invariant.
 
-### How It Works
+The bridge also computes the Navbar thickness from display DPI and `ui.scale`,
+with 56 pixels as the fallback. `navbar.show_during_aa` defaults to `true`, and
+`navbar.edge` defaults to `bottom`.
 
-1. Head unit calculates margin values based on its screen aspect ratio vs the chosen AA resolution
-2. Margins are included in the `VideoConfig` during service discovery
-3. Phone renders AA UI in the center region, black bars in the margins
-4. Head unit crops/overscan the decoded video to show only the content area
-5. Touch coordinates are remapped to the content region
+For a Navbar shown during AA, the usable viewport subtracts that thickness on
+the Navbar's axis:
 
-### Margin Calculation
+```text
+viewportWidth  = displayWidth
+viewportHeight = displayHeight
 
-```
-aaViewportWidth = displayWidth - sidebarWidth  (or displayWidth if no sidebar)
-screenRatio = aaViewportWidth / displayHeight
-remoteRatio = remoteWidth / remoteHeight       (e.g., 1280/720 = 1.778)
-
-if screenRatio < remoteRatio:
-    // Screen is "taller" than AA resolution — add horizontal margins
-    margin_width = round(remoteWidth - (remoteHeight × screenRatio))
-    margin_height = 0
-else:
-    // Screen is "wider" than AA resolution — add vertical margins
-    margin_width = 0
-    margin_height = round(remoteHeight - (remoteWidth / screenRatio))
+if navbar is shown during AA:
+    if edge is top or bottom:
+        viewportHeight -= navbarThickness
+    else:
+        viewportWidth -= navbarThickness
 ```
 
-AA splits margins evenly: `margin_width = 200` means 100px black bar on left and 100px on right.
+When `navbar.show_during_aa` is false, the AA plugin requests fullscreen and
+the full detected display is the viewport. Margins may still be nonzero when
+the full display aspect ratio differs from the selected AA mode.
 
-### Example: 1024×600 Display with 150px Sidebar
+## Content and margin calculation
 
-AA viewport = 874×600, using 720p (1280×720):
+`ServiceDiscoveryBuilder::computeContentDimensions()` is the shared
+calculation used by video discovery and touch setup:
 
-```
-screenRatio = 874/600 = 1.457
-remoteRatio = 1280/720 = 1.778
+```text
+viewportRatio = viewportWidth / viewportHeight
+videoRatio    = videoWidth / videoHeight
 
-margin_width = round(1280 - (720 × 1.457)) = 231
-margin_height = 0
+contentWidth  = videoWidth
+contentHeight = videoHeight
 
-AA renders: 231px total horizontal margin (115px each side)
-Content region: ~1049×720 (centered)
-Scaled to display: 874×600
-```
+if viewportRatio < videoRatio:
+    contentWidth = videoWidth
+                 - round(videoWidth - videoHeight * viewportRatio)
+else if viewportRatio > videoRatio:
+    contentHeight = videoHeight
+                  - round(videoHeight - videoWidth / viewportRatio)
 
-### Example: 480×800 Portrait Display (from Crankshaft)
-
-Using 720p (1280×720):
-
-```
-screenRatio = 480/800 = 0.6
-remoteRatio = 1280/720 = 1.778
-
-margin_width = round(1280 - (720 × 0.6)) = 848
-margin_height = 0
-
-Content region: ~432×720 (centered)
-Scaled to display: 480×800
+marginWidth  = videoWidth  - contentWidth
+marginHeight = videoHeight - contentHeight
 ```
 
-## Protocol Constraints
+The phone still sends the full encoded mode. It renders AA into the centered
+`contentWidth × contentHeight` region and leaves the negotiated margins around
+it. The projection view then crops the encoded frame to fill the shell's usable
+viewport.
 
-- **Margins are locked for the session.** They're advertised during `ServiceDiscoveryResponse` and cannot be changed mid-session.
-- `AVChannelSetupRequest` is phone→HU only — the head unit cannot initiate renegotiation.
-- `VideoFocusIndication` can pause/resume video but cannot change resolution or margins.
-- Changing margin config requires an AA reconnect or app restart.
+### Illustrative fallback-display examples
 
-## Implementation in OpenAuto Prodigy
+With a 1024×600 display, a 56-pixel bottom Navbar, and the default 1280×720
+mode, the usable viewport is 1024×544. The calculation produces content
+dimensions 1280×680 and a total vertical margin of 40 encoded pixels.
 
-Margins are set in `VideoService::fillFeatures()` (`src/core/aa/VideoService.cpp`). The sidebar config is read from YAML:
+With the same display and a 56-pixel left Navbar, the usable viewport is
+968×600. The calculation produces content dimensions 1162×720 and a total
+horizontal margin of 118 encoded pixels.
 
-```yaml
-video:
-  resolution: "720p"
-  sidebar:
-    enabled: true
-    width: 150
-    position: "right"
-```
+With the Navbar hidden, the full 1024×600 viewport produces content dimensions
+1229×720 and a total horizontal margin of 51 encoded pixels. This illustrates
+why "Navbar hidden" does not imply zero video margins.
 
-When `sidebar.enabled` is true, margins are calculated from the formula above. When false, margins are 0 (standard fullscreen behavior).
+## Touch coordinate contract
 
-## Touch Coordinate Impact
+The input descriptor advertises `touch_screen_config` using the same content
+dimensions as the selected video mode. `EvdevTouchReader` maps the usable
+display viewport into that content coordinate space; it does not map to the
+full encoded-frame dimensions and does not add the centered margin offset.
 
-With margins, the AA content occupies a sub-region of the video frame. Touch mapping must account for:
+Touches claimed by registered shell zones are consumed locally. Unclaimed
+touches fall through to AA, with all active pointers included in the AA motion
+message.
 
-1. **Crop offset**: Touches in the content region map to full AA coordinate space (0–remoteWidth × 0–remoteHeight)
-2. **Sidebar exclusion**: Touches in the sidebar region are not forwarded to AA
-3. **Position awareness**: If sidebar is on the left, the AA viewport is offset by `sidebarWidth` pixels
+## Session lifetime
 
-## References
+The shipped path sets the resolution, codec configs, margins, and touch-space
+dimensions during service discovery. Those values remain fixed for that AA
+session. Changing `video.resolution` or `video.fps` during an active session
+causes a disconnect/reconnect so the phone negotiates the new values; the
+Navbar visibility setting is marked restart-required in the settings UI.
 
-- [Crankshaft issue #403](https://github.com/opencardev/crankshaft/issues/403) — Emil Borconi's margin/overscan technique
-- `src/core/aa/VideoService.cpp` — Where margins are configured
+Wire ID `0x8012` is not a runtime margin-update request. The current gold-traced
+definition is the HU's theming-token status response to the phone's `0x8011`
+request. Runtime UI configuration, if implemented later, must be designed from
+the separately traced update-config messages rather than the superseded
+`0x8012` interpretation.
+
+## Current implementation sources
+
+- `src/core/aa/ServiceDiscoveryBuilder.cpp` — video configs, margins, and input
+  content dimensions
+- `src/core/aa/AndroidAutoOrchestrator.cpp` — detected display/Navbar inputs and
+  per-session discovery
+- `src/core/aa/AndroidAutoRuntimeBridge.cpp` — display, Navbar, and touch setup
+- `src/core/aa/VideoDecoder.cpp` — codec detection and decoder selection
+- `src/core/aa/EvdevTouchReader.cpp` — content-space touch mapping
+- `qml/components/Shell.qml` and `qml/components/Navbar.qml` — usable shell
+  viewport and Navbar visibility

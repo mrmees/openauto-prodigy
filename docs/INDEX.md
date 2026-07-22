@@ -52,7 +52,6 @@ Active plans:
 
 - [2026-07-21-documentation-drift-remediation-design.md](plans/2026-07-21-documentation-drift-remediation-design.md) — ACTIVE design
 - [2026-07-21-documentation-drift-remediation-plan.md](plans/2026-07-21-documentation-drift-remediation-plan.md) — ACTIVE implementation plan
-- [2026-07-05-phase-f-light-plans.md](plans/2026-07-05-phase-f-light-plans.md) — ACTIVE for the 0x8012 wire experiment; key-event navigation remains an unpromoted sketch
 
 Parked plans (not current guidance):
 
@@ -68,6 +67,7 @@ Parked plans (not current guidance):
 Everything under `archive/` is history, not guidance. Internal links there may point at pre-restructure paths by design.
 
 - [archive/plans/](archive/plans/) — completed/superseded designs and implementation plans, incl. milestone-01..05 history and pre-restructure proto docs
+- [2026-07-05-phase-f-light-plans.md](archive/plans/2026-07-05-phase-f-light-plans.md) — completed Phase F record; the disproven `0x8012` premise is closed and the unpromoted key-event idea remains in the wishlist
 - [archive/session-handoffs/](archive/session-handoffs/) — rotated handoff months + vestigial per-session files
 - [archive/validation/](archive/validation/) — hardware validation logs and pipeline baselines
 - [archive/research/](archive/research/) — spikes and third-party analysis (HFP stack, WebEngine, wireless-AA handshake research)

@@ -34,7 +34,17 @@ Ideas captured here. Promote to `roadmap-current.md` when ready to commit.
 
 ## Deferred UI Features
 
-- **Live sidebar toggle reactivity** — Toggling sidebar enable/disable mid-AA-session doesn't update AA video margins or evdev touch zones. Sidebar draws over AA content and touch passes through. Requires app restart. Needs: config change signal → margin recalculation → touch zone update pipeline for mid-session changes.
+- **Live Navbar viewport reconfiguration during AA** — The shipped path locks
+  the Navbar-aware video margins and content-sized touch coordinate space during
+  service discovery. Navbar visibility is therefore restart-required, and an
+  edge change during projection does not renegotiate the phone's content region
+  or rebuild the AA touch mapping. A future promoted design would need one
+  authoritative live-update path for shell viewport, protocol margins/content
+  config, touch content dimensions, and Navbar evdev zones. Do not base that
+  design on wire ID `0x8012`: the current gold trace identifies it as the HU's
+  theming-token status response to the phone's `0x8011` request. The separately
+  traced runtime update-config messages must be evaluated when this idea is
+  promoted.
 
 
 - **Settings tile subtitles** — Live status text under each tile icon (e.g., "720p 60fps", "BT: Connected"). Removed from v0.4.3 — too small to read on 1024x600 automotive display. Revisit with larger font or alternate layout in a future milestone.

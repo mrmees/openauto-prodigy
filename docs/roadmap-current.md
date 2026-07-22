@@ -6,10 +6,11 @@ Governance: capture new ideas in `docs/wishlist.md`; only promoted items should 
 > (`docs/archive/plans/2026-07-05-fable-work-program-design.md`, phases A–F)
 > shipped External API v1, HTML/JS web widgets, HFP call audio,
 > multi-dashboards + overlays, theme upload, and the two-stage local media
-> player. The EQ parity audit is complete. The only promoted Phase F work still
-> open is the 0x8012 wire-verification experiment; the key-event map remains an
-> unpromoted design sketch in
-> `docs/plans/2026-07-05-phase-f-light-plans.md`.
+> player. The EQ parity audit is complete. No promoted Phase F work remains:
+> the proposed `0x8012` margin-push experiment was closed after the gold-traced
+> protocol definition established that the message is a theming-token response,
+> and the key-event map remains an unpromoted wishlist idea. The completed Phase
+> F light-plan record is archived.
 
 ## Done (recent)
 
@@ -116,15 +117,10 @@ Governance: capture new ideas in `docs/wishlist.md`; only promoted items should 
 ## Now
 
 No product feature batch is currently promoted for implementation. Open ideas
-remain in `docs/wishlist.md`; the 0x8012 item under Later is the next bounded
-Phase F experiment already described by an active plan.
+remain in `docs/wishlist.md` until they pass the promotion process.
 
 ## Later
 
-- Dynamic AA video reconfiguration for sidebar changes.
-  - Rationale: toggling the sidebar on/off or changing its position (left/right/top/bottom) requires recalculating the AA video content area (margin_width/margin_height in VideoConfig). Currently this isn't handled dynamically — the video config is locked at session start.
-  - Discovery: `UiConfigMessages.proto` (added to open-android-auto 2026-02-28) defines `UpdateHuUiConfigRequest` (0x8012) — an HU-initiated push of margins, content insets, and day/night theme over the video AV channel. This may be the proper mechanism for runtime sidebar/margin changes and night mode, replacing the sensor-based workaround. Needs wire verification — the experiment protocol is written (Phase F3 light plan).
-  - Outcome: sidebar show/hide and position changes trigger AA video renegotiation or margin recalculation within the active session, so the phone renders correctly for the new layout without reconnecting.
 - Reduce unnecessary logging / enable debug logging options. MOSTLY RESOLVED 2026-07-02:
   - BtManager paired-device spam now logs only when the count changes (info level, `BluetoothManager.cpp`). NavStrip QML color warnings died with NavStrip itself (deleted in the v0.4.5 Navbar rework; all 43 ThemeService QML references audited as resolving). Verbose infrastructure already exists (`lcBT` defaults to info threshold, `--verbose` flag).
   - Remaining: a general startup-log audit on the Pi to catch any other noise sources.
@@ -141,7 +137,6 @@ Phase F experiment already described by an active plan.
 - Streaming web apps (WebAppHost) — fullscreen Spotify/YouTube/parked-video surface
   riding the slice-1 Widevine wiring. Scoped (Decision 3 of the web-surface spec);
   wishlist entry has the open questions. Not yet promoted.
-- Key-event navigation map (steering-wheel / hardware buttons) — sketch in Phase F4 light plan.
 - CI automation for builds and tests.
 - Multi-display / resolution support beyond 1024x600.
 - Community contribution workflow (issue templates, PR guidelines).
