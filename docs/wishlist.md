@@ -26,6 +26,18 @@ Ideas captured here. Promote to `roadmap-current.md` when ready to commit.
   Generic writes therefore reject them and startup reads cannot restore them.
   Add typed defaults plus coverage for UI/IPC writes and restart persistence.
 
+- **Repair the video-codec settings contract** — the Debug page sends the
+  `video.codecs` sequence through scalar `ConfigService` accessors, so enable
+  toggles neither update service discovery nor persist. Add typed sequence
+  access, connect it to the capability model, and cover the QML/config
+  round-trip. Either constrain discovery to H.264/H.265 or add end-to-end
+  VP9/AV1 detection and decoding before advertising those codecs.
+
+- **Probe WiFi capabilities in the prebuilt installer** — the source installer
+  selects 5 GHz or 2.4 GHz from `iw phy`, while `install-prebuilt.sh` always
+  writes 5 GHz channel 36. Share the source-install detection logic and cover
+  a 2.4-GHz-only adapter fixture.
+
 - **Reconcile installer-only configuration keys** — the installer still writes
   display pixel dimensions that runtime does not consume, while
   `connection.bt_name` works only because load-time unknown keys are retained

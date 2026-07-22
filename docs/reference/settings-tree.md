@@ -16,8 +16,10 @@ that page onto the settings stack.
 | Action | Performs an operation instead of editing a value. |
 | Status row | Displays live service state. |
 
-Controls with a `Config Key` persist through `ConfigService` unless noted.
-Rows driven directly by a runtime service apply immediately.
+Controls with a `Config Key` persist through `ConfigService` only when the key
+is registered in the scalar defaults tree or has a dedicated typed accessor.
+Exceptions are called out below. Rows driven directly by a runtime service
+apply immediately.
 
 ## Top-Level Menu
 
@@ -177,16 +179,22 @@ This section is disabled visually while Always Use Dark Mode is enabled.
 ### Video Decoding
 
 A dynamic list from `CodecCapabilityModel` shows every detected codec. Each row
-can enable or disable the codec where permitted, choose software or hardware
-mode when available, and select a named decoder when more than one concrete
-decoder exists. Configuration is stored under `video.codecs` and
-`video.decoder.<codec>`.
+offers an enable control where permitted, software/hardware mode selection, and
+a named decoder picker when more than one concrete decoder exists. Decoder
+choices persist through the scalar `video.decoder.<codec>` keys.
+
+The enable controls are currently display-only in practice: the QML attempts
+to read and write the `video.codecs` sequence through the scalar
+`ConfigService` path, which cannot round-trip sequences. Toggling one does not
+change the service-discovery codec list or persist across reopening the page.
+Until a typed sequence API is added, edit `video.codecs` in YAML and restart;
+keep it to H.264/H.265 because the decoder does not identify VP9 or AV1 streams.
 
 ### Diagnostics
 
 | Section | Control | Label | Config Key / Source |
 |---|---|---|---|
-| Logging | Toggle | Verbose Logging | `logging.verbose` |
+| Logging | Toggle | Verbose Logging | `logging.verbose` (currently unregistered; the toggle does not apply or persist) |
 | Protocol Capture | Toggle | Enable Capture | `connection.protocol_capture.enabled` |
 | Protocol Capture | Segmented button | Format | `connection.protocol_capture.format` (`jsonl` / `tsv`) |
 | Protocol Capture | Toggle | Include Media Frames | `connection.protocol_capture.include_media` |

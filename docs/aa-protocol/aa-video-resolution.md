@@ -17,11 +17,13 @@ only the codec differs.
 The protocol enum also defines 1440p, 4K, and portrait modes. The shipped
 service-discovery path does not select or advertise those modes.
 
-The default codec list is H.264/AVC plus H.265/HEVC. The decoder detects those
-two bitstreams and selects the configured or available FFmpeg decoder, with
-software fallback. Keep `video.codecs` aligned with that shipped decode path.
-If the configured list contains no recognized entry, service discovery falls
-back to one H.264 config.
+The default codec list is H.264/AVC plus H.265/HEVC. Service discovery also
+recognizes configured `vp9` and `av1` names and advertises their protocol enum
+values. The shipped decoder, however, detects only H.264 and H.265 bitstreams;
+an unrecognized stream is treated as H.264. Keep `video.codecs` limited to
+H.264/H.265 until the receive path gains end-to-end VP9/AV1 support. If the
+configured list contains no service-discovery-recognized entry, discovery
+falls back to one H.264 config.
 
 The relevant `VideoConfig` fields are:
 

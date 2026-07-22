@@ -222,8 +222,8 @@ therefore readable and writable with `ConfigService` dot paths.
 | Dot Path | Type | Default | Description |
 |---|---|---|---|
 | `identity.head_unit_name` | string | `OpenAuto Prodigy` | Friendly head-unit name. |
-| `identity.manufacturer` | string | `OpenAuto Project` | Manufacturer sent during AA discovery. |
-| `identity.model` | string | `Raspberry Pi 4` | Model sent during AA discovery. |
+| `identity.manufacturer` | string | `OpenAuto Project` | Informational manufacturer shown in the on-screen Information page. AA discovery uses a fixed compatibility identity instead. |
+| `identity.model` | string | `Raspberry Pi 4` | Informational model shown in the on-screen Information page. AA discovery uses a fixed compatibility identity instead. |
 | `identity.car_model` | string | empty | Optional vehicle model. |
 | `identity.car_year` | string | empty | Optional vehicle year. |
 | `identity.left_hand_drive` | bool | `true` | Handedness for UI layout. |
@@ -255,7 +255,7 @@ The following maps or sequences are not writable as whole values through
 
 | Path | Default / Shape | Owner |
 |---|---|---|
-| `video.codecs` | `[h264, h265]` | Decoder capability settings. |
+| `video.codecs` | `[h264, h265]` | Service-discovery codec list read by the typed `videoCodecs()` accessor. Edit it in YAML: the current QML scalar bridge cannot read or write the sequence. Keep it to H.264/H.265 because the decoder does not identify VP9/AV1 streams. |
 | `audio.equalizer.streams.<stream>.gains` | Optional list of exactly ten finite values, clamped to ±12 dB | `EqualizerService` dedicated accessors. |
 | `audio.equalizer.streams.<stream>.bypassed` | Optional bool, effectively `false` when absent | `EqualizerService` dedicated accessors. |
 | `audio.equalizer.user_presets` | `[]`; entries contain `name` and ten `gains` | `EqualizerService` dedicated accessors. |

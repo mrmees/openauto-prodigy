@@ -9,7 +9,9 @@ OpenAuto Prodigy uses wireless-only Android Auto. The phone discovers the Pi via
 
 ## Automated Setup
 
-The install script (`install.sh`) handles WiFi AP configuration automatically:
+The source-build path in `install.sh` handles WiFi AP configuration
+automatically:
+
 - Detects available wireless interfaces
 - Lets you choose which interface to use for the AP
 - Configures systemd-networkd for static IP + DHCP server
@@ -17,7 +19,11 @@ The install script (`install.sh`) handles WiFi AP configuration automatically:
 - Prefers 5GHz (channel 36) when the selected adapter supports it and falls
   back to 2.4GHz otherwise
 
-Run `bash install.sh` for the guided setup. The sections below are for manual configuration or troubleshooting.
+Run `bash install.sh` and select the source-build path for that capability
+detection. The prebuilt path currently configures 5 GHz channel 36 without an
+adapter capability probe; use an adapter that supports that configuration or
+apply the 2.4 GHz manual settings below. The remaining sections are for manual
+configuration or troubleshooting.
 
 ## 1. WiFi Access Point (hostapd + systemd-networkd)
 
@@ -37,8 +43,8 @@ driver=nl80211
 ssid=OpenAutoProdigy
 
 # 5GHz is preferred on the Pi's combo radio to reduce WiFi/Bluetooth
-# coexistence interference. The installer detects adapter capabilities and
-# falls back to 2.4GHz when 5GHz is unavailable.
+# coexistence interference. The source installer detects adapter capabilities;
+# for a manual 2.4GHz setup, use hw_mode=g and a suitable channel such as 6.
 hw_mode=a
 channel=36
 ieee80211n=1
