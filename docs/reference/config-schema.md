@@ -269,7 +269,7 @@ The following maps or sequences are not writable as whole values through
 | Path | Default / Shape | Owner |
 |---|---|---|
 | `video.codecs` | `[h264, h265]` | Service-discovery codec list read by the typed `videoCodecs()` accessor. Edit it in YAML: the current QML scalar bridge cannot read or write the sequence. Keep it to H.264/H.265 because the decoder does not identify VP9/AV1 streams. |
-| `logging.debug_categories` | `[]` of strings | Typed `loggingDebugCategories()` / `setLoggingDebugCategories()` accessors. Generic dot-path access remains scalar-only. |
+| `logging.debug_categories` | `[]` of strings | Selective debug categories using the canonical values `aa`, `bt`, `audio`, `plugin`, `ui`, `core`, and `eq`; `aa` also enables the Android Auto protocol library category. Owned by the typed `loggingDebugCategories()` / `setLoggingDebugCategories()` accessors. Generic dot-path access remains scalar-only. |
 | `audio.equalizer.streams.<stream>.gains` | Optional list of exactly ten finite values, clamped to ±12 dB | `EqualizerService` dedicated accessors. |
 | `audio.equalizer.streams.<stream>.bypassed` | Optional bool, effectively `false` when absent | `EqualizerService` dedicated accessors. |
 | `audio.equalizer.user_presets` | `[]`; entries contain `name` and ten `gains` | `EqualizerService` dedicated accessors. |

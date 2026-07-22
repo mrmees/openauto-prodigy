@@ -19,6 +19,8 @@ private slots:
     // Selective category enabling
     void testSetDebugCategoriesSelective();
     void testSetDebugCategoriesAaEnablesLibrary();
+    void testInvalidDebugCategoriesAreIgnored();
+    void testApplyLoggingPolicyRestoresSelectiveCategories();
 
     // Library message detection
     void testLibraryDetectionByCategory();
@@ -117,6 +119,30 @@ void TestLogging::testSetDebugCategoriesAaEnablesLibrary()
     // We can verify by checking if the filter would enable it
     QLoggingCategory testOaa("oaa.test", QtInfoMsg);
     QVERIFY(testOaa.isDebugEnabled());
+}
+
+void TestLogging::testInvalidDebugCategoriesAreIgnored()
+{
+    oap::setDebugCategories({"aa", "oap.core\n*.debug=true", "oap.core"});
+
+    QVERIFY(lcAA().isDebugEnabled());
+    QVERIFY(!lcCore().isDebugEnabled());
+    QVERIFY(!lcBT().isDebugEnabled());
+}
+
+void TestLogging::testApplyLoggingPolicyRestoresSelectiveCategories()
+{
+    const QStringList categories{"core", "eq"};
+    oap::applyLoggingPolicy(true, categories);
+    QVERIFY(oap::isVerbose());
+    QVERIFY(lcAA().isDebugEnabled());
+
+    // This mirrors the settings callback when logging.verbose changes to false.
+    oap::applyLoggingPolicy(false, categories);
+    QVERIFY(!oap::isVerbose());
+    QVERIFY(lcCore().isDebugEnabled());
+    QVERIFY(lcEq().isDebugEnabled());
+    QVERIFY(!lcAA().isDebugEnabled());
 }
 
 void TestLogging::testLibraryDetectionByCategory()

@@ -23,9 +23,21 @@ void setVerbose(bool verbose);
 /// Query current verbose state.
 bool isVerbose();
 
+/// Return whether category is one of the documented short category names.
+bool isValidDebugCategory(const QString& category);
+
+/// Validate a selective category list. If supplied, error receives a useful
+/// explanation suitable for an IPC response.
+bool validateDebugCategories(const QStringList& categories, QString* error = nullptr);
+
 /// Enable debug output only for the named categories (e.g. {"aa", "bt"}).
 /// Pass "aa" to also enable "oaa.*" (prodigy-oaa-protocol library).
+/// Invalid entries are ignored defensively and never become filter-rule text.
 void setDebugCategories(const QStringList& categories);
+
+/// Apply the shared verbose-versus-selective logging policy. Verbose mode
+/// takes precedence; otherwise the supplied selective categories are applied.
+void applyLoggingPolicy(bool verbose, const QStringList& categories);
 
 /// Enable file logging in addition to stderr.
 void setLogFile(const QString& path);

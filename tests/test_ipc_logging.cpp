@@ -101,6 +101,76 @@ private slots:
         reloaded.load(configPath);
         QVERIFY(!reloaded.loggingVerbose());
         QCOMPARE(reloaded.loggingDebugCategories(), QStringList({"aa", "bt"}));
+
+        oap::setDebugCategories({});
+        oap::applyLoggingPolicy(reloaded.loggingVerbose(), reloaded.loggingDebugCategories());
+        QVERIFY(lcAA().isDebugEnabled());
+        QVERIFY(lcBT().isDebugEnabled());
+        QVERIFY(!lcAudio().isDebugEnabled());
+    }
+
+    void setLoggingRejectsMalformedPayloadsWithoutMutation()
+    {
+        QTemporaryDir directory;
+        const QString configPath = directory.path() + "/config.yaml";
+        const QString ipcSocketPath = socketPath();
+        YamlConfig config;
+        config.setLoggingDebugCategories({"aa", "bt"});
+        config.setLoggingVerbose(false);
+        oap::applyLoggingPolicy(false, config.loggingDebugCategories());
+
+        IpcServer server;
+        server.setConfig(&config, configPath);
+        QVERIFY(server.start(ipcSocketPath));
+
+        const auto verifyUnchanged = [&] {
+            QVERIFY(!config.loggingVerbose());
+            QCOMPARE(config.loggingDebugCategories(), QStringList({"aa", "bt"}));
+            QVERIFY(!oap::isVerbose());
+            QVERIFY(lcAA().isDebugEnabled());
+            QVERIFY(lcBT().isDebugEnabled());
+            QVERIFY(!lcAudio().isDebugEnabled());
+        };
+        const auto expectFailure = [&](const QJsonObject& data) {
+            const QJsonObject response = roundTrip(
+                ipcSocketPath, {{"command", "set_logging"}, {"data", data}});
+            QVERIFY(!response.value("ok").toBool());
+            QVERIFY(!response.value("error").toString().isEmpty());
+            verifyUnchanged();
+        };
+
+        expectFailure({});
+        expectFailure({{"unexpected", true}});
+        expectFailure({{"verbose", QStringLiteral("true")}});
+        expectFailure({{"categories", QStringLiteral("aa")}});
+        expectFailure({{"categories", QJsonArray{QStringLiteral("aa"), 1}}});
+        expectFailure({{"categories", QJsonArray{QStringLiteral("unknown")}}});
+        expectFailure({{"categories", QJsonArray{QStringLiteral("oap.core")}}});
+        expectFailure({{"categories", QJsonArray{QStringLiteral("aa\n*.debug=true")}}});
+        expectFailure({{"verbose", true}, {"categories", QJsonArray{QStringLiteral("aa"), 1}}});
+    }
+
+    void setLoggingCategoriesWinOverVerbose()
+    {
+        QTemporaryDir directory;
+        const QString configPath = directory.path() + "/config.yaml";
+        const QString ipcSocketPath = socketPath();
+        YamlConfig config;
+        IpcServer server;
+        server.setConfig(&config, configPath);
+        QVERIFY(server.start(ipcSocketPath));
+
+        const QJsonObject response = roundTrip(
+            ipcSocketPath,
+            {{"command", "set_logging"},
+             {"data", QJsonObject{{"verbose", true},
+                                  {"categories", QJsonArray{QStringLiteral("core")}}}}});
+        QVERIFY(response.value("ok").toBool());
+        QVERIFY(!config.loggingVerbose());
+        QCOMPARE(config.loggingDebugCategories(), QStringList({"core"}));
+        QVERIFY(!oap::isVerbose());
+        QVERIFY(lcCore().isDebugEnabled());
+        QVERIFY(!lcAA().isDebugEnabled());
     }
 
     void setLoggingReportsPersistenceFailure()

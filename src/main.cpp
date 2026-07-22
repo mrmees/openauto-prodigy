@@ -205,12 +205,11 @@ int main(int argc, char *argv[])
     // --- Configure logging from CLI + YAML ---
     bool cliVerbose = parser.isSet(verboseOption);
     bool cfgVerbose = yamlConfig->loggingVerbose();
+    const QStringList debugCategories = yamlConfig->loggingDebugCategories();
+    oap::applyLoggingPolicy(cliVerbose || cfgVerbose, debugCategories);
     if (cliVerbose || cfgVerbose) {
-        oap::setVerbose(true);
         qCInfo(lcCore) << "Verbose logging enabled" << (cliVerbose ? "(CLI)" : "(config)");
     } else {
-        const QStringList debugCategories = yamlConfig->loggingDebugCategories();
-        oap::setDebugCategories(debugCategories);
         if (!debugCategories.isEmpty()) {
             qCInfo(lcCore) << "Debug categories:" << debugCategories;
         }
@@ -275,10 +274,7 @@ int main(int argc, char *argv[])
     QObject::connect(configService.get(), &oap::ConfigService::configChanged,
         [yamlConfig](const QString& path, const QVariant& value) {
             if (path == "logging.verbose") {
-                if (value.toBool())
-                    oap::setVerbose(true);
-                else
-                    oap::setDebugCategories(yamlConfig->loggingDebugCategories());
+                oap::applyLoggingPolicy(value.toBool(), yamlConfig->loggingDebugCategories());
                 qCInfo(lcCore) << "Verbose logging" << (value.toBool() ? "enabled" : "disabled") << "(via settings)";
             }
         });

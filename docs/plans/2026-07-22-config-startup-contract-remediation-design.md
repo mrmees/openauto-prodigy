@@ -1,7 +1,7 @@
 # Configuration Startup Contract Remediation — Design
 
-Date: 2026-07-22  
-Status: ACTIVE  
+Date: 2026-07-22
+Status: ACTIVE
 Grounded on: `45f6684e39beb649a1df046f64337a98e8023ab9`
 
 ## Goal
@@ -127,4 +127,3 @@ hardware.
 
 Any binary deployment, application restart, configuration mutation on the Pi,
 or other disruptive operation requires Matthew's separate approval.
-

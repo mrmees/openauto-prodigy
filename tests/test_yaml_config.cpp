@@ -264,7 +264,7 @@ void TestYamlConfig::testLoggingDefaultsAndScalarPathWrite()
     QVERIFY(config.setValueByPath("logging.verbose", true));
     QCOMPARE(config.loggingVerbose(), true);
     QVERIFY(!config.setValueByPath("logging.debug_categories",
-                                   QStringList{QStringLiteral("oap.core")}));
+                                   QStringList{QStringLiteral("core")}));
 
     const QString path = QDir::temp().filePath("oap_test_logging_verbose.yaml");
     QVERIFY(config.save(path));
@@ -276,8 +276,8 @@ void TestYamlConfig::testLoggingDefaultsAndScalarPathWrite()
 
 void TestYamlConfig::testLoggingDebugCategoriesRoundTrip()
 {
-    const QStringList categories{QStringLiteral("oap.core"),
-                                 QStringLiteral("oaa.transport")};
+    const QStringList categories{QStringLiteral("core"),
+                                 QStringLiteral("aa")};
     oap::YamlConfig config;
     config.setLoggingDebugCategories(categories);
     QCOMPARE(config.loggingDebugCategories(), categories);

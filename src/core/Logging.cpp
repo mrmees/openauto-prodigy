@@ -180,6 +180,31 @@ bool isVerbose()
     return g_verbose.load(std::memory_order_relaxed);
 }
 
+bool isValidDebugCategory(const QString& category)
+{
+    return category == QLatin1String("aa")
+        || category == QLatin1String("bt")
+        || category == QLatin1String("audio")
+        || category == QLatin1String("plugin")
+        || category == QLatin1String("ui")
+        || category == QLatin1String("core")
+        || category == QLatin1String("eq");
+}
+
+bool validateDebugCategories(const QStringList& categories, QString* error)
+{
+    for (const QString& category : categories) {
+        if (!isValidDebugCategory(category)) {
+            if (error) {
+                *error = QStringLiteral("Unknown debug category '%1'; expected aa, bt, audio, plugin, ui, core, or eq")
+                    .arg(category);
+            }
+            return false;
+        }
+    }
+    return true;
+}
+
 void setDebugCategories(const QStringList& categories)
 {
     g_verbose.store(false, std::memory_order_relaxed);
@@ -188,6 +213,10 @@ void setDebugCategories(const QStringList& categories)
     QString rules = QStringLiteral("oap.*.debug=false\noaa.*.debug=false\n");
 
     for (const QString& cat : categories) {
+        // Categories can originate in persisted YAML. Only canonical short
+        // names may reach the filter-rule string, preventing rule injection.
+        if (!isValidDebugCategory(cat))
+            continue;
         rules += QStringLiteral("oap.%1.debug=true\n").arg(cat);
         // If "aa" is requested, also enable oaa.* (library)
         if (cat == QLatin1String("aa")) {
@@ -196,6 +225,14 @@ void setDebugCategories(const QStringList& categories)
     }
 
     QLoggingCategory::setFilterRules(rules);
+}
+
+void applyLoggingPolicy(bool verbose, const QStringList& categories)
+{
+    if (verbose)
+        setVerbose(true);
+    else
+        setDebugCategories(categories);
 }
 
 void setLogFile(const QString& path)

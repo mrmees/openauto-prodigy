@@ -529,33 +529,65 @@ QByteArray IpcServer::handleSetLogging(const QVariantMap& data)
     if (!config_)
         return R"({"ok":false,"error":"Config not available"})";
 
-    bool changed = false;
-    if (data.contains("verbose")) {
-        bool verbose = data.value("verbose").toBool();
-        if (!config_->setValueByPath("logging.verbose", verbose))
-            return R"({"ok":false,"error":"Failed to write logging.verbose"})";
-        if (verbose)
-            oap::setVerbose(true);
-        else
-            oap::setDebugCategories(config_->loggingDebugCategories());
-        changed = true;
-        qCInfo(lcCore) << "Logging verbose set to" << verbose << "(via IPC)";
+    const bool hasVerbose = data.contains("verbose");
+    const bool hasCategories = data.contains("categories");
+    if (!hasVerbose && !hasCategories)
+        return R"({"ok":false,"error":"Logging request must include verbose or categories"})";
+
+    for (auto it = data.cbegin(); it != data.cend(); ++it) {
+        if (it.key() != QLatin1String("verbose") && it.key() != QLatin1String("categories"))
+            return R"({"ok":false,"error":"Unrecognized logging request field"})";
     }
 
-    if (data.contains("categories")) {
-        QStringList categories;
-        for (const QVariant& v : data.value("categories").toList())
-            categories.append(v.toString());
-        oap::setDebugCategories(categories);
+    bool verbose = false;
+    if (hasVerbose) {
+        const QVariant verboseValue = data.value("verbose");
+        if (verboseValue.typeId() != QMetaType::Bool)
+            return R"({"ok":false,"error":"logging.verbose must be a boolean"})";
+        verbose = verboseValue.toBool();
+    }
+
+    QStringList categories;
+    if (hasCategories) {
+        const QVariant categoriesValue = data.value("categories");
+        if (categoriesValue.typeId() != QMetaType::QVariantList)
+            return R"({"ok":false,"error":"logging.categories must be a list"})";
+
+        const QVariantList categoryValues = categoriesValue.toList();
+        for (const QVariant& category : categoryValues) {
+            if (category.typeId() != QMetaType::QString)
+                return R"({"ok":false,"error":"logging.categories entries must be strings"})";
+            categories.append(category.toString());
+        }
+
+        QString categoryError;
+        if (!oap::validateDebugCategories(categories, &categoryError)) {
+            QJsonObject response;
+            response["ok"] = false;
+            response["error"] = categoryError;
+            return QJsonDocument(response).toJson(QJsonDocument::Compact);
+        }
+    }
+
+    // Validate every field before modifying configuration or runtime logging.
+    // A category selection is the non-verbose mode even when verbose is also
+    // present, so it deterministically wins without a temporary mutation.
+    if (hasCategories) {
         // A category selection is the non-verbose logging mode. Persist both
         // sides of that decision so live behavior and restart behavior agree.
         config_->setLoggingDebugCategories(categories);
         config_->setLoggingVerbose(false);
-        changed = true;
         qCInfo(lcCore) << "Logging debug categories set to" << categories << "(via IPC)";
+    } else {
+        if (!config_->setValueByPath("logging.verbose", verbose))
+            return R"({"ok":false,"error":"Failed to write logging.verbose"})";
+        qCInfo(lcCore) << "Logging verbose set to" << verbose << "(via IPC)";
     }
 
-    if (changed && !config_->save(configPath_))
+    oap::applyLoggingPolicy(hasCategories ? false : verbose,
+                            hasCategories ? categories : config_->loggingDebugCategories());
+
+    if (!config_->save(configPath_))
         return R"({"ok":false,"error":"Failed to persist logging config"})";
 
     return R"({"ok":true})";
