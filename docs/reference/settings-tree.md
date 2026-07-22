@@ -194,7 +194,7 @@ keep it to H.264/H.265 because the decoder does not identify VP9 or AV1 streams.
 
 | Section | Control | Label | Config Key / Source |
 |---|---|---|---|
-| Logging | Toggle | Verbose Logging | `logging.verbose` (currently unregistered; the toggle does not apply or persist) |
+| Logging | Toggle | Verbose Logging | `logging.verbose`; disabling it restores the persisted `logging.debug_categories` selective list. |
 | Protocol Capture | Toggle | Enable Capture | `connection.protocol_capture.enabled` |
 | Protocol Capture | Segmented button | Format | `connection.protocol_capture.format` (`jsonl` / `tsv`) |
 | Protocol Capture | Toggle | Include Media Frames | `connection.protocol_capture.include_media` |

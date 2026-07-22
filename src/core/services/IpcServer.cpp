@@ -511,14 +511,13 @@ QByteArray IpcServer::handleGetLogging()
     QJsonObject obj;
     obj["verbose"] = oap::isVerbose();
 
-    // Read persisted debug_categories from config
+    // The category list is persisted configuration, rather than a Logging
+    // runtime query, so the web panel can show exactly what will survive a
+    // restart even while verbose currently overrides it.
     QJsonArray cats;
     if (config_) {
-        QVariant val = config_->valueByPath("logging.debug_categories");
-        if (val.isValid()) {
-            for (const QString& cat : val.toStringList())
-                cats.append(cat);
-        }
+        for (const QString& cat : config_->loggingDebugCategories())
+            cats.append(cat);
     }
     obj["debug_categories"] = cats;
 
@@ -527,12 +526,19 @@ QByteArray IpcServer::handleGetLogging()
 
 QByteArray IpcServer::handleSetLogging(const QVariantMap& data)
 {
+    if (!config_)
+        return R"({"ok":false,"error":"Config not available"})";
+
+    bool changed = false;
     if (data.contains("verbose")) {
         bool verbose = data.value("verbose").toBool();
-        oap::setVerbose(verbose);
-        if (config_) {
-            config_->setValueByPath("logging.verbose", verbose);
-        }
+        if (!config_->setValueByPath("logging.verbose", verbose))
+            return R"({"ok":false,"error":"Failed to write logging.verbose"})";
+        if (verbose)
+            oap::setVerbose(true);
+        else
+            oap::setDebugCategories(config_->loggingDebugCategories());
+        changed = true;
         qCInfo(lcCore) << "Logging verbose set to" << verbose << "(via IPC)";
     }
 
@@ -541,15 +547,16 @@ QByteArray IpcServer::handleSetLogging(const QVariantMap& data)
         for (const QVariant& v : data.value("categories").toList())
             categories.append(v.toString());
         oap::setDebugCategories(categories);
-        if (config_) {
-            config_->setValueByPath("logging.debug_categories", categories);
-        }
+        // A category selection is the non-verbose logging mode. Persist both
+        // sides of that decision so live behavior and restart behavior agree.
+        config_->setLoggingDebugCategories(categories);
+        config_->setLoggingVerbose(false);
+        changed = true;
         qCInfo(lcCore) << "Logging debug categories set to" << categories << "(via IPC)";
     }
 
-    // Persist to disk
-    if (config_)
-        config_->save(configPath_);
+    if (changed && !config_->save(configPath_))
+        return R"({"ok":false,"error":"Failed to persist logging config"})";
 
     return R"({"ok":true})";
 }
