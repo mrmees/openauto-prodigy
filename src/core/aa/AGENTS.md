@@ -44,11 +44,25 @@ Hard-won protocol behavior for the Android Auto runtime. Root `AGENTS.md` holds 
 
 ## Sockets
 
+- **Keep `AndroidAutoOrchestrator`, `TCPTransport`, and `AASession` on their
+  shared Qt event-loop thread.** Socket signals plus session and watchdog timers
+  rely on their QObject affinity; queue work that crosses into that thread.
 - **TCP keepalive alone won't detect dead connections when the Pi IS the AP** — no router sends RST. Poll `tcp_info` via `getsockopt(IPPROTO_TCP, TCP_INFO)` and check `tcpi_backoff >= 3` (~16s detection). `tcpi_retransmits` resets between polls.
 - **Only include `<netinet/tcp.h>`** for `tcp_info` — it conflicts with `<linux/tcp.h>`.
-- **Boost.Asio sockets don't set SOCK_CLOEXEC** — forked processes inherit the acceptor FD and block port rebind. `fcntl(fd, F_SETFD, FD_CLOEXEC)` after socket open.
-- **SO_REUSEADDR must be set before bind** — the 2-arg Asio acceptor constructor does open+bind+listen in one shot, too late. Use separate open / set_option / bind / listen.
+- **`QTcpServer` owns the listener lifecycle.** Call `listen()`, check its
+  result and `errorString()`, then accept through `newConnection` and
+  `nextPendingConnection()` on the server's Qt event-loop thread.
+- **A Qt socket descriptor is a borrowed native handle.** Check
+  `socketDescriptor() != -1` on every use and never close it directly. Set
+  `FD_CLOEXEC` on the listener after `listen()` and on each accepted socket,
+  preserving existing descriptor flags with `F_GETFD` before `F_SETFD`.
+- **The accepted `QTcpSocket` belongs to `TCPTransport` after `setSocket()`.**
+  Apply native TCP options before that handoff; `activeSocket_` is non-owning,
+  and transport teardown closes the socket through Qt.
 
 ## Logging
 
-- **Boost.Log truncates multiline output** — use protobuf `ShortDebugString()`.
+- **App-side AA logs belong to the `lcAA` Qt logging category.** Use the
+  `qCDebug`/`qCInfo`/`qCWarning`/`qCCritical` family; the central Qt message
+  handler owns filtering and output. Keep protobuf diagnostics concise with
+  `QString::fromStdString(message.ShortDebugString())`.
