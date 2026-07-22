@@ -10,7 +10,11 @@ Prodigy is a **fresh start**. Not a fork, not a patch, not a compatibility shim.
 
 ### 1. Open Source (GPLv3)
 
-No closed-source dependencies, no proprietary blobs, no "contact us for licensing." The entire stack — from the AA protocol implementation to the QML UI to the installer — is open. Anyone can build it, modify it, ship it in their project car, or use it as a starting point for something better.
+The core application has no required closed-source dependency or proprietary
+runtime blob. The AA protocol implementation, QML UI, services, plugins, web
+configuration panel, and installer are open. Optional browser content may use a
+system-installed Widevine CDM when the operator provides one, but neither the
+core shell nor WebEngine support depends on it.
 
 ### 2. Raspberry Pi 4 Reference Hardware
 
@@ -35,15 +39,19 @@ No backporting to Buster, Bullseye, or Bookworm. No PulseAudio compatibility lay
 
 ### 4. Android Compatibility
 
-- **Minimum:** Android 12 (API 31) — this is when Google made wireless Android Auto mandatory on all new devices
-- **Primary target:** Android 14+ (API 34) — this is what we optimize for and test against
-- **AA Protocol:** Request version 1.7 (the current maximum the phone supports)
+- **Support baseline:** Android 12 (API 31)
+- **Primary target:** Android 14+ (API 34)
+- **AA protocol:** Request version 1.7
 
-We don't chase ancient Android versions. If someone's running Android 10, their phone probably can't do wireless AA anyway. The protocol is backwards-compatible, so older phones that *do* support wireless AA will likely still work — we just don't go out of our way to support their quirks.
+Older phones that support wireless AA may work, but compatibility work is
+prioritized around the stated baseline and current test devices.
 
 ### 5. Wireless Only
 
-USB Android Auto adds significant complexity (AOAP protocol, libusb, USB permission management, hotplug handling) for a use case that's increasingly irrelevant. Every phone sold since 2022 supports wireless AA. The Pi 4's built-in WiFi and Bluetooth handle the entire connection natively.
+USB Android Auto adds a second transport and device-management stack (AOAP,
+libusb, permissions, and hotplug). Prodigy deliberately supports one path: the
+Pi's Bluetooth discovery hands the phone WiFi AP credentials, then AA runs over
+TCP.
 
 This is a deliberate simplification. One transport path means fewer bugs, less code to maintain, and a simpler user experience.
 
@@ -54,9 +62,14 @@ The core app is a shell with a plugin system. Everything interesting is a plugin
 - **Android Auto** (`org.openauto.android-auto`) — the killer app, but still a plugin
 - **Bluetooth Audio** (`org.openauto.bt-audio`) — A2DP sink + AVRCP
 - **Phone** (`org.openauto.phone`) — HFP dialer and incoming call overlay
-- **Future:** OBD-II dashboard, backup camera, dashcam, media player, etc.
+- **Media Player** (`org.openauto.media-player`) — local and removable-media playback
+- **Equalizer** (`org.openauto.equalizer`) — controls for the shared EQ service
 
-Third-party plugins can be loaded from `~/.openauto/plugins/` as shared libraries with YAML manifests. The plugin API (`IPlugin` + `IHostContext`) provides access to all core services (config, theme, audio, IPC).
+Third-party plugins can be loaded from `~/.openauto/plugins/` as shared
+libraries with YAML manifests. The plugin API (`IPlugin` + `IHostContext`)
+provides interfaces for config, theme, display, audio, Bluetooth, events,
+actions, notifications, equalization, overlays, and shared state providers. IPC
+and concrete service internals are not part of that contract.
 
 This means Prodigy isn't just an AA app — it's a platform for car Pi projects.
 
@@ -98,9 +111,9 @@ Decided 2026-07-07 after the web-widget ship — full rationale in
 | USB Android Auto | Wireless is universal, USB adds complexity for diminishing returns |
 | X11/fbdev fallback | Wayland (labwc) is the compositor. No X11 compatibility path. |
 | PulseAudio support | PipeWire handles everything PulseAudio did, plus Bluetooth audio natively |
-| Android < 12 | No wireless AA support, increasingly rare in the wild |
-| Proprietary codecs | Stick to what's in the protocol (H.264 video, PCM audio) |
-| Cloud dependencies | Everything runs locally. No accounts, no telemetry, no phone-home |
+| Android < 12 | Outside the supported and tested compatibility baseline |
+| Required proprietary codecs | Projection supports the negotiated H.264/H.265 paths and protocol audio formats without making a proprietary browser codec part of the core |
+| Accounts or telemetry | Core operation is local and has no account or phone-home requirement; optional content such as weather and web widgets may use network services |
 | Multi-platform UI | Qt 6 + QML for everything. No Electron, no web UI for the main app. |
 
 ## Contributing
