@@ -4,6 +4,9 @@
 #include <QLocalServer>
 #include <QLocalSocket>
 #include <functional>
+#include <memory>
+
+class QLockFile;
 
 namespace oap {
 
@@ -67,6 +70,7 @@ private:
     QByteArray handleSetLogging(const QVariantMap& data);
 
     QLocalServer* server_ = nullptr;
+    std::unique_ptr<QLockFile> ownershipLock_;
     YamlConfig* config_ = nullptr;
     QString configPath_;
     ThemeService* themeService_ = nullptr;

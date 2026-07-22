@@ -18,6 +18,8 @@ APP_HOSTAPD_ASSET = REPO_ROOT / "config/systemd/openauto-prodigy-hostapd.conf"
 HOSTAPD_ASSET = REPO_ROOT / "config/systemd/hostapd-openauto.conf"
 SOURCE_INSTALLER = REPO_ROOT / "install.sh"
 PREBUILT_INSTALLER = REPO_ROOT / "install-prebuilt.sh"
+RESTART_HELPER = REPO_ROOT / "docs/pi-config/restart.sh"
+MAIN_SOURCE = REPO_ROOT / "src/main.cpp"
 
 
 def extract_function(script: pathlib.Path, name: str) -> str:
@@ -349,10 +351,103 @@ def test_hostapd() -> None:
     verify_hostapd_fragments()
 
 
+def run_restart_helper(*arguments: str) -> list[str]:
+    with tempfile.TemporaryDirectory(prefix="oap-restart-helper-") as tmp:
+        tmp_dir = pathlib.Path(tmp)
+        log_path = tmp_dir / "systemctl.log"
+        systemctl = tmp_dir / "systemctl"
+        sudo = tmp_dir / "sudo"
+        systemctl.write_text(
+            "#!/usr/bin/env bash\n"
+            "printf '%s\\n' \"$*\" >> \"$TEST_SYSTEMCTL_LOG\"\n"
+            "if [[ \"${1:-}\" == show ]]; then\n"
+            "  printf 'LoadState=loaded\\nActiveState=active\\n'\n"
+            "fi\n"
+        )
+        sudo.write_text("#!/usr/bin/env bash\nexec \"$@\"\n")
+        systemctl.chmod(0o755)
+        sudo.chmod(0o755)
+        env = {
+            "PATH": f"{tmp_dir}:/usr/bin:/bin",
+            "TEST_SYSTEMCTL_LOG": str(log_path),
+        }
+        result = subprocess.run(
+            [str(RESTART_HELPER), *arguments],
+            cwd=REPO_ROOT,
+            env=env,
+            capture_output=True,
+            text=True,
+        )
+        if result.returncode != 0:
+            raise AssertionError(
+                f"restart helper failed for {arguments}:\n"
+                f"{result.stdout}\n{result.stderr}"
+            )
+        return log_path.read_text().splitlines()
+
+
+def test_restart() -> None:
+    helper_text = RESTART_HELPER.read_text()
+    forbidden = (
+        "pkill",
+        "nohup",
+        "disown",
+        "sleep ",
+        "/home/matt",
+        "/run/user/1000",
+        "build/src/openauto-prodigy",
+    )
+    for token in forbidden:
+        if token in helper_text:
+            raise AssertionError(f"restart helper retains forbidden ownership: {token}")
+
+    service = "openauto-prodigy.service"
+    if run_restart_helper() != [
+        f"restart {service}",
+        f"is-active --quiet {service}",
+        f"show {service} --property=ActiveState,SubState,MainPID,NRestarts",
+    ]:
+        raise AssertionError("normal restart does not stay within systemd ownership")
+
+    if run_restart_helper("--force-kill") != [
+        f"stop --no-block {service}",
+        f"kill --kill-whom=all --signal=SIGKILL {service}",
+        f"stop {service}",
+        f"reset-failed {service}",
+        f"start {service}",
+        f"is-active --quiet {service}",
+        f"show {service} --property=ActiveState,SubState,MainPID,NRestarts",
+    ]:
+        raise AssertionError("forced recovery is not serialized by a systemd stop job")
+
+    check_calls = run_restart_helper("--check")
+    if check_calls != [
+        f"show {service} --property=LoadState,ActiveState,SubState,MainPID,NRestarts"
+    ]:
+        raise AssertionError("restart helper check mode performs unexpected operations")
+
+    main_text = MAIN_SOURCE.read_text()
+    acquire = main_text.index("if (!ipcServer->start())")
+    for initialization in (
+        "new oap::AudioService",
+        "new oap::BluetoothManager",
+        "new oap::plugins::AndroidAutoPlugin",
+        "pluginManager.initializeAll",
+    ):
+        if acquire > main_text.index(initialization):
+            raise AssertionError(
+                f"main acquires its IPC boundary after resource initialization: "
+                f"{initialization}"
+            )
+    early_failure = main_text[acquire : acquire + 300]
+    if "return 1;" not in early_failure:
+        raise AssertionError("main does not exit immediately when IPC ownership fails")
+
+
 def main() -> int:
     parser = argparse.ArgumentParser()
     parser.add_argument(
-        "--case", choices=("all", "bluetooth", "hostapd"), default="all"
+        "--case", choices=("all", "bluetooth", "hostapd", "restart"), default="all"
     )
     args = parser.parse_args()
 
@@ -360,6 +455,8 @@ def main() -> int:
         test_bluetooth()
     if args.case in ("all", "hostapd"):
         test_hostapd()
+    if args.case in ("all", "restart"):
+        test_restart()
     return 0
 
 

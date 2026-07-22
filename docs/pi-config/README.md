@@ -17,7 +17,7 @@ inventory or copied without adapting deployment-specific values.
 | `cmdline.txt` | `/boot/firmware/cmdline.txt` | Reference boot-command-line snapshot; not installed by the project. |
 | `config.txt` | `/boot/firmware/config.txt` | Reference Pi firmware snapshot; not installed by the project. |
 | `udev-rules.txt` | `/etc/udev/rules.d/*.rules` | Reference rules collected from a deployment; not installed from this snapshot. |
-| `restart.sh` | User-selected checkout | Legacy development helper snapshot with deployment-specific paths. Normal installs are controlled with `openauto-prodigy.service`; adapt the helper before local use. |
+| `restart.sh` | Installed checkout root | Canonical systemd restart helper, included in prebuilt payloads. It never launches or kills the application outside `openauto-prodigy.service`. |
 | `openauto-prodigy.desktop` | User desktop | Example shortcut; not installed as system configuration. |
 
 The installer also generates `~/.openauto/config.yaml`. Application defaults
@@ -45,3 +45,17 @@ AP interface is selected, it also configures `hostapd.service` and
 no hostapd dependency. The install creates the OpenAuto Prodigy application,
 web-config, and privileged system-service units. Whether the main application
 unit starts automatically follows the choice made during installation.
+
+## Application restart and single-instance ownership
+
+Run `./restart.sh` for a normal graceful service restart. The
+`./restart.sh --force-kill` path queues a systemd stop job before killing the
+unit cgroup, which prevents `Restart=on-failure` from racing a replacement
+process; systemd then starts the unit once. `./restart.sh --check` only reports
+the unit state. Set `OAP_SERVICE_NAME` only when testing a deliberately renamed
+unit.
+
+The application acquires `/tmp/openauto-prodigy.sock` before initializing
+Bluetooth, PipeWire, Android Auto, or input resources. A second process exits
+without disturbing a live listener. A socket left behind by a terminated
+owner is recovered automatically.

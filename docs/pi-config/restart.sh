@@ -1,31 +1,27 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-APP_DIR=/home/matt/openauto-prodigy
-APP_BIN="$APP_DIR/build/src/openauto-prodigy"
-LOG_FILE=/tmp/oap.log
-WAYLAND_DISPLAY=wayland-0
-XDG_RUNTIME_DIR=/run/user/1000
+SERVICE_NAME="${OAP_SERVICE_NAME:-openauto-prodigy.service}"
 
 usage() {
   cat <<'USAGE'
 Usage: restart.sh [--check|--force-kill|--help]
 
-  --check       Validate runtime binary/path/log state without restarting the app.
-  --force-kill  Restart app with SIGKILL for existing matches (use carefully).
+  --check       Report the installed service state without restarting it.
+  --force-kill  Stop the unit, kill its cgroup, then start it again.
   --help        Show this help text.
 USAGE
 }
 
-MODE="restart"
+MODE=restart
 if [[ $# -gt 1 ]]; then
-  echo "ERROR: too many arguments."
-  usage
+  echo "ERROR: too many arguments." >&2
+  usage >&2
   exit 1
 fi
 
 if [[ $# -eq 1 ]]; then
-  case "${1:-}" in
+  case "$1" in
     --check)
       MODE=check
       ;;
@@ -37,59 +33,34 @@ if [[ $# -eq 1 ]]; then
       exit 0
       ;;
     *)
-      usage
+      echo "ERROR: unknown argument: $1" >&2
+      usage >&2
       exit 1
       ;;
   esac
 fi
 
-if [[ "$MODE" == "check" ]]; then
-  echo "Restart script dry-run mode: validation only."
-  if [[ ! -d "$APP_DIR" ]]; then
-    echo "ERROR: APP_DIR missing: $APP_DIR"
-    exit 1
-  fi
-  if [[ ! -x "$APP_BIN" ]]; then
-    echo "ERROR: binary missing or not executable: $APP_BIN"
-    exit 1
-  fi
-  if ! touch "$LOG_FILE" 2>/dev/null; then
-    echo "ERROR: cannot write log file path: $LOG_FILE"
-    exit 1
-  fi
-  if pgrep -f "$APP_BIN" >/dev/null 2>&1; then
-    echo "running processes:"
-    pgrep -af "$APP_BIN"
-  else
-    echo "no matching openauto-prodigy process is currently running"
-  fi
-  echo "config check: OK"
+if [[ "$MODE" == check ]]; then
+  systemctl show "$SERVICE_NAME" \
+    --property=LoadState,ActiveState,SubState,MainPID,NRestarts
   exit 0
 fi
 
-# Stop previous instance if present.
-if [[ "$MODE" == "force-kill" ]]; then
-  pkill -9 -f "$APP_BIN" 2>/dev/null || true
+if [[ "$MODE" == force-kill ]]; then
+  # Queue a stop job first so Restart=on-failure cannot race the forced kill.
+  # The blocking stop then waits for that job to finish before the new start;
+  # systemd remains the sole process owner throughout recovery.
+  sudo systemctl stop --no-block "$SERVICE_NAME"
+  sudo systemctl kill --kill-whom=all --signal=SIGKILL "$SERVICE_NAME" \
+    2>/dev/null || true
+  sudo systemctl stop "$SERVICE_NAME"
+  sudo systemctl reset-failed "$SERVICE_NAME"
+  sudo systemctl start "$SERVICE_NAME"
 else
-  pkill -f "$APP_BIN" 2>/dev/null || true
+  # A regular systemd restart sends the unit's configured graceful stop
+  # signal and applies its normal stop timeout before starting it again.
+  sudo systemctl restart "$SERVICE_NAME"
 fi
 
-sleep 1
-
-# Clear log
-truncate -s 0 "$LOG_FILE"
-
-export WAYLAND_DISPLAY XDG_RUNTIME_DIR
-
-# Launch
-cd "$APP_DIR"
-nohup "$APP_BIN" > "$LOG_FILE" 2>&1 &
-APP_PID=$!
-disown "$APP_PID" || true
-
-sleep 2
-if kill -0 "$APP_PID" 2>/dev/null; then
-  echo "App running (PID $APP_PID)"
-else
-  echo "FAILED to start — check $LOG_FILE"
-fi
+sudo systemctl is-active --quiet "$SERVICE_NAME"
+systemctl show "$SERVICE_NAME" --property=ActiveState,SubState,MainPID,NRestarts

@@ -11,6 +11,7 @@
 #include <QJsonArray>
 #include <QFile>
 #include <QDir>
+#include <QLockFile>
 #include <QRegularExpression>
 #include "../Logging.hpp"
 #include <yaml-cpp/yaml.h>
@@ -30,21 +31,49 @@ IpcServer::~IpcServer()
 
 bool IpcServer::start(const QString& socketPath)
 {
-    if (server_) return false;
+    if (server_ || ownershipLock_) return false;
 
-    // Remove stale socket file
-    QFile::remove(socketPath);
+    // The lock closes the probe/remove race between two app processes. A
+    // second current-version process fails here and therefore never touches
+    // the first process's live socket. QLockFile also recovers a lock whose
+    // recorded owner is no longer running.
+    ownershipLock_ = std::make_unique<QLockFile>(socketPath + QStringLiteral(".lock"));
+    ownershipLock_->setStaleLockTime(0);
+    if (!ownershipLock_->tryLock(0)) {
+        qCWarning(lcCore) << "IpcServer: Socket ownership is already held for"
+                          << socketPath;
+        ownershipLock_.reset();
+        return false;
+    }
 
     server_ = new QLocalServer(this);
     server_->setSocketOptions(QLocalServer::WorldAccessOption);
 
     connect(server_, &QLocalServer::newConnection, this, &IpcServer::onNewConnection);
 
-    if (!server_->listen(socketPath)) {
+    if (!server_->listen(socketPath)
+        && server_->serverError() == QAbstractSocket::AddressInUseError) {
+        // A pre-lock-file version of the application may still own the socket.
+        // Probe it before removing anything. A refused connection means the
+        // filesystem entry is genuinely stale and safe to replace.
+        QLocalSocket probe;
+        probe.connectToServer(socketPath);
+        if (probe.waitForConnected(250)) {
+            qCWarning(lcCore) << "IpcServer: A live listener already owns"
+                              << socketPath;
+        } else if (QLocalServer::removeServer(socketPath)
+                   && server_->listen(socketPath)) {
+            qCInfo(lcCore) << "IpcServer: Recovered stale socket" << socketPath;
+            return true;
+        }
+    }
+
+    if (!server_->isListening()) {
         qCWarning(lcCore) << "IpcServer: Failed to listen on" << socketPath
                    << "—" << server_->errorString();
         delete server_;
         server_ = nullptr;
+        ownershipLock_.reset();
         return false;
     }
 
@@ -59,6 +88,7 @@ void IpcServer::stop()
         delete server_;
         server_ = nullptr;
     }
+    ownershipLock_.reset();
 }
 
 void IpcServer::setConfig(YamlConfig* config, const QString& configPath)
