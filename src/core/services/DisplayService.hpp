@@ -38,6 +38,11 @@ public:
 signals:
     void brightnessChanged();
 
+protected:
+    /// Apply a clamped brightness value to the selected backend.
+    /// Kept virtual so deterministic tests can avoid real hardware I/O.
+    virtual void applyBrightness(int value);
+
 private:
     enum class Backend { SysfsBacklight, DdcUtil, SoftwareOverlay };
     Backend detectBackend();
@@ -46,6 +51,7 @@ private:
 
     Backend backend_;
     int brightness_ = 80;
+    bool brightnessInitialized_ = false;
     QString sysfsPath_;
     int sysfsMax_ = 255;
 };

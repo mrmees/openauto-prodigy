@@ -162,7 +162,7 @@ therefore readable and writable with `ConfigService` dot paths.
 | Dot Path | Type | Default | Description |
 |---|---|---|---|
 | `hardware_profile` | string | `rpi4` | Target hardware profile. |
-| `display.brightness` | int | `80` | Brightness/dimming level. |
+| `display.brightness` | int | `80` | Brightness/dimming level (clamped to 5–100). Startup applies the configured value to the active backend even when it is the default `80`. |
 | `display.screen_size` | double | `7.0` | Physical screen diagonal in inches, used for layout and PPI calculations. |
 | `display.theme` | string | `default` | Selected theme ID. |
 | `display.wallpaper_override` | string | empty | Empty uses the theme wallpaper; `none` disables it; custom choices are `file://` URLs. |
