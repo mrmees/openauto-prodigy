@@ -562,6 +562,9 @@ int main(int argc, char *argv[])
                                                   btAudioPlugin->trackArtist(),
                                                   btAudioPlugin->trackAlbum());
             mediaStatusService->updateBtPlaybackState(btAudioPlugin->playbackState());
+            mediaStatusService->updateBtProgress(
+                btAudioPlugin->hasTrackPosition() ? btAudioPlugin->trackPosition() : -1,
+                btAudioPlugin->trackDuration());
         }
     });
     if (btAudioPlugin->connectionState() == 1) {
@@ -570,6 +573,9 @@ int main(int argc, char *argv[])
                                               btAudioPlugin->trackArtist(),
                                               btAudioPlugin->trackAlbum());
         mediaStatusService->updateBtPlaybackState(btAudioPlugin->playbackState());
+        mediaStatusService->updateBtProgress(
+            btAudioPlugin->hasTrackPosition() ? btAudioPlugin->trackPosition() : -1,
+            btAudioPlugin->trackDuration());
     }
 
     // Wire MediaStatusService to the local media player plugin
@@ -600,13 +606,11 @@ int main(int argc, char *argv[])
         mediaStatusService->updateMediaPlayerPlaybackState(mediaPlayerPlugin->playbackState());
     }
 
-    // BT progress into the widened surface (cheap win — BtAudioPlugin already
-    // tracks position/duration from AVRCP)
-    QObject::connect(btAudioPlugin, &oap::plugins::BtAudioPlugin::positionChanged,
-                     mediaStatusService, [mediaStatusService, btAudioPlugin]() {
-        mediaStatusService->updateBtProgress(btAudioPlugin->trackPosition(),
-                                             btAudioPlugin->trackDuration());
-    });
+    // BlueZ MediaPlayer1 reports uint32 milliseconds. BtAudioPlugin widens
+    // those values and emits one coherent snapshot after each D-Bus property
+    // batch; MediaStatusService forwards the same millisecond contract.
+    QObject::connect(btAudioPlugin, &oap::plugins::BtAudioPlugin::progressChanged,
+                     mediaStatusService, &oap::MediaStatusService::updateBtProgress);
 
     // Playback control delegation
     {

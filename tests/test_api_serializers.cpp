@@ -150,10 +150,21 @@ void TestApiSerializers::testMediaLocalMediaPlaying() {
 
 void TestApiSerializers::testMediaProgressFieldsBtAndLocal() {
     oap::MediaStatusService media;
+
+    media.setBtConnected(true);
+    media.updateBtPlaybackState(1);
+    media.updateBtProgress(61000, 215000);
+    pb::MediaStatus st = buildMediaStatus(media);
+    QCOMPARE(st.source(), pb::MEDIA_SOURCE_BLUETOOTH);
+    QCOMPARE(st.position_ms(), (long long)61000);
+    QCOMPARE(st.duration_ms(), (long long)215000);
+    QVERIFY(st.has_position());
+
+    media.setBtConnected(false);
     media.setMediaPlayerConnected(true);
     media.updateMediaPlayerPlaybackState(1);
     media.updateMediaPlayerProgress(61000, 245000);
-    const pb::MediaStatus st = buildMediaStatus(media);
+    st = buildMediaStatus(media);
     QCOMPARE(st.position_ms(), (long long)61000);
     QCOMPARE(st.duration_ms(), (long long)245000);
     QVERIFY(st.has_position());

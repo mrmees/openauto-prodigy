@@ -12,6 +12,54 @@
 #include <QDBusArgument>
 #include <QDBusMetaType>
 #include <QDBusVariant>
+#include <optional>
+
+namespace {
+
+QVariant unwrapDbusVariant(const QVariant& value)
+{
+    if (value.metaType() == QMetaType::fromType<QDBusVariant>())
+        return value.value<QDBusVariant>().variant();
+    return value;
+}
+
+QVariantMap demarshalVariantMap(const QVariant& value)
+{
+    const QVariant unwrapped = unwrapDbusVariant(value);
+    if (unwrapped.metaType().id() == QMetaType::QVariantMap)
+        return unwrapped.toMap();
+
+    QVariantMap result;
+    if (!unwrapped.canConvert<QDBusArgument>())
+        return result;
+
+    const QDBusArgument arg = unwrapped.value<QDBusArgument>();
+    arg.beginMap();
+    while (!arg.atEnd()) {
+        arg.beginMapEntry();
+        QString key;
+        QDBusVariant dbusValue;
+        arg >> key >> dbusValue;
+        result.insert(key, dbusValue.variant());
+        arg.endMapEntry();
+    }
+    arg.endMap();
+    return result;
+}
+
+std::optional<qint64> bluezMilliseconds(const QVariant& value)
+{
+    // org.bluez.MediaPlayer1 declares Position and Track.Duration as uint32
+    // milliseconds. Require that D-Bus type instead of accepting signed or
+    // textual coercions, then widen before storing so values above INT_MAX do
+    // not wrap through QVariant::toInt().
+    const QVariant unwrapped = unwrapDbusVariant(value);
+    if (unwrapped.metaType().id() != QMetaType::UInt)
+        return std::nullopt;
+    return static_cast<qint64>(unwrapped.toUInt());
+}
+
+} // namespace
 
 namespace oap {
 namespace plugins {
@@ -268,8 +316,7 @@ void BtAudioPlugin::scanExistingObjects()
             }
 
             if (iface == QLatin1String("org.bluez.MediaPlayer1")) {
-                playerPath_ = path;
-                updatePlayerProperties(props);
+                adoptPlayer(path, props);
             }
         }
         ifacesArg.endMap();
@@ -336,21 +383,27 @@ void BtAudioPlugin::onInterfacesAdded(const QDBusObjectPath& path, const BtInter
     }
 
     if (interfaces.contains(QStringLiteral("org.bluez.MediaPlayer1"))) {
-        playerPath_ = pathStr;
+        const QVariantMap playerProps =
+            interfaces.value(QStringLiteral("org.bluez.MediaPlayer1"));
+        adoptPlayer(pathStr, playerProps);
         if (hostContext_)
             hostContext_->log(LogLevel::Info,
                 QStringLiteral("BtAudio: AVRCP player appeared: %1").arg(pathStr));
 
-        QDBusInterface iface(
-            QStringLiteral("org.bluez"), pathStr,
-            QStringLiteral("org.bluez.MediaPlayer1"),
-            QDBusConnection::systemBus());
-        if (iface.isValid()) {
-            QVariantMap props;
-            props[QStringLiteral("Status")] = iface.property("Status");
-            props[QStringLiteral("Track")] = iface.property("Track");
-            props[QStringLiteral("Position")] = iface.property("Position");
-            updatePlayerProperties(props);
+        // ObjectManager already carries the initial property snapshot. Only
+        // retain the legacy synchronous read-back for a genuinely empty map.
+        if (playerProps.isEmpty()) {
+            QDBusInterface iface(
+                QStringLiteral("org.bluez"), pathStr,
+                QStringLiteral("org.bluez.MediaPlayer1"),
+                QDBusConnection::systemBus());
+            if (iface.isValid()) {
+                QVariantMap props;
+                props[QStringLiteral("Status")] = iface.property("Status");
+                props[QStringLiteral("Track")] = iface.property("Track");
+                props[QStringLiteral("Position")] = iface.property("Position");
+                updatePlayerProperties(props);
+            }
         }
     }
 }
@@ -389,13 +442,25 @@ void BtAudioPlugin::onInterfacesRemoved(const QDBusObjectPath& path, const QStri
     if (interfaces.contains(QStringLiteral("org.bluez.MediaPlayer1"))
         && pathStr == playerPath_) {
         playerPath_.clear();
+        const bool metadataWasSet = !trackTitle_.isEmpty() || !trackArtist_.isEmpty()
+                                    || !trackAlbum_.isEmpty();
+        const bool durationWasSet = trackDuration_ != 0;
+        const bool positionValueWasSet = trackPosition_ != 0;
+        const bool positionWasKnown = trackPositionKnown_;
         trackTitle_.clear();
         trackArtist_.clear();
         trackAlbum_.clear();
         trackDuration_ = 0;
         trackPosition_ = 0;
-        emit metadataChanged();
-        emit positionChanged();
+        trackPositionKnown_ = false;
+        if (metadataWasSet)
+            emit metadataChanged();
+        if (durationWasSet)
+            emit durationChanged();
+        if (positionValueWasSet)
+            emit positionChanged();
+        if (durationWasSet || positionValueWasSet || positionWasKnown)
+            emit progressChanged(-1, 0);
     }
 }
 
@@ -466,9 +531,19 @@ void BtAudioPlugin::setTransportActive(bool active)
     emit transportActiveChanged(transportActive_);
 }
 
+void BtAudioPlugin::adoptPlayer(const QString& path, const QVariantMap& props)
+{
+    playerPath_ = path;
+    if (!props.isEmpty())
+        updatePlayerProperties(props);
+}
+
 void BtAudioPlugin::updatePlayerProperties(const QVariantMap& props)
 {
     bool metaChanged = false;
+    bool durationValueChanged = false;
+    bool positionValueChanged = false;
+    bool progressStateChanged = false;
 
     if (props.contains(QStringLiteral("Status"))) {
         QString status = props.value(QStringLiteral("Status")).toString();
@@ -485,41 +560,52 @@ void BtAudioPlugin::updatePlayerProperties(const QVariantMap& props)
     }
 
     if (props.contains(QStringLiteral("Track"))) {
-        QVariant trackVar = props.value(QStringLiteral("Track"));
-        QVariantMap track;
+        // Track is a{sv}; QtDBus may leave it as QDBusArgument or provide an
+        // already-converted QVariantMap depending on the delivery path.
+        const QVariantMap track = demarshalVariantMap(props.value(QStringLiteral("Track")));
 
-        // Track can come as QDBusArgument or QVariantMap depending on context
-        if (trackVar.canConvert<QDBusArgument>()) {
-            QDBusArgument arg = trackVar.value<QDBusArgument>();
-            arg >> track;
-        } else if (trackVar.canConvert<QVariantMap>()) {
-            track = trackVar.toMap();
-        }
-
-        QString title = track.value(QStringLiteral("Title")).toString();
-        QString artist = track.value(QStringLiteral("Artist")).toString();
-        QString album = track.value(QStringLiteral("Album")).toString();
-        int duration = track.value(QStringLiteral("Duration")).toInt();  // microseconds from BlueZ
+        const QString title = unwrapDbusVariant(track.value(QStringLiteral("Title"))).toString();
+        const QString artist = unwrapDbusVariant(track.value(QStringLiteral("Artist"))).toString();
+        const QString album = unwrapDbusVariant(track.value(QStringLiteral("Album"))).toString();
+        const auto duration = bluezMilliseconds(track.value(QStringLiteral("Duration")));
+        const qint64 newDuration = duration.value_or(0);
 
         if (title != trackTitle_ || artist != trackArtist_ || album != trackAlbum_) {
             trackTitle_ = title;
             trackArtist_ = artist;
             trackAlbum_ = album;
-            trackDuration_ = duration / 1000;  // convert to milliseconds
             metaChanged = true;
+        }
+        if (newDuration != trackDuration_) {
+            trackDuration_ = newDuration;
+            durationValueChanged = true;
+            progressStateChanged = true;
         }
     }
 
     if (props.contains(QStringLiteral("Position"))) {
-        int pos = props.value(QStringLiteral("Position")).toInt() / 1000;  // us -> ms
-        if (pos != trackPosition_) {
-            trackPosition_ = pos;
-            emit positionChanged();
+        const auto position = bluezMilliseconds(props.value(QStringLiteral("Position")));
+        const qint64 newPosition = position.value_or(0);
+        const bool newPositionKnown = position.has_value();
+        if (newPosition != trackPosition_) {
+            trackPosition_ = newPosition;
+            positionValueChanged = true;
         }
+        if (newPositionKnown != trackPositionKnown_)
+            progressStateChanged = true;
+        trackPositionKnown_ = newPositionKnown;
+        progressStateChanged = progressStateChanged || positionValueChanged;
     }
 
     if (metaChanged)
         emit metadataChanged();
+    if (durationValueChanged)
+        emit durationChanged();
+    if (positionValueChanged)
+        emit positionChanged();
+    if (progressStateChanged)
+        emit progressChanged(trackPositionKnown_ ? trackPosition_ : -1,
+                             trackDuration_);
 }
 
 void BtAudioPlugin::sendPlayerCommand(const QString& command)

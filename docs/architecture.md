@@ -71,6 +71,11 @@ Static plugins compiled into the binary, implementing `IPlugin` (see [reference/
 
 - `android_auto` — projection lifecycle, activation/deactivation hooks, touch integration, AA focus controls.
 - `bt_audio` — BlueZ D-Bus monitoring for A2DP media transport/player state and AVRCP controls; owns `BtAudioTap`, which routes BT music through the app's EQ (see "BT A2DP EQ tap" below).
+- BlueZ `MediaPlayer1.Position` and `Track.Duration` enter `bt_audio` as
+  `uint32` milliseconds. Startup enumeration, player adoption, and later
+  property changes widen them to `qint64` without scaling, then publish the
+  same millisecond snapshot through `MediaStatusService` to shared widgets and
+  External API media status.
 - `phone` — dialer/call UI backed by the core `PhoneStateService`; the core
   service owns BlueZ device monitoring and `org.pipewire.Telephony` call state.
 - `media_player` — local file playback (`PlaybackEngine`, `PlayQueue`, `FolderModel`, `MediaArtProvider`).
