@@ -228,6 +228,10 @@ void BtAudioPlugin::onBluezServiceUnregistered()
     transportActiveByPath_.clear();
     transportPath_.clear();
     playerPath_.clear();
+    // A later transport can reconnect before its MediaPlayer1 snapshot. Clear
+    // player data now so the composition-root catch-up cannot republish stale
+    // time validity or metadata from the vanished BlueZ session.
+    updatePlayerProperties({}, true);
     // BlueZ gone => no transports => no audio activity. Force the edge false
     // before the UI-state resets below so the tap releases focus.
     setTransportActive(false);
@@ -383,9 +387,8 @@ void BtAudioPlugin::onInterfacesAdded(const QDBusObjectPath& path, const BtInter
     }
 
     if (interfaces.contains(QStringLiteral("org.bluez.MediaPlayer1"))) {
-        const QVariantMap playerProps =
+        QVariantMap playerProps =
             interfaces.value(QStringLiteral("org.bluez.MediaPlayer1"));
-        adoptPlayer(pathStr, playerProps);
         if (hostContext_)
             hostContext_->log(LogLevel::Info,
                 QStringLiteral("BtAudio: AVRCP player appeared: %1").arg(pathStr));
@@ -402,9 +405,10 @@ void BtAudioPlugin::onInterfacesAdded(const QDBusObjectPath& path, const BtInter
                 props[QStringLiteral("Status")] = iface.property("Status");
                 props[QStringLiteral("Track")] = iface.property("Track");
                 props[QStringLiteral("Position")] = iface.property("Position");
-                updatePlayerProperties(props);
+                playerProps = props;
             }
         }
+        adoptPlayer(pathStr, playerProps);
     }
 }
 
@@ -442,30 +446,12 @@ void BtAudioPlugin::onInterfacesRemoved(const QDBusObjectPath& path, const QStri
     if (interfaces.contains(QStringLiteral("org.bluez.MediaPlayer1"))
         && pathStr == playerPath_) {
         playerPath_.clear();
-        const bool metadataWasSet = !trackTitle_.isEmpty() || !trackArtist_.isEmpty()
-                                    || !trackAlbum_.isEmpty();
-        const bool durationWasSet = trackDuration_ != 0;
-        const bool positionValueWasSet = trackPosition_ != 0;
-        const bool positionWasKnown = trackPositionKnown_;
-        trackTitle_.clear();
-        trackArtist_.clear();
-        trackAlbum_.clear();
-        trackDuration_ = 0;
-        trackPosition_ = 0;
-        trackPositionKnown_ = false;
-        if (metadataWasSet)
-            emit metadataChanged();
-        if (durationWasSet)
-            emit durationChanged();
-        if (positionValueWasSet)
-            emit positionChanged();
-        if (durationWasSet || positionValueWasSet || positionWasKnown)
-            emit progressChanged(-1, 0);
+        updatePlayerProperties({}, true);
     }
 }
 
 void BtAudioPlugin::onPropertiesChanged(const QString& interface, const QVariantMap& changed,
-                                         const QStringList& /*invalidated*/,
+                                         const QStringList& invalidated,
                                          const QDBusMessage& message)
 {
     // PropertiesChanged is subscribed on ANY BlueZ path; the sender path rides
@@ -485,7 +471,17 @@ void BtAudioPlugin::onPropertiesChanged(const QString& interface, const QVariant
     }
 
     if (interface == QLatin1String("org.bluez.MediaPlayer1")) {
-        updatePlayerProperties(changed);
+        QVariantMap effective = changed;
+        // Invalidated D-Bus properties changed without carrying replacement
+        // values. Treat time-bearing fields as unknown until BlueZ reports a
+        // fresh value; never keep stale data marked valid.
+        if (invalidated.contains(QStringLiteral("Track"))
+            && !effective.contains(QStringLiteral("Track")))
+            effective.insert(QStringLiteral("Track"), QVariant{});
+        if (invalidated.contains(QStringLiteral("Position"))
+            && !effective.contains(QStringLiteral("Position")))
+            effective.insert(QStringLiteral("Position"), QVariant{});
+        updatePlayerProperties(effective);
     }
 }
 
@@ -533,17 +529,29 @@ void BtAudioPlugin::setTransportActive(bool active)
 
 void BtAudioPlugin::adoptPlayer(const QString& path, const QVariantMap& props)
 {
+    const bool replacingPlayer = !playerPath_.isEmpty() && playerPath_ != path;
     playerPath_ = path;
-    if (!props.isEmpty())
-        updatePlayerProperties(props);
+    if (!props.isEmpty() || replacingPlayer)
+        updatePlayerProperties(props, replacingPlayer);
 }
 
-void BtAudioPlugin::updatePlayerProperties(const QVariantMap& props)
+void BtAudioPlugin::updatePlayerProperties(const QVariantMap& props, bool resetBeforeApply)
 {
-    bool metaChanged = false;
-    bool durationValueChanged = false;
-    bool positionValueChanged = false;
-    bool progressStateChanged = false;
+    const QString oldTitle = trackTitle_;
+    const QString oldArtist = trackArtist_;
+    const QString oldAlbum = trackAlbum_;
+    const qint64 oldDuration = trackDuration_;
+    const qint64 oldPosition = trackPosition_;
+    const bool oldPositionKnown = trackPositionKnown_;
+
+    if (resetBeforeApply) {
+        trackTitle_.clear();
+        trackArtist_.clear();
+        trackAlbum_.clear();
+        trackDuration_ = 0;
+        trackPosition_ = 0;
+        trackPositionKnown_ = false;
+    }
 
     if (props.contains(QStringLiteral("Status"))) {
         QString status = props.value(QStringLiteral("Status")).toString();
@@ -574,29 +582,26 @@ void BtAudioPlugin::updatePlayerProperties(const QVariantMap& props)
             trackTitle_ = title;
             trackArtist_ = artist;
             trackAlbum_ = album;
-            metaChanged = true;
         }
-        if (newDuration != trackDuration_) {
+        if (newDuration != trackDuration_)
             trackDuration_ = newDuration;
-            durationValueChanged = true;
-            progressStateChanged = true;
-        }
     }
 
     if (props.contains(QStringLiteral("Position"))) {
         const auto position = bluezMilliseconds(props.value(QStringLiteral("Position")));
         const qint64 newPosition = position.value_or(0);
         const bool newPositionKnown = position.has_value();
-        if (newPosition != trackPosition_) {
+        if (newPosition != trackPosition_)
             trackPosition_ = newPosition;
-            positionValueChanged = true;
-        }
-        if (newPositionKnown != trackPositionKnown_)
-            progressStateChanged = true;
         trackPositionKnown_ = newPositionKnown;
-        progressStateChanged = progressStateChanged || positionValueChanged;
     }
 
+    const bool metaChanged = oldTitle != trackTitle_ || oldArtist != trackArtist_
+                             || oldAlbum != trackAlbum_;
+    const bool durationValueChanged = oldDuration != trackDuration_;
+    const bool positionValueChanged = oldPosition != trackPosition_;
+    const bool progressStateChanged = durationValueChanged || positionValueChanged
+                                      || oldPositionKnown != trackPositionKnown_;
     if (metaChanged)
         emit metadataChanged();
     if (durationValueChanged)

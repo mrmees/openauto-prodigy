@@ -75,7 +75,9 @@ Static plugins compiled into the binary, implementing `IPlugin` (see [reference/
   `uint32` milliseconds. Startup enumeration, player adoption, and later
   property changes widen them to `qint64` without scaling, then publish the
   same millisecond snapshot through `MediaStatusService` to shared widgets and
-  External API media status.
+  External API media status. BlueZ loss, player replacement, or D-Bus
+  invalidation returns missing player time state to unknown rather than
+  retaining a prior session's values.
 - `phone` — dialer/call UI backed by the core `PhoneStateService`; the core
   service owns BlueZ device monitoring and `org.pipewire.Telephony` call state.
 - `media_player` — local file playback (`PlaybackEngine`, `PlayQueue`, `FolderModel`, `MediaArtProvider`).

@@ -2,13 +2,17 @@ find_package(Qt6 REQUIRED COMPONENTS Test)
 
 # Helper: add a test that links against openauto-core (includes, libs all inherited)
 function(oap_add_test NAME)
-    cmake_parse_arguments(ARG "" "" "SOURCES;EXTRA_LIBS;DEFS" ${ARGN})
+    cmake_parse_arguments(ARG "DBUS_SESSION" "" "SOURCES;EXTRA_LIBS;DEFS" ${ARGN})
     add_executable(${NAME} ${ARG_SOURCES})
     target_link_libraries(${NAME} PRIVATE openauto-core Qt6::Test ${ARG_EXTRA_LIBS})
     if(ARG_DEFS)
         target_compile_definitions(${NAME} PRIVATE ${ARG_DEFS})
     endif()
-    add_test(NAME ${NAME} COMMAND ${NAME})
+    if(ARG_DBUS_SESSION)
+        add_test(NAME ${NAME} COMMAND dbus-run-session -- $<TARGET_FILE:${NAME}>)
+    else()
+        add_test(NAME ${NAME} COMMAND ${NAME})
+    endif()
 endfunction()
 
 # --- Fixture plugins: real .so files for dynamic-load validation tests ---
@@ -86,7 +90,7 @@ oap_add_test(test_media_scanner
 
 oap_add_test(test_media_usb_policy SOURCES test_media_usb_policy.cpp)
 
-oap_add_test(test_bt_audio_plugin SOURCES test_bt_audio_plugin.cpp)
+oap_add_test(test_bt_audio_plugin DBUS_SESSION SOURCES test_bt_audio_plugin.cpp)
 oap_add_test(test_bt_tap_controller SOURCES test_bt_tap_controller.cpp)
 
 # --- Service tests ---

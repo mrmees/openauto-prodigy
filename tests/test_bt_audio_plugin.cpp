@@ -65,6 +65,9 @@ private slots:
     void playerTimes_uint32RangeDoesNotWrap();
     void playerTimes_qdbusArgumentTrackIsDemarshaled();
     void playerTimes_missingAndInvalidValuesUseUnknowns();
+    void playerTimes_invalidatedValuesUseUnknowns();
+    void playerTimes_newPlayerClearsMissingState();
+    void playerTimes_bluezLossClearsState();
     void playerTimes_flowUnchangedToMediaStatusService();
 
 private:
@@ -145,13 +148,14 @@ private:
     }
 
     static bool drivePlayerProperties(BtAudioPlugin& plugin, const QString& playerPath,
-                                      const QVariantMap& changed) {
+                                      const QVariantMap& changed,
+                                      const QStringList& invalidated = {}) {
         QDBusMessage msg = propsSignal(playerPath);
         return QMetaObject::invokeMethod(
             &plugin, "onPropertiesChanged", Qt::DirectConnection,
             Q_ARG(QString, QStringLiteral("org.bluez.MediaPlayer1")),
             Q_ARG(QVariantMap, changed),
-            Q_ARG(QStringList, QStringList{}),
+            Q_ARG(QStringList, invalidated),
             Q_ARG(QDBusMessage, msg));
     }
 
@@ -571,8 +575,7 @@ void TestBtAudioPlugin::playerTimes_uint32RangeDoesNotWrap()
 void TestBtAudioPlugin::playerTimes_qdbusArgumentTrackIsDemarshaled()
 {
     QDBusConnection bus = QDBusConnection::sessionBus();
-    if (!bus.isConnected())
-        QSKIP("No session D-Bus available for container demarshal regression");
+    QVERIFY2(bus.isConnected(), "CTest must provide an isolated session D-Bus");
 
     TrackMapFixture fixture;
     const QString fixturePath = QStringLiteral("/org/openauto/TestTrack");
@@ -623,6 +626,75 @@ void TestBtAudioPlugin::playerTimes_missingAndInvalidValuesUseUnknowns()
     QCOMPARE(plugin.trackDuration(), qint64(0));
     QCOMPARE(plugin.trackPosition(), qint64(0));
     QVERIFY(!plugin.hasTrackPosition());
+}
+
+void TestBtAudioPlugin::playerTimes_invalidatedValuesUseUnknowns()
+{
+    BtAudioPlugin plugin;
+    const QString path = QStringLiteral("/org/bluez/hci0/dev_AA_BB/player0");
+    QVERIFY(adoptPlayer(plugin, path,
+                        playerProperties(QStringLiteral("Track"), 215000u, 61000u)));
+
+    QSignalSpy metadataSpy(&plugin, &BtAudioPlugin::metadataChanged);
+    QSignalSpy durationSpy(&plugin, &BtAudioPlugin::durationChanged);
+    QSignalSpy positionSpy(&plugin, &BtAudioPlugin::positionChanged);
+    QSignalSpy progressSpy(&plugin, &BtAudioPlugin::progressChanged);
+    QVERIFY(drivePlayerProperties(
+        plugin, path, {},
+        {QStringLiteral("Track"), QStringLiteral("Position")}));
+
+    QVERIFY(plugin.trackTitle().isEmpty());
+    QCOMPARE(plugin.trackDuration(), qint64(0));
+    QCOMPARE(plugin.trackPosition(), qint64(0));
+    QVERIFY(!plugin.hasTrackPosition());
+    QCOMPARE(metadataSpy.count(), 1);
+    QCOMPARE(durationSpy.count(), 1);
+    QCOMPARE(positionSpy.count(), 1);
+    QCOMPARE(progressSpy.count(), 1);
+    QCOMPARE(progressSpy.first().at(0).toLongLong(), qint64(-1));
+    QCOMPARE(progressSpy.first().at(1).toLongLong(), qint64(0));
+}
+
+void TestBtAudioPlugin::playerTimes_newPlayerClearsMissingState()
+{
+    BtAudioPlugin plugin;
+    const QString firstPath = QStringLiteral("/org/bluez/hci0/dev_AA_BB/player0");
+    const QString secondPath = QStringLiteral("/org/bluez/hci0/dev_CC_DD/player0");
+    QVERIFY(adoptPlayer(plugin, firstPath,
+                        playerProperties(QStringLiteral("First"), 215000u, 61000u)));
+
+    QVariantMap secondProps;
+    secondProps.insert(QStringLiteral("Status"), QStringLiteral("paused"));
+    QSignalSpy progressSpy(&plugin, &BtAudioPlugin::progressChanged);
+    QVERIFY(adoptPlayer(plugin, secondPath, secondProps));
+
+    QVERIFY(plugin.trackTitle().isEmpty());
+    QCOMPARE(plugin.trackDuration(), qint64(0));
+    QCOMPARE(plugin.trackPosition(), qint64(0));
+    QVERIFY(!plugin.hasTrackPosition());
+    QCOMPARE(progressSpy.count(), 1);
+    QCOMPARE(progressSpy.first().at(0).toLongLong(), qint64(-1));
+    QCOMPARE(progressSpy.first().at(1).toLongLong(), qint64(0));
+}
+
+void TestBtAudioPlugin::playerTimes_bluezLossClearsState()
+{
+    BtAudioPlugin plugin;
+    const QString path = QStringLiteral("/org/bluez/hci0/dev_AA_BB/player0");
+    QVERIFY(adoptPlayer(plugin, path,
+                        playerProperties(QStringLiteral("Track"), 215000u, 61000u)));
+
+    QSignalSpy progressSpy(&plugin, &BtAudioPlugin::progressChanged);
+    QVERIFY(QMetaObject::invokeMethod(&plugin, "onBluezServiceUnregistered",
+                                      Qt::DirectConnection));
+
+    QVERIFY(plugin.trackTitle().isEmpty());
+    QCOMPARE(plugin.trackDuration(), qint64(0));
+    QCOMPARE(plugin.trackPosition(), qint64(0));
+    QVERIFY(!plugin.hasTrackPosition());
+    QCOMPARE(progressSpy.count(), 1);
+    QCOMPARE(progressSpy.first().at(0).toLongLong(), qint64(-1));
+    QCOMPARE(progressSpy.first().at(1).toLongLong(), qint64(0));
 }
 
 void TestBtAudioPlugin::playerTimes_flowUnchangedToMediaStatusService()

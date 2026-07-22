@@ -171,7 +171,7 @@ private:
     // transportActiveByPath_, emitting only on real changes.
     void recomputeTransportState();
     void adoptPlayer(const QString& path, const QVariantMap& props);
-    void updatePlayerProperties(const QVariantMap& props);
+    void updatePlayerProperties(const QVariantMap& props, bool resetBeforeApply = false);
     void sendPlayerCommand(const QString& command);
     // Edge-emits transportActiveChanged only when the value actually flips.
     void setTransportActive(bool active);
