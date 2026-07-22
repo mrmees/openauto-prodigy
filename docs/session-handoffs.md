@@ -4,6 +4,42 @@ Newest entries first.
 
 ---
 
+## 2026-07-21 — Post-merge video/SCO review follow-up COMPLETE
+
+**What changed:** added three bounded follow-ups after the memory and teardown
+safety tranche merged. `22a5ecb` caps the video-frame pool's retained free list
+at its configured pool size. `5b2e5d8` makes monitor shutdown publish the SCO
+falling edge, and review fix `4a255d7` preserves that edge across both queued
+signal delivery and connect-then-snapshot ordering while keeping repeated stop
+idempotent. Focused regressions cover the pool bound and both SCO orderings.
+
+**Why:** burst allocation could leave more decoded-frame buffers retained than
+the configured pool size, and a runtime monitor stop could otherwise leave a
+consumer with stale call-audio state when a queued edge was invalidated during
+teardown.
+
+**Status:** COMPLETE locally and ready for a standalone follow-up PR. This work
+is not part of merged PR #22, has not been deployed to the Pi, and does not
+change protocol, HFP role, routing, codec, or public API behavior.
+
+**Review gate:** `bash scripts/codex-review.sh origin/main` reviewed
+`1157de0..4a255d7` and returned LGTM with 0 P1, 0 P2, and 0 P3. An earlier
+review identified the queued-edge ordering gap; it was confirmed, expanded to
+cover the complementary snapshot ordering, and fixed in `4a255d7` before the
+clean re-run. Verdict:
+`reviews/2026-07-21-211105-codex-review.md` (gitignored).
+
+**Verification:** `cmake --build . -j$(nproc)`,
+`cmake --build . --target openauto-prodigy -j$(nproc)`, and
+`ctest --output-on-failure` passed in `~/builds/openauto-prodigy`; the focused
+SCO test also passed repeatedly; `git diff --check` passed.
+
+**Next 1-3 steps:** (1) push `dev` and open the standalone follow-up PR; (2)
+keep the documentation-drift remediation on a branch based from `origin/main`;
+(3) deploy only after the follow-up is reviewed and merged.
+
+---
+
 ## 2026-07-21 — Memory and teardown safety tranche COMPLETE: local, ARM, Pi, and review gates passed
 
 **What changed:** completed the approved three-task safety tranche. `c6a5a02`
