@@ -21,6 +21,7 @@ public:
                             QObject* parent = nullptr);
 
     bool isNight() const override;
+    bool hasValidState() const override;
     void start() override;
     void stop() override;
 
@@ -31,6 +32,7 @@ private:
     QTime nightStart_;
     QTimer timer_;
     std::atomic<bool> currentState_{false};
+    std::atomic<bool> hasValidState_{false};
 };
 
 } // namespace aa

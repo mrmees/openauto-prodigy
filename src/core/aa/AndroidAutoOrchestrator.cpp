@@ -206,7 +206,10 @@ void AndroidAutoOrchestrator::onNewConnection()
     // Tear down any existing session first (reconnect scenario)
     if (session_) {
         qCWarning(lcAA) << "Already have active connection — tearing down for reconnect";
-        teardownSession();
+        // This callback is not running inside an AASession signal. Destroy the
+        // old session synchronously so its deferred destructor cannot close a
+        // persistent handler after the replacement session has registered it.
+        teardownSession(false);
     }
 
     setState(Connecting, QString("Wireless connection from %1...")
@@ -614,27 +617,39 @@ void AndroidAutoOrchestrator::onNewConnection()
     nightProvider_.reset();
     if (yamlConfig_) {
         QString nightSource = yamlConfig_->nightModeSource();
+        std::unique_ptr<NightModeProvider> provider;
         if (nightSource == "gpio") {
-            nightProvider_ = std::make_unique<GpioNightMode>(
+            provider = std::make_unique<GpioNightMode>(
                 yamlConfig_->nightModeGpioPin(),
                 yamlConfig_->nightModeGpioActiveHigh());
         } else {
-            nightProvider_ = std::make_unique<TimedNightMode>(
+            provider = std::make_unique<TimedNightMode>(
                 yamlConfig_->nightModeDayStart(),
                 yamlConfig_->nightModeNightStart());
         }
 
-        // Connect night mode to sensor handler
-        connect(nightProvider_.get(), &NightModeProvider::nightModeChanged,
-                &sensorHandler_, &oaa::hu::SensorChannelHandler::pushNightMode);
-
-        nightProvider_->start();
-        sensorHandler_.pushNightMode(nightProvider_->isNight());
+        activateNightModeProvider(std::move(provider));
         qCInfo(lcAA) << "Night mode provider started (source=" << nightSource << ")";
     }
 
     // Start protocol handshake
     session_->start();
+}
+
+void AndroidAutoOrchestrator::activateNightModeProvider(
+    std::unique_ptr<NightModeProvider> provider)
+{
+    nightProvider_ = std::move(provider);
+    connect(nightProvider_.get(), &NightModeProvider::nightModeChanged,
+            &sensorHandler_, &oaa::hu::SensorChannelHandler::pushNightMode);
+
+    nightProvider_->start();
+    if (nightProvider_->hasValidState()) {
+        sensorHandler_.pushNightMode(nightProvider_->isNight());
+    } else {
+        qCWarning(lcAA) << "Night mode provider has no valid initial state;"
+                           " preserving the last sensor value";
+    }
 }
 
 void AndroidAutoOrchestrator::onSessionStateChanged(oaa::SessionState state)
@@ -768,7 +783,7 @@ void AndroidAutoOrchestrator::stopProtocolCapture()
     protocolLogger_->close();
 }
 
-void AndroidAutoOrchestrator::teardownSession()
+void AndroidAutoOrchestrator::teardownSession(bool deferDeletion)
 {
     stopProtocolCapture();
 
@@ -786,6 +801,11 @@ void AndroidAutoOrchestrator::teardownSession()
     videoDecoder_.disconnect(this);
 
     if (session_) {
+        // Persistent handlers outlive individual AASession instances. Reset the
+        // sensor channel's wire state before the old messenger is deferred for
+        // deletion, while retaining its cached night value for resubscription.
+        sensorHandler_.onChannelClosed();
+
         // Disconnect all signals from session_ to us BEFORE scheduling deletion.
         // This prevents onSessionDisconnected from being called a second time if
         // the 'disconnected' signal is also queued.
@@ -797,16 +817,21 @@ void AndroidAutoOrchestrator::teardownSession()
         videoHandler_.disconnect(&videoDecoder_);
         phoneStatusHandler_.disconnect(this);
 
-        // deleteLater() instead of delete: teardownSession() is often called from
-        // within onSessionStateChanged(), which is a direct-connection slot of
-        // session_->stateChanged. Deleting the sender synchronously while inside
-        // its signal dispatch causes UAF when Qt's dispatch machinery resumes.
-        // deleteLater() defers the delete to the next event loop iteration.
-        session_->deleteLater();
+        if (deferDeletion) {
+            // teardownSession() is often called from within
+            // onSessionStateChanged(), a direct-connection slot. Deleting the
+            // sender there would cause UAF when Qt signal dispatch resumes.
+            session_->deleteLater();
+        } else {
+            delete session_;
+        }
         session_ = nullptr;
     }
     if (transport_) {
-        transport_->deleteLater();
+        if (deferDeletion)
+            transport_->deleteLater();
+        else
+            delete transport_;
         transport_ = nullptr;
     }
     activeSocket_ = nullptr;  // owned by transport

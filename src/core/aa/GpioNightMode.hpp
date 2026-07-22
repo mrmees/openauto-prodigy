@@ -7,6 +7,8 @@
 namespace oap {
 namespace aa {
 
+class GpioNightModeTestAccess;
+
 /// Night mode provider that reads a GPIO pin (sysfs interface).
 /// Polls /sys/class/gpio/gpioN/value every 1 second.
 /// Exports and configures the GPIO on start(), unexports on stop().
@@ -18,11 +20,15 @@ public:
     explicit GpioNightMode(int gpioPin, bool activeHigh = true, QObject* parent = nullptr);
 
     bool isNight() const override;
+    bool hasValidState() const override;
     void start() override;
     void stop() override;
 
 private:
+    friend class GpioNightModeTestAccess;
+
     void poll();
+    void applyValue(const QString& value);
     bool exportGpio();
     void unexportGpio();
 
@@ -30,6 +36,7 @@ private:
     bool activeHigh_;
     QTimer timer_;
     std::atomic<bool> currentState_{false};
+    std::atomic<bool> hasValidState_{false};
     bool exported_ = false;
 };
 

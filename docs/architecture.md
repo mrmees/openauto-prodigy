@@ -51,7 +51,9 @@ to a dedicated `EqualizerEngine` for each live audio consumer.
   handler before the AA session starts. The handler retains that latest value
   independently of channel/subscription readiness, sends it when the phone
   subscribes to NIGHT_DATA, and preserves it across channel close/reopen while
-  clearing only the subscription set.
+  clearing only the subscription set. Providers expose whether their initial
+  evaluation succeeded; a failed GPIO read preserves the last cached sensor
+  value until a later valid provider update arrives.
 
 ### Protocol library (`libs/prodigy-oaa-protocol/`)
 
