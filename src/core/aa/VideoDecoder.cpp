@@ -244,6 +244,13 @@ void VideoDecoder::cleanup()
         worker_ = nullptr;
     }
 
+    {
+        std::lock_guard<std::mutex> lock(latestFrameMutex_);
+        latestFrame_ = {};
+        hasLatestFrame_.store(false, std::memory_order_release);
+    }
+    framePool_.reset();
+
     if (frame_) { av_frame_free(&frame_); frame_ = nullptr; }
     if (packet_) { av_packet_free(&packet_); packet_ = nullptr; }
     cleanupCodec();

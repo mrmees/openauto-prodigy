@@ -2,6 +2,7 @@
 
 #include <QObject>
 #include <atomic>
+#include <cstdint>
 #include <map>
 #include <pipewire/pipewire.h>
 
@@ -53,6 +54,8 @@ private:
     struct spa_hook registryListener_{};
     std::map<uint32_t, Tracked*> tracked_;   // PW thread only (+ stop() under lock)
     std::atomic<bool> anyRunning_{false};
+    std::atomic<bool> active_{false};
+    std::atomic<uint64_t> epoch_{0};
 };
 
 } // namespace oap

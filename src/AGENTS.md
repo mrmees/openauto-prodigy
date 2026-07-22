@@ -8,7 +8,9 @@ Subsystem rules for C++ code under `src/`. Root `AGENTS.md` holds the hard const
 - **QTimer only works on threads with a Qt event loop.** Starting a QTimer from a Boost.ASIO thread silently does nothing. Marshal to the main thread with `QMetaObject::invokeMethod(obj, lambda, Qt::QueuedConnection)`.
 - **Q_OBJECT in a header-only class needs a .cpp file listed in CMakeLists.txt** — otherwise MOC never runs and you get undefined vtable references.
 - **`QColor` needs `Qt6::Gui`** in the link line, not `Qt6::Core`.
-- **QVideoFrame is ref-counted — do NOT reuse frame buffers.** Allocate fresh frames each decode (see `VideoFramePool`).
+- **QVideoFrame is ref-counted — use a fresh wrapper for each decoded output.**
+  Backing storage may be recycled by `VideoFramePool` only when its generation,
+  capacity, and weak return-state lifetime still match the current pool.
 
 ## D-Bus
 
@@ -16,5 +18,10 @@ Subsystem rules for C++ code under `src/`. Root `AGENTS.md` holds the hard const
 
 ## PipeWire
 
+- **Raw auxiliary PipeWire handles require an owner-driven stop edge.** Before
+  starting an object that retains `AudioService` loop/core/proxy handles,
+  connect `AudioService::aboutToDestroyPipeWire` to its stop method with a
+  direct connection. QObject child order and `aboutToQuit` do not cover every
+  teardown path.
 - **Playback: always fill and publish the full requested period.** Compute `wantBytes` from `buf->requested` (bounded by `d.maxsize` — that is buffer *capacity*, not the request) and silence-fill any gap; PipeWire's resampler sets `requested` to exactly what it needs. Variable short `chunk->size` values cause tempo wobble ("skippy" audio).
 - **`SPA_DICT_INIT_ARRAY` inline syntax** triggers "taking address of temporary array" — use named `spa_dict_item` arrays with `SPA_DICT_INIT` instead.

@@ -107,8 +107,11 @@ QObject* WeatherService::getWeatherData(double lat, double lon)
 {
     QString key = roundCoordinate(lat, lon);
 
-    if (cache_.contains(key))
+    if (cache_.contains(key)) {
+        if (cache_.size() > MAX_CACHE_SIZE)
+            cleanupStaleEntries(key);
         return cache_.value(key);
+    }
 
     auto* data = new WeatherData(this);
     cache_.insert(key, data);
@@ -118,7 +121,7 @@ QObject* WeatherService::getWeatherData(double lat, double lon)
     fetchLocationName(data, lat, lon);
 
     if (cache_.size() > MAX_CACHE_SIZE)
-        cleanupStaleEntries();
+        cleanupStaleEntries(key);
 
     return data;
 }
@@ -157,6 +160,9 @@ void WeatherService::unsubscribe(double lat, double lon, int intervalMinutes)
         if (subscriberIntervals_[key].isEmpty())
             subscriberIntervals_.remove(key);
     }
+
+    if (cache_.size() > MAX_CACHE_SIZE)
+        cleanupStaleEntries();
 }
 
 int WeatherService::subscriberCount(const QString& key) const
@@ -172,6 +178,11 @@ int WeatherService::effectiveIntervalMs(const QString& key) const
     return *std::min_element(list.constBegin(), list.constEnd());
 }
 
+bool WeatherService::containsCachedKeyForTest(const QString& key) const
+{
+    return cache_.contains(key);
+}
+
 void WeatherService::triggerRefreshTimer()
 {
     onRefreshTimer();
@@ -180,6 +191,18 @@ void WeatherService::triggerRefreshTimer()
 void WeatherService::triggerCleanup()
 {
     cleanupStaleEntries();
+}
+
+void WeatherService::finishWeatherReplyForTest(
+    QNetworkReply* reply, const QPointer<WeatherData>& target)
+{
+    onWeatherReplyFinished(reply, target);
+}
+
+void WeatherService::finishGeocodingReplyForTest(
+    QNetworkReply* reply, const QPointer<WeatherData>& target)
+{
+    onGeocodingReplyFinished(reply, target);
 }
 
 void WeatherService::requestRefresh(double lat, double lon)
@@ -193,27 +216,33 @@ void WeatherService::requestRefresh(double lat, double lon)
 
 void WeatherService::fetchWeather(const QString& key, double lat, double lon)
 {
-    WeatherData* data = cache_.value(key);
-    if (!data)
+    QPointer<WeatherData> target = cache_.value(key);
+    if (!target)
         return;
 
-    data->setLoading(true);
+    target->setLoading(true);
 
     QUrl url(buildUrl(lat, lon));
     QNetworkRequest request(url);
     QNetworkReply* reply = nam_->get(request);
 
-    connect(reply, &QNetworkReply::finished, this, [this, reply, data]() {
-        onWeatherReplyFinished(reply, data);
+    connect(reply, &QNetworkReply::finished, this, [this, reply, target]() {
+        onWeatherReplyFinished(reply, target);
     });
 }
 
-void WeatherService::onWeatherReplyFinished(QNetworkReply* reply, WeatherData* data)
+void WeatherService::onWeatherReplyFinished(
+    QNetworkReply* reply, const QPointer<WeatherData>& target)
 {
+    if (!target) {
+        reply->deleteLater();
+        return;
+    }
+
     if (reply->error() != QNetworkReply::NoError) {
-        data->setError(reply->errorString());
+        target->setError(reply->errorString());
     } else {
-        parseResponse(data, reply->readAll());
+        parseResponse(target, reply->readAll());
     }
     reply->deleteLater();
 }
@@ -240,6 +269,7 @@ void WeatherService::parseResponse(WeatherData* data, const QByteArray& jsonData
 
 void WeatherService::fetchLocationName(WeatherData* data, double lat, double lon)
 {
+    QPointer<WeatherData> target = data;
     QString url = QString("https://geocoding-api.open-meteo.com/v1/reverse?"
                           "latitude=%1&longitude=%2&count=1")
                       .arg(lat, 0, 'f', 4)
@@ -249,15 +279,21 @@ void WeatherService::fetchLocationName(WeatherData* data, double lat, double lon
     QNetworkRequest request(geocodeUrl);
     QNetworkReply* reply = nam_->get(request);
 
-    connect(reply, &QNetworkReply::finished, this, [this, reply, data]() {
-        onGeocodingReplyFinished(reply, data);
+    connect(reply, &QNetworkReply::finished, this, [this, reply, target]() {
+        onGeocodingReplyFinished(reply, target);
     });
 }
 
-void WeatherService::onGeocodingReplyFinished(QNetworkReply* reply, WeatherData* data)
+void WeatherService::onGeocodingReplyFinished(
+    QNetworkReply* reply, const QPointer<WeatherData>& target)
 {
+    if (!target) {
+        reply->deleteLater();
+        return;
+    }
+
     if (reply->error() == QNetworkReply::NoError) {
-        parseGeocodingResponse(data, reply->readAll());
+        parseGeocodingResponse(target, reply->readAll());
     }
     // On failure, location name stays empty -- widget can show coords or nothing
     reply->deleteLater();
@@ -298,7 +334,7 @@ void WeatherService::onRefreshTimer()
     }
 }
 
-void WeatherService::cleanupStaleEntries()
+void WeatherService::cleanupStaleEntries(const QString& protectedKey)
 {
     if (cache_.size() <= MAX_CACHE_SIZE)
         return;
@@ -308,6 +344,9 @@ void WeatherService::cleanupStaleEntries()
     QDateTime oldestTime;
 
     for (auto it = cache_.constBegin(); it != cache_.constEnd(); ++it) {
+        if (it.key() == protectedKey)
+            continue;
+
         // Never evict entries with active subscribers
         if (subscriberIntervals_.contains(it.key()) && !subscriberIntervals_[it.key()].isEmpty())
             continue;

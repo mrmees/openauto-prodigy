@@ -18,7 +18,10 @@ void ScoNodeMonitor::start(struct pw_thread_loop* loop, struct pw_core* core)
         qCInfo(lcSco) << "PipeWire unavailable — SCO monitor inert";
         return;
     }
-    if (registry_) return;  // already started
+    if (active_.load(std::memory_order_acquire)) return;  // already started
+    if (threadLoop_ || registry_)
+        stop();
+
     threadLoop_ = loop;
 
     pw_thread_loop_lock(threadLoop_);
@@ -30,24 +33,46 @@ void ScoNodeMonitor::start(struct pw_thread_loop* loop, struct pw_core* core)
             .global_remove = onGlobalRemove,
         };
         spa_zero(registryListener_);
-        pw_registry_add_listener(registry_, &registryListener_, &registryEvents, this);
+        const int listenerResult = pw_registry_add_listener(
+            registry_, &registryListener_, &registryEvents, this);
+        if (listenerResult < 0) {
+            qCWarning(lcSco) << "Failed to add PipeWire registry listener:"
+                             << listenerResult;
+            pw_proxy_destroy(reinterpret_cast<struct pw_proxy*>(registry_));
+            registry_ = nullptr;
+        } else {
+            epoch_.fetch_add(1, std::memory_order_acq_rel);
+            active_.store(true, std::memory_order_release);
+        }
     }
     pw_thread_loop_unlock(threadLoop_);
+
+    if (!registry_)
+        threadLoop_ = nullptr;
 }
 
 void ScoNodeMonitor::stop()
 {
-    if (!registry_ || !threadLoop_) return;
-    pw_thread_loop_lock(threadLoop_);
-    for (auto& [id, t] : tracked_)
-        destroyTracked(t);
-    tracked_.clear();
-    spa_hook_remove(&registryListener_);
-    pw_proxy_destroy(reinterpret_cast<struct pw_proxy*>(registry_));
+    active_.store(false, std::memory_order_release);
+    epoch_.fetch_add(1, std::memory_order_acq_rel);
+
+    auto* loop = threadLoop_;
+    if (loop) {
+        pw_thread_loop_lock(loop);
+        for (auto& [id, t] : tracked_)
+            destroyTracked(t);
+        tracked_.clear();
+        if (registry_) {
+            spa_hook_remove(&registryListener_);
+            pw_proxy_destroy(reinterpret_cast<struct pw_proxy*>(registry_));
+        }
+        registry_ = nullptr;
+        pw_thread_loop_unlock(loop);
+    }
+
     registry_ = nullptr;
-    pw_thread_loop_unlock(threadLoop_);
     threadLoop_ = nullptr;
-    anyRunning_.store(false);
+    anyRunning_.store(false, std::memory_order_release);
 }
 
 void ScoNodeMonitor::destroyTracked(Tracked* t)
@@ -63,6 +88,8 @@ void ScoNodeMonitor::onGlobal(void* data, uint32_t id, uint32_t /*permissions*/,
                               const struct spa_dict* props)
 {
     auto* self = static_cast<ScoNodeMonitor*>(data);
+    if (!self->active_.load(std::memory_order_acquire))
+        return;
     if (!type || std::strcmp(type, PW_TYPE_INTERFACE_Node) != 0 || !props)
         return;
 
@@ -112,14 +139,21 @@ void ScoNodeMonitor::onNodeInfo(void* data, const struct pw_node_info* info)
 
 void ScoNodeMonitor::recomputeRunning()
 {
+    if (!active_.load(std::memory_order_acquire))
+        return;
+
     bool any = false;
     for (const auto& [id, t] : tracked_)
         if (t->running) { any = true; break; }
 
-    const bool prev = anyRunning_.exchange(any);
+    const bool prev = anyRunning_.exchange(any, std::memory_order_acq_rel);
     if (prev == any) return;
 
-    QMetaObject::invokeMethod(this, [this, any]() {
+    const uint64_t deliveryEpoch = epoch_.load(std::memory_order_acquire);
+    QMetaObject::invokeMethod(this, [this, any, deliveryEpoch]() {
+        if (!active_.load(std::memory_order_acquire)
+            || epoch_.load(std::memory_order_acquire) != deliveryEpoch)
+            return;
         qCInfo(lcSco) << "SCO running:" << any;
         emit scoRunningChanged(any);
     }, Qt::QueuedConnection);

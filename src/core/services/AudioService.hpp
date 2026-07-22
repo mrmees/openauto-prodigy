@@ -205,6 +205,9 @@ public:
     static AudioStreamHandle* selectDominant(const QList<AudioStreamHandle*>& streams);
 
 signals:
+    /// Emitted synchronously before any owned PipeWire handle is torn down.
+    /// Auxiliary observers holding raw PW handles must stop via a direct edge.
+    void aboutToDestroyPipeWire();
     void masterVolumeChanged();
     void deviceFallback(const QString& lostDevice);
 

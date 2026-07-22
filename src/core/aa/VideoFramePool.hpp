@@ -5,10 +5,26 @@
 #include <mutex>
 #include <queue>
 #include <memory>
+#include <cstdint>
 #include <QAbstractVideoBuffer>
 
 namespace oap {
 namespace aa {
+
+struct PooledVideoAllocation {
+    std::unique_ptr<uint8_t[]> data;
+    int capacity = 0;
+    uint64_t generation = 0;
+};
+
+struct VideoFramePoolState {
+    mutable std::mutex mutex;
+    int bufferSize = 0;
+    uint64_t generation = 0;
+    int totalAllocated = 0;
+    int totalRecycled = 0;
+    std::queue<PooledVideoAllocation> freeBuffers;
+};
 
 /**
  * VideoFramePool — recycling pool for software-decode QVideoFrame buffers.
@@ -18,47 +34,43 @@ namespace aa {
  * returns the memory to the pool's free list. Eliminates per-frame heap
  * allocation in steady state.
  *
- * Thread safety: acquireRecycled called from decode worker thread.
- * returnBuffer called from any thread (Qt render thread via destructor).
- * Protected by mutex.
+ * Thread safety: acquireRecycled/reset run on the decode worker; backing-buffer
+ * destruction can run on any thread (including Qt's render thread). Both paths
+ * synchronize through the shared return-state mutex.
  */
 class VideoFramePool {
 public:
     explicit VideoFramePool(const QVideoFrameFormat& fmt, int poolSize = 5)
-        : format_(fmt), poolSize_(poolSize)
+        : state_(std::make_shared<VideoFramePoolState>())
+        , format_(fmt)
+        , poolSize_(poolSize)
     {
-        bufferSize_ = computeBufferSize(fmt);
+        state_->bufferSize = computeBufferSize(fmt);
     }
 
     /// Returns a QVideoFrame backed by a recycled buffer.
     /// The buffer memory is returned to the pool when Qt releases the frame.
     QVideoFrame acquireRecycled();
 
-    /// Return a buffer to the free list (called from RecycledVideoBuffer destructor)
-    void returnBuffer(std::unique_ptr<uint8_t[]> buf)
-    {
-        std::lock_guard<std::mutex> lock(mutex_);
-        freeBuffers_.push(std::move(buf));
-    }
-
     /// Reset pool for new resolution/pixel format
     void reset(const QVideoFrameFormat& fmt)
     {
-        std::lock_guard<std::mutex> lock(mutex_);
+        std::lock_guard<std::mutex> lock(state_->mutex);
         format_ = fmt;
-        bufferSize_ = computeBufferSize(fmt);
-        totalAllocated_ = 0;
-        totalRecycled_ = 0;
+        state_->bufferSize = computeBufferSize(fmt);
+        ++state_->generation;
+        state_->totalAllocated = 0;
+        state_->totalRecycled = 0;
         // Discard free buffers — they're the wrong size
-        while (!freeBuffers_.empty())
-            freeBuffers_.pop();
+        while (!state_->freeBuffers.empty())
+            state_->freeBuffers.pop();
     }
 
-    int totalAllocated() const { std::lock_guard<std::mutex> lock(mutex_); return totalAllocated_; }
-    int totalRecycled() const { std::lock_guard<std::mutex> lock(mutex_); return totalRecycled_; }
-    int freeCount() const { std::lock_guard<std::mutex> lock(mutex_); return static_cast<int>(freeBuffers_.size()); }
+    int totalAllocated() const { std::lock_guard<std::mutex> lock(state_->mutex); return state_->totalAllocated; }
+    int totalRecycled() const { std::lock_guard<std::mutex> lock(state_->mutex); return state_->totalRecycled; }
+    int freeCount() const { std::lock_guard<std::mutex> lock(state_->mutex); return static_cast<int>(state_->freeBuffers.size()); }
     const QVideoFrameFormat& format() const { return format_; }
-    int bufferSize() const { return bufferSize_; }
+    int bufferSize() const { std::lock_guard<std::mutex> lock(state_->mutex); return state_->bufferSize; }
 
 private:
     static int computeBufferSize(const QVideoFrameFormat& fmt)
@@ -68,26 +80,31 @@ private:
         return w * h * 3 / 2;  // YUV420P: Y + U + V
     }
 
-    std::unique_ptr<uint8_t[]> acquireRawBuffer()
+    PooledVideoAllocation acquireRawBuffer()
     {
-        // Must be called with mutex held
-        if (!freeBuffers_.empty()) {
-            auto buf = std::move(freeBuffers_.front());
-            freeBuffers_.pop();
-            ++totalRecycled_;
-            return buf;
+        // Must be called with state_->mutex held. Returned buffers are already
+        // generation/size-filtered, but keep the checks here as a defensive
+        // invariant against future return-path changes.
+        while (!state_->freeBuffers.empty()) {
+            auto allocation = std::move(state_->freeBuffers.front());
+            state_->freeBuffers.pop();
+            if (allocation.generation == state_->generation
+                && allocation.capacity >= state_->bufferSize) {
+                ++state_->totalRecycled;
+                return allocation;
+            }
         }
-        ++totalAllocated_;
-        return std::make_unique<uint8_t[]>(bufferSize_);
+        ++state_->totalAllocated;
+        return {
+            std::make_unique<uint8_t[]>(state_->bufferSize),
+            state_->bufferSize,
+            state_->generation,
+        };
     }
 
-    mutable std::mutex mutex_;
+    std::shared_ptr<VideoFramePoolState> state_;
     QVideoFrameFormat format_;
     int poolSize_;
-    int bufferSize_ = 0;
-    int totalAllocated_ = 0;
-    int totalRecycled_ = 0;
-    std::queue<std::unique_ptr<uint8_t[]>> freeBuffers_;
 };
 
 /**
@@ -101,15 +118,31 @@ private:
  */
 class RecycledVideoBuffer : public QAbstractVideoBuffer {
 public:
-    RecycledVideoBuffer(std::unique_ptr<uint8_t[]> data, int width, int height,
-                        const QVideoFrameFormat& fmt, VideoFramePool* pool)
-        : data_(std::move(data)), width_(width), height_(height)
-        , format_(fmt), pool_(pool) {}
+    RecycledVideoBuffer(PooledVideoAllocation allocation, int width, int height,
+                        const QVideoFrameFormat& fmt,
+                        std::weak_ptr<VideoFramePoolState> state)
+        : data_(std::move(allocation.data))
+        , capacity_(allocation.capacity)
+        , generation_(allocation.generation)
+        , width_(width)
+        , height_(height)
+        , format_(fmt)
+        , state_(std::move(state)) {}
 
     ~RecycledVideoBuffer() override
     {
-        if (pool_ && data_)
-            pool_->returnBuffer(std::move(data_));
+        if (!data_)
+            return;
+
+        auto state = state_.lock();
+        if (!state)
+            return;
+
+        std::lock_guard<std::mutex> lock(state->mutex);
+        if (generation_ != state->generation || capacity_ < state->bufferSize)
+            return;
+
+        state->freeBuffers.push({std::move(data_), capacity_, generation_});
     }
 
     QVideoFrameFormat format() const override { return format_; }
@@ -146,23 +179,29 @@ public:
 
 private:
     std::unique_ptr<uint8_t[]> data_;
+    int capacity_;
+    uint64_t generation_;
     int width_;
     int height_;
     QVideoFrameFormat format_;
-    VideoFramePool* pool_;
+    std::weak_ptr<VideoFramePoolState> state_;
 };
 
 inline QVideoFrame VideoFramePool::acquireRecycled()
 {
-    std::unique_ptr<uint8_t[]> buf;
+    PooledVideoAllocation allocation;
+    QVideoFrameFormat format;
+    int w = 0;
+    int h = 0;
     {
-        std::lock_guard<std::mutex> lock(mutex_);
-        buf = acquireRawBuffer();
+        std::lock_guard<std::mutex> lock(state_->mutex);
+        allocation = acquireRawBuffer();
+        format = format_;
+        w = format.frameWidth();
+        h = format.frameHeight();
     }
-    int w = format_.frameWidth();
-    int h = format_.frameHeight();
     auto buffer = std::make_unique<RecycledVideoBuffer>(
-        std::move(buf), w, h, format_, this);
+        std::move(allocation), w, h, format, state_);
     return QVideoFrame(std::move(buffer));
 }
 

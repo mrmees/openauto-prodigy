@@ -6,6 +6,17 @@ Governance: capture new ideas in `docs/wishlist.md`; only promoted items should 
 
 ## Done (recent)
 
+- Memory and teardown safety stabilization — **COMPLETE 2026-07-21**
+  (Pi-bench-validated). Generation- and lifetime-safe software video buffers
+  prevent stale-size recycling and pool-destruction returns; WeatherData cache
+  cleanup preserves the object being returned and both network completions use
+  guarded targets; ScoNodeMonitor now stops through a direct AudioService
+  pre-teardown edge, suppresses stale queued state, and rolls back failed
+  registry-listener setup. Five clean Pi restart cycles and an active-mSBC-SCO
+  restart plus subsequent call passed. Design and plan:
+  `docs/archive/plans/2026-07-20-memory-teardown-safety-design.md` and
+  `docs/archive/plans/2026-07-20-memory-teardown-safety-plan.md`.
+
 - Bench-findings batch — **COMPLETE 2026-07-15** (bench-validated, all rows
   PASS; merged to main via PR #21). Items 1-3 promoted by Matthew from the
   BT-EQ bench findings; items 4-6 from the Codex post-merge review of PR #20.

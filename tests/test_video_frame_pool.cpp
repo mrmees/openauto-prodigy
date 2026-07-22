@@ -11,6 +11,8 @@ private slots:
     void testPoolTracksAllocations();
     void testPoolGrowsOnDemand();
     void testFormatChange();
+    void testHeldOldFrameDiscardedAfterLargerReset();
+    void testFrameCanOutlivePool();
     void testResetClearsCount();
     void testRecycledBufferReturnsToPool();
 };
@@ -85,6 +87,54 @@ void TestVideoFramePool::testFormatChange()
     QVideoFrame frame = pool.acquireRecycled();
     QCOMPARE(frame.size(), QSize(1920, 1080));
     QCOMPARE(pool.totalAllocated(), 1);
+}
+
+void TestVideoFramePool::testHeldOldFrameDiscardedAfterLargerReset()
+{
+    QVideoFrameFormat fmt480({800, 480}, QVideoFrameFormat::Format_YUV420P);
+    oap::aa::VideoFramePool pool(fmt480, 3);
+
+    QVideoFrame oldFrame = pool.acquireRecycled();
+    QCOMPARE(pool.totalAllocated(), 1);
+    QCOMPARE(pool.freeCount(), 0);
+
+    QVideoFrameFormat fmt1080({1920, 1080}, QVideoFrameFormat::Format_YUV420P);
+    pool.reset(fmt1080);
+
+    // Returning a held pre-reset allocation must not make it available to the
+    // new, larger format.
+    oldFrame = {};
+    QCOMPARE(pool.freeCount(), 0);
+    QCOMPARE(pool.totalRecycled(), 0);
+
+    QVideoFrame newFrame = pool.acquireRecycled();
+    QCOMPARE(newFrame.size(), QSize(1920, 1080));
+    QVERIFY(newFrame.map(QVideoFrame::ReadOnly));
+    QCOMPARE(newFrame.planeCount(), 3);
+    QCOMPARE(newFrame.bytesPerLine(0), 1920);
+    QCOMPARE(newFrame.bytesPerLine(1), 960);
+    QCOMPARE(newFrame.bytesPerLine(2), 960);
+    QCOMPARE(newFrame.mappedBytes(0), 1920 * 1080);
+    QCOMPARE(newFrame.mappedBytes(1), 960 * 540);
+    QCOMPARE(newFrame.mappedBytes(2), 960 * 540);
+    newFrame.unmap();
+}
+
+void TestVideoFramePool::testFrameCanOutlivePool()
+{
+    QVideoFrame frame;
+    {
+        QVideoFrameFormat fmt({1280, 720}, QVideoFrameFormat::Format_YUV420P);
+        auto pool = std::make_unique<oap::aa::VideoFramePool>(fmt, 3);
+        frame = pool->acquireRecycled();
+        QVERIFY(frame.isValid());
+    }
+
+    // The buffer owns only a weak reference to return state. Releasing it after
+    // pool destruction must free the allocation without a callback into the
+    // destroyed pool.
+    frame = {};
+    QVERIFY(!frame.isValid());
 }
 
 void TestVideoFramePool::testResetClearsCount()
