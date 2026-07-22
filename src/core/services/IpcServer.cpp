@@ -29,6 +29,12 @@ IpcServer::~IpcServer()
     stop();
 }
 
+bool IpcServer::isExplicitlyStaleSocketError(QLocalSocket::LocalSocketError error)
+{
+    return error == QLocalSocket::ConnectionRefusedError
+        || error == QLocalSocket::ServerNotFoundError;
+}
+
 bool IpcServer::start(const QString& socketPath)
 {
     if (server_ || ownershipLock_) return false;
@@ -61,6 +67,10 @@ bool IpcServer::start(const QString& socketPath)
         if (probe.waitForConnected(250)) {
             qCWarning(lcCore) << "IpcServer: A live listener already owns"
                               << socketPath;
+        } else if (!isExplicitlyStaleSocketError(probe.error())) {
+            qCWarning(lcCore) << "IpcServer: Socket ownership probe was inconclusive for"
+                              << socketPath << "— preserving pathname; error:"
+                              << probe.errorString();
         } else if (QLocalServer::removeServer(socketPath)
                    && server_->listen(socketPath)) {
             qCInfo(lcCore) << "IpcServer: Recovered stale socket" << socketPath;

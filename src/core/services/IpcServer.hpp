@@ -39,6 +39,10 @@ public:
     bool start(const QString& socketPath = QStringLiteral("/tmp/openauto-prodigy.sock"));
     void stop();
 
+    /// Only these probe failures prove that no listener owns a socket path.
+    /// Other errors are ambiguous and must preserve the existing pathname.
+    static bool isExplicitlyStaleSocketError(QLocalSocket::LocalSocketError error);
+
     // Inject dependencies
     void setConfig(YamlConfig* config, const QString& configPath);
     void setThemeService(ThemeService* themeService);

@@ -61,6 +61,25 @@ class TestIpcSingleInstance : public QObject {
     }
 
 private slots:
+    void staleRemovalRequiresExplicitNoListenerError()
+    {
+        QVERIFY(IpcServer::isExplicitlyStaleSocketError(
+            QLocalSocket::ConnectionRefusedError));
+        QVERIFY(IpcServer::isExplicitlyStaleSocketError(
+            QLocalSocket::ServerNotFoundError));
+
+        // Timeouts, permissions, and generic failures can all hide a live
+        // pre-lock listener. They must fail closed and preserve its pathname.
+        QVERIFY(!IpcServer::isExplicitlyStaleSocketError(
+            QLocalSocket::SocketTimeoutError));
+        QVERIFY(!IpcServer::isExplicitlyStaleSocketError(
+            QLocalSocket::SocketAccessError));
+        QVERIFY(!IpcServer::isExplicitlyStaleSocketError(
+            QLocalSocket::UnknownSocketError));
+        QVERIFY(!IpcServer::isExplicitlyStaleSocketError(
+            QLocalSocket::OperationError));
+    }
+
     void liveOwnerCannotBeStolen()
     {
         QTemporaryDir dir;
