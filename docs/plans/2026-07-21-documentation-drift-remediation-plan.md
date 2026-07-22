@@ -59,7 +59,9 @@ docs-only branch.
 - Modify: `docs/roadmap-current.md`
 - Modify: `docs/wishlist.md`
 - Modify: `docs/INDEX.md`
-- Modify only when its header/body remains stale:
+- Move to `docs/archive/plans/2026-07-08-media-player-design.md` with a
+  completed header only when its shipped and bench-complete state is
+  demonstrable:
   `docs/plans/2026-07-08-media-player-design.md`
 - Modify only when its header/body remains stale:
   `docs/plans/2026-07-05-phase-f-light-plans.md`

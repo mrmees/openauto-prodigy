@@ -48,10 +48,14 @@ Protocol definitions and generic reference docs are in [open-android-auto](https
 
 - [plans/README.md](plans/README.md) — plan conventions + executor guidance. **Only files marked `Status: ACTIVE` are current guidance.**
 
-Live plans:
+Active plans:
 
-- [2026-07-08-media-player-design.md](plans/2026-07-08-media-player-design.md) — ACTIVE (stage 1 shipped; stages 2+ pending)
-- [2026-07-05-phase-f-light-plans.md](plans/2026-07-05-phase-f-light-plans.md) — ACTIVE (EQ parity audit, 0x8012 experiment, key-event nav remain)
+- [2026-07-21-documentation-drift-remediation-design.md](plans/2026-07-21-documentation-drift-remediation-design.md) — ACTIVE design
+- [2026-07-21-documentation-drift-remediation-plan.md](plans/2026-07-21-documentation-drift-remediation-plan.md) — ACTIVE implementation plan
+- [2026-07-05-phase-f-light-plans.md](plans/2026-07-05-phase-f-light-plans.md) — ACTIVE for the 0x8012 wire experiment; key-event navigation remains an unpromoted sketch
+
+Parked plans (not current guidance):
+
 - [2026-02-21-config-contract-overhaul-design.md](plans/2026-02-21-config-contract-overhaul-design.md) — PARKED (needs re-triage)
 - [2026-02-21-config-contract-overhaul-plan.md](plans/2026-02-21-config-contract-overhaul-plan.md) — PARKED (needs re-triage)
 

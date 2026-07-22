@@ -1,50 +1,27 @@
 # Phase F — Light Plans (commodity items)
 
-Status: ACTIVE (media player done; EQ parity audit done 2026-07-14; 0x8012 experiment, key-event nav remain)
+Status: ACTIVE (0x8012 wire experiment remains; key-event nav is an unpromoted sketch)
 
 **Date:** 2026-07-05 · **Grounded against:** `fable-design-sprint` at `db2e7eb`.
 **Nature: LIGHT plans** (sprint program §5.F — commodity work, "light plans suffice"). Unlike the deep plans in this directory, these are scoped outlines: an executor with judgment can work from them directly; a low-power executor should first expand one into full `writing-plans` format (read `README-executor-handbook.md` §2 either way). Roadmap outcomes quoted are canonical (`docs/roadmap-current.md`).
 
 ---
 
-## F1. Local media player plugin
+## F1. Local media player plugin — COMPLETED 2026-07-10
 
-**Outcome (roadmap):** media player plugin (Qt Multimedia) integrated with `MediaStatusService` and the now-playing UI.
-
-**Grounding:** plugin pattern = `src/plugins/bt_audio/` (static plugin, provider integration); `IMediaStatusProvider` is the arbitration seam (API design §8.1 — source string, playbackState int, title/artist/album). `MediaStatusService` merges sources — read how BtAudioPlugin feeds it before adding a third source.
-
-**Key design question to settle first (30 min, blocks the rest):** audio path. `QMediaPlayer`'s ffmpeg backend outputs straight to PipeWire with its own stream — it will NOT be an `AudioService` stream, so master volume/ducking/EQ won't apply (same class of limitation as HFP SCO, design 2026-07-05-hfp-call-audio §3). Options: (a) accept it v1 (consistent with the SCO precedent — recommended), (b) decode via QAudioDecoder and push PCM through `AudioService::createStream` (full integration, real work). Record the choice in the plan expansion.
-
-**Task outline:**
-1. `MediaPlayerPlugin` skeleton (`src/plugins/media_player/`, id `org.openauto.media-player`) — register in `main.cpp` beside the other static plugins; QML view `qml/applications/media_player/`.
-2. `QMediaPlayer` + file browser (USB mounts + `~/Music`; `QMediaMetaData` for tags).
-3. Feed `MediaStatusService` as source `"MediaPlayer"` (title/artist/album/playbackState) — the now-playing widget and the API `media` stream then work for free (verify the source-string mapping table in `ApiSerializers` gains the new source if API v1 has landed).
-4. Playback controls via ActionRegistry (`media.play/pause/next/previous` are RESERVED prefixes in the API — check the arch doc §9.1 reserved list before naming).
-5. Tests: metadata→provider mapping; playback-state transitions with a fixture file.
-
-**Verify:** full ctest + cross-build; on Pi: play a local file, now-playing widget updates, BT audio still arbitrates correctly when both sources active.
+The two-stage implementation and Pi bench matrix are complete. The shipped
+plugin includes AudioService-routed playback, folder and scanned-library views,
+USB automount/eject, shared media status, and the now-playing surface. Design
+and stage plans are archived under `docs/archive/plans/`; follow-up ideas remain
+in `docs/wishlist.md` until promoted.
 
 ---
 
-## F2. Equalizer completion — parity audit only — COMPLETED 2026-07-14
+## F2. Equalizer parity audit — COMPLETED 2026-07-14
 
-> **Audit executed 2026-07-14** (session-handoffs entry same date): on-HU + YAML
-> legs hold, web advanced-EQ leg absent; gaps + quirks filed to `docs/wishlist.md`
-> § "From EQ parity audit (2026-07-14)". No code changed. Note: the verify line
-> below ("audible preset change during BT playback") is unsatisfiable as written —
-> BT A2DP routes BlueZ→PipeWire natively and never passes through an EQ engine
-> (one of the filed findings).
-
-**Outcome (roadmap):** EQ plugin with YAML settings, on-HU basic changes/profile swapping, web backend for advanced setup.
-
-**Grounding (scout 2026-07-05, program §8.2):** the EQ is **functional, not incomplete** — `EqualizerService` runs 3 engines with presets + persistence; `AudioService.cpp:154-158` applies EQ on the RT thread; `EqualizerPlugin` exists (`main.cpp:373`). Known quirk: the Phone EQ engine is attached to the "AA System" stream (`AndroidAutoOrchestrator.cpp:343`) — mislabeled, pre-existing, fix only if trivial.
-
-**Task outline (audit, ~half a day):**
-1. Diff the roadmap outcome against reality: on-HU preset swap UI (exists in EqualizerPlugin? exercise it), custom profile creation via web-config (exists in `web-config/`? grep `equalizer` routes), YAML persistence round-trip.
-2. Produce a gap list in `docs/session-handoffs.md`; only build what's actually missing (expected: web-config advanced editor is the likely gap).
-3. If nothing is missing: mark the roadmap item done and move on — do not invent scope.
-
-**Verify:** ctest (EQ tests exist); on Pi: audible preset change during BT playback; web-config profile edit persists across restart.
+The audit confirmed the on-head-unit and YAML surfaces. The subsequently
+promoted persistence, System-stream labeling, and BT A2DP routing work shipped
+2026-07-15. A web-config EQ editor remains an unpromoted wishlist item.
 
 ---
 
