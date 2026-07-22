@@ -21,8 +21,10 @@ automatically:
 
 Run `bash install.sh` and select the source-build path for that capability
 detection. The prebuilt path currently configures 5 GHz channel 36 without an
-adapter capability probe; use an adapter that supports that configuration or
-apply the 2.4 GHz manual settings below. The remaining sections are for manual
+adapter capability probe and does not install the BlueZ SDP compatibility
+drop-in or `openauto-preflight` helper. Use an adapter that supports the
+prebuilt WiFi configuration, then apply the Bluetooth steps below; use the
+manual 2.4 GHz settings when needed. The remaining sections are for manual
 configuration or troubleshooting.
 
 ## 1. WiFi Access Point (hostapd + systemd-networkd)

@@ -55,7 +55,7 @@ Decoder selection and protocol diagnostics live on the Debug page.
 | Screen | Read-only field | Screen | `DisplayInfo` | Physical diagonal and computed PPI. |
 | Screen | Stepper + reset | UI Scale | `ui.scale` | 0.5–2.0 in 0.1 steps; reset stores `1.0`. |
 | Display | Slider | Brightness / Screen Dimming | `display.brightness` | 5–100; label depends on hardware backlight support and applies through `DisplayService`. |
-| Navbar | Picker | Navbar Position | `navbar.edge` | Bottom, top, left, or right; applies through `NavbarController`. |
+| Navbar | Picker | Navbar Position | `navbar.edge` | Bottom, top, left, or right. The shell moves immediately; during active AA, reconnect/restart before relying on updated video margins and touch mapping. |
 | Navbar | Toggle | Show Navbar during Android Auto | `navbar.show_during_aa` | Restart required. |
 
 ## Audio

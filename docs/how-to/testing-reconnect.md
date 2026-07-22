@@ -43,12 +43,10 @@ PHONE_MAC="AA:BB:CC:DD:EE:FF"  # replace with the phone's address
 
    No output is expected while the app is stopped.
 
-4. Start the network and app services in dependency order:
+4. Leave healthy network and Bluetooth infrastructure running and start only
+   the application service. That is the normal reconnect test:
 
    ```bash
-   sudo systemctl restart systemd-networkd.service
-   sudo systemctl restart hostapd.service
-   sudo systemctl restart bluetooth.service
    sudo systemctl start openauto-prodigy.service
    sudo systemctl status openauto-prodigy.service --no-pager
    ```
@@ -74,10 +72,30 @@ state changes the scenario from reconnect testing to first-pair testing.
 ## Failure isolation
 
 - Run `sudo openauto-preflight --check-only` to check the WiFi radio, Wayland
-  socket, and BlueZ SDP socket created by the installer.
+  socket, and BlueZ SDP socket on a source install. The current prebuilt
+  installer does not provide this helper; use the service and socket checks
+  below instead.
 - Check AP state with `systemctl status hostapd systemd-networkd --no-pager`.
 - Check BlueZ state with `systemctl status bluetooth --no-pager` and
   `bluetoothctl show`.
 - If the default port is still owned after stopping the service, inspect the
   process reported by `ss -tlnp`; do not immediately force-kill unrelated
   processes.
+
+## Full-stack recovery
+
+Use this only when the checks above show that infrastructure is unhealthy; it
+is not part of the normal reconnect cycle. Restarting network services can
+interrupt remote access. Restore the AP first when required, then restart
+Bluetooth before the user audio stack so HFP profiles register in the expected
+order, and start the app last:
+
+```bash
+sudo systemctl restart systemd-networkd.service hostapd.service  # only if AP is unhealthy
+sudo systemctl restart bluetooth.service
+systemctl --user restart pipewire pipewire-pulse wireplumber
+sudo systemctl restart openauto-prodigy.service
+```
+
+After a BlueZ restart, confirm `/var/run/sdp` exists with the expected group
+permissions before retrying AA discovery.

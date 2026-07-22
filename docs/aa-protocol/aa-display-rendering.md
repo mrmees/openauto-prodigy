@@ -60,6 +60,12 @@ decoder recognizes H.264 and H.265 Annex B bitstreams, selects hardware decode
 when available, falls back to software decode, and publishes the newest decoded
 `QVideoFrame` to the QML video sink.
 
+The decoder object currently persists across AA sessions and does not reset its
+codec/parser state during session teardown. Reconnecting with a phone that
+selects a different codec can therefore retain the prior session's decoder
+state. A same-codec reconnect is the reliable path until per-session decoder
+reset is implemented.
+
 The AA projection view has a black background and one `VideoOutput` anchored to
 its parent. Its fill mode is always `PreserveAspectCrop`, whether the Navbar is
 shown or hidden. The negotiated content aspect matches the usable viewport;

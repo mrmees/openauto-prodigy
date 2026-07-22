@@ -33,10 +33,17 @@ Ideas captured here. Promote to `roadmap-current.md` when ready to commit.
   round-trip. Either constrain discovery to H.264/H.265 or add end-to-end
   VP9/AV1 detection and decoding before advertising those codecs.
 
+- **Reset video decoder state between AA sessions** — `VideoDecoder` persists
+  across reconnects while its detected-codec flag, parser/context, queued
+  packets, and reference frames are not reset by session teardown. Add a
+  synchronized reset and cover H.264→H.265, H.265→H.264, and queued-data
+  reconnect cases.
+
 - **Probe WiFi capabilities in the prebuilt installer** — the source installer
   selects 5 GHz or 2.4 GHz from `iw phy`, while `install-prebuilt.sh` always
-  writes 5 GHz channel 36. Share the source-install detection logic and cover
-  a 2.4-GHz-only adapter fixture.
+  writes 5 GHz channel 36. It also omits the source installer's BlueZ SDP
+  compatibility drop-in and preflight helper. Share those setup paths and cover
+  a 2.4-GHz-only adapter fixture plus a fresh prebuilt SDP check.
 
 - **Reconcile installer-only configuration keys** — the installer still writes
   display pixel dimensions that runtime does not consume, while
@@ -64,6 +71,13 @@ Ideas captured here. Promote to `roadmap-current.md` when ready to commit.
 - **WiFi AP settings in UI** — Channel/band picker was in Connectivity settings, removed because WiFi AP config is set once at install via `install.sh` and doesn't need runtime changes. Could return if users need to switch channels without reinstalling.
 
 ## Candidate Ideas
+
+- **AA focus push-to-phone for local playback coexistence** — the in-process
+  focus policy arbitrates AA, Bluetooth, and local streams on the head unit,
+  but starting local playback does not tell the phone to pause its AA media
+  session. Evaluate an unsolicited AA audio-focus loss/gain notification when
+  local playback starts/stops. This needs multi-phone wire validation and must
+  not interfere with navigation-guidance ducking before promotion.
 
 - **Installer: offer example web widgets on fresh installs** — discovered on the 2026-07-08 clean reinstall: web widgets are user content (`~/.openauto/webwidgets/`), so a reflash silently loses them all and the dashboard comes up bare ("Registered 0 web widget(s)"); recovery was a manual `cp -r examples/webwidgets/hello-theme ~/.openauto/webwidgets/` + app restart. Installer (or first-run) could offer to seed `examples/webwidgets/*`. Related: user-content backup/restore (widgets + themes + config) across reinstalls.
 

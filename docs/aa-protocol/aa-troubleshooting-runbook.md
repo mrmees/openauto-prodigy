@@ -36,8 +36,14 @@ BlueZ, or configuration application:
 systemctl status openauto-system.service hostapd.service \
   systemd-networkd.service bluetooth.service --no-pager
 journalctl -u openauto-system.service -n 200 --no-pager
-sudo openauto-preflight --check-only
 ```
+
+Source installs also create `/usr/local/bin/openauto-preflight`; for those
+installs, run `sudo openauto-preflight --check-only`. The current prebuilt
+installer does not install that helper or the BlueZ SDP compatibility drop-in.
+On a prebuilt install, use the manual SDP checks in
+[Wireless Android Auto Setup](../wireless-setup.md#2-bluetooth) and apply that
+drop-in if it is absent.
 
 ### Protocol capture
 
@@ -104,8 +110,9 @@ are described in [tools/README.md](../../tools/README.md).
 ### Something broke: first pass
 
 1. Check `openauto-prodigy.service` and the current boot's journal.
-2. Run `sudo openauto-preflight --check-only` to validate radio state, the
-   Wayland socket, and the BlueZ SDP socket.
+2. On a source install, run `sudo openauto-preflight --check-only` to validate
+   radio state, the Wayland socket, and the BlueZ SDP socket. On a prebuilt
+   install, check those resources manually as described above.
 3. Confirm `hostapd`, `systemd-networkd`, and `bluetooth` are active.
 4. Confirm the configured AA TCP listener. The default is `5277`, but
    `connection.tcp_port` is authoritative:
@@ -240,6 +247,11 @@ auto-detects the incoming stream, attempts configured/hardware decoders, and
 falls back to software when possible. Check journal entries for the selected
 decoder, codec switching, first packet, parse/send/receive errors, and first
 decoded frame.
+
+Codec detection is currently first-session state on the persistent decoder;
+teardown does not flush its parser, queued packets, or detected-codec flag. If
+video fails after reconnecting with a different negotiated codec, restart the
+application before treating the stream as malformed.
 
 Protocol details that remain important:
 

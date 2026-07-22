@@ -42,7 +42,7 @@ connection:
   wifi_ap:
     interface: wlan0
     ssid: OpenAutoProdigy
-    password: prodigy
+    password: prodigy1234
     channel: 36
     band: a
   tcp_port: 5277
@@ -142,6 +142,9 @@ navbar:
 
 `connection.bt_name` is an installer-owned value read by
 `BluetoothManager`; it is not part of the generic writable defaults schema.
+The example uses a valid WPA2 passphrase; normal installers generate one. The
+shorter built-in configuration fallback is not suitable as a hostapd
+passphrase.
 The application does not use display pixel dimensions from YAML. Window
 geometry comes from the runtime display/command-line geometry path.
 
