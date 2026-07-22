@@ -1,9 +1,9 @@
 # Bluetooth AVRCP Time-Unit Remediation — Implementation Plan
 
-Status: ACTIVE
+Status: COMPLETED 2026-07-22
 
 **Design (read first):**
-`docs/plans/2026-07-22-bt-avrcp-time-units-remediation-design.md`
+`docs/archive/plans/2026-07-22-bt-avrcp-time-units-remediation-design.md`
 **Approved by Matthew:** 2026-07-22
 **Grounded against:** `origin/main` at `19ec68f6`
 **Branch:** `agent/bt-avrcp-time-units-remediation`

@@ -1,6 +1,6 @@
 # Bluetooth AVRCP Time-Unit Remediation — Design
 
-Status: ACTIVE
+Status: COMPLETED 2026-07-22
 
 **Date:** 2026-07-22
 **Grounded against:** `origin/main` at `19ec68f6`
