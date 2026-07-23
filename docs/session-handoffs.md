@@ -4,6 +4,34 @@ Newest entries first.
 
 ---
 
+## 2026-07-23 — PR #33 pre-merge review fixes
+
+**What changed:** two confirmed P3 findings from the PR #33 review were fixed
+on the branch. `BluetoothManager::shutdown()` now passes the same signature
+strings its ObjectManager connects used, so QtDBus hook matching actually
+removes the `InterfacesAdded`/`InterfacesRemoved` subscriptions. The dead
+re-announcement branch in `TelephonyClient::onInterfacesAdded` (which called
+`adoptAg()` into its own second-AG guard, logging a misleading warning) now
+refreshes the selected gateway's cached address directly.
+
+**Review adjudication:** two findings confirmed and fixed (disconnect
+signatures, dead adoptAg branch). Two P3s wishlisted without code change:
+no-retry on a failed initial `GetManagedObjects`, and the MAC-fallback pairing
+prompt name never refreshing from a later snapshot. The removed SCO
+Idle-to-Active recovery (head-unit restart mid-call no longer resurrects the
+call UI) was reviewed and accepted as the documented phantom-call trade-off.
+The stale "reset video decoder state" wishlist entry (shipped in PR #32) was
+removed. Nothing dismissed silently.
+
+**Verification:** full local build, explicit `openauto-prodigy` target, and
+`ctest --output-on-failure` (all tests) passed, including the isolated
+`dbus-run-session` Bluetooth suites.
+
+**Next 1-3 steps:** (1) merge PR #33; (2) pick up the wishlisted BlueZ startup
+retry alongside the next Bluetooth-adjacent work.
+
+---
+
 ## 2026-07-23 — Bluetooth, HFP, and AVRCP state remediation COMPLETE
 
 **What changed:** Bluetooth adapter, paired-device, connected-device,

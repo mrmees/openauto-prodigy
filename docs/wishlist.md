@@ -27,11 +27,16 @@ Ideas captured here. Promote to `roadmap-current.md` when ready to commit.
   round-trip. Either constrain discovery to H.264/H.265 or add end-to-end
   VP9/AV1 detection and decoding before advertising those codecs.
 
-- **Reset video decoder state between AA sessions** — `VideoDecoder` persists
-  across reconnects while its detected-codec flag, parser/context, queued
-  packets, and reference frames are not reset by session teardown. Add a
-  synchronized reset and cover H.264→H.265, H.265→H.264, and queued-data
-  reconnect cases.
+- **Retry a failed initial BlueZ `GetManagedObjects`** — `BluetoothManager`
+  and `BtAudioPlugin` issue one bounded (2s) startup snapshot request; on
+  timeout or error they only log and wait for a later D-Bus signal or a
+  bluetoothd restart. A transiently slow bluetoothd at app startup leaves
+  Bluetooth dead until something else pokes it. Add a paced retry.
+
+- **Refresh the pairing prompt name after the snapshot lands** — a pairing
+  request from a never-seen device misses the `deviceNamesByPath_` cache, so
+  the prompt shows the MAC-derived fallback; the later managed-objects
+  snapshot does not retroactively update `pairingDeviceName_`.
 
 - **Probe WiFi capabilities in the prebuilt installer** — the source installer
   selects 5 GHz or 2.4 GHz from `iw phy`, while `install-prebuilt.sh` always
