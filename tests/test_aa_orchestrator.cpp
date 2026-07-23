@@ -2,11 +2,11 @@
 #include <QSignalSpy>
 #include <QPointer>
 #include <QTcpSocket>
-#include <QTime>
 #include <QtEndian>
 #include "core/aa/AndroidAutoOrchestrator.hpp"
-#include "core/YamlConfig.hpp"
+#include "core/aa/NightModeProvider.hpp"
 #include "core/services/IConfigService.hpp"
+#include "core/services/NightModeService.hpp"
 #include "oaa/sensor/SensorEventIndicationMessage.pb.h"
 #include "oaa/sensor/SensorStartRequestMessage.pb.h"
 #include "oaa/sensor/SensorTypeEnum.pb.h"
@@ -17,8 +17,8 @@ class TestNightModeProvider : public NightModeProvider {
 public:
     bool isNight() const override { return state_; }
     bool hasValidState() const override { return valid_; }
-    void start() override { started_ = true; }
-    void stop() override { started_ = false; }
+    void start() override { ++startCount_; }
+    void stop() override { ++stopCount_; }
 
     void publish(bool state)
     {
@@ -27,12 +27,14 @@ public:
         emit nightModeChanged(state);
     }
 
-    bool started() const { return started_; }
+    int startCount() const { return startCount_; }
+    int stopCount() const { return stopCount_; }
 
 private:
     bool state_ = false;
     bool valid_ = false;
-    bool started_ = false;
+    int startCount_ = 0;
+    int stopCount_ = 0;
 };
 
 class AndroidAutoOrchestratorTestAccess {
@@ -66,13 +68,6 @@ public:
         }
         orchestrator.onNewConnection();
         return true;
-    }
-
-    static void activateNightModeProvider(
-        AndroidAutoOrchestrator& orchestrator,
-        std::unique_ptr<NightModeProvider> provider)
-    {
-        orchestrator.activateNightModeProvider(std::move(provider));
     }
 
     static oaa::hu::SensorChannelHandler& sensorHandler(AndroidAutoOrchestrator& orchestrator)
@@ -240,20 +235,21 @@ private slots:
         QCoreApplication::sendPostedEvents(nullptr, QEvent::DeferredDelete);
     }
 
-    void testProviderSeedOverwritesRetainedStateBeforeSessionStart() {
+    void testSharedServiceSeedOverwritesRetainedStateBeforeSessionStart() {
         StubConfigService cfg;
         cfg.values["connection.tcp_port"] = 0;
 
-        oap::YamlConfig yaml;
-        yaml.setNightModeSource("time");
-        const QTime now = QTime::currentTime();
-        yaml.setNightModeDayStart(now.addSecs(-3600).toString("HH:mm"));
-        yaml.setNightModeNightStart(now.addSecs(3600).toString("HH:mm"));
+        auto provider = std::make_unique<oap::aa::TestNightModeProvider>();
+        auto* providerPtr = provider.get();
+        oap::NightModeService nightService(std::move(provider), nullptr);
+        nightService.start();
+        providerPtr->publish(false);
 
-        oap::aa::AndroidAutoOrchestrator orch(&cfg, nullptr, &yaml);
+        oap::aa::AndroidAutoOrchestrator orch(&cfg, nullptr, nullptr);
         auto& sensorHandler = oap::aa::AndroidAutoOrchestratorTestAccess::sensorHandler(orch);
         sensorHandler.pushNightMode(true);
         QSignalSpy sendSpy(&sensorHandler, &oaa::IChannelHandler::sendRequested);
+        orch.setNightModeService(&nightService);
 
         orch.start();
         const quint16 port = oap::aa::AndroidAutoOrchestratorTestAccess::listenerPort(orch);
@@ -265,9 +261,8 @@ private slots:
         QTRY_COMPARE(oap::aa::AndroidAutoOrchestratorTestAccess::activePeerPort(orch),
                      socket.localPort());
 
-        // The time provider starts in a forced-day window but emits no change
-        // from its default day state. The explicit seed must still overwrite
-        // the stale retained night value without transmitting before subscribe.
+        // Service attachment seeds the authoritative day state without
+        // transmitting before the phone subscribes.
         QCOMPARE(sendSpy.count(), 0);
         sensorHandler.onChannelOpened();
         oaa::proto::messages::SensorStartRequestMessage request;
@@ -285,6 +280,9 @@ private slots:
         QCOMPARE(indication.night_mode(0).is_night(), false);
 
         orch.stop();
+        QCOMPARE(providerPtr->stopCount(), 0); // session lifetime does not own it
+        nightService.stop();
+        QCOMPARE(providerPtr->stopCount(), 1);
         QCoreApplication::sendPostedEvents(nullptr, QEvent::DeferredDelete);
     }
 
@@ -347,18 +345,20 @@ private slots:
         QCoreApplication::sendPostedEvents(nullptr, QEvent::DeferredDelete);
     }
 
-    void testInvalidProviderPreservesCacheUntilValidRecovery() {
+    void testInvalidSharedServicePreservesCacheUntilValidRecovery() {
         StubConfigService cfg;
+        auto provider = std::make_unique<oap::aa::TestNightModeProvider>();
+        auto* providerPtr = provider.get();
+        oap::NightModeService nightService(std::move(provider), nullptr);
+        nightService.start();
+        QCOMPARE(providerPtr->startCount(), 1);
+
         oap::aa::AndroidAutoOrchestrator orch(&cfg, nullptr, nullptr);
         auto& sensorHandler = oap::aa::AndroidAutoOrchestratorTestAccess::sensorHandler(orch);
         sensorHandler.pushNightMode(true);
         QSignalSpy sendSpy(&sensorHandler, &oaa::IChannelHandler::sendRequested);
 
-        auto provider = std::make_unique<oap::aa::TestNightModeProvider>();
-        auto* providerPtr = provider.get();
-        oap::aa::AndroidAutoOrchestratorTestAccess::activateNightModeProvider(
-            orch, std::move(provider));
-        QVERIFY(providerPtr->started());
+        orch.setNightModeService(&nightService);
         QCOMPARE(sendSpy.count(), 0);
 
         sensorHandler.onChannelOpened();
@@ -384,6 +384,11 @@ private slots:
         indicationPayload = sendSpy[1][2].toByteArray();
         QVERIFY(indication.ParseFromArray(indicationPayload.constData(), indicationPayload.size()));
         QCOMPARE(indication.night_mode(0).is_night(), false);
+
+        orch.stop();
+        QCOMPARE(providerPtr->stopCount(), 0);
+        nightService.stop();
+        QCOMPARE(providerPtr->stopCount(), 1);
     }
 };
 

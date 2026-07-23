@@ -9,6 +9,7 @@
 #include "core/services/IConfigService.hpp"
 #include "core/services/ConfigService.hpp"
 #include "core/services/EqualizerService.hpp"
+#include "core/services/NightModeService.hpp"
 #include "ui/DisplayInfo.hpp"
 #include <algorithm>
 #include <cmath>
@@ -53,8 +54,10 @@ bool AndroidAutoPlugin::initialize(IHostContext* context)
     aaService_ = new oap::aa::AndroidAutoOrchestrator(configService, audioService, yamlConfig_, eventBus, eqService, this);
 
     // Give orchestrator access to theme service for UiConfigRequest sending
-    if (context)
+    if (context) {
         aaService_->setThemeService(context->themeService());
+        aaService_->setNightModeService(context->nightModeService());
+    }
 
     // Connect navigation: emit signals for PluginModel to handle activation/deactivation.
     QObject::connect(aaService_, &oap::aa::AndroidAutoOrchestrator::connectionStateChanged,

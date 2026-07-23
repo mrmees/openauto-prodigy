@@ -291,6 +291,21 @@ QML and external clients the same mutation boundary.
 
 ---
 
+### Application-lifetime night state
+
+**Decision:** `NightModeService` owns the configured time/GPIO provider for the
+application lifetime and publishes one validity-gated physical state to both
+`ThemeService` and Android Auto's persistent sensor cache.
+
+**Rationale:** Projection sessions are consumers, not owners, of vehicle state.
+Keeping the provider alive across reconnects prevents shell and phone state
+from diverging, preserves the first subscription's cached indication, and lets
+GPIO setup/read failures recover on a paced retry without replacing the last
+authoritative value. The shell-only force-dark override remains independent of
+the physical state sent to Android Auto.
+
+---
+
 ## Reference implementations consulted
 
 - **f1xpl/openauto** `QtVideoOutput.cpp` — Qt 5 QMediaPlayer + SequentialBuffer approach

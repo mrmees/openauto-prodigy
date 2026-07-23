@@ -1,6 +1,4 @@
 #include "AndroidAutoOrchestrator.hpp"
-#include "TimedNightMode.hpp"
-#include "GpioNightMode.hpp"
 #include "../../core/YamlConfig.hpp"
 #include "../../core/services/IConfigService.hpp"
 #include "../../core/services/IAudioService.hpp"
@@ -8,6 +6,7 @@
 #include "../../core/services/IEventBus.hpp"
 #include "../../core/services/EqualizerService.hpp"
 #include "../../core/services/IThemeService.hpp"
+#include "../../core/services/NightModeService.hpp"
 
 #include <oaa/Messenger/Messenger.hpp>
 #include <oaa/control/BatteryStatusMessage.pb.h>
@@ -151,11 +150,6 @@ void AndroidAutoOrchestrator::stop()
         } else {
             qCDebug(lcAA) << "Shutdown timeout — proceeding with teardown";
         }
-    }
-
-    if (nightProvider_) {
-        nightProvider_->stop();
-        nightProvider_.reset();
     }
 
     teardownSession();
@@ -617,46 +611,28 @@ void AndroidAutoOrchestrator::onNewConnection()
         }
     });
 
-    // Create and wire night mode provider
-    nightProvider_.reset();
-    if (yamlConfig_) {
-        QString nightSource = yamlConfig_->nightModeSource();
-        std::unique_ptr<NightModeProvider> provider;
-        if (nightSource == "gpio") {
-            provider = std::make_unique<GpioNightMode>(
-                yamlConfig_->nightModeGpioPin(),
-                yamlConfig_->nightModeGpioActiveHigh());
-        } else {
-            provider = std::make_unique<TimedNightMode>(
-                yamlConfig_->nightModeDayStart(),
-                yamlConfig_->nightModeNightStart());
-        }
-
-        activateNightModeProvider(std::move(provider));
-        qCInfo(lcAA) << "Night mode provider started (source=" << nightSource << ")";
-    }
-
     // Start protocol handshake
     session_->start();
 }
 
-void AndroidAutoOrchestrator::activateNightModeProvider(
-    std::unique_ptr<NightModeProvider> provider)
+void AndroidAutoOrchestrator::setNightModeService(oap::NightModeService* service)
 {
-    nightProvider_ = std::move(provider);
-    connect(nightProvider_.get(), &NightModeProvider::nightModeChanged,
-            &sensorHandler_, &oaa::hu::SensorChannelHandler::pushNightMode);
+    disconnect(nightModeConnection_);
+    nightModeService_ = service;
 
-    nightProvider_->start();
-    // Explicitly seed the handler even though start() may have already emitted
-    // nightModeChanged: a provider whose initial state equals its default (e.g.
-    // day) emits no change signal, so the seed is what captures that case. Any
-    // resulting double-push is a harmless cache-only write — the sensor channel
-    // is not open yet, so nothing goes on the wire.
-    if (nightProvider_->hasValidState()) {
-        sensorHandler_.pushNightMode(nightProvider_->isNight());
+    if (!nightModeService_)
+        return;
+
+    nightModeConnection_ = connect(
+        nightModeService_, &oap::NightModeService::nightModeChanged,
+        &sensorHandler_, &oaa::hu::SensorChannelHandler::pushNightMode);
+
+    // Seed the persistent handler immediately. A later channel subscription
+    // then receives the authoritative cache on its first delivery.
+    if (nightModeService_->hasValidState()) {
+        sensorHandler_.pushNightMode(nightModeService_->isNight());
     } else {
-        qCWarning(lcAA) << "Night mode provider has no valid initial state;"
+        qCWarning(lcAA) << "Night mode service has no valid initial state;"
                            " preserving the last sensor value";
     }
 }
@@ -693,11 +669,6 @@ void AndroidAutoOrchestrator::onSessionDisconnected(oaa::DisconnectReason reason
 {
     qCInfo(lcAA) << "Disconnected, reason:" << static_cast<int>(reason);
     stopConnectionWatchdog();
-
-    if (nightProvider_) {
-        nightProvider_->stop();
-        nightProvider_.reset();
-    }
 
     teardownSession();
 

@@ -33,6 +33,7 @@
 #include "core/YamlConfig.hpp"
 #include "core/services/ConfigService.hpp"
 #include "core/services/ThemeService.hpp"
+#include "core/services/NightModeService.hpp"
 #include "core/services/DisplayService.hpp"
 #include "core/services/AudioService.hpp"
 #include "core/services/IpcServer.hpp"
@@ -301,18 +302,11 @@ int main(int argc, char *argv[])
     else
         themeService->setForceDarkMode(true); // default: on
 
-    // Evaluate time-based night mode at startup so theme is correct before AA connects
-    if (yamlConfig->nightModeSource() == "time") {
-        QTime now = QTime::currentTime();
-        QTime dayStart = QTime::fromString(yamlConfig->nightModeDayStart(), "HH:mm");
-        QTime nightStart = QTime::fromString(yamlConfig->nightModeNightStart(), "HH:mm");
-        if (!dayStart.isValid()) dayStart = QTime(7, 0);
-        if (!nightStart.isValid()) nightStart = QTime(19, 0);
-        bool night = (nightStart > dayStart)
-            ? !(now >= dayStart && now < nightStart)
-            : (now >= nightStart && now < dayStart);
-        themeService->setNightMode(night);
-    }
+    // One application-lifetime physical source drives both the real shell
+    // palette state and Android Auto's cached NIGHT_DATA sensor value.
+    auto nightModeService = new oap::NightModeService(
+        yamlConfig.get(), themeService, &app);
+    nightModeService->start();
 
     // --- Display service (brightness) ---
     auto displayService = new oap::DisplayService(&app);
@@ -377,6 +371,7 @@ int main(int argc, char *argv[])
     auto hostContext = std::make_unique<oap::HostContext>();
     hostContext->setConfigService(configService.get());
     hostContext->setThemeService(themeService);
+    hostContext->setNightModeService(nightModeService);
     hostContext->setDisplayService(displayService);
     hostContext->setAudioService(audioService);
     hostContext->setEqualizerService(eqService);

@@ -26,7 +26,6 @@
 #include "VideoDecoder.hpp"
 #include "core/services/IAudioService.hpp"
 #include "TouchHandler.hpp"
-#include "NightModeProvider.hpp"
 
 namespace oap {
 
@@ -36,6 +35,7 @@ class AudioService;
 class IEventBus;
 class IThemeService;
 class IConfigService;
+class NightModeService;
 class EqualizerService;
 class EqualizerEngine;
 struct AudioStreamHandle;
@@ -86,6 +86,9 @@ public:
     /// Set theme service for applying phone-sent AA theming tokens.
     void setThemeService(oap::IThemeService* theme) { themeService_ = theme; }
 
+    /// Observe the application-lifetime physical day/night state.
+    void setNightModeService(oap::NightModeService* service);
+
     /// Set detected display dimensions for margin calculations.
     void setDisplayDimensions(int w, int h) { displayW_ = w; displayH_ = h; }
 
@@ -118,7 +121,6 @@ private:
     void startConnectionWatchdog();
     void stopConnectionWatchdog();
     void teardownSession(bool deferDeletion = true);
-    void activateNightModeProvider(std::unique_ptr<NightModeProvider> provider);
     void startProtocolCapture();
     void stopProtocolCapture();
 
@@ -133,6 +135,8 @@ private:
     oap::IEventBus* eventBus_;
     oap::EqualizerService* eqService_;
     oap::IThemeService* themeService_ = nullptr;
+    oap::NightModeService* nightModeService_ = nullptr;
+    QMetaObject::Connection nightModeConnection_;
 
     // TCP listener (Qt-native, replaces ASIO acceptor)
     QTcpServer tcpServer_;
@@ -159,7 +163,6 @@ private:
     // Shared resources
     TouchHandler touchHandler_;
     VideoDecoder videoDecoder_;
-    std::unique_ptr<NightModeProvider> nightProvider_;
     QTimer watchdogTimer_;
 
     // PipeWire audio stream handles (created/destroyed per session)

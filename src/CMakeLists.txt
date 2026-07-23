@@ -47,6 +47,7 @@ add_library(openauto-core STATIC
     core/plugin/HostContext.cpp
     core/services/ConfigService.cpp
     core/services/ThemeService.cpp
+    core/services/NightModeService.cpp
     core/services/ThemeInstallRequest.cpp
     core/services/DisplayService.cpp
     core/services/AudioService.cpp

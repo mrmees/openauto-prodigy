@@ -1,15 +1,18 @@
 #include "TimedNightMode.hpp"
 #include "../Logging.hpp"
+#include <utility>
 
 namespace oap {
 namespace aa {
 
 TimedNightMode::TimedNightMode(const QString& dayStart,
                                const QString& nightStart,
-                               QObject* parent)
+                               QObject* parent,
+                               Clock clock)
     : NightModeProvider(parent)
     , dayStart_(QTime::fromString(dayStart, "HH:mm"))
     , nightStart_(QTime::fromString(nightStart, "HH:mm"))
+    , clock_(std::move(clock))
 {
     if (!dayStart_.isValid()) {
         qCWarning(lcCore) << "Invalid dayStart '" << dayStart
@@ -50,7 +53,7 @@ void TimedNightMode::stop()
 
 void TimedNightMode::evaluate()
 {
-    const QTime now = QTime::currentTime();
+    const QTime now = clock_ ? clock_() : QTime::currentTime();
     bool night;
 
     if (nightStart_ > dayStart_) {
