@@ -819,6 +819,8 @@ void TestYamlConfig::testNestedMergeRetainsUnknownKeys()
                "  wifi_ap:\n"
                "    ssid: MergedSSID\n"
                "    experimental_option: retained\n"
+               "audio:\n"
+               "  adaptive: true\n"
                "custom_section:\n"
                "  enabled: true\n");
     file.close();
@@ -827,12 +829,18 @@ void TestYamlConfig::testNestedMergeRetainsUnknownKeys()
     config.load(path);
     QCOMPARE(config.wifiSsid(), QString("MergedSSID"));
     QCOMPARE(config.wifiPassword(), QString("prodigy"));
+    config.setMasterVolume(55);
     QVERIFY(config.save(path));
 
     QVERIFY(file.open(QIODevice::ReadOnly));
     const QByteArray saved = file.readAll();
     QVERIFY(saved.contains("experimental_option"));
     QVERIFY(saved.contains("custom_section"));
+    const YAML::Node emitted = YAML::Load(saved.toStdString());
+    QVERIFY(emitted["connection"]["wifi_ap"]["experimental_option"]);
+    QVERIFY(!emitted["experimental_option"]);
+    QVERIFY(emitted["audio"]["adaptive"]);
+    QVERIFY(!emitted["adaptive"]);
     QFile::remove(path);
 }
 
