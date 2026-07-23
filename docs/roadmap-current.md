@@ -181,9 +181,16 @@ Governance: capture new ideas in `docs/wishlist.md`; only promoted items should 
 
 ## Now
 
-No implementation tranche is active. Select the next bounded subsystem wave
-from the approved remediation map after the coordinated Prodigy and Companion
-pull requests are reviewed.
+Android Auto session and transport lifecycle remediation — **ACTIVE
+2026-07-22**. This consolidated wave makes session teardown/replacement and
+Messenger restart deterministic, surfaces fatal TLS handshakes immediately,
+unifies service-channel open-response routing, and recovers transient RFCOMM
+listener startup failure. It is bounded to the wireless AA lifecycle and does
+not change protocol schemas, QML, HFP, PipeWire routing, logging, External API,
+or the companion app. Design and plan:
+`docs/plans/2026-07-22-aa-session-transport-lifecycle-remediation-design.md`
+and
+`docs/plans/2026-07-22-aa-session-transport-lifecycle-remediation-plan.md`.
 
 ## Later
 

@@ -2,7 +2,7 @@
 
 ## Active Plans
 
-None.
+- [2026-07-22-aa-session-transport-lifecycle-remediation-design.md](plans/2026-07-22-aa-session-transport-lifecycle-remediation-design.md) and [implementation plan](plans/2026-07-22-aa-session-transport-lifecycle-remediation-plan.md) — ACTIVE Android Auto session, messenger, TLS, channel-open, and RFCOMM startup lifecycle remediation
 
 ## Start Here
 
@@ -54,7 +54,7 @@ Protocol definitions and generic reference docs are in [open-android-auto](https
 
 Active plans:
 
-None.
+- [2026-07-22-aa-session-transport-lifecycle-remediation-design.md](plans/2026-07-22-aa-session-transport-lifecycle-remediation-design.md) and [implementation plan](plans/2026-07-22-aa-session-transport-lifecycle-remediation-plan.md) — ACTIVE
 
 Parked plans (not current guidance):
 
