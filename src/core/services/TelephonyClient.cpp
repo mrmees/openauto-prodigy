@@ -332,8 +332,14 @@ void TelephonyClient::onInterfacesAdded(const QDBusObjectPath& path, const oap::
     if (agPath_.isEmpty())
         selectAvailableAg();
     else {
-        if (interfaces.contains(kAgIface) && p == agPath_)
-            adoptAg(p, interfaces.value(kAgIface));
+        if (interfaces.contains(kAgIface) && p == agPath_) {
+            // Re-announcement of the selected gateway: adoptAg() would refuse
+            // it as a second AG, so refresh the cached address directly.
+            const QString address =
+                interfaces.value(kAgIface).value(QStringLiteral("Address")).toString();
+            if (!address.isEmpty())
+                agAddress_ = address;
+        }
         if (interfaces.contains(kTransportIface) && p == agPath_)
             adoptTransport(p, interfaces.value(kTransportIface));
     }

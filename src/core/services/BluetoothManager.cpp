@@ -1039,11 +1039,15 @@ void BluetoothManager::shutdown()
     bus_.disconnect(kBluezService, QString(), kPropertiesInterface,
                     QStringLiteral("PropertiesChanged"), this,
                     SLOT(onDevicePropertiesChanged(QString,QVariantMap,QStringList)));
+    // The signature is part of QtDBus hook identity — these two connects
+    // specified one, so their disconnects must repeat it to match.
     bus_.disconnect(kBluezService, QString(), kObjectManagerInterface,
-                    QStringLiteral("InterfacesAdded"), this,
+                    QStringLiteral("InterfacesAdded"),
+                    QStringLiteral("oa{sa{sv}}"), this,
                     SLOT(onInterfacesAdded(QDBusObjectPath,BluezInterfaceMap)));
     bus_.disconnect(kBluezService, QString(), kObjectManagerInterface,
-                    QStringLiteral("InterfacesRemoved"), this,
+                    QStringLiteral("InterfacesRemoved"),
+                    QStringLiteral("oas"), this,
                     SLOT(onInterfacesRemoved(QDBusObjectPath,QStringList)));
     subscriptionsConnected_ = false;
     delete bluezServiceWatcher_;
