@@ -13,9 +13,11 @@ private slots:
     void testConstantTimeEquals();
     void testStoreRoundTrip();
     void testEmptyStoreRoundTrip();
+    void testLegacyNullEmptyStoreLoads();
     void testStorePermissions();
     void testUpsertReplaces();
     void testSaveReturnsFalseOnOpenFailure();
+    void testAtomicSaveFailurePreservesExistingFile();
     void testFailedReloadPreservesStateAndBlocksSave();
     void testStoreRejectsInvalidDocuments_data();
     void testStoreRejectsInvalidDocuments();
@@ -111,6 +113,18 @@ void TestApiAuth::testEmptyStoreRoundTrip() {
     QVERIFY(reloaded.all().isEmpty());
 }
 
+void TestApiAuth::testLegacyNullEmptyStoreLoads() {
+    QTemporaryDir dir;
+    QVERIFY(dir.isValid());
+    const QString path = dir.filePath("clients.yaml");
+    writeFile(path, "clients: ~\n");
+
+    PairedClientStore store(path);
+    QVERIFY(store.load());
+    QVERIFY(store.loadedSuccessfully());
+    QVERIFY(store.all().isEmpty());
+}
+
 void TestApiAuth::testStorePermissions() {
     QString path = "/tmp/oap_test_api_clients_perm.yaml";
     QFile::remove(path);
@@ -119,8 +133,12 @@ void TestApiAuth::testStorePermissions() {
     store.upsert({"id", QByteArray(32, 'k'), "n", 0, ""});
     QVERIFY(store.save());
     auto perms = QFile(path).permissions();
-    QVERIFY(!(perms & QFileDevice::ReadGroup));
-    QVERIFY(!(perms & QFileDevice::ReadOther));
+    const QFileDevice::Permissions permissionMask =
+        QFileDevice::ReadOwner | QFileDevice::WriteOwner | QFileDevice::ExeOwner
+        | QFileDevice::ReadGroup | QFileDevice::WriteGroup | QFileDevice::ExeGroup
+        | QFileDevice::ReadOther | QFileDevice::WriteOther | QFileDevice::ExeOther;
+    QCOMPARE(perms & permissionMask,
+             QFileDevice::Permissions(QFileDevice::ReadOwner | QFileDevice::WriteOwner));
 }
 
 void TestApiAuth::testUpsertReplaces() {
@@ -138,6 +156,34 @@ void TestApiAuth::testSaveReturnsFalseOnOpenFailure() {
     QVERIFY(store.load());
     store.upsert({"id", QByteArray(32, 'k'), "n", 0, ""});
     QVERIFY(!store.save());
+}
+
+void TestApiAuth::testAtomicSaveFailurePreservesExistingFile() {
+    QTemporaryDir dir;
+    QVERIFY(dir.isValid());
+    const QString path = dir.filePath("clients.yaml");
+
+    PairedClientStore store(path);
+    QVERIFY(store.load());
+    store.upsert({"original", QByteArray(32, 'o'), "Original", 1, "before"});
+    QVERIFY(store.save());
+
+    QFile file(path);
+    QVERIFY(file.open(QIODevice::ReadOnly));
+    const QByteArray originalBytes = file.readAll();
+    file.close();
+
+    store.upsert({"replacement", QByteArray(32, 'r'), "Replacement", 1, "after"});
+    const QFileDevice::Permissions readOnlyDirectory =
+        QFileDevice::ReadOwner | QFileDevice::ExeOwner;
+    QVERIFY(QFile::setPermissions(dir.path(), readOnlyDirectory));
+    const bool saved = store.save();
+    QVERIFY(QFile::setPermissions(dir.path(), QFileDevice::ReadOwner
+                                  | QFileDevice::WriteOwner | QFileDevice::ExeOwner));
+    QVERIFY(!saved);
+
+    QVERIFY(file.open(QIODevice::ReadOnly));
+    QCOMPARE(file.readAll(), originalBytes);
 }
 
 void TestApiAuth::testFailedReloadPreservesStateAndBlocksSave() {

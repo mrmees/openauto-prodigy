@@ -3,6 +3,7 @@
 #include <QCryptographicHash>
 #include <QMessageAuthenticationCode>
 #include <QFile>
+#include <QSaveFile>
 #include <QDebug>
 #include <QSet>
 #include <yaml-cpp/yaml.h>
@@ -68,7 +69,18 @@ bool PairedClientStore::load() {
         }
 
         const YAML::Node clientsNode = doc["clients"];
-        if (!clientsNode || !clientsNode.IsSequence()) {
+        if (!clientsNode) {
+            loadedSuccessfully_ = false;
+            return false;
+        }
+        if (clientsNode.IsNull()) {
+            // Compatibility with stores written by the old empty-list saver,
+            // which emitted `clients: ~` instead of an empty sequence.
+            clients_.clear();
+            loadedSuccessfully_ = true;
+            return true;
+        }
+        if (!clientsNode.IsSequence()) {
             loadedSuccessfully_ = false;
             return false;
         }
@@ -159,24 +171,39 @@ bool PairedClientStore::save() {
 
     doc["clients"] = clientsNode;
 
-    // Emit to string and write via QFile
-    std::string yamlContent = YAML::Dump(doc);
+    const QByteArray yamlContent = QByteArray::fromStdString(YAML::Dump(doc));
+    const QFileDevice::Permissions storePermissions =
+        QFileDevice::ReadOwner | QFileDevice::WriteOwner;
+    const QFileDevice::Permissions permissionMask =
+        QFileDevice::ReadOwner | QFileDevice::WriteOwner | QFileDevice::ExeOwner
+        | QFileDevice::ReadGroup | QFileDevice::WriteGroup | QFileDevice::ExeGroup
+        | QFileDevice::ReadOther | QFileDevice::WriteOther | QFileDevice::ExeOther;
 
-    QFile file(path_);
+    QSaveFile file(path_);
+    file.setDirectWriteFallback(false);
     if (!file.open(QIODevice::WriteOnly | QIODevice::Text)) {
         qWarning() << "API: failed to open paired-client store for writing:" << path_;
         return false;
     }
 
-    const qint64 written = file.write(yamlContent.c_str());
-    file.close();
-    if (written < 0 || static_cast<size_t>(written) != yamlContent.size()) {
+    const qint64 written = file.write(yamlContent);
+    if (written != yamlContent.size()) {
+        file.cancelWriting();
         qWarning() << "API: short write persisting paired-client store:" << path_;
         return false;
     }
 
-    // Set permissions to 0600 (owner read/write only)
-    QFile::setPermissions(path_, QFileDevice::ReadOwner | QFileDevice::WriteOwner);
+    if (!file.setPermissions(storePermissions)
+        || (file.permissions() & permissionMask) != storePermissions) {
+        file.cancelWriting();
+        qWarning() << "API: failed to secure paired-client store permissions:" << path_;
+        return false;
+    }
+
+    if (!file.commit()) {
+        qWarning() << "API: failed to atomically commit paired-client store:" << path_;
+        return false;
+    }
     return true;
 }
 
