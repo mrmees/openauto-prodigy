@@ -433,6 +433,25 @@ private slots:
         QCOMPARE(disconnectSpy.count(), 1);
     }
 
+    void testPostHandshakeTlsFailureDisconnectsExactlyOnce() {
+        oaa::ReplayTransport transport;
+        oaa::SessionConfig config;
+        oaa::AASession session(&transport, config);
+        QSignalSpy disconnectSpy(&session, &oaa::AASession::disconnected);
+
+        transport.simulateConnect();
+        session.start();
+        advanceToActive(session);
+
+        emit session.messenger()->tlsFailed(QStringLiteral("forced runtime failure"));
+        emit session.messenger()->tlsFailed(QStringLiteral("duplicate"));
+
+        QCOMPARE(session.state(), oaa::SessionState::Disconnected);
+        QCOMPARE(disconnectSpy.count(), 1);
+        QCOMPARE(disconnectSpy[0][0].value<oaa::DisconnectReason>(),
+                 oaa::DisconnectReason::TlsError);
+    }
+
     void testSynchronousVersionWriteFailureCannotResurrectSession() {
         ReentrantErrorTransport transport;
         oaa::SessionConfig config;

@@ -42,6 +42,8 @@ AASession::AASession(ITransport* transport, const SessionConfig& config,
             this, &AASession::onHandshakeComplete);
     connect(messenger_, &Messenger::handshakeFailed,
             this, &AASession::onHandshakeFailed);
+    connect(messenger_, &Messenger::tlsFailed,
+            this, &AASession::onTlsFailed);
 
     // ControlChannel signals
     connect(controlChannel_, &ControlChannel::versionReceived,
@@ -322,6 +324,18 @@ void AASession::onHandshakeFailed(const QString& message) {
     stopStateTimer();
     setState(SessionState::Disconnected);
     emit disconnected(DisconnectReason::HandshakeError);
+}
+
+void AASession::onTlsFailed(const QString& message) {
+    if (state_ == SessionState::Idle || state_ == SessionState::Disconnected
+        || state_ == SessionState::TLSHandshake)
+        return;
+
+    qWarning() << "[AASession] TLS runtime failure:" << message;
+    stopStateTimer();
+    pingTimer_.stop();
+    setState(SessionState::Disconnected);
+    emit disconnected(DisconnectReason::TlsError);
 }
 
 void AASession::onServiceDiscoveryRequested(const QByteArray& payload) {

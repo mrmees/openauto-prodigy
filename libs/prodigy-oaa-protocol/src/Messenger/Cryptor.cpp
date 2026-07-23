@@ -1,5 +1,9 @@
 #include <oaa/Messenger/Cryptor.hpp>
 
+#include <algorithm>
+#include <limits>
+#include <memory>
+
 namespace oaa {
 
 Cryptor::~Cryptor()
@@ -7,51 +11,100 @@ Cryptor::~Cryptor()
     deinit();
 }
 
-void Cryptor::init(Role role)
+bool Cryptor::init(Role role)
+{
+    return init(role,
+                QByteArray(s_certificate.data(),
+                           static_cast<int>(s_certificate.size())),
+                QByteArray(s_privateKey.data(),
+                           static_cast<int>(s_privateKey.size())));
+}
+
+bool Cryptor::init(Role role, const QByteArray& certificatePem,
+                   const QByteArray& privateKeyPem)
 {
     deinit();
-    m_lastHandshakeError.clear();
+    m_lastError.clear();
+
+    using CtxPtr = std::unique_ptr<SSL_CTX, decltype(&SSL_CTX_free)>;
+    using SslPtr = std::unique_ptr<SSL, decltype(&SSL_free)>;
+    using BioPtr = std::unique_ptr<BIO, decltype(&BIO_free)>;
+    using CertPtr = std::unique_ptr<X509, decltype(&X509_free)>;
+    using KeyPtr = std::unique_ptr<EVP_PKEY, decltype(&EVP_PKEY_free)>;
 
     const SSL_METHOD* method = (role == Role::Client)
         ? TLS_client_method()
         : TLS_server_method();
 
-    m_ctx = SSL_CTX_new(method);
+    ERR_clear_error();
+    CtxPtr ctx(SSL_CTX_new(method), SSL_CTX_free);
+    if (!ctx)
+        return failInitialization(QStringLiteral("SSL_CTX_new failed"));
 
-    // Load certificate from PEM string
-    BIO* certBio = BIO_new_mem_buf(s_certificate.data(), static_cast<int>(s_certificate.size()));
-    m_cert = PEM_read_bio_X509(certBio, nullptr, nullptr, nullptr);
-    BIO_free(certBio);
-    SSL_CTX_use_certificate(m_ctx, m_cert);
+    ERR_clear_error();
+    BioPtr certBio(BIO_new_mem_buf(certificatePem.constData(), certificatePem.size()),
+                   BIO_free);
+    if (!certBio)
+        return failInitialization(QStringLiteral("certificate BIO creation failed"));
+    CertPtr cert(PEM_read_bio_X509(certBio.get(), nullptr, nullptr, nullptr),
+                 X509_free);
+    if (!cert)
+        return failInitialization(QStringLiteral("certificate PEM parse failed"));
+    ERR_clear_error();
+    if (SSL_CTX_use_certificate(ctx.get(), cert.get()) != 1)
+        return failInitialization(QStringLiteral("SSL_CTX_use_certificate failed"));
 
-    // Load private key from PEM string
-    BIO* keyBio = BIO_new_mem_buf(s_privateKey.data(), static_cast<int>(s_privateKey.size()));
-    m_key = PEM_read_bio_PrivateKey(keyBio, nullptr, nullptr, nullptr);
-    BIO_free(keyBio);
-    SSL_CTX_use_PrivateKey(m_ctx, m_key);
+    ERR_clear_error();
+    BioPtr keyBio(BIO_new_mem_buf(privateKeyPem.constData(), privateKeyPem.size()),
+                  BIO_free);
+    if (!keyBio)
+        return failInitialization(QStringLiteral("private-key BIO creation failed"));
+    KeyPtr key(PEM_read_bio_PrivateKey(keyBio.get(), nullptr, nullptr, nullptr),
+               EVP_PKEY_free);
+    if (!key)
+        return failInitialization(QStringLiteral("private-key PEM parse failed"));
+    ERR_clear_error();
+    if (SSL_CTX_use_PrivateKey(ctx.get(), key.get()) != 1)
+        return failInitialization(QStringLiteral("SSL_CTX_use_PrivateKey failed"));
+    ERR_clear_error();
+    if (SSL_CTX_check_private_key(ctx.get()) != 1)
+        return failInitialization(QStringLiteral("certificate/private-key mismatch"));
 
-    SSL_CTX_set_verify(m_ctx, SSL_VERIFY_NONE, nullptr);
+    SSL_CTX_set_verify(ctx.get(), SSL_VERIFY_NONE, nullptr);
 
-    m_ssl = SSL_new(m_ctx);
+    ERR_clear_error();
+    SslPtr ssl(SSL_new(ctx.get()), SSL_free);
+    if (!ssl)
+        return failInitialization(QStringLiteral("SSL_new failed"));
 
-    // Create memory BIO pair
-    m_readBio = BIO_new(BIO_s_mem());
-    m_writeBio = BIO_new(BIO_s_mem());
-    BIO_set_mem_eof_return(m_readBio, -1);
-    BIO_set_mem_eof_return(m_writeBio, -1);
-    BIO_set_write_buf_size(m_readBio, BIO_BUFFER_SIZE);
-    BIO_set_write_buf_size(m_writeBio, BIO_BUFFER_SIZE);
+    ERR_clear_error();
+    BioPtr readBio(BIO_new(BIO_s_mem()), BIO_free);
+    if (!readBio)
+        return failInitialization(QStringLiteral("read BIO creation failed"));
+    BioPtr writeBio(BIO_new(BIO_s_mem()), BIO_free);
+    if (!writeBio)
+        return failInitialization(QStringLiteral("write BIO creation failed"));
+    BIO_set_mem_eof_return(readBio.get(), -1);
+    BIO_set_mem_eof_return(writeBio.get(), -1);
+    BIO_set_write_buf_size(readBio.get(), BIO_BUFFER_SIZE);
+    BIO_set_write_buf_size(writeBio.get(), BIO_BUFFER_SIZE);
 
     // SSL takes ownership of BIOs
-    SSL_set_bio(m_ssl, m_readBio, m_writeBio);
+    SSL_set_bio(ssl.get(), readBio.get(), writeBio.get());
+    m_readBio = readBio.release();
+    m_writeBio = writeBio.release();
 
     if (role == Role::Client) {
-        SSL_set_connect_state(m_ssl);
+        SSL_set_connect_state(ssl.get());
     } else {
-        SSL_set_accept_state(m_ssl);
+        SSL_set_accept_state(ssl.get());
     }
 
+    m_ctx = ctx.release();
+    m_ssl = ssl.release();
     m_active = false;
+    m_lastError.clear();
+    return true;
 }
 
 void Cryptor::deinit()
@@ -66,16 +119,8 @@ void Cryptor::deinit()
         SSL_CTX_free(m_ctx);
         m_ctx = nullptr;
     }
-    if (m_cert) {
-        X509_free(m_cert);
-        m_cert = nullptr;
-    }
-    if (m_key) {
-        EVP_PKEY_free(m_key);
-        m_key = nullptr;
-    }
     m_active = false;
-    m_lastHandshakeError.clear();
+    m_lastError.clear();
 }
 
 Cryptor::HandshakeResult Cryptor::doHandshake()
@@ -83,7 +128,7 @@ Cryptor::HandshakeResult Cryptor::doHandshake()
     if (m_active)
         return HandshakeResult::Complete;
     if (!m_ssl) {
-        m_lastHandshakeError = QStringLiteral("TLS handshake is not initialized");
+        m_lastError = QStringLiteral("TLS handshake is not initialized");
         return HandshakeResult::Failed;
     }
 
@@ -93,7 +138,7 @@ Cryptor::HandshakeResult Cryptor::doHandshake()
     int ret = SSL_do_handshake(m_ssl);
     if (ret == 1) {
         m_active = true;
-        m_lastHandshakeError.clear();
+        m_lastError.clear();
         return HandshakeResult::Complete;
     }
 
@@ -102,77 +147,193 @@ Cryptor::HandshakeResult Cryptor::doHandshake()
         return HandshakeResult::WantIo;
     }
 
-    m_lastHandshakeError = QStringLiteral("SSL_do_handshake failed (SSL_get_error=%1)")
-                               .arg(err);
-    while (const unsigned long code = ERR_get_error()) {
-        char errorText[256] = {};
-        ERR_error_string_n(code, errorText, sizeof(errorText));
-        m_lastHandshakeError += QStringLiteral(": ") + QString::fromLatin1(errorText);
-    }
+    m_lastError = buildError(QStringLiteral("SSL_do_handshake failed"), err);
     return HandshakeResult::Failed;
 }
 
 QString Cryptor::lastHandshakeError() const
 {
-    return m_lastHandshakeError;
+    return m_lastError;
 }
 
-QByteArray Cryptor::readHandshakeBuffer()
+QString Cryptor::lastError() const
 {
-    int pending = BIO_ctrl_pending(m_writeBio);
-    if (pending <= 0) return {};
-
-    QByteArray result(pending, Qt::Uninitialized);
-    int read = BIO_read(m_writeBio, result.data(), pending);
-    if (read <= 0) return {};
-
-    result.resize(read);
-    return result;
+    return m_lastError;
 }
 
-void Cryptor::writeHandshakeBuffer(const QByteArray& data)
+Cryptor::DataResult Cryptor::readHandshakeBuffer()
 {
-    BIO_write(m_readBio, data.constData(), data.size());
+    return readWriteBio(QStringLiteral("handshake output BIO read failed"));
 }
 
-QByteArray Cryptor::encrypt(const QByteArray& plaintext)
+bool Cryptor::writeHandshakeBuffer(const QByteArray& data)
 {
-    SSL_write(m_ssl, plaintext.constData(), plaintext.size());
+    if (!m_readBio) {
+        m_lastError = QStringLiteral("handshake input BIO is not initialized");
+        return false;
+    }
+    if (data.isEmpty()) {
+        m_lastError.clear();
+        return true;
+    }
 
-    int pending = BIO_ctrl_pending(m_writeBio);
-    if (pending <= 0) return {};
-
-    QByteArray result(pending, Qt::Uninitialized);
-    int read = BIO_read(m_writeBio, result.data(), pending);
-    if (read <= 0) return {};
-
-    result.resize(read);
-    return result;
+    int written = 0;
+    while (written < data.size()) {
+        const int remaining = data.size() - written;
+        ERR_clear_error();
+        const int result = BIO_write(m_readBio, data.constData() + written, remaining);
+        if (result <= 0) {
+            m_lastError = buildError(QStringLiteral("handshake input BIO write failed"));
+            return false;
+        }
+        written += result;
+    }
+    m_lastError.clear();
+    return true;
 }
 
-QByteArray Cryptor::decrypt(const QByteArray& ciphertext, int frameLength)
+Cryptor::DataResult Cryptor::encrypt(const QByteArray& plaintext)
 {
-    BIO_write(m_readBio, ciphertext.constData(), ciphertext.size());
+    if (!m_active || !m_ssl)
+        return failData(QStringLiteral("TLS encryption is not active"));
+    if (plaintext.size() > FRAME_MAX_PAYLOAD)
+        return failData(QStringLiteral("TLS plaintext exceeds one AA frame"));
+    if (plaintext.isEmpty()) {
+        m_lastError.clear();
+        return {DataResult::Status::Complete, {}, {}};
+    }
+
+    int written = 0;
+    while (written < plaintext.size()) {
+        const int remaining = plaintext.size() - written;
+        ERR_clear_error();
+        const int result = SSL_write(m_ssl, plaintext.constData() + written, remaining);
+        if (result <= 0) {
+            const int error = SSL_get_error(m_ssl, result);
+            return failData(QStringLiteral("SSL_write failed"), error);
+        }
+        written += result;
+    }
+
+    auto output = readWriteBio(QStringLiteral("encrypted output BIO read failed"));
+    if (!output.isComplete())
+        return output;
+    if (output.data.isEmpty())
+        return failData(QStringLiteral("SSL_write produced no encrypted bytes"));
+    return output;
+}
+
+Cryptor::DataResult Cryptor::decrypt(const QByteArray& ciphertext, int frameLength)
+{
+    if (!m_active || !m_ssl)
+        return failData(QStringLiteral("TLS decryption is not active"));
+    if (!m_readBio)
+        return failData(QStringLiteral("TLS input BIO is not initialized"));
+    if (ciphertext.isEmpty())
+        return failData(QStringLiteral("encrypted AA frame is empty"));
+
+    int written = 0;
+    while (written < ciphertext.size()) {
+        const int remaining = ciphertext.size() - written;
+        ERR_clear_error();
+        const int result = BIO_write(m_readBio, ciphertext.constData() + written,
+                                     remaining);
+        if (result <= 0)
+            return failData(QStringLiteral("encrypted input BIO write failed"));
+        written += result;
+    }
 
     int estimatedSize = frameLength - TLS_OVERHEAD;
     if (estimatedSize <= 0) estimatedSize = 2048;
 
-    QByteArray result;
-    result.reserve(estimatedSize);
+    QByteArray plaintext;
+    plaintext.reserve(estimatedSize);
 
     char chunk[2048];
     while (true) {
-        int read = SSL_read(m_ssl, chunk, sizeof(chunk));
-        if (read <= 0) break;
-        result.append(chunk, read);
+        ERR_clear_error();
+        const int read = SSL_read(m_ssl, chunk, sizeof(chunk));
+        if (read <= 0) {
+            const int error = SSL_get_error(m_ssl, read);
+            return failData(
+                error == SSL_ERROR_WANT_READ || error == SSL_ERROR_WANT_WRITE
+                    ? QStringLiteral("incomplete TLS record in encrypted AA frame")
+                    : QStringLiteral("SSL_read failed"),
+                error);
+        }
+        plaintext.append(chunk, read);
+        if (SSL_pending(m_ssl) <= 0)
+            break;
     }
 
-    return result;
+    m_lastError.clear();
+    return {DataResult::Status::Complete, std::move(plaintext), {}};
 }
 
 bool Cryptor::isActive() const
 {
     return m_active;
+}
+
+Cryptor::DataResult Cryptor::readWriteBio(const QString& context)
+{
+    if (!m_writeBio)
+        return failData(context + QStringLiteral(": BIO is not initialized"));
+
+    const long pending = BIO_ctrl_pending(m_writeBio);
+    if (pending <= 0) {
+        m_lastError.clear();
+        return {DataResult::Status::Complete, {}, {}};
+    }
+    if (pending > std::numeric_limits<int>::max())
+        return failData(context + QStringLiteral(": pending data is too large"));
+
+    QByteArray output;
+    output.resize(static_cast<int>(pending));
+    int offset = 0;
+    while (offset < output.size()) {
+        ERR_clear_error();
+        const int read = BIO_read(m_writeBio, output.data() + offset,
+                                  output.size() - offset);
+        if (read <= 0)
+            return failData(context);
+        offset += read;
+    }
+    m_lastError.clear();
+    return {DataResult::Status::Complete, std::move(output), {}};
+}
+
+Cryptor::DataResult Cryptor::failData(const QString& context, int sslError)
+{
+    m_lastError = buildError(context, sslError);
+    return {DataResult::Status::Failed, {}, m_lastError};
+}
+
+bool Cryptor::failInitialization(const QString& context, int sslError)
+{
+    const QString error = buildError(context, sslError);
+    deinit();
+    m_lastError = error;
+    return false;
+}
+
+QString Cryptor::buildError(const QString& context, int sslError)
+{
+    QString error = context;
+    if (sslError >= 0)
+        error += QStringLiteral(" (SSL_get_error=%1)").arg(sslError);
+
+    int count = 0;
+    while (count < 4 && error.size() < 1024) {
+        const unsigned long code = ERR_get_error();
+        if (code == 0)
+            break;
+        char errorText[256] = {};
+        ERR_error_string_n(code, errorText, sizeof(errorText));
+        error += QStringLiteral(": ") + QString::fromLatin1(errorText);
+        ++count;
+    }
+    return error.left(1024);
 }
 
 const std::string Cryptor::s_certificate = "-----BEGIN CERTIFICATE-----\n\

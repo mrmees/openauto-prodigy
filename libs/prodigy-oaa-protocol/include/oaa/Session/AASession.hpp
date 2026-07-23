@@ -63,6 +63,7 @@ private:
     void onVersionReceived(uint16_t major, uint16_t minor, bool match);
     void onHandshakeComplete();
     void onHandshakeFailed(const QString& message);
+    void onTlsFailed(const QString& message);
     void onServiceDiscoveryRequested(const QByteArray& payload);
     void onChannelOpenRequested(int32_t channelId, const QByteArray& payload);
     void onMessage(uint8_t channelId, uint16_t messageId,

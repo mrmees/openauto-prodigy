@@ -64,6 +64,50 @@ private:
         return frame;
     }
 
+    bool driveHandshake(oaa::Messenger& messenger,
+                        oaa::ReplayTransport& transport,
+                        oaa::Cryptor& server)
+    {
+        if (!server.init(oaa::Cryptor::Role::Server))
+            return false;
+
+        int writeCursor = 0;
+        messenger.startHandshake();
+        for (int round = 0; round < 20; ++round) {
+            const auto written = transport.writtenData();
+            while (writeCursor < written.size()) {
+                const QByteArray& frame = written[writeCursor++];
+                const auto header = parseHeader(frame);
+                const QByteArray payload = extractPayload(frame, header.frameType);
+                if (payload.size() < 2)
+                    return false;
+                const uint16_t messageId = qFromBigEndian<uint16_t>(
+                    reinterpret_cast<const uchar*>(payload.constData()));
+                if (messageId != 0x0003
+                    || !server.writeHandshakeBuffer(payload.mid(2)))
+                    return false;
+            }
+
+            server.doHandshake();
+            auto serverOut = server.readHandshakeBuffer();
+            if (!serverOut.isComplete())
+                return false;
+            if (!serverOut.data.isEmpty()) {
+                QByteArray payload;
+                const uint16_t handshakeId = qToBigEndian(uint16_t(0x0003));
+                payload.append(reinterpret_cast<const char*>(&handshakeId), 2);
+                payload.append(serverOut.data);
+                transport.feedData(buildFrame(
+                    0, oaa::FrameType::Bulk, oaa::MessageType::Specific,
+                    oaa::EncryptionType::Plain, payload));
+            }
+
+            if (messenger.isEncrypted() && server.isActive())
+                return true;
+        }
+        return false;
+    }
+
 private slots:
     void testSendPlainControlMessage() {
         oaa::ReplayTransport transport;
@@ -369,6 +413,37 @@ private slots:
         QCOMPARE(failureSpy.count(), 1);
         QVERIFY(!failureSpy[0][0].toString().isEmpty());
         QVERIFY(!messenger.isEncrypted());
+    }
+
+    void testFatalEncryptedRecordEmitsOnceAndForwardsNothing() {
+        oaa::ReplayTransport transport;
+        oaa::Messenger messenger(&transport);
+        oaa::Cryptor server;
+        QSignalSpy failureSpy(&messenger, &oaa::Messenger::tlsFailed);
+        QSignalSpy messageSpy(&messenger, &oaa::Messenger::messageReceived);
+
+        messenger.start();
+        QVERIFY(driveHandshake(messenger, transport, server));
+        transport.clearWritten();
+        messageSpy.clear();
+
+        auto encrypted = server.encrypt(QByteArrayLiteral("encrypted payload"));
+        QVERIFY(encrypted.isComplete());
+        encrypted.data[encrypted.data.size() - 1] ^= char(0x01);
+        const QByteArray malformedFrame = buildFrame(
+            3, oaa::FrameType::Bulk, oaa::MessageType::Specific,
+            oaa::EncryptionType::Encrypted, encrypted.data);
+
+        transport.feedData(malformedFrame);
+        transport.feedData(malformedFrame);
+
+        QCOMPARE(failureSpy.count(), 1);
+        QVERIFY(!failureSpy[0][0].toString().isEmpty());
+        QCOMPARE(messageSpy.count(), 0);
+
+        messenger.sendMessage(3, 0x1234, QByteArrayLiteral("must not send"));
+        QCOMPARE(transport.writtenData().size(), 0);
+        QCOMPARE(failureSpy.count(), 1);
     }
 };
 
