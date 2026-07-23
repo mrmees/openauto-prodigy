@@ -3,6 +3,7 @@
 #include <QSemaphore>
 #include <QThread>
 #include <atomic>
+#include <stdexcept>
 #include <thread>
 #include "core/services/EventBus.hpp"
 
@@ -116,6 +117,26 @@ private slots:
                                   Qt::BlockingQueuedConnection);
         ownerThread.quit();
         QVERIFY(ownerThread.wait(1000));
+    }
+
+    void testThrowingAndEmptyCallbacksAreContained()
+    {
+        oap::EventBus bus;
+        int deliveredAfterFailures = 0;
+        const int throwingId = bus.subscribe("test/topic", [](const QVariant&) {
+            throw std::runtime_error("test failure");
+        });
+        const int emptyId = bus.subscribe("test/topic", {});
+        bus.subscribe("test/topic", [&](const QVariant&) { ++deliveredAfterFailures; });
+
+        bus.publish("test/topic");
+        QCoreApplication::processEvents();
+
+        QCOMPARE(deliveredAfterFailures, 1);
+        // Execution accounting was released despite the exception, so these
+        // final unsubscribes return normally and cannot strand a waiter.
+        bus.unsubscribe(throwingId);
+        bus.unsubscribe(emptyId);
     }
 
     void testMultipleSubscribers()

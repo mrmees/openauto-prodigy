@@ -1,6 +1,8 @@
 #include "EventBus.hpp"
+#include "../Logging.hpp"
 #include <QMetaObject>
 #include <QThread>
+#include <exception>
 
 namespace oap {
 
@@ -59,6 +61,16 @@ void EventBus::publish(const QString& topic, const QVariant& payload)
         // Deliver on the bus owner thread. The shared state is checked at
         // execution time so unsubscribe also cancels already-queued delivery.
         QMetaObject::invokeMethod(this, [subscription, payload]() {
+            struct ExecutionGuard {
+                std::shared_ptr<Subscription> subscription;
+                ~ExecutionGuard() {
+                    QMutexLocker lock(&subscription->mutex);
+                    --subscription->executing;
+                    if (subscription->executing == 0)
+                        subscription->idle.wakeAll();
+                }
+            };
+
             Callback callback;
             {
                 QMutexLocker lock(&subscription->mutex);
@@ -67,13 +79,18 @@ void EventBus::publish(const QString& topic, const QVariant& payload)
                 ++subscription->executing;
                 callback = subscription->callback;
             }
+            const ExecutionGuard guard{subscription};
 
-            callback(payload);
-
-            QMutexLocker lock(&subscription->mutex);
-            --subscription->executing;
-            if (subscription->executing == 0)
-                subscription->idle.wakeAll();
+            try {
+                if (callback)
+                    callback(payload);
+                else
+                    qCWarning(lcCore) << "EventBus: ignored empty callback";
+            } catch (const std::exception& e) {
+                qCWarning(lcCore) << "EventBus: callback threw:" << e.what();
+            } catch (...) {
+                qCWarning(lcCore) << "EventBus: callback threw an unknown exception";
+            }
         }, Qt::QueuedConnection);
     }
 }
