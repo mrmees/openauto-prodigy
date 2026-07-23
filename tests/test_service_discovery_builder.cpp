@@ -1,4 +1,5 @@
 #include <QTest>
+#include <QTemporaryFile>
 #include "core/aa/ServiceDiscoveryBuilder.hpp"
 #include "core/YamlConfig.hpp"
 
@@ -11,6 +12,44 @@
 class TestServiceDiscoveryBuilder : public QObject {
     Q_OBJECT
 private slots:
+    void testVideoConfigCountMatchesDescriptor_data() {
+        QTest::addColumn<QString>("codecYaml");
+        QTest::addColumn<int>("expectedCount");
+        QTest::newRow("empty-defaults") << QStringLiteral("[]") << 2;
+        QTest::newRow("unknown-fallback") << QStringLiteral("[bogus]") << 1;
+        QTest::newRow("one") << QStringLiteral("[h264]") << 1;
+        QTest::newRow("two") << QStringLiteral("[h264, h265]") << 2;
+        QTest::newRow("multiple") << QStringLiteral("[h264, h265, vp9, av1]") << 4;
+    }
+
+    void testVideoConfigCountMatchesDescriptor() {
+        QFETCH(QString, codecYaml);
+        QFETCH(int, expectedCount);
+
+        QTemporaryFile file;
+        QVERIFY(file.open());
+        const QByteArray yaml = "video:\n  codecs: " + codecYaml.toUtf8() + "\n";
+        QCOMPARE(file.write(yaml), yaml.size());
+        file.flush();
+
+        oap::YamlConfig yamlConfig;
+        yamlConfig.load(file.fileName());
+        oap::aa::ServiceDiscoveryBuilder builder(&yamlConfig);
+        QCOMPARE(static_cast<int>(builder.videoConfigCount()), expectedCount);
+
+        const auto config = builder.build();
+        for (const auto& channel : config.channels) {
+            if (channel.channelId != 3)
+                continue;
+            oaa::proto::data::ChannelDescriptor descriptor;
+            QVERIFY(descriptor.ParseFromArray(channel.descriptor.constData(),
+                                              channel.descriptor.size()));
+            QCOMPARE(descriptor.av_channel().video_configs_size(), expectedCount);
+            return;
+        }
+        QFAIL("Video descriptor missing");
+    }
+
     void testDefaultBuildProducesAllChannels() {
         oap::aa::ServiceDiscoveryBuilder builder;
         oaa::SessionConfig config = builder.build();

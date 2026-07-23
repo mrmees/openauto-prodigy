@@ -2,6 +2,8 @@
 
 #include <oaa/Session/SessionConfig.hpp>
 #include <QString>
+#include <QStringList>
+#include <cstdint>
 #include <utility>
 
 namespace oap { class YamlConfig; }
@@ -20,6 +22,9 @@ public:
                                      const QString& wifiBssid = {});
 
     oaa::SessionConfig build() const;
+
+    /// Number of video configs produced by build() from the same codec set.
+    uint32_t videoConfigCount() const;
 
     /// Override display dimensions for margin calculations (detected > config fallback).
     void setDisplayDimensions(int w, int h);
@@ -60,6 +65,7 @@ private:
     QString wifiSsid_;
     QString wifiPassword_;
     QString wifiBssid_;
+    QStringList videoCodecNames_;
     int overrideDisplayW_ = 0;  // 0 = use yamlConfig values
     int overrideDisplayH_ = 0;
     int navbarThickness_ = 56;

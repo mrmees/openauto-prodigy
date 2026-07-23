@@ -23,8 +23,9 @@ public:
 class ScriptedBluetoothDiscoveryService
     : public oap::aa::BluetoothDiscoveryService {
 public:
-    explicit ScriptedBluetoothDiscoveryService(StubConfigService* config)
-        : BluetoothDiscoveryService(config)
+    explicit ScriptedBluetoothDiscoveryService(StubConfigService* config,
+                                                quint16 tcpPort = 5277)
+        : BluetoothDiscoveryService(config, tcpPort)
     {
     }
 
@@ -91,8 +92,19 @@ private slots:
         cfg.values["connection.wifi_ap.password"] = "TestPass";
 
         // This should compile and not crash — we can't start() without real BT hardware
-        oap::aa::BluetoothDiscoveryService svc(&cfg, "wlan0");
+        oap::aa::BluetoothDiscoveryService svc(&cfg, 15277, "wlan0");
+        QCOMPARE(svc.advertisedTcpPort(), 15277);
         Q_UNUSED(svc);
+    }
+
+    void testEffectiveTcpPortDoesNotRereadConfig() {
+        StubConfigService cfg;
+        cfg.values["connection.tcp_port"] = 65000;
+        ScriptedBluetoothDiscoveryService svc(&cfg, 15279);
+        QCOMPARE(svc.advertisedTcpPort(), 15279);
+        auto request = oap::aa::BluetoothDiscoveryService::buildWifiStartRequest(
+            "10.0.0.1", svc.advertisedTcpPort());
+        QCOMPARE(request.port(), 15279u);
     }
 
     void testListenerFailureSchedulesRetryBeforeSdp() {

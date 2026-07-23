@@ -25,6 +25,10 @@ H.264/H.265 until the receive path gains end-to-end VP9/AV1 support. If the
 configured list contains no service-discovery-recognized entry, discovery
 falls back to one H.264 config.
 
+The resolved codec list is shared by service discovery and video-channel
+setup. The number in each `SETUP_RESPONSE` therefore exactly matches the
+number of advertised `VideoConfig` entries, including the H.264 fallback.
+
 The relevant `VideoConfig` fields are:
 
 ```protobuf

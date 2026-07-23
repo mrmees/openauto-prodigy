@@ -4,6 +4,7 @@
 #include <oaa/HU/Handlers/VideoChannelHandler.hpp>
 #include <oaa/Channel/ChannelId.hpp>
 #include "oaa/av/AVChannelSetupRequestMessage.pb.h"
+#include "oaa/av/AVChannelSetupResponseMessage.pb.h"
 #include "oaa/av/MediaCodecTypeEnum.pb.h"
 #include "oaa/av/AVChannelStartIndicationMessage.pb.h"
 #include "oaa/av/AVMediaAckIndicationMessage.pb.h"
@@ -15,6 +16,36 @@
 class TestVideoChannelHandler : public QObject {
     Q_OBJECT
 private slots:
+    void testSetupResponseConfigCount_data() {
+        QTest::addColumn<int>("count");
+        QTest::newRow("one") << 1;
+        QTest::newRow("two") << 2;
+        QTest::newRow("four") << 4;
+    }
+
+    void testSetupResponseConfigCount() {
+        QFETCH(int, count);
+        oaa::hu::VideoChannelHandler handler;
+        handler.setNumVideoConfigs(static_cast<uint32_t>(count));
+        handler.onChannelOpened();
+        QSignalSpy sendSpy(&handler, &oaa::IChannelHandler::sendRequested);
+
+        oaa::proto::messages::AVChannelSetupRequest request;
+        request.set_media_codec_type(
+            oaa::proto::enums::MediaCodecType_Enum_MEDIA_CODEC_VIDEO_H264_BP);
+        QByteArray payload(request.ByteSizeLong(), '\0');
+        QVERIFY(request.SerializeToArray(payload.data(), payload.size()));
+        handler.onMessage(oaa::AVMessageId::SETUP_REQUEST, payload);
+
+        QCOMPARE(sendSpy.count(), 2);
+        oaa::proto::messages::AVChannelSetupResponse response;
+        const QByteArray responsePayload = sendSpy[0][2].toByteArray();
+        QVERIFY(response.ParseFromArray(responsePayload.constData(), responsePayload.size()));
+        QCOMPARE(response.configs_size(), count);
+        for (int index = 0; index < count; ++index)
+            QCOMPARE(response.configs(index), static_cast<uint32_t>(index));
+    }
+
     void testChannelId() {
         oaa::hu::VideoChannelHandler handler;
         QCOMPARE(handler.channelId(), oaa::ChannelId::Video);

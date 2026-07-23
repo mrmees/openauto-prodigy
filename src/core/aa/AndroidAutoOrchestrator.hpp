@@ -114,6 +114,7 @@ private:
     friend class AndroidAutoOrchestratorTestAccess;
 
     void onNewConnection();
+    void onPhoneWillConnect();
     void onSessionStateChanged(oaa::SessionState state);
     void onSessionDisconnected(oaa::DisconnectReason reason);
 
@@ -140,6 +141,8 @@ private:
 
     // TCP listener (Qt-native, replaces ASIO acceptor)
     QTcpServer tcpServer_;
+    quint16 listenerPort_ = 0;
+    bool admissionOpen_ = false;
 
     // Session (created per-connection)
     oaa::AASession* session_ = nullptr;

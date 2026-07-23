@@ -41,11 +41,13 @@ static constexpr int kStartupMaxAttempts = 30;  // 60 seconds total
 
 BluetoothDiscoveryService::BluetoothDiscoveryService(
     oap::IConfigService* configService,
+    quint16 tcpPort,
     const QString& wifiInterface,
     QObject* parent)
     : QObject(parent)
     , configService_(configService)
     , wifiInterface_(wifiInterface)
+    , tcpPort_(tcpPort)
     , rfcommServer_(std::make_unique<QBluetoothServer>(
           QBluetoothServiceInfo::RfcommProtocol, this))
 {
@@ -395,18 +397,10 @@ void BluetoothDiscoveryService::sendWifiStartRequest()
         return;
     }
 
-    // Read TCP port from config service
-    uint32_t tcpPort = 5277;
-    if (configService_) {
-        QVariant portVar = configService_->value("connection.tcp_port");
-        if (portVar.isValid())
-            tcpPort = portVar.toUInt();
-    }
-
-    auto request = buildWifiStartRequest(localIp, tcpPort);
+    auto request = buildWifiStartRequest(localIp, tcpPort_);
 
     qCDebug(lcBT) << "Sending WifiStartRequest: ip=" << localIp.c_str()
-            << "port=" << tcpPort;
+            << "port=" << tcpPort_;
     sendMessage(request, kMsgWifiStartRequest);
 }
 

@@ -13,10 +13,17 @@ machine, and channel handlers as Qt objects on the main event loop.
 
 **Rationale:** `QTcpServer`, `QTcpSocket`, signals, and timers provide one
 ownership model for session lifecycle and eliminate a separate protocol thread
-pool. The configured `connection.tcp_port` is used throughout discovery and
-listening; its default is 5277. Bluetooth discovery supplies WiFi AP
+pool. One resolver validates `connection.tcp_port` for the listener; its
+default is 5277, and Bluetooth discovery advertises the listener's actual
+bound port. Bluetooth discovery supplies WiFi AP
 credentials, the phone joins the AP, and the same Qt transport carries version
 exchange, TLS, service discovery, and channel traffic.
+
+The listener admits replacement clients only while connection setup is still
+pending. Once a session is connected or backgrounded, extra TCP connections
+are rejected without changing the active peer, state, or watchdog. Shutdown
+closes admission before synchronously stopping the session, avoiding a nested
+event-loop wait and reentrant replacement during teardown.
 
 **Historical context:** An earlier prototype used a third-party protocol stack
 and explored USB AOAP. Neither is part of the current architecture. The
@@ -68,6 +75,9 @@ the decoder without the parameter sets required for subsequent frames.
 **Rationale:** Service discovery computes content margins for the actual display
 viewport and optional navbar. The matching content dimensions also define the
 phone's touch coordinate space, so video crop and input mapping remain aligned.
+The recognized codec list is resolved once per session and supplies both the
+advertised descriptors and the video-channel setup-response count, preventing
+those protocol surfaces from disagreeing after configuration fallback.
 
 ### Decode worker, Qt-owned sink
 
