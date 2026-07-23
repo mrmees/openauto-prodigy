@@ -1,7 +1,7 @@
 # Android Auto Protocol Crypto and Flow-Control Remediation — Design
 
 Date: 2026-07-23
-Status: ACTIVE
+Status: COMPLETED 2026-07-23
 Base: `origin/main` at `796b5c29f51e1b070af36ed1f756b65c6d9e861c`
 
 ## Outcome
