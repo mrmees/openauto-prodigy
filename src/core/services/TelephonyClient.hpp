@@ -48,6 +48,9 @@ public:
     void setRejectSco(bool reject);
 
 signals:
+    /// The selected remote phone is being discarded. Consumers must clear
+    /// phone-scoped call/SCO/settle evidence before replacement events arrive.
+    void selectedGatewayBoundary();
     void availableChanged(bool available);
     void transportStateChanged(const QString& state);
     void transportRemoved();

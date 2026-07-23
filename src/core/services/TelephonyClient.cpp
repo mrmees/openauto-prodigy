@@ -110,6 +110,8 @@ void TelephonyClient::onServiceDown()
 {
     const bool wasAvailable = available();
     serviceUp_ = false;
+    if (!agPath_.isEmpty())
+        emit selectedGatewayBoundary();
     clearPublishedCall();
     agPath_.clear();
     agAddress_.clear();
@@ -246,10 +248,13 @@ void TelephonyClient::selectAvailableAg(bool notifyAvailability)
     agPath_ = selected.key();
     agAddress_ = selected->value(QStringLiteral("Address")).toString();
     qCInfo(lcTel) << "AudioGateway selected:" << agPath_ << agAddress_;
+    // Call1 is authoritative call evidence. Publish a replacement phone's
+    // cached call before its advisory transport state so a pre-existing
+    // "active" transport cannot resolve the previous phone's setup/settle.
+    adoptCachedCallForSelectedAg();
     const auto transport = transportPropertiesByPath_.constFind(agPath_);
     if (transport != transportPropertiesByPath_.cend())
         adoptTransport(agPath_, transport.value());
-    adoptCachedCallForSelectedAg();
     if (notifyAvailability && available() != wasAvailable)
         emit availableChanged(available());
 }
@@ -339,20 +344,14 @@ void TelephonyClient::onInterfacesAdded(const QDBusObjectPath& path, const oap::
 void TelephonyClient::onInterfacesRemoved(const QDBusObjectPath& path, const QStringList& interfaces)
 {
     const QString p = path.path();
-    if (interfaces.contains(kCallIface)) {
-        callPropertiesByPath_.remove(p);
-        if (p == callPath_)
-            clearPublishedCall();
-    }
-    if (interfaces.contains(kTransportIface))
-        transportPropertiesByPath_.remove(p);
-    if (p == transportPath_ && interfaces.contains(kTransportIface)) {
-        clearTransport();
-        emit transportRemoved();
-    }
     if (p == agPath_ && interfaces.contains(kAgIface)) {
         const bool wasAvailable = available();
         const bool hadTransport = !transportPath_.isEmpty();
+
+        // This is an authoritative remote-phone boundary. Publish it before
+        // clearing old interfaces or adopting replacement cached state so
+        // consumers cannot combine evidence from two Audio Gateways.
+        emit selectedGatewayBoundary();
         agPropertiesByPath_.remove(p);
         transportPropertiesByPath_.remove(p);
         purgeCallsForAg(p);
@@ -366,7 +365,21 @@ void TelephonyClient::onInterfacesRemoved(const QDBusObjectPath& path, const QSt
         selectAvailableAg(false);
         if (available() != wasAvailable)
             emit availableChanged(available());
-    } else if (interfaces.contains(kAgIface)) {
+        return;
+    }
+
+    if (interfaces.contains(kCallIface)) {
+        callPropertiesByPath_.remove(p);
+        if (p == callPath_)
+            clearPublishedCall();
+    }
+    if (interfaces.contains(kTransportIface))
+        transportPropertiesByPath_.remove(p);
+    if (p == transportPath_ && interfaces.contains(kTransportIface)) {
+        clearTransport();
+        emit transportRemoved();
+    }
+    if (interfaces.contains(kAgIface)) {
         agPropertiesByPath_.remove(p);
         transportPropertiesByPath_.remove(p);
         purgeCallsForAg(p);

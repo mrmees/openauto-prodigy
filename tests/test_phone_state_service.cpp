@@ -30,6 +30,7 @@ private slots:
     void testIdleScoDoesNotSynthesizeCall();
     void testCallWaitingIgnoredWhileActive();
     void testAgVanishResetsToIdle();
+    void testSelectedGatewayBoundaryClearsPhoneEvidence();
     void testDialGuards();
     void testSetupDisconnectedEndsImmediately();
 
@@ -273,6 +274,28 @@ void TestPhoneStateService::testAgVanishResetsToIdle() {
     s->onTelephonyAvailable(false);
     QCOMPARE(s->callState(), (int)CS::Idle);
     QVERIFY(!s->telephonyAvailable());
+}
+
+void TestPhoneStateService::testSelectedGatewayBoundaryClearsPhoneEvidence() {
+    QObject root; auto* s = makeFastService(&root);
+    s->onCallSetupStarted("incoming", "111", "Primary");
+    s->onCallSetupChanged("active");
+    s->onScoRunningChanged(true);
+    QCOMPARE(s->callState(), (int)CS::Active);
+
+    s->onSelectedGatewayBoundary();
+    QCOMPARE(s->callState(), (int)CS::Idle);
+    QVERIFY(s->callerNumber().isEmpty());
+    QVERIFY(s->callerName().isEmpty());
+
+    // Old SCO and advisory replacement transport state cannot manufacture a
+    // call for the newly selected phone.
+    s->onTransportStateChanged("active");
+    QCOMPARE(s->callState(), (int)CS::Idle);
+    s->onCallSetupStarted("incoming", "222", "Replacement");
+    s->onCallSetupEnded();
+    QCOMPARE(s->callState(), (int)CS::Ringing);
+    QTRY_COMPARE_WITH_TIMEOUT(s->callState(), (int)CS::Idle, 500);
 }
 
 void TestPhoneStateService::testDialGuards() {

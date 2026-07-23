@@ -99,6 +99,7 @@ public:
 
 public slots:
     // State-machine event API — public because it IS the unit-test surface.
+    void onSelectedGatewayBoundary();
     void onCallSetupStarted(const QString& state, const QString& line, const QString& name);
     void onCallSetupChanged(const QString& state);
     void onCallSetupEnded();

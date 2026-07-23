@@ -96,6 +96,8 @@ void PhoneStateService::attachTelephony(TelephonyClient* client)
 {
     telephony_ = client;
     if (!client) return;
+    connect(client, &TelephonyClient::selectedGatewayBoundary,
+            this, &PhoneStateService::onSelectedGatewayBoundary);
     connect(client, &TelephonyClient::callSetupStarted,
             this, &PhoneStateService::onCallSetupStarted);
     connect(client, &TelephonyClient::callSetupChanged,
@@ -117,6 +119,25 @@ void PhoneStateService::attachScoMonitor(ScoNodeMonitor* monitor)
     connect(monitor, &ScoNodeMonitor::scoRunningChanged,
             this, &PhoneStateService::onScoRunningChanged);
     onScoRunningChanged(monitor->scoRunning());
+}
+
+void PhoneStateService::onSelectedGatewayBoundary()
+{
+    // Settle, SCO, transport, and caller metadata all describe one remote
+    // Audio Gateway. None may survive selection of a different phone.
+    inSettle_ = false;
+    settleTimer_.stop();
+    scoDebounceTimer_.stop();
+    scoRunning_ = false;
+    transportState_.clear();
+
+    const bool metadataChanged = !callerNumber_.isEmpty() || !callerName_.isEmpty();
+    const bool stateUnchanged = callState_ == ICallStateProvider::Idle;
+    callerNumber_.clear();
+    callerName_.clear();
+    setCallStateInternal(ICallStateProvider::Idle);
+    if (stateUnchanged && metadataChanged)
+        emit callStateChanged();
 }
 
 void PhoneStateService::onCallSetupStarted(const QString& state, const QString& line,
@@ -261,12 +282,7 @@ void PhoneStateService::onTelephonyAvailable(bool available)
     if (available == telephonyAvailable_) return;
     telephonyAvailable_ = available;
     if (!available) {
-        inSettle_ = false;
-        settleTimer_.stop();
-        scoDebounceTimer_.stop();
-        callerNumber_.clear();
-        callerName_.clear();
-        setCallStateInternal(ICallStateProvider::Idle);
+        onSelectedGatewayBoundary();
     }
     emit telephonyAvailableChanged();
 }
