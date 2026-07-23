@@ -469,10 +469,7 @@ void BluetoothManager::requestManagedObjectsRefresh()
 {
     if (shutdown_) return;
     if (managedObjectsRefreshInFlight_) {
-        if (!managedObjectsRefreshPending_) {
-            managedObjectsRefreshPending_ = true;
-            ++managedObjectsRequestGeneration_;
-        }
+        managedObjectsRefreshPending_ = true;
         return;
     }
 
@@ -493,7 +490,11 @@ void BluetoothManager::requestManagedObjectsRefresh()
             && requestGeneration == managedObjectsRequestGeneration_;
         managedObjectsRefreshInFlight_ = false;
         managedObjectsRefreshPending_ = false;
-        if (!shutdown_ && current && !trailingRefresh)
+        // A topology edge means another snapshot is useful, but does not make
+        // this same-service reply stale. Publishing it prevents startup state
+        // from being starved by sustained BlueZ change traffic and preserves a
+        // valid snapshot if the trailing refresh fails.
+        if (!shutdown_ && current)
             finishManagedObjectsRefresh(reply);
 
         if (!shutdown_ && trailingRefresh)
@@ -651,6 +652,10 @@ void BluetoothManager::unregisterAgent()
 
 void BluetoothManager::handleAgentRequestConfirmation(const QDBusMessage& msg, const QString& devicePath, uint passkey)
 {
+    if (pairingRequiresConfirmation()) {
+        abortPairingPrompt(
+            QStringLiteral("Superseded by a new pairing request"));
+    }
     const QString deviceName = deviceNameFromPath(devicePath);
     const QString formattedPasskey =
         QStringLiteral("%1").arg(passkey, 6, 10, QChar('0'));
@@ -672,6 +677,10 @@ void BluetoothManager::handleAgentRequestConfirmation(const QDBusMessage& msg, c
 void BluetoothManager::handleAgentRequestAuthorization(
     const QDBusMessage& msg, const QString& devicePath)
 {
+    if (pairingRequiresConfirmation()) {
+        abortPairingPrompt(
+            QStringLiteral("Superseded by a new pairing request"));
+    }
     const QString deviceName = deviceNameFromPath(devicePath);
     const bool observableChanged = !pairingActive_
         || pairingDeviceName_ != deviceName
@@ -691,6 +700,10 @@ void BluetoothManager::handleAgentRequestAuthorization(
 void BluetoothManager::handleAgentDisplayPasskey(
     const QString& devicePath, const QString& passkey, int entered)
 {
+    if (pairingRequiresConfirmation()) {
+        abortPairingPrompt(
+            QStringLiteral("Superseded by a new pairing display"));
+    }
     const QString deviceName = deviceNameFromPath(devicePath);
     const int boundedEntered = entered < 0 ? -1 : qBound(0, entered, passkey.size());
     const bool observableChanged = !pairingActive_
