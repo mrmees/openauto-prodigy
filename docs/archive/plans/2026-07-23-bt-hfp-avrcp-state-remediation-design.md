@@ -1,7 +1,7 @@
 # Bluetooth, HFP, and AVRCP State Remediation — Design
 
 Date: 2026-07-23
-Status: ACTIVE
+Status: COMPLETED 2026-07-23
 Base: `origin/main` at `caf368696c39e3ef2954e2492ecfb09944d2b187`
 
 ## Goal

@@ -1,8 +1,8 @@
 # Bluetooth, HFP, and AVRCP State Remediation — Implementation Plan
 
 Date: 2026-07-23
-Status: ACTIVE
-Design: `docs/plans/2026-07-23-bt-hfp-avrcp-state-remediation-design.md`
+Status: COMPLETED 2026-07-23
+Design: `docs/archive/plans/2026-07-23-bt-hfp-avrcp-state-remediation-design.md`
 Base: `origin/main` at `caf368696c39e3ef2954e2492ecfb09944d2b187`
 
 ## Execution Rules

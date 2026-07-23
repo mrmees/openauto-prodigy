@@ -4,6 +4,65 @@ Newest entries first.
 
 ---
 
+## 2026-07-23 — Bluetooth, HFP, and AVRCP state remediation COMPLETE
+
+**What changed:** Bluetooth adapter, paired-device, connected-device,
+first-run, and auto-connect state now comes from one asynchronous/coalesced
+BlueZ ObjectManager owner with explicit service and object epochs. The
+DisplayYesNo Agent1 surface now distinguishes delayed decisions, immediate
+display prompts, cancellation, and unsupported keyboard input. Bluetooth audio
+uses asynchronous snapshots and an ordered event journal, retains partial
+Device1 names, and clears complete player state at loss. Telephony caches both
+phones but publishes one deterministic selected gateway, accepts only its
+same-object call/transport evidence, and no longer treats idle SCO as a call;
+PhonePlugin teardown disconnects provider callbacks safely.
+
+**Why:** startup and hot-plug paths could block the Qt loop, publish stale
+Bluetooth/player state, leave pairing replies actionable across object epochs,
+let a second phone replace the selected HFP transport, or synthesize calls from
+ambiguous SCO activity. The new boundary owners make each lifetime explicit
+without changing wireless AA, HFP roles, ofono policy, frozen API, routing, EQ,
+or media-control contracts.
+
+**Status:** COMPLETE on `agent/bt-hfp-avrcp-state-remediation`, based on merged
+PR #32. The reviewed aarch64 binary at `1a811fc` was retained behind rollback
+snapshot `/var/backups/openauto-prodigy/20260723T203433Z` and deployed. One
+application process (PID `293938`) owns responsive IPC and reports
+`ALPHA-26-07-15-02-130-g1a811fc`. Startup immediately adopted the connected
+Pixel and two paired devices without an auto-connect storm. Pi-side AVRCP drove
+the Moto from paused to playing and back; its 257000 ms duration was retained,
+position advanced from 16212 ms to 63062 ms, transport became active, and
+PipeWire linked the Moto BlueZ source through `openauto-bt-eq-in`. Fresh audible
+confirmation was unavailable remotely; the same Moto/EQ path was previously
+heard by Matthew. With both telephony gateways present, the Pixel remained the
+selected idle gateway. Hostapd PID `46989` and Bluetooth PID `672` stayed
+unchanged with zero restarts; no daemon restart, re-pair, call, or Pi checkout
+mutation occurred.
+
+**Review gate:** seven finding-bearing passes returned 27 findings; all 27 were
+confirmed and fixed, none were dismissed, and none were silently dropped. The
+fixes cover snapshot epochs and parse failures, pairing prompt lifetimes,
+adapter/device replacement, AVRCP journal ordering and failed-scan fallback,
+and gateway/call failover isolation. The terminal repair-only rerun reported
+`LGTM — no issues found`.
+
+**Verification:** focused Bluetooth manager, Bluetooth audio, media-status,
+serializer, telephony, phone-state, phone-plugin, audio-policy, and SCO tests
+passed. `cmake --build . -j$(nproc)`, the explicit `openauto-prodigy` target,
+and `ctest --output-on-failure` passed in `~/builds/openauto-prodigy`; an
+unrelated audio-ring-buffer sampling flake on the first full run passed ten
+consecutive stress reruns and the clean full-suite rerun. Documentation links,
+`git diff --check origin/main`, and `./cross-build.sh` passed. Live validation
+covered binary identity, exact process/IPC ownership, already-connected state,
+Moto AVRCP/A2DP/EQ flow, millisecond progress, two-gateway selection, wireless
+AA reconnect, and unchanged service lifetimes.
+
+**Next 1-3 steps:** (1) review and merge the draft PR as an independent wave;
+(2) privately select a consolidated next tranche from the remaining work; (3)
+publish and approve that tranche's bounded design and plan before execution.
+
+---
+
 ## 2026-07-23 — PR #32 pre-merge review fixes
 
 **What changed:** two confirmed findings from the PR #32 review were fixed on
