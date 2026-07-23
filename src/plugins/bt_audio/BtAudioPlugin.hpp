@@ -188,8 +188,19 @@ private:
     void updatePlayerProperties(const QVariantMap& props, bool resetBeforeApply = false);
     void applyPropertiesChanged(const QString& interface, const QVariantMap& changed,
                                 const QStringList& invalidated, const QDBusMessage& message);
-    void mergePendingPropertyChanges(BtManagedObjectMap& objects);
-    void mergePendingInterfaceChanges(BtManagedObjectMap& objects);
+    enum class PendingEventKind { InterfacesAdded, InterfacesRemoved, PropertiesChanged };
+    struct PendingDbusEvent {
+        PendingEventKind kind = PendingEventKind::PropertiesChanged;
+        QString path;
+        BtInterfaceMap addedInterfaces;
+        QStringList removedInterfaces;
+        QString interface;
+        QVariantMap changed;
+        QStringList invalidated;
+    };
+    static void applyEventToObjects(BtManagedObjectMap& objects,
+                                    const PendingDbusEvent& event);
+    void replayPendingEvents(BtManagedObjectMap& objects);
     void sendPlayerCommand(const QString& command);
     // Edge-emits transportActiveChanged only when the value actually flips.
     void setTransportActive(bool active);
@@ -201,20 +212,8 @@ private:
     bool scanInFlight_ = false;
     bool scanPending_ = false;
     quint64 bluezServiceEpoch_ = 0;
-    struct PendingInterfaceChange {
-        bool added = false;
-        QString path;
-        BtInterfaceMap addedInterfaces;
-        QStringList removedInterfaces;
-    };
-    QVector<PendingInterfaceChange> pendingInterfaceChanges_;
-    struct PendingPropertyChange {
-        QString interface;
-        QVariantMap changed;
-        QStringList invalidated;
-        QDBusMessage message;
-    };
-    QVector<PendingPropertyChange> pendingPropertyChanges_;
+    QVector<PendingDbusEvent> pendingEventJournal_;
+    BtManagedObjectMap lastKnownObjects_;
 
     // BT A2DP loopback tap — non-owning raw pointer; parented to this QObject.
     // Null when PipeWire is down or the concrete services don't resolve.

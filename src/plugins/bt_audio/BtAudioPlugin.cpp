@@ -206,8 +206,7 @@ void BtAudioPlugin::startDBusMonitoring()
     // never authoritative for this lifetime.
     ++bluezServiceEpoch_;
     scanPending_ = false;
-    pendingInterfaceChanges_.clear();
-    pendingPropertyChanges_.clear();
+    pendingEventJournal_.clear();
 
     // Watch for BlueZ service availability
     bluezWatcher_ = new QDBusServiceWatcher(
@@ -221,8 +220,7 @@ void BtAudioPlugin::startDBusMonitoring()
             hostContext_->log(LogLevel::Info, QStringLiteral("BtAudio: BlueZ appeared on D-Bus"));
         ++bluezServiceEpoch_;
         scanPending_ = false;
-        pendingInterfaceChanges_.clear();
-        pendingPropertyChanges_.clear();
+        pendingEventJournal_.clear();
         scanExistingObjects();
     });
 
@@ -302,8 +300,7 @@ void BtAudioPlugin::stopDBusMonitoring()
     monitoring_ = false;
     ++bluezServiceEpoch_;
     scanPending_ = false;
-    pendingInterfaceChanges_.clear();
-    pendingPropertyChanges_.clear();
+    pendingEventJournal_.clear();
 }
 
 void BtAudioPlugin::onBluezServiceUnregistered()
@@ -312,8 +309,8 @@ void BtAudioPlugin::onBluezServiceUnregistered()
         hostContext_->log(LogLevel::Info, QStringLiteral("BtAudio: BlueZ disappeared from D-Bus"));
     ++bluezServiceEpoch_;
     scanPending_ = false;
-    pendingInterfaceChanges_.clear();
-    pendingPropertyChanges_.clear();
+    pendingEventJournal_.clear();
+    lastKnownObjects_.clear();
     transportActiveByPath_.clear();
     transportDeviceByPath_.clear();
     devicePropertiesByPath_.clear();
@@ -373,8 +370,7 @@ void BtAudioPlugin::finishExistingObjectScan(const QDBusMessage& reply,
         QString failure;
         auto objects = parseManagedObjects(reply, failure);
         if (objects) {
-            mergePendingInterfaceChanges(*objects);
-            mergePendingPropertyChanges(*objects);
+            replayPendingEvents(*objects);
             applyManagedObjectsSnapshot(*objects);
         } else if (!needsRescan) {
             if (hostContext_) {
@@ -383,13 +379,13 @@ void BtAudioPlugin::finishExistingObjectScan(const QDBusMessage& reply,
                                       .arg(failure));
             }
             // A failed or malformed topology reply is not an empty snapshot.
-            // Preserve the last completed state and replay property deltas
-            // received while the request was outstanding.
-            const auto pendingChanges = std::exchange(pendingPropertyChanges_, {});
-            for (const auto& change : pendingChanges)
-                applyPropertiesChanged(change.interface, change.changed,
-                                       change.invalidated, change.message);
-            pendingInterfaceChanges_.clear();
+            // The chronological journal has already advanced the cached
+            // object graph; publish it once so queued property values become
+            // observable without crossing an interface reincarnation.
+            const bool hadPendingEvents = !pendingEventJournal_.isEmpty();
+            pendingEventJournal_.clear();
+            if (hadPendingEvents)
+                applyManagedObjectsSnapshot(lastKnownObjects_);
         }
     }
 
@@ -397,51 +393,54 @@ void BtAudioPlugin::finishExistingObjectScan(const QDBusMessage& reply,
         scanExistingObjects();
 }
 
-void BtAudioPlugin::mergePendingInterfaceChanges(BtManagedObjectMap& objects)
+void BtAudioPlugin::applyEventToObjects(BtManagedObjectMap& objects,
+                                        const PendingDbusEvent& event)
 {
-    const auto pendingChanges = std::exchange(pendingInterfaceChanges_, {});
-    for (const auto& change : pendingChanges) {
-        if (change.added) {
-            auto& interfaces = objects[change.path];
-            for (auto it = change.addedInterfaces.cbegin();
-                 it != change.addedInterfaces.cend(); ++it) {
-                interfaces.insert(it.key(), it.value());
-            }
-            continue;
+    if (event.kind == PendingEventKind::InterfacesAdded) {
+        auto& interfaces = objects[event.path];
+        for (auto it = event.addedInterfaces.cbegin();
+             it != event.addedInterfaces.cend(); ++it) {
+            interfaces.insert(it.key(), it.value());
         }
+        return;
+    }
 
-        auto object = objects.find(change.path);
-        if (object == objects.end())
-            continue;
-        for (const QString& interface : change.removedInterfaces)
+    auto object = objects.find(event.path);
+    if (object == objects.end())
+        return;
+
+    if (event.kind == PendingEventKind::InterfacesRemoved) {
+        for (const QString& interface : event.removedInterfaces)
             object->remove(interface);
         if (object->isEmpty())
             objects.erase(object);
+        return;
     }
+
+    auto properties = object->find(event.interface);
+    if (properties == object->end())
+        return;
+    for (const QString& property : event.invalidated)
+        properties->remove(property);
+    for (auto it = event.changed.cbegin(); it != event.changed.cend(); ++it)
+        properties->insert(it.key(), it.value());
 }
 
-void BtAudioPlugin::mergePendingPropertyChanges(BtManagedObjectMap& objects)
+void BtAudioPlugin::replayPendingEvents(BtManagedObjectMap& objects)
 {
-    const auto pendingChanges = std::exchange(pendingPropertyChanges_, {});
-    for (const auto& change : pendingChanges) {
-        auto object = objects.find(change.message.path());
-        if (object == objects.end())
-            continue;
-        auto properties = object->find(change.interface);
-        if (properties == object->end())
-            continue;
-        for (auto it = change.changed.cbegin(); it != change.changed.cend(); ++it)
-            properties->insert(it.key(), it.value());
-        for (const QString& property : change.invalidated)
-            properties->remove(property);
-    }
+    const auto pendingEvents = std::exchange(pendingEventJournal_, {});
+    for (const auto& event : pendingEvents)
+        applyEventToObjects(objects, event);
 }
 
 void BtAudioPlugin::onInterfacesAdded(const QDBusObjectPath& path, const BtInterfaceMap& interfaces)
 {
+    const PendingDbusEvent event{
+        PendingEventKind::InterfacesAdded, path.path(), interfaces, {}, {}, {}, {}};
+    applyEventToObjects(lastKnownObjects_, event);
     if (scanInFlight_) {
         scanPending_ = true;
-        pendingInterfaceChanges_.append({true, path.path(), interfaces, {}});
+        pendingEventJournal_.append(event);
     }
     const QString pathStr = path.path();
     applyInterfaces(pathStr, interfaces);
@@ -489,6 +488,7 @@ void BtAudioPlugin::adoptTransport(const QString& path, const QVariantMap& props
 
 void BtAudioPlugin::applyManagedObjectsSnapshot(const BtManagedObjectMap& objects)
 {
+    lastKnownObjects_ = objects;
     QMap<QString, QVariantMap> newDeviceProperties;
     QMap<QString, bool> newTransportActivity;
     QMap<QString, QString> newTransportDevices;
@@ -545,9 +545,12 @@ void BtAudioPlugin::applyManagedObjectsSnapshot(const BtManagedObjectMap& object
 
 void BtAudioPlugin::onInterfacesRemoved(const QDBusObjectPath& path, const QStringList& interfaces)
 {
+    const PendingDbusEvent event{
+        PendingEventKind::InterfacesRemoved, path.path(), {}, interfaces, {}, {}, {}};
+    applyEventToObjects(lastKnownObjects_, event);
     if (scanInFlight_) {
         scanPending_ = true;
-        pendingInterfaceChanges_.append({false, path.path(), {}, interfaces});
+        pendingEventJournal_.append(event);
     }
     const QString pathStr = path.path();
 
@@ -595,10 +598,14 @@ void BtAudioPlugin::onPropertiesChanged(const QString& interface, const QVariant
                                          const QStringList& invalidated,
                                          const QDBusMessage& message)
 {
-    if (scanInFlight_)
-        pendingPropertyChanges_.append({interface, changed, invalidated, message});
-    if (scanInFlight_)
+    const PendingDbusEvent event{
+        PendingEventKind::PropertiesChanged, message.path(), {}, {},
+        interface, changed, invalidated};
+    applyEventToObjects(lastKnownObjects_, event);
+    if (scanInFlight_) {
+        pendingEventJournal_.append(event);
         return;
+    }
     applyPropertiesChanged(interface, changed, invalidated, message);
 }
 

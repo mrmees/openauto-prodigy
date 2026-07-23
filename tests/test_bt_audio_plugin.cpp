@@ -132,6 +132,7 @@ private slots:
     void startupEnumeration_isAsynchronousAndUsesCarriedProperties();
     void startupEnumeration_malformedAndErrorRetainStateButEmptyClears();
     void startupEnumeration_validFallbackSurvivesTrailingError();
+    void startupEnumeration_journalKeepsPlayerIncarnationsSeparate();
     void startupEnumeration_bluezLossRejectsStaleReply();
     void hotplugMissingPropertiesRemainUnknownUntilDelivery();
     void deviceName_nameOnlyDeltaPreservesAlias();
@@ -1044,6 +1045,99 @@ void TestBtAudioPlugin::startupEnumeration_validFallbackSurvivesTrailingError()
     QCOMPARE(playbackSpy.count(), 1);
     QCOMPARE(metadataSpy.count(), 1);
     QCOMPARE(progressSpy.count(), 1);
+    QCOMPARE(activeSpy.count(), 1);
+
+    plugin.shutdown();
+    bus.unregisterService(QStringLiteral("org.bluez"));
+    bus.unregisterObject(QStringLiteral("/"));
+}
+
+void TestBtAudioPlugin::startupEnumeration_journalKeepsPlayerIncarnationsSeparate()
+{
+    QDBusConnection bus = QDBusConnection::sessionBus();
+    QVERIFY2(bus.isConnected(), "CTest must provide an isolated session D-Bus");
+    qDBusRegisterMetaType<TestManagedObjectMap>();
+
+    const QString devicePath = QStringLiteral("/org/bluez/hci0/dev_AA_BB");
+    const QString transportPath = devicePath + QStringLiteral("/fd0");
+    const QString playerPath = devicePath + QStringLiteral("/player0");
+
+    ObjectManagerFixture fixture;
+    fixture.replyDelayMs = 100;
+    fixture.objects[QDBusObjectPath(devicePath)]
+        .insert(QStringLiteral("org.bluez.Device1"),
+                {{QStringLiteral("Alias"), QStringLiteral("Moto")}});
+    fixture.objects[QDBusObjectPath(transportPath)]
+        .insert(QStringLiteral("org.bluez.MediaTransport1"),
+                {{QStringLiteral("State"), QStringLiteral("active")},
+                 {QStringLiteral("Device"),
+                  QVariant::fromValue(QDBusObjectPath(devicePath))}});
+    QVariantMap oldPlayer =
+        playerProperties(QStringLiteral("Old Snapshot Track"), 215000u, 61000u);
+    oldPlayer.insert(QStringLiteral("Status"), QStringLiteral("playing"));
+    fixture.objects[QDBusObjectPath(playerPath)]
+        .insert(QStringLiteral("org.bluez.MediaPlayer1"), oldPlayer);
+
+    QVERIFY(bus.registerObject(QStringLiteral("/"), &fixture,
+                               QDBusConnection::ExportAllSlots));
+    QVERIFY(bus.registerService(QStringLiteral("org.bluez")));
+
+    LoggingHostContext host;
+    BtAudioPlugin plugin(bus);
+    QSignalSpy connectionSpy(&plugin, &BtAudioPlugin::connectionStateChanged);
+    QSignalSpy playbackSpy(&plugin, &BtAudioPlugin::playbackStateChanged);
+    QSignalSpy metadataSpy(&plugin, &BtAudioPlugin::metadataChanged);
+    QSignalSpy progressSpy(&plugin, &BtAudioPlugin::progressChanged);
+    QSignalSpy activeSpy(&plugin, &BtAudioPlugin::transportActiveChanged);
+    QVERIFY(plugin.initialize(&host));
+    QTRY_COMPARE(fixture.callCount, 1);
+
+    // The valid reply has already captured the old player. Queue a property
+    // update for that incarnation, then remove and recreate MediaPlayer1 at
+    // the same path. The trailing scan fails so the event journal itself must
+    // retain the complete, correctly ordered fallback.
+    fixture.replyMode = ObjectManagerFixture::ReplyMode::Error;
+    QVariantMap staleTrack;
+    staleTrack.insert(QStringLiteral("Title"), QStringLiteral("Stale Old Delta"));
+    staleTrack.insert(QStringLiteral("Artist"), QStringLiteral("Stale Artist"));
+    staleTrack.insert(QStringLiteral("Duration"), QVariant::fromValue(quint32(999999)));
+    QVariantMap staleChanged;
+    staleChanged.insert(QStringLiteral("Track"), staleTrack);
+    staleChanged.insert(QStringLiteral("Position"), QVariant::fromValue(quint32(99999)));
+    staleChanged.insert(QStringLiteral("Status"), QStringLiteral("playing"));
+    QVERIFY(drivePlayerProperties(plugin, playerPath, staleChanged));
+
+    QVERIFY(QMetaObject::invokeMethod(
+        &plugin, "onInterfacesRemoved", Qt::DirectConnection,
+        Q_ARG(QDBusObjectPath, QDBusObjectPath(playerPath)),
+        Q_ARG(QStringList, QStringList{QStringLiteral("org.bluez.MediaPlayer1")})));
+
+    BtInterfaceMap replacement;
+    replacement.insert(QStringLiteral("org.bluez.MediaPlayer1"),
+                       {{QStringLiteral("Status"), QStringLiteral("paused")}});
+    QVERIFY(QMetaObject::invokeMethod(
+        &plugin, "onInterfacesAdded", Qt::DirectConnection,
+        Q_ARG(QDBusObjectPath, QDBusObjectPath(playerPath)),
+        Q_ARG(BtInterfaceMap, replacement)));
+
+    QTRY_COMPARE(fixture.callCount, 2);
+    QTRY_VERIFY(host.messages.join(QLatin1Char('\n')).contains(
+        QStringLiteral("fixture failure")));
+
+    QCOMPARE(plugin.connectionState(), static_cast<int>(BtAudioPlugin::Connected));
+    QCOMPARE(plugin.deviceName(), QStringLiteral("Moto"));
+    QVERIFY(plugin.transportActive());
+    QCOMPARE(plugin.playbackState(), static_cast<int>(BtAudioPlugin::Paused));
+    QVERIFY(plugin.trackTitle().isEmpty());
+    QVERIFY(plugin.trackArtist().isEmpty());
+    QVERIFY(plugin.trackAlbum().isEmpty());
+    QCOMPARE(plugin.trackDuration(), qint64(0));
+    QCOMPARE(plugin.trackPosition(), qint64(0));
+    QVERIFY(!plugin.hasTrackPosition());
+    QCOMPARE(connectionSpy.count(), 1);
+    QCOMPARE(playbackSpy.count(), 1);
+    QCOMPARE(metadataSpy.count(), 0);
+    QCOMPARE(progressSpy.count(), 0);
     QCOMPARE(activeSpy.count(), 1);
 
     plugin.shutdown();
