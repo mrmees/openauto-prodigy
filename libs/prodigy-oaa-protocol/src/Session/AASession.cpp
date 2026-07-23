@@ -24,8 +24,11 @@ AASession::AASession(ITransport* transport, const SessionConfig& config,
     , controlChannel_(new ControlChannel(this))
 {
     stateTimer_.setSingleShot(true);
+    pongDeadlineTimer_.setSingleShot(true);
     connect(&stateTimer_, &QTimer::timeout, this, &AASession::onStateTimeout);
     connect(&pingTimer_, &QTimer::timeout, this, &AASession::onPingTick);
+    connect(&pongDeadlineTimer_, &QTimer::timeout,
+            this, &AASession::onPongDeadline);
 
     // Transport signals
     connect(transport_, &ITransport::connected,
@@ -145,6 +148,7 @@ void AASession::stop(int reason) {
     if (state_ == SessionState::Active) {
         // Graceful shutdown
         qInfo() << "[AASession] Sending ShutdownRequest reason:" << reason;
+        stopLivenessTimers();
         setState(SessionState::ShuttingDown);
         if (finalized_ || state_ != SessionState::ShuttingDown)
             return;
@@ -153,7 +157,7 @@ void AASession::stop(int reason) {
     } else {
         // Not yet active, just disconnect
         stopStateTimer();
-        pingTimer_.stop();
+        stopLivenessTimers();
         setState(SessionState::Disconnected);
         emit disconnected(DisconnectReason::UserRequested);
     }
@@ -170,7 +174,7 @@ void AASession::finalize() {
         state_ = SessionState::Disconnected;
 
     stopStateTimer();
-    pingTimer_.stop();
+    stopLivenessTimers();
     messenger_->stop();
     closeChannels();
     for (auto* handler : channels_)
@@ -232,7 +236,7 @@ void AASession::disconnectHandler(IChannelHandler* handler) {
 
 void AASession::closeChannels() {
     stopStateTimer();
-    pingTimer_.stop();
+    stopLivenessTimers();
     messenger_->stop();
 
     if (channelsClosed_)
@@ -253,6 +257,11 @@ void AASession::startStateTimer(int timeoutMs) {
 
 void AASession::stopStateTimer() {
     stateTimer_.stop();
+}
+
+void AASession::stopLivenessTimers() {
+    pingTimer_.stop();
+    pongDeadlineTimer_.stop();
 }
 
 void AASession::onTransportConnected() {
@@ -335,7 +344,7 @@ void AASession::onTlsFailed(const QString& message) {
 
     qWarning() << "[AASession] TLS runtime failure:" << message;
     stopStateTimer();
-    pingTimer_.stop();
+    stopLivenessTimers();
     setState(SessionState::Disconnected);
     emit disconnected(DisconnectReason::TlsError);
 }
@@ -346,7 +355,7 @@ void AASession::onProtocolFailed(const QString& message) {
 
     qWarning() << "[AASession] Protocol framing failure:" << message;
     stopStateTimer();
-    pingTimer_.stop();
+    stopLivenessTimers();
     setState(SessionState::Disconnected);
     emit disconnected(DisconnectReason::ProtocolError);
 }
@@ -374,8 +383,8 @@ void AASession::onServiceDiscoveryRequested(const QByteArray& payload) {
     if (finalized_ || state_ != SessionState::Active)
         return;
     controlChannel_->onChannelOpened();
-    missedPings_ = 0;
     pingTimer_.start(config_.pingInterval);
+    pongDeadlineTimer_.start(config_.pingTimeout);
 }
 
 void AASession::onChannelOpenRequested(int32_t channelId, const QByteArray& /*payload*/) {
@@ -504,21 +513,24 @@ void AASession::onMessage(uint8_t channelId, uint16_t messageId,
 void AASession::onPingTick() {
     if (state_ != SessionState::Active) return;
 
-    missedPings_++;
-    if (missedPings_ > 3) {
-        qWarning() << "[AASession] Ping timeout — missed" << missedPings_ << "pings";
-        pingTimer_.stop();
-        setState(SessionState::Disconnected);
-        emit disconnected(DisconnectReason::PingTimeout);
-        return;
-    }
-
     lastPingTimestamp_ = QDateTime::currentMSecsSinceEpoch();
     controlChannel_->sendPingRequest(lastPingTimestamp_);
 }
 
 void AASession::onPongReceived(int64_t /*timestamp*/) {
-    missedPings_ = 0;
+    if (state_ == SessionState::Active)
+        pongDeadlineTimer_.start(config_.pingTimeout);
+}
+
+void AASession::onPongDeadline() {
+    if (state_ != SessionState::Active)
+        return;
+
+    qWarning() << "[AASession] Pong deadline expired after"
+               << config_.pingTimeout << "ms";
+    stopLivenessTimers();
+    setState(SessionState::Disconnected);
+    emit disconnected(DisconnectReason::PingTimeout);
 }
 
 void AASession::onShutdownRequested(int reason) {

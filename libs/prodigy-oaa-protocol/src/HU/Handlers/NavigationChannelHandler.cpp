@@ -63,7 +63,9 @@ void NavigationChannelHandler::handleNavState(const QByteArray& payload)
         return;
     }
 
-    bool active = (msg.state() == 1);
+    const bool active =
+        msg.state() == oaa::proto::messages::NAV_STATE_ACTIVE
+        || msg.state() == oaa::proto::messages::NAV_STATE_REROUTING;
     qInfo() << "[NavChannel] state:" << msg.state() << (active ? "(active)" : "(ended)");
 
     if (navActive_ != active) {

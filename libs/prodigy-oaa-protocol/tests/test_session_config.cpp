@@ -7,6 +7,17 @@ private slots:
     void testDefaultsHaveNoChannels() {
         oaa::SessionConfig config;
         QVERIFY(config.channels.isEmpty());
+        QCOMPARE(config.pingInterval, 5000);
+        QCOMPARE(config.pingTimeout, 15000);
+    }
+
+    void testPingCadenceAndDeadlineAreIndependentSettings() {
+        oaa::SessionConfig config;
+        config.pingInterval = 25;
+        config.pingTimeout = 180;
+
+        QCOMPARE(config.pingInterval, 25);
+        QCOMPARE(config.pingTimeout, 180);
     }
 
     void testAddVideoChannel() {

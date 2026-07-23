@@ -55,6 +55,7 @@ private:
     void closeChannels();
     void startStateTimer(int timeoutMs);
     void stopStateTimer();
+    void stopLivenessTimers();
 
     // State handlers
     void onTransportConnected();
@@ -71,6 +72,7 @@ private:
                    const QByteArray& payload, int dataOffset);
     void onPingTick();
     void onPongReceived(int64_t timestamp);
+    void onPongDeadline();
     void onShutdownRequested(int reason);
     void onShutdownAcknowledged();
     void onStateTimeout();
@@ -87,7 +89,7 @@ private:
 
     QTimer stateTimer_;
     QTimer pingTimer_;
-    int missedPings_ = 0;
+    QTimer pongDeadlineTimer_;
     int64_t lastPingTimestamp_ = 0;
     bool channelsClosed_ = true;
     bool finalized_ = false;

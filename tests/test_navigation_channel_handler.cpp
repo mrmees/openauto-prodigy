@@ -5,6 +5,7 @@
 #include <oaa/Channel/MessageIds.hpp>
 #include "oaa/navigation/NavigationTurnEventMessage.pb.h"
 #include "oaa/navigation/NavigationNotificationMessage.pb.h"
+#include "oaa/navigation/NavigationStateMessage.pb.h"
 // NavigationFocusIndicationMessage.pb.h removed — retracted in proto v1.1
 
 class TestNavigationChannelHandler : public QObject {
@@ -13,6 +14,44 @@ private slots:
     void testChannelId() {
         oaa::hu::NavigationChannelHandler handler;
         QCOMPARE(handler.channelId(), oaa::ChannelId::Navigation);
+    }
+
+    void testReroutingRemainsNavigationActive() {
+        oaa::hu::NavigationChannelHandler handler;
+        QSignalSpy stateSpy(
+            &handler,
+            &oaa::hu::NavigationChannelHandler::navigationStateChanged);
+        handler.onChannelOpened();
+
+        const auto sendState = [&handler](
+                                   oaa::proto::messages::NavigationStateType state) {
+            oaa::proto::messages::NavigationState message;
+            message.set_state(state);
+            QByteArray payload(message.ByteSizeLong(), '\0');
+            QVERIFY(message.SerializeToArray(payload.data(), payload.size()));
+            handler.onMessage(oaa::NavigationMessageId::NAV_STATE, payload);
+        };
+
+        sendState(oaa::proto::messages::NAV_STATE_REROUTING);
+        QCOMPARE(stateSpy.count(), 1);
+        QCOMPARE(stateSpy[0][0].toBool(), true);
+
+        sendState(oaa::proto::messages::NAV_STATE_ACTIVE);
+        sendState(oaa::proto::messages::NAV_STATE_REROUTING);
+        QCOMPARE(stateSpy.count(), 1);
+
+        sendState(oaa::proto::messages::NAV_STATE_INACTIVE);
+        QCOMPARE(stateSpy.count(), 2);
+        QCOMPARE(stateSpy[1][0].toBool(), false);
+
+        sendState(oaa::proto::messages::NAV_STATE_UNAVAILABLE);
+        QCOMPARE(stateSpy.count(), 2);
+
+        sendState(oaa::proto::messages::NAV_STATE_ACTIVE);
+        sendState(oaa::proto::messages::NAV_STATE_UNAVAILABLE);
+        QCOMPARE(stateSpy.count(), 4);
+        QCOMPARE(stateSpy[2][0].toBool(), true);
+        QCOMPARE(stateSpy[3][0].toBool(), false);
     }
 
     void testTurnEventFullPayload() {

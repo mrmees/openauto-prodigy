@@ -65,6 +65,12 @@ remain detached from the Messenger until their channel is opened, and
 `Messenger::stop()` cancels any re-entrant or multi-frame send that has not
 reached the transport.
 
+Audio channels advertise ten receive permits and return one permit for every
+accepted frame, preserving pipeline headroom. Session ping cadence and pong
+deadline use their independent configured intervals; a pong while Active
+restarts the single-shot deadline. Navigation remains active through both the
+ACTIVE and REROUTING phone states.
+
 ## Dependencies
 
 - Qt 6 (Core, Network)

@@ -3,6 +3,8 @@
 #include <oaa/HU/Handlers/AudioChannelHandler.hpp>
 #include <oaa/Channel/ChannelId.hpp>
 #include "oaa/av/AVChannelSetupRequestMessage.pb.h"
+#include "oaa/av/AVChannelSetupResponseMessage.pb.h"
+#include "oaa/av/AVMediaAckIndicationMessage.pb.h"
 #include "oaa/av/MediaCodecTypeEnum.pb.h"
 #include "oaa/av/AVChannelStartIndicationMessage.pb.h"
 
@@ -40,6 +42,11 @@ private slots:
         QCOMPARE(sendSpy.count(), 1);
         QCOMPARE(sendSpy[0][1].value<uint16_t>(),
                  static_cast<uint16_t>(oaa::AVMessageId::SETUP_RESPONSE));
+        oaa::proto::messages::AVChannelSetupResponse response;
+        const QByteArray responsePayload = sendSpy[0][2].toByteArray();
+        QVERIFY(response.ParseFromArray(responsePayload.constData(),
+                                        responsePayload.size()));
+        QCOMPARE(response.max_unacked(), 10);
     }
 
     void testStartIndicationEmitsSignal() {
@@ -76,18 +83,24 @@ private slots:
         QSignalSpy dataSpy(&handler, &oaa::hu::AudioChannelHandler::audioDataReceived);
         QSignalSpy sendSpy(&handler, &oaa::IChannelHandler::sendRequested);
 
-        // Send 10 frames to trigger batched ACK (max_unacked=10)
+        // Each accepted frame immediately replenishes one advertised permit.
         QByteArray pcmData(960, '\x42');
-        for (int i = 0; i < 10; ++i)
+        for (int i = 0; i < 3; ++i)
             handler.onMediaData(pcmData, 1234567890 + i);
 
-        QCOMPARE(dataSpy.count(), 10);
+        QCOMPARE(dataSpy.count(), 3);
         QCOMPARE(dataSpy[0][0].toByteArray().size(), 960);
 
-        // Should send one batched ACK after 10 frames
-        QCOMPARE(sendSpy.count(), 1);
-        QCOMPARE(sendSpy[0][1].value<uint16_t>(),
-                 static_cast<uint16_t>(oaa::AVMessageId::ACK_INDICATION));
+        QCOMPARE(sendSpy.count(), 3);
+        for (const auto& emission : sendSpy) {
+            QCOMPARE(emission[1].value<uint16_t>(),
+                     static_cast<uint16_t>(oaa::AVMessageId::ACK_INDICATION));
+            oaa::proto::messages::AVMediaAckIndication ack;
+            const QByteArray ackPayload = emission[2].toByteArray();
+            QVERIFY(ack.ParseFromArray(ackPayload.constData(), ackPayload.size()));
+            QCOMPARE(ack.session_id(), 1);
+            QCOMPARE(ack.ack_count(), 1);
+        }
     }
 
     void testMediaDataIgnoredWhenNotStreaming() {
