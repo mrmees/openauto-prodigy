@@ -107,6 +107,12 @@ Static plugins compiled into the binary, implementing `IPlugin` (see [reference/
   retaining a prior session's values.
 - `phone` — dialer/call UI backed by the core `PhoneStateService`; the core
   service owns BlueZ device monitoring and `org.pipewire.Telephony` call state.
+  `TelephonyClient` selects one AudioGateway and accepts transport state only
+  from the `AudioGatewayTransport1` interface co-located on that same object;
+  other phones cannot retarget the selected transport. SCO can confirm a
+  setup/settling call and can debounce the end of an active call, but SCO alone
+  never synthesizes an Active call from Idle. Plugin shutdown disconnects the
+  provider before releasing it, so late provider signals are inert.
 - `media_player` — local file playback (`PlaybackEngine`, `PlayQueue`, `FolderModel`, `MediaArtProvider`).
 - `equalizer` — EQ control over `EqualizerService`.
 

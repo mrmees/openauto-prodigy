@@ -38,8 +38,9 @@ using BluezInterfaceMap = QMap<QString, QVariantMap>;
 /// State machine: docs/archive/plans/2026-07-05-hfp-call-audio-design.md §5.
 /// Key semantics (live-verified): Call1 objects exist during call SETUP only;
 /// "active call" truth comes from SCO node state, with transport state as a
-/// fallback inside the settle window. Transitions come only from telephony/
-/// SCO events — never optimistically from command dispatch.
+/// fallback inside the settle window. SCO confirms or ends call evidence but
+/// cannot create a call from Idle. Transitions are never optimistic command
+/// dispatch side effects.
 ///
 /// Mock mode: with no TelephonyClient attached (dev VM, tests), answer()/
 /// hangup()/dial() perform local transitions so the UI remains drivable.

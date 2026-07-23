@@ -333,6 +333,21 @@ removal as an authoritative stopped/unknown snapshot also prevents stale
 playback, metadata, or progress from surviving a vanished player while keeping
 all observable signals edge-only.
 
+### HFP transport and call state require selected-phone evidence
+
+**Decision:** The first selected PipeWire AudioGateway owns only the
+`AudioGatewayTransport1` interface on that exact object path. Transport
+properties and removals from other gateway objects are ignored. SCO may resolve
+an existing setup/settle transition or confirm the loss of an Active call, but
+cannot transition Idle to Active by itself.
+
+**Rationale:** PipeWire publishes one gateway object per connected phone, with
+its transport interface co-located on that object. Accepting a second phone's
+transport would let its idle state terminate the selected phone's call.
+Separately, a running SCO node is audio-routing evidence, not sufficient proof
+that a call exists; requiring setup/call evidence prevents stale or unrelated
+nodes from creating a phantom call.
+
 ---
 
 ### Application-lifetime night state

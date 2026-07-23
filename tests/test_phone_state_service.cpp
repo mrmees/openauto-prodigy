@@ -25,7 +25,8 @@ private slots:
     void testActiveEndsOnScoDropDebounced();
     void testActiveSurvivesScoBlip();
     void testActiveEndsOnTransportIdle();
-    void testRecoveryScoRunningFromIdle();
+    void testActiveEndsOnTransportRemoval();
+    void testIdleScoDoesNotSynthesizeCall();
     void testCallWaitingIgnoredWhileActive();
     void testAgVanishResetsToIdle();
     void testDialGuards();
@@ -226,11 +227,21 @@ void TestPhoneStateService::testActiveEndsOnTransportIdle() {
     QCOMPARE(s->callState(), (int)CS::Idle);
 }
 
-void TestPhoneStateService::testRecoveryScoRunningFromIdle() {
+void TestPhoneStateService::testActiveEndsOnTransportRemoval() {
+    QObject root; auto* s = makeFastService(&root);
+    s->onCallSetupStarted("incoming", "1", "");
+    s->onCallSetupChanged("active");
+    // TelephonyClient publishes an empty state when the selected transport
+    // interface disappears. With no SCO, that is authoritative call loss.
+    s->onTransportStateChanged({});
+    QCOMPARE(s->callState(), (int)CS::Idle);
+}
+
+void TestPhoneStateService::testIdleScoDoesNotSynthesizeCall() {
     QObject root; auto* s = makeFastService(&root);
     QCOMPARE(s->callState(), (int)CS::Idle);
-    s->onScoRunningChanged(true);              // restarted mid-call / audio routed back
-    QCOMPARE(s->callState(), (int)CS::Active);
+    s->onScoRunningChanged(true);              // SCO alone is audio, not call evidence
+    QCOMPARE(s->callState(), (int)CS::Idle);
 }
 
 void TestPhoneStateService::testCallWaitingIgnoredWhileActive() {

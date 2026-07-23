@@ -51,15 +51,20 @@ bool PhonePlugin::initialize(IHostContext* context)
 
 void PhonePlugin::shutdown()
 {
+    if (service_)
+        disconnect(service_, nullptr, this, nullptr);
     if (endedFlashTimer_) {
         endedFlashTimer_->stop();
+        delete endedFlashTimer_;
         endedFlashTimer_ = nullptr;
     }
     service_ = nullptr;
+    hostContext_ = nullptr;
 }
 
 void PhonePlugin::onProviderStateChanged()
 {
+    if (!service_) return;
     const int ps = service_->callState();
     CallState mapped = Idle;
     switch (ps) {

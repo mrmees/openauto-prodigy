@@ -188,9 +188,6 @@ void PhoneStateService::onScoRunningChanged(bool running)
             inSettle_ = false;
             settleTimer_.stop();
             setCallStateInternal(ICallStateProvider::Active);
-        } else if (callState_ == ICallStateProvider::Idle && telephonyAvailable_) {
-            // Recovery: restarted mid-call, or user routed audio back to car.
-            setCallStateInternal(ICallStateProvider::Active);
         }
     } else {
         if (callState_ == ICallStateProvider::Active)
@@ -217,7 +214,7 @@ void PhoneStateService::onTransportStateChanged(const QString& state)
         inSettle_ = false;
         settleTimer_.stop();
         setCallStateInternal(ICallStateProvider::Active);
-    } else if (state == QLatin1String("idle")
+    } else if ((state.isEmpty() || state == QLatin1String("idle"))
                && callState_ == ICallStateProvider::Active && !scoRunning_) {
         scoDebounceTimer_.stop();
         callerNumber_.clear();

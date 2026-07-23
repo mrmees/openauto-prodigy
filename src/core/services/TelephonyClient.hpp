@@ -67,6 +67,7 @@ private:
     void scanExistingObjects();
     void adoptAg(const QString& path, const QVariantMap& props);
     void adoptTransport(const QString& path, const QVariantMap& props);
+    void clearTransport();
     void adoptCall(const QString& path, const QVariantMap& props);
     void applyRejectSco();
     void asyncCall(const QString& op, QDBusMessage msg);
