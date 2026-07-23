@@ -15,6 +15,7 @@
 #include "core/services/TelephonyClient.hpp"
 #include <QObject>
 #include <QString>
+#include <QDBusConnection>
 #include <QDBusObjectPath>
 #include <QMap>
 #include <QVariantMap>
@@ -38,6 +39,7 @@ class BtAudioTap;  // BT A2DP loopback tap (Task 7) — owned + wired in initial
 /// QMap<QString,QVariantMap> already declared via TelephonyClient's
 /// Q_DECLARE_METATYPE(oap::InterfaceMap); re-registered in startDBusMonitoring().
 using BtInterfaceMap = QMap<QString, QVariantMap>;
+using BtManagedObjectMap = QMap<QString, BtInterfaceMap>;
 
 /// Bluetooth A2DP audio sink plugin.
 ///
@@ -79,6 +81,7 @@ public:
     Q_ENUM(PlaybackState)
 
     explicit BtAudioPlugin(QObject* parent = nullptr);
+    BtAudioPlugin(const QDBusConnection& bus, QObject* parent = nullptr);
     ~BtAudioPlugin() override;
 
     // IPlugin — Identity
@@ -127,6 +130,11 @@ public:
     /// Auto while the phone is silent — precision matters.
     bool transportActive() const { return transportActive_; }
 
+    /// Apply one complete ObjectManager snapshot. Production reaches this
+    /// through the asynchronous GetManagedObjects reply; tests use it to pin
+    /// startup adoption without a live bluetoothd.
+    void applyManagedObjectsSnapshot(const BtManagedObjectMap& objects);
+
     // Playback controls (invokable from QML)
     Q_INVOKABLE void play();
     Q_INVOKABLE void pause();
@@ -164,6 +172,10 @@ private:
     void startDBusMonitoring();
     void stopDBusMonitoring();
     void scanExistingObjects();
+    void finishExistingObjectScan(const QDBusMessage& reply);
+    void applyInterfaces(const QString& path, const BtInterfaceMap& interfaces);
+    void adoptTransport(const QString& path, const QVariantMap& props);
+    void adoptDevice(const QString& path, const QVariantMap& props);
     // Record one transport's audio activity (State=="active") under its own
     // path, then recompute the aggregate connection/activity edges.
     void updateTransportState(const QString& path, const QString& state);
@@ -178,8 +190,11 @@ private:
     void setTransportActive(bool active);
 
     IHostContext* hostContext_ = nullptr;
+    QDBusConnection bus_;
     QDBusServiceWatcher* bluezWatcher_ = nullptr;
     bool monitoring_ = false;
+    bool scanInFlight_ = false;
+    bool scanPending_ = false;
 
     // BT A2DP loopback tap — non-owning raw pointer; parented to this QObject.
     // Null when PipeWire is down or the concrete services don't resolve.
@@ -202,6 +217,8 @@ private:
     // first is still playing, so activity is tracked per transport and the edge
     // derives from "ANY tracked transport active" (not last-writer-wins).
     QMap<QString, bool> transportActiveByPath_;
+    QMap<QString, QString> transportDeviceByPath_;
+    QMap<QString, QString> deviceNamesByPath_;
 
     // D-Bus object paths: transportPath_ is the MOST-RECENT transport (used for
     // device-name display only); playerPath_ is the tracked AVRCP player.

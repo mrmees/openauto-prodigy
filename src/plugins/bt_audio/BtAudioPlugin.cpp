@@ -5,9 +5,8 @@
 #include "core/services/EqualizerService.hpp"
 #include <QQmlContext>
 #include <QDBusConnection>
-#include <QDBusInterface>
 #include <QDBusMessage>
-#include <QDBusReply>
+#include <QDBusPendingCallWatcher>
 #include <QDBusServiceWatcher>
 #include <QDBusArgument>
 #include <QDBusMetaType>
@@ -59,13 +58,61 @@ std::optional<qint64> bluezMilliseconds(const QVariant& value)
     return static_cast<qint64>(unwrapped.toUInt());
 }
 
+oap::plugins::BtManagedObjectMap parseManagedObjects(const QDBusMessage& reply)
+{
+    oap::plugins::BtManagedObjectMap objects;
+    if (reply.type() != QDBusMessage::ReplyMessage || reply.arguments().isEmpty())
+        return objects;
+
+    const QDBusArgument arg = reply.arguments().constFirst().value<QDBusArgument>();
+    arg.beginMap();
+    while (!arg.atEnd()) {
+        arg.beginMapEntry();
+        QDBusObjectPath objectPath;
+        arg >> objectPath;
+
+        oap::plugins::BtInterfaceMap interfaces;
+        arg.beginMap();
+        while (!arg.atEnd()) {
+            arg.beginMapEntry();
+            QString interfaceName;
+            arg >> interfaceName;
+
+            QVariantMap properties;
+            arg.beginMap();
+            while (!arg.atEnd()) {
+                arg.beginMapEntry();
+                QString key;
+                QDBusVariant value;
+                arg >> key >> value;
+                properties.insert(key, value.variant());
+                arg.endMapEntry();
+            }
+            arg.endMap();
+            interfaces.insert(interfaceName, properties);
+            arg.endMapEntry();
+        }
+        arg.endMap();
+        objects.insert(objectPath.path(), interfaces);
+        arg.endMapEntry();
+    }
+    arg.endMap();
+    return objects;
+}
+
 } // namespace
 
 namespace oap {
 namespace plugins {
 
 BtAudioPlugin::BtAudioPlugin(QObject* parent)
+    : BtAudioPlugin(QDBusConnection::systemBus(), parent)
+{
+}
+
+BtAudioPlugin::BtAudioPlugin(const QDBusConnection& bus, QObject* parent)
     : QObject(parent)
+    , bus_(bus)
 {
 }
 
@@ -123,8 +170,7 @@ void BtAudioPlugin::startDBusMonitoring()
 {
     if (monitoring_) return;
 
-    auto bus = QDBusConnection::systemBus();
-    if (!bus.isConnected()) {
+    if (!bus_.isConnected()) {
         if (hostContext_)
             hostContext_->log(LogLevel::Warning,
                 QStringLiteral("BtAudio: Cannot connect to system D-Bus — BT monitoring disabled"));
@@ -134,7 +180,7 @@ void BtAudioPlugin::startDBusMonitoring()
     // Watch for BlueZ service availability
     bluezWatcher_ = new QDBusServiceWatcher(
         QStringLiteral("org.bluez"),
-        bus,
+        bus_,
         QDBusServiceWatcher::WatchForRegistration | QDBusServiceWatcher::WatchForUnregistration,
         this);
 
@@ -156,7 +202,7 @@ void BtAudioPlugin::startDBusMonitoring()
     qRegisterMetaType<oap::plugins::BtInterfaceMap>("oap::plugins::BtInterfaceMap");
 
     // Listen for InterfacesAdded/Removed on the BlueZ ObjectManager
-    const bool okAdded = bus.connect(
+    const bool okAdded = bus_.connect(
         QStringLiteral("org.bluez"),
         QStringLiteral("/"),
         QStringLiteral("org.freedesktop.DBus.ObjectManager"),
@@ -164,7 +210,7 @@ void BtAudioPlugin::startDBusMonitoring()
         this,
         SLOT(onInterfacesAdded(QDBusObjectPath,BtInterfaceMap)));
 
-    const bool okRemoved = bus.connect(
+    const bool okRemoved = bus_.connect(
         QStringLiteral("org.bluez"),
         QStringLiteral("/"),
         QStringLiteral("org.freedesktop.DBus.ObjectManager"),
@@ -175,7 +221,7 @@ void BtAudioPlugin::startDBusMonitoring()
     // Listen for PropertiesChanged on any BlueZ object; the trailing
     // QDBusMessage carries the sender path so onPropertiesChanged can filter to
     // the currently-tracked transport/player.
-    const bool okProps = bus.connect(
+    const bool okProps = bus_.connect(
         QStringLiteral("org.bluez"),
         QString(),  // any path
         QStringLiteral("org.freedesktop.DBus.Properties"),
@@ -199,18 +245,17 @@ void BtAudioPlugin::stopDBusMonitoring()
 {
     if (!monitoring_) return;
 
-    auto bus = QDBusConnection::systemBus();
-    bus.disconnect(
+    bus_.disconnect(
         QStringLiteral("org.bluez"), QStringLiteral("/"),
         QStringLiteral("org.freedesktop.DBus.ObjectManager"),
         QStringLiteral("InterfacesAdded"),
         this, SLOT(onInterfacesAdded(QDBusObjectPath,BtInterfaceMap)));
-    bus.disconnect(
+    bus_.disconnect(
         QStringLiteral("org.bluez"), QStringLiteral("/"),
         QStringLiteral("org.freedesktop.DBus.ObjectManager"),
         QStringLiteral("InterfacesRemoved"),
         this, SLOT(onInterfacesRemoved(QDBusObjectPath,QStringList)));
-    bus.disconnect(
+    bus_.disconnect(
         QStringLiteral("org.bluez"), QString(),
         QStringLiteral("org.freedesktop.DBus.Properties"),
         QStringLiteral("PropertiesChanged"),
@@ -219,206 +264,200 @@ void BtAudioPlugin::stopDBusMonitoring()
     delete bluezWatcher_;
     bluezWatcher_ = nullptr;
     monitoring_ = false;
+    scanPending_ = false;
 }
 
 void BtAudioPlugin::onBluezServiceUnregistered()
 {
     if (hostContext_)
         hostContext_->log(LogLevel::Info, QStringLiteral("BtAudio: BlueZ disappeared from D-Bus"));
+    if (scanInFlight_)
+        scanPending_ = true;
     transportActiveByPath_.clear();
+    transportDeviceByPath_.clear();
+    deviceNamesByPath_.clear();
     transportPath_.clear();
     playerPath_.clear();
     // A later transport can reconnect before its MediaPlayer1 snapshot. Clear
     // player data now so the composition-root catch-up cannot republish stale
     // time validity or metadata from the vanished BlueZ session.
     updatePlayerProperties({}, true);
-    // BlueZ gone => no transports => no audio activity. Force the edge false
-    // before the UI-state resets below so the tap releases focus.
-    setTransportActive(false);
-    if (connectionState_ != Disconnected) {
-        connectionState_ = Disconnected;
-        emit connectionStateChanged();
-    }
-    if (playbackState_ != Stopped) {
-        playbackState_ = Stopped;
-        emit playbackStateChanged();
-    }
+    // BlueZ gone => no transports => no audio activity. Recompute both edges
+    // so the tap releases focus and the displayed device is cleared together.
+    recomputeTransportState();
 }
 
 void BtAudioPlugin::scanExistingObjects()
 {
-    // Call GetManagedObjects on BlueZ to find existing transports/players
+    if (!monitoring_)
+        return;
+    if (scanInFlight_) {
+        scanPending_ = true;
+        return;
+    }
+
+    scanInFlight_ = true;
     QDBusMessage msg = QDBusMessage::createMethodCall(
         QStringLiteral("org.bluez"),
         QStringLiteral("/"),
         QStringLiteral("org.freedesktop.DBus.ObjectManager"),
         QStringLiteral("GetManagedObjects"));
 
-    QDBusMessage reply = QDBusConnection::systemBus().call(msg, QDBus::Block, 2000);
-    if (reply.type() != QDBusMessage::ReplyMessage) return;
+    auto* watcher = new QDBusPendingCallWatcher(bus_.asyncCall(msg, 2000), this);
+    connect(watcher, &QDBusPendingCallWatcher::finished, this,
+            [this, watcher]() {
+                const QDBusMessage reply = watcher->reply();
+                watcher->deleteLater();
+                finishExistingObjectScan(reply);
+            });
+}
 
-    // Reply is a{oa{sa{sv}}} — path -> interface -> properties
-    // Use QDBusArgument manual deserialization for the nested map types
-    const QDBusArgument arg = reply.arguments().at(0).value<QDBusArgument>();
-    arg.beginMap();
-    while (!arg.atEnd()) {
-        arg.beginMapEntry();
+void BtAudioPlugin::finishExistingObjectScan(const QDBusMessage& reply)
+{
+    scanInFlight_ = false;
+    const bool needsRescan = scanPending_;
+    scanPending_ = false;
+    // A signal delivered while this request was in flight may be newer than
+    // its reply. Keep the signal-applied state and let one trailing snapshot
+    // become authoritative instead of briefly rolling state backwards.
+    if (monitoring_ && !needsRescan && reply.type() == QDBusMessage::ReplyMessage)
+        applyManagedObjectsSnapshot(parseManagedObjects(reply));
+    else if (monitoring_ && !needsRescan && hostContext_)
+        hostContext_->log(LogLevel::Warning,
+                          QStringLiteral("BtAudio: GetManagedObjects failed: %1")
+                              .arg(reply.errorMessage()));
 
-        QDBusObjectPath objPath;
-        arg >> objPath;
-        QString path = objPath.path();
-
-        // Inner map: interface name -> properties
-        const QDBusArgument ifacesArg = qvariant_cast<QDBusArgument>(arg.asVariant());
-        ifacesArg.beginMap();
-        while (!ifacesArg.atEnd()) {
-            ifacesArg.beginMapEntry();
-
-            QString iface;
-            ifacesArg >> iface;
-
-            // Properties map: a{sv}
-            const QDBusArgument propsArg = qvariant_cast<QDBusArgument>(ifacesArg.asVariant());
-            QVariantMap props;
-            propsArg.beginMap();
-            while (!propsArg.atEnd()) {
-                propsArg.beginMapEntry();
-                QString key;
-                QVariant val;
-                propsArg >> key;
-                QDBusVariant dbusVal;
-                propsArg >> dbusVal;
-                props[key] = dbusVal.variant();
-                propsArg.endMapEntry();
-            }
-            propsArg.endMap();
-
-            ifacesArg.endMapEntry();
-
-            if (iface == QLatin1String("org.bluez.MediaTransport1")) {
-                transportPath_ = path;  // most-recent transport (device-name display)
-                const QString state = props.value(QStringLiteral("State")).toString();
-
-                // Try to get device name from the Device property (set BEFORE the
-                // recompute below so its connectionStateChanged also notifies the
-                // deviceName property binding).
-                QString devicePath = props.value(QStringLiteral("Device")).value<QDBusObjectPath>().path();
-                if (!devicePath.isEmpty()) {
-                    QDBusInterface deviceIface(
-                        QStringLiteral("org.bluez"), devicePath,
-                        QStringLiteral("org.bluez.Device1"),
-                        QDBusConnection::systemBus());
-                    if (deviceIface.isValid()) {
-                        QString alias = deviceIface.property("Alias").toString();
-                        if (!alias.isEmpty())
-                            deviceName_ = alias;
-                    }
-                }
-
-                // Register this transport + its activity, then recompute edges.
-                updateTransportState(path, state);
-            }
-
-            if (iface == QLatin1String("org.bluez.MediaPlayer1")) {
-                adoptPlayer(path, props);
-            }
-        }
-        ifacesArg.endMap();
-
-        arg.endMapEntry();
-    }
-    arg.endMap();
+    if (monitoring_ && needsRescan)
+        scanExistingObjects();
 }
 
 void BtAudioPlugin::onInterfacesAdded(const QDBusObjectPath& path, const BtInterfaceMap& interfaces)
 {
+    if (scanInFlight_)
+        scanPending_ = true;
     const QString pathStr = path.path();
+    applyInterfaces(pathStr, interfaces);
+}
+
+void BtAudioPlugin::applyInterfaces(const QString& path, const BtInterfaceMap& interfaces)
+{
+    if (interfaces.contains(QStringLiteral("org.bluez.Device1")))
+        adoptDevice(path, interfaces.value(QStringLiteral("org.bluez.Device1")));
 
     if (interfaces.contains(QStringLiteral("org.bluez.MediaTransport1"))) {
-        transportPath_ = pathStr;  // most-recent transport (device-name display)
         if (hostContext_)
             hostContext_->log(LogLevel::Info,
-                QStringLiteral("BtAudio: A2DP transport appeared: %1").arg(pathStr));
-
-        // Prefer the State/Device already carried in this InterfacesAdded payload
-        // — a separate synchronous property read can fail or race BlueZ, and an
-        // already-active transport recorded inactive would have no later
-        // PropertiesChanged to correct it. Only fall back to a synchronous read
-        // when the payload lacks the State key. A read-back failure (e.g. no live
-        // bus) leaves state empty ⇒ the transport is still tracked as present
-        // (not active) so connectionState reads Connected while its edge stays false.
-        const QVariantMap transportProps =
-            interfaces.value(QStringLiteral("org.bluez.MediaTransport1"));
-
-        QString state;
-        QString devicePath;
-        if (transportProps.contains(QStringLiteral("State"))) {
-            state = transportProps.value(QStringLiteral("State")).toString();
-            devicePath = transportProps.value(QStringLiteral("Device"))
-                             .value<QDBusObjectPath>().path();
-        } else {
-            QDBusInterface iface(
-                QStringLiteral("org.bluez"), pathStr,
-                QStringLiteral("org.bluez.MediaTransport1"),
-                QDBusConnection::systemBus());
-            if (iface.isValid()) {
-                state = iface.property("State").toString();
-                devicePath = iface.property("Device").value<QDBusObjectPath>().path();
-            }
-        }
-
-        // Resolve the human-readable device name (Device1.Alias is never in the
-        // transport payload, so this stays a D-Bus read; skipped without a path).
-        if (!devicePath.isEmpty()) {
-            QDBusInterface deviceIface(
-                QStringLiteral("org.bluez"), devicePath,
-                QStringLiteral("org.bluez.Device1"),
-                QDBusConnection::systemBus());
-            if (deviceIface.isValid()) {
-                const QString alias = deviceIface.property("Alias").toString();
-                if (!alias.isEmpty())
-                    deviceName_ = alias;
-            }
-        }
-
-        // Track this transport + its activity, then recompute connection/edge
-        // (Connected because the map is now non-empty).
-        updateTransportState(pathStr, state);
+                              QStringLiteral("BtAudio: A2DP transport appeared: %1").arg(path));
+        adoptTransport(path, interfaces.value(QStringLiteral("org.bluez.MediaTransport1")));
     }
 
     if (interfaces.contains(QStringLiteral("org.bluez.MediaPlayer1"))) {
-        QVariantMap playerProps =
-            interfaces.value(QStringLiteral("org.bluez.MediaPlayer1"));
         if (hostContext_)
             hostContext_->log(LogLevel::Info,
-                QStringLiteral("BtAudio: AVRCP player appeared: %1").arg(pathStr));
-
-        // ObjectManager already carries the initial property snapshot. Only
-        // retain the legacy synchronous read-back for a genuinely empty map.
-        if (playerProps.isEmpty()) {
-            QDBusInterface iface(
-                QStringLiteral("org.bluez"), pathStr,
-                QStringLiteral("org.bluez.MediaPlayer1"),
-                QDBusConnection::systemBus());
-            if (iface.isValid()) {
-                QVariantMap props;
-                props[QStringLiteral("Status")] = iface.property("Status");
-                props[QStringLiteral("Track")] = iface.property("Track");
-                props[QStringLiteral("Position")] = iface.property("Position");
-                playerProps = props;
-            }
-        }
-        adoptPlayer(pathStr, playerProps);
+                              QStringLiteral("BtAudio: AVRCP player appeared: %1").arg(path));
+        adoptPlayer(path, interfaces.value(QStringLiteral("org.bluez.MediaPlayer1")));
     }
+}
+
+void BtAudioPlugin::adoptDevice(const QString& path, const QVariantMap& props)
+{
+    QString name;
+    if (props.contains(QStringLiteral("Alias")))
+        name = unwrapDbusVariant(props.value(QStringLiteral("Alias"))).toString();
+    if (name.isEmpty() && props.contains(QStringLiteral("Name")))
+        name = unwrapDbusVariant(props.value(QStringLiteral("Name"))).toString();
+
+    if (name.isEmpty())
+        deviceNamesByPath_.remove(path);
+    else
+        deviceNamesByPath_.insert(path, name);
+    recomputeTransportState();
+}
+
+void BtAudioPlugin::adoptTransport(const QString& path, const QVariantMap& props)
+{
+    transportPath_ = path;
+    const QString devicePath =
+        unwrapDbusVariant(props.value(QStringLiteral("Device")))
+            .value<QDBusObjectPath>().path();
+    if (devicePath.isEmpty())
+        transportDeviceByPath_.remove(path);
+    else
+        transportDeviceByPath_.insert(path, devicePath);
+    updateTransportState(path,
+                         unwrapDbusVariant(props.value(QStringLiteral("State"))).toString());
+}
+
+void BtAudioPlugin::applyManagedObjectsSnapshot(const BtManagedObjectMap& objects)
+{
+    QMap<QString, QString> newDeviceNames;
+    QMap<QString, bool> newTransportActivity;
+    QMap<QString, QString> newTransportDevices;
+    QString newTransportPath;
+    QString newPlayerPath;
+    QVariantMap newPlayerProperties;
+
+    // Resolve Device1 names before transports so startup never needs a
+    // follow-up property read merely to label an already-connected phone.
+    for (auto objectIt = objects.cbegin(); objectIt != objects.cend(); ++objectIt) {
+        const auto deviceIt = objectIt.value().constFind(QStringLiteral("org.bluez.Device1"));
+        if (deviceIt == objectIt.value().cend())
+            continue;
+        QString name = unwrapDbusVariant(deviceIt->value(QStringLiteral("Alias"))).toString();
+        if (name.isEmpty())
+            name = unwrapDbusVariant(deviceIt->value(QStringLiteral("Name"))).toString();
+        if (!name.isEmpty())
+            newDeviceNames.insert(objectIt.key(), name);
+    }
+
+    for (auto objectIt = objects.cbegin(); objectIt != objects.cend(); ++objectIt) {
+        const auto transportIt =
+            objectIt.value().constFind(QStringLiteral("org.bluez.MediaTransport1"));
+        if (transportIt != objectIt.value().cend()) {
+            newTransportPath = objectIt.key();
+            const QString state =
+                unwrapDbusVariant(transportIt->value(QStringLiteral("State"))).toString();
+            newTransportActivity.insert(objectIt.key(), state == QLatin1String("active"));
+            const QString devicePath =
+                unwrapDbusVariant(transportIt->value(QStringLiteral("Device")))
+                    .value<QDBusObjectPath>().path();
+            if (!devicePath.isEmpty())
+                newTransportDevices.insert(objectIt.key(), devicePath);
+        }
+
+        const auto playerIt =
+            objectIt.value().constFind(QStringLiteral("org.bluez.MediaPlayer1"));
+        if (playerIt != objectIt.value().cend()) {
+            // Preserve the existing single-player policy: the last object in
+            // ObjectManager map order wins, matching the former startup scan.
+            newPlayerPath = objectIt.key();
+            newPlayerProperties = playerIt.value();
+        }
+    }
+
+    deviceNamesByPath_ = newDeviceNames;
+    transportActiveByPath_ = newTransportActivity;
+    transportDeviceByPath_ = newTransportDevices;
+    transportPath_ = newTransportPath;
+    recomputeTransportState();
+
+    playerPath_ = newPlayerPath;
+    // A complete snapshot is authoritative. Missing initial properties remain
+    // unknown/stopped until PropertiesChanged supplies them, rather than
+    // retaining values from an earlier player/session.
+    updatePlayerProperties(newPlayerProperties, true);
 }
 
 void BtAudioPlugin::onInterfacesRemoved(const QDBusObjectPath& path, const QStringList& interfaces)
 {
+    if (scanInFlight_)
+        scanPending_ = true;
     const QString pathStr = path.path();
 
     if (interfaces.contains(QStringLiteral("org.bluez.MediaTransport1"))
         && transportActiveByPath_.contains(pathStr)) {
         transportActiveByPath_.remove(pathStr);
+        transportDeviceByPath_.remove(pathStr);
         // transportPath_ tracks the most-recent transport for device-name
         // display; hand it off to a survivor, else clear.
         if (pathStr == transportPath_)
@@ -448,12 +487,19 @@ void BtAudioPlugin::onInterfacesRemoved(const QDBusObjectPath& path, const QStri
         playerPath_.clear();
         updatePlayerProperties({}, true);
     }
+
+    if (interfaces.contains(QStringLiteral("org.bluez.Device1"))) {
+        deviceNamesByPath_.remove(pathStr);
+        recomputeTransportState();
+    }
 }
 
 void BtAudioPlugin::onPropertiesChanged(const QString& interface, const QVariantMap& changed,
                                          const QStringList& invalidated,
                                          const QDBusMessage& message)
 {
+    if (scanInFlight_)
+        scanPending_ = true;
     // PropertiesChanged is subscribed on ANY BlueZ path; the sender path rides
     // in the QDBusMessage. Ignore updates from objects other than the ones we
     // currently track, or a foreign transport/player would stomp our state. For
@@ -464,10 +510,26 @@ void BtAudioPlugin::onPropertiesChanged(const QString& interface, const QVariant
     if (interface == QLatin1String("org.bluez.MediaTransport1")
         && !transportActiveByPath_.contains(sender)) return;
     if (interface == QLatin1String("org.bluez.MediaPlayer1") && sender != playerPath_) return;
+    if (interface == QLatin1String("org.bluez.Device1")
+        && !transportDeviceByPath_.values().contains(sender)) return;
 
     if (interface == QLatin1String("org.bluez.MediaTransport1")) {
         if (changed.contains(QStringLiteral("State")))
             updateTransportState(sender, changed.value(QStringLiteral("State")).toString());
+        else if (invalidated.contains(QStringLiteral("State")))
+            updateTransportState(sender, {});
+        if (changed.contains(QStringLiteral("Device"))) {
+            const QString devicePath = unwrapDbusVariant(changed.value(QStringLiteral("Device")))
+                                           .value<QDBusObjectPath>().path();
+            if (devicePath.isEmpty())
+                transportDeviceByPath_.remove(sender);
+            else
+                transportDeviceByPath_.insert(sender, devicePath);
+            recomputeTransportState();
+        } else if (invalidated.contains(QStringLiteral("Device"))) {
+            transportDeviceByPath_.remove(sender);
+            recomputeTransportState();
+        }
     }
 
     if (interface == QLatin1String("org.bluez.MediaPlayer1")) {
@@ -481,7 +543,23 @@ void BtAudioPlugin::onPropertiesChanged(const QString& interface, const QVariant
         if (invalidated.contains(QStringLiteral("Position"))
             && !effective.contains(QStringLiteral("Position")))
             effective.insert(QStringLiteral("Position"), QVariant{});
+        if (invalidated.contains(QStringLiteral("Status"))
+            && !effective.contains(QStringLiteral("Status")))
+            effective.insert(QStringLiteral("Status"), QVariant{});
         updatePlayerProperties(effective);
+    }
+
+    if (interface == QLatin1String("org.bluez.Device1")) {
+        if ((invalidated.contains(QStringLiteral("Alias"))
+             || invalidated.contains(QStringLiteral("Name")))
+            && !changed.contains(QStringLiteral("Alias"))
+            && !changed.contains(QStringLiteral("Name"))) {
+            deviceNamesByPath_.remove(sender);
+            recomputeTransportState();
+        } else if (changed.contains(QStringLiteral("Alias"))
+                   || changed.contains(QStringLiteral("Name"))) {
+            adoptDevice(sender, changed);
+        }
     }
 }
 
@@ -499,14 +577,16 @@ void BtAudioPlugin::updateTransportState(const QString& path, const QString& sta
 void BtAudioPlugin::recomputeTransportState()
 {
     // UI connection: Connected while ANY transport interface exists (audio
-    // activity is a separate edge). Clearing to Disconnected also clears the
-    // device name (whose property notifies via connectionStateChanged).
+    // activity is a separate edge). The most-recent transport's carried
+    // Device1 name shares this notifier with connection state.
     const ConnectionState newConn =
         transportActiveByPath_.isEmpty() ? Disconnected : Connected;
-    if (newConn != connectionState_) {
+    QString newDeviceName;
+    if (newConn == Connected)
+        newDeviceName = deviceNamesByPath_.value(transportDeviceByPath_.value(transportPath_));
+    if (newConn != connectionState_ || newDeviceName != deviceName_) {
         connectionState_ = newConn;
-        if (newConn == Disconnected)
-            deviceName_.clear();
+        deviceName_ = newDeviceName;
         emit connectionStateChanged();
     }
 
@@ -529,7 +609,7 @@ void BtAudioPlugin::setTransportActive(bool active)
 
 void BtAudioPlugin::adoptPlayer(const QString& path, const QVariantMap& props)
 {
-    const bool replacingPlayer = !playerPath_.isEmpty() && playerPath_ != path;
+    const bool replacingPlayer = playerPath_ != path;
     playerPath_ = path;
     if (!props.isEmpty() || replacingPlayer)
         updatePlayerProperties(props, replacingPlayer);
@@ -543,8 +623,10 @@ void BtAudioPlugin::updatePlayerProperties(const QVariantMap& props, bool resetB
     const qint64 oldDuration = trackDuration_;
     const qint64 oldPosition = trackPosition_;
     const bool oldPositionKnown = trackPositionKnown_;
+    const PlaybackState oldPlaybackState = playbackState_;
 
     if (resetBeforeApply) {
+        playbackState_ = Stopped;
         trackTitle_.clear();
         trackArtist_.clear();
         trackAlbum_.clear();
@@ -561,10 +643,7 @@ void BtAudioPlugin::updatePlayerProperties(const QVariantMap& props, bool resetB
         else if (status == QLatin1String("paused"))
             newState = Paused;
 
-        if (newState != playbackState_) {
-            playbackState_ = newState;
-            emit playbackStateChanged();
-        }
+        playbackState_ = newState;
     }
 
     if (props.contains(QStringLiteral("Track"))) {
@@ -602,6 +681,8 @@ void BtAudioPlugin::updatePlayerProperties(const QVariantMap& props, bool resetB
     const bool positionValueChanged = oldPosition != trackPosition_;
     const bool progressStateChanged = durationValueChanged || positionValueChanged
                                       || oldPositionKnown != trackPositionKnown_;
+    if (oldPlaybackState != playbackState_)
+        emit playbackStateChanged();
     if (metaChanged)
         emit metadataChanged();
     if (durationValueChanged)
@@ -623,7 +704,7 @@ void BtAudioPlugin::sendPlayerCommand(const QString& command)
         QStringLiteral("org.bluez.MediaPlayer1"),
         command);
 
-    QDBusConnection::systemBus().call(msg, QDBus::NoBlock);
+    bus_.call(msg, QDBus::NoBlock);
 }
 
 void BtAudioPlugin::onActivated(QQmlContext* context)

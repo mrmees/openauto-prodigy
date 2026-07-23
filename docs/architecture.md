@@ -90,6 +90,14 @@ Static plugins compiled into the binary, implementing `IPlugin` (see [reference/
 
 - `android_auto` — projection lifecycle, activation/deactivation hooks, touch integration, AA focus controls.
 - `bt_audio` — BlueZ D-Bus monitoring for A2DP media transport/player state and AVRCP controls; owns `BtAudioTap`, which routes BT music through the app's EQ (see "BT A2DP EQ tap" below).
+- `bt_audio` subscribes before issuing an asynchronous, coalesced
+  `GetManagedObjects` startup scan. Complete snapshots and later
+  `InterfacesAdded` payloads feed the same carried-property adoption contract
+  for `Device1`, `MediaTransport1`, and `MediaPlayer1`; no hot-plug handler
+  performs interface introspection or a property read. Missing carried values
+  remain unknown/inactive until BlueZ delivers them. Removing the tracked
+  player atomically returns playback, metadata, duration, position, and
+  position validity to their stopped/unknown values.
 - BlueZ `MediaPlayer1.Position` and `Track.Duration` enter `bt_audio` as
   `uint32` milliseconds. Startup enumeration, player adoption, and later
   property changes widen them to `qint64` without scaling, then publish the

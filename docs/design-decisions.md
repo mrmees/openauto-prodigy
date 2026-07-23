@@ -318,6 +318,21 @@ provides a consistent startup and update contract. Agent display prompts remain
 distinct from delayed confirmation/authorization requests so QML never offers
 accept/reject controls for a display-only passkey.
 
+### AVRCP discovery consumes carried ObjectManager state
+
+**Decision:** `BtAudioPlugin` subscribes first, enumerates BlueZ asynchronously
+with a coalesced `GetManagedObjects`, and sends complete startup snapshots and
+hot-plug interface payloads through one adoption contract for Device1 names,
+A2DP transport activity, and the tracked AVRCP player.
+
+**Rationale:** Synchronous interface construction and property reads can block
+the Qt event loop and can race the ObjectManager event that prompted them.
+BlueZ already carries the relevant properties in its snapshot and add signal;
+an omitted value is safely unknown until later delivery. Treating player
+removal as an authoritative stopped/unknown snapshot also prevents stale
+playback, metadata, or progress from surviving a vanished player while keeping
+all observable signals edge-only.
+
 ---
 
 ### Application-lifetime night state
