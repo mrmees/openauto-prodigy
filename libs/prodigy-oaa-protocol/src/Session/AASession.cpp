@@ -160,6 +160,11 @@ void AASession::finalize() {
         return;
     finalized_ = true;
 
+    const bool publishStateChange = state_ != SessionState::Idle
+                                    && state_ != SessionState::Disconnected;
+    if (publishStateChange)
+        state_ = SessionState::Disconnected;
+
     stopStateTimer();
     pingTimer_.stop();
     messenger_->stop();
@@ -168,8 +173,7 @@ void AASession::finalize() {
         disconnectHandler(handler);
     channels_.clear();
 
-    if (state_ != SessionState::Idle && state_ != SessionState::Disconnected) {
-        state_ = SessionState::Disconnected;
+    if (publishStateChange) {
         qDebug() << "[AASession] State:" << static_cast<int>(state_);
         emit stateChanged(state_);
     }
