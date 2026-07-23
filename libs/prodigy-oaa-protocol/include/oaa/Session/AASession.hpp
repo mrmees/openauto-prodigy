@@ -35,12 +35,17 @@ public:
 signals:
     void stateChanged(oaa::SessionState newState);
     void channelOpened(uint8_t channelId);
-    void channelOpenRejected(uint8_t channelId);
+    void channelOpenRejected(int32_t channelId);
     void disconnected(oaa::DisconnectReason reason);
 
     /// Emitted when phone requests audio focus change.
     /// focusType values from AudioFocusType enum: GAIN(1), GAIN_TRANSIENT(2), GAIN_NAVI(3), RELEASE(4)
     void audioFocusChanged(int focusType);
+
+protected:
+    /// Narrow test seam for failures produced by the initial synchronous TLS
+    /// drive. Production delegates directly to Messenger::startHandshake().
+    virtual void startTlsHandshake();
 
 private:
     void setState(SessionState newState);
@@ -58,7 +63,7 @@ private:
     void onHandshakeComplete();
     void onHandshakeFailed(const QString& message);
     void onServiceDiscoveryRequested(const QByteArray& payload);
-    void onChannelOpenRequested(uint8_t channelId, const QByteArray& payload);
+    void onChannelOpenRequested(int32_t channelId, const QByteArray& payload);
     void onMessage(uint8_t channelId, uint16_t messageId,
                    const QByteArray& payload, int dataOffset);
     void onPingTick();

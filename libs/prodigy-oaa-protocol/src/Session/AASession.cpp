@@ -184,8 +184,11 @@ void AASession::registerChannel(uint8_t channelId, IChannelHandler* handler) {
         return;
 
     auto existing = channels_.find(channelId);
-    if (existing != channels_.end() && existing.value() != handler)
+    if (existing != channels_.end() && existing.value() != handler) {
         disconnectHandler(existing.value());
+        if (!channelsClosed_)
+            existing.value()->onChannelClosed();
+    }
     channels_[channelId] = handler;
     connectHandler(handler);
 }
@@ -275,10 +278,15 @@ void AASession::onVersionReceived(uint16_t major, uint16_t minor, bool match) {
         return;
     }
 
-    // Start TLS handshake
-    messenger_->startHandshake();
+    // Enter the state before the initial synchronous handshake drive so a
+    // fatal error emitted by that drive cannot be mistaken for stale input.
     setState(SessionState::TLSHandshake);
     startStateTimer(config_.handshakeTimeout);
+    startTlsHandshake();
+}
+
+void AASession::startTlsHandshake() {
+    messenger_->startHandshake();
 }
 
 void AASession::onHandshakeComplete() {
@@ -324,17 +332,25 @@ void AASession::onServiceDiscoveryRequested(const QByteArray& payload) {
     pingTimer_.start(config_.pingInterval);
 }
 
-void AASession::onChannelOpenRequested(uint8_t channelId, const QByteArray& /*payload*/) {
+void AASession::onChannelOpenRequested(int32_t channelId, const QByteArray& /*payload*/) {
     if (state_ != SessionState::Active) return;
 
-    if (channels_.contains(channelId)) {
-        qDebug() << "[AASession] Opening channel" << channelId;
-        controlChannel_->sendChannelOpenResponse(channelId, true);
-        channels_[channelId]->onChannelOpened();
-        emit channelOpened(channelId);
+    if (channelId <= 0 || channelId > UINT8_MAX) {
+        qWarning() << "[AASession] Rejecting invalid channel id" << channelId;
+        emit channelOpenRejected(channelId);
+        return;
+    }
+
+    const auto targetChannel = static_cast<uint8_t>(channelId);
+
+    if (channels_.contains(targetChannel)) {
+        qDebug() << "[AASession] Opening channel" << targetChannel;
+        controlChannel_->sendChannelOpenResponse(targetChannel, true);
+        channels_[targetChannel]->onChannelOpened();
+        emit channelOpened(targetChannel);
     } else {
-        qDebug() << "[AASession] Rejecting channel" << channelId << "(not registered)";
-        controlChannel_->sendChannelOpenResponse(channelId, false);
+        qDebug() << "[AASession] Rejecting channel" << targetChannel << "(not registered)";
+        controlChannel_->sendChannelOpenResponse(targetChannel, false);
         emit channelOpenRejected(channelId);
     }
 }
@@ -360,7 +376,17 @@ void AASession::onMessage(uint8_t channelId, uint16_t messageId,
 
         proto::messages::ChannelOpenRequest req;
         if (req.ParseFromArray(payload.constData() + dataOffset, dataSize)) {
-            uint8_t targetCh = static_cast<uint8_t>(req.channel_id());
+            const int32_t requestedChannel = req.channel_id();
+            if (requestedChannel <= 0 || requestedChannel > UINT8_MAX
+                || requestedChannel != channelId) {
+                qWarning() << "[AASession] Rejecting channel-open request on"
+                           << channelId << "for invalid/mismatched channel"
+                           << requestedChannel;
+                emit channelOpenRejected(requestedChannel);
+                return;
+            }
+
+            const auto targetCh = static_cast<uint8_t>(requestedChannel);
             if (channels_.contains(targetCh)) {
                 qDebug() << "[AASession] Opening channel" << targetCh;
                 // Response goes on the target channel, not ch0

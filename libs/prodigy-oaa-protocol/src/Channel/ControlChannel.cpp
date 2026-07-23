@@ -97,8 +97,7 @@ void ControlChannel::onMessage(uint16_t messageId, const QByteArray& payload, in
         if (req.ParseFromArray(data, dataSize)) {
             qInfo() << "[ControlChannel] ChannelOpenRequest:"
                      << QString::fromStdString(req.ShortDebugString());
-            emit channelOpenRequested(
-                static_cast<uint8_t>(req.channel_id()), QByteArray(data, dataSize));
+            emit channelOpenRequested(req.channel_id(), QByteArray(data, dataSize));
         } else {
             qWarning() << "[ControlChannel] Failed to parse ChannelOpenRequest";
         }
