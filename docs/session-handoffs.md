@@ -4,6 +4,35 @@ Newest entries first.
 
 ---
 
+## 2026-07-23 — PR #32 pre-merge review fixes
+
+**What changed:** two confirmed findings from the PR #32 review were fixed on
+the branch. `AndroidAutoOrchestrator::stop()` now flushes the active socket
+after `session_->stop(7)` so the buffered ShutdownRequest reaches the wire
+before synchronous transport teardown aborts the socket (no event-loop wait —
+the flush is a synchronous call, consistent with the earlier dismissal of a
+shutdown-ack wait). `HOST_API_VERSION` was bumped to 3 for the appended
+`IHostContext::nightModeService()` vtable entry, and all plugin and fixture
+`apiVersion()` overrides now return `PluginDiscovery::HOST_API_VERSION` so a
+binary always reports the headers it was built against.
+
+**Review adjudication:** two findings confirmed and fixed (wire flush, version
+bump). Observations recorded without action: replacement admission during
+`Connecting` is documented design; `ThemeNightMode` is now dead code (cleanup
+candidate); the reset-on-failed-`initCodec` silent video path predates this
+work. Nothing dismissed silently.
+
+**Verification:** full local build, explicit `openauto-prodigy` target, and
+`ctest --output-on-failure` (all tests) passed. The new wire-flush assertion
+was proven non-vacuous: disabling the flush fails the test at exactly that
+assertion.
+
+**Next 1-3 steps:** (1) merge PR #32; (2) consider removing `ThemeNightMode`
+in a cleanup pass; (3) wishlist a surfaced error state for decoder reset
+failure.
+
+---
+
 ## 2026-07-23 — Android Auto input/video/night remediation COMPLETE
 
 **What changed:** decoder stream resets now run as ordered worker commands and
