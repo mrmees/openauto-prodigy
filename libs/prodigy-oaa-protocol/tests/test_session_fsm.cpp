@@ -13,6 +13,7 @@
 #include "oaa/common/StatusEnum.pb.h"
 #include "oaa/control/ServiceDiscoveryRequestMessage.pb.h"
 #include "oaa/control/ServiceDiscoveryResponseMessage.pb.h"
+#include "oaa/control/PingRequestMessage.pb.h"
 #include <functional>
 
 // Minimal mock channel handler for testing
@@ -102,6 +103,14 @@ private:
         QCOMPARE(session.state(), oaa::SessionState::ServiceDiscovery);
         session.messenger()->messageReceived(0, 0x0005, QByteArray(), 0);
         QCOMPARE(session.state(), oaa::SessionState::Active);
+    }
+
+    int64_t pingTimestamp(const QList<QVariant>& emission) {
+        oaa::proto::messages::PingRequest ping;
+        const QByteArray payload = emission[2].toByteArray();
+        if (!ping.ParseFromArray(payload.constData(), payload.size()))
+            return -1;
+        return ping.timestamp();
     }
 
 private slots:
@@ -559,17 +568,52 @@ private slots:
         config.pingInterval = 60;
         config.pingTimeout = 80;
         oaa::AASession session(&transport, config);
+        QSignalSpy pingSpy(session.controlChannel(),
+                           &oaa::IChannelHandler::sendRequested);
         QSignalSpy disconnectSpy(&session, &oaa::AASession::disconnected);
 
         transport.simulateConnect();
         session.start();
         advanceToActive(session);
+        const int64_t firstTimestamp = pingTimestamp(pingSpy.last());
+        QVERIFY(firstTimestamp >= 0);
+        pingSpy.clear();
 
         QTest::qWait(55);
-        emit session.controlChannel()->pongReceived(123);
+        emit session.controlChannel()->pongReceived(firstTimestamp);
+        QTRY_VERIFY_WITH_TIMEOUT(!pingSpy.isEmpty(), 30);
+        QCOMPARE(pingSpy.last()[1].value<uint16_t>(), uint16_t(0x000b));
+
+        // A duplicate response to the prior ping cannot clear the newer
+        // outstanding deadline.
+        emit session.controlChannel()->pongReceived(firstTimestamp);
         QTest::qWait(55);
         QCOMPARE(session.state(), oaa::SessionState::Active);
 
+        QTRY_COMPARE_WITH_TIMEOUT(session.state(),
+                                  oaa::SessionState::Disconnected, 100);
+        QCOMPARE(disconnectSpy.count(), 1);
+        QCOMPARE(disconnectSpy[0][0].value<oaa::DisconnectReason>(),
+                 oaa::DisconnectReason::PingTimeout);
+    }
+
+    void testMismatchedPongCannotClearDeadline() {
+        oaa::ReplayTransport transport;
+        oaa::SessionConfig config;
+        config.pingInterval = 1000;
+        config.pingTimeout = 40;
+        oaa::AASession session(&transport, config);
+        QSignalSpy pingSpy(session.controlChannel(),
+                           &oaa::IChannelHandler::sendRequested);
+        QSignalSpy disconnectSpy(&session, &oaa::AASession::disconnected);
+
+        transport.simulateConnect();
+        session.start();
+        advanceToActive(session);
+        const int64_t timestamp = pingTimestamp(pingSpy.last());
+        QVERIFY(timestamp >= 0);
+
+        emit session.controlChannel()->pongReceived(timestamp + 1);
         QTRY_COMPARE_WITH_TIMEOUT(session.state(),
                                   oaa::SessionState::Disconnected, 100);
         QCOMPARE(disconnectSpy.count(), 1);

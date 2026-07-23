@@ -146,8 +146,9 @@ buffering, media decode, TLS policy, or application-level payload limits.
   returns `ack_count = 1`; no hard-coded duplicate threshold or counter remains.
 - `pingInterval` controls send cadence and `pingTimeout` independently controls
   the single-shot pong deadline across custom configurations.
-- Active sends a ping before arming the deadline; pongs clear the outstanding
-  deadline, the next ping rearms it, and close/finalize/restart cancel both.
+- Active sends a ping before arming the deadline; a pong clears the outstanding
+  deadline only when it echoes a timestamp issued in that window, the next ping
+  rearms it, and close/finalize/restart cancel both and clear timestamp state.
   Expiry emits one `PingTimeout` and cannot be revived by a late pong.
 - ACTIVE→REROUTING remains active with no duplicate signal or downstream clear.
   INACTIVE and UNAVAILABLE transition inactive exactly once.

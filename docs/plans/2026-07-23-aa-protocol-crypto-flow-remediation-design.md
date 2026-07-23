@@ -39,8 +39,9 @@ Established-session encryption and decryption return a typed result plus output
 instead of encoding failure as an empty byte array. Each SSL operation clears
 the thread error queue immediately before the call and classifies the result
 immediately afterward, as required by OpenSSL. Decryption drains the application
-bytes from the complete TLS record carried by one encrypted AA frame. A fatal,
-closed, or incomplete record is an error at this boundary; no empty payload is
+bytes from the structurally complete TLS record sequence carried by one
+encrypted AA frame. A fatal, closed, or incomplete record is an error at this
+boundary; no empty payload is
 forwarded to the frame assembler. Encryption likewise rejects partial/fatal
 writes before any frame from that logical message enters the transport queue.
 
@@ -83,8 +84,9 @@ handler. The unused counter and duplicated numeric literal are removed.
 `AASession` owns a single-shot pong-deadline timer in addition to the periodic
 ping timer. Entering Active sends the first ping immediately and starts the
 periodic cadence. A ping arms the deadline only when none is outstanding; a
-pong while Active clears it. Disconnect, finalization, shutdown, or restart
-stops both timers. Expiry produces exactly one `PingTimeout` disconnect at
+pong while Active clears it only when its echoed timestamp matches a ping sent
+in the current deadline window. Disconnect, finalization, shutdown, or restart
+stops both timers and clears the outstanding timestamps. Expiry produces exactly one `PingTimeout` disconnect at
 `SessionConfig::pingTimeout`, independent of `pingInterval`.
 
 Navigation state handling uses generated enum names. ACTIVE and REROUTING map
@@ -123,7 +125,7 @@ clear the downstream guidance snapshot.
 | Runtime TLS read/write failure | Required local | Fatal encrypted I/O emits once, forwards no payload/frame, and closes with `TlsError` |
 | Fragment assembly limits | Required local | Exact declared completion succeeds; zero/short/oversize/mismatch/aggregate cases fail and release all state |
 | Audio ACK cadence | Required local | Setup advertises ten; every accepted frame returns exactly one permit without waiting for exhaustion |
-| Ping deadline | Required local | Different interval/timeout combinations expire by timeout, pongs reset it, and terminal states cancel it |
+| Ping deadline | Required local | Different interval/timeout combinations expire by timeout, matching pongs clear it, stale/mismatched pongs do not, and terminal states cancel it |
 | Navigation rerouting | Required local | ACTIVE→REROUTING remains active with no duplicate false edge; INACTIVE/UNAVAILABLE clear once |
 | Focused and repository gates | Required local | Focused tests, full build, explicit app target, full CTest, docs links, and `git diff --check` pass; every review finding is adjudicated |
 | aarch64 application | Required before deploy | `./cross-build.sh` succeeds from the reviewed commit |

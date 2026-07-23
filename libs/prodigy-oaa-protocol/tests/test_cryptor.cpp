@@ -1,6 +1,83 @@
 #include <QtTest/QtTest>
 #include <oaa/Messenger/Cryptor.hpp>
 
+#include <memory>
+
+namespace {
+
+using PkeyPtr = std::unique_ptr<EVP_PKEY, decltype(&EVP_PKEY_free)>;
+using PkeyContextPtr = std::unique_ptr<EVP_PKEY_CTX, decltype(&EVP_PKEY_CTX_free)>;
+using X509Ptr = std::unique_ptr<X509, decltype(&X509_free)>;
+using BioPtr = std::unique_ptr<BIO, decltype(&BIO_free)>;
+
+PkeyPtr generateRsaKey()
+{
+    PkeyContextPtr context(EVP_PKEY_CTX_new_id(EVP_PKEY_RSA, nullptr),
+                           EVP_PKEY_CTX_free);
+    if (!context || EVP_PKEY_keygen_init(context.get()) <= 0
+        || EVP_PKEY_CTX_set_rsa_keygen_bits(context.get(), 2048) <= 0) {
+        return PkeyPtr(nullptr, EVP_PKEY_free);
+    }
+
+    EVP_PKEY* key = nullptr;
+    if (EVP_PKEY_keygen(context.get(), &key) <= 0)
+        return PkeyPtr(nullptr, EVP_PKEY_free);
+    return PkeyPtr(key, EVP_PKEY_free);
+}
+
+QByteArray bioContents(BIO* bio)
+{
+    char* data = nullptr;
+    const long size = BIO_get_mem_data(bio, &data);
+    return size > 0 ? QByteArray(data, static_cast<int>(size)) : QByteArray{};
+}
+
+struct MismatchedPemMaterial {
+    QByteArray certificate;
+    QByteArray privateKey;
+};
+
+MismatchedPemMaterial makeMismatchedPemMaterial()
+{
+    auto certificateKey = generateRsaKey();
+    auto otherKey = generateRsaKey();
+    X509Ptr certificate(X509_new(), X509_free);
+    if (!certificateKey || !otherKey || !certificate)
+        return {};
+
+    if (X509_set_version(certificate.get(), 2) != 1
+        || ASN1_INTEGER_set(X509_get_serialNumber(certificate.get()), 1) != 1
+        || !X509_gmtime_adj(X509_getm_notBefore(certificate.get()), 0)
+        || !X509_gmtime_adj(X509_getm_notAfter(certificate.get()), 3600)
+        || X509_set_pubkey(certificate.get(), certificateKey.get()) != 1) {
+        return {};
+    }
+
+    X509_NAME* name = X509_get_subject_name(certificate.get());
+    if (!name
+        || X509_NAME_add_entry_by_txt(
+               name, "CN", MBSTRING_ASC,
+               reinterpret_cast<const unsigned char*>("cryptor-test"),
+               -1, -1, 0) != 1
+        || X509_set_issuer_name(certificate.get(), name) != 1
+        || X509_sign(certificate.get(), certificateKey.get(), EVP_sha256()) <= 0) {
+        return {};
+    }
+
+    BioPtr certificateBio(BIO_new(BIO_s_mem()), BIO_free);
+    BioPtr keyBio(BIO_new(BIO_s_mem()), BIO_free);
+    if (!certificateBio || !keyBio
+        || PEM_write_bio_X509(certificateBio.get(), certificate.get()) != 1
+        || PEM_write_bio_PrivateKey(keyBio.get(), otherKey.get(), nullptr,
+                                    nullptr, 0, nullptr, nullptr) != 1) {
+        return {};
+    }
+
+    return {bioContents(certificateBio.get()), bioContents(keyBio.get())};
+}
+
+} // namespace
+
 class TestCryptor : public QObject {
     Q_OBJECT
 private:
@@ -150,6 +227,22 @@ private slots:
 
         QVERIFY(cryptor.init(oaa::Cryptor::Role::Client));
         QVERIFY(cryptor.lastError().isEmpty());
+        QCOMPARE(cryptor.doHandshake(), oaa::Cryptor::HandshakeResult::WantIo);
+    }
+
+    void testValidButMismatchedCredentialMaterialFailsTransactionally() {
+        const auto material = makeMismatchedPemMaterial();
+        QVERIFY(!material.certificate.isEmpty());
+        QVERIFY(!material.privateKey.isEmpty());
+
+        oaa::Cryptor cryptor;
+        QVERIFY(!cryptor.init(oaa::Cryptor::Role::Client,
+                              material.certificate, material.privateKey));
+        QVERIFY(!cryptor.isActive());
+        QVERIFY(!cryptor.lastError().isEmpty());
+        QVERIFY(cryptor.lastError().contains(QStringLiteral("mismatch")));
+
+        QVERIFY(cryptor.init(oaa::Cryptor::Role::Client));
         QCOMPARE(cryptor.doHandshake(), oaa::Cryptor::HandshakeResult::WantIo);
     }
 

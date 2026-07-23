@@ -276,6 +276,7 @@ void AASession::stopStateTimer() {
 void AASession::stopLivenessTimers() {
     pingTimer_.stop();
     pongDeadlineTimer_.stop();
+    outstandingPingTimestamps_.clear();
 }
 
 void AASession::onTransportConnected() {
@@ -532,14 +533,23 @@ void AASession::onPingTick() {
     if (state_ != SessionState::Active) return;
 
     lastPingTimestamp_ = QDateTime::currentMSecsSinceEpoch();
+    outstandingPingTimestamps_.insert(lastPingTimestamp_);
     controlChannel_->sendPingRequest(lastPingTimestamp_);
-    if (state_ == SessionState::Active && !pongDeadlineTimer_.isActive())
+    if (state_ == SessionState::Active
+        && outstandingPingTimestamps_.contains(lastPingTimestamp_)
+        && !pongDeadlineTimer_.isActive()) {
         pongDeadlineTimer_.start(config_.pingTimeout);
+    }
 }
 
-void AASession::onPongReceived(int64_t /*timestamp*/) {
-    if (state_ == SessionState::Active)
-        pongDeadlineTimer_.stop();
+void AASession::onPongReceived(int64_t timestamp) {
+    if (state_ != SessionState::Active
+        || !outstandingPingTimestamps_.contains(timestamp)) {
+        return;
+    }
+
+    outstandingPingTimestamps_.clear();
+    pongDeadlineTimer_.stop();
 }
 
 void AASession::onPongDeadline() {
