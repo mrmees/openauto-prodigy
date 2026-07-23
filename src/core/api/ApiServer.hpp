@@ -20,6 +20,7 @@
 // Threading: main thread only (Qt event loop).
 
 #include <QObject>
+#include <QPointer>
 #include <QString>
 #include <QList>
 #include <QHostAddress>
@@ -80,6 +81,9 @@ public:
 
     bool start();     // reads api.* config; false if disabled or both listens fail
     void stop();      // idempotent; destroys publishers before other teardown
+    // Final application shutdown: stop sessions/listeners and detach actions
+    // while the registry is still alive. start() can register them again.
+    void shutdown();
     // True while at least one listener is bound. main.cpp exposes ApiService
     // unconditionally, so QML gates the pairing UI on this — a pairing window
     // on a non-running server is zombie UI (no listener to pair through).
@@ -141,8 +145,12 @@ private:
     void createPublishers();
     void wirePublisher(TopicPublisher* pub);
     void rebindPairing();
+    void registerPairingActions();
+    void unregisterPairingActions();
 
     ApiServiceRefs refs_;
+    QPointer<oap::ActionRegistry> actions_;
+    bool pairingActionsRegistered_ = false;
 
     // Auth / pairing (created in ctor so api.pairing.* actions work pre-start()).
     std::unique_ptr<PairedClientStore> store_;

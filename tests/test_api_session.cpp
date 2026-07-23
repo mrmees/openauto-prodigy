@@ -93,6 +93,8 @@ private slots:
     void testBadVersionRejected();
     void testFirstMessageMustBeHello();
     void testHandshakeTimeout();
+    void testAuthResponseGetsFreshDeadline();
+    void testPairingResponseGetsFreshDeadline();
     void testLegacyCredentialRequiresUpgrade();
     void testRemoteAuthHappyPath();
     void testRemoteAuthBadProof();
@@ -164,6 +166,62 @@ void TestApiSession::testHandshakeTimeout() {
 
     QCOMPARE(terminatedSpy.count(), 1);
     QCOMPARE(session.state(), ApiSession::State::Closed);
+}
+
+void TestApiSession::testAuthResponseGetsFreshDeadline() {
+    PairedClientStore store("/tmp/oap_test_session_stage_auth.yaml");
+    PairedClient client;
+    client.clientId = "stage-client";
+    client.secret = QByteArray(32, 's');
+    store.upsert(client);
+
+    auto* transport = new FakeTransport();
+    ApiSessionDeps deps;
+    deps.store = &store;
+    deps.handshakeTimeoutMs = 150;
+    ApiSession session(transport, deps);
+    session.setPeerTrustOverrideForTest(false);
+
+    QTest::qWait(90);
+    pb::ApiMessage hello;
+    auto* h = hello.mutable_client_hello();
+    h->set_requested_api_version_major(1);
+    h->mutable_auth()->set_client_id("stage-client");
+    transport->injectMessage(serialize(hello));
+    QCOMPARE(session.state(), ApiSession::State::AuthPending);
+
+    QTest::qWait(90);
+    QCOMPARE(session.state(), ApiSession::State::AuthPending);
+    QTRY_COMPARE_WITH_TIMEOUT(session.state(), ApiSession::State::Closed, 150);
+}
+
+void TestApiSession::testPairingResponseGetsFreshDeadline() {
+    const QString path = "/tmp/oap_test_session_stage_pairing.yaml";
+    QFile::remove(path);
+    PairedClientStore store(path);
+    QVERIFY(store.load());
+    PairingManager pairing(&store);
+    QVERIFY(pairing.startWindow(60));
+
+    auto* transport = new FakeTransport();
+    ApiSessionDeps deps;
+    deps.store = &store;
+    deps.pairing = &pairing;
+    deps.handshakeTimeoutMs = 150;
+    ApiSession session(transport, deps);
+    session.setPeerTrustOverrideForTest(false);
+
+    QTest::qWait(90);
+    pb::ApiMessage hello;
+    auto* h = hello.mutable_client_hello();
+    h->set_requested_api_version_major(1);
+    h->mutable_auth()->set_pairing_request(true);
+    transport->injectMessage(serialize(hello));
+    QCOMPARE(session.state(), ApiSession::State::PairingPending);
+
+    QTest::qWait(90);
+    QCOMPARE(session.state(), ApiSession::State::PairingPending);
+    QTRY_COMPARE_WITH_TIMEOUT(session.state(), ApiSession::State::Closed, 150);
 }
 
 void TestApiSession::testLegacyCredentialRequiresUpgrade() {

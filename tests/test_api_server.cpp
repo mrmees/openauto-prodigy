@@ -123,6 +123,7 @@ private slots:
     void testServerIdMintedAndStable();
     void testDoubleStartIsIdempotentNoOp();
     void testCorruptClientStoreDisablesPairing();
+    void testShutdownUnregistersAndStartRestoresPairingActions();
 };
 
 void TestApiServer::testStartsAndBindsEphemeral() {
@@ -154,6 +155,24 @@ void TestApiServer::testCorruptClientStoreDisablesPairing() {
     QVERIFY(!server.pairingActive());
     QVERIFY(server.pairingCode().isEmpty());
     server.stop();
+}
+
+void TestApiServer::testShutdownUnregistersAndStartRestoresPairingActions() {
+    Fixture f;
+    f.config.setValue("api.tcp_port", 0);
+    f.config.setValue("api.ws_port", 0);
+    ApiServer server(f.refs());
+    QVERIFY(f.actions.registeredActions().contains("api.pairing.start"));
+    QVERIFY(server.start());
+
+    server.shutdown();
+    QVERIFY(!f.actions.registeredActions().contains("api.pairing.start"));
+    QVERIFY(!f.actions.registeredActions().contains("api.pairing.cancel"));
+
+    QVERIFY(server.start());
+    QVERIFY(f.actions.registeredActions().contains("api.pairing.start"));
+    QVERIFY(f.actions.registeredActions().contains("api.pairing.cancel"));
+    server.shutdown();
 }
 
 void TestApiServer::testTcpEndToEndHelloSubscribe() {

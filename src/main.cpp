@@ -1396,6 +1396,11 @@ int main(int argc, char *argv[])
 
     int ret = app.exec();
 
+    // End API sessions and detach their ActionRegistry surface while every
+    // provider/registry dependency is still alive. QObject child teardown
+    // order is not the API lifetime contract.
+    apiServer->shutdown();
+
     // Teardown order matters: deactivate plugin view (uses QML engine)
     // BEFORE engine is destroyed (stack-local), BEFORE plugin shutdown.
     pluginModel->setActivePlugin(QString());

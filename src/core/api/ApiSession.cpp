@@ -141,7 +141,10 @@ void ApiSession::handleExpectHello(const pb::ApiMessage& m) {
         pb::ApiMessage challenge;
         challenge.mutable_auth_required()->set_nonce(nonce_.constData(), nonce_.size());
         sendMessage(m.request_id(), challenge);
-        if (state_ == State::ExpectHello) state_ = State::AuthPending;
+        if (state_ == State::ExpectHello) {
+            state_ = State::AuthPending;
+            handshakeTimer_->start(deps_.handshakeTimeoutMs);
+        }
         return;
     }
 
@@ -162,7 +165,10 @@ void ApiSession::handleExpectHello(const pb::ApiMessage& m) {
         pc->set_salt(salt.constData(), salt.size());
         pc->set_secret_format(pb::PAIRING_SECRET_FORMAT_BASE32_120);
         sendMessage(m.request_id(), challenge);
-        if (state_ == State::ExpectHello) state_ = State::PairingPending;
+        if (state_ == State::ExpectHello) {
+            state_ = State::PairingPending;
+            handshakeTimer_->start(deps_.handshakeTimeoutMs);
+        }
         return;
     }
 

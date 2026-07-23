@@ -32,7 +32,7 @@ constexpr quint32 kMaxFrameBytes = 262144;
 } // namespace
 
 ApiServer::ApiServer(ApiServiceRefs refs, QObject* parent)
-    : QObject(parent), refs_(refs) {
+    : QObject(parent), refs_(refs), actions_(refs.actions) {
     storePath_ = QDir::homePath() + QStringLiteral("/.openauto/api_clients.yaml");
     rebindPairing();
 
@@ -48,16 +48,31 @@ ApiServer::ApiServer(ApiServiceRefs refs, QObject* parent)
     // Expose pairing as actions too, so a UI button or a companion client can
     // open/close the window without a direct ApiServer handle. Registered in
     // the ctor (not start()) so dispatch works even before listening.
-    if (refs_.actions) {
-        refs_.actions->registerAction(QStringLiteral("api.pairing.start"),
+    registerPairingActions();
+}
+
+void ApiServer::registerPairingActions() {
+    if (pairingActionsRegistered_ || !actions_)
+        return;
+    actions_->registerAction(QStringLiteral("api.pairing.start"),
             [this](const QVariant&) { startPairing(); });
-        refs_.actions->registerAction(QStringLiteral("api.pairing.cancel"),
+    actions_->registerAction(QStringLiteral("api.pairing.cancel"),
             [this](const QVariant&) { cancelPairing(); });
+    pairingActionsRegistered_ = true;
+}
+
+void ApiServer::unregisterPairingActions() {
+    if (!pairingActionsRegistered_)
+        return;
+    if (actions_) {
+        actions_->unregisterAction(QStringLiteral("api.pairing.start"));
+        actions_->unregisterAction(QStringLiteral("api.pairing.cancel"));
     }
+    pairingActionsRegistered_ = false;
 }
 
 ApiServer::~ApiServer() {
-    stop();
+    shutdown();
     // Delete pairing_ before the store_ unique_ptr member is destroyed: it
     // holds a raw pointer into store_ (harmless if left dangling, but explicit
     // ordering keeps the invariant honest).
@@ -81,6 +96,7 @@ void ApiServer::setStorePathForTest(const QString& path) {
 }
 
 bool ApiServer::start() {
+    registerPairingActions();
     // Idempotent re-entry: the server is already running, so there is
     // nothing to (re)build -- a second start() must not append duplicate
     // publishers or leak the previous tcpServer_/wsServer_ by overwriting
@@ -151,6 +167,11 @@ bool ApiServer::start() {
     started_ = tcpOk || wsOk;
     if (started_) emit runningChanged();
     return started_;
+}
+
+void ApiServer::shutdown() {
+    stop();
+    unregisterPairingActions();
 }
 
 void ApiServer::stop() {
