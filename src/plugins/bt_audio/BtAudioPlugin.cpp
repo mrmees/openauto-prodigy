@@ -319,22 +319,21 @@ void BtAudioPlugin::finishExistingObjectScan(const QDBusMessage& reply)
     scanInFlight_ = false;
     const bool needsRescan = scanPending_;
     scanPending_ = false;
-    // A signal delivered while this request was in flight may be newer than
-    // its reply. Keep the signal-applied state and let one trailing snapshot
-    // become authoritative instead of briefly rolling state backwards.
-    if (monitoring_ && !needsRescan && reply.type() == QDBusMessage::ReplyMessage)
-        applyManagedObjectsSnapshot(parseManagedObjects(reply));
-    else if (monitoring_ && !needsRescan && hostContext_)
+    if (monitoring_ && !needsRescan && reply.type() == QDBusMessage::ReplyMessage) {
+        BtManagedObjectMap objects = parseManagedObjects(reply);
+        mergePendingPropertyChanges(objects);
+        applyManagedObjectsSnapshot(objects);
+    } else if (monitoring_ && !needsRescan && hostContext_) {
         hostContext_->log(LogLevel::Warning,
                           QStringLiteral("BtAudio: GetManagedObjects failed: %1")
                               .arg(reply.errorMessage()));
-
-    if (monitoring_ && !needsRescan) {
         const auto pendingChanges = std::exchange(pendingPropertyChanges_, {});
         for (const auto& change : pendingChanges)
             applyPropertiesChanged(change.interface, change.changed,
                                    change.invalidated, change.message);
-    } else if (needsRescan) {
+    }
+
+    if (needsRescan) {
         // The trailing topology snapshot was requested after the relevant
         // signals, so it supersedes property deltas collected for this reply.
         pendingPropertyChanges_.clear();
@@ -342,6 +341,23 @@ void BtAudioPlugin::finishExistingObjectScan(const QDBusMessage& reply)
 
     if (monitoring_ && needsRescan)
         scanExistingObjects();
+}
+
+void BtAudioPlugin::mergePendingPropertyChanges(BtManagedObjectMap& objects)
+{
+    const auto pendingChanges = std::exchange(pendingPropertyChanges_, {});
+    for (const auto& change : pendingChanges) {
+        auto object = objects.find(change.message.path());
+        if (object == objects.end())
+            continue;
+        auto properties = object->find(change.interface);
+        if (properties == object->end())
+            continue;
+        for (auto it = change.changed.cbegin(); it != change.changed.cend(); ++it)
+            properties->insert(it.key(), it.value());
+        for (const QString& property : change.invalidated)
+            properties->remove(property);
+    }
 }
 
 void BtAudioPlugin::onInterfacesAdded(const QDBusObjectPath& path, const BtInterfaceMap& interfaces)
@@ -513,6 +529,8 @@ void BtAudioPlugin::onPropertiesChanged(const QString& interface, const QVariant
 {
     if (scanInFlight_)
         pendingPropertyChanges_.append({interface, changed, invalidated, message});
+    if (scanInFlight_)
+        return;
     applyPropertiesChanged(interface, changed, invalidated, message);
 }
 

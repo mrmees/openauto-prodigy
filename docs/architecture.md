@@ -109,7 +109,9 @@ Static plugins compiled into the binary, implementing `IPlugin` (see [reference/
   service owns BlueZ device monitoring and `org.pipewire.Telephony` call state.
   `TelephonyClient` selects one AudioGateway and accepts transport state only
   from the `AudioGatewayTransport1` interface co-located on that same object;
-  other phones cannot retarget the selected transport. SCO can confirm a
+  other phones cannot retarget the selected transport. If that gateway leaves,
+  the next cached gateway is selected deterministically without an unavailable
+  edge. SCO can confirm a
   setup/settling call and can debounce the end of an active call, but SCO alone
   never synthesizes an Active call from Idle. Call objects must be children of
   the selected gateway, and an invalidated transport state is unknown rather

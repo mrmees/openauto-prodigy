@@ -5,6 +5,7 @@
 #include <QVariantMap>
 #include <QDBusObjectPath>
 #include <QDBusMessage>
+#include <QMap>
 
 class QDBusServiceWatcher;
 
@@ -69,6 +70,7 @@ private:
     void adoptAg(const QString& path, const QVariantMap& props);
     void adoptTransport(const QString& path, const QVariantMap& props);
     void clearTransport();
+    void selectAvailableAg(bool notifyAvailability = true);
     void adoptCall(const QString& path, const QVariantMap& props);
     bool callBelongsToSelectedAg(const QString& path) const;
     void applyRejectSco();
@@ -85,6 +87,8 @@ private:
     QString transportState_;
     QString codec_;
     QString callPath_;
+    QMap<QString, QVariantMap> agPropertiesByPath_;
+    QMap<QString, QVariantMap> transportPropertiesByPath_;
 };
 
 } // namespace oap

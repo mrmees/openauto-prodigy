@@ -188,6 +188,7 @@ private:
     void updatePlayerProperties(const QVariantMap& props, bool resetBeforeApply = false);
     void applyPropertiesChanged(const QString& interface, const QVariantMap& changed,
                                 const QStringList& invalidated, const QDBusMessage& message);
+    void mergePendingPropertyChanges(BtManagedObjectMap& objects);
     void sendPlayerCommand(const QString& command);
     // Edge-emits transportActiveChanged only when the value actually flips.
     void setTransportActive(bool active);

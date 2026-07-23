@@ -417,20 +417,23 @@ void BluetoothManager::initialize()
                         << "InterfacesRemoved" << okRemoved;
     }
 
-    auto* watcher = new QDBusServiceWatcher(
+    delete bluezServiceWatcher_;
+    bluezServiceWatcher_ = new QDBusServiceWatcher(
         kBluezService, bus_,
         QDBusServiceWatcher::WatchForRegistration
             | QDBusServiceWatcher::WatchForUnregistration,
         this);
-    connect(watcher, &QDBusServiceWatcher::serviceRegistered,
+    connect(bluezServiceWatcher_, &QDBusServiceWatcher::serviceRegistered,
             this, [this]() {
+        if (shutdown_) return;
         qCInfo(lcBT) << "BlueZ restarted — re-initializing";
         configuredAdapterPath_.clear();
         initialSnapshotApplied_ = false;
         requestManagedObjectsRefresh();
     });
-    connect(watcher, &QDBusServiceWatcher::serviceUnregistered,
+    connect(bluezServiceWatcher_, &QDBusServiceWatcher::serviceUnregistered,
             this, [this]() {
+        if (shutdown_) return;
         qCInfo(lcBT) << "BlueZ disappeared";
         configuredAdapterPath_.clear();
         initialSnapshotApplied_ = false;
@@ -903,6 +906,8 @@ void BluetoothManager::shutdown()
     bus_.disconnect(kBluezService, QString(), kObjectManagerInterface,
                     QStringLiteral("InterfacesRemoved"), this, SLOT(onInterfacesChanged()));
     subscriptionsConnected_ = false;
+    delete bluezServiceWatcher_;
+    bluezServiceWatcher_ = nullptr;
     unregisterAgent();
 }
 

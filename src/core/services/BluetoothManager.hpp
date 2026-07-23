@@ -12,6 +12,7 @@
 #include <QMap>
 
 class BluezAgentAdaptor;
+class QDBusServiceWatcher;
 
 namespace oap {
 
@@ -146,6 +147,7 @@ private:
     bool initialSnapshotApplied_ = false;
     QString configuredAdapterPath_;
     bool subscriptionsConnected_ = false;
+    QDBusServiceWatcher* bluezServiceWatcher_ = nullptr;
 
     // Auto-connect state
     QTimer* autoConnectTimer_ = nullptr;

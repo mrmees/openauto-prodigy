@@ -49,6 +49,7 @@ private slots:
     void testRejectScoCachedWhenUnavailable();
     void testSelectedAgOwnsOnlySameObjectTransport();
     void testSelectedAgOwnsOnlyChildCalls();
+    void testRemainingAgSelectedAfterRemoval();
 };
 
 void TestTelephonyClient::testConstructIsInert() {
@@ -83,6 +84,38 @@ void TestTelephonyClient::testSelectedAgOwnsOnlyChildCalls()
     QCOMPARE(endedSpy.count(), 0);
     QVERIFY(removeInterfaces(client, selectedCall, {callIface}));
     QCOMPARE(endedSpy.count(), 1);
+}
+
+void TestTelephonyClient::testRemainingAgSelectedAfterRemoval()
+{
+    oap::TelephonyClient client;
+    const QString ag1 = QStringLiteral("/org/pipewire/Telephony/ag1");
+    const QString ag2 = QStringLiteral("/org/pipewire/Telephony/ag2");
+    const QString agIface = QStringLiteral("org.pipewire.Telephony.AudioGateway1");
+    const QString transportIface =
+        QStringLiteral("org.pipewire.Telephony.AudioGatewayTransport1");
+    QSignalSpy availableSpy(&client, &oap::TelephonyClient::availableChanged);
+    QSignalSpy removedSpy(&client, &oap::TelephonyClient::transportRemoved);
+
+    QVERIFY(addInterfaces(client, ag1, {
+        {agIface, {{QStringLiteral("Address"), QStringLiteral("AA:BB")}}},
+        {transportIface, {{QStringLiteral("State"), QStringLiteral("active")}}},
+    }));
+    QVERIFY(addInterfaces(client, ag2, {
+        {agIface, {{QStringLiteral("Address"), QStringLiteral("CC:DD")}}},
+        {transportIface, {{QStringLiteral("State"), QStringLiteral("idle")}}},
+    }));
+    QCOMPARE(client.agAddress(), QStringLiteral("AA:BB"));
+    QCOMPARE(availableSpy.count(), 0); // serviceUp is false on this busless seam
+
+    QVERIFY(removeInterfaces(client, ag1, {agIface}));
+    // The busless seam keeps serviceUp false; selected identity and transport
+    // prove failover without fabricating service ownership.
+    QCOMPARE(client.agAddress(), QStringLiteral("CC:DD"));
+    QCOMPARE(client.transportState(), QStringLiteral("idle"));
+    QCOMPARE(removedSpy.count(), 1);
+    // Availability remained true across the deterministic hand-off.
+    QCOMPARE(availableSpy.count(), 0);
 }
 
 void TestTelephonyClient::testStartStopSafeWithoutService() {

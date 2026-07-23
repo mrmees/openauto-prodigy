@@ -763,6 +763,7 @@ void TestBtAudioPlugin::startupEnumeration_isAsynchronousAndUsesCarriedPropertie
     QVERIFY(bus.registerService(QStringLiteral("org.bluez")));
 
     BtAudioPlugin plugin(bus);
+    QSignalSpy progressSpy(&plugin, &BtAudioPlugin::progressChanged);
     QElapsedTimer elapsed;
     elapsed.start();
     QVERIFY(plugin.initialize(nullptr));
@@ -800,7 +801,14 @@ void TestBtAudioPlugin::startupEnumeration_isAsynchronousAndUsesCarriedPropertie
     QTest::qWait(150);
     propertyTraffic.stop();
     QCOMPARE(fixture.callCount, 1);
-    QCOMPARE(plugin.trackPosition(), qint64(livePosition));
+    QTRY_COMPARE(plugin.trackPosition(), qint64(livePosition));
+    qint64 previousPosition = -1;
+    for (const QList<QVariant>& edge : progressSpy) {
+        const qint64 position = edge.at(0).toLongLong();
+        QVERIFY2(position >= previousPosition,
+                 "in-flight snapshot publication must not move position backwards");
+        previousPosition = position;
+    }
 
     plugin.shutdown();
     bus.unregisterService(QStringLiteral("org.bluez"));

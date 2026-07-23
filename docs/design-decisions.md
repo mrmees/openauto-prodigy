@@ -342,7 +342,8 @@ an existing setup/settle transition or confirm the loss of an Active call, but
 cannot transition Idle to Active by itself. Call objects are accepted only
 under the selected gateway's object path. A transport property invalidation
 makes the cached value unknown; only explicit idle state or interface removal
-is call-end evidence.
+is call-end evidence. Other discovered gateways remain cached so removal of the
+selected phone can hand ownership to the next stable object-path candidate.
 
 **Rationale:** PipeWire publishes one gateway object per connected phone, with
 its transport interface co-located on that object. Accepting a second phone's
