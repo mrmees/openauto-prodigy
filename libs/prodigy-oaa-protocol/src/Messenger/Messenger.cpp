@@ -36,6 +36,7 @@ void Messenger::start()
 
 void Messenger::stop()
 {
+    ++lifecycleGeneration_;
     if (started_) {
         disconnect(transport_, &ITransport::dataReceived,
                    &parser_, &FrameParser::onData);
@@ -65,7 +66,10 @@ void Messenger::sendMessage(uint8_t channelId, uint16_t messageId,
         return;
     }
 
+    const uint64_t generation = lifecycleGeneration_;
     emit messageSent(channelId, messageId, payload);
+    if (!started_ || generation != lifecycleGeneration_)
+        return;
 
     // Prepend 2-byte big-endian messageId
     QByteArray fullPayload;
@@ -246,16 +250,23 @@ void Messenger::driveHandshake()
 void Messenger::processSendQueue()
 {
     if (sending_) return;
+    const uint64_t generation = lifecycleGeneration_;
     sending_ = true;
 
-    while (!sendQueue_.isEmpty()) {
+    while (started_ && generation == lifecycleGeneration_
+           && !sendQueue_.isEmpty()) {
         SendItem item = sendQueue_.dequeue();
         for (const auto& frame : item.frames) {
+            if (!started_ || generation != lifecycleGeneration_)
+                return;
             transport_->write(frame);
+            if (!started_ || generation != lifecycleGeneration_)
+                return;
         }
     }
 
-    sending_ = false;
+    if (generation == lifecycleGeneration_)
+        sending_ = false;
 }
 
 } // namespace oaa

@@ -4,6 +4,22 @@
 #include <oaa/Messenger/FrameHeader.hpp>
 #include <oaa/Transport/ReplayTransport.hpp>
 #include <QtEndian>
+#include <functional>
+
+class ReentrantReplayTransport : public oaa::ReplayTransport {
+public:
+    using ReplayTransport::ReplayTransport;
+
+    void write(const QByteArray& data) override {
+        ReplayTransport::write(data);
+        ++writeCount;
+        if (onWrite)
+            onWrite(writeCount);
+    }
+
+    int writeCount = 0;
+    std::function<void(int)> onWrite;
+};
 
 class TestMessenger : public QObject {
     Q_OBJECT
@@ -303,6 +319,32 @@ private slots:
                                       freshPayload));
         QCOMPARE(messageSpy.count(), 1);
         QCOMPARE(messageSpy[0][1].value<uint16_t>(), uint16_t(0x2222));
+    }
+
+    void testStopFromMessageSentCancelsPendingWrite() {
+        oaa::ReplayTransport transport;
+        oaa::Messenger messenger(&transport);
+        messenger.start();
+        connect(&messenger, &oaa::Messenger::messageSent,
+                &messenger, &oaa::Messenger::stop, Qt::DirectConnection);
+
+        messenger.sendMessage(3, 0x1234, QByteArray("cancel"));
+
+        QCOMPARE(transport.writtenData().size(), 0);
+    }
+
+    void testStopDuringFirstWriteCancelsRemainingFrames() {
+        ReentrantReplayTransport transport;
+        oaa::Messenger messenger(&transport);
+        messenger.start();
+        transport.onWrite = [&messenger](int writeCount) {
+            if (writeCount == 1)
+                messenger.stop();
+        };
+
+        messenger.sendMessage(3, 0x1234, QByteArray(20000, 'X'));
+
+        QCOMPARE(transport.writtenData().size(), 1);
     }
 
     void testFatalHandshakeEmitsOnceWithDiagnostic() {

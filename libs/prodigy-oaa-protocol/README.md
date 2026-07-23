@@ -52,7 +52,9 @@ TLS handshakes distinguish retryable WANT-I/O from fatal OpenSSL results.
 `Messenger::handshakeFailed` reports a bounded diagnostic immediately, and
 `AASession` closes with `DisconnectReason::HandshakeError` instead of waiting
 for the generic negotiation timeout. Channel-open responses are always sent on
-the requested service channel.
+the requested service channel. Registered service handlers remain detached
+from the Messenger until their channel is opened, and `Messenger::stop()`
+cancels any re-entrant or multi-frame send that has not reached the transport.
 
 ## Dependencies
 

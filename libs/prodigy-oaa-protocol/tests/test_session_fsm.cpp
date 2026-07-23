@@ -13,6 +13,7 @@
 #include "oaa/common/StatusEnum.pb.h"
 #include "oaa/control/ServiceDiscoveryRequestMessage.pb.h"
 #include "oaa/control/ServiceDiscoveryResponseMessage.pb.h"
+#include <functional>
 
 // Minimal mock channel handler for testing
 class MockChannelHandler : public oaa::IChannelHandler {
@@ -50,6 +51,21 @@ protected:
     void startTlsHandshake() override {
         emit messenger()->handshakeFailed(QStringLiteral("forced initial failure"));
     }
+};
+
+class ReentrantErrorTransport : public oaa::ReplayTransport {
+public:
+    using ReplayTransport::ReplayTransport;
+
+    void write(const QByteArray& data) override {
+        ReplayTransport::write(data);
+        ++writeCount;
+        if (failOnWrite == writeCount)
+            emit error(QStringLiteral("forced synchronous write failure"));
+    }
+
+    int writeCount = 0;
+    int failOnWrite = -1;
 };
 
 class TestSessionFSM : public QObject {
@@ -280,7 +296,7 @@ private slots:
         QCOMPARE(handler.closeCount, 1);
     }
 
-    void testRestartReconnectsHandlerSendPathForOneCycle() {
+    void testRestartReconnectsHandlerOnlyAfterChannelOpen() {
         oaa::ReplayTransport transport;
         oaa::SessionConfig config;
         MockChannelHandler handler(3);
@@ -288,6 +304,8 @@ private slots:
         session.registerChannel(3, &handler);
 
         session.start();
+        emit handler.sendRequested(3, 0x1234, QByteArray("too-early"));
+        QCOMPARE(transport.writtenData().size(), 0);
         session.stop();
         QCOMPARE(handler.closeCount, 1);
         transport.clearWritten();
@@ -295,12 +313,43 @@ private slots:
         emit handler.sendRequested(3, 0x1234, QByteArray("stale"));
         QCOMPARE(transport.writtenData().size(), 0);
 
+        transport.simulateConnect();
         session.start();
+        advanceToActive(session);
+        oaa::proto::messages::ChannelOpenRequest request;
+        request.set_channel_id(3);
+        request.set_priority(1);
+        QByteArray payload(request.ByteSizeLong(), '\0');
+        QVERIFY(request.SerializeToArray(payload.data(), payload.size()));
+        session.messenger()->messageReceived(3, 0x0007, payload, 0);
+        transport.clearWritten();
         emit handler.sendRequested(3, 0x1234, QByteArray("fresh"));
         QCOMPARE(transport.writtenData().size(), 1);
 
         session.stop();
+        emit session.messenger()->messageReceived(0, 0x0010, QByteArray(), 0);
         QCOMPARE(handler.closeCount, 2);
+    }
+
+    void testConnectingNotificationCannotSendServiceTrafficBeforeVersion() {
+        oaa::ReplayTransport transport;
+        oaa::SessionConfig config;
+        oaa::AASession session(&transport, config);
+        MockChannelHandler handler(3);
+        session.registerChannel(3, &handler);
+        connect(&session, &oaa::AASession::stateChanged, &session,
+                [&handler](oaa::SessionState state) {
+                    if (state == oaa::SessionState::Connecting)
+                        emit handler.sendRequested(3, 0x1234, QByteArray("early"));
+                }, Qt::DirectConnection);
+
+        transport.simulateConnect();
+        session.start();
+
+        QCOMPARE(session.state(), oaa::SessionState::VersionExchange);
+        QCOMPARE(transport.writtenData().size(), 1);
+        QCOMPARE(static_cast<uint8_t>(transport.writtenData().first()[0]),
+                 uint8_t(0));
     }
 
     void testFinalizedSessionCannotReceiveReplacementHandlerSends() {
@@ -317,7 +366,16 @@ private slots:
         oldTransport.clearWritten();
 
         replacementSession.registerChannel(3, &handler);
+        replacementTransport.simulateConnect();
         replacementSession.start();
+        advanceToActive(replacementSession);
+        oaa::proto::messages::ChannelOpenRequest request;
+        request.set_channel_id(3);
+        request.set_priority(1);
+        QByteArray payload(request.ByteSizeLong(), '\0');
+        QVERIFY(request.SerializeToArray(payload.data(), payload.size()));
+        replacementSession.messenger()->messageReceived(3, 0x0007, payload, 0);
+        replacementTransport.clearWritten();
         emit handler.sendRequested(3, 0x1234, QByteArray("replacement"));
 
         QCOMPARE(oldTransport.writtenData().size(), 0);
@@ -373,6 +431,77 @@ private slots:
                  oaa::DisconnectReason::HandshakeError);
         QTest::qWait(50);
         QCOMPARE(disconnectSpy.count(), 1);
+    }
+
+    void testSynchronousVersionWriteFailureCannotResurrectSession() {
+        ReentrantErrorTransport transport;
+        oaa::SessionConfig config;
+        oaa::AASession session(&transport, config);
+        QSignalSpy disconnectSpy(&session, &oaa::AASession::disconnected);
+        transport.failOnWrite = 1;
+
+        transport.simulateConnect();
+        session.start();
+
+        QCOMPARE(session.state(), oaa::SessionState::Disconnected);
+        QCOMPARE(disconnectSpy.count(), 1);
+    }
+
+    void testSynchronousAuthWriteFailureCannotAdvanceSession() {
+        ReentrantErrorTransport transport;
+        oaa::SessionConfig config;
+        oaa::AASession session(&transport, config);
+        QSignalSpy disconnectSpy(&session, &oaa::AASession::disconnected);
+
+        transport.simulateConnect();
+        session.start();
+        transport.feedData(makeVersionResponseFrame(1, 7, 0x0000));
+        transport.failOnWrite = transport.writeCount + 1;
+        emit session.messenger()->handshakeComplete();
+
+        QCOMPARE(session.state(), oaa::SessionState::Disconnected);
+        QCOMPARE(disconnectSpy.count(), 1);
+    }
+
+    void testSynchronousDiscoveryWriteFailureCannotActivateSession() {
+        ReentrantErrorTransport transport;
+        oaa::SessionConfig config;
+        oaa::AASession session(&transport, config);
+        QSignalSpy disconnectSpy(&session, &oaa::AASession::disconnected);
+
+        transport.simulateConnect();
+        session.start();
+        transport.feedData(makeVersionResponseFrame(1, 7, 0x0000));
+        emit session.messenger()->handshakeComplete();
+        QCOMPARE(session.state(), oaa::SessionState::ServiceDiscovery);
+        transport.failOnWrite = transport.writeCount + 1;
+        emit session.messenger()->messageReceived(0, 0x0005, QByteArray(), 0);
+
+        QCOMPARE(session.state(), oaa::SessionState::Disconnected);
+        QCOMPARE(disconnectSpy.count(), 1);
+    }
+
+    void testSynchronousChannelResponseFailureCannotOpenHandler() {
+        ReentrantErrorTransport transport;
+        oaa::SessionConfig config;
+        oaa::AASession session(&transport, config);
+        MockChannelHandler handler(3);
+        session.registerChannel(3, &handler);
+
+        transport.simulateConnect();
+        session.start();
+        advanceToActive(session);
+        transport.failOnWrite = transport.writeCount + 1;
+
+        oaa::proto::messages::ChannelOpenRequest request;
+        request.set_channel_id(3);
+        request.set_priority(1);
+        QByteArray payload(request.ByteSizeLong(), '\0');
+        QVERIFY(request.SerializeToArray(payload.data(), payload.size()));
+        emit session.messenger()->messageReceived(3, 0x0007, payload, 0);
+
+        QCOMPARE(session.state(), oaa::SessionState::Disconnected);
+        QCOMPARE(handler.openCount, 0);
     }
 
     void testChannelOpenResponseUsesTargetChannelForBothDispatchPaths() {

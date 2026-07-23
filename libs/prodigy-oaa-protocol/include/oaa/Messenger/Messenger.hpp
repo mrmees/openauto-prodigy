@@ -11,6 +11,7 @@
 #include <QObject>
 #include <QByteArray>
 #include <QQueue>
+#include <cstdint>
 
 namespace oaa {
 
@@ -64,6 +65,7 @@ private:
     bool sending_ = false;
     bool started_ = false;
     bool handshakeFailureEmitted_ = false;
+    uint64_t lifecycleGeneration_ = 0;
 };
 
 } // namespace oaa

@@ -3,6 +3,7 @@
 #include <QObject>
 #include <QTimer>
 #include <QHash>
+#include <QSet>
 
 #include <oaa/Transport/ITransport.hpp>
 #include <oaa/Messenger/Messenger.hpp>
@@ -79,6 +80,7 @@ private:
     Messenger* messenger_;
     ControlChannel* controlChannel_;
     QHash<uint8_t, IChannelHandler*> channels_;
+    QSet<uint8_t> openChannels_;
     SessionState state_ = SessionState::Idle;
 
     QTimer stateTimer_;
