@@ -12,6 +12,7 @@
 #include <QFile>
 #include <QDir>
 #include <QLockFile>
+#include <QPointer>
 #include <QRegularExpression>
 #include "../Logging.hpp"
 #include <yaml-cpp/yaml.h>
@@ -133,7 +134,7 @@ void IpcServer::stop()
         delete server_;
         server_ = nullptr;
     }
-    clientBuffers_.clear();
+    clients_.clear();
     ownershipLock_.reset();
     socketPath_.clear();
 }
@@ -167,7 +168,7 @@ void IpcServer::setInboundState(oap::api::ApiInboundState* state)
 void IpcServer::onNewConnection()
 {
     while (auto* socket = server_->nextPendingConnection()) {
-        clientBuffers_.insert(socket, {});
+        clients_.insert(socket, {});
         connect(socket, &QLocalSocket::readyRead, this, &IpcServer::onReadyRead);
         connect(socket, &QLocalSocket::disconnected, this, &IpcServer::onDisconnected);
     }
@@ -178,51 +179,99 @@ void IpcServer::onReadyRead()
     auto* socket = qobject_cast<QLocalSocket*>(sender());
     if (!socket) return;
 
-    auto it = clientBuffers_.find(socket);
-    if (it == clientBuffers_.end())
-        it = clientBuffers_.insert(socket, {});
-    QByteArray& buffer = it.value();
+    auto it = clients_.find(socket);
+    if (it == clients_.end())
+        it = clients_.insert(socket, {});
+    if (it->continuationQueued)
+        return;
 
-    while (socket->bytesAvailable() > 0) {
-        // Read at most one byte beyond the payload limit. That byte may be the
-        // newline terminating an exactly-MaxFrameSize frame; otherwise it is
-        // enough to reject an unbounded partial frame without retaining more.
-        const qint64 readLimit = static_cast<qint64>(MaxFrameSize + 1 - buffer.size());
-        const QByteArray chunk = socket->read(readLimit);
-        if (chunk.isEmpty())
-            break;
-        buffer.append(chunk);
+    processClient(socket);
+}
 
-        qsizetype newline = -1;
-        while ((newline = buffer.indexOf('\n')) >= 0) {
+void IpcServer::processClient(QLocalSocket* socket)
+{
+    auto it = clients_.find(socket);
+    if (it == clients_.end())
+        return;
+    it->continuationQueued = false;
+
+    int framesRemaining = MaxFramesPerTurn;
+    while (framesRemaining > 0) {
+        qsizetype newline = it->input.indexOf('\n');
+        if (newline >= 0) {
             if (newline > MaxFrameSize) {
-                qCWarning(lcCore) << "IpcServer: Closing client with oversized request frame";
-                clientBuffers_.remove(socket);
-                socket->abort();
+                closeClient(socket, "oversized request frame");
                 return;
             }
 
-            const QByteArray request = buffer.left(newline);
-            buffer.remove(0, newline + 1);
-            socket->write(handleRequest(request) + "\n");
+            const QByteArray request = it->input.left(newline);
+            it->input.remove(0, newline + 1);
+            const QByteArray response = handleRequest(request) + '\n';
+            if (socket->bytesToWrite() + response.size() > MaxPendingOutput) {
+                closeClient(socket, "pending response limit exceeded");
+                return;
+            }
+            if (socket->write(response) != response.size()) {
+                closeClient(socket, "response write failed");
+                return;
+            }
+            --framesRemaining;
+            continue;
         }
 
-        if (buffer.size() > MaxFrameSize) {
-            qCWarning(lcCore) << "IpcServer: Closing client with oversized partial request";
-            clientBuffers_.remove(socket);
-            socket->abort();
+        if (it->input.size() > MaxFrameSize) {
+            closeClient(socket, "oversized partial request");
             return;
         }
+        if (socket->bytesAvailable() <= 0)
+            break;
+
+        // Retain no more than one byte beyond the per-frame payload limit.
+        // That byte may be the terminating newline; any other byte proves the
+        // current partial frame is oversized.
+        const qint64 readLimit = static_cast<qint64>(MaxFrameSize + 1 - it->input.size());
+        const QByteArray chunk = socket->read(readLimit);
+        if (chunk.isEmpty())
+            break;
+        it->input.append(chunk);
     }
 
     socket->flush();
+
+    // Yield after a bounded number of requests even when one client supplied
+    // a large coalesced batch. Other sockets and UI work then get an event-loop
+    // turn before this client's remaining frames are processed.
+    if (it != clients_.end()
+        && (it->input.contains('\n') || socket->bytesAvailable() > 0)) {
+        scheduleClientContinuation(socket);
+    }
+}
+
+void IpcServer::scheduleClientContinuation(QLocalSocket* socket)
+{
+    auto it = clients_.find(socket);
+    if (it == clients_.end() || it->continuationQueued)
+        return;
+    it->continuationQueued = true;
+    const QPointer<QLocalSocket> guardedSocket(socket);
+    QMetaObject::invokeMethod(this, [this, guardedSocket] {
+        if (guardedSocket)
+            processClient(guardedSocket);
+    }, Qt::QueuedConnection);
+}
+
+void IpcServer::closeClient(QLocalSocket* socket, const char* reason)
+{
+    qCWarning(lcCore) << "IpcServer: Closing client:" << reason;
+    clients_.remove(socket);
+    socket->abort();
 }
 
 void IpcServer::onDisconnected()
 {
     auto* socket = qobject_cast<QLocalSocket*>(sender());
     if (socket) {
-        clientBuffers_.remove(socket);
+        clients_.remove(socket);
         socket->deleteLater();
     }
 }

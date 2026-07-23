@@ -94,6 +94,60 @@ private slots:
         QVERIFY(connectedSpy.count() >= 2);
     }
 
+    void reconnectDiscardsPartialResponseAndOldRequestIds()
+    {
+        QTemporaryDir directory;
+        QVERIFY(directory.isValid());
+        const QString socketPath = directory.filePath(QStringLiteral("system.sock"));
+
+        QLocalServer server;
+        QVERIFY2(server.listen(socketPath), qPrintable(server.errorString()));
+        SystemServiceClient client(socketPath, 20);
+
+        QTRY_VERIFY_WITH_TIMEOUT(server.hasPendingConnections(), 1000);
+        QLocalSocket* firstPeer = server.nextPendingConnection();
+        QVERIFY(firstPeer != nullptr);
+        QTRY_VERIFY_WITH_TIMEOUT(firstPeer->canReadLine(), 1000);
+        const QJsonObject firstRequest = takeRequest(firstPeer);
+        const QString firstId = firstRequest.value(QStringLiteral("id")).toString();
+        QCOMPARE(firstRequest.value(QStringLiteral("method")).toString(),
+                 QStringLiteral("get_health"));
+
+        const QByteArray partial = QByteArray("{\"id\":\"")
+            + firstId.toUtf8() + "\",\"result\":{\"daemon\":\"stale\"";
+        QCOMPARE(firstPeer->write(partial), qint64(partial.size()));
+        firstPeer->flush();
+        QTRY_VERIFY_WITH_TIMEOUT(firstPeer->bytesToWrite() == 0, 1000);
+        firstPeer->disconnectFromServer();
+
+        QTRY_VERIFY_WITH_TIMEOUT(server.hasPendingConnections(), 1000);
+        QLocalSocket* secondPeer = server.nextPendingConnection();
+        QVERIFY(secondPeer != nullptr);
+        QTRY_VERIFY_WITH_TIMEOUT(secondPeer->canReadLine(), 1000);
+        const QJsonObject secondRequest = takeRequest(secondPeer);
+        const QString secondId = secondRequest.value(QStringLiteral("id")).toString();
+        QCOMPARE(secondRequest.value(QStringLiteral("method")).toString(),
+                 QStringLiteral("get_health"));
+        QVERIFY(secondId != firstId);
+
+        QSignalSpy healthSpy(&client, &SystemServiceClient::healthChanged);
+
+        // Neither the old response tail nor a complete delayed response with
+        // its old request ID may be interpreted on the replacement connection.
+        secondPeer->write("}}\n");
+        sendResult(secondPeer, firstId,
+                   {{QStringLiteral("daemon"), QStringLiteral("stale")}});
+        QTest::qWait(50);
+        QCOMPARE(healthSpy.count(), 0);
+        QVERIFY(client.health().isEmpty());
+
+        const QJsonObject expectedHealth{{QStringLiteral("daemon"),
+                                          QStringLiteral("replacement")}};
+        sendResult(secondPeer, secondId, expectedHealth);
+        QTRY_COMPARE_WITH_TIMEOUT(healthSpy.count(), 1, 1000);
+        QCOMPARE(client.health(), expectedHealth);
+    }
+
     void terminalErrorsShareOneRetryAndAbortTheSocket()
     {
         QTemporaryDir directory;

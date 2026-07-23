@@ -1,13 +1,16 @@
 #include <QCoreApplication>
 #include <QElapsedTimer>
+#include <QEventLoop>
 #include <QFile>
 #include <QJsonDocument>
 #include <QJsonObject>
 #include <QLocalSocket>
+#include <QPointer>
 #include <QProcess>
 #include <QTemporaryDir>
 #include <QTest>
 #include <QTextStream>
+#include <QTimer>
 
 #include "core/services/IpcServer.hpp"
 
@@ -106,6 +109,108 @@ private slots:
         const QJsonObject unknown = QJsonDocument::fromJson(responses.at(1)).object();
         QCOMPARE(unknown.value(QStringLiteral("error")).toString(),
                  QStringLiteral("Unknown command"));
+    }
+
+    void largeCoalescedBatchYieldsAndContinues()
+    {
+        QTemporaryDir dir;
+        QVERIFY(dir.isValid());
+        const QString socketPath = dir.path() + QStringLiteral("/ipc.sock");
+        IpcServer server;
+        QVERIFY(server.start(socketPath));
+
+        QLocalSocket batchClient;
+        QLocalSocket controlClient;
+        batchClient.connectToServer(socketPath);
+        controlClient.connectToServer(socketPath);
+        QVERIFY(batchClient.waitForConnected(2000));
+        QVERIFY(controlClient.waitForConnected(2000));
+
+        constexpr int BatchSize = 512;
+        QByteArray batch;
+        for (int i = 0; i < BatchSize; ++i)
+            batch += "{\"command\":\"not_a_command\"}\n";
+        QCOMPARE(batchClient.write(batch), qint64(batch.size()));
+        batchClient.flush();
+
+        // Wait only until the first response delivery. An unbounded handler
+        // would have processed the whole batch before that delivery event;
+        // the sliced handler must still have continuations outstanding.
+        QEventLoop batchStarted;
+        connect(&batchClient, &QLocalSocket::readyRead,
+                &batchStarted, &QEventLoop::quit);
+        QTimer::singleShot(3000, &batchStarted, &QEventLoop::quit);
+        batchStarted.exec();
+        QVERIFY(batchClient.bytesAvailable() > 0);
+        QByteArray batchOutput = batchClient.readAll();
+        QVERIFY(batchOutput.count('\n') < BatchSize);
+
+        const QByteArray controlRequest = "{\"command\":\"status\"}\n";
+        QCOMPARE(controlClient.write(controlRequest), qint64(controlRequest.size()));
+        controlClient.flush();
+
+        // The control socket must get an event-loop turn before the large
+        // batch is drained. The queued continuation then completes every
+        // remaining frame in order.
+        const QList<QByteArray> controlResponses = readResponseFrames(controlClient, 1);
+        QCOMPARE(controlResponses.size(), 1);
+        QVERIFY(QJsonDocument::fromJson(controlResponses.front()).object()
+                    .contains(QStringLiteral("version")));
+
+        QElapsedTimer timer;
+        timer.start();
+        while (batchOutput.count('\n') < BatchSize && timer.elapsed() < 3000) {
+            QCoreApplication::processEvents(QEventLoop::AllEvents, 20);
+            batchClient.waitForReadyRead(20);
+            batchOutput += batchClient.readAll();
+        }
+        QCOMPARE(batchOutput.count('\n'), BatchSize);
+        const QList<QByteArray> batchResponses = batchOutput.split('\n');
+        QCOMPARE(batchResponses.size(), BatchSize + 1);
+        QVERIFY(batchResponses.back().isEmpty());
+        for (int i = 0; i < BatchSize; ++i) {
+            const QByteArray& response = batchResponses.at(i);
+            QCOMPARE(QJsonDocument::fromJson(response).object()
+                         .value(QStringLiteral("error")).toString(),
+                     QStringLiteral("Unknown command"));
+        }
+    }
+
+    void nonReadingClientIsClosedAtPendingOutputLimit()
+    {
+        QTemporaryDir dir;
+        QVERIFY(dir.isValid());
+        const QString socketPath = dir.path() + QStringLiteral("/ipc.sock");
+        IpcServer server;
+        QVERIFY(server.start(socketPath));
+
+        QLocalSocket slowClient;
+        slowClient.setReadBufferSize(1);
+        slowClient.connectToServer(socketPath);
+        QVERIFY(slowClient.waitForConnected(2000));
+        QTRY_COMPARE_WITH_TIMEOUT(server.findChildren<QLocalSocket*>().size(), 1, 1000);
+        const QPointer<QLocalSocket> serverPeer =
+            server.findChildren<QLocalSocket*>().front();
+
+        QByteArray requests;
+        constexpr int RequestCount = 70000;
+        for (int i = 0; i < RequestCount; ++i)
+            requests += "{\"command\":\"x\"}\n";
+        QCOMPARE(slowClient.write(requests), qint64(requests.size()));
+        slowClient.flush();
+
+        // Stay unread while the server fills its outbound queue. Assert the
+        // server-side socket is closed; the peer may not observe EOF until it
+        // consumes bytes already buffered by the local-socket transport.
+        QTRY_VERIFY_WITH_TIMEOUT(serverPeer.isNull()
+                                     || serverPeer->state()
+                                         == QLocalSocket::UnconnectedState,
+                                 5000);
+        slowClient.abort();
+
+        // Backpressure is isolated to the offending client.
+        const QJsonObject response = roundTrip(socketPath);
+        QVERIFY(response.contains(QStringLiteral("version")));
     }
 
     void disconnectedPartialTailDoesNotAffectNextClient()

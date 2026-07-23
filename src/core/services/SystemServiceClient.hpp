@@ -50,6 +50,7 @@ private slots:
 private:
     void connectToService();
     void scheduleRetry();
+    void resetConnectionState();
     void sendRequest(const QString& method, const QJsonObject& params = {});
     void handleResponse(const QJsonObject& response);
 

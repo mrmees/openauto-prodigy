@@ -87,6 +87,7 @@ void SystemServiceClient::connectToService()
 
 void SystemServiceClient::scheduleRetry()
 {
+    resetConnectionState();
     if (socket_->state() != QLocalSocket::UnconnectedState)
         socket_->abort();
 
@@ -97,9 +98,19 @@ void SystemServiceClient::scheduleRetry()
 void SystemServiceClient::onConnected()
 {
     retryTimer_->stop();
+    resetConnectionState();
     qCInfo(lcCore) << "SystemServiceClient: connected to daemon";
     emit connectedChanged();
     getHealth();
+}
+
+void SystemServiceClient::resetConnectionState()
+{
+    // Neither incomplete response bytes nor request IDs are meaningful after
+    // a connection boundary. Keep nextId_ monotonic so a delayed/stale reply
+    // can never alias a request sent on the replacement connection.
+    readBuffer_.clear();
+    pendingMethods_.clear();
 }
 
 void SystemServiceClient::onDisconnected()
