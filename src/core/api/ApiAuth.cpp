@@ -4,7 +4,10 @@
 #include <QMessageAuthenticationCode>
 #include <QFile>
 #include <QDebug>
+#include <QSet>
 #include <yaml-cpp/yaml.h>
+
+#include <algorithm>
 
 namespace oap::api {
 
@@ -24,6 +27,26 @@ bool constantTimeEquals(const QByteArray& a, const QByteArray& b) {
     return diff == 0;
 }
 
+namespace {
+
+bool isValidSecretHex(const std::string& value) {
+    if (value.size() != 64)
+        return false;
+
+    return std::all_of(value.cbegin(), value.cend(), [](char c) {
+        return (c >= '0' && c <= '9')
+            || (c >= 'a' && c <= 'f')
+            || (c >= 'A' && c <= 'F');
+    });
+}
+
+bool isKnownCredentialGeneration(int generation) {
+    return generation == kLegacyCredentialGeneration
+        || generation == kSecureCodeCredentialGeneration;
+}
+
+} // namespace
+
 // PairedClientStore implementation
 
 PairedClientStore::PairedClientStore(const QString& yamlPath)
@@ -39,28 +62,69 @@ bool PairedClientStore::load() {
 
     try {
         YAML::Node doc = YAML::LoadFile(path_.toStdString());
-        QList<PairedClient> loaded;
-        if (!doc["clients"]) {
-            clients_.clear();
-            loadedSuccessfully_ = true;
-            return true;  // no clients key
+        if (!doc || !doc.IsMap()) {
+            loadedSuccessfully_ = false;
+            return false;
         }
 
-        for (const auto& node : doc["clients"]) {
+        const YAML::Node clientsNode = doc["clients"];
+        if (!clientsNode || !clientsNode.IsSequence()) {
+            loadedSuccessfully_ = false;
+            return false;
+        }
+
+        QList<PairedClient> loaded;
+        QSet<QString> clientIds;
+
+        for (const auto& node : clientsNode) {
+            if (!node.IsMap()
+                || !node["id"] || !node["id"].IsScalar()
+                || !node["secret_hex"] || !node["secret_hex"].IsScalar()
+                || !node["name"] || !node["name"].IsScalar()
+                || !node["kind"] || !node["kind"].IsScalar()
+                || !node["paired_at"] || !node["paired_at"].IsScalar()) {
+                loadedSuccessfully_ = false;
+                return false;
+            }
+
             PairedClient c;
             c.clientId = QString::fromStdString(node["id"].as<std::string>());
+            if (c.clientId.trimmed().isEmpty() || clientIds.contains(c.clientId)) {
+                loadedSuccessfully_ = false;
+                return false;
+            }
 
             // secret_hex is stored as hex string, convert to raw bytes
             std::string hexSecret = node["secret_hex"].as<std::string>();
+            if (!isValidSecretHex(hexSecret)) {
+                loadedSuccessfully_ = false;
+                return false;
+            }
             c.secret = QByteArray::fromHex(QByteArray::fromStdString(hexSecret));
+            if (c.secret.size() != 32) {
+                loadedSuccessfully_ = false;
+                return false;
+            }
 
             c.name = QString::fromStdString(node["name"].as<std::string>());
             c.kind = node["kind"].as<int>();
             c.pairedAtIso = QString::fromStdString(node["paired_at"].as<std::string>());
-            c.credentialGeneration = node["credential_generation"]
-                ? node["credential_generation"].as<int>()
-                : kLegacyCredentialGeneration;
+            const YAML::Node generationNode = node["credential_generation"];
+            if (generationNode) {
+                if (!generationNode.IsScalar()) {
+                    loadedSuccessfully_ = false;
+                    return false;
+                }
+                c.credentialGeneration = generationNode.as<int>();
+            } else {
+                c.credentialGeneration = kLegacyCredentialGeneration;
+            }
+            if (!isKnownCredentialGeneration(c.credentialGeneration)) {
+                loadedSuccessfully_ = false;
+                return false;
+            }
 
+            clientIds.insert(c.clientId);
             loaded.append(c);
         }
         clients_ = std::move(loaded);
@@ -80,7 +144,7 @@ bool PairedClientStore::save() {
     }
 
     YAML::Node doc;
-    YAML::Node clientsNode;
+    YAML::Node clientsNode(YAML::NodeType::Sequence);
 
     for (const auto& c : clients_) {
         YAML::Node clientNode;
