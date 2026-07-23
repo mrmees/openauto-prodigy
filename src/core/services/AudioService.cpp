@@ -4,7 +4,10 @@
 #include "core/audio/FocusGain.hpp"
 #include <QCoreApplication>
 #include <algorithm>
+#include <cmath>
 #include <cstring>
+#include <limits>
+#include <new>
 #include <spa/param/props.h>
 #include <pipewire/version.h>
 
@@ -14,6 +17,14 @@ static inline int pw_stream_set_rate(struct pw_stream*, double) { return 0; }
 #endif
 
 namespace oap {
+
+namespace {
+constexpr int kMinPlaybackBufferMs = 500;
+constexpr int kMaxPlaybackBufferMs = 5000;
+constexpr int kMinPlaybackSampleRate = 8000;
+constexpr int kMaxPlaybackSampleRate = 384000;
+constexpr uint32_t kMaxPlaybackRingBytes = 8u * 1024u * 1024u;
+}
 
 AudioService::AudioService(QObject* parent)
     : QObject(parent)
@@ -69,9 +80,11 @@ AudioService::AudioService(QObject* parent)
     connect(&deviceRegistry_, &PipeWireDeviceRegistry::deviceRemoved,
             this, &AudioService::onDeviceRemoved);
 
-    // Adaptive buffer growth timer — polls underrun counters every 2 seconds
-    connect(&adaptiveTimer_, &QTimer::timeout, this, &AudioService::checkAdaptiveBuffers);
-    adaptiveTimer_.start(2000);
+    // Diagnostics are consumed on the Qt owner thread. The PW process callback
+    // only publishes primitive atomics and never formats/logs on the RT thread.
+    connect(&audioDiagnosticTimer_, &QTimer::timeout,
+            this, &AudioService::reportAudioDiagnostics);
+    audioDiagnosticTimer_.start(10000);
 }
 
 AudioService::~AudioService()
@@ -139,8 +152,21 @@ void AudioService::onPlaybackProcess(void* userdata)
     struct pw_buffer* buf = pw_stream_dequeue_buffer(handle->stream);
     if (!buf) return;
 
+    fillPlaybackBuffer(handle, buf);
+    pw_stream_queue_buffer(handle->stream, buf);
+}
+
+bool AudioService::fillPlaybackBuffer(AudioStreamHandle* handle, struct pw_buffer* buf)
+{
+    if (!handle || !handle->ringBuffer || !buf || !buf->buffer
+        || buf->buffer->n_datas == 0 || !buf->buffer->datas)
+        return false;
+
     struct spa_data& d = buf->buffer->datas[0];
-    int stride = handle->bytesPerFrame;
+    const int stride = handle->bytesPerFrame;
+    if (!d.data || !d.chunk || stride <= 0
+        || d.maxsize < static_cast<uint32_t>(stride))
+        return false;
 
     // Determine how many frames to output: clamp to buf->requested when nonzero,
     // matching PipeWire's audio-src-ring.c example. The resampler sets requested
@@ -235,16 +261,14 @@ void AudioService::onPlaybackProcess(void* userdata)
                 double newRate = 1.0 + static_cast<double>(correction);
                 pw_stream_set_rate(handle->stream, newRate);
 
-                // Periodic diagnostic (every ~10s)
-                handle->diagCount++;
-                if (handle->diagCount % 30 == 0) {
-                    uint32_t drops = handle->ringBuffer->resetDropCount();
-                    fprintf(stderr, "[AudioRate %s] fill=%.1f%% err=%.4f integ=%.2f corr=%.6f avail=%u/%u drops=%u\n",
-                            handle->name.toUtf8().constData(),
-                            handle->filteredFill * 100.0f, error,
-                            handle->rateIntegral, correction,
-                            avail, handle->ringBuffer->capacity(), drops);
-                }
+                handle->rateAvailableBytes.store(avail, std::memory_order_relaxed);
+                handle->rateFillPermille.store(
+                    static_cast<int32_t>(std::lround(handle->filteredFill * 1000.0f)),
+                    std::memory_order_relaxed);
+                handle->rateCorrectionPpm.store(
+                    static_cast<int32_t>(std::lround(correction * 1000000.0f)),
+                    std::memory_order_relaxed);
+                handle->rateDiagnosticUpdates.fetch_add(1, std::memory_order_relaxed);
             } else {
                 handle->filteredFill = 0.25f;
                 handle->rateIntegral = 0.0f;
@@ -253,7 +277,38 @@ void AudioService::onPlaybackProcess(void* userdata)
         }
     }
 
-    pw_stream_queue_buffer(handle->stream, buf);
+    return true;
+}
+
+uint32_t AudioService::playbackRingCapacityBytes(int sampleRate, int channels,
+                                                  int bufferMs,
+                                                  int* normalizedBufferMs)
+{
+    if (normalizedBufferMs)
+        *normalizedBufferMs = 0;
+    if (sampleRate < kMinPlaybackSampleRate || sampleRate > kMaxPlaybackSampleRate
+        || channels < 1 || channels > 2)
+        return 0;
+
+    const int boundedMs = std::clamp(bufferMs,
+                                     kMinPlaybackBufferMs,
+                                     kMaxPlaybackBufferMs);
+    const uint64_t requested = static_cast<uint64_t>(sampleRate)
+        * static_cast<uint64_t>(channels) * sizeof(int16_t)
+        * static_cast<uint64_t>(boundedMs) / 1000u;
+    if (requested == 0 || requested > kMaxPlaybackRingBytes)
+        return 0;
+
+    uint64_t capacity = 1;
+    while (capacity < requested)
+        capacity <<= 1;
+    if (capacity > kMaxPlaybackRingBytes
+        || capacity > std::numeric_limits<uint32_t>::max())
+        return 0;
+
+    if (normalizedBufferMs)
+        *normalizedBufferMs = boundedMs;
+    return static_cast<uint32_t>(capacity);
 }
 
 // ---- Stream state-change callback (PipeWire thread) ----
@@ -265,7 +320,6 @@ void AudioService::onStreamStateChanged(void* userdata, enum pw_stream_state old
                                         enum pw_stream_state state, const char* error)
 {
     Q_UNUSED(old);
-    Q_UNUSED(error);
     auto* handle = static_cast<AudioStreamHandle*>(userdata);
     if (!handle)
         return;
@@ -275,10 +329,27 @@ void AudioService::onStreamStateChanged(void* userdata, enum pw_stream_state old
     // it to the Qt main thread. Dispatch against errorContext when supplied so
     // Qt auto-cancels the queued call if the consumer is destroyed first;
     // otherwise fall back to qApp.
-    if (state == PW_STREAM_STATE_ERROR && handle->onStreamError) {
+    if (state != PW_STREAM_STATE_ERROR)
+        return;
+
+    const QString streamName = handle->name;
+    const QString errorText = error ? QString::fromUtf8(error)
+                                    : QStringLiteral("unknown PipeWire error");
+    if (QObject* app = static_cast<QObject*>(qApp)) {
+        QMetaObject::invokeMethod(app, [streamName, errorText]() {
+            qCWarning(lcAudio) << "AudioService: stream error for"
+                               << streamName << ":" << errorText;
+        }, Qt::QueuedConnection);
+    } else {
+        qCWarning(lcAudio) << "AudioService: stream error for"
+                           << streamName << ":" << errorText;
+    }
+
+    if (handle->onStreamError) {
         QObject* ctx = handle->errorContext ? handle->errorContext
                                             : static_cast<QObject*>(qApp);
-        QMetaObject::invokeMethod(ctx, handle->onStreamError, Qt::QueuedConnection);
+        if (ctx)
+            QMetaObject::invokeMethod(ctx, handle->onStreamError, Qt::QueuedConnection);
     }
 }
 
@@ -319,6 +390,16 @@ AudioStreamHandle* AudioService::createStreamWithOptions(const PlaybackStreamOpt
         channels = qBound(1, channels, 2);
     }
 
+    int normalizedBufferMs = 0;
+    const uint32_t ringCapacity = playbackRingCapacityBytes(
+        opts.sampleRate, channels, opts.bufferMs, &normalizedBufferMs);
+    if (ringCapacity == 0) {
+        qCWarning(lcAudio) << "AudioService::createStreamWithOptions: unsupported playback format"
+                           << opts.sampleRate << "Hz" << channels << "ch, buffer"
+                           << opts.bufferMs << "ms for" << opts.name;
+        return nullptr;
+    }
+
     auto* handle = new AudioStreamHandle();
     handle->name = opts.name;
     handle->priority = opts.priority;
@@ -330,16 +411,20 @@ AudioStreamHandle* AudioService::createStreamWithOptions(const PlaybackStreamOpt
     handle->onStreamError = opts.onStreamError;
     handle->errorContext = opts.errorContext;
 
-    // Ring buffer: sized per-stream via bufferMs, minimum 500ms for burst absorption
-    // AA sends audio in large protobuf bursts over TCP, not sample-by-sample.
-    int bufferMs = opts.bufferMs;
-    if (bufferMs < 500) bufferMs = 500;
-    handle->bufferMs = bufferMs;
-    uint32_t rbSize = static_cast<uint32_t>(opts.sampleRate * channels * 2 * (bufferMs / 1000.0f));
-    uint32_t pow2 = 1;
-    while (pow2 < rbSize) pow2 <<= 1;
-    handle->ringBuffer = std::make_unique<AudioRingBuffer>(pow2);
-    qCDebug(lcAudio) << "AudioService: Ring buffer for" << opts.name << ":" << pow2 << "bytes (" << bufferMs << "ms)";
+    // Static, bounded creation-time ring. AA sends audio in bursts over TCP;
+    // 500 ms preserves the existing effective floor while the upper bound
+    // prevents hand-edited configuration from creating unbounded allocations.
+    handle->bufferMs = normalizedBufferMs;
+    try {
+        handle->ringBuffer = std::make_unique<AudioRingBuffer>(ringCapacity);
+    } catch (const std::bad_alloc&) {
+        qCWarning(lcAudio) << "AudioService: Ring buffer allocation failed for"
+                           << opts.name << ringCapacity << "bytes";
+        delete handle;
+        return nullptr;
+    }
+    qCDebug(lcAudio) << "AudioService: Ring buffer for" << opts.name << ":"
+                     << ringCapacity << "bytes (" << normalizedBufferMs << "ms)";
 
     // Determine PipeWire role based on stream name
     const char* role = "Music";
@@ -626,10 +711,15 @@ void AudioService::onCaptureProcess(void* userdata)
     struct pw_buffer* buf = pw_stream_dequeue_buffer(handle->stream);
     if (!buf) return;
 
+    if (!buf->buffer || buf->buffer->n_datas == 0 || !buf->buffer->datas) {
+        pw_stream_queue_buffer(handle->stream, buf);
+        return;
+    }
+
     struct spa_data& d = buf->buffer->datas[0];
     // Atomic guard: a legacy setCaptureCallback / close may be mutating the
     // std::function on the Qt thread. Only touch it when published active.
-    if (d.data && d.chunk->size > 0 &&
+    if (d.data && d.chunk && d.chunk->size > 0 &&
         handle->captureCallbackActive.load(std::memory_order_acquire) &&
         handle->captureCallback) {
         auto* ptr = static_cast<const uint8_t*>(d.data) + d.chunk->offset;
@@ -834,39 +924,38 @@ bool AudioService::setStreamActive(AudioStreamHandle* h, bool active)
 
 void AudioService::resetStreamRing(AudioStreamHandle* h)
 {
-    // Precondition: BOTH reader AND writer are quiesced. The caller deactivates
-    // PLAYBACK first so the READER (onPlaybackProcess) is quiesced; in the BT
-    // A2DP tap the caller ALSO gates its capture callback off (captureEnabled_)
-    // before draining, so the WRITER is quiesced too. drain() is a plain
-    // read-index catch-up — it is NOT writer-safe: write() advances the read
-    // index on overflow (drop-oldest), so an overflowing writer would race
-    // drain() for the read index and could overwrite the flush. With the writer
-    // gated off the ring cannot overflow under it and drain() is the sole
-    // read-index mutator (see AudioRingBuffer::drain()).
+    // The playback reader must be quiesced so drain() is its sole read-index
+    // mutator. A concurrent writer is safe because it exclusively owns the
+    // write index; bytes published after drain's snapshot remain readable. The
+    // BT tap keeps both sides quiesced for its stronger empty-boundary contract.
     if (!h || !h->ringBuffer) return;
     h->ringBuffer->drain();
 }
 
-// ---- Adaptive buffer growth ----
+// ---- Non-RT audio diagnostics ----
 
-void AudioService::checkAdaptiveBuffers()
+void AudioService::reportAudioDiagnostics()
 {
-    if (!adaptiveBuffers_) return;
-
     QMutexLocker lock(&mutex_);
     for (auto* handle : streams_) {
         uint32_t xruns = handle->underrunCount.exchange(0, std::memory_order_relaxed);
-        if (xruns >= 2 && handle->bufferMs < handle->maxBufferMs) {
-            int oldMs = handle->bufferMs;
-            handle->bufferMs = qMin(handle->bufferMs + 10, handle->maxBufferMs);
-            // AudioRingBuffer uses spa_ringbuffer with a fixed backing store —
-            // live resize would require draining and reallocating. The grown
-            // bufferMs will take effect when the stream is next created.
-            qCDebug(lcAudio) << "Buffer grown to" << handle->bufferMs
-                    << "ms for stream" << handle->name
-                    << "(" << xruns << "xruns, was" << oldMs << "ms)"
-                    << "— takes effect on next session";
-        }
+        uint32_t drops = handle->ringBuffer
+            ? handle->ringBuffer->resetDropCount() : 0u;
+        uint32_t updates = handle->rateDiagnosticUpdates.exchange(
+            0, std::memory_order_relaxed);
+        if (xruns == 0 && drops == 0 && updates == 0)
+            continue;
+
+        qCDebug(lcAudio) << "Audio diagnostics" << handle->name
+                         << "fill permille"
+                         << handle->rateFillPermille.load(std::memory_order_relaxed)
+                         << "correction ppm"
+                         << handle->rateCorrectionPpm.load(std::memory_order_relaxed)
+                         << "available"
+                         << handle->rateAvailableBytes.load(std::memory_order_relaxed)
+                         << "/" << (handle->ringBuffer
+                             ? handle->ringBuffer->capacity() : 0u)
+                         << "underruns" << xruns << "drops" << drops;
     }
 }
 

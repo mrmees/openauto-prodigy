@@ -83,6 +83,9 @@ void TestConfigKeyCoverage::testAllRuntimeKeys()
         QVERIFY2(svc.value(key).isValid(),
                  qPrintable(QString("Key '%1' returned invalid QVariant").arg(key)));
     }
+    QCOMPARE(svc.value("audio.buffer_ms.media").toInt(), 500);
+    QCOMPARE(svc.value("audio.buffer_ms.speech").toInt(), 500);
+    QCOMPARE(svc.value("audio.buffer_ms.system").toInt(), 500);
 }
 
 void TestConfigKeyCoverage::testPluginConsumedKeys()

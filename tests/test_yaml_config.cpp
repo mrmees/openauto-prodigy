@@ -76,6 +76,9 @@ void TestYamlConfig::testLoadDefaults()
     QCOMPARE(config.videoFps(), 30);
     QCOMPARE(config.autoConnectAA(), true);
     QCOMPARE(config.masterVolume(), 80);
+    QCOMPARE(config.audioBufferMs("media"), 500);
+    QCOMPARE(config.audioBufferMs("speech"), 500);
+    QCOMPARE(config.audioBufferMs("system"), 500);
 }
 
 void TestYamlConfig::testLoadFromFile()

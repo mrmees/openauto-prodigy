@@ -52,7 +52,6 @@ public:
     int masterVolume() const;
     void setMasterVolume(int v);
     int audioBufferMs(const QString& streamType) const;
-    bool audioAdaptive() const;
 
     // Video
     int videoFps() const;

@@ -1,6 +1,7 @@
 #pragma once
 
 #include <spa/utils/ringbuffer.h>
+#include <algorithm>
 #include <cstdint>
 #include <cstring>
 #include <vector>
@@ -26,28 +27,28 @@ public:
         uint32_t idx;
         int32_t avail = spa_ringbuffer_get_read_index(
             const_cast<struct spa_ringbuffer*>(&ring_), &idx);
-        return (avail > 0) ? static_cast<uint32_t>(avail) : 0u;
+        if (avail <= 0) return 0u;
+        return std::min(static_cast<uint32_t>(avail), capacity_);
     }
 
     uint32_t write(const uint8_t* src, uint32_t size)
     {
         if (!src || size == 0) return 0;
 
-        uint32_t toWrite = (size > capacity_) ? capacity_ : size;
-
-        // If writing would overflow, advance read pointer to drop oldest data
-        uint32_t avail = available();
-        if (avail + toWrite > capacity_) {
-            uint32_t drop = avail + toWrite - capacity_;
-            uint32_t readIdx;
-            spa_ringbuffer_get_read_index(&ring_, &readIdx);
-            spa_ringbuffer_read_update(&ring_,
-                static_cast<int32_t>(readIdx + drop));
-            dropCount_.fetch_add(1, std::memory_order_relaxed);
-        }
-
+        // Strict SPSC ownership: the producer owns ONLY writeindex and the
+        // consumer owns ONLY readindex. Snapshot current fill through the
+        // writer-side SPA helper, then copy only what fits. The unwritten tail
+        // is drop-newest and is observable to the caller as a short write.
         uint32_t writeIdx;
-        spa_ringbuffer_get_write_index(&ring_, &writeIdx);
+        const int32_t fill = spa_ringbuffer_get_write_index(&ring_, &writeIdx);
+        const uint32_t used = (fill <= 0)
+            ? 0u : std::min(static_cast<uint32_t>(fill), capacity_);
+        const uint32_t free = capacity_ - used;
+        const uint32_t toWrite = std::min(size, free);
+        if (toWrite < size)
+            dropCount_.fetch_add(1, std::memory_order_relaxed);
+
+        if (toWrite == 0) return 0;
 
         uint32_t offset = writeIdx & (capacity_ - 1);
         spa_ringbuffer_write_data(&ring_, data_.data(), capacity_,
@@ -88,19 +89,11 @@ public:
     }
 
     // Reader-side drain: snapshot the write index and advance the read index to
-    // it, discarding all currently-buffered data. Touches ONLY the read index
-    // (never the write index) using the same spa_ringbuffer primitives as
-    // read(). This is a plain read-index catch-up — NOT writer-safe.
-    //
-    // Precondition (as of the BT-tap capture-gate rework): BOTH the reader AND
-    // the writer are quiesced. The reader is quiesced by deactivating playback;
-    // the writer is quiesced by the BT tap gating its capture callback off
-    // (captureEnabled_ == false) before any drain. The reason both are required:
-    // write() advances the READ index on overflow (drop-oldest), so an
-    // overflowing writer is a second concurrent mutator of the read index and
-    // could overwrite drain()'s update — leaving stale pre-drain bytes readable.
-    // With the writer gated off (and the ring therefore not overflowing under
-    // it) drain() is the sole read-index mutator and the flush is race-free.
+    // it, discarding all bytes published before the snapshot. Touches ONLY the
+    // read index, like read(). The reader must be quiesced so drain() is its sole
+    // cursor mutator. A live writer is safe: bytes published after the snapshot
+    // remain readable. The BT tap retains its stronger both-sides-quiesced
+    // transition ordering so activation always starts from an empty queue.
     void drain()
     {
         uint32_t readIdx;

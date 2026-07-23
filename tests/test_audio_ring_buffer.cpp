@@ -3,6 +3,7 @@
 
 #include <atomic>
 #include <chrono>
+#include <cstring>
 #include <thread>
 
 class TestAudioRingBuffer : public QObject {
@@ -40,18 +41,37 @@ private slots:
         QCOMPARE(rb.read(buf, 64), 0u);
     }
 
-    void overrunDropsOldest()
+    void overrunDropsNewestAndReturnsShortWrite()
     {
         oap::AudioRingBuffer rb(256);
         uint8_t data[256];
         memset(data, 0xAA, 256);
-        rb.write(data, 256);
+        QCOMPARE(rb.write(data, 256), 256u);
 
         uint8_t moreData[64];
         memset(moreData, 0xBB, 64);
-        rb.write(moreData, 64);
+        QCOMPARE(rb.write(moreData, 64), 0u);
+        QCOMPARE(rb.dropCount(), 1u);
 
-        QVERIFY(rb.available() <= 256u);
+        uint8_t out[256] = {};
+        QCOMPARE(rb.read(out, sizeof(out)), 256u);
+        for (uint8_t byte : out)
+            QCOMPARE(byte, static_cast<uint8_t>(0xAA));
+    }
+
+    void partialOverflowWritesOnlyAvailableSpace()
+    {
+        oap::AudioRingBuffer rb(8);
+        const uint8_t first[] = {1, 2, 3, 4, 5, 6};
+        const uint8_t second[] = {7, 8, 9, 10};
+        QCOMPARE(rb.write(first, sizeof(first)), 6u);
+        QCOMPARE(rb.write(second, sizeof(second)), 2u);
+        QCOMPARE(rb.available(), 8u);
+
+        uint8_t out[8] = {};
+        QCOMPARE(rb.read(out, sizeof(out)), 8u);
+        const uint8_t expected[] = {1, 2, 3, 4, 5, 6, 7, 8};
+        QCOMPARE(std::memcmp(out, expected, sizeof(out)), 0);
     }
 
     void resetClearsBuffer()
@@ -89,12 +109,12 @@ private slots:
         constexpr uint32_t kCap = 1024;
         oap::AudioRingBuffer rb(kCap);
 
-        // Pattern A: write past capacity so the ring overflow-drops and ends up
-        // exactly full of 0xAA.
+        // Pattern A: fill the ring and attempt one drop-newest overflow so the
+        // ring remains exactly full of 0xAA.
         uint8_t a[kCap];
         memset(a, 0xAA, sizeof(a));
         rb.write(a, kCap);
-        rb.write(a, kCap);            // force at least one overflow-drop
+        rb.write(a, kCap);            // force at least one overflow event
         QVERIFY(rb.available() > 0);
 
         // Quiescent drain — total flush, ring is empty afterwards.
@@ -115,71 +135,59 @@ private slots:
             QCOMPARE(out[i], static_cast<uint8_t>(0xBB));
     }
 
-    // Bounded-fill robustness under a CONTINUOUSLY-OVERFLOWING live writer. This
-    // is NOT the drain-flush-safety guarantee (that now requires a quiesced
-    // writer — see drainFullyFlushesPreDrainBytes above). It instead documents
-    // that write()'s own drop-oldest keeps the ring bounded under an unrelenting
-    // writer, and that a concurrent drain() never yields a wrapped/near-2^32
-    // garbage available() reading even though it is racing write()'s read-index
-    // advance (a torn index would surface as exactly that garbage).
-    //
-    // The writer is deliberately much FASTER than the real threat model (a
-    // PipeWire RT capture stream, 48 kHz stereo S16 ≈ 192 KB/s): ~25 MB/s keeps
-    // the ring overflowing continuously so write()'s own read-index advance
-    // races drain() for the whole test. It is bounded (not a GB/s hammer) only
-    // to keep available()'s sampling skew within one chunk.
-    // (An unbounded writer only produces measurement skew in available(), whose
-    // get_read_index() loads the read then the write index non-atomically: with
-    // GB/s writes the write index races ahead between those two loads, inflating
-    // the *reported* fill without any actual ring defect. Pacing keeps that skew
-    // negligible so the capacity invariant is a meaningful signal.)
-    void boundedFillUnderLiveWriter()
+    // Real SPSC stress: the producer publishes monotonically increasing words
+    // and accepts drop-newest short writes. The consumer may observe gaps, but
+    // every accepted word must remain intact and strictly increasing — never
+    // replayed, regressed, or torn — and reported fill stays bounded.
+    void concurrentProducerConsumerPreservesAcceptedOrder()
     {
         constexpr uint32_t kCap = 4096;
-        constexpr uint32_t kChunk = 512;
+        constexpr uint32_t kValues = 200000;
         oap::AudioRingBuffer rb(kCap);
 
-        std::atomic<bool> stop{false};
+        std::atomic<bool> producerDone{false};
         std::atomic<uint32_t> maxSeen{0};
+        std::atomic<bool> invalid{false};
+        std::atomic<uint32_t> accepted{0};
+        std::atomic<uint32_t> consumed{0};
 
-        std::thread writer([&]() {
-            uint8_t chunk[kChunk];
-            for (uint32_t i = 0; i < kChunk; ++i)
-                chunk[i] = static_cast<uint8_t>(i);
-            // ~kChunk every 20 us ≈ 25 MB/s — well above RT capture rate (so the
-            // ring genuinely fills and overflows, exercising write()'s own read-
-            // index advance against drain()) yet bounded enough that available()
-            // sampling skew stays within one chunk.
-            while (!stop.load(std::memory_order_relaxed)) {
-                rb.write(chunk, kChunk);
-                std::this_thread::sleep_for(std::chrono::microseconds(20));
+        std::thread producer([&]() {
+            for (uint32_t value = 1; value <= kValues; ++value) {
+                if (rb.write(reinterpret_cast<const uint8_t*>(&value),
+                             sizeof(value)) == sizeof(value))
+                    accepted.fetch_add(1, std::memory_order_relaxed);
+            }
+            producerDone.store(true, std::memory_order_release);
+        });
+
+        std::thread consumer([&]() {
+            uint32_t previous = 0;
+            while (!producerDone.load(std::memory_order_acquire)
+                   || rb.available() != 0) {
+                const uint32_t avail = rb.available();
+                uint32_t oldMax = maxSeen.load(std::memory_order_relaxed);
+                while (avail > oldMax && !maxSeen.compare_exchange_weak(
+                           oldMax, avail, std::memory_order_relaxed)) {}
+
+                uint32_t value = 0;
+                if (rb.read(reinterpret_cast<uint8_t*>(&value), sizeof(value))
+                    != sizeof(value)) {
+                    std::this_thread::yield();
+                    continue;
+                }
+                if (value <= previous || value == 0 || value > kValues)
+                    invalid.store(true, std::memory_order_relaxed);
+                previous = value;
+                consumed.fetch_add(1, std::memory_order_relaxed);
             }
         });
 
-        // Drain in a tight loop for ~1s, tracking the peak fill the ring ever
-        // reports. Bound: capacity + one write chunk (the sampling-skew ceiling
-        // for a paced writer). A torn reset() would instead report a wrapped,
-        // near-2^32 garbage value — this bound cleanly rejects that.
-        const auto deadline = std::chrono::steady_clock::now() + std::chrono::seconds(1);
-        while (std::chrono::steady_clock::now() < deadline) {
-            uint32_t a = rb.available();
-            if (a > maxSeen.load(std::memory_order_relaxed))
-                maxSeen.store(a, std::memory_order_relaxed);
-            rb.drain();
-        }
+        producer.join();
+        consumer.join();
 
-        stop.store(true, std::memory_order_relaxed);
-        writer.join();
-
-        // No runaway / torn-ring garbage while racing the writer.
-        QVERIFY2(maxSeen.load() <= kCap + kChunk,
-                 qPrintable(QStringLiteral("maxSeen=%1 exceeded cap+chunk=%2")
-                                .arg(maxSeen.load()).arg(kCap + kChunk)));
-
-        // Writer is quiesced: the ring must be bounded and a final drain empties
-        // it completely.
-        QVERIFY(rb.available() <= kCap);
-        rb.drain();
+        QVERIFY(!invalid.load());
+        QCOMPARE(consumed.load(), accepted.load());
+        QVERIFY(maxSeen.load() <= kCap);
         QCOMPARE(rb.available(), 0u);
     }
 };
