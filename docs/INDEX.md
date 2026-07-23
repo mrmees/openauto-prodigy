@@ -2,7 +2,7 @@
 
 ## Active Plans
 
-None.
+- [2026-07-23-bt-hfp-avrcp-state-remediation-design.md](plans/2026-07-23-bt-hfp-avrcp-state-remediation-design.md) and [implementation plan](plans/2026-07-23-bt-hfp-avrcp-state-remediation-plan.md) — asynchronous BlueZ state, Agent1 prompt, AVRCP loss, and single-AG HFP remediation
 
 ## Start Here
 
@@ -54,7 +54,7 @@ Protocol definitions and generic reference docs are in [open-android-auto](https
 
 Active plans:
 
-None.
+- [2026-07-23-bt-hfp-avrcp-state-remediation-design.md](plans/2026-07-23-bt-hfp-avrcp-state-remediation-design.md) and [implementation plan](plans/2026-07-23-bt-hfp-avrcp-state-remediation-plan.md) — ACTIVE
 
 Parked plans (not current guidance):
 

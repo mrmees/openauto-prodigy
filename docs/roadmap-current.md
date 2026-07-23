@@ -14,9 +14,14 @@ Governance: capture new ideas in `docs/wishlist.md`; only promoted items should 
 
 ## Now
 
-No implementation tranche is active. After the current draft is reviewed and
-merged, revalidate the next bounded subsystem wave before promoting a new
-design and plan.
+Bluetooth, HFP, and AVRCP state remediation is **ACTIVE 2026-07-23**. This
+consolidated wave makes BlueZ state refresh asynchronous and snapshot-owned,
+completes the pairing-agent prompt contract, removes blocking AVRCP hot-plug
+reads, binds PipeWire telephony transport state to one selected phone, rejects
+ambiguous SCO-only call inference, and closes the phone-plugin shutdown edge.
+Design and plan:
+`docs/plans/2026-07-23-bt-hfp-avrcp-state-remediation-design.md` and
+`docs/plans/2026-07-23-bt-hfp-avrcp-state-remediation-plan.md`.
 
 ## Done (recent)
 
