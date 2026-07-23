@@ -68,6 +68,7 @@ private slots:
 private:
     static constexpr qsizetype MaxFrameSize = 1024 * 1024;
     static constexpr qsizetype MaxPendingOutput = 1024 * 1024;
+    static constexpr qsizetype MaxBytesPerTurn = MaxFrameSize + 1;
     static constexpr int MaxFramesPerTurn = 64;
 
     struct ClientState {

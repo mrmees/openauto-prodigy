@@ -176,6 +176,64 @@ private slots:
         }
     }
 
+    void nearLimitFramesYieldByCumulativeBytes()
+    {
+        QTemporaryDir dir;
+        QVERIFY(dir.isValid());
+        const QString socketPath = dir.path() + QStringLiteral("/ipc.sock");
+        IpcServer server;
+        QVERIFY(server.start(socketPath));
+
+        QLocalSocket batchClient;
+        QLocalSocket controlClient;
+        batchClient.connectToServer(socketPath);
+        controlClient.connectToServer(socketPath);
+        QVERIFY(batchClient.waitForConnected(2000));
+        QVERIFY(controlClient.waitForConnected(2000));
+
+        constexpr int BatchSize = 3;
+        constexpr qsizetype PayloadSize = 900 * 1024;
+        const QByteArray frame = QByteArray(PayloadSize, 'x') + '\n';
+        QByteArray batch;
+        for (int i = 0; i < BatchSize; ++i)
+            batch += frame;
+        QCOMPARE(batchClient.write(batch), qint64(batch.size()));
+        batchClient.flush();
+
+        QEventLoop batchStarted;
+        connect(&batchClient, &QLocalSocket::readyRead,
+                &batchStarted, &QEventLoop::quit);
+        QTimer::singleShot(3000, &batchStarted, &QEventLoop::quit);
+        batchStarted.exec();
+        QVERIFY(batchClient.bytesAvailable() > 0);
+        QByteArray batchOutput = batchClient.readAll();
+        QVERIFY(batchOutput.count('\n') < BatchSize);
+
+        const QByteArray controlRequest = "{\"command\":\"status\"}\n";
+        QCOMPARE(controlClient.write(controlRequest), qint64(controlRequest.size()));
+        controlClient.flush();
+        const QList<QByteArray> controlResponses = readResponseFrames(controlClient, 1);
+        QCOMPARE(controlResponses.size(), 1);
+        QVERIFY(QJsonDocument::fromJson(controlResponses.front()).object()
+                    .contains(QStringLiteral("version")));
+
+        QElapsedTimer timer;
+        timer.start();
+        while (batchOutput.count('\n') < BatchSize && timer.elapsed() < 3000) {
+            QCoreApplication::processEvents(QEventLoop::AllEvents, 20);
+            batchClient.waitForReadyRead(20);
+            batchOutput += batchClient.readAll();
+        }
+        QCOMPARE(batchOutput.count('\n'), BatchSize);
+        const QList<QByteArray> responses = batchOutput.split('\n');
+        QCOMPARE(responses.size(), BatchSize + 1);
+        for (int i = 0; i < BatchSize; ++i) {
+            QCOMPARE(QJsonDocument::fromJson(responses.at(i)).object()
+                         .value(QStringLiteral("error")).toString(),
+                     QStringLiteral("Invalid JSON"));
+        }
+    }
+
     void nonReadingClientIsClosedAtPendingOutputLimit()
     {
         QTemporaryDir dir;
@@ -247,6 +305,9 @@ private slots:
         QLocalSocket oversized;
         oversized.connectToServer(socketPath);
         QVERIFY(oversized.waitForConnected(2000));
+        QTRY_COMPARE_WITH_TIMEOUT(server.findChildren<QLocalSocket*>().size(), 1, 1000);
+        QCOMPARE(server.findChildren<QLocalSocket*>().front()->readBufferSize(),
+                 qint64(1024 * 1024 + 1));
         const QByteArray payload(1024 * 1024 + 1, 'x');
         QCOMPARE(oversized.write(payload), qint64(payload.size()));
         oversized.flush();

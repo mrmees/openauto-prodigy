@@ -168,6 +168,10 @@ void IpcServer::setInboundState(oap::api::ApiInboundState* state)
 void IpcServer::onNewConnection()
 {
     while (auto* socket = server_->nextPendingConnection()) {
+        // Bound Qt's own per-client buffering as well as the framing buffer
+        // below. One maximum-sized payload plus its delimiter is sufficient
+        // to decide whether the next frame is valid.
+        socket->setReadBufferSize(MaxFrameSize + 1);
         clients_.insert(socket, {});
         connect(socket, &QLocalSocket::readyRead, this, &IpcServer::onReadyRead);
         connect(socket, &QLocalSocket::disconnected, this, &IpcServer::onDisconnected);
@@ -196,7 +200,8 @@ void IpcServer::processClient(QLocalSocket* socket)
     it->continuationQueued = false;
 
     int framesRemaining = MaxFramesPerTurn;
-    while (framesRemaining > 0) {
+    qsizetype bytesRemaining = MaxBytesPerTurn;
+    while (framesRemaining > 0 && bytesRemaining > 0) {
         qsizetype newline = it->input.indexOf('\n');
         if (newline >= 0) {
             if (newline > MaxFrameSize) {
@@ -204,8 +209,12 @@ void IpcServer::processClient(QLocalSocket* socket)
                 return;
             }
 
+            const qsizetype frameBytes = newline + 1;
+            if (frameBytes > bytesRemaining)
+                break;
+
             const QByteArray request = it->input.left(newline);
-            it->input.remove(0, newline + 1);
+            it->input.remove(0, frameBytes);
             const QByteArray response = handleRequest(request) + '\n';
             if (socket->bytesToWrite() + response.size() > MaxPendingOutput) {
                 closeClient(socket, "pending response limit exceeded");
@@ -216,6 +225,7 @@ void IpcServer::processClient(QLocalSocket* socket)
                 return;
             }
             --framesRemaining;
+            bytesRemaining -= frameBytes;
             continue;
         }
 
@@ -238,9 +248,10 @@ void IpcServer::processClient(QLocalSocket* socket)
 
     socket->flush();
 
-    // Yield after a bounded number of requests even when one client supplied
-    // a large coalesced batch. Other sockets and UI work then get an event-loop
-    // turn before this client's remaining frames are processed.
+    // Yield after a bounded number or cumulative size of requests even when
+    // one client supplied a large coalesced batch. Other sockets and UI work
+    // then get an event-loop turn before this client's remaining frames are
+    // processed.
     if (it != clients_.end()
         && (it->input.contains('\n') || socket->bytesAvailable() > 0)) {
         scheduleClientContinuation(socket);
