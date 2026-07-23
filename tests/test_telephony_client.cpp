@@ -3,6 +3,7 @@
 #include <QtTest/QtTest>
 #include <QDBusMessage>
 #include <QDBusObjectPath>
+#include "core/services/PhoneStateService.hpp"
 #include "core/services/TelephonyClient.hpp"
 
 namespace {
@@ -64,6 +65,7 @@ private slots:
     void testSelectedAgOwnsOnlyChildCalls();
     void testRemainingAgSelectedAfterRemoval();
     void testCachedCallAdoptedOnGatewayFailover();
+    void testFailoverReplacementCancelsSettleAndRefreshesMetadata();
 };
 
 void TestTelephonyClient::testConstructIsInert() {
@@ -223,6 +225,60 @@ void TestTelephonyClient::testCachedCallAdoptedOnGatewayFailover()
     QCOMPARE(client.agAddress(), QStringLiteral("AA:BB"));
     QCOMPARE(startedSpy.count(), 2);
     QCOMPARE(endedSpy.count(), 2);
+}
+
+void TestTelephonyClient::testFailoverReplacementCancelsSettleAndRefreshesMetadata()
+{
+    oap::TelephonyClient client;
+    oap::PhoneStateService phone;
+    phone.setSettleGraceMs(30);
+    phone.attachTelephony(&client);
+
+    const QString ag1 = QStringLiteral("/org/pipewire/Telephony/ag1");
+    const QString ag2 = QStringLiteral("/org/pipewire/Telephony/ag2");
+    const QString agIface = QStringLiteral("org.pipewire.Telephony.AudioGateway1");
+    const QString callIface = QStringLiteral("org.pipewire.Telephony.Call1");
+    QVERIFY(addInterfaces(client, ag1,
+                          {{agIface, {{QStringLiteral("Address"), QStringLiteral("AA:BB")}}}}));
+    QVERIFY(addInterfaces(client, ag2,
+                          {{agIface, {{QStringLiteral("Address"), QStringLiteral("CC:DD")}}}}));
+
+    QSignalSpy stateSpy(&phone, &oap::ICallStateProvider::callStateChanged);
+    QVERIFY(addInterfaces(client, ag1 + QStringLiteral("/call1"), {{callIface, {
+        {QStringLiteral("State"), QStringLiteral("incoming")},
+        {QStringLiteral("LineIdentification"), QStringLiteral("111")},
+        {QStringLiteral("Name"), QStringLiteral("Primary")},
+    }}}));
+    QCOMPARE(phone.callState(), static_cast<int>(oap::ICallStateProvider::Ringing));
+    QCOMPARE(phone.callerNumber(), QStringLiteral("111"));
+    QCOMPARE(stateSpy.count(), 1);
+
+    // The replacement call is cached silently while AG1 remains selected.
+    QVERIFY(addInterfaces(client, ag2 + QStringLiteral("/call1"), {{callIface, {
+        {QStringLiteral("State"), QStringLiteral("incoming")},
+        {QStringLiteral("LineIdentification"), QStringLiteral("222")},
+        {QStringLiteral("Name"), QStringLiteral("Replacement")},
+    }}}));
+    QCOMPARE(stateSpy.count(), 1);
+
+    // AG1 removal emits call-ended then adopts AG2's call. Ringing remains the
+    // frozen numeric state, but metadata changes and must notify observers.
+    // The accepted replacement must also cancel AG1's pending settle timeout.
+    QVERIFY(removeInterfaces(client, ag1, {agIface}));
+    QCOMPARE(phone.callState(), static_cast<int>(oap::ICallStateProvider::Ringing));
+    QCOMPARE(phone.callerNumber(), QStringLiteral("222"));
+    QCOMPARE(phone.callerName(), QStringLiteral("Replacement"));
+    QCOMPARE(stateSpy.count(), 2);
+    QTest::qWait(100);
+    QCOMPARE(phone.callState(), static_cast<int>(oap::ICallStateProvider::Ringing));
+    QCOMPARE(phone.callerNumber(), QStringLiteral("222"));
+
+    // Ordinary explicit setup removal still uses the settle window and clears
+    // a rejected/unanswered call when no SCO or active transport arrives.
+    QVERIFY(removeInterfaces(client, ag2 + QStringLiteral("/call1"), {callIface}));
+    QTRY_COMPARE_WITH_TIMEOUT(
+        phone.callState(), static_cast<int>(oap::ICallStateProvider::Idle), 500);
+    QVERIFY(phone.callerNumber().isEmpty());
 }
 
 void TestTelephonyClient::testStartStopSafeWithoutService() {

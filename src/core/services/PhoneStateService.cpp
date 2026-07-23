@@ -127,16 +127,36 @@ void PhoneStateService::onCallSetupStarted(const QString& state, const QString& 
         qWarning() << "PhoneStateService: second call ignored (call-waiting unsupported):" << line;
         return;
     }
+
+    ICallStateProvider::CallState nextState;
+    if (state == QLatin1String("incoming"))
+        nextState = ICallStateProvider::Ringing;
+    else if (state == QLatin1String("dialing"))
+        nextState = ICallStateProvider::Dialing;
+    else if (state == QLatin1String("alerting"))
+        nextState = ICallStateProvider::Alerting;
+    else {
+        qWarning() << "PhoneStateService: unknown setup state" << state;
+        return;
+    }
+
+    // A newly adopted setup object supersedes any ambiguous removal that was
+    // waiting for SCO/transport evidence. In particular, gateway failover can
+    // emit old-call ended followed synchronously by replacement-call started.
+    inSettle_ = false;
+    settleTimer_.stop();
+
+    const bool metadataChanged = callerNumber_ != line || callerName_ != name;
+    const bool stateUnchanged = callState_ == nextState;
     callerNumber_ = line;
     callerName_ = name;
-    if (state == QLatin1String("incoming"))
-        setCallStateInternal(ICallStateProvider::Ringing);
-    else if (state == QLatin1String("dialing"))
-        setCallStateInternal(ICallStateProvider::Dialing);
-    else if (state == QLatin1String("alerting"))
-        setCallStateInternal(ICallStateProvider::Alerting);
-    else
-        qWarning() << "PhoneStateService: unknown setup state" << state;
+    setCallStateInternal(nextState);
+
+    // callerName/callerNumber share callStateChanged as their Q_PROPERTY
+    // notifier. Refresh observers when failover replaces caller metadata but
+    // the frozen numeric state remains (for example Ringing -> Ringing).
+    if (stateUnchanged && metadataChanged)
+        emit callStateChanged();
 }
 
 void PhoneStateService::onCallSetupChanged(const QString& state)
