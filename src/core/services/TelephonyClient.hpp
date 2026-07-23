@@ -72,6 +72,9 @@ private:
     void clearTransport();
     void selectAvailableAg(bool notifyAvailability = true);
     void adoptCall(const QString& path, const QVariantMap& props);
+    void adoptCachedCallForSelectedAg();
+    void purgeCallsForAg(const QString& agPath);
+    void clearPublishedCall();
     bool callBelongsToSelectedAg(const QString& path) const;
     void applyRejectSco();
     void asyncCall(const QString& op, QDBusMessage msg);
@@ -87,8 +90,10 @@ private:
     QString transportState_;
     QString codec_;
     QString callPath_;
+    QString callState_;
     QMap<QString, QVariantMap> agPropertiesByPath_;
     QMap<QString, QVariantMap> transportPropertiesByPath_;
+    QMap<QString, QVariantMap> callPropertiesByPath_;
 };
 
 } // namespace oap

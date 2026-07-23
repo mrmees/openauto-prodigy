@@ -110,15 +110,13 @@ void TelephonyClient::onServiceDown()
 {
     const bool wasAvailable = available();
     serviceUp_ = false;
-    if (!callPath_.isEmpty()) {
-        callPath_.clear();
-        emit callSetupEnded();
-    }
+    clearPublishedCall();
     agPath_.clear();
     agAddress_.clear();
     clearTransport();
     agPropertiesByPath_.clear();
     transportPropertiesByPath_.clear();
+    callPropertiesByPath_.clear();
     if (wasAvailable)
         emit availableChanged(false);
 }
@@ -251,6 +249,7 @@ void TelephonyClient::selectAvailableAg(bool notifyAvailability)
     const auto transport = transportPropertiesByPath_.constFind(agPath_);
     if (transport != transportPropertiesByPath_.cend())
         adoptTransport(agPath_, transport.value());
+    adoptCachedCallForSelectedAg();
     if (notifyAvailability && available() != wasAvailable)
         emit availableChanged(available());
 }
@@ -261,6 +260,8 @@ void TelephonyClient::adoptCall(const QString& path, const QVariantMap& props)
         qCWarning(lcTel) << "Call ignored for non-selected AudioGateway:" << path;
         return;
     }
+    if (callPath_ == path)
+        return;
     if (!callPath_.isEmpty()) {
         // Second concurrent Call1 (call-waiting): still emit — the state
         // machine decides (it ignores setup while Active, design §5).
@@ -268,9 +269,45 @@ void TelephonyClient::adoptCall(const QString& path, const QVariantMap& props)
     }
     callPath_ = path;
     const QString state = props.value(QStringLiteral("State")).toString();
+    callState_ = state;
     const QString line = props.value(QStringLiteral("LineIdentification")).toString();
     qCInfo(lcTel) << "Call setup:" << state << line;
     emit callSetupStarted(state, line, props.value(QStringLiteral("Name")).toString());
+}
+
+void TelephonyClient::adoptCachedCallForSelectedAg()
+{
+    if (agPath_.isEmpty() || !callPath_.isEmpty())
+        return;
+
+    const QString childPrefix = agPath_ + QLatin1Char('/');
+    for (auto it = callPropertiesByPath_.cbegin(); it != callPropertiesByPath_.cend(); ++it) {
+        if (it.key().startsWith(childPrefix)) {
+            adoptCall(it.key(), it.value());
+            return;
+        }
+    }
+}
+
+void TelephonyClient::purgeCallsForAg(const QString& agPath)
+{
+    const QString childPrefix = agPath + QLatin1Char('/');
+    auto it = callPropertiesByPath_.begin();
+    while (it != callPropertiesByPath_.end()) {
+        if (it.key().startsWith(childPrefix))
+            it = callPropertiesByPath_.erase(it);
+        else
+            ++it;
+    }
+}
+
+void TelephonyClient::clearPublishedCall()
+{
+    if (callPath_.isEmpty())
+        return;
+    callPath_.clear();
+    callState_.clear();
+    emit callSetupEnded();
 }
 
 bool TelephonyClient::callBelongsToSelectedAg(const QString& path) const
@@ -285,6 +322,8 @@ void TelephonyClient::onInterfacesAdded(const QDBusObjectPath& path, const oap::
         agPropertiesByPath_.insert(p, interfaces.value(kAgIface));
     if (interfaces.contains(kTransportIface))
         transportPropertiesByPath_.insert(p, interfaces.value(kTransportIface));
+    if (interfaces.contains(kCallIface))
+        callPropertiesByPath_.insert(p, interfaces.value(kCallIface));
     if (agPath_.isEmpty())
         selectAvailableAg();
     else {
@@ -300,9 +339,10 @@ void TelephonyClient::onInterfacesAdded(const QDBusObjectPath& path, const oap::
 void TelephonyClient::onInterfacesRemoved(const QDBusObjectPath& path, const QStringList& interfaces)
 {
     const QString p = path.path();
-    if (p == callPath_ && interfaces.contains(kCallIface)) {
-        callPath_.clear();
-        emit callSetupEnded();
+    if (interfaces.contains(kCallIface)) {
+        callPropertiesByPath_.remove(p);
+        if (p == callPath_)
+            clearPublishedCall();
     }
     if (interfaces.contains(kTransportIface))
         transportPropertiesByPath_.remove(p);
@@ -315,15 +355,13 @@ void TelephonyClient::onInterfacesRemoved(const QDBusObjectPath& path, const QSt
         const bool hadTransport = !transportPath_.isEmpty();
         agPropertiesByPath_.remove(p);
         transportPropertiesByPath_.remove(p);
+        purgeCallsForAg(p);
         agPath_.clear();
         agAddress_.clear();
         clearTransport();
         if (hadTransport)
             emit transportRemoved();
-        if (!callPath_.isEmpty()) {
-            callPath_.clear();
-            emit callSetupEnded();
-        }
+        clearPublishedCall();
         qCInfo(lcTel) << "AudioGateway removed:" << p;
         selectAvailableAg(false);
         if (available() != wasAvailable)
@@ -331,6 +369,7 @@ void TelephonyClient::onInterfacesRemoved(const QDBusObjectPath& path, const QSt
     } else if (interfaces.contains(kAgIface)) {
         agPropertiesByPath_.remove(p);
         transportPropertiesByPath_.remove(p);
+        purgeCallsForAg(p);
     }
 }
 
@@ -346,9 +385,21 @@ void TelephonyClient::onPropertiesChanged(const QString& interface, const QVaria
         for (const QString& property : invalidated)
             cached.remove(property);
     }
+    if (interface == kCallIface && callPropertiesByPath_.contains(path)) {
+        QVariantMap& cached = callPropertiesByPath_[path];
+        for (auto it = changed.cbegin(); it != changed.cend(); ++it)
+            cached.insert(it.key(), it.value());
+        for (const QString& property : invalidated)
+            cached.remove(property);
+    }
     if (interface == kCallIface && path == callPath_) {
-        if (changed.contains(QStringLiteral("State")))
-            emit callSetupChanged(changed.value(QStringLiteral("State")).toString());
+        if (changed.contains(QStringLiteral("State"))) {
+            const QString state = changed.value(QStringLiteral("State")).toString();
+            if (state != callState_) {
+                callState_ = state;
+                emit callSetupChanged(state);
+            }
+        }
     } else if (interface == kTransportIface && path == transportPath_) {
         if (changed.contains(QStringLiteral("State"))) {
             const QString state = changed.value(QStringLiteral("State")).toString();

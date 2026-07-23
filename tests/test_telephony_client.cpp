@@ -38,6 +38,19 @@ bool changeProperties(oap::TelephonyClient& client, const QString& path,
         Q_ARG(QDBusMessage, message));
 }
 
+bool changeCallProperties(oap::TelephonyClient& client, const QString& path,
+                          const QVariantMap& changed, const QStringList& invalidated = {})
+{
+    const QDBusMessage message = QDBusMessage::createSignal(
+        path, QStringLiteral("org.freedesktop.DBus.Properties"),
+        QStringLiteral("PropertiesChanged"));
+    return QMetaObject::invokeMethod(
+        &client, "onPropertiesChanged", Qt::DirectConnection,
+        Q_ARG(QString, QStringLiteral("org.pipewire.Telephony.Call1")),
+        Q_ARG(QVariantMap, changed), Q_ARG(QStringList, invalidated),
+        Q_ARG(QDBusMessage, message));
+}
+
 } // namespace
 
 class TestTelephonyClient : public QObject {
@@ -50,6 +63,7 @@ private slots:
     void testSelectedAgOwnsOnlySameObjectTransport();
     void testSelectedAgOwnsOnlyChildCalls();
     void testRemainingAgSelectedAfterRemoval();
+    void testCachedCallAdoptedOnGatewayFailover();
 };
 
 void TestTelephonyClient::testConstructIsInert() {
@@ -116,6 +130,99 @@ void TestTelephonyClient::testRemainingAgSelectedAfterRemoval()
     QCOMPARE(removedSpy.count(), 1);
     // Availability remained true across the deterministic hand-off.
     QCOMPARE(availableSpy.count(), 0);
+}
+
+void TestTelephonyClient::testCachedCallAdoptedOnGatewayFailover()
+{
+    oap::TelephonyClient client;
+    const QString ag1 = QStringLiteral("/org/pipewire/Telephony/ag1");
+    const QString ag2 = QStringLiteral("/org/pipewire/Telephony/ag2");
+    const QString ag1Call = ag1 + QStringLiteral("/call1");
+    const QString ag2Call = ag2 + QStringLiteral("/call1");
+    const QString agIface = QStringLiteral("org.pipewire.Telephony.AudioGateway1");
+    const QString transportIface =
+        QStringLiteral("org.pipewire.Telephony.AudioGatewayTransport1");
+    const QString callIface = QStringLiteral("org.pipewire.Telephony.Call1");
+
+    QVERIFY(addInterfaces(client, ag1, {
+        {agIface, {{QStringLiteral("Address"), QStringLiteral("AA:BB")}}},
+        {transportIface, {{QStringLiteral("State"), QStringLiteral("active")}}},
+    }));
+    QVERIFY(addInterfaces(client, ag2, {
+        {agIface, {{QStringLiteral("Address"), QStringLiteral("CC:DD")}}},
+        {transportIface, {{QStringLiteral("State"), QStringLiteral("idle")}}},
+    }));
+
+    QSignalSpy startedSpy(&client, &oap::TelephonyClient::callSetupStarted);
+    QSignalSpy changedSpy(&client, &oap::TelephonyClient::callSetupChanged);
+    QSignalSpy endedSpy(&client, &oap::TelephonyClient::callSetupEnded);
+
+    QVERIFY(addInterfaces(client, ag1Call, {{callIface, {
+        {QStringLiteral("State"), QStringLiteral("dialing")},
+        {QStringLiteral("LineIdentification"), QStringLiteral("111")},
+        {QStringLiteral("Name"), QStringLiteral("Primary")},
+    }}}));
+    QCOMPARE(startedSpy.count(), 1);
+
+    // AG2's child exists and changes before AG2 is selected. Its lifecycle and
+    // properties are cached, but no non-selected call is published.
+    QVERIFY(addInterfaces(client, ag2Call, {{callIface, {
+        {QStringLiteral("State"), QStringLiteral("incoming")},
+        {QStringLiteral("LineIdentification"), QStringLiteral("old-number")},
+        {QStringLiteral("Name"), QStringLiteral("Moto")},
+    }}}));
+    QVERIFY(changeCallProperties(client, ag2Call, {
+        {QStringLiteral("State"), QStringLiteral("alerting")},
+        {QStringLiteral("LineIdentification"), QStringLiteral("222")},
+    }));
+    QCOMPARE(startedSpy.count(), 1);
+    QCOMPARE(changedSpy.count(), 0);
+    QCOMPARE(endedSpy.count(), 0);
+
+    // Removing selected AG1 ends its published call, deterministically selects
+    // AG2, and adopts AG2's already-existing child with its latest properties.
+    QVERIFY(removeInterfaces(client, ag1, {agIface}));
+    QCOMPARE(client.agAddress(), QStringLiteral("CC:DD"));
+    QCOMPARE(client.transportState(), QStringLiteral("idle"));
+    QCOMPARE(endedSpy.count(), 1);
+    QCOMPARE(startedSpy.count(), 2);
+    QCOMPARE(startedSpy[1][0].toString(), QStringLiteral("alerting"));
+    QCOMPARE(startedSpy[1][1].toString(), QStringLiteral("222"));
+    QCOMPARE(startedSpy[1][2].toString(), QStringLiteral("Moto"));
+
+    // Selected-call deltas remain edge-only. Property invalidation updates the
+    // cache but is not an object-removal edge and therefore cannot end a call.
+    QVERIFY(changeCallProperties(client, ag2Call,
+                                 {{QStringLiteral("State"), QStringLiteral("active")}}));
+    QCOMPARE(changedSpy.count(), 1);
+    QCOMPARE(changedSpy[0][0].toString(), QStringLiteral("active"));
+    QVERIFY(changeCallProperties(client, ag2Call,
+                                 {{QStringLiteral("State"), QStringLiteral("active")}}));
+    QCOMPARE(changedSpy.count(), 1);
+    QVERIFY(changeCallProperties(client, ag2Call, {}, {QStringLiteral("State")}));
+    QCOMPARE(changedSpy.count(), 1);
+    QCOMPARE(endedSpy.count(), 1);
+    QVERIFY(changeCallProperties(client, ag2Call,
+                                 {{QStringLiteral("State"), QStringLiteral("active")}}));
+    QCOMPARE(changedSpy.count(), 1);
+    QVERIFY(changeCallProperties(client, ag2Call,
+                                 {{QStringLiteral("State"), QStringLiteral("held")}}));
+    QCOMPARE(changedSpy.count(), 2);
+
+    QVERIFY(removeInterfaces(client, ag2Call, {callIface}));
+    QCOMPARE(endedSpy.count(), 2);
+    QVERIFY(changeCallProperties(client, ag2Call,
+                                 {{QStringLiteral("State"), QStringLiteral("active")}}));
+    QCOMPARE(changedSpy.count(), 2);
+
+    // AG1's cached child was purged with AG1. Re-adding AG1 and failing over to
+    // it later must not resurrect that stale call.
+    QVERIFY(addInterfaces(client, ag1,
+                          {{agIface, {{QStringLiteral("Address"), QStringLiteral("AA:BB")}}}}));
+    QVERIFY(removeInterfaces(client, ag2, {agIface}));
+    QCOMPARE(client.agAddress(), QStringLiteral("AA:BB"));
+    QCOMPARE(startedSpy.count(), 2);
+    QCOMPARE(endedSpy.count(), 2);
 }
 
 void TestTelephonyClient::testStartStopSafeWithoutService() {
