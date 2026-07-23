@@ -452,6 +452,26 @@ private slots:
                  oaa::DisconnectReason::TlsError);
     }
 
+    void testProtocolFailureDisconnectsExactlyOnce() {
+        oaa::ReplayTransport transport;
+        oaa::SessionConfig config;
+        oaa::AASession session(&transport, config);
+        QSignalSpy disconnectSpy(&session, &oaa::AASession::disconnected);
+
+        transport.simulateConnect();
+        session.start();
+        advanceToActive(session);
+
+        emit session.messenger()->protocolFailed(
+            QStringLiteral("forced assembly failure"));
+        emit session.messenger()->protocolFailed(QStringLiteral("duplicate"));
+
+        QCOMPARE(session.state(), oaa::SessionState::Disconnected);
+        QCOMPARE(disconnectSpy.count(), 1);
+        QCOMPARE(disconnectSpy[0][0].value<oaa::DisconnectReason>(),
+                 oaa::DisconnectReason::ProtocolError);
+    }
+
     void testSynchronousVersionWriteFailureCannotResurrectSession() {
         ReentrantErrorTransport transport;
         oaa::SessionConfig config;

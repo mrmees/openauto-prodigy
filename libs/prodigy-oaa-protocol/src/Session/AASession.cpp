@@ -44,6 +44,8 @@ AASession::AASession(ITransport* transport, const SessionConfig& config,
             this, &AASession::onHandshakeFailed);
     connect(messenger_, &Messenger::tlsFailed,
             this, &AASession::onTlsFailed);
+    connect(messenger_, &Messenger::protocolFailed,
+            this, &AASession::onProtocolFailed);
 
     // ControlChannel signals
     connect(controlChannel_, &ControlChannel::versionReceived,
@@ -336,6 +338,17 @@ void AASession::onTlsFailed(const QString& message) {
     pingTimer_.stop();
     setState(SessionState::Disconnected);
     emit disconnected(DisconnectReason::TlsError);
+}
+
+void AASession::onProtocolFailed(const QString& message) {
+    if (state_ == SessionState::Idle || state_ == SessionState::Disconnected)
+        return;
+
+    qWarning() << "[AASession] Protocol framing failure:" << message;
+    stopStateTimer();
+    pingTimer_.stop();
+    setState(SessionState::Disconnected);
+    emit disconnected(DisconnectReason::ProtocolError);
 }
 
 void AASession::onServiceDiscoveryRequested(const QByteArray& payload) {

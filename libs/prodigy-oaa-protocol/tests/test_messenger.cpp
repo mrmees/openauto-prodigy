@@ -334,6 +334,7 @@ private slots:
         oaa::ReplayTransport transport;
         oaa::Messenger messenger(&transport);
         QSignalSpy messageSpy(&messenger, &oaa::Messenger::messageReceived);
+        QSignalSpy failureSpy(&messenger, &oaa::Messenger::protocolFailed);
 
         QByteArray oldPayload;
         const uint16_t oldId = qToBigEndian(uint16_t(0x1111));
@@ -352,6 +353,11 @@ private slots:
                                       oaa::EncryptionType::Plain,
                                       QByteArray("tail")));
         QCOMPARE(messageSpy.count(), 0);
+        QCOMPARE(failureSpy.count(), 1);
+
+        // A new lifecycle clears the terminal protocol-failure latch.
+        messenger.stop();
+        messenger.start();
 
         QByteArray freshPayload;
         const uint16_t freshId = qToBigEndian(uint16_t(0x2222));
@@ -444,6 +450,27 @@ private slots:
         messenger.sendMessage(3, 0x1234, QByteArrayLiteral("must not send"));
         QCOMPARE(transport.writtenData().size(), 0);
         QCOMPARE(failureSpy.count(), 1);
+    }
+
+    void testAssemblyViolationEmitsOnceAndForwardsNothing() {
+        oaa::ReplayTransport transport;
+        oaa::Messenger messenger(&transport);
+        QSignalSpy failureSpy(&messenger, &oaa::Messenger::protocolFailed);
+        QSignalSpy messageSpy(&messenger, &oaa::Messenger::messageReceived);
+
+        messenger.start();
+        const QByteArray invalidFirst = buildFrame(
+            3, oaa::FrameType::First, oaa::MessageType::Specific,
+            oaa::EncryptionType::Plain, QByteArrayLiteral("oversized"), 4);
+        transport.feedData(invalidFirst);
+        transport.feedData(invalidFirst);
+
+        QCOMPARE(failureSpy.count(), 1);
+        QVERIFY(!failureSpy[0][0].toString().isEmpty());
+        QCOMPARE(messageSpy.count(), 0);
+
+        messenger.sendMessage(3, 0x1234, QByteArrayLiteral("must not send"));
+        QCOMPARE(transport.writtenData().size(), 0);
     }
 };
 

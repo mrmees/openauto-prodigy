@@ -24,6 +24,7 @@ void Messenger::start()
     sending_ = false;
     handshakeFailureEmitted_ = false;
     tlsFailureEmitted_ = false;
+    protocolFailureEmitted_ = false;
 
     connect(transport_, &ITransport::dataReceived,
             &parser_, &FrameParser::onData);
@@ -31,6 +32,8 @@ void Messenger::start()
             this, &Messenger::onFrameParsed);
     connect(&assembler_, &FrameAssembler::messageAssembled,
             this, &Messenger::onMessageAssembled);
+    connect(&assembler_, &FrameAssembler::assemblyFailed,
+            this, &Messenger::failProtocol);
     connect(transport_, &ITransport::error,
             this, &Messenger::transportError);
     started_ = true;
@@ -46,6 +49,8 @@ void Messenger::stop()
                    this, &Messenger::onFrameParsed);
         disconnect(&assembler_, &FrameAssembler::messageAssembled,
                    this, &Messenger::onMessageAssembled);
+        disconnect(&assembler_, &FrameAssembler::assemblyFailed,
+                   this, &Messenger::failProtocol);
         disconnect(transport_, &ITransport::error,
                    this, &Messenger::transportError);
         started_ = false;
@@ -56,6 +61,7 @@ void Messenger::stop()
     cryptor_.deinit();
     handshakeFailureEmitted_ = false;
     tlsFailureEmitted_ = false;
+    protocolFailureEmitted_ = false;
     sendQueue_.clear();
     sending_ = false;
 }
@@ -68,8 +74,8 @@ void Messenger::sendMessage(uint8_t channelId, uint16_t messageId,
                    << "msgId" << Qt::hex << messageId;
         return;
     }
-    if (tlsFailureEmitted_) {
-        qWarning() << "Messenger: dropping send after terminal TLS failure, ch"
+    if (tlsFailureEmitted_ || protocolFailureEmitted_) {
+        qWarning() << "Messenger: dropping send after terminal protocol failure, ch"
                    << channelId << "msgId" << Qt::hex << messageId;
         return;
     }
@@ -163,8 +169,8 @@ void Messenger::sendRaw(uint8_t channelId, const QByteArray& data,
         qWarning() << "Messenger: dropping raw send while stopped, ch" << channelId;
         return;
     }
-    if (tlsFailureEmitted_) {
-        qWarning() << "Messenger: dropping raw send after terminal TLS failure, ch"
+    if (tlsFailureEmitted_ || protocolFailureEmitted_) {
+        qWarning() << "Messenger: dropping raw send after terminal protocol failure, ch"
                    << channelId;
         return;
     }
@@ -206,7 +212,7 @@ bool Messenger::isEncrypted() const
 void Messenger::onFrameParsed(const FrameHeader& header,
                                const QByteArray& framePayload)
 {
-    if (tlsFailureEmitted_)
+    if (tlsFailureEmitted_ || protocolFailureEmitted_)
         return;
 
     QByteArray payload = framePayload;
@@ -299,6 +305,16 @@ void Messenger::failTls(const QString& message)
     tlsFailureEmitted_ = true;
     sendQueue_.clear();
     emit tlsFailed(message.left(1024));
+}
+
+void Messenger::failProtocol(const QString& message)
+{
+    if (protocolFailureEmitted_)
+        return;
+    protocolFailureEmitted_ = true;
+    sendQueue_.clear();
+    assembler_.reset();
+    emit protocolFailed(message.left(1024));
 }
 
 void Messenger::processSendQueue()

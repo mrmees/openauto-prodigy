@@ -23,7 +23,8 @@ enum class DisconnectReason {
     Timeout,
     UserRequested,
     HandshakeError,
-    TlsError
+    TlsError,
+    ProtocolError
 };
 
 } // namespace oaa

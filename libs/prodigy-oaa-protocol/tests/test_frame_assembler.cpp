@@ -5,140 +5,241 @@
 class TestFrameAssembler : public QObject {
     Q_OBJECT
 
+private:
+    static oaa::FrameHeader header(
+        uint8_t channelId, oaa::FrameType frameType,
+        oaa::EncryptionType encryption = oaa::EncryptionType::Plain,
+        oaa::MessageType message = oaa::MessageType::Specific,
+        uint32_t total = 0)
+    {
+        return {channelId, frameType, encryption, message, total};
+    }
+
 private slots:
     void testBulkFrame() {
         oaa::FrameAssembler assembler;
-        QSignalSpy spy(&assembler, &oaa::FrameAssembler::messageAssembled);
+        QSignalSpy messageSpy(&assembler, &oaa::FrameAssembler::messageAssembled);
+        QSignalSpy failureSpy(&assembler, &oaa::FrameAssembler::assemblyFailed);
 
-        QByteArray payload("hello world");
-        oaa::FrameHeader header{5, oaa::FrameType::Bulk,
-                                oaa::EncryptionType::Plain,
-                                oaa::MessageType::Specific};
-        assembler.onFrame(header, payload);
+        assembler.onFrame(header(5, oaa::FrameType::Bulk),
+                          QByteArrayLiteral("hello world"));
 
-        QCOMPARE(spy.count(), 1);
-        QCOMPARE(spy[0][0].value<uint8_t>(), uint8_t(5));
-        QCOMPARE(spy[0][1].value<oaa::MessageType>(), oaa::MessageType::Specific);
-        QCOMPARE(spy[0][2].toByteArray(), payload);
+        QCOMPARE(messageSpy.count(), 1);
+        QCOMPARE(failureSpy.count(), 0);
+        QCOMPARE(messageSpy[0][0].value<uint8_t>(), uint8_t(5));
+        QCOMPARE(messageSpy[0][2].toByteArray(), QByteArray("hello world"));
     }
 
-    void testFirstLast() {
+    void testExactFirstMiddleLast() {
         oaa::FrameAssembler assembler;
-        QSignalSpy spy(&assembler, &oaa::FrameAssembler::messageAssembled);
+        QSignalSpy messageSpy(&assembler, &oaa::FrameAssembler::messageAssembled);
+        QSignalSpy failureSpy(&assembler, &oaa::FrameAssembler::assemblyFailed);
 
-        QByteArray part1("AAAA");
-        QByteArray part2("BBBB");
+        assembler.onFrame(header(2, oaa::FrameType::First,
+                                 oaa::EncryptionType::Encrypted,
+                                 oaa::MessageType::Control, 6),
+                          QByteArrayLiteral("AA"));
+        assembler.onFrame(header(2, oaa::FrameType::Middle,
+                                 oaa::EncryptionType::Encrypted,
+                                 oaa::MessageType::Control),
+                          QByteArrayLiteral("BB"));
+        assembler.onFrame(header(2, oaa::FrameType::Last,
+                                 oaa::EncryptionType::Encrypted,
+                                 oaa::MessageType::Control),
+                          QByteArrayLiteral("CC"));
 
-        oaa::FrameHeader first{1, oaa::FrameType::First,
-                               oaa::EncryptionType::Encrypted,
-                               oaa::MessageType::Control};
-        oaa::FrameHeader last{1, oaa::FrameType::Last,
-                              oaa::EncryptionType::Encrypted,
-                              oaa::MessageType::Control};
-
-        assembler.onFrame(first, part1);
-        QCOMPARE(spy.count(), 0);
-
-        assembler.onFrame(last, part2);
-        QCOMPARE(spy.count(), 1);
-        QCOMPARE(spy[0][0].value<uint8_t>(), uint8_t(1));
-        QCOMPARE(spy[0][1].value<oaa::MessageType>(), oaa::MessageType::Control);
-        QCOMPARE(spy[0][2].toByteArray(), QByteArray("AAAABBBB"));
+        QCOMPARE(failureSpy.count(), 0);
+        QCOMPARE(messageSpy.count(), 1);
+        QCOMPARE(messageSpy[0][0].value<uint8_t>(), uint8_t(2));
+        QCOMPARE(messageSpy[0][1].value<oaa::MessageType>(),
+                 oaa::MessageType::Control);
+        QCOMPARE(messageSpy[0][2].toByteArray(), QByteArray("AABBCC"));
     }
 
-    void testFirstMiddleLast() {
-        oaa::FrameAssembler assembler;
-        QSignalSpy spy(&assembler, &oaa::FrameAssembler::messageAssembled);
+    void testInterleavedChannelsAndBulk() {
+        oaa::FrameAssembler assembler(16, 24);
+        QSignalSpy messageSpy(&assembler, &oaa::FrameAssembler::messageAssembled);
+        QSignalSpy failureSpy(&assembler, &oaa::FrameAssembler::assemblyFailed);
 
-        oaa::FrameHeader first{2, oaa::FrameType::First,
-                               oaa::EncryptionType::Plain,
-                               oaa::MessageType::Specific};
-        oaa::FrameHeader middle{2, oaa::FrameType::Middle,
-                                oaa::EncryptionType::Plain,
-                                oaa::MessageType::Specific};
-        oaa::FrameHeader last{2, oaa::FrameType::Last,
-                              oaa::EncryptionType::Plain,
-                              oaa::MessageType::Specific};
-
-        assembler.onFrame(first, QByteArray("AA"));
-        assembler.onFrame(middle, QByteArray("BB"));
-        assembler.onFrame(last, QByteArray("CC"));
-
-        QCOMPARE(spy.count(), 1);
-        QCOMPARE(spy[0][0].value<uint8_t>(), uint8_t(2));
-        QCOMPARE(spy[0][2].toByteArray(), QByteArray("AABBCC"));
-    }
-
-    void testInterleavedChannels() {
-        oaa::FrameAssembler assembler;
-        QSignalSpy spy(&assembler, &oaa::FrameAssembler::messageAssembled);
-
-        // ch3 FIRST
-        oaa::FrameHeader ch3first{3, oaa::FrameType::First,
-                                  oaa::EncryptionType::Plain,
-                                  oaa::MessageType::Specific};
-        assembler.onFrame(ch3first, QByteArray("3A"));
-
-        // ch4 BULK — should emit immediately
-        oaa::FrameHeader ch4bulk{4, oaa::FrameType::Bulk,
+        assembler.onFrame(header(3, oaa::FrameType::First,
                                  oaa::EncryptionType::Plain,
-                                 oaa::MessageType::Control};
-        assembler.onFrame(ch4bulk, QByteArray("4X"));
-
-        QCOMPARE(spy.count(), 1);
-        QCOMPARE(spy[0][0].value<uint8_t>(), uint8_t(4));
-        QCOMPARE(spy[0][2].toByteArray(), QByteArray("4X"));
-
-        // ch3 LAST
-        oaa::FrameHeader ch3last{3, oaa::FrameType::Last,
+                                 oaa::MessageType::Specific, 8),
+                          QByteArrayLiteral("3A"));
+        assembler.onFrame(header(4, oaa::FrameType::First,
                                  oaa::EncryptionType::Plain,
-                                 oaa::MessageType::Specific};
-        assembler.onFrame(ch3last, QByteArray("3B"));
+                                 oaa::MessageType::Control, 8),
+                          QByteArrayLiteral("4A"));
+        assembler.onFrame(header(5, oaa::FrameType::Bulk),
+                          QByteArrayLiteral("5X"));
+        assembler.onFrame(header(4, oaa::FrameType::Last,
+                                 oaa::EncryptionType::Plain,
+                                 oaa::MessageType::Control),
+                          QByteArrayLiteral("456789"));
+        assembler.onFrame(header(3, oaa::FrameType::Last),
+                          QByteArrayLiteral("345678"));
 
-        QCOMPARE(spy.count(), 2);
-        QCOMPARE(spy[1][0].value<uint8_t>(), uint8_t(3));
-        QCOMPARE(spy[1][2].toByteArray(), QByteArray("3A3B"));
+        QCOMPARE(failureSpy.count(), 0);
+        QCOMPARE(messageSpy.count(), 3);
+        QCOMPARE(messageSpy[0][0].value<uint8_t>(), uint8_t(5));
+        QCOMPARE(messageSpy[1][0].value<uint8_t>(), uint8_t(4));
+        QCOMPARE(messageSpy[1][1].value<oaa::MessageType>(),
+                 oaa::MessageType::Control);
+        QCOMPARE(messageSpy[2][0].value<uint8_t>(), uint8_t(3));
     }
 
-    void testMiddleWithoutFirst() {
-        oaa::FrameAssembler assembler;
-        QSignalSpy spy(&assembler, &oaa::FrameAssembler::messageAssembled);
+    void testInvalidFirstDeclarations_data() {
+        QTest::addColumn<uint32_t>("declared");
+        QTest::addColumn<QByteArray>("payload");
 
-        oaa::FrameHeader middle{7, oaa::FrameType::Middle,
-                                oaa::EncryptionType::Plain,
-                                oaa::MessageType::Specific};
-        assembler.onFrame(middle, QByteArray("orphan"));
-
-        QCOMPARE(spy.count(), 0);
+        QTest::newRow("zero") << uint32_t(0) << QByteArray("AA");
+        QTest::newRow("equal-to-first") << uint32_t(2) << QByteArray("AA");
+        QTest::newRow("smaller-than-first") << uint32_t(1) << QByteArray("AA");
+        QTest::newRow("over-per-message-limit") << uint32_t(17) << QByteArray("AA");
     }
 
-    void testDuplicateFirst() {
-        oaa::FrameAssembler assembler;
-        QSignalSpy spy(&assembler, &oaa::FrameAssembler::messageAssembled);
+    void testInvalidFirstDeclarations() {
+        QFETCH(uint32_t, declared);
+        QFETCH(QByteArray, payload);
+        oaa::FrameAssembler assembler(16, 24);
+        QSignalSpy messageSpy(&assembler, &oaa::FrameAssembler::messageAssembled);
+        QSignalSpy failureSpy(&assembler, &oaa::FrameAssembler::assemblyFailed);
 
-        oaa::FrameHeader first1{8, oaa::FrameType::First,
-                                oaa::EncryptionType::Plain,
-                                oaa::MessageType::Specific};
-        assembler.onFrame(first1, QByteArray("old"));
+        assembler.onFrame(header(1, oaa::FrameType::First,
+                                 oaa::EncryptionType::Plain,
+                                 oaa::MessageType::Specific, declared), payload);
 
-        // Second FIRST on same channel — should discard old partial
-        oaa::FrameHeader first2{8, oaa::FrameType::First,
-                                oaa::EncryptionType::Plain,
-                                oaa::MessageType::Control};
-        assembler.onFrame(first2, QByteArray("new"));
+        QCOMPARE(failureSpy.count(), 1);
+        QVERIFY(!failureSpy[0][0].toString().isEmpty());
+        QCOMPARE(messageSpy.count(), 0);
+    }
 
-        QCOMPARE(spy.count(), 0); // Nothing emitted yet
+    void testAggregateBudgetFailureReleasesAllReservations() {
+        oaa::FrameAssembler assembler(16, 20);
+        QSignalSpy messageSpy(&assembler, &oaa::FrameAssembler::messageAssembled);
+        QSignalSpy failureSpy(&assembler, &oaa::FrameAssembler::assemblyFailed);
 
-        // Complete the second message
-        oaa::FrameHeader last{8, oaa::FrameType::Last,
-                              oaa::EncryptionType::Plain,
-                              oaa::MessageType::Control};
-        assembler.onFrame(last, QByteArray("end"));
+        assembler.onFrame(header(1, oaa::FrameType::First,
+                                 oaa::EncryptionType::Plain,
+                                 oaa::MessageType::Specific, 12),
+                          QByteArrayLiteral("AAAA"));
+        assembler.onFrame(header(2, oaa::FrameType::First,
+                                 oaa::EncryptionType::Plain,
+                                 oaa::MessageType::Specific, 9),
+                          QByteArrayLiteral("BBBB"));
+        QCOMPARE(failureSpy.count(), 1);
+        QCOMPARE(messageSpy.count(), 0);
 
-        QCOMPARE(spy.count(), 1);
-        // Should contain the second FIRST's data, not the first
-        QCOMPARE(spy[0][1].value<oaa::MessageType>(), oaa::MessageType::Control);
-        QCOMPARE(spy[0][2].toByteArray(), QByteArray("newend"));
+        // The failed reservation clears channel 1 as well, so a fresh message
+        // can consume the full budget and complete normally.
+        assembler.onFrame(header(3, oaa::FrameType::First,
+                                 oaa::EncryptionType::Plain,
+                                 oaa::MessageType::Specific, 12),
+                          QByteArrayLiteral("CCCC"));
+        assembler.onFrame(header(3, oaa::FrameType::Last),
+                          QByteArrayLiteral("DDDDDDDD"));
+        QCOMPARE(failureSpy.count(), 1);
+        QCOMPARE(messageSpy.count(), 1);
+        QCOMPARE(messageSpy[0][2].toByteArray(), QByteArray("CCCCDDDDDDDD"));
+    }
+
+    void testContinuationFailures_data() {
+        QTest::addColumn<oaa::FrameHeader>("first");
+        QTest::addColumn<QByteArray>("firstPayload");
+        QTest::addColumn<oaa::FrameHeader>("next");
+        QTest::addColumn<QByteArray>("nextPayload");
+
+        QTest::newRow("middle-without-first")
+            << header(7, oaa::FrameType::Bulk) << QByteArray()
+            << header(7, oaa::FrameType::Middle) << QByteArray("orphan");
+        QTest::newRow("last-without-first")
+            << header(7, oaa::FrameType::Bulk) << QByteArray()
+            << header(7, oaa::FrameType::Last) << QByteArray("orphan");
+        QTest::newRow("encryption-mismatch")
+            << header(7, oaa::FrameType::First, oaa::EncryptionType::Plain,
+                      oaa::MessageType::Specific, 8) << QByteArray("AAAA")
+            << header(7, oaa::FrameType::Middle, oaa::EncryptionType::Encrypted)
+            << QByteArray("B");
+        QTest::newRow("message-type-mismatch")
+            << header(7, oaa::FrameType::First, oaa::EncryptionType::Plain,
+                      oaa::MessageType::Specific, 8) << QByteArray("AAAA")
+            << header(7, oaa::FrameType::Middle, oaa::EncryptionType::Plain,
+                      oaa::MessageType::Control) << QByteArray("B");
+        QTest::newRow("middle-reaches-total")
+            << header(7, oaa::FrameType::First, oaa::EncryptionType::Plain,
+                      oaa::MessageType::Specific, 6) << QByteArray("AAAA")
+            << header(7, oaa::FrameType::Middle) << QByteArray("BB");
+        QTest::newRow("last-underruns")
+            << header(7, oaa::FrameType::First, oaa::EncryptionType::Plain,
+                      oaa::MessageType::Specific, 8) << QByteArray("AAAA")
+            << header(7, oaa::FrameType::Last) << QByteArray("BB");
+        QTest::newRow("last-overruns")
+            << header(7, oaa::FrameType::First, oaa::EncryptionType::Plain,
+                      oaa::MessageType::Specific, 5) << QByteArray("AAAA")
+            << header(7, oaa::FrameType::Last) << QByteArray("BB");
+    }
+
+    void testContinuationFailures() {
+        QFETCH(oaa::FrameHeader, first);
+        QFETCH(QByteArray, firstPayload);
+        QFETCH(oaa::FrameHeader, next);
+        QFETCH(QByteArray, nextPayload);
+        oaa::FrameAssembler assembler(16, 24);
+        QSignalSpy messageSpy(&assembler, &oaa::FrameAssembler::messageAssembled);
+        QSignalSpy failureSpy(&assembler, &oaa::FrameAssembler::assemblyFailed);
+
+        if (first.frameType == oaa::FrameType::First)
+            assembler.onFrame(first, firstPayload);
+        assembler.onFrame(next, nextPayload);
+
+        QCOMPARE(failureSpy.count(), 1);
+        QCOMPARE(messageSpy.count(), 0);
+    }
+
+    void testDuplicateFirstReleasesOldReservation() {
+        oaa::FrameAssembler assembler(16, 12);
+        QSignalSpy messageSpy(&assembler, &oaa::FrameAssembler::messageAssembled);
+        QSignalSpy failureSpy(&assembler, &oaa::FrameAssembler::assemblyFailed);
+
+        assembler.onFrame(header(8, oaa::FrameType::First,
+                                 oaa::EncryptionType::Plain,
+                                 oaa::MessageType::Specific, 12),
+                          QByteArrayLiteral("old"));
+        assembler.onFrame(header(8, oaa::FrameType::First,
+                                 oaa::EncryptionType::Plain,
+                                 oaa::MessageType::Control, 6),
+                          QByteArrayLiteral("new"));
+        assembler.onFrame(header(8, oaa::FrameType::Last,
+                                 oaa::EncryptionType::Plain,
+                                 oaa::MessageType::Control),
+                          QByteArrayLiteral("end"));
+
+        QCOMPARE(failureSpy.count(), 0);
+        QCOMPARE(messageSpy.count(), 1);
+        QCOMPARE(messageSpy[0][1].value<oaa::MessageType>(),
+                 oaa::MessageType::Control);
+        QCOMPARE(messageSpy[0][2].toByteArray(), QByteArray("newend"));
+    }
+
+    void testResetReleasesReservationsAndPayload() {
+        oaa::FrameAssembler assembler(16, 12);
+        QSignalSpy messageSpy(&assembler, &oaa::FrameAssembler::messageAssembled);
+        QSignalSpy failureSpy(&assembler, &oaa::FrameAssembler::assemblyFailed);
+
+        assembler.onFrame(header(1, oaa::FrameType::First,
+                                 oaa::EncryptionType::Plain,
+                                 oaa::MessageType::Specific, 12),
+                          QByteArrayLiteral("old"));
+        assembler.reset();
+        assembler.onFrame(header(2, oaa::FrameType::First,
+                                 oaa::EncryptionType::Plain,
+                                 oaa::MessageType::Specific, 12),
+                          QByteArrayLiteral("new"));
+        assembler.onFrame(header(2, oaa::FrameType::Last),
+                          QByteArrayLiteral("123456789"));
+
+        QCOMPARE(failureSpy.count(), 0);
+        QCOMPARE(messageSpy.count(), 1);
+        QCOMPARE(messageSpy[0][2].toByteArray(), QByteArray("new123456789"));
     }
 };
 

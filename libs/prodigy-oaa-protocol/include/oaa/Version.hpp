@@ -10,6 +10,8 @@ constexpr uint16_t FRAME_MAX_PAYLOAD = 0x4000; // 16384 bytes
 constexpr uint16_t FRAME_HEADER_SIZE = 2;
 constexpr uint16_t FRAME_SIZE_SHORT = 2;
 constexpr uint16_t FRAME_SIZE_EXTENDED = 6;
+constexpr uint32_t MAX_ASSEMBLED_MESSAGE_SIZE = 16U * 1024U * 1024U;
+constexpr uint64_t MAX_IN_FLIGHT_ASSEMBLY_SIZE = 32ULL * 1024ULL * 1024ULL;
 constexpr int TLS_OVERHEAD = 29;
 constexpr int BIO_BUFFER_SIZE = 20480;
 

@@ -55,7 +55,11 @@ for the generic negotiation timeout. TLS initialization is transactional and
 checks the embedded certificate/key pair before publishing an active object.
 Established-session SSL reads and writes are also checked: an incomplete,
 closed, or fatal encrypted AA frame is never forwarded as an empty payload, and
-the session closes with `DisconnectReason::TlsError`. Channel-open responses are
+the session closes with `DisconnectReason::TlsError`. Fragmented messages retain
+FIRST's declared total, are limited to 16 MiB each and 32 MiB in aggregate, and
+must reach that total exactly on LAST with consistent flags. A malformed
+sequence releases all partial state and closes with
+`DisconnectReason::ProtocolError`. Channel-open responses are
 always sent on the requested service channel. Registered service handlers
 remain detached from the Messenger until their channel is opened, and
 `Messenger::stop()` cancels any re-entrant or multi-frame send that has not

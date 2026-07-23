@@ -42,6 +42,7 @@ signals:
     void handshakeComplete();
     void handshakeFailed(const QString& message);
     void tlsFailed(const QString& message);
+    void protocolFailed(const QString& message);
     void transportError(const QString& message);
 
 private:
@@ -56,6 +57,7 @@ private:
     void driveHandshake();
     void failHandshake(const QString& message);
     void failTls(const QString& message);
+    void failProtocol(const QString& message);
     void processSendQueue();
 
     ITransport* transport_;
@@ -69,6 +71,7 @@ private:
     bool started_ = false;
     bool handshakeFailureEmitted_ = false;
     bool tlsFailureEmitted_ = false;
+    bool protocolFailureEmitted_ = false;
     uint64_t lifecycleGeneration_ = 0;
 };
 
