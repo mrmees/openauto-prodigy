@@ -51,7 +51,11 @@ void FrameParser::process()
                 // Frame payload size is always the first 2 bytes (big-endian uint16)
                 m_framePayloadSize = qFromBigEndian<uint16_t>(
                     reinterpret_cast<const uchar*>(sizeData.constData()));
-                // For FIRST frames, bytes 2-5 are total message size — we don't need it here
+                m_currentHeader.totalMessageSize =
+                    m_currentHeader.frameType == FrameType::First
+                    ? qFromBigEndian<uint32_t>(
+                        reinterpret_cast<const uchar*>(sizeData.constData() + 2))
+                    : 0;
                 m_buffer.consume(m_sizeFieldLength);
             }
             m_state = State::ReadPayload;

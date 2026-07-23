@@ -14,6 +14,20 @@ Governance: capture new ideas in `docs/wishlist.md`; only promoted items should 
 
 ## Done (recent)
 
+- Android Auto protocol crypto and flow-control remediation — **COMPLETE
+  2026-07-23** (Pi/Pixel live-validated). OpenSSL initialization and runtime
+  I/O now fail closed with explicit diagnostics; encrypted frames require
+  structurally complete TLS records. Fragmented messages retain and enforce
+  their declared totals under per-message and aggregate bounds. Audio receive
+  permits replenish per accepted frame, liveness uses correlated pongs and the
+  configured deadline, and rerouting preserves active guidance. Deployment
+  retained one responsive application process, reopened every AA service
+  channel, and resumed H.265 hardware projection without restarting hostapd or
+  Bluetooth. Design and plan:
+  `docs/archive/plans/2026-07-23-aa-protocol-crypto-flow-remediation-design.md`
+  and
+  `docs/archive/plans/2026-07-23-aa-protocol-crypto-flow-remediation-plan.md`.
+
 - Android Auto session and transport lifecycle remediation — **COMPLETE
   2026-07-22** (Pi/Pixel live-validated). Terminal session finalization now
   closes persistent handlers while they are alive and prevents stale or
@@ -195,8 +209,9 @@ Governance: capture new ideas in `docs/wishlist.md`; only promoted items should 
 
 ## Now
 
-No implementation tranche is active. Select and revalidate the next bounded
-remediation wave before promoting a new design and plan.
+No implementation tranche is active. After the current draft is reviewed and
+merged, revalidate the next bounded subsystem wave before promoting a new
+design and plan.
 
 ## Later
 

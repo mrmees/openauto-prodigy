@@ -25,14 +25,15 @@ signals:
     void streamStarted(int32_t session);
     void streamStopped();
 private:
+    static constexpr uint32_t MAX_UNACKED = 10;
+
     void handleSetupRequest(const QByteArray& payload);
     void handleStartIndication(const QByteArray& payload);
     void handleStopIndication();
-    void sendAck(uint32_t frameCount);
+    void sendAck();
 
     uint8_t channelId_;
     int32_t session_ = -1;
-    uint32_t unackedCount_ = 0;
     bool channelOpen_ = false;
     bool streaming_ = false;
 };

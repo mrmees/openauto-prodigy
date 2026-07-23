@@ -89,7 +89,7 @@ void AudioChannelHandler::handleSetupRequest(const QByteArray& payload)
 
     oaa::proto::messages::AVChannelSetupResponse resp;
     resp.set_media_status(oaa::proto::enums::AVChannelSetupStatus::OK);
-    resp.set_max_unacked(10);
+    resp.set_max_unacked(MAX_UNACKED);
     resp.add_configs(0);
 
     QByteArray data(resp.ByteSizeLong(), '\0');
@@ -108,7 +108,6 @@ void AudioChannelHandler::handleStartIndication(const QByteArray& payload)
     session_ = start.session();
     streaming_ = true;
 
-    unackedCount_ = 0;
     qDebug() << "[AudioChannel" << channelId_
              << "] stream started, session:" << session_;
     emit streamStarted(session_);
@@ -128,27 +127,18 @@ void AudioChannelHandler::onMediaData(const QByteArray& data, uint64_t timestamp
 
     emit audioDataReceived(data, timestamp);
 
-    // n-ACK flow control per HUIG: the phone sends up to max_unacked frames
-    // before pausing for an ACK. We use this as backpressure by only ACKing
-    // when our buffer has room for more data.
-    ++unackedCount_;
-
-    // Always ACK at max_unacked to avoid stalling the phone entirely.
-    // But also ACK at half max_unacked if buffer pressure allows.
-    // The phone will self-pace based on how fast ACKs arrive.
-    if (unackedCount_ >= 10) {
-        sendAck(unackedCount_);
-        unackedCount_ = 0;
-    }
+    // Each accepted frame consumes one of the advertised permits. Return one
+    // immediately so the phone retains the remaining pipeline headroom.
+    sendAck();
 }
 
-void AudioChannelHandler::sendAck(uint32_t frameCount)
+void AudioChannelHandler::sendAck()
 {
     oaa::proto::messages::AVMediaAckIndication ack;
     ack.set_session_id(session_);
     // ack_count = number of frames being acknowledged (permit replenishment),
     // not cumulative total. Phone uses this to restore its send permits.
-    ack.set_ack_count(frameCount);
+    ack.set_ack_count(1);
 
     QByteArray data(ack.ByteSizeLong(), '\0');
     ack.SerializeToArray(data.data(), data.size());

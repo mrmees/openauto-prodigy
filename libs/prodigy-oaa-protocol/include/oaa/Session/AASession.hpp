@@ -55,6 +55,7 @@ private:
     void closeChannels();
     void startStateTimer(int timeoutMs);
     void stopStateTimer();
+    void stopLivenessTimers();
 
     // State handlers
     void onTransportConnected();
@@ -63,12 +64,15 @@ private:
     void onVersionReceived(uint16_t major, uint16_t minor, bool match);
     void onHandshakeComplete();
     void onHandshakeFailed(const QString& message);
+    void onTlsFailed(const QString& message);
+    void onProtocolFailed(const QString& message);
     void onServiceDiscoveryRequested(const QByteArray& payload);
     void onChannelOpenRequested(int32_t channelId, const QByteArray& payload);
     void onMessage(uint8_t channelId, uint16_t messageId,
                    const QByteArray& payload, int dataOffset);
     void onPingTick();
     void onPongReceived(int64_t timestamp);
+    void onPongDeadline();
     void onShutdownRequested(int reason);
     void onShutdownAcknowledged();
     void onStateTimeout();
@@ -85,8 +89,9 @@ private:
 
     QTimer stateTimer_;
     QTimer pingTimer_;
-    int missedPings_ = 0;
+    QTimer pongDeadlineTimer_;
     int64_t lastPingTimestamp_ = 0;
+    QSet<int64_t> outstandingPingTimestamps_;
     bool channelsClosed_ = true;
     bool finalized_ = false;
 };

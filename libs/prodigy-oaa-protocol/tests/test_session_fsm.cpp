@@ -13,6 +13,7 @@
 #include "oaa/common/StatusEnum.pb.h"
 #include "oaa/control/ServiceDiscoveryRequestMessage.pb.h"
 #include "oaa/control/ServiceDiscoveryResponseMessage.pb.h"
+#include "oaa/control/PingRequestMessage.pb.h"
 #include <functional>
 
 // Minimal mock channel handler for testing
@@ -102,6 +103,14 @@ private:
         QCOMPARE(session.state(), oaa::SessionState::ServiceDiscovery);
         session.messenger()->messageReceived(0, 0x0005, QByteArray(), 0);
         QCOMPARE(session.state(), oaa::SessionState::Active);
+    }
+
+    int64_t pingTimestamp(const QList<QVariant>& emission) {
+        oaa::proto::messages::PingRequest ping;
+        const QByteArray payload = emission[2].toByteArray();
+        if (!ping.ParseFromArray(payload.constData(), payload.size()))
+            return -1;
+        return ping.timestamp();
     }
 
 private slots:
@@ -431,6 +440,210 @@ private slots:
                  oaa::DisconnectReason::HandshakeError);
         QTest::qWait(50);
         QCOMPARE(disconnectSpy.count(), 1);
+    }
+
+    void testEncryptedFrameDuringHandshakeFailsImmediately() {
+        oaa::ReplayTransport transport;
+        oaa::SessionConfig config;
+        oaa::AASession session(&transport, config);
+        QSignalSpy disconnectSpy(&session, &oaa::AASession::disconnected);
+
+        transport.simulateConnect();
+        session.start();
+        transport.feedData(makeVersionResponseFrame(1, 7, 0x0000));
+        QCOMPARE(session.state(), oaa::SessionState::TLSHandshake);
+
+        QByteArray frame(4, '\0');
+        frame[0] = 0;
+        frame[1] = char(0x0b); // BULK | ENCRYPTED | SPECIFIC
+        qToBigEndian<uint16_t>(1, reinterpret_cast<uchar*>(frame.data() + 2));
+        frame.append('X');
+        transport.feedData(frame);
+
+        QCOMPARE(session.state(), oaa::SessionState::Disconnected);
+        QCOMPARE(disconnectSpy.count(), 1);
+        QCOMPARE(disconnectSpy[0][0].value<oaa::DisconnectReason>(),
+                 oaa::DisconnectReason::HandshakeError);
+    }
+
+    void testPostHandshakeTlsFailureDisconnectsExactlyOnce() {
+        oaa::ReplayTransport transport;
+        oaa::SessionConfig config;
+        oaa::AASession session(&transport, config);
+        QSignalSpy disconnectSpy(&session, &oaa::AASession::disconnected);
+
+        transport.simulateConnect();
+        session.start();
+        advanceToActive(session);
+
+        emit session.messenger()->tlsFailed(QStringLiteral("forced runtime failure"));
+        emit session.messenger()->tlsFailed(QStringLiteral("duplicate"));
+
+        QCOMPARE(session.state(), oaa::SessionState::Disconnected);
+        QCOMPARE(disconnectSpy.count(), 1);
+        QCOMPARE(disconnectSpy[0][0].value<oaa::DisconnectReason>(),
+                 oaa::DisconnectReason::TlsError);
+    }
+
+    void testProtocolFailureDisconnectsExactlyOnce() {
+        oaa::ReplayTransport transport;
+        oaa::SessionConfig config;
+        oaa::AASession session(&transport, config);
+        QSignalSpy disconnectSpy(&session, &oaa::AASession::disconnected);
+
+        transport.simulateConnect();
+        session.start();
+        advanceToActive(session);
+
+        emit session.messenger()->protocolFailed(
+            QStringLiteral("forced assembly failure"));
+        emit session.messenger()->protocolFailed(QStringLiteral("duplicate"));
+
+        QCOMPARE(session.state(), oaa::SessionState::Disconnected);
+        QCOMPARE(disconnectSpy.count(), 1);
+        QCOMPARE(disconnectSpy[0][0].value<oaa::DisconnectReason>(),
+                 oaa::DisconnectReason::ProtocolError);
+    }
+
+    void testPingCadenceUsesIndependentConfiguredDeadline() {
+        oaa::ReplayTransport transport;
+        oaa::SessionConfig config;
+        config.pingInterval = 25;
+        config.pingTimeout = 180;
+        oaa::AASession session(&transport, config);
+        QSignalSpy pingSpy(session.controlChannel(),
+                           &oaa::IChannelHandler::sendRequested);
+        QSignalSpy disconnectSpy(&session, &oaa::AASession::disconnected);
+
+        transport.simulateConnect();
+        session.start();
+        advanceToActive(session);
+        QVERIFY(!pingSpy.isEmpty());
+        QCOMPARE(pingSpy.last()[1].value<uint16_t>(), uint16_t(0x000b));
+        pingSpy.clear();
+
+        QTRY_VERIFY_WITH_TIMEOUT(pingSpy.count() >= 3, 120);
+        for (const auto& emission : pingSpy)
+            QCOMPARE(emission[1].value<uint16_t>(), uint16_t(0x000b));
+        QTest::qWait(30);
+        QCOMPARE(session.state(), oaa::SessionState::Active);
+
+        QTRY_COMPARE_WITH_TIMEOUT(session.state(),
+                                  oaa::SessionState::Disconnected, 120);
+        QCOMPARE(disconnectSpy.count(), 1);
+        QCOMPARE(disconnectSpy[0][0].value<oaa::DisconnectReason>(),
+                 oaa::DisconnectReason::PingTimeout);
+
+        emit session.controlChannel()->pongReceived(123);
+        QCOMPARE(session.state(), oaa::SessionState::Disconnected);
+        QCOMPARE(disconnectSpy.count(), 1);
+    }
+
+    void testNonPositiveLivenessIntervalsUseSafeDefaults() {
+        oaa::ReplayTransport transport;
+        oaa::SessionConfig config;
+        config.pingInterval = 0;
+        config.pingTimeout = -1;
+        oaa::AASession session(&transport, config);
+        QSignalSpy pingSpy(session.controlChannel(),
+                           &oaa::IChannelHandler::sendRequested);
+        QSignalSpy disconnectSpy(&session, &oaa::AASession::disconnected);
+
+        transport.simulateConnect();
+        session.start();
+        advanceToActive(session);
+
+        QVERIFY(!pingSpy.isEmpty());
+        QCOMPARE(pingSpy.last()[1].value<uint16_t>(), uint16_t(0x000b));
+        pingSpy.clear();
+        QTest::qWait(30);
+        QCOMPARE(pingSpy.count(), 0);
+        QCOMPARE(session.state(), oaa::SessionState::Active);
+        QCOMPARE(disconnectSpy.count(), 0);
+    }
+
+    void testActivePongClearsDeadlineAndNextPingRearmsIt() {
+        oaa::ReplayTransport transport;
+        oaa::SessionConfig config;
+        config.pingInterval = 60;
+        config.pingTimeout = 80;
+        oaa::AASession session(&transport, config);
+        QSignalSpy pingSpy(session.controlChannel(),
+                           &oaa::IChannelHandler::sendRequested);
+        QSignalSpy disconnectSpy(&session, &oaa::AASession::disconnected);
+
+        transport.simulateConnect();
+        session.start();
+        advanceToActive(session);
+        const int64_t firstTimestamp = pingTimestamp(pingSpy.last());
+        QVERIFY(firstTimestamp >= 0);
+        pingSpy.clear();
+
+        QTest::qWait(55);
+        emit session.controlChannel()->pongReceived(firstTimestamp);
+        QTRY_VERIFY_WITH_TIMEOUT(!pingSpy.isEmpty(), 30);
+        QCOMPARE(pingSpy.last()[1].value<uint16_t>(), uint16_t(0x000b));
+
+        // A duplicate response to the prior ping cannot clear the newer
+        // outstanding deadline.
+        emit session.controlChannel()->pongReceived(firstTimestamp);
+        QTest::qWait(55);
+        QCOMPARE(session.state(), oaa::SessionState::Active);
+
+        QTRY_COMPARE_WITH_TIMEOUT(session.state(),
+                                  oaa::SessionState::Disconnected, 100);
+        QCOMPARE(disconnectSpy.count(), 1);
+        QCOMPARE(disconnectSpy[0][0].value<oaa::DisconnectReason>(),
+                 oaa::DisconnectReason::PingTimeout);
+    }
+
+    void testMismatchedPongCannotClearDeadline() {
+        oaa::ReplayTransport transport;
+        oaa::SessionConfig config;
+        config.pingInterval = 1000;
+        config.pingTimeout = 40;
+        oaa::AASession session(&transport, config);
+        QSignalSpy pingSpy(session.controlChannel(),
+                           &oaa::IChannelHandler::sendRequested);
+        QSignalSpy disconnectSpy(&session, &oaa::AASession::disconnected);
+
+        transport.simulateConnect();
+        session.start();
+        advanceToActive(session);
+        const int64_t timestamp = pingTimestamp(pingSpy.last());
+        QVERIFY(timestamp >= 0);
+
+        emit session.controlChannel()->pongReceived(timestamp + 1);
+        QTRY_COMPARE_WITH_TIMEOUT(session.state(),
+                                  oaa::SessionState::Disconnected, 100);
+        QCOMPARE(disconnectSpy.count(), 1);
+        QCOMPARE(disconnectSpy[0][0].value<oaa::DisconnectReason>(),
+                 oaa::DisconnectReason::PingTimeout);
+    }
+
+    void testGracefulShutdownCancelsPongDeadline() {
+        oaa::ReplayTransport transport;
+        oaa::SessionConfig config;
+        config.pingInterval = 1000;
+        config.pingTimeout = 40;
+        oaa::AASession session(&transport, config);
+        QSignalSpy disconnectSpy(&session, &oaa::AASession::disconnected);
+
+        transport.simulateConnect();
+        session.start();
+        advanceToActive(session);
+        session.stop();
+        QCOMPARE(session.state(), oaa::SessionState::ShuttingDown);
+
+        QTest::qWait(70);
+        QCOMPARE(session.state(), oaa::SessionState::ShuttingDown);
+        QCOMPARE(disconnectSpy.count(), 0);
+
+        emit session.controlChannel()->shutdownAcknowledged();
+        QCOMPARE(session.state(), oaa::SessionState::Disconnected);
+        QCOMPARE(disconnectSpy.count(), 1);
+        QCOMPARE(disconnectSpy[0][0].value<oaa::DisconnectReason>(),
+                 oaa::DisconnectReason::Normal);
     }
 
     void testSynchronousVersionWriteFailureCannotResurrectSession() {

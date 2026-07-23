@@ -108,6 +108,7 @@ private slots:
         QCOMPARE(header.frameType, oaa::FrameType::First);
         QCOMPARE(header.encryptionType, oaa::EncryptionType::Encrypted);
         QCOMPARE(header.messageType, oaa::MessageType::Control);
+        QCOMPARE(header.totalMessageSize, uint32_t(16385));
         // FIRST frame payload should be exactly FRAME_MAX_PAYLOAD bytes
         QCOMPARE(spy[0][1].toByteArray().size(), oaa::FrameSerializer::FRAME_MAX_PAYLOAD);
 
@@ -117,6 +118,7 @@ private slots:
         QCOMPARE(spy.count(), 2);
         auto lastHeader = spy[1][0].value<oaa::FrameHeader>();
         QCOMPARE(lastHeader.frameType, oaa::FrameType::Last);
+        QCOMPARE(lastHeader.totalMessageSize, uint32_t(0));
         QCOMPARE(spy[1][1].toByteArray().size(), 1); // 16385 - 16384 = 1
     }
 };

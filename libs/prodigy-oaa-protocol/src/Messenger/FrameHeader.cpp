@@ -11,7 +11,8 @@ FrameHeader FrameHeader::parse(const QByteArray& data)
         byte0,
         static_cast<FrameType>(byte1 & 0x03),
         static_cast<EncryptionType>(byte1 & 0x08),
-        static_cast<MessageType>(byte1 & 0x04)
+        static_cast<MessageType>(byte1 & 0x04),
+        0
     };
 }
 

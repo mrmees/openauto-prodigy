@@ -51,10 +51,28 @@ its Messenger restarts with empty framing, assembly, and TLS state.
 TLS handshakes distinguish retryable WANT-I/O from fatal OpenSSL results.
 `Messenger::handshakeFailed` reports a bounded diagnostic immediately, and
 `AASession` closes with `DisconnectReason::HandshakeError` instead of waiting
-for the generic negotiation timeout. Channel-open responses are always sent on
-the requested service channel. Registered service handlers remain detached
-from the Messenger until their channel is opened, and `Messenger::stop()`
-cancels any re-entrant or multi-frame send that has not reached the transport.
+for the generic negotiation timeout. TLS initialization is transactional and
+checks the embedded certificate/key pair before publishing an active object.
+Established-session SSL reads and writes are also checked: every TLS record in
+an encrypted AA frame must be structurally complete, and incomplete, closed, or
+fatal input is never forwarded as an empty payload. In those cases,
+the session closes with `DisconnectReason::TlsError`. Fragmented messages retain
+FIRST's declared total, are limited to 16 MiB each and 32 MiB in aggregate, and
+must reach that total exactly on LAST with consistent flags. A malformed
+sequence releases all partial state and closes with
+`DisconnectReason::ProtocolError`. Channel-open responses are
+always sent on the requested service channel. Registered service handlers
+remain detached from the Messenger until their channel is opened, and
+`Messenger::stop()` cancels any re-entrant or multi-frame send that has not
+reached the transport.
+
+Audio channels advertise ten receive permits and return one permit for every
+accepted frame, preserving pipeline headroom. Session ping cadence and pong
+deadline use their independent configured intervals: Active sends an immediate
+ping, an outstanding ping arms the single-shot deadline, and its pong clears
+that deadline only when the echoed timestamp matches a ping issued in the
+current window. Navigation remains active through both the ACTIVE and REROUTING
+phone states.
 
 ## Dependencies
 
