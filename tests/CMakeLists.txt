@@ -158,7 +158,7 @@ oap_add_test(test_indicator_mapping SOURCES test_indicator_mapping.cpp)
 oap_add_test(test_circular_buffer SOURCES test_circular_buffer.cpp)
 oap_add_test(test_codec_capability SOURCES test_codec_capability.cpp)
 oap_add_test(test_video_frame_pool SOURCES test_video_frame_pool.cpp)
-oap_add_test(test_video_decode_queue SOURCES test_video_decode_queue.cpp)
+oap_add_test(test_video_decoder SOURCES test_video_decoder.cpp)
 
 # --- Touch routing tests ---
 

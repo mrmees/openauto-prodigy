@@ -310,6 +310,10 @@ void AndroidAutoOrchestrator::onNewConnection()
 
     // Wire video frames to decoder
     qRegisterMetaType<std::shared_ptr<const QByteArray>>();
+    connect(&videoHandler_, &oaa::hu::VideoChannelHandler::streamStarted,
+            &videoDecoder_, [this](int32_t, uint32_t) {
+                videoDecoder_.beginStream();
+            });
     connect(&videoHandler_, &oaa::hu::VideoChannelHandler::videoFrameData,
             &videoDecoder_, &VideoDecoder::decodeFrame, Qt::QueuedConnection);
 

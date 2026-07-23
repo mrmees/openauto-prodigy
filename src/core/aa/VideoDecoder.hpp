@@ -13,6 +13,7 @@
 #include <memory>
 #include <mutex>
 #include <queue>
+#include <cstdint>
 
 #include "PerfStats.hpp"
 #include "VideoFramePool.hpp"
@@ -45,11 +46,18 @@ public:
     /// Returns the latest decoded frame if available, otherwise invalid QVideoFrame
     QVideoFrame takeLatestFrame();
 
+    /// Order a fresh codec/parser boundary before any subsequently queued frames.
+    /// Safe to call from the owning Qt thread while the decode worker is running.
+    void beginStream();
+
 signals:
     void videoSinkChanged();
     /// Emitted from the decode worker thread after a new frame is stored.
     /// Connect with Qt::AutoConnection — Qt will auto-queue to the main thread.
     void frameReady();
+    /// Worker-thread lifecycle diagnostics used by focused regression tests.
+    void streamResetCompleted(quint64 generation);
+    void streamCodecDetected(quint64 generation, int codecId);
 
 public slots:
     void decodeFrame(std::shared_ptr<const QByteArray> h264Data, qint64 enqueueTimeNs = 0);
@@ -61,15 +69,23 @@ private:
         explicit DecodeWorker(VideoDecoder* decoder) : decoder_(decoder) {}
         void run() override;
         void enqueue(std::shared_ptr<const QByteArray> data, qint64 enqueueTimeNs);
+        void beginStream();
         void requestStop();
         int queueDepth() const { QMutexLocker lock(&mutex_); return static_cast<int>(queue_.size()); }
     private:
         VideoDecoder* decoder_;
         mutable QMutex mutex_;
         QWaitCondition condition_;
-        struct WorkItem { std::shared_ptr<const QByteArray> data; qint64 enqueueTimeNs; bool isKeyframe; };
+        enum class WorkKind { Frame, BeginStream };
+        struct WorkItem {
+            WorkKind kind = WorkKind::Frame;
+            std::shared_ptr<const QByteArray> data;
+            qint64 enqueueTimeNs = 0;
+            quint64 generation = 0;
+        };
         std::queue<WorkItem> queue_;
         bool stopRequested_ = false;
+        quint64 nextGeneration_ = 0;
         // When queue depth exceeds this, skip non-reference frames
         // (AVDISCARD_NONREF — B-frames only) to reduce CPU.
         // Never use AVDISCARD_NONKEY — it skips P-frames and breaks refs.
@@ -78,6 +94,7 @@ private:
 
     DecodeWorker* worker_ = nullptr;
     void processFrame(const QByteArray& h264Data, qint64 enqueueTimeNs);
+    void resetForNewStream(quint64 generation);
 
     void cleanup();
 
@@ -101,6 +118,7 @@ private:
     bool codecDetected_ = false;
     bool usingHardware_ = false;
     bool firstFrameDecoded_ = false;
+    quint64 streamGeneration_ = 0;
     oap::YamlConfig* yamlConfig_ = nullptr;
 
     bool initCodec(AVCodecID codecId);

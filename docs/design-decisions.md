@@ -79,6 +79,17 @@ handling, while `frameReady` returns through Qt signal delivery to the sink's
 owning thread. Queue-depth load shedding may skip non-reference output, but it
 never drops compressed packets that the reference chain needs.
 
+### Stream boundaries are ordered worker commands
+
+**Decision:** Place a decoder reset command in the same worker queue as
+compressed video whenever the video channel starts a stream.
+
+**Rationale:** The decoder object is intentionally process-long, while codec,
+parser, fallback, queued-packet, and latest-frame state belongs to one phone
+stream. Clearing queued prior-stream packets and ordering reset before later
+frames prevents H.264/H.265 state from crossing reconnects without racing the
+decode thread or rebuilding the whole projection plugin.
+
 ### OpenMAX IL remains out of scope
 
 Original openauto used OMX via `ilclient` for a Pi-era zero-copy path. The
