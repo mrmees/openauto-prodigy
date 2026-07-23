@@ -173,7 +173,7 @@ private:
     void startDBusMonitoring();
     void stopDBusMonitoring();
     void scanExistingObjects();
-    void finishExistingObjectScan(const QDBusMessage& reply);
+    void finishExistingObjectScan(const QDBusMessage& reply, quint64 requestEpoch);
     void applyInterfaces(const QString& path, const BtInterfaceMap& interfaces);
     void adoptTransport(const QString& path, const QVariantMap& props);
     void adoptDevice(const QString& path, const QVariantMap& props);
@@ -189,6 +189,7 @@ private:
     void applyPropertiesChanged(const QString& interface, const QVariantMap& changed,
                                 const QStringList& invalidated, const QDBusMessage& message);
     void mergePendingPropertyChanges(BtManagedObjectMap& objects);
+    void mergePendingInterfaceChanges(BtManagedObjectMap& objects);
     void sendPlayerCommand(const QString& command);
     // Edge-emits transportActiveChanged only when the value actually flips.
     void setTransportActive(bool active);
@@ -199,6 +200,14 @@ private:
     bool monitoring_ = false;
     bool scanInFlight_ = false;
     bool scanPending_ = false;
+    quint64 bluezServiceEpoch_ = 0;
+    struct PendingInterfaceChange {
+        bool added = false;
+        QString path;
+        BtInterfaceMap addedInterfaces;
+        QStringList removedInterfaces;
+    };
+    QVector<PendingInterfaceChange> pendingInterfaceChanges_;
     struct PendingPropertyChange {
         QString interface;
         QVariantMap changed;

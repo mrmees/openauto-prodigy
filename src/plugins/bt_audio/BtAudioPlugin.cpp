@@ -201,6 +201,14 @@ void BtAudioPlugin::startDBusMonitoring()
         return;
     }
 
+    // Every monitoring lifetime is a distinct observation epoch. A watcher
+    // left over from an earlier shutdown may still complete, but its reply is
+    // never authoritative for this lifetime.
+    ++bluezServiceEpoch_;
+    scanPending_ = false;
+    pendingInterfaceChanges_.clear();
+    pendingPropertyChanges_.clear();
+
     // Watch for BlueZ service availability
     bluezWatcher_ = new QDBusServiceWatcher(
         QStringLiteral("org.bluez"),
@@ -211,6 +219,10 @@ void BtAudioPlugin::startDBusMonitoring()
     connect(bluezWatcher_, &QDBusServiceWatcher::serviceRegistered, this, [this]() {
         if (hostContext_)
             hostContext_->log(LogLevel::Info, QStringLiteral("BtAudio: BlueZ appeared on D-Bus"));
+        ++bluezServiceEpoch_;
+        scanPending_ = false;
+        pendingInterfaceChanges_.clear();
+        pendingPropertyChanges_.clear();
         scanExistingObjects();
     });
 
@@ -288,7 +300,9 @@ void BtAudioPlugin::stopDBusMonitoring()
     delete bluezWatcher_;
     bluezWatcher_ = nullptr;
     monitoring_ = false;
+    ++bluezServiceEpoch_;
     scanPending_ = false;
+    pendingInterfaceChanges_.clear();
     pendingPropertyChanges_.clear();
 }
 
@@ -296,8 +310,10 @@ void BtAudioPlugin::onBluezServiceUnregistered()
 {
     if (hostContext_)
         hostContext_->log(LogLevel::Info, QStringLiteral("BtAudio: BlueZ disappeared from D-Bus"));
-    if (scanInFlight_)
-        scanPending_ = true;
+    ++bluezServiceEpoch_;
+    scanPending_ = false;
+    pendingInterfaceChanges_.clear();
+    pendingPropertyChanges_.clear();
     transportActiveByPath_.clear();
     transportDeviceByPath_.clear();
     devicePropertiesByPath_.clear();
@@ -322,6 +338,7 @@ void BtAudioPlugin::scanExistingObjects()
     }
 
     scanInFlight_ = true;
+    const quint64 requestEpoch = bluezServiceEpoch_;
     QDBusMessage msg = QDBusMessage::createMethodCall(
         QStringLiteral("org.bluez"),
         QStringLiteral("/"),
@@ -330,25 +347,36 @@ void BtAudioPlugin::scanExistingObjects()
 
     auto* watcher = new QDBusPendingCallWatcher(bus_.asyncCall(msg, 2000), this);
     connect(watcher, &QDBusPendingCallWatcher::finished, this,
-            [this, watcher]() {
+            [this, watcher, requestEpoch]() {
                 const QDBusMessage reply = watcher->reply();
                 watcher->deleteLater();
-                finishExistingObjectScan(reply);
+                finishExistingObjectScan(reply, requestEpoch);
             });
 }
 
-void BtAudioPlugin::finishExistingObjectScan(const QDBusMessage& reply)
+void BtAudioPlugin::finishExistingObjectScan(const QDBusMessage& reply,
+                                             quint64 requestEpoch)
 {
     scanInFlight_ = false;
     const bool needsRescan = scanPending_;
     scanPending_ = false;
-    if (monitoring_ && !needsRescan) {
+
+    // Service loss/restart and monitoring restart both advance the epoch.
+    // Never let a reply from the prior bluetoothd lifetime resurrect state.
+    if (requestEpoch != bluezServiceEpoch_) {
+        if (monitoring_ && needsRescan)
+            scanExistingObjects();
+        return;
+    }
+
+    if (monitoring_) {
         QString failure;
         auto objects = parseManagedObjects(reply, failure);
         if (objects) {
+            mergePendingInterfaceChanges(*objects);
             mergePendingPropertyChanges(*objects);
             applyManagedObjectsSnapshot(*objects);
-        } else {
+        } else if (!needsRescan) {
             if (hostContext_) {
                 hostContext_->log(LogLevel::Warning,
                                   QStringLiteral("BtAudio: GetManagedObjects rejected: %1")
@@ -361,17 +389,35 @@ void BtAudioPlugin::finishExistingObjectScan(const QDBusMessage& reply)
             for (const auto& change : pendingChanges)
                 applyPropertiesChanged(change.interface, change.changed,
                                        change.invalidated, change.message);
+            pendingInterfaceChanges_.clear();
         }
-    }
-
-    if (needsRescan) {
-        // The trailing topology snapshot was requested after the relevant
-        // signals, so it supersedes property deltas collected for this reply.
-        pendingPropertyChanges_.clear();
     }
 
     if (monitoring_ && needsRescan)
         scanExistingObjects();
+}
+
+void BtAudioPlugin::mergePendingInterfaceChanges(BtManagedObjectMap& objects)
+{
+    const auto pendingChanges = std::exchange(pendingInterfaceChanges_, {});
+    for (const auto& change : pendingChanges) {
+        if (change.added) {
+            auto& interfaces = objects[change.path];
+            for (auto it = change.addedInterfaces.cbegin();
+                 it != change.addedInterfaces.cend(); ++it) {
+                interfaces.insert(it.key(), it.value());
+            }
+            continue;
+        }
+
+        auto object = objects.find(change.path);
+        if (object == objects.end())
+            continue;
+        for (const QString& interface : change.removedInterfaces)
+            object->remove(interface);
+        if (object->isEmpty())
+            objects.erase(object);
+    }
 }
 
 void BtAudioPlugin::mergePendingPropertyChanges(BtManagedObjectMap& objects)
@@ -393,8 +439,10 @@ void BtAudioPlugin::mergePendingPropertyChanges(BtManagedObjectMap& objects)
 
 void BtAudioPlugin::onInterfacesAdded(const QDBusObjectPath& path, const BtInterfaceMap& interfaces)
 {
-    if (scanInFlight_)
+    if (scanInFlight_) {
         scanPending_ = true;
+        pendingInterfaceChanges_.append({true, path.path(), interfaces, {}});
+    }
     const QString pathStr = path.path();
     applyInterfaces(pathStr, interfaces);
 }
@@ -497,8 +545,10 @@ void BtAudioPlugin::applyManagedObjectsSnapshot(const BtManagedObjectMap& object
 
 void BtAudioPlugin::onInterfacesRemoved(const QDBusObjectPath& path, const QStringList& interfaces)
 {
-    if (scanInFlight_)
+    if (scanInFlight_) {
         scanPending_ = true;
+        pendingInterfaceChanges_.append({false, path.path(), {}, interfaces});
+    }
     const QString pathStr = path.path();
 
     if (interfaces.contains(QStringLiteral("org.bluez.MediaTransport1"))
