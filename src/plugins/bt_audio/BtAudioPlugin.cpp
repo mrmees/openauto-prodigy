@@ -68,12 +68,26 @@ QString bluezDeviceLabel(const QVariantMap& properties)
     return unwrapDbusVariant(properties.value(QStringLiteral("Name"))).toString();
 }
 
-oap::plugins::BtManagedObjectMap parseManagedObjects(const QDBusMessage& reply)
+std::optional<oap::plugins::BtManagedObjectMap>
+parseManagedObjects(const QDBusMessage& reply, QString& failure)
 {
-    oap::plugins::BtManagedObjectMap objects;
-    if (reply.type() != QDBusMessage::ReplyMessage || reply.arguments().isEmpty())
-        return objects;
+    if (reply.type() != QDBusMessage::ReplyMessage) {
+        failure = reply.errorMessage().isEmpty()
+            ? QStringLiteral("D-Bus call failed") : reply.errorMessage();
+        return std::nullopt;
+    }
 
+    constexpr auto kManagedObjectsSignature = "a{oa{sa{sv}}}";
+    if (reply.arguments().size() != 1
+        || reply.signature() != QLatin1String(kManagedObjectsSignature)
+        || !reply.arguments().constFirst().canConvert<QDBusArgument>()) {
+        failure = QStringLiteral("expected one %1 argument, received signature '%2' with %3 arguments")
+                      .arg(QLatin1String(kManagedObjectsSignature), reply.signature())
+                      .arg(reply.arguments().size());
+        return std::nullopt;
+    }
+
+    oap::plugins::BtManagedObjectMap objects;
     const QDBusArgument arg = reply.arguments().constFirst().value<QDBusArgument>();
     arg.beginMap();
     while (!arg.atEnd()) {
@@ -328,18 +342,26 @@ void BtAudioPlugin::finishExistingObjectScan(const QDBusMessage& reply)
     scanInFlight_ = false;
     const bool needsRescan = scanPending_;
     scanPending_ = false;
-    if (monitoring_ && !needsRescan && reply.type() == QDBusMessage::ReplyMessage) {
-        BtManagedObjectMap objects = parseManagedObjects(reply);
-        mergePendingPropertyChanges(objects);
-        applyManagedObjectsSnapshot(objects);
-    } else if (monitoring_ && !needsRescan && hostContext_) {
-        hostContext_->log(LogLevel::Warning,
-                          QStringLiteral("BtAudio: GetManagedObjects failed: %1")
-                              .arg(reply.errorMessage()));
-        const auto pendingChanges = std::exchange(pendingPropertyChanges_, {});
-        for (const auto& change : pendingChanges)
-            applyPropertiesChanged(change.interface, change.changed,
-                                   change.invalidated, change.message);
+    if (monitoring_ && !needsRescan) {
+        QString failure;
+        auto objects = parseManagedObjects(reply, failure);
+        if (objects) {
+            mergePendingPropertyChanges(*objects);
+            applyManagedObjectsSnapshot(*objects);
+        } else {
+            if (hostContext_) {
+                hostContext_->log(LogLevel::Warning,
+                                  QStringLiteral("BtAudio: GetManagedObjects rejected: %1")
+                                      .arg(failure));
+            }
+            // A failed or malformed topology reply is not an empty snapshot.
+            // Preserve the last completed state and replay property deltas
+            // received while the request was outstanding.
+            const auto pendingChanges = std::exchange(pendingPropertyChanges_, {});
+            for (const auto& change : pendingChanges)
+                applyPropertiesChanged(change.interface, change.changed,
+                                       change.invalidated, change.message);
+        }
     }
 
     if (needsRescan) {
