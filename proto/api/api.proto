@@ -127,8 +127,8 @@ message ServerHello {
 // ---- Challenge/response auth (remote, previously-paired clients) ---------
 //
 // Proof for both auth and pairing is HMAC-SHA256 over the raw nonce bytes,
-// keyed with the client's 32-byte secret. The secret is derived at pairing
-// time as SHA256(pin_utf8 || salt) — see PairingChallenge.
+// keyed with the client's 32-byte secret. Secure-code credentials are derived
+// at pairing time as SHA256(code_utf8 || salt) — see PairingChallenge.
 
 message AuthRequired {
   // Random challenge, 32 bytes. Single-use, this connection only.
@@ -142,28 +142,49 @@ message AuthResponse {
   bytes proof = 2;
 }
 
+enum AuthRejectCode {
+  AUTH_REJECT_CODE_UNSPECIFIED = 0;
+  // The stored credential predates the secure pairing-code contract. The
+  // client must discard it and perform a fresh pairing.
+  AUTH_REJECT_CODE_CREDENTIAL_UPGRADE_REQUIRED = 1;
+}
+
 message AuthReject {
   // Human-readable reason. The connection is closed after this message.
   string reason = 1;
   reserved 2 to 5;
+
+  // Machine-readable reason for additive auth migrations. Absent/UNSPECIFIED
+  // retains the v1 reason-only contract.
+  AuthRejectCode code = 6;
 }
 
 // ---- Pairing (remote, first contact; window opened from Settings) --------
+
+enum PairingSecretFormat {
+  PAIRING_SECRET_FORMAT_UNSPECIFIED = 0;
+  PAIRING_SECRET_FORMAT_LEGACY_SIX_DIGIT = 1;
+  PAIRING_SECRET_FORMAT_BASE32_120 = 2;
+}
 
 message PairingChallenge {
   // Random challenge, 32 bytes. Single-use.
   bytes nonce = 1;
 
   // Random salt for secret derivation, unique per pairing session:
-  //   secret = SHA256(utf8(pin_displayed_on_head_unit) || salt)
+  //   secret = SHA256(utf8(canonical_code_displayed_on_head_unit) || salt)
   bytes salt = 2;
 
   reserved 3 to 6;
+
+  // Required for secure pairing. Clients must reject absent, legacy, or
+  // unknown formats rather than guessing secret semantics.
+  PairingSecretFormat secret_format = 7;
 }
 
 message PairingResponse {
   // HMAC-SHA256(key = derived secret, data = PairingChallenge.nonce).
-  // Proves the user read the PIN off the head-unit screen. On success the
+  // Proves the user obtained the pairing code from the head-unit screen. On success the
   // concluding ServerHello carries granted_client_id; persist it plus the
   // derived secret.
   bytes proof = 1;
@@ -183,6 +204,10 @@ message Capabilities {
   PhoneCapabilities phone = 2;
 
   reserved 3 to 12;
+
+  // True when new pairing windows use PairingSecretFormat.BASE32_120. The
+  // challenge field remains the authoritative pre-auth discriminator.
+  optional bool secure_pairing_code = 13;
 }
 
 // Re-query capabilities mid-session (they are also in ServerHello).

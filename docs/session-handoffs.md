@@ -4,6 +4,66 @@ Newest entries first.
 
 ---
 
+## 2026-07-22 — API/core asynchronous lifecycle remediation COMPLETE
+
+**What changed:** External API pairing now uses a versioned 24-character
+Base32 secret with 120 random bits, atomic fail-closed credential persistence,
+typed legacy-credential rejection, and matching additive protobuf fields in
+Prodigy and Companion. API handshake stages have independent deadlines and
+explicit teardown ordering. Clock correction is asynchronous and serialized;
+connectivity, EventBus delivery, system-service reconnect, plugin exceptions,
+and local IPC framing now have bounded ownership and failure semantics.
+
+**Why:** the former six-digit pairing transcript was cheaply enumerable, and
+several independent asynchronous boundaries could block the main thread,
+retain stale state, retry incompletely, invoke work after teardown, or accept
+unbounded/unframed input. The consolidated wave repaired those roots at their
+owners without changing Android Auto, HFP, PipeWire routing, or public API
+semantics outside additive secure-pairing negotiation.
+
+**Status:** COMPLETE on `agent/api-core-async-lifecycle-remediation`, based on
+the merge of PR #28. The reviewed aarch64 binary and matching Companion APK
+were deployed together. Companion storage retired its legacy record, QR
+pairing created generation-2 records on both sides, and force-stop/relaunch
+reconnected with the saved credential. Live battery, GPS, connectivity, and
+SOCKS reports resumed; duplicate steady-state connectivity reports did not
+rebuild the route. One application process (PID `189732`) owns responsive IPC,
+wireless Android Auto is connected with H.265, and a reversible Moto AVRCP
+play/pause probe drove active A2DP through `openauto-bt-eq-in` before restoring
+the original paused state. Bluetooth PID `672` plus hostapd PID `46989` are
+unchanged. Rollback snapshots are retained at
+`/var/backups/openauto-prodigy/20260723T013643Z` and
+`/home/matt/backups/openauto-companion/20260723T013643Z`.
+
+**Review gate:** the initial Prodigy review returned five findings and the
+permitted rerun returned six; all were confirmed and fixed, with no dismissals
+or unadjudicated findings. Fixes completed command-timeout recovery, strict and
+atomic credential storage, bounded timezone/IPC work, reconnect framing reset,
+and exception-safe EventBus accounting. The Companion review found one Unicode
+normalization edge; it was confirmed and fixed, and the full rerun returned
+LGTM.
+
+**Verification:** focused API, auth/pairing, clock, publisher, EventBus,
+system-service, plugin, IPC, and media tests passed. `cmake --build .
+-j$(nproc)`, the explicit `openauto-prodigy` target, and `ctest
+--output-on-failure` passed in `~/builds/openauto-prodigy`. Documentation links,
+proto byte identity, and `git diff --check` passed; `./cross-build.sh` produced
+the deployed aarch64 binary. Companion passed `./gradlew
+:app:testDebugUnitTest :app:assembleDebug`. Live validation covered migration,
+QR pairing, saved reconnect, reporting/SOCKS stability, split and coalesced IPC,
+process and daemon lifetimes, Moto A2DP/EQ routing, and AA continuity.
+
+**Deviations:** review-driven atomic-save, cumulative IPC-budget, strict-store,
+timezone-reconciliation, and exception-containment fixes stayed within the
+approved boundaries. The Companion branch intentionally carries only the
+previously validated airplane-mode recovery change from outside this wave.
+
+**Next 1-3 steps:** (1) publish separate draft PRs for Prodigy and Companion;
+(2) review and merge the coordinated pair together; (3) select the next bounded
+subsystem wave from the saved remediation map.
+
+---
+
 ## 2026-07-22 — Configuration startup contract remediation COMPLETE
 
 **What changed:** built-in YAML defaults now register `logging.verbose` and a

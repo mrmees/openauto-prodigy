@@ -112,7 +112,10 @@ private:
 
     // Transitions / terminal messages.
     void goReady(quint64 requestId, const QString& grantedClientId);
-    void sendAuthReject(quint64 requestId, const QString& reason);
+    void sendAuthReject(
+        quint64 requestId, const QString& reason,
+        prodigy::api::v1::AuthRejectCode code =
+            prodigy::api::v1::AUTH_REJECT_CODE_UNSPECIFIED);
     // Graceful flushes pending terminal frames to the wire; Discard drops
     // the connection immediately (slow-consumer kill — never wait behind a
     // buffer the peer won't drain).

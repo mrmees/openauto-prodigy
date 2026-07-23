@@ -93,6 +93,9 @@ private slots:
     void testBadVersionRejected();
     void testFirstMessageMustBeHello();
     void testHandshakeTimeout();
+    void testAuthResponseGetsFreshDeadline();
+    void testPairingResponseGetsFreshDeadline();
+    void testLegacyCredentialRequiresUpgrade();
     void testRemoteAuthHappyPath();
     void testRemoteAuthBadProof();
     void testPairingFlow();
@@ -162,6 +165,92 @@ void TestApiSession::testHandshakeTimeout() {
     QTest::qWait(120);
 
     QCOMPARE(terminatedSpy.count(), 1);
+    QCOMPARE(session.state(), ApiSession::State::Closed);
+}
+
+void TestApiSession::testAuthResponseGetsFreshDeadline() {
+    PairedClientStore store("/tmp/oap_test_session_stage_auth.yaml");
+    PairedClient client;
+    client.clientId = "stage-client";
+    client.secret = QByteArray(32, 's');
+    store.upsert(client);
+
+    auto* transport = new FakeTransport();
+    ApiSessionDeps deps;
+    deps.store = &store;
+    deps.handshakeTimeoutMs = 150;
+    ApiSession session(transport, deps);
+    session.setPeerTrustOverrideForTest(false);
+
+    QTest::qWait(90);
+    pb::ApiMessage hello;
+    auto* h = hello.mutable_client_hello();
+    h->set_requested_api_version_major(1);
+    h->mutable_auth()->set_client_id("stage-client");
+    transport->injectMessage(serialize(hello));
+    QCOMPARE(session.state(), ApiSession::State::AuthPending);
+
+    QTest::qWait(90);
+    QCOMPARE(session.state(), ApiSession::State::AuthPending);
+    QTRY_COMPARE_WITH_TIMEOUT(session.state(), ApiSession::State::Closed, 150);
+}
+
+void TestApiSession::testPairingResponseGetsFreshDeadline() {
+    const QString path = "/tmp/oap_test_session_stage_pairing.yaml";
+    QFile::remove(path);
+    PairedClientStore store(path);
+    QVERIFY(store.load());
+    PairingManager pairing(&store);
+    QVERIFY(pairing.startWindow(60));
+
+    auto* transport = new FakeTransport();
+    ApiSessionDeps deps;
+    deps.store = &store;
+    deps.pairing = &pairing;
+    deps.handshakeTimeoutMs = 150;
+    ApiSession session(transport, deps);
+    session.setPeerTrustOverrideForTest(false);
+
+    QTest::qWait(90);
+    pb::ApiMessage hello;
+    auto* h = hello.mutable_client_hello();
+    h->set_requested_api_version_major(1);
+    h->mutable_auth()->set_pairing_request(true);
+    transport->injectMessage(serialize(hello));
+    QCOMPARE(session.state(), ApiSession::State::PairingPending);
+
+    QTest::qWait(90);
+    QCOMPARE(session.state(), ApiSession::State::PairingPending);
+    QTRY_COMPARE_WITH_TIMEOUT(session.state(), ApiSession::State::Closed, 150);
+}
+
+void TestApiSession::testLegacyCredentialRequiresUpgrade() {
+    PairedClientStore store("/tmp/oap_test_session_legacy.yaml");
+    PairedClient client;
+    client.clientId = "legacy-1";
+    client.secret = QByteArray(32, 'l');
+    client.name = "Legacy";
+    client.credentialGeneration = oap::api::kLegacyCredentialGeneration;
+    store.upsert(client);
+
+    auto* transport = new FakeTransport();
+    ApiSessionDeps deps;
+    deps.store = &store;
+    ApiSession session(transport, deps);
+    session.setPeerTrustOverrideForTest(false);
+
+    pb::ApiMessage hello;
+    hello.set_request_id(41);
+    auto* h = hello.mutable_client_hello();
+    h->set_requested_api_version_major(1);
+    h->set_client_name("Legacy");
+    h->mutable_auth()->set_client_id("legacy-1");
+    transport->injectMessage(serialize(hello));
+
+    const pb::ApiMessage rejected = parse(transport->sent.last());
+    QCOMPARE(rejected.payload_case(), pb::ApiMessage::kAuthReject);
+    QCOMPARE(rejected.auth_reject().code(),
+             pb::AUTH_REJECT_CODE_CREDENTIAL_UPGRADE_REQUIRED);
     QCOMPARE(session.state(), ApiSession::State::Closed);
 }
 
@@ -256,8 +345,9 @@ void TestApiSession::testRemoteAuthBadProof() {
 void TestApiSession::testPairingFlow() {
     PairedClientStore store("/tmp/oap_test_session_pairing.yaml");
     QFile::remove("/tmp/oap_test_session_pairing.yaml");
+    QVERIFY(store.load());
     PairingManager pairing(&store);
-    pairing.startWindow(60);
+    QVERIFY(pairing.startWindow(60));
 
     auto* transport = new FakeTransport();
     ApiSessionDeps deps;
@@ -284,10 +374,12 @@ void TestApiSession::testPairingFlow() {
     QByteArray salt = QByteArray::fromStdString(challenge.pairing_challenge().salt());
     QCOMPARE(nonce.size(), 32);
     QCOMPARE(salt, pairing.currentSalt());
+    QCOMPARE(challenge.pairing_challenge().secret_format(),
+             pb::PAIRING_SECRET_FORMAT_BASE32_120);
     QCOMPARE(session.state(), ApiSession::State::PairingPending);
 
-    // Compute proof from the displayed PIN + salt.
-    QByteArray secret = deriveSecret(pairing.currentPin(), salt);
+    // Compute proof from the canonical displayed code + salt.
+    QByteArray secret = deriveSecret(pairing.currentCode(), salt);
     QByteArray proof = hmacProof(secret, nonce);
     pb::ApiMessage resp;
     resp.set_request_id(2);

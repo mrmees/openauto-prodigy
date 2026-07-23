@@ -3,8 +3,10 @@
 #include "IEventBus.hpp"
 #include <QObject>
 #include <QMutex>
+#include <QWaitCondition>
 #include <QHash>
 #include <QMultiHash>
+#include <memory>
 
 namespace oap {
 
@@ -21,11 +23,15 @@ private:
     struct Subscription {
         QString topic;
         Callback callback;
+        QMutex mutex;
+        QWaitCondition idle;
+        bool active = true;
+        int executing = 0;
     };
 
     QMutex mutex_;
     int nextId_ = 1;
-    QHash<int, Subscription> subscriptions_;
+    QHash<int, std::shared_ptr<Subscription>> subscriptions_;
     QMultiHash<QString, int> topicIndex_;
 };
 

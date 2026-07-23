@@ -3,6 +3,7 @@
 #include <QLocalSocket>
 #include <QJsonObject>
 #include <QMap>
+#include <QTimer>
 #include <functional>
 
 namespace oap {
@@ -16,6 +17,8 @@ class SystemServiceClient : public QObject {
 
 public:
     explicit SystemServiceClient(QObject* parent = nullptr);
+    SystemServiceClient(const QString& socketPath, int retryIntervalMs,
+                        QObject* parent = nullptr);
 
     bool isConnected() const;
     QJsonObject health() const;
@@ -46,10 +49,14 @@ private slots:
 
 private:
     void connectToService();
+    void scheduleRetry();
+    void resetConnectionState();
     void sendRequest(const QString& method, const QJsonObject& params = {});
     void handleResponse(const QJsonObject& response);
 
     QLocalSocket* socket_ = nullptr;
+    QTimer* retryTimer_ = nullptr;
+    QString socketPath_;
     QByteArray readBuffer_;
     QJsonObject health_;
     QString routeState_ = QStringLiteral("disabled");

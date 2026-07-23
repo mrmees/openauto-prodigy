@@ -8,9 +8,12 @@
 namespace oap::api {
 
 // Crypto primitives
-QByteArray deriveSecret(const QString& pin, const QByteArray& salt);
+QByteArray deriveSecret(const QString& pairingCode, const QByteArray& salt);
 QByteArray hmacProof(const QByteArray& secret, const QByteArray& nonce);
 bool constantTimeEquals(const QByteArray& a, const QByteArray& b);
+
+inline constexpr int kLegacyCredentialGeneration = 1;
+inline constexpr int kSecureCodeCredentialGeneration = 2;
 
 // Paired client data
 struct PairedClient {
@@ -19,6 +22,7 @@ struct PairedClient {
     QString name;
     int kind = 0;         // pb::ClientKind numeric value
     QString pairedAtIso;  // ISO8601
+    int credentialGeneration = kSecureCodeCredentialGeneration;
 };
 
 // Persisted store for paired clients
@@ -31,10 +35,12 @@ public:
     void upsert(const PairedClient& c);
     bool remove(const QString& clientId);
     QList<PairedClient> all() const;
+    bool loadedSuccessfully() const { return loadedSuccessfully_; }
 
 private:
     QString path_;
     QList<PairedClient> clients_;
+    bool loadedSuccessfully_ = false;
 };
 
 } // namespace oap::api

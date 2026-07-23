@@ -227,10 +227,12 @@ Pub/sub event system with string-keyed topics and QVariant payloads.
 | Method | Thread Safety | Description |
 |--------|---------------|-------------|
 | `subscribe(topic, callback)` | Thread-safe | Subscribe to a topic. Returns subscription ID. |
-| `unsubscribe(id)` | Thread-safe | Remove a subscription. |
+| `unsubscribe(id)` | Thread-safe | Remove a subscription. Off the owner thread, waits for an executing callback to finish. |
 | `publish(topic, payload)` | Thread-safe | Publish an event. Callbacks invoked on main thread. |
 
-**Delivery:** All callbacks are invoked via `Qt::QueuedConnection` on the main thread.
+**Delivery:** All callbacks are invoked via `Qt::QueuedConnection` on the bus
+owner thread. Unsubscribe cancels queued delivery; a callback may unsubscribe
+itself without deadlocking.
 
 **Stability:** Stable
 

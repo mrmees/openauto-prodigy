@@ -125,7 +125,8 @@ prodigy::api::v1::ApiMessage SystemPublisher::buildEnvelope() {
 
 PhonePublisher::PhonePublisher(oap::IPhoneStateService* p, QObject* parent)
     : TopicPublisher(prodigy::api::v1::TOPIC_PHONE, parent),
-      p_(p), previousCallState_(p_->callState())
+      p_(p), previousCallState_(p_->callState()),
+      now_([] { return QDateTime::currentMSecsSinceEpoch(); })
 {
     connect(p_, &oap::ICallStateProvider::callStateChanged, this, &PhonePublisher::onCallStateChanged);
     connect(p_, &oap::IPhoneStateService::connectionChanged, this, [this] { scheduleEmit(); });
@@ -140,11 +141,18 @@ void PhonePublisher::onCallStateChanged() {
     const int state = p_->callState();
     if (state == oap::ICallStateProvider::Active &&
         previousCallState_ != oap::ICallStateProvider::Active) {
-        startedAtMs_ = QDateTime::currentMSecsSinceEpoch() - qint64(p_->callDuration()) * 1000;
+        startedAtMs_ = now_() - qint64(p_->callDuration()) * 1000;
     } else if (state == oap::ICallStateProvider::Idle) {
         startedAtMs_ = 0;
     }
     previousCallState_ = state;
+    scheduleEmit();
+}
+
+void PhonePublisher::onSystemClockAdjusted() {
+    if (p_->callState() != oap::ICallStateProvider::Active)
+        return;
+    startedAtMs_ = now_() - qint64(p_->callDuration()) * 1000;
     scheduleEmit();
 }
 

@@ -1215,6 +1215,8 @@ int main(int argc, char *argv[])
                      clockSync, &oap::ClockSyncService::onTimeReported);
     QObject::connect(apiServer->inboundState(), &oap::api::ApiInboundState::timezoneReported,
                      clockSync, &oap::ClockSyncService::onTimezoneReported);
+    QObject::connect(clockSync, &oap::ClockSyncService::clockAdjusted,
+                     apiServer, &oap::api::ApiServer::onSystemClockAdjusted);
 
     // Qt 6.5+ uses /qt/qml/ prefix, Qt 6.4 uses direct URI prefix
     QUrl url(QStringLiteral("qrc:/OpenAutoProdigy/main.qml"));
@@ -1395,6 +1397,11 @@ int main(int argc, char *argv[])
 #endif
 
     int ret = app.exec();
+
+    // End API sessions and detach their ActionRegistry surface while every
+    // provider/registry dependency is still alive. QObject child teardown
+    // order is not the API lifetime contract.
+    apiServer->shutdown();
 
     // Teardown order matters: deactivate plugin view (uses QML engine)
     // BEFORE engine is destroyed (stack-local), BEFORE plugin shutdown.

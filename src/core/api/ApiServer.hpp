@@ -4,7 +4,7 @@
 // (TCP + WebSocket), enforces the peer-admission policy, wraps every accepted
 // connection in a transport + ApiSession, builds the shared session
 // dependencies (capabilities, per-topic snapshots, request sink), fans the
-// five topic publishers out to subscribed sessions, and drives PIN pairing
+// five topic publishers out to subscribed sessions, and drives secure-code pairing
 // (exposed both as Q_INVOKABLE methods and as api.pairing.* actions).
 //
 // LIFETIME CONTRACT: every non-null pointer in ApiServiceRefs MUST outlive the
@@ -20,6 +20,7 @@
 // Threading: main thread only (Qt event loop).
 
 #include <QObject>
+#include <QPointer>
 #include <QString>
 #include <QList>
 #include <QHostAddress>
@@ -48,6 +49,7 @@ namespace oap::api {
 
 class IApiTransport;
 class TopicPublisher;
+class PhonePublisher;
 class PairingManager;
 class PairedClientStore;
 class ApiRequestHandlers;
@@ -72,7 +74,7 @@ class ApiServer : public QObject {
     Q_OBJECT
     Q_PROPERTY(bool running READ isRunning NOTIFY runningChanged)
     Q_PROPERTY(bool pairingActive READ pairingActive NOTIFY pairingChanged)
-    Q_PROPERTY(QString pairingPin READ pairingPin NOTIFY pairingChanged)
+    Q_PROPERTY(QString pairingCode READ pairingCode NOTIFY pairingChanged)
     Q_PROPERTY(QString pairingQrDataUri READ pairingQrDataUri NOTIFY pairingChanged)
 public:
     explicit ApiServer(ApiServiceRefs refs, QObject* parent = nullptr);
@@ -80,6 +82,9 @@ public:
 
     bool start();     // reads api.* config; false if disabled or both listens fail
     void stop();      // idempotent; destroys publishers before other teardown
+    // Final application shutdown: stop sessions/listeners and detach actions
+    // while the registry is still alive. start() can register them again.
+    void shutdown();
     // True while at least one listener is bound. main.cpp exposes ApiService
     // unconditionally, so QML gates the pairing UI on this — a pairing window
     // on a non-running server is zombie UI (no listener to pair through).
@@ -92,20 +97,21 @@ public:
     Q_INVOKABLE void startPairing();   // also registered as action api.pairing.start
     Q_INVOKABLE void cancelPairing();  // also registered as action api.pairing.cancel
     bool pairingActive() const;
-    QString pairingPin() const;
+    QString pairingCode() const;
     // QR for the open pairing window ("" when closed). Rendered lazily per
     // read so it can never go stale against the window state, whatever order
     // pairingChanged consumers fire in.
     QString pairingQrDataUri() const;
     int sessionCount() const;
+    void onSystemClockAdjusted();
 
     // Companion-scanner contract (kept stable, additive-only):
-    // prodigy://pair?host=&tcp=&ws=&pin=&ssid=  — ssid percent-encoded
+    // prodigy://pair?host=&tcp=&ws=&code=&ssid=  — ssid percent-encoded
     // (Android can redact the AA-owned network's SSID, so the companion
     // persists it from the QR for reconnect). Pure static seam, unit-tested
     // like inApSubnet/peerAllowed below.
     static QString pairingQrPayload(const QString& host, quint16 tcpPort,
-                                    quint16 wsPort, const QString& pin,
+                                    quint16 wsPort, const QString& code,
                                     const QString& ssid);
 
     // Test seam: rebinds the paired-client store to a scratch path BEFORE
@@ -141,8 +147,12 @@ private:
     void createPublishers();
     void wirePublisher(TopicPublisher* pub);
     void rebindPairing();
+    void registerPairingActions();
+    void unregisterPairingActions();
 
     ApiServiceRefs refs_;
+    QPointer<oap::ActionRegistry> actions_;
+    bool pairingActionsRegistered_ = false;
 
     // Auth / pairing (created in ctor so api.pairing.* actions work pre-start()).
     std::unique_ptr<PairedClientStore> store_;
@@ -157,6 +167,7 @@ private:
     bool started_ = false;   // guards double-invocation of start(); see stop()
 
     QList<TopicPublisher*> publishers_;
+    PhonePublisher* phonePublisher_ = nullptr;
     QList<ApiSession*> sessions_;
 
     // Config-derived, captured in start().

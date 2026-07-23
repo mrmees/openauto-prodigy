@@ -32,7 +32,7 @@ constexpr quint32 kMaxFrameBytes = 262144;
 } // namespace
 
 ApiServer::ApiServer(ApiServiceRefs refs, QObject* parent)
-    : QObject(parent), refs_(refs) {
+    : QObject(parent), refs_(refs), actions_(refs.actions) {
     storePath_ = QDir::homePath() + QStringLiteral("/.openauto/api_clients.yaml");
     rebindPairing();
 
@@ -48,16 +48,31 @@ ApiServer::ApiServer(ApiServiceRefs refs, QObject* parent)
     // Expose pairing as actions too, so a UI button or a companion client can
     // open/close the window without a direct ApiServer handle. Registered in
     // the ctor (not start()) so dispatch works even before listening.
-    if (refs_.actions) {
-        refs_.actions->registerAction(QStringLiteral("api.pairing.start"),
+    registerPairingActions();
+}
+
+void ApiServer::registerPairingActions() {
+    if (pairingActionsRegistered_ || !actions_)
+        return;
+    actions_->registerAction(QStringLiteral("api.pairing.start"),
             [this](const QVariant&) { startPairing(); });
-        refs_.actions->registerAction(QStringLiteral("api.pairing.cancel"),
+    actions_->registerAction(QStringLiteral("api.pairing.cancel"),
             [this](const QVariant&) { cancelPairing(); });
+    pairingActionsRegistered_ = true;
+}
+
+void ApiServer::unregisterPairingActions() {
+    if (!pairingActionsRegistered_)
+        return;
+    if (actions_) {
+        actions_->unregisterAction(QStringLiteral("api.pairing.start"));
+        actions_->unregisterAction(QStringLiteral("api.pairing.cancel"));
     }
+    pairingActionsRegistered_ = false;
 }
 
 ApiServer::~ApiServer() {
-    stop();
+    shutdown();
     // Delete pairing_ before the store_ unique_ptr member is destroyed: it
     // holds a raw pointer into store_ (harmless if left dangling, but explicit
     // ordering keeps the invariant honest).
@@ -69,7 +84,8 @@ void ApiServer::rebindPairing() {
     delete pairing_;
     pairing_ = nullptr;
     store_ = std::make_unique<PairedClientStore>(storePath_);
-    store_->load();
+    if (!store_->load())
+        qWarning() << "API: paired-client store failed to load; pairing is disabled";
     pairing_ = new PairingManager(store_.get(), this);
     connect(pairing_, &PairingManager::windowChanged, this, &ApiServer::pairingChanged);
 }
@@ -80,6 +96,7 @@ void ApiServer::setStorePathForTest(const QString& path) {
 }
 
 bool ApiServer::start() {
+    registerPairingActions();
     // Idempotent re-entry: the server is already running, so there is
     // nothing to (re)build -- a second start() must not append duplicate
     // publishers or leak the previous tcpServer_/wsServer_ by overwriting
@@ -152,15 +169,20 @@ bool ApiServer::start() {
     return started_;
 }
 
+void ApiServer::shutdown() {
+    stop();
+    unregisterPairingActions();
+}
+
 void ApiServer::stop() {
     const bool wasRunning = started_;
     started_ = false;
     if (wasRunning) emit runningChanged();
 
-    // 0. Close any open pairing window. Its PIN must not survive into a
+    // 0. Close any open pairing window. Its code must not survive into a
     //    later start() (a stopped-then-restarted server would accept the
-    //    stale PIN for the rest of the window), and QML must be told the
-    //    QR/PIN are gone (cancelWindow -> windowChanged -> pairingChanged).
+    //    stale code for the rest of the window), and QML must be told the
+    //    QR/code are gone (cancelWindow -> windowChanged -> pairingChanged).
     if (pairing_) pairing_->cancelWindow();
 
     // 1. Destroy publishers FIRST. Each owns a 0-ms coalesce timer whose
@@ -168,6 +190,7 @@ void ApiServer::stop() {
     //    turn; a provider may be torn down right after stop(), so no deferred
     //    snapshot may outlive it. Deleting a publisher cancels its timer and
     //    severs both its provider connections and its statusReady fan-out.
+    phonePublisher_ = nullptr;
     qDeleteAll(publishers_);
     publishers_.clear();
 
@@ -269,6 +292,7 @@ pb::Capabilities ApiServer::buildCapabilities() const {
     // PhoneCapabilities inside each PhoneStatus (Task 7) — clients MUST check
     // that before enabling call UI.
     caps.mutable_phone();
+    caps.set_secure_pairing_code(true);
     return caps;
 }
 
@@ -285,9 +309,17 @@ void ApiServer::createPublishers() {
     if (refs_.media)      wirePublisher(new MediaPublisher(refs_.media, this));
     if (refs_.navigation) wirePublisher(new NavigationPublisher(refs_.navigation, this));
     if (refs_.projection) wirePublisher(new ProjectionPublisher(refs_.projection, this));
-    if (refs_.phone)      wirePublisher(new PhonePublisher(refs_.phone, this));
+    if (refs_.phone) {
+        phonePublisher_ = new PhonePublisher(refs_.phone, this);
+        wirePublisher(phonePublisher_);
+    }
     if (refs_.theme)      wirePublisher(new SystemPublisher(refs_.theme, appVersion_,
                                                             refs_.bluetooth, refs_.display, this));
+}
+
+void ApiServer::onSystemClockAdjusted() {
+    if (phonePublisher_)
+        phonePublisher_->onSystemClockAdjusted();
 }
 
 void ApiServer::wirePublisher(TopicPublisher* pub) {
@@ -309,7 +341,7 @@ void ApiServer::wirePublisher(TopicPublisher* pub) {
 // ---- Pairing / accessors ---------------------------------------------------
 
 void ApiServer::startPairing() {
-    // No listener, no window: a PIN with nothing to pair through is zombie
+    // No listener, no window: a code with nothing to pair through is zombie
     // UI (also reachable via the api.pairing.start action, so guard here,
     // not just in QML).
     if (!started_ || !pairing_) return;
@@ -324,15 +356,15 @@ bool ApiServer::pairingActive() const {
     return pairing_ && pairing_->windowOpen();
 }
 
-QString ApiServer::pairingPin() const {
-    return pairing_ ? pairing_->currentPin() : QString();
+QString ApiServer::pairingCode() const {
+    return pairing_ ? pairing_->displayCode() : QString();
 }
 
 QString ApiServer::pairingQrPayload(const QString& host, quint16 tcpPort,
-                                    quint16 wsPort, const QString& pin,
+                                    quint16 wsPort, const QString& code,
                                     const QString& ssid) {
-    return QStringLiteral("prodigy://pair?host=%1&tcp=%2&ws=%3&pin=%4&ssid=%5")
-        .arg(host).arg(tcpPort).arg(wsPort).arg(pin)
+    return QStringLiteral("prodigy://pair?host=%1&tcp=%2&ws=%3&code=%4&ssid=%5")
+        .arg(host).arg(tcpPort).arg(wsPort).arg(code)
         .arg(QString::fromLatin1(QUrl::toPercentEncoding(ssid)));
 }
 
@@ -341,14 +373,14 @@ QString ApiServer::pairingQrPayloadForTest() const {
         return QString();
     // Never advertise dead endpoints: a QR with tcp=0/ws=0 (server not
     // started, or a listener failed) would send the scanner somewhere
-    // unreachable. Manual PIN pairing stays available in that state.
+    // unreachable. Manual code pairing stays available in that state.
     if (tcpPort() == 0 || wsPort() == 0)
         return QString();
     // The phone reaches the head unit over the Pi's own AP, where the Pi is
     // always 10.0.0.1 (same assumption as the legacy companion QR and the
     // 10.0.0.0/24 peer-admission subnet above).
     return pairingQrPayload(QStringLiteral("10.0.0.1"), tcpPort(), wsPort(),
-                            pairing_->currentPin(), pairingSsid_);
+                            pairing_->currentCode(), pairingSsid_);
 }
 
 QString ApiServer::pairingQrDataUri() const {

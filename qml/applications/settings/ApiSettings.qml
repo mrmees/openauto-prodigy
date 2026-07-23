@@ -43,7 +43,7 @@ Flickable {
                         if (!root.hasService) return "API service unavailable"
                         if (!root.apiRunning) return "API not running — enable it under Advanced"
                         return ApiService.pairingActive
-                               ? "PIN: " + ApiService.pairingPin
+                               ? "Pairing code: " + ApiService.pairingCode
                                : "No pairing in progress"
                     }
                     font.pixelSize: UiMetrics.fontBody
@@ -85,7 +85,7 @@ Flickable {
         }
 
         // Scannable pairing QR (prodigy://pair?...) — companion app scans
-        // this instead of typing the PIN. Shown only while a window is open.
+        // this instead of typing the pairing code. Shown only while a window is open.
         Image {
             visible: root.hasService && ApiService.pairingActive
                      && ApiService.pairingQrDataUri !== ""

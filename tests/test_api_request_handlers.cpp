@@ -122,6 +122,7 @@ private slots:
     void testGpsStaleAfterThreshold();
     void testProxyActiveReflectsConnectivity();
     void testConnectivityEmitsProxyRoute();
+    void testConnectivitySuppressesExactDuplicates();
     void testOwnerSessionCloseClearsRoute();
     void testNonOwnerSessionCloseLeavesRoute();
     void testInactiveReportReleasesOwnership();
@@ -984,6 +985,58 @@ void TestApiRequestHandlers::testConnectivityEmitsProxyRoute() {
     QVERIFY(inbound.proxyAddress().isEmpty());
 }
 
+void TestApiRequestHandlers::testConnectivitySuppressesExactDuplicates() {
+    ApiInboundState inbound;
+    QSignalSpy routeSpy(&inbound, &ApiInboundState::proxyRouteChanged);
+    QSignalSpy propertySpy(&inbound, &ApiInboundState::internetChanged);
+
+    inbound.setConnectivity(QStringLiteral("10.0.0.2"), false, 0, QString());
+    QCOMPARE(routeSpy.count(), 1);
+    QCOMPARE(propertySpy.count(), 0);
+    inbound.setConnectivity(QStringLiteral("10.0.0.2"), false, 0, QString());
+    QCOMPARE(routeSpy.count(), 1);
+    QCOMPARE(propertySpy.count(), 0);
+
+    inbound.setConnectivity(QStringLiteral("10.0.0.2"), false, 0,
+                            QStringLiteral("inactive-secret"));
+    QCOMPARE(routeSpy.count(), 2);
+    QCOMPARE(propertySpy.count(), 0);
+
+    inbound.setConnectivity(QStringLiteral("10.0.0.2"), true, 1080,
+                            QStringLiteral("secret-a"));
+    QCOMPARE(routeSpy.count(), 3);
+    QCOMPARE(propertySpy.count(), 1);
+    inbound.setConnectivity(QStringLiteral("10.0.0.2"), true, 1080,
+                            QStringLiteral("secret-a"));
+    QCOMPARE(routeSpy.count(), 3);
+    QCOMPARE(propertySpy.count(), 1);
+
+    // Password changes affect route plumbing but not observable QML state.
+    inbound.setConnectivity(QStringLiteral("10.0.0.2"), true, 1080,
+                            QStringLiteral("secret-b"));
+    QCOMPARE(routeSpy.count(), 4);
+    QCOMPARE(propertySpy.count(), 1);
+
+    // Port and host changes alter the composed observable proxy address.
+    inbound.setConnectivity(QStringLiteral("10.0.0.2"), true, 1081,
+                            QStringLiteral("secret-b"));
+    QCOMPARE(routeSpy.count(), 5);
+    QCOMPARE(propertySpy.count(), 2);
+    inbound.setConnectivity(QStringLiteral("10.0.0.3"), true, 1081,
+                            QStringLiteral("secret-b"));
+    QCOMPARE(routeSpy.count(), 6);
+    QCOMPARE(propertySpy.count(), 3);
+
+    inbound.setConnectivity(QStringLiteral("10.0.0.3"), false, 1081,
+                            QStringLiteral("secret-b"));
+    QCOMPARE(routeSpy.count(), 7);
+    QCOMPARE(propertySpy.count(), 4);
+    inbound.setConnectivity(QStringLiteral("10.0.0.3"), false, 1081,
+                            QStringLiteral("secret-b"));
+    QCOMPARE(routeSpy.count(), 7);
+    QCOMPARE(propertySpy.count(), 4);
+}
+
 // Task D — proxy-route teardown on companion session disconnect. Route
 // ownership follows the session that last reported it active; the owner's
 // disconnect must tear the route down (parity with the retired legacy
@@ -1130,7 +1183,8 @@ void TestApiRequestHandlers::testNewOwnerTakesOver() {
     tA->injectMessage(serialize(c1));
     QCOMPARE(spy.count(), 1);
 
-    // B reports active -> last-writer-wins, B is now owner.
+    // B reports the exact same route -> last-writer-wins ownership still moves
+    // to B, but route plumbing receives no duplicate update.
     pb::ApiMessage c2;
     c2.set_request_id(0);
     auto* r2 = c2.mutable_connectivity_report();
@@ -1138,15 +1192,15 @@ void TestApiRequestHandlers::testNewOwnerTakesOver() {
     r2->set_socks5_active(true);
     r2->set_socks5_port(1080);
     tB->injectMessage(serialize(c2));
-    QCOMPARE(spy.count(), 2);
+    QCOMPARE(spy.count(), 1);
 
     // A (no longer owner) disconnects -> no emission.
     tA->close();
-    QCOMPARE(spy.count(), 2);
+    QCOMPARE(spy.count(), 1);
 
     // B (current owner) disconnects -> route torn down.
     tB->close();
-    QCOMPARE(spy.count(), 3);
+    QCOMPARE(spy.count(), 2);
     const QList<QVariant> args = spy.last();
     QCOMPARE(args.at(0).toBool(), false);
 }

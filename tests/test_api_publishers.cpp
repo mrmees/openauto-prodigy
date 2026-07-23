@@ -18,6 +18,7 @@ private slots:
     void testCoalescingCollapsesBursts();
     void testSeparateTurnsSeparateEmits();
     void testPhoneStartedAtSynthesis();
+    void testPhoneStartedAtRecomputedAfterClockAdjustment();
     void testPhoneCapabilityChangeEmits();
 };
 
@@ -93,6 +94,31 @@ void TestApiPublishers::testPhoneStartedAtSynthesis() {
     pb::ApiMessage hangupMsg;
     QVERIFY(hangupMsg.ParseFromArray(hangupBytes.constData(), hangupBytes.size()));
     QCOMPARE(hangupMsg.phone_status().calls_size(), 0);
+}
+
+void TestApiPublishers::testPhoneStartedAtRecomputedAfterClockAdjustment() {
+    oap::PhoneStateService phone;
+    PhonePublisher pub(&phone);
+    qint64 now = Q_INT64_C(1752000000000);
+    pub.setClockForTest([&now] { return now; });
+    QSignalSpy spy(&pub, &TopicPublisher::statusReady);
+
+    phone.setIncomingCall("+15551234567", "Alice");
+    QVERIFY(phone.answer());
+    QTest::qWait(20);
+    spy.clear();
+
+    now += 3600000;
+    pub.onSystemClockAdjusted();
+    QTest::qWait(20);
+
+    QCOMPARE(spy.count(), 1);
+    pb::ApiMessage msg;
+    const QByteArray bytes = spy.takeFirst().at(1).toByteArray();
+    QVERIFY(msg.ParseFromArray(bytes.constData(), bytes.size()));
+    QCOMPARE(msg.phone_status().calls_size(), 1);
+    QCOMPARE(msg.phone_status().calls(0).started_at_unix_ms(),
+             now - qint64(phone.callDuration()) * 1000);
 }
 
 // ADAPTATION (controller-resolved, HFP phone-seam override): capabilities
