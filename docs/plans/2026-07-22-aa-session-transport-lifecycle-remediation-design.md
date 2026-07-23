@@ -166,4 +166,3 @@ unit test without a BlueZ daemon or adapter. Production still uses
 
 - Bluetooth daemon or hostapd restart, re-pairing, malformed live TLS injection,
   HFP call testing, protocol-schema capture, or unrelated QML inspection.
-

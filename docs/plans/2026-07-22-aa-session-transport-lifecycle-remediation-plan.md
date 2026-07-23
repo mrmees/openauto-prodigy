@@ -228,4 +228,3 @@ bash scripts/codex-review.sh origin/main
 
 **Out of scope:** Bluetooth/hostapd restart, re-pairing, HFP calls, malformed
 live TLS injection, companion deployment, release tag, or merge.
-
