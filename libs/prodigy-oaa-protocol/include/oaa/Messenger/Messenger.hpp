@@ -29,7 +29,7 @@ public:
 
     void sendRaw(uint8_t channelId, const QByteArray& data,
                  FrameType frameType, MessageType msgType,
-                 EncryptionType encType);
+                 EncryptionType encType, uint32_t totalMessageSize = 0);
 
     void startHandshake();
     bool isEncrypted() const;

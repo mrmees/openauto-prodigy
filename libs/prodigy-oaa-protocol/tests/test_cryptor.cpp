@@ -184,6 +184,42 @@ private slots:
         QVERIFY(!fatal.error.isEmpty());
     }
 
+    void testDecryptConsumesEveryCompleteRecordAndRejectsTrailingPartialRecord() {
+        oaa::Cryptor client, server;
+        QVERIFY(client.init(oaa::Cryptor::Role::Client));
+        QVERIFY(server.init(oaa::Cryptor::Role::Server));
+        QVERIFY(driveHandshake(client, server));
+
+        const auto first = client.encrypt(QByteArrayLiteral("first"));
+        const auto second = client.encrypt(QByteArrayLiteral("second"));
+        QVERIFY(first.isComplete());
+        QVERIFY(second.isComplete());
+
+        const QByteArray completeRecords = first.data + second.data;
+        const auto combined = server.decrypt(completeRecords,
+                                             completeRecords.size());
+        QVERIFY(combined.isComplete());
+        QCOMPARE(combined.data, QByteArrayLiteral("firstsecond"));
+
+        oaa::Cryptor freshClient, freshServer;
+        QVERIFY(freshClient.init(oaa::Cryptor::Role::Client));
+        QVERIFY(freshServer.init(oaa::Cryptor::Role::Server));
+        QVERIFY(driveHandshake(freshClient, freshServer));
+
+        const auto freshFirst = freshClient.encrypt(QByteArrayLiteral("accepted"));
+        const auto freshSecond = freshClient.encrypt(QByteArrayLiteral("truncated"));
+        QVERIFY(freshFirst.isComplete());
+        QVERIFY(freshSecond.isComplete());
+        QByteArray trailingPartial = freshFirst.data + freshSecond.data;
+        trailingPartial.chop(1);
+
+        const auto rejected = freshServer.decrypt(trailingPartial,
+                                                  trailingPartial.size());
+        QVERIFY(!rejected.isComplete());
+        QVERIFY(rejected.data.isEmpty());
+        QVERIFY(!rejected.error.isEmpty());
+    }
+
     void testUninitializedRuntimeIoFailsClosed() {
         oaa::Cryptor cryptor;
         auto encrypted = cryptor.encrypt(QByteArrayLiteral("plaintext"));

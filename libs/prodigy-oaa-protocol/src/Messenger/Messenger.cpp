@@ -3,6 +3,8 @@
 #include <QtEndian>
 #include <QDebug>
 
+#include <limits>
+
 namespace oaa {
 
 Messenger::Messenger(ITransport* transport, QObject* parent)
@@ -163,10 +165,26 @@ void Messenger::sendMessage(uint8_t channelId, uint16_t messageId,
 
 void Messenger::sendRaw(uint8_t channelId, const QByteArray& data,
                          FrameType frameType, MessageType msgType,
-                         EncryptionType encType)
+                         EncryptionType encType, uint32_t totalMessageSize)
 {
     if (!started_) {
         qWarning() << "Messenger: dropping raw send while stopped, ch" << channelId;
+        return;
+    }
+    if (data.size() > std::numeric_limits<uint16_t>::max()) {
+        qWarning() << "Messenger: rejecting raw frame whose payload exceeds 16-bit size";
+        return;
+    }
+    if (frameType == FrameType::First) {
+        if (totalMessageSize < 2
+            || totalMessageSize <= static_cast<uint32_t>(data.size())
+            || totalMessageSize > MAX_ASSEMBLED_MESSAGE_SIZE) {
+            qWarning() << "Messenger: rejecting FIRST raw frame with invalid total size"
+                       << totalMessageSize;
+            return;
+        }
+    } else if (totalMessageSize != 0) {
+        qWarning() << "Messenger: raw total size is valid only for FIRST frames";
         return;
     }
     if (tlsFailureEmitted_ || protocolFailureEmitted_) {
@@ -185,7 +203,7 @@ void Messenger::sendRaw(uint8_t channelId, const QByteArray& data,
     frame.append(reinterpret_cast<const char*>(&sizeBE), 2);
     if (frameType == FrameType::First) {
         // Extended size field: 4 additional bytes for total size
-        uint32_t totalBE = qToBigEndian(static_cast<uint32_t>(data.size()));
+        uint32_t totalBE = qToBigEndian(totalMessageSize);
         frame.append(reinterpret_cast<const char*>(&totalBE), 4);
     }
     frame.append(data);

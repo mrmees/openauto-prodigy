@@ -530,6 +530,29 @@ private slots:
         QCOMPARE(disconnectSpy.count(), 1);
     }
 
+    void testNonPositiveLivenessIntervalsUseSafeDefaults() {
+        oaa::ReplayTransport transport;
+        oaa::SessionConfig config;
+        config.pingInterval = 0;
+        config.pingTimeout = -1;
+        oaa::AASession session(&transport, config);
+        QSignalSpy pingSpy(session.controlChannel(),
+                           &oaa::IChannelHandler::sendRequested);
+        QSignalSpy disconnectSpy(&session, &oaa::AASession::disconnected);
+
+        transport.simulateConnect();
+        session.start();
+        advanceToActive(session);
+
+        QVERIFY(!pingSpy.isEmpty());
+        QCOMPARE(pingSpy.last()[1].value<uint16_t>(), uint16_t(0x000b));
+        pingSpy.clear();
+        QTest::qWait(30);
+        QCOMPARE(pingSpy.count(), 0);
+        QCOMPARE(session.state(), oaa::SessionState::Active);
+        QCOMPARE(disconnectSpy.count(), 0);
+    }
+
     void testActivePongClearsDeadlineAndNextPingRearmsIt() {
         oaa::ReplayTransport transport;
         oaa::SessionConfig config;

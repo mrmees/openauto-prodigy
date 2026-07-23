@@ -23,6 +23,20 @@ AASession::AASession(ITransport* transport, const SessionConfig& config,
     , messenger_(new Messenger(transport, this))
     , controlChannel_(new ControlChannel(this))
 {
+    const SessionConfig defaults;
+    if (config_.pingInterval <= 0) {
+        qWarning() << "[AASession] Invalid ping interval"
+                   << config_.pingInterval << "— using"
+                   << defaults.pingInterval << "ms";
+        config_.pingInterval = defaults.pingInterval;
+    }
+    if (config_.pingTimeout <= 0) {
+        qWarning() << "[AASession] Invalid ping timeout"
+                   << config_.pingTimeout << "— using"
+                   << defaults.pingTimeout << "ms";
+        config_.pingTimeout = defaults.pingTimeout;
+    }
+
     stateTimer_.setSingleShot(true);
     pongDeadlineTimer_.setSingleShot(true);
     connect(&stateTimer_, &QTimer::timeout, this, &AASession::onStateTimeout);

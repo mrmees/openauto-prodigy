@@ -237,6 +237,59 @@ private slots:
         QCOMPARE(totalPayload, 20002);
     }
 
+    void testSendRawFragmentedMessageCarriesExplicitTotal() {
+        oaa::ReplayTransport senderTransport;
+        oaa::Messenger sender(&senderTransport);
+        sender.start();
+
+        QByteArray fullMessage;
+        const uint16_t messageId = qToBigEndian(uint16_t(0x1234));
+        fullMessage.append(reinterpret_cast<const char*>(&messageId), 2);
+        fullMessage.append("raw-fragmented-message");
+        const QByteArray first = fullMessage.left(8);
+        const QByteArray last = fullMessage.mid(8);
+
+        sender.sendRaw(3, first, oaa::FrameType::First,
+                       oaa::MessageType::Specific,
+                       oaa::EncryptionType::Plain,
+                       static_cast<uint32_t>(fullMessage.size()));
+        sender.sendRaw(3, last, oaa::FrameType::Last,
+                       oaa::MessageType::Specific,
+                       oaa::EncryptionType::Plain);
+
+        QCOMPARE(senderTransport.writtenData().size(), 2);
+
+        oaa::ReplayTransport receiverTransport;
+        oaa::Messenger receiver(&receiverTransport);
+        QSignalSpy messageSpy(&receiver, &oaa::Messenger::messageReceived);
+        receiver.start();
+        for (const auto& frame : senderTransport.writtenData())
+            receiverTransport.feedData(frame);
+
+        QCOMPARE(messageSpy.count(), 1);
+        QCOMPARE(messageSpy[0][1].value<uint16_t>(), uint16_t(0x1234));
+        const QByteArray received = messageSpy[0][2].toByteArray();
+        QCOMPARE(received.mid(messageSpy[0][3].toInt()),
+                 QByteArrayLiteral("raw-fragmented-message"));
+    }
+
+    void testSendRawRejectsAmbiguousFirstAndOversizedFrame() {
+        oaa::ReplayTransport transport;
+        oaa::Messenger messenger(&transport);
+        messenger.start();
+
+        messenger.sendRaw(3, QByteArrayLiteral("first"),
+                          oaa::FrameType::First,
+                          oaa::MessageType::Specific,
+                          oaa::EncryptionType::Plain);
+        messenger.sendRaw(3, QByteArray(65536, 'X'),
+                          oaa::FrameType::Bulk,
+                          oaa::MessageType::Specific,
+                          oaa::EncryptionType::Plain);
+
+        QCOMPARE(transport.writtenData().size(), 0);
+    }
+
     void testReceiveMultiFrameMessage() {
         oaa::ReplayTransport transport;
         oaa::Messenger messenger(&transport);

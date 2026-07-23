@@ -6,6 +6,32 @@
 
 namespace oaa {
 
+namespace {
+
+constexpr int TLS_RECORD_HEADER_SIZE = 5;
+
+bool containsOnlyCompleteTlsRecords(const QByteArray& ciphertext)
+{
+    int offset = 0;
+    while (offset < ciphertext.size()) {
+        if (ciphertext.size() - offset < TLS_RECORD_HEADER_SIZE)
+            return false;
+
+        const auto* header = reinterpret_cast<const unsigned char*>(
+            ciphertext.constData() + offset);
+        const int recordLength = (static_cast<int>(header[3]) << 8)
+            | static_cast<int>(header[4]);
+        const int remaining = ciphertext.size() - offset - TLS_RECORD_HEADER_SIZE;
+        if (recordLength > remaining)
+            return false;
+
+        offset += TLS_RECORD_HEADER_SIZE + recordLength;
+    }
+    return offset == ciphertext.size();
+}
+
+} // namespace
+
 Cryptor::~Cryptor()
 {
     deinit();
@@ -231,6 +257,10 @@ Cryptor::DataResult Cryptor::decrypt(const QByteArray& ciphertext, int frameLeng
         return failData(QStringLiteral("TLS input BIO is not initialized"));
     if (ciphertext.isEmpty())
         return failData(QStringLiteral("encrypted AA frame is empty"));
+    if (frameLength != ciphertext.size())
+        return failData(QStringLiteral("encrypted AA frame length mismatch"));
+    if (!containsOnlyCompleteTlsRecords(ciphertext))
+        return failData(QStringLiteral("incomplete TLS record in encrypted AA frame"));
 
     int written = 0;
     while (written < ciphertext.size()) {
@@ -253,17 +283,21 @@ Cryptor::DataResult Cryptor::decrypt(const QByteArray& ciphertext, int frameLeng
     while (true) {
         ERR_clear_error();
         const int read = SSL_read(m_ssl, chunk, sizeof(chunk));
-        if (read <= 0) {
-            const int error = SSL_get_error(m_ssl, read);
-            return failData(
-                error == SSL_ERROR_WANT_READ || error == SSL_ERROR_WANT_WRITE
-                    ? QStringLiteral("incomplete TLS record in encrypted AA frame")
-                    : QStringLiteral("SSL_read failed"),
-                error);
+        if (read > 0) {
+            plaintext.append(chunk, read);
+            continue;
         }
-        plaintext.append(chunk, read);
-        if (SSL_pending(m_ssl) <= 0)
+
+        const int error = SSL_get_error(m_ssl, read);
+        if ((error == SSL_ERROR_WANT_READ || error == SSL_ERROR_WANT_WRITE)
+            && !plaintext.isEmpty()) {
             break;
+        }
+        return failData(
+            error == SSL_ERROR_WANT_READ || error == SSL_ERROR_WANT_WRITE
+                ? QStringLiteral("TLS record produced no application data")
+                : QStringLiteral("SSL_read failed"),
+            error);
     }
 
     m_lastError.clear();
