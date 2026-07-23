@@ -508,8 +508,13 @@ void BluetoothManager::setupAdapter()
 
     // The ObjectManager snapshot normally carries Address. Keep the bounded
     // fallback for older BlueZ implementations that omit it.
-    if (adapterAddress_.isEmpty())
-        adapterAddress_ = getAdapterProperty("Address").toString();
+    if (adapterAddress_.isEmpty()) {
+        const QString address = getAdapterProperty("Address").toString();
+        if (!address.isEmpty()) {
+            adapterAddress_ = address;
+            emit adapterAddressChanged();
+        }
+    }
 
     // Read alias from config, fallback to "OpenAutoProdigy"
     QString alias = configService_
@@ -741,7 +746,12 @@ void BluetoothManager::applyManagedObjectsSnapshot(const BluezManagedObjectMap& 
     adapterPath_ = nextAdapterPath;
     deviceNamesByPath_ = nextDeviceNames;
     if (!adapterPath_.isEmpty()) {
-        adapterAddress_ = adapterProperties.value(QStringLiteral("Address")).toString();
+        const QString address =
+            adapterProperties.value(QStringLiteral("Address")).toString();
+        if (adapterAddress_ != address) {
+            adapterAddress_ = address;
+            emit adapterAddressChanged();
+        }
         const bool snapshotPairable =
             adapterProperties.value(QStringLiteral("Pairable"), pairable_).toBool();
         if (pairable_ != snapshotPairable) {
@@ -754,7 +764,10 @@ void BluetoothManager::applyManagedObjectsSnapshot(const BluezManagedObjectMap& 
         }
     } else if (hadAdapter) {
         configuredAdapterPath_.clear();
-        adapterAddress_.clear();
+        if (!adapterAddress_.isEmpty()) {
+            adapterAddress_.clear();
+            emit adapterAddressChanged();
+        }
         if (discoverable_) {
             discoverable_ = false;
             emit discoverableChanged();

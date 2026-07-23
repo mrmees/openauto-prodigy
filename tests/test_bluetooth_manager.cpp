@@ -98,12 +98,14 @@ void TestBluetoothManager::testSnapshotSeedsConnectedStateAndEdges()
     config.values_[QStringLiteral("connection.auto_connect_aa")] = false;
     oap::BluetoothManager mgr(&config, QDBusConnection::sessionBus());
     QSignalSpy connectedSpy(&mgr, &oap::BluetoothManager::connectedDeviceChanged);
+    QSignalSpy addressSpy(&mgr, &oap::BluetoothManager::adapterAddressChanged);
 
     auto objects = adapterSnapshot();
     addDevice(objects, true, true);
     mgr.applyManagedObjectsSnapshot(objects);
 
     QCOMPARE(mgr.adapterAddress(), QStringLiteral("11:22:33:44:55:66"));
+    QCOMPARE(addressSpy.count(), 1);
     QCOMPARE(mgr.connectedDeviceName(), QStringLiteral("Pixel"));
     QCOMPARE(mgr.connectedDeviceAddress(), QStringLiteral("AA:BB:CC:DD:EE:FF"));
     QCOMPARE(connectedSpy.count(), 1);
@@ -111,6 +113,7 @@ void TestBluetoothManager::testSnapshotSeedsConnectedStateAndEdges()
 
     mgr.applyManagedObjectsSnapshot(objects);
     QCOMPARE(connectedSpy.count(), 1);
+    QCOMPARE(addressSpy.count(), 1);
 
     addDevice(objects, true, false);
     mgr.applyManagedObjectsSnapshot(objects);
@@ -122,6 +125,10 @@ void TestBluetoothManager::testSnapshotSeedsConnectedStateAndEdges()
     mgr.applyManagedObjectsSnapshot(objects);
     QCOMPARE(mgr.pairedDevicesModel()->rowCount(), 0);
     QCOMPARE(connectedSpy.count(), 2);
+
+    mgr.applyManagedObjectsSnapshot({});
+    QVERIFY(mgr.adapterAddress().isEmpty());
+    QCOMPARE(addressSpy.count(), 2);
 }
 
 void TestBluetoothManager::testFirstRunAndRemovalFollowSnapshots()

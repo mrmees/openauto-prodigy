@@ -22,7 +22,7 @@ using BluezManagedObjectMap = QMap<QString, BluezInterfaceMap>;
 
 class BluetoothManager : public QObject, public IBluetoothService {
     Q_OBJECT
-    Q_PROPERTY(QString adapterAddress READ adapterAddress CONSTANT)
+    Q_PROPERTY(QString adapterAddress READ adapterAddress NOTIFY adapterAddressChanged)
     Q_PROPERTY(QString adapterAlias READ adapterAlias NOTIFY adapterAliasChanged)
     Q_PROPERTY(bool discoverable READ isDiscoverable NOTIFY discoverableChanged)
     Q_PROPERTY(bool pairable READ isPairable WRITE setPairable NOTIFY pairableChanged)
@@ -68,6 +68,7 @@ public:
     void applyManagedObjectsSnapshot(const BluezManagedObjectMap& objects);
 
 signals:
+    void adapterAddressChanged();
     void adapterAliasChanged();
     void discoverableChanged();
     void pairableChanged();
