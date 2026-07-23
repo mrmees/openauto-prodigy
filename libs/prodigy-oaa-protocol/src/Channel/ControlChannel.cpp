@@ -97,8 +97,7 @@ void ControlChannel::onMessage(uint16_t messageId, const QByteArray& payload, in
         if (req.ParseFromArray(data, dataSize)) {
             qInfo() << "[ControlChannel] ChannelOpenRequest:"
                      << QString::fromStdString(req.ShortDebugString());
-            emit channelOpenRequested(
-                static_cast<uint8_t>(req.channel_id()), QByteArray(data, dataSize));
+            emit channelOpenRequested(req.channel_id(), QByteArray(data, dataSize));
         } else {
             qWarning() << "[ControlChannel] Failed to parse ChannelOpenRequest";
         }
@@ -192,7 +191,7 @@ void ControlChannel::sendChannelOpenResponse(uint8_t targetChannelId, bool accep
                             : proto::enums::Status::INVALID_CHANNEL);
     QByteArray payload(msg.ByteSizeLong(), '\0');
     msg.SerializeToArray(payload.data(), payload.size());
-    emit sendRequested(0, MSG_CHANNEL_OPEN_RESPONSE, payload);
+    emit sendRequested(targetChannelId, MSG_CHANNEL_OPEN_RESPONSE, payload);
 }
 
 void ControlChannel::sendPingRequest(int64_t timestamp) {

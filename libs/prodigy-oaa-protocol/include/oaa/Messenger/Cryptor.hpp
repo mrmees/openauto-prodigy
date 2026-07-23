@@ -3,6 +3,7 @@
 #include <oaa/Version.hpp>
 
 #include <QByteArray>
+#include <QString>
 
 #include <openssl/ssl.h>
 #include <openssl/bio.h>
@@ -16,6 +17,7 @@ namespace oaa {
 class Cryptor {
 public:
     enum class Role { Client, Server };
+    enum class HandshakeResult { Complete, WantIo, Failed };
 
     Cryptor() = default;
     ~Cryptor();
@@ -26,7 +28,8 @@ public:
     void init(Role role);
     void deinit();
 
-    bool doHandshake();
+    HandshakeResult doHandshake();
+    QString lastHandshakeError() const;
     QByteArray readHandshakeBuffer();
     void writeHandshakeBuffer(const QByteArray& data);
 
@@ -43,6 +46,7 @@ private:
     X509* m_cert = nullptr;
     EVP_PKEY* m_key = nullptr;
     bool m_active = false;
+    QString m_lastHandshakeError;
 
     static const std::string s_certificate;
     static const std::string s_privateKey;

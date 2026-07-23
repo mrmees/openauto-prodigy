@@ -136,7 +136,25 @@ private slots:
         ctrl.onMessage(0x0007, payload);
 
         QCOMPARE(openSpy.count(), 1);
-        QCOMPARE(openSpy[0][0].value<uint8_t>(), uint8_t(3));
+        QCOMPARE(openSpy[0][0].toInt(), 3);
+    }
+
+    void testChannelOpenRequestPreservesWideSignedId() {
+        for (const int channelId : {-253, 259}) {
+            oaa::ControlChannel ctrl;
+            QSignalSpy openSpy(&ctrl, &oaa::ControlChannel::channelOpenRequested);
+
+            oaa::proto::messages::ChannelOpenRequest req;
+            req.set_priority(1);
+            req.set_channel_id(channelId);
+            QByteArray payload(req.ByteSizeLong(), '\0');
+            QVERIFY(req.SerializeToArray(payload.data(), payload.size()));
+
+            ctrl.onMessage(0x0007, payload);
+
+            QCOMPARE(openSpy.count(), 1);
+            QCOMPARE(openSpy[0][0].toInt(), channelId);
+        }
     }
 
     void testSendChannelOpenResponseOK() {
@@ -146,6 +164,7 @@ private slots:
         ctrl.sendChannelOpenResponse(3, true);
 
         QCOMPARE(sendSpy.count(), 1);
+        QCOMPARE(sendSpy[0][0].value<uint8_t>(), uint8_t(3));
         QCOMPARE(sendSpy[0][1].value<uint16_t>(), uint16_t(0x0008));
 
         QByteArray respPayload = sendSpy[0][2].toByteArray();
@@ -161,6 +180,7 @@ private slots:
         ctrl.sendChannelOpenResponse(9, false);
 
         QCOMPARE(sendSpy.count(), 1);
+        QCOMPARE(sendSpy[0][0].value<uint8_t>(), uint8_t(9));
         QByteArray respPayload = sendSpy[0][2].toByteArray();
         oaa::proto::messages::ChannelOpenResponse resp;
         QVERIFY(resp.ParseFromArray(respPayload.constData(), respPayload.size()));

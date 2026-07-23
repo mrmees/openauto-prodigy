@@ -11,6 +11,7 @@
 #include <QObject>
 #include <QByteArray>
 #include <QQueue>
+#include <cstdint>
 
 namespace oaa {
 
@@ -39,6 +40,7 @@ signals:
     void messageSent(uint8_t channelId, uint16_t messageId,
                      const QByteArray& payload);
     void handshakeComplete();
+    void handshakeFailed(const QString& message);
     void transportError(const QString& message);
 
 private:
@@ -61,6 +63,9 @@ private:
 
     QQueue<SendItem> sendQueue_;
     bool sending_ = false;
+    bool started_ = false;
+    bool handshakeFailureEmitted_ = false;
+    uint64_t lifecycleGeneration_ = 0;
 };
 
 } // namespace oaa

@@ -5,6 +5,7 @@
 #include <QBluetoothUuid>
 #include <QDataStream>
 #include <QNetworkInterface>
+#include <limits>
 #include "../Logging.hpp"
 #include "../services/IConfigService.hpp"
 
@@ -35,8 +36,8 @@ static constexpr uint16_t kMsgWifiInfoResponse = 3;       // HU -> Phone: SSID +
 static constexpr uint16_t kMsgWifiStartResponse = 6;      // Phone -> HU: acknowledgement
 static constexpr uint16_t kMsgWifiConnectionStatus = 7;   // Phone -> HU: WiFi connected
 
-static constexpr int kSdpRetryIntervalMs = 2000;
-static constexpr int kSdpMaxRetries = 30;  // 60 seconds total
+static constexpr int kStartupRetryIntervalMs = 2000;
+static constexpr int kStartupMaxAttempts = 30;  // 60 seconds total
 
 BluetoothDiscoveryService::BluetoothDiscoveryService(
     oap::IConfigService* configService,
@@ -51,9 +52,18 @@ BluetoothDiscoveryService::BluetoothDiscoveryService(
     connect(rfcommServer_.get(), &QBluetoothServer::newConnection,
             this, &BluetoothDiscoveryService::onClientConnected);
 
-    sdpRetryTimer_.setSingleShot(false);
-    sdpRetryTimer_.setInterval(kSdpRetryIntervalMs);
-    connect(&sdpRetryTimer_, &QTimer::timeout,
+    listenerRetryTimer_ = new QTimer(this);
+    listenerRetryTimer_->setObjectName(QStringLiteral("rfcommListenerRetryTimer"));
+    listenerRetryTimer_->setSingleShot(false);
+    listenerRetryTimer_->setInterval(kStartupRetryIntervalMs);
+    connect(listenerRetryTimer_, &QTimer::timeout,
+            this, &BluetoothDiscoveryService::attemptListenerStart);
+
+    sdpRetryTimer_ = new QTimer(this);
+    sdpRetryTimer_->setObjectName(QStringLiteral("sdpRetryTimer"));
+    sdpRetryTimer_->setSingleShot(false);
+    sdpRetryTimer_->setInterval(kStartupRetryIntervalMs);
+    connect(sdpRetryTimer_, &QTimer::timeout,
             this, &BluetoothDiscoveryService::attemptSdpRegistration);
 }
 
@@ -64,50 +74,109 @@ BluetoothDiscoveryService::~BluetoothDiscoveryService()
 
 void BluetoothDiscoveryService::start()
 {
-    if (!rfcommServer_->listen(QBluetoothAddress())) {
-        qCCritical(lcBT) << "Failed to start RFCOMM server";
-        emit error("Failed to start Bluetooth RFCOMM server");
+    if (startupStage_ != StartupStage::Stopped)
+        return;
+
+    listenerRetryCount_ = 0;
+    sdpRetryCount_ = 0;
+    rfcommPort_ = 0;
+    startupStage_ = StartupStage::Listener;
+    attemptListenerStart();
+}
+
+void BluetoothDiscoveryService::attemptListenerStart()
+{
+    if (startupStage_ != StartupStage::Listener)
+        return;
+
+    const quint16 port = listenForRfcomm();
+    if (port == 0 || port > std::numeric_limits<uint8_t>::max()) {
+        ++listenerRetryCount_;
+        if (listenerRetryCount_ >= kStartupMaxAttempts) {
+            listenerRetryTimer_->stop();
+            startupStage_ = StartupStage::Failed;
+            qCCritical(lcBT) << "RFCOMM listener failed after"
+                             << kStartupMaxAttempts << "attempts, giving up";
+            emit error("Failed to start Bluetooth RFCOMM server");
+            return;
+        }
+
+        if (!listenerRetryTimer_->isActive()) {
+            qCWarning(lcBT) << "RFCOMM listener failed, retrying every"
+                            << kStartupRetryIntervalMs / 1000 << "s (attempt"
+                            << listenerRetryCount_ << "/"
+                            << kStartupMaxAttempts << ")";
+            listenerRetryTimer_->start();
+        }
         return;
     }
 
-    rfcommPort_ = static_cast<uint8_t>(rfcommServer_->serverPort());
+    listenerRetryTimer_->stop();
+    rfcommPort_ = static_cast<uint8_t>(port);
     qCInfo(lcBT) << "RFCOMM listening on port" << rfcommPort_;
 
     // Register SDP record via BlueZ's legacy SDP socket (requires --compat).
     // We can't use ProfileManager1 D-Bus because it tries to bind its own
     // RFCOMM socket on the same channel, conflicting with QBluetoothServer.
     sdpRetryCount_ = 0;
+    startupStage_ = StartupStage::Sdp;
     attemptSdpRegistration();
+}
+
+quint16 BluetoothDiscoveryService::listenForRfcomm()
+{
+    if (!rfcommServer_->listen(QBluetoothAddress())) {
+        qCWarning(lcBT) << "Failed to start RFCOMM server";
+        return 0;
+    }
+
+    const quint16 port = rfcommServer_->serverPort();
+    if (port == 0 || port > std::numeric_limits<uint8_t>::max()) {
+        qCCritical(lcBT) << "RFCOMM server returned invalid port" << port;
+        rfcommServer_->close();
+        return 0;
+    }
+    return port;
 }
 
 void BluetoothDiscoveryService::attemptSdpRegistration()
 {
+    if (startupStage_ != StartupStage::Sdp || rfcommPort_ == 0)
+        return;
+
     if (registerSdpRecord(rfcommPort_)) {
-        sdpRetryTimer_.stop();
+        sdpRetryTimer_->stop();
+        startupStage_ = StartupStage::Ready;
         qCInfo(lcBT) << "SDP service registered (AA Wireless)";
         return;
     }
 
     sdpRetryCount_++;
-    if (sdpRetryCount_ >= kSdpMaxRetries) {
-        sdpRetryTimer_.stop();
+    if (sdpRetryCount_ >= kStartupMaxAttempts) {
+        sdpRetryTimer_->stop();
+        startupStage_ = StartupStage::Failed;
         qCCritical(lcBT) << "SDP registration failed after"
-                     << kSdpMaxRetries << "attempts, giving up";
+                     << kStartupMaxAttempts << "attempts, giving up";
         emit error("Failed to register Bluetooth SDP service");
         return;
     }
 
-    if (!sdpRetryTimer_.isActive()) {
+    if (!sdpRetryTimer_->isActive()) {
         qCWarning(lcBT) << "SDP registration failed, retrying every"
-                    << kSdpRetryIntervalMs / 1000 << "s (attempt"
-                    << sdpRetryCount_ << "/" << kSdpMaxRetries << ")";
-        sdpRetryTimer_.start();
+                    << kStartupRetryIntervalMs / 1000 << "s (attempt"
+                    << sdpRetryCount_ << "/" << kStartupMaxAttempts << ")";
+        sdpRetryTimer_->start();
     }
 }
 
 void BluetoothDiscoveryService::stop()
 {
-    sdpRetryTimer_.stop();
+    listenerRetryTimer_->stop();
+    sdpRetryTimer_->stop();
+    startupStage_ = StartupStage::Stopped;
+    listenerRetryCount_ = 0;
+    sdpRetryCount_ = 0;
+    rfcommPort_ = 0;
     unregisterSdpRecord();
 
     if (socket_) {

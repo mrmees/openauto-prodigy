@@ -4,6 +4,22 @@
 #include <oaa/Messenger/FrameHeader.hpp>
 #include <oaa/Transport/ReplayTransport.hpp>
 #include <QtEndian>
+#include <functional>
+
+class ReentrantReplayTransport : public oaa::ReplayTransport {
+public:
+    using ReplayTransport::ReplayTransport;
+
+    void write(const QByteArray& data) override {
+        ReplayTransport::write(data);
+        ++writeCount;
+        if (onWrite)
+            onWrite(writeCount);
+    }
+
+    int writeCount = 0;
+    std::function<void(int)> onWrite;
+};
 
 class TestMessenger : public QObject {
     Q_OBJECT
@@ -220,6 +236,139 @@ private slots:
         int dataOffset = spy[0][3].toInt();
         QByteArray fullPayload = spy[0][2].toByteArray();
         QCOMPARE(fullPayload.mid(dataOffset), QByteArray(10, 'Z'));
+    }
+
+    void testRepeatedStartDoesNotDuplicateDelivery() {
+        oaa::ReplayTransport transport;
+        oaa::Messenger messenger(&transport);
+        QSignalSpy messageSpy(&messenger, &oaa::Messenger::messageReceived);
+        QSignalSpy errorSpy(&messenger, &oaa::Messenger::transportError);
+
+        messenger.start();
+        messenger.start();
+
+        QByteArray payload;
+        const uint16_t messageId = qToBigEndian(uint16_t(0x1234));
+        payload.append(reinterpret_cast<const char*>(&messageId), 2);
+        payload.append("once");
+        transport.feedData(buildFrame(1, oaa::FrameType::Bulk,
+                                      oaa::MessageType::Specific,
+                                      oaa::EncryptionType::Plain, payload));
+        QMetaObject::invokeMethod(&transport, "error", Qt::DirectConnection,
+                                  Q_ARG(QString, QStringLiteral("once")));
+
+        QCOMPARE(messageSpy.count(), 1);
+        QCOMPARE(errorSpy.count(), 1);
+    }
+
+    void testStopStartDiscardsPartialParserState() {
+        oaa::ReplayTransport transport;
+        oaa::Messenger messenger(&transport);
+        QSignalSpy messageSpy(&messenger, &oaa::Messenger::messageReceived);
+
+        QByteArray payload;
+        const uint16_t messageId = qToBigEndian(uint16_t(0x1234));
+        payload.append(reinterpret_cast<const char*>(&messageId), 2);
+        payload.append("fresh");
+        const QByteArray frame = buildFrame(1, oaa::FrameType::Bulk,
+                                            oaa::MessageType::Specific,
+                                            oaa::EncryptionType::Plain, payload);
+
+        messenger.start();
+        transport.feedData(frame.left(3));
+        messenger.stop();
+        messenger.start();
+        transport.feedData(frame);
+
+        QCOMPARE(messageSpy.count(), 1);
+        QCOMPARE(messageSpy[0][1].value<uint16_t>(), uint16_t(0x1234));
+        QCOMPARE(messageSpy[0][2].toByteArray().mid(messageSpy[0][3].toInt()),
+                 QByteArray("fresh"));
+    }
+
+    void testStopStartDiscardsPartialAssembledMessage() {
+        oaa::ReplayTransport transport;
+        oaa::Messenger messenger(&transport);
+        QSignalSpy messageSpy(&messenger, &oaa::Messenger::messageReceived);
+
+        QByteArray oldPayload;
+        const uint16_t oldId = qToBigEndian(uint16_t(0x1111));
+        oldPayload.append(reinterpret_cast<const char*>(&oldId), 2);
+        oldPayload.append("old");
+
+        messenger.start();
+        transport.feedData(buildFrame(3, oaa::FrameType::First,
+                                      oaa::MessageType::Specific,
+                                      oaa::EncryptionType::Plain,
+                                      oldPayload, oldPayload.size() + 4));
+        messenger.stop();
+        messenger.start();
+        transport.feedData(buildFrame(3, oaa::FrameType::Last,
+                                      oaa::MessageType::Specific,
+                                      oaa::EncryptionType::Plain,
+                                      QByteArray("tail")));
+        QCOMPARE(messageSpy.count(), 0);
+
+        QByteArray freshPayload;
+        const uint16_t freshId = qToBigEndian(uint16_t(0x2222));
+        freshPayload.append(reinterpret_cast<const char*>(&freshId), 2);
+        freshPayload.append("fresh");
+        transport.feedData(buildFrame(3, oaa::FrameType::Bulk,
+                                      oaa::MessageType::Specific,
+                                      oaa::EncryptionType::Plain,
+                                      freshPayload));
+        QCOMPARE(messageSpy.count(), 1);
+        QCOMPARE(messageSpy[0][1].value<uint16_t>(), uint16_t(0x2222));
+    }
+
+    void testStopFromMessageSentCancelsPendingWrite() {
+        oaa::ReplayTransport transport;
+        oaa::Messenger messenger(&transport);
+        messenger.start();
+        connect(&messenger, &oaa::Messenger::messageSent,
+                &messenger, &oaa::Messenger::stop, Qt::DirectConnection);
+
+        messenger.sendMessage(3, 0x1234, QByteArray("cancel"));
+
+        QCOMPARE(transport.writtenData().size(), 0);
+    }
+
+    void testStopDuringFirstWriteCancelsRemainingFrames() {
+        ReentrantReplayTransport transport;
+        oaa::Messenger messenger(&transport);
+        messenger.start();
+        transport.onWrite = [&messenger](int writeCount) {
+            if (writeCount == 1)
+                messenger.stop();
+        };
+
+        messenger.sendMessage(3, 0x1234, QByteArray(20000, 'X'));
+
+        QCOMPARE(transport.writtenData().size(), 1);
+    }
+
+    void testFatalHandshakeEmitsOnceWithDiagnostic() {
+        oaa::ReplayTransport transport;
+        oaa::Messenger messenger(&transport);
+        QSignalSpy failureSpy(&messenger, &oaa::Messenger::handshakeFailed);
+
+        messenger.start();
+        messenger.startHandshake();
+
+        QByteArray handshakePayload;
+        const uint16_t handshakeId = qToBigEndian(uint16_t(0x0003));
+        handshakePayload.append(reinterpret_cast<const char*>(&handshakeId), 2);
+        handshakePayload.append(QByteArray(64, 'X'));
+        const QByteArray malformedFrame = buildFrame(
+            0, oaa::FrameType::Bulk, oaa::MessageType::Specific,
+            oaa::EncryptionType::Plain, handshakePayload);
+
+        transport.feedData(malformedFrame);
+        transport.feedData(malformedFrame);
+
+        QCOMPARE(failureSpy.count(), 1);
+        QVERIFY(!failureSpy[0][0].toString().isEmpty());
+        QVERIFY(!messenger.isEncrypted());
     }
 };
 

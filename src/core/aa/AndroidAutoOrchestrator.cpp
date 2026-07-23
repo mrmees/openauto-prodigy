@@ -679,7 +679,6 @@ void AndroidAutoOrchestrator::onSessionStateChanged(oaa::SessionState state)
         qCInfo(lcAA) << "Session shutting down";
         break;
     case oaa::SessionState::Disconnected:
-        onSessionDisconnected(oaa::DisconnectReason::Normal);
         break;
     default:
         break;
@@ -806,11 +805,6 @@ void AndroidAutoOrchestrator::teardownSession(bool deferDeletion)
     videoDecoder_.disconnect(this);
 
     if (session_) {
-        // Persistent handlers outlive individual AASession instances. Reset the
-        // sensor channel's wire state before the old messenger is deferred for
-        // deletion, while retaining its cached night value for resubscription.
-        sensorHandler_.onChannelClosed();
-
         // Disconnect all signals from session_ to us BEFORE scheduling deletion.
         // This prevents onSessionDisconnected from being called a second time if
         // the 'disconnected' signal is also queued.
@@ -821,6 +815,12 @@ void AndroidAutoOrchestrator::teardownSession(bool deferDeletion)
         systemAudioHandler_.disconnect(this);
         videoHandler_.disconnect(&videoDecoder_);
         phoneStatusHandler_.disconnect(this);
+
+        // Persistent handlers are value members and outlive each individual
+        // session. Finalize synchronously while they and the transport are
+        // alive so every handler loses old wire state/send connections exactly
+        // once. The session destructor deliberately performs no external work.
+        session_->finalize();
 
         if (deferDeletion) {
             // teardownSession() is often called from within

@@ -103,6 +103,19 @@ private slots:
         // Should be safe to call deinit again
         cryptor.deinit();
     }
+
+    void testHandshakeDistinguishesWantIoFromFatalInput() {
+        oaa::Cryptor client;
+        client.init(oaa::Cryptor::Role::Client);
+
+        QCOMPARE(client.doHandshake(), oaa::Cryptor::HandshakeResult::WantIo);
+        client.readHandshakeBuffer();
+
+        client.writeHandshakeBuffer(QByteArray(64, 'X'));
+        QCOMPARE(client.doHandshake(), oaa::Cryptor::HandshakeResult::Failed);
+        QVERIFY(!client.lastHandshakeError().isEmpty());
+        QVERIFY(!client.isActive());
+    }
 };
 
 QTEST_MAIN(TestCryptor)

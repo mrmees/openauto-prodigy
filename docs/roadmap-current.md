@@ -14,6 +14,20 @@ Governance: capture new ideas in `docs/wishlist.md`; only promoted items should 
 
 ## Done (recent)
 
+- Android Auto session and transport lifecycle remediation — **COMPLETE
+  2026-07-22** (Pi/Pixel live-validated). Terminal session finalization now
+  closes persistent handlers while they are alive and prevents stale or
+  reentrant traffic from crossing replacement boundaries. Messenger restart
+  resets framing, assembly, TLS, and send state; fatal TLS failures surface
+  immediately; channel-open responses use one validated service-channel path;
+  and transient RFCOMM listener startup failures retry within a bounded budget.
+  Deployment retained one responsive application process, automatically
+  reconnected the Pixel, and resumed H.265 projection without restarting
+  hostapd or Bluetooth. Design and plan:
+  `docs/archive/plans/2026-07-22-aa-session-transport-lifecycle-remediation-design.md`
+  and
+  `docs/archive/plans/2026-07-22-aa-session-transport-lifecycle-remediation-plan.md`.
+
 - API and core asynchronous lifecycle remediation — **COMPLETE 2026-07-22**
   (Pi/Pixel live-validated). Prodigy and Companion now pair with an explicitly
   versioned 120-bit Base32 code; legacy credentials retire without an insecure
@@ -181,9 +195,8 @@ Governance: capture new ideas in `docs/wishlist.md`; only promoted items should 
 
 ## Now
 
-No implementation tranche is active. Select the next bounded subsystem wave
-from the approved remediation map after the coordinated Prodigy and Companion
-pull requests are reviewed.
+No implementation tranche is active. Select and revalidate the next bounded
+remediation wave before promoting a new design and plan.
 
 ## Later
 

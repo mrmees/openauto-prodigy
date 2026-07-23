@@ -50,17 +50,30 @@ signals:
 private slots:
     void onClientConnected();
     void readSocket();
+    void attemptListenerStart();
+    void attemptSdpRegistration();
+
+protected:
+    /// Narrow startup seams used to exercise the production retry state
+    /// machine without requiring a Bluetooth adapter or BlueZ daemon.
+    virtual quint16 listenForRfcomm();
+    virtual bool registerSdpRecord(uint8_t rfcommChannel);
 
 private:
+    enum class StartupStage {
+        Stopped,
+        Listener,
+        Sdp,
+        Ready,
+        Failed,
+    };
+
     void sendMessage(const google::protobuf::Message& message, uint16_t type);
     void sendWifiStartRequest();
     void handleWifiCredentialRequest();
     void handleWifiConnectionStatus(const QByteArray& data, uint16_t length);
-    bool registerSdpRecord(uint8_t rfcommChannel);
     void unregisterSdpRecord();
     std::string getLocalIP(const QString& interfaceName) const;
-
-    void attemptSdpRegistration();
 
     oap::IConfigService* configService_;
     std::unique_ptr<QBluetoothServer> rfcommServer_;
@@ -68,9 +81,12 @@ private:
     QByteArray buffer_;
     QString wifiInterface_;
     uint32_t sdpRecordHandle_ = 0;
-    QTimer sdpRetryTimer_;
+    QTimer* listenerRetryTimer_ = nullptr;
+    QTimer* sdpRetryTimer_ = nullptr;
     uint8_t rfcommPort_ = 0;
+    int listenerRetryCount_ = 0;
     int sdpRetryCount_ = 0;
+    StartupStage startupStage_ = StartupStage::Stopped;
 };
 
 } // namespace aa

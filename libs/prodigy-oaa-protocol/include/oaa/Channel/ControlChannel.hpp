@@ -33,7 +33,7 @@ signals:
     void versionReceived(uint16_t major, uint16_t minor, bool match);
     void sslHandshakeData(const QByteArray& data);
     void serviceDiscoveryRequested(const QByteArray& payload);
-    void channelOpenRequested(uint8_t channelId, const QByteArray& payload);
+    void channelOpenRequested(int32_t channelId, const QByteArray& payload);
     void pingReceived(int64_t timestamp);
     void pongReceived(int64_t timestamp);
     void navigationFocusRequested(const QByteArray& payload);

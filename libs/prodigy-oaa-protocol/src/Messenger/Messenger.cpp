@@ -15,6 +15,14 @@ Messenger::Messenger(ITransport* transport, QObject* parent)
 
 void Messenger::start()
 {
+    if (started_)
+        return;
+
+    parser_.reset();
+    assembler_.reset();
+    sendQueue_.clear();
+    sending_ = false;
+
     connect(transport_, &ITransport::dataReceived,
             &parser_, &FrameParser::onData);
     connect(&parser_, &FrameParser::frameParsed,
@@ -23,24 +31,45 @@ void Messenger::start()
             this, &Messenger::onMessageAssembled);
     connect(transport_, &ITransport::error,
             this, &Messenger::transportError);
+    started_ = true;
 }
 
 void Messenger::stop()
 {
-    disconnect(transport_, &ITransport::dataReceived,
-               &parser_, &FrameParser::onData);
-    disconnect(&parser_, &FrameParser::frameParsed,
-               this, &Messenger::onFrameParsed);
-    disconnect(&assembler_, &FrameAssembler::messageAssembled,
-               this, &Messenger::onMessageAssembled);
-    disconnect(transport_, &ITransport::error,
-               this, &Messenger::transportError);
+    ++lifecycleGeneration_;
+    if (started_) {
+        disconnect(transport_, &ITransport::dataReceived,
+                   &parser_, &FrameParser::onData);
+        disconnect(&parser_, &FrameParser::frameParsed,
+                   this, &Messenger::onFrameParsed);
+        disconnect(&assembler_, &FrameAssembler::messageAssembled,
+                   this, &Messenger::onMessageAssembled);
+        disconnect(transport_, &ITransport::error,
+                   this, &Messenger::transportError);
+        started_ = false;
+    }
+
+    parser_.reset();
+    assembler_.reset();
+    cryptor_.deinit();
+    handshakeFailureEmitted_ = false;
+    sendQueue_.clear();
+    sending_ = false;
 }
 
 void Messenger::sendMessage(uint8_t channelId, uint16_t messageId,
                              const QByteArray& payload)
 {
+    if (!started_) {
+        qWarning() << "Messenger: dropping send while stopped, ch" << channelId
+                   << "msgId" << Qt::hex << messageId;
+        return;
+    }
+
+    const uint64_t generation = lifecycleGeneration_;
     emit messageSent(channelId, messageId, payload);
+    if (!started_ || generation != lifecycleGeneration_)
+        return;
 
     // Prepend 2-byte big-endian messageId
     QByteArray fullPayload;
@@ -116,6 +145,11 @@ void Messenger::sendRaw(uint8_t channelId, const QByteArray& data,
                          FrameType frameType, MessageType msgType,
                          EncryptionType encType)
 {
+    if (!started_) {
+        qWarning() << "Messenger: dropping raw send while stopped, ch" << channelId;
+        return;
+    }
+
     FrameHeader header{channelId, frameType, encType, msgType};
     QByteArray frame;
     int sizeLen = FrameHeader::sizeFieldLength(frameType);
@@ -137,6 +171,7 @@ void Messenger::sendRaw(uint8_t channelId, const QByteArray& data,
 
 void Messenger::startHandshake()
 {
+    handshakeFailureEmitted_ = false;
     cryptor_.init(Cryptor::Role::Client);
     driveHandshake();
 }
@@ -194,7 +229,7 @@ void Messenger::handleHandshakeData(const QByteArray& data)
 
 void Messenger::driveHandshake()
 {
-    bool complete = cryptor_.doHandshake();
+    const auto result = cryptor_.doHandshake();
 
     // Send any outgoing handshake bytes as SSL_HANDSHAKE messages (msgId 0x0003)
     QByteArray outgoing = cryptor_.readHandshakeBuffer();
@@ -202,24 +237,36 @@ void Messenger::driveHandshake()
         sendMessage(0, 0x0003, outgoing);
     }
 
-    if (complete) {
+    if (result == Cryptor::HandshakeResult::Complete) {
         emit handshakeComplete();
+    } else if (result == Cryptor::HandshakeResult::Failed
+               && !handshakeFailureEmitted_) {
+        handshakeFailureEmitted_ = true;
+        const QString error = cryptor_.lastHandshakeError();
+        emit handshakeFailed(error);
     }
 }
 
 void Messenger::processSendQueue()
 {
     if (sending_) return;
+    const uint64_t generation = lifecycleGeneration_;
     sending_ = true;
 
-    while (!sendQueue_.isEmpty()) {
+    while (started_ && generation == lifecycleGeneration_
+           && !sendQueue_.isEmpty()) {
         SendItem item = sendQueue_.dequeue();
         for (const auto& frame : item.frames) {
+            if (!started_ || generation != lifecycleGeneration_)
+                return;
             transport_->write(frame);
+            if (!started_ || generation != lifecycleGeneration_)
+                return;
         }
     }
 
-    sending_ = false;
+    if (generation == lifecycleGeneration_)
+        sending_ = false;
 }
 
 } // namespace oaa

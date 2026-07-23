@@ -166,7 +166,11 @@ These are load-bearing; crossing one is a bug even if it works today:
 
 Wireless AA session path (high-level):
 
-1. Phone discovers the head unit over the BT/WiFi workflow (RFCOMM handshake hands out AP credentials).
+1. Phone discovers the head unit over the BT/WiFi workflow (RFCOMM handshake
+   hands out AP credentials). `BluetoothDiscoveryService` retries a transient
+   RFCOMM listener startup failure on its bounded timer and registers the
+   legacy BlueZ SDP record only after the listener returns a nonzero channel;
+   listener and SDP retries are separate lifecycle owners.
 2. Phone joins the Pi's WiFi AP and connects to the HU TCP port.
 3. `AndroidAutoOrchestrator` creates `oaa::AASession` and registers channel handlers.
 4. Video/audio/input/sensor events flow through handlers into app services.

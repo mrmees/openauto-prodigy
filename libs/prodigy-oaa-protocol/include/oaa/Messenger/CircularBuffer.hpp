@@ -38,6 +38,13 @@ public:
 
     size_t available() const { return m_size; }
 
+    void clear()
+    {
+        m_readPos = 0;
+        m_writePos = 0;
+        m_size = 0;
+    }
+
     QByteArray peek(size_t len) const
     {
         assert(len <= m_size);

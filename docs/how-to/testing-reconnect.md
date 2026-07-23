@@ -69,6 +69,20 @@ Look for the TCP accept, protocol handshake, service discovery, and video
 channel start. Repeat the cycle without deleting the pairing; clearing phone
 state changes the scenario from reconnect testing to first-pair testing.
 
+### Discovery startup retry
+
+A transient RFCOMM listener failure does not require an application or
+Bluetooth daemon restart. The application retries listener startup every two
+seconds for up to 30 attempts. SDP registration begins only after RFCOMM owns a
+nonzero channel and has its own retry timer with the same interval and budget.
+Stopping the application cancels both retry paths; the next start receives a
+fresh budget.
+
+In the journal, an initial `RFCOMM listener failed, retrying` entry followed by
+`RFCOMM listening on port` and `SDP service registered` is a recovered startup.
+Only the terminal `failed after 30 attempts` error means the bounded recovery
+was exhausted and the infrastructure checks below are needed.
+
 ## Failure isolation
 
 - Run `sudo openauto-preflight --check-only` to check the WiFi radio, Wayland

@@ -1,4 +1,6 @@
 #include <QTest>
+#include <QSignalSpy>
+#include <QTimer>
 #include "core/aa/BluetoothDiscoveryService.hpp"
 #include "core/services/IConfigService.hpp"
 
@@ -16,6 +18,33 @@ public:
     QVariant pluginValue(const QString&, const QString&) const override { return {}; }
     void setPluginValue(const QString&, const QString&, const QVariant&) override {}
     void save() override {}
+};
+
+class ScriptedBluetoothDiscoveryService
+    : public oap::aa::BluetoothDiscoveryService {
+public:
+    explicit ScriptedBluetoothDiscoveryService(StubConfigService* config)
+        : BluetoothDiscoveryService(config)
+    {
+    }
+
+    QList<quint16> listenerResults;
+    QList<bool> sdpResults;
+    QList<quint16> registeredPorts;
+    int listenerAttempts = 0;
+
+protected:
+    quint16 listenForRfcomm() override
+    {
+        ++listenerAttempts;
+        return listenerResults.isEmpty() ? 0 : listenerResults.takeFirst();
+    }
+
+    bool registerSdpRecord(uint8_t rfcommChannel) override
+    {
+        registeredPorts.append(rfcommChannel);
+        return sdpResults.isEmpty() ? false : sdpResults.takeFirst();
+    }
 };
 
 class TestBtDiscoveryService : public QObject {
@@ -64,6 +93,106 @@ private slots:
         // This should compile and not crash — we can't start() without real BT hardware
         oap::aa::BluetoothDiscoveryService svc(&cfg, "wlan0");
         Q_UNUSED(svc);
+    }
+
+    void testListenerFailureSchedulesRetryBeforeSdp() {
+        StubConfigService cfg;
+        ScriptedBluetoothDiscoveryService svc(&cfg);
+        svc.listenerResults = {0};
+
+        svc.start();
+
+        QCOMPARE(svc.listenerAttempts, 1);
+        QVERIFY(svc.registeredPorts.isEmpty());
+        auto* listenerRetry = svc.findChild<QTimer*>("rfcommListenerRetryTimer");
+        auto* sdpRetry = svc.findChild<QTimer*>("sdpRetryTimer");
+        QVERIFY(listenerRetry);
+        QVERIFY(sdpRetry);
+        QVERIFY(listenerRetry->isActive());
+        QVERIFY(!sdpRetry->isActive());
+    }
+
+    void testListenerRetrySuccessRegistersSdpOnce() {
+        StubConfigService cfg;
+        ScriptedBluetoothDiscoveryService svc(&cfg);
+        svc.listenerResults = {0, 17};
+        svc.sdpResults = {true};
+        svc.start();
+
+        auto* listenerRetry = svc.findChild<QTimer*>("rfcommListenerRetryTimer");
+        QVERIFY(listenerRetry);
+        QVERIFY(listenerRetry->isActive());
+        QVERIFY(QMetaObject::invokeMethod(
+            &svc, "attemptListenerStart", Qt::DirectConnection));
+
+        QCOMPARE(svc.listenerAttempts, 2);
+        QCOMPARE(svc.registeredPorts, QList<quint16>{17});
+        QVERIFY(!listenerRetry->isActive());
+        QVERIFY(!svc.findChild<QTimer*>("sdpRetryTimer")->isActive());
+
+        // A late listener timeout cannot register SDP a second time.
+        QVERIFY(QMetaObject::invokeMethod(
+            &svc, "attemptListenerStart", Qt::DirectConnection));
+        QCOMPARE(svc.listenerAttempts, 2);
+        QCOMPARE(svc.registeredPorts, QList<quint16>{17});
+    }
+
+    void testListenerRetryExhaustionEmitsOneTerminalErrorAndRestartsFresh() {
+        StubConfigService cfg;
+        ScriptedBluetoothDiscoveryService svc(&cfg);
+        QSignalSpy errorSpy(&svc, &oap::aa::BluetoothDiscoveryService::error);
+
+        svc.start();
+        for (int attempt = 1; attempt < 30; ++attempt) {
+            QVERIFY(QMetaObject::invokeMethod(
+                &svc, "attemptListenerStart", Qt::DirectConnection));
+        }
+
+        QCOMPARE(svc.listenerAttempts, 30);
+        QCOMPARE(errorSpy.count(), 1);
+        QVERIFY(svc.registeredPorts.isEmpty());
+        QVERIFY(!svc.findChild<QTimer*>("rfcommListenerRetryTimer")->isActive());
+
+        QVERIFY(QMetaObject::invokeMethod(
+            &svc, "attemptListenerStart", Qt::DirectConnection));
+        QCOMPARE(svc.listenerAttempts, 30);
+        QCOMPARE(errorSpy.count(), 1);
+
+        svc.stop();
+        svc.listenerResults = {9};
+        svc.sdpResults = {true};
+        svc.start();
+        QCOMPARE(svc.listenerAttempts, 31);
+        QCOMPARE(svc.registeredPorts, QList<quint16>{9});
+        QCOMPARE(errorSpy.count(), 1);
+    }
+
+    void testStopCancelsListenerAndSdpRetries() {
+        StubConfigService cfg;
+
+        ScriptedBluetoothDiscoveryService listenerPending(&cfg);
+        listenerPending.start();
+        auto* listenerRetry =
+            listenerPending.findChild<QTimer*>("rfcommListenerRetryTimer");
+        QVERIFY(listenerRetry->isActive());
+        listenerPending.stop();
+        QVERIFY(!listenerRetry->isActive());
+        QVERIFY(QMetaObject::invokeMethod(
+            &listenerPending, "attemptListenerStart", Qt::DirectConnection));
+        QCOMPARE(listenerPending.listenerAttempts, 1);
+
+        ScriptedBluetoothDiscoveryService sdpPending(&cfg);
+        sdpPending.listenerResults = {12};
+        sdpPending.sdpResults = {false};
+        sdpPending.start();
+        auto* sdpRetry = sdpPending.findChild<QTimer*>("sdpRetryTimer");
+        QVERIFY(sdpRetry->isActive());
+        QCOMPARE(sdpPending.registeredPorts, QList<quint16>{12});
+        sdpPending.stop();
+        QVERIFY(!sdpRetry->isActive());
+        QVERIFY(QMetaObject::invokeMethod(
+            &sdpPending, "attemptSdpRegistration", Qt::DirectConnection));
+        QCOMPARE(sdpPending.registeredPorts, QList<quint16>{12});
     }
 };
 
