@@ -167,8 +167,14 @@ Governance: capture new ideas in `docs/wishlist.md`; only promoted items should 
 
 ## Now
 
-- No implementation tranche is active. Select the next bounded remediation
-  from the approved consolidated queue after the current branch is published.
+- API and core asynchronous lifecycle remediation — **ACTIVE 2026-07-22**.
+  One consolidated wave closes the secure-pairing credential boundary and the
+  revalidated API/core ownership, timeout, nonblocking clock, notification,
+  reconnect, plugin-exception, and IPC-framing roots. Secure pairing is a
+  coordinated change with `openauto-companion`; both repositories retain
+  separate commits, gates, and draft pull requests. Design and plan:
+  `docs/plans/2026-07-22-api-core-async-lifecycle-remediation-design.md` and
+  `docs/plans/2026-07-22-api-core-async-lifecycle-remediation-plan.md`.
 
 ## Later
 

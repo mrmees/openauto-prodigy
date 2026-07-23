@@ -1,5 +1,10 @@
 # Documentation Index
 
+## Active Plans
+
+- [API and core asynchronous lifecycle remediation design](plans/2026-07-22-api-core-async-lifecycle-remediation-design.md)
+- [API and core asynchronous lifecycle remediation plan](plans/2026-07-22-api-core-async-lifecycle-remediation-plan.md)
+
 ## Start Here
 
 - [README.md](../README.md) — project intro, features, quickstart
