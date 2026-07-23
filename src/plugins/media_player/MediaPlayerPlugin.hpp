@@ -1,6 +1,7 @@
 #pragma once
 
 #include "core/plugin/IPlugin.hpp"
+#include "core/plugin/PluginDiscovery.hpp"
 #include "PlaybackPolicy.hpp"
 #include "MediaScanner.hpp"   // MediaScanner::Root (currentRoots_ member) + MediaLibrary
 #include <QHash>
@@ -65,7 +66,7 @@ public:
     QString id() const override { return QStringLiteral("org.openauto.media-player"); }
     QString name() const override { return QStringLiteral("Media Player"); }
     QString version() const override { return QStringLiteral("1.0.0"); }
-    int apiVersion() const override { return 2; }
+    int apiVersion() const override { return PluginDiscovery::HOST_API_VERSION; }
 
     // IPlugin — Lifecycle
     bool initialize(IHostContext* context) override;

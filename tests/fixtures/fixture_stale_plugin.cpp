@@ -9,7 +9,7 @@ public:
     QString id() const override { return "org.test.stale"; }
     QString name() const override { return "Stale Fixture"; }
     QString version() const override { return "1.0"; }
-    int apiVersion() const override { return 1; }   // stale — host is 2
+    int apiVersion() const override { return 1; }   // stale — intentionally below HOST_API_VERSION
     bool initialize(oap::IHostContext*) override { return true; }
     void shutdown() override {}
     QUrl qmlComponent() const override { return {}; }

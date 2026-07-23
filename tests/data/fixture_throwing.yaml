@@ -1,5 +1,5 @@
 id: org.test.throwing
 name: "Throwing Fixture"
 version: "1.0"
-api_version: 2
+api_version: 3
 type: full

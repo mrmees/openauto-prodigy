@@ -23,7 +23,7 @@ void TestPluginDiscovery::testDiscoverFindsPlugins()
 
     QFile f(tmpDir + "/test-plugin/plugin.yaml");
     f.open(QIODevice::WriteOnly);
-    f.write("id: org.test.disco\nname: Disco\nversion: '1.0'\napi_version: 2\n");
+    f.write("id: org.test.disco\nname: Disco\nversion: '1.0'\napi_version: 3\n");
     f.close();
 
     oap::PluginDiscovery discovery;
@@ -105,7 +105,7 @@ void TestPluginDiscovery::testValidateManifestDefaultHost()
 {
     // Lock the real compile-time default: a silent HOST_API_VERSION bump or a
     // regression back to <=-style (forward-compatible) acceptance trips here.
-    QCOMPARE(oap::PluginDiscovery::HOST_API_VERSION, 2);
+    QCOMPARE(oap::PluginDiscovery::HOST_API_VERSION, 3);
 
     oap::PluginManifest m;
     m.id = "test";
@@ -113,11 +113,11 @@ void TestPluginDiscovery::testValidateManifestDefaultHost()
     m.version = "1.0";
 
     // Exercises the default hostApiVersion argument (== HOST_API_VERSION).
-    m.apiVersion = 2;
-    QVERIFY(oap::PluginDiscovery::validateManifest(m));   // exact match -> accepted
-    m.apiVersion = 1;
-    QVERIFY(!oap::PluginDiscovery::validateManifest(m));  // stale v1 .so -> rejected (catches <= revert)
     m.apiVersion = 3;
+    QVERIFY(oap::PluginDiscovery::validateManifest(m));   // exact match -> accepted
+    m.apiVersion = 2;
+    QVERIFY(!oap::PluginDiscovery::validateManifest(m));  // stale v2 .so -> rejected (catches <= revert)
+    m.apiVersion = 4;
     QVERIFY(!oap::PluginDiscovery::validateManifest(m));  // too new -> rejected
 }
 

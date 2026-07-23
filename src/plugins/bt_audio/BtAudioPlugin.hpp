@@ -1,6 +1,7 @@
 #pragma once
 
 #include "core/plugin/IPlugin.hpp"
+#include "core/plugin/PluginDiscovery.hpp"
 #include "core/widget/WidgetTypes.hpp"
 // Pulls Q_DECLARE_METATYPE(oap::InterfaceMap) — the SAME underlying
 // QMap<QString,QVariantMap> that BtInterfaceMap aliases below. openauto-core
@@ -84,7 +85,7 @@ public:
     QString id() const override { return QStringLiteral("org.openauto.bt-audio"); }
     QString name() const override { return QStringLiteral("Bluetooth Audio"); }
     QString version() const override { return QStringLiteral("1.0.0"); }
-    int apiVersion() const override { return 2; }
+    int apiVersion() const override { return PluginDiscovery::HOST_API_VERSION; }
 
     // IPlugin — Lifecycle
     bool initialize(IHostContext* context) override;

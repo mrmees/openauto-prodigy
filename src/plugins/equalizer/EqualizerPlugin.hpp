@@ -1,6 +1,7 @@
 #pragma once
 
 #include "core/plugin/IPlugin.hpp"
+#include "core/plugin/PluginDiscovery.hpp"
 #include <QObject>
 
 class QQmlContext;
@@ -22,7 +23,7 @@ public:
     QString id() const override { return QStringLiteral("org.openauto.equalizer"); }
     QString name() const override { return QStringLiteral("Equalizer"); }
     QString version() const override { return QStringLiteral("1.0.0"); }
-    int apiVersion() const override { return 2; }
+    int apiVersion() const override { return PluginDiscovery::HOST_API_VERSION; }
 
     // IPlugin — Lifecycle
     bool initialize(IHostContext* context) override;
