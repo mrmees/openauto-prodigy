@@ -1,6 +1,7 @@
 #pragma once
 
 #include <QObject>
+#include <QHash>
 #include <QLocalServer>
 #include <QLocalSocket>
 #include <functional>
@@ -65,6 +66,8 @@ private slots:
     void onDisconnected();
 
 private:
+    static constexpr qsizetype MaxFrameSize = 1024 * 1024;
+
     QByteArray handleRequest(const QByteArray& request);
     QByteArray handleGetConfig();
     QByteArray handleSetConfig(const QVariantMap& data);
@@ -89,6 +92,7 @@ private:
     AudioService* audioService_ = nullptr;
     PluginManager* pluginManager_ = nullptr;
     oap::api::ApiInboundState* inbound_ = nullptr;
+    QHash<QLocalSocket*, QByteArray> clientBuffers_;
 };
 
 } // namespace oap

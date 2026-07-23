@@ -14,6 +14,9 @@ public:
     bool initResult_ = true;
     bool initialized_ = false;
     bool shutDown_ = false;
+    bool throwUnknownOnInitialize_ = false;
+    bool throwUnknownOnShutdown_ = false;
+    QStringList* shutdownOrder_ = nullptr;
 
     QString id() const override { return id_; }
     QString name() const override { return "Mock"; }
@@ -21,10 +24,18 @@ public:
     int apiVersion() const override { return 2; }
 
     bool initialize(oap::IHostContext*) override {
+        if (throwUnknownOnInitialize_)
+            throw 42;
         initialized_ = true;
         return initResult_;
     }
-    void shutdown() override { shutDown_ = true; }
+    void shutdown() override {
+        shutDown_ = true;
+        if (shutdownOrder_)
+            shutdownOrder_->append(id_);
+        if (throwUnknownOnShutdown_)
+            throw 42;
+    }
 
     QUrl qmlComponent() const override { return {}; }
     QUrl iconSource() const override { return {}; }
@@ -58,6 +69,8 @@ private slots:
     void testInitializeCallsPlugin();
     void testShutdownCallsPlugin();
     void testFailedInitDisablesPlugin();
+    void testUnknownInitExceptionDisablesOnlyThrowingPlugin();
+    void testUnknownShutdownExceptionContinuesReverseOrder();
     void testLookupById();
     void testMultiplePlugins();
     void testActivateDeactivate();
@@ -120,6 +133,60 @@ void TestPluginManager::testFailedInitDisablesPlugin()
 
     QCOMPARE(failSpy.count(), 1);
     QCOMPARE(mgr.plugins().size(), 0); // failed plugin not in active list
+}
+
+void TestPluginManager::testUnknownInitExceptionDisablesOnlyThrowingPlugin()
+{
+    MockPlugin throwing;
+    throwing.id_ = QStringLiteral("org.test.throwing-init");
+    throwing.throwUnknownOnInitialize_ = true;
+    MockPlugin healthy;
+    healthy.id_ = QStringLiteral("org.test.healthy-init");
+    MockHostContext ctx;
+    oap::PluginManager mgr;
+
+    QSignalSpy failSpy(&mgr, &oap::PluginManager::pluginFailed);
+    mgr.registerStaticPlugin(&throwing);
+    mgr.registerStaticPlugin(&healthy);
+    mgr.initializeAll(&ctx);
+
+    QCOMPARE(failSpy.count(), 1);
+    QCOMPARE(failSpy.first().at(0).toString(), throwing.id_);
+    QVERIFY(!throwing.initialized_);
+    QVERIFY(healthy.initialized_);
+    QCOMPARE(mgr.plugins(), QList<oap::IPlugin*>({&healthy}));
+}
+
+void TestPluginManager::testUnknownShutdownExceptionContinuesReverseOrder()
+{
+    QStringList shutdownOrder;
+    MockPlugin first;
+    first.id_ = QStringLiteral("org.test.first");
+    first.shutdownOrder_ = &shutdownOrder;
+    MockPlugin throwing;
+    throwing.id_ = QStringLiteral("org.test.throwing-shutdown");
+    throwing.throwUnknownOnShutdown_ = true;
+    throwing.shutdownOrder_ = &shutdownOrder;
+    MockPlugin last;
+    last.id_ = QStringLiteral("org.test.last");
+    last.shutdownOrder_ = &shutdownOrder;
+    MockHostContext ctx;
+    oap::PluginManager mgr;
+
+    mgr.registerStaticPlugin(&first);
+    mgr.registerStaticPlugin(&throwing);
+    mgr.registerStaticPlugin(&last);
+    mgr.initializeAll(&ctx);
+    mgr.shutdownAll();
+
+    QCOMPARE(shutdownOrder,
+             QStringList({QStringLiteral("org.test.last"),
+                          QStringLiteral("org.test.throwing-shutdown"),
+                          QStringLiteral("org.test.first")}));
+    QVERIFY(first.shutDown_);
+    QVERIFY(throwing.shutDown_);
+    QVERIFY(last.shutDown_);
+    QVERIFY(mgr.plugins().isEmpty());
 }
 
 void TestPluginManager::testLookupById()

@@ -124,11 +124,17 @@ void PluginManager::initializeAll(IHostContext* context)
         qCInfo(lcPlugin) << "Initializing plugin: " << entry.manifest.id;
 
         bool ok = false;
+        QString failureReason = QStringLiteral("initialize() returned false");
         try {
             ok = entry.plugin->initialize(context);
         } catch (const std::exception& e) {
             qCCritical(lcPlugin) << "Plugin " << entry.manifest.id
                                       << " threw during initialize(): " << e.what();
+            failureReason = QStringLiteral("initialize() threw an exception");
+        } catch (...) {
+            qCCritical(lcPlugin) << "Plugin " << entry.manifest.id
+                                      << " threw an unknown exception during initialize()";
+            failureReason = QStringLiteral("initialize() threw an unknown exception");
         }
 
         if (ok) {
@@ -138,7 +144,7 @@ void PluginManager::initializeAll(IHostContext* context)
         } else {
             qCCritical(lcPlugin) << "Plugin " << entry.manifest.id
                                       << " failed to initialize — disabled";
-            emit pluginFailed(entry.manifest.id, "initialize() returned false");
+            emit pluginFailed(entry.manifest.id, failureReason);
         }
     }
 }
@@ -156,6 +162,9 @@ void PluginManager::shutdownAll()
         } catch (const std::exception& e) {
             qCCritical(lcPlugin) << "Plugin " << entry.manifest.id
                                       << " threw during shutdown(): " << e.what();
+        } catch (...) {
+            qCCritical(lcPlugin) << "Plugin " << entry.manifest.id
+                                      << " threw an unknown exception during shutdown()";
         }
         entry.initialized = false;
     }

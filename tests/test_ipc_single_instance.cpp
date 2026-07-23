@@ -16,6 +16,25 @@ using namespace oap;
 class TestIpcSingleInstance : public QObject {
     Q_OBJECT
 
+    static QList<QByteArray> readResponseFrames(QLocalSocket& socket, int expectedCount)
+    {
+        QList<QByteArray> frames;
+        QByteArray buffer;
+        QElapsedTimer timer;
+        timer.start();
+        while (frames.size() < expectedCount && timer.elapsed() < 3000) {
+            QCoreApplication::processEvents(QEventLoop::AllEvents, 20);
+            socket.waitForReadyRead(20);
+            buffer += socket.readAll();
+            qsizetype newline = -1;
+            while ((newline = buffer.indexOf('\n')) >= 0) {
+                frames.append(buffer.left(newline));
+                buffer.remove(0, newline + 1);
+            }
+        }
+        return frames;
+    }
+
     static QJsonObject roundTrip(const QString& socketPath)
     {
         QLocalSocket socket;
@@ -57,6 +76,81 @@ class TestIpcSingleInstance : public QObject {
     }
 
 private slots:
+    void splitAndCoalescedFramesAreProcessedInOrder()
+    {
+        QTemporaryDir dir;
+        QVERIFY(dir.isValid());
+        const QString socketPath = dir.path() + QStringLiteral("/ipc.sock");
+        IpcServer server;
+        QVERIFY(server.start(socketPath));
+
+        QLocalSocket socket;
+        socket.connectToServer(socketPath);
+        QVERIFY(socket.waitForConnected(2000));
+
+        const QByteArray firstHalf = "{\"command\":\"sta";
+        QCOMPARE(socket.write(firstHalf), qint64(firstHalf.size()));
+        socket.flush();
+        QTest::qWait(20);
+        QCOMPARE(socket.bytesAvailable(), qint64(0));
+
+        const QByteArray remainder =
+            "tus\"}\n{\"command\":\"not_a_command\"}\n";
+        QCOMPARE(socket.write(remainder), qint64(remainder.size()));
+        socket.flush();
+
+        const QList<QByteArray> responses = readResponseFrames(socket, 2);
+        QCOMPARE(responses.size(), 2);
+        const QJsonObject status = QJsonDocument::fromJson(responses.at(0)).object();
+        QVERIFY(status.contains(QStringLiteral("version")));
+        const QJsonObject unknown = QJsonDocument::fromJson(responses.at(1)).object();
+        QCOMPARE(unknown.value(QStringLiteral("error")).toString(),
+                 QStringLiteral("Unknown command"));
+    }
+
+    void disconnectedPartialTailDoesNotAffectNextClient()
+    {
+        QTemporaryDir dir;
+        QVERIFY(dir.isValid());
+        const QString socketPath = dir.path() + QStringLiteral("/ipc.sock");
+        IpcServer server;
+        QVERIFY(server.start(socketPath));
+
+        QLocalSocket partial;
+        partial.connectToServer(socketPath);
+        QVERIFY(partial.waitForConnected(2000));
+        partial.write("{\"command\":\"sta");
+        partial.flush();
+        QTest::qWait(20);
+        partial.disconnectFromServer();
+        if (partial.state() != QLocalSocket::UnconnectedState)
+            QVERIFY(partial.waitForDisconnected(2000));
+        QCoreApplication::processEvents();
+
+        const QJsonObject response = roundTrip(socketPath);
+        QVERIFY(response.contains(QStringLiteral("version")));
+    }
+
+    void oversizedPartialFrameClosesOnlyThatClient()
+    {
+        QTemporaryDir dir;
+        QVERIFY(dir.isValid());
+        const QString socketPath = dir.path() + QStringLiteral("/ipc.sock");
+        IpcServer server;
+        QVERIFY(server.start(socketPath));
+
+        QLocalSocket oversized;
+        oversized.connectToServer(socketPath);
+        QVERIFY(oversized.waitForConnected(2000));
+        const QByteArray payload(1024 * 1024 + 1, 'x');
+        QCOMPARE(oversized.write(payload), qint64(payload.size()));
+        oversized.flush();
+        QTRY_COMPARE_WITH_TIMEOUT(oversized.state(), QLocalSocket::UnconnectedState, 5000);
+
+        const QJsonObject response = roundTrip(socketPath);
+        QVERIFY(response.contains(QStringLiteral("version")));
+    }
+
     void staleRemovalRequiresExplicitNoListenerError()
     {
         QVERIFY(IpcServer::isExplicitlyStaleSocketError(
