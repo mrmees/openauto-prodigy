@@ -76,17 +76,27 @@ void ApiInboundState::setOwnerPresent(bool present) {
 
 void ApiInboundState::setConnectivity(const QString& peerHost, bool active,
                                       quint16 port, const QString& password) {
+    const QString address = active
+        ? QStringLiteral("socks5://%1:%2").arg(peerHost).arg(port)
+        : QString();
+    const bool observableChanged = internetAvailable_ != active
+        || proxyActive_ != active || proxyAddress_ != address;
+    const bool routeChanged = !hasConnectivityTuple_
+        || proxyHost_ != peerHost || proxyActive_ != active
+        || proxyPort_ != port || proxyPassword_ != password;
+
     internetAvailable_ = active;
     proxyActive_ = active;
-    if (active)
-        // Compose the head unit's SOCKS5 route: the proxy host is the phone's
-        // (this connection's) peer address.
-        proxyAddress_ = QStringLiteral("socks5://%1:%2").arg(peerHost).arg(port);
-    else
-        proxyAddress_.clear();
+    proxyAddress_ = address;
+    hasConnectivityTuple_ = true;
+    proxyHost_ = peerHost;
+    proxyPort_ = port;
+    proxyPassword_ = password;
 
-    emit internetChanged();
-    emit proxyRouteChanged(active, peerHost, port, password);
+    if (observableChanged)
+        emit internetChanged();
+    if (routeChanged)
+        emit proxyRouteChanged(active, peerHost, port, password);
 }
 
 void ApiInboundState::setTime(qint64 unixMs) {

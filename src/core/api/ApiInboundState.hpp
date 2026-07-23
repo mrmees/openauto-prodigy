@@ -101,6 +101,10 @@ private:
     bool internetAvailable_ = false;
     bool proxyActive_ = false;
     QString proxyAddress_;
+    bool hasConnectivityTuple_ = false;
+    QString proxyHost_;
+    quint16 proxyPort_ = 0;
+    QString proxyPassword_;
 
     // Staleness: fixTimer_ is restarted on each accepted fix and fixAgeMs_
     // carries the phone-reported age at receipt; effective age =

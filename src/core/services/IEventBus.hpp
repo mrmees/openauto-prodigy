@@ -8,7 +8,7 @@ namespace oap {
 
 /// Simple string-keyed publish/subscribe event bus.
 /// Events are QVariant payloads keyed by string topics.
-/// Subscribers are invoked on the main thread (Qt::QueuedConnection).
+/// Subscribers are invoked on the bus owner's thread (Qt::QueuedConnection).
 class IEventBus {
 public:
     virtual ~IEventBus() = default;
@@ -24,7 +24,7 @@ public:
     virtual void unsubscribe(int subscriptionId) = 0;
 
     /// Publish an event. All subscribers for the topic are invoked
-    /// asynchronously on the main thread.
+    /// asynchronously on the bus owner's thread.
     /// Thread-safe (can be called from any thread).
     virtual void publish(const QString& topic, const QVariant& payload = {}) = 0;
 };
