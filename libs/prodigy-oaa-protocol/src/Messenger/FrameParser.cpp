@@ -11,6 +11,15 @@ FrameParser::FrameParser(QObject* parent)
 {
 }
 
+void FrameParser::reset()
+{
+    m_state = State::ReadHeader;
+    m_buffer.clear();
+    m_currentHeader = {};
+    m_sizeFieldLength = 0;
+    m_framePayloadSize = 0;
+}
+
 void FrameParser::onData(const QByteArray& data)
 {
     m_buffer.append(data.constData(), data.size());

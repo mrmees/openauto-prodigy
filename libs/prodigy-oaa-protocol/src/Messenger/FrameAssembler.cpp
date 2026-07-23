@@ -8,6 +8,12 @@ FrameAssembler::FrameAssembler(QObject* parent)
 {
 }
 
+void FrameAssembler::reset()
+{
+    m_buffers.clear();
+    m_messageTypes.clear();
+}
+
 void FrameAssembler::onFrame(const FrameHeader& header, const QByteArray& payload)
 {
     switch (header.frameType) {

@@ -22,8 +22,8 @@ public:
         : IChannelHandler(parent), id_(id) {}
 
     uint8_t channelId() const override { return id_; }
-    void onChannelOpened() override { opened = true; }
-    void onChannelClosed() override { closed = true; }
+    void onChannelOpened() override { opened = true; openCount++; }
+    void onChannelClosed() override { closed = true; closeCount++; }
     void onMessage(uint16_t messageId, const QByteArray& payload, int dataOffset = 0) override {
         lastMessageId = messageId;
         lastPayload = payload.mid(dataOffset);
@@ -32,6 +32,8 @@ public:
 
     bool opened = false;
     bool closed = false;
+    int openCount = 0;
+    int closeCount = 0;
     uint16_t lastMessageId = 0;
     QByteArray lastPayload;
     int messageCount = 0;
@@ -61,6 +63,19 @@ private:
         qToBigEndian<uint16_t>(8, reinterpret_cast<uchar*>(frame.data() + 2));
         frame.append(payload);
         return frame;
+    }
+
+    void advanceToActive(oaa::AASession& session) {
+        QByteArray versionResponse(6, '\0');
+        qToBigEndian<uint16_t>(1, reinterpret_cast<uchar*>(versionResponse.data()));
+        qToBigEndian<uint16_t>(7, reinterpret_cast<uchar*>(versionResponse.data() + 2));
+        qToBigEndian<uint16_t>(0, reinterpret_cast<uchar*>(versionResponse.data() + 4));
+        session.messenger()->messageReceived(0, 0x0002, versionResponse, 0);
+        QCOMPARE(session.state(), oaa::SessionState::TLSHandshake);
+        session.messenger()->handshakeComplete();
+        QCOMPARE(session.state(), oaa::SessionState::ServiceDiscovery);
+        session.messenger()->messageReceived(0, 0x0005, QByteArray(), 0);
+        QCOMPARE(session.state(), oaa::SessionState::Active);
     }
 
 private slots:
@@ -213,6 +228,90 @@ private slots:
         QCOMPARE(disconnectSpy.count(), 1);
         QCOMPARE(disconnectSpy[0][0].value<oaa::DisconnectReason>(),
                  oaa::DisconnectReason::TransportError);
+    }
+
+    void testDestructorDoesNotWriteOrCallExternalHandlers() {
+        oaa::ReplayTransport transport;
+        oaa::SessionConfig config;
+        MockChannelHandler handler(3);
+        auto* session = new oaa::AASession(&transport, config);
+        session->registerChannel(3, &handler);
+
+        transport.simulateConnect();
+        session->start();
+        advanceToActive(*session);
+        transport.clearWritten();
+
+        delete session;
+
+        QCOMPARE(transport.writtenData().size(), 0);
+        QCOMPARE(handler.closeCount, 0);
+    }
+
+    void testFinalizeClosesOnceWithoutProtocolWrite() {
+        oaa::ReplayTransport transport;
+        oaa::SessionConfig config;
+        MockChannelHandler handler(3);
+        auto* session = new oaa::AASession(&transport, config);
+        session->registerChannel(3, &handler);
+
+        transport.simulateConnect();
+        session->start();
+        advanceToActive(*session);
+        transport.clearWritten();
+
+        session->finalize();
+        QCOMPARE(session->state(), oaa::SessionState::Disconnected);
+        QCOMPARE(handler.closeCount, 1);
+        QCOMPARE(transport.writtenData().size(), 0);
+
+        session->finalize();
+        delete session;
+        QCOMPARE(handler.closeCount, 1);
+    }
+
+    void testRestartReconnectsHandlerSendPathForOneCycle() {
+        oaa::ReplayTransport transport;
+        oaa::SessionConfig config;
+        MockChannelHandler handler(3);
+        oaa::AASession session(&transport, config);
+        session.registerChannel(3, &handler);
+
+        session.start();
+        session.stop();
+        QCOMPARE(handler.closeCount, 1);
+        transport.clearWritten();
+
+        emit handler.sendRequested(3, 0x1234, QByteArray("stale"));
+        QCOMPARE(transport.writtenData().size(), 0);
+
+        session.start();
+        emit handler.sendRequested(3, 0x1234, QByteArray("fresh"));
+        QCOMPARE(transport.writtenData().size(), 1);
+
+        session.stop();
+        QCOMPARE(handler.closeCount, 2);
+    }
+
+    void testFinalizedSessionCannotReceiveReplacementHandlerSends() {
+        oaa::ReplayTransport oldTransport;
+        oaa::ReplayTransport replacementTransport;
+        oaa::SessionConfig config;
+        MockChannelHandler handler(3);
+        oaa::AASession oldSession(&oldTransport, config);
+        oaa::AASession replacementSession(&replacementTransport, config);
+
+        oldSession.registerChannel(3, &handler);
+        oldSession.start();
+        oldSession.finalize();
+        oldTransport.clearWritten();
+
+        replacementSession.registerChannel(3, &handler);
+        replacementSession.start();
+        emit handler.sendRequested(3, 0x1234, QByteArray("replacement"));
+
+        QCOMPARE(oldTransport.writtenData().size(), 0);
+        QCOMPARE(replacementTransport.writtenData().size(), 1);
     }
 };
 

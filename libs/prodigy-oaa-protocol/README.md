@@ -41,6 +41,13 @@ connect(&videoHandler, &oaa::hu::VideoChannelHandler::videoFrameData,
         decoder, &VideoDecoder::decodeFrame);
 ```
 
+The host owns registered handlers. Before destroying or replacing a session,
+call `AASession::finalize()` while those handlers and the transport are still
+alive. `stop()` is the graceful phone-visible shutdown; `finalize()` is the
+idempotent local ownership boundary and performs no protocol write. A session
+that reaches `Disconnected` may be started again with the same registrations;
+its Messenger restarts with empty framing, assembly, and TLS state.
+
 ## Dependencies
 
 - Qt 6 (Core, Network)

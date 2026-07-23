@@ -15,6 +15,14 @@ Messenger::Messenger(ITransport* transport, QObject* parent)
 
 void Messenger::start()
 {
+    if (started_)
+        return;
+
+    parser_.reset();
+    assembler_.reset();
+    sendQueue_.clear();
+    sending_ = false;
+
     connect(transport_, &ITransport::dataReceived,
             &parser_, &FrameParser::onData);
     connect(&parser_, &FrameParser::frameParsed,
@@ -23,23 +31,39 @@ void Messenger::start()
             this, &Messenger::onMessageAssembled);
     connect(transport_, &ITransport::error,
             this, &Messenger::transportError);
+    started_ = true;
 }
 
 void Messenger::stop()
 {
-    disconnect(transport_, &ITransport::dataReceived,
-               &parser_, &FrameParser::onData);
-    disconnect(&parser_, &FrameParser::frameParsed,
-               this, &Messenger::onFrameParsed);
-    disconnect(&assembler_, &FrameAssembler::messageAssembled,
-               this, &Messenger::onMessageAssembled);
-    disconnect(transport_, &ITransport::error,
-               this, &Messenger::transportError);
+    if (started_) {
+        disconnect(transport_, &ITransport::dataReceived,
+                   &parser_, &FrameParser::onData);
+        disconnect(&parser_, &FrameParser::frameParsed,
+                   this, &Messenger::onFrameParsed);
+        disconnect(&assembler_, &FrameAssembler::messageAssembled,
+                   this, &Messenger::onMessageAssembled);
+        disconnect(transport_, &ITransport::error,
+                   this, &Messenger::transportError);
+        started_ = false;
+    }
+
+    parser_.reset();
+    assembler_.reset();
+    cryptor_.deinit();
+    sendQueue_.clear();
+    sending_ = false;
 }
 
 void Messenger::sendMessage(uint8_t channelId, uint16_t messageId,
                              const QByteArray& payload)
 {
+    if (!started_) {
+        qWarning() << "Messenger: dropping send while stopped, ch" << channelId
+                   << "msgId" << Qt::hex << messageId;
+        return;
+    }
+
     emit messageSent(channelId, messageId, payload);
 
     // Prepend 2-byte big-endian messageId
@@ -116,6 +140,11 @@ void Messenger::sendRaw(uint8_t channelId, const QByteArray& data,
                          FrameType frameType, MessageType msgType,
                          EncryptionType encType)
 {
+    if (!started_) {
+        qWarning() << "Messenger: dropping raw send while stopped, ch" << channelId;
+        return;
+    }
+
     FrameHeader header{channelId, frameType, encType, msgType};
     QByteArray frame;
     int sizeLen = FrameHeader::sizeFieldLength(frameType);

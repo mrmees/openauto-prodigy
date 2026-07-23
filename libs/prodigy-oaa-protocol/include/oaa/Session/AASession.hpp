@@ -23,6 +23,9 @@ public:
 
     void start();
     void stop(int reason = 1);  // ShutdownReason: 1=USER_SELECTION, 7=POWER_DOWN
+    /// Terminal local teardown. Performs no protocol write and is idempotent.
+    /// The owner must call this while externally-owned handlers are still alive.
+    void finalize();
 
     void registerChannel(uint8_t channelId, IChannelHandler* handler);
     SessionState state() const;
@@ -41,6 +44,9 @@ signals:
 
 private:
     void setState(SessionState newState);
+    void connectHandler(IChannelHandler* handler);
+    void disconnectHandler(IChannelHandler* handler);
+    void closeChannels();
     void startStateTimer(int timeoutMs);
     void stopStateTimer();
 
@@ -73,6 +79,8 @@ private:
     QTimer pingTimer_;
     int missedPings_ = 0;
     int64_t lastPingTimestamp_ = 0;
+    bool channelsClosed_ = true;
+    bool finalized_ = false;
 };
 
 } // namespace oaa

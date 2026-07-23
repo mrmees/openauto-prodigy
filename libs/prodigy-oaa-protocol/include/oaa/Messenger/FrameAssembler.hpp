@@ -13,6 +13,7 @@ class FrameAssembler : public QObject {
 
 public:
     explicit FrameAssembler(QObject* parent = nullptr);
+    void reset();
 
 public slots:
     void onFrame(const oaa::FrameHeader& header, const QByteArray& payload);

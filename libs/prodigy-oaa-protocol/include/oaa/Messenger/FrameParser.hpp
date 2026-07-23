@@ -13,6 +13,7 @@ class FrameParser : public QObject {
 
 public:
     explicit FrameParser(QObject* parent = nullptr);
+    void reset();
 
 public slots:
     void onData(const QByteArray& data);

@@ -61,6 +61,7 @@ private:
 
     QQueue<SendItem> sendQueue_;
     bool sending_ = false;
+    bool started_ = false;
 };
 
 } // namespace oaa

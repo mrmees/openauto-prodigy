@@ -111,14 +111,23 @@ AASession::AASession(ITransport* transport, const SessionConfig& config,
 }
 
 AASession::~AASession() {
-    stop();
+    // External channel handlers and the transport can already be gone during
+    // QObject parent-chain destruction. Never initiate protocol work or call
+    // through their raw pointers here; the owner uses finalize() while they
+    // are alive.
+    channels_.clear();
 }
 
 void AASession::start() {
+    if (finalized_)
+        return;
     if (state_ != SessionState::Idle && state_ != SessionState::Disconnected)
         return;
 
     messenger_->start();
+    for (auto* handler : channels_)
+        connectHandler(handler);
+    channelsClosed_ = false;
     setState(SessionState::Connecting);
 
     if (transport_->isConnected()) {
@@ -146,11 +155,35 @@ void AASession::stop(int reason) {
     }
 }
 
+void AASession::finalize() {
+    if (finalized_)
+        return;
+    finalized_ = true;
+
+    stopStateTimer();
+    pingTimer_.stop();
+    messenger_->stop();
+    closeChannels();
+    for (auto* handler : channels_)
+        disconnectHandler(handler);
+    channels_.clear();
+
+    if (state_ != SessionState::Idle && state_ != SessionState::Disconnected) {
+        state_ = SessionState::Disconnected;
+        qDebug() << "[AASession] State:" << static_cast<int>(state_);
+        emit stateChanged(state_);
+    }
+}
+
 void AASession::registerChannel(uint8_t channelId, IChannelHandler* handler) {
+    if (finalized_ || !handler)
+        return;
+
+    auto existing = channels_.find(channelId);
+    if (existing != channels_.end() && existing.value() != handler)
+        disconnectHandler(existing.value());
     channels_[channelId] = handler;
-    // Route handler sends through Messenger
-    connect(handler, &IChannelHandler::sendRequested,
-            messenger_, &Messenger::sendMessage);
+    connectHandler(handler);
 }
 
 SessionState AASession::state() const { return state_; }
@@ -160,16 +193,37 @@ ControlChannel* AASession::controlChannel() const { return controlChannel_; }
 void AASession::setState(SessionState newState) {
     if (state_ == newState) return;
     state_ = newState;
+
+    if (newState == SessionState::Disconnected)
+        closeChannels();
+
     qDebug() << "[AASession] State:" << static_cast<int>(newState);
     emit stateChanged(newState);
+}
 
-    if (newState == SessionState::Disconnected) {
-        stopStateTimer();
-        pingTimer_.stop();
-        controlChannel_->onChannelClosed();
-        for (auto* handler : channels_) {
-            handler->onChannelClosed();
-        }
+void AASession::connectHandler(IChannelHandler* handler) {
+    connect(handler, &IChannelHandler::sendRequested,
+            messenger_, &Messenger::sendMessage, Qt::UniqueConnection);
+}
+
+void AASession::disconnectHandler(IChannelHandler* handler) {
+    disconnect(handler, &IChannelHandler::sendRequested,
+               messenger_, &Messenger::sendMessage);
+}
+
+void AASession::closeChannels() {
+    stopStateTimer();
+    pingTimer_.stop();
+    messenger_->stop();
+
+    if (channelsClosed_)
+        return;
+    channelsClosed_ = true;
+
+    controlChannel_->onChannelClosed();
+    for (auto* handler : channels_) {
+        disconnectHandler(handler);
+        handler->onChannelClosed();
     }
 }
 
