@@ -14,6 +14,20 @@ Governance: capture new ideas in `docs/wishlist.md`; only promoted items should 
 
 ## Done (recent)
 
+- API and core asynchronous lifecycle remediation — **COMPLETE 2026-07-22**
+  (Pi/Pixel live-validated). Prodigy and Companion now pair with an explicitly
+  versioned 120-bit Base32 code; legacy credentials retire without an insecure
+  fallback, malformed stores fail closed, and paired credentials persist
+  atomically. The same wave bounds handshake and IPC work, closes API/EventBus/
+  plugin teardown hazards, makes clock work asynchronous, repairs reconnect
+  state, and suppresses duplicate route mutation. Coordinated deployment proved
+  QR pairing, saved-credential reconnect, live reports and SOCKS state, split
+  and coalesced IPC, wireless H.265 projection, and unchanged Bluetooth/hostapd
+  lifetimes. Design and plan:
+  `docs/archive/plans/2026-07-22-api-core-async-lifecycle-remediation-design.md`
+  and
+  `docs/archive/plans/2026-07-22-api-core-async-lifecycle-remediation-plan.md`.
+
 - Configuration startup contract remediation — **COMPLETE 2026-07-22**
   (Pi-live-validated). Logging configuration now has typed schema and sequence
   boundaries shared by startup, settings, and strict IPC handling; selective
@@ -167,14 +181,9 @@ Governance: capture new ideas in `docs/wishlist.md`; only promoted items should 
 
 ## Now
 
-- API and core asynchronous lifecycle remediation — **ACTIVE 2026-07-22**.
-  One consolidated wave closes the secure-pairing credential boundary and the
-  revalidated API/core ownership, timeout, nonblocking clock, notification,
-  reconnect, plugin-exception, and IPC-framing roots. Secure pairing is a
-  coordinated change with `openauto-companion`; both repositories retain
-  separate commits, gates, and draft pull requests. Design and plan:
-  `docs/plans/2026-07-22-api-core-async-lifecycle-remediation-design.md` and
-  `docs/plans/2026-07-22-api-core-async-lifecycle-remediation-plan.md`.
+No implementation tranche is active. Select the next bounded subsystem wave
+from the approved remediation map after the coordinated Prodigy and Companion
+pull requests are reviewed.
 
 ## Later
 

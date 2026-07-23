@@ -1,7 +1,7 @@
 # API and Core Asynchronous Lifecycle Remediation — Implementation Plan
 
 Date: 2026-07-22
-Status: ACTIVE
+Status: COMPLETED 2026-07-22
 Design: `docs/plans/2026-07-22-api-core-async-lifecycle-remediation-design.md`
 Base: `origin/main` at `42f6aa4344fec17f275122cdf76ced8a6fb3b369`
 
