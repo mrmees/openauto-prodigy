@@ -5,16 +5,29 @@
 
 namespace oap {
 
-static const QString SOCKET_PATH = QStringLiteral("/run/openauto/system.sock");
+static const QString DEFAULT_SOCKET_PATH = QStringLiteral("/run/openauto/system.sock");
+static constexpr int DEFAULT_RETRY_INTERVAL_MS = 5000;
 
 SystemServiceClient::SystemServiceClient(QObject* parent)
+    : SystemServiceClient(DEFAULT_SOCKET_PATH, DEFAULT_RETRY_INTERVAL_MS, parent)
+{
+}
+
+SystemServiceClient::SystemServiceClient(const QString& socketPath, int retryIntervalMs,
+                                         QObject* parent)
     : QObject(parent)
+    , socketPath_(socketPath)
 {
     socket_ = new QLocalSocket(this);
+    retryTimer_ = new QTimer(this);
+    retryTimer_->setSingleShot(true);
+    retryTimer_->setInterval(qMax(1, retryIntervalMs));
+
     connect(socket_, &QLocalSocket::connected, this, &SystemServiceClient::onConnected);
     connect(socket_, &QLocalSocket::disconnected, this, &SystemServiceClient::onDisconnected);
     connect(socket_, &QLocalSocket::readyRead, this, &SystemServiceClient::onReadyRead);
     connect(socket_, &QLocalSocket::errorOccurred, this, &SystemServiceClient::onError);
+    connect(retryTimer_, &QTimer::timeout, this, &SystemServiceClient::connectToService);
 
     connectToService();
 }
@@ -69,11 +82,21 @@ void SystemServiceClient::connectToService()
 {
     if (socket_->state() != QLocalSocket::UnconnectedState)
         return;
-    socket_->connectToServer(SOCKET_PATH);
+    socket_->connectToServer(socketPath_);
+}
+
+void SystemServiceClient::scheduleRetry()
+{
+    if (socket_->state() != QLocalSocket::UnconnectedState)
+        socket_->abort();
+
+    if (!retryTimer_->isActive())
+        retryTimer_->start();
 }
 
 void SystemServiceClient::onConnected()
 {
+    retryTimer_->stop();
     qCInfo(lcCore) << "SystemServiceClient: connected to daemon";
     emit connectedChanged();
     getHealth();
@@ -83,17 +106,14 @@ void SystemServiceClient::onDisconnected()
 {
     qCInfo(lcCore) << "SystemServiceClient: disconnected from daemon";
     emit connectedChanged();
-    // Retry after 5 seconds
-    QTimer::singleShot(5000, this, &SystemServiceClient::connectToService);
+    scheduleRetry();
 }
 
 void SystemServiceClient::onError(QLocalSocket::LocalSocketError error)
 {
-    if (error == QLocalSocket::ServerNotFoundError ||
-        error == QLocalSocket::ConnectionRefusedError) {
-        // Daemon not running yet, retry
-        QTimer::singleShot(5000, this, &SystemServiceClient::connectToService);
-    }
+    qCWarning(lcCore) << "SystemServiceClient: socket error" << error
+                      << socket_->errorString();
+    scheduleRetry();
 }
 
 void SystemServiceClient::onReadyRead()
