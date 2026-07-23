@@ -206,6 +206,58 @@ private slots:
                               QStringLiteral("Pacific/Chatham")}));
     }
 
+    void timezoneReportsKeepOnlyLatestPendingChange() {
+        oap::ClockSyncService sync;
+        QList<QStringList> calls;
+        QList<std::function<void(int)>> completions;
+        sync.setSystemZoneForTest([] { return QByteArray("America/Chicago"); });
+        sync.setExecForTest([&](const QStringList& args,
+                                std::function<void(int)> completion) {
+            calls.append(args);
+            completions.append(std::move(completion));
+        });
+
+        sync.onTimezoneReported(QStringLiteral("America/Denver"));
+        sync.onTimezoneReported(QStringLiteral("America/New_York"));
+        sync.onTimezoneReported(QStringLiteral("Pacific/Chatham"));
+        QCOMPARE(calls.size(), 1);
+
+        completions.takeFirst()(0);
+        QCOMPARE(calls.size(), 2);
+        QCOMPARE(calls[1],
+                 (QStringList{QStringLiteral("set-timezone"),
+                              QStringLiteral("Pacific/Chatham")}));
+        completions.takeFirst()(0);
+        QCOMPARE(calls.size(), 2);
+    }
+
+    void latestTimezoneCanCancelOrSupersedePendingChange() {
+        oap::ClockSyncService sync;
+        QList<QStringList> calls;
+        QList<std::function<void(int)>> completions;
+        sync.setSystemZoneForTest([] { return QByteArray("America/Chicago"); });
+        sync.setExecForTest([&](const QStringList& args,
+                                std::function<void(int)> completion) {
+            calls.append(args);
+            completions.append(std::move(completion));
+        });
+
+        sync.onTimezoneReported(QStringLiteral("America/Denver"));
+        sync.onTimezoneReported(QStringLiteral("America/New_York"));
+        sync.onTimezoneReported(QStringLiteral("America/Denver"));
+        completions.takeFirst()(0);
+        QCOMPARE(calls.size(), 1);  // latest agrees with the completed command
+
+        sync.onTimezoneReported(QStringLiteral("Pacific/Chatham"));
+        sync.onTimezoneReported(QStringLiteral("America/Chicago"));
+        completions.takeFirst()(0);
+        QCOMPARE(calls.size(), 3);
+        QCOMPARE(calls[2],
+                 (QStringList{QStringLiteral("set-timezone"),
+                              QStringLiteral("America/Chicago")}));
+        completions.takeFirst()(0);
+    }
+
     void commandSequenceIsAsynchronousAndDuplicateTimeReportsCoalesce() {
         oap::ClockSyncService sync;
         QList<QStringList> calls;
@@ -261,6 +313,27 @@ private slots:
         sync.onTimeReported(kNow + 35000);
         QCOMPARE(calls.size(), 6);
         QCOMPARE(adjusted.count(), 1);
+    }
+
+    void realProcessTimeoutCannotConsumeSuccessorCompletion() {
+        oap::ClockSyncService sync;
+        sync.setCommandTimeoutForTest(50);
+        sync.setClockForTest([] { return kNow; });
+        // Hang only the first NTP-off command. Its kill()/finished delivery
+        // races the next two immediate-success children, exercising the real
+        // QProcess lifecycle rather than the injected completion seam.
+        sync.setProcessCommandForTest(
+            QStringLiteral("/bin/sh"),
+            {QStringLiteral("-c"),
+             QStringLiteral("if [ \"$1\" = set-ntp ] && [ \"$2\" = false ]; "
+                            "then exec sleep 10; fi; exit 0"),
+             QStringLiteral("clock-sync-test")});
+        QSignalSpy adjusted(&sync, &oap::ClockSyncService::clockAdjusted);
+
+        sync.onTimeReported(kNow + 35000);
+
+        QTRY_COMPARE_WITH_TIMEOUT(adjusted.count(), 1, 2000);
+        QCOMPARE(adjusted.takeFirst().at(0).toLongLong(), qint64(35000));
     }
 };
 

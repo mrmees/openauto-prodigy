@@ -14,42 +14,21 @@ ClockSyncService::ClockSyncService(QObject* parent)
     , now_([] { return QDateTime::currentMSecsSinceEpoch(); })
     , systemZone_([] { return QTimeZone::systemTimeZoneId(); })
 {
-    process_ = new QProcess(this);
     commandTimeout_ = new QTimer(this);
     commandTimeout_->setSingleShot(true);
     commandTimeout_->setInterval(5000);
 
-    connect(process_, &QProcess::finished, this,
-            [this](int exitCode, QProcess::ExitStatus status) {
-        auto completion = std::move(processCompletion_);
-        processCompletion_ = {};
-        if (!completion)
-            return;
-        if (status != QProcess::NormalExit)
-            exitCode = -1;
-        if (exitCode != 0) {
-            qCWarning(lcCore) << "ClockSync: timedatectl failed:"
-                              << process_->readAllStandardError();
-        }
-        completion(exitCode);
-    });
-    connect(process_, &QProcess::errorOccurred, this,
-            [this](QProcess::ProcessError error) {
-        if (error != QProcess::FailedToStart || !processCompletion_)
-            return;
-        auto completion = std::move(processCompletion_);
-        processCompletion_ = {};
-        qCWarning(lcCore) << "ClockSync: timedatectl failed to start:"
-                          << process_->errorString();
-        completion(-1);
-    });
     connect(commandTimeout_, &QTimer::timeout, this, [this] {
         if (!commandRunning_)
             return;
         qCWarning(lcCore) << "ClockSync: timedatectl command timed out";
-        processCompletion_ = {};
-        if (process_->state() != QProcess::NotRunning)
-            process_->kill();
+        // Detach the timed-out attempt before advancing the logical queue.
+        // kill() is asynchronous: its finished signal may arrive after the
+        // next command has started, so that command must own a fresh process.
+        QProcess* timedOutProcess = activeProcess_;
+        activeProcess_ = nullptr;
+        if (timedOutProcess && timedOutProcess->state() != QProcess::NotRunning)
+            timedOutProcess->kill();
         finishCurrentCommand(commandSerial_, -1);
     });
 
@@ -63,17 +42,113 @@ void ClockSyncService::setCommandTimeoutForTest(int ms)
     commandTimeout_->setInterval(ms);
 }
 
+void ClockSyncService::setProcessCommandForTest(
+    QString program, QStringList prefixArgs)
+{
+    processProgram_ = std::move(program);
+    processPrefixArgs_ = std::move(prefixArgs);
+}
+
 void ClockSyncService::startTimedatectl(
     const QStringList& args, std::function<void(int)> completion)
 {
-    processCompletion_ = std::move(completion);
-    process_->start(QStringLiteral("timedatectl"), args);
+    // A timed-out QProcess does not become NotRunning synchronously when it is
+    // killed. Give every command an isolated process so a late finished/error
+    // signal can only complete that command's serial, never its successor.
+    auto* process = new QProcess(this);
+    activeProcess_ = process;
+    struct Attempt {
+        bool completed = false;
+        std::function<void(int)> completion;
+    };
+    auto attempt = std::make_shared<Attempt>();
+    attempt->completion = std::move(completion);
+
+    auto complete = [this, process, attempt](int exitCode) {
+        if (attempt->completed)
+            return;
+        attempt->completed = true;
+        if (activeProcess_ == process)
+            activeProcess_ = nullptr;
+        auto callback = std::move(attempt->completion);
+        process->deleteLater();
+        callback(exitCode);
+    };
+    connect(process, &QProcess::finished, this,
+            [process, complete](int exitCode, QProcess::ExitStatus status) {
+        if (status != QProcess::NormalExit)
+            exitCode = -1;
+        if (exitCode != 0) {
+            qCWarning(lcCore) << "ClockSync: timedatectl failed:"
+                              << process->readAllStandardError();
+        }
+        complete(exitCode);
+    });
+    connect(process, &QProcess::errorOccurred, this,
+            [process, complete](QProcess::ProcessError error) {
+        if (error != QProcess::FailedToStart)
+            return;
+        qCWarning(lcCore) << "ClockSync: timedatectl failed to start:"
+                          << process->errorString();
+        complete(-1);
+    });
+
+    QStringList processArgs = processPrefixArgs_;
+    processArgs.append(args);
+    process->start(processProgram_, processArgs);
 }
 
 void ClockSyncService::enqueueCommand(
     QStringList args, std::function<void(int)> completion)
 {
-    commandQueue_.enqueue({std::move(args), std::move(completion)});
+    commandQueue_.enqueue(
+        {std::move(args), std::move(completion), CommandKind::General, {}});
+    startNextCommand();
+}
+
+void ClockSyncService::enqueueTimezoneCommand(const QString& ianaId)
+{
+    const bool timezoneRunning = commandRunning_
+        && !commandQueue_.isEmpty()
+        && commandQueue_.head().kind == CommandKind::Timezone;
+    int queuedTimezoneIndex = -1;
+    const int firstQueuedIndex = commandRunning_ ? 1 : 0;
+    for (int i = firstQueuedIndex; i < commandQueue_.size(); ++i) {
+        if (commandQueue_[i].kind == CommandKind::Timezone) {
+            queuedTimezoneIndex = i;
+            break;
+        }
+    }
+
+    // The latest report supersedes any waiting timezone. If it agrees with
+    // the command already running, the queued superseding command is stale.
+    if (timezoneRunning && commandQueue_.head().timezone == ianaId) {
+        if (queuedTimezoneIndex >= 0)
+            commandQueue_.removeAt(queuedTimezoneIndex);
+        return;
+    }
+
+    // With no timezone change already in flight, a report of the effective
+    // system zone cancels a queued change instead of scheduling redundant IO.
+    if (!timezoneRunning && ianaId.toUtf8() == systemZone_()) {
+        if (queuedTimezoneIndex >= 0)
+            commandQueue_.removeAt(queuedTimezoneIndex);
+        return;
+    }
+
+    Command command{
+        {QStringLiteral("set-timezone"), ianaId},
+        [ianaId](int rc) {
+            if (rc == 0)
+                qCInfo(lcCore) << "ClockSync: timezone adjusted to" << ianaId;
+        },
+        CommandKind::Timezone,
+        ianaId,
+    };
+    if (queuedTimezoneIndex >= 0)
+        commandQueue_[queuedTimezoneIndex] = std::move(command);
+    else
+        commandQueue_.enqueue(std::move(command));
     startNextCommand();
 }
 
@@ -154,13 +229,7 @@ void ClockSyncService::onTimeReported(qint64 phoneTimeMs)
 
 void ClockSyncService::onTimezoneReported(const QString& ianaId)
 {
-    if (ianaId.toUtf8() == systemZone_()) return;
-
-    enqueueCommand({QStringLiteral("set-timezone"), ianaId},
-                   [ianaId](int rc) {
-        if (rc == 0)
-            qCInfo(lcCore) << "ClockSync: timezone adjusted to" << ianaId;
-    });
+    enqueueTimezoneCommand(ianaId);
 }
 
 } // namespace oap

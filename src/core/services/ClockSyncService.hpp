@@ -18,7 +18,8 @@ namespace oap {
 // Semantics: 30 s drift trigger; steps backward larger than 5 minutes need
 // 3 consecutive reports agreeing on the same target before they apply;
 // timezone steps are skipped when the reported zone already matches the
-// system zone. All steps go through timedatectl (polkit-authorized, see
+// system zone, and repeated timezone reports retain only the latest pending
+// change. All steps go through timedatectl (polkit-authorized, see
 // config/clock-sync-polkit.rules).
 //
 // The set-time argument carries an explicit " UTC" suffix: timedatectl
@@ -40,6 +41,7 @@ public:
     void setClockForTest(ClockFn fn) { now_ = std::move(fn); }
     void setSystemZoneForTest(ZoneFn fn) { systemZone_ = std::move(fn); }
     void setCommandTimeoutForTest(int ms);
+    void setProcessCommandForTest(QString program, QStringList prefixArgs = {});
 
 public slots:
     void onTimeReported(qint64 phoneTimeMs);
@@ -49,12 +51,20 @@ signals:
     void clockAdjusted(qint64 deltaMs);
 
 private:
+    enum class CommandKind {
+        General,
+        Timezone,
+    };
+
     struct Command {
         QStringList args;
         std::function<void(int)> completion;
+        CommandKind kind = CommandKind::General;
+        QString timezone;
     };
 
     void enqueueCommand(QStringList args, std::function<void(int)> completion = {});
+    void enqueueTimezoneCommand(const QString& ianaId);
     void startNextCommand();
     void finishCurrentCommand(quint64 serial, int exitCode);
     void startTimedatectl(const QStringList& args, std::function<void(int)> completion);
@@ -68,9 +78,10 @@ private:
     bool commandRunning_ = false;
     bool timeSyncPending_ = false;
     quint64 commandSerial_ = 0;
-    QProcess* process_ = nullptr;
+    QString processProgram_ = QStringLiteral("timedatectl");
+    QStringList processPrefixArgs_;
+    QProcess* activeProcess_ = nullptr;
     QTimer* commandTimeout_ = nullptr;
-    std::function<void(int)> processCompletion_;
 };
 
 } // namespace oap
