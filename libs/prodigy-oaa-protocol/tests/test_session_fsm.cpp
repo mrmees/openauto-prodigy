@@ -433,6 +433,30 @@ private slots:
         QCOMPARE(disconnectSpy.count(), 1);
     }
 
+    void testEncryptedFrameDuringHandshakeFailsImmediately() {
+        oaa::ReplayTransport transport;
+        oaa::SessionConfig config;
+        oaa::AASession session(&transport, config);
+        QSignalSpy disconnectSpy(&session, &oaa::AASession::disconnected);
+
+        transport.simulateConnect();
+        session.start();
+        transport.feedData(makeVersionResponseFrame(1, 7, 0x0000));
+        QCOMPARE(session.state(), oaa::SessionState::TLSHandshake);
+
+        QByteArray frame(4, '\0');
+        frame[0] = 0;
+        frame[1] = char(0x0b); // BULK | ENCRYPTED | SPECIFIC
+        qToBigEndian<uint16_t>(1, reinterpret_cast<uchar*>(frame.data() + 2));
+        frame.append('X');
+        transport.feedData(frame);
+
+        QCOMPARE(session.state(), oaa::SessionState::Disconnected);
+        QCOMPARE(disconnectSpy.count(), 1);
+        QCOMPARE(disconnectSpy[0][0].value<oaa::DisconnectReason>(),
+                 oaa::DisconnectReason::HandshakeError);
+    }
+
     void testPostHandshakeTlsFailureDisconnectsExactlyOnce() {
         oaa::ReplayTransport transport;
         oaa::SessionConfig config;
@@ -485,6 +509,8 @@ private slots:
         transport.simulateConnect();
         session.start();
         advanceToActive(session);
+        QVERIFY(!pingSpy.isEmpty());
+        QCOMPARE(pingSpy.last()[1].value<uint16_t>(), uint16_t(0x000b));
         pingSpy.clear();
 
         QTRY_VERIFY_WITH_TIMEOUT(pingSpy.count() >= 3, 120);
@@ -504,10 +530,10 @@ private slots:
         QCOMPARE(disconnectSpy.count(), 1);
     }
 
-    void testActivePongRestartsConfiguredDeadline() {
+    void testActivePongClearsDeadlineAndNextPingRearmsIt() {
         oaa::ReplayTransport transport;
         oaa::SessionConfig config;
-        config.pingInterval = 1000;
+        config.pingInterval = 60;
         config.pingTimeout = 80;
         oaa::AASession session(&transport, config);
         QSignalSpy disconnectSpy(&session, &oaa::AASession::disconnected);

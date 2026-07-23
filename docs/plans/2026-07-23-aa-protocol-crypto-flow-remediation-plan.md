@@ -146,8 +146,9 @@ buffering, media decode, TLS policy, or application-level payload limits.
   returns `ack_count = 1`; no hard-coded duplicate threshold or counter remains.
 - `pingInterval` controls send cadence and `pingTimeout` independently controls
   the single-shot pong deadline across custom configurations.
-- Pongs while Active reset the deadline; close/finalize/restart cancel it; expiry
-  emits one `PingTimeout` and cannot be revived by a late pong.
+- Active sends a ping before arming the deadline; pongs clear the outstanding
+  deadline, the next ping rearms it, and close/finalize/restart cancel both.
+  Expiry emits one `PingTimeout` and cannot be revived by a late pong.
 - ACTIVE→REROUTING remains active with no duplicate signal or downstream clear.
   INACTIVE and UNAVAILABLE transition inactive exactly once.
 - Existing audio payload delivery, setup/start/stop, video ACK, navigation
@@ -197,7 +198,7 @@ night state, HFP, AVRCP, or new navigation features.
   publication approval.
 
 **Test command:**
-`cd ~/builds/openauto-prodigy && cmake --build . -j$(nproc) && cmake --build . --target openauto-prodigy -j$(nproc) && ctest --output-on-failure; cd /mnt/e/claude/personal/openautopro/openauto-prodigy && python3 scripts/check-doc-links.py && git diff --check origin/main`
+`cd ~/builds/openauto-prodigy && cmake --build . -j$(nproc) && cmake --build . --target openauto-prodigy -j$(nproc) && ctest --output-on-failure && cd /mnt/e/claude/personal/openautopro/openauto-prodigy && python3 scripts/check-doc-links.py && git diff --check origin/main`
 
 **Out of scope:** Any unplanned remediation, companion-app work, service restart
 beyond the application, re-pairing, release tag, or ready-for-review promotion.

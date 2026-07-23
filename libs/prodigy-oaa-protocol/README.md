@@ -67,9 +67,10 @@ reached the transport.
 
 Audio channels advertise ten receive permits and return one permit for every
 accepted frame, preserving pipeline headroom. Session ping cadence and pong
-deadline use their independent configured intervals; a pong while Active
-restarts the single-shot deadline. Navigation remains active through both the
-ACTIVE and REROUTING phone states.
+deadline use their independent configured intervals: Active sends an immediate
+ping, an outstanding ping arms the single-shot deadline, and its pong clears
+that deadline. Navigation remains active through both the ACTIVE and REROUTING
+phone states.
 
 ## Dependencies
 

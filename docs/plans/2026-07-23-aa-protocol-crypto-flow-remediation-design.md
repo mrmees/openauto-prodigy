@@ -81,10 +81,11 @@ headroom. Every accepted media frame immediately emits an ACK with
 handler. The unused counter and duplicated numeric literal are removed.
 
 `AASession` owns a single-shot pong-deadline timer in addition to the periodic
-ping timer. Entering Active starts both from their configured millisecond
-values; a pong while Active restarts the deadline. Disconnect, finalization,
-shutdown, or restart stops it. Expiry produces exactly one `PingTimeout`
-disconnect at `SessionConfig::pingTimeout`, independent of `pingInterval`.
+ping timer. Entering Active sends the first ping immediately and starts the
+periodic cadence. A ping arms the deadline only when none is outstanding; a
+pong while Active clears it. Disconnect, finalization, shutdown, or restart
+stops both timers. Expiry produces exactly one `PingTimeout` disconnect at
+`SessionConfig::pingTimeout`, independent of `pingInterval`.
 
 Navigation state handling uses generated enum names. ACTIVE and REROUTING map
 to observable active navigation; UNAVAILABLE and INACTIVE map to false. Signals

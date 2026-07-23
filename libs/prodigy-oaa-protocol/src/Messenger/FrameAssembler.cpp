@@ -69,8 +69,8 @@ void FrameAssembler::onFrame(const FrameHeader& header,
         }
 
         const uint32_t payloadSize = static_cast<uint32_t>(payload.size());
-        if (header.totalMessageSize == 0) {
-            fail(QStringLiteral("FIRST declared zero total on channel %1")
+        if (header.totalMessageSize < 2) {
+            fail(QStringLiteral("FIRST total cannot contain a message ID on channel %1")
                      .arg(header.channelId));
             return;
         }

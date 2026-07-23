@@ -338,9 +338,13 @@ void AASession::onHandshakeFailed(const QString& message) {
 }
 
 void AASession::onTlsFailed(const QString& message) {
-    if (state_ == SessionState::Idle || state_ == SessionState::Disconnected
-        || state_ == SessionState::TLSHandshake)
+    if (state_ == SessionState::Idle || state_ == SessionState::Disconnected)
         return;
+
+    if (state_ == SessionState::TLSHandshake) {
+        onHandshakeFailed(message);
+        return;
+    }
 
     qWarning() << "[AASession] TLS runtime failure:" << message;
     stopStateTimer();
@@ -384,7 +388,7 @@ void AASession::onServiceDiscoveryRequested(const QByteArray& payload) {
         return;
     controlChannel_->onChannelOpened();
     pingTimer_.start(config_.pingInterval);
-    pongDeadlineTimer_.start(config_.pingTimeout);
+    onPingTick();
 }
 
 void AASession::onChannelOpenRequested(int32_t channelId, const QByteArray& /*payload*/) {
@@ -515,11 +519,13 @@ void AASession::onPingTick() {
 
     lastPingTimestamp_ = QDateTime::currentMSecsSinceEpoch();
     controlChannel_->sendPingRequest(lastPingTimestamp_);
+    if (state_ == SessionState::Active && !pongDeadlineTimer_.isActive())
+        pongDeadlineTimer_.start(config_.pingTimeout);
 }
 
 void AASession::onPongReceived(int64_t /*timestamp*/) {
     if (state_ == SessionState::Active)
-        pongDeadlineTimer_.start(config_.pingTimeout);
+        pongDeadlineTimer_.stop();
 }
 
 void AASession::onPongDeadline() {

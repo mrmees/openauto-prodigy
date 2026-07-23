@@ -234,7 +234,8 @@ void Messenger::onMessageAssembled(uint8_t channelId, MessageType messageType,
                                     const QByteArray& payload)
 {
     if (payload.size() < 2) {
-        qWarning() << "Messenger: assembled message too short, ch" << channelId;
+        failProtocol(QStringLiteral("assembled message cannot contain a message ID on channel %1")
+                         .arg(channelId));
         return;
     }
 

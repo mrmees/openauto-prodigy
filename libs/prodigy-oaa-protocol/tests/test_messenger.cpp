@@ -472,6 +472,21 @@ private slots:
         messenger.sendMessage(3, 0x1234, QByteArrayLiteral("must not send"));
         QCOMPARE(transport.writtenData().size(), 0);
     }
+
+    void testShortBulkMessageIsTerminalProtocolFailure() {
+        oaa::ReplayTransport transport;
+        oaa::Messenger messenger(&transport);
+        QSignalSpy failureSpy(&messenger, &oaa::Messenger::protocolFailed);
+        QSignalSpy messageSpy(&messenger, &oaa::Messenger::messageReceived);
+
+        messenger.start();
+        transport.feedData(buildFrame(
+            3, oaa::FrameType::Bulk, oaa::MessageType::Specific,
+            oaa::EncryptionType::Plain, QByteArray(1, 'X')));
+
+        QCOMPARE(failureSpy.count(), 1);
+        QCOMPARE(messageSpy.count(), 0);
+    }
 };
 
 QTEST_MAIN(TestMessenger)

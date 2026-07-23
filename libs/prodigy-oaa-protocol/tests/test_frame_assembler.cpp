@@ -92,6 +92,7 @@ private slots:
         QTest::addColumn<QByteArray>("payload");
 
         QTest::newRow("zero") << uint32_t(0) << QByteArray("AA");
+        QTest::newRow("one-byte-message") << uint32_t(1) << QByteArray();
         QTest::newRow("equal-to-first") << uint32_t(2) << QByteArray("AA");
         QTest::newRow("smaller-than-first") << uint32_t(1) << QByteArray("AA");
         QTest::newRow("over-per-message-limit") << uint32_t(17) << QByteArray("AA");
