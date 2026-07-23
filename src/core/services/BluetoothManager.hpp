@@ -104,7 +104,9 @@ private:
     void handleAgentRequestAuthorization(const QDBusMessage& msg, const QString& devicePath);
     void handleAgentDisplayPasskey(const QString& devicePath, const QString& passkey,
                                    int entered = -1);
+    void handleAgentRelease();
     void handleAgentCancel();
+    void abortPairingPrompt(const QString& reason);
     void clearPairingPrompt();
 
     // First-run pairing
@@ -144,6 +146,8 @@ private:
     QTimer* pairableRenewTimer_ = nullptr;
     bool managedObjectsRefreshInFlight_ = false;
     bool managedObjectsRefreshPending_ = false;
+    quint64 bluezServiceGeneration_ = 0;
+    quint64 managedObjectsRequestGeneration_ = 0;
     bool initialSnapshotApplied_ = false;
     QString configuredAdapterPath_;
     bool subscriptionsConnected_ = false;
@@ -154,6 +158,7 @@ private:
     int autoConnectAttempt_ = 0;
     int autoConnectDeviceIndex_ = 0;
     bool autoConnectInFlight_ = false;
+    quint64 autoConnectGeneration_ = 0;
     QStringList pairedDevicePaths_;
 };
 

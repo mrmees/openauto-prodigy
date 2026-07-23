@@ -35,7 +35,12 @@ public:
     TestBluezManagedObjectMap objects;
     int replyDelayMs = 200;
     int callCount = 0;
+    int replyCount = 0;
     bool failNext = false;
+    bool malformedNext = false;
+
+signals:
+    void replySent();
 
 public slots:
     void GetManagedObjects()
@@ -48,11 +53,16 @@ public slots:
             failNext = false;
             reply = message().createErrorReply(
                 QStringLiteral("org.openauto.TestError"), QStringLiteral("planned failure"));
+        } else if (malformedNext) {
+            malformedNext = false;
+            reply = message().createReply(QStringLiteral("not a managed-object map"));
         } else {
             reply = message().createReply(QVariant::fromValue(objects));
         }
-        QTimer::singleShot(replyDelayMs, this, [replyBus, reply]() {
+        QTimer::singleShot(replyDelayMs, this, [this, replyBus, reply]() {
             replyBus.send(reply);
+            ++replyCount;
+            emit replySent();
         });
     }
 };
@@ -111,6 +121,11 @@ private slots:
     void testFirstRunAndRemovalFollowSnapshots();
     void testAgentMethodSurfaceAndPromptModes();
     void testAsyncRefreshCoalescesAndAppliesFinalSnapshot();
+    void testBluezLossDiscardsOldManagedObjectsReply();
+    void testMalformedManagedObjectsReplyRetainsState();
+    void testAgentReleaseCancelsDelayedConfirmation();
+    void testShutdownCancelsDelayedConfirmation();
+    void testBluezLossCancelsDelayedConfirmation();
     void testPairableToggle();
     void testAutoConnectLifecycle();
 };
@@ -123,7 +138,10 @@ void TestBluetoothManager::testAsyncRefreshCoalescesAndAppliesFinalSnapshot()
     qDBusRegisterMetaType<TestBluezManagedObjectMap>();
 
     BluezObjectManagerFixture fixture;
-    fixture.failNext = true;
+    auto staleObjects = adapterSnapshot();
+    addDevice(staleObjects, true, true, QStringLiteral("Stale Pixel"));
+    for (auto it = staleObjects.cbegin(); it != staleObjects.cend(); ++it)
+        fixture.objects[QDBusObjectPath(it.key())] = it.value();
     QVERIFY(bus.registerObject(QStringLiteral("/"), &fixture,
                                QDBusConnection::ExportAllSlots));
     QVERIFY(bus.registerService(QStringLiteral("org.bluez")));
@@ -131,6 +149,7 @@ void TestBluetoothManager::testAsyncRefreshCoalescesAndAppliesFinalSnapshot()
     MockConfigService config;
     config.values_[QStringLiteral("connection.auto_connect_aa")] = false;
     oap::BluetoothManager mgr(&config, bus);
+    QSignalSpy connectedSpy(&mgr, &oap::BluetoothManager::connectedDeviceChanged);
     int heartbeats = 0;
     QTimer heartbeat;
     heartbeat.setInterval(10);
@@ -143,16 +162,9 @@ void TestBluetoothManager::testAsyncRefreshCoalescesAndAppliesFinalSnapshot()
     QVERIFY2(elapsed.elapsed() < 100, "initialize must not block on GetManagedObjects");
     QTRY_COMPARE(fixture.callCount, 1);
 
-    fixture.objects[QDBusObjectPath(kAdapterPath)][QStringLiteral("org.bluez.Adapter1")] = {
-        {QStringLiteral("Address"), QStringLiteral("11:22:33:44:55:66")},
-        {QStringLiteral("Pairable"), false},
-    };
-    fixture.objects[QDBusObjectPath(kDevicePath)][QStringLiteral("org.bluez.Device1")] = {
-        {QStringLiteral("Address"), QStringLiteral("AA:BB:CC:DD:EE:FF")},
-        {QStringLiteral("Name"), QStringLiteral("Pixel")},
-        {QStringLiteral("Paired"), true},
-        {QStringLiteral("Connected"), true},
-    };
+    fixture.objects[QDBusObjectPath(kDevicePath)]
+        [QStringLiteral("org.bluez.Device1")][QStringLiteral("Name")] =
+            QStringLiteral("Pixel");
     for (int i = 0; i < 4; ++i)
         QVERIFY(QMetaObject::invokeMethod(&mgr, "onInterfacesChanged",
                                           Qt::DirectConnection));
@@ -160,6 +172,7 @@ void TestBluetoothManager::testAsyncRefreshCoalescesAndAppliesFinalSnapshot()
     QTRY_COMPARE_WITH_TIMEOUT(fixture.callCount, 2, 3000);
     QTRY_COMPARE_WITH_TIMEOUT(mgr.connectedDeviceName(), QStringLiteral("Pixel"), 3000);
     QCOMPARE(mgr.adapterAddress(), QStringLiteral("11:22:33:44:55:66"));
+    QCOMPARE(connectedSpy.count(), 1);
     QVERIFY(heartbeats > 0);
     QCOMPARE(fixture.callCount, 2);
 
@@ -168,6 +181,94 @@ void TestBluetoothManager::testAsyncRefreshCoalescesAndAppliesFinalSnapshot()
     QVERIFY(bus.unregisterService(QStringLiteral("org.bluez")));
     QTest::qWait(50);
     QCOMPARE(mgr.connectedDeviceName(), connectedAfterShutdown);
+    bus.unregisterObject(QStringLiteral("/"));
+}
+
+void TestBluetoothManager::testBluezLossDiscardsOldManagedObjectsReply()
+{
+    QDBusConnection bus = QDBusConnection::sessionBus();
+    QVERIFY(bus.isConnected());
+    qDBusRegisterMetaType<oap::BluezInterfaceMap>();
+    qDBusRegisterMetaType<TestBluezManagedObjectMap>();
+
+    BluezObjectManagerFixture fixture;
+    auto staleObjects = adapterSnapshot();
+    addDevice(staleObjects, true, true, QStringLiteral("Stale Pixel"));
+    for (auto it = staleObjects.cbegin(); it != staleObjects.cend(); ++it)
+        fixture.objects[QDBusObjectPath(it.key())] = it.value();
+    QVERIFY(bus.registerObject(QStringLiteral("/"), &fixture,
+                               QDBusConnection::ExportAllSlots));
+    QVERIFY(bus.registerService(QStringLiteral("org.bluez")));
+
+    MockConfigService config;
+    config.values_[QStringLiteral("connection.auto_connect_aa")] = false;
+    oap::BluetoothManager mgr(&config, bus);
+    auto seed = adapterSnapshot();
+    addDevice(seed, true, true, QStringLiteral("Seed Pixel"));
+    mgr.applyManagedObjectsSnapshot(seed);
+    QCOMPARE(mgr.connectedDeviceName(), QStringLiteral("Seed Pixel"));
+
+    mgr.initialize();
+    QTRY_COMPARE(fixture.callCount, 1);
+    QVERIFY(bus.unregisterService(QStringLiteral("org.bluez")));
+    QTRY_VERIFY(mgr.connectedDeviceName().isEmpty());
+    QTRY_COMPARE_WITH_TIMEOUT(fixture.replyCount, 1, 3000);
+    QTest::qWait(50);
+    QCOMPARE(mgr.connectedDeviceName(), QString());
+    QVERIFY(mgr.adapterAddress().isEmpty());
+
+    mgr.shutdown();
+    bus.unregisterObject(QStringLiteral("/"));
+}
+
+void TestBluetoothManager::testMalformedManagedObjectsReplyRetainsState()
+{
+    QDBusConnection bus = QDBusConnection::sessionBus();
+    QVERIFY(bus.isConnected());
+    qDBusRegisterMetaType<oap::BluezInterfaceMap>();
+    qDBusRegisterMetaType<TestBluezManagedObjectMap>();
+
+    BluezObjectManagerFixture fixture;
+    auto validObjects = adapterSnapshot();
+    addDevice(validObjects, true, true);
+    for (auto it = validObjects.cbegin(); it != validObjects.cend(); ++it)
+        fixture.objects[QDBusObjectPath(it.key())] = it.value();
+    QVERIFY(bus.registerObject(QStringLiteral("/"), &fixture,
+                               QDBusConnection::ExportAllSlots));
+    QVERIFY(bus.registerService(QStringLiteral("org.bluez")));
+
+    MockConfigService config;
+    config.values_[QStringLiteral("connection.auto_connect_aa")] = false;
+    oap::BluetoothManager mgr(&config, bus);
+    mgr.initialize();
+    QTRY_COMPARE_WITH_TIMEOUT(fixture.replyCount, 1, 3000);
+    QCOMPARE(mgr.connectedDeviceName(), QStringLiteral("Pixel"));
+
+    fixture.failNext = true;
+    QVERIFY(QMetaObject::invokeMethod(&mgr, "onInterfacesChanged",
+                                      Qt::DirectConnection));
+    QTRY_COMPARE_WITH_TIMEOUT(fixture.replyCount, 2, 3000);
+    QTest::qWait(50);
+    QCOMPARE(mgr.connectedDeviceName(), QStringLiteral("Pixel"));
+    QCOMPARE(mgr.adapterAddress(), QStringLiteral("11:22:33:44:55:66"));
+
+    fixture.malformedNext = true;
+    QVERIFY(QMetaObject::invokeMethod(&mgr, "onInterfacesChanged",
+                                      Qt::DirectConnection));
+    QTRY_COMPARE_WITH_TIMEOUT(fixture.replyCount, 3, 3000);
+    QTest::qWait(50);
+    QCOMPARE(mgr.connectedDeviceName(), QStringLiteral("Pixel"));
+    QCOMPARE(mgr.adapterAddress(), QStringLiteral("11:22:33:44:55:66"));
+
+    fixture.objects.clear();
+    QVERIFY(QMetaObject::invokeMethod(&mgr, "onInterfacesChanged",
+                                      Qt::DirectConnection));
+    QTRY_COMPARE_WITH_TIMEOUT(fixture.replyCount, 4, 3000);
+    QTRY_VERIFY(mgr.connectedDeviceName().isEmpty());
+    QTRY_VERIFY(mgr.adapterAddress().isEmpty());
+
+    mgr.shutdown();
+    QVERIFY(bus.unregisterService(QStringLiteral("org.bluez")));
     bus.unregisterObject(QStringLiteral("/"));
 }
 
@@ -278,7 +379,8 @@ void TestBluetoothManager::testAgentMethodSurfaceAndPromptModes()
     const QDBusMessage introspectReply = awaitReply(introspectWatcher);
     QCOMPARE(introspectReply.type(), QDBusMessage::ReplyMessage);
     const QString xml = introspectReply.arguments().constFirst().toString();
-    for (const QString& method : {QStringLiteral("RequestPinCode"),
+    for (const QString& method : {QStringLiteral("Release"),
+                                  QStringLiteral("RequestPinCode"),
                                   QStringLiteral("RequestPasskey"),
                                   QStringLiteral("DisplayPinCode"),
                                   QStringLiteral("DisplayPasskey"),
@@ -347,6 +449,118 @@ void TestBluetoothManager::testAgentMethodSurfaceAndPromptModes()
     QCOMPARE(authorizeReply.type(), QDBusMessage::ErrorMessage);
     QCOMPARE(authorizeReply.errorName(), QStringLiteral("org.bluez.Error.Rejected"));
 
+    QDBusConnection::disconnectFromBus(clientName);
+}
+
+void TestBluetoothManager::testAgentReleaseCancelsDelayedConfirmation()
+{
+    MockConfigService config;
+    config.values_[QStringLiteral("connection.auto_connect_aa")] = false;
+    const QDBusConnection serverBus = QDBusConnection::sessionBus();
+    oap::BluetoothManager mgr(&config, serverBus);
+    auto objects = adapterSnapshot();
+    addDevice(objects, false, false);
+    mgr.applyManagedObjectsSnapshot(objects);
+
+    const QString clientName = QStringLiteral("oap-agent-release-client");
+    const QDBusConnection client =
+        QDBusConnection::connectToBus(QDBusConnection::SessionBus, clientName);
+    QVERIFY(client.isConnected());
+
+    QDBusMessage confirm = agentCall(serverBus, QStringLiteral("RequestConfirmation"));
+    confirm << QVariant::fromValue(QDBusObjectPath(kDevicePath))
+            << QVariant::fromValue(quint32(111222));
+    QDBusPendingCallWatcher confirmWatcher(client.asyncCall(confirm, 5000));
+    QTRY_VERIFY(mgr.isPairingActive());
+
+    QDBusPendingCallWatcher releaseWatcher(
+        client.asyncCall(agentCall(serverBus, QStringLiteral("Release")), 5000));
+    QCOMPARE(awaitReply(releaseWatcher).type(), QDBusMessage::ReplyMessage);
+    const QDBusMessage confirmReply = awaitReply(confirmWatcher);
+    QCOMPARE(confirmReply.type(), QDBusMessage::ErrorMessage);
+    QCOMPARE(confirmReply.errorName(), QStringLiteral("org.bluez.Error.Canceled"));
+    QVERIFY(!mgr.isPairingActive());
+    mgr.confirmPairing();
+    QVERIFY(!mgr.isPairingActive());
+
+    mgr.shutdown();
+    QDBusConnection::disconnectFromBus(clientName);
+}
+
+void TestBluetoothManager::testShutdownCancelsDelayedConfirmation()
+{
+    MockConfigService config;
+    config.values_[QStringLiteral("connection.auto_connect_aa")] = false;
+    const QDBusConnection serverBus = QDBusConnection::sessionBus();
+    oap::BluetoothManager mgr(&config, serverBus);
+    auto objects = adapterSnapshot();
+    addDevice(objects, false, false);
+    mgr.applyManagedObjectsSnapshot(objects);
+
+    const QString clientName = QStringLiteral("oap-agent-shutdown-client");
+    const QDBusConnection client =
+        QDBusConnection::connectToBus(QDBusConnection::SessionBus, clientName);
+    QVERIFY(client.isConnected());
+
+    QDBusMessage confirm = agentCall(serverBus, QStringLiteral("RequestConfirmation"));
+    confirm << QVariant::fromValue(QDBusObjectPath(kDevicePath))
+            << QVariant::fromValue(quint32(333444));
+    QDBusPendingCallWatcher confirmWatcher(client.asyncCall(confirm, 5000));
+    QTRY_VERIFY(mgr.isPairingActive());
+
+    mgr.shutdown();
+    const QDBusMessage confirmReply = awaitReply(confirmWatcher);
+    QCOMPARE(confirmReply.type(), QDBusMessage::ErrorMessage);
+    QCOMPARE(confirmReply.errorName(), QStringLiteral("org.bluez.Error.Canceled"));
+    QVERIFY(!mgr.isPairingActive());
+    mgr.confirmPairing();
+    QVERIFY(!mgr.isPairingActive());
+
+    QDBusConnection::disconnectFromBus(clientName);
+}
+
+void TestBluetoothManager::testBluezLossCancelsDelayedConfirmation()
+{
+    QDBusConnection serverBus = QDBusConnection::sessionBus();
+    QVERIFY(serverBus.isConnected());
+    qDBusRegisterMetaType<oap::BluezInterfaceMap>();
+    qDBusRegisterMetaType<TestBluezManagedObjectMap>();
+
+    BluezObjectManagerFixture fixture;
+    auto validObjects = adapterSnapshot();
+    addDevice(validObjects, false, false);
+    for (auto it = validObjects.cbegin(); it != validObjects.cend(); ++it)
+        fixture.objects[QDBusObjectPath(it.key())] = it.value();
+    QVERIFY(serverBus.registerObject(QStringLiteral("/"), &fixture,
+                                     QDBusConnection::ExportAllSlots));
+    QVERIFY(serverBus.registerService(QStringLiteral("org.bluez")));
+
+    MockConfigService config;
+    config.values_[QStringLiteral("connection.auto_connect_aa")] = false;
+    oap::BluetoothManager mgr(&config, serverBus);
+    mgr.initialize();
+    QTRY_COMPARE_WITH_TIMEOUT(fixture.replyCount, 1, 3000);
+
+    const QString clientName = QStringLiteral("oap-agent-loss-client");
+    const QDBusConnection client =
+        QDBusConnection::connectToBus(QDBusConnection::SessionBus, clientName);
+    QVERIFY(client.isConnected());
+    QDBusMessage confirm = agentCall(serverBus, QStringLiteral("RequestConfirmation"));
+    confirm << QVariant::fromValue(QDBusObjectPath(kDevicePath))
+            << QVariant::fromValue(quint32(555666));
+    QDBusPendingCallWatcher confirmWatcher(client.asyncCall(confirm, 5000));
+    QTRY_VERIFY(mgr.isPairingActive());
+
+    QVERIFY(serverBus.unregisterService(QStringLiteral("org.bluez")));
+    const QDBusMessage confirmReply = awaitReply(confirmWatcher);
+    QCOMPARE(confirmReply.type(), QDBusMessage::ErrorMessage);
+    QCOMPARE(confirmReply.errorName(), QStringLiteral("org.bluez.Error.Canceled"));
+    QVERIFY(!mgr.isPairingActive());
+    mgr.confirmPairing();
+    QVERIFY(!mgr.isPairingActive());
+
+    mgr.shutdown();
+    serverBus.unregisterObject(QStringLiteral("/"));
     QDBusConnection::disconnectFromBus(clientName);
 }
 

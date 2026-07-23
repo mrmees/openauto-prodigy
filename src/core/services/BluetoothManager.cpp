@@ -8,6 +8,7 @@
 #include <QDBusServiceWatcher>
 #include <QDBusPendingCall>
 #include <QDBusPendingCallWatcher>
+#include <optional>
 
 namespace {
 
@@ -15,12 +16,18 @@ constexpr int kDbusTimeoutMs = 2000;
 const QString kBluezService = QStringLiteral("org.bluez");
 const QString kObjectManagerInterface = QStringLiteral("org.freedesktop.DBus.ObjectManager");
 const QString kPropertiesInterface = QStringLiteral("org.freedesktop.DBus.Properties");
+const QString kManagedObjectsSignature = QStringLiteral("a{oa{sa{sv}}}");
 
-oap::BluezManagedObjectMap parseManagedObjects(const QDBusMessage& reply)
+std::optional<oap::BluezManagedObjectMap> parseManagedObjects(
+    const QDBusMessage& reply)
 {
     oap::BluezManagedObjectMap objects;
-    if (reply.type() != QDBusMessage::ReplyMessage || reply.arguments().isEmpty())
-        return objects;
+    if (reply.type() != QDBusMessage::ReplyMessage
+        || reply.arguments().size() != 1
+        || reply.signature() != kManagedObjectsSignature
+        || !reply.arguments().constFirst().canConvert<QDBusArgument>()) {
+        return std::nullopt;
+    }
 
     const QDBusArgument arg = reply.arguments().first().value<QDBusArgument>();
     arg.beginMap();
@@ -79,6 +86,7 @@ public:
 public slots:
     void Release() {
         qCInfo(lcBT) << "[Agent] Released";
+        manager_->handleAgentRelease();
     }
 
     void RequestConfirmation(const QDBusObjectPath& device, uint passkey) {
@@ -273,6 +281,7 @@ void BluetoothManager::startAutoConnect()
     autoConnectAttempt_ = 0;
     autoConnectDeviceIndex_ = 0;
     autoConnectInFlight_ = false;
+    ++autoConnectGeneration_;
 
     if (!autoConnectTimer_) {
         autoConnectTimer_ = new QTimer(this);
@@ -286,6 +295,7 @@ void BluetoothManager::startAutoConnect()
 
 void BluetoothManager::cancelAutoConnect()
 {
+    ++autoConnectGeneration_;
     if (autoConnectTimer_) {
         autoConnectTimer_->stop();
     }
@@ -317,8 +327,12 @@ void BluetoothManager::attemptConnect()
         QStringLiteral("Connect"));
     QDBusPendingCall pending = bus_.asyncCall(message, kDbusTimeoutMs);
     auto* watcher = new QDBusPendingCallWatcher(pending, this);
-    connect(watcher, &QDBusPendingCallWatcher::finished, this, [this, watcher]() {
+    const quint64 generation = autoConnectGeneration_;
+    connect(watcher, &QDBusPendingCallWatcher::finished, this,
+            [this, watcher, generation]() {
         watcher->deleteLater();
+        if (generation != autoConnectGeneration_)
+            return;
         autoConnectInFlight_ = false;
 
         if (watcher->isError()) {
@@ -396,6 +410,8 @@ void BluetoothManager::initialize()
 {
     qCDebug(lcBT) << "Initializing...";
     shutdown_ = false;
+    ++bluezServiceGeneration_;
+    ++managedObjectsRequestGeneration_;
 
     // Watch for BlueZ device/adapter property changes
     const bool okProperties = bus_.connect(
@@ -427,6 +443,7 @@ void BluetoothManager::initialize()
             this, [this]() {
         if (shutdown_) return;
         qCInfo(lcBT) << "BlueZ restarted — re-initializing";
+        ++bluezServiceGeneration_;
         configuredAdapterPath_.clear();
         initialSnapshotApplied_ = false;
         requestManagedObjectsRefresh();
@@ -435,8 +452,13 @@ void BluetoothManager::initialize()
             this, [this]() {
         if (shutdown_) return;
         qCInfo(lcBT) << "BlueZ disappeared";
+        ++bluezServiceGeneration_;
+        ++managedObjectsRequestGeneration_;
+        managedObjectsRefreshPending_ = false;
         configuredAdapterPath_.clear();
         initialSnapshotApplied_ = false;
+        abortPairingPrompt(QStringLiteral("BlueZ service disappeared"));
+        cancelAutoConnect();
         applyManagedObjectsSnapshot({});
     });
 
@@ -447,10 +469,15 @@ void BluetoothManager::requestManagedObjectsRefresh()
 {
     if (shutdown_) return;
     if (managedObjectsRefreshInFlight_) {
-        managedObjectsRefreshPending_ = true;
+        if (!managedObjectsRefreshPending_) {
+            managedObjectsRefreshPending_ = true;
+            ++managedObjectsRequestGeneration_;
+        }
         return;
     }
 
+    const quint64 serviceGeneration = bluezServiceGeneration_;
+    const quint64 requestGeneration = ++managedObjectsRequestGeneration_;
     managedObjectsRefreshInFlight_ = true;
     QDBusMessage message = QDBusMessage::createMethodCall(
         kBluezService, QStringLiteral("/"), kObjectManagerInterface,
@@ -458,27 +485,35 @@ void BluetoothManager::requestManagedObjectsRefresh()
     auto* watcher = new QDBusPendingCallWatcher(
         bus_.asyncCall(message, kDbusTimeoutMs), this);
     connect(watcher, &QDBusPendingCallWatcher::finished, this,
-            [this, watcher]() {
+            [this, watcher, serviceGeneration, requestGeneration]() {
         const QDBusMessage reply = watcher->reply();
         watcher->deleteLater();
+        const bool trailingRefresh = managedObjectsRefreshPending_;
+        const bool current = serviceGeneration == bluezServiceGeneration_
+            && requestGeneration == managedObjectsRequestGeneration_;
         managedObjectsRefreshInFlight_ = false;
-        if (!shutdown_)
+        managedObjectsRefreshPending_ = false;
+        if (!shutdown_ && current && !trailingRefresh)
             finishManagedObjectsRefresh(reply);
 
-        if (!shutdown_ && managedObjectsRefreshPending_) {
-            managedObjectsRefreshPending_ = false;
+        if (!shutdown_ && trailingRefresh)
             requestManagedObjectsRefresh();
-        }
     });
 }
 
 void BluetoothManager::finishManagedObjectsRefresh(const QDBusMessage& reply)
 {
-    if (reply.type() != QDBusMessage::ReplyMessage || reply.arguments().isEmpty()) {
+    if (reply.type() != QDBusMessage::ReplyMessage) {
         qCWarning(lcBT) << "GetManagedObjects failed:" << reply.errorMessage();
         return;
     }
-    applyManagedObjectsSnapshot(parseManagedObjects(reply));
+    const auto objects = parseManagedObjects(reply);
+    if (!objects) {
+        qCWarning(lcBT) << "GetManagedObjects returned malformed signature:"
+                        << reply.signature();
+        return;
+    }
+    applyManagedObjectsSnapshot(*objects);
 }
 
 QVariant BluetoothManager::getAdapterProperty(const QString& property)
@@ -680,6 +715,30 @@ void BluetoothManager::handleAgentCancel()
         clearPairingPrompt();
         qCInfo(lcBT) << "BlueZ cancelled pairing request";
     }
+}
+
+void BluetoothManager::handleAgentRelease()
+{
+    abortPairingPrompt(QStringLiteral("BlueZ released the pairing agent"));
+}
+
+void BluetoothManager::abortPairingPrompt(const QString& reason)
+{
+    if (!pairingActive_)
+        return;
+
+    const bool hasDelayedReply = pairingRequiresConfirmation()
+        && pendingPairingMessage_.type() == QDBusMessage::MethodCallMessage;
+    const QDBusMessage pendingMessage = pendingPairingMessage_;
+    clearPairingPrompt();
+
+    if (hasDelayedReply) {
+        const QDBusMessage reply = pendingMessage.createErrorReply(
+            QStringLiteral("org.bluez.Error.Canceled"), reason);
+        if (!bus_.send(reply))
+            qCDebug(lcBT) << "Pairing cancellation reply could not be delivered";
+    }
+    qCInfo(lcBT) << "Pairing prompt aborted:" << reason;
 }
 
 void BluetoothManager::clearPairingPrompt()
@@ -891,10 +950,13 @@ void BluetoothManager::shutdown()
 {
     if (shutdown_) return;
     shutdown_ = true;
+    ++bluezServiceGeneration_;
+    ++managedObjectsRequestGeneration_;
+    managedObjectsRefreshPending_ = false;
     qCInfo(lcBT) << "Shutting down";
     if (pairableRenewTimer_)
         pairableRenewTimer_->stop();
-    clearPairingPrompt();
+    abortPairingPrompt(QStringLiteral("Bluetooth manager shutting down"));
     cancelAutoConnect();
     // Disconnect each subscription even when initialize() reported a partial
     // failure; any individual successful connection must still be torn down.
