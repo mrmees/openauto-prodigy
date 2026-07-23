@@ -106,7 +106,7 @@ void ClockSyncService::enqueueCommand(
     startNextCommand();
 }
 
-void ClockSyncService::enqueueTimezoneCommand(const QString& ianaId)
+void ClockSyncService::reconcileTimezone(const QString& knownSystemZone)
 {
     const bool timezoneRunning = commandRunning_
         && !commandQueue_.isEmpty()
@@ -120,9 +120,17 @@ void ClockSyncService::enqueueTimezoneCommand(const QString& ianaId)
         }
     }
 
+    if (!timezoneDesired_) {
+        if (queuedTimezoneIndex >= 0)
+            commandQueue_.removeAt(queuedTimezoneIndex);
+        return;
+    }
+
     // The latest report supersedes any waiting timezone. If it agrees with
-    // the command already running, the queued superseding command is stale.
-    if (timezoneRunning && commandQueue_.head().timezone == ianaId) {
+    // the command already running, its revision remains recorded until that
+    // command completes. A failure can then retry the newer desired state.
+    if (timezoneRunning
+        && commandQueue_.head().timezone == desiredTimezone_) {
         if (queuedTimezoneIndex >= 0)
             commandQueue_.removeAt(queuedTimezoneIndex);
         return;
@@ -130,17 +138,38 @@ void ClockSyncService::enqueueTimezoneCommand(const QString& ianaId)
 
     // With no timezone change already in flight, a report of the effective
     // system zone cancels a queued change instead of scheduling redundant IO.
-    if (!timezoneRunning && ianaId.toUtf8() == systemZone_()) {
+    const QByteArray effectiveSystemZone = knownSystemZone.isEmpty()
+        ? systemZone_()
+        : knownSystemZone.toUtf8();
+    if (!timezoneRunning && desiredTimezone_.toUtf8() == effectiveSystemZone) {
         if (queuedTimezoneIndex >= 0)
             commandQueue_.removeAt(queuedTimezoneIndex);
+        timezoneDesired_ = false;
         return;
     }
 
+    const QString ianaId = desiredTimezone_;
+    const quint64 revision = timezoneReportRevision_;
     Command command{
         {QStringLiteral("set-timezone"), ianaId},
-        [ianaId](int rc) {
-            if (rc == 0)
+        [this, ianaId, revision](int rc) {
+            if (rc == 0) {
                 qCInfo(lcCore) << "ClockSync: timezone adjusted to" << ianaId;
+                if (timezoneDesired_ && desiredTimezone_ == ianaId)
+                    timezoneDesired_ = false;
+            }
+
+            // Do not spin forever on a persistent failure. A report received
+            // after this command started authorizes one reconciliation
+            // attempt; a failure of the newest revision waits for the next
+            // phone report while retaining the desired zone.
+            if (rc != 0 && timezoneDesired_
+                && timezoneReportRevision_ == revision) {
+                return;
+            }
+            // A successful command is authoritative for this reconciliation;
+            // the system-zone accessor may still expose its cached old value.
+            reconcileTimezone(rc == 0 ? ianaId : QString{});
         },
         CommandKind::Timezone,
         ianaId,
@@ -229,7 +258,10 @@ void ClockSyncService::onTimeReported(qint64 phoneTimeMs)
 
 void ClockSyncService::onTimezoneReported(const QString& ianaId)
 {
-    enqueueTimezoneCommand(ianaId);
+    desiredTimezone_ = ianaId;
+    timezoneDesired_ = true;
+    ++timezoneReportRevision_;
+    reconcileTimezone();
 }
 
 } // namespace oap

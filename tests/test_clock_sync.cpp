@@ -258,6 +258,66 @@ private slots:
         completions.takeFirst()(0);
     }
 
+    void matchingLatestTimezoneRetriesAfterOlderCommandFails() {
+        oap::ClockSyncService sync;
+        QList<QStringList> calls;
+        QList<std::function<void(int)>> completions;
+        sync.setSystemZoneForTest([] { return QByteArray("America/Chicago"); });
+        sync.setExecForTest([&](const QStringList& args,
+                                std::function<void(int)> completion) {
+            calls.append(args);
+            completions.append(std::move(completion));
+        });
+
+        sync.onTimezoneReported(QStringLiteral("America/Denver"));
+        sync.onTimezoneReported(QStringLiteral("America/New_York"));
+        sync.onTimezoneReported(QStringLiteral("America/Denver"));
+        QCOMPARE(calls.size(), 1);
+
+        completions.takeFirst()(1);
+        QCOMPARE(calls.size(), 2);
+        QCOMPARE(calls[1],
+                 (QStringList{QStringLiteral("set-timezone"),
+                              QStringLiteral("America/Denver")}));
+
+        // A failure of the newest revision remains bounded, while another
+        // matching phone report can retry the retained desired zone.
+        completions.takeFirst()(1);
+        QCOMPARE(calls.size(), 2);
+        sync.onTimezoneReported(QStringLiteral("America/Denver"));
+        QCOMPARE(calls.size(), 3);
+        completions.takeFirst()(0);
+    }
+
+    void matchingLatestTimezoneRetriesAfterOlderCommandTimesOut() {
+        oap::ClockSyncService sync;
+        QList<QStringList> calls;
+        QList<std::function<void(int)>> completions;
+        sync.setCommandTimeoutForTest(20);
+        sync.setSystemZoneForTest([] { return QByteArray("America/Chicago"); });
+        sync.setExecForTest([&](const QStringList& args,
+                                std::function<void(int)> completion) {
+            calls.append(args);
+            completions.append(std::move(completion));
+        });
+
+        sync.onTimezoneReported(QStringLiteral("America/Denver"));
+        sync.onTimezoneReported(QStringLiteral("America/New_York"));
+        sync.onTimezoneReported(QStringLiteral("America/Denver"));
+
+        QTRY_COMPARE_WITH_TIMEOUT(calls.size(), 2, 250);
+        QCOMPARE(calls[1],
+                 (QStringList{QStringLiteral("set-timezone"),
+                              QStringLiteral("America/Denver")}));
+        completions[1](0);
+        QCOMPARE(calls.size(), 2);
+
+        // The stale callback from the timed-out first attempt cannot consume
+        // or recreate any successor command.
+        completions[0](0);
+        QCOMPARE(calls.size(), 2);
+    }
+
     void commandSequenceIsAsynchronousAndDuplicateTimeReportsCoalesce() {
         oap::ClockSyncService sync;
         QList<QStringList> calls;

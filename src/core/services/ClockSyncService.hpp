@@ -64,7 +64,7 @@ private:
     };
 
     void enqueueCommand(QStringList args, std::function<void(int)> completion = {});
-    void enqueueTimezoneCommand(const QString& ianaId);
+    void reconcileTimezone(const QString& knownSystemZone = {});
     void startNextCommand();
     void finishCurrentCommand(quint64 serial, int exitCode);
     void startTimedatectl(const QStringList& args, std::function<void(int)> completion);
@@ -77,6 +77,9 @@ private:
     QQueue<Command> commandQueue_;
     bool commandRunning_ = false;
     bool timeSyncPending_ = false;
+    bool timezoneDesired_ = false;
+    QString desiredTimezone_;
+    quint64 timezoneReportRevision_ = 0;
     quint64 commandSerial_ = 0;
     QString processProgram_ = QStringLiteral("timedatectl");
     QStringList processPrefixArgs_;
