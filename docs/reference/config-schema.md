@@ -249,6 +249,16 @@ therefore readable and writable with `ConfigService` dot paths.
 | `sensors.gps.enabled` | bool | `true` | Enables the configured GPS source. |
 | `sensors.gps.source` | string | `none` | GPS source identifier. |
 
+The configured night source is owned for the full application lifetime. Its
+last valid state drives both the shell's real day/night palette state and the
+Android Auto `NIGHT_DATA` cache; starting or stopping a projection session does
+not restart the source. Time boundaries are inclusive at `day_start` and
+`night_start`. GPIO setup and reads retry once per second after export,
+direction, or value failures, retaining the last valid state until recovery.
+If the exported GPIO directory disappears, the next polls repeat export and
+direction setup.
+The existing `none` behavior remains a fallback to the configured time policy.
+
 ### UI Overrides
 
 All UI overrides default to `0`, meaning “use the automatically derived

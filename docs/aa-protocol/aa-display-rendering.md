@@ -60,11 +60,14 @@ decoder recognizes H.264 and H.265 Annex B bitstreams, selects hardware decode
 when available, falls back to software decode, and publishes the newest decoded
 `QVideoFrame` to the QML video sink.
 
-The decoder object currently persists across AA sessions and does not reset its
-codec/parser state during session teardown. Reconnecting with a phone that
-selects a different codec can therefore retain the prior session's decoder
-state. A same-codec reconnect is the reliable path until per-session decoder
-reset is implemented.
+The decoder object persists across AA sessions, but every video
+`streamStarted` edge places an ordered reset command in its worker queue. That
+barrier discards queued packets from the prior stream and resets codec/parser,
+first-frame fallback, latest-frame, and detection state before any later frame
+is processed. Video packets enter that queue directly in signal-emission order,
+so an old Qt event cannot arrive behind the boundary. A reconnect may therefore
+negotiate H.264 or H.265 independently of the preceding session without
+restarting the application.
 
 The AA projection view has a black background and one `VideoOutput` anchored to
 its parent. Its fill mode is always `PreserveAspectCrop`, whether the Navbar is
@@ -80,7 +83,12 @@ back over the rendered viewport. It is diagnostic only and defaults off.
 `AndroidAutoRuntimeBridge` creates `EvdevTouchReader`, gives it the detected
 display dimensions, selected AA mode, Navbar edge/thickness, and the shared
 content dimensions, then creates `EvdevCoordBridge` for shell-zone
-registration.
+registration. All initial configuration is complete before the reader thread
+starts. Later display, negotiated-video, grab, and stop requests are snapshots
+or atomics consumed by that reader thread; its descriptor and touch-slot state
+are never mutated by the Qt main thread. A display-size change recomputes the
+content mapping from the same current viewport contract before the next reader
+snapshot, keeping service-discovery and input coordinates aligned.
 
 `EvdevTouchReader::computeLetterbox()` first removes the Navbar strip from the
 display viewport. It compares that viewport with the content aspect ratio,
@@ -91,6 +99,10 @@ evdev coordinates, and maps unclaimed touches linearly into
 Touch is grabbed with `EVIOCGRAB` when a connected AA session owns the
 projection view. It is ungrabbed when projection backgrounds, disconnects, or
 the plugin view is deactivated, returning normal shell input to Wayland/Qt.
+Poll errors, hangups, and short reads close the lost device and enter a paced
+reopen loop. Ungrab, device loss, and shutdown retire any phone-visible touch
+stream with valid pointer-up/up messages before clearing local state. A stop
+request wakes the reconnect wait immediately.
 
 ## Navbar and popup zone ownership
 
@@ -109,6 +121,11 @@ Routing has these properties:
 - Claimed Navbar or popup touches are consumed locally and are not forwarded to
   AA.
 - Unclaimed touches fall through to AA.
+- Phone-visible pointer membership is independent of raw active slots, so a
+  claimed pointer cannot leak into another pointer's AA motion array.
+- Multiple transitions in one evdev report are serialized into Android
+  MotionEvent order with complete pointer arrays and correct action indices;
+  existing contacts retire before new contacts are admitted.
 - The three-finger gesture can suppress AA forwarding without preventing zone
   dispatch.
 

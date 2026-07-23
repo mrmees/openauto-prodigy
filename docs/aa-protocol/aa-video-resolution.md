@@ -25,6 +25,10 @@ H.264/H.265 until the receive path gains end-to-end VP9/AV1 support. If the
 configured list contains no service-discovery-recognized entry, discovery
 falls back to one H.264 config.
 
+The resolved codec list is shared by service discovery and video-channel
+setup. The number in each `SETUP_RESPONSE` therefore exactly matches the
+number of advertised `VideoConfig` entries, including the H.264 fallback.
+
 The relevant `VideoConfig` fields are:
 
 ```protobuf
@@ -119,10 +123,16 @@ The input descriptor advertises `touch_screen_config` using the same content
 dimensions as the selected video mode. `EvdevTouchReader` maps the usable
 display viewport into that content coordinate space; it does not map to the
 full encoded-frame dimensions and does not add the centered margin offset.
+If the detected display size changes, the runtime bridge recomputes this same
+content contract and publishes the updated mapping to the reader.
 
 Touches claimed by registered shell zones are consumed locally. Unclaimed
 touches fall through to AA, with all active pointers included in the AA motion
-message.
+message. Phone-visible membership is tracked separately from raw evdev slot
+activity, so a slot claimed by a local zone never appears in an AA pointer
+array. If evdev batches multiple transitions in one `SYN_REPORT`, the reader
+still emits the Android ordering (`DOWN`, then `POINTER_DOWN`; `POINTER_UP`,
+then `UP`) with the changed pointer's array index.
 
 ## Session lifetime
 
@@ -131,6 +141,8 @@ dimensions during service discovery. Those values remain fixed for that AA
 session. Changing `video.resolution` or `video.fps` during an active session
 causes a disconnect/reconnect so the phone negotiates the new values; the
 Navbar visibility setting is marked restart-required in the settings UI.
+Frame and content dimensions are published to the reader as one mapping
+snapshot, retaining the DPI-scaled Navbar thickness used by discovery.
 
 Wire ID `0x8012` is not a runtime margin-update request. The current gold-traced
 definition is the HU's theming-token status response to the phone's `0x8011`

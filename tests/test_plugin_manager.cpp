@@ -21,7 +21,7 @@ public:
     QString id() const override { return id_; }
     QString name() const override { return "Mock"; }
     QString version() const override { return "1.0"; }
-    int apiVersion() const override { return 2; }
+    int apiVersion() const override { return oap::PluginDiscovery::HOST_API_VERSION; }
 
     bool initialize(oap::IHostContext*) override {
         if (throwUnknownOnInitialize_)
@@ -272,7 +272,7 @@ void TestPluginManager::testDynamicLoadRejectsStaleBinary()
     QSignalSpy failedSpy(&mgr, &oap::PluginManager::pluginFailed);
     mgr.discoverPlugins(QStringLiteral(FIXTURE_PLUGINS_DIR));
 
-    // stale: manifest v2 passes discovery, binary reports apiVersion 1.
+    // stale: manifest passes discovery, binary reports a stale apiVersion.
     QVERIFY(mgr.plugin("org.test.stale") == nullptr);
     QCOMPARE(failuresFor(failedSpy, "org.test.stale"), 1);
 }
@@ -307,7 +307,7 @@ void TestPluginManager::testDynamicLoadRejectsThrowingMetadata()
     QSignalSpy failedSpy(&mgr, &oap::PluginManager::pluginFailed);
     mgr.discoverPlugins(QStringLiteral(FIXTURE_PLUGINS_DIR));
 
-    // throwing: manifest v2 passes discovery, but the binary's apiVersion()
+    // throwing: manifest passes discovery, but the binary's apiVersion()
     // throws — the host must catch it and reject, not crash.
     QVERIFY(mgr.plugin("org.test.throwing") == nullptr);
     QCOMPARE(failuresFor(failedSpy, "org.test.throwing"), 1);

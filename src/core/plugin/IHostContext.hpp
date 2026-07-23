@@ -18,6 +18,7 @@ class INavigationProvider;
 class IMediaStatusProvider;
 class ICallStateProvider;
 class OverlayService;
+class NightModeService;
 
 enum class LogLevel { Debug, Info, Warning, Error };
 
@@ -48,6 +49,10 @@ public:
     /// Log a message through the host's logging system.
     /// Thread-safe.
     virtual void log(LogLevel level, const QString& message) = 0;
+
+    /// Shared application-lifetime physical day/night state. Appended with a
+    /// default for source compatibility with existing host-context test fakes.
+    virtual NightModeService* nightModeService() { return nullptr; }
 };
 
 } // namespace oap

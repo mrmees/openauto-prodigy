@@ -27,6 +27,7 @@ add_library(openauto-core STATIC
     core/aa/ThemeNightMode.cpp
     core/aa/GpioNightMode.cpp
     core/aa/CodecCapability.cpp
+    core/aa/WirelessAaConfig.cpp
     core/aa/ServiceDiscoveryBuilder.cpp
     core/aa/AndroidAutoOrchestrator.cpp
     core/aa/MediaDataBridge.cpp
@@ -47,6 +48,7 @@ add_library(openauto-core STATIC
     core/plugin/HostContext.cpp
     core/services/ConfigService.cpp
     core/services/ThemeService.cpp
+    core/services/NightModeService.cpp
     core/services/ThemeInstallRequest.cpp
     core/services/DisplayService.cpp
     core/services/AudioService.cpp

@@ -9,6 +9,7 @@
 #include "core/Logging.hpp"
 #include <QFile>
 #include <cmath>
+#include <tuple>
 
 namespace oap {
 namespace aa {
@@ -106,42 +107,24 @@ void AndroidAutoRuntimeBridge::setup(AndroidAutoOrchestrator* orchestrator,
             aaW, aaH,
             displayW_, displayH_,
             this);
-        touchReader_->start();
-        qCInfo(lcAA) << "Touch:" << touchDevice
-                << "display=" << displayW_ << "x" << displayH_;
 
         // Create EvdevCoordBridge for external zone registration
         coordBridge_ = new EvdevCoordBridge(&touchReader_->router(), this);
         coordBridge_->setDisplayMapping(displayW_, displayH_, 4095, 4095);
-        touchReader_->setCoordBridge(coordBridge_);
 
         // Relay 3-finger gesture
         connect(touchReader_, &EvdevTouchReader::gestureDetected,
                 this, &AndroidAutoRuntimeBridge::gestureTriggered,
                 Qt::QueuedConnection);
 
-        // Configure navbar dimensions for touch letterbox calculation
-        bool navbarDuringAA = true;
-        QString navEdge = "bottom";
-        if (configService) {
-            QVariant showDuringAA = configService->value("navbar.show_during_aa");
-            navbarDuringAA = (showDuringAA.isNull() || showDuringAA.toBool());
-            if (navbarDuringAA) {
-                navEdge = configService->value("navbar.edge").toString();
-                if (navEdge.isEmpty()) navEdge = "bottom";
-                touchReader_->setNavbar(true, navbarThick_, navEdge.toStdString());
-                qCInfo(lcAA) << "Navbar touch zone:" << navEdge << navbarThick_ << "px";
-            }
-        }
-
-        // Compute content dimensions
-        auto [contentW, contentH] = ServiceDiscoveryBuilder::computeContentDimensions(
-            aaW, aaH, displayW_, displayH_, navbarDuringAA, navEdge, navbarThick_);
-        touchReader_->setContentDimensions(contentW, contentH);
-        touchReader_->computeLetterbox();
-        qCInfo(lcAA) << "Content dims:" << contentW << "x" << contentH
-                     << "(video:" << aaW << "x" << aaH << ")";
+        updateVideoMapping(aaW, aaH);
+        touchReader_->start();
+        qCInfo(lcAA) << "Touch:" << touchDevice
+                << "display=" << displayW_ << "x" << displayH_;
     } else {
+        // Keep the observable mapping aligned even when this installation has
+        // no evdev reader (for example desktop development).
+        updateVideoMapping(aaW, aaH);
         qCInfo(lcAA) << "No touch device found — touch input disabled";
     }
 
@@ -153,13 +136,52 @@ void AndroidAutoRuntimeBridge::setup(AndroidAutoOrchestrator* orchestrator,
             if (w > 0 && h > 0) {
                 displayW_ = w;
                 displayH_ = h;
+                double globalScale = 1.0;
+                if (configService_) {
+                    const QVariant scale = configService_->value("ui.scale");
+                    if (!scale.isNull() && scale.toDouble() > 0)
+                        globalScale = scale.toDouble();
+                }
+                navbarThick_ = computeNavbarThickness(
+                    displayInfo_->computedDpi(), globalScale);
                 if (touchReader_)
                     touchReader_->setDisplayDimensions(w, h);
-                if (orchestrator)
+                if (coordBridge_)
+                    coordBridge_->setDisplayMapping(w, h, 4095, 4095);
+                if (orchestrator) {
                     orchestrator->setDisplayDimensions(w, h);
+                    orchestrator->setNavbarThickness(navbarThick_);
+                }
+                const auto [aaW, aaH] = resolveAAResolution(configService_);
+                updateVideoMapping(aaW, aaH);
             }
         });
     }
+}
+
+void AndroidAutoRuntimeBridge::updateVideoMapping(int aaWidth, int aaHeight)
+{
+    bool navbarDuringAA = true;
+    QString navEdge = QStringLiteral("bottom");
+    if (configService_) {
+        const QVariant showDuringAA = configService_->value("navbar.show_during_aa");
+        navbarDuringAA = showDuringAA.isNull() || showDuringAA.toBool();
+        const QString configuredEdge = configService_->value("navbar.edge").toString();
+        if (!configuredEdge.isEmpty())
+            navEdge = configuredEdge;
+    }
+
+    std::tie(contentW_, contentH_) = ServiceDiscoveryBuilder::computeContentDimensions(
+        aaWidth, aaHeight, displayW_, displayH_, navbarDuringAA, navEdge, navbarThick_);
+
+    if (touchReader_) {
+        touchReader_->setNavbar(navbarDuringAA, navbarThick_, navEdge.toStdString());
+        touchReader_->setVideoMapping(aaWidth, aaHeight, contentW_, contentH_);
+    }
+
+    qCInfo(lcAA) << "Content dims updated:" << contentW_ << "x" << contentH_
+                 << "(video:" << aaWidth << "x" << aaHeight
+                 << "display:" << displayW_ << "x" << displayH_ << ")";
 }
 
 void AndroidAutoRuntimeBridge::shutdown()

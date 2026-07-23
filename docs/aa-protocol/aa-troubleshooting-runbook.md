@@ -247,10 +247,11 @@ falls back to software when possible. Check journal entries for the selected
 decoder, codec switching, first packet, parse/send/receive errors, and first
 decoded frame.
 
-Codec detection is currently first-session state on the persistent decoder;
-teardown does not flush its parser, queued packets, or detected-codec flag. If
-video fails after reconnecting with a different negotiated codec, restart the
-application before treating the stream as malformed.
+Codec detection is per video stream. The stream-start edge orders a decoder
+reset ahead of the new stream's queued packets, so a prior H.264/H.265 choice,
+parser contents, or queued compressed data does not cross the boundary. If a
+codec-switch reconnect fails, capture the stream-start, reset, first-packet,
+and decoder-selection logs before restarting the application.
 
 Protocol details that remain important:
 

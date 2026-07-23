@@ -4,6 +4,7 @@
 #include <cmath>
 #include "../Logging.hpp"
 #include <QMap>
+#include <QSet>
 
 // oaa proto headers
 #include "oaa/control/ChannelDescriptorData.pb.h"
@@ -33,6 +34,38 @@
 namespace oap {
 namespace aa {
 
+namespace {
+
+QStringList resolveVideoCodecNames(oap::YamlConfig* yamlConfig)
+{
+    static const QSet<QString> recognized = {
+        QStringLiteral("h264"), QStringLiteral("h265"),
+        QStringLiteral("vp9"), QStringLiteral("av1"),
+    };
+
+    const QStringList configured = yamlConfig
+        ? yamlConfig->videoCodecs()
+        : QStringList{QStringLiteral("h264"), QStringLiteral("h265")};
+    QStringList resolved;
+    for (const QString& configuredName : configured) {
+        const QString name = configuredName.toLower();
+        if (!recognized.contains(name)) {
+            qCWarning(lcAA) << "Unknown codec in config:" << configuredName
+                            << "— skipping";
+            continue;
+        }
+        resolved.push_back(name);
+    }
+
+    if (resolved.isEmpty()) {
+        qCWarning(lcAA) << "No valid codecs in config, falling back to H.264";
+        resolved.push_back(QStringLiteral("h264"));
+    }
+    return resolved;
+}
+
+} // namespace
+
 ServiceDiscoveryBuilder::ServiceDiscoveryBuilder(
     oap::YamlConfig* yamlConfig,
     const QString& btMacAddress,
@@ -44,7 +77,13 @@ ServiceDiscoveryBuilder::ServiceDiscoveryBuilder(
     , wifiSsid_(wifiSsid)
     , wifiPassword_(wifiPassword)
     , wifiBssid_(wifiBssid)
+    , videoCodecNames_(resolveVideoCodecNames(yamlConfig))
 {
+}
+
+uint32_t ServiceDiscoveryBuilder::videoConfigCount() const
+{
+    return static_cast<uint32_t>(videoCodecNames_.size());
 }
 
 void ServiceDiscoveryBuilder::setDisplayDimensions(int w, int h)
@@ -227,18 +266,10 @@ QByteArray ServiceDiscoveryBuilder::buildVideoDescriptor() const
     int mW = 0, mH = 0;
     calcMargins(chosen.w, chosen.h, mW, mH);
 
-    // Read enabled codecs from YAML config
-    QStringList enabledCodecs = yamlConfig_ ? yamlConfig_->videoCodecs()
-                                            : QStringList{"h264", "h265"};
-
     int configIdx = 0;
-    for (const auto& codecName : enabledCodecs) {
+    for (const auto& codecName : videoCodecNames_) {
         auto it = codecMap.find(codecName.toLower());
-        if (it == codecMap.end()) {
-            qCWarning(lcAA) << "Unknown codec in config:" << codecName
-                        << "— skipping";
-            continue;
-        }
+        Q_ASSERT(it != codecMap.end());
         auto* cfg = avChannel->add_video_configs();
         cfg->set_video_resolution(chosen.res);
         cfg->set_video_fps(fpsEnum);
@@ -248,19 +279,6 @@ QByteArray ServiceDiscoveryBuilder::buildVideoDescriptor() const
         cfg->set_codec(it.value());
         qCInfo(lcAA) << "config[" << configIdx++ << "]:"
                 << chosen.label << codecName << "margins:" << mW << "x" << mH;
-    }
-
-    if (configIdx == 0) {
-        // Fallback: if no valid codecs in config, always advertise H.264
-        auto* cfg = avChannel->add_video_configs();
-        cfg->set_video_resolution(chosen.res);
-        cfg->set_video_fps(fpsEnum);
-        cfg->set_margin_width(mW);
-        cfg->set_margin_height(mH);
-        cfg->set_dpi(dpi);
-        cfg->set_codec(Codec::MEDIA_CODEC_VIDEO_H264_BP);
-        qCWarning(lcAA) << "No valid codecs in config, falling back to H.264";
-        configIdx = 1;
     }
 
     qCInfo(lcAA) << "Advertised" << configIdx << "video configs";

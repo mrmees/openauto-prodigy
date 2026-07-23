@@ -20,6 +20,7 @@ public:
     void setMediaStatusProvider(IMediaStatusProvider* p) { media_ = p; }
     void setCallStateProvider(ICallStateProvider* p) { call_ = p; }
     void setOverlayService(OverlayService* s) { overlay_ = s; }
+    void setNightModeService(NightModeService* s) { nightMode_ = s; }
 
     IAudioService* audioService() override { return audio_; }
     IBluetoothService* bluetoothService() override { return bt_; }
@@ -35,6 +36,7 @@ public:
     IMediaStatusProvider* mediaStatusProvider() override { return media_; }
     ICallStateProvider* callStateProvider() override { return call_; }
     OverlayService* overlayService() override { return overlay_; }
+    NightModeService* nightModeService() override { return nightMode_; }
 
     void log(LogLevel level, const QString& message) override;
 
@@ -53,6 +55,7 @@ private:
     IMediaStatusProvider* media_ = nullptr;
     ICallStateProvider* call_ = nullptr;
     OverlayService* overlay_ = nullptr;
+    NightModeService* nightMode_ = nullptr;
 };
 
 } // namespace oap

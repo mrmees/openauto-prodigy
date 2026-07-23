@@ -193,6 +193,12 @@ The SSID and password here must match your hostapd configuration. At startup,
 the app reads `/etc/hostapd/hostapd.conf` and synchronizes those credentials
 into its configuration, making hostapd the operational source of truth.
 
+`connection.tcp_port` accepts ports 1 through 65535 and defaults to 5277. An
+invalid value falls back to that default. Integer `0` is reserved for tests: it
+asks the operating system for an ephemeral port. Bluetooth discovery always
+advertises the port the listener actually bound, so discovery and TCP
+admission cannot diverge.
+
 ## 4. Connecting
 
 1. Start OpenAuto Prodigy on the Pi
@@ -200,6 +206,12 @@ into its configuration, making hostapd the operational source of truth.
 3. The phone should discover "OpenAutoProdigy" via Bluetooth
 4. Pair when prompted
 5. The phone receives WiFi credentials via BT, connects to the AP, then starts AA over TCP
+
+Only one projection client is admitted at a time. Before a session becomes
+active, a newer TCP connection may replace the pending client. Once projection
+is connected or backgrounded, additional connections are rejected without
+disturbing the active session. Shutdown closes admission before stopping the
+session.
 
 ## Troubleshooting
 

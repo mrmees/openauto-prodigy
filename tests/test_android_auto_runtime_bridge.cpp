@@ -2,6 +2,7 @@
 #include <QtTest/QtTest>
 #include "core/aa/AndroidAutoRuntimeBridge.hpp"
 #include "core/services/IConfigService.hpp"
+#include "ui/DisplayInfo.hpp"
 
 // Minimal mock config service for testing
 class MockConfigService : public oap::IConfigService {
@@ -41,6 +42,7 @@ private slots:
     void testVideoResolution1080p();
     void testVideoResolution480p();
     void testDisplayDimensionsDefault();
+    void testDisplayChangeRefreshesContentMapping();
     void testTouchDeviceFromConfig();
     void testTouchDeviceAutoDetectEmpty();
 };
@@ -55,6 +57,7 @@ void TestAndroidAutoRuntimeBridge::testConstruction() {
 void TestAndroidAutoRuntimeBridge::testNavbarThicknessDefault() {
     // Without DisplayInfo or DPI, should return 56 (base value)
     oap::aa::AndroidAutoRuntimeBridge bridge;
+    QCOMPARE(bridge.navbarThickness(), 56);
     QCOMPARE(bridge.computeNavbarThickness(0, 1.0), 56);
 }
 
@@ -102,6 +105,25 @@ void TestAndroidAutoRuntimeBridge::testDisplayDimensionsDefault() {
     // Default display dimensions (no DisplayInfo set)
     QCOMPARE(bridge.displayWidth(), 1024);
     QCOMPARE(bridge.displayHeight(), 600);
+}
+
+void TestAndroidAutoRuntimeBridge::testDisplayChangeRefreshesContentMapping() {
+    MockConfigService cfg;
+    cfg.values_["navbar.show_during_aa"] = false;
+    oap::DisplayInfo display;
+    oap::aa::AndroidAutoRuntimeBridge bridge;
+
+    bridge.setup(nullptr, &display, &cfg);
+    QCOMPARE(bridge.displayWidth(), 1024);
+    QCOMPARE(bridge.displayHeight(), 600);
+    QCOMPARE(bridge.contentWidth(), 1229);
+    QCOMPARE(bridge.contentHeight(), 720);
+
+    display.setWindowSize(1280, 720);
+    QCOMPARE(bridge.displayWidth(), 1280);
+    QCOMPARE(bridge.displayHeight(), 720);
+    QCOMPARE(bridge.contentWidth(), 1280);
+    QCOMPARE(bridge.contentHeight(), 720);
 }
 
 void TestAndroidAutoRuntimeBridge::testTouchDeviceFromConfig() {

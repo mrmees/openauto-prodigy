@@ -158,12 +158,13 @@ oap_add_test(test_indicator_mapping SOURCES test_indicator_mapping.cpp)
 oap_add_test(test_circular_buffer SOURCES test_circular_buffer.cpp)
 oap_add_test(test_codec_capability SOURCES test_codec_capability.cpp)
 oap_add_test(test_video_frame_pool SOURCES test_video_frame_pool.cpp)
-oap_add_test(test_video_decode_queue SOURCES test_video_decode_queue.cpp)
+oap_add_test(test_video_decoder SOURCES test_video_decoder.cpp)
 
 # --- Touch routing tests ---
 
 oap_add_test(test_touch_router SOURCES test_touch_router.cpp)
 oap_add_test(test_evdev_coord_bridge SOURCES test_evdev_coord_bridge.cpp)
+oap_add_test(test_evdev_touch_reader SOURCES test_evdev_touch_reader.cpp)
 
 # --- Navbar tests ---
 

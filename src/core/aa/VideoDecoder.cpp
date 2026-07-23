@@ -296,6 +296,44 @@ void VideoDecoder::decodeFrame(std::shared_ptr<const QByteArray> h264Data, qint6
         worker_->enqueue(std::move(h264Data), enqueueTimeNs);
 }
 
+void VideoDecoder::beginStream()
+{
+    if (worker_)
+        worker_->beginStream();
+}
+
+void VideoDecoder::resetForNewStream(quint64 generation)
+{
+    streamGeneration_ = generation;
+    codecDetected_ = false;
+
+    if (packet_)
+        av_packet_unref(packet_);
+    if (frame_)
+        av_frame_unref(frame_);
+
+    {
+        std::lock_guard<std::mutex> lock(latestFrameMutex_);
+        latestFrame_ = {};
+        hasLatestFrame_.store(false, std::memory_order_release);
+    }
+    framePool_.reset();
+
+    metricQueue_.reset();
+    metricDecode_.reset();
+    metricCopy_.reset();
+    metricTotal_.reset();
+    frameCount_ = 0;
+    framesSinceLog_ = 0;
+    lastLogTime_ = PerfStats::Clock::now();
+
+    if (!initCodec(AV_CODEC_ID_H264)) {
+        qCCritical(lcAA) << "Failed to reset decoder for stream generation"
+                         << generation;
+    }
+    emit streamResetCompleted(generation);
+}
+
 void VideoDecoder::processFrame(const QByteArray& h264Data, qint64 enqueueTimeNs)
 {
     if (!codecCtx_ || !parser_ || !packet_ || !frame_) return;
@@ -307,6 +345,7 @@ void VideoDecoder::processFrame(const QByteArray& h264Data, qint64 enqueueTimeNs
         qCDebug(lcAA) << "First packet:" << prefix.size() << "bytes, hex:"
                 << prefix.toHex(' ');
         AVCodecID detected = detectCodec(h264Data);
+        emit streamCodecDetected(streamGeneration_, static_cast<int>(detected));
         if (detected != activeCodecId_) {
             const char* name = (detected == AV_CODEC_ID_H265) ? "H.265" : "H.264";
             qCInfo(lcAA) << "Phone is sending" << name << "— switching decoder";
@@ -560,7 +599,20 @@ void VideoDecoder::DecodeWorker::enqueue(std::shared_ptr<const QByteArray> data,
     //      output when the queue is deep, reducing CPU while keeping refs intact.
     //   2. The display-side "latest-frame-wins" slot naturally discards stale
     //      decoded frames — only the newest frame is ever shown.
-    queue_.push({std::move(data), enqueueTimeNs, false});
+    queue_.push({WorkKind::Frame, std::move(data), enqueueTimeNs, 0});
+    condition_.wakeOne();
+}
+
+void VideoDecoder::DecodeWorker::beginStream()
+{
+    QMutexLocker locker(&mutex_);
+
+    // Work not yet started belongs to the previous stream. The reset command
+    // remains ordered after any item already executing and before every frame
+    // enqueued after this lock is released.
+    std::queue<WorkItem> empty;
+    queue_.swap(empty);
+    queue_.push({WorkKind::BeginStream, {}, 0, ++nextGeneration_});
     condition_.wakeOne();
 }
 
@@ -587,6 +639,11 @@ void VideoDecoder::DecodeWorker::run()
             depth = static_cast<int>(queue_.size());  // remaining after pop
         }
 
+        if (item.kind == WorkKind::BeginStream) {
+            decoder_->resetForNewStream(item.generation);
+            continue;
+        }
+
         // Adaptive load shedding: when the queue is deep, tell FFmpeg to skip
         // non-reference frame output (B-frames).  This saves CPU while keeping
         // the reference chain intact.  AVDISCARD_NONKEY is NOT safe — it skips
@@ -598,7 +655,8 @@ void VideoDecoder::DecodeWorker::run()
                 decoder_->codecCtx_->skip_frame = AVDISCARD_DEFAULT;
         }
 
-        decoder_->processFrame(*item.data, item.enqueueTimeNs);
+        if (item.data)
+            decoder_->processFrame(*item.data, item.enqueueTimeNs);
     }
 }
 

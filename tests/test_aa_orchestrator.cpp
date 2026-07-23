@@ -1,12 +1,17 @@
 #include <QTest>
+#include <QElapsedTimer>
 #include <QSignalSpy>
 #include <QPointer>
 #include <QTcpSocket>
-#include <QTime>
 #include <QtEndian>
 #include "core/aa/AndroidAutoOrchestrator.hpp"
-#include "core/YamlConfig.hpp"
+#include "core/aa/NightModeProvider.hpp"
+#include "core/aa/WirelessAaConfig.hpp"
 #include "core/services/IConfigService.hpp"
+#include "core/services/NightModeService.hpp"
+#ifdef HAS_BLUETOOTH
+#include "core/aa/BluetoothDiscoveryService.hpp"
+#endif
 #include "oaa/sensor/SensorEventIndicationMessage.pb.h"
 #include "oaa/sensor/SensorStartRequestMessage.pb.h"
 #include "oaa/sensor/SensorTypeEnum.pb.h"
@@ -17,8 +22,8 @@ class TestNightModeProvider : public NightModeProvider {
 public:
     bool isNight() const override { return state_; }
     bool hasValidState() const override { return valid_; }
-    void start() override { started_ = true; }
-    void stop() override { started_ = false; }
+    void start() override { ++startCount_; }
+    void stop() override { ++stopCount_; }
 
     void publish(bool state)
     {
@@ -27,19 +32,21 @@ public:
         emit nightModeChanged(state);
     }
 
-    bool started() const { return started_; }
+    int startCount() const { return startCount_; }
+    int stopCount() const { return stopCount_; }
 
 private:
     bool state_ = false;
     bool valid_ = false;
-    bool started_ = false;
+    int startCount_ = 0;
+    int stopCount_ = 0;
 };
 
 class AndroidAutoOrchestratorTestAccess {
 public:
     static quint16 listenerPort(const AndroidAutoOrchestrator& orchestrator)
     {
-        return orchestrator.tcpServer_.serverPort();
+        return orchestrator.listenerPort_;
     }
 
     static oaa::AASession* session(const AndroidAutoOrchestrator& orchestrator)
@@ -68,17 +75,43 @@ public:
         return true;
     }
 
-    static void activateNightModeProvider(
-        AndroidAutoOrchestrator& orchestrator,
-        std::unique_ptr<NightModeProvider> provider)
-    {
-        orchestrator.activateNightModeProvider(std::move(provider));
-    }
-
     static oaa::hu::SensorChannelHandler& sensorHandler(AndroidAutoOrchestrator& orchestrator)
     {
         return orchestrator.sensorHandler_;
     }
+
+    static oaa::hu::VideoChannelHandler& videoHandler(AndroidAutoOrchestrator& orchestrator)
+    {
+        return orchestrator.videoHandler_;
+    }
+
+    static VideoDecoder& videoDecoder(AndroidAutoOrchestrator& orchestrator)
+    {
+        return orchestrator.videoDecoder_;
+    }
+
+    static bool watchdogActive(const AndroidAutoOrchestrator& orchestrator)
+    {
+        return orchestrator.watchdogTimer_.isActive();
+    }
+
+    static bool admissionOpen(const AndroidAutoOrchestrator& orchestrator)
+    {
+        return orchestrator.admissionOpen_;
+    }
+
+    static void notifyPhoneWillConnect(AndroidAutoOrchestrator& orchestrator)
+    {
+        orchestrator.onPhoneWillConnect();
+    }
+
+#ifdef HAS_BLUETOOTH
+    static quint16 discoveryTcpPort(const AndroidAutoOrchestrator& orchestrator)
+    {
+        return orchestrator.btDiscovery_
+            ? orchestrator.btDiscovery_->advertisedTcpPort() : 0;
+    }
+#endif
 };
 
 } // namespace oap::aa
@@ -102,6 +135,75 @@ public:
 class TestAndroidAutoOrchestrator : public QObject {
     Q_OBJECT
 private slots:
+    void testTcpPortResolver_data() {
+        QTest::addColumn<QVariant>("configured");
+        QTest::addColumn<int>("expected");
+        QTest::addColumn<bool>("fallback");
+        QTest::newRow("missing") << QVariant{} << 5277 << false;
+        QTest::newRow("valid-integer") << QVariant{15278} << 15278 << false;
+        QTest::newRow("valid-text") << QVariant{QStringLiteral("15279")} << 15279 << false;
+        QTest::newRow("ephemeral-integer") << QVariant{0} << 0 << false;
+        QTest::newRow("ephemeral-text-invalid") << QVariant{QStringLiteral("0")} << 5277 << true;
+        QTest::newRow("nonnumeric") << QVariant{QStringLiteral("nope")} << 5277 << true;
+        QTest::newRow("negative") << QVariant{-1} << 5277 << true;
+        QTest::newRow("oversized") << QVariant{70000} << 5277 << true;
+    }
+
+    void testTcpPortResolver() {
+        QFETCH(QVariant, configured);
+        QFETCH(int, expected);
+        QFETCH(bool, fallback);
+        bool usedFallback = false;
+        QCOMPARE(static_cast<int>(oap::aa::resolveWirelessAaTcpPort(
+                     configured, &usedFallback)), expected);
+        QCOMPARE(usedFallback, fallback);
+    }
+
+    void testVideoStreamBoundaryPrecedesAlreadyEmittedFrames() {
+        StubConfigService cfg;
+        cfg.values["connection.tcp_port"] = 0;
+        oap::aa::AndroidAutoOrchestrator orch(&cfg, nullptr, nullptr);
+        orch.start();
+        oap::aa::AndroidAutoOrchestratorTestAccess::disableAutomaticAccept(orch);
+
+        QTcpSocket socket;
+        socket.connectToHost(QHostAddress::LocalHost,
+                             oap::aa::AndroidAutoOrchestratorTestAccess::listenerPort(orch));
+        QVERIFY(socket.waitForConnected());
+        QVERIFY(oap::aa::AndroidAutoOrchestratorTestAccess::acceptNextConnection(orch));
+
+        auto& handler = oap::aa::AndroidAutoOrchestratorTestAccess::videoHandler(orch);
+        auto& decoder = oap::aa::AndroidAutoOrchestratorTestAccess::videoDecoder(orch);
+        QSignalSpy resetSpy(&decoder, &oap::aa::VideoDecoder::streamResetCompleted);
+        QSignalSpy codecSpy(&decoder, &oap::aa::VideoDecoder::streamCodecDetected);
+        const auto nal = [](char first) {
+            auto data = std::make_shared<QByteArray>();
+            data->append('\x00'); data->append('\x00');
+            data->append('\x00'); data->append('\x01');
+            data->append(first); data->append('\x01');
+            return std::const_pointer_cast<const QByteArray>(data);
+        };
+
+        // The old H.265 packet is emitted before the new stream boundary. It
+        // must not be delivered later through Qt behind that reset barrier.
+        handler.videoFrameData(nal('\x42'), 0);
+        handler.streamStarted(1, 0);
+        handler.videoFrameData(nal('\x67'), 0);
+
+        QTRY_COMPARE(resetSpy.count(), 1);
+        QTRY_VERIFY(codecSpy.count() >= 1);
+        bool sawNewStreamH264 = false;
+        for (const auto& emission : codecSpy) {
+            if (emission[0].toULongLong() == 1ULL) {
+                QCOMPARE(emission[1].toInt(), static_cast<int>(AV_CODEC_ID_H264));
+                sawNewStreamH264 = true;
+            }
+        }
+        QVERIFY(sawNewStreamH264);
+        orch.stop();
+        QCoreApplication::sendPostedEvents(nullptr, QEvent::DeferredDelete);
+    }
+
     void testInitialState() {
         StubConfigService cfg;
         oap::aa::AndroidAutoOrchestrator orch(&cfg, nullptr, nullptr);
@@ -123,6 +225,10 @@ private slots:
         QCOMPARE(orch.connectionState(),
                  static_cast<int>(oap::aa::AndroidAutoOrchestrator::WaitingForDevice));
         QVERIFY(stateSpy.count() >= 1);
+#ifdef HAS_BLUETOOTH
+        QCOMPARE(oap::aa::AndroidAutoOrchestratorTestAccess::discoveryTcpPort(orch),
+                 static_cast<quint16>(15277));
+#endif
 
         orch.stop();
         QCOMPARE(orch.connectionState(),
@@ -183,21 +289,23 @@ private slots:
         QVERIFY(!orch.isAaConnected());
     }
 
-    void testForcedSessionReplacementClearsSensorWireState() {
+    void testActiveAndBackgroundedSessionsRejectReplacement() {
         StubConfigService cfg;
         cfg.values["connection.tcp_port"] = 0;
         oap::aa::AndroidAutoOrchestrator orch(&cfg, nullptr, nullptr);
         orch.start();
+        oap::aa::AndroidAutoOrchestratorTestAccess::disableAutomaticAccept(orch);
 
         const quint16 port = oap::aa::AndroidAutoOrchestratorTestAccess::listenerPort(orch);
         QVERIFY(port != 0);
+#ifdef HAS_BLUETOOTH
+        QCOMPARE(oap::aa::AndroidAutoOrchestratorTestAccess::discoveryTcpPort(orch), port);
+#endif
 
         QTcpSocket firstSocket;
         firstSocket.connectToHost(QHostAddress::LocalHost, port);
         QVERIFY(firstSocket.waitForConnected());
-        QTRY_VERIFY(oap::aa::AndroidAutoOrchestratorTestAccess::session(orch) != nullptr);
-        QTRY_COMPARE(oap::aa::AndroidAutoOrchestratorTestAccess::activePeerPort(orch),
-                     firstSocket.localPort());
+        QVERIFY(oap::aa::AndroidAutoOrchestratorTestAccess::acceptNextConnection(orch));
         auto* firstSession = oap::aa::AndroidAutoOrchestratorTestAccess::session(orch);
 
         QByteArray versionResponse(6, '\0');
@@ -211,6 +319,9 @@ private slots:
         QCOMPARE(firstSession->state(), oaa::SessionState::ServiceDiscovery);
         firstSession->messenger()->messageReceived(0, 0x0005, QByteArray(), 0);
         QCOMPARE(firstSession->state(), oaa::SessionState::Active);
+        QCOMPARE(orch.connectionState(),
+                 static_cast<int>(oap::aa::AndroidAutoOrchestrator::Connected));
+        QVERIFY(oap::aa::AndroidAutoOrchestratorTestAccess::watchdogActive(orch));
 
         auto& sensorHandler = oap::aa::AndroidAutoOrchestratorTestAccess::sensorHandler(orch);
         sensorHandler.onChannelOpened();
@@ -225,35 +336,85 @@ private slots:
         QCOMPARE(sendSpy.count(), 1);
         sendSpy.clear();
 
-        QTcpSocket replacementSocket;
-        replacementSocket.connectToHost(QHostAddress::LocalHost, port);
-        QVERIFY(replacementSocket.waitForConnected());
-        QTRY_COMPARE(oap::aa::AndroidAutoOrchestratorTestAccess::activePeerPort(orch),
-                     replacementSocket.localPort());
+        const QString connectedStatus = orch.statusMessage();
+        oap::aa::AndroidAutoOrchestratorTestAccess::notifyPhoneWillConnect(orch);
+        QCOMPARE(orch.connectionState(),
+                 static_cast<int>(oap::aa::AndroidAutoOrchestrator::Connected));
+        QCOMPARE(orch.statusMessage(), connectedStatus);
+        QVERIFY(oap::aa::AndroidAutoOrchestratorTestAccess::watchdogActive(orch));
 
-        // The provider seed for the replacement session must only update the
-        // cache; no sensor indication is legal until the new channel subscribes.
+        QTcpSocket activeReplacement;
+        activeReplacement.connectToHost(QHostAddress::LocalHost, port);
+        QVERIFY(activeReplacement.waitForConnected());
+        QVERIFY(oap::aa::AndroidAutoOrchestratorTestAccess::acceptNextConnection(orch));
+        QCOMPARE(oap::aa::AndroidAutoOrchestratorTestAccess::session(orch), firstSession);
+        QCOMPARE(oap::aa::AndroidAutoOrchestratorTestAccess::activePeerPort(orch),
+                 firstSocket.localPort());
+        QCOMPARE(orch.connectionState(),
+                 static_cast<int>(oap::aa::AndroidAutoOrchestrator::Connected));
+
+        orch.requestExitToCar();
+        QCOMPARE(orch.connectionState(),
+                 static_cast<int>(oap::aa::AndroidAutoOrchestrator::Backgrounded));
+        const QString backgroundedStatus = orch.statusMessage();
+        oap::aa::AndroidAutoOrchestratorTestAccess::notifyPhoneWillConnect(orch);
+        QCOMPARE(orch.connectionState(),
+                 static_cast<int>(oap::aa::AndroidAutoOrchestrator::Backgrounded));
+        QCOMPARE(orch.statusMessage(), backgroundedStatus);
+        QVERIFY(oap::aa::AndroidAutoOrchestratorTestAccess::watchdogActive(orch));
+
+        QTcpSocket backgroundedReplacement;
+        backgroundedReplacement.connectToHost(QHostAddress::LocalHost, port);
+        QVERIFY(backgroundedReplacement.waitForConnected());
+        QVERIFY(oap::aa::AndroidAutoOrchestratorTestAccess::acceptNextConnection(orch));
+        QCOMPARE(oap::aa::AndroidAutoOrchestratorTestAccess::session(orch), firstSession);
+        QCOMPARE(oap::aa::AndroidAutoOrchestratorTestAccess::activePeerPort(orch),
+                 firstSocket.localPort());
+
+        // Rejection must not clear persistent handler subscription/wire state.
         sensorHandler.pushNightMode(false);
-        QCOMPARE(sendSpy.count(), 0);
+        QCOMPARE(sendSpy.count(), 1);
 
+        // Drain anything already in flight so the post-stop read observes only
+        // the graceful shutdown traffic.
+        while (firstSocket.waitForReadyRead(50)) {}
+        firstSocket.readAll();
+
+        QElapsedTimer stopElapsed;
+        stopElapsed.start();
         orch.stop();
+        QVERIFY2(stopElapsed.elapsed() < 500, "stop() reintroduced a blocking wait");
+        // The buffered ShutdownRequest must be flushed to the wire before the
+        // synchronous transport teardown aborts the socket.
+        QVERIFY2(firstSocket.waitForReadyRead(1000),
+                 "graceful ShutdownRequest never reached the wire");
+        QVERIFY(!firstSocket.readAll().isEmpty());
+        QCOMPARE(orch.connectionState(),
+                 static_cast<int>(oap::aa::AndroidAutoOrchestrator::Disconnected));
+        QVERIFY(!oap::aa::AndroidAutoOrchestratorTestAccess::admissionOpen(orch));
+        QCOMPARE(oap::aa::AndroidAutoOrchestratorTestAccess::listenerPort(orch), 0);
+
+        QTcpSocket afterStop;
+        afterStop.connectToHost(QHostAddress::LocalHost, port);
+        QVERIFY(!afterStop.waitForConnected(200));
         QCoreApplication::sendPostedEvents(nullptr, QEvent::DeferredDelete);
     }
 
-    void testProviderSeedOverwritesRetainedStateBeforeSessionStart() {
+    void testSharedServiceSeedOverwritesRetainedStateBeforeSessionStart() {
         StubConfigService cfg;
         cfg.values["connection.tcp_port"] = 0;
 
-        oap::YamlConfig yaml;
-        yaml.setNightModeSource("time");
-        const QTime now = QTime::currentTime();
-        yaml.setNightModeDayStart(now.addSecs(-3600).toString("HH:mm"));
-        yaml.setNightModeNightStart(now.addSecs(3600).toString("HH:mm"));
+        auto provider = std::make_unique<oap::aa::TestNightModeProvider>();
+        auto* providerPtr = provider.get();
+        oap::NightModeService nightService(std::move(provider), nullptr);
+        nightService.start();
+        providerPtr->publish(false);
 
-        oap::aa::AndroidAutoOrchestrator orch(&cfg, nullptr, &yaml);
+        oap::aa::AndroidAutoOrchestrator orch(&cfg, nullptr, nullptr);
         auto& sensorHandler = oap::aa::AndroidAutoOrchestratorTestAccess::sensorHandler(orch);
         sensorHandler.pushNightMode(true);
         QSignalSpy sendSpy(&sensorHandler, &oaa::IChannelHandler::sendRequested);
+        orch.setNightModeService(&nightService);
 
         orch.start();
         const quint16 port = oap::aa::AndroidAutoOrchestratorTestAccess::listenerPort(orch);
@@ -265,9 +426,8 @@ private slots:
         QTRY_COMPARE(oap::aa::AndroidAutoOrchestratorTestAccess::activePeerPort(orch),
                      socket.localPort());
 
-        // The time provider starts in a forced-day window but emits no change
-        // from its default day state. The explicit seed must still overwrite
-        // the stale retained night value without transmitting before subscribe.
+        // Service attachment seeds the authoritative day state without
+        // transmitting before the phone subscribes.
         QCOMPARE(sendSpy.count(), 0);
         sensorHandler.onChannelOpened();
         oaa::proto::messages::SensorStartRequestMessage request;
@@ -285,6 +445,9 @@ private slots:
         QCOMPARE(indication.night_mode(0).is_night(), false);
 
         orch.stop();
+        QCOMPARE(providerPtr->stopCount(), 0); // session lifetime does not own it
+        nightService.stop();
+        QCOMPARE(providerPtr->stopCount(), 1);
         QCoreApplication::sendPostedEvents(nullptr, QEvent::DeferredDelete);
     }
 
@@ -347,18 +510,20 @@ private slots:
         QCoreApplication::sendPostedEvents(nullptr, QEvent::DeferredDelete);
     }
 
-    void testInvalidProviderPreservesCacheUntilValidRecovery() {
+    void testInvalidSharedServicePreservesCacheUntilValidRecovery() {
         StubConfigService cfg;
+        auto provider = std::make_unique<oap::aa::TestNightModeProvider>();
+        auto* providerPtr = provider.get();
+        oap::NightModeService nightService(std::move(provider), nullptr);
+        nightService.start();
+        QCOMPARE(providerPtr->startCount(), 1);
+
         oap::aa::AndroidAutoOrchestrator orch(&cfg, nullptr, nullptr);
         auto& sensorHandler = oap::aa::AndroidAutoOrchestratorTestAccess::sensorHandler(orch);
         sensorHandler.pushNightMode(true);
         QSignalSpy sendSpy(&sensorHandler, &oaa::IChannelHandler::sendRequested);
 
-        auto provider = std::make_unique<oap::aa::TestNightModeProvider>();
-        auto* providerPtr = provider.get();
-        oap::aa::AndroidAutoOrchestratorTestAccess::activateNightModeProvider(
-            orch, std::move(provider));
-        QVERIFY(providerPtr->started());
+        orch.setNightModeService(&nightService);
         QCOMPARE(sendSpy.count(), 0);
 
         sensorHandler.onChannelOpened();
@@ -384,6 +549,11 @@ private slots:
         indicationPayload = sendSpy[1][2].toByteArray();
         QVERIFY(indication.ParseFromArray(indicationPayload.constData(), indicationPayload.size()));
         QCOMPARE(indication.night_mode(0).is_night(), false);
+
+        orch.stop();
+        QCOMPARE(providerPtr->stopCount(), 0);
+        nightService.stop();
+        QCOMPARE(providerPtr->stopCount(), 1);
     }
 };
 

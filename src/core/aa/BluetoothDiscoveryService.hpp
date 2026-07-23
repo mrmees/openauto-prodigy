@@ -23,6 +23,7 @@ class BluetoothDiscoveryService : public QObject
 public:
     explicit BluetoothDiscoveryService(
         oap::IConfigService* configService,
+        quint16 tcpPort,
         const QString& wifiInterface = QStringLiteral("wlan0"),
         QObject* parent = nullptr);
     ~BluetoothDiscoveryService() override;
@@ -36,6 +37,7 @@ public:
     void retrigger();
 
     QString localAddress() const;
+    quint16 advertisedTcpPort() const { return tcpPort_; }
 
     /// Pure message builders — testable without hardware/sockets
     static oaa::proto::messages::WifiStartRequest buildWifiStartRequest(
@@ -80,6 +82,7 @@ private:
     QBluetoothSocket* socket_ = nullptr;
     QByteArray buffer_;
     QString wifiInterface_;
+    quint16 tcpPort_;
     uint32_t sdpRecordHandle_ = 0;
     QTimer* listenerRetryTimer_ = nullptr;
     QTimer* sdpRetryTimer_ = nullptr;

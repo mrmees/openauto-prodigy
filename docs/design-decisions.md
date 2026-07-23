@@ -13,10 +13,17 @@ machine, and channel handlers as Qt objects on the main event loop.
 
 **Rationale:** `QTcpServer`, `QTcpSocket`, signals, and timers provide one
 ownership model for session lifecycle and eliminate a separate protocol thread
-pool. The configured `connection.tcp_port` is used throughout discovery and
-listening; its default is 5277. Bluetooth discovery supplies WiFi AP
+pool. One resolver validates `connection.tcp_port` for the listener; its
+default is 5277, and Bluetooth discovery advertises the listener's actual
+bound port. Bluetooth discovery supplies WiFi AP
 credentials, the phone joins the AP, and the same Qt transport carries version
 exchange, TLS, service discovery, and channel traffic.
+
+The listener admits replacement clients only while connection setup is still
+pending. Once a session is connected or backgrounded, extra TCP connections
+are rejected without changing the active peer, state, or watchdog. Shutdown
+closes admission before synchronously stopping the session, avoiding a nested
+event-loop wait and reentrant replacement during teardown.
 
 **Historical context:** An earlier prototype used a third-party protocol stack
 and explored USB AOAP. Neither is part of the current architecture. The
@@ -68,6 +75,9 @@ the decoder without the parameter sets required for subsequent frames.
 **Rationale:** Service discovery computes content margins for the actual display
 viewport and optional navbar. The matching content dimensions also define the
 phone's touch coordinate space, so video crop and input mapping remain aligned.
+The recognized codec list is resolved once per session and supplies both the
+advertised descriptors and the video-channel setup-response count, preventing
+those protocol surfaces from disagreeing after configuration fallback.
 
 ### Decode worker, Qt-owned sink
 
@@ -78,6 +88,19 @@ and update `QVideoSink` on the Qt main thread.
 handling, while `frameReady` returns through Qt signal delivery to the sink's
 owning thread. Queue-depth load shedding may skip non-reference output, but it
 never drops compressed packets that the reference chain needs.
+
+### Stream boundaries are ordered worker commands
+
+**Decision:** Place a decoder reset command in the same worker queue as
+compressed video whenever the video channel starts a stream.
+
+**Rationale:** The decoder object is intentionally process-long, while codec,
+parser, fallback, queued-packet, and latest-frame state belongs to one phone
+stream. Frame signals enter the thread-safe worker queue directly, preserving
+their emission order with the stream-start reset. Clearing queued prior-stream
+packets and ordering reset before later frames prevents H.264/H.265 state from
+crossing reconnects without racing the decode thread or rebuilding the whole
+projection plugin.
 
 ### OpenMAX IL remains out of scope
 
@@ -101,6 +124,13 @@ emits Android MotionEvent-compatible down, move, and up messages. Leaving the
 AA view or backgrounding/disconnecting projection releases the grab so normal
 QML input resumes.
 
+The reader thread exclusively owns the device descriptor, actual grab state,
+slot history, and phone-visible pointer membership. Main-thread configuration
+is published as coherent snapshots before or during the reader loop; device
+loss closes and reopens on a paced retry that remains interruptible at stop.
+Before ungrab, loss, or shutdown clears reader state, any phone-visible
+pointers are retired with valid pointer-up/up messages.
+
 ### Touch routing and the navbar
 
 **Decision:** Route grabbed evdev input through `TouchRouter` before forwarding
@@ -109,8 +139,11 @@ unclaimed pointers to AA.
 **Rationale:** `NavbarController` registers priority hit zones through
 `EvdevCoordBridge`; those zones can consume a pointer for head-unit controls
 even though QML `MouseArea`s cannot receive the grabbed device. Unclaimed
-pointers fall through to `TouchHandler` and the AA input channel. A 3-finger
-gesture suppresses AA forwarding and opens the system overlay.
+pointers fall through to `TouchHandler` and the AA input channel. Raw slot
+activity and AA membership are separate: a zone-claimed pointer never appears
+in AA's full-pointer arrays, and same-report transitions are serialized in
+Android MotionEvent order. A 3-finger gesture suppresses AA forwarding and
+opens the system overlay.
 
 ### Touch debug overlay
 
@@ -269,6 +302,23 @@ instance context and dispatches `media.playPause`, `media.next`, and
 Bluetooth, or local playback currently owns the media surface.
 `MediaStatusService` remains the routing authority, while the action path gives
 QML and external clients the same mutation boundary.
+
+---
+
+### Application-lifetime night state
+
+**Decision:** `NightModeService` owns the configured time/GPIO provider for the
+application lifetime and publishes one validity-gated physical state to both
+`ThemeService` and Android Auto's persistent sensor cache.
+
+**Rationale:** Projection sessions are consumers, not owners, of vehicle state.
+Keeping the provider alive across reconnects prevents shell and phone state
+from diverging, preserves the first subscription's cached indication, and lets
+GPIO setup/read failures recover on a paced retry without replacing the last
+authoritative value. If an exported GPIO directory disappears, the provider
+re-enters export and direction setup instead of remaining stuck in its former
+configured state. The shell-only force-dark override remains independent of
+the physical state sent to Android Auto.
 
 ---
 

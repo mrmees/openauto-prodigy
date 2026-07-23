@@ -7,9 +7,39 @@
 #include <poll.h>
 #include <cstring>
 #include <algorithm>
+#include <QDeadlineTimer>
 
 namespace oap {
 namespace aa {
+
+EvdevTouchReader::EvdevTouchReader(TouchHandler* handler,
+                                   const std::string& devicePath,
+                                   int aaWidth, int aaHeight,
+                                   int displayWidth, int displayHeight,
+                                   QObject* parent)
+    : QThread(parent)
+    , handler_(handler)
+    , devicePath_(devicePath)
+    , aaWidth_(aaWidth)
+    , aaHeight_(aaHeight)
+    , displayWidth_(displayWidth)
+    , displayHeight_(displayHeight)
+{
+    slots_.fill(Slot{});
+    prevSlots_.fill(Slot{});
+    aaActive_.fill(false);
+    requestedMapping_.aaWidth = aaWidth;
+    requestedMapping_.aaHeight = aaHeight;
+    requestedMapping_.displayWidth = displayWidth;
+    requestedMapping_.displayHeight = displayHeight;
+}
+
+void EvdevTouchReader::requestStop()
+{
+    QMutexLocker lock(&reconnectMutex_);
+    stopRequested_.store(true, std::memory_order_release);
+    reconnectCondition_.wakeAll();
+}
 
 void EvdevTouchReader::computeLetterbox()
 {
@@ -30,6 +60,11 @@ void EvdevTouchReader::computeLetterbox()
                 effectiveDisplayX0 = navbarThickness_;
         }
     }
+
+    effectiveDisplayW = std::max(1, effectiveDisplayW);
+    effectiveDisplayH = std::max(1, effectiveDisplayH);
+    displayWidth_ = std::max(1, displayWidth_);
+    displayHeight_ = std::max(1, displayHeight_);
 
     float evdevPerPixelX = static_cast<float>(screenWidth_) / displayWidth_;
     float evdevPerPixelY = static_cast<float>(screenHeight_) / displayHeight_;
@@ -71,8 +106,13 @@ void EvdevTouchReader::computeLetterbox()
                             << " | evdev (" << videoEvdevX0_ << "," << videoEvdevY0_
                             << ") " << videoEvdevW_ << "x" << videoEvdevH_;
     // Push content dimensions to TouchHandler for debug overlay
-    if (handler_)
-        handler_->setContentDims(static_cast<int>(visibleAAWidth_), static_cast<int>(visibleAAHeight_));
+    if (handler_) {
+        const int contentW = static_cast<int>(visibleAAWidth_);
+        const int contentH = static_cast<int>(visibleAAHeight_);
+        QMetaObject::invokeMethod(handler_, [handler = handler_, contentW, contentH]() {
+            handler->setContentDims(contentW, contentH);
+        }, Qt::QueuedConnection);
+    }
 
     qCDebug(lcAA) << "Diagnostic: navbar=" << (navbarEnabled_ ? navbarEdge_.c_str() : "off")
                             << " " << navbarThickness_ << "px"
@@ -86,31 +126,57 @@ void EvdevTouchReader::computeLetterbox()
 
 void EvdevTouchReader::setNavbar(bool enabled, int thickness, const std::string& edge)
 {
-    navbarEnabled_ = enabled;
-    navbarThickness_ = thickness;
-    navbarEdge_ = edge;
-    // Navbar zones are registered by NavbarController via EvdevCoordBridge -- not here.
+    std::lock_guard<std::mutex> lock(mappingMutex_);
+    requestedMapping_.navbarEnabled = enabled;
+    requestedMapping_.navbarThickness = thickness;
+    requestedMapping_.navbarEdge = edge;
+    ++requestedMapping_.version;
 }
 
-void EvdevTouchReader::setContentDimensions(int w, int h)
+void EvdevTouchReader::setVideoMapping(int aaWidth, int aaHeight,
+                                       int contentWidth, int contentHeight)
 {
-    contentWidth_ = w;
-    contentHeight_ = h;
-    qCInfo(lcAA) << "Content dimensions set:" << w << "x" << h;
-}
-
-void EvdevTouchReader::setAAResolution(int aaWidth, int aaHeight)
-{
-    pendingAAWidth_.store(aaWidth, std::memory_order_relaxed);
-    pendingAAHeight_.store(aaHeight, std::memory_order_release);
-    qCDebug(lcAA) << "Pending resolution update:" << aaWidth << "x" << aaHeight;
+    std::lock_guard<std::mutex> lock(mappingMutex_);
+    requestedMapping_.aaWidth = aaWidth;
+    requestedMapping_.aaHeight = aaHeight;
+    requestedMapping_.contentWidth = contentWidth;
+    requestedMapping_.contentHeight = contentHeight;
+    ++requestedMapping_.version;
+    qCDebug(lcAA) << "Pending video mapping update: frame="
+                  << aaWidth << "x" << aaHeight << "content="
+                  << contentWidth << "x" << contentHeight;
 }
 
 void EvdevTouchReader::setDisplayDimensions(int w, int h)
 {
-    pendingDisplayWidth_.store(w, std::memory_order_relaxed);
-    pendingDisplayHeight_.store(h, std::memory_order_release);
+    std::lock_guard<std::mutex> lock(mappingMutex_);
+    requestedMapping_.displayWidth = w;
+    requestedMapping_.displayHeight = h;
+    ++requestedMapping_.version;
     qCDebug(lcAA) << "Pending display dimension update:" << w << "x" << h;
+}
+
+void EvdevTouchReader::applyPendingMapping(bool force)
+{
+    MappingConfig mapping;
+    {
+        std::lock_guard<std::mutex> lock(mappingMutex_);
+        if (!force && requestedMapping_.version == appliedMappingVersion_)
+            return;
+        mapping = requestedMapping_;
+    }
+
+    aaWidth_ = mapping.aaWidth;
+    aaHeight_ = mapping.aaHeight;
+    displayWidth_ = mapping.displayWidth;
+    displayHeight_ = mapping.displayHeight;
+    contentWidth_ = mapping.contentWidth;
+    contentHeight_ = mapping.contentHeight;
+    navbarEnabled_ = mapping.navbarEnabled;
+    navbarThickness_ = mapping.navbarThickness;
+    navbarEdge_ = mapping.navbarEdge;
+    appliedMappingVersion_ = mapping.version;
+    computeLetterbox();
 }
 
 int EvdevTouchReader::mapX(int rawX) const
@@ -131,99 +197,224 @@ int EvdevTouchReader::mapY(int rawY) const
     return static_cast<int>(rel * visibleAAHeight_);
 }
 
-void EvdevTouchReader::run()
+bool EvdevTouchReader::openDevice()
 {
-    fd_ = ::open(devicePath_.c_str(), O_RDONLY);
-    if (fd_ < 0) {
-        qCCritical(lcAA) << "Failed to open " << devicePath_.c_str()
-                                 << ": " << strerror(errno);
+    fd_ = ::open(devicePath_.c_str(), O_RDONLY | O_CLOEXEC);
+    return fd_ >= 0;
+}
+
+void EvdevTouchReader::closeDevice()
+{
+    if (fd_ < 0)
+        return;
+    if (deviceGrabbed_)
+        ::ioctl(fd_, EVIOCGRAB, 0);
+    ::close(fd_);
+    fd_ = -1;
+    deviceGrabbed_ = false;
+}
+
+void EvdevTouchReader::queryAxisRanges()
+{
+    struct input_absinfo absX{}, absY{};
+    if (::ioctl(fd_, EVIOCGABS(ABS_MT_POSITION_X), &absX) == 0) {
+        screenWidth_ = std::max(1, absX.maximum);
+        if (absX.minimum != 0)
+            qCWarning(lcAA) << "X axis min=" << absX.minimum
+                            << "(non-zero — coordinate normalization may be off)";
+    }
+    if (::ioctl(fd_, EVIOCGABS(ABS_MT_POSITION_Y), &absY) == 0) {
+        screenHeight_ = std::max(1, absY.maximum);
+        if (absY.minimum != 0)
+            qCWarning(lcAA) << "Y axis min=" << absY.minimum
+                            << "(non-zero — coordinate normalization may be off)";
+    }
+}
+
+int EvdevTouchReader::pollDevice(short& revents, int timeoutMs)
+{
+    pollfd pfd{};
+    pfd.fd = fd_;
+    pfd.events = POLLIN;
+    const int result = ::poll(&pfd, 1, timeoutMs);
+    revents = pfd.revents;
+    return result;
+}
+
+ssize_t EvdevTouchReader::readDeviceEvent(input_event& event)
+{
+    return ::read(fd_, &event, sizeof(event));
+}
+
+bool EvdevTouchReader::setDeviceGrab(bool grabbed)
+{
+    return fd_ >= 0 && ::ioctl(fd_, EVIOCGRAB, grabbed ? 1 : 0) == 0;
+}
+
+bool EvdevTouchReader::waitForReconnect()
+{
+    QMutexLocker lock(&reconnectMutex_);
+    QDeadlineTimer deadline(1000);
+    while (!stopRequested_.load(std::memory_order_acquire)) {
+        if (!reconnectCondition_.wait(&reconnectMutex_, deadline))
+            return true;
+    }
+    return false;
+}
+
+void EvdevTouchReader::releaseAaTouchStream()
+{
+    // The AA touch enum has no ACTION_CANCEL. Retire every phone-visible
+    // pointer with valid POINTER_UP/UP messages before local ownership or the
+    // device disappears, so the phone cannot retain a stuck gesture.
+    for (int i = 0; i < MAX_SLOTS; ++i) {
+        if (!aaActive_[i])
+            continue;
+        auto pointers = buildAaPointers();
+        const auto changed = std::find_if(pointers.begin(), pointers.end(),
+            [i](const TouchHandler::Pointer& pointer) { return pointer.id == i; });
+        const int actionIdx = static_cast<int>(std::distance(pointers.begin(), changed));
+        const int action = pointers.size() == 1 ? 1 : 6;
+        if (handler_)
+            handler_->sendTouchIndication(pointers.size(), pointers.data(),
+                                          actionIdx, action);
+        aaActive_[i] = false;
+    }
+}
+
+void EvdevTouchReader::resetTouchState()
+{
+    releaseAaTouchStream();
+    slots_.fill(Slot{});
+    prevSlots_ = slots_;
+    aaActive_.fill(false);
+    currentSlot_ = 0;
+    gestureActive_ = false;
+    gestureMaxFingers_ = 0;
+    prevActiveCount_ = 0;
+    router_.resetClaims();
+}
+
+void EvdevTouchReader::applyRequestedGrab()
+{
+    const bool requested = requestedGrab_.load(std::memory_order_acquire);
+    if (requested == deviceGrabbed_ || fd_ < 0)
+        return;
+
+    if (!setDeviceGrab(requested)) {
+        qCWarning(lcAA) << "EVIOCGRAB" << (requested ? "grab" : "release")
+                        << "failed:" << strerror(errno);
         return;
     }
 
-    // Don't grab on startup — let Wayland/libinput handle touch for the launcher UI.
-    // The grab will be activated when AA connects via grab().
+    deviceGrabbed_ = requested;
+    if (!requested)
+        resetTouchState();
+    qCInfo(lcAA) << (requested
+        ? "Device grabbed — touch events routed to AA"
+        : "Device ungrabbed — touch returned to Wayland");
+}
 
-    // Read axis ranges for coordinate scaling
-    struct input_absinfo absX{}, absY{};
-    if (::ioctl(fd_, EVIOCGABS(ABS_MT_POSITION_X), &absX) == 0) {
-        screenWidth_ = absX.maximum;
-        if (absX.minimum != 0)
-            qCWarning(lcAA) << "X axis min=" << absX.minimum
-                                       << " (non-zero — coordinate normalization may be off)";
-    }
-    if (::ioctl(fd_, EVIOCGABS(ABS_MT_POSITION_Y), &absY) == 0) {
-        screenHeight_ = absY.maximum;
-        if (absY.minimum != 0)
-            qCWarning(lcAA) << "Y axis min=" << absY.minimum
-                                       << " (non-zero — coordinate normalization may be off)";
-    }
-
-    // Recompute letterbox with actual axis ranges
-    computeLetterbox();
-
-    qCInfo(lcAA) << "Opened " << devicePath_.c_str()
-                            << " (evdev: " << screenWidth_ << "x" << screenHeight_
-                            << " -> AA " << aaWidth_ << "x" << aaHeight_ << ")";
-
-    prevSlots_ = slots_;
-
-    struct pollfd pfd;
-    pfd.fd = fd_;
-    pfd.events = POLLIN;
-
-    while (!stopRequested_) {
-        int ret = ::poll(&pfd, 1, 100);  // 100ms timeout for stop check
-        if (ret <= 0) continue;
-
-        struct input_event ev;
-        ssize_t n = ::read(fd_, &ev, sizeof(ev));
-        if (n != sizeof(ev)) continue;
-
-        bool isGrabbed = grabbed_.load(std::memory_order_relaxed);
-
-        // Always process slot tracking — needed for gesture detection even when ungrabbed
-        switch (ev.type) {
-        case EV_ABS:
-            switch (ev.code) {
-            case ABS_MT_SLOT:
-                currentSlot_ = ev.value;
-                if (currentSlot_ >= MAX_SLOTS) currentSlot_ = MAX_SLOTS - 1;
+void EvdevTouchReader::run()
+{
+    while (!stopRequested_.load(std::memory_order_acquire)) {
+        if (!openDevice()) {
+            qCWarning(lcAA) << "Failed to open" << devicePath_.c_str()
+                            << ":" << strerror(errno) << "— retrying";
+            if (!waitForReconnect())
                 break;
-            case ABS_MT_TRACKING_ID:
-                slots_[currentSlot_].trackingId = ev.value;
-                slots_[currentSlot_].dirty = true;
-                break;
-            case ABS_MT_POSITION_X:
-                slots_[currentSlot_].x = ev.value;
-                slots_[currentSlot_].dirty = true;
-                break;
-            case ABS_MT_POSITION_Y:
-                slots_[currentSlot_].y = ev.value;
-                slots_[currentSlot_].dirty = true;
+            continue;
+        }
+
+        queryAxisRanges();
+        applyPendingMapping(true);
+        resetTouchState();
+        applyRequestedGrab();
+
+        qCInfo(lcAA) << "Opened" << devicePath_.c_str()
+                     << "(evdev:" << screenWidth_ << "x" << screenHeight_
+                     << "-> AA" << aaWidth_ << "x" << aaHeight_ << ")";
+
+        bool deviceHealthy = true;
+        while (deviceHealthy && !stopRequested_.load(std::memory_order_acquire)) {
+            applyPendingMapping();
+            applyRequestedGrab();
+
+            short revents = 0;
+            const int pollResult = pollDevice(revents, 100);
+            if (pollResult == 0)
+                continue;
+            if (pollResult < 0) {
+                if (errno == EINTR)
+                    continue;
+                qCWarning(lcAA) << "Touch device poll failed:" << strerror(errno);
+                deviceHealthy = false;
                 break;
             }
-            break;
+            if (revents & (POLLERR | POLLHUP | POLLNVAL)) {
+                qCWarning(lcAA) << "Touch device became unavailable, revents="
+                                << Qt::hex << revents;
+                deviceHealthy = false;
+                break;
+            }
+            if (!(revents & POLLIN))
+                continue;
 
-        case EV_SYN:
-            if (ev.code == SYN_REPORT) {
-                if (isGrabbed) {
-                    processSync();  // Full processing: gesture + AA forwarding
-                } else {
-                    // Ungrabbed: only run gesture detection, don't forward to AA
-                    checkGesture();
-                    for (int i = 0; i < MAX_SLOTS; ++i)
-                        slots_[i].dirty = false;
-                    prevSlots_ = slots_;
+            input_event ev{};
+            const ssize_t bytesRead = readDeviceEvent(ev);
+            if (bytesRead != static_cast<ssize_t>(sizeof(ev))) {
+                if (bytesRead < 0 && (errno == EINTR || errno == EAGAIN))
+                    continue;
+                qCWarning(lcAA) << "Touch device read failed/short:" << bytesRead
+                                << (bytesRead < 0 ? strerror(errno) : "bytes");
+                deviceHealthy = false;
+                break;
+            }
+
+            switch (ev.type) {
+            case EV_ABS:
+                switch (ev.code) {
+                case ABS_MT_SLOT:
+                    currentSlot_ = std::clamp(ev.value, 0, MAX_SLOTS - 1);
+                    break;
+                case ABS_MT_TRACKING_ID:
+                    slots_[currentSlot_].trackingId = ev.value;
+                    slots_[currentSlot_].dirty = true;
+                    break;
+                case ABS_MT_POSITION_X:
+                    slots_[currentSlot_].x = ev.value;
+                    slots_[currentSlot_].dirty = true;
+                    break;
+                case ABS_MT_POSITION_Y:
+                    slots_[currentSlot_].y = ev.value;
+                    slots_[currentSlot_].dirty = true;
+                    break;
                 }
+                break;
+            case EV_SYN:
+                if (ev.code == SYN_REPORT) {
+                    if (deviceGrabbed_) {
+                        processSync();
+                    } else {
+                        checkGesture();
+                        for (auto& slot : slots_)
+                            slot.dirty = false;
+                        prevSlots_ = slots_;
+                    }
+                }
+                break;
             }
+        }
+
+        closeDevice();
+        resetTouchState();
+        if (!stopRequested_.load(std::memory_order_acquire)
+            && !waitForReconnect()) {
             break;
         }
     }
 
-    if (grabbed_.load())
-        ::ioctl(fd_, EVIOCGRAB, 0);
-    ::close(fd_);
-    fd_ = -1;
+    closeDevice();
     qCInfo(lcAA) << "Reader thread stopped";
 }
 
@@ -233,15 +424,6 @@ int EvdevTouchReader::countActive() const
     for (auto& s : slots_)
         if (s.trackingId >= 0) ++n;
     return n;
-}
-
-// Map a slot index to its position in the active-pointers array
-int EvdevTouchReader::slotToArrayIndex(int slot) const
-{
-    int idx = 0;
-    for (int i = 0; i < slot; ++i)
-        if (slots_[i].trackingId >= 0) ++idx;
-    return idx;
 }
 
 bool EvdevTouchReader::checkGesture()
@@ -280,34 +462,28 @@ bool EvdevTouchReader::checkGesture()
     return gestureActive_;
 }
 
+std::vector<TouchHandler::Pointer> EvdevTouchReader::buildAaPointers() const
+{
+    std::vector<TouchHandler::Pointer> pointers;
+    pointers.reserve(MAX_SLOTS);
+    for (int i = 0; i < MAX_SLOTS; ++i) {
+        if (!aaActive_[i])
+            continue;
+
+        const Slot& source = slots_[i].trackingId >= 0 ? slots_[i] : prevSlots_[i];
+        pointers.push_back({mapX(source.x), mapY(source.y), i});
+    }
+    return pointers;
+}
+
 void EvdevTouchReader::processSync()
 {
-    // Apply pending AA resolution update (set from main thread via setAAResolution)
-    int newH = pendingAAHeight_.load(std::memory_order_acquire);
-    if (newH > 0) {
-        int newW = pendingAAWidth_.load(std::memory_order_relaxed);
-        aaWidth_ = newW;
-        aaHeight_ = newH;
-        pendingAAWidth_.store(0, std::memory_order_relaxed);
-        pendingAAHeight_.store(0, std::memory_order_relaxed);
-        computeLetterbox();
-        qCDebug(lcAA) << "Applied resolution update:" << aaWidth_ << "x" << aaHeight_;
-    }
-
-    // Apply pending display dimension update (set from main thread via setDisplayDimensions)
-    int newDisplayH = pendingDisplayHeight_.load(std::memory_order_acquire);
-    if (newDisplayH > 0) {
-        int newDisplayW = pendingDisplayWidth_.load(std::memory_order_relaxed);
-        displayWidth_ = newDisplayW;
-        displayHeight_ = newDisplayH;
-        pendingDisplayWidth_.store(0, std::memory_order_relaxed);
-        pendingDisplayHeight_.store(0, std::memory_order_relaxed);
-        computeLetterbox();
-        qCDebug(lcAA) << "Applied display dimension update:" << displayWidth_ << "x" << displayHeight_;
-    }
+    applyPendingMapping();
 
     // Check for 3-finger gesture — may suppress AA forwarding but not zone dispatch
-    bool gestureBlocking = checkGesture();
+    const bool gestureBlocking = checkGesture();
+
+    std::array<bool, MAX_SLOTS> consumed{};
 
     // Dispatch touches through TouchRouter — zones claim slots, unclaimed fall through to AA
     for (int i = 0; i < MAX_SLOTS; ++i) {
@@ -331,99 +507,82 @@ void EvdevTouchReader::processSync()
             continue;  // inactive->inactive, skip
         }
 
-        if (router_.dispatch(i, x, y, evt)) {
-            slots_[i].dirty = false;  // consumed by zone
-        }
+        consumed[i] = router_.dispatch(i, x, y, evt);
     }
 
     // If gesture is active, suppress AA forwarding for unclaimed touches
     if (gestureBlocking) {
+        releaseAaTouchStream();
+        aaActive_.fill(false);
         for (int i = 0; i < MAX_SLOTS; ++i)
             slots_[i].dirty = false;
         prevSlots_ = slots_;
         return;
     }
 
-    // If all dirty slots were consumed by zones, skip AA processing
-    {
-        bool anyDirty = false;
-        for (int i = 0; i < MAX_SLOTS; ++i)
-            if (slots_[i].dirty) { anyDirty = true; break; }
-        if (!anyDirty) {
-            prevSlots_ = slots_;
-            return;
-        }
-    }
+    bool sentBoundaryEvent = false;
 
-    // Determine what changed: new fingers, lifted fingers, moved fingers
-    int prevActive = 0, nowActive = 0;
+    // Retire phone-visible pointers before admitting replacements from the
+    // same SYN_REPORT. Android must not observe a transient overlap between a
+    // lifted contact and a newly pressed contact.
     for (int i = 0; i < MAX_SLOTS; ++i) {
-        if (prevSlots_[i].trackingId >= 0) ++prevActive;
-        if (slots_[i].trackingId >= 0) ++nowActive;
-    }
+        if (!slots_[i].dirty || consumed[i] || !aaActive_[i])
+            continue;
 
-    // Build the full pointer array (all currently active slots)
-    using Pointer = TouchHandler::Pointer;
-    std::vector<Pointer> pointers;
-    for (int i = 0; i < MAX_SLOTS; ++i) {
-        if (slots_[i].trackingId >= 0) {
-            pointers.push_back({mapX(slots_[i].x), mapY(slots_[i].y), i});
-        }
-    }
+        const bool wasActive = prevSlots_[i].trackingId >= 0;
+        const bool isActive = slots_[i].trackingId >= 0;
+        if (!wasActive || isActive)
+            continue;
 
-    // Check for finger down/up events first
-    for (int i = 0; i < MAX_SLOTS; ++i) {
-        if (!slots_[i].dirty) continue;
-
-        bool wasActive = prevSlots_[i].trackingId >= 0;
-        bool isActive = slots_[i].trackingId >= 0;
-
-        if (!wasActive && isActive) {
-            // Finger pressed
-            int action = (prevActive == 0) ? 0 : 5;  // DOWN or POINTER_DOWN
-            int actionIdx = slotToArrayIndex(i);
-
+        auto pointers = buildAaPointers();
+        const auto changed = std::find_if(pointers.begin(), pointers.end(),
+            [i](const TouchHandler::Pointer& pointer) { return pointer.id == i; });
+        const int actionIdx = static_cast<int>(std::distance(pointers.begin(), changed));
+        const int action = pointers.size() == 1 ? 1 : 6;
+        if (handler_) {
             handler_->sendTouchIndication(pointers.size(), pointers.data(),
                                           actionIdx, action);
-            prevActive = nowActive;  // update for subsequent events in same SYN
-
-            qCDebug(lcAA) << "DOWN slot=" << i
-                                    << " actionIdx=" << actionIdx
-                                    << " active=" << nowActive
-                                    << " raw=(" << slots_[i].x << "," << slots_[i].y << ")"
-                                    << " aa=(" << pointers[actionIdx].x << "," << pointers[actionIdx].y << ")";
         }
-        else if (wasActive && !isActive) {
-            // Finger lifted — need to include this pointer in the array at its last position
-            std::vector<Pointer> withLifted;
-            for (int j = 0; j < MAX_SLOTS; ++j) {
-                if (slots_[j].trackingId >= 0 || (j == i && prevSlots_[j].trackingId >= 0)) {
-                    int sx = (j == i) ? prevSlots_[j].x : slots_[j].x;
-                    int sy = (j == i) ? prevSlots_[j].y : slots_[j].y;
-                    withLifted.push_back({mapX(sx), mapY(sy), j});
-                }
-            }
-
-            // Find this finger's index in the withLifted array
-            int actionIdx = 0;
-            for (int j = 0; j < (int)withLifted.size(); ++j) {
-                if (withLifted[j].id == i) { actionIdx = j; break; }
-            }
-
-            int action = (nowActive == 0) ? 1 : 6;  // UP or POINTER_UP
-            handler_->sendTouchIndication(withLifted.size(), withLifted.data(),
-                                          actionIdx, action);
-
-            qCDebug(lcAA) << "UP slot=" << i
-                                    << " actionIdx=" << actionIdx
-                                    << " active=" << nowActive;
-        }
+        aaActive_[i] = false;
+        sentBoundaryEvent = true;
+        qCDebug(lcAA) << "UP slot=" << i << "actionIdx=" << actionIdx
+                      << "active=" << pointers.size();
     }
 
-    // Send MOVE if any active slots changed position (and no down/up happened)
+    // Admit unclaimed DOWN transitions one at a time. This preserves Android's
+    // required DOWN then POINTER_DOWN ordering even when evdev batches them in
+    // the same SYN_REPORT.
+    for (int i = 0; i < MAX_SLOTS; ++i) {
+        if (!slots_[i].dirty || consumed[i])
+            continue;
+
+        const bool wasActive = prevSlots_[i].trackingId >= 0;
+        const bool isActive = slots_[i].trackingId >= 0;
+        if (wasActive || !isActive)
+            continue;
+
+        aaActive_[i] = true;
+        auto pointers = buildAaPointers();
+        const auto changed = std::find_if(pointers.begin(), pointers.end(),
+            [i](const TouchHandler::Pointer& pointer) { return pointer.id == i; });
+        const int actionIdx = static_cast<int>(std::distance(pointers.begin(), changed));
+        const int action = pointers.size() == 1 ? 0 : 5;
+
+        if (handler_) {
+            handler_->sendTouchIndication(pointers.size(), pointers.data(),
+                                          actionIdx, action);
+        }
+        sentBoundaryEvent = true;
+        qCDebug(lcAA) << "DOWN slot=" << i << "actionIdx=" << actionIdx
+                      << "active=" << pointers.size();
+    }
+
+    // A boundary message already carries the current coordinates for every
+    // phone-visible pointer, so MOVE is only needed for a pure move sync.
     bool anyMoved = false;
     for (int i = 0; i < MAX_SLOTS; ++i) {
-        if (slots_[i].dirty && slots_[i].trackingId >= 0 && prevSlots_[i].trackingId >= 0) {
+        if (slots_[i].dirty && !consumed[i] && aaActive_[i]
+            && slots_[i].trackingId >= 0 && prevSlots_[i].trackingId >= 0) {
             if (slots_[i].x != prevSlots_[i].x || slots_[i].y != prevSlots_[i].y) {
                 anyMoved = true;
                 break;
@@ -431,8 +590,10 @@ void EvdevTouchReader::processSync()
         }
     }
 
-    if (anyMoved && !pointers.empty()) {
-        handler_->sendTouchIndication(pointers.size(), pointers.data(), 0, 2);  // MOVE
+    if (anyMoved && !sentBoundaryEvent) {
+        auto pointers = buildAaPointers();
+        if (handler_ && !pointers.empty())
+            handler_->sendTouchIndication(pointers.size(), pointers.data(), 0, 2);
     }
 
     // Clear dirty flags and save state
@@ -443,33 +604,12 @@ void EvdevTouchReader::processSync()
 
 void EvdevTouchReader::grab()
 {
-    if (fd_ < 0 || grabbed_.load()) return;
-
-    if (::ioctl(fd_, EVIOCGRAB, 1) < 0) {
-        qCWarning(lcAA) << "EVIOCGRAB failed: " << strerror(errno);
-        return;
-    }
-    grabbed_.store(true);
-    qCInfo(lcAA) << "Device grabbed — touch events routed to AA";
+    requestedGrab_.store(true, std::memory_order_release);
 }
 
 void EvdevTouchReader::ungrab()
 {
-    if (fd_ < 0 || !grabbed_.load()) return;
-
-    ::ioctl(fd_, EVIOCGRAB, 0);
-    grabbed_.store(false);
-
-    // Reset slot state so stale touches don't fire when re-grabbed
-    slots_.fill(Slot{});
-    prevSlots_ = slots_;
-    currentSlot_ = 0;
-    gestureActive_ = false;
-    gestureMaxFingers_ = 0;
-    prevActiveCount_ = 0;
-    router_.resetClaims();
-
-    qCInfo(lcAA) << "Device ungrabbed — touch returned to Wayland";
+    requestedGrab_.store(false, std::memory_order_release);
 }
 
 } // namespace aa

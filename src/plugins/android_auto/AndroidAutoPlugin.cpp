@@ -1,17 +1,14 @@
 #include "AndroidAutoPlugin.hpp"
 #include "core/aa/AndroidAutoOrchestrator.hpp"
 #include "core/aa/AndroidAutoRuntimeBridge.hpp"
-#include "core/aa/EvdevTouchReader.hpp"
 #include "core/aa/EvdevCoordBridge.hpp"
-#include "core/aa/ServiceDiscoveryBuilder.hpp"
 #include "core/plugin/IHostContext.hpp"
 #include "core/services/IAudioService.hpp"
 #include "core/services/IConfigService.hpp"
 #include "core/services/ConfigService.hpp"
 #include "core/services/EqualizerService.hpp"
+#include "core/services/NightModeService.hpp"
 #include "ui/DisplayInfo.hpp"
-#include <algorithm>
-#include <cmath>
 #include "../../core/Logging.hpp"
 #include <QQmlContext>
 #include <QFile>
@@ -53,8 +50,10 @@ bool AndroidAutoPlugin::initialize(IHostContext* context)
     aaService_ = new oap::aa::AndroidAutoOrchestrator(configService, audioService, yamlConfig_, eventBus, eqService, this);
 
     // Give orchestrator access to theme service for UiConfigRequest sending
-    if (context)
+    if (context) {
         aaService_->setThemeService(context->themeService());
+        aaService_->setNightModeService(context->nightModeService());
+    }
 
     // Connect navigation: emit signals for PluginModel to handle activation/deactivation.
     QObject::connect(aaService_, &oap::aa::AndroidAutoOrchestrator::connectionStateChanged,
@@ -110,32 +109,12 @@ void AndroidAutoPlugin::onConfigChanged(const QString& path, const QVariant& val
         return;
 
     // Update touch coordinate mapping for the new resolution
-    if (path == QLatin1String("video.resolution") && runtimeBridge_ && runtimeBridge_->touchReader()) {
-        auto* touchReader = runtimeBridge_->touchReader();
+    if (path == QLatin1String("video.resolution") && runtimeBridge_) {
         int aaW = 1280, aaH = 720;
         QString res = value.toString();
         if (res == QLatin1String("1080p")) { aaW = 1920; aaH = 1080; }
         else if (res == QLatin1String("480p")) { aaW = 800; aaH = 480; }
-        touchReader->setAAResolution(aaW, aaH);
-
-        // Recompute content dimensions for the new video resolution
-        int displayW = runtimeBridge_->displayWidth();
-        int displayH = runtimeBridge_->displayHeight();
-
-        bool navbarDuringAA = true;
-        QString navEdge = "bottom";
-        if (hostContext_ && hostContext_->configService()) {
-            QVariant showVal = hostContext_->configService()->value("navbar.show_during_aa");
-            navbarDuringAA = (showVal.isNull() || showVal.toBool());
-            navEdge = hostContext_->configService()->value("navbar.edge").toString();
-            if (navEdge.isEmpty()) navEdge = "bottom";
-        }
-
-        auto [contentW, contentH] = oap::aa::ServiceDiscoveryBuilder::computeContentDimensions(
-            aaW, aaH, displayW, displayH, navbarDuringAA, navEdge);
-        touchReader->setContentDimensions(contentW, contentH);
-        qCInfo(lcAA) << "Content dims updated:" << contentW << "x" << contentH
-                     << "(video:" << aaW << "x" << aaH << ")";
+        runtimeBridge_->updateVideoMapping(aaW, aaH);
     }
 
     if (!aaService_) return;

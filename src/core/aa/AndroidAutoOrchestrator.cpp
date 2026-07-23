@@ -1,6 +1,4 @@
 #include "AndroidAutoOrchestrator.hpp"
-#include "TimedNightMode.hpp"
-#include "GpioNightMode.hpp"
 #include "../../core/YamlConfig.hpp"
 #include "../../core/services/IConfigService.hpp"
 #include "../../core/services/IAudioService.hpp"
@@ -8,6 +6,8 @@
 #include "../../core/services/IEventBus.hpp"
 #include "../../core/services/EqualizerService.hpp"
 #include "../../core/services/IThemeService.hpp"
+#include "../../core/services/NightModeService.hpp"
+#include "WirelessAaConfig.hpp"
 
 #include <oaa/Messenger/Messenger.hpp>
 #include <oaa/control/BatteryStatusMessage.pb.h>
@@ -16,9 +16,9 @@
 #include <chrono>
 #include <QDir>
 #include "../Logging.hpp"
-#include <QEventLoop>
 #include <QFileInfo>
 #include <QNetworkInterface>
+#include <QPointer>
 #include <netinet/in.h>
 #include <netinet/tcp.h>
 #include <sys/socket.h>
@@ -72,12 +72,14 @@ void AndroidAutoOrchestrator::start()
 
     setState(WaitingForDevice, "Initializing...");
 
-    // Start TCP listener — read port from IConfigService (default 5277)
-    uint16_t port = 5277;
-    if (configService_) {
-        QVariant portVar = configService_->value("connection.tcp_port");
-        if (portVar.isValid())
-            port = static_cast<uint16_t>(portVar.toUInt());
+    const QVariant configuredPort = configService_
+        ? configService_->value("connection.tcp_port") : QVariant{};
+    bool usedPortFallback = false;
+    const quint16 requestedPort = resolveWirelessAaTcpPort(
+        configuredPort, &usedPortFallback);
+    if (usedPortFallback) {
+        qCWarning(lcAA) << "Invalid connection.tcp_port" << configuredPort
+                        << "— using" << kDefaultWirelessAaTcpPort;
     }
 
     // Disconnect first to prevent accumulation if start() is called multiple times
@@ -86,12 +88,16 @@ void AndroidAutoOrchestrator::start()
     connect(&tcpServer_, &QTcpServer::newConnection,
             this, &AndroidAutoOrchestrator::onNewConnection);
 
-    if (!tcpServer_.listen(QHostAddress::Any, port)) {
-        qCCritical(lcAA) << "Failed to listen on port" << port
+    if (!tcpServer_.listen(QHostAddress::Any, requestedPort)) {
+        admissionOpen_ = false;
+        listenerPort_ = 0;
+        qCCritical(lcAA) << "Failed to listen on port" << requestedPort
                         << ":" << tcpServer_.errorString();
         setState(Disconnected, QString("TCP listen failed: %1").arg(tcpServer_.errorString()));
         return;
     }
+    listenerPort_ = tcpServer_.serverPort();
+    admissionOpen_ = true;
 
     // Set FD_CLOEXEC on listener socket (prevent fork inheritance)
     auto fd = tcpServer_.socketDescriptor();
@@ -101,18 +107,17 @@ void AndroidAutoOrchestrator::start()
             ::fcntl(fd, F_SETFD, flags | FD_CLOEXEC);
     }
 
-    qCInfo(lcAA) << "TCP listener started on port" << port;
+    qCInfo(lcAA) << "TCP listener started on port" << listenerPort_;
 
 #ifdef HAS_BLUETOOTH
     {
         QString wifiIface = QStringLiteral("wlan0");
         if (yamlConfig_)
             wifiIface = yamlConfig_->wifiInterface();
-        btDiscovery_ = new BluetoothDiscoveryService(configService_, wifiIface, this);
+        btDiscovery_ = new BluetoothDiscoveryService(
+            configService_, listenerPort_, wifiIface, this);
         connect(btDiscovery_, &BluetoothDiscoveryService::phoneWillConnect,
-                this, [this]() {
-                    setState(Connecting, "Phone connecting via WiFi...");
-                });
+                this, &AndroidAutoOrchestrator::onPhoneWillConnect);
         connect(btDiscovery_, &BluetoothDiscoveryService::error,
                 this, [this](const QString& msg) {
                     qCWarning(lcAA) << "BT error:" << msg;
@@ -123,42 +128,39 @@ void AndroidAutoOrchestrator::start()
 #endif
 
     setState(WaitingForDevice,
-             QString("Waiting for wireless connection on port %1...").arg(port));
+             QString("Waiting for wireless connection on port %1...").arg(listenerPort_));
 }
 
 void AndroidAutoOrchestrator::stop()
 {
     qCInfo(lcAA) << "Stopping Android Auto service";
 
+    // Close admission first so a queued/new socket cannot replace state while
+    // shutdown is observing the current session.
+    admissionOpen_ = false;
+    disconnect(&tcpServer_, &QTcpServer::newConnection,
+               this, &AndroidAutoOrchestrator::onNewConnection);
+    tcpServer_.close();
     stopConnectionWatchdog();
 
-    // Graceful shutdown: send ShutdownRequest and wait for phone to acknowledge
+    // Send the graceful request without a nested event loop. stop() may emit
+    // disconnected synchronously; QPointer plus the member identity check make
+    // that path final before any fallback teardown.
     if (session_ && (state_ == Connected || state_ == Backgrounded)) {
         qCDebug(lcAA) << "Sending graceful shutdown to phone";
+        QPointer<oaa::AASession> stoppingSession(session_);
         session_->stop(7);  // POWER_DOWN — app is exiting
-
-        // Spin a local event loop so the message goes out and we get the response
-        QEventLoop loop;
-        QTimer timeout;
-        timeout.setSingleShot(true);
-        connect(session_, &oaa::AASession::disconnected, &loop, &QEventLoop::quit);
-        connect(&timeout, &QTimer::timeout, &loop, &QEventLoop::quit);
-        timeout.start(2000);  // 2s max wait
-        loop.exec();
-
-        if (timeout.isActive()) {
-            qCDebug(lcAA) << "Phone acknowledged shutdown";
-        } else {
-            qCDebug(lcAA) << "Shutdown timeout — proceeding with teardown";
-        }
+        // QTcpSocket buffers writes until the event loop runs, and synchronous
+        // teardown destroys the socket (an abort) before that ever happens —
+        // flush now or the ShutdownRequest never reaches the wire.
+        if (activeSocket_
+            && activeSocket_->state() == QAbstractSocket::ConnectedState)
+            activeSocket_->flush();
+        if (session_ == stoppingSession.data())
+            teardownSession(false);
+    } else {
+        teardownSession(false);
     }
-
-    if (nightProvider_) {
-        nightProvider_->stop();
-        nightProvider_.reset();
-    }
-
-    teardownSession();
 
 #ifdef HAS_BLUETOOTH
     if (btDiscovery_) {
@@ -168,7 +170,7 @@ void AndroidAutoOrchestrator::stop()
     }
 #endif
 
-    tcpServer_.close();
+    listenerPort_ = 0;
     setState(Disconnected, "Stopped");
 }
 
@@ -194,10 +196,28 @@ void AndroidAutoOrchestrator::disconnectAndRetrigger()
     disconnectSession();
 }
 
+void AndroidAutoOrchestrator::onPhoneWillConnect()
+{
+    if (!admissionOpen_ || state_ == Connected || state_ == Backgrounded) {
+        qCDebug(lcAA) << "Ignoring redundant RFCOMM connection status in state"
+                      << state_;
+        return;
+    }
+    setState(Connecting, "Phone connecting via WiFi...");
+}
+
 void AndroidAutoOrchestrator::onNewConnection()
 {
     QTcpSocket* socket = tcpServer_.nextPendingConnection();
     if (!socket) return;
+
+    if (!admissionOpen_ || state_ == Connected || state_ == Backgrounded) {
+        qCWarning(lcAA) << "Rejecting additional wireless AA connection while"
+                        << (admissionOpen_ ? "projection is active" : "admission is closed");
+        socket->abort();
+        socket->deleteLater();
+        return;
+    }
 
     qCInfo(lcAA) << "Wireless AA connection from"
             << socket->peerAddress().toString()
@@ -268,8 +288,8 @@ void AndroidAutoOrchestrator::onNewConnection()
     // Create session
     session_ = new oaa::AASession(transport_, config, this);
 
-    // Tell video handler how many configs we advertised (1 resolution × 2 codecs)
-    videoHandler_.setNumVideoConfigs(2);
+    // Setup response must enumerate exactly the configs in this descriptor.
+    videoHandler_.setNumVideoConfigs(builder.videoConfigCount());
 
     // Register all known channel handlers.
     //
@@ -310,8 +330,12 @@ void AndroidAutoOrchestrator::onNewConnection()
 
     // Wire video frames to decoder
     qRegisterMetaType<std::shared_ptr<const QByteArray>>();
+    connect(&videoHandler_, &oaa::hu::VideoChannelHandler::streamStarted,
+            &videoDecoder_, [this](int32_t, uint32_t) {
+                videoDecoder_.beginStream();
+            });
     connect(&videoHandler_, &oaa::hu::VideoChannelHandler::videoFrameData,
-            &videoDecoder_, &VideoDecoder::decodeFrame, Qt::QueuedConnection);
+            &videoDecoder_, &VideoDecoder::decodeFrame, Qt::DirectConnection);
 
     // Push decoded frames to the sink as soon as they're ready (signal-driven).
     // The signal is emitted from the decode worker thread; Qt auto-queues it to
@@ -613,46 +637,28 @@ void AndroidAutoOrchestrator::onNewConnection()
         }
     });
 
-    // Create and wire night mode provider
-    nightProvider_.reset();
-    if (yamlConfig_) {
-        QString nightSource = yamlConfig_->nightModeSource();
-        std::unique_ptr<NightModeProvider> provider;
-        if (nightSource == "gpio") {
-            provider = std::make_unique<GpioNightMode>(
-                yamlConfig_->nightModeGpioPin(),
-                yamlConfig_->nightModeGpioActiveHigh());
-        } else {
-            provider = std::make_unique<TimedNightMode>(
-                yamlConfig_->nightModeDayStart(),
-                yamlConfig_->nightModeNightStart());
-        }
-
-        activateNightModeProvider(std::move(provider));
-        qCInfo(lcAA) << "Night mode provider started (source=" << nightSource << ")";
-    }
-
     // Start protocol handshake
     session_->start();
 }
 
-void AndroidAutoOrchestrator::activateNightModeProvider(
-    std::unique_ptr<NightModeProvider> provider)
+void AndroidAutoOrchestrator::setNightModeService(oap::NightModeService* service)
 {
-    nightProvider_ = std::move(provider);
-    connect(nightProvider_.get(), &NightModeProvider::nightModeChanged,
-            &sensorHandler_, &oaa::hu::SensorChannelHandler::pushNightMode);
+    disconnect(nightModeConnection_);
+    nightModeService_ = service;
 
-    nightProvider_->start();
-    // Explicitly seed the handler even though start() may have already emitted
-    // nightModeChanged: a provider whose initial state equals its default (e.g.
-    // day) emits no change signal, so the seed is what captures that case. Any
-    // resulting double-push is a harmless cache-only write — the sensor channel
-    // is not open yet, so nothing goes on the wire.
-    if (nightProvider_->hasValidState()) {
-        sensorHandler_.pushNightMode(nightProvider_->isNight());
+    if (!nightModeService_)
+        return;
+
+    nightModeConnection_ = connect(
+        nightModeService_, &oap::NightModeService::nightModeChanged,
+        &sensorHandler_, &oaa::hu::SensorChannelHandler::pushNightMode);
+
+    // Seed the persistent handler immediately. A later channel subscription
+    // then receives the authoritative cache on its first delivery.
+    if (nightModeService_->hasValidState()) {
+        sensorHandler_.pushNightMode(nightModeService_->isNight());
     } else {
-        qCWarning(lcAA) << "Night mode provider has no valid initial state;"
+        qCWarning(lcAA) << "Night mode service has no valid initial state;"
                            " preserving the last sensor value";
     }
 }
@@ -690,24 +696,18 @@ void AndroidAutoOrchestrator::onSessionDisconnected(oaa::DisconnectReason reason
     qCInfo(lcAA) << "Disconnected, reason:" << static_cast<int>(reason);
     stopConnectionWatchdog();
 
-    if (nightProvider_) {
-        nightProvider_->stop();
-        nightProvider_.reset();
-    }
-
     teardownSession();
 
-    uint16_t port = 5277;
-    if (configService_) {
-        QVariant portVar = configService_->value("connection.tcp_port");
-        if (portVar.isValid())
-            port = static_cast<uint16_t>(portVar.toUInt());
+    if (admissionOpen_) {
+        setState(WaitingForDevice,
+                 QString("Waiting for wireless connection on port %1...")
+                     .arg(listenerPort_));
+    } else {
+        setState(Disconnected, "Stopped");
     }
-    setState(WaitingForDevice,
-             QString("Waiting for wireless connection on port %1...").arg(port));
 
 #ifdef HAS_BLUETOOTH
-    if (pendingReconnect_ && btDiscovery_) {
+    if (admissionOpen_ && pendingReconnect_ && btDiscovery_) {
         pendingReconnect_ = false;
         // Give the phone ~500ms to process the disconnect before re-sending
         // the WifiStartRequest. Firing immediately causes the phone to ignore it.
@@ -913,13 +913,9 @@ void AndroidAutoOrchestrator::startConnectionWatchdog()
         if (fd == -1) {
             qCWarning(lcAA) << "Watchdog: socket descriptor invalid";
             teardownSession();
-            uint16_t wdPort = 5277;
-            if (configService_) {
-                QVariant pv = configService_->value("connection.tcp_port");
-                if (pv.isValid()) wdPort = static_cast<uint16_t>(pv.toUInt());
-            }
             setState(WaitingForDevice,
-                     QString("Waiting for wireless connection on port %1...").arg(wdPort));
+                     QString("Waiting for wireless connection on port %1...")
+                         .arg(listenerPort_));
             return;
         }
 
