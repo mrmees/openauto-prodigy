@@ -9,12 +9,16 @@
 #include <QAbstractListModel>
 #include <QTimer>
 #include <QStringList>
+#include <QMap>
 
 class BluezAgentAdaptor;
 
 namespace oap {
 
 class IConfigService;
+
+using BluezInterfaceMap = QMap<QString, QVariantMap>;
+using BluezManagedObjectMap = QMap<QString, BluezInterfaceMap>;
 
 class BluetoothManager : public QObject, public IBluetoothService {
     Q_OBJECT
@@ -25,11 +29,14 @@ class BluetoothManager : public QObject, public IBluetoothService {
     Q_PROPERTY(bool pairingActive READ isPairingActive NOTIFY pairingActiveChanged)
     Q_PROPERTY(QString pairingDeviceName READ pairingDeviceName NOTIFY pairingActiveChanged)
     Q_PROPERTY(QString pairingPasskey READ pairingPasskey NOTIFY pairingActiveChanged)
+    Q_PROPERTY(bool pairingRequiresConfirmation READ pairingRequiresConfirmation NOTIFY pairingActiveChanged)
     Q_PROPERTY(QString connectedDeviceName READ connectedDeviceName NOTIFY connectedDeviceChanged)
     Q_PROPERTY(bool needsFirstPairing READ needsFirstPairing NOTIFY needsFirstPairingChanged)
 
 public:
     explicit BluetoothManager(IConfigService* configService, QObject* parent = nullptr);
+    BluetoothManager(IConfigService* configService, const QDBusConnection& bus,
+                     QObject* parent = nullptr);
     ~BluetoothManager() override;
 
     // IBluetoothService
@@ -41,6 +48,7 @@ public:
     bool isPairingActive() const override;
     QString pairingDeviceName() const override;
     QString pairingPasskey() const override;
+    bool pairingRequiresConfirmation() const;
     Q_INVOKABLE void confirmPairing() override;
     Q_INVOKABLE void rejectPairing() override;
     QAbstractListModel* pairedDevicesModel() override;
@@ -53,6 +61,11 @@ public:
     QString connectedDeviceAddress() const override;
     void initialize() override;
     void shutdown() override;
+
+    /// Apply one fully parsed ObjectManager snapshot. Production reaches this
+    /// through the asynchronous D-Bus reply; tests use it to pin state
+    /// derivation without a live bluetoothd.
+    void applyManagedObjectsSnapshot(const BluezManagedObjectMap& objects);
 
 signals:
     void adapterAliasChanged();
@@ -77,14 +90,17 @@ private:
     void unregisterAgent();
     void setAdapterProperty(const QString& property, const QVariant& value);
     QVariant getAdapterProperty(const QString& property);
-    QString findAdapterPath();
     QString deviceNameFromPath(const QString& devicePath);
     void setDeviceProperty(const QString& devicePath, const QString& property, const QVariant& value);
-    void refreshPairedDevices();
+    void requestManagedObjectsRefresh();
+    void finishManagedObjectsRefresh(const QDBusMessage& reply);
 
     // Called by BluezAgentAdaptor
     void handleAgentRequestConfirmation(const QDBusMessage& msg, const QString& devicePath, uint passkey);
+    void handleAgentRequestAuthorization(const QDBusMessage& msg, const QString& devicePath);
+    void handleAgentDisplayPasskey(const QString& devicePath, const QString& passkey);
     void handleAgentCancel();
+    void clearPairingPrompt();
 
     // First-run pairing
     void checkFirstRunPairing();
@@ -98,6 +114,7 @@ private:
     static constexpr int MAX_ATTEMPTS = 13;  // 6 + 4 + 3
 
     IConfigService* configService_ = nullptr;
+    QDBusConnection bus_;
     QString adapterPath_;  // e.g. "/org/bluez/hci0"
     QString adapterAddress_;
     QString adapterAlias_;
@@ -106,8 +123,11 @@ private:
     bool pairingActive_ = false;
     QString pairingDeviceName_;
     QString pairingPasskey_;
+    enum class PairingPromptMode { None, Confirmation, Authorization, DisplayOnly };
+    PairingPromptMode pairingPromptMode_ = PairingPromptMode::None;
     QString connectedDeviceName_;
     QString connectedDeviceAddress_;
+    QMap<QString, QString> deviceNamesByPath_;
     BluezAgentAdaptor* agentAdaptor_ = nullptr;
     QDBusMessage pendingPairingMessage_;
     QString pendingPairingDevicePath_;
@@ -116,6 +136,11 @@ private:
     bool shutdown_ = false;
     bool needsFirstPairing_ = false;
     QTimer* pairableRenewTimer_ = nullptr;
+    bool managedObjectsRefreshInFlight_ = false;
+    bool managedObjectsRefreshPending_ = false;
+    bool initialSnapshotApplied_ = false;
+    QString configuredAdapterPath_;
+    bool subscriptionsConnected_ = false;
 
     // Auto-connect state
     QTimer* autoConnectTimer_ = nullptr;

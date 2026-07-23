@@ -30,6 +30,14 @@ AA, Bluetooth, and local playback), `PhoneStateService`, `IpcServer`,
 `PipeWireDeviceRegistry`. `EqualizerService` fans shared per-stream settings out
 to a dedicated `EqualizerEngine` for each live audio consumer.
 
+`BluetoothManager` subscribes before asynchronously requesting one BlueZ
+`GetManagedObjects` snapshot. That snapshot is the shared boundary for adapter,
+paired-device, connected-device, first-run, and auto-connect state; changes
+arriving during a request coalesce into one trailing refresh. The exported
+DisplayYesNo `Agent1` implements BlueZ's complete method surface: confirmation
+and authorization calls remain pending for user choice, display calls are
+informational, and unsupported keyboard-entry calls fail explicitly.
+
 ### External API (`src/core/api/`)
 
 `ApiServer` + `ApiSession`/`ApiTransport`/`ApiFramer` serve External API v1

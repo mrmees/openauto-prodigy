@@ -305,6 +305,21 @@ QML and external clients the same mutation boundary.
 
 ---
 
+### BlueZ ObjectManager snapshots own Bluetooth device state
+
+**Decision:** `BluetoothManager` asynchronously reads and coalesces BlueZ
+ObjectManager snapshots, then derives adapter, paired, connected, first-run,
+and auto-connect state together from each complete snapshot.
+
+**Rationale:** Independent property reads race startup and object removal, can
+miss a phone that was connected before the application started, and block the
+Qt event loop during dynamic D-Bus introspection. One carried-property snapshot
+provides a consistent startup and update contract. Agent display prompts remain
+distinct from delayed confirmation/authorization requests so QML never offers
+accept/reject controls for a display-only passkey.
+
+---
+
 ### Application-lifetime night state
 
 **Decision:** `NightModeService` owns the configured time/GPIO provider for the

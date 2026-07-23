@@ -63,6 +63,7 @@ private slots:
     void testThemeTokenMapMatchesSerializer();
     void testSystemBluetoothNullptr();
     void testSystemBluetoothDisconnectedRealManager();
+    void testSystemBluetoothConnectedSnapshot();
     void testSystemDisplayDims();
     void testPhoneIdleEmptyCallsAndCapabilitiesFalse();
     void testPhoneRingingIncoming();
@@ -284,6 +285,28 @@ void TestApiSerializers::testSystemBluetoothDisconnectedRealManager() {
     pb::SystemStatus status = buildSystemStatus(theme, "1.0.0 (deadbeef)", &bt, nullptr);
     QVERIFY(!status.bluetooth().connected());
     QVERIFY(status.bluetooth().device_name().empty());
+}
+
+void TestApiSerializers::testSystemBluetoothConnectedSnapshot() {
+    oap::ThemeService theme;
+    theme.loadThemeFile(QFINDTESTDATA("data/themes/default/theme.yaml"));
+
+    MockConfigService config;
+    oap::BluetoothManager bt(&config);
+    oap::BluezManagedObjectMap objects;
+    objects[QStringLiteral("/org/bluez/hci0/dev_AA_BB_CC_DD_EE_FF")]
+           [QStringLiteral("org.bluez.Device1")] = {
+        {QStringLiteral("Address"), QStringLiteral("AA:BB:CC:DD:EE:FF")},
+        {QStringLiteral("Name"), QStringLiteral("Pixel")},
+        {QStringLiteral("Paired"), true},
+        {QStringLiteral("Connected"), true},
+    };
+    bt.applyManagedObjectsSnapshot(objects);
+
+    const pb::SystemStatus status =
+        buildSystemStatus(theme, "1.0.0 (deadbeef)", &bt, nullptr);
+    QVERIFY(status.bluetooth().connected());
+    QCOMPARE(QString::fromStdString(status.bluetooth().device_name()), QStringLiteral("Pixel"));
 }
 
 void TestApiSerializers::testSystemDisplayDims() {
