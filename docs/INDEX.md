@@ -2,7 +2,7 @@
 
 ## Active Plans
 
-None.
+No implementation plan is active.
 
 ## Start Here
 
@@ -54,7 +54,7 @@ Protocol definitions and generic reference docs are in [open-android-auto](https
 
 Active plans:
 
-None.
+- None.
 
 Parked plans (not current guidance):
 
@@ -70,6 +70,7 @@ Parked plans (not current guidance):
 Everything under `archive/` is history, not guidance. Internal links there may point at pre-restructure paths by design.
 
 - [archive/plans/](archive/plans/) — completed/superseded designs and implementation plans, incl. milestone-01..05 history and pre-restructure proto docs
+- [2026-07-23-bt-hfp-avrcp-state-remediation-design.md](archive/plans/2026-07-23-bt-hfp-avrcp-state-remediation-design.md) and [implementation plan](archive/plans/2026-07-23-bt-hfp-avrcp-state-remediation-plan.md) — completed asynchronous Bluetooth snapshot, Agent1, AVRCP lifecycle, and selected-AG HFP remediation
 - [2026-07-23-aa-input-video-night-remediation-design.md](archive/plans/2026-07-23-aa-input-video-night-remediation-design.md) and [implementation plan](archive/plans/2026-07-23-aa-input-video-night-remediation-plan.md) — completed decoder-boundary, evdev-ownership, shared-night-state, and wireless-admission remediation
 - [2026-07-23-aa-protocol-crypto-flow-remediation-design.md](archive/plans/2026-07-23-aa-protocol-crypto-flow-remediation-design.md) and [implementation plan](archive/plans/2026-07-23-aa-protocol-crypto-flow-remediation-plan.md) — completed Android Auto TLS, fragmented-message, audio-permit, liveness, and navigation-state remediation
 - [2026-07-22-aa-session-transport-lifecycle-remediation-design.md](archive/plans/2026-07-22-aa-session-transport-lifecycle-remediation-design.md) and [implementation plan](archive/plans/2026-07-22-aa-session-transport-lifecycle-remediation-plan.md) — completed Android Auto session, messenger, TLS, channel-open, and RFCOMM startup lifecycle remediation

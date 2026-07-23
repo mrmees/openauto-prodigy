@@ -30,6 +30,14 @@ AA, Bluetooth, and local playback), `PhoneStateService`, `IpcServer`,
 `PipeWireDeviceRegistry`. `EqualizerService` fans shared per-stream settings out
 to a dedicated `EqualizerEngine` for each live audio consumer.
 
+`BluetoothManager` subscribes before asynchronously requesting one BlueZ
+`GetManagedObjects` snapshot. That snapshot is the shared boundary for adapter,
+paired-device, connected-device, first-run, and auto-connect state; changes
+arriving during a request coalesce into one trailing refresh. The exported
+DisplayYesNo `Agent1` implements BlueZ's complete method surface: confirmation
+and authorization calls remain pending for user choice, display calls are
+informational, and unsupported keyboard-entry calls fail explicitly.
+
 ### External API (`src/core/api/`)
 
 `ApiServer` + `ApiSession`/`ApiTransport`/`ApiFramer` serve External API v1
@@ -82,6 +90,14 @@ Static plugins compiled into the binary, implementing `IPlugin` (see [reference/
 
 - `android_auto` — projection lifecycle, activation/deactivation hooks, touch integration, AA focus controls.
 - `bt_audio` — BlueZ D-Bus monitoring for A2DP media transport/player state and AVRCP controls; owns `BtAudioTap`, which routes BT music through the app's EQ (see "BT A2DP EQ tap" below).
+- `bt_audio` subscribes before issuing an asynchronous, coalesced
+  `GetManagedObjects` startup scan. Complete snapshots and later
+  `InterfacesAdded` payloads feed the same carried-property adoption contract
+  for `Device1`, `MediaTransport1`, and `MediaPlayer1`; no hot-plug handler
+  performs interface introspection or a property read. Missing carried values
+  remain unknown/inactive until BlueZ delivers them. Removing the tracked
+  player atomically returns playback, metadata, duration, position, and
+  position validity to their stopped/unknown values.
 - BlueZ `MediaPlayer1.Position` and `Track.Duration` enter `bt_audio` as
   `uint32` milliseconds. Startup enumeration, player adoption, and later
   property changes widen them to `qint64` without scaling, then publish the
@@ -91,6 +107,16 @@ Static plugins compiled into the binary, implementing `IPlugin` (see [reference/
   retaining a prior session's values.
 - `phone` — dialer/call UI backed by the core `PhoneStateService`; the core
   service owns BlueZ device monitoring and `org.pipewire.Telephony` call state.
+  `TelephonyClient` selects one AudioGateway and accepts transport state only
+  from the `AudioGatewayTransport1` interface co-located on that same object;
+  other phones cannot retarget the selected transport. If that gateway leaves,
+  the next cached gateway is selected deterministically without an unavailable
+  edge. SCO can confirm a
+  setup/settling call and can debounce the end of an active call, but SCO alone
+  never synthesizes an Active call from Idle. Call objects must be children of
+  the selected gateway, and an invalidated transport state is unknown rather
+  than an end event. Plugin shutdown disconnects the provider before releasing
+  it, so late provider signals are inert.
 - `media_player` — local file playback (`PlaybackEngine`, `PlayQueue`, `FolderModel`, `MediaArtProvider`).
 - `equalizer` — EQ control over `EqualizerService`.
 

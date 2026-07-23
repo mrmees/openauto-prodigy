@@ -110,15 +110,15 @@ void TelephonyClient::onServiceDown()
 {
     const bool wasAvailable = available();
     serviceUp_ = false;
-    if (!callPath_.isEmpty()) {
-        callPath_.clear();
-        emit callSetupEnded();
-    }
+    if (!agPath_.isEmpty())
+        emit selectedGatewayBoundary();
+    clearPublishedCall();
     agPath_.clear();
     agAddress_.clear();
-    transportPath_.clear();
-    transportState_.clear();
-    codec_.clear();
+    clearTransport();
+    agPropertiesByPath_.clear();
+    transportPropertiesByPath_.clear();
+    callPropertiesByPath_.clear();
     if (wasAvailable)
         emit availableChanged(false);
 }
@@ -135,6 +135,8 @@ void TelephonyClient::scanExistingObjects()
         return;
     }
 
+    QMap<QString, QVariantMap> gateways;
+    QMap<QString, QVariantMap> transports;
     const QDBusArgument arg = reply.arguments().at(0).value<QDBusArgument>();
     arg.beginMap();
     while (!arg.atEnd()) {
@@ -142,6 +144,10 @@ void TelephonyClient::scanExistingObjects()
         QDBusObjectPath objPath;
         arg >> objPath;
 
+        QVariantMap agProps;
+        QVariantMap transportProps;
+        bool hasAg = false;
+        bool hasTransport = false;
         const QDBusArgument ifacesArg = qvariant_cast<QDBusArgument>(arg.asVariant());
         ifacesArg.beginMap();
         while (!ifacesArg.atEnd()) {
@@ -163,13 +169,25 @@ void TelephonyClient::scanExistingObjects()
             propsArg.endMap();
             ifacesArg.endMapEntry();
 
-            if (iface == kAgIface) adoptAg(objPath.path(), props);
-            else if (iface == kTransportIface) adoptTransport(objPath.path(), props);
+            if (iface == kAgIface) {
+                hasAg = true;
+                agProps = props;
+            } else if (iface == kTransportIface) {
+                hasTransport = true;
+                transportProps = props;
+            }
         }
         ifacesArg.endMap();
+        if (hasAg)
+            gateways.insert(objPath.path(), agProps);
+        if (hasTransport)
+            transports.insert(objPath.path(), transportProps);
         arg.endMapEntry();
     }
     arg.endMap();
+    agPropertiesByPath_ = gateways;
+    transportPropertiesByPath_ = transports;
+    selectAvailableAg();
 }
 
 void TelephonyClient::adoptAg(const QString& path, const QVariantMap& props)
@@ -178,14 +196,20 @@ void TelephonyClient::adoptAg(const QString& path, const QVariantMap& props)
         qCWarning(lcTel) << "Second AudioGateway ignored (single-AG v1):" << path;
         return;
     }
+    const bool wasAvailable = available();
     agPath_ = path;
     agAddress_ = props.value(QStringLiteral("Address")).toString();
     qCInfo(lcTel) << "AudioGateway appeared:" << path << agAddress_;
-    emit availableChanged(true);
+    if (available() != wasAvailable)
+        emit availableChanged(available());
 }
 
 void TelephonyClient::adoptTransport(const QString& path, const QVariantMap& props)
 {
+    if (agPath_.isEmpty() || path != agPath_) {
+        qCWarning(lcTel) << "Transport ignored for non-selected AudioGateway:" << path;
+        return;
+    }
     transportPath_ = path;
     const QString state = props.value(QStringLiteral("State")).toString();
     const QString codec = props.contains(QStringLiteral("Codec"))
@@ -202,8 +226,47 @@ void TelephonyClient::adoptTransport(const QString& path, const QVariantMap& pro
     applyRejectSco();
 }
 
+void TelephonyClient::clearTransport()
+{
+    transportPath_.clear();
+    if (!transportState_.isEmpty()) {
+        transportState_.clear();
+        emit transportStateChanged({});
+    }
+    if (!codec_.isEmpty()) {
+        codec_.clear();
+        emit codecChanged({});
+    }
+}
+
+void TelephonyClient::selectAvailableAg(bool notifyAvailability)
+{
+    if (!agPath_.isEmpty() || agPropertiesByPath_.isEmpty())
+        return;
+    const bool wasAvailable = available();
+    const auto selected = agPropertiesByPath_.cbegin();
+    agPath_ = selected.key();
+    agAddress_ = selected->value(QStringLiteral("Address")).toString();
+    qCInfo(lcTel) << "AudioGateway selected:" << agPath_ << agAddress_;
+    // Call1 is authoritative call evidence. Publish a replacement phone's
+    // cached call before its advisory transport state so a pre-existing
+    // "active" transport cannot resolve the previous phone's setup/settle.
+    adoptCachedCallForSelectedAg();
+    const auto transport = transportPropertiesByPath_.constFind(agPath_);
+    if (transport != transportPropertiesByPath_.cend())
+        adoptTransport(agPath_, transport.value());
+    if (notifyAvailability && available() != wasAvailable)
+        emit availableChanged(available());
+}
+
 void TelephonyClient::adoptCall(const QString& path, const QVariantMap& props)
 {
+    if (!callBelongsToSelectedAg(path)) {
+        qCWarning(lcTel) << "Call ignored for non-selected AudioGateway:" << path;
+        return;
+    }
+    if (callPath_ == path)
+        return;
     if (!callPath_.isEmpty()) {
         // Second concurrent Call1 (call-waiting): still emit — the state
         // machine decides (it ignores setup while Active, design §5).
@@ -211,17 +274,75 @@ void TelephonyClient::adoptCall(const QString& path, const QVariantMap& props)
     }
     callPath_ = path;
     const QString state = props.value(QStringLiteral("State")).toString();
+    callState_ = state;
     const QString line = props.value(QStringLiteral("LineIdentification")).toString();
     qCInfo(lcTel) << "Call setup:" << state << line;
     emit callSetupStarted(state, line, props.value(QStringLiteral("Name")).toString());
 }
 
+void TelephonyClient::adoptCachedCallForSelectedAg()
+{
+    if (agPath_.isEmpty() || !callPath_.isEmpty())
+        return;
+
+    const QString childPrefix = agPath_ + QLatin1Char('/');
+    for (auto it = callPropertiesByPath_.cbegin(); it != callPropertiesByPath_.cend(); ++it) {
+        if (it.key().startsWith(childPrefix)) {
+            adoptCall(it.key(), it.value());
+            return;
+        }
+    }
+}
+
+void TelephonyClient::purgeCallsForAg(const QString& agPath)
+{
+    const QString childPrefix = agPath + QLatin1Char('/');
+    auto it = callPropertiesByPath_.begin();
+    while (it != callPropertiesByPath_.end()) {
+        if (it.key().startsWith(childPrefix))
+            it = callPropertiesByPath_.erase(it);
+        else
+            ++it;
+    }
+}
+
+void TelephonyClient::clearPublishedCall()
+{
+    if (callPath_.isEmpty())
+        return;
+    callPath_.clear();
+    callState_.clear();
+    emit callSetupEnded();
+}
+
+bool TelephonyClient::callBelongsToSelectedAg(const QString& path) const
+{
+    return !agPath_.isEmpty() && path.startsWith(agPath_ + QLatin1Char('/'));
+}
+
 void TelephonyClient::onInterfacesAdded(const QDBusObjectPath& path, const oap::InterfaceMap& interfaces)
 {
+    const QString p = path.path();
     if (interfaces.contains(kAgIface))
-        adoptAg(path.path(), interfaces.value(kAgIface));
+        agPropertiesByPath_.insert(p, interfaces.value(kAgIface));
     if (interfaces.contains(kTransportIface))
-        adoptTransport(path.path(), interfaces.value(kTransportIface));
+        transportPropertiesByPath_.insert(p, interfaces.value(kTransportIface));
+    if (interfaces.contains(kCallIface))
+        callPropertiesByPath_.insert(p, interfaces.value(kCallIface));
+    if (agPath_.isEmpty())
+        selectAvailableAg();
+    else {
+        if (interfaces.contains(kAgIface) && p == agPath_) {
+            // Re-announcement of the selected gateway: adoptAg() would refuse
+            // it as a second AG, so refresh the cached address directly.
+            const QString address =
+                interfaces.value(kAgIface).value(QStringLiteral("Address")).toString();
+            if (!address.isEmpty())
+                agAddress_ = address;
+        }
+        if (interfaces.contains(kTransportIface) && p == agPath_)
+            adoptTransport(p, interfaces.value(kTransportIface));
+    }
     if (interfaces.contains(kCallIface))
         adoptCall(path.path(), interfaces.value(kCallIface));
 }
@@ -229,42 +350,97 @@ void TelephonyClient::onInterfacesAdded(const QDBusObjectPath& path, const oap::
 void TelephonyClient::onInterfacesRemoved(const QDBusObjectPath& path, const QStringList& interfaces)
 {
     const QString p = path.path();
-    if (p == callPath_ && interfaces.contains(kCallIface)) {
-        callPath_.clear();
-        emit callSetupEnded();
-    }
     if (p == agPath_ && interfaces.contains(kAgIface)) {
+        const bool wasAvailable = available();
+        const bool hadTransport = !transportPath_.isEmpty();
+
+        // This is an authoritative remote-phone boundary. Publish it before
+        // clearing old interfaces or adopting replacement cached state so
+        // consumers cannot combine evidence from two Audio Gateways.
+        emit selectedGatewayBoundary();
+        agPropertiesByPath_.remove(p);
+        transportPropertiesByPath_.remove(p);
+        purgeCallsForAg(p);
         agPath_.clear();
         agAddress_.clear();
-        transportPath_.clear();
-        transportState_.clear();
-        codec_.clear();
-        if (!callPath_.isEmpty()) {
-            callPath_.clear();
-            emit callSetupEnded();
-        }
+        clearTransport();
+        if (hadTransport)
+            emit transportRemoved();
+        clearPublishedCall();
         qCInfo(lcTel) << "AudioGateway removed:" << p;
-        emit availableChanged(false);
+        selectAvailableAg(false);
+        if (available() != wasAvailable)
+            emit availableChanged(available());
+        return;
+    }
+
+    if (interfaces.contains(kCallIface)) {
+        callPropertiesByPath_.remove(p);
+        if (p == callPath_)
+            clearPublishedCall();
+    }
+    if (interfaces.contains(kTransportIface))
+        transportPropertiesByPath_.remove(p);
+    if (p == transportPath_ && interfaces.contains(kTransportIface)) {
+        clearTransport();
+        emit transportRemoved();
+    }
+    if (interfaces.contains(kAgIface)) {
+        agPropertiesByPath_.remove(p);
+        transportPropertiesByPath_.remove(p);
+        purgeCallsForAg(p);
     }
 }
 
 void TelephonyClient::onPropertiesChanged(const QString& interface, const QVariantMap& changed,
-                                          const QStringList& /*invalidated*/,
+                                          const QStringList& invalidated,
                                           const QDBusMessage& msg)
 {
     const QString path = msg.path();
+    if (interface == kTransportIface && transportPropertiesByPath_.contains(path)) {
+        QVariantMap& cached = transportPropertiesByPath_[path];
+        for (auto it = changed.cbegin(); it != changed.cend(); ++it)
+            cached.insert(it.key(), it.value());
+        for (const QString& property : invalidated)
+            cached.remove(property);
+    }
+    if (interface == kCallIface && callPropertiesByPath_.contains(path)) {
+        QVariantMap& cached = callPropertiesByPath_[path];
+        for (auto it = changed.cbegin(); it != changed.cend(); ++it)
+            cached.insert(it.key(), it.value());
+        for (const QString& property : invalidated)
+            cached.remove(property);
+    }
     if (interface == kCallIface && path == callPath_) {
-        if (changed.contains(QStringLiteral("State")))
-            emit callSetupChanged(changed.value(QStringLiteral("State")).toString());
+        if (changed.contains(QStringLiteral("State"))) {
+            const QString state = changed.value(QStringLiteral("State")).toString();
+            if (state != callState_) {
+                callState_ = state;
+                emit callSetupChanged(state);
+            }
+        }
     } else if (interface == kTransportIface && path == transportPath_) {
         if (changed.contains(QStringLiteral("State"))) {
-            transportState_ = changed.value(QStringLiteral("State")).toString();
-            emit transportStateChanged(transportState_);
+            const QString state = changed.value(QStringLiteral("State")).toString();
+            if (transportState_ != state) {
+                transportState_ = state;
+                emit transportStateChanged(transportState_);
+            }
+        } else if (invalidated.contains(QStringLiteral("State"))
+                   && !transportState_.isEmpty()) {
+            transportState_.clear();
+            emit transportStateChanged({});
         }
         if (changed.contains(QStringLiteral("Codec"))) {
-            codec_ = codecName(changed.value(QStringLiteral("Codec")));
-            qCInfo(lcTel) << "HFP codec:" << codec_;
-            emit codecChanged(codec_);
+            const QString codec = codecName(changed.value(QStringLiteral("Codec")));
+            if (codec_ != codec) {
+                codec_ = codec;
+                qCInfo(lcTel) << "HFP codec:" << codec_;
+                emit codecChanged(codec_);
+            }
+        } else if (invalidated.contains(QStringLiteral("Codec")) && !codec_.isEmpty()) {
+            codec_.clear();
+            emit codecChanged({});
         }
     }
 }

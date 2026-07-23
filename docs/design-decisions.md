@@ -305,6 +305,55 @@ QML and external clients the same mutation boundary.
 
 ---
 
+### BlueZ ObjectManager snapshots own Bluetooth device state
+
+**Decision:** `BluetoothManager` asynchronously reads and coalesces BlueZ
+ObjectManager snapshots, then derives adapter, paired, connected, first-run,
+and auto-connect state together from each complete snapshot.
+
+**Rationale:** Independent property reads race startup and object removal, can
+miss a phone that was connected before the application started, and block the
+Qt event loop during dynamic D-Bus introspection. One carried-property snapshot
+provides a consistent startup and update contract. Agent display prompts remain
+distinct from delayed confirmation/authorization requests so QML never offers
+accept/reject controls for a display-only passkey.
+
+### AVRCP discovery consumes carried ObjectManager state
+
+**Decision:** `BtAudioPlugin` subscribes first, enumerates BlueZ asynchronously
+with a coalesced `GetManagedObjects`, and sends complete startup snapshots and
+hot-plug interface payloads through one adoption contract for Device1 names,
+A2DP transport activity, and the tracked AVRCP player.
+
+**Rationale:** Synchronous interface construction and property reads can block
+the Qt event loop and can race the ObjectManager event that prompted them.
+BlueZ already carries the relevant properties in its snapshot and add signal;
+an omitted value is safely unknown until later delivery. Treating player
+removal as an authoritative stopped/unknown snapshot also prevents stale
+playback, metadata, or progress from surviving a vanished player while keeping
+all observable signals edge-only.
+
+### HFP transport and call state require selected-phone evidence
+
+**Decision:** The first selected PipeWire AudioGateway owns only the
+`AudioGatewayTransport1` interface on that exact object path. Transport
+properties and removals from other gateway objects are ignored. SCO may resolve
+an existing setup/settle transition or confirm the loss of an Active call, but
+cannot transition Idle to Active by itself. Call objects are accepted only
+under the selected gateway's object path. A transport property invalidation
+makes the cached value unknown; only explicit idle state or interface removal
+is call-end evidence. Other discovered gateways remain cached so removal of the
+selected phone can hand ownership to the next stable object-path candidate.
+
+**Rationale:** PipeWire publishes one gateway object per connected phone, with
+its transport interface co-located on that object. Accepting a second phone's
+transport would let its idle state terminate the selected phone's call.
+Separately, a running SCO node is audio-routing evidence, not sufficient proof
+that a call exists; requiring setup/call evidence prevents stale or unrelated
+nodes from creating a phantom call.
+
+---
+
 ### Application-lifetime night state
 
 **Decision:** `NightModeService` owns the configured time/GPIO provider for the

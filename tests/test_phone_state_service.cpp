@@ -25,9 +25,12 @@ private slots:
     void testActiveEndsOnScoDropDebounced();
     void testActiveSurvivesScoBlip();
     void testActiveEndsOnTransportIdle();
-    void testRecoveryScoRunningFromIdle();
+    void testActiveEndsOnTransportRemoval();
+    void testActiveIgnoresUnknownTransportState();
+    void testIdleScoDoesNotSynthesizeCall();
     void testCallWaitingIgnoredWhileActive();
     void testAgVanishResetsToIdle();
+    void testSelectedGatewayBoundaryClearsPhoneEvidence();
     void testDialGuards();
     void testSetupDisconnectedEndsImmediately();
 
@@ -226,11 +229,31 @@ void TestPhoneStateService::testActiveEndsOnTransportIdle() {
     QCOMPARE(s->callState(), (int)CS::Idle);
 }
 
-void TestPhoneStateService::testRecoveryScoRunningFromIdle() {
+void TestPhoneStateService::testActiveEndsOnTransportRemoval() {
+    QObject root; auto* s = makeFastService(&root);
+    s->onCallSetupStarted("incoming", "1", "");
+    s->onCallSetupChanged("active");
+    // TelephonyClient publishes an empty state when the selected transport
+    // interface disappears. With no SCO, that is authoritative call loss.
+    s->onTransportRemoved();
+    QCOMPARE(s->callState(), (int)CS::Idle);
+}
+
+void TestPhoneStateService::testActiveIgnoresUnknownTransportState() {
+    QObject root; auto* s = makeFastService(&root);
+    s->onCallSetupStarted("incoming", "1", "");
+    s->onCallSetupChanged("active");
+    // A D-Bus invalidation publishes unknown state, not evidence that the
+    // selected transport or call ended.
+    s->onTransportStateChanged({});
+    QCOMPARE(s->callState(), (int)CS::Active);
+}
+
+void TestPhoneStateService::testIdleScoDoesNotSynthesizeCall() {
     QObject root; auto* s = makeFastService(&root);
     QCOMPARE(s->callState(), (int)CS::Idle);
-    s->onScoRunningChanged(true);              // restarted mid-call / audio routed back
-    QCOMPARE(s->callState(), (int)CS::Active);
+    s->onScoRunningChanged(true);              // SCO alone is audio, not call evidence
+    QCOMPARE(s->callState(), (int)CS::Idle);
 }
 
 void TestPhoneStateService::testCallWaitingIgnoredWhileActive() {
@@ -251,6 +274,28 @@ void TestPhoneStateService::testAgVanishResetsToIdle() {
     s->onTelephonyAvailable(false);
     QCOMPARE(s->callState(), (int)CS::Idle);
     QVERIFY(!s->telephonyAvailable());
+}
+
+void TestPhoneStateService::testSelectedGatewayBoundaryClearsPhoneEvidence() {
+    QObject root; auto* s = makeFastService(&root);
+    s->onCallSetupStarted("incoming", "111", "Primary");
+    s->onCallSetupChanged("active");
+    s->onScoRunningChanged(true);
+    QCOMPARE(s->callState(), (int)CS::Active);
+
+    s->onSelectedGatewayBoundary();
+    QCOMPARE(s->callState(), (int)CS::Idle);
+    QVERIFY(s->callerNumber().isEmpty());
+    QVERIFY(s->callerName().isEmpty());
+
+    // Old SCO and advisory replacement transport state cannot manufacture a
+    // call for the newly selected phone.
+    s->onTransportStateChanged("active");
+    QCOMPARE(s->callState(), (int)CS::Idle);
+    s->onCallSetupStarted("incoming", "222", "Replacement");
+    s->onCallSetupEnded();
+    QCOMPARE(s->callState(), (int)CS::Ringing);
+    QTRY_COMPARE_WITH_TIMEOUT(s->callState(), (int)CS::Idle, 500);
 }
 
 void TestPhoneStateService::testDialGuards() {

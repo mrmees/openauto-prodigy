@@ -5,6 +5,7 @@
 #include <QVariantMap>
 #include <QDBusObjectPath>
 #include <QDBusMessage>
+#include <QMap>
 
 class QDBusServiceWatcher;
 
@@ -47,8 +48,12 @@ public:
     void setRejectSco(bool reject);
 
 signals:
+    /// The selected remote phone is being discarded. Consumers must clear
+    /// phone-scoped call/SCO/settle evidence before replacement events arrive.
+    void selectedGatewayBoundary();
     void availableChanged(bool available);
     void transportStateChanged(const QString& state);
+    void transportRemoved();
     void codecChanged(const QString& codec);
     void callSetupStarted(const QString& state, const QString& line, const QString& name);
     void callSetupChanged(const QString& state);
@@ -67,7 +72,13 @@ private:
     void scanExistingObjects();
     void adoptAg(const QString& path, const QVariantMap& props);
     void adoptTransport(const QString& path, const QVariantMap& props);
+    void clearTransport();
+    void selectAvailableAg(bool notifyAvailability = true);
     void adoptCall(const QString& path, const QVariantMap& props);
+    void adoptCachedCallForSelectedAg();
+    void purgeCallsForAg(const QString& agPath);
+    void clearPublishedCall();
+    bool callBelongsToSelectedAg(const QString& path) const;
     void applyRejectSco();
     void asyncCall(const QString& op, QDBusMessage msg);
 
@@ -82,6 +93,10 @@ private:
     QString transportState_;
     QString codec_;
     QString callPath_;
+    QString callState_;
+    QMap<QString, QVariantMap> agPropertiesByPath_;
+    QMap<QString, QVariantMap> transportPropertiesByPath_;
+    QMap<QString, QVariantMap> callPropertiesByPath_;
 };
 
 } // namespace oap

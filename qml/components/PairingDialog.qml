@@ -52,7 +52,9 @@ Rectangle {
             spacing: UiMetrics.gap
 
             Text {
-                text: "Pair with device?"
+                text: BluetoothManager && BluetoothManager.pairingRequiresConfirmation
+                      ? "Pair with device?"
+                      : "Enter this code on the device"
                 font.pixelSize: UiMetrics.fontHeading
                 color: ThemeService.onSurface
                 Layout.alignment: Qt.AlignHCenter
@@ -76,9 +78,25 @@ Rectangle {
                 Layout.bottomMargin: UiMetrics.gap
             }
 
+            Text {
+                visible: BluetoothManager
+                         ? BluetoothManager.pairingEntered > 0
+                         : false
+                text: BluetoothManager
+                      ? "Digits entered: " + BluetoothManager.pairingEntered
+                        + " of " + BluetoothManager.pairingPasskey.length
+                      : ""
+                font.pixelSize: UiMetrics.fontCaption
+                color: ThemeService.onSurfaceVariant
+                Layout.alignment: Qt.AlignHCenter
+            }
+
             RowLayout {
                 Layout.alignment: Qt.AlignHCenter
                 spacing: UiMetrics.gap * 2
+                visible: BluetoothManager
+                         ? BluetoothManager.pairingRequiresConfirmation
+                         : false
 
                 FilledButton {
                     text: "Reject"
@@ -101,6 +119,17 @@ Rectangle {
                     pressedTextColor: ThemeService.onSuccess
                     onClicked: if (BluetoothManager) BluetoothManager.confirmPairing()
                 }
+            }
+
+            FilledButton {
+                Layout.alignment: Qt.AlignHCenter
+                text: "Dismiss"
+                visible: BluetoothManager
+                         ? !BluetoothManager.pairingRequiresConfirmation
+                         : false
+                implicitWidth: Math.round(140 * UiMetrics.scale)
+                implicitHeight: UiMetrics.rowH
+                onClicked: if (BluetoothManager) BluetoothManager.confirmPairing()
             }
         }
     }

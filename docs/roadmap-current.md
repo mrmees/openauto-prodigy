@@ -14,11 +14,25 @@ Governance: capture new ideas in `docs/wishlist.md`; only promoted items should 
 
 ## Now
 
-No implementation tranche is active. After the current draft is reviewed and
-merged, revalidate the next bounded subsystem wave before promoting a new
-design and plan.
+No implementation tranche is active. Select the next bounded remediation wave
+from the privately maintained consolidation map, then publish its independent
+design and plan before implementation.
 
 ## Done (recent)
+
+- Bluetooth, HFP, and AVRCP state remediation — **COMPLETE 2026-07-23**
+  (Pi-live-validated). Bluetooth state now comes from asynchronous, coalesced
+  BlueZ snapshots; the pairing agent implements explicit decision and display
+  semantics; AVRCP discovery and player loss are lifecycle-safe; and telephony
+  accepts call and transport evidence only from one selected audio gateway.
+  Deployment immediately adopted the already-connected Pixel, retained both
+  phone players, drove Moto playback through the A2DP EQ path with advancing
+  millisecond progress, and kept the selected Pixel gateway stable. One
+  responsive process remained live while hostapd and Bluetooth retained their
+  PIDs and restart counts. Design and plan:
+  `docs/archive/plans/2026-07-23-bt-hfp-avrcp-state-remediation-design.md`
+  and
+  `docs/archive/plans/2026-07-23-bt-hfp-avrcp-state-remediation-plan.md`.
 
 - Android Auto input, video, and night remediation — **COMPLETE 2026-07-23**
   (Pi/Pixel live-validated). Decoder reset commands now form ordered stream

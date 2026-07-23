@@ -96,6 +96,8 @@ void PhoneStateService::attachTelephony(TelephonyClient* client)
 {
     telephony_ = client;
     if (!client) return;
+    connect(client, &TelephonyClient::selectedGatewayBoundary,
+            this, &PhoneStateService::onSelectedGatewayBoundary);
     connect(client, &TelephonyClient::callSetupStarted,
             this, &PhoneStateService::onCallSetupStarted);
     connect(client, &TelephonyClient::callSetupChanged,
@@ -104,6 +106,8 @@ void PhoneStateService::attachTelephony(TelephonyClient* client)
             this, &PhoneStateService::onCallSetupEnded);
     connect(client, &TelephonyClient::transportStateChanged,
             this, &PhoneStateService::onTransportStateChanged);
+    connect(client, &TelephonyClient::transportRemoved,
+            this, &PhoneStateService::onTransportRemoved);
     connect(client, &TelephonyClient::availableChanged,
             this, &PhoneStateService::onTelephonyAvailable);
     onTelephonyAvailable(client->available());
@@ -117,6 +121,25 @@ void PhoneStateService::attachScoMonitor(ScoNodeMonitor* monitor)
     onScoRunningChanged(monitor->scoRunning());
 }
 
+void PhoneStateService::onSelectedGatewayBoundary()
+{
+    // Settle, SCO, transport, and caller metadata all describe one remote
+    // Audio Gateway. None may survive selection of a different phone.
+    inSettle_ = false;
+    settleTimer_.stop();
+    scoDebounceTimer_.stop();
+    scoRunning_ = false;
+    transportState_.clear();
+
+    const bool metadataChanged = !callerNumber_.isEmpty() || !callerName_.isEmpty();
+    const bool stateUnchanged = callState_ == ICallStateProvider::Idle;
+    callerNumber_.clear();
+    callerName_.clear();
+    setCallStateInternal(ICallStateProvider::Idle);
+    if (stateUnchanged && metadataChanged)
+        emit callStateChanged();
+}
+
 void PhoneStateService::onCallSetupStarted(const QString& state, const QString& line,
                                            const QString& name)
 {
@@ -125,16 +148,36 @@ void PhoneStateService::onCallSetupStarted(const QString& state, const QString& 
         qWarning() << "PhoneStateService: second call ignored (call-waiting unsupported):" << line;
         return;
     }
+
+    ICallStateProvider::CallState nextState;
+    if (state == QLatin1String("incoming"))
+        nextState = ICallStateProvider::Ringing;
+    else if (state == QLatin1String("dialing"))
+        nextState = ICallStateProvider::Dialing;
+    else if (state == QLatin1String("alerting"))
+        nextState = ICallStateProvider::Alerting;
+    else {
+        qWarning() << "PhoneStateService: unknown setup state" << state;
+        return;
+    }
+
+    // A newly adopted setup object supersedes any ambiguous removal that was
+    // waiting for SCO/transport evidence. In particular, gateway failover can
+    // emit old-call ended followed synchronously by replacement-call started.
+    inSettle_ = false;
+    settleTimer_.stop();
+
+    const bool metadataChanged = callerNumber_ != line || callerName_ != name;
+    const bool stateUnchanged = callState_ == nextState;
     callerNumber_ = line;
     callerName_ = name;
-    if (state == QLatin1String("incoming"))
-        setCallStateInternal(ICallStateProvider::Ringing);
-    else if (state == QLatin1String("dialing"))
-        setCallStateInternal(ICallStateProvider::Dialing);
-    else if (state == QLatin1String("alerting"))
-        setCallStateInternal(ICallStateProvider::Alerting);
-    else
-        qWarning() << "PhoneStateService: unknown setup state" << state;
+    setCallStateInternal(nextState);
+
+    // callerName/callerNumber share callStateChanged as their Q_PROPERTY
+    // notifier. Refresh observers when failover replaces caller metadata but
+    // the frozen numeric state remains (for example Ringing -> Ringing).
+    if (stateUnchanged && metadataChanged)
+        emit callStateChanged();
 }
 
 void PhoneStateService::onCallSetupChanged(const QString& state)
@@ -188,9 +231,6 @@ void PhoneStateService::onScoRunningChanged(bool running)
             inSettle_ = false;
             settleTimer_.stop();
             setCallStateInternal(ICallStateProvider::Active);
-        } else if (callState_ == ICallStateProvider::Idle && telephonyAvailable_) {
-            // Recovery: restarted mid-call, or user routed audio back to car.
-            setCallStateInternal(ICallStateProvider::Active);
         }
     } else {
         if (callState_ == ICallStateProvider::Active)
@@ -226,17 +266,23 @@ void PhoneStateService::onTransportStateChanged(const QString& state)
     }
 }
 
+void PhoneStateService::onTransportRemoved()
+{
+    transportState_.clear();
+    if (callState_ == ICallStateProvider::Active && !scoRunning_) {
+        scoDebounceTimer_.stop();
+        callerNumber_.clear();
+        callerName_.clear();
+        setCallStateInternal(ICallStateProvider::Idle);
+    }
+}
+
 void PhoneStateService::onTelephonyAvailable(bool available)
 {
     if (available == telephonyAvailable_) return;
     telephonyAvailable_ = available;
     if (!available) {
-        inSettle_ = false;
-        settleTimer_.stop();
-        scoDebounceTimer_.stop();
-        callerNumber_.clear();
-        callerName_.clear();
-        setCallStateInternal(ICallStateProvider::Idle);
+        onSelectedGatewayBoundary();
     }
     emit telephonyAvailableChanged();
 }
