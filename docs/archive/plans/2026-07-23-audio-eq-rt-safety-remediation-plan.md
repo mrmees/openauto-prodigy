@@ -1,8 +1,8 @@
 # Audio and Equalizer Real-Time Safety Remediation — Implementation Plan
 
-Status: ACTIVE
+Status: COMPLETED 2026-07-23
 Date: 2026-07-23
-Design: `docs/plans/2026-07-23-audio-eq-rt-safety-remediation-design.md`
+Design: `docs/archive/plans/2026-07-23-audio-eq-rt-safety-remediation-design.md`
 Base: `origin/main` at `1240f423a91c9a355f56e0fc9b33534157a37f8b`
 Branch: `agent/audio-eq-rt-safety-remediation`
 

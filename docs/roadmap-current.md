@@ -14,15 +14,22 @@ Governance: capture new ideas in `docs/wishlist.md`; only promoted items should 
 
 ## Now
 
-Audio and equalizer real-time safety remediation — **ACTIVE 2026-07-23**.
-This consolidated tranche makes the SPSC/PipeWire ingestion boundary bounded,
-removes dead adaptive-buffer behavior, moves diagnostics off the RT thread,
-validates equalizer service ingress/restoration, and replaces the coefficient
-double-buffer race with atomic snapshot publication. Design and plan:
-`docs/plans/2026-07-23-audio-eq-rt-safety-remediation-design.md` and
-`docs/plans/2026-07-23-audio-eq-rt-safety-remediation-plan.md`.
+No implementation tranche is active. The next consolidated subsystem batch
+will be revalidated before its design and plan are promoted.
 
 ## Done (recent)
+
+- Audio and equalizer real-time safety remediation — **COMPLETE 2026-07-23**
+  (Pi-live-validated). The audio ring and PipeWire ingestion paths now have
+  single-owner cursors, bounded validated buffers, and non-RT diagnostics.
+  Equalizer inputs and restoration are guarded, while coefficient publication
+  uses a bounded atomic snapshot instead of recyclable shared storage. The
+  deployed application retained responsive IPC, wireless H.265 projection,
+  active AA audio graphs, and the Bluetooth EQ graph without changing hostapd
+  or Bluetooth service lifetimes; the original Pi configuration was restored
+  byte-for-byte. Design and plan:
+  `docs/archive/plans/2026-07-23-audio-eq-rt-safety-remediation-design.md` and
+  `docs/archive/plans/2026-07-23-audio-eq-rt-safety-remediation-plan.md`.
 
 - Bluetooth, HFP, and AVRCP state remediation — **COMPLETE 2026-07-23**
   (Pi-live-validated). Bluetooth state now comes from asynchronous, coalesced
