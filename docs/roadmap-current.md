@@ -14,6 +14,20 @@ Governance: capture new ideas in `docs/wishlist.md`; only promoted items should 
 
 ## Done (recent)
 
+- Configuration startup contract remediation — **COMPLETE 2026-07-22**
+  (Pi-live-validated). Logging configuration now has typed schema and sequence
+  boundaries shared by startup, settings, and strict IPC handling; selective
+  categories and verbose mode apply live and persist across restart. Known
+  map-shape conflicts enter the existing corrupt-config fallback, and the
+  first configured brightness assignment reaches its backend even when it is
+  the default value. Live validation proved both logging modes across restart,
+  restored the original configuration byte-for-byte, and retained responsive
+  IPC, wireless H.265 projection, A2DP, and unchanged Bluetooth/hostapd
+  lifetimes. Design and plan:
+  `docs/archive/plans/2026-07-22-config-startup-contract-remediation-design.md`
+  and
+  `docs/archive/plans/2026-07-22-config-startup-contract-remediation-plan.md`.
+
 - Bluetooth AVRCP duration/position time-unit remediation — **COMPLETE
   2026-07-22** (Pi-live-validated). BlueZ `MediaPlayer1` millisecond values
   now remain unchanged through initial adoption, later property delivery,
@@ -153,13 +167,8 @@ Governance: capture new ideas in `docs/wishlist.md`; only promoted items should 
 
 ## Now
 
-- Configuration startup contract remediation — **ACTIVE 2026-07-22**. Register
-  the logging settings already consumed by startup, settings, and IPC; preserve
-  selective debug categories through restart; reject known map/scalar YAML
-  shape conflicts through the existing corrupt-config fallback; and ensure a
-  saved default brightness reaches the selected backend once. Design and plan:
-  `docs/plans/2026-07-22-config-startup-contract-remediation-design.md` and
-  `docs/plans/2026-07-22-config-startup-contract-remediation-plan.md`.
+- No implementation tranche is active. Select the next bounded remediation
+  from the approved consolidated queue after the current branch is published.
 
 ## Later
 

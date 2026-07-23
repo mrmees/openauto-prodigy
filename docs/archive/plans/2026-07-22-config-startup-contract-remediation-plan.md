@@ -1,8 +1,8 @@
 # Configuration Startup Contract Remediation — Implementation Plan
 
 Date: 2026-07-22
-Status: ACTIVE
-Design: `docs/plans/2026-07-22-config-startup-contract-remediation-design.md`
+Status: COMPLETED 2026-07-22
+Design: `docs/archive/plans/2026-07-22-config-startup-contract-remediation-design.md`
 Base: `origin/main` at `45f6684e39beb649a1df046f64337a98e8023ab9`
 
 ## Execution Rules

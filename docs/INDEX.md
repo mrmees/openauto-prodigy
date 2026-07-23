@@ -50,8 +50,7 @@ Protocol definitions and generic reference docs are in [open-android-auto](https
 
 Active plans:
 
-- [2026-07-22-config-startup-contract-remediation-design.md](plans/2026-07-22-config-startup-contract-remediation-design.md) — ACTIVE configuration/startup contract design
-- [2026-07-22-config-startup-contract-remediation-plan.md](plans/2026-07-22-config-startup-contract-remediation-plan.md) — ACTIVE tiered implementation plan
+None.
 
 Parked plans (not current guidance):
 
@@ -67,6 +66,7 @@ Parked plans (not current guidance):
 Everything under `archive/` is history, not guidance. Internal links there may point at pre-restructure paths by design.
 
 - [archive/plans/](archive/plans/) — completed/superseded designs and implementation plans, incl. milestone-01..05 history and pre-restructure proto docs
+- [2026-07-22-config-startup-contract-remediation-design.md](archive/plans/2026-07-22-config-startup-contract-remediation-design.md) and [implementation plan](archive/plans/2026-07-22-config-startup-contract-remediation-plan.md) — completed logging/YAML/brightness startup-contract correction
 - [2026-07-22-bt-avrcp-time-units-remediation-design.md](archive/plans/2026-07-22-bt-avrcp-time-units-remediation-design.md) and [implementation plan](archive/plans/2026-07-22-bt-avrcp-time-units-remediation-plan.md) — completed Bluetooth AVRCP millisecond-boundary correction
 - [2026-07-22-aa-night-initial-state-remediation-design.md](archive/plans/2026-07-22-aa-night-initial-state-remediation-design.md) and [implementation plan](archive/plans/2026-07-22-aa-night-initial-state-remediation-plan.md) — completed Android Auto initial night-state delivery correction
 - [2026-07-21-documentation-drift-remediation-design.md](archive/plans/2026-07-21-documentation-drift-remediation-design.md) and [implementation plan](archive/plans/2026-07-21-documentation-drift-remediation-plan.md) — completed current-guidance reconciliation
