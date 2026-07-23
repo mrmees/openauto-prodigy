@@ -48,6 +48,12 @@ idempotent local ownership boundary and performs no protocol write. A session
 that reaches `Disconnected` may be started again with the same registrations;
 its Messenger restarts with empty framing, assembly, and TLS state.
 
+TLS handshakes distinguish retryable WANT-I/O from fatal OpenSSL results.
+`Messenger::handshakeFailed` reports a bounded diagnostic immediately, and
+`AASession` closes with `DisconnectReason::HandshakeError` instead of waiting
+for the generic negotiation timeout. Channel-open responses are always sent on
+the requested service channel.
+
 ## Dependencies
 
 - Qt 6 (Core, Network)

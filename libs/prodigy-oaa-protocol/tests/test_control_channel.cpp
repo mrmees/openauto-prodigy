@@ -146,6 +146,7 @@ private slots:
         ctrl.sendChannelOpenResponse(3, true);
 
         QCOMPARE(sendSpy.count(), 1);
+        QCOMPARE(sendSpy[0][0].value<uint8_t>(), uint8_t(3));
         QCOMPARE(sendSpy[0][1].value<uint16_t>(), uint16_t(0x0008));
 
         QByteArray respPayload = sendSpy[0][2].toByteArray();
@@ -161,6 +162,7 @@ private slots:
         ctrl.sendChannelOpenResponse(9, false);
 
         QCOMPARE(sendSpy.count(), 1);
+        QCOMPARE(sendSpy[0][0].value<uint8_t>(), uint8_t(9));
         QByteArray respPayload = sendSpy[0][2].toByteArray();
         oaa::proto::messages::ChannelOpenResponse resp;
         QVERIFY(resp.ParseFromArray(respPayload.constData(), respPayload.size()));

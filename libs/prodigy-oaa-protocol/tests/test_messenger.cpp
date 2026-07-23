@@ -304,6 +304,30 @@ private slots:
         QCOMPARE(messageSpy.count(), 1);
         QCOMPARE(messageSpy[0][1].value<uint16_t>(), uint16_t(0x2222));
     }
+
+    void testFatalHandshakeEmitsOnceWithDiagnostic() {
+        oaa::ReplayTransport transport;
+        oaa::Messenger messenger(&transport);
+        QSignalSpy failureSpy(&messenger, &oaa::Messenger::handshakeFailed);
+
+        messenger.start();
+        messenger.startHandshake();
+
+        QByteArray handshakePayload;
+        const uint16_t handshakeId = qToBigEndian(uint16_t(0x0003));
+        handshakePayload.append(reinterpret_cast<const char*>(&handshakeId), 2);
+        handshakePayload.append(QByteArray(64, 'X'));
+        const QByteArray malformedFrame = buildFrame(
+            0, oaa::FrameType::Bulk, oaa::MessageType::Specific,
+            oaa::EncryptionType::Plain, handshakePayload);
+
+        transport.feedData(malformedFrame);
+        transport.feedData(malformedFrame);
+
+        QCOMPARE(failureSpy.count(), 1);
+        QVERIFY(!failureSpy[0][0].toString().isEmpty());
+        QVERIFY(!messenger.isEncrypted());
+    }
 };
 
 QTEST_MAIN(TestMessenger)

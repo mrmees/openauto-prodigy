@@ -192,7 +192,7 @@ void ControlChannel::sendChannelOpenResponse(uint8_t targetChannelId, bool accep
                             : proto::enums::Status::INVALID_CHANNEL);
     QByteArray payload(msg.ByteSizeLong(), '\0');
     msg.SerializeToArray(payload.data(), payload.size());
-    emit sendRequested(0, MSG_CHANNEL_OPEN_RESPONSE, payload);
+    emit sendRequested(targetChannelId, MSG_CHANNEL_OPEN_RESPONSE, payload);
 }
 
 void ControlChannel::sendPingRequest(int64_t timestamp) {

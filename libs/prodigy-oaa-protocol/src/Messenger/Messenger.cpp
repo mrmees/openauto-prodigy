@@ -51,6 +51,7 @@ void Messenger::stop()
     parser_.reset();
     assembler_.reset();
     cryptor_.deinit();
+    handshakeFailureEmitted_ = false;
     sendQueue_.clear();
     sending_ = false;
 }
@@ -166,6 +167,7 @@ void Messenger::sendRaw(uint8_t channelId, const QByteArray& data,
 
 void Messenger::startHandshake()
 {
+    handshakeFailureEmitted_ = false;
     cryptor_.init(Cryptor::Role::Client);
     driveHandshake();
 }
@@ -223,7 +225,7 @@ void Messenger::handleHandshakeData(const QByteArray& data)
 
 void Messenger::driveHandshake()
 {
-    bool complete = cryptor_.doHandshake();
+    const auto result = cryptor_.doHandshake();
 
     // Send any outgoing handshake bytes as SSL_HANDSHAKE messages (msgId 0x0003)
     QByteArray outgoing = cryptor_.readHandshakeBuffer();
@@ -231,8 +233,13 @@ void Messenger::driveHandshake()
         sendMessage(0, 0x0003, outgoing);
     }
 
-    if (complete) {
+    if (result == Cryptor::HandshakeResult::Complete) {
         emit handshakeComplete();
+    } else if (result == Cryptor::HandshakeResult::Failed
+               && !handshakeFailureEmitted_) {
+        handshakeFailureEmitted_ = true;
+        const QString error = cryptor_.lastHandshakeError();
+        emit handshakeFailed(error);
     }
 }
 

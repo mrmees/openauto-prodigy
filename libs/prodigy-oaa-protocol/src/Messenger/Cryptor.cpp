@@ -10,6 +10,7 @@ Cryptor::~Cryptor()
 void Cryptor::init(Role role)
 {
     deinit();
+    m_lastHandshakeError.clear();
 
     const SSL_METHOD* method = (role == Role::Client)
         ? TLS_client_method()
@@ -74,24 +75,46 @@ void Cryptor::deinit()
         m_key = nullptr;
     }
     m_active = false;
+    m_lastHandshakeError.clear();
 }
 
-bool Cryptor::doHandshake()
+Cryptor::HandshakeResult Cryptor::doHandshake()
 {
-    if (m_active) return true;
+    if (m_active)
+        return HandshakeResult::Complete;
+    if (!m_ssl) {
+        m_lastHandshakeError = QStringLiteral("TLS handshake is not initialized");
+        return HandshakeResult::Failed;
+    }
 
+    // SSL_get_error() requires the current thread's error queue to be empty
+    // before the I/O operation it classifies.
+    ERR_clear_error();
     int ret = SSL_do_handshake(m_ssl);
     if (ret == 1) {
         m_active = true;
-        return true;
+        m_lastHandshakeError.clear();
+        return HandshakeResult::Complete;
     }
 
     int err = SSL_get_error(m_ssl, ret);
     if (err == SSL_ERROR_WANT_READ || err == SSL_ERROR_WANT_WRITE) {
-        return false;
+        return HandshakeResult::WantIo;
     }
 
-    return false;
+    m_lastHandshakeError = QStringLiteral("SSL_do_handshake failed (SSL_get_error=%1)")
+                               .arg(err);
+    while (const unsigned long code = ERR_get_error()) {
+        char errorText[256] = {};
+        ERR_error_string_n(code, errorText, sizeof(errorText));
+        m_lastHandshakeError += QStringLiteral(": ") + QString::fromLatin1(errorText);
+    }
+    return HandshakeResult::Failed;
+}
+
+QString Cryptor::lastHandshakeError() const
+{
+    return m_lastHandshakeError;
 }
 
 QByteArray Cryptor::readHandshakeBuffer()

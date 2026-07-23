@@ -7,8 +7,6 @@
 #include "oaa/control/ServiceDiscoveryResponseMessage.pb.h"
 #include "oaa/control/ChannelDescriptorData.pb.h"
 #include "oaa/control/ChannelOpenRequestMessage.pb.h"
-#include "oaa/control/ChannelOpenResponseMessage.pb.h"
-#include "oaa/common/StatusEnum.pb.h"
 #include "oaa/audio/AudioFocusRequestMessage.pb.h"
 #include "oaa/audio/AudioFocusResponseMessage.pb.h"
 #include "oaa/audio/AudioFocusTypeEnum.pb.h"
@@ -42,6 +40,8 @@ AASession::AASession(ITransport* transport, const SessionConfig& config,
             this, &AASession::onMessage);
     connect(messenger_, &Messenger::handshakeComplete,
             this, &AASession::onHandshakeComplete);
+    connect(messenger_, &Messenger::handshakeFailed,
+            this, &AASession::onHandshakeFailed);
 
     // ControlChannel signals
     connect(controlChannel_, &ControlChannel::versionReceived,
@@ -287,6 +287,16 @@ void AASession::onHandshakeComplete() {
     startStateTimer(config_.discoveryTimeout);
 }
 
+void AASession::onHandshakeFailed(const QString& message) {
+    if (state_ != SessionState::TLSHandshake)
+        return;
+
+    qWarning() << "[AASession] TLS handshake failed:" << message;
+    stopStateTimer();
+    setState(SessionState::Disconnected);
+    emit disconnected(DisconnectReason::HandshakeError);
+}
+
 void AASession::onServiceDiscoveryRequested(const QByteArray& payload) {
     if (state_ != SessionState::ServiceDiscovery) return;
     stopStateTimer();
@@ -350,21 +360,13 @@ void AASession::onMessage(uint8_t channelId, uint16_t messageId,
             if (channels_.contains(targetCh)) {
                 qDebug() << "[AASession] Opening channel" << targetCh;
                 // Response goes on the target channel, not ch0
-                proto::messages::ChannelOpenResponse resp;
-                resp.set_status(proto::enums::Status::OK);
-                QByteArray respData(resp.ByteSizeLong(), '\0');
-                resp.SerializeToArray(respData.data(), respData.size());
-                messenger_->sendMessage(targetCh, 0x0008, respData);
+                controlChannel_->sendChannelOpenResponse(targetCh, true);
                 channels_[targetCh]->onChannelOpened();
                 emit channelOpened(targetCh);
             } else {
                 qDebug() << "[AASession] Rejecting channel" << targetCh
                          << "(not registered)";
-                proto::messages::ChannelOpenResponse resp;
-                resp.set_status(proto::enums::Status::INVALID_CHANNEL);
-                QByteArray respData(resp.ByteSizeLong(), '\0');
-                resp.SerializeToArray(respData.data(), respData.size());
-                messenger_->sendMessage(targetCh, 0x0008, respData);
+                controlChannel_->sendChannelOpenResponse(targetCh, false);
                 emit channelOpenRejected(targetCh);
             }
         }

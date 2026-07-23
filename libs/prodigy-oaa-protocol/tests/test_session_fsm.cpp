@@ -313,6 +313,67 @@ private slots:
         QCOMPARE(oldTransport.writtenData().size(), 0);
         QCOMPARE(replacementTransport.writtenData().size(), 1);
     }
+
+    void testFatalHandshakeDisconnectsImmediately() {
+        oaa::ReplayTransport transport;
+        oaa::SessionConfig config;
+        config.handshakeTimeout = 1000;
+        oaa::AASession session(&transport, config);
+        QSignalSpy disconnectSpy(&session, &oaa::AASession::disconnected);
+
+        transport.simulateConnect();
+        session.start();
+        transport.feedData(makeVersionResponseFrame(1, 7, 0x0000));
+        QCOMPARE(session.state(), oaa::SessionState::TLSHandshake);
+
+        QByteArray payload;
+        const uint16_t handshakeId = qToBigEndian(uint16_t(0x0003));
+        payload.append(reinterpret_cast<const char*>(&handshakeId), 2);
+        payload.append(QByteArray(64, 'X'));
+        QByteArray frame(4, '\0');
+        frame[0] = 0x00;
+        frame[1] = 0x03;
+        qToBigEndian<uint16_t>(static_cast<uint16_t>(payload.size()),
+                               reinterpret_cast<uchar*>(frame.data() + 2));
+        frame.append(payload);
+        transport.feedData(frame);
+
+        QCOMPARE(session.state(), oaa::SessionState::Disconnected);
+        QCOMPARE(disconnectSpy.count(), 1);
+        QCOMPARE(disconnectSpy[0][0].value<oaa::DisconnectReason>(),
+                 oaa::DisconnectReason::HandshakeError);
+        QTest::qWait(20);
+        QCOMPARE(disconnectSpy.count(), 1);
+    }
+
+    void testChannelOpenResponseUsesTargetChannelForBothDispatchPaths() {
+        for (const uint8_t incomingChannel : {uint8_t(0), uint8_t(3)}) {
+            oaa::ReplayTransport transport;
+            oaa::SessionConfig config;
+            oaa::AASession session(&transport, config);
+            MockChannelHandler handler(3);
+            session.registerChannel(3, &handler);
+
+            transport.simulateConnect();
+            session.start();
+            advanceToActive(session);
+            transport.clearWritten();
+
+            oaa::proto::messages::ChannelOpenRequest request;
+            request.set_channel_id(3);
+            request.set_priority(1);
+            QByteArray payload(request.ByteSizeLong(), '\0');
+            QVERIFY(request.SerializeToArray(payload.data(), payload.size()));
+            session.messenger()->messageReceived(
+                incomingChannel, 0x0007, payload, 0);
+
+            QCOMPARE(handler.openCount, 1);
+            QCOMPARE(transport.writtenData().size(), 1);
+            const QByteArray response = transport.writtenData().first();
+            QCOMPARE(static_cast<uint8_t>(response[0]), uint8_t(3));
+            QCOMPARE(static_cast<uint8_t>(response[1]), uint8_t(0x07));
+        }
+    }
 };
 
 QTEST_MAIN(TestSessionFSM)
