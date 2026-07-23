@@ -1,6 +1,18 @@
 #include <QTest>
 #include <QSignalSpy>
+#include <QVector>
 #include "core/services/DisplayService.hpp"
+
+class FakeDisplayService : public oap::DisplayService {
+public:
+    QVector<int> appliedBrightness;
+
+protected:
+    void applyBrightness(int value) override
+    {
+        appliedBrightness.append(value);
+    }
+};
 
 class TestDisplayService : public QObject {
     Q_OBJECT
@@ -8,13 +20,13 @@ class TestDisplayService : public QObject {
 private slots:
     void defaultBrightness()
     {
-        oap::DisplayService svc;
+        FakeDisplayService svc;
         QCOMPARE(svc.brightness(), 80);
     }
 
     void setBrightnessEmitsSignal()
     {
-        oap::DisplayService svc;
+        FakeDisplayService svc;
         QSignalSpy spy(&svc, &oap::DisplayService::brightnessChanged);
         svc.setBrightness(50);
         QCOMPARE(spy.count(), 1);
@@ -23,7 +35,7 @@ private slots:
 
     void setBrightnessClampsLow()
     {
-        oap::DisplayService svc;
+        FakeDisplayService svc;
         QSignalSpy spy(&svc, &oap::DisplayService::brightnessChanged);
         svc.setBrightness(2);
         QCOMPARE(svc.brightness(), 5);
@@ -32,32 +44,44 @@ private slots:
 
     void setBrightnessClampsHigh()
     {
-        oap::DisplayService svc;
+        FakeDisplayService svc;
         QSignalSpy spy(&svc, &oap::DisplayService::brightnessChanged);
         svc.setBrightness(200);
         QCOMPARE(svc.brightness(), 100);
         QCOMPARE(spy.count(), 1);
     }
 
-    void setBrightnessSameNoSignal()
+    void initialDefaultBrightnessAppliesWithoutSignal()
     {
-        oap::DisplayService svc;
-        // Default is 80, setting to 80 should not emit
+        FakeDisplayService svc;
         QSignalSpy spy(&svc, &oap::DisplayService::brightnessChanged);
         svc.setBrightness(80);
         QCOMPARE(spy.count(), 0);
+        QCOMPARE(svc.appliedBrightness, QVector<int>({80}));
+
+        svc.setBrightness(80);
+        QCOMPARE(spy.count(), 0);
+        QCOMPARE(svc.appliedBrightness, QVector<int>({80}));
+
+        svc.setBrightness(50);
+        QCOMPARE(spy.count(), 1);
+        QCOMPARE(svc.appliedBrightness, QVector<int>({80, 50}));
+
+        svc.setBrightness(50);
+        QCOMPARE(spy.count(), 1);
+        QCOMPARE(svc.appliedBrightness, QVector<int>({80, 50}));
     }
 
     void dimOverlayAtFull()
     {
-        oap::DisplayService svc;
+        FakeDisplayService svc;
         svc.setBrightness(100);
         QCOMPARE(svc.dimOverlayOpacity(), 0.0);
     }
 
     void dimOverlayAtMin()
     {
-        oap::DisplayService svc;
+        FakeDisplayService svc;
         svc.setBrightness(5);
         // (100 - 5) / 100.0 * 0.9 = 0.855
         QVERIFY(qFuzzyCompare(svc.dimOverlayOpacity(), 0.855));
@@ -65,7 +89,7 @@ private slots:
 
     void dimOverlayLinear()
     {
-        oap::DisplayService svc;
+        FakeDisplayService svc;
         svc.setBrightness(50);
         // (100 - 50) / 100.0 * 0.9 = 0.45
         QVERIFY(qFuzzyCompare(svc.dimOverlayOpacity(), 0.45));

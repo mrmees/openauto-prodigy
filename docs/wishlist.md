@@ -20,12 +20,6 @@ Ideas captured here. Promote to `roadmap-current.md` when ready to commit.
 
 - **Boot/reboot startup reliability** — After a reboot, `graphical.target` was slow to activate (stuck on `systemd-networkd-wait-online.service` timeout). Prodigy service depends on `graphical.target` so it sat in `inactive (dead)` until the timeout passed. Need to verify clean boot sequence, measure time-to-app, and possibly mask the networkd-wait service (NetworkManager is the actual manager). Phase 4 territory.
 
-- **Register debug logging keys in the configuration schema** — the Debug
-  settings page, startup path, and IPC handlers use `logging.verbose` and
-  `logging.debug_categories`, but `YamlConfig` does not define those leaves.
-  Generic writes therefore reject them and startup reads cannot restore them.
-  Add typed defaults plus coverage for UI/IPC writes and restart persistence.
-
 - **Repair the video-codec settings contract** — the Debug page sends the
   `video.codecs` sequence through scalar `ConfigService` accessors, so enable
   toggles neither update service discovery nor persist. Add typed sequence

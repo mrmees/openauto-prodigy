@@ -204,14 +204,13 @@ int main(int argc, char *argv[])
 
     // --- Configure logging from CLI + YAML ---
     bool cliVerbose = parser.isSet(verboseOption);
-    bool cfgVerbose = yamlConfig->valueByPath("logging.verbose").toBool();
+    bool cfgVerbose = yamlConfig->loggingVerbose();
+    const QStringList debugCategories = yamlConfig->loggingDebugCategories();
+    oap::applyLoggingPolicy(cliVerbose || cfgVerbose, debugCategories);
     if (cliVerbose || cfgVerbose) {
-        oap::setVerbose(true);
         qCInfo(lcCore) << "Verbose logging enabled" << (cliVerbose ? "(CLI)" : "(config)");
     } else {
-        QStringList debugCategories = yamlConfig->valueByPath("logging.debug_categories").toStringList();
         if (!debugCategories.isEmpty()) {
-            oap::setDebugCategories(debugCategories);
             qCInfo(lcCore) << "Debug categories:" << debugCategories;
         }
     }
@@ -270,11 +269,12 @@ int main(int argc, char *argv[])
     // --- Config service (moved before theme loading for persistence wiring) ---
     auto configService = std::make_unique<oap::ConfigService>(yamlConfig.get(), yamlPath);
 
-    // Live-toggle verbose logging from settings UI
+    // Live-toggle logging from settings UI. Returning verbose to false must
+    // restore the persisted selective list, not discard it for quiet mode.
     QObject::connect(configService.get(), &oap::ConfigService::configChanged,
-        [](const QString& path, const QVariant& value) {
+        [yamlConfig](const QString& path, const QVariant& value) {
             if (path == "logging.verbose") {
-                oap::setVerbose(value.toBool());
+                oap::applyLoggingPolicy(value.toBool(), yamlConfig->loggingDebugCategories());
                 qCInfo(lcCore) << "Verbose logging" << (value.toBool() ? "enabled" : "disabled") << "(via settings)";
             }
         });

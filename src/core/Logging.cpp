@@ -17,6 +17,7 @@ Q_LOGGING_CATEGORY(lcEq,     "oap.eq",     QtInfoMsg)
 namespace {
 
 static std::atomic<bool> g_verbose{false};
+static std::atomic<bool> g_libraryOutputEnabled{false};
 static bool g_logToFile{false};
 static FILE* g_logFile{nullptr};
 
@@ -99,9 +100,11 @@ void logMessageHandler(QtMsgType type, const QMessageLogContext& ctx, const QStr
 
     bool isLib = oap::isLibraryMessage(cat, ctx.file, msg);
     bool verbose = g_verbose.load(std::memory_order_relaxed);
+    bool libraryOutputEnabled = g_libraryOutputEnabled.load(std::memory_order_relaxed);
 
-    // In quiet mode, suppress library debug/info unless it's a lifecycle event
-    if (!verbose && isLib) {
+    // Suppress library debug/info unless global verbose or selective AA logging
+    // is enabled. Lifecycle events remain visible in quiet mode.
+    if (!libraryOutputEnabled && isLib) {
         if (type == QtDebugMsg || type == QtInfoMsg) {
             if (!containsLifecycleKeyword(msg))
                 return;
@@ -158,6 +161,7 @@ void installLogHandler()
 
 void setVerbose(bool verbose)
 {
+    g_libraryOutputEnabled.store(verbose, std::memory_order_relaxed);
     g_verbose.store(verbose, std::memory_order_relaxed);
 
     if (verbose) {
@@ -180,22 +184,61 @@ bool isVerbose()
     return g_verbose.load(std::memory_order_relaxed);
 }
 
+bool isValidDebugCategory(const QString& category)
+{
+    return category == QLatin1String("aa")
+        || category == QLatin1String("bt")
+        || category == QLatin1String("audio")
+        || category == QLatin1String("plugin")
+        || category == QLatin1String("ui")
+        || category == QLatin1String("core")
+        || category == QLatin1String("eq");
+}
+
+bool validateDebugCategories(const QStringList& categories, QString* error)
+{
+    for (const QString& category : categories) {
+        if (!isValidDebugCategory(category)) {
+            if (error) {
+                *error = QStringLiteral("Unknown debug category '%1'; expected aa, bt, audio, plugin, ui, core, or eq")
+                    .arg(category);
+            }
+            return false;
+        }
+    }
+    return true;
+}
+
 void setDebugCategories(const QStringList& categories)
 {
-    g_verbose.store(false, std::memory_order_relaxed);
-
     // Start with everything suppressed, then enable specific ones
     QString rules = QStringLiteral("oap.*.debug=false\noaa.*.debug=false\n");
+    bool libraryOutputEnabled = false;
 
     for (const QString& cat : categories) {
+        // Categories can originate in persisted YAML. Only canonical short
+        // names may reach the filter-rule string, preventing rule injection.
+        if (!isValidDebugCategory(cat))
+            continue;
         rules += QStringLiteral("oap.%1.debug=true\n").arg(cat);
         // If "aa" is requested, also enable oaa.* (library)
         if (cat == QLatin1String("aa")) {
+            libraryOutputEnabled = true;
             rules += QStringLiteral("oaa.*.debug=true\n");
         }
     }
 
+    g_libraryOutputEnabled.store(libraryOutputEnabled, std::memory_order_relaxed);
+    g_verbose.store(false, std::memory_order_relaxed);
     QLoggingCategory::setFilterRules(rules);
+}
+
+void applyLoggingPolicy(bool verbose, const QStringList& categories)
+{
+    if (verbose)
+        setVerbose(true);
+    else
+        setDebugCategories(categories);
 }
 
 void setLogFile(const QString& path)

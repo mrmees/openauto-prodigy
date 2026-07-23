@@ -8,6 +8,7 @@ class TestConfigService : public QObject {
 private slots:
     void testReadTopLevelValues();
     void testWriteTopLevelValues();
+    void testChangeSignalOnlyForAcceptedScalarWrites();
     void testPluginScopedConfig();
     void testPluginIsolation();
     void testSaveAndReload();
@@ -39,6 +40,22 @@ void TestConfigService::testWriteTopLevelValues()
 
     svc.setValue("audio.master_volume", 30);
     QCOMPARE(svc.value("audio.master_volume").toInt(), 30);
+}
+
+void TestConfigService::testChangeSignalOnlyForAcceptedScalarWrites()
+{
+    oap::YamlConfig yaml;
+    oap::ConfigService svc(&yaml, "/tmp/oap_test_cs.yaml");
+    QSignalSpy changes(&svc, &oap::ConfigService::configChanged);
+
+    svc.setValue("logging.verbose", true);
+    QCOMPARE(changes.count(), 1);
+    QCOMPARE(yaml.loggingVerbose(), true);
+
+    svc.setValue("logging.debug_categories", QStringList{QStringLiteral("oap.core")});
+    svc.setValue("connection", QStringLiteral("invalid"));
+    svc.setValue("unknown.key", 1);
+    QCOMPARE(changes.count(), 1);
 }
 
 void TestConfigService::testPluginScopedConfig()

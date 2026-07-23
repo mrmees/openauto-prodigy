@@ -21,6 +21,8 @@ private slots:
     void testMicDefaults();
     void testMicFromFile();
     void testMicrophoneDevicePathWrite();
+    void testLoggingDefaultsAndScalarPathWrite();
+    void testLoggingDebugCategoriesRoundTrip();
     void testValueByPath();
     void testValueByPathNested();
     void testValueByPathMissing();
@@ -55,7 +57,9 @@ private slots:
     void testDashboardsRoundTrip();
     void testV3MigratesToV4();
     void testV2FlatShapeMigrates();
+    void testNestedMergeRetainsUnknownKeys();
     void testLoadCorruptFileFallsBackToDefaults();
+    void testLoadMappingShapeMismatchFallsBackToDefaults();
     void testLoadCorruptOverwritesPreviousCorruptAside();
     void testLoadMissingFileYieldsDefaults();
     void testSaveAtomicReplacesExisting();
@@ -247,6 +251,44 @@ void TestYamlConfig::testMicrophoneDevicePathWrite()
     // Regression pin for the 2026-07-15 root cause: the dead key the UI used
     // to write is NOT in the defaults schema and must stay rejected.
     QVERIFY(!cfg.setValueByPath("audio.input_device", "anything"));
+}
+
+void TestYamlConfig::testLoggingDefaultsAndScalarPathWrite()
+{
+    oap::YamlConfig config;
+    QCOMPARE(config.loggingVerbose(), false);
+    QVERIFY(config.loggingDebugCategories().isEmpty());
+    QCOMPARE(config.valueByPath("logging.verbose").toBool(), false);
+    QVERIFY(!config.valueByPath("logging.debug_categories").isValid());
+
+    QVERIFY(config.setValueByPath("logging.verbose", true));
+    QCOMPARE(config.loggingVerbose(), true);
+    QVERIFY(!config.setValueByPath("logging.debug_categories",
+                                   QStringList{QStringLiteral("core")}));
+
+    const QString path = QDir::temp().filePath("oap_test_logging_verbose.yaml");
+    QVERIFY(config.save(path));
+    oap::YamlConfig loaded;
+    loaded.load(path);
+    QCOMPARE(loaded.loggingVerbose(), true);
+    QFile::remove(path);
+}
+
+void TestYamlConfig::testLoggingDebugCategoriesRoundTrip()
+{
+    const QStringList categories{QStringLiteral("core"),
+                                 QStringLiteral("aa")};
+    oap::YamlConfig config;
+    config.setLoggingDebugCategories(categories);
+    QCOMPARE(config.loggingDebugCategories(), categories);
+    QVERIFY(!config.valueByPath("logging.debug_categories").isValid());
+
+    const QString path = QDir::temp().filePath("oap_test_logging_categories.yaml");
+    QVERIFY(config.save(path));
+    oap::YamlConfig loaded;
+    loaded.load(path);
+    QCOMPARE(loaded.loggingDebugCategories(), categories);
+    QFile::remove(path);
 }
 
 void TestYamlConfig::testValueByPath()
@@ -765,6 +807,32 @@ void TestYamlConfig::testV2FlatShapeMigrates()
     QCOMPARE(again.dashboards()[0].nextInstanceId, 7);
 }
 
+void TestYamlConfig::testNestedMergeRetainsUnknownKeys()
+{
+    const QString path = QDir::temp().filePath("oap_test_nested_merge.yaml");
+    QFile file(path);
+    QVERIFY(file.open(QIODevice::WriteOnly | QIODevice::Truncate));
+    file.write("connection:\n"
+               "  wifi_ap:\n"
+               "    ssid: MergedSSID\n"
+               "    experimental_option: retained\n"
+               "custom_section:\n"
+               "  enabled: true\n");
+    file.close();
+
+    oap::YamlConfig config;
+    config.load(path);
+    QCOMPARE(config.wifiSsid(), QString("MergedSSID"));
+    QCOMPARE(config.wifiPassword(), QString("prodigy"));
+    QVERIFY(config.save(path));
+
+    QVERIFY(file.open(QIODevice::ReadOnly));
+    const QByteArray saved = file.readAll();
+    QVERIFY(saved.contains("experimental_option"));
+    QVERIFY(saved.contains("custom_section"));
+    QFile::remove(path);
+}
+
 // Task C: atomic save + corrupt-load fallback. A corrupt config on disk must
 // not crash the app at startup -- load() degrades to defaults and moves the
 // bad file aside for post-mortem inspection instead of throwing.
@@ -800,6 +868,35 @@ void TestYamlConfig::testLoadCorruptFileFallsBackToDefaults()
     }
 
     QFile::remove(corruptPath);
+}
+
+void TestYamlConfig::testLoadMappingShapeMismatchFallsBackToDefaults()
+{
+    const QString path = QDir::temp().filePath("oap_test_mapping_mismatch.yaml");
+    const QList<QByteArray> invalidOverlays{
+        "connection: invalid\n",
+        "connection:\n  - invalid\n",
+    };
+
+    for (const QByteArray& invalidOverlay : invalidOverlays) {
+        QFile file(path);
+        QVERIFY(file.open(QIODevice::WriteOnly | QIODevice::Truncate));
+        file.write(invalidOverlay);
+        file.close();
+
+        oap::YamlConfig config;
+        config.load(path);
+
+        QCOMPARE(config.hardwareProfile(), QString("rpi4"));
+        QCOMPARE(config.wifiSsid(), QString("OpenAutoProdigy"));
+        QVERIFY(!QFile::exists(path));
+        const QString corruptPath = path + ".corrupt";
+        QVERIFY(QFile::exists(corruptPath));
+        QFile corruptFile(corruptPath);
+        QVERIFY(corruptFile.open(QIODevice::ReadOnly));
+        QCOMPARE(corruptFile.readAll(), invalidOverlay);
+        QFile::remove(corruptPath);
+    }
 }
 
 void TestYamlConfig::testLoadCorruptOverwritesPreviousCorruptAside()

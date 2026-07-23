@@ -73,11 +73,21 @@ int DisplayService::brightness() const
 void DisplayService::setBrightness(int value)
 {
     value = std::clamp(value, 5, 100);
-    if (value == brightness_) {
+    const bool changed = value != brightness_;
+    if (!changed && brightnessInitialized_) {
         return;
     }
     brightness_ = value;
+    applyBrightness(value);
+    brightnessInitialized_ = true;
 
+    if (changed) {
+        emit brightnessChanged();
+    }
+}
+
+void DisplayService::applyBrightness(int value)
+{
     switch (backend_) {
     case Backend::SysfsBacklight:
         applySysfs(value);
@@ -89,8 +99,6 @@ void DisplayService::setBrightness(int value)
         // No hardware action — QML reads dimOverlayOpacity via binding
         break;
     }
-
-    emit brightnessChanged();
 }
 
 qreal DisplayService::dimOverlayOpacity() const

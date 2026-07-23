@@ -37,6 +37,7 @@ void TestConfigKeyCoverage::testAllRuntimeKeys()
         "display.theme",
         "display.clock_24h",
         "display.screen_size",
+        "logging.verbose",
         "connection.auto_connect_aa",
         "connection.bt_discoverable",
         "connection.wifi_ap.ssid",
