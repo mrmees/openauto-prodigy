@@ -86,7 +86,9 @@ content dimensions, then creates `EvdevCoordBridge` for shell-zone
 registration. All initial configuration is complete before the reader thread
 starts. Later display, negotiated-video, grab, and stop requests are snapshots
 or atomics consumed by that reader thread; its descriptor and touch-slot state
-are never mutated by the Qt main thread.
+are never mutated by the Qt main thread. A display-size change recomputes the
+content mapping from the same current viewport contract before the next reader
+snapshot, keeping service-discovery and input coordinates aligned.
 
 `EvdevTouchReader::computeLetterbox()` first removes the Navbar strip from the
 display viewport. It compares that viewport with the content aspect ratio,
@@ -121,8 +123,9 @@ Routing has these properties:
 - Unclaimed touches fall through to AA.
 - Phone-visible pointer membership is independent of raw active slots, so a
   claimed pointer cannot leak into another pointer's AA motion array.
-- Multiple downs or ups in one evdev report are serialized into Android
-  MotionEvent order with complete pointer arrays and correct action indices.
+- Multiple transitions in one evdev report are serialized into Android
+  MotionEvent order with complete pointer arrays and correct action indices;
+  existing contacts retire before new contacts are admitted.
 - The three-finger gesture can suppress AA forwarding without preventing zone
   dispatch.
 

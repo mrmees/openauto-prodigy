@@ -123,6 +123,8 @@ The input descriptor advertises `touch_screen_config` using the same content
 dimensions as the selected video mode. `EvdevTouchReader` maps the usable
 display viewport into that content coordinate space; it does not map to the
 full encoded-frame dimensions and does not add the centered margin offset.
+If the detected display size changes, the runtime bridge recomputes this same
+content contract and publishes the updated mapping to the reader.
 
 Touches claimed by registered shell zones are consumed locally. Unclaimed
 touches fall through to AA, with all active pointers included in the AA motion

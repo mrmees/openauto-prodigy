@@ -52,12 +52,18 @@ public:
     /// Shutdown: stop touch reader.
     void shutdown();
 
+    /// Recompute the shared video/touch content mapping for the current
+    /// display viewport and Navbar policy.
+    void updateVideoMapping(int aaWidth, int aaHeight);
+
     // --- Accessors ---
     EvdevTouchReader* touchReader() const { return touchReader_; }
     EvdevCoordBridge* coordBridge() const { return coordBridge_; }
     int displayWidth() const { return displayW_; }
     int displayHeight() const { return displayH_; }
     int navbarThickness() const { return navbarThick_; }
+    int contentWidth() const { return contentW_; }
+    int contentHeight() const { return contentH_; }
 
     /// Grab/ungrab the evdev device (delegates to touchReader).
     void grab();
@@ -75,6 +81,8 @@ private:
     int displayW_ = 1024;
     int displayH_ = 600;
     int navbarThick_ = 56;
+    int contentW_ = 1280;
+    int contentH_ = 720;
 };
 
 } // namespace aa

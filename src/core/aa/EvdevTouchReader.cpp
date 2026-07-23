@@ -522,6 +522,33 @@ void EvdevTouchReader::processSync()
 
     bool sentBoundaryEvent = false;
 
+    // Retire phone-visible pointers before admitting replacements from the
+    // same SYN_REPORT. Android must not observe a transient overlap between a
+    // lifted contact and a newly pressed contact.
+    for (int i = 0; i < MAX_SLOTS; ++i) {
+        if (!slots_[i].dirty || consumed[i] || !aaActive_[i])
+            continue;
+
+        const bool wasActive = prevSlots_[i].trackingId >= 0;
+        const bool isActive = slots_[i].trackingId >= 0;
+        if (!wasActive || isActive)
+            continue;
+
+        auto pointers = buildAaPointers();
+        const auto changed = std::find_if(pointers.begin(), pointers.end(),
+            [i](const TouchHandler::Pointer& pointer) { return pointer.id == i; });
+        const int actionIdx = static_cast<int>(std::distance(pointers.begin(), changed));
+        const int action = pointers.size() == 1 ? 1 : 6;
+        if (handler_) {
+            handler_->sendTouchIndication(pointers.size(), pointers.data(),
+                                          actionIdx, action);
+        }
+        aaActive_[i] = false;
+        sentBoundaryEvent = true;
+        qCDebug(lcAA) << "UP slot=" << i << "actionIdx=" << actionIdx
+                      << "active=" << pointers.size();
+    }
+
     // Admit unclaimed DOWN transitions one at a time. This preserves Android's
     // required DOWN then POINTER_DOWN ordering even when evdev batches them in
     // the same SYN_REPORT.
@@ -547,32 +574,6 @@ void EvdevTouchReader::processSync()
         }
         sentBoundaryEvent = true;
         qCDebug(lcAA) << "DOWN slot=" << i << "actionIdx=" << actionIdx
-                      << "active=" << pointers.size();
-    }
-
-    // Retire phone-visible pointers one at a time. buildAaPointers() uses the
-    // previous coordinates for a lifted slot, as required by MotionEvent.
-    for (int i = 0; i < MAX_SLOTS; ++i) {
-        if (!slots_[i].dirty || consumed[i] || !aaActive_[i])
-            continue;
-
-        const bool wasActive = prevSlots_[i].trackingId >= 0;
-        const bool isActive = slots_[i].trackingId >= 0;
-        if (!wasActive || isActive)
-            continue;
-
-        auto pointers = buildAaPointers();
-        const auto changed = std::find_if(pointers.begin(), pointers.end(),
-            [i](const TouchHandler::Pointer& pointer) { return pointer.id == i; });
-        const int actionIdx = static_cast<int>(std::distance(pointers.begin(), changed));
-        const int action = pointers.size() == 1 ? 1 : 6;
-        if (handler_) {
-            handler_->sendTouchIndication(pointers.size(), pointers.data(),
-                                          actionIdx, action);
-        }
-        aaActive_[i] = false;
-        sentBoundaryEvent = true;
-        qCDebug(lcAA) << "UP slot=" << i << "actionIdx=" << actionIdx
                       << "active=" << pointers.size();
     }
 

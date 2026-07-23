@@ -168,6 +168,7 @@ class TestEvdevTouchReader : public QObject {
 
 private slots:
     void sameReportDoubleDownAndUpUsesMotionEventOrdering();
+    void sameReportReplacementReleasesBeforePressing();
     void claimedPointerNeverEntersPhoneArray();
     void videoMappingUpdateIsAtomicAndRetainsNavbarThickness();
     void grabMutationIsAppliedAtReaderBoundary();
@@ -222,6 +223,36 @@ void TestEvdevTouchReader::sameReportDoubleDownAndUpUsesMotionEventOrdering()
     QCOMPARE(up.action_index(), 0u);
     QCOMPARE(up.touch_location_size(), 1);
     QCOMPARE(up.touch_location(0).pointer_id(), 5u);
+}
+
+void TestEvdevTouchReader::sameReportReplacementReleasesBeforePressing()
+{
+    oaa::hu::InputChannelHandler input;
+    input.onChannelOpened();
+    QSignalSpy sendSpy(&input, &oaa::IChannelHandler::sendRequested);
+    oap::aa::TouchHandler touch;
+    touch.setHandler(&input);
+    EvdevTouchReader reader(&touch, "/not-used", 1000, 1000, 1000, 1000);
+    EvdevTouchReaderTestAccess::configure(reader);
+
+    EvdevTouchReaderTestAccess::setSlot(reader, 2, 20, 100, 200);
+    EvdevTouchReaderTestAccess::process(reader);
+    QCOMPARE(sendSpy.count(), 1);
+
+    EvdevTouchReaderTestAccess::setSlot(reader, 2, -1, 100, 200);
+    EvdevTouchReaderTestAccess::setSlot(reader, 5, 50, 700, 800);
+    EvdevTouchReaderTestAccess::process(reader);
+
+    QCOMPARE(sendSpy.count(), 3);
+    const auto up = indicationAt(sendSpy, 1).touch_event();
+    QCOMPARE(up.touch_action(), 1);
+    QCOMPARE(up.touch_location_size(), 1);
+    QCOMPARE(up.touch_location(0).pointer_id(), 2u);
+
+    const auto down = indicationAt(sendSpy, 2).touch_event();
+    QCOMPARE(down.touch_action(), 0);
+    QCOMPARE(down.touch_location_size(), 1);
+    QCOMPARE(down.touch_location(0).pointer_id(), 5u);
 }
 
 void TestEvdevTouchReader::claimedPointerNeverEntersPhoneArray()
