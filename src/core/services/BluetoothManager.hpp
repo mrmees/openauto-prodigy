@@ -1,10 +1,12 @@
 #pragma once
 
 #include "IBluetoothService.hpp"
+#include "TelephonyClient.hpp"
 #include "ui/PairedDevicesModel.hpp"
 #include <QObject>
 #include <QDBusConnection>
 #include <QDBusMessage>
+#include <QDBusObjectPath>
 #include <QDBusVariant>
 #include <QAbstractListModel>
 #include <QTimer>
@@ -19,7 +21,7 @@ namespace oap {
 class IConfigService;
 class BluetoothManagerTestAccess;
 
-using BluezInterfaceMap = QMap<QString, QVariantMap>;
+using BluezInterfaceMap = InterfaceMap;
 using BluezManagedObjectMap = QMap<QString, BluezInterfaceMap>;
 
 class BluetoothManager : public QObject, public IBluetoothService {
@@ -84,6 +86,12 @@ private slots:
     void onDevicePropertiesChanged(const QString& interface,
                                    const QVariantMap& changed,
                                    const QStringList& invalidated);
+    void onInterfacesAdded(const QDBusObjectPath& path,
+                           const BluezInterfaceMap& interfaces);
+    void onInterfacesRemoved(const QDBusObjectPath& path,
+                             const QStringList& interfaces);
+    // Direct test seam for refresh coalescing; production ObjectManager
+    // subscriptions use the typed slots above.
     void onInterfacesChanged();
 
 private:

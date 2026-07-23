@@ -4,6 +4,7 @@
 #include "../Logging.hpp"
 #include <QDBusArgument>
 #include <QDBusContext>
+#include <QDBusMetaType>
 #include <QDBusObjectPath>
 #include <QDBusServiceWatcher>
 #include <QDBusPendingCall>
@@ -413,6 +414,11 @@ void BluetoothManager::initialize()
     ++bluezServiceGeneration_;
     ++managedObjectsRequestGeneration_;
 
+    // ObjectManager InterfacesAdded carries a{sa{sv}}. QtDBus requires the
+    // concrete map type before it can bind the typed signal payload.
+    qDBusRegisterMetaType<BluezInterfaceMap>();
+    qRegisterMetaType<BluezInterfaceMap>("oap::BluezInterfaceMap");
+
     // Watch for BlueZ device/adapter property changes
     const bool okProperties = bus_.connect(
         kBluezService, QString(), kPropertiesInterface, QStringLiteral("PropertiesChanged"),
@@ -421,10 +427,12 @@ void BluetoothManager::initialize()
     // Watch for new/removed devices (paired externally, removed via bluetoothctl, etc.)
     const bool okAdded = bus_.connect(
         kBluezService, QString(), kObjectManagerInterface, QStringLiteral("InterfacesAdded"),
-        this, SLOT(onInterfacesChanged()));
+        QStringLiteral("oa{sa{sv}}"), this,
+        SLOT(onInterfacesAdded(QDBusObjectPath,BluezInterfaceMap)));
     const bool okRemoved = bus_.connect(
         kBluezService, QString(), kObjectManagerInterface, QStringLiteral("InterfacesRemoved"),
-        this, SLOT(onInterfacesChanged()));
+        QStringLiteral("oas"), this,
+        SLOT(onInterfacesRemoved(QDBusObjectPath,QStringList)));
     subscriptionsConnected_ = okProperties && okAdded && okRemoved;
     if (!subscriptionsConnected_) {
         qCWarning(lcBT) << "D-Bus signal subscription failed:"
@@ -793,6 +801,10 @@ void BluetoothManager::setDeviceProperty(const QString& devicePath, const QStrin
 
 void BluetoothManager::resetAdapterEpoch()
 {
+    // Cancel a delayed Agent1 decision while its original device path and
+    // adapter identity are still intact. A later UI action must not trust a
+    // device from the retired adapter epoch.
+    abortPairingPrompt(QStringLiteral("Bluetooth adapter changed"));
     cancelAutoConnect();
     initialSnapshotApplied_ = false;
     configuredAdapterPath_.clear();
@@ -970,6 +982,31 @@ void BluetoothManager::onInterfacesChanged()
     requestManagedObjectsRefresh();
 }
 
+void BluetoothManager::onInterfacesAdded(
+    const QDBusObjectPath& /*path*/, const BluezInterfaceMap& /*interfaces*/)
+{
+    requestManagedObjectsRefresh();
+}
+
+void BluetoothManager::onInterfacesRemoved(
+    const QDBusObjectPath& path, const QStringList& interfaces)
+{
+    if (!adapterPath_.isEmpty()
+        && path.path() == adapterPath_
+        && interfaces.contains(QStringLiteral("org.bluez.Adapter1"))) {
+        // Any reply requested before this removal describes the retired
+        // adapter epoch. Invalidate it even if BlueZ re-adds the same object
+        // path before the coalesced trailing refresh completes.
+        ++managedObjectsRequestGeneration_;
+        resetAdapterEpoch();
+        adapterPath_.clear();
+        deviceNamesByPath_.clear();
+        pairedDevicesModel_->setDevices({});
+        updateConnectedDevice();
+    }
+    requestManagedObjectsRefresh();
+}
+
 void BluetoothManager::shutdown()
 {
     if (shutdown_) return;
@@ -988,9 +1025,11 @@ void BluetoothManager::shutdown()
                     QStringLiteral("PropertiesChanged"), this,
                     SLOT(onDevicePropertiesChanged(QString,QVariantMap,QStringList)));
     bus_.disconnect(kBluezService, QString(), kObjectManagerInterface,
-                    QStringLiteral("InterfacesAdded"), this, SLOT(onInterfacesChanged()));
+                    QStringLiteral("InterfacesAdded"), this,
+                    SLOT(onInterfacesAdded(QDBusObjectPath,BluezInterfaceMap)));
     bus_.disconnect(kBluezService, QString(), kObjectManagerInterface,
-                    QStringLiteral("InterfacesRemoved"), this, SLOT(onInterfacesChanged()));
+                    QStringLiteral("InterfacesRemoved"), this,
+                    SLOT(onInterfacesRemoved(QDBusObjectPath,QStringList)));
     subscriptionsConnected_ = false;
     delete bluezServiceWatcher_;
     bluezServiceWatcher_ = nullptr;
