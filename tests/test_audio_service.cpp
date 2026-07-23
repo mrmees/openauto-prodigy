@@ -147,26 +147,40 @@ private slots:
         handle.ringBuffer = std::make_unique<oap::AudioRingBuffer>(1024);
 
         pw_buffer pw{};
+        pw.size = 7;
         QVERIFY(!oap::AudioService::fillPlaybackBuffer(&handle, &pw));
+        QCOMPARE(pw.size, 0u);
 
         spa_buffer spa{};
         pw.buffer = &spa;
+        pw.size = 7;
         QVERIFY(!oap::AudioService::fillPlaybackBuffer(&handle, &pw));
+        QCOMPARE(pw.size, 0u);
 
         spa_data data{};
         spa.n_datas = 1;
         spa.datas = &data;
         data.maxsize = 64;
+        pw.size = 7;
         QVERIFY(!oap::AudioService::fillPlaybackBuffer(&handle, &pw));
+        QCOMPARE(pw.size, 0u);
 
         uint8_t memory[64];
         data.data = memory;
         QVERIFY(!oap::AudioService::fillPlaybackBuffer(&handle, &pw));
 
         spa_chunk chunk{};
+        chunk.offset = 3;
+        chunk.stride = 4;
+        chunk.size = 16;
         data.chunk = &chunk;
         handle.bytesPerFrame = 0;
+        pw.size = 4;
         QVERIFY(!oap::AudioService::fillPlaybackBuffer(&handle, &pw));
+        QCOMPARE(pw.size, 0u);
+        QCOMPARE(chunk.offset, 0u);
+        QCOMPARE(chunk.stride, 0);
+        QCOMPARE(chunk.size, 0u);
     }
 
     void validPlaybackBufferIsFilledAndSilenced()

@@ -158,11 +158,20 @@ void AudioService::onPlaybackProcess(void* userdata)
 
 bool AudioService::fillPlaybackBuffer(AudioStreamHandle* handle, struct pw_buffer* buf)
 {
+    // Buffers are recycled. Establish an explicitly empty output before any
+    // validation so a rejected buffer cannot replay stale metadata/audio.
+    if (buf)
+        buf->size = 0;
     if (!handle || !handle->ringBuffer || !buf || !buf->buffer
         || buf->buffer->n_datas == 0 || !buf->buffer->datas)
         return false;
 
     struct spa_data& d = buf->buffer->datas[0];
+    if (d.chunk) {
+        d.chunk->offset = 0;
+        d.chunk->stride = 0;
+        d.chunk->size = 0;
+    }
     const int stride = handle->bytesPerFrame;
     if (!d.data || !d.chunk || stride <= 0
         || d.maxsize < static_cast<uint32_t>(stride))

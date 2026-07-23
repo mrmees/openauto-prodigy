@@ -5,6 +5,7 @@
 #include <chrono>
 #include <cstring>
 #include <thread>
+#include <vector>
 
 class TestAudioRingBuffer : public QObject {
     Q_OBJECT
@@ -148,14 +149,17 @@ private slots:
         std::atomic<bool> producerDone{false};
         std::atomic<uint32_t> maxSeen{0};
         std::atomic<bool> invalid{false};
-        std::atomic<uint32_t> accepted{0};
-        std::atomic<uint32_t> consumed{0};
+        std::vector<uint32_t> acceptedValues;
+        std::vector<uint32_t> consumedValues;
+        acceptedValues.reserve(kValues);
+        consumedValues.reserve(kValues);
 
         std::thread producer([&]() {
             for (uint32_t value = 1; value <= kValues; ++value) {
                 if (rb.write(reinterpret_cast<const uint8_t*>(&value),
-                             sizeof(value)) == sizeof(value))
-                    accepted.fetch_add(1, std::memory_order_relaxed);
+                             sizeof(value)) == sizeof(value)) {
+                    acceptedValues.push_back(value);
+                }
             }
             producerDone.store(true, std::memory_order_release);
         });
@@ -178,7 +182,7 @@ private slots:
                 if (value <= previous || value == 0 || value > kValues)
                     invalid.store(true, std::memory_order_relaxed);
                 previous = value;
-                consumed.fetch_add(1, std::memory_order_relaxed);
+                consumedValues.push_back(value);
             }
         });
 
@@ -186,7 +190,7 @@ private slots:
         consumer.join();
 
         QVERIFY(!invalid.load());
-        QCOMPARE(consumed.load(), accepted.load());
+        QVERIFY(consumedValues == acceptedValues);
         QVERIFY(maxSeen.load() <= kCap);
         QCOMPARE(rb.available(), 0u);
     }
