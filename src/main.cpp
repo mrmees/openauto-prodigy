@@ -1215,6 +1215,8 @@ int main(int argc, char *argv[])
                      clockSync, &oap::ClockSyncService::onTimeReported);
     QObject::connect(apiServer->inboundState(), &oap::api::ApiInboundState::timezoneReported,
                      clockSync, &oap::ClockSyncService::onTimezoneReported);
+    QObject::connect(clockSync, &oap::ClockSyncService::clockAdjusted,
+                     apiServer, &oap::api::ApiServer::onSystemClockAdjusted);
 
     // Qt 6.5+ uses /qt/qml/ prefix, Qt 6.4 uses direct URI prefix
     QUrl url(QStringLiteral("qrc:/OpenAutoProdigy/main.qml"));

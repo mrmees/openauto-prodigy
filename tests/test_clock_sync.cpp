@@ -1,6 +1,7 @@
 #include <QTest>
 #include <QDateTime>
 #include <QTimeZone>
+#include <QSignalSpy>
 #include "core/services/ClockSyncService.hpp"
 
 // ClockSyncService: extracted clock-step / timezone-step logic shared by the
@@ -22,9 +23,9 @@ struct ExecRecorder {
     int nextExitCode = 0;
 
     oap::ClockSyncService::ExecFn fn() {
-        return [this](const QStringList& args) {
+        return [this](const QStringList& args, std::function<void(int)> completion) {
             calls.append(args);
-            return nextExitCode;
+            completion(nextExitCode);
         };
     }
 
@@ -87,9 +88,10 @@ private slots:
     void failedSetTimeStillRestoresNtp() {
         oap::ClockSyncService sync;
         ExecRecorder exec;
-        sync.setExecForTest([&exec](const QStringList& args) {
+        sync.setExecForTest([&exec](const QStringList& args,
+                                    std::function<void(int)> completion) {
             exec.calls.append(args);
-            return args.value(0) == QLatin1String("set-time") ? 1 : 0;
+            completion(args.value(0) == QLatin1String("set-time") ? 1 : 0);
         });
         sync.setClockForTest([] { return kNow; });
 
@@ -202,6 +204,63 @@ private slots:
         QCOMPARE(exec.calls[0],
                  (QStringList{QStringLiteral("set-timezone"),
                               QStringLiteral("Pacific/Chatham")}));
+    }
+
+    void commandSequenceIsAsynchronousAndDuplicateTimeReportsCoalesce() {
+        oap::ClockSyncService sync;
+        QList<QStringList> calls;
+        QList<std::function<void(int)>> completions;
+        sync.setExecForTest([&](const QStringList& args,
+                                std::function<void(int)> completion) {
+            calls.append(args);
+            completions.append(std::move(completion));
+        });
+        sync.setClockForTest([] { return kNow; });
+        QSignalSpy adjusted(&sync, &oap::ClockSyncService::clockAdjusted);
+
+        sync.onTimeReported(kNow + 35000);
+        QCOMPARE(calls.size(), 1);  // returned while the first command is pending
+        sync.onTimeReported(kNow + 45000);
+        QCOMPARE(calls.size(), 1);  // no duplicate transaction queued
+
+        auto completeNext = [&] {
+            auto completion = completions.takeFirst();
+            completion(0);
+        };
+        completeNext();
+        QCOMPARE(calls.size(), 2);
+        completeNext();
+        QCOMPARE(calls.size(), 3);
+        QCOMPARE(adjusted.count(), 0);
+        completeNext();
+        QCOMPARE(adjusted.count(), 1);
+        QCOMPARE(adjusted.takeFirst().at(0).toLongLong(), qint64(35000));
+    }
+
+    void commandTimeoutAdvancesThroughNtpRestoreAndAllowsRetry() {
+        oap::ClockSyncService sync;
+        QList<QStringList> calls;
+        sync.setCommandTimeoutForTest(20);
+        sync.setClockForTest([] { return kNow; });
+        sync.setExecForTest([&](const QStringList& args,
+                                std::function<void(int)>) {
+            calls.append(args);  // deliberately never completes
+        });
+        QSignalSpy adjusted(&sync, &oap::ClockSyncService::clockAdjusted);
+
+        sync.onTimeReported(kNow + 35000);
+        QTRY_COMPARE_WITH_TIMEOUT(calls.size(), 3, 250);
+        QTest::qWait(30);  // allow final restore timeout to close transaction
+        QCOMPARE(adjusted.count(), 0);
+
+        sync.setExecForTest([&](const QStringList& args,
+                                std::function<void(int)> completion) {
+            calls.append(args);
+            completion(0);
+        });
+        sync.onTimeReported(kNow + 35000);
+        QCOMPARE(calls.size(), 6);
+        QCOMPARE(adjusted.count(), 1);
     }
 };
 

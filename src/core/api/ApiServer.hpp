@@ -49,6 +49,7 @@ namespace oap::api {
 
 class IApiTransport;
 class TopicPublisher;
+class PhonePublisher;
 class PairingManager;
 class PairedClientStore;
 class ApiRequestHandlers;
@@ -102,6 +103,7 @@ public:
     // pairingChanged consumers fire in.
     QString pairingQrDataUri() const;
     int sessionCount() const;
+    void onSystemClockAdjusted();
 
     // Companion-scanner contract (kept stable, additive-only):
     // prodigy://pair?host=&tcp=&ws=&code=&ssid=  — ssid percent-encoded
@@ -165,6 +167,7 @@ private:
     bool started_ = false;   // guards double-invocation of start(); see stop()
 
     QList<TopicPublisher*> publishers_;
+    PhonePublisher* phonePublisher_ = nullptr;
     QList<ApiSession*> sessions_;
 
     // Config-derived, captured in start().

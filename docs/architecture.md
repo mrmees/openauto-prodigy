@@ -39,6 +39,12 @@ fallback); stored credentials record their generation so legacy six-digit
 credentials fail closed and require re-pairing. Publishers push provider state;
 request handlers invoke actions.
 
+Phone time reports feed `ClockSyncService`, which runs the ordered
+`timedatectl` NTP-off/time-step/NTP-on transaction asynchronously. A successful
+wall-clock step notifies the phone-status publisher so an active call's epoch
+start is recomputed from the corrected clock without blocking the Qt main
+thread.
+
 ### AA runtime (`src/core/aa/`)
 
 - `AndroidAutoOrchestrator` — Qt TCP listener/session lifecycle, channel handler

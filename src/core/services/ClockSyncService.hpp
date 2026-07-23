@@ -2,7 +2,11 @@
 #include <QObject>
 #include <QString>
 #include <QStringList>
+#include <QQueue>
 #include <functional>
+
+class QProcess;
+class QTimer;
 
 namespace oap {
 
@@ -24,8 +28,9 @@ namespace oap {
 class ClockSyncService : public QObject {
     Q_OBJECT
 public:
-    // Runs `timedatectl <args>`, returns its exit code.
-    using ExecFn = std::function<int(const QStringList& args)>;
+    // Starts `timedatectl <args>` and invokes completion asynchronously.
+    using ExecFn = std::function<void(
+        const QStringList& args, std::function<void(int)> completion)>;
     using ClockFn = std::function<qint64()>;
     using ZoneFn = std::function<QByteArray()>;
 
@@ -34,17 +39,38 @@ public:
     void setExecForTest(ExecFn fn) { exec_ = std::move(fn); }
     void setClockForTest(ClockFn fn) { now_ = std::move(fn); }
     void setSystemZoneForTest(ZoneFn fn) { systemZone_ = std::move(fn); }
+    void setCommandTimeoutForTest(int ms);
 
 public slots:
     void onTimeReported(qint64 phoneTimeMs);
     void onTimezoneReported(const QString& ianaId);
 
+signals:
+    void clockAdjusted(qint64 deltaMs);
+
 private:
+    struct Command {
+        QStringList args;
+        std::function<void(int)> completion;
+    };
+
+    void enqueueCommand(QStringList args, std::function<void(int)> completion = {});
+    void startNextCommand();
+    void finishCurrentCommand(quint64 serial, int exitCode);
+    void startTimedatectl(const QStringList& args, std::function<void(int)> completion);
+
     ExecFn exec_;
     ClockFn now_;
     ZoneFn systemZone_;
     int backwardJumpCount_ = 0;
     qint64 lastBackwardTarget_ = 0;
+    QQueue<Command> commandQueue_;
+    bool commandRunning_ = false;
+    bool timeSyncPending_ = false;
+    quint64 commandSerial_ = 0;
+    QProcess* process_ = nullptr;
+    QTimer* commandTimeout_ = nullptr;
+    std::function<void(int)> processCompletion_;
 };
 
 } // namespace oap

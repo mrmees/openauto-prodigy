@@ -190,6 +190,7 @@ void ApiServer::stop() {
     //    turn; a provider may be torn down right after stop(), so no deferred
     //    snapshot may outlive it. Deleting a publisher cancels its timer and
     //    severs both its provider connections and its statusReady fan-out.
+    phonePublisher_ = nullptr;
     qDeleteAll(publishers_);
     publishers_.clear();
 
@@ -308,9 +309,17 @@ void ApiServer::createPublishers() {
     if (refs_.media)      wirePublisher(new MediaPublisher(refs_.media, this));
     if (refs_.navigation) wirePublisher(new NavigationPublisher(refs_.navigation, this));
     if (refs_.projection) wirePublisher(new ProjectionPublisher(refs_.projection, this));
-    if (refs_.phone)      wirePublisher(new PhonePublisher(refs_.phone, this));
+    if (refs_.phone) {
+        phonePublisher_ = new PhonePublisher(refs_.phone, this);
+        wirePublisher(phonePublisher_);
+    }
     if (refs_.theme)      wirePublisher(new SystemPublisher(refs_.theme, appVersion_,
                                                             refs_.bluetooth, refs_.display, this));
+}
+
+void ApiServer::onSystemClockAdjusted() {
+    if (phonePublisher_)
+        phonePublisher_->onSystemClockAdjusted();
 }
 
 void ApiServer::wirePublisher(TopicPublisher* pub) {

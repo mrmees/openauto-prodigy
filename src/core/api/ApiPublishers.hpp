@@ -15,6 +15,7 @@
 #include <QString>
 #include <QByteArray>
 #include <QTimer>
+#include <functional>
 
 #include "api/api.pb.h"
 
@@ -119,7 +120,12 @@ private:
 class PhonePublisher : public TopicPublisher {
     Q_OBJECT
 public:
+    using ClockFn = std::function<qint64()>;
     explicit PhonePublisher(oap::IPhoneStateService* p, QObject* parent = nullptr);
+    void setClockForTest(ClockFn fn) { now_ = std::move(fn); }
+
+public slots:
+    void onSystemClockAdjusted();
 
 protected:
     prodigy::api::v1::ApiMessage buildEnvelope() override;
@@ -130,6 +136,7 @@ private:
     oap::IPhoneStateService* p_;
     int previousCallState_;
     qint64 startedAtMs_ = 0;
+    ClockFn now_;
 };
 
 } // namespace oap::api
