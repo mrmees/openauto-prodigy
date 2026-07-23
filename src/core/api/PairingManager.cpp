@@ -23,19 +23,38 @@ QByteArray randomBytes(int count) {
     return bytes;
 }
 
+QString randomPairingCode() {
+    static constexpr char kAlphabet[] = "ABCDEFGHIJKLMNOPQRSTUVWXYZ234567";
+    QString result;
+    result.reserve(24);
+    for (int i = 0; i < 24; ++i)
+        result.append(QLatin1Char(kAlphabet[QRandomGenerator::system()->bounded(32)]));
+    return result;
+}
+
 } // namespace
 
 PairingManager::PairingManager(PairedClientStore* store, QObject* parent)
     : QObject(parent)
     , store_(store)
-    , timer_(new QTimer(this)) {
+    , timer_(new QTimer(this))
+    , codeGenerator_(randomPairingCode) {
     timer_->setSingleShot(true);
     connect(timer_, &QTimer::timeout, this, &PairingManager::cancelWindow);
 }
 
-void PairingManager::startWindow(int timeoutSeconds) {
-    int pin = QRandomGenerator::system()->bounded(100000, 999999);
-    pin_ = QString::number(pin);
+bool PairingManager::startWindow(int timeoutSeconds) {
+    if (!store_ || !store_->loadedSuccessfully()) {
+        qWarning() << "API: pairing unavailable because client store did not load";
+        return false;
+    }
+
+    const QString generated = codeGenerator_ ? codeGenerator_() : QString();
+    if (!isValidCode(generated)) {
+        qWarning() << "API: secure pairing code generator returned invalid data";
+        return false;
+    }
+    code_ = generated;
     salt_ = randomBytes(16);
     windowOpen_ = true;
 
@@ -43,12 +62,13 @@ void PairingManager::startWindow(int timeoutSeconds) {
     timer_->start(timeoutSeconds * 1000);
 
     emit windowChanged();
+    return true;
 }
 
 void PairingManager::cancelWindow() {
     timer_->stop();
     windowOpen_ = false;
-    pin_.clear();
+    code_.clear();
     salt_.clear();
     emit windowChanged();
 }
@@ -57,8 +77,36 @@ bool PairingManager::windowOpen() const {
     return windowOpen_;
 }
 
-QString PairingManager::currentPin() const {
-    return pin_;
+QString PairingManager::currentCode() const {
+    return code_;
+}
+
+QString PairingManager::displayCode() const {
+    return formatCode(code_);
+}
+
+bool PairingManager::isValidCode(const QString& code) {
+    if (code.size() != 24)
+        return false;
+    for (const QChar c : code) {
+        const ushort u = c.unicode();
+        if (!((u >= 'A' && u <= 'Z') || (u >= '2' && u <= '7')))
+            return false;
+    }
+    return true;
+}
+
+QString PairingManager::formatCode(const QString& code) {
+    if (code.isEmpty())
+        return QString();
+    QString grouped;
+    grouped.reserve(code.size() + 5);
+    for (int i = 0; i < code.size(); ++i) {
+        if (i > 0 && i % 4 == 0)
+            grouped.append(QLatin1Char('-'));
+        grouped.append(code.at(i));
+    }
+    return grouped;
 }
 
 QByteArray PairingManager::currentSalt() const {
@@ -75,7 +123,7 @@ std::optional<QString> PairingManager::completePairing(const QByteArray& nonce, 
         return std::nullopt;
     }
 
-    QByteArray secret = deriveSecret(pin_, salt_);
+    QByteArray secret = deriveSecret(code_, salt_);
     QByteArray expected = hmacProof(secret, nonce);
     if (!constantTimeEquals(expected, proof)) {
         return std::nullopt;
@@ -88,13 +136,14 @@ std::optional<QString> PairingManager::completePairing(const QByteArray& nonce, 
     client.name = clientName;
     client.kind = clientKind;
     client.pairedAtIso = QDateTime::currentDateTimeUtc().toString(Qt::ISODate) + "Z";
+    client.credentialGeneration = kSecureCodeCredentialGeneration;
 
     store_->upsert(client);
     if (!store_->save()) {
         // Persistence failed: don't hand out a "durable" credential that
         // vanishes on restart. Undo the in-memory upsert and leave the
         // pairing window OPEN, same as a wrong-proof attempt — the user can
-        // just retry the PIN.
+        // just retry the code.
         store_->remove(clientId);
         qWarning() << "API: pairing succeeded but persisting client failed; rejecting"
                    << clientId;

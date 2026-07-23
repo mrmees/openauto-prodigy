@@ -8,8 +8,8 @@
 
 namespace oap::api {
 
-QByteArray deriveSecret(const QString& pin, const QByteArray& salt) {
-    return QCryptographicHash::hash(pin.toUtf8() + salt, QCryptographicHash::Sha256);
+QByteArray deriveSecret(const QString& pairingCode, const QByteArray& salt) {
+    return QCryptographicHash::hash(pairingCode.toUtf8() + salt, QCryptographicHash::Sha256);
 }
 
 QByteArray hmacProof(const QByteArray& secret, const QByteArray& nonce) {
@@ -32,16 +32,20 @@ PairedClientStore::PairedClientStore(const QString& yamlPath)
 
 bool PairedClientStore::load() {
     if (!QFile::exists(path_)) {
+        clients_.clear();
+        loadedSuccessfully_ = true;
         return true;  // missing file is OK
     }
 
     try {
         YAML::Node doc = YAML::LoadFile(path_.toStdString());
+        QList<PairedClient> loaded;
         if (!doc["clients"]) {
+            clients_.clear();
+            loadedSuccessfully_ = true;
             return true;  // no clients key
         }
 
-        clients_.clear();
         for (const auto& node : doc["clients"]) {
             PairedClient c;
             c.clientId = QString::fromStdString(node["id"].as<std::string>());
@@ -53,16 +57,28 @@ bool PairedClientStore::load() {
             c.name = QString::fromStdString(node["name"].as<std::string>());
             c.kind = node["kind"].as<int>();
             c.pairedAtIso = QString::fromStdString(node["paired_at"].as<std::string>());
+            c.credentialGeneration = node["credential_generation"]
+                ? node["credential_generation"].as<int>()
+                : kLegacyCredentialGeneration;
 
-            clients_.append(c);
+            loaded.append(c);
         }
+        clients_ = std::move(loaded);
+        loadedSuccessfully_ = true;
         return true;
     } catch (const std::exception&) {
+        loadedSuccessfully_ = false;
         return false;
     }
 }
 
 bool PairedClientStore::save() {
+    if (!loadedSuccessfully_) {
+        qWarning() << "API: refusing to overwrite paired-client store after load failure:"
+                   << path_;
+        return false;
+    }
+
     YAML::Node doc;
     YAML::Node clientsNode;
 
@@ -73,6 +89,7 @@ bool PairedClientStore::save() {
         clientNode["name"] = c.name.toStdString();
         clientNode["kind"] = c.kind;
         clientNode["paired_at"] = c.pairedAtIso.toStdString();
+        clientNode["credential_generation"] = c.credentialGeneration;
         clientsNode.push_back(clientNode);
     }
 

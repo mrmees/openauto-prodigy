@@ -14,23 +14,27 @@ private slots:
     void testStorePermissions();
     void testUpsertReplaces();
     void testSaveReturnsFalseOnOpenFailure();
+    void testFailedReloadPreservesStateAndBlocksSave();
 };
 
 void TestApiAuth::testDeriveSecretDeterministic() {
     QByteArray salt("0123456789abcdef");
-    QByteArray s1 = deriveSecret("123456", salt);
-    QByteArray s2 = deriveSecret("123456", salt);
+    QByteArray s1 = deriveSecret("ABCDEFGHIJKLMNOPQRSTUVWX", salt);
+    QByteArray s2 = deriveSecret("ABCDEFGHIJKLMNOPQRSTUVWX", salt);
     QCOMPARE(s1, s2);
     QCOMPARE(s1.size(), 32);
+    QCOMPARE(s1.toHex(), QByteArray("9786e3d8dd45530435cc5b09d71e93b76dccf0e3e402ae7af5bdb6400a5c1472"));
 }
 
 void TestApiAuth::testDeriveSecretSaltMatters() {
-    QVERIFY(deriveSecret("123456", "saltA") != deriveSecret("123456", "saltB"));
-    QVERIFY(deriveSecret("123456", "saltA") != deriveSecret("654321", "saltA"));
+    QVERIFY(deriveSecret("ABCDEFGHIJKLMNOPQRSTUVWX", "saltA") !=
+            deriveSecret("ABCDEFGHIJKLMNOPQRSTUVWX", "saltB"));
+    QVERIFY(deriveSecret("ABCDEFGHIJKLMNOPQRSTUVWX", "saltA") !=
+            deriveSecret("ZYXWVUTSRQPONMLKJIHGFEDC", "saltA"));
 }
 
 void TestApiAuth::testHmacProofVerifies() {
-    QByteArray secret = deriveSecret("123456", "salt");
+    QByteArray secret = deriveSecret("ABCDEFGHIJKLMNOPQRSTUVWX", "salt");
     QByteArray nonce(32, 'n');
     QByteArray proof = hmacProof(secret, nonce);
     QCOMPARE(proof.size(), 32);
@@ -69,6 +73,7 @@ void TestApiAuth::testStorePermissions() {
     QString path = "/tmp/oap_test_api_clients_perm.yaml";
     QFile::remove(path);
     PairedClientStore store(path);
+    QVERIFY(store.load());
     store.upsert({"id", QByteArray(32, 'k'), "n", 0, ""});
     QVERIFY(store.save());
     auto perms = QFile(path).permissions();
@@ -88,8 +93,32 @@ void TestApiAuth::testSaveReturnsFalseOnOpenFailure() {
     // Directory component doesn't exist -> QFile::open() fails -> save() must
     // report failure rather than silently swallowing it.
     PairedClientStore store("/nonexistent-oap-dir/clients.yaml");
+    QVERIFY(store.load());
     store.upsert({"id", QByteArray(32, 'k'), "n", 0, ""});
     QVERIFY(!store.save());
+}
+
+void TestApiAuth::testFailedReloadPreservesStateAndBlocksSave() {
+    const QString path = "/tmp/oap_test_api_clients_corrupt.yaml";
+    QFile::remove(path);
+    PairedClientStore store(path);
+    QVERIFY(store.load());
+    store.upsert({"kept", QByteArray(32, 'k'), "Phone", 3, "2026-07-22T00:00:00Z"});
+    QVERIFY(store.save());
+
+    QFile file(path);
+    QVERIFY(file.open(QIODevice::WriteOnly | QIODevice::Truncate));
+    QCOMPARE(file.write("clients: [\n"), qint64(11));
+    file.close();
+    const QByteArray corruptBytes = QByteArray("clients: [\n");
+
+    QVERIFY(!store.load());
+    QVERIFY(store.find("kept").has_value());
+    store.upsert({"new", QByteArray(32, 'n'), "New", 3, ""});
+    QVERIFY(!store.save());
+
+    QVERIFY(file.open(QIODevice::ReadOnly));
+    QCOMPARE(file.readAll(), corruptBytes);
 }
 
 QTEST_MAIN(TestApiAuth)

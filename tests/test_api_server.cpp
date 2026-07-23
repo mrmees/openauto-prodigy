@@ -7,6 +7,7 @@
 #include <QDeadlineTimer>
 #include <QEventLoop>
 #include <QRegularExpression>
+#include <QFile>
 
 #include "core/api/ApiServer.hpp"
 #include "core/api/ApiFramer.hpp"
@@ -121,6 +122,7 @@ private slots:
     void testStopCancelsPairingWindow();
     void testServerIdMintedAndStable();
     void testDoubleStartIsIdempotentNoOp();
+    void testCorruptClientStoreDisablesPairing();
 };
 
 void TestApiServer::testStartsAndBindsEphemeral() {
@@ -132,6 +134,25 @@ void TestApiServer::testStartsAndBindsEphemeral() {
     QVERIFY(server.start());
     QVERIFY(server.tcpPort() != 0);
     QVERIFY(server.wsPort() != 0);
+    server.stop();
+}
+
+void TestApiServer::testCorruptClientStoreDisablesPairing() {
+    const QString path = "/tmp/oap_test_api_server_corrupt_clients.yaml";
+    QFile file(path);
+    QVERIFY(file.open(QIODevice::WriteOnly | QIODevice::Truncate));
+    QCOMPARE(file.write("clients: [\n"), qint64(11));
+    file.close();
+
+    Fixture f;
+    f.config.setValue("api.tcp_port", 0);
+    f.config.setValue("api.ws_port", 0);
+    ApiServer server(f.refs());
+    server.setStorePathForTest(path);
+    QVERIFY(server.start());
+    server.startPairing();
+    QVERIFY(!server.pairingActive());
+    QVERIFY(server.pairingCode().isEmpty());
     server.stop();
 }
 
@@ -159,6 +180,8 @@ void TestApiServer::testTcpEndToEndHelloSubscribe() {
     pb::ApiMessage hello = readFramed(sock, framer, queue);
     QCOMPARE(hello.payload_case(), pb::ApiMessage::kServerHello);
     const pb::Capabilities& caps = hello.server_hello().capabilities();
+    QVERIFY(caps.has_secure_pairing_code());
+    QVERIFY(caps.secure_pairing_code());
     QVERIFY(capabilitiesHaveTopic(caps, pb::TOPIC_MEDIA));
     QVERIFY(!capabilitiesHaveTopic(caps, pb::TOPIC_NAVIGATION));
 
@@ -257,7 +280,7 @@ void TestApiServer::testPairingActionRegistered() {
     QVERIFY(f.actions.registeredActions().contains(QStringLiteral("api.pairing.cancel")));
 
     // ...but a window only OPENS on a running server — no listener means a
-    // PIN with nothing to pair through (2026-07-14 settings-merge finding).
+    // Code with nothing to pair through (2026-07-14 settings-merge finding).
     QVERIFY(!server.pairingActive());
     QVERIFY(f.actions.dispatch(QStringLiteral("api.pairing.start")));
     QVERIFY(!server.pairingActive());
@@ -266,9 +289,9 @@ void TestApiServer::testPairingActionRegistered() {
     QVERIFY(f.actions.dispatch(QStringLiteral("api.pairing.start")));
     QVERIFY(server.pairingActive());
 
-    const QString pin = server.pairingPin();
-    QCOMPARE(pin.size(), 6);
-    for (const QChar c : pin) QVERIFY(c.isDigit());
+    const QString code = server.pairingCode();
+    QCOMPARE(code.size(), 29);  // 24 characters plus five separators
+    QCOMPARE(code.count(QLatin1Char('-')), 5);
 
     QVERIFY(f.actions.dispatch(QStringLiteral("api.pairing.cancel")));
     QVERIFY(!server.pairingActive());
@@ -285,20 +308,20 @@ void TestApiServer::testStopCancelsPairingWindow() {
     QVERIFY(server.start());
     server.startPairing();
     QVERIFY(server.pairingActive());
-    QVERIFY(!server.pairingPin().isEmpty());
+    QVERIFY(!server.pairingCode().isEmpty());
 
-    // stop() must close the window (stale-PIN hazard) and notify QML so the
-    // displayed PIN/QR clear (2026-07-14 pre-merge gate finding).
+    // stop() must close the window (stale-code hazard) and notify QML so the
+    // displayed code/QR clear (2026-07-14 pre-merge gate finding).
     QSignalSpy pairingSpy(&server, &ApiServer::pairingChanged);
     server.stop();
     QVERIFY(!server.pairingActive());
-    QVERIFY(server.pairingPin().isEmpty());
+    QVERIFY(server.pairingCode().isEmpty());
     QVERIFY(pairingSpy.count() >= 1);
 
     // A restart within the old window's timeout must NOT resurrect it.
     QVERIFY(server.start());
     QVERIFY(!server.pairingActive());
-    QVERIFY(server.pairingPin().isEmpty());
+    QVERIFY(server.pairingCode().isEmpty());
     server.stop();
 }
 

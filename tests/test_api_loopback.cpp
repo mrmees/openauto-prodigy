@@ -699,7 +699,7 @@ void TestApiLoopback::testPeerAdmissionPolicy() {
 }
 
 // QR pairing: the payload string is a stable contract with the companion
-// app's scanner (prodigy://pair?host=&tcp=&ws=&pin=), and the data-URI
+// app's scanner (prodigy://pair?host=&tcp=&ws=&code=), and the data-URI
 // property tracks the pairing window's lifecycle.
 void TestApiLoopback::testPairingQrPayloadAndProperty() {
     // COMPANION SCANNER CONTRACT: ssid is a required additive field (Android
@@ -707,15 +707,15 @@ void TestApiLoopback::testPairingQrPayloadAndProperty() {
     // from the QR for reconnect). SSIDs are percent-encoded as a query value;
     // unknown future query params must be ignored by scanners.
     QCOMPARE(ApiServer::pairingQrPayload(QStringLiteral("10.0.0.1"), 9810, 9811,
-                                         QStringLiteral("123456"),
+                                         QStringLiteral("ABCDEFGHIJKLMNOPQRSTUVWX"),
                                          QStringLiteral("OpenAutoProdigy-A3F2")),
              QStringLiteral("prodigy://pair?host=10.0.0.1&tcp=9810&ws=9811"
-                            "&pin=123456&ssid=OpenAutoProdigy-A3F2"));
+                            "&code=ABCDEFGHIJKLMNOPQRSTUVWX&ssid=OpenAutoProdigy-A3F2"));
     QCOMPARE(ApiServer::pairingQrPayload(QStringLiteral("10.0.0.1"), 9810, 9811,
-                                         QStringLiteral("123456"),
+                                         QStringLiteral("ABCDEFGHIJKLMNOPQRSTUVWX"),
                                          QStringLiteral("My Car AP+5G&more")),
              QStringLiteral("prodigy://pair?host=10.0.0.1&tcp=9810&ws=9811"
-                            "&pin=123456&ssid=My%20Car%20AP%2B5G%26more"));
+                            "&code=ABCDEFGHIJKLMNOPQRSTUVWX&ssid=My%20Car%20AP%2B5G%26more"));
 
     Fixture f;
     f.config.setValue("api.tcp_port", 0);
@@ -733,10 +733,11 @@ void TestApiLoopback::testPairingQrPayloadAndProperty() {
     QVERIFY(server.pairingActive());
 
     // Config-to-QR wiring: the LIVE payload must carry the configured SSID
-    // (encoded), the window's PIN, and the actually-bound ports.
+    // (encoded), the window's canonical code, and the actually-bound ports.
     const QString live = server.pairingQrPayloadForTest();
     QVERIFY(live.contains(QStringLiteral("&ssid=Bench%20AP%205G")));
-    QVERIFY(live.contains(QStringLiteral("&pin=") + server.pairingPin()));
+    QVERIFY(live.contains(QStringLiteral("&code=")));
+    QVERIFY(!live.contains(QStringLiteral("&pin=")));
     QVERIFY(live.contains(QStringLiteral("&tcp=%1").arg(server.tcpPort())));
     QVERIFY(live.contains(QStringLiteral("&ws=%1").arg(server.wsPort())));
     const QString uri = server.pairingQrDataUri();
@@ -773,7 +774,7 @@ void TestApiLoopback::testPairingQrPayloadAndProperty() {
 
     // A server that is not running must not open pairing windows at all —
     // there is no listener to pair through, so an "active" window with a
-    // PIN would be zombie UI (2026-07-14 settings-merge gate finding).
+    // code would be zombie UI (2026-07-14 settings-merge gate finding).
     ApiServer unstarted(f.refs());
     unstarted.setStorePathForTest(kStorePath);
     QVERIFY(!unstarted.isRunning());

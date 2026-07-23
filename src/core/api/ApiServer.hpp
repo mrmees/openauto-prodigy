@@ -4,7 +4,7 @@
 // (TCP + WebSocket), enforces the peer-admission policy, wraps every accepted
 // connection in a transport + ApiSession, builds the shared session
 // dependencies (capabilities, per-topic snapshots, request sink), fans the
-// five topic publishers out to subscribed sessions, and drives PIN pairing
+// five topic publishers out to subscribed sessions, and drives secure-code pairing
 // (exposed both as Q_INVOKABLE methods and as api.pairing.* actions).
 //
 // LIFETIME CONTRACT: every non-null pointer in ApiServiceRefs MUST outlive the
@@ -72,7 +72,7 @@ class ApiServer : public QObject {
     Q_OBJECT
     Q_PROPERTY(bool running READ isRunning NOTIFY runningChanged)
     Q_PROPERTY(bool pairingActive READ pairingActive NOTIFY pairingChanged)
-    Q_PROPERTY(QString pairingPin READ pairingPin NOTIFY pairingChanged)
+    Q_PROPERTY(QString pairingCode READ pairingCode NOTIFY pairingChanged)
     Q_PROPERTY(QString pairingQrDataUri READ pairingQrDataUri NOTIFY pairingChanged)
 public:
     explicit ApiServer(ApiServiceRefs refs, QObject* parent = nullptr);
@@ -92,7 +92,7 @@ public:
     Q_INVOKABLE void startPairing();   // also registered as action api.pairing.start
     Q_INVOKABLE void cancelPairing();  // also registered as action api.pairing.cancel
     bool pairingActive() const;
-    QString pairingPin() const;
+    QString pairingCode() const;
     // QR for the open pairing window ("" when closed). Rendered lazily per
     // read so it can never go stale against the window state, whatever order
     // pairingChanged consumers fire in.
@@ -100,12 +100,12 @@ public:
     int sessionCount() const;
 
     // Companion-scanner contract (kept stable, additive-only):
-    // prodigy://pair?host=&tcp=&ws=&pin=&ssid=  — ssid percent-encoded
+    // prodigy://pair?host=&tcp=&ws=&code=&ssid=  — ssid percent-encoded
     // (Android can redact the AA-owned network's SSID, so the companion
     // persists it from the QR for reconnect). Pure static seam, unit-tested
     // like inApSubnet/peerAllowed below.
     static QString pairingQrPayload(const QString& host, quint16 tcpPort,
-                                    quint16 wsPort, const QString& pin,
+                                    quint16 wsPort, const QString& code,
                                     const QString& ssid);
 
     // Test seam: rebinds the paired-client store to a scratch path BEFORE

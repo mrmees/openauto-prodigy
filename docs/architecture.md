@@ -32,7 +32,12 @@ to a dedicated `EqualizerEngine` for each live audio consumer.
 
 ### External API (`src/core/api/`)
 
-`ApiServer` + `ApiSession`/`ApiTransport`/`ApiFramer` serve External API v1 (protobuf over TCP/WebSocket) with `PairingManager` auth. Publishers push provider state; request handlers invoke actions.
+`ApiServer` + `ApiSession`/`ApiTransport`/`ApiFramer` serve External API v1
+(protobuf over TCP/WebSocket) with `PairingManager` auth. New pairing windows
+use a versioned 120-bit random Base32 code carried by QR (grouped for the manual
+fallback); stored credentials record their generation so legacy six-digit
+credentials fail closed and require re-pairing. Publishers push provider state;
+request handlers invoke actions.
 
 ### AA runtime (`src/core/aa/`)
 

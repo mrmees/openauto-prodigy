@@ -130,6 +130,12 @@ void ApiSession::handleExpectHello(const pb::ApiMessage& m) {
             sendAuthReject(m.request_id(), "unknown client");
             return;
         }
+        if (client->credentialGeneration < kSecureCodeCredentialGeneration) {
+            sendAuthReject(
+                m.request_id(), "credential upgrade required",
+                pb::AUTH_REJECT_CODE_CREDENTIAL_UPGRADE_REQUIRED);
+            return;
+        }
         authClientId_ = cid;
         nonce_ = randomBytes(32);
         pb::ApiMessage challenge;
@@ -154,6 +160,7 @@ void ApiSession::handleExpectHello(const pb::ApiMessage& m) {
         auto* pc = challenge.mutable_pairing_challenge();
         pc->set_nonce(nonce_.constData(), nonce_.size());
         pc->set_salt(salt.constData(), salt.size());
+        pc->set_secret_format(pb::PAIRING_SECRET_FORMAT_BASE32_120);
         sendMessage(m.request_id(), challenge);
         if (state_ == State::ExpectHello) state_ = State::PairingPending;
         return;
@@ -173,6 +180,12 @@ void ApiSession::handleAuthPending(const pb::ApiMessage& m) {
                               : std::optional<PairedClient>{};
     if (!client) {
         sendAuthReject(m.request_id(), "unknown client");
+        return;
+    }
+    if (client->credentialGeneration < kSecureCodeCredentialGeneration) {
+        sendAuthReject(
+            m.request_id(), "credential upgrade required",
+            pb::AUTH_REJECT_CODE_CREDENTIAL_UPGRADE_REQUIRED);
         return;
     }
 
@@ -365,10 +378,14 @@ void ApiSession::closeWithError(quint64 requestId, pb::ErrorCode code,
     teardown();
 }
 
-void ApiSession::sendAuthReject(quint64 requestId, const QString& reason) {
+void ApiSession::sendAuthReject(quint64 requestId, const QString& reason,
+                                pb::AuthRejectCode code) {
     pb::ApiMessage msg;
     msg.set_request_id(requestId);
-    msg.mutable_auth_reject()->set_reason(reason.toStdString());
+    auto* reject = msg.mutable_auth_reject();
+    reject->set_reason(reason.toStdString());
+    if (code != pb::AUTH_REJECT_CODE_UNSPECIFIED)
+        reject->set_code(code);
     sendRaw(msg);
     teardown();
 }
