@@ -40,6 +40,8 @@ public:
         reader.fd_ = -1;
     }
 
+    static void reset(EvdevTouchReader& reader) { reader.resetTouchState(); }
+
     static int aaWidth(const EvdevTouchReader& reader) { return reader.aaWidth_; }
     static int contentWidth(const EvdevTouchReader& reader) { return reader.contentWidth_; }
     static int navbarThickness(const EvdevTouchReader& reader)
@@ -169,6 +171,7 @@ private slots:
     void claimedPointerNeverEntersPhoneArray();
     void videoMappingUpdateIsAtomicAndRetainsNavbarThickness();
     void grabMutationIsAppliedAtReaderBoundary();
+    void ownershipLossCancelsPhoneVisiblePointers();
     void deviceLossReopens_data();
     void deviceLossReopens();
     void stopInterruptsReconnectWait();
@@ -281,6 +284,38 @@ void TestEvdevTouchReader::grabMutationIsAppliedAtReaderBoundary()
     QCOMPARE(reader.applied.size(), 1);
     EvdevTouchReaderTestAccess::applyGrab(reader);
     QCOMPARE(reader.applied, (QList<bool>{true, false}));
+}
+
+void TestEvdevTouchReader::ownershipLossCancelsPhoneVisiblePointers()
+{
+    oaa::hu::InputChannelHandler input;
+    input.onChannelOpened();
+    QSignalSpy sendSpy(&input, &oaa::IChannelHandler::sendRequested);
+    oap::aa::TouchHandler touch;
+    touch.setHandler(&input);
+    EvdevTouchReader reader(&touch, "/not-used", 1000, 1000, 1000, 1000);
+    EvdevTouchReaderTestAccess::configure(reader);
+
+    EvdevTouchReaderTestAccess::setSlot(reader, 2, 20, 100, 200);
+    EvdevTouchReaderTestAccess::setSlot(reader, 5, 50, 700, 800);
+    EvdevTouchReaderTestAccess::process(reader);
+    QCOMPARE(sendSpy.count(), 2);
+
+    // Both ungrab and device-loss paths converge on resetTouchState().
+    EvdevTouchReaderTestAccess::reset(reader);
+    QCOMPARE(sendSpy.count(), 4);
+    const auto pointerUp = indicationAt(sendSpy, 2).touch_event();
+    QCOMPARE(pointerUp.touch_action(), 6);
+    QCOMPARE(pointerUp.touch_location_size(), 2);
+    QCOMPARE(pointerUp.touch_location(0).pointer_id(), 2u);
+    QCOMPARE(pointerUp.touch_location(1).pointer_id(), 5u);
+    const auto up = indicationAt(sendSpy, 3).touch_event();
+    QCOMPARE(up.touch_action(), 1);
+    QCOMPARE(up.touch_location_size(), 1);
+    QCOMPARE(up.touch_location(0).pointer_id(), 5u);
+
+    EvdevTouchReaderTestAccess::reset(reader);
+    QCOMPARE(sendSpy.count(), 4);
 }
 
 void TestEvdevTouchReader::deviceLossReopens_data()

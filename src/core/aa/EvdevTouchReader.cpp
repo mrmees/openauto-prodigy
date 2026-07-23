@@ -7,6 +7,7 @@
 #include <poll.h>
 #include <cstring>
 #include <algorithm>
+#include <QDeadlineTimer>
 
 namespace oap {
 namespace aa {
@@ -35,6 +36,7 @@ EvdevTouchReader::EvdevTouchReader(TouchHandler* handler,
 
 void EvdevTouchReader::requestStop()
 {
+    QMutexLocker lock(&reconnectMutex_);
     stopRequested_.store(true, std::memory_order_release);
     reconnectCondition_.wakeAll();
 }
@@ -252,14 +254,37 @@ bool EvdevTouchReader::setDeviceGrab(bool grabbed)
 bool EvdevTouchReader::waitForReconnect()
 {
     QMutexLocker lock(&reconnectMutex_);
-    if (stopRequested_.load(std::memory_order_acquire))
-        return false;
-    return !reconnectCondition_.wait(&reconnectMutex_, 1000)
-        && !stopRequested_.load(std::memory_order_acquire);
+    QDeadlineTimer deadline(1000);
+    while (!stopRequested_.load(std::memory_order_acquire)) {
+        if (!reconnectCondition_.wait(&reconnectMutex_, deadline))
+            return true;
+    }
+    return false;
+}
+
+void EvdevTouchReader::releaseAaTouchStream()
+{
+    // The AA touch enum has no ACTION_CANCEL. Retire every phone-visible
+    // pointer with valid POINTER_UP/UP messages before local ownership or the
+    // device disappears, so the phone cannot retain a stuck gesture.
+    for (int i = 0; i < MAX_SLOTS; ++i) {
+        if (!aaActive_[i])
+            continue;
+        auto pointers = buildAaPointers();
+        const auto changed = std::find_if(pointers.begin(), pointers.end(),
+            [i](const TouchHandler::Pointer& pointer) { return pointer.id == i; });
+        const int actionIdx = static_cast<int>(std::distance(pointers.begin(), changed));
+        const int action = pointers.size() == 1 ? 1 : 6;
+        if (handler_)
+            handler_->sendTouchIndication(pointers.size(), pointers.data(),
+                                          actionIdx, action);
+        aaActive_[i] = false;
+    }
 }
 
 void EvdevTouchReader::resetTouchState()
 {
+    releaseAaTouchStream();
     slots_.fill(Slot{});
     prevSlots_ = slots_;
     aaActive_.fill(false);
@@ -487,11 +512,7 @@ void EvdevTouchReader::processSync()
 
     // If gesture is active, suppress AA forwarding for unclaimed touches
     if (gestureBlocking) {
-        auto pointers = buildAaPointers();
-        if (handler_ && !pointers.empty()) {
-            // Cancel any stream that began before the gesture threshold was met.
-            handler_->sendTouchIndication(pointers.size(), pointers.data(), 0, 3);
-        }
+        releaseAaTouchStream();
         aaActive_.fill(false);
         for (int i = 0; i < MAX_SLOTS; ++i)
             slots_[i].dirty = false;

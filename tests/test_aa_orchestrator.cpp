@@ -80,6 +80,16 @@ public:
         return orchestrator.sensorHandler_;
     }
 
+    static oaa::hu::VideoChannelHandler& videoHandler(AndroidAutoOrchestrator& orchestrator)
+    {
+        return orchestrator.videoHandler_;
+    }
+
+    static VideoDecoder& videoDecoder(AndroidAutoOrchestrator& orchestrator)
+    {
+        return orchestrator.videoDecoder_;
+    }
+
     static bool watchdogActive(const AndroidAutoOrchestrator& orchestrator)
     {
         return orchestrator.watchdogTimer_.isActive();
@@ -147,6 +157,51 @@ private slots:
         QCOMPARE(static_cast<int>(oap::aa::resolveWirelessAaTcpPort(
                      configured, &usedFallback)), expected);
         QCOMPARE(usedFallback, fallback);
+    }
+
+    void testVideoStreamBoundaryPrecedesAlreadyEmittedFrames() {
+        StubConfigService cfg;
+        cfg.values["connection.tcp_port"] = 0;
+        oap::aa::AndroidAutoOrchestrator orch(&cfg, nullptr, nullptr);
+        orch.start();
+        oap::aa::AndroidAutoOrchestratorTestAccess::disableAutomaticAccept(orch);
+
+        QTcpSocket socket;
+        socket.connectToHost(QHostAddress::LocalHost,
+                             oap::aa::AndroidAutoOrchestratorTestAccess::listenerPort(orch));
+        QVERIFY(socket.waitForConnected());
+        QVERIFY(oap::aa::AndroidAutoOrchestratorTestAccess::acceptNextConnection(orch));
+
+        auto& handler = oap::aa::AndroidAutoOrchestratorTestAccess::videoHandler(orch);
+        auto& decoder = oap::aa::AndroidAutoOrchestratorTestAccess::videoDecoder(orch);
+        QSignalSpy resetSpy(&decoder, &oap::aa::VideoDecoder::streamResetCompleted);
+        QSignalSpy codecSpy(&decoder, &oap::aa::VideoDecoder::streamCodecDetected);
+        const auto nal = [](char first) {
+            auto data = std::make_shared<QByteArray>();
+            data->append('\x00'); data->append('\x00');
+            data->append('\x00'); data->append('\x01');
+            data->append(first); data->append('\x01');
+            return std::const_pointer_cast<const QByteArray>(data);
+        };
+
+        // The old H.265 packet is emitted before the new stream boundary. It
+        // must not be delivered later through Qt behind that reset barrier.
+        handler.videoFrameData(nal('\x42'), 0);
+        handler.streamStarted(1, 0);
+        handler.videoFrameData(nal('\x67'), 0);
+
+        QTRY_COMPARE(resetSpy.count(), 1);
+        QTRY_VERIFY(codecSpy.count() >= 1);
+        bool sawNewStreamH264 = false;
+        for (const auto& emission : codecSpy) {
+            if (emission[0].toULongLong() == 1ULL) {
+                QCOMPARE(emission[1].toInt(), static_cast<int>(AV_CODEC_ID_H264));
+                sawNewStreamH264 = true;
+            }
+        }
+        QVERIFY(sawNewStreamH264);
+        orch.stop();
+        QCoreApplication::sendPostedEvents(nullptr, QEvent::DeferredDelete);
     }
 
     void testInitialState() {

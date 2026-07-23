@@ -96,9 +96,11 @@ compressed video whenever the video channel starts a stream.
 
 **Rationale:** The decoder object is intentionally process-long, while codec,
 parser, fallback, queued-packet, and latest-frame state belongs to one phone
-stream. Clearing queued prior-stream packets and ordering reset before later
-frames prevents H.264/H.265 state from crossing reconnects without racing the
-decode thread or rebuilding the whole projection plugin.
+stream. Frame signals enter the thread-safe worker queue directly, preserving
+their emission order with the stream-start reset. Clearing queued prior-stream
+packets and ordering reset before later frames prevents H.264/H.265 state from
+crossing reconnects without racing the decode thread or rebuilding the whole
+projection plugin.
 
 ### OpenMAX IL remains out of scope
 
@@ -126,6 +128,8 @@ The reader thread exclusively owns the device descriptor, actual grab state,
 slot history, and phone-visible pointer membership. Main-thread configuration
 is published as coherent snapshots before or during the reader loop; device
 loss closes and reopens on a paced retry that remains interruptible at stop.
+Before ungrab, loss, or shutdown clears reader state, any phone-visible
+pointers are retired with valid pointer-up/up messages.
 
 ### Touch routing and the navbar
 
@@ -311,7 +315,9 @@ application lifetime and publishes one validity-gated physical state to both
 Keeping the provider alive across reconnects prevents shell and phone state
 from diverging, preserves the first subscription's cached indication, and lets
 GPIO setup/read failures recover on a paced retry without replacing the last
-authoritative value. The shell-only force-dark override remains independent of
+authoritative value. If an exported GPIO directory disappears, the provider
+re-enters export and direction setup instead of remaining stuck in its former
+configured state. The shell-only force-dark override remains independent of
 the physical state sent to Android Auto.
 
 ---

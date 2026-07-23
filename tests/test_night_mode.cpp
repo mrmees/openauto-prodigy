@@ -263,6 +263,37 @@ private slots:
         provider.stop();
     }
 
+    void gpioNightMode_disappearedDirectoryReconfigures()
+    {
+        QTemporaryDir sysfs;
+        QVERIFY(sysfs.isValid());
+        createControlFiles(sysfs.path());
+        QString gpio = createGpioDirectory(sysfs.path());
+        QVERIFY(!gpio.isEmpty());
+        writeFile(QDir(gpio).filePath(QStringLiteral("direction")));
+        writeFile(QDir(gpio).filePath(QStringLiteral("value")), "0\n");
+        oap::aa::GpioNightMode provider(17, true, nullptr, sysfs.path());
+        QSignalSpy spy(&provider, &oap::aa::NightModeProvider::nightModeChanged);
+
+        provider.start();
+        QVERIFY(provider.hasValidState());
+        QCOMPARE(spy.count(), 1);
+
+        QVERIFY(QDir(gpio).removeRecursively());
+        oap::aa::GpioNightModeTestAccess::poll(provider);
+        QVERIFY(!provider.hasValidState());
+
+        gpio = createGpioDirectory(sysfs.path());
+        QVERIFY(!gpio.isEmpty());
+        writeFile(QDir(gpio).filePath(QStringLiteral("direction")));
+        writeFile(QDir(gpio).filePath(QStringLiteral("value")), "1\n");
+        oap::aa::GpioNightModeTestAccess::poll(provider);
+        QVERIFY(provider.hasValidState());
+        QCOMPARE(provider.isNight(), true);
+        QCOMPARE(spy.count(), 2);
+        provider.stop();
+    }
+
     void nightModeService_drivesThemeAndChangeOnlyState()
     {
         QTime now(12, 0);

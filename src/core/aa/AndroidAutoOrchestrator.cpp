@@ -329,7 +329,7 @@ void AndroidAutoOrchestrator::onNewConnection()
                 videoDecoder_.beginStream();
             });
     connect(&videoHandler_, &oaa::hu::VideoChannelHandler::videoFrameData,
-            &videoDecoder_, &VideoDecoder::decodeFrame, Qt::QueuedConnection);
+            &videoDecoder_, &VideoDecoder::decodeFrame, Qt::DirectConnection);
 
     // Push decoded frames to the sink as soon as they're ready (signal-driven).
     // The signal is emitted from the decode worker thread; Qt auto-queues it to

@@ -59,6 +59,11 @@ void GpioNightMode::poll()
 
     if (!file.open(QIODevice::ReadOnly | QIODevice::Text)) {
         qCWarning(lcCore) << "Cannot read " << valuePath;
+        configured_ = false;
+        if (!QDir(gpioPath()).exists()) {
+            exported_ = false;
+            ownsExport_ = false;
+        }
         invalidateState();
         return;
     }

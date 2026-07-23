@@ -64,8 +64,10 @@ The decoder object persists across AA sessions, but every video
 `streamStarted` edge places an ordered reset command in its worker queue. That
 barrier discards queued packets from the prior stream and resets codec/parser,
 first-frame fallback, latest-frame, and detection state before any later frame
-is processed. A reconnect may therefore negotiate H.264 or H.265 independently
-of the preceding session without restarting the application.
+is processed. Video packets enter that queue directly in signal-emission order,
+so an old Qt event cannot arrive behind the boundary. A reconnect may therefore
+negotiate H.264 or H.265 independently of the preceding session without
+restarting the application.
 
 The AA projection view has a black background and one `VideoOutput` anchored to
 its parent. Its fill mode is always `PreserveAspectCrop`, whether the Navbar is
@@ -96,7 +98,9 @@ Touch is grabbed with `EVIOCGRAB` when a connected AA session owns the
 projection view. It is ungrabbed when projection backgrounds, disconnects, or
 the plugin view is deactivated, returning normal shell input to Wayland/Qt.
 Poll errors, hangups, and short reads close the lost device and enter a paced
-reopen loop. A stop request wakes that wait immediately.
+reopen loop. Ungrab, device loss, and shutdown retire any phone-visible touch
+stream with valid pointer-up/up messages before clearing local state. A stop
+request wakes the reconnect wait immediately.
 
 ## Navbar and popup zone ownership
 

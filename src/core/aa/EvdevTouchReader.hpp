@@ -103,6 +103,7 @@ private:
 
     void applyPendingMapping(bool force = false);
     void applyRequestedGrab();
+    void releaseAaTouchStream();
     void resetTouchState();
     void computeLetterbox();
     void processSync();
