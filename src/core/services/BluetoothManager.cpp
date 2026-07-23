@@ -109,10 +109,9 @@ public slots:
     }
 
     void DisplayPasskey(const QDBusObjectPath& device, uint passkey, ushort entered) {
-        Q_UNUSED(entered);
         qCInfo(lcBT) << "[Agent] DisplayPasskey:" << device.path() << passkey;
         manager_->handleAgentDisplayPasskey(
-            device.path(), QStringLiteral("%1").arg(passkey, 6, 10, QChar('0')));
+            device.path(), QStringLiteral("%1").arg(passkey, 6, 10, QChar('0')), entered);
     }
 
     void RequestAuthorization(const QDBusObjectPath& device) {
@@ -175,6 +174,7 @@ bool BluetoothManager::needsFirstPairing() const { return needsFirstPairing_; }
 bool BluetoothManager::isPairingActive() const { return pairingActive_; }
 QString BluetoothManager::pairingDeviceName() const { return pairingDeviceName_; }
 QString BluetoothManager::pairingPasskey() const { return pairingPasskey_; }
+int BluetoothManager::pairingEntered() const { return pairingEntered_; }
 bool BluetoothManager::pairingRequiresConfirmation() const
 {
     return pairingPromptMode_ == PairingPromptMode::Confirmation
@@ -624,6 +624,7 @@ void BluetoothManager::handleAgentRequestConfirmation(const QDBusMessage& msg, c
     pendingPairingDevicePath_ = devicePath;
     pairingDeviceName_ = deviceName;
     pairingPasskey_ = formattedPasskey;
+    pairingEntered_ = -1;
     pairingPromptMode_ = PairingPromptMode::Confirmation;
     pairingActive_ = true;
     if (observableChanged)
@@ -642,6 +643,7 @@ void BluetoothManager::handleAgentRequestAuthorization(
     pendingPairingDevicePath_ = devicePath;
     pairingDeviceName_ = deviceName;
     pairingPasskey_.clear();
+    pairingEntered_ = -1;
     pairingPromptMode_ = PairingPromptMode::Authorization;
     pairingActive_ = true;
     if (observableChanged)
@@ -649,17 +651,20 @@ void BluetoothManager::handleAgentRequestAuthorization(
 }
 
 void BluetoothManager::handleAgentDisplayPasskey(
-    const QString& devicePath, const QString& passkey)
+    const QString& devicePath, const QString& passkey, int entered)
 {
     const QString deviceName = deviceNameFromPath(devicePath);
+    const int boundedEntered = entered < 0 ? -1 : qBound(0, entered, passkey.size());
     const bool observableChanged = !pairingActive_
         || pairingDeviceName_ != deviceName
         || pairingPasskey_ != passkey
+        || pairingEntered_ != boundedEntered
         || pairingPromptMode_ != PairingPromptMode::DisplayOnly;
     pendingPairingMessage_ = {};
     pendingPairingDevicePath_.clear();
     pairingDeviceName_ = deviceName;
     pairingPasskey_ = passkey;
+    pairingEntered_ = boundedEntered;
     pairingPromptMode_ = PairingPromptMode::DisplayOnly;
     pairingActive_ = true;
     if (observableChanged)
@@ -681,6 +686,7 @@ void BluetoothManager::clearPairingPrompt()
     pairingActive_ = false;
     pairingDeviceName_.clear();
     pairingPasskey_.clear();
+    pairingEntered_ = -1;
     pairingPromptMode_ = PairingPromptMode::None;
     pendingPairingMessage_ = {};
     pendingPairingDevicePath_.clear();
@@ -746,9 +752,11 @@ void BluetoothManager::applyManagedObjectsSnapshot(const BluezManagedObjectMap& 
     adapterPath_ = nextAdapterPath;
     deviceNamesByPath_ = nextDeviceNames;
     if (!adapterPath_.isEmpty()) {
-        const QString address =
-            adapterProperties.value(QStringLiteral("Address")).toString();
-        if (adapterAddress_ != address) {
+        const QString address = adapterProperties.value(QStringLiteral("Address")).toString();
+        // ObjectManager may omit a property from an otherwise complete
+        // interface map. Preserve the last known address until the adapter
+        // itself disappears; setupAdapter() owns the bounded initial fallback.
+        if (!address.isEmpty() && adapterAddress_ != address) {
             adapterAddress_ = address;
             emit adapterAddressChanged();
         }

@@ -49,6 +49,7 @@ public:
 signals:
     void availableChanged(bool available);
     void transportStateChanged(const QString& state);
+    void transportRemoved();
     void codecChanged(const QString& codec);
     void callSetupStarted(const QString& state, const QString& line, const QString& name);
     void callSetupChanged(const QString& state);
@@ -69,6 +70,7 @@ private:
     void adoptTransport(const QString& path, const QVariantMap& props);
     void clearTransport();
     void adoptCall(const QString& path, const QVariantMap& props);
+    bool callBelongsToSelectedAg(const QString& path) const;
     void applyRejectSco();
     void asyncCall(const QString& op, QDBusMessage msg);
 

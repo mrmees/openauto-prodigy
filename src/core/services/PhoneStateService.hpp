@@ -104,6 +104,7 @@ public slots:
     void onCallSetupEnded();
     void onScoRunningChanged(bool running);
     void onTransportStateChanged(const QString& state);
+    void onTransportRemoved();
     void onTelephonyAvailable(bool available);
 
 private slots:

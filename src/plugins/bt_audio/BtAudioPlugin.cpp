@@ -12,6 +12,7 @@
 #include <QDBusMetaType>
 #include <QDBusVariant>
 #include <optional>
+#include <utility>
 
 namespace {
 
@@ -265,6 +266,7 @@ void BtAudioPlugin::stopDBusMonitoring()
     bluezWatcher_ = nullptr;
     monitoring_ = false;
     scanPending_ = false;
+    pendingPropertyChanges_.clear();
 }
 
 void BtAudioPlugin::onBluezServiceUnregistered()
@@ -326,6 +328,17 @@ void BtAudioPlugin::finishExistingObjectScan(const QDBusMessage& reply)
         hostContext_->log(LogLevel::Warning,
                           QStringLiteral("BtAudio: GetManagedObjects failed: %1")
                               .arg(reply.errorMessage()));
+
+    if (monitoring_ && !needsRescan) {
+        const auto pendingChanges = std::exchange(pendingPropertyChanges_, {});
+        for (const auto& change : pendingChanges)
+            applyPropertiesChanged(change.interface, change.changed,
+                                   change.invalidated, change.message);
+    } else if (needsRescan) {
+        // The trailing topology snapshot was requested after the relevant
+        // signals, so it supersedes property deltas collected for this reply.
+        pendingPropertyChanges_.clear();
+    }
 
     if (monitoring_ && needsRescan)
         scanExistingObjects();
@@ -499,7 +512,15 @@ void BtAudioPlugin::onPropertiesChanged(const QString& interface, const QVariant
                                          const QDBusMessage& message)
 {
     if (scanInFlight_)
-        scanPending_ = true;
+        pendingPropertyChanges_.append({interface, changed, invalidated, message});
+    applyPropertiesChanged(interface, changed, invalidated, message);
+}
+
+void BtAudioPlugin::applyPropertiesChanged(const QString& interface,
+                                           const QVariantMap& changed,
+                                           const QStringList& invalidated,
+                                           const QDBusMessage& message)
+{
     // PropertiesChanged is subscribed on ANY BlueZ path; the sender path rides
     // in the QDBusMessage. Ignore updates from objects other than the ones we
     // currently track, or a foreign transport/player would stomp our state. For

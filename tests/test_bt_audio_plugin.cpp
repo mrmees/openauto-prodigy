@@ -770,6 +770,24 @@ void TestBtAudioPlugin::startupEnumeration_isAsynchronousAndUsesCarriedPropertie
              "initialize must not wait for the delayed ObjectManager reply");
     QCOMPARE(plugin.connectionState(), static_cast<int>(BtAudioPlugin::Disconnected));
 
+    // Routine property traffic during discovery must not invalidate every
+    // topology reply. Queue/replay preserves the newest value while allowing
+    // the one startup scan to complete.
+    quint32 livePosition = 61000;
+    QTimer propertyTraffic;
+    propertyTraffic.setInterval(25);
+    connect(&propertyTraffic, &QTimer::timeout, this, [&]() {
+        ++livePosition;
+        QDBusMessage signal = QDBusMessage::createSignal(
+            playerPath, QStringLiteral("org.freedesktop.DBus.Properties"),
+            QStringLiteral("PropertiesChanged"));
+        signal << QStringLiteral("org.bluez.MediaPlayer1")
+               << QVariantMap{{QStringLiteral("Position"), livePosition}}
+               << QStringList{};
+        QVERIFY(bus.send(signal));
+    });
+    propertyTraffic.start();
+
     QTRY_COMPARE(fixture.callCount, 1);
     QTRY_COMPARE_WITH_TIMEOUT(plugin.connectionState(),
                               static_cast<int>(BtAudioPlugin::Connected), 2000);
@@ -778,8 +796,11 @@ void TestBtAudioPlugin::startupEnumeration_isAsynchronousAndUsesCarriedPropertie
     QCOMPARE(plugin.playbackState(), static_cast<int>(BtAudioPlugin::Playing));
     QCOMPARE(plugin.trackTitle(), QStringLiteral("Async Track"));
     QCOMPARE(plugin.trackDuration(), qint64(215000));
-    QCOMPARE(plugin.trackPosition(), qint64(61000));
     QVERIFY(plugin.hasTrackPosition());
+    QTest::qWait(150);
+    propertyTraffic.stop();
+    QCOMPARE(fixture.callCount, 1);
+    QCOMPARE(plugin.trackPosition(), qint64(livePosition));
 
     plugin.shutdown();
     bus.unregisterService(QStringLiteral("org.bluez"));

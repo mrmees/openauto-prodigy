@@ -16,13 +16,14 @@
 #include <QObject>
 #include <QString>
 #include <QDBusConnection>
+#include <QDBusMessage>
 #include <QDBusObjectPath>
 #include <QMap>
+#include <QVector>
 #include <QVariantMap>
 
 class QQmlContext;
 class QDBusServiceWatcher;
-class QDBusMessage;
 
 namespace oap {
 
@@ -185,6 +186,8 @@ private:
     void recomputeTransportState();
     void adoptPlayer(const QString& path, const QVariantMap& props);
     void updatePlayerProperties(const QVariantMap& props, bool resetBeforeApply = false);
+    void applyPropertiesChanged(const QString& interface, const QVariantMap& changed,
+                                const QStringList& invalidated, const QDBusMessage& message);
     void sendPlayerCommand(const QString& command);
     // Edge-emits transportActiveChanged only when the value actually flips.
     void setTransportActive(bool active);
@@ -195,6 +198,13 @@ private:
     bool monitoring_ = false;
     bool scanInFlight_ = false;
     bool scanPending_ = false;
+    struct PendingPropertyChange {
+        QString interface;
+        QVariantMap changed;
+        QStringList invalidated;
+        QDBusMessage message;
+    };
+    QVector<PendingPropertyChange> pendingPropertyChanges_;
 
     // BT A2DP loopback tap — non-owning raw pointer; parented to this QObject.
     // Null when PipeWire is down or the concrete services don't resolve.

@@ -26,6 +26,7 @@ private slots:
     void testActiveSurvivesScoBlip();
     void testActiveEndsOnTransportIdle();
     void testActiveEndsOnTransportRemoval();
+    void testActiveIgnoresUnknownTransportState();
     void testIdleScoDoesNotSynthesizeCall();
     void testCallWaitingIgnoredWhileActive();
     void testAgVanishResetsToIdle();
@@ -233,8 +234,18 @@ void TestPhoneStateService::testActiveEndsOnTransportRemoval() {
     s->onCallSetupChanged("active");
     // TelephonyClient publishes an empty state when the selected transport
     // interface disappears. With no SCO, that is authoritative call loss.
-    s->onTransportStateChanged({});
+    s->onTransportRemoved();
     QCOMPARE(s->callState(), (int)CS::Idle);
+}
+
+void TestPhoneStateService::testActiveIgnoresUnknownTransportState() {
+    QObject root; auto* s = makeFastService(&root);
+    s->onCallSetupStarted("incoming", "1", "");
+    s->onCallSetupChanged("active");
+    // A D-Bus invalidation publishes unknown state, not evidence that the
+    // selected transport or call ended.
+    s->onTransportStateChanged({});
+    QCOMPARE(s->callState(), (int)CS::Active);
 }
 
 void TestPhoneStateService::testIdleScoDoesNotSynthesizeCall() {

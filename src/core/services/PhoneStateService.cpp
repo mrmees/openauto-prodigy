@@ -104,6 +104,8 @@ void PhoneStateService::attachTelephony(TelephonyClient* client)
             this, &PhoneStateService::onCallSetupEnded);
     connect(client, &TelephonyClient::transportStateChanged,
             this, &PhoneStateService::onTransportStateChanged);
+    connect(client, &TelephonyClient::transportRemoved,
+            this, &PhoneStateService::onTransportRemoved);
     connect(client, &TelephonyClient::availableChanged,
             this, &PhoneStateService::onTelephonyAvailable);
     onTelephonyAvailable(client->available());
@@ -214,8 +216,19 @@ void PhoneStateService::onTransportStateChanged(const QString& state)
         inSettle_ = false;
         settleTimer_.stop();
         setCallStateInternal(ICallStateProvider::Active);
-    } else if ((state.isEmpty() || state == QLatin1String("idle"))
+    } else if (state == QLatin1String("idle")
                && callState_ == ICallStateProvider::Active && !scoRunning_) {
+        scoDebounceTimer_.stop();
+        callerNumber_.clear();
+        callerName_.clear();
+        setCallStateInternal(ICallStateProvider::Idle);
+    }
+}
+
+void PhoneStateService::onTransportRemoved()
+{
+    transportState_.clear();
+    if (callState_ == ICallStateProvider::Active && !scoRunning_) {
         scoDebounceTimer_.stop();
         callerNumber_.clear();
         callerName_.clear();

@@ -115,6 +115,12 @@ void TestBluetoothManager::testSnapshotSeedsConnectedStateAndEdges()
     QCOMPARE(connectedSpy.count(), 1);
     QCOMPARE(addressSpy.count(), 1);
 
+    objects[kAdapterPath][QStringLiteral("org.bluez.Adapter1")]
+        .remove(QStringLiteral("Address"));
+    mgr.applyManagedObjectsSnapshot(objects);
+    QCOMPARE(mgr.adapterAddress(), QStringLiteral("11:22:33:44:55:66"));
+    QCOMPARE(addressSpy.count(), 1);
+
     addDevice(objects, true, false);
     mgr.applyManagedObjectsSnapshot(objects);
     QVERIFY(mgr.connectedDeviceName().isEmpty());
@@ -201,6 +207,16 @@ void TestBluetoothManager::testAgentMethodSurfaceAndPromptModes()
     QVERIFY(!mgr.pairingRequiresConfirmation());
     QCOMPARE(mgr.pairingDeviceName(), QStringLiteral("Pixel"));
     QCOMPARE(mgr.pairingPasskey(), QStringLiteral("123456"));
+    QCOMPARE(mgr.pairingEntered(), 0);
+
+    QSignalSpy progressSpy(&mgr, &oap::BluetoothManager::pairingActiveChanged);
+    QDBusMessage progress = agentCall(serverBus, QStringLiteral("DisplayPasskey"));
+    progress << QVariant::fromValue(QDBusObjectPath(kDevicePath))
+             << QVariant::fromValue(quint32(123456)) << QVariant::fromValue(quint16(2));
+    QDBusPendingCallWatcher progressWatcher(client.asyncCall(progress));
+    QCOMPARE(awaitReply(progressWatcher).type(), QDBusMessage::ReplyMessage);
+    QCOMPARE(mgr.pairingEntered(), 2);
+    QCOMPARE(progressSpy.count(), 1);
     mgr.confirmPairing();
     QVERIFY(!mgr.isPairingActive());
 

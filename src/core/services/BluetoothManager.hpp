@@ -29,6 +29,7 @@ class BluetoothManager : public QObject, public IBluetoothService {
     Q_PROPERTY(bool pairingActive READ isPairingActive NOTIFY pairingActiveChanged)
     Q_PROPERTY(QString pairingDeviceName READ pairingDeviceName NOTIFY pairingActiveChanged)
     Q_PROPERTY(QString pairingPasskey READ pairingPasskey NOTIFY pairingActiveChanged)
+    Q_PROPERTY(int pairingEntered READ pairingEntered NOTIFY pairingActiveChanged)
     Q_PROPERTY(bool pairingRequiresConfirmation READ pairingRequiresConfirmation NOTIFY pairingActiveChanged)
     Q_PROPERTY(QString connectedDeviceName READ connectedDeviceName NOTIFY connectedDeviceChanged)
     Q_PROPERTY(bool needsFirstPairing READ needsFirstPairing NOTIFY needsFirstPairingChanged)
@@ -48,6 +49,7 @@ public:
     bool isPairingActive() const override;
     QString pairingDeviceName() const override;
     QString pairingPasskey() const override;
+    int pairingEntered() const;
     bool pairingRequiresConfirmation() const;
     Q_INVOKABLE void confirmPairing() override;
     Q_INVOKABLE void rejectPairing() override;
@@ -99,7 +101,8 @@ private:
     // Called by BluezAgentAdaptor
     void handleAgentRequestConfirmation(const QDBusMessage& msg, const QString& devicePath, uint passkey);
     void handleAgentRequestAuthorization(const QDBusMessage& msg, const QString& devicePath);
-    void handleAgentDisplayPasskey(const QString& devicePath, const QString& passkey);
+    void handleAgentDisplayPasskey(const QString& devicePath, const QString& passkey,
+                                   int entered = -1);
     void handleAgentCancel();
     void clearPairingPrompt();
 
@@ -124,6 +127,7 @@ private:
     bool pairingActive_ = false;
     QString pairingDeviceName_;
     QString pairingPasskey_;
+    int pairingEntered_ = -1;
     enum class PairingPromptMode { None, Confirmation, Authorization, DisplayOnly };
     PairingPromptMode pairingPromptMode_ = PairingPromptMode::None;
     QString connectedDeviceName_;

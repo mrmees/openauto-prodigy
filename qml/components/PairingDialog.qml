@@ -78,6 +78,19 @@ Rectangle {
                 Layout.bottomMargin: UiMetrics.gap
             }
 
+            Text {
+                visible: BluetoothManager
+                         ? BluetoothManager.pairingEntered > 0
+                         : false
+                text: BluetoothManager
+                      ? "Digits entered: " + BluetoothManager.pairingEntered
+                        + " of " + BluetoothManager.pairingPasskey.length
+                      : ""
+                font.pixelSize: UiMetrics.fontCaption
+                color: ThemeService.onSurfaceVariant
+                Layout.alignment: Qt.AlignHCenter
+            }
+
             RowLayout {
                 Layout.alignment: Qt.AlignHCenter
                 spacing: UiMetrics.gap * 2

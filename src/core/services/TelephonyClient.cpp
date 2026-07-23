@@ -237,6 +237,10 @@ void TelephonyClient::clearTransport()
 
 void TelephonyClient::adoptCall(const QString& path, const QVariantMap& props)
 {
+    if (!callBelongsToSelectedAg(path)) {
+        qCWarning(lcTel) << "Call ignored for non-selected AudioGateway:" << path;
+        return;
+    }
     if (!callPath_.isEmpty()) {
         // Second concurrent Call1 (call-waiting): still emit — the state
         // machine decides (it ignores setup while Active, design §5).
@@ -247,6 +251,11 @@ void TelephonyClient::adoptCall(const QString& path, const QVariantMap& props)
     const QString line = props.value(QStringLiteral("LineIdentification")).toString();
     qCInfo(lcTel) << "Call setup:" << state << line;
     emit callSetupStarted(state, line, props.value(QStringLiteral("Name")).toString());
+}
+
+bool TelephonyClient::callBelongsToSelectedAg(const QString& path) const
+{
+    return !agPath_.isEmpty() && path.startsWith(agPath_ + QLatin1Char('/'));
 }
 
 void TelephonyClient::onInterfacesAdded(const QDBusObjectPath& path, const oap::InterfaceMap& interfaces)
@@ -266,8 +275,10 @@ void TelephonyClient::onInterfacesRemoved(const QDBusObjectPath& path, const QSt
         callPath_.clear();
         emit callSetupEnded();
     }
-    if (p == transportPath_ && interfaces.contains(kTransportIface))
+    if (p == transportPath_ && interfaces.contains(kTransportIface)) {
         clearTransport();
+        emit transportRemoved();
+    }
     if (p == agPath_ && interfaces.contains(kAgIface)) {
         const bool wasAvailable = available();
         agPath_.clear();

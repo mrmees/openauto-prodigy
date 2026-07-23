@@ -48,6 +48,7 @@ private slots:
     void testCommandsSafeWhenUnavailable();
     void testRejectScoCachedWhenUnavailable();
     void testSelectedAgOwnsOnlySameObjectTransport();
+    void testSelectedAgOwnsOnlyChildCalls();
 };
 
 void TestTelephonyClient::testConstructIsInert() {
@@ -56,6 +57,32 @@ void TestTelephonyClient::testConstructIsInert() {
     QVERIFY(c.agAddress().isEmpty());
     QVERIFY(c.transportState().isEmpty());
     QVERIFY(c.codec().isEmpty());
+}
+
+void TestTelephonyClient::testSelectedAgOwnsOnlyChildCalls()
+{
+    oap::TelephonyClient client;
+    const QString ag1 = QStringLiteral("/org/pipewire/Telephony/ag1");
+    const QString ag2 = QStringLiteral("/org/pipewire/Telephony/ag2");
+    const QString agIface = QStringLiteral("org.pipewire.Telephony.AudioGateway1");
+    const QString callIface = QStringLiteral("org.pipewire.Telephony.Call1");
+    QVERIFY(addInterfaces(client, ag1,
+                          {{agIface, {{QStringLiteral("Address"), QStringLiteral("AA:BB")}}}}));
+
+    QSignalSpy startedSpy(&client, &oap::TelephonyClient::callSetupStarted);
+    QSignalSpy endedSpy(&client, &oap::TelephonyClient::callSetupEnded);
+    const QString selectedCall = ag1 + QStringLiteral("/call1");
+    const QString foreignCall = ag2 + QStringLiteral("/call1");
+    const QVariantMap callProps{{QStringLiteral("State"), QStringLiteral("incoming")}};
+
+    QVERIFY(addInterfaces(client, foreignCall, {{callIface, callProps}}));
+    QCOMPARE(startedSpy.count(), 0);
+    QVERIFY(addInterfaces(client, selectedCall, {{callIface, callProps}}));
+    QCOMPARE(startedSpy.count(), 1);
+    QVERIFY(removeInterfaces(client, foreignCall, {callIface}));
+    QCOMPARE(endedSpy.count(), 0);
+    QVERIFY(removeInterfaces(client, selectedCall, {callIface}));
+    QCOMPARE(endedSpy.count(), 1);
 }
 
 void TestTelephonyClient::testStartStopSafeWithoutService() {
