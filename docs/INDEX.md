@@ -2,7 +2,7 @@
 
 ## Active Plans
 
-No implementation plan is currently active.
+- [2026-07-23-aa-protocol-crypto-flow-remediation-design.md](plans/2026-07-23-aa-protocol-crypto-flow-remediation-design.md) and [implementation plan](plans/2026-07-23-aa-protocol-crypto-flow-remediation-plan.md) — ACTIVE Android Auto TLS, fragmented-message, audio-permit, liveness, and navigation-state remediation
 
 ## Start Here
 
@@ -54,7 +54,7 @@ Protocol definitions and generic reference docs are in [open-android-auto](https
 
 Active plans:
 
-None.
+- [2026-07-23-aa-protocol-crypto-flow-remediation-design.md](plans/2026-07-23-aa-protocol-crypto-flow-remediation-design.md) and [implementation plan](plans/2026-07-23-aa-protocol-crypto-flow-remediation-plan.md) — ACTIVE
 
 Parked plans (not current guidance):
 

@@ -195,8 +195,16 @@ Governance: capture new ideas in `docs/wishlist.md`; only promoted items should 
 
 ## Now
 
-No implementation tranche is active. Select and revalidate the next bounded
-remediation wave before promoting a new design and plan.
+Android Auto protocol crypto and flow-control remediation — **ACTIVE
+2026-07-23**. This consolidated wave makes OpenSSL initialization and encrypted
+runtime I/O fail closed, bounds and validates fragmented-message assembly,
+returns audio receive permits without exhausting the phone's send window, uses
+the configured pong deadline, and preserves guidance through rerouting. It is
+bounded to the in-tree wireless-AA protocol library and does not change
+protobufs, QML, HFP, PipeWire/EQ, External API, or the companion app. Design and
+plan:
+`docs/plans/2026-07-23-aa-protocol-crypto-flow-remediation-design.md` and
+`docs/plans/2026-07-23-aa-protocol-crypto-flow-remediation-plan.md`.
 
 ## Later
 
