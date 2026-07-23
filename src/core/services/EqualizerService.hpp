@@ -70,6 +70,7 @@ public:
     /// destroyed (RT ordering contract, design §4.4). Every consumer owning a
     /// private instance is what removes the shared-Media-engine state
     /// corruption. Qt owner thread only.
+    /// @return A new engine, or nullptr when stream is invalid.
     EqualizerEngine* acquireEngine(StreamId stream, float sampleRate, int channels);
 
     /// Release an engine previously returned by acquireEngine(): drops it from
@@ -116,6 +117,7 @@ private:
         bool bypassed = false;
     };
 
+    static bool isValidStream(StreamId stream);
     int streamIndex(StreamId stream) const;
     const StreamState& streamAt(StreamId stream) const;
     StreamState& streamAt(StreamId stream);
@@ -138,6 +140,11 @@ private:
     YamlConfig* config_ = nullptr;
     FlushFn flushFn_;
     QTimer saveTimer_;
+    // Construction seeds defaults and may restore config through the same
+    // helpers used for user mutations. Suppress their debounce until the
+    // service is fully restored so merely starting the app never rewrites EQ
+    // configuration.
+    bool restoring_ = true;
 };
 
 } // namespace oap

@@ -23,6 +23,7 @@ EqualizerService::EqualizerService(QObject* parent)
     applyPreset(StreamId::Media, "Flat");
     applyPreset(StreamId::Navigation, "Voice");
     applyPreset(StreamId::System, "Voice");
+    restoring_ = false;
 }
 
 EqualizerService::EqualizerService(YamlConfig* config, QObject* parent)
@@ -40,6 +41,7 @@ EqualizerService::EqualizerService(YamlConfig* config, QObject* parent)
     // Override from config if available
     if (config_)
         loadFromConfig();
+    restoring_ = false;
 }
 
 EqualizerService::~EqualizerService()
@@ -55,11 +57,13 @@ EqualizerService::~EqualizerService()
 
 QString EqualizerService::activePreset(StreamId stream) const
 {
+    if (!isValidStream(stream)) return {};
     return streamAt(stream).activePreset;
 }
 
 void EqualizerService::applyPreset(StreamId stream, const QString& presetName)
 {
+    if (!isValidStream(stream)) return;
     const auto* gains = findPresetGains(presetName);
     auto& s = streamAt(stream);
 
@@ -83,6 +87,7 @@ void EqualizerService::applyPreset(StreamId stream, const QString& presetName)
 
 void EqualizerService::setGain(StreamId stream, int band, float dB)
 {
+    if (!isValidStream(stream)) return;
     if (band < 0 || band >= kNumBands) return;
     // Reject non-finite input at the service boundary (design §4.5 / round-2
     // F5) so no caller path (QML, config, future API) can feed NaN downstream.
@@ -107,17 +112,20 @@ void EqualizerService::setGain(StreamId stream, int band, float dB)
 
 float EqualizerService::gain(StreamId stream, int band) const
 {
+    if (!isValidStream(stream)) return 0.0f;
     if (band < 0 || band >= kNumBands) return 0.0f;
     return streamAt(stream).currentGains[band];
 }
 
 std::array<float, kNumBands> EqualizerService::gainsForStream(StreamId stream) const
 {
+    if (!isValidStream(stream)) return {};
     return streamAt(stream).currentGains;
 }
 
 void EqualizerService::setBypassed(StreamId stream, bool bypassed)
 {
+    if (!isValidStream(stream)) return;
     auto& s = streamAt(stream);
     s.bypassed = bypassed;                     // authoritative (§4.4 / round-1 F7)
     for (auto* e : s.engines) e->setBypassed(bypassed);
@@ -127,6 +135,7 @@ void EqualizerService::setBypassed(StreamId stream, bool bypassed)
 
 bool EqualizerService::isBypassed(StreamId stream) const
 {
+    if (!isValidStream(stream)) return false;
     return streamAt(stream).bypassed;
 }
 
@@ -152,6 +161,7 @@ QStringList EqualizerService::userPresetNames() const
 
 QString EqualizerService::saveUserPreset(StreamId source, const QString& name)
 {
+    if (!isValidStream(source)) return {};
     QString presetName = name.isEmpty() ? generateAutoName() : name;
 
     // Reject bundled name collisions
@@ -199,12 +209,18 @@ bool EqualizerService::deleteUserPreset(const QString& name)
 
 bool EqualizerService::renameUserPreset(const QString& oldName, const QString& newName)
 {
+    if (newName.trimmed().isEmpty()) return false;
     if (isBundledName(newName)) return false;
 
     auto it = std::find_if(userPresets_.begin(), userPresets_.end(),
         [&](const UserPreset& p) { return p.name == oldName; });
 
     if (it == userPresets_.end()) return false;
+    if (oldName == newName) return true;
+
+    const auto duplicate = std::find_if(userPresets_.cbegin(), userPresets_.cend(),
+        [&](const UserPreset& p) { return p.name == newName; });
+    if (duplicate != userPresets_.cend()) return false;
 
     it->name = newName;
 
@@ -281,6 +297,7 @@ void EqualizerService::applyPresetForStream(int streamIndex, const QString& pres
 
 EqualizerEngine* EqualizerService::acquireEngine(StreamId stream, float sampleRate, int channels)
 {
+    if (!isValidStream(stream)) return nullptr;
     // Qt owner thread only (see header). Heap-own a fresh instance seeded with
     // the stream's current gains and bypass, then register it for fan-out.
     auto& s = streamAt(stream);
@@ -306,6 +323,12 @@ void EqualizerService::releaseEngine(EqualizerEngine* engine)
 
 // --- Private helpers ---
 
+bool EqualizerService::isValidStream(StreamId stream)
+{
+    const int index = static_cast<int>(stream);
+    return index >= 0 && index < 3;
+}
+
 int EqualizerService::streamIndex(StreamId stream) const
 {
     return static_cast<int>(stream);
@@ -313,11 +336,13 @@ int EqualizerService::streamIndex(StreamId stream) const
 
 const EqualizerService::StreamState& EqualizerService::streamAt(StreamId stream) const
 {
+    Q_ASSERT(isValidStream(stream));
     return streams_[streamIndex(stream)];
 }
 
 EqualizerService::StreamState& EqualizerService::streamAt(StreamId stream)
 {
+    Q_ASSERT(isValidStream(stream));
     return streams_[streamIndex(stream)];
 }
 
@@ -431,7 +456,7 @@ void EqualizerService::loadFromConfig()
 
 void EqualizerService::scheduleSave()
 {
-    if (!config_) return;
+    if (!config_ || restoring_) return;
     saveTimer_.start(kSaveDebounceMs);
 }
 

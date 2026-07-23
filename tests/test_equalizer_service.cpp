@@ -22,6 +22,61 @@ private slots:
         QCOMPARE(svc.activePreset(StreamId::System), QString("Voice"));
     }
 
+    void testInvalidStreamInputs_data()
+    {
+        QTest::addColumn<int>("streamValue");
+        QTest::newRow("negative") << -1;
+        QTest::newRow("past-end") << 3;
+    }
+
+    void testInvalidStreamInputs()
+    {
+        QFETCH(int, streamValue);
+        const auto invalid = static_cast<StreamId>(streamValue);
+        oap::EqualizerService svc;
+        const auto mediaGains = svc.gainsForStream(StreamId::Media);
+        const auto userPresets = svc.userPresetNames();
+        QSignalSpy gainsSpy(&svc, &oap::EqualizerService::gainsChanged);
+        QSignalSpy bypassSpy(&svc, &oap::EqualizerService::bypassedChanged);
+        QSignalSpy presetSpy(&svc, &oap::EqualizerService::presetListChanged);
+
+        QCOMPARE(svc.activePreset(invalid), QString());
+        QCOMPARE(svc.gain(invalid, 0), 0.0f);
+        const auto invalidGains = svc.gainsForStream(invalid);
+        for (float gain : invalidGains) QCOMPARE(gain, 0.0f);
+        QVERIFY(!svc.isBypassed(invalid));
+
+        svc.applyPreset(invalid, "Rock");
+        svc.setGain(invalid, 0, 6.0f);
+        svc.setBypassed(invalid, true);
+        QVERIFY(svc.saveUserPreset(invalid, "Invalid source").isEmpty());
+        QVERIFY(svc.acquireEngine(invalid, 48000.0f, 2) == nullptr);
+
+        QCOMPARE(svc.gainsForStream(StreamId::Media), mediaGains);
+        QCOMPARE(svc.activePreset(StreamId::Media), QString("Flat"));
+        QVERIFY(!svc.isBypassed(StreamId::Media));
+        QCOMPARE(svc.userPresetNames(), userPresets);
+        QCOMPARE(gainsSpy.count(), 0);
+        QCOMPARE(bypassSpy.count(), 0);
+        QCOMPARE(presetSpy.count(), 0);
+    }
+
+    void testInvalidQmlStreamIndexesRemainGuarded()
+    {
+        oap::EqualizerService svc;
+        for (int invalid : {-1, 3}) {
+            QVERIFY(svc.gainsAsList(invalid).isEmpty());
+            QVERIFY(!svc.isBypassedForStream(invalid));
+            QVERIFY(svc.activePresetForStream(invalid).isEmpty());
+            svc.setGainForStream(invalid, 0, 6.0f);
+            svc.setBypassedForStream(invalid, true);
+            svc.applyPresetForStream(invalid, "Rock");
+        }
+        QCOMPARE(svc.activePreset(StreamId::Media), QString("Flat"));
+        QCOMPARE(svc.gain(StreamId::Media, 0), 0.0f);
+        QVERIFY(!svc.isBypassed(StreamId::Media));
+    }
+
     void testApplyPresetChangesOnlyTargetStream()
     {
         oap::EqualizerService svc;
@@ -153,6 +208,35 @@ private slots:
         QVERIFY(!ok);
         // Original should still exist
         QVERIFY(svc.userPresetNames().contains("MyPreset"));
+    }
+
+    void testRenameRejectsEmptyWhitespaceAndDuplicateNames()
+    {
+        oap::EqualizerService svc;
+        svc.saveUserPreset(StreamId::Media, "First");
+        svc.saveUserPreset(StreamId::Media, "Second");
+        svc.applyPreset(StreamId::Media, "First");
+
+        QVERIFY(!svc.renameUserPreset("First", ""));
+        QVERIFY(!svc.renameUserPreset("First", "  \t"));
+        QVERIFY(!svc.renameUserPreset("First", "Second"));
+        QCOMPARE(svc.userPresetNames(), QStringList({"First", "Second"}));
+        QCOMPARE(svc.activePreset(StreamId::Media), QString("First"));
+    }
+
+    void testRenameExactNameIsSuccessfulNoOp()
+    {
+        oap::EqualizerService svc;
+        svc.saveUserPreset(StreamId::Media, "Same");
+        svc.applyPreset(StreamId::Media, "Same");
+        QSignalSpy listSpy(&svc, &oap::EqualizerService::presetListChanged);
+        QSignalSpy mediaSpy(&svc, &oap::EqualizerService::mediaPresetChanged);
+
+        QVERIFY(svc.renameUserPreset("Same", "Same"));
+        QCOMPARE(svc.userPresetNames(), QStringList({"Same"}));
+        QCOMPARE(svc.activePreset(StreamId::Media), QString("Same"));
+        QCOMPARE(listSpy.count(), 0);
+        QCOMPARE(mediaSpy.count(), 0);
     }
 
     void testRenameUpdatesActivePreset()
@@ -352,6 +436,46 @@ private slots:
         svc.saveNow();
 
         QCOMPARE(config.eqStreamPreset("media"), QString("Rock"));
+    }
+
+    void testConstructionAndRestoreDoNotFlushUntilUserMutation()
+    {
+        oap::YamlConfig config;
+        config.setEqStreamPreset("media", "Rock");
+        oap::EqualizerService svc(&config);
+        int flushes = 0;
+        svc.setFlushHook([&]{ ++flushes; return true; });
+
+        QTest::qWait(2200);
+        QCOMPARE(flushes, 0);
+        QCOMPARE(svc.activePreset(StreamId::Media), QString("Rock"));
+
+        svc.setGain(StreamId::Media, 0, 3.0f);
+        QTRY_COMPARE_WITH_TIMEOUT(flushes, 1, 5000);
+    }
+
+    void testMalformedRestoreDoesNotScheduleDestructiveRewrite()
+    {
+        const QString path = QDir::temp().filePath("eq-no-boot-rewrite-test.yaml");
+        QFile::remove(path);
+        QFile file(path);
+        QVERIFY(file.open(QIODevice::WriteOnly));
+        file.write("audio:\n  equalizer:\n    streams:\n"
+                   "      media: { preset: Flat }\n"
+                   "    user_presets:\n"
+                   "      - { name: Repairable, gains: [1, 2, 3] }\n");
+        file.close();
+
+        oap::YamlConfig config;
+        config.load(path);
+        oap::EqualizerService svc(&config);
+        int flushes = 0;
+        svc.setFlushHook([&]{ ++flushes; return true; });
+
+        QVERIFY(config.eqUserPresets().isEmpty());
+        QTest::qWait(2200);
+        QCOMPARE(flushes, 0);
+        QFile::remove(path);
     }
 
     void testSaveUserPresetPersistsToConfig()
