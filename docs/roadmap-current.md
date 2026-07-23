@@ -12,6 +12,16 @@ Governance: capture new ideas in `docs/wishlist.md`; only promoted items should 
 > and the key-event map remains an unpromoted wishlist idea. The completed Phase
 > F light-plan record is archived.
 
+## Now
+
+- Android Auto input, video, and night remediation — **ACTIVE 2026-07-23**.
+  Reset process-long decoder state at stream boundaries, make evdev touch state
+  reader-thread-owned, establish one application-lifetime night-state owner,
+  and harden wireless admission plus negotiated port/video-config contracts.
+  Design and plan:
+  `docs/plans/2026-07-23-aa-input-video-night-remediation-design.md` and
+  `docs/plans/2026-07-23-aa-input-video-night-remediation-plan.md`.
+
 ## Done (recent)
 
 - Android Auto protocol crypto and flow-control remediation — **COMPLETE

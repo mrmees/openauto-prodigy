@@ -2,7 +2,8 @@
 
 ## Active Plans
 
-No implementation plan is currently active.
+- [Android Auto input, video, and night remediation design](plans/2026-07-23-aa-input-video-night-remediation-design.md)
+- [Android Auto input, video, and night remediation plan](plans/2026-07-23-aa-input-video-night-remediation-plan.md)
 
 ## Start Here
 
@@ -54,7 +55,8 @@ Protocol definitions and generic reference docs are in [open-android-auto](https
 
 Active plans:
 
-None.
+- [2026-07-23-aa-input-video-night-remediation-design.md](plans/2026-07-23-aa-input-video-night-remediation-design.md)
+- [2026-07-23-aa-input-video-night-remediation-plan.md](plans/2026-07-23-aa-input-video-night-remediation-plan.md)
 
 Parked plans (not current guidance):
 
