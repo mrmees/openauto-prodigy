@@ -14,9 +14,13 @@ Governance: capture new ideas in `docs/wishlist.md`; only promoted items should 
 
 ## Now
 
-No implementation tranche is active. Select the next bounded remediation wave
-from the privately maintained consolidation map, then publish its independent
-design and plan before implementation.
+Audio and equalizer real-time safety remediation — **ACTIVE 2026-07-23**.
+This consolidated tranche makes the SPSC/PipeWire ingestion boundary bounded,
+removes dead adaptive-buffer behavior, moves diagnostics off the RT thread,
+validates equalizer service ingress/restoration, and replaces the coefficient
+double-buffer race with atomic snapshot publication. Design and plan:
+`docs/plans/2026-07-23-audio-eq-rt-safety-remediation-design.md` and
+`docs/plans/2026-07-23-audio-eq-rt-safety-remediation-plan.md`.
 
 ## Done (recent)
 
