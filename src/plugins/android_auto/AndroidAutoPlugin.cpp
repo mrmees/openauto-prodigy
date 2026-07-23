@@ -116,8 +116,6 @@ void AndroidAutoPlugin::onConfigChanged(const QString& path, const QVariant& val
         QString res = value.toString();
         if (res == QLatin1String("1080p")) { aaW = 1920; aaH = 1080; }
         else if (res == QLatin1String("480p")) { aaW = 800; aaH = 480; }
-        touchReader->setAAResolution(aaW, aaH);
-
         // Recompute content dimensions for the new video resolution
         int displayW = runtimeBridge_->displayWidth();
         int displayH = runtimeBridge_->displayHeight();
@@ -132,8 +130,9 @@ void AndroidAutoPlugin::onConfigChanged(const QString& path, const QVariant& val
         }
 
         auto [contentW, contentH] = oap::aa::ServiceDiscoveryBuilder::computeContentDimensions(
-            aaW, aaH, displayW, displayH, navbarDuringAA, navEdge);
-        touchReader->setContentDimensions(contentW, contentH);
+            aaW, aaH, displayW, displayH, navbarDuringAA, navEdge,
+            runtimeBridge_->navbarThickness());
+        touchReader->setVideoMapping(aaW, aaH, contentW, contentH);
         qCInfo(lcAA) << "Content dims updated:" << contentW << "x" << contentH
                      << "(video:" << aaW << "x" << aaH << ")";
     }

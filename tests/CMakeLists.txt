@@ -164,6 +164,7 @@ oap_add_test(test_video_decoder SOURCES test_video_decoder.cpp)
 
 oap_add_test(test_touch_router SOURCES test_touch_router.cpp)
 oap_add_test(test_evdev_coord_bridge SOURCES test_evdev_coord_bridge.cpp)
+oap_add_test(test_evdev_touch_reader SOURCES test_evdev_touch_reader.cpp)
 
 # --- Navbar tests ---
 

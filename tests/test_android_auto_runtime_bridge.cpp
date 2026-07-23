@@ -55,6 +55,7 @@ void TestAndroidAutoRuntimeBridge::testConstruction() {
 void TestAndroidAutoRuntimeBridge::testNavbarThicknessDefault() {
     // Without DisplayInfo or DPI, should return 56 (base value)
     oap::aa::AndroidAutoRuntimeBridge bridge;
+    QCOMPARE(bridge.navbarThickness(), 56);
     QCOMPARE(bridge.computeNavbarThickness(0, 1.0), 56);
 }
 

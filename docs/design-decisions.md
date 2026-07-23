@@ -112,6 +112,11 @@ emits Android MotionEvent-compatible down, move, and up messages. Leaving the
 AA view or backgrounding/disconnecting projection releases the grab so normal
 QML input resumes.
 
+The reader thread exclusively owns the device descriptor, actual grab state,
+slot history, and phone-visible pointer membership. Main-thread configuration
+is published as coherent snapshots before or during the reader loop; device
+loss closes and reopens on a paced retry that remains interruptible at stop.
+
 ### Touch routing and the navbar
 
 **Decision:** Route grabbed evdev input through `TouchRouter` before forwarding
@@ -120,8 +125,11 @@ unclaimed pointers to AA.
 **Rationale:** `NavbarController` registers priority hit zones through
 `EvdevCoordBridge`; those zones can consume a pointer for head-unit controls
 even though QML `MouseArea`s cannot receive the grabbed device. Unclaimed
-pointers fall through to `TouchHandler` and the AA input channel. A 3-finger
-gesture suppresses AA forwarding and opens the system overlay.
+pointers fall through to `TouchHandler` and the AA input channel. Raw slot
+activity and AA membership are separate: a zone-claimed pointer never appears
+in AA's full-pointer arrays, and same-report transitions are serialized in
+Android MotionEvent order. A 3-finger gesture suppresses AA forwarding and
+opens the system overlay.
 
 ### Touch debug overlay
 

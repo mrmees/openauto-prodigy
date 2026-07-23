@@ -106,14 +106,10 @@ void AndroidAutoRuntimeBridge::setup(AndroidAutoOrchestrator* orchestrator,
             aaW, aaH,
             displayW_, displayH_,
             this);
-        touchReader_->start();
-        qCInfo(lcAA) << "Touch:" << touchDevice
-                << "display=" << displayW_ << "x" << displayH_;
 
         // Create EvdevCoordBridge for external zone registration
         coordBridge_ = new EvdevCoordBridge(&touchReader_->router(), this);
         coordBridge_->setDisplayMapping(displayW_, displayH_, 4095, 4095);
-        touchReader_->setCoordBridge(coordBridge_);
 
         // Relay 3-finger gesture
         connect(touchReader_, &EvdevTouchReader::gestureDetected,
@@ -129,16 +125,19 @@ void AndroidAutoRuntimeBridge::setup(AndroidAutoOrchestrator* orchestrator,
             if (navbarDuringAA) {
                 navEdge = configService->value("navbar.edge").toString();
                 if (navEdge.isEmpty()) navEdge = "bottom";
-                touchReader_->setNavbar(true, navbarThick_, navEdge.toStdString());
-                qCInfo(lcAA) << "Navbar touch zone:" << navEdge << navbarThick_ << "px";
             }
         }
+        touchReader_->setNavbar(navbarDuringAA, navbarThick_, navEdge.toStdString());
+        if (navbarDuringAA)
+            qCInfo(lcAA) << "Navbar touch zone:" << navEdge << navbarThick_ << "px";
 
         // Compute content dimensions
         auto [contentW, contentH] = ServiceDiscoveryBuilder::computeContentDimensions(
             aaW, aaH, displayW_, displayH_, navbarDuringAA, navEdge, navbarThick_);
-        touchReader_->setContentDimensions(contentW, contentH);
-        touchReader_->computeLetterbox();
+        touchReader_->setVideoMapping(aaW, aaH, contentW, contentH);
+        touchReader_->start();
+        qCInfo(lcAA) << "Touch:" << touchDevice
+                << "display=" << displayW_ << "x" << displayH_;
         qCInfo(lcAA) << "Content dims:" << contentW << "x" << contentH
                      << "(video:" << aaW << "x" << aaH << ")";
     } else {
@@ -155,6 +154,8 @@ void AndroidAutoRuntimeBridge::setup(AndroidAutoOrchestrator* orchestrator,
                 displayH_ = h;
                 if (touchReader_)
                     touchReader_->setDisplayDimensions(w, h);
+                if (coordBridge_)
+                    coordBridge_->setDisplayMapping(w, h, 4095, 4095);
                 if (orchestrator)
                     orchestrator->setDisplayDimensions(w, h);
             }

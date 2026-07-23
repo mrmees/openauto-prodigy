@@ -81,7 +81,10 @@ back over the rendered viewport. It is diagnostic only and defaults off.
 `AndroidAutoRuntimeBridge` creates `EvdevTouchReader`, gives it the detected
 display dimensions, selected AA mode, Navbar edge/thickness, and the shared
 content dimensions, then creates `EvdevCoordBridge` for shell-zone
-registration.
+registration. All initial configuration is complete before the reader thread
+starts. Later display, negotiated-video, grab, and stop requests are snapshots
+or atomics consumed by that reader thread; its descriptor and touch-slot state
+are never mutated by the Qt main thread.
 
 `EvdevTouchReader::computeLetterbox()` first removes the Navbar strip from the
 display viewport. It compares that viewport with the content aspect ratio,
@@ -92,6 +95,8 @@ evdev coordinates, and maps unclaimed touches linearly into
 Touch is grabbed with `EVIOCGRAB` when a connected AA session owns the
 projection view. It is ungrabbed when projection backgrounds, disconnects, or
 the plugin view is deactivated, returning normal shell input to Wayland/Qt.
+Poll errors, hangups, and short reads close the lost device and enter a paced
+reopen loop. A stop request wakes that wait immediately.
 
 ## Navbar and popup zone ownership
 
@@ -110,6 +115,10 @@ Routing has these properties:
 - Claimed Navbar or popup touches are consumed locally and are not forwarded to
   AA.
 - Unclaimed touches fall through to AA.
+- Phone-visible pointer membership is independent of raw active slots, so a
+  claimed pointer cannot leak into another pointer's AA motion array.
+- Multiple downs or ups in one evdev report are serialized into Android
+  MotionEvent order with complete pointer arrays and correct action indices.
 - The three-finger gesture can suppress AA forwarding without preventing zone
   dispatch.
 

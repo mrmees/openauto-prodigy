@@ -6,15 +6,19 @@
 #include <vector>
 #include <string>
 #include <chrono>
+#include <mutex>
+#include <sys/types.h>
 #include <linux/input.h>
 #include <QDebug>
+#include <QMutex>
+#include <QWaitCondition>
 #include "TouchHandler.hpp"
 #include "TouchRouter.hpp"
 
 namespace oap {
 namespace aa {
 
-class EvdevCoordBridge;  // forward declaration
+class EvdevTouchReaderTestAccess;
 
 // Reads multi-touch events directly from a Linux evdev device (MT Type B protocol).
 // Bypasses Qt's touch input entirely to avoid Wayland/evdev plugin conflicts.
@@ -44,19 +48,9 @@ public:
                               const std::string& devicePath,
                               int aaWidth, int aaHeight,
                               int displayWidth, int displayHeight,
-                              QObject* parent = nullptr)
-        : QThread(parent)
-        , handler_(handler)
-        , devicePath_(devicePath)
-        , aaWidth_(aaWidth)
-        , aaHeight_(aaHeight)
-        , displayWidth_(displayWidth)
-        , displayHeight_(displayHeight)
-    {
-        slots_.fill(Slot{});
-    }
+                              QObject* parent = nullptr);
 
-    void requestStop() { stopRequested_ = true; }
+    void requestStop();
 
     /// Grab/ungrab the evdev device. When ungrabbed, events are discarded and
     /// Wayland/libinput can handle the touch device for normal UI interaction.
@@ -64,20 +58,12 @@ public:
     void ungrab();
 
     void setNavbar(bool enabled, int thickness, const std::string& edge);
-    void setCoordBridge(EvdevCoordBridge* bridge) { coordBridge_ = bridge; }
-    void computeLetterbox();
 
     /// Direct access to the touch router (for external zone registration)
     TouchRouter& router() { return router_; }
 
-    /// Set content-space dimensions (video res minus margins).
-    /// When set, mapX/mapY output in this coordinate space instead of full video res.
-    /// Must match touch_screen_config sent to the phone.
-    void setContentDimensions(int w, int h);
-
-    /// Thread-safe: update AA coordinate space (e.g. after video resolution change).
-    /// Takes effect on next touch sync on the reader thread.
-    void setAAResolution(int aaWidth, int aaHeight);
+    /// Thread-safe: atomically update the negotiated frame and content spaces.
+    void setVideoMapping(int aaWidth, int aaHeight, int contentWidth, int contentHeight);
 
     /// Thread-safe: update display dimensions (e.g. after window resize detection).
     /// Takes effect on next touch sync on the reader thread.
@@ -90,11 +76,39 @@ signals:
 protected:
     void run() override;
 
+    // Narrow device-I/O seams for deterministic loss/reopen tests.
+    virtual bool openDevice();
+    virtual void closeDevice();
+    virtual void queryAxisRanges();
+    virtual int pollDevice(short& revents, int timeoutMs);
+    virtual ssize_t readDeviceEvent(input_event& event);
+    virtual bool setDeviceGrab(bool grabbed);
+    virtual bool waitForReconnect();
+
 private:
+    friend class EvdevTouchReaderTestAccess;
+
+    struct MappingConfig {
+        int aaWidth = 1280;
+        int aaHeight = 720;
+        int displayWidth = 1024;
+        int displayHeight = 600;
+        int contentWidth = 0;
+        int contentHeight = 0;
+        bool navbarEnabled = false;
+        int navbarThickness = 0;
+        std::string navbarEdge = "bottom";
+        quint64 version = 1;
+    };
+
+    void applyPendingMapping(bool force = false);
+    void applyRequestedGrab();
+    void resetTouchState();
+    void computeLetterbox();
     void processSync();
     int countActive() const;
-    int slotToArrayIndex(int slot) const;
     bool checkGesture();
+    std::vector<TouchHandler::Pointer> buildAaPointers() const;
 
     // Map raw evdev coordinate to AA coordinate, accounting for letterbox
     int mapX(int rawX) const;
@@ -121,9 +135,11 @@ private:
 
     std::array<Slot, MAX_SLOTS> slots_;
     std::array<Slot, MAX_SLOTS> prevSlots_;  // state before this SYN
+    std::array<bool, MAX_SLOTS> aaActive_{}; // pointers whose DOWN reached AA
     int currentSlot_ = 0;
-    bool stopRequested_ = false;
-    std::atomic<bool> grabbed_{false};
+    std::atomic<bool> stopRequested_{false};
+    std::atomic<bool> requestedGrab_{false};
+    bool deviceGrabbed_ = false; // reader thread only
     int fd_ = -1;
 
     // Gesture detection state
@@ -142,17 +158,15 @@ private:
     int navbarThickness_ = 0;
     std::string navbarEdge_ = "bottom";
 
-    // Touch routing
+    // Touch routing (internally synchronized for main-thread zone updates).
     TouchRouter router_;
-    EvdevCoordBridge* coordBridge_ = nullptr;
 
-    // Pending resolution update (set from main thread, consumed on reader thread)
-    std::atomic<int> pendingAAWidth_{0};
-    std::atomic<int> pendingAAHeight_{0};
+    mutable std::mutex mappingMutex_;
+    MappingConfig requestedMapping_;
+    quint64 appliedMappingVersion_ = 0; // reader thread only
 
-    // Pending display dimension update (set from main thread, consumed on reader thread)
-    std::atomic<int> pendingDisplayWidth_{0};
-    std::atomic<int> pendingDisplayHeight_{0};
+    QMutex reconnectMutex_;
+    QWaitCondition reconnectCondition_;
 };
 
 } // namespace aa

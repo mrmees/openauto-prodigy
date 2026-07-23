@@ -122,7 +122,11 @@ full encoded-frame dimensions and does not add the centered margin offset.
 
 Touches claimed by registered shell zones are consumed locally. Unclaimed
 touches fall through to AA, with all active pointers included in the AA motion
-message.
+message. Phone-visible membership is tracked separately from raw evdev slot
+activity, so a slot claimed by a local zone never appears in an AA pointer
+array. If evdev batches multiple transitions in one `SYN_REPORT`, the reader
+still emits the Android ordering (`DOWN`, then `POINTER_DOWN`; `POINTER_UP`,
+then `UP`) with the changed pointer's array index.
 
 ## Session lifetime
 
@@ -131,6 +135,8 @@ dimensions during service discovery. Those values remain fixed for that AA
 session. Changing `video.resolution` or `video.fps` during an active session
 causes a disconnect/reconnect so the phone negotiates the new values; the
 Navbar visibility setting is marked restart-required in the settings UI.
+Frame and content dimensions are published to the reader as one mapping
+snapshot, retaining the DPI-scaled Navbar thickness used by discovery.
 
 Wire ID `0x8012` is not a runtime margin-update request. The current gold-traced
 definition is the HU's theming-token status response to the phone's `0x8011`
