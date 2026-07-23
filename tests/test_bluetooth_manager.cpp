@@ -52,6 +52,20 @@ public:
             || manager.pendingPairingMessage_.type()
                 == QDBusMessage::MethodCallMessage;
     }
+
+    static void interfacesAdded(BluetoothManager& manager,
+                                const QDBusObjectPath& path,
+                                const BluezInterfaceMap& interfaces)
+    {
+        manager.onInterfacesAdded(path, interfaces);
+    }
+
+    static void interfacesRemoved(BluetoothManager& manager,
+                                  const QDBusObjectPath& path,
+                                  const QStringList& interfaces)
+    {
+        manager.onInterfacesRemoved(path, interfaces);
+    }
 };
 
 } // namespace oap
@@ -208,6 +222,9 @@ private slots:
     void testDirectAdapterReplacementClearsOldEpochState();
     void testRemoveReaddSignalStartsNewSamePathEpoch();
     void testAdapterEpochResetCancelsDelayedConfirmation();
+    void testUnknownAdapterRemovalInvalidatesInitialScan();
+    void testDeviceRemovalCancelsPromptBeforeSamePathReadd();
+    void testInterfacesRemovedIgnoredAfterShutdown();
     void testAgentMethodSurfaceAndPromptModes();
     void testAsyncRefreshCoalescesAndAppliesFinalSnapshot();
     void testValidRefreshSurvivesFailingTrailingRefresh();
@@ -805,6 +822,133 @@ void TestBluetoothManager::testAdapterEpochResetCancelsDelayedConfirmation()
 
     mgr.shutdown();
     QDBusConnection::disconnectFromBus(clientName);
+}
+
+void TestBluetoothManager::testUnknownAdapterRemovalInvalidatesInitialScan()
+{
+    QDBusConnection bus = QDBusConnection::sessionBus();
+    QVERIFY(bus.isConnected());
+    qDBusRegisterMetaType<oap::BluezInterfaceMap>();
+    qDBusRegisterMetaType<TestBluezManagedObjectMap>();
+
+    BluezObjectManagerFixture fixture;
+    auto initialObjects = adapterSnapshot();
+    addDevice(initialObjects, true, true, QStringLiteral("Retired Pixel"));
+    for (auto it = initialObjects.cbegin(); it != initialObjects.cend(); ++it)
+        fixture.objects[QDBusObjectPath(it.key())] = it.value();
+    QVERIFY(bus.registerObject(QStringLiteral("/"), &fixture,
+                               QDBusConnection::ExportAllSlots));
+    QVERIFY(bus.registerService(QStringLiteral("org.bluez")));
+
+    MockConfigService config;
+    config.values_[QStringLiteral("connection.auto_connect_aa")] = false;
+    oap::BluetoothManager mgr(&config, bus);
+    mgr.initialize();
+    QTRY_COMPARE(fixture.callCount, 1);
+    QVERIFY(mgr.adapterAddress().isEmpty());
+
+    // The first reply already contains the adapter but it is not selected yet.
+    // Its removal must invalidate that reply; the failing trailing scan must
+    // not publish or retain the retired snapshot.
+    fixture.failNext = true;
+    oap::BluetoothManagerTestAccess::interfacesRemoved(
+        mgr, QDBusObjectPath(kAdapterPath),
+        QStringList{QStringLiteral("org.bluez.Adapter1")});
+    QTRY_COMPARE_WITH_TIMEOUT(fixture.replyCount, 2, 3000);
+    QCOMPARE(fixture.callCount, 2);
+    QVERIFY(mgr.adapterAddress().isEmpty());
+    QVERIFY(mgr.adapterAlias().isEmpty());
+    QVERIFY(!mgr.isDiscoverable());
+    QVERIFY(!oap::BluetoothManagerTestAccess::initialSnapshotApplied(mgr));
+    QCOMPARE(mgr.pairedDevicesModel()->rowCount(), 0);
+
+    mgr.shutdown();
+    QVERIFY(bus.unregisterService(QStringLiteral("org.bluez")));
+    bus.unregisterObject(QStringLiteral("/"));
+}
+
+void TestBluetoothManager::testDeviceRemovalCancelsPromptBeforeSamePathReadd()
+{
+    MockConfigService config;
+    config.values_[QStringLiteral("connection.auto_connect_aa")] = false;
+    const QDBusConnection serverBus = QDBusConnection::sessionBus();
+    oap::BluetoothManager mgr(&config, serverBus);
+    auto objects = adapterSnapshot();
+    addDevice(objects, false, false);
+    mgr.applyManagedObjectsSnapshot(objects);
+
+    const QString clientName = QStringLiteral("oap-agent-device-readd-client");
+    const QDBusConnection client =
+        QDBusConnection::connectToBus(QDBusConnection::SessionBus, clientName);
+    QVERIFY(client.isConnected());
+
+    QDBusMessage confirmation =
+        agentCall(serverBus, QStringLiteral("RequestConfirmation"));
+    confirmation << QVariant::fromValue(QDBusObjectPath(kDevicePath))
+                 << QVariant::fromValue(quint32(778899));
+    QDBusPendingCallWatcher confirmationWatcher(
+        client.asyncCall(confirmation, 5000));
+    QTRY_VERIFY(mgr.isPairingActive());
+    QVERIFY(oap::BluetoothManagerTestAccess::hasPendingPairingDecision(mgr));
+
+    oap::BluetoothManagerTestAccess::interfacesRemoved(
+        mgr, QDBusObjectPath(kDevicePath),
+        QStringList{QStringLiteral("org.bluez.Device1")});
+    oap::BluetoothManagerTestAccess::interfacesAdded(
+        mgr, QDBusObjectPath(kDevicePath), objects.value(kDevicePath));
+    mgr.applyManagedObjectsSnapshot(objects);
+
+    const QDBusMessage confirmationReply = awaitReply(confirmationWatcher);
+    QCOMPARE(confirmationReply.type(), QDBusMessage::ErrorMessage);
+    QCOMPARE(confirmationReply.errorName(),
+             QStringLiteral("org.bluez.Error.Canceled"));
+    QVERIFY(!mgr.isPairingActive());
+    QVERIFY(!oap::BluetoothManagerTestAccess::hasPendingPairingDecision(mgr));
+    mgr.confirmPairing();
+    QVERIFY(!mgr.isPairingActive());
+
+    mgr.shutdown();
+    QDBusConnection::disconnectFromBus(clientName);
+}
+
+void TestBluetoothManager::testInterfacesRemovedIgnoredAfterShutdown()
+{
+    MockConfigService config;
+    config.values_[QStringLiteral("connection.auto_connect_aa")] = false;
+    oap::BluetoothManager mgr(&config, QDBusConnection::sessionBus());
+    auto objects = adapterSnapshot();
+    addDevice(objects, true, true);
+    mgr.applyManagedObjectsSnapshot(objects);
+    mgr.shutdown();
+
+    const QString address = mgr.adapterAddress();
+    const QString alias = mgr.adapterAlias();
+    const bool discoverable = mgr.isDiscoverable();
+    const bool pairable = mgr.isPairable();
+    const QString connectedName = mgr.connectedDeviceName();
+    const int pairedCount = mgr.pairedDevicesModel()->rowCount();
+    QSignalSpy addressSpy(&mgr, &oap::BluetoothManager::adapterAddressChanged);
+    QSignalSpy aliasSpy(&mgr, &oap::BluetoothManager::adapterAliasChanged);
+    QSignalSpy discoverableSpy(&mgr,
+                               &oap::BluetoothManager::discoverableChanged);
+    QSignalSpy pairableSpy(&mgr, &oap::BluetoothManager::pairableChanged);
+    QSignalSpy connectedSpy(&mgr, &oap::BluetoothManager::connectedDeviceChanged);
+
+    oap::BluetoothManagerTestAccess::interfacesRemoved(
+        mgr, QDBusObjectPath(kAdapterPath),
+        QStringList{QStringLiteral("org.bluez.Adapter1")});
+
+    QCOMPARE(mgr.adapterAddress(), address);
+    QCOMPARE(mgr.adapterAlias(), alias);
+    QCOMPARE(mgr.isDiscoverable(), discoverable);
+    QCOMPARE(mgr.isPairable(), pairable);
+    QCOMPARE(mgr.connectedDeviceName(), connectedName);
+    QCOMPARE(mgr.pairedDevicesModel()->rowCount(), pairedCount);
+    QCOMPARE(addressSpy.count(), 0);
+    QCOMPARE(aliasSpy.count(), 0);
+    QCOMPARE(discoverableSpy.count(), 0);
+    QCOMPARE(pairableSpy.count(), 0);
+    QCOMPARE(connectedSpy.count(), 0);
 }
 
 void TestBluetoothManager::testAgentMethodSurfaceAndPromptModes()

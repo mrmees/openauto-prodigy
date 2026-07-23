@@ -991,13 +991,28 @@ void BluetoothManager::onInterfacesAdded(
 void BluetoothManager::onInterfacesRemoved(
     const QDBusObjectPath& path, const QStringList& interfaces)
 {
+    if (shutdown_)
+        return;
+
+    const bool adapterRemoved =
+        interfaces.contains(QStringLiteral("org.bluez.Adapter1"));
+    if (adapterRemoved) {
+        // Any reply requested before this removal describes the retired
+        // adapter epoch. This applies before an adapter is selected too: an
+        // initial reply may already contain the just-removed object.
+        ++managedObjectsRequestGeneration_;
+    }
+
+    if (path.path() == pendingPairingDevicePath_
+        && interfaces.contains(QStringLiteral("org.bluez.Device1"))) {
+        abortPairingPrompt(QStringLiteral("Pairing device was removed"));
+    }
+
     if (!adapterPath_.isEmpty()
         && path.path() == adapterPath_
-        && interfaces.contains(QStringLiteral("org.bluez.Adapter1"))) {
-        // Any reply requested before this removal describes the retired
-        // adapter epoch. Invalidate it even if BlueZ re-adds the same object
-        // path before the coalesced trailing refresh completes.
-        ++managedObjectsRequestGeneration_;
+        && adapterRemoved) {
+        // Reset immediately even if BlueZ re-adds the same object path before
+        // the coalesced trailing refresh completes.
         resetAdapterEpoch();
         adapterPath_.clear();
         deviceNamesByPath_.clear();
