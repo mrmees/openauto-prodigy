@@ -240,6 +240,10 @@ private:
     // AudioStreamHandle in both cases.
     static void onStreamStateChanged(void* userdata, enum pw_stream_state old,
                                      enum pw_stream_state state, const char* error);
+    // Validate one mapped capture plane before pointer arithmetic or narrowing
+    // its SPA-sized payload to the callback's int length.
+    static bool capturePayload(const struct spa_data& data,
+                               const uint8_t*& payload, int& size);
     static void onCaptureProcess(void* userdata);
 
     struct pw_thread_loop* threadLoop_ = nullptr;

@@ -154,6 +154,13 @@ private slots:
         QVERIFY(result.isEmpty());
     }
 
+    void testSaveUserPresetRejectsWhitespaceName()
+    {
+        oap::EqualizerService svc;
+        QVERIFY(svc.saveUserPreset(StreamId::Media, "  \t").isEmpty());
+        QVERIFY(svc.userPresetNames().isEmpty());
+    }
+
     void testDeleteUserPreset()
     {
         oap::EqualizerService svc;
@@ -475,7 +482,37 @@ private slots:
         QVERIFY(config.eqUserPresets().isEmpty());
         QTest::qWait(2200);
         QCOMPARE(flushes, 0);
+        svc.saveNow();
+        QCOMPARE(flushes, 0);
+        QFile verify(path);
+        QVERIFY(verify.open(QIODevice::ReadOnly));
+        QVERIFY(verify.readAll().contains("Repairable"));
         QFile::remove(path);
+    }
+
+    void testRestoreFiltersAmbiguousPresetNamesWithoutDirtyingConfig()
+    {
+        oap::YamlConfig config;
+        QList<oap::YamlConfig::EqUserPreset> presets;
+        auto append = [&](const QString& name, float gain) {
+            oap::YamlConfig::EqUserPreset preset;
+            preset.name = name;
+            preset.gains.fill(gain);
+            presets.append(preset);
+        };
+        append("  ", 1.0f);
+        append("Rock", 2.0f);
+        append("Valid", 3.0f);
+        append("Valid", 4.0f);
+        config.setEqUserPresets(presets);
+
+        oap::EqualizerService svc(&config);
+        QCOMPARE(svc.userPresetNames(), QStringList{"Valid"});
+        int flushes = 0;
+        svc.setFlushHook([&]{ ++flushes; return true; });
+        svc.saveNow();
+        QCOMPARE(flushes, 0);
+        QCOMPARE(config.eqUserPresets().size(), 4);
     }
 
     void testSaveUserPresetPersistsToConfig()

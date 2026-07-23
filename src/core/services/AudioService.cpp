@@ -701,6 +701,26 @@ QString AudioService::inputDevice() const
 
 // ---- Capture (microphone / loopback input) ----
 
+bool AudioService::capturePayload(const struct spa_data& data,
+                                  const uint8_t*& payload, int& size)
+{
+    payload = nullptr;
+    size = 0;
+    if (!data.data || !data.chunk || data.chunk->size == 0)
+        return false;
+
+    const uint32_t offset = data.chunk->offset;
+    const uint32_t payloadSize = data.chunk->size;
+    if (offset > data.maxsize || payloadSize > data.maxsize - offset
+        || payloadSize > static_cast<uint32_t>(std::numeric_limits<int>::max())) {
+        return false;
+    }
+
+    payload = static_cast<const uint8_t*>(data.data) + offset;
+    size = static_cast<int>(payloadSize);
+    return true;
+}
+
 void AudioService::onCaptureProcess(void* userdata)
 {
     // userdata is the capture handle (like playback), not the service.
@@ -719,12 +739,12 @@ void AudioService::onCaptureProcess(void* userdata)
     struct spa_data& d = buf->buffer->datas[0];
     // Atomic guard: a legacy setCaptureCallback / close may be mutating the
     // std::function on the Qt thread. Only touch it when published active.
-    if (d.data && d.chunk && d.chunk->size > 0 &&
-        handle->captureCallbackActive.load(std::memory_order_acquire) &&
-        handle->captureCallback) {
-        auto* ptr = static_cast<const uint8_t*>(d.data) + d.chunk->offset;
-        int size = static_cast<int>(d.chunk->size);
-        handle->captureCallback(ptr, size);
+    const uint8_t* payload = nullptr;
+    int payloadSize = 0;
+    if (capturePayload(d, payload, payloadSize)
+        && handle->captureCallbackActive.load(std::memory_order_acquire)
+        && handle->captureCallback) {
+        handle->captureCallback(payload, payloadSize);
     }
 
     pw_stream_queue_buffer(handle->stream, buf);

@@ -203,6 +203,39 @@ private slots:
             QCOMPARE(memory[i], static_cast<uint8_t>(0));
     }
 
+    void capturePayloadBoundsAreValidatedBeforeCallbackNarrowing()
+    {
+        uint8_t memory[16]{};
+        spa_chunk chunk{};
+        spa_data data{};
+        data.data = memory;
+        data.maxsize = sizeof(memory);
+        data.chunk = &chunk;
+        const uint8_t* payload = nullptr;
+        int payloadSize = -1;
+
+        chunk.offset = 4;
+        chunk.size = 8;
+        QVERIFY(oap::AudioService::capturePayload(data, payload, payloadSize));
+        QCOMPARE(payload, memory + 4);
+        QCOMPARE(payloadSize, 8);
+
+        chunk.offset = 17;
+        chunk.size = 1;
+        QVERIFY(!oap::AudioService::capturePayload(data, payload, payloadSize));
+        QCOMPARE(payload, nullptr);
+        QCOMPARE(payloadSize, 0);
+
+        chunk.offset = 12;
+        chunk.size = 5;
+        QVERIFY(!oap::AudioService::capturePayload(data, payload, payloadSize));
+
+        data.maxsize = UINT32_MAX;
+        chunk.offset = 0;
+        chunk.size = static_cast<uint32_t>(INT_MAX) + 1u;
+        QVERIFY(!oap::AudioService::capturePayload(data, payload, payloadSize));
+    }
+
     void streamErrorLogsWithoutRecoveryHookAndHookStillDispatches()
     {
         oap::AudioStreamHandle handle;

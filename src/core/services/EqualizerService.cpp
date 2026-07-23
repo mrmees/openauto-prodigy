@@ -164,8 +164,9 @@ QString EqualizerService::saveUserPreset(StreamId source, const QString& name)
     if (!isValidStream(source)) return {};
     QString presetName = name.isEmpty() ? generateAutoName() : name;
 
-    // Reject bundled name collisions
-    if (isBundledName(presetName)) {
+    // An omitted name retains auto-naming; an explicitly blank-looking or
+    // bundled name cannot enter the shared preset namespace.
+    if (!isValidUserPresetName(presetName)) {
         return {};
     }
 
@@ -209,8 +210,7 @@ bool EqualizerService::deleteUserPreset(const QString& name)
 
 bool EqualizerService::renameUserPreset(const QString& oldName, const QString& newName)
 {
-    if (newName.trimmed().isEmpty()) return false;
-    if (isBundledName(newName)) return false;
+    if (!isValidUserPresetName(newName)) return false;
 
     auto it = std::find_if(userPresets_.begin(), userPresets_.end(),
         [&](const UserPreset& p) { return p.name == oldName; });
@@ -365,6 +365,11 @@ bool EqualizerService::isBundledName(const QString& name) const
     return false;
 }
 
+bool EqualizerService::isValidUserPresetName(const QString& name) const
+{
+    return !name.trimmed().isEmpty() && !isBundledName(name);
+}
+
 const std::array<float, kNumBands>* EqualizerService::findPresetGains(const QString& name) const
 {
     // Check bundled first
@@ -418,6 +423,10 @@ void EqualizerService::loadFromConfig()
     // Load user presets first (so applyPreset can find them)
     auto cfgPresets = config_->eqUserPresets();
     for (const auto& cp : cfgPresets) {
+        const bool duplicate = std::any_of(userPresets_.cbegin(), userPresets_.cend(),
+            [&](const UserPreset& existing) { return existing.name == cp.name; });
+        if (!isValidUserPresetName(cp.name) || duplicate)
+            continue;
         UserPreset up;
         up.name = cp.name;
         up.gains = cp.gains;
@@ -457,6 +466,7 @@ void EqualizerService::loadFromConfig()
 void EqualizerService::scheduleSave()
 {
     if (!config_ || restoring_) return;
+    dirty_ = true;
     saveTimer_.start(kSaveDebounceMs);
 }
 
@@ -467,7 +477,7 @@ void EqualizerService::setFlushHook(FlushFn fn)
 
 void EqualizerService::writeToConfig()
 {
-    if (!config_) return;
+    if (!config_ || !dirty_) return;
 
     // Write per-stream preset assignment, raw gains, and authoritative bypass.
     // Gains + bypass are ALWAYS written so a Custom (no-preset) state and a
@@ -500,6 +510,8 @@ void EqualizerService::writeToConfig()
     if (flushFn_ && !flushFn_()) {
         qCWarning(lcEq) << "EQ config flush failed; retrying";
         saveTimer_.start(kSaveDebounceMs);
+    } else {
+        dirty_ = false;
     }
 }
 

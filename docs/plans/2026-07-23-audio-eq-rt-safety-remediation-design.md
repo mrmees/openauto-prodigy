@@ -124,7 +124,8 @@ successful no-op. Existing case-sensitive name semantics remain unchanged.
 
 Construction and `loadFromConfig()` run under an explicit restore guard.
 Operations used to seed defaults or apply restored presets do not arm the save
-timer. Only a later user mutation or explicit `saveNow()` writes configuration.
+timer or mark the service dirty. Only a later user mutation becomes writable;
+`saveNow()` flushes pending dirty state and is a no-op after a clean restore.
 The validator continues to reject malformed gain arrays without mutating the
 raw YAML merely because the application booted.
 

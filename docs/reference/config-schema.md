@@ -280,7 +280,7 @@ The following maps or sequences are not writable as whole values through
 | `logging.debug_categories` | `[]` of strings | Selective debug categories using the canonical values `aa`, `bt`, `audio`, `plugin`, `ui`, `core`, and `eq`; `aa` also enables the Android Auto protocol library category. Owned by the typed `loggingDebugCategories()` / `setLoggingDebugCategories()` accessors. Generic dot-path access remains scalar-only. |
 | `audio.equalizer.streams.<stream>.gains` | Optional list of exactly ten finite values, clamped to ±12 dB | `EqualizerService` dedicated accessors. |
 | `audio.equalizer.streams.<stream>.bypassed` | Optional bool, effectively `false` when absent | `EqualizerService` dedicated accessors. |
-| `audio.equalizer.user_presets` | `[]`; entries contain `name` and ten `gains` | `EqualizerService` dedicated accessors. |
+| `audio.equalizer.user_presets` | `[]`; entries contain a non-blank, non-bundled, unique `name` and ten `gains` | `EqualizerService` dedicated accessors. Invalid/duplicate restored entries are ignored in memory without causing a clean-start rewrite. |
 | `plugins.enabled` | `[org.openauto.android-auto]` | Plugin manager / typed accessor. |
 | `plugins.disabled` | `[]` | Reserved plugin-disable list. |
 | `plugin_config.<plugin-id>` | Empty map by default | Per-plugin scalar or string-list storage. |

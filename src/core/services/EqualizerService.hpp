@@ -123,6 +123,7 @@ private:
     StreamState& streamAt(StreamId stream);
     void emitPresetSignal(StreamId stream);
     bool isBundledName(const QString& name) const;
+    bool isValidUserPresetName(const QString& name) const;
     const std::array<float, kNumBands>* findPresetGains(const QString& name) const;
     QString generateAutoName() const;
     void loadFromConfig();
@@ -145,6 +146,9 @@ private:
     // service is fully restored so merely starting the app never rewrites EQ
     // configuration.
     bool restoring_ = true;
+    // Set only by post-restore mutations. A clean shutdown must not serialize
+    // validator-pruned state back over the user's raw configuration.
+    bool dirty_ = false;
 };
 
 } // namespace oap
