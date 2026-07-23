@@ -14,6 +14,20 @@ Governance: capture new ideas in `docs/wishlist.md`; only promoted items should 
 
 ## Done (recent)
 
+- Android Auto session and transport lifecycle remediation — **COMPLETE
+  2026-07-22** (Pi/Pixel live-validated). Terminal session finalization now
+  closes persistent handlers while they are alive and prevents stale or
+  reentrant traffic from crossing replacement boundaries. Messenger restart
+  resets framing, assembly, TLS, and send state; fatal TLS failures surface
+  immediately; channel-open responses use one validated service-channel path;
+  and transient RFCOMM listener startup failures retry within a bounded budget.
+  Deployment retained one responsive application process, automatically
+  reconnected the Pixel, and resumed H.265 projection without restarting
+  hostapd or Bluetooth. Design and plan:
+  `docs/archive/plans/2026-07-22-aa-session-transport-lifecycle-remediation-design.md`
+  and
+  `docs/archive/plans/2026-07-22-aa-session-transport-lifecycle-remediation-plan.md`.
+
 - API and core asynchronous lifecycle remediation — **COMPLETE 2026-07-22**
   (Pi/Pixel live-validated). Prodigy and Companion now pair with an explicitly
   versioned 120-bit Base32 code; legacy credentials retire without an insecure
@@ -181,16 +195,8 @@ Governance: capture new ideas in `docs/wishlist.md`; only promoted items should 
 
 ## Now
 
-Android Auto session and transport lifecycle remediation — **ACTIVE
-2026-07-22**. This consolidated wave makes session teardown/replacement and
-Messenger restart deterministic, surfaces fatal TLS handshakes immediately,
-unifies service-channel open-response routing, and recovers transient RFCOMM
-listener startup failure. It is bounded to the wireless AA lifecycle and does
-not change protocol schemas, QML, HFP, PipeWire routing, logging, External API,
-or the companion app. Design and plan:
-`docs/plans/2026-07-22-aa-session-transport-lifecycle-remediation-design.md`
-and
-`docs/plans/2026-07-22-aa-session-transport-lifecycle-remediation-plan.md`.
+No implementation tranche is active. Select and revalidate the next bounded
+remediation wave before promoting a new design and plan.
 
 ## Later
 

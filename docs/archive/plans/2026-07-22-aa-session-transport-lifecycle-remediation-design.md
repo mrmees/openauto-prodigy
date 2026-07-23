@@ -1,7 +1,7 @@
 # Android Auto Session and Transport Lifecycle Remediation — Design
 
 Date: 2026-07-22
-Status: ACTIVE
+Status: COMPLETED 2026-07-22
 Base: `origin/main` at `97072775ef1441d1db857db413abed9e30d00d82`
 
 ## Outcome

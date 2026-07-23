@@ -4,6 +4,54 @@ Newest entries first.
 
 ---
 
+## 2026-07-22 — Android Auto session/transport lifecycle remediation COMPLETE
+
+**What changed:** Android Auto sessions now separate graceful phone-visible
+shutdown from idempotent terminal finalization, closing persistent handlers and
+detaching their send paths before owner teardown or connection replacement.
+Messenger start/stop now owns a full framing, assembly, crypto, signal, and send
+reset boundary, including cancellation of writes after reentrant teardown.
+Fatal TLS handshakes have a typed immediate failure path, both channel-open
+delivery paths use one validated service-channel response helper, and wireless
+discovery independently retries transient RFCOMM listener and SDP startup
+failures within bounded budgets.
+
+**Why:** teardown and replacement could call destroyed handlers, preserve stale
+channel state, or transmit through an old/new messenger at the wrong protocol
+phase. Restarting a messenger retained partial wire state, fatal TLS input was
+misclassified as an incomplete handshake, one duplicate channel-open path could
+reply on the wrong channel, and a single boot-time RFCOMM listen failure left
+wireless discovery terminally unavailable.
+
+**Status:** COMPLETE on
+`agent/aa-session-transport-lifecycle-remediation`, based on merged PR #29.
+The reviewed aarch64 binary was deployed after snapshotting the prior binary at
+`/var/backups/openauto-prodigy/20260723T030441Z`. One application process owns
+responsive IPC. The Pixel automatically rediscovered and reconnected, every AA
+service channel opened, and H.265 projection decoded its first 800x480 frame.
+Hostapd PID 46989 and Bluetooth PID 672 were unchanged with zero restarts. The
+Pi checkout's pre-existing dirty QML/submodule state was preserved without a
+pull, reset, clean, or unrelated overwrite.
+
+**Review gate:** the first pass returned three findings and the rerun returned
+three deeper reentrancy/ordering findings. All six were confirmed and fixed in
+`9939d76` and `caaaffb`; none were dismissed. The final review returned LGTM
+with no unadjudicated finding.
+
+**Verification:** focused messenger, session FSM, cryptor, control-channel,
+Bluetooth-discovery, and orchestrator tests passed. The full build, explicit
+`openauto-prodigy` target, and `ctest --output-on-failure` passed locally.
+Documentation links and `git diff --check` passed. `./cross-build.sh` produced
+the deployed aarch64 binary. Pi verification covered binary identity, service
+state, exact process ownership, IPC status, automatic wireless reconnection,
+service-channel establishment, and H.265 first-frame decode.
+
+**Next 1-3 steps:** (1) publish this branch as a draft PR targeting `main`;
+(2) review and merge it as an independent wave; (3) revalidate the next bounded
+remediation group before activating another public plan.
+
+---
+
 ## 2026-07-22 — API/core asynchronous lifecycle remediation COMPLETE
 
 **What changed:** External API pairing now uses a versioned 24-character
