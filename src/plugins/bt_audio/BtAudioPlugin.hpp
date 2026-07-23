@@ -229,7 +229,10 @@ private:
     // derives from "ANY tracked transport active" (not last-writer-wins).
     QMap<QString, bool> transportActiveByPath_;
     QMap<QString, QString> transportDeviceByPath_;
-    QMap<QString, QString> deviceNamesByPath_;
+    // Authoritative carried Device1 properties. PropertiesChanged deltas are
+    // merged into this map so Alias/Name precedence never depends on which
+    // individual key happened to arrive in the latest signal.
+    QMap<QString, QVariantMap> devicePropertiesByPath_;
 
     // D-Bus object paths: transportPath_ is the MOST-RECENT transport (used for
     // device-name display only); playerPath_ is the tracked AVRCP player.

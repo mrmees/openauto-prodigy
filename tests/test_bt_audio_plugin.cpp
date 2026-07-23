@@ -19,6 +19,7 @@
 
 using oap::plugins::BtAudioPlugin;
 using oap::plugins::BtInterfaceMap;
+using oap::plugins::BtManagedObjectMap;
 
 using TestManagedObjectMap = QMap<QDBusObjectPath, BtInterfaceMap>;
 Q_DECLARE_METATYPE(TestManagedObjectMap)
@@ -98,6 +99,9 @@ private slots:
     void playerTimes_bluezLossClearsState();
     void startupEnumeration_isAsynchronousAndUsesCarriedProperties();
     void hotplugMissingPropertiesRemainUnknownUntilDelivery();
+    void deviceName_nameOnlyDeltaPreservesAlias();
+    void deviceName_aliasInvalidationFallsBackToCachedName();
+    void deviceName_removalAndBluezResetPurgeCache();
     void playerRemoval_resetsAllStateWithEdgeOnlySignals();
     void playerTimes_startupAndReconnectCatchupPreservesMilliseconds();
     void playerTimes_flowUnchangedToMediaStatusService();
@@ -189,6 +193,33 @@ private:
             Q_ARG(QVariantMap, changed),
             Q_ARG(QStringList, invalidated),
             Q_ARG(QDBusMessage, msg));
+    }
+
+    static bool driveDeviceProperties(BtAudioPlugin& plugin, const QString& devicePath,
+                                      const QVariantMap& changed,
+                                      const QStringList& invalidated = {}) {
+        QDBusMessage msg = propsSignal(devicePath);
+        return QMetaObject::invokeMethod(
+            &plugin, "onPropertiesChanged", Qt::DirectConnection,
+            Q_ARG(QString, QStringLiteral("org.bluez.Device1")),
+            Q_ARG(QVariantMap, changed),
+            Q_ARG(QStringList, invalidated),
+            Q_ARG(QDBusMessage, msg));
+    }
+
+    static void seedNamedTransport(BtAudioPlugin& plugin, const QString& devicePath,
+                                   const QString& transportPath, const QString& alias,
+                                   const QString& name) {
+        BtManagedObjectMap objects;
+        objects[devicePath][QStringLiteral("org.bluez.Device1")] = {
+            {QStringLiteral("Alias"), alias},
+            {QStringLiteral("Name"), name},
+        };
+        objects[transportPath][QStringLiteral("org.bluez.MediaTransport1")] = {
+            {QStringLiteral("Device"), QVariant::fromValue(QDBusObjectPath(devicePath))},
+            {QStringLiteral("State"), QStringLiteral("idle")},
+        };
+        plugin.applyManagedObjectsSnapshot(objects);
     }
 
     // A PropertiesChanged signal message whose object path round-trips through
@@ -864,6 +895,105 @@ void TestBtAudioPlugin::hotplugMissingPropertiesRemainUnknownUntilDelivery()
     QCOMPARE(plugin.playbackState(), static_cast<int>(BtAudioPlugin::Playing));
     QCOMPARE(plugin.trackDuration(), qint64(245000));
     QCOMPARE(plugin.trackPosition(), qint64(62000));
+}
+
+void TestBtAudioPlugin::deviceName_nameOnlyDeltaPreservesAlias()
+{
+    BtAudioPlugin plugin;
+    const QString devicePath = QStringLiteral("/org/bluez/hci0/dev_AA_BB");
+    const QString transportPath = devicePath + QStringLiteral("/fd0");
+    seedNamedTransport(plugin, devicePath, transportPath,
+                       QStringLiteral("Preferred Alias"), QStringLiteral("Original Name"));
+    QCOMPARE(plugin.deviceName(), QStringLiteral("Preferred Alias"));
+
+    QSignalSpy connectionSpy(&plugin, &BtAudioPlugin::connectionStateChanged);
+    QVERIFY(driveDeviceProperties(
+        plugin, devicePath,
+        {{QStringLiteral("Name"), QStringLiteral("Updated Name")}}));
+
+    // A Name-only delta merges into the cached Device1 snapshot. It must not
+    // replace the still-valid higher-priority Alias or emit a false UI edge.
+    QCOMPARE(plugin.deviceName(), QStringLiteral("Preferred Alias"));
+    QCOMPARE(connectionSpy.count(), 0);
+}
+
+void TestBtAudioPlugin::deviceName_aliasInvalidationFallsBackToCachedName()
+{
+    BtAudioPlugin plugin;
+    const QString devicePath = QStringLiteral("/org/bluez/hci0/dev_AA_BB");
+    const QString transportPath = devicePath + QStringLiteral("/fd0");
+    seedNamedTransport(plugin, devicePath, transportPath,
+                       QStringLiteral("Preferred Alias"), QStringLiteral("Device Name"));
+
+    QSignalSpy connectionSpy(&plugin, &BtAudioPlugin::connectionStateChanged);
+    QVERIFY(driveDeviceProperties(plugin, devicePath, {},
+                                  {QStringLiteral("Alias")}));
+    QCOMPARE(plugin.deviceName(), QStringLiteral("Device Name"));
+    QCOMPARE(connectionSpy.count(), 1);
+
+    // Repeating the same invalidation leaves the observable label unchanged.
+    QVERIFY(driveDeviceProperties(plugin, devicePath, {},
+                                  {QStringLiteral("Alias")}));
+    QCOMPARE(plugin.deviceName(), QStringLiteral("Device Name"));
+    QCOMPARE(connectionSpy.count(), 1);
+}
+
+void TestBtAudioPlugin::deviceName_removalAndBluezResetPurgeCache()
+{
+    BtAudioPlugin plugin;
+    const QString devicePath = QStringLiteral("/org/bluez/hci0/dev_AA_BB");
+    const QString transportPath = devicePath + QStringLiteral("/fd0");
+    seedNamedTransport(plugin, devicePath, transportPath,
+                       QStringLiteral("Old Alias"), QStringLiteral("Old Name"));
+
+    const QStringList removed{QStringLiteral("org.bluez.Device1")};
+    QVERIFY(QMetaObject::invokeMethod(
+        &plugin, "onInterfacesRemoved", Qt::DirectConnection,
+        Q_ARG(QDBusObjectPath, QDBusObjectPath(devicePath)),
+        Q_ARG(QStringList, removed)));
+    QVERIFY(plugin.deviceName().isEmpty());
+
+    // Re-adoption after removal carries only Alias. Invalidating it must not
+    // reveal the removed object's old cached Name.
+    BtInterfaceMap deviceInterfaces;
+    deviceInterfaces.insert(QStringLiteral("org.bluez.Device1"),
+                            {{QStringLiteral("Alias"), QStringLiteral("New Alias")}});
+    QVERIFY(QMetaObject::invokeMethod(
+        &plugin, "onInterfacesAdded", Qt::DirectConnection,
+        Q_ARG(QDBusObjectPath, QDBusObjectPath(devicePath)),
+        Q_ARG(BtInterfaceMap, deviceInterfaces)));
+    QCOMPARE(plugin.deviceName(), QStringLiteral("New Alias"));
+    QVERIFY(driveDeviceProperties(plugin, devicePath, {},
+                                  {QStringLiteral("Alias")}));
+    QVERIFY(plugin.deviceName().isEmpty());
+
+    seedNamedTransport(plugin, devicePath, transportPath,
+                       QStringLiteral("Reset Alias"), QStringLiteral("Reset Name"));
+    QVERIFY(QMetaObject::invokeMethod(&plugin, "onBluezServiceUnregistered",
+                                      Qt::DirectConnection));
+    QVERIFY(plugin.deviceName().isEmpty());
+
+    // BlueZ reappears carrying Alias only. The pre-reset Name must be gone.
+    deviceInterfaces[QStringLiteral("org.bluez.Device1")] = {
+        {QStringLiteral("Alias"), QStringLiteral("After Reset")},
+    };
+    QVERIFY(QMetaObject::invokeMethod(
+        &plugin, "onInterfacesAdded", Qt::DirectConnection,
+        Q_ARG(QDBusObjectPath, QDBusObjectPath(devicePath)),
+        Q_ARG(BtInterfaceMap, deviceInterfaces)));
+    BtInterfaceMap transportInterfaces;
+    transportInterfaces[QStringLiteral("org.bluez.MediaTransport1")] = {
+        {QStringLiteral("Device"), QVariant::fromValue(QDBusObjectPath(devicePath))},
+        {QStringLiteral("State"), QStringLiteral("idle")},
+    };
+    QVERIFY(QMetaObject::invokeMethod(
+        &plugin, "onInterfacesAdded", Qt::DirectConnection,
+        Q_ARG(QDBusObjectPath, QDBusObjectPath(transportPath)),
+        Q_ARG(BtInterfaceMap, transportInterfaces)));
+    QCOMPARE(plugin.deviceName(), QStringLiteral("After Reset"));
+    QVERIFY(driveDeviceProperties(plugin, devicePath, {},
+                                  {QStringLiteral("Alias")}));
+    QVERIFY(plugin.deviceName().isEmpty());
 }
 
 void TestBtAudioPlugin::playerRemoval_resetsAllStateWithEdgeOnlySignals()

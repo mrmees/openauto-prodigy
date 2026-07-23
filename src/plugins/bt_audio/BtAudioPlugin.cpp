@@ -59,6 +59,15 @@ std::optional<qint64> bluezMilliseconds(const QVariant& value)
     return static_cast<qint64>(unwrapped.toUInt());
 }
 
+QString bluezDeviceLabel(const QVariantMap& properties)
+{
+    const QString alias =
+        unwrapDbusVariant(properties.value(QStringLiteral("Alias"))).toString();
+    if (!alias.isEmpty())
+        return alias;
+    return unwrapDbusVariant(properties.value(QStringLiteral("Name"))).toString();
+}
+
 oap::plugins::BtManagedObjectMap parseManagedObjects(const QDBusMessage& reply)
 {
     oap::plugins::BtManagedObjectMap objects;
@@ -277,7 +286,7 @@ void BtAudioPlugin::onBluezServiceUnregistered()
         scanPending_ = true;
     transportActiveByPath_.clear();
     transportDeviceByPath_.clear();
-    deviceNamesByPath_.clear();
+    devicePropertiesByPath_.clear();
     transportPath_.clear();
     playerPath_.clear();
     // A later transport can reconnect before its MediaPlayer1 snapshot. Clear
@@ -390,16 +399,7 @@ void BtAudioPlugin::applyInterfaces(const QString& path, const BtInterfaceMap& i
 
 void BtAudioPlugin::adoptDevice(const QString& path, const QVariantMap& props)
 {
-    QString name;
-    if (props.contains(QStringLiteral("Alias")))
-        name = unwrapDbusVariant(props.value(QStringLiteral("Alias"))).toString();
-    if (name.isEmpty() && props.contains(QStringLiteral("Name")))
-        name = unwrapDbusVariant(props.value(QStringLiteral("Name"))).toString();
-
-    if (name.isEmpty())
-        deviceNamesByPath_.remove(path);
-    else
-        deviceNamesByPath_.insert(path, name);
+    devicePropertiesByPath_.insert(path, props);
     recomputeTransportState();
 }
 
@@ -419,7 +419,7 @@ void BtAudioPlugin::adoptTransport(const QString& path, const QVariantMap& props
 
 void BtAudioPlugin::applyManagedObjectsSnapshot(const BtManagedObjectMap& objects)
 {
-    QMap<QString, QString> newDeviceNames;
+    QMap<QString, QVariantMap> newDeviceProperties;
     QMap<QString, bool> newTransportActivity;
     QMap<QString, QString> newTransportDevices;
     QString newTransportPath;
@@ -432,11 +432,7 @@ void BtAudioPlugin::applyManagedObjectsSnapshot(const BtManagedObjectMap& object
         const auto deviceIt = objectIt.value().constFind(QStringLiteral("org.bluez.Device1"));
         if (deviceIt == objectIt.value().cend())
             continue;
-        QString name = unwrapDbusVariant(deviceIt->value(QStringLiteral("Alias"))).toString();
-        if (name.isEmpty())
-            name = unwrapDbusVariant(deviceIt->value(QStringLiteral("Name"))).toString();
-        if (!name.isEmpty())
-            newDeviceNames.insert(objectIt.key(), name);
+        newDeviceProperties.insert(objectIt.key(), deviceIt.value());
     }
 
     for (auto objectIt = objects.cbegin(); objectIt != objects.cend(); ++objectIt) {
@@ -464,7 +460,7 @@ void BtAudioPlugin::applyManagedObjectsSnapshot(const BtManagedObjectMap& object
         }
     }
 
-    deviceNamesByPath_ = newDeviceNames;
+    devicePropertiesByPath_ = newDeviceProperties;
     transportActiveByPath_ = newTransportActivity;
     transportDeviceByPath_ = newTransportDevices;
     transportPath_ = newTransportPath;
@@ -518,7 +514,7 @@ void BtAudioPlugin::onInterfacesRemoved(const QDBusObjectPath& path, const QStri
     }
 
     if (interfaces.contains(QStringLiteral("org.bluez.Device1"))) {
-        deviceNamesByPath_.remove(pathStr);
+        devicePropertiesByPath_.remove(pathStr);
         recomputeTransportState();
     }
 }
@@ -589,16 +585,13 @@ void BtAudioPlugin::applyPropertiesChanged(const QString& interface,
     }
 
     if (interface == QLatin1String("org.bluez.Device1")) {
-        if ((invalidated.contains(QStringLiteral("Alias"))
-             || invalidated.contains(QStringLiteral("Name")))
-            && !changed.contains(QStringLiteral("Alias"))
-            && !changed.contains(QStringLiteral("Name"))) {
-            deviceNamesByPath_.remove(sender);
-            recomputeTransportState();
-        } else if (changed.contains(QStringLiteral("Alias"))
-                   || changed.contains(QStringLiteral("Name"))) {
-            adoptDevice(sender, changed);
-        }
+        QVariantMap properties = devicePropertiesByPath_.value(sender);
+        for (const QString& property : invalidated)
+            properties.remove(property);
+        for (auto it = changed.cbegin(); it != changed.cend(); ++it)
+            properties.insert(it.key(), it.value());
+        devicePropertiesByPath_.insert(sender, properties);
+        recomputeTransportState();
     }
 }
 
@@ -622,7 +615,8 @@ void BtAudioPlugin::recomputeTransportState()
         transportActiveByPath_.isEmpty() ? Disconnected : Connected;
     QString newDeviceName;
     if (newConn == Connected)
-        newDeviceName = deviceNamesByPath_.value(transportDeviceByPath_.value(transportPath_));
+        newDeviceName = bluezDeviceLabel(
+            devicePropertiesByPath_.value(transportDeviceByPath_.value(transportPath_)));
     if (newConn != connectionState_ || newDeviceName != deviceName_) {
         connectionState_ = newConn;
         deviceName_ = newDeviceName;
