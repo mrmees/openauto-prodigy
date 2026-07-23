@@ -4,6 +4,62 @@ Newest entries first.
 
 ---
 
+## 2026-07-23 — Android Auto input/video/night remediation COMPLETE
+
+**What changed:** decoder stream resets now run as ordered worker commands and
+discard stale queued packets before new codec detection. Evdev touch keeps raw,
+locally claimed, and phone-visible ownership separate; serializes complete
+MotionEvent transitions; retires contacts on ownership loss; and applies
+mapping, grab, reopen, and stop changes at reader-safe boundaries. A shared
+application-lifetime night service drives both the shell and AA sensor cache.
+Wireless admission rejects extra clients during active/backgrounded projection,
+uses one effective port, and derives setup counts from the advertised codec
+list. Review fixes also close stale queued-frame delivery, GPIO recovery,
+reconnect-wait wakeups, mixed-report touch overlap, and viewport mapping drift.
+
+**Why:** process-long decoder state could poison the next session; cross-thread
+evdev mutation and conflated pointer ownership could corrupt phone input;
+session-scoped night providers could diverge from the shell; and unauthenticated
+or redundant wireless events could replace or destabilize an active session.
+The shared boundary owners now make those transitions explicit and testable.
+
+**Status:** COMPLETE on `agent/aa-input-video-night-remediation`, based on
+merged PR #31. The reviewed aarch64 binary at `f694e51` was retained behind
+rollback snapshot `/var/backups/openauto-prodigy/20260723T154221Z` and deployed.
+The final process (PID `272291`) owns responsive IPC. Forced H.264 decoded an
+800x480 hardware frame; the restored two-codec configuration decoded H.265 and
+then decoded H.265 again after a graceful `SIGUSR1` session boundary without an
+application restart. A live extra TCP client was closed without disturbing
+projection. Forced day and night runs produced matching shell state and first
+NIGHT_DATA indications. The original configuration was restored byte-for-byte,
+temporary captures were removed, and the Pi's pre-existing dirty checkout was
+preserved. Hostapd PID `46989` and Bluetooth PID `672` remained unchanged with
+zero restarts. Physical touch was unavailable during remote validation; live
+evdev grab/content dimensions and the product-path touch tests passed.
+
+**Review gate:** the initial pass returned four findings; all were confirmed
+and fixed. The required rerun returned five findings: mixed touch replacement
+ordering and viewport mapping refresh were confirmed and fixed; three were
+dismissed because they requested pre-existing codec expansion, live night-source
+reconfiguration, or an event-loop shutdown-ack wait outside or contrary to the
+approved boundaries. No finding was silently dropped, and the required rerun
+gate is complete.
+
+**Verification:** focused decoder, touch, night, wireless, session, discovery,
+and runtime-bridge tests passed. `cmake --build . -j$(nproc)`, the explicit
+`openauto-prodigy` target, and `ctest --output-on-failure` passed in
+`~/builds/openauto-prodigy`. Documentation links and `git diff --check` passed.
+`./cross-build.sh` produced the deployed aarch64 binary. Live validation covered
+H.264/H.265 first-frame decode, a same-process session reset, active-client
+rejection, day/night shell plus protocol delivery, exact restoration, process
+and IPC ownership, and unchanged hostapd/Bluetooth lifetimes.
+
+**Next 1-3 steps:** (1) publish this branch as a draft PR targeting `main`;
+(2) review and merge it as an independent wave; (3) revalidate the next bounded
+subsystem wave before promoting another design and plan.
+
+---
+
 ## 2026-07-23 — Android Auto protocol crypto/flow remediation COMPLETE
 
 **What changed:** OpenSSL setup and established-session I/O now use checked,

@@ -1,7 +1,7 @@
 # Android Auto Input, Video, and Night Remediation — Design
 
 Date: 2026-07-23
-Status: ACTIVE
+Status: COMPLETED 2026-07-23
 Base: `origin/main` at `8ec8aeab9b19a03fedce36761bd3be2a91bd1475`
 
 ## Goal

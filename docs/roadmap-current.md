@@ -14,15 +14,25 @@ Governance: capture new ideas in `docs/wishlist.md`; only promoted items should 
 
 ## Now
 
-- Android Auto input, video, and night remediation — **ACTIVE 2026-07-23**.
-  Reset process-long decoder state at stream boundaries, make evdev touch state
-  reader-thread-owned, establish one application-lifetime night-state owner,
-  and harden wireless admission plus negotiated port/video-config contracts.
-  Design and plan:
-  `docs/plans/2026-07-23-aa-input-video-night-remediation-design.md` and
-  `docs/plans/2026-07-23-aa-input-video-night-remediation-plan.md`.
+No implementation tranche is active. After the current draft is reviewed and
+merged, revalidate the next bounded subsystem wave before promoting a new
+design and plan.
 
 ## Done (recent)
+
+- Android Auto input, video, and night remediation — **COMPLETE 2026-07-23**
+  (Pi/Pixel live-validated). Decoder reset commands now form ordered stream
+  boundaries; evdev touch ownership and mapping updates stay reader-safe; one
+  application-lifetime service drives shell and AA night state; and active
+  projection rejects replacement clients while listener ports and video-config
+  counts share validated owners. Live validation decoded forced H.264 and
+  H.265 hardware sessions, repeated H.265 after a same-process reconnect,
+  rejected an extra active TCP client, and delivered matching forced day/night
+  state without changing hostapd or Bluetooth service lifetimes. Design and
+  plan:
+  `docs/archive/plans/2026-07-23-aa-input-video-night-remediation-design.md`
+  and
+  `docs/archive/plans/2026-07-23-aa-input-video-night-remediation-plan.md`.
 
 - Android Auto protocol crypto and flow-control remediation — **COMPLETE
   2026-07-23** (Pi/Pixel live-validated). OpenSSL initialization and runtime
@@ -216,12 +226,6 @@ Governance: capture new ideas in `docs/wishlist.md`; only promoted items should 
   `docs/archive/plans/2026-07-08-media-player-design.md`; stage plans:
   `docs/archive/plans/2026-07-08-media-player-stage1.md` and
   `docs/archive/plans/2026-07-09-media-player-stage2-plan.md`.
-
-## Now
-
-No implementation tranche is active. After the current draft is reviewed and
-merged, revalidate the next bounded subsystem wave before promoting a new
-design and plan.
 
 ## Later
 
