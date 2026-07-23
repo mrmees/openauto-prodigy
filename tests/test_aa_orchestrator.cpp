@@ -375,10 +375,20 @@ private slots:
         sensorHandler.pushNightMode(false);
         QCOMPARE(sendSpy.count(), 1);
 
+        // Drain anything already in flight so the post-stop read observes only
+        // the graceful shutdown traffic.
+        while (firstSocket.waitForReadyRead(50)) {}
+        firstSocket.readAll();
+
         QElapsedTimer stopElapsed;
         stopElapsed.start();
         orch.stop();
         QVERIFY2(stopElapsed.elapsed() < 500, "stop() reintroduced a blocking wait");
+        // The buffered ShutdownRequest must be flushed to the wire before the
+        // synchronous transport teardown aborts the socket.
+        QVERIFY2(firstSocket.waitForReadyRead(1000),
+                 "graceful ShutdownRequest never reached the wire");
+        QVERIFY(!firstSocket.readAll().isEmpty());
         QCOMPARE(orch.connectionState(),
                  static_cast<int>(oap::aa::AndroidAutoOrchestrator::Disconnected));
         QVERIFY(!oap::aa::AndroidAutoOrchestratorTestAccess::admissionOpen(orch));

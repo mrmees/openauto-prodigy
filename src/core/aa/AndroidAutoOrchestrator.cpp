@@ -150,6 +150,12 @@ void AndroidAutoOrchestrator::stop()
         qCDebug(lcAA) << "Sending graceful shutdown to phone";
         QPointer<oaa::AASession> stoppingSession(session_);
         session_->stop(7);  // POWER_DOWN — app is exiting
+        // QTcpSocket buffers writes until the event loop runs, and synchronous
+        // teardown destroys the socket (an abort) before that ever happens —
+        // flush now or the ShutdownRequest never reaches the wire.
+        if (activeSocket_
+            && activeSocket_->state() == QAbstractSocket::ConnectedState)
+            activeSocket_->flush();
         if (session_ == stoppingSession.data())
             teardownSession(false);
     } else {
