@@ -458,7 +458,6 @@ void BluetoothManager::initialize()
         configuredAdapterPath_.clear();
         initialSnapshotApplied_ = false;
         abortPairingPrompt(QStringLiteral("BlueZ service disappeared"));
-        cancelAutoConnect();
         applyManagedObjectsSnapshot({});
     });
 
@@ -792,6 +791,36 @@ void BluetoothManager::setDeviceProperty(const QString& devicePath, const QStrin
         qCWarning(lcBT) << "Failed to set" << property << "on" << devicePath << ":" << reply.errorMessage();
 }
 
+void BluetoothManager::resetAdapterEpoch()
+{
+    cancelAutoConnect();
+    initialSnapshotApplied_ = false;
+    configuredAdapterPath_.clear();
+
+    if (needsFirstPairing_) {
+        needsFirstPairing_ = false;
+        if (pairableRenewTimer_)
+            pairableRenewTimer_->stop();
+        emit needsFirstPairingChanged();
+    }
+    if (!adapterAddress_.isEmpty()) {
+        adapterAddress_.clear();
+        emit adapterAddressChanged();
+    }
+    if (!adapterAlias_.isEmpty()) {
+        adapterAlias_.clear();
+        emit adapterAliasChanged();
+    }
+    if (discoverable_) {
+        discoverable_ = false;
+        emit discoverableChanged();
+    }
+    if (pairable_) {
+        pairable_ = false;
+        emit pairableChanged();
+    }
+}
+
 void BluetoothManager::applyManagedObjectsSnapshot(const BluezManagedObjectMap& objects)
 {
     QString nextAdapterPath;
@@ -823,7 +852,9 @@ void BluetoothManager::applyManagedObjectsSnapshot(const BluezManagedObjectMap& 
         }
     }
 
-    const bool hadAdapter = !adapterPath_.isEmpty();
+    const QString previousAdapterPath = adapterPath_;
+    if (!previousAdapterPath.isEmpty() && previousAdapterPath != nextAdapterPath)
+        resetAdapterEpoch();
     adapterPath_ = nextAdapterPath;
     deviceNamesByPath_ = nextDeviceNames;
     if (!adapterPath_.isEmpty()) {
@@ -845,26 +876,6 @@ void BluetoothManager::applyManagedObjectsSnapshot(const BluezManagedObjectMap& 
             setupAdapter();
             registerAgent();
         }
-    } else if (hadAdapter) {
-        configuredAdapterPath_.clear();
-        if (!adapterAddress_.isEmpty()) {
-            adapterAddress_.clear();
-            emit adapterAddressChanged();
-        }
-        if (discoverable_) {
-            discoverable_ = false;
-            emit discoverableChanged();
-        }
-        if (pairable_) {
-            pairable_ = false;
-            emit pairableChanged();
-        }
-    }
-    if (adapterPath_.isEmpty() && needsFirstPairing_) {
-        needsFirstPairing_ = false;
-        if (pairableRenewTimer_)
-            pairableRenewTimer_->stop();
-        emit needsFirstPairingChanged();
     }
 
     pairedDevicesModel_->setDevices(devices);

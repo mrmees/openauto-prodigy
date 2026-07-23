@@ -17,6 +17,7 @@ class QDBusServiceWatcher;
 namespace oap {
 
 class IConfigService;
+class BluetoothManagerTestAccess;
 
 using BluezInterfaceMap = QMap<QString, QVariantMap>;
 using BluezManagedObjectMap = QMap<QString, BluezInterfaceMap>;
@@ -87,6 +88,7 @@ private slots:
 
 private:
     friend class ::BluezAgentAdaptor;
+    friend class BluetoothManagerTestAccess;
 
     // D-Bus helpers
     void setupAdapter();
@@ -98,6 +100,7 @@ private:
     void setDeviceProperty(const QString& devicePath, const QString& property, const QVariant& value);
     void requestManagedObjectsRefresh();
     void finishManagedObjectsRefresh(const QDBusMessage& reply);
+    void resetAdapterEpoch();
 
     // Called by BluezAgentAdaptor
     void handleAgentRequestConfirmation(const QDBusMessage& msg, const QString& devicePath, uint passkey);
