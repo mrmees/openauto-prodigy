@@ -48,8 +48,8 @@ public:
 
     // --- Evdev zone callback (reader thread) ---
     // Must marshal to main thread via QMetaObject::invokeMethod
-    void onZoneTouch(int controlIndex, int slot, float x, float y,
-                     oap::aa::TouchEvent event);
+    void onZoneTouch(int controlIndex, qint64 geometryGeneration,
+                     int slot, float x, float y, oap::aa::TouchEvent event);
 
     // --- Properties ---
     QString edge() const;
@@ -95,8 +95,11 @@ public:
     int shortHoldMaxMs() const;
     void setShortHoldMaxMs(int ms);
 
-    // --- Zone registration ---
-    Q_INVOKABLE void registerZones(int displayWidth, int displayHeight);
+    // --- Rendered navbar geometry handshake ---
+    Q_INVOKABLE qint64 beginNavbarGeometryUpdate();
+    Q_INVOKABLE void setNavbarGeometry(qint64 generation,
+                                       int displayWidth, int displayHeight,
+                                       const QVariantList& regions);
     Q_INVOKABLE void unregisterZones();
 
     // --- External dependency setters ---
@@ -128,8 +131,8 @@ private:
 
     void resetControlState(int index);
     void dispatchAction(int controlIndex, int gesture);
-    void registerPopupZones(int controlIndex);
     void unregisterPopupZones();
+    void unregisterNavbarZones();
 
     std::array<ControlState, 3> controls_;
     std::array<QTimer*, 3> longHoldTimers_;
@@ -152,10 +155,10 @@ private:
     QTimer* popupDismissTimer_ = nullptr;
 
     // Zone registration state
-    bool zonesRegistered_ = false;
     int displayWidth_ = 0;
     int displayHeight_ = 0;
-    static constexpr int BAR_THICK = 56;
+    qint64 navbarGeometryGeneration_ = 0;
+    qint64 activeNavbarGeometryGeneration_ = 0;
 
     // External dependencies (not owned)
     oap::aa::EvdevCoordBridge* coordBridge_ = nullptr;
@@ -166,6 +169,7 @@ private:
     // Popup session tracking
     qint64 popupGeneration_ = 0;
     qint64 activePopupGeneration_ = 0;
+    int activePopupSessionControlIndex_ = -1;
     std::vector<std::string> popupRegionZoneIds_;
     void unregisterPopupRegionZones();
 };

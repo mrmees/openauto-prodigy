@@ -5,9 +5,25 @@
 #include <QMetaObject>
 #include <QVariantMap>
 #include <algorithm>
+#include <array>
 #include <cmath>
 
 namespace oap {
+
+namespace {
+
+constexpr int MAX_TOUCH_SLOTS = 10;
+
+struct PopupButtonPressState {
+    struct Slot {
+        bool pressed = false;
+        float x = 0.0f;
+        float y = 0.0f;
+    };
+    std::array<Slot, MAX_TOUCH_SLOTS> presses;
+};
+
+} // namespace
 
 NavbarController::NavbarController(QObject* parent)
     : QObject(parent)
@@ -132,18 +148,30 @@ void NavbarController::handleCancel(int controlIndex)
     resetControlState(controlIndex);
 }
 
-void NavbarController::onZoneTouch(int controlIndex, int slot, float x, float y,
+void NavbarController::onZoneTouch(int controlIndex, qint64 geometryGeneration,
+                                    int slot, float x, float y,
                                     oap::aa::TouchEvent event)
 {
+    Q_UNUSED(x)
+    Q_UNUSED(y)
+    if (controlIndex < 0 || controlIndex >= static_cast<int>(controls_.size()))
+        return;
+
     // Marshal to main thread
-    QMetaObject::invokeMethod(this, [this, controlIndex, slot, event]() {
+    QMetaObject::invokeMethod(this, [this, controlIndex, geometryGeneration, slot, event]() {
+        if (geometryGeneration != activeNavbarGeometryGeneration_)
+            return;
+        auto& state = controls_[controlIndex];
         switch (event) {
         case aa::TouchEvent::Down:
+            if (state.pressed)
+                return;
             handlePress(controlIndex);
-            controls_[controlIndex].activeSlot = slot;
+            if (state.pressed)
+                state.activeSlot = slot;
             break;
         case aa::TouchEvent::Up:
-            if (controls_[controlIndex].activeSlot == slot)
+            if (state.activeSlot == slot)
                 handleRelease(controlIndex);
             break;
         case aa::TouchEvent::Move:
@@ -165,12 +193,12 @@ void NavbarController::setEdge(const QString& edge)
     if (edge_ == edge)
         return;
     edge_ = edge;
-    emit edgeChanged();
 
-    // Re-register zones at new positions if they were registered
-    if (zonesRegistered_ && coordBridge_) {
-        registerZones(displayWidth_, displayHeight_);
-    }
+    // Invalidate the old edge before notifying QML. The edgeChanged handler
+    // begins the generation it will publish after layout settles, so no later
+    // C++ invalidation may supersede that pending report.
+    beginNavbarGeometryUpdate();
+    emit edgeChanged();
 }
 
 bool NavbarController::leftHandDrive() const
@@ -203,6 +231,17 @@ void NavbarController::showPopup(int controlIndex)
     if (controlIndex < 0 || controlIndex >= 3)
         return;
 
+    if (popupVisible_ && popupControlIndex_ == controlIndex) {
+        popupDismissTimer_->start();
+        return;
+    }
+
+    // Publish the incoming session before popupChanged can make the outgoing
+    // QML item clear its regions. That stale clear must not hide this popup.
+    activePopupGeneration_ = ++popupGeneration_;
+    activePopupSessionControlIndex_ = controlIndex;
+    unregisterPopupRegionZones();
+
     popupVisible_ = true;
     popupControlIndex_ = controlIndex;
     popupDismissTimer_->start();
@@ -220,6 +259,8 @@ void NavbarController::hidePopup()
 
     popupVisible_ = false;
     popupControlIndex_ = -1;
+    activePopupGeneration_ = 0;
+    activePopupSessionControlIndex_ = -1;
     popupDismissTimer_->stop();
 
     if (coordBridge_)
@@ -345,179 +386,93 @@ void NavbarController::setDisplayService(QObject* svc)
     displayService_ = svc;
 }
 
-// --- Zone registration ---
+// --- Rendered navbar geometry ---
 
-void NavbarController::registerZones(int displayWidth, int displayHeight)
+qint64 NavbarController::beginNavbarGeometryUpdate()
 {
-    if (!coordBridge_)
+    activeNavbarGeometryGeneration_ = ++navbarGeometryGeneration_;
+    unregisterNavbarZones();
+    return activeNavbarGeometryGeneration_;
+}
+
+void NavbarController::setNavbarGeometry(qint64 generation,
+                                         int displayWidth, int displayHeight,
+                                         const QVariantList& regions)
+{
+    if (generation != activeNavbarGeometryGeneration_ || !coordBridge_)
         return;
+
+    struct Rect {
+        float x;
+        float y;
+        float w;
+        float h;
+    };
+    std::array<Rect, 3> parsed{};
+    bool valid = displayWidth > 0 && displayHeight > 0 && regions.size() == 3;
+    constexpr double BOUNDS_EPSILON = 0.5;
+    for (int i = 0; valid && i < static_cast<int>(parsed.size()); ++i) {
+        const QVariantMap region = regions.at(i).toMap();
+        bool xOk = false;
+        bool yOk = false;
+        bool wOk = false;
+        bool hOk = false;
+        const double x = region.value(QStringLiteral("x")).toDouble(&xOk);
+        const double y = region.value(QStringLiteral("y")).toDouble(&yOk);
+        const double w = region.value(QStringLiteral("w")).toDouble(&wOk);
+        const double h = region.value(QStringLiteral("h")).toDouble(&hOk);
+        valid = xOk && yOk && wOk && hOk
+             && std::isfinite(x) && std::isfinite(y)
+             && std::isfinite(w) && std::isfinite(h)
+             && x >= 0.0 && y >= 0.0 && w > 0.0 && h > 0.0
+             && x + w <= static_cast<double>(displayWidth) + BOUNDS_EPSILON
+             && y + h <= static_cast<double>(displayHeight) + BOUNDS_EPSILON;
+        if (valid) {
+            parsed[i] = {static_cast<float>(x), static_cast<float>(y),
+                         static_cast<float>(w), static_cast<float>(h)};
+        }
+    }
+
+    if (!valid) {
+        unregisterNavbarZones();
+        return;
+    }
 
     displayWidth_ = displayWidth;
     displayHeight_ = displayHeight;
-    zonesRegistered_ = true;
-
-    // Zone IDs for 3 controls
-    static const std::string zoneIds[3] = {
+    static const std::array<std::string, 3> zoneIds = {
         "navbar-driver", "navbar-center", "navbar-passenger"
     };
-
-    bool isVertical = (edge_ == "left" || edge_ == "right");
-
-    for (int i = 0; i < 3; ++i) {
-        float px, py, pw, ph;
-
-        if (!isVertical) {
-            // Horizontal bar (top/bottom)
-            float totalW = static_cast<float>(displayWidth);
-            float quarterW = totalW / 4.0f;
-            float halfW = totalW / 2.0f;
-
-            if (i == 0) {          // driver (left 1/4)
-                px = 0; pw = quarterW;
-            } else if (i == 1) {   // center (middle 1/2)
-                px = quarterW; pw = halfW;
-            } else {               // passenger (right 1/4)
-                px = quarterW + halfW; pw = quarterW;
-            }
-
-            ph = static_cast<float>(BAR_THICK);
-            if (edge_ == "bottom") {
-                py = static_cast<float>(displayHeight - BAR_THICK);
-            } else {  // top
-                py = 0;
-            }
-        } else {
-            // Vertical bar (left/right)
-            float totalH = static_cast<float>(displayHeight);
-            float quarterH = totalH / 4.0f;
-            float halfH = totalH / 2.0f;
-
-            if (i == 0) {          // driver (top 1/4)
-                py = 0; ph = quarterH;
-            } else if (i == 1) {   // center (middle 1/2)
-                py = quarterH; ph = halfH;
-            } else {               // passenger (bottom 1/4)
-                py = quarterH + halfH; ph = quarterH;
-            }
-
-            pw = static_cast<float>(BAR_THICK);
-            if (edge_ == "left") {
-                px = 0;
-            } else {  // right
-                px = static_cast<float>(displayWidth - BAR_THICK);
-            }
-        }
-
-        int controlIdx = i;
+    for (int i = 0; i < static_cast<int>(parsed.size()); ++i) {
+        const Rect& rect = parsed[i];
+        const qint64 geometryGeneration = generation;
         coordBridge_->updateZone(
-            zoneIds[i], 50, px, py, pw, ph,
-            [this, controlIdx](int slot, float x, float y, aa::TouchEvent event) {
-                onZoneTouch(controlIdx, slot, x, y, event);
+            zoneIds[i], 50, rect.x, rect.y, rect.w, rect.h,
+            [this, i, geometryGeneration]
+            (int slot, float x, float y, aa::TouchEvent event) {
+                onZoneTouch(i, geometryGeneration, slot, x, y, event);
             });
     }
 }
 
 void NavbarController::unregisterZones()
 {
+    activeNavbarGeometryGeneration_ = ++navbarGeometryGeneration_;
+    unregisterNavbarZones();
+    unregisterPopupZones();
+}
+
+void NavbarController::unregisterNavbarZones()
+{
+    for (int i = 0; i < static_cast<int>(controls_.size()); ++i) {
+        if (controls_[i].pressed)
+            handleCancel(i);
+    }
     if (!coordBridge_)
         return;
-
     coordBridge_->removeZone(std::string("navbar-driver"));
     coordBridge_->removeZone(std::string("navbar-center"));
     coordBridge_->removeZone(std::string("navbar-passenger"));
-    unregisterPopupZones();
-    zonesRegistered_ = false;
-}
-
-// DEPRECATED: Kept as reference. QML now reports geometry via setPopupRegions().
-void NavbarController::registerPopupZones(int controlIndex)
-{
-    if (!coordBridge_)
-        return;
-
-    // Screen-wide dismiss zone at priority 40
-    coordBridge_->updateZone(
-        std::string("navbar-popup-dismiss"), 40,
-        0, 0,
-        static_cast<float>(displayWidth_), static_cast<float>(displayHeight_),
-        [this](int /*slot*/, float /*x*/, float /*y*/, aa::TouchEvent event) {
-            if (event == aa::TouchEvent::Up) {
-                QMetaObject::invokeMethod(this, [this]() {
-                    hidePopup();
-                }, Qt::QueuedConnection);
-            }
-        });
-
-    // Popup slider zone at priority 60 (higher than dismiss)
-    // Positioned adjacent to the triggering control, extending into content area
-    // Exact position will be refined by QML layout; for now use a reasonable area
-    float popupX = 0, popupY = 0, popupW = 0, popupH = 0;
-    bool isVertical = (edge_ == "left" || edge_ == "right");
-
-    if (!isVertical) {
-        float quarterW = static_cast<float>(displayWidth_) / 4.0f;
-        if (controlIndex == 0) {
-            popupX = 0;
-        } else if (controlIndex == 1) {
-            popupX = quarterW;
-        } else {
-            popupX = quarterW + static_cast<float>(displayWidth_) / 2.0f;
-        }
-        popupW = (controlIndex == 1) ? static_cast<float>(displayWidth_) / 2.0f : quarterW;
-        popupH = 200;  // popup height into content
-        if (edge_ == "bottom") {
-            popupY = static_cast<float>(displayHeight_ - BAR_THICK) - popupH;
-        } else {
-            popupY = static_cast<float>(BAR_THICK);
-        }
-    } else {
-        float quarterH = static_cast<float>(displayHeight_) / 4.0f;
-        if (controlIndex == 0) {
-            popupY = 0;
-        } else if (controlIndex == 1) {
-            popupY = quarterH;
-        } else {
-            popupY = quarterH + static_cast<float>(displayHeight_) / 2.0f;
-        }
-        popupH = (controlIndex == 1) ? static_cast<float>(displayHeight_) / 2.0f : quarterH;
-        popupW = 200;  // popup width into content
-        if (edge_ == "left") {
-            popupX = static_cast<float>(BAR_THICK);
-        } else {
-            popupX = static_cast<float>(displayWidth_ - BAR_THICK) - popupW;
-        }
-    }
-
-    int ctrlIdx = controlIndex;
-    float pY = popupY, pH = popupH;
-    coordBridge_->updateZone(
-        std::string("navbar-popup-slider"), 60,
-        popupX, popupY, popupW, popupH,
-        [this, ctrlIdx, pY, pH](int /*slot*/, float /*x*/, float y, aa::TouchEvent event) {
-            if (event == aa::TouchEvent::Move || event == aa::TouchEvent::Down) {
-                // Convert raw evdev Y to a 0-1 slider value based on popup geometry
-                float normalized = std::clamp((y - pY) / pH, 0.0f, 1.0f);
-                // Invert: top of popup = max value, bottom = min (slider grows upward)
-                if (edge_ == "bottom" || edge_ == "right")
-                    normalized = 1.0f - normalized;
-
-                QMetaObject::invokeMethod(this, [this, ctrlIdx, normalized]() {
-                    // Direct service calls for EVIOCGRAB mode (QML sliders can't receive touches)
-                    QString role = controlRole(ctrlIdx);
-                    if (role == "volume" && audioService_) {
-                        int volume = static_cast<int>(normalized * 100.0f);
-                        QMetaObject::invokeMethod(audioService_, "setMasterVolume",
-                                                  Qt::QueuedConnection, Q_ARG(int, volume));
-                    } else if (role == "brightness" && displayService_) {
-                        int brightness = 5 + static_cast<int>(normalized * 95.0f);
-                        QMetaObject::invokeMethod(displayService_, "setBrightness",
-                                                  Qt::QueuedConnection, Q_ARG(int, brightness));
-                    }
-                    // Also emit for QML popup visual updates in non-grab mode
-                    emit popupDrag(ctrlIdx, normalized);
-                }, Qt::QueuedConnection);
-            }
-        });
 }
 
 void NavbarController::unregisterPopupZones()
@@ -533,15 +488,24 @@ void NavbarController::unregisterPopupZones()
 
 qint64 NavbarController::beginPopupSession(int controlIndex)
 {
-    Q_UNUSED(controlIndex)
+    if (popupVisible_ && controlIndex == popupControlIndex_
+        && controlIndex == activePopupSessionControlIndex_) {
+        return activePopupGeneration_;
+    }
+
+    unregisterPopupRegionZones();
     activePopupGeneration_ = ++popupGeneration_;
+    activePopupSessionControlIndex_ = controlIndex;
     return activePopupGeneration_;
 }
 
 void NavbarController::setPopupRegions(int controlIndex, qint64 generation,
                                         const QVariantList& regions)
 {
-    if (!coordBridge_ || generation != activePopupGeneration_)
+    if (!coordBridge_ || !popupVisible_
+        || controlIndex != popupControlIndex_
+        || controlIndex != activePopupSessionControlIndex_
+        || generation != activePopupGeneration_)
         return;
 
     // Region types matching QML enum
@@ -564,10 +528,14 @@ void NavbarController::setPopupRegions(int controlIndex, qint64 generation,
         dismissId, 40,
         0, 0,
         static_cast<float>(displayWidth_), static_cast<float>(displayHeight_),
-        [this](int /*slot*/, float /*x*/, float /*y*/, aa::TouchEvent event) {
+        [this, controlIndex, generation]
+        (int /*slot*/, float /*x*/, float /*y*/, aa::TouchEvent event) {
             if (event == aa::TouchEvent::Up) {
-                QMetaObject::invokeMethod(this, [this]() {
-                    hidePopup();
+                QMetaObject::invokeMethod(this, [this, controlIndex, generation]() {
+                    if (popupVisible_ && popupControlIndex_ == controlIndex
+                        && activePopupGeneration_ == generation) {
+                        hidePopup();
+                    }
                 }, Qt::QueuedConnection);
             }
         });
@@ -607,7 +575,8 @@ void NavbarController::setPopupRegions(int controlIndex, qint64 generation,
 
             coordBridge_->updateZone(
                 zoneId, 60, x, y, w, h,
-                [this, target, minVal, maxVal, invertAxis, evY0, evRange]
+                [this, controlIndex, generation, target, minVal, maxVal,
+                 invertAxis, evY0, evRange]
                 (int /*slot*/, float /*x*/, float evY, aa::TouchEvent event) {
                     if (event == aa::TouchEvent::Move || event == aa::TouchEvent::Down) {
                         float normalized = (evRange > 0)
@@ -618,7 +587,12 @@ void NavbarController::setPopupRegions(int controlIndex, qint64 generation,
 
                         int value = minVal + static_cast<int>(normalized * (maxVal - minVal));
 
-                        QMetaObject::invokeMethod(this, [this, target, value]() {
+                        QMetaObject::invokeMethod(
+                            this, [this, controlIndex, generation, target, value]() {
+                            if (!popupVisible_ || popupControlIndex_ != controlIndex
+                                || activePopupGeneration_ != generation) {
+                                return;
+                            }
                             if (target == 0 && audioService_) {
                                 QMetaObject::invokeMethod(audioService_, "setMasterVolume",
                                                           Qt::QueuedConnection, Q_ARG(int, value));
@@ -634,21 +608,33 @@ void NavbarController::setPopupRegions(int controlIndex, qint64 generation,
         } else if (type == REGION_TYPE_BUTTON) {
             QString action = region.value("action").toString();
             float tapSlopEvdev = coordBridge_->pixelToEvdevY(TAP_SLOP_PX);
+            auto pressState = std::make_shared<PopupButtonPressState>();
 
             coordBridge_->updateZone(
                 zoneId, 60, x, y, w, h,
-                [this, action, tapSlopEvdev]
-                (int /*slot*/, float evX, float evY, aa::TouchEvent event) {
-                    static float downX = 0, downY = 0;
+                [this, action, controlIndex, generation, tapSlopEvdev, pressState]
+                (int slot, float evX, float evY, aa::TouchEvent event) {
+                    if (slot < 0 || slot >= static_cast<int>(pressState->presses.size()))
+                        return;
+                    auto& press = pressState->presses[slot];
                     if (event == aa::TouchEvent::Down) {
-                        downX = evX;
-                        downY = evY;
+                        press.pressed = true;
+                        press.x = evX;
+                        press.y = evY;
                     } else if (event == aa::TouchEvent::Up) {
-                        float dx = evX - downX;
-                        float dy = evY - downY;
+                        if (!press.pressed)
+                            return;
+                        press.pressed = false;
+                        float dx = evX - press.x;
+                        float dy = evY - press.y;
                         float dist = std::sqrt(dx * dx + dy * dy);
                         if (dist <= tapSlopEvdev) {
-                            QMetaObject::invokeMethod(this, [this, action]() {
+                            QMetaObject::invokeMethod(
+                                this, [this, action, controlIndex, generation]() {
+                                if (!popupVisible_ || popupControlIndex_ != controlIndex
+                                    || activePopupGeneration_ != generation) {
+                                    return;
+                                }
                                 hidePopup();
                                 if (actionRegistry_) {
                                     actionRegistry_->dispatch(
@@ -664,10 +650,11 @@ void NavbarController::setPopupRegions(int controlIndex, qint64 generation,
 
 void NavbarController::clearPopupRegions(int controlIndex, qint64 generation)
 {
-    Q_UNUSED(controlIndex)
-    if (generation != activePopupGeneration_ && activePopupGeneration_ != 0)
-        return;  // stale generation, ignore
-
+    if (!popupVisible_ || controlIndex != popupControlIndex_
+        || controlIndex != activePopupSessionControlIndex_
+        || generation != activePopupGeneration_) {
+        return;
+    }
     hidePopup();
 }
 

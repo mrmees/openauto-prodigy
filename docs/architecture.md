@@ -150,9 +150,19 @@ omits `node.dont-fallback` so that fallback stays available.
 
 QML shell and app views are packaged into the binary via `qt_add_qml_module`
 (+ qmlcache) — UI changes ship by rebuilding, not by copying QML files.
-`PluginModel` and `PluginViewHost` activate plugin views. `DashboardManager`
-owns one `WidgetGridModel`/`WidgetContextFactory` pair per dashboard and seeds
-the Android Auto and Settings singleton launchers on an empty home dashboard.
+`PluginModel` and `PluginViewHost` activate plugin views. The host detaches a
+view logically and runs the outgoing plugin's deactivation hook before any
+replacement activation. The old QML subtree and child context remain readable
+through the current dispatch; the subtree is destroyed on the next event-loop
+turn, and only then are its retained context properties retired. This split
+prevents an old queued retirement from deactivating a rapid reactivation.
+Explicit QObject ownership makes shell teardown complete the same order
+synchronously rather than stranding pending views or contexts. A
+`ScreenDpiBinding` owns the replaceable window/current-screen DPI connections;
+only the active screen publishes structural DPI data to `DisplayInfo`.
+`DashboardManager` owns one `WidgetGridModel`/`WidgetContextFactory` pair per
+dashboard and seeds the Android Auto and Settings singleton launchers on an
+empty home dashboard.
 `WidgetRegistry` combines built-in descriptors, plugin contributions, and —
 when WebEngine is available — valid web-widget packages.
 

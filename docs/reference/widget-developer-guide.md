@@ -437,8 +437,27 @@ Common patterns:
 
 When grid dimensions change, the system proportionally remaps positions while
 preserving spans. It clamps positions, nudges overlaps, and can spill a widget
-to a later page. A placement whose minimum span is larger than the entire grid
-is retained but marked invisible.
+to a later page. Spill expands the dashboard page count before the placement is
+published, so every placement remains navigable; singleton launcher pages stay
+at the trailing reserved end of the page range. Automatic spill pages are
+derived from the saved page-count baseline: returning to the saved dimensions
+removes surplus spill-only pages without removing intentionally empty user
+pages. Adding/removing a page or editing a placement adopts the current page
+topology as the next baseline.
+
+Only that baseline is persisted. A display-only remap may change the live page
+count and placement pages, but restarting while constrained reconstructs those
+live results from the unchanged saved topology. Since saved grid dimensions are
+shared by all dashboards, a user edit in a remapped layout commits every
+dashboard's current live topology at those dimensions in one persistence step.
+
+A placement whose minimum span is larger than the entire grid is retained but
+marked invisible. It still occupies its page for cleanup purposes and becomes
+visible again when the grid can contain it. If dimensions change while a widget
+is selected, the model defers remapping until deselection or the next placement
+edit. Move, resize, opacity, configuration, and removal operations first apply
+that pending remap, so persisted edits never mix old placement coordinates with
+new grid dimensions.
 
 ---
 

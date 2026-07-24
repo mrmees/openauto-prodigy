@@ -67,13 +67,13 @@ void DashboardManager::loadFromConfig(int initialCols, int initialRows)
         e.name = d.name;
 
         auto* model = new WidgetGridModel(registry_, this);
-        model->setGridDimensions(initialCols, initialRows);
         model->setPageCount(d.pageCount);
         if (!d.placements.isEmpty()) {
             model->setPlacements(d.placements, registry_);
         }
         model->setNextInstanceId(d.nextInstanceId);
         model->setSavedDimensions(config_->gridSavedCols(), config_->gridSavedRows());
+        model->setGridDimensions(initialCols, initialRows);
 
         auto* factory = new WidgetContextFactory(model, hostContext_, this);
 
@@ -110,6 +110,7 @@ void DashboardManager::loadFromConfig(int initialCols, int initialRows)
                 seedPlacements.append(p);
             }
             model->setPlacements(seedPlacements, registry_);
+            model->adoptLiveAsBaseline();
         }
     }
 
@@ -120,15 +121,12 @@ void DashboardManager::loadFromConfig(int initialCols, int initialRows)
     }
 
     // Load-before-connect (spec §6.4): only now, after every dashboard's
-    // placements are fully loaded/seeded, wire up auto-save. Connecting
-    // earlier risks a placementsChanged/pageCountChanged fired mid-load
-    // persisting a partially-loaded (or empty) config over user data.
+    // placements are fully loaded/seeded, wire up baseline persistence.
+    // Automatic remap notifications intentionally do not write live topology.
     loading_ = false;
 
-    for (const auto& e : entries_) {
-        connect(e.model, &WidgetGridModel::placementsChanged, this, &DashboardManager::saveAll);
-        connect(e.model, &WidgetGridModel::pageCountChanged, this, &DashboardManager::saveAll);
-    }
+    for (const auto& e : entries_)
+        connectModelPersistence(e.model);
 }
 
 WidgetGridModel* DashboardManager::activeModel() const
@@ -244,6 +242,7 @@ QString DashboardManager::addDashboard(const QString& name)
     auto* model = new WidgetGridModel(registry_, this);
     if (auto* am = activeModel()) {
         model->setGridDimensions(am->gridColumns(), am->gridRows());
+        model->setSavedDimensions(am->baselineGridColumns(), am->baselineGridRows());
     }
     model->setPageCount(1);
 
@@ -253,8 +252,7 @@ QString DashboardManager::addDashboard(const QString& name)
     e.factory = factory;
     entries_.append(e);
 
-    connect(model, &WidgetGridModel::placementsChanged, this, &DashboardManager::saveAll);
-    connect(model, &WidgetGridModel::pageCountChanged, this, &DashboardManager::saveAll);
+    connectModelPersistence(model);
 
     saveAll();
     emit dashboardsChanged();
@@ -335,16 +333,49 @@ void DashboardManager::saveAll()
         d.id = e.id;
         d.name = e.name;
         d.nextInstanceId = e.model->nextInstanceId();
-        d.pageCount = e.model->pageCount();
-        d.placements = e.model->placements();
+        d.pageCount = e.model->baselinePageCount();
+        d.placements = e.model->baselinePlacements();
         list.append(d);
     }
     config_->setDashboards(list);
     config_->setActiveDashboardId(activeDashboardId());
     if (auto* am = activeModel()) {
-        config_->setGridSavedDims(am->gridColumns(), am->gridRows());
+        config_->setGridSavedDims(am->baselineGridColumns(), am->baselineGridRows());
     }
     config_->save(configPath_);
+}
+
+void DashboardManager::connectModelPersistence(WidgetGridModel* model)
+{
+    connect(model, &WidgetGridModel::baselineChanged,
+            this, &DashboardManager::commitSharedBaseline);
+}
+
+void DashboardManager::commitSharedBaseline()
+{
+    if (loading_ || committingBaseline_)
+        return;
+
+    auto* changedModel = qobject_cast<WidgetGridModel*>(sender());
+    if (!changedModel)
+        return;
+
+    committingBaseline_ = true;
+    const int cols = changedModel->gridColumns();
+    const int rows = changedModel->gridRows();
+
+    // Grid dimensions are global in YAML. Before one model's user mutation can
+    // commit them, make every dashboard adopt its live topology at those exact
+    // dimensions so persistence never mixes coordinate systems.
+    for (const auto& e : entries_) {
+        if (e.model->gridColumns() != cols || e.model->gridRows() != rows)
+            e.model->setGridDimensions(cols, rows);
+    }
+    for (const auto& e : entries_)
+        e.model->adoptLiveAsBaseline();
+
+    saveAll();
+    committingBaseline_ = false;
 }
 
 void DashboardManager::schedulePersistActiveId()

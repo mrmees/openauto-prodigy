@@ -21,6 +21,23 @@ static void registerSeedWidgets(oap::WidgetRegistry& reg) {
     reg.registerWidget(clock);
 }
 
+static oap::DashboardConfig makeSpillDashboard(const QString& id, int placementCount) {
+    oap::DashboardConfig dashboard;
+    dashboard.id = id;
+    dashboard.name = id;
+    dashboard.pageCount = 2; // retain one intentionally empty baseline page
+    for (int i = 0; i < placementCount; ++i) {
+        oap::GridPlacement p;
+        p.instanceId = id + "-clock-" + QString::number(i);
+        p.widgetId = "org.openauto.clock";
+        p.col = i; p.row = 0; p.colSpan = 1; p.rowSpan = 1;
+        p.opacity = 0.25; p.page = 0; p.visible = true;
+        dashboard.placements.append(p);
+    }
+    dashboard.nextInstanceId = placementCount;
+    return dashboard;
+}
+
 class TestDashboardManager : public QObject {
     Q_OBJECT
     QString path_;
@@ -35,6 +52,8 @@ private slots:
     void testNavPersistSemantics();
     void testConfigOutlivesManagerViaSharedPtr();
     void testSwitchClearsOutgoingSelection();
+    void testAutomaticRemapPersistsBaselineAcrossRestart();
+    void testRemappedMutationSynchronizesDashboardBaselines();
 };
 
 void TestDashboardManager::testFreshLoadSeedsHome() {
@@ -251,6 +270,106 @@ void TestDashboardManager::testSwitchClearsOutgoingSelection() {
     QVERIFY(dm.switchTo(id));
 
     QCOMPARE(deselectSpy.count(), 1);  // home (outgoing) model's latch was cleared
+}
+
+void TestDashboardManager::testAutomaticRemapPersistsBaselineAcrossRestart() {
+    oap::WidgetRegistry reg; registerSeedWidgets(reg);
+    {
+        oap::YamlConfig initial;
+        initial.setDashboards({makeSpillDashboard("home", 3)});
+        initial.setGridSavedDims(6, 4);
+        QVERIFY(initial.save(path_));
+    }
+
+    {
+        auto cfg = std::make_shared<oap::YamlConfig>();
+        cfg->load(path_);
+        oap::DashboardManager dm(&reg, nullptr, cfg, path_);
+        dm.loadFromConfig(6, 4);
+        dm.setGridDimensions(1, 1);
+        QCOMPARE(dm.activeModel()->pageCount(), 3); // live spill is reachable
+        QVERIFY(dm.renameDashboard("home", "Renamed")); // unrelated full save stays baseline-only
+
+        oap::YamlConfig onDisk;
+        onDisk.load(path_);
+        QCOMPARE(onDisk.gridSavedCols(), 6);
+        QCOMPARE(onDisk.gridSavedRows(), 4);
+        const auto persisted = onDisk.dashboards().constFirst();
+        QCOMPARE(persisted.pageCount, 2);
+        for (const auto& p : persisted.placements)
+            QCOMPARE(p.page, 0);
+    }
+
+    auto restartedConfig = std::make_shared<oap::YamlConfig>();
+    restartedConfig->load(path_);
+    oap::DashboardManager restarted(&reg, nullptr, restartedConfig, path_);
+    restarted.loadFromConfig(1, 1); // restart while still constrained
+    QCOMPARE(restarted.activeModel()->pageCount(), 3);
+
+    restarted.setGridDimensions(6, 4);
+    QCOMPARE(restarted.activeModel()->pageCount(), 2);
+    const auto restored = restarted.activeModel()->placements();
+    QCOMPARE(restored.size(), 3);
+    for (int i = 0; i < restored.size(); ++i) {
+        QCOMPARE(restored[i].page, 0);
+        QCOMPARE(restored[i].col, i);
+    }
+}
+
+void TestDashboardManager::testRemappedMutationSynchronizesDashboardBaselines() {
+    oap::WidgetRegistry reg; registerSeedWidgets(reg);
+    {
+        oap::YamlConfig initial;
+        initial.setDashboards({makeSpillDashboard("home", 3),
+                               makeSpillDashboard("work", 3)});
+        initial.setGridSavedDims(6, 4);
+        QVERIFY(initial.save(path_));
+    }
+
+    {
+        auto cfg = std::make_shared<oap::YamlConfig>();
+        cfg->load(path_);
+        oap::DashboardManager dm(&reg, nullptr, cfg, path_);
+        dm.loadFromConfig(6, 4);
+        dm.setGridDimensions(1, 1);
+        QCOMPARE(dm.modelForId("home")->pageCount(), 3);
+        QCOMPARE(dm.modelForId("work")->pageCount(), 3);
+
+        dm.modelForId("home")->setWidgetOpacity("home-clock-0", 0.5);
+
+        oap::YamlConfig committed;
+        committed.load(path_);
+        QCOMPARE(committed.gridSavedCols(), 1);
+        QCOMPARE(committed.gridSavedRows(), 1);
+        const auto dashboards = committed.dashboards();
+        QCOMPARE(dashboards.size(), 2);
+        for (const auto& dashboard : dashboards) {
+            QCOMPARE(dashboard.pageCount, 3);
+            bool hasSpillPage = false;
+            for (const auto& p : dashboard.placements)
+                hasSpillPage = hasSpillPage || p.page == 2;
+            QVERIFY(hasSpillPage);
+        }
+
+        dm.modelForId("home")->addPage();
+        oap::YamlConfig afterAdd;
+        afterAdd.load(path_);
+        QCOMPARE(afterAdd.dashboards().constFirst().pageCount, 4);
+        QVERIFY(dm.modelForId("home")->removePage(3));
+        oap::YamlConfig afterRemove;
+        afterRemove.load(path_);
+        QCOMPARE(afterRemove.dashboards().constFirst().pageCount, 3);
+    }
+
+    auto reloadedConfig = std::make_shared<oap::YamlConfig>();
+    reloadedConfig->load(path_);
+    oap::DashboardManager reloaded(&reg, nullptr, reloadedConfig, path_);
+    reloaded.loadFromConfig(1, 1);
+    QCOMPARE(reloaded.modelForId("home")->pageCount(), 3);
+    QCOMPARE(reloaded.modelForId("work")->pageCount(), 3);
+    reloaded.setGridDimensions(6, 4);
+    QCOMPARE(reloaded.modelForId("home")->pageCount(), 3);
+    QCOMPARE(reloaded.modelForId("work")->pageCount(), 3);
 }
 
 QTEST_MAIN(TestDashboardManager)

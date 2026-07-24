@@ -34,6 +34,7 @@ public:
     };
 
     explicit PluginModel(PluginManager* manager, QQmlEngine* engine, QObject* parent = nullptr);
+    ~PluginModel() override;
 
     int rowCount(const QModelIndex& parent = QModelIndex()) const override;
     QVariant data(const QModelIndex& index, int role) const override;
@@ -59,6 +60,7 @@ private:
     QString activePluginId_;
 
     IPlugin* activePlugin() const;
+    void retireActiveContext();
 };
 
 } // namespace oap

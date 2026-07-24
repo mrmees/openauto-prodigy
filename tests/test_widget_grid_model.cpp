@@ -80,6 +80,8 @@ private slots:
     void testRemovePageShiftsDown();
     void testRemovePageZeroRejected();
     void testWidgetCountOnPage();
+    void testTotalWidgetCountIncludesHiddenPlacements();
+    void testLoadedPlacementsExpandPageCount();
     void testPageRole();
     // Singleton tests
     void testSingletonCannotBeRemoved();
@@ -640,6 +642,47 @@ void TestWidgetGridModel::testWidgetCountOnPage() {
 
     QCOMPARE(model.widgetCountOnPage(0), 2);
     QCOMPARE(model.widgetCountOnPage(1), 1);
+}
+
+void TestWidgetGridModel::testTotalWidgetCountIncludesHiddenPlacements() {
+    auto* reg = makeRegistry();
+    oap::WidgetGridModel model(reg);
+    model.setGridDimensions(6, 4);
+
+    oap::GridPlacement hidden;
+    hidden.instanceId = "clock-hidden";
+    hidden.widgetId = "clock";
+    hidden.page = 1;
+    hidden.visible = false;
+    model.setPlacements({hidden}, reg);
+
+    QCOMPARE(model.widgetCountOnPage(1), 0);
+    QCOMPARE(model.totalWidgetCountOnPage(1), 1);
+}
+
+void TestWidgetGridModel::testLoadedPlacementsExpandPageCount() {
+    auto* reg = makeRegistry();
+    oap::WidgetGridModel model(reg);
+    model.setPageCount(2);
+
+    oap::GridPlacement placement;
+    placement.instanceId = "clock-remote";
+    placement.widgetId = "clock";
+    placement.page = 4;
+    placement.visible = true;
+    oap::GridPlacement negativePage = placement;
+    negativePage.instanceId = "clock-negative";
+    negativePage.page = -2;
+
+    QSignalSpy pageSpy(&model, &oap::WidgetGridModel::pageCountChanged);
+    model.setPlacements({placement, negativePage}, reg);
+
+    QCOMPARE(model.pageCount(), 5);
+    QCOMPARE(pageSpy.count(), 1);
+    const auto loaded = model.placements();
+    QCOMPARE(loaded.at(1).page, 0);
+    for (const auto& p : loaded)
+        QVERIFY(p.page >= 0 && p.page < model.pageCount());
 }
 
 void TestWidgetGridModel::testPageRole() {

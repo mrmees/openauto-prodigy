@@ -145,6 +145,24 @@ in AA's full-pointer arrays, and same-report transitions are serialized in
 Android MotionEvent order. A 3-finger gesture suppresses AA forwarding and
 opens the system overlay.
 
+The QML navbar is authoritative for its three rendered rectangles. After an
+edge, scale, layout, size, or visibility transition it starts a generation and
+reports the actual 20/60/20 control geometry in shell coordinates;
+`NavbarController` does not reconstruct layout ratios or bar thickness.
+Starting a newer report removes the former claims, and invalid or hidden
+geometry leaves the navbar unregistered. `TouchRouter` continues to own
+coordinate conversion and sticky routing, so unclaimed projection touches are
+unchanged. Each queued navbar callback carries the geometry generation that
+claimed it; the controller rejects stale events before they can change gesture
+ownership or start a timer.
+
+An accepted evdev slot owns its navbar gesture until matching release or
+cancellation. Competing downs cannot replace that owner. Popup generations are
+published before QML visibility changes are observed, so cleanup from an
+outgoing slider or power menu cannot hide the incoming popup. Popup-button tap
+origins are fixed per region and touch slot for that generation; they are not
+shared between fingers or allocated on the reader-thread event path.
+
 ### Touch debug overlay
 
 **Decision:** Keep an optional QML overlay showing the AA-space touch points
@@ -239,23 +257,75 @@ unknown extension categories after them without rejecting them.
 
 **Rationale:** Hiding widgets would make them disappear silently — users would think they were deleted. Clamping preserves the widget at a reduced size, maximizing visibility. The original span is stored in `basePlacements_` and restored if the grid grows back.
 
+### Remap Keeps Every Placement on a Reachable Page
+
+**Decision:** The base snapshot includes its intentional page count as well as
+placements and dimensions. A remap derives the exact reachable `pageCount` from
+that baseline plus any current spill, before publishing changed placements.
+Returning to the baseline dimensions removes surplus spill-only pages while
+preserving intentionally empty user pages. Pages containing singleton launchers
+remain the trailing reserved pages in stable order. Loaded placements expand a
+stale persisted page count, and negative loaded page values normalize to the
+first page.
+
+**Rationale:** A placement outside `0 <= page < pageCount` cannot be reached by
+the dashboard pager and can later be mistaken for abandoned state. Growing the
+model-owned page range at the placement boundary keeps navigation and YAML
+persistence consistent without adding consumer-side correction.
+Explicit page add/remove operations and placement edits promote the current page
+topology into the baseline, so only automatic spill growth is reversed.
+
+### Hidden Placements Remain Page Occupants
+
+**Decision:** The model exposes visible widget count separately from total
+retained placement count. Destructive empty-page cleanup uses the total count,
+including placements temporarily hidden because their minimum span does not fit
+the current grid.
+
+**Rationale:** Visibility is a presentation result of the current dimensions,
+not placement ownership. Retaining the page allows the hidden widget to become
+visible again when the grid grows instead of deleting it as collateral cleanup.
+
 ### promoteToBase() on Every Mutation
 
-**Decision:** After every user edit (move, resize, add, remove, opacity change), `promoteToBase()` copies `livePlacements_` to `basePlacements_`.
+**Decision:** Before a selected-widget dimension remap and user mutation can
+overlap, the pending remap is applied. After every user edit (move, either
+resize path, add, remove, opacity, or configuration change), `promoteToBase()`
+copies `livePlacements_` to `basePlacements_`.
 
-**Rationale:** Remap derives its output from `basePlacements_`, so base must always reflect the latest user intent. Without this, a remap triggered by a resize would revert to an older base state, discarding the user's recent edits. The copy is cheap (small QList of POD-like structs).
+**Rationale:** Remap derives its output from `basePlacements_`, so base must
+always reflect the latest user intent in one coordinate system. Applying a
+queued remap first prevents an edit from promoting stale coordinates under the
+new dimensions. Without this, a later resize can revert or displace recent
+edits. The copy is cheap (small QList of POD-like structs).
 
 ### Base/Live Snapshot Pattern
 
-**Decision:** Two parallel placement lists: `basePlacements_` (persisted from YAML, updated by promoteToBase) and `livePlacements_` (runtime state exposed to QML).
+**Decision:** Two parallel placement lists: `basePlacements_` (persisted to
+YAML, updated by explicit user mutation) and `livePlacements_` (runtime state
+exposed to QML). `DashboardManager` serializes the baseline placements, page
+count, and matching baseline dimensions; automatic remap notifications never
+serialize live-only topology.
 
-**Rationale:** Clean separation of persisted vs runtime state. Remap reads from base and writes to live, ensuring the remap algorithm always has a stable input. Structural edits (move, resize, add, remove) update live first, then `promoteToBase()` copies live back to base so future remaps reflect the latest user intent. YAML serialization reads from live. The QAbstractListModel interface exposes live placements.
+**Rationale:** Clean separation of persisted vs runtime state. Remap reads from
+base and writes to live, ensuring the remap algorithm always has a stable input
+even across a restart at constrained dimensions. Structural edits (move,
+resize, add, remove) update live first, then `promoteToBase()` copies live back
+to base so future remaps reflect the latest user intent. Because grid dimensions
+are one global YAML value, a model's user-mutation signal makes the manager
+adopt every dashboard's current live topology at the same dimensions before one
+save. This prevents different dashboards from being serialized against mixed
+coordinate systems while keeping QML bound to live placements.
 
 ### Reserved Page Derived from Singleton Presence
 
 **Decision:** Whether a page is "reserved" (protected from deletion) is derived from `pageHasSingleton()` at runtime, not stored as an explicit page flag.
 
-**Rationale:** Derived state is more robust than stored state. If a singleton widget is moved to a different page, the reservation follows it automatically. A stored flag would require synchronization logic to track widget moves.
+**Rationale:** Derived state is more robust than stored state. If a singleton
+widget is moved to a different page, the reservation follows it automatically.
+A stored flag would require synchronization logic to track widget moves. When
+spill expands the dashboard, reserved pages retain their relative order at the
+end of the reachable page range.
 
 ### Fixed instanceIds for Seeded Singletons
 

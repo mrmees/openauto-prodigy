@@ -1,7 +1,10 @@
 #pragma once
 
+#include <QList>
 #include <QObject>
+#include <QPointer>
 #include <QUrl>
+#include <functional>
 
 class QQmlEngine;
 class QQmlContext;
@@ -15,7 +18,10 @@ namespace oap {
 class PluginViewHost : public QObject {
     Q_OBJECT
 public:
+    using RetirementCompletion = std::function<void()>;
+
     explicit PluginViewHost(QQmlEngine* engine, QObject* parent = nullptr);
+    ~PluginViewHost() override;
 
     /// Set the QML host item (the container in Shell where plugin views go)
     void setHostItem(QQuickItem* host);
@@ -24,10 +30,14 @@ public:
     /// Returns true on success.
     bool loadView(const QUrl& qmlUrl, QQmlContext* pluginContext);
 
-    /// Destroy the current plugin view (must be called before context deactivation).
+    /// Logically detach the current view and schedule its deferred destruction.
     void clearView();
 
-    bool hasView() const { return activeView_ != nullptr; }
+    /// clearView() with an ordered completion that runs only after the outgoing
+    /// view has actually been destroyed.
+    void clearViewThen(RetirementCompletion completion);
+
+    bool hasView() const;
 
 signals:
     void viewLoaded();
@@ -35,9 +45,23 @@ signals:
     void viewLoadFailed(const QString& error);
 
 private:
-    QQmlEngine* engine_;
-    QQuickItem* hostItem_ = nullptr;
-    QQuickItem* activeView_ = nullptr;
+    friend class PluginModel;
+
+    struct PendingRetirement {
+        quint64 id;
+        QPointer<QQuickItem> view;
+        RetirementCompletion completion;
+    };
+
+    void finishRetirement(quint64 id);
+    void finishRetirements();
+
+    QPointer<QQmlEngine> engine_;
+    QPointer<QQuickItem> hostItem_;
+    QPointer<QQuickItem> activeView_;
+    QList<PendingRetirement> pendingRetirements_;
+    quint64 nextRetirementId_ = 1;
+    bool destroying_ = false;
 };
 
 } // namespace oap

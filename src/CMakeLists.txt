@@ -45,6 +45,7 @@ add_library(openauto-core STATIC
     ui/GestureOverlayController.cpp
     ui/SettingsInputBoundary.cpp
     ui/DisplayInfo.cpp
+    ui/ScreenDpiBinding.cpp
     core/plugin/HostContext.cpp
     core/services/ConfigService.cpp
     core/services/ThemeService.cpp

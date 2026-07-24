@@ -74,6 +74,7 @@ public:
     Q_INVOKABLE bool removePage(int page);
     Q_INVOKABLE void removeAllWidgetsOnPage(int page);
     Q_INVOKABLE int widgetCountOnPage(int page) const;
+    Q_INVOKABLE int totalWidgetCountOnPage(int page) const;
     Q_INVOKABLE bool isReservedPage(int page) const;
 
     int activePage() const;
@@ -95,7 +96,12 @@ public:
 
     // Serialization
     QList<GridPlacement> placements() const;
+    QList<GridPlacement> baselinePlacements() const { return basePlacements_; }
+    int baselinePageCount() const { return basePageCount_; }
+    int baselineGridColumns() const { return savedCols_; }
+    int baselineGridRows() const { return savedRows_; }
     void setPlacements(const QList<GridPlacement>& placements, WidgetRegistry* registry = nullptr);
+    void adoptLiveAsBaseline();
 
     // Instance ID management
     int nextInstanceId() const { return nextInstanceId_; }
@@ -106,6 +112,7 @@ signals:
     void placementsChanged();
     void activePageChanged();
     void pageCountChanged();
+    void baselineChanged();
     void widgetConfigChanged(const QString& instanceId, const QVariantMap& effectiveConfig);
     void widgetDeselectedFromCpp();
 
@@ -130,7 +137,11 @@ private:
     QVariantMap validateConfig(const QString& widgetId, const QVariantMap& raw) const;
 
     // After user edit: promote live state to new base
+    void applyPendingRemap();
     void promoteToBase();
+    int requiredPageCount(const QList<GridPlacement>& placements) const;
+    bool moveReservedPagesToTail(QList<GridPlacement>& placements, int pageCount) const;
+    void setCurrentPageCount(int count);
 
     WidgetRegistry* registry_;
     QList<GridPlacement> livePlacements_;
@@ -143,6 +154,7 @@ private:
     int nextInstanceId_ = 0;
     int activePage_ = 0;
     int pageCount_ = 2;
+    int basePageCount_ = 2;
     bool widgetSelected_ = false;
     bool remapPending_ = false;
     int pendingCols_ = 0;
