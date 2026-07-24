@@ -4,6 +4,35 @@ Newest entries first.
 
 ---
 
+## 2026-07-24 — Feature wishlist group triage
+
+**What changed:** Matthew reviewed all four feature groups item by item. The
+wishlist now contains 19 intentional capabilities, ten explicitly marked
+long-term. Shipped source arbitration and in-car theme selection were removed;
+battery charging presentation, proxy-result acknowledgement, WiFi password
+rotation, dashboard-editing polish, and generic widget-size work were declined
+or returned to their future owning phase. Native call controls now exclude AA
+ownership, the remaining AA System-audio gap is stated precisely, and the
+Miata-specific work is framed as reusable vehicle GPIO/power integration.
+
+**Why:** the wishlist should express capabilities Matthew actually wants, not
+preserve stale assumptions, already-shipped behavior, or incidental design
+practices. Explicit long-term labels keep valid directions visible without
+making them look ready for promotion.
+
+**Status:** COMPLETE as documentation-only triage on local `dev`. No item was
+promoted, implemented, or pushed.
+
+**Verification:** `python3 scripts/check-doc-links.py` and `git diff --check`
+pass. Build, app-target build, and CTest were not run because only Markdown
+changed.
+
+**Next 1-3 steps:** (1) discuss genuinely new wishlist ideas against this clean
+baseline; (2) run and retire or promote the three current Pi validation checks;
+(3) re-research any selected engineering lead before design or execution.
+
+---
+
 ## 2026-07-24 — Backlog audit and canonical rebucketing
 
 **What changed:** local `dev` was fast-forwarded to the post-milestone cleanup

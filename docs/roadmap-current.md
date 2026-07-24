@@ -278,8 +278,8 @@ plan.
   QML→C++ save path verified empirically). The **web advanced-EQ leg is entirely
   absent** (no web-config routes, no IPC commands, no API surface) — precise gaps
   and related coverage/labeling findings were triaged; the remaining
-  `docs/wishlist.md` § "Web-config advanced EQ editor" outcome requires a
-  fresh promotion decision.
+  `docs/wishlist.md` § "Long-term: web-config advanced EQ editor" outcome
+  requires a fresh promotion decision.
   COMPLETE (audit; no code changed).
 - BT A2DP through the equalizer + EQ hygiene — **SHIPPED 2026-07-15
   (ALPHA-26-07-15-01)**. Promoted 2026-07-14 from the EQ parity audit
