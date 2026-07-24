@@ -1,6 +1,9 @@
 # Current Roadmap
 
-Governance: capture new ideas in `docs/wishlist.md`; only promoted items should appear in this roadmap.
+Governance: capture user-facing capability ideas in `docs/wishlist.md`, concrete
+technical findings in `docs/engineering-backlog.md`, and unconfirmed hardware
+observations in `docs/validation-current.md`. Only promoted work should appear
+in this roadmap.
 
 > **Parity program status (updated 2026-07-21):** the 2026-07-05 design sprint
 > (`docs/archive/plans/2026-07-05-fable-work-program-design.md`, phases A–F)
@@ -15,8 +18,9 @@ Governance: capture new ideas in `docs/wishlist.md`; only promoted items should 
 ## Now
 
 No implementation wave is active. The consolidated audit-remediation campaign
-is complete; subsequent work must be promoted from the wishlist or a newly
-approved design rather than extending a closed plan.
+is complete; subsequent work must be promoted from the wishlist or engineering
+backlog, or begin with a newly approved design, rather than extending a closed
+plan.
 
 ## Done (recent)
 
@@ -301,26 +305,9 @@ approved design rather than extending a closed plan.
 
 ## Later
 
-- Reduce unnecessary logging / enable debug logging options. MOSTLY RESOLVED 2026-07-02:
-  - BtManager paired-device spam now logs only when the count changes (info level, `BluetoothManager.cpp`). NavStrip QML color warnings died with NavStrip itself (deleted in the v0.4.5 Navbar rework; all 43 ThemeService QML references audited as resolving). Verbose infrastructure already exists (`lcBT` defaults to info threshold, `--verbose` flag).
-  - Remaining: a general startup-log audit on the Pi to catch any other noise sources.
-- Plugin system expansion (OBD-II, backup camera, GPIO control).
-- Theme engine and user-facing theme selection.
-  - Delta narrowed 2026-07-07: companion theme/wallpaper upload (`/api/theme/install`) and the web-config themes page both exist; remaining is an audit of in-car theme selection UX.
-- Companion API integration — **COMPLETE 2026-07-14**. The Android companion's
-  API v1 reporting, pairing, connectivity, and theme-transfer paths passed the
-  live cutover before the head unit retired `CompanionListenerService` and its
-  legacy listener. Reporting-session expiry and reconnect self-heal were also
-  bench-validated. The separate phone-notification idea remains unpromoted; its
-  remaining scope is an additive notification contract and display policy, not
-  an API migration prerequisite.
-- Streaming web apps (WebAppHost) — fullscreen Spotify/YouTube/parked-video surface
-  riding the slice-1 Widevine wiring. Scoped (Decision 3 of the web-surface spec);
-  the `docs/wishlist.md` § "WebAppHost" outcome retains the open questions. Not
-  yet promoted.
-- CI automation for builds and tests.
-- Multi-display / resolution support beyond 1024x600.
-- Community contribution workflow (issue templates, PR guidelines).
+No work is currently promoted into this horizon. Unpromoted user capabilities
+live in `docs/wishlist.md`; technical leads live in
+`docs/engineering-backlog.md` and require fresh research before promotion.
 
 ## Deferred
 

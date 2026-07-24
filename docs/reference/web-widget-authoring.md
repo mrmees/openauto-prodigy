@@ -171,6 +171,7 @@ If the widget's renderer process dies (a rendering bug, an OOM, whatever), `WebW
 - `docs/archive/plans/2026-07-06-js-runtime-design.md` (design history) — full architecture: `prodigy://` scheme, packaging/discovery, `WebWidgetHost.qml` lifecycle, shim internals, security model, deferred v2 items.
 - `docs/archive/plans/2026-07-06-external-api-v1-design.md` (design history) — the External API wire protocol the shim rides on top of.
 - [widget-developer-guide.md](widget-developer-guide.md) — native QML widget development (the other widget path).
-- `docs/wishlist.md` — "Web-widget platform hardening" — tracked follow-ups
-  for the residual shim contract, package/runtime hygiene, persistent storage,
-  and per-widget isolation.
+- `docs/engineering-backlog.md` — residual shim-contract and package/runtime
+  findings that require fresh research before promotion.
+- `docs/wishlist.md` — the user-facing persistent isolated widget-storage
+  capability.

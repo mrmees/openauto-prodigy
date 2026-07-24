@@ -151,7 +151,10 @@ Not all tooling auto-loads nested files — read the nearest one before editing 
 - `docs/session-handoffs.md` over ~300 lines → rotate the oldest month into `docs/archive/session-handoffs/`.
 - Behavior changes update the docs that describe them in the same commit (`docs/INDEX.md` is the map).
 - Docs never state exact test counts — state the command (`ctest --output-on-failure`) instead.
-- **Wishlist-then-promote:** new feature ideas go to `docs/wishlist.md`, not into scope. Plans don't grow features mid-execution.
+- **Wishlist-then-promote:** new user-facing capability ideas go to `docs/wishlist.md`, not into scope.
+- Concrete technical findings go to `docs/engineering-backlog.md`. Backlog entries are leads, not executable tasks: re-research them against current code and turn confirmed findings into an approved design/plan before implementation.
+- Unconfirmed milestone or hardware observations go to `docs/validation-current.md`. Delete them when disproven; promote confirmed defects to the engineering backlog.
+- Plans don't grow features or technical follow-ups mid-execution.
 
 ## Versioning
 

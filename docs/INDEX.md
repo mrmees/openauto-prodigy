@@ -16,7 +16,9 @@
 - [project-vision.md](project-vision.md) — product intent, design principles, constraints
 - [roadmap-current.md](roadmap-current.md) — current priorities (Now/Next/Later)
 - [session-handoffs.md](session-handoffs.md) — session continuity log (recent entries; older months rotate to [archive/session-handoffs/](archive/session-handoffs/))
-- [wishlist.md](wishlist.md) — consolidated, unpromoted actionable outcomes
+- [wishlist.md](wishlist.md) — unpromoted user-facing capabilities
+- [engineering-backlog.md](engineering-backlog.md) — technical findings that require fresh research before promotion
+- [validation-current.md](validation-current.md) — current milestone observations awaiting hardware validation
 - [design-decisions.md](design-decisions.md) — architectural choices and rationale
 - [design-philosophy.md](design-philosophy.md) — core design principles (detailed)
 
@@ -65,7 +67,7 @@ Active plans:
 Everything under `archive/` is history, not guidance. Internal links there may point at pre-restructure paths by design.
 
 - [archive/plans/](archive/plans/) — completed/superseded designs and implementation plans, incl. milestone-01..05 history and pre-restructure proto docs
-- [2026-02-21-config-contract-overhaul-design.md](archive/plans/2026-02-21-config-contract-overhaul-design.md) and [implementation plan](archive/plans/2026-02-21-config-contract-overhaul-plan.md) — abandoned after shipped generic config/theme work superseded the original design; residual gaps are consolidated in the current wishlist
+- [2026-02-21-config-contract-overhaul-design.md](archive/plans/2026-02-21-config-contract-overhaul-design.md) and [implementation plan](archive/plans/2026-02-21-config-contract-overhaul-plan.md) — abandoned after shipped generic config/theme work superseded the original design; residual technical findings are tracked in the engineering backlog
 - [2026-07-24-installer-deployment-lifecycle-remediation-design.md](archive/plans/2026-07-24-installer-deployment-lifecycle-remediation-design.md) and [implementation plan](archive/plans/2026-07-24-installer-deployment-lifecycle-remediation-plan.md) — completed source ownership, shared hardware/startup contracts, recoverable prebuilt upgrades, and Xvfb ownership remediation
 - [2026-07-24-media-lifecycle-persistence-remediation-design.md](archive/plans/2026-07-24-media-lifecycle-persistence-remediation-design.md) and [implementation plan](archive/plans/2026-07-24-media-lifecycle-persistence-remediation-plan.md) — completed exact/fallback restore ownership, durable media persistence, scanner quiescence, safe-eject/shutdown ordering, and test-integrity remediation
 - [2026-07-23-bt-hfp-avrcp-state-remediation-design.md](archive/plans/2026-07-23-bt-hfp-avrcp-state-remediation-design.md) and [implementation plan](archive/plans/2026-07-23-bt-hfp-avrcp-state-remediation-plan.md) — completed asynchronous Bluetooth snapshot, Agent1, AVRCP lifecycle, and selected-AG HFP remediation

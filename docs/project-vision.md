@@ -43,6 +43,26 @@ OpenAuto Prodigy is a clean-room, open-source replacement for OpenAuto Pro (Blue
 - Full CarPlay or non-AA projection protocols.
 - USB AndroidAuto Support
 
+## Long-Term Community Architecture
+
+The project should evolve toward three explicit layers:
+
+1. **Protocol definitions:** the community-owned `open-android-auto` schema and
+   wire definitions remain reusable and independent. Prodigy consumes them; it
+   does not fork or privately mutate them.
+2. **Reusable protocol implementations:** session, channel, message, and
+   transport implementations should become usable outside this Qt application.
+   New boundaries should avoid Qt ownership, event-loop, and transport
+   assumptions where practical, while preserving the current working system
+   during migration.
+3. **Prodigy application:** the Qt/QML shell, hardware policy, plugins, and
+   product integrations compose the reusable implementation rather than define
+   the protocol's only usable runtime.
+
+This is a direction, not an active refactor. Any repository split or de-Qt work
+requires a separately approved design with explicit ownership, threading,
+transport, and compatibility boundaries.
+
 ## Direction Change Log
 
 - 2026-03-13: Clarified Prodigy as a platform shell with capability-based plugins. Core owns singleton hardware/system policy, shell/dashboard composition, scaling, and plugin runtime; Android Auto is treated as a projection plugin on top of shared transport services; the home screen is a first-class dashboard rather than a simple launcher.

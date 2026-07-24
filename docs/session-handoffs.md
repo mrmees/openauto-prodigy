@@ -4,6 +4,41 @@ Newest entries first.
 
 ---
 
+## 2026-07-24 — Backlog audit and canonical rebucketing
+
+**What changed:** local `dev` was fast-forwarded to the post-milestone cleanup
+commit `bbce99a`, then every retained wishlist entry was checked against the
+current code and recent PR #26-#37 remediation history. The result is 27
+atomic, user-facing capabilities in `docs/wishlist.md`, 33 evidence-tagged
+technical leads in the new `docs/engineering-backlog.md`, and three Pi checks
+in the new `docs/validation-current.md`. Six stale, unsupported, or
+implementation-criterion entries were closed during the audit. The roadmap's
+stale unpromoted Later list was removed, concrete product ideas were preserved
+in the wishlist, and the reusable non-Qt protocol direction moved into project
+vision.
+
+**Why:** the previous wishlist still made broad reliability practices and old
+review findings look like approved deliverables. The new buckets distinguish
+product decisions from technical evidence and unconfirmed hardware
+observations, while requiring engineering findings to be re-researched against
+the current tree before any plan is written.
+
+**Status:** COMPLETE as a documentation-only audit on local `dev`; nothing was
+promoted, implemented, pushed, or given execution priority. `dev` remains ahead
+of the stale remote branch and includes the local post-release cleanup commit.
+
+**Verification:** `python3 scripts/check-doc-links.py` and `git diff --check`
+pass. The local branch is `dev`; the audit was grounded on `bbce99a`. Build,
+app-target build, and CTest were not run because only Markdown and repository
+workflow guidance changed.
+
+**Next 1-3 steps:** (1) run and retire or promote the three current milestone
+validation checks on the Pi; (2) discuss the user-facing wishlist groups and
+remove or prioritize candidates; (3) re-research only the selected engineering
+lead before converting it into a bounded design and plan.
+
+---
+
 ## 2026-07-24 — Wishlist consolidation and stale-plan retirement
 
 **What changed:** the wishlist was reduced from a dated finding log to 35
