@@ -275,7 +275,7 @@ configuration without a user action, or expose a torn filter update. The fixes
 keep routing, focus, protocol, API, and QML behavior unchanged.
 
 **Status:** COMPLETE on `agent/audio-eq-rt-safety-remediation`, based on merged
-PR #33. The behavior-changing aarch64 binary through `fea943b` was retained
+PR #34. The behavior-changing aarch64 binary through `fea943b` was retained
 behind rollback snapshot `/var/backups/openauto-prodigy/20260723T224456Z` and
 deployed. One application process (PID `306153`) owns responsive IPC and
 reports `ALPHA-26-07-15-02-140-gfea943b`. The Pixel automatically resumed

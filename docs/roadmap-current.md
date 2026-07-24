@@ -14,8 +14,15 @@ Governance: capture new ideas in `docs/wishlist.md`; only promoted items should 
 
 ## Now
 
-No implementation tranche is active. The next consolidated subsystem batch
-will be revalidated before its design and plan are promoted.
+UI input and widget-grid lifecycle remediation — **ACTIVE**. This bounded wave
+aligns evdev navbar claims with rendered QML geometry, gives touches and popup
+generations explicit ownership, keeps every retained widget placement reachable
+through remap and page cleanup, and makes plugin-view and screen-DPI lifetimes
+event-loop safe. It does not redesign the UI or change Android Auto input,
+protocol, API, YAML schema, audio, HFP, or Bluetooth behavior. Design and plan:
+`docs/plans/2026-07-24-ui-input-widget-grid-lifecycle-remediation-design.md`
+and
+`docs/plans/2026-07-24-ui-input-widget-grid-lifecycle-remediation-plan.md`.
 
 ## Done (recent)
 
