@@ -4,6 +4,35 @@ Newest entries first.
 
 ---
 
+## 2026-07-24 — PR #36 pre-merge review
+
+**What changed:** nothing — the review confirmed the branch as-is.
+
+**Review adjudication:** zero findings. Verified in depth: scanner stop
+correctness (generation plus worker-pointer identity reject the stale queued
+completion without dereferencing the joined worker; destructor path is
+emission-free; FFmpeg interrupt_callback bounds the join even mid-read on a
+dying device; avformat_open_input's documented free-and-null-on-failure makes
+the RAII close safe); restore-ownership completeness (the loosened
+retryPendingRestore gate cannot clobber active playback because every
+user-initiated playback path — transport keys, seek, and all queue
+selections — clears the pending restore, and the fallback restore is always
+paused); eject ordering (duplicate guard, scanner quiesced before the UDisks
+request, successor scan excludes canonical aliases of the target); and the
+QSKIP-to-hard-failure conversion in playback fixture tests, which is correct
+because the WSL dev environment is contractually the Pi target environment.
+Observation without action: purgeVolume now quiesces the scanner on yank
+paths too, costing a survivor-rescan restart in exchange for guaranteed
+file-handle release.
+
+**Verification:** full local build, explicit `openauto-prodigy` target, and
+`ctest --output-on-failure` (all tests) passed on the branch.
+
+**Next 1-3 steps:** (1) merge PR #36; (2) at the next milestone tag, deploy
+the accumulated PR #32-#36 fixes together.
+
+---
+
 ## 2026-07-24 — Media lifecycle and persistence remediation COMPLETE
 
 **What changed:** exact saved tracks now exclusively own their saved position;
