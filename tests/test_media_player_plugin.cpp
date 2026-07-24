@@ -69,6 +69,7 @@ private slots:
     void transportActionsTakePendingRestoreOwnership_data();
     void transportActionsTakePendingRestoreOwnership();
     void modesPersistWithoutSerializingPartialQueue();
+    void shutdownQuiescesScanner();
 };
 
 void TestMediaPlayerPlugin::fallbackUsesZeroAndExactTrackUsesSavedPosition() {
@@ -220,6 +221,25 @@ void TestMediaPlayerPlugin::modesPersistWithoutSerializingPartialQueue() {
     QVERIFY(!cfg.writes.contains(QStringLiteral("last_queue")));
     QCOMPARE(cfg.saveCount, savesAfterShuffle + 1);
     plugin.shutdown();
+}
+
+void TestMediaPlayerPlugin::shutdownQuiescesScanner() {
+    QTemporaryDir dir;
+    QVERIFY(dir.isValid());
+    QVERIFY(QFile::copy(fixture("tone-44k.mp3"),
+                        dir.path() + QStringLiteral("/shutdown-scan.mp3")));
+
+    FakeConfig cfg;
+    cfg.seed(QStringLiteral("music_dirs"), QStringList{dir.path()});
+    oap::HostContext host;
+    host.setConfigService(&cfg);
+    MediaPlayerPlugin plugin;
+    QVERIFY(plugin.initialize(&host));
+    // initialize() starts a generation before returning; no event-loop turn
+    // has delivered completion yet.
+    QVERIFY(plugin.libraryScanning());
+    plugin.shutdown();
+    QVERIFY(!plugin.libraryScanning());
 }
 
 QTEST_GUILESS_MAIN(TestMediaPlayerPlugin)

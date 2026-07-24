@@ -166,6 +166,10 @@ bool MediaPlayerPlugin::initialize(IHostContext* context) {
 void MediaPlayerPlugin::shutdown() {
     policy_.onShutdownBegan();
     if (watcher_) watcher_->stop();
+    // Scanner workers retain filesystem handles independently of playback.
+    // Join them explicitly before dependent plugin teardown; relying on the
+    // QObject destructor is too late for orderly shutdown and safe eject.
+    if (scanner_) scanner_->stop();
     saveState();  // must precede the stop — saveState reads engine position
     // Fully release the PipeWire stream now: AudioService is an earlier app
     // child and dies first at teardown, so leaving the release to
@@ -356,6 +360,12 @@ void MediaPlayerPlugin::rescanLibrary() {
 // the playback-error yank path, and the eject sequence. Idempotent: mountKeys_
 // .take() means a second call for the same mount finds no key and no tracks.
 void MediaPlayerPlugin::purgeVolume(const QString& mount) {
+    // A worker may be reading tags/art/cache from this mount even when the
+    // playback engine is not. Release every scan-side file before mutating the
+    // root set. refreshSources() below starts a fresh survivor-only generation
+    // (and ejectVolume's ejectingMounts_ guard excludes its target).
+    if (scanner_) scanner_->stop();
+
     // 1. Key captured at mount time; NEVER recomputed from a dead mount
     //    (Codex P1). Fallback for volumes that predate the watcher.
     QString key = mountKeys_.take(mount);

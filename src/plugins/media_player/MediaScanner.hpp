@@ -32,6 +32,10 @@ public:
     /// Coalescing: while busy, remembers the NEWEST root set; the in-flight
     /// result is discarded on completion and the pending set scans next.
     void scan(const QVector<Root>& roots);
+    /// Owner-thread lifecycle boundary. Cancels pending work, interrupts and
+    /// joins the active generation, suppresses its queued completion, and
+    /// returns with busy()==false and scanning()==false. Idempotent.
+    void stop();
     bool busy() const { return thread_ != nullptr; }
     bool scanning() const { return scanning_; }
     int lastScanTagReads() const { return lastScanTagReads_; }  // test hook
@@ -52,6 +56,7 @@ private:
     };
     void startScan(QVector<Root> roots);
     void runScan(const QVector<Root>& roots, ScanOutcome* out);
+    void stopInternal(bool notifyState);
 
     QString cacheDir_;
     QThread* thread_ = nullptr;
@@ -59,6 +64,7 @@ private:
     bool hasPending_ = false;
     QVector<Root> pendingRoots_;
     int lastScanTagReads_ = 0;
+    quint64 generation_ = 0;  ///< invalidates queued completion after stop/restart
 };
 
 } // namespace plugins

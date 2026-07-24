@@ -221,6 +221,7 @@ Wireless AA session path (high-level):
 |---|---|---|
 | Qt main | UI, QML, services, plugins, D-Bus, AA and External API sockets/sessions/channels | owns all UI and socket-facing Qt objects |
 | Decode worker (`QThread`) | FFmpeg parsing/decode and frame production | latest-frame slot + `frameReady`; sink update occurs on Qt main |
+| Media scanner worker (`QThread`) | removable/local-root traversal, tags, artwork, and cache rewrite | owner-thread `MediaScanner::stop()` interrupts and joins the active generation before volume unmount or plugin teardown; stale generations never publish |
 | `EvdevTouchReader` (`QThread`) | direct evdev read, gestures, navbar zones, AA pointer construction | router callbacks/queued Qt signals; AA send returns through Qt signal delivery |
 | PipeWire thread loop | real-time audio process callbacks | lock-free/ring-buffer and explicitly RT-safe state only |
 | Flask process | web configuration HTTP requests | newline-framed JSON over the Unix-domain IPC socket |

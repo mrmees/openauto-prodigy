@@ -169,6 +169,36 @@ private slots:
         QCOMPARE(done.takeFirst().at(0).value<QVector<MediaTrackRecord>>().size(), 2);
         QVERIFY(!s.busy());
     }
+
+    void stopCancelsActiveAndPendingWorkThenAllowsRestart() {
+        QTemporaryDir cache;
+        MediaScanner s;
+        s.setCacheDir(cache.path());
+        QSignalSpy state(&s, &MediaScanner::scanningChanged);
+        QSignalSpy done(&s, &MediaScanner::finished);
+
+        // No event-loop turn between start/coalesce/stop: even if the worker
+        // finishes quickly, its completion is queued and must be invalidated.
+        s.scan({rootFor(fixtures())});
+        s.scan({rootFor(fixtures() + QStringLiteral("/AlbumA"))});
+        QVERIFY(s.scanning());
+        s.stop();
+        QVERIFY(!s.busy());
+        QVERIFY(!s.scanning());
+        QCOMPARE(done.count(), 0);
+        QCOMPARE(state.count(), 2);  // one start edge, one explicit stop edge
+
+        // Idempotent and silent once already quiescent.
+        s.stop();
+        QCOMPARE(state.count(), 2);
+
+        // A fresh generation remains usable; a stale completion from the
+        // cancelled worker cannot clear or publish over it.
+        const auto records = runScan(s, fixtures() + QStringLiteral("/AlbumA"));
+        QCOMPARE(records.size(), 2);
+        QVERIFY(!s.busy());
+        QVERIFY(!s.scanning());
+    }
 };
 
 QTEST_MAIN(TestMediaScanner)
