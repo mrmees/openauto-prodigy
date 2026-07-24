@@ -264,7 +264,8 @@ approved design rather than extending a closed plan.
   audio — full DRM chain (license request → CDM decrypt → decode → render) proven
   against a real license server. Bench notes: the head-unit app must be stopped
   for browser bench tools (it owns the touchscreen), and stopping it reproduced
-  the proxy-blackhole (third incident; wishlist entry updated). Spotify login
+  the proxy-blackhole (third incident; later reporting-session liveness work
+  closed the remaining route-ownership gap). Spotify login
   round not run (optional; the WebAppHost arc will cover login UX). Spec:
   `docs/archive/plans/2026-07-07-web-surface-strategy-design.md`. COMPLETE.
 - Audio equalizer parity audit (Phase F2) — verdict 2026-07-14: on-HU and YAML
@@ -272,8 +273,9 @@ approved design rather than extending a closed plan.
   per-stream 10-band sliders, bypass, preset picker, user-preset save/delete;
   QML→C++ save path verified empirically). The **web advanced-EQ leg is entirely
   absent** (no web-config routes, no IPC commands, no API surface) — precise gaps
-  + three coverage/labeling quirks filed to `docs/wishlist.md` § "From EQ parity
-  audit (2026-07-14)". Building the web editor is a wishlist-promote decision.
+  and related coverage/labeling findings were triaged; the remaining
+  `docs/wishlist.md` § "Web-config advanced EQ editor" outcome requires a
+  fresh promotion decision.
   COMPLETE (audit; no code changed).
 - BT A2DP through the equalizer + EQ hygiene — **SHIPPED 2026-07-15
   (ALPHA-26-07-15-01)**. Promoted 2026-07-14 from the EQ parity audit
@@ -314,7 +316,8 @@ approved design rather than extending a closed plan.
   an API migration prerequisite.
 - Streaming web apps (WebAppHost) — fullscreen Spotify/YouTube/parked-video surface
   riding the slice-1 Widevine wiring. Scoped (Decision 3 of the web-surface spec);
-  wishlist entry has the open questions. Not yet promoted.
+  the `docs/wishlist.md` § "WebAppHost" outcome retains the open questions. Not
+  yet promoted.
 - CI automation for builds and tests.
 - Multi-display / resolution support beyond 1024x600.
 - Community contribution workflow (issue templates, PR guidelines).

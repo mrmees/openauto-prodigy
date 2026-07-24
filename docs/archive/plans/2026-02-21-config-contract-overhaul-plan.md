@@ -1,7 +1,11 @@
 # Config Contract Overhaul — Implementation Plan
 
-Status: PARKED — needs re-triage (approved 2026-02-21, never executed)
-> **Status:** NOT STARTED
+Status: ABANDONED — superseded by shipped generic config/theme work; residual
+configuration-surface gaps are consolidated in the current wishlist
+
+> **Historical result:** Never executed as a unit. Do not run these tasks
+> against the current tree; promote the consolidated wishlist outcome into a
+> fresh design instead.
 
 > **For Claude:** REQUIRED SUB-SKILL: Use superpowers:executing-plans to implement this plan task-by-task.
 

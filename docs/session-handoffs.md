@@ -4,6 +4,34 @@ Newest entries first.
 
 ---
 
+## 2026-07-24 — Wishlist consolidation and stale-plan retirement
+
+**What changed:** the wishlist was reduced from a dated finding log to 35
+actionable outcomes grouped by reliability, product/UX, engineering, long-term
+architecture, and current-release validation. Completed, superseded,
+theoretical, and explicitly dismissed entries were removed; related config,
+Bluetooth, call UI, audio, widget, web-config, media, and release items were
+consolidated. The 2026-02-21 config-contract design and plan are now ABANDONED
+and archived. Architecture now states the modal Dialog versus shell z-band
+stacking contract, and live cross-references follow the new wishlist names.
+
+**Why:** milestone ALPHA-26-07-24-01 closed a large remediation campaign, but
+the old ledger still mixed shipped fixes and review history with promotable
+work. The consolidated file is now a decision surface for the next discussion,
+not an excavation log.
+
+**Status:** COMPLETE as a documentation-only cleanup. No wishlist item was
+promoted and no runtime behavior changed.
+
+**Verification:** `python3 scripts/check-doc-links.py` and `git diff --check`
+pass. Build and CTest were not run because only Markdown files moved or changed.
+
+**Next 1-3 steps:** (1) discuss the 35 retained outcomes; (2) remove, split, or
+re-rank them as Matthew decides; (3) only then add new ideas or promote one
+bounded scope into a fresh design.
+
+---
+
 ## 2026-07-24 — ALPHA-26-07-24-01 milestone release
 
 **What changed:** Matthew declared the completed audit-remediation campaign a
