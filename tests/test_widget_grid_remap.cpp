@@ -79,6 +79,10 @@ private slots:
     void testPageSpill();
     void testPageSpillExpandsReachablePages();
     void testPageSpillKeepsReservedPageLast();
+    void testSpillRoundTripRestoresPageBaseline();
+    void testRepeatedSpillCyclesDoNotGrowPages();
+    void testMutationPromotesSpillPageBaseline();
+    void testLoadNormalizesReservedPageTail();
     // Min span exceeds grid: widget marked visible=false
     void testMinSpanExceedsGrid();
     void testHiddenPlacementRecoversWhenGridGrows();
@@ -325,6 +329,168 @@ void TestWidgetGridRemap::testPageSpillKeepsReservedPageLast()
     QCOMPARE(launcherIt->page, model->pageCount() - 1);
     for (const auto& p : live)
         QVERIFY(!p.visible || (p.page >= 0 && p.page < model->pageCount()));
+}
+
+void TestWidgetGridRemap::testSpillRoundTripRestoresPageBaseline()
+{
+    auto* reg = makeRegistry();
+    QList<oap::GridPlacement> base;
+    for (int i = 0; i < 3; ++i) {
+        oap::GridPlacement p;
+        p.instanceId = "tiny-" + QString::number(i);
+        p.widgetId = "tiny";
+        p.col = i; p.row = 0; p.colSpan = 1; p.rowSpan = 1;
+        p.opacity = 0.25; p.page = 0; p.visible = true;
+        base.append(p);
+    }
+    oap::GridPlacement launcher;
+    launcher.instanceId = "launcher-reserved";
+    launcher.widgetId = "launcher";
+    launcher.col = 0; launcher.row = 0;
+    launcher.colSpan = 1; launcher.rowSpan = 1;
+    launcher.opacity = 0.25; launcher.page = 1; launcher.visible = true;
+    base.append(launcher);
+
+    auto* model = setupForRemap(reg, base, 6, 4);
+    model->setPageCount(2);
+    model->setGridDimensions(6, 4);
+    model->setGridDimensions(2, 1);
+    QCOMPARE(model->pageCount(), 3);
+    model->setActivePage(2);
+
+    QSignalSpy pageSpy(model, &oap::WidgetGridModel::pageCountChanged);
+    QSignalSpy activeSpy(model, &oap::WidgetGridModel::activePageChanged);
+    model->setGridDimensions(6, 4);
+
+    QCOMPARE(model->pageCount(), 2);
+    QCOMPARE(model->activePage(), 1);
+    QCOMPARE(pageSpy.count(), 1);
+    QCOMPARE(activeSpy.count(), 1);
+    const auto restored = model->placements();
+    const auto launcherIt = std::find_if(restored.cbegin(), restored.cend(), [](const auto& p) {
+        return p.instanceId == QLatin1String("launcher-reserved");
+    });
+    QVERIFY(launcherIt != restored.cend());
+    QCOMPARE(launcherIt->page, 1);
+    for (const auto& p : restored)
+        QVERIFY(p.page >= 0 && p.page < model->pageCount());
+
+    model->addPage();
+    QCOMPARE(model->pageCount(), 3);
+    const auto afterAdd = model->placements();
+    const auto movedLauncher = std::find_if(afterAdd.cbegin(), afterAdd.cend(), [](const auto& p) {
+        return p.instanceId == QLatin1String("launcher-reserved");
+    });
+    QVERIFY(movedLauncher != afterAdd.cend());
+    QCOMPARE(movedLauncher->page, 2);
+
+    model->setGridDimensions(2, 1);
+    model->setGridDimensions(6, 4);
+    QCOMPARE(model->pageCount(), 3); // explicitly added empty page is baseline state
+
+    QVERIFY(model->removePage(1));
+    QCOMPARE(model->pageCount(), 2);
+    model->setGridDimensions(2, 1);
+    model->setGridDimensions(6, 4);
+    QCOMPARE(model->pageCount(), 2); // explicit removal updates the baseline too
+}
+
+void TestWidgetGridRemap::testRepeatedSpillCyclesDoNotGrowPages()
+{
+    auto* reg = makeRegistry();
+    QList<oap::GridPlacement> base;
+    for (int i = 0; i < 5; ++i) {
+        oap::GridPlacement p;
+        p.instanceId = "tiny-" + QString::number(i);
+        p.widgetId = "tiny";
+        p.col = i; p.row = 0; p.colSpan = 1; p.rowSpan = 1;
+        p.opacity = 0.25; p.page = 0; p.visible = true;
+        base.append(p);
+    }
+
+    auto* model = setupForRemap(reg, base, 6, 4);
+    model->setPageCount(3); // preserve two intentionally empty user pages
+    model->setGridDimensions(6, 4);
+
+    for (int cycle = 0; cycle < 3; ++cycle) {
+        model->setGridDimensions(1, 1);
+        QCOMPARE(model->pageCount(), 5);
+        for (const auto& p : model->placements())
+            QVERIFY(p.page >= 0 && p.page < model->pageCount());
+
+        model->setGridDimensions(6, 4);
+        QCOMPARE(model->pageCount(), 3);
+        for (const auto& p : model->placements())
+            QVERIFY(p.page >= 0 && p.page < model->pageCount());
+    }
+}
+
+void TestWidgetGridRemap::testMutationPromotesSpillPageBaseline()
+{
+    auto* reg = makeRegistry();
+    QList<oap::GridPlacement> base;
+    for (int i = 0; i < 3; ++i) {
+        oap::GridPlacement p;
+        p.instanceId = "tiny-" + QString::number(i);
+        p.widgetId = "tiny";
+        p.col = i; p.row = 0; p.colSpan = 1; p.rowSpan = 1;
+        p.opacity = 0.25; p.page = 0; p.visible = true;
+        base.append(p);
+    }
+
+    auto* model = setupForRemap(reg, base, 6, 4);
+    model->setPageCount(1);
+    model->setGridDimensions(6, 4);
+    model->setGridDimensions(2, 1);
+    QCOMPARE(model->pageCount(), 2);
+
+    model->setWidgetOpacity("tiny-0", 0.5); // promotes the constrained layout
+    model->setGridDimensions(6, 4);
+
+    QCOMPARE(model->pageCount(), 2);
+    bool retainedPromotedPage = false;
+    for (const auto& p : model->placements()) {
+        QVERIFY(p.page >= 0 && p.page < model->pageCount());
+        retainedPromotedPage = retainedPromotedPage || p.page == 1;
+    }
+    QVERIFY(retainedPromotedPage);
+}
+
+void TestWidgetGridRemap::testLoadNormalizesReservedPageTail()
+{
+    auto* reg = makeRegistry();
+    auto* model = new oap::WidgetGridModel(reg, this);
+    model->setGridDimensions(6, 4);
+    model->setPageCount(3); // load ordering: page count precedes placements
+
+    oap::GridPlacement normal;
+    normal.instanceId = "tiny-0"; normal.widgetId = "tiny";
+    normal.col = 0; normal.row = 0; normal.colSpan = 1; normal.rowSpan = 1;
+    normal.opacity = 0.25; normal.page = 0; normal.visible = true;
+    oap::GridPlacement launcher;
+    launcher.instanceId = "launcher-reserved"; launcher.widgetId = "launcher";
+    launcher.col = 0; launcher.row = 0; launcher.colSpan = 1; launcher.rowSpan = 1;
+    launcher.opacity = 0.25; launcher.page = 1; launcher.visible = true;
+    model->setPlacements({normal, launcher}, reg);
+    model->setSavedDimensions(6, 4);
+
+    QCOMPARE(model->pageCount(), 3);
+    const auto loaded = model->placements();
+    const auto launcherIt = std::find_if(loaded.cbegin(), loaded.cend(), [](const auto& p) {
+        return p.instanceId == QLatin1String("launcher-reserved");
+    });
+    QVERIFY(launcherIt != loaded.cend());
+    QCOMPARE(launcherIt->page, 2);
+
+    model->setGridDimensions(2, 1);
+    model->setGridDimensions(6, 4);
+    QCOMPARE(model->pageCount(), 3);
+    const auto restored = model->placements();
+    const auto restoredLauncher = std::find_if(restored.cbegin(), restored.cend(), [](const auto& p) {
+        return p.instanceId == QLatin1String("launcher-reserved");
+    });
+    QVERIFY(restoredLauncher != restored.cend());
+    QCOMPARE(restoredLauncher->page, 2);
 }
 
 void TestWidgetGridRemap::testMinSpanExceedsGrid()

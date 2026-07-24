@@ -257,16 +257,21 @@ unknown extension categories after them without rejecting them.
 
 ### Remap Keeps Every Placement on a Reachable Page
 
-**Decision:** A remap spill grows `pageCount` before publishing the changed
-placements. Pages containing singleton launchers remain the trailing reserved
-pages; spill pages are inserted logically before them. Loaded placements also
-expand a stale persisted page count, and negative loaded page values normalize
-to the first page.
+**Decision:** The base snapshot includes its intentional page count as well as
+placements and dimensions. A remap derives the exact reachable `pageCount` from
+that baseline plus any current spill, before publishing changed placements.
+Returning to the baseline dimensions removes surplus spill-only pages while
+preserving intentionally empty user pages. Pages containing singleton launchers
+remain the trailing reserved pages in stable order. Loaded placements expand a
+stale persisted page count, and negative loaded page values normalize to the
+first page.
 
 **Rationale:** A placement outside `0 <= page < pageCount` cannot be reached by
 the dashboard pager and can later be mistaken for abandoned state. Growing the
 model-owned page range at the placement boundary keeps navigation and YAML
 persistence consistent without adding consumer-side correction.
+Explicit page add/remove operations and placement edits promote the current page
+topology into the baseline, so only automatic spill growth is reversed.
 
 ### Hidden Placements Remain Page Occupants
 

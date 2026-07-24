@@ -439,7 +439,11 @@ When grid dimensions change, the system proportionally remaps positions while
 preserving spans. It clamps positions, nudges overlaps, and can spill a widget
 to a later page. Spill expands the dashboard page count before the placement is
 published, so every placement remains navigable; singleton launcher pages stay
-at the trailing reserved end of the page range.
+at the trailing reserved end of the page range. Automatic spill pages are
+derived from the saved page-count baseline: returning to the saved dimensions
+removes surplus spill-only pages without removing intentionally empty user
+pages. Adding/removing a page or editing a placement adopts the current page
+topology as the next baseline.
 
 A placement whose minimum span is larger than the entire grid is retained but
 marked invisible. It still occupies its page for cleanup purposes and becomes

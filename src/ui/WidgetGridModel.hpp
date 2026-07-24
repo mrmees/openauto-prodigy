@@ -133,7 +133,9 @@ private:
     // After user edit: promote live state to new base
     void applyPendingRemap();
     void promoteToBase();
-    bool expandPageCountForPlacements(const QList<GridPlacement>& placements);
+    int requiredPageCount(const QList<GridPlacement>& placements) const;
+    bool moveReservedPagesToTail(QList<GridPlacement>& placements, int pageCount) const;
+    void setCurrentPageCount(int count);
 
     WidgetRegistry* registry_;
     QList<GridPlacement> livePlacements_;
@@ -146,6 +148,7 @@ private:
     int nextInstanceId_ = 0;
     int activePage_ = 0;
     int pageCount_ = 2;
+    int basePageCount_ = 2;
     bool widgetSelected_ = false;
     bool remapPending_ = false;
     int pendingCols_ = 0;

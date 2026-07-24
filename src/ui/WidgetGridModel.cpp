@@ -171,9 +171,8 @@ bool WidgetGridModel::placeWidget(const QString& widgetId, int col, int row,
     markOccupied(p);
     endInsertRows();
 
-    const bool pageCountExpanded = expandPageCountForPlacements(livePlacements_);
-    if (pageCountExpanded)
-        emit pageCountChanged();
+    if (requiredPageCount(livePlacements_) > pageCount_)
+        setCurrentPageCount(requiredPageCount(livePlacements_));
     promoteToBase();
     emit placementsChanged();
     return true;
@@ -533,19 +532,34 @@ int WidgetGridModel::pageCount() const { return pageCount_; }
 void WidgetGridModel::setPageCount(int count)
 {
     if (count < 1) return;
-    int required = 1;
-    for (const auto& p : livePlacements_)
-        required = std::max(required, p.page + 1);
-    count = std::max(count, required);
-    if (pageCount_ == count) return;
-    pageCount_ = count;
-    emit pageCountChanged();
+    count = std::max(count, requiredPageCount(livePlacements_));
+
+    QList<GridPlacement> normalizedLive = livePlacements_;
+    const bool liveChanged = moveReservedPagesToTail(normalizedLive, count);
+    if (liveChanged) {
+        beginResetModel();
+        livePlacements_ = normalizedLive;
+        endResetModel();
+    }
+    moveReservedPagesToTail(basePlacements_, count);
+    basePageCount_ = count;
+    setCurrentPageCount(count);
+    if (liveChanged) {
+        rebuildOccupancy();
+        emit placementsChanged();
+    }
 }
 
 void WidgetGridModel::addPage()
 {
     applyPendingRemap();
-    int insertAt = pageCount_ - 1; // Insert before the reserved (last) page
+    int insertAt = pageCount_;
+    for (int page = 0; page < pageCount_; ++page) {
+        if (pageHasSingleton(page)) {
+            insertAt = page;
+            break;
+        }
+    }
 
     beginResetModel();
     // Shift all placements on pages >= insertAt up by 1
@@ -553,14 +567,11 @@ void WidgetGridModel::addPage()
         if (p.page >= insertAt)
             p.page++;
     }
-    for (auto& p : basePlacements_) {
-        if (p.page >= insertAt)
-            p.page++;
-    }
     pageCount_++;
     rebuildOccupancy();
     endResetModel();
 
+    promoteToBase();
     emit pageCountChanged();
     emit placementsChanged();
 }
@@ -673,6 +684,7 @@ void WidgetGridModel::setGridDimensions(int cols, int rows)
         beginResetModel();
         livePlacements_ = basePlacements_;
         endResetModel();
+        setCurrentPageCount(basePageCount_);
         rebuildOccupancy();
         emit gridDimensionsChanged();
         emit placementsChanged();
@@ -684,6 +696,7 @@ void WidgetGridModel::setGridDimensions(int cols, int rows)
         beginResetModel();
         livePlacements_ = basePlacements_;
         endResetModel();
+        setCurrentPageCount(basePageCount_);
         rebuildOccupancy();
         emit gridDimensionsChanged();
         emit placementsChanged();
@@ -807,7 +820,7 @@ void WidgetGridModel::remapPlacements(int newCols, int newRows)
     std::sort(reservedOrder.begin(), reservedOrder.end());
     QHash<int, int> reservedTargets;
     int reservedTarget = std::max(highestNormalPage + 1,
-                                  pageCount_ - static_cast<int>(reservedOrder.size()));
+                                  basePageCount_ - static_cast<int>(reservedOrder.size()));
     for (int page : reservedOrder)
         reservedTargets.insert(page, reservedTarget++);
 
@@ -821,9 +834,7 @@ void WidgetGridModel::remapPlacements(int newCols, int newRows)
     beginResetModel();
     livePlacements_ = result;
     endResetModel();
-
-    if (expandPageCountForPlacements(livePlacements_))
-        emit pageCountChanged();
+    setCurrentPageCount(std::max(basePageCount_, requiredPageCount(livePlacements_)));
 }
 
 bool WidgetGridModel::spiralNudge(GridPlacement& p, const QVector<QString>& occupancy,
@@ -925,11 +936,13 @@ void WidgetGridModel::setPlacements(const QList<GridPlacement>& placements, Widg
         }
     }
 
+    const int adoptedPageCount = std::max(pageCount_, requiredPageCount(livePlacements_));
+    moveReservedPagesToTail(livePlacements_, adoptedPageCount);
     basePlacements_ = livePlacements_;
-    rebuildOccupancy();
     endResetModel();
-    if (expandPageCountForPlacements(livePlacements_))
-        emit pageCountChanged();
+    basePageCount_ = adoptedPageCount;
+    setCurrentPageCount(adoptedPageCount);
+    rebuildOccupancy();
     emit placementsChanged();
 }
 
@@ -972,6 +985,7 @@ bool WidgetGridModel::isReservedPage(int page) const
 void WidgetGridModel::promoteToBase()
 {
     basePlacements_ = livePlacements_;
+    basePageCount_ = pageCount_;
     savedCols_ = cols_;
     savedRows_ = rows_;
 }
@@ -991,10 +1005,12 @@ void WidgetGridModel::applyPendingRemap()
         beginResetModel();
         livePlacements_ = basePlacements_;
         endResetModel();
+        setCurrentPageCount(basePageCount_);
     } else if (cols_ == savedCols_ && rows_ == savedRows_) {
         beginResetModel();
         livePlacements_ = basePlacements_;
         endResetModel();
+        setCurrentPageCount(basePageCount_);
     } else {
         remapPlacements(cols_, rows_);
     }
@@ -1003,15 +1019,71 @@ void WidgetGridModel::applyPendingRemap()
     emit placementsChanged();
 }
 
-bool WidgetGridModel::expandPageCountForPlacements(const QList<GridPlacement>& placements)
+int WidgetGridModel::requiredPageCount(const QList<GridPlacement>& placements) const
 {
     int required = 1;
     for (const auto& p : placements)
         required = std::max(required, p.page + 1);
-    if (required <= pageCount_)
+    return required;
+}
+
+bool WidgetGridModel::moveReservedPagesToTail(QList<GridPlacement>& placements,
+                                               int pageCount) const
+{
+    if (!registry_ || placements.isEmpty() || pageCount < 2)
         return false;
-    pageCount_ = required;
-    return true;
+
+    QSet<int> reservedPages;
+    for (const auto& p : placements) {
+        auto desc = registry_->descriptor(p.widgetId);
+        if (desc && desc->singleton)
+            reservedPages.insert(p.page);
+    }
+    if (reservedPages.isEmpty())
+        return false;
+
+    QList<int> orderedPages;
+    orderedPages.reserve(pageCount);
+    for (int page = 0; page < pageCount; ++page) {
+        if (!reservedPages.contains(page))
+            orderedPages.append(page);
+    }
+    for (int page = 0; page < pageCount; ++page) {
+        if (reservedPages.contains(page))
+            orderedPages.append(page);
+    }
+
+    QHash<int, int> remappedPages;
+    for (int page = 0; page < orderedPages.size(); ++page)
+        remappedPages.insert(orderedPages[page], page);
+
+    bool changed = false;
+    for (auto& p : placements) {
+        const int remappedPage = remappedPages.value(p.page, p.page);
+        if (p.page != remappedPage) {
+            p.page = remappedPage;
+            changed = true;
+        }
+    }
+    return changed;
+}
+
+void WidgetGridModel::setCurrentPageCount(int count)
+{
+    count = std::max(1, count);
+    const bool pageCountChangedValue = pageCount_ != count;
+    pageCount_ = count;
+
+    const int clampedActivePage = qBound(0, activePage_, pageCount_ - 1);
+    const bool activePageChangedValue = activePage_ != clampedActivePage;
+    activePage_ = clampedActivePage;
+    if (activePageChangedValue)
+        rebuildOccupancy();
+
+    if (pageCountChangedValue)
+        emit pageCountChanged();
+    if (activePageChangedValue)
+        emit activePageChanged();
 }
 
 int WidgetGridModel::findPlacement(const QString& instanceId) const
