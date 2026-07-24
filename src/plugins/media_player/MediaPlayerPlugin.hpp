@@ -135,6 +135,13 @@ public:
     /// unmount so QMediaPlayer never holds a file open into Unmount().
     Q_INVOKABLE void ejectVolume(const QString& mountPath);
 
+protected:
+    /// Narrow test seam around the external UDisks side effect. Production
+    /// delegates directly to UsbMediaWatcher; focused tests override these to
+    /// prove scanner/root ordering without a live system daemon.
+    virtual bool isKnownEjectMount(const QString& mountPath) const;
+    virtual void requestEjectMount(const QString& mountPath);
+
 signals:
     void playbackStateChanged();
     void metadataChanged();
@@ -166,7 +173,7 @@ private:
     /// Shared yank/eject cleanup (design §9): drop the volume from library +
     /// queue and recover playback. Runs for volumeRemoved, the playback-error
     /// yank path, AND the eject sequence. Idempotent via mountKeys_.take().
-    void purgeVolume(const QString& mount);
+    void purgeVolume(const QString& mount, bool refreshAfter = true);
 
     IHostContext* hostContext_ = nullptr;
     PlaybackEngine* engine_ = nullptr;

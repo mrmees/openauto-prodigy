@@ -359,7 +359,7 @@ void MediaPlayerPlugin::rescanLibrary() {
 // Shared yank/eject cleanup (design §9). Runs for a real yank (volumeRemoved),
 // the playback-error yank path, and the eject sequence. Idempotent: mountKeys_
 // .take() means a second call for the same mount finds no key and no tracks.
-void MediaPlayerPlugin::purgeVolume(const QString& mount) {
+void MediaPlayerPlugin::purgeVolume(const QString& mount, bool refreshAfter) {
     // A worker may be reading tags/art/cache from this mount even when the
     // playback engine is not. Release every scan-side file before mutating the
     // root set. refreshSources() below starts a fresh survivor-only generation
@@ -403,8 +403,18 @@ void MediaPlayerPlugin::purgeVolume(const QString& mount) {
         }
     }
 
-    // 6. Refresh sources (drops the dead root, rescans survivors).
-    refreshSources();
+    // 6. Refresh sources (drops the dead root, rescans survivors). Eject
+    // defers this until after the external request so tests and production both
+    // have an observable quiescent boundary immediately before Unmount.
+    if (refreshAfter) refreshSources();
+}
+
+bool MediaPlayerPlugin::isKnownEjectMount(const QString& mountPath) const {
+    return watcher_ && watcher_->isKnownMount(mountPath);
+}
+
+void MediaPlayerPlugin::requestEjectMount(const QString& mountPath) {
+    if (watcher_) watcher_->ejectMount(mountPath);
 }
 
 void MediaPlayerPlugin::ejectVolume(const QString& mountPath) {
@@ -414,7 +424,7 @@ void MediaPlayerPlugin::ejectVolume(const QString& mountPath) {
     //    otherwise stop playback and clear the queue, then fail the unmount.
     //    isKnownMount() is a synchronous local lookup (no D-Bus) and returns
     //    false when the watcher is inactive — so this path never disrupts state.
-    if (!watcher_ || !watcher_->isKnownMount(mountPath)) {
+    if (!isKnownEjectMount(mountPath)) {
         if (hostContext_ && hostContext_->notificationService())
             hostContext_->notificationService()->post({
                 {"kind", "toast"},
@@ -427,10 +437,13 @@ void MediaPlayerPlugin::ejectVolume(const QString& mountPath) {
     ejectingMounts_.insert(mountPath);
     // 2. Cleanup FIRST (stops playback if the current track lives here) so
     //    QMediaPlayer never holds the file open into Unmount().
-    purgeVolume(mountPath);
+    purgeVolume(mountPath, false);
     // 3. Ask the watcher to unmount (+ power off if supported). The signal
     //    handlers wired in initialize() drop the guard and, on failure, restore.
-    if (watcher_) watcher_->ejectMount(mountPath);
+    requestEjectMount(mountPath);
+    // 4. Only after the request boundary, start a successor scan from roots
+    //    that exclude the guarded target.
+    refreshSources();
 }
 
 void MediaPlayerPlugin::playPause() {
@@ -520,6 +533,17 @@ void MediaPlayerPlugin::refreshSources() {
     for (QString dir : musicDirs) {
         if (dir.startsWith(QLatin1String("~/")))
             dir = QDir::homePath() + dir.mid(1);
+        const QString cleanDir = QDir::cleanPath(dir);
+        bool belongsToEjectingMount = false;
+        for (const QString& mount : std::as_const(ejectingMounts_)) {
+            const QString cleanMount = QDir::cleanPath(mount);
+            if (cleanDir == cleanMount
+                || cleanDir.startsWith(cleanMount + QLatin1Char('/'))) {
+                belongsToEjectingMount = true;
+                break;
+            }
+        }
+        if (belongsToEjectingMount) continue;
         if (QDir(dir).exists() && !alreadySeen(dir))
             roots.append({QFileInfo(dir).fileName(), dir,
                           MediaScanner::rootKeyForPath(dir)});
@@ -564,6 +588,16 @@ void MediaPlayerPlugin::refreshSources() {
 void MediaPlayerPlugin::saveState(std::optional<qint64> positionOverrideMs) {
     if (!hostContext_ || !hostContext_->configService()) return;
     auto* cfg = hostContext_->configService();
+    if (hasPendingRestore_) {
+        // The visible queue is only a currently-available fallback. Until a
+        // user transport action takes ownership, preserve the raw exact-track
+        // queue/index/position already on disk across clean shutdown and any
+        // restore-time engine edge. Mode controls remain independently durable.
+        cfg->setPluginValue(kPluginId, QStringLiteral("shuffle"), queue_->shuffle());
+        cfg->setPluginValue(kPluginId, QStringLiteral("repeat_mode"), queue_->repeatMode());
+        cfg->save();
+        return;
+    }
     // Scale guard (Codex P2): last_queue is the full path list — a
     // playAllTracks queue can be thousands of paths. It only changes on
     // setTracks()/clear(), so rewrite it ONLY when the queue actually moved.

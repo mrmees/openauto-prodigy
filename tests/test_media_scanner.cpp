@@ -1,7 +1,14 @@
 #include <QtTest>
 #include <QSignalSpy>
+#include <QElapsedTimer>
+#include <QMutex>
+#include <QSemaphore>
 #include <QTemporaryDir>
+#include <QThread>
 #include "plugins/media_player/MediaScanner.hpp"
+
+#include <atomic>
+#include <thread>
 
 using namespace oap::plugins;
 
@@ -212,6 +219,47 @@ private slots:
         // cancelled worker cannot clear or publish over it.
         const auto records = runScan(s, fixtures() + QStringLiteral("/AlbumA"));
         QCOMPARE(records.size(), 2);
+        QVERIFY(!s.busy());
+        QVERIFY(!s.scanning());
+    }
+
+    void checkpointsCoverWorkerPhasesAndStopInterruptsInFlightArt() {
+        QTemporaryDir cache;
+        MediaScanner s;
+        s.setCacheDir(cache.path());
+        QMutex phaseMutex;
+        QStringList phases;
+        s.setCheckpointHookForTest([&](const char* phase) {
+            QMutexLocker lock(&phaseMutex);
+            phases.append(QString::fromLatin1(phase));
+        });
+        QCOMPARE(runScan(s, fixtures()).size(), 5);
+        for (const QString& expected : {QStringLiteral("root"), QStringLiteral("cache"),
+                                        QStringLiteral("traversal"), QStringLiteral("tags"),
+                                        QStringLiteral("art"), QStringLiteral("rewrite")})
+            QVERIFY2(phases.contains(expected), qPrintable(expected));
+
+        QSemaphore enteredArt;
+        QSemaphore releaseArt;
+        std::atomic_bool blocked{false};
+        s.setCheckpointHookForTest([&](const char* phase) {
+            if (qstrcmp(phase, "art") != 0 || blocked.exchange(true)) return;
+            enteredArt.release();
+            releaseArt.acquire();
+        });
+        QSignalSpy done(&s, &MediaScanner::finished);
+        s.scan({rootFor(fixtures())});
+        QVERIFY2(enteredArt.tryAcquire(1, 15000), "scanner never reached art phase");
+        std::thread unblocker([&] {
+            QThread::msleep(50);
+            releaseArt.release();
+        });
+        QElapsedTimer elapsed;
+        elapsed.start();
+        s.stop();
+        unblocker.join();
+        QVERIFY2(elapsed.elapsed() < 2000, "in-flight checkpoint stop was not bounded");
+        QCOMPARE(done.count(), 0);
         QVERIFY(!s.busy());
         QVERIFY(!s.scanning());
     }

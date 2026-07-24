@@ -79,6 +79,11 @@ MediaScanner::~MediaScanner() {
 
 void MediaScanner::setCacheDir(const QString& dir) { cacheDir_ = dir; }
 
+void MediaScanner::setCheckpointHookForTest(CheckpointHook hook) {
+    Q_ASSERT(!thread_);
+    checkpointHook_ = std::move(hook);
+}
+
 QString MediaScanner::rootKeyForPath(const QString& rootPath) {
     const QString canonical = QFileInfo(rootPath).canonicalFilePath();
     return sha1Hex16(canonical.isEmpty() ? rootPath : canonical);
@@ -107,10 +112,12 @@ void MediaScanner::stopInternal(bool notifyState) {
 
     QThread* const worker = std::exchange(thread_, nullptr);
     if (worker) {
+        if (cancelToken_) cancelToken_->store(true, std::memory_order_relaxed);
         worker->requestInterruption();
         worker->wait();
         delete worker;
     }
+    cancelToken_.reset();
 
     if (scanning_) {
         scanning_ = false;
@@ -127,9 +134,11 @@ void MediaScanner::startScan(QVector<Root> roots) {
     // handler, which must not leak the box (Codex re-run P1) — the lambdas'
     // captured copies release it whichever path runs.
     auto outcome = std::make_shared<ScanOutcome>();
+    auto cancelled = std::make_shared<std::atomic_bool>(false);
+    cancelToken_ = cancelled;
     const quint64 generation = ++generation_;
-    QThread* const worker = QThread::create([this, roots, outcome]() {
-        runScan(roots, outcome.get());   // worker fills the box; NO signal from here
+    QThread* const worker = QThread::create([this, roots, outcome, cancelled]() {
+        runScan(roots, outcome.get(), cancelled);  // worker fills; NO signal here
     });
     thread_ = worker;
     connect(worker, &QThread::finished, this, [this, outcome, worker, generation]() {
@@ -140,6 +149,7 @@ void MediaScanner::startScan(QVector<Root> roots) {
         if (generation != generation_ || thread_ != worker) return;
         worker->deleteLater();
         thread_ = nullptr;
+        cancelToken_.reset();
         lastScanTagReads_ = outcome->tagReads;
         QVector<MediaTrackRecord> records = std::move(outcome->records);
         if (hasPending_) {
@@ -156,16 +166,22 @@ void MediaScanner::startScan(QVector<Root> roots) {
     worker->start();
 }
 
-void MediaScanner::runScan(const QVector<Root>& roots, ScanOutcome* out) {
-    const auto interrupted = [] {
-        return QThread::currentThread()->isInterruptionRequested();
+void MediaScanner::runScan(const QVector<Root>& roots, ScanOutcome* out,
+                           const std::shared_ptr<std::atomic_bool>& cancelled) {
+    const auto interrupted = [&cancelled] {
+        return cancelled->load(std::memory_order_relaxed)
+            || QThread::currentThread()->isInterruptionRequested();
     };
-    if (interrupted()) return;
+    const auto checkpoint = [this, &interrupted](const char* phase) {
+        if (checkpointHook_) checkpointHook_(phase);
+        return interrupted();
+    };
+    if (checkpoint("start")) return;
     QDir().mkpath(cacheDir_ + QStringLiteral("/medialib"));
     QDir().mkpath(cacheDir_ + QStringLiteral("/art"));
 
     for (const Root& root : roots) {
-        if (interrupted()) return;
+        if (checkpoint("root")) return;
         const QString rootPath = root.path;
         // Root-escape guard baseline (Codex gate re-run P2): resolve the root
         // once so the walk below can reject any directory whose canonical path
@@ -180,6 +196,7 @@ void MediaScanner::runScan(const QVector<Root>& roots, ScanOutcome* out) {
         // never trust a partial load); absence/corruption -> full scan.
         QHash<QString, CacheEntry> cache;
         {
+            if (checkpoint("cache")) return;
             QFile f(cacheFile);
             if (f.open(QIODevice::ReadOnly)) {
                 QDataStream in(&f);
@@ -205,7 +222,7 @@ void MediaScanner::runScan(const QVector<Root>& roots, ScanOutcome* out) {
         QSet<QString> visitedDirs;
         QVector<QString> pendingDirs{rootPath};
         while (!pendingDirs.isEmpty()) {
-            if (interrupted()) return;
+            if (checkpoint("traversal")) return;
             const QString dirPath = pendingDirs.takeLast();
             const QString canonical = QFileInfo(dirPath).canonicalFilePath();
             if (canonical.isEmpty() || visitedDirs.contains(canonical)) continue;
@@ -234,7 +251,7 @@ void MediaScanner::runScan(const QVector<Root>& roots, ScanOutcome* out) {
         QVector<MediaTrackRecord> invalid;
         int scanned = 0, cacheHits = 0, unreadable = 0, rootTagReads = 0;
         for (const QString& path : files) {
-            if (interrupted()) return;
+            if (checkpoint("tags")) return;
             const QFileInfo fi(path);
             const qint64 mtime = fi.lastModified().toMSecsSinceEpoch();
             const qint64 size = fi.size();
@@ -249,7 +266,7 @@ void MediaScanner::runScan(const QVector<Root>& roots, ScanOutcome* out) {
                 rec.artFile = it->artFile;
                 ++cacheHits;
             } else {
-                rec.info = MediaTagReader::read(path);
+                rec.info = MediaTagReader::read(path, cancelled.get());
                 if (interrupted()) return;
                 ++rootTagReads;
             }
@@ -267,7 +284,7 @@ void MediaScanner::runScan(const QVector<Root>& roots, ScanOutcome* out) {
             groups[mediaAlbumBucketKey(vol[i].info, vol[i].path)].append(i);
         }
         for (auto g = groups.begin(); g != groups.end(); ++g) {
-            if (interrupted()) return;
+            if (checkpoint("art")) return;
             QString art;
             for (int i : g.value()) {
                 if (interrupted()) return;
@@ -279,7 +296,8 @@ void MediaScanner::runScan(const QVector<Root>& roots, ScanOutcome* out) {
                                 + QString::number(src.lastModified().toMSecsSinceEpoch()))
                     + QStringLiteral(".jpg");
                 if (QFileInfo::exists(artPath)) { art = artPath; break; }
-                const QByteArray bytes = MediaTagReader::embeddedArt(vol[i].path);
+                const QByteArray bytes =
+                    MediaTagReader::embeddedArt(vol[i].path, cancelled.get());
                 if (interrupted()) return;
                 if (!bytes.isEmpty()) {
                     QSaveFile save(artPath);
@@ -304,7 +322,7 @@ void MediaScanner::runScan(const QVector<Root>& roots, ScanOutcome* out) {
         // must never leave a truncated cache). Writes BOTH valid records (with
         // art) and invalid ones (art empty) so nothing is reprobed next scan.
         {
-            if (interrupted()) return;
+            if (checkpoint("rewrite")) return;
             QSaveFile f(cacheFile);
             if (f.open(QIODevice::WriteOnly)) {
                 QDataStream str(&f);

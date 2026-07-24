@@ -1,6 +1,8 @@
 #include <QtTest>
 #include "plugins/media_player/MediaTagReader.hpp"
 
+#include <atomic>
+
 using namespace oap::plugins;
 
 class TestMediaTagReader : public QObject {
@@ -44,6 +46,13 @@ private slots:
         QVERIFY(!art.isEmpty());
         QVERIFY(!QImage::fromData(art).isNull());
         QVERIFY(MediaTagReader::embeddedArt(root + "/AlbumA/02-song-two.mp3").isEmpty());
+    }
+    void cancellationInterruptsProbeAndArtRead() {
+        const std::atomic_bool cancelled{true};
+        QVERIFY(!MediaTagReader::read(root + "/AlbumA/01-song-one.mp3",
+                                      &cancelled).valid);
+        QVERIFY(MediaTagReader::embeddedArt(root + "/AlbumA/01-song-one.mp3",
+                                            &cancelled).isEmpty());
     }
 };
 

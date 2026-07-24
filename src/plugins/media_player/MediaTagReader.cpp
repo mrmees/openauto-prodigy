@@ -33,6 +33,30 @@ struct FormatCtx {  // RAII for avformat_open_input
     ~FormatCtx() { if (ctx) avformat_close_input(&ctx); }
 };
 
+int interruptIfCancelled(void* opaque) {
+    const auto* cancelled = static_cast<const std::atomic_bool*>(opaque);
+    return cancelled && cancelled->load(std::memory_order_relaxed);
+}
+
+bool openInput(FormatCtx* format, const QString& path,
+               const std::atomic_bool* cancelled) {
+    format->ctx = avformat_alloc_context();
+    if (!format->ctx) return false;
+    format->ctx->interrupt_callback.callback = interruptIfCancelled;
+    format->ctx->interrupt_callback.opaque = const_cast<std::atomic_bool*>(cancelled);
+
+    // Bounded probing: tags live in headers; a cache-miss sweep over
+    // thousands of files must not deep-probe each one (Codex P2).
+    AVDictionary* opts = nullptr;
+    av_dict_set(&opts, "probesize", "1048576", 0);  // 1 MiB
+    const int rc = avformat_open_input(&format->ctx, path.toUtf8().constData(),
+                                       nullptr, &opts);
+    av_dict_free(&opts);
+    if (rc != 0) return false;
+    format->ctx->max_analyze_duration = AV_TIME_BASE;  // 1 s
+    return avformat_find_stream_info(format->ctx, nullptr) >= 0;
+}
+
 const AVStream* attachedPic(const AVFormatContext* ctx) {
     for (unsigned i = 0; i < ctx->nb_streams; ++i)
         if (ctx->streams[i]->disposition & AV_DISPOSITION_ATTACHED_PIC)
@@ -42,20 +66,10 @@ const AVStream* attachedPic(const AVFormatContext* ctx) {
 
 } // namespace
 
-MediaTrackInfo read(const QString& path) {
+MediaTrackInfo read(const QString& path, const std::atomic_bool* cancelled) {
     MediaTrackInfo info;
     FormatCtx f;
-    // Bounded probing: tags live in headers; a cache-miss sweep over
-    // thousands of files must not deep-probe each one (Codex P2).
-    AVDictionary* opts = nullptr;
-    av_dict_set(&opts, "probesize", "1048576", 0);  // 1 MiB
-    const int rc = avformat_open_input(&f.ctx, path.toUtf8().constData(), nullptr, &opts);
-    av_dict_free(&opts);
-    if (rc != 0)
-        return info;
-    f.ctx->max_analyze_duration = AV_TIME_BASE;     // 1 s
-    if (avformat_find_stream_info(f.ctx, nullptr) < 0)
-        return info;
+    if (!openInput(&f, path, cancelled)) return info;
     // A "valid" track must contain at least one real audio stream.
     const AVStream* audio = nullptr;
     for (unsigned i = 0; i < f.ctx->nb_streams; ++i)
@@ -93,20 +107,9 @@ MediaTrackInfo read(const QString& path) {
     return info;
 }
 
-QByteArray embeddedArt(const QString& path) {
+QByteArray embeddedArt(const QString& path, const std::atomic_bool* cancelled) {
     FormatCtx f;
-    // Same bounded probing as read(): a bulk art pass over a full library
-    // must not deep-probe every file (Codex P2). Attached-pic streams live in
-    // the header, so 1 MiB / 1 s of analysis is ample.
-    AVDictionary* opts = nullptr;
-    av_dict_set(&opts, "probesize", "1048576", 0);  // 1 MiB
-    const int rc = avformat_open_input(&f.ctx, path.toUtf8().constData(), nullptr, &opts);
-    av_dict_free(&opts);
-    if (rc != 0)
-        return {};
-    f.ctx->max_analyze_duration = AV_TIME_BASE;     // 1 s
-    if (avformat_find_stream_info(f.ctx, nullptr) < 0)
-        return {};
+    if (!openInput(&f, path, cancelled)) return {};
     const AVStream* pic = attachedPic(f.ctx);
     if (!pic || pic->attached_pic.size <= 0)
         return {};

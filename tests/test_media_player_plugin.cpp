@@ -6,6 +6,7 @@
 
 #include "core/plugin/HostContext.hpp"
 #include "core/services/IConfigService.hpp"
+#include "plugins/media_player/FolderModel.hpp"
 #include "plugins/media_player/MediaPlayerPlugin.hpp"
 
 using oap::plugins::MediaPlayerPlugin;
@@ -36,6 +37,19 @@ public:
     QHash<QString, QVariant> plugin;
     QStringList writes;
     int saveCount = 0;
+};
+
+class TestableMediaPlayerPlugin final : public MediaPlayerPlugin {
+public:
+    bool ejectRequested = false;
+    bool scanningAtEjectRequest = true;
+
+protected:
+    bool isKnownEjectMount(const QString&) const override { return true; }
+    void requestEjectMount(const QString&) override {
+        ejectRequested = true;
+        scanningAtEjectRequest = libraryScanning();
+    }
 };
 
 QString fixture(const char* name) {
@@ -70,6 +84,7 @@ private slots:
     void transportActionsTakePendingRestoreOwnership();
     void modesPersistWithoutSerializingPartialQueue();
     void shutdownQuiescesScanner();
+    void ejectQuiescesBeforeRequestAndExcludesTargetRoot();
 };
 
 void TestMediaPlayerPlugin::fallbackUsesZeroAndExactTrackUsesSavedPosition() {
@@ -221,6 +236,11 @@ void TestMediaPlayerPlugin::modesPersistWithoutSerializingPartialQueue() {
     QVERIFY(!cfg.writes.contains(QStringLiteral("last_queue")));
     QCOMPARE(cfg.saveCount, savesAfterShuffle + 1);
     plugin.shutdown();
+    // A clean exit without user takeover must retain the raw exact-track
+    // restore, not serialize the filtered fallback queue.
+    QCOMPARE(cfg.media(QStringLiteral("last_queue")).toStringList(), rawQueue);
+    QCOMPARE(cfg.media(QStringLiteral("last_index")).toInt(), 1);
+    QCOMPARE(cfg.media(QStringLiteral("last_position_ms")).toLongLong(), qint64(200));
 }
 
 void TestMediaPlayerPlugin::shutdownQuiescesScanner() {
@@ -240,6 +260,40 @@ void TestMediaPlayerPlugin::shutdownQuiescesScanner() {
     QVERIFY(plugin.libraryScanning());
     plugin.shutdown();
     QVERIFY(!plugin.libraryScanning());
+}
+
+void TestMediaPlayerPlugin::ejectQuiescesBeforeRequestAndExcludesTargetRoot() {
+    QTemporaryDir target;
+    QTemporaryDir survivor;
+    QVERIFY(target.isValid());
+    QVERIFY(survivor.isValid());
+    QVERIFY(QFile::copy(fixture("tone-44k.mp3"),
+                        target.path() + QStringLiteral("/target.mp3")));
+    QVERIFY(QFile::copy(fixture("tone-48k.flac"),
+                        survivor.path() + QStringLiteral("/survivor.flac")));
+
+    FakeConfig cfg;
+    cfg.seed(QStringLiteral("music_dirs"), QStringList{target.path(), survivor.path()});
+    oap::HostContext host;
+    host.setConfigService(&cfg);
+    TestableMediaPlayerPlugin plugin;
+    QVERIFY(plugin.initialize(&host));
+    plugin.rescanLibrary();
+    QVERIFY(plugin.libraryScanning());
+
+    plugin.ejectVolume(target.path());
+    QVERIFY(plugin.ejectRequested);
+    QVERIFY(!plugin.scanningAtEjectRequest);
+
+    auto* folders = qobject_cast<oap::plugins::FolderModel*>(plugin.folderModelObject());
+    QVERIFY(folders);
+    QStringList rootPaths;
+    for (int row = 0; row < folders->rowCount(); ++row)
+        rootPaths.append(folders->data(folders->index(row, 0),
+                                       oap::plugins::FolderModel::PathRole).toString());
+    QVERIFY(!rootPaths.contains(target.path()));
+    QVERIFY(rootPaths.contains(survivor.path()));
+    plugin.shutdown();
 }
 
 QTEST_GUILESS_MAIN(TestMediaPlayerPlugin)

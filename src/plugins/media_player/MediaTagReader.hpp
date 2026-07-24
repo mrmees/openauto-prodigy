@@ -3,6 +3,8 @@
 #include <QByteArray>
 #include <QString>
 
+#include <atomic>
+
 namespace oap {
 namespace plugins {
 
@@ -21,8 +23,10 @@ struct MediaTrackInfo {
 /// attached_pic stream, which ships pre-encoded). Zero new deps: avformat
 /// joins the avcodec/avutil modules the video path already links.
 namespace MediaTagReader {
-MediaTrackInfo read(const QString& path);
-QByteArray embeddedArt(const QString& path);
+MediaTrackInfo read(const QString& path,
+                    const std::atomic_bool* cancelled = nullptr);
+QByteArray embeddedArt(const QString& path,
+                       const std::atomic_bool* cancelled = nullptr);
 }
 
 } // namespace plugins
