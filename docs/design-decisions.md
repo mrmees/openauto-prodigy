@@ -430,7 +430,9 @@ at zero while the raw exact-track restore remains pending. Play/pause, next,
 previous, queue selection, and seek explicitly take transport ownership and
 discard that pending restore. Shuffle/repeat persist at their control boundary;
 a seek persists its bounded requested millisecond value rather than an
-asynchronous player readback.
+asynchronous player readback. Taking transport ownership also immediately
+replaces the pending persisted restore with the visible (or empty) queue, so a
+no-op edge action followed by a power cut cannot resurrect abandoned state.
 
 **Rationale:** Boot-time USB mounting and Qt Multimedia delivery are both
 asynchronous. Treating decode policy as restore ownership can permanently lose

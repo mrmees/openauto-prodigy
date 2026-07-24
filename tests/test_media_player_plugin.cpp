@@ -41,13 +41,13 @@ public:
 
 class TestableMediaPlayerPlugin final : public MediaPlayerPlugin {
 public:
-    bool ejectRequested = false;
+    int ejectRequests = 0;
     bool scanningAtEjectRequest = true;
 
 protected:
     bool isKnownEjectMount(const QString&) const override { return true; }
     void requestEjectMount(const QString&) override {
-        ejectRequested = true;
+        ++ejectRequests;
         scanningAtEjectRequest = libraryScanning();
     }
 };
@@ -83,6 +83,9 @@ private slots:
     void transportActionsTakePendingRestoreOwnership_data();
     void transportActionsTakePendingRestoreOwnership();
     void modesPersistWithoutSerializingPartialQueue();
+    void takeoverPersistsWhenNoTrackOrMovementExists();
+    void invalidSavedIndexIsNormalized_data();
+    void invalidSavedIndexIsNormalized();
     void shutdownQuiescesScanner();
     void ejectQuiescesBeforeRequestAndExcludesTargetRoot();
 };
@@ -243,6 +246,53 @@ void TestMediaPlayerPlugin::modesPersistWithoutSerializingPartialQueue() {
     QCOMPARE(cfg.media(QStringLiteral("last_position_ms")).toLongLong(), qint64(200));
 }
 
+void TestMediaPlayerPlugin::takeoverPersistsWhenNoTrackOrMovementExists() {
+    QTemporaryDir dir;
+    QVERIFY(dir.isValid());
+    const QString missing = dir.path() + QStringLiteral("/missing.mp3");
+    FakeConfig cfg;
+    seedRestore(cfg, {missing}, 0, 700, dir.path());
+    oap::HostContext host;
+    host.setConfigService(&cfg);
+    MediaPlayerPlugin plugin;
+    QVERIFY(plugin.initialize(&host));
+    QVERIFY(!plugin.hasTrack());
+
+    cfg.writes.clear();
+    plugin.next();
+    QCOMPARE(cfg.media(QStringLiteral("last_queue")).toStringList(), QStringList{});
+    QCOMPARE(cfg.media(QStringLiteral("last_index")).toInt(), -1);
+    QCOMPARE(cfg.media(QStringLiteral("last_position_ms")).toLongLong(), qint64(0));
+    QVERIFY(cfg.writes.contains(QStringLiteral("last_queue")));
+    plugin.shutdown();
+}
+
+void TestMediaPlayerPlugin::invalidSavedIndexIsNormalized_data() {
+    QTest::addColumn<int>("savedIndex");
+    QTest::newRow("negative") << -1;
+    QTest::newRow("oversized") << 9;
+}
+
+void TestMediaPlayerPlugin::invalidSavedIndexIsNormalized() {
+    QFETCH(int, savedIndex);
+    QTemporaryDir dir;
+    QVERIFY(dir.isValid());
+    const QString track = dir.path() + QStringLiteral("/track.mp3");
+    QVERIFY(QFile::copy(fixture("tone-44k.mp3"), track));
+    FakeConfig cfg;
+    seedRestore(cfg, {track}, savedIndex, 350, dir.path());
+    oap::HostContext host;
+    host.setConfigService(&cfg);
+    MediaPlayerPlugin plugin;
+    QVERIFY(plugin.initialize(&host));
+    QTRY_COMPARE_WITH_TIMEOUT(plugin.trackTitle(), QStringLiteral("Tone 44"), 10000);
+    QCOMPARE(plugin.trackPosition(), qint64(0));
+    QCOMPARE(cfg.media(QStringLiteral("last_queue")).toStringList(), QStringList{track});
+    QCOMPARE(cfg.media(QStringLiteral("last_index")).toInt(), 0);
+    QCOMPARE(cfg.media(QStringLiteral("last_position_ms")).toLongLong(), qint64(0));
+    plugin.shutdown();
+}
+
 void TestMediaPlayerPlugin::shutdownQuiescesScanner() {
     QTemporaryDir dir;
     QVERIFY(dir.isValid());
@@ -265,15 +315,20 @@ void TestMediaPlayerPlugin::shutdownQuiescesScanner() {
 void TestMediaPlayerPlugin::ejectQuiescesBeforeRequestAndExcludesTargetRoot() {
     QTemporaryDir target;
     QTemporaryDir survivor;
+    QTemporaryDir aliases;
     QVERIFY(target.isValid());
     QVERIFY(survivor.isValid());
+    QVERIFY(aliases.isValid());
     QVERIFY(QFile::copy(fixture("tone-44k.mp3"),
                         target.path() + QStringLiteral("/target.mp3")));
     QVERIFY(QFile::copy(fixture("tone-48k.flac"),
                         survivor.path() + QStringLiteral("/survivor.flac")));
 
+    const QString targetAlias = aliases.path() + QStringLiteral("/target-alias");
+    QVERIFY(QFile::link(target.path(), targetAlias));
+
     FakeConfig cfg;
-    cfg.seed(QStringLiteral("music_dirs"), QStringList{target.path(), survivor.path()});
+    cfg.seed(QStringLiteral("music_dirs"), QStringList{targetAlias, survivor.path()});
     oap::HostContext host;
     host.setConfigService(&cfg);
     TestableMediaPlayerPlugin plugin;
@@ -282,8 +337,10 @@ void TestMediaPlayerPlugin::ejectQuiescesBeforeRequestAndExcludesTargetRoot() {
     QVERIFY(plugin.libraryScanning());
 
     plugin.ejectVolume(target.path());
-    QVERIFY(plugin.ejectRequested);
+    QCOMPARE(plugin.ejectRequests, 1);
     QVERIFY(!plugin.scanningAtEjectRequest);
+    plugin.ejectVolume(target.path());
+    QCOMPARE(plugin.ejectRequests, 1);  // duplicate remains latched
 
     auto* folders = qobject_cast<oap::plugins::FolderModel*>(plugin.folderModelObject());
     QVERIFY(folders);
@@ -291,7 +348,7 @@ void TestMediaPlayerPlugin::ejectQuiescesBeforeRequestAndExcludesTargetRoot() {
     for (int row = 0; row < folders->rowCount(); ++row)
         rootPaths.append(folders->data(folders->index(row, 0),
                                        oap::plugins::FolderModel::PathRole).toString());
-    QVERIFY(!rootPaths.contains(target.path()));
+    QVERIFY(!rootPaths.contains(targetAlias));
     QVERIFY(rootPaths.contains(survivor.path()));
     plugin.shutdown();
 }

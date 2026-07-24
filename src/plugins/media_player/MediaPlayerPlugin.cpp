@@ -419,6 +419,10 @@ void MediaPlayerPlugin::requestEjectMount(const QString& mountPath) {
 
 void MediaPlayerPlugin::ejectVolume(const QString& mountPath) {
     if (mountPath.isEmpty()) return;
+    // One asynchronous UDisks transaction owns this mount until its terminal
+    // callback. A duplicate request could fail first, clear the guard, and
+    // restart scanning while the original unmount is still in flight.
+    if (ejectingMounts_.contains(mountPath)) return;
     // 0. Validate the mount is udisks-managed BEFORE the disruptive purge (Codex
     //    gate re-run P2). Tapping eject on an fstab/NAS mount under /mnt would
     //    otherwise stop playback and clear the queue, then fail the unmount.
@@ -534,11 +538,15 @@ void MediaPlayerPlugin::refreshSources() {
         if (dir.startsWith(QLatin1String("~/")))
             dir = QDir::homePath() + dir.mid(1);
         const QString cleanDir = QDir::cleanPath(dir);
+        const QString canonicalDir = QFileInfo(dir).canonicalFilePath();
         bool belongsToEjectingMount = false;
         for (const QString& mount : std::as_const(ejectingMounts_)) {
             const QString cleanMount = QDir::cleanPath(mount);
-            if (cleanDir == cleanMount
-                || cleanDir.startsWith(cleanMount + QLatin1Char('/'))) {
+            const QString canonicalMount = QFileInfo(mount).canonicalFilePath();
+            const QString& comparedDir = canonicalDir.isEmpty() ? cleanDir : canonicalDir;
+            const QString& comparedMount = canonicalMount.isEmpty() ? cleanMount : canonicalMount;
+            if (comparedDir == comparedMount
+                || comparedDir.startsWith(comparedMount + QLatin1Char('/'))) {
                 belongsToEjectingMount = true;
                 break;
             }
@@ -627,8 +635,17 @@ void MediaPlayerPlugin::persistModes() {
 }
 
 void MediaPlayerPlugin::takeRestoreOwnership() {
+    const bool abandonedPendingRestore = hasPendingRestore_;
     policy_.onUserAction();
     clearPendingRestore();
+    if (abandonedPendingRestore) {
+        // User ownership must survive an immediate power cut even when the
+        // requested transport action is a no-op (empty queue / queue edge).
+        // Force the currently observable fallback, or the empty queue, to
+        // replace the raw pending restore now.
+        queueDirty_ = true;
+        saveState();
+    }
 }
 
 qint64 MediaPlayerPlugin::boundedSeekPosition(qint64 positionMs) const {
@@ -645,8 +662,10 @@ void MediaPlayerPlugin::restoreState() {
 
     const QStringList saved = cfg->pluginValue(kPluginId, QStringLiteral("last_queue")).toStringList();
     if (saved.isEmpty()) return;
-    const QString savedCurrent =
-        saved.value(cfg->pluginValue(kPluginId, QStringLiteral("last_index")).toInt());
+    const int savedIndex =
+        cfg->pluginValue(kPluginId, QStringLiteral("last_index")).toInt();
+    const bool savedIndexValid = savedIndex >= 0 && savedIndex < saved.size();
+    const QString savedCurrent = savedIndexValid ? saved.at(savedIndex) : QString();
     const qint64 pos = cfg->pluginValue(kPluginId, QStringLiteral("last_position_ms")).toLongLong();
 
     // USB volumes mount ASYNCHRONOUSLY after initialize() runs this, so a queue
@@ -655,7 +674,7 @@ void MediaPlayerPlugin::restoreState() {
     // CURRENT path is absent right now, stash the RAW saved state and let
     // volumeMounted retry the restore once its stick appears (Codex gate P1).
     // Stashed regardless of whether the partial restore below proceeds.
-    if (!QFileInfo::exists(savedCurrent)) {
+    if (savedIndexValid && !QFileInfo::exists(savedCurrent)) {
         pendingRestoreQueue_ = saved;
         pendingRestoreCurrent_ = savedCurrent;
         pendingRestorePosMs_ = pos;
@@ -666,9 +685,17 @@ void MediaPlayerPlugin::restoreState() {
     QStringList existing;
     for (const QString& p : saved)
         if (QFileInfo::exists(p)) existing << p;
-    if (existing.isEmpty()) return;
+    if (existing.isEmpty()) {
+        if (!savedIndexValid) {
+            // Repair malformed persistence instead of retaining a pending
+            // restore with an empty exact path that can never complete.
+            queueDirty_ = true;
+            saveState();
+        }
+        return;
+    }
     int startIdx = existing.indexOf(savedCurrent);
-    const bool exactCurrentAvailable = startIdx >= 0;
+    const bool exactCurrentAvailable = savedIndexValid && startIdx >= 0;
     if (!exactCurrentAvailable) startIdx = 0;
     queue_->setTracks(existing, startIdx);
     setHasTrack(true);
@@ -686,6 +713,8 @@ void MediaPlayerPlugin::restoreState() {
     // is a different observable track and therefore starts at zero.
     const qint64 restorePositionMs = exactCurrentAvailable ? qMax<qint64>(0, pos) : 0;
     engine_->restorePaused(queue_->currentTrack(), restorePositionMs);
+    if (!savedIndexValid)
+        saveState(0);  // persist the defined first-survivor fallback repair
 }
 
 void MediaPlayerPlugin::retryPendingRestore() {

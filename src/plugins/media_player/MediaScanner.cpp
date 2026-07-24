@@ -8,6 +8,7 @@
 #include <QDir>
 #include <QFile>
 #include <QFileInfo>
+#include <QDirIterator>
 #include <QLoggingCategory>
 #include <QSaveFile>
 #include <QSet>
@@ -52,15 +53,19 @@ QDataStream& operator>>(QDataStream& in, MediaTrackInfo& t) {
     return in;
 }
 
-QString sidecarArt(const QString& dir) {        // §8 #3: cover|folder|front.{jpg,png}
+QString sidecarArt(const QString& dir,
+                   const std::function<bool()>& interrupted) {
+    // §8 #3: cover|folder|front.{jpg,png}. Probe the six defined candidates
+    // directly and observe stop() between them; never materialize the whole
+    // removable directory merely to locate a sidecar.
     static const QStringList names = {
         QStringLiteral("cover.jpg"), QStringLiteral("cover.png"),
         QStringLiteral("folder.jpg"), QStringLiteral("folder.png"),
         QStringLiteral("front.jpg"), QStringLiteral("front.png")};
-    const QDir d(dir);
-    for (const QFileInfo& fi : d.entryInfoList(QDir::Files)) {
-        if (names.contains(fi.fileName().toLower()))
-            return fi.absoluteFilePath();
+    for (const QString& name : names) {
+        if (interrupted()) return {};
+        const QFileInfo candidate(QDir(dir).filePath(name));
+        if (candidate.isFile()) return candidate.absoluteFilePath();
     }
     return {};
 }
@@ -233,10 +238,12 @@ void MediaScanner::runScan(const QVector<Root>& roots, ScanOutcome* out,
                 && !canonical.startsWith(canonicalRoot + QLatin1Char('/')))
                 continue;
             visitedDirs.insert(canonical);
-            const QDir dir(dirPath);
-            for (const QFileInfo& fi :
-                 dir.entryInfoList(QDir::Files | QDir::Dirs | QDir::NoDotAndDotDot,
-                                   QDir::Name | QDir::IgnoreCase)) {
+            QDirIterator it(dirPath,
+                            QDir::Files | QDir::Dirs | QDir::NoDotAndDotDot,
+                            QDirIterator::NoIteratorFlags);
+            while (it.hasNext()) {
+                if (checkpoint("entry")) return;
+                const QFileInfo fi = it.nextFileInfo();
                 if (fi.isDir()) pendingDirs.append(fi.absoluteFilePath());
                 else if (exts.contains(fi.suffix().toLower()))
                     files.append(fi.absoluteFilePath());
@@ -309,7 +316,8 @@ void MediaScanner::runScan(const QVector<Root>& roots, ScanOutcome* out,
             }
             if (interrupted()) return;
             if (art.isEmpty()) {
-                art = sidecarArt(QFileInfo(vol[g.value().first()].path).absolutePath());
+                art = sidecarArt(QFileInfo(vol[g.value().first()].path).absolutePath(),
+                                 interrupted);
                 if (interrupted()) return;
             }
             for (int i : g.value()) {

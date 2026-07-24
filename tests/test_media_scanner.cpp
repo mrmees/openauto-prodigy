@@ -223,8 +223,11 @@ private slots:
         QVERIFY(!s.scanning());
     }
 
-    void checkpointsCoverWorkerPhasesAndStopInterruptsInFlightArt() {
+    void checkpointsCoverWorkerPhasesAndStopInterruptsInFlightEntry() {
         QTemporaryDir cache;
+        QSemaphore enteredEntry;
+        QSemaphore releaseEntry;
+        std::atomic_bool blocked{false};
         MediaScanner s;
         s.setCacheDir(cache.path());
         QMutex phaseMutex;
@@ -235,24 +238,26 @@ private slots:
         });
         QCOMPARE(runScan(s, fixtures()).size(), 5);
         for (const QString& expected : {QStringLiteral("root"), QStringLiteral("cache"),
-                                        QStringLiteral("traversal"), QStringLiteral("tags"),
+                                        QStringLiteral("traversal"), QStringLiteral("entry"),
+                                        QStringLiteral("tags"),
                                         QStringLiteral("art"), QStringLiteral("rewrite")})
             QVERIFY2(phases.contains(expected), qPrintable(expected));
 
-        QSemaphore enteredArt;
-        QSemaphore releaseArt;
-        std::atomic_bool blocked{false};
         s.setCheckpointHookForTest([&](const char* phase) {
-            if (qstrcmp(phase, "art") != 0 || blocked.exchange(true)) return;
-            enteredArt.release();
-            releaseArt.acquire();
+            if (qstrcmp(phase, "entry") != 0 || blocked.exchange(true)) return;
+            enteredEntry.release();
+            releaseEntry.acquire();
         });
         QSignalSpy done(&s, &MediaScanner::finished);
         s.scan({rootFor(fixtures())});
-        QVERIFY2(enteredArt.tryAcquire(1, 15000), "scanner never reached art phase");
+        if (!enteredEntry.tryAcquire(1, 15000)) {
+            releaseEntry.release();
+            s.stop();
+            QFAIL("scanner never reached directory-entry phase");
+        }
         std::thread unblocker([&] {
             QThread::msleep(50);
-            releaseArt.release();
+            releaseEntry.release();
         });
         QElapsedTimer elapsed;
         elapsed.start();
