@@ -35,11 +35,19 @@ bash install.sh --list-prebuilt   # just list available prebuilt releases
 
 The installer runs platform checks (OS, architecture, Pi model), installs dependencies, writes config, and enables the systemd service. Release/packaging internals: [docs/reference/release-packaging.md](docs/reference/release-packaging.md).
 
+Source installation must be launched from the complete Git checkout containing
+`install.sh`; piping the script through standard input or copying the script by
+itself is not supported. The checkout can live at any path—the installer builds
+that exact checkout rather than assuming a home-directory location.
+
 ### From source
 
 ```bash
 git clone --recurse-submodules https://github.com/mrmees/openauto-prodigy.git
 cd openauto-prodigy
+bash install.sh --mode source     # complete Pi setup and in-place source build
+
+# Or build manually for development:
 mkdir -p build && cd build
 cmake ..
 cmake --build . -j"$(nproc)"

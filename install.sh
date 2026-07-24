@@ -3,14 +3,14 @@
 # OpenAuto Prodigy — Interactive Install Script
 # Targets: Raspberry Pi OS Trixie (Debian 13) on RPi 4
 #
-# Usage: curl -sSL <url> | bash
-#    or: bash install.sh
+# Usage: bash install.sh
 #    or: bash install.sh --mode prebuilt
 #    or: bash install.sh --list-prebuilt
 #
 set -euo pipefail
 
-# ERR trap is set after TUI detection in main()
+# ERR trap is set after TUI detection in main(). Lifecycle traps are installed
+# before source-mode mutation for both privileged and unprivileged execution.
 
 # Wrap entire script in a block so bash reads it all into memory before
 # executing. This prevents git pull from modifying the script mid-run.
@@ -65,13 +65,21 @@ CYAN='\033[0;36m'
 BOLD='\033[1m'
 NC='\033[0m'
 
-REPO_URL="https://github.com/mrmees/openauto-prodigy.git"
 GITHUB_RELEASES_API="${OAP_GITHUB_API_URL:-https://api.github.com/repos/mrmees/openauto-prodigy/releases?per_page=20}"
 PREBUILT_ASSET_REGEX='^openauto-prodigy-prebuilt-.*-pi4-aarch64\.tar\.gz$'
 LEGACY_PREBUILT_ASSET_REGEX='^openauto-prodigy-prebuilt-.*\.tar\.gz$'
-INSTALL_DIR="$HOME/openauto-prodigy"
+INSTALL_DIR=""
 CONFIG_DIR="$HOME/.openauto"
 SERVICE_NAME="openauto-prodigy"
+
+# Invocation-owned lifecycle state. An owned process-group leader remains
+# unreaped until _wait_owned_command() or installer_cleanup() clears the state,
+# preventing a recycled PID from becoming a cleanup target.
+OWNED_GROUP_LEADER_PID=""
+SUDO_KEEPALIVE_GROUP_PID=""
+CLEANUP_RAN=false
+APP_SERVICE_RESTORE_REQUIRED=false
+APP_SERVICE_STOPPED=false
 
 # Defaults for optional variables (may be overridden by setup_hardware)
 WIFI_IFACE=""
@@ -151,6 +159,194 @@ info()  { echo -e "${BLUE}[INFO]${NC} $*"; _log_aggregate "INFO" "$*"; }
 ok()    { echo -e "${GREEN}[OK]${NC} $*"; _log_aggregate "OK" "$*"; }
 warn()  { echo -e "${YELLOW}[WARN]${NC} $*"; _log_aggregate "WARN" "$*"; }
 fail()  { echo -e "${RED}[FAIL]${NC} $*"; _log_aggregate "FAIL" "$*"; }
+
+source_checkout_error() {
+    fail "Source installation requires install.sh from a complete OpenAuto Prodigy git checkout."
+    echo "Clone the repository, enter that checkout, and run: bash install.sh --mode source" >&2
+    echo "Running from standard input or copying install.sh by itself is not supported." >&2
+}
+
+# Establish the one physical checkout that contains this running script. This
+# is intentionally source-mode-only: release listing and prebuilt selection do
+# not require a local source tree.
+resolve_source_checkout() {
+    local script_source="${BASH_SOURCE[0]:-}"
+    local script_path script_dir checkout_root resolved_root
+
+    if [[ -z "$script_source" ]]; then
+        source_checkout_error
+        return 1
+    fi
+    script_path=$(readlink -f -- "$script_source" 2>/dev/null) || {
+        source_checkout_error
+        return 1
+    }
+    [[ -f "$script_path" ]] || {
+        source_checkout_error
+        return 1
+    }
+    script_dir=$(dirname -- "$script_path")
+    checkout_root=$(git -C "$script_dir" rev-parse --show-toplevel 2>/dev/null) || {
+        source_checkout_error
+        return 1
+    }
+    resolved_root=$(readlink -f -- "$checkout_root" 2>/dev/null) || {
+        source_checkout_error
+        return 1
+    }
+
+    if [[ "$script_path" != "$resolved_root/install.sh" ]] \
+        || [[ ! -f "$resolved_root/CMakeLists.txt" ]] \
+        || [[ ! -f "$resolved_root/src/main.cpp" ]] \
+        || [[ ! -f "$resolved_root/src/CMakeLists.txt" ]] \
+        || [[ ! -f "$resolved_root/libs/prodigy-oaa-protocol/CMakeLists.txt" ]] \
+        || [[ ! -f "$resolved_root/config/systemd/bluetooth-compat.conf" ]] \
+        || [[ ! -f "$resolved_root/web-config/server.py" ]]; then
+        source_checkout_error
+        return 1
+    fi
+
+    INSTALL_DIR="$resolved_root"
+}
+
+_start_owned_command() {
+    local output_path="$1"
+    shift
+
+    if [[ -n "$OWNED_GROUP_LEADER_PID" ]]; then
+        fail "Internal error: an installer-owned command is already active"
+        return 1
+    fi
+
+    # Keep an invocation-owned session leader alive until the command has
+    # finished and any same-session stragglers have been terminated. The
+    # installer therefore never needs to signal a group after reaping its
+    # ownership token.
+    local supervisor='
+        "$@" &
+        command_pid=$!
+        if wait "$command_pid"; then status=0; else status=$?; fi
+        for member in $(ps -o pid= --sid "$$" 2>/dev/null); do
+            [[ "$member" == "$$" ]] || kill -TERM "$member" 2>/dev/null || true
+        done
+        for attempt in {1..20}; do
+            remaining=false
+            for member in $(ps -o pid= --sid "$$" 2>/dev/null); do
+                if [[ "$member" != "$$" ]]; then remaining=true; break; fi
+            done
+            [[ "$remaining" == false ]] && break
+            sleep 0.1
+        done
+        for member in $(ps -o pid= --sid "$$" 2>/dev/null); do
+            [[ "$member" == "$$" ]] || kill -KILL "$member" 2>/dev/null || true
+        done
+        exit "$status"
+    '
+    if [[ -n "$output_path" ]]; then
+        setsid -- bash -c "$supervisor" oap-owned-command "$@" > "$output_path" 2>&1 &
+    else
+        setsid -- bash -c "$supervisor" oap-owned-command "$@" &
+    fi
+    OWNED_GROUP_LEADER_PID=$!
+}
+
+_wait_owned_command() {
+    local leader_pid="$OWNED_GROUP_LEADER_PID"
+    local status
+
+    [[ -n "$leader_pid" ]] || return 0
+    if wait "$leader_pid"; then
+        status=0
+    else
+        status=$?
+    fi
+    # Clear immediately after the owned leader is reaped. Never retain a PID
+    # that the kernel is free to recycle.
+    OWNED_GROUP_LEADER_PID=""
+    return "$status"
+}
+
+_terminate_owned_group() {
+    local state_name="$1"
+    local leader_pid="${!state_name:-}"
+    local attempt
+
+    [[ -n "$leader_pid" ]] || return 0
+    if [[ "$leader_pid" =~ ^[1-9][0-9]*$ ]] && kill -0 "$leader_pid" 2>/dev/null; then
+        kill -TERM -- "-$leader_pid" 2>/dev/null || true
+        for attempt in {1..20}; do
+            kill -0 -- "-$leader_pid" 2>/dev/null || break
+            sleep 0.1
+        done
+        if kill -0 -- "-$leader_pid" 2>/dev/null; then
+            kill -KILL -- "-$leader_pid" 2>/dev/null || true
+        fi
+    fi
+    wait "$leader_pid" 2>/dev/null || true
+    printf -v "$state_name" '%s' ""
+}
+
+restore_source_application() {
+    if [[ "$APP_SERVICE_RESTORE_REQUIRED" != "true" || "$APP_SERVICE_STOPPED" != "true" ]]; then
+        return 0
+    fi
+
+    APP_SERVICE_STOPPED=false
+    if sudo systemctl start "${SERVICE_NAME}.service" >/dev/null 2>&1; then
+        APP_SERVICE_RESTORE_REQUIRED=false
+        return 0
+    fi
+    warn "Could not restore ${SERVICE_NAME}.service; start it manually after checking system logs."
+    return 1
+}
+
+# Best-effort, idempotent cleanup. The caller's status is always returned so a
+# cleanup problem cannot hide the primary command failure or signal.
+installer_cleanup() {
+    local primary_status="${1:-0}"
+
+    if [[ "$CLEANUP_RAN" == "true" ]]; then
+        return "$primary_status"
+    fi
+    CLEANUP_RAN=true
+
+    _terminate_owned_group OWNED_GROUP_LEADER_PID
+    restore_source_application || true
+    _terminate_owned_group SUDO_KEEPALIVE_GROUP_PID
+    rm -f "${SPINNER_LOG:-}" "${AGGREGATE_LOG:-}"
+    tui_cleanup
+    return "$primary_status"
+}
+
+_installer_exit_trap() {
+    local status=$?
+    trap - EXIT INT TERM HUP
+    installer_cleanup "$status" || true
+    exit "$status"
+}
+
+_installer_signal_trap() {
+    local signal_number="$1"
+    exit $((128 + signal_number))
+}
+
+install_lifecycle_traps() {
+    trap '_installer_exit_trap' EXIT
+    trap '_installer_signal_trap 2' INT
+    trap '_installer_signal_trap 15' TERM
+    trap '_installer_signal_trap 1' HUP
+}
+
+prepare_source_rebuild() {
+    if systemctl is-active --quiet "${SERVICE_NAME}.service"; then
+        info "Stopping ${SERVICE_NAME}.service for the in-place rebuild..."
+        # Set restoration intent before invoking stop so an interrupt in the
+        # narrow systemctl boundary still preserves the entry-active state.
+        APP_SERVICE_RESTORE_REQUIRED=true
+        APP_SERVICE_STOPPED=true
+        sudo systemctl stop "${SERVICE_NAME}.service"
+    fi
+}
 
 # Detect terminal capabilities and set layout
 detect_terminal() {
@@ -417,16 +613,20 @@ run_with_spinner() {
 
     if [[ "$VERBOSE" == "true" ]]; then
         info "$label"
-        "$@"
-        return $?
+        _start_owned_command "" "$@"
+        if _wait_owned_command; then
+            return 0
+        else
+            return $?
+        fi
     fi
 
     SPINNER_LOG=$(mktemp /tmp/oap-install-XXXXXX.log)
     local start_time=$SECONDS
     local char_count=${#SPINNER_CHARS}
 
-    "$@" > "$SPINNER_LOG" 2>&1 &
-    local cmd_pid=$!
+    _start_owned_command "$SPINNER_LOG" "$@"
+    local cmd_pid="$OWNED_GROUP_LEADER_PID"
 
     if [[ "$TUI_MODE" == "true" ]]; then
         tput civis 2>/dev/null || true
@@ -457,8 +657,12 @@ run_with_spinner() {
         done
     fi
 
-    wait "$cmd_pid"
-    local exit_code=$?
+    local exit_code
+    if _wait_owned_command; then
+        exit_code=0
+    else
+        exit_code=$?
+    fi
     local elapsed=$((SECONDS - start_time))
 
     # Append to aggregate log
@@ -496,8 +700,12 @@ build_with_progress() {
 
     if [[ "$VERBOSE" == "true" ]]; then
         info "$label"
-        "$@"
-        return $?
+        _start_owned_command "" "$@"
+        if _wait_owned_command; then
+            return 0
+        else
+            return $?
+        fi
     fi
 
     SPINNER_LOG=$(mktemp /tmp/oap-build-XXXXXX.log)
@@ -505,8 +713,8 @@ build_with_progress() {
     local char_count=${#SPINNER_CHARS}
     local last_pct=""
 
-    "$@" > "$SPINNER_LOG" 2>&1 &
-    local cmd_pid=$!
+    _start_owned_command "$SPINNER_LOG" "$@"
+    local cmd_pid="$OWNED_GROUP_LEADER_PID"
 
     if [[ "$TUI_MODE" == "true" ]]; then
         tput civis 2>/dev/null || true
@@ -543,8 +751,12 @@ build_with_progress() {
         done
     fi
 
-    wait "$cmd_pid"
-    local exit_code=$?
+    local exit_code
+    if _wait_owned_command; then
+        exit_code=0
+    else
+        exit_code=$?
+    fi
     local elapsed=$((SECONDS - start_time))
 
     # Append to aggregate log
@@ -582,9 +794,8 @@ prime_sudo() {
     echo -e "${BLUE}[sudo]${NC} This installer needs sudo for system configuration."
     sudo -v
     # Keepalive loop — refresh sudo every 50s until script exits
-    (while true; do sudo -n -v 2>/dev/null; sleep 50; done) &
-    SUDO_KEEPALIVE_PID=$!
-    trap 'kill $SUDO_KEEPALIVE_PID 2>/dev/null; rm -f "$SPINNER_LOG"; tui_cleanup' EXIT
+    setsid -- bash -c 'while true; do sudo -n -v 2>/dev/null; sleep 50; done' &
+    SUDO_KEEPALIVE_GROUP_PID=$!
 }
 
 fetch_prebuilt_release_rows() {
@@ -1391,6 +1602,11 @@ build_project() {
         fi
         leave_interactive
     fi
+
+    # Preserve the entry state across configure/link mutation. Cleanup holds
+    # the service stopped until the installer finishes and restores it on both
+    # success and every later failure path.
+    prepare_source_rebuild
     mkdir -p build
     cd build
 
@@ -2133,6 +2349,8 @@ main() {
     fi
 
     # Source build flow — full TUI
+    resolve_source_checkout
+    install_lifecycle_traps
     detect_terminal
     trap 'handle_error $LINENO $?' ERR
 
@@ -2188,6 +2406,46 @@ main() {
     rm -f "$AGGREGATE_LOG"
 }
 
-main "$@"
+run_source_lifecycle_test_action() {
+    local action="$1"
+    shift
+
+    case "$action" in
+        resolve-source)
+            resolve_source_checkout
+            printf 'INSTALL_DIR=%s\n' "$INSTALL_DIR"
+            ;;
+        owned-command)
+            install_lifecycle_traps
+            VERBOSE=true
+            run_with_spinner "Lifecycle test command" "$@"
+            ;;
+        cleanup-idempotence)
+            local requested_status="$1"
+            install_lifecycle_traps
+            installer_cleanup "$requested_status" || true
+            installer_cleanup "$requested_status" || true
+            return "$requested_status"
+            ;;
+        service-rebuild)
+            install_lifecycle_traps
+            prepare_source_rebuild
+            "$@"
+            ;;
+        service-skip)
+            install_lifecycle_traps
+            ;;
+        *)
+            echo "Unknown source lifecycle test action: $action" >&2
+            return 2
+            ;;
+    esac
+}
+
+if [[ -n "${OAP_INSTALL_TEST_ACTION:-}" ]]; then
+    run_source_lifecycle_test_action "$OAP_INSTALL_TEST_ACTION" "$@"
+else
+    main "$@"
+fi
 exit
 }

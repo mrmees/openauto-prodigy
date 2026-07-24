@@ -269,6 +269,10 @@ add_test(
     COMMAND python3 ${CMAKE_SOURCE_DIR}/tests/test_install_list_prebuilt.py
 )
 add_test(
+    NAME test_install_source_lifecycle
+    COMMAND python3 ${CMAKE_SOURCE_DIR}/tests/test_install_source_lifecycle.py
+)
+add_test(
     NAME test_ops_install_contracts
     COMMAND python3 ${CMAKE_SOURCE_DIR}/tests/test_ops_install_contracts.py
 )
