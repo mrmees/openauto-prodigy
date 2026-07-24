@@ -4,6 +4,35 @@ Newest entries first.
 
 ---
 
+## 2026-07-24 — PR #35 pre-merge review
+
+**What changed:** nothing — the review confirmed the branch as-is.
+
+**Review adjudication:** zero findings. Verified in depth: the navbar/popup
+generation plumbing (every begin synchronously unregisters old zones, evdev
+callbacks capture their generation and the marshaled slot rejects mismatches,
+so retired geometry cannot fire actions); the deferred plugin-view retirement
+ordering (plugin hook deactivates synchronously, the child QQmlContext
+outlives the dying view, `~PluginModel` drains retirements while its child
+view host is still alive, and drained IDs make leftover queued callbacks
+no-ops); widget-grid invariants (every mutator applies the pending remap
+first, baselines commit only on user mutations with all dashboards forced to
+unified grid dimensions before persisting); and the per-zone/per-slot popup
+press state replacing a lambda-static shared across all zones and fingers.
+Observations without action: one event-loop turn of old/new plugin view
+overlap on switch (new renders on top; retained context keeps the dying
+view's handlers valid by design).
+
+**Verification:** full local build, explicit `openauto-prodigy` target, and
+`ctest --output-on-failure` (all tests) passed on the branch. Physical
+multi-touch, popup switching, and exact navbar-boundary touches remain
+unvalidated on hardware — worth a deliberate poke on the next live drive.
+
+**Next 1-3 steps:** (1) merge PR #35; (2) at the next milestone tag, deploy
+PR #32-#35 together and physically exercise navbar edges and popup switching.
+
+---
+
 ## 2026-07-24 — UI input and widget-grid lifecycle remediation COMPLETE
 
 **What changed:** navbar evdev claims now come from rendered QML geometry, with
