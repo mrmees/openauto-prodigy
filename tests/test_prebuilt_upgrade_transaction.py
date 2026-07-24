@@ -7,9 +7,11 @@ import hashlib
 import os
 import pathlib
 import shutil
+import socket
 import stat
 import subprocess
 import tempfile
+from contextlib import contextmanager
 
 
 REPO_ROOT = pathlib.Path(__file__).resolve().parents[1]
@@ -156,7 +158,13 @@ def make_fake_commands(root: pathlib.Path) -> pathlib.Path:
         "case \"$command\" in\n"
         "  is-active)\n"
         "    [[ ${1:-} == --quiet ]] && shift\n"
-        "    [[ $(cat \"$TEST_STATE_DIR/active/$1\") == active ]]\n"
+        "    state=$(cat \"$TEST_STATE_DIR/active/$1\")\n"
+        "    if [[ ${TEST_ACTIVATE_AFTER_CAPTURE:-} == \"$1\" "
+        "&& ! -e $TEST_STATE_DIR/race-consumed ]]; then\n"
+        "      touch \"$TEST_STATE_DIR/race-consumed\"\n"
+        "      echo active > \"$TEST_STATE_DIR/active/$1\"\n"
+        "    fi\n"
+        "    [[ $state == active ]]\n"
         "    ;;\n"
         "  is-enabled)\n"
         "    state=$(cat \"$TEST_STATE_DIR/enablement/$1\")\n"
@@ -249,6 +257,7 @@ def make_case(
             "TEST_INSTALL_DIR": str(install),
             "TEST_RUNNING_PAYLOAD": str(root / "running-payload"),
             "OAP_PREBUILT_TEST_AUTOSTART": "true",
+            "OAP_PREBUILT_WEB_READY_TIMEOUT_SECONDS": "1",
             "USER": "test-user",
         }
     )
@@ -296,6 +305,26 @@ def run_case(env: dict[str, str], fail_at: str | None = None):
     )
 
 
+@contextmanager
+def listening_web_socket(env: dict[str, str]):
+    listener = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+    listener.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
+    listener.bind(("127.0.0.1", 0))
+    listener.listen(4)
+    env["OAP_PREBUILT_WEB_READY_PORT"] = str(listener.getsockname()[1])
+    try:
+        yield
+    finally:
+        listener.close()
+
+
+def select_unbound_web_port(env: dict[str, str]) -> None:
+    probe = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+    probe.bind(("127.0.0.1", 0))
+    env["OAP_PREBUILT_WEB_READY_PORT"] = str(probe.getsockname()[1])
+    probe.close()
+
+
 def test_failure_rollbacks() -> None:
     initial = {
         "openauto-prodigy.service": True,
@@ -314,7 +343,8 @@ def test_failure_rollbacks() -> None:
         try:
             old_payload = snapshot(install)
             old_external = external_snapshot(units, preflight)
-            result = run_case(env, failure)
+            with listening_web_socket(env):
+                result = run_case(env, failure)
             if result.returncode == 0:
                 raise AssertionError(f"injected failure unexpectedly succeeded: {failure}")
             if snapshot(install) != old_payload:
@@ -351,7 +381,12 @@ def test_success_and_inactive_preservation() -> None:
     ):
         temporary, root, install, units, preflight, states, log, env = make_case(initial)
         try:
-            result = run_case(env)
+            if initial["openauto-prodigy-web.service"]:
+                with listening_web_socket(env):
+                    result = run_case(env)
+            else:
+                select_unbound_web_port(env)
+                result = run_case(env)
             if result.returncode != 0:
                 raise AssertionError(f"successful transaction failed:\n{result.stdout}\n{result.stderr}")
             if (install / "build/src/openauto-prodigy").read_text() != "new-binary\n":
@@ -391,6 +426,56 @@ def test_success_and_inactive_preservation() -> None:
             temporary.cleanup()
 
 
+def test_web_readiness_failure_rolls_back() -> None:
+    initial = {
+        "openauto-prodigy.service": True,
+        "openauto-prodigy-web.service": True,
+        "openauto-system.service": False,
+    }
+    temporary, _, install, units, preflight, states, _, env = make_case(initial)
+    try:
+        old_payload = snapshot(install)
+        old_external = external_snapshot(units, preflight)
+        select_unbound_web_port(env)
+        result = run_case(env)
+        if result.returncode == 0:
+            raise AssertionError("started-but-never-bound web service committed the upgrade")
+        if "Web config socket did not become ready" not in result.stdout:
+            raise AssertionError(f"web readiness failure was not reported: {result.stdout}")
+        if snapshot(install) != old_payload:
+            raise AssertionError("web readiness failure did not restore the prior payload")
+        if external_snapshot(units, preflight) != old_external:
+            raise AssertionError("web readiness failure did not restore external assets")
+        if service_states(states) != initial:
+            raise AssertionError("web readiness failure changed the prior active set")
+        assert_no_transaction_debris(install)
+    finally:
+        temporary.cleanup()
+
+
+def test_inactive_capture_race_is_stopped() -> None:
+    initial = {service: False for service in MANAGED_SERVICES}
+    temporary, _, install, _, _, states, log, env = make_case(initial)
+    try:
+        env["TEST_ACTIVATE_AFTER_CAPTURE"] = "openauto-prodigy-web.service"
+        select_unbound_web_port(env)
+        result = run_case(env)
+        if result.returncode != 0:
+            raise AssertionError(f"inactive-capture race transaction failed: {result.stderr}")
+        if service_states(states) != initial:
+            raise AssertionError("capture/stop race changed the prior inactive set")
+        stops = {
+            line.split(" ", 1)[1]
+            for line in log.read_text().splitlines()
+            if line.startswith("stop ")
+        }
+        if stops != set(MANAGED_SERVICES):
+            raise AssertionError(f"transaction did not stop every managed service: {stops}")
+        assert_no_transaction_debris(install)
+    finally:
+        temporary.cleanup()
+
+
 def test_incomplete_payload_precedes_stop() -> None:
     initial = {
         "openauto-prodigy.service": True,
@@ -419,6 +504,8 @@ def main() -> int:
     test_incomplete_payload_precedes_stop()
     test_failure_rollbacks()
     test_success_and_inactive_preservation()
+    test_web_readiness_failure_rolls_back()
+    test_inactive_capture_race_is_stopped()
     return 0
 
 

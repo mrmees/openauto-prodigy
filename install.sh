@@ -2077,7 +2077,7 @@ After=network.target bluetooth.target
 [Service]
 Type=notify
 User=root
-ExecStart="$systemd_python" "$systemd_sys_dir/openauto_system.py"
+ExecStart=/usr/bin/env -- "$systemd_python" "$systemd_sys_dir/openauto_system.py"
 ExecStopPost=-/usr/sbin/iptables -t nat -D OUTPUT -p tcp -j OPENAUTO_PROXY
 ExecStopPost=-/usr/sbin/iptables -t nat -F OPENAUTO_PROXY
 ExecStopPost=-/usr/sbin/iptables -t nat -X OPENAUTO_PROXY

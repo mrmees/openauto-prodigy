@@ -509,7 +509,7 @@ def assert_canonical_app_startup_assets() -> None:
             raise AssertionError(f"{script.name} retains an inline application preflight")
 
     rendered = []
-    install_root = "/opt/OpenAuto Prodigy 100%"
+    install_root = "/opt/OpenAuto Prodigy 100% \\ path"
     for script in (SOURCE_INSTALLER, PREBUILT_INSTALLER):
         escaper = extract_function(script, "systemd_escape_absolute_path")
         field_escaper = extract_function(script, "systemd_escape_path_field")
@@ -532,22 +532,36 @@ render_application_unit {shlex.quote(str(APP_UNIT_TEMPLATE))} test-user 4242 {sh
     if rendered[0] != rendered[1]:
         raise AssertionError("source and prebuilt installers render different app units")
 
+    escaped_install_root = (
+        install_root.replace("\\", "\\\\")
+        .replace('"', '\\"')
+        .replace("%", "%%")
+        .replace("$", "$$")
+    )
+    escaped_working_root = install_root.replace("%", "%%")
     lines = rendered[0].splitlines()
     for required in (
         "Type=notify",
         "NotifyAccess=main",
-        "After=graphical.target bluetooth.target pipewire.service",
+        "After=graphical.target bluetooth.target",
         "ExecCondition=+/usr/local/bin/openauto-preflight --wayland",
+        "ExecCondition=+/usr/local/bin/openauto-preflight --pipewire",
         "ExecStartPre=+/usr/local/bin/openauto-preflight --system",
-        "WorkingDirectory=/opt/OpenAuto Prodigy 100%%",
-        'ExecStart="/opt/OpenAuto Prodigy 100%%/build/src/openauto-prodigy"',
+        f"WorkingDirectory={escaped_working_root}",
+        f'ExecStart=/usr/bin/env -- "{escaped_install_root}/build/src/openauto-prodigy"',
     ):
         if required not in lines:
             raise AssertionError(f"canonical application unit is missing {required}")
     if lines.index("ExecCondition=+/usr/local/bin/openauto-preflight --wayland") > lines.index(
-        'ExecStart="/opt/OpenAuto Prodigy 100%%/build/src/openauto-prodigy"'
+        f'ExecStart=/usr/bin/env -- "{escaped_install_root}/build/src/openauto-prodigy"'
     ):
         raise AssertionError("Wayland condition runs after the application")
+    if lines.index("ExecCondition=+/usr/local/bin/openauto-preflight --pipewire") > lines.index(
+        f'ExecStart=/usr/bin/env -- "{escaped_install_root}/build/src/openauto-prodigy"'
+    ):
+        raise AssertionError("PipeWire condition runs after the application")
+    if "pipewire.service" in lines:
+        raise AssertionError("application claims a system-manager PipeWire dependency")
 
     systemd_analyze = shutil.which("systemd-analyze")
     if systemd_analyze is None:
@@ -562,7 +576,6 @@ render_application_unit {shlex.quote(str(APP_UNIT_TEMPLATE))} test-user 4242 {sh
             ("graphical.target", "[Unit]\nDescription=Graphical\n"),
             ("sysinit.target", "[Unit]\nDescription=Sysinit\n"),
             ("bluetooth.target", "[Unit]\nDescription=Bluetooth\n"),
-            ("pipewire.service", "[Service]\nExecStart=/bin/true\n"),
             ("openauto-system.service", "[Service]\nExecStart=/bin/true\n"),
         ):
             (unit_dir / name).write_text(body)
@@ -570,6 +583,7 @@ render_application_unit {shlex.quote(str(APP_UNIT_TEMPLATE))} test-user 4242 {sh
             root / "bin/true",
             root / "bin/sh",
             root / "usr/local/bin/openauto-preflight",
+            root / "usr/bin/env",
             root / install_root.removeprefix("/") / "build/src/openauto-prodigy",
         ):
             executable.parent.mkdir(parents=True, exist_ok=True)
@@ -583,8 +597,6 @@ render_application_unit {shlex.quote(str(APP_UNIT_TEMPLATE))} test-user 4242 {sh
         if result.returncode != 0:
             raise AssertionError(f"systemd rejected canonical app unit:\n{result.stderr}")
 
-    escaped_install_root = install_root.replace("%", "%%")
-    escaped_working_root = escaped_install_root
     rendered_web = []
     rendered_system = []
     for script in (SOURCE_INSTALLER, PREBUILT_INSTALLER):
@@ -620,7 +632,8 @@ render_system_service_unit {shlex.quote(str(SYSTEM_UNIT_TEMPLATE))} \
         rendered_system.append(result.stdout)
         system_lines = result.stdout.splitlines()
         for required in (
-            f'ExecStart="{escaped_install_root}/system-service/.venv/bin/python3" '
+            f'ExecStart=/usr/bin/env -- '
+            f'"{escaped_install_root}/system-service/.venv/bin/python3" '
             f'"{escaped_install_root}/system-service/openauto_system.py"',
             f"WorkingDirectory={escaped_working_root}/system-service",
             "Type=notify",
@@ -652,6 +665,7 @@ render_system_service_unit {shlex.quote(str(SYSTEM_UNIT_TEMPLATE))} \
         for executable in (
             root / "bin/true",
             root / "usr/bin/python3",
+            root / "usr/bin/env",
             root / "usr/sbin/iptables",
             root / install_root.removeprefix("/") / "web-config/server.py",
             root

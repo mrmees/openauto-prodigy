@@ -391,6 +391,7 @@ capture_prebuilt_service_state() {
 }
 
 begin_prebuilt_transaction() {
+    local service
     [[ "$PREBUILT_TRANSACTION_STATE" == "staged" ]] || {
         fail "Prebuilt payload was not staged before the stop boundary."
         return 1
@@ -403,12 +404,20 @@ begin_prebuilt_transaction() {
     backup_external_file "$PREFLIGHT_DEST" preflight
 
     PREBUILT_TRANSACTION_STATE="active"
-    [[ "$PREBUILT_WEB_WAS_ACTIVE" == "false" ]] \
-        || sudo systemctl stop "${SERVICE_NAME}-web.service"
-    [[ "$PREBUILT_APP_WAS_ACTIVE" == "false" ]] \
-        || sudo systemctl stop "${SERVICE_NAME}.service"
-    [[ "$PREBUILT_SYSTEM_WAS_ACTIVE" == "false" ]] \
-        || sudo systemctl stop "openauto-system.service"
+    # Stop every managed unit after capturing the entry set. An inactive unit
+    # can be activated between is-active and this boundary (dependency/job
+    # race); conditional stops would then retire files under a live process.
+    for service in "${SERVICE_NAME}-web.service" "${SERVICE_NAME}.service" \
+        "openauto-system.service"; do
+        sudo systemctl stop "$service" 2>/dev/null || true
+    done
+    for service in "${SERVICE_NAME}-web.service" "${SERVICE_NAME}.service" \
+        "openauto-system.service"; do
+        if sudo systemctl is-active --quiet "$service"; then
+            fail "Managed service remained active at the payload retirement boundary: $service"
+            return 1
+        fi
+    done
     prebuilt_transaction_checkpoint after-services-stopped
 }
 
@@ -496,6 +505,35 @@ openauto-system.service $PREBUILT_SYSTEM_WAS_ACTIVE
 ${SERVICE_NAME}.service $PREBUILT_APP_WAS_ACTIVE
 ${SERVICE_NAME}-web.service $PREBUILT_WEB_WAS_ACTIVE
 EOF
+}
+
+wait_prebuilt_web_ready() {
+    local host="${OAP_PREBUILT_WEB_READY_HOST:-127.0.0.1}"
+    local port="${OAP_PREBUILT_WEB_READY_PORT:-8080}"
+    local timeout_seconds="${OAP_PREBUILT_WEB_READY_TIMEOUT_SECONDS:-15}"
+    local deadline
+
+    [[ "$port" =~ ^[0-9]+$ && "$port" -ge 1 && "$port" -le 65535 ]] || port=8080
+    [[ "$timeout_seconds" =~ ^[1-9][0-9]*$ ]] || timeout_seconds=15
+    deadline=$((SECONDS + timeout_seconds))
+    while :; do
+        if python3 - "$host" "$port" >/dev/null 2>&1 <<'PY'
+import socket
+import sys
+
+with socket.create_connection((sys.argv[1], int(sys.argv[2])), timeout=0.5):
+    pass
+PY
+        then
+            ok "Web config socket ready at $host:$port"
+            return 0
+        fi
+        if (( SECONDS >= deadline )); then
+            fail "Web config socket did not become ready at $host:$port after ${timeout_seconds}s"
+            return 1
+        fi
+        sleep 0.2
+    done
 }
 
 clear_prebuilt_service_enablement() {
@@ -616,6 +654,9 @@ commit_prebuilt_transaction() {
     restore_prebuilt_service_state
     prebuilt_transaction_checkpoint after-services-restored
     verify_prebuilt_service_state
+    if [[ "$PREBUILT_WEB_WAS_ACTIVE" == "true" ]]; then
+        wait_prebuilt_web_ready
+    fi
     prebuilt_transaction_checkpoint after-readiness
 
     PREBUILT_TRANSACTION_STATE="committed"
@@ -1184,7 +1225,7 @@ After=network.target bluetooth.target
 [Service]
 Type=notify
 User=root
-ExecStart="$systemd_python" "$systemd_sys_dir/openauto_system.py"
+ExecStart=/usr/bin/env -- "$systemd_python" "$systemd_sys_dir/openauto_system.py"
 ExecStopPost=-/usr/sbin/iptables -t nat -D OUTPUT -p tcp -j OPENAUTO_PROXY
 ExecStopPost=-/usr/sbin/iptables -t nat -F OPENAUTO_PROXY
 ExecStopPost=-/usr/sbin/iptables -t nat -X OPENAUTO_PROXY

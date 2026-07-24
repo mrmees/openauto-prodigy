@@ -135,12 +135,76 @@ def test_wayland_condition(unit_dir: pathlib.Path) -> None:
                 server.close()
 
 
+def test_pipewire_condition(unit_dir: pathlib.Path) -> None:
+    suffix = uuid.uuid4().hex[:12]
+    unit = f"oap-pipewire-condition-{suffix}.service"
+    unit_path = unit_dir / unit
+    with tempfile.TemporaryDirectory(prefix="oap-pipewire-condition-") as tmp:
+        root = pathlib.Path(tmp)
+        runtime = root / "runtime"
+        runtime.mkdir()
+        pipewire_socket = runtime / "pipewire-test"
+        marker = root / "started"
+        helper = root / "notify-service.py"
+        helper.write_text(
+            "#!/usr/bin/env python3\n"
+            "import os, pathlib, signal, socket, sys, time\n"
+            "address = os.environ['NOTIFY_SOCKET']\n"
+            "if address.startswith('@'):\n"
+            "    address = '\\0' + address[1:]\n"
+            "client = socket.socket(socket.AF_UNIX, socket.SOCK_DGRAM)\n"
+            "client.sendto(b'READY=1', address)\n"
+            "pathlib.Path(sys.argv[1]).write_text('started\\n')\n"
+            "signal.signal(signal.SIGTERM, lambda *_: sys.exit(0))\n"
+            "while True: time.sleep(1)\n"
+        )
+        helper.chmod(0o755)
+        unit_path.write_text(
+            "[Unit]\nDescription=PipeWire condition test\n"
+            "[Service]\nType=notify\nNotifyAccess=main\n"
+            f"Environment=XDG_RUNTIME_DIR={runtime}\n"
+            "Environment=OAP_PREFLIGHT_PIPEWIRE_SOCKET_NAME=pipewire-test\n"
+            "Environment=OAP_PREFLIGHT_PIPEWIRE_TIMEOUT_SECONDS=1\n"
+            f"ExecCondition={APP_PREFLIGHT} --pipewire\n"
+            f"ExecStart={helper} {marker}\n"
+            "Restart=on-failure\nRestartSec=1\n"
+        )
+
+        server: socket.socket | None = None
+        try:
+            systemctl("daemon-reload")
+            result = systemctl("start", unit, check=False)
+            if result.returncode != 0:
+                raise AssertionError(f"skipped PipeWire start failed: {result.stderr}")
+            if active(unit) or marker.exists():
+                raise AssertionError("missing PipeWire socket launched the application")
+            if systemctl("is-failed", "--quiet", unit, check=False).returncode == 0:
+                raise AssertionError("missing PipeWire socket marked the unit failed")
+            restarts = systemctl("show", "--property=NRestarts", "--value", unit)
+            if restarts.stdout.strip() not in ("", "0"):
+                raise AssertionError("missing PipeWire socket entered a restart loop")
+
+            server = socket.socket(socket.AF_UNIX, socket.SOCK_STREAM)
+            server.bind(str(pipewire_socket))
+            server.listen(1)
+            systemctl("start", unit)
+            wait_active_pid(unit)
+            wait_for(marker.exists, "PipeWire-conditioned helper to start")
+        finally:
+            systemctl("stop", unit, check=False)
+            systemctl("reset-failed", unit, check=False)
+            unit_path.unlink(missing_ok=True)
+            systemctl("daemon-reload", check=False)
+            if server is not None:
+                server.close()
+
+
 def test_quoted_percent_paths(unit_dir: pathlib.Path) -> None:
     suffix = uuid.uuid4().hex[:12]
     unit = f"oap-quoted-path-{suffix}.service"
     unit_path = unit_dir / unit
     with tempfile.TemporaryDirectory(prefix="oap-systemd-path-") as tmp:
-        service_root = pathlib.Path(tmp) / "OpenAuto Prodigy 100%"
+        service_root = pathlib.Path(tmp) / "OpenAuto Prodigy 100% \\ path"
         service_root.mkdir()
         marker = service_root / "started 50%.txt"
         helper = service_root / "notify service 100%"
@@ -159,16 +223,22 @@ def test_quoted_percent_paths(unit_dir: pathlib.Path) -> None:
         helper.chmod(0o755)
 
         def systemd_command_path(path: pathlib.Path) -> str:
-            return str(path).replace("%", "%%")
+            return (
+                str(path)
+                .replace("\\", "\\\\")
+                .replace('"', '\\"')
+                .replace("%", "%%")
+                .replace("$", "$$")
+            )
 
         def systemd_field_path(path: pathlib.Path) -> str:
-            return systemd_command_path(path)
+            return str(path).replace("%", "%%")
 
         unit_path.write_text(
             "[Unit]\nDescription=Quoted path rendering test\n"
             "[Service]\nType=notify\nNotifyAccess=main\n"
             f"WorkingDirectory={systemd_field_path(service_root)}\n"
-            f'ExecStart="{systemd_command_path(helper)}" '
+            f'ExecStart=/usr/bin/env -- "{systemd_command_path(helper)}" '
             f'"{systemd_command_path(marker)}"\n'
         )
         try:
@@ -211,6 +281,7 @@ def main() -> int:
     unit_dir = runtime_dir / "systemd/user"
     unit_dir.mkdir(parents=True, exist_ok=True)
     test_wayland_condition(unit_dir)
+    test_pipewire_condition(unit_dir)
     test_quoted_percent_paths(unit_dir)
 
     suffix = uuid.uuid4().hex[:12]
