@@ -1,6 +1,6 @@
 # UI Input and Widget-Grid Lifecycle Remediation — Design
 
-Status: ACTIVE
+Status: COMPLETED 2026-07-24
 Date: 2026-07-24
 Grounded against: `origin/main` at `7ac241596073cc9d6909832644e653272bbc4797`
 

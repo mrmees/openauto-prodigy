@@ -1,8 +1,8 @@
 # UI Input and Widget-Grid Lifecycle Remediation — Implementation Plan
 
-Status: ACTIVE
+Status: COMPLETED 2026-07-24
 Date: 2026-07-24
-Design: `docs/plans/2026-07-24-ui-input-widget-grid-lifecycle-remediation-design.md`
+Design: `docs/archive/plans/2026-07-24-ui-input-widget-grid-lifecycle-remediation-design.md`
 Base: `origin/main` at `7ac241596073cc9d6909832644e653272bbc4797`
 Branch: `agent/ui-input-widget-grid-lifecycle-remediation`
 

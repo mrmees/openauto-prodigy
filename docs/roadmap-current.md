@@ -14,17 +14,26 @@ Governance: capture new ideas in `docs/wishlist.md`; only promoted items should 
 
 ## Now
 
-UI input and widget-grid lifecycle remediation — **ACTIVE**. This bounded wave
-aligns evdev navbar claims with rendered QML geometry, gives touches and popup
-generations explicit ownership, keeps every retained widget placement reachable
-through remap and page cleanup, and makes plugin-view and screen-DPI lifetimes
-event-loop safe. It does not redesign the UI or change Android Auto input,
-protocol, API, YAML schema, audio, HFP, or Bluetooth behavior. Design and plan:
-`docs/plans/2026-07-24-ui-input-widget-grid-lifecycle-remediation-design.md`
-and
-`docs/plans/2026-07-24-ui-input-widget-grid-lifecycle-remediation-plan.md`.
+No implementation tranche is active. The next consolidated audit wave must be
+revalidated and promoted through a bounded design and plan before activation.
 
 ## Done (recent)
+
+- UI input and widget-grid lifecycle remediation — **COMPLETE 2026-07-24**
+  (Pi-live-validated). Navbar evdev claims now follow rendered 20/60/20 QML
+  geometry with explicit touch-slot and popup-generation ownership. Widget
+  remaps keep retained placements and reserved pages reachable, apply pending
+  remaps before edits, and persist page/dimension baselines across restarts.
+  Plugin deactivation is ordered ahead of replacement activation while its QML
+  view and context retire safely after the current dispatch; one owner also
+  replaces screen-DPI connections. Two review passes returned three findings
+  each; all six were confirmed and fixed, with none dismissed. The deployed
+  shell and dashboard were live-validated before wireless H.265 re-entry; one
+  responsive process remained, hostapd and Bluetooth were unchanged with zero
+  restarts, and the exact original configuration was restored. Design and plan:
+  `docs/archive/plans/2026-07-24-ui-input-widget-grid-lifecycle-remediation-design.md`
+  and
+  `docs/archive/plans/2026-07-24-ui-input-widget-grid-lifecycle-remediation-plan.md`.
 
 - Audio and equalizer real-time safety remediation — **COMPLETE 2026-07-23**
   (Pi-live-validated). The audio ring and PipeWire ingestion paths now have
