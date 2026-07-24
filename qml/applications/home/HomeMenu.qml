@@ -121,7 +121,7 @@ Item {
             var currentPage = pageView.currentIndex
             Qt.callLater(function() {
                 for (var i = WidgetGridModel.pageCount - 1; i > 0; i--) {
-                    if (i !== currentPage && WidgetGridModel.widgetCountOnPage(i) === 0) {
+                    if (i !== currentPage && WidgetGridModel.totalWidgetCountOnPage(i) === 0) {
                         WidgetGridModel.removePage(i)
                     }
                 }
@@ -240,10 +240,10 @@ Item {
             var meta = WidgetGridModel.widgetMeta(homeScreen.selectedInstanceId)
             if (meta.isSingleton) return
             var deletedPage = WidgetGridModel.activePage
-            var widgetCountBefore = WidgetGridModel.widgetCountOnPage(deletedPage)
             WidgetGridModel.removeWidget(homeScreen.selectedInstanceId)
             // PGM-04: if that was the last widget on this page, auto-delete the page
-            if (widgetCountBefore === 1 && deletedPage > 0) {
+            // Query after removal because it first applies any deferred dimension remap.
+            if (deletedPage > 0 && WidgetGridModel.totalWidgetCountOnPage(deletedPage) === 0) {
                 homeScreen._addingPage = true  // prevent deselect side-effect from page change
                 pageView.setCurrentIndex(deletedPage - 1)
                 homeScreen._addingPage = false

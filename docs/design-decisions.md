@@ -255,11 +255,42 @@ unknown extension categories after them without rejecting them.
 
 **Rationale:** Hiding widgets would make them disappear silently — users would think they were deleted. Clamping preserves the widget at a reduced size, maximizing visibility. The original span is stored in `basePlacements_` and restored if the grid grows back.
 
+### Remap Keeps Every Placement on a Reachable Page
+
+**Decision:** A remap spill grows `pageCount` before publishing the changed
+placements. Pages containing singleton launchers remain the trailing reserved
+pages; spill pages are inserted logically before them. Loaded placements also
+expand a stale persisted page count, and negative loaded page values normalize
+to the first page.
+
+**Rationale:** A placement outside `0 <= page < pageCount` cannot be reached by
+the dashboard pager and can later be mistaken for abandoned state. Growing the
+model-owned page range at the placement boundary keeps navigation and YAML
+persistence consistent without adding consumer-side correction.
+
+### Hidden Placements Remain Page Occupants
+
+**Decision:** The model exposes visible widget count separately from total
+retained placement count. Destructive empty-page cleanup uses the total count,
+including placements temporarily hidden because their minimum span does not fit
+the current grid.
+
+**Rationale:** Visibility is a presentation result of the current dimensions,
+not placement ownership. Retaining the page allows the hidden widget to become
+visible again when the grid grows instead of deleting it as collateral cleanup.
+
 ### promoteToBase() on Every Mutation
 
-**Decision:** After every user edit (move, resize, add, remove, opacity change), `promoteToBase()` copies `livePlacements_` to `basePlacements_`.
+**Decision:** Before a selected-widget dimension remap and user mutation can
+overlap, the pending remap is applied. After every user edit (move, either
+resize path, add, remove, opacity, or configuration change), `promoteToBase()`
+copies `livePlacements_` to `basePlacements_`.
 
-**Rationale:** Remap derives its output from `basePlacements_`, so base must always reflect the latest user intent. Without this, a remap triggered by a resize would revert to an older base state, discarding the user's recent edits. The copy is cheap (small QList of POD-like structs).
+**Rationale:** Remap derives its output from `basePlacements_`, so base must
+always reflect the latest user intent in one coordinate system. Applying a
+queued remap first prevents an edit from promoting stale coordinates under the
+new dimensions. Without this, a later resize can revert or displace recent
+edits. The copy is cheap (small QList of POD-like structs).
 
 ### Base/Live Snapshot Pattern
 
@@ -271,7 +302,11 @@ unknown extension categories after them without rejecting them.
 
 **Decision:** Whether a page is "reserved" (protected from deletion) is derived from `pageHasSingleton()` at runtime, not stored as an explicit page flag.
 
-**Rationale:** Derived state is more robust than stored state. If a singleton widget is moved to a different page, the reservation follows it automatically. A stored flag would require synchronization logic to track widget moves.
+**Rationale:** Derived state is more robust than stored state. If a singleton
+widget is moved to a different page, the reservation follows it automatically.
+A stored flag would require synchronization logic to track widget moves. When
+spill expands the dashboard, reserved pages retain their relative order at the
+end of the reachable page range.
 
 ### Fixed instanceIds for Seeded Singletons
 

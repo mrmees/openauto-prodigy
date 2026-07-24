@@ -437,8 +437,17 @@ Common patterns:
 
 When grid dimensions change, the system proportionally remaps positions while
 preserving spans. It clamps positions, nudges overlaps, and can spill a widget
-to a later page. A placement whose minimum span is larger than the entire grid
-is retained but marked invisible.
+to a later page. Spill expands the dashboard page count before the placement is
+published, so every placement remains navigable; singleton launcher pages stay
+at the trailing reserved end of the page range.
+
+A placement whose minimum span is larger than the entire grid is retained but
+marked invisible. It still occupies its page for cleanup purposes and becomes
+visible again when the grid can contain it. If dimensions change while a widget
+is selected, the model defers remapping until deselection or the next placement
+edit. Move, resize, opacity, configuration, and removal operations first apply
+that pending remap, so persisted edits never mix old placement coordinates with
+new grid dimensions.
 
 ---
 

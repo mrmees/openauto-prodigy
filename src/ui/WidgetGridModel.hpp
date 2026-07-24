@@ -74,6 +74,7 @@ public:
     Q_INVOKABLE bool removePage(int page);
     Q_INVOKABLE void removeAllWidgetsOnPage(int page);
     Q_INVOKABLE int widgetCountOnPage(int page) const;
+    Q_INVOKABLE int totalWidgetCountOnPage(int page) const;
     Q_INVOKABLE bool isReservedPage(int page) const;
 
     int activePage() const;
@@ -130,7 +131,9 @@ private:
     QVariantMap validateConfig(const QString& widgetId, const QVariantMap& raw) const;
 
     // After user edit: promote live state to new base
+    void applyPendingRemap();
     void promoteToBase();
+    bool expandPageCountForPlacements(const QList<GridPlacement>& placements);
 
     WidgetRegistry* registry_;
     QList<GridPlacement> livePlacements_;
