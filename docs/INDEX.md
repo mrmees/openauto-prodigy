@@ -2,8 +2,8 @@
 
 ## Active Plans
 
-- None. The next bounded wave requires revalidation and approval before it
-  becomes active guidance.
+- [Installer and deployment lifecycle remediation design](plans/2026-07-24-installer-deployment-lifecycle-remediation-design.md)
+- [Installer and deployment lifecycle remediation implementation plan](plans/2026-07-24-installer-deployment-lifecycle-remediation-plan.md)
 
 ## Start Here
 
@@ -55,7 +55,8 @@ Protocol definitions and generic reference docs are in [open-android-auto](https
 
 Active plans:
 
-- None.
+- [2026-07-24-installer-deployment-lifecycle-remediation-design.md](plans/2026-07-24-installer-deployment-lifecycle-remediation-design.md) — approved final-wave design for source ownership, shared hardware/startup contracts, recoverable upgrades, and Xvfb ownership
+- [2026-07-24-installer-deployment-lifecycle-remediation-plan.md](plans/2026-07-24-installer-deployment-lifecycle-remediation-plan.md) — six-task tiered implementation, verification, live-validation, closure, and draft-publication plan
 
 Parked plans (not current guidance):
 

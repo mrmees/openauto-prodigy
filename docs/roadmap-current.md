@@ -14,9 +14,15 @@ Governance: capture new ideas in `docs/wishlist.md`; only promoted items should 
 
 ## Now
 
-No implementation tranche is active. The remaining audit-remediation work is a
-final bounded installer and deployment lifecycle wave; it must be revalidated
-and receive its own approved design and plan before implementation begins.
+Installer and deployment lifecycle remediation — **ACTIVE**. The final bounded
+audit-remediation wave owns source-checkout and child-process lifetimes, shared
+hardware/network detection, canonical preflight and application units,
+recoverable prebuilt payload swaps, and Xvfb launch ownership. It does not
+change application, Android Auto, Bluetooth, HFP, QML, or API behavior. Design
+and plan:
+`docs/plans/2026-07-24-installer-deployment-lifecycle-remediation-design.md`
+and
+`docs/plans/2026-07-24-installer-deployment-lifecycle-remediation-plan.md`.
 
 ## Done (recent)
 
